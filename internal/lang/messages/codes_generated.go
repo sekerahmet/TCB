@@ -285,6 +285,7 @@ const (
 	H2518 Code = 2518 // '{receiver}.{member}()' TR'de yok; '{fn}({receiver})' yazın
 	H2519 Code = 2519 // {error}; {defer} içinde de hata: {deferred}
 	H2520 Code = 2520 // Koddaki kesme noktası ({keyword})
+	H2521 Code = 2521 // JSON tam sayısı {token|q} Tam aralığının (64 bit işaretli) dışında; ondalık olarak yazın (ör. 1e30)
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}
