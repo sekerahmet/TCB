@@ -1,0 +1,12 @@
+// Hata 09 — Bilinmeyen adlı argüman.
+// İleti kodu: H2410
+// Ne olur: Çağrıda fonksiyonun almadığı bir parametre adı kullanılırsa çalışma anında hata alınır.
+// Neden: selam() 'ad' adında bir parametre alır; 'isim' yazıldı.
+// Düzeltilmiş hâli:
+//     yazdır(selam(ad: "Ali"))
+// Çalıştırma (proje kökünden): tr examples/tr/hatalar/09_bilinmeyen_adli_arguman.tr   (çıkış kodu 1)
+
+fonksiyon selam(ad) {
+    sonuç "Selam {ad}"
+}
+yazdır(selam(isim: "Ali"))

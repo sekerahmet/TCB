@@ -1,0 +1,9 @@
+// Hata 02 — Ad bekleniyordu.
+// İleti kodu: H0100
+// Ne olur: Program hiç çalışmaz; ileti, bir ad beklenirken başka bir şey bulunduğunu söyler.
+// Neden: değişken'den sonra tanımlanacak değişkenin adı gelmelidir.
+// Düzeltilmiş hâli:
+//     değişken sayı = 5
+// Çalıştırma (proje kökünden): tr examples/tr/hatalar/02_sozdizimi_ad_bekleniyor.tr   (çıkış kodu 1)
+
+değişken = 5

@@ -1,0 +1,13 @@
+//! tr kodlu 1
+// Error 06 — Changing a constant.
+// Message code: H1002
+// What happens: The type checker catches, before the program runs, that a constant is assigned a second time.
+// Why: A const is assigned once and never changes.
+// Fixed version:
+//     var vat = 18
+//     vat = 20 // use a variable, not a constant, if it has to change
+// Run (from the project root): tr examples/en/errors/06_changing_a_constant.tr   (exit code 1)
+
+A031 VAT = 18
+VAT = 20
+G100(VAT)

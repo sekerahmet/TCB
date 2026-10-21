@@ -1,0 +1,10 @@
+// Hata 21 — Tensör şekil uyuşmazlığı.
+// İleti kodu: H6126
+// Ne olur: Şekilleri uymayan iki tensör matris çarpımına girerse çalışma anında hata alınır; ileti şekilleri gösterir.
+// Neden: [1, 2] @ [1, 2]: soldakinin son ekseni (2) sağdakinin sondan ikinci ekseniyle (1) eşit olmalı.
+// Düzeltilmiş hâli:
+//     yazdır(a @ a.devrik()) // [1, 2] @ [2, 1] geçerlidir
+// Çalıştırma (proje kökünden): tr examples/tr/hatalar/21_tensor_sekil.tr   (çıkış kodu 1)
+
+değişken a = tensör([[1.0, 2.0]])
+yazdır(a @ a)

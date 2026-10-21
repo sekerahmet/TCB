@@ -18,6 +18,9 @@ import (
 // Türkçe dosya düz Türkçe, İngilizce dosya kodlu saklanır (17.7: başka dilde yazılan metin
 // yalnızca kodlanarak saklanır; `tr göster --dil en` onu İngilizce gösterir).
 
+// errorsDir hata örneklerinin klasör adıdır (behavior_example_errors_test.go).
+var errorsDir = map[string]string{"tr": "hatalar", "en": "errors"}
+
 var exampleNumber = regexp.MustCompile(`^(\d\d)_[a-z0-9_]+\.tr$`)
 
 // exampleFiles bir yazım klasöründeki örnekleri numarasıyla verir ("01" → "01_hello.tr").
@@ -30,8 +33,8 @@ func exampleFiles(t *testing.T, lang string) map[string]string {
 	out := map[string]string{}
 	for _, e := range entries {
 		if e.IsDir() {
-			if e.Name() != "helpers" {
-				t.Errorf("examples/%s/%s: yalnızca helpers/ klasörü olabilir", lang, e.Name())
+			if e.Name() != "helpers" && e.Name() != errorsDir[lang] {
+				t.Errorf("examples/%s/%s: yalnızca helpers/ ve %s/ klasörleri olabilir", lang, e.Name(), errorsDir[lang])
 			}
 			continue
 		}

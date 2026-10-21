@@ -64,4 +64,4 @@ Hata ayıklayıcı komutları ([40](tr/40_hata_ayiklama.tr) ve [41](tr/41_hata_a
 
 ## Hata örnekleri
 
-[`tr/hatalar/`](tr/hatalar/) (ve [`en/hatalar/`](en/hatalar/)) sık yapılan hataları tek tek gösterir: her dosya bir hatayı bilerek yapar, yorumunda nedenini ve düzeltilmiş hâlini söyler. Bu dosyalar çıkış koduyla biter; testler iletinin kodunu (`H…`) ve çıkış kodunu sınar.
+[`tr/hatalar/`](tr/hatalar/) (ve [`en/errors/`](en/errors/)) sık yapılan hataları tek tek gösterir: her dosya bir hatayı bilerek yapar, yorumunda nedenini ve düzeltilmiş hâlini söyler. Bu dosyalar çıkış koduyla biter; testler iletinin kodunu (`H…`) ve çıkış kodunu sınar.

@@ -1,0 +1,13 @@
+//! tr kodlu 1
+// Error 08 — Missing argument.
+// Message code: H2414
+// What happens: While the program runs, a call with a missing argument raises an error that names it.
+// Why: add() wants two parameters but one was given.
+// Fixed version:
+//     print(add(1, 2)) // or: func add(a, b = 0)
+// Run (from the project root): tr examples/en/errors/08_missing_argument.tr   (exit code 1)
+
+A020 add(a, b) {
+    A021 a + b
+}
+G100(add(1))

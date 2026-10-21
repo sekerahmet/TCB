@@ -28,4 +28,4 @@ G100(G201(user), user ?? "Guest")
 
 // --- Try it yourself ---
 // 1. What do type(2 ** 10) and type(2 ** 0.5) print? Guess first, then run it.
-// 2. Try writing "12" + 1 (it fails), then write int("12") + 1.
+// 2. Compare the results of "12" + 1 and int("12") + 1: one joins text, the other adds numbers.

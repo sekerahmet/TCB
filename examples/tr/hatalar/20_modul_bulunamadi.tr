@@ -1,0 +1,9 @@
+// Hata 20 — Modül bulunamadı.
+// İleti kodu: H2112
+// Ne olur: aktar ile olmayan bir dosya içe alınırsa çalışma anında hata alınır.
+// Neden: Modül yolu, aktaran dosyanın klasörüne göre çözülür; dosya orada yok.
+// Düzeltilmiş hâli:
+//     aktar "helpers/geometri" // modül dosyası bu yolda gerçekten var
+// Çalıştırma (proje kökünden): tr examples/tr/hatalar/20_modul_bulunamadi.tr   (çıkış kodu 1)
+
+aktar "olmayan_modul"

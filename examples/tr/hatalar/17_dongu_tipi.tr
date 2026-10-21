@@ -1,0 +1,13 @@
+// Hata 17 — Gezilemeyen değer.
+// İleti kodu: H2443
+// Ne olur: Gezilemeyen bir değer üzerinde döngü kurulursa çalışma anında hata alınır.
+// Neden: 5 bir sayıdır; döngü bir liste, aralık, sözlük ya da metin ister.
+// Düzeltilmiş hâli:
+//     döngü x içinde 0..5 {
+//         yazdır(x)
+//     }
+// Çalıştırma (proje kökünden): tr examples/tr/hatalar/17_dongu_tipi.tr   (çıkış kodu 1)
+
+döngü x içinde 5 {
+    yazdır(x)
+}

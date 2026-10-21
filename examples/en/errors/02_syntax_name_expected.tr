@@ -1,0 +1,10 @@
+//! tr kodlu 1
+// Error 02 — A name was expected.
+// Message code: H0100
+// What happens: The program does not run at all; the message says that something else was found where a name was expected.
+// Why: After var the name of the variable to define must follow.
+// Fixed version:
+//     var number = 5
+// Run (from the project root): tr examples/en/errors/02_syntax_name_expected.tr   (exit code 1)
+
+A030 = 5

@@ -1,0 +1,10 @@
+// Hata 05 — Tip uyuşmazlığı.
+// İleti kodu: H1001
+// Ne olur: Tip denetimi, tipi bildirilmiş bir değişkene başka tipte değer atandığını program çalışmadan yakalar.
+// Neden: yaş: Tam diye bildirildi ama bir Metin atandı.
+// Düzeltilmiş hâli:
+//     değişken yaş: Tam = 30
+// Çalıştırma (proje kökünden): tr examples/tr/hatalar/05_tip_uyusmazligi.tr   (çıkış kodu 1)
+
+değişken yaş: Tam = "otuz"
+yazdır(yaş)

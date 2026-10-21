@@ -284,7 +284,8 @@ for mode in $modes; do
 			summarize "tr test tests" "$TR" test tests
 			summarize "tr test lib" "$TR" test lib
 			# Örnekler öğrenme yoludur: standart biçimde olmalı (iki yazım da; kodlu dosya kodlu biçimlenir).
-			summarize "tr biçimle --kontrol examples" "$TR" biçimle --kontrol examples
+			# Hata örnekleri (hatalar/, errors/) bilerek bozuktur ve biçimlenmez; yalnızca numaralı örnekler ve yardımcılar.
+			summarize "tr biçimle --kontrol examples" "$TR" biçimle --kontrol examples/tr/[0-9]*.tr examples/tr/helpers examples/en/[0-9]*.tr examples/en/helpers
 			run_examples
 			[ "$mode" = v3 ] || extension_tests
 		else

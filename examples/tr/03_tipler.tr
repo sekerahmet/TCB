@@ -27,4 +27,4 @@ yazdır(tip(kullanıcı), kullanıcı ?? "Misafir")
 
 // --- Kendin dene ---
 // 1. tip(2 ** 10) ve tip(2 ** 0.5) ne yazar? Önce tahmin et, sonra çalıştır.
-// 2. "12" + 1 yazmayı dene (hata verir), sonra tam("12") + 1 yaz.
+// 2. "12" + 1 ile tam("12") + 1 sonuçlarını karşılaştır: biri metin birleştirir, öbürü sayı toplar.

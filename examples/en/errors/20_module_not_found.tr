@@ -1,0 +1,10 @@
+//! tr kodlu 1
+// Error 20 — Module not found.
+// Message code: H2112
+// What happens: Importing a file that does not exist with import raises an error at run time.
+// Why: The module path is resolved against the folder of the importing file; the file is not there.
+// Fixed version:
+//     import "helpers/geometry" // the module file really exists at this path
+// Run (from the project root): tr examples/en/errors/20_module_not_found.tr   (exit code 1)
+
+A070 "missing_module"

@@ -1,0 +1,14 @@
+//! tr kodlu 1
+// Error 17 — A value that cannot be walked.
+// Message code: H2443
+// What happens: Building a loop over a value that cannot be walked raises an error at run time.
+// Why: 5 is a number; a loop wants a list, range, dict or text.
+// Fixed version:
+//     for x in 0..5 {
+//         print(x)
+//     }
+// Run (from the project root): tr examples/en/errors/17_loop_over_wrong_type.tr   (exit code 1)
+
+A010 x A011 5 {
+    G100(x)
+}

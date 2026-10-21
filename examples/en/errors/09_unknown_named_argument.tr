@@ -1,0 +1,13 @@
+//! tr kodlu 1
+// Error 09 — Unknown named argument.
+// Message code: H2410
+// What happens: If a call uses a parameter name the function does not take, an error is raised at run time.
+// Why: greet() takes a parameter called who; 'name' was written.
+// Fixed version:
+//     print(greet(who: "Ali"))
+// Run (from the project root): tr examples/en/errors/09_unknown_named_argument.tr   (exit code 1)
+
+A020 greet(who) {
+    A021 "Hi {who}"
+}
+G100(greet(name: "Ali"))
