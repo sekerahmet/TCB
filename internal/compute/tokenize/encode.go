@@ -164,14 +164,11 @@ func (p *Tokenizer) Decode(idList []int, skipSpecial bool) string {
 	if p.decoder == nil {
 		return strings.Join(tokenList, " ")
 	}
-	var budget *reBudget
-	if p.parseRegex > 0 {
-		n := 0
-		for _, t := range tokenList {
-			n += len(t)
-		}
-		budget = newBudget(p.parseRegex * n)
+	n := 0
+	for _, t := range tokenList {
+		n += len(t)
 	}
+	budget := newBudget((p.parseRegex + 1) * n) // çözücülerin çıktı büyütmesi de bu bütçededir
 	return strings.Join(decodeBudgeted(p.decoder, tokenList, budget), "")
 }
 

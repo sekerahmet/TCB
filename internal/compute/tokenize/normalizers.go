@@ -37,6 +37,9 @@ type NormalizerSequence []Normalizer
 func (s NormalizerSequence) Normalize(m string) string { return s.normalizeB(m, nil) }
 
 func (s NormalizerSequence) normalizeB(m string, b *reBudget) string {
+	if b == nil {
+		b = newBudget(len(m))
+	}
 	for _, n := range s {
 		m = normalizeBudgeted(n, m, b)
 	}
@@ -49,12 +52,15 @@ type budgetedNormalizer interface {
 	normalizeB(m string, b *reBudget) string
 }
 
-// normalizeBudgeted n'yi, destekliyorsa b bütçesiyle uygular.
+// normalizeBudgeted n'yi, destekliyorsa b bütçesiyle uygular. Bütçeyi kendisi kullanmayan
+// normalleştiricilerin çıktı büyütmesi burada bütçeden düşülür.
 func normalizeBudgeted(n Normalizer, m string, b *reBudget) string {
 	if bn, ok := n.(budgetedNormalizer); ok && b != nil {
 		return bn.normalizeB(m, b)
 	}
-	return n.Normalize(m)
+	out := n.Normalize(m)
+	b.chargeGrowth(len(m), len(out))
+	return out
 }
 
 func newSeqNorm(raw json.RawMessage) (Normalizer, error) {
@@ -192,15 +198,25 @@ func newReplacer(raw json.RawMessage) (*replacer, error) {
 // apply değiştirmeyi yapar; b nil değilse düzenli ifade adımları o
 // bütçeden düşülür.
 func (d *replacer) apply(m string, b *reBudget) string {
+	if b == nil {
+		b = newBudget(len(m))
+	}
 	if d.expr == nil {
 		if d.plain == "" {
 			return m
+		}
+		if grow := len(d.content) - len(d.plain); grow > 0 {
+			// Üretmeden önce düşülür: çıktı hiç ayrılmadan bütçe aşımı bildirilir.
+			b.charge(int64(strings.Count(m, d.plain))*int64(grow), messages.H5290)
 		}
 		return strings.ReplaceAll(m, d.plain, d.content)
 	}
 	var sb strings.Builder
 	prev := 0
 	d.expr.allMatches(m, func(begin, last int) {
+		if grow := len(d.content) - (last - begin); grow > 0 {
+			b.charge(int64(grow), messages.H5290)
+		}
 		sb.WriteString(m[prev:begin])
 		sb.WriteString(d.content)
 		prev = last

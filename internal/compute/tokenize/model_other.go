@@ -28,6 +28,8 @@ type wordPiece struct {
 	unknown int32
 	prefix  string
 	maxN    int
+	// maxToken sözlükteki en uzun token'ın baytıdır: daha uzun aday sözlükte olamaz, aranmaz.
+	maxToken int
 }
 
 func newWordPiece(raw json.RawMessage) (Model, error) {
@@ -60,6 +62,9 @@ func newWordPiece(raw json.RawMessage) (Model, error) {
 		return nil, messages.New(messages.H5217, unk)
 	}
 	w.unknown = id
+	for tok := range s {
+		w.maxToken = max(w.maxToken, len(tok))
+	}
 	return w, nil
 }
 
@@ -73,8 +78,24 @@ func (w *wordPiece) Encode(dst []int32, p Piece) []int32 {
 	n := len(dst)
 	for begin := 0; begin < len(m); {
 		last := len(m)
+		// Sözlükteki en uzun tokenı aşan adaylar bulunamaz: aranmaz (sonuç aynı, iş girdiyle
+		// doğrusal). Sınır bir karakterin ortasına düşmesin diye geriye çekilir.
+		room := w.maxToken
+		if begin > 0 {
+			room -= len(w.prefix)
+		}
+		if room < 0 {
+			return append(dst[:n], w.unknown)
+		}
+		if last-begin > room {
+			last = begin + room
+			for last > begin && !utf8.RuneStart(m[last]) {
+				last--
+			}
+		}
 		wasFound := int32(-1)
 		for begin < last {
+			p.budget.charge(1, messages.H5291) // her sözlük araması bir adım
 			sub := m[begin:last]
 			if begin > 0 {
 				sub = w.prefix + sub
@@ -243,14 +264,14 @@ func (u *unigram) Encode(dst []int32, p Piece) []int32 {
 			return append(dst, v...)
 		}
 		n := len(dst)
-		dst = u.encode(dst, m)
+		dst = u.encode(dst, m, p.budget)
 		o.put(m, dst[n:])
 		return dst
 	}
-	return u.encode(dst, m)
+	return u.encode(dst, m, p.budget)
 }
 
-func (u *unigram) encode(dst []int32, m string) []int32 {
+func (u *unigram) encode(dst []int32, m string, budget *reBudget) []int32 {
 	if m == "" {
 		return dst
 	}
@@ -269,6 +290,7 @@ func (u *unigram) encode(dst []int32, m string) []int32 {
 		hasSingle := false
 		d := u.root
 		for k := begin; k < n && d != nil; k++ {
+			budget.charge(1, messages.H5291) // ağaçta her ilerleme bir adım
 			d = d.child[m[k]]
 			if d == nil {
 				break

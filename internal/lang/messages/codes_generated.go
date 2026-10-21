@@ -665,6 +665,9 @@ const (
 	H5286 Code = 5286 // çözücü
 	H5287 Code = 5287 // çözücü (decoder)
 	H5288 Code = 5288 // iç içe sınırsız niceleyici (ör. "(a+)+" ya da "(\w+\s*)*") üstel geri izlemeye yol açabilir
+	H5289 Code = 5289 // {work} adım sınırını ({budget}) aştı: parçalayıcı yapılandırması çıktıyı ya da işi girdiyle orantısız büyütüyor; işlem durduruldu
+	H5290 Code = 5290 // çıktı uzunluğu (normalleştirici, ön bölücü ve çözücü adımlarının büyütmesi)
+	H5291 Code = 5291 // model arama adımları (WordPiece, Unigram)
 	H5500 Code = 5500 // {shards} veri dosyası, {tokens} parça
 	H5501 Code = 5501 // {type}({summary}, önbellek {quota})
 	H5502 Code = 5502 // Veri kümesi

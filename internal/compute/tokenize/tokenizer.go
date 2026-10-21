@@ -82,10 +82,8 @@ func exprCount(b any) int {
 // encodeBudget bayt uzunluğundaki bir metnin kodlanması için paylaşılan adım
 // bütçesini açar (düzenli ifade yoksa nil).
 func (p *Tokenizer) encodeBudget(byteVal int) *reBudget {
-	if p.encodeRegex == 0 {
-		return nil
-	}
-	return newBudget(p.encodeRegex * byteVal)
+	// Düzenli ifade olmasa da bütçe vardır: zincirlerin çıktı büyütmesi de onunla sınırlanır.
+	return newBudget((p.encodeRegex + 1) * byteVal)
 }
 
 // DefaultCacheCapacity sözcük önbelleğinin varsayılan girdi sayısıdır.

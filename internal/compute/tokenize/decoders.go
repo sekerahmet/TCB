@@ -102,6 +102,9 @@ type DecoderSequence []Decoder
 func (s DecoderSequence) DecodeChain(t []string) []string { return s.decodeChainB(t, nil) }
 
 func (s DecoderSequence) decodeChainB(t []string, b *reBudget) []string {
+	if b == nil {
+		b = newBudget(listBytes(t))
+	}
 	for _, c := range s {
 		t = decodeBudgeted(c, t, b)
 	}
@@ -119,7 +122,20 @@ func decodeBudgeted(c Decoder, t []string, b *reBudget) []string {
 	if bc, ok := c.(budgetedDecoder); ok && b != nil {
 		return bc.decodeChainB(t, b)
 	}
-	return c.DecodeChain(t)
+	out := c.DecodeChain(t)
+	if b != nil {
+		b.chargeGrowth(listBytes(t), listBytes(out))
+	}
+	return out
+}
+
+// listBytes token listesinin toplam bayt sayısıdır.
+func listBytes(t []string) int {
+	n := 0
+	for _, s := range t {
+		n += len(s)
+	}
+	return n
 }
 
 // byteDecoder tokenları bayt düzeyi karakterlerden baytlara çevirir ve tümünü
@@ -287,6 +303,9 @@ type replaceDecoder struct{ d *replacer }
 func (c replaceDecoder) DecodeChain(t []string) []string { return c.decodeChainB(t, nil) }
 
 func (c replaceDecoder) decodeChainB(t []string, b *reBudget) []string {
+	if b == nil {
+		b = newBudget(listBytes(t))
+	}
 	out := make([]string, len(t))
 	for i, s := range t {
 		out[i] = c.d.apply(s, b)
