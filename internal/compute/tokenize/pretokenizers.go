@@ -104,13 +104,29 @@ func (s PreTokenizerSequence) PreTokenize(dst, pieces []Piece) []Piece {
 }
 
 // stream zinciri derinlik öncelikli uygular: her parça, bir sonraki adıma
-// hemen aktarılır; ara dilimler kurulmaz (büyük belgelerde bellek dostu).
+// hemen aktarılır; ara dilimler kurulmaz (büyük belgelerde bellek dostu). Her adımın bütün
+// parçalardaki toplam girdisi ve çıktısı ayrı bir sayaçta toplanır; adımın toplam çıktısı
+// toplam girdisini aştıkça aşan kısım bütçeden bir kez düşülür (normalleştirici ve çözücü
+// zincirleriyle aynı kural). Sayaçlar ve adım işlevleri çağrı başına bir kez kurulur, parça
+// başına ayırma yapılmaz.
 func (s PreTokenizerSequence) stream(p Piece, f func(Piece)) {
+	acc := make([]growth, len(s))
 	step := make([]func(Piece), len(s)+1)
 	step[len(s)] = f
 	for k := len(s) - 1; k >= 0; k-- {
-		o, next := s[k], step[k+1]
-		step[k] = func(x Piece) { preTokenizeStream(o, x, next) }
+		o, next, g := s[k], step[k+1], &acc[k]
+		// İç içe bir zincir kendi adımlarını kendisi sayar; dıştaki adım onu ikinci kez saymaz.
+		_, nested := o.(PreTokenizerSequence)
+		emit := func(x Piece) {
+			if !nested {
+				g.add(len(x.Text), p.budget)
+			}
+			next(x)
+		}
+		step[k] = func(x Piece) {
+			g.in += len(x.Text)
+			applyPreTokenizer(o, x, emit)
+		}
 	}
 	step[0](p)
 }
@@ -120,26 +136,42 @@ type streamPreTokenizer interface {
 	stream(p Piece, f func(Piece))
 }
 
-// preTokenizeStream o'yu p'ye uygular ve her sonuç parçası için f'yi çağırır.
-func preTokenizeStream(o PreTokenizer, p Piece, f func(Piece)) {
-	// Adımın ürettiği parçaların toplam baytı girdisini aştıkça aşan kısım bütçeden düşülür
-	// (zincirdeki her adım için ayrı: ardışık büyütmeler üstel değil toplamda sınırlıdır).
-	in, sum, grown := len(p.Text), 0, 0
-	count := func(x Piece) {
-		sum += len(x.Text)
-		if sum > in && sum-in > grown {
-			p.budget.charge(int64(sum-in-grown), messages.H5289)
-			grown = sum - in
-		}
-		f(x)
+// growth bir ön bölücü adımının toplam girdi ve çıktı baytıdır; grown bütçeden düşülmüş büyümedir.
+type growth struct{ in, out, grown int }
+
+// add adımın ürettiği n baytı sayar; toplam çıktı toplam girdiyi düşülenden fazla aşınca farkı
+// bütçeden düşer (bayt başına bir adım, H5289).
+func (g *growth) add(n int, b *reBudget) {
+	g.out += n
+	if d := g.out - g.in; d > g.grown {
+		b.charge(int64(d-g.grown), messages.H5289)
+		g.grown = d
 	}
+}
+
+// applyPreTokenizer o'yu p'ye uygular ve her sonuç parçası için f'yi çağırır (bütçe düşmeden).
+func applyPreTokenizer(o PreTokenizer, p Piece, f func(Piece)) {
 	if a, ok := o.(streamPreTokenizer); ok {
-		a.stream(p, count)
+		a.stream(p, f)
 		return
 	}
 	for _, x := range o.PreTokenize(nil, []Piece{p}) {
-		count(x)
+		f(x)
 	}
+}
+
+// preTokenizeStream o'yu p'ye uygular ve her sonuç parçası için f'yi çağırır; adımın çıktısı
+// girdisini aştıkça aşan kısım bütçeden düşülür. Zincir kendi adımlarını sayar (stream).
+func preTokenizeStream(o PreTokenizer, p Piece, f func(Piece)) {
+	if s, ok := o.(PreTokenizerSequence); ok {
+		s.stream(p, f)
+		return
+	}
+	g := growth{in: len(p.Text)}
+	applyPreTokenizer(o, p, func(x Piece) {
+		g.add(len(x.Text), p.budget)
+		f(x)
+	})
 }
 
 func newSeqPreTok(raw json.RawMessage) (PreTokenizer, error) {
