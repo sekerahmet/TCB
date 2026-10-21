@@ -159,6 +159,7 @@ Modeli kullanan geliştiricinin ilk sorusu: "Hugging Face'teki modeli yükleyip 
      - bilinen veri türü;
      - yinelenen anahtar yok.
    - Bölünmüş kontrol noktası dizini (`model.safetensors.index.json`) okunur.
+   - **PyTorch ile alışveriş:** TR'de eğitilen ağırlıklar PyTorch'ta, PyTorch'ta eğitilenler TR'de açılır. Ana yol safetensors'tur (`safetensors.torch.load_file` / `save_file`; parametre adları bir eşleme tablosuyla). `.pt` için yazma ve yalnızca kısıtlı okuma vardır: `.pt` Python'un pickle biçimidir ve okumak dosyadaki kodu çalıştırmak demektir; TR yalnızca tensör sözlüğünü kurar (PyTorch'un `weights_only=True` kuralı), başka her nesne açık hatadır. Gidiş dönüş testi: TR → safetensors/.pt → PyTorch → TR, değerler bit düzeyinde aynı (torch kuruluysa; yoksa test atlanır). Bugünkü Python dönüştürücüsü (`tools/gpu/trt_io.py`) bu adımla dile taşınır.
 3. **Hugging Face modelleri.**
    - `config.json`'dan TR modeli kurulur; ilk aile Llama (sonra Qwen ve Mistral; Qwen'deki bağımsız `head_dim` dahil).
    - Tensör adları (`model.layers.N.self_attn.q_proj.weight`) bir eşleme tablosuyla TR modelinin adlarına bağlanır.
@@ -171,6 +172,7 @@ Modeli kullanan geliştiricinin ilk sorusu: "Hugging Face'teki modeli yükleyip 
    - 127.0.0.1'e bağlı OpenAI uyumlu HTTP sunucusu: completions ve chat, `logprobs` ile. Bu tek adım lm-evaluation-harness ile değerlendirmeyi, arayüzleri ve ajan çerçevelerini getirir.
    - Yorumlayıcı kilidi çekirdek çağrılarında ve G/Ç'de bırakılır; hangi yerleşiklerin bıraktığı belgelenir. Böylece sunucu, parçalayıcı ve GPU eşzamanlı çalışır.
    - CUDA Graphs önce üretim için: statik şekil kipinde, isteğe bağlı yakalama. Yakalanan bölgede ana belleğe okuma dil düzeyinde hatadır. Eğitimde beklenen kazanç küçüktür (%0–5).
+   - **CPU'da hazır model:** küçük bir hazır model (yüz milyonlarca parametre) GPU'suz, dizüstünde verimli çalışır. Ağırlıklar safetensors'tan bellek eşlemeyle (mmap) kopyasız yüklenir. KV önbellekli üretim tek ve çok çekirdekte koşar, AVX2/FMA çekirdekleri kullanılır; ağırlığı bf16 saklanan çarpım anında genişletilir. Ölçüt: aynı model ve aynı ayarlarla PyTorch CPU ve llama.cpp'ye karşı token/sn ile ilk token süresi. Hedef oran ilk ölçümden sonra buraya yazılır (Evre 3'teki gibi). Yalnızca ağırlık int8/int4 nicemleme (Evre 6) bu yolu hızlandırır.
 6. **Sürüm politikası.**
    - 0.y.z sürüm numaralama.
    - Her yerleşiğe ad kodu üzerinden kararlı, beta ya da prototip etiketi; kararlı davranış prototip ya da beta bir alternatif uğruna kaldırılmaz.
@@ -181,6 +183,8 @@ Modeli kullanan geliştiricinin ilk sorusu: "Hugging Face'teki modeli yükleyip 
 
 **Bitiş ölçütü:**
 - Hugging Face'ten Llama ailesinden küçük bir model safetensors ile yüklenir, TR'de LoRA ile ince ayar yapılır.
+- TR'de eğitilen hedef model safetensors ve `.pt` olarak dışa aktarılır, PyTorch'ta aynı kaybı verir; PyTorch'ta eğitilen ağırlıklar TR'ye yüklenir.
+- Küçük bir hazır model CPU'da KV önbellekle üretir; token/sn PyTorch CPU ve llama.cpp ile ölçülüp yazılır ve hedef oran sağlanır.
 - Bağdaştırıcı PEFT ile okunur.
 - Model OpenAI uyumlu sunucudan sunulur ve lm-evaluation-harness ile değerlendirilir.
 - Sürüm politikası yazılıdır; ilk 0.y.z sürümü yayımlanır.
