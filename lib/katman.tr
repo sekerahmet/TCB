@@ -71,14 +71,17 @@ fonksiyon döner_konum_tablosu(bağlam, baş_boyutu, taban = 10000.0) {
     sonuç [kosinüs(açılar), sinüs(açılar)]
 }
 
-// döner_konum_uygula x'i ([..., T, baş_boyutu]) tablonun ilk T satırıyla döndürür.
-fonksiyon döner_konum_uygula(x, kos, sin) {
+// döner_konum_hesapla x'i ([..., T, baş_boyutu]) tablonun ilk T satırıyla döndürür.
+// döner_konum_uygula aynı hesabın kaynaşmış biçimidir (kaynaştır, dil tanımı 15.45): zincir
+// tek geçişte hesaplanır, ara sonuçlar belleğe yazılmaz; sonuç aynıdır.
+fonksiyon döner_konum_hesapla(x, kos, sin) {
     değişken T = x.şekil[-2]
     değişken a, b = x.böl(2, eksen: -1)
     değişken c = kos[0..T]
     değişken s = sin[0..T]
     sonuç birleştir([a * c - b * s, a * s + b * c], eksen: -1)
 }
+değişken döner_konum_uygula = kaynaştır(döner_konum_hesapla)
 
 // NedenselDikkat: döner konumlu, nedensel çok başlı dikkat. Her konum yalnızca kendisine ve
 // öncekilere bakar. kv_baş < baş gruplu sorgu dikkatidir (GQA): anahtar ve değer başları
@@ -164,6 +167,16 @@ fonksiyon swiglu_ara_boyutu(boyut) {
     sonuç tam(tavan(8.0 * boyut / 3.0 / 32.0)) * 32
 }
 
+// swiglu_kapısı: SwiGLU'nun kapısı silu(g) · u; birleşik [G | U] çıktısında g ve u yarılardır.
+// İkisi de kaynaşmıştır (tek geçiş).
+fonksiyon swiglu_kapısı(g, u) { sonuç silu(g) * u }
+fonksiyon swiglu_birleşik_kapısı(gu) {
+    değişken g, u = gu.böl(2, eksen: -1)
+    sonuç silu(g) * u
+}
+değişken swiglu_kapı = kaynaştır(swiglu_kapısı)
+değişken swiglu_birleşik_kapı = kaynaştır(swiglu_birleşik_kapısı)
+
 // SwiGLU: kapılı ileri besleme. aşağı(silu(kapı(x)) * yukarı(x)).
 // birleşik: doğru ise kapı ve yukarı tek `kapı_yukarı` katmanıdır ([boyut, 2·ara], [G | U]) ve
 // `.böl(2)` ile ayrılır (Muon ikisini birlikte dikleştirir); kapı ve yukarı o zaman yok'tur.
@@ -188,15 +201,21 @@ yapı SwiGLU {
     }
     fonksiyon ileri(x) {
         eğer kendi.kapı_yukarı != yok {
-            değişken gu = kendi.kapı_yukarı.ileri(x).böl(2, eksen: -1)
-            sonuç kendi.aşağı.ileri(silu(gu[0]) * gu[1])
+            sonuç kendi.aşağı.ileri(swiglu_birleşik_kapı(kendi.kapı_yukarı.ileri(x)))
         }
-        sonuç kendi.aşağı.ileri(silu(kendi.kapı.ileri(x)) * kendi.yukarı.ileri(x))
+        sonuç kendi.aşağı.ileri(swiglu_kapı(kendi.kapı.ileri(x), kendi.yukarı.ileri(x)))
     }
 }
 
 // ple_gelu PLE'nin etkinleştirmesidir: tam (erf tabanlı) GELU, hedef modelin F.gelu'su gibi.
 fonksiyon ple_gelu(x) { sonuç gelu(x, yaklaşık: yanlış) }
+
+// ple_karışımı PLE bloğunun eleman bazlı zinciridir: GELU(kapı) ⊙ (bağlam + ölçek · satır) / √2
+// (ölçek = √P); ple_karış onun kaynaşmış biçimidir.
+fonksiyon ple_karışımı(kapı, bağlam, satır, ölçek) {
+    sonuç ple_gelu(kapı) * ((bağlam + ölçek * satır) / karekök(2.0))
+}
+değişken ple_karış = kaynaştır(ple_karışımı)
 
 // PLEBağlamı: katman başına kelime gömmesinin (PLE, Gemma 3n) modele ortak bağlam yarısı.
 // Gömme çıktısı x [B, T, D] tek matrisle [B, T, katman · P]'ye çevrilir, √D'ye bölünür,
@@ -243,8 +262,8 @@ yapı PLEBloğu {
     }
     // h [B, T, D]; kimlikler [B, T]; bağlam bu katmanın PLEBağlamı çıktısı [B, T, P].
     fonksiyon ileri(h, kimlikler, bağlam) {
-        değişken e = (bağlam + karekök(kendi.ple_boyutu) * gömme(kendi.tablo, kimlikler)) / karekök(2.0)
-        sonuç h + kendi.norm.ileri(kendi.izdüşüm.ileri(ple_gelu(kendi.kapı.ileri(h)) * e))
+        değişken karışım = ple_karış(kendi.kapı.ileri(h), bağlam, gömme(kendi.tablo, kimlikler), karekök(kendi.ple_boyutu))
+        sonuç h + kendi.norm.ileri(kendi.izdüşüm.ileri(karışım))
     }
 }
 
