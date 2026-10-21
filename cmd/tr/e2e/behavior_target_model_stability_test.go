@@ -18,7 +18,7 @@ func TestTargetModelRollsBackOnNaN(t *testing.T) {
 	data := reporoot.Path("tests/data/text")
 	args := []string{script, "--veri", data, "--cihaz", "cpu", "--hassasiyet", "fp32", "--adım", "12",
 		"--toplu", "4", "--mikro", "2", "--bağlam", "32", "--günlük", "4", "--dağarcık", "1000",
-		"--boyut", "64", "--baş", "4", "--kv_baş", "2", "--ara", "96", "--nan_adımı", "8"}
+		"--boyut", "64", "--bakış_sayısı", "4", "--kv_bakış_sayısı", "2", "--ara", "96", "--nan_adımı", "8"}
 
 	dir := t.TempDir()
 	s := run(t, trBinary, dir, "", nil, append(args, "--koşu", "koşu", "--kayıt_dakika", "0", "--atla", "1",

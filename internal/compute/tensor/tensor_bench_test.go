@@ -329,7 +329,7 @@ func BenchmarkMatMulForwardBackward1024(b *testing.B) {
 	}
 }
 
-// Toplu çarpım: 8 baş × (256×64)·(64×256), dikkat puanları gibi.
+// Toplu çarpım: 8 bakış × (256×64)·(64×256), dikkat puanları gibi.
 func BenchmarkMatMulBatched(b *testing.B) {
 	rng := rand.New(rand.NewSource(1))
 	q := Randn(rng, 8, 256, 64)

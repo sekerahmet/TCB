@@ -34,7 +34,7 @@ func TestTargetModelMatchesPyTorch(t *testing.T) {
 	s := run(t, trBinary, dir, "", nil, filepath.Join(tools, "rgn512.tr"),
 		"--veri", "data", "--ağırlık", "init.trt", "--sıralı", "--hassasiyet", "fp32", "--cihaz", "cpu",
 		"--adım", "5", "--toplu", "4", "--mikro", "2", "--bağlam", "64", "--günlük", "5", "--kayıplar", "tr.json",
-		"--dağarcık", "256", "--boyut", "64", "--baş", "4", "--kv_baş", "2", "--ara", "96")
+		"--dağarcık", "256", "--boyut", "64", "--bakış_sayısı", "4", "--kv_bakış_sayısı", "2", "--ara", "96")
 	if s.code != 0 {
 		t.Fatalf("TR koşusu çıkış %d:\n%s\n%s", s.code, s.stdout, s.stderr)
 	}

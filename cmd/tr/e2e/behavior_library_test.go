@@ -73,7 +73,7 @@ func TestGPTTrainingScriptSmoke(t *testing.T) {
 	}
 	run := filepath.Join(t.TempDir(), "kosu")
 	args := []string{reporoot.Path("tools/gpu/gpt_training.tr"), "--veri", data, "--koşu", run, "--cihaz", "cpu",
-		"--boyut", "16", "--katman", "1", "--baş", "2", "--bağlam", "16", "--toplu", "4", "--birikim", "2",
+		"--boyut", "16", "--katman", "1", "--bakış_sayısı", "2", "--bağlam", "16", "--toplu", "4", "--birikim", "2",
 		"--adım", "12", "--ısınma", "2", "--değerlendir_her", "6", "--değerlendir_toplu", "2", "--örnek_her", "6",
 		"--örnek_sayısı", "2", "--örnek_uzunluğu", "6", "--ölçüm_ısınması", "2", "--günlük_her", "3"}
 	s := tr(t, t.TempDir(), args...)

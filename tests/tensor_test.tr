@@ -868,7 +868,7 @@ test "15.17 dikkat: bileşik sürümle aynı; GQA, pencere, maske, önbellekli �
     değişken q = tensör(rastgele_normal([2, 4, 6, 8], tohum: 1), türev_izle: doğru)
     değişken k = tensör(rastgele_normal([2, 2, 6, 8], tohum: 2), türev_izle: doğru)
     değişken v = tensör(rastgele_normal([2, 2, 6, 8], tohum: 3), türev_izle: doğru)
-    // Bileşik sürüm: k ve v başları gruplara kopyalanır, maske toplamsaldır.
+    // Bileşik sürüm: k ve v bakışları gruplara kopyalanır, maske toplamsaldır.
     değişken satırlar = []
     döngü i içinde 0..6 {
         değişken s = []

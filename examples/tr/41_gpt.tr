@@ -10,13 +10,13 @@
 //   Yarıda kesilirse (Ctrl+C) aynı komut kaldığı yerden sürer; baştan başlamak için koşu
 //   klasörünü silin ya da başka bir --koşu verin.
 // GPU'da: model kurulmadan önce varsayılan cihazı seçin (aşağıdaki satırın yorumunu kaldırın)
-// ve ayarları büyütün, ör. --boyut 512 --katman 8 --baş 8 --bağlam 512 --toplu 64.
+// ve ayarları büyütün, ör. --boyut 512 --katman 8 --bakış_sayısı 8 --bağlam 512 --toplu 64.
 // varsayılan_cihaz("gpu")
 
 aktar "tr/katman"
 aktar "tr/iyilestirici"
 
-değişken ayar = komut_satırı({adım: 100, toplu: 8, bağlam: 32, boyut: 32, katman: 2, baş: 4,
+değişken ayar = komut_satırı({adım: 100, toplu: 8, bağlam: 32, boyut: 32, katman: 2, bakış_sayısı: 4,
     muon_oranı: 0.02, adamw_oranı: 0.01, normuon: yanlış, koşu: "runs/gpt_ornegi"},
     açıklama: "Hazır katmanlarla küçük bir GPT'yi Muon + AdamW ile eğitir",
     açıklamalar: {adım: "toplam eğitim adımı", koşu: "koşu klasörü (ayarlar, günlük, kontrol noktaları)",
@@ -28,7 +28,7 @@ değişken ö = veri_kümesi("../../tests/data/text").örnekleyici(toplu: ayar.t
 
 // --- Model ve iyileştirici ---
 değişken model = GPT(p.dağarcık_boyutu, bağlam: ayar.bağlam, boyut: ayar.boyut, katman: ayar.katman,
-    baş: ayar.baş, paylaşımlı: doğru, tohum: 1)
+    bakış_sayısı: ayar.bakış_sayısı, paylaşımlı: doğru, tohum: 1)
 değişken op = MuonVeAdamW(model, muon_oranı: ayar.muon_oranı, adamw_oranı: ayar.adamw_oranı, normuon: ayar.normuon)
 yazdır("model: {parametreler(model).uzunluk} ağırlık tensörü; Muon'da {op.muon.ağırlıklar.uzunluk}, AdamW'de {op.diğer.uzunluk}")
 

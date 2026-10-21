@@ -203,7 +203,7 @@ func TestAttention(t *testing.T) {
 		{"çok döşeme pencere", 1, 1, 1, 75, 75, 8, 8, tensor.AttentionOptions{Causal: true, Window: 20}, false},
 		{"çok döşeme iki yönlü", 1, 1, 1, 66, 66, 8, 8, tensor.AttentionOptions{Window: 9}, false},
 		{"Tq<Tk pencere", 1, 1, 1, 21, 90, 8, 8, tensor.AttentionOptions{Causal: true, Window: 30}, false},
-		{"büyük baş boyu", 1, 1, 1, 20, 20, 100, 72, tensor.AttentionOptions{Causal: true}, false},
+		{"büyük bakış boyu", 1, 1, 1, 20, 20, 100, 72, tensor.AttentionOptions{Causal: true}, false},
 		{"matris yolu", 1, 1, 1, 5, 6, 300, 8, tensor.AttentionOptions{Causal: true}, false},
 	}
 	for _, d := range cases {

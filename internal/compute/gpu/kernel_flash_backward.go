@@ -14,7 +14,7 @@ import (
 // D_i = Σ_d dO[i,d]·O[i,d] önce satır başına hesaplanır (dikkat_d). Ardından iki çekirdek
 // puanları lse'den yeniden kurar (P = e^{S·ölçek − lse}, dP = dO·Vᵀ, dS = P·(dP − D)·ölçek):
 //   - dikkat_geri_kv: her blok bir anahtar döşemesinin dK += dSᵀ·Q ve dV += Pᵀ·dO'sunu,
-//     o anahtar başını paylaşan bütün sorgu başları ve görünür sorgu döşemeleri üzerinden,
+//     o anahtar bakışını paylaşan bütün sorgu bakışları ve görünür sorgu döşemeleri üzerinden,
 //   - dikkat_geri_q: her blok bir sorgu döşemesinin dQ += dS·K'sını görünür anahtar
 //     döşemeleri üzerinden
 // biriktirir. Her çıktı tek blokta, sabit sırayla toplanır (atomik yok). Çıktı kipleri:

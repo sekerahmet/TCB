@@ -11,7 +11,7 @@ import (
 )
 
 // fusedAttention başvuru sürümüdür: softmax(q·kᵀ·ölçek + toplamsal maske)·v,
-// GQA için k/v başları birleştirilerek çoğaltılır. Toplamsal maske nedensellik,
+// GQA için k/v bakışları birleştirilerek çoğaltılır. Toplamsal maske nedensellik,
 // pencere ve ek maskeden kurulur (bakılamayan yer -1e9).
 func fusedAttention(q, k, v *Tensor, opt AttentionOptions) *Tensor {
 	p := attentionParams(q, k, v, opt)
@@ -177,7 +177,7 @@ func TestAttentionMatchesFused(t *testing.T) {
 }
 
 // Paralel yollar: işçi havuzuna dağıtılan büyük işler ve dQ'nun anahtar
-// dilimlerinde ayrı biriktirildiği az başlı durum.
+// dilimlerinde ayrı biriktirildiği az bakışlı durum.
 func TestAttentionParallel(t *testing.T) {
 	eq, ek := AttentionBlocks(CPU)
 	defer SetAttentionBlocks(CPU, eq, ek)
@@ -258,7 +258,7 @@ func TestAttentionViewsAndShapes(t *testing.T) {
 	q2 := Randn(rng, 6, 4)
 	near(t, "2 boyut", Attention(q2, q2, q2, opt).Data(), fusedAttention(q2, q2, q2, opt).Data(), 1e-5)
 	shapeEqual(t, "şekil", Attention(q, q, q, opt).shape, []int{2, 3, 9, 4})
-	expectPanic(t, "baş katı değil", func() { Attention(Randn(rng, 3, 4, 2), Randn(rng, 2, 4, 2), Randn(rng, 2, 4, 2), opt) })
+	expectPanic(t, "bakış katı değil", func() { Attention(Randn(rng, 3, 4, 2), Randn(rng, 2, 4, 2), Randn(rng, 2, 4, 2), opt) })
 	expectPanic(t, "dh farklı", func() { Attention(Randn(rng, 2, 4, 2), Randn(rng, 2, 4, 3), Randn(rng, 2, 4, 3), opt) })
 	expectPanic(t, "maske yayınlanamaz", func() {
 		Attention(Randn(rng, 2, 4, 2), Randn(rng, 2, 4, 2), Randn(rng, 2, 4, 2), AttentionOptions{Mask: Ones(3, 4)})
@@ -525,7 +525,7 @@ func init() {
 		sq := []int{p.Batch, p.H, p.Tq, p.Dh}
 		sk := []int{p.Batch, p.Hkv, p.Tk, p.Dh}
 		sv := []int{p.Batch, p.Hkv, p.Tk, p.Dv}
-		if p.Batch == 1 && p.H == 1 { // tek başlı 2 boyutlu biçim
+		if p.Batch == 1 && p.H == 1 { // tek bakışlı 2 boyutlu biçim
 			sq, sk, sv = sq[2:], sk[2:], sv[2:]
 		}
 		p.Causal, p.Window = opt.Causal, opt.Window

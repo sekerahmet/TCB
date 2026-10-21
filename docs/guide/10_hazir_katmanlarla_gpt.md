@@ -7,13 +7,13 @@ Bir dil modelini her seferinde ağırlık ağırlık yazmak gerekmez ([`examples
 ```tr
 aktar "tr/katman"
 
-değişken model = GPT(4096, bağlam: 256, boyut: 256, katman: 4, baş: 4, paylaşımlı: doğru, tohum: 1)
+değişken model = GPT(4096, bağlam: 256, boyut: 256, katman: 4, bakış_sayısı: 4, paylaşımlı: doğru, tohum: 1)
 değişken logit = model.ileri([[1, 2, 3]])            // [1, 3, 4096]
 değişken kayıp = model.kayıp([[1, 2, 3]], [[2, 3, 4]]) // ortalama çapraz entropi
 yazdır(parametreler(model, adlarıyla: doğru).anahtarlar()[0..3])
 ```
 
-`GPT` sıradan bir `yapı`dır: `model.bloklar[0].dikkat.sorgu_katmanı.ağırlık` bir tensördür, `parametreler(model)` bütün ağırlıkları bulur, `tensör_kaydet(yol, parametreler(model, adlarıyla: doğru))` kaydeder. İçinde döner konumlu (RoPE) nedensel çok başlı dikkat (`kv_baş:` ile gruplu sorgu), SwiGLU ileri besleme ve ön-norm RMS normu vardır. Ağırlıklar N(0, 0.02) ile, artık yola yazan çıkış katmanları `0.02 / √(2 · katman)` ile başlar.
+`GPT` sıradan bir `yapı`dır: `model.bloklar[0].dikkat.sorgu_katmanı.ağırlık` bir tensördür, `parametreler(model)` bütün ağırlıkları bulur, `tensör_kaydet(yol, parametreler(model, adlarıyla: doğru))` kaydeder. İçinde döner konumlu (RoPE) nedensel çok başlı dikkat (`kv_bakış_sayısı:` ile gruplu sorgu), SwiGLU ileri besleme ve ön-norm RMS normu vardır. Ağırlıklar N(0, 0.02) ile, artık yola yazan çıkış katmanları `0.02 / √(2 · katman)` ile başlar.
 
 Modeli değiştirmek isterseniz `lib/katman.tr`'yi kendi klasörünüze kopyalayıp `aktar "katman"` yazın: kopyanız sizindir, kitaplık değişmez. Tek bir katmanı da kullanabilirsiniz: `Doğrusal(giriş, çıkış)`, `GömmeKatmanı`, `RMSNormKatmanı`, `NedenselDikkat`, `SwiGLU`, `TransformerBloğu`; hepsinin ileri hesabı `ileri` metodudur.
 
@@ -24,7 +24,7 @@ Modeli değiştirmek isterseniz `lib/katman.tr`'yi kendi klasörünüze kopyalay
 ```tr
 aktar "tr/katman"
 
-değişken model = GPT(4096, bağlam: 64, boyut: 64, katman: 4, baş: 4, kv_baş: 2, ara_boyut: 96, paylaşımlı: doğru,
+değişken model = GPT(4096, bağlam: 64, boyut: 64, katman: 4, bakış_sayısı: 4, kv_bakış_sayısı: 2, ara_boyut: 96, paylaşımlı: doğru,
     pencereler: katman_pencereleri("YGYG", [8, 16]), qk_normu: doğru, birleşik_kv: doğru, birleşik_kapı: doğru,
     ileri_sapmalı: doğru, epsilon: 0.000001, ple_boyutu: 32)
 yazdır(model.üret([1, 2, 3], 10, sıcaklık: 0, eos: 0)) // eos örneklenirse üretim durur
@@ -38,7 +38,7 @@ Ayrıntılı anlatım ve formüller [`lib/README.md`](../../lib/README.md)'dedir
 aktar "tr/katman"
 aktar "tr/iyilestirici"
 
-değişken model = GPT(4096, bağlam: 256, boyut: 256, katman: 4, baş: 4)
+değişken model = GPT(4096, bağlam: 256, boyut: 256, katman: 4, bakış_sayısı: 4)
 değişken op = MuonVeAdamW(model, muon_oranı: 0.02, adamw_oranı: 0.003)
 değişken toplam_adım = 1000
 döngü adım içinde 0..3 {
@@ -80,7 +80,7 @@ aktar "tr/iyilestirici"
 değişken ayar = komut_satırı({adım: 100, koşu: "runs/gpt"})
 değişken p = parçalayıcı_yükle("../tests/data/tokenizer.json")
 değişken ö = veri_kümesi("../tests/data/text").örnekleyici(toplu: 8, bağlam: 32, tohum: 1)
-değişken model = GPT(p.dağarcık_boyutu, bağlam: 32, boyut: 32, katman: 2, baş: 4, paylaşımlı: doğru)
+değişken model = GPT(p.dağarcık_boyutu, bağlam: 32, boyut: 32, katman: 2, bakış_sayısı: 4, paylaşımlı: doğru)
 değişken op = MuonVeAdamW(model)
 değişken g = günlük(yol(ayar.koşu, "metrics.jsonl"))
 değişken kn = kontrol_noktası(ayar.koşu, {model: model, adamw: op.adamw, muon: op.muon.durum, ö: ö, g: g})

@@ -8,7 +8,7 @@ import (
 )
 
 // Arka uç: dikkat. 16 bitlik girdilerde (sm_80+) tensör çekirdekli birleşik yol
-// (kernel_flash_mma.go); öbür durumlarda baş boyları birleşik çekirdeğin paylaşımlı belleğine
+// (kernel_flash_mma.go); öbür durumlarda bakış boyları birleşik çekirdeğin paylaşımlı belleğine
 // sığıyorsa (Dh, Dv ≤ 128 civarı; bkz. pickFlash) SIMT birleşik yol, değilse matris çarpımı
 // yolu (attention.go).
 

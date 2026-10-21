@@ -1,5 +1,5 @@
 // 35 — Transformer: elle yazılmış küçük bir transformer.
-// Ne öğretir: gömme ve konum gömmesi, çok başlı nedensel dikkat (şekillendir, eksenleri_sırala ve
+// Ne öğretir: gömme ve konum gömmesi, çok bakışlı nedensel dikkat (şekillendir, eksenleri_sırala ve
 // birleşik dikkat(...)), katman normu, gelu ile ileri besleme, çapraz_entropi kaybı.
 // Önceki örnekten: tensörler ve türev (23–28), çok katmanlı ağ (30).
 // Görev: 0..V-1 arasında döngüsel ilerleyen dizilerde bir sonraki parçayı tahmin etmek.
@@ -8,8 +8,8 @@
 değişken V = 8 // sözlük boyutu
 değişken T = 8 // bağlam uzunluğu
 değişken D = 16 // gizli boyut
-değişken H = 2 // dikkat başı
-değişken Dh = 8 // baş boyutu (D / H)
+değişken H = 2 // dikkat bakışı (İngilizce head)
+değişken Dh = 8 // bakış boyutu (D / H)
 değişken B = 4 // toplu iş boyutu
 
 // Öğrenilen parametre: küçük rastgele değerlerle başlar, gradyanı izlenir.

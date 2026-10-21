@@ -69,7 +69,7 @@ test "NorMuon: nöron başına normalleştirilmiş güncellemenin RMS'i 0.2·η'
 }
 
 test "parametre_grupları: gizli 2B ağırlıklar ile gömme, çıkış ve normlar ayrılır" {
-    değişken m = GPT(10, bağlam: 4, boyut: 8, katman: 2, baş: 2)
+    değişken m = GPT(10, bağlam: 4, boyut: 8, katman: 2, bakış_sayısı: 2)
     değişken g = parametre_grupları(m)
     eşit_mi(14, g.gizli.uzunluk) // blok başına 7 matris
     eşit_mi(7, g.diğer.uzunluk) // gömme, çıkış, 2·2 blok normu, son norm
@@ -91,7 +91,7 @@ test "oran_planı: ısınma, sabit, azalma" {
 
 test "MuonVeAdamW: oran çarpanı iki grubun öğrenme oranını ölçekler (½: yarım adım)" {
     fonksiyon kur() {
-        değişken m = GPT(6, bağlam: 3, boyut: 4, katman: 1, baş: 2, tohum: 3)
+        değişken m = GPT(6, bağlam: 3, boyut: 4, katman: 1, bakış_sayısı: 2, tohum: 3)
         geri_yayılım(m.kayıp([[1, 2, 3]], [[2, 3, 4]]))
         sonuç m
     }
@@ -130,7 +130,7 @@ test "MuonVeAdamW: oran çarpanı iki grubun öğrenme oranını ölçekler (½:
 test "MuonVeAdamW: kontrol noktası Muon momentumunu da saklar ve geri yükler" {
     değişken klasör = geçici_klasör()
     fonksiyon eğit(koşu, son) {
-        değişken m = GPT(6, bağlam: 3, boyut: 4, katman: 1, baş: 2, tohum: 3)
+        değişken m = GPT(6, bağlam: 3, boyut: 4, katman: 1, bakış_sayısı: 2, tohum: 3)
         değişken op = MuonVeAdamW(m)
         değişken kn = kontrol_noktası(koşu, {model: m, adamw: op.adamw, muon: op.muon.durum}, her_dakika: 0)
         döngü adım içinde kn.kaldığı_adım..son {
@@ -171,7 +171,7 @@ fonksiyon ters_toplu(B, V, yarım) {
 
 fonksiyon ters_eğit(kur, adım_sayısı) {
     ters_tohumu = 1
-    değişken m = GPT(8, bağlam: 10, boyut: 32, katman: 2, baş: 4, tohum: 4)
+    değişken m = GPT(8, bağlam: 10, boyut: 32, katman: 2, bakış_sayısı: 4, tohum: 4)
     değişken op = kur(m)
     değişken ilk = 0.0
     değişken son = 0.0
@@ -215,7 +215,7 @@ test "ad_uyar_mı: tam, önek ve sonek eşleşmesi yol parçası sınırındadı
 }
 
 fonksiyon ple_modeli() {
-    sonuç GPT(10, bağlam: 4, boyut: 8, katman: 2, baş: 2, ara_boyut: 8, tohum: 1, ple_boyutu: 4, ileri_sapmalı: doğru)
+    sonuç GPT(10, bağlam: 4, boyut: 8, katman: 2, bakış_sayısı: 2, ara_boyut: 8, tohum: 1, ple_boyutu: 4, ileri_sapmalı: doğru)
 }
 
 test "parametre_kümeleri: seyrek, gizli, sönümlü ve sönümsüz gruplar ada göre ayrılır" {

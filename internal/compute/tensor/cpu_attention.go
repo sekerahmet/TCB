@@ -13,7 +13,7 @@ import (
 // CPU arka ucu: döşemeli, çevrimiçi softmax'lı dikkat
 // ============================================================================
 //
-// İleri geçiş: iş birimi bir (toplu eleman, baş, sorgu satır bloğu) üçlüsüdür;
+// İleri geçiş: iş birimi bir (toplu eleman, bakış, sorgu satır bloğu) üçlüsüdür;
 // birimler işçi havuzuna dağıtılır. Her birim, bakabildiği anahtar aralığını
 // (nedensellik ve pencereye göre; aralık dışındaki bloklar hiç hesaplanmaz)
 // anahtar blokları hâlinde gezer:
@@ -28,11 +28,11 @@ import (
 // arasındadır.
 //
 // Geri geçiş puanları yeniden hesaplar (P = e^{S - lse}); ek bellek yalnızca
-// satır başına D = Σ dO·O'dur. k/v başını paylaşan bütün sorgu başları aynı
-// birimde gezildiği için dK ve dV yarışsız biriktirilir. Toplu × k/v başı
-// sayısı işçi sayısına yetiyorsa birim bir k/v başıdır ve dQ da aynı geçişte
-// biriktirilir (tek geçiş); yetmiyorsa iki geçiş yapılır: (k/v başı, anahtar
-// bloğu) birimleriyle dK/dV, ardından (baş, sorgu bloğu) birimleriyle dQ. İki
+// satır başına D = Σ dO·O'dur. k/v bakışını paylaşan bütün sorgu bakışları aynı
+// birimde gezildiği için dK ve dV yarışsız biriktirilir. Toplu × k/v bakışı
+// sayısı işçi sayısına yetiyorsa birim bir k/v bakışıdır ve dQ da aynı geçişte
+// biriktirilir (tek geçiş); yetmiyorsa iki geçiş yapılır: (k/v bakışı, anahtar
+// bloğu) birimleriyle dK/dV, ardından (bakış, sorgu bloğu) birimleriyle dQ. İki
 // kip aynı blok ızgarasını ve aynı toplama sırasını kullanır: sonuç işçi
 // sayısından bağımsız olarak bit düzeyinde aynıdır.
 
@@ -387,7 +387,7 @@ func (s *attnBackward) buffer(factor int) *attnBuf {
 	return tb
 }
 
-// binaryArg sorgu bloğu [i0, i0+m) (baş bh) ile anahtar bloğu [j0, j0+n) (k/v başı
+// binaryArg sorgu bloğu [i0, i0+m) (bakış bh) ile anahtar bloğu [j0, j0+n) (k/v bakışı
 // kvh) için P'yi tb.s'ye yeniden hesaplar; dS isteniyorsa dS = P∘(dP-D)·ölçek'i
 // tb.dp'ye yazar. dVa verilmişse dVa += Pᵀ·dO eklenir.
 func (s *attnBackward) binaryArg(tb *attnBuf, bh, kvh, i0, m, j0, n int, dVa []float32, dS bool) {
@@ -464,10 +464,10 @@ func (s *attnBackward) queryRange(j0, j1 int) (iStart, iEnd int) {
 	return iMin / s.bq * s.bq, iMax
 }
 
-// keyBlock k/v başı kvh'nin jb. anahtar bloğu için dK ve dV'yi (bu k/v
-// başını kullanan bütün sorgu başları ve bloğa bakan bütün sorgu blokları
+// keyBlock k/v bakışı kvh'nin jb. anahtar bloğu için dK ve dV'yi (bu k/v
+// bakışını kullanan bütün sorgu bakışları ve bloğa bakan bütün sorgu blokları
 // üzerinden) hesaplayıp gk/gv'ye ekler; dq doğruysa dQ katkılarını da gq'ya
-// ekler (yalnızca tek geçiş kipinde: o zaman bir sorgu başının bütün anahtar
+// ekler (yalnızca tek geçiş kipinde: o zaman bir sorgu bakışının bütün anahtar
 // blokları aynı birimde, artan sırayla gezilir).
 func (s *attnBackward) keyBlock(tb *attnBuf, kvh, jb int, dq bool) {
 	p := s.p
@@ -519,7 +519,7 @@ func (s *attnBackward) keyBlock(tb *attnBuf, kvh, jb int, dq bool) {
 	}
 }
 
-// queryBlock baş bh'nin ib. sorgu bloğunun dQ'sunu, bloğun baktığı anahtar
+// queryBlock bakış bh'nin ib. sorgu bloğunun dQ'sunu, bloğun baktığı anahtar
 // bloklarını artan sırayla gezerek gq'ya ekler (iki geçiş kipinin ikinci
 // geçişi). Toplama sırası ve blok ızgarası tek geçiş kipiyle aynıdır; sonuç
 // bit düzeyinde aynıdır.
@@ -571,7 +571,7 @@ func (cpuBackend) f32AttentionGrad(gq, gk, gv, g Storage, q, k, v View, mask Sto
 	s.buffers = make([]*attnBuf, max(W, 1))
 	kvCount := p.Batch * p.Hkv
 	if s.gq == nil || kvCount >= 2*W {
-		// Tek geçiş: birim bir k/v başıdır; dK, dV ve dQ birlikte biriktirilir.
+		// Tek geçiş: birim bir k/v bakışıdır; dK, dV ve dQ birlikte biriktirilir.
 		distribute(W, kvCount, func(factor, u int) {
 			tb := s.buffer(factor)
 			for jb := 0; jb < s.nkb; jb++ {
@@ -579,8 +579,8 @@ func (cpuBackend) f32AttentionGrad(gq, gk, gv, g Storage, q, k, v View, mask Sto
 			}
 		})
 	} else {
-		// İki geçiş (az baş, çok işçi): önce (k/v başı, anahtar bloğu)
-		// birimleriyle dK ve dV, sonra (baş, sorgu bloğu) birimleriyle dQ.
+		// İki geçiş (az bakış, çok işçi): önce (k/v bakışı, anahtar bloğu)
+		// birimleriyle dK ve dV, sonra (bakış, sorgu bloğu) birimleriyle dQ.
 		// Puanlar iki kez hesaplanır ama ek bellek gerekmez ve birimler
 		// küçüktür (yavaş ve hızlı çekirdekler arasında yük dengesi).
 		if s.gk != nil || s.gv != nil {

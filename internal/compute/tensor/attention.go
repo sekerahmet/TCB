@@ -35,7 +35,7 @@ type AttentionOptions struct {
 
 // AttentionParams arka uca verilen, şekilleri çözülmüş dikkat tanımıdır. q, k,
 // v görünümleri bitişiktir: q [Batch, H, Tq, Dh], k [Batch, Hkv, Tk, Dh],
-// v [Batch, Hkv, Tk, Dv]. H, Hkv'nin katıdır; baş h, k/v başı h/(H/Hkv)'yi
+// v [Batch, Hkv, Tk, Dv]. H, Hkv'nin katıdır; bakış h, k/v bakışı h/(H/Hkv)'yi
 // kullanır (GQA: k ve v kopyalanmaz).
 type AttentionParams struct {
 	Batch, H, Hkv, Tq, Tk, Dh, Dv int
@@ -106,7 +106,7 @@ func Attention(q, k, v *Tensor, opt AttentionOptions) *Tensor {
 // hassasiyet: 16 bitlik girdiler, float32 biriktirme ve çıktı).
 //
 // Şekiller: q [..., H, Tq, dh], k [..., Hkv, Tk, dh], v [..., Hkv, Tk, dv];
-// öndeki eksenler eşit olmalıdır. 2 boyutlu girdiler tek başlı sayılır.
+// öndeki eksenler eşit olmalıdır. 2 boyutlu girdiler tek bakışlı sayılır.
 // Sonuç [..., H, Tq, dv] şeklindedir. Hiçbir anahtara bakamayan sorgu
 // satırının çıktısı 0'dır (gradyanı da 0).
 func AttentionOut(q, k, v *Tensor, opt AttentionOptions, outType DType) *Tensor {
@@ -217,7 +217,7 @@ func prepareMask(be Backend, m *Tensor, qShape []int, p *AttentionParams) Storag
 	n := len(whole)
 	p.MaskStrideQ, p.MaskStrideK = st[n-2], st[n-1]
 	p.MaskOffsets = make([]int, p.Batch*p.H)
-	// Öndeki eksenler (lead) ve baş ekseni satır öncelikli gezilir.
+	// Öndeki eksenler (lead) ve bakış ekseni satır öncelikli gezilir.
 	on := whole[:n-2]
 	preSt := st[:n-2]
 	idx := make([]int, len(on))

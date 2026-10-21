@@ -12,7 +12,7 @@ import (
 // ============================================================================
 //
 // q, k, v aynı 16 bitlik türdeyse (bf16 ya da f16) çarpımlar mma.sync.m16n8k16 ile yapılır
-// (FlashAttention-2 düzeni). Blok bir (toplu, baş) çiftinin mmaBr sorgu satırını tutar; 8
+// (FlashAttention-2 düzeni). Blok bir (toplu, bakış) çiftinin mmaBr sorgu satırını tutar; 8
 // warp'ın her biri 16 satırdan sorumludur ve satırlarının bütün hesabını (S, çevrimiçi softmax,
 // O) yazmaçlarda yapar, warp'lar arası indirgeme yoktur. Q parçaları başta bir kez yazmaçlara
 // yüklenir; anahtarlar mmaBc'lik döşemelerle gezilir: K paylaşımlı bellekte [anahtar][Dh+8],
@@ -37,7 +37,7 @@ func (a flashMma) key(ad string) string { return fmt.Sprintf("%s_%d_%d_%v", ad, 
 
 // mmaFits tensör çekirdekli yolun bu girdilerle kullanılıp kullanılamayacağı: aynı 16 bitlik
 // tür, bitişik ve çift ofsetli görünümler (32 bitlik çift erişimi), 16'nın katı ve en çok 128
-// baş boyları, ek maske yok, sm_80+ (TR_GPU_DIKKAT=tensor benzetimde sm denetimini atlar).
+// bakış boyları, ek maske yok, sm_80+ (TR_GPU_DIKKAT=tensor benzetimde sm denetimini atlar).
 func (g *backend) mmaFits(q, k, v tensor.View, mask2 bool, p tensor.AttentionParams) (flashMma, bool) {
 	if g.attnPath == "carpim" || g.attnPath == "birlesik" || mask2 || p.H > 65535 || p.Batch > 65535 {
 		return flashMma{}, false

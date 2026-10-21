@@ -151,7 +151,7 @@ TR_GPU_MIKRO=1 TR_GPU_KENDI_CARPIM=1 ncu --target-processes all -k regex:carpim 
 `gpt_training.tr` dilin kitaplığındaki GPT'yi (`aktar "tr/katman"`) gizli ağırlıklarda Muon,
 gömme/norm ağırlıklarında AdamW ile (`aktar "tr/iyilestirici"`), ısınma–sabit–azalma (WSD)
 öğrenme oranı planıyla eğitir. Veri klasörü: `tokenizer.json`, `train.npy`, `valid.npy`
-(uint16 parça kimlikleri). Varsayılan model d512, 8 katman, 8 baş, bağlam 512, toplu 128.
+(uint16 parça kimlikleri). Varsayılan model d512, 8 katman, 8 bakış, bağlam 512, toplu 128.
 Koşu klasörünü yerel diskte tutun, bitince Drive'a kopyalayın.
 
 ```bash
@@ -184,7 +184,7 @@ Koşu klasörü: `config.json`, `metrics.jsonl` (eğitim kaybı 10 adımda bir, 
 ## 10. Evre 3 ölçümü: TR ve `torch.compile` (aynı kart, aynı yapılandırma)
 
 Soru: aynı modelde TR, `torch.compile` (varsayılan ve `max-autotune`) karşısında nerede? Model
-`phase3_config.json`'dadır (12 katman, D768, 12 baş, FF2048, bağlam 512, toplu 32, bf16, AdamW,
+`phase3_config.json`'dadır (12 katman, D768, 12 bakış, FF2048, bağlam 512, toplu 32, bf16, AdamW,
 sentetik veri); TR ve PyTorch aynı dosyayı okur, ikisi de aynı sabit sentetik toplu işleri ve aynı
 kırpma/iyileştirici ayarını kullanır. Başka bir yapılandırma için dosyayı değiştirmek yeter.
 Her adım sonunda kayıp okunur (GPU eşzamanlanır): iki tarafın da adım süresi budur; sıradaki

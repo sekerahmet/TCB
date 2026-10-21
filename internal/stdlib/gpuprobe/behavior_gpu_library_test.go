@@ -23,7 +23,7 @@ aktar "tr/katman"
 aktar "tr/iyilestirici"
 fonksiyon eğit(cihaz, normuon) {
     varsayılan_cihaz(cihaz)
-    değişken m = GPT(16, bağlam: 4, boyut: 8, katman: 1, baş: 2, kv_baş: 1, tohum: 3)
+    değişken m = GPT(16, bağlam: 4, boyut: 8, katman: 1, bakış_sayısı: 2, kv_bakış_sayısı: 1, tohum: 3)
     değişken op = MuonVeAdamW(m, normuon: normuon, adamw_oranı: 0.01)
     değişken girdiler = [[[3, 1, 4, 1], [5, 9, 2, 6]], [[5, 3, 5, 8], [9, 7, 9, 3]], [[2, 3, 8, 4], [6, 2, 6, 4]]]
     değişken hedefler = [[[1, 4, 1, 5], [9, 2, 6, 5]], [[3, 5, 8, 9], [7, 9, 3, 2]], [[3, 8, 4, 6], [2, 6, 4, 3]]]

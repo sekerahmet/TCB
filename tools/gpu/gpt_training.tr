@@ -14,14 +14,14 @@
 //   ./tr gpt_training.tr --veri /content/ss4096 --koşu /content/runs/gpt1
 //   ./tr gpt_training.tr --veri /content/ss4096 --toplu 64 --birikim 2      (bellek yetmezse)
 //   ./tr gpt_training.tr --yardım
-// Model ayarları varsayılan olarak d512, 8 katman, 8 baş, bağlam 512, toplu 128'dir.
+// Model ayarları varsayılan olarak d512, 8 katman, 8 bakış, bağlam 512, toplu 128'dir.
 
 aktar "tr/katman"
 aktar "tr/iyilestirici"
 
 değişken ayar = komut_satırı({
         veri: "", koşu: "runs/gpt_ss", cihaz: "gpu", hassasiyet: "float32",
-        boyut: 512, katman: 8, baş: 8, kv_baş: 0, bağlam: 512, toplu: 128, birikim: 1,
+        boyut: 512, katman: 8, bakış_sayısı: 8, kv_bakış_sayısı: 0, bağlam: 512, toplu: 128, birikim: 1,
         adım: 5000, ısınma: 200, azalma: 0.2, muon_oranı: 0.02, adamw_oranı: 0.003,
         ağırlık_çürümesi: 0.0, normuon: yanlış, kırp: 1.0, paylaşımlı: doğru,
         günlük_her: 10, değerlendir_her: 250, değerlendir_toplu: 20, örnek_her: 1000,
@@ -29,7 +29,7 @@ değişken ayar = komut_satırı({
     açıklama: "SimpleStories verisiyle GPT eğitir (Muon + AdamW, WSD planı, kontrol noktası)",
     açıklamalar: {veri: "tokenizer.json, train.npy, valid.npy klasörü", koşu: "koşu klasörü",
         cihaz: "gpu ya da cpu", hassasiyet: "float32 ya da bf16 (karışık hassasiyet)",
-        kv_baş: "anahtar/değer baş sayısı (0: baş ile aynı)", birikim: "adım başına toplu iş (gradyan biriktirme)",
+        kv_bakış_sayısı: "anahtar/değer bakış sayısı (0: bakış_sayısı ile aynı)", birikim: "adım başına toplu iş (gradyan biriktirme)",
         azalma: "son adımların azalan oranlı kesri", normuon: "gizli ağırlıklarda NorMuon",
         kırp: "gradyan normu sınırı (0: kırpma yok)", paylaşımlı: "çıkış katmanı gömme tablosunu kullanır"})
 
@@ -42,7 +42,7 @@ değişken eğitim_verisi = veri_kümesi(yol(ayar.veri, "train.npy"))
 değişken ö = eğitim_verisi.örnekleyici(toplu: ayar.toplu, bağlam: ayar.bağlam, tohum: ayar.tohum)
 
 değişken model = GPT(p.dağarcık_boyutu, bağlam: ayar.bağlam, boyut: ayar.boyut, katman: ayar.katman,
-    baş: ayar.baş, kv_baş: eğer ayar.kv_baş == 0 { yok } değilse { ayar.kv_baş },
+    bakış_sayısı: ayar.bakış_sayısı, kv_bakış_sayısı: eğer ayar.kv_bakış_sayısı == 0 { yok } değilse { ayar.kv_bakış_sayısı },
     paylaşımlı: ayar.paylaşımlı, tohum: ayar.tohum)
 değişken op = MuonVeAdamW(model, muon_oranı: ayar.muon_oranı, adamw_oranı: ayar.adamw_oranı,
     ağırlık_çürümesi: ayar.ağırlık_çürümesi, normuon: ayar.normuon)

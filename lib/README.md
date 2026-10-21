@@ -14,7 +14,7 @@ Testler her modülün yanındadır (`katman_test.tr`, `iyilestirici_test.tr`, `e
 aktar "tr/katman"
 aktar "tr/iyilestirici"
 
-değişken model = GPT(1000, bağlam: 64, boyut: 64, katman: 2, baş: 4)
+değişken model = GPT(1000, bağlam: 64, boyut: 64, katman: 2, bakış_sayısı: 4)
 değişken op = MuonVeAdamW(model) // gizli 2B ağırlıklar Muon, öbürleri AdamW
 değişken giriş = [[1, 2, 3, 4]]
 değişken hedef = [[2, 3, 4, 5]]
@@ -35,14 +35,14 @@ Her katman sıradan bir `yapı`dır: ağırlıklar alanlarındadır, ileri hesap
 | `Doğrusal` | `x @ ağırlık (+ sapma)`; sapma çarpımın türünde eklenir (karışık hassasiyette çıktı bf16, PyTorch autocast gibi) | `Doğrusal(giriş, çıkış, sapmalı: yanlış, std: 0.02, tohum: 1)` |
 | `GömmeKatmanı` | kimlik → tablo satırı (`gömme` yerleşiği) | `GömmeKatmanı(dağarcık, boyut, std: 0.02, tohum: 1)` |
 | `RMSNormKatmanı` | RMS normu, öğrenilen ağırlıkla (`rms_normu` yerleşiği) | `RMSNormKatmanı(boyut, epsilon: 0.00001)` |
-| `döner_konum_tablosu`, `döner_konum_uygula` | döner konum gömmesi (RoPE): kosinüs/sinüs tabloları ve uygulanması | `döner_konum_tablosu(bağlam, baş_boyutu, taban: 10000.0)` |
-| `NedenselDikkat` | RoPE'lu nedensel çok başlı dikkat, gruplu sorgu (`kv_baş`); birleşik `dikkat` yerleşiği | `NedenselDikkat(boyut, baş, kv_baş: yok, sapmalı: yanlış, std:, çıkış_std:, tohum:, pencere: 0, qk_normu: yanlış, birleşik_kv: yanlış, epsilon:, baş_boyutu: yok)` |
+| `döner_konum_tablosu`, `döner_konum_uygula` | döner konum gömmesi (RoPE): kosinüs/sinüs tabloları ve uygulanması | `döner_konum_tablosu(bağlam, bakış_boyutu, taban: 10000.0)` |
+| `NedenselDikkat` | RoPE'lu nedensel çok bakışlı dikkat (İngilizce *multi-head attention*; her bakış diziye kendi alt uzayından bakar), gruplu sorgu (`kv_bakış_sayısı`); birleşik `dikkat` yerleşiği | `NedenselDikkat(boyut, bakış_sayısı, kv_bakış_sayısı: yok, sapmalı: yanlış, std:, çıkış_std:, tohum:, pencere: 0, qk_normu: yanlış, birleşik_kv: yanlış, epsilon:, bakış_boyutu: yok)` |
 | `swiglu_ara_boyutu` | SwiGLU ara boyutu: 8/3 · boyut, 32'nin katına yukarı | `swiglu_ara_boyutu(boyut)` |
 | `SwiGLU` | kapılı ileri besleme `aşağı(silu(kapı(x)) * yukarı(x))` | `SwiGLU(boyut, ara_boyut: yok, sapmalı:, std:, çıkış_std:, tohum:, birleşik: yanlış)` |
 | `PLEBağlamı`, `PLEBloğu`, `ple_gelu` | katman başına kelime gömmesi (PLE, Gemma 3n): ortak bağlam ve katman başına tablo/kapı/izdüşüm | `PLEBağlamı(boyut, katman, ple_boyutu, epsilon:, std:, tohum:)`, `PLEBloğu(boyut, dağarcık, ple_boyutu, epsilon:, std:, çıkış_std:, tohum:)` |
-| `TransformerBloğu` | ön-norm blok: `x + dikkat(norm(x))`, `+ ileri_besleme(norm(x))`, (PLE varsa) `+ PLE katkısı` | `TransformerBloğu(boyut, baş, kv_baş:, ara_boyut:, std:, çıkış_std:, tohum:, epsilon:, pencere:, qk_normu:, birleşik_kv:, sapmalı:, ileri_sapmalı:, birleşik_kapı:, ple_boyutu:, dağarcık:, baş_boyutu:)` |
+| `TransformerBloğu` | ön-norm blok: `x + dikkat(norm(x))`, `+ ileri_besleme(norm(x))`, (PLE varsa) `+ PLE katkısı` | `TransformerBloğu(boyut, bakış_sayısı, kv_bakış_sayısı:, ara_boyut:, std:, çıkış_std:, tohum:, epsilon:, pencere:, qk_normu:, birleşik_kv:, sapmalı:, ileri_sapmalı:, birleşik_kapı:, ple_boyutu:, dağarcık:, bakış_boyutu:)` |
 | `katman_pencereleri` | `"YYGYGYYG"` düzeninden katman başına pencere listesi | `katman_pencereleri(düzen, pencereler)` |
-| `GPT` | gömme → bloklar → son norm → logit; `ileri`, `kayıp`, `üret` | `GPT(dağarcık, bağlam: 256, boyut: 256, katman: 4, baş: 4, kv_baş: yok, ara_boyut: yok, paylaşımlı: yanlış, tohum: 1, pencereler: yok, qk_normu:, birleşik_kv:, birleşik_kapı:, ileri_sapmalı:, epsilon:, ple_boyutu: yok, baş_boyutu: yok)` |
+| `GPT` | gömme → bloklar → son norm → logit; `ileri`, `kayıp`, `üret` | `GPT(dağarcık, bağlam: 256, boyut: 256, katman: 4, bakış_sayısı: 4, kv_bakış_sayısı: yok, ara_boyut: yok, paylaşımlı: yanlış, tohum: 1, pencereler: yok, qk_normu:, birleşik_kv:, birleşik_kapı:, ileri_sapmalı:, epsilon:, ple_boyutu: yok, bakış_boyutu: yok)` |
 | `ağırlık_başlat` | N(0, std) ile başlayan, türev izleyen ağırlık | `ağırlık_başlat(şekil, std, tohum)` |
 
 **Başlatma.** Bütün ağırlık matrisleri N(0, 0.02) ile başlar. Artık yola yazan çıkış katmanları (dikkatin `çıkış_katmanı`, ileri beslemenin `aşağı`sı) `0.02 / √(2 · katman)` ile küçültülür: her blok artık yola iki katkı ekler, katkıların varyansı katman sayısıyla büyümesin. Norm ağırlıkları 1, sapmalar 0 ile başlar. Her ağırlığın sabit bir tohumu vardır (blok `i` için `tohum + 100·(i+1)` ve ardışıkları): aynı `tohum` aynı modeli verir. `paylaşımlı: doğru` çıkışta gömme tablosunu kullanır (`logit = h @ tablo.devrik()`).
@@ -52,14 +52,14 @@ Her katman sıradan bir `yapı`dır: ağırlıklar alanlarındadır, ileri hesap
 ```tr
 aktar "tr/katman"
 
-değişken rgn = GPT(40000, bağlam: 1024, boyut: 512, katman: 8, baş: 8, kv_baş: 4, ara_boyut: 672, paylaşımlı: doğru,
+değişken rgn = GPT(40000, bağlam: 1024, boyut: 512, katman: 8, bakış_sayısı: 8, kv_bakış_sayısı: 4, ara_boyut: 672, paylaşımlı: doğru,
     pencereler: katman_pencereleri("YYGYGYYG", [32, 64]), qk_normu: doğru, birleşik_kv: doğru,
     birleşik_kapı: doğru, ileri_sapmalı: doğru, epsilon: 0.000001, ple_boyutu: 512)
 ```
 
 - `pencere` (dikkat/blok): her konum yalnızca son `pencere` konuma bakar (`dikkat(..., pencere:)`); 0 tam nedensel. Pencere katmanın özelliğidir: `GPT`de `pencereler` katman başına bir listedir (G katman 0, Y katman 32/64...), `katman_pencereleri` düzen metninden kurar (Y katmanları pencere listesini sırayla alır).
-- `baş_boyutu` (dikkat/blok/GPT): bir başın boyutu; verilmezse `boyut / baş`. Verilirse gizli boyuttan bağımsızdır (Hugging Face `head_dim`; Qwen3-0.6B: gizli 1024, 16 baş × 128): sorgu katmanı `[boyut, baş · baş_boyutu]`, çıkış katmanı `[baş · baş_boyutu, boyut]`, döner konum tabloları bu boydadır; çift olmalıdır.
-- `qk_normu`: q ve k, döner konumdan önce baş boyutunda RMS normundan geçer (`q_norm`, `k_norm`; hedefteki `q_norm/k_norm`).
+- `bakış_boyutu` (dikkat/blok/GPT): bir bakışın boyutu; verilmezse `boyut / bakış_sayısı`. Verilirse gizli boyuttan bağımsızdır (Hugging Face `head_dim`; Qwen3-0.6B: gizli 1024, 16 bakış × 128): sorgu katmanı `[boyut, bakış_sayısı · bakış_boyutu]`, çıkış katmanı `[bakış_sayısı · bakış_boyutu, boyut]`, döner konum tabloları bu boydadır; çift olmalıdır.
+- `qk_normu`: q ve k, döner konumdan önce bakış boyutunda RMS normundan geçer (`q_norm`, `k_norm`; hedefteki `q_norm/k_norm`).
 - `birleşik_kv`: anahtar ve değer tek `kv_katmanı` (`[boyut, 2·kv_boyut]`, `[K | V]`, `.böl(2)`); Muon ikisini birlikte dikleştirir. `birleşik_kapı`: SwiGLU'da `[G | U]` tek `kapı_yukarı` matrisi. Birleşikken ayrı katmanlar `yok`'tur (parametre olarak görünmezler).
 - `sapmalı` (dikkat) ve `ileri_sapmalı` (SwiGLU): sapma ekler (hedefte yalnızca MLP'nin sapması vardır). `epsilon`: bloğun bütün RMS normlarının epsilon'u (hedef 1e-6; varsayılan 1e-5).
 - **PLE** (`ple_boyutu: P`): `PLEBağlamı` gömme çıktısından `RMSNorm_P(x @ W_ctx / √D)` ile katman başına `[B, T, P]` bağlamlarını üretir (`GPT.ple_bağlamı`); her blok, kendi tablosuyla (`bloklar.i.ple.tablo`, `[dağarcık, P]`) `e = (bağlam_i + √P · tablo_i[kelime]) / √2` kurar ve blok sonunda `H ← H + RMSNorm_D(W_p · (GELU(W_g · H) ⊙ e))` ekler (`PLEBloğu`). GELU çağrısı kitaplıkta yalnızca `ple_gelu`dadır: tam (erf) GELU seçeneği gelince tek satır değişir.

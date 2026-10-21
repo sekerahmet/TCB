@@ -2111,7 +2111,7 @@ yazdır(rms_normu(tensör([[3.0, 4.0]]), ağırlık: birler([2])).değer)
 
     dikkat(Tensör, Tensör, Tensör, nedensel: Mantık = doğru, pencere: Tam = 0, maske: Tensör | Liste | Yok = yok) → Tensör
 
-Birleşik ölçekli nokta çarpımı dikkatini (softmax(q @ kᵀ / √dh + maske) @ v) bellek dostu, tek türev düğümüyle hesaplar. Varsayılan olarak nedenseldir; k/v baş sayısı q'nunkinin böleni olabilir (gruplu sorgu dikkati).
+Birleşik ölçekli nokta çarpımı dikkatini (softmax(q @ kᵀ / √dh + maske) @ v) bellek dostu, tek türev düğümüyle hesaplar. Varsayılan olarak nedenseldir; k/v bakış sayısı q'nunkinin böleni olabilir (gruplu sorgu dikkati; bakış, İngilizce head).
 
 ```tr
 değişken q = rastgele_normal([2, 4, 8], tohum: 1); yazdır(dikkat(q, q, q, nedensel: doğru).şekil)

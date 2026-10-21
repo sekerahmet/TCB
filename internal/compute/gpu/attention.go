@@ -9,11 +9,11 @@ import (
 )
 
 // ============================================================================
-// Dikkat: matris çarpımı yolu (birleşik çekirdeğin paylaşımlı belleğine sığmayan baş
+// Dikkat: matris çarpımı yolu (birleşik çekirdeğin paylaşımlı belleğine sığmayan bakış
 // boyları için; birleşik yol cekirdek_flash*.go ve arkauc_dikkat.go'da)
 // ============================================================================
 //
-// GQA'da (H = G·Hkv) bir anahtar/değer başını paylaşan G sorgu başı bitişiktir: q,
+// GQA'da (H = G·Hkv) bir anahtar/değer bakışını paylaşan G sorgu bakışı bitişiktir: q,
 // [Batch·Hkv, G·Tq, Dh] matrisleri olarak görülür ve her (b, kv) için tek çarpım yapılır.
 //
 //	S = q·kᵀ            (toplu çarpım, puanlar [Batch·H·Tq, Tk])

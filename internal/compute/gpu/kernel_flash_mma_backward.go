@@ -13,19 +13,19 @@ import (
 //
 // SIMT geri yönüyle aynı iki geçiş (atomiksiz, belirlenimci); çarpımlar mma.sync ile:
 //   - dikkat_geri_kv_tc: blok mmaKeys anahtarı tutar (8 warp × 16). Sorgular mmaQT'lik
-//     döşemelerle (o anahtar başını paylaşan bütün sorgu başları için) gezilir. Warp kendi
+//     döşemelerle (o anahtar bakışını paylaşan bütün sorgu bakışları için) gezilir. Warp kendi
 //     anahtarları için Sᵀ = K·Qᵀ ve dPᵀ = V·dOᵀ'yi kurar; Pᵀ = 2^{Sᵀ·ölçek·log2e − lse·log2e},
 //     dSᵀ = Pᵀ·(dPᵀ − D)·ölçek; dV += Pᵀ·dO ve dK += dSᵀ·Q (Pᵀ ve dSᵀ parçaları doğrudan A
 //     parçalarına paketlenir). Q ve dO döşemeleri hem satır öncelikli hem devrik tutulur.
 //   - dikkat_geri_q_tc: blok mmaBr sorgu satırı tutar; anahtarlar mmaBc'lik döşemelerle
 //     gezilir: S = Q·Kᵀ, dP = dO·Vᵀ, dS, dQ += dS·K (K devrik de tutulur).
 // dO float32 gelir ve 16 bite yuvarlanır (çarpımın geri yönündeki gradyan yuvarlamasıyla
-// aynı). Baş boyları en çok mmaBackMax'tır (yazmaç bütçesi); büyüğünde SIMT geri yön kalır.
+// aynı). Bakış boyları en çok mmaBackMax'tır (yazmaç bütçesi); büyüğünde SIMT geri yön kalır.
 
 const (
 	mmaKeys    = 128 // geri dK/dV bloğunun anahtar sayısı (8 warp × 16)
 	mmaQT      = 64  // geri dK/dV'de sorgu döşemesi
-	mmaBackMax = 64  // tensör çekirdekli geri yönün en büyük baş boyu
+	mmaBackMax = 64  // tensör çekirdekli geri yönün en büyük bakış boyu
 )
 
 // fragRows şeridin parça satırları: r[0] = taban + 16w + g, r[1] = r[0] + 8.

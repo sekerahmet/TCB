@@ -11,7 +11,7 @@ import (
 // Birleşik (döşemeli, çevrimiçi softmax'lı) dikkat: ortak parçalar ve ileri yön
 // ============================================================================
 //
-// Puan matrisi (Tq×Tk) belleğe yazılmaz. İleri yönde her blok bir (toplu, baş) çiftinin Br
+// Puan matrisi (Tq×Tk) belleğe yazılmaz. İleri yönde her blok bir (toplu, bakış) çiftinin Br
 // sorgu satırını tutar ve anahtarları Bc'lik döşemelerle gezer: S = Q·Kᵀ·ölçek (maskeli),
 // satır başına koşan en büyük m ve payda l güncellenir, O = O·e^{m_eski−m} + P·V. Sonda
 // O/l ve lse = m + log l yazılır. Nedensellik ve pencere dışında kalan anahtar döşemeleri
@@ -235,7 +235,7 @@ func (f *flashShared) sharedParams() {
 	k.e("shr.u32", f.ty, f.tid, 4)
 }
 
-// headIndexes b, h (ızgaranın z ve y'si; geri dK/dV çekirdeğinde y anahtar başıdır).
+// headIndexes b, h (ızgaranın z ve y'si; geri dK/dV çekirdeğinde y anahtar bakışıdır).
 func (f *flashShared) headIndexes(yKV bool) {
 	k := f.k
 	f.b = k.special("%ctaid.z")
@@ -256,7 +256,7 @@ func (f *flashShared) headIndexes(yKV bool) {
 	k.e("mad.lo.s32", f.bhkv, f.b, Hkv, f.kvh)
 }
 
-// matrixBase ptr + (sira·T·D)·4 (bir başın [T][D] matrisinin başı).
+// matrixBase ptr + (sira·T·D)·4 (bir bakışın [T][D] matrisinin başı).
 func (k *emitter) matrixBase(ptr, order, T reg, D int) reg {
 	e := k.r()
 	k.e("mul.lo.s32", e, order, T)

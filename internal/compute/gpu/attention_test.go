@@ -43,7 +43,7 @@ func TestAttentionAlias(t *testing.T) {
 	}
 }
 
-// TestAttentionRealSizes LLM'e özgü baş boyu (Dh = 64: ileri 64×32; geri 48 KB'ta 32×32,
+// TestAttentionRealSizes LLM'e özgü bakış boyu (Dh = 64: ileri 64×32; geri 48 KB'ta 32×32,
 // açılabilen paylaşımlı bellekte 64×64 devingen döşeme), GQA, çok döşeme, Tq > Tk nedensel,
 // pencere ve dolgu maskesi. Benzetimde iki geri döşeme de sınanır.
 func TestAttentionRealSizes(t *testing.T) {

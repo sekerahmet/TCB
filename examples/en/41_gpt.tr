@@ -31,7 +31,7 @@ A030 sampler = V100("../../tests/data/text").Y600(V902: config.batch, V903: conf
 
 // --- Model and optimizer ---
 A030 model = GPT(p.Y612, bağlam: config.context, boyut: config.width, katman: config.layers,
-    baş: config.heads, paylaşımlı: A040, tohum: 1)
+    bakış_sayısı: config.heads, paylaşımlı: A040, tohum: 1)
 A030 opt = MuonVeAdamW(model, muon_oranı: config.muon_rate, adamw_oranı: config.adamw_rate, normuon: config.normuon)
 G100("model: {T530(model).Y001} weight tensors; {opt.muon.ağırlıklar.Y001} in Muon, {opt.diğer.Y001} in AdamW")
 

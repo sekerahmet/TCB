@@ -111,10 +111,10 @@ test "döner konum ve PLE karışımı: sonuç girdinin türündedir, değer flo
 
 test "NedenselDikkat: şekil, gruplu sorgu ve türev" {
     değişken tablolar = döner_konum_tablosu(4, 2)
-    değişken d = NedenselDikkat(8, 4, kv_baş: 2, tohum: 1)
-    eşit_mi([8, 4], d.anahtar_katmanı.ağırlık.şekil) // 2 kv başı × 2 baş boyutu
+    değişken d = NedenselDikkat(8, 4, kv_bakış_sayısı: 2, tohum: 1)
+    eşit_mi([8, 4], d.anahtar_katmanı.ağırlık.şekil) // 2 kv bakışı × 2 bakış boyutu
     eşit_mi([2, 3, 8], d.ileri(rastgele_normal([2, 3, 8], tohum: 1), tablolar[0], tablolar[1]).şekil)
-    değişken k = NedenselDikkat(4, 2, kv_baş: 1, tohum: 3)
+    değişken k = NedenselDikkat(4, 2, kv_bakış_sayısı: 1, tohum: 3)
     fonksiyon f(x, wq, wk, wv, wo) {
         k.sorgu_katmanı.ağırlık = wq
         k.anahtar_katmanı.ağırlık = wk
@@ -138,10 +138,10 @@ test "NedenselDikkat: bir konum sonraki konumlardan etkilenmez" {
     doğrula(y1[0][4] != y2[0][4], "son konum değişmeli")
 }
 
-test "NedenselDikkat: boyut baş sayısına bölünmeli" {
+test "NedenselDikkat: boyut bakış sayısına bölünmeli" {
     değişken mesaj = ""
     dene { NedenselDikkat(10, 4) } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("boyut (10) baş sayısına (4) bölünmeli"), mesaj)
+    doğrula(mesaj.içerir("boyut (10) bakış sayısına (4) bölünmeli"), mesaj)
 }
 
 test "SwiGLU: ara boyut, şekil ve türev" {
@@ -171,27 +171,27 @@ test "TransformerBloğu: şekil ve türev" {
 }
 
 test "GPT: şekil, parametre adları, paylaşımlı çıkış ve küçültülmüş çıkış katmanları" {
-    değişken m = GPT(10, bağlam: 6, boyut: 8, katman: 2, baş: 2, tohum: 1)
+    değişken m = GPT(10, bağlam: 6, boyut: 8, katman: 2, bakış_sayısı: 2, tohum: 1)
     eşit_mi([2, 6, 10], m.ileri([[1, 2, 3, 4, 5, 6], [0, 0, 1, 1, 2, 2]]).şekil)
     değişken adlar = parametreler(m, adlarıyla: doğru).anahtarlar()
     eşit_mi(21, adlar.uzunluk)
     eşit_mi("gömme.tablo", adlar[0])
     eşit_mi("çıkış.ağırlık", adlar[-1])
     doğrula(adlar.içerir("bloklar.1.dikkat.çıkış_katmanı.ağırlık"))
-    değişken p = GPT(10, bağlam: 6, boyut: 8, katman: 2, baş: 2, paylaşımlı: doğru)
+    değişken p = GPT(10, bağlam: 6, boyut: 8, katman: 2, bakış_sayısı: 2, paylaşımlı: doğru)
     eşit_mi(yok, p.çıkış)
     eşit_mi(20, parametreler(p).uzunluk)
     eşit_mi([1, 3, 10], p.ileri([[1, 2, 3]]).şekil)
     // Artık yola yazan katmanlar 0.02 / √(2 · katman) ile başlar.
-    değişken büyük = GPT(10, bağlam: 4, boyut: 64, katman: 8, baş: 4)
+    değişken büyük = GPT(10, bağlam: 4, boyut: 64, katman: 8, bakış_sayısı: 4)
     değişken w = büyük.bloklar[0].ileri_besleme.aşağı.ağırlık
     değişken s = karekök(ortalama(w * w)).değer
     doğrula(s > 0.0045 ve s < 0.0055, "çıkış katmanının std'si 0.02/4 olmalı: {s}")
 }
 
 test "GPT: aynı tohum aynı modeli verir, kayıp başta ln(dağarcık) civarındadır" {
-    değişken a = GPT(16, bağlam: 4, boyut: 8, katman: 1, baş: 2, tohum: 5)
-    değişken b = GPT(16, bağlam: 4, boyut: 8, katman: 1, baş: 2, tohum: 5)
+    değişken a = GPT(16, bağlam: 4, boyut: 8, katman: 1, bakış_sayısı: 2, tohum: 5)
+    değişken b = GPT(16, bağlam: 4, boyut: 8, katman: 1, bakış_sayısı: 2, tohum: 5)
     değişken x = [[1, 2, 3, 4]]
     doğrula(a.ileri(x) == b.ileri(x))
     değişken k = a.kayıp(x, [[2, 3, 4, 5]]).değer
@@ -200,7 +200,7 @@ test "GPT: aynı tohum aynı modeli verir, kayıp başta ln(dağarcık) civarın
 
 test "GPT.kayıp: sapmasız çıkışta doğrusal_çapraz_entropi kullanır; kayıp ve gradyanlar logitlerle aynıdır" {
     döngü paylaşımlı içinde [doğru, yanlış] {
-        değişken m = GPT(12, bağlam: 4, boyut: 8, katman: 1, baş: 2, paylaşımlı: paylaşımlı, tohum: 3)
+        değişken m = GPT(12, bağlam: 4, boyut: 8, katman: 1, bakış_sayısı: 2, paylaşımlı: paylaşımlı, tohum: 3)
         değişken x = [[1, 2, 3, 4], [5, 6, 7, 8]]
         değişken hedef = [[2, 3, -1, 5], [6, 7, 8, 9]]
         değişken k1 = m.kayıp(x, hedef)
@@ -217,7 +217,7 @@ test "GPT.kayıp: sapmasız çıkışta doğrusal_çapraz_entropi kullanır; kay
 }
 
 test "GPT: üret istenen kadar parça ekler; tohumla tekrarlanır, bağlamdan uzun dizide çalışır" {
-    değişken m = GPT(12, bağlam: 4, boyut: 8, katman: 1, baş: 2)
+    değişken m = GPT(12, bağlam: 4, boyut: 8, katman: 1, bakış_sayısı: 2)
     değişken a = m.üret([1, 2], 6, tohum: 3)
     eşit_mi(8, a.uzunluk)
     eşit_mi([1, 2], a[0..2])
@@ -245,7 +245,7 @@ fonksiyon kopya_toplu(B, V, yarım) {
 
 test "GPT: küçük model kopyalama görevini öğrenir (kayıp belirgin düşer)" {
     kopya_tohumu = 11
-    değişken m = GPT(8, bağlam: 12, boyut: 32, katman: 2, baş: 4, tohum: 2)
+    değişken m = GPT(8, bağlam: 12, boyut: 32, katman: 2, bakış_sayısı: 4, tohum: 2)
     değişken op = AdamW(parametreler(m), öğrenme_oranı: 0.01, ağırlık_çürümesi: 0.0)
     değişken ilk = 0.0
     değişken son = 0.0
@@ -267,7 +267,7 @@ test "GPT: küçük model kopyalama görevini öğrenir (kayıp belirgin düşer
 fonksiyon en_büyük_fark(a, b) { sonuç maks(mutlak(a - b)).değer }
 
 test "NedenselDikkat: varsayılan seçenekler eski yapıyı verir (kv_katmanı, q_norm, k_norm yok)" {
-    değişken d = NedenselDikkat(8, 4, kv_baş: 2, tohum: 1)
+    değişken d = NedenselDikkat(8, 4, kv_bakış_sayısı: 2, tohum: 1)
     eşit_mi(0, d.pencere)
     eşit_mi(yok, d.kv_katmanı)
     eşit_mi(yok, d.q_norm)
@@ -299,11 +299,11 @@ test "NedenselDikkat: pencere yalnızca son w konuma bakar" {
     doğrula(mesaj.içerir("pencere negatif olamaz"), mesaj)
 }
 
-test "NedenselDikkat: qk_normu q ve k'yı baş boyutunda normlar (sorgu ölçeğinden bağımsız), türevlidir" {
+test "NedenselDikkat: qk_normu q ve k'yı bakış boyutunda normlar (sorgu ölçeğinden bağımsız), türevlidir" {
     değişken tablolar = döner_konum_tablosu(4, 4)
     değişken x = rastgele_normal([1, 4, 8], tohum: 2)
     değişken d = NedenselDikkat(8, 2, tohum: 3, qk_normu: doğru)
-    eşit_mi([4], d.q_norm.ağırlık.şekil) // baş boyutu = 8 / 2
+    eşit_mi([4], d.q_norm.ağırlık.şekil) // bakış boyutu = 8 / 2
     eşit_mi(6, parametreler(d).uzunluk)
     değişken y = d.ileri(x, tablolar[0], tablolar[1])
     eşit_mi([1, 4, 8], y.şekil)
@@ -327,9 +327,9 @@ test "NedenselDikkat: qk_normu q ve k'yı baş boyutunda normlar (sorgu ölçeğ
 test "NedenselDikkat: birleşik KV, ayrı K ve V ile aynı sonucu verir ([K | V])" {
     değişken tablolar = döner_konum_tablosu(4, 4)
     değişken x = rastgele_normal([2, 4, 8], tohum: 5)
-    değişken a = NedenselDikkat(8, 2, kv_baş: 1, tohum: 1)
-    değişken b = NedenselDikkat(8, 2, kv_baş: 1, tohum: 1, birleşik_kv: doğru)
-    eşit_mi([8, 8], b.kv_katmanı.ağırlık.şekil) // 2 · (1 kv başı · 4 baş boyutu)
+    değişken a = NedenselDikkat(8, 2, kv_bakış_sayısı: 1, tohum: 1)
+    değişken b = NedenselDikkat(8, 2, kv_bakış_sayısı: 1, tohum: 1, birleşik_kv: doğru)
+    eşit_mi([8, 8], b.kv_katmanı.ağırlık.şekil) // 2 · (1 kv bakışı · 4 bakış boyutu)
     eşit_mi(yok, b.anahtar_katmanı)
     eşit_mi(yok, b.değer_katmanı)
     eşit_mi(3, parametreler(b).uzunluk) // sorgu, kv, çıkış
@@ -412,7 +412,7 @@ test "TransformerBloğu: PLE'siz varsayılan değişmez; PLE, epsilon, pencere v
     eşit_mi(0, düz.dikkat.pencere)
     değişken x = rastgele_normal([2, 4, 8], tohum: 1)
     eşit_mi([2, 4, 8], düz.ileri(x, tablolar[0], tablolar[1]).şekil)
-    değişken b = TransformerBloğu(8, 2, kv_baş: 1, ara_boyut: 8, tohum: 1, epsilon: 0.000001, pencere: 2, qk_normu: doğru,
+    değişken b = TransformerBloğu(8, 2, kv_bakış_sayısı: 1, ara_boyut: 8, tohum: 1, epsilon: 0.000001, pencere: 2, qk_normu: doğru,
         birleşik_kv: doğru, birleşik_kapı: doğru, sapmalı: yanlış, ileri_sapmalı: doğru, ple_boyutu: 4, dağarcık: 10)
     eşit_mi(0.000001, b.norm2.epsilon)
     eşit_mi(0.000001, b.dikkat.q_norm.epsilon)
@@ -443,11 +443,11 @@ test "katman_pencereleri: G katmanı 0, Y katmanları pencereleri sırayla alır
 
 test "GPT: yeni seçenekler varsayılanda modeli değiştirmez; PLE'li yerel/genel model kurulur" {
     değişken x = [[1, 2, 3, 4, 5]]
-    değişken a = GPT(12, bağlam: 6, boyut: 8, katman: 2, baş: 2, tohum: 3)
-    değişken b = GPT(12, bağlam: 6, boyut: 8, katman: 2, baş: 2, tohum: 3, pencereler: [0, 0])
+    değişken a = GPT(12, bağlam: 6, boyut: 8, katman: 2, bakış_sayısı: 2, tohum: 3)
+    değişken b = GPT(12, bağlam: 6, boyut: 8, katman: 2, bakış_sayısı: 2, tohum: 3, pencereler: [0, 0])
     doğrula(a.ileri(x) == b.ileri(x), "pencereler: 0 varsayılanla aynı")
     eşit_mi(yok, a.ple_bağlamı)
-    değişken m = GPT(12, bağlam: 6, boyut: 8, katman: 4, baş: 2, kv_baş: 1, ara_boyut: 12, paylaşımlı: doğru, tohum: 3,
+    değişken m = GPT(12, bağlam: 6, boyut: 8, katman: 4, bakış_sayısı: 2, kv_bakış_sayısı: 1, ara_boyut: 12, paylaşımlı: doğru, tohum: 3,
         pencereler: katman_pencereleri("YGYG", [2, 3]), qk_normu: doğru, birleşik_kv: doğru, birleşik_kapı: doğru,
         ileri_sapmalı: doğru, epsilon: 0.000001, ple_boyutu: 4)
     eşit_mi([2, 5, 12], m.ileri([[1, 2, 3, 4, 5], [5, 4, 3, 2, 1]]).şekil)
@@ -469,7 +469,7 @@ test "GPT: yeni seçenekler varsayılanda modeli değiştirmez; PLE'li yerel/gen
 }
 
 test "GPT.üret: eos örneklenince durur (eos dizide kalır), eos'suz adet kadar üretir" {
-    değişken m = GPT(6, bağlam: 8, boyut: 8, katman: 1, baş: 2, tohum: 2)
+    değişken m = GPT(6, bağlam: 8, boyut: 8, katman: 1, bakış_sayısı: 2, tohum: 2)
     değişken dizi = m.üret([1], 6, sıcaklık: 0)
     eşit_mi(7, dizi.uzunluk)
     değişken eos = dizi[3]
@@ -480,30 +480,30 @@ test "GPT.üret: eos örneklenince durur (eos dizide kalır), eos'suz adet kadar
     eşit_mi(dizi, m.üret([1], 6, sıcaklık: 0, eos: -5)) // hiç örneklenmeyen kimlik: durmaz
 }
 
-test "NedenselDikkat: baş_boyutu gizli boyuttan bağımsızdır (Hugging Face head_dim); verilmezse boyut / baş" {
-    // Qwen3 gibi: gizli 8, 2 baş × 8 baş boyutu = 16 (gizliden büyük), kv 1 baş.
-    değişken d = NedenselDikkat(8, 2, kv_baş: 1, baş_boyutu: 8, tohum: 3)
-    eşit_mi(8, d.baş_boyutu)
+test "NedenselDikkat: bakış_boyutu gizli boyuttan bağımsızdır (Hugging Face head_dim); verilmezse boyut / bakış_sayısı" {
+    // Qwen3 gibi: gizli 8, 2 bakış × 8 bakış boyutu = 16 (gizliden büyük), kv 1 bakış.
+    değişken d = NedenselDikkat(8, 2, kv_bakış_sayısı: 1, bakış_boyutu: 8, tohum: 3)
+    eşit_mi(8, d.bakış_boyutu)
     eşit_mi([8, 16], d.sorgu_katmanı.ağırlık.şekil)
     eşit_mi([8, 8], d.anahtar_katmanı.ağırlık.şekil)
     eşit_mi([16, 8], d.çıkış_katmanı.ağırlık.şekil)
     değişken tablolar = döner_konum_tablosu(5, 8)
     değişken x = rastgele_girdi([2, 5, 8], 4)
     eşit_mi([2, 5, 8], d.ileri(x, tablolar[0], tablolar[1]).şekil)
-    eşit_mi(4, NedenselDikkat(8, 2).baş_boyutu)
-    // baş_boyutu verilince boyut başa bölünmek zorunda değildir.
-    eşit_mi([6, 8], NedenselDikkat(6, 4, baş_boyutu: 2).sorgu_katmanı.ağırlık.şekil)
+    eşit_mi(4, NedenselDikkat(8, 2).bakış_boyutu)
+    // bakış_boyutu verilince boyut bakış sayısına bölünmek zorunda değildir.
+    eşit_mi([6, 8], NedenselDikkat(6, 4, bakış_boyutu: 2).sorgu_katmanı.ağırlık.şekil)
     değişken mesaj = ""
-    dene { NedenselDikkat(8, 2, baş_boyutu: 3) } yakala h { mesaj = h }
+    dene { NedenselDikkat(8, 2, bakış_boyutu: 3) } yakala h { mesaj = h }
     doğrula(mesaj.içerir("çift"), mesaj)
 }
 
-test "GPT: baş_boyutu bloklara ve döner konum tablosuna iletilir; varsayılan model değişmez" {
-    değişken m = GPT(12, bağlam: 6, boyut: 8, katman: 2, baş: 2, kv_baş: 1, baş_boyutu: 16, tohum: 3)
+test "GPT: bakış_boyutu bloklara ve döner konum tablosuna iletilir; varsayılan model değişmez" {
+    değişken m = GPT(12, bağlam: 6, boyut: 8, katman: 2, bakış_sayısı: 2, kv_bakış_sayısı: 1, bakış_boyutu: 16, tohum: 3)
     eşit_mi([8, 32], m.bloklar[0].dikkat.sorgu_katmanı.ağırlık.şekil)
     eşit_mi([6, 8], m.kos.şekil)
     eşit_mi([2, 6, 12], m.ileri(tensör([[1, 2, 3, 4, 5, 6], [6, 5, 4, 3, 2, 1]])).şekil)
-    değişken a = GPT(12, bağlam: 6, boyut: 8, katman: 2, baş: 2, tohum: 3)
-    değişken b = GPT(12, bağlam: 6, boyut: 8, katman: 2, baş: 2, baş_boyutu: 4, tohum: 3)
+    değişken a = GPT(12, bağlam: 6, boyut: 8, katman: 2, bakış_sayısı: 2, tohum: 3)
+    değişken b = GPT(12, bağlam: 6, boyut: 8, katman: 2, bakış_sayısı: 2, bakış_boyutu: 4, tohum: 3)
     eşit_mi(a.ileri(tensör([[1, 2, 3]])).değer, b.ileri(tensör([[1, 2, 3]])).değer)
 }

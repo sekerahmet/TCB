@@ -39,8 +39,8 @@ döngü h içinde metin_verisi {
 değişken V = harfler.uzunluk // sözlük boyutu
 değişken T = 64 // bağlam uzunluğu
 değişken D = 64 // gizli boyut
-değişken H = 4 // dikkat başı
-değişken Dh = 16 // baş boyutu
+değişken H = 4 // dikkat bakışı
+değişken Dh = 16 // bakış boyutu
 değişken B = 16 // toplu iş boyutu
 değişken KATMAN = 2
 
