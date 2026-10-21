@@ -75,6 +75,11 @@ func (t *Tensor) Drop() {
 // IsDropped başlığın bırakılıp bırakılmadığı.
 func (t *Tensor) IsDropped() bool { return t.dropped.Load() }
 
+// storageReturned, sahipsiz kalan depolama arka uca iade edilirken çağrılır (yalnızca
+// testlerin gözlemi içindir; havuz iade edilen depolamayı hemen yeniden verebildiğinden
+// depolamanın kendisine bakmak güvenilir değildir).
+var storageReturned func(Storage)
+
 // unholdStorage depolamanın bir sahibini düşer; son sahip gidince depolamayı iade eder.
 func unholdStorage(be Backend, s Storage) {
 	if s == nil {
@@ -82,6 +87,9 @@ func unholdStorage(be Backend, s Storage) {
 	}
 	switch n := s.Unhold(); {
 	case n == 0:
+		if storageReturned != nil {
+			storageReturned(s)
+		}
 		giveBack(be, s)
 	case n < 0:
 		panic(messages.Internal("storage released more often than held"))

@@ -8,38 +8,52 @@ import (
 // Tensör ömrünün kuralları (lifetime.go, dil tanımı 15.44): depolama bütün sahipleri
 // bırakılınca havuza döner; bırakılmamış bir sahip (görünüm, kayıt, sarıcı) onu tutar.
 
-// returned depolamanın CPU havuzuna iade edilip edilmediği (poolMin'den büyük depolamalar).
-func returned(x *Tensor) bool { return x.storage.(*cpuStorage).release }
+// returnLog iade edilen depolamaları kaydeder (havuz onları hemen yeniden verebilir; iade
+// anında kaydedilir).
+type returnLog map[Storage]bool
+
+// watchReturns testin sonuna kadar iadeleri kaydeder.
+func watchReturns(t *testing.T) returnLog {
+	log := returnLog{}
+	storageReturned = func(s Storage) { log[s] = true }
+	t.Cleanup(func() { storageReturned = nil })
+	return log
+}
+
+func (l returnLog) returned(x *Tensor) bool { return l[x.storage] }
 
 // big havuza girecek kadar büyük bir yaprak.
 func big(rng *rand.Rand) *Tensor { return Randn(rng, 64, 64) }
 
 func TestDropReturnsStorageOfSoleHeader(t *testing.T) {
+	log := watchReturns(t)
 	x := big(rand.New(rand.NewSource(1)))
 	x.Drop()
-	if !returned(x) {
+	if !log.returned(x) {
 		t.Fatal("tek başlığı bırakılan depolama havuza dönmedi")
 	}
 	x.Drop() // ikinci çağrı etkisizdir
 }
 
 func TestViewKeepsStorage(t *testing.T) {
+	log := watchReturns(t)
 	x := big(rand.New(rand.NewSource(1)))
 	v := x.Transpose(0, 1)
 	x.Drop()
-	if returned(x) {
+	if log.returned(x) {
 		t.Fatal("görünümü canlıyken depolama iade edildi")
 	}
 	if got := v.Data()[1]; got != x.storage.(*cpuStorage).d[64] {
 		t.Fatalf("görünümün verisi bozuldu: %v", got)
 	}
 	v.Drop()
-	if !returned(x) {
+	if !log.returned(x) {
 		t.Fatal("son görünüm bırakılınca depolama dönmedi")
 	}
 }
 
 func TestWrapCountsValues(t *testing.T) {
+	log := watchReturns(t)
 	x := big(rand.New(rand.NewSource(1)))
 	x.Wrap()
 	x.Wrap()
@@ -48,23 +62,24 @@ func TestWrapCountsValues(t *testing.T) {
 		t.Fatal("iki sarıcıdan biri bırakılınca başlık düştü")
 	}
 	x.Unwrap()
-	if !x.IsDropped() || !returned(x) {
+	if !x.IsDropped() || !log.returned(x) {
 		t.Fatal("son sarıcı bırakılınca başlık düşmedi")
 	}
 	expectPanic(t, "fazla Unwrap", x.Unwrap)
 }
 
 func TestSavedTensorReleasedAfterItsBackward(t *testing.T) {
+	log := watchReturns(t)
 	rng := rand.New(rand.NewSource(1))
 	w := big(rng).SetRequiresGrad(true)
 	h := w.MulScalar(2) // ara sonuç: yalnızca h·h'nin geri hesabı kaydeder
 	z := h.Mul(h).SumAll()
 	h.Drop()
-	if returned(h) {
+	if log.returned(h) {
 		t.Fatal("geri yayılımın kaydettiği tensör geri yayılımdan önce iade edildi")
 	}
 	z.Backward()
-	if !returned(h) {
+	if !log.returned(h) {
 		t.Fatal("kaydeden geri hesap bitince depolama dönmedi")
 	}
 	if g := w.Grad().Data()[0]; g != 8*w.Data()[0] {
@@ -73,11 +88,12 @@ func TestSavedTensorReleasedAfterItsBackward(t *testing.T) {
 }
 
 func TestUndroppedHeaderIsNotReturned(t *testing.T) {
+	log := watchReturns(t)
 	rng := rand.New(rand.NewSource(1))
 	w := big(rng).SetRequiresGrad(true)
 	h := w.MulScalar(2)
 	h.Mul(h).SumAll().Backward()
-	if returned(h) {
+	if log.returned(h) {
 		t.Fatal("bırakılmamış başlığın depolaması iade edildi")
 	}
 }

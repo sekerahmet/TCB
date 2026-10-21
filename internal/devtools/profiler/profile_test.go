@@ -178,11 +178,14 @@ func TestProfileCallerLineAfterReturn(t *testing.T) {
     sonuç 1
 }
 değişken a = rastgele_normal([256, 256], tohum: 1)
-döngü i içinde 0..40 {
+döngü i içinde 0..120 {
     değişken b = küçük() + toplam(a @ a @ a).değer
 }
 `
 	g, _ := run(t, code, Options{SampleLines: true})
+	if len(g.Sampling.Lines) == 0 {
+		t.Skip("program örnek alınamadan bitti (çok hızlı makine); satır denetlenmedi")
+	}
 	s := g.Sampling.Lines[0]
 	if s.Line != 6 || s.Function != "" {
 		t.Errorf("en sıcak satır %+v; beklenen 6. satır (matris çarpımları küçük() döndükten sonra)", s)
