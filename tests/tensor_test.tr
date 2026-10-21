@@ -181,6 +181,14 @@ test "15.45 kaynaştır: zincir tek geçişte, sonuç ve gradyan kaynaşmamışl
     // Sabit önbellek anahtarının parçasıdır; liste döndüren fonksiyon liste verir.
     eşit_mi([3.0], kaynaştır((a, s) => a * s)(tensör([1.0]), 3.0).değer)
     eşit_mi(2, kaynaştır((a) => [a + 1.0, a * 2.0])(tensör([1.0])).uzunluk)
+    // Dışarıdan okunan sayı kayıtta sabitlenir; argüman olarak verilen değişir.
+    değişken ölçek2 = 2.0
+    değişken gömülü = kaynaştır((a) => a * ölçek2)
+    değişken verilen = kaynaştır((a, s) => a * s)
+    eşit_mi([2.0], gömülü(tensör([1.0])).değer)
+    ölçek2 = 3.0
+    eşit_mi([2.0], gömülü(tensör([1.0])).değer)
+    eşit_mi([3.0], verilen(tensör([1.0]), ölçek2).değer)
     // Kaynaştırılamayan işlem ve dış tensör hata verir.
     değişken dış = tensör([1.0])
     doğrula(hata_metni(() => kaynaştır((a) => toplam(a))(tensör([1.0]))).içerir("kaynaştırılamayan"))

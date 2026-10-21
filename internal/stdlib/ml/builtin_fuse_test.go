@@ -2,21 +2,22 @@ package ml
 
 import "testing"
 
-// Denetim (2026-10-21): kaynaştırılan fonksiyonun dışarıdan yakaladığı bir sayı (argüman
-// değil) programa kayıt anında sabit olarak gömülür; önbellek anahtarı yalnızca
-// argümanlardır. Sayı sonradan değişince kaynaşmış fonksiyon eski değerle hesaplar ve
-// kaynaşmamış hesaptan ayrılır (dil tanımı 15.45: "Sonuç kaynaşmamış hesapla aynıdır").
-func TestAuditFuseCapturedNumberIsBakedIn(t *testing.T) {
+// Kaynaştırılan fonksiyonun dışarıdan okuduğu sayı kayıtta (ilk çağrıda) programa sabit
+// olarak girer (dil tanımı 15.45; JAX jit de kapanıştaki sayıları iz anında sabitler).
+// Sonradan değişen sayı kaynaşmış sonucu değiştirmez; argüman olarak verilen değiştirir.
+func TestFuseCapturedNumberIsBakedIn(t *testing.T) {
 	out := mustRun(t, `değişken ölçek = 2.0
 fonksiyon f(x) { sonuç x * ölçek }
+fonksiyon g(x, s) { sonuç x * s }
 değişken kf = kaynaştır(f)
+değişken kg = kaynaştır(g)
 değişken t = tensör([1.0])
-yazdır(kf(t).değer, f(t).değer)
+yazdır(kf(t).değer, kg(t, ölçek).değer)
 ölçek = 3.0
-yazdır(kf(t).değer, f(t).değer)`)
-	want := "[2.0] [2.0]\n[3.0] [3.0]\n"
+yazdır(kf(t).değer, kg(t, ölçek).değer)`)
+	want := "[2.0] [2.0]\n[2.0] [3.0]\n"
 	if out != want {
-		t.Fatalf("kaynaşmış sonuç kaynaşmamıştan ayrıldı:\n%q\nbeklenen:\n%q", out, want)
+		t.Fatalf("dış sayı kayıtta sabitlenmedi ya da argüman değişmedi:\n%q\nbeklenen:\n%q", out, want)
 	}
 }
 
