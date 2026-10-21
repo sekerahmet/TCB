@@ -265,7 +265,7 @@ func (d *auditSecondDevice) Release(s tensor.Storage) {
 
 // türev_denetle varsayılan cihazdan farklı bir cihazdaki tensörlerle çağrıldığında
 // girdi kopyalarını ve yön vektörlerini tensörün kendi cihazında oluşturmalıdır.
-func TestAuditCheckGradNonDefaultDevice(t *testing.T) {
+func TestCheckGradNonDefaultDevice(t *testing.T) {
 	tensor.RegisterBackend(&auditSecondDevice{Backend: tensor.BackendFor(tensor.CPU)})
 	out, err := run(t, `değişken w = tensör([2.0, 3.0]).cihaza("gpu:99")
 değişken x = tensör([1.0, 4.0], türev_izle: doğru).cihaza("gpu:99")
