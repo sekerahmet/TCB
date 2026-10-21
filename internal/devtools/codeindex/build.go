@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 )
@@ -18,6 +19,9 @@ type Options struct {
 	Dirs []string
 	// SkipDirs gezilmeyen klasör adlarıdır (nil ise DefaultSkipDirs).
 	SkipDirs map[string]bool
+	// Library gömülü TR kitaplığıdır (kökünde katman.tr gibi dosyalar): projede lib/ad.tr yoksa
+	// `aktar "tr/ad"` buraya çözülür ve modül "tr:lib/ad.tr" yoluyla dizine girer. Boşsa yok.
+	Library fs.FS
 }
 
 // DefaultSkipDirs sürüm denetimi, araç ve örnek verisi klasörleridir.
@@ -50,14 +54,16 @@ type edgeKey struct {
 
 // indexer dizini kurarken biriken durumdur.
 type indexer struct {
-	root    string
-	lang    *codes.Language
-	files   map[string]*file
-	order   []string
-	nodes   map[string]*Node
-	edges   map[edgeKey]*Edge
-	occ     []Occurrence
-	skipped []Skipped
+	root       string
+	lang       *codes.Language
+	files      map[string]*file
+	order      []string
+	nodes      map[string]*Node
+	edges      map[edgeKey]*Edge
+	occ        []Occurrence
+	skipped    []Skipped
+	unresolved []Unresolved
+	library    fs.FS
 }
 
 // Build root altındaki .tr dosyalarından dizini kurar. Okunamayan ya da ayrıştırılamayan dosya
@@ -67,7 +73,7 @@ func Build(root string, opts Options) (*Index, error) {
 	if err != nil {
 		return nil, err
 	}
-	x := &indexer{root: abs, lang: source.Turkish(), files: map[string]*file{},
+	x := &indexer{root: abs, lang: source.Turkish(), library: opts.Library, files: map[string]*file{},
 		nodes: map[string]*Node{}, edges: map[edgeKey]*Edge{}}
 	skip := opts.SkipDirs
 	if skip == nil {
@@ -76,6 +82,7 @@ func Build(root string, opts Options) (*Index, error) {
 	for _, rel := range x.discover(opts.Dirs, skip) {
 		x.read(rel)
 	}
+	x.addLibrary()
 	for _, rel := range x.order {
 		x.declare(x.files[rel])
 	}
@@ -127,18 +134,26 @@ func dedupe(sorted []string) []string {
 	return out
 }
 
-// read bir dosyayı okur ve modül düğümünü ekler; ayrıştırılamıyorsa atlananlara yazar.
+// read diskteki bir dosyayı okur ve modül düğümünü ekler.
 func (x *indexer) read(rel string) {
+	data, err := os.ReadFile(filepath.Join(x.root, filepath.FromSlash(rel)))
+	x.addFile(rel, data, err)
+}
+
+// addFile bir dosyanın metninden modül düğümünü ve (ayrıştırılabiliyorsa) dosya kaydını kurar;
+// ayrıştırılamıyorsa atlananlara yazar.
+func (x *indexer) addFile(rel string, data []byte, readErr error) {
 	base := strings.TrimSuffix(path.Base(rel), ".tr")
 	aliases := []string{base}
 	if rest, ok := strings.CutPrefix(rel, "lib/"); ok {
 		aliases = append(aliases, "tr/"+strings.TrimSuffix(rest, ".tr"))
+	} else if rest, ok := strings.CutPrefix(rel, libraryPrefix+"lib/"); ok {
+		aliases = append(aliases, "tr/"+strings.TrimSuffix(rest, ".tr"))
 	}
 	mod := &Node{ID: NodeID(KindModule, rel, ""), Kind: KindModule, Name: rel, Pos: &Pos{File: rel, Line: 1}, Aliases: aliases}
 	x.nodes[mod.ID] = mod
-	data, err := os.ReadFile(filepath.Join(x.root, filepath.FromSlash(rel)))
-	if err != nil {
-		x.skipped = append(x.skipped, Skipped{File: rel, Reason: err.Error()})
+	if readErr != nil {
+		x.skipped = append(x.skipped, Skipped{File: rel, Reason: readErr.Error()})
 		return
 	}
 	res := readFile(string(data))
@@ -150,6 +165,40 @@ func (x *indexer) read(rel string) {
 	x.files[rel] = &file{rel: rel, base: base, res: res, lines: strings.Split(res.text, "\n"),
 		defs: map[string]string{}, methods: map[string][]string{}, aliases: map[string]*file{}}
 	x.order = append(x.order, rel)
+}
+
+// libraryPrefix gömülü kitaplık modüllerinin yol önekidir ("tr:lib/katman.tr").
+const libraryPrefix = "tr:"
+
+// addLibrary projenin `aktar "tr/ad"` ile aldığı ama kendi lib/ klasöründe bulunmayan modülleri
+// gömülü kitaplıktan okur (kitaplığın kendi aktardıkları da, durağan noktaya kadar).
+func (x *indexer) addLibrary() {
+	if x.library == nil {
+		return
+	}
+	for changed := true; changed; {
+		changed = false
+		for _, rel := range append([]string(nil), x.order...) {
+			for _, s := range x.files[rel].res.program.Statements {
+				imp, ok := s.(*ast.ImportStatement)
+				if !ok {
+					continue
+				}
+				name, ok := strings.CutPrefix(strings.TrimSuffix(imp.Path, ".tr"), "tr/")
+				if !ok || x.nodes[NodeID(KindModule, "lib/"+name+".tr", "")] != nil {
+					continue
+				}
+				virtual := libraryPrefix + "lib/" + name + ".tr"
+				if x.nodes[NodeID(KindModule, virtual, "")] != nil {
+					continue
+				}
+				if data, err := fs.ReadFile(x.library, name+".tr"); err == nil {
+					x.addFile(virtual, data, nil)
+					changed = true
+				}
+			}
+		}
+	}
 }
 
 func firstLine(err error) string {
@@ -178,7 +227,7 @@ func (x *indexer) addEdge(from, to string, kind EdgeKind, conf Confidence, pos P
 // finish sıralı, tutarlı dizini kurar: uç düğümü olmayan kenarlar atılır.
 func (x *indexer) finish() *Index {
 	idx := &Index{Schema: SchemaVersion, Version: IndexVersion, Files: []string{}, Nodes: []Node{},
-		Edges: []Edge{}, Occurrences: []Occurrence{}, Skipped: x.skipped}
+		Edges: []Edge{}, Occurrences: []Occurrence{}, Skipped: x.skipped, Unresolved: x.unresolved}
 	idx.Files = append(idx.Files, x.order...)
 	for _, n := range x.nodes {
 		idx.Nodes = append(idx.Nodes, *n)

@@ -138,6 +138,7 @@ type Index struct {
 	Version     int          `json:"index_version"`
 	Files       []string     `json:"files"`
 	Skipped     []Skipped    `json:"skipped,omitempty"`
+	Unresolved  []Unresolved `json:"unresolved,omitempty"`
 	Nodes       []Node       `json:"nodes"`
 	Edges       []Edge       `json:"edges"`
 	Occurrences []Occurrence `json:"occurrences"`
@@ -147,6 +148,13 @@ type Index struct {
 type Skipped struct {
 	File   string `json:"file"`
 	Reason string `json:"reason"`
+}
+
+// Unresolved hiçbir kapsamda ve dilin hiçbir adında bulunamayan bir addır (yazım hatası, dinamik
+// tanım ya da dizinin göremediği bir modül).
+type Unresolved struct {
+	Name string `json:"name"`
+	Pos  Pos    `json:"pos"`
 }
 
 // NodeID bir bildirimin kimliğini kurar: tür, dosya ve ad "function:lib/katman.tr#cevre"

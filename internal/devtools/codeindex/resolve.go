@@ -22,13 +22,16 @@ type scope struct {
 	handled      map[*ast.Identifier]bool // MemberExpression'da ele alınmış (takma ad) adlar
 	called       map[*ast.Identifier]bool // çağrılan adlar
 	calledMember map[*ast.MemberExpression]bool
+	writes       map[*ast.Identifier]bool       // atamanın sol tarafındaki adlar
+	writeMember  map[*ast.MemberExpression]bool // atamanın sol tarafındaki a.b
 }
 
 // collectScope gövdede bağlanan adları toplar (parametreler, değişkenler, döngü ve yakala
 // değişkenleri, liste üretecinin değişkeni): bunlar üst düzey tanımları ve yerleşikleri gölgeler.
 func collectScope(root any) *scope {
 	sc := &scope{locals: map[string]bool{}, bindings: map[*ast.Identifier]bool{}, handled: map[*ast.Identifier]bool{},
-		called: map[*ast.Identifier]bool{}, calledMember: map[*ast.MemberExpression]bool{}}
+		called: map[*ast.Identifier]bool{}, calledMember: map[*ast.MemberExpression]bool{},
+		writes: map[*ast.Identifier]bool{}, writeMember: map[*ast.MemberExpression]bool{}}
 	add := func(names ...string) {
 		for _, n := range names {
 			if n != "" {
@@ -50,6 +53,12 @@ func collectScope(root any) *scope {
 				sc.bindings[id] = true
 				add(id.Value)
 			}
+		case *ast.AssignStatement:
+			sc.markWrite(n.Target)
+		case *ast.MultiAssignStatement:
+			for _, t := range n.Targets {
+				sc.markWrite(t)
+			}
 		case *ast.ForInStatement:
 			add(n.KeyVar, n.ValueVar)
 		case *ast.TryCatchStatement:
@@ -60,6 +69,16 @@ func collectScope(root any) *scope {
 		return true
 	})
 	return sc
+}
+
+// markWrite atamanın hedefini işaretler (ad ya da a.b; indeksli hedefte değişen şey ad değil içeriktir).
+func (sc *scope) markWrite(target ast.Expression) {
+	switch t := target.(type) {
+	case *ast.Identifier:
+		sc.writes[t] = true
+	case *ast.MemberExpression:
+		sc.writeMember[t] = true
+	}
 }
 
 // resolve bir dosyadaki her bildirimin gövdesini tarar; bildirim dışı üst düzey ifadeler modül
@@ -149,7 +168,7 @@ func (x *indexer) ident(f *file, o owner, sc *scope, id *ast.Identifier) {
 	}
 	pos := tokenPos(f, id.Token.Line, id.Token.Column, id.Value)
 	if def, ok := f.visible[id.Value]; ok {
-		x.useDef(o, def, sc.called[id], pos)
+		x.useDef(o, def, sc.called[id], sc.writes[id], pos)
 		return
 	}
 	if k, ok := x.lang.Find(codes.NamespaceGlobal, id.Value); ok {
@@ -160,13 +179,29 @@ func (x *indexer) ident(f *file, o owner, sc *scope, id *ast.Identifier) {
 			}
 			x.link(o, code, EdgeUses, Extracted, role, pos)
 		}
+		return
 	}
+	x.noteUnresolved(id.Value, pos)
+}
+
+// noteUnresolved hiçbir kapsamda ve dilin hiçbir adında bulunmayan adı kaydeder (dizin kalitesinin
+// ölçüsü: `tr dizin --durum` sayısını yazar). Dilin öğesi olan adlar (anahtar sözcük, tip) sayılmaz.
+func (x *indexer) noteUnresolved(name string, pos Pos) {
+	for _, ns := range []codes.Namespace{codes.NamespaceGlobal, codes.NamespaceType, codes.NamespaceMember} {
+		if _, ok := x.lang.Find(ns, name); ok {
+			return
+		}
+	}
+	x.unresolved = append(x.unresolved, Unresolved{Name: name, Pos: pos})
 }
 
 // useDef bir tanıma başvuruyu bağa çevirir: işlev ve yapı için `calls` (çağrıldıysa EXTRACTED,
 // değer olarak INFERRED), sabit ve değişken için `uses`.
-func (x *indexer) useDef(o owner, def string, called bool, pos Pos) {
+func (x *indexer) useDef(o owner, def string, called, write bool, pos Pos) {
 	kind, conf, role := EdgeUses, Extracted, RoleRead
+	if write {
+		role = RoleWrite
+	}
 	if n := x.nodes[def]; n != nil && (n.Kind == KindFunction || n.Kind == KindStruct) {
 		kind = EdgeCalls
 		if called {
@@ -191,7 +226,7 @@ func (x *indexer) member(f *file, o owner, sc *scope, m *ast.MemberExpression) {
 		if target := f.aliases[obj.Value]; target != nil {
 			sc.handled[obj] = true
 			if def, ok := target.defs[m.Property]; ok {
-				x.useDef(o, def, true, pos)
+				x.useDef(o, def, true, sc.writeMember[m], pos)
 			}
 			return
 		}

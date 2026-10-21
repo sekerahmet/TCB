@@ -48,6 +48,7 @@ func (x *indexer) def(f *file, parent string, kind Kind, idName, name, qualified
 	pos := &Pos{File: f.rel, Line: line, Col: col, EndLine: end, EndCol: endCol}
 	x.nodes[id] = &Node{ID: id, Kind: kind, Name: name, Pos: pos, Signature: signature, Qualified: qualified}
 	x.addEdge(parent, id, EdgeDefines, Extracted, Pos{File: f.rel, Line: line})
+	x.occurrence(id, RoleDefinition, Extracted, namePos(f, kind, name, line, col), parent)
 	if parent == NodeID(KindModule, f.rel, "") && kind != KindTest {
 		f.defs[name] = id
 	}
@@ -209,6 +210,7 @@ func (x *indexer) importTarget(f *file, p string) string {
 	cands := []string{path.Join(path.Dir(f.rel), p)}
 	if rest, ok := strings.CutPrefix(p, "tr/"); ok {
 		cands = append([]string{path.Join("lib", rest)}, cands...)
+		cands = append(cands, libraryPrefix+path.Join("lib", rest)) // gömülü kitaplık, en son
 	}
 	for _, c := range cands {
 		for _, name := range []string{c, c + ".tr"} {
@@ -260,4 +262,28 @@ func (x *indexer) resolveImports(f *file) {
 		x.addEdge(mod, target, EdgeImports, Extracted, imp.pos)
 		x.occurrence(target, RoleImport, Extracted, imp.pos, mod)
 	}
+}
+
+// namePos bildirimin adının konumudur (anahtar sözcük değil): satırda anahtar sözcükten sonra ilk
+// geçen ad. Alan ve metotlarda ad "Yapı.ad" içindeki sondur. Testte ad yoktur, anahtar sözcük
+// konumu alınır.
+func namePos(f *file, kind Kind, name string, line, col int) Pos {
+	short := name
+	if kind == KindMethod || kind == KindField {
+		short = name[strings.LastIndex(name, ".")+1:]
+	}
+	p := Pos{File: f.rel, Line: line, Col: col}
+	if kind == KindTest || line < 1 || line > len(f.lines) {
+		return p
+	}
+	text := f.lines[line-1]
+	skip := 0
+	if col > 1 {
+		skip = len(string([]rune(text)[:min(col-1, len([]rune(text)))]))
+	}
+	if i := strings.Index(text[skip:], short); i >= 0 {
+		p.Col = 1 + utf8.RuneCountInString(text[:skip+i])
+		p.EndLine, p.EndCol = line, p.Col+utf8.RuneCountInString(short)
+	}
+	return p
 }

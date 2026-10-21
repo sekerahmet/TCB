@@ -30,9 +30,17 @@ Düğüm türleri: `module`, `function`, `struct`, `method`, `field`, `constant`
 
 **Bildirimler konumlarıyla bulunur.** Her üst düzey işlev, yapı, metot, alan, sabit, değişken ve test bir düğümdür (dosya:satır:sütun ve bitiş satırı). Denetim: `TestBuildDeclarations`.
 
+**Her başvuru ayrıca kaydedilir.** Kenar yalnızca ilk yeri tutar; dil sunucusunun "kullanımları bul", yeniden adlandırma ve `aktar` satırından modüle atlaması için her başvuru rolüyle (`definition`, `call`, `read`, `write`, `import`, `test`) ve içinde bulunduğu bildirimle `Occurrences`'tadır; bildirimin adı da (tanım rolüyle) bir başvurudur. `Reader.At(dosya, satır, sütun)` imlecin altındaki adı ve düğümünü verir. Denetim: `TestAtFindsTheNameUnderTheCursor`, `TestWriteRoleOnAliasedVariable`.
+
+**Her bildirim bulunur.** Bu deponun kendi `.tr` dosyalarındaki her üst düzey bildirim, ast'yi bağımsız sayan bir dökümle karşılaştırılır. Denetim: `TestEveryDeclarationIndexed`.
+
+**Çözülemeyen adlar sayılır, gizlenmez.** Hiçbir kapsamda ve dilin hiçbir adında bulunamayan ad `Unresolved` listesine girer (dizin kalitesinin ölçüsü). Denetim: `TestUnresolvedNamesAreCounted`.
+
+**Gömülü kitaplık görünür.** Projede `lib/ad.tr` yoksa `aktar "tr/ad"` verilen gömülü kitaplığa (`Options.Library`) çözülür; modül `tr:lib/ad.tr` sanal yoluyla dizine girer. Denetim: `TestEmbeddedLibraryModule`.
+
 ## Testler
 
-Birim testleri sınadıkları dosyanın adını taşır (`model_test.go` → `model.go`, `result_test.go` → `result.go`, `build_test.go` → `build.go`). `testdata/proj` küçük bir TR projesidir (modül, test, takma adlı aktarma, kodlu ve bozuk dosya).
+Birim testleri sınadıkları dosyanın adını taşır (`model_test.go` → `model.go`, `result_test.go` → `result.go`, `build_test.go` → `build.go`, `reader_test.go` → `reader.go`; `helpers_test.go` ortak yardımcıdır). `testdata/proj` küçük bir TR projesidir (modül, test, takma adlı aktarma, kodlu ve bozuk dosya).
 
 ## Başka dillerin ve araçların kod dizinleri: karşılaştırma ve kararlar
 
