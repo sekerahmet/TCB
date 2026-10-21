@@ -66,6 +66,7 @@ var bf16Tolerances = map[string]float64{
 	"elementwise_wide/sinh":                   0.006,
 	"elementwise_wide/tan":                    0.018,
 	"elementwise_wide/where yayın":            0.01,
+	"fused/kaynaşmış silu·u":                  0.011,
 	"limits/cross_entropy yok sayma":          0.004,
 	"limits/embedding":                        0.004,
 	"limits/layer_norm yalın":                 0.006,

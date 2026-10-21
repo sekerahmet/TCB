@@ -47,8 +47,8 @@ func fusedName(key string) string {
 	return fmt.Sprintf("kaynasik_%016x", h.Sum64())
 }
 
-// RunFused (tensor.Fuser) out = node'un değeri.
-func (g *backend) RunFused(node *tensor.FuseNode, out tensor.Storage, ins []tensor.View) {
+// RunFused (tensor.Fuser) out = node'un değeri (add: out += değer), out'un türünde.
+func (g *backend) RunFused(node *tensor.FuseNode, out tensor.Storage, ins []tensor.View, add bool) {
 	g.enter()
 	defer g.exit()
 	o := g.storageOf(out)
@@ -61,11 +61,12 @@ func (g *backend) RunFused(node *tensor.FuseNode, out tensor.Storage, ins []tens
 	ranks := make([]int, len(used))
 	var key strings.Builder
 	key.WriteString(node.Key())
+	fmt.Fprintf(&key, "|%s:%v", o.dtype, add)
 	for i, k := range used {
 		ranks[i] = len(ins[k].Shape)
 		fmt.Fprintf(&key, "|%d:%s:%d", k, g.storageOf(ins[k].S).dtype, ranks[i])
 	}
-	c := g.takeKernel("kaynasik:"+key.String(), fusedKernel(node, used, ranks))
+	c := g.takeKernel("kaynasik:"+key.String(), fusedKernel(node, used, ranks, o.dtype, add))
 	p := g.param().write(o, 0)
 	for i, k := range used {
 		v := ins[k]
@@ -76,10 +77,11 @@ func (g *backend) RunFused(node *tensor.FuseNode, out tensor.Storage, ins []tens
 	g.launch(c, iz, bl, p)
 }
 
-// fusedKernel düğümün çekirdeği; used okunan girdiler, ranks eksen sayıları.
-func fusedKernel(node *tensor.FuseNode, used, ranks []int) func() *emitter {
+// fusedKernel düğümün çekirdeği; used okunan girdiler, ranks eksen sayıları, dt çıktının
+// türü, add doğruysa çıktıya eklenir.
+func fusedKernel(node *tensor.FuseNode, used, ranks []int, dt tensor.DType, add bool) func() *emitter {
 	return func() *emitter {
-		k := newEmitter(fusedName(node.Key()))
+		k := newEmitter(fusedName(fmt.Sprintf("%s|%s:%v", node.Key(), dt, add)))
 		out := k.written("cikti")
 		f := &fusedEmit{k: k, memo: map[string]reg{}, base: map[int]reg{}, strides: map[int][]string{}}
 		for i, x := range used {
@@ -103,7 +105,12 @@ func fusedKernel(node *tensor.FuseNode, used, ranks []int) func() *emitter {
 		i := k.globalIndex()
 		last := k.bounded(i, n)
 		v := f.emit(node, f.multiIndex(i, node.Shape))
-		k.store(node.DType, k.address(out, i, dtypeSize(node.DType)), v)
+		addr := k.address(out, i, dtypeSize(dt))
+		if add {
+			old := k.load(dt, addr)
+			k.e("add.rn.f32", v, old, v)
+		}
+		k.store(dt, addr, v)
 		k.put(last)
 		return k
 	}

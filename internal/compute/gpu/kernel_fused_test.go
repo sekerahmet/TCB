@@ -84,5 +84,12 @@ func TestFusedMatchesCPU(t *testing.T) {
 			o := runFused(fusedGated, []*tensor.Tensor{g.Cast(dt)})
 			return o[0].Mul(o[0]).SumAll().Add(o[1].SumAll()), []*tensor.Tensor{g}
 		})
+		// Tek çıktı, girdinin başka kullanımı da var: gradyan doğrudan yazılır ve eklenir.
+		compare(t, fmt.Sprintf("kaynaşmış silu·u birikim %s", dt), tol, func(d int) (*tensor.Tensor, []*tensor.Tensor) {
+			g := twin(gv, true, 3, 4, 12)[d]
+			gc := g.Cast(dt)
+			o := runFused(func(a []*tensor.Tensor) []*tensor.Tensor { return fusedGated(a)[:1] }, []*tensor.Tensor{gc})[0]
+			return o.Mul(o).SumAll().Add(gc.Mul(gc).SumAll()), []*tensor.Tensor{g}
+		})
 	}
 }

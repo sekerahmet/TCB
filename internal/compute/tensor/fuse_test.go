@@ -34,6 +34,27 @@ func ple(args []*Tensor) []*Tensor {
 	return []*Tensor{args[2].GeluExact().Mul(e), e}
 }
 
+// Gradyan kapısı: kaynaşmış tek çıktılı işlemin ("fused" düğümü) gradyanı sayısal türevle
+// uyuşur (girdi [3, 4]: son eksenin yarıları g, u; silu(g) · u).
+func init() {
+	registerGrad("fused", gradSpec{name: "kaynaşmış silu·u", ops: []string{"fused"},
+		build:  func(xs []*Tensor) *Tensor { return runFusedFn(swiglu, xs)[0] },
+		inputs: genInputs(gen(-2, 2, 0, 3, 4)),
+		ref: func(in [][]float64) []float64 {
+			x := in[0]
+			out := make([]float64, 0, 6)
+			for r := 0; r < 3; r++ {
+				for j := 0; j < 2; j++ {
+					g, u := x[r*4+j], x[r*4+j+2]
+					out = append(out, g/(1+math.Exp(-g))*u)
+				}
+			}
+			return out
+		}})
+}
+
+func TestGradFused(t *testing.T) { runGradGroup(t, "fused") }
+
 func fuseInfos(ts []*Tensor) []FuseInputInfo {
 	out := make([]FuseInputInfo, len(ts))
 	for i, t := range ts {
@@ -124,6 +145,26 @@ func TestFusedGradientsMatchUnfused(t *testing.T) {
 	check("ple", ple, func() []*Tensor {
 		return []*Tensor{p0.Detach().SetRequiresGrad(true), p1.Detach().SetRequiresGrad(true), p2.Detach().SetRequiresGrad(true)}
 	})
+}
+
+// Girdinin başka bir kullanımı da gradyan veriyorsa kaynaşmış geri yön gradyana ekler
+// (ilk gradyansa üzerine yazar); iki sırada da sonuç kaynaşmamışla aynıdır.
+func TestFusedGradientAccumulates(t *testing.T) {
+	rng := rand.New(rand.NewSource(7))
+	v := Randn(rng, 3, 4, 12)
+	for _, fusedFirst := range []bool{true, false} {
+		a, b := v.Detach().SetRequiresGrad(true), v.Detach().SetRequiresGrad(true)
+		fa, ub := runFusedFn(swiglu, []*Tensor{a})[0], swiglu([]*Tensor{b})[0]
+		la, lb := fa.Mul(fa).SumAll(), ub.Mul(ub).SumAll()
+		if fusedFirst {
+			la, lb = la.Add(a.Mul(a).SumAll()), lb.Add(b.Mul(b).SumAll())
+		} else {
+			la, lb = a.Mul(a).SumAll().Add(la), b.Mul(b).SumAll().Add(lb)
+		}
+		la.Backward()
+		lb.Backward()
+		closeTo(t, "biriken gradyan", a.Grad(), b.Grad(), 1e-5)
+	}
 }
 
 func TestFusedErrors(t *testing.T) {

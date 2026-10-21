@@ -126,13 +126,13 @@ func TraceFused(be Backend, inputs []FuseInputInfo, fn func(args []*Tensor) []*T
 	return p
 }
 
-// runFused düğümü arka uçta yürütür.
-func runFused(be Backend, n *FuseNode, out Storage, ins []View) {
+// runFused düğümü arka uçta yürütür (add: out'a ekler).
+func runFused(be Backend, n *FuseNode, out Storage, ins []View, add bool) {
 	f, ok := be.(Fuser)
 	if !ok {
 		panic(messages.Internal("backend cannot run fused programs"))
 	}
-	f.RunFused(n, out, ins)
+	f.RunFused(n, out, ins, add)
 }
 
 // Run programı gerçek girdilerle yürütür: her çıktı tek geçişte hesaplanır. Türevli kipte ve
@@ -150,15 +150,35 @@ func (p *FuseProgram) Run(op string, inputs []*Tensor) []*Tensor {
 	outs := make([]*Tensor, len(p.Outputs))
 	for i, n := range p.Outputs {
 		out := emptyOf(isElementwise, be, n.Shape, n.DType)
-		runFused(be, n, out.storage, views)
+		runFused(be, n, out.storage, views, false)
 		outs[i] = out
 	}
-	if p.grads == nil {
+	if p.grads == nil || !GradEnabled() {
 		return outs
+	}
+	if len(outs) == 1 {
+		return []*Tensor{p.trackSingle(inputs, outs[0], views, be)}
 	}
 	return CustomOp(op, inputs, outs, inputs, func(_ any, grads []*Tensor) []*Tensor {
 		return p.backward(be, views, grads)
 	})
+}
+
+// trackSingle tek çıktılı programın sonucunu kendi düğümüyle çizgeye bağlar: geri hesap her
+// girdinin gradyanını, onun gradyan türünde doğrudan yazar (ilk gradyansa üzerine, değilse
+// ekleyerek); ara tampon ve ayrı ekleme yoktur. Girdiler görünümleriyle tutulur (kayıt, save).
+func (p *FuseProgram) trackSingle(inputs []*Tensor, out *Tensor, views []View, be Backend) *Tensor {
+	return track(out, "fused", inputs, func(o *node) {
+		ins := append(append([]View{}, views...), o.gradView())
+		for k, g := range p.grads {
+			in := o.parents[k]
+			if g == nil || !in.wants() {
+				continue
+			}
+			dst, fresh := in.freshGrad(true)
+			runFused(be, g, dst, ins, !fresh)
+		}
+	}, inputs...)
 }
 
 // backward çıktı gradyanlarından girdilerin gradyanlarını hesaplar (girdiler görünümleriyle
@@ -174,7 +194,7 @@ func (p *FuseProgram) backward(be Backend, views []View, grads []*Tensor) []*Ten
 			continue
 		}
 		gt := emptyOf(isElementwise, be, n.Shape, n.DType)
-		runFused(be, n, gt.storage, ins)
+		runFused(be, n, gt.storage, ins, false)
 		out[k] = gt
 	}
 	return out

@@ -24,8 +24,8 @@ func (l fuseLine) at(t int) []int {
 	return j
 }
 
-// RunFused (Fuser) out = node'un değeri; ins[k] k. girdinin görünümü.
-func (cpuBackend) RunFused(node *FuseNode, out Storage, ins []View) {
+// RunFused (Fuser) out = node'un değeri (add: out += değer); ins[k] k. girdinin görünümü.
+func (cpuBackend) RunFused(node *FuseNode, out Storage, ins []View, add bool) {
 	ev := &fuseEval{ins: ins}
 	sh := node.Shape
 	nd := len(sh)
@@ -53,6 +53,17 @@ func (cpuBackend) RunFused(node *FuseNode, out Storage, ins []View) {
 		}
 	}
 	c := cpuStore(out)
+	if add {
+		old := make([]float32, total)
+		if c.dtyp == Float32 {
+			copy(old, c.d)
+		} else {
+			widen16(old, c.h, c.dtyp)
+		}
+		for i := range res {
+			res[i] += old[i]
+		}
+	}
 	if c.dtyp == Float32 {
 		copy(c.d, res)
 	} else {

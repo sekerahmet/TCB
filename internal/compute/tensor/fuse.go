@@ -81,10 +81,11 @@ type FuseInputInfo struct {
 	RequiresGrad bool
 }
 
-// Fuser kaynaşmış bir program düğümünü yürüten arka uçtur: out (node'un şeklinde, bitişik,
-// node'un türünde) = node'un değeri; ins[k] k. girdinin görünümüdür.
+// Fuser kaynaşmış bir program düğümünü yürüten arka uçtur: out (node'un şeklinde, bitişik)
+// = node'un değeri, out'un türüne bir kez yuvarlanmış; add doğruysa out += değer (toplam
+// float32'de, out'un türüne bir kez yuvarlanır). ins[k] k. girdinin görünümüdür.
 type Fuser interface {
-	RunFused(node *FuseNode, out Storage, ins []View)
+	RunFused(node *FuseNode, out Storage, ins []View, add bool)
 }
 
 // Key düğümün ve alt ağacının biçimini tek metinle verir (çekirdek önbelleğinin anahtarı;
