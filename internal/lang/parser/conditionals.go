@@ -21,7 +21,7 @@ func (p *Parser) parseIfExpression() ast.Expression {
 		if p.peekTokenIs(lexer.TokIf) {
 			p.nextToken() // 'eğer'
 			p.nextToken()
-			cond := p.parseExpression(precLowest)
+			cond := p.parseHeaderExpression() // 6.7: değilse eğer da bir başlıktır
 			if !p.expectPeek(lexer.TokLBrace) {
 				return nil
 			}

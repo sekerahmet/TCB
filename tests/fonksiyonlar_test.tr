@@ -166,3 +166,22 @@ test "6.8 dönüş tipi : Tip ya da -> Tip ile bildirilir" {
     doğrula(mesaj.içerir("donus_tipi.tr, Satır 2: Dönüş tipi uyuşmazlığı — fonksiyon \"Tam\" döndürmeli ancak \"Metin\""), mesaj)
     doğrula(mesaj.içerir("donus_tipi.tr, Satır 4: Dönüş tipi uyuşmazlığı — fonksiyon \"Tam\" döndürmeli ancak \"Tam ya da Ondalık\""), mesaj)
 }
+
+test "6.7 değilse eğer başlığında da süslü parantez gövdeyi başlatır, sondaki blok olmaz" {
+    değişken l = [1, 2, 3]
+    fonksiyon sınıf(x) {
+        sonuç eğer l.içerir(x * 10) { "a" } değilse eğer l.içerir(x) { "b" } değilse { "c" }
+    }
+    eşit_mi("b", sınıf(2))
+    eşit_mi("c", sınıf(9))
+    değişken ad = "model.layers.0"
+    değişken sonuç_ = ""
+    eğer ad == "x" {
+        sonuç_ = "x"
+    } değilse eğer ad.başlar("model.layers.") {
+        sonuç_ = "katman"
+    } değilse {
+        sonuç_ = "başka"
+    }
+    eşit_mi("katman", sonuç_)
+}
