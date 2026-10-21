@@ -183,6 +183,20 @@ func mixedPrecision(m *interp.VM, args []interp.Value, named map[string]interp.V
 	return result, nil
 }
 
+// computeDType hesap_türü() yerleşiğidir: etkin karışık_hassasiyet bloğunun hesap türünün adı;
+// blok dışında "float32". PyTorch'ta torch.get_autocast_dtype, Flax'ta modülün dtype'ı: bir
+// sonucu doğrudan çarpımın okuyacağı türde yazmak için (normların tür: argümanı, 15.13).
+func computeDType(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	fn := codes.Name(codes.T711)
+	if err := bind.CheckNamed(fn+"()", named); err != nil {
+		return nil, err
+	}
+	if len(args) != 0 {
+		return nil, interp.ArgCountError(codes.T711, "0", len(args))
+	}
+	return &interp.StringVal{Val: dtypeName(mixedDType(m))}, nil
+}
+
 // highPrecision karışık hassasiyet bloğu içinde 16 bitlik bir tensörü (normalizasyon,
 // softmax ve indirgemelerden önce) float32'ye açar; blok dışında ya da tensör zaten
 // float32 ise t'nin kendisi döner. Bloğun kendi dönüşümleri kullanıcıya görünmediğinden

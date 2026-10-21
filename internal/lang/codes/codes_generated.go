@@ -204,6 +204,7 @@ const (
 	T702 Code = T + 702 // checkpoint · kontrol_noktası
 	T703 Code = T + 703 // load_parameters · parametreleri_yükle
 	T710 Code = T + 710 // mixed_precision · karışık_hassasiyet
+	T711 Code = T + 711 // compute_dtype · hesap_türü
 	T720 Code = T + 720 // default_device · varsayılan_cihaz
 	T721 Code = T + 721 // devices · cihazlar
 	T900 Code = T + 900 // requires_grad · türev_izle
