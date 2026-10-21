@@ -16,7 +16,6 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
-	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -285,12 +284,8 @@ func safetensorsEntryOf(name string, raw json.RawMessage) (*safetensorsEntry, er
 	if len(e.Shape) > maxDims {
 		return nil, messages.New(messages.H6648, name, len(e.Shape), maxDims)
 	}
-	limit := uint64(1)
-	for _, d := range e.Shape {
-		if d > uint64(interp.MaxCollectionSize) || (d > 0 && limit > uint64(interp.MaxCollectionSize)/d) {
-			return nil, messages.New(messages.H6649, name, d, interp.MaxCollectionSize)
-		}
-		limit *= max(d, 1)
+	if i, bound := tensorLimit(e.Shape, slices.Contains(e.Shape, 0)); i >= 0 {
+		return nil, messages.New(messages.H6649, name, e.Shape[i], bound)
 	}
 	return e, nil
 }

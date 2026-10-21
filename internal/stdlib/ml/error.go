@@ -138,18 +138,47 @@ func shapeList(fn string, v interp.Value) ([]int, error) {
 	return sh, nil
 }
 
-// checkShapeLimit şeklin eleman sınırını aşmadığını denetler; sıfır uzunluklu eksenler 1
-// sayılır (tensör_yükle ile aynı kural): sıfır eksenli tensör veri tutmaz, ama öbür
-// eksenleri işlemlerin çıktısını ([4, 0] @ [0, N] → [4, N]) ve .değer'in liste sayısını
-// belirler. Çarpım taşmadan denetlenir; -1 (çıkarsanacak eksen) atlanır.
+// checkShapeLimit şeklin eleman sınırını aşmadığını denetler (tensorLimit; tensör_yükle ile
+// aynı kural). Çarpım taşmadan denetlenir; -1 (çıkarsanacak eksen) atlanır.
 func checkShapeLimit(fn string, sh []int) error {
-	limit := 1
-	for i, d := range sh {
+	dims := make([]uint64, 0, len(sh))
+	for _, d := range sh {
+		dims = append(dims, uint64(max(d, 1)))
+	}
+	hasZero := false
+	for _, d := range sh {
+		hasZero = hasZero || d == 0
+	}
+	if i, bound := tensorLimit(dims, hasZero); i >= 0 {
+		return messages.New(messages.H6028, fn, shapeText(sh[:i+1]), bound)
+	}
+	return nil
+}
+
+// maxTensorElements veri taşıyan bir tensörün en çok eleman sayısıdır (dil tanımı 15.10). Liste
+// sınırından (interp.MaxCollectionSize) ayrıdır: hazır modellerin tabloları onu aşar (Qwen3-0.6B
+// gömmesi 155 milyon, 70B modellerinkiler 1 milyar eleman). Asıl koruma ayırmadaki fiziksel
+// bellek denetimi (tensor paketi) ve dosyalarda bildirilen verinin dosyada bulunmasıdır; bu
+// sınır yalnızca hiçbir zaman karşılanamayacak şekilleri erken durdurur.
+const maxTensorElements = 1 << 32
+
+// tensorLimit şeklin (eksenler, sıfır uzunluklular 1 yazılmış) sınırı aştığı ilk eksenin
+// indeksini ve uygulanan sınırı verir; aşmıyorsa -1. Sıfır eksenli şekil veri tutmaz ama öbür
+// eksenleri işlemlerin çıktısını ([4, 0] @ [0, N] → [4, N]) ve .değer'in liste sayısını belirler:
+// verisiz dev şekil (126 baytlık dosyada [1048576, 0, 8192], güvenlik denetimi 2026-10-18)
+// liste sınırına tabidir; veri taşıyan tensör maxTensorElements'e.
+func tensorLimit(dims []uint64, hasZero bool) (int, int64) {
+	bound := uint64(maxTensorElements)
+	if hasZero {
+		bound = uint64(interp.MaxCollectionSize)
+	}
+	limit := uint64(1)
+	for i, d := range dims {
 		d = max(d, 1)
-		if limit > interp.MaxCollectionSize/d {
-			return messages.New(messages.H6028, fn, shapeText(sh[:i+1]), interp.MaxCollectionSize)
+		if d > bound || limit > bound/d {
+			return i, int64(bound)
 		}
 		limit *= d
 	}
-	return nil
+	return -1, int64(bound)
 }

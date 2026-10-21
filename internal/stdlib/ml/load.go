@@ -8,11 +8,11 @@ import (
 	"hash/crc32"
 	"io"
 	"math"
+	"slices"
 	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
-	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -195,18 +195,22 @@ func (k *fileReader) input(gi int, names map[string]bool) (fileEntry, error) {
 // belleği tüketebilirdi (güvenlik denetimi 2026-10-18).
 func (k *fileReader) shape(order string, dim int) ([]int, int64, error) {
 	shape := make([]int, dim)
-	n, limit := int64(1), int64(1)
-	for i := range shape {
+	dims := make([]uint64, 0, dim)
+	n := int64(1)
+	for range shape {
 		d := binary.LittleEndian.Uint64(k.read(8))
 		if k.failure != nil {
 			return nil, 0, k.missing(messages.Text(messages.H6634, order))
 		}
-		if d > uint64(interp.MaxCollectionSize) || (d > 0 && limit > int64(interp.MaxCollectionSize)/int64(d)) {
-			return nil, 0, messages.New(messages.H6621, order, d, interp.MaxCollectionSize)
-		}
+		dims = append(dims, d)
+	}
+	// Sınır (tensorLimit) bütün eksenler okununca uygulanır: sıfır eksen sona yakın da olabilir.
+	if i, bound := tensorLimit(dims, slices.Contains(dims, 0)); i >= 0 {
+		return nil, 0, messages.New(messages.H6621, order, dims[i], bound)
+	}
+	for i, d := range dims {
 		shape[i] = int(d)
 		n *= int64(d)
-		limit *= max(int64(d), 1)
 	}
 	return shape, n, nil
 }

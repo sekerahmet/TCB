@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -30,5 +31,36 @@ func TestMessageConsistency(t *testing.T) {
 		if err != nil && strings.Contains(err.Error(), "Tensör verildi") {
 			t.Errorf("%s: çelişkili mesaj: %v", d.code, err)
 		}
+	}
+}
+
+// Kural (dil tanımı 15.10): veri taşıyan tensörün sınırı 2³² eleman (hazır modellerin tabloları
+// liste sınırını aşar); sıfır eksenli (verisiz) şeklin sınırı listelerinki, sıfır eksenler 1
+// sayılır.
+func TestTensorLimit(t *testing.T) {
+	for _, c := range []struct {
+		dims    []uint64
+		hasZero bool
+		failAt  int
+		bound   int64
+	}{
+		{[]uint64{151936, 1024}, false, -1, maxTensorElements},     // Qwen3-0.6B gömmesi
+		{[]uint64{128256, 8192}, false, -1, maxTensorElements},     // 70B ölçeğinde gömme
+		{[]uint64{1 << 19, 1 << 13}, false, -1, maxTensorElements}, // tam sınırda (2³²)
+		{[]uint64{1 << 19, 1 << 13, 2}, false, 2, maxTensorElements},
+		{[]uint64{1 << 20, 1, 1}, true, -1, interp.MaxCollectionSize},
+		{[]uint64{1 << 20, 1, 8192}, true, 2, interp.MaxCollectionSize}, // [1048576, 0, 8192]
+		{[]uint64{1 << 63, 4}, false, 0, maxTensorElements},             // taşma yok
+	} {
+		i, bound := tensorLimit(c.dims, c.hasZero)
+		if i != c.failAt || bound != c.bound {
+			t.Errorf("tensorLimit(%v, %v) = %d, %d; beklenen %d, %d", c.dims, c.hasZero, i, bound, c.failAt, c.bound)
+		}
+	}
+	if err := checkShapeLimit("sıfırlar", []int{151936, 1024}); err != nil {
+		t.Errorf("hazır model tablosu oluşturulabilmeli: %v", err)
+	}
+	if err := checkShapeLimit("sıfırlar", []int{1 << 20, 0, 8192}); err == nil {
+		t.Error("verisiz dev şekil reddedilmeli")
 	}
 }
