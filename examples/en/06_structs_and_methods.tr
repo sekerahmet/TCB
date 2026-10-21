@@ -6,11 +6,11 @@
 // Run (from the project root): tr examples/en/06_structs_and_methods.tr
 
 A050 Developer {
-    Y310: A202
+    full_name: A202
     experience: A200 = 1 // default value
 
     A020 introduce() {
-        A021 "{A051.Y310} ({A051.experience} yr)"
+        A021 "{A051.full_name} ({A051.experience} yr)"
     }
 
     A020 add_experience(years) {
@@ -21,7 +21,7 @@ A050 Developer {
 A030 dev = Developer("Ahmet", 5)
 dev.experience += 1 // a field is updated directly
 G100(dev.introduce())
-G100(Developer(Y310: "Zeynep").introduce()) // named argument, experience is the default
+G100(Developer(full_name: "Zeynep").introduce()) // named argument, experience is the default
 dev.add_experience(4)
 G100(dev.introduce())
 

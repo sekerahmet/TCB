@@ -40,7 +40,7 @@ G111(G120(RUN, "config.json"), G601(config))
 A030 run_log = G810(G120(RUN, "metrics.jsonl"))
 A030 tracked = {best_loss: 99.0}
 // Everything in the dict is saved; if the folder holds a checkpoint it is loaded here.
-A030 ckpt = T702(RUN, {model: model, opt: opt, Y600: sampler, run_log: run_log, tracked: tracked}, T984: config.every_minutes)
+A030 ckpt = T702(RUN, {model: model, opt: opt, reader: sampler, run_log: run_log, tracked: tracked}, T984: config.every_minutes)
 
 // --- Training: the loop starts from the step where it stopped ---
 A001 ckpt.Y520 < config.Y500 {

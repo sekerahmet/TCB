@@ -94,7 +94,7 @@ func TestCodedFilesGiveSameOutput(t *testing.T) {
 	}
 	// Karakter modelinin eğitimi kısaltılır (iki kopyada da aynı biçimde).
 	for _, root := range []string{tr1, tr2} {
-		filePath := filepath.Join(root, "examples", "07_karakter_modeli.tr")
+		filePath := filepath.Join(root, "examples", "tr", "15_karakter_modeli.tr")
 		data, err := os.ReadFile(filePath)
 		if err != nil {
 			t.Fatal(err)
@@ -130,12 +130,12 @@ func TestCodedFilesGiveSameOutput(t *testing.T) {
 			t.Errorf("tr test %s: Türkçe ve kodlu kopyalar farklı (çıkış %d / %d)\n%s", dir, s1.code, s2.code, lineDiff(s1.stdout+s1.stderr, s2.stdout+s2.stderr))
 		}
 	}
-	examples, _ := filepath.Glob(filepath.Join(tr1, "examples", "*.tr"))
+	examples, _ := filepath.Glob(filepath.Join(tr1, "examples", "tr", "*.tr"))
 	if len(examples) < 5 {
 		t.Fatalf("yalnızca %d örnek bulundu", len(examples))
 	}
 	for _, o := range examples {
-		ad := filepath.ToSlash(filepath.Join("examples", filepath.Base(o)))
+		ad := filepath.ToSlash(filepath.Join("examples", "tr", filepath.Base(o)))
 		s1, s2 := tr(t, tr1, ad), tr(t, tr2, ad)
 		// İlerleme çubuğu terminal dışında zamanla ara satır yazar (19.7); yavaş makinede ara
 		// satır iki koşuda farklı adıma düşer. Çubuk satırları karşılaştırılmaz.
