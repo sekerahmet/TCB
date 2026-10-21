@@ -400,3 +400,22 @@ test "20.15 atla sıradaki toplu işleri tensör kurmadan atlar" {
     eşit_mi(beklenen, b.sonraki()[0].değer)
     doğrula(hata_metni(() => b.atla(-1)).içerir("negatif olamaz"))
 }
+
+test "20.2 düz değerler iç içe yerinde yenilenir; iç kaplara tutulan bağlar kopmaz" {
+    ertele { temizle() }
+    değişken w = param([2], 5)
+    değişken kayıt = [1, 2]
+    değişken iç = {n: 1}
+    değişken izlenen = {kayıt: kayıt, iç: iç, ad: "a"}
+    değişken kn = kontrol_noktası(koşu("ic_ice"), {w: w, izlenen: izlenen})
+    kn.güncelle(1)
+    kn.kaydet()
+    kayıt.ekle(3)
+    iç.n = 2
+    izlenen.ad = "b"
+    eşit_mi(1, kn.geri_dön())
+    eşit_mi([1, 2], kayıt)
+    eşit_mi(1, iç.n)
+    eşit_mi("a", izlenen.ad)
+    doğrula(izlenen.kayıt == kayıt)
+}

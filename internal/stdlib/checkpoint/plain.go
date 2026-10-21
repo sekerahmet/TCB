@@ -240,8 +240,10 @@ func toTagged(x map[string]any, depth int) (interp.Value, error) {
 	return s, nil
 }
 
-// refreshInPlace kaydedilen değeri kullanıcının değerine yerinde yazar: Sözlük'ün ve Liste'nin
-// içi değişir, değerin kendisi (kullanıcının değişkeni) aynı kalır.
+// refreshInPlace kaydedilen değeri kullanıcının değerine yerinde ve iç içe yazar (20.2):
+// Sözlük'ün ve Liste'nin içi değişir, değerin kendisi (kullanıcının değişkeni) aynı kalır; iç
+// içe kaplar da aynı yerde aynı türdense yerinde yenilenir, başka değişkenlerin onlara tuttuğu
+// bağlar kopmaz.
 func refreshInPlace(name string, target, record interp.Value) error {
 	switch h := target.(type) {
 	case *interp.DictVal:
@@ -249,15 +251,55 @@ func refreshInPlace(name string, target, record interp.Value) error {
 		if !ok {
 			return messages.New(messages.H7467, name, interp.TypeAndSummary(record), codes.DisplayName(codes.A206))
 		}
-		*h = *k
+		refreshDict(h, k)
 	case *interp.ListVal:
 		k, ok := record.(*interp.ListVal)
 		if !ok {
 			return messages.New(messages.H7467, name, interp.TypeAndSummary(record), codes.DisplayName(codes.A205))
 		}
-		h.Elements = k.Elements
+		refreshList(h, k)
 	default:
 		return messages.New(messages.H7468, name, interp.TypeAndSummary(target))
 	}
 	return nil
+}
+
+// refreshDict h'nin içini k'ninkiyle değiştirir; aynı anahtarda iki tarafta da aynı türden kap
+// varsa h'deki nesne korunup yerinde yenilenir.
+func refreshDict(h, k *interp.DictVal) {
+	for key, v := range k.Pairs {
+		if old, ok := h.Pairs[key]; ok {
+			k.Pairs[key] = refreshNested(old, v)
+		}
+	}
+	*h = *k
+}
+
+// refreshList h'nin elemanlarını k'ninkilerle değiştirir; aynı sırada aynı türden kaplar
+// yerinde yenilenir.
+func refreshList(h, k *interp.ListVal) {
+	for i, v := range k.Elements {
+		if i < len(h.Elements) {
+			k.Elements[i] = refreshNested(h.Elements[i], v)
+		}
+	}
+	h.Elements = k.Elements
+}
+
+// refreshNested eski değer yeniyle aynı türden bir kapsa onu yerinde yenileyip döndürür, değilse
+// yeni değeri döndürür (düz değerler döngüsüzdür ve derinliği sınırlıdır, 20.2).
+func refreshNested(old, fresh interp.Value) interp.Value {
+	switch o := old.(type) {
+	case *interp.DictVal:
+		if f, ok := fresh.(*interp.DictVal); ok {
+			refreshDict(o, f)
+			return o
+		}
+	case *interp.ListVal:
+		if f, ok := fresh.(*interp.ListVal); ok {
+			refreshList(o, f)
+			return o
+		}
+	}
+	return fresh
 }

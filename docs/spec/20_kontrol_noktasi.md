@@ -33,7 +33,7 @@ kn.kaydet()
 - **iyileştirici** (`AdamW`, `SGD`): `op.durum` (20.12);
 - **okuyucu** (`Örnekleyici`, `SıralıOkuyucu`): `ö.durum` (20.13);
 - **günlük** (`Günlük`): dosyanın o anki bayt uzunluğu;
-- **düz değerler**: yalnızca `Tam`, `Ondalık`, `Metin`, `Mantık`, `yok` ve iç içe `Liste`/`Sözlük` içeren bir `Sözlük` ya da `Liste` (en iyi kayıp, sayaçlar).
+- **düz değerler**: yalnızca `Tam`, `Ondalık`, `Metin`, `Mantık`, `yok` ve iç içe `Liste`/`Sözlük` içeren bir `Sözlük` ya da `Liste` (en iyi kayıp, sayaçlar). Yüklemede (ve `geri_dön`'de) yerinde ve iç içe yenilenir: kullanıcının değerinde aynı anahtarda ya da sırada aynı türden bir `Liste` ya da `Sözlük` varsa o nesne de yerinde güncellenir, yenisiyle değiştirilmez; böylece iç içe kaplara başka değişkenlerden tutulan bağlar kopmaz (`izlenen = {kayıt: kayıt}` ise yüklemeden sonra `kayıt` da kayıttaki listeyi gösterir).
 
 Düz bir `Tam`, `Ondalık`, `Metin` ya da `Mantık` doğrudan verilemez (geri yüklenirken kullanıcının değişkenine yazılamaz; bir sözlüğe konur: `{en_iyi: {değer: 99.0}}`). Fonksiyon, ara tensör ve boş sözlük hatadır; içinde tensör olan bir sözlük düz değer değil modeldir.
 
