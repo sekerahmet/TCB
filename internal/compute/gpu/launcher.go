@@ -239,7 +239,7 @@ func (g *backend) launch(c *kernel, grid, block [3]uint32, p *paramWriter) {
 		g.try_("cuLaunchKernel("+c.ad+")", s) // metin yalnızca hatada kurulur
 	}
 	g.measureEnd(c.ad, ev)
-	if g.concurrent {
+	if g.concurrent && g.capturing == nil {
 		g.equalize()
 	}
 }

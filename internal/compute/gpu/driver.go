@@ -53,6 +53,16 @@ type driver interface {
 	equalize() result
 	// streamHandle işlerin sıraya konduğu akış (kitaplık çağrıları da ona konur; 0: varsayılan).
 	streamHandle() uintptr
+	// Kayıt (graph.go): captureSupported kayıt işlevlerinin varlığı; beginCapture akışı
+	// kayda alır; endCapture kaydı bitirip çizgeyi verir (kayıt bozulduysa 0); instantiate
+	// çalıştırılabilir çizgeyi kurar; launchGraph onu akışa koyar; destroyGraph ikisini de
+	// (0 olmayanı) yok eder.
+	captureSupported() bool
+	beginCapture() result
+	endCapture() (uintptr, result)
+	instantiate(graph uintptr) (uintptr, result)
+	launchGraph(exec uintptr) result
+	destroyGraph(graph, exec uintptr)
 	// errName sonuc kodunun adı (CUDA_ERROR_...).
 	errName(s result) string
 	// detail son hatanın sürücüye özgü açıklaması (benzetimde çekirdek ve komut).
@@ -86,6 +96,8 @@ var errNames = map[result]string{
 	716: "CUDA_ERROR_MISALIGNED_ADDRESS", 717: "CUDA_ERROR_INVALID_ADDRESS_SPACE", 718: "CUDA_ERROR_INVALID_PC",
 	719: "CUDA_ERROR_LAUNCH_FAILED", 800: "CUDA_ERROR_NOT_PERMITTED", 801: "CUDA_ERROR_NOT_SUPPORTED",
 	803: "CUDA_ERROR_SYSTEM_DRIVER_MISMATCH", 804: "CUDA_ERROR_COMPAT_NOT_SUPPORTED_ON_DEVICE",
+	900: "CUDA_ERROR_STREAM_CAPTURE_UNSUPPORTED", 901: "CUDA_ERROR_STREAM_CAPTURE_INVALIDATED",
+	906: "CUDA_ERROR_STREAM_CAPTURE_IMPLICIT", 910: "CUDA_ERROR_GRAPH_EXEC_UPDATE_FAILURE",
 	999: "CUDA_ERROR_UNKNOWN",
 }
 
@@ -104,6 +116,9 @@ const (
 	errInvalidPTX     result = 218
 	errInvalidAddress result = 700
 	errLaunch         result = 719
+	// errCaptureInvalidated kayıt bozuldu; errCaptureImplicit kayıt sürerken eşzamanlama.
+	errCaptureInvalidated result = 901
+	errCaptureImplicit    result = 906
 )
 
 // staticSharedMemLimit blok başına statik (.shared dizileriyle) paylaşımlı belleğin sınırıdır;

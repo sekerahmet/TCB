@@ -455,6 +455,11 @@ const (
 	H4061 Code = 4061 // dikkat bakış sayıları uyumsuz ({heads}, {kv_heads})
 	H4063 Code = 4063 // kapatıldı
 	H4064 Code = 4064 // benzetim (PTX yorumlayıcısı)
+	H4065 Code = 4065 // GPU kaydı sürerken cihazdan konağa okunamaz: kaydedilen iş henüz çalışmadı (değeri kayıttan sonra okuyun)
+	H4066 Code = 4066 // GPU kaydı sürerken konaktan yüklenemez: yüklenen veri her oynatmada aynı kalırdı (değişen veriyi girdi tensörü olarak verin)
+	H4067 Code = 4067 // GPU kaydı sürerken eşzamanlanamaz (bellek yetmediyse havuz da boşaltılamaz)
+	H4068 Code = 4068 // bir GPU kaydı zaten sürüyor: iç içe kayıt ya da kayıt sürerken oynatma yapılamaz
+	H4069 Code = 4069 // GPU kaydı kurulamadı: {error}
 	H4100 Code = 4100 // ayrılmış bölge dışında {size} baytlık genel bellek erişimi: 0x{address}
 	H4101 Code = 4101 // paylaşımlı bellek yarışı: {offset}. bayt aynı engel aralığında {writer}. iş parçacığınca yazıldı, {thread}. iş parçacığınca da yazılıyor
 	H4102 Code = 4102 // paylaşımlı bellek yarışı: {offset}. bayt aynı engel aralığında {writer}. iş parçacığınca yazıldı, {thread}. iş parçacığınca da okunuyor

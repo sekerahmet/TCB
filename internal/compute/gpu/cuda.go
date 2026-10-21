@@ -79,7 +79,8 @@ const (
 // kayıt) kapatan sürücü işlevleri.
 var cudaOptionalNames = [...]string{
 	"cuEventCreate", "cuEventRecord", "cuEventQuery", "cuEventElapsedTime", "cuProfilerStop",
-	"cuFuncSetAttribute", "cuStreamCreate",
+	"cuFuncSetAttribute", "cuStreamCreate", "cuStreamBeginCapture_v2", "cuStreamEndCapture",
+	"cuGraphInstantiateWithFlags", "cuGraphLaunch", "cuGraphExecDestroy", "cuGraphDestroy",
 }
 
 const (
@@ -90,6 +91,12 @@ const (
 	iProfilerStop
 	iFuncSetAttribute
 	iStreamCreate
+	iBeginCapture
+	iEndCapture
+	iGraphInstantiate
+	iGraphLaunch
+	iGraphExecDestroy
+	iGraphDestroy
 	iCount
 )
 
@@ -447,6 +454,44 @@ func (s *cudaDriver) createEvent() (uintptr, result) {
 func (s *cudaDriver) recordEvent(ev uintptr) result { return s.invoke(iEventRecord, ev, s.stream) }
 
 func (s *cudaDriver) streamHandle() uintptr { return s.stream }
+
+func (s *cudaDriver) captureSupported() bool {
+	if s.stream == 0 {
+		return false
+	}
+	for _, f := range []int{iBeginCapture, iEndCapture, iGraphInstantiate, iGraphLaunch, iGraphExecDestroy, iGraphDestroy} {
+		if s.c.ifn[f] == 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// beginCapture CU_STREAM_CAPTURE_MODE_RELAXED (2): kayıt sırasında bellek ayırma gibi
+// akışa girmeyen çağrılar serbesttir; kayıt başka iş parçacığında bitebilir.
+func (s *cudaDriver) beginCapture() result { return s.invoke(iBeginCapture, s.stream, 2) }
+
+func (s *cudaDriver) endCapture() (uintptr, result) {
+	s.output.handle = 0
+	r := s.invoke(iEndCapture, s.stream, uintptr(unsafe.Pointer(&s.output.handle)))
+	return s.output.handle, r
+}
+
+func (s *cudaDriver) instantiate(graph uintptr) (uintptr, result) {
+	r := s.invoke(iGraphInstantiate, uintptr(unsafe.Pointer(&s.output.handle)), graph, 0)
+	return s.output.handle, r
+}
+
+func (s *cudaDriver) launchGraph(exec uintptr) result { return s.invoke(iGraphLaunch, exec, s.stream) }
+
+func (s *cudaDriver) destroyGraph(graph, exec uintptr) {
+	if exec != 0 {
+		s.invoke(iGraphExecDestroy, exec)
+	}
+	if graph != 0 {
+		s.invoke(iGraphDestroy, graph)
+	}
+}
 
 func (s *cudaDriver) eventReady(ev uintptr) bool { return s.invoke(iEventQuery, ev) == succeeded }
 

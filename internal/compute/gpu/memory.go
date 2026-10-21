@@ -54,6 +54,10 @@ type storage struct {
 	host     []float32
 	release2 bool
 	clean    runtime.Cleanup
+	// priv bloğun ait olduğu kaydın havuzu (kayıt sırasında ayrıldıysa; yoksa nil), want o
+	// havuzdaki istek boyu (graph.go).
+	priv *privatePool
+	want uint64
 }
 
 func (d *storage) Device() tensor.Device { return d.g.dev }
@@ -213,8 +217,18 @@ func (h *pool) measurement() MemorySample {
 }
 
 type cleanupInfo struct {
-	h           *pool
-	addr, class uint64
+	h                 *pool
+	priv              *privatePool
+	addr, class, want uint64
+}
+
+// back bloğu sahibine döndürür: kaydın havuzu ya da genel havuz.
+func (t cleanupInfo) back() {
+	if t.priv != nil {
+		t.priv.give(t.want, t.addr, t.class)
+		return
+	}
+	t.h.release2(t.addr, t.class)
 }
 
 // allocate n elemanlı dt türünde depolama verir; sifirla doğruysa içerik sıfırdır.
@@ -237,10 +251,21 @@ func (g *backend) allocate(n int, dt tensor.DType, reset bool) *storage {
 		g.collectGarbage(0)
 	}
 	var addr uint64
+	want := classSize(byteN)
 	if byteN > smallLimit {
-		addr, d.class = g.allocLarge(largeSize(byteN), byteN)
-	} else {
-		d.class = classSize(byteN)
+		want = largeSize(byteN)
+	}
+	taken := false
+	if c := g.capturing; c != nil {
+		d.priv, d.want = c, want
+		addr, d.class, taken = c.take(want)
+	}
+	switch {
+	case taken:
+	case byteN > smallLimit:
+		addr, d.class = g.allocLarge(want, byteN)
+	default:
+		d.class = want
 		var ok bool
 		if addr, ok = g.pool.al(d.class); !ok {
 			addr = g.driverAlloc(d.class, byteN)
@@ -249,7 +274,7 @@ func (g *backend) allocate(n int, dt tensor.DType, reset bool) *storage {
 	g.volume += d.class
 	d.addr = addr
 	g.pool.track(addr, d.class, dt)
-	d.clean = runtime.AddCleanup(d, func(t cleanupInfo) { t.h.release2(t.addr, t.class) }, cleanupInfo{&g.pool, addr, d.class})
+	d.clean = runtime.AddCleanup(d, func(t cleanupInfo) { t.back() }, cleanupInfo{&g.pool, d.priv, addr, d.class, d.want})
 	if reset {
 		g.reset(d)
 	}
@@ -403,7 +428,7 @@ func (g *backend) release(d *storage) {
 	d.clean.Stop()
 	d.host = nil
 	g.volume -= min(g.volume, d.class)
-	g.pool.release2(d.addr, d.class)
+	cleanupInfo{&g.pool, d.priv, d.addr, d.class, d.want}.back()
 }
 
 // ----------------------------------------------------------------------------
@@ -432,6 +457,7 @@ func (g *backend) loadHost(d *storage, data unsafe.Pointer, byteN int) {
 	if byteN == 0 {
 		return
 	}
+	g.noCapture(messages.H4066)
 	d.host = nil
 	target := d.addr
 	h := &g.setup
@@ -478,6 +504,7 @@ func (g *backend) download(target unsafe.Pointer, source uint64, byteN int) {
 	if byteN == 0 {
 		return
 	}
+	g.noCapture(messages.H4065)
 	g.equalBegin()
 	g.try_("cuMemcpyDtoH", g.sr.download(target, source, uint64(byteN)))
 	g.setup.offset = 0

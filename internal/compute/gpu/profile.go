@@ -85,7 +85,7 @@ func (p *profile) stepNo() int32 { return int32(len(p.steps)) }
 
 // measureStart ölçüm açıksa başlangıç olayını sıraya koyar; kapalıysa 0 döner.
 func (g *backend) measureStart() uintptr {
-	if !profileOn.Load() {
+	if !profileOn.Load() || g.capturing != nil {
 		return 0
 	}
 	p := &g.profiler

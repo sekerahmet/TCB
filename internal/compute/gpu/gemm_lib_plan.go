@@ -240,7 +240,7 @@ func (g *backend) ltMul(batch, M, N, K int, a uint64, ta bool, b uint64, tb bool
 		return false
 	}
 	g.lastKernel = l.names[ad]
-	if g.concurrent {
+	if g.concurrent && g.capturing == nil {
 		g.equalize()
 	}
 	return true

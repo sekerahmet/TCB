@@ -34,6 +34,12 @@ type simDriver struct {
 	// devingen paylaşımlı bellek (gerçek sürücüdeki gibi 48 KB üstü izinsiz başlatılamaz).
 	sharedMem int
 	allow     map[uintptr]int
+	// Kayıt: capturing doğruyken sıraya konan işler çalıştırılmaz, captured'a eklenir;
+	// kayıt sırasında eşzamanlama gerektiren işlem kaydı bozar (broken; gerçek sürücüde
+	// CUDA_ERROR_STREAM_CAPTURE_IMPLICIT). graphs çizge numarasından iş listesine.
+	capturing, broken bool
+	captured          []func() error
+	graphs            map[uintptr][]func() error
 }
 
 // newSim toplam belleği verilen bir benzetim sürücüsü kurar.
@@ -71,6 +77,58 @@ func (b *simDriver) eventTime(begin, last uintptr) (float32, result) {
 func (b *simDriver) flushTools() {}
 
 func (b *simDriver) streamHandle() uintptr { return 0 }
+
+func (b *simDriver) captureSupported() bool { return true }
+
+func (b *simDriver) beginCapture() result {
+	if b.capturing {
+		return errCaptureInvalidated
+	}
+	if s := b.flush(); s != succeeded {
+		return s
+	}
+	b.capturing, b.broken, b.captured = true, false, nil
+	return succeeded
+}
+
+func (b *simDriver) endCapture() (uintptr, result) {
+	if !b.capturing {
+		return 0, errCaptureInvalidated
+	}
+	b.capturing = false
+	if b.broken {
+		return 0, errCaptureInvalidated
+	}
+	if b.graphs == nil {
+		b.graphs = map[uintptr][]func() error{}
+	}
+	id := uintptr(len(b.graphs) + 1)
+	b.graphs[id] = b.captured
+	b.captured = nil
+	return id, succeeded
+}
+
+func (b *simDriver) instantiate(graph uintptr) (uintptr, result) {
+	if _, ok := b.graphs[graph]; !ok {
+		return 0, 400
+	}
+	return graph, succeeded
+}
+
+func (b *simDriver) launchGraph(exec uintptr) result {
+	order, ok := b.graphs[exec]
+	if !ok {
+		return 400
+	}
+	for _, f := range order {
+		if s := b.add(f); s != succeeded {
+			return s
+		}
+	}
+	return succeeded
+}
+
+func (b *simDriver) destroyGraph(graph, exec uintptr) { delete(b.graphs, graph) }
 
 func (b *simDriver) bind() result        { return b.failure }
 func (b *simDriver) cardName() string    { return messages.Text(messages.H4064) }
@@ -112,6 +170,10 @@ func (b *simDriver) add(f func() error) result {
 	if b.failure != succeeded {
 		return b.failure
 	}
+	if b.capturing {
+		b.captured = append(b.captured, f)
+		return succeeded
+	}
 	b.order = append(b.order, f)
 	return succeeded
 }
@@ -121,6 +183,10 @@ func (b *simDriver) add(f func() error) result {
 func (b *simDriver) flush() result {
 	if b.failure != succeeded {
 		return b.failure
+	}
+	if b.capturing {
+		b.broken = true
+		return errCaptureImplicit
 	}
 	order := b.order
 	b.order = nil

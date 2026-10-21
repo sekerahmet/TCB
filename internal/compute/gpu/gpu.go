@@ -45,6 +45,8 @@ type backend struct {
 	// çarpımın ayarı otomatik seçilmez (sınama ve ölçüm).
 	gemvOff   bool
 	gemvConst *gemvConfig
+	// capturing süren kaydın havuzu (kayıt yoksa nil; graph.go).
+	capturing *privatePool
 	// profiler çekirdek ölçümleri (bkz. profile.go).
 	profiler profile
 	// volume son çöp toplamadan bu yana verilen depolama baytı (havuzdan gelenler dahil).
@@ -230,6 +232,7 @@ func (g *backend) try_(op string, s result) {
 
 // equalize sıradaki bütün işlerin bitmesini bekler.
 func (g *backend) equalize() {
+	g.noCapture(messages.H4067)
 	g.equalBegin()
 	g.try_("cuCtxSynchronize", g.sr.equalize())
 	g.setup.offset = 0
