@@ -36,10 +36,15 @@ func TestFileFormatsIndependentOfWritingLanguage(t *testing.T) {
 		outputs[i] = s.stdout
 		shapes[i] = fileFormatShape(t, dir)
 	}
-	// TR_DIL=en gerçekten etkili olmalı: yazdır(tip(...)) iki dilde farklı ad verir.
-	if outputs[0] == outputs[1] {
-		t.Fatalf("TR_DIL=en etkisiz: iki çıktı aynı %q", outputs[0])
+	// Program her yazım dilinde kanonik biçimiyle çalışır (17.7): çıktısı da aynıdır
+	// (yazdır(tip(...)) iki dilde aynı ad). TR_DIL yalnızca gösterimi değiştirir: aynı
+	// sözdizimi hatası İngilizce başlıkla bildirilir.
+	if outputs[0] != outputs[1] {
+		t.Fatalf("program çıktısı yazım diline göre değişti: %q / %q", outputs[0], outputs[1])
 	}
+	bad := t.TempDir()
+	writeFile(t, bad, "bozuk.tr", "eğer {\n")
+	wait(t, run(t, trBinary, bad, "", []string{"TR_DIL=en"}, "bozuk.tr"), 1, nil, []string{"Syntax Errors"})
 	if shapes[0] != shapes[1] {
 		t.Fatalf("dosya biçimi yazım diline göre değişti:\nvarsayılan:\n%s\nTR_DIL=en:\n%s", shapes[0], shapes[1])
 	}

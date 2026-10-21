@@ -76,7 +76,7 @@ Kullanıcıya görünen her ad ve her ileti sabit bir koda bağlıdır; Go kodu 
 | Dilden bağımsız | `definitions.json`: tür, imza, dönüş tipi, örnek | `definitions.json`: her kodun parametre adları |
 | Dile bağlı | `tr.json` (kaynak dil), `en.json` | `tr.json`; eksik kod Türkçe gösterilir |
 | Go'dan kullanım | `codes.Name(codes.G100)`, `codes.Find`, `codes.Active` | `messages.New(messages.H7003, ...)`, `messages.Text`, `messages.Has`, `messages.Internal` |
-| Etkin dil | `TR_DIL` ortam değişkeni (`codes.LoadLanguage`) | aynı değişken (`messages.LanguageEnvVar`) |
+| Dil | Okuma ve çalışma dili her zaman Türkçe (`codes.Active`); kişinin yazım dili `TR_DIL` (`codes.Display`, `codes.DisplayName`) yalnızca gösterimdir (17.7) | iletilerin dili `TR_DIL` (`messages.LanguageEnvVar`) |
 
 Yazım kuralları (kod değişmez, ad değişebilir; her işin tek adı; parametreler adlıdır; iç hata `H9000`) paketlerin README'lerindedir: [`codes`](../internal/lang/codes/README.md), [`messages`](../internal/lang/messages/README.md). Yeni ad için [`development.md`](development.md#yeni-kod-ad-isteği), yeni ileti için [`recipes.md`](recipes.md).
 

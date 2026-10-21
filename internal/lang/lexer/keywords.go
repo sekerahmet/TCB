@@ -63,10 +63,10 @@ var keywordTable = []Keyword{
 	{codes.A090, TokBreakpoint},
 }
 
-// keywords etkin dilde yazım → token türü, typeCodes token türü → sözlük kodu haritasıdır.
+// keywords kanonik dilde (Türkçe) yazım → token türü, typeCodes token türü → sözlük kodu haritasıdır.
 var keywords, typeCodes = keywordMap(keywordTable, codes.Spellings)
 
-// otherKeywords etkin dil dışındaki dillerin anahtar kelime haritalarıdır (dil kodu → harita;
+// otherKeywords kanonik dil dışındaki dillerin anahtar kelime haritalarıdır (dil kodu → harita;
 // keywordsOf gerektiğinde bir kez kurar).
 var otherKeywords sync.Map
 

@@ -306,7 +306,7 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 			// değiştir bakiye = 5000
 			rest := strings.TrimSpace(cmdLine[len(parts[0]):])
 			if !strings.Contains(rest, "=") {
-				fmt.Println("  ⚠️ " + messages.Text(messages.H8042, codes.Name(codes.K304)))
+				fmt.Println("  ⚠️ " + messages.Text(messages.H8042, codes.DisplayName(codes.K304)))
 				continue
 			}
 			eqParts := strings.SplitN(rest, "=", 2)
@@ -335,7 +335,7 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 
 		case codes.K305:
 			if len(parts) < 2 {
-				fmt.Println("  ⚠️ " + messages.Text(messages.H8046, codes.Name(codes.K305)))
+				fmt.Println("  ⚠️ " + messages.Text(messages.H8046, codes.DisplayName(codes.K305)))
 				continue
 			}
 			targetLine, err := strconv.Atoi(parts[1])
@@ -358,7 +358,7 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 
 		case codes.K306:
 			if len(parts) < 2 {
-				fmt.Println("  ⚠️ " + messages.Text(messages.H8050, codes.Name(codes.K306)))
+				fmt.Println("  ⚠️ " + messages.Text(messages.H8050, codes.DisplayName(codes.K306)))
 				continue
 			}
 			bpLine, err := strconv.Atoi(parts[1])
@@ -374,7 +374,7 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 
 		case codes.K307:
 			if len(parts) < 2 {
-				fmt.Println("  ⚠️ " + messages.Text(messages.H8053, codes.Name(codes.K307)))
+				fmt.Println("  ⚠️ " + messages.Text(messages.H8053, codes.DisplayName(codes.K307)))
 				continue
 			}
 			expr := strings.TrimSpace(cmdLine[len(parts[0]):])
@@ -394,7 +394,7 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 
 		case codes.K308:
 			if len(parts) < 2 {
-				fmt.Println("  ⚠️ " + messages.Text(messages.H8055, codes.Name(codes.K308)))
+				fmt.Println("  ⚠️ " + messages.Text(messages.H8055, codes.DisplayName(codes.K308)))
 				continue
 			}
 			d.inspectTable(v, parts[1], env)
@@ -410,7 +410,7 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 
 		case codes.K310:
 			if len(parts) < 2 {
-				fmt.Println("  ⚠️ " + messages.Text(messages.H8059, codes.Name(codes.K310)))
+				fmt.Println("  ⚠️ " + messages.Text(messages.H8059, codes.DisplayName(codes.K310)))
 				continue
 			}
 			exprStr := strings.TrimSpace(cmdLine[len(parts[0]):])
@@ -443,7 +443,7 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 			if val, ok := env.Get(cmdLine); ok {
 				fmt.Printf("  🔍 %s (%s) = %s\n", cmdLine, val.Type(), v.Mask(val.Inspect()))
 			} else {
-				fmt.Println("  ❓ " + messages.Text(messages.H8063, codes.Name(codes.K312)))
+				fmt.Println("  ❓ " + messages.Text(messages.H8063, codes.DisplayName(codes.K312)))
 			}
 		}
 	}
@@ -489,7 +489,7 @@ func (d *Debugger) renderDebugScreen(v *interp.VM, currentLine int, env *interp.
 	if len(vars) == 0 {
 		fmt.Println("  📦 " + messages.Text(messages.H8073))
 	} else {
-		fmt.Println("  📦 " + messages.Text(messages.H8074, codes.Name(codes.K304)))
+		fmt.Println("  📦 " + messages.Text(messages.H8074, codes.DisplayName(codes.K304)))
 		for _, kv := range vars {
 			valPreview := v.Mask(kv.Val.Inspect())
 			if _, engine := kv.Val.(WatchValue); engine && strings.Contains(valPreview, "\n") {

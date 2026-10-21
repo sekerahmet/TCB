@@ -129,7 +129,7 @@ func TestBodyInLanguage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	l := NewBodyIn("if eğer {", en)
+	l := NewBodyIn("if eğer {", false, en)
 	if l.Language() != en || NewBody("", false).Language() != codes.Active() {
 		t.Fatal("çözümleyicinin dili yanlış")
 	}

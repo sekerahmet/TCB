@@ -44,6 +44,15 @@ func (c *analysis) langElement(r lexer.Record) codes.Code {
 		switch bg.Kind {
 		case checker.BindBuiltin, checker.BindImplicit, checker.BindNamed:
 			return bg.Code
+		case checker.BindUser:
+			// Kaçışla ($ad) tanımlanmış bir kullanıcı adı, kaçışsız geçtiği yerde dilin
+			// sözcüğüdür: gösterim dilin sözcüğüyle çakışan kullanıcı adını her yerde kaçışla
+			// yazar (2.11); kaçışsız biçim kullanıcının tanımına bağlanamaz.
+			if c.escapedNames[name] {
+				if k, ok := c.lang.Find(codes.NamespaceGlobal, name); ok && k.IsBuiltin() {
+					return k
+				}
+			}
 		}
 	}
 	return codes.None

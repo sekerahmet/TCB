@@ -13,7 +13,7 @@ import (
 // saklanır. Kodlu kaynakta dilin her sözcüğü kodla yazılır (A001, G100, .Y004, T910:); kod
 // olmayan her ad kullanıcının adıdır ve hiçbir zaman anahtar kelime sayılmaz (başka bir
 // dilde yazılmış bir kullanıcı adı TR'nin bir anahtar kelimesiyle aynı olabilir). Kodlar
-// burada, sözcük çözümlemede etkin dilin adlarına çevrilir: ayrıştırıcı, denetleyici ve
+// burada, sözcük çözümlemede kanonik (Türkçe) adlarına çevrilir: ayrıştırıcı, denetleyici ve
 // yorumlayıcı kodlu dosyayı Türkçe yazılmış gibi görür; çalışma anına yük gelmez.
 
 // NewBody returns the lexer for the body of a source file (the text left after
@@ -44,11 +44,12 @@ func NewBody(input string, coded bool) *Lexer {
 	return l
 }
 
-// NewBodyIn returns the lexer for an uncoded body written in lang. A file without the coded
-// header is written in Turkish whatever the active language is (17.7), so internal/lang/source
-// reads files with lang = Turkish; NewBody reads the active language's keywords.
-func NewBodyIn(input string, lang *codes.Language) *Lexer {
-	l := NewBody(input, false)
+// NewBodyIn returns the lexer for a body read in lang: an uncoded body written in lang, or a
+// coded body whose codes read as lang's names (its view in lang). Programs are read in the
+// canonical language (codes.Active, Turkish; NewBody); another writing language is read only to
+// convert text written in it (tr kodla - --dil en, a REPL line) or to show a file in it (17.7).
+func NewBodyIn(input string, coded bool, lang *codes.Language) *Lexer {
+	l := NewBody(input, coded)
 	l.lang, l.words = lang, keywordsOf(lang)
 	return l
 }
@@ -185,8 +186,8 @@ func (l *Lexer) nameToken(lit string, line, col int) Token {
 	return Token{Type: kind, Literal: lit, Line: line, Column: col}
 }
 
-// codedToken kodlu kaynaktaki bir adı okur: kod biçimindeyse (G100) kodun etkin dildeki
-// adını ve (anahtar kelimeyse) türünü taşıyan sözcük birimi, değilse kullanıcı adıdır.
+// codedToken kodlu kaynaktaki bir adı okur: kod biçimindeyse (G100) kodun çözümleyicinin
+// dilindeki (Language) adını ve (anahtar kelimeyse) türünü taşıyan sözcük birimi, değilse kullanıcı adıdır.
 // Ölü (taşınmış ya da kaldırılmış) kodlar eski adlarıyla okunur: o adın ipucu (13.6, 2.9a)
 // kendiliğinden çalışır (uyumluluk sözü, 17.6).
 func (l *Lexer) codedToken(lit string, line, col int) Token {
@@ -194,7 +195,7 @@ func (l *Lexer) codedToken(lit string, line, col int) Token {
 		return Token{Type: TokIdent, Literal: lit, Line: line, Column: col}
 	}
 	k, err := codes.Parse(lit)
-	g, var_ := codes.Active().Entry(k)
+	g, var_ := l.Language().Entry(k)
 	if err != nil || !var_ {
 		l.addError(line, col, messages.New(messages.H0001, lit, codes.G100))
 		return Token{Type: TokIdent, Literal: lit, Line: line, Column: col}

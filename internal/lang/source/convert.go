@@ -40,16 +40,20 @@ var ErrUTF8 error = messages.New(messages.H2510)
 // program. It is a converter bug; the file must not be written.
 var ErrLossy error = messages.New(messages.H2511)
 
-// Encode converts source written in Turkish (the whole file) to coded form. Source that is
+// Encode converts source written in Turkish (a file; the whole file) to coded form; see
+// EncodeIn.
+func Encode(text string) (string, error) { return EncodeIn(text, Turkish()) }
+
+// EncodeIn converts source written in lang (the whole text) to coded form. Source that is
 // already coded is returned as is. The '$' of '$name' escapes is dropped (2.11). The result is
-// verified: the coded program's tree must equal the original's, and decoding and re-encoding
-// the coded text must not change it; otherwise it returns ErrLossy.
-func Encode(text string) (string, error) {
+// verified: the coded program read in lang must give the original's tree, and decoding to lang
+// and re-encoding must not change it; otherwise it returns ErrLossy.
+func EncodeIn(text string, lang *codes.Language) (string, error) {
 	b, err := Split(text)
 	if err != nil || b.Coded {
 		return text, err
 	}
-	c, err := analyze(b, codes.Active())
+	c, err := analyze(b, lang)
 	if err != nil {
 		return "", err
 	}
@@ -59,17 +63,17 @@ func Encode(text string) (string, error) {
 	if err := c.sameMeaning(coded); err != nil {
 		return "", err
 	}
-	if back, err := Decode(result, codes.Active()); err != nil || !reencodes(back, result) {
+	if back, err := Decode(result, lang); err != nil || !reencodes(back, result, lang) {
 		return "", ErrLossy
 	}
 	return result, nil
 }
 
-// turkishToCoded Türkçe yazılmış gövdeyi etkin dil ne olursa olsun kodlu biçime çevirir
-// (17.7); gövde ayrıştırılamıyorsa b ve hatayı döner. Encode'dan farkı denetimsiz olmasıdır:
-// kodlu ağaç etkin dilin adlarıyla okunur, Türkçe ağaçla ad ad karşılaştırılamaz.
-func turkishToCoded(b Parts) (Parts, error) {
-	c, err := analyze(b, Turkish())
+// toCoded lang'de yazılmış kodsuz gövdeyi denetimsiz kodlu biçime çevirir (Encode'un
+// doğrulaması olmadan; gösterim ve kabuk satırı için); gövde ayrıştırılamıyorsa b ve hatayı
+// döner.
+func toCoded(b Parts, lang *codes.Language) (Parts, error) {
+	c, err := analyze(b, lang)
 	if err != nil {
 		return b, err
 	}
@@ -86,20 +90,20 @@ func Show(text string, lang *codes.Language) (string, error) {
 	if err != nil || b.Coded || lang.Code == codes.SourceLanguage {
 		return Decode(text, lang)
 	}
-	coded, err := turkishToCoded(b)
+	coded, err := toCoded(b, Turkish())
 	if err != nil {
 		return "", err
 	}
 	return Decode(coded.Join(), lang)
 }
 
-// reencodes kodlu metnin çözülmüş hâli kodlanınca aynı kodlu metni veriyor mu?
-func reencodes(decoded, coded string) bool {
+// reencodes kodlu metnin lang'e çözülmüş hâli kodlanınca aynı kodlu metni veriyor mu?
+func reencodes(decoded, coded string, lang *codes.Language) bool {
 	b, err := Split(decoded)
 	if err != nil || b.Coded {
 		return false
 	}
-	c, err := analyze(b, codes.Active())
+	c, err := analyze(b, lang)
 	if err != nil {
 		return false
 	}
@@ -135,18 +139,18 @@ func Decode(text string, lang *codes.Language) (string, error) {
 		return "", err
 	}
 	view := c.viewBody()
-	// The view must read back as the same program. The lexer reads only the active language,
-	// so the check runs when lang is the active one ('tr göster --dil' re-executes itself with
-	// the view language for this reason).
-	if lang == codes.Active() && !reencodesBody(view, b.Body) {
+	// The view must read back as the same program: read in lang and encoded again, it gives
+	// the coded body back.
+	if !reencodesBody(view, b.Body, lang) {
 		return "", ErrLossy
 	}
 	return Parts{BOM: b.BOM, Body: view}.Join(), nil
 }
 
-// reencodesBody reports whether the view body, encoded again, gives the coded body back.
-func reencodesBody(view, codedBody string) bool {
-	c, err := analyze(Parts{Body: view}, codes.Active())
+// reencodesBody reports whether the view body, read in lang and encoded again, gives the coded
+// body back.
+func reencodesBody(view, codedBody string, lang *codes.Language) bool {
+	c, err := analyze(Parts{Body: view}, lang)
 	return err == nil && c.codedBody() == codedBody
 }
 
@@ -168,7 +172,7 @@ func (c *analysis) viewChanges() []change {
 	return d
 }
 
-// view kodlu bir gövdenin etkin dildeki yazımıdır: hata çerçeveleri ve hata ayıklayıcı
+// view kodlu bir gövdenin kanonik (Türkçe) yazımıdır: hata çerçeveleri ve hata ayıklayıcı
 // bu metni gösterir (17.5). Gövde ayrıştırılamıyorsa yalnızca dosya düzeyindeki kodlar
 // adlarına çevrilir (yerleştirmelerdekiler kod kalır). İkinci değer gösterimin sütunlarını
 // veren sözcük çözümleyicidir: konumlar tam bu metne göredir, '$ad' kaçışları dahil.
@@ -226,7 +230,9 @@ type analysis struct {
 	// conflicts gösterimde kodlu bir sözcüğü yakalayacak kullanıcı adlarıdır; her yerde
 	// kaçışla yazılırlar (denetci.AdBaglari).
 	conflicts map[string]bool
-	prog      *ast.Program
+	// escapedNames metinde kaçışla ($ad) yazılmış kullanıcı adlarıdır (bkz. langElement).
+	escapedNames map[string]bool
+	prog         *ast.Program
 }
 
 func analyze(b Parts, lang *codes.Language) (*analysis, error) {
@@ -248,14 +254,20 @@ func analyze(b Parts, lang *codes.Language) (*analysis, error) {
 		c.bindings[[2]int{bg.Token.Line, bg.Token.Column}] = bg
 	}
 	c.conflicts = conflicts
+	c.escapedNames = map[string]bool{}
+	for _, r := range c.records {
+		if r.Type == lexer.TokIdent && c.escaped(r) {
+			c.escapedNames[r.Literal] = true
+		}
+	}
 	return c, nil
 }
 
 // sameMeaning kodlu gövdenin ağacının özgün ağaçla aynı olduğunu denetler (sözcük birimleri
-// konumlarıyla atlanır; kodlu sözcükler etkin dilin adlarıyla okunduğu için ağaçlar birebir
+// konumlarıyla atlanır; kodlu sözcükler c.lang'in adlarıyla okunduğu için ağaçlar birebir
 // aynı olmalıdır).
 func (c *analysis) sameMeaning(coded Parts) error {
-	p := parser.New(coded.scanLexer(codes.Active()))
+	p := parser.New(lexer.NewBodyIn(coded.Body, true, c.lang))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 || ast.Dump(prog) != ast.Dump(c.prog) {
 		return ErrLossy

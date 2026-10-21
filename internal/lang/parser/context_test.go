@@ -168,7 +168,7 @@ func TestContextWordsFollowLexer(t *testing.T) {
 		t.Fatal(err)
 	}
 	src := "import \"m\" as g\ntest \"t\" { }\nvar a = [1].map { it * 2 }\nvar b = [1].reduce(0) { acc + it }\n"
-	p := New(lexer.NewBodyIn(src, en))
+	p := New(lexer.NewBodyIn(src, false, en))
 	prog := p.ParseProgram()
 	if errs := p.Errors(); len(errs) > 0 {
 		t.Fatalf("İngilizce gövde ayrıştırılamadı: %v", errs)

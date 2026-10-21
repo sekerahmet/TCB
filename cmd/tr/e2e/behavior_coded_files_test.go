@@ -250,8 +250,10 @@ func TestEnglishWritingLanguage(t *testing.T) {
 	if s := run(t, trBinary, "", back.stdout, nil, "göster", "-"); s.code != 0 || s.stdout != turkish {
 		t.Errorf("İngilizceden kodlanan metnin Türkçesi özgün değil: %q", s.stdout)
 	}
-	// İletiler de yazım dilindedir: İngilizce yazımda başlık İngilizce kataloğundan gelir.
-	wait(t, run(t, trBinary, "", "if {\n", nil, "kodla", "-", "--dil", "en"), 2, nil, []string{"Syntax Errors"})
+	// Metin --dil'in dilinde okunur; iletiler kişinin yazım dilindedir (TR_DIL): İngilizce
+	// metnin sözdizimi hatası TR_DIL=en ile İngilizce başlıkla, yoksa Türkçe bildirilir.
+	wait(t, run(t, trBinary, "", "if {\n", []string{"TR_DIL=en"}, "kodla", "-", "--dil", "en"), 2, nil, []string{"Syntax Errors"})
+	wait(t, run(t, trBinary, "", "if {\n", nil, "kodla", "-", "--dil", "en"), 2, nil, []string{"Sözdizimi"})
 	// Gösterim de o dilde yeniden kodlanabilmeli: G200'ün İngilizce adı yok, "G200(l)" diye bir
 	// gösterim geri okunamaz; komut onu vermez (dosyayla da standart girişle de).
 	lossy := source.Header + "\nA030 l = [1]\nG200(l)\n"
@@ -371,6 +373,10 @@ func TestUncodedFileIsTurkishInEveryLanguage(t *testing.T) {
 	if got := readFile(t, filepath.Join(dir, "ana.tr")); got != program {
 		t.Errorf("TR_DIL=en ile 'tr çöz' Türkçe yazmadı:\n%s", got)
 	}
+	// Kabuğa yazılan satır kişinin yazım dilindedir; kanonik biçime çevrilip çalışır: değerlerin
+	// adları (tip()) kanoniktir.
+	repl := run(t, trBinary, dir, "var x = [1, 2].map { it * 10 }\nprint(x, type(x))\nexit\n", []string{"TR_DIL=en"})
+	wait(t, repl, 0, []string{"[10, 20] Liste"}, nil)
 }
 
 // readFile dosyanın metnidir.

@@ -25,7 +25,7 @@ const usageErrorCode = 2
 // --help de), yardımda ve iletilerde etkin dilin adı yazılır; -h simgedir.
 
 // helpOption yardım seçeneğinin etkin dildeki yazımıdır (--yardım).
-func helpOption() string { return "--" + codes.Name(codes.K106) }
+func helpOption() string { return "--" + codes.DisplayName(codes.K106) }
 
 // isHelpArgument argümanın yardımı istediğidir: -h ya da herhangi bir dilde --yardım.
 func isHelpArgument(a string) bool {
@@ -161,7 +161,7 @@ func unknownOption(given string, options []*option) error {
 	if i := strings.IndexByte(given, '='); i >= 0 {
 		given = given[:i] + "=…"
 	}
-	candidates := []string{codes.Name(codes.K106)}
+	candidates := []string{codes.DisplayName(codes.K106)}
 	for _, s := range options {
 		candidates = append(candidates, s.name)
 	}
@@ -170,7 +170,7 @@ func unknownOption(given string, options []*option) error {
 		o = name // -adım → --adım
 	}
 	if o == "" && name == "h" {
-		o = codes.Name(codes.K106)
+		o = codes.DisplayName(codes.K106)
 	}
 	if o == "" {
 		return messages.New(messages.H7208, shorten(given))

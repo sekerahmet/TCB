@@ -25,10 +25,10 @@ import (
 func watchCommand(args []string) {
 	if len(args) > 0 && !strings.HasPrefix(args[0], "--") && !strings.EqualFold(filepath.Ext(args[0]), ".tr") {
 		if _, err := os.Stat(args[0]); err != nil {
-			exitWithError(messages.Text(messages.H8670, args[0], codes.Name(codes.K012)))
+			exitWithError(messages.Text(messages.H8670, args[0], codes.DisplayName(codes.K012)))
 		}
 	}
-	s, path, arguments := profileArguments(codes.Name(codes.K012), args, codes.K105)
+	s, path, arguments := profileArguments(codes.DisplayName(codes.K012), args, codes.K105)
 	machine, prog, code := prepareProgram(path, arguments)
 	realExit, realError := os.Stdout, os.Stderr
 	live := profiler.NewLive(realError, logging.IsTerminal(realError), nil)
