@@ -1,12 +1,12 @@
-// 11 — Hazır katmanlarla GPT: dilin kitaplığındaki katmanlar ve iyileştiricilerle küçük bir dil
+// 17 — Hazır katmanlarla GPT: dilin kitaplığındaki katmanlar ve iyileştiricilerle küçük bir dil
 // modeli. Öğrettikleri: `aktar "tr/katman"` ile GPT kurmak, gizli ağırlıkları Muon'a öbürlerini
 // AdamW'ye vermek (MuonVeAdamW), ısınma–sabit–azalma öğrenme oranı planı, ilerleme çubuğu,
 // kontrol noktası ve kaldığı yerden devam, metin üretmek.
 // Kitaplığın kodu: lib/katman.tr ve lib/iyilestirici.tr (kopyalayıp değiştirebilirsiniz).
 // Ayrıntılar: docs/guide/10_hazir_katmanlarla_gpt.md, lib/README.md.
 //
-// Çalıştırma (proje kökünden): tr examples/11_gpt.tr
-//   Ayarlar komut satırından: tr examples/11_gpt.tr --adım 300 --boyut 64 --koşu runs/gpt2
+// Çalıştırma (proje kökünden): tr examples/tr/17_gpt.tr
+//   Ayarlar komut satırından: tr examples/tr/17_gpt.tr --adım 300 --boyut 64 --koşu runs/gpt2
 //   Yarıda kesilirse (Ctrl+C) aynı komut kaldığı yerden sürer; baştan başlamak için koşu
 //   klasörünü silin ya da başka bir --koşu verin.
 // GPU'da: model kurulmadan önce varsayılan cihazı seçin (aşağıdaki satırın yorumunu kaldırın)
@@ -17,14 +17,14 @@ aktar "tr/katman"
 aktar "tr/iyilestirici"
 
 değişken ayar = komut_satırı({adım: 100, toplu: 8, bağlam: 32, boyut: 32, katman: 2, baş: 4,
-        muon_oranı: 0.02, adamw_oranı: 0.01, normuon: yanlış, koşu: "runs/11_gpt"},
+        muon_oranı: 0.02, adamw_oranı: 0.01, normuon: yanlış, koşu: "runs/gpt_ornegi"},
     açıklama: "Hazır katmanlarla küçük bir GPT'yi Muon + AdamW ile eğitir",
     açıklamalar: {adım: "toplam eğitim adımı", koşu: "koşu klasörü (ayarlar, günlük, kontrol noktaları)",
         normuon: "gizli ağırlıklar için Muon yerine NorMuon"})
 
-// --- Veri: depodaki sentetik metin ve parçalayıcısı (kendi veriniz için examples/08) ---
-değişken p = parçalayıcı_yükle("../tests/data/tokenizer.json")
-değişken ö = veri_kümesi("../tests/data/text").örnekleyici(toplu: ayar.toplu, bağlam: ayar.bağlam, tohum: 1)
+// --- Veri: depodaki sentetik metin ve parçalayıcısı (kendi veriniz için examples/tr/16_veri_ile_egitim.tr) ---
+değişken p = parçalayıcı_yükle("../../tests/data/tokenizer.json")
+değişken ö = veri_kümesi("../../tests/data/text").örnekleyici(toplu: ayar.toplu, bağlam: ayar.bağlam, tohum: 1)
 
 // --- Model ve iyileştirici ---
 değişken model = GPT(p.dağarcık_boyutu, bağlam: ayar.bağlam, boyut: ayar.boyut, katman: ayar.katman,
@@ -55,7 +55,7 @@ eğer kn.kaldığı_adım < ayar.adım {
 }
 
 // --- Doğrulama kaybı ve metin üretimi ---
-değişken doğrulama = veri_kümesi("../tests/data/text").sıralı(toplu: ayar.toplu, bağlam: ayar.bağlam)
+değişken doğrulama = veri_kümesi("../../tests/data/text").sıralı(toplu: ayar.toplu, bağlam: ayar.bağlam)
 değişken toplam_kayıp = 0.0
 değişken sayı = 0
 türevsiz {

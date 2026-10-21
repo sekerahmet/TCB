@@ -1,0 +1,36 @@
+//! tr kodlu 1
+// 05 — Lists and dicts: keeping and processing collections of values.
+// What it teaches: building lists and dicts, reading/writing by index, append, length, keys
+// and values, chained methods (filter, map, sort ...), the pipeline (|>).
+// Previous example: 04. Next: 06 (structs and methods).
+// Run (from the project root): tr examples/en/05_lists_and_dicts.tr
+
+// List
+A030 fruits = ["apple", "pear", "cherry"]
+fruits.Y004("banana")
+G100(fruits, fruits.Y001, fruits[0], fruits[-1])
+fruits[1] = "plum"
+G100(fruits)
+
+// Dict: key -> value
+A030 prices = {"apple": 12, "banana": 30}
+prices["cherry"] = 45
+G100(prices["banana"], prices.Y001, prices.Y300(), prices.Y301())
+A010 key A011 prices.Y300() {
+    G100("{key}: {prices[key]}")
+}
+
+// Chained methods
+A030 raw = [5, 2, 8, 2, 1, 9, 5, 4]
+G100(raw.Y204().Y200 { A104 > 2 }.Y202().Y003())
+G100("first: {raw.Y210}, last: {raw.Y211}, sum: {G400(raw)}, mean: {G410(raw)}")
+G100("  hello new world of tr  ".Y102().Y100().Y103(" ").Y203(" - "))
+
+// Pipeline: the left value goes into the function on the right
+A030 even_squares = raw.Y200((x) => x % 2 == 0).Y201 { A104 * A104 }
+G100("even squares: {even_squares}, total {even_squares |> G400}")
+
+// Multiple assignment and swap
+A030 a, b = 10, 20
+a, b = b, a
+G100("a = {a}, b = {b}")

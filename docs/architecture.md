@@ -247,7 +247,7 @@ Profil saniyede bir anlık görüntü alır (`snapshot.go`), son 5 saniyenin far
     "bellek": [{"cihaz": 0, "canlı_bayt": 109568, "ayrılmış_bayt": 114176, "havuzda_bayt": 4608,
       "tepe_canlı_bayt": 113664, "tepe_ayrılmış_bayt": 114176, "çöp_toplama": 0}]},
   "örnekleme": {"aralık_ms": 1, "örnek": 11800, "süre_sn": 11.8, "tensör_payı": 0.95,  // kapalıysa null
-    "satırlar": [{"dosya": "examples/11_gpt.tr", "satır": 49, "fonksiyon": "",
+    "satırlar": [{"dosya": "examples/tr/17_gpt.tr", "satır": 49, "fonksiyon": "",
       "metin": "geri_yayılım(kayıp)", "süre_sn": 4.6, "pay": 0.39, "tensör_payı": 0.99}],
     "fonksiyonlar": [{"ad": "dikleştir", "süre_sn": 3.9, "pay": 0.33}]},
   "bellek": {"go_yığını_bayt": 7864320, "go_sistem_bayt": 44564480, "cpu_tensör_ayrılan_bayt": 7642211100},
@@ -290,7 +290,7 @@ Bir iş `bash tools/full_check.sh` geçince biter; otomatik sınama (`.github/wo
 | `lib/` | TR ile yazılı standart kitaplık, ikiliye gömülü (`aktar "tr/katman"`, `aktar "tr/iyilestirici"`; testleri `tr test lib`) |
 | `editors/vscode/` | Düzenleyici eklentisi (kullanıcıya gider) |
 | `docs/` | Belgeler: [`guide/`](guide/README.md) (kullanıcı kılavuzu), [`spec/`](spec/README.md) (dil tanımı), [`codes.md`](codes.md) (üretilir), [`roadmap.md`](roadmap.md), [`development.md`](development.md), [`recipes.md`](recipes.md), bu dosya |
-| `examples/` | Öğrenme sırasıyla örnek programlar |
+| `examples/` | Öğrenme sırasıyla numaralı örnek programlar: `tr/` Türkçe, `en/` İngilizce yazım (aynı numara aynı program) |
 | `tests/` | Dil tanımının kural testleri (`tr test tests`); `negative/`, `coded/`, `data/` |
 | `tools/` | Depo bakım araçları, kullanıcıya gitmez: `full_check.sh` ("bitti" tanımı), `fuzz.sh`, `gen/` (üreteçler), `impact/` (bir adın etkisini koddan hesaplar), `checkstatic/` (statik ikili denetimi), `bench/` (hız kıyas seti), `gpu/` (GPU sınama ve kıyas betikleri, `COLAB.md`) |
 | `bin/`, `scratch/` | Derleme çıktısı ve kişisel deneme klasörü; depoya girmez |

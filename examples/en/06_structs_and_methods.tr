@@ -1,0 +1,38 @@
+//! tr kodlu 1
+// 06 — Structs and methods: keeping related data and the work tied to it together.
+// What it teaches: struct definitions, fields and default values, methods, self, creating
+// objects (positional and named), updating fields.
+// Previous example: 05. Next: 07 (error handling).
+// Run (from the project root): tr examples/en/06_structs_and_methods.tr
+
+A050 Developer {
+    full_name: A202
+    experience: A200 = 1 // default value
+
+    A020 introduce() {
+        A021 "{A051.full_name} ({A051.experience} yr)"
+    }
+
+    A020 add_experience(years) {
+        A051.experience += years
+    }
+}
+
+A030 dev = Developer("Ahmet", 5)
+dev.experience += 1 // a field is updated directly
+G100(dev.introduce())
+G100(Developer(full_name: "Zeynep").introduce()) // named argument, experience is the default
+dev.add_experience(4)
+G100(dev.introduce())
+
+// Structs also live in lists
+A050 Point {
+    x: A201
+    y: A201
+
+    A020 distance() {
+        A021 G404(A051.x ** 2 + A051.y ** 2)
+    }
+}
+A030 points = [Point(3.0, 4.0), Point(6.0, 8.0)]
+G100(points.Y201 { A104.distance() })

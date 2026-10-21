@@ -1,14 +1,14 @@
-// 10 — Uzun eğitim: kontrol noktası ve kaldığı yerden devam.
+// 18 — Uzun eğitim: kontrol noktası ve kaldığı yerden devam.
 // Öğrettikleri: her eğitimi bir koşu klasörüne yazmak; kontrol_noktası ile eğitimin bütün
 // durumunu (model, iyileştirici, örnekleyici, günlük, kendi sayaçlarınız) düzenli kaydetmek;
 // Ctrl+C ile durdurup aynı komutla kaldığı yerden sürdürmek. Sürdürülen eğitim hiç
 // kesilmemiş bir eğitimle bit düzeyinde aynı sonucu verir.
 // Ayrıntılar: docs/guide/09_uzun_egitim.md, docs/spec/20_kontrol_noktasi.md §20.
 //
-// Çalıştırma (proje kökünden): tr examples/10_kontrol_noktasi.tr
+// Çalıştırma (proje kökünden): tr examples/tr/18_kontrol_noktasi.tr
 //   Eğitim sürerken Ctrl+C'ye basın: o adım biter, nokta kaydedilir, program durur.
 //   Aynı komutu yeniden çalıştırın: "Kaldığı yerden devam: adım ..." yazar ve oradan sürer.
-//   Eğitimi uzatmak için: tr examples/10_kontrol_noktasi.tr --adım 1000
+//   Eğitimi uzatmak için: tr examples/tr/18_kontrol_noktasi.tr --adım 1000
 //   Baştan başlamak için koşu klasörünü silin ya da başka bir klasör verin: --koşu runs/deneme2
 // Bulut not defterinde koşu klasörünü yerel diskte tutup ara ara Drive'a kopyalayın (kılavuz §9).
 
@@ -18,10 +18,10 @@ değişken ayar = komut_satırı({adım: 200, koşu: "runs/kontrol_noktasi_orneg
         her_dakika: "kontrol noktası aralığı (dakika)"})
 değişken KOŞU = ayar.koşu
 
-// --- Veri ve model (examples/08_veri_ile_egitim.tr'deki küçük model) ---
-değişken p = parçalayıcı_yükle("../tests/data/tokenizer.json")
+// --- Veri ve model (examples/tr/16_veri_ile_egitim.tr'deki küçük model) ---
+değişken p = parçalayıcı_yükle("../../tests/data/tokenizer.json")
 değişken V = p.dağarcık_boyutu
-değişken ö = veri_kümesi("../tests/data/text").örnekleyici(toplu: 8, bağlam: 32, tohum: 1)
+değişken ö = veri_kümesi("../../tests/data/text").örnekleyici(toplu: 8, bağlam: 32, tohum: 1)
 değişken parametre_tohumu = 0
 fonksiyon parametre(şekil, ölçek) {
     parametre_tohumu += 1

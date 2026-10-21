@@ -1,0 +1,12 @@
+// 09 — Modüller: kodu dosyalara bölüp aktarmak.
+// Öğrettikleri: aktar ile başka bir .tr dosyasındaki adları kullanmak, olarak ile takma ad
+// vermek (ad çakışmasını önler). Aktarılan dosya: helpers/geometri.tr.
+// Önceki örnek: 08 (testler). Sonraki: 10 (eşzamanlı görevler).
+// Çalıştırma (proje kökünden): tr examples/tr/09_moduller.tr
+
+aktar "helpers/geometri" // .tr uzantısı isteğe bağlı; adlar doğrudan kullanılır
+yazdır("r = 2 dairenin alanı: {yuvarla(daire_alanı(2), 3)}")
+
+aktar "helpers/geometri" olarak geo // takma adla: geo.ad
+yazdır("geo.PI = {geo.PI}")
+yazdır("r = 1 dairenin alanı: {yuvarla(geo.daire_alanı(1), 3)}")

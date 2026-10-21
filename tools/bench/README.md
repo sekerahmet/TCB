@@ -51,14 +51,14 @@ kütüphanesiyle) 4–5 ms (20 turun ortalaması ~4,3 ms). TR tensörleri `float
 
 ## Model eğitimi karşılaştırması
 
-`examples/07_karakter_modeli.tr` ile `py/karakter_modeli.py` aynı modeli (yaklaşık 119 bin parametreli,
+`examples/tr/15_karakter_modeli.tr` ile `py/karakter_modeli.py` aynı modeli (yaklaşık 119 bin parametreli,
 2 katmanlı, yalnızca kod çözücülü karakter transformer'ı; tam sayı belgelerdeki farklı karakter sayısına
 bağlıdır) aynı veriyle (projenin Türkçe belgeleri), aynı toplu iş örneklemesiyle ve aynı ayarlarla eğitir.
 Kayıp eğrileri neredeyse aynı çıkmalıdır; süreler karşılaştırılır. Örnek 300 adım eğitir (`ADIM`
 değişkeni); Python sürümü adım ve iş parçacığı sayısını argüman olarak alır.
 
 ```
-GOMAXPROCS=2 tr examples/07_karakter_modeli.tr
+GOMAXPROCS=2 tr examples/tr/15_karakter_modeli.tr
 python tools/bench/py/karakter_modeli.py 300 2
 ```
 

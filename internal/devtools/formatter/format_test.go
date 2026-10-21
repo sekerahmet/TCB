@@ -175,7 +175,7 @@ func TestSyntaxErrorNotFormatted(t *testing.T) {
 func TestRepoFiles(t *testing.T) {
 	var files []string
 	// scratch/ kullanıcının kişisel deneme klasörüdür (depoda değil); denetlenmez.
-	for _, pattern := range []string{"examples/*.tr", "tests/*.tr"} {
+	for _, pattern := range []string{"examples/tr/*.tr", "examples/tr/helpers/*.tr", "tests/*.tr"} {
 		d, _ := filepath.Glob(reporoot.Path(pattern))
 		files = append(files, d...)
 	}

@@ -21,7 +21,7 @@ Go test dosyalarının düzeni (birim testi `x_test.go`, davranış testi `behav
 | :-- | :-- | :-- |
 | `tests/*_test.tr` | Dil tanımının kuralları; her testin adı kural numarasıyla başlar (`test "5.2 sabit: ..."`, [`dil/`](spec/README.md)) | `bin/tr test tests` (tam denetim koşar) |
 | `lib/*_test.tr` | TR ile yazılmış standart kitaplık (`tr/katman`, `tr/iyilestirici`) | `bin/tr test lib` |
-| `examples/` | Örneklerin hepsi çalışır: çıkış kodu 0, zaman aşımı yok, uyarısız; `*_test.tr` örnekleri ayrıca `tr test` ile | yalnızca tam denetim; tek örnek: `bin/tr examples/01_merhaba.tr` |
+| `examples/tr/`, `examples/en/` | Örneklerin hepsi çalışır (iki yazımıyla): çıkış kodu 0, zaman aşımı yok, uyarısız; `*_test.tr` örnekleri ayrıca `tr test` ile. Her `tr/NN_ad.tr` için bir `en/NN_name.tr` vardır, ikisinin kodlu iskeleti aynıdır ve çıktılarının sayıları eşittir (`go test ./cmd/tr/e2e -run TestExamples`) | yalnızca tam denetim; tek örnek: `bin/tr examples/tr/01_merhaba.tr` |
 | Paketlerin yanında (`*_test.go`) | Go birim testleri: sözcük çözümleyici, ayrıştırıcı, denetleyici, yorumlayıcı, tensör ve türev, motorlar | `go test -short ./internal/...` ya da tek paket `go test ./internal/lang/interp -run Ad` |
 | `internal/layout_test.go`, `internal/layers_test.go` | Kod düzeni (dosya ve fonksiyon boyu, adlar, paket belgesi, test dosyası düzeni) ve katman kuralı | `go test ./internal` |
 | `cmd/tr/*_test.go` | `tr` komutunun beyaz kutu testleri: gömülü paket biçimi, aktar yönlendirmesi, depodaki `.tr` dosyalarının tanımsız ad denetimi | `go test ./cmd/tr` |

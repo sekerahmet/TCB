@@ -1,9 +1,9 @@
-// 06 — Transformer: 05'teki yapı taşlarıyla elle yazılmış küçük bir transformer.
+// 14 — Transformer: 12 ve 13'teki yapı taşlarıyla elle yazılmış küçük bir transformer.
 // Öğrettikleri: gömme ve konum gömmesi, çok başlı nedensel dikkat (şekillendir,
 // eksenleri_sırala ve birleşik dikkat(...)), katman normu, gelu ile ileri besleme,
 // çapraz_entropi kaybı ve AdamW ile eğitim döngüsü, türevsiz çıkarım.
 // Görev: 0..V-1 arasında döngüsel ilerleyen dizilerde bir sonraki parçayı tahmin etmek.
-// Çalıştırma (proje kökünden): tr examples/06_transformer.tr
+// Çalıştırma (proje kökünden): tr examples/tr/14_transformer.tr
 
 değişken V = 8 // sözlük boyutu
 değişken T = 8 // bağlam uzunluğu
@@ -81,7 +81,6 @@ fonksiyon toplu_iş_üret() {
 değişken ağırlıklar = [E, P, Wq, Wk, Wv, Wo, W1, W2, g1, s1, g2, s2, Wu]
 değişken iyileştirici = AdamW(ağırlıklar, öğrenme_oranı: 0.01, ağırlık_çürümesi: 0.0)
 
-değişken başlangıç = zaman_ms()
 döngü adım içinde 0..300 {
     değişken veri = toplu_iş_üret()
     iyileştirici.sıfırla()
@@ -92,7 +91,6 @@ döngü adım içinde 0..300 {
         yazdır("adım {adım}: kayıp = {yuvarla(kayıp.değer, 4)}")
     }
 }
-yazdır("süre: {zaman_ms() - başlangıç} ms")
 
 // Öğrendi mi? Bir diziyi verip tahminleri yazdır.
 değişken deneme = toplu_iş_üret()

@@ -1,10 +1,10 @@
-// 07 — Karakter modeli: gerçek metinle eğitilen küçük bir dil modeli (~100 bin parametre,
+// 15 — Karakter modeli: gerçek metinle eğitilen küçük bir dil modeli (~100 bin parametre,
 // 2 katmanlı, ön normalizasyonlu transformer).
 // Veri: TR'nin kendi Türkçe belgeleri. Model bir sonraki karakteri tahmin etmeyi öğrenir,
 // sonunda kendi yazdığı bir metin örneği verir (maks_indeks ile açgözlü üretim).
 // Öğrettikleri: metinden karakter sözlüğü kurmak, katman listesiyle derin model, parametre
 // sayımı, metin üretimi. Aynı modelin hız kıyası için başka dilde yazılmış eşi: tools/bench/README.md.
-// Proje kök klasöründen çalıştırın: tr examples/07_karakter_modeli.tr
+// Proje kök klasöründen çalıştırın: tr examples/tr/15_karakter_modeli.tr
 
 değişken ADIM = 300
 // Eğitim metni: kullanım kılavuzunun ve dil tanımının bölümleri, sırasıyla.
@@ -126,7 +126,6 @@ fonksiyon toplu_iş() {
 
 // --- Eğitim ---
 değişken iyileştirici = AdamW(ağırlıklar, öğrenme_oranı: 0.003, ağırlık_çürümesi: 0.0)
-değişken başlangıç = zaman_ms()
 döngü adım içinde 0..ADIM {
     değişken tb = toplu_iş()
     iyileştirici.sıfırla()
@@ -137,8 +136,6 @@ döngü adım içinde 0..ADIM {
         yazdır("adım {adım}: kayıp = {yuvarla(kayıp.değer, 4)}")
     }
 }
-değişken süre = zaman_ms() - başlangıç
-yazdır("eğitim süresi: {süre} ms ({yuvarla(süre / ADIM, 1)} ms/adım)")
 
 // --- Metin üretimi (her adımda en olası karakter) ---
 değişken bağlam = []
