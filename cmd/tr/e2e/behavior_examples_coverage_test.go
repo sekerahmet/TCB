@@ -22,20 +22,6 @@ import (
 // uncoveredNames bilerek ya da henüz örneği yazılmamış adlardır ve gerekçesiyle durur. Liste
 // yalnızca küçülür: örneği olan bir ad listede kalırsa test düşer.
 var uncoveredNames = map[string]string{
-	"A231": "yazılacak",
-	"A232": "yazılacak",
-	"A233": "yazılacak",
-	"A234": "yazılacak",
-	"A255": "yazılacak",
-	"A256": "yazılacak",
-	"A258": "yazılacak",
-	"T985": "yazılacak",
-	"V900": "yazılacak",
-	"V901": "yazılacak",
-	"V910": "yazılacak",
-	"V911": "yazılacak",
-	"Y011": "yazılacak",
-	"Y613": "yazılacak",
 }
 
 // exampleTexts bütün örnek .tr dosyalarını (examples/tr, alt klasörleriyle) verir.

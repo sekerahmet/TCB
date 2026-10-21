@@ -1,6 +1,6 @@
 //! tr kodlu 1
 // 37 — Training with data: a small language model end to end with a tokenizer and a data loader.
-// What it teaches: loading tokenizer.json and encoding/decoding text, taking random batches from .npy data files with a
+// What it teaches: loading tokenizer.json and encoding/decoding text (Tokenizer, token_id, special_tokens, pair), taking random batches from .npy data files with a
 // sampler, validating with a sequential reader, command_line and the progress bar.
 // Builds on: the transformer and cross_entropy (35), the training loop (28).
 // Details: docs/guide/04_yapay_zeka_ve_veri.md §4.D, docs/spec/16_veri_parcalayici.md §16.
@@ -40,12 +40,21 @@ A030 sentence = "Bugün hava çok güzel."
 A030 ids = p.Y610(sentence)
 G100("\"{sentence}\" → {ids.Y001} tokens: {ids}")
 G100("decoded back: {p.Y611(ids)}")
+// token_id gives the id of a token in the vocabulary (none if it is not there). special_tokens: false leaves the
+// special tokens out of the encoding; pair: encodes two texts together (like a question and an answer).
+G100(G201(p) == A234, p.Y613("<|endoftext|>"))
+G100(p.Y610(sentence, V910: A041), p.Y610("soru", V911: "cevap"))
 A030 V = p.Y612
 
 // --- Data ---
 A030 corpus = V100(DATA_PATH)
 G100(corpus)
+// cache: if the data is on a slow drive it is copied to a local folder; quota_gb: is the most GB that folder may use
+// (the two are given together).
+A030 cached = V100(DATA_PATH, V900: G120(G126(), "cache"), V901: 1)
+G100(G201(corpus) == A231, G201(cached) == A231)
 A030 sampler = corpus.Y600(V902: BATCH, V903: CONTEXT, T903: 1)
+G100(G201(sampler) == A232)
 
 // --- Model: embedding → middle layer → distribution over the vocabulary (the next token is
 // predicted from the current token only; for a model with attention see examples/en/35_transformer.tr) ---
@@ -86,6 +95,7 @@ G100(sampler)
 
 // --- Validation: all the validation data in order, once ---
 A030 validation = V100(VALIDATION_PATH).Y601(V902: BATCH, V903: CONTEXT)
+G100(G201(validation) == A233)
 A030 total_loss = 0.0
 A030 batch_count = 0
 T301 {
@@ -106,6 +116,12 @@ T301 {
     }
 }
 G100("the model wrote: {p.Y611(generated)}")
+
+// The progress bar closes itself when training ends; stop() finishes it by hand (true on the first call,
+// false if the bar is already finished). A Logger writes every record to a file as a JSON line.
+G100(G201(bar) == A255, "bar already finished:", bar.Y011())
+A030 trial_log = G810(G120(G126(), "trial.jsonl"))
+G100(G201(trial_log) == A256)
 
 // --- Try it yourself ---
 // 1. Run with --step 400 and look at the gap between the validation loss and the training loss.

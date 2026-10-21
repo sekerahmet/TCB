@@ -1,5 +1,5 @@
 // 38 — Kontrol noktası: uzun eğitimi kaldığı yerden sürdürmek.
-// Ne öğretir: her eğitimi bir koşu klasörüne yazmak; kontrol_noktası ile eğitimin bütün durumunu (model,
+// Ne öğretir: KontrolNoktası, tut: (kaç nokta saklanır), her eğitimi bir koşu klasörüne yazmak; kontrol_noktası ile eğitimin bütün durumunu (model,
 // iyileştirici, örnekleyici, günlük, kendi sayaçlarınız) düzenli kaydetmek; Ctrl+C ile durdurup aynı
 // komutla kaldığı yerden sürdürmek. Sürdürülen eğitim kesintisizle bit düzeyinde aynı sonucu verir.
 // Önceki örnekten: veri ile eğitim (37): komut_satırı, ilerleme, veri kümesi.
@@ -39,7 +39,8 @@ dosya_yaz(yol(KOŞU, "config.json"), json_metin(ayar))
 değişken g = günlük(yol(KOŞU, "metrics.jsonl"))
 değişken izlenen = {en_iyi_kayıp: 99.0}
 // Sözlükteki her şey kaydedilir; klasörde bir nokta varsa burada yüklenir.
-değişken kn = kontrol_noktası(KOŞU, {model: model, op: op, ö: ö, g: g, izlenen: izlenen}, her_dakika: ayar.her_dakika)
+değişken kn = kontrol_noktası(KOŞU, {model: model, op: op, ö: ö, g: g, izlenen: izlenen}, her_dakika: ayar.her_dakika, tut: 3)
+yazdır(tip(kn) == KontrolNoktası)
 
 // --- Eğitim: döngü kaldığı adımdan başlar ---
 eğer kn.kaldığı_adım < ayar.adım {

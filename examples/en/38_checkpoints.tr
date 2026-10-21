@@ -1,6 +1,6 @@
 //! tr kodlu 1
 // 38 — Checkpoints: resuming a long training where you left off.
-// What it teaches: writing every training to a run folder; saving the whole state of the training with checkpoint
+// What it teaches: Checkpoint, keep: (how many checkpoints are kept), writing every training to a run folder; saving the whole state of the training with checkpoint
 // (model, optimizer, sampler, log, your own counters) at regular intervals; stopping with Ctrl+C and resuming with the same
 // command. A resumed training gives a bit-for-bit identical result to one that was never interrupted.
 // Builds on: training with data (37): command_line, progress, dataset.
@@ -40,7 +40,8 @@ G111(G120(RUN, "config.json"), G601(config))
 A030 run_log = G810(G120(RUN, "metrics.jsonl"))
 A030 tracked = {best_loss: 99.0}
 // Everything in the dict is saved; if the folder holds a checkpoint it is loaded here.
-A030 ckpt = T702(RUN, {model: model, opt: opt, reader: sampler, run_log: run_log, tracked: tracked}, T984: config.every_minutes)
+A030 ckpt = T702(RUN, {model: model, opt: opt, reader: sampler, run_log: run_log, tracked: tracked}, T984: config.every_minutes, T985: 3)
+G100(G201(ckpt) == A258)
 
 // --- Training: the loop starts from the step where it stopped ---
 A001 ckpt.Y520 < config.Y500 {

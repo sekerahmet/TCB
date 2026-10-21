@@ -1,5 +1,5 @@
 // 37 — Veri ile eğitim: parçalayıcı ve veri yükleyiciyle uçtan uca küçük bir dil modeli.
-// Ne öğretir: tokenizer.json yükleyip metni kodlamak/çözmek, .npy veri dosyalarından örnekleyiciyle
+// Ne öğretir: tokenizer.json yükleyip metni kodlamak/çözmek (Parçalayıcı, parça_kimliği, özel_parçalar, ikinci), .npy veri dosyalarından örnekleyiciyle
 // rastgele toplu işler almak, sıralı okuyucuyla doğrulamak, komut_satırı ve ilerleme çubuğu.
 // Önceki örnekten: transformer ve çapraz_entropi (35), eğitim döngüsü (28).
 // Ayrıntılar: docs/guide/04_yapay_zeka_ve_veri.md §4.D, docs/spec/16_veri_parcalayici.md §16.
@@ -39,12 +39,21 @@ değişken cümle = "Bugün hava çok güzel."
 değişken kimlikler = p.kodla(cümle)
 yazdır("\"{cümle}\" → {kimlikler.uzunluk} parça: {kimlikler}")
 yazdır("geri çözülen: {p.çöz(kimlikler)}")
+// parça_kimliği bir parçanın dağarcıktaki kimliğini verir (yoksa yok). özel_parçalar: yanlış özel parçaları
+// kodlamaya katmaz; ikinci: ile iki metin birlikte kodlanır (soru ve cevap gibi).
+yazdır(tip(p) == Parçalayıcı, p.parça_kimliği("<|endoftext|>"))
+yazdır(p.kodla(cümle, özel_parçalar: yanlış), p.kodla("soru", ikinci: "cevap"))
 değişken V = p.dağarcık_boyutu
 
 // --- Veri ---
 değişken küme = veri_kümesi(VERİ_YOLU)
 yazdır(küme)
+// önbellek: veri yavaş bir sürücüdeyse yerel klasöre kopyalanır; kota_gb: o klasörün en çok kaç GB kullanacağıdır
+// (ikisi birlikte verilir).
+değişken önbellekli = veri_kümesi(VERİ_YOLU, önbellek: yol(geçici_klasör(), "önbellek"), kota_gb: 1)
+yazdır(tip(küme) == VeriKümesi, tip(önbellekli) == VeriKümesi)
 değişken ö = küme.örnekleyici(toplu: TOPLU, bağlam: BAĞLAM, tohum: 1)
+yazdır(tip(ö) == Örnekleyici)
 
 // --- Model: gömme → ara katman → dağarcık üzerinde dağılım (bir sonraki parça yalnızca
 // şimdiki parçaya bakılarak tahmin edilir; dikkatli bir model için examples/tr/35_transformer.tr) ---
@@ -85,6 +94,7 @@ yazdır(ö)
 
 // --- Doğrulama: tüm doğrulama verisi sırayla, bir kez ---
 değişken doğrulama = veri_kümesi(DOĞRULAMA_YOLU).sıralı(toplu: TOPLU, bağlam: BAĞLAM)
+yazdır(tip(doğrulama) == SıralıOkuyucu)
 değişken toplam_kayıp = 0.0
 değişken toplu_sayısı = 0
 türevsiz {
@@ -105,6 +115,12 @@ türevsiz {
     }
 }
 yazdır("model şunu yazdı: {p.çöz(üretilen)}")
+
+// İlerleme çubuğu eğitim bitince kendiliğinden kapanır; durdur() onu elle bitirir (ilk çağrıda doğru,
+// çubuk zaten bittiyse yanlış verir). Günlük her kaydı bir JSON satırı olarak dosyaya yazar.
+yazdır(tip(ç) == İlerleme, "çubuk zaten bitti:", ç.durdur())
+değişken deneme_günlüğü = günlük(yol(geçici_klasör(), "deneme.jsonl"))
+yazdır(tip(deneme_günlüğü) == Günlük)
 
 // --- Kendin dene ---
 // 1. --adım 400 ile çalıştır ve doğrulama kaybının eğitim kaybından farkına bak.
