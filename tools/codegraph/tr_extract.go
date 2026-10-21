@@ -11,7 +11,6 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
-	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
 // TR kaynak düğümleri: TR'nin kendi ayrıştırıcısıyla (internal/lang/parser) okunan .tr dosyaları.
@@ -36,7 +35,7 @@ type trImport struct {
 // trFile ayrıştırılmış bir .tr dosyasıdır.
 type trFile struct {
 	rel, base string
-	res       *source.Result
+	res       *trResult
 	lines     []string          // gösterim metninin satırları (satır numaraları bununla uyumlu)
 	defs      map[string]string // üst düzey ad -> düğüm kimliği (işlev, yapı, sabit, değişken)
 	methods   map[string][]string
@@ -115,9 +114,9 @@ func (x *trExtractor) parse(rel string) *trFile {
 	if err != nil {
 		return nil
 	}
-	res := source.Prepare(string(data), source.Options{})
+	res := readTurkish(string(data), false)
 	if len(res.Errors) > 0 {
-		res = source.Prepare(string(data), source.Options{Module: true})
+		res = readTurkish(string(data), true)
 	}
 	base := strings.TrimSuffix(path.Base(rel), ".tr")
 	detail := "tr"

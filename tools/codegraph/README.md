@@ -120,8 +120,12 @@ of other types never mix), and keyed composite literals `T{f: v}` too. The acces
 ## TR sources
 
 `.tr` files under `lib/`, `tools/` and `examples/` are read with TR's own parser
-(`internal/lang/source`, so coded files with a header are read too, lines counted as everywhere
-else). Node kinds: `tr_func`, `tr_struct`, `tr_method`, `tr_field`, `tr_const`, `tr_var` (top level)
+(`internal/lang/source` and `parser`, so coded files with a header are read too, lines counted as
+everywhere else). The graph does not depend on the active writing language (`TR_DIL`): a file without
+the header is always read as Turkish, a coded one is first decoded to Turkish (`source.Decode` with
+`source.Turkish()`), never through `source.Prepare`, which follows the active language; the test
+`TestTRGraphIsIndependentOfTheActiveLanguage` builds the fixture graph under `TR_DIL=tr` and `TR_DIL=en`
+in sub-processes and compares the `.tr` facts. Node kinds: `tr_func`, `tr_struct`, `tr_method`, `tr_field`, `tr_const`, `tr_var` (top level)
 and `tr_test` (a `test` block), all with file:line:end; the file is a `file` node `tr:file:<path>`
 with the module name (`katman`) and the import path (`tr/katman`) as aliases.
 
