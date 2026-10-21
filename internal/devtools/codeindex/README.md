@@ -6,7 +6,7 @@ Paket yalnızca `internal/lang` paketlerini (ve gömülü kitaplığı) içe akt
 
 ## Standartlar
 
-**Dizin yazım dilinden bağımsızdır.** Başlıksız dosya her zaman Türkçe okunur, kodlu dosya önce Türkçeye çözülür; düğümler, kimlikler, kenarlar ve konumlar `TR_DIL` ne olursa olsun aynıdır. Yalnızca çıktı, dilin öğelerini (yerleşik adlar) okuyanın dilinde yazar (`codes.DisplayName`). Kullanıcı adları hiçbir zaman çevrilmez. (Okuma yolu 2. adımda taşınır; bu kural o adımda `TestIndexIndependentOfActiveLanguage` ile korunur.)
+**Dizin yazım dilinden bağımsızdır.** Başlıksız dosya her zaman Türkçe okunur, kodlu dosya önce Türkçeye çözülür; düğümler, kimlikler, kenarlar ve konumlar `TR_DIL` ne olursa olsun aynıdır. Yalnızca çıktı, dilin öğelerini (yerleşik adlar) okuyanın dilinde yazar (`codes.DisplayName`). Kullanıcı adları hiçbir zaman çevrilmez. Okuma `source.Prepare` ile değil, `source.Split` + `Parts.Lexer()` + `parser` (kodlu dosyada önce `Decode(source.Turkish())`) ile yapılır: `Prepare` etkin dili izler. Denetim: `TestIndexIndependentOfActiveLanguage`, `TestCodedEqualsPlain`.
 
 **Kimlikler kararlıdır ve okunabilirdir.** Bir düğümün kimliği türü, dosyası ve adından kurulur (`function:lib/katman.tr#cevre`, `method:lib/katman.tr#Doğrusal.ileri`, `module:lib/katman.tr`, `builtin:G502`); yerleşik adın kimliği kodudur. Kimlik biçimi SCIP simge sözdizimine eşlenebilir (karşılaştırma tablosu), bu yüzden sürümler arasında değişmez. Denetim: `TestNodeID`.
 
@@ -16,15 +16,23 @@ Paket yalnızca `internal/lang` paketlerini (ve gömülü kitaplığı) içe akt
 
 **Durum çıkış koduyla da bildirilir.** `ok` 0, belirsiz ad (`ambiguous`, adaylar listelenir) 3, bulunamayan ad (`not_found`, yakın adlar önerilir) 4; kullanım hatası 2, başka hata 1. Denetim: `TestExitCodes`.
 
-**Her bağın güveni açıktır.** `EXTRACTED` kapsamlarda ada göre kesin çözülen, `INFERRED` tahmindir (alıcı tipi bilinmeyen `x.metot()` gibi). Tahmin kesin gösterilmez. (Bağların kendisi 3. adımda taşınır.)
+**Her bağın güveni açıktır.** `EXTRACTED` kapsamlarda ada göre kesin çözülen, `INFERRED` tahmindir (alıcı tipi bilinmeyen `x.metot()` gibi). Tahmin kesin gösterilmez. Denetim: `TestBuildEdgesAndConfidence`.
 
 ## Modele kısa bakış
 
 Düğüm türleri: `module`, `function`, `struct`, `method`, `field`, `constant`, `variable`, `test`, `builtin`. Kenarlar: `defines`, `calls`, `uses`, `imports`, `tests`. Her başvuru ayrıca bir *occurrence*'tır (`definition`, `call`, `read`, `write`, `import`, `test` rolüyle, konumuyla ve içinde bulunduğu bildirimle); kenarlar bunların özetidir. Ayrıntı ve komut tasarımı: [`docs/spec`](../../../docs/spec/README.md) komut satırı bölümü ve aşağıdaki karşılaştırma.
 
+**Konumlar adın yerini gösterir.** Bir başvurunun satır ve sütun aralığı kaynak satırında adın kendisini kapsar (Türkçe harfli satırlarda da). Denetim: `TestOccurrencePositionsPointAtNames`.
+
+**Dizin belirlidir.** Aynı proje aynı baytları verir: düğümler, kenarlar ve başvurular sıralıdır. Denetim: `TestBuildDeterministic`.
+
+**Ayrıştırılamayan dosya dizini bozmaz.** Dosyanın modül düğümü kalır, bildirimleri yoktur, `Skipped` listesinde nedeniyle yazılıdır. Denetim: `TestSkippedFileKeepsItsModuleNode`.
+
+**Bildirimler konumlarıyla bulunur.** Her üst düzey işlev, yapı, metot, alan, sabit, değişken ve test bir düğümdür (dosya:satır:sütun ve bitiş satırı). Denetim: `TestBuildDeclarations`.
+
 ## Testler
 
-Birim testleri sınadıkları dosyanın adını taşır (`model_test.go` → `model.go`, `result_test.go` → `result.go`).
+Birim testleri sınadıkları dosyanın adını taşır (`model_test.go` → `model.go`, `result_test.go` → `result.go`, `build_test.go` → `build.go`). `testdata/proj` küçük bir TR projesidir (modül, test, takma adlı aktarma, kodlu ve bozuk dosya).
 
 ## Başka dillerin ve araçların kod dizinleri: karşılaştırma ve kararlar
 

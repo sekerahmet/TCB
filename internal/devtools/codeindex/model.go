@@ -103,6 +103,11 @@ type Node struct {
 	Display   string `json:"display,omitempty"`
 	Pos       *Pos   `json:"pos,omitempty"`
 	Signature string `json:"signature,omitempty"`
+	// Qualified modül adıyla nitelenmiş ad ("katman.Doğrusal.ileri"): sorguda yazılan biçim.
+	Qualified string `json:"qualified,omitempty"`
+	// Aliases bir modülün başka adlarıdır (içe aktarma yolu "tr/katman").
+	Aliases []string `json:"aliases,omitempty"`
+	Coded   bool     `json:"coded,omitempty"` // modül: dosya kodlu biçimdeydi
 }
 
 // Edge iki düğümü bağlar. Pos bağın ilk görüldüğü yerdir (öbürleri başvurulardır).
@@ -112,6 +117,7 @@ type Edge struct {
 	Kind       EdgeKind   `json:"kind"`
 	Confidence Confidence `json:"confidence"`
 	Pos        *Pos       `json:"pos,omitempty"`
+	Count      int        `json:"count,omitempty"` // aynı bağın kaç kez görüldüğü
 }
 
 // Occurrence bir düğüme başvuran tek bir yerdir: dil sunucusunun "kullanımları bul", yeniden
@@ -131,9 +137,16 @@ type Index struct {
 	Schema      int          `json:"schema_version"`
 	Version     int          `json:"index_version"`
 	Files       []string     `json:"files"`
+	Skipped     []Skipped    `json:"skipped,omitempty"`
 	Nodes       []Node       `json:"nodes"`
 	Edges       []Edge       `json:"edges"`
 	Occurrences []Occurrence `json:"occurrences"`
+}
+
+// Skipped okunamayan ya da ayrıştırılamayan bir dosyadır: modül düğümü vardır, bildirimleri yoktur.
+type Skipped struct {
+	File   string `json:"file"`
+	Reason string `json:"reason"`
 }
 
 // NodeID bir bildirimin kimliğini kurar: tür, dosya ve ad "function:lib/katman.tr#cevre"
