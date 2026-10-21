@@ -37,12 +37,18 @@ func extractTR(root string, b *builder) {
 	}
 	ids := map[string]string{}
 	for _, n := range idx.Nodes {
+		if n.Kind == codeindex.KindParameter || n.Kind == codeindex.KindOption {
+			continue // parametre ve seçenek düğümleri yalnızca tr dizin içindir
+		}
 		ids[n.ID] = graphID(n)
 		if n.Kind != codeindex.KindBuiltin { // ad kodu düğümlerini codes.go kurar
 			b.addNode(graphNode(n, ids[n.ID]))
 		}
 	}
 	for _, e := range idx.Edges {
+		if ids[e.From] == "" || ids[e.To] == "" {
+			continue
+		}
 		kind := trEdgeKind(e, ids)
 		line := 0
 		if e.Kind != codeindex.EdgeImports { // aktarma kenarının satırı grafikte hep 0'dı

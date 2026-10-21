@@ -24,6 +24,10 @@ type scope struct {
 	calledMember map[*ast.MemberExpression]bool
 	writes       map[*ast.Identifier]bool       // atamanın sol tarafındaki adlar
 	writeMember  map[*ast.MemberExpression]bool // atamanın sol tarafındaki a.b
+	params       map[string]string              // sahibin parametresi: ad -> parametre düğümünün kimliği
+	bindCount    map[string]int                 // gövdede (parametre dışında) kaç kez bağlandığı
+	assigned     map[string]bool                // sonradan atanan adlar
+	localType    map[string]string              // yapıcıdan tek atamayla kurulan yerel: ad -> yapı kimliği
 }
 
 // collectScope gövdede bağlanan adları toplar (parametreler, değişkenler, döngü ve yakala
@@ -31,7 +35,8 @@ type scope struct {
 func collectScope(root any) *scope {
 	sc := &scope{locals: map[string]bool{}, bindings: map[*ast.Identifier]bool{}, handled: map[*ast.Identifier]bool{},
 		called: map[*ast.Identifier]bool{}, calledMember: map[*ast.MemberExpression]bool{},
-		writes: map[*ast.Identifier]bool{}, writeMember: map[*ast.MemberExpression]bool{}}
+		writes: map[*ast.Identifier]bool{}, writeMember: map[*ast.MemberExpression]bool{},
+		params: map[string]string{}, bindCount: map[string]int{}, assigned: map[string]bool{}, localType: map[string]string{}}
 	add := func(names ...string) {
 		for _, n := range names {
 			if n != "" {
@@ -39,19 +44,31 @@ func collectScope(root any) *scope {
 			}
 		}
 	}
+	bind := func(names ...string) {
+		add(names...)
+		for _, n := range names {
+			if n != "" {
+				sc.bindCount[n]++
+			}
+		}
+	}
 	walkAST(root, func(n any) bool {
 		switch n := n.(type) {
 		case *ast.FunctionLiteral:
 			for _, p := range n.Parameters {
-				add(p.Name)
+				if any(n) == root {
+					add(p.Name) // sahibin kendi parametresi: yeniden bağlama sayılmaz
+				} else {
+					bind(p.Name)
+				}
 			}
 		case *ast.VarStatement:
 			sc.bindings[n.Name] = true
-			add(n.Name.Value)
+			bind(n.Name.Value)
 		case *ast.MultiVarStatement:
 			for _, id := range n.Names {
 				sc.bindings[id] = true
-				add(id.Value)
+				bind(id.Value)
 			}
 		case *ast.AssignStatement:
 			sc.markWrite(n.Target)
@@ -60,11 +77,11 @@ func collectScope(root any) *scope {
 				sc.markWrite(t)
 			}
 		case *ast.ForInStatement:
-			add(n.KeyVar, n.ValueVar)
+			bind(n.KeyVar, n.ValueVar)
 		case *ast.TryCatchStatement:
-			add(n.ErrorVar)
+			bind(n.ErrorVar)
 		case *ast.ListComprehension:
-			add(n.VarName)
+			bind(n.VarName)
 		}
 		return true
 	})
@@ -76,6 +93,7 @@ func (sc *scope) markWrite(target ast.Expression) {
 	switch t := target.(type) {
 	case *ast.Identifier:
 		sc.writes[t] = true
+		sc.assigned[t.Value] = true
 	case *ast.MemberExpression:
 		sc.writeMember[t] = true
 	}
@@ -131,6 +149,7 @@ func (x *indexer) scanStruct(f *file, s *ast.StructStatement) {
 // scan sahibin gövdesindeki adları çözer ve bağları ekler.
 func (x *indexer) scan(f *file, o owner, root any) {
 	sc := collectScope(root)
+	x.bindOwner(f, o, sc, root)
 	walkAST(root, func(n any) bool {
 		switch n := n.(type) {
 		case *ast.CallExpression:
@@ -152,21 +171,30 @@ func (x *indexer) call(f *file, o owner, sc *scope, c *ast.CallExpression) {
 		sc.calledMember[fn] = true
 	}
 	for _, a := range c.NamedArgs {
+		pos := tokenPos(f, a.Token.Line, a.Token.Column, a.Name)
+		if id, conf, basis := x.namedArgTarget(f, o, sc, c, a.Name); id != "" {
+			x.occurrenceBasis(id, RoleArgument, conf, pos, o.id, basis)
+			continue
+		}
 		if k, ok := x.lang.Find(codes.NamespaceParam, a.Name); ok {
 			if id, ok := x.builtin(k); ok {
-				x.link(o, id, EdgeUses, Extracted, RoleRead, tokenPos(f, a.Token.Line, a.Token.Column, a.Name))
+				x.link(o, id, EdgeUses, Extracted, RoleRead, pos)
 			}
 		}
 	}
+	x.optionKeys(f, o, sc, c)
 }
 
 // ident bir adın kullanımını çözer: yerel ad bağ üretmez; üst düzey tanım (bu dosyada ya da
 // takma adsız aktarılan modülde) `calls`/`uses`; aksi halde yerleşik ad.
 func (x *indexer) ident(f *file, o owner, sc *scope, id *ast.Identifier) {
+	pos := tokenPos(f, id.Token.Line, id.Token.Column, id.Value)
+	if x.identParam(o, sc, id, pos) {
+		return
+	}
 	if sc.bindings[id] || sc.handled[id] || sc.locals[id.Value] {
 		return
 	}
-	pos := tokenPos(f, id.Token.Line, id.Token.Column, id.Value)
 	if def, ok := f.visible[id.Value]; ok {
 		x.useDef(o, def, sc.called[id], sc.writes[id], pos)
 		return
@@ -231,14 +259,18 @@ func (x *indexer) member(f *file, o owner, sc *scope, m *ast.MemberExpression) {
 			return
 		}
 	}
+	if x.bindMember(f, o, sc, m, pos) {
+		return
+	}
 	role := RoleRead
 	if sc.calledMember[m] {
 		role = RoleCall
 	}
 	candidates := x.methodCandidates(f, m.Property)
 	for _, mid := range candidates {
-		x.link(o, mid, EdgeCalls, Inferred, RoleCall, pos)
+		x.linkBasis(o, mid, EdgeCalls, Inferred, RoleCall, pos, BasisNameMatch)
 	}
+	x.nameOnlyMembers(f, o, sc, m, pos, len(candidates) == 0)
 	if k, ok := x.lang.Find(codes.NamespaceMember, m.Property); ok {
 		if code, ok := x.builtin(k); ok {
 			conf := Extracted
@@ -300,16 +332,25 @@ func (x *indexer) builtin(k codes.Code) (string, bool) {
 // link bir bağ ve ona karşılık gelen başvuruyu ekler; test sahibinden çıkan çağrı aynı zamanda
 // `tests` bağıdır ve başvurusu `test` rolündedir.
 func (x *indexer) link(o owner, to string, kind EdgeKind, conf Confidence, role Role, pos Pos) {
+	x.linkBasis(o, to, kind, conf, role, pos, "")
+}
+
+// linkBasis link gibidir; üye erişiminin dayanağını da kaydeder.
+func (x *indexer) linkBasis(o owner, to string, kind EdgeKind, conf Confidence, role Role, pos Pos, basis Basis) {
 	x.addEdge(o.id, to, kind, conf, pos)
 	if o.kind == KindTest && kind == EdgeCalls {
 		x.addEdge(o.id, to, EdgeTests, conf, pos)
 		role = RoleTest
 	}
-	x.occurrence(to, role, conf, pos, o.id)
+	x.occurrenceBasis(to, role, conf, pos, o.id, basis)
 }
 
 func (x *indexer) occurrence(node string, role Role, conf Confidence, pos Pos, in string) {
-	x.occ = append(x.occ, Occurrence{Node: node, Role: role, Confidence: conf, Pos: pos, In: in})
+	x.occurrenceBasis(node, role, conf, pos, in, "")
+}
+
+func (x *indexer) occurrenceBasis(node string, role Role, conf Confidence, pos Pos, in string, basis Basis) {
+	x.occ = append(x.occ, Occurrence{Node: node, Role: role, Confidence: conf, Pos: pos, In: in, Basis: basis})
 }
 
 // tokenPos bir adın konumudur: sözcük birimi satırda ve sütunda başlar, ad kod noktası kadar sürer.

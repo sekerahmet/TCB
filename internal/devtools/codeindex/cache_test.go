@@ -75,7 +75,7 @@ func TestCacheNotUsedForOtherVersionOrOptions(t *testing.T) {
 	// Sürümü değişmiş manifest kullanılmaz.
 	manPath := filepath.Join(dir, CacheDir, manifestName)
 	data, _ := os.ReadFile(manPath)
-	if err := os.WriteFile(manPath, []byte(strings.Replace(string(data), `"index_version":1`, `"index_version":999`, 1)), 0o644); err != nil {
+	if err := os.WriteFile(manPath, []byte(strings.Replace(string(data), fmt.Sprintf(`"index_version":%d`, IndexVersion), `"index_version":999`, 1)), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if _, st, err := BuildCached(dir, Options{Dirs: []string{"lib"}}); err != nil || !st.Full {

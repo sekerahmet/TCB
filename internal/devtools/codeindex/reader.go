@@ -56,7 +56,7 @@ func (r *Reader) Node(id string) *Node { return r.byID[id] }
 func (r *Reader) At(file string, line, col int) (*Occurrence, *Node) {
 	for _, i := range r.byFile[file] {
 		o := &r.Index.Occurrences[i]
-		if o.Pos.Line != line {
+		if o.Pos.Line != line || o.Basis == BasisNameOnly {
 			continue
 		}
 		if col >= o.Pos.Col && (o.Pos.EndCol == 0 || col < o.Pos.EndCol) {

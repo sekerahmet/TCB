@@ -9,6 +9,7 @@ const (
 	CommandTestedBy   = "tested-by"
 	CommandImpact     = "impact"
 	CommandIndex      = "index"
+	CommandRename     = "rename"
 )
 
 // Durumlar (Result.Status).
@@ -16,6 +17,7 @@ const (
 	StatusOK        = "ok"
 	StatusAmbiguous = "ambiguous" // ad birden çok düğüme uyuyor; Candidates adayları verir
 	StatusNotFound  = "not_found" // hiçbir düğüme uymadı; DidYouMean yakın adları verir
+	StatusRejected  = "rejected"  // yeniden adlandırılamaz (yerleşik ad, geçersiz ya da dilin sözcüğü olan yeni ad); Reason nedenidir
 )
 
 // Çıkış kodları: komut satırı sonucun durumunu çıkış koduyla da bildirir.
@@ -34,6 +36,8 @@ func ExitCode(status string) int {
 		return ExitAmbiguous
 	case StatusNotFound:
 		return ExitNotFound
+	case StatusRejected:
+		return ExitUsage
 	}
 	return ExitOK
 }
@@ -82,6 +86,14 @@ type Result struct {
 	DidYouMean []Node    `json:"did_you_mean,omitempty"`
 	Counts     *Counts   `json:"counts,omitempty"`
 	Truncated  bool      `json:"truncated"`
+	// Yeniden adlandırma etkisi (command: rename).
+	NewName      string     `json:"new_name,omitempty"`
+	Reason       string     `json:"reason,omitempty"`
+	Targets      []Node     `json:"targets,omitempty"`
+	Certain      []Change   `json:"certain,omitempty"`
+	Likely       []Change   `json:"likely,omitempty"`
+	Conflicts    []Conflict `json:"conflicts,omitempty"`
+	SkippedWords int        `json:"skipped_other_words,omitempty"`
 }
 
 // NewResult şema adı yazılmış boş bir sonuç kurar.

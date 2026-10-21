@@ -30,7 +30,7 @@ Düğüm türleri: `module`, `function`, `struct`, `method`, `field`, `constant`
 
 **Bildirimler konumlarıyla bulunur.** Her üst düzey işlev, yapı, metot, alan, sabit, değişken ve test bir düğümdür (dosya:satır:sütun ve bitiş satırı). Denetim: `TestBuildDeclarations`.
 
-**Her başvuru ayrıca kaydedilir.** Kenar yalnızca ilk yeri tutar; dil sunucusunun "kullanımları bul", yeniden adlandırma ve `aktar` satırından modüle atlaması için her başvuru rolüyle (`definition`, `call`, `read`, `write`, `import`, `test`) ve içinde bulunduğu bildirimle `Occurrences`'tadır; bildirimin adı da (tanım rolüyle) bir başvurudur. `Reader.At(dosya, satır, sütun)` imlecin altındaki adı ve düğümünü verir. Denetim: `TestAtFindsTheNameUnderTheCursor`, `TestWriteRoleOnAliasedVariable`.
+**Her başvuru ayrıca kaydedilir.** Kenar yalnızca ilk yeri tutar; dil sunucusunun "kullanımları bul", yeniden adlandırma ve `aktar` satırından modüle atlaması için her başvuru rolüyle (`definition`, `call`, `read`, `write`, `import`, `in_test`, `argument_name`, `option_key`) ve içinde bulunduğu bildirimle `Occurrences`'tadır; bildirimin adı da (tanım rolüyle) bir başvurudur. `Reader.At(dosya, satır, sütun)` imlecin altındaki adı ve düğümünü verir. Denetim: `TestAtFindsTheNameUnderTheCursor`, `TestWriteRoleOnAliasedVariable`.
 
 **Her bildirim bulunur.** Bu deponun kendi `.tr` dosyalarındaki her üst düzey bildirim, ast'yi bağımsız sayan bir dökümle karşılaştırılır. Denetim: `TestEveryDeclarationIndexed`.
 
@@ -54,7 +54,41 @@ Düğüm türleri: `module`, `function`, `struct`, `method`, `field`, `constant`
 
 ## Testler
 
-Birim testleri sınadıkları dosyanın adını taşır (`model_test.go` → `model.go`, `result_test.go` → `result.go`, `build_test.go` → `build.go`, `reader_test.go` → `reader.go`, `query_test.go` → `query.go`, `cache_test.go` → `cache.go`; `helpers_test.go` ortak yardımcıdır). `testdata/proj` küçük bir TR projesidir (modül, test, takma adlı aktarma, kodlu ve bozuk dosya).
+Birim testleri sınadıkları dosyanın adını taşır (`model_test.go` → `model.go`, `result_test.go` → `result.go`, `build_test.go` → `build.go`, `reader_test.go` → `reader.go`, `query_test.go` → `query.go`, `cache_test.go` → `cache.go`, `bind_test.go` → `bind.go`, `rename_test.go` → `rename.go`, `text_test.go` → `text.go`, `suffix_test.go` → `suffix.go`; `helpers_test.go` ortak yardımcıdır). `testdata/proj` küçük bir TR projesidir (modül, test, takma adlı aktarma, kodlu ve bozuk dosya).
+
+## Üye erişimi, parametre ve adlı argüman bağları
+
+**`kendi.x` alana ya da metoda kesin bağlanır.** Yapının metodunda `kendi.ad` o yapının alanına ya da metoduna `EXTRACTED` bağlanır (`Basis: self`). Yapıcıdan tek atamayla kurulan, sonra atanmayan yerel (`değişken d = Yapı(...)`; yeniden bağlanmayan, parametre olmayan) için `d.ad` de bağlanır ama `INFERRED` ve `Basis: local_type` etiketiyle; yeniden atanan ya da parametre olan değişkenler bağlanmaz. Alıcısı bilinmeyen `x.ad` için aynı adlı metot adayları (en çok 4) eskisi gibi `INFERRED` kenar alır (`Basis: name_match`); adı tutan alanlar ve 4'ten fazla metot adayı yalnızca başvuru olarak kaydedilir (`Basis: name_only`, kenar yoktur): "kullananlar" ve "etki" bunları göstermez, yeniden adlandırma etkisi "olası" diye listeler. Denetim: `TestMemberAccessBindsToTheField`, `TestNameOnlyGuessesStayOutOfReferences`.
+
+**Parametre bir düğümdür.** Her işlev ve metot parametresi `parameter:dosya#İşlev.ad` (metotta `Yapı.metot.ad`) düğümüdür; konumu başlıktaki adın yeridir (çok satırlı başlık, varsayılan değerler ve iç içe parantezler atlanır), gövdedeki okuma/yazma/çağrı başvuruları ona bağlanır, gövdede aynı adla yeniden bağlanan parametre (gölgeleme) `INFERRED` olur. Kenar çekilmez (işlevden kendi parametresine kenar anlamsız); `tr dizin tanım` üyeler listesinde ve yazım yanlışı önerilerinde parametre yoktur. Denetim: `TestParameterAndNamedArgumentOccurrences`, `TestShadowedParameterIsInferred`.
+
+**Adlı argüman çağrılan parametreye bağlanır.** `f(ad: 1)` işlevin, `Yapı(ad: 1)` yapının `kurucu` parametresine (kurucu yoksa alana), `a.f(ad: 1)` takma adlı modülün işlevine, `kendi.metot(ad: 1)` metodun parametresine `argument_name` rolüyle bağlanır; bulunamazsa yerleşik adlı argüman (`NamespaceParam`) olarak eskisi gibi çözülür. Denetim: `TestParameterAndNamedArgumentOccurrences`.
+
+**`komut_satırı({ad: ...})` anahtarı bir seçenektir.** Sözlüğün tırnaksız anahtarları (ve `açıklamalar: {ad: ...}` anahtarları) `option:dosya#ad` düğümüne `option_key` rolüyle bağlanır; anahtar komut satırında `--ad` olur. Denetim: `TestCommandLineOptionKeys`.
+
+## Yeniden adlandırma etkisi (`tr dizin yeniden_adlandır`)
+
+Bir ad değişirse değişecek yerleri listeler, **hiçbir dosyaya yazmaz** (LSP `textDocument/rename` ve `prepareRename`'in karşılığı: `Reader.RenameImpact` ve `Reader.PrepareRename`). Kaynaklı karşılaştırma ve gerekçe: `yeniden-adlandirma-tasarim.md` devir notunda; özeti:
+
+| Konu | Kaynak | Kararımız |
+| :-- | :-- | :-- |
+| İki aşama | [LSP 3.17](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/) `prepareRename` (null = bu konumda geçersiz) ve `rename` (`WorkspaceEdit \| null`, geçersiz ad hata) | `PrepareRename(dosya, satır, sütun)` aralık + yer tutucu ya da neden; `RenameImpact` listeyi verir |
+| Anlamsal tarama, metin değil | [gopls](https://github.com/golang/tools/blob/master/gopls/doc/features/transformation.md): tür bilgisiyle; çakışmada iptal; gömülü alan yeniden adlandırılamaz | kesin bölüm yalnızca anlamsal bağlardır |
+| Çakışma hata değil uyarı | [rust-analyzer](https://rust-lang.github.io/rust-analyzer/src/ide_db/rename.rs.html): çakışma "programın anlamını değiştirecek" notu + onay; geçersiz ad, yerleşik ad ve yerel olmayan tanım reddedilir | çakışma `conflicts` (çıkış 0); yerleşik/geçersiz/dilin sözcüğü olan ad çıkış 2 |
+| Rol ve aralık | [SCIP](https://github.com/sourcegraph/scip/blob/main/scip.proto) `Occurrence` + `SymbolRole`; şemada rename yok | yeniden adlandırma `Occurrences` üstünde bir görünümdür |
+| Metin ayrı ve isteğe bağlı | [IntelliJ](https://www.jetbrains.com/help/idea/rename-refactorings.html): yorum/metin ve metin geçişleri ayrı, önizleme | belge/yorum/ileti ayrı "olası" listesi, `--metin-yok` ile kapanır |
+
+**Çıplak ad o adı taşıyan bütün bildirimlerdir.** `baş` yazınca alan, parametreler, işlevler, sabitler, seçenek anahtarları ... adı `baş` olan hepsi hedef olur (terim değişince hepsi değişir; `targets` listesi hangileri olduğunu söyler). Bir tanesini seçmek için nitelenmiş ad (`NedenselDikkat.baş`), kimlik ya da konum (`dosya.tr:satır:sütun`) yazılır. Yerleşik ad ve modül adı yeniden adlandırılamaz (`rejected`, çıkış 2). Denetim: `TestRenameImpactSplitsCertainAndLikely`, `TestRenameImpactNarrowedByAQualifiedName`, `TestRenameImpactRejections`, `TestPrepareRename`.
+
+**Sonuç iki bölümdür.** `certain` (kesin): tanım, parametre, adlı argüman, `kendi.x`, yapıcıdan bilinen yerelin `d.x`'i (`Basis: local_type`, `INFERRED`: "çıkarımla" etiketiyle), `komut_satırı` anahtarı. `likely` (olası): alıcısı bilinmeyen üye erişimleri (`member_guess`), gölgelenen parametre (`shadowed`) ve metin taraması (belge, yorum, metin sabiti, ileti tabloları, dizinin bağlayamadığı koddaki adlar). Hiçbir olası satır kesin sayılmaz; her satırda dosya:satır:sütun, satırın metni ve önerilen yeni yazım vardır. Denetim: `TestRenameImpactSplitsCertainAndLikely`, `TestRenameImpactGolden`.
+
+**Çakışma ve ad doğrulama.** Yeni ad geçerli bir tanımlayıcı, eskisinden farklı ve dilin sözcüğü (hiçbir gömülü dilin genel ya da tip adı) olmalıdır, yoksa `rejected` (çıkış 2). Aynı kapsamda zaten bulunan bildirim (aynı yapıda alan/metot, aynı işlevde parametre, aynı dosyada üst düzey ad) `conflicts` listesine girer; listeleme kipinde yalnızca uyarıdır, çıkış 0. Denetim: `TestRenameImpactRejections`, `TestRenameImpactReportsConflicts`.
+
+**Metin taraması ve Türkçe ek ayrımı.** Tarama, `.git` varsa yalnızca izlenen dosyaları (`git ls-files`; izlenmeyen dosyalar kullanıcınındır), yoksa `DefaultSkipDirs` dışındaki klasörleri `.md`, `.json`, `.tr` ve `.go` uzantılarıyla gezer; `.tr` ve `.go` dosyalarında yorum ve metin sabiti kod adından ayrılır. Aranan sözcük Türkçe büyük-küçük harf katlamasıyla bulunur ve sınıflanır: `exact` (sözcüğün kendisi), `suffixed` (kapalı bir Türkçe ek dizisi: çoğul, iyelik, hâl ve bildirme eki, ünlü uyumu ve kaynaştırma ünsüzleriyle; `başı`, `başları`, `başında`, `başıdır`), `compound` (alt çizgiyle ayrılmış ad parçası: `kv_baş`, `baş_boyutu`), `derived` (türemiş sıfat: `başlı`, `başsız`). Aranan sözcükle başlayan ama bu sınıflara girmeyen sözcükler (`başka`, `başla`, `başlık`, `başarı`) listelenmez, `skipped_other_words` olarak sayılır. Yeni sözcüğün son ünlüsünün uyum sınıfı eskisinden farklıysa ekli öneriye `vowel_harmony` uyarısı eklenir. **Anlamı farklı geçişleri (`[baş, son)` gibi, "tek başına", "başında" = at the beginning of) araç ayırt etmez**; her olası satır bağlamıyla verilir, seçim elle yapılır. Denetim: `TestSuffixRecognisesTurkishInflections`, `TestScanTextClassifiesMatches`, `TestScanTextExcludesKnownPositionsAndWarnsAboutVowelHarmony`, `TestScanTextOnlyScansTrackedFilesInAGitRepository`, `TestScanTextDerivedFormsAndGoLexicalState`.
+
+**Sınırlar (ilk sürüm).** Ünsüz yumuşaması ve düşmesi (kitap → kitabı, ağız → ağzı) ve diğer türetme ekleri (`-lık`, `-la`) yoktur; ek, aranan sözcüğün kendi biçimine eklenir. Yerel değişkenler düğüm değildir (adları yalnızca metin taramasında "kod" olarak görünür). Kodlu dosyalarda satır numarası gövde satırıdır (17.5: başlık satırı sayılmaz), dosyada bir fazladır. Modül yeniden adlandırması (dosya taşıma) yoktur.
+
+**Sonraki adım: yazma kipi.** Bu sürüm yalnızca listeler. Yazma kipi (`değiştir`) `certain` listesini `WorkspaceEdit`'e çevirecek; çakışma varsa varsayılan olarak **durur** (gopls'un çakışmada iptali gibi; rust-analyzer'ın onay notunun karşılığı bir `--zorla`), olası yerleri yalnızca açıkça seçileni değiştirir.
 
 ## Dil sunucusu sözleşmesi (yol haritası, Evre 5)
 

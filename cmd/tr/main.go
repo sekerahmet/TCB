@@ -205,6 +205,7 @@ func printHelp() {
 		messages.Text(messages.H8626, codes.DisplayName(codes.K013), optionName(codes.K103)),
 		messages.Text(messages.H8627, codes.DisplayName(codes.K014)),
 		messages.Text(messages.H8830, codes.DisplayName(codes.K015), codes.DisplayName(codes.K016), codes.DisplayName(codes.K017), codes.DisplayName(codes.K018), codes.DisplayName(codes.K019)),
+		messages.Text(messages.H8863, codes.DisplayName(codes.K015), codes.DisplayName(codes.K020)),
 		messages.Text(messages.H8628, codes.DisplayName(codes.K001)),
 		messages.Text(messages.H8629, codes.DisplayName(codes.K002)),
 	} {

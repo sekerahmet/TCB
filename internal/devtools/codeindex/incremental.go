@@ -197,7 +197,7 @@ func readInput(root string, opts Options, rel string) ([]byte, error) {
 // diğer dosyaların ad çözümlemesi için gereken tanımlar, metotlar ve aktarmalar vardır.
 func stubFile(rel string, prev *Index) *file {
 	f := &file{rel: rel, base: strings.TrimSuffix(filepath.Base(rel), ".tr"), defs: map[string]string{},
-		methods: map[string][]string{}, aliases: map[string]*file{}}
+		methods: map[string][]string{}, fields: map[string][]string{}, aliases: map[string]*file{}}
 	var top []Node
 	for _, n := range prev.Nodes {
 		if nodeFile(&n) != rel {
@@ -210,6 +210,9 @@ func stubFile(rel string, prev *Index) *file {
 			}
 		case KindFunction, KindStruct, KindConstant, KindVariable:
 			top = append(top, n)
+		case KindField:
+			name := n.Name[strings.LastIndex(n.Name, ".")+1:]
+			f.fields[name] = append(f.fields[name], n.ID)
 		case KindMethod:
 			name := n.Name[strings.LastIndex(n.Name, ".")+1:]
 			f.methods[name] = append(f.methods[name], n.ID)

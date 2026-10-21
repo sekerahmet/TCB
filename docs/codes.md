@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir.
 
-Toplam 312 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 103 fonksiyon, 1 sabit, 40 metot, 21 özellik, 41 adlı argüman; ayrıca 9 taşınmış ve 65 kaldırılmış kod (numaraları bir daha kullanılmaz).
+Toplam 314 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 103 fonksiyon, 1 sabit, 40 metot, 21 özellik, 41 adlı argüman; ayrıca 9 taşınmış ve 65 kaldırılmış kod (numaraları bir daha kullanılmaz).
 
 ## İçindekiler
 
@@ -1319,6 +1319,14 @@ Bir ad ya da dosya değişirse etkilenenleri gösterir: dışarıdan kullananlar
 tr dizin etki lib/katman.tr
 ```
 
+#### K020 `yeniden_adlandır`
+
+Bir ad değişirse değişecek yerleri listeler, hiçbir dosyayı değiştirmez: kesin (tanım, parametre, adlı argüman, kendi.x ve yapıcıdan bilinen yerelin üye erişimi, komut_satırı anahtarı) ve olası (alıcısı bilinmeyen üye erişimi, belge, yorum, ileti metni) olarak ikiye ayrılır (tr dizin altında).
+
+```tr
+tr dizin yeniden_adlandır baş bakış_sayısı
+```
+
 ### Komut satırı seçenekleri (K1xx)
 
 #### K100 `dil`
@@ -1427,6 +1435,14 @@ Dizin komutunda dizin önbelleğini siler.
 
 ```tr
 tr dizin --temizle
+```
+
+#### K114 `metin_yok`
+
+Yeniden adlandırma etkisinde belge, yorum ve ileti metni taramasını kapatır; yalnızca kodun anlamsal yerleri listelenir.
+
+```tr
+tr dizin yeniden_adlandır baş bakış_sayısı --metin-yok
 ```
 
 ### Kabuk komutları (K2xx)

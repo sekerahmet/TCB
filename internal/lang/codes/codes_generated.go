@@ -135,6 +135,7 @@ const (
 	K017 Code = K + 17  // references · kullananlar
 	K018 Code = K + 18  // tested_by · sınayanlar
 	K019 Code = K + 19  // impact · etki
+	K020 Code = K + 20  // rename · yeniden_adlandır
 	K100 Code = K + 100 // lang · dil
 	K101 Code = K + 101 // check · kontrol
 	K103 Code = K + 103 // json
@@ -148,6 +149,7 @@ const (
 	K111 Code = K + 111 // no_index · dizin_yok
 	K112 Code = K + 112 // status · durum
 	K113 Code = K + 113 // clear · temizle
+	K114 Code = K + 114 // no_text · metin_yok
 	K200 Code = K + 200 // exit · çıkış
 	K300 Code = K + 300 // step · adım
 	K301 Code = K + 301 // next · geç

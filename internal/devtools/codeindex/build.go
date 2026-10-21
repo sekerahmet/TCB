@@ -36,6 +36,7 @@ type file struct {
 	lines     []string          // gösterim metninin satırları (satır numaraları bununla uyumlu)
 	defs      map[string]string // üst düzey ad -> düğüm kimliği (işlev, yapı, sabit, değişken)
 	methods   map[string][]string
+	fields    map[string][]string // alan adı -> alan düğümlerinin kimlikleri (alıcı tipi bilinmeyen erişimlerin adayları)
 	imports   []importRef
 	visible   map[string]string // ad -> kimlik: kendi tanımları ve takma adsız aktarılan modüllerinki
 	aliases   map[string]*file
@@ -163,7 +164,7 @@ func (x *indexer) addFile(rel string, data []byte, readErr error) {
 		return
 	}
 	x.files[rel] = &file{rel: rel, base: base, res: res, lines: strings.Split(res.text, "\n"),
-		defs: map[string]string{}, methods: map[string][]string{}, aliases: map[string]*file{}}
+		defs: map[string]string{}, methods: map[string][]string{}, fields: map[string][]string{}, aliases: map[string]*file{}}
 	x.order = append(x.order, rel)
 }
 
