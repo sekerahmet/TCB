@@ -61,9 +61,12 @@ func CheckNamed(fn string, named map[string]interp.Value, names ...Named) error 
 		if known {
 			continue
 		}
-		var candidates []string
+		var candidates, shown []string // eşleştirme kanonik adlarla, ileti yazım diliyle
+		display := map[string]string{}
 		for _, a := range names {
 			candidates = append(candidates, a.TR)
+			d := codes.DisplayName(a.Code)
+			shown, display[a.TR] = append(shown, d), d
 		}
 		o := ""
 		if k, ok := codes.Suggest(codes.NamespaceParam, given, nil); ok && slices.Contains(candidates, codes.Name(k)) {
@@ -77,9 +80,9 @@ func CheckNamed(fn string, named map[string]interp.Value, names ...Named) error 
 		}
 		switch {
 		case o != "":
-			return messages.New(messages.H7900, fn, given, o)
+			return messages.New(messages.H7900, fn, given, display[o])
 		case len(candidates) > 0:
-			return messages.New(messages.H7901, fn, given, strings.Join(candidates, ", "))
+			return messages.New(messages.H7901, fn, given, strings.Join(shown, ", "))
 		}
 		return messages.New(messages.H7902, fn, given)
 	}

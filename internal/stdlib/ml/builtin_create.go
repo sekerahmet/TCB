@@ -36,7 +36,7 @@ func requiresGrad(fn string, named map[string]interp.Value, positional interp.Va
 // sayı (0 boyutlu tensör), iç içe sayı listesi ya da tensör olabilir. tür verilmezse
 // listeden float32, tensörden kaynağın türünde tensör oluşur.
 func tensorBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Name(codes.T100)
+	fn := codes.DisplayName(codes.T100)
 	if len(args) < 1 {
 		return nil, messages.New(messages.H6001, gradExample("veri"))
 	}
@@ -94,7 +94,7 @@ func tensorBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 // Şeklin tek yazımı listedir: sıfırlar(2, 3) biçimi kaldırıldı, yazılınca liste biçimini
 // önerir.
 func shapedConstructor(kd codes.Code, create func(sh []int, named map[string]interp.Value) (*tensor.Tensor, error)) interp.BuiltinFunc {
-	ad := codes.Name(kd)
+	ad := codes.DisplayName(kd)
 	return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		if len(args) == 0 {
 			return nil, messages.New(messages.H6017, ad)

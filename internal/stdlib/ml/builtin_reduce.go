@@ -17,7 +17,7 @@ import (
 // boyutu_koru: doğru indirgenen ekseni (eksen verilmezse bütün eksenleri) 1 uzunlukta
 // korur: [B, T, D] → [B, T, 1].
 func reduction(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, axis int, whole, keep bool) *tensor.Tensor) {
-	ad := codes.Name(kd)
+	ad := codes.DisplayName(kd)
 	maxMin := kd == codes.G402 || kd == codes.G401 // maks, min
 	wrap(v, kd, func(old interp.BuiltinFunc) interp.BuiltinFunc {
 		return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
@@ -109,7 +109,7 @@ func reduction(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, axis int, 
 // gömme(...) ve çapraz_entropi(...) indeksi olarak da verilebilir.
 // Eşitlikte ilk en büyük eleman seçilir.
 func argMax(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	ad := codes.Name(codes.T230)
+	ad := codes.DisplayName(codes.T230)
 	if len(args) != 1 {
 		if len(args) == 2 {
 			return nil, messages.New(messages.H6215, ad, nameAxis.TR, args[1].Inspect())
@@ -160,7 +160,7 @@ func argMax(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (i
 // → 0) bu durumlar burada yakalanır: toplam/ortalama listedeki tensörleri hesap çizgesini
 // koruyarak katlar, diğer durumlar açık hata verir.
 func nonTensorReduce(kd codes.Code, old interp.BuiltinFunc, m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	ad := codes.Name(kd)
+	ad := codes.DisplayName(kd)
 	if err := bind.CheckNamed(ad+"()", named, nameAxis, nameKeepDim); err != nil {
 		return nil, err
 	}
@@ -175,7 +175,7 @@ func nonTensorReduce(kd codes.Code, old interp.BuiltinFunc, m *interp.VM, args [
 		for _, el := range l.Elements {
 			switch el.(type) {
 			case *interp.ListVal:
-				t := codes.Name(codes.T100)
+				t := codes.DisplayName(codes.T100)
 				return nil, messages.New(messages.H6220, ad, t, nameAxis.TR)
 			case *TensorValue:
 				hasTensor = true

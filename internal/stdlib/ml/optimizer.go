@@ -179,7 +179,7 @@ func namedRate(fn string, named map[string]interp.Value, defaultVal float64, min
 // gradClip parametre gradyanlarının toplam L2 normunu en_fazla değerine indirir ve
 // kırpma öncesi normu 0 boyutlu tensör olarak döndürür: gradyan_kırp(parametreler, en_fazla: 1.0).
 func gradClip(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Name(codes.T402)
+	fn := codes.DisplayName(codes.T402)
 	if len(args) != 1 {
 		return nil, messages.New(messages.H6521, fn, nameMax.TR, len(args))
 	}
@@ -227,7 +227,7 @@ func optimizerParams(fn string, args []interp.Value) ([]*tensor.Tensor, error) {
 }
 
 func setupAdamW(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Name(codes.T400) // AdamW
+	fn := codes.DisplayName(codes.T400) // AdamW
 	if err := bind.CheckNamed(fn, named, nameLR, nameWeightDecay, nameBeta1, nameBeta2, nameEpsilon, nameMasterCopy); err != nil {
 		return nil, err
 	}
@@ -277,7 +277,7 @@ func setupAdamW(_ *interp.VM, args []interp.Value, named map[string]interp.Value
 }
 
 func setupSGD(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Name(codes.T401) // SGD
+	fn := codes.DisplayName(codes.T401) // SGD
 	if err := bind.CheckNamed(fn, named, nameLR, nameMomentum, nameWeightDecay, nameMasterCopy); err != nil {
 		return nil, err
 	}

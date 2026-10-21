@@ -14,7 +14,7 @@ import (
 // olmalıdır ve a ya da b olduğu gibi döner. Değilse sayılar ve Mantık tensöre çevrilir
 // (a ile b'deki sayılar ilk tensör işlenenin türünü alır), üç şekil yayınlanır.
 func whereBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	ad := codes.Name(codes.T234)
+	ad := codes.DisplayName(codes.T234)
 	if err := bind.CheckNamed(ad+"()", named); err != nil {
 		return nil, err
 	}

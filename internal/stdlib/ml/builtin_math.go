@@ -53,7 +53,7 @@ func registerWideMath(v *interp.VM) {
 // işleminindir: taban, tavan ve işarette 0, mutlak'ta işaret(x); tam sayılı işaretli tensörün
 // sonucu da tam sayılıdır), sayıda çekirdek yerleşiği (Tam → Tam), listede yol gösteren hata.
 func registerRounding(v *interp.VM, kd codes.Code, fn func(*tensor.Tensor) *tensor.Tensor) {
-	ad := codes.Name(kd)
+	ad := codes.DisplayName(kd)
 	wrap(v, kd, func(old interp.BuiltinFunc) interp.BuiltinFunc {
 		return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 			if err := bind.CheckNamed(ad+"()", named); err != nil {
@@ -100,7 +100,7 @@ func limitCount(ad string, isNamed bind.Named, v interp.Value) (float64, bool, e
 
 // clampBuiltin sınırla(x, en_az: ..., en_fazla: ...).
 func clampBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	ad := codes.Name(codes.G409)
+	ad := codes.DisplayName(codes.G409)
 	usage := fmt.Sprintf("%s(x, %s: ..., %s: ...)", ad, nameMin.TR, nameMax.TR)
 	if len(args) != 1 {
 		return nil, messages.New(messages.H6108, usage, len(args))
@@ -181,7 +181,7 @@ func clamp64(x, lo, hi float64) float64 {
 // atan2Builtin arktanjant2(y, x): iki sayıda Ondalık; biri tensörse yayınlamalı,
 // türevli tensör (sayı tensörün türüne çevrilir).
 func atan2Builtin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	ad := codes.Name(codes.T228)
+	ad := codes.DisplayName(codes.T228)
 	if err := bind.CheckNamed(ad+"()", named); err != nil {
 		return nil, err
 	}

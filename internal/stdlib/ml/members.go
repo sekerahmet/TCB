@@ -278,7 +278,7 @@ func (d *TensorValue) permute(_ *interp.VM, args []interp.Value, _ map[string]in
 	if list == nil {
 		list = args
 	}
-	fn := codes.Name(memberPermute)
+	fn := codes.DisplayName(memberPermute)
 	sh := d.t.Shape()
 	if len(list) != len(sh) {
 		return nil, messages.New(messages.H6713, fn, shapeText(sh), len(sh), len(list))
@@ -308,7 +308,7 @@ func (d *TensorValue) permute(_ *interp.VM, args []interp.Value, _ map[string]in
 }
 
 func (d *TensorValue) slice(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Name(memberSlice)
+	fn := codes.DisplayName(memberSlice)
 	if len(args) != 3 {
 		return nil, messages.New(messages.H6717, fn, len(args))
 	}

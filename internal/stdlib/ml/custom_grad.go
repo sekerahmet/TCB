@@ -89,7 +89,7 @@ type customOp struct {
 
 // customGrad özel_türev(ileri:, geri:) yerleşiğidir.
 func customGrad(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Name(codes.T310)
+	fn := codes.DisplayName(codes.T310)
 	if err := bind.CheckNamed(fn+"()", named, nameForward, nameBackward); err != nil {
 		return nil, err
 	}
@@ -126,7 +126,7 @@ func customGrad(_ *interp.VM, args []interp.Value, named map[string]interp.Value
 		}
 	}
 	o := &customOp{forward: forward, backward: backward}
-	return &interp.BuiltinVal{Name: fn, Fn: o.call}, nil
+	return &interp.BuiltinVal{Name: codes.Name(codes.T310), Fn: o.call}, nil
 }
 
 // call özel işlemi çalıştırır: ileri türevsiz çalışır, sonuç tek dış düğümle çizgeye
@@ -169,7 +169,7 @@ func (o *customOp) call(m *interp.VM, args []interp.Value, named map[string]inte
 
 // forwardResult ileri'nin [çıktı, saklananlar] dönüşünü çözer.
 func forwardResult(v interp.Value) (outputs []*tensor.Tensor, many bool, savedVals *interp.ListVal, err error) {
-	fn, result := codes.Name(codes.T310), codes.Name(codes.A021)
+	fn, result := codes.DisplayName(codes.T310), codes.DisplayName(codes.A021)
 	forwards := nameForward.TR
 	l, ok := v.(*interp.ListVal)
 	if !ok || len(l.Elements) != 2 {
@@ -261,7 +261,7 @@ func (o *customOp) backwardFn(forwardVM *interp.VM, args []interp.Value, savedVa
 // öğe; tensör girdilerde girdiyle aynı şekilde bir tensör ya da yok, tensör olmayan
 // girdilerde yok.
 func backwardResult(v interp.Value, args []interp.Value) ([]*tensor.Tensor, error) {
-	fn, backward, none := codes.Name(codes.T310), nameBackward.TR, codes.Name(codes.A042)
+	fn, backward, none := codes.DisplayName(codes.T310), nameBackward.TR, codes.DisplayName(codes.A042)
 	l, ok := v.(*interp.ListVal)
 	if !ok {
 		return nil, messages.New(messages.H6414, fn, backward, none, codes.DisplayName(codes.A021), shortForm(v))
@@ -313,7 +313,7 @@ func isShapeEqual(a, b []int) bool {
 // yön vektörüyle iç çarpımla skalere indirgenir; kayıp ve farklar float64'te hesaplanır.
 // Eleman başına koşul |analitik - sayısal| ≤ tolerans · max(1, |analitik|, |sayısal|).
 func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Name(codes.T311)
+	fn := codes.DisplayName(codes.T311)
 	if err := bind.CheckNamed(fn+"()", named, nameStep, nameTolerance); err != nil {
 		return nil, err
 	}

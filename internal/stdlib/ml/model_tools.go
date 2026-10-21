@@ -48,7 +48,7 @@ func namedBool(fn string, named map[string]interp.Value, a bind.Named, defaultVa
 // concatBuiltin birleştir([a, b, ...], eksen: -1) yerleşiğidir: tensörleri bir eksen
 // boyunca birleştirir. Birleşen eksen dışındaki eksenler eşit olmalıdır. Türevlenebilir.
 func concatBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Name(codes.T121)
+	fn := codes.DisplayName(codes.T121)
 	if len(args) < 1 || len(args) > 2 {
 		return nil, messages.New(messages.H6304, fn, nameAxis.TR, len(args))
 	}
@@ -110,7 +110,7 @@ func concatBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 // split .böl(parça_sayısı, eksen: -1) metodudur: tensörü verilen eksende eşit parçalara
 // böler; parçalar veriyi paylaşan, türev izleyen görünümlerdir.
 func (d *TensorValue) split(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Name(codes.Y103)
+	fn := codes.DisplayName(codes.Y103)
 	if len(args) < 1 || len(args) > 2 {
 		return nil, messages.New(messages.H6315, fn, nameAxis.TR, len(args))
 	}
@@ -155,7 +155,7 @@ func (d *TensorValue) split(_ *interp.VM, args []interp.Value, named map[string]
 // attentionBuiltin dikkat(q, k, v, nedensel: doğru, pencere: 0, maske: yok) yerleşiğidir:
 // birleşik ölçekli nokta çarpımı dikkati (bkz. tensor.Attention). Ölçek 1/√dh'dir.
 func attentionBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Name(codes.T503)
+	fn := codes.DisplayName(codes.T503)
 	if len(args) != 3 {
 		return nil, messages.New(messages.H6321, fn, nameCausal.TR, codes.DisplayName(codes.A040), nameWindow.TR, nameMask.TR, codes.DisplayName(codes.A042), len(args))
 	}
@@ -274,7 +274,7 @@ func checkMask(fn string, mt, q, k *tensor.Tensor) error {
 // (maks_indeks ile aynı). Sonuç son ekseni düşürülmüş, tam sayılı işaretli ve türev
 // izlemeyen bir tensördür.
 func sampleBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Name(codes.T611)
+	fn := codes.DisplayName(codes.T611)
 	if len(args) != 1 {
 		return nil, messages.New(messages.H6336, fn, nameTemperature.TR, nameTopK.TR, nameSeed.TR, codes.DisplayName(codes.A042), len(args))
 	}
