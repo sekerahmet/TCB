@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir.
 
-Toplam 296 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 102 fonksiyon, 1 sabit, 38 metot, 21 özellik, 40 adlı argüman; ayrıca 9 taşınmış ve 65 kaldırılmış kod (numaraları bir daha kullanılmaz).
+Toplam 308 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 102 fonksiyon, 1 sabit, 38 metot, 21 özellik, 40 adlı argüman; ayrıca 9 taşınmış ve 65 kaldırılmış kod (numaraları bir daha kullanılmaz).
 
 ## İçindekiler
 
@@ -1267,6 +1267,46 @@ Düzenleyicinin hata ayıklama protokolü (DAP) sunucusunu başlatır; düzenley
 tr dap
 ```
 
+#### K015 `dizin`
+
+TR kodunun dizinini kurar ve ona sorar. Tek başına dizini kurar ve özetler; altında tanım, kullananlar, sınayanlar ve etki alt komutları vardır.
+
+```tr
+tr dizin
+```
+
+#### K016 `tanım`
+
+Bir adın tanımını gösterir: nerede, imzası, belge yorumu, üyeleri (tr dizin altında).
+
+```tr
+tr dizin tanım Muon
+```
+
+#### K017 `kullananlar`
+
+Bir ada başvuranları gösterir: çağrı, okuma, yazma, aktarma, test; dosya:satır:sütun ve içeren bildirimle (tr dizin altında).
+
+```tr
+tr dizin kullananlar Doğrusal
+```
+
+#### K018 `sınayanlar`
+
+Bir adı sınayan test bloklarını gösterir: önce doğrudan, sonra çağrı zinciriyle dolaylı olanlar (tr dizin altında).
+
+```tr
+tr dizin sınayanlar çevre_hesapla
+```
+
+#### K019 `etki`
+
+Bir ad ya da dosya değişirse etkilenenleri gösterir: dışarıdan kullananlar, onu aktaran modüller, sınayan testler (tr dizin altında).
+
+```tr
+tr dizin etki lib/katman.tr
+```
+
 ### Komut satırı seçenekleri (K1xx)
 
 #### K100 `dil`
@@ -1319,6 +1359,62 @@ Programın komut satırı seçeneklerinin yardımını yazar (komut_satırı ile
 
 ```tr
 tr eğit.tr --yardım
+```
+
+#### K107 `sınır`
+
+Dizin sorgularında bir listedeki en çok satır sayısını verir (varsayılan 12).
+
+```tr
+tr dizin kullananlar Muon --sınır 5
+```
+
+#### K108 `tümü`
+
+Dizin sorgularında satır sınırını kaldırır.
+
+```tr
+tr dizin kullananlar Muon --tümü
+```
+
+#### K109 `kök`
+
+Proje kökünü verir; verilmezse .git bulunan üst klasör, o da yoksa çalışılan klasör alınır.
+
+```tr
+tr dizin tanım Muon --kök .
+```
+
+#### K110 `tür`
+
+Sorgu adını yalnızca bu türdeki düğümlere çözer (function, struct, method, field, constant, variable, test, module, builtin).
+
+```tr
+tr dizin tanım ileri --tür method
+```
+
+#### K111 `dizin_yok`
+
+Dizini kurma ya da tazeleme, önbellekteki dizini olduğu gibi kullan (dizin sorgularında).
+
+```tr
+tr dizin tanım Muon --dizin-yok
+```
+
+#### K112 `durum`
+
+Dizin komutunda dizini kurmadan durumunu gösterir.
+
+```tr
+tr dizin --durum
+```
+
+#### K113 `temizle`
+
+Dizin komutunda dizin önbelleğini siler.
+
+```tr
+tr dizin --temizle
 ```
 
 ### Kabuk komutları (K2xx)

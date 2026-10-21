@@ -104,14 +104,15 @@ func IsCodeForm(s string) bool {
 type Namespace uint8
 
 const (
-	NamespaceNone     Namespace = iota // a code with no namespace (H: error messages)
-	NamespaceGlobal                    // keywords, contextual words, G/T/V/W builtins
-	NamespaceType                      // type names (A2xx)
-	NamespaceMember                    // methods and properties (Y)
-	NamespaceParam                     // named arguments (the x9xx groups in G/T/V/W)
-	NamespaceCommand                   // commands of tr and the shell (K0xx, K2xx)
-	NamespaceOption                    // command-line options, written --name (K1xx): 'kontrol' there is not 'tr kontrol'
-	NamespaceDebugger                  // terminal debugger commands (K3xx): its 'izle' is not 'tr izle'
+	NamespaceNone       Namespace = iota // a code with no namespace (H: error messages)
+	NamespaceGlobal                      // keywords, contextual words, G/T/V/W builtins
+	NamespaceType                        // type names (A2xx)
+	NamespaceMember                      // methods and properties (Y)
+	NamespaceParam                       // named arguments (the x9xx groups in G/T/V/W)
+	NamespaceCommand                     // commands of tr and the shell (K0xx, K2xx)
+	NamespaceOption                      // command-line options, written --name (K1xx): 'kontrol' there is not 'tr kontrol'
+	NamespaceDebugger                    // terminal debugger commands (K3xx): its 'izle' is not 'tr izle'
+	NamespaceSubcommand                  // subcommands of 'tr dizin' (K016-K019): 'tr tanım' is not a command
 	namespaceCount
 )
 
@@ -131,6 +132,8 @@ func (a Namespace) String() string {
 		return "command-line options"
 	case NamespaceDebugger:
 		return "debugger commands"
+	case NamespaceSubcommand:
+		return "index subcommands"
 	}
 	return "no namespace"
 }
@@ -157,9 +160,19 @@ func (k Code) Namespace() Namespace {
 		case 3:
 			return NamespaceDebugger
 		}
+		if k.IsIndexSubcommand() {
+			return NamespaceSubcommand
+		}
 		return NamespaceCommand
 	}
 	return NamespaceNone
+}
+
+// IsIndexSubcommand reports whether the code is a subcommand of 'tr dizin' (K015): K016 to K019.
+// They live in the command numbering but in their own namespace, so a program or shell script
+// cannot call them as top-level commands ('tr tanım' is an error, 'tr dizin tanım' works).
+func (k Code) IsIndexSubcommand() bool {
+	return k.Letter() == 'K' && k.Group() == 0 && k.Number() >= 16 && k.Number() <= 19
 }
 
 // IsKeyword reports whether the code is a keyword reserved in the lexer (A0xx).

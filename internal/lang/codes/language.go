@@ -486,6 +486,10 @@ func buildLanguage(langCode string) (*Language, error) {
 // coded form).
 func FindCommand(name string) (Code, bool) { return findInLanguages(NamespaceCommand, name) }
 
+// FindSubcommand finds a subcommand of 'tr dizin' (K016-K019) by its name in any embedded writing
+// language, as FindCommand does. The names are valid only after 'tr dizin'.
+func FindSubcommand(name string) (Code, bool) { return findInLanguages(NamespaceSubcommand, name) }
+
 // FindOption finds a command-line option (K1xx) by its name without the leading "--", in any
 // embedded writing language, as FindCommand does.
 func FindOption(name string) (Code, bool) { return findInLanguages(NamespaceOption, name) }
