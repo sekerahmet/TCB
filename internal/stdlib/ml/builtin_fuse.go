@@ -65,6 +65,9 @@ func (f *fusedFn) call(m *interp.VM, args []interp.Value, _ map[string]interp.Va
 		fmt.Fprintf(&key, "%v:%s:%v:%v;", in.Shape, in.DType, in.RequiresGrad, d.t.Device().Kind)
 	}
 	if len(inputs) == 0 {
+		if len(args) == 0 {
+			return nil, interp.ArgCountError(codes.T312, "1+", 0)
+		}
 		return nil, messages.New(messages.H6434, fn, 1, typeName(args[0]))
 	}
 	p := f.cache[key.String()]
