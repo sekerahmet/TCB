@@ -405,23 +405,27 @@ echo "-- son satır: $(tail -1 tr.log 2>/dev/null || tail -1 pt.log)"
 [ -f bitti ] && echo "BİTTİ (karşılaştırma: hücre 8)" || echo "sürüyor"
 ```
 
-### Hücre 8 · KALİTE KARŞILAŞTIRMASI · CPU
+### Hücre 8 · KALİTE VE HIZ KARŞILAŞTIRMASI · CPU
 
 Python hücresi. Tek adımın kaybı gürültülüdür (farklı rastgele toplu işler); karşılaştırma 500 adımlık
-dilimlerin ortalaması ve aynı doğrulama penceresindeki kayıpladır.
+dilimlerin ortalaması ve aynı doğrulama penceresindeki kayıpladır. Hız, iki günlüğün 100. adımdan
+sonraki ms/adım değerlerinin ortancasıdır (gerçek veride okuma da içindedir).
 
 ```python
-# 8 · KALİTE KARŞILAŞTIRMASI: EĞİTİM (500 ADIMLIK ORTALAMA) VE DOĞRULAMA KAYBI (ANINDA BİTER) · CPU
-import re
+# 8 · KALİTE VE HIZ KARŞILAŞTIRMASI: EĞİTİM (500 ADIMLIK ORTALAMA), DOĞRULAMA KAYBI, ORTANCA MS/ADIM (ANINDA BİTER) · CPU
+import re, statistics
 def oku(yol):
-    egitim, dogr = {}, {}
+    egitim, dogr, hiz = {}, {}, []
     for s in open(yol, encoding='utf-8'):
         m = re.match(r'adım (\d+) / \d+ .*?kayıp ([\d.]+)', s)
-        if m: egitim[int(m[1])] = float(m[2])
+        if m:
+            egitim[int(m[1])] = float(m[2])
+            h = re.search(r'([\d.]+) ms/adım', s)
+            if h and int(m[1]) > 100: hiz.append(float(h[1]))
         m = re.search(r'DEĞERLENDİRME adım (\d+): kayıp ([\d.]+)', s)
         if m: dogr[int(m[1])] = float(m[2])
-    return egitim, dogr
-pe, pd = oku('/content/kalite/pt.log'); te, td = oku('/content/kalite/tr.log')
+    return egitim, dogr, hiz
+pe, pd, ph = oku('/content/kalite/pt.log'); te, td, th = oku('/content/kalite/tr.log')
 son = max(pe) if pe else 0
 print('| adımlar | PyTorch eğitim (ort.) | TR eğitim (ort.) | fark |')
 print('|---|---|---|---|')
@@ -430,9 +434,14 @@ for a in range(0, son, 500):
     t = [v for k, v in te.items() if a < k <= a + 500 and k % 50 == 0]
     if p and t:
         print(f'| {a+1}–{a+500} | {sum(p)/len(p):.4f} | {sum(t)/len(t):.4f} | {sum(t)/len(t)-sum(p)/len(p):+.4f} |')
-print('\n| adım | PyTorch doğrulama | TR doğrulama | fark |\n|---|---|---|---|')
+print('
+| adım | PyTorch doğrulama | TR doğrulama | fark |
+|---|---|---|---|')
 for k in sorted(pd):
     if k in td: print(f'| {k} | {pd[k]:.4f} | {td[k]:.4f} | {td[k]-pd[k]:+.4f} |')
+if ph and th:
+    print(f'
+hız (100. adımdan sonra, ortanca): PyTorch {statistics.median(ph):.0f} ms/adım, TR {statistics.median(th):.0f} ms/adım')
 ```
 
 ### Hücre 9 · EŞLEŞME TESTİ · GPU

@@ -78,15 +78,18 @@ fonksiyon döner_konum_tablosu(bağlam, baş_boyutu, taban = 10000.0) {
     sonuç [kosinüs(açılar), sinüs(açılar)]
 }
 
-// döner_konum_hesapla x'i ([..., T, baş_boyutu]) tablonun ilk T satırıyla döndürür.
-// döner_konum_uygula aynı hesabın kaynaşmış biçimidir (kaynaştır, dil tanımı 15.45): zincir
-// tek geçişte hesaplanır, ara sonuçlar belleğe yazılmaz; sonuç aynıdır.
+// döner_konum_hesapla x'i ([..., T, baş_boyutu]) tablonun ilk T satırıyla döndürür; sonuç
+// x'in türündedir. Tablolar float32'dir: karışık hassasiyette bf16 x ile çarpım float32'ye
+// yükselir, sonucu okuyan `dikkat` onu yine bf16'ya çevirirdi. Dönüşüm burada, kaynaşık
+// geçişin sonunda yapılır: değer aynıdır (bir kez yuvarlanır), float32 sonuç ve ayrı dönüşüm
+// kalkar. döner_konum_uygula aynı hesabın kaynaşmış biçimidir (kaynaştır, dil tanımı 15.45):
+// zincir tek geçişte hesaplanır, ara sonuçlar belleğe yazılmaz; sonuç aynıdır.
 fonksiyon döner_konum_hesapla(x, kos, sin) {
     değişken T = x.şekil[-2]
     değişken a, b = x.böl(2, eksen: -1)
     değişken c = kos[0..T]
     değişken s = sin[0..T]
-    sonuç birleştir([a * c - b * s, a * s + b * c], eksen: -1)
+    sonuç birleştir([a * c - b * s, a * s + b * c], eksen: -1).türe(x.tür)
 }
 değişken döner_konum_uygula = kaynaştır(döner_konum_hesapla)
 
@@ -218,9 +221,11 @@ yapı SwiGLU {
 fonksiyon ple_gelu(x) { sonuç gelu(x, yaklaşık: yanlış) }
 
 // ple_karışımı PLE bloğunun eleman bazlı zinciridir: GELU(kapı) ⊙ (bağlam + ölçek · satır) / √2
-// (ölçek = √P); ple_karış onun kaynaşmış biçimidir.
+// (ölçek = √P); ple_karış onun kaynaşmış biçimidir. Sonuç kapının türündedir (karışık
+// hassasiyette bf16): float32 tablo satırı zinciri float32'ye yükseltir, sonucu yalnızca
+// izdüşüm çarpımı okur; dönüşüm kaynaşık geçişin sonunda yapılır (bkz. döner_konum_hesapla).
 fonksiyon ple_karışımı(kapı, bağlam, satır, ölçek) {
-    sonuç ple_gelu(kapı) * ((bağlam + ölçek * satır) / karekök(2.0))
+    sonuç (ple_gelu(kapı) * ((bağlam + ölçek * satır) / karekök(2.0))).türe(kapı.tür)
 }
 değişken ple_karış = kaynaştır(ple_karışımı)
 

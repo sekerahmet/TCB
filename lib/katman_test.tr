@@ -89,6 +89,26 @@ test "döner konum: normu korur, iç çarpım yalnızca uzaklığa bağlıdır, 
     doğrula(türev_denetle(f, [rastgele_girdi([2, 5, 4], 3)]))
 }
 
+test "döner konum ve PLE karışımı: sonuç girdinin türündedir, değer float32 sonucun dönüşümüdür" {
+    değişken tablolar = döner_konum_tablosu(6, 4)
+    değişken x = rastgele_normal([2, 6, 4], tohum: 4)
+    değişken xb = x.türe("bf16")
+    // float32 tablolarla bf16 girdi: sonuç bf16, float32 hesabın bir kez yuvarlanmışı.
+    değişken r = döner_konum_uygula(xb, tablolar[0], tablolar[1])
+    eşit_mi("bf16", r.tür)
+    eşit_mi(döner_konum_hesapla(xb.türe("float32"), tablolar[0], tablolar[1]).türe("bf16").değer, r.değer)
+    eşit_mi(döner_konum_hesapla(xb, tablolar[0], tablolar[1]).değer, r.değer)
+    eşit_mi("float32", döner_konum_uygula(x, tablolar[0], tablolar[1]).tür)
+    değişken kapı = rastgele_normal([3, 5], tohum: 5).türe("bf16")
+    değişken bağlam = rastgele_normal([3, 5], tohum: 6).türe("bf16")
+    değişken satır = rastgele_normal([3, 5], tohum: 7)
+    değişken m = ple_karış(kapı, bağlam, satır, 2.0)
+    eşit_mi("bf16", m.tür)
+    // Eski zincir (sonuç float32) ve ardından çarpımın yapacağı dönüşüm:
+    eşit_mi((ple_gelu(kapı) * ((bağlam + 2.0 * satır) / karekök(2.0))).türe("bf16").değer, m.değer)
+    eşit_mi(ple_karışımı(kapı, bağlam, satır, 2.0).değer, m.değer)
+}
+
 test "NedenselDikkat: şekil, gruplu sorgu ve türev" {
     değişken tablolar = döner_konum_tablosu(4, 2)
     değişken d = NedenselDikkat(8, 4, kv_baş: 2, tohum: 1)
