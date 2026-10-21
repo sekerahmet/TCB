@@ -267,6 +267,8 @@ var (
 	exampleNumbers = regexp.MustCompile(`-?\d+(?:[.,]\d+)?`)
 	exampleRunPath = regexp.MustCompile(`examples/(?:tr|en)/\S*`)
 	exampleRunDir  = regexp.MustCompile(`runs/[a-z_]+`)
+	// İlerleme çubuğunun kapanış satırındaki süre ("· 3 sn sürdü") çalıştırmadan çalıştırmaya değişir.
+	exampleElapsed = regexp.MustCompile(`\d+(?:[.,]\d+)? sn sürdü`)
 )
 
 // numberBag bir çıktının sayılarını sıralı verir: metinler dile göre değişir, sayılar aynı
@@ -274,6 +276,7 @@ var (
 func numberBag(out, root string) []string {
 	out = strings.ReplaceAll(strings.ReplaceAll(out, filepath.ToSlash(root), ""), root, "")
 	out = progressLine.ReplaceAllString(out, "")
+	out = exampleElapsed.ReplaceAllString(out, "")
 	out = exampleRunPath.ReplaceAllString(out, "")
 	out = exampleRunDir.ReplaceAllString(out, "")
 	bag := exampleNumbers.FindAllString(out, -1)
@@ -284,11 +287,13 @@ func numberBag(out, root string) []string {
 // runExample örneği kendi (temiz) kök klasöründe çalıştırır: çıkış kodu 0, uyarı yok.
 func runExample(t *testing.T, root, lang, name string) []string {
 	t.Helper()
-	s := tr(t, root, filepath.ToSlash(filepath.Join("examples", lang, name)))
+	// Her yazım kendi dilinin etkin olduğu ortamda koşar (VS Code'da tr.yazimDili): yerleşik adı
+	// gölgeleyen kullanıcı adı uyarısı etkin dile bağlıdır (input, sample ... İngilizce yerleşiklerdir).
+	s := run(t, trBinary, root, "", []string{"TR_DIL=" + lang}, filepath.ToSlash(filepath.Join("examples", lang, name)))
 	if s.code != 0 {
 		t.Fatalf("examples/%s/%s çıkış kodu %d\n%s%s", lang, name, s.code, s.stdout, s.stderr)
 	}
-	if strings.Contains(s.stderr, "Uyar") {
+	if strings.Contains(s.stderr, "Uyar") || strings.Contains(s.stderr, "Warning") {
 		t.Errorf("examples/%s/%s uyarı verdi: %s", lang, name, s.stderr)
 	}
 	return numberBag(s.stdout+s.stderr, root)

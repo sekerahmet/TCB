@@ -20,7 +20,7 @@ A070 "tr/katman"
 A070 "tr/iyilestirici"
 
 A030 config = G801({Y500: 100, batch: 8, context: 32, width: 32, layers: 2, heads: 4,
-    muon_rate: 0.02, adamw_rate: 0.01, normuon: A041, run: "runs/gpt_example"},
+        muon_rate: 0.02, adamw_rate: 0.01, normuon: A041, run: "runs/gpt_example"},
     G910: "Trains a small GPT built from ready-made layers with Muon + AdamW",
     G911: {Y500: "total training steps", run: "run folder (settings, log, checkpoints)",
         normuon: "NorMuon instead of Muon for the hidden weights"})
@@ -46,9 +46,9 @@ A001 ckpt.Y520 < config.Y500 {
     A030 bar = G811(config.Y500, G912: run_log)
     A010 step A011 ckpt.Y520..config.Y500 {
         opt.çarpan_ayarla(oran_planı(step, config.Y500, ısınma: G210(config.Y500 / 10), azalma: 0.3))
-        A030 input, target = sampler.Y602()
+        A030 tokens, target = sampler.Y602()
         opt.Y501()
-        A030 loss = model.kayıp(input, target)
+        A030 loss = model.kayıp(tokens, target)
         T300(loss)
         opt.Y500()
         bar.Y010({loss: loss}, T982: step + 1)

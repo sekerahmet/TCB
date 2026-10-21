@@ -61,8 +61,8 @@ A030 E = param([V, D], 0.1)
 A030 W1 = param([D, HIDDEN], 0.1)
 A030 W2 = param([HIDDEN, V], 0.1)
 
-A020 forward(input) {
-    A021 T203(T500(E, input) @ W1) @ W2
+A020 forward(tokens) {
+    A021 T203(T500(E, tokens) @ W1) @ W2
 }
 
 // --- Training ---
@@ -73,9 +73,9 @@ A030 run_log = A001 config.log_file != A042 { G810(config.log_file) } A002 { A04
 A030 bar = G811(STEPS, G912: run_log)
 A030 last_loss = 0.0
 A010 step A011 0..STEPS {
-    A030 input, target = sampler.Y602()
+    A030 tokens, target = sampler.Y602()
     optimizer.Y501()
-    A030 loss = T510(forward(input), target)
+    A030 loss = T510(forward(tokens), target)
     T300(loss)
     optimizer.Y500()
     bar.Y010({loss: loss})

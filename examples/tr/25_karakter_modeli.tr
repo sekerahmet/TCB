@@ -21,7 +21,7 @@ değişken BELGELER = [
 ]
 değişken metin_verisi = ""
 döngü belge_yolu içinde BELGELER {
-    metin_verisi += dosya_oku(belge_yolu)
+    metin_verisi += dosya_oku("../../" + belge_yolu)
 }
 
 // --- Karakter sözlüğü ---

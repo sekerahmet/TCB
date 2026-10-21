@@ -29,8 +29,8 @@ A020 param(shape, scale) {
     A021 T100(T301(T103(shape, T903: param_seed) * scale), T900: A040)
 }
 A030 model = {E: param([V, 32], 0.1), W1: param([32, 64], 0.1), W2: param([64, V], 0.1)}
-A020 forward(input) {
-    A021 T203(T500(model.E, input) @ model.W1) @ model.W2
+A020 forward(tokens) {
+    A021 T203(T500(model.E, tokens) @ model.W1) @ model.W2
 }
 A030 opt = T400(T530(model), T910: config.Y504, T911: 0.0)
 
@@ -46,9 +46,9 @@ A030 ckpt = T702(RUN, {model: model, opt: opt, reader: sampler, run_log: run_log
 A001 ckpt.Y520 < config.Y500 {
     A030 bar = G811(config.Y500, G912: run_log)
     A010 step A011 ckpt.Y520..config.Y500 {
-        A030 input, target = sampler.Y602()
+        A030 tokens, target = sampler.Y602()
         opt.Y501()
-        A030 loss = T510(forward(input), target)
+        A030 loss = T510(forward(tokens), target)
         T300(loss)
         opt.Y500()
         A001 loss.Y404 < tracked.best_loss { tracked.best_loss = loss.Y404 }

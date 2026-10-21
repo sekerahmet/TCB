@@ -94,8 +94,8 @@ A010 step A011 0..300 {
 }
 
 // Did it learn? Give it a sequence and print the predictions.
-A030 sample = make_batch()
-A030 prediction = T301 { forward(sample[0]) }
+A030 probe = make_batch()
+A030 prediction = T301 { forward(probe[0]) }
 A030 scores = prediction.Y404[0] // the [T, V] output of the first sequence
 A030 predictions = []
 A010 row A011 scores {
@@ -105,7 +105,7 @@ A010 row A011 scores {
     }
     predictions.Y004(best)
 }
-G100("input     : {sample[0][0]}")
+G100("input     : {probe[0][0]}")
 G100("prediction: {predictions}")
 
 // --- Try it yourself ---

@@ -22,7 +22,7 @@ A030 DOCUMENTS = [
 ]
 A030 text_data = ""
 A010 document_path A011 DOCUMENTS {
-    text_data += G110(document_path)
+    text_data += G110("../../" + document_path)
 }
 
 // --- Character vocabulary ---
