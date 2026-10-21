@@ -82,18 +82,27 @@ function create(vscode, g) {
         return watcher;
     }
 
+    // Kısıtlı kipte (güvenilmeyen çalışma alanı) görünüm şeması da salt okunurdur: tr-kodlu:
+    // adresi elle verilse bile yerel diske yazılmaz, silinmez, taşınmaz.
+    const writable = (fn) => (uri, ...rest) => {
+        if (!vscode.workspace.isTrusted) {
+            throw vscode.FileSystemError.NoPermissions(uri);
+        }
+        return fn(uri, ...rest);
+    };
+
     const viewEmitter = new vscode.EventEmitter();
     const view = {
         onDidChangeFile: viewEmitter.event,
         watch: (uri, options) => watchFile(viewEmitter, uri, options),
         stat,
         readDirectory,
-        createDirectory: (uri) => wrap(uri, () => fs.promises.mkdir(g.localPath(uri))),
+        createDirectory: writable((uri) => wrap(uri, () => fs.promises.mkdir(g.localPath(uri)))),
         readFile: (uri) => wrap(uri, async () => {
             const filePath = g.localPath(uri);
             return g.readView(filePath, await fs.promises.readFile(filePath));
         }),
-        writeFile: (uri, content, options) => wrap(uri, async () => {
+        writeFile: writable((uri, content, options) => wrap(uri, async () => {
             const filePath = g.localPath(uri);
             let disk;
             try {
@@ -110,15 +119,15 @@ function create(vscode, g) {
                 throw vscode.FileSystemError.FileExists(uri);
             }
             await fs.promises.writeFile(filePath, await g.saveText(filePath, content, disk));
-        }),
-        delete: (uri, options) => wrap(uri, () => fs.promises.rm(g.localPath(uri), { recursive: !!(options && options.recursive) })),
-        rename: (oldUri, newUri, options) => wrap(oldUri, async () => {
+        })),
+        delete: writable((uri, options) => wrap(uri, () => fs.promises.rm(g.localPath(uri), { recursive: !!(options && options.recursive) }))),
+        rename: writable((oldUri, newUri, options) => wrap(oldUri, async () => {
             const target = g.localPath(newUri);
             if (!(options && options.overwrite) && fs.existsSync(target)) {
                 throw vscode.FileSystemError.FileExists(newUri);
             }
             await fs.promises.rename(g.localPath(oldUri), target);
-        })
+        }))
     };
 
     const rawEmitter = new vscode.EventEmitter();

@@ -428,6 +428,31 @@ test('yazım dili en, kısıtlı kip: kodsuz dosya Türkçe ve düzenlenebilir k
     assert.strictEqual(o.log.infos.length + o.log.warnings.length, 0);
 });
 
+// Kural: güvenilmeyen çalışma alanında tr-kodlu: şeması da salt okunurdur; adresi elle verilse
+// bile yazma, silme, taşıma ve klasör oluşturma yerel diske dokunmaz (SECURITY.md: kısıtlı
+// kipte yerel diske yazılmaz). Neden: görünüm sağlayıcısı kısıtlı kipte yönlendirmeye güveniyordu,
+// kendisi güven denetimi yapmıyordu.
+test('kısıtlı kipte tr-kodlu: yazma, silme, taşıma ve klasör oluşturma reddedilir', async () => {
+    const dir = makeFolder();
+    const filePath = path.join(dir, 'program.tr');
+    const original = '//! tr kodlu 1\nA030 x = 1\n';
+    fs.writeFileSync(filePath, original, 'utf8');
+    const o = setup({ folder: dir, trusted: false });
+    const codedUri = Uri.file(filePath).with({ scheme: 'tr-kodlu' });
+    const provider = o.filesystems['tr-kodlu'].p;
+    const attempts = {
+        writeFile: () => provider.writeFile(codedUri, Buffer.from('ÜZERİNE_YAZILDI\n', 'utf8'), { create: true, overwrite: true }),
+        delete: () => provider.delete(codedUri, { recursive: false }),
+        rename: () => provider.rename(codedUri, Uri.file(path.join(dir, 'baska.tr')).with({ scheme: 'tr-kodlu' }), { overwrite: true }),
+        createDirectory: () => provider.createDirectory(Uri.file(path.join(dir, 'yeni')).with({ scheme: 'tr-kodlu' })),
+    };
+    for (const [name, attempt] of Object.entries(attempts)) {
+        await assert.rejects(async () => attempt(), undefined, `kısıtlı kipte ${name} reddedilmeli`);
+    }
+    assert.strictEqual(fs.readFileSync(filePath, 'utf8'), original);
+    assert.deepStrictEqual(fs.readdirSync(dir), ['program.tr']);
+}, false);
+
 (async () => {
     let passed = 0;
     let skipped = 0;
