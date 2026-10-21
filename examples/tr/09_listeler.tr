@@ -1,6 +1,6 @@
 // 09 — Listeler: birçok değeri sıralı tutmak.
 // Ne öğretir: liste kurmak, indeksle okumak ve yazmak (negatif indeks sondan sayar), ekle, uzunluk,
-// döngüyle gezmek, sırala, ters_çevir, toplam/ortalama, liste üreteci, çoklu atama ve takas.
+// döngüyle gezmek, sırala, ters_çevir, toplam/ortalama, liste üreteci, birleştir, varsa_al, çoklu atama ve takas.
 // Önceki örnekten: döngüler (07), fonksiyonlar (08), metin (04).
 // Çalıştırma (proje kökünden): tr examples/tr/09_listeler.tr
 
@@ -40,6 +40,12 @@ yazdır("17 / 5 = {bölüm}, kalan {kalan}")
 değişken a, b = 10, 20
 a, b = b, a
 yazdır("a = {a}, b = {b}")
+
+// birleştir elemanları aralarına ayırıcı koyarak tek metin yapar.
+yazdır(["a", "b", "c"].birleştir(", "))
+
+// l[i] sınır dışında hata verir; varsa_al ise yok verir, ?? ile varsayılana düşülür.
+yazdır(sayılar.varsa_al(1), sayılar.varsa_al(99) ?? 0, "ab".varsa_al(-1))
 
 // --- Kendin dene ---
 // 1. Bir not listesi kur; en yüksek, en düşük ve ortalamayı yazdır.

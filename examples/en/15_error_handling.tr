@@ -1,7 +1,7 @@
 //! tr kodlu 1
 // 15 — Error handling: managing the program properly when something unexpected happens.
 // What it teaches: catching an error with try/catch, raising your own with throw,
-// deciding where an error is handled.
+// deciding where an error is handled, the error variable in a catch without a name.
 // Builds on: functions (08), conditions (05); in 06 int("abc") would fail, here it is handled.
 // Run (from the project root): tr examples/en/15_error_handling.tr
 
@@ -35,6 +35,13 @@ A020 safe_convert(word, fallback) {
 }
 G100(safe_convert("42", 0))
 G100(safe_convert("abc", 0))
+
+// If catch is given no name the error message comes in the variable named error.
+A060 {
+    A062 "it blew up"
+} A061 {
+    G100("caught: {A103}")
+}
 
 // --- Try it yourself ---
 // 1. Write a function that wants the mean of an empty list; throw an error when it is empty and catch it.

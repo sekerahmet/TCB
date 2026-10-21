@@ -1,0 +1,40 @@
+// 12 — Tip adları: değerlerin tipini sormak ve bildirmek.
+// Ne öğretir: tip() ve tip adlarının (Mantık, Yok, Liste, Sözlük, Aralık, Fonksiyon,
+// YerleşikFonksiyon, Herhangi, Tip) ifadede değer olması, ad: Tip ile tip bildirmek.
+// Önceki örnekten: tipler (03), listeler (09), ok fonksiyonları (10), sözlükler (11).
+// Çalıştırma (proje kökünden): tr examples/tr/12_tip_adlari.tr
+
+// tip(değer) tipi verir; tip adları da ifadede değerdir, == ile karşılaştırılır.
+değişken liste = [1, "iki", 3.0]
+yazdır(tip(liste) == Liste, tip(liste))
+değişken sözlük = {"ad": "Ali"}
+yazdır(tip(sözlük) == Sözlük, sözlük["ad"])
+yazdır(tip(doğru) == Mantık, tip(yok) == Yok)
+
+// Aralık a..b (b hariç) ya da a..=b (b dahil) yazımının tipidir; aralık(n) ise bir Liste verir.
+yazdır(tip(1..5) == Aralık, tip(aralık(5)) == Liste, aralık(5))
+
+// Fonksiyonlar birinci sınıf değerdir: ok fonksiyonu ve fonksiyon Fonksiyon,
+// dilin kendi fonksiyonları YerleşikFonksiyon tipindedir.
+değişken kare = x => x * x
+yazdır(tip(kare) == Fonksiyon, tip(yazdır) == YerleşikFonksiyon, kare(7))
+
+// Tip bildirimi: ad: Tip. Tip denetleyicisi yanlış atamayı program çalışmadan yakalar.
+değişken hazır: Mantık = doğru
+değişken boş: Yok = yok
+değişken sayılar: Liste = [1, 2, 3]
+yazdır(hazır, boş, sayılar)
+
+// Herhangi: her değer verilebilir, tipi bilinmeyen değerler için kullanılır.
+fonksiyon kimlik(x: Herhangi) {
+    sonuç x
+}
+yazdır(kimlik(5), kimlik("beş"), kimlik([1, 2]))
+
+// tip() sonucunun kendi tipi de Tip'tir ve bir değişkende saklanabilir.
+değişken t: Tip = tip(42)
+yazdır(t == Tam, t, tip(t))
+
+// --- Kendin dene ---
+// 1. tip(tip(1)) == Tip değerini yazdır.
+// 2. Bir listedeki değerleri tip(x) == Tam ile süzerek yalnızca tam sayıları bırak.

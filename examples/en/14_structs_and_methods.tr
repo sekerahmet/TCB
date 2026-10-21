@@ -1,7 +1,7 @@
 //! tr kodlu 1
 // 14 — Structs and methods: keeping related data and the work tied to it together.
 // What it teaches: struct definitions, fields and default values, methods, self, creating
-// objects (positional and named), updating fields.
+// objects (positional and named), updating fields, init, StructType and Object.
 // Builds on: functions (08), lists (09), dicts (11).
 // Run (from the project root): tr examples/en/14_structs_and_methods.tr
 
@@ -38,6 +38,21 @@ A050 Point {
 }
 A030 points = [Point(3.0, 4.0), Point(6.0, 8.0)]
 G100(points.Y201 { A104.distance() })
+
+// A method named init is called when an object is created; it can start the fields from a calculation.
+A050 Account {
+    balance
+
+    A020 A102(first) {
+        A051.balance = first * 2
+    }
+}
+G100(Account(5).balance)
+
+// The struct itself is of the type StructType; the type of an object is the struct itself.
+// Object is the general name of every value made from a struct (used in type declarations).
+A030 account: A211 = Account(1)
+G100(G201(Account) == A210, G201(account) == Account)
 
 // --- Try it yourself ---
 // 1. Write a Rectangle struct (width, depth) and add area() and perimeter() methods.

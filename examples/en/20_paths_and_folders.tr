@@ -1,0 +1,47 @@
+//! tr kodlu 1
+// 20 — Paths and folders: managing the file system.
+// What it teaches: building a Path with path() and its properties (name, extension, stem, parent,
+// exists, is_file, is_dir, size), make_dir, list_dir, copy, move, remove, overwrite and recursive,
+// read_lines with a line reader and close.
+// Builds on: files and JSON (19), text (04), lists (09).
+// Run (from the project root): tr examples/en/20_paths_and_folders.tr
+// Everything happens in a temporary folder (deleted when the program ends, no trace in the repo).
+
+A030 base = G126()
+
+// path(...) joins parts; a Path cannot be changed and is shown with /. Its properties ask the path questions.
+A030 p = G120(base, "data", "corpus.tar.gz")
+G100(G201(p) == A250, p.Y310, p.Y311, p.Y312, p.Y313.Y310)
+
+// Creating folders and files; every built-in that takes a path accepts a Path instead of a String.
+G122(G120(base, "data", "sub"))
+G111(G120(base, "data", "a.txt"), "welcome")
+G111(G120(base, "data", "sub", "b.txt"), "world!")
+G100(G120(base, "data", "a.txt").Y316, G120(base, "data").Y317, G120(base, "missing").Y315)
+G100("size of a.txt:", G120(base, "data", "a.txt").Y318, "bytes")
+
+// list_dir gives the files and folders that fit the pattern as a sorted list of Paths (** goes into subfolders).
+G100(G121(G120(base, "data"), "**/*.txt").Y201 { A104.Y310 })
+
+// copy and move return the path of the target. If the target exists, overwrite: true is needed.
+G124(G120(base, "data", "a.txt"), G120(base, "data", "sub"))
+G111(G120(base, "fresh.txt"), "fresh content")
+G124(G120(base, "fresh.txt"), G120(base, "data", "a.txt"), G900: A040)
+G100(G110(G120(base, "data", "a.txt")))
+G125(G120(base, "fresh.txt"), G120(base, "moved.txt"))
+G100(G120(base, "fresh.txt").Y315, G120(base, "moved.txt").Y315)
+
+// remove gives the number of removed files; a full folder needs recursive: true.
+G100(G123(G120(base, "moved.txt")))
+G100(G123(G120(base, "data"), G901: A040))
+
+// read_lines reads a file as a stream, line by line (a LineReader): memory does not depend on the file.
+G111(G120(base, "notes.txt"), "one\ntwo\nthree")
+A030 reader = G112(G120(base, "notes.txt"))
+G100(G201(reader) == A257, reader.Y602(), reader.Y602())
+// close lets go of the file without reading to the end: true on the first call, false afterwards.
+G100(reader.Y012(), reader.Y012())
+
+// --- Try it yourself ---
+// 1. List only the names of the files with the .tr extension in a folder.
+// 2. Copy a file as backup.txt, remove the original and show that the backup lives.

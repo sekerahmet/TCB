@@ -1,6 +1,6 @@
 // 15 — Hata yönetimi: beklenmedik durumda programı düzgün yönetmek.
 // Ne öğretir: dene/yakala ile hatayı yakalamak, fırlat ile kendi hatanı üretmek,
-// hatanın nerede ele alınacağına karar vermek.
+// hatanın nerede ele alınacağına karar vermek, ad verilmeyen yakala'da hata değişkeni.
 // Önceki örnekten: fonksiyonlar (08), koşullar (05); 06'da tam("abc") hata verirdi, burada yönetilir.
 // Çalıştırma (proje kökünden): tr examples/tr/15_hata_yonetimi.tr
 
@@ -34,6 +34,13 @@ fonksiyon güvenli_çevir(yazı, varsayılan_değer) {
 }
 yazdır(güvenli_çevir("42", 0))
 yazdır(güvenli_çevir("abc", 0))
+
+// yakala'ya ad verilmezse hata iletisi hata adlı değişkende gelir.
+dene {
+    fırlat "patladı"
+} yakala {
+    yazdır("yakalandı: {hata}")
+}
 
 // --- Kendin dene ---
 // 1. Boş listenin ortalamasını isteyen bir fonksiyon yaz; boşsa fırlat ile hata ver ve yakala.

@@ -1,0 +1,46 @@
+// 20 — Yollar ve klasörler: dosya sistemini yönetmek.
+// Ne öğretir: yol() ile Yol kurmak ve özellikleri (dosya_adı, uzantı, uzantısız_ad, üst_klasör,
+// var_mı, dosya_mı, klasör_mü, bayt), klasör_oluştur, klasörü_listele, kopyala, taşı, sil,
+// üzerine_yaz ve içindekilerle, dosya_satırları ile satır okuyucu ve kapat.
+// Önceki örnekten: dosya ve JSON (19), metin (04), listeler (09).
+// Çalıştırma (proje kökünden): tr examples/tr/20_yollar_ve_klasorler.tr
+// Her şey geçici klasörde yapılır (program bitince silinir, depoda iz kalmaz).
+
+değişken kök = geçici_klasör()
+
+// yol(...) parçaları birleştirir; Yol değiştirilemez ve / ile gösterilir. Özellikleri yola soru sorar.
+değişken y = yol(kök, "veri", "derlem.tar.gz")
+yazdır(tip(y) == Yol, y.dosya_adı, y.uzantı, y.uzantısız_ad, y.üst_klasör.dosya_adı)
+
+// Klasör ve dosya oluşturmak; yol alan her yerleşik Metin yerine Yol da kabul eder.
+klasör_oluştur(yol(kök, "veri", "alt"))
+dosya_yaz(yol(kök, "veri", "a.txt"), "merhaba")
+dosya_yaz(yol(kök, "veri", "alt", "b.txt"), "dünya!")
+yazdır(yol(kök, "veri", "a.txt").dosya_mı, yol(kök, "veri").klasör_mü, yol(kök, "yok").var_mı)
+yazdır("a.txt boyutu:", yol(kök, "veri", "a.txt").bayt, "bayt")
+
+// klasörü_listele kalıba uyan dosya ve klasörleri sıralı Yol listesi olarak verir (** alt klasörlere iner).
+yazdır(klasörü_listele(yol(kök, "veri"), "**/*.txt").haritala { o.dosya_adı })
+
+// kopyala ve taşı hedefin yolunu döndürür. Hedef zaten varsa üzerine_yaz: doğru gerekir.
+kopyala(yol(kök, "veri", "a.txt"), yol(kök, "veri", "alt"))
+dosya_yaz(yol(kök, "yeni.txt"), "yeni içerik")
+kopyala(yol(kök, "yeni.txt"), yol(kök, "veri", "a.txt"), üzerine_yaz: doğru)
+yazdır(dosya_oku(yol(kök, "veri", "a.txt")))
+taşı(yol(kök, "yeni.txt"), yol(kök, "taşındı.txt"))
+yazdır(yol(kök, "yeni.txt").var_mı, yol(kök, "taşındı.txt").var_mı)
+
+// sil silinen dosya sayısını verir; dolu klasör için içindekilerle: doğru gerekir.
+yazdır(sil(yol(kök, "taşındı.txt")))
+yazdır(sil(yol(kök, "veri"), içindekilerle: doğru))
+
+// dosya_satırları dosyayı akışla satır satır okur (SatırOkuyucu): bellek dosyadan bağımsızdır.
+dosya_yaz(yol(kök, "notlar.txt"), "bir\niki\nüç")
+değişken okuyucu = dosya_satırları(yol(kök, "notlar.txt"))
+yazdır(tip(okuyucu) == SatırOkuyucu, okuyucu.sonraki(), okuyucu.sonraki())
+// kapat dosyayı sonuna kadar okumadan bırakır: ilk çağrıda doğru, sonrakilerde yanlış verir.
+yazdır(okuyucu.kapat(), okuyucu.kapat())
+
+// --- Kendin dene ---
+// 1. Bir klasörde yalnızca .tr uzantılı dosyaların adlarını listele.
+// 2. Bir dosyayı yedek.txt adıyla kopyala, asıl dosyayı sil ve yedeğin yaşadığını göster.

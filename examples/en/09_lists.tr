@@ -1,7 +1,7 @@
 //! tr kodlu 1
 // 09 — Lists: keeping many values in order.
 // What it teaches: building a list, reading and writing by index (a negative index counts from the end), append,
-// length, walking with a loop, sort, reverse, sum/mean, list comprehensions, multiple assignment and swap.
+// length, walking with a loop, sort, reverse, sum/mean, list comprehensions, join, get, multiple assignment and swap.
 // Builds on: loops (07), functions (08), text (04).
 // Run (from the project root): tr examples/en/09_lists.tr
 
@@ -41,6 +41,12 @@ G100("17 / 5 = {quotient}, remainder {remainder}")
 A030 a, b = 10, 20
 a, b = b, a
 G100("a = {a}, b = {b}")
+
+// join puts a separator between the elements and makes one text.
+G100(["a", "b", "c"].Y203(", "))
+
+// l[i] fails out of range; get gives none instead, and ?? falls back to a default.
+G100(numbers.Y013(1), numbers.Y013(99) ?? 0, "ab".Y013(-1))
 
 // --- Try it yourself ---
 // 1. Build a list of grades; print the highest, the lowest and the mean.

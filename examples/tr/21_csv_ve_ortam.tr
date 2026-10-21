@@ -1,0 +1,35 @@
+// 21 — CSV, ortam değişkenleri ve zaman: dış dünyadan veri almak.
+// Ne öğretir: csv_çöz ve csv_oku ile tablo okumak, ortam_değişkeni ile ortamdan ayar almak,
+// zaman_ms ile süre ölçmek.
+// Önceki örnekten: dosya ve JSON (19), yollar (20), listeler (09), yok ve ?? (03).
+// Çalıştırma (proje kökünden): tr examples/tr/21_csv_ve_ortam.tr
+// CSV dosyası geçici klasöre yazılır (program bitince silinir).
+
+// csv_çöz CSV metnini satır listelerine çevirir (dosya okumaz). Katı sayı biçimindeki hücre sayı olur;
+// "007" gibi baştaki sıfırlı hücre Metin kalır.
+değişken tablo = csv_çöz("ad,yaş,numara\nAli,30,007\nAyşe,25,008")
+yazdır(tablo[0], tablo[1])
+yazdır(tablo[1][1] + 1, tip(tablo[1][1]), tip(tablo[1][2]))
+
+// csv_oku aynı işi dosya için yapar.
+değişken dosya = yol(geçici_klasör(), "tablo.csv")
+dosya_yaz(dosya, "ürün,adet\nelma,3\nmuz,5")
+değişken satırlar = csv_oku(dosya)
+yazdır("satır sayısı:", satırlar.uzunluk)
+döngü satır içinde satırlar {
+    yazdır(satır)
+}
+// Başlık satırında adet bir Metin, veri satırlarında bir Tam: yalnızca sayıları toplarız.
+yazdır("toplam adet:", toplam([satır[1] döngü satır içinde satırlar eğer tip(satır[1]) == Tam]))
+
+// ortam_değişkeni tanımsızsa yok verir; varsayılan için ?? yazılır.
+yazdır(ortam_değişkeni("TR_ORNEK_OLMAYAN_DEGISKEN") ?? "varsayılan değer")
+
+// zaman_ms 1970'ten beri geçen milisaniyedir; iki ölçümün farkı süredir.
+değişken baş = zaman_ms()
+bekle(0.05)
+yazdır("en az 50 ms geçti mi:", zaman_ms() - baş >= 50)
+
+// --- Kendin dene ---
+// 1. Kendi CSV metnini çöz ve yaş sütununun ortalamasını hesapla.
+// 2. Bir döngünün kaç ms sürdüğünü zaman_ms ile ölç.
