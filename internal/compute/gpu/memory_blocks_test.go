@@ -75,10 +75,10 @@ func TestLargeBlocksReuseAndReclaim(t *testing.T) {
 	g.release(d)
 }
 
-// Küçük blok ayırmada sürücü errNoMemory döndürdüğünde reclaimMemory çöp toplayıcıyla
-// havuza dönen bloğu al() ile alırsa (live += class), driverAlloc üstüne bir de
-// newBlock(class) çağırarak live, reserved ve driverAllocs sayaçlarını iki kez artırır.
-func TestSmallReclaimFromPoolKeepsMemoryStats(t *testing.T) {
+// Kural: çöp toplayıcıyla havuza dönen küçük bir blok yeniden verilirken yeni bir sürücü
+// ayırması sayılmaz. Neden: al() live'ı zaten artırır; driverAlloc newBlock'u da çağırırsa live,
+// reserved ve driverAllocs iki kez artar ve bloklar bırakılsa da Live 0'a inmez.
+func TestSmallBlockReclaimKeepsMemoryStats(t *testing.T) {
 	const total = 1 << 20 // 1 MB
 	const half = 1 << 19  // 512 KB (<= smallLimit)
 	g := newSimBackend(total)

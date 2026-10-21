@@ -119,7 +119,9 @@ func TestCastMemoSkipsDroppedEntry(t *testing.T) {
 	}
 }
 
-func TestNonContiguousReshapeReturnsStorageOnDrop(t *testing.T) {
+// Kural: bitişik olmayan tensörün Reshape'i ara kopyasının başlığını bırakır; sonuç bırakılınca
+// depolama havuza döner (15.44). Neden: ara başlık sahip kalırsa depolama hiç dönmez.
+func TestReshapeOfNonContiguousReturnsStorageOnDrop(t *testing.T) {
 	log := watchReturns(t)
 	x := big(rand.New(rand.NewSource(1)))
 	v := x.Transpose(0, 1)
@@ -132,7 +134,10 @@ func TestNonContiguousReshapeReturnsStorageOnDrop(t *testing.T) {
 	}
 }
 
-func TestMultiOutputCustomOpBackwardReturnsTempGradStorages(t *testing.T) {
+// Kural: CustomOp geri hesabının gelen gradyanları ve ürettiği ara gradyanlar geri hesaptan
+// sonra havuza döner (15.44). Neden: bu başlıkları kimse bırakmazsa depolamaları çöp
+// toplayıcıya kalır.
+func TestCustomOpBackwardReturnsItsTemporaryGradients(t *testing.T) {
 	x := big(rand.New(rand.NewSource(1))).SetRequiresGrad(true)
 	var g0, g1, gx *Tensor
 	outs := CustomOp("test_iki_cikti", []*Tensor{x}, []*Tensor{x.MulScalar(2), x.MulScalar(3)}, nil, func(_ any, grads []*Tensor) []*Tensor {

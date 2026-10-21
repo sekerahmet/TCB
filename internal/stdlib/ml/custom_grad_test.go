@@ -263,9 +263,9 @@ func (d *auditSecondDevice) Release(s tensor.Storage) {
 	}
 }
 
-// türev_denetle varsayılan cihazdan farklı bir cihazdaki tensörlerle çağrıldığında
-// girdi kopyalarını ve yön vektörlerini tensörün kendi cihazında oluşturmalıdır.
-func TestCheckGradNonDefaultDevice(t *testing.T) {
+// Kural: türev_denetle girdi kopyalarını ve yön vektörlerini tensörlerin kendi cihazında kurar.
+// Neden: varsayılan cihazda kurulursa başka cihazdaki tensörlerle işlem cihaz uyuşmazlığı verir.
+func TestCheckGradBuildsCopiesOnTheInputDevice(t *testing.T) {
 	tensor.RegisterBackend(&auditSecondDevice{Backend: tensor.BackendFor(tensor.CPU)})
 	out, err := run(t, `değişken w = tensör([2.0, 3.0]).cihaza("gpu:99")
 değişken x = tensör([1.0, 4.0], türev_izle: doğru).cihaza("gpu:99")
@@ -275,9 +275,9 @@ yazdır(türev_denetle((a) => a * w, [x]))`)
 	}
 }
 
-// Adlı argümanla yapılan saf tensör metodu çağrısı (x.böl(2, eksen: 0)) alıcı
-// tensörü kaçırmamalı ve kapsam sonunda belirlenimci olarak bırakmalıdır (15.44).
-func TestNamedArgMethodCallDropsReceiverAtScopeExit(t *testing.T) {
+// Kural: adlı argümanlı tensör metodu çağrısı (x.böl(2, eksen: 0)) alıcıyı kaçırmaz; yerel tensör
+// kapsam sonunda konumlu çağrıdaki gibi bırakılır (15.44).
+func TestNamedArgumentMethodCallReleasesReceiverAtScopeExit(t *testing.T) {
 	m := interp.New()
 	m.Out = &bytes.Buffer{}
 	var captured *tensor.Tensor
@@ -305,9 +305,10 @@ sına()
 	}
 }
 
-// x.cihaza("cpu") (aynı cihazda) ve toplam([x]) (tek elemanlı listede) var olan
-// başlığı sarmalarken sahipliği bozmamalı, kapsam sonunda başlık düşmelidir.
-func TestSameDeviceToDeviceAndSingleTensorListSumDropAtScopeExit(t *testing.T) {
+// Kural: var olan başlığı aynen döndüren işlemler (aynı cihaza cihaza, tek tensörlü toplam)
+// başlığı ikinci kez sarmaz; yerel tensör kapsam sonunda bırakılır (15.44). Neden: ikinci
+// sarıcı sahipliği alamaz ve başlık hiç düşmez.
+func TestRewrappingBuiltinsKeepSingleOwner(t *testing.T) {
 	for _, expr := range []string{`x.cihaza("cpu")`, `toplam([x])`} {
 		m := interp.New()
 		m.Out = &bytes.Buffer{}
@@ -331,9 +332,10 @@ func TestSameDeviceToDeviceAndSingleTensorListSumDropAtScopeExit(t *testing.T) {
 	}
 }
 
-// x[0] indekslemesi ve maks(x) ara görünüm başlıklarını düşürmediği için
-// yerel tensör kapsam sonunda bırakılsa bile depolaması arka uca iade edilmez (15.44).
-func TestTensorIndexAndWholeMaxReturnStorageAtScopeExit(t *testing.T) {
+// Kural: x[i] ve maks(x) ara görünüm başlıklarını bırakır; yerel tensör bırakılınca depolaması
+// arka uca iade edilir (15.44). Not: sondaki 'değişken' deyimi dönüş değeridir, bu yüzden
+// fonksiyonun son satırı başka bir deyimdir.
+func TestIndexAndWholeReductionsReturnStorageAtScopeExit(t *testing.T) {
 	for _, stmt := range []string{`değişken y = x[0]`, `değişken y = maks(x)`} {
 		dev := &auditSecondDevice{Backend: tensor.BackendFor(tensor.CPU)}
 		tensor.RegisterBackend(dev)

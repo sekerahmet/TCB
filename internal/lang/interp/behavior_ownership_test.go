@@ -414,9 +414,10 @@ yazdır(oku(r), bırakılan().uzunluk)
 7 6`)
 }
 
-// Varsayılan parametre ifadesindeki kapanış fonksiyon ortamını yakaladığında,
-// yakalanan kaynağın erken bırakılmaması ve ortam havuzunun sıfırlanmaması gerekir.
-func TestDefaultParamClosureCapturesEnv(t *testing.T) {
+// Kural: varsayılan parametre ifadesindeki kapanış fonksiyonun ortamını yakalar; ortam havuzlanmaz
+// ve yakalanan kaynak çağrı dönünce bırakılmaz. Neden: yoksa kaynak erken bırakılır ve ortam
+// havuza sıfırlanarak verilir, kapanışı çağırmak 'ad yok' hatası verir.
+func TestDefaultParamClosureKeepsFunctionEnvironment(t *testing.T) {
 	expectOut(t, `
 fonksiyon kur(x = yeni(), g = () => oku(x)) {
     sonuç g
@@ -429,9 +430,10 @@ yazdır(f())
 1`)
 }
 
-// Hızlı çağrı yolunda sonraki bir argüman hata verdiğinde, daha önce fnEnv'e
-// bağlanmış argümanların bağ sayacı çözülmeli ve kapsam sonunda bırakılmalıdır.
-func TestCallArgErrorUnbindsEarlierArgs(t *testing.T) {
+// Kural: hızlı çağrı yolunda sonraki bir argüman hata verirse önceki argümanların bağı çözülür
+// ve kaynakları kapsam sonunda bırakılır. Neden: hata yakalansa bile bağ sayacı kalırsa
+// kaynak hiç bırakılmaz.
+func TestFailingCallArgumentReleasesEarlierArguments(t *testing.T) {
 	expectOut(t, `
 fonksiyon hedef(a, b) { sonuç a }
 fonksiyon patla() { fırlat "hata" }

@@ -346,7 +346,7 @@ func TestEncodeKeepsLineStructure(t *testing.T) {
 // (ör. İngilizcede 'var yazdır = 2; print(yazdır)' → 'A030 yazdır = 2; G100(yazdır)'),
 // etkin dilde Decode(coded, codes.Active()) '$yazdır' kaçışını geri kodlayamadığı için
 // ErrLossy ile başarısız olmamalıdır.
-func TestAuditDecodeEscapedBuiltinCollisionInActiveLanguage(t *testing.T) {
+func TestDecodeKeepsEscapedUserNameApartFromBuiltin(t *testing.T) {
 	coded := Header + "\nA030 yazdır = 2\nG100(yazdır)\n"
 	got, err := Decode(coded, codes.Active())
 	if err != nil {
@@ -358,10 +358,10 @@ func TestAuditDecodeEscapedBuiltinCollisionInActiveLanguage(t *testing.T) {
 	}
 }
 
-// Adı yazılmamış 'yakala { ... }' bloğu içinde kullanıcı 'değişken hata = 10' tanımlayarak
-// örtük 'hata' adını gölgelediğinde, 'hata' okuması örtük A103 koduyla değil kullanıcı
-// değişkeni olarak kodlanmalıdır.
-func TestEncodeCatchBlockShadowedErrorVar(t *testing.T) {
+// Kural: adı yazılmamış 'yakala' bloğunda kullanıcının 'değişken hata' tanımı örtük 'hata'yı
+// gölgeler; okuma örtük A103 koduyla değil kullanıcı adıyla kodlanır. Neden: yoksa başka
+// yazım dilinde program yanlış değişkeni okur.
+func TestEncodeKeepsUserErrorVarApartFromImplicitCatchName(t *testing.T) {
 	tr := "dene {\n    fırlat \"x\"\n} yakala {\n    değişken hata = 10\n    yazdır(hata)\n}\n"
 	coded, err := Encode(tr)
 	if err != nil {
