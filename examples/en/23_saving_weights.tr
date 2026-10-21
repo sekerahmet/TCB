@@ -1,0 +1,31 @@
+//! tr kodlu 1
+// 23 — Saving weights: writing a trained model to disk and loading it back.
+// What it teaches: save_tensors(path, dict), load_tensors(path), picking the most likely class with argmax.
+// Builds on: the training loop (21), the XOR network (22), dicts (11), file paths (17).
+// Run (from the project root): tr examples/en/23_saving_weights.tr
+// The weights file is written to a temporary folder (deleted when the program ends, no trace in the repo).
+
+// A small classifier: from two features (like height, weight) it picks one of three classes.
+A030 W = T100([[1.0, -1.0, 0.0], [0.0, 1.0, -1.0]], T900: A040)
+A030 b = T100([0.1, 0.0, -0.1], T900: A040)
+
+// The weights are written in a dict under their names; after loading they are read with the same names.
+A030 file = G120(G126(), "weights.trt")
+T700(file, {"W": W, "b": b})
+A030 loaded = T701(file)
+G100("names of the loaded ones: {loaded.Y300()}")
+G100("same W: {loaded["W"].Y404 == W.Y404}")
+
+// Prediction with the loaded weights: every row is an example, every column the score of a class.
+A030 samples = T100([[2.0, 0.5], [0.2, 1.8], [1.0, 1.0]])
+A030 scores = T301 { samples @ loaded["W"] + loaded["b"] }
+G100("scores =", scores)
+
+// argmax gives the column of the largest score in every row: the chosen class.
+A030 classes = T230(scores, T902: -1)
+A030 labels = ["cat", "dog", "bird"]
+G100("class indices: {classes.Y404} → {[labels[i] A010 i A011 classes.Y404]}")
+
+// --- Try it yourself ---
+// 1. Train the w and b of example 21, save them here, then load them and predict.
+// 2. Put an extra key in the loaded dict and save again.

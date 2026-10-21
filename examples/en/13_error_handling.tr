@@ -1,11 +1,11 @@
 //! tr kodlu 1
-// 07 — Error handling: managing the program properly when something unexpected happens.
-// What it teaches: try/catch, throw to raise your own error, defer for cleanup that
-// runs in every case (in reverse order).
-// Previous example: 06. Next: 08 (tests).
-// Run (from the project root): tr examples/en/07_error_handling.tr
+// 13 — Error handling: managing the program properly when something unexpected happens.
+// What it teaches: catching an error with try/catch, raising your own with throw,
+// deciding where an error is handled.
+// Builds on: functions (08), conditions (05); in 06 int("abc") would fail, here it is handled.
+// Run (from the project root): tr examples/en/13_error_handling.tr
 
-// When an error occurs the catch block runs and the program goes on
+// When an error occurs the program stops. An error in the try block goes to catch and the program goes on.
 A060 {
     A030 x = 10 / 0
     G100("never reached")
@@ -13,7 +13,7 @@ A060 {
     G100("caught: {error}")
 }
 
-// throw: raise your own error
+// throw: raise your own error. The function refuses input that breaks the rule.
 A020 check_age(age) {
     A001 age < 0 { A062 "age cannot be negative" }
     A021 age
@@ -21,17 +21,21 @@ A020 check_age(age) {
 A060 { check_age(-3) } A061 e { G100("caught: {e}") }
 G100("valid age: {check_age(30)}")
 
-// defer: runs when leaving the function, error or not, in reverse order
-A020 file_operation() {
-    A081 G100("  [defer 1] connection closed")
-    A081 G100("  [defer 2] cache cleared") // this one runs first
-    G100("  [work] processing data...")
-    A021 "success"
+// An error climbs up the call chain; the first catch deals with it.
+A020 to_number(word) {
+    A021 G210(word)
 }
-G100("returned: {file_operation()}")
+A020 safe_convert(word, fallback) {
+    A060 {
+        A021 to_number(word)
+    } A061 e {
+        G100("  '{word}' is not a number, using {fallback}")
+        A021 fallback
+    }
+}
+G100(safe_convert("42", 0))
+G100(safe_convert("abc", 0))
 
-A020 failing_operation() {
-    A081 G100("  [defer] cleaned up even though it failed")
-    A062 "operation failed"
-}
-A060 { failing_operation() } A061 e { G100("caught: {e}") }
+// --- Try it yourself ---
+// 1. Write a function that wants the mean of an empty list; throw an error when it is empty and catch it.
+// 2. Convert every text in a list to a number; skip the ones that cannot be converted.

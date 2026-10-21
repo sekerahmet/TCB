@@ -1,11 +1,12 @@
 //! tr kodlu 1
-// 08 — Tests: writing tests next to the code.
-// What it teaches: `test "name" { ... }` blocks, checking with assert(condition, [message]) and
-// assert_equal(expected, actual), testing that an error is thrown (try/catch).
+// 15 — Tests: writing tests next to the code.
+// What it teaches: `test "name" { ... }` blocks, checking with assert(condition, [message]) and assert_equal(expected, actual),
+// testing that an error is thrown.
+// Builds on: functions, structs, lists, error handling (08–13).
 // The file name ends in *_test.tr: `tr test` finds only files with that name in a folder.
 // Run (from the project root):
-//   tr test examples/en/08_tests_test.tr   → runs the tests, prints a summary
-//   tr examples/en/08_tests_test.tr        → runs the file normally; the test blocks are skipped
+//   tr test examples/en/15_tests_test.tr   → runs the tests, prints a summary
+//   tr examples/en/15_tests_test.tr        → runs the file normally; the test blocks are skipped
 // If a test fails `tr test` exits with 1; it can be used as a gate in CI.
 
 // --- Code under test ---
@@ -31,7 +32,7 @@ A050 Cart {
 }
 
 // This line runs in both modes: the file itself runs before the tests.
-G100("Test blocks only run with this command: tr test examples/en/08_tests_test.tr")
+G100("Test blocks only run with this command: tr test examples/en/15_tests_test.tr")
 
 // --- Tests ---
 A101 "addition" {
@@ -57,3 +58,7 @@ A101 "cart total" {
     G701(2, c.products.Y001)
     G701(55, c.total())
 }
+
+// --- Try it yourself ---
+// 1. Add one more test for add that checks negative numbers.
+// 2. Write a test wrong on purpose (assert_equal(5, add(2, 2))) and see how it fails in the `tr test` output.

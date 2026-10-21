@@ -1,10 +1,11 @@
 //! tr kodlu 1
-// 20 — Debugging exercise: following a program step by step with the VS Code debugger.
-// What it teaches: setting a breakpoint, opening variables as a table, stepping into
-// a function and changing a value while running (for the breakpoint statement in code see 19).
-// Run (from the project root): tr examples/en/20_debugging_exercise.tr   (F5 in VS Code)
+// 30 — Debugging exercise: following a program step by step with the VS Code debugger.
+// What it teaches: setting a breakpoint, opening variables as a table, stepping into a function and changing a value
+// while running (for the breakpoint statement in code see 29).
+// Builds on: debugging (29), functions (08), lists of dicts (11).
+// Run (from the project root): tr examples/en/30_debugging_exercise.tr   (F5 in VS Code)
 //
-// 1. Click to the left of line 25 to set a breakpoint, then press F5.
+// 1. Click to the left of line 26 to set a breakpoint, then press F5.
 // 2. Open the 'orders' variable in the Variables panel; right-click → "TR: Table View".
 // 3. Step line by line with F10, step into the 'add_vat' function with F11.
 // 4. Double-click the 'rate' variable and type 0.20: the result changes at once.
@@ -29,3 +30,7 @@ A010 o A011 orders {
 }
 
 G100("Grand total: {grand_total} TL")
+
+// --- Try it yourself ---
+// 1. Add the grand_total expression to the watch panel and follow how it changes every round.
+// 2. Give the breakpoint a condition: stop only when amount > 40000.

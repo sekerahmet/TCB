@@ -1,15 +1,15 @@
 //! tr kodlu 1
-// 17 — GPT with ready-made layers: a small language model built from the layers and optimizers
-// of the language library. What it teaches: building a GPT with `import "tr/katman"`, giving the hidden weights to Muon and the
-// rest to AdamW (MuonVeAdamW), a warm-up–constant–decay learning-rate schedule, the progress bar,
-// checkpoints and resuming where you left off, generating text.
+// 28 — GPT with ready-made layers: a small language model built from the layers and optimizers of the language library.
+// What it teaches: building a GPT with `import "tr/katman"`, giving the hidden weights to Muon and the rest to AdamW
+// (MuonVeAdamW), a warm-up–constant–decay learning-rate schedule, resuming with a checkpoint, generating text.
+// Builds on: checkpoints (27) and the transformer (24): the library counterpart of what 24 wrote by hand.
 // The library's own names (GPT, MuonVeAdamW, oran_planı, boyut, katman ...) are not translated yet
 // (docs/spec/17_kodlar.md, 17.2): they stay in Turkish in every spelling.
 // Library code: lib/katman.tr and lib/iyilestirici.tr (you can copy and change it).
 // Details: docs/guide/10_hazir_katmanlarla_gpt.md, lib/README.md.
 //
-// Run (from the project root): tr examples/en/17_gpt.tr
-//   Settings come from the command line: tr examples/en/17_gpt.tr --step 300 --width 64 --run runs/gpt2
+// Run (from the project root): tr examples/en/28_gpt.tr
+//   Settings come from the command line: tr examples/en/28_gpt.tr --step 300 --width 64 --run runs/gpt2
 //   If it is interrupted (Ctrl+C) the same command goes on where it left off; to start over delete
 //   the run folder or give another --run.
 // On a GPU: pick the default device before the model is built (uncomment the line below)
@@ -25,7 +25,7 @@ A030 config = G801({Y500: 100, batch: 8, context: 32, width: 32, layers: 2, head
     G911: {Y500: "total training steps", run: "run folder (settings, log, checkpoints)",
         normuon: "NorMuon instead of Muon for the hidden weights"})
 
-// --- Data: the synthetic text in the repository and its tokenizer (for your own data see examples/en/16_training_with_data.tr) ---
+// --- Data: the synthetic text in the repository and its tokenizer (for your own data see examples/en/26_training_with_data.tr) ---
 A030 p = V200("../../tests/data/tokenizer.json")
 A030 sampler = V100("../../tests/data/text").Y600(V902: config.batch, V903: config.context, T903: 1)
 
@@ -72,3 +72,7 @@ T301 {
 G100("validation loss ({count} batches): {G405(total_loss / count, 3)}")
 A030 generated = model.üret(p.Y610("Bugün"), 12, sıcaklık: 0.8, en_iyi_k: 20, tohum: 1)
 G100("the model wrote: {p.Y611(generated)}")
+
+// --- Try it yourself ---
+// 1. Run with --layers 4 --width 64: how does the validation loss change?
+// 2. Set the temperature of generate to 0.2 and to 1.5 and watch how the text changes.

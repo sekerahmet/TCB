@@ -1,41 +1,54 @@
 //! tr kodlu 1
-// 04 — Functions: naming work and reusing it.
-// What it teaches: func and return, type annotations, default values, named arguments, several
-// results, arrow functions, a function that calls itself (recursion), trailing blocks.
-// Previous example: 03. Next: 05 (lists and dicts).
-// Run (from the project root): tr examples/en/04_functions.tr
+// 08 — Functions: naming work and reusing it.
+// What it teaches: func and return, type annotations, default values, named arguments, a function
+// that calls itself (recursion).
+// Builds on: conditions (05), loops (07), interpolation (04).
+// Run (from the project root): tr examples/en/08_functions.tr
 
-A020 add(a: A200, b: A200) -> A200 {
+// func name(parameters) { ... return value }: return hands the value back to the caller.
+A020 add(a, b) {
     A021 a + b
 }
 G100(add(2, 3))
+G100(add(add(1, 2), 4)) // a result can be the input of another call
 
-// default value and named argument
-A020 greet(name, suffix = "!") {
-    A021 "Hi {name}{suffix}"
+// Parameters and the result can carry types; a value of the wrong type is an error.
+A020 area(width: A201, depth: A201) -> A201 {
+    A021 width * depth
 }
-G100(greet("Ayse"), greet(suffix: "?", name: "Ali"))
+G100(area(2.5, 4.0))
 
-// several results come back as a list; multiple assignment unpacks it
-A020 quotient_and_remainder(a, b) {
-    A021 [a / b, a % b]
+// Default value: used when the argument is not given.
+// Named argument: given with the parameter name, the order does not matter.
+A020 greet(who, suffix = "!") {
+    A021 "Hi {who}{suffix}"
 }
-A030 quotient, remainder = quotient_and_remainder(17, 5)
-G100("17 / 5 = {quotient}, remainder {remainder}")
+G100(greet("Ayse"))
+G100(greet("Ali", "?"))
+G100(greet(suffix: "...", who: "Veli"))
 
-// a function that calls itself
+// return ends the function at once; together with a condition it gives an early exit.
+A020 absolute(x) {
+    A001 x < 0 { A021 -x }
+    A021 x
+}
+G100(absolute(-7), absolute(7))
+
+// A function can call itself (recursion); it must have a condition that stops it.
 A020 factorial(n) {
     A001 n <= 1 { A021 1 }
     A021 n * factorial(n - 1)
 }
 G100("5! = {factorial(5)}, 10! = {factorial(10)}")
 
-// a function is a value: arrow function, passed as a parameter
-A030 double = (x) => x * 2
-A020 apply(f, value) {
-    A021 f(value)
+// Variables inside a function are not visible outside.
+A020 count_and_print(limit) {
+    A030 running = 0
+    A010 i A011 1..=limit { running += i }
+    G100("sum of 1..{limit} is {running}")
 }
-G100(apply(double, 21))
+count_and_print(10)
 
-// trailing block: when the last parameter is a function it is written in braces; it = current element
-G100([1, 2, 3, 4].Y201 { A104 * 10 })
+// --- Try it yourself ---
+// 1. Write square(x) that gives the square of a number and find square(square(2)).
+// 2. Compute the n-th Fibonacci number with recursion (fib(1) = 1, fib(2) = 1).

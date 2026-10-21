@@ -1,10 +1,10 @@
 //! tr kodlu 1
-// 14 — Transformer: a small transformer written by hand with the building blocks of 12 and 13.
-// What it teaches: embedding and position embedding, multi-head causal attention (reshape,
-// permute and the fused attention(...)), layer norm, a feed-forward step with gelu,
-// the cross_entropy loss and an AdamW training loop, no_grad inference.
+// 24 — Transformer: a small transformer written by hand.
+// What it teaches: embedding and position embedding, multi-head causal attention (reshape, permute and the
+// fused attention(...)), layer norm, a feed-forward step with gelu, the cross_entropy loss.
+// Builds on: tensors and autodiff (19–21), a multi-layer network (22).
 // Task: predict the next token in sequences that cycle through 0..V-1.
-// Run (from the project root): tr examples/en/14_transformer.tr
+// Run (from the project root): tr examples/en/24_transformer.tr
 
 A030 V = 8 // vocabulary size
 A030 T = 8 // context length
@@ -107,3 +107,7 @@ A010 row A011 scores {
 }
 G100("input     : {sample[0][0]}")
 G100("prediction: {predictions}")
+
+// --- Try it yourself ---
+// 1. Raise D from 16 to 32 (update Dh too): does the loss fall faster?
+// 2. Cut the training steps from 300 to 60 and watch the final predictions get worse.

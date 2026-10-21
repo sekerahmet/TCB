@@ -1,11 +1,12 @@
 //! tr kodlu 1
-// 03 — Conditions and loops: making decisions and repeating work.
-// What it teaches: if/else, match (with range patterns), for ... in, ranges
-// (1..=10 includes the end, 1..10 excludes it), break/continue, while, list comprehensions.
-// Previous example: 02. Next: 04 (functions).
-// Run (from the project root): tr examples/en/03_conditions_and_loops.tr
+// 05 — Conditions: the program making decisions.
+// What it teaches: if / else if / else, combining conditions with and/or/not, nested conditions, match.
+// Builds on: comparison and Bool values (03), interpolation (04).
+// Run (from the project root): tr examples/en/05_conditions.tr
 
 A030 temperature = 31
+
+// If the condition is true the braced block runs; they are tried in order, the first true one wins.
 A001 temperature > 30 {
     G100("hot")
 } A002 A001 temperature > 15 {
@@ -14,32 +15,36 @@ A001 temperature > 30 {
     G100("cold")
 }
 
-// match: compares the value with patterns and runs the first arm that fits
-A020 grade_for(score) {
-    A003 score {
-        90..=100 => "excellent"
-        70..90 => "good"
-        50..70 => "pass"
-        A004 => "fail"
+// Combined condition: and needs both, or needs one, not reverses.
+A030 age = 20
+A030 has_license = A040
+A001 age >= 18 A043 has_license {
+    G100("can drive")
+}
+A001 age < 18 A044 A045 has_license {
+    G100("cannot drive")
+}
+
+// Conditions can be nested.
+A001 age >= 18 {
+    A001 age >= 65 {
+        G100("{age}: retired")
+    } A002 {
+        G100("{age}: adult")
     }
 }
-A010 s A011 [95, 78, 55, 42] {
-    G100("score {s} -> {grade_for(s)}")
+
+// match: compares a value with patterns in order and runs the first arm that fits.
+// default runs if none fits. match also produces a value.
+A030 day = 3
+A030 day_name = A003 day {
+    1 => "Monday"
+    2 => "Tuesday"
+    3 => "Wednesday"
+    A004 => "some other day"
 }
+G100("day {day}: {day_name}")
 
-// for + break/continue
-A030 partial_sum = 0
-A010 i A011 1..=10 {
-    A001 i == 4 { A014 } // skip this turn
-    A001 i > 8 { A013 } // leave the loop
-    partial_sum += i
-}
-G100("sum of 1..8 (without 4): {partial_sum}")
-
-// while: as long as the condition holds
-A030 n = 1
-A012 n < 100 { n = n * 3 }
-G100("first power of 3 above 100: {n}")
-
-// list comprehension: gathers the loop and the condition in one expression
-G100("even squares: {[x * x A010 x A011 1..=10 A001 x % 2 == 0]}")
+// --- Try it yourself ---
+// 1. Keep a grade (0-100) in a variable; print "fail" below 50, "pass" for 50-84 and "excellent" for 85 and above.
+// 2. Set day to 6: which arm runs?

@@ -1,9 +1,9 @@
 //! tr kodlu 1
-// 10 — Concurrent tasks: running jobs at the same time.
-// What it teaches: starting background work with async, waiting for all of it to
-// finish with wait_all(). The result is the same whatever the order.
-// Previous example: 09. Next: 11 (files and JSON).
-// Run (from the project root): tr examples/en/10_concurrent_tasks.tr
+// 18 — Concurrent tasks: running jobs at the same time.
+// What it teaches: starting background work with async, waiting for all of it to finish with wait_all().
+// The result is the same whatever the order.
+// Builds on: loops (07), functions (08).
+// Run (from the project root): tr examples/en/18_concurrent_tasks.tr
 
 A030 sum_of_squares = 0
 A010 i A011 1..=100 {
@@ -22,3 +22,7 @@ A010 i A011 0..4 {
 }
 G501()
 G100("number of finished tasks: {finished}")
+
+// --- Try it yourself ---
+// 1. Change the sleep(0.05) time to 0.2: does the total time grow with the number of tasks or with a single task's time?
+// 2. Compute the sum of 1..=1000 by splitting it into pieces over 10 concurrent tasks.

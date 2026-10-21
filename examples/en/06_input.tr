@@ -1,0 +1,28 @@
+//! tr kodlu 1
+// 06 — Input: reading data from the user.
+// What it teaches: reading a line with input("question"), turning the text into a number with int(),
+// falling back to a default when the input is empty.
+// Builds on: types and conversions (03), text (04), conditions (05).
+// Run (from the project root): tr examples/en/06_input.tr
+//   Run it interactively and answer the questions; if you just press Enter the default value is used.
+//   Where no input arrives (standard input empty or closed) the program goes on with the defaults.
+
+// input(question) writes the question and gives the line the user typed as a String.
+// If nothing is typed an empty string ("") comes back.
+A030 person = G101("What is your name? ")
+A001 person == "" {
+    person = "Guest"
+}
+G100("Hello, {person}!")
+
+// input always gives a String; when a number is needed it is converted with int() or float().
+A030 age_text = G101("How old are you? ")
+A030 age = 20
+A001 age_text != "" {
+    age = G210(age_text)
+}
+G100("Next year you will be {age + 1}.")
+
+// --- Try it yourself ---
+// 1. Ask for two numbers and print their sum.
+// 2. Type "abc" as the age: int() fails. You will learn to handle that error in example 13.

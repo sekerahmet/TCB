@@ -1,0 +1,38 @@
+//! tr kodlu 1
+// 20 — Automatic differentiation: having the computer compute the gradient.
+// What it teaches: tracking a tensor with requires_grad: true, backward(result), .grad,
+// gradients accumulating (and needing to be reset), no_grad { ... } for computing without tracking.
+// Builds on: tensors (19).
+// Run (from the project root): tr examples/en/20_autodiff.tr
+// Details: docs/spec/15_tensorler.md §15.
+
+// Model training asks for the derivative (gradient) of a loss value with respect to the weights.
+// TR tracks the chain of operations and computes all derivatives at once with backward.
+
+// y = x² + 2x + 1  →  dy/dx = 2x + 2; 8 for x = 3.
+A030 x = T100(3.0, T900: A040) // requires_grad: the gradient of this tensor is wanted
+A030 y = x * x + 2 * x + 1
+T300(y)
+G100("y = {y.Y404}, dy/dx = {x.Y403.Y404} (expected 8.0)")
+
+// Several inputs: each gets its own gradient. f(a, b) = a * b + b²
+A030 a = T100(2.0, T900: A040)
+A030 b = T100(5.0, T900: A040)
+A030 f = a * b + b * b
+T300(f)
+G100("df/da = {a.Y403.Y404} (expected 5.0), df/db = {b.Y403.Y404} (expected 12.0)")
+
+// Gradients accumulate: every backward call adds to the gradient. That is why in training the gradients
+// are reset before each step (the optimizer's .zero_grad() method in the next example).
+A030 c = T100(1.0, T900: A040)
+T300(c * 3)
+T300(c * 3)
+G100("after two calls dc = {c.Y403.Y404} (3 + 3)")
+
+// no_grad { ... } computes without tracking the operations: saves memory and time while predicting.
+A030 z = T301 { x * 10 }
+G100("no_grad result: {z.Y404}")
+
+// --- Try it yourself ---
+// 1. Have the derivative of y = x³ at x = 2 computed and compare it with your own result (3x² = 12).
+// 2. Try backward(z): why does a tensor built inside no_grad give no gradient?

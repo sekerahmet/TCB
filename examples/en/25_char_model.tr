@@ -1,12 +1,10 @@
 //! tr kodlu 1
-// 15 — Character model: a small language model trained on real text (~100 thousand parameters,
-// 2 layers, a pre-normalization transformer).
-// Data: TR's own Turkish documents. The model learns to predict the next character
-// and finally writes a sample text of its own (greedy generation with argmax).
-// What it teaches: building a character vocabulary from text, a deep model with a list of layers,
-// counting parameters, text generation. The same model written in another language for a speed
-// comparison: tools/bench/README.md.
-// Run from the project root folder: tr examples/en/15_char_model.tr
+// 25 — Character model: a small language model trained on real text (~100 thousand parameters).
+// What it teaches: building a character vocabulary from text, a deep (2-layer) model with a list of layers, counting
+// parameters, greedy text generation with argmax. The same model in another language for a speed comparison: tools/bench/README.md.
+// Builds on: the transformer (24), dicts (11), reading files (17).
+// Data: TR's own Turkish documents. The model learns to predict the next character.
+// Run (from the project root): tr examples/en/25_char_model.tr
 
 A030 STEPS = 300
 // Training text: the sections of the user guide and the language definition, in order.
@@ -154,3 +152,7 @@ T301 {
     }
 }
 G100("the model wrote: {generated}")
+
+// --- Try it yourself ---
+// 1. Raise STEPS from 300 to 600: how does the generated text change?
+// 2. Remove a few files from DOCUMENTS and see their effect on the loss and the generated text.

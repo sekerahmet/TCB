@@ -1,14 +1,16 @@
 //! tr kodlu 1
-// 06 — Structs and methods: keeping related data and the work tied to it together.
+// 12 — Structs and methods: keeping related data and the work tied to it together.
 // What it teaches: struct definitions, fields and default values, methods, self, creating
 // objects (positional and named), updating fields.
-// Previous example: 05. Next: 07 (error handling).
-// Run (from the project root): tr examples/en/06_structs_and_methods.tr
+// Builds on: functions (08), lists (09), dicts (11).
+// Run (from the project root): tr examples/en/12_structs_and_methods.tr
 
+// A struct defines a new type with its own fields. Unlike a dict its fields and types are known up front.
 A050 Developer {
     full_name: A202
     experience: A200 = 1 // default value
 
+    // A function inside a struct is a method; self is the object being worked on.
     A020 introduce() {
         A021 "{A051.full_name} ({A051.experience} yr)"
     }
@@ -18,14 +20,14 @@ A050 Developer {
     }
 }
 
-A030 dev = Developer("Ahmet", 5)
+A030 dev = Developer("Ahmet", 5) // fields are given in definition order
 dev.experience += 1 // a field is updated directly
 G100(dev.introduce())
-G100(Developer(full_name: "Zeynep").introduce()) // named argument, experience is the default
+G100(Developer(full_name: "Zeynep").introduce()) // named argument; experience stays the default
 dev.add_experience(4)
 G100(dev.introduce())
 
-// Structs also live in lists
+// Structs also live in lists.
 A050 Point {
     x: A201
     y: A201
@@ -36,3 +38,7 @@ A050 Point {
 }
 A030 points = [Point(3.0, 4.0), Point(6.0, 8.0)]
 G100(points.Y201 { A104.distance() })
+
+// --- Try it yourself ---
+// 1. Write a Rectangle struct (width, depth) and add area() and perimeter() methods.
+// 2. Build a list of Developer objects and find the name of the one with the most experience.

@@ -1,36 +1,47 @@
 //! tr kodlu 1
-// 05 — Lists and dicts: keeping and processing collections of values.
-// What it teaches: building lists and dicts, reading/writing by index, append, length, keys
-// and values, chained methods (filter, map, sort ...), the pipeline (|>).
-// Previous example: 04. Next: 06 (structs and methods).
-// Run (from the project root): tr examples/en/05_lists_and_dicts.tr
+// 09 — Lists: keeping many values in order.
+// What it teaches: building a list, reading and writing by index (a negative index counts from the end), append,
+// length, walking with a loop, sort, reverse, sum/mean, list comprehensions, multiple assignment and swap.
+// Builds on: loops (07), functions (08), text (04).
+// Run (from the project root): tr examples/en/09_lists.tr
 
-// List
+// A list is written in square brackets; its elements can be of different types.
 A030 fruits = ["apple", "pear", "cherry"]
-fruits.Y004("banana")
-G100(fruits, fruits.Y001, fruits[0], fruits[-1])
-fruits[1] = "plum"
+G100(fruits, fruits.Y001)
+
+// The index starts at 0; -1 is the last element.
+G100(fruits[0], fruits[2], fruits[-1])
+fruits[1] = "plum" // change an element
+fruits.Y004("banana") // add to the end
 G100(fruits)
 
-// Dict: key -> value
-A030 prices = {"apple": 12, "banana": 30}
-prices["cherry"] = 45
-G100(prices["banana"], prices.Y001, prices.Y300(), prices.Y301())
-A010 key A011 prices.Y300() {
-    G100("{key}: {prices[key]}")
+// A list is walked with a loop.
+A010 fruit A011 fruits {
+    G100("- {fruit}")
 }
 
-// Chained methods
-A030 raw = [5, 2, 8, 2, 1, 9, 5, 4]
-G100(raw.Y204().Y200 { A104 > 2 }.Y202().Y003())
-G100("first: {raw.Y210}, last: {raw.Y211}, sum: {G400(raw)}, mean: {G410(raw)}")
-G100("  hello new world of tr  ".Y102().Y100().Y103(" ").Y203(" - "))
+// Ready-made operations for number lists.
+A030 numbers = [5, 2, 8, 2, 1, 9, 5, 4]
+G100("sorted:", numbers.Y202(), "reversed:", numbers.Y202().Y003())
+G100("first: {numbers.Y210}, last: {numbers.Y211}, unique: {numbers.Y204()}")
+G100("sum: {G400(numbers)}, mean: {G410(numbers)}, largest: {G402(numbers)}")
 
-// Pipeline: the left value goes into the function on the right
-A030 even_squares = raw.Y200((x) => x % 2 == 0).Y201 { A104 * A104 }
-G100("even squares: {even_squares}, total {even_squares |> G400}")
+// List comprehension: builds a new list from a loop; if filters elements out.
+G100("squares: {[x * x A010 x A011 1..=6]}")
+G100("even squares: {[x * x A010 x A011 1..=10 A001 x % 2 == 0]}")
 
-// Multiple assignment and swap
+// A function can give several values as a list; multiple assignment unpacks it.
+A020 quotient_and_remainder(a, b) {
+    A021 [a / b, a % b]
+}
+A030 quotient, remainder = quotient_and_remainder(17, 5)
+G100("17 / 5 = {quotient}, remainder {remainder}")
+
+// With multiple assignment two variables trade places (swap).
 A030 a, b = 10, 20
 a, b = b, a
 G100("a = {a}, b = {b}")
+
+// --- Try it yourself ---
+// 1. Build a list of grades; print the highest, the lowest and the mean.
+// 2. Produce the list of numbers divisible by 3 between 1..=30 with a comprehension.

@@ -1,10 +1,9 @@
 //! tr kodlu 1
-// 13 — A small neural network: a two-layer network learns XOR.
-// What it teaches: building weights as gradient-tracking tensors, the forward pass (tanh, sigmoid),
-// mean squared error, backward and the AdamW training loop, saving and reloading the weights.
-// XOR cannot be solved with a single linear layer; the hidden layer makes it possible.
-// Run (from the project root): tr examples/en/13_xor_network.tr
-// The weights file is written to a temporary folder (deleted when the program ends).
+// 22 — A small neural network: a two-layer network learns XOR.
+// What it teaches: a hidden layer and non-linear activation (tanh, sigmoid), building the weights as
+// gradient-tracking tensors, the training loop in a multi-layer network.
+// Builds on: the training loop (21); XOR cannot be solved with a single linear layer, the hidden layer makes it possible.
+// Run (from the project root): tr examples/en/22_xor_network.tr
 
 // The hidden layer is tanh, the output sigmoid; the weights are tensors trained with AdamW.
 A030 x_data = T100([[0, 0], [0, 1], [1, 0], [1, 1]])
@@ -28,9 +27,8 @@ A010 step A011 0..800 {
 A030 last_loss = T301 { G410((net(x_data) - y_target) ** 2) }.Y404
 G100("first loss {G405(first_loss, 4)} → last loss {G405(last_loss, 6)}")
 
-// The weights are saved with save_tensors and read back with load_tensors.
-A030 weights_file = G120(G126(), "xor_weights.trt")
-T700(weights_file, {"W1": W1, "b1": b1, "W2": W2, "b2": b2})
-A030 p = T701(weights_file)
-A030 prediction = T301 { T201(T202(x_data @ p["W1"] + p["b1"]) @ p["W2"] + p["b2"]) }
-G100("XOR predictions of the loaded network (expected 0, 1, 1, 0): {[G405(t[0], 2) A010 t A011 prediction.Y404]}")
+G100("XOR predictions (expected 0, 1, 1, 0): {[G405(t[0], 2) A010 t A011 T301 { net(x_data) }.Y404]}")
+
+// --- Try it yourself ---
+// 1. Cut the hidden layer from 8 to 2 neurons: does the network still learn?
+// 2. Print the predictions without rounding and see how close they get to 0/1.
