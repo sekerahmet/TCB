@@ -1,0 +1,26 @@
+{
+  "schema": "tr-codeindex/1",
+  "command": "definition",
+  "status": "not_found",
+  "query": {
+    "text": "yaz_alam",
+    "language": "tr"
+  },
+  "did_you_mean": [
+    {
+      "id": "function:lib/geo.tr#yaz_alan",
+      "kind": "function",
+      "name": "yaz_alan",
+      "pos": {
+        "file": "lib/geo.tr",
+        "line": 19,
+        "col": 1,
+        "end_line": 22,
+        "end_col": 2
+      },
+      "signature": "fonksiyon yaz_alan(k)",
+      "qualified": "geo.yaz_alan"
+    }
+  ],
+  "truncated": false
+}

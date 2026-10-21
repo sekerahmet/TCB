@@ -1,0 +1,18 @@
+{
+  "schema": "tr-codeindex/1",
+  "command": "definition",
+  "status": "not_found",
+  "query": {
+    "text": "zaman_mz",
+    "language": "tr"
+  },
+  "did_you_mean": [
+    {
+      "id": "builtin:G502",
+      "kind": "builtin",
+      "name": "G502",
+      "display": "zaman_ms"
+    }
+  ],
+  "truncated": false
+}

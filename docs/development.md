@@ -92,6 +92,8 @@ go run ./tools/codegraph path interp.VM H2100    # iki düğüm arası en kısa 
 
 Belirsiz ad çıkış kodu 3 ve aday listesi, bulunamayan ad 4 verir. `[INFERRED]` etiketli kenar tahmindir, etiketsiz kenar koddan okunmuştur. Sorgular grafik eskiyse (git HEAD'i ya da değişen `.go`/`.json`/`.md` dosyaları kurulduğundan farklıysa) önce kendisi kurar ve stderr'e `graph rebuilt (N s)` yazar; `--no-rebuild` bunu kapatır, `build`'i elle çalıştırmak gerekmez. `build` çözülemeyen `Denetim:` testlerini ve kırık belge bağlantılarını uyarı olarak yazar. Grafik `lib/`, `tools/` ve `examples/` altındaki `.tr` dosyalarını da (yapı, fonksiyon, metot, alan, sabit, test; çağrılar ve yerleşik kullanımları) TR'nin kendi ayrıştırıcısıyla okur: `query NedenselDikkat`, `who-uses dikkat`. Bir adın her kullanımı için değişiklik öncesi sorgu hâlâ [`tools/impact`](../tools/impact/main.go)'tır.
 
+TR kodunun kendisi (bir adın tanımı, her kullanımı, onu sınayan testler, bir değişikliğin etkisi) için grafik değil dizin kullanılır: `tr dizin tanım|kullananlar|sınayanlar|etki <ad>` (ajanlar için `--json`; ayrıntı [`internal/devtools/codeindex`](../internal/devtools/codeindex/README.md)). Grafik `.tr` düğümlerini bu dizinden alır, yani ikisi aynı kaynaktan beslenir.
+
 ## Ölçüm disiplini
 
 Yorumlayıcı Python'la en az başa baş olmalıdır; sıcak yola dokunan her değişiklik önce ve sonra ölçülür:

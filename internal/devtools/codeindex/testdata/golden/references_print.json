@@ -1,0 +1,120 @@
+{
+  "schema": "tr-codeindex/1",
+  "command": "references",
+  "status": "ok",
+  "query": {
+    "text": "print",
+    "language": "tr"
+  },
+  "target": {
+    "id": "builtin:G100",
+    "kind": "builtin",
+    "name": "G100",
+    "display": "yazdır"
+  },
+  "users": [
+    {
+      "role": "call",
+      "confidence": "EXTRACTED",
+      "pos": {
+        "file": "examples/ana.tr",
+        "line": 4,
+        "col": 1,
+        "end_line": 4,
+        "end_col": 7
+      },
+      "in": {
+        "id": "module:examples/ana.tr",
+        "kind": "module",
+        "name": "examples/ana.tr",
+        "pos": {
+          "file": "examples/ana.tr",
+          "line": 1
+        },
+        "aliases": [
+          "ana"
+        ]
+      }
+    },
+    {
+      "role": "call",
+      "confidence": "EXTRACTED",
+      "pos": {
+        "file": "examples/ana.tr",
+        "line": 5,
+        "col": 1,
+        "end_line": 5,
+        "end_col": 7
+      },
+      "in": {
+        "id": "module:examples/ana.tr",
+        "kind": "module",
+        "name": "examples/ana.tr",
+        "pos": {
+          "file": "examples/ana.tr",
+          "line": 1
+        },
+        "aliases": [
+          "ana"
+        ]
+      }
+    },
+    {
+      "role": "call",
+      "confidence": "EXTRACTED",
+      "pos": {
+        "file": "examples/coded.tr",
+        "line": 2,
+        "col": 5,
+        "end_line": 2,
+        "end_col": 11
+      },
+      "in": {
+        "id": "function:examples/coded.tr#kodlu_işlev",
+        "kind": "function",
+        "name": "kodlu_işlev",
+        "pos": {
+          "file": "examples/coded.tr",
+          "line": 1,
+          "col": 1,
+          "end_line": 4,
+          "end_col": 2
+        },
+        "signature": "fonksiyon kodlu_işlev(x)",
+        "qualified": "coded.kodlu_işlev"
+      }
+    },
+    {
+      "role": "call",
+      "confidence": "EXTRACTED",
+      "pos": {
+        "file": "lib/geo.tr",
+        "line": 20,
+        "col": 5,
+        "end_line": 20,
+        "end_col": 11
+      },
+      "in": {
+        "id": "function:lib/geo.tr#yaz_alan",
+        "kind": "function",
+        "name": "yaz_alan",
+        "pos": {
+          "file": "lib/geo.tr",
+          "line": 19,
+          "col": 1,
+          "end_line": 22,
+          "end_col": 2
+        },
+        "signature": "fonksiyon yaz_alan(k)",
+        "qualified": "geo.yaz_alan"
+      }
+    }
+  ],
+  "counts": {
+    "total": 4,
+    "by_role": {
+      "call": 4
+    }
+  },
+  "truncated": false
+}

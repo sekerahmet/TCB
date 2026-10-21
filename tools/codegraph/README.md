@@ -120,7 +120,7 @@ of other types never mix), and keyed composite literals `T{f: v}` too. The acces
 ## TR sources
 
 `.tr` files under `lib/`, `tools/` and `examples/` are read with TR's own parser
-(`internal/lang/source` and `parser`, so coded files with a header are read too, lines counted as
+(through `internal/devtools/codeindex`, the TR code index package, which uses `internal/lang/source` and `parser`; coded files with a header are read too, lines counted as
 everywhere else). The graph does not depend on the active writing language (`TR_DIL`): a file without
 the header is always read as Turkish, a coded one is first decoded to Turkish (`source.Decode` with
 `source.Turkish()`), never through `source.Prepare`, which follows the active language; the test
@@ -128,6 +128,16 @@ the header is always read as Turkish, a coded one is first decoded to Turkish (`
 in sub-processes and compares the `.tr` facts. Node kinds: `tr_func`, `tr_struct`, `tr_method`, `tr_field`, `tr_const`, `tr_var` (top level)
 and `tr_test` (a `test` block), all with file:line:end; the file is a `file` node `tr:file:<path>`
 with the module name (`katman`) and the import path (`tr/katman`) as aliases.
+
+**Division of labour with `tr dizin`.** The `.tr` extraction above is only a thin adapter
+(`codeindex_adapter.go`): `internal/devtools/codeindex` owns parsing, name resolution and the node
+model for `.tr` code, and codegraph maps its index into graph nodes and edges (ids and edge kinds
+stay as described, so queries and the extractor digest are unchanged). Questions about TR code
+itself (every use of a name with its role and position, which tests reach a declaration, what an
+edit affects, the declaration under a cursor position) are answered by the TR command, not by
+codegraph: `tr dizin tanım|kullananlar|sınayanlar|etki <ad>` (`--json` for agents, see
+[`internal/devtools/codeindex/README.md`](../../internal/devtools/codeindex/README.md)). Codegraph
+stays the tool for Go code, messages and codes, docs and history.
 
 - `imports`: file → file for `aktar` (`"tr/x"` is `lib/x.tr`, other paths are relative to the
   importing file, `.tr` optional).

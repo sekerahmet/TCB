@@ -394,3 +394,32 @@ func TestCommandLineNamesInEveryLanguage(t *testing.T) {
 		}
 	}
 }
+
+// 'tr dizin' alt komutları (K016-K019) yalnızca dizin komutunun altında geçerlidir: üst düzey
+// komut adı değildir, ama her gömülü dilin adı alt komut olarak kabul edilir (17.8).
+func TestIndexSubcommandsAreNotCommands(t *testing.T) {
+	for _, name := range []string{"tanım", "kullananlar", "sınayanlar", "etki", "definition", "references", "tested_by", "impact"} {
+		if k, ok := FindCommand(name); ok {
+			t.Errorf("%q must not be a top-level command, found %s", name, k)
+		}
+		if k, ok := FindSubcommand(name); !ok || !k.IsIndexSubcommand() || k.Namespace() != NamespaceSubcommand {
+			t.Errorf("%q must be an index subcommand in every language: %s %v", name, k, ok)
+		}
+	}
+	for _, name := range []string{"dizin", "index"} {
+		if k, ok := FindCommand(name); !ok || k != K015 {
+			t.Errorf("%q is the index command K015, got %s %v", name, k, ok)
+		}
+		if _, ok := FindSubcommand(name); ok {
+			t.Errorf("%q is not a subcommand of itself", name)
+		}
+	}
+	if K015.IsIndexSubcommand() || K015.Namespace() != NamespaceCommand {
+		t.Error("K015 itself is a command")
+	}
+	for _, k := range []Code{K016, K017, K018, K019} {
+		if !k.IsIndexSubcommand() {
+			t.Errorf("%s should be an index subcommand", k)
+		}
+	}
+}

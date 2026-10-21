@@ -1,0 +1,12 @@
+aktar "tr/geo"
+
+test "kare alanı yazılır" {
+    değişken k = Kare(3)
+    yaz_alan(k)
+}
+
+test "çevre" {
+    değişken yazdır = fonksiyon(x) { sonuç x }
+    yazdır(2)
+    çevre_hesapla(Kare(2))
+}

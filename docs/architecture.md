@@ -212,6 +212,7 @@ Yorumlayıcının motorlara sunduğu ortak hizmetler:
 | `devtools/formatter` | `tr biçimle`: anlamı değiştirmeyen tek standart biçim (ağaç dökümü aynı kalmazsa sonuç reddedilir) |
 | `devtools/testrunner` | `tr test`: `test "ad" { ... }` bloklarını yalıtılmış kapsamda koşar, Türkçe raporlar |
 | `devtools/profiler` | Canlı profil: `tr izle` ve `tr profil`'in çekirdeği, arka plan işinin `profil.json`'u (aşağıda) |
+| `devtools/codeindex` | TR kodunun dizini: tanım, kullananlar, sınayanlar, etki (`tr dizin ...` ve ileride dil sunucusu); `internal/lang` dışında bağımlılığı yok |
 | `editors/vscode` | VS Code eklentisi; renklendirme listeleri kod listesinden üretilir, hata ayıklama ve izleme komutları yukarıdaki sunucu ve profil dosyalarına bağlanır |
 
 ### Canlı profil (`internal/devtools/profiler`)

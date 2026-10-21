@@ -152,6 +152,7 @@ func oldCommand(arg string) (string, bool) {
 var commandsWithArguments = map[codes.Code]func([]string){
 	codes.K006: debugCommand, codes.K007: testCommand, codes.K008: formatCommand, codes.K009: encodeCommand,
 	codes.K010: decodeCommand, codes.K011: showCommand, codes.K012: watchCommand, codes.K013: profileCommand,
+	codes.K015: indexCommand,
 }
 
 // exitWithError iletiyi "Hata: ..." olarak standart hataya yazar ve 1 koduyla çıkar.
@@ -203,6 +204,7 @@ func printHelp() {
 		messages.Text(messages.H8625, codes.DisplayName(codes.K012)),
 		messages.Text(messages.H8626, codes.DisplayName(codes.K013), optionName(codes.K103)),
 		messages.Text(messages.H8627, codes.DisplayName(codes.K014)),
+		messages.Text(messages.H8830, codes.DisplayName(codes.K015), codes.DisplayName(codes.K016), codes.DisplayName(codes.K017), codes.DisplayName(codes.K018), codes.DisplayName(codes.K019)),
 		messages.Text(messages.H8628, codes.DisplayName(codes.K001)),
 		messages.Text(messages.H8629, codes.DisplayName(codes.K002)),
 	} {

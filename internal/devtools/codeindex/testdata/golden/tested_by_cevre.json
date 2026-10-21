@@ -1,0 +1,80 @@
+{
+  "schema": "tr-codeindex/1",
+  "command": "tested-by",
+  "status": "ok",
+  "query": {
+    "text": "çevre_hesapla",
+    "language": "tr"
+  },
+  "target": {
+    "id": "function:lib/geo.tr#çevre_hesapla",
+    "kind": "function",
+    "name": "çevre_hesapla",
+    "pos": {
+      "file": "lib/geo.tr",
+      "line": 15,
+      "col": 1,
+      "end_line": 17,
+      "end_col": 2
+    },
+    "signature": "fonksiyon çevre_hesapla(k)",
+    "qualified": "geo.çevre_hesapla"
+  },
+  "tests": [
+    {
+      "role": "in_test",
+      "confidence": "EXTRACTED",
+      "pos": {
+        "file": "lib/geo_test.tr",
+        "line": 11,
+        "col": 5,
+        "end_line": 11,
+        "end_col": 18
+      },
+      "in": {
+        "id": "test_block:lib/geo_test.tr#8",
+        "kind": "test_block",
+        "name": "çevre",
+        "pos": {
+          "file": "lib/geo_test.tr",
+          "line": 8,
+          "col": 1,
+          "end_line": 12,
+          "end_col": 2
+        },
+        "signature": "test \"çevre\"",
+        "qualified": "geo_test: çevre"
+      }
+    },
+    {
+      "role": "in_test",
+      "confidence": "INFERRED",
+      "pos": {
+        "file": "lib/geo_test.tr",
+        "line": 3,
+        "col": 1,
+        "end_line": 6,
+        "end_col": 2
+      },
+      "in": {
+        "id": "test_block:lib/geo_test.tr#3",
+        "kind": "test_block",
+        "name": "kare alanı yazılır",
+        "pos": {
+          "file": "lib/geo_test.tr",
+          "line": 3,
+          "col": 1,
+          "end_line": 6,
+          "end_col": 2
+        },
+        "signature": "test \"kare alanı yazılır\"",
+        "qualified": "geo_test: kare alanı yazılır"
+      },
+      "steps": 2
+    }
+  ],
+  "counts": {
+    "total": 2
+  },
+  "truncated": false
+}
