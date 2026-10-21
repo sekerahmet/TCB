@@ -58,6 +58,9 @@ function findInterpreter(g) {
 
     const separator = platform === 'win32' ? ';' : ':';
     for (const dir of (g.pathValue || '').split(separator).filter(Boolean)) {
+        if (!pathMod.isAbsolute(dir)) {
+            continue; // '.', 'bin' gibi göreli girdi çalışma klasörüne göre çözülür: yabancı tr
+        }
         if (platform !== 'win32' && (dir === '/bin' || dir === '/usr/bin')) {
             continue;
         }
