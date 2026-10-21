@@ -143,6 +143,7 @@ func (d *outerNode) back(ctx any) {
 		d.incoming = nil
 	}
 	var result []*Tensor
+	start := Created()
 	NoGrad(func() { result = d.bw(ctx, grads) })
 	if len(result) != len(d.inputs) {
 		panic(messages.New(messages.H3031, d.op, len(d.inputs), len(result)))
@@ -159,6 +160,17 @@ func (d *outerNode) back(ctx any) {
 			panic(messages.New(messages.H3072, d.op, in.be.Device(), g.Device()))
 		}
 		in.be.AddTo(in.accGrad(), g.denseStorage(), 1)
+	}
+	// Geri hesabın gradyanları ve bu çağrıda ürettiği tensörler burada biter. Bir yorumlayıcı
+	// değerinin sardığı başlık (wraps > 0) sahibi tarafından bırakılır; önceden var olan bir
+	// başlık (kaydedilmiş bir tensör) çağıranındır, dokunulmaz.
+	for _, g := range grads {
+		g.dropTemp(0)
+	}
+	for _, g := range result {
+		if g != nil {
+			g.dropTemp(start)
+		}
 	}
 }
 

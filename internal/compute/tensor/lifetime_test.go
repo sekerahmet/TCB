@@ -119,7 +119,7 @@ func TestCastMemoSkipsDroppedEntry(t *testing.T) {
 	}
 }
 
-func TestAuditNonContiguousReshapeReturnsStorageOnDrop(t *testing.T) {
+func TestNonContiguousReshapeReturnsStorageOnDrop(t *testing.T) {
 	log := watchReturns(t)
 	x := big(rand.New(rand.NewSource(1)))
 	v := x.Transpose(0, 1)
@@ -132,7 +132,7 @@ func TestAuditNonContiguousReshapeReturnsStorageOnDrop(t *testing.T) {
 	}
 }
 
-func TestAuditMultiOutputCustomOpBackwardReturnsTempGradStorages(t *testing.T) {
+func TestMultiOutputCustomOpBackwardReturnsTempGradStorages(t *testing.T) {
 	x := big(rand.New(rand.NewSource(1))).SetRequiresGrad(true)
 	var g0, g1, gx *Tensor
 	outs := CustomOp("test_iki_cikti", []*Tensor{x}, []*Tensor{x.MulScalar(2), x.MulScalar(3)}, nil, func(_ any, grads []*Tensor) []*Tensor {
