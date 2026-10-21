@@ -11,7 +11,7 @@ değişken klasör = geçici_klasör()
 değişken not_yolu = yol(klasör, "notlar.txt")
 dosya_yaz(not_yolu, "birinci satır\nikinci satır\nüçüncü satır\n")
 yazdır("var mı: {not_yolu.var_mı}")
-yazdır("uzunluk: {dosya_oku(not_yolu).uzunluk} karakter")
+yazdır("satır sayısı: {dosya_oku(not_yolu).kırp().böl("\n").uzunluk}")
 döngü satır içinde dosya_satırları(not_yolu) {
     yazdır("satır: {satır}")
 }

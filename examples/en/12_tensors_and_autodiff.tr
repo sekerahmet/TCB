@@ -1,0 +1,60 @@
+//! tr kodlu 1
+// 12 — Tensors and automatic differentiation: the building blocks of model training.
+// What it teaches: creating tensors and their shape, @ (matrix product), broadcasting, relu/softmax,
+// automatic differentiation (backward, .grad), no_grad, a small linear regression with AdamW,
+// argmax and save_tensors/load_tensors. The next example (13) builds a neural network from them.
+// Details: docs/guide/04_yapay_zeka_ve_veri.md §4.C, docs/spec/15_tensorler.md §15.
+// Run (from the project root): tr examples/en/12_tensors_and_autodiff.tr
+// The weights file is written to a temporary folder (deleted when the program ends, no trace in the repo).
+
+G100("=== 1. Tensor, @ and broadcasting ===")
+A030 A = T100([[1.0, 2.0], [3.0, 4.0]])
+A030 W = T100([[0.5, -0.5], [1.0, 2.0]]) // a matrix: a 2-dimensional tensor
+G100("A.shape = {A.Y400}")
+G100("A @ W =", A @ W)
+G100("A + [10, 20] (added to every row) =", A + T100([10.0, 20.0]))
+G100("relu(A @ W - 4) =", T200(A @ W - 4))
+G100("softmax([2, 1, 0.1]) =", T210(T100([2.0, 1.0, 0.1])))
+
+G100("\n=== 2. Automatic differentiation ===")
+// y = x² + 2x + 1 → dy/dx = 2x + 2; 8 for x = 3
+A030 x = T100(3.0, T900: A040)
+A030 y = x * x + 2 * x + 1
+T300(y)
+G100("y = {y.Y404}, dy/dx = {x.Y403.Y404} (expected 8.0)")
+
+// no_grad { ... } runs without building a computation graph (for inference)
+A030 z = T301 { x * 10 }
+G100("no_grad result: {z.Y404}")
+
+G100("\n=== 3. Linear regression with AdamW: y = 2x - 1 ===")
+A030 X = T100([[0], [1], [2], [3]])
+A030 Y = T100([[-1], [1], [3], [5]])
+A030 w = T100([[0.0]], T900: A040)
+A030 b = T100([0.0], T900: A040)
+A030 optimizer = T400([w, b], T910: 0.1, T911: 0)
+
+A010 step A011 0..300 {
+    optimizer.Y501() // gradients accumulate: reset them at every step
+    A030 diff = X @ w + b - Y
+    A030 loss = G410(diff ** 2)
+    T300(loss)
+    optimizer.Y500()
+    A001 step % 50 == 0 {
+        G100("step {step}: loss = {G405(loss.Y404, 5)}")
+    }
+}
+G100("w = {G405(w.Y404[0][0], 3)}, b = {G405(b.Y404[0], 3)} (expected 2, -1)")
+G100("prediction for x = 10: {G405(T301 { T100([[10]]) @ w + b }.Y404[0][0], 2)}")
+
+G100("\n=== 4. argmax: the most likely class ===")
+A030 outputs = T100([[0.1, 2.5, 0.3], [1.7, 0.2, 0.9]])
+A030 classes = T230(outputs, T902: -1)
+A030 names = ["cat", "dog", "bird"]
+G100("class indices: {classes.Y404} → {[names[i] A010 i A011 classes.Y404]}")
+
+G100("\n=== 5. save_tensors / load_tensors ===")
+A030 weights_file = G120(G126(), "weights.trt")
+T700(weights_file, {"w": w, "b": b})
+A030 loaded = T701(weights_file)
+G100("loaded w = {G405(loaded["w"].Y404[0][0], 3)}, b = {G405(loaded["b"].Y404[0], 3)}")

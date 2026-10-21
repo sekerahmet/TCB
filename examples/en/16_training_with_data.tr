@@ -1,0 +1,107 @@
+//! tr kodlu 1
+// 16 — Training with data: a small language model end to end with a tokenizer and a data loader.
+// What it teaches: loading tokenizer.json and encoding/decoding text, taking random batches
+// from .npy data files with a sampler, validating with a sequential reader, turning the
+// generated tokens back into text. Details: docs/guide/04_yapay_zeka_ve_veri.md §4.D, docs/spec/16_veri_parcalayici.md §16.
+//
+// By default it uses the synthetic test data in the repository (tests/data). To run it with
+// your own data, change the three paths below to your own files, for example:
+//     var TOKENIZER_PATH = "D:/data/tokenizer.json"
+//     var DATA_PATH = "D:/data/train"          // folder of .npy data files
+//     var VALIDATION_PATH = "D:/data/valid"
+// The data files are token-id files in the standard .npy format (one-dimensional uint16/uint32/int32 arrays); if meta.json
+// exists the token counts of the data files are read from it. If the data is on a slow drive (network or cloud)
+// use a local cache: dataset(DATA_PATH, cache: "cache/data", quota_gb: 20)
+// Relative paths are resolved first against the working folder, then against this file's folder.
+// Run (from the project root): tr examples/en/16_training_with_data.tr
+// The settings change from the command line (docs/guide/04_yapay_zeka_ve_veri.md §4.E):
+//     tr examples/en/16_training_with_data.tr --step 500 --log-file logs/training.jsonl
+//     tr examples/en/16_training_with_data.tr --help
+
+A030 TOKENIZER_PATH = "../../tests/data/tokenizer.json"
+A030 DATA_PATH = "../../tests/data/text"
+A030 VALIDATION_PATH = "../../tests/data/text"
+
+A030 config = G801({Y500: 150, batch: 8, context: 32, Y504: 0.01, log_file: A042},
+    G910: "Trains a small language model on synthetic text data",
+    G911: {Y500: "number of training steps", batch: "rows per batch", context: "tokens per row",
+        log_file: ".jsonl file the loss of every step is written to"})
+A030 STEPS = config.Y500
+A030 BATCH = config.batch
+A030 CONTEXT = config.context
+A030 D = 32 // embedding size
+A030 HIDDEN = 64 // size of the middle layer
+
+// --- Tokenizer ---
+A030 p = V200(TOKENIZER_PATH)
+G100(p)
+A030 sentence = "Bugün hava çok güzel."
+A030 ids = p.Y610(sentence)
+G100("\"{sentence}\" → {ids.Y001} tokens: {ids}")
+G100("decoded back: {p.Y611(ids)}")
+A030 V = p.Y612
+
+// --- Data ---
+A030 corpus = V100(DATA_PATH)
+G100(corpus)
+A030 sampler = corpus.Y600(V902: BATCH, V903: CONTEXT, T903: 1)
+
+// --- Model: embedding → middle layer → distribution over the vocabulary (the next token is
+// predicted from the current token only; for a model with attention see examples/en/14_transformer.tr) ---
+A030 weights = []
+A030 param_seed = 0
+A020 param(shape, scale) {
+    param_seed += 1
+    A030 w = T100(T301(T103(shape, T903: param_seed) * scale), T900: A040)
+    weights.Y004(w)
+    A021 w
+}
+A030 E = param([V, D], 0.1)
+A030 W1 = param([D, HIDDEN], 0.1)
+A030 W2 = param([HIDDEN, V], 0.1)
+
+A020 forward(input) {
+    A021 T203(T500(E, input) @ W1) @ W2
+}
+
+// --- Training ---
+A030 optimizer = T400(weights, T910: config.Y504, T911: 0.0)
+// Progress bar (to standard error): step, loss, step speed and remaining time. If a log file
+// is given the loss of every step is written there too.
+A030 run_log = A001 config.log_file != A042 { G810(config.log_file) } A002 { A042 }
+A030 bar = G811(STEPS, G912: run_log)
+A030 last_loss = 0.0
+A010 step A011 0..STEPS {
+    A030 input, target = sampler.Y602()
+    optimizer.Y501()
+    A030 loss = T510(forward(input), target)
+    T300(loss)
+    optimizer.Y500()
+    bar.Y010({loss: loss})
+    last_loss = loss.Y404
+}
+G100("training finished: last loss = {G405(last_loss, 3)}")
+G100(sampler)
+
+// --- Validation: all the validation data in order, once ---
+A030 validation = V100(VALIDATION_PATH).Y601(V902: BATCH, V903: CONTEXT)
+A030 total_loss = 0.0
+A030 batch_count = 0
+T301 {
+    A010 {
+        A030 job = validation.Y602()
+        A001 job == A042 { A013 }
+        total_loss += T510(forward(job[0]), job[1]).Y404
+        batch_count += 1
+    }
+}
+G100("validation: {batch_count} batches, mean loss = {G405(total_loss / batch_count, 3)}")
+
+// --- Text generation: the most likely token at every step ---
+A030 generated = p.Y610("Bugün")
+T301 {
+    A010 n A011 0..12 {
+        generated.Y004(T230(forward([generated]), T902: -1).Y404[0].Y211)
+    }
+}
+G100("the model wrote: {p.Y611(generated)}")

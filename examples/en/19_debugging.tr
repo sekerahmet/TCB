@@ -1,0 +1,44 @@
+//! tr kodlu 1
+// 19 — Debugging: finding and fixing a calculation error while running, with a breakpoint in the code.
+// INTERACTIVE: at the `breakpoint if ...` line the program stops and the debugger
+// waits for a command (it shows the variables; if standard input is empty or closed it goes on).
+// What it teaches: conditional breakpoints, inspecting variables and tensors, changing a value
+// while running. Debugger commands: docs/guide/05_hata_ayiklayici.md §5.
+// Run (from the project root): tr examples/en/19_debugging.tr   (F5 in VS Code)
+// Try these when the program stops:
+//   table orders             → shows the order list as a table
+//   set tax_rate = 0.20      → fixes the wrong rate while running
+//   continue                 → resumes the program (the result becomes 102600.0 TL)
+
+G100("=== Order and tax calculation ===")
+
+A030 orders = [
+    {"doc_no": "100001", "customer": "Anatolian Technology", "amount": 15000.0, "status": "OPEN"},
+    {"doc_no": "100002", "customer": "Black Sea Logistics", "amount": 28500.0, "status": "APPROVED"},
+    {"doc_no": "100003", "customer": "Aegean Energy Inc.", "amount": 42000.0, "status": "PENDING"}
+]
+
+// Tensors are opened as tables in the debugger too
+A030 risk_matrix = T100([
+    [0.12, 0.85, 0.03],
+    [0.45, 0.40, 0.15]
+])
+
+A020 compute_net_amount(gross_total: A201) -> A201 {
+    // BUG: the tax rate was entered as 80% instead of 20% by mistake.
+    A030 tax_rate = 0.80
+
+    // Conditional breakpoint: stops only for large amounts
+    A090 A001 gross_total > 50000
+
+    A030 tax = gross_total * tax_rate
+    A021 gross_total + tax
+}
+
+A030 subtotal = 0.0
+A010 o A011 orders {
+    subtotal += o["amount"]
+}
+
+G100("Order subtotal : {subtotal} TL")
+G100("Payable with tax: {compute_net_amount(subtotal)} TL")

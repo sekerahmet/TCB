@@ -1,0 +1,9 @@
+//! tr kodlu 1
+// The small module imported by 09_modules.tr (not an example to run on its own).
+// Every name defined at the top level is available in the file that imports the module.
+
+A031 PI = 3.14159
+
+A020 circle_area(r) {
+    A021 PI * r * r
+}

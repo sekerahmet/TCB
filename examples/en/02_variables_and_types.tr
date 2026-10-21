@@ -1,0 +1,28 @@
+//! tr kodlu 1
+// 02 — Variables and types: storing values and seeing that every value has a type.
+// What it teaches: variables and constants, basic types (Int, Float, String, Bool, none), asking
+// for a type with type(), the int()/float()/str() conversions, operators, none safety with ??.
+// Previous example: 01 (hello). Next: 03 (conditions and loops).
+// Run (from the project root): tr examples/en/02_variables_and_types.tr
+
+A030 age = 30 // Int: a number without a decimal point
+A030 height = 1.75 // Float
+A030 name = "Ayse" // String
+A030 is_student = A040 // Bool
+G100(G201(age), G201(height), G201(name), G201(is_student))
+
+A031 VERSION = "1.0" // a constant cannot be assigned again
+G100("version {VERSION}")
+
+// Conversions and operators
+G100(G210("42") + 1, G211("2.5") * 2, G212(7) + "8")
+G100(7 / 2, 7 % 2, 2 ** 10) // division, remainder, power
+G100(age >= 18 A043 is_student, A045 is_student, age < 18 A044 height > 1.7)
+
+// none says a value is absent; ?? takes the right side when the left is none
+A030 user = A042
+A030 display_name = user ?? "Guest"
+G100("Hello, {display_name}!")
+
+// Interpolating an expression into text: {...}
+G100("{name} is {age} years old; next year {age + 1}")

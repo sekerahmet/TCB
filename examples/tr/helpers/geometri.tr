@@ -1,4 +1,4 @@
-// 02_dil_turu.tr'nin aktardığı küçük modül (kendi başına çalıştırılacak bir örnek değildir).
+// 09_moduller.tr'nin aktardığı küçük modül (kendi başına çalıştırılacak bir örnek değildir).
 // Üst düzeyde tanımlanan her ad, modülü aktaran dosyada kullanılabilir.
 
 sabit PI = 3.14159

@@ -1,0 +1,19 @@
+//! tr kodlu 1
+// 01 — Hello: the first TR program.
+// What it teaches: defining a variable, interpolating values into text with print ({name}),
+// lists, filtering/transforming with a trailing block (it = the current element) and functions.
+// Run (from the project root): tr examples/en/01_hello.tr
+// For your own experiments you can copy this file into the scratch/ folder and change it
+// (scratch/ stays out of the repository).
+
+A030 name = "world"
+G100("Hello, {name}!")
+
+A030 numbers = [1, 2, 3, 4, 5, 6]
+G100("Even numbers: {numbers.Y200 { A104 % 2 == 0 }}")
+G100("Squares: {numbers.Y201 { A104 * A104 }}")
+
+A020 greet(person) {
+    A021 "Welcome, {person}"
+}
+G100(greet("TR language"))
