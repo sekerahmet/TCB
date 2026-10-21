@@ -21,7 +21,8 @@ import (
 // düzeyinde aynıdır (arka uçlar aynı eleman işlevlerini kullanır). Geri yön float32'de
 // hesaplanır, yalnızca sonuç girdinin gradyan türüne yuvarlanır.
 //
-// Kapsam: eleman bazlı tekli ve ikili işlemler, sayıyla işlemler, tür dönüşümü, yayınlama,
+// Kapsam: eleman bazlı tekli ve ikili işlemler (karşılaştırmalar dahil: sonuç float32 0/1,
+// türevi 0), sayıyla işlemler, tür dönüşümü, yayınlama,
 // dilim (adımlı), eksen sırası, boyu 1 eksen ekleme ve çıkarma, birleştirme. İndirgeme,
 // çarpım, genel yeniden şekillendirme kaynaştırılmaz (açık hata).
 
