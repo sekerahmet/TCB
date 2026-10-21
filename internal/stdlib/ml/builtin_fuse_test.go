@@ -66,7 +66,7 @@ yazdır(kf(t).tür)
 karışık_hassasiyet("bf16") {
     yazdır(kf(t).tür)
 }`)
-	want := "float32\nbfloat16\n"
+	want := "float32\nbf16\n"
 	if out != want {
 		t.Fatalf("kaynaştır önbelleği karışık_hassasiyet türünü yok saydı:\n%q\nbeklenen:\n%q", out, want)
 	}
