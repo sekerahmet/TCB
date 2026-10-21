@@ -1,9 +1,9 @@
 //! tr kodlu 1
-// 11 — Arrow functions and chaining: using a function as a value.
+// 10 — Arrow functions and chaining: using a function as a value.
 // What it teaches: the (x) => expression arrow function, passing a function as a parameter, trailing blocks and it,
 // filter/map/reduce, the pipeline (|>).
-// Builds on: functions (09) and lists (10).
-// Run (from the project root): tr examples/en/11_lambdas.tr
+// Builds on: functions (08) and lists (09).
+// Run (from the project root): tr examples/en/10_lambdas.tr
 
 // An arrow function is a nameless, one-expression function; it can be kept in a variable.
 A030 double = (x) => x * 2

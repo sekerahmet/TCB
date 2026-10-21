@@ -1,8 +1,8 @@
-// 08 — Döngüler: bir işi yinelemek.
+// 07 — Döngüler: bir işi yinelemek.
 // Ne öğretir: döngü ... içinde ile aralık gezmek (1..=5 sonu dahil, 1..5 sonu hariç), çık, devam,
 // iken, iç içe döngü.
-// Önceki örnekten: koşullar (06), metne değer yerleştirme (05), += (02).
-// Çalıştırma (proje kökünden): tr examples/tr/08_donguler.tr
+// Önceki örnekten: koşullar (05), metne değer yerleştirme (04), += (02).
+// Çalıştırma (proje kökünden): tr examples/tr/07_donguler.tr
 
 // döngü i içinde aralık: i sırayla aralığın her değerini alır.
 döngü i içinde 1..=5 {

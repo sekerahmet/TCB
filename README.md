@@ -98,14 +98,14 @@ Bu depoyu VS Code'da klasör olarak açtığınızda `Ctrl+Shift+B` açık dosya
 | 01 | [`01_merhaba.tr`](examples/tr/01_merhaba.tr) | [`01_hello.tr`](examples/en/01_hello.tr) | `yazdır`: ekrana yazmak, yorum |
 | 02 | [`02_degiskenler.tr`](examples/tr/02_degiskenler.tr) | [`02_variables.tr`](examples/en/02_variables.tr) | `değişken`, atama, `+=`, `sabit` |
 | 03 | [`03_tipler.tr`](examples/tr/03_tipler.tr) | [`03_types.tr`](examples/en/03_types.tr) | `Tam`, `Ondalık`, `Metin`, `Mantık`, `yok`, dönüşümler, işleçler, `??` |
-| 04 | [`04_metin.tr`](examples/tr/05_metin.tr) | [`04_text.tr`](examples/en/05_text.tr) | Metne değer yerleştirme (`{...}`), metin metotları |
-| 05 | [`05_kosullar.tr`](examples/tr/06_kosullar.tr) | [`05_conditions.tr`](examples/en/06_conditions.tr) | `eğer/değilse`, `ve/veya/değil`, `eşle` |
-| 06 | [`06_girdi.tr`](examples/tr/07_girdi.tr) | [`06_input.tr`](examples/en/07_input.tr) | `girdi()` ile kullanıcıdan veri okumak |
-| 07 | [`07_donguler.tr`](examples/tr/08_donguler.tr) | [`07_loops.tr`](examples/en/08_loops.tr) | `döngü`, aralıklar, `çık/devam`, `iken` |
-| 08 | [`08_fonksiyonlar.tr`](examples/tr/09_fonksiyonlar.tr) | [`08_functions.tr`](examples/en/09_functions.tr) | `fonksiyon/sonuç`, tip bildirimi, varsayılan ve adlı argüman, özyineleme |
-| 09 | [`09_listeler.tr`](examples/tr/10_listeler.tr) | [`09_lists.tr`](examples/en/10_lists.tr) | Liste, indeks, `ekle`, `sırala`, liste üreteci, çoklu atama |
-| 10 | [`10_ok_fonksiyonlari.tr`](examples/tr/11_ok_fonksiyonlari.tr) | [`10_lambdas.tr`](examples/en/11_lambdas.tr) | Ok fonksiyonu, sondaki blok, `filtrele/haritala/indirge`, `\|>` |
-| 11 | [`11_sozlukler.tr`](examples/tr/12_sozlukler.tr) | [`11_dicts.tr`](examples/en/12_dicts.tr) | Sözlük, `anahtarlar()/değerler()`, sözlük listesi |
+| 04 | [`04_metin.tr`](examples/tr/04_metin.tr) | [`04_text.tr`](examples/en/04_text.tr) | Metne değer yerleştirme (`{...}`), metin metotları |
+| 05 | [`05_kosullar.tr`](examples/tr/05_kosullar.tr) | [`05_conditions.tr`](examples/en/05_conditions.tr) | `eğer/değilse`, `ve/veya/değil`, `eşle` |
+| 06 | [`06_girdi.tr`](examples/tr/06_girdi.tr) | [`06_input.tr`](examples/en/06_input.tr) | `girdi()` ile kullanıcıdan veri okumak |
+| 07 | [`07_donguler.tr`](examples/tr/07_donguler.tr) | [`07_loops.tr`](examples/en/07_loops.tr) | `döngü`, aralıklar, `çık/devam`, `iken` |
+| 08 | [`08_fonksiyonlar.tr`](examples/tr/08_fonksiyonlar.tr) | [`08_functions.tr`](examples/en/08_functions.tr) | `fonksiyon/sonuç`, tip bildirimi, varsayılan ve adlı argüman, özyineleme |
+| 09 | [`09_listeler.tr`](examples/tr/09_listeler.tr) | [`09_lists.tr`](examples/en/09_lists.tr) | Liste, indeks, `ekle`, `sırala`, liste üreteci, çoklu atama |
+| 10 | [`10_ok_fonksiyonlari.tr`](examples/tr/10_ok_fonksiyonlari.tr) | [`10_lambdas.tr`](examples/en/10_lambdas.tr) | Ok fonksiyonu, sondaki blok, `filtrele/haritala/indirge`, `\|>` |
+| 11 | [`11_sozlukler.tr`](examples/tr/11_sozlukler.tr) | [`11_dicts.tr`](examples/en/11_dicts.tr) | Sözlük, `anahtarlar()/değerler()`, sözlük listesi |
 | 12 | [`12_yapilar_ve_metotlar.tr`](examples/tr/14_yapilar_ve_metotlar.tr) | [`12_structs_and_methods.tr`](examples/en/14_structs_and_methods.tr) | `yapı`, alanlar, metotlar, `kendi` |
 | 13 | [`13_hata_yonetimi.tr`](examples/tr/15_hata_yonetimi.tr) | [`13_error_handling.tr`](examples/en/15_error_handling.tr) | `dene/yakala`, `fırlat` |
 | 14 | [`14_ertele.tr`](examples/tr/16_ertele.tr) | [`14_defer.tr`](examples/en/16_defer.tr) | `ertele`: her durumda temizlik |

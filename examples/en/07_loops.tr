@@ -1,9 +1,9 @@
 //! tr kodlu 1
-// 08 — Loops: repeating work.
+// 07 — Loops: repeating work.
 // What it teaches: for ... in over a range (1..=5 includes the end, 1..5 excludes it), break, continue,
 // while, nested loops.
-// Builds on: conditions (06), interpolation (05), += (02).
-// Run (from the project root): tr examples/en/08_loops.tr
+// Builds on: conditions (05), interpolation (04), += (02).
+// Run (from the project root): tr examples/en/07_loops.tr
 
 // for i in range: i takes every value of the range in turn.
 A010 i A011 1..=5 {

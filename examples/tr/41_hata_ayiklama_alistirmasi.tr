@@ -1,7 +1,7 @@
 // 41 — Hata ayıklama alıştırması: VS Code hata ayıklayıcısıyla bir programı adım adım izlemek.
 // Ne öğretir: kesme noktası koymak, değişkenleri tablo olarak açmak, fonksiyonun içine girmek ve bir
 // değeri çalışırken değiştirmek (koddaki kesme_noktası deyimi için bkz. 40).
-// Önceki örnekten: hata ayıklama (40), fonksiyonlar (09), sözlük listeleri (12).
+// Önceki örnekten: hata ayıklama (40), fonksiyonlar (08), sözlük listeleri (11).
 // Çalıştırma (proje kökünden): tr examples/tr/41_hata_ayiklama_alistirmasi.tr   (VS Code'da F5)
 //
 // 1. 26. satırın soluna tıklayıp kesme noktası koyun, sonra F5'e basın.

@@ -1,8 +1,8 @@
-// 11 — Ok fonksiyonları ve zincirleme: fonksiyonu değer olarak kullanmak.
+// 10 — Ok fonksiyonları ve zincirleme: fonksiyonu değer olarak kullanmak.
 // Ne öğretir: (x) => ifade ok fonksiyonu, fonksiyonu parametre olarak geçirmek, sondaki blok ve o,
 // filtrele/haritala/indirge, boru hattı (|>).
-// Önceki örnekten: fonksiyonlar (09) ve listeler (10).
-// Çalıştırma (proje kökünden): tr examples/tr/11_ok_fonksiyonlari.tr
+// Önceki örnekten: fonksiyonlar (08) ve listeler (09).
+// Çalıştırma (proje kökünden): tr examples/tr/10_ok_fonksiyonlari.tr
 
 // Ok fonksiyonu adsız, tek ifadelik bir fonksiyondur; bir değişkende saklanabilir.
 değişken iki_katı = (x) => x * 2

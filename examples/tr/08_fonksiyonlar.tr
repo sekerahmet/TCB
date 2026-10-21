@@ -1,8 +1,8 @@
-// 09 — Fonksiyonlar: işi adlandırıp yeniden kullanmak.
+// 08 — Fonksiyonlar: işi adlandırıp yeniden kullanmak.
 // Ne öğretir: fonksiyon ve sonuç, tip bildirimi, varsayılan değer, adlı argüman, kendini
 // çağıran (özyinelemeli) fonksiyon.
-// Önceki örnekten: koşullar (06), döngüler (08), metne değer yerleştirme (05).
-// Çalıştırma (proje kökünden): tr examples/tr/09_fonksiyonlar.tr
+// Önceki örnekten: koşullar (05), döngüler (07), metne değer yerleştirme (04).
+// Çalıştırma (proje kökünden): tr examples/tr/08_fonksiyonlar.tr
 
 // fonksiyon ad(parametreler) { ... sonuç değer }: sonuç değeri çağırana geri verir.
 fonksiyon topla(a, b) {

@@ -1,7 +1,7 @@
 // 15 — Hata yönetimi: beklenmedik durumda programı düzgün yönetmek.
 // Ne öğretir: dene/yakala ile hatayı yakalamak, fırlat ile kendi hatanı üretmek,
 // hatanın nerede ele alınacağına karar vermek.
-// Önceki örnekten: fonksiyonlar (09), koşullar (06); 07'da tam("abc") hata verirdi, burada yönetilir.
+// Önceki örnekten: fonksiyonlar (08), koşullar (05); 06'da tam("abc") hata verirdi, burada yönetilir.
 // Çalıştırma (proje kökünden): tr examples/tr/15_hata_yonetimi.tr
 
 // Hata oluşunca program durur. dene bloğundaki hata yakala bloğuna gider, program sürer.

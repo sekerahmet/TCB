@@ -2,7 +2,7 @@
 // 41 — Debugging exercise: following a program step by step with the VS Code debugger.
 // What it teaches: setting a breakpoint, opening variables as a table, stepping into a function and changing a value
 // while running (for the breakpoint statement in code see 40).
-// Builds on: debugging (40), functions (09), lists of dicts (12).
+// Builds on: debugging (40), functions (08), lists of dicts (11).
 // Run (from the project root): tr examples/en/41_debugging_exercise.tr   (F5 in VS Code)
 //
 // 1. Click to the left of line 26 to set a breakpoint, then press F5.

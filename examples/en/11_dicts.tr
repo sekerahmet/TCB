@@ -1,9 +1,9 @@
 //! tr kodlu 1
-// 12 — Dicts: keeping values under keys.
+// 11 — Dicts: keeping values under keys.
 // What it teaches: building a dict, reading/writing by key, a missing key (none), keys() and
 // values(), contains, a list of dicts.
-// Builds on: lists (10), arrow functions (11), none and ?? (03).
-// Run (from the project root): tr examples/en/12_dicts.tr
+// Builds on: lists (09), arrow functions (10), none and ?? (03).
+// Run (from the project root): tr examples/en/11_dicts.tr
 
 // A dict is written in braces: "key": value pairs.
 A030 prices = {"apple": 12, "banana": 30}

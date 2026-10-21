@@ -1,8 +1,8 @@
-// 07 — Girdi: kullanıcıdan veri okumak.
+// 06 — Girdi: kullanıcıdan veri okumak.
 // Ne öğretir: girdi("soru") ile satır okumak, okunan metni tam() ile sayıya çevirmek,
 // girdi boşken varsayılana düşmek.
-// Önceki örnekten: tipler ve dönüşümler (03), metin (05), koşullar (06).
-// Çalıştırma (proje kökünden): tr examples/tr/07_girdi.tr
+// Önceki örnekten: tipler ve dönüşümler (03), metin (04), koşullar (05).
+// Çalıştırma (proje kökünden): tr examples/tr/06_girdi.tr
 //   Etkileşimli çalıştırın ve soruları yanıtlayın; Enter'a boş basarsanız varsayılan değer kullanılır.
 //   Girdi gelmeyen ortamlarda (standart giriş boş ya da kapalı) program varsayılanlarla sürer.
 //   Hata ayıklayıcıda (F5) girdi() çalışmaz: oturumda standart giriş yoktur; Ctrl+F5 ya da terminalde çalıştırın.

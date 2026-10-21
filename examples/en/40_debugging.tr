@@ -4,7 +4,7 @@
 // waits for a command (it shows the variables; if standard input is empty or closed it goes on).
 // What it teaches: conditional breakpoints, inspecting variables and tensors, changing a value
 // while running. Debugger commands: docs/guide/05_hata_ayiklayici.md §5.
-// Builds on: functions (09), lists of dicts (12), tensors (23).
+// Builds on: functions (08), lists of dicts (11), tensors (23).
 // Run (from the project root): tr examples/en/40_debugging.tr   (F5 in VS Code)
 // Try these when the program stops:
 //   table orders             → shows the order list as a table

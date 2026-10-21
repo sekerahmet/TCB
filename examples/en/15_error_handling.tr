@@ -2,7 +2,7 @@
 // 15 — Error handling: managing the program properly when something unexpected happens.
 // What it teaches: catching an error with try/catch, raising your own with throw,
 // deciding where an error is handled.
-// Builds on: functions (09), conditions (06); in 07 int("abc") would fail, here it is handled.
+// Builds on: functions (08), conditions (05); in 06 int("abc") would fail, here it is handled.
 // Run (from the project root): tr examples/en/15_error_handling.tr
 
 // When an error occurs the program stops. An error in the try block goes to catch and the program goes on.

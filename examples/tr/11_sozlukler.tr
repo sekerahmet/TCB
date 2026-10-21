@@ -1,8 +1,8 @@
-// 12 — Sözlükler: değerleri anahtarla saklamak.
+// 11 — Sözlükler: değerleri anahtarla saklamak.
 // Ne öğretir: sözlük kurmak, anahtarla okumak/yazmak, olmayan anahtar (yok), anahtarlar() ve
 // değerler(), içerir, sözlük listesi.
-// Önceki örnekten: listeler (10), ok fonksiyonları (11), yok ve ?? (03).
-// Çalıştırma (proje kökünden): tr examples/tr/12_sozlukler.tr
+// Önceki örnekten: listeler (09), ok fonksiyonları (10), yok ve ?? (03).
+// Çalıştırma (proje kökünden): tr examples/tr/11_sozlukler.tr
 
 // Sözlük süslü parantezle yazılır: "anahtar": değer çiftleri.
 değişken fiyatlar = {"elma": 12, "muz": 30}

@@ -1,7 +1,7 @@
 // 28 — Eğitim döngüsü: bir modelin veriden öğrenmesi.
 // Ne öğretir: ağırlıkları rastgele başlatmak yerine sabit vermek, AdamW iyileştirici, tahmin → kayıp →
 // geri_yayılım → adım döngüsü, sıfırla, öğrenilen değerleri okumak.
-// Önceki örnekten: tensörler (23), otomatik türev (26), döngüler (08).
+// Önceki örnekten: tensörler (23), otomatik türev (26), döngüler (07).
 // Çalıştırma (proje kökünden): tr examples/tr/28_egitim_dongusu.tr
 
 // Görev: noktalardan y = 2x - 1 doğrusunu bulmak. Model: y_tahmin = x @ w + b.

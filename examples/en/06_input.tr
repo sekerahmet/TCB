@@ -1,9 +1,9 @@
 //! tr kodlu 1
-// 07 — Input: reading data from the user.
+// 06 — Input: reading data from the user.
 // What it teaches: reading a line with input("question"), turning the text into a number with int(),
 // falling back to a default when the input is empty.
-// Builds on: types and conversions (03), text (05), conditions (06).
-// Run (from the project root): tr examples/en/07_input.tr
+// Builds on: types and conversions (03), text (04), conditions (05).
+// Run (from the project root): tr examples/en/06_input.tr
 //   Run it interactively and answer the questions; if you just press Enter the default value is used.
 //   Where no input arrives (standard input empty or closed) the program goes on with the defaults.
 //   In the debugger (F5) input() does not work: the session has no standard input; use Ctrl+F5 or run it in a terminal.

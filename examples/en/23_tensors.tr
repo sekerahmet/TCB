@@ -1,7 +1,7 @@
 //! tr kodlu 1
 // 23 — Tensors: the number arrays of artificial intelligence.
 // What it teaches: creating tensors, shape, @ (matrix product), broadcasting, relu/softmax, reading with .tolist.
-// Builds on: lists (10) and function calls (09); a tensor is built from nested lists.
+// Builds on: lists (09) and function calls (08); a tensor is built from nested lists.
 // Run (from the project root): tr examples/en/23_tensors.tr
 // Details: docs/guide/04_yapay_zeka_ve_veri.md §4.C, docs/spec/15_tensorler.md §15.
 

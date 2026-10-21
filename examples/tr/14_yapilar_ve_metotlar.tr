@@ -1,7 +1,7 @@
 // 14 — Yapılar ve metotlar: ilişkili verileri ve onlara bağlı işleri bir arada tutmak.
 // Ne öğretir: yapı tanımı, alanlar ve varsayılan değerler, metot, kendi, nesne oluşturma
 // (konumlu ve adlı), alan güncellemek.
-// Önceki örnekten: fonksiyonlar (09), listeler (10), sözlükler (12).
+// Önceki örnekten: fonksiyonlar (08), listeler (09), sözlükler (11).
 // Çalıştırma (proje kökünden): tr examples/tr/14_yapilar_ve_metotlar.tr
 
 // yapı, kendi alanları olan yeni bir tip tanımlar. Sözlükten farkı: alanları ve tipleri baştan bellidir.

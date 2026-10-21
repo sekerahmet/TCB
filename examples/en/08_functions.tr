@@ -1,9 +1,9 @@
 //! tr kodlu 1
-// 09 — Functions: naming work and reusing it.
+// 08 — Functions: naming work and reusing it.
 // What it teaches: func and return, type annotations, default values, named arguments, a function
 // that calls itself (recursion).
-// Builds on: conditions (06), loops (08), interpolation (05).
-// Run (from the project root): tr examples/en/09_functions.tr
+// Builds on: conditions (05), loops (07), interpolation (04).
+// Run (from the project root): tr examples/en/08_functions.tr
 
 // func name(parameters) { ... return value }: return hands the value back to the caller.
 A020 add(a, b) {

@@ -2,7 +2,7 @@
 // 17 — Tests: writing tests next to the code.
 // What it teaches: `test "name" { ... }` blocks, checking with assert(condition, [message]) and assert_equal(expected, actual),
 // testing that an error is thrown.
-// Builds on: functions, structs, lists, error handling (09–15).
+// Builds on: functions, structs, lists, error handling (08–15).
 // The file name ends in *_test.tr: `tr test` finds only files with that name in a folder.
 // Run (from the project root):
 //   tr test examples/en/17_tests_test.tr   → runs the tests, prints a summary
