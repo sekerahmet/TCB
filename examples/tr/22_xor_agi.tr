@@ -1,9 +1,8 @@
-// 13 — Küçük sinir ağı: iki katmanlı bir ağ XOR'u öğrenir.
-// Öğrettikleri: ağırlıkları türev izleyen tensörler olarak kurmak, ileri geçiş (tanh, sigmoid),
-// ortalama kare hata, geri_yayılım ve AdamW ile eğitim döngüsü, ağırlıkları kaydedip geri yüklemek.
-// XOR tek doğrusal katmanla çözülemez; gizli katman bunu mümkün kılar.
-// Çalıştırma (proje kökünden): tr examples/tr/13_xor_agi.tr
-// Ağırlık dosyası geçici klasöre yazılır (program bitince silinir).
+// 22 — Küçük sinir ağı: iki katmanlı bir ağ XOR'u öğrenir.
+// Ne öğretir: gizli katman ve doğrusal olmayan etkinleştirme (tanh, sigmoid), ağırlıkları
+// türev izleyen tensörler olarak kurmak, çok katmanlı ağda eğitim döngüsü.
+// Önceki örnekten: eğitim döngüsü (21); XOR tek doğrusal katmanla çözülemez, gizli katman bunu mümkün kılar.
+// Çalıştırma (proje kökünden): tr examples/tr/22_xor_agi.tr
 
 // Gizli katman tanh, çıkış sigmoid; ağırlıklar tensördür, AdamW ile eğitilir.
 değişken X_veri = tensör([[0, 0], [0, 1], [1, 0], [1, 1]])
@@ -26,10 +25,4 @@ döngü adım içinde 0..800 {
 }
 değişken son_kayıp = türevsiz { ortalama((ağ(X_veri) - Y_hedef) ** 2) }.değer
 yazdır("ilk kayıp {yuvarla(ilk_kayıp, 4)} → son kayıp {yuvarla(son_kayıp, 6)}")
-
-// Ağırlıklar tensör_kaydet ile kaydedilir, tensör_yükle ile geri okunur.
-değişken ağırlık_dosyası = yol(geçici_klasör(), "xor_agirliklari.trt")
-tensör_kaydet(ağırlık_dosyası, {"W1": W1, "b1": b1, "W2": W2, "b2": b2})
-değişken p = tensör_yükle(ağırlık_dosyası)
-değişken tahmin = türevsiz { sigmoid(tanh(X_veri @ p["W1"] + p["b1"]) @ p["W2"] + p["b2"]) }
-yazdır("yüklenen ağın XOR tahminleri (beklenen 0, 1, 1, 0): {[yuvarla(t[0], 2) döngü t içinde tahmin.değer]}")
+yazdır("XOR tahminleri (beklenen 0, 1, 1, 0): {[yuvarla(t[0], 2) döngü t içinde türevsiz { ağ(X_veri) }.değer]}")

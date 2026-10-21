@@ -1,35 +1,46 @@
-// 05 — Listeler ve sözlükler: değer topluluklarını tutmak ve işlemek.
-// Öğrettikleri: liste ve sözlük kurmak, indeksle okumak/yazmak, ekle, uzunluk, anahtarlar
-// ve değerler, zincirleme metotlar (filtrele, haritala, sırala ...), boru hattı (|>).
-// Önceki örnek: 04. Sonraki: 06 (yapılar ve metotlar).
-// Çalıştırma (proje kökünden): tr examples/tr/05_listeler_ve_sozlukler.tr
+// 09 — Listeler: birçok değeri sıralı tutmak.
+// Ne öğretir: liste kurmak, indeksle okumak ve yazmak (negatif indeks sondan sayar), ekle, uzunluk,
+// döngüyle gezmek, sırala, ters_çevir, toplam/ortalama, liste üreteci, çoklu atama ve takas.
+// Önceki örnekten: döngüler (07), fonksiyonlar (08), metin (04).
+// Çalıştırma (proje kökünden): tr examples/tr/09_listeler.tr
 
-// Liste
+// Liste köşeli parantezle yazılır; elemanlar farklı tipte olabilir.
 değişken meyveler = ["elma", "armut", "kiraz"]
-meyveler.ekle("muz")
-yazdır(meyveler, meyveler.uzunluk, meyveler[0], meyveler[-1])
-meyveler[1] = "erik"
+yazdır(meyveler, meyveler.uzunluk)
+
+// İndeks 0'dan başlar; -1 son elemandır.
+yazdır(meyveler[0], meyveler[2], meyveler[-1])
+meyveler[1] = "erik" // elemanı değiştir
+meyveler.ekle("muz") // sona ekle
 yazdır(meyveler)
 
-// Sözlük: anahtar -> değer
-değişken fiyatlar = {"elma": 12, "muz": 30}
-fiyatlar["kiraz"] = 45
-yazdır(fiyatlar["muz"], fiyatlar.uzunluk, fiyatlar.anahtarlar(), fiyatlar.değerler())
-döngü anahtar içinde fiyatlar.anahtarlar() {
-    yazdır("{anahtar}: {fiyatlar[anahtar]}")
+// Liste bir döngüyle gezilir.
+döngü meyve içinde meyveler {
+    yazdır("- {meyve}")
 }
 
-// Zincirleme metotlar
-değişken ham = [5, 2, 8, 2, 1, 9, 5, 4]
-yazdır(ham.benzersiz().filtrele { o > 2 }.sırala().ters_çevir())
-yazdır("ilk: {ham.ilk}, son: {ham.son}, toplam: {toplam(ham)}, ortalama: {ortalama(ham)}")
-yazdır("  merhaba yeni nesil tr dili  ".kırp().büyük_harf().böl(" ").birleştir(" - "))
+// Sayı listeleri için hazır işlemler.
+değişken sayılar = [5, 2, 8, 2, 1, 9, 5, 4]
+yazdır("sıralı:", sayılar.sırala(), "ters:", sayılar.sırala().ters_çevir())
+yazdır("ilk: {sayılar.ilk}, son: {sayılar.son}, benzersiz: {sayılar.benzersiz()}")
+yazdır("toplam: {toplam(sayılar)}, ortalama: {ortalama(sayılar)}, en büyük: {maks(sayılar)}")
 
-// Boru hattı: soldaki değer sağdaki fonksiyona girer
-değişken çift_kareler = ham.filtrele((x) => x % 2 == 0).haritala { o * o }
-yazdır("çift kareler: {çift_kareler}, toplamı {çift_kareler |> toplam}")
+// Liste üreteci: bir döngüden yeni liste kurar; eğer ile elenebilir.
+yazdır("kareler: {[x * x döngü x içinde 1..=6]}")
+yazdır("çift kareler: {[x * x döngü x içinde 1..=10 eğer x % 2 == 0]}")
 
-// Çoklu atama ve takas
+// Fonksiyon birden çok değeri liste olarak verebilir; çoklu atama listeyi açar.
+fonksiyon bölüm_ve_kalan(a, b) {
+    sonuç [a / b, a % b]
+}
+değişken bölüm, kalan = bölüm_ve_kalan(17, 5)
+yazdır("17 / 5 = {bölüm}, kalan {kalan}")
+
+// Çoklu atamayla iki değişken yer değiştirir (takas).
 değişken a, b = 10, 20
 a, b = b, a
 yazdır("a = {a}, b = {b}")
+
+// --- Kendin dene ---
+// 1. Bir not listesi kur; en yüksek, en düşük ve ortalamayı yazdır.
+// 2. 1..=30 arasında 3'e bölünen sayıların listesini üreteçle çıkar.

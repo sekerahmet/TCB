@@ -1,14 +1,14 @@
-// 18 — Uzun eğitim: kontrol noktası ve kaldığı yerden devam.
-// Öğrettikleri: her eğitimi bir koşu klasörüne yazmak; kontrol_noktası ile eğitimin bütün
-// durumunu (model, iyileştirici, örnekleyici, günlük, kendi sayaçlarınız) düzenli kaydetmek;
-// Ctrl+C ile durdurup aynı komutla kaldığı yerden sürdürmek. Sürdürülen eğitim hiç
-// kesilmemiş bir eğitimle bit düzeyinde aynı sonucu verir.
+// 27 — Kontrol noktası: uzun eğitimi kaldığı yerden sürdürmek.
+// Ne öğretir: her eğitimi bir koşu klasörüne yazmak; kontrol_noktası ile eğitimin bütün durumunu (model,
+// iyileştirici, örnekleyici, günlük, kendi sayaçlarınız) düzenli kaydetmek; Ctrl+C ile durdurup aynı
+// komutla kaldığı yerden sürdürmek. Sürdürülen eğitim kesintisizle bit düzeyinde aynı sonucu verir.
+// Önceki örnekten: veri ile eğitim (26): komut_satırı, ilerleme, veri kümesi.
 // Ayrıntılar: docs/guide/09_uzun_egitim.md, docs/spec/20_kontrol_noktasi.md §20.
 //
-// Çalıştırma (proje kökünden): tr examples/tr/18_kontrol_noktasi.tr
+// Çalıştırma (proje kökünden): tr examples/tr/27_kontrol_noktasi.tr
 //   Eğitim sürerken Ctrl+C'ye basın: o adım biter, nokta kaydedilir, program durur.
 //   Aynı komutu yeniden çalıştırın: "Kaldığı yerden devam: adım ..." yazar ve oradan sürer.
-//   Eğitimi uzatmak için: tr examples/tr/18_kontrol_noktasi.tr --adım 1000
+//   Eğitimi uzatmak için: tr examples/tr/27_kontrol_noktasi.tr --adım 1000
 //   Baştan başlamak için koşu klasörünü silin ya da başka bir klasör verin: --koşu runs/deneme2
 // Bulut not defterinde koşu klasörünü yerel diskte tutup ara ara Drive'a kopyalayın (kılavuz §9).
 
@@ -18,7 +18,7 @@ değişken ayar = komut_satırı({adım: 200, koşu: "runs/kontrol_noktasi_orneg
         her_dakika: "kontrol noktası aralığı (dakika)"})
 değişken KOŞU = ayar.koşu
 
-// --- Veri ve model (examples/tr/16_veri_ile_egitim.tr'deki küçük model) ---
+// --- Veri ve model (examples/tr/26_veri_ile_egitim.tr'deki küçük model) ---
 değişken p = parçalayıcı_yükle("../../tests/data/tokenizer.json")
 değişken V = p.dağarcık_boyutu
 değişken ö = veri_kümesi("../../tests/data/text").örnekleyici(toplu: 8, bağlam: 32, tohum: 1)
@@ -64,3 +64,7 @@ tensör_kaydet(yol(KOŞU, "model.trt"), parametreler(model, adlarıyla: doğru))
 değişken son_adım = eğer kn.kaldığı_adım < ayar.adım { ayar.adım } değilse { kn.kaldığı_adım }
 dosya_yaz(yol(KOŞU, "results.json"), json_metin({adım: son_adım, en_iyi_kayıp: izlenen.en_iyi_kayıp}))
 yazdır("en iyi kayıp: {yuvarla(izlenen.en_iyi_kayıp, 3)}; koşu klasörü: {yol(KOŞU).mutlak}")
+
+// --- Kendin dene ---
+// 1. --adım 100 ile çalıştır, sonra --adım 200 ile tekrar çalıştır: eğitim 100'den mi başlıyor?
+// 2. izlenen sözlüğüne kendi sayacını ekle ve devamdan sonra da korunduğunu gör.

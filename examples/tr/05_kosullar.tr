@@ -1,10 +1,11 @@
-// 03 — Koşullar ve döngüler: karar vermek ve işi yinelemek.
-// Öğrettikleri: eğer/değilse, eşle (aralık kalıplarıyla), döngü ... içinde, aralıklar
-// (1..=10 sonu dahil, 1..10 hariç), çık/devam, iken, liste üreteci.
-// Önceki örnek: 02. Sonraki: 04 (fonksiyonlar).
-// Çalıştırma (proje kökünden): tr examples/tr/03_kosullar_ve_donguler.tr
+// 05 — Koşullar: programın karar vermesi.
+// Ne öğretir: eğer / değilse eğer / değilse, ve/veya/değil ile birleşik koşul, iç içe koşul, eşle.
+// Önceki örnekten: karşılaştırma ve Mantık değerleri (03), metne değer yerleştirme (04).
+// Çalıştırma (proje kökünden): tr examples/tr/05_kosullar.tr
 
 değişken sıcaklık = 31
+
+// Koşul doğruysa süslü parantezli blok çalışır; sırayla denenir, ilk doğru olan seçilir.
 eğer sıcaklık > 30 {
     yazdır("sıcak")
 } değilse eğer sıcaklık > 15 {
@@ -13,32 +14,36 @@ eğer sıcaklık > 30 {
     yazdır("soğuk")
 }
 
-// eşle: değeri kalıplarla karşılaştırır, ilk uyan kolu çalıştırır
-fonksiyon not_durumu(puan) {
-    eşle puan {
-        90..=100 => "pekiyi"
-        70..90 => "iyi"
-        50..70 => "geçer"
-        varsayılan => "kaldı"
+// Birleşik koşul: ve ikisi de doğruysa, veya biri doğruysa, değil tersi.
+değişken yaş = 20
+değişken ehliyet_var = doğru
+eğer yaş >= 18 ve ehliyet_var {
+    yazdır("araç kullanabilir")
+}
+eğer yaş < 18 veya değil ehliyet_var {
+    yazdır("araç kullanamaz")
+}
+
+// Koşullar iç içe yazılabilir.
+eğer yaş >= 18 {
+    eğer yaş >= 65 {
+        yazdır("{yaş}: emekli")
+    } değilse {
+        yazdır("{yaş}: yetişkin")
     }
 }
-döngü p içinde [95, 78, 55, 42] {
-    yazdır("puan {p} -> {not_durumu(p)}")
+
+// eşle: bir değeri sırayla kalıplarla karşılaştırır, ilk uyan kolu çalıştırır.
+// varsayılan hiçbiri uymazsa çalışır. eşle değer de üretir.
+değişken gün = 3
+değişken gün_adı = eşle gün {
+    1 => "pazartesi"
+    2 => "salı"
+    3 => "çarşamba"
+    varsayılan => "başka bir gün"
 }
+yazdır("{gün}. gün: {gün_adı}")
 
-// döngü + çık/devam
-değişken ara_toplam = 0
-döngü i içinde 1..=10 {
-    eğer i == 4 { devam } // bu turu atla
-    eğer i > 8 { çık } // döngüden çık
-    ara_toplam += i
-}
-yazdır("1..8 (4 hariç) toplamı: {ara_toplam}")
-
-// iken: koşul doğru olduğu sürece
-değişken n = 1
-iken n < 100 { n = n * 3 }
-yazdır("3'ün 100'ü aşan ilk kuvveti: {n}")
-
-// liste üreteci: döngü ve koşulu tek ifadede toplar
-yazdır("çift kareler: {[x * x döngü x içinde 1..=10 eğer x % 2 == 0]}")
+// --- Kendin dene ---
+// 1. Bir notu (0-100) değişkene yaz; 50'nin altına "kaldı", 50-84'e "geçti", 85 ve üstüne "pekiyi" yazdır.
+// 2. gün değişkenini 6 yap: hangi kol çalışır?

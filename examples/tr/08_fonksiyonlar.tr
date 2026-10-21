@@ -1,40 +1,53 @@
-// 04 — Fonksiyonlar: işi adlandırıp yeniden kullanmak.
-// Öğrettikleri: fonksiyon ve sonuç, tip bildirimi, varsayılan değer, adlı argüman, birden
-// çok sonuç, ok fonksiyonu, kendini çağıran (özyinelemeli) fonksiyon, sondaki blok.
-// Önceki örnek: 03. Sonraki: 05 (listeler ve sözlükler).
-// Çalıştırma (proje kökünden): tr examples/tr/04_fonksiyonlar.tr
+// 08 — Fonksiyonlar: işi adlandırıp yeniden kullanmak.
+// Ne öğretir: fonksiyon ve sonuç, tip bildirimi, varsayılan değer, adlı argüman, kendini
+// çağıran (özyinelemeli) fonksiyon.
+// Önceki örnekten: koşullar (05), döngüler (07), metne değer yerleştirme (04).
+// Çalıştırma (proje kökünden): tr examples/tr/08_fonksiyonlar.tr
 
-fonksiyon topla(a: Tam, b: Tam) -> Tam {
+// fonksiyon ad(parametreler) { ... sonuç değer }: sonuç değeri çağırana geri verir.
+fonksiyon topla(a, b) {
     sonuç a + b
 }
 yazdır(topla(2, 3))
+yazdır(topla(topla(1, 2), 4)) // sonuç başka bir çağrıya girdi olabilir
 
-// varsayılan değer ve adlı argüman
+// Parametrelere ve sonuca tip yazılabilir; yanlış tipte değer verilirse hata alınır.
+fonksiyon alan(en: Ondalık, boy: Ondalık) -> Ondalık {
+    sonuç en * boy
+}
+yazdır(alan(2.5, 4.0))
+
+// Varsayılan değer: argüman verilmezse o kullanılır.
+// Adlı argüman: parametre adıyla verilir, sıra önemsizdir.
 fonksiyon selam(ad, ek = "!") {
     sonuç "Selam {ad}{ek}"
 }
-yazdır(selam("Ayşe"), selam(ek: "?", ad: "Ali"))
+yazdır(selam("Ayşe"))
+yazdır(selam("Ali", "?"))
+yazdır(selam(ek: "...", ad: "Veli"))
 
-// birden çok sonuç liste olarak döner; çoklu atamayla açılır
-fonksiyon bölüm_ve_kalan(a, b) {
-    sonuç [a / b, a % b]
+// sonuç fonksiyonu hemen bitirir; koşulla birlikte erken çıkış yapılabilir.
+fonksiyon mutlak_değer(x) {
+    eğer x < 0 { sonuç -x }
+    sonuç x
 }
-değişken bölüm, kalan = bölüm_ve_kalan(17, 5)
-yazdır("17 / 5 = {bölüm}, kalan {kalan}")
+yazdır(mutlak_değer(-7), mutlak_değer(7))
 
-// kendini çağıran fonksiyon
+// Fonksiyon kendini çağırabilir (özyineleme); mutlaka duran bir koşulu olmalıdır.
 fonksiyon faktöriyel(n) {
     eğer n <= 1 { sonuç 1 }
     sonuç n * faktöriyel(n - 1)
 }
 yazdır("5! = {faktöriyel(5)}, 10! = {faktöriyel(10)}")
 
-// fonksiyon bir değerdir: ok fonksiyonu, parametre olarak geçirilir
-değişken iki_katı = (x) => x * 2
-fonksiyon uygula(f, değer) {
-    sonuç f(değer)
+// Fonksiyonun içindeki değişkenler dışarıdan görünmez.
+fonksiyon say_ve_yaz(sınır) {
+    değişken birikmiş = 0
+    döngü i içinde 1..=sınır { birikmiş += i }
+    yazdır("1..{sınır} toplamı {birikmiş}")
 }
-yazdır(uygula(iki_katı, 21))
+say_ve_yaz(10)
 
-// sondaki blok: son parametre fonksiyonsa süslü parantezle yazılır; o = sıradaki eleman
-yazdır([1, 2, 3, 4].haritala { o * 10 })
+// --- Kendin dene ---
+// 1. Bir sayının karesini veren kare(x) fonksiyonunu yaz ve kare(kare(2)) değerini bul.
+// 2. n'inci Fibonacci sayısını özyinelemeyle hesapla (fib(1) = 1, fib(2) = 1).

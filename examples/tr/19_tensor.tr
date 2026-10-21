@@ -1,59 +1,37 @@
-// 12 — Tensörler ve otomatik türev: model eğitiminin yapı taşları.
-// Öğrettikleri: tensör oluşturma ve şekil, @ (matris çarpımı), yayınlama, relu/softmax,
-// otomatik türev (geri_yayılım, .gradyan), türevsiz, AdamW ile küçük bir doğrusal regresyon,
-// maks_indeks ve tensör_kaydet/tensör_yükle. Sıradaki örnek (13) bunlarla bir sinir ağı kurar.
+// 19 — Tensörler: yapay zekânın sayı dizileri.
+// Ne öğretir: tensör oluşturmak, şekil, @ (matris çarpımı), yayınlama, relu/softmax, .değer ile okumak.
+// Önceki örnekten: listeler (09) ve işlev çağrıları (08); tensör, iç içe listelerden kurulur.
+// Çalıştırma (proje kökünden): tr examples/tr/19_tensor.tr
 // Ayrıntılar: docs/guide/04_yapay_zeka_ve_veri.md §4.C, docs/spec/15_tensorler.md §15.
-// Çalıştırma (proje kökünden): tr examples/tr/12_tensor_ve_turev.tr
-// Ağırlık dosyası geçici klasöre yazılır (program bitince silinir, depoda iz kalmaz).
 
-yazdır("=== 1. Tensör, @ ve yayınlama ===")
+// Tensör, n boyutlu bir sayı dizisidir: tek boyutlu (vektör), iki boyutlu (matris) ...
+değişken v = tensör([1.0, 2.0, 3.0])
 değişken A = tensör([[1.0, 2.0], [3.0, 4.0]])
 değişken W = tensör([[0.5, -0.5], [1.0, 2.0]]) // matris: 2 boyutlu tensör
-yazdır("A.şekil = {A.şekil}")
+yazdır("v.şekil = {v.şekil}, A.şekil = {A.şekil}")
+yazdır("A.değer = {A.değer}") // .değer tensörü düz TR listesine çevirir
+
+// Hazır tensör üreticileri.
+yazdır(sıfırlar([2, 3]))
+yazdır(birler([3]))
+yazdır(birim_matris(3))
+
+// Eleman bazlı işlemler aynı şekilli tensörlerde elemanları tek tek işler.
+yazdır("A + A =", A + A)
+yazdır("A * W =", A * W)
+
+// @ matris çarpımıdır (satır × sütun).
 yazdır("A @ W =", A @ W)
+
+// Yayınlama: küçük tensör büyüğün şekline kendiliğinden yayılır.
 yazdır("A + [10, 20] (her satıra eklenir) =", A + tensör([10.0, 20.0]))
+yazdır("A * 2 =", A * 2)
+
+// Etkinleştirme işlevleri: relu negatifleri sıfırlar, softmax toplamı 1 olan olasılık verir.
 yazdır("relu(A @ W - 4) =", relu(A @ W - 4))
 yazdır("softmax([2, 1, 0.1]) =", softmax(tensör([2.0, 1.0, 0.1])))
+yazdır("toplam:", toplam(A), "ortalama:", ortalama(A))
 
-yazdır("\n=== 2. Otomatik türev ===")
-// y = x² + 2x + 1 → dy/dx = 2x + 2; x = 3 için 8
-değişken x = tensör(3.0, türev_izle: doğru)
-değişken y = x * x + 2 * x + 1
-geri_yayılım(y)
-yazdır("y = {y.değer}, dy/dx = {x.gradyan.değer} (beklenen 8.0)")
-
-// türevsiz { ... } hesap çizgesi kurmadan çalışır (çıkarım için)
-değişken z = türevsiz { x * 10 }
-yazdır("türevsiz sonuç: {z.değer}")
-
-yazdır("\n=== 3. AdamW ile doğrusal regresyon: y = 2x - 1 ===")
-değişken X = tensör([[0], [1], [2], [3]])
-değişken Y = tensör([[-1], [1], [3], [5]])
-değişken w = tensör([[0.0]], türev_izle: doğru)
-değişken b = tensör([0.0], türev_izle: doğru)
-değişken iyileştirici = AdamW([w, b], öğrenme_oranı: 0.1, ağırlık_çürümesi: 0)
-
-döngü adım içinde 0..300 {
-    iyileştirici.sıfırla() // gradyanlar birikir: her adımda sıfırla
-    değişken fark = X @ w + b - Y
-    değişken kayıp = ortalama(fark ** 2)
-    geri_yayılım(kayıp)
-    iyileştirici.adım()
-    eğer adım % 50 == 0 {
-        yazdır("adım {adım}: kayıp = {yuvarla(kayıp.değer, 5)}")
-    }
-}
-yazdır("w = {yuvarla(w.değer[0][0], 3)}, b = {yuvarla(b.değer[0], 3)} (beklenen 2, -1)")
-yazdır("x = 10 için tahmin: {yuvarla(türevsiz { tensör([[10]]) @ w + b }.değer[0][0], 2)}")
-
-yazdır("\n=== 4. maks_indeks: en olası sınıf ===")
-değişken çıktılar = tensör([[0.1, 2.5, 0.3], [1.7, 0.2, 0.9]])
-değişken sınıflar = maks_indeks(çıktılar, eksen: -1)
-değişken adlar = ["kedi", "köpek", "kuş"]
-yazdır("sınıf indeksleri: {sınıflar.değer} → {[adlar[i] döngü i içinde sınıflar.değer]}")
-
-yazdır("\n=== 5. tensör_kaydet / tensör_yükle ===")
-değişken ağırlık_dosyası = yol(geçici_klasör(), "agirliklar.trt")
-tensör_kaydet(ağırlık_dosyası, {"w": w, "b": b})
-değişken yüklenen = tensör_yükle(ağırlık_dosyası)
-yazdır("yüklenen w = {yuvarla(yüklenen["w"].değer[0][0], 3)}, b = {yuvarla(yüklenen["b"].değer[0], 3)}")
+// --- Kendin dene ---
+// 1. 3x3 bir matris kur ve onu birim_matris(3) ile çarp: sonuç ne?
+// 2. tensör([-2.0, 0.0, 3.0]) için relu ve sigmoid sonuçlarını karşılaştır.

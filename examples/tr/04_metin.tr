@@ -1,0 +1,31 @@
+// 04 — Metin: metne değer yerleştirmek ve metinle çalışmak.
+// Ne öğretir: {...} ile metne ifade yerleştirmek, \" kaçışı, uzunluk, büyük_harf/küçük_harf,
+// kırp, içerir, başlar, değiştir.
+// Önceki örnekten: değişkenler ve tipler (02, 03).
+// Çalıştırma (proje kökünden): tr examples/tr/04_metin.tr
+
+değişken ad = "Ayşe"
+değişken yaş = 30
+
+// Metin içindeki {...} bir ifadedir: değeri hesaplanıp metne yazılır.
+yazdır("{ad} {yaş} yaşında; gelecek yıl {yaş + 1} olacak.")
+yazdır("2 kere 3 = {2 * 3}")
+
+// İki metin + ile birleşir. Çift tırnağı metne \" ile koyarız.
+yazdır("Merhaba, " + ad + "! Ona \"hoş geldin\" dedik.")
+
+// Metnin metotları: değer.metot() biçiminde çağrılır.
+değişken cümle = "  merhaba dünya  "
+yazdır("uzunluk:", cümle.uzunluk)
+yazdır("kırpılmış: [{cümle.kırp()}]") // baştaki ve sondaki boşlukları atar
+yazdır(cümle.kırp().büyük_harf())
+yazdır(cümle.kırp().küçük_harf())
+yazdır(cümle.içerir("dünya"), cümle.kırp().başlar("mer"))
+yazdır(cümle.kırp().değiştir("dünya", "TR"))
+
+// Metotlar zincirlenebilir: soldan sağa sırayla uygulanır.
+yazdır("  tr dili  ".kırp().büyük_harf().uzunluk)
+
+// --- Kendin dene ---
+// 1. Adını ve doğum yılını iki değişkene yaz; "{ad} {yıl} doğumlu, bu yıl ... yaşında" cümlesini kur.
+// 2. Bir cümlede bir kelimeyi değiştir ve sonucun uzunluğunu yazdır.

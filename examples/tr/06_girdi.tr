@@ -1,0 +1,27 @@
+// 06 — Girdi: kullanıcıdan veri okumak.
+// Ne öğretir: girdi("soru") ile satır okumak, okunan metni tam() ile sayıya çevirmek,
+// girdi boşken varsayılana düşmek.
+// Önceki örnekten: tipler ve dönüşümler (03), metin (04), koşullar (05).
+// Çalıştırma (proje kökünden): tr examples/tr/06_girdi.tr
+//   Etkileşimli çalıştırın ve soruları yanıtlayın; Enter'a boş basarsanız varsayılan değer kullanılır.
+//   Girdi gelmeyen ortamlarda (standart giriş boş ya da kapalı) program varsayılanlarla sürer.
+
+// girdi(soru) soruyu yazar ve kullanıcının yazdığı satırı Metin olarak verir.
+// Hiçbir şey yazılmazsa boş metin ("") gelir.
+değişken ad = girdi("Adın nedir? ")
+eğer ad == "" {
+    ad = "Misafir"
+}
+yazdır("Merhaba, {ad}!")
+
+// girdi her zaman Metin verir; sayı gerekiyorsa tam() ya da ondalık() ile çevrilir.
+değişken yaş_metni = girdi("Yaşın kaç? ")
+değişken yaş = 20
+eğer yaş_metni != "" {
+    yaş = tam(yaş_metni)
+}
+yazdır("Gelecek yıl {yaş + 1} yaşında olacaksın.")
+
+// --- Kendin dene ---
+// 1. İki sayı sor ve toplamlarını yazdır.
+// 2. Yaşa "abc" yazmayı dene: tam() hata verir. Bu hatayı yönetmeyi 13. örnekte öğreneceksin.

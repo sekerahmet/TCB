@@ -1,10 +1,11 @@
-// 08 — Testler: kodun yanına test yazmak.
-// Öğrettikleri: `test "ad" { ... }` blokları, doğrula(koşul, [mesaj]) ve
-// eşit_mi(beklenen, gerçek) ile denetim, hatanın fırlatıldığını sınamak (dene/yakala).
+// 15 — Testler: kodun yanına test yazmak.
+// Ne öğretir: `test "ad" { ... }` blokları, doğrula(koşul, [mesaj]) ve eşit_mi(beklenen, gerçek)
+// ile denetim, hatanın fırlatıldığını sınamak.
+// Önceki örnekten: fonksiyonlar, yapılar, listeler, hata yönetimi (08–13).
 // Dosya adı *_test.tr ile biter: `tr test` bir klasörde yalnızca bu adlı dosyaları bulur.
 // Çalıştırma (proje kökünden):
-//   tr test examples/tr/08_testler_test.tr   → testleri çalıştırır, özet yazar
-//   tr examples/tr/08_testler_test.tr        → dosyayı normal çalıştırır; test blokları atlanır
+//   tr test examples/tr/15_testler_test.tr   → testleri çalıştırır, özet yazar
+//   tr examples/tr/15_testler_test.tr        → dosyayı normal çalıştırır; test blokları atlanır
 // Bir test kalırsa `tr test` 1 ile çıkar; CI'da kapı olarak kullanılabilir.
 
 // --- Sınanacak kod ---
@@ -30,7 +31,7 @@ yapı Sepet {
 }
 
 // Bu satır her iki kipte de çalışır: testlerden önce dosyanın kendisi çalışır.
-yazdır("Test blokları yalnızca şu komutla çalışır: tr test examples/tr/08_testler_test.tr")
+yazdır("Test blokları yalnızca şu komutla çalışır: tr test examples/tr/15_testler_test.tr")
 
 // --- Testler ---
 test "toplama" {
@@ -56,3 +57,7 @@ test "sepet tutarı" {
     eşit_mi(2, s.ürünler.uzunluk)
     eşit_mi(55, s.tutar())
 }
+
+// --- Kendin dene ---
+// 1. topla için negatif sayıları sınayan bir test daha ekle.
+// 2. Bir testi bilerek yanlış yaz (eşit_mi(5, topla(2, 2))) ve `tr test` çıktısında nasıl kaldığını gör.

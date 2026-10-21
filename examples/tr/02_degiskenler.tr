@@ -1,0 +1,33 @@
+// 02 — Değişkenler: bir değeri adlandırıp saklamak.
+// Ne öğretir: değişken ile tanımlamak, yeniden atamak, +=, -=, *=, sabit.
+// Önceki örnekten: yazdır ve yorum (01).
+// Çalıştırma (proje kökünden): tr examples/tr/02_degiskenler.tr
+
+// değişken ad = değer: değer bir adla saklanır, sonra adıyla kullanılır.
+değişken yaş = 30
+yazdır("yaş:", yaş)
+
+// Değişkenin değeri sonradan değişebilir.
+yaş = 31
+yazdır("yaş:", yaş)
+
+// Hesapta değişkenler değer yerine geçer; sonuç yeni bir değişkende saklanır.
+değişken aylık = 1500
+değişken yıllık = aylık * 12
+yazdır("yıllık:", yıllık)
+
+// += -= *= değişkeni kendi değerinden hesaplayıp günceller.
+yaş += 1 // yaş = yaş + 1
+yazdır("yaş:", yaş)
+yıllık -= 1000
+yazdır("yıllık:", yıllık)
+aylık *= 2
+yazdır("aylık:", aylık)
+
+// sabit bir kez atanır, sonra değişmez: değişmemesi gereken değerler için.
+sabit KDV_ORANI = 18
+yazdır("KDV:", KDV_ORANI)
+
+// --- Kendin dene ---
+// 1. Boyunu ve kilonu iki değişkende sakla, ikisinin toplamını yazdır.
+// 2. KDV_ORANI = 20 yazmayı dene: sabit değiştirilemediği için program hata verir.

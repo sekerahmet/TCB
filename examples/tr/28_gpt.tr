@@ -1,12 +1,12 @@
-// 17 — Hazır katmanlarla GPT: dilin kitaplığındaki katmanlar ve iyileştiricilerle küçük bir dil
-// modeli. Öğrettikleri: `aktar "tr/katman"` ile GPT kurmak, gizli ağırlıkları Muon'a öbürlerini
-// AdamW'ye vermek (MuonVeAdamW), ısınma–sabit–azalma öğrenme oranı planı, ilerleme çubuğu,
-// kontrol noktası ve kaldığı yerden devam, metin üretmek.
+// 28 — Hazır katmanlarla GPT: dilin kitaplığındaki katmanlar ve iyileştiricilerle küçük bir dil modeli.
+// Ne öğretir: `aktar "tr/katman"` ile GPT kurmak, gizli ağırlıkları Muon'a öbürlerini AdamW'ye vermek
+// (MuonVeAdamW), ısınma–sabit–azalma öğrenme oranı planı, kontrol noktasıyla sürdürmek, metin üretmek.
+// Önceki örnekten: kontrol noktası (27) ve transformer (24): 24'te elle yazılanın kitaplık karşılığı.
 // Kitaplığın kodu: lib/katman.tr ve lib/iyilestirici.tr (kopyalayıp değiştirebilirsiniz).
 // Ayrıntılar: docs/guide/10_hazir_katmanlarla_gpt.md, lib/README.md.
 //
-// Çalıştırma (proje kökünden): tr examples/tr/17_gpt.tr
-//   Ayarlar komut satırından: tr examples/tr/17_gpt.tr --adım 300 --boyut 64 --koşu runs/gpt2
+// Çalıştırma (proje kökünden): tr examples/tr/28_gpt.tr
+//   Ayarlar komut satırından: tr examples/tr/28_gpt.tr --adım 300 --boyut 64 --koşu runs/gpt2
 //   Yarıda kesilirse (Ctrl+C) aynı komut kaldığı yerden sürer; baştan başlamak için koşu
 //   klasörünü silin ya da başka bir --koşu verin.
 // GPU'da: model kurulmadan önce varsayılan cihazı seçin (aşağıdaki satırın yorumunu kaldırın)
@@ -22,7 +22,7 @@ değişken ayar = komut_satırı({adım: 100, toplu: 8, bağlam: 32, boyut: 32, 
     açıklamalar: {adım: "toplam eğitim adımı", koşu: "koşu klasörü (ayarlar, günlük, kontrol noktaları)",
         normuon: "gizli ağırlıklar için Muon yerine NorMuon"})
 
-// --- Veri: depodaki sentetik metin ve parçalayıcısı (kendi veriniz için examples/tr/16_veri_ile_egitim.tr) ---
+// --- Veri: depodaki sentetik metin ve parçalayıcısı (kendi veriniz için examples/tr/26_veri_ile_egitim.tr) ---
 değişken p = parçalayıcı_yükle("../../tests/data/tokenizer.json")
 değişken ö = veri_kümesi("../../tests/data/text").örnekleyici(toplu: ayar.toplu, bağlam: ayar.bağlam, tohum: 1)
 
@@ -69,3 +69,7 @@ türevsiz {
 yazdır("doğrulama kaybı ({sayı} toplu iş): {yuvarla(toplam_kayıp / sayı, 3)}")
 değişken üretilen = model.üret(p.kodla("Bugün"), 12, sıcaklık: 0.8, en_iyi_k: 20, tohum: 1)
 yazdır("model şunu yazdı: {p.çöz(üretilen)}")
+
+// --- Kendin dene ---
+// 1. --katman 4 --boyut 64 ile çalıştır: doğrulama kaybı nasıl değişiyor?
+// 2. üret'in sıcaklık değerini 0.2 ve 1.5 yap ve metnin değişimine bak.

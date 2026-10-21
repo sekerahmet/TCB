@@ -1,9 +1,10 @@
-// 20 — Hata ayıklama alıştırması: VS Code hata ayıklayıcısıyla bir programı adım adım izlemek.
-// Öğrettikleri: kesme noktası koymak, değişkenleri tablo olarak açmak, fonksiyonun içine
-// girmek ve bir değeri çalışırken değiştirmek (koddaki kesme_noktası deyimi için bkz. 19).
-// Çalıştırma (proje kökünden): tr examples/tr/20_hata_ayiklama_alistirmasi.tr   (VS Code'da F5)
+// 30 — Hata ayıklama alıştırması: VS Code hata ayıklayıcısıyla bir programı adım adım izlemek.
+// Ne öğretir: kesme noktası koymak, değişkenleri tablo olarak açmak, fonksiyonun içine girmek ve bir
+// değeri çalışırken değiştirmek (koddaki kesme_noktası deyimi için bkz. 29).
+// Önceki örnekten: hata ayıklama (29), fonksiyonlar (08), sözlük listeleri (11).
+// Çalıştırma (proje kökünden): tr examples/tr/30_hata_ayiklama_alistirmasi.tr   (VS Code'da F5)
 //
-// 1. 25. satırın soluna tıklayıp kesme noktası koyun, sonra F5'e basın.
+// 1. 26. satırın soluna tıklayıp kesme noktası koyun, sonra F5'e basın.
 // 2. Variables panelinde 'siparisler' değişkenini açın; sağ tık → "TR: Tablo Görünümü".
 // 3. F10 ile satır satır ilerleyin, F11 ile 'kdv_ekle' fonksiyonunun içine girin.
 // 4. 'oran' değişkenine çift tıklayıp 0.20 yazın: sonuç anında değişir.
@@ -28,3 +29,7 @@ döngü s içinde siparisler {
 }
 
 yazdır("Genel toplam: {genel_toplam} TL")
+
+// --- Kendin dene ---
+// 1. İzleme (watch) paneline genel_toplam ifadesini ekle ve her turda değişimini izle.
+// 2. Kesme noktasına koşul ver: yalnızca tutar > 40000 olduğunda dursun.

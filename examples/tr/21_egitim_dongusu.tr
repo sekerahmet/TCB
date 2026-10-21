@@ -1,0 +1,34 @@
+// 21 — Eğitim döngüsü: bir modelin veriden öğrenmesi.
+// Ne öğretir: ağırlıkları rastgele başlatmak yerine sabit vermek, AdamW iyileştirici, tahmin → kayıp →
+// geri_yayılım → adım döngüsü, sıfırla, öğrenilen değerleri okumak.
+// Önceki örnekten: tensörler (19), otomatik türev (20), döngüler (07).
+// Çalıştırma (proje kökünden): tr examples/tr/21_egitim_dongusu.tr
+
+// Görev: noktalardan y = 2x - 1 doğrusunu bulmak. Model: y_tahmin = x @ w + b.
+değişken X = tensör([[0], [1], [2], [3]])
+değişken Y = tensör([[-1], [1], [3], [5]])
+değişken w = tensör([[0.0]], türev_izle: doğru) // öğrenilecek eğim
+değişken b = tensör([0.0], türev_izle: doğru) // öğrenilecek kayma
+
+// İyileştirici gradyana bakıp ağırlıkları kayıp azalacak yönde günceller.
+// öğrenme_oranı adımın büyüklüğüdür: çok büyükse sapar, çok küçükse yavaş öğrenir.
+değişken iyileştirici = AdamW([w, b], öğrenme_oranı: 0.1, ağırlık_çürümesi: 0)
+
+döngü adım içinde 0..300 {
+    iyileştirici.sıfırla() // 1) gradyanlar birikir, önce sıfırla
+    değişken fark = X @ w + b - Y // 2) tahmin ve hata
+    değişken kayıp = ortalama(fark ** 2) // 3) kayıp: ortalama kare hata
+    geri_yayılım(kayıp) // 4) gradyanları hesapla
+    iyileştirici.adım() // 5) ağırlıkları güncelle
+    eğer adım % 50 == 0 {
+        yazdır("adım {adım}: kayıp = {yuvarla(kayıp.değer, 5)}")
+    }
+}
+yazdır("w = {yuvarla(w.değer[0][0], 3)}, b = {yuvarla(b.değer[0], 3)} (beklenen 2, -1)")
+
+// Eğitilen model türevsiz kullanılır.
+yazdır("x = 10 için tahmin: {yuvarla(türevsiz { tensör([[10]]) @ w + b }.değer[0][0], 2)}")
+
+// --- Kendin dene ---
+// 1. öğrenme_oranı'nı 0.001 ve 1.0 yap: kayıp nasıl değişir?
+// 2. Y'yi 3x + 2 doğrusunun değerleriyle değiştir ve w, b'nin 3 ve 2'ye yaklaştığını gör.

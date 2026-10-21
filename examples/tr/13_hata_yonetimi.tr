@@ -1,10 +1,10 @@
-// 07 — Hata yönetimi: beklenmedik durumda programı düzgün yönetmek.
-// Öğrettikleri: dene/yakala, fırlat ile kendi hatanı üretmek, ertele ile her durumda
-// çalışacak temizlik (ters sırayla).
-// Önceki örnek: 06. Sonraki: 08 (testler).
-// Çalıştırma (proje kökünden): tr examples/tr/07_hata_yonetimi.tr
+// 13 — Hata yönetimi: beklenmedik durumda programı düzgün yönetmek.
+// Ne öğretir: dene/yakala ile hatayı yakalamak, fırlat ile kendi hatanı üretmek,
+// hatanın nerede ele alınacağına karar vermek.
+// Önceki örnekten: fonksiyonlar (08), koşullar (05); 06'da tam("abc") hata verirdi, burada yönetilir.
+// Çalıştırma (proje kökünden): tr examples/tr/13_hata_yonetimi.tr
 
-// Hata oluşunca yakala bloğu çalışır, program sürer
+// Hata oluşunca program durur. dene bloğundaki hata yakala bloğuna gider, program sürer.
 dene {
     değişken x = 10 / 0
     yazdır("buraya gelinmez")
@@ -12,7 +12,7 @@ dene {
     yazdır("yakalandı: {hata}")
 }
 
-// fırlat: kendi hatanı üret
+// fırlat: kendi hatanı üret. Fonksiyon kuralı bozan girdiyi kabul etmez.
 fonksiyon yaş_denetle(yaş) {
     eğer yaş < 0 { fırlat "yaş negatif olamaz" }
     sonuç yaş
@@ -20,17 +20,21 @@ fonksiyon yaş_denetle(yaş) {
 dene { yaş_denetle(-3) } yakala h { yazdır("yakalandı: {h}") }
 yazdır("geçerli yaş: {yaş_denetle(30)}")
 
-// ertele: fonksiyondan çıkarken, hata olsa da olmasa da, ters sırayla çalışır
-fonksiyon dosya_işlemi() {
-    ertele yazdır("  [ertele 1] bağlantı kapatıldı")
-    ertele yazdır("  [ertele 2] önbellek temizlendi") // önce bu çalışır
-    yazdır("  [işlem] veri işleniyor...")
-    sonuç "başarılı"
+// Hata, çağrı zincirinde yukarı çıkar; ilk yakala onu ele alır.
+fonksiyon sayıya_çevir(yazı) {
+    sonuç tam(yazı)
 }
-yazdır("dönüş: {dosya_işlemi()}")
+fonksiyon güvenli_çevir(yazı, varsayılan_değer) {
+    dene {
+        sonuç sayıya_çevir(yazı)
+    } yakala h {
+        yazdır("  '{yazı}' sayı değil, {varsayılan_değer} kullanılıyor")
+        sonuç varsayılan_değer
+    }
+}
+yazdır(güvenli_çevir("42", 0))
+yazdır(güvenli_çevir("abc", 0))
 
-fonksiyon başarısız_işlem() {
-    ertele yazdır("  [ertele] hata olsa da temizlik yapıldı")
-    fırlat "işlem başarısız"
-}
-dene { başarısız_işlem() } yakala h { yazdır("yakalandı: {h}") }
+// --- Kendin dene ---
+// 1. Boş listenin ortalamasını isteyen bir fonksiyon yaz; boşsa fırlat ile hata ver ve yakala.
+// 2. Bir listedeki metinlerin hepsini sayıya çevir; çevrilemeyenleri atla.

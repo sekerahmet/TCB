@@ -1,9 +1,9 @@
-// 14 — Transformer: 12 ve 13'teki yapı taşlarıyla elle yazılmış küçük bir transformer.
-// Öğrettikleri: gömme ve konum gömmesi, çok başlı nedensel dikkat (şekillendir,
-// eksenleri_sırala ve birleşik dikkat(...)), katman normu, gelu ile ileri besleme,
-// çapraz_entropi kaybı ve AdamW ile eğitim döngüsü, türevsiz çıkarım.
+// 24 — Transformer: elle yazılmış küçük bir transformer.
+// Ne öğretir: gömme ve konum gömmesi, çok başlı nedensel dikkat (şekillendir, eksenleri_sırala ve
+// birleşik dikkat(...)), katman normu, gelu ile ileri besleme, çapraz_entropi kaybı.
+// Önceki örnekten: tensörler ve türev (19–21), çok katmanlı ağ (22).
 // Görev: 0..V-1 arasında döngüsel ilerleyen dizilerde bir sonraki parçayı tahmin etmek.
-// Çalıştırma (proje kökünden): tr examples/tr/14_transformer.tr
+// Çalıştırma (proje kökünden): tr examples/tr/24_transformer.tr
 
 değişken V = 8 // sözlük boyutu
 değişken T = 8 // bağlam uzunluğu
@@ -106,3 +106,7 @@ döngü satır içinde olasılıklar {
 }
 yazdır("girdi  : {deneme[0][0]}")
 yazdır("tahmin : {tahminler}")
+
+// --- Kendin dene ---
+// 1. D'yi 16'dan 32'ye çıkar (Dh'yi de güncelle): kayıp daha hızlı mı düşüyor?
+// 2. Eğitim adımını 300'den 60'a indir ve son tahminlerin bozulduğunu gör.

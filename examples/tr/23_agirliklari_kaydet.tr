@@ -1,0 +1,30 @@
+// 23 — Ağırlıkları kaydetmek: eğitilmiş modeli diske yazıp geri yüklemek.
+// Ne öğretir: tensör_kaydet(yol, sözlük), tensör_yükle(yol), maks_indeks ile en olası sınıfı seçmek.
+// Önceki örnekten: eğitim döngüsü (21), XOR ağı (22), sözlükler (11), dosya yolları (17).
+// Çalıştırma (proje kökünden): tr examples/tr/23_agirliklari_kaydet.tr
+// Ağırlık dosyası geçici klasöre yazılır (program bitince silinir, depoda iz kalmaz).
+
+// Küçük bir sınıflandırıcı: iki özellikten (boy, kilo gibi) üç sınıftan birini seçer.
+değişken W = tensör([[1.0, -1.0, 0.0], [0.0, 1.0, -1.0]], türev_izle: doğru)
+değişken b = tensör([0.1, 0.0, -0.1], türev_izle: doğru)
+
+// Ağırlıklar bir sözlükte adlarıyla yazılır; geri yüklenince aynı adlarla okunur.
+değişken dosya = yol(geçici_klasör(), "agirliklar.trt")
+tensör_kaydet(dosya, {"W": W, "b": b})
+değişken yüklenen = tensör_yükle(dosya)
+yazdır("yüklenenlerin adları: {yüklenen.anahtarlar()}")
+yazdır("W aynı mı: {yüklenen["W"].değer == W.değer}")
+
+// Yüklenen ağırlıklarla tahmin: her satır bir örnek, her sütun bir sınıfın puanı.
+değişken örnekler = tensör([[2.0, 0.5], [0.2, 1.8], [1.0, 1.0]])
+değişken puanlar = türevsiz { örnekler @ yüklenen["W"] + yüklenen["b"] }
+yazdır("puanlar =", puanlar)
+
+// maks_indeks her satırdaki en büyük puanın sütununu verir: seçilen sınıf.
+değişken sınıflar = maks_indeks(puanlar, eksen: -1)
+değişken adlar = ["kedi", "köpek", "kuş"]
+yazdır("sınıf indeksleri: {sınıflar.değer} → {[adlar[i] döngü i içinde sınıflar.değer]}")
+
+// --- Kendin dene ---
+// 1. 21. örnekteki w ve b'yi eğitip burada kaydet, sonra yükleyip tahmin yap.
+// 2. Yüklenen sözlüğe ek bir anahtar koyup tekrar kaydet.
