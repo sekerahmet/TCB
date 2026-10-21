@@ -2147,7 +2147,7 @@ değişken m = {w: tensör([1.0, 2.0], türev_izle: doğru)}; tensör_kaydet("m.
 
     karışık_hassasiyet(Metin, Fonksiyon | YerleşikFonksiyon) → Herhangi
 
-Bloğu verilen hesap türüyle ("bf16", "fp16" ya da kapatmak için "float32") çalıştırır ve bloğun son ifadesinin değerini döndürür. Blok içinde @ girdileri bu türe çevrilir ama sonuç float32'dir; ağırlıkların türü değişmez.
+Bloğu verilen hesap türüyle ("bf16", "fp16" ya da kapatmak için "float32") çalıştırır ve bloğun son ifadesinin değerini döndürür. Blok içinde @ ve dikkat girdileri bu türe çevrilir; biriktirme float32'dir, sonuç bu türdedir (dil tanımı 15.13); ağırlıkların türü değişmez.
 
 ```tr
 değişken y = karışık_hassasiyet("bf16") { tensör([[1.0, 2.0]]) @ tensör([[3.0], [4.0]]) }; yazdır(y.değer, y.tür)

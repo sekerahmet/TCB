@@ -38,7 +38,7 @@
 
 ## Hata ayıklama
 
-Tuşlar terminal hata ayıklayıcısında da (`tr hata_ayıkla`) aynı anlamdadır: F5 devam, F10 üstten geç, F11 içine gir, Shift+F11 dışarı çık (terminalde tuş adı yazılıp Enter'a basılır). **F5** hata ayıklayıcıyı açık `.tr` dosyasında başlatır; **Ctrl+F5** hata ayıklamadan terminalde çalıştırır (`girdi()` kullanan programlar için). Denemek için depodaki `examples/tr/20_hata_ayiklama_alistirmasi.tr` (adım adım alıştırma) ya da `examples/tr/19_hata_ayiklama.tr` (koddaki koşullu `kesme_noktası`) dosyasını açıp F5'e basın.
+Tuşlar terminal hata ayıklayıcısında da (`tr hata_ayıkla`) aynı anlamdadır: F5 devam, F10 üstten geç, F11 içine gir, Shift+F11 dışarı çık (terminalde tuş adı yazılıp Enter'a basılır). **F5** hata ayıklayıcıyı açık `.tr` dosyasında başlatır; **Ctrl+F5** hata ayıklamadan terminalde çalıştırır (`girdi()` kullanan programlar için). Denemek için depodaki `examples/tr/43_hata_ayiklama_alistirmasi.tr` (adım adım alıştırma) ya da `examples/tr/42_hata_ayiklama.tr` (koddaki koşullu `kesme_noktası`) dosyasını açıp F5'e basın.
 
 **İzleme Masası:** Program her durduğunda editörün yanında açılır.
 

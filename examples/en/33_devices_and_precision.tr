@@ -1,6 +1,6 @@
 //! tr kodlu 1
 // 33 — Devices and precision: where tensors live and with which number type.
-// What it teaches: devices(), default_device(), .device and .to_device(), dtype: / .dtype / .to_dtype(), mixed_precision,
+// What it teaches: devices(), default_device(), .device and .to_device(), dtype: / .dtype / .to_dtype(), mixed_precision, compute_dtype(),
 // master_weights for 16-bit parameters.
 // Builds on: tensors (23), optimizers (29), saving weights (32).
 // Run (from the project root): tr examples/en/33_devices_and_precision.tr
@@ -24,6 +24,9 @@ G100(t.Y402, T101([2, 2], T901: "fp16").Y402, t.Y415("bf16").Y402)
 // memory; the type of the weights does not change. The last expression of the block is the result.
 A030 y = T710("bf16") { T100([[1.0, 2.0]]) @ T100([[3.0], [4.0]]) }
 G100(y.Y404)
+// compute_dtype() gives the active block's compute type ("float32" outside a block). To write a norm
+// whose output only matmuls read straight in that type: rms_norm(x, w, dtype: compute_dtype()).
+G100(T711(), T710("bf16") { T711() })
 
 // When training a 16-bit parameter with AdamW, master_weights: true (default) keeps a float32 master copy;
 // the update is done there and rounded into the parameter, so small steps do not get lost.
