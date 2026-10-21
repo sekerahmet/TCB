@@ -1,4 +1,4 @@
-# TR Dili — VS Code Eklentisi
+# TR Stüdyo — VS Code Eklentisi
 
 `.tr` dosyaları için sözdizimi renklendirme, kod şablonları ve çalıştırma/hata ayıklama komutları.
 
