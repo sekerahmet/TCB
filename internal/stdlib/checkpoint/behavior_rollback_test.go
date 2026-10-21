@@ -7,9 +7,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 	"github.com/sekerahmet/TCB/internal/stdlib/checkpoint"
+	"github.com/sekerahmet/TCB/internal/stdlib/ml"
 )
 
 // rollbackProgram trainingProgram'ın eğitimidir; tek farkı corruptAt adımında kaybın NaN'a
@@ -117,5 +119,78 @@ kn.geri_dön(1)`, dir), messages.H2012},
 		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
 			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.want)
 		}
+	}
+}
+
+// Kural (20.7, 20.14): geri_dön (ve kurulumda yükleme) yazmaya başlamadan önce modelin
+// tensörlerinin yazılabilir olduğunu denetler; yazılamayan bir tensör varsa hiçbir nesne
+// (okuyucu, parametre, iyileştirici, düz değer) değişmez. Parametreler okuyuculardan önce
+// yazılır; yazma yine de yarıda kalırsa (cihaz belleği) okuyucular değişmez.
+// Neden: eskiden okuyucular önce sarılıyor, ikinci parametrede hata çıkınca ilk parametre ve
+// okuyucu yeni, öbürleri eski kalıyordu (Gemini kararlılık denetimi, bulgu 1). Bırakılmış tensör
+// TR kodundan oluşamaz; test onu bir Go yardımcısıyla kurar.
+func TestRollbackStopsBeforeWritingWhenAParamIsUnusable(t *testing.T) {
+	runDir := t.TempDir()
+	dataDir := filepath.Join(reporoot.Root(), "tests", "data", "text")
+
+	m := interp.New()
+	w := &teeWriter{}
+	m.Out, m.Err = w, w
+	m.GlobalEnv.Define("tensör_bırak", &interp.BuiltinVal{
+		Name: "tensör_bırak",
+		Fn: func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+			args[0].(*ml.TensorValue).Tensor().Drop()
+			return interp.Null, nil
+		},
+	}, true)
+
+	code := fmt.Sprintf(`
+değişken KOŞU = %q
+değişken küme = veri_kümesi(%q)
+değişken ö = küme.örnekleyici(toplu: 2, bağlam: 8, tohum: 1)
+değişken model = {
+    a: tensör([10.0, 20.0], türev_izle: doğru),
+    b: tensör([30.0, 40.0], türev_izle: doğru)
+}
+değişken op = AdamW([model.a, model.b], öğrenme_oranı: 0.01)
+değişken izlenen = {adım: 1}
+değişken kn = kontrol_noktası(KOŞU, {model: model, op: op, ö: ö, izlenen: izlenen})
+
+// 1. adımda 1 toplu iş okuyup kontrol noktasını kaydet (ö.durum.sayaç == 1, model.a == [10, 20]).
+ö.sonraki()
+kn.güncelle(1)
+kn.kaydet()
+
+// Eğitim 4. adıma ilerlesin: ö 3 toplu iş daha okur (sayaç == 4), model.a = [1, 2], izlenen.adım = 4.
+ö.sonraki()
+ö.sonraki()
+ö.sonraki()
+türevsiz { model.a[0..2] = tensör([1.0, 2.0]) }
+izlenen.adım = 4
+
+// İkinci parametre (model.b) writeParams sırasında hata üretsin.
+tensör_bırak(model.b)
+
+değişken hata_var = yanlış
+dene {
+    kn.geri_dön()
+} yakala h {
+    hata_var = doğru
+}
+yazdır("HATA:", hata_var)
+yazdır("OKU_SAYAC:", ö.durum.sayaç)
+yazdır("MODEL_A:", model.a.değer)
+yazdır("IZLENEN_ADIM:", izlenen.adım)
+`, trPath(runDir), trPath(dataDir))
+
+	if _, err := runVM(t, m, code); err != nil {
+		t.Fatalf("beklenmeyen çalışma hatası: %v\n%s", err, w.String())
+	}
+	output := w.String()
+	if !strings.Contains(output, "HATA: doğru") {
+		t.Fatalf("geri_dön hata vermeliydi:\n%s", output)
+	}
+	if !strings.Contains(output, "OKU_SAYAC: 4") || !strings.Contains(output, "MODEL_A: [1.0, 2.0]") || !strings.Contains(output, "IZLENEN_ADIM: 4") {
+		t.Fatalf("geri_dön hata verdiğinde hiçbir nesne değişmemeliydi (20.7), ancak nesneler yarı yüklenmiş kaldı:\n%s", output)
 	}
 }

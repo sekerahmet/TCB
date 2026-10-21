@@ -12,6 +12,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/reporoot"
 	"github.com/sekerahmet/TCB/internal/stdlib/checkpoint"
 )
 
@@ -271,5 +272,157 @@ func TestPlainValueRejectsTrailingData(t *testing.T) {
 	v, err := checkpoint.ReadPlain([]byte(`42 {"fazladan": "veri"}`))
 	if err == nil {
 		t.Fatalf("ReadPlain fazladan JSON verisini reddetmeliydi; alınan değer: %v", v)
+	}
+}
+
+// Kural (20.7, 20.9): dosyaları sağlam (özetler tutuyor) ama içeriği kurallara uymayan nokta
+// bozuk sayılır ve bir önceki geçerli noktayı önerir: geçersiz okuyucu durumu, bozuk düz değer
+// JSON'u, şekli bozuk adım sayacı. Kullanıcının programındaki fark (başka tohum, toplu, bağlam,
+// veri kümesi, model) bozukluk değil uyumsuzluktur; önceki nokta önerilmez.
+// Neden: eskiden yalnızca iyileştiricinin değer denetimi önceki noktayı öneriyordu (Gemini
+// kararlılık denetimi, bulgu 3).
+func TestCorruptContentSuggestsPreviousButMismatchDoesNot(t *testing.T) {
+	dataDir := trPath(filepath.Join(reporoot.Root(), "tests", "data", "text"))
+
+	buildWithReader := func(t *testing.T) string {
+		t.Helper()
+		runDir := t.TempDir()
+		out, err := run(t, fmt.Sprintf(`
+değişken w = tensör([1.0, 2.0, 3.0], türev_izle: doğru)
+değişken op = AdamW([w])
+değişken ö = veri_kümesi(%q).örnekleyici(toplu: 2, bağlam: 8, tohum: 1)
+değişken d = {a: 1}
+değişken kn = kontrol_noktası(%q, {w: w, op: op, ö: ö, d: d})
+ö.sonraki()
+kn.güncelle(1)
+kn.kaydet()
+ö.sonraki()
+kn.güncelle(2)
+kn.kaydet()
+`, dataDir, trPath(runDir)))
+		if err != nil {
+			t.Fatalf("%v\n%s", err, out)
+		}
+		return runDir
+	}
+
+	resignStep2 := func(t *testing.T, runDir string) {
+		t.Helper()
+		step2Dir := filepath.Join(runDir, "kontrol_noktalari", "adim_0000000002")
+		trtBytes, err := os.ReadFile(filepath.Join(step2Dir, "tensorler.trt"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		durumBytes, err := os.ReadFile(filepath.Join(step2Dir, "durum.json"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		trtSum := sha256.Sum256(trtBytes)
+		durumSum := sha256.Sum256(durumBytes)
+		ozet := fmt.Sprintf(`{
+  "sürüm": 2,
+  "adım": 2,
+  "dosyalar": {
+    "durum.json": {"bayt": %d, "sha256": %q},
+    "tensorler.trt": {"bayt": %d, "sha256": %q}
+  }
+}
+`, len(durumBytes), hex.EncodeToString(durumSum[:]), len(trtBytes), hex.EncodeToString(trtSum[:]))
+		if err := os.WriteFile(filepath.Join(step2Dir, "ozet.json"), []byte(ozet), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	wantHint := messages.Text(messages.H7471, "adim_0000000001", 1)
+
+	cases := []struct {
+		name   string
+		tamper func(t *testing.T, step2Dir string)
+	}{
+		{
+			name: "okuyucu_durumunda_negatif_pencere",
+			tamper: func(t *testing.T, step2Dir string) {
+				durumPath := filepath.Join(step2Dir, "durum.json")
+				b, err := os.ReadFile(durumPath)
+				if err != nil {
+					t.Fatal(err)
+				}
+				corrupted := strings.Replace(string(b), "\"pencere\",\n            4", "\"pencere\",\n            -1", 1)
+				if corrupted == string(b) {
+					t.Fatalf("pencere alanı durum.json içinde bulunamadı:\n%s", string(b))
+				}
+				if err := os.WriteFile(durumPath, []byte(corrupted), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			},
+		},
+		{
+			name: "duz_degerde_fazladan_json",
+			tamper: func(t *testing.T, step2Dir string) {
+				durumPath := filepath.Join(step2Dir, "durum.json")
+				b, err := os.ReadFile(durumPath)
+				if err != nil {
+					t.Fatal(err)
+				}
+				corrupted := strings.Replace(string(b), "\"a\",\n            1", "\"a\",\n            {\"ondalık\":\"bozuk\"}", 1)
+				if corrupted == string(b) {
+					t.Fatalf("d alanı durum.json içinde bulunamadı:\n%s", string(b))
+				}
+				if err := os.WriteFile(durumPath, []byte(corrupted), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			},
+		},
+		{
+			name: "iyilestirici_adim_sayaci_bozuk_sekil",
+			tamper: func(t *testing.T, step2Dir string) {
+				trtPath := filepath.Join(step2Dir, "tensorler.trt")
+				if _, err := run(t, fmt.Sprintf(`
+tensör_kaydet(%q, {
+    "w/0": tensör([99.0, 99.0, 99.0]),
+    "op/adim": tensör([1.0, 0.0, 0.0])
+})
+`, trPath(trtPath))); err != nil {
+					t.Fatal(err)
+				}
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			runDir := buildWithReader(t)
+			step2Dir := filepath.Join(runDir, "kontrol_noktalari", "adim_0000000002")
+			tc.tamper(t, step2Dir)
+			resignStep2(t, runDir)
+
+			_, err := run(t, fmt.Sprintf(`
+değişken w = tensör([1.0, 2.0, 3.0], türev_izle: doğru)
+değişken op = AdamW([w])
+değişken ö = veri_kümesi(%q).örnekleyici(toplu: 2, bağlam: 8, tohum: 1)
+değişken d = {a: 1}
+kontrol_noktası(%q, {w: w, op: op, ö: ö, d: d})
+`, dataDir, trPath(runDir)))
+			if err == nil {
+				t.Fatal("bozuk içerikli kontrol noktası reddedilmeliydi")
+			}
+			if !strings.Contains(err.Error(), wantHint) {
+				t.Errorf("bozuk içerikli son noktada bir önceki sağlam nokta (%s) önerilmedi:\n%v", wantHint, err)
+			}
+		})
+	}
+
+	// Karşıt vaka: noktaya dokunulmadı, kullanıcı okuyucunun tohumunu değiştirdi. Bu bozukluk
+	// değil uyumsuzluktur: hata verilir ama önceki nokta önerilmez (o da aynı tohumla yazıldı).
+	runDir := buildWithReader(t)
+	_, err := run(t, fmt.Sprintf(`
+değişken w = tensör([1.0, 2.0, 3.0], türev_izle: doğru)
+değişken op = AdamW([w])
+değişken ö = veri_kümesi(%q).örnekleyici(toplu: 2, bağlam: 8, tohum: 2)
+değişken d = {a: 1}
+kontrol_noktası(%q, {w: w, op: op, ö: ö, d: d})
+`, dataDir, trPath(runDir)))
+	if err == nil || strings.Contains(err.Error(), wantHint) {
+		t.Errorf("tohum farkı uyumsuzluktur, önceki nokta önerilmemeli: %v", err)
 	}
 }

@@ -187,19 +187,23 @@ func (n *object) checkMatch(fn string, y *pending, version int) error {
 		for i, name := range y.order {
 			shapes[i] = y.shapes[name]
 		}
-		return n.op.CheckState(messages.Text(messages.H7441, fn, n.name), y.order, shapes)
+		err := n.op.CheckState(messages.Text(messages.H7441, fn, n.name), y.order, shapes)
+		if err != nil && badCounter(y) {
+			return corruptContent{err} // sayaçların şekli sabittir: iyileştirici değişmiş değil, kayıt bozuk
+		}
+		return err
 	case kindStateful, kindPlain:
 		if len(y.shapes) > 0 {
 			return messages.New(messages.H7443, fn, n.name)
 		}
 		v, err := readPlain(y.record.Value)
 		if err != nil {
-			return messages.New(messages.H7444, fn, n.name, err)
+			return corruptContent{messages.New(messages.H7444, fn, n.name, err)}
 		}
 		y.value = v
 		if n.kind == kindStateful {
 			if _, ok := v.(*interp.DictVal); !ok {
-				return messages.New(messages.H7445, fn, n.name)
+				return corruptContent{messages.New(messages.H7445, fn, n.name)}
 			}
 		} else if fmt.Sprint(v.Type()) != fmt.Sprint(n.value.Type()) {
 			return messages.New(messages.H7446, fn, n.name, v.Type(), n.value.Type())
@@ -263,4 +267,15 @@ func settingsText(m *interp.VM, a *interp.DictVal) json.RawMessage {
 		return nil
 	}
 	return b
+}
+
+// badCounter iyileştirici kaydında bir adım sayacının ("adim", "adim.k") şekli [2] değil mi?
+// Sayaçların şekli modelden bağımsızdır; farklıysa kayıt bozuktur.
+func badCounter(y *pending) bool {
+	for _, name := range y.order {
+		if strings.HasPrefix(name, "adim") && !slices.Equal(y.shapes[name], []int{2}) {
+			return true
+		}
+	}
+	return false
 }

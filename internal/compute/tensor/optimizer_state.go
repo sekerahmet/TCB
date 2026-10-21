@@ -92,14 +92,20 @@ func (o *AdamW) CheckState(st map[string]*Tensor) {
 	}
 }
 
-// checkStateShape durumda ad varsa şeklinin p'ninkiyle aynı olduğunu denetler ve var mı
-// sorusunu yanıtlar.
+// checkStateShape durumda ad varsa onu loadState'in yazmadan önce isteyeceği her şeyle denetler
+// (şekil p'ninkiyle aynı, aynı cihazda, canlı ve verisi olan bir tensör) ve var mı sorusunu
+// yanıtlar; böylece LoadState yazmaya başladıktan sonra paniğe geçmez.
 func checkStateShape(st map[string]*Tensor, ad string, p *Tensor) bool {
 	t, ok := st[ad]
-	if ok && !sameShape(t.shape, p.shape) {
+	if !ok {
+		return false
+	}
+	if !sameShape(t.shape, p.shape) {
 		panic(messages.New(messages.H3058, ad, t.shape, p.shape))
 	}
-	return ok
+	sameDevice("LoadState", p, t)
+	t.view() // bırakılmış ya da iz (kaynaştırma) tensörü burada reddedilir
+	return true
 }
 
 // CheckState durumu yüklemeden denetler (anahtarlar ve şekiller; bkz. AdamW.CheckState).

@@ -16,7 +16,7 @@ import (
 
 // apply doğrulanmış ve uyumu denetlenmiş noktayı nesnelere iki aşamada yükler (dil tanımı 20.7):
 // önce hiçbir nesne değişmeden iyileştirici durumları toplanıp bütün kurallarıyla denetlenir ve
-// okuyucular hazırlanır; hepsi geçerse okuyucular, parametreler (yerinde), iyileştiriciler, düz
+// okuyucular hazırlanır; hepsi geçerse parametreler (yerinde), okuyucular, iyileştiriciler, düz
 // değerler yazılır ve günlüklere devam kaydı düşülür. Parametreler iyileştiricilerden önce yazılır:
 // 16 bitlik parametrelerin ana kopyaları parametrenin yüklemeden sonraki sürümüne bağlanır.
 // Noktanın içeriği bozuksa (ör. geçersiz adım sayacı) hata corruptContent'tir: çağıran bir önceki
@@ -33,24 +33,38 @@ func (kn *Checkpoint) apply(m *interp.VM, fn string, o *loadedCkpt) error {
 			}
 		}
 	}
+	if err := kn.checkParamsLive(); err != nil {
+		return err
+	}
 	var commits, discards []func()
+	release := func() {
+		for _, d := range discards {
+			d()
+		}
+	}
 	for _, n := range kn.objects {
 		if n.kind == kindStateful {
 			commit, discard, err := n.stateful.PrepareState(m, o.objects[n.name].value.(*interp.DictVal))
 			if err != nil {
-				for _, d := range discards {
-					d()
+				release()
+				err = messages.New(messages.H6626, fn, n.name, err)
+				if readerMismatch(err) {
+					return err
 				}
-				return messages.New(messages.H6626, fn, n.name, err)
+				return corruptContent{err}
 			}
 			commits, discards = append(commits, commit), append(discards, discard)
 		}
 	}
+	// Buradan sonra yalnızca kurtarılamayan hatalar kalır (cihaz belleğinin bitmesi, dosyanın
+	// doğrulandıktan sonra değişmesi): parametreler okuyuculardan önce yazılır, yarıda kalırsa
+	// okuyucular hiç değişmez (20.7).
+	if err := kn.writeParams(o); err != nil {
+		release()
+		return messages.New(messages.H5620, fn, kn.shown+"/"+o.name, err)
+	}
 	for _, c := range commits {
 		c()
-	}
-	if err := kn.writeParams(o); err != nil {
-		return messages.New(messages.H5620, fn, kn.shown+"/"+o.name, err)
 	}
 	for _, n := range kn.objects {
 		switch n.kind {
@@ -67,6 +81,30 @@ func (kn *Checkpoint) apply(m *interp.VM, fn string, o *loadedCkpt) error {
 		}
 	}
 	return nil
+}
+
+// checkParamsLive modellerin tensörlerinin yazılabilir (bırakılmamış) olduğunu yazmadan önce
+// denetler. TR kodu bırakılmış bir tensöre ulaşamaz; olursa motorda bir iç hatadır ve yükleme
+// hiçbir nesneye dokunmadan durur.
+func (kn *Checkpoint) checkParamsLive() error {
+	for _, n := range kn.objects {
+		if n.kind != kindModel {
+			continue
+		}
+		for _, p := range n.params {
+			if p.Tensor().IsDropped() {
+				return messages.Internal("a released tensor was used")
+			}
+		}
+	}
+	return nil
+}
+
+// readerMismatch okuyucu durumunun hatası kullanıcının programındaki farkdan mı (başka okuyucu
+// türü, veri kümesi, toplu, bağlam ya da tohum) geliyor? Öbür hatalar (eksik ya da geçersiz alan,
+// bu veride geçersiz konum) noktanın içeriğinin bozukluğudur.
+func readerMismatch(err error) bool {
+	return messages.Has(err, messages.H5538) || messages.Has(err, messages.H5539) || messages.Has(err, messages.H5544)
 }
 
 // corruptContent noktanın dosyaları sağlam (özetler tutuyor) ama içeriği kurallara uymuyor
