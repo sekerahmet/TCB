@@ -1,10 +1,10 @@
-// 03 — Testler: kodun yanına test yazmak.
+// 08 — Testler: kodun yanına test yazmak.
 // Öğrettikleri: `test "ad" { ... }` blokları, doğrula(koşul, [mesaj]) ve
 // eşit_mi(beklenen, gerçek) ile denetim, hatanın fırlatıldığını sınamak (dene/yakala).
 // Dosya adı *_test.tr ile biter: `tr test` bir klasörde yalnızca bu adlı dosyaları bulur.
 // Çalıştırma (proje kökünden):
-//   tr test examples/03_testler_test.tr   → testleri çalıştırır, özet yazar
-//   tr examples/03_testler_test.tr        → dosyayı normal çalıştırır; test blokları atlanır
+//   tr test examples/tr/08_testler_test.tr   → testleri çalıştırır, özet yazar
+//   tr examples/tr/08_testler_test.tr        → dosyayı normal çalıştırır; test blokları atlanır
 // Bir test kalırsa `tr test` 1 ile çıkar; CI'da kapı olarak kullanılabilir.
 
 // --- Sınanacak kod ---
@@ -30,7 +30,7 @@ yapı Sepet {
 }
 
 // Bu satır her iki kipte de çalışır: testlerden önce dosyanın kendisi çalışır.
-yazdır("Test blokları yalnızca şu komutla çalışır: tr test examples/03_testler_test.tr")
+yazdır("Test blokları yalnızca şu komutla çalışır: tr test examples/tr/08_testler_test.tr")
 
 // --- Testler ---
 test "toplama" {
