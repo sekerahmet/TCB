@@ -19,6 +19,7 @@ TR, yapay zekâ modeli geliştirmek ve eğitmek için Türkçe bir programlama d
 - **Önce sağlam temel, sonra özellik.** Yama gibi ekleme yapılmaz; yeni şey yazılı kurala ve tarife uyar.
 - **Her kural bir testle korunur.** Yeni bir kural yazıya geçince ona bir test bağlanır.
 - **Doğrusu neyse o, önce başka dillere bakılarak:** yeni bir parça ya da bir tasarım sorunu çıktığında önce başka dillerin ve çerçevelerin (Python, Swift, Kotlin, Rust, Go, PyTorch, JAX ...) yerleşik çözümü karşılaştırılır; uygunsa TR'ye uyarlanır, hiçbiri uymuyorsa gerekçesiyle yeni bir yöntem seçilir. Karşılaştırma ve gerekçe belgeye (dil tanımı maddesi ya da commit mesajı) yazılır. Böylece başka dillerin güçlü yanları alınır, bilinen hataları tekrarlanmaz.
+- **Kritik tasarım kararı araştırmayla verilir, ezberden olmaz.** Yeni bir alt sistem, dosya biçimi, komut adı ailesi, dil kuralı ya da genel API tasarlanmadan önce güncel kaynaklar okunur: resmi belge, spesifikasyon, kaynak kod. Karşılaştırma tablosunun her satırı kaynağına (bağlantı ve sürüm) dayanır. Kaynaksız iddia "kanıtsız" diye işaretlenir. Tasarım önerisi kaynak bağlantılarıyla birlikte sunulur ve öyle onaylanır.
 - **Önce ölç, sonra değiştir:** hıza dokunan değişiklik önce ve sonra ölçülür; kazandırmayan geri alınır.
 - **Dış inceleme bulguları doğrulanarak düzeltilir:** önce yeniden üretilir; düzeltmenin testi önce kalır, sonra geçer.
 
