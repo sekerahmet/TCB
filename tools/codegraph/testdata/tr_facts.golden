@@ -17,6 +17,8 @@ edge tr:func:examples/coded.tr:kodlu_işlev uses_name name:G100 EXTRACTED @examp
 edge tr:func:lib/geo.tr:yaz_alan calls tr:func:lib/geo.tr:çevre_hesapla EXTRACTED @lib/geo.tr:21 x1
 edge tr:func:lib/geo.tr:yaz_alan calls tr:method:lib/geo.tr:Kare.alan INFERRED @lib/geo.tr:20 x1
 edge tr:func:lib/geo.tr:yaz_alan uses_name name:G100 EXTRACTED @lib/geo.tr:20 x1
+edge tr:method:lib/geo.tr:Kare.alan uses tr:field:lib/geo.tr:Kare.kenar EXTRACTED @lib/geo.tr:11 x2
+edge tr:method:lib/geo.tr:Kare.kurucu uses tr:field:lib/geo.tr:Kare.kenar EXTRACTED @lib/geo.tr:8 x1
 edge tr:struct:lib/geo.tr:Kare contains tr:field:lib/geo.tr:Kare.kenar EXTRACTED @lib/geo.tr:6 x1
 edge tr:struct:lib/geo.tr:Kare contains tr:method:lib/geo.tr:Kare.alan EXTRACTED @lib/geo.tr:10 x1
 edge tr:struct:lib/geo.tr:Kare contains tr:method:lib/geo.tr:Kare.kurucu EXTRACTED @lib/geo.tr:7 x1

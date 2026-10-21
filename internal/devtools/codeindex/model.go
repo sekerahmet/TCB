@@ -23,21 +23,23 @@ const Schema = "tr-codeindex/1"
 
 // IndexVersion dizinin kaynaktan türettiği içerik değişince artar (yeni düğüm türü, farklı
 // çözümleme). Başka sürümün önbelleği hiçbir zaman kullanılmaz.
-const IndexVersion = 1
+const IndexVersion = 2
 
 // Kind bir düğümün türüdür; değerler JSON'a yazılan değişmez tanımlayıcılardır.
 type Kind string
 
 const (
-	KindModule   Kind = "module"   // bir .tr dosyası
-	KindFunction Kind = "function" // üst düzey işlev
-	KindStruct   Kind = "struct"
-	KindMethod   Kind = "method" // yapı metodu
-	KindField    Kind = "field"  // yapı alanı
-	KindConstant Kind = "constant"
-	KindVariable Kind = "variable"
-	KindTest     Kind = "test_block" // bir test "..." bloğu
-	KindBuiltin  Kind = "builtin"    // yerleşik ad (ad kodu: global işlev, üye ya da adlı argüman)
+	KindModule    Kind = "module"   // bir .tr dosyası
+	KindFunction  Kind = "function" // üst düzey işlev
+	KindStruct    Kind = "struct"
+	KindMethod    Kind = "method" // yapı metodu
+	KindField     Kind = "field"  // yapı alanı
+	KindConstant  Kind = "constant"
+	KindVariable  Kind = "variable"
+	KindTest      Kind = "test_block" // bir test "..." bloğu
+	KindBuiltin   Kind = "builtin"    // yerleşik ad (ad kodu: global işlev, üye ya da adlı argüman)
+	KindParameter Kind = "parameter"  // işlev ya da metot parametresi
+	KindOption    Kind = "option"     // komut_satırı sözlüğünün anahtarı (komut satırı seçeneği)
 )
 
 // EdgeKind iki düğüm arasındaki bağın türüdür.
@@ -71,6 +73,8 @@ const (
 	RoleWrite      Role = "write"
 	RoleImport     Role = "import"
 	RoleTest       Role = "in_test"
+	RoleArgument   Role = "argument_name" // çağrıdaki adlı argümanın adı (`f(ad: 1)`)
+	RoleOptionKey  Role = "option_key"    // komut_satırı sözlüğünün anahtarı
 )
 
 // Pos bir kaynak dosyadaki konumdur. Satır ve sütun 1'den başlar; sütun, satırın Türkçe
@@ -143,7 +147,22 @@ type Occurrence struct {
 	Confidence Confidence `json:"confidence"`
 	Pos        Pos        `json:"pos"`
 	In         string     `json:"in,omitempty"` // başvuruyu içeren bildirim (ya da modül)
+	// Basis üye erişiminin neye dayanarak bağlandığıdır: boşsa ada göre çözüldü; BasisSelf `kendi.x`;
+	// BasisLocalType tek atamayla yapıcıdan kurulan yerel (`değişken d = Yapı()`); BasisNameMatch alıcı
+	// tipi bilinmeden adı tutan metot adayı (kenarı vardır); BasisNameOnly yalnızca adı tutan üye adayı
+	// (kenarı yoktur: yalnızca yeniden adlandırma etkisinde görünür, kullananlar listesinde değil).
+	Basis Basis `json:"basis,omitempty"`
 }
+
+// Basis bir başvurunun dayanağıdır.
+type Basis string
+
+const (
+	BasisSelf      Basis = "self"
+	BasisLocalType Basis = "local_type"
+	BasisNameMatch Basis = "name_match"
+	BasisNameOnly  Basis = "name_only"
+)
 
 // Index bir projenin bütün dizinidir. Düğümler, kenarlar ve başvurular sıralıdır: aynı proje aynı
 // baytları verir.

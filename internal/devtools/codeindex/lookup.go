@@ -167,6 +167,9 @@ func (r *Reader) Suggest(q string, limit int) []*Node {
 	var found []scored
 	for i := range r.Index.Nodes {
 		n := &r.Index.Nodes[i]
+		if n.Kind == KindParameter || n.Kind == KindOption {
+			continue // öneriler bildirimlere gider; parametre ve seçenek adı yazım yanlışı önerisi değildir
+		}
 		cands := []string{n.Name, n.Qualified}
 		if j := strings.LastIndexByte(n.Qualified, '.'); j >= 0 {
 			cands = append(cands, n.Qualified[j+1:])

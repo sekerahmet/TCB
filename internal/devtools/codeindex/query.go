@@ -61,7 +61,7 @@ func (r *Reader) Definition(q string, o QueryOptions) *Result {
 	}
 	res.Docs = n.Doc
 	for _, e := range r.Index.Edges {
-		if e.Kind == EdgeDefines && e.From == n.ID {
+		if e.Kind == EdgeDefines && e.From == n.ID && r.byID[e.To].Kind != KindParameter {
 			res.Members = append(res.Members, r.display(*r.byID[e.To]))
 		}
 	}
@@ -89,7 +89,7 @@ func (r *Reader) usesOf(ids []string, withDefinition bool, outside string) []Use
 	}
 	var uses []Use
 	for _, oc := range r.Index.Occurrences {
-		if !want[oc.Node] || (oc.Role == RoleDefinition && !withDefinition) || (outside != "" && oc.Pos.File == outside) {
+		if !want[oc.Node] || oc.Basis == BasisNameOnly || (oc.Role == RoleDefinition && !withDefinition) || (outside != "" && oc.Pos.File == outside) {
 			continue
 		}
 		u := Use{Role: oc.Role, Confidence: oc.Confidence, Pos: oc.Pos}
