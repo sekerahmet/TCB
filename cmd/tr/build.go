@@ -458,7 +458,7 @@ func writeEmbeddedModules(pk *pkg, dir string) ([]string, error) {
 	paths := make([]string, len(pk.Modules))
 	for i, m := range pk.Modules {
 		name := filepath.Base(filepath.FromSlash(m.Name))
-		if name == "." || name == string(filepath.Separator) || name == "" {
+		if name == "." || name == ".." || name == string(filepath.Separator) || name == "" {
 			name = "modul.tr"
 		}
 		paths[i] = filepath.Join(dir, strconv.Itoa(i), name)
