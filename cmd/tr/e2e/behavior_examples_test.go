@@ -324,3 +324,26 @@ func TestExamplesSameOutput(t *testing.T) {
 		})
 	}
 }
+
+// Kök README'deki örnek tablosu her örneği (iki yazımıyla) ve her hata örneğini listeler.
+func TestExamplesListedInReadme(t *testing.T) {
+	data, err := os.ReadFile(reporoot.Path("README.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	readme := string(data)
+	for _, lang := range []string{"tr", "en"} {
+		for _, name := range exampleFiles(t, lang) {
+			if !strings.Contains(readme, "(examples/"+lang+"/"+name+")") {
+				t.Errorf("README.md örnek tablosunda examples/%s/%s yok", lang, name)
+			}
+		}
+	}
+	for lang, dir := range errorsDir {
+		for _, p := range errorExamples(t, lang, dir) {
+			if !strings.Contains(readme, "(examples/"+lang+"/"+dir+"/"+filepath.Base(p)+")") {
+				t.Errorf("README.md hata örnekleri tablosunda examples/%s/%s/%s yok", lang, dir, filepath.Base(p))
+			}
+		}
+	}
+}

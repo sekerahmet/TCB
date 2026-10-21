@@ -1,6 +1,6 @@
 # Örnekler
 
-Numaralı örnekler basitten zora bir öğrenme yoludur: her biri az sayıda yeni ad getirir ve öncekilerde öğretilmemiş hiçbir şeyi kullanmaz. Her örnek iki yazımla bulunur: [`tr/`](tr/) Türkçe, [`en/`](en/) İngilizce (aynı numara aynı program; İngilizce dosyalar kodlu saklanır, `tr göster --dil en` ile okunur). Yol, dilin bütün adlarını kapsar; kapsamı `go test ./cmd/tr/e2e -run TestExamplesCover` denetler. Tam liste ve ne öğrettikleri: [kök README](../README.md#örnekler).
+Numaralı örnekler basitten zora bir öğrenme yoludur: her biri az sayıda yeni ad getirir ve öncekilerde öğretilmemiş hiçbir şeyi kullanmaz. Her örnek iki yazımla bulunur: [`tr/`](tr/) Türkçe, [`en/`](en/) İngilizce (aynı numara aynı program; İngilizce dosyalar kodlu saklanır, `tr göster --dil en` ile okunur). Yol, dilin bütün adlarını kapsar; kapsamı `go test ./cmd/tr/e2e -run TestExamplesCover` denetler. Tam liste ve ne öğrettikleri: [kök README](../README.md#örnekler); örneklerin hangi adları getirdiğini sırayla görmek için başlıklara bakın.
 
 Her örnek tek başına çalışır:
 
