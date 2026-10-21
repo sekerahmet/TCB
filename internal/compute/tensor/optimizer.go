@@ -292,19 +292,27 @@ func ClipGradNorm(params []*Tensor, maxNorm float64) float64 {
 	}
 	sy := counterStart(params[0].be, OpKindClipGrad).start()
 	defer sy.finish()
-	norm := math.Sqrt(gradSquareSum(params))
+	// Norm float32'de taşarsa (ör. [3e38, 3e38]) sonsuzdur: ölçek 0, sonlu gradyanlar 0 olur
+	// (PyTorch 2.14 float32 normla aynı; GPU çekirdeği de normu float32'ye yuvarlayıp böler).
+	norm := float64(float32(math.Sqrt(gradSquareSum(params))))
+	var steps []goodStep
+	for _, p := range params {
+		if p.gradStorage() != nil {
+			steps = append(steps, goodStep{p: p})
+		}
+	}
 	if norm > maxNorm && norm > 0 {
 		k := float32(maxNorm / norm)
-		var steps []goodStep
-		for _, p := range params {
-			if p.gradStorage() != nil {
-				steps = append(steps, goodStep{p: p})
-			}
-		}
 		multiApply(steps, func(be MultiTensorOps, a []goodStep) {
 			_, g, _ := a[0].cols(a)
 			be.ScaleAll(g, k)
 		}, func(a goodStep) { a.p.be.Scale(a.p.gradStorage(), k) })
+	}
+	// Kırpma gradyanları yerinde yazar sayılır (PyTorch clip_grad_norm_ ölçek 1 olsa da
+	// gradyanı yerinde çarpar ve sürümü artırır); GPU yolu ölçeği cihazda seçtiği için aynı
+	// kuralla iki cihaz aynı davranır. Sınırsız yoklama (en_fazla +∞, sonlu_değilse_hata)
+	// gradyanlara dokunmaz.
+	if !math.IsInf(maxNorm, 1) {
 		for _, a := range steps {
 			a.p.gradStorage().BumpVersion()
 		}
@@ -345,8 +353,10 @@ func ClipGradNormTensor(params []*Tensor, maxNorm float64) *Tensor {
 		norm, ok := gc.ClipGradAll(grads, float32(maxNorm))
 		sy.finish()
 		if ok {
-			for _, g := range grads {
-				g.BumpVersion()
+			if !math.IsInf(maxNorm, 1) { // sınırsız yoklama gradyanlara dokunmaz (ClipGradNorm)
+				for _, g := range grads {
+					g.BumpVersion()
+				}
 			}
 			return fromStorage(be, norm, nil)
 		}

@@ -227,6 +227,9 @@ func clipNormKernel() *emitter {
 	nf := k.f()
 	k.e("cvt.rn.f32.f64", nf, nd)
 	k.store(tensor.Float32, norm, nf)
+	// Ölçek float32'ye yuvarlanmış normla hesaplanır: float32'de taşan norm sonsuzdur, ölçek 0
+	// olur (CPU yolu ve PyTorch'la aynı).
+	k.e("cvt.f64.f32", nd, nf)
 	// ölçek = (norm > en_fazla && norm > 0) ? en_fazla / norm : 1 (NaN norm: 1, kırpılmaz;
 	// CPU yolundaki karşılaştırmayla aynı).
 	o := k.f()

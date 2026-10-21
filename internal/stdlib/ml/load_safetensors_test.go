@@ -81,7 +81,7 @@ func TestSafetensorsRejects(t *testing.T) {
 		{"{ ile başlamıyor", safetensorsBytes(` {"w":{}}`, nil), messages.H6610},
 		{"geçersiz UTF-8", safetensorsBytes("{\"\xff\":1}", nil), messages.H6640},
 		{"JSON değil", safetensorsBytes(`{"w":`, nil), messages.H6641},
-		{"bilinmeyen alan", safetensorsBytes(entry(`{"dtype":"F32","shape":[1],"data_offsets":[0,4],"x":1}`), one), messages.H6641},
+		{"bilinmeyen alan", safetensorsBytes(entry(`{"dtype":"F32","shape":[1],"data_offsets":[0,4],"x":1}`), one), messages.H6654},
 		{"yinelenen anahtar", safetensorsBytes(`{"w":{"dtype":"F32","shape":[1],"data_offsets":[0,4]},"w":{"dtype":"F32","shape":[1],"data_offsets":[4,8]}}`, append(one, one...)), messages.H6642},
 		{"desteklenmeyen tür", safetensorsBytes(entry(`{"dtype":"I64","shape":[1],"data_offsets":[0,8]}`), make([]byte, 8)), messages.H6643},
 		{"boşluk", safetensorsBytes(entry(`{"dtype":"F32","shape":[1],"data_offsets":[4,8]}`), append(one, one...)), messages.H6644},
@@ -93,7 +93,7 @@ func TestSafetensorsRejects(t *testing.T) {
 		{"metadata metin değil", safetensorsBytes(`{"__metadata__":{"a":1}}`, nil), messages.H6647},
 		{"çok eksen", safetensorsBytes(entry(`{"dtype":"F32","shape":[`+strings.Repeat("1,", 32)+`1],"data_offsets":[0,4]}`), one), messages.H6648},
 		{"dev eksen", safetensorsBytes(entry(`{"dtype":"F32","shape":[4294967296,4294967296],"data_offsets":[0,4]}`), one), messages.H6649},
-		{"negatif eksen", safetensorsBytes(entry(`{"dtype":"F32","shape":[-1],"data_offsets":[0,4]}`), one), messages.H6641},
+		{"negatif eksen", safetensorsBytes(entry(`{"dtype":"F32","shape":[-1],"data_offsets":[0,4]}`), one), messages.H6655},
 	} {
 		_, err := decodeTensorFile(bytes.NewReader(d.file), int64(len(d.file)))
 		if err == nil || !messages.Has(err, d.want) {

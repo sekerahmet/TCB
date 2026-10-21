@@ -25,6 +25,15 @@ func fuseGradients(p *FuseProgram) []*FuseNode {
 		}
 	}
 	wants := gradReach(order, p.Inputs)
+	reached := false
+	for _, o := range p.Outputs {
+		reached = reached || wants[o]
+	}
+	if !reached {
+		// Hiçbir çıktı türev isteyen bir girdiye türevlenebilir bir yoldan bağlı değil (ör.
+		// yalnızca karşılaştırma ya da sonlu_mu): kaynaştır dışındaki gibi çıktı türev izlemez.
+		return nil
+	}
 	adj := map[*FuseNode]*FuseNode{}
 	add := func(n, g *FuseNode) {
 		if !wants[n] || g == nil {
@@ -63,13 +72,16 @@ func fuseGradients(p *FuseProgram) []*FuseNode {
 	return grads
 }
 
-// gradReach türev isteyen bir girdiye bağlı düğümleri işaretler.
+// gradReach türev isteyen bir girdiye türevlenebilir bir yoldan bağlı düğümleri işaretler;
+// karşılaştırmalar (sonucu 0/1) yolu keser, kaynaştır dışındaki Compare gibi.
 func gradReach(order []*FuseNode, inputs []FuseInputInfo) map[*FuseNode]bool {
 	wants := map[*FuseNode]bool{}
 	for _, n := range order {
-		switch n.Kind {
-		case FuseInput:
+		switch {
+		case n.Kind == FuseInput:
 			wants[n] = n.Index < len(inputs) && inputs[n.Index].RequiresGrad
+		case n.Kind == FuseBinary && n.Bin >= OpLt && n.Bin <= OpGe:
+			wants[n] = false
 		default:
 			for _, a := range n.Args {
 				wants[n] = wants[n] || wants[a]
