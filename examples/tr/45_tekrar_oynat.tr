@@ -1,0 +1,31 @@
+// 45 — Kaydedip oynatmak: sık tekrarlanan küçük bir GPU adımını bir kez kaydedip tek seferde oynatmak.
+// Ne öğretir: tekrar_oynat(f) (GPU'da CUDA Graph), yerine_yaz(hedef, kaynak, eksen:, başlangıç:) ile
+// önbelleğe konumundan yazmak, değişen değeri (konum, kimlik) tensör argümanı olarak vermek.
+// Üretimde her parça aynı küçük işi yapar; asıl maliyet çoğu zaman yüzlerce kernelin tek tek
+// başlatılmasıdır. tekrar_oynat ikinci çağrıda işi kaydeder, sonra yorumlayıcıyı atlayıp kaydı oynatır.
+// Önceki örnekten: hazır katmanlarla GPT (41); GPT.üret aynı yolu GPU'da kendiliğinden kullanır.
+// Ayrıntılar: docs/spec/15_tensorler.md §15.48–15.49, lib/README.md (Üretim).
+//
+// Çalıştırma (proje kökünden): tr examples/tr/45_tekrar_oynat.tr
+// GPU'da: aşağıdaki satırın yorumunu kaldırın; CPU'da tekrar_oynat f'i doğrudan çağırır, sonuç aynıdır.
+// varsayılan_cihaz("gpu")
+
+değişken tablo = rastgele_normal([6, 4], tohum: 1) // 6 parçalık sözlük, 4 boyutlu gömme
+değişken önbellek = sıfırlar([5, 4]) // 5 konumluk "önbellek"
+
+// Bir adım: parçanın gömmesini seçer, önbellekte konumuna yazar, önbelleğin toplamını verir.
+// Değişen her şey tensördür: kayıtta sabitlenmez, her oynatmada yeniden okunur.
+fonksiyon adım(kimlik, konum) {
+    değişken e = gömme(tablo, kimlik) // [1, 4]
+    yerine_yaz(önbellek, e, eksen: 0, başlangıç: konum)
+    sonuç toplam(önbellek, eksen: 0)
+}
+
+değişken oynat = tekrar_oynat(adım)
+türevsiz {
+    döngü konum, kimlik içinde [3, 1, 4, 1, 5] {
+        değişken s = oynat(tensör([kimlik * 1.0]), tensör(konum * 1.0))
+        yazdır("konum {konum}, parça {kimlik}: toplam {yuvarla(toplam(s).değer, 4)}")
+    }
+}
+yazdır("önbellek:", önbellek.şekil)

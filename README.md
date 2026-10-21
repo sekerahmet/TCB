@@ -139,6 +139,7 @@ Bu depoyu VS Code'da klasör olarak açtığınızda `Ctrl+Shift+B` açık dosya
 | 42 | [`42_hata_ayiklama.tr`](examples/tr/42_hata_ayiklama.tr) | [`42_debugging.tr`](examples/en/42_debugging.tr) | Hata ayıklama: koddaki kesme noktasıyla bir hesap hatasını çalışırken bulup düzeltmek |
 | 43 | [`43_hata_ayiklama_alistirmasi.tr`](examples/tr/43_hata_ayiklama_alistirmasi.tr) | [`43_debugging_exercise.tr`](examples/en/43_debugging_exercise.tr) | Hata ayıklama alıştırması: VS Code hata ayıklayıcısıyla bir programı adım adım izlemek |
 | 44 | [`44_egitim_kararliligi.tr`](examples/tr/44_egitim_kararliligi.tr) | [`44_training_stability.tr`](examples/en/44_training_stability.tr) | Eğitimin kararlılığı: NaN'i ve kayıp sıçramasını yakalamak, son kontrol noktasına dönüp sorunlu toplu işleri atlamak |
+| 45 | [`45_tekrar_oynat.tr`](examples/tr/45_tekrar_oynat.tr) | [`45_replay.tr`](examples/en/45_replay.tr) | Kaydedip oynatmak: sık tekrarlanan küçük bir GPU adımını bir kez kaydedip tek seferde oynatmak (`tekrar_oynat`, `yerine_yaz`) |
 
 **Hata örnekleri.** [`examples/tr/hatalar/`](examples/tr/hatalar/) ve [`examples/en/errors/`](examples/en/errors/) sık yapılan hataları tek tek gösterir: her dosya bir hatayı bilerek yapar, yorumunda iletinin kodunu, nedenini ve düzeltilmiş hâlini yazar (çıkış kodu 1).
 
