@@ -335,7 +335,7 @@ done
 ### Hücre 3 · TR PROFİLİ · GPU
 
 ```bash
-# 3 · TR PROFİLİ: GPU ÇEKİRDEK AİLELERİ VE TEPE BELLEK DÖKÜMÜ (tr profil, 20 ADIM) · GPU
+# 3 · TR PROFİLİ: GPU KERNEL AİLELERİ VE TEPE BELLEK DÖKÜMÜ (tr profil, 20 ADIM) · GPU
 mkdir -p /content/rgn/trveri && cd /content/rgn
 [ -f trveri/train.npy ] || python -c "import numpy as np; np.save('trveri/train.npy', np.random.default_rng(0).integers(1, 40000, size=40_000_000, dtype=np.uint16))"
 /content/tr/tr profil /content/TCB/tools/gpu/rgn512.tr --veri trveri --adım 20 --günlük 20 > profil.txt 2>&1
@@ -540,7 +540,7 @@ print("bırakma açık / kapalı TR kayıpları en çok", max(abs(x["loss"] - y[
 PY
 ```
 
-### Hücre 18 · PROFİLİN ÇEKİRDEK AİLELERİ · CPU
+### Hücre 18 · PROFİLİN KERNEL AİLELERİ · CPU
 
 Hücre 15'in profilinden adım başına süreyi kernel ailelerine (çarpım, eleman bazlı, indirge,
 kopya, kaynaşık …) ve en uzun 30 çekirdeğe göre gösterir.
