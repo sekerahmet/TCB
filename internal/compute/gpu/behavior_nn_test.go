@@ -120,6 +120,48 @@ func TestEmbedding(t *testing.T) {
 		w := twin(wv, true, V, D)[c]
 		return tensor.Embedding(w, idx, 37), []*tensor.Tensor{w}
 	})
+	// Gerçek metindeki gibi çarpık dağılım: bir satır yüzlerce kez geçer (ağır satır, parçalı
+	// toplanır), bazıları parça sınırında (32, 33, 64). CPU ve GPU aynı sırayla toplar: sonuç
+	// bit düzeyinde aynıdır.
+	var skew []int
+	for k, n := range map[int]int{3: 300, 7: 32, 9: 33, 11: 64, 12: 1} {
+		for i := 0; i < n; i++ {
+			skew = append(skew, k)
+		}
+	}
+	rng.Shuffle(len(skew), func(i, j int) { skew[i], skew[j] = skew[j], skew[i] })
+	compare(t, "gömme, ağır satırlar", 0, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+		w := twin(wv, true, V, D)[c]
+		return tensor.Embedding(w, skew, len(skew)), []*tensor.Tensor{w}
+	})
+}
+
+// planEmbed: her geçiş tam bir kez kullanılır; hafif satırlar doğrudan, ağır satırlar en çok
+// embedChunk'lık parçalarla ve geçiş sırasıyla toplanır.
+func TestPlanEmbedCoversEveryPositionInOrder(t *testing.T) {
+	idx := []int{5, 1, 5, 5, 2}
+	for i := 0; i < 70; i++ {
+		idx = append(idx, 9)
+	}
+	p := planEmbed(embedGroups(idx))
+	if p.nChunks != 3 || len(p.heavy[0]) != 1 || p.heavy[0][0] != 9 {
+		t.Fatalf("ağır satır planı yanlış: %d parça, ağır %v", p.nChunks, p.heavy[0])
+	}
+	if got := fmt.Sprint(p.light[0], p.light[1], p.light[2]); got != "[1 2 5] [0 1 2 5] [1 4 0 2 3]" {
+		t.Fatalf("hafif satırlar %s", got)
+	}
+	used := map[int32]int{}
+	for _, q := range append(append([]int32{}, p.light[2]...), p.chunks[2]...) {
+		used[q]++
+	}
+	for q := range idx {
+		if used[int32(q)] != 1 {
+			t.Fatalf("%d. geçiş %d kez kullanıldı", q, used[int32(q)])
+		}
+	}
+	if fmt.Sprint(p.chunks[1]) != "[0 32 64 70]" || fmt.Sprint(p.heavy[1], p.heavy[2]) != "[0 3] [0 1 2]" {
+		t.Fatalf("parçalar %v, ağır %v %v", p.chunks[1], p.heavy[1], p.heavy[2])
+	}
 }
 
 // TestAttention16Bit bfloat16 ve float16 q, k, v ile dikkatin ileri ve geri yönünü denetler

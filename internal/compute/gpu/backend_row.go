@@ -188,12 +188,27 @@ func (g *backend) EmbeddingGrad(gw, gs tensor.Storage, idx []int, D int) {
 	d, last := gt.write(gw, true)
 	checkSize(d.n)
 	gd := gt.readD(gs)
-	singular, begin, pos := embedGroups(idx)
-	td, bd, kd := g.loadInt(singular), g.loadInt(begin), g.loadInt(pos)
-	gt.t = append(gt.t, td, bd, kd)
+	plan := planEmbed(embedGroups(idx))
 	c := g.takeKernel("gomme_geri", embedBackwardKernel)
-	g.launch(c, [3]uint32{uint32(len(singular)), 1, 1}, [3]uint32{embedBlock, 1, 1},
-		g.param().write(d, 0).read(gd, 0).read(td, 0).read(bd, 0).read(kd, 0).u32(D))
+	// sum, satır gruplarını (tekil, baş, konum) src'den dst'ye sırayla toplar.
+	sum := func(dst, src *storage, a [3][]int32) {
+		n := len(a[0])
+		if n == 0 {
+			return
+		}
+		td, bd, kd := g.loadInt(a[0]), g.loadInt(a[1]), g.loadInt(a[2])
+		gt.t = append(gt.t, td, bd, kd)
+		g.launch(c, [3]uint32{uint32(n), 1, 1}, [3]uint32{embedBlock, 1, 1},
+			g.param().write(dst, 0).read(src, 0).read(td, 0).read(bd, 0).read(kd, 0).u32(D))
+	}
+	sum(d, gd, plan.light)
+	if plan.nChunks > 0 {
+		checkSize(plan.nChunks * D)
+		part := g.allocate(plan.nChunks*D, tensor.Float32, true)
+		gt.t = append(gt.t, part)
+		sum(part, gd, plan.chunks)
+		sum(d, part, plan.heavy)
+	}
 	last()
 }
 

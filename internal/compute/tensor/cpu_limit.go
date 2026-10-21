@@ -18,21 +18,56 @@ func (cpuBackend) f32Embedding(out Storage, w View, idx []int, D int) {
 	})
 }
 
+// EmbeddingChunk, gömme gradyanında ağır bir satırın (bir toplu işte bundan çok geçen) geçişlerinin
+// toplandığı parçanın boyudur: parça önce kendi içinde, sonra parçalar sırayla satıra eklenir.
+// GPU ağır satırların parçalarını paralel toplar (gerçek metinde sık parçalar binlerce kez
+// geçer; PyTorch'un "partial segment" yolu); CPU aynı sırayla toplar, iki arka ucun sonucu bit
+// düzeyinde aynıdır.
+const EmbeddingChunk = 32
+
 func (cpuBackend) f32EmbeddingGrad(gw, g Storage, idx []int, D int) {
 	wg, gd := cd(gw), cd(g)
 	V := len(wg) / max(D, 1)
+	count := make([]int32, V)
+	for _, k := range idx {
+		count[k]++
+	}
 	// Tablo satırları işçilere bölünür; her işçi tüm indeksleri tarar ve yalnızca
 	// kendi aralığındaki satırlara, indeks sırasıyla ekler (yinelenen indeksler
-	// çakışmaz, sonuç belirlenimcidir).
+	// çakışmaz, sonuç belirlenimcidir). Ağır satırın geçişleri EmbeddingChunk'lık parçalarda
+	// toplanıp parça bitince satıra eklenir.
 	parallelFor(V, len(idx)*D/max(V, 1)+1, func(lo, hi int) {
+		var part map[int][]float32
+		var seen map[int]int32
 		for r, k := range idx {
 			if k < lo || k >= hi {
 				continue
 			}
 			dst := wg[k*D : (k+1)*D]
 			src := gd[r*D : (r+1)*D]
+			if count[k] <= EmbeddingChunk {
+				for j, v := range src {
+					dst[j] += v
+				}
+				continue
+			}
+			if part == nil {
+				part, seen = map[int][]float32{}, map[int]int32{}
+			}
+			p := part[k]
+			if p == nil {
+				p = make([]float32, D)
+				part[k] = p
+			}
 			for j, v := range src {
-				dst[j] += v
+				p[j] += v
+			}
+			seen[k]++
+			if seen[k]%EmbeddingChunk == 0 || seen[k] == count[k] {
+				for j, v := range p {
+					dst[j] += v
+					p[j] = 0
+				}
 			}
 		}
 	})

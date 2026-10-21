@@ -114,3 +114,52 @@ func embedGroups(idx []int) (singular, begin, pos []int32) {
 	}
 	return singular, begin, pos
 }
+
+// embedChunk ağır bir satırın geçişlerinin bölündüğü parçanın boyudur (tensor.EmbeddingChunk;
+// CPU aynı sırayla toplar). Gerçek metinde sık parçalar ("ve", "bir") bir toplu işte binlerce
+// kez geçer: satırı tek bir blok sırayla toplarsa öbür bloklar biter, o blok tek başına çalışır
+// (Zipf dağılımlı veride adımda 34 ms, tekdüzede 1,7 ms). PyTorch aynı yolu izler (ATen
+// EmbeddingBackwardKernel.cu: NROWS_PER_THREAD = 10'luk "partial segment"ler; belirlenimci yolda
+// compute_grad_weight + sum_and_scatter, atomik toplama yok).
+const embedChunk = tensor.EmbeddingChunk
+
+// embedPlan gradyan toplamanın üç geçişidir; üçü de embedBackwardKernel'dir (bir grup satırı
+// sırayla toplar), yalnızca indeks dizileri farklıdır:
+//   - hafif satırlar (geçiş ≤ embedChunk): doğrudan gw'ye (bugünkü yol, ek tampon yok);
+//   - ağır satırların parçaları: her parça (en çok embedChunk geçiş) ara tamponun bir satırına;
+//   - ağır satırlar: kendi parçalarının toplamlarını sırayla gw'ye.
+//
+// Toplama sırası girdiden belirlenir, her koşuda aynıdır (atomik toplama yok).
+type embedPlan struct {
+	light   [3][]int32 // tekil, baş, konum (hafif satırlar)
+	chunks  [3][]int32 // tampon satırı, baş, konum (parçalar)
+	heavy   [3][]int32 // tekil, baş, parça sırası (ağır satırlar)
+	nChunks int
+}
+
+// planEmbed embedGroups'un gruplarını hafif ve ağır satırlara ayırır.
+func planEmbed(singular, begin, pos []int32) embedPlan {
+	var p embedPlan
+	p.light[1] = []int32{0}
+	p.chunks[1] = []int32{0}
+	p.heavy[1] = []int32{0}
+	for u, row := range singular {
+		b, e := begin[u], begin[u+1]
+		if e-b <= embedChunk {
+			p.light[0] = append(p.light[0], row)
+			p.light[2] = append(p.light[2], pos[b:e]...)
+			p.light[1] = append(p.light[1], int32(len(p.light[2])))
+			continue
+		}
+		p.heavy[0] = append(p.heavy[0], row)
+		for s := b; s < e; s += embedChunk {
+			p.chunks[0] = append(p.chunks[0], int32(p.nChunks))
+			p.chunks[2] = append(p.chunks[2], pos[s:min(s+embedChunk, e)]...)
+			p.chunks[1] = append(p.chunks[1], int32(len(p.chunks[2])))
+			p.heavy[2] = append(p.heavy[2], int32(p.nChunks))
+			p.nChunks++
+		}
+		p.heavy[1] = append(p.heavy[1], int32(len(p.heavy[2])))
+	}
+	return p
+}
