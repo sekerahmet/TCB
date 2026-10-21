@@ -150,8 +150,10 @@ yapı NedenselDikkat {
         kendi.k_norm = eğer qk_normu { RMSNormKatmanı(kendi.bakış_boyutu, epsilon: epsilon) } değilse { yok }
         kendi.çıkış_katmanı = Doğrusal(bakış_sayısı * bakış_boyutu, boyut, sapmalı: sapmalı, std: çıkış_std, tohum: tohum + 3)
     }
-    // x [B, T, D]; kos/sin döner_konum_tablosu'ndan.
-    fonksiyon ileri(x, kos, sin) {
+    // x [B, T, D]; kos/sin döner_konum_tablosu'ndan (önbellekli çağrıda konumdan başlayan
+    // satırlar). önbellek verilirse (KVÖnbellek) yeni anahtar ve değerler katman no'ya eklenir ve
+    // sorgular önbellekteki bütün konumlara bakar (dikkat'te nedensellik sondan hizalıdır, 15.17).
+    fonksiyon ileri(x, kos, sin, önbellek = yok, no = 0) {
         değişken B = x.şekil[0]
         değişken T = x.şekil[1]
         değişken k_ham = yok
@@ -174,6 +176,11 @@ yapı NedenselDikkat {
         }
         q = döner_konum_uygula(q, kos, sin)
         k = döner_konum_uygula(k, kos, sin)
+        eğer önbellek != yok {
+            değişken kv = önbellek.ekle(no, k, v)
+            k = kv[0]
+            v = kv[1]
+        }
         değişken y = dikkat(q, k, v, nedensel: doğru, pencere: kendi.pencere) // [B, bakış, T, bakış_boyutu]
         sonuç kendi.çıkış_katmanı.ileri(y.eksenleri_sırala([0, 2, 1, 3]).şekillendir([B, T, kendi.bakış_sayısı * kendi.bakış_boyutu]))
     }
@@ -314,9 +321,9 @@ yapı TransformerBloğu {
             kendi.ple = yok
         }
     }
-    fonksiyon ileri(x, kos, sin, kimlikler = yok, bağlam = yok) {
+    fonksiyon ileri(x, kos, sin, kimlikler = yok, bağlam = yok, önbellek = yok, no = 0) {
         // Norm çıktılarını yalnızca dikkatin ve ileri beslemenin ilk çarpımları okur.
-        değişken h = x + kendi.dikkat.ileri(kendi.norm1.ileri(x, çıktı_türü: hesap_türü()), kos, sin)
+        değişken h = x + kendi.dikkat.ileri(kendi.norm1.ileri(x, çıktı_türü: hesap_türü()), kos, sin, önbellek: önbellek, no: no)
         h = h + kendi.ileri_besleme.ileri(kendi.norm2.ileri(h, çıktı_türü: hesap_türü()))
         eğer kendi.ple != yok { sonuç kendi.ple.ileri(h, kimlikler, bağlam) }
         sonuç h
@@ -339,6 +346,65 @@ fonksiyon katman_pencereleri(düzen, pencereler) {
         }
     }
     sonuç liste
+}
+
+// KVÖnbellek: üretimde (çıkarımda) katmanların döner konumlu anahtar ve değerlerini tutar; her
+// yeni parçada yalnızca o parça hesaplanır, öncekilerin anahtarları önbellekten okunur. Önbellek
+// türev izlemez (çıkarım içindir). İki tür vardır (transformers DynamicCache ve StaticCache gibi):
+//   "sabit"   : her katman için [B, kv_bakış, en_çok, bakış_boyutu] tampon ilk yazmada bir kez
+//               ayrılır; yeni anahtarlar zaman ekseninde yerine yazılır (gpt-fast, FlashAttention
+//               kv önbelleği gibi), dikkat tamponun dolu kısmını görünüm olarak okur.
+//   "büyüyen" : her adımda yeni anahtarlar bitiştir ile eklenir; bellek yalnızca kullanılan kadar.
+// Düzen bakış önceliklidir ([B, kv_bakış, T, bakış_boyutu]): dikkat'in beklediği düzen, GQA'da
+// kv bakışları çoğaltılmaz. konum önbellekteki parça sayısıdır (sonraki parçanın konumu).
+// kırp(n) son parçaları geri alır (ör. reddedilen taslak); sabitte yazılı veri kalır ama okunmaz.
+yapı KVÖnbellek {
+    tür
+    en_çok
+    konum
+    anahtarlar
+    değerler
+    fonksiyon kurucu(katman, tür = "sabit", en_çok = 0) {
+        doğrula(tür == "sabit" veya tür == "büyüyen", "önbellek türü \"sabit\" ya da \"büyüyen\" olmalı, {tür} verildi")
+        doğrula(tür != "sabit" veya en_çok > 0, "sabit önbellek en_çok > 0 ister")
+        kendi.tür = tür
+        kendi.en_çok = en_çok
+        kendi.konum = 0
+        kendi.anahtarlar = [yok döngü _ içinde 0..katman]
+        kendi.değerler = [yok döngü _ içinde 0..katman]
+    }
+    // ekle: katman no'nun yeni anahtar ve değerlerini ([B, kv_bakış, T, bakış_boyutu]) konumdan
+    // başlayarak ekler; o katmanın 0..konum+T anahtar ve değerlerini verir.
+    fonksiyon ekle(no, k, v) {
+        değişken T = k.şekil[2]
+        değişken son = kendi.konum + T
+        eğer kendi.tür == "büyüyen" {
+            eğer kendi.anahtarlar[no] == yok {
+                kendi.anahtarlar[no] = k
+                kendi.değerler[no] = v
+            } değilse {
+                kendi.anahtarlar[no] = bitiştir([kendi.anahtarlar[no].dilim(2, 0, kendi.konum), k], eksen: 2)
+                kendi.değerler[no] = bitiştir([kendi.değerler[no].dilim(2, 0, kendi.konum), v], eksen: 2)
+            }
+            sonuç [kendi.anahtarlar[no], kendi.değerler[no]]
+        }
+        doğrula(son <= kendi.en_çok, "sabit önbellek dolu: {son} konum, en çok {kendi.en_çok}")
+        eğer kendi.anahtarlar[no] == yok {
+            kendi.anahtarlar[no] = sıfırlar([k.şekil[0], k.şekil[1], kendi.en_çok, k.şekil[3]], tür: k.tür).cihaza(k.cihaz)
+            kendi.değerler[no] = sıfırlar([v.şekil[0], v.şekil[1], kendi.en_çok, v.şekil[3]], tür: v.tür).cihaza(v.cihaz)
+        }
+        değişken B = k.şekil[0]
+        kendi.anahtarlar[no].dilim(2, kendi.konum, son)[0..B] = k
+        kendi.değerler[no].dilim(2, kendi.konum, son)[0..B] = v
+        sonuç [kendi.anahtarlar[no].dilim(2, 0, son), kendi.değerler[no].dilim(2, 0, son)]
+    }
+    // ilerle: bir ileri hesabın T parçası bütün katmanlara yazıldıktan sonra konumu ilerletir.
+    fonksiyon ilerle(T) { kendi.konum = kendi.konum + T }
+    // kırp: önbelleği ilk n parçaya indirir (n ≤ konum).
+    fonksiyon kırp(n) {
+        doğrula(n >= 0 ve n <= kendi.konum, "kırp: 0 ile {kendi.konum} arasında olmalı, {n} verildi")
+        kendi.konum = n
+    }
 }
 
 // GPT: yalnızca kod çözücülü dil modeli. gömme → katman sayısı kadar blok → son norm →
@@ -398,18 +464,33 @@ yapı GPT {
     }
     // gizli_durum: kimlikler [B, T] → son normdan geçmiş gizli durum [B, T, boyut]; karışık
     // hassasiyette hesap türünde (çıkış çarpımı için).
-    fonksiyon gizli_durum(kimlikler) {
+    // önbellek verilirse (KVÖnbellek) kimlikler önbellekteki konumdan devam eder: döner konum
+    // tabloları o konumdan dilimlenir, anahtar ve değerler önbelleğe eklenir, konum ilerler.
+    fonksiyon gizli_durum(kimlikler, önbellek = yok) {
         değişken x = kendi.gömme.ileri(kimlikler)
         değişken bağlamlar = eğer kendi.ple_bağlamı == yok { yok } değilse { kendi.ple_bağlamı.ileri(x) }
-        döngü i, blok içinde kendi.bloklar {
-            x = blok.ileri(x, kendi.kos, kendi.sin, kimlikler, eğer bağlamlar == yok { yok } değilse { bağlamlar[i] })
+        değişken kos = kendi.kos
+        değişken sin = kendi.sin
+        değişken T = x.şekil[1]
+        eğer önbellek != yok {
+            değişken baş = önbellek.konum
+            doğrula(baş + T <= kendi.ayar.bağlam, "önbellekli ileri: {baş + T} konum bağlamı ({kendi.ayar.bağlam}) aşıyor")
+            kos = kos.dilim(0, baş, baş + T)
+            sin = sin.dilim(0, baş, baş + T)
         }
+        döngü i, blok içinde kendi.bloklar {
+            x = blok.ileri(x, kos, sin, kimlikler, eğer bağlamlar == yok { yok } değilse { bağlamlar[i] }, önbellek: önbellek, no: i)
+        }
+        eğer önbellek != yok { önbellek.ilerle(T) }
         // Gizli durumu yalnızca çıkış çarpımı (ya da doğrusal_çapraz_entropi) okur.
         sonuç kendi.son_norm.ileri(x, çıktı_türü: hesap_türü())
     }
-    // kimlikler [B, T] (T ≤ bağlam) → logit [B, T, dağarcık]
-    fonksiyon ileri(kimlikler) {
-        değişken x = kendi.gizli_durum(kimlikler)
+    // kimlikler [B, T] (T ≤ bağlam) → logit [B, T, dağarcık]; önbellek: gizli_durum.
+    fonksiyon ileri(kimlikler, önbellek = yok) {
+        sonuç kendi.logit(kendi.gizli_durum(kimlikler, önbellek: önbellek))
+    }
+    // logit: gizli durumu ([B, T, boyut]) sözlüğe çevirir (paylaşımlı gömmede tablonun devriği).
+    fonksiyon logit(x) {
         eğer kendi.çıkış == yok { sonuç x @ kendi.gömme.tablo.devrik() }
         sonuç kendi.çıkış.ileri(x)
     }
@@ -425,18 +506,40 @@ yapı GPT {
         }
         sonuç çapraz_entropi(kendi.ileri(girdi), hedef)
     }
+    // önbellek_kur: bu modelin katman sayısında bir KVÖnbellek ("sabit" ya da "büyüyen"); sabit
+    // önbellek en_çok konum tutar (verilmezse bağlam).
+    fonksiyon önbellek_kur(tür = "sabit", en_çok = yok) {
+        sonuç KVÖnbellek(kendi.bloklar.uzunluk, tür: tür, en_çok: eğer en_çok == yok { kendi.ayar.bağlam } değilse { en_çok })
+    }
     // üret: başlangıç kimliklerinin (liste) ardına adet kadar parça örnekler ve bütün listeyi
     // verir. sıcaklık 0 en olasıyı seçer; tohum verilirse sonuç tekrarlanır. eos verilirse (bir
     // parça kimliği) o parça örneklenince eklenir ve üretim durur (adetten önce). Model
-    // bağlamdan uzun diziyi görmez: son `bağlam` parça kullanılır. (Önbelleksizdir: her parçada
-    // bütün diziyi yeniden hesaplar; örnek üretmek içindir.)
-    fonksiyon üret(başlangıç, adet, sıcaklık = 1.0, en_iyi_k = 0, tohum = yok, eos = yok) {
+    // bağlamdan uzun diziyi görmez: son `bağlam` parça kullanılır. önbellek: "sabit"
+    // (varsayılan) ya da "büyüyen" KV önbelleği; ilk adım başlangıcı bir kez işler, sonraki
+    // adımlar yalnızca yeni parçayı. Dizi bağlamı doldurunca son `bağlam` parça yeniden işlenir
+    // (konumlar kaydığı için önbellek baştan kurulur). önbellek: yok her parçada bütün diziyi
+    // yeniden hesaplar. Sonuç önbellekli ve önbelleksiz aynıdır (float32 yuvarlama düzeyinde).
+    // Yalnızca son konumun logiti hesaplanır (transformers generate'in logits_to_keep'i gibi).
+    fonksiyon üret(başlangıç, adet, sıcaklık = 1.0, en_iyi_k = 0, tohum = yok, eos = yok, önbellek = "sabit") {
         değişken kimlikler = [k döngü k içinde başlangıç]
+        değişken bağlam = kendi.ayar.bağlam
+        değişken ö = yok
         türevsiz {
             döngü i içinde 0..adet {
-                değişken bas = maks(0, kimlikler.uzunluk - kendi.ayar.bağlam)
-                değişken logit = kendi.ileri([kimlikler[bas..kimlikler.uzunluk]])
-                değişken son = logit[0][-1]
+                değişken x = yok
+                eğer önbellek == yok {
+                    değişken bas = maks(0, kimlikler.uzunluk - bağlam)
+                    x = kendi.gizli_durum([kimlikler[bas..kimlikler.uzunluk]])
+                } değilse eğer ö == yok veya ö.konum >= bağlam {
+                    // İlk adım ya da bağlam doldu: son `bağlam` parça baştan işlenir.
+                    ö = kendi.önbellek_kur(tür: önbellek, en_çok: bağlam)
+                    değişken bas = maks(0, kimlikler.uzunluk - bağlam)
+                    x = kendi.gizli_durum([kimlikler[bas..kimlikler.uzunluk]], önbellek: ö)
+                } değilse {
+                    x = kendi.gizli_durum([[kimlikler[-1]]], önbellek: ö)
+                }
+                değişken T = x.şekil[1]
+                değişken son = kendi.logit(x.dilim(1, T - 1, T))[0][0]
                 değişken t = eğer tohum == yok { yok } değilse { tohum + i }
                 değişken yeni = örnekle(son, sıcaklık: sıcaklık, en_iyi_k: en_iyi_k, tohum: t).değer
                 kimlikler.ekle(yeni)

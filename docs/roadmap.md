@@ -218,7 +218,7 @@ Modeli kullanan geliştiricinin ilk sorusu: "Hugging Face'teki modeli yükleyip 
 
    Kaynaklar henüz okunmadı (kanıtsız): μP (Yang ve ark. 2022), Schedule-Free (Defazio ve ark. 2024), 8 bit Adam (Dettmers ve ark. 2021), Muon (Jordan 2024).
 6. **Çıkarım ve sunum.**
-   - KV önbellekli `üret`; örnekleme (sıcaklık, en iyi k, en iyi p).
+   - KV önbellekli `üret`: **yapıldı (2026-10-21)**; `KVÖnbellek` sabit ve büyüyen, `kırp`, yalnızca son logit. SmolLM2-135M CPU'da 24,7 parça/sn (transformers 23,2). Kalan: kayan pencereli katmanlarda halka tampon (pencere boyunda önbellek), 8 bitlik önbellek, önek saklama (ortak başlangıcı yeniden işlememe), tahminli çözme (taslak model ya da MTP; `kırp` hazır). Örnekleme: en iyi p kalan.
    - 127.0.0.1'e bağlı OpenAI uyumlu HTTP sunucusu: completions ve chat, `logprobs` ile. Bu tek adım lm-evaluation-harness ile değerlendirmeyi, arayüzleri ve ajan çerçevelerini getirir.
    - Yorumlayıcı kilidi kernel çağrılarında ve G/Ç'de bırakılır; hangi yerleşiklerin bıraktığı belgelenir. Böylece sunucu, parçalayıcı ve GPU eşzamanlı çalışır.
    - CUDA Graphs önce üretim için: statik şekil kipinde, isteğe bağlı yakalama. Yakalanan bölgede ana belleğe okuma dil düzeyinde hatadır. Eğitimde beklenen kazanç küçüktür (%0–5).
