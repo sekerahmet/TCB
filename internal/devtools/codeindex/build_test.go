@@ -63,7 +63,7 @@ func TestBuildDeclarations(t *testing.T) {
 		"constant:lib/geo.tr#PI2":           {File: "lib/geo.tr", Line: 2, Col: 1, EndLine: 2},
 		"variable:lib/geo.tr#sayaç":         {File: "lib/geo.tr", Line: 3, Col: 1, EndLine: 3},
 		"constant:lib/geo.tr#KATSAYILAR":    {File: "lib/geo.tr", Line: 24, Col: 1, EndLine: 27}, // çok satırlı değer
-		"test:lib/geo_test.tr#3":            {File: "lib/geo_test.tr", Line: 3, Col: 1, EndLine: 6},
+		"test_block:lib/geo_test.tr#3":      {File: "lib/geo_test.tr", Line: 3, Col: 1, EndLine: 6},
 	}
 	got := map[string]Node{}
 	for _, n := range idx.Nodes {
@@ -97,8 +97,8 @@ func TestBuildEdgesAndConfidence(t *testing.T) {
 		"edge function:lib/geo.tr#yaz_alan calls method:lib/geo.tr#Kare.alan INFERRED x1", // k.alan(): alıcının tipi bilinmez
 		"edge function:lib/geo.tr#yaz_alan uses builtin:G100 EXTRACTED x1",
 		"edge module:examples/ana.tr imports module:lib/geo.tr EXTRACTED x1",
-		"edge test:lib/geo_test.tr#3 calls function:lib/geo.tr#yaz_alan EXTRACTED x1",
-		"edge test:lib/geo_test.tr#3 tests function:lib/geo.tr#yaz_alan EXTRACTED x1",
+		"edge test_block:lib/geo_test.tr#3 calls function:lib/geo.tr#yaz_alan EXTRACTED x1",
+		"edge test_block:lib/geo_test.tr#3 tests function:lib/geo.tr#yaz_alan EXTRACTED x1",
 		"edge variable:examples/ana.tr#k calls struct:lib/geo.tr#Kare EXTRACTED x1", // g.Kare(2): takma adlı modül
 		"edge module:examples/ana.tr uses constant:lib/geo.tr#PI2 EXTRACTED x1",
 	} {
@@ -107,7 +107,7 @@ func TestBuildEdgesAndConfidence(t *testing.T) {
 		}
 	}
 	for _, f := range fs {
-		if strings.HasPrefix(f, "edge test:lib/geo_test.tr#8 uses builtin:G100") {
+		if strings.HasPrefix(f, "edge test_block:lib/geo_test.tr#8 uses builtin:G100") {
 			t.Errorf("a local variable shadows the built-in: %s", f)
 		}
 	}

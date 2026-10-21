@@ -20,7 +20,7 @@ Paket yalnızca `internal/lang` paketlerini (ve gömülü kitaplığı) içe akt
 
 ## Modele kısa bakış
 
-Düğüm türleri: `module`, `function`, `struct`, `method`, `field`, `constant`, `variable`, `test`, `builtin`. Kenarlar: `defines`, `calls`, `uses`, `imports`, `tests`. Her başvuru ayrıca bir *occurrence*'tır (`definition`, `call`, `read`, `write`, `import`, `test` rolüyle, konumuyla ve içinde bulunduğu bildirimle); kenarlar bunların özetidir. Ayrıntı ve komut tasarımı: [`docs/spec`](../../../docs/spec/README.md) komut satırı bölümü ve aşağıdaki karşılaştırma.
+Düğüm türleri: `module`, `function`, `struct`, `method`, `field`, `constant`, `variable`, `test_block`, `builtin`. Kenarlar: `defines`, `calls`, `uses`, `imports`, `tests`. Her başvuru ayrıca bir *occurrence*'tır (`definition`, `call`, `read`, `write`, `import`, `test` rolüyle, konumuyla ve içinde bulunduğu bildirimle); kenarlar bunların özetidir. Ayrıntı ve komut tasarımı: [`docs/spec`](../../../docs/spec/README.md) komut satırı bölümü ve aşağıdaki karşılaştırma.
 
 **Konumlar adın yerini gösterir.** Bir başvurunun satır ve sütun aralığı kaynak satırında adın kendisini kapsar (Türkçe harfli satırlarda da). Denetim: `TestOccurrencePositionsPointAtNames`.
 

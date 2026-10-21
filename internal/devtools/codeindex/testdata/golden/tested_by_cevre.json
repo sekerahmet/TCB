@@ -22,7 +22,7 @@
   },
   "tests": [
     {
-      "role": "test",
+      "role": "in_test",
       "confidence": "EXTRACTED",
       "pos": {
         "file": "lib/geo_test.tr",
@@ -32,8 +32,8 @@
         "end_col": 18
       },
       "in": {
-        "id": "test:lib/geo_test.tr#8",
-        "kind": "test",
+        "id": "test_block:lib/geo_test.tr#8",
+        "kind": "test_block",
         "name": "çevre",
         "pos": {
           "file": "lib/geo_test.tr",
@@ -47,7 +47,7 @@
       }
     },
     {
-      "role": "test",
+      "role": "in_test",
       "confidence": "INFERRED",
       "pos": {
         "file": "lib/geo_test.tr",
@@ -57,8 +57,8 @@
         "end_col": 2
       },
       "in": {
-        "id": "test:lib/geo_test.tr#3",
-        "kind": "test",
+        "id": "test_block:lib/geo_test.tr#3",
+        "kind": "test_block",
         "name": "kare alanı yazılır",
         "pos": {
           "file": "lib/geo_test.tr",

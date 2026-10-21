@@ -36,8 +36,8 @@ const (
 	KindField    Kind = "field"  // yapı alanı
 	KindConstant Kind = "constant"
 	KindVariable Kind = "variable"
-	KindTest     Kind = "test"    // bir test "..." bloğu
-	KindBuiltin  Kind = "builtin" // yerleşik ad (ad kodu: global işlev, üye ya da adlı argüman)
+	KindTest     Kind = "test_block" // bir test "..." bloğu
+	KindBuiltin  Kind = "builtin"    // yerleşik ad (ad kodu: global işlev, üye ya da adlı argüman)
 )
 
 // EdgeKind iki düğüm arasındaki bağın türüdür.
@@ -70,7 +70,7 @@ const (
 	RoleRead       Role = "read"
 	RoleWrite      Role = "write"
 	RoleImport     Role = "import"
-	RoleTest       Role = "test"
+	RoleTest       Role = "in_test"
 )
 
 // Pos bir kaynak dosyadaki konumdur. Satır ve sütun 1'den başlar; sütun, satırın Türkçe

@@ -35,7 +35,7 @@
       }
     },
     {
-      "role": "test",
+      "role": "in_test",
       "confidence": "EXTRACTED",
       "pos": {
         "file": "lib/iyilestirici_test.tr",
@@ -43,8 +43,8 @@
         "col": 20
       },
       "in": {
-        "id": "test:lib/iyilestirici_test.tr#30",
-        "kind": "test",
+        "id": "test_block:lib/iyilestirici_test.tr#30",
+        "kind": "test_block",
         "name": "Muon: güncelleme dikleştirilmiş momentumdur"
       }
     }
@@ -53,7 +53,7 @@
     "total": 2,
     "by_role": {
       "call": 1,
-      "test": 1
+      "in_test": 1
     }
   },
   "truncated": false

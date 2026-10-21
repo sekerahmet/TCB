@@ -139,10 +139,10 @@ func TestTestedByDirectBeforeIndirect(t *testing.T) {
 		t.Fatalf("%+v", res.Tests)
 	}
 	first, second := res.Tests[0], res.Tests[1]
-	if first.Steps != 0 || first.In.ID != "test:lib/geo_test.tr#8" || first.Confidence != Extracted {
+	if first.Steps != 0 || first.In.ID != "test_block:lib/geo_test.tr#8" || first.Confidence != Extracted {
 		t.Errorf("direct first: %+v", first)
 	}
-	if second.Steps != 2 || second.In.ID != "test:lib/geo_test.tr#3" || second.Confidence != Inferred {
+	if second.Steps != 2 || second.In.ID != "test_block:lib/geo_test.tr#3" || second.Confidence != Inferred {
 		t.Errorf("indirect through yaz_alan: %+v", second)
 	}
 	if got := r.TestedBy("sayaç", QueryOptions{}); len(got.Tests) != 0 {

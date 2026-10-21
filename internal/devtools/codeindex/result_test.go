@@ -21,7 +21,7 @@ func exampleReferences() *Result {
 		{Role: RoleCall, Confidence: Extracted, Pos: Pos{File: "lib/iyilestirici.tr", Line: 197, Col: 16},
 			In: &Node{ID: "method:lib/iyilestirici.tr#MuonVeAdamW.kurucu", Kind: KindMethod, Name: "MuonVeAdamW.kurucu"}},
 		{Role: RoleTest, Confidence: Extracted, Pos: Pos{File: "lib/iyilestirici_test.tr", Line: 33, Col: 20},
-			In: &Node{ID: "test:lib/iyilestirici_test.tr#30", Kind: KindTest, Name: "Muon: güncelleme dikleştirilmiş momentumdur"}},
+			In: &Node{ID: "test_block:lib/iyilestirici_test.tr#30", Kind: KindTest, Name: "Muon: güncelleme dikleştirilmiş momentumdur"}},
 	}
 	r.Counts = &Counts{Total: 2, ByRole: map[Role]int{RoleCall: 1, RoleTest: 1}}
 	return r
