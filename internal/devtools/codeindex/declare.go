@@ -234,13 +234,17 @@ func (x *indexer) resolveImports(f *file) {
 	merge = func(g *file) {
 		for _, imp := range g.imports {
 			target := x.files[imp.file]
-			if target == nil || seen[imp.file] {
+			if target == nil {
 				continue
 			}
+			// Takma adlı aktarma, aynı dosya takma adsız da aktarılmış olsa tanınır.
 			if imp.alias != "" {
 				if g == f {
 					f.aliases[imp.alias] = target
 				}
+				continue
+			}
+			if seen[imp.file] {
 				continue
 			}
 			seen[imp.file] = true

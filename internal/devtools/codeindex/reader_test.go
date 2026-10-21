@@ -121,3 +121,32 @@ func TestEveryDeclarationIndexed(t *testing.T) {
 		t.Errorf("only %d declarations checked; the repository's .tr files were not found", checked)
 	}
 }
+
+// Aynı modül hem takma adsız hem takma adla aktarılabilir (examples/tr/18_moduller.tr): takma ad
+// önceki aktarma yüzünden yutulmaz.
+func TestAliasAfterPlainImportOfTheSameModule(t *testing.T) {
+	dir := t.TempDir()
+	write := func(rel, body string) {
+		if err := os.WriteFile(filepath.Join(dir, rel), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("geo.tr", "sabit PI = 3\nfonksiyon alan(r) {\n    sonuç PI * r\n}\n")
+	write("main.tr", "aktar \"geo\"\naktar \"geo\" olarak g\n\nfonksiyon f() {\n    sonuç g.alan(1) + g.PI\n}\n")
+	idx, err := Build(dir, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(idx.Unresolved) != 0 {
+		t.Errorf("g must resolve as an alias: %+v", idx.Unresolved)
+	}
+	fs := facts(idx)
+	for _, want := range []string{
+		"edge function:main.tr#f calls function:geo.tr#alan EXTRACTED x1",
+		"edge function:main.tr#f uses constant:geo.tr#PI EXTRACTED x1",
+	} {
+		if !hasFact(fs, want) {
+			t.Errorf("missing %s", want)
+		}
+	}
+}
