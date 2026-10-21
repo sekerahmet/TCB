@@ -189,12 +189,10 @@ func isTrailingBlockTarget(e ast.Expression) bool {
 // (l.indirge(0) { birikim + o } == l.indirge(0, (birikim, o) => birikim + o)).
 func (p *Parser) parseTrailingBlock(left ast.Expression) ast.Expression {
 	tok := p.curToken() // '{'
-	begin := p.pos
 	body := p.functionBody()
 	params := []ast.Param{{Name: p.words.it}}
 	if p.isReduceTarget(left) {
 		params = []ast.Param{{Name: p.words.acc}, {Name: p.words.it}}
-		p.oldReduceBlock(tok, begin)
 	}
 	fn := &ast.FunctionLiteral{
 		Token:      tok,

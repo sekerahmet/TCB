@@ -52,7 +52,6 @@ const (
 	H0160 Code = 160  // metindeki her '{{' bir yerleştirme başlatır, ama '{{{expr}}}' bir ifade değil ({detail}). Düz süslü parantez için '\{{' yazın ya da ham metin kullanın: `...{{...}}...`
 	H0161 Code = 161  // metindeki her '{{' bir yerleştirme başlatır, ama '{{{expr}}}' tek bir ifade olmalı. Düz süslü parantez için '\{{' yazın ya da ham metin kullanın: `...{{...}}...`
 	H0162 Code = 162  // metindeki her '{{' bir yerleştirme başlatır, ama '{{{expr}}}' bir ifade değil, bir deyim. Düz süslü parantez için '\{{' yazın ya da ham metin kullanın: `...{{...}}...`
-	H0163 Code = 163  // {reduce} metodunun sondaki bloğunda {acc} önceki sonuç, {it} sıradaki elemandır; {it}[0] ve {it}[1] yerine {acc} ve {it} yazın: {reduce}(0) {{ {acc} + {it} }}
 	H0164 Code = 164  // ipucu{hint}
 	H0165 Code = 165  // {literal} tam sayı olarak çok büyük (en fazla {max} olabilir; ondalık sayı için sonuna .0 ekleyin)
 	H0166 Code = 166  // {literal} ondalık sayı olarak çok büyük ya da geçersiz
@@ -74,9 +73,7 @@ const (
 	H1013 Code = 1013 // Ad yazılışı — sabitler büyük harfle, sözcükleri alt çizgiyle ayrılarak yazılır: {name|q} yerine {suggestion|q} (bkz. 2.3b)
 	H1014 Code = 1014 // Ad yazılışı — yapı adları büyük harfle başlar, sözcükler alt çizgisiz ve her biri büyük harfle yazılır: {name|q} yerine {suggestion|q} (bkz. 2.3b)
 	H1015 Code = 1015 // Ad yazılışı — {name|q} büyük harfle yazılmış bir değişken; değeri değişmiyorsa {keyword|q} ile tanımlayın, değişiyorsa {suggestion|q} yazın (bkz. 2.3b)
-	H1100 Code = 1100 // '{name}' TR'den kaldırıldı
 	H1101 Code = 1101 //  ('{name}' TR'de yok; '{canonical}' yazmak mı istediniz?)
-	H1102 Code = 1102 // '{name}(...)' TR'de bir fonksiyon değil; '{spelling}' yazın
 	H1103 Code = 1103 //  ('{name}' TR'de anahtar kelime değil; '{keyword}' yazmak mı istediniz?)
 	H1104 Code = 1104 // . Bunu mu demek istediniz: '{closest}'?
 	H1105 Code = 1105 // tip değeri metinle karşılaştırılamaz: {fn}(x) {op} {text|q} yerine {fn}(x) {op} {example} yazın (tip adları tırnaksız yazılır)
@@ -287,7 +284,6 @@ const (
 	H2515 Code = 2515 // {container} indeksi sınır dışı: {index} (uzunluk {length}); öğe olmayabilirse {get}({index}) ?? varsayılan yazın
 	H2516 Code = 2516 // eşzamanlı görev hatası (satır {line|loc} başlatılan): {error}
 	H2517 Code = 2517 // eşitlik başarısız: {message} — beklenen {expected}, gerçek {actual}
-	H2518 Code = 2518 // '{receiver}.{member}()' TR'de yok; '{fn}({receiver})' yazın
 	H2519 Code = 2519 // {error}; {defer} içinde de hata: {deferred}
 	H2520 Code = 2520 // Koddaki kesme noktası ({keyword})
 	H2521 Code = 2521 // JSON tam sayısı {token|q} Tam aralığının (64 bit işaretli) dışında; ondalık olarak yazın (ör. 1e30)
@@ -1295,7 +1291,6 @@ const (
 	H8034 Code = 8034 // Adım (F11)
 	H8035 Code = 8035 // Üstten geçildi (F10)
 	H8036 Code = 8036 // Fonksiyondan çıkıldı (Shift+F11)
-	H8040 Code = 8040 // Tuşlar düzenleyicinin hata ayıklama tuşlarıyla aynıdır: F5 devam, F10 üstten geç, F11 içine gir, Shift+F11 dışarı çık. '{cmd}' yerine {key} ({command}) yazın.
 	H8041 Code = 8041 // '{cmd}' hata ayıklayıcıda bir komut değil; '{command}' yazın.
 	H8042 Code = 8042 // Kullanım: {command} <değişken> = <yeni_değer>  (Örn: {command} x = 99)
 	H8043 Code = 8043 // Geçersiz değer ifadesi.
@@ -1467,12 +1462,10 @@ const (
 	H8601 Code = 8601 // Gömülü uygulama okunamadı: {error}
 	H8602 Code = 8602 // '{given}' TR'de bir komut değil; 'tr {command}' yazmak mı istediniz?
 	H8603 Code = 8603 // TR Programlama ve Yapay Zeka Dili v{version}
-	H8604 Code = 8604 // 'tr bytecode' komutu kaldırıldı.
 	H8605 Code = 8605 // Lütfen bir .tr dosyası belirtin. Örn: tr {command} {file}
 	H8606 Code = 8606 // Lütfen derlenecek .tr dosyasını belirtin. Örn: tr {command} uygulama.tr
 	H8607 Code = 8607 // Hata ayıklama sunucusu: {error}
 	H8608 Code = 8608 // Lütfen hata ayıklanacak .tr dosyasını belirtin. Örn: tr {command} ornek.tr
-	H8609 Code = 8609 // Tarayıcıdaki hata ayıklayıcı kaldırıldı. Düzenleyicide F5 ile hata ayıklayın (İzleme Masası) ya da terminalde: tr {command} ornek.tr
 	H8610 Code = 8610 // TR (.tr) Programlama ve Yapay Zeka Dili v{version}
 	H8611 Code = 8611 // Kullanım:
 	H8612 Code = 8612 // tr	Etkileşimli TR kabuğunu (REPL) başlatır

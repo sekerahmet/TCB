@@ -31,14 +31,3 @@ func isOption(arg string, k codes.Code) bool {
 func optionName(k codes.Code) string {
 	return "--" + strings.ReplaceAll(codes.DisplayName(k), "_", "-")
 }
-
-// removedOption argümanın kaldırılmış bir seçenek olduğudur (ör. --web); çağıran yerine
-// geçeni söyler.
-func removedOption(arg string) bool {
-	name, ok := strings.CutPrefix(arg, "--")
-	if !ok || name == "" || strings.Contains(name, "_") {
-		return false
-	}
-	_, dead := codes.FindRemovedCommandLine(codes.NamespaceOption, strings.ReplaceAll(name, "-", "_"))
-	return dead
-}

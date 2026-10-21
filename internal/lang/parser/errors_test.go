@@ -68,12 +68,12 @@ func TestSingleErrorNoCascade(t *testing.T) {
 	}
 }
 
-// Kaldırılmış yazımların ipucu (sozcuk.KaldirilanYazimIpucu) hatalı satırda korunur.
-func TestRemovedSpellingHintKept(t *testing.T) {
-	const src = "işlev topla(a, b) -> Tam { döndür a + b }"
+// Anahtar kelimenin Türkçe harfsiz yazımının ipucu (hint.KeywordSpellingHint) hatalı satırda korunur.
+func TestKeywordSpellingHintKept(t *testing.T) {
+	const src = "eger topla(a, b) -> Tam { sonuc a + b }"
 	errs := parseErrs(src)
 	compound := strings.Join(parseErrors(src), "\n")
-	for _, name := range []string{"işlev", "döndür"} {
+	for _, name := range []string{"eger", "sonuc"} {
 		// İpucu metni tek kaynaktan (hint) gelir; hata satırına eklenmiş olmalı.
 		if want := hint.KeywordSpellingHint(name); want == "" || !strings.Contains(compound, want) {
 			t.Errorf("%q için ipucu %q bekleniyordu, alınan:\n%s", name, want, compound)

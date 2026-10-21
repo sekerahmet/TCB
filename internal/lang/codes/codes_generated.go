@@ -2,10 +2,9 @@
 
 package codes
 
-// A named constant for every live code in the dictionary (tr.json). The constant's name is
+// A named constant for every code in the dictionary (tr.json). The constant's name is
 // the code itself, not the user-visible name: renaming a name never changes the constant.
-// The name in the comment only helps the reader. Moved and removed codes have no constant;
-// see movedMap and removedSet.
+// The name in the comment only helps the reader.
 const (
 	A001 Code = A + 1   // if · eğer
 	A002 Code = A + 2   // else · değilse
@@ -324,90 +323,3 @@ const (
 	Y612 Code = Y + 612 // vocab_size · dağarcık_boyutu
 	Y613 Code = Y + 613 // token_id · parça_kimliği
 )
-
-// movedMap holds codes that were removed and whose job moved to another code (another form:
-// function to method or method to function): old code → new code (its moved-to field in
-// definitions.json). The old code's number is never reused; its name stays in the language file
-// only to suggest the new form in an error message.
-var movedMap = map[Code]Code{
-	G + 200: Y + 1,   // G200 → Y001
-	G + 300: Y + 200, // G300 → Y200
-	G + 301: Y + 201, // G301 → Y201
-	G + 302: Y + 207, // G302 → Y207
-	G + 303: Y + 202, // G303 → Y202
-	G + 304: Y + 4,   // G304 → Y004
-	T + 120: Y + 411, // T120 → Y411
-	Y + 205: G + 400, // Y205 → G400
-	Y + 206: G + 410, // Y206 → G410
-}
-
-// removedSet holds codes removed from the language without a replacement (its removed flag
-// in definitions.json). Their numbers are never reused; their names stay in the language
-// file only for the "removed from TR" error.
-var removedSet = map[Code]bool{
-	A + 230: true, // A230 SinirAğı
-	A + 240: true, // A240 Veritabanı
-	A + 241: true, // A241 WebSunucu
-	A + 242: true, // A242 GörselArayüz
-	K + 102: true, // K102 web
-	T + 511: true, // T511 kayıp_mse
-	T + 520: true, // T520 sinir_ağı
-	T + 521: true, // T521 model_yükle
-	T + 600: true, // T600 normalize_et
-	T + 601: true, // T601 nokta_çarpım
-	T + 602: true, // T602 kosinüs_benzerliği
-	T + 603: true, // T603 öklid_uzaklığı
-	T + 610: true, // T610 yz_sor
-	T + 930: true, // T930 devir
-	T + 932: true, // T932 aktivasyon
-	T + 940: true, // T940 model
-	T + 941: true, // T941 adres
-	W + 100: true, // W100 web_al
-	W + 101: true, // W101 web_gönder
-	W + 110: true, // W110 web_sunucu
-	W + 200: true, // W200 veritabanı_aç
-	W + 210: true, // W210 tablo_sorgula
-	W + 300: true, // W300 arayüz_oluştur
-	W + 900: true, // W900 port
-	W + 901: true, // W901 arka_plan
-	W + 910: true, // W910 genişlik
-	W + 911: true, // W911 yükseklik
-	W + 912: true, // W912 pencere_aç
-	W + 920: true, // W920 alt_bilgi
-	W + 921: true, // W921 renk
-	W + 922: true, // W922 tip
-	W + 930: true, // W930 koşul
-	W + 931: true, // W931 sırala
-	W + 932: true, // W932 limit
-	W + 933: true, // W933 alanlar
-	W + 934: true, // W934 parametreler
-	Y + 5:   true, // Y005 Y005
-	Y + 6:   true, // Y006 başlat
-	Y + 7:   true, // Y007 arka_planda_başlat
-	Y + 8:   true, // Y008 Y008
-	Y + 510: true, // Y510 eğit
-	Y + 511: true, // Y511 tahmin_et
-	Y + 512: true, // Y512 ağırlıklar
-	Y + 700: true, // Y700 tablolar
-	Y + 701: true, // Y701 tablo_oluştur
-	Y + 702: true, // Y702 sorgula
-	Y + 703: true, // Y703 Y703
-	Y + 704: true, // Y704 Y704
-	Y + 705: true, // Y705 hepsini_al
-	Y + 706: true, // Y706 say
-	Y + 800: true, // Y800 adres
-	Y + 801: true, // Y801 port
-	Y + 802: true, // Y802 al
-	Y + 803: true, // Y803 gönder
-	Y + 804: true, // Y804 rota_ekle
-	Y + 805: true, // Y805 statik_klasör
-	Y + 900: true, // Y900 kart_ekle
-	Y + 901: true, // Y901 başlık_ekle
-	Y + 902: true, // Y902 metin_ekle
-	Y + 903: true, // Y903 tablo_ekle
-	Y + 904: true, // Y904 grafik_ekle
-	Y + 905: true, // Y905 form_ekle
-	Y + 906: true, // Y906 buton_ekle
-	Y + 907: true, // Y907 html_kaydet
-	Y + 908: true, // Y908 html_üret
-}

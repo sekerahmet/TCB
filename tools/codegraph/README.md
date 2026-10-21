@@ -199,8 +199,8 @@ repository (a failing git is an error, exit 1).
   dictionary files in the past and are gone today, with the commit that removed them and the one
   that added them, and codes that were defined again after a deletion (a bug: numbers are never
   reused). `--retired-json` prints the `retired.json` content (`internal/lang/messages/retired.json`
-  was produced by it). Name codes are never really deleted: a removed or moved name stays in the
-  dictionary with its `kaldırıldı` / `taşındı` field, so the list for `names` is empty. History
+  was produced by it). Since 2026-10-21 (the language is a draft) removed name codes are deleted from the
+  dictionary, so the `names` list shows them too. History
   before a file was renamed is not visible to it.
 
 ## Why this design (comparison)

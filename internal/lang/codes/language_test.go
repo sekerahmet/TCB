@@ -12,7 +12,7 @@ import (
 )
 
 // Gömülü tr.json geçerli olmalı ve hatasız yüklenmeli (yinelenen kod, ad alanı içinde
-// Türkçe ya da ASCII biçimiyle çakışan ad, geçerli adla çakışan eski ad olmamalı).
+// Türkçe ya da ASCII biçimiyle çakışan ad, geçerli adla çakışan yabancı ad olmamalı).
 func TestTRLoads(t *testing.T) {
 	if !json.Valid(trJSON) {
 		t.Fatal("tr.json geçerli JSON değil")
@@ -76,24 +76,6 @@ func TestASCIIFormsDoNotClash(t *testing.T) {
 		}
 		owner[a] = owners{k, name}
 	}
-	// Ad alanı içinde ASCII biçim ile eski ad çakışması Yukle'de yakalanır (bkz.
-	// TestCakismalarYakalanir). Farklı ad alanları arasındaki çakışma bir hata değildir
-	// (ör. G201'in eski adı "tur" genel adlarda, Y402 tür'ün ASCII biçimi "tur" üyelerde);
-	// burada yalnızca bilgi olarak listelenir.
-	for _, k := range Codes() {
-		g, _ := Active().Entry(k)
-		for _, e := range g.Old {
-			spellings := []string{e}
-			if a := turkish.ASCII(e); a != e {
-				spellings = append(spellings, a)
-			}
-			for _, y := range spellings {
-				if o, ok := owner[turkish.ASCII(y)]; ok && (y == o.name || y == turkish.ASCII(o.name)) && o.code.Namespace() != k.Namespace() {
-					t.Logf("bilgi: %s'in eski adı %q, başka ad alanındaki %s %q ile aynı yazılıyor", k, y, o.code, o.name)
-				}
-			}
-		}
-	}
 }
 
 // Bir ad alanı içinde her ad benzersizdir; anahtar kelimeler yerleşiklerle çakışmaz.
@@ -134,7 +116,7 @@ func TestCanonicalNameIn(t *testing.T) {
 	}
 }
 
-// ASCII biçimler kabul edilmez (her işin tek yazımı); Oneri onlar için ve eski adlar için
+// ASCII biçimler kabul edilmez (her işin tek yazımı); Oneri onlar için ve yabancı adlar için
 // her zaman Türkçe adı önerir, ASCII biçimi asla önermez.
 func TestASCIINotAcceptedSuggestsTurkish(t *testing.T) {
 	if AcceptASCII {
@@ -151,9 +133,8 @@ func TestASCIINotAcceptedSuggestsTurkish(t *testing.T) {
 		want string
 	}{
 		{NamespaceGlobal, "yazdir", "yazdır"}, {NamespaceGlobal, "degisken", "değişken"},
-		{NamespaceGlobal, "islev", "fonksiyon"}, {NamespaceGlobal, "dondur", "sonuç"}, {NamespaceGlobal, "işlev", "fonksiyon"},
-		{NamespaceGlobal, "tur", "tip"}, {NamespaceMember, "tur", "tür"}, {NamespaceMember, "sekil", "şekil"},
-		{NamespaceGlobal, "en_buyuk", "maks"}, {NamespaceParam, "turev_izle", "türev_izle"},
+		{NamespaceGlobal, "degisken", "değişken"}, {NamespaceMember, "tur", "tür"}, {NamespaceMember, "sekil", "şekil"},
+		{NamespaceParam, "turev_izle", "türev_izle"},
 	} {
 		k, ok := Suggest(c.ns, c.name, nil)
 		if !ok || Name(k) != c.want {
@@ -198,23 +179,26 @@ func TestIsCodeForm(t *testing.T) {
 	}
 }
 
-// Eski adlar ve ASCII biçimleri: işlev → islev de eski sayılır ve ascii olarak işaretlenir.
-func TestFindOld(t *testing.T) {
+// Yabancı adlar (başka dillerden alışkanlık: lr, axis) kabul edilmez; FindForeign ve Suggest
+// asıl adı verir. accept süzgeci öbür kodları dışlar.
+func TestFindForeign(t *testing.T) {
 	for _, c := range []struct {
-		name  string
-		code  Code
-		ascii bool
-	}{{"işlev", A + 20, false}, {"islev", A + 20, true}, {"as", A + 100, false}, {"en_buyuk", G + 402, true}} {
-		k, a, ok := FindOld(NamespaceGlobal, c.name, nil)
-		if !ok || k != c.code || a != c.ascii {
-			t.Errorf("EskiBul(%q) = %s %v %v; %s %v bekleniyordu", c.name, k, a, ok, c.code, c.ascii)
+		name string
+		code Code
+	}{{"lr", T + 910}, {"axis", T + 902}} {
+		if _, ok := Find(NamespaceParam, c.name); ok {
+			t.Errorf("%q kabul edilmemeli", c.name)
+		}
+		k, _, ok := FindForeign(NamespaceParam, c.name, nil)
+		if !ok || k != c.code {
+			t.Errorf("FindForeign(%q) = %s %v; %s bekleniyordu", c.name, k, ok, c.code)
+		}
+		if k, ok := Suggest(NamespaceParam, c.name, nil); !ok || k != c.code {
+			t.Errorf("Suggest(%q) = %s %v; %s bekleniyordu", c.name, k, ok, c.code)
 		}
 	}
-	if _, _, ok := FindOld(NamespaceGlobal, "işlev", func(k Code) bool { return k.IsBuiltin() }); ok {
-		t.Error("süzgeç yerleşik olmayan kodu dışlamalıydı")
-	}
-	if _, _, ok := FindOld(NamespaceMember, "boy", nil); !ok {
-		t.Error("üyelerde boy → uzunluk bekleniyordu")
+	if _, _, ok := FindForeign(NamespaceParam, "lr", func(k Code) bool { return k == T+902 }); ok {
+		t.Error("süzgeç öbür kodları dışlamalıydı")
 	}
 }
 
@@ -225,9 +209,10 @@ func TestClashesCaught(t *testing.T) {
 		{`{"G100": {"ad": "yazdır"}, "G101": {"ad": "yazdır"}}`, "G100 \"yazdır\" and G101"},
 		{`{"G100": {"ad": "yazdır"}, "G101": {"ad": "yazdir"}}`, "G100 \"yazdır\" and G101 \"yazdir\""},
 		{`{"A001": {"ad": "eğer"}, "G100": {"ad": "eger"}}`, "A001 \"eğer\" and G100"},
-		{`{"G100": {"ad": "yazdır"}, "G101": {"ad": "girdi", "eski": ["yazdir"]}}`, "the old name \"yazdir\" of G101 clashes with G100"},
-		{`{"G100": {"ad": "a", "eski": ["işlev"]}, "G101": {"ad": "b", "eski": ["islev"]}}`, "\"islev\" is registered for both G100 and G101"},
-		{`{"G100": {"ad": "a", "eski": ["a"]}}`, "must not be the name itself"},
+		{`{"G100": {"ad": "yazdır"}, "G101": {"ad": "girdi", "yabancı": ["yazdir"]}}`, "the foreign name \"yazdir\" of G101 clashes with G100"},
+		{`{"G100": {"ad": "a", "yabancı": ["çık"]}, "G101": {"ad": "b", "yabancı": ["cik"]}}`, "\"cik\" is registered for both G100 and G101"},
+		{`{"G100": {"ad": "a", "yabancı": ["a"]}}`, "must not be the name itself"},
+		{`{"G100": {"ad": "a", "eski": ["b"]}}`, "unknown field \"eski\""},
 		{`{"G100": {"ad": "a b"}}`, "contain spaces"},
 		{`{"G100": {"ad": "yazdır", "es": ["yaz"]}}`, "unknown field \"es\""},
 		{`{"X100": {"ad": "a"}}`, "family letter"},
@@ -242,28 +227,6 @@ func TestClashesCaught(t *testing.T) {
 	// Farklı ad alanlarında aynı ad serbesttir.
 	if _, err := Load("deneme", []byte(`{"G303": {"ad": "sırala"}, "Y202": {"ad": "sırala"}, "W932": {"ad": "sırala"}}`)); err != nil {
 		t.Errorf("farklı ad alanlarında aynı ad kabul edilmeliydi: %v", err)
-	}
-}
-
-// 'kapat' ölü Y008'in eski adıydı; Y008'in adı kodun kendisi yapıldığından (17, ölü kodlar)
-// ad serbesttir ve Y012'ye verildi. Ad üyelerde yalnızca Y012'dir, hiçbir ölü kodun adı ya da
-// eski adı değildir; eski ad kalsaydı yükleme çakışmayı reddederdi.
-func TestKapatDoesNotClashWithY012(t *testing.T) {
-	if k, ok := Find(NamespaceMember, "kapat"); !ok || k != Y+12 {
-		t.Fatalf("üyelerde 'kapat' Y012 olmalı: %s %v", k, ok)
-	}
-	if k, ok := FindDead(NamespaceMember, "kapat"); ok {
-		t.Errorf("'kapat' ölü bir kodun adı olmamalı: %s", k)
-	}
-	if k, _, ok := FindOld(NamespaceMember, "kapat", nil); ok {
-		t.Errorf("'kapat' bir kodun eski adı olmamalı: %s", k)
-	}
-	if Name(Y+8) != "Y008" {
-		t.Errorf("Y008'in adı kodun kendisi olmalı: %q", Name(Y+8))
-	}
-	_, err := Load("deneme", []byte(`{"Y008": {"ad": "Y008", "eski": ["kapat"]}, "Y012": {"ad": "kapat"}}`))
-	if err == nil || !strings.Contains(err.Error(), "the name \"kapat\" of removed Y008 clashes with Y012") {
-		t.Errorf("ölü kodun eski adı canlı adla çakışınca reddedilmeli: %v", err)
 	}
 }
 
@@ -282,35 +245,8 @@ func TestSingleSpelling(t *testing.T) {
 	}
 }
 
-// Kaldırılan eş yazımlar (eskiden kabul edilen ikinci adlar) artık eski adlardır: kabul
-// edilmezler, Oneri asıl adı önerir.
-func TestAltSpellingsRemoved(t *testing.T) {
-	for _, c := range []struct {
-		code     Code
-		spelling string
-	}{{Y + 403, "türev"}, {Y + 4, "kayıt_ekle"}, {T + 910, "öğrenme_hızı"}, {A + 200, "tamsayı"}, {A + 200, "int"}, {A + 201, "float"}, {A + 202, "string"},
-		{A + 203, "bool"}, {A + 204, "null"}, {A + 205, "dizi"}, {A + 206, "map"}, {A + 212, "matris"}} {
-		if k, ok := Find(c.code.Namespace(), c.spelling); ok {
-			t.Errorf("%q kabul edilmemeli (%s)", c.spelling, k)
-		}
-		if k, ok := Suggest(c.code.Namespace(), c.spelling, nil); !ok || k != c.code {
-			t.Errorf("Oneri(%q) = %s %v, %s bekleniyordu", c.spelling, k, ok, c.code)
-		}
-	}
-	// Kaldırılan kodların adları ve eski adları öneri değil "kaldırıldı" bilgisi verir.
-	for _, c := range []struct {
-		ns       Namespace
-		spelling string
-	}{{NamespaceMember, "sorgula"}, {NamespaceMember, "sorgu"}, {NamespaceGlobal, "veritabanı"}, {NamespaceGlobal, "web_sunucu"}, {NamespaceParam, "params"}} {
-		if k, ok := FindDead(c.ns, c.spelling); !ok || !Removed(k) {
-			t.Errorf("OluBul(%s, %q) = %s %v; kaldırılmış bir kod bekleniyordu", c.ns, c.spelling, k, ok)
-		}
-	}
-}
-
-// Her yazım dili hatasız yüklenir ve Türkçenin her canlı kodunu adlandırır (yeni bir kodun adı
-// her dil dosyasına eklenmelidir); ölü kodlar yalnızca Türkçede adlıdır (başka dillerde eski
-// kod hiç olmadı, 17.6).
+// Her yazım dili hatasız yüklenir ve Türkçenin her kodunu adlandırır (yeni bir kodun adı her
+// dil dosyasına eklenmelidir).
 func TestWritingLanguagesComplete(t *testing.T) {
 	if strings.Join(Languages(), ",") != "en,tr" {
 		t.Fatalf("diller: %v", Languages())
@@ -323,14 +259,6 @@ func TestWritingLanguagesComplete(t *testing.T) {
 		for _, k := range Active().Codes() {
 			if _, ok := d.Entry(k); !ok {
 				t.Errorf("%s dilinde %s (%s) adsız", langCode, k, Active().Name(k))
-			}
-		}
-		if langCode == "tr" {
-			continue
-		}
-		for _, k := range Active().DeadCodes() {
-			if g, ok := d.Entry(k); ok {
-				t.Errorf("%s dilinde ölü kod %s adlı (%s)", langCode, k, g.Name)
 			}
 		}
 	}

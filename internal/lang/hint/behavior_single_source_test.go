@@ -12,7 +12,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// Tek kaynak: ad ipucu iletileri (H1100-H1106: kaldırıldı, taşındı, ASCII yazım, en yakın ad,
+// Tek kaynak: ad ipucu iletileri (H1101-H1106: ASCII yazım, en yakın ad,
 // tanımsız ad) yalnızca bu pakette kurulur; öbür dil paketleri hint işlevlerini çağırır.
 // outsideUse, bu kuralın bugünkü ihlalleridir: dosya → ileti kodu → kullanım sayısı. Liste
 // yalnızca küçülür: ihlal giderilince kayıt silinir, yeni kayıt eklenmez.

@@ -6,9 +6,9 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 İmzalarda parametrelerin yalnızca tipleri yazılır: `[Tip]` isteğe bağlı, `[Tip...]` sıfır ya da çok, `Tip...` bir ya da çok argümandır; `ad: Tip = varsayılan` adlı argümandır, `→` dönüş tipidir. Metot ve özellikler `Tip.ad` biçiminde, geçerli oldukları her tip için ayrı satırda yazılır.
 
-**Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir.
+**Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 316 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 103 fonksiyon, 1 sabit, 40 metot, 21 özellik, 42 adlı argüman; ayrıca 9 taşınmış ve 65 kaldırılmış kod (numaraları bir daha kullanılmaz).
+Toplam 316 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 103 fonksiyon, 1 sabit, 40 metot, 21 özellik, 42 adlı argüman.
 
 ## İçindekiler
 
@@ -17,7 +17,6 @@ Toplam 316 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 103 fonksiyon,
 - K — Komutlar (tr, kabuk, hata ayıklayıcı): tr alt komutları (K0xx) · Komut satırı seçenekleri (K1xx) · Kabuk komutları (K2xx) · Hata ayıklayıcı komutları (K3xx)
 - T — Tensör ve yapay zekâ: Tensör oluşturma ve görünüm (T1xx) · Etkinleştirme ve eleman bazlı matematik (T2xx) · Türev (T3xx) · İyileştiriciler (T4xx) · Katmanlar, kayıplar, hazır model (T5xx) · Vektör yardımcıları ve dil modeli (T6xx) · Kaydetme, yükleme, veri türleri (T7xx) · Adlı argümanlar (T9xx)
 - V — Veri ve parçalayıcı: Veri kümesi (V1xx) · Parçalayıcı (V2xx) · Adlı argümanlar (V9xx)
-- W — Web, veritabanı, arayüz (kaldırıldı): Web istemcisi ve sunucusu (W1xx) · Veritabanı (W2xx) · Görsel arayüz (W3xx) · Adlı argümanlar (W9xx)
 - Y — Metot ve özellikler (x.ad): Birden çok tipte ortak (Y0xx) · Metin (Y1xx) · Liste (Y2xx) · Sözlük (Y3xx) · Tensör (Y4xx) · İyileştirici (Y5xx) · Veri kümesi, okuyucu, parçalayıcı (Y6xx) · Veritabanı (Y7xx) · Web sunucusu (Y8xx) · Görsel arayüz (Y9xx)
 - Boru hattıyla kullanılabilen fonksiyonlar
 
@@ -103,7 +102,7 @@ En içteki döngüden çıkar; döngü dışında yazılması derleme hatasıdı
 döngü x içinde 1..10 { eğer x == 3 { çık }; yazdır(x) }
 ```
 
-İlişkili: A014 `devam` · Eski adlar: `kır`
+İlişkili: A014 `devam`
 
 #### A014 `devam`
 
@@ -123,7 +122,7 @@ Fonksiyon tanımlar; parametrelere varsayılan değer verilebilir, tanım öne a
 fonksiyon topla(a, b = 1) { sonuç a + b }; yazdır(topla(2, 3), topla(5))
 ```
 
-İlişkili: A021 `sonuç` · Eski adlar: `işlev`
+İlişkili: A021 `sonuç`
 
 #### A021 `sonuç`
 
@@ -133,7 +132,7 @@ Fonksiyondan değer döndürür; yalnız sonuç yok döndürür, üst düzeyde p
 fonksiyon işaret(n) { eğer n < 0 { sonuç "negatif" }; sonuç "pozitif" }; yazdır(işaret(-2))
 ```
 
-İlişkili: A020 `fonksiyon` · Eski adlar: `döndür`
+İlişkili: A020 `fonksiyon`
 
 #### A030 `değişken`
 
@@ -223,7 +222,7 @@ Alanları ve metotları olan bir yapı tanımlar; nesne yapının adıyla, alan 
 yapı Nokta { x = 0, y = 0 }; yazdır(Nokta(3, 4), Nokta(y: 1).x)
 ```
 
-İlişkili: A051 `kendi`, A102 `kurucu` · Eski adlar: `sınıf`
+İlişkili: A051 `kendi`, A102 `kurucu`
 
 #### A051 `kendi`
 
@@ -301,8 +300,6 @@ Programı bu satırda durdurup hata ayıklayıcıyı açar; kesme_noktası eğer
 değişken x = 2; kesme_noktası eğer x > 5; yazdır(x)
 ```
 
-Eski adlar: `dur_noktası`, `durdurma_noktası`
-
 ### Bağlamsal sözcükler (A1xx)
 
 #### A100 `olarak`
@@ -313,7 +310,7 @@ aktar ile alınan modülün adlarını tek bir Sözlük olarak verilen ada bağl
 aktar "tests/yardimci_modul" olarak ym; yazdır(ym.kare(2), ym["PI"])
 ```
 
-İlişkili: A070 `aktar` · Eski adlar: `as`
+İlişkili: A070 `aktar`
 
 #### A101 `test`
 
@@ -375,7 +372,7 @@ yazdır([1, 2, 3, 4].indirge(0) { birikim + o }, [1, 2, 3].indirge(1) { birikim 
 değişken x: Tam = 5; yazdır(tip(x), x * 2)
 ```
 
-İlişkili: A201 `Ondalık`, G210 `tam` · Eski adlar: `tamsayı`, `int`
+İlişkili: A201 `Ondalık`, G210 `tam`
 
 #### A201 `Ondalık`
 
@@ -385,7 +382,7 @@ değişken x: Tam = 5; yazdır(tip(x), x * 2)
 değişken oran: Ondalık = 0.75; yazdır(tip(oran))
 ```
 
-İlişkili: A200 `Tam`, G211 `ondalık` · Eski adlar: `sayı`, `float`
+İlişkili: A200 `Tam`, G211 `ondalık`
 
 #### A202 `Metin`
 
@@ -395,7 +392,7 @@ Değiştirilemez Unicode metin tipidir; uzunluk ve indeks karakter bazındadır.
 değişken ad: Metin = "şeker"; yazdır(tip(ad), ad[-1])
 ```
 
-Üyeleri: Y001 `uzunluk`, Y002 `içerir`, Y003 `ters_çevir`, Y013 `varsa_al`, Y100 `büyük_harf`, Y101 `küçük_harf`, Y102 `kırp`, Y103 `böl`, Y104 `değiştir`, Y105 `başlar`, Y106 `biter` · İlişkili: G212 `metin` · Eski adlar: `yazı`, `str`, `string`
+Üyeleri: Y001 `uzunluk`, Y002 `içerir`, Y003 `ters_çevir`, Y013 `varsa_al`, Y100 `büyük_harf`, Y101 `küçük_harf`, Y102 `kırp`, Y103 `böl`, Y104 `değiştir`, Y105 `başlar`, Y106 `biter` · İlişkili: G212 `metin`
 
 #### A203 `Mantık`
 
@@ -405,7 +402,7 @@ doğru ve yanlış değerlerinin tipidir.
 değişken hazır: Mantık = doğru; yazdır(tip(hazır))
 ```
 
-İlişkili: A040 `doğru`, A041 `yanlış` · Eski adlar: `mantıksal`, `bool`
+İlişkili: A040 `doğru`, A041 `yanlış`
 
 #### A204 `Yok`
 
@@ -415,7 +412,7 @@ yok değerinin tipidir; yok, her tip açıklamalı ada atanabilir.
 değişken d: Yok = yok; yazdır(tip(d))
 ```
 
-İlişkili: A042 `yok` · Eski adlar: `boş`, `null`
+İlişkili: A042 `yok`
 
 #### A205 `Liste`
 
@@ -425,7 +422,7 @@ Sıralı, karışık tipli, değiştirilebilir dizi tipidir; listeler başvuruyl
 değişken l: Liste = [1, "iki", 3.0]; yazdır(tip(l), l[-1])
 ```
 
-Üyeleri: Y001 `uzunluk`, Y002 `içerir`, Y003 `ters_çevir`, Y004 `ekle`, Y013 `varsa_al`, Y200 `filtrele`, Y201 `haritala`, Y202 `sırala`, Y203 `birleştir`, Y204 `benzersiz`, Y207 `indirge`, Y210 `ilk`, Y211 `son` · Eski adlar: `dizi`, `list`
+Üyeleri: Y001 `uzunluk`, Y002 `içerir`, Y003 `ters_çevir`, Y004 `ekle`, Y013 `varsa_al`, Y200 `filtrele`, Y201 `haritala`, Y202 `sırala`, Y203 `birleştir`, Y204 `benzersiz`, Y207 `indirge`, Y210 `ilk`, Y211 `son`
 
 #### A206 `Sözlük`
 
@@ -435,7 +432,7 @@ Eklenme sırasını koruyan anahtar–değer tablosu tipidir; olmayan anahtar yo
 değişken s: Sözlük = {"ad": "Ali"}; yazdır(tip(s), s.ad)
 ```
 
-Üyeleri: Y001 `uzunluk`, Y002 `içerir`, Y300 `anahtarlar`, Y301 `değerler` · Eski adlar: `harita`, `dict`, `map`
+Üyeleri: Y001 `uzunluk`, Y002 `içerir`, Y300 `anahtarlar`, Y301 `değerler`
 
 #### A207 `Aralık`
 
@@ -495,7 +492,7 @@ N boyutlu sayı dizisi tipidir (matris 2 boyutlu tensördür); elemanlar varsay�
 değişken t: Tensör = tensör([[1, 2], [3, 4]]); yazdır(tip(t), t.şekil)
 ```
 
-Üyeleri: Y103 `böl`, Y400 `şekil`, Y401 `cihaz`, Y402 `tür`, Y403 `gradyan`, Y404 `değer`, Y410 `şekillendir`, Y411 `devrik`, Y412 `eksenleri_sırala`, Y413 `dilim`, Y414 `cihaza`, Y415 `türe` · İlişkili: T100 `tensör` · Eski adlar: `matris`, `matrix`
+Üyeleri: Y103 `böl`, Y400 `şekil`, Y401 `cihaz`, Y402 `tür`, Y403 `gradyan`, Y404 `değer`, Y410 `şekillendir`, Y411 `devrik`, Y412 `eksenleri_sırala`, Y413 `dilim`, Y414 `cihaza`, Y415 `türe` · İlişkili: T100 `tensör`
 
 #### A213 `Herhangi`
 
@@ -524,10 +521,6 @@ değişken t: Tip = tip(42); yazdır(t == Tam, t, tip(t))
 ```
 
 İlişkili: G201 `tip`
-
-#### A230 `SinirAğı` — kaldırıldı
-
-Kaldırıldı: 'SinirAğı' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 #### A231 `VeriKümesi`
 
@@ -568,18 +561,6 @@ değişken p = parçalayıcı_yükle("tests/data/tokenizer.json"); yazdır(tip(p
 ```
 
 Üyeleri: Y610 `kodla`, Y611 `çöz`, Y612 `dağarcık_boyutu`, Y613 `parça_kimliği` · İlişkili: V200 `parçalayıcı_yükle`
-
-#### A240 `Veritabanı` — kaldırıldı
-
-Kaldırıldı: 'Veritabanı' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### A241 `WebSunucu` — kaldırıldı
-
-Kaldırıldı: 'WebSunucu' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### A242 `GörselArayüz` — kaldırıldı
-
-Kaldırıldı: 'GörselArayüz' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 #### A250 `Yol`
 
@@ -645,7 +626,7 @@ Değerleri aralarına boşluk koyarak tek satırda yazar ve yazdığı metni dö
 yazdır("Toplam:", 2 + 3)
 ```
 
-İlişkili: G101 `girdi` · Eski adlar: `yaz`
+İlişkili: G101 `girdi`
 
 #### G101 `girdi`
 
@@ -657,7 +638,7 @@ Standart girişten bir satır okur, varsa önce istemi yazar; satır sonu atıl�
 değişken ad = girdi("Adınız: "); yazdır("Merhaba " + ad)
 ```
 
-İlişkili: G100 `yazdır` · Eski adlar: `oku`
+İlişkili: G100 `yazdır`
 
 #### G110 `dosya_oku`
 
@@ -781,10 +762,6 @@ değişken k = geçici_klasör(); dosya_yaz(yol(k, "not.txt"), "x"); yazdır(yol
 
 ### Değer, tip ve dönüşüm (G2xx)
 
-#### G200 `uzunluk` — kaldırıldı
-
-Taşındı: Y001 `uzunluk` → `x.uzunluk`. Kaldırıldı: uzunluk bir değere sorulan soru olduğundan yalnızca özellik biçimiyle yazılır (x.uzunluk); uzunluk(x) yazılınca hata yeni biçimi önerir.
-
 #### G201 `tip`
 
     tip(Herhangi) → Tip
@@ -795,7 +772,7 @@ Değerin tipini bir tip değeri (Tip) olarak verir; tip adlarıyla karşılaşt�
 yazdır(tip(3.5), tip([1, 2]) == Liste, tip(yok))
 ```
 
-İlişkili: G210 `tam`, G211 `ondalık`, G212 `metin` · Eski adlar: `tur`
+İlişkili: G210 `tam`, G211 `ondalık`, G212 `metin`
 
 #### G210 `tam`
 
@@ -835,26 +812,6 @@ yazdır(metin(12) + "a", metin([1, 2]))
 
 ### Liste (G3xx)
 
-#### G300 `filtrele` — kaldırıldı
-
-Taşındı: Y200 `filtrele` → `liste.filtrele(...)`. Kaldırıldı: listeyi dönüştüren iş metottur; liste.filtrele { ... } yazılır. filtrele(liste, f) ve liste |> filtrele(f) hata verip yeni biçimi önerir.
-
-#### G301 `haritala` — kaldırıldı
-
-Taşındı: Y201 `haritala` → `liste.haritala(...)`. Kaldırıldı: listeyi dönüştüren iş metottur; liste.haritala { ... } yazılır. haritala(liste, f) hata verip yeni biçimi önerir.
-
-#### G302 `indirge` — kaldırıldı
-
-Taşındı: Y207 `indirge` → `liste.indirge(...)`. Kaldırıldı: listeyi indirgeyen iş metottur; liste.indirge(başlangıç, f) yazılır. indirge(liste, f) hata verip yeni biçimi önerir.
-
-#### G303 `sırala` — kaldırıldı
-
-Taşındı: Y202 `sırala` → `liste.sırala()`. Kaldırıldı: listeyi sıralamak metottur; liste.sırala() yazılır. sırala(liste) hata verip yeni biçimi önerir.
-
-#### G304 `ekle` — kaldırıldı
-
-Taşındı: Y004 `ekle` → `x.ekle(...)`. Kaldırıldı: listeye eleman eklemek metottur; liste.ekle(x) yazılır. ekle(liste, x) hata verip yeni biçimi önerir.
-
 #### G305 `aralık`
 
     aralık(Tam, [Tam]) → Liste
@@ -879,7 +836,7 @@ Sayı listesini toplar (hepsi Tam ise Tam, bir Ondalık varsa Ondalık); sayı o
 yazdır(toplam([1, 2, 3]), toplam([1, 2.5]), toplam(tensör([[1, 2], [3, 4]]), eksen: 0).değer)
 ```
 
-İlişkili: G410 `ortalama` · Önceki biçim: `x.toplam()` (Y205, kaldırıldı)
+İlişkili: G410 `ortalama`
 
 #### G401 `min`
 
@@ -891,7 +848,7 @@ Tek bir listenin ya da birden çok sayının en küçüğünü tipini koruyarak 
 yazdır(min([3, 1, 2]), min(4, 2.5), min([]))
 ```
 
-İlişkili: G402 `maks` · Eski adlar: `en_küçük`
+İlişkili: G402 `maks`
 
 #### G402 `maks`
 
@@ -903,7 +860,7 @@ Tek bir listenin ya da birden çok sayının en büyüğünü tipini koruyarak v
 yazdır(maks([2.0, 1.5]), maks(3, 7, 5), maks(tensör([[1, 5], [3, 2]]), eksen: 0).değer)
 ```
 
-İlişkili: G401 `min`, T230 `maks_indeks` · Eski adlar: `en_büyük`
+İlişkili: G401 `min`, T230 `maks_indeks`
 
 #### G403 `mutlak`
 
@@ -999,7 +956,7 @@ Sayıların aritmetik ortalamasını Ondalık olarak verir; tek bir liste ya da 
 yazdır(ortalama([1, 2, 3, 4]), ortalama(tensör([[1, 2], [3, 4]]), eksen: 1).değer)
 ```
 
-İlişkili: G400 `toplam`, G412 `ortanca` · Önceki biçim: `x.ortalama()` (Y206, kaldırıldı)
+İlişkili: G400 `toplam`, G412 `ortanca`
 
 #### G411 `standart_sapma`
 
@@ -1011,7 +968,7 @@ Sayıların popülasyon standart sapmasını (n'ye bölerek) Ondalık olarak ver
 yazdır(standart_sapma([2, 4, 4, 4, 5, 5, 7, 9]))
 ```
 
-İlişkili: G410 `ortalama` · Eski adlar: `std_sapma`
+İlişkili: G410 `ortalama`
 
 #### G412 `ortanca`
 
@@ -1023,7 +980,7 @@ Sayıların ortancasını Ondalık olarak verir; eleman sayısı çiftse ortadak
 yazdır(ortanca([3, 1, 4, 2]))
 ```
 
-İlişkili: G410 `ortalama` · Eski adlar: `medyan`
+İlişkili: G410 `ortalama`
 
 #### G414 `pi`
 
@@ -1061,7 +1018,7 @@ Verilen saniye kadar bekler ve doğru döndürür; beklerken yorumlayıcı kilid
 bekle(0.1); yazdır("0.1 saniye geçti")
 ```
 
-İlişkili: G501 `bekle_hepsi`, G502 `zaman_ms` · Eski adlar: `uyut`
+İlişkili: G501 `bekle_hepsi`, G502 `zaman_ms`
 
 #### G501 `bekle_hepsi`
 
@@ -1111,7 +1068,7 @@ Değeri boşluksuz JSON metnine çevirir; anahtarlar sözlükteki sırayla yazı
 yazdır(json_metin({"ad": "Ali", "puan": [90, 85]}))
 ```
 
-İlişkili: G600 `json_çöz` · Eski adlar: `json_yaz`
+İlişkili: G600 `json_çöz`
 
 #### G602 `csv_oku`
 
@@ -1123,7 +1080,7 @@ Bir CSV dosyasını (Metin ya da Yol olarak verilen yol) satır listelerine çev
 dosya_yaz("tablo.csv", "ad,yaş\nAli,30"); değişken tablo = csv_oku("tablo.csv"); yazdır(tablo[1][0], tablo[1][1] + 1)
 ```
 
-İlişkili: G110 `dosya_oku`, G603 `csv_çöz` · Eski adlar: `tablo_oku`
+İlişkili: G110 `dosya_oku`, G603 `csv_çöz`
 
 #### G603 `csv_çöz`
 
@@ -1345,10 +1302,6 @@ Dosyayı değiştirmeden biçiminin standart olup olmadığını denetler (tr bi
 tr biçimle --kontrol eğit.tr
 ```
 
-#### K102 `web` — kaldırıldı
-
-Kaldırıldı: tarayıcıdaki hata ayıklayıcının bayrağıydı (tr hata_ayıkla --web); yerine geçen bir kod yoktur, düzenleyicide F5 ile hata ayıklanır.
-
 #### K103 `json`
 
 Profil raporunu JSON olarak yazar (tr profil).
@@ -1505,8 +1458,6 @@ devam
 değiştir x = 100
 ```
 
-Eski adlar: `ata`, `kalem`
-
 #### K305 `zıpla`
 
 Çalışma sırasını verilen satıra taşır.
@@ -1514,8 +1465,6 @@ Eski adlar: `ata`, `kalem`
 ```tr
 zıpla 15
 ```
-
-Eski adlar: `git`
 
 #### K306 `kesme`
 
@@ -1541,8 +1490,6 @@ Değişkenlerin tablosunu gösterir.
 tablo
 ```
 
-Eski adlar: `incele`
-
 #### K309 `yığın`
 
 Çağrı yığınını gösterir.
@@ -1559,8 +1506,6 @@ Bir ifadeyi o anki ortamda hesaplar ve yazar.
 hesapla x * 2
 ```
 
-Eski adlar: `yaz`
-
 #### K311 `ekran`
 
 Kaynak kodun duraklanan satır çevresini gösterir.
@@ -1568,8 +1513,6 @@ Kaynak kodun duraklanan satır çevresini gösterir.
 ```tr
 ekran
 ```
-
-Eski adlar: `göster`
 
 #### K312 `yardım`
 
@@ -1601,7 +1544,7 @@ Hata ayıklayıcıdan ve programdan çıkar.
 değişken t = tensör([[1, 2], [3, 4]], türev_izle: doğru); yazdır(t.şekil, t.tür)
 ```
 
-İlişkili: T101 `sıfırlar`, T102 `birler`, T103 `rastgele_normal` · Eski adlar: `matris`
+İlişkili: T101 `sıfırlar`, T102 `birler`, T103 `rastgele_normal`
 
 #### T101 `sıfırlar`
 
@@ -1637,7 +1580,7 @@ Ortalaması 0, standart sapması 1 olan normal dağılımdan rastgele sayılarla
 yazdır(rastgele_normal([2, 3], tohum: 42).şekil)
 ```
 
-İlişkili: T101 `sıfırlar` · Eski adlar: `rastgele_matris`
+İlişkili: T101 `sıfırlar`
 
 #### T111 `birim_matris`
 
@@ -1651,10 +1594,6 @@ yazdır(birim_matris(3).değer)
 
 İlişkili: T100 `tensör`
 
-#### T120 `devrik` — kaldırıldı
-
-Taşındı: Y411 `devrik` → `tensör.devrik()`. Kaldırıldı: tensörün görünümünü değiştiren iş metottur; t.devrik() yazılır. devrik(t) hata verip yeni biçimi önerir.
-
 #### T121 `bitiştir`
 
     bitiştir(Liste, [Tam], eksen: Tam = -1) → Tensör
@@ -1665,7 +1604,7 @@ Bir tensör listesini verilen eksen boyunca (varsayılan son eksen) uç uca ekle
 yazdır(bitiştir([birler([2, 1]), sıfırlar([2, 2])], eksen: -1).şekil)
 ```
 
-İlişkili: Y103 `böl` · Eski adlar: `birleştir`
+İlişkili: Y103 `böl`
 
 ### Etkinleştirme ve eleman bazlı matematik (T2xx)
 
@@ -2155,10 +2094,6 @@ yazdır(çapraz_entropi(tensör([[2.0, 0.5, 0.1], [0.2, 1.5, 0.3]]), [0, 1]).de�
 
 İlişkili: T211 `log_softmax`
 
-#### T511 `kayıp_mse` — kaldırıldı
-
-Kaldırıldı: 'kayıp_mse' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
 #### T512 `doğrusal_çapraz_entropi`
 
     doğrusal_çapraz_entropi(Tensör, Tensör, Tam | Liste | Tensör) → Tensör
@@ -2170,14 +2105,6 @@ yazdır(doğrusal_çapraz_entropi(tensör([[1.0, 2.0]]), tensör([[0.5, -1.0, 0.
 ```
 
 İlişkili: T510 `çapraz_entropi`
-
-#### T520 `sinir_ağı` — kaldırıldı
-
-Kaldırıldı: 'sinir_ağı' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### T521 `model_yükle` — kaldırıldı
-
-Kaldırıldı: 'model_yükle' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 #### T530 `parametreler`
 
@@ -2192,26 +2119,6 @@ değişken model = {"w": tensör([1.0], türev_izle: doğru), "b": tensör([0.0]
 İlişkili: T400 `AdamW`, T700 `tensör_kaydet`
 
 ### Vektör yardımcıları ve dil modeli (T6xx)
-
-#### T600 `normalize_et` — kaldırıldı
-
-Kaldırıldı: 'normalize_et' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### T601 `nokta_çarpım` — kaldırıldı
-
-Kaldırıldı: 'nokta_çarpım' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### T602 `kosinüs_benzerliği` — kaldırıldı
-
-Kaldırıldı: 'kosinüs_benzerliği' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### T603 `öklid_uzaklığı` — kaldırıldı
-
-Kaldırıldı: 'öklid_uzaklığı' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### T610 `yz_sor` — kaldırıldı
-
-Kaldırıldı: 'yz_sor' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 #### T611 `örnekle`
 
@@ -2413,7 +2320,7 @@ Kullananlar: G409 `sınırla` · İlişkili: T904 `en_fazla`
 değişken w = tensör([1.0], türev_izle: doğru); değişken opt = SGD([w], öğrenme_oranı: 0.5); geri_yayılım(toplam(w * w)); opt.adım(); yazdır(w.değer)
 ```
 
-Kullananlar: T400 `AdamW`, T401 `SGD` · İlişkili: T911 `ağırlık_çürümesi`, Y504 `öğrenme_oranı` · Eski adlar: `öğrenme_hızı`
+Kullananlar: T400 `AdamW`, T401 `SGD` · İlişkili: T911 `ağırlık_çürümesi`, Y504 `öğrenme_oranı`
 
 #### T911 `ağırlık_çürümesi`
 
@@ -2484,22 +2391,6 @@ yazdır(katman_normu(tensör([[1.0, 3.0]]), sapma: tensör([0.5, 0.5])).değer)
 ```
 
 Kullananlar: T501 `katman_normu` · İlişkili: T920 `ağırlık`
-
-#### T930 `devir` — kaldırıldı
-
-Kaldırıldı: 'devir' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### T932 `aktivasyon` — kaldırıldı
-
-Kaldırıldı: 'aktivasyon' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### T940 `model` — kaldırıldı
-
-Kaldırıldı: 'model' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### T941 `adres` — kaldırıldı
-
-Kaldırıldı: 'adres' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 #### T950 `nedensel`
 
@@ -2731,7 +2622,7 @@ Kullananlar: Y600 `örnekleyici`, Y601 `sıralı` · İlişkili: V902 `toplu`
 yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").kodla("merhaba dünya", özel_parçalar: yanlış))
 ```
 
-Kullananlar: Y610 `kodla`, Y611 `çöz` · Eski adlar: `özel_tokenlar`
+Kullananlar: Y610 `kodla`, Y611 `çöz`
 
 #### V911 `ikinci`
 
@@ -2742,92 +2633,6 @@ yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").kodla("soru", ikinci:
 ```
 
 Kullananlar: Y610 `kodla`
-
-## W — Web, veritabanı, arayüz (kaldırıldı)
-
-### Web istemcisi ve sunucusu (W1xx)
-
-#### W100 `web_al` — kaldırıldı
-
-Kaldırıldı: 'web_al' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### W101 `web_gönder` — kaldırıldı
-
-Kaldırıldı: 'web_gönder' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### W110 `web_sunucu` — kaldırıldı
-
-Kaldırıldı: 'web_sunucu' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-### Veritabanı (W2xx)
-
-#### W200 `veritabanı_aç` — kaldırıldı
-
-Kaldırıldı: 'veritabanı_aç' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### W210 `tablo_sorgula` — kaldırıldı
-
-Kaldırıldı: 'tablo_sorgula' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-### Görsel arayüz (W3xx)
-
-#### W300 `arayüz_oluştur` — kaldırıldı
-
-Kaldırıldı: 'arayüz_oluştur' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-### Adlı argümanlar (W9xx)
-
-#### W900 `port` — kaldırıldı
-
-Kaldırıldı: 'port' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### W901 `arka_plan` — kaldırıldı
-
-Kaldırıldı: 'arka_plan' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### W910 `genişlik` — kaldırıldı
-
-Kaldırıldı: 'genişlik' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### W911 `yükseklik` — kaldırıldı
-
-Kaldırıldı: 'yükseklik' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### W912 `pencere_aç` — kaldırıldı
-
-Kaldırıldı: 'pencere_aç' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### W920 `alt_bilgi` — kaldırıldı
-
-Kaldırıldı: 'alt_bilgi' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### W921 `renk` — kaldırıldı
-
-Kaldırıldı: 'renk' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### W922 `tip` — kaldırıldı
-
-Kaldırıldı: 'tip' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### W930 `koşul` — kaldırıldı
-
-Kaldırıldı: 'koşul' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### W931 `sırala` — kaldırıldı
-
-Kaldırıldı: 'sırala' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### W932 `limit` — kaldırıldı
-
-Kaldırıldı: 'limit' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### W933 `alanlar` — kaldırıldı
-
-Kaldırıldı: 'alanlar' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### W934 `parametreler` — kaldırıldı
-
-Kaldırıldı: 'parametreler' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 ## Y — Metot ve özellikler (x.ad)
 
@@ -2844,8 +2649,6 @@ Metnin karakter sayısını, listenin ya da sözlüğün eleman sayısını veri
 ```tr
 yazdır("çay".uzunluk, [1, 2, 3].uzunluk, {"a": 1}.uzunluk)
 ```
-
-Eski adlar: `boy` · Önceki biçim: `uzunluk(...)` (G200, kaldırıldı)
 
 #### Y002 `içerir`
 
@@ -2885,23 +2688,7 @@ Listenin sonuna verilen elemanları ekler; listeyi yerinde değiştirir ve liste
 değişken l = [1]; l.ekle(2, 3); yazdır(l)
 ```
 
-İlişkili: Y210 `ilk`, Y211 `son` · Eski adlar: `kayıt_ekle` · Önceki biçim: `ekle(...)` (G304, kaldırıldı)
-
-#### Y005 `Y005` — kaldırıldı
-
-Kaldırıldı: model, veritabanı ve arayüz nesnelerini kaydeden metot TR'den kaldırıldı; yerine geçen bir kod yoktur. Eski adı (kaydet) Y521'e verildi.
-
-#### Y006 `başlat` — kaldırıldı
-
-Kaldırıldı: 'başlat' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### Y007 `arka_planda_başlat` — kaldırıldı
-
-Kaldırıldı: 'arka_planda_başlat' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### Y008 `Y008` — kaldırıldı
-
-Kaldırıldı: web sunucusunu ve arayüzü durduran metot TR'den kaldırıldı; yerine geçen bir kod yoktur. Eski adı (durdur) Y011'e verildi.
+İlişkili: Y210 `ilk`, Y211 `son`
 
 #### Y010 `güncelle`
 
@@ -3048,7 +2835,7 @@ Fonksiyonun doğru döndüğü elemanlardan oluşan yeni bir liste verir. Asıl 
 yazdır([1, 2, 3, 4].filtrele { o > 2 })
 ```
 
-İlişkili: Y201 `haritala`, Y207 `indirge` · Önceki biçim: `filtrele(...)` (G300, kaldırıldı)
+İlişkili: Y201 `haritala`, Y207 `indirge`
 
 #### Y201 `haritala`
 
@@ -3060,7 +2847,7 @@ Her elemana fonksiyonu uygular ve sonuçların yeni listesini verir. Asıl liste
 yazdır([1, 2, 3].haritala { o * 10 })
 ```
 
-İlişkili: Y200 `filtrele`, Y207 `indirge` · Eski adlar: `dönüştür` · Önceki biçim: `haritala(...)` (G301, kaldırıldı)
+İlişkili: Y200 `filtrele`, Y207 `indirge`
 
 #### Y202 `sırala`
 
@@ -3072,7 +2859,7 @@ Listenin küçükten büyüğe sıralanmış yeni bir kopyasını verir. Liste y
 yazdır([3, 1, 2].sırala())
 ```
 
-İlişkili: Y003 `ters_çevir` · Önceki biçim: `sırala(...)` (G303, kaldırıldı)
+İlişkili: Y003 `ters_çevir`
 
 #### Y203 `birleştir`
 
@@ -3096,14 +2883,6 @@ Tekrar eden elemanları atar, her değerin ilk geçtiği sırayı korur. Yeni bi
 yazdır([1, 2, 2, 3, 1].benzersiz())
 ```
 
-#### Y205 `toplam` — kaldırıldı
-
-Taşındı: G400 `toplam` → `toplam(...)`. Kaldırıldı: toplam matematik işi olduğundan fonksiyon biçimiyle yazılır: toplam(liste). liste.toplam() hata verip yeni biçimi önerir.
-
-#### Y206 `ortalama` — kaldırıldı
-
-Taşındı: G410 `ortalama` → `ortalama(...)`. Kaldırıldı: ortalama matematik işi olduğundan fonksiyon biçimiyle yazılır: ortalama(liste). liste.ortalama() hata verip yeni biçimi önerir.
-
 #### Y207 `indirge`
 
     Liste.indirge([Herhangi], Fonksiyon) → Herhangi
@@ -3114,7 +2893,7 @@ Listeyi soldan sağa (birikim, eleman) alan bir fonksiyonla tek değere indirger
 yazdır([1, 2, 3, 4].indirge(0, (a, x) => a + x), [1, 2, 3, 4].indirge(1) { birikim * o })
 ```
 
-İlişkili: Y200 `filtrele`, Y201 `haritala` · Önceki biçim: `indirge(...)` (G302, kaldırıldı)
+İlişkili: Y200 `filtrele`, Y201 `haritala`
 
 #### Y210 `ilk`
 
@@ -3282,7 +3061,7 @@ Tensörün her eksendeki uzunluğunu Tam listesi olarak verir; 0 boyutlu tensör
 yazdır(tensör([[1, 2], [3, 4]]).şekil)
 ```
 
-İlişkili: Y410 `şekillendir` · Eski adlar: `boyut`, `satır`, `sütun`
+İlişkili: Y410 `şekillendir`
 
 #### Y401 `cihaz`
 
@@ -3318,7 +3097,7 @@ geri_yayılım sonrası biriken gradyanı tensör olarak verir; henüz yoksa yok
 değişken x = tensör([1.0, 2.0], türev_izle: doğru); geri_yayılım(toplam(x * 3)); yazdır(x.gradyan.değer)
 ```
 
-İlişkili: T300 `geri_yayılım`, T900 `türev_izle` · Eski adlar: `türev`
+İlişkili: T300 `geri_yayılım`, T900 `türev_izle`
 
 #### Y404 `değer`
 
@@ -3329,8 +3108,6 @@ Tensörün değerlerini iç içe liste olarak verir; 0 boyutlu tensörde tek bir
 ```tr
 yazdır(tensör([[1, 2], [3, 4]]).değer)
 ```
-
-Eski adlar: `liste`
 
 #### Y410 `şekillendir`
 
@@ -3354,7 +3131,7 @@ Tensörün son iki eksenini yer değiştirir. Argüman almaz ve en az 2 boyutlu 
 yazdır(tensör([[1, 2], [3, 4]]).devrik().değer)
 ```
 
-İlişkili: Y412 `eksenleri_sırala` · Eski adlar: `T` · Önceki biçim: `devrik(...)` (T120, kaldırıldı)
+İlişkili: Y412 `eksenleri_sırala`
 
 #### Y412 `eksenleri_sırala`
 
@@ -3467,18 +3244,6 @@ değişken w = tensör([1.0], türev_izle: doğru); değişken op = SGD([w], ö�
 ```
 
 İlişkili: T910 `öğrenme_oranı`, Y500 `adım`
-
-#### Y510 `eğit` — kaldırıldı
-
-Kaldırıldı: 'eğit' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### Y511 `tahmin_et` — kaldırıldı
-
-Kaldırıldı: 'tahmin_et' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### Y512 `ağırlıklar` — kaldırıldı
-
-Kaldırıldı: 'ağırlıklar' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 #### Y520 `kaldığı_adım`
 
@@ -3603,7 +3368,7 @@ Parçalayıcının dağarcığındaki parça sayısını (eklenmiş özel parça
 yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").dağarcık_boyutu)
 ```
 
-İlişkili: Y613 `parça_kimliği` · Eski adlar: `sözlük_boyutu`
+İlişkili: Y613 `parça_kimliği`
 
 #### Y613 `parça_kimliği`
 
@@ -3615,101 +3380,7 @@ Verilen parçanın dağarcıktaki kimliğini verir; parça dağarcıkta yoksa yo
 yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").parça_kimliği("<|endoftext|>"))
 ```
 
-İlişkili: Y612 `dağarcık_boyutu` · Eski adlar: `token_kimliği`
-
-### Veritabanı (Y7xx)
-
-#### Y700 `tablolar` — kaldırıldı
-
-Kaldırıldı: 'tablolar' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### Y701 `tablo_oluştur` — kaldırıldı
-
-Kaldırıldı: 'tablo_oluştur' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### Y702 `sorgula` — kaldırıldı
-
-Kaldırıldı: 'sorgula' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### Y703 `Y703` — kaldırıldı
-
-Kaldırıldı: veritabanı satırlarını güncelleyen metot TR'den kaldırıldı; yerine geçen bir kod yoktur. Eski adı (güncelle) Y010'a verildi.
-
-#### Y704 `Y704` — kaldırıldı
-
-Kaldırıldı: veritabanı metodu; adı (sil) dosya silen genel sil(...) fonksiyonuyla karışmasın diye serbest bırakıldı.
-
-#### Y705 `hepsini_al` — kaldırıldı
-
-Kaldırıldı: 'hepsini_al' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### Y706 `say` — kaldırıldı
-
-Kaldırıldı: 'say' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-### Web sunucusu (Y8xx)
-
-#### Y800 `adres` — kaldırıldı
-
-Kaldırıldı: 'adres' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### Y801 `port` — kaldırıldı
-
-Kaldırıldı: 'port' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### Y802 `al` — kaldırıldı
-
-Kaldırıldı: 'al' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### Y803 `gönder` — kaldırıldı
-
-Kaldırıldı: 'gönder' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### Y804 `rota_ekle` — kaldırıldı
-
-Kaldırıldı: 'rota_ekle' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### Y805 `statik_klasör` — kaldırıldı
-
-Kaldırıldı: 'statik_klasör' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-### Görsel arayüz (Y9xx)
-
-#### Y900 `kart_ekle` — kaldırıldı
-
-Kaldırıldı: 'kart_ekle' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### Y901 `başlık_ekle` — kaldırıldı
-
-Kaldırıldı: 'başlık_ekle' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### Y902 `metin_ekle` — kaldırıldı
-
-Kaldırıldı: 'metin_ekle' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### Y903 `tablo_ekle` — kaldırıldı
-
-Kaldırıldı: 'tablo_ekle' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### Y904 `grafik_ekle` — kaldırıldı
-
-Kaldırıldı: 'grafik_ekle' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### Y905 `form_ekle` — kaldırıldı
-
-Kaldırıldı: 'form_ekle' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### Y906 `buton_ekle` — kaldırıldı
-
-Kaldırıldı: 'buton_ekle' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### Y907 `html_kaydet` — kaldırıldı
-
-Kaldırıldı: 'html_kaydet' TR'den kaldırıldı; yerine geçen bir kod yoktur.
-
-#### Y908 `html_üret` — kaldırıldı
-
-Kaldırıldı: 'html_üret' TR'den kaldırıldı; yerine geçen bir kod yoktur.
+İlişkili: Y612 `dağarcık_boyutu`
 
 ## Boru hattıyla kullanılabilen fonksiyonlar
 

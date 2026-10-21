@@ -23,7 +23,7 @@ func builtinNames() map[string]bool {
 	if o.lang != codes.Active() {
 		m := map[string]bool{}
 		for _, k := range codes.Codes() {
-			if (k.IsBuiltin() || k.Namespace() == codes.NamespaceType) && !codes.Removed(k) {
+			if k.IsBuiltin() || k.Namespace() == codes.NamespaceType {
 				for _, y := range codes.Spellings(k) {
 					m[y] = true
 				}

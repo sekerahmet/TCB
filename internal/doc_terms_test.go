@@ -44,6 +44,9 @@ func TestRetiredTermsStayRetired(t *testing.T) {
 	}
 	for _, rel := range files {
 		data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))
+		if os.IsNotExist(err) {
+			continue // izlenen ama çalışma ağacında silinmiş (henüz commit'lenmemiş)
+		}
 		if err != nil {
 			t.Fatal(err)
 		}

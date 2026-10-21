@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
@@ -179,10 +178,6 @@ func roundTrip(t *testing.T, name, text string) bool {
 	if err != nil {
 		return false // tanınmayan başlık (bilerek hatalı fikstür)
 	}
-	if b.Coded && hasDeadCode(b) {
-		// Ölü kodlar okunur ama çözülüp yeniden kodlanınca adla kalır (17.6).
-		return false
-	}
 	if b.Coded {
 		tr, err := Decode(text, codes.Active())
 		var sh *SyntaxError
@@ -219,17 +214,6 @@ func roundTrip(t *testing.T, name, text string) bool {
 		t.Errorf("%s: kod → TR → kod aynı değil (%v)\n%s", name, err, firstDiff(coded, again))
 	}
 	return true
-}
-
-// hasDeadCode kodlu gövdede ölü (taşınmış ya da kaldırılmış) bir kod var mı?
-func hasDeadCode(b Parts) bool {
-	l := b.Lexer()
-	for tok := l.NextToken(); tok.Type != lexer.TokEOF; tok = l.NextToken() {
-		if g, ok := codes.Active().Entry(tok.Code); ok && g.Dead() {
-			return true
-		}
-	}
-	return false
 }
 
 // firstDiff iki metnin ayrıldığı ilk satırı gösterir.
@@ -312,10 +296,11 @@ func TestDocCodeBlocksEncodeLossless(t *testing.T) {
 	}
 }
 
-// A coded file may hold a code that is dead in the view language (moved or removed): its view
-// would not read back as the same program, so Decode must refuse it instead of showing it.
+// A coded file may hold a code where its name cannot stand for it (a member code written as a
+// global name): its view would not read back as the same program, so Decode must refuse it
+// instead of showing it.
 func TestDecodeRefusesLossyView(t *testing.T) {
-	coded := Header + "\nA030 l = [1]\nG200(l)\n"
+	coded := Header + "\nA030 l = Y001\n"
 	if out, err := Decode(coded, codes.Active()); !errors.Is(err, ErrLossy) {
 		t.Fatalf("Decode gave %q, %v; ErrLossy expected", out, err)
 	}

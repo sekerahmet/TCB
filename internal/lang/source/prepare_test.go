@@ -47,8 +47,7 @@ func TestCodedFilePrepares(t *testing.T) {
 
 func TestCodedFileErrors(t *testing.T) {
 	cases := map[string]string{
-		Header + "\nG999(1)\n":            "'G999' bilinen bir kod değil",
-		Header + "\nA030 x = G200([1])\n": "'uzunluk(...)' TR'de bir fonksiyon değil",
+		Header + "\nG999(1)\n": "'G999' bilinen bir kod değil",
 	}
 	for src, part := range cases {
 		s := Prepare(src, Options{TypeCheck: true})

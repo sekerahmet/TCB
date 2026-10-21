@@ -189,7 +189,6 @@ func TestErrors(t *testing.T) {
 		{"yazdır(sıfırlar([2, 3]).cihaza(\"tpu\"))", messages.H6800},
 		{"yazdır(sıfırlar([2, 3]).dilim(1, 2, 5))", messages.H6720},
 		{"yazdır(sıfırlar([2, 3]).eksenleri_sırala([0, 0]))", messages.H6715},
-		{"yazdır(sıfırlar([2, 3]).boyut)", messages.H7903},
 		{"yazdır(tensör([[1, 2], [3]]))", messages.H6027},
 		{"yazdır(tensör([1, \"a\"]))", messages.H6007},
 		{"geri_yayılım(sıfırlar([2], türev_izle: doğru) * 2)", messages.H6401},

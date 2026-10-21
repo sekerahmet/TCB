@@ -182,11 +182,7 @@ func (v *VM) memberValue(obj Value, e *ast.MemberExpression, u memberInfo) (Valu
 			val, err = pg.GetProperty(u.codeVal, e.Property)
 		}
 		if err != nil && u.codeVal == codes.None {
-			if h := movedMemberError(obj, e.Property); h != "" {
-				err = messages.New(messages.H2441, h)
-			} else {
-				err = memberSuggestionError(pg, obj, e.Property, err)
-			}
+			err = memberSuggestionError(pg, obj, e.Property, err)
 		}
 		return val, lineSuffix(e.Line(), err)
 	}

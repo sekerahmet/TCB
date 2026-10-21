@@ -33,7 +33,7 @@ func run(t *testing.T, code string) (string, error) {
 }
 
 // mustRun kodu hatasız çalıştırır. Önce, tr komutunun yaptığı gibi tip denetiminden
-// geçirir: tanımsız ya da kaldırılmış bir ad (ör. 'çık'ın eski adı) yalnızca zamanlamaya bağlı
+// geçirir: tanımsız bir ad yalnızca zamanlamaya bağlı
 // olarak çalışan bir satırda olsa da test her makinede kalır.
 func mustRun(t *testing.T, code string) string {
 	t.Helper()

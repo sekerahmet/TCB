@@ -39,15 +39,11 @@ func TestNamedArg(t *testing.T) {
 }
 
 // CheckNamed bilinmeyen adda öneriyi şu sırayla arar: (1) kod listesindeki öneri (ASCII
-// yazım, eski ad), yalnızca bu fonksiyonun adlarındansa; (2) başka dillerden alışılmış ad
+// yazım), yalnızca bu fonksiyonun adlarındansa; (2) başka dillerden alışılmış ad
 // (büyük-küçük harf duyarsız), yine yalnızca bu fonksiyonun adlarındansa; (3) yazım
 // yakınlığı. Öneri yoksa geçerli adlar listelenir; fonksiyon adlı argüman almıyorsa söylenir.
 func TestCheckNamedSuggestionOrder(t *testing.T) {
 	lrName, axisName, epsilon := codes.Name(codes.T910), codes.Name(codes.T902), codes.Name(codes.T905)
-	removed, ok := codes.FindDead(codes.NamespaceParam, "nerede") // kaldırılmış bir adlı argümanın eski adı
-	if !ok || !codes.Removed(removed) {
-		t.Fatal("'nerede' kaldırılmış bir adlı argümanın eski adı olmalı; sınama verisini güncelleyin")
-	}
 	cases := []struct {
 		name       string
 		given      string
@@ -58,15 +54,12 @@ func TestCheckNamedSuggestionOrder(t *testing.T) {
 	}{
 		{name: "bilinen ad", given: lrName, names: names(codes.T910, codes.T911)},
 		{name: "ASCII yazım", given: "ogrenme_orani", names: names(codes.T910, codes.T911), suggestion: lrName},
-		{name: "eski ad", given: "öğrenme_hızı", names: names(codes.T910), suggestion: lrName},
 		{name: "yabancı ad", given: "lr", names: names(codes.T910, codes.T911), suggestion: lrName},
 		{name: "yabancı ad büyük harfle", given: "LR", names: names(codes.T910), suggestion: lrName},
 		{name: "yabancı ad yazım yakınlığından önce", given: "eps", names: names(codes.T905, codes.T902), suggestion: epsilon},
 		{name: "yazım hatası", given: "egsen", names: names(codes.T902, codes.T903), suggestion: axisName},
 		{name: "yabancı adın karşılığı bu fonksiyonda yok", given: "lr", names: names(codes.T902),
 			contains: []string{axisName}, excludes: []string{lrName}},
-		{name: "kaldırılmış kodun eski adı önerilmez", given: "nerede", names: names(codes.T902),
-			contains: []string{axisName}, excludes: []string{"'" + codes.Name(removed) + "'"}},
 		{name: "adlı argüman almayan fonksiyon", given: "eksen", names: nil, contains: []string{"almaz"}},
 	}
 	for _, d := range cases {

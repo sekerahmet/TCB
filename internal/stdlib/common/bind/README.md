@@ -11,7 +11,7 @@ yalnızca kodları kullanır, ad değişikliği yalnızca dil dosyasını deği�
 Denetim: `TestNoBareCodes` (`tools/gen/codeconsts`), `TestNamedArg`.
 
 **Yanlış yazılmış ad sessizce geçmez.** Bilinmeyen bir adlı argüman hatadır ve en yakın geçerli ad
-önerilir; kaldırılmış ve başka dillerden alışılmış adlar da tanınıp doğrusu gösterilir.
+önerilir; başka dillerden alışılmış adlar da tanınıp doğrusu gösterilir.
 Denetim: `TestCheckNamedSuggestionOrder`.
 
 **Panik programı çökertmez.** Motordaki bir Go paniği, TR'nin `dene/yakala` ile yakalayabildiği

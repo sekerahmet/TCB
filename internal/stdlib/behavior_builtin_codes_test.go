@@ -123,42 +123,7 @@ func TestMembersMatchDictionary(t *testing.T) {
 	if _, err := runSame(t, m, "u_tensor.kodla"); err == nil || strings.Contains(err.Error(), "yazmak mı istediniz") {
 		t.Errorf("tensörde kodla önerilmemeli: %v", err)
 	}
-	// Kaldırılan eş yazımlar hata verir ve asıl adı önerir.
-	for _, c := range []struct{ code, want string }{
-		{"u_liste.kayıt_ekle", "'kayıt_ekle' TR'de yok; 'ekle' yazmak mı istediniz?"},
-		{"u_tensor.türev", "'gradyan'"},
-		{"u_parcalayici.sözlük_boyutu", "'sözlük_boyutu' TR'de yok; 'dağarcık_boyutu' yazmak mı istediniz?"},
-		{"u_parcalayici.token_kimliği", "'token_kimliği' TR'de yok; 'parça_kimliği' yazmak mı istediniz?"},
-		{`u_parcalayici.kodla("a", özel_tokenlar: yanlış)`, "Bunu mu demek istediniz: 'özel_parçalar'?"},
-	} {
-		if _, err := runSame(t, m, c.code); err == nil || !strings.Contains(err.Error(), c.want) {
-			t.Errorf("%s: %q içeren hata bekleniyordu: %v", c.code, c.want, err)
-		}
-	}
-	// Dilden kaldırılan yerleşikler, üyeler ve onların eski adları: "TR'den kaldırıldı".
-	for _, c := range []struct{ code, want string }{
-		{`veritabanı_aç(":bellek:")`, "'veritabanı_aç' TR'den kaldırıldı"},
-		{`veritabanı(":bellek:")`, "'veritabanı' TR'den kaldırıldı"},
-		{`web_sunucu(port: 8080)`, "'web_sunucu' TR'den kaldırıldı"},
-		{`arayüz_oluştur("a")`, "'arayüz_oluştur' TR'den kaldırıldı"},
-		{`pencere_oluştur("a")`, "'pencere_oluştur' TR'den kaldırıldı"},
-		{`sinir_ağı([2, 1])`, "'sinir_ağı' TR'den kaldırıldı"},
-		{`kayıp_mse([1], [1])`, "'kayıp_mse' TR'den kaldırıldı"},
-		{`yz_sor("a")`, "'yz_sor' TR'den kaldırıldı"},
-		{`nokta_çarpım([1], [1])`, "'nokta_çarpım' TR'den kaldırıldı"},
-		{"u_liste.tahmin_et", "'tahmin_et' TR'den kaldırıldı"},
-		{"u_tensor.eğit", "'eğit' TR'den kaldırıldı"},
-	} {
-		if _, err := runSame(t, m, c.code); err == nil || !strings.Contains(err.Error(), c.want) {
-			t.Errorf("%s: %q içeren hata bekleniyordu: %v", c.code, c.want, err)
-		}
-	}
-	// Ölü kodun adı yeni bir koda verilince eski ipucu kalkar (17, ölü kodlar): kaydet (Y005)
-	// artık KontrolNoktası'nın üyesidir (Y521); listede sıradan bir bulunamayan üyedir.
-	if _, err := runSame(t, m, "u_liste.kaydet"); err == nil || strings.Contains(err.Error(), "kaldırıldı") {
-		t.Errorf("u_liste.kaydet kaldırıldı ipucu vermemeli: %v", err)
-	}
-	// Kaldırılan adlar sıradan adlardır.
+	// Dilde olmayan adlar sıradan adlardır.
 	if v, err := runSame(t, m, "değişken web_sunucu = 3\nweb_sunucu + 1"); err != nil || v.Inspect() != "4" {
 		t.Errorf("kaldırılan ad değişken adı olabilmeli: %v %v", v, err)
 	}

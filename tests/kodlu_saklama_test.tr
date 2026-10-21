@@ -40,10 +40,8 @@ test "17.5 kodlu dosyada konumlar Türkçe gösterime göredir" {
     doğrula(mesaj.içerir("Satır 3, Sütun 11: Tanımsız ad — 'tanımsız_ad'"), mesaj)
 }
 
-test "17.6 ölü kodlar okunmaya devam eder; bilinmeyen kod hatadır" {
+test "17.6 kod listesinde olmayan kod hatadır" {
     değişken mesaj = ""
-    dene { aktar "negative/kodlu_olu_kod" } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("'uzunluk(...)' TR'de bir fonksiyon değil"), mesaj)
     dene { aktar "negative/kodlu_bilinmeyen" } yakala h { mesaj = h }
     doğrula(mesaj.içerir("Satır 2, Sütun 1: 'G999' bilinen bir kod değil"), mesaj)
 }

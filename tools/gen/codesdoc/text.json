@@ -4,9 +4,9 @@
  "intro": [
   "Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `docs/spec/17_kodlar.md` §17). Bu belge her kodun ne işe yaradığını, imzasını ve örneğini verir; \"hangi kod ne işe yarar\" sorusunun tek başvurusudur. Yeni bir ad gerekmeden önce burada aynı işi yapan bir kod olup olmadığına bakın.",
   "İmzalarda parametrelerin yalnızca tipleri yazılır: `[Tip]` isteğe bağlı, `[Tip...]` sıfır ya da çok, `Tip...` bir ya da çok argümandır; `ad: Tip = varsayılan` adlı argümandır, `→` dönüş tipidir. Metot ve özellikler `Tip.ad` biçiminde, geçerli oldukları her tip için ayrı satırda yazılır.",
-  "**Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir."
+  "**Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`)."
  ],
- "countsFormat": "Toplam %d kod: %d anahtar kelime, %d bağlamsal sözcük, %d tip, %d fonksiyon, %d sabit, %d metot, %d özellik, %d adlı argüman; ayrıca %d taşınmış ve %d kaldırılmış kod (numaraları bir daha kullanılmaz).",
+ "countsFormat": "Toplam %d kod: %d anahtar kelime, %d bağlamsal sözcük, %d tip, %d fonksiyon, %d sabit, %d metot, %d özellik, %d adlı argüman.",
  "contents": "İçindekiler",
  "pipelineTitle": "Boru hattıyla kullanılabilen fonksiyonlar",
  "pipelineIntro": [
@@ -14,14 +14,9 @@
  ],
  "labels": {
   "anyType": "Herhangi",
-  "removed": "kaldırıldı",
-  "moved": "Taşındı",
   "usedBy": "Kullananlar",
   "members": "Üyeleri",
-  "related": "İlişkili",
-  "oldNames": "Eski adlar",
-  "previousForm": "Önceki biçim",
-  "previousRemoved": "kaldırıldı"
+  "related": "İlişkili"
  },
  "families": [
   {
@@ -151,28 +146,6 @@
     {
      "group": 9,
      "title": "Adlı argümanlar (V9xx)"
-    }
-   ]
-  },
-  {
-   "letter": "W",
-   "title": "W — Web, veritabanı, arayüz (kaldırıldı)",
-   "sections": [
-    {
-     "group": 1,
-     "title": "Web istemcisi ve sunucusu (W1xx)"
-    },
-    {
-     "group": 2,
-     "title": "Veritabanı (W2xx)"
-    },
-    {
-     "group": 3,
-     "title": "Görsel arayüz (W3xx)"
-    },
-    {
-     "group": 9,
-     "title": "Adlı argümanlar (W9xx)"
     }
    ]
   },

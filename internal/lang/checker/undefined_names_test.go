@@ -14,8 +14,6 @@ func TestUndefinedNameIsError(t *testing.T) {
 	singleErrorAt(t, "yazdir(1)", 1, 1, "'yazdir' TR'de yok; 'yazdır' yazmak mı istediniz?")
 	singleErrorAt(t, "değişken öğrenci_sayısı = 1\nyazdır(öğrenci_sayis)", 2, 8, "'öğrenci_sayis' adında bir değişken ya da fonksiyon yok", "Bunu mu demek istediniz: 'öğrenci_sayısı'?")
 	singleErrorAt(t, "tanımsız = 3", 1, 1, "'tanımsız'")
-	singleError(t, "değişken l = [1]\nfiltrele(l, (x) => x > 0)", messages.H1010, 2, "'filtrele(...)' TR'de bir fonksiyon değil; 'liste.filtrele(...)' yazın")
-	singleError(t, "matris([[1]])", messages.H1010, 1, "'matris' TR'de yok; 'tensör' yazmak mı istediniz?")
 	singleError(t, "eğer doğru { değişken iç = 1 }\nyazdır(iç)", messages.H1010, 2, "'iç'")
 	singleError(t, "fonksiyon f() { sonuç g() }", messages.H1010, 1, "'g'")
 	singleError(t, "test \"a\" { değişken yerel = 1 }\ntest \"b\" { yazdır(yerel) }", messages.H1010, 2, "'yerel'")

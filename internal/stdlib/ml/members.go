@@ -77,7 +77,7 @@ func (d *TensorValue) GetProperty(kd codes.Code, prop string) (interp.Value, err
 	case memberSplit:
 		return d.namedMethod(memberSplit, d.split), nil
 	}
-	if k, _, old := codes.FindOld(codes.NamespaceMember, prop, isTensorMember); old {
+	if k, _, ok := codes.FindForeign(codes.NamespaceMember, prop, isTensorMember); ok {
 		o := codes.Name(k)
 		if k == memberTranspose {
 			o += "()" // metot

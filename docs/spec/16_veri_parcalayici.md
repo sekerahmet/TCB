@@ -2,7 +2,7 @@
 
 Model eğitimi için `tokenizer.json` parçalayıcıları ve `.npy` veri dosyaları yerleşik nesnelerle okunur. Ayrıntılı kullanım için `docs/guide/04_yapay_zeka_ve_veri.md` §4.D'ye bakın.
 
-**16.1** `parçalayıcı_yükle(yol)` bir `Parçalayıcı` nesnesi döndürür. `.dağarcık_boyutu` dağarcıktaki parça sayısıdır (`Tam`); `.parça_kimliği(parça)` parçanın kimliğini, dağarcıkta yoksa `yok` verir. Eski adlar (`sözlük_boyutu`, `token_kimliği`, `özel_tokenlar:`) kabul edilmez; hata yeni adı önerir.
+**16.1** `parçalayıcı_yükle(yol)` bir `Parçalayıcı` nesnesi döndürür. `.dağarcık_boyutu` dağarcıktaki parça sayısıdır (`Tam`); `.parça_kimliği(parça)` parçanın kimliğini, dağarcıkta yoksa `yok` verir.
 
 **16.2** `.kodla(metin)` bir `Tam` listesi, `.kodla(metin_listesi)` her metin için bir liste (sıra korunur) döndürür. Metindeki özel parça yazımları tek kimlik olarak tanınır. Adlı seçenekler: `özel_parçalar:` (varsayılan `doğru`; `yanlış` son işleyicinin eklediği özel parçaları kapatır) ve `ikinci:` (çift kodlama; listeyle eşit uzunlukta liste).
 

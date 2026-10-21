@@ -25,15 +25,12 @@ import (
 //	"G400": { "tür": "fonksiyon", "param": ["A205|A212"], "adlı": [["T902", "A200"], ["T906", "A203", false]], "dönüş": "A200|A201|A212" },
 //	"Y001": { "tür": "özellik", "tipler": ["A202", "A205", "A206"], "dönüş": "A200" },
 //	"Y103": { "tür": "metot", "imzalar": { "A202": { "param": ["A202?"], "dönüş": "A205" }, "A212": { ... } } },
-//	"G200": { "tür": "fonksiyon", "taşındı": "Y001" },
 //
 // A type expression is a union of type codes joined with "|" (A200|A201: Tam or Ondalık). On
 // a positional parameter the suffix "?" means optional, "*" zero or more, "+" one or more.
 // Type codes are A2xx (the type of AdamW and SGD is a type code too: İyileştirici, A214). A
 // named argument is a [code, type, default] triple; the default is a JSON value (null: none)
-// and is omitted when there is no single default. "taşındı" gives the new code when a code was
-// removed and its job moved to another form; the old code's number is never reused and its
-// name stays in the language file only for hints.
+// and is omitted when there is no single default.
 
 //go:embed definitions.json
 var definitionsJSON []byte
@@ -125,10 +122,6 @@ type Definition struct {
 	// (in type order).
 	Members []TypeSignature
 	Related []Code
-	// MovedTo is the new code when the code was removed and its job moved; Removed is true
-	// when it was removed with no replacement.
-	MovedTo Code
-	Removed bool
 }
 
 // Types returns the types the member applies to.
@@ -202,8 +195,6 @@ type rawDefinition struct {
 	Return     string                  `json:"dönüş"`
 	Signatures map[string]rawSignature `json:"imzalar"`
 	Related    []string                `json:"ilişkili"`
-	MovedTo    string                  `json:"taşındı"`
-	Removed    bool                    `json:"kaldırıldı"`
 }
 
 // ParseDefinitions parses a definitions file; it collects every format error into one error.
@@ -287,12 +278,6 @@ func ParseDefinitions(data []byte) (map[Code]Definition, []Code, error) {
 			sort.Slice(t.Members, func(i, j int) bool { return t.Members[i].Type < t.Members[j].Type })
 		}
 		t.Related = codeList("ilişkili", h.Related)
-		if h.MovedTo != "" {
-			if y := codeList("taşındı", []string{h.MovedTo}); len(y) == 1 {
-				t.MovedTo = y[0]
-			}
-		}
-		t.Removed = h.Removed
 		out[k] = t
 		order = append(order, k)
 	}
@@ -392,32 +377,28 @@ func MemberSpelling(y Code) string {
 	return s + "()"
 }
 
-// SourceLanguage is the code of the source language file: it keeps the names of removed and
-// moved (dead) codes for hints; in other language files dead codes are optional.
+// SourceLanguage is the code of the source language file (Turkish, the canonical language).
 const SourceLanguage = "tr"
 
-// CheckDefinitions checks that the definitions agree with a language file: every code (moved
-// ones included; dead codes are optional in languages other than TR) has a definition, every
-// defined code is in the language file, each kind fits the code's family, type expressions
-// consist of type codes (A2xx), named-argument codes are x9xx, related and moved-to codes
-// exist, a moved code points to a live code in another namespace, and the move information
-// in the language file matches the definition.
+// CheckDefinitions checks that the definitions agree with a language file: every code has a
+// definition, every defined code is in the language file, each kind fits the code's family,
+// type expressions consist of type codes (A2xx), named-argument codes are x9xx and related
+// codes exist.
 func CheckDefinitions(d *Language) []error {
 	var errs []error
 	errorf := func(form string, a ...any) { errs = append(errs, internalf(form, a...)) }
 	if err := DefinitionError(); err != nil {
 		errorf("%v", err)
 	}
-	live := func(k Code) bool { g, ok := d.entries[k]; return ok && !g.Dead() }
-	all := append(d.Codes(), d.DeadCodes()...)
-	for _, k := range all {
+	live := func(k Code) bool { _, ok := d.entries[k]; return ok }
+	for _, k := range d.Codes() {
 		if _, ok := DefinitionOf(k); !ok {
 			errorf("%s (%s) is in the language file but has no definition in definitions.json", k, d.Name(k))
 		}
 	}
 	typeCode := func(k Code) bool {
-		g, ok := d.entries[k]
-		return ok && k.Letter() == 'A' && k.Group() >= 2 && !g.Dead()
+		_, ok := d.entries[k]
+		return ok && k.Letter() == 'A' && k.Group() >= 2
 	}
 	checkType := func(k Code, pos string, t TypeExpr) {
 		for _, x := range t.Types {
@@ -445,13 +426,7 @@ func CheckDefinitions(d *Language) []error {
 	}
 	for _, k := range DefinitionCodes() {
 		t, _ := DefinitionOf(k)
-		g, ok := d.entries[k]
-		if !ok {
-			// Ölü kodların adları yalnızca ipucu içindir: kaynak dil (TR) onları tutar, öbür dil
-			// dosyalarında isteğe bağlıdırlar (o dilde hiç var olmamış adların karşılığı gerekmez).
-			if d.Code != SourceLanguage && (t.Removed || t.MovedTo != None) {
-				continue
-			}
+		if _, ok := d.entries[k]; !ok {
 			errorf("%s is in definitions.json but not in the language file", k)
 			continue
 		}
@@ -463,30 +438,6 @@ func CheckDefinitions(d *Language) []error {
 			// Yerleşik bir sabit (G/T/V/W ailesinde fonksiyonun yerinde).
 		case exp != KindMethod && t.Kind != exp:
 			errorf("%s: kind %q, but the code's family requires %q", k, t.Kind, exp)
-		}
-		if g.MovedTo != t.MovedTo {
-			errorf("%s: the language file's moved-to (%s) differs from the definition's (%s); run go run ./tools/gen/codeconsts", k, g.MovedTo, t.MovedTo)
-		}
-		if g.Removed != t.Removed {
-			errorf("%s: the language file's removal info differs from the definition; run go run ./tools/gen/codeconsts", k)
-		}
-		if t.Removed {
-			if t.MovedTo != None || len(t.Members) > 0 || len(t.Signature.Params) > 0 || len(t.Signature.Named) > 0 || !t.Signature.Return.Empty() || len(t.Related) > 0 {
-				errorf("%s was removed; write only the kind", k)
-			}
-			continue
-		}
-		if t.MovedTo != None {
-			if len(t.Members) > 0 || len(t.Signature.Params) > 0 || len(t.Signature.Named) > 0 || !t.Signature.Return.Empty() {
-				errorf("%s was moved; write no signature (the signature is on the new code, %s)", k, t.MovedTo)
-			}
-			y, ok := d.entries[t.MovedTo]
-			if !ok || y.Dead() {
-				errorf("%s moved to %s, but %s is not a live code", k, t.MovedTo, t.MovedTo)
-			} else if t.MovedTo.Namespace() == k.Namespace() {
-				errorf("%s moved to %s, but both are in the same namespace (%s); a move changes the form (function ↔ member)", k, t.MovedTo, k.Namespace())
-			}
-			continue
 		}
 		switch t.Kind {
 		case KindMethod, KindProperty:
@@ -516,7 +467,7 @@ func CheckDefinitions(d *Language) []error {
 		}
 		for _, x := range t.Related {
 			if !live(x) {
-				errorf("%s: related code %s is not a live code in the language file", k, x)
+				errorf("%s: related code %s is not in the language file", k, x)
 			} else if x == k {
 				errorf("%s is listed as related to itself", k)
 			}

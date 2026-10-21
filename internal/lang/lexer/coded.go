@@ -188,8 +188,6 @@ func (l *Lexer) nameToken(lit string, line, col int) Token {
 
 // codedToken kodlu kaynaktaki bir adı okur: kod biçimindeyse (G100) kodun çözümleyicinin
 // dilindeki (Language) adını ve (anahtar kelimeyse) türünü taşıyan sözcük birimi, değilse kullanıcı adıdır.
-// Ölü (taşınmış ya da kaldırılmış) kodlar eski adlarıyla okunur: o adın ipucu (13.6, 2.9a)
-// kendiliğinden çalışır (uyumluluk sözü, 17.6).
 func (l *Lexer) codedToken(lit string, line, col int) Token {
 	if !codes.IsCodeForm(lit) {
 		return Token{Type: TokIdent, Literal: lit, Line: line, Column: col}
@@ -200,7 +198,7 @@ func (l *Lexer) codedToken(lit string, line, col int) Token {
 		l.addError(line, col, messages.New(messages.H0001, lit, codes.G100))
 		return Token{Type: TokIdent, Literal: lit, Line: line, Column: col}
 	}
-	if t, ok := codeTypes[k]; ok && !g.Dead() {
+	if t, ok := codeTypes[k]; ok {
 		return Token{Type: t, Literal: g.Name, Line: line, Column: col, Code: k}
 	}
 	return Token{Type: TokIdent, Literal: g.Name, Line: line, Column: col, Code: k}

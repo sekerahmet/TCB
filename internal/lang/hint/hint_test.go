@@ -9,7 +9,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
-// Önerilen ad her zaman asıl addır (Türkçe yazım); ASCII biçim ya da eski ad önerilmez. Dilin
+// Önerilen ad her zaman asıl addır (Türkçe yazım); ASCII biçim ya da yabancı ad önerilmez. Dilin
 // her yerleşiği ve anahtar kelimesi için Türkçe harfsiz yazım denenir; adlar koddan gelir.
 func TestAsciiSpellingSuggestsRealName(t *testing.T) {
 	tried := 0
@@ -58,39 +58,5 @@ func TestValidNamesHaveNoHintAndTyposGetClosest(t *testing.T) {
 	}
 	if got := NameSuggestion("zzzzzz", []string{"toplam"}); got != "" {
 		t.Errorf("benzer ad yokken öneri olmamalı: %q", got)
-	}
-}
-
-// Kaldırılan ya da taşınan her genel ad hata yolunda sessiz kalmaz: kaldırılmışsa "kaldırıldı",
-// üyeye taşınmışsa yeni yazımı söyler.
-func TestDeadGlobalNamesAlwaysExplained(t *testing.T) {
-	checked := 0
-	for _, k := range codes.DeadCodes() {
-		e, _ := codes.Active().Entry(k)
-		if k.Namespace() != codes.NamespaceGlobal {
-			continue
-		}
-		for _, name := range append([]string{e.Name}, e.Old...) {
-			if _, live := codes.Find(codes.NamespaceGlobal, name); live {
-				continue // yaşayan başka bir adla çakışan yazım (ör. yeniden kullanılan sözcük)
-			}
-			got := MovedGlobalNameError(name)
-			if codes.Removed(k) {
-				checked++
-				if got != RemovedError(name) {
-					t.Errorf("%s (%s): kaldırılma iletisi bekleniyordu, gelen %q", k, name, got)
-				}
-				continue
-			}
-			if to, _ := codes.MovedTo(k); to.Namespace() == codes.NamespaceMember {
-				checked++
-				if want := messages.Text(messages.H1102, name, codes.MemberSpelling(to)); got != want {
-					t.Errorf("%s (%s): yeni yazım söylenmeli: %q, beklenen %q", k, name, got, want)
-				}
-			}
-		}
-	}
-	if checked == 0 {
-		t.Fatal("hiç taşınmış ya da kaldırılmış genel ad denenmedi")
 	}
 }

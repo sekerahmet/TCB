@@ -36,8 +36,8 @@ func commandCode(word string) codes.Code {
 	return codes.None
 }
 
-// oldCommand bir sözcüğün asıl komutunu verir: kısaltmalar ve eski adlar (tablodan), Türkçe
-// harfsiz biçimler (adim → adım, kod listesinden).
+// oldCommand bir sözcüğün asıl komutunu verir: başka hata ayıklayıcıların kısaltmaları
+// (tablodan), Türkçe harfsiz biçimler (adim → adım, kod listesinden).
 func oldCommand(word string) (codes.Code, bool) {
 	if k, ok := oldCommands[word]; ok {
 		return k, true
@@ -45,24 +45,8 @@ func oldCommand(word string) (codes.Code, bool) {
 	return codes.Active().Suggest(codes.NamespaceDebugger, word, nil)
 }
 
-// oldKeys önceki sürümün terminal tuşlarıdır (f5 adım, f6 geç, f7 dön, f8 devam). Bu
-// tuşlar artık düzenleyicinin hata ayıklama tuşlarıyla aynı anlamda kullanılır; eski
-// anlamla yazılanlar başka bir iş yapmaz, yeni tuşu söyler.
-var oldKeys = map[string]codes.Code{"f6": codes.K301, "f7": codes.K302, "f8": codes.K303}
-
-// keyOf bir komutun F tuşudur (keyCommands'ın tersi).
-func keyOf(k codes.Code) string {
-	for key, c := range keyCommands {
-		if c == k {
-			return key
-		}
-	}
-	return ""
-}
-
-// oldCommands komutların kısaltmaları ve eski adlarıdır (başka hata ayıklayıcılardan gelen
-// alışkanlıklar: gdb'nin n, c, bt; eski TR adları ata, incele). Bunlar çalışmaz, asıl komutu
-// söyler; Türkçe harfsiz biçimleri (adim) kod listesi önerir.
+// oldCommands başka hata ayıklayıcılardan gelen kısaltmalardır (gdb'nin n, c, bt). Bunlar
+// çalışmaz, asıl komutu söyler; Türkçe harfsiz biçimleri (adim) kod listesi önerir.
 var oldCommands = map[string]codes.Code{
 	"a": codes.K300, "s": codes.K300,
 	"g": codes.K301, "n": codes.K301,

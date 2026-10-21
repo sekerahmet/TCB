@@ -379,21 +379,17 @@ döngü i, x içinde liste { eğer x == yok ve değil doğru { çık } }
 	})
 }
 
-// Kaldırılan eş anlamlılar artık sıradan adlardır.
-func TestRemovedSynonymsAreNames(t *testing.T) {
-	for _, name := range []string{"işlev", "islev", "döndür", "dondur", "kır", "kir", "sınıf", "sinif",
-		"dur_noktası", "dur_noktasi", "durdurma_noktası", "durdurma_noktasi"} {
+// Eş anlamlılar (her işin tek adı vardır, 2.9a) sıradan adlardır; anahtar kelimenin ASCII
+// biçimi de sıradan addır, ipucu Türkçe adı önerir.
+func TestSynonymsAreNames(t *testing.T) {
+	for _, name := range []string{"işlev", "döndür", "kır", "sınıf", "degisken", "eger"} {
 		if kind := LookupIdent(name); kind != TokIdent {
-			t.Errorf("%q artık ad olmalı, %s", name, kind)
-		}
-		if hint.KeywordSpellingHint(name) == "" {
-			t.Errorf("%q için ipucu bekleniyordu", name)
+			t.Errorf("%q ad olmalı, %s", name, kind)
 		}
 	}
-	// Eski adın ASCII biçimi de Türkçe adı önerir (ASCII biçim önerilmez).
-	for name, want := range map[string]string{"islev": "'fonksiyon'", "dondur": "'sonuç'", "kir": "'çık'"} {
+	for name, want := range map[string]string{"degisken": "'değişken'", "eger": "'eğer'"} {
 		if got := hint.KeywordSpellingHint(name); !strings.Contains(got, want) {
-			t.Errorf("ipucu.KaldirilanYazimIpucu(%q) = %q, %s önermeli", name, got, want)
+			t.Errorf("hint.KeywordSpellingHint(%q) = %q, %s önermeli", name, got, want)
 		}
 	}
 }

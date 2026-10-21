@@ -57,7 +57,7 @@ var typeCaseSpellings = func() map[string]string {
 }()
 
 // typeSuggestions kabul edilmeyen ama bir tip adına işaret eden yazımların (Türkçe
-// karaktersiz biçim: ondalik; kaldırılmış adlar) küçük harfli biçimi → önerilecek tip
+// karaktersiz biçim: ondalik; başka dillerden alışılmış adlar: int, str) küçük harfli biçimi → önerilecek tip
 // adıdır. Bu yazımlar tip açıklamasında hata verir ve asıl adı önerir.
 var typeSuggestions = func() map[string]string {
 	m := map[string]string{}
@@ -69,9 +69,8 @@ var typeSuggestions = func() map[string]string {
 	for _, k := range annotationTypes {
 		g, _ := codes.Active().Entry(k)
 		add(turkish.ASCII(g.Name), g.Name)
-		for _, e := range g.Old {
+		for _, e := range g.Foreign {
 			add(e, g.Name)
-			add(turkish.ASCII(e), g.Name)
 		}
 	}
 	return m

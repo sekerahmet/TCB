@@ -157,13 +157,13 @@ test "2.9 dilin kelimelerinin yalnızca Türkçe yazımı geçerlidir" {
     doğrula(mesaj.içerir("'buyuk_harf' TR'de yok; 'büyük_harf' yazmak mı istediniz?"), mesaj)
 }
 
-test "2.9a kaldırılan eş anlamlılar sıradan addır" {
+test "2.9a her işin tek yazımı vardır; eş anlamlılar sıradan addır" {
     değişken sınıf = "9-A"
     değişken kır = "yeşil"
     eşit_mi("9-A yeşil", "{sınıf} {kır}")
     değişken mesaj = ""
-    dene { döndür } yakala h { mesaj = "{h}" }
-    doğrula(mesaj.içerir("'sonuç' yazmak mı istediniz"), mesaj)
+    dene { yazdir(1) } yakala h { mesaj = "{h}" }
+    doğrula(mesaj.içerir("'yazdır'"), mesaj)
 }
 
 test "2.10 iç içelik sınırı aşılınca sözdizimi hatası verilir" {

@@ -47,10 +47,8 @@ değişken b: tensor = yok`, messages.H1007, 2, "'tensor'", "'Tensör'")
 	singleError(t, `fonksiyon f(x: sozluk) { sonuç x }`, messages.H1007, 1, "'sozluk'", "'Sözlük'")
 	singleError(t, `fonksiyon f(x) -> mantik { sonuç doğru }`, messages.H1007, 1, "'mantik'", "'Mantık'")
 	// Kaldırılan eş yazımlar da hata verir ve asıl adı önerir.
-	for name, canonical := range map[string]string{"tamsayı": "Tam", "int": "Tam", "sayı": "Ondalık", "float": "Ondalık",
-		"yazı": "Metin", "str": "Metin", "string": "Metin", "mantıksal": "Mantık", "bool": "Mantık", "boş": "Yok",
-		"null": "Yok", "dizi": "Liste", "list": "Liste", "harita": "Sözlük", "dict": "Sözlük", "map": "Sözlük",
-		"Matris": "Tensör", "matrix": "Tensör", "TAMSAYI": "Tam"} {
+	for name, canonical := range map[string]string{"int": "Tam", "float": "Ondalık", "str": "Metin", "string": "Metin",
+		"bool": "Mantık", "null": "Yok", "list": "Liste", "dict": "Sözlük", "map": "Sözlük", "matrix": "Tensör"} {
 		singleError(t, "değişken a: "+name, messages.H1007, 1, "'"+name+"'", "'"+canonical+"'")
 	}
 }

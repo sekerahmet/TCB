@@ -30,7 +30,7 @@ func asciiForm(s string) string {
 type rawEntry struct {
 	key                  string
 	name                 string
-	old, foreign         []string
+	foreign              []string
 	family               string
 	description, example string
 }
@@ -144,7 +144,7 @@ func (c *jsonParser) strList() ([]string, error) {
 	}
 }
 
-// entry { "ad": ..., "eski": [...], "yabancı": [...], "aile": ..., "açıklama": ..., "örnek": ... }
+// entry { "ad": ..., "yabancı": [...], "aile": ..., "açıklama": ..., "örnek": ... }
 // nesnesini okur.
 func (c *jsonParser) entry(g *rawEntry) error {
 	if err := c.expect('{'); err != nil {
@@ -172,8 +172,6 @@ func (c *jsonParser) entry(g *rawEntry) error {
 			g.name, err = c.str()
 		case "aile":
 			g.family, err = c.str()
-		case "eski":
-			g.old, err = c.strList()
 		case "yabancı":
 			g.foreign, err = c.strList()
 		case "açıklama":
@@ -181,7 +179,7 @@ func (c *jsonParser) entry(g *rawEntry) error {
 		case "örnek":
 			g.example, err = c.str()
 		default:
-			return c.errorf("%s entry has unknown field %q (valid fields: ad, eski, yabancı, aile, açıklama, örnek)", g.key, field)
+			return c.errorf("%s entry has unknown field %q (valid fields: ad, yabancı, aile, açıklama, örnek)", g.key, field)
 		}
 		if err != nil {
 			return err

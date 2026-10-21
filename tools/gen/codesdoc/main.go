@@ -1,6 +1,6 @@
 // codesdoc, dilin bütün kodlarının açıklamalı başvuru belgesini (docs/codes.md) kod
 // listesinden üretir: dilden bağımsız tanımlar (internal/lang/codes/definitions.json: tür, tipler, imza,
-// ilişkili kodlar, taşınma) ve Türkçe dil dosyası (internal/lang/codes/tr.json: ad, eski adlar,
+// ilişkili kodlar) ve Türkçe dil dosyası (internal/lang/codes/tr.json: ad, yabancı adlar,
 // açıklama, örnek). Belge elle düzenlenmez; bir kod eklendiğinde ya da değiştiğinde
 // yeniden üretilir.
 //
@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -189,22 +188,13 @@ func signatureLines(t codes.Definition) []string {
 // codeLabel "G400 `toplam`" biçimidir.
 func codeLabel(k codes.Code) string { return fmt.Sprintf("%s `%s`", k, codes.Name(k)) }
 
-// movedForm taşınan bir kodun yeni yazımını verir: x.uzunluk, liste.filtrele(...), toplam(...).
-func movedForm(y codes.Code) string {
-	if y.Namespace() == codes.NamespaceMember {
-		return codes.MemberSpelling(y)
-	}
-	return codes.Name(y) + "(...)"
-}
-
 // Generate belgenin içeriğini üretir.
 func Generate() ([]byte, error) {
 	if errs := codes.CheckDefinitions(codes.Active()); len(errs) > 0 {
 		return nil, fmt.Errorf("definitions are inconsistent: %v", errs[0])
 	}
 	d := codes.Active()
-	allCodes := append(d.Codes(), d.DeadCodes()...)
-	sort.Slice(allCodes, func(i, j int) bool { return allCodes[i] < allCodes[j] })
+	allCodes := d.Codes()
 
 	// Ters bağlar: adlı argümanı kullananlar, tipin üyeleri.
 	usedBy := map[codes.Code][]codes.Code{}
@@ -247,7 +237,7 @@ func Generate() ([]byte, error) {
 	}
 	fmt.Fprintf(&b, text.CountsFormat+"\n\n",
 		len(d.Codes()), counts[codes.KindKeyword], counts[codes.KindContextual], counts[codes.KindType], counts[codes.KindFunction],
-		counts[codes.KindConstant], counts[codes.KindMethod], counts[codes.KindProperty], counts[codes.KindNamedArg], len(d.MovedCodes()), len(d.RemovedCodes()))
+		counts[codes.KindConstant], counts[codes.KindMethod], counts[codes.KindProperty], counts[codes.KindNamedArg])
 	b.WriteString("## " + text.Contents + "\n\n")
 	for _, a := range text.Families {
 		fmt.Fprintf(&b, "- %s: ", a.Title)
@@ -275,15 +265,6 @@ func Generate() ([]byte, error) {
 			for _, k := range ks {
 				g, _ := d.Entry(k)
 				t, _ := codes.DefinitionOf(k)
-				if g.Removed {
-					fmt.Fprintf(&b, "#### %s `%s` — %s\n\n%s\n\n", k, g.Name, text.Labels["removed"], g.Description)
-					continue
-				}
-				if g.MovedTo != codes.None {
-					fmt.Fprintf(&b, "#### %s `%s` — %s\n\n", k, g.Name, text.Labels["removed"])
-					fmt.Fprintf(&b, "%s: %s → `%s`. %s\n\n", text.Labels["moved"], codeLabel(g.MovedTo), movedForm(g.MovedTo), g.Description)
-					continue
-				}
 				fmt.Fprintf(&b, "#### %s `%s`\n\n", k, g.Name)
 				if im := signatureLines(t); len(im) > 0 {
 					for _, s := range im {
@@ -304,25 +285,6 @@ func Generate() ([]byte, error) {
 				}
 				if len(t.Related) > 0 {
 					extras = append(extras, text.Labels["related"]+": "+list(t.Related))
-				}
-				var oldNames, previous []string
-				for _, e := range g.Old {
-					oldNames = append(oldNames, "`"+e+"`")
-				}
-				for _, tk := range d.MovedCodes() {
-					if tg, _ := d.Entry(tk); tg.MovedTo == k {
-						form := tg.Name + "(...)"
-						if tk.Namespace() == codes.NamespaceMember {
-							form = "x." + tg.Name + "()"
-						}
-						previous = append(previous, fmt.Sprintf("`%s` (%s, %s)", form, tk, text.Labels["previousRemoved"]))
-					}
-				}
-				if len(oldNames) > 0 {
-					extras = append(extras, text.Labels["oldNames"]+": "+strings.Join(oldNames, ", "))
-				}
-				if len(previous) > 0 {
-					extras = append(extras, text.Labels["previousForm"]+": "+strings.Join(previous, ", "))
 				}
 				if len(extras) > 0 {
 					b.WriteString(strings.Join(extras, " · ") + "\n\n")

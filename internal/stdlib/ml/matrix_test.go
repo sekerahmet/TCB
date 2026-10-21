@@ -32,38 +32,16 @@ yazdır(tensör(G) == G)`)
 	if out != want {
 		t.Fatalf("matris:\n%q\nbeklenen:\n%q", out, want)
 	}
-	// Kaldırılan matris üyeleri tensördeki karşılıklarını önerir.
+	// Başka dillerin matris adları (NumPy/PyTorch .T) tensördeki karşılıklarını önerir.
 	for _, d := range []struct {
 		code string
 		want messages.Code
 	}{
-		{"tensör([[1]]).boyut", messages.H7903},
 		{"tensör([[1]]).T", messages.H7903},
 		{"değişken A = tensör([[1]])\nA.devrik @ A", messages.H6033},
 	} {
 		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
 			t.Errorf("%q: %v (beklenen: %s)", d.code, err, d.want)
-		}
-	}
-	// Kaldırılmış adın iletisi dil çekirdeğindedir (henüz kodsuz).
-	for _, d := range []struct{ code, expected string }{
-		{"tensör([[1]]).toplam", "'tensör.toplam()' TR'de yok; 'toplam(tensör)' yazın"},
-	} {
-		if _, err := run(t, d.code); err == nil || !strings.Contains(err.Error(), d.expected) {
-			t.Errorf("%q: %v (içermeli: %s)", d.code, err, d.expected)
-		}
-	}
-}
-
-// matris ve rastgele_matris kaldırıldı (2 boyutlu tensörün ikinci adlarıydı): kullanılırsa
-// hata tensör ve rastgele_normal'i önerir.
-func TestMatrixNamesRemoved(t *testing.T) {
-	for _, d := range []struct{ code, expected string }{
-		{"matris([[1, 2]])", "'matris' TR'de yok; 'tensör' yazmak mı istediniz?"},
-		{"rastgele_matris(2, 2)", "'rastgele_matris' TR'de yok; 'rastgele_normal' yazmak mı istediniz?"},
-	} {
-		if _, err := run(t, d.code); err == nil || !strings.Contains(err.Error(), d.expected) {
-			t.Errorf("%q: %v (içermeli: %s)", d.code, err, d.expected)
 		}
 	}
 }

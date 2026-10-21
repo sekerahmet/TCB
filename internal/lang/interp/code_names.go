@@ -83,7 +83,7 @@ func (v *VM) Builtin(kd codes.Code) *BuiltinVal {
 }
 
 // removedMemberHint Metin, Liste ve Sözlük üyelerinden birinin ASCII biçimi ya da
-// kaldırılmış adı için ipucunu döndürür.
+// yabancı adı için ipucunu döndürür.
 func removedMemberHint(name string) string {
 	k, ok := codes.Suggest(codes.NamespaceMember, name, coreMember)
 	if !ok {

@@ -1,3 +1,0 @@
-// Bilerek hatalı modül (6.7): indirge'nin sondaki bloğunda o artık elemandır; eski
-// o[0] / o[1] biçimi birikim ve o yazmayı öneren bir sözdizimi hatasıdır.
-değişken t = [1, 2, 3].indirge(0) { o[0] + o[1] }

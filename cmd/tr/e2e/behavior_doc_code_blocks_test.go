@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/checker"
-	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/reporoot"
@@ -164,116 +163,6 @@ func TestExtensionTemplatesBuild(t *testing.T) {
 		code = definePlaceholders(body, code)
 		if passed, stdout := trCheck(t, "sablon", code); !passed {
 			t.Errorf("%q şablonu derlenmiyor:\n%s\n---\n%s", ad, code, stdout)
-		}
-	}
-}
-
-// Kaldırılan kodların adları (ve eski adları) belgelerde kod bloğu dışında da geçmemeli: ```tr
-// blokları zaten `tr kontrol`dan geçer (kaldırılan ad orada hata verir), ama düzyazıdaki
-// satır içi kod (`model_yükle`, `x.kaydet()`) ve çağrı biçimi (ad(...)) denetlenmiyordu (hakem
-// O14: kılavuz kaldırılmış sinir_ağı'nı ve model.kaydet'i anlatıyordu). Ad listesi kod
-// paketinden gelir (kod.OluBul ve kod.Kaldirildi). Adın hangi ad alanında arandığı
-// yazımından anlaşılır: '.ad' üye, 'ad:' adlı argüman, 'ad(' genel; satır içi kodda tek başına
-// yazılmış `ad` genel ya da tip. Canlı bir kodla aynı yazılan ad (ör. 'tip') denetlenmez.
-
-// removedNameAllowances meşru tarihçe cümleleridir: belge → izin verilen ad → gerekçe.
-var removedNameAllowances = map[string]map[string]string{
-	"docs/spec/02_sozcuk_yapisi.md": nameAllowance("kaldırılan özelliklerin listesi: bu adlar yazılınca 'kaldırıldı' hatası verilir (kural 2.9a)",
-		"veritabanı_aç", "tablo_sorgula", "web_al", "web_gönder", "web_sunucu", "arayüz_oluştur",
-		"sinir_ağı", "model_yükle", "eğit", "tahmin_et", "ağırlıklar", "kayıp_mse", "yz_sor",
-		"normalize_et", "nokta_çarpım", "kosinüs_benzerliği", "öklid_uzaklığı"),
-}
-
-func nameAllowance(reason string, names ...string) map[string]string {
-	m := map[string]string{}
-	for _, a := range names {
-		m[a] = reason
-	}
-	return m
-}
-
-var (
-	inlineCodeRe = regexp.MustCompile("`([^`\n]+)`")
-	identifierRe = regexp.MustCompile(`[\p{L}_][\p{L}\p{N}_]*`)
-	cagriRe      = regexp.MustCompile(`([\p{L}_][\p{L}\p{N}_]*)\(`)
-)
-
-// removedName ad, verilen ad alanında (AlanYok: genel ya da tip) yerine geçen olmadan
-// kaldırılmış bir kodun adı ya da eski adıysa o kodu verir.
-func removedName(take codes.Namespace, ad string) (codes.Code, bool) {
-	fields := []codes.Namespace{take}
-	if take == codes.NamespaceNone {
-		fields = []codes.Namespace{codes.NamespaceGlobal, codes.NamespaceType}
-	}
-	for _, a := range []codes.Namespace{codes.NamespaceGlobal, codes.NamespaceType, codes.NamespaceMember, codes.NamespaceParam} {
-		if _, live := codes.Find(a, ad); live && (a == take || take == codes.NamespaceNone) {
-			return codes.None, false
-		}
-	}
-	for _, a := range fields {
-		if k, ok := codes.FindDead(a, ad); ok && codes.Removed(k) {
-			return k, true
-		}
-	}
-	return codes.None, false
-}
-
-// inlineNames satır içi kod parçasındaki adları ad alanlarıyla verir.
-func inlineNames(part string) map[string]codes.Namespace {
-	names := map[string]codes.Namespace{}
-	if p := strings.TrimSpace(part); identifierRe.FindString(p) == p {
-		names[p] = codes.NamespaceNone
-		return names
-	}
-	for _, m := range identifierRe.FindAllStringIndex(part, -1) {
-		ad, before, after := part[m[0]:m[1]], part[:m[0]], part[m[1]:]
-		switch {
-		case strings.HasSuffix(before, "."):
-			names[ad] = codes.NamespaceMember
-		case strings.HasPrefix(after, ":"):
-			names[ad] = codes.NamespaceParam
-		case strings.HasPrefix(after, "("):
-			names[ad] = codes.NamespaceGlobal
-		}
-	}
-	return names
-}
-
-func TestRemovedNamesAbsentFromDocs(t *testing.T) {
-	if len(codes.RemovedCodes()) == 0 {
-		t.Skip("kaldırılmış kod yok")
-	}
-	for _, b := range belgeListesi(t) {
-		if b == generatedDoc { // codes.md kaldırılan kodları bilerek listeler
-			continue
-		}
-		data, err := os.ReadFile(reporoot.Path(b))
-		if err != nil {
-			t.Fatal(err)
-		}
-		for i, line := range uncodedLines(string(data)) {
-			bulunan := map[string]codes.Namespace{}
-			for _, m := range inlineCodeRe.FindAllStringSubmatch(line, -1) {
-				for ad, take := range inlineNames(m[1]) {
-					bulunan[ad] = take
-				}
-			}
-			flat := inlineCodeRe.ReplaceAllString(line, "")
-			for _, m := range cagriRe.FindAllStringSubmatchIndex(flat, -1) {
-				if m[0] == 0 || flat[m[0]-1] != '.' {
-					bulunan[flat[m[2]:m[3]]] = codes.NamespaceGlobal
-				}
-			}
-			for ad, take := range bulunan {
-				k, ok := removedName(take, ad)
-				if !ok {
-					continue
-				}
-				if _, allowed := removedNameAllowances[b][ad]; allowed {
-					continue
-				}
-				t.Errorf("%s:%d: %q kaldırılmış bir kodun adı (%s); belgeyi bugünkü dile göre düzeltin ya da meşru bir tarihçe cümlesiyse gerekçesiyle kaldirilanAdIzinleri'ne ekleyin", b, i+1, ad, k)
-			}
 		}
 	}
 }

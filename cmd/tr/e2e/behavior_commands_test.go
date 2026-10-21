@@ -45,27 +45,10 @@ func TestCommandsHaveOneName(t *testing.T) {
 	wait(t, tr(t, dir, "biçimle", "--check", "a.tr"), 0, nil, nil)
 	wait(t, tr(t, dir, "format", "--kontrol", "a.tr"), 0, nil, nil)
 	wait(t, tr(t, dir, "profil", "--go_profili", "x.prof", "a.tr"), 1, nil, []string{"bilinmeyen seçenek \"--go_profili\"", "--go-profili"})
-	wait(t, tr(t, dir, "hata_ayıkla", "--web"), 1, nil, []string{"Tarayıcıdaki hata ayıklayıcı kaldırıldı"})
 	// İngilizce yazım dilinin adları da her makinede komuttur.
 	wait(t, tr(t, dir, "run", "a.tr"), 0, []string{"çalıştı"}, nil)
 	wait(t, tr(t, dir, "version"), 0, []string{"v" + trVersion(t)}, nil)
 	wait(t, tr(t, dir, "help"), 0, []string{"Kullanım:"}, nil)
-}
-
-func TestRemovedCommands(t *testing.T) {
-	for _, a := range []string{"bytecode", "baytkod"} {
-		s := tr(t, "", a)
-		wait(t, s, 1, nil, []string{"'tr bytecode' komutu kaldırıldı"})
-	}
-	dir := t.TempDir()
-	writeFile(t, dir, "a.tr", "yazdır(1)\n")
-	for _, a := range []string{"--web", "-w"} {
-		s := tr(t, dir, "hata_ayıkla", "a.tr", a)
-		wait(t, s, 1, nil, []string{"Tarayıcıdaki hata ayıklayıcı kaldırıldı"})
-		if strings.Contains(s.stdout, "1") {
-			t.Errorf("program çalışmamalıydı: %q", s.stdout)
-		}
-	}
 }
 
 func TestMissingArgument(t *testing.T) {

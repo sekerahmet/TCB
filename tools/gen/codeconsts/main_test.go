@@ -27,7 +27,7 @@ func TestFamilyLettersMatch(t *testing.T) {
 }
 
 // Üretilen sabit dosyası kod listesinden üretilenle aynı olmalı: bir kod eklendiğinde,
-// kaldırıldığında ya da taşındığında `go run ./tools/gen/codeconsts` çalıştırılmadıysa
+// silindiğinde ya da adı değiştiğinde `go run ./tools/gen/codeconsts` çalıştırılmadıysa
 // bu test düşer.
 func TestConstantsUpToDate(t *testing.T) {
 	root := reporoot.Root()

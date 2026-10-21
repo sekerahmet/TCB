@@ -109,9 +109,6 @@ func main() {
 		}
 		runFile(args[1], args[2:])
 	default:
-		if args[0] == "bytecode" || args[0] == "baytkod" {
-			exitWithError(messages.Text(messages.H8604))
-		}
 		runFile(args[0], args[1:])
 	}
 }
@@ -227,17 +224,11 @@ func runFile(path string, arguments []string) {
 	cleanup()
 }
 
-// debugCommand 'tr hata_ayıkla dosya.tr [argümanlar]' komutudur. Kaldırılan tarayıcı
-// failure ayıklayıcısının bayrağı dosyadan önce ya da hemen sonra yazılırsa ipucu verilir;
-// sonraki argümanlar programındır.
+// debugCommand 'tr hata_ayıkla dosya.tr [argümanlar]' komutudur; dosyadan sonraki argümanlar
+// programındır.
 func debugCommand(args []string) {
 	if len(args) < 1 {
 		exitWithError(messages.Text(messages.H8608, codes.DisplayName(codes.K006)))
-	}
-	for _, a := range args[:min(2, len(args))] {
-		if a == "-w" || removedOption(a) { // --web (K102, kaldırıldı)
-			exitWithError(messages.Text(messages.H8609, codes.DisplayName(codes.K006)))
-		}
 	}
 	debugFile(args[0], args[1:])
 }

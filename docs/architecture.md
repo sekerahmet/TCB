@@ -42,7 +42,7 @@ messages → turkish → codes → hint → lexer → ast → parser → checker
 | `messages` | İleti kodları (`H0000`...) ve etkin dildeki metinleri; en alttır, yalnızca standart kitaplığa dayanır |
 | `turkish` | Türkçe harf kuralları, ünlü uyumuna göre ekler, en yakın ad önerisi, dosya hatası metinleri, kod çerçevesi |
 | `codes` | Dilin kullanıcıya görünen bütün adlarının sabit kodları (`G100`...); dil dosyaları ve tanım dosyası |
-| `hint` | Kaldırılan, taşınan, ASCII yazılan adların ve tanımsız ada en yakın adın ipuçları (tek kaynak) |
+| `hint` | ASCII yazılan ve başka dillerden alışılmış adların, tanımsız ada en yakın adın ipuçları (tek kaynak) |
 | `lexer` | Sözcük çözümleyici; Türkçe ve kodlu kaynağı okur, konumları Türkçe gösterime göre verir |
 | `ast` | Sözdizimi ağacı düğümleri; yalnızca veri taşır, konumdan bağımsız döküm yazar |
 | `parser` | Öncelik tabanlı (Pratt) ifade ve özyinelemeli iniş deyim ayrıştırıcısı |

@@ -398,9 +398,6 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, u memberInfo, safe bool, 
 	if safe {
 		return Null, nil
 	}
-	if h := movedMemberError(obj, prop); h != "" {
-		return nil, messages.At(line, 0, messages.New(messages.H2441, h))
-	}
 	return nil, messages.At(line, 0, messages.New(messages.H2474, obj.Type(), prop, removedMemberHint(prop)))
 }
 

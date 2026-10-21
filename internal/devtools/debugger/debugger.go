@@ -271,10 +271,6 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 		parts := strings.Fields(cmdLine)
 		cmd := strings.ToLower(parts[0])
 
-		if fresh, ok := oldKeys[cmd]; ok {
-			fmt.Println("  ⚠️ " + messages.Text(messages.H8040, cmd, keyOf(fresh), codes.DisplayName(fresh)))
-			continue
-		}
 		command := commandCode(cmd)
 		if command == codes.None {
 			if actual, ok := oldCommand(cmd); ok {

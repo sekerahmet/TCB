@@ -12,7 +12,7 @@ yerleşik, tip, üye, adlı argüman) hiçbir zaman Go metnine yazılmaz: kendi 
 dosyayı değiştirir. Denetim: `TestNoBareCodes` (tools/gen/codeconsts).
 
 **Kullanıcı mesajları.** Kullanıcıya giden mesajlar kullanıcının dilindedir, satırla başlar
-(`Satır 3: ...`) ve ne yapılacağını söyler; metinleri ileti kodlarıyla `messages`'tadır. Kaldırılmış, taşınmış ya da yanlış yazılmış adların
+(`Satır 3: ...`) ve ne yapılacağını söyler; metinleri ileti kodlarıyla `messages`'tadır. Yanlış yazılmış ya da başka dillerden alışılmış adların
 ipuçları tek yerden (`hint`) gelir; böylece her aşama aynı sözlerle anlatır. Denetim: `TestMessageUsage` (tools/gen/msgconsts), `TestHintMessagesBuiltOnlyHere` (hint), `TestCheckerAndRuntimeShareWording` (interp).
 
 **Testler.** `X_test.go`, `X.go`'yu sınar ve onun yanında durur (`X_fuzz_test.go` da öyle).

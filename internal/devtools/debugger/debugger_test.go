@@ -211,33 +211,16 @@ func TestTerminalKeysMatchVSCode(t *testing.T) {
 			t.Errorf("%q: kip %d bekleniyordu, %d", input, await, d.Mode)
 		}
 	}
-	// Eski anlamlı tuşlar sessizce başka iş yapmaz; yeni tuşu söyler ve komut beklemeye devam eder
-	for _, old := range []string{"f6", "f7", "f8"} {
-		d := NewDebugger("t.tr", "x\n", false)
-		d.Mode = -1
-		var b strings.Builder
-		r, w, _ := os.Pipe()
-		os.Stdout = w
-		d.Reader = bufio.NewReader(strings.NewReader(old + "\ndevam\n"))
-		d.promptCLI(interp.New(), 1, interp.NewEnvironment(nil))
-		w.Close()
-		data, _ := io.ReadAll(r)
-		os.Stdout = empty
-		b.Write(data)
-		if d.Mode != StepContinue || !strings.Contains(b.String(), "F5") || !strings.Contains(b.String(), "F10") {
-			t.Errorf("%q: yeni tuşları gösteren uyarı bekleniyordu: %q", old, b.String())
-		}
-	}
 }
 
 // Komutlar ad kodudur: her yazım dilinin adı çalışır (yukarıda); kısaltmalar, Türkçe
-// karaktersiz biçimler ve eski adlar çalışmaz, asıl komutu söyleyen bir ipucu verir ve komut
+// karaktersiz biçimler ve başka hata ayıklayıcıların kısaltmaları çalışmaz, asıl komutu söyleyen bir ipucu verir ve komut
 // beklemeye devam edilir.
 func TestCommandsSingleSpelling(t *testing.T) {
 	oldOutput := os.Stdout
 	defer func() { os.Stdout = oldOutput }()
 	for old, actual := range map[string]string{"adim": "adım", "s": "adım", "gec": "geç", "o": "dön",
-		"c": "devam", "kalem": "değiştir", "goto": "zıpla", "b": "kesme", "w": "izle",
+		"c": "devam", "goto": "zıpla", "b": "kesme", "w": "izle",
 		"yigin": "yığın", "bt": "yığın", "p": "hesapla", "h": "yardım", "q": "çıkış", "cikis": "çıkış"} {
 		d := NewDebugger("t.tr", "x\n", false)
 		d.Mode = -1

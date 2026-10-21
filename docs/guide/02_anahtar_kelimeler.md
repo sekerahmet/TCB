@@ -23,7 +23,7 @@
 AdamW 'ogrenme_orani' adında bir parametre almaz. Bunu mu demek istediniz: 'öğrenme_oranı'?
 ```
 
-Eş anlamlı ikinci adlar da kaldırıldı ve artık sıradan adlardır: `işlev`, `döndür`, `kır`, `sınıf`, `aktar ... as` yerine `fonksiyon`, `sonuç`, `çık`, `yapı`, `olarak`; `matris(...)` yerine `tensör([[...]])`, `öğrenme_hızı:` yerine `öğrenme_oranı:` yazın. Eski adla yazılan kodda hata mesajı doğrusunu önerir (`'işlev' TR'de anahtar kelime değil; 'fonksiyon' yazmak mı istediniz?`); ipucu hiçbir zaman Türkçe harfsiz bir biçim önermez (`islev` → `fonksiyon`). Kaldırılanların tam listesi `docs/spec/02_sozcuk_yapisi.md` 2.9a'dadır.
+Her işin tek adı vardır; eş anlamlı ikinci bir ad sıradan bir addır. Başka dillerden alışılmış adlar (`int`, `str`, `lr`, `aktar ... as`) yazılınca hata mesajı doğrusunu önerir (`'int' TR'de bir tip adı değil; 'Tam' yazmak mı istediniz?`); ipucu hiçbir zaman Türkçe harfsiz bir biçim önermez (`yazdir` → `yazdır`). Ayrıntı `docs/spec/02_sozcuk_yapisi.md` 2.9a'dadır.
 
 ## Yerleşik ad gölgeleme uyarısı
 

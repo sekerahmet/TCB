@@ -64,11 +64,6 @@ func TestGrammarSingleSpelling(t *testing.T) {
 		if a := turkish.ASCII(g.Name); a != g.Name && words[a] && !inOtherLanguage[a] {
 			t.Errorf("%s'in ASCII yazımı %q listelerde olmamalı", k, a)
 		}
-		for _, e := range g.Old {
-			if words[e] && !inOtherLanguage[e] {
-				t.Errorf("%s'in eski adı %q listelerde olmamalı", k, e)
-			}
-		}
 	}
 	if strings.Contains(string(data), "number-sign") {
 		t.Error("'#' yorum değildir; renklendirilmemeli")
