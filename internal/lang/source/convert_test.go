@@ -340,3 +340,35 @@ func TestEncodeKeepsLineStructure(t *testing.T) {
 		}
 	}
 }
+
+// Başka bir yazım dilinde yazılıp kodlanmış bir dosyada, etkin dilin bir yerleşiğiyle
+// aynı adlı bir kullanıcı değişkeni ve o yerleşiğin çağrısı aynı kapsamda bulunduğunda
+// (ör. İngilizcede 'var yazdır = 2; print(yazdır)' → 'A030 yazdır = 2; G100(yazdır)'),
+// etkin dilde Decode(coded, codes.Active()) '$yazdır' kaçışını geri kodlayamadığı için
+// ErrLossy ile başarısız olmamalıdır.
+func TestAuditDecodeEscapedBuiltinCollisionInActiveLanguage(t *testing.T) {
+	coded := Header + "\nA030 yazdır = 2\nG100(yazdır)\n"
+	got, err := Decode(coded, codes.Active())
+	if err != nil {
+		t.Fatalf("etkin dilde çakışan kullanıcı değişkenli kodlu kaynak çözülemedi: %v", err)
+	}
+	want := "değişken $yazdır = 2\nyazdır($yazdır)\n"
+	if got != want {
+		t.Fatalf("çözülen metin:\n%s\nbeklenen:\n%s", got, want)
+	}
+}
+
+// Adı yazılmamış 'yakala { ... }' bloğu içinde kullanıcı 'değişken hata = 10' tanımlayarak
+// örtük 'hata' adını gölgelediğinde, 'hata' okuması örtük A103 koduyla değil kullanıcı
+// değişkeni olarak kodlanmalıdır.
+func TestAuditEncodeCatchBlockShadowedErrorVar(t *testing.T) {
+	tr := "dene {\n    fırlat \"x\"\n} yakala {\n    değişken hata = 10\n    yazdır(hata)\n}\n"
+	coded, err := Encode(tr)
+	if err != nil {
+		t.Fatalf("kodlanamadı: %v", err)
+	}
+	if strings.Contains(coded, "A103") {
+		t.Fatalf("gölgelenmiş 'hata' değişkeni örtük A103 koduyla kodlandı:\n%s", coded)
+	}
+}
+
