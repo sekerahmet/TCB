@@ -17,7 +17,8 @@ func GoToTRValue(raw interface{}) Value {
 	case int64:
 		return NewInt(v)
 	case float64:
-		if v == float64(int64(v)) {
+		// -2^63 ≤ v < 2^63: aralık dışında int64 dönüşümü mimariye göre doygunlaşır ya da sarar.
+		if v >= -0x1p63 && v < 0x1p63 && v == float64(int64(v)) {
 			return NewInt(int64(v))
 		}
 		return &FloatVal{Val: v}

@@ -514,6 +514,27 @@ type reBudget struct {
 	ceil int64
 }
 
+// charge n adımı bütçeden düşer (nil bütçe: sayılmaz); aşılırsa work adıyla *StepLimitError ile
+// panikler. Düzenli ifade dışı işler (zincirlerin çıktı büyütmesi, model arama adımları)
+// aynı bütçeyi paylaşır; böylece hiçbir zincir ya da model girdiyle orantısız iş yapamaz.
+func (b *reBudget) charge(n int64, work messages.Code) {
+	if b == nil || n <= 0 {
+		return
+	}
+	b.rest -= n
+	if b.rest < 0 {
+		panic(&StepLimitError{Work: work, Budget: b.ceil})
+	}
+}
+
+// chargeGrowth bir adımın çıktısının girdisinden fazla baytını adım olarak düşer (küçülme ya da
+// aynı boy ücretsizdir): bayt başına bir adım.
+func (b *reBudget) chargeGrowth(in, out int) {
+	if out > in {
+		b.charge(int64(out-in), messages.H5290)
+	}
+}
+
 func reSatAdd(a, b int64) int64 {
 	if b > 0 && a > (1<<62)-b {
 		return 1 << 62

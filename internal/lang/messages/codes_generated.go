@@ -285,6 +285,7 @@ const (
 	H2518 Code = 2518 // '{receiver}.{member}()' TR'de yok; '{fn}({receiver})' yazın
 	H2519 Code = 2519 // {error}; {defer} içinde de hata: {deferred}
 	H2520 Code = 2520 // Koddaki kesme noktası ({keyword})
+	H2521 Code = 2521 // JSON tam sayısı {token|q} Tam aralığının (64 bit işaretli) dışında; ondalık olarak yazın (ör. 1e30)
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}
@@ -574,6 +575,7 @@ const (
 	H5090 Code = 5090 // veri: {path}: geçersiz .npy dosyası: {reason}
 	H5091 Code = 5091 // veri: geçersiz .npy dosyası: {reason}
 	H5092 Code = 5092 // geçersiz
+	H5093 Code = 5093 // veri: meta.json'daki {shard} parçasının token sayısı ({tokens}) dosya boyutuna ({bytes} bayt) sığmıyor (her token en az 1 bayttır); meta.json bozuk ya da başka bir veriye ait
 	H5200 Code = 5200 // {component} tanımı çözümlenemedi: {error}
 	H5201 Code = 5201 // {component} tanımında "type" alanı yok
 	H5202 Code = 5202 // desteklenmeyen {component} türü {kind|q} (desteklenenler: {supported})
@@ -663,6 +665,9 @@ const (
 	H5286 Code = 5286 // çözücü
 	H5287 Code = 5287 // çözücü (decoder)
 	H5288 Code = 5288 // iç içe sınırsız niceleyici (ör. "(a+)+" ya da "(\w+\s*)*") üstel geri izlemeye yol açabilir
+	H5289 Code = 5289 // {work} adım sınırını ({budget}) aştı: parçalayıcı yapılandırması çıktıyı ya da işi girdiyle orantısız büyütüyor; işlem durduruldu
+	H5290 Code = 5290 // çıktı uzunluğu (normalleştirici, ön bölücü ve çözücü adımlarının büyütmesi)
+	H5291 Code = 5291 // model arama adımları (WordPiece, Unigram)
 	H5500 Code = 5500 // {shards} veri dosyası, {tokens} parça
 	H5501 Code = 5501 // {type}({summary}, önbellek {quota})
 	H5502 Code = 5502 // Veri kümesi
@@ -1319,6 +1324,7 @@ const (
 	H8105 Code = 8105 // İzleme noktalarını değiştirmek için önce programı duraklatın
 	H8106 Code = 8106 // Program şu an çalışıyor; değerleri görmek için duraklatın
 	H8107 Code = 8107 // Desteklenmeyen istek: {command}
+	H8108 Code = 8108 // DAP başlık satırı çok uzun (en fazla {limit} bayt)
 	H8110 Code = 8110 // Yalnızca hata ayıklanan dosyada kesme noktası konabilir
 	H8111 Code = 8111 // Kesme noktası koşulu hatalı (satır {line}): {error}
 	H8112 Code = 8112 // tek bir ifade bekleniyordu: {expr}
@@ -1331,6 +1337,7 @@ const (
 	H8124 Code = 8124 // {file} içinde hata var; ayrıntılar hata ayıklama konsolunda
 	H8125 Code = 8125 // Programın başında durdu
 	H8126 Code = 8126 // Çalışma Zamanı Hatası:
+	H8127 Code = 8127 // Bu oturumda program zaten başlatıldı; yeniden başlatmak için hata ayıklamayı durdurup yeniden başlatın
 	H8130 Code = 8130 // Geçersiz hedef satır
 	H8131 Code = 8131 // Satır {line}
 	H8132 Code = 8132 // Satır {line} şu an çalışan bloğun dışında; yalnızca bulunulan bloğun ({a}, {b} ya da {c} gövdesinin) satırlarına zıplanabilir

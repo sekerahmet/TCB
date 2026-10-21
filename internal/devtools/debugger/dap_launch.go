@@ -32,6 +32,10 @@ func (s *dapServer) launch(msg *dapMessage) {
 		s.respondErr(msg, messages.Text(messages.H8120))
 		return
 	}
+	if s.sessionExists() {
+		s.respondErr(msg, messages.Text(messages.H8127))
+		return
+	}
 	// Çalışma klasörü önce: göreli program yolu onun içinde çözülür (düzenleyicinin 'cwd'si).
 	if a.Cwd != "" {
 		_ = os.Chdir(a.Cwd)
@@ -79,14 +83,25 @@ func (s *dapServer) launch(msg *dapMessage) {
 			dbg.pauseKind = "entry"
 		}
 		machine.Debugger = dbg
+		s.mu.Lock()
 		s.dbg = dbg
+		s.mu.Unlock()
 	}
+	s.mu.Lock()
 	s.machine = machine
 	s.prog = prog
 	s.programPath = path
 	s.viewURI = a.ViewURI
+	s.mu.Unlock()
 	s.respond(msg, nil)
 }
+// sessionExists oturumun programı zaten kurulmuş ya da başlamış mı: ikinci launch reddedilir.
+func (s *dapServer) sessionExists() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.started || s.machine != nil
+}
+
 func (s *dapServer) start() {
 	s.mu.Lock()
 	if s.started || s.machine == nil {

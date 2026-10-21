@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -83,6 +84,11 @@ func jsonValue(dec *json.Decoder, depth int) (Value, error) {
 		f, err := t.Float64()
 		if err != nil {
 			return nil, messages.New(messages.H2503, t)
+		}
+		if !strings.ContainsAny(string(t), ".eE") {
+			// Ondalık ya da üslü olmayan, Tam'a sığmayan sayı yuvarlanıp sessizce başka bir
+			// Tam'a (MinInt64) dönmesin: açık hata (Tam taşmasıyla tutarlı).
+			return nil, messages.New(messages.H2521, t)
 		}
 		// Önceki davranışla uyumlu: tam sayı değerli ondalıklar Tam olur (GoToTRValue gibi)
 		return GoToTRValue(f), nil

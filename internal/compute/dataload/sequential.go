@@ -58,7 +58,7 @@ func (k *Dataset) Sequential(s SequentialOptions) (*SequentialReader, error) {
 	}
 	so := &SequentialReader{k: k, s: s, row: int64(s.T) + 1}
 	if b := s.Start; b != nil {
-		if b.Pos < 0 || b.Pos > len(k.shards) || b.Window < 0 || (b.Pos == len(k.shards) && b.Window != 0) {
+		if b.Pos < 0 || b.Pos > len(k.shards) || b.Window < 0 || (b.Pos < len(k.shards) && b.Window > k.shards[b.Pos].Token) || (b.Pos == len(k.shards) && b.Window != 0) {
 			return nil, messages.New(messages.H5079, fmt.Sprintf("%+v", *b), len(k.shards))
 		}
 		so.order, so.firstStart = b.Pos, b.Window
@@ -106,7 +106,7 @@ func (so *SequentialReader) Fill(ctx context.Context, ti *Batch) error {
 			so.shard, so.begin = p, so.firstStart
 			so.firstStart = 0
 		}
-		if so.begin+so.row > so.shard.Length() {
+		if so.begin > so.shard.Length()-so.row { // so.begin + so.row taşabilirdi
 			err := so.shard.Close()
 			so.shard = nil
 			so.order++

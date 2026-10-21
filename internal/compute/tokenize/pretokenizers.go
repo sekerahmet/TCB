@@ -84,7 +84,20 @@ func isPunct(r rune) bool {
 type PreTokenizerSequence []PreTokenizer
 
 func (s PreTokenizerSequence) PreTokenize(dst, pieces []Piece) []Piece {
+	// Parçalar bir kodlama çağrısından gelmiyorsa (bütçesiz) zincirin tamamı için tek bütçe açılır:
+	// adımların çıktı büyütmesi toplamda sınırlanır.
+	var shared *reBudget
 	for _, p := range pieces {
+		if p.budget == nil {
+			if shared == nil {
+				n := 0
+				for _, q := range pieces {
+					n += len(q.Text)
+				}
+				shared = newBudget(n)
+			}
+			p.budget = shared
+		}
 		s.stream(p, func(x Piece) { dst = append(dst, x) })
 	}
 	return dst
@@ -109,12 +122,23 @@ type streamPreTokenizer interface {
 
 // preTokenizeStream o'yu p'ye uygular ve her sonuç parçası için f'yi çağırır.
 func preTokenizeStream(o PreTokenizer, p Piece, f func(Piece)) {
+	// Adımın ürettiği parçaların toplam baytı girdisini aştıkça aşan kısım bütçeden düşülür
+	// (zincirdeki her adım için ayrı: ardışık büyütmeler üstel değil toplamda sınırlıdır).
+	in, sum, grown := len(p.Text), 0, 0
+	count := func(x Piece) {
+		sum += len(x.Text)
+		if sum > in && sum-in > grown {
+			p.budget.charge(int64(sum-in-grown), messages.H5290)
+			grown = sum - in
+		}
+		f(x)
+	}
 	if a, ok := o.(streamPreTokenizer); ok {
-		a.stream(p, f)
+		a.stream(p, count)
 		return
 	}
 	for _, x := range o.PreTokenize(nil, []Piece{p}) {
-		f(x)
+		count(x)
 	}
 }
 

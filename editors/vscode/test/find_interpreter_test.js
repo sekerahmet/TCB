@@ -75,4 +75,13 @@ test("Unix'te /bin ve /usr/bin'deki 'tr' (karakter çevirme aracı) atlanır", (
     assert.deepStrictEqual(r, { filePath: '/home/a/go/bin/tr' });
 });
 
+// Kural: PATH'teki göreli girdiler ('.', 'bin') atlanır, yalnızca mutlak yollar aranır (SECURITY.md:
+// güvenilmeyen klasörde yalnızca PATH ve ayar kullanılır). Neden: göreli girdi çalışma klasörüne
+// göre çözülür ve çalıştırma, açılan dosyanın (indirilmiş) klasöründe olur.
+test('PATH içindeki göreli girdiler atlanır, yalnızca mutlak yol bulunur', () => {
+    const r = findInterpreter(g(['tr.exe', 'bin\\tr.exe', 'C:\\araclar\\tr.exe'], { folder: undefined, trusted: false, pathValue: '.;bin;C:\\araclar' }));
+    assert.deepStrictEqual(r, { filePath: 'C:\\araclar\\tr.exe' });
+    assert.strictEqual(findInterpreter(g(['tr.exe', 'bin\\tr.exe'], { folder: undefined, trusted: false, pathValue: '.;bin' })), undefined);
+});
+
 console.log(`find_interpreter_test: ${passed} test geçti`);

@@ -2,9 +2,13 @@ package dataload
 
 import (
 	"context"
+	"encoding/json"
+	"math"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // TestRealDataSmoke, gerçek veri köküne karşı küçük bir duman testidir.
@@ -100,5 +104,42 @@ func TestRealDataSmoke(t *testing.T) {
 	checkToken("doğrulama", ti.Data)
 	if ti.Row(1)[0] != ti.Row(0)[32] {
 		t.Error("sıralı pencereler T adımıyla ardışık değil")
+	}
+}
+
+// Kural: bir parçanın token sayısı (meta.json'dan ya da başlıktan) dosya boyutunu aşamaz;
+// token toplamı int64'ü taşmaz ve TotalTokens negatif olmaz (SECURITY.md: bozuk veri hata verir).
+// Sıralı okuyucunun başlangıç penceresi parçanın dışında olamaz; okuma konumu toplamı taşmaz.
+// Neden: meta.json'daki iki büyük sayı toplamı sarar, MaxInt64 pencere de so.begin+so.row'u
+// negatife sarıp parça sonu denetimini atlatırdı.
+func TestDatasetRejectsInflatedTokenCountsAndOutOfShardStart(t *testing.T) {
+	root := t.TempDir()
+	tr := filepath.Join(root, "train")
+	if err := os.Mkdir(tr, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeU16(t, tr, "a.npy", fakeU16(300, 1))
+	writeU16(t, tr, "b.npy", fakeU16(500, 2))
+	meta := map[string]any{"parts": map[string]any{
+		"a.npy": map[string]any{"tokens": int64(math.MaxInt64 - 10)},
+		"b.npy": map[string]any{"tokens": int64(500)},
+	}}
+	b, _ := json.Marshal(meta)
+	if err := os.WriteFile(filepath.Join(root, "meta.json"), b, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if k, err := OpenDataset(tr, DatasetOptions{}); err == nil || !messages.Has(err, messages.H5093) {
+		t.Fatalf("şişirilmiş token sayısı reddedilmedi: k=%v err=%v", k, err)
+	}
+
+	ds, err := OpenDataset(encodedDataset(t, 100), DatasetOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, w := range []int64{math.MaxInt64, 101} {
+		if so, err := ds.Sequential(SequentialOptions{B: 1, T: 4, Start: &State{Pos: 0, Window: w}}); err == nil {
+			so.Close()
+			t.Errorf("Start.Window=%d parçanın dışında ama kabul edildi", w)
+		}
 	}
 }

@@ -159,17 +159,30 @@ func OpenDataset(dir string, s DatasetOptions) (*Dataset, error) {
 				pb.Token = mp.Tokens
 			}
 		}
-		if pb.Token < 0 {
-			n, err := headerLen(y)
-			if err != nil {
-				return nil, err
-			}
-			pb.Token = n
+		if err := resolveShardTokens(&pb); err != nil {
+			return nil, err
 		}
 		k.shards = append(k.shards, pb)
 		k.total += pb.Token
 	}
 	return k, nil
+}
+
+// resolveShardTokens meta.json'da olmayan token sayısını başlıktan okur ve sayıyı dosya boyuyla
+// denetler. Her token en az 1 bayttır: dosyadan çok token bildiren meta.json (ya da başlık)
+// bozuktur; bu sınır aynı zamanda token toplamının int64'ü taşmasını önler.
+func resolveShardTokens(pb *ShardInfo) error {
+	if pb.Token < 0 {
+		n, err := headerLen(pb.Path)
+		if err != nil {
+			return err
+		}
+		pb.Token = n
+	}
+	if pb.Token > pb.Bytes && pb.Bytes > 0 {
+		return messages.New(messages.H5093, pb.Name, pb.Token, pb.Bytes)
+	}
+	return nil
 }
 
 func headerLen(path string) (int64, error) {

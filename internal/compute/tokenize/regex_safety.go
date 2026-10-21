@@ -77,9 +77,15 @@ type StepLimitError struct {
 	Pos     int    // sınırın aşıldığı aramanın başladığı bayt konumu
 	Budget  int64  // aşılan adım bütçesi
 	Memory  bool   // aşılan, geri izleme belleği sınırıysa (GeriIzlemeSiniri) doğru
+	// Work düzenli ifade dışı bir iş aşıldıysa onun adıdır (ileti kodu: çıktı büyümesi, model
+	// arama adımı); Pattern ve Pos bu durumda boştur.
+	Work messages.Code
 }
 
 func (e *StepLimitError) Error() string {
+	if e.Work != 0 {
+		return messages.Text(messages.H5289, messages.Text(e.Work), e.Budget)
+	}
 	if e.Memory {
 		return messages.Text(messages.H5269, reShorten(e.Pattern), e.Pos, CurrentRegexSettings().BacktrackLimit)
 	}
