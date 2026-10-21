@@ -10,7 +10,7 @@ bağımsız tanımlar (tür, imza, dönüş tipi) tanım dosyasındadır.
 aileyi, yüzler basamağı grubu gösterir. Bir adı değiştirmek yalnızca dil dosyasındaki satırı
 değiştirir. Kaldırılan ya da taşınan bir kodun numarası bir daha kullanılmaz. Denetim: `TestIsCodeForm`, `TestMovedCodes`, `TestTRSortedOnePerLine`.
 
-**`tr dizin` alt komutları kendi ad alanındadır.** K016–K019 (`tanım`, `kullananlar`, `sınayanlar`, `etki`) komut numaralamasındadır ama `NamespaceSubcommand` ad alanındadır: `tr tanım` bir komut değildir, `tr dizin tanım` çalışır; her gömülü dilin adı alt komut olarak kabul edilir (`FindSubcommand`). Denetim: `TestIndexSubcommandsAreNotCommands`.
+**`tr dizin` alt komutları kendi ad alanındadır.** K016–K020 (`tanım`, `kullananlar`, `sınayanlar`, `etki`, `yeniden_adlandır`) komut numaralamasındadır ama `NamespaceSubcommand` ad alanındadır: `tr tanım` bir komut değildir, `tr dizin tanım` çalışır; her gömülü dilin adı alt komut olarak kabul edilir (`FindSubcommand`). Denetim: `TestIndexSubcommandsAreNotCommands`.
 
 **Her işin tek adı vardır.** Bir dilde eş anlamlı ya da ikinci bir yazım kabul edilmez; eski ve
 yabancı adlar yalnızca hata mesajında doğru adı önermek için tutulur. Türkçe karakterli adların

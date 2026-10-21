@@ -13,16 +13,17 @@ import (
 var kindLabels = map[Kind]messages.Code{
 	KindFunction: messages.H8800, KindStruct: messages.H8801, KindMethod: messages.H8802, KindField: messages.H8803,
 	KindConstant: messages.H8804, KindVariable: messages.H8805, KindModule: messages.H8806, KindTest: messages.H8807,
-	KindBuiltin: messages.H8808,
+	KindBuiltin: messages.H8808, KindParameter: messages.H8860, KindOption: messages.H8861,
 }
 
 var roleLabels = map[Role]messages.Code{
 	RoleDefinition: messages.H8810, RoleCall: messages.H8241, RoleRead: messages.H8812,
 	RoleWrite: messages.H8813, RoleImport: messages.H8814, RoleTest: messages.H8807,
+	RoleArgument: messages.H8858, RoleOptionKey: messages.H8859,
 }
 
 // roleOrder rolleler listelenirken kullanılan sıradır.
-var roleOrder = []Role{RoleDefinition, RoleCall, RoleRead, RoleWrite, RoleImport, RoleTest}
+var roleOrder = []Role{RoleDefinition, RoleCall, RoleRead, RoleWrite, RoleImport, RoleTest, RoleArgument, RoleOptionKey}
 
 // KindLabel bir düğüm türünün okuyanın dilindeki adıdır.
 func KindLabel(k Kind) string {
@@ -172,4 +173,102 @@ func writeUses(b *strings.Builder, heading messages.Code, uses []Use, counts *Co
 	if truncated {
 		fmt.Fprintf(b, "    ... %s\n", messages.Text(messages.H8791, optionName(codes.K107), optionName(codes.K108)))
 	}
+}
+
+// reasonMessages reddetme nedenlerinin iletileridir.
+var reasonMessages = map[string]messages.Code{
+	ReasonBuiltin: messages.H8841, ReasonModule: messages.H8842, ReasonNoSymbol: messages.H8843,
+}
+
+// matchLabels olası yerlerin eşleşme biçimlerinin iletileridir; whereLabels bulundukları yerin.
+var matchLabels = map[string]messages.Code{
+	MatchMemberGuess: messages.H8847, MatchShadowed: messages.H8848, MatchExact: messages.H8849,
+	MatchSuffixed: messages.H8850, MatchCompound: messages.H8851, MatchDerived: messages.H8865,
+}
+
+var whereLabels = map[string]messages.Code{
+	WhereCode: messages.H8852, WhereComment: messages.H8853, WhereString: messages.H8854,
+	WhereDoc: messages.H8855, WhereData: messages.H8856,
+}
+
+// RenameText yeniden adlandırma etkisini insan için düz metne çevirir: hedefler, çakışmalar, kesin
+// ve olası yerler (her yer dosya:satır:sütun, rol ya da eşleşme, satırın metni).
+func RenameText(r *Result) string {
+	var b strings.Builder
+	switch r.Status {
+	case StatusNotFound:
+		fmt.Fprintln(&b, messages.Text(messages.H8782, r.Query.Text))
+		for _, n := range r.DidYouMean {
+			fmt.Fprintf(&b, "  %s\n", Short(n))
+		}
+		return b.String()
+	case StatusRejected:
+		fmt.Fprintln(&b, rejectionText(r))
+		return b.String()
+	}
+	fmt.Fprintln(&b, messages.Text(messages.H8835, r.Query.Text, r.NewName))
+	fmt.Fprintln(&b, messages.Text(messages.H8836, len(r.Targets)))
+	for _, n := range r.Targets {
+		fmt.Fprintf(&b, "  %s\n", Short(n))
+	}
+	for _, c := range r.Conflicts {
+		fmt.Fprintln(&b, messages.Text(messages.H8839, r.NewName, Short(c.With)))
+	}
+	fmt.Fprintln(&b, messages.Text(messages.H8837, len(r.Certain)))
+	for _, c := range r.Certain {
+		writeChange(&b, c)
+	}
+	fmt.Fprintln(&b, messages.Text(messages.H8838, len(r.Likely)))
+	for _, c := range r.Likely {
+		writeChange(&b, c)
+	}
+	if r.SkippedWords > 0 {
+		fmt.Fprintln(&b, messages.Text(messages.H8840, r.SkippedWords))
+	}
+	if r.Truncated {
+		fmt.Fprintf(&b, "... %s\n", messages.Text(messages.H8791, optionName(codes.K107), optionName(codes.K108)))
+	}
+	return b.String()
+}
+
+// rejectionText reddedilen yeniden adlandırmanın nedenidir.
+func rejectionText(r *Result) string {
+	switch r.Reason {
+	case ReasonInvalidName:
+		return messages.Text(messages.H8844, r.NewName)
+	case ReasonLanguageWord:
+		return messages.Text(messages.H8845, r.NewName)
+	case ReasonSameName:
+		return messages.Text(messages.H8846, r.NewName)
+	}
+	if c, ok := reasonMessages[r.Reason]; ok {
+		return messages.Text(c)
+	}
+	return r.Reason
+}
+
+func writeChange(b *strings.Builder, c Change) {
+	var what string
+	if c.Match == "" {
+		what = RoleLabel(c.Role)
+	} else {
+		what = messages.Text(matchLabels[c.Match])
+	}
+	line := fmt.Sprintf("    %-22s %s", c.Pos, what)
+	if c.Basis == BasisLocalType {
+		line += "  " + messages.Text(messages.H8862)
+	}
+	if c.Where != "" && c.Match != MatchMemberGuess && c.Match != MatchShadowed {
+		line += "  " + messages.Text(whereLabels[c.Where])
+	}
+	if c.Check != "" {
+		line += "  " + messages.Text(messages.H8857)
+	}
+	if c.Word != "" && c.Match != MatchExact {
+		line += fmt.Sprintf("  %s → %s", c.Word, c.Replacement)
+	}
+	if c.Context != "" {
+		line += "  | " + c.Context
+	}
+	b.WriteString(line + "\n")
 }

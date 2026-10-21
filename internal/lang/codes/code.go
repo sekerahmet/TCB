@@ -112,7 +112,7 @@ const (
 	NamespaceCommand                     // commands of tr and the shell (K0xx, K2xx)
 	NamespaceOption                      // command-line options, written --name (K1xx): 'kontrol' there is not 'tr kontrol'
 	NamespaceDebugger                    // terminal debugger commands (K3xx): its 'izle' is not 'tr izle'
-	NamespaceSubcommand                  // subcommands of 'tr dizin' (K016-K019): 'tr tanım' is not a command
+	NamespaceSubcommand                  // subcommands of 'tr dizin' (K016-K020): 'tr tanım' is not a command
 	namespaceCount
 )
 
@@ -168,11 +168,11 @@ func (k Code) Namespace() Namespace {
 	return NamespaceNone
 }
 
-// IsIndexSubcommand reports whether the code is a subcommand of 'tr dizin' (K015): K016 to K019.
+// IsIndexSubcommand reports whether the code is a subcommand of 'tr dizin' (K015): K016 to K020.
 // They live in the command numbering but in their own namespace, so a program or shell script
 // cannot call them as top-level commands ('tr tanım' is an error, 'tr dizin tanım' works).
 func (k Code) IsIndexSubcommand() bool {
-	return k.Letter() == 'K' && k.Group() == 0 && k.Number() >= 16 && k.Number() <= 19
+	return k.Letter() == 'K' && k.Group() == 0 && k.Number() >= 16 && k.Number() <= 20
 }
 
 // IsKeyword reports whether the code is a keyword reserved in the lexer (A0xx).

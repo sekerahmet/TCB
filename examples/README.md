@@ -39,6 +39,7 @@ tr examples/en/01_hello.tr          # aynı program, İngilizce yazım
 | `kullananlar` | Bir ada başvuranlar: çağrı, okuma, yazma, aktarma, test | `tr dizin kullananlar Doğrusal` |
 | `sınayanlar` | Bir adı sınayan test blokları (doğrudan, sonra çağrı zinciriyle dolaylı) | `tr dizin sınayanlar Doğrusal` |
 | `etki` | Bir ad ya da dosya değişirse etkilenenler | `tr dizin etki lib/katman.tr` |
+| `yeniden_adlandır` | Bir ad değişirse değişecek yerler: kesin ve olası (hiçbir dosyayı değiştirmez) | `tr dizin yeniden_adlandır baş bakış_sayısı` |
 
 Seçenekler (komutlardan sonra, iki tireyle; adın sözcükleri tireyle ayrılır):
 
@@ -56,6 +57,7 @@ Seçenekler (komutlardan sonra, iki tireyle; adın sözcükleri tireyle ayrılı
 | `--dizin-yok` | `dizin` sorgusunda önbellekteki dizini olduğu gibi kullanır (tazelemez) | `tr dizin tanım Doğrusal --dizin-yok` |
 | `--durum` | `dizin` komutunda dizin önbelleğinin durumunu gösterir | `tr dizin --durum` |
 | `--temizle` | `dizin` komutunda dizin önbelleğini siler | `tr dizin --temizle` |
+| `--metin-yok` | `yeniden_adlandır` sorgusunda belge, yorum ve ileti metni taramasını kapatır | `tr dizin yeniden_adlandır baş bakış --metin-yok` |
 | `--yardım` | Programın `komut_satırı` ile tanımlanan seçeneklerinin yardımı | `tr examples/tr/39_veri_ile_egitim.tr --yardım` |
 
 Etkileşimli kabuk `tr` ile açılır (dosya verilmeden); kabuktan `çıkış` ile çıkılır.

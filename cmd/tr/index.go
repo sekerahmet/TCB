@@ -31,6 +31,9 @@ type indexOptions struct {
 	noIndex bool   // K111 (--dizin-yok)
 	status  bool   // K112 (--durum)
 	clear   bool   // K113 (--temizle)
+	noText  bool   // K114 (--metin-yok)
+
+	limitSet bool // --sınır açıkça verildi
 }
 
 // indexValueOptions değer isteyen seçeneklerdir.
@@ -60,7 +63,7 @@ func indexCommand(args []string) {
 		return
 	}
 	idx, _ := loadIndex(root, opts)
-	runIndexQuery(codeindex.NewReader(idx), sub, names[0], opts)
+	runIndexQuery(codeindex.NewReader(idx), sub, names, root, opts)
 }
 
 // indexBuildOptions dizinin kurulum seçenekleridir (gömülü kitaplık dahil).
@@ -84,7 +87,7 @@ func loadIndex(root string, o indexOptions) (*codeindex.Index, codeindex.Stats) 
 // subcommandNames etkin dildeki alt komut adlarıdır (hata iletisi için).
 func subcommandNames() string {
 	var names []string
-	for _, k := range []codes.Code{codes.K016, codes.K017, codes.K018, codes.K019} {
+	for _, k := range []codes.Code{codes.K016, codes.K017, codes.K018, codes.K019, codes.K020} {
 		names = append(names, codes.DisplayName(k))
 	}
 	return strings.Join(names, ", ")
@@ -95,8 +98,11 @@ func parseIndexArguments(sub codes.Code, args []string) (indexOptions, []string)
 	o := indexOptions{limit: defaultIndexLimit}
 	var names []string
 	allowed := []codes.Code{codes.K103, codes.K107, codes.K108, codes.K109, codes.K110, codes.K111}
-	if sub == codes.None {
+	switch sub {
+	case codes.None:
 		allowed = []codes.Code{codes.K109, codes.K112, codes.K113}
+	case codes.K020:
+		allowed = []codes.Code{codes.K103, codes.K107, codes.K108, codes.K109, codes.K111, codes.K114}
 	}
 	command := codes.DisplayName(codes.K015)
 	for len(args) > 0 {
@@ -126,7 +132,10 @@ func parseIndexArguments(sub codes.Code, args []string) (indexOptions, []string)
 	if o.all {
 		o.limit = 0
 	}
-	if sub != codes.None && len(names) != 1 {
+	switch {
+	case sub == codes.K020 && len(names) != 2:
+		exitWithError(messages.Text(messages.H8864, command, codes.DisplayName(sub), "head view"))
+	case sub != codes.None && sub != codes.K020 && len(names) != 1:
 		exitWithError(messages.Text(messages.H8820, command, codes.DisplayName(sub), "Muon"))
 	}
 	return o, names
@@ -141,7 +150,7 @@ func applyIndexOption(o *indexOptions, k codes.Code, value string) {
 		if err != nil || n < 0 {
 			exitWithError(messages.Text(messages.H8822, optionName(k), value))
 		}
-		o.limit = n
+		o.limit, o.limitSet = n, true
 	case codes.K108:
 		o.all = true
 	case codes.K109:
@@ -154,6 +163,8 @@ func applyIndexOption(o *indexOptions, k codes.Code, value string) {
 		o.status = true
 	case codes.K113:
 		o.clear = true
+	case codes.K114:
+		o.noText = true
 	}
 }
 
@@ -213,7 +224,8 @@ func indexOverview(root string, o indexOptions) {
 
 // runIndexQuery bir alt komutu çalıştırır ve sonucu yazar; çıkış kodu sonucun durumudur
 // (0 tamam, 3 belirsiz ad, 4 bulunamadı).
-func runIndexQuery(r *codeindex.Reader, sub codes.Code, query string, o indexOptions) {
+func runIndexQuery(r *codeindex.Reader, sub codes.Code, names []string, root string, o indexOptions) {
+	query := names[0]
 	qo := codeindex.QueryOptions{Limit: o.limit, Kind: o.kind}
 	var res *codeindex.Result
 	switch sub {
@@ -225,6 +237,12 @@ func runIndexQuery(r *codeindex.Reader, sub codes.Code, query string, o indexOpt
 		res = r.TestedBy(query, qo)
 	case codes.K019:
 		res = r.Impact(query, qo)
+	case codes.K020:
+		ro := codeindex.RenameOptions{Root: root, NoText: o.noText}
+		if o.limitSet {
+			ro.Limit = o.limit
+		}
+		res = r.RenameImpact(query, names[1], ro)
 	}
 	if o.json {
 		data, err := codeindex.EncodeJSON(res)
@@ -233,7 +251,11 @@ func runIndexQuery(r *codeindex.Reader, sub codes.Code, query string, o indexOpt
 		}
 		os.Stdout.Write(data)
 	} else {
-		fmt.Print(codeindex.Text(res))
+		if res.Command == codeindex.CommandRename {
+			fmt.Print(codeindex.RenameText(res))
+		} else {
+			fmt.Print(codeindex.Text(res))
+		}
 	}
 	if code := codeindex.ExitCode(res.Status); code != codeindex.ExitOK {
 		os.Exit(code)
