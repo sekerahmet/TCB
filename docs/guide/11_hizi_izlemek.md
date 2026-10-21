@@ -18,7 +18,7 @@ Program dosyasından sonraki argümanlar her zamanki gibi programa gider (`komut
 
 **Sıcak satırlar.** `tr izle` ve `tr profil` programınızı milisaniyede bir örnekler: o an hangi satır çalışıyor ve bir tensör işleminin içinde mi. "Öz süre" o satırın kendisinde geçen zamandır (çağırdığı fonksiyonların satırları ayrıca sayılır). `tensörde` sütunu satırın zamanının ne kadarının tensör işlemlerinde geçtiğidir: yüksekse satır hesap yapıyordur, düşükse zaman TR kodunda, dosya okumada ya da beklemede geçiyordur. Aktarılan bir modüldeki satır `fonksiyon():satır` diye yazılır (`dikleştir():34`).
 
-**GPU.** GPU kullanan programda iki komut GPU'nun çekirdek ölçümünü de açar: çekirdeklerin cihazda geçen süresi (`çekirdekler %63 meşgul`), adım başına GPU süresi ve en pahalı çekirdek aileleri (`carpim`, `dikkat`, `cok_adamw` ...). GPU işleri eşzamansızdır: tensör tablosunda GPU işlemlerinin süresi konakta geçen başlatma süresidir, programın GPU'yu beklediği zaman `konağa okuma` satırında görünür (`.değer`, yazdırma, `ç.güncelle({kayıp: kayıp})`). Çekirdek ölçümü her başlatmaya iki zamanlama olayı ekler; GPU'yu tam hızda ölçmek için ölçümsüz bir koşuyla karşılaştırın.
+**GPU.** GPU kullanan programda iki komut GPU'nun kernel ölçümünü de açar: kernellerin cihazda geçen süresi (`kerneller %63 meşgul`), adım başına GPU süresi ve en pahalı kernel aileleri (`carpim`, `dikkat`, `cok_adamw` ...). GPU işleri eşzamansızdır: tensör tablosunda GPU işlemlerinin süresi konakta geçen başlatma süresidir, programın GPU'yu beklediği zaman `konağa okuma` satırında görünür (`.değer`, yazdırma, `ç.güncelle({kayıp: kayıp})`). Çekirdek ölçümü her başlatmaya iki zamanlama olayı ekler; GPU'yu tam hızda ölçmek için ölçümsüz bir koşuyla karşılaştırın.
 
 **Bellek.** Go yığını (CPU tensörleri dahil), CPU tensör işlemlerinin adım başına ayırdığı bellek, GPU'da tensörlerin kullandığı, sürücüden ayrılmış ve en yüksek (tepe) bellek; çöp toplayıcının kaç kez çalıştığı ve programı ne kadar durdurduğu. `tr profil` raporu ayrıca GPU belleğinin tepesinde canlı olan tensörleri onları ayıran satıra göre sıralar (PyTorch'un bellek anlık görüntüsünün karşılığı): hangi satırın tepe belleğin ne kadarını tuttuğu görünür. Geri yayılımda ayrılan gradyanlar `geri_yayılım(...)` satırında sayılır; aktarılan modüldeki satır `dosya:satır` diye yazılır.
 
@@ -51,7 +51,7 @@ Ctrl+C her zamanki gibi programı nazikçe durdurur (kontrol noktası varsa kayd
 
 ## `tr profil`
 
-`tr profil` programı aynı ölçümlerle çalıştırır ve bitince (hata ya da Ctrl+C ile bitse de) metin raporunu standart çıktıya yazar: süre ve çıkış kodu, adım hızı, tensör işlemleri tablosu (süre, pay, çağrı, ms/adım, ayrılan bellek, cihaz), en çok zaman alan satırlar ve fonksiyonlar, GPU çekirdekleri, bellek ve çöp toplama. Programın kendi çıktısı olduğu gibi kalır.
+`tr profil` programı aynı ölçümlerle çalıştırır ve bitince (hata ya da Ctrl+C ile bitse de) metin raporunu standart çıktıya yazar: süre ve çıkış kodu, adım hızı, tensör işlemleri tablosu (süre, pay, çağrı, ms/adım, ayrılan bellek, cihaz), en çok zaman alan satırlar ve fonksiyonlar, GPU kernelleri, bellek ve çöp toplama. Programın kendi çıktısı olduğu gibi kalır.
 
 | Seçenek | Ne yapar |
 | :-- | :-- |
@@ -62,12 +62,12 @@ Rapor dosyası ağ ya da bulut sürücüsündeyse ve yazılamazsa program durmaz
 
 ## Arka plan işlerinde
 
-Program bir arka plan işi olarak çalışıyorsa (iş klasörü `.tr/işler/<iş>/`), canlı profili saniyede bir o klasördeki `profil.json`'a yazılır; işi izleyen araçlar buradan okur. Bu kipte satır örneklemesi ve GPU çekirdek ölçümü kapalıdır: yalnızca her zaman açık sayaçlar (adım hızı, tensör işlemleri, bellek) yazılır, ek yük saniyede bir dosya yazmasıdır. Dosya önce geçici bir dosyaya yazılıp yerine konur (okuyan yarım dosya görmez); yerine koymayı desteklemeyen sürücülerde bir kez uyarılır ve doğrudan yazılır, yazma hiç olmuyorsa sonraki saniyede yeniden denenir; eğitim hiçbir durumda durmaz.
+Program bir arka plan işi olarak çalışıyorsa (iş klasörü `.tr/işler/<iş>/`), canlı profili saniyede bir o klasördeki `profil.json`'a yazılır; işi izleyen araçlar buradan okur. Bu kipte satır örneklemesi ve GPU kernel ölçümü kapalıdır: yalnızca her zaman açık sayaçlar (adım hızı, tensör işlemleri, bellek) yazılır, ek yük saniyede bir dosya yazmasıdır. Dosya önce geçici bir dosyaya yazılıp yerine konur (okuyan yarım dosya görmez); yerine koymayı desteklemeyen sürücülerde bir kez uyarılır ve doğrudan yazılır, yazma hiç olmuyorsa sonraki saniyede yeniden denenir; eğitim hiçbir durumda durmaz.
 
 ## Maliyeti
 
 - **Tensör sayaçları her zaman açıktır** (`tr` ile çalışan her programda): bir işlem başına birkaç bellek yazması (~4 ns). Mikrosaniyeler süren gerçek eğitim işlemlerinde ölçülemeyecek kadar küçüktür; birkaç yüz nanosaniyelik çok küçük tensör işlemlerinde %1–3 civarındadır.
 - **Satır örneklemesi** yalnızca `tr izle` ve `tr profil` altında açıktır; kapalıyken maliyeti sıfırdır. Açıkken yorumlayıcı her deyimde konumu yazar ve fonksiyon çağrılarında hızlı yolu kullanamaz: çağrı yoğun TR kodu yaklaşık iki kat yavaşlar (özyinelemeli `fib(27)`: 57 → 110 ms); zamanı tensör işlemlerinde geçen eğitimde etkisi küçüktür.
-- **GPU çekirdek ölçümü** yalnızca `tr izle` ve `tr profil` altında (ya da `TR_GPU_PROFIL=1` ile) açıktır.
+- **GPU kernel ölçümü** yalnızca `tr izle` ve `tr profil` altında (ya da `TR_GPU_PROFIL=1` ile) açıktır.
 
 Ölçülen hız ölçümün kendisiyle birlikte ölçülür; iki sürümü karşılaştırırken ikisini de aynı komutla çalıştırın. Profilleme eğitimin sonucunu değiştirmez: aynı tohumla `tr` ve `tr izle` aynı kaybı verir.

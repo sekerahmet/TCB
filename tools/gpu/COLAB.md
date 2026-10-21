@@ -33,10 +33,10 @@ olmalıdır (Blackwell için en az 12.8; eski sürümlü adaylar `atlanan:` diye
 verilebilir (PyTorch'un kurduğu kopya da olur):
 `export TR_GPU_CUBLASLT=$(python -c "import nvidia.cublas, os; print(os.path.join(nvidia.cublas.__path__[0], 'lib', 'libcublasLt.so.12'))")`.
 
-## 2. GPU arka ucunun sınamaları (her çekirdek CPU ile karşılaştırılır)
+## 2. GPU arka ucunun sınamaları (her kernel CPU ile karşılaştırılır)
 
-İlk koşu her çekirdekten sonra eşzamanlar (`TR_GPU_ESZAMANLI=1`): bir çekirdek hata
-verirse hata tam olarak o çekirdekte bildirilir. Ardından normal (eşzamansız) koşu. Sınama
+İlk koşu her kernelden sonra eşzamanlar (`TR_GPU_ESZAMANLI=1`): bir kernel hata
+verirse hata tam olarak o kernelde bildirilir. Ardından normal (eşzamansız) koşu. Sınama
 ikilisi paketin klasöründen çalıştırılır: bazı sınamalar paketin kaynak dosyalarını okur
 (ör. `TestEveryEmittedInstructionIsSimulated`), başka klasörde "0 komut adı" diye kalır.
 
@@ -110,10 +110,10 @@ done
 Kendi matris çarpımı çekirdeğimizle karşılaştırmak için (isteğe bağlı) TR satırının önüne
 `TR_GPU_KENDI_CARPIM=1` ekleyin.
 
-## 7. Profil: büyük modelin çekirdek dökümü
+## 7. Profil: büyük modelin kernel dökümü
 
 `TR_GPU_PROFIL=1` her çekirdeği GPU olaylarıyla ölçer; program sonunda standart hataya özet
-yazar: adım başına duvar/GPU/boşluk/konak süreleri, aile ve çekirdek tabloları (çağrı, toplam
+yazar: adım başına duvar/GPU/boşluk/konak süreleri, aile ve kernel tabloları (çağrı, toplam
 ms, ortalama µs, %), bellek (ayrılmış, havuzda, canlı, tepeler).
 
 ```bash
@@ -274,11 +274,11 @@ nsys export --type sqlite --force-overwrite true -o p3_nsys_pt.sqlite p3_nsys_pt
 python phase3_nsys.py p3_nsys_pt.sqlite --window-ms $PEN --steps 10 --name "PyTorch compile"
 ```
 
-Geri bildirilecek: iki tablo (çekirdek sayısı, çekirdek/adım, toplam çekirdek süresi, GPU boşta
-oranı, çekirdekler arası boşluk, en pahalı 10 çekirdek). Boşluk oranı çekirdeklerin birleşimine
+Geri bildirilecek: iki tablo (kernel sayısı, kernel/adım, toplam kernel süresi, GPU boşta
+oranı, kerneller arası boşluk, en pahalı 10 kernel). Boşluk oranı kernellerin birleşimine
 göredir (bellek kopyaları sayılmaz); `nsys stats --report cuda_gpu_kern_sum` da aynı
-çekirdek toplamlarını verir ve çapraz denetim için çalıştırılabilir. Rapor boşsa
-(`pencerede çekirdek yok`) 8. hücredeki notu uygulayıp çıktıyı aynen gönderin.
+kernel toplamlarını verir ve çapraz denetim için çalıştırılabilir. Rapor boşsa
+(`pencerede kernel yok`) 8. hücredeki notu uygulayıp çıktıyı aynen gönderin.
 
 ## 11. Hedef model defteri (hücre 1–10, 15–17)
 
@@ -294,7 +294,7 @@ Kurallar:
   çekirdeği kilitler.
 - Uzun koşular `setsid nohup bash betik.sh > /dev/null 2>&1 < /dev/null &` ile başlar: hücreyi
   kesmek (durdurma düğmesi, `Ctrl+M I`) aynı süreç grubundaki `nohup`'lu eğitimi de durdurur.
-- Çalışan bir hücrenin metni değiştirilmez (ekran yeni metni, çekirdek eskisini çalıştırır).
+- Çalışan bir hücrenin metni değiştirilmez (ekran yeni metni, kernel eskisini çalıştırır).
 - Tepe bellek nvidia-smi'den MiB/1024 = GiB olarak yazılır (hücre 2 ve 4 aynı ölçü).
 - İş bitince hücre 10 ile çalışma zamanı kapatılır.
 
@@ -542,18 +542,18 @@ PY
 
 ### Hücre 18 · PROFİLİN ÇEKİRDEK AİLELERİ · CPU
 
-Hücre 15'in profilinden adım başına süreyi çekirdek ailelerine (çarpım, eleman bazlı, indirge,
+Hücre 15'in profilinden adım başına süreyi kernel ailelerine (çarpım, eleman bazlı, indirge,
 kopya, kaynaşık …) ve en uzun 30 çekirdeğe göre gösterir.
 
 ```bash
-# 18 · PROFİLİN ÇEKİRDEK AİLELERİ VE İLK 30 ÇEKİRDEK (ANINDA BİTER) · CPU
-cd /content/rgn/bir && grep -A30 "^aile" profil.txt | head -28; grep -A32 "^çekirdek (ilk" profil.txt | cut -c1-110
+# 18 · PROFİLİN KERNEL AİLELERİ VE İLK 30 KERNEL (ANINDA BİTER) · CPU
+cd /content/rgn/bir && grep -A30 "^aile" profil.txt | head -28; grep -A32 "^kernel (ilk" profil.txt | cut -c1-110
 ```
 
 ### Hücre 19 · HIZLI ÖLÇÜM · GPU
 
-Bir hız değişikliğinin kısa sınaması (~4 dk): ilgili GPU testleri (kaynaşık çekirdekler, parçalı
-doğrusal+CE, normlar), hedef modelde 120 adımın ortanca süresi ve tepe belleği, çekirdek profili.
+Bir hız değişikliğinin kısa sınaması (~4 dk): ilgili GPU testleri (kaynaşık kerneller, parçalı
+doğrusal+CE, normlar), hedef modelde 120 adımın ortanca süresi ve tepe belleği, kernel profili.
 Eşleşme için hücre 15'in tamamı koşulur.
 
 ```bash
@@ -583,7 +583,7 @@ echo "başladı (durum: hücre 20)"
 cd /content/rgn/hz 2>/dev/null || { echo "koşu yok (hücre 19)"; exit 0; }
 cat sonuc.txt 2>/dev/null
 if [ -f bitti ]; then
-  grep -E "^bellek" profil.txt; grep -A22 "^aile" profil.txt; grep -A26 "^çekirdek (ilk" profil.txt | cut -c1-100
+  grep -E "^bellek" profil.txt; grep -A22 "^aile" profil.txt; grep -A26 "^kernel (ilk" profil.txt | cut -c1-100
 else echo "sürüyor: $(tail -c 160 tr.log 2>/dev/null)"; fi
 ```
 
@@ -659,12 +659,12 @@ from google.colab import runtime; runtime.unassign()
 
 ## Ortam değişkenleri
 
-- `TR_GPU_PROFIL=1`: çekirdek ölçümü ve program sonunda özet (bkz. 7).
-- `TR_GPU_ESZAMANLI=1`: her çekirdekten sonra eşzamanlar; eşzamansız bir hata tam olarak onu
-  üreten çekirdekte bildirilir. Yavaştır; yalnızca teşhis için.
+- `TR_GPU_PROFIL=1`: kernel ölçümü ve program sonunda özet (bkz. 7).
+- `TR_GPU_ESZAMANLI=1`: her kernelden sonra eşzamanlar; eşzamansız bir hata tam olarak onu
+  üreten kernelde bildirilir. Yavaştır; yalnızca teşhis için.
 - `TR_GPU_CUBLASLT=/tam/yol/libcublasLt.so.12`: matris çarpımı kitaplığının yolu.
 - `TR_GPU_KENDI_CARPIM=1`: kitaplık bulunsa da kendi matris çarpımı çekirdeğimiz.
-- `TR_GPU_DIKKAT=carpim`: dikkat birleşik çekirdek yerine matris çarpımı yolundan (karşılaştırma;
+- `TR_GPU_DIKKAT=carpim`: dikkat birleşik kernel yerine matris çarpımı yolundan (karşılaştırma;
   mikro kıyas iki yolu da ölçer, `dikkat ... (matris yolu)` satırları).
 - `TR_GPU_MIKRO=1`: gpu_sinama'da mikro kıyasları açar (`TR_GPU_MIKRO_BANT` kuramsal bant
   genişliği, GB/s; varsayılan 1800).

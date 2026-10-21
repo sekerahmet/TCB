@@ -121,7 +121,7 @@ H4 (compile ile başa baş) süren bir hedef olarak Evre 6'ya taşındı. Kalan 
   - Sonra: Zipf 163, gerçek veri 162 ms.
 - **Profil (adım başına):**
   - çarpım 53, kopya 21 ms (dikkat bakışları 6, float32→bf16 5,6),
-  - indirgeme 15, ikili işlemler 14, norm geri yönü 14, kaynaşık çekirdekler 13 ms,
+  - indirgeme 15, ikili işlemler 14, norm geri yönü 14, kaynaşık kerneller 13 ms,
   - çapraz entropi 11, dikkat 11 ms.
 
 **Bellek yolu** (30,8 GB'tan 10,81 GiB'a):
@@ -135,7 +135,7 @@ H4 (compile ile başa baş) süren bir hedef olarak Evre 6'ya taşındı. Kalan 
 
 ### Maddelerin durumu
 
-1. **Önce ölçüm.** Yapıldı. 12 katman D768 düz GPT'de TR eager PyTorch'la başa baştı, `torch.compile`'dan 1,15 kat yavaştı; fark çekirdek süresindeydi (kaynaşmamış küçük işler). Hedef modelde derleme eager'a göre 2,55 kat kazandırıyordu; asıl kıyas bu modelle yapıldı (yukarıda).
+1. **Önce ölçüm.** Yapıldı. 12 katman D768 düz GPT'de TR eager PyTorch'la başa baştı, `torch.compile`'dan 1,15 kat yavaştı; fark kernel süresindeydi (kaynaşmamış küçük işler). Hedef modelde derleme eager'a göre 2,55 kat kazandırıyordu; asıl kıyas bu modelle yapıldı (yukarıda).
 2. **Bellek.**
    - Parçalı doğrusal + çapraz entropi: yapıldı.
    - Aktivasyonların yeniden hesaplanması: Evre 4'e ertelendi.
@@ -220,9 +220,9 @@ Modeli kullanan geliştiricinin ilk sorusu: "Hugging Face'teki modeli yükleyip 
 6. **Çıkarım ve sunum.**
    - KV önbellekli `üret`; örnekleme (sıcaklık, en iyi k, en iyi p).
    - 127.0.0.1'e bağlı OpenAI uyumlu HTTP sunucusu: completions ve chat, `logprobs` ile. Bu tek adım lm-evaluation-harness ile değerlendirmeyi, arayüzleri ve ajan çerçevelerini getirir.
-   - Yorumlayıcı kilidi çekirdek çağrılarında ve G/Ç'de bırakılır; hangi yerleşiklerin bıraktığı belgelenir. Böylece sunucu, parçalayıcı ve GPU eşzamanlı çalışır.
+   - Yorumlayıcı kilidi kernel çağrılarında ve G/Ç'de bırakılır; hangi yerleşiklerin bıraktığı belgelenir. Böylece sunucu, parçalayıcı ve GPU eşzamanlı çalışır.
    - CUDA Graphs önce üretim için: statik şekil kipinde, isteğe bağlı yakalama. Yakalanan bölgede ana belleğe okuma dil düzeyinde hatadır. Eğitimde beklenen kazanç küçüktür (%0–5).
-   - **CPU'da hazır model:** küçük bir hazır model (yüz milyonlarca parametre) GPU'suz, dizüstünde verimli çalışır. Ağırlıklar safetensors'tan bellek eşlemeyle (mmap) kopyasız yüklenir. KV önbellekli üretim tek ve çok çekirdekte koşar, AVX2/FMA çekirdekleri kullanılır; ağırlığı bf16 saklanan çarpım anında genişletilir. Ölçüt: aynı model ve aynı ayarlarla PyTorch CPU ve llama.cpp'ye karşı token/sn ile ilk token süresi. Hedef oran ilk ölçümden sonra buraya yazılır (Evre 3'teki gibi). Yalnızca ağırlık int8/int4 nicemleme (Evre 6) bu yolu hızlandırır.
+   - **CPU'da hazır model:** küçük bir hazır model (yüz milyonlarca parametre) GPU'suz, dizüstünde verimli çalışır. Ağırlıklar safetensors'tan bellek eşlemeyle (mmap) kopyasız yüklenir. KV önbellekli üretim tek ve çok çekirdekte koşar, AVX2/FMA kernelleri kullanılır; ağırlığı bf16 saklanan çarpım anında genişletilir. Ölçüt: aynı model ve aynı ayarlarla PyTorch CPU ve llama.cpp'ye karşı token/sn ile ilk token süresi. Hedef oran ilk ölçümden sonra buraya yazılır (Evre 3'teki gibi). Yalnızca ağırlık int8/int4 nicemleme (Evre 6) bu yolu hızlandırır.
 7. **Sürüm politikası.**
    - 0.y.z sürüm numaralama.
    - Her yerleşiğe ad kodu üzerinden kararlı, beta ya da prototip etiketi; kararlı davranış prototip ya da beta bir alternatif uğruna kaldırılmaz.
@@ -272,7 +272,7 @@ Modeli kullanan geliştiricinin ilk sorusu: "Hugging Face'teki modeli yükleyip 
 
 - **Yerel çıkarım:**
   - GGUF dışa aktarma: önce F16/BF16 ve Q8_0, sonra Q4_K ailesi;
-  - yalnızca ağırlık int8/int4 nicemleme ve NF4: matris çarpımı içinde anında geri açan tek bir çekirdek ailesi hem QLoRA eğitimine hem sunuma hizmet eder.
+  - yalnızca ağırlık int8/int4 nicemleme ve NF4: matris çarpımı içinde anında geri açan tek bir kernel ailesi hem QLoRA eğitimine hem sunuma hizmet eder.
 - **Çoklu GPU:**
   - NCCL ile veri paralelliği (DDP): kova sırası sabit (belirlenimcilik için), fp32 biriktirme, hesapla örtüşen iletişim, gradyan biriktirirken eşitlemeyi atlama;
   - her GPU'ya kendi veri parçası (Evre 3'teki belirlenimci sıra üstünde);
@@ -305,12 +305,12 @@ Modeli kullanan geliştiricinin ilk sorusu: "Hugging Face'teki modeli yükleyip 
   - deney takibi aktarımı (TensorBoard, MLflow; `.jsonl` günlük taban olarak yeterli);
   - değerlendirme kitaplığı (OpenAI uyumlu sunucuyla lm-evaluation-harness bunu büyük ölçüde karşılar).
 - **Yazım dilleri:** adların İngilizcesi var (`en.json`, `tr göster --dil en`). Altyapı Evre 2'de kurulduğu için burada iş çeviridir: bütün iletilerin İngilizcesi (`internal/lang/messages/en.json`), dil tanımının, kılavuzun ve kod başvurusunun İngilizcesi.
-- **Platformlar:** Mac otomatik sınaması, Apple M ve ARM için vektör çekirdekleri, Metal arka ucu, AMD (ROCm).
+- **Platformlar:** Mac otomatik sınaması, Apple M ve ARM için vektör kernelleri, Metal arka ucu, AMD (ROCm).
 
 ## Sonra
 
 - **FP8 eğitimi** (Hopper/Blackwell): 100 M–1 B ölçeğinde kazanç küçüktür. Başladığında yalnızca doğrusal katmanlarda başlar; dikkat, norm, gömme ve çıkış başı bf16'da kalır.
-- **TR ile çekirdek yazma (karo dili):**
+- **TR ile kernel yazma (karo dili):**
   - Triton/TileLang uzlaşısını izler:
     - ızgara üzerinde bir program;
     - derleme anında şekli belli karolar;
@@ -318,13 +318,13 @@ Modeli kullanan geliştiricinin ilk sorusu: "Hugging Face'teki modeli yükleyip 
     - türlendirilmiş zamanlama düğmeleri;
     - satır içi PTX kaçış kapısı.
   - Otomatik ayarlama zorunlu değildir.
-  - Bitiş: elle yazılmış norm, softmax, çapraz entropi ve AdamW çekirdekleri karo dilinde aynı hızda yeniden yazılır.
+  - Bitiş: elle yazılmış norm, softmax, çapraz entropi ve AdamW kernelleri karo dilinde aynı hızda yeniden yazılır.
 - **Genel otomatik kaynaştırma:** ancak kural tabanlı birleştirici (`kaynaştır`, dil tanımı 15.45) ölçümle yetersiz kalırsa; indirgeme ve çarpım içeren zincirler (norm geri yönü, çarpım eplogları) için H4 (Evre 6) ölçümleri karar verir.
 - **Bölme bilgisi tensör tipinde:** tip denetleyicisi belirsiz bölmeyi hata sayar (JAX'ın açık kipi emsali).
 - **ONNX:** büyük işlem yüzeyi, kendi yürütme motoru olan bir dil için düşük getiri.
 - **Statik şekil denetimi:** tensör şekil hatalarının çalıştırmadan önce yakalanması.
 - **İleri yönlü ve yüksek mertebe türev**, uzun bağlam için dizi paralelliği, hiperparametre taraması.
-- **Matematik:** doğrusal sistem çözme, ters matris, ayrışımlar (QR, Cholesky, tekil değer), hızlı Fourier dönüşümü; türevli, CPU ve GPU çekirdekli.
+- **Matematik:** doğrusal sistem çözme, ters matris, ayrışımlar (QR, Cholesky, tekil değer), hızlı Fourier dönüşümü; türevli, CPU ve GPU kernelli.
 
 ## Doğrulanacaklar
 
@@ -338,7 +338,7 @@ Kararlar bu soruların yanıtıyla gözden geçirilir; ilk ikisi TR'nin kendi ö
 ## Platform durumu
 
 - **Windows, Linux (Intel/AMD):** tam destek, her değişiklikte otomatik sınama.
-- **Linux ve Mac (ARM):** derleniyor ve sınanıyor; vektör çekirdekleri yok (düz Go yolu).
+- **Linux ve Mac (ARM):** derleniyor ve sınanıyor; vektör kernelleri yok (düz Go yolu).
 - **GPU:** NVIDIA (sürücü ve isteğe bağlı cuBLASLt çalışma anında yüklenir); ölçümler RTX PRO 6000 Blackwell üzerinde, GPU testleri elle ve Colab'da.
 
 ## Tamamlananlar
