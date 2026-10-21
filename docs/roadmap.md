@@ -208,13 +208,21 @@ Modeli kullanan geliştiricinin ilk sorusu: "Hugging Face'teki modeli yükleyip 
 4. **İnce ayar.**
    - LoRA; bağdaştırıcı PEFT düzeninde kaydedilir (`adapter_config.json` + `adapter_model.safetensors`), böylece PEFT, vLLM ve llama.cpp doğrudan okur.
    - Bir ince ayar örneği.
-5. **Çıkarım ve sunum.**
+5. **İyileştirici ve öğrenme oranı (araştırma maddesi; gerekirse öne çekilir).** TR yeni bir optimizasyon matematiği icat etmez; bilinen en iyi yöntemleri varsayılan, hızlı ve ölçülebilir yapar. TR her ağırlığın şeklini ve rolünü (gömme, gizli matris, norm, sapma) bildiği için PyTorch'ta elle yapılan işaretlemeler kendiliğinden yapılabilir. Adaylar (tasarımdan önce kaynaklı karşılaştırma, sonra hedef modelde ölçüm: aynı kaliteye daha az adım ya da daha az ayar):
+   - Öğrenme oranının küçük modelden büyüğe aktarımı (μP): oran küçük modelde ayarlanır, genişlik büyüyünce hesapla aktarılır.
+   - Planlamasız iyileştirici (Schedule-Free): ısınma ve azalma planı ile toplam adım sayısını önceden bilmek gerekmez.
+   - Düşük bitli iyileştirici durumu (bf16 ya da 8 bit momentler): durum bugün modelin 2–3 katı yer tutar.
+   - Ağırlık gruplamanın kural tabanlı olması: hangi ağırlığa Muon, hangisine AdamW, hangisine ağırlık çürümesi (bugün `MuonVeAdamW` yarı yarıya yapıyor).
+   - Katman başına güncelleme/ağırlık oranı gibi göstergeler (Evre 6'nın gözlemlenebilirlik maddesiyle birlikte).
+
+   Kaynaklar henüz okunmadı (kanıtsız): μP (Yang ve ark. 2022), Schedule-Free (Defazio ve ark. 2024), 8 bit Adam (Dettmers ve ark. 2021), Muon (Jordan 2024).
+6. **Çıkarım ve sunum.**
    - KV önbellekli `üret`; örnekleme (sıcaklık, en iyi k, en iyi p).
    - 127.0.0.1'e bağlı OpenAI uyumlu HTTP sunucusu: completions ve chat, `logprobs` ile. Bu tek adım lm-evaluation-harness ile değerlendirmeyi, arayüzleri ve ajan çerçevelerini getirir.
    - Yorumlayıcı kilidi çekirdek çağrılarında ve G/Ç'de bırakılır; hangi yerleşiklerin bıraktığı belgelenir. Böylece sunucu, parçalayıcı ve GPU eşzamanlı çalışır.
    - CUDA Graphs önce üretim için: statik şekil kipinde, isteğe bağlı yakalama. Yakalanan bölgede ana belleğe okuma dil düzeyinde hatadır. Eğitimde beklenen kazanç küçüktür (%0–5).
    - **CPU'da hazır model:** küçük bir hazır model (yüz milyonlarca parametre) GPU'suz, dizüstünde verimli çalışır. Ağırlıklar safetensors'tan bellek eşlemeyle (mmap) kopyasız yüklenir. KV önbellekli üretim tek ve çok çekirdekte koşar, AVX2/FMA çekirdekleri kullanılır; ağırlığı bf16 saklanan çarpım anında genişletilir. Ölçüt: aynı model ve aynı ayarlarla PyTorch CPU ve llama.cpp'ye karşı token/sn ile ilk token süresi. Hedef oran ilk ölçümden sonra buraya yazılır (Evre 3'teki gibi). Yalnızca ağırlık int8/int4 nicemleme (Evre 6) bu yolu hızlandırır.
-6. **Sürüm politikası.**
+7. **Sürüm politikası.**
    - 0.y.z sürüm numaralama.
    - Her yerleşiğe ad kodu üzerinden kararlı, beta ya da prototip etiketi; kararlı davranış prototip ya da beta bir alternatif uğruna kaldırılmaz.
    - İki adımlı kaldırma: önce uyarı (bir süre ya da iki sürüm), sonra hata. Ad kodları eski adı tutabildiği için bu TR'de ucuzdur.
