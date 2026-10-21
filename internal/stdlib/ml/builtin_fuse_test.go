@@ -73,4 +73,3 @@ karışık_hassasiyet("bf16") {
 		t.Fatalf("kaynaştır önbelleği karışık_hassasiyet türünü yok saydı:\n%q\nbeklenen:\n%q", out, want)
 	}
 }
-

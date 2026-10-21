@@ -153,4 +153,3 @@ func TestCustomOpBackwardReturnsItsTemporaryGradients(t *testing.T) {
 			log.returned(g0), log.returned(g1), log.returned(gx))
 	}
 }
-

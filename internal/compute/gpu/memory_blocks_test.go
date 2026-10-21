@@ -96,4 +96,3 @@ func TestSmallBlockReclaimKeepsMemoryStats(t *testing.T) {
 			m.Live, m.Reserved, total)
 	}
 }
-

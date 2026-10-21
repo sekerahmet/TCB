@@ -351,4 +351,3 @@ func TestIndexAndWholeReductionsReturnStorageAtScopeExit(t *testing.T) {
 		}
 	}
 }
-

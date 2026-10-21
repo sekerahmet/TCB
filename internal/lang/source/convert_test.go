@@ -371,4 +371,3 @@ func TestEncodeKeepsUserErrorVarApartFromImplicitCatchName(t *testing.T) {
 		t.Fatalf("gölgelenmiş 'hata' değişkeni örtük A103 koduyla kodlandı:\n%s", coded)
 	}
 }
-
