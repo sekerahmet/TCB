@@ -45,7 +45,7 @@ func mustContain(t *testing.T, out string, parts ...string) {
 // A name's uses are found across packages, including test files.
 func TestNameUses(t *testing.T) {
 	out := query(t, "codes.Name")
-	mustContain(t, out, "internal/lang/codes/language.go", "internal/lang/hint\n", "internal/lang/hint/hint.go:", "_test.go:")
+	mustContain(t, out, "internal/lang/codes/language.go", "internal/lang/interp\n", "internal/lang/interp/calls.go:", "_test.go:")
 }
 
 // The hooks the interpreter finds by type assertion: the implementers must be listed, because
