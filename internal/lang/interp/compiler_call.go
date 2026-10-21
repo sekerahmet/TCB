@@ -73,6 +73,22 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 		}
 	}
 
+	if mem, ok := e.Function.(*ast.MemberExpression); ok {
+		// x.metot(a, ad: b): bağlı metot değeri bir değişkene verilmediğinden alıcı kaçmaz
+		// (konumlu çağrıdaki gibi); yalnızca üye değeri okunup çağrılır.
+		object := c.expression(k, mem.Object)
+		u := resolveMember(mem.Property)
+		fun = func(v *VM, env *Environment) (Value, error) {
+			obj, err := object(v, env)
+			if err != nil {
+				return nil, err
+			}
+			if u.core != nil {
+				escape(obj) // Metin/Liste/Sözlük metotları alıcıyı başka yere koyabilir (ownership.go)
+			}
+			return v.memberValue(obj, mem, u)
+		}
+	}
 	nameList := make([]string, len(e.NamedArgs))
 	namedCode := make([]exprCode, len(e.NamedArgs))
 	for i, na := range e.NamedArgs {

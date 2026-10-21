@@ -277,7 +277,7 @@ yazdır(türev_denetle((a) => a * w, [x]))`)
 
 // Adlı argümanla yapılan saf tensör metodu çağrısı (x.böl(2, eksen: 0)) alıcı
 // tensörü kaçırmamalı ve kapsam sonunda belirlenimci olarak bırakmalıdır (15.44).
-func TestAuditNamedArgMethodCallDropsReceiverAtScopeExit(t *testing.T) {
+func TestNamedArgMethodCallDropsReceiverAtScopeExit(t *testing.T) {
 	m := interp.New()
 	m.Out = &bytes.Buffer{}
 	var captured *tensor.Tensor
