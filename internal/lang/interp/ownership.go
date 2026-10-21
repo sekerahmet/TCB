@@ -1,6 +1,9 @@
 package interp
 
-import "os"
+import (
+	"os"
+	"sync/atomic"
+)
 
 // --- SAHİPLİK: BELİRLENİMCİ BIRAKMA (dil tanımı 15.44) ---
 //
@@ -99,18 +102,19 @@ func ownershipOf(val Value) (Owned, *Ownership) {
 // ownershipOff TR_BIRAKMA=0 ise doğrudur (sahiplenme yok, her şey çöp toplayıcının).
 var ownershipOff = os.Getenv("TR_BIRAKMA") == "0"
 
-// ownActive ilk değer sahiplenilince doğru olur. Ondan önce hiçbir değer bir çerçevenin
-// sahipliğinde değildir: bağ, bağ kaldırma ve kaçış yapacak bir şey yoktur, yuva yazımı
-// sahiplik denetimi yapmaz (sahipli değer üretmeyen programlar bedel ödemez). Yalnızca
-// yorumlayıcı kilidi altında okunur ve yazılır.
-var ownActive bool
+// ownActive ilk değer sahiplenilince doğru olur (süreç genelidir, atomiktir; okuması düz
+// bir yüklemedir). Ondan önce hiçbir değer bir çerçevenin sahipliğinde değildir: bağ, bağ
+// kaldırma ve kaçış yapacak bir şey yoktur, yuva yazımı sahiplik denetimi yapmaz (sahipli
+// değer üretmeyen programlar bedel ödemez).
+var ownActive atomic.Bool
 
 // ownGen derlenmiş kodun her işlem çağrısından önce artan damgadır. Motor bir değeri
 // işlem sürerken taze işaretler (MarkFresh); çağrı yeri değeri ancak damga değişmeden
-// sahiplenir, eski bir işaret geçersizdir. Sayaç süreç genelidir ve yalnızca yorumlayıcı
-// kilidi tutulurken okunur ve yazılır (işlemler kilit altında çalışır; kilidin el değiştirmesi
-// sırayı kurar); bir görevin işlemi sürerken başka bir görevin değeri ona dönmez.
-var ownGen uint64
+// sahiplenir, eski bir işaret geçersizdir. Sayaç süreç genelidir (ayrı kilitli birden çok VM
+// aynı anda çalışabilir; atomiktir): başka bir işlemin artırması yalnızca bir sahiplenmeyi
+// kaçırtır (değer çöp toplayıcıya kalır), yanlış bir değeri sahiplendirmez; bir işleme
+// başkasının değeri dönmez.
+var ownGen atomic.Uint64
 
 // MarkFresh motorun çalışan işlemde ürettiği değeri taze olarak işaretler; derlenmiş kodun
 // çağrı yeri onu sahiplenir. Sahiplik dışı olmayan (daha önce sahiplenilmiş ya da kaçmış)
@@ -118,12 +122,12 @@ var ownGen uint64
 // .böl'ü); elemanlar ayrıca işaretlenmelidir.
 func MarkFresh(o Owned) {
 	if own := o.Ownership(); own.state == ownNone {
-		own.gen = ownGen
+		own.gen = ownGen.Load()
 	}
 }
 
 // newOp derlenmiş kodun bir işlem çağrısından önce damgayı yeniler.
-func newOp() { ownGen++ }
+func newOp() { ownGen.Add(1) }
 
 // frameAt çağrı derinliği d'nin çerçevesini verir (yoksa açar).
 func (v *VM) frameAt(d int) *ownerFrame {
@@ -149,7 +153,7 @@ func (v *VM) topFrame() *ownerFrame {
 // beginCall yeni bir çağrının (derinlik d) çerçevesini sıfırlar: yarıda kalmış eski bir
 // çağrının değerleri sahipsiz kalır (çöp toplayıcının olur).
 func (v *VM) beginCall(d int) {
-	if ownActive && d < len(v.owners) {
+	if ownActive.Load() && d < len(v.owners) {
 		v.owners[d] = nil
 	}
 }
@@ -157,7 +161,7 @@ func (v *VM) beginCall(d int) {
 // endCall derinlik d'deki çağrıyı kapatır: dönüş değeri (çağrının çerçevesindeyse)
 // çağıranın çerçevesine geçer, sonra çerçevenin bekleyenleri bırakılır.
 func (v *VM) endCall(d int, ret Value) {
-	if ownActive {
+	if ownActive.Load() {
 		v.closeFrame(d, ret)
 	}
 }
@@ -200,10 +204,10 @@ func (v *VM) adopt(val Value) {
 	if own == nil || ownershipOff {
 		return
 	}
-	if own.state != ownNone || own.gen == 0 || own.gen != ownGen {
+	if own.state != ownNone || own.gen == 0 || own.gen != ownGen.Load() {
 		return
 	}
-	ownActive = true
+	ownActive.Store(true)
 	f := v.frameAt(len(v.CallStack))
 	if l, ok := val.(*ListVal); ok {
 		for _, e := range l.Elements {
@@ -231,7 +235,7 @@ func (v *VM) adoptList(l *ListVal) {
 
 // bind değere bir bağ ekler (sahiplenilmiş değerlerde).
 func bind(val Value) {
-	if !ownActive {
+	if !ownActive.Load() {
 		return
 	}
 	if _, own := ownershipOf(val); own != nil && own.state == ownHeld {
@@ -242,7 +246,7 @@ func bind(val Value) {
 // unbind değerin bir bağını kaldırır; bağ sıfıra inerse değer çerçevesinin bekleyenlerine
 // girer.
 func unbind(val Value) {
-	if !ownActive {
+	if !ownActive.Load() {
 		return
 	}
 	if o, own := ownershipOf(val); own != nil && own.state == ownHeld {
@@ -254,7 +258,7 @@ func unbind(val Value) {
 
 // escape değeri (sahip listeyse elemanlarıyla) kalıcı olarak sahiplik dışına çıkarır.
 func escape(val Value) {
-	if !ownActive {
+	if !ownActive.Load() {
 		return
 	}
 	_, own := ownershipOf(val)
@@ -321,7 +325,7 @@ func (v *VM) flush(f *ownerFrame) {
 // boundary deyim sınırında çalışan çağrının bekleyenlerini bırakır (çerçeve bir ifadenin
 // içinde değilse).
 func (v *VM) boundary() {
-	if ownActive {
+	if ownActive.Load() {
 		v.flushTop()
 	}
 }
@@ -359,7 +363,7 @@ func (e *Environment) envOwns() bool { return e.scope != nil && e.scope.local }
 func (e *Environment) store(i int, val Value) {
 	old := e.vals[i]
 	e.vals[i] = val
-	if ownActive && !(plain(val) && plain(old)) {
+	if ownActive.Load() && !(plain(val) && plain(old)) {
 		e.storeOwned(old, val)
 	}
 }
@@ -375,7 +379,7 @@ func (e *Environment) storeOwned(old, val Value) {
 
 // closeEnv kapanan yerel ortamın yuvalarındaki bağları kaldırır.
 func (e *Environment) closeEnv() {
-	if ownActive && e.envOwns() {
+	if ownActive.Load() && e.envOwns() {
 		e.unbindSlots()
 	}
 }
