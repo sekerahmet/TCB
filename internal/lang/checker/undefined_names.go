@@ -313,7 +313,8 @@ func (d *nameChecker) statement(st ast.Statement, k *nameScope) {
 		if s.ImplicitErrorVar {
 			ck.implicit[0] = codes.A103
 		}
-		d.blockInScope(s.CatchBody, ck)
+		// Örtük ad üst kapsamda kalır; gövdenin kendi 'hata' tanımı onu gölgeler.
+		d.blockInScope(s.CatchBody, newNameScope(ck))
 	case *ast.StructStatement:
 		for _, f := range s.Fields {
 			d.expression(f.DefaultValue, k)

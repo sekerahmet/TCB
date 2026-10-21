@@ -361,7 +361,7 @@ func TestAuditDecodeEscapedBuiltinCollisionInActiveLanguage(t *testing.T) {
 // Adı yazılmamış 'yakala { ... }' bloğu içinde kullanıcı 'değişken hata = 10' tanımlayarak
 // örtük 'hata' adını gölgelediğinde, 'hata' okuması örtük A103 koduyla değil kullanıcı
 // değişkeni olarak kodlanmalıdır.
-func TestAuditEncodeCatchBlockShadowedErrorVar(t *testing.T) {
+func TestEncodeCatchBlockShadowedErrorVar(t *testing.T) {
 	tr := "dene {\n    fırlat \"x\"\n} yakala {\n    değişken hata = 10\n    yazdır(hata)\n}\n"
 	coded, err := Encode(tr)
 	if err != nil {
