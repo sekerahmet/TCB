@@ -72,13 +72,7 @@ func LinearCrossEntropyChunked(x, w *Tensor, targets []int, chunk int) *Tensor {
 			}
 		}
 		if vc == 0 {
-			// Tamamen yok sayılan dilimin x gradyanı sıfırdır; gx sıfırsız ayrıldığından
-			// yalnızca bu satırlar yazılır (bütün gx'i sıfırlı ayırmaktan ucuz).
-			if gx != nil {
-				z := be.Alloc(n*D, gx.DType())
-				be.Copy(gx, r0*D, DenseView(z, []int{n, D}))
-				giveBack(be, z)
-			}
+			zeroRows(be, gx, r0, n, D)
 			continue
 		}
 		xc := View{S: xv.S, Offset: xv.Offset + r0*D, Shape: []int{n, D}, Strides: []int{D, 1}}
@@ -192,4 +186,15 @@ func scaledAdd(be Backend, n *node, s, g Storage) {
 	be.Binary(OpMul, tmp, shape, DenseView(s, shape), gv)
 	be.AddTo(n.accGrad(), tmp, 1)
 	giveBack(be, tmp)
+}
+
+// zeroRows tamamen yok sayılan dilimin x gradyanı satırlarını ([r0, r0+n) × D) sıfırlar: gx
+// sıfırsız ayrıldığından yalnızca bu satırlar yazılır (bütün gx'i sıfırlı ayırmaktan ucuz).
+func zeroRows(be Backend, gx Storage, r0, n, D int) {
+	if gx == nil {
+		return
+	}
+	z := be.Alloc(n*D, gx.DType())
+	be.Copy(gx, r0*D, DenseView(z, []int{n, D}))
+	giveBack(be, z)
 }
