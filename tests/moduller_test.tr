@@ -90,6 +90,27 @@ test "11.5 modülün kodu kendi dosyasının bağlamında çalışır" {
     eşit_mi("özel hata", mesaj)
 }
 
+test "11.7 başı _ olan üst düzey adlar modüle özeldir" {
+    aktar "yardimci_ozel" olarak m
+    eşit_mi(7, m.dış_hesap(2))
+    eşit_mi(1, m.uzunluk)
+    eşit_mi(yanlış, m.içerir("_iç_hesap"))
+    değişken mesaj = ""
+    dene { m._iç_hesap(2) } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("\"_iç_hesap\" \"yardimci_ozel\" modülüne özel bir ad"), mesaj)
+    mesaj = ""
+    dene { yazdır(m["_ÇARPAN"]) } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("\"_ÇARPAN\" \"yardimci_ozel\" modülüne özel bir ad"), mesaj)
+}
+
+test "11.7 takma adsız aktar modüle özel adları getirmez" {
+    aktar "yardimci_ozel"
+    eşit_mi(7, dış_hesap(2))
+    değişken mesaj = ""
+    dene { _iç_hesap(2) } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("'_iç_hesap' adında bir değişken ya da fonksiyon yok"), mesaj)
+}
+
 test "11.6 tr/ öneki dilin kitaplığındandır; diskteki tr/ klasörü onu gölgeleyemez" {
     aktar "tr/katman" olarak k
     eşit_mi(Sözlük, tip(k))

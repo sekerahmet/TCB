@@ -258,6 +258,7 @@ const (
 	H2484 Code = 2484 // {fn}: {value} {type} sayıya çevrilemez ({type} sayı taşması; {type} en fazla 64 bitlik bir tam sayıdır)
 	H2485 Code = 2485 // {fn}: {type} sayı taşması ({a} + {b}, listenin {order}. elemanında); ondalık toplam için elemanları {float}(...) ile çevirin
 	H2486 Code = 2486 // {fn}: listenin {order}. elemanı {expected} olmalıdır, {given} verildi
+	H2487 Code = 2487 // {name|q} {path|q} modülüne özel bir ad (başı _); yalnızca o modülün içinde kullanılır (bkz. 11.7)
 	H2489 Code = 2489 // {fn}: dosya yolunda {what, select, tab {sekme} other {satır sonu}} karakteri var; metindeki ters bölü bir kaçış dizisi sayıldı ("\t" sekme, "\n" satır sonudur). Windows yolu için ham metin kullanın: `{path}` (ya da ters bölüleri ikileyin veya / yazın)
 	H2490 Code = 2490 // ⚠️ Uyarı: programa verilen {count} argüman kullanılmadı ({arguments}); program komut satırı argümanlarını okumuyor
 	H2491 Code = 2491 // program {code} koduyla bitirildi

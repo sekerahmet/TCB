@@ -389,6 +389,9 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, u memberInfo, safe bool, 
 		if val, ok := d.Pairs[prop]; ok {
 			return val, nil
 		}
+		if err := d.privateNameError(prop); err != nil {
+			return nil, messages.At(line, 0, err)
+		}
 		return Null, nil
 	}
 

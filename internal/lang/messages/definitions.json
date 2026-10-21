@@ -253,6 +253,7 @@
 "H2484": { "param": ["fn", "value", "type"] },
 "H2485": { "param": ["fn", "type", "a", "b", "order", "float"] },
 "H2486": { "param": ["fn", "order", "expected", "given"] },
+"H2487": { "param": ["name", "path"] },
 "H2489": { "param": ["fn", "what", "path"] },
 "H2490": { "param": ["count", "arguments"] },
 "H2491": { "param": ["code"] },

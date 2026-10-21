@@ -131,6 +131,23 @@ type DictVal struct {
 	Order   []string
 	Pairs   map[string]Value
 	KeyVals map[string]Value // yalnızca metin olmayan anahtarlar için
+	// module, 'aktar ... olarak ad' ile bağlanan modül sözlüğünün dışa aktarmadığı (başı _)
+	// adlarını tutar (11.7); sıradan sözlükte nildir.
+	module *moduleExports
+}
+
+// moduleExports bir modül sözlüğünün kaynağıdır: modülün gösterilen yolu ve modüle özel adları.
+type moduleExports struct {
+	path    string
+	private map[string]bool
+}
+
+// privateNameError ad bu modül sözlüğünün dışa aktarmadığı bir adsa hatayı verir.
+func (d *DictVal) privateNameError(name string) error {
+	if d.module == nil || !d.module.private[name] {
+		return nil
+	}
+	return messages.New(messages.H2487, name, d.module.path)
 }
 
 func NewDictVal() *DictVal {

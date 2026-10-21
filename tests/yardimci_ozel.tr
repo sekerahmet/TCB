@@ -1,0 +1,4 @@
+// moduller_test.tr tarafından aktarılan yardımcı modül: başı _ olan adlar modüle özeldir (11.7).
+sabit _ÇARPAN = 3
+fonksiyon _iç_hesap(x) { sonuç x * _ÇARPAN }
+fonksiyon dış_hesap(x) { sonuç _iç_hesap(x) + 1 }

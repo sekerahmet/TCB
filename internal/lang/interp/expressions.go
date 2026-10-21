@@ -100,6 +100,11 @@ func (v *VM) indexValue(left Value, idx Value, line int) (Value, error) {
 		}
 		val, exists := container.GetValue(idx)
 		if !exists {
+			if k, ok := idx.(*StringVal); ok {
+				if err := container.privateNameError(k.Val); err != nil {
+					return nil, messages.At(line, 0, err)
+				}
+			}
 			return Null, nil
 		}
 		return val, nil

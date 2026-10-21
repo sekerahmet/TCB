@@ -327,9 +327,19 @@ func (v *VM) runModule(s *ast.ImportStatement, path string, dest *Source, keyStr
 	if _, _, err := modCode.run(v, modEnv); err != nil {
 		return nil, v.sourceError(modSource, err)
 	}
+	// Başı _ olan adlar modüle özeldir (11.7, Dart'ın kitaplığa özel adları gibi): dışa
+	// aktarılmaz; takma adla erişim açık bir hata verir.
 	modDict := NewDictVal()
+	modDict.module = &moduleExports{path: s.Path, private: map[string]bool{}}
 	modEnv.EachLocal(func(k string, exportedVal Value) {
+		if IsModulePrivate(k) {
+			modDict.module.private[k] = true
+			return
+		}
 		modDict.Set(k, exportedVal)
 	})
 	return modDict, nil
 }
+
+// IsModulePrivate ad modüle özel mi (başı _, ama tek başına _ değil; 11.7)?
+func IsModulePrivate(name string) bool { return len(name) > 1 && name[0] == '_' }
