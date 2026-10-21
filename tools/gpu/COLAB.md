@@ -531,6 +531,103 @@ print("bırakma açık / kapalı TR kayıpları en çok", max(abs(x["loss"] - y[
 PY
 ```
 
+### Hücre 18 · PROFİLİN ÇEKİRDEK AİLELERİ · CPU
+
+Hücre 15'in profilinden adım başına süreyi çekirdek ailelerine (çarpım, eleman bazlı, indirge,
+kopya, kaynaşık …) ve en uzun 30 çekirdeğe göre gösterir.
+
+```bash
+# 18 · PROFİLİN ÇEKİRDEK AİLELERİ VE İLK 30 ÇEKİRDEK (ANINDA BİTER) · CPU
+cd /content/rgn/bir && grep -A30 "^aile" profil.txt | head -28; grep -A32 "^çekirdek (ilk" profil.txt | cut -c1-110
+```
+
+### Hücre 19 · HIZLI ÖLÇÜM · GPU
+
+Bir hız değişikliğinin kısa sınaması (~4 dk): ilgili GPU testleri (kaynaşık çekirdekler, parçalı
+doğrusal+CE, normlar), hedef modelde 120 adımın ortanca süresi ve tepe belleği, çekirdek profili.
+Eşleşme için hücre 15'in tamamı koşulur.
+
+```bash
+# 19 · HIZLI ÖLÇÜM: KAYNAŞIK GPU TESTLERİ, HIZ+BELLEK, PROFİL (ARKA PLANDA, ~4 DK) · GPU
+# Hücre hemen döner; durum: hücre 20. Önce hücre 1 (DAL=gpu-dogrulama).
+mkdir -p /content/rgn/trveri /content/rgn/hz && cd /content/rgn
+[ -f trveri/train.npy ] || python -c "import numpy as np; np.save('trveri/train.npy', np.random.default_rng(0).integers(1, 40000, size=40_000_000, dtype=np.uint16))"
+rm -f hz/*
+cat > hz/kos.sh <<'EOF'
+cd /content/TCB/internal/compute/gpu && /content/tr/gpu_sinama -test.run 'Fused|LinearCrossEntropy|Norms' -test.count=1 > /content/rgn/hz/gpu_test.log 2>&1; echo "gpu testleri çıkış $?" >> /content/rgn/hz/sonuc.txt
+cd /content/rgn
+nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits -lms 100 > hz/mem.log & P=$!
+/content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri trveri --adım 120 --çıktı hz/hiz.json > hz/tr.log 2>&1
+kill $P; sleep 1
+printf "tepe %.2f GiB | ortanca %s ms/adım | %s\n" $(echo "$(sort -n hz/mem.log | tail -1)/1024" | bc -l) $(python3 -c "import json;print(round(json.load(open('hz/hiz.json'))['measured']['median_ms'],1))") "$(grep -o 'kayıp [0-9.]*' hz/tr.log | tail -1)" >> hz/sonuc.txt
+/content/tr/tr profil /content/TCB/tools/gpu/rgn512.tr --veri trveri --adım 20 --günlük 20 > hz/profil.txt 2>&1
+echo bitti > hz/bitti
+EOF
+setsid nohup bash hz/kos.sh > /dev/null 2>&1 < /dev/null &
+echo "başladı (durum: hücre 20)"
+```
+
+### Hücre 20 · HIZLI ÖLÇÜM DURUMU · CPU
+
+```bash
+# 20 · HIZLI ÖLÇÜM DURUMU VE PROFİL (ANINDA BİTER, BEKLEMEZ) · CPU
+cd /content/rgn/hz 2>/dev/null || { echo "koşu yok (hücre 19)"; exit 0; }
+cat sonuc.txt 2>/dev/null
+if [ -f bitti ]; then
+  grep -E "^bellek" profil.txt; grep -A22 "^aile" profil.txt; grep -A26 "^çekirdek (ilk" profil.txt | cut -c1-100
+else echo "sürüyor: $(tail -c 160 tr.log 2>/dev/null)"; fi
+```
+
+### Hücre 21 · KİTAPLIK DENEYİ (A/B) · GPU
+
+Bir kitaplık değişikliğini dile ve depoya almadan önce ölçer: `/content/TCB`'nin kopyasında
+`lib/katman.tr` yamalanır (kitaplık ikiliye gömülüdür), `tr_deney` derlenir; iki ikili aynı
+sentetik veride sırayla ikişer kez 120 adım koşar. Örnekteki yama, f32 girdili normların
+(`norm1`, `norm2`, `son_norm`) çıktısını doğrudan bf16 yazar (`tür:`): bu modelde onları yalnızca
+çarpımlar okur, çarpımın kendi dönüşümü gereksizleşir. Yamayı deneye göre değiştirin
+(`assert`, her aranan metnin kitaplıkta bir kez geçtiğini denetler).
+
+```bash
+# 21 · DENEY A/B: NORM ÇIKTISI bf16 (tür:) — KİTAPLIK YAMALI İKİLİ vs OLDUĞU GİBİ (ARKA PLANDA, ~4 DK) · GPU
+# Hücre hemen döner; durum: hücre 22. Önce hücre 1 (DAL=gpu-dogrulama).
+export PATH=/usr/local/go/bin:$PATH
+rm -rf /content/TCB_b && cp -r /content/TCB /content/TCB_b && cd /content/TCB_b
+python3 - <<'PY'
+p = "lib/katman.tr"; s = open(p, encoding="utf-8").read()
+r = [("kendi.norm1.ileri(x)", 'rms_normu(x, kendi.norm1.ağırlık, epsilon: kendi.norm1.epsilon, tür: "bf16")'),
+     ("kendi.norm2.ileri(h)", 'rms_normu(h, kendi.norm2.ağırlık, epsilon: kendi.norm2.epsilon, tür: "bf16")'),
+     ("sonuç kendi.son_norm.ileri(x)", 'sonuç rms_normu(x, kendi.son_norm.ağırlık, epsilon: kendi.son_norm.epsilon, tür: "bf16")')]
+for a, b in r:
+    assert s.count(a) == 1, a
+    s = s.replace(a, b)
+open(p, "w", encoding="utf-8").write(s)
+print("kitaplık yamalandı")
+PY
+CGO_ENABLED=0 go build -trimpath -o /content/tr/tr_deney ./cmd/tr && echo "tr_deney derlendi"
+mkdir -p /content/rgn/trveri /content/rgn/ab && cd /content/rgn
+[ -f trveri/train.npy ] || python -c "import numpy as np; np.save('trveri/train.npy', np.random.default_rng(0).integers(1, 40000, size=40_000_000, dtype=np.uint16))"
+rm -f ab/*
+cat > ab/kos.sh <<'EOF'
+cd /content/rgn
+for i in 1 2; do for ad in tr tr_deney; do
+  /content/tr/$ad /content/TCB/tools/gpu/rgn512.tr --veri trveri --adım 120 --çıktı ab/${ad}_$i.json > ab/${ad}_$i.log 2>&1
+  printf "%-9s tur %s | ortanca %s ms/adım | %s\n" $ad $i $(python3 -c "import json;print(round(json.load(open('ab/${ad}_$i.json'))['measured']['median_ms'],1))") "$(grep -o 'kayıp [0-9.]*' ab/${ad}_$i.log | tail -1)" >> ab/sonuc.txt
+done; done
+echo bitti > ab/bitti
+EOF
+setsid nohup bash ab/kos.sh > /dev/null 2>&1 < /dev/null &
+echo "başladı (durum: hücre 22)"
+```
+
+### Hücre 22 · KİTAPLIK DENEYİ DURUMU · CPU
+
+```bash
+# 22 · DENEY A/B DURUMU (ANINDA BİTER, BEKLEMEZ) · CPU
+cd /content/rgn/ab 2>/dev/null || { echo "koşu yok (hücre 21)"; exit 0; }
+cat sonuc.txt 2>/dev/null
+[ -f bitti ] && echo "bitti" || echo "sürüyor: $(ls -t *.log 2>/dev/null | head -1) → $(tail -c 120 $(ls -t *.log 2>/dev/null | head -1) 2>/dev/null)"
+```
+
 ### Hücre 10 · ÇALIŞMA ZAMANINI KAPAT
 
 Python hücresi. GPU serbest bırakılır; arka plan koşuları da biter.
