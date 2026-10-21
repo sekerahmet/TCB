@@ -18,13 +18,18 @@ import (
 const embedBlock = 128
 
 // embedKernel out[r, :] = w[idx[r], :]; satır başına blok. Tablo kendi türünde (16 bitlik
-// tablo float32'ye açılmadan) okunur.
-func embedKernel(dt tensor.DType) func() *emitter {
-	return func() *emitter { return genEmbed(dt) }
+// tablo float32'ye açılmadan) okunur. at doğruysa indeks cihazdaki bir tensördendir
+// (float32 tam sayı değerli; kayıt içindeki gömme, tensor.EmbeddingAt): [0, V−1]'e kırpılır.
+func embedKernel(dt tensor.DType, at bool) func() *emitter {
+	return func() *emitter { return genEmbed(dt, at) }
 }
 
-func genEmbed(dt tensor.DType) *emitter {
-	k := newEmitter("gomme_" + dt.String())
+func genEmbed(dt tensor.DType, at bool) *emitter {
+	name := "gomme_" + dt.String()
+	if at {
+		name = "gomme_cihaz_" + dt.String()
+	}
+	k := newEmitter(name)
 	w := k.pointer("w")
 	idx := k.pointer("idx")
 	out := k.written("cikti")
@@ -32,7 +37,13 @@ func genEmbed(dt tensor.DType) *emitter {
 	r := k.special("%ctaid.x")
 	tid := k.special("%tid.x")
 	row := k.r()
-	k.e("ld.global.u32", row, mem(k.address(idx, r, 4), 0))
+	if at {
+		V := k.u32p("v")
+		k.e("cvt.rzi.s32.f32", row, k.load(tensor.Float32, k.address(idx, r, 4)))
+		k.clampIndex(row, V)
+	} else {
+		k.e("ld.global.u32", row, mem(k.address(idx, r, 4), 0))
+	}
 	source, target := k.r(), k.r()
 	k.e("mul.lo.s32", source, row, D)
 	k.e("mul.lo.s32", target, r, D)
@@ -43,6 +54,14 @@ func genEmbed(dt tensor.DType) *emitter {
 		k.store(tensor.Float32, k.address(out, hs, 4), k.load(dt, k.address(w, ks, dtypeSize(dt))))
 	})
 	return k
+}
+
+// clampIndex i'yi [0, n−1]'e kırpar (işaretli).
+func (k *emitter) clampIndex(i, n reg) {
+	last := k.r()
+	k.e("add.s32", last, n, -1)
+	k.e("max.s32", i, i, 0)
+	k.e("min.s32", i, i, last)
 }
 
 // embedBackwardKernel gw[tekil[u], :] += Σ_{p ∈ grup u} g[konum[p], :] (sırayla).

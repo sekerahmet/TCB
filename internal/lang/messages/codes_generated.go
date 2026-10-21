@@ -374,6 +374,7 @@ const (
 	H3085 Code = 3085 // {op}: sonuç tensörü {shape} şeklinde, {size} bellek ister; {place, select, gpu {bu GPU'da {limit} var} other {bu makinede {limit} var}}. Şekilleri denetleyin{hint, select, broadcast { (yayınlama beklenmedik bir boyut üretmiş olabilir)} other {}}.
 	H3086 Code = 3086 // {op}: istenen tensör {shape} şeklinde; eleman sayısı (yaklaşık {count}) tam sayı sınırını aşıyor, {size} bellek ister; {place, select, gpu {bu GPU'da {limit} var} other {bu makinede {limit} var}}. Şekilleri denetleyin{hint, select, broadcast { (yayınlama beklenmedik bir boyut üretmiş olabilir)} other {}}.
 	H3087 Code = 3087 // {op}: sonuç tensörü {shape} şeklinde; eleman sayısı (yaklaşık {count}) tam sayı sınırını aşıyor, {size} bellek ister; {place, select, gpu {bu GPU'da {limit} var} other {bu makinede {limit} var}}. Şekilleri denetleyin{hint, select, broadcast { (yayınlama beklenmedik bir boyut üretmiş olabilir)} other {}}.
+	H3088 Code = 3088 // {fn}: indeksi cihazdan okuyan işlem {device} cihazında yok
 	H3089 Code = 3089 // tensör oluşturma
 	H3090 Code = 3090 // eleman bazlı işlem
 	H3091 Code = 3091 // karşılaştırma
@@ -395,6 +396,7 @@ const (
 	H3108 Code = 3108 // kaynaştırılan fonksiyon dışarıdan bir tensör ({shape}) kullanıyor; onu argüman olarak verin
 	H3109 Code = 3109 // kaynaştırılan fonksiyonda türev isteyen {shape} şekilli girdi {out} şekline yayınlanıyor; gradyanı indirgeme gerektirdiğinden kaynaştırılamaz
 	H3110 Code = 3110 // kaynaştırılan fonksiyonda {from} → {to} yeniden şekillendirmesi kaynaştırılamaz; yalnızca boyu 1 eksen eklenip çıkarılabilir
+	H3111 Code = 3111 // {fn}: {src} şeklindeki kaynak {dst} şeklindeki hedefin {axis}. eksenindeki dilime yazılamaz (öbür eksenler aynı olmalı, eksende kaynak hedeften uzun olmamalı)
 	H4000 Code = 4000 // LoadLibraryExW bulunamadı: {error}
 	H4001 Code = 4001 // NVIDIA sürücüsü ({library}) yüklenemedi: {error}
 	H4002 Code = 4002 // bu TR derlemesinde GPU desteği yok (işletim sistemi desteklenmiyor ya da ikili GPU'suz derlendi)

@@ -171,7 +171,7 @@ func (g *backend) Embedding(out tensor.Storage, w tensor.View, idx []int, D int)
 	checkSize(wv.Numel())
 	idxD := gt.loadInt(idx)
 	dt := g.storageOf(wv.S).dtype
-	c := g.takeKernel("gomme:"+dt.String(), embedKernel(dt))
+	c := g.takeKernel("gomme:"+dt.String(), embedKernel(dt, false))
 	g.launch(c, [3]uint32{uint32(len(idx)), 1, 1}, [3]uint32{embedBlock, 1, 1},
 		g.param().readV(wv).read(idxD, 0).write(o, 0).u32(D))
 	last()

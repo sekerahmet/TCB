@@ -112,3 +112,55 @@ func catchPanic(f func()) (err error) {
 	f()
 	return nil
 }
+
+// Kayıt içinde indeksi cihazdan okuyan gömme ve dilim yazma: her oynatma indeks tensörünün o
+// anki değerini okur; sınır dışı indeks kırpılır (gömmede [0, V−1], dilimde [0, Td−Ts]).
+func TestGraphIndexedOps(t *testing.T) {
+	g := gpuBackend()
+	if !g.CaptureSupported() {
+		t.Skip("sürücü kaydı desteklemiyor")
+	}
+	rng := rand.New(rand.NewSource(42))
+	const V, D, B, Td, Ts, I = 7, 5, 2, 6, 2, 3
+	tablo := random(rng, V*D, 1)
+	w := tensor.NewOn(gpuDevice, tablo, V, D)
+	ids := tensor.NewOn(gpuDevice, []float32{0, 0}, 2)
+	pos := tensor.NewOn(gpuDevice, []float32{0}) // 0 boyutlu
+	cache := tensor.NewOn(gpuDevice, make([]float32, B*Td*I), B, Td, I)
+	src := tensor.NewOn(gpuDevice, random(rng, B*Ts*I, 1), B, Ts, I)
+	step := func() *tensor.Tensor {
+		tensor.UpdateSliceAt(cache, src, pos, 1)
+		return tensor.EmbeddingAt(w, ids)
+	}
+	step()
+	g.BeginCapture()
+	out := step()
+	gr := g.EndCapture()
+	defer gr.Release()
+	srcData := src.Data()
+	want := cache.Data() // ısınma çağrısı 0. konuma yazdı
+	for _, c := range []struct {
+		ids [2]float32
+		pos float32
+	}{{[2]float32{3, 6}, 1}, {[2]float32{-4, 99}, 9}, {[2]float32{2, 1}, 0}} {
+		ids.CopyFrom(tensor.NewOn(gpuDevice, c.ids[:], 2))
+		pos.CopyFrom(tensor.NewOn(gpuDevice, []float32{c.pos}))
+		gr.Replay()
+		got := out.Data()
+		for r, id := range c.ids {
+			row := min(max(int(id), 0), V-1)
+			for j := 0; j < D; j++ {
+				if got[r*D+j] != tablo[row*D+j] {
+					t.Fatalf("gömme indeks %v: [%d,%d] = %v, beklenen %v", id, r, j, got[r*D+j], tablo[row*D+j])
+				}
+			}
+		}
+		s := min(max(int(c.pos), 0), Td-Ts)
+		for b := 0; b < B; b++ {
+			for a := 0; a < Ts; a++ {
+				copy(want[(b*Td+s+a)*I:(b*Td+s+a+1)*I], srcData[(b*Ts+a)*I:(b*Ts+a+1)*I])
+			}
+		}
+		checkDiff(t, "dilim yazma", cache.Data(), want, 0)
+	}
+}
