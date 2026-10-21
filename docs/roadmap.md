@@ -2,7 +2,7 @@
 
 TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici için en iyi programlama dili. Model eğitimi dilin sınavıdır; ürün dilin kendisidir. Dilin en önemli yan faydası: biraz teknik bilgisi olan herkesin kendi yapay zekâ modelini kurup eğitebilmesi.
 
-Bugün TR, tek GPU'da sıfırdan model eğitmekte derlenmemiş PyTorch kadar hızlı ve daha az bellek kullanıyor; ama kendi içinde kapalı: hazır bir modeli yükleyemiyor, ince ayar yapamıyor, eğittiği modeli yaygın araçlara veremiyor. Yeni ML dillerinin (Swift for TensorFlow, Julia, Mojo, Dex, Futhark) ve Python dışı çerçevelerin (Gorgonia, GoMLX, Candle, Burn, llama.cpp) ortak dersi: kullanıcıyı dil tasarımı kazanmaz. Hazır modellere erişim, doğru gradyan, kararlı sürümler ve her gün kullanan bir iç kullanıcı kazanır. Bu yüzden sıra şudur: önce ölçüm ve doğruluk kapıları, sonra tek GPU'da bellek ve baş boyu uyumu, sonra hazır ağırlık, ince ayar ve üretim yolu. Çoklu GPU ve genel derleyici ancak bunlar yerine oturunca gelir.
+Bugün TR, tek GPU'da sıfırdan model eğitmekte derlenmemiş PyTorch kadar hızlı ve daha az bellek kullanıyor; ama kendi içinde kapalı: hazır bir modeli yükleyemiyor, ince ayar yapamıyor, eğittiği modeli yaygın araçlara veremiyor. Yeni ML dillerinin (Swift for TensorFlow, Julia, Mojo, Dex, Futhark) ve Python dışı çerçevelerin (Gorgonia, GoMLX, Candle, Burn, llama.cpp) ortak dersi: kullanıcıyı dil tasarımı kazanmaz. Hazır modellere erişim, doğru gradyan, kararlı sürümler ve her gün kullanan bir iç kullanıcı kazanır. Bu yüzden sıra şudur: önce ölçüm ve doğruluk kapıları, sonra tek GPU'da bellek ve bakış boyu uyumu, sonra hazır ağırlık, ince ayar ve üretim yolu. Çoklu GPU ve genel derleyici ancak bunlar yerine oturunca gelir.
 
 ## İlkeler
 
@@ -120,7 +120,7 @@ H4 (compile ile başa baş) süren bir hedef olarak Evre 6'ya taşındı. Kalan 
   - Çözüm: 32'den çok konumu olan satır parçalara bölünür, parçalar paralel toplanır, sonra sırayla eklenir (PyTorch `EmbeddingBackwardKernel.cu`, belirlenimci yol). CPU aynı sırayla toplar; CPU ve GPU bit düzeyinde eşittir.
   - Sonra: Zipf 163, gerçek veri 162 ms.
 - **Profil (adım başına):**
-  - çarpım 53, kopya 21 ms (dikkat başları 6, float32→bf16 5,6),
+  - çarpım 53, kopya 21 ms (dikkat bakışları 6, float32→bf16 5,6),
   - indirgeme 15, ikili işlemler 14, norm geri yönü 14, kaynaşık çekirdekler 13 ms,
   - çapraz entropi 11, dikkat 11 ms.
 
@@ -141,9 +141,9 @@ H4 (compile ile başa baş) süren bir hedef olarak Evre 6'ya taşındı. Kalan 
    - Aktivasyonların yeniden hesaplanması: Evre 4'e ertelendi.
    - Dikkatin adımlı girdi okuması: H4 işi olarak Evre 6'ya taşındı.
 3. **Rastgelelik anahtarı ve dropout.** Evre 4'e ertelendi; yeniden hesaplamanın önkoşulu.
-4. **Baş boyu uyumu. Kalan (kapanış şartı).**
-   - Tensör çekirdekli dikkatin geri yönü baş boyu 128'e: bugün en çok 64, büyüğünde SIMT yola düşer.
-   - Gizli boyuttan bağımsız baş boyu: yapıldı (2026-10-21). `NedenselDikkat`, `TransformerBloğu` ve `GPT` `baş_boyutu:` alır (Hugging Face `head_dim` kuralı: verilmezse `boyut / baş`; sorgu `[boyut, baş · baş_boyutu]`, çıkış `[baş · baş_boyutu, boyut]`).
+4. **Bakış boyu uyumu. Kalan (kapanış şartı).** (Bakış: dikkatin *head*'i; 2026-10-21'de "baş" yerine, literatürün birebir çevirisi eş sesliydi.)
+   - Tensör çekirdekli dikkatin geri yönü bakış boyu 128'e: bugün en çok 64, büyüğünde SIMT yola düşer.
+   - Gizli boyuttan bağımsız bakış boyu: yapıldı (2026-10-21). `NedenselDikkat`, `TransformerBloğu` ve `GPT` `bakış_boyutu:` alır (Hugging Face `head_dim` kuralı: verilmezse `boyut / bakış_sayısı`; sorgu `[boyut, bakış_sayısı · bakış_boyutu]`, çıkış `[bakış_sayısı · bakış_boyutu, boyut]`).
 
    Açık modellerin neredeyse hepsi 128 kullanır; Evre 4'teki hazır model yüklemenin önkoşuludur.
 5. **Hız.**
@@ -174,7 +174,7 @@ H4 (compile ile başa baş) süren bir hedef olarak Evre 6'ya taşındı. Kalan 
 - Kalite uzun koşuda da tutar: en az 0,8 milyar parça, iki tohum. Doğrulama kaybı PyTorch'la gürültü düzeyinde aynıdır.
 - Hız en çok 1,2 × `torch.compile`'dır (H3). **Sağlandı (162 / 136 ms).** Gerçek verideki ~10 ms'lik fark giderildi; gerçek veride 162 / 134 ms (1,21; compile'ın gerçek veri sayısı tek koşudan, yeniden ölçülecek).
 - Bellek en çok 1,1 × `torch.compile`'dır. **Sağlandı (10,81 / 10,8 GiB).**
-- Baş boyu 128 tensör çekirdeğiyle ileri ve geri çalışır; baş boyu gizli boyuttan bağımsızdır (**bağımsızlık sağlandı**; geri yön 128 kalan).
+- Bakış boyu 128 tensör çekirdeğiyle ileri ve geri çalışır; bakış boyu gizli boyuttan bağımsızdır (**bağımsızlık sağlandı**; geri yön 128 kalan).
 - Eğitim bir NaN'de ya da kayıp sıçramasında kendiliğinden durur ya da son kontrol noktasına döner. **Sağlandı** (`TestTargetModelRollsBackOnNaN`).
 - Ölçümler ve GPU testleri en az iki kart türünde geçer.
 
@@ -226,6 +226,7 @@ Modeli kullanan geliştiricinin ilk sorusu: "Hugging Face'teki modeli yükleyip 
    - 0.y.z sürüm numaralama.
    - Her yerleşiğe ad kodu üzerinden kararlı, beta ya da prototip etiketi; kararlı davranış prototip ya da beta bir alternatif uğruna kaldırılmaz.
    - İki adımlı kaldırma: önce uyarı (bir süre ya da iki sürüm), sonra hata. Ad kodları eski adı tutabildiği için bu TR'de ucuzdur.
+   - **Kitaplık adları için eski ad bildirimi (araştırma maddesi; gerekirse öne çekilir).** Yerleşik adlar ad kodlarıyla korunur: ad değişince eski ad (`eski`) uyarıyla çalışmaya devam eder. Kitaplıktaki (`tr/...`) yapı, fonksiyon ve parametre adlarında bu yoktur; her yeniden adlandırma kullanıcı kodunu kırar. Türkçe terimler literatürün ilk tercümesinden geldiği için değişecektir (ilk örnek 2026-10-21: dikkat "baş"ı → "bakış"). Adaylar: Swift `@available(renamed:)`, Kotlin `@Deprecated(ReplaceWith)`, Python `warnings.warn(DeprecationWarning)` ile eski parametre adını kabul etmek. Tasarımdan önce kaynaklı karşılaştırma; aracı `tr dizin yeniden_adlandır` (etki listesi) ile birlikte düşünülür.
    - Dil ve dosya biçimi dondurma kuralları; yayın ikilileri.
 
    Bugünkü "deneme dönemi, geriye uyum yok" durumu bu politikayla sınırlanır ve 1.0'da biter.
@@ -262,7 +263,7 @@ Modeli kullanan geliştiricinin ilk sorusu: "Hugging Face'teki modeli yükleyip 
 
 - **Tek GPU'da `torch.compile` ile başa baş hız (H4, ≤ 136 ms/adım hedef modelde; Evre 3'ten taşındı).** Ölçümün gösterdiği sırayla, her adım önce ve sonra ölçülür:
   - norm geri yönünün kaynaştırılması (bugün adımda ~14 ms);
-  - dikkatin adımlı girdi ve çıktı okuması (başlara ayırma kopyaları, ~6 ms);
+  - dikkatin adımlı girdi ve çıktı okuması (bakışlara ayırma kopyaları, ~6 ms);
   - kalan float32→bf16 dönüşümleri (~5,6 ms);
   - indirgemeler (~15 ms) ve cuBLASLt eplogları (sapma, GELU, sapma gradyanı).
 - **Uzun eğitimin gözlemlenebilirliği:** parametre normu, katman başına etkinleşme RMS'i, en büyük logit ya da log Z, fp16'da kayıp ölçeği, MFU; z-loss, "N toplu işi atla", devamda öğrenme oranı ölçeği; eşzamansız kontrol noktası (Colab'da asıl arıza oturumun kesilmesidir).
@@ -344,7 +345,7 @@ Kararlar bu soruların yanıtıyla gözden geçirilir; ilk ikisi TR'nin kendi ö
 - Tensör çekirdeği: AVX2/FMA matris çarpımı (çalışma anında seçilir), ters yönlü otomatik türev, kalıcı işçi havuzu.
 - Veri hattı: `.npy` parçaları, önden yükleme, önbellek; genel `tokenizer.json` parçalayıcısı.
 - bf16/fp16 veri türleri ve `karışık_hassasiyet` bloğu; 16 bitlik ara gradyanlar kendi türünde, float32 ağırlığın gradyanı yuvarlanmadan.
-- GPU arka ucu: Go'nun ürettiği GPU kodu, bütün tensör işlemleri ve gradyanları, tensör çekirdekli dikkat (ileri ve geri, baş boyu 64'e kadar), cuBLASLt ile bf16 matris çarpımı, çok tensörlü iyileştirici adımları, kontrol noktası ve gradyan kırpma cihazda.
+- GPU arka ucu: Go'nun ürettiği GPU kodu, bütün tensör işlemleri ve gradyanları, tensör çekirdekli dikkat (ileri ve geri, bakış boyu 64'e kadar), cuBLASLt ile bf16 matris çarpımı, çok tensörlü iyileştirici adımları, kontrol noktası ve gradyan kırpma cihazda.
 - Kodlar: dilin bütün adları sabit kodlara bağlı (`internal/lang/codes`); açıklamalı başvuru `docs/codes.md`; kodlu saklama (`tr kodla`, `tr çöz`, `tr göster`) ve VS Code izdüşümü; İngilizce yazım dili.
 - Tek yazım: Türkçe harfsiz biçimler, eş yazımlar ve İngilizce eşler kaldırıldı; yerleşik ad gölgeleme uyarısı.
 - Matematik ve model yapı taşları: genişletilmiş eleman bazlı matematik, birleşik `dikkat`, `örnekle`, `parametreler(model)`, `türev_denetle`; Transformer kitaplığı (`tr/katman`: Doğrusal, RMSNorm, RoPE, gruplu sorgu dikkati, SwiGLU, GPT).
