@@ -74,3 +74,26 @@ func TestLargeBlocksReuseAndReclaim(t *testing.T) {
 	}
 	g.release(d)
 }
+
+// Küçük blok ayırmada sürücü errNoMemory döndürdüğünde reclaimMemory çöp toplayıcıyla
+// havuza dönen bloğu al() ile alırsa (live += class), driverAlloc üstüne bir de
+// newBlock(class) çağırarak live, reserved ve driverAllocs sayaçlarını iki kez artırır.
+func TestAuditSmallReclaimFromPoolCorruptsMemoryStats(t *testing.T) {
+	const total = 1 << 20 // 1 MB
+	const half = 1 << 19  // 512 KB (<= smallLimit)
+	g := newSimBackend(total)
+	g.enter()
+	defer g.exit()
+	a := g.allocate(half/4, tensor.Float32, false)
+	func() {
+		_ = g.allocate(half/4, tensor.Float32, false) // çöp toplayıcıyla havuza dönecek
+	}()
+	c := g.allocate(half/4, tensor.Float32, false)
+	g.release(a)
+	g.release(c)
+	if m := g.pool.measurement(); m.Live != 0 || m.Reserved > total {
+		t.Fatalf("reclaimMemory sonrası havuz sayaçları bozuldu: Live=%d (0 beklenirdi), Reserved=%d (en çok %d beklenirdi)",
+			m.Live, m.Reserved, total)
+	}
+}
+
