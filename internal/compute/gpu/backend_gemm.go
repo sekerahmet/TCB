@@ -95,7 +95,9 @@ func (g *backend) gemv(batch, N, K int, a tensor.View, b tensor.View, transB boo
 
 // pickGemv devrik olmayan tek satırlık çarpımın ayarı: blok önce 32 sütun (satır başına 128
 // bayt) okur; bloklar SM sayısının iki katını doldurmuyorsa sütun sayısı 8'e kadar
-// yarılanır (satır başına en az bir 32 baytlık kesim).
+// yarılanır (satır başına en az bir 32 baytlık kesim). Blokta 512 iş parçacığı: ölçüm (RTX PRO
+// 6000, SmolLM2 ve Qwen3 boyları) 256 ve 128'den hızlı ya da eşit (1536×576: 4,1 / 6,2 /
+// 12,3 µs), kitaplıktan hızlı ya da eşit.
 func (g *backend) pickGemv(batch, N, vw int) gemvConfig {
 	if a := g.gemvConst; a != nil {
 		if a.L < 1 || a.L > 32 || a.L&(a.L-1) != 0 || a.T < 32 || a.T > 1024 || a.T%32 != 0 {
@@ -108,7 +110,7 @@ func (g *backend) pickGemv(batch, N, vw int) gemvConfig {
 	for L*vw > 8 && int(blocks(N, L*vw))*batch < 2*max(sm, 1) {
 		L /= 2
 	}
-	return gemvConfig{L: L, T: 256}
+	return gemvConfig{L: L, T: 512}
 }
 
 // Gemm (Backend) her toplu eleman için C += op(A)·op(B).
