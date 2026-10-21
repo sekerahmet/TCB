@@ -195,10 +195,15 @@ Modeli kullanan geliştiricinin ilk sorusu: "Hugging Face'teki modeli yükleyip 
 - **VS Code dil sunucusu** `tr` programının içinde (ayrıştırıcı, tip denetleyicisi ve kod listesi yeniden kullanılır):
   - yazarken hata gösterimi, tek tıkla düzeltme;
   - üzerine gelince belge, adlı argüman ipuçları, tamamlama;
-  - tanıma git, kullanımları bul, yeniden adlandır;
+  - tanıma git (Ctrl+tık ya da çift tıkla başka dosyadaki tanıma ve `aktar "..."` satırından modül dosyasına), kullanımları bul, yeniden adlandır;
   - anlamsal renklendirme;
   - test gezgini ve satır üstünde çalıştır ya da hata ayıkla düğmeleri;
   - tensör şekillerinin satır içinde gösterimi, eğitimi canlı izleyen panel.
+- **Hata ayıklayıcı (DAP).** Kullanıcı dili çoğunlukla düzenleyici ve hata ayıklayıcı üzerinden yaşar.
+  - **Öne alınanlar (bilinen hatalar, evre beklemeden):** F5'te `girdi()` (Debug Console ya da tümleşik terminal üzerinden girdi kanalı); `kesme_noktası` deyiminin kendi satırında durması (bugün bir sonraki deyimde duruyor); `aktar` ile yüklenen modüllerde kesme noktası.
+  - Koşullu kesme noktası, isabet sayılı kesme noktası, iz noktası (durmadan yazdıran); hata fırlatılınca durma.
+  - Çağrı yığınında modüller arası gezinme; tensörlerde şekil, tür, cihaz, NaN/Inf sayısı ve gradyan özeti; eğitimde "kayıp NaN olunca dur".
+  - Bitiş ölçütü: örneklerin hata ayıklama alıştırmaları (42, 43) VS Code'da elle ve otomatik sınamada (DAP sürüşüyle) baştan sona çalışır.
 - **İzleme Masası:** Devam düğmesi; gradyan ve tensör özeti.
 - **Transformer kitaplığı:** kitaplık adlarının yazım dillerinde çevirisi, hazır eğitim döngüsü, iyileştiricide sonradan değiştirilebilen öğrenme oranı.
 - **Kodlu saklama:** otomatik sınamanın kodlu biçimi denetlemesi; depodaki örneklerin ve testlerin kodlu biçime çevrilmesi.
