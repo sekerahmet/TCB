@@ -32,6 +32,13 @@ func (s *dapServer) launch(msg *dapMessage) {
 		s.respondErr(msg, messages.Text(messages.H8120))
 		return
 	}
+	s.mu.Lock()
+	running := s.started || s.machine != nil
+	s.mu.Unlock()
+	if running {
+		s.respondErr(msg, messages.Text(messages.H8127))
+		return
+	}
 	// Çalışma klasörü önce: göreli program yolu onun içinde çözülür (düzenleyicinin 'cwd'si).
 	if a.Cwd != "" {
 		_ = os.Chdir(a.Cwd)
@@ -79,12 +86,16 @@ func (s *dapServer) launch(msg *dapMessage) {
 			dbg.pauseKind = "entry"
 		}
 		machine.Debugger = dbg
+		s.mu.Lock()
 		s.dbg = dbg
+		s.mu.Unlock()
 	}
+	s.mu.Lock()
 	s.machine = machine
 	s.prog = prog
 	s.programPath = path
 	s.viewURI = a.ViewURI
+	s.mu.Unlock()
 	s.respond(msg, nil)
 }
 func (s *dapServer) start() {

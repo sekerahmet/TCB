@@ -452,3 +452,36 @@ func TestTableData(t *testing.T) {
 		t.Fatal("sayı için tablo hatası bekleniyordu")
 	}
 }
+
+// Kural: oturum başladıktan sonra ikinci 'launch' reddedilir (success: false); çalışan makine
+// ve hata ayıklayıcı yerinde kalır. Neden: launch durum alanlarını çalışan VM'in altından
+// değiştirirdi (veri yarışı, asılı kalan ilk oturum).
+func TestDAPSecondLaunchIsRejectedWhileSessionRuns(t *testing.T) {
+	dir := t.TempDir()
+	progPath := filepath.Join(dir, "ana.tr")
+	if err := os.WriteFile(progPath, []byte("değişken a = 1\ndeğişken b = 2\nyazdır(a + b)\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	c := startDAP(t)
+	c.request("initialize", map[string]any{})
+	c.request("launch", map[string]any{"program": progPath, "stopOnEntry": true})
+	c.event("initialized")
+	c.request("configurationDone", map[string]any{})
+	c.event("stopped")
+	seq := c.send("launch", map[string]any{"program": progPath})
+	resp := c.next(func(m map[string]interface{}) bool {
+		return m["type"] == "response" && int(m["request_seq"].(float64)) == seq
+	}, "ikinci launch yanıtı")
+	if resp["success"] == true {
+		t.Fatal("çalışan oturum sırasında ikinci launch kabul edildi")
+	}
+}
+
+// Kural: başlık satırı dapMaxHeaderLine ile sınırlıdır; satır sonu gelmeyen akış hata verir,
+// bellek ayırmaya devam etmez. Neden: gövde sınırı (64 MB) başlık satırını kapsamıyordu.
+func TestDAPHeaderLineIsBounded(t *testing.T) {
+	s := newDAPServer(strings.NewReader(strings.Repeat("x", 4*dapMaxHeaderLine)), io.Discard)
+	if _, err := s.readMessage(); !messages.Has(err, messages.H8108) {
+		t.Fatalf("sınırsız başlık satırı reddedilmedi: %v", err)
+	}
+}

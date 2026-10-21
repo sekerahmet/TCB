@@ -1321,6 +1321,7 @@ const (
 	H8105 Code = 8105 // İzleme noktalarını değiştirmek için önce programı duraklatın
 	H8106 Code = 8106 // Program şu an çalışıyor; değerleri görmek için duraklatın
 	H8107 Code = 8107 // Desteklenmeyen istek: {command}
+	H8108 Code = 8108 // DAP başlık satırı çok uzun (en fazla {limit} bayt)
 	H8110 Code = 8110 // Yalnızca hata ayıklanan dosyada kesme noktası konabilir
 	H8111 Code = 8111 // Kesme noktası koşulu hatalı (satır {line}): {error}
 	H8112 Code = 8112 // tek bir ifade bekleniyordu: {expr}
@@ -1333,6 +1334,7 @@ const (
 	H8124 Code = 8124 // {file} içinde hata var; ayrıntılar hata ayıklama konsolunda
 	H8125 Code = 8125 // Programın başında durdu
 	H8126 Code = 8126 // Çalışma Zamanı Hatası:
+	H8127 Code = 8127 // Bu oturumda program zaten başlatıldı; yeniden başlatmak için hata ayıklamayı durdurup yeniden başlatın
 	H8130 Code = 8130 // Geçersiz hedef satır
 	H8131 Code = 8131 // Satır {line}
 	H8132 Code = 8132 // Satır {line} şu an çalışan bloğun dışında; yalnızca bulunulan bloğun ({a}, {b} ya da {c} gövdesinin) satırlarına zıplanabilir

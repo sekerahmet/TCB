@@ -117,10 +117,30 @@ func newDAPServer(in io.Reader, out io.Writer) *dapServer {
 // kötü niyetli bir Content-Length bellek tüketmesin.
 const dapMaxMessage = 64 << 20
 
+// dapMaxHeaderLine bir başlık satırının en fazla bayt sayısıdır (satır sonu gelmeyen akış
+// sınırsız bellek ayırmasın).
+const dapMaxHeaderLine = 8 << 10
+
+// readHeaderLine bir başlık satırını dapMaxHeaderLine ile sınırlı okur.
+func (s *dapServer) readHeaderLine() (string, error) {
+	var line []byte
+	for {
+		part, err := s.in.ReadSlice('\n')
+		line = append(line, part...)
+		if len(line) > dapMaxHeaderLine {
+			return "", messages.New(messages.H8108, dapMaxHeaderLine)
+		}
+		if err == bufio.ErrBufferFull {
+			continue
+		}
+		return string(line), err
+	}
+}
+
 func (s *dapServer) readMessage() (*dapMessage, error) {
 	length := -1
 	for {
-		line, err := s.in.ReadString('\n')
+		line, err := s.readHeaderLine()
 		if err != nil {
 			return nil, err
 		}
