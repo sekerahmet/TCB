@@ -179,6 +179,7 @@
   "T301": { "ad": "no_grad" },
   "T310": { "ad": "custom_grad" },
   "T311": { "ad": "grad_check" },
+  "T312": { "ad": "fuse" },
   "T400": { "ad": "AdamW" },
   "T401": { "ad": "SGD" },
   "T402": { "ad": "clip_grad" },

@@ -162,6 +162,32 @@ test "15.44 tensör belleğinin ömrü: bırakılan ara sonuçlar sonucu değiş
     eşit_mi([3.0], l[1].değer)
 }
 
+test "15.45 kaynaştır: zincir tek geçişte, sonuç ve gradyan kaynaşmamışla aynı" {
+    fonksiyon döner(x, kos, sin, ölçek) {
+        değişken a, b = x.böl(2, eksen: -1)
+        sonuç birleştir([a * kos - b * sin, (a * sin + b * kos) * ölçek], eksen: -1)
+    }
+    değişken k = kaynaştır(döner)
+    değişken x1 = tensör(rastgele_normal([3, 4], tohum: 1), türev_izle: doğru)
+    değişken x2 = tensör(x1, türev_izle: doğru)
+    değişken kos = rastgele_normal([3, 2], tohum: 2)
+    değişken sin = rastgele_normal([3, 2], tohum: 3)
+    değişken y1 = k(x1, kos, sin, 2.0)
+    değişken y2 = döner(x2, kos, sin, 2.0)
+    eşit_mi(y2.değer, y1.değer)
+    geri_yayılım(toplam(y1 * y1))
+    geri_yayılım(toplam(y2 * y2))
+    doğrula(maks(mutlak(x1.gradyan - x2.gradyan)).değer < 0.00001, "gradyan farklı")
+    // Sabit önbellek anahtarının parçasıdır; liste döndüren fonksiyon liste verir.
+    eşit_mi([3.0], kaynaştır((a, s) => a * s)(tensör([1.0]), 3.0).değer)
+    eşit_mi(2, kaynaştır((a) => [a + 1.0, a * 2.0])(tensör([1.0])).uzunluk)
+    // Kaynaştırılamayan işlem ve dış tensör hata verir.
+    değişken dış = tensör([1.0])
+    doğrula(hata_metni(() => kaynaştır((a) => toplam(a))(tensör([1.0]))).içerir("kaynaştırılamayan"))
+    doğrula(hata_metni(() => kaynaştır((a) => a + dış)(tensör([1.0]))).içerir("dışarıdan"))
+    doğrula(hata_metni(() => kaynaştır(3)).içerir("fonksiyon"))
+}
+
 test "15.43 doğrusal_çapraz_entropi: çapraz_entropi(girdi @ ağırlık) ile aynı kayıp ve gradyanlar" {
     değişken x = tensör(rastgele_normal([6, 4], tohum: 1), türev_izle: doğru)
     değişken w = tensör(rastgele_normal([4, 5], tohum: 2), türev_izle: doğru)

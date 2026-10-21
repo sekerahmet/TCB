@@ -187,6 +187,7 @@ const (
 	T301 Code = T + 301 // no_grad · türevsiz
 	T310 Code = T + 310 // custom_grad · özel_türev
 	T311 Code = T + 311 // grad_check · türev_denetle
+	T312 Code = T + 312 // fuse · kaynaştır
 	T400 Code = T + 400 // AdamW
 	T401 Code = T + 401 // SGD
 	T402 Code = T + 402 // clip_grad · gradyan_kırp

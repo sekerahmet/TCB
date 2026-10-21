@@ -36,6 +36,7 @@ func Register(v *interp.VM) {
 	wrap(v, codes.T300, newBuiltin(backpropagation))
 	wrap(v, codes.T301, newBuiltin(noGrad))
 	registerCustomGrad(v) // özel_türev, türev_denetle (ozel_turev.go)
+	registerFuse(v)       // kaynaştır (builtin_fuse.go)
 
 	// --- Veri türleri (veri_turu.go) ---
 	wrap(v, codes.T710, newBuiltin(mixedPrecision))
@@ -159,6 +160,7 @@ var retaining = map[codes.Code]bool{
 	codes.T301: true, // türevsiz
 	codes.T310: true, // özel_türev: ileri ve geri fonksiyonlarını saklar
 	codes.T311: true, // türev_denetle
+	codes.T312: true, // kaynaştır: fonksiyonu saklar
 	codes.T400: true, // AdamW: parametre listesini saklar
 	codes.T401: true, // SGD
 	codes.T710: true, // karışık_hassasiyet: blok

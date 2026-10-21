@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir.
 
-Toplam 294 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 100 fonksiyon, 1 sabit, 38 metot, 21 özellik, 40 adlı argüman; ayrıca 9 taşınmış ve 65 kaldırılmış kod (numaraları bir daha kullanılmaz).
+Toplam 295 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 101 fonksiyon, 1 sabit, 38 metot, 21 özellik, 40 adlı argüman; ayrıca 9 taşınmış ve 65 kaldırılmış kod (numaraları bir daha kullanılmaz).
 
 ## İçindekiler
 
@@ -1911,6 +1911,18 @@ yazdır(türev_denetle(fonksiyon(x) { sonuç x * x }, [tensör([0.5, -1.0], tür
 
 İlişkili: T310 `özel_türev`
 
+#### T312 `kaynaştır`
+
+    kaynaştır(Fonksiyon | YerleşikFonksiyon) → YerleşikFonksiyon
+
+Eleman bazlı tensör işlemlerinden oluşan bir fonksiyonu kaynaştırır ve aynı şeyi hesaplayan bir fonksiyon döndürür: her çağrıda zincirin tamamı tek geçişte (GPU'da tek çekirdekte) hesaplanır, ara sonuçlar belleğe yazılmaz; geri yayılım ara değerleri saklamadan girdilerden yeniden hesaplar. Sonuç kaynaşmamış hesapla aynıdır. Fonksiyon eleman bazlı işlemleri, dilimi, .böl'ü, birleştir'i, boyu 1 eksen ekleyip çıkarmayı ve tür dönüşümünü kullanabilir; argümanları tensördür.
+
+```tr
+değişken f = kaynaştır((a, b) => a * b + a); yazdır(f(tensör([1.0, 2.0]), tensör([3.0, 4.0])).değer)
+```
+
+İlişkili: T310 `özel_türev`
+
 ### İyileştiriciler (T4xx)
 
 #### T400 `AdamW`
@@ -3514,4 +3526,4 @@ Kaldırıldı: 'html_üret' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 `x |> f(a)` ≡ `f(x, a)` (bkz. `docs/spec/04_operatorler.md` 4.9). Boru yalnızca fonksiyonlarla çalışır; metotlar `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 } |> toplam`). Borudaki değeri ilk konumlu argüman olarak alabilen yerleşik fonksiyonlar (kullanıcı fonksiyonları da kullanılabilir):
 
-`yazdır`, `girdi`, `dosya_oku`, `dosya_yaz`, `dosya_satırları`, `yol`, `klasörü_listele`, `klasör_oluştur`, `sil`, `kopyala`, `taşı`, `tip`, `tam`, `ondalık`, `metin`, `aralık`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `taban`, `tavan`, `işaret`, `sınırla`, `ortalama`, `standart_sapma`, `ortanca`, `bekle`, `json_çöz`, `json_metin`, `csv_oku`, `csv_çöz`, `doğrula`, `eşit_mi`, `ortam_değişkeni`, `komut_satırı`, `günlük`, `ilerleme`, `tensör`, `sıfırlar`, `birler`, `rastgele_normal`, `birim_matris`, `birleştir`, `relu`, `sigmoid`, `tanh`, `gelu`, `silu`, `softmax`, `log_softmax`, `üstel`, `log`, `sinüs`, `kosinüs`, `tanjant`, `arksinüs`, `arkkosinüs`, `arktanjant`, `arktanjant2`, `maks_indeks`, `birikimli_toplam`, `en_büyük_k`, `sıralama_indeksi`, `koşullu`, `sinh`, `cosh`, `log1p`, `log2`, `log10`, `üstel_eksi_bir`, `geri_yayılım`, `türevsiz`, `türev_denetle`, `AdamW`, `SGD`, `gradyan_kırp`, `gömme`, `katman_normu`, `rms_normu`, `dikkat`, `çapraz_entropi`, `doğrusal_çapraz_entropi`, `parametreler`, `örnekle`, `tensör_kaydet`, `tensör_yükle`, `kontrol_noktası`, `parametreleri_yükle`, `karışık_hassasiyet`, `varsayılan_cihaz`, `veri_kümesi`, `parçalayıcı_yükle`
+`yazdır`, `girdi`, `dosya_oku`, `dosya_yaz`, `dosya_satırları`, `yol`, `klasörü_listele`, `klasör_oluştur`, `sil`, `kopyala`, `taşı`, `tip`, `tam`, `ondalık`, `metin`, `aralık`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `taban`, `tavan`, `işaret`, `sınırla`, `ortalama`, `standart_sapma`, `ortanca`, `bekle`, `json_çöz`, `json_metin`, `csv_oku`, `csv_çöz`, `doğrula`, `eşit_mi`, `ortam_değişkeni`, `komut_satırı`, `günlük`, `ilerleme`, `tensör`, `sıfırlar`, `birler`, `rastgele_normal`, `birim_matris`, `birleştir`, `relu`, `sigmoid`, `tanh`, `gelu`, `silu`, `softmax`, `log_softmax`, `üstel`, `log`, `sinüs`, `kosinüs`, `tanjant`, `arksinüs`, `arkkosinüs`, `arktanjant`, `arktanjant2`, `maks_indeks`, `birikimli_toplam`, `en_büyük_k`, `sıralama_indeksi`, `koşullu`, `sinh`, `cosh`, `log1p`, `log2`, `log10`, `üstel_eksi_bir`, `geri_yayılım`, `türevsiz`, `türev_denetle`, `kaynaştır`, `AdamW`, `SGD`, `gradyan_kırp`, `gömme`, `katman_normu`, `rms_normu`, `dikkat`, `çapraz_entropi`, `doğrusal_çapraz_entropi`, `parametreler`, `örnekle`, `tensör_kaydet`, `tensör_yükle`, `kontrol_noktası`, `parametreleri_yükle`, `karışık_hassasiyet`, `varsayılan_cihaz`, `veri_kümesi`, `parçalayıcı_yükle`
