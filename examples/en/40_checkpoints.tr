@@ -17,7 +17,7 @@ A030 config = G801({Y500: 200, run: "runs/checkpoint_example", every_minutes: 5.
     G910: "Trains a small language model with checkpoints; if interrupted the same command resumes",
     G911: {Y500: "total training steps", run: "run folder (settings, log, weights, checkpoints)",
         every_minutes: "checkpoint interval (minutes)"})
-A030 RUN = config.run
+A031 RUN = config.run
 
 // --- Data and model (the small model of examples/en/39_training_with_data.tr) ---
 A030 p = V200("../../tests/data/tokenizer.json")

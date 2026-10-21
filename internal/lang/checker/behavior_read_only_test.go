@@ -20,6 +20,7 @@ var allowedImports = map[string]string{
 	"sync":    "ortak tabloların bir kez kurulması",
 	"slices":  "dilim işlemleri",
 	"maps":    "harita işlemleri",
+	"unicode": "ad yazılışı denetimi (harf sınıfları, Türkçe büyük/küçük harf)",
 }
 
 const langPrefix = "github.com/sekerahmet/TCB/internal/lang/"

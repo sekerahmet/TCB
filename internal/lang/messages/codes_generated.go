@@ -70,6 +70,10 @@ const (
 	H1009 Code = 1009 // '{name}' yerleşik bir ad; bu kapsamda yerleşik '{name}' artık kullanılamaz
 	H1010 Code = 1010 // Tanımsız ad — {detail}
 	H1011 Code = 1011 // Etkisiz ifade — satır başındaki '-' önceki satırı sürdürmez; bu satır yalnızca bir değer hesaplar ve kullanmaz. Önceki ifadeye eklemek için işleci önceki satırın sonuna yazın ya da ifadeyi parantez içine alın
+	H1012 Code = 1012 // Ad yazılışı — değişken, fonksiyon, parametre, alan ve metot adları küçük harfle, sözcükleri alt çizgiyle ayrılarak yazılır: {name|q} yerine {suggestion|q} (bkz. 2.3b)
+	H1013 Code = 1013 // Ad yazılışı — sabitler büyük harfle, sözcükleri alt çizgiyle ayrılarak yazılır: {name|q} yerine {suggestion|q} (bkz. 2.3b)
+	H1014 Code = 1014 // Ad yazılışı — yapı adları büyük harfle başlar, sözcükler alt çizgisiz ve her biri büyük harfle yazılır: {name|q} yerine {suggestion|q} (bkz. 2.3b)
+	H1015 Code = 1015 // Ad yazılışı — {name|q} büyük harfle yazılmış bir değişken; değeri değişmiyorsa {keyword|q} ile tanımlayın, değişiyorsa {suggestion|q} yazın (bkz. 2.3b)
 	H1100 Code = 1100 // '{name}' TR'den kaldırıldı
 	H1101 Code = 1101 //  ('{name}' TR'de yok; '{canonical}' yazmak mı istediniz?)
 	H1102 Code = 1102 // '{name}(...)' TR'de bir fonksiyon değil; '{spelling}' yazın

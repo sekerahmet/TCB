@@ -2,7 +2,7 @@
 
 Programı çalıştırmadan önce okuyup hataları bulan denetçi. Bulduğu şeyler: tip uyuşmazlıkları
 (tanım, atama, dönüş değeri, çağrı argümanı), sabite atama, tanımsız adlar, yerleşik adların
-gölgelenmesi ve tip değerinin metinle karşılaştırılması (`tip(x) == "Tam"`).
+gölgelenmesi, ad yazılışı ve tip değerinin metinle karşılaştırılması (`tip(x) == "Tam"`).
 
 `tr kontrol` komutunda, her program çalışmadan önce ve her modül yüklenmeden önce çalışır.
 Kodlu biçime çevirici de bir sözcüğün dilin mi kullanıcının mı olduğunu buradan öğrenir.
@@ -13,6 +13,12 @@ Kodlu biçime çevirici de bir sözcüğün dilin mi kullanıcının mı olduğu
 
 **Hata ile uyarı ayrıdır.** Hata programın çalışmasını durdurur. Uyarı (ör. yerleşik adın
 gölgelenmesi) durdurmaz ve çıkış kodunu etkilemez. Denetim: `TestBuiltinShadowingWarning`.
+
+**Ad yazılışı uyarıdır (2.3b).** Sabitler `BÜYÜK_YILAN`, yapılar `BüyükDeve`, öbür adlar
+`küçük_yılan`; matematik adları (en çok üç harf ve rakam: `W`, `dW`, `Wq`) muaftır. Uyarı önerilen
+yazımı verir. Depodaki örnekler ve testler uyarısız, kitaplık ve GPU araçları yazılış uyarısızdır.
+Denetim: `TestNameStyleWarnings`, `TestNameStyleAcceptsConventionalAndMathNames`,
+`TestLibraryFollowsNameStyle`, `TestExamplesCheckWithoutErrors`.
 
 **Yanlış alarm vermez.** Emin olamadığında susar: adların tamamı bilinemiyorsa (ör. takma adsız
 bir `aktar` varsa) tanımsız ad hatası verilmez. Çalışacak bir programı haksız yere durdurmak, bir

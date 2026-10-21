@@ -96,6 +96,7 @@ func (c *Checker) functionBody(e *ast.FunctionLiteral, retType string) {
 	}
 	for _, p := range e.Parameters {
 		c.checkShadowing(p.Name, e.Line())
+		c.checkNameStyle(p.Name, kindValue, e.Line())
 		c.scope.Define(p.Name, TypeInfo{TypeName: normalizeTypeName(p.TypeName)})
 	}
 	for _, p := range e.Parameters {

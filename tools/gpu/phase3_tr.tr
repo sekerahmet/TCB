@@ -15,12 +15,12 @@ değişken D = c["D"]
 değişken H = c["H"]
 değişken Dh = D / H
 değişken FF = c["FF"]
-değişken KATMAN = c["LAYERS"]
+sabit KATMAN = c["LAYERS"]
 değişken V = c["V"]
-değişken HASSASIYET = c["precision"]
-değişken ISINMA = c["warmup"]
-değişken ÖLÇÜLEN = c["measured"]
-değişken KAYIP_ADIM = c["loss_steps"]
+sabit HASSASIYET = c["precision"]
+sabit ISINMA = c["warmup"]
+sabit ÖLÇÜLEN = c["measured"]
+sabit KAYIP_ADIM = c["loss_steps"]
 
 // Sabit sentetik toplu işler (phase3_torch.py ile aynı formül).
 değişken sentetik = []

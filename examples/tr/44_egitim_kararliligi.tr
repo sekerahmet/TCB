@@ -41,11 +41,11 @@ op.sıfırla() // bozuk gradyanlar silinir, model değişmedi
 
 // --- Eğitim: her 10 adımda bir kontrol noktası, bekçi her adımı izler ---
 // Koşu klasörü her çalıştırmada silinir: örnek her seferinde baştan başlar.
-değişken KOŞU = yol("runs/kararlilik_ornegi")
+sabit KOŞU = yol("runs/kararlilik_ornegi")
 eğer KOŞU.var_mı { sil(KOŞU, içindekilerle: doğru) }
 değişken kn = kontrol_noktası(KOŞU, {model: model, op: op, ö: ö}, her_dakika: 0)
 değişken bekçi = SıçramaBekçisi(pencere: 20, eşik: 6.0)
-değişken TOPLAM = 60
+sabit TOPLAM = 60
 değişken bozulacak_adım = 35 // bu adımda kayıp bilerek bir kez NaN olur
 değişken adım = 0
 döngü adım < TOPLAM {

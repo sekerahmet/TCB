@@ -42,11 +42,11 @@ opt.Y501() // the broken gradients are cleared, the model did not change
 
 // --- Training: a checkpoint every 10 steps, the watcher looks at every step ---
 // The run folder is deleted on every run: the example always starts from scratch.
-A030 RUN = G120("runs/stability_example")
+A031 RUN = G120("runs/stability_example")
 A001 RUN.Y315 { G123(RUN, G901: A040) }
 A030 ckpt = T702(RUN, {model: model, opt: opt, batches: batches}, T984: 0)
 A030 watcher = SıçramaBekçisi(pencere: 20, eşik: 6.0)
-A030 TOTAL = 60
+A031 TOTAL = 60
 A030 broken_step = 35 // the loss turns NaN once, on purpose, at this step
 A030 step = 0
 A010 step < TOTAL {

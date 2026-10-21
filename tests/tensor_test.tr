@@ -130,7 +130,7 @@ test "15.42 gelu: varsayılan tanh yaklaşımı, yaklaşık: yanlış tam (erf) 
 
 // 15.44: bırakma görünmezdir; ara sonuçlar, yereller ve kaydedilenler bırakılsa da dönen,
 // görünümü alınan, kaçan ve geri yayılımın okuyacağı değerler doğru kalır.
-yapı Önbellek15_44 {
+yapı ÖnbellekSınaması {
     t
 }
 fonksiyon döndür15_44(x) {
@@ -155,7 +155,7 @@ test "15.44 tensör belleğinin ömrü: bırakılan ara sonuçlar sonucu değiş
     eşit_mi([[10.0, 20.0, 30.0, 40.0]], x.gradyan.değer)
     eşit_mi([[1.0, 3.0], [2.0, 4.0]], görünüm15_44().değer)
     eşit_mi(11.0, kapanış15_44()())
-    değişken ö = Önbellek15_44(yok)
+    değişken ö = ÖnbellekSınaması(yok)
     döngü i içinde 0..3 { ö.t = tensör([i * 1.0]) * 2.0 }
     eşit_mi([4.0], ö.t.değer)
     değişken l = [tensör([1.0]) + 1.0, tensör([2.0]) + 1.0]

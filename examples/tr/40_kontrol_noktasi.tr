@@ -16,7 +16,7 @@ değişken ayar = komut_satırı({adım: 200, koşu: "runs/kontrol_noktasi_orneg
     açıklama: "Küçük bir dil modelini kontrol noktasıyla eğitir; kesilirse aynı komutla sürer",
     açıklamalar: {adım: "toplam eğitim adımı", koşu: "koşu klasörü (ayarlar, günlük, ağırlıklar, kontrol noktaları)",
         her_dakika: "kontrol noktası aralığı (dakika)"})
-değişken KOŞU = ayar.koşu
+sabit KOŞU = ayar.koşu
 
 // --- Veri ve model (examples/tr/39_veri_ile_egitim.tr'deki küçük model) ---
 değişken p = parçalayıcı_yükle("../../tests/data/tokenizer.json")

@@ -6,9 +6,9 @@
 //
 // Varsayılan olarak depodaki sentetik test verisini (tests/data) kullanır. Kendi
 // verinizle çalıştırmak için aşağıdaki üç yolu kendi dosyalarınıza çevirin, ör.:
-//     değişken PARÇALAYICI_YOLU = "D:/veri/tokenizer.json"
-//     değişken VERİ_YOLU = "D:/veri/train"          // .npy veri dosyalarının klasörü
-//     değişken DOĞRULAMA_YOLU = "D:/veri/valid"
+//     sabit PARÇALAYICI_YOLU = "D:/veri/tokenizer.json"
+//     sabit VERİ_YOLU = "D:/veri/train"          // .npy veri dosyalarının klasörü
+//     sabit DOĞRULAMA_YOLU = "D:/veri/valid"
 // Veri dosyaları standart .npy biçiminde parça kimliği dosyalarıdır (tek boyutlu uint16/uint32/int32 diziler); meta.json
 // varsa veri dosyalarının parça sayıları oradan okunur. Veri yavaş bir sürücüdeyse (ağ ya da bulut)
 // yerel önbellek kullanın: veri_kümesi(VERİ_YOLU, önbellek: "onbellek/veri", kota_gb: 20)
@@ -18,19 +18,19 @@
 //     tr examples/tr/39_veri_ile_egitim.tr --adım 500 --günlük_dosyası kayit/egitim.jsonl
 //     tr examples/tr/39_veri_ile_egitim.tr --yardım
 
-değişken PARÇALAYICI_YOLU = "../../tests/data/tokenizer.json"
-değişken VERİ_YOLU = "../../tests/data/text"
-değişken DOĞRULAMA_YOLU = "../../tests/data/text"
+sabit PARÇALAYICI_YOLU = "../../tests/data/tokenizer.json"
+sabit VERİ_YOLU = "../../tests/data/text"
+sabit DOĞRULAMA_YOLU = "../../tests/data/text"
 
 değişken ayar = komut_satırı({adım: 150, toplu: 8, bağlam: 32, öğrenme_oranı: 0.01, günlük_dosyası: yok},
     açıklama: "Sentetik metin verisiyle küçük bir dil modelini eğitir",
     açıklamalar: {adım: "eğitim adımı sayısı", toplu: "toplu iş başına satır", bağlam: "satır başına parça",
         günlük_dosyası: "her adımın kaybının yazılacağı .jsonl dosyası"})
-değişken ADIM = ayar.adım
-değişken TOPLU = ayar.toplu
-değişken BAĞLAM = ayar.bağlam
+sabit ADIM = ayar.adım
+sabit TOPLU = ayar.toplu
+sabit BAĞLAM = ayar.bağlam
 değişken D = 32 // gömme boyutu
-değişken GİZLİ = 64 // ara katman boyutu
+sabit GİZLİ = 64 // ara katman boyutu
 
 // --- Parçalayıcı ---
 değişken p = parçalayıcı_yükle(PARÇALAYICI_YOLU)

@@ -26,7 +26,7 @@ func TestRepoTRFilesPassCheck(t *testing.T) {
 		}
 		if d.IsDir() {
 			switch d.Name() {
-			case ".git", "bin", "negative", "node_modules", ".claude", "testdata", "hatalar", "errors": // testdata: araçların kasıtlı bozuk fikstürleri; hatalar, errors: hata örnekleri (examples/)
+			case ".git", "bin", "negative", "node_modules", ".claude", "testdata", "hatalar", "errors", "scratch": // testdata: araçların kasıtlı bozuk fikstürleri; hatalar, errors: hata örnekleri (examples/); scratch: .gitignore'daki yerel çalışma klasörü, depoda değil
 				return filepath.SkipDir
 			}
 			return nil

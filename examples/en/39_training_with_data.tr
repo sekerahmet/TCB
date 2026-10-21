@@ -19,19 +19,19 @@
 //     tr examples/en/39_training_with_data.tr --step 500 --log-file logs/training.jsonl
 //     tr examples/en/39_training_with_data.tr --help
 
-A030 TOKENIZER_PATH = "../../tests/data/tokenizer.json"
-A030 DATA_PATH = "../../tests/data/text"
-A030 VALIDATION_PATH = "../../tests/data/text"
+A031 TOKENIZER_PATH = "../../tests/data/tokenizer.json"
+A031 DATA_PATH = "../../tests/data/text"
+A031 VALIDATION_PATH = "../../tests/data/text"
 
 A030 config = G801({Y500: 150, batch: 8, context: 32, Y504: 0.01, log_file: A042},
     G910: "Trains a small language model on synthetic text data",
     G911: {Y500: "number of training steps", batch: "rows per batch", context: "tokens per row",
         log_file: ".jsonl file the loss of every step is written to"})
-A030 STEPS = config.Y500
-A030 BATCH = config.batch
-A030 CONTEXT = config.context
+A031 STEPS = config.Y500
+A031 BATCH = config.batch
+A031 CONTEXT = config.context
 A030 D = 32 // embedding size
-A030 HIDDEN = 64 // size of the middle layer
+A031 HIDDEN = 64 // size of the middle layer
 
 // --- Tokenizer ---
 A030 p = V200(TOKENIZER_PATH)

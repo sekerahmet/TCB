@@ -6,9 +6,9 @@
 // Data: TR's own Turkish documents. The model learns to predict the next character.
 // Run (from the project root): tr examples/en/36_char_model.tr
 
-A030 STEPS = 300
+A031 STEPS = 300
 // Training text: the sections of the user guide and the language definition, in order.
-A030 DOCUMENTS = [
+A031 DOCUMENTS = [
     "docs/guide/01_baslangic.md", "docs/guide/02_anahtar_kelimeler.md",
     "docs/guide/03_zincirleme_metotlar.md", "docs/guide/04_yapay_zeka_ve_veri.md",
     "docs/guide/05_hata_ayiklayici.md", "docs/guide/06_vscode_kisayollari.md",
@@ -43,7 +43,7 @@ A030 D = 64 // hidden size
 A030 H = 4 // attention heads
 A030 Dh = 16 // head size
 A030 B = 16 // batch size
-A030 LAYERS = 2
+A031 LAYERS = 2
 
 // --- Parameters ---
 A030 param_seed = 1

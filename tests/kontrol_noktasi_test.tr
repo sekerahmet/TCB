@@ -7,7 +7,7 @@
 
 sabit TABAN = geçici_klasör()
 // Günlük dosyaları bu koşunun geçici klasöründe (18.14); program bitince silinir.
-değişken GÜNLÜKLER = geçici_klasör()
+sabit GÜNLÜKLER = geçici_klasör()
 
 // hata_metni: f çalışırken oluşan hatanın mesajını döndürür (hata yoksa boş metin).
 fonksiyon hata_metni(f) {

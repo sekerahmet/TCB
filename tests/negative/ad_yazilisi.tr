@@ -1,0 +1,6 @@
+// Bilerek kurala aykırı: 2.3b — yazılış kuralına uymayan adlar uyarıdır, hata değildir; modül
+// yüklenir ve adları kullanılır.
+değişken öğrenciSayısı = 3
+sabit en_büyük = 10
+yapı önbellek_durumu { dolu = yanlış }
+fonksiyon HazırModel() { sonuç öğrenciSayısı * en_büyük }

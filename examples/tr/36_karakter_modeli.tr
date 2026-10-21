@@ -5,9 +5,9 @@
 // Veri: TR'nin kendi Türkçe belgeleri. Model bir sonraki karakteri tahmin etmeyi öğrenir.
 // Çalıştırma (proje kökünden): tr examples/tr/36_karakter_modeli.tr
 
-değişken ADIM = 300
+sabit ADIM = 300
 // Eğitim metni: kullanım kılavuzunun ve dil tanımının bölümleri, sırasıyla.
-değişken BELGELER = [
+sabit BELGELER = [
     "docs/guide/01_baslangic.md", "docs/guide/02_anahtar_kelimeler.md",
     "docs/guide/03_zincirleme_metotlar.md", "docs/guide/04_yapay_zeka_ve_veri.md",
     "docs/guide/05_hata_ayiklayici.md", "docs/guide/06_vscode_kisayollari.md",
@@ -42,7 +42,7 @@ değişken D = 64 // gizli boyut
 değişken H = 4 // dikkat bakışı
 değişken Dh = 16 // bakış boyutu
 değişken B = 16 // toplu iş boyutu
-değişken KATMAN = 2
+sabit KATMAN = 2
 
 // --- Parametreler ---
 değişken parametre_tohumu = 1

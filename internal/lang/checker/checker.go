@@ -135,6 +135,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 	switch s := stmt.(type) {
 	case *ast.VarStatement:
 		c.checkShadowing(s.Name.Value, s.Line())
+		c.checkNameStyle(s.Name.Value, varKind(s.IsConst), s.Line())
 		c.checkTypeName(s.TypeName, s.Line())
 		inferred := c.inferExpression(s.Value)
 		declared := normalizeTypeName(s.TypeName)
@@ -174,9 +175,11 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		c.scope = NewScope(prev)
 		if s.KeyVar != "" {
 			c.checkShadowing(s.KeyVar, s.Line())
+			c.checkNameStyle(s.KeyVar, kindVariable, s.Line())
 			c.scope.Define(s.KeyVar, TypeInfo{TypeName: typeAny})
 		}
 		c.checkShadowing(s.ValueVar, s.Line())
+		c.checkNameStyle(s.ValueVar, kindVariable, s.Line())
 		c.scope.Define(s.ValueVar, TypeInfo{TypeName: typeAny})
 		for _, bs := range s.Body.Statements {
 			c.checkStatement(bs)
@@ -196,6 +199,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 			catchLine = s.CatchBody.Line()
 		}
 		c.checkShadowing(s.ErrorVar, catchLine)
+		c.checkNameStyle(s.ErrorVar, kindVariable, catchLine)
 		// Yakalanan hata Metin'dir, ama değişken açıklamasızdır: sonra başka tipte değer alabilir.
 		c.scope.Define(s.ErrorVar, TypeInfo{TypeName: typeAny})
 		for _, bs := range s.CatchBody.Statements {
@@ -205,6 +209,13 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 
 	case *ast.StructStatement:
 		c.checkShadowing(s.Name, s.Line())
+		c.checkNameStyle(s.Name, kindType, s.Line())
+		for _, f := range s.Fields {
+			c.checkNameStyle(f.Name, kindValue, s.Line())
+		}
+		for name, m := range s.Methods {
+			c.checkNameStyle(name, kindValue, m.Line())
+		}
 		c.scope.Define(s.Name, TypeInfo{TypeName: s.Name})
 		c.checkStruct(s)
 
@@ -214,6 +225,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		}
 		for _, name := range s.Names {
 			c.checkShadowing(name.Value, s.Line())
+			c.checkNameStyle(name.Value, varKind(s.IsConst), s.Line())
 			c.scope.Define(name.Value, TypeInfo{TypeName: typeAny, IsConst: s.IsConst})
 		}
 
@@ -339,6 +351,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		paramTypes, retType := c.functionSignature(e)
 		if e.Name != "" {
 			c.checkShadowing(e.Name, e.Line())
+			c.checkNameStyle(e.Name, kindValue, e.Line())
 			c.scope.Define(e.Name, TypeInfo{
 				TypeName:   typeFunction,
 				ParamTypes: paramTypes,

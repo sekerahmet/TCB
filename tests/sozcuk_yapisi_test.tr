@@ -69,6 +69,16 @@ test "2.3a kod biçimindeki adlar (büyük harf ve üç rakam) ayrılmıştır" 
     eşit_mi(6, g100 + G1000 + G100_)
 }
 
+test "2.3b yazılış kuralına uymayan ad uyarıdır, hata değildir" {
+    aktar "negative/ad_yazilisi" olarak m
+    eşit_mi(30, m.HazırModel())
+    eşit_mi(yanlış, m.önbellek_durumu().dolu)
+    // Kurala uyan adlar ve matematik adları (en çok üç harf ve rakam)
+    sabit EN_BÜYÜK = 10
+    değişken öğrenci_sayısı, W, dW, W1 = 1, 2, 3, 4
+    eşit_mi(20, EN_BÜYÜK + öğrenci_sayısı + W + dW + W1)
+}
+
 test "2.6a ham metin: ters tırnak, kaçış ve yerleştirme yok, çok satırlı" {
     değişken a = 5
     eşit_mi("C:\\veri\\yeni", `C:\veri\yeni`)

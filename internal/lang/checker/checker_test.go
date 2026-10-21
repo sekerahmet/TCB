@@ -532,7 +532,8 @@ func TestExamplesCheckWithoutErrors(t *testing.T) {
 		})
 	}
 	// Depodaki programlar (örnekler, dil tanımı testleri ve kıyas programları)
-	// uyarısız denetlenmeli: yerleşik adları gölgeleyen kullanıcı adı olmamalı.
+	// uyarısız denetlenmeli: yerleşik adları gölgeleyen ya da yazılış kuralına (2.3b) uymayan
+	// kullanıcı adı olmamalı.
 	var all []string
 	for _, pattern := range []string{"examples/tr/*.tr", "examples/tr/helpers/*.tr", "tests/*.tr", "tools/bench/tr/*.tr"} {
 		d, _ := filepath.Glob(reporoot.Path(pattern))

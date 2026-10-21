@@ -8,8 +8,8 @@
 // Çıktı: ısınma hariç ms/adım ve son kayıp.
 
 değişken ayar = json_çöz(dosya_oku("compare_config.json"))
-değişken HASSASIYET = "float32"
-eğer ayar.içerir("hassasiyet") { HASSASIYET = ayar["hassasiyet"] }
+değişken hassasiyet = "float32"
+eğer ayar.içerir("hassasiyet") { hassasiyet = ayar["hassasiyet"] }
 değişken boyutlar = {
     "kucuk": {"B": 8, "T": 64, "D": 128, "H": 4, "FF": 256, "KATMAN": 2, "ADIM": 220, "ISINMA": 20},
     "buyuk": {"B": 32, "T": 256, "D": 512, "H": 8, "FF": 2048, "KATMAN": 6, "ADIM": 220, "ISINMA": 20},
@@ -25,9 +25,9 @@ değişken D = b["D"]
 değişken H = b["H"]
 değişken Dh = D / H
 değişken FF = b["FF"]
-değişken KATMAN = b["KATMAN"]
-değişken ADIM = b["ADIM"]
-değişken ISINMA = b["ISINMA"]
+sabit KATMAN = b["KATMAN"]
+sabit ADIM = b["ADIM"]
+sabit ISINMA = b["ISINMA"]
 değişken V = 40000
 eğer ayar["boyut"] == "deneme" { V = 200 }
 
@@ -120,7 +120,7 @@ döngü adım içinde 0..ADIM {
     }
     değişken xy = toplu_iş(adım)
     iyileştirici.sıfırla()
-    karışık_hassasiyet(HASSASIYET) {
+    karışık_hassasiyet(hassasiyet) {
         kayıp = çapraz_entropi(model.ileri(xy[0]), xy[1])
     }
     geri_yayılım(kayıp)
@@ -129,4 +129,4 @@ döngü adım içinde 0..ADIM {
 }
 değişken son = kayıp.değer // GPU'daki son adımın bitmesini bekler
 değişken süre = zaman_ms() - başlangıç
-yazdır("TR ({varsayılan_cihaz()}, {HASSASIYET}): {yuvarla(süre / (ADIM - ISINMA), 2)} ms/adım · son kayıp {yuvarla(son, 4)}")
+yazdır("TR ({varsayılan_cihaz()}, {hassasiyet}): {yuvarla(süre / (ADIM - ISINMA), 2)} ms/adım · son kayıp {yuvarla(son, 4)}")

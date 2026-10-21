@@ -14,7 +14,7 @@ fonksiyon hata_metni(f) {
 }
 
 // Günlük dosyaları depo dışında, bu koşunun geçici klasöründe (18.14); program bitince silinir.
-değişken KOŞU = geçici_klasör()
+sabit KOŞU = geçici_klasör()
 
 // satırlar: günlük dosyasının JSON satırlarını sözlük listesi olarak verir.
 fonksiyon satırlar(dosya_yolu) {
@@ -22,7 +22,7 @@ fonksiyon satırlar(dosya_yolu) {
 }
 
 // Programın tek komut_satırı çağrısı (19.2, 19.4 bunu kullanır).
-değişken AYAR = komut_satırı({adım: 100, oran: 0.5, veri: "veri/train", katmanlar: [64, 32], hızlı: yanlış, etiket: yok, api_anahtarı: "anahtar-varsayılan-1"},
+sabit AYAR = komut_satırı({adım: 100, oran: 0.5, veri: "veri/train", katmanlar: [64, 32], hızlı: yanlış, etiket: yok, api_anahtarı: "anahtar-varsayılan-1"},
     açıklama: "Deneme", açıklamalar: {adım: "eğitim adımı"})
 
 test "19.1 ortam_değişkeni değeri Metin olarak, tanımsızsa yok verir" {
