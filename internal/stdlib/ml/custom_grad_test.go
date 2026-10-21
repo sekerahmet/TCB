@@ -333,12 +333,12 @@ func TestAuditSameDeviceToDeviceAndSingleTensorListSumDropAtScopeExit(t *testing
 
 // x[0] indekslemesi ve maks(x) ara görünüm başlıklarını düşürmediği için
 // yerel tensör kapsam sonunda bırakılsa bile depolaması arka uca iade edilmez (15.44).
-func TestAuditTensorIndexAndWholeMaxLeakStorageHold(t *testing.T) {
+func TestTensorIndexAndWholeMaxReturnStorageAtScopeExit(t *testing.T) {
 	for _, stmt := range []string{`değişken y = x[0]`, `değişken y = maks(x)`} {
 		dev := &auditSecondDevice{Backend: tensor.BackendFor(tensor.CPU)}
 		tensor.RegisterBackend(dev)
 		tensor.SetDefaultDevice(tensor.GPU(99))
-		code := fmt.Sprintf("fonksiyon sına() {\n    değişken x = sıfırlar([4, 4])\n    %s\n}\nsına()\n", stmt)
+		code := fmt.Sprintf("fonksiyon sına() {\n    değişken x = sıfırlar([4, 4])\n    %s\n    yazdır(1)\n}\nsına()\n", stmt) // sondaki 'değişken' deyimi dönüş değeridir: son satır başka olmalı
 		_, err := run(t, code)
 		tensor.SetDefaultDevice(tensor.CPU)
 		if err != nil {

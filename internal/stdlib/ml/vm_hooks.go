@@ -288,7 +288,12 @@ func (d *TensorValue) index(idx interp.Value) (interp.Value, error) {
 	if j < 0 || j >= n {
 		return nil, messages.New(messages.H6709, i, n, shapeText(sh))
 	}
-	r, err := safe(func() *tensor.Tensor { return d.t.Slice(0, j, j+1).Squeeze(0) })
+	r, err := safe(func() *tensor.Tensor {
+		s := d.t.Slice(0, j, j+1)
+		r := s.Squeeze(0)
+		dropTemp(d.t, s)
+		return r
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -341,11 +346,18 @@ func (d *TensorValue) SetIndex(idx, value interp.Value) error {
 		return messages.New(messages.H6716)
 	}
 	var target *tensor.Tensor
+	var view *TensorValue
 	var err error
+	defer func() {
+		if view != nil {
+			view.Release() // görünüm başlığı bu işlemin ara değeridir
+		}
+	}()
 	tensor.NoGrad(func() {
 		var v interp.Value
 		if v, err = d.Index(idx); err == nil {
-			target = v.(*TensorValue).t
+			view = v.(*TensorValue)
+			target = view.t
 		}
 	})
 	if err != nil {
