@@ -213,7 +213,7 @@ type posSample struct {
 // satırdadır.
 func (o *sampler) site() uint64 {
 	if v := (*interp.VM)(loadTask(&o.task)); v != nil {
-		if d := readDepth(v); d < stackLimit {
+		if d := readDepth(v); d >= 0 && d < stackLimit {
 			return loadPos(&o.stack[d])
 		}
 	}
