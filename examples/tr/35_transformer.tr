@@ -107,6 +107,14 @@ döngü satır içinde olasılıklar {
 yazdır("girdi  : {deneme[0][0]}")
 yazdır("tahmin : {tahminler}")
 
+// dikkat'in iki ek ayarı: pencere: her sorguyu son w konumla sınırlar (yerel dikkat);
+// maske: 0/1 tensörüyle hangi konumlara bakılacağını siz seçersiniz (nedensel: yanlış ile birlikte).
+değişken sorgu = rastgele_normal([6, 4], tohum: 2)
+yazdır("pencere:", dikkat(sorgu, sorgu, sorgu, pencere: 2).şekil)
+değişken sorgu2 = rastgele_normal([3, 4], tohum: 1)
+değişken bakılacaklar = tensör([[1, 1, 0], [1, 1, 0], [1, 1, 1]])
+yazdır("maske:", dikkat(sorgu2, sorgu2, sorgu2, nedensel: yanlış, maske: bakılacaklar).şekil)
+
 // --- Kendin dene ---
 // 1. D'yi 16'dan 32'ye çıkar (Dh'yi de güncelle): kayıp daha hızlı mı düşüyor?
 // 2. Eğitim adımını 300'den 60'a indir ve son tahminlerin bozulduğunu gör.

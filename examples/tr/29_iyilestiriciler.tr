@@ -1,0 +1,38 @@
+// 29 — İyileştiriciler: ağırlıkları güncellemenin yolları.
+// Ne öğretir: AdamW ve SGD, beta1/beta2 ve momentum ayarları, gradyan_kırp ile patlayan gradyanı sınırlamak,
+// iyileştiricinin durumunu alıp durumu_yükle ile geri yüklemek.
+// Önceki örnekten: eğitim döngüsü (28), otomatik türev (26).
+// Çalıştırma (proje kökünden): tr examples/tr/29_iyilestiriciler.tr
+
+// SGD (olasılıksal gradyan inişi) en yalın iyileştiricidir: w = w - öğrenme_oranı · gradyan.
+// momentum önceki adımların yönünü sürdürür.
+değişken w = tensör([1.0], türev_izle: doğru)
+değişken sgd = SGD([w], öğrenme_oranı: 0.1, momentum: 0.9)
+geri_yayılım(toplam(w * w)) // d(w²)/dw = 2w = 2
+sgd.adım()
+yazdır("SGD bir adım sonra w =", yuvarla(w.değer[0], 4))
+
+// AdamW her ağırlık için ayrı bir adım büyüklüğü uyarlar. beta1 gradyan ortalamasının,
+// beta2 gradyan karelerinin üstel azalma katsayısıdır ([0, 1) aralığında).
+değişken v = tensör([1.0], türev_izle: doğru)
+değişken adamw = AdamW([v], öğrenme_oranı: 0.1, beta1: 0.8, beta2: 0.99)
+geri_yayılım(toplam(v * v))
+adamw.adım()
+yazdır("AdamW bir adım sonra v =", yuvarla(v.değer[0], 4))
+yazdır(tip(sgd) == İyileştirici, tip(adamw) == İyileştirici)
+
+// gradyan_kırp, toplam gradyan normu en_fazla'yı aşıyorsa gradyanları aynı oranda küçültür;
+// kırpmadan önceki normu verir. Büyük gradyanlı adımlarda eğitimi kararlı tutar.
+değişken u = tensör([3.0, 4.0], türev_izle: doğru)
+geri_yayılım(toplam(u * u)) // gradyan [6, 8], norm 10
+yazdır("norm:", gradyan_kırp([u], en_fazla: 1.0))
+yazdır("kırpılmış gradyan:", u.gradyan.değer)
+
+// durum iyileştiricinin iç durumunu (momentler) bir sözlük olarak verir; durumu_yükle aynı ayarla
+// kurulmuş başka bir iyileştiriciye geri yükler (kontrol noktaları böyle çalışır).
+değişken yeni = AdamW([v], öğrenme_oranı: 0.1, beta1: 0.8, beta2: 0.99)
+yazdır("durum yüklendi:", yeni.durumu_yükle(adamw.durum))
+
+// --- Kendin dene ---
+// 1. SGD'nin momentum değerini 0 yap: aynı adımda w farklı çıkar mı?
+// 2. gradyan_kırp'ta en_fazla'yı 100 yap: gradyan değişir mi?

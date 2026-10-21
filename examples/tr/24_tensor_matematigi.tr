@@ -1,0 +1,35 @@
+// 24 — Tensör matematiği: işlemleri bir tensörün her elemanına uygulamak.
+// Ne öğretir: üstel, log, sinüs gibi matematik fonksiyonlarının tensörde eleman bazlı çalışması,
+// silu ve log_softmax, toplam/ortalama ile eksen boyunca indirgeme ve boyutu_koru.
+// Önceki örnekten: tensörler (23), matematik (13).
+// Çalıştırma (proje kökünden): tr examples/tr/24_tensor_matematigi.tr
+// Ayrıntılar: docs/spec/15_tensorler.md §15.
+
+// 13'te sayılara uyguladığımız fonksiyonlar tensörde her elemana ayrı ayrı uygulanır.
+// Sonuç yeni bir tensördür; .değer onu TR listesine çevirir.
+değişken x = tensör([0.0, 1.0, 2.0])
+yazdır("üstel:", üstel(x).değer)
+yazdır("log:", log(x + 1).değer)
+yazdır("sinüs:", sinüs(x).değer, "kosinüs:", kosinüs(x).değer)
+yazdır("tanjant:", tanjant(tensör([0.0, 1.0])).değer)
+yazdır("arksinüs:", arksinüs(tensör([0.0, 0.5])).değer, "arkkosinüs:", arkkosinüs(tensör([1.0, -1.0])).değer)
+yazdır("arktanjant:", arktanjant(tensör([0.0, 1.0])).değer)
+yazdır("arktanjant2:", arktanjant2(tensör([1.0, -1.0]), tensör([0.0])).değer) // yayınlama: (y, x) çiftleri
+yazdır("sinh/cosh:", sinh(tensör([0.0, 1.0])).değer, cosh(tensör([0.0, 1.0])).değer)
+yazdır("log2/log10:", log2(tensör([1.0, 1024.0])).değer, log10(tensör([1.0, 100.0])).değer)
+yazdır("küçük sayıda hassas log ve üstel:", log1p(tensör([0.0, 1.0])).değer, üstel_eksi_bir(tensör([0.0, 1.0])).değer)
+
+// Etkinleştirme fonksiyonları: silu x · sigmoid(x) hesaplar; log_softmax softmax'ın logaritmasını
+// sayısal olarak kararlı biçimde verir.
+yazdır("silu:", silu(tensör([-1.0, 0.0, 2.0])).değer)
+yazdır("log_softmax:", log_softmax(tensör([1.0, 2.0, 3.0])).değer)
+
+// Eksen boyunca indirgeme: eksen: -1 son eksen demektir.
+// boyutu_koru: doğru indirgenen ekseni 1 uzunlukta tutar; sonuç girdiye yayınlanabilir.
+değişken m = tensör([[1, 2], [3, 4]])
+yazdır(toplam(m, eksen: -1).şekil, toplam(m, eksen: -1, boyutu_koru: doğru).şekil)
+yazdır(toplam(m, eksen: 0).değer, ortalama(m, eksen: -1).değer)
+
+// --- Kendin dene ---
+// 1. tensör([[1.0, 2.0], [3.0, 4.0]]) için softmax'ı satır boyunca hesapla ve her satırın toplamının 1 olduğunu göster.
+// 2. m - ortalama(m, eksen: -1, boyutu_koru: doğru) ile satır ortalamasını çıkar (yayınlama).

@@ -108,6 +108,14 @@ A010 row A011 scores {
 G100("input     : {probe[0][0]}")
 G100("prediction: {predictions}")
 
+// Two extra settings of attention: window: limits every query to the last w positions (local attention);
+// mask: a 0/1 tensor lets you choose which positions are looked at (together with causal: false).
+A030 queries = T103([6, 4], T903: 2)
+G100("window:", T503(queries, queries, queries, T951: 2).Y400)
+A030 queries2 = T103([3, 4], T903: 1)
+A030 visible = T100([[1, 1, 0], [1, 1, 0], [1, 1, 1]])
+G100("mask:", T503(queries2, queries2, queries2, T950: A041, T952: visible).Y400)
+
 // --- Try it yourself ---
 // 1. Raise D from 16 to 32 (update Dh too): does the loss fall faster?
 // 2. Cut the training steps from 300 to 60 and watch the final predictions get worse.

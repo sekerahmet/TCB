@@ -1,0 +1,33 @@
+// 25 — Seçme ve sıralama: tensörde koşula göre seçmek, en büyükleri bulmak.
+// Ne öğretir: koşullu ile eleman seçmek, maks_indeks, en_büyük_k, sıralama_indeksi, birikimli_toplam, sınırla.
+// Önceki örnekten: tensör matematiği (24), tensörler (23), matematik (13).
+// Çalıştırma (proje kökünden): tr examples/tr/25_secme_ve_siralama.tr
+// Ayrıntılar: docs/spec/15_tensorler.md §15.
+
+değişken x = tensör([-1.0, 2.0, -3.0, 4.0])
+
+// koşullu(koşul, a, b): koşulun doğru olduğu yerde a'yı, diğerlerinde b'yi seçer (karşılaştırma 0/1 maskesi verir).
+yazdır(koşullu(x > 0, x, 0).değer) // negatifleri sıfırlar (relu gibi)
+yazdır(koşullu(x > 0, 1, -1).değer) // işaret
+
+// sınırla tensörde de eleman bazlıdır.
+yazdır(sınırla(x, en_az: -2, en_fazla: 3).değer)
+
+// maks_indeks en büyük elemanın indeksini verir (eksen: -1 her satır için).
+değişken puanlar = tensör([[0.1, 2.5, 0.3], [1.7, 0.2, 0.9]])
+yazdır(maks_indeks(puanlar, eksen: -1).değer)
+
+// en_büyük_k en büyük k elemanı büyükten küçüğe [değerler, indeksler] olarak verir.
+değişken en_iyiler = en_büyük_k(tensör([3.0, 1.0, 4.0, 1.5]), 2)
+yazdır("değerler:", en_iyiler[0].değer, "indeksler:", en_iyiler[1].değer)
+
+// sıralama_indeksi elemanları küçükten büyüğe sıralayan indeksleri verir (eşitlerde küçük indeks önce gelir).
+yazdır(sıralama_indeksi(tensör([3.0, 1.0, 2.0])).değer)
+
+// birikimli_toplam her konuma kadar olan elemanların toplamını verir; şekil korunur.
+yazdır(birikimli_toplam(tensör([1, 2, 3, 4])).değer)
+yazdır(birikimli_toplam(tensör([[1, 2], [3, 4]]), eksen: 0).değer)
+
+// --- Kendin dene ---
+// 1. Bir tensörün yalnızca pozitif elemanlarının toplamını koşullu ile bul.
+// 2. en_büyük_k ile bir puan tensörünün en iyi 3 sınıfını ve indekslerini bul.

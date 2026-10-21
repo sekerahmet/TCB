@@ -1,6 +1,6 @@
 //! tr kodlu 1
 // 23 — Tensors: the number arrays of artificial intelligence.
-// What it teaches: creating tensors, shape, @ (matrix product), broadcasting, relu/softmax, reading with .tolist.
+// What it teaches: creating tensors, the Tensor type, shape, transpose, slice, concat, @ (matrix product), broadcasting, relu/softmax, reading with .tolist.
 // Builds on: lists (09) and function calls (08); a tensor is built from nested lists.
 // Run (from the project root): tr examples/en/23_tensors.tr
 // Details: docs/guide/04_yapay_zeka_ve_veri.md §4.C, docs/spec/15_tensorler.md §15.
@@ -32,6 +32,16 @@ G100("A * 2 =", A * 2)
 G100("relu(A @ W - 4) =", T200(A @ W - 4))
 G100("softmax([2, 1, 0.1]) =", T210(T100([2.0, 1.0, 0.1])))
 G100("sum:", G400(A), "mean:", G410(A))
+
+// Type declaration: Tensor. Shape, number type and device are properties of a tensor.
+A030 t: A212 = T100([[1, 2, 3], [4, 5, 6]])
+G100(G201(t) == A212, t.Y400, t.Y402, t.Y401)
+
+// transpose swaps the last two axes; slice(axis, start, end) cuts a range;
+// concat joins a list of tensors end to end along an axis.
+G100(t.Y411().Y404)
+G100(t.Y413(1, 0, 2).Y404)
+G100(T121([T102([2, 1]), T101([2, 2])], T902: -1).Y400)
 
 // --- Try it yourself ---
 // 1. Build a 3x3 matrix and multiply it by eye(3): what is the result?

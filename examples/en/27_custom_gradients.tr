@@ -1,0 +1,33 @@
+//! tr kodlu 1
+// 27 — Custom gradients: writing your own differentiable operation and checking it.
+// What it teaches: building a new operation with custom_grad(forward:, backward:), comparing the gradient
+// with a numeric derivative using grad_check (tol:), computing element-wise operations in one pass with fuse.
+// Builds on: automatic differentiation (26), functions (08).
+// Run (from the project root): tr examples/en/27_custom_gradients.tr
+// Details: docs/spec/15_tensorler.md §15.
+
+// custom_grad builds an operation whose forward calculation and backward (derivative) calculation you write.
+// forward: returns [output, saved values]; backward: func(saved, g) returns a gradient for every input.
+// Example: square(x) = x²; its derivative 2x is multiplied by the incoming g.
+A030 squared = T310(
+    T980: A020(x) { A021 [x * x, [x]] },
+    T981: A020(s, g) { A021 [g * 2 * s[0]] }
+)
+A030 x = T100([3.0], T900: A040)
+G100("squared(3) =", squared(x).Y404)
+T300(G400(squared(x)))
+G100("d(squared)/dx =", x.Y403.Y404, "(expected 6.0)")
+
+// grad_check compares the gradient found by backward propagation with the numeric gradient found by a central
+// difference; it gives true if they agree. step: is the size of the difference, tol: the allowed relative difference.
+G100(T311(A020(a) { A021 a * a }, [T100([0.5, -1.0], T900: A040)], T982: 0.001, T983: 0.01))
+G100(T311(A020(a) { A021 T201(a) }, [T100([0.3], T900: A040)], T983: 0.001))
+
+// fuse turns a function made of element-wise operations into an equivalent that computes in one pass;
+// the result equals the unfused calculation (on a GPU the intermediate results are not written to memory).
+A030 f = T312((a, b) => a * b + a)
+G100(f(T100([1.0, 2.0]), T100([3.0, 4.0])).Y404)
+
+// --- Try it yourself ---
+// 1. Write a cube(x) = x³ operation with custom_grad (derivative 3x²) and check it with grad_check.
+// 2. Write a wrong backward on purpose (g * x) and see grad_check fail.

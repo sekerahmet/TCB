@@ -1,0 +1,35 @@
+//! tr kodlu 1
+// 31 — Layers: ready-made building blocks of neural networks.
+// What it teaches: layer_norm and rms_norm (weight, bias, eps), the two forms of gelu (approximate:),
+// linear_cross_entropy for the output loss with a large vocabulary.
+// Builds on: the XOR network (30), tensor math (24).
+// Run (from the project root): tr examples/en/31_layers.tr
+// Details: docs/spec/15_tensorler.md §15.
+
+// Normalization layers make deep networks easier to train by keeping the scale of the values steady.
+// layer_norm subtracts the mean along the last axis and divides by the standard deviation; weight scales, bias shifts.
+// eps is the small number that prevents division by zero.
+A030 x = T100([[1.0, 2.0, 3.0]])
+G100(T501(x).Y404)
+G100(T501(x, T905: 0.001).Y404)
+G100(T501(T100([[1.0, 3.0]]), T921: T100([0.5, 0.5])).Y404)
+
+// rms_norm does not subtract the mean; it only divides by the root of the mean of the squares.
+G100(T502(T100([[3.0, 4.0]])).Y404)
+G100(T502(T100([[3.0, 4.0]]), T920: T100([2.0, 1.0])).Y404)
+
+// gelu is computed with the tanh approximation by default; approximate: false gives the exact (erf based) form.
+A030 a = T100([-1.0, 0.0, 1.0])
+G100(T203(a).Y404)
+G100(T203(a, T990: A041).Y404)
+
+// linear_cross_entropy(input, weight, targets) gives the same loss as cross_entropy(input @ weight, targets)
+// but does not keep all the logits in memory; it is for the output layer of language models with large vocabularies.
+A030 sample_input = T100([[1.0, 2.0]])
+A030 weight_matrix = T100([[0.5, -1.0, 0.2], [0.1, 0.3, -0.4]])
+G100(T512(sample_input, weight_matrix, [2]).Y404)
+G100(T510(sample_input @ weight_matrix, [2]).Y404)
+
+// --- Try it yourself ---
+// 1. Show with mean(...) that the mean of the layer_norm output is 0.
+// 2. Compare rms_norm and layer_norm results on the same input: when do they come out the same?
