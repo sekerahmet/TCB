@@ -143,7 +143,7 @@ H4 (compile ile başa baş) süren bir hedef olarak Evre 6'ya taşındı. Kalan 
 3. **Rastgelelik anahtarı ve dropout.** Evre 4'e ertelendi; yeniden hesaplamanın önkoşulu.
 4. **Baş boyu uyumu. Kalan (kapanış şartı).**
    - Tensör çekirdekli dikkatin geri yönü baş boyu 128'e: bugün en çok 64, büyüğünde SIMT yola düşer.
-   - Gizli boyuttan bağımsız baş boyu (`tr/katman`'da bugün `baş_boyutu = boyut / baş`).
+   - Gizli boyuttan bağımsız baş boyu: yapıldı (2026-10-21). `NedenselDikkat`, `TransformerBloğu` ve `GPT` `baş_boyutu:` alır (Hugging Face `head_dim` kuralı: verilmezse `boyut / baş`; sorgu `[boyut, baş · baş_boyutu]`, çıkış `[baş · baş_boyutu, boyut]`).
 
    Açık modellerin neredeyse hepsi 128 kullanır; Evre 4'teki hazır model yüklemenin önkoşuludur.
 5. **Hız.**
@@ -174,7 +174,7 @@ H4 (compile ile başa baş) süren bir hedef olarak Evre 6'ya taşındı. Kalan 
 - Kalite uzun koşuda da tutar: en az 0,8 milyar parça, iki tohum. Doğrulama kaybı PyTorch'la gürültü düzeyinde aynıdır.
 - Hız en çok 1,2 × `torch.compile`'dır (H3). **Sağlandı (162 / 136 ms).** Gerçek verideki ~10 ms'lik fark giderildi; gerçek veride 162 / 134 ms (1,21; compile'ın gerçek veri sayısı tek koşudan, yeniden ölçülecek).
 - Bellek en çok 1,1 × `torch.compile`'dır. **Sağlandı (10,81 / 10,8 GiB).**
-- Baş boyu 128 tensör çekirdeğiyle ileri ve geri çalışır; baş boyu gizli boyuttan bağımsızdır.
+- Baş boyu 128 tensör çekirdeğiyle ileri ve geri çalışır; baş boyu gizli boyuttan bağımsızdır (**bağımsızlık sağlandı**; geri yön 128 kalan).
 - Eğitim bir NaN'de ya da kayıp sıçramasında kendiliğinden durur ya da son kontrol noktasına döner. **Sağlandı** (`TestTargetModelRollsBackOnNaN`).
 - Ölçümler ve GPU testleri en az iki kart türünde geçer.
 

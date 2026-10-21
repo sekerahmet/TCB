@@ -106,6 +106,10 @@ değişken döner_konum_uygula = kaynaştır(döner_konum_hesapla)
 //            `.böl(2)` ile ayrılır; Muon K ve V'yi birlikte dikleştirir. Aksi hâlde
 //            anahtar_katmanı ve değer_katmanı ayrıdır (kv_katmanı yok'tur; birleşikte tersi).
 //   epsilon: qk normlarının epsilon'u.
+//   baş_boyutu: bir başın boyutu; yok ise boyut / baş. Verilirse gizli boyuttan bağımsızdır
+//            (Hugging Face `head_dim`; Qwen3-0.6B: gizli 1024, 16 baş × 128): sorgu katmanı
+//            [boyut, baş · baş_boyutu], çıkış katmanı [baş · baş_boyutu, boyut] olur. Döner konum
+//            başı iki yarıya böldüğünden çift olmalıdır.
 yapı NedenselDikkat {
     baş
     kv_baş
@@ -118,17 +122,21 @@ yapı NedenselDikkat {
     q_norm
     k_norm
     çıkış_katmanı
-    fonksiyon kurucu(boyut, baş, kv_baş = yok, sapmalı = yanlış, std = 0.02, çıkış_std = 0.02, tohum = 1, pencere = 0, qk_normu = yanlış, birleşik_kv = yanlış, epsilon = 0.00001) {
+    fonksiyon kurucu(boyut, baş, kv_baş = yok, sapmalı = yanlış, std = 0.02, çıkış_std = 0.02, tohum = 1, pencere = 0, qk_normu = yanlış, birleşik_kv = yanlış, epsilon = 0.00001, baş_boyutu = yok) {
         eğer kv_baş == yok { kv_baş = baş }
-        doğrula(boyut % baş == 0, "boyut ({boyut}) baş sayısına ({baş}) bölünmeli")
+        eğer baş_boyutu == yok {
+            doğrula(boyut % baş == 0, "boyut ({boyut}) baş sayısına ({baş}) bölünmeli")
+            baş_boyutu = boyut / baş
+        }
+        doğrula(baş_boyutu > 0 ve baş_boyutu % 2 == 0, "baş_boyutu ({baş_boyutu}) pozitif ve çift olmalı (döner konum başı iki yarıya böler)")
         doğrula(baş % kv_baş == 0, "baş sayısı ({baş}) kv_baş sayısına ({kv_baş}) bölünmeli")
         doğrula(pencere >= 0, "pencere negatif olamaz, {pencere} verildi")
         kendi.baş = baş
         kendi.kv_baş = kv_baş
-        kendi.baş_boyutu = boyut / baş
+        kendi.baş_boyutu = baş_boyutu
         kendi.pencere = pencere
-        değişken kv_boyut = kv_baş * kendi.baş_boyutu
-        kendi.sorgu_katmanı = Doğrusal(boyut, boyut, sapmalı: sapmalı, std: std, tohum: tohum)
+        değişken kv_boyut = kv_baş * baş_boyutu
+        kendi.sorgu_katmanı = Doğrusal(boyut, baş * baş_boyutu, sapmalı: sapmalı, std: std, tohum: tohum)
         eğer birleşik_kv {
             kendi.anahtar_katmanı = yok
             kendi.değer_katmanı = yok
@@ -140,7 +148,7 @@ yapı NedenselDikkat {
         }
         kendi.q_norm = eğer qk_normu { RMSNormKatmanı(kendi.baş_boyutu, epsilon: epsilon) } değilse { yok }
         kendi.k_norm = eğer qk_normu { RMSNormKatmanı(kendi.baş_boyutu, epsilon: epsilon) } değilse { yok }
-        kendi.çıkış_katmanı = Doğrusal(boyut, boyut, sapmalı: sapmalı, std: çıkış_std, tohum: tohum + 3)
+        kendi.çıkış_katmanı = Doğrusal(baş * baş_boyutu, boyut, sapmalı: sapmalı, std: çıkış_std, tohum: tohum + 3)
     }
     // x [B, T, D]; kos/sin döner_konum_tablosu'ndan.
     fonksiyon ileri(x, kos, sin) {
@@ -294,9 +302,9 @@ yapı TransformerBloğu {
     norm2
     ileri_besleme
     ple
-    fonksiyon kurucu(boyut, baş, kv_baş = yok, ara_boyut = yok, std = 0.02, çıkış_std = 0.02, tohum = 1, epsilon = 0.00001, pencere = 0, qk_normu = yanlış, birleşik_kv = yanlış, sapmalı = yanlış, ileri_sapmalı = yanlış, birleşik_kapı = yanlış, ple_boyutu = yok, dağarcık = yok) {
+    fonksiyon kurucu(boyut, baş, kv_baş = yok, ara_boyut = yok, std = 0.02, çıkış_std = 0.02, tohum = 1, epsilon = 0.00001, pencere = 0, qk_normu = yanlış, birleşik_kv = yanlış, sapmalı = yanlış, ileri_sapmalı = yanlış, birleşik_kapı = yanlış, ple_boyutu = yok, dağarcık = yok, baş_boyutu = yok) {
         kendi.norm1 = RMSNormKatmanı(boyut, epsilon: epsilon)
-        kendi.dikkat = NedenselDikkat(boyut, baş, kv_baş: kv_baş, sapmalı: sapmalı, std: std, çıkış_std: çıkış_std, tohum: tohum, pencere: pencere, qk_normu: qk_normu, birleşik_kv: birleşik_kv, epsilon: epsilon)
+        kendi.dikkat = NedenselDikkat(boyut, baş, kv_baş: kv_baş, sapmalı: sapmalı, std: std, çıkış_std: çıkış_std, tohum: tohum, pencere: pencere, qk_normu: qk_normu, birleşik_kv: birleşik_kv, epsilon: epsilon, baş_boyutu: baş_boyutu)
         kendi.norm2 = RMSNormKatmanı(boyut, epsilon: epsilon)
         kendi.ileri_besleme = SwiGLU(boyut, ara_boyut: ara_boyut, sapmalı: ileri_sapmalı, std: std, çıkış_std: çıkış_std, tohum: tohum + 10, birleşik: birleşik_kapı)
         eğer ple_boyutu != yok {
@@ -341,7 +349,8 @@ fonksiyon katman_pencereleri(düzen, pencereler) {
 // Blok seçenekleri (varsayılanlar eski modeli verir; ayrıntı TransformerBloğu'nda):
 //   pencereler: katman başına pencere listesi (uzunluğu katman; 0 = genel, yok = hepsi genel);
 //               yerel/genel düzen katman_pencereleri("YYGYGYYG", [32, 64]) ile kurulur.
-//   qk_normu, birleşik_kv, birleşik_kapı, ileri_sapmalı, epsilon: her bloğa iletilir.
+//   qk_normu, birleşik_kv, birleşik_kapı, ileri_sapmalı, epsilon, baş_boyutu: her bloğa iletilir
+//               (baş_boyutu döner konum tablolarının da boyudur; yok ise boyut / baş).
 //   ple_boyutu: verilirse her blokta PLE vardır; modelde ortak PLEBağlamı (`ple_bağlamı`) gömme
 //               çıktısından katman başına bağlamı üretir ve i. bloğa i. parçayı verir.
 // RGN-512 gibi bir model bu yapıyla tek çağrıdır:
@@ -359,8 +368,8 @@ yapı GPT {
     ple_bağlamı
     kos
     sin
-    fonksiyon kurucu(dağarcık, bağlam = 256, boyut = 256, katman = 4, baş = 4, kv_baş = yok, ara_boyut = yok, paylaşımlı = yanlış, tohum = 1, pencereler = yok, qk_normu = yanlış, birleşik_kv = yanlış, birleşik_kapı = yanlış, ileri_sapmalı = yanlış, epsilon = 0.00001, ple_boyutu = yok) {
-        kendi.ayar = {dağarcık: dağarcık, bağlam: bağlam, boyut: boyut, katman: katman, baş: baş,
+    fonksiyon kurucu(dağarcık, bağlam = 256, boyut = 256, katman = 4, baş = 4, kv_baş = yok, ara_boyut = yok, paylaşımlı = yanlış, tohum = 1, pencereler = yok, qk_normu = yanlış, birleşik_kv = yanlış, birleşik_kapı = yanlış, ileri_sapmalı = yanlış, epsilon = 0.00001, ple_boyutu = yok, baş_boyutu = yok) {
+        kendi.ayar = {dağarcık: dağarcık, bağlam: bağlam, boyut: boyut, katman: katman, baş: baş, baş_boyutu: baş_boyutu,
             kv_baş: kv_baş, ara_boyut: ara_boyut, paylaşımlı: paylaşımlı, tohum: tohum,
             pencereler: pencereler, qk_normu: qk_normu, birleşik_kv: birleşik_kv, birleşik_kapı: birleşik_kapı,
             ileri_sapmalı: ileri_sapmalı, epsilon: epsilon, ple_boyutu: ple_boyutu}
@@ -376,12 +385,12 @@ yapı GPT {
                 std: std, çıkış_std: çıkış_std, tohum: tohum + 100 * (i + 1), epsilon: epsilon,
                 pencere: eğer pencereler == yok { 0 } değilse { pencereler[i] }, qk_normu: qk_normu,
                 birleşik_kv: birleşik_kv, birleşik_kapı: birleşik_kapı, ileri_sapmalı: ileri_sapmalı,
-                ple_boyutu: ple_boyutu, dağarcık: dağarcık))
+                ple_boyutu: ple_boyutu, dağarcık: dağarcık, baş_boyutu: baş_boyutu))
         }
         kendi.son_norm = RMSNormKatmanı(boyut, epsilon: epsilon)
         kendi.çıkış = eğer paylaşımlı { yok } değilse { Doğrusal(boyut, dağarcık, std: std, tohum: tohum + 1) }
         kendi.ple_bağlamı = eğer ple_boyutu == yok { yok } değilse { PLEBağlamı(boyut, katman, ple_boyutu, epsilon: epsilon, std: std, tohum: tohum + 2) }
-        değişken tablolar = döner_konum_tablosu(bağlam, boyut / baş)
+        değişken tablolar = döner_konum_tablosu(bağlam, eğer baş_boyutu == yok { boyut / baş } değilse { baş_boyutu })
         kendi.kos = tablolar[0]
         kendi.sin = tablolar[1]
     }

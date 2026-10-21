@@ -479,3 +479,31 @@ test "GPT.üret: eos örneklenince durur (eos dizide kalır), eos'suz adet kadar
     eşit_mi(dizi[0..j + 1], m.üret([1], 6, sıcaklık: 0, eos: eos))
     eşit_mi(dizi, m.üret([1], 6, sıcaklık: 0, eos: -5)) // hiç örneklenmeyen kimlik: durmaz
 }
+
+test "NedenselDikkat: baş_boyutu gizli boyuttan bağımsızdır (Hugging Face head_dim); verilmezse boyut / baş" {
+    // Qwen3 gibi: gizli 8, 2 baş × 8 baş boyutu = 16 (gizliden büyük), kv 1 baş.
+    değişken d = NedenselDikkat(8, 2, kv_baş: 1, baş_boyutu: 8, tohum: 3)
+    eşit_mi(8, d.baş_boyutu)
+    eşit_mi([8, 16], d.sorgu_katmanı.ağırlık.şekil)
+    eşit_mi([8, 8], d.anahtar_katmanı.ağırlık.şekil)
+    eşit_mi([16, 8], d.çıkış_katmanı.ağırlık.şekil)
+    değişken tablolar = döner_konum_tablosu(5, 8)
+    değişken x = rastgele_girdi([2, 5, 8], 4)
+    eşit_mi([2, 5, 8], d.ileri(x, tablolar[0], tablolar[1]).şekil)
+    eşit_mi(4, NedenselDikkat(8, 2).baş_boyutu)
+    // baş_boyutu verilince boyut başa bölünmek zorunda değildir.
+    eşit_mi([6, 8], NedenselDikkat(6, 4, baş_boyutu: 2).sorgu_katmanı.ağırlık.şekil)
+    değişken mesaj = ""
+    dene { NedenselDikkat(8, 2, baş_boyutu: 3) } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("çift"), mesaj)
+}
+
+test "GPT: baş_boyutu bloklara ve döner konum tablosuna iletilir; varsayılan model değişmez" {
+    değişken m = GPT(12, bağlam: 6, boyut: 8, katman: 2, baş: 2, kv_baş: 1, baş_boyutu: 16, tohum: 3)
+    eşit_mi([8, 32], m.bloklar[0].dikkat.sorgu_katmanı.ağırlık.şekil)
+    eşit_mi([6, 8], m.kos.şekil)
+    eşit_mi([2, 6, 12], m.ileri(tensör([[1, 2, 3, 4, 5, 6], [6, 5, 4, 3, 2, 1]])).şekil)
+    değişken a = GPT(12, bağlam: 6, boyut: 8, katman: 2, baş: 2, tohum: 3)
+    değişken b = GPT(12, bağlam: 6, boyut: 8, katman: 2, baş: 2, baş_boyutu: 4, tohum: 3)
+    eşit_mi(a.ileri(tensör([[1, 2, 3]])).değer, b.ileri(tensör([[1, 2, 3]])).değer)
+}
