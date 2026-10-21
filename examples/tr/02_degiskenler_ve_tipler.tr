@@ -1,115 +1,27 @@
-// 02 — Dil turu: TR'nin temel özellikleri tek dosyada, kısa örneklerle.
-// Sırasıyla: değişkenler ve sabitler, yok güvenliği (??), fonksiyonlar (tip, varsayılan ve
-// adlı argüman), eşle, döngüler, liste üreteci ve çoklu atama, zincirleme metotlar, sondaki
-// blok ve `o`, boru hattı (|>), yapılar, dene/yakala, ertele, eşzamanlı görevler ve modüller.
-// Kuralların tamamı: docs/spec/
-// Çalıştırma (proje kökünden): tr examples/02_dil_turu.tr
+// 02 — Değişkenler ve tipler: değer saklamak ve her değerin bir tipi olduğunu görmek.
+// Öğrettikleri: değişken ve sabit, temel tipler (Tam, Ondalık, Metin, Mantık, yok), tip()
+// ile tip sormak, tam()/ondalık()/metin() dönüşümleri, işleçler, ?? ile yok güvenliği.
+// Önceki örnek: 01 (merhaba). Sonraki: 03 (koşullar ve döngüler).
+// Çalıştırma (proje kökünden): tr examples/tr/02_degiskenler_ve_tipler.tr
 
-yazdır("=== 1. Değişkenler, sabitler, yok güvenliği ===")
-değişken kullanıcı = yok
-değişken görünen_ad = kullanıcı ?? "Misafir" // ?? : soldaki yoksa sağdakini al
+değişken yaş = 30 // Tam: ondalık noktası olmayan sayı
+değişken boy = 1.75 // Ondalık
+değişken ad = "Ayşe" // Metin
+değişken öğrenci_mi = doğru // Mantık
+yazdır(tip(yaş), tip(boy), tip(ad), tip(öğrenci_mi))
+
 sabit SÜRÜM = "1.0" // sabit yeniden atanamaz
-yazdır("Merhaba, {görünen_ad}! (sürüm {SÜRÜM})")
+yazdır("sürüm {SÜRÜM}")
 
-yazdır("\n=== 2. Fonksiyonlar ve eşle ===")
-fonksiyon not_durumu(puan: Tam) -> Metin {
-    eşle puan {
-        90..=100 => "pekiyi"
-        70..90 => "iyi"
-        50..70 => "geçer"
-        varsayılan => "geliştirilmeli"
-    }
-}
-döngü p içinde [95, 78, 42] {
-    yazdır("puan {p} -> {not_durumu(p)}")
-}
+// Dönüşümler ve işleçler
+yazdır(tam("42") + 1, ondalık("2.5") * 2, metin(7) + "8")
+yazdır(7 / 2, 7 % 2, 2 ** 10) // bölme, kalan, kuvvet
+yazdır(yaş >= 18 ve öğrenci_mi, değil öğrenci_mi, yaş < 18 veya boy > 1.7)
 
-fonksiyon selam(ad, ek = "!") {
-    sonuç "Selam {ad}{ek}"
-}
-yazdır(selam("Ayşe"), selam(ek: "?", ad: "Ali")) // varsayılan ve adlı argüman
+// yok: değerin olmadığını söyler; ?? soldaki yoksa sağdakini alır
+değişken kullanıcı = yok
+değişken görünen_ad = kullanıcı ?? "Misafir"
+yazdır("Merhaba, {görünen_ad}!")
 
-yazdır("\n=== 3. Döngüler ===")
-değişken ara_toplam = 0
-döngü i içinde 1..=10 { // 1..=10 sonu dahil, 1..10 hariç
-    eğer i == 4 { devam } // bu turu atla
-    eğer i > 8 { çık } // döngüden çık
-    ara_toplam += i
-}
-yazdır("1..8 (4 hariç) toplamı: {ara_toplam}")
-
-değişken n = 1
-iken n < 100 { n = n * 3 }
-yazdır("3'ün 100'ü aşan ilk kuvveti: {n}")
-
-yazdır("\n=== 4. Liste üreteci ve çoklu atama ===")
-yazdır("çift kareler: {[x * x döngü x içinde 1..=10 eğer x % 2 == 0]}")
-değişken a, b = 10, 20
-a, b = b, a // takas
-değişken ad, soyad = ["Mustafa", "Kemal"]
-yazdır("a = {a}, b = {b}; {ad} {soyad}")
-
-yazdır("\n=== 5. Zincirleme metotlar, sondaki blok ve boru hattı ===")
-yazdır("  merhaba yeni nesil tr dili  ".kırp().büyük_harf().böl(" ").birleştir(" - "))
-
-değişken ham = [5, 2, 8, 2, 1, 9, 5, 4]
-yazdır(ham.benzersiz().filtrele { o > 2 }.sırala().ters_çevir()) // o: sıradaki eleman
-yazdır("ilk: {ham.ilk}, son: {ham.son}, ortalama: {ortalama(ham)}")
-
-değişken çift_kareler = ham.filtrele((x) => x % 2 == 0).haritala { o * o } // ok fonksiyonu ve sondaki blok
-yazdır("çift kareler: {çift_kareler}, boru hattıyla toplamı {çift_kareler |> toplam}")
-
-yazdır("\n=== 6. Yapılar ===")
-yapı Geliştirici {
-    ad: Metin
-    deneyim: Tam = 1
-
-    fonksiyon tanıt() {
-        sonuç "{kendi.ad} ({kendi.deneyim} yıl)"
-    }
-}
-değişken dev = Geliştirici("Ahmet", 5)
-dev.deneyim += 1
-yazdır(dev.tanıt(), Geliştirici(ad: "Zeynep").tanıt())
-
-yazdır("\n=== 7. dene / yakala / fırlat ===")
-dene {
-    değişken x = 10 / 0
-} yakala hata {
-    yazdır("yakalandı: {hata}")
-}
-fonksiyon yaş_denetle(yaş) {
-    eğer yaş < 0 { fırlat "yaş negatif olamaz" }
-    sonuç yaş
-}
-dene { yaş_denetle(-3) } yakala h { yazdır("yakalandı: {h}") }
-
-yazdır("\n=== 8. ertele ===")
-fonksiyon dosya_işlemi() {
-    ertele yazdır("  [ertele 1] bağlantı kapatıldı")
-    ertele yazdır("  [ertele 2] önbellek temizlendi") // ters sırayla, önce bu çalışır
-    yazdır("  [işlem] veri işleniyor...")
-    sonuç "başarılı"
-}
-yazdır("dönüş: {dosya_işlemi()}")
-
-yazdır("\n=== 9. Eşzamanlı görevler ===")
-değişken kareler_toplamı = 0
-döngü i içinde 1..=100 {
-    eşzamanlı { kareler_toplamı += i * i }
-}
-bekle_hepsi() // başlatılan tüm görevlerin bitmesini bekle
-yazdır("1..100 karelerinin toplamı: {kareler_toplamı}")
-
-değişken başlangıç = zaman_ms()
-döngü i içinde 0..4 {
-    eşzamanlı bekle(0.1) // bekleyen görevler iç içe ilerler
-}
-bekle_hepsi()
-yazdır("4 × bekle(0.1) eşzamanlı: {zaman_ms() - başlangıç} ms (sırayla ~400 ms sürerdi)")
-
-yazdır("\n=== 10. Modüller ===")
-aktar "helpers/geometri" // .tr uzantısı isteğe bağlı
-yazdır("r = 2 dairenin alanı: {daire_alanı(2)}")
-aktar "helpers/geometri" olarak geo
-yazdır("geo.PI = {geo.PI}")
+// Metin içine ifade yerleştirmek: {...}
+yazdır("{ad} {yaş} yaşında; gelecek yıl {yaş + 1}")
