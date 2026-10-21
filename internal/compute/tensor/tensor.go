@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
+	"sync/atomic"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -44,6 +45,10 @@ type Tensor struct {
 	// sonucun verisi böylece geri yayılımı beklemeden serbest kalır (PyTorch'un grad_fn
 	// ile saved tensors ayrımı).
 	n *node
+	// Ömür (lifetime.go): oluşturulma sırası, bırakıldı mı ve başlığı saran değer sayısı.
+	serial  uint64
+	dropped atomic.Bool
+	wraps   atomic.Int32
 }
 
 // ----------------------------------------------------------------------------
@@ -118,7 +123,7 @@ func normAxis(axis, ndim int) int {
 // fromStorage depolamayı bitişik tensör olarak sarar.
 func fromStorage(be Backend, s Storage, shape []int) *Tensor {
 	sh := copyInts(shape)
-	return &Tensor{storage: s, be: be, shape: sh, strides: contiguousStrides(sh), dtyp: s.DType()}
+	return newHeader(&Tensor{storage: s, be: be, shape: sh, strides: contiguousStrides(sh), dtyp: s.DType()})
 }
 
 // zerosOn verilen arka uçta sıfırlarla dolu bitişik float32 tensör ayırır.
@@ -242,6 +247,7 @@ func Rand(rng *rand.Rand, lo, hi float32, shape ...int) *Tensor {
 
 // view tensörün arka uca verilecek görünüm tanımı.
 func (t *Tensor) view() View {
+	t.mustLive()
 	return View{S: t.storage, Offset: t.offset, Shape: t.shape, Strides: t.strides}
 }
 
@@ -296,7 +302,7 @@ func (t *Tensor) IsLeaf() bool { return t.n == nil || t.n.backward == nil }
 
 // Detach aynı veriyi paylaşan, çizgeden kopuk ve gradyansız bir görünüm verir.
 func (t *Tensor) Detach() *Tensor {
-	return &Tensor{storage: t.storage, be: t.be, offset: t.offset, shape: copyInts(t.shape), strides: copyInts(t.strides), dtyp: t.dtyp}
+	return newHeader(&Tensor{storage: t.storage, be: t.be, offset: t.offset, shape: copyInts(t.shape), strides: copyInts(t.strides), dtyp: t.dtyp})
 }
 
 // DType tensörün eleman türü.
@@ -308,6 +314,7 @@ func (t *Tensor) Version() uint64 { return t.storage.Version() }
 
 // Data elemanların mantıksal sırayla (satır öncelikli) konaktaki bir kopyasını verir.
 func (t *Tensor) Data() []float32 {
+	t.mustLive()
 	sy := counterStart(t.be, OpKindToHost).start()
 	d := t.be.ToHost(t.view())
 	sy.finish()

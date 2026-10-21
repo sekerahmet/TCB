@@ -10,7 +10,7 @@ import (
 
 // viewOf ebeveynle depoyu paylaşan yeni bir tensör başlığı üretir.
 func viewOf(t *Tensor, offset int, shape, strides []int) *Tensor {
-	return &Tensor{storage: t.storage, be: t.be, offset: offset, shape: shape, strides: strides, dtyp: t.dtyp}
+	return newHeader(&Tensor{storage: t.storage, be: t.be, offset: offset, shape: shape, strides: strides, dtyp: t.dtyp})
 }
 
 // scatterBackward, görünümün bitişik gradyanını ebeveynin gradyan tamponuna

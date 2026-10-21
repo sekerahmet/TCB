@@ -164,6 +164,7 @@ func track(out *Tensor, op string, parents []*Tensor, bw func(o *node), save ...
 			o.registered = append(o.registered, savedVersion{k, k.storage.Version()})
 		}
 	}
+	holdSaved(o)
 	out.n = o
 	return out
 }
@@ -343,6 +344,7 @@ func (t *Tensor) BackwardCtx(seed *Tensor, ctx any) {
 			giveBack(n.be, n.grad)
 		}
 		n.grad = nil
+		releaseSaved(n)
 		n.backward = nil
 		n.parents = nil
 		n.registered = nil

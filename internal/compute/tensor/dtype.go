@@ -103,7 +103,7 @@ func (t *Tensor) CastShared(dt DType) *Tensor {
 		return t.Cast(dt)
 	}
 	if c := t.n.castMemo.Load(); c != nil {
-		if o := c.out.Value(); o != nil && o.dtyp == dt && o.n != nil && !o.n.free &&
+		if o := c.out.Value(); o != nil && !o.IsDropped() && o.dtyp == dt && o.n != nil && !o.n.free &&
 			c.src == t.storage.Version() && c.dst == o.storage.Version() {
 			return o
 		}

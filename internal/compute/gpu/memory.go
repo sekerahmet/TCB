@@ -386,7 +386,9 @@ func (g *backend) releaseSmall() {
 	}
 }
 
-// release depolamayı havuza iade eder (Release).
+// release depolamayı havuza iade eder (Release). Açıkça iade edilen bellek çöp değildir: son
+// toplamadan bu yana verilenlerden düşülür, böylece toplama yalnızca çöp toplayıcıya kalan
+// bellek birikince başlar (belirlenimci bırakma, tensor/lifetime.go).
 func (g *backend) release(d *storage) {
 	if d.n == 0 || d.release2 {
 		return
@@ -394,6 +396,7 @@ func (g *backend) release(d *storage) {
 	d.release2 = true
 	d.clean.Stop()
 	d.host = nil
+	g.volume -= min(g.volume, d.class)
 	g.pool.release2(d.addr, d.class)
 }
 

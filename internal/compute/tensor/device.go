@@ -144,8 +144,8 @@ func (d DType) IsFloat() bool { return d == Float32 || d == BFloat16 || d == Flo
 func (d DType) StorageBytes(n int) int { return (n*d.Bits() + 7) / 8 }
 
 // Storage bir cihazdaki düz bellek bloğu (Len eleman, DType türünde). Her
-// depolamanın, içeriği yerinde her değiştirildiğinde artan bir sürüm sayacı
-// vardır (bkz. VersionCounter).
+// depolamanın, içeriği yerinde her değiştirildiğinde artan bir sürüm sayacı ve
+// sahip sayacı vardır (bkz. VersionCounter, lifetime.go).
 type Storage interface {
 	Device() Device
 	Len() int
@@ -154,11 +154,25 @@ type Storage interface {
 	Version() uint64
 	// BumpVersion sürüm sayacını artırır (yerinde değişiklikten sonra).
 	BumpVersion()
+	// Hold depolamanın sahip sayacını artırır; Unhold azaltır ve kalan sahip sayısını verir
+	// (lifetime.go).
+	Hold()
+	Unhold() int64
 }
 
 // VersionCounter depolama uygulamalarına gömülebilen, eşzamanlı kullanıma
-// güvenli sürüm sayacı (Storage arayüzünün Version/BumpVersion yöntemleri).
-type VersionCounter struct{ v atomic.Uint64 }
+// güvenli sürüm ve sahip sayacı (Storage arayüzünün Version/BumpVersion ve
+// Hold/Unhold yöntemleri).
+type VersionCounter struct {
+	v       atomic.Uint64
+	holders atomic.Int64
+}
+
+// Hold sahip sayacını bir artırır.
+func (c *VersionCounter) Hold() { c.holders.Add(1) }
+
+// Unhold sahip sayacını bir azaltır ve kalanı verir.
+func (c *VersionCounter) Unhold() int64 { return c.holders.Add(-1) }
 
 // Version sayacın değeri.
 func (c *VersionCounter) Version() uint64 { return c.v.Load() }
