@@ -87,45 +87,52 @@ func gemvKernel(a gemvConfig, vw int, over bool) func() *emitter {
 				t[j] = k.sum(t[j], k.shflXor(t[j], m))
 			}
 		}
-		// Her warp'ın ilk dilimi (lane < L) warp toplamını paylaşımlı belleğe yazar.
-		first, skip := k.p(), k.label()
-		k.e("setp.lt.u32", first, lane, a.L)
-		k.jumpUnless(first, skip)
-		sa := k.r()
-		k.e("mad.lo.s32", sa, warp, BN, cg)
-		k.e("mad.lo.s32", sa, sa, 4, sm)
-		for j := range t {
-			k.e("st.shared.f32", mem(sa, 4*(j*a.L)), t[j])
-		}
-		k.put(skip)
-		k.barrier()
-		// İlk BN iş parçacığı bir sütunun warp toplamlarını warp sırasıyla toplar. Paylaşımlı
-		// düzen [warp][j·L + cg]: sütun n0 + cg·vw + j.
-		end := k.label()
-		p := k.p()
-		k.e("setp.ge.u32", p, tid, BN)
-		k.jumpIf(p, end)
-		jj, cc := k.r(), k.r()
-		k.e("shr.u32", jj, tid, log2(a.L))
-		k.e("and.b32", cc, tid, a.L-1)
-		col := k.r()
-		k.e("mad.lo.s32", col, cc, vw, n0)
-		k.e("add.s32", col, col, jj)
-		k.e("setp.ge.u32", p, col, N)
-		k.jumpIf(p, end)
-		ta := k.r()
-		k.e("mad.lo.s32", ta, tid, 4, sm)
-		total := k.f()
-		k.e("ld.shared.f32", total, mem(ta, 0))
-		for w := 1; w < W; w++ {
-			v := k.f()
-			k.e("ld.shared.f32", v, mem(ta, 4*w*BN))
-			total = k.sum(total, v)
-		}
-		k.gemvWrite(pc, col, total, over)
-		k.put(end)
+		k.gemvWarpSum(a, vw, t, sm, tid, lane, warp, cg, n0, N, pc, over)
 		return k
 	}
+}
+
+// gemvWarpSum warp toplamlarını (t, her warp'ın ilk dilimindeki şeritlerde) paylaşımlı belleğe
+// yazar; ilk BN iş parçacığı bir sütunun warp toplamlarını warp sırasıyla toplayıp c'ye yazar.
+func (k *emitter) gemvWarpSum(a gemvConfig, vw int, t []reg, sm, tid, lane, warp, cg, n0, N, pc reg, over bool) {
+	W, BN := a.T/32, a.L*vw
+	// Her warp'ın ilk dilimi (lane < L) warp toplamını paylaşımlı belleğe yazar.
+	first, skip := k.p(), k.label()
+	k.e("setp.lt.u32", first, lane, a.L)
+	k.jumpUnless(first, skip)
+	sa := k.r()
+	k.e("mad.lo.s32", sa, warp, BN, cg)
+	k.e("mad.lo.s32", sa, sa, 4, sm)
+	for j := range t {
+		k.e("st.shared.f32", mem(sa, 4*(j*a.L)), t[j])
+	}
+	k.put(skip)
+	k.barrier()
+	// İlk BN iş parçacığı bir sütunun warp toplamlarını warp sırasıyla toplar. Paylaşımlı
+	// düzen [warp][j·L + cg]: sütun n0 + cg·vw + j.
+	end := k.label()
+	p := k.p()
+	k.e("setp.ge.u32", p, tid, BN)
+	k.jumpIf(p, end)
+	jj, cc := k.r(), k.r()
+	k.e("shr.u32", jj, tid, log2(a.L))
+	k.e("and.b32", cc, tid, a.L-1)
+	col := k.r()
+	k.e("mad.lo.s32", col, cc, vw, n0)
+	k.e("add.s32", col, col, jj)
+	k.e("setp.ge.u32", p, col, N)
+	k.jumpIf(p, end)
+	ta := k.r()
+	k.e("mad.lo.s32", ta, tid, 4, sm)
+	total := k.f()
+	k.e("ld.shared.f32", total, mem(ta, 0))
+	for w := 1; w < W; w++ {
+		v := k.f()
+		k.e("ld.shared.f32", v, mem(ta, 4*w*BN))
+		total = k.sum(total, v)
+	}
+	k.gemvWrite(pc, col, total, over)
+	k.put(end)
 }
 
 // gemvTWarps devrik tek satırlık çarpımın bloğundaki warp sayısı (blok başına çıktı).
