@@ -32,9 +32,9 @@ yazdır("relu(A @ W - 4) =", relu(A @ W - 4))
 yazdır("softmax([2, 1, 0.1]) =", softmax(tensör([2.0, 1.0, 0.1])))
 yazdır("toplam:", toplam(A), "ortalama:", ortalama(A))
 
-// Tip bildirimi: Tensör. Şekil, sayı türü ve cihaz tensörün özellikleridir.
+// Tip bildirimi: Tensör. Şekil tensörün bir özelliğidir (sayı türü ve cihaz 33'te).
 değişken t: Tensör = tensör([[1, 2, 3], [4, 5, 6]])
-yazdır(tip(t) == Tensör, t.şekil, t.tür, t.cihaz)
+yazdır(tip(t) == Tensör, t.şekil)
 
 // devrik son iki ekseni yer değiştirir; dilim(eksen, baş, son) bir aralığı keser;
 // birleştir tensör listesini bir eksen boyunca uç uca ekler.

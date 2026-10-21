@@ -12,10 +12,12 @@ A030 folder = G126()
 A030 note_path = G120(folder, "notes.txt")
 G111(note_path, "first line\nsecond line\nthird line\n")
 G100("exists: {note_path.Y315}")
-G100("line count: {G110(note_path).Y102().Y103("\n").Y001}")
+A030 line_count = 0
 A010 line A011 G112(note_path) {
     G100("line: {line}")
+    line_count += 1
 }
+G100("line count: {line_count}")
 
 // JSON: dict -> text -> file -> text -> dict
 A030 config = {"name": "trial", "steps": 100, "rates": [0.1, 0.01], "open": A040}

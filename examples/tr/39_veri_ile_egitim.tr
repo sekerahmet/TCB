@@ -1,7 +1,7 @@
 // 39 — Veri ile eğitim: parçalayıcı ve veri yükleyiciyle uçtan uca küçük bir dil modeli.
 // Ne öğretir: tokenizer.json yükleyip metni kodlamak/çözmek (Parçalayıcı, parça_kimliği, özel_parçalar, ikinci), .npy veri dosyalarından örnekleyiciyle
-// rastgele toplu işler almak, sıralı okuyucuyla doğrulamak, komut_satırı ve ilerleme çubuğu.
-// Önceki örnekten: transformer ve çapraz_entropi (35), eğitim döngüsü (28).
+// rastgele toplu işler almak, sıralı okuyucuyla doğrulamak, önbellek.
+// Önceki örnekten: transformer ve çapraz_entropi (35), eğitim döngüsü (28), komut satırı (37), ilerleme çubuğu ve günlük (38).
 // Ayrıntılar: docs/guide/04_yapay_zeka_ve_veri.md §4.D, docs/spec/16_veri_parcalayici.md §16.
 //
 // Varsayılan olarak depodaki sentetik test verisini (tests/data) kullanır. Kendi
@@ -115,12 +115,6 @@ türevsiz {
     }
 }
 yazdır("model şunu yazdı: {p.çöz(üretilen)}")
-
-// İlerleme çubuğu eğitim bitince kendiliğinden kapanır; durdur() onu elle bitirir (ilk çağrıda doğru,
-// çubuk zaten bittiyse yanlış verir). Günlük her kaydı bir JSON satırı olarak dosyaya yazar.
-yazdır(tip(ç) == İlerleme, "çubuk zaten bitti:", ç.durdur())
-değişken deneme_günlüğü = günlük(yol(geçici_klasör(), "deneme.jsonl"))
-yazdır(tip(deneme_günlüğü) == Günlük)
 
 // --- Kendin dene ---
 // 1. --adım 400 ile çalıştır ve doğrulama kaybının eğitim kaybından farkına bak.

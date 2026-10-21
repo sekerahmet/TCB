@@ -20,7 +20,7 @@ yazdır("d(kare)/dx =", x.gradyan.değer, "(beklenen 6.0)")
 // türev_denetle, geri yayılımla bulunan gradyanı merkezi farkla bulunan sayısal gradyanla karşılaştırır;
 // uyuşursa doğru verir. adım: farkın büyüklüğü, tolerans: izin verilen göreli farktır.
 yazdır(türev_denetle(fonksiyon(a) { sonuç a * a }, [tensör([0.5, -1.0], türev_izle: doğru)], adım: 0.001, tolerans: 0.01))
-yazdır(türev_denetle(fonksiyon(a) { sonuç sigmoid(a) }, [tensör([0.3], türev_izle: doğru)], tolerans: 0.001))
+yazdır(türev_denetle(fonksiyon(a) { sonuç üstel(a) }, [tensör([0.3], türev_izle: doğru)], tolerans: 0.001))
 
 // kaynaştır, eleman bazlı işlemlerden oluşan bir fonksiyonu tek geçişte hesaplayan eşdeğerine çevirir;
 // sonuç kaynaşmamış hesapla aynıdır (GPU'da ara sonuçlar belleğe yazılmaz).

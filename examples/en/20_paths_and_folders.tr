@@ -18,6 +18,8 @@ G122(G120(base, "data", "sub"))
 G111(G120(base, "data", "a.txt"), "welcome")
 G111(G120(base, "data", "sub", "b.txt"), "world!")
 G100(G120(base, "data", "a.txt").Y316, G120(base, "data").Y317, G120(base, "missing").Y315)
+// absolute is the path written out in full (a relative path is resolved against the working folder).
+G100(G120(".").Y314.Y317, G120(base, "data").Y314 == G120(base, "data"))
 G100("size of a.txt:", G120(base, "data", "a.txt").Y318, "bytes")
 
 // list_dir gives the files and folders that fit the pattern as a sorted list of Paths (** goes into subfolders).

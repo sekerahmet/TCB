@@ -11,10 +11,12 @@ değişken klasör = geçici_klasör()
 değişken not_yolu = yol(klasör, "notlar.txt")
 dosya_yaz(not_yolu, "birinci satır\nikinci satır\nüçüncü satır\n")
 yazdır("var mı: {not_yolu.var_mı}")
-yazdır("satır sayısı: {dosya_oku(not_yolu).kırp().böl("\n").uzunluk}")
+değişken satır_sayısı = 0
 döngü satır içinde dosya_satırları(not_yolu) {
     yazdır("satır: {satır}")
+    satır_sayısı += 1
 }
+yazdır("satır sayısı: {satır_sayısı}")
 
 // JSON: sözlük -> metin -> dosya -> metin -> sözlük
 değişken ayar = {"ad": "deneme", "adım": 100, "oranlar": [0.1, 0.01], "açık": doğru}

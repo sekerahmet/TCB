@@ -1,0 +1,37 @@
+//! tr kodlu 1
+// 38 — Progress bar and log: following a long job and keeping a record of it.
+// What it teaches: opening a bar with progress(total), advancing it with update, stop; writing the record of every
+// step as a JSON line with logger(path) and linking it with progress(log:); the Progress and Logger types.
+// Builds on: loops (07), dicts (11), files and JSON (19), paths (20), the command line (37).
+// Run (from the project root): tr examples/en/38_progress_and_logs.tr
+// The log file is written to a temporary folder (deleted when the program ends).
+
+// logger(path) opens a log file; append(dict) adds one JSON line to the file on every call.
+A030 file = G120(G126(), "log.jsonl")
+A030 journal = G810(file)
+G100(G201(journal) == A256)
+journal.Y004({Y500: 0, loss: 9.5})
+
+// progress(total) opens a progress bar (it writes to standard error: step, loss, speed, remaining time).
+// If log: is given every update of the bar is also written to the log.
+A030 bar = G811(5, G912: journal)
+G100(G201(bar) == A255)
+A010 i A011 1..=5 {
+    G500(0.01) // stands in for the real work
+    bar.Y010({loss: 10.0 / (i + 1)}, T982: i)
+}
+
+// The bar finishes by itself when it reaches the total; stop() finishes it by hand (true on the first call,
+// false if the bar is already finished).
+G100("bar had already finished:", bar.Y011())
+
+// The log file: every line is a JSON record.
+A030 record_count = 0
+A010 line A011 G112(file) {
+    record_count += 1
+}
+G100("number of records in the log:", record_count)
+
+// --- Try it yourself ---
+// 1. Read the last line of the log with json_parse and print the loss value.
+// 2. Open the bar without a log (progress(5)) and see that it is only written to the screen.

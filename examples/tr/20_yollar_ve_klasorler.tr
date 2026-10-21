@@ -17,6 +17,8 @@ klasör_oluştur(yol(kök, "veri", "alt"))
 dosya_yaz(yol(kök, "veri", "a.txt"), "merhaba")
 dosya_yaz(yol(kök, "veri", "alt", "b.txt"), "dünya!")
 yazdır(yol(kök, "veri", "a.txt").dosya_mı, yol(kök, "veri").klasör_mü, yol(kök, "yok").var_mı)
+// mutlak, yolun baştan sona yazılmış hâlidir (göreli yolu çalışma klasörüne göre çözer).
+yazdır(yol(".").mutlak.klasör_mü, yol(kök, "veri").mutlak == yol(kök, "veri"))
 yazdır("a.txt boyutu:", yol(kök, "veri", "a.txt").bayt, "bayt")
 
 // klasörü_listele kalıba uyan dosya ve klasörleri sıralı Yol listesi olarak verir (** alt klasörlere iner).

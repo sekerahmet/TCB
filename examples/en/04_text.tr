@@ -1,7 +1,7 @@
 //! tr kodlu 1
 // 04 — Text: putting values into text and working with it.
 // What it teaches: interpolating expressions with {...}, the \" escape, length, upper/lower,
-// strip, contains, starts_with, ends_with, replace.
+// strip, contains, starts_with, ends_with, replace, split.
 // Builds on: variables and types (02, 03).
 // Run (from the project root): tr examples/en/04_text.tr
 
@@ -29,6 +29,9 @@ G100("  tr lang  ".Y102().Y100().Y001)
 
 // starts_with, ends_with and contains ask about the start, the end and the inside of a text.
 G100("report.tr".Y105("rep"), "report.tr".Y106(".tr"), "report.tr".Y002("por"))
+
+// split cuts a text at the separator; the result is a list (we will learn lists in 09).
+G100("apple,pear,cherry".Y103(","))
 
 // --- Try it yourself ---
 // 1. Keep a name and a birth year in two variables and build "{name} was born in {year}, now ... years old".

@@ -21,7 +21,7 @@ G100("d(squared)/dx =", x.Y403.Y404, "(expected 6.0)")
 // grad_check compares the gradient found by backward propagation with the numeric gradient found by a central
 // difference; it gives true if they agree. step: is the size of the difference, tol: the allowed relative difference.
 G100(T311(A020(a) { A021 a * a }, [T100([0.5, -1.0], T900: A040)], T982: 0.001, T983: 0.01))
-G100(T311(A020(a) { A021 T201(a) }, [T100([0.3], T900: A040)], T983: 0.001))
+G100(T311(A020(a) { A021 T220(a) }, [T100([0.3], T900: A040)], T983: 0.001))
 
 // fuse turns a function made of element-wise operations into an equivalent that computes in one pass;
 // the result equals the unfused calculation (on a GPU the intermediate results are not written to memory).

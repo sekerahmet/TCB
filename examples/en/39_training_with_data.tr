@@ -1,8 +1,8 @@
 //! tr kodlu 1
 // 39 — Training with data: a small language model end to end with a tokenizer and a data loader.
 // What it teaches: loading tokenizer.json and encoding/decoding text (Tokenizer, token_id, special_tokens, pair), taking random batches from .npy data files with a
-// sampler, validating with a sequential reader, command_line and the progress bar.
-// Builds on: the transformer and cross_entropy (35), the training loop (28).
+// sampler, validating with a sequential reader, cache.
+// Builds on: the transformer and cross_entropy (35), the training loop (28), the command line (37), the progress bar and log (38).
 // Details: docs/guide/04_yapay_zeka_ve_veri.md §4.D, docs/spec/16_veri_parcalayici.md §16.
 //
 // By default it uses the synthetic test data in the repository (tests/data). To run it with
@@ -116,12 +116,6 @@ T301 {
     }
 }
 G100("the model wrote: {p.Y611(generated)}")
-
-// The progress bar closes itself when training ends; stop() finishes it by hand (true on the first call,
-// false if the bar is already finished). A Logger writes every record to a file as a JSON line.
-G100(G201(bar) == A255, "bar already finished:", bar.Y011())
-A030 trial_log = G810(G120(G126(), "trial.jsonl"))
-G100(G201(trial_log) == A256)
 
 // --- Try it yourself ---
 // 1. Run with --step 400 and look at the gap between the validation loss and the training loss.

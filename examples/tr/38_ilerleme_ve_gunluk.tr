@@ -1,0 +1,36 @@
+// 38 — İlerleme çubuğu ve günlük: uzun işi izlemek ve kaydını tutmak.
+// Ne öğretir: ilerleme(toplam) ile çubuk açmak, güncelle ile ilerletmek, durdur; günlük(yol) ile her adımın
+// kaydını bir JSON satırı olarak yazmak ve ilerleme(günlük:) ile bağlamak; İlerleme ve Günlük tipleri.
+// Önceki örnekten: döngüler (07), sözlükler (11), dosya ve JSON (19), yollar (20), komut satırı (37).
+// Çalıştırma (proje kökünden): tr examples/tr/38_ilerleme_ve_gunluk.tr
+// Günlük dosyası geçici klasöre yazılır (program bitince silinir).
+
+// günlük(yol) bir günlük dosyası açar; ekle(sözlük) her çağrıda dosyaya bir JSON satırı ekler.
+değişken dosya = yol(geçici_klasör(), "günlük.jsonl")
+değişken kayıt_defteri = günlük(dosya)
+yazdır(tip(kayıt_defteri) == Günlük)
+kayıt_defteri.ekle({adım: 0, kayıp: 9.5})
+
+// ilerleme(toplam) bir ilerleme çubuğu açar (standart hataya yazar: adım, kayıp, hız, kalan süre).
+// günlük: verilirse çubuğun her güncellemesi aynı zamanda günlüğe yazılır.
+değişken çubuk = ilerleme(5, günlük: kayıt_defteri)
+yazdır(tip(çubuk) == İlerleme)
+döngü i içinde 1..=5 {
+    bekle(0.01) // asıl işin yerini tutar
+    çubuk.güncelle({kayıp: 10.0 / (i + 1)}, adım: i)
+}
+
+// Çubuk toplama ulaşınca kendiliğinden biter; durdur() onu elle bitirir (ilk çağrıda doğru,
+// çubuk zaten bittiyse yanlış verir).
+yazdır("çubuk zaten bitmişti:", çubuk.durdur())
+
+// Günlük dosyası: her satır bir JSON kaydı.
+değişken kayıt_sayısı = 0
+döngü satır içinde dosya_satırları(dosya) {
+    kayıt_sayısı += 1
+}
+yazdır("günlükteki kayıt sayısı:", kayıt_sayısı)
+
+// --- Kendin dene ---
+// 1. Günlükteki son satırı json_çöz ile oku ve kayıp değerini yazdır.
+// 2. Çubuğu günlüksüz aç (ilerleme(5)) ve yalnızca ekrana yazıldığını gör.

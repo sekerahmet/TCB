@@ -33,9 +33,9 @@ G100("relu(A @ W - 4) =", T200(A @ W - 4))
 G100("softmax([2, 1, 0.1]) =", T210(T100([2.0, 1.0, 0.1])))
 G100("sum:", G400(A), "mean:", G410(A))
 
-// Type declaration: Tensor. Shape, number type and device are properties of a tensor.
+// Type declaration: Tensor. The shape is a property of a tensor (number type and device in 33).
 A030 t: A212 = T100([[1, 2, 3], [4, 5, 6]])
-G100(G201(t) == A212, t.Y400, t.Y402, t.Y401)
+G100(G201(t) == A212, t.Y400)
 
 // transpose swaps the last two axes; slice(axis, start, end) cuts a range;
 // concat joins a list of tensors end to end along an axis.

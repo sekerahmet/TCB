@@ -1,6 +1,6 @@
 // 04 — Metin: metne değer yerleştirmek ve metinle çalışmak.
 // Ne öğretir: {...} ile metne ifade yerleştirmek, \" kaçışı, uzunluk, büyük_harf/küçük_harf,
-// kırp, içerir, başlar, biter, değiştir.
+// kırp, içerir, başlar, biter, değiştir, böl.
 // Önceki örnekten: değişkenler ve tipler (02, 03).
 // Çalıştırma (proje kökünden): tr examples/tr/04_metin.tr
 
@@ -28,6 +28,9 @@ yazdır("  tr dili  ".kırp().büyük_harf().uzunluk)
 
 // başlar, biter ve içerir metnin başını, sonunu ve içini sorar.
 yazdır("rapor.tr".başlar("rap"), "rapor.tr".biter(".tr"), "rapor.tr".içerir("por"))
+
+// böl metni ayırıcıdan parçalara ayırır; sonuç bir listedir (listeleri 09'da öğreneceğiz).
+yazdır("elma,armut,kiraz".böl(","))
 
 // --- Kendin dene ---
 // 1. Adını ve doğum yılını iki değişkene yaz; "{ad} {yıl} doğumlu, bu yıl ... yaşında" cümlesini kur.
