@@ -1570,5 +1570,8 @@
 "H8829": { "param": [] },
 "H8830": { "param": ["command", "definition", "references", "testedBy", "impact"] },
 "H8831": { "param": ["name", "pos"] },
+"H8832": { "param": ["files", "changed", "added", "removed"] },
+"H8833": { "param": ["parsed", "files"] },
+"H8834": { "param": ["files"] },
 "H9000": { "param": ["detail"] }
 }

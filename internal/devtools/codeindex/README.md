@@ -44,9 +44,17 @@ Düğüm türleri: `module`, `function`, `struct`, `method`, `field`, `constant`
 
 **Çıktı örnekle sabittir.** Her komutun JSON çıktısı `testdata/golden/*.json` ile birebirdir; düz metin çıktısı `Text` ile üretilir. Denetim: `TestCommandOutputGolden`, `TestTextOutput`.
 
+## Önbellek ve artımlı yenileme
+
+**Önbellek proje kökündeki `.tr-dizin/` klasörüdür** (`manifest.json` + `index.json`, sürüm denetimine girmez). Manifest her girdi dosyasının içerik özetini (boyut ve değişme zamanı aynıysa yeniden okunmaz), `IndexVersion`'ı, şema sürümünü ve dizini etkileyen seçeneklerin imzasını tutar; sürüm ya da seçenek farklıysa ve dosya bozuksa önbellek sessizce yok sayılır ve dizin baştan kurulur. Yazım geçici dosya + yeniden adlandırmayladır (okuyan yarım dosya görmez). Denetim: `TestCacheHitSkipsParsing`, `TestCacheNotUsedForOtherVersionOrOptions`.
+
+**Artımlı yenileme sıfırdan kurulumla aynı baytları verir.** Yalnızca içeriği değişen dosyalar ve onları (dolaylı da) aktaran dosyalar yeniden ayrıştırılıp çözülür; öbürlerinin düğümleri, bağları ve başvuruları önbellekten alınır, ad çözümlemesi için gereken tanımlar önceki dizinden kurulur. Dosya eklenmesi/silinmesi ya da gömülü kitaplık modül kümesinin değişmesi baştan kurulumdur. Dizinin her listesi (düğüm, bağ, başvuru, çözülemeyen ad, atlanan dosya) tam sıralıdır, bu yüzden iki yol aynı baytları üretir. Denetim: `TestIncrementalEqualsFull` (rastgele düzenleme dizisi: çağrı, sabit kullanımı, yazma, dosyayı bozup düzeltme, ad çoğaltma; her adımdan sonra artımlı = sıfırdan), `TestIncrementalReparsesOnlyChangedAndImporters`, `TestStatusReportsChanges`.
+
+**Ölçüm (2026-10-21, i7-13700H, Windows).** `BenchmarkBuild` 200 modüllü sentetik projede sıfırdan kurulum ≈26 ms, önbellekten okuma ≈38 ms, bir yaprak dosya değişince yenileme ≈84 ms. Bu deponun kendisinde (`tr dizin`, 183 dosya, 1684 düğüm, 10303 başvuru) sıfırdan ≈185 ms, önbellekten ≈115 ms, `--dizin-yok` sorgusu ≈105 ms; süre çoğunlukla süreç açılışı, dosya açma ve 4 MB'lık dizin JSON'unun okunmasıdır. Yani dizin küçükken ayrıştırma zaten ucuzdur ve önbelleğin kazancı küçüktür; önbellek, dizin büyüdükçe (kitaplık ve veri hattı örnekleri çoğaldıkça) ve dil sunucusu gibi sürekli çalışan kullanıcılar için vardır. Yavaş bir makinede bile gerilemeyi yakalamak için cömert bir tavan sınanır. Denetim: `TestBuildTimeCeiling` (`-short`'ta atlanır).
+
 ## Testler
 
-Birim testleri sınadıkları dosyanın adını taşır (`model_test.go` → `model.go`, `result_test.go` → `result.go`, `build_test.go` → `build.go`, `reader_test.go` → `reader.go`, `query_test.go` → `query.go`; `helpers_test.go` ortak yardımcıdır). `testdata/proj` küçük bir TR projesidir (modül, test, takma adlı aktarma, kodlu ve bozuk dosya).
+Birim testleri sınadıkları dosyanın adını taşır (`model_test.go` → `model.go`, `result_test.go` → `result.go`, `build_test.go` → `build.go`, `reader_test.go` → `reader.go`, `query_test.go` → `query.go`, `cache_test.go` → `cache.go`; `helpers_test.go` ortak yardımcıdır). `testdata/proj` küçük bir TR projesidir (modül, test, takma adlı aktarma, kodlu ve bozuk dosya).
 
 ## Başka dillerin ve araçların kod dizinleri: karşılaştırma ve kararlar
 

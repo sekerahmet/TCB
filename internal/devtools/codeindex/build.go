@@ -261,8 +261,28 @@ func (x *indexer) finish() *Index {
 		if a.Line != b.Line {
 			return a.Line < b.Line
 		}
-		return a.Col < b.Col
+		if a.Col != b.Col {
+			return a.Col < b.Col
+		}
+		if idx.Occurrences[i].Node != idx.Occurrences[j].Node {
+			return idx.Occurrences[i].Node < idx.Occurrences[j].Node
+		}
+		return idx.Occurrences[i].Role < idx.Occurrences[j].Role
 	})
+	sort.SliceStable(idx.Unresolved, func(i, j int) bool {
+		a, b := idx.Unresolved[i], idx.Unresolved[j]
+		if a.Pos.File != b.Pos.File {
+			return a.Pos.File < b.Pos.File
+		}
+		if a.Pos.Line != b.Pos.Line {
+			return a.Pos.Line < b.Pos.Line
+		}
+		if a.Pos.Col != b.Pos.Col {
+			return a.Pos.Col < b.Pos.Col
+		}
+		return a.Name < b.Name
+	})
+	sort.SliceStable(idx.Skipped, func(i, j int) bool { return idx.Skipped[i].File < idx.Skipped[j].File })
 	return idx
 }
 

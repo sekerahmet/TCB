@@ -1575,5 +1575,8 @@ const (
 	H8829 Code = 8829 // silinecek önbellek yok
 	H8830 Code = 8830 // tr {command} [{definition}|{references}|{testedBy}|{impact} ad]	TR kodunun dizinini kurar ve ona sorar (tanım, kullananlar, sınayanlar, etki)
 	H8831 Code = 8831 // çözülemeyen ad: {name} ({pos})
+	H8832 Code = 8832 // önbellek: {files} dosya, {changed} değişmiş, {added} yeni, {removed} silinmiş
+	H8833 Code = 8833 // {parsed}/{files} dosya yeniden ayrıştırıldı
+	H8834 Code = 8834 // dizin önbellekten okundu ({files} dosya)
 	H9000 Code = 9000 // TR'de bir iç hata oluştu (bu sizin programınızın değil, TR'nin hatası); lütfen bildirin: {detail}
 )

@@ -44,6 +44,7 @@ func (r *Reader) prepare(command, q string, o QueryOptions) (*Result, *Node) {
 
 // display düğümü çıktıya hazırlar: yerleşik adın okuyanın dilindeki adı (Display) eklenir.
 func (r *Reader) display(n Node) Node {
+	n.Imports = nil // dizin içi ayrıntı; sonuçta yer tutmaz
 	if n.Kind == KindBuiltin {
 		if k, err := codes.Parse(n.Name); err == nil {
 			n.Display = codes.DisplayName(k)

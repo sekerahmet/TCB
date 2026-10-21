@@ -108,8 +108,20 @@ type Node struct {
 	// Aliases bir modülün başka adlarıdır (içe aktarma yolu "tr/katman").
 	Aliases []string `json:"aliases,omitempty"`
 	Coded   bool     `json:"coded,omitempty"` // modül: dosya kodlu biçimdeydi
+	// Imports modülün `aktar` ifadeleridir (kaynak sırasıyla); artımlı yenileme değişmeyen
+	// dosyaların aktarmalarını buradan kurar.
+	Imports []Import `json:"imports,omitempty"`
 	// Doc bildirimin üstündeki yorum satırlarıdır.
 	Doc string `json:"doc,omitempty"`
+}
+
+// Import bir `aktar` ifadesidir: Path yazıldığı gibi, Target çözülen modülün dosyası (çözülemezse
+// boş), Alias `olarak` adı (yoksa boş), Pos ifadenin yeri.
+type Import struct {
+	Path   string `json:"path"`
+	Target string `json:"target,omitempty"`
+	Alias  string `json:"alias,omitempty"`
+	Pos    Pos    `json:"pos"`
 }
 
 // Edge iki düğümü bağlar. Pos bağın ilk görüldüğü yerdir (öbürleri başvurulardır).

@@ -74,3 +74,18 @@ func TestIndexRootDiscovery(t *testing.T) {
 	wait(t, tr(t, dir+"/derin/ic", "dizin", "tanım", "Kare"), 0, []string{"lib/geo.tr:2:1"}, nil)
 	wait(t, tr(t, t.TempDir(), "dizin", "tanım", "Kare", "--kök", dir), 0, []string{"lib/geo.tr:2:1"}, nil)
 }
+
+// Önbellek: ilk çalıştırma kurar, ikincisi önbellekten okur, --durum değişeni söyler, --dizin-yok
+// değişikliği görmez, --temizle önbelleği siler.
+func TestIndexCache(t *testing.T) {
+	dir := indexProject(t)
+	wait(t, tr(t, dir, "dizin", "--durum"), 0, []string{"önbellek yok"}, nil)
+	wait(t, tr(t, dir, "dizin"), 0, []string{"2/2 dosya yeniden ayrıştırıldı"}, nil)
+	wait(t, tr(t, dir, "dizin"), 0, []string{"önbellekten okundu"}, nil)
+	writeFile(t, dir, "lib/geo_test.tr", "aktar \"geo\"\n\ntest \"çevre hesaplanır\" {\n    çevre(Kare())\n    çevre(Kare())\n}\n")
+	wait(t, tr(t, dir, "dizin", "--durum"), 0, []string{"1 değişmiş", "lib/geo_test.tr"}, nil)
+	wait(t, tr(t, dir, "dizin", "kullananlar", "çevre", "--dizin-yok", "--json"), 0, []string{`"total": 1`}, nil)
+	wait(t, tr(t, dir, "dizin", "kullananlar", "çevre", "--json"), 0, []string{`"total": 2`}, nil)
+	wait(t, tr(t, dir, "dizin", "--temizle"), 0, []string{"önbellek silindi"}, nil)
+	wait(t, tr(t, dir, "dizin", "--temizle"), 0, []string{"silinecek önbellek yok"}, nil)
+}

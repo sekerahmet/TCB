@@ -59,11 +59,26 @@ func indexCommand(args []string) {
 		indexOverview(root, opts)
 		return
 	}
-	idx, err := codeindex.Build(root, codeindex.Options{Library: lib.Files})
+	idx, _ := loadIndex(root, opts)
+	runIndexQuery(codeindex.NewReader(idx), sub, names[0], opts)
+}
+
+// indexBuildOptions dizinin kurulum seçenekleridir (gömülü kitaplık dahil).
+func indexBuildOptions() codeindex.Options { return codeindex.Options{Library: lib.Files} }
+
+// loadIndex dizini önbellekle getirir: --dizin-yok varsa kullanılabilir önbellek olduğu gibi okunur
+// (yoksa kurulur); yoksa değişen dosyalar tazelenir.
+func loadIndex(root string, o indexOptions) (*codeindex.Index, codeindex.Stats) {
+	if o.noIndex {
+		if idx, ok := codeindex.LoadCached(root, indexBuildOptions()); ok {
+			return idx, codeindex.Stats{Files: len(idx.Files), FromCache: true}
+		}
+	}
+	idx, stats, err := codeindex.BuildCached(root, indexBuildOptions())
 	if err != nil {
 		exitWithError(messages.Text(messages.H8826, err))
 	}
-	runIndexQuery(codeindex.NewReader(idx), sub, names[0], opts)
+	return idx, stats
 }
 
 // subcommandNames etkin dildeki alt komut adlarıdır (hata iletisi için).
@@ -159,12 +174,27 @@ func indexOverview(root string, o indexOptions) {
 		}
 		return
 	case o.status:
-		fmt.Println(messages.Text(messages.H8827))
+		st, err := codeindex.Status(root, indexBuildOptions())
+		if err != nil {
+			exitWithError(messages.Text(messages.H8826, err))
+		}
+		if !st.Exists {
+			fmt.Println(messages.Text(messages.H8827))
+			return
+		}
+		fmt.Println(messages.Text(messages.H8832, st.Files, len(st.Changed), len(st.Added), len(st.Removed)))
+		for _, group := range [][]string{st.Changed, st.Added, st.Removed} {
+			for _, f := range group {
+				fmt.Println("  " + f)
+			}
+		}
 		return
 	}
-	idx, err := codeindex.Build(root, codeindex.Options{Library: lib.Files})
-	if err != nil {
-		exitWithError(messages.Text(messages.H8826, err))
+	idx, stats := loadIndex(root, o)
+	if stats.FromCache {
+		fmt.Println(messages.Text(messages.H8834, stats.Files))
+	} else {
+		fmt.Println(messages.Text(messages.H8833, stats.Parsed, stats.Files))
 	}
 	fmt.Println(messages.Text(messages.H8823, len(idx.Files), len(idx.Nodes), len(idx.Edges), len(idx.Occurrences), len(idx.Unresolved), len(idx.Skipped)))
 	for i, s := range idx.Skipped {

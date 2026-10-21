@@ -31,8 +31,9 @@ func (x *indexer) declare(f *file) {
 			line := strconv.Itoa(s.Token.Line)
 			x.def(f, mod, KindTest, line, s.Name, f.base+": "+s.Name, s.Token.Literal+" "+strconv.Quote(s.Name), s.Token.Line, s.Token.Column)
 		case *ast.ImportStatement:
-			f.imports = append(f.imports, importRef{file: x.importTarget(f, s.Path), alias: s.Alias,
-				pos: f.importPos(s)})
+			ref := importRef{file: x.importTarget(f, s.Path), alias: s.Alias, pos: f.importPos(s)}
+			f.imports = append(f.imports, ref)
+			x.nodes[mod].Imports = append(x.nodes[mod].Imports, Import{Path: s.Path, Target: ref.file, Alias: ref.alias, Pos: ref.pos})
 		}
 	}
 }

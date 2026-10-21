@@ -1570,5 +1570,8 @@
 "H8829": "silinecek önbellek yok",
 "H8830": "tr {command} [{definition}|{references}|{testedBy}|{impact} ad]\tTR kodunun dizinini kurar ve ona sorar (tanım, kullananlar, sınayanlar, etki)",
 "H8831": "çözülemeyen ad: {name} ({pos})",
+"H8832": "önbellek: {files} dosya, {changed} değişmiş, {added} yeni, {removed} silinmiş",
+"H8833": "{parsed}/{files} dosya yeniden ayrıştırıldı",
+"H8834": "dizin önbellekten okundu ({files} dosya)",
 "H9000": "TR'de bir iç hata oluştu (bu sizin programınızın değil, TR'nin hatası); lütfen bildirin: {detail}"
 }
