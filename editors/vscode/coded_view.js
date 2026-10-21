@@ -15,7 +15,14 @@
 //
 // Dosya gezgininden (ya da bir hata bağlantısından) açılan kodlu dosyanın ham sekmesi görünümle
 // değiştirilir; seçim (satır, sütun) olduğu gibi taşınır: hata konumları zaten Türkçe gösterime
-// göredir (17.5). Kodlu olmayan dosyalara dokunulmaz; eklenti kendiliğinden kodlamaz.
+// göredir (17.5). Eklenti kendiliğinden kodlamaz.
+//
+// Kodsuz (başlıksız) dosya Türkçe yazılmıştır (17.7). Yazım dili Türkçeyse olduğu gibi açılır;
+// başka bir dilse o da görünümle, kişinin dilinde açılır ('tr göster - --dil en') ve kaydedilince
+// diske yine kodsuz Türkçe yazılır ('tr kodla - --dil en', ardından 'tr göster - --dil tr').
+// Metin ayrıştırılamıyorsa kayıpsız yazılır ve dosya "Türkçeye çevrilmeyi bekliyor" diye
+// işaretlenir; ilk geçerli kayıtta yeniden Türkçe yazılır. Kısıtlı kipte kodsuz dosya olduğu
+// gibi (Türkçe, düzenlenebilir) açılır.
 //
 // Kısıtlı kipte (güvenilmeyen çalışma alanı) hiçbir şey çalıştırılmaz: kodlu dosya salt okunur
 // ham hâliyle (RAW_SCHEME) gösterilir ve nedeni söylenir; güven verilince görünüme geçilir.
@@ -31,6 +38,11 @@ const RAW_SCHEME = 'tr-ham';
 // PENDING_KEY kodlanmayı bekleyen (ayrıştırılamadığı için Türkçe kaydedilmiş) dosyaların
 // kalıcı listesinin anahtarıdır; VS Code yeniden açılınca da bilinir.
 const PENDING_KEY = 'tr.kodlanmayiBekleyenDosyalar';
+// PLAIN_PENDING_KEY Türkçeye çevrilmeyi bekleyen (kişinin dilinde yazılmış ama ayrıştırılamadığı
+// için çevrilemeden kaydedilmiş) kodsuz dosyaların kalıcı listesinin anahtarıdır.
+const PLAIN_PENDING_KEY = 'tr.turkceyeCevrilmeyiBekleyenDosyalar';
+// SOURCE_LANGUAGE kodsuz dosyaların yazıldığı dildir (17.7).
+const SOURCE_LANGUAGE = 'tr';
 const CASE_INSENSITIVE = process.platform === 'win32' || process.platform === 'darwin';
 
 // create görünümün parçalarını kurar.
@@ -46,14 +58,15 @@ function create(vscode, g) {
         const full = path.resolve(filePath);
         return CASE_INSENSITIVE ? full.toLowerCase() : full;
     }
-    function pendingFiles() {
-        return new Set(g.state.get(PENDING_KEY, []));
+    function pendingFiles(listKey) {
+        return new Set(g.state.get(listKey, []));
     }
-    function isPending(filePath) {
-        return pendingFiles().has(key(filePath));
+    function isPending(filePath, listKey) {
+        return pendingFiles(listKey || PENDING_KEY).has(key(filePath));
     }
-    async function setPending(filePath, pending) {
-        const b = pendingFiles();
+    async function setPending(filePath, pending, listKey) {
+        listKey = listKey || PENDING_KEY;
+        const b = pendingFiles(listKey);
         if (b.has(key(filePath)) === pending) {
             return;
         }
@@ -62,7 +75,12 @@ function create(vscode, g) {
         } else {
             b.delete(key(filePath));
         }
-        await g.state.update(PENDING_KEY, [...b]);
+        await g.state.update(listKey, [...b]);
+    }
+    // anyPending dosya kodlanmayı ya da Türkçeye çevrilmeyi bekliyor mu (diskteki metin
+    // kişinin yazım dilindedir)?
+    function anyPending(filePath) {
+        return isPending(filePath) || isPending(filePath, PLAIN_PENDING_KEY);
     }
     // once mesajı bu oturumda (kind, file) için yalnızca bir kez gösterir.
     function once(kind, filePath, show) {
@@ -111,10 +129,11 @@ function create(vscode, g) {
         return !disk || codedFormat.isCoded(disk) || isPending(filePath);
     }
 
-    // isCodedFile dosya görünümle açılmalı mı (kodlu ya da kodlanmayı bekliyor)?
-    async function isCodedFile(filePath) {
-        if (isPending(filePath)) {
-            return true;
+    // viewKind dosyanın görünümle açılıp açılmayacağıdır: 'coded' (kodlu ya da bekliyor),
+    // 'plain' (kodsuz Türkçe dosya, yazım dili Türkçe değil) ya da undefined (olduğu gibi açılır).
+    async function viewKind(filePath) {
+        if (anyPending(filePath)) {
+            return 'coded';
         }
         let handle;
         try {
@@ -122,14 +141,22 @@ function create(vscode, g) {
             // Başlık (BOM ve CRLF ile 19 bayt) ilk 64 baytın içindedir.
             const head = Buffer.alloc(64);
             const { bytesRead } = await handle.read(head, 0, head.length, 0);
-            return codedFormat.isCoded(head.subarray(0, bytesRead));
+            if (codedFormat.isCoded(head.subarray(0, bytesRead))) {
+                return 'coded';
+            }
+            return g.writingLanguage() === SOURCE_LANGUAGE ? undefined : 'plain';
         } catch (e) {
-            return false;
+            return undefined;
         } finally {
             if (handle) {
                 await handle.close();
             }
         }
+    }
+
+    // opensInView dosya görünümle açılmalı mı?
+    async function opensInView(filePath) {
+        return (await viewKind(filePath)) !== undefined;
     }
 
     // interpreter çeviri için yorumlayıcıyı verir; kısıtlı kipte hiçbir şey çalıştırılmaz.
@@ -152,12 +179,13 @@ function create(vscode, g) {
 
     const filesystems = codedFilesystem.create(vscode, { VIEW_SCHEME, RAW_SCHEME, localPath, readView, saveText, revision });
 
-    // readView kodlu dosyanın görünümde gösterilecek metnidir. Türkçesi üretilemezse (dosya
-    // ayrıştırılamıyor, ör. birleştirme çakışması işaretleri; ya da yorumlayıcı yok) ham baytlar
-    // gösterilir: kaydedilince olduğu gibi yazılır, hiçbir şey kaybolmaz.
+    // readView dosyanın görünümde gösterilecek metnidir. Kodlu dosyanın gösterimi üretilemezse
+    // (dosya ayrıştırılamıyor, ör. birleştirme çakışması işaretleri; ya da yorumlayıcı yok) ham
+    // baytlar gösterilir: kaydedilince olduğu gibi yazılır, hiçbir şey kaybolmaz. Bekleyen
+    // dosyanın diskteki metni zaten kişinin yazım dilindedir.
     async function readView(filePath, data) {
         if (!codedFormat.isCoded(data)) {
-            return data;
+            return anyPending(filePath) ? data : readPlain(filePath, data);
         }
         const y = interpreter(filePath);
         const lang = g.writingLanguage();
@@ -173,13 +201,74 @@ function create(vscode, g) {
         return data;
     }
 
-    // saveText görünümdeki metnin diske yazılacak biçimidir: kodlanabiliyorsa kodlu,
-    // değilse metnin kendisi (kayıpsız) ve dosya kodlanmayı bekler.
+    // readPlain kodsuz (Türkçe) dosyanın kişinin yazım dilindeki gösterimidir. Üretilemezse
+    // (sözdizimi hatası, yorumlayıcı yok) dosya Türkçe gösterilir ve öyle kaydedilir.
+    async function readPlain(filePath, data) {
+        const lang = g.writingLanguage();
+        if (lang === SOURCE_LANGUAGE) {
+            resolvedLanguage.set(key(filePath), lang);
+            return data;
+        }
+        const y = interpreter(filePath);
+        const s = y.error ? { code: -1, error: y.error } : await g.translate(y.filePath, 'göster', lang, data);
+        if (s.code === 0) {
+            resolvedLanguage.set(key(filePath), lang);
+            forget('turkce', filePath);
+            return s.output;
+        }
+        resolvedLanguage.set(key(filePath), SOURCE_LANGUAGE);
+        once('turkce', filePath, () => vscode.window.showWarningMessage(
+            `${path.basename(filePath)} Türkçe yazılmış ama "${lang}" yazımı açılamadı: ${codedFormat.errorSummary(s.error)} ` +
+            'Dosya Türkçe gösteriliyor ve öyle kaydedilir. Hatayı düzeltip kaydettikten sonra dosyayı yeniden açın.'));
+        return data;
+    }
+
+    // savePlain kişinin dilindeki metnin kodsuz dosyaya yazılacak Türkçesidir: önce kodlanır,
+    // kodlu biçim Türkçe gösterilir. Çevrilemezse metnin kendisi (kayıpsız) yazılır ve dosya
+    // Türkçeye çevrilmeyi bekler.
+    async function savePlain(filePath, content, lang) {
+        if (lang === SOURCE_LANGUAGE) {
+            await setPending(filePath, false, PLAIN_PENDING_KEY);
+            return content;
+        }
+        const y = interpreter(filePath);
+        let s = y.error ? { code: -1, error: y.error } : await g.translate(y.filePath, 'kodla', lang, content);
+        if (s.code === 0) {
+            s = await g.translate(y.filePath, 'göster', SOURCE_LANGUAGE, s.output);
+        }
+        if (s.code === 0) {
+            await setPending(filePath, false, PLAIN_PENDING_KEY);
+            forget('bozuk', filePath);
+            return s.output;
+        }
+        await setPending(filePath, true, PLAIN_PENDING_KEY);
+        const name = path.basename(filePath);
+        const reason = codedFormat.errorSummary(s.error);
+        once('bozuk', filePath, () => {
+            const kept = `Yazdıklarınız kaybolmadı: dosya şimdilik "${lang}" yazımıyla kaydedildi; `;
+            if (s.code === codedFormat.EXIT_SYNTAX) {
+                vscode.window.showInformationMessage(
+                    `${name}: kodda sözdizimi hatası var (${reason}). ${kept}sözdizimi hatası düzelince ilk kayıtta yeniden Türkçe yazılacak.`);
+            } else {
+                vscode.window.showErrorMessage(
+                    `${name} Türkçe yazılamadı: ${reason} ${kept}sorun giderilince ilk kayıtta yeniden Türkçe yazılacak.`);
+            }
+        });
+        return content;
+    }
+
+    // saveText görünümdeki metnin diske yazılacak biçimidir. Kodlu dosyada kodlanabiliyorsa
+    // kodlu, değilse metnin kendisi (kayıpsız) ve dosya kodlanmayı bekler; kodsuz dosyada
+    // Türkçesi (savePlain).
     async function saveText(filePath, content, disk) {
         if (codedFormat.isCoded(content)) {
             // Metin zaten kodlu (ham gösterimde düzenlendi): olduğu gibi yazılır.
             await setPending(filePath, false);
+            await setPending(filePath, false, PLAIN_PENDING_KEY);
             return content;
+        }
+        if (disk && !codedFormat.isCoded(disk) && !isPending(filePath)) {
+            return savePlain(filePath, content, resolvedLanguage.get(key(filePath)) || g.writingLanguage());
         }
         if (!shouldEncode(filePath, disk)) {
             return content;
@@ -242,16 +331,19 @@ function create(vscode, g) {
         inProgress.add(k);
         try {
             const document = vscode.workspace.textDocuments.find((b) => b.uri.toString() === uri.toString());
-            if ((document && document.isDirty) || !(await isCodedFile(uri.fsPath))) {
+            const kind = document && document.isDirty ? undefined : await viewKind(uri.fsPath);
+            const trusted = vscode.workspace.isTrusted;
+            // Kısıtlı kipte kodsuz dosya Türkçe, düzenlenebilir hâliyle kalır.
+            if (!kind || (kind === 'plain' && (!trusted || uri.scheme !== 'file'))) {
                 return;
             }
             const local = localUri(uri);
-            const trusted = vscode.workspace.isTrusted;
             if (trusted) {
                 const y = g.findInterpreter(local);
                 if (!y || y.error) {
+                    const what = kind === 'plain' ? 'Türkçe yazılmış; yazım dilinizdeki görünümü' : 'kodlu biçimde saklanıyor; Türkçe görünümü';
                     once('yorumlayici', local.fsPath, () => g.interpreterNotFound(
-                        `${path.basename(local.fsPath)} kodlu biçimde saklanıyor; Türkçe görünümü için TR yorumlayıcısı gerekir (${y ? y.error : 'bulunamadı'}). Dosya ham hâliyle açık kaldı.`));
+                        `${path.basename(local.fsPath)} ${what} için TR yorumlayıcısı gerekir (${y ? y.error : 'bulunamadı'}). Dosya olduğu gibi açık kaldı.`));
                     return;
                 }
             }
@@ -385,10 +477,11 @@ function create(vscode, g) {
         return typeof result.program === 'string' && key(result.program) === key(file) ? withViewURI(result, document) : result;
     }
 
-    // programView başlatma ayarındaki program kodlu bir dosyaysa (ya da kodlanmayı
-    // bekliyorsa) görünümün adresini ekler: program durunca satır görünümde işaretlenir.
+    // programView başlatma ayarındaki program görünümle açılan bir dosyaysa (kodlu, bekleyen ya
+    // da başka bir yazım dilinde kodsuz) görünümün adresini ekler: program durunca satır
+    // görünümde işaretlenir.
     async function programView(y) {
-        if (y && !y.viewURI && typeof y.program === 'string' && y.program && await isCodedFile(y.program)) {
+        if (y && !y.viewURI && typeof y.program === 'string' && y.program && await opensInView(y.program)) {
             y.viewURI = viewUri(vscode.Uri.file(y.program)).toString();
         }
         return y;
@@ -420,6 +513,8 @@ function create(vscode, g) {
                 if (e.affectsConfiguration('tr.yazimDili')) {
                     forgetDirtyNotices();
                     reloadForLanguage();
+                    // Kodsuz dosyalar başka bir yazım dilinde görünümle açılır.
+                    redirectAll();
                 }
             }),
             vscode.workspace.registerFileSystemProvider(VIEW_SCHEME, filesystems.view, { isCaseSensitive: !CASE_INSENSITIVE }),
@@ -448,10 +543,10 @@ function create(vscode, g) {
     }
 
     return {
-        VIEW_SCHEME, RAW_SCHEME, setup, viewUri, localUri, isCodedFile, openView,
+        VIEW_SCHEME, RAW_SCHEME, setup, viewUri, localUri, opensInView, openView,
         withViewURI, resolveFileVariables, programView,
         view: filesystems.view, raw: filesystems.raw
     };
 }
 
-module.exports = { create, VIEW_SCHEME, RAW_SCHEME, PENDING_KEY };
+module.exports = { create, VIEW_SCHEME, RAW_SCHEME, PENDING_KEY, PLAIN_PENDING_KEY };

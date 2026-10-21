@@ -15,7 +15,7 @@ const { spawnSync } = require('child_process');
 const { setup, waitUntil, Uri, FakeState } = require('./fake_vscode');
 const codedFormat = require('../coded_format');
 const { globEscape } = require('../coded_filesystem');
-const { PENDING_KEY } = require('../coded_view');
+const { PENDING_KEY, PLAIN_PENDING_KEY } = require('../coded_view');
 
 const repoRoot = path.resolve(__dirname, '..', '..', '..');
 const TR = [process.env.TR_YORUMLAYICI, path.join(repoRoot, 'bin', process.platform === 'win32' ? 'tr.exe' : 'tr')]
@@ -363,6 +363,69 @@ test('Kodlu Hâlini Göster komutu ham hâli yanda salt okunur açar', async () 
     assert.strictEqual(e.document.uri.scheme, 'tr-ham');
     assert.strictEqual(e.viewColumn, 2);
     assert.deepStrictEqual(Buffer.from(e.document.getText(), 'utf8'), fs.readFileSync(o.file));
+});
+
+// Kodsuz (Türkçe) dosya başka bir yazım dilinde görünümle açılır, diske yine Türkçe yazılır (17.7).
+function inEnglish(text) {
+    const s = tr('göster', '-', '--dil', 'en', text);
+    assert.strictEqual(s.code, 0, s.error);
+    return s.output;
+}
+
+test('yazım dili en: kodsuz Türkçe dosya İngilizce görünür, kaydedilince diske Türkçe yazılır', async () => {
+    const o = makeEnv({ disk: TURKISH_TEXT, settings: { yazimDili: 'en' } });
+    const b = (await open(o, o.uri)).document;
+    const english = inEnglish(TURKISH_TEXT);
+    assert.ok(english.includes('var sayaç') && english.includes('print('), english);
+    assert.strictEqual(b.getText(), english);
+    b.edit(b.getText() + 'print(sayaç * 2)\r\n');
+    assert.ok(await b.save());
+    assert.strictEqual(fs.readFileSync(o.file, 'utf8'), TURKISH_TEXT + 'yazdır(sayaç * 2)\r\n', 'diskte kodsuz Türkçe');
+    assert.strictEqual(o.log.warnings.length + o.log.errors.length + o.log.infos.length, 0, [...o.log.warnings, ...o.log.errors, ...o.log.infos].join('\n'));
+    // F5: program diskteki dosya, satırlar görünümünkiler.
+    const y = await o.provider.resolveDebugConfigurationWithSubstitutedVariables(undefined, { type: 'tr', request: 'launch', name: 'TR', program: o.file });
+    assert.strictEqual(y.viewURI, b.uri.toString());
+});
+
+test('yazım dili en: ayrıştırılamayan metin kayıpsız kaydedilir, ilk geçerli kayıtta yeniden Türkçe', async () => {
+    const state = new FakeState();
+    const o = makeEnv({ disk: TURKISH_TEXT, settings: { yazimDili: 'en' }, state });
+    const b = (await open(o, o.uri)).document;
+    const partial = b.getText() + 'if sayaç > 2 {\r\n';
+    b.edit(partial);
+    assert.ok(await b.save());
+    assert.strictEqual(fs.readFileSync(o.file, 'utf8'), partial, 'yazılan her şey diskte');
+    assert.strictEqual(o.log.infos.length, 1);
+    assert.ok(o.log.infos[0].includes('yeniden Türkçe yazılacak'), o.log.infos[0]);
+    assert.strictEqual(state.get(PLAIN_PENDING_KEY, []).length, 1);
+    // VS Code yeniden açıldı: bekleyen dosya olduğu gibi (İngilizce) görünür.
+    const o2 = setup({ setting: TR, folder: o.folder, state, settings: { yazimDili: 'en' } });
+    const b2 = (await open(o2, o.uri)).document;
+    assert.strictEqual(b2.getText(), partial);
+    b2.edit(partial + '    print(1)\r\n}\r\n');
+    assert.ok(await b2.save());
+    assert.strictEqual(fs.readFileSync(o.file, 'utf8'), TURKISH_TEXT + 'eğer sayaç > 2 {\r\n    yazdır(1)\r\n}\r\n');
+    assert.deepStrictEqual(state.get(PLAIN_PENDING_KEY, []), []);
+});
+
+test('yazım dili tr\'den en\'e geçince açık kodsuz dosya görünümle açılır', async () => {
+    const settings = { yazimDili: 'tr' };
+    const o = makeEnv({ disk: TURKISH_TEXT, settings });
+    await o.vscode.window.showTextDocument(o.uri, { preview: true });
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    assert.strictEqual(o.vscode.window.activeTextEditor.document.uri.scheme, 'file');
+    settings.yazimDili = 'en';
+    o.events.setting.fire({ affectsConfiguration: (k) => k === 'tr.yazimDili' });
+    await waitUntil(() => o.vscode.window.activeTextEditor.document.uri.scheme === 'tr-kodlu', 'İngilizce görünüm');
+    assert.strictEqual(o.vscode.window.activeTextEditor.document.getText(), inEnglish(TURKISH_TEXT));
+});
+
+test('yazım dili en, kısıtlı kip: kodsuz dosya Türkçe ve düzenlenebilir kalır', async () => {
+    const o = makeEnv({ disk: TURKISH_TEXT, settings: { yazimDili: 'en' }, trusted: false });
+    await o.vscode.window.showTextDocument(o.uri, { preview: true });
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    assert.strictEqual(o.vscode.window.activeTextEditor.document.uri.scheme, 'file');
+    assert.strictEqual(o.log.infos.length + o.log.warnings.length, 0);
 });
 
 (async () => {
