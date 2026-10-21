@@ -413,3 +413,39 @@ yazdır(oku(r), bırakılan().uzunluk)
 `, `
 7 6`)
 }
+
+// Varsayılan parametre ifadesindeki kapanış fonksiyon ortamını yakaladığında,
+// yakalanan kaynağın erken bırakılmaması ve ortam havuzunun sıfırlanmaması gerekir.
+func TestAuditDefaultParamClosureCapturesEnv(t *testing.T) {
+	expectOut(t, `
+fonksiyon kur(x = yeni(), g = () => oku(x)) {
+    sonuç g
+}
+değişken f = kur()
+yazdır(bırakılan())
+yazdır(f())
+`, `
+[]
+1`)
+}
+
+// Hızlı çağrı yolunda sonraki bir argüman hata verdiğinde, daha önce fnEnv'e
+// bağlanmış argümanların bağ sayacı çözülmeli ve kapsam sonunda bırakılmalıdır.
+func TestAuditCallArgErrorUnbindsEarlierArgs(t *testing.T) {
+	expectOut(t, `
+fonksiyon hedef(a, b) { sonuç a }
+fonksiyon patla() { fırlat "hata" }
+fonksiyon sına() {
+    değişken x = yeni()
+    dene {
+        hedef(x, patla())
+    } yakala {
+    }
+}
+sına()
+yazdır(bırakılan())
+`, `
+[1]`)
+}
+
+
