@@ -302,7 +302,7 @@ func startREPL() {
 		// Hatalar dosya çalıştırmadakiyle aynı başlık ve biçimle standart hataya yazılır.
 		// Denetleyici satırlar arasında durumunu (ve hata listesini) korur; yalnızca bu
 		// satırın getirdiği yeni hatalar gösterilir.
-		s := source.Prepare(line, source.Options{TypeCheck: true, Checker: chk})
+		s := source.Prepare(line, source.Options{TypeCheck: true, Checker: chk, Typed: true})
 		if s.Stage == source.StageSyntax {
 			writeDiags(syntaxHeader, s.Errors, s.Text)
 			continue

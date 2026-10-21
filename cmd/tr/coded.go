@@ -106,6 +106,12 @@ func convertCommand(args []string, command, verb string, convert func(string) (s
 	if len(args) == 0 {
 		exitWithError(messages.Text(messages.H8703, command))
 	}
+	// Kodsuz dosyalar Türkçe yazılmıştır (17.7): kodlama onları, çözme de dosyaya yazdığı metni
+	// Türkçe okur. Dilin sözcük tabloları süreç başında kurulduğu için başka bir etkin dilde
+	// süreç Türkçeyle yeniden çalışır.
+	if codes.Active().Code != codes.SourceLanguage {
+		rerunWithLanguage(codes.SourceLanguage)
+	}
 	var files []string
 	for _, h := range args {
 		d, err := trFiles(h)
@@ -158,8 +164,9 @@ func writeInPlace(filePath, text string) error {
 	return nil
 }
 
-// showCommand 'tr göster <dosya.tr> [--dil tr]' komutudur: dosya kodluysa verilen yazım
-// dilinde (varsayılan tr), değilse olduğu gibi standart çıktıya yazılır. Dosya yerine '-'
+// showCommand 'tr göster <dosya.tr> [--dil tr]' komutudur: dosya verilen yazım dilinde
+// (varsayılan etkin dil) standart çıktıya yazılır; kodsuz dosya Türkçedir, Türkçede olduğu
+// gibi kalır (source.Show). Dosya yerine '-'
 // verilirse metin standart girişten okunur (düzenleyiciler için; çıkış kodları yukarıda).
 func showCommand(args []string) {
 	if len(args) > 0 && args[0] == "-" {
@@ -168,7 +175,7 @@ func showCommand(args []string) {
 		if language := languageArgument(args[1:], codes.Name(codes.K011)); language.Code != codes.Active().Code {
 			rerunWithLanguage(language.Code)
 		}
-		convertFromInput(func(text string) (string, error) { return source.Decode(text, codes.Active()) })
+		convertFromInput(func(text string) (string, error) { return source.Show(text, codes.Active()) })
 		return
 	}
 	var file, languageCode string
@@ -201,7 +208,7 @@ func showCommand(args []string) {
 		fmt.Fprintln(os.Stderr, messages.Text(messages.H8657, turkish.FileError("", file, messages.H2100, err)))
 		os.Exit(1)
 	}
-	text, err := source.Decode(string(content), codes.Active())
+	text, err := source.Show(string(content), codes.Active())
 	if err != nil {
 		var sh *source.SyntaxError
 		if errors.As(err, &sh) {

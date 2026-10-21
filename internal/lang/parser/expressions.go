@@ -29,7 +29,7 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 			leftExp = &ast.Identifier{Token: p.curToken(), Value: p.curToken().Literal}
 		}
 	case lexer.TokSelf:
-		leftExp = &ast.Identifier{Token: p.curToken(), Value: selfName}
+		leftExp = &ast.Identifier{Token: p.curToken(), Value: p.words.self}
 	case lexer.TokInt:
 		leftExp = p.parseIntegerLiteral()
 	case lexer.TokFloat:

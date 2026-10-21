@@ -158,3 +158,25 @@ func TestImportUnquotedPathIsError(t *testing.T) {
 		t.Errorf("tırnaklı aktar geçerli olmalı: %v", h)
 	}
 }
+
+// Bağlamsal sözcükler (olarak, test, sondaki bloğun 'o'su, indirge'nin 'birikim'i) sözcük
+// çözümleyicinin okuduğu dildedir, etkin dilde değil: Türkçe yazılmış dosya başka bir etkin
+// dilde de Türkçe ayrıştırılır (17.7). Burada etkin dil Türkçeyken İngilizce gövde ayrıştırılır.
+func TestContextWordsFollowLexer(t *testing.T) {
+	en, err := codes.LoadLanguage("en")
+	if err != nil {
+		t.Fatal(err)
+	}
+	src := "import \"m\" as g\ntest \"t\" { }\nvar a = [1].map { it * 2 }\nvar b = [1].reduce(0) { acc + it }\n"
+	p := New(lexer.NewBodyIn(src, en))
+	prog := p.ParseProgram()
+	if errs := p.Errors(); len(errs) > 0 {
+		t.Fatalf("İngilizce gövde ayrıştırılamadı: %v", errs)
+	}
+	got := prog.String()
+	for _, want := range []string{`Name: "it"`, `Name: "acc"`} {
+		if !strings.Contains(got, want) {
+			t.Errorf("ağaçta %q yok:\n%s", want, got)
+		}
+	}
+}

@@ -93,7 +93,7 @@ func (p *Parser) parseTryCatchStatement() *ast.TryCatchStatement {
 		return nil
 	}
 
-	errVar := errName
+	errVar := p.words.err
 	implicit := !p.peekTokenIs(lexer.TokIdent) && !p.peekTokenIs(lexer.TokLParen)
 	if p.peekTokenIs(lexer.TokIdent) {
 		p.nextToken()

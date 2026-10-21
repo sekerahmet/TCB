@@ -23,6 +23,13 @@ diline çevrilmesinde bu denetim, sözcük çözümleyicinin okuyabildiği dil o
 UTF-8 ya da kayıp durumunda hata döner ve dosya yazılmaz. Depodaki bütün `.tr` dosyaları ve
 belgelerdeki kod blokları bu denetimden geçmelidir. Denetim: `TestDecodeRefusesLossyView`, `TestEscapeInOtherLanguage`, `TestRepoTRFilesEncodeLossless`, `TestDocCodeBlocksEncodeLossless`.
 
+**Kodsuz dosya Türkçedir.** Başlıksız dosya etkin dil (`TR_DIL`) ne olursa olsun Türkçe okunur
+(17.7): sözcük çözümleyici ve ayrıştırıcının bağlamsal sözcükleri Türkçedir (`lexer.NewBodyIn`).
+Etkin dil Türkçe değilse dosya önce kodlu biçime, oradan etkin dildeki görünümüne çevrilip
+çalışır (kodlu dosya gibi). Kabuğa yazılan satır ise etkin dildedir (`Options.Typed`). Dosyaya
+yazan `tr kodla` ve `tr çöz` Türkçeyle çalışır. Denetim: `TestUncodedFileIsTurkishInEveryLanguage`
+(cmd/tr/e2e), `TestBodyInLanguage` (lexer), `TestContextWordsFollowLexer` (parser).
+
 **Satırlar her gösterimde aynıdır.** Satır numaraları başlıktan sonra sayılır: kodlu dosyanın 1.
 satırı, Türkçe gösterimin 1. satırıdır. Denetim: `TestCodedFilePrepares`, `TestEncodeKeepsLineStructure`.
 

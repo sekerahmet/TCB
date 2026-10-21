@@ -11,12 +11,12 @@ import (
 
 // isReduceTarget sondaki bloğun bağlandığı ifade bir liste.indirge çağrısı mı
 // (l.indirge { ... }, l.indirge(0) { ... })? Bu bloklar iki parametrelidir (birikim, o).
-func isReduceTarget(e ast.Expression) bool {
+func (p *Parser) isReduceTarget(e ast.Expression) bool {
 	if c, ok := e.(*ast.CallExpression); ok {
 		e = c.Function
 	}
 	m, ok := e.(*ast.MemberExpression)
-	return ok && slices.Contains(reduceSpellings, m.Property)
+	return ok && slices.Contains(p.words.reduce, m.Property)
 }
 
 // oldReduceBlock indirge bloğu eski biçimde (o, [birikim, eleman] listesiyken: o[0] ve
@@ -27,10 +27,10 @@ func (p *Parser) oldReduceBlock(tok lexer.Token, begin int) {
 	var o0, o1 bool
 	for i := begin; i < end; i++ {
 		t := p.tokens[i]
-		if t.Type == lexer.TokIdent && t.Literal == accName {
+		if t.Type == lexer.TokIdent && t.Literal == p.words.acc {
 			return
 		}
-		if t.Type == lexer.TokIdent && t.Literal == itName && i+3 < end &&
+		if t.Type == lexer.TokIdent && t.Literal == p.words.it && i+3 < end &&
 			p.tokens[i+1].Type == lexer.TokLBracket && p.tokens[i+2].Type == lexer.TokInt &&
 			p.tokens[i+3].Type == lexer.TokRBracket {
 			o0 = o0 || p.tokens[i+2].Literal == "0"
@@ -39,6 +39,6 @@ func (p *Parser) oldReduceBlock(tok lexer.Token, begin int) {
 	}
 	if o0 && o1 {
 		reduce := codes.MemberName(codes.Y207)
-		p.recordError(tok, messages.New(messages.H0163, reduce, accName, itName))
+		p.recordError(tok, messages.New(messages.H0163, reduce, codes.Name(codes.A105), codes.Name(codes.A104)))
 	}
 }

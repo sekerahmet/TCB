@@ -52,7 +52,7 @@ func (p *Parser) parseStatement() ast.Statement {
 	case lexer.TokIdent:
 		// test "ad" { ... } — 'test' yalnızca deyim başında ve ardından metin geldiğinde
 		// anahtar kelimedir; başka her yerde sıradan bir addır (değişken test = 5).
-		if slices.Contains(testSpellings, p.curToken().Literal) && p.peekTokenIs(lexer.TokString) {
+		if slices.Contains(p.words.test, p.curToken().Literal) && p.peekTokenIs(lexer.TokString) {
 			return p.parseTestStatement()
 		}
 		// x := 5 kısa değişken tanımı kontrolü
@@ -328,7 +328,7 @@ func (p *Parser) parseImportStatement() *ast.ImportStatement {
 	p.nextToken()
 	path := p.curToken().Literal
 	stmt := &ast.ImportStatement{Token: tok, Path: path}
-	if p.peekTokenIs(lexer.TokIdent) && slices.Contains(asSpellings, p.peekToken().Literal) {
+	if p.peekTokenIs(lexer.TokIdent) && slices.Contains(p.words.as, p.peekToken().Literal) {
 		p.nextToken() // 'olarak'
 		p.role(p.curToken(), RoleAs)
 		if p.expectPeek(lexer.TokIdent) {

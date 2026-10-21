@@ -10,6 +10,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -54,6 +55,19 @@ type Lexer struct {
 	shifts   []shift
 	shiftSum []int32
 	shiftIdx int
+	// lang ve words kökte, kodsuz gövdenin yazıldığı dil ve onun anahtar kelimeleridir
+	// (NewBodyIn); nil ise etkin dil.
+	lang  *codes.Language
+	words map[string]TokenType
+}
+
+// Language returns the language whose words the lexer reads: the language of an uncoded body
+// (NewBodyIn), otherwise the active language (coded bodies are read in the active language).
+func (l *Lexer) Language() *codes.Language {
+	if l.root.lang != nil {
+		return l.root.lang
+	}
+	return codes.Active()
 }
 
 // LastRange returns the source character (rune) range [bas, son) of the token returned by

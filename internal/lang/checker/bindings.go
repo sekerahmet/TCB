@@ -49,9 +49,11 @@ type NameBinding struct {
 // of a value name written as a code in coded source (G100) with their own definition (a user
 // variable named 'yazdır' in dil would shadow the builtin 'yazdır'); these names are written
 // with an escape everywhere in the view. genelAdlar and dinamik are as in SetGlobalScope
-// (modules).
-func NameBindings(prog *ast.Program, lang *codes.Language, globalNames []string, dynamic bool) (bindings []NameBinding, conflicts map[string]bool) {
-	d := &nameChecker{bindings: &bindings, lang: lang, conflicts: map[string]bool{}}
+// (modules). treeLang is the language the tree's names are written in (the parser's implicit
+// names, 'kendi', the constructor's name): the active language for a coded body, Turkish for
+// a file written in Turkish (lexer.Lexer.Language).
+func NameBindings(prog *ast.Program, treeLang, lang *codes.Language, globalNames []string, dynamic bool) (bindings []NameBinding, conflicts map[string]bool) {
+	d := &nameChecker{bindings: &bindings, treeLang: treeLang, lang: lang, conflicts: map[string]bool{}}
 	parent := newNameScope(nil)
 	for _, a := range globalNames {
 		parent.define(a)
@@ -132,7 +134,7 @@ func (d *nameChecker) namedArgBindings(c *ast.CallExpression, k *nameScope) {
 		kind, _, structDef := d.tokenResolution(f.Token, f.Value, k)
 		switch {
 		case kind == BindBuiltin:
-		case structDef != nil && structDef.Methods[codes.Name(codes.A102)] == nil:
+		case structDef != nil && structDef.Methods[d.treeLang.Name(codes.A102)] == nil:
 			field = codes.NamespaceMember
 		default:
 			return
@@ -152,17 +154,18 @@ func (d *nameChecker) namedArgBindings(c *ast.CallExpression, k *nameScope) {
 }
 
 // trailingBlockImplicits sondaki bloğun (liste.filtrele { o > 2 }) örtük parametrelerinin
-// bağlamsal kodlarıdır: 'o' (A104) ve indirge bloğunda 'birikim' (A105).
-func trailingBlockImplicits(f *ast.FunctionLiteral) [2]codes.Code {
+// bağlamsal kodlarıdır: 'o' (A104) ve indirge bloğunda 'birikim' (A105). Adlar ağacın
+// yazıldığı dildedir (treeLang).
+func trailingBlockImplicits(f *ast.FunctionLiteral, lang *codes.Language) [2]codes.Code {
 	var o [2]codes.Code
 	for i, p := range f.Parameters {
 		if i >= len(o) {
 			break
 		}
 		switch p.Name {
-		case codes.Name(codes.A104):
+		case lang.Name(codes.A104):
 			o[i] = codes.A104
-		case codes.Name(codes.A105):
+		case lang.Name(codes.A105):
 			o[i] = codes.A105
 		}
 	}

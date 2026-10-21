@@ -10,7 +10,9 @@ package source
 
 import (
 	"strings"
+	"sync"
 
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -104,11 +106,22 @@ func (b Parts) Join() string {
 	return sb.String()
 }
 
+// Turkish is the language's own writing language: a file without the coded header is written
+// in Turkish whatever the active language is (17.7).
+var Turkish = sync.OnceValue(func() *codes.Language {
+	l, err := codes.LoadLanguage(codes.SourceLanguage)
+	if err != nil {
+		panic(messages.Internal("the embedded Turkish code list cannot be built"))
+	}
+	return l
+})
+
 // Lexer returns the body's lexer: for a coded file, one that recognizes codes and whose
-// positions follow the file's view (17.5), the '$' of escaped user names included.
+// positions follow the file's view (17.5), the '$' of escaped user names included; for a file
+// written in Turkish, one that reads Turkish keywords whatever the active language is.
 func (b Parts) Lexer() *lexer.Lexer {
 	if !b.Coded {
-		return lexer.NewBody(b.Body, false)
+		return lexer.NewBodyIn(b.Body, Turkish())
 	}
 	_, l := view(b)
 	return l
@@ -116,9 +129,12 @@ func (b Parts) Lexer() *lexer.Lexer {
 
 // scanLexer kodları tanıyan, sütunları yalnızca kod adlarına göre kayan çözümleyicidir:
 // gösterimi kuran çözümleme (analyze) bunu kullanır, gösterim henüz yoktur. Aralıklar
-// (Record.Start/End) Lexer'ınkiyle aynıdır.
-func (b Parts) scanLexer() *lexer.Lexer {
-	return lexer.NewBody(b.Body, b.Coded)
+// (Record.Start/End) Lexer'ınkiyle aynıdır. Kodsuz gövde lang'de yazılmış okunur.
+func (b Parts) scanLexer(lang *codes.Language) *lexer.Lexer {
+	if b.Coded {
+		return lexer.NewBody(b.Body, true)
+	}
+	return lexer.NewBodyIn(b.Body, lang)
 }
 
 // findEOL bir gövdenin satır sonu biçimidir: ilk satır sonu CRLF ise "\r\n", yoksa "\n".

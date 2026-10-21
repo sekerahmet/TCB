@@ -323,3 +323,62 @@ func lineDiff(a, b string) string {
 	}
 	return "(çıktılar aynı)"
 }
+
+// Kodsuz (başlıksız) dosya etkin dil ne olursa olsun Türkçedir (17.7): TR_DIL=en ile de Türkçe
+// okunur ve aynı sonucu verir. Bağlamsal sözcükler (olarak, kurucu, kendi, o, birikim, hata)
+// ve kurucusuz yapının üye adlı alanları da Türkçe tanınır; aktarılan modül de Türkçedir.
+// Sözdizimi hatası dosyanın kendi metnine göre gösterilir; 'tr göster --dil en' dosyayı
+// İngilizce gösterir; dosyaya yazan 'tr kodla' ve 'tr biçimle' onu Türkçe okur.
+func TestUncodedFileIsTurkishInEveryLanguage(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, dir, "m.tr", "fonksiyon iki_kat(x) { sonuç x * 2 }\n")
+	program := "aktar \"m\" olarak m\n" +
+		"değişken kat = 5\n" +
+		"yapı Ayar {\n    öğrenme_oranı = 0.5\n    adım = 1\n}\n" +
+		"yapı Kutu {\n    boy: Tam\n" +
+		"    fonksiyon kurucu(kenar, çarpan = 1) { kendi.boy = kenar * çarpan }\n" +
+		"    fonksiyon alan() { sonuç kendi.boy * kendi.boy }\n}\n" +
+		"değişken a = Ayar(öğrenme_oranı: 0.25)\n" +
+		"değişken k = Kutu(3, çarpan: 2)\n" +
+		"değişken l = [1, 2, 3].haritala { o * kat }\n" +
+		"dene { fırlat \"x\" } yakala { yazdır(\"yakalandı {hata}\") }\n" +
+		"yazdır(k.alan(), l, l.indirge(0) { birikim + o }, m.iki_kat(4), a.öğrenme_oranı, a.adım)\n"
+	writeFile(t, dir, "ana.tr", program)
+	want := "yakalandı x\n36 [5, 10, 15] 30 8 0.25 1\n"
+	for _, env := range [][]string{nil, {"TR_DIL=en"}} {
+		wait(t, run(t, trBinary, dir, "", env, "ana.tr"), 0, []string{want}, nil)
+	}
+	if s := run(t, trBinary, dir, "", []string{"TR_DIL=en"}, "ana.tr"); s.stdout != want {
+		t.Errorf("TR_DIL=en çıktısı %q, beklenen %q", s.stdout, want)
+	}
+
+	writeFile(t, dir, "bozuk.tr", "değişken x = )\n")
+	wait(t, run(t, trBinary, dir, "", []string{"TR_DIL=en"}, "bozuk.tr"), 1, nil, []string{"1 | değişken x = )"})
+
+	shown := tr(t, dir, "göster", "ana.tr", "--dil", "en")
+	wait(t, shown, 0, []string{"import \"m\" as m\n", "func init(kenar, çarpan = 1) { self.boy = kenar * çarpan }", "{ acc + it }"}, nil)
+
+	writeFile(t, dir, "bicim.tr", "değişken  y=1\n")
+	wait(t, run(t, trBinary, dir, "", []string{"TR_DIL=en"}, "biçimle", "bicim.tr"), 0, nil, nil)
+	if got := readFile(t, filepath.Join(dir, "bicim.tr")); got != "değişken y = 1\n" {
+		t.Errorf("TR_DIL=en ile biçimlenen Türkçe dosya %q", got)
+	}
+	wait(t, run(t, trBinary, dir, "", []string{"TR_DIL=en"}, "kodla", "ana.tr"), 0, nil, nil)
+	if got := readFile(t, filepath.Join(dir, "ana.tr")); !strings.HasPrefix(got, source.Header) {
+		t.Fatalf("TR_DIL=en ile 'tr kodla' Türkçe dosyayı kodlamadı:\n%s", got)
+	}
+	wait(t, run(t, trBinary, dir, "", []string{"TR_DIL=en"}, "çöz", "ana.tr"), 0, nil, nil)
+	if got := readFile(t, filepath.Join(dir, "ana.tr")); got != program {
+		t.Errorf("TR_DIL=en ile 'tr çöz' Türkçe yazmadı:\n%s", got)
+	}
+}
+
+// readFile dosyanın metnidir.
+func readFile(t *testing.T, filePath string) string {
+	t.Helper()
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(data)
+}

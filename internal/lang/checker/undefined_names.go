@@ -82,7 +82,9 @@ type nameChecker struct {
 	// bindings nil değilse gezinti hata aramaz, her adın neye bağlandığını dil'in adlarıyla
 	// kaydeder (NameBindings, bindings.go).
 	bindings *[]NameBinding
-	lang     *codes.Language
+	// lang adların arandığı dil, treeLang ağacın adlarının yazıldığı dildir (NameBindings);
+	// hata aramada ikisi de etkin dildir.
+	lang, treeLang *codes.Language
 	// conflicts kodla yazılmış bir sözcüğün dil'deki adını kendi yerinde yakalayan kullanıcı
 	// adlarıdır (AdBaglari).
 	conflicts map[string]bool
@@ -107,7 +109,7 @@ func (c *Checker) SetGlobalScope(names []string, dynamic bool) {
 // SetGlobalScope when the program's imported modules are checked.
 func TopLevelNames(prog *ast.Program) (names []string, dynamic bool) {
 	k := newNameScope(nil)
-	(&nameChecker{}).declare(prog.Statements, k)
+	(&nameChecker{lang: codes.Active(), treeLang: codes.Active()}).declare(prog.Statements, k)
 	for a := range k.names {
 		names = append(names, a)
 	}
@@ -121,7 +123,7 @@ func (c *Checker) checkNames(prog *ast.Program) {
 	if c.globalNames == nil {
 		c.globalNames = newNameScope(nil)
 	}
-	d := &nameChecker{c: c, decl: map[string]bool{}}
+	d := &nameChecker{c: c, decl: map[string]bool{}, lang: codes.Active(), treeLang: codes.Active()}
 	d.declare(prog.Statements, c.globalNames)
 	for _, st := range prog.Statements {
 		d.statement(st, c.globalNames)
@@ -322,7 +324,7 @@ func (d *nameChecker) statement(st ast.Statement, k *nameScope) {
 		}
 		sort.Strings(names) // hatalar kararlı sırada
 		for _, name := range names {
-			d.function(s.Methods[name], k, codes.Name(codes.A051))
+			d.function(s.Methods[name], k, d.treeLang.Name(codes.A051))
 		}
 	case *ast.DeferStatement:
 		d.block(s.Body, k)
@@ -351,7 +353,7 @@ func (d *nameChecker) function(f *ast.FunctionLiteral, k *nameScope, extra ...st
 		pk.define(a)
 	}
 	if f.Token.Type == lexer.TokLBrace {
-		pk.implicit = trailingBlockImplicits(f)
+		pk.implicit = trailingBlockImplicits(f, d.treeLang)
 	}
 	for _, p := range f.Parameters {
 		d.expression(p.DefaultValue, pk)

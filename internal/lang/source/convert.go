@@ -65,6 +65,34 @@ func Encode(text string) (string, error) {
 	return result, nil
 }
 
+// turkishToCoded Türkçe yazılmış gövdeyi etkin dil ne olursa olsun kodlu biçime çevirir
+// (17.7); gövde ayrıştırılamıyorsa b ve hatayı döner. Encode'dan farkı denetimsiz olmasıdır:
+// kodlu ağaç etkin dilin adlarıyla okunur, Türkçe ağaçla ad ad karşılaştırılamaz.
+func turkishToCoded(b Parts) (Parts, error) {
+	c, err := analyze(b, Turkish())
+	if err != nil {
+		return b, err
+	}
+	coded := Parts{BOM: b.BOM, Coded: true, Body: c.codedBody()}
+	coded.HeaderEOL = findEOL(coded.Body)
+	return coded, nil
+}
+
+// Show is the text of a file (the whole file) in lang's spelling: a coded file is decoded
+// (Decode); a file written in Turkish is shown in lang through its coded form (17.7), and
+// returned as is when lang is Turkish.
+func Show(text string, lang *codes.Language) (string, error) {
+	b, err := Split(text)
+	if err != nil || b.Coded || lang.Code == codes.SourceLanguage {
+		return Decode(text, lang)
+	}
+	coded, err := turkishToCoded(b)
+	if err != nil {
+		return "", err
+	}
+	return Decode(coded.Join(), lang)
+}
+
 // reencodes kodlu metnin çözülmüş hâli kodlanınca aynı kodlu metni veriyor mu?
 func reencodes(decoded, coded string) bool {
 	b, err := Split(decoded)
@@ -149,7 +177,7 @@ func view(b Parts) (string, *lexer.Lexer) {
 		d := c.viewChanges()
 		return apply(c.input, d), lexer.NewBodyView(b.Body, viewEdits(d))
 	}
-	l := b.scanLexer()
+	l := b.scanLexer(codes.Active())
 	l.StartRecording()
 	for l.NextToken().Type != lexer.TokEOF {
 	}
@@ -205,7 +233,7 @@ func analyze(b Parts, lang *codes.Language) (*analysis, error) {
 	if !utf8.ValidString(b.Body) {
 		return nil, ErrUTF8
 	}
-	l := b.scanLexer()
+	l := b.scanLexer(lang)
 	l.StartRecording()
 	p := parser.New(l)
 	p.RecordRoles()
@@ -215,7 +243,7 @@ func analyze(b Parts, lang *codes.Language) (*analysis, error) {
 	}
 	c := &analysis{lang: lang, input: l.Input(), records: l.Records(), roles: p.Roles(),
 		bindings: map[[2]int]checker.NameBinding{}, prog: prog}
-	bindings, conflicts := checker.NameBindings(prog, lang, nil, false)
+	bindings, conflicts := checker.NameBindings(prog, l.Language(), lang, nil, false)
 	for _, bg := range bindings {
 		c.bindings[[2]int{bg.Token.Line, bg.Token.Column}] = bg
 	}
@@ -227,7 +255,7 @@ func analyze(b Parts, lang *codes.Language) (*analysis, error) {
 // konumlarıyla atlanır; kodlu sözcükler etkin dilin adlarıyla okunduğu için ağaçlar birebir
 // aynı olmalıdır).
 func (c *analysis) sameMeaning(coded Parts) error {
-	p := parser.New(coded.scanLexer())
+	p := parser.New(coded.scanLexer(codes.Active()))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 || ast.Dump(prog) != ast.Dump(c.prog) {
 		return ErrLossy

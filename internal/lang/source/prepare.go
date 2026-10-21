@@ -3,6 +3,7 @@ package source
 import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/checker"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
@@ -30,15 +31,19 @@ type Options struct {
 	InGlobalScope bool
 	GlobalNames   []string
 	GlobalDynamic bool
+	// Typed says the text is not a file but a line typed in the active language (the REPL);
+	// a file without the coded header is written in Turkish (17.7).
+	Typed bool
 }
 
 // Result is the outcome of preparation. On error, Stage is the error's stage and Program is
 // the tree built up to that stage (it may be incomplete after a syntax error).
 type Result struct {
 	Parts
-	// Text is the source text for error frames, the debugger and the interpreter: the body
-	// for a file written in Turkish, the Turkish view of the body for a coded file. Lines and
-	// columns in error messages refer to this text (17.5).
+	// Text is the source text for error frames, the debugger and the interpreter: the view of
+	// the body in the active language (for a file written in Turkish while the active language
+	// is Turkish, the body itself). Lines and columns in error messages refer to this text
+	// (17.5).
 	Text    string
 	Program *ast.Program
 	Stage   string
@@ -55,9 +60,19 @@ func Prepare(text string, s Options) *Result {
 	b, err := Split(text)
 	r := &Result{Parts: b, Text: b.Body}
 	lex := b.Lexer
-	if b.Coded {
+	coded := b
+	switch {
+	case s.Typed && !b.Coded:
+		lex = func() *lexer.Lexer { return lexer.NewBody(b.Body, false) }
+	case err == nil && !b.Coded && codes.Active().Code != codes.SourceLanguage:
+		// Türkçe yazılmış dosya etkin dilde çalışır: önce kodlu biçime, oradan etkin dildeki
+		// görünümüne çevrilir (kodlu dosya gibi). Ayrıştırılamayan dosya Türkçe okunur; sözdizimi
+		// hataları dosyanın kendi metnine göredir.
+		coded, _ = turkishToCoded(b)
+	}
+	if coded.Coded {
 		var viewLexer *lexer.Lexer
-		r.Text, viewLexer = view(b)
+		r.Text, viewLexer = view(coded)
 		lex = func() *lexer.Lexer { return viewLexer }
 	}
 	if err != nil {

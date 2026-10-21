@@ -120,3 +120,27 @@ func TestCodedPreScanDepthLimited(t *testing.T) {
 		t.Errorf("20000 nested interpolations took %v", d)
 	}
 }
+
+// Kodsuz gövde verilen dilde okunur (NewBodyIn): Türkçe yazılmış dosya etkin dil ne olursa
+// olsun Türkçe okunur (17.7). Etkin dil Türkçeyken İngilizce gövde İngilizce sözcükleriyle,
+// Türkçe sözcükler ise ad olarak okunur (yerleştirmeler: parser.TestContextWordsFollowLexer).
+func TestBodyInLanguage(t *testing.T) {
+	en, err := codes.LoadLanguage("en")
+	if err != nil {
+		t.Fatal(err)
+	}
+	l := NewBodyIn("if eğer {", en)
+	if l.Language() != en || NewBody("", false).Language() != codes.Active() {
+		t.Fatal("çözümleyicinin dili yanlış")
+	}
+	got := allOf(l)
+	want := []TokenType{TokIf, TokIdent, TokLBrace}
+	if len(got) != len(want) {
+		t.Fatalf("sözcük birimleri %v, beklenen türler %v", got, want)
+	}
+	for i, w := range want {
+		if got[i].Type != w {
+			t.Fatalf("sözcük birimleri %v, beklenen türler %v", got, want)
+		}
+	}
+}

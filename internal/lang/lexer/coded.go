@@ -44,6 +44,15 @@ func NewBody(input string, coded bool) *Lexer {
 	return l
 }
 
+// NewBodyIn returns the lexer for an uncoded body written in lang. A file without the coded
+// header is written in Turkish whatever the active language is (17.7), so internal/lang/source
+// reads files with lang = Turkish; NewBody reads the active language's keywords.
+func NewBodyIn(input string, lang *codes.Language) *Lexer {
+	l := NewBody(input, false)
+	l.lang, l.words = lang, keywordsOf(lang)
+	return l
+}
+
 // ViewEdit is one change the file's view makes to a coded body: the runes [Start, End) are
 // shown as Len runes (a code as its name, a user name as '$name').
 type ViewEdit struct {
@@ -169,7 +178,7 @@ func (l *Lexer) nameToken(lit string, line, col int) Token {
 	if l.coded {
 		return l.codedToken(lit, line, col)
 	}
-	kind := LookupIdent(lit)
+	kind := l.root.lookupIdent(lit)
 	if kind == TokIdent {
 		l.checkCodeForm(lit, line, col)
 	}

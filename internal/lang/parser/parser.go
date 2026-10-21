@@ -7,6 +7,8 @@
 package parser
 
 import (
+	"sync"
+
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/hint"
@@ -14,18 +16,30 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// Bağlamsal sözcüklerin (test, olarak, yakala'nın varsayılan hata adı, sondaki bloğun
-// parametresi, indirge bloğunun birikimi) yazımları ve 'kendi'nin adı kod listesinden gelir
-// (internal/lang/codes: A101, A100, A103, A104, A105, A051).
-var (
-	testSpellings   = codes.Spellings(codes.A101)
-	asSpellings     = codes.Spellings(codes.A100)
-	selfName        = codes.Name(codes.A051)
-	errName         = codes.Name(codes.A103)
-	itName          = codes.Name(codes.A104)
-	accName         = codes.Name(codes.A105)
-	reduceSpellings = codes.Spellings(codes.Y207)
-)
+// contextWords bağlamsal sözcüklerin (test, olarak, yakala'nın varsayılan hata adı, sondaki
+// bloğun parametresi, indirge bloğunun birikimi) yazımları ve 'kendi'nin adıdır; kod
+// listesinden, sözcük çözümleyicinin okuduğu dilde gelir (internal/lang/codes: A101, A100,
+// A103, A104, A105, A051, Y207). Türkçe yazılmış dosya etkin dil ne olursa olsun Türkçe
+// okunur (lexer.NewBodyIn).
+type contextWords struct {
+	test, as, reduce   []string
+	self, err, it, acc string
+}
+
+// contextWordsByLanguage dil kodu → o dilin bağlamsal sözcükleri (bir kez kurulur).
+var contextWordsByLanguage sync.Map
+
+func contextWordsOf(lang *codes.Language) *contextWords {
+	if w, ok := contextWordsByLanguage.Load(lang.Code); ok {
+		return w.(*contextWords)
+	}
+	w := &contextWords{
+		test: lang.Spellings(codes.A101), as: lang.Spellings(codes.A100), reduce: lang.Spellings(codes.Y207),
+		self: lang.Name(codes.A051), err: lang.Name(codes.A103), it: lang.Name(codes.A104), acc: lang.Name(codes.A105),
+	}
+	v, _ := contextWordsByLanguage.LoadOrStore(lang.Code, w)
+	return v.(*contextWords)
+}
 
 const (
 	_ int = iota
@@ -83,6 +97,8 @@ type Parser struct {
 	l *lexer.Lexer
 	// roles açıksa (RecordRoles) ad sözcüklerinin görevleri kaydedilir (roles.go).
 	roles map[[2]int]NameRole
+	// words çözümleyicinin okuduğu dilin bağlamsal sözcükleridir.
+	words *contextWords
 
 	// noBlock: 'eğer', 'iken', 'döngü' ve 'eşle' başlıklarında '{' gövdenin başlangıcıdır,
 	// sondaki blok (o-lambda) olarak okunmamalıdır. Parantez/köşeli parantez içinde yeniden açılır.
@@ -175,9 +191,9 @@ func (p *Parser) parseTrailingBlock(left ast.Expression) ast.Expression {
 	tok := p.curToken() // '{'
 	begin := p.pos
 	body := p.functionBody()
-	params := []ast.Param{{Name: itName}}
-	if isReduceTarget(left) {
-		params = []ast.Param{{Name: accName}, {Name: itName}}
+	params := []ast.Param{{Name: p.words.it}}
+	if p.isReduceTarget(left) {
+		params = []ast.Param{{Name: p.words.acc}, {Name: p.words.it}}
 		p.oldReduceBlock(tok, begin)
 	}
 	fn := &ast.FunctionLiteral{
@@ -211,6 +227,7 @@ func New(l *lexer.Lexer) *Parser {
 		pos:    0,
 		errors: errs,
 		l:      l,
+		words:  contextWordsOf(l.Language()),
 	}
 }
 
