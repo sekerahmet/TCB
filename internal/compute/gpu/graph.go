@@ -3,6 +3,8 @@ package gpu
 import (
 	"sync"
 
+	"github.com/sekerahmet/TCB/internal/compute/tensor"
+
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -112,7 +114,7 @@ func (h *pool) setCapture(c *privatePool) {
 
 // EndCapture kaydı bitirir ve oynatılabilir çizgeyi kurar. Kayıt bir sürücü kuralıyla
 // bozulduysa (çizge yok) H4069 hatası verir; havuzu kapatılır.
-func (g *backend) EndCapture() *Graph {
+func (g *backend) EndCapture() tensor.Recording {
 	g.enter()
 	defer g.exit()
 	priv := g.capturing

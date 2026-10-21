@@ -11,6 +11,22 @@ import "github.com/sekerahmet/TCB/internal/lang/messages"
 // Capturer (isteğe bağlı) bir kayıt sürüp sürmediğini bildiren arka uç.
 type Capturer interface{ Capturing() bool }
 
+// Recorder (isteğe bağlı) iş dizisini kaydedip oynatabilen arka uç (gpu graph.go).
+// CaptureSupported yanlışsa diğer yöntemler çağrılmaz. EndCapture kaydı kurar; kayıt bir
+// sürücü kuralıyla bozulduysa panikler. AbortCapture süren kaydı bırakır (hata yolunda).
+type Recorder interface {
+	CaptureSupported() bool
+	BeginCapture()
+	EndCapture() Recording
+	AbortCapture()
+}
+
+// Recording kaydedilmiş, oynatılabilir bir iş dizisi.
+type Recording interface {
+	Replay()
+	Release()
+}
+
 // IndexReader (isteğe bağlı) indeksi cihazdaki depolamadan okuyan işlemleri yapan arka uç.
 type IndexReader interface {
 	// EmbeddingAt out[r, :] = w[kırp(idx[r]), :] (idx float32 tam sayı değerli, n eleman).

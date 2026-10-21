@@ -1081,3 +1081,27 @@ test "15.47 tensör_yükle safetensors dosyasını da okur; biçim içerikten an
     eşit_mi(3.0, y["h"].değer)
     eşit_mi([0, 2], y["e"].şekil)
 }
+
+test "15.48 tekrar_oynat: sonuç doğrudan çağrıyla aynı, yalnızca türevsiz içinde" {
+    fonksiyon f(x, s) { sonuç x * s + 1.0 }
+    değişken oy = tekrar_oynat(f)
+    türevsiz {
+        döngü i içinde 0..4 {
+            değişken x = tensör([i * 1.0, 2.0])
+            eşit_mi(f(x, 3.0).değer, oy(x, 3.0).değer)
+        }
+        // Liste döndüren fonksiyon liste verir.
+        eşit_mi(2, tekrar_oynat((a) => [a + 1.0, a * 2.0])(tensör([1.0])).uzunluk)
+    }
+    doğrula(hata_metni(() => oy(tensör([1.0]), 2.0)).içerir("türevsiz"))
+    doğrula(hata_metni(() => tekrar_oynat(3)).içerir("fonksiyon"))
+}
+
+test "15.49 yerine_yaz: kaynağı eksendeki dilime başlangıçtan yerinde yazar" {
+    değişken t = sıfırlar([2, 4])
+    yerine_yaz(t, birler([2, 2]), eksen: 1, başlangıç: 1)
+    eşit_mi([[0.0, 1.0, 1.0, 0.0], [0.0, 1.0, 1.0, 0.0]], t.değer)
+    yerine_yaz(t, birler([2, 1]) * 5, eksen: 1, başlangıç: tensör(3.0))
+    eşit_mi([[0.0, 1.0, 1.0, 5.0], [0.0, 1.0, 1.0, 5.0]], t.değer)
+    doğrula(hata_metni(() => yerine_yaz(t, birler([2, 2]), eksen: 1, başlangıç: 3)).içerir("sığmıyor"))
+}

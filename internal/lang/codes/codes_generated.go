@@ -171,6 +171,7 @@ const (
 	T103 Code = T + 103 // randn · rastgele_normal
 	T111 Code = T + 111 // eye · birim_matris
 	T121 Code = T + 121 // concat · bitiştir
+	T122 Code = T + 122 // write_slice · yerine_yaz
 	T200 Code = T + 200 // relu
 	T201 Code = T + 201 // sigmoid
 	T202 Code = T + 202 // tanh
@@ -203,6 +204,7 @@ const (
 	T310 Code = T + 310 // custom_grad · özel_türev
 	T311 Code = T + 311 // grad_check · türev_denetle
 	T312 Code = T + 312 // fuse · kaynaştır
+	T313 Code = T + 313 // replay · tekrar_oynat
 	T400 Code = T + 400 // AdamW
 	T401 Code = T + 401 // SGD
 	T402 Code = T + 402 // clip_grad · gradyan_kırp
@@ -230,6 +232,7 @@ const (
 	T905 Code = T + 905 // eps · epsilon
 	T906 Code = T + 906 // keepdim · boyutu_koru
 	T907 Code = T + 907 // min · en_az
+	T908 Code = T + 908 // start · başlangıç
 	T910 Code = T + 910 // lr · öğrenme_oranı
 	T911 Code = T + 911 // weight_decay · ağırlık_çürümesi
 	T912 Code = T + 912 // beta1

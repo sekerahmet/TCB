@@ -56,6 +56,18 @@ func embedding(_ *interp.VM, args []interp.Value, named map[string]interp.Value)
 	if len(tsh) != 2 {
 		return nil, messages.New(messages.H6303, fn, shapeText(tsh))
 	}
+	if it, ok := args[1].(*TensorValue); ok && tensor.Capturing(table.t.Device()) {
+		// Kayıt içinde indeks konağa okunamaz: her oynatma onu cihazdan okur (sınır dışı
+		// indeks kırpılır; tensor.EmbeddingAt).
+		if err := checkDevice(fn, table.t, it.t); err != nil {
+			return nil, err
+		}
+		r, err := safe(func() *tensor.Tensor { return tensor.EmbeddingAt(table.t, it.t) })
+		if err != nil {
+			return nil, err
+		}
+		return New(r), nil
+	}
 	idx, ish, err := intIndices(fn, args[1])
 	if err != nil {
 		return nil, err

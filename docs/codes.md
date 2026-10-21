@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 316 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 103 fonksiyon, 1 sabit, 40 metot, 21 özellik, 42 adlı argüman.
+Toplam 319 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 105 fonksiyon, 1 sabit, 40 metot, 21 özellik, 43 adlı argüman.
 
 ## İçindekiler
 
@@ -1606,6 +1606,18 @@ yazdır(bitiştir([birler([2, 1]), sıfırlar([2, 2])], eksen: -1).şekil)
 
 İlişkili: Y103 `böl`
 
+#### T122 `yerine_yaz`
+
+    yerine_yaz(Tensör, Tensör, eksen: Tam = -1, başlangıç: Tam | Tensör = 0) → Yok
+
+Kaynağı hedefin verilen eksenindeki dilime, başlangıç konumundan itibaren yerinde yazar (hedefin öbür eksenleri kaynakla aynı olmalı). Başlangıç tam sayı ya da 0 boyutlu tam sayı tensörüdür; tensör verilirse tekrar_oynat kaydında konum her oynatmada cihazdan okunur (KV önbelleği). Türev izlenen hedefe yalnızca türevsiz içinde yazılır; sonuç yok.
+
+```tr
+değişken t = sıfırlar([2, 4]); yerine_yaz(t, birler([2, 2]), eksen: 1, başlangıç: 1); yazdır(t.değer)
+```
+
+İlişkili: T121 `bitiştir`
+
 ### Etkinleştirme ve eleman bazlı matematik (T2xx)
 
 #### T200 `relu`
@@ -1994,6 +2006,18 @@ değişken f = kaynaştır((a, b) => a * b + a); yazdır(f(tensör([1.0, 2.0]), 
 
 İlişkili: T310 `özel_türev`
 
+#### T313 `tekrar_oynat`
+
+    tekrar_oynat(Fonksiyon | YerleşikFonksiyon) → YerleşikFonksiyon
+
+Tensör alıp tensör veren bir fonksiyonu sarar: GPU'da ikinci çağrı f'in işini kaydeder (CUDA Graph), sonraki çağrılar girdileri kopyalayıp kaydı tek seferde oynatır, yorumlayıcı f'i yeniden çalıştırmaz. Yalnızca türevsiz içinde; şekil ya da sayı argümanları değişince yeniden kaydeder, CPU'da f doğrudan çağrılır.
+
+```tr
+değişken f = tekrar_oynat((x) => x * 2); türevsiz { yazdır(f(tensör([1.0, 2.0])).değer) }
+```
+
+İlişkili: T312 `kaynaştır`
+
 ### İyileştiriciler (T4xx)
 
 #### T400 `AdamW`
@@ -2260,7 +2284,7 @@ Kullananlar: T100 `tensör`, T101 `sıfırlar`, T102 `birler`, T103 `rastgele_no
 yazdır(toplam(tensör([[1, 2], [3, 4]]), eksen: 0).değer)
 ```
 
-Kullananlar: G400 `toplam`, G401 `min`, G402 `maks`, G410 `ortalama`, T121 `bitiştir`, T210 `softmax`, T211 `log_softmax`, T230 `maks_indeks`, T231 `birikimli_toplam`, T232 `en_büyük_k`, T233 `sıralama_indeksi`, Y103 `böl` · İlişkili: T906 `boyutu_koru`
+Kullananlar: G400 `toplam`, G401 `min`, G402 `maks`, G410 `ortalama`, T121 `bitiştir`, T122 `yerine_yaz`, T210 `softmax`, T211 `log_softmax`, T230 `maks_indeks`, T231 `birikimli_toplam`, T232 `en_büyük_k`, T233 `sıralama_indeksi`, Y103 `böl` · İlişkili: T906 `boyutu_koru`
 
 #### T903 `tohum`
 
@@ -2311,6 +2335,16 @@ yazdır(sınırla(-3.5, en_az: 0.0), sınırla(tensör([-1.0, 2.0]), en_az: 0).d
 ```
 
 Kullananlar: G409 `sınırla` · İlişkili: T904 `en_fazla`
+
+#### T908 `başlangıç`
+
+yerine_yaz'ın hedef eksende yazmaya başladığı konumdur: tam sayı ya da 0 boyutlu tam sayı tensörü. Kaynak hedefe sığmalıdır; tensörle verilen konum tekrar_oynat kaydında her oynatmada cihazdan okunur.
+
+```tr
+değişken t = sıfırlar([3]); yerine_yaz(t, birler([1]), eksen: 0, başlangıç: 2); yazdır(t.değer)
+```
+
+Kullananlar: T122 `yerine_yaz` · İlişkili: T122 `yerine_yaz`
 
 #### T910 `öğrenme_oranı`
 
@@ -3386,4 +3420,4 @@ yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").parça_kimliği("<|en
 
 `x |> f(a)` ≡ `f(x, a)` (bkz. `docs/spec/04_operatorler.md` 4.9). Boru yalnızca fonksiyonlarla çalışır; metotlar `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 } |> toplam`). Borudaki değeri ilk konumlu argüman olarak alabilen yerleşik fonksiyonlar (kullanıcı fonksiyonları da kullanılabilir):
 
-`yazdır`, `girdi`, `dosya_oku`, `dosya_yaz`, `dosya_satırları`, `yol`, `klasörü_listele`, `klasör_oluştur`, `sil`, `kopyala`, `taşı`, `tip`, `tam`, `ondalık`, `metin`, `aralık`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `taban`, `tavan`, `işaret`, `sınırla`, `ortalama`, `standart_sapma`, `ortanca`, `sonlu_mu`, `bekle`, `json_çöz`, `json_metin`, `csv_oku`, `csv_çöz`, `doğrula`, `eşit_mi`, `ortam_değişkeni`, `komut_satırı`, `günlük`, `ilerleme`, `tensör`, `sıfırlar`, `birler`, `rastgele_normal`, `birim_matris`, `bitiştir`, `relu`, `sigmoid`, `tanh`, `gelu`, `silu`, `softmax`, `log_softmax`, `üstel`, `log`, `sinüs`, `kosinüs`, `tanjant`, `arksinüs`, `arkkosinüs`, `arktanjant`, `arktanjant2`, `maks_indeks`, `birikimli_toplam`, `en_büyük_k`, `sıralama_indeksi`, `koşullu`, `sinh`, `cosh`, `log1p`, `log2`, `log10`, `üstel_eksi_bir`, `geri_yayılım`, `türevsiz`, `türev_denetle`, `kaynaştır`, `AdamW`, `SGD`, `gradyan_kırp`, `gömme`, `katman_normu`, `rms_normu`, `dikkat`, `çapraz_entropi`, `doğrusal_çapraz_entropi`, `parametreler`, `örnekle`, `tensör_kaydet`, `tensör_yükle`, `kontrol_noktası`, `parametreleri_yükle`, `karışık_hassasiyet`, `varsayılan_cihaz`, `veri_kümesi`, `parçalayıcı_yükle`
+`yazdır`, `girdi`, `dosya_oku`, `dosya_yaz`, `dosya_satırları`, `yol`, `klasörü_listele`, `klasör_oluştur`, `sil`, `kopyala`, `taşı`, `tip`, `tam`, `ondalık`, `metin`, `aralık`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `taban`, `tavan`, `işaret`, `sınırla`, `ortalama`, `standart_sapma`, `ortanca`, `sonlu_mu`, `bekle`, `json_çöz`, `json_metin`, `csv_oku`, `csv_çöz`, `doğrula`, `eşit_mi`, `ortam_değişkeni`, `komut_satırı`, `günlük`, `ilerleme`, `tensör`, `sıfırlar`, `birler`, `rastgele_normal`, `birim_matris`, `bitiştir`, `yerine_yaz`, `relu`, `sigmoid`, `tanh`, `gelu`, `silu`, `softmax`, `log_softmax`, `üstel`, `log`, `sinüs`, `kosinüs`, `tanjant`, `arksinüs`, `arkkosinüs`, `arktanjant`, `arktanjant2`, `maks_indeks`, `birikimli_toplam`, `en_büyük_k`, `sıralama_indeksi`, `koşullu`, `sinh`, `cosh`, `log1p`, `log2`, `log10`, `üstel_eksi_bir`, `geri_yayılım`, `türevsiz`, `türev_denetle`, `kaynaştır`, `tekrar_oynat`, `AdamW`, `SGD`, `gradyan_kırp`, `gömme`, `katman_normu`, `rms_normu`, `dikkat`, `çapraz_entropi`, `doğrusal_çapraz_entropi`, `parametreler`, `örnekle`, `tensör_kaydet`, `tensör_yükle`, `kontrol_noktası`, `parametreleri_yükle`, `karışık_hassasiyet`, `varsayılan_cihaz`, `veri_kümesi`, `parçalayıcı_yükle`

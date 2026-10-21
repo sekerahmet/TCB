@@ -938,6 +938,12 @@ const (
 	H6434 Code = 6434 // {fn}: kaynaştırılmış fonksiyonun {index}. argümanı tensör olmalıdır, {given} verildi
 	H6435 Code = 6435 // {fn}: kaynaştırılan fonksiyon bir tensör ya da tensör listesi döndürmelidir, {given} döndürdü
 	H6436 Code = 6436 // {fn}: kaynaştırılan fonksiyon boş liste döndürdü; en az bir tensör döndürmelidir
+	H6437 Code = 6437 // {fn}: oynatılacak bir fonksiyon verilmelidir, {given} verildi
+	H6438 Code = 6438 // {fn}: oynatılan fonksiyonun {index}. argümanı tensör ya da sayı olmalıdır, {given} verildi
+	H6439 Code = 6439 // {fn}: oynatılan fonksiyon bir tensör ya da tensör listesi döndürmelidir, {given} döndürdü
+	H6440 Code = 6440 // {fn}: yalnızca türevsiz içinde çağrılabilir (kayıt gradyan çizgesi kurmaz); çağrıyı türevsiz {{ ... }} içine alın
+	H6441 Code = 6441 // {fn}: başlangıç tam sayı ya da tam sayı değerli 0 boyutlu tensör olmalıdır, {given} verildi
+	H6442 Code = 6442 // {fn}: {start} konumundan yazılan {len} uzunluklu dilim {size} uzunluklu eksene sığmıyor
 	H6500 Code = 6500 // {fn}(model, {withNamesArg}: {falseValue}) 1 konumlu parametre bekler, {given} verildi
 	H6501 Code = 6501 // {fn}: sözlük {stateMethod} ile alınmış olmalı (anahtarları {stringType}, değerleri {tensorType}); {key|q} girdisi {given}
 	H6502 Code = 6502 // {optimizer} üzerinde {member|q} üyesine atama yapılamaz; atanabilen üye: {lrMember}
