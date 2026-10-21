@@ -164,3 +164,30 @@ func TestGraphIndexedOps(t *testing.T) {
 		checkDiff(t, "dilim yazma", cache.Data(), want, 0)
 	}
 }
+
+// Kayıttan önce ayrılıp kayıt sırasında bırakılan blok (kaydedilen iş okumuş olabilir) kayıt
+// bırakılana kadar başka işe verilmez.
+func TestGraphKeepsBlocksFreedDuringCapture(t *testing.T) {
+	g := gpuBackend()
+	if !g.CaptureSupported() {
+		t.Skip("sürücü kaydı desteklemiyor")
+	}
+	const n = 1000
+	old := g.storageOf(g.AllocUninit(n, tensor.Float32))
+	addr := old.addr
+	g.BeginCapture()
+	g.Release(old)
+	gr := g.EndCapture()
+	var live []tensor.Storage
+	for i := 0; i < 8; i++ {
+		s := g.AllocUninit(n, tensor.Float32)
+		live = append(live, s)
+		if g.storageOf(s).addr == addr {
+			t.Fatalf("kayıt sırasında bırakılan blok kayıt sürerken başka işe verildi")
+		}
+	}
+	gr.Release()
+	for _, s := range live {
+		g.Release(s)
+	}
+}

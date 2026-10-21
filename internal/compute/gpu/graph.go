@@ -21,7 +21,9 @@ import (
 //     blok kayıt içinde yeniden kullanılabilir (sıra her oynatmada aynıdır), ama kayıt
 //     kapanana kadar kayıt dışındaki işlere verilmez (oynatma onlara yazardı). Kayıt
 //     kapanınca boştaki bloklar genel havuza döner, kayıttan sonra yaşayan tensörlerin
-//     blokları da öldüklerinde genel havuza döner. Kaydın havuzunda blok yoksa genel havuzdan
+//     blokları da öldüklerinde genel havuza döner. Kayıttan önce ayrılıp kayıt sırasında
+//     bırakılan bloklar da kaydın havuzuna girer: kaydedilen iş onları okumuş olabilir
+//     (PyTorch bunu kullanıcıya bırakır: girdiler canlı tutulmalıdır). Kaydın havuzunda blok yoksa genel havuzdan
 //     ya da sürücüden alınır (RELAXED kipte ayırmaya izin vardır).
 //   - Kayıt sırasında cihazdan okuma (H4065), konaktan yükleme (H4066) ve eşzamanlama
 //     (H4067) hatadır: kaydedilen iş henüz çalışmamıştır, yüklenen veri her oynatmada aynı
@@ -98,6 +100,14 @@ func (g *backend) BeginCapture() {
 	g.equalize()
 	g.try_("cuStreamBeginCapture", g.sr.beginCapture())
 	g.capturing = &privatePool{h: &g.pool, free: map[uint64][]privateBlock{}}
+	g.pool.setCapture(g.capturing)
+}
+
+// setCapture kaydın havuzunu genel havuza bağlar (nil: kayıt bitti).
+func (h *pool) setCapture(c *privatePool) {
+	h.mu.Lock()
+	h.capture = c
+	h.mu.Unlock()
 }
 
 // EndCapture kaydı bitirir ve oynatılabilir çizgeyi kurar. Kayıt bir sürücü kuralıyla
@@ -110,6 +120,7 @@ func (g *backend) EndCapture() *Graph {
 		panic(internalf("EndCapture without BeginCapture"))
 	}
 	g.capturing = nil
+	g.pool.setCapture(nil)
 	graph, s := g.sr.endCapture()
 	if s != succeeded || graph == 0 {
 		priv.close()
@@ -134,6 +145,7 @@ func (g *backend) AbortCapture() {
 		return
 	}
 	g.capturing = nil
+	g.pool.setCapture(nil)
 	if graph, s := g.sr.endCapture(); s == succeeded && graph != 0 {
 		g.sr.destroyGraph(graph, 0)
 	}

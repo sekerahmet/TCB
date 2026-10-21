@@ -101,6 +101,9 @@ type pool struct {
 	siteLive, sitePeak uint64
 	// large 1 MB'den büyük blokların parçaları (memory_blocks.go).
 	large largePool
+	// capture süren kaydın havuzu (graph.go): kayıt sırasında genel havuza bırakılan bloklar
+	// oraya gider.
+	capture *privatePool
 }
 
 // classSize küçük (≤ 1 MB) ayırmanın yuvarlandığı boy: 256 bayta kadar 256, üstü ikinin
@@ -116,6 +119,13 @@ func classSize(byteN uint64) uint64 {
 // çağrılır; yalnızca havuzun kilidini alır).
 func (h *pool) release2(addr, class uint64) {
 	h.mu.Lock()
+	if c := h.capture; c != nil {
+		// Kayıt sürerken bırakılan blok (kayıttan önce ayrılmış olsa da) kaydın havuzuna girer:
+		// kaydedilen iş onu okumuş olabilir, kayıt bırakılana kadar başka işe verilmez.
+		h.mu.Unlock()
+		c.give(class, addr, class)
+		return
+	}
 	if class > smallLimit {
 		h.large.give(addr)
 	} else {
