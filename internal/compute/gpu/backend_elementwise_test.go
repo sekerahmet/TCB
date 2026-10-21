@@ -122,7 +122,7 @@ func TestStridedViews(t *testing.T) {
 		{"adımlı dilim", func(x *tensor.Tensor) *tensor.Tensor { return x.SliceStep(3, 0, 5, 2).Tanh() }},
 		{"bitişikleştir", func(x *tensor.Tensor) *tensor.Tensor { return x.Permute(2, 1, 0, 3).Contiguous().Reshape(4, -1) }},
 		{"kendine yayın", func(x *tensor.Tensor) *tensor.Tensor { return tensor.Mul(x, x.Slice(1, 0, 1)) }},
-		{"birleştir", func(x *tensor.Tensor) *tensor.Tensor { return tensor.Concat([]*tensor.Tensor{x, x.Exp()}, 2) }},
+		{"bitiştir", func(x *tensor.Tensor) *tensor.Tensor { return tensor.Concat([]*tensor.Tensor{x, x.Exp()}, 2) }},
 		{"bölüştür", func(x *tensor.Tensor) *tensor.Tensor { return x.Split(2, 2)[1].Sigmoid() }},
 	}
 	for _, d := range cases {

@@ -335,7 +335,7 @@ test "NedenselDikkat: birleşik KV, ayrı K ve V ile aynı sonucu verir ([K | V]
     eşit_mi(3, parametreler(b).uzunluk) // sorgu, kv, çıkış
     b.sorgu_katmanı.ağırlık = a.sorgu_katmanı.ağırlık
     b.çıkış_katmanı.ağırlık = a.çıkış_katmanı.ağırlık
-    b.kv_katmanı.ağırlık = birleştir([a.anahtar_katmanı.ağırlık, a.değer_katmanı.ağırlık], eksen: 1)
+    b.kv_katmanı.ağırlık = bitiştir([a.anahtar_katmanı.ağırlık, a.değer_katmanı.ağırlık], eksen: 1)
     doğrula(en_büyük_fark(a.ileri(x, tablolar[0], tablolar[1]), b.ileri(x, tablolar[0], tablolar[1])) < 0.000001, "birleşik KV ayrıyla aynı olmalı")
     fonksiyon f(x, w) {
         b.kv_katmanı.ağırlık = w
@@ -351,7 +351,7 @@ test "SwiGLU: birleşik [G | U] ayrı kapı ve yukarı ile aynıdır; sapmalı s
     eşit_mi(yok, b.kapı)
     eşit_mi(yok, a.kapı_yukarı)
     eşit_mi(2, parametreler(b).uzunluk)
-    b.kapı_yukarı.ağırlık = birleştir([a.kapı.ağırlık, a.yukarı.ağırlık], eksen: 1)
+    b.kapı_yukarı.ağırlık = bitiştir([a.kapı.ağırlık, a.yukarı.ağırlık], eksen: 1)
     b.aşağı.ağırlık = a.aşağı.ağırlık
     değişken x = rastgele_normal([2, 3, 4], tohum: 2)
     doğrula(en_büyük_fark(a.ileri(x), b.ileri(x)) < 0.000001, "birleşik [G | U] ayrıyla aynı olmalı")

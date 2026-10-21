@@ -171,7 +171,7 @@ const (
 	T102 Code = T + 102 // ones · birler
 	T103 Code = T + 103 // randn · rastgele_normal
 	T111 Code = T + 111 // eye · birim_matris
-	T121 Code = T + 121 // concat · birleştir
+	T121 Code = T + 121 // concat · bitiştir
 	T200 Code = T + 200 // relu
 	T201 Code = T + 201 // sigmoid
 	T202 Code = T + 202 // tanh
@@ -252,6 +252,7 @@ const (
 	T984 Code = T + 984 // every_minutes · her_dakika
 	T985 Code = T + 985 // keep · tut
 	T986 Code = T + 986 // error_if_nonfinite · sonlu_değilse_hata
+	T987 Code = T + 987 // fd_step · fark_adımı
 	T990 Code = T + 990 // approximate · yaklaşık
 	V100 Code = V + 100 // dataset · veri_kümesi
 	V200 Code = V + 200 // load_tokenizer · parçalayıcı_yükle

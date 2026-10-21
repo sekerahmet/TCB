@@ -1,5 +1,5 @@
 // 23 — Tensörler: yapay zekânın sayı dizileri.
-// Ne öğretir: tensör oluşturmak, Tensör tipi, şekil, devrik, dilim, birleştir, @ (matris çarpımı), yayınlama, relu/softmax, .değer ile okumak.
+// Ne öğretir: tensör oluşturmak, Tensör tipi, şekil, devrik, dilim, bitiştir, @ (matris çarpımı), yayınlama, relu/softmax, .değer ile okumak.
 // Önceki örnekten: listeler (09) ve işlev çağrıları (08); tensör, iç içe listelerden kurulur.
 // Çalıştırma (proje kökünden): tr examples/tr/23_tensor.tr
 // Ayrıntılar: docs/guide/04_yapay_zeka_ve_veri.md §4.C, docs/spec/15_tensorler.md §15.
@@ -37,10 +37,10 @@ değişken t: Tensör = tensör([[1, 2, 3], [4, 5, 6]])
 yazdır(tip(t) == Tensör, t.şekil)
 
 // devrik son iki ekseni yer değiştirir; dilim(eksen, baş, son) bir aralığı keser;
-// birleştir tensör listesini bir eksen boyunca uç uca ekler.
+// bitiştir tensör listesini bir eksen boyunca uç uca ekler.
 yazdır(t.devrik().değer)
 yazdır(t.dilim(1, 0, 2).değer)
-yazdır(birleştir([birler([2, 1]), sıfırlar([2, 2])], eksen: -1).şekil)
+yazdır(bitiştir([birler([2, 1]), sıfırlar([2, 2])], eksen: -1).şekil)
 
 // --- Kendin dene ---
 // 1. 3x3 bir matris kur ve onu birim_matris(3) ile çarp: sonuç ne?

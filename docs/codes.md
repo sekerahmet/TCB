@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir.
 
-Toplam 315 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 103 fonksiyon, 1 sabit, 40 metot, 21 özellik, 41 adlı argüman; ayrıca 9 taşınmış ve 65 kaldırılmış kod (numaraları bir daha kullanılmaz).
+Toplam 316 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 103 fonksiyon, 1 sabit, 40 metot, 21 özellik, 42 adlı argüman; ayrıca 9 taşınmış ve 65 kaldırılmış kod (numaraları bir daha kullanılmaz).
 
 ## İçindekiler
 
@@ -1655,17 +1655,17 @@ yazdır(birim_matris(3).değer)
 
 Taşındı: Y411 `devrik` → `tensör.devrik()`. Kaldırıldı: tensörün görünümünü değiştiren iş metottur; t.devrik() yazılır. devrik(t) hata verip yeni biçimi önerir.
 
-#### T121 `birleştir`
+#### T121 `bitiştir`
 
-    birleştir(Liste, [Tam], eksen: Tam = -1) → Tensör
+    bitiştir(Liste, [Tam], eksen: Tam = -1) → Tensör
 
-Bir tensör listesini verilen eksen boyunca (varsayılan son eksen) tek tensörde birleştirir. Birleşen eksen dışındaki eksenler eşit olmalıdır; sonuç türev izler.
+Bir tensör listesini verilen eksen boyunca (varsayılan son eksen) uç uca ekleyip tek tensör yapar. Birleşen eksen dışındaki eksenler eşit olmalıdır; sonuç türev izler.
 
 ```tr
-yazdır(birleştir([birler([2, 1]), sıfırlar([2, 2])], eksen: -1).şekil)
+yazdır(bitiştir([birler([2, 1]), sıfırlar([2, 2])], eksen: -1).şekil)
 ```
 
-İlişkili: Y103 `böl`
+İlişkili: Y103 `böl` · Eski adlar: `birleştir`
 
 ### Etkinleştirme ve eleman bazlı matematik (T2xx)
 
@@ -2033,12 +2033,12 @@ değişken kare = özel_türev(ileri: fonksiyon(x) { sonuç [x * x, [x]] }, geri
 
 #### T311 `türev_denetle`
 
-    türev_denetle(Fonksiyon | YerleşikFonksiyon, Liste, adım: Tam | Ondalık = 0.001, tolerans: Tam | Ondalık = 0.01) → Mantık
+    türev_denetle(Fonksiyon | YerleşikFonksiyon, Liste, fark_adımı: Tam | Ondalık = 0.001, tolerans: Tam | Ondalık = 0.01) → Mantık
 
 Bir fonksiyonun geri yayılımla bulunan gradyanını merkezi farkla bulunan sayısal gradyanla karşılaştırır; uyuşursa doğru döndürür, uyuşmazsa en büyük farkı gösteren bir hata verir. Yalnızca türev izleyen tensör girdileri, kopyaları üzerinde denetlenir.
 
 ```tr
-yazdır(türev_denetle(fonksiyon(x) { sonuç x * x }, [tensör([0.5, -1.0], türev_izle: doğru)], adım: 0.001, tolerans: 0.01))
+yazdır(türev_denetle(fonksiyon(x) { sonuç x * x }, [tensör([0.5, -1.0], türev_izle: doğru)], fark_adımı: 0.001, tolerans: 0.01))
 ```
 
 İlişkili: T310 `özel_türev`
@@ -2047,7 +2047,7 @@ yazdır(türev_denetle(fonksiyon(x) { sonuç x * x }, [tensör([0.5, -1.0], tür
 
     kaynaştır(Fonksiyon | YerleşikFonksiyon) → YerleşikFonksiyon
 
-Eleman bazlı tensör işlemlerinden oluşan bir fonksiyonu kaynaştırır ve aynı şeyi hesaplayan bir fonksiyon döndürür: her çağrıda zincirin tamamı tek geçişte (GPU'da tek çekirdekte) hesaplanır, ara sonuçlar belleğe yazılmaz; geri yayılım ara değerleri saklamadan girdilerden yeniden hesaplar. Sonuç kaynaşmamış hesapla aynıdır. Fonksiyon eleman bazlı işlemleri, dilimi, .böl'ü, birleştir'i, boyu 1 eksen ekleyip çıkarmayı ve tür dönüşümünü kullanabilir; argümanları tensördür.
+Eleman bazlı tensör işlemlerinden oluşan bir fonksiyonu kaynaştırır ve aynı şeyi hesaplayan bir fonksiyon döndürür: her çağrıda zincirin tamamı tek geçişte (GPU'da tek çekirdekte) hesaplanır, ara sonuçlar belleğe yazılmaz; geri yayılım ara değerleri saklamadan girdilerden yeniden hesaplar. Sonuç kaynaşmamış hesapla aynıdır. Fonksiyon eleman bazlı işlemleri, dilimi, .böl'ü, bitiştir'i, boyu 1 eksen ekleyip çıkarmayı ve tür dönüşümünü kullanabilir; argümanları tensördür.
 
 ```tr
 değişken f = kaynaştır((a, b) => a * b + a); yazdır(f(tensör([1.0, 2.0]), tensör([3.0, 4.0])).değer)
@@ -2347,13 +2347,13 @@ Kullananlar: T100 `tensör`, T101 `sıfırlar`, T102 `birler`, T103 `rastgele_no
 
 #### T902 `eksen`
 
-İşlemin uygulanacağı ekseni seçer; negatif değer sondan sayar (-1 son eksen). İndirgemelerde verilmezse bütün elemanlar, softmax, birleştir ve maks_indeks'te son eksen kullanılır.
+İşlemin uygulanacağı ekseni seçer; negatif değer sondan sayar (-1 son eksen). İndirgemelerde verilmezse bütün elemanlar, softmax, bitiştir ve maks_indeks'te son eksen kullanılır.
 
 ```tr
 yazdır(toplam(tensör([[1, 2], [3, 4]]), eksen: 0).değer)
 ```
 
-Kullananlar: G400 `toplam`, G401 `min`, G402 `maks`, G410 `ortalama`, T121 `birleştir`, T210 `softmax`, T211 `log_softmax`, T230 `maks_indeks`, T231 `birikimli_toplam`, T232 `en_büyük_k`, T233 `sıralama_indeksi`, Y103 `böl` · İlişkili: T906 `boyutu_koru`
+Kullananlar: G400 `toplam`, G401 `min`, G402 `maks`, G410 `ortalama`, T121 `bitiştir`, T210 `softmax`, T211 `log_softmax`, T230 `maks_indeks`, T231 `birikimli_toplam`, T232 `en_büyük_k`, T233 `sıralama_indeksi`, Y103 `böl` · İlişkili: T906 `boyutu_koru`
 
 #### T903 `tohum`
 
@@ -2583,13 +2583,13 @@ Kullananlar: T310 `özel_türev` · İlişkili: T980 `ileri`
 
 #### T982 `adım`
 
-türev_denetle'de merkezi farkın adım büyüklüğüdür (pozitif, varsayılan 0.001); İlerleme.güncelle'de tamamlanan adım sayısıdır (kaldığı yerden sürdürmek için; 0 ya da pozitif Tam).
+İlerleme.güncelle'de tamamlanan eğitim adımı sayısıdır (kaldığı yerden sürdürmek için; 0 ya da pozitif Tam).
 
 ```tr
-yazdır(türev_denetle(fonksiyon(x) { sonuç x * x }, [tensör([1.0, 2.0], türev_izle: doğru)], adım: 0.01))
+değişken ç = ilerleme(100); ç.güncelle(adım: 40); ç.durdur()
 ```
 
-Kullananlar: T311 `türev_denetle`, Y010 `güncelle` · İlişkili: T983 `tolerans`
+Kullananlar: Y010 `güncelle` · İlişkili: Y010 `güncelle`
 
 #### T983 `tolerans`
 
@@ -2599,7 +2599,7 @@ türev_denetle'de izin verilen göreli farktır: |analitik - sayısal| ≤ toler
 yazdır(türev_denetle(fonksiyon(x) { sonuç sigmoid(x) }, [tensör([0.3], türev_izle: doğru)], tolerans: 0.001))
 ```
 
-Kullananlar: T311 `türev_denetle` · İlişkili: T982 `adım`
+Kullananlar: T311 `türev_denetle` · İlişkili: T987 `fark_adımı`
 
 #### T984 `her_dakika`
 
@@ -2630,6 +2630,16 @@ değişken w = tensör([1.0, 2.0], türev_izle: doğru); geri_yayılım(toplam(w
 ```
 
 Kullananlar: T402 `gradyan_kırp` · İlişkili: T402 `gradyan_kırp`, G415 `sonlu_mu`
+
+#### T987 `fark_adımı`
+
+türev_denetle'de sayısal gradyanı veren merkezi farkın adım büyüklüğüdür (h): (f(x + h) - f(x - h)) / 2h. Pozitif olmalıdır; varsayılan 0.001'dir.
+
+```tr
+yazdır(türev_denetle(fonksiyon(x) { sonuç x * x }, [tensör([1.0, 2.0], türev_izle: doğru)], fark_adımı: 0.01))
+```
+
+Kullananlar: T311 `türev_denetle` · İlişkili: T983 `tolerans`
 
 #### T990 `yaklaşık`
 
@@ -2990,7 +3000,7 @@ Metni ayırıcıdan böler ve parçaların listesini verir (ayırıcı verilmezs
 yazdır("a,b,c".böl(","), tensör([1, 2, 3, 4]).böl(2)[0].değer)
 ```
 
-İlişkili: Y203 `birleştir`, T121 `birleştir`
+İlişkili: Y203 `birleştir`, T121 `bitiştir`
 
 #### Y104 `değiştir`
 
@@ -3705,4 +3715,4 @@ Kaldırıldı: 'html_üret' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 `x |> f(a)` ≡ `f(x, a)` (bkz. `docs/spec/04_operatorler.md` 4.9). Boru yalnızca fonksiyonlarla çalışır; metotlar `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 } |> toplam`). Borudaki değeri ilk konumlu argüman olarak alabilen yerleşik fonksiyonlar (kullanıcı fonksiyonları da kullanılabilir):
 
-`yazdır`, `girdi`, `dosya_oku`, `dosya_yaz`, `dosya_satırları`, `yol`, `klasörü_listele`, `klasör_oluştur`, `sil`, `kopyala`, `taşı`, `tip`, `tam`, `ondalık`, `metin`, `aralık`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `taban`, `tavan`, `işaret`, `sınırla`, `ortalama`, `standart_sapma`, `ortanca`, `sonlu_mu`, `bekle`, `json_çöz`, `json_metin`, `csv_oku`, `csv_çöz`, `doğrula`, `eşit_mi`, `ortam_değişkeni`, `komut_satırı`, `günlük`, `ilerleme`, `tensör`, `sıfırlar`, `birler`, `rastgele_normal`, `birim_matris`, `birleştir`, `relu`, `sigmoid`, `tanh`, `gelu`, `silu`, `softmax`, `log_softmax`, `üstel`, `log`, `sinüs`, `kosinüs`, `tanjant`, `arksinüs`, `arkkosinüs`, `arktanjant`, `arktanjant2`, `maks_indeks`, `birikimli_toplam`, `en_büyük_k`, `sıralama_indeksi`, `koşullu`, `sinh`, `cosh`, `log1p`, `log2`, `log10`, `üstel_eksi_bir`, `geri_yayılım`, `türevsiz`, `türev_denetle`, `kaynaştır`, `AdamW`, `SGD`, `gradyan_kırp`, `gömme`, `katman_normu`, `rms_normu`, `dikkat`, `çapraz_entropi`, `doğrusal_çapraz_entropi`, `parametreler`, `örnekle`, `tensör_kaydet`, `tensör_yükle`, `kontrol_noktası`, `parametreleri_yükle`, `karışık_hassasiyet`, `varsayılan_cihaz`, `veri_kümesi`, `parçalayıcı_yükle`
+`yazdır`, `girdi`, `dosya_oku`, `dosya_yaz`, `dosya_satırları`, `yol`, `klasörü_listele`, `klasör_oluştur`, `sil`, `kopyala`, `taşı`, `tip`, `tam`, `ondalık`, `metin`, `aralık`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `taban`, `tavan`, `işaret`, `sınırla`, `ortalama`, `standart_sapma`, `ortanca`, `sonlu_mu`, `bekle`, `json_çöz`, `json_metin`, `csv_oku`, `csv_çöz`, `doğrula`, `eşit_mi`, `ortam_değişkeni`, `komut_satırı`, `günlük`, `ilerleme`, `tensör`, `sıfırlar`, `birler`, `rastgele_normal`, `birim_matris`, `bitiştir`, `relu`, `sigmoid`, `tanh`, `gelu`, `silu`, `softmax`, `log_softmax`, `üstel`, `log`, `sinüs`, `kosinüs`, `tanjant`, `arksinüs`, `arkkosinüs`, `arktanjant`, `arktanjant2`, `maks_indeks`, `birikimli_toplam`, `en_büyük_k`, `sıralama_indeksi`, `koşullu`, `sinh`, `cosh`, `log1p`, `log2`, `log10`, `üstel_eksi_bir`, `geri_yayılım`, `türevsiz`, `türev_denetle`, `kaynaştır`, `AdamW`, `SGD`, `gradyan_kırp`, `gömme`, `katman_normu`, `rms_normu`, `dikkat`, `çapraz_entropi`, `doğrusal_çapraz_entropi`, `parametreler`, `örnekle`, `tensör_kaydet`, `tensör_yükle`, `kontrol_noktası`, `parametreleri_yükle`, `karışık_hassasiyet`, `varsayılan_cihaz`, `veri_kümesi`, `parçalayıcı_yükle`

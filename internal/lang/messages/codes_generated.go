@@ -390,7 +390,7 @@ const (
 	H3103 Code = 3103 // gradyan
 	H3104 Code = 3104 // arka uç
 	H3106 Code = 3106 // LinearCrossEntropy: girdi {x} ile ağırlık {w} uyumsuz; ağırlık [girdinin son ekseni, sınıf sayısı] şeklinde olmalı
-	H3107 Code = 3107 // kaynaştırılan fonksiyonda kaynaştırılamayan bir tensör işlemi var: kaynaştırma eleman bazlı işlemleri, dilimi, .böl'ü, birleştir'i, boyu 1 eksen ekleyip çıkarmayı ve tür dönüşümünü kapsar
+	H3107 Code = 3107 // kaynaştırılan fonksiyonda kaynaştırılamayan bir tensör işlemi var: kaynaştırma eleman bazlı işlemleri, dilimi, .böl'ü, bitiştir'i, boyu 1 eksen ekleyip çıkarmayı ve tür dönüşümünü kapsar
 	H3108 Code = 3108 // kaynaştırılan fonksiyon dışarıdan bir tensör ({shape}) kullanıyor; onu argüman olarak verin
 	H3109 Code = 3109 // kaynaştırılan fonksiyonda türev isteyen {shape} şekilli girdi {out} şekline yayınlanıyor; gradyanı indirgeme gerektirdiğinden kaynaştırılamaz
 	H3110 Code = 3110 // kaynaştırılan fonksiyonda {from} → {to} yeniden şekillendirmesi kaynaştırılamaz; yalnızca boyu 1 eksen eklenip çıkarılabilir

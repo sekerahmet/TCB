@@ -84,7 +84,7 @@ func (w *fakeWorld) check(vals ...Value) error {
 //
 //	yeni()       taze kaynak (saf)
 //	oku(x)       kaynağın numarası; bırakılmışsa hata (saf)
-//	birleşim(l)  listedeki kaynaklardan yeni kaynak (saf; tensörün birleştir'i gibi)
+//	birleşim(l)  listedeki kaynaklardan yeni kaynak (saf; tensörün bitiştir'i gibi)
 //	böl2(x)      x'ten iki taze kaynaklık sahip liste (tensörün .böl'ü gibi)
 //	sakla(x)     x'i Go tarafında tutar (saf değil: argümanı kaçar)
 //	bırakılan()  o ana kadar bırakılanların numaraları

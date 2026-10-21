@@ -183,8 +183,8 @@ test "15.24 türev_denetle: sayısal gradyanla karşılaştırma" {
     doğrula(türev_denetle((w, c, n) => toplam(w * c) * n, [w, tensör([1.0, 3.0]), 2]))
     eşit_mi(yok, w.gradyan)
     // adım ve tolerans.
-    doğrula(türev_denetle(kare, [tensör([1.0, 2.0], türev_izle: doğru)], adım: 0.01, tolerans: 0.001))
-    doğrula(ot_hata(() => türev_denetle(kare, [w], adım: 0)).içerir("adım pozitif bir sayı olmalıdır"))
+    doğrula(türev_denetle(kare, [tensör([1.0, 2.0], türev_izle: doğru)], fark_adımı: 0.01, tolerans: 0.001))
+    doğrula(ot_hata(() => türev_denetle(kare, [w], fark_adımı: 0)).içerir("fark_adımı pozitif bir sayı olmalıdır"))
     doğrula(ot_hata(() => türev_denetle(kare, [tensör([1.0])])).içerir("girdilerden hiçbiri türev izlemiyor"))
     doğrula(ot_hata(() => türev_denetle(kare, [w], step: 0.1)).içerir("'step' adında bir parametre almaz"))
     // karışık_hassasiyet içinde: ileri ve geri bloğun türüyle çalışır, gradyanlar girdilerin türündedir.

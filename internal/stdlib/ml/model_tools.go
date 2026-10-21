@@ -42,10 +42,10 @@ func namedBool(fn string, named map[string]interp.Value, a bind.Named, defaultVa
 }
 
 // ----------------------------------------------------------------------------
-// birleştir ve .böl
+// bitiştir ve .böl
 // ----------------------------------------------------------------------------
 
-// concatBuiltin birleştir([a, b, ...], eksen: -1) yerleşiğidir: tensörleri bir eksen
+// concatBuiltin bitiştir([a, b, ...], eksen: -1) yerleşiğidir: tensörleri bir eksen
 // boyunca birleştirir. Birleşen eksen dışındaki eksenler eşit olmalıdır. Türevlenebilir.
 func concatBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.DisplayName(codes.T121)

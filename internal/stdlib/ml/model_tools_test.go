@@ -30,9 +30,9 @@ func TestConcatAndSplit(t *testing.T) {
 	mustRun(t, `
 değişken a = tensör([[1, 2], [3, 4]], türev_izle: doğru)
 değişken b = tensör([[5], [6]], türev_izle: doğru)
-değişken c = birleştir([a, b])
+değişken c = bitiştir([a, b])
 eşit_mi([[1.0, 2.0, 5.0], [3.0, 4.0, 6.0]], c.değer)
-eşit_mi([4, 2], birleştir([a, a], eksen: 0).şekil)
+eşit_mi([4, 2], bitiştir([a, a], eksen: 0).şekil)
 geri_yayılım(toplam(c * tensör([1, 2, 3])))
 eşit_mi([[1.0, 2.0], [1.0, 2.0]], a.gradyan.değer)
 eşit_mi([[3.0], [3.0]], b.gradyan.değer)
@@ -48,12 +48,12 @@ eşit_mi(["a", "b"], "a,b".böl(","))
 		code string
 		want messages.Code
 	}{
-		{"birleştir([])", messages.H6307},
-		{"birleştir(tensör([1]))", messages.H6306},
-		{"birleştir([tensör([[1, 2]]), tensör([[1, 2, 3]])], eksen: 0)", messages.H6311},
-		{"birleştir([tensör([[1, 2]]), tensör([1, 2])])", messages.H6309},
-		{"birleştir([tensör([1]), tensör([2])], eksen: 3)", messages.H6016},
-		{"birleştir([tensör([1])], axis: 0)", messages.H7900},
+		{"bitiştir([])", messages.H6307},
+		{"bitiştir(tensör([1]))", messages.H6306},
+		{"bitiştir([tensör([[1, 2]]), tensör([[1, 2, 3]])], eksen: 0)", messages.H6311},
+		{"bitiştir([tensör([[1, 2]]), tensör([1, 2])])", messages.H6309},
+		{"bitiştir([tensör([1]), tensör([2])], eksen: 3)", messages.H6016},
+		{"bitiştir([tensör([1])], axis: 0)", messages.H7900},
 		{"tensör([1, 2, 3]).böl(2)", messages.H6318},
 		{"tensör([1, 2]).böl(0)", messages.H6317},
 	}

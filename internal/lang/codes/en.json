@@ -244,6 +244,7 @@
   "T984": { "ad": "every_minutes" },
   "T985": { "ad": "keep" },
   "T986": { "ad": "error_if_nonfinite" },
+  "T987": { "ad": "fd_step" },
   "T990": { "ad": "approximate" },
   "V100": { "ad": "dataset" },
   "V200": { "ad": "load_tokenizer" },

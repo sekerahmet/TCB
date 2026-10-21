@@ -6,13 +6,13 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// Görünüm metotları (şekillendir, devrik, eksenleri_sırala, dilim) ve birleştir tam sayılı
+// Görünüm metotları (şekillendir, devrik, eksenleri_sırala, dilim) ve bitiştir tam sayılı
 // tensörün (token kimlikleri, maks_indeks) tam sayılı olduğunu korur: .değer Tam verir.
 func TestViewsKeepInts(t *testing.T) {
 	out := mustRun(t, `değişken i = maks_indeks(tensör([[1.0, 5.0, 0.0], [7.0, 2.0, 9.0]]), eksen: 0)
 değişken m = i.şekillendir([3, 1])
 yazdır(m.değer, m.devrik().değer, m.eksenleri_sırala([1, 0]).değer, i.dilim(0, 0, 2).değer)
-yazdır(birleştir([i, i]).değer, birleştir([i, tensör([1.0, 2.0, 3.0])]).değer)`)
+yazdır(bitiştir([i, i]).değer, bitiştir([i, tensör([1.0, 2.0, 3.0])]).değer)`)
 	want := "[[1], [0], [1]] [[1, 0, 1]] [[1, 0, 1]] [1, 0]\n[1, 0, 1, 1, 0, 1] [1.0, 0.0, 1.0, 1.0, 2.0, 3.0]\n"
 	if out != want {
 		t.Fatalf("çıktı:\n%q\nbeklenen:\n%q", out, want)

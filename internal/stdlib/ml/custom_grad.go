@@ -35,7 +35,7 @@ import (
 var (
 	nameForward   = bind.NamedArg(codes.T980)
 	nameBackward  = bind.NamedArg(codes.T981)
-	nameStep      = bind.NamedArg(codes.T982)
+	nameStep      = bind.NamedArg(codes.T987)
 	nameTolerance = bind.NamedArg(codes.T983)
 )
 
@@ -306,7 +306,7 @@ func isShapeEqual(a, b []int) bool {
 // türev_denetle
 // ----------------------------------------------------------------------------
 
-// checkGrad türev_denetle(f, girdiler, adım: 0.001, tolerans: 0.01) yerleşiğidir:
+// checkGrad türev_denetle(f, girdiler, fark_adımı: 0.001, tolerans: 0.01) yerleşiğidir:
 // f'nin geri yayılımla bulunan gradyanlarını merkezi farkla bulunan sayısal gradyanlarla
 // karşılaştırır. Denetim türev izleyen girdilerin float32 kopyalarıyla yapılır (kullanıcının
 // tensörleri ve gradyanları değişmez). Skaler olmayan çıktılar sabit tohumlu rastgele bir

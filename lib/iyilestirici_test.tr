@@ -351,7 +351,7 @@ test "MuonVeAdamW: seyrek desen PLE tablolarını SatırRMS'e verir; geçmeyen k
 test "dikleştir: yığındaki her matris tek başına dikleştirilmiş eşidir (uzun ve geniş yığın)" {
     döngü şekil içinde [[8, 4], [4, 8]] {
         değişken G = [rastgele_normal(şekil, tohum: 10 + k) * (k + 1) döngü k içinde 0..3]
-        değişken yığın = birleştir([g.şekillendir([1, şekil[0], şekil[1]]) döngü g içinde G], eksen: 0)
+        değişken yığın = bitiştir([g.şekillendir([1, şekil[0], şekil[1]]) döngü g içinde G], eksen: 0)
         değişken X = dikleştir(yığın)
         eşit_mi([3, şekil[0], şekil[1]], X.şekil)
         döngü k içinde 0..3 {

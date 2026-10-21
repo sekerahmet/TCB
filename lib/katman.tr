@@ -89,7 +89,7 @@ fonksiyon döner_konum_hesapla(x, kos, sin) {
     değişken a, b = x.böl(2, eksen: -1)
     değişken c = kos[0..T]
     değişken s = sin[0..T]
-    sonuç birleştir([a * c - b * s, a * s + b * c], eksen: -1).türe(x.tür)
+    sonuç bitiştir([a * c - b * s, a * s + b * c], eksen: -1).türe(x.tür)
 }
 değişken döner_konum_uygula = kaynaştır(döner_konum_hesapla)
 

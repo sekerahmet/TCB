@@ -67,7 +67,7 @@ fonksiyon şekil_grupları(ağırlıklar) {
 // yığ_dikleştir gruptaki güncellemeleri (aynı şekilli matrisler) tek yığında dikleştirir ve
 // yığını verir: sonucun j. elemanı güncellemeler[j]'nin dikleştirilmişidir.
 fonksiyon yığ_dikleştir(güncellemeler, adım_sayısı, tür) {
-    değişken yığın = birleştir([u.şekillendir([1, u.şekil[0], u.şekil[1]]) döngü u içinde güncellemeler], eksen: 0)
+    değişken yığın = bitiştir([u.şekillendir([1, u.şekil[0], u.şekil[1]]) döngü u içinde güncellemeler], eksen: 0)
     sonuç dikleştir(yığın, adım_sayısı, tür: tür)
 }
 

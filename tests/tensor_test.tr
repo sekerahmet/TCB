@@ -136,7 +136,7 @@ yapı Önbellek15_44 {
 fonksiyon döndür15_44(x) {
     değişken a, b = x.böl(2, eksen: -1)
     değişken geçici = a * 3.0
-    sonuç birleştir([a * 2.0 - b, a + b * 2.0], eksen: -1)
+    sonuç bitiştir([a * 2.0 - b, a + b * 2.0], eksen: -1)
 }
 fonksiyon görünüm15_44() {
     değişken yerel = tensör([[1.0, 2.0], [3.0, 4.0]])
@@ -165,7 +165,7 @@ test "15.44 tensör belleğinin ömrü: bırakılan ara sonuçlar sonucu değiş
 test "15.45 kaynaştır: zincir tek geçişte, sonuç ve gradyan kaynaşmamışla aynı" {
     fonksiyon döner(x, kos, sin, ölçek) {
         değişken a, b = x.böl(2, eksen: -1)
-        sonuç birleştir([a * kos - b * sin, (a * sin + b * kos) * ölçek], eksen: -1)
+        sonuç bitiştir([a * kos - b * sin, (a * sin + b * kos) * ölçek], eksen: -1)
     }
     değişken k = kaynaştır(döner)
     değişken x1 = tensör(rastgele_normal([3, 4], tohum: 1), türev_izle: doğru)
@@ -828,16 +828,16 @@ test "15.14 sinüs ve kosinüs: sayıda ve tensörde, listede değil; türevli" 
     doğrula(mutlak(x.gradyan.değer[1] - (kosinüs(1.0) - sinüs(1.0))) < 0.000001)
 }
 
-test "15.15 birleştir ve .böl" {
+test "15.15 bitiştir ve .böl" {
     değişken a = tensör([[1, 2], [3, 4]], türev_izle: doğru)
     değişken b = tensör([[5], [6]], türev_izle: doğru)
-    değişken c = birleştir([a, b], eksen: -1)
+    değişken c = bitiştir([a, b], eksen: -1)
     eşit_mi([[1.0, 2.0, 5.0], [3.0, 4.0, 6.0]], c.değer)
-    eşit_mi([[1.0, 2.0], [3.0, 4.0], [1.0, 2.0], [3.0, 4.0]], birleştir([a, a], eksen: 0).değer)
+    eşit_mi([[1.0, 2.0], [3.0, 4.0], [1.0, 2.0], [3.0, 4.0]], bitiştir([a, a], eksen: 0).değer)
     geri_yayılım(toplam(c * tensör([1, 2, 3])))
     eşit_mi([[3.0], [3.0]], b.gradyan.değer)
-    doğrula(hata_metni(() => birleştir([a, tensör([[1, 2, 3]])], eksen: 0)).içerir("0. eksen dışındaki eksenler eşit olmalı"))
-    doğrula(hata_metni(() => birleştir([])).içerir("liste boş"))
+    doğrula(hata_metni(() => bitiştir([a, tensör([[1, 2, 3]])], eksen: 0)).içerir("0. eksen dışındaki eksenler eşit olmalı"))
+    doğrula(hata_metni(() => bitiştir([])).içerir("liste boş"))
     // .böl eşit parçalar verir; parçalar türev izleyen görünümlerdir.
     değişken t = tensör([[1, 2, 3, 4, 5, 6]], türev_izle: doğru)
     değişken parçalar = t.böl(3)
@@ -878,7 +878,7 @@ test "15.17 dikkat: bileşik sürümle aynı; GQA, pencere, maske, önbellekli �
     değişken ek = tensör(satırlar)
     fonksiyon çoğalt(t) {
         değişken b = t.böl(2, eksen: 1)
-        sonuç birleştir([b[0], b[0], b[1], b[1]], eksen: 1)
+        sonuç bitiştir([b[0], b[0], b[1], b[1]], eksen: 1)
     }
     değişken beklenen = softmax((q @ çoğalt(k).devrik()) * (1.0 / karekök(8)) + ek, eksen: -1) @ çoğalt(v)
     değişken o = dikkat(q, k, v)

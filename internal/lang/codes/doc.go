@@ -41,8 +41,8 @@
 //
 // Within one language a name must be unique only in its own namespace (see Namespace):
 // global names (keywords, contextual words and G/T/V/W builtins), type names, members (Y)
-// and named arguments (x9xx). So T121 birleştir (a tensor function) and Y203 birleştir (a
-// list method) are separate codes. Member names are unique regardless of type: the compiler
+// and named arguments (x9xx). So G403 mutlak (absolute value, a builtin) and Y314 mutlak
+// (absolute path, a Yol method) are separate codes. Member names are unique regardless of type: the compiler
 // turns x.name into a code at compile time without looking at the type (for the mapping rule
 // at the definition site see docs/spec/17_kodlar.md, member names).
 //

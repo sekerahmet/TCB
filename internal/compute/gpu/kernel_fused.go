@@ -95,7 +95,7 @@ func fusedKernel(node *tensor.FuseNode, used, ranks []int, dt tensor.DType, add 
 			f.ranks = append(f.ranks, ranks[i])
 		}
 		n := k.u32p("n")
-		// Adımlar başta yüklenir: ilk kullanım bir dalın içinde olabilir (birleştir), öbür dal
+		// Adımlar başta yüklenir: ilk kullanım bir dalın içinde olabilir (bitiştir), öbür dal
 		// yüklenmemiş yazmacı okumasın.
 		for _, x := range used {
 			for d := range f.strides[x] {
