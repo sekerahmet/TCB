@@ -32,10 +32,7 @@ func (s *dapServer) launch(msg *dapMessage) {
 		s.respondErr(msg, messages.Text(messages.H8120))
 		return
 	}
-	s.mu.Lock()
-	running := s.started || s.machine != nil
-	s.mu.Unlock()
-	if running {
+	if s.sessionExists() {
 		s.respondErr(msg, messages.Text(messages.H8127))
 		return
 	}
@@ -98,6 +95,13 @@ func (s *dapServer) launch(msg *dapMessage) {
 	s.mu.Unlock()
 	s.respond(msg, nil)
 }
+// sessionExists oturumun programı zaten kurulmuş ya da başlamış mı: ikinci launch reddedilir.
+func (s *dapServer) sessionExists() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.started || s.machine != nil
+}
+
 func (s *dapServer) start() {
 	s.mu.Lock()
 	if s.started || s.machine == nil {

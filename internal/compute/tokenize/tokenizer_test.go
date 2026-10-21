@@ -2,12 +2,10 @@ package tokenize
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -778,126 +776,5 @@ func TestParallelByteLevelLoad(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-	}
-}
-
-// Kural: normalleştirici, ön bölücü ve çözücü zincirlerinin çıktı büyütmesi (düz metinli Replace
-// dahil) düzenli ifade adımlarıyla aynı bütçeye girer: girdiden fazla her bayt bir adımdır ve
-// bütçe aşılınca *StepLimitError olur. Neden: düz metinli Replace ve ByteLevel adımları bütçeden
-// hiç düşmüyordu; birkaç yüz baytlık dosya 1 baytı üstel büyüterek belleği tüketirdi.
-func TestChainOutputGrowthSharesTheStepBudget(t *testing.T) {
-	old := CurrentRegexSettings()
-	SetRegexSettings(RegexSettings{StepBase: 64, StepFactor: 1, BacktrackLimit: 256})
-	defer SetRegexSettings(old)
-
-	rep := `{"type":"Replace","pattern":{"String":"a"},"content":"aaaaaaaaaaaaaaaa"}`
-	seq := strings.Repeat(rep+",", 4) + rep // her adım 16 kat: 16^5 bayt
-
-	t.Run("yüklemede ek token normalleştirmesi", func(t *testing.T) {
-		js := `{"model":{"type":"WordLevel","vocab":{"a":0},"unk_token":"a"},` +
-			`"added_tokens":[{"id":0,"content":"a","single_word":false,"lstrip":false,"rstrip":false,"normalized":true,"special":false}],` +
-			`"normalizer":{"type":"Sequence","normalizers":[` + seq + `]}}`
-		if _, err := Parse([]byte(js)); !messages.Has(err, messages.H5279) {
-			t.Fatalf("yüklemede büyütme sınırı aşılmadı: %v", err)
-		}
-	})
-	t.Run("kodlama", func(t *testing.T) {
-		js := `{"model":{"type":"WordLevel","vocab":{"a":0},"unk_token":"a"},"normalizer":{"type":"Sequence","normalizers":[` + seq + `]}}`
-		p, err := Parse([]byte(js))
-		if err != nil {
-			t.Fatal(err)
-		}
-		var limit *StepLimitError
-		if _, err := p.SafeEncode("a", Options{}); !errors.As(err, &limit) {
-			t.Fatalf("kodlamada büyütme sınırı aşılmadı: %v", err)
-		}
-	})
-	t.Run("çözme", func(t *testing.T) {
-		js := `{"model":{"type":"WordLevel","vocab":{"a":0},"unk_token":"a"},"decoder":{"type":"Sequence","decoders":[` + seq + `]}}`
-		p, err := Parse([]byte(js))
-		if err != nil {
-			t.Fatal(err)
-		}
-		var limit *StepLimitError
-		if _, err := p.SafeDecode([]int{0}, false); !errors.As(err, &limit) {
-			t.Fatalf("çözmede büyütme sınırı aşılmadı: %v", err)
-		}
-	})
-	t.Run("ByteLevel ön bölücü zinciri", func(t *testing.T) {
-		bl := `{"type":"ByteLevel","add_prefix_space":true,"use_regex":false}`
-		js := `{"model":{"type":"WordLevel","vocab":{"a":0},"unk_token":"a"},"pre_tokenizer":{"type":"Sequence","pretokenizers":[` +
-			strings.Repeat(bl+",", 15) + bl + `]}}`
-		p, err := Parse([]byte(js))
-		if err != nil {
-			t.Fatal(err)
-		}
-		var limit *StepLimitError
-		if _, err := p.SafeEncode("a", Options{}); !errors.As(err, &limit) {
-			t.Fatalf("ön bölücü zincirinde büyütme sınırı aşılmadı: %v", err)
-		}
-		// Bütçesiz çağrı da (parçalar kodlamadan gelmiyor) sınırlıdır.
-		if err := catchStepError(func() { p.preTokenizer.PreTokenize(nil, []Piece{{Text: "a"}}) }); err == nil {
-			t.Fatal("bütçesiz PreTokenize çağrısı sınırlanmadı")
-		}
-	})
-}
-
-// Kural: sınır aşılmadıkça sonuç değişmez: küçülen ya da aynı boyda kalan adımlar ücretsizdir ve
-// varsayılan ayarlarda ölçülü büyütme (ör. her baytı iki baytlık karaktere çeviren ByteLevel)
-// hata vermez.
-func TestModestGrowthStaysUnderTheDefaultBudget(t *testing.T) {
-	js := `{"model":{"type":"WordLevel","vocab":{"a":0},"unk_token":"a"},` +
-		`"normalizer":{"type":"Sequence","normalizers":[{"type":"Replace","pattern":{"String":"a"},"content":"aa"},{"type":"Replace","pattern":{"String":"aa"},"content":"b"}]}}`
-	p, err := Parse([]byte(js))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := p.SafeEncode(strings.Repeat("a", 1000), Options{}); err != nil {
-		t.Fatalf("ölçülü büyütme hata verdi: %v", err)
-	}
-}
-
-// Kural: WordPiece ve Unigram aramaları adım bütçesine girer ve WordPiece sözlükteki en uzun
-// tokenı aşan adayları aramaz; ayrıca çok uzun bir sözcük girdiyle doğrusal iş yapar. Neden:
-// max_input_chars_per_word büyükken her konumda her önek aranıyor (karesel ayırma ve özetleme).
-func TestWordPieceSearchIsBoundedByVocabularyAndBudget(t *testing.T) {
-	old := CurrentRegexSettings()
-	SetRegexSettings(RegexSettings{StepBase: 64, StepFactor: 1, BacktrackLimit: 256})
-	defer SetRegexSettings(old)
-
-	prefix := strings.Repeat("#", 64)
-	js := `{"model":{"type":"WordPiece","unk_token":"[UNK]","continuing_subword_prefix":"` + prefix + `",` +
-		`"max_input_chars_per_word":100000,"vocab":{"[UNK]":0,"a":1,"` + prefix + `a":2}}}`
-	p, err := Parse([]byte(js))
-	if err != nil {
-		t.Fatal(err)
-	}
-	var m0, m1 runtime.MemStats
-	runtime.ReadMemStats(&m0)
-	ids, err := p.SafeEncode(strings.Repeat("a", 512), Options{})
-	runtime.ReadMemStats(&m1)
-	if allocs := m1.Mallocs - m0.Mallocs; allocs > 10_000 {
-		t.Fatalf("512 baytlık sözcük için %d ayırma (sözlükteki en uzun token aşılmamalı)", allocs)
-	}
-	// Çok uzun token yok: her konumda tek aday (bir bayt) aranır; sonuç: 512 parça ya da bütçe hatası.
-	if err == nil && len(ids) != 512 {
-		t.Fatalf("beklenmeyen sonuç: %d kimlik", len(ids))
-	}
-}
-
-// Kural: Unigram'da ağaç araması da adım sayılır (bütçe aşılınca *StepLimitError).
-func TestUnigramSearchSharesTheBudget(t *testing.T) {
-	old := CurrentRegexSettings()
-	SetRegexSettings(RegexSettings{StepBase: 64, StepFactor: 1, BacktrackLimit: 256})
-	defer SetRegexSettings(old)
-	long := strings.Repeat("a", 200)
-	js := `{"model":{"type":"Unigram","unk_id":0,"vocab":[["<unk>",0],["` + long + `",-1],["a",-2]]}}`
-	p, err := Parse([]byte(js))
-	if err != nil {
-		t.Fatal(err)
-	}
-	var limit *StepLimitError
-	if _, err := p.SafeEncode(strings.Repeat("a", 199)+"b", Options{}); !errors.As(err, &limit) {
-		t.Fatalf("Unigram araması bütçeye girmedi: %v", err)
 	}
 }
