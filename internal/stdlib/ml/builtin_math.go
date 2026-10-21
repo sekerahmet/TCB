@@ -41,7 +41,7 @@ func registerWideMath(v *interp.VM) {
 	registerRounding(v, codes.G407, (*tensor.Tensor).Ceil)
 	registerRounding(v, codes.G408, (*tensor.Tensor).Sign)
 	registerRounding(v, codes.G403, (*tensor.Tensor).Abs) // mutlak: türevli (işaret(x), 0'da 0)
-	registerRounding(v, codes.G415, isFinite)
+	registerIsFinite(v)
 	wrap(v, codes.G409, newBuiltin(clampBuiltin))
 	wrap(v, codes.T228, newBuiltin(atan2Builtin))
 	wrap(v, codes.T234, newBuiltin(whereBuiltin))  // yerlesik_secim.go
@@ -61,6 +61,33 @@ func isFinite(t *tensor.Tensor) *tensor.Tensor {
 		d.Drop()
 	})
 	return r
+}
+
+// registerIsFinite sonlu_mu'nun tensör yolunu bağlar: sonuç karşılaştırmalar gibi her zaman
+// Ondalık 0/1'dir (15.46), tam sayılı işaretli girdide de (kaynaştır'daki sonuçla aynı).
+func registerIsFinite(v *interp.VM) {
+	ad := codes.DisplayName(codes.G415)
+	wrap(v, codes.G415, func(old interp.BuiltinFunc) interp.BuiltinFunc {
+		return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+			if err := bind.CheckNamed(ad+"()", named); err != nil {
+				return nil, err
+			}
+			if len(args) == 1 {
+				if err := listError(ad, args[0], messages.Text(messages.H6131), ad+"("+codes.Name(codes.T100)+"(...))"); err != nil {
+					return nil, err
+				}
+			}
+			d, ok := singleTensor(args)
+			if !ok {
+				return oldCall(ad, old, m, args, named)
+			}
+			r, err := safe(func() *tensor.Tensor { return isFinite(d.t) })
+			if err != nil {
+				return nil, err
+			}
+			return New(r), nil
+		}
+	})
 }
 
 // registerRounding taban, tavan, işaret ve mutlak'ı sarar: tensörde eleman bazlı (türevi tensör

@@ -145,7 +145,7 @@ Karşılaştırma ve karar: PyTorch `torch.compile` ve JAX `jit` bütün program
 **15.46** Eğitimin kararlılığı. Uzun eğitim bir NaN ya da sonsuz değerle sessizce bozulmamalıdır; dil bunu denetlemenin araçlarını verir, ne yapılacağını (adımı atlamak, durmak, geri dönmek) eğitim döngüsü seçer.
 
 - `sonlu_mu(t)` tensörde eleman bazlıdır: sonlu elemanda 1, NaN ve ±sonsuzda 0 olan float32 bir tensör verir (karşılaştırmalar gibi, **15.41**), türev izlemez, 16 bitlik tensörde de aynı sonucu verir ve `kaynaştır` içinde kullanılabilir (`torch.isfinite`, `numpy.isfinite`). Sayıda kural **13.7**'dedir.
-- `gradyan_kırp(parametreler, en_fazla: 1.0, sonlu_değilse_hata: yanlış)`: `sonlu_değilse_hata: doğru` gradyanların toplam normu NaN ya da sonsuzsa hata verir (PyTorch `clip_grad_norm_(error_if_nonfinite=True)`); normu okumak için GPU'yu bekler. Varsayılanda bekleme ve denetim yoktur. NaN normda gradyanlar ölçeklenmez, sonsuz normda sıfıra ölçeklenir (PyTorch'la aynı).
+- `gradyan_kırp(parametreler, en_fazla: 1.0, sonlu_değilse_hata: yanlış)`: `sonlu_değilse_hata: doğru` gradyanların toplam normu NaN ya da sonsuzsa hata verir (PyTorch `clip_grad_norm_(error_if_nonfinite=True)`); normu kırpmadan önce okur (GPU'yu bekler) ve sonlu değilse gradyanlara dokunmadan hata verir. Varsayılanda bekleme ve denetim yoktur. Sonlu olmayan normda kırpma PyTorch'la aynıdır (PyTorch 2.14'te ölçüldü): NaN normda gradyanlar değişmez; sonsuz normda ölçek 0'dır, sonlu elemanlar 0, sonsuz elemanlar NaN olur. Norm float32'de taşarsa (ör. `[3e38, 3e38]`) sonsuzdur.
 - Adımı atlamak isteyen döngü normu kendisi denetler; atlanan adımda iyileştirici çalışmaz, gradyanlar sıfırlanır (PyTorch `GradScaler`'ın inf/NaN gradyanda `optimizer.step()`'i atlaması):
 
 ```tr

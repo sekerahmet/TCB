@@ -178,8 +178,8 @@ func namedRate(fn string, named map[string]interp.Value, defaultVal float64, min
 
 // gradClip parametre gradyanlarının toplam L2 normunu en_fazla değerine indirir ve
 // kırpma öncesi normu 0 boyutlu tensör olarak döndürür: gradyan_kırp(parametreler, en_fazla: 1.0).
-// sonlu_değilse_hata: doğru normu okur (GPU'yu bekler) ve NaN ya da sonsuzsa hata verir; NaN
-// normda gradyanlar ölçeklenmemiştir (karşılaştırma yanlıştır), PyTorch'ta da öyledir.
+// sonlu_değilse_hata: doğru normu kırpmadan önce okur (GPU'yu bekler) ve NaN ya da sonsuzsa
+// gradyanlara dokunmadan hata verir.
 func gradClip(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.DisplayName(codes.T402)
 	if len(args) != 1 {
@@ -210,15 +210,23 @@ func gradClip(_ *interp.VM, args []interp.Value, named map[string]interp.Value) 
 	}
 	// Norm 0 boyutlu tensördür (kayıp gibi): GPU'da norm ve kırpma cihazda yapılır, program
 	// ancak norm okununca (.değer, yazdırma) bekler.
+	if strict {
+		// Önce kırpmadan (sınır +∞: ölçek yok) norm alınır ve denetlenir; hata verilirse
+		// gradyanlar değişmemiştir (PyTorch clip_grad_norm_ de error_if_nonfinite'te önce
+		// denetler). Bu kip GPU'yu zaten beklediği için normun iki kez alınması ölçülmez.
+		probe, err := safe(func() *tensor.Tensor { return tensor.ClipGradNormTensor(params, math.Inf(1)) })
+		if err != nil {
+			return nil, err
+		}
+		n := float64(probe.Data()[0])
+		probe.Drop()
+		if math.IsNaN(n) || math.IsInf(n, 0) {
+			return nil, messages.New(messages.H6534, fn, n, codes.DisplayName(codes.G415))
+		}
+	}
 	norm, err := safe(func() *tensor.Tensor { return tensor.ClipGradNormTensor(params, maxVal) })
 	if err != nil {
 		return nil, err
-	}
-	if strict {
-		if n := float64(norm.Data()[0]); math.IsNaN(n) || math.IsInf(n, 0) {
-			norm.Drop()
-			return nil, messages.New(messages.H6534, fn, n, codes.DisplayName(codes.G415))
-		}
 	}
 	return New(norm), nil
 }

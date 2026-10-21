@@ -136,3 +136,15 @@ yazdır(sonlu_mu(x.türe("bf16")).değer, sonlu_mu(tensör([[1, 2]])).değer)`)
 		}
 	}
 }
+
+// Kural (15.46): sonlu_mu'nun sonucu karşılaştırmalar gibi her zaman Ondalık 0/1'dir; tam sayılı
+// işaretli girdide (maks_indeks, sıralama_indeksi) de, kaynaştır içindekiyle aynı.
+// Neden: eskiden tam sayı işareti korunup [1, 1] veriyordu (Gemini kararlılık denetimi, bulgu 5).
+func TestIsFiniteIsAFloatMaskOnIntTensors(t *testing.T) {
+	out := mustRun(t, `değişken idx = sıralama_indeksi(tensör([20.0, 10.0]))
+değişken f = kaynaştır(fonksiyon(x) { sonuç sonlu_mu(x) })
+yazdır(sonlu_mu(idx).değer, f(idx).değer)`)
+	if out != "[1.0, 1.0] [1.0, 1.0]\n" {
+		t.Fatalf("çıktı: %q", out)
+	}
+}
