@@ -211,19 +211,19 @@ func normParam(fn, ad string, v interp.Value, D int) (*tensor.Tensor, error) {
 }
 
 // normArgs x, ağırlık, sapma ve epsilon argümanlarını konumlu ya da adlı olarak okur.
-func normArgs(fn string, args []interp.Value, named map[string]interp.Value, names []bind.Named) (*tensor.Tensor, []interp.Value, float32, error) {
-	if err := bind.CheckNamed(fn+"()", named, append([]bind.Named{nameEpsilon}, names...)...); err != nil {
-		return nil, nil, 0, err
+func normArgs(fn string, args []interp.Value, named map[string]interp.Value, names []bind.Named) (*tensor.Tensor, []interp.Value, float32, tensor.DType, error) {
+	if err := bind.CheckNamed(fn+"()", named, append([]bind.Named{nameEpsilon, nameDType}, names...)...); err != nil {
+		return nil, nil, 0, 0, err
 	}
 	if len(args) < 1 || len(args) > 1+len(names) {
-		return nil, nil, 0, messages.New(messages.H6320, fn, 1+len(names), len(args))
+		return nil, nil, 0, 0, messages.New(messages.H6320, fn, 1+len(names), len(args))
 	}
 	x, err := toTensor(fn, args[0])
 	if err != nil {
-		return nil, nil, 0, err
+		return nil, nil, 0, 0, err
 	}
 	if len(x.Shape()) == 0 {
-		return nil, nil, 0, messages.New(messages.H6322, fn)
+		return nil, nil, 0, 0, messages.New(messages.H6322, fn)
 	}
 	values := make([]interp.Value, len(names))
 	for i, a := range names {
@@ -232,7 +232,7 @@ func normArgs(fn string, args []interp.Value, named map[string]interp.Value, nam
 		}
 		if v, ok := bind.GetNamed(named, a); ok {
 			if values[i] != nil {
-				return nil, nil, 0, messages.New(messages.H5528, fn, a.TR)
+				return nil, nil, 0, 0, messages.New(messages.H5528, fn, a.TR)
 			}
 			values[i] = v
 		}
@@ -243,16 +243,23 @@ func normArgs(fn string, args []interp.Value, named map[string]interp.Value, nam
 		// float32'de 0'a düşen değer çıktıyı NaN yapardı.
 		f, ok := interp.ToFloat(v)
 		if e := float32(f); !ok || !(e > 0) || math.IsInf(float64(e), 0) {
-			return nil, nil, 0, messages.New(messages.H6325, fn, nameEpsilon.TR, v.Inspect())
+			return nil, nil, 0, 0, messages.New(messages.H6325, fn, nameEpsilon.TR, v.Inspect())
 		}
 		eps = float32(f)
 	}
-	return x, values, eps, nil
+	// tür: çıktının türü (hesap float32'dir); verilmezse girdinin türü (15.13).
+	dt := x.DType()
+	if v, ok := bind.GetNamed(named, nameDType); ok {
+		if dt, err = parseDTypeValue(fn, v); err != nil {
+			return nil, nil, 0, 0, err
+		}
+	}
+	return x, values, eps, dt, nil
 }
 
 func layerNorm(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(codes.T501)
-	x, p, eps, err := normArgs(fn, args, named, []bind.Named{nameWeight, nameBias})
+	x, p, eps, dt, err := normArgs(fn, args, named, []bind.Named{nameWeight, nameBias})
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +281,7 @@ func layerNorm(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 	if b, err = highPrecision(m, b); err != nil {
 		return nil, err
 	}
-	r, err := safe(func() *tensor.Tensor { return tensor.LayerNorm(x, w, b, eps) })
+	r, err := safe(func() *tensor.Tensor { return tensor.LayerNormAs(x, w, b, eps, dt) })
 	if err != nil {
 		return nil, err
 	}
@@ -283,7 +290,7 @@ func layerNorm(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 
 func rmsNorm(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(codes.T502)
-	x, p, eps, err := normArgs(fn, args, named, []bind.Named{nameWeight})
+	x, p, eps, dt, err := normArgs(fn, args, named, []bind.Named{nameWeight})
 	if err != nil {
 		return nil, err
 	}
@@ -296,7 +303,7 @@ func rmsNorm(m *interp.VM, args []interp.Value, named map[string]interp.Value) (
 	if w, err = highPrecision(m, w); err != nil {
 		return nil, err
 	}
-	r, err := safe(func() *tensor.Tensor { return tensor.RMSNorm(x, w, eps) })
+	r, err := safe(func() *tensor.Tensor { return tensor.RMSNormAs(x, w, eps, dt) })
 	if err != nil {
 		return nil, err
 	}

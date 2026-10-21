@@ -100,15 +100,21 @@ func optGrad(n *node) Storage {
 }
 
 // LayerNorm son eksen boyunca katman normalleştirmesi: (x-μ)/√(σ²+eps)·γ + β.
-// gamma ve beta (D) şeklinde olmalı; nil verilebilirler.
+// gamma ve beta (D) şeklinde olmalı; nil verilebilirler. Çıktı girdinin türündedir.
 func LayerNorm(x, gamma, beta *Tensor, eps float32) *Tensor {
+	return LayerNormAs(x, gamma, beta, eps, x.dtyp)
+}
+
+// LayerNormAs LayerNorm'dur, çıktısı dt türündedir: hesap her türde float32'dir, çıktı yazılırken
+// dt'ye yuvarlanır (ardından gelen çarpım için ayrı bir dönüşüm gerekmez; 15.13).
+func LayerNormAs(x, gamma, beta *Tensor, eps float32, dt DType) *Tensor {
 	checkNormDims("LayerNorm", x)
 	D := x.shape[len(x.shape)-1]
 	checkNormParam("LayerNorm", gamma, D)
 	checkNormParam("LayerNorm", beta, D)
 	be := sameDevice("LayerNorm", x, gamma, beta)
 	sy := counterStart(be, OpKindLayerNorm).start()
-	out := emptyOf(isNormalize, be, x.shape, x.dtyp)
+	out := emptyOf(isNormalize, be, x.shape, dt)
 	gv := optView(gamma)
 	mean, rstd := be.LayerNorm(out.storage, x.view(), gv, optView(beta), D, eps)
 	// Girdiler hep aynı konumdadır (x, gamma, beta; olmayan nil): geri hesap düğümlerini
@@ -122,14 +128,19 @@ func LayerNorm(x, gamma, beta *Tensor, eps float32) *Tensor {
 }
 
 // RMSNorm son eksen boyunca karekök-ortalama-kare normalleştirmesi:
-// x / √(ort(x²)+eps) · γ. gamma (D) şeklinde olmalı; nil verilebilir.
+// x / √(ort(x²)+eps) · γ. gamma (D) şeklinde olmalı; nil verilebilir. Çıktı girdinin türündedir.
 func RMSNorm(x, gamma *Tensor, eps float32) *Tensor {
+	return RMSNormAs(x, gamma, eps, x.dtyp)
+}
+
+// RMSNormAs RMSNorm'dur, çıktısı dt türündedir (bkz. LayerNormAs).
+func RMSNormAs(x, gamma *Tensor, eps float32, dt DType) *Tensor {
 	checkNormDims("RMSNorm", x)
 	D := x.shape[len(x.shape)-1]
 	checkNormParam("RMSNorm", gamma, D)
 	be := sameDevice("RMSNorm", x, gamma)
 	sy := counterStart(be, OpKindRMSNorm).start()
-	out := emptyOf(isNormalize, be, x.shape, x.dtyp)
+	out := emptyOf(isNormalize, be, x.shape, dt)
 	gv := optView(gamma)
 	rinv := be.RMSNorm(out.storage, x.view(), gv, D, eps)
 	xv := x.view()
