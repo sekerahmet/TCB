@@ -51,6 +51,7 @@ func (f *fusedFn) call(m *interp.VM, args []interp.Value, _ map[string]interp.Va
 	var inputs []*tensor.Tensor
 	var info []tensor.FuseInputInfo
 	var key strings.Builder
+	fmt.Fprintf(&key, "%s|", mixedDType(m)) // hesap_türü() izde sabitlenir (15.45)
 	for i, a := range args {
 		if x, ok := interp.ToFloat(a); ok {
 			fmt.Fprintf(&key, "#%T%v;", a, x)
