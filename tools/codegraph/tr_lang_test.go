@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -53,12 +55,12 @@ func trFacts(g *Graph) []string {
 	var out []string
 	for _, n := range g.Nodes {
 		if strings.HasPrefix(n.ID, "tr:") {
-			out = append(out, "node "+n.ID+" "+n.Kind+" "+n.Name)
+			out = append(out, fmt.Sprintf("node %s %s %s @%s:%d-%d %q", n.ID, n.Kind, n.Name, n.File, n.Line, n.End, n.Detail))
 		}
 	}
 	for _, e := range g.Edges {
 		if strings.HasPrefix(e.From, "tr:") {
-			out = append(out, "edge "+e.From+" "+e.Kind+" "+e.To+" "+e.Confidence)
+			out = append(out, fmt.Sprintf("edge %s %s %s %s @%s:%d x%d", e.From, e.Kind, e.To, e.Confidence, e.File, e.Line, e.Count))
 		}
 	}
 	sort.Strings(out)
@@ -87,3 +89,26 @@ func TestTRGraphIsIndependentOfTheActiveLanguage(t *testing.T) {
 		t.Errorf("TR_DIL=en changes the .tr graph (%d facts vs %d); only in tr:\n%s", len(tr), len(en), strings.Join(missing, "\n"))
 	}
 }
+
+// Altın olgu dosyası: fikstürdeki .tr düğümleri ve kenarları (kimlik, tür, ad, güven) tek tek
+// kayıtlıdır. TR çıkarımı başka pakete taşınırken değişmemesi gereken sözleşmedir; -update ile
+// yeniden yazılır.
+func TestTRFactsGolden(t *testing.T) {
+	got := strings.Join(trFacts(fixture(t)), "\n") + "\n"
+	path := filepath.Join("testdata", "tr_facts.golden")
+	if *updateGolden {
+		if err := os.WriteFile(path, []byte(got), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return
+	}
+	want, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.ReplaceAll(string(want), "\r\n", "\n") != got {
+		t.Errorf(".tr facts changed (go test -run TRFactsGolden -update to rewrite):\n got:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+var updateGolden = flag.Bool("update", false, "altın dosyaları yeniden yaz")

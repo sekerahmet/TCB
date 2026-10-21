@@ -1,0 +1,48 @@
+edge tr:file:examples/ana.tr calls tr:func:lib/geo.tr:çevre_hesapla EXTRACTED @examples/ana.tr:4 x1
+edge tr:file:examples/ana.tr contains tr:var:examples/ana.tr:k EXTRACTED @examples/ana.tr:3 x1
+edge tr:file:examples/ana.tr imports tr:file:lib/geo.tr EXTRACTED @examples/ana.tr:0 x1
+edge tr:file:examples/ana.tr uses tr:const:lib/geo.tr:PI2 EXTRACTED @examples/ana.tr:5 x1
+edge tr:file:examples/ana.tr uses tr:var:examples/ana.tr:k EXTRACTED @examples/ana.tr:4 x1
+edge tr:file:examples/ana.tr uses_name name:G100 EXTRACTED @examples/ana.tr:4 x2
+edge tr:file:examples/coded.tr contains tr:func:examples/coded.tr:kodlu_işlev EXTRACTED @examples/coded.tr:1 x1
+edge tr:file:lib/geo.tr contains tr:const:lib/geo.tr:PI2 EXTRACTED @lib/geo.tr:2 x1
+edge tr:file:lib/geo.tr contains tr:func:lib/geo.tr:yaz_alan EXTRACTED @lib/geo.tr:19 x1
+edge tr:file:lib/geo.tr contains tr:func:lib/geo.tr:çevre_hesapla EXTRACTED @lib/geo.tr:15 x1
+edge tr:file:lib/geo.tr contains tr:struct:lib/geo.tr:Kare EXTRACTED @lib/geo.tr:5 x1
+edge tr:file:lib/geo.tr contains tr:var:lib/geo.tr:sayaç EXTRACTED @lib/geo.tr:3 x1
+edge tr:file:lib/geo_test.tr contains tr:test:lib/geo_test.tr:3 EXTRACTED @lib/geo_test.tr:3 x1
+edge tr:file:lib/geo_test.tr contains tr:test:lib/geo_test.tr:8 EXTRACTED @lib/geo_test.tr:8 x1
+edge tr:file:lib/geo_test.tr imports tr:file:lib/geo.tr EXTRACTED @lib/geo_test.tr:0 x1
+edge tr:func:examples/coded.tr:kodlu_işlev uses_name name:G100 EXTRACTED @examples/coded.tr:2 x1
+edge tr:func:lib/geo.tr:yaz_alan calls tr:func:lib/geo.tr:çevre_hesapla EXTRACTED @lib/geo.tr:21 x1
+edge tr:func:lib/geo.tr:yaz_alan calls tr:method:lib/geo.tr:Kare.alan INFERRED @lib/geo.tr:20 x1
+edge tr:func:lib/geo.tr:yaz_alan uses_name name:G100 EXTRACTED @lib/geo.tr:20 x1
+edge tr:struct:lib/geo.tr:Kare contains tr:field:lib/geo.tr:Kare.kenar EXTRACTED @lib/geo.tr:6 x1
+edge tr:struct:lib/geo.tr:Kare contains tr:method:lib/geo.tr:Kare.alan EXTRACTED @lib/geo.tr:10 x1
+edge tr:struct:lib/geo.tr:Kare contains tr:method:lib/geo.tr:Kare.kurucu EXTRACTED @lib/geo.tr:7 x1
+edge tr:test:lib/geo_test.tr:3 calls tr:func:lib/geo.tr:yaz_alan EXTRACTED @lib/geo_test.tr:5 x1
+edge tr:test:lib/geo_test.tr:3 calls tr:struct:lib/geo.tr:Kare EXTRACTED @lib/geo_test.tr:4 x1
+edge tr:test:lib/geo_test.tr:3 tests tr:func:lib/geo.tr:yaz_alan EXTRACTED @lib/geo_test.tr:5 x1
+edge tr:test:lib/geo_test.tr:3 tests tr:struct:lib/geo.tr:Kare EXTRACTED @lib/geo_test.tr:4 x1
+edge tr:test:lib/geo_test.tr:8 calls tr:func:lib/geo.tr:çevre_hesapla EXTRACTED @lib/geo_test.tr:11 x1
+edge tr:test:lib/geo_test.tr:8 calls tr:struct:lib/geo.tr:Kare EXTRACTED @lib/geo_test.tr:11 x1
+edge tr:test:lib/geo_test.tr:8 tests tr:func:lib/geo.tr:çevre_hesapla EXTRACTED @lib/geo_test.tr:11 x1
+edge tr:test:lib/geo_test.tr:8 tests tr:struct:lib/geo.tr:Kare EXTRACTED @lib/geo_test.tr:11 x1
+edge tr:var:examples/ana.tr:k calls tr:struct:lib/geo.tr:Kare EXTRACTED @examples/ana.tr:3 x1
+node tr:const:lib/geo.tr:PI2 tr_const geo.PI2 @lib/geo.tr:2-13 "const PI2"
+node tr:field:lib/geo.tr:Kare.kenar tr_field geo.Kare.kenar @lib/geo.tr:6-9 "kenar"
+node tr:file:examples/ana.tr file examples/ana.tr @examples/ana.tr:1-0 "tr"
+node tr:file:examples/broken.tr file examples/broken.tr @examples/broken.tr:1-0 "tr"
+node tr:file:examples/coded.tr file examples/coded.tr @examples/coded.tr:1-0 "tr, coded"
+node tr:file:lib/geo.tr file lib/geo.tr @lib/geo.tr:1-0 "tr"
+node tr:file:lib/geo_test.tr file lib/geo_test.tr @lib/geo_test.tr:1-0 "tr"
+node tr:func:examples/coded.tr:kodlu_işlev tr_func coded.kodlu_işlev @examples/coded.tr:1-4 "fonksiyon kodlu_işlev(x)"
+node tr:func:lib/geo.tr:yaz_alan tr_func geo.yaz_alan @lib/geo.tr:19-22 "fonksiyon yaz_alan(k)"
+node tr:func:lib/geo.tr:çevre_hesapla tr_func geo.çevre_hesapla @lib/geo.tr:15-17 "fonksiyon çevre_hesapla(k)"
+node tr:method:lib/geo.tr:Kare.alan tr_method geo.Kare.alan @lib/geo.tr:10-12 "fonksiyon alan()"
+node tr:method:lib/geo.tr:Kare.kurucu tr_method geo.Kare.kurucu @lib/geo.tr:7-9 "fonksiyon kurucu(kenar = …)"
+node tr:struct:lib/geo.tr:Kare tr_struct geo.Kare @lib/geo.tr:5-13 "yapı Kare"
+node tr:test:lib/geo_test.tr:3 tr_test geo_test: kare alanı yazılır @lib/geo_test.tr:3-6 "test \"kare alanı yazılır\""
+node tr:test:lib/geo_test.tr:8 tr_test geo_test: çevre @lib/geo_test.tr:8-12 "test \"çevre\""
+node tr:var:examples/ana.tr:k tr_var ana.k @examples/ana.tr:3-3 "var k"
+node tr:var:lib/geo.tr:sayaç tr_var geo.sayaç @lib/geo.tr:3-13 "var sayaç"
