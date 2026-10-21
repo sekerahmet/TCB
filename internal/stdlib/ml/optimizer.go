@@ -178,13 +178,23 @@ func namedRate(fn string, named map[string]interp.Value, defaultVal float64, min
 
 // gradClip parametre gradyanlarının toplam L2 normunu en_fazla değerine indirir ve
 // kırpma öncesi normu 0 boyutlu tensör olarak döndürür: gradyan_kırp(parametreler, en_fazla: 1.0).
+// sonlu_değilse_hata: doğru normu okur (GPU'yu bekler) ve NaN ya da sonsuzsa hata verir; NaN
+// normda gradyanlar ölçeklenmemiştir (karşılaştırma yanlıştır), PyTorch'ta da öyledir.
 func gradClip(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.DisplayName(codes.T402)
 	if len(args) != 1 {
 		return nil, messages.New(messages.H6521, fn, nameMax.TR, len(args))
 	}
-	if err := bind.CheckNamed(fn+"()", named, nameMax); err != nil {
+	if err := bind.CheckNamed(fn+"()", named, nameMax, nameErrNonfinite); err != nil {
 		return nil, err
+	}
+	strict := false
+	if v, ok := bind.GetNamed(named, nameErrNonfinite); ok {
+		b, err := bind.Bool(fn, nameErrNonfinite.TR, v)
+		if err != nil {
+			return nil, err
+		}
+		strict = b
 	}
 	params, err := parameters(fn, args[0])
 	if err != nil {
@@ -203,6 +213,12 @@ func gradClip(_ *interp.VM, args []interp.Value, named map[string]interp.Value) 
 	norm, err := safe(func() *tensor.Tensor { return tensor.ClipGradNormTensor(params, maxVal) })
 	if err != nil {
 		return nil, err
+	}
+	if strict {
+		if n := float64(norm.Data()[0]); math.IsNaN(n) || math.IsInf(n, 0) {
+			norm.Drop()
+			return nil, messages.New(messages.H6534, fn, n, codes.DisplayName(codes.G415))
+		}
 	}
 	return New(norm), nil
 }

@@ -41,12 +41,26 @@ func registerWideMath(v *interp.VM) {
 	registerRounding(v, codes.G407, (*tensor.Tensor).Ceil)
 	registerRounding(v, codes.G408, (*tensor.Tensor).Sign)
 	registerRounding(v, codes.G403, (*tensor.Tensor).Abs) // mutlak: türevli (işaret(x), 0'da 0)
+	registerRounding(v, codes.G415, isFinite)
 	wrap(v, codes.G409, newBuiltin(clampBuiltin))
 	wrap(v, codes.T228, newBuiltin(atan2Builtin))
 	wrap(v, codes.T234, newBuiltin(whereBuiltin))  // yerlesik_secim.go
 	wrap(v, codes.T231, newBuiltin(cumSumBuiltin)) // yerlesik_siralama.go
 	wrap(v, codes.T232, newBuiltin(topKBuiltin))
 	wrap(v, codes.T233, newBuiltin(argsortBuiltin))
+}
+
+// isFinite sonlu_mu'nun tensör yoludur (15.46): x − x sonlu elemanda 0, NaN ve ±∞'da NaN'dır;
+// "≥ 0" karşılaştırması NaN'da 0 verir. Sonuç karşılaştırmalar gibi float32 0/1'dir ve türevsizdir
+// (torch.isfinite de x == x ile |x| ≠ ∞'u birleştirir). Ara fark başlığı hemen bırakılır.
+func isFinite(t *tensor.Tensor) *tensor.Tensor {
+	var r *tensor.Tensor
+	tensor.NoGrad(func() {
+		d := t.Sub(t)
+		r = d.CompareScalar(0, tensor.OpGe, false)
+		d.Drop()
+	})
+	return r
 }
 
 // registerRounding taban, tavan, işaret ve mutlak'ı sarar: tensörde eleman bazlı (türevi tensör

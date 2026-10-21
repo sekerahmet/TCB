@@ -260,3 +260,24 @@ fonksiyon en_büyük_fark(a, b) {
     değişken d = a - b
     sonuç maks(d * d).değer
 }
+
+test "13.7 sonlu_mu: NaN ve sonsuzda yanlış, öbür sayılarda doğru" {
+    doğrula(sonlu_mu(7))
+    doğrula(sonlu_mu(-2.5))
+    doğrula(değil sonlu_mu(ondalık("nan")))
+    doğrula(değil sonlu_mu(ondalık("inf")))
+    doğrula(değil sonlu_mu(-ondalık("inf")))
+}
+
+test "15.46 sonlu_mu tensörde eleman bazlıdır; gradyan_kırp sonlu olmayan normda isteğe bağlı hata verir" {
+    değişken x = tensör([1.0, ondalık("nan"), ondalık("inf"), 0.0])
+    eşit_mi([1.0, 0.0, 0.0, 1.0], sonlu_mu(x).değer)
+    eşit_mi([1.0, 0.0, 0.0, 1.0], sonlu_mu(x.türe("bf16")).değer)
+    değişken w = tensör([1.0, 2.0], türev_izle: doğru)
+    geri_yayılım(toplam(w * ondalık("nan")))
+    değişken norm = gradyan_kırp([w])
+    doğrula(değil sonlu_mu(norm.değer))
+    değişken hata_verdi = yanlış
+    dene { gradyan_kırp([w], sonlu_değilse_hata: doğru) } yakala h { hata_verdi = doğru }
+    doğrula(hata_verdi)
+}

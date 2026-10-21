@@ -951,6 +951,7 @@
 "H6531": { "param": ["fn", "source", "count", "first"] },
 "H6532": { "param": ["fn", "source", "count", "first", "suggestion"] },
 "H6533": { "param": [] },
+"H6534": { "param": ["fn", "norm", "finiteFn"] },
 "H6600": { "param": ["what", "error"] },
 "H6601": { "param": ["what"] },
 "H6602": { "param": ["fn", "given"] },

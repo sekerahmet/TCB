@@ -956,6 +956,7 @@ const (
 	H6531 Code = 6531 // {fn}: {source} {count} fazla ad var, ilki {first|q} modelde bir parametre değil
 	H6532 Code = 6532 // {fn}: {source} {count} fazla ad var, ilki {first|q} modelde bir parametre değil. Bunu mu demek istediniz: '{suggestion}'?
 	H6533 Code = 6533 // sözlükte
+	H6534 Code = 6534 // {fn}: gradyanların toplam normu sonlu değil ({norm}); bir gradyanda NaN ya da sonsuz var. Kaynağı kayıp, öğrenme oranı ya da veri olabilir; adımı atlamak isteyen eğitim hata yerine normu {finiteFn}(norm.değer) ile denetler
 	H6600 Code = 6600 // {what} okunamadı: {error}
 	H6601 Code = 6601 // dosya bozuk ya da eksik: {what} okunurken dosya bitti
 	H6602 Code = 6602 // {fn}: dosya yolu metin olmalıdır, {given} verildi

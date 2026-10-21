@@ -141,3 +141,17 @@ Karşılaştırma ve karar: çöp toplayıcılı dillerin hepsi aynı sonuca var
 - Sonuç kaynaşmamış hesapla aynıdır: her işlem float32'de hesaplanıp kendi türüne yuvarlanır (bit düzeyinde aynı). Geri yön float32'de hesaplanır ve girdinin gradyanına bir kez yuvarlanarak eklenir; kaynaşmamış 16 bitlik zincirden daha doğrudur. Türev isteyen bir girdi yayınlanıyorsa (gradyanı indirgeme ister) hata verir.
 
 Karşılaştırma ve karar: PyTorch `torch.compile` ve JAX `jit` bütün programı izleyip derler (genel derleyici; izlenemeyen yerde `torch.compile` sessizce kaynaşmamış yola döner); CuPy `cupy.fuse` eleman bazlı bir Python fonksiyonunu tek çekirdeğe çevirir ama türev almaz; Julia'nın `@.` yayınlaması sözdizimiyle kaynaştırır; Triton ve Liger elle yazılmış birleşik çekirdeklerdir. TR `cupy.fuse`'un açık ve dar kapsamını alır: kullanıcı neyin kaynaştığını yazarak seçer, kaynaştırılamayan işlem sessizce geçilmez, hata verir; geri yönü `torch.compile` gibi ara değerleri yeniden hesaplayarak üretir ve ileri yön bit düzeyinde aynıdır (derleyicilerin aksine sonuç değişmez). Testler: `tests/tensor_test.tr` (15.45), `internal/compute/tensor/fuse_test.go` (bit düzeyinde aynılık, gradyanlar, hatalar), `internal/compute/gpu/kernel_fused_test.go` (GPU çekirdekleri).
+
+**15.46** Eğitimin kararlılığı. Uzun eğitim bir NaN ya da sonsuz değerle sessizce bozulmamalıdır; dil bunu denetlemenin araçlarını verir, ne yapılacağını (adımı atlamak, durmak, geri dönmek) eğitim döngüsü seçer.
+
+- `sonlu_mu(t)` tensörde eleman bazlıdır: sonlu elemanda 1, NaN ve ±sonsuzda 0 olan float32 bir tensör verir (karşılaştırmalar gibi, **15.41**), türev izlemez, 16 bitlik tensörde de aynı sonucu verir ve `kaynaştır` içinde kullanılabilir (`torch.isfinite`, `numpy.isfinite`). Sayıda kural **13.7**'dedir.
+- `gradyan_kırp(parametreler, en_fazla: 1.0, sonlu_değilse_hata: yanlış)`: `sonlu_değilse_hata: doğru` gradyanların toplam normu NaN ya da sonsuzsa hata verir (PyTorch `clip_grad_norm_(error_if_nonfinite=True)`); normu okumak için GPU'yu bekler. Varsayılanda bekleme ve denetim yoktur. NaN normda gradyanlar ölçeklenmez, sonsuz normda sıfıra ölçeklenir (PyTorch'la aynı).
+- Adımı atlamak isteyen döngü normu kendisi denetler; atlanan adımda iyileştirici çalışmaz, gradyanlar sıfırlanır (PyTorch `GradScaler`'ın inf/NaN gradyanda `optimizer.step()`'i atlaması):
+
+```tr
+değişken norm = gradyan_kırp(ağırlıklar, en_fazla: 1.0)
+eğer sonlu_mu(norm.değer) { op.adım() }
+op.sıfırla()
+```
+
+Karşılaştırma ve karar: Keras `TerminateOnNaN` ve Lightning `EarlyStopping(check_finite=True)` NaN'da eğitimi durdurur; PyTorch `GradScaler` inf/NaN gradyanlı adımı atlar; Megatron-LM NaN ve kaybın ilk değerlerin en büyüğünün 10 katını aşmasını yakalayıp adımı yeniden koşar; OLMo-core kayıp ve gradyan normunun son 128 adıma göre 6 standart sapmalık sıçramasını yalnızca kaydeder; PaLM kayıp sıçramasında yaklaşık 100 adım önceki kontrol noktasına dönüp 200–500 toplu işi atlamıştır (Chowdhery ve ark. 2022, §5.1). Hiçbiri tek doğru politika değildir; TR bu yüzden politikayı dile gömmez, parçalarını verir: denetim (`sonlu_mu`, `sonlu_değilse_hata`), geri dönme ve toplu iş atlama (**20.14**, **20.15**), sıçrama bekçisi (`tr/egitim`).

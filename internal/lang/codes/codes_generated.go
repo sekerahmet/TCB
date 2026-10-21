@@ -97,6 +97,7 @@ const (
 	G411 Code = G + 411 // std · standart_sapma
 	G412 Code = G + 412 // median · ortanca
 	G414 Code = G + 414 // pi
+	G415 Code = G + 415 // is_finite · sonlu_mu
 	G500 Code = G + 500 // sleep · bekle
 	G501 Code = G + 501 // wait_all · bekle_hepsi
 	G502 Code = G + 502 // time_ms · zaman_ms
@@ -235,6 +236,7 @@ const (
 	T983 Code = T + 983 // tol · tolerans
 	T984 Code = T + 984 // every_minutes · her_dakika
 	T985 Code = T + 985 // keep · tut
+	T986 Code = T + 986 // error_if_nonfinite · sonlu_değilse_hata
 	T990 Code = T + 990 // approximate · yaklaşık
 	V100 Code = V + 100 // dataset · veri_kümesi
 	V200 Code = V + 200 // load_tokenizer · parçalayıcı_yükle

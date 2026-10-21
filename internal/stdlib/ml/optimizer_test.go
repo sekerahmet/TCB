@@ -42,3 +42,37 @@ func TestAdamWEpsilonPositive(t *testing.T) {
 		}
 	}
 }
+
+// Kural (15.46): gradyan_kırp(..., sonlu_değilse_hata: doğru) toplam norm NaN ya da sonsuzsa
+// H6534 verir (PyTorch error_if_nonfinite); varsayılan (yanlış) ve sonlu normda davranış
+// değişmez. Mantık olmayan değer açık hatadır.
+// Neden: uzun eğitim bozuk bir gradyanla sessizce sürmesin; isteyen erken durur.
+func TestGradClipErrorIfNonfinite(t *testing.T) {
+	out := mustRun(t, `değişken w = tensör([3.0, 4.0], türev_izle: doğru)
+geri_yayılım(toplam(w * w))
+yazdır(gradyan_kırp([w], sonlu_değilse_hata: doğru).değer)
+değişken v = tensör([1.0, 2.0], türev_izle: doğru)
+geri_yayılım(toplam(v * ondalık("nan")))
+yazdır(sonlu_mu(gradyan_kırp([v]).değer))`)
+	if out != "10.0\nyanlış\n" {
+		t.Fatalf("çıktı: %q", out)
+	}
+	for _, d := range []struct {
+		code string
+		want messages.Code
+	}{
+		{`değişken v = tensör([1.0], türev_izle: doğru)
+geri_yayılım(toplam(v * ondalık("nan")))
+gradyan_kırp([v], sonlu_değilse_hata: doğru)`, messages.H6534},
+		{`değişken v = tensör([1.0], türev_izle: doğru)
+geri_yayılım(toplam(v * ondalık("inf")))
+gradyan_kırp([v], en_fazla: 2.0, sonlu_değilse_hata: doğru)`, messages.H6534},
+		{`değişken v = tensör([1.0], türev_izle: doğru)
+geri_yayılım(toplam(v))
+gradyan_kırp([v], sonlu_değilse_hata: 1)`, messages.H7905},
+	} {
+		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
+			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.want)
+		}
+	}
+}

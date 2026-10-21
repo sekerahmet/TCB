@@ -24,6 +24,7 @@ var (
 	nameAxis         = bind.NamedArg(codes.T902)
 	nameSeed         = bind.NamedArg(codes.T903)
 	nameMax          = bind.NamedArg(codes.T904)
+	nameErrNonfinite = bind.NamedArg(codes.T986)
 	nameMin          = bind.NamedArg(codes.T907)
 	nameEpsilon      = bind.NamedArg(codes.T905)
 	nameLR           = bind.NamedArg(codes.T910)

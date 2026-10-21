@@ -951,6 +951,7 @@
 "H6531": "{fn}: {source} {count} fazla ad var, ilki {first|q} modelde bir parametre değil",
 "H6532": "{fn}: {source} {count} fazla ad var, ilki {first|q} modelde bir parametre değil. Bunu mu demek istediniz: '{suggestion}'?",
 "H6533": "sözlükte",
+"H6534": "{fn}: gradyanların toplam normu sonlu değil ({norm}); bir gradyanda NaN ya da sonsuz var. Kaynağı kayıp, öğrenme oranı ya da veri olabilir; adımı atlamak isteyen eğitim hata yerine normu {finiteFn}(norm.değer) ile denetler",
 "H6600": "{what} okunamadı: {error}",
 "H6601": "dosya bozuk ya da eksik: {what} okunurken dosya bitti",
 "H6602": "{fn}: dosya yolu metin olmalıdır, {given} verildi",

@@ -102,3 +102,37 @@ yazdır(sınırla(7, en_az: 1, en_fazla: 3), sınırla(7, en_az: 1.5))`)
 		t.Fatalf("ters sınır hatası tam değeri göstermeli: %v", err)
 	}
 }
+
+// Kural (13.7, 15.46): sonlu_mu sayıda Mantık verir (NaN ve ±sonsuz yanlış, her Tam doğru);
+// tensörde eleman bazlı, sonlu yerde 1 öbür yerde 0 olan float32 tensör verir, 16 bitte de
+// aynıdır ve türev izlemez. Listede, argümansız ve adlı argümanla açık hatadır.
+// Neden: eğitim döngüsü gradyan normunu ve kaybı NaN için böyle denetler (torch.isfinite).
+func TestIsFiniteNumbersAndTensors(t *testing.T) {
+	out := mustRun(t, `değişken nan = ondalık("nan")
+değişken sonsuz = ondalık("inf")
+yazdır(sonlu_mu(3), sonlu_mu(-2.5), sonlu_mu(nan), sonlu_mu(sonsuz), sonlu_mu(-sonsuz), tip(sonlu_mu(0)))
+değişken x = tensör([1.0, nan, sonsuz, -sonsuz, -0.0], türev_izle: doğru)
+değişken s = sonlu_mu(x)
+yazdır(s.değer, s.tür)
+yazdır(sonlu_mu(x.türe("bf16")).değer, sonlu_mu(tensör([[1, 2]])).değer)`)
+	want := "doğru doğru yanlış yanlış yanlış Mantık\n" +
+		"[1.0, 0.0, 0.0, 0.0, 1.0] float32\n" +
+		"[1.0, 0.0, 0.0, 0.0, 1.0] [[1.0, 1.0]]\n"
+	if out != want {
+		t.Fatalf("sonlu_mu:\n%q\nbeklenen:\n%q", out, want)
+	}
+	for _, d := range []struct {
+		code string
+		want messages.Code
+	}{
+		{"sonlu_mu([1.0])", messages.H6104},
+		{"sonlu_mu()", messages.H2011},
+		{"sonlu_mu(1, 2)", messages.H2011},
+		{"sonlu_mu(\"a\")", messages.H2423},
+		{"sonlu_mu(1.0, eksen: 0)", messages.H7902},
+	} {
+		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
+			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.want)
+		}
+	}
+}

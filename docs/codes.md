@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir.
 
-Toplam 296 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 102 fonksiyon, 1 sabit, 38 metot, 21 özellik, 40 adlı argüman; ayrıca 9 taşınmış ve 65 kaldırılmış kod (numaraları bir daha kullanılmaz).
+Toplam 298 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 103 fonksiyon, 1 sabit, 38 metot, 21 özellik, 41 adlı argüman; ayrıca 9 taşınmış ve 65 kaldırılmış kod (numaraları bir daha kullanılmaz).
 
 ## İçindekiler
 
@@ -1037,6 +1037,18 @@ yazdır(pi, sinüs(pi / 2), kosinüs(pi))
 
 İlişkili: T222 `sinüs`, T224 `tanjant`
 
+#### G415 `sonlu_mu`
+
+    sonlu_mu(Tam | Ondalık | Tensör) → Mantık | Tensör
+
+Sayının sonlu olup olmadığını verir: NaN, sonsuz ve eksi sonsuzda yanlış, öbür her sayıda (her Tam dahil) doğru. Tensörde eleman bazlı çalışır: sonlu elemanda 1, öbürlerinde 0 olan float32 bir tensör verir (karşılaştırmalar gibi), türev izlemez; listede çalışmaz (tensör(...) ile çevrilir). Eğitimde gradyan normunu denetlemek için kullanılır: eğer değil sonlu_mu(norm.değer) { ... }.
+
+```tr
+yazdır(sonlu_mu(1.5), sonlu_mu(ondalık("nan")), sonlu_mu(tensör([1.0, ondalık("inf")])).değer)
+```
+
+İlişkili: G408 `işaret`, T402 `gradyan_kırp`
+
 ### Zaman ve eşzamanlılık (G5xx)
 
 #### G500 `bekle`
@@ -1951,7 +1963,7 @@ değişken w = tensör([1.0], türev_izle: doğru); değişken opt = SGD([w], ö
 
 #### T402 `gradyan_kırp`
 
-    gradyan_kırp(Liste | Tensör, en_fazla: Tam | Ondalık = 1) → Tensör
+    gradyan_kırp(Liste | Tensör, en_fazla: Tam | Ondalık = 1, sonlu_değilse_hata: Mantık = yanlış) → Tensör
 
 Parametre gradyanlarının toplam L2 normu en_fazla değerini (varsayılan 1.0) aşıyorsa hepsini aynı oranda küçültür. Kırpma öncesi normu 0 boyutlu tensör olarak döndürür (kayıp gibi): GPU'da norm ve kırpma cihazda yapılır, program norm okununca (.değer, yazdırma) bekler.
 
@@ -2488,6 +2500,16 @@ değişken w = tensör([1.0], türev_izle: doğru); değişken kn = kontrol_nokt
 ```
 
 Kullananlar: T702 `kontrol_noktası` · İlişkili: T984 `her_dakika`
+
+#### T986 `sonlu_değilse_hata`
+
+gradyan_kırp'ın seçeneğidir (Mantık, varsayılan yanlış): doğruysa gradyanların toplam normu NaN ya da sonsuzsa hata verir (PyTorch clip_grad_norm_(error_if_nonfinite=True)). Normu okumak için GPU'yu bekler; varsayılanda bekleme yoktur. Adımı atlamak isteyen eğitim bunun yerine sonlu_mu(norm.değer) ile denetler.
+
+```tr
+değişken w = tensör([1.0, 2.0], türev_izle: doğru); geri_yayılım(toplam(w * ondalık("inf"))); dene { gradyan_kırp([w], sonlu_değilse_hata: doğru) } yakala h { yazdır("sonlu değil") }
+```
+
+Kullananlar: T402 `gradyan_kırp` · İlişkili: T402 `gradyan_kırp`, G415 `sonlu_mu`
 
 #### T990 `yaklaşık`
 
@@ -3538,4 +3560,4 @@ Kaldırıldı: 'html_üret' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 `x |> f(a)` ≡ `f(x, a)` (bkz. `docs/spec/04_operatorler.md` 4.9). Boru yalnızca fonksiyonlarla çalışır; metotlar `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 } |> toplam`). Borudaki değeri ilk konumlu argüman olarak alabilen yerleşik fonksiyonlar (kullanıcı fonksiyonları da kullanılabilir):
 
-`yazdır`, `girdi`, `dosya_oku`, `dosya_yaz`, `dosya_satırları`, `yol`, `klasörü_listele`, `klasör_oluştur`, `sil`, `kopyala`, `taşı`, `tip`, `tam`, `ondalık`, `metin`, `aralık`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `taban`, `tavan`, `işaret`, `sınırla`, `ortalama`, `standart_sapma`, `ortanca`, `bekle`, `json_çöz`, `json_metin`, `csv_oku`, `csv_çöz`, `doğrula`, `eşit_mi`, `ortam_değişkeni`, `komut_satırı`, `günlük`, `ilerleme`, `tensör`, `sıfırlar`, `birler`, `rastgele_normal`, `birim_matris`, `birleştir`, `relu`, `sigmoid`, `tanh`, `gelu`, `silu`, `softmax`, `log_softmax`, `üstel`, `log`, `sinüs`, `kosinüs`, `tanjant`, `arksinüs`, `arkkosinüs`, `arktanjant`, `arktanjant2`, `maks_indeks`, `birikimli_toplam`, `en_büyük_k`, `sıralama_indeksi`, `koşullu`, `sinh`, `cosh`, `log1p`, `log2`, `log10`, `üstel_eksi_bir`, `geri_yayılım`, `türevsiz`, `türev_denetle`, `kaynaştır`, `AdamW`, `SGD`, `gradyan_kırp`, `gömme`, `katman_normu`, `rms_normu`, `dikkat`, `çapraz_entropi`, `doğrusal_çapraz_entropi`, `parametreler`, `örnekle`, `tensör_kaydet`, `tensör_yükle`, `kontrol_noktası`, `parametreleri_yükle`, `karışık_hassasiyet`, `varsayılan_cihaz`, `veri_kümesi`, `parçalayıcı_yükle`
+`yazdır`, `girdi`, `dosya_oku`, `dosya_yaz`, `dosya_satırları`, `yol`, `klasörü_listele`, `klasör_oluştur`, `sil`, `kopyala`, `taşı`, `tip`, `tam`, `ondalık`, `metin`, `aralık`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `taban`, `tavan`, `işaret`, `sınırla`, `ortalama`, `standart_sapma`, `ortanca`, `sonlu_mu`, `bekle`, `json_çöz`, `json_metin`, `csv_oku`, `csv_çöz`, `doğrula`, `eşit_mi`, `ortam_değişkeni`, `komut_satırı`, `günlük`, `ilerleme`, `tensör`, `sıfırlar`, `birler`, `rastgele_normal`, `birim_matris`, `birleştir`, `relu`, `sigmoid`, `tanh`, `gelu`, `silu`, `softmax`, `log_softmax`, `üstel`, `log`, `sinüs`, `kosinüs`, `tanjant`, `arksinüs`, `arkkosinüs`, `arktanjant`, `arktanjant2`, `maks_indeks`, `birikimli_toplam`, `en_büyük_k`, `sıralama_indeksi`, `koşullu`, `sinh`, `cosh`, `log1p`, `log2`, `log10`, `üstel_eksi_bir`, `geri_yayılım`, `türevsiz`, `türev_denetle`, `kaynaştır`, `AdamW`, `SGD`, `gradyan_kırp`, `gömme`, `katman_normu`, `rms_normu`, `dikkat`, `çapraz_entropi`, `doğrusal_çapraz_entropi`, `parametreler`, `örnekle`, `tensör_kaydet`, `tensör_yükle`, `kontrol_noktası`, `parametreleri_yükle`, `karışık_hassasiyet`, `varsayılan_cihaz`, `veri_kümesi`, `parçalayıcı_yükle`
