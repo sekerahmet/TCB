@@ -92,9 +92,10 @@ func (o *AdamW) CheckState(st map[string]*Tensor) {
 	}
 }
 
-// checkStateShape durumda ad varsa onu loadState'in yazmadan önce isteyeceği her şeyle denetler
-// (şekil p'ninkiyle aynı, aynı cihazda, canlı ve verisi olan bir tensör) ve var mı sorusunu
-// yanıtlar; böylece LoadState yazmaya başladıktan sonra paniğe geçmez.
+// checkStateShape durumda ad varsa onu cihazdan bağımsız her şeyle denetler (şekil p'ninkiyle
+// aynı, canlı ve verisi olan bir tensör) ve var mı sorusunu yanıtlar. Cihaz ayrıca
+// checkStateDevices'tadır: kontrol noktası durumu CPU'da denetler, parametrenin cihazına ancak
+// yazarken taşır.
 func checkStateShape(st map[string]*Tensor, ad string, p *Tensor) bool {
 	t, ok := st[ad]
 	if !ok {
@@ -103,9 +104,20 @@ func checkStateShape(st map[string]*Tensor, ad string, p *Tensor) bool {
 	if !sameShape(t.shape, p.shape) {
 		panic(messages.New(messages.H3058, ad, t.shape, p.shape))
 	}
-	sameDevice("LoadState", p, t)
 	t.view() // bırakılmış ya da iz (kaynaştırma) tensörü burada reddedilir
 	return true
+}
+
+// checkStateDevices parametreye bağlı her durum tensörünün parametrenin cihazında olduğunu
+// denetler; LoadState yazmaya başlamadan önce çağırır, böylece yarıda paniğe geçmez.
+func checkStateDevices(st map[string]*Tensor, params []*Tensor, prefixes ...string) {
+	for k, p := range params {
+		for _, on := range prefixes {
+			if t, ok := st[fmt.Sprintf("%s.%d", on, k)]; ok {
+				sameDevice("LoadState", p, t)
+			}
+		}
+	}
 }
 
 // CheckState durumu yüklemeden denetler (anahtarlar ve şekiller; bkz. AdamW.CheckState).

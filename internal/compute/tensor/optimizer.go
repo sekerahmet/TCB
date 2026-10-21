@@ -480,6 +480,7 @@ func (o *AdamW) state(dup bool) map[string]*Tensor {
 // LoadState State ile alınmış durumu yükler; parametre sayısı ve şekilleri aynı olmalıdır.
 func (o *AdamW) LoadState(st map[string]*Tensor) {
 	o.CheckState(st)
+	checkStateDevices(st, o.Params, "m", "v", "ana")
 	o.step = 0
 	if t, ok := st["adim"]; ok {
 		o.step = readCounter("adim", t)
@@ -523,6 +524,7 @@ func (o *SGD) state(dup bool) map[string]*Tensor {
 // LoadState State ile alınmış durumu yükler; parametre sayısı ve şekilleri aynı olmalıdır.
 func (o *SGD) LoadState(st map[string]*Tensor) {
 	o.CheckState(st)
+	checkStateDevices(st, o.Params, "hiz", "ana")
 	for k, p := range o.Params {
 		o.speed[k] = loadState(st, fmt.Sprintf("hiz.%d", k), p)
 	}
