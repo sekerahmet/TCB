@@ -247,13 +247,17 @@ func TestNaNRowsMatchCPU(t *testing.T) {
 // gelen gradyanla ölçekleme (skalerle yayınlamalı çarpım); float32 ve bf16.
 func TestLinearCrossEntropy(t *testing.T) {
 	rng := rand.New(rand.NewSource(13))
-	// 4 satırlık dilimlerle 23 satır: 6 dilim, sonuncusu eksik (yarış dedektörüyle de kısa sürer).
+	// 4 satırlık dilimlerle 23 satır: 6 dilim, sonuncusu eksik (yarış dedektörüyle de kısa sürer);
+	// 8–11. satırlar (üçüncü dilim) tamamen yok sayılır: x gradyanı o satırlarda sıfır olmalı.
 	R, D, C, chunk := 23, 8, 6, 4
 	xv, wv := random(rng, R*D, 1), random(rng, D*C, 1)
 	target := make([]int, R)
 	for i := range target {
 		target[i] = rng.Intn(C)
 		if i%7 == 3 {
+			target[i] = -1
+		}
+		if i >= 8 && i < 12 {
 			target[i] = -1
 		}
 	}
