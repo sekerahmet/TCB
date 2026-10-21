@@ -93,3 +93,22 @@ func TestFusedMatchesCPU(t *testing.T) {
 		})
 	}
 }
+
+// Karşılaştırmalar kaynaşır: 0/1 maskesi kaynaşmamış GPU yoluyla bit düzeyinde aynıdır (NaN dahil).
+func TestFusedComparisonsMatchUnfusedBits(t *testing.T) {
+	rng := rand.New(rand.NewSource(23))
+	xv, yv := random(rng, 3*5, 1), random(rng, 5, 1)
+	xv[2] = float32(math.NaN())
+	fn := func(a []*tensor.Tensor) []*tensor.Tensor {
+		x, y := a[0], a[1]
+		return []*tensor.Tensor{tensor.Compare(x, y, tensor.OpLt), x.CompareScalar(0, tensor.OpGt, false),
+			tensor.Compare(x, y, tensor.OpLe), tensor.Compare(x, y, tensor.OpGe), x.Mul(tensor.Compare(x, y, tensor.OpGt))}
+	}
+	for _, dt := range []tensor.DType{tensor.Float32, tensor.BFloat16} {
+		ins := []*tensor.Tensor{tensor.NewOn(gpuDevice, xv, 3, 5).Cast(dt), tensor.NewOn(gpuDevice, yv, 5).Cast(dt)}
+		f, u := runFused(fn, ins), fn(ins)
+		for i := range f {
+			bitsEqual(t, fmt.Sprintf("karşılaştırma %d %s", i, dt), f[i], u[i])
+		}
+	}
+}

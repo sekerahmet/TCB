@@ -115,6 +115,9 @@ func Compare(a, b *Tensor, op BinOp) *Tensor {
 		panic(messages.Internal(fmt.Sprintf("Compare needs a comparison op, got %d", op)))
 	}
 	be := sameDevice("compare", a, b)
+	if anySym(a, b) {
+		return symBinary(a, b, op, Float32)
+	}
 	sy := counterStart(be, OpKindAdd+OpKind(op)).start()
 	outShape := broadcastShapes(a.shape, b.shape)
 	out := emptyOf(isCompare, be, outShape, Float32)
@@ -126,6 +129,13 @@ func Compare(a, b *Tensor, op BinOp) *Tensor {
 // CompareScalar tensörü bir sayıyla karşılaştırır (Compare(t, s)); sagda doğruysa sayı
 // solda durur (s op t).
 func (t *Tensor) CompareScalar(s float32, op BinOp, onRight bool) *Tensor {
+	if t.sym != nil {
+		c := fuseConst(s, nil)
+		if onRight {
+			return symTensor(t.be, fuseBinary(op, c, t.sym, t.shape, Float32))
+		}
+		return symTensor(t.be, fuseBinary(op, t.sym, c, t.shape, Float32))
+	}
 	st := fromStorage(t.be, t.be.FromHost([]float32{s}, Float32), nil)
 	if onRight {
 		return Compare(st, t, op)

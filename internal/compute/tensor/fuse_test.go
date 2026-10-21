@@ -194,3 +194,46 @@ func asError(r any) error {
 	}
 	return nil
 }
+
+// cmpMask karşılaştırmaların kaynaşmış ve kaynaşmamış hâlini sınar: iki tensörle ve sayıyla,
+// bf16 girdide, NaN'lı elemanla, bir maske ile çarpılarak (gradyan yalnızca çarpılandan akar).
+func cmpMask(args []*Tensor) []*Tensor {
+	x, y := args[0], args[1]
+	return []*Tensor{
+		Compare(x, y, OpLt), x.CompareScalar(0, OpGt, false), Compare(x, y, OpLe), Compare(x, y, OpGe),
+		x.Mul(Compare(x, y, OpGt)),
+	}
+}
+
+func TestFuseComparisons(t *testing.T) {
+	rng := rand.New(rand.NewSource(7))
+	for _, dt := range []DType{Float32, BFloat16} {
+		x, y := Randn(rng, 3, 5).Cast(dt), Randn(rng, 5).Cast(dt)
+		x.Data()[2] = float32(math.NaN())
+		ins := []*Tensor{x, y}
+		f, u := runFusedFn(cmpMask, ins), cmpMask(ins)
+		for i := range f {
+			sameBits(t, "karşılaştırma "+dt.String(), f[i], u[i])
+		}
+		if f[0].DType() != Float32 {
+			t.Fatalf("karşılaştırma türü %s, beklenen float32", f[0].DType())
+		}
+	}
+	// Gradyan: karşılaştırmadan gelen yol 0'dır, yalnızca x'in kendisi akar (x · [x > y] → [x > y]).
+	mk := func() []*Tensor {
+		return []*Tensor{
+			Randn(rand.New(rand.NewSource(8)), 3, 5).SetRequiresGrad(true),
+			Randn(rand.New(rand.NewSource(9)), 5).SetRequiresGrad(true),
+		}
+	}
+	a, b := mk(), mk()
+	runFusedFn(cmpMask, a)[4].SumAll().Backward()
+	cmpMask(b)[4].SumAll().Backward()
+	closeTo(t, "karşılaştırma gradyanı x", a[0].Grad(), b[0].Grad(), 1e-6)
+	// y yalnızca karşılaştırmada geçer: kaynaşmamış yolda gradyanı yoktur, kaynaşmışta 0'dır.
+	for _, v := range a[1].Grad().Data() {
+		if v != 0 {
+			t.Fatalf("karşılaştırmanın gradyanı 0 değil: %v", v)
+		}
+	}
+}
