@@ -1,0 +1,60 @@
+{
+  "schema": "tr-codeindex/1",
+  "command": "references",
+  "status": "ok",
+  "query": {
+    "text": "Muon",
+    "language": "tr"
+  },
+  "target": {
+    "id": "struct:lib/iyilestirici.tr#Muon",
+    "kind": "struct",
+    "name": "Muon",
+    "pos": {
+      "file": "lib/iyilestirici.tr",
+      "line": 72,
+      "col": 1,
+      "end_line": 112,
+      "end_col": 2
+    },
+    "signature": "yapı Muon"
+  },
+  "users": [
+    {
+      "role": "call",
+      "confidence": "EXTRACTED",
+      "pos": {
+        "file": "lib/iyilestirici.tr",
+        "line": 197,
+        "col": 16
+      },
+      "in": {
+        "id": "method:lib/iyilestirici.tr#MuonVeAdamW.kurucu",
+        "kind": "method",
+        "name": "MuonVeAdamW.kurucu"
+      }
+    },
+    {
+      "role": "test",
+      "confidence": "EXTRACTED",
+      "pos": {
+        "file": "lib/iyilestirici_test.tr",
+        "line": 33,
+        "col": 20
+      },
+      "in": {
+        "id": "test:lib/iyilestirici_test.tr#30",
+        "kind": "test",
+        "name": "Muon: güncelleme dikleştirilmiş momentumdur"
+      }
+    }
+  ],
+  "counts": {
+    "total": 2,
+    "by_role": {
+      "call": 1,
+      "test": 1
+    }
+  },
+  "truncated": false
+}
