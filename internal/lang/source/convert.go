@@ -57,8 +57,7 @@ func EncodeIn(text string, lang *codes.Language) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	coded := Parts{BOM: b.BOM, Coded: true, Body: c.codedBody()}
-	coded.HeaderEOL = findEOL(coded.Body)
+	coded := c.codedParts(b)
 	result := coded.Join()
 	if err := c.sameMeaning(coded); err != nil {
 		return "", err
@@ -77,9 +76,14 @@ func toCoded(b Parts, lang *codes.Language) (Parts, error) {
 	if err != nil {
 		return b, err
 	}
+	return c.codedParts(b), nil
+}
+
+// codedParts b'nin (kodsuz, çözümlenmiş) kodlu biçimidir: BOM korunur, başlık satır sonu bulunur.
+func (c *analysis) codedParts(b Parts) Parts {
 	coded := Parts{BOM: b.BOM, Coded: true, Body: c.codedBody()}
 	coded.HeaderEOL = findEOL(coded.Body)
-	return coded, nil
+	return coded
 }
 
 // Show is the text of a file (the whole file) in lang's spelling: a coded file is decoded
@@ -103,13 +107,8 @@ func reencodes(decoded, coded string, lang *codes.Language) bool {
 	if err != nil || b.Coded {
 		return false
 	}
-	c, err := analyze(b, lang)
-	if err != nil {
-		return false
-	}
-	fresh := Parts{BOM: b.BOM, Coded: true, Body: c.codedBody()}
-	fresh.HeaderEOL = findEOL(fresh.Body)
-	return fresh.Join() == coded
+	fresh, err := toCoded(b, lang)
+	return err == nil && fresh.Join() == coded
 }
 
 // codedBody Türkçe gövdenin kodlu biçimidir: anahtar kelimeler ve dilin öğesi olan adlar
