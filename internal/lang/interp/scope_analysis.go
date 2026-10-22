@@ -97,61 +97,19 @@ func statementNames(st ast.Statement, name func(string)) {
 func exprNames(e ast.Expression, name func(string)) {
 	switch x := e.(type) {
 	case nil:
+		return
 	case *ast.FunctionLiteral:
 		if x.Name != "" {
 			name(x.Name)
 		}
-	case *ast.InterpolatedString:
-		for _, p := range x.Parts {
-			exprNames(p, name)
-		}
-	case *ast.ListLiteral:
-		for _, el := range x.Elements {
-			exprNames(el, name)
-		}
-	case *ast.DictLiteral:
-		for _, p := range x.Pairs {
-			exprNames(p.Key, name)
-			exprNames(p.Value, name)
-		}
-	case *ast.RangeExpression:
-		exprNames(x.Start, name)
-		exprNames(x.End, name)
-	case *ast.PrefixExpression:
-		exprNames(x.Right, name)
-	case *ast.InfixExpression:
-		exprNames(x.Left, name)
-		exprNames(x.Right, name)
-	case *ast.IfExpression:
-		exprNames(x.Condition, name)
-		for _, ei := range x.ElseIfs {
-			exprNames(ei.Condition, name)
-		}
-	case *ast.MatchExpression:
-		exprNames(x.Subject, name)
-		for _, mc := range x.Cases {
-			for _, p := range mc.Patterns {
-				exprNames(p, name)
-			}
-			exprNames(mc.ValueExpr, name)
-		}
-	case *ast.CallExpression:
-		exprNames(x.Function, name)
-		for _, a := range x.Arguments {
-			exprNames(a, name)
-		}
-		for _, na := range x.NamedArgs {
-			exprNames(na.Value, name)
-		}
-	case *ast.IndexExpression:
-		exprNames(x.Left, name)
-		exprNames(x.Index, name)
-	case *ast.MemberExpression:
-		exprNames(x.Object, name)
-	case *ast.ListComprehension:
-		// Çıktı ve koşul kendi ortamında değerlendirilir; yalnızca kaynak bu ortamdadır
-		exprNames(x.Iterable, name)
+		return
 	}
+	// Liste üretecinin çıktısı ve koşulu kendi ortamında değerlendirilir; yalnızca kaynağı bu
+	// ortamdadır (subExpressions yalnızca kaynağı verir). if/eşle blokları kendi kapsamlarıdır.
+	subExpressions(e, func(child ast.Expression) bool {
+		exprNames(child, name)
+		return false
+	})
 }
 
 // statementCaptures deyimin (iç içe her yerinde) ortamı yakalayabilecek bir yapı içerip
@@ -218,73 +176,109 @@ func (fc blockFlagCache) exprCaptures(e ast.Expression) bool {
 		return false
 	case *ast.FunctionLiteral:
 		return true
+	case *ast.IfExpression:
+		if fc.doesBlockCapture(x.Consequence) || fc.doesBlockCapture(x.Alternative) {
+			return true
+		}
+		for _, ei := range x.ElseIfs {
+			if fc.doesBlockCapture(ei.Consequence) {
+				return true
+			}
+		}
+	case *ast.MatchExpression:
+		for _, mc := range x.Cases {
+			if fc.doesBlockCapture(mc.Body) {
+				return true
+			}
+		}
+	case *ast.ListComprehension:
+		if fc.exprCaptures(x.Output) || fc.exprCaptures(x.Condition) {
+			return true
+		}
+	}
+	return subExpressions(e, fc.exprCaptures)
+}
+
+// subExpressions ifadenin, hem ad hem yakalama çözümlemesinin gezdiği doğrudan alt ifadelerini
+// sırayla visit'e verir; visit true dönerse durur ve true döner. Bloklar ve liste üretecinin
+// çıktısı ile koşulu burada yoktur: onları çözümlemeler kendi kurallarıyla ele alır.
+func subExpressions(e ast.Expression, visit func(ast.Expression) bool) bool {
+	each := func(list ...ast.Expression) bool {
+		for _, c := range list {
+			if visit(c) {
+				return true
+			}
+		}
+		return false
+	}
+	switch x := e.(type) {
 	case *ast.InterpolatedString:
 		for _, p := range x.Parts {
-			if fc.exprCaptures(p) {
+			if visit(p) {
 				return true
 			}
 		}
 	case *ast.ListLiteral:
 		for _, el := range x.Elements {
-			if fc.exprCaptures(el) {
+			if visit(el) {
 				return true
 			}
 		}
 	case *ast.DictLiteral:
 		for _, p := range x.Pairs {
-			if fc.exprCaptures(p.Key) || fc.exprCaptures(p.Value) {
+			if each(p.Key, p.Value) {
 				return true
 			}
 		}
 	case *ast.RangeExpression:
-		return fc.exprCaptures(x.Start) || fc.exprCaptures(x.End)
+		return each(x.Start, x.End)
 	case *ast.PrefixExpression:
-		return fc.exprCaptures(x.Right)
+		return visit(x.Right)
 	case *ast.InfixExpression:
-		return fc.exprCaptures(x.Left) || fc.exprCaptures(x.Right)
+		return each(x.Left, x.Right)
 	case *ast.IfExpression:
-		if fc.exprCaptures(x.Condition) || fc.doesBlockCapture(x.Consequence) || fc.doesBlockCapture(x.Alternative) {
+		if visit(x.Condition) {
 			return true
 		}
 		for _, ei := range x.ElseIfs {
-			if fc.exprCaptures(ei.Condition) || fc.doesBlockCapture(ei.Consequence) {
+			if visit(ei.Condition) {
 				return true
 			}
 		}
 	case *ast.MatchExpression:
-		if fc.exprCaptures(x.Subject) {
+		if visit(x.Subject) {
 			return true
 		}
 		for _, mc := range x.Cases {
 			for _, p := range mc.Patterns {
-				if fc.exprCaptures(p) {
+				if visit(p) {
 					return true
 				}
 			}
-			if fc.exprCaptures(mc.ValueExpr) || fc.doesBlockCapture(mc.Body) {
+			if visit(mc.ValueExpr) {
 				return true
 			}
 		}
 	case *ast.CallExpression:
-		if fc.exprCaptures(x.Function) {
+		if visit(x.Function) {
 			return true
 		}
 		for _, a := range x.Arguments {
-			if fc.exprCaptures(a) {
+			if visit(a) {
 				return true
 			}
 		}
 		for _, na := range x.NamedArgs {
-			if fc.exprCaptures(na.Value) {
+			if visit(na.Value) {
 				return true
 			}
 		}
 	case *ast.IndexExpression:
-		return fc.exprCaptures(x.Left) || fc.exprCaptures(x.Index)
+		return each(x.Left, x.Index)
 	case *ast.MemberExpression:
-		return fc.exprCaptures(x.Object)
+		return visit(x.Object)
 	case *ast.ListComprehension:
-		return fc.exprCaptures(x.Iterable) || fc.exprCaptures(x.Output) || fc.exprCaptures(x.Condition)
+		return visit(x.Iterable)
 	}
 	return false
 }

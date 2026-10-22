@@ -202,11 +202,7 @@ func TestIndexAssignAndPlainValueHooks(t *testing.T) {
 	vmx := New()
 	vmx.GlobalEnv.Define("a", a, false)
 	vmx.GlobalEnv.Define("l", &ListVal{Elements: []Value{a}}, false)
-	p := parser.New(lexer.New("a[0] = 5\na[1] += 2\na[1] *= 4\nl[0][0] -= 1\na[-1] = 3"))
-	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		t.Fatal(p.Errors())
-	}
+	prog := mustParseProgram(t, "a[0] = 5\na[1] += 2\na[1] *= 4\nl[0][0] -= 1\na[-1] = 3")
 	_, err := vmx.Run(prog)
 	if !atLine(err, 5, "negatif indeks") {
 		t.Fatalf("kanca hatası satır önekli olmalı: %v", err)
@@ -237,11 +233,7 @@ func TestIterableHook(t *testing.T) {
 		vmx := New()
 		vmx.GlobalEnv.Define("y", &iteratedValue{n: 4}, false)
 		vmx.GlobalEnv.Define("bozuk", &iteratedValue{n: -1}, false)
-		p := parser.New(lexer.New(codeVal))
-		prog := p.ParseProgram()
-		if len(p.Errors()) > 0 {
-			t.Fatal(p.Errors())
-		}
+		prog := mustParseProgram(t, codeVal)
 		_, err := vmx.Run(prog)
 		return vmx, err
 	}
@@ -301,11 +293,7 @@ func TestStreamHook(t *testing.T) {
 		vmx := New()
 		vmx.GlobalEnv.Define("a", a, false)
 		vmx.GlobalEnv.Define("bozuk", &streamValue{n: -1}, false)
-		p := parser.New(lexer.New(codeVal))
-		prog := p.ParseProgram()
-		if len(p.Errors()) > 0 {
-			t.Fatal(p.Errors())
-		}
+		prog := mustParseProgram(t, codeVal)
 		_, err := vmx.Run(prog)
 		return vmx, err
 	}

@@ -168,42 +168,21 @@ func (v *VM) evalInfixKod(codeVal uint8, op string, left Value, right Value, lin
 }
 
 // intOp iki Tam sayı arasındaki işlemi yapar; işleç burada ele alınmıyorsa ok=false döner.
+// Hesap intFastFunc ile ortaktır; burada yalnızca hızlı yolun düştüğü durumun hatası ayrılır.
 func intOp(codeVal uint8, op string, a, b int64, line int) (Value, bool, error) {
-	switch codeVal {
-	case opAdd:
-		outcome := a + b
-		if (outcome > a) != (b > 0) {
-			return nil, true, overflowError(line, a, op, b)
+	if fast := intFastFunc(codeVal); fast != nil {
+		if val, ok := fast(a, b); ok {
+			return val, true, nil
 		}
-		return NewInt(outcome), true, nil
-	case opSub:
-		outcome := a - b
-		if (outcome < a) != (b > 0) {
-			return nil, true, overflowError(line, a, op, b)
-		}
-		return NewInt(outcome), true, nil
-	case opMul:
-		if !mulFits(a, b) {
-			return nil, true, overflowError(line, a, op, b)
-		}
-		return NewInt(a * b), true, nil
-	case opDiv:
-		if b == 0 {
+		switch {
+		case codeVal == opDiv && b == 0:
 			return nil, true, messages.At(line, 0, messages.New(messages.H2470))
-		}
-		if a == math.MinInt64 && b == -1 {
-			return nil, true, overflowError(line, a, op, b)
-		}
-		if a%b == 0 {
-			return NewInt(a / b), true, nil
-		}
-		return &FloatVal{Val: float64(a) / float64(b)}, true, nil
-	case opMod:
-		if b == 0 {
+		case codeVal == opMod:
 			return nil, true, messages.At(line, 0, messages.New(messages.H2471))
 		}
-		return NewInt(a % b), true, nil
-	case opPow:
+		return nil, true, overflowError(line, a, op, b)
+	}
+	if codeVal == opPow {
 		if b < 0 {
 			return &FloatVal{Val: math.Pow(float64(a), float64(b))}, true, nil
 		}
@@ -212,19 +191,6 @@ func intOp(codeVal uint8, op string, a, b int64, line int) (Value, bool, error) 
 			return nil, true, messages.At(line, 0, messages.New(messages.H2472, ValInt, a, b))
 		}
 		return NewInt(res), true, nil
-	case opLt:
-		return BoolToVal(a < b), true, nil
-	case opGt:
-		return BoolToVal(a > b), true, nil
-	case opLe:
-		return BoolToVal(a <= b), true, nil
-	case opGe:
-		return BoolToVal(a >= b), true, nil
-	case opEq:
-		// İki Tam doğrudan karşılaştırılır (Ondalığa çevirmek 2^53 üstünde yanlış eşitlik verirdi)
-		return BoolToVal(a == b), true, nil
-	case opNe:
-		return BoolToVal(a != b), true, nil
 	}
 	return nil, false, nil
 }

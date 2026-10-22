@@ -3,9 +3,6 @@ package interp
 import (
 	"sync"
 	"testing"
-
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
-	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
 // Aynı ayrıştırılmış program birçok VM'de aynı anda derlenip çalıştırılabilmelidir: blok
@@ -31,11 +28,7 @@ func TestOneProgramCompiledInParallelVMs(t *testing.T) {
 		yapı Nokta { x = 0
 			fonksiyon iki_kat() { değişken d = kendi.x * 2; sonuç d } }
 		sonuç [toplam_, s(), kapanışlar[2](), Nokta(4).iki_kat()]`
-	p := parser.New(lexer.New(code))
-	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		t.Fatalf("Sözdizimi hatası: %v", p.Errors())
-	}
+	prog := mustParseProgram(t, code)
 	const want = "[2100, 6, 3, 8]"
 	const vms = 8
 	var wg sync.WaitGroup

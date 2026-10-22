@@ -27,7 +27,7 @@ func (d *TensorValue) Inspect() string {
 	// Tür yalnızca float32 dışındaki türlerde gösterilir: "Tensör[2×3] bf16".
 	dtypeSuffix := ""
 	if t.DType() != tensor.Float32 {
-		dtypeSuffix = " " + dtypeName(t.DType())
+		dtypeSuffix = " " + t.DType().Name()
 	}
 	if t.Device() != tensor.CPU {
 		ek = append(ek, t.Device().String())

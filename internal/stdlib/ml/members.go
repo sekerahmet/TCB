@@ -45,7 +45,7 @@ func (d *TensorValue) GetProperty(kd codes.Code, prop string) (interp.Value, err
 	case memberDevice:
 		return &interp.StringVal{Val: t.Device().String()}, nil
 	case memberDType:
-		return &interp.StringVal{Val: dtypeName(t.DType())}, nil
+		return &interp.StringVal{Val: t.DType().Name()}, nil
 	case memberToDType:
 		return d.namedMethod(memberToDType, d.toDType), nil
 	case memberGrad:
@@ -203,16 +203,19 @@ func (d *TensorValue) nestedList() interp.Value {
 	return &lists[0]
 }
 
-func (d *TensorValue) reshape(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-	var target []interp.Value
+// unpackListOrVarargs tek liste argümanının öğelerini, yoksa argümanların kendisini verir
+// (t.yeniden_şekillendir([2, 3]) ve t.yeniden_şekillendir(2, 3) aynıdır).
+func unpackListOrVarargs(args []interp.Value) []interp.Value {
 	if len(args) == 1 {
-		if l, ok := args[0].(*interp.ListVal); ok {
-			target = l.Elements
+		if l, ok := args[0].(*interp.ListVal); ok && l.Elements != nil {
+			return l.Elements
 		}
 	}
-	if target == nil {
-		target = args
-	}
+	return args
+}
+
+func (d *TensorValue) reshape(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+	target := unpackListOrVarargs(args)
 	if len(target) == 0 {
 		return nil, messages.New(messages.H6705, codes.DisplayName(memberReshape))
 	}
@@ -269,15 +272,7 @@ func transposed(d *TensorValue) (interp.Value, error) {
 }
 
 func (d *TensorValue) permute(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-	var list []interp.Value
-	if len(args) == 1 {
-		if l, ok := args[0].(*interp.ListVal); ok {
-			list = l.Elements
-		}
-	}
-	if list == nil {
-		list = args
-	}
+	list := unpackListOrVarargs(args)
 	fn := codes.DisplayName(memberPermute)
 	sh := d.t.Shape()
 	if len(list) != len(sh) {

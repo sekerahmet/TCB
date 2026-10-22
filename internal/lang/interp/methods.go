@@ -456,15 +456,20 @@ func NumberMean(name string, elems []Value) (Value, error) {
 	return &FloatVal{Val: s / float64(len(elems))}, nil
 }
 
+// resolveIndex indeksi çözer: negatif indeks sondan sayar; aralık dışıysa ok=false.
+func resolveIndex(idx int64, length int) (pos int, ok bool) {
+	pos = int(idx)
+	if pos < 0 {
+		pos += length
+	}
+	return pos, pos >= 0 && pos < length
+}
+
 // optionalIndex varsa_al'ın indeksini çözer (negatif indeks sondan sayar); öğe yoksa ok=false.
 func optionalIndex(arg Value, length int) (pos int, ok bool) {
 	iv, isInt := arg.(*IntVal)
 	if !isInt {
 		return 0, false
 	}
-	pos = int(iv.Val)
-	if pos < 0 {
-		pos += length
-	}
-	return pos, pos >= 0 && pos < length
+	return resolveIndex(iv.Val, length)
 }

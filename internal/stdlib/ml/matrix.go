@@ -13,48 +13,6 @@ import (
 // tensördür ve tensör([[1, 2], [3, 4]]) ile oluşturulur (rastgele olanı rastgele_normal([2,
 // 3]) ile); @, + - * /, relu, softmax ... tensör yolundan geçer.
 
-// toMatrix matris alan işlevlerin girdisini 2
-// boyutlu tensöre çevirir: iç içe sayı listesi [satır, sütun], düz sayı listesi [1, n]
-// (satır vektörü) olur. 2 boyutlu tensör olduğu gibi, 1 boyutlu tensör [1, n] görünümüyle
-// kullanılır.
-func toMatrix(v interp.Value) (*tensor.Tensor, error) {
-	switch x := v.(type) {
-	case *TensorValue:
-		switch x.t.Dim() {
-		case 2:
-			return x.t, nil
-		case 1:
-			return safe(func() *tensor.Tensor { return x.t.Unsqueeze(0) })
-		}
-		return nil, messages.New(messages.H6000, shapeText(x.t.Shape()))
-	case *interp.ListVal:
-		if len(x.Elements) == 0 {
-			break
-		}
-		lines := x.Elements
-		if _, ok := x.Elements[0].(*interp.ListVal); !ok {
-			lines = []interp.Value{x} // düz liste: tek satır
-		}
-		column := len(lines[0].(*interp.ListVal).Elements)
-		data := make([]float32, 0, len(lines)*column)
-		for _, s := range lines {
-			line, ok := s.(*interp.ListVal)
-			if !ok || len(line.Elements) != column {
-				return nil, messages.New(messages.H6003)
-			}
-			for _, e := range line.Elements {
-				f, ok := interp.ToFloat(e)
-				if !ok {
-					return nil, messages.New(messages.H6004)
-				}
-				data = append(data, float32(f))
-			}
-		}
-		return tensor.New(data, len(lines), column), nil
-	}
-	return nil, messages.New(messages.H6005, interp.ValList)
-}
-
 // checkMatrixShape negatif / sıfır ya da aşırı büyük matris boyutlarını panik yerine
 // hata olarak bildirir.
 func checkMatrixShape(fn string, line, column int64) error {

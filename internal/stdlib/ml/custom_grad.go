@@ -157,14 +157,20 @@ func (o *customOp) call(m *interp.VM, args []interp.Value, named map[string]inte
 	if err != nil {
 		return nil, err
 	}
-	if !many {
-		return New(outs[0]), nil
+	return packTensorValues(outs, !many), nil
+}
+
+// packTensorValues geri çağrı çıktılarını kullanıcıya paketler: single ise tek tensör, değilse
+// tensör listesi.
+func packTensorValues(ts []*tensor.Tensor, single bool) interp.Value {
+	if single {
+		return New(ts[0])
 	}
-	el := make([]interp.Value, len(outs))
-	for i, t := range outs {
+	el := make([]interp.Value, len(ts))
+	for i, t := range ts {
 		el[i] = New(t)
 	}
-	return &interp.ListVal{Elements: el}, nil
+	return &interp.ListVal{Elements: el}
 }
 
 // forwardResult ileri'nin [çıktı, saklananlar] dönüşünü çözer.
@@ -316,11 +322,11 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 	if !ok {
 		return nil, messages.New(messages.H6421, fn, codes.DisplayName(codes.T100), codes.DisplayName(codes.T900), codes.DisplayName(codes.A040), typeName(args[1]))
 	}
-	step, err := positiveInt(fn, named, nameStep, 1e-3)
+	step, err := positiveFloat(fn, named, nameStep, 1e-3)
 	if err != nil {
 		return nil, err
 	}
-	tol, err := positiveInt(fn, named, nameTolerance, 1e-2)
+	tol, err := positiveFloat(fn, named, nameTolerance, 1e-2)
 	if err != nil {
 		return nil, err
 	}
@@ -504,8 +510,8 @@ func checkOutputs(fn string, v interp.Value) ([]*tensor.Tensor, error) {
 	return nil, messages.New(messages.H6428, fn, shortForm(v))
 }
 
-// positiveInt adlı pozitif sayısal argümanı okur.
-func positiveInt(fn string, named map[string]interp.Value, ad bind.Named, defaultVal float64) (float64, error) {
+// positiveFloat adlı pozitif sayısal argümanı okur.
+func positiveFloat(fn string, named map[string]interp.Value, ad bind.Named, defaultVal float64) (float64, error) {
 	v, ok := bind.GetNamed(named, ad)
 	if !ok {
 		return defaultVal, nil

@@ -5,19 +5,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
-	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
 // runTROut programı çalıştırır ve yazdır() çıktısını da döndürür.
 func runTROut(t *testing.T, code string) (string, Value, error) {
 	t.Helper()
-	p := parser.New(lexer.New(code))
-	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		t.Fatalf("Sözdizimi hatası: %v", p.Errors())
-	}
+	prog := mustParseProgram(t, code)
 	var out bytes.Buffer
 	machine := New()
 	machine.Out = &out
@@ -191,5 +185,48 @@ func TestShadowingBuiltinCreatesMutableVariable(t *testing.T) {
 	}
 	if _, err := runTR(t, "sabit PI_DEGERI = 3\nPI_DEGERI = 4"); !messages.Has(err, messages.H2447) {
 		t.Fatalf("kullanıcı sabiti korunmalı, alınan: %v", err)
+	}
+}
+
+// Kural: intOp hesabı intFastFunc ile ortaktır; hızlı yol düşünce hata türü işleçten ve
+// işlenenlerden seçilir (sıfıra bölme H2470, sıfıra mod H2471, taşma H2473).
+// Neden: iki ayrı kopya tutulurken biri değişince öbürü sessizce ayrışabiliyordu.
+func TestIntOpErrorsAndFastPathAgree(t *testing.T) {
+	const minInt, maxInt = int64(-1 << 63), int64(1<<63 - 1)
+	cases := []struct {
+		code uint8
+		op   string
+		a, b int64
+		want messages.Code
+		val  string
+	}{
+		{opAdd, "+", maxInt, 1, messages.H2473, ""},
+		{opSub, "-", minInt, 1, messages.H2473, ""},
+		{opMul, "*", maxInt, 2, messages.H2473, ""},
+		{opDiv, "/", 1, 0, messages.H2470, ""},
+		{opDiv, "/", minInt, -1, messages.H2473, ""},
+		{opMod, "%", 1, 0, messages.H2471, ""},
+		{opAdd, "+", 2, 3, 0, "5"},
+		{opDiv, "/", 6, 3, 0, "2"},
+		{opDiv, "/", 7, 2, 0, "3.5"},
+		{opMod, "%", 7, 3, 0, "1"},
+		{opLt, "<", 1, 2, 0, "doğru"},
+		{opEq, "==", 2, 2, 0, "doğru"},
+		{opPow, "**", 2, 10, 0, "1024"},
+	}
+	for _, c := range cases {
+		val, ok, err := intOp(c.code, c.op, c.a, c.b, 1)
+		if !ok {
+			t.Fatalf("%d %s %d: işleç ele alınmalıydı", c.a, c.op, c.b)
+		}
+		if c.want != 0 {
+			if !messages.Has(err, c.want) {
+				t.Errorf("%d %s %d: %v kodu bekleniyordu, alınan: %v", c.a, c.op, c.b, c.want, err)
+			}
+			continue
+		}
+		if err != nil || val.Inspect() != c.val {
+			t.Errorf("%d %s %d = %v, %v; %s bekleniyordu", c.a, c.op, c.b, val, err, c.val)
+		}
 	}
 }

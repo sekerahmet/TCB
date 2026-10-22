@@ -63,6 +63,22 @@
   "commit": "b3a5b22",
   "reason": "deleted: tokenizer: load errors keep the core's message instead of editing its text"
  },
+ "H6000": {
+  "commit": "ff5192a2",
+  "reason": "deleted: ml: toMatrix was never called"
+ },
+ "H6003": {
+  "commit": "ff5192a2",
+  "reason": "deleted: ml: toMatrix was never called"
+ },
+ "H6004": {
+  "commit": "ff5192a2",
+  "reason": "deleted: ml: toMatrix was never called"
+ },
+ "H6005": {
+  "commit": "ff5192a2",
+  "reason": "deleted: ml: toMatrix was never called"
+ },
  "H6323": {
   "commit": "2fa8417",
   "reason": "deleted: messages: English pilot catalog, every language uses every parameter"

@@ -763,12 +763,8 @@ const (
 	H5639 Code = 5639 // {fn}: kimlikler tam sayı olmalıdır; {what} {n}. elemanı {given}
 	H5640 Code = 5640 // {fn}(parça) 1 parametre bekler, {given} verildi
 	H5641 Code = 5641 // {fn}: parça bir metin olmalıdır (ör. "<|endoftext|>"), {given} verildi
-	H6000 Code = 6000 // matris 2 boyutlu olmalıdır, {shape} şeklinde tensör verildi
 	H6001 Code = 6001 // {example} en az 1 parametre bekler
 	H6002 Code = 6002 // {example} en fazla 2 parametre alır, {given} verildi
-	H6003 Code = 6003 // Matrisin tüm satırları eşit uzunlukta olmalıdır
-	H6004 Code = 6004 // Matris elemanları sayısal olmalıdır
-	H6005 Code = 6005 // matris oluşturmak için boş olmayan bir {listType} gereklidir
 	H6006 Code = 6006 // tensör işlemi başarısız: {reason}
 	H6007 Code = 6007 // {fn}: tensör elemanları sayı olmalıdır, {value} ({given}) verildi
 	H6008 Code = 6008 // {fn}: girdi zaten bir tensör; türünü değiştirmek için t.{toDtypeMethod}(...) yazın ({dTypeArg}: yalnızca listeden ya da sayıdan oluştururken verilir)

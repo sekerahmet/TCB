@@ -41,9 +41,6 @@ var dtypeSuggestions = map[string]string{
 	"fp32": "float32", "f32": "float32", "float": "float32", "single": "float32",
 }
 
-// dtypeName çekirdek türünün dildeki adı.
-func dtypeName(dt tensor.DType) string { return dt.Name() }
-
 // parseDTypeName dildeki tür adını çekirdek türüne çevirir; bilinmeyen adda en yakın adı önerir.
 func parseDTypeName(fn, ad string) (tensor.DType, error) {
 	switch ad {
@@ -194,7 +191,7 @@ func computeDType(m *interp.VM, args []interp.Value, named map[string]interp.Val
 	if len(args) != 0 {
 		return nil, interp.ArgCountError(codes.T711, "0", len(args))
 	}
-	return &interp.StringVal{Val: dtypeName(mixedDType(m))}, nil
+	return &interp.StringVal{Val: mixedDType(m).Name()}, nil
 }
 
 // highPrecision karışık hassasiyet bloğu içinde 16 bitlik bir tensörü (normalizasyon,

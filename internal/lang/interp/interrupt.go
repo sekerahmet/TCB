@@ -82,10 +82,6 @@ func (v *VM) InterruptNow() {
 	v.checkInterrupt()
 }
 
-// InterruptChan is closed when an interrupt is requested; long waits (bekle, engines' waits)
-// wake up early with it.
-func (v *VM) InterruptChan() <-chan struct{} { return v.interruptChan }
-
 // checkInterrupt kilit devrinden sonra çağrılır: kesme istendiyse ve bu görev henüz
 // çözülmeye başlamadıysa yığını çözen paniği atar. Çözülme sırasında çalışan 'ertele'
 // blokları yeniden kesilmez (görev başına bir kez).

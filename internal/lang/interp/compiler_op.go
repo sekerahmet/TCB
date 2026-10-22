@@ -259,12 +259,7 @@ func (c *compiler) pipe(k *compilerScope, left ast.Expression, right ast.Express
 	if callExpr, ok := right.(*ast.CallExpression); ok {
 		fun := c.expression(k, callExpr.Function)
 		argCode := c.expressions(k, callExpr.Arguments)
-		nameList := make([]string, len(callExpr.NamedArgs))
-		namedCode := make([]exprCode, len(callExpr.NamedArgs))
-		for i, na := range callExpr.NamedArgs {
-			nameList[i] = na.Name
-			namedCode[i] = c.expression(k, na.Value)
-		}
+		namedCode := c.compileNamedArgs(k, callExpr.NamedArgs)
 		line := callExpr.Line()
 		return func(v *VM, env *Environment) (Value, error) {
 			leftVal, err := leftFn(v, env)
@@ -284,13 +279,9 @@ func (c *compiler) pipe(k *compilerScope, left ast.Expression, right ast.Express
 				}
 				args = append(args, av)
 			}
-			named := make(map[string]Value)
-			for i, na := range namedCode {
-				nv, err := na(v, env)
-				if err != nil {
-					return nil, err
-				}
-				named[nameList[i]] = nv
+			named, err := namedCode.eval(v, env)
+			if err != nil {
+				return nil, err
 			}
 			if err := checkArity(fnVal, len(args), named, line); err != nil {
 				return nil, err

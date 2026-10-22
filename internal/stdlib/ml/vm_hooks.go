@@ -11,17 +11,6 @@ import (
 // işleçler (@ + - * / ** ve karşılaştırmalar), tekli eksi, indeksleme, indeksle atama,
 // döngüyle gezinme ve dış biçimlere (JSON) dönüşüm.
 
-var (
-	_ interp.Equaler          = (*TensorValue)(nil)
-	_ interp.OperatorHook     = (*TensorValue)(nil)
-	_ interp.TaskOperatorHook = (*TensorValue)(nil)
-	_ interp.Negatable        = (*TensorValue)(nil)
-	_ interp.Indexable        = (*TensorValue)(nil)
-	_ interp.IndexAssignable  = (*TensorValue)(nil)
-	_ interp.Iterable         = (*TensorValue)(nil)
-	_ interp.PlainValuer      = (*TensorValue)(nil)
-)
-
 // PlainValue tensörü JSON gibi dış biçimlere yazmak için .değer'le aynı iç içe Ondalık
 // listesine (0 boyutluda Ondalık'a) çevirir. Arayüz hata döndüremez; sıfır eksenli dev
 // şekiller oluşturulurken (sıfırlar, şekillendir) zaten engellenir.
@@ -93,8 +82,13 @@ func (d *TensorValue) TaskOperator(m *interp.VM, op string, otherVal interp.Valu
 
 func (d *TensorValue) taskOperator(m *interp.VM, op string, otherVal interp.Value, onRight bool) (interp.Value, bool, error) {
 	if op != "@" {
-		return d.Operator(op, otherVal, onRight)
+		return d.operator(op, otherVal, onRight) // TaskOperator zaten markFresh çağırır
 	}
+	return d.matmulOp(otherVal, onRight, mixedDType(m))
+}
+
+// matmulOp '@' işlecidir: işlenen tensöre çevrilir, matris çarpımı dt türünde yapılır.
+func (d *TensorValue) matmulOp(otherVal interp.Value, onRight bool, dt tensor.DType) (interp.Value, bool, error) {
 	o, err := toTensorOn(messages.Text(messages.H6124), otherVal, d.t)
 	if err != nil {
 		return nil, true, err
@@ -103,7 +97,7 @@ func (d *TensorValue) taskOperator(m *interp.VM, op string, otherVal interp.Valu
 	if onRight {
 		a, b = o, d.t
 	}
-	r, err := matmulDType(a, b, mixedDType(m))
+	r, err := matmulDType(a, b, dt)
 	if err != nil {
 		return nil, true, err
 	}
@@ -169,19 +163,7 @@ func (d *TensorValue) operator(op string, otherVal interp.Value, onRight bool) (
 		return New(r), true, nil
 
 	case "@":
-		o, err := toTensorOn(messages.Text(messages.H6124), otherVal, d.t)
-		if err != nil {
-			return nil, true, err
-		}
-		a, b := d.t, o
-		if onRight {
-			a, b = o, d.t
-		}
-		r, err := matmulDType(a, b, tensor.Float32)
-		if err != nil {
-			return nil, true, err
-		}
-		return New(r), true, nil
+		return d.matmulOp(otherVal, onRight, tensor.Float32)
 
 	case "**":
 		s, ok := interp.ToFloat(otherVal)
@@ -257,20 +239,9 @@ func (d *TensorValue) index(idx interp.Value) (interp.Value, error) {
 	}
 	n := sh[0]
 	if rng, ok := idx.(*interp.RangeVal); ok {
-		// Listelerdeki gibi: negatif uç sondan sayılır, dahil uç (..=) bundan sonra eklenir
-		// (t[0..=-1] bütün tensör); sınır dışı uçlar kırpılır.
-		head, last := int(rng.Start), int(rng.End)
-		if head < 0 {
-			head += n
-		}
-		if last < 0 {
-			last += n
-		}
-		if rng.Inclusive {
-			last++
-		}
-		head = min(max(head, 0), n)
-		last = min(max(last, head), n)
+		// Listelerle aynı sınır hesabı: negatif uç sondan sayılır, dahil uç (..=) bundan sonra
+		// eklenir (t[0..=-1] bütün tensör); sınır dışı uçlar kırpılır.
+		head, last := interp.SliceBounds(rng, n)
 		r, err := safe(func() *tensor.Tensor { return d.t.Slice(0, head, last) })
 		if err != nil {
 			return nil, err

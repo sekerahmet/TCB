@@ -5,7 +5,6 @@ import (
 	"os"
 	pathpkg "path"
 	"path/filepath"
-	"slices"
 	"sort"
 	"strings"
 
@@ -99,13 +98,7 @@ func ResolveModulePath(filePath string, dirs []string) (resolved string, searche
 	}
 	var candidates []string
 	for _, k := range dirs {
-		candidate := filepath.Join(k, filePath)
-		absolute := absPath(candidate)
-		if slices.Contains(searched, absolute) {
-			continue
-		}
-		candidates = append(candidates, candidate)
-		searched = append(searched, absolute)
+		candidates, searched = addCandidate(candidates, searched, k, filePath)
 	}
 	for _, candidate := range candidates {
 		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {

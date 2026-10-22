@@ -191,10 +191,10 @@ func rangeSteps(r *RangeVal) (first, last, step int64, empty bool) {
 	return first, last, step, empty
 }
 
-// sliceBounds a..b (ya da a..=b) dilimini n uzunluklu bir kabın [bas, son) aralığına
+// SliceBounds a..b (ya da a..=b) dilimini n uzunluklu bir kabın [bas, son) aralığına
 // çevirir: negatif uç, indekste olduğu gibi sondan sayar (-1 son eleman); uçlar kabın
 // sınırlarına kırpılır, bas > son ise dilim boştur.
-func sliceBounds(r *RangeVal, n int) (begin, last int) {
+func SliceBounds(r *RangeVal, n int) (begin, last int) {
 	b, s := r.Start, r.End
 	if b < 0 {
 		b += int64(n)

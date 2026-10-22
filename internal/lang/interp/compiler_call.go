@@ -74,32 +74,19 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 	}
 
 	fun = c.namedCallee(k, e, fun)
-	nameList := make([]string, len(e.NamedArgs))
-	namedCode := make([]exprCode, len(e.NamedArgs))
-	for i, na := range e.NamedArgs {
-		nameList[i] = na.Name
-		namedCode[i] = c.expression(k, na.Value)
-	}
+	namedCode := c.compileNamedArgs(k, e.NamedArgs)
 	return func(v *VM, env *Environment) (Value, error) {
 		fnVal, err := fun(v, env)
 		if err != nil {
 			return nil, err
 		}
-		args := make([]Value, 0, nargs)
-		for _, a := range argCode {
-			av, err := a(v, env)
-			if err != nil {
-				return nil, err
-			}
-			args = append(args, av)
+		args, err := arguments(v, env, argCode)
+		if err != nil {
+			return nil, err
 		}
-		named := make(map[string]Value)
-		for i, na := range namedCode {
-			nv, err := na(v, env)
-			if err != nil {
-				return nil, err
-			}
-			named[nameList[i]] = nv
+		named, err := namedCode.eval(v, env)
+		if err != nil {
+			return nil, err
 		}
 		if err := checkArity(fnVal, len(args), named, line); err != nil {
 			return nil, err
@@ -128,6 +115,35 @@ func (c *compiler) namedCallee(k *compilerScope, e *ast.CallExpression, fun expr
 		}
 		return v.memberValue(obj, mem, u)
 	}
+}
+
+// namedArgs derlenmiş adlı argümanlardır (ad: değer).
+type namedArgs struct {
+	names []string
+	code  []exprCode
+}
+
+// compileNamedArgs adlı argümanların değer kodlarını derler.
+func (c *compiler) compileNamedArgs(k *compilerScope, list []ast.NamedArg) namedArgs {
+	n := namedArgs{names: make([]string, len(list)), code: make([]exprCode, len(list))}
+	for i, na := range list {
+		n.names[i] = na.Name
+		n.code[i] = c.expression(k, na.Value)
+	}
+	return n
+}
+
+// eval adlı argümanları yazım sırasıyla hesaplar.
+func (n namedArgs) eval(v *VM, env *Environment) (map[string]Value, error) {
+	named := make(map[string]Value)
+	for i, code := range n.code {
+		nv, err := code(v, env)
+		if err != nil {
+			return nil, err
+		}
+		named[n.names[i]] = nv
+	}
+	return named, nil
 }
 
 // arguments argüman kodlarını sırayla hesaplar.

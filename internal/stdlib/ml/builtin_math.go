@@ -66,34 +66,19 @@ func isFinite(t *tensor.Tensor) *tensor.Tensor {
 // registerIsFinite sonlu_mu'nun tensör yolunu bağlar: sonuç karşılaştırmalar gibi her zaman
 // Ondalık 0/1'dir (15.46), tam sayılı işaretli girdide de (kaynaştır'daki sonuçla aynı).
 func registerIsFinite(v *interp.VM) {
-	ad := codes.DisplayName(codes.G415)
-	wrap(v, codes.G415, func(old interp.BuiltinFunc) interp.BuiltinFunc {
-		return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-			if err := bind.CheckNamed(ad+"()", named); err != nil {
-				return nil, err
-			}
-			if len(args) == 1 {
-				if err := listError(ad, args[0], messages.Text(messages.H6131), ad+"("+codes.Name(codes.T100)+"(...))"); err != nil {
-					return nil, err
-				}
-			}
-			d, ok := singleTensor(args)
-			if !ok {
-				return oldCall(ad, old, m, args, named)
-			}
-			r, err := safe(func() *tensor.Tensor { return isFinite(d.t) })
-			if err != nil {
-				return nil, err
-			}
-			return New(r), nil
-		}
-	})
+	registerTensorWrap(v, codes.G415, false, isFinite)
 }
 
 // registerRounding taban, tavan, işaret ve mutlak'ı sarar: tensörde eleman bazlı (türevi tensör
 // işleminindir: taban, tavan ve işarette 0, mutlak'ta işaret(x); tam sayılı işaretli tensörün
 // sonucu da tam sayılıdır), sayıda çekirdek yerleşiği (Tam → Tam), listede yol gösteren hata.
 func registerRounding(v *interp.VM, kd codes.Code, fn func(*tensor.Tensor) *tensor.Tensor) {
+	registerTensorWrap(v, kd, true, fn)
+}
+
+// registerTensorWrap tek tensör argümanlı yerleşiği sarar: adlı argüman yok, listede yol gösteren
+// hata, tensör dışı girdide eski yerleşik; keepInts sonuca girdinin tam sayılı işaretini taşır.
+func registerTensorWrap(v *interp.VM, kd codes.Code, keepInts bool, fn func(*tensor.Tensor) *tensor.Tensor) {
 	ad := codes.DisplayName(kd)
 	wrap(v, kd, func(old interp.BuiltinFunc) interp.BuiltinFunc {
 		return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
@@ -114,7 +99,9 @@ func registerRounding(v *interp.VM, kd codes.Code, fn func(*tensor.Tensor) *tens
 				return nil, err
 			}
 			s := New(r)
-			s.hasInts = d.hasInts
+			if keepInts {
+				s.hasInts = d.hasInts
+			}
 			return s, nil
 		}
 	})

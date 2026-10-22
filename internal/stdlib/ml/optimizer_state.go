@@ -125,7 +125,7 @@ func (o *Optimizer) LoadState(fn string, st map[string]*tensor.Tensor) error {
 		return err
 	}
 	moved := make(map[string]*tensor.Tensor, len(st))
-	_, err := bind.Recover(func() bool {
+	return o.recoverStateOp(fn, func() {
 		for ad, t := range st {
 			if k, ok := o.paramOrder(ad); ok {
 				t = t.To(o.params[k].Device())
@@ -137,11 +137,7 @@ func (o *Optimizer) LoadState(fn string, st map[string]*tensor.Tensor) error {
 		} else {
 			o.sgd.LoadState(moved)
 		}
-		return true
-	}, func(r any) error {
-		return messages.New(messages.H6507, fn, strings.TrimPrefix(fmt.Sprint(r), "tensor: "), o.ad, len(o.params))
 	})
-	return err
 }
 
 // CheckLoad durumu yüklemeden, LoadState'in bütün kurallarıyla denetler: anahtarlar ve
@@ -153,12 +149,19 @@ func (o *Optimizer) CheckLoad(fn string, st map[string]*tensor.Tensor) error {
 			return err
 		}
 	}
-	_, err := bind.Recover(func() bool {
+	return o.recoverStateOp(fn, func() {
 		if o.adamw != nil {
 			o.adamw.CheckState(st)
 		} else {
 			o.sgd.CheckState(st)
 		}
+	})
+}
+
+// recoverStateOp durum işlemini çalıştırır; tensör katmanının paniğini H6507 hatasına çevirir.
+func (o *Optimizer) recoverStateOp(fn string, op func()) error {
+	_, err := bind.Recover(func() bool {
+		op()
 		return true
 	}, func(r any) error {
 		return messages.New(messages.H6507, fn, strings.TrimPrefix(fmt.Sprint(r), "tensor: "), o.ad, len(o.params))
