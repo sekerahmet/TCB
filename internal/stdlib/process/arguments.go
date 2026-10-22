@@ -25,7 +25,7 @@ const usageErrorCode = 2
 // --help de), yardımda ve iletilerde etkin dilin adı yazılır; -h simgedir.
 
 // helpOption yardım seçeneğinin etkin dildeki yazımıdır (--yardım).
-func helpOption() string { return "--" + codes.DisplayName(codes.K106) }
+func helpOption() string { return codes.OptionFlag(codes.K106) }
 
 // isHelpArgument argümanın yardımı istediğidir: -h ya da herhangi bir dilde --yardım.
 func isHelpArgument(a string) bool {

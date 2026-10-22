@@ -23,7 +23,6 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/lang/source"
-	"reflect"
 	"strings"
 )
 
@@ -154,41 +153,17 @@ const (
 // fonksiyon, yapı, dene...) ve ayrıştırıcı onu satırdan bağımsız okur.
 func braceKinds(prog *ast.Program) map[pos]int {
 	result := map[pos]int{}
-	var walk func(v reflect.Value)
-	walk = func(v reflect.Value) {
-		switch v.Kind() {
-		case reflect.Interface, reflect.Ptr:
-			if !v.IsNil() {
-				walk(v.Elem())
-			}
-		case reflect.Struct:
-			if _, ok := v.Interface().(lexer.Token); ok {
-				return
-			}
-			switch n := v.Addr().Interface().(type) {
-			case *ast.DictLiteral:
-				result[pos{n.Token.Line, n.Token.Column}] = braceDict
-			case *ast.FunctionLiteral:
-				if n.Token.Type == lexer.TokLBrace {
-					result[pos{n.Token.Line, n.Token.Column}] = braceBlock
-				}
-			}
-			for i := 0; i < v.NumField(); i++ {
-				if v.Type().Field(i).IsExported() {
-					walk(v.Field(i))
-				}
-			}
-		case reflect.Slice:
-			for i := 0; i < v.Len(); i++ {
-				walk(v.Index(i))
-			}
-		case reflect.Map:
-			for _, k := range v.MapKeys() {
-				walk(v.MapIndex(k))
+	ast.Walk(prog, func(n any) bool {
+		switch n := n.(type) {
+		case *ast.DictLiteral:
+			result[pos{n.Token.Line, n.Token.Column}] = braceDict
+		case *ast.FunctionLiteral:
+			if n.Token.Type == lexer.TokLBrace {
+				result[pos{n.Token.Line, n.Token.Column}] = braceBlock
 			}
 		}
-	}
-	walk(reflect.ValueOf(prog))
+		return true
+	})
 	return result
 }
 

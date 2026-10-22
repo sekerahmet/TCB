@@ -8,8 +8,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-
-	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
 // Bu dosya yeniden adlandırma etkisinin "olası" tarafıdır: dizinin bağlayamadığı yerleri (belge,
@@ -86,20 +84,16 @@ func textFiles(root string) []string {
 // displayText bir .tr dosyasının Türkçe gösterim metnidir (kodlu dosya önce çözülür; çözülemezse
 // ham metin).
 func displayText(text string) string {
-	parts, err := source.Split(text)
-	if err != nil {
-		return text
-	}
-	if parts.Coded {
-		// Başlık satırının yerine boş satır: satır numaraları dosyadaki gerçek satırdır (read.go ile aynı).
-		if turkish, err := source.Decode(text, source.Turkish()); err == nil {
-			if p, err := source.Split(turkish); err == nil {
-				return "\n" + p.Body
-			}
+	parts, coded, err := splitTurkish(text)
+	if !coded {
+		if err != nil {
+			return text
 		}
-		return "\n" + parts.Body
+		return parts.Body
 	}
-	return parts.Body
+	// Başlık satırının yerine boş satır: satır numaraları dosyadaki gerçek satırdır (read.go ile aynı);
+	// çözülemeyen dosyada kodlu gövde olduğu gibi gösterilir.
+	return "\n" + parts.Body
 }
 
 // wordMatcher aranan sözcüğü ve ekli biçimlerini tanır.

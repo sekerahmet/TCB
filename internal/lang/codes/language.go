@@ -372,6 +372,12 @@ func DisplayName(k Code) string {
 	return active.Name(k)
 }
 
+// OptionFlag returns the command-line form of an option code in the display language: "--"
+// plus its name with underscores as hyphens (--dil, --go-profili).
+func OptionFlag(k Code) string {
+	return "--" + strings.ReplaceAll(DisplayName(k), "_", "-")
+}
+
 func buildLanguage(langCode string) (*Language, error) {
 	data, ok := languages[langCode]
 	if !ok {

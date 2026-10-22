@@ -112,3 +112,18 @@ func TestGlobFilesKeepsPatternOrder(t *testing.T) {
 		t.Fatalf("kalıp sırası bozuldu: ilk %s, son %s", got[0], got[len(got)-1])
 	}
 }
+
+// Kural: CopyDir klasörü alt klasörleriyle ve dosya içerikleriyle birlikte kopyalar.
+// Neden: codeindex ve e2e testleri aynı yürüyüş döngüsünü ayrı ayrı yazıyordu.
+func TestCopyDirCopiesTreeAndContents(t *testing.T) {
+	src, dst := t.TempDir(), filepath.Join(t.TempDir(), "kopya")
+	WritePath(t, filepath.Join(src, "a.txt"), "bir")
+	WritePath(t, filepath.Join(src, "alt", "b.txt"), "iki")
+	CopyDir(t, src, dst)
+	for name, want := range map[string]string{"a.txt": "bir", filepath.Join("alt", "b.txt"): "iki"} {
+		got, err := os.ReadFile(filepath.Join(dst, name))
+		if err != nil || string(got) != want {
+			t.Errorf("%s = %q, %v; beklenen %q", name, got, err, want)
+		}
+	}
+}

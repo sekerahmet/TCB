@@ -76,6 +76,30 @@ func GlobFiles(tb testing.TB, patterns ...string) []string {
 	return all
 }
 
+// CopyDir srcDir klasörünü (alt klasörleriyle) dstDir altına kopyalar; dstDir yoksa açılır.
+// Dosyalar 0644, klasörler 0755 izniyle yazılır. Hata testi düşürür.
+func CopyDir(t testing.TB, srcDir, dstDir string) {
+	t.Helper()
+	err := filepath.WalkDir(srcDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, _ := filepath.Rel(srcDir, path)
+		target := filepath.Join(dstDir, rel)
+		if d.IsDir() {
+			return os.MkdirAll(target, 0o755)
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(target, data, 0o644)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 // HasJSONName alanın boş olmayan bir json adı ya da "-" etiketi taşıyıp taşımadığını söyler.
 func HasJSONName(f *ast.Field) bool {
 	if f.Tag == nil {

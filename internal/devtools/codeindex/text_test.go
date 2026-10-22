@@ -27,10 +27,13 @@ func writeTree(t *testing.T, files map[string]string) string {
 func hitSummary(hits []TextHit) []string {
 	var out []string
 	for _, h := range hits {
-		out = append(out, h.Pos.String()+" "+h.Where+"/"+h.Match)
+		out = append(out, hitLine(h.Pos, h.Where, h.Match))
 	}
 	return out
 }
+
+// hitLine bir eşleşmeyi "konum nerede/eşleşme" dizgesine çevirir (testlerin karşılaştırma biçimi).
+func hitLine(pos Pos, where, match string) string { return pos.String() + " " + where + "/" + match }
 
 // Olası bölümün yanlış pozitifleri: başka, başla gibi sözcükler listelenmez ama sayılır; ekli ve
 // bileşik biçimler ayrı etiketlenir; kodda, yorumda ve metinde bulunduğu yer söylenir.

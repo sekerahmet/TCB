@@ -255,31 +255,19 @@ func (x *indexer) finish() *Index {
 		}
 	}
 	sort.SliceStable(idx.Occurrences, func(i, j int) bool {
-		a, b := idx.Occurrences[i].Pos, idx.Occurrences[j].Pos
-		if a.File != b.File {
-			return a.File < b.File
+		a, b := idx.Occurrences[i], idx.Occurrences[j]
+		if c := comparePos(a.Pos, b.Pos); c != 0 {
+			return c < 0
 		}
-		if a.Line != b.Line {
-			return a.Line < b.Line
+		if a.Node != b.Node {
+			return a.Node < b.Node
 		}
-		if a.Col != b.Col {
-			return a.Col < b.Col
-		}
-		if idx.Occurrences[i].Node != idx.Occurrences[j].Node {
-			return idx.Occurrences[i].Node < idx.Occurrences[j].Node
-		}
-		return idx.Occurrences[i].Role < idx.Occurrences[j].Role
+		return a.Role < b.Role
 	})
 	sort.SliceStable(idx.Unresolved, func(i, j int) bool {
 		a, b := idx.Unresolved[i], idx.Unresolved[j]
-		if a.Pos.File != b.Pos.File {
-			return a.Pos.File < b.Pos.File
-		}
-		if a.Pos.Line != b.Pos.Line {
-			return a.Pos.Line < b.Pos.Line
-		}
-		if a.Pos.Col != b.Pos.Col {
-			return a.Pos.Col < b.Pos.Col
+		if c := comparePos(a.Pos, b.Pos); c != 0 {
+			return c < 0
 		}
 		return a.Name < b.Name
 	})

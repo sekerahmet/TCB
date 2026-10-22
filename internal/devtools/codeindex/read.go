@@ -14,29 +14,38 @@ type parsed struct {
 	errs    []error
 }
 
+// splitTurkish bir .tr dosyasını Türkçe gövdesine böler: kodlu dosya önce Türkçe yazıma çevrilir
+// (Decode). coded dosyanın kodlu olduğunu söyler. Kodlu dosya çözülemezse ya da çözümü bölünemezse
+// err doludur ve parts dosyanın kendi (çözülmemiş) bölümleridir.
+func splitTurkish(text string) (parts source.Parts, coded bool, err error) {
+	parts, err = source.Split(text)
+	if err != nil || !parts.Coded {
+		return parts, false, err
+	}
+	turkish, err := source.Decode(text, source.Turkish())
+	if err != nil {
+		return parts, true, err
+	}
+	decoded, err := source.Split(turkish)
+	if err != nil {
+		return parts, true, err
+	}
+	return decoded, true, nil
+}
+
 // readTurkish bir .tr dosyasını etkin yazım dilinden bağımsız ayrıştırır: kodsuz dosya her zaman
 // Türkçe okunur (Parts.Lexer), kodlu dosya önce Türkçe yazıma çevrilir (Decode). Etkin dile bağlı
 // source.Prepare kullanılmaz: TR_DIL=en iken o, dosyayı İngilizce görünümüne çevirirdi ve Türkçe ad
 // tablosuyla çözülen yerleşik adlar kaybolurdu. module true ise dosya bir modül olarak okunur.
 func readTurkish(text string, module bool) *parsed {
 	res := &parsed{program: &ast.Program{}}
-	b, err := source.Split(text)
+	b, coded, err := splitTurkish(text)
+	res.coded = coded
 	if err != nil {
 		res.errs = []error{err}
 		return res
 	}
-	if b.Coded {
-		res.coded = true
-		turkish, err := source.Decode(text, source.Turkish())
-		if err == nil {
-			b, err = source.Split(turkish)
-		}
-		if err != nil {
-			res.errs = []error{err}
-			return res
-		}
-	}
-	if res.coded {
+	if coded {
 		b.Body = "\n" + b.Body // başlık satırının yerine boş satır: konumlar dosyadaki gerçek satır olur
 	}
 	res.text = b.Body

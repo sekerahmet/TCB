@@ -57,11 +57,6 @@ func Short(n Node) string {
 	return strings.TrimSpace(s)
 }
 
-// optionName bir seçenek kodunun komut satırı yazımıdır (--ad, sözcükler tireyle).
-func optionName(k codes.Code) string {
-	return "--" + strings.ReplaceAll(codes.DisplayName(k), "_", "-")
-}
-
 // Text sonucu insan için kısa düz metne çevirir: hedef, sonra komuta göre başvurular, testler ya da
 // etkilenenler; belirsiz adda adaylar, bulunamayan adda yakın adlar. Metinler ileti kodlarındandır
 // (okuyanın dilinde); `[INFERRED]` etiketi yalnızca tahminlerde görünür, etiketsizler kesindir.
@@ -171,7 +166,7 @@ func writeUses(b *strings.Builder, heading messages.Code, uses []Use, counts *Co
 		b.WriteString(line + "\n")
 	}
 	if truncated {
-		fmt.Fprintf(b, "    ... %s\n", messages.Text(messages.H8791, optionName(codes.K107), optionName(codes.K108)))
+		fmt.Fprintf(b, "    ... %s\n", messages.Text(messages.H8791, codes.OptionFlag(codes.K107), codes.OptionFlag(codes.K108)))
 	}
 }
 
@@ -244,7 +239,7 @@ func writeLikely(b *strings.Builder, r *Result) {
 		fmt.Fprintln(b, messages.Text(messages.H8840, r.SkippedWords))
 	}
 	if r.Truncated {
-		fmt.Fprintf(b, "... %s\n", messages.Text(messages.H8791, optionName(codes.K107), optionName(codes.K108)))
+		fmt.Fprintf(b, "... %s\n", messages.Text(messages.H8791, codes.OptionFlag(codes.K107), codes.OptionFlag(codes.K108)))
 	}
 }
 

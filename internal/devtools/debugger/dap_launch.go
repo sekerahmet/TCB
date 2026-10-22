@@ -9,7 +9,6 @@ import (
 	"github.com/sekerahmet/TCB/internal/stdlib/logging"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 // ---------------------------------------------------------------------------
@@ -52,13 +51,13 @@ func (s *dapServer) launch(msg *dapMessage) {
 	if u := ready.Warnings; len(u) > 0 {
 		s.output("stderr", "⚠️ "+messages.Text(messages.H8122)+"\n")
 		for _, e := range u {
-			s.output("stderr", "  • "+e.Error()+"\n"+indentLines(turkish.ErrorFrame(code, e), "    "))
+			s.output("stderr", "  • "+e.Error()+"\n"+turkish.IndentLines(turkish.ErrorFrame(code, e), "    "))
 		}
 	}
 	if len(errs) > 0 {
 		s.output("stderr", "❌ "+messages.Text(messages.H8123)+"\n")
 		for _, e := range errs {
-			s.output("stderr", "  • "+e.Error()+"\n"+indentLines(turkish.ErrorFrame(code, e), "    "))
+			s.output("stderr", "  • "+e.Error()+"\n"+turkish.IndentLines(turkish.ErrorFrame(code, e), "    "))
 		}
 		s.respondErr(msg, messages.Text(messages.H8124, filepath.Base(path)))
 		s.event("terminated", nil)
@@ -133,7 +132,7 @@ func (s *dapServer) start() {
 			exitCode = 1
 			text := "❌ " + messages.Text(messages.H8126) + "\n"
 			for _, m := range interp.ErrorItems(err, s.machine.SourceCode) {
-				text += "  • " + m.Message + "\n" + indentLines(m.Frame, "    ")
+				text += "  • " + m.Message + "\n" + turkish.IndentLines(m.Frame, "    ")
 			}
 			s.output("stderr", s.machine.Mask(text))
 		} else if u := s.machine.UnusedArgsWarning(); u != "" {
@@ -142,14 +141,4 @@ func (s *dapServer) start() {
 		s.event("exited", map[string]interface{}{"exitCode": exitCode})
 		s.event("terminated", nil)
 	}()
-}
-func indentLines(text, prefix string) string {
-	if text == "" {
-		return ""
-	}
-	var sb strings.Builder
-	for _, l := range strings.Split(strings.TrimRight(text, "\n"), "\n") {
-		sb.WriteString(prefix + l + "\n")
-	}
-	return sb.String()
 }

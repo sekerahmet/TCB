@@ -49,20 +49,9 @@ func paramPositions(f *file, fl *ast.FunctionLiteral) []Pos {
 		if li == fl.Token.Line-1 && fl.Token.Column > 1 {
 			start = min(fl.Token.Column-1, len(runes))
 		}
-		inStr := false
-		for j := start; j < len(runes); j++ {
-			c := runes[j]
+		sc := newCodeScanner(runes, start, len(runes), true)
+		for j, c, ok := sc.next(); ok; j, c, ok = sc.next() {
 			switch {
-			case inStr:
-				if c == '\\' {
-					j++
-				} else if c == '"' {
-					inStr = false
-				}
-			case c == '"':
-				inStr = true
-			case c == '/' && j+1 < len(runes) && runes[j+1] == '/':
-				j = len(runes)
 			case c == '(' || c == '[' || c == '{':
 				depth++
 				if depth == 1 && c == '(' {
@@ -85,7 +74,7 @@ func paramPositions(f *file, fl *ast.FunctionLiteral) []Pos {
 				}
 				idx++
 				expect = false
-				j = k - 1
+				sc.i = k // adın üstünden atla
 			}
 		}
 	}
@@ -108,23 +97,16 @@ func defaultText(f *file, at Pos, next *Pos) string {
 	if next != nil && next.Line == at.Line && next.Col > 0 {
 		to = next.Col - 1
 	}
-	depth, inStr := 0, false
-	for i := from; i < to; i++ {
-		c := runes[i]
+	depth := 0
+	sc := newCodeScanner(runes, from, to, false)
+	for i, c, ok := sc.next(); ok; i, c, ok = sc.next() {
 		switch {
-		case inStr:
-			if c == '\\' {
-				i++
-			} else if c == '"' {
-				inStr = false
-			}
-		case c == '"':
-			inStr = true
 		case c == '(' || c == '[' || c == '{':
 			depth++
 		case c == ')' || c == ']' || c == '}':
 			if depth == 0 {
 				to = i
+				sc.end = i
 			} else {
 				depth--
 			}

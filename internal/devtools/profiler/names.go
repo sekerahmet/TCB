@@ -18,24 +18,6 @@ func opName(is tensor.OpKind) string {
 		return codes.Name(k)
 	}
 	switch is {
-	case tensor.OpKindAdd:
-		return messages.Text(messages.H8207)
-	case tensor.OpKindSub:
-		return messages.Text(messages.H8208)
-	case tensor.OpKindMul:
-		return messages.Text(messages.H8209)
-	case tensor.OpKindDiv:
-		return messages.Text(messages.H8210)
-	case tensor.OpKindLess:
-		return messages.Text(messages.H8211)
-	case tensor.OpKindGreater:
-		return messages.Text(messages.H8212)
-	case tensor.OpKindLessEq:
-		return messages.Text(messages.H8213)
-	case tensor.OpKindGreaterEq:
-		return messages.Text(messages.H8214)
-	case tensor.OpKindMatMul:
-		return messages.Text(messages.H8215)
 	case tensor.OpKindToDevice:
 		return "." + codes.Name(codes.Y414)
 	case tensor.OpKindCast:
@@ -51,10 +33,19 @@ func opName(is tensor.OpKind) string {
 	return is.Code()
 }
 
-// opLabel, dilde tek bir ad olmayan ve işleç olmayan işlemlerin açıklama iletileridir.
+// opLabel, dilde tek bir ad olmayan işlemlerin (işleçler dahil) açıklama iletileridir.
 // Ölçüt: dilin bir yerleşiğinin/metodunun adı olan işlem ad koduyla (opCode), yalnızca
 // açıklaması olan ileti koduyla yazılır; böylece her etiket dile göre çevrilir.
 var opLabel = map[tensor.OpKind]messages.Code{
+	tensor.OpKindAdd:        messages.H8207,
+	tensor.OpKindSub:        messages.H8208,
+	tensor.OpKindMul:        messages.H8209,
+	tensor.OpKindDiv:        messages.H8210,
+	tensor.OpKindLess:       messages.H8211,
+	tensor.OpKindGreater:    messages.H8212,
+	tensor.OpKindLessEq:     messages.H8213,
+	tensor.OpKindGreaterEq:  messages.H8214,
+	tensor.OpKindMatMul:     messages.H8215,
 	tensor.OpKindOther:      messages.H8223,
 	tensor.OpKindPow:        messages.H8224,
 	tensor.OpKindAddScalar:  messages.H8225,

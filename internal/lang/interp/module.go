@@ -126,7 +126,7 @@ func ErrorItems(err error, mainCode string) []ErrorItem {
 // atılan değerler: yakalayan onları olduğu gibi görür) değişmez.
 func (v *VM) sourceError(k *Source, err error) error {
 	var mh *ModuleError
-	if errors.As(err, &mh) || !hasLine(err) {
+	if errors.As(err, &mh) || !HasLine(err) {
 		return err
 	}
 	if k == nil {

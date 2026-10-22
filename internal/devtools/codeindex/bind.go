@@ -21,7 +21,7 @@ func (x *indexer) bindOwner(f *file, o owner, sc *scope, root any) {
 			sc.params[p.Name] = NodeID(KindParameter, f.rel, ownerName(o.id)+"."+p.Name)
 		}
 	}
-	walkAST(root, func(n any) bool {
+	ast.Walk(root, func(n any) bool {
 		v, ok := n.(*ast.VarStatement)
 		if !ok || v.Value == nil {
 			return true

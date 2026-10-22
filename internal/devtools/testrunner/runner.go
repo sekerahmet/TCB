@@ -6,14 +6,9 @@
 package testrunner
 
 import (
-	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
-	"path/filepath"
-	"sort"
-	"strings"
 
 	_ "github.com/sekerahmet/TCB/internal/devtools/debugger" // koddaki kesme_noktası hata ayıklayıcıyı açar
 	"github.com/sekerahmet/TCB/internal/lang/ast"
@@ -52,33 +47,9 @@ func (o Summary) String() string {
 // TestFiles hedefe göre çalıştırılacak dosyaları bulur. Hedef bir dosyaysa yalnızca
 // odur; klasörse altındaki (alt klasörler dahil) tüm *_test.tr dosyaları sıralı döner.
 func TestFiles(target string) ([]string, error) {
-	info, err := os.Stat(target)
-	if err != nil {
-		return nil, messages.New(messages.H8502, target)
-	}
-	if !info.IsDir() {
-		return []string{target}, nil
-	}
-	var files []string
-	err = filepath.WalkDir(target, func(fpath string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			// Gizli klasörler (.git, .claude) ve bağımlılık klasörleri taranmaz
-			ad := d.Name()
-			if fpath != target && (strings.HasPrefix(ad, ".") || ad == "node_modules") {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if strings.HasSuffix(d.Name(), "_test.tr") {
-			files = append(files, fpath)
-		}
-		return nil
-	})
-	sort.Strings(files)
-	return files, err
+	return source.WalkFiles(target, "_test.tr", func(target string, _ error) error {
+		return messages.New(messages.H8502, target)
+	}, nil)
 }
 
 // Run hedefteki tüm test dosyalarını çalıştırır, raporu cikti'ya yazar ve özeti döndürür.
@@ -155,7 +126,7 @@ func RunFile(fpath string, out io.Writer) Summary {
 		fmt.Fprintln(out, "  ✗ "+messages.Text(messages.H8507))
 		for _, m := range interp.ErrorItems(err, text) {
 			fmt.Fprintf(out, "    • %s\n", m.Message)
-			fmt.Fprint(out, indent(m.Frame, "      "))
+			fmt.Fprint(out, turkish.IndentLines(m.Frame, "      "))
 		}
 		summary.Unloadable++
 		return summary
@@ -165,7 +136,7 @@ func RunFile(fpath string, out io.Writer) Summary {
 		summary.Total++
 		if err := machine.RunTest(t); err != nil {
 			summary.Failed++
-			if !located(err) {
+			if !interp.HasLine(err) {
 				// Konumsuz hatalarda (ör. fırlat) testin satırını göster
 				err = &interp.LineError{Line: t.Line(), Err: err}
 			}
@@ -176,7 +147,7 @@ func RunFile(fpath string, out io.Writer) Summary {
 				} else {
 					fmt.Fprintf(out, "      • %s\n", m.Message)
 				}
-				fmt.Fprint(out, indent(m.Frame, "      "))
+				fmt.Fprint(out, turkish.IndentLines(m.Frame, "      "))
 			}
 			continue
 		}
@@ -186,27 +157,7 @@ func RunFile(fpath string, out io.Writer) Summary {
 	return summary
 }
 
-// located hatanın konumu var mı: satırlı (messages.Pos) ya da bir dosyaya (modül) bağlı hata.
-// Konum yapıdan okunur; iletinin içinde geçen "Satır " sözcüğü (ör. fırlat "Satır sayısı
-// yanlış") konum sayılmaz.
-func located(err error) bool {
-	var me *interp.ModuleError
-	_, _, ok := messages.Pos(err)
-	return ok || errors.As(err, &me)
-}
-
 func writeError(out io.Writer, err error, source string) {
 	fmt.Fprintf(out, "    • %s\n", turkish.Printable(err.Error()))
-	fmt.Fprint(out, turkish.Printable(indent(turkish.ErrorFrame(source, err), "      ")))
-}
-
-func indent(text, prefix string) string {
-	if text == "" {
-		return ""
-	}
-	var sb strings.Builder
-	for _, s := range strings.Split(strings.TrimRight(text, "\n"), "\n") {
-		sb.WriteString(prefix + s + "\n")
-	}
-	return sb.String()
+	fmt.Fprint(out, turkish.Printable(turkish.IndentLines(turkish.ErrorFrame(source, err), "      ")))
 }

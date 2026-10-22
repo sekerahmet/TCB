@@ -95,9 +95,9 @@ type PlainValuer interface {
 // the line of the original error.
 type LineError = messages.PosError
 
-// hasLine hata zaten konum taşıyor mu: satırlı (messages.PosError) ya da bir dosyaya bağlı
+// HasLine hata zaten konum taşıyor mu: satırlı (messages.PosError) ya da bir dosyaya bağlı
 // (ModuleError) hata. Konum yalnızca yapıdan okunur, iletinin metninden değil.
-func hasLine(err error) bool {
+func HasLine(err error) bool {
 	var mh *ModuleError
 	_, _, located := messages.Pos(err)
 	return located || errors.As(err, &mh)
@@ -105,7 +105,7 @@ func hasLine(err error) bool {
 
 // lineSuffix hatayı (satır bilgisi yoksa) "Satır N: " önekli bir SatirliHata'ya çevirir.
 func lineSuffix(line int, err error) error {
-	if err == nil || line <= 0 || hasLine(err) {
+	if err == nil || line <= 0 || HasLine(err) {
 		return err
 	}
 	return &LineError{Line: line, Err: err}

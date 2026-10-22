@@ -43,15 +43,11 @@ type suffixForm struct {
 // suffixTails katlanmış (Türkçe küçük harf) bir sözcüğe gelebilen boş olmayan ek dizilerinin kümesidir;
 // sözcükte ünlü yoksa nil.
 func suffixTails(stem string) map[string]bool {
-	runes := []rune(stem)
-	var h harmony
-	found := false
-	for i := len(runes) - 1; i >= 0 && !found; i-- {
-		h, found = harmonyOf(runes[i])
-	}
+	h, found := lastHarmony(stem)
 	if !found {
 		return nil
 	}
+	runes := []rune(stem) // sözcüğün son harfi için (endsV)
 	start := suffixForm{endsV: isVowel(runes[len(runes)-1]), h: h}
 	forms := []suffixForm{start, pluralOf(start)}
 	var withPoss []suffixForm
@@ -126,9 +122,6 @@ func cases(f suffixForm) []string {
 		pronominal + four + "n", // -ın (tamlayan)
 	}
 }
-
-// foldedRunes bir sözcüğün Türkçe küçük harfli kod noktalarıdır.
-func foldedRunes(s string) []rune { return []rune(fold(s)) }
 
 // wordRune bir tanımlayıcı ya da sözcük karakteri mi (harf, rakam, alt çizgi).
 func wordRune(r rune) bool { return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' }

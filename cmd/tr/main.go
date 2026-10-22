@@ -162,19 +162,7 @@ func exitWithError(message any) {
 func printError(err error, source string) {
 	// Denetim karakterleri görünür yazılır: iletideki dış veri terminali bozamaz (8.4).
 	fmt.Fprintf(os.Stderr, "  • %s\n", turkish.Printable(err.Error()))
-	fmt.Fprint(os.Stderr, turkish.Printable(indentFrame(turkish.ErrorFrame(source, err))))
-}
-
-// indentFrame kod çerçevesini madde işaretinin altına hizalar.
-func indentFrame(frame string) string {
-	if frame == "" {
-		return ""
-	}
-	var sb strings.Builder
-	for _, l := range strings.Split(strings.TrimRight(frame, "\n"), "\n") {
-		sb.WriteString("    " + l + "\n")
-	}
-	return sb.String()
+	fmt.Fprint(os.Stderr, turkish.Printable(turkish.IndentLines(turkish.ErrorFrame(source, err), "    ")))
 }
 
 func printHelp() {
@@ -182,7 +170,7 @@ func printHelp() {
 	fmt.Println(messages.Text(messages.H8611))
 	// Her satır tek iletidir: kullanım ve açıklama arasında sekme; komut ve seçenek adları
 	// koddan, etkin dilde gelir. Sütunu tabwriter hizalar (adların uzunluğu dile göre değişir).
-	lang := optionName(codes.K100)
+	lang := codes.OptionFlag(codes.K100)
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	for _, row := range []string{
 		messages.Text(messages.H8612),
@@ -192,14 +180,14 @@ func printHelp() {
 		messages.Text(messages.H8616, codes.DisplayName(codes.K004)),
 		messages.Text(messages.H8617, codes.DisplayName(codes.K005)),
 		messages.Text(messages.H8618, codes.DisplayName(codes.K007)),
-		messages.Text(messages.H8619, codes.DisplayName(codes.K008), optionName(codes.K101)),
+		messages.Text(messages.H8619, codes.DisplayName(codes.K008), codes.OptionFlag(codes.K101)),
 		messages.Text(messages.H8620, codes.DisplayName(codes.K009)),
 		messages.Text(messages.H8621, codes.DisplayName(codes.K010)),
 		messages.Text(messages.H8622, codes.DisplayName(codes.K011), lang),
 		messages.Text(messages.H8623, codes.DisplayName(codes.K011), lang),
 		messages.Text(messages.H8624, codes.DisplayName(codes.K009), lang),
 		messages.Text(messages.H8625, codes.DisplayName(codes.K012)),
-		messages.Text(messages.H8626, codes.DisplayName(codes.K013), optionName(codes.K103)),
+		messages.Text(messages.H8626, codes.DisplayName(codes.K013), codes.OptionFlag(codes.K103)),
 		messages.Text(messages.H8627, codes.DisplayName(codes.K014)),
 		messages.Text(messages.H8830, codes.DisplayName(codes.K015), codes.DisplayName(codes.K016), codes.DisplayName(codes.K017), codes.DisplayName(codes.K018), codes.DisplayName(codes.K019)),
 		messages.Text(messages.H8863, codes.DisplayName(codes.K015), codes.DisplayName(codes.K020)),
@@ -214,13 +202,9 @@ func printHelp() {
 // runFile programı çalıştırır; argumanlar dosya adından sonra yazılanlardır ve programa
 // iletilir (tr betik.tr --adım 5).
 func runFile(path string, arguments []string) {
-	_, s := prepareFile(path, runPreparation)
-	machine := interp.New()
-	machine.SourceFile = path
-	machine.SourceCode = s.Text
-	machine.SetArgs(arguments)
-	startJobProfile(machine, path, s.Text, s.Program)
-	runProgram(machine, s.Program, s.Text)
+	machine, program, text := prepareProgram(path, arguments, runPreparation)
+	startJobProfile(machine, path, text, program)
+	runProgram(machine, program, text)
 	cleanup()
 }
 
@@ -234,15 +218,9 @@ func debugCommand(args []string) {
 }
 
 func debugFile(path string, arguments []string) {
-	_, s := prepareFile(path, debugPreparation)
-	machine := interp.New()
-	machine.SourceFile = path
-	machine.SourceCode = s.Text
-	machine.SetArgs(arguments)
-	dbg := debugger.NewDebugger(path, s.Text, true)
-	machine.Debugger = dbg
-
-	runProgram(machine, s.Program, s.Text)
+	machine, program, text := prepareProgram(path, arguments, debugPreparation)
+	machine.Debugger = debugger.NewDebugger(path, text, true)
+	runProgram(machine, program, text)
 }
 
 func checkFile(path string) {

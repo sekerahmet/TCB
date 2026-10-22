@@ -9,29 +9,15 @@ import (
 	"testing"
 	"testing/fstest"
 	"time"
+
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // copyFixture deneme projesini geçici bir klasöre kopyalar (önbellek yazılabilsin).
 func copyFixture(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
-	err := filepath.WalkDir(fixtureDir, func(p string, d os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		rel, _ := filepath.Rel(fixtureDir, p)
-		if d.IsDir() {
-			return os.MkdirAll(filepath.Join(dir, rel), 0o755)
-		}
-		data, err := os.ReadFile(p)
-		if err != nil {
-			return err
-		}
-		return os.WriteFile(filepath.Join(dir, rel), data, 0o644)
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	testkit.CopyDir(t, fixtureDir, dir)
 	return dir
 }
 

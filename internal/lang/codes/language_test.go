@@ -319,3 +319,14 @@ func TestIndexSubcommandsAreNotCommands(t *testing.T) {
 		}
 	}
 }
+
+// Kural: OptionFlag seçenek kodunu komut satırı bayrağına çevirir: "--" ve alt çizgi yerine tire.
+// Neden: cmd/tr ve codeindex aynı çevirmeyi ayrı ayrı yazıyordu.
+func TestOptionFlagHyphenatesDisplayName(t *testing.T) {
+	for _, k := range []Code{K100, K106} {
+		want := "--" + strings.ReplaceAll(DisplayName(k), "_", "-")
+		if got := OptionFlag(k); got != want || strings.Contains(got, "_") {
+			t.Errorf("OptionFlag(%s) = %q, beklenen %q", k, got, want)
+		}
+	}
+}

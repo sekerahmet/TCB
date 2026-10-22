@@ -29,7 +29,7 @@ func watchCommand(args []string) {
 		}
 	}
 	s, path, arguments := profileArguments(codes.DisplayName(codes.K012), args, codes.K105)
-	machine, prog, code := prepareProgram(path, arguments)
+	machine, prog, code := prepareProgram(path, arguments, runPreparation)
 	realExit, realError := os.Stdout, os.Stderr
 	live := profiler.NewLive(realError, logging.IsTerminal(realError), nil)
 	var catch *profiler.Capture
