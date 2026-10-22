@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -228,21 +229,10 @@ func firstDiff(a, b string) string {
 			y = bs[i]
 		}
 		if x != y {
-			return "satır " + itoa(i+1) + ":\n  özgün: " + x + "\n  geri:  " + y
+			return "satır " + strconv.Itoa(i+1) + ":\n  özgün: " + x + "\n  geri:  " + y
 		}
 	}
 	return "(fark yok)"
-}
-
-func itoa(n int) string {
-	if n == 0 {
-		return "0"
-	}
-	var b []byte
-	for ; n > 0; n /= 10 {
-		b = append([]byte{byte('0' + n%10)}, b...)
-	}
-	return string(b)
 }
 
 func TestRepoTRFilesEncodeLossless(t *testing.T) {
@@ -283,7 +273,7 @@ func TestDocCodeBlocksEncodeLossless(t *testing.T) {
 			t.Fatal(err)
 		}
 		for i, m := range trBlock.FindAllStringSubmatch(string(data), -1) {
-			if roundTrip(t, d+" #"+itoa(i+1), m[1]) {
+			if roundTrip(t, d+" #"+strconv.Itoa(i+1), m[1]) {
 				tested++
 			} else {
 				skipped++

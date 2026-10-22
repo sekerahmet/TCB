@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"unicode/utf8"
 
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Dil dosyası program her başladığında okunur. encoding/json'un yansıma (reflect) ile
@@ -37,7 +38,7 @@ func (c *jsonParser) errorf(form string, a ...any) error {
 			col++
 		}
 	}
-	return internalf("line %d, column %d: %s", line, col, fmt.Sprintf(form, a...))
+	return messages.Internalf("line %d, column %d: %s", line, col, fmt.Sprintf(form, a...))
 }
 
 func (c *jsonParser) skipSpace() {

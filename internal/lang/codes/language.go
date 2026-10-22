@@ -86,7 +86,7 @@ func Load(langCode string, data []byte) (*Language, error) {
 
 	raw, err := parseFile(data)
 	if err != nil {
-		return nil, internalf("language list %s: the file could not be read (it must be a JSON object { \"G100\": { \"ad\": ... }, ... }): %v", langCode, err)
+		return nil, messages.Internalf("language list %s: the file could not be read (it must be a JSON object { \"G100\": { \"ad\": ... }, ... }): %v", langCode, err)
 	}
 
 	d := &Language{Code: langCode, entries: make(map[Code]*Entry, len(raw)), spellings: make(map[Code][]string, len(raw))}
@@ -197,7 +197,7 @@ func Load(langCode string, data []byte) (*Language, error) {
 		}
 	}
 	if len(errs) > 0 {
-		return nil, internalf("code list %s:\n  %s", langCode, strings.Join(errs, "\n  "))
+		return nil, messages.Internalf("code list %s:\n  %s", langCode, strings.Join(errs, "\n  "))
 	}
 	return d, nil
 }

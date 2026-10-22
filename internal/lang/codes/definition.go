@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
@@ -201,7 +202,7 @@ type rawDefinition struct {
 func ParseDefinitions(data []byte) (map[Code]Definition, []Code, error) {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {
-		return nil, nil, internalf("definitions.json: %v", err)
+		return nil, nil, messages.Internalf("definitions.json: %v", err)
 	}
 	var errs []string
 	errorf := func(form string, a ...any) { errs = append(errs, fmt.Sprintf(form, a...)) }
@@ -284,7 +285,7 @@ func ParseDefinitions(data []byte) (map[Code]Definition, []Code, error) {
 	sort.Slice(order, func(i, j int) bool { return order[i] < order[j] })
 	if len(errs) > 0 {
 		sort.Strings(errs)
-		return out, order, internalf("definitions.json:\n  %s", strings.Join(errs, "\n  "))
+		return out, order, messages.Internalf("definitions.json:\n  %s", strings.Join(errs, "\n  "))
 	}
 	return out, order, nil
 }
@@ -306,7 +307,7 @@ func ParseType(s string, isParam bool) (TypeExpr, error) {
 	for _, p := range strings.Split(s, "|") {
 		k, err := Parse(p)
 		if err != nil {
-			return t, internalf("type expression %q: %v", s, err)
+			return t, messages.Internalf("type expression %q: %v", s, err)
 		}
 		t.Types = append(t.Types, k)
 	}
@@ -316,7 +317,7 @@ func ParseType(s string, isParam bool) (TypeExpr, error) {
 func parseNamed(a []json.RawMessage) (NamedArg, error) {
 	var name NamedArg
 	if len(a) < 2 || len(a) > 3 {
-		return name, internalf("a named argument must be [code, type] or [code, type, default]")
+		return name, messages.Internalf("a named argument must be [code, type] or [code, type, default]")
 	}
 	var ks, ts string
 	if err := json.Unmarshal(a[0], &ks); err != nil {
@@ -386,7 +387,7 @@ const SourceLanguage = "tr"
 // codes exist.
 func CheckDefinitions(d *Language) []error {
 	var errs []error
-	errorf := func(form string, a ...any) { errs = append(errs, internalf(form, a...)) }
+	errorf := func(form string, a ...any) { errs = append(errs, messages.Internalf(form, a...)) }
 	if err := DefinitionError(); err != nil {
 		errorf("%v", err)
 	}
