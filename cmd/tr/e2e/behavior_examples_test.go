@@ -270,8 +270,9 @@ var (
 	exampleNumbers = regexp.MustCompile(`-?\d+(?:[.,]\d+)?`)
 	exampleRunPath = regexp.MustCompile(`examples/(?:tr|en)/\S*`)
 	exampleRunDir  = regexp.MustCompile(`runs/[a-z_]+`)
-	// İlerleme çubuğunun kapanış satırındaki süre ("· 3 sn sürdü") çalıştırmadan çalıştırmaya değişir.
-	exampleElapsed = regexp.MustCompile(`\d+(?:[.,]\d+)? sn sürdü`)
+	// İlerleme çubuğunun kapanış satırındaki süre ("· 3 sn sürdü", İngilizcede "· took 3 s")
+	// çalıştırmadan çalıştırmaya değişir.
+	exampleElapsed = regexp.MustCompile(`\d+(?:[.,]\d+)? sn sürdü|took \d+(?:[.,]\d+)? s\b`)
 )
 
 // numberBag bir çıktının sayılarını sıralı verir: metinler dile göre değişir, sayılar aynı
