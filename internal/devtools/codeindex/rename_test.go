@@ -220,7 +220,7 @@ func TestRenameTermMode(t *testing.T) {
 func hitSummaryOfChanges(list []Change) []string {
 	var out []string
 	for _, c := range list {
-		out = append(out, c.Pos.String()+" "+c.Where+"/"+c.Match)
+		out = append(out, hitLine(c.Pos, c.Where, c.Match))
 	}
 	return out
 }
