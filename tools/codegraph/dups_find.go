@@ -2,7 +2,6 @@ package main
 
 import (
 	"sort"
-	"strconv"
 )
 
 // Bu dosya tekrar adaylarını bulur. Yöntem: düğüm dizisinde uzunluğu minNodes olan her pencerenin
