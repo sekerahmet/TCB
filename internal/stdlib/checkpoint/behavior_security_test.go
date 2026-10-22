@@ -12,6 +12,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 	"github.com/sekerahmet/TCB/internal/stdlib/checkpoint"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // Kontrol noktası dosyaları güvenilmeyen girdidir (SECURITY.md): kurcalanmış, yarım
@@ -126,7 +127,7 @@ func TestStrayTempCheckpointCleaned(t *testing.T) {
 func TestDeferredInterruptSavesAtStepBoundary(t *testing.T) {
 	runDir := t.TempDir()
 	m := interp.New()
-	w := &teeWriter{}
+	w := &testkit.TeeWriter{}
 	m.Out, m.Err = w, w
 	m.GlobalEnv.Define("kesme_iste", &interp.BuiltinVal{Name: "kesme_iste", Fn: func(m *interp.VM, _ []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 		return interp.BoolToVal(m.RequestInterrupt()), nil

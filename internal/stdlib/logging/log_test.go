@@ -1,7 +1,6 @@
 package logging_test
 
 import (
-	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -14,33 +13,16 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	_ "github.com/sekerahmet/TCB/internal/stdlib"
 	"github.com/sekerahmet/TCB/internal/stdlib/logging"
+	"github.com/sekerahmet/TCB/internal/testkit"
 	"github.com/sekerahmet/TCB/internal/testkit/trrun"
 )
 
-// teeWriter bir tamponu birden çok çıkışa (standart çıktı ve hata) paylaştırır.
-type teeWriter struct {
-	mu sync.Mutex
-	b  bytes.Buffer
-}
-
-func (e *teeWriter) Write(p []byte) (int, error) {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	return e.b.Write(p)
-}
-
-func (e *teeWriter) String() string {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	return e.b.String()
-}
-
 // newVM çıktısı tampona giden bir VM kurar; program dosyası klasördedir.
-func newVM(t *testing.T, dir string, arguments ...string) (*interp.VM, *teeWriter) {
+func newVM(t *testing.T, dir string, arguments ...string) (*interp.VM, *testkit.TeeWriter) {
 	t.Helper()
 	t.Cleanup(logging.CloseAll)
 	m := interp.New()
-	w := &teeWriter{}
+	w := &testkit.TeeWriter{}
 	m.Out, m.Err = w, w
 	m.SourceFile = filepath.Join(dir, "egit.tr")
 	m.SetArgs(arguments)

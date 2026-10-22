@@ -20,33 +20,16 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 	"github.com/sekerahmet/TCB/internal/stdlib"
 	"github.com/sekerahmet/TCB/internal/stdlib/checkpoint"
+	"github.com/sekerahmet/TCB/internal/testkit"
 	"github.com/sekerahmet/TCB/internal/testkit/trrun"
 )
-
-// teeWriter bir tamponu birden çok çıkışa paylaştırır.
-type teeWriter struct {
-	mu sync.Mutex
-	b  bytes.Buffer
-}
-
-func (e *teeWriter) Write(p []byte) (int, error) {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	return e.b.Write(p)
-}
-
-func (e *teeWriter) String() string {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	return e.b.String()
-}
 
 // run kodu yeni bir VM'de (yeni bir program gibi) çalıştırır; standart çıktıyı ve
 // hatayı birlikte verir.
 func run(t *testing.T, code string) (string, error) {
 	t.Helper()
 	m := interp.New()
-	w := &teeWriter{}
+	w := &testkit.TeeWriter{}
 	m.Out, m.Err = w, w
 	_, err := runVM(t, m, code)
 	return w.String(), err
@@ -296,7 +279,7 @@ func (a *atomicBool) store(v bool) {
 func runHooked(t *testing.T, code string, broken *atomicBool) (string, error) {
 	t.Helper()
 	m := interp.New()
-	w := &teeWriter{}
+	w := &testkit.TeeWriter{}
 	m.Out, m.Err = w, w
 	m.GlobalEnv.Define("bozuk_yap", &interp.BuiltinVal{Name: "bozuk_yap", Fn: func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 		broken.store(args[0] == interp.True)
