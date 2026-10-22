@@ -93,9 +93,14 @@ func TestNorms(t *testing.T) {
 	// {1000, 8}, {300, 129}, {70, 600} kaynaşık geri yönde blok başına birden çok satır işletir
 	// (benzetimde 4 SM: D = 8'de 256 blok, D ≥ 129'da 32 blok). D = 32, 64, 256 ileri ve geri
 	// warp çekirdeğidir, D = 512 yalnızca geride (kernel_norm_warp.go).
-	// Warp başına birden çok satır için R > 256 (benzetimde en çok 32 blok).
-	for _, d := range [][2]int{{1, 1}, {3, 8}, {5, 129}, {2, 600}, {1000, 8}, {300, 129}, {70, 600}, {37, 64}, {9, 256}, {3, 32}, {21, 512},
-		{1000, 64}, {2000, 512}, {300, 32}, {777, 256}, {8, 64}, {257, 512}} {
+	// Warp başına birden çok satır için R > 256 (benzetimde en çok 32 blok): {300, 32} kısa kipte,
+	// büyük boylar yalnızca uzun kipte (benzetim yarış dedektörüyle yavaştır).
+	sizes := [][2]int{{1, 1}, {3, 8}, {5, 129}, {2, 600}, {1000, 8}, {300, 129}, {70, 600}, {37, 64}, {9, 256}, {3, 32}, {21, 512},
+		{300, 32}, {8, 64}}
+	if !testing.Short() {
+		sizes = append(sizes, [][2]int{{1000, 64}, {2000, 512}, {777, 256}, {257, 512}}...)
+	}
+	for _, d := range sizes {
 		R, D := d[0], d[1]
 		xv, gv, bv := random(rng, R*D, 2), random(rng, D, 1), random(rng, D, 1)
 		compare(t, fmt.Sprintf("rms normu %d×%d", R, D), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
@@ -149,7 +154,11 @@ func TestNormsWarpRows(t *testing.T) {
 func TestNormsWarpShapes(t *testing.T) {
 	rng := rand.New(rand.NewSource(77))
 	T, H := 13, 3
-	for _, D := range []int{32, 256, 512} {
+	widths := []int{32}
+	if !testing.Short() {
+		widths = append(widths, 256, 512)
+	}
+	for _, D := range widths {
 		kv, gv, bv := random(rng, T*2*H*D, 2), random(rng, D, 1), random(rng, D, 1)
 		compare(t, fmt.Sprintf("adımlı katman D=%d", D), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
 			base, gm, bt := twin(kv, true, T, 2, H, D)[c], twin(gv, true, D)[c], twin(bv, true, D)[c]

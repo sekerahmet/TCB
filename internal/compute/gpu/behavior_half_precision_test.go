@@ -147,7 +147,11 @@ func TestNorms16Bit(t *testing.T) {
 		for _, gt := range []tensor.DType{tensor.Float32, dt} {
 			tensor.SetGradDType(gt)
 			// D = 32, 64, 256 ileri ve geri, 512 yalnızca geride warp çekirdeğidir.
-			for _, d := range [][2]int{{3, 8}, {5, 129}, {2, 600}, {37, 64}, {9, 256}, {300, 512}, {3, 32}} {
+			sizes := [][2]int{{3, 8}, {5, 129}, {2, 600}, {37, 64}, {9, 256}, {3, 32}, {21, 512}}
+			if !testing.Short() {
+				sizes = append(sizes, [2]int{300, 512}) // warp başına çok satır (uzun kip)
+			}
+			for _, d := range sizes {
 				R, D := d[0], d[1]
 				xv, gv, bv := random(rng, R*D, 2), random(rng, D, 1), random(rng, D, 1)
 				name := fmt.Sprintf("%s (gradyan %s) %d×%d", dt, gt, R, D)
