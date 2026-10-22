@@ -379,6 +379,7 @@ yapı KVÖnbellek {
     değerler
     adım_konumu
     pozisyonlar
+    maskeler
     fonksiyon kurucu(katman, tür = "sabit", en_çok = 0) {
         doğrula(tür == "sabit" veya tür == "büyüyen", "önbellek türü \"sabit\" ya da \"büyüyen\" olmalı, {tür} verildi")
         doğrula(tür != "sabit" veya en_çok > 0, "sabit önbellek en_çok > 0 ister")
@@ -389,17 +390,24 @@ yapı KVÖnbellek {
         kendi.değerler = [yok döngü _ içinde 0..katman]
         kendi.adım_konumu = yok
         kendi.pozisyonlar = yok
+        kendi.maskeler = {}
     }
     // cihaz_adımı: sonraki ekle'ler konumu (cihazdaki [1] tensörü; yok: konak konumu) kullanır.
     fonksiyon cihaz_adımı(konum) {
         doğrula(konum == yok veya kendi.tür == "sabit", "cihaz adımı yalnızca sabit önbellekte")
         kendi.adım_konumu = konum
+        kendi.maskeler = {}
     }
-    // maske: cihaz adımında bakılacak konumlar ([en_çok], 0/1).
+    // maske: cihaz adımında bakılacak konumlar ([en_çok], 0/1); pencere başına adımda bir kez
+    // kurulur, aynı pencereli katmanlar paylaşır.
     fonksiyon maske(pencere = 0) {
-        değişken m = kendi.pozisyonlar <= kendi.adım_konumu
-        eğer pencere > 0 { m = m * (kendi.pozisyonlar > kendi.adım_konumu - pencere) }
-        sonuç m
+        değişken anahtar = "{pencere}"
+        eğer değil kendi.maskeler.içerir(anahtar) {
+            değişken m = kendi.pozisyonlar <= kendi.adım_konumu
+            eğer pencere > 0 { m = m * (kendi.pozisyonlar > kendi.adım_konumu - pencere) }
+            kendi.maskeler[anahtar] = m
+        }
+        sonuç kendi.maskeler[anahtar]
     }
     // ekle: katman no'nun yeni anahtar ve değerlerini ([B, kv_bakış, T, bakış_boyutu]) konumdan
     // başlayarak ekler; o katmanın 0..konum+T anahtar ve değerlerini verir.

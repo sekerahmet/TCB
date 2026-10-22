@@ -15,6 +15,10 @@
 // Ağırlıklar safetensors'tan (tensör_yükle, dil tanımı 15.47) bir ad eşlemesiyle parametrelere
 // yazılır (parametreleri_yükle, 20.11). Hugging Face nn.Linear ağırlığı [çıkış, giriş], TR'nin
 // Doğrusal'ı [giriş, çıkış] tutar: doğrusal katmanlar devrilir. Eşlenmeyen ya da eksik ad hatadır.
+// Model birleşik katmanlarla kurulur: k_proj ile v_proj tek [K | V] katmanı (birleşik_kv),
+// gate_proj ile up_proj tek [G | U] katmanı (birleşik_kapı) olur. Sonuç aynıdır, ama bir parçalık
+// üretim adımında katman başına iki çarpım (iki kernel) eksilir; vLLM de Llama'yı böyle yükler
+// (QKVParallelLinear, MergedColumnParallelLinear).
 
 aktar "tr/katman"
 
@@ -61,7 +65,7 @@ fonksiyon hazır_model_kur(ayar) {
         kv_bakış_sayısı: ayar_değeri(ayar, "num_key_value_heads", bakış), ara_boyut: ayar["intermediate_size"],
         paylaşımlı: ayar_değeri(ayar, "tie_word_embeddings", yanlış), epsilon: ayar_değeri(ayar, "rms_norm_eps", 0.000001),
         qk_normu: tür == "qwen3", bakış_boyutu: ayar_değeri(ayar, "head_dim", tam(boyut / bakış)),
-        rope_tabanı: rope_tabanı(ayar))
+        rope_tabanı: rope_tabanı(ayar), birleşik_kv: doğru, birleşik_kapı: doğru)
 }
 
 // rope_tabanı: üst düzeyde rope_theta (eski transformers) ya da rope_parameters.rope_theta (5.x);
@@ -80,19 +84,20 @@ fonksiyon rope_ölçekleme_var_mı(ayar) {
     sonuç p != yok ve ayar_değeri(p, "rope_type", "default") != "default"
 }
 
-// Blok içi Hugging Face adı → [TR adı, devrik mi].
+// Blok içi Hugging Face adı → [TR adı, devrik mi, birleşik katmandaki parça (-1: tek başına)].
+// Parçalı ağırlıklar (devrildikten sonra) son eksende sırayla bitiştirilir: [K | V], [G | U].
 sabit BLOK_ADLARI = {
-    "self_attn.q_proj.weight": ["dikkat.sorgu_katmanı.ağırlık", doğru],
-    "self_attn.k_proj.weight": ["dikkat.anahtar_katmanı.ağırlık", doğru],
-    "self_attn.v_proj.weight": ["dikkat.değer_katmanı.ağırlık", doğru],
-    "self_attn.o_proj.weight": ["dikkat.çıkış_katmanı.ağırlık", doğru],
-    "self_attn.q_norm.weight": ["dikkat.q_norm.ağırlık", yanlış],
-    "self_attn.k_norm.weight": ["dikkat.k_norm.ağırlık", yanlış],
-    "mlp.gate_proj.weight": ["ileri_besleme.kapı.ağırlık", doğru],
-    "mlp.up_proj.weight": ["ileri_besleme.yukarı.ağırlık", doğru],
-    "mlp.down_proj.weight": ["ileri_besleme.aşağı.ağırlık", doğru],
-    "input_layernorm.weight": ["norm1.ağırlık", yanlış],
-    "post_attention_layernorm.weight": ["norm2.ağırlık", yanlış]
+    "self_attn.q_proj.weight": ["dikkat.sorgu_katmanı.ağırlık", doğru, -1],
+    "self_attn.k_proj.weight": ["dikkat.kv_katmanı.ağırlık", doğru, 0],
+    "self_attn.v_proj.weight": ["dikkat.kv_katmanı.ağırlık", doğru, 1],
+    "self_attn.o_proj.weight": ["dikkat.çıkış_katmanı.ağırlık", doğru, -1],
+    "self_attn.q_norm.weight": ["dikkat.q_norm.ağırlık", yanlış, -1],
+    "self_attn.k_norm.weight": ["dikkat.k_norm.ağırlık", yanlış, -1],
+    "mlp.gate_proj.weight": ["ileri_besleme.kapı_yukarı.ağırlık", doğru, 0],
+    "mlp.up_proj.weight": ["ileri_besleme.kapı_yukarı.ağırlık", doğru, 1],
+    "mlp.down_proj.weight": ["ileri_besleme.aşağı.ağırlık", doğru, -1],
+    "input_layernorm.weight": ["norm1.ağırlık", yanlış, -1],
+    "post_attention_layernorm.weight": ["norm2.ağırlık", yanlış, -1]
 }
 
 // hugging_face_eşle Hugging Face adlı ağırlık sözlüğünü TR parametre adlarına çevirir. Paylaşımlı
@@ -101,6 +106,7 @@ sabit BLOK_ADLARI = {
 fonksiyon hugging_face_eşle(ağırlıklar, ayar) {
     değişken paylaşımlı = ayar_değeri(ayar, "tie_word_embeddings", yanlış)
     değişken sonuç_sözlük = {}
+    değişken parçalı = {} // TR adı → [ilk parça, ikinci parça]
     döngü ad, t içinde ağırlıklar {
         eğer ad.biter("rotary_emb.inv_freq") { devam }
         eğer ad == "model.embed_tokens.weight" {
@@ -117,10 +123,19 @@ fonksiyon hugging_face_eşle(ağırlıklar, ayar) {
             değişken tr_ad = "bloklar.{parçalar[2]}.{hedef[0]}"
             değişken w = t
             eğer hedef[1] { w = t.devrik() }
-            sonuç_sözlük[tr_ad] = w
+            eğer hedef[2] < 0 {
+                sonuç_sözlük[tr_ad] = w
+            } değilse {
+                eğer değil parçalı.içerir(tr_ad) { parçalı[tr_ad] = [yok, yok] }
+                parçalı[tr_ad][hedef[2]] = w
+            }
         } değilse {
             fırlat "hazır_model: tanınmayan ağırlık {ad}"
         }
+    }
+    döngü tr_ad, p içinde parçalı {
+        eğer p[0] == yok veya p[1] == yok { fırlat "hazır_model: {tr_ad} için iki parçadan biri eksik" }
+        sonuç_sözlük[tr_ad] = bitiştir(p, eksen: -1)
     }
     sonuç sonuç_sözlük
 }

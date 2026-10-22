@@ -27,7 +27,8 @@ test "hazır_model_kur: config.json alanları GPT'ye eşlenir; bakış boyutu ve
     eşit_mi(100000.0, ll.ayar.rope_tabanı)
     eşit_mi(yok, ll.çıkış)
     eşit_mi(yok, ll.bloklar[0].dikkat.q_norm)
-    eşit_mi([8, 8], ll.bloklar[0].dikkat.anahtar_katmanı.ağırlık.şekil) // kv verilmezse bakış sayısı
+    eşit_mi([8, 16], ll.bloklar[0].dikkat.kv_katmanı.ağırlık.şekil) // [K | V]; kv verilmezse bakış sayısı
+    eşit_mi([8, 24], ll.bloklar[0].ileri_besleme.kapı_yukarı.ağırlık.şekil) // [G | U]
 }
 
 test "hazır_model_kur: desteklenmeyen mimari ve ayarlar açık hatadır" {
@@ -56,6 +57,10 @@ test "hugging_face_eşle: adlar TR parametrelerine, doğrusal katmanlar devriler
     eşit_mi(["bloklar.0.dikkat.sorgu_katmanı.ağırlık", "bloklar.0.norm1.ağırlık"], e.anahtarlar())
     eşit_mi([3, 2], e["bloklar.0.dikkat.sorgu_katmanı.ağırlık"].şekil)
     eşit_mi([[1.0, 4.0], [2.0, 5.0], [3.0, 6.0]], e["bloklar.0.dikkat.sorgu_katmanı.ağırlık"].değer)
+    // k ve v (gate ve up) devrilip son eksende tek katmana bitiştirilir: [K | V], [G | U].
+    değişken b = hugging_face_eşle({"model.layers.1.self_attn.v_proj.weight": w * 10, "model.layers.1.self_attn.k_proj.weight": w}, {})
+    eşit_mi([[1.0, 4.0, 10.0, 40.0], [2.0, 5.0, 20.0, 50.0], [3.0, 6.0, 30.0, 60.0]], b["bloklar.1.dikkat.kv_katmanı.ağırlık"].değer)
+    doğrula(hata_metni(() => hugging_face_eşle({"model.layers.0.mlp.up_proj.weight": w}, {})).içerir("eksik"))
     doğrula(hata_metni(() => hugging_face_eşle({"model.layers.0.mlp.gate_proj.bias": w}, {})).içerir("tanınmayan ağırlık"))
     doğrula(hata_metni(() => hugging_face_eşle({"vision.x": w}, {})).içerir("tanınmayan ağırlık"))
 }
