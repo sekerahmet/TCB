@@ -73,11 +73,9 @@ func (c *Checker) checkStruct(s *ast.StructStatement) {
 // dönüş tipini (yoksa Herhangi) verir.
 func (c *Checker) functionSignature(e *ast.FunctionLiteral) (paramTypes []string, retType string) {
 	for _, p := range e.Parameters {
-		c.checkTypeName(p.TypeName, e.Line())
-		paramTypes = append(paramTypes, normalizeTypeName(p.TypeName))
+		paramTypes = append(paramTypes, c.checkedTypeName(p.TypeName, e.Line()))
 	}
-	c.checkTypeName(e.ReturnType, e.Line())
-	return paramTypes, normalizeTypeName(e.ReturnType)
+	return paramTypes, c.checkedTypeName(e.ReturnType, e.Line())
 }
 
 // functionBody parametrelerin tanımlı olduğu yeni bir kapsamda varsayılan değerleri ve

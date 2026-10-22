@@ -141,9 +141,8 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 	case *ast.VarStatement:
 		c.checkShadowing(s.Name.Value, s.Line())
 		c.checkNameStyle(s.Name.Value, varKind(s.IsConst), s.Line())
-		c.checkTypeName(s.TypeName, s.Line())
+		declared := c.checkedTypeName(s.TypeName, s.Line())
 		inferred := c.inferExpression(s.Value)
-		declared := normalizeTypeName(s.TypeName)
 		if s.TypeName != "" && !typesCompatible(declared, inferred) {
 			c.addError(s.Line(), 0, messages.New(messages.H1001,
 				s.Name.Value, declared, inferred, numberHint(declared, inferred)))
