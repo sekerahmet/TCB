@@ -394,7 +394,11 @@ func (cpuBackend) f32LayerNormGrad(gx, ggamma, gbeta, g Storage, x View, gamma *
 			if xg != nil {
 				xr = xg[lo*D : hi*D]
 			}
-			lnBackwardBlock(xr, pg, pb, xd[lo*D:hi*D], gr0[lo*D:hi*D], gd, md[lo:hi], rd[lo:hi], D)
+			var mr []float32 // RMS normunda (mean nil) ortalama yoktur
+			if md != nil {
+				mr = md[lo:hi]
+			}
+			lnBackwardBlock(xr, pg, pb, xd[lo*D:hi*D], gr0[lo*D:hi*D], gd, mr, rd[lo:hi], D)
 		}
 	})
 	pc.concatFn(gg, bg)
@@ -412,25 +416,8 @@ func (cpuBackend) f32RMSNorm(out Storage, x View, gamma *View, D int, eps float3
 	return &cpuStorage{d: rinv}
 }
 
-func (cpuBackend) f32RMSNormGrad(gx, ggamma, g Storage, x View, gamma *View, rinv Storage, D int) {
-	xd := gatherCPU(x)
-	gd := optGather(gamma)
-	gr0, rd := cd(g), cd(rinv)
-	xg, gg := cd(gx), cd(ggamma)
-	R := len(xd) / max(D, 1)
-	pc := newPartialSum(R, D, gg != nil, false)
-	parallelFor(pc.nc, pc.rpc*D*4, func(clo, chi int) {
-		for c := clo; c < chi; c++ {
-			lo, hi := pc.span(c)
-			pg, _ := pc.partial(c)
-			var xr []float32
-			if xg != nil {
-				xr = xg[lo*D : hi*D]
-			}
-			lnBackwardBlock(xr, pg, nil, xd[lo*D:hi*D], gr0[lo*D:hi*D], gd, nil, rd[lo:hi], D)
-		}
-	})
-	pc.concatFn(gg, nil)
+func (b cpuBackend) f32RMSNormGrad(gx, ggamma, g Storage, x View, gamma *View, rinv Storage, D int) {
+	b.f32LayerNormGrad(gx, ggamma, nil, g, x, gamma, nil, rinv, D)
 }
 
 // ----------------------------------------------------------------------------
