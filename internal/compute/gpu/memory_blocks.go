@@ -141,25 +141,25 @@ func (p *largePool) give(addr uint64) uint64 {
 	size := b.size
 	if n := b.next; n != nil && n.free {
 		p.removeFree(n)
-		delete(p.byAddr, n.addr)
-		b.size += n.size
-		b.next = n.next
-		if n.next != nil {
-			n.next.prev = b
-		}
+		p.mergeNext(b, n)
 	}
 	if q := b.prev; q != nil && q.free {
 		p.removeFree(q)
-		delete(p.byAddr, b.addr)
-		q.size += b.size
-		q.next = b.next
-		if b.next != nil {
-			b.next.prev = q
-		}
+		p.mergeNext(q, b)
 		b = q
 	}
 	p.insertFree(b)
 	return size
+}
+
+// mergeNext left bloğunun hemen sağındaki right bloğunu left'e katar (right artık yoktur).
+func (p *largePool) mergeNext(left, right *block) {
+	delete(p.byAddr, right.addr)
+	left.size += right.size
+	left.next = right.next
+	if right.next != nil {
+		right.next.prev = left
+	}
 }
 
 // emptySegments tamamen boş parçaları boş listeden çıkarıp verir (sürücüye geri verilmek
