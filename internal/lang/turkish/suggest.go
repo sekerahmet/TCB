@@ -1,6 +1,9 @@
 package turkish
 
-import "strings"
+import (
+	"strings"
+	"unicode/utf8"
+)
 
 // foldASCII Türkçe karakterleri ASCII karşılıklarına indirger ve küçük harfe çevirir;
 // böylece 'degisken_adi' ile 'değişken_adı' aynı sözcük sayılır.
@@ -14,8 +17,14 @@ var asciiFolder = strings.NewReplacer(
 
 // ASCII returns the name with its Turkish letters replaced by their ASCII counterparts
 // (öğrenme_oranı → ogrenme_orani); other characters and letter case are unchanged.
+// ASCII-only names are returned as they are without calling the replacer (hot path of code lookups).
 func ASCII(s string) string {
-	return asciiFolder.Replace(s)
+	for i := 0; i < len(s); i++ {
+		if s[i] >= utf8.RuneSelf {
+			return asciiFolder.Replace(s)
+		}
+	}
+	return s
 }
 
 // HasTurkishLetter reports whether s contains a letter specific to Turkish (ı İ ş Ş ğ Ğ ü Ü ö Ö ç Ç).
