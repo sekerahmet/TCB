@@ -13,7 +13,8 @@ import (
 // Tek satırlık çarpım (M = 1) gemv çekirdeğine gider ve float64 başvuruyla aynıdır: iki B
 // düzeni, ekleme ve üzerine yazma, vektörel (N ya da K 4'ün katı, hizalı) ve tekli okuma
 // (4'ün katı olmayan boy ya da hizasız görünüm), son blokta eksik sütunlar, dörtlü açılımın
-// kalan satırları, toplu çarpım ve elle verilen her ayar (L, T).
+// kalan satırları, toplu çarpım ve elle verilen her ayar (L, T). B 16 bitlik de olabilir (float32
+// a @ bf16/fp16 ağırlık): ağırlık açılmadan okunur, sonuç float32 (başvuru yuvarlanmış B ile).
 func TestGemvMatchesReference(t *testing.T) {
 	g := gpuBackend()
 	rng := rand.New(rand.NewSource(31))
@@ -33,18 +34,27 @@ func TestGemvMatchesReference(t *testing.T) {
 						continue // devrik çekirdeğin ayarı yok
 					}
 					g.gemvConst = cfg
-					ad := fmt.Sprintf("b=%d N=%d K=%d ofset=%d devrik=%v üzerine=%v ayar=%+v", s.batch, s.N, s.K, s.offset, transB, over, cfg)
-					gemvCase(t, g, rng, ad, s.batch, s.N, s.K, s.offset, transB, over)
+					for _, bt := range []tensor.DType{tensor.Float32, tensor.BFloat16, tensor.Float16} {
+						if bt != tensor.Float32 && cfg != nil && cfg.L != 2 {
+							continue // 16 bitlik yol ayarlardan birinde yeter
+						}
+						ad := fmt.Sprintf("b=%d N=%d K=%d ofset=%d devrik=%v üzerine=%v ayar=%+v B=%s", s.batch, s.N, s.K, s.offset, transB, over, cfg, bt)
+						gemvCase(t, g, rng, ad, s.batch, s.N, s.K, s.offset, transB, over, bt)
+					}
 				}
 			}
 		}
 	}
 }
 
-func gemvCase(t *testing.T, g *backend, rng *rand.Rand, ad string, batch, N, K, offset int, transB, over bool) {
+func gemvCase(t *testing.T, g *backend, rng *rand.Rand, ad string, batch, N, K, offset int, transB, over bool, bt tensor.DType) {
 	t.Helper()
 	av := random(rng, offset+batch*K, 1)
 	bv := random(rng, offset+batch*K*N, 1)
+	bs := g.FromHost(bv, bt)
+	if bt != tensor.Float32 {
+		bv = g.ToHost(tensor.View{S: bs, Shape: []int{len(bv)}, Strides: []int{1}}) // yuvarlanmış değerler
+	}
 	cv := random(rng, batch*N, 1)
 	want := make([]float32, batch*N)
 	for z := 0; z < batch; z++ {
@@ -63,7 +73,7 @@ func gemvCase(t *testing.T, g *backend, rng *rand.Rand, ad string, batch, N, K, 
 			want[z*N+n] = float32(s)
 		}
 	}
-	as, bs, cs := g.FromHost(av, tensor.Float32), g.FromHost(bv, tensor.Float32), g.FromHost(cv, tensor.Float32)
+	as, cs := g.FromHost(av, tensor.Float32), g.FromHost(cv, tensor.Float32)
 	defer func() {
 		for _, s := range []tensor.Storage{as, bs, cs} {
 			g.Release(s)

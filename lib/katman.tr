@@ -13,12 +13,15 @@
 // ağırlıkları 1, sapmalar 0 ile başlar. Her ağırlığın kendi sabit tohumu vardır: aynı `tohum`
 // aynı modeli verir.
 
-// ağırlık_başlat şekli verilen, N(0, std) ile başlayan, türev izleyen bir ağırlık kurar.
-fonksiyon ağırlık_başlat(şekil, std, tohum) {
-    sonuç tensör(türevsiz(rastgele_normal(şekil, tohum: tohum) * std), türev_izle: doğru)
+// ağırlık_başlat şekli verilen, N(0, std) ile başlayan, türev izleyen bir ağırlık kurar; tür
+// verilirse ağırlık o türde tutulur (ör. "bf16": hazır modellerin saklandığı tür).
+fonksiyon ağırlık_başlat(şekil, std, tohum, tür = "float32") {
+    sonuç tensör(türevsiz((rastgele_normal(şekil, tohum: tohum) * std).türe(tür)), türev_izle: doğru)
 }
 
-// Doğrusal: y = x @ ağırlık (+ sapma). ağırlık [giriş, çıkış], sapma [çıkış] ya da yok.
+// Doğrusal: y = x @ ağırlık (+ sapma). ağırlık [giriş, çıkış], sapma [çıkış] ya da yok. tür
+// ağırlığın türüdür (sapma float32): float32 x ile 16 bitlik ağırlığın çarpımı float32'dir (15.12),
+// GPU'da ağırlık açılmadan okunur (çıkarımda okunan bayt yarıya iner).
 // Sapma çarpımın türünde eklenir: karışık_hassasiyet("bf16") bloğunda çıktı bf16 kalır (float32
 // sapma toplamı float32'ye yükseltmez). PyTorch'un autocast'i (F.linear sapmayı da bf16 işler) ve
 // Flax'ın Dense'i (dtype sapmayı da kapsar) böyledir; sapmanın gradyanı float32 birikir (15.12).
@@ -26,8 +29,8 @@ fonksiyon ağırlık_başlat(şekil, std, tohum) {
 yapı Doğrusal {
     ağırlık
     sapma
-    fonksiyon kurucu(giriş, çıkış, sapmalı = yanlış, std = 0.02, tohum = 1) {
-        kendi.ağırlık = ağırlık_başlat([giriş, çıkış], std, tohum)
+    fonksiyon kurucu(giriş, çıkış, sapmalı = yanlış, std = 0.02, tohum = 1, tür = "float32") {
+        kendi.ağırlık = ağırlık_başlat([giriş, çıkış], std, tohum, tür: tür)
         kendi.sapma = eğer sapmalı { tensör(sıfırlar([çıkış]), türev_izle: doğru) } değilse { yok }
     }
     fonksiyon ileri(x) {
@@ -38,13 +41,18 @@ yapı Doğrusal {
 }
 
 // GömmeKatmanı: parça kimliklerini [dağarcık, boyut] tablosunun satırlarına çevirir
-// (`gömme` yerleşiğiyle): [B, T] → [B, T, boyut].
+// (`gömme` yerleşiğiyle): [B, T] → [B, T, boyut]. tür tablonun türüdür; float32 olmayan tablonun
+// satırları hesap türüne çevrilir (karışık hassasiyet dışında float32: etkinleşmeler 32 bit kalır).
 yapı GömmeKatmanı {
     tablo
-    fonksiyon kurucu(dağarcık, boyut, std = 0.02, tohum = 1) {
-        kendi.tablo = ağırlık_başlat([dağarcık, boyut], std, tohum)
+    fonksiyon kurucu(dağarcık, boyut, std = 0.02, tohum = 1, tür = "float32") {
+        kendi.tablo = ağırlık_başlat([dağarcık, boyut], std, tohum, tür: tür)
     }
-    fonksiyon ileri(kimlikler) { sonuç gömme(kendi.tablo, kimlikler) }
+    fonksiyon ileri(kimlikler) {
+        değişken e = gömme(kendi.tablo, kimlikler)
+        eğer kendi.tablo.tür == "float32" { sonuç e }
+        sonuç e.türe(hesap_türü())
+    }
 }
 
 // RMSNormKatmanı: son eksende karelerin ortalamasının köküne böler, öğrenilen ağırlıkla
@@ -122,7 +130,7 @@ yapı NedenselDikkat {
     q_norm
     k_norm
     çıkış_katmanı
-    fonksiyon kurucu(boyut, bakış_sayısı, kv_bakış_sayısı = yok, sapmalı = yanlış, std = 0.02, çıkış_std = 0.02, tohum = 1, pencere = 0, qk_normu = yanlış, birleşik_kv = yanlış, epsilon = 0.00001, bakış_boyutu = yok) {
+    fonksiyon kurucu(boyut, bakış_sayısı, kv_bakış_sayısı = yok, sapmalı = yanlış, std = 0.02, çıkış_std = 0.02, tohum = 1, pencere = 0, qk_normu = yanlış, birleşik_kv = yanlış, epsilon = 0.00001, bakış_boyutu = yok, ağırlık_türü = "float32") {
         eğer kv_bakış_sayısı == yok { kv_bakış_sayısı = bakış_sayısı }
         eğer bakış_boyutu == yok {
             doğrula(boyut % bakış_sayısı == 0, "boyut ({boyut}) bakış sayısına ({bakış_sayısı}) bölünmeli")
@@ -136,19 +144,19 @@ yapı NedenselDikkat {
         kendi.bakış_boyutu = bakış_boyutu
         kendi.pencere = pencere
         değişken kv_boyut = kv_bakış_sayısı * bakış_boyutu
-        kendi.sorgu_katmanı = Doğrusal(boyut, bakış_sayısı * bakış_boyutu, sapmalı: sapmalı, std: std, tohum: tohum)
+        kendi.sorgu_katmanı = Doğrusal(boyut, bakış_sayısı * bakış_boyutu, sapmalı: sapmalı, std: std, tohum: tohum, tür: ağırlık_türü)
         eğer birleşik_kv {
             kendi.anahtar_katmanı = yok
             kendi.değer_katmanı = yok
-            kendi.kv_katmanı = Doğrusal(boyut, 2 * kv_boyut, sapmalı: sapmalı, std: std, tohum: tohum + 1)
+            kendi.kv_katmanı = Doğrusal(boyut, 2 * kv_boyut, sapmalı: sapmalı, std: std, tohum: tohum + 1, tür: ağırlık_türü)
         } değilse {
-            kendi.anahtar_katmanı = Doğrusal(boyut, kv_boyut, sapmalı: sapmalı, std: std, tohum: tohum + 1)
-            kendi.değer_katmanı = Doğrusal(boyut, kv_boyut, sapmalı: sapmalı, std: std, tohum: tohum + 2)
+            kendi.anahtar_katmanı = Doğrusal(boyut, kv_boyut, sapmalı: sapmalı, std: std, tohum: tohum + 1, tür: ağırlık_türü)
+            kendi.değer_katmanı = Doğrusal(boyut, kv_boyut, sapmalı: sapmalı, std: std, tohum: tohum + 2, tür: ağırlık_türü)
             kendi.kv_katmanı = yok
         }
         kendi.q_norm = eğer qk_normu { RMSNormKatmanı(kendi.bakış_boyutu, epsilon: epsilon) } değilse { yok }
         kendi.k_norm = eğer qk_normu { RMSNormKatmanı(kendi.bakış_boyutu, epsilon: epsilon) } değilse { yok }
-        kendi.çıkış_katmanı = Doğrusal(bakış_sayısı * bakış_boyutu, boyut, sapmalı: sapmalı, std: çıkış_std, tohum: tohum + 3)
+        kendi.çıkış_katmanı = Doğrusal(bakış_sayısı * bakış_boyutu, boyut, sapmalı: sapmalı, std: çıkış_std, tohum: tohum + 3, tür: ağırlık_türü)
     }
     // x [B, T, D]; kos/sin döner_konum_tablosu'ndan (önbellekli çağrıda konumdan başlayan
     // satırlar). önbellek verilirse (KVÖnbellek) yeni anahtar ve değerler katman no'ya eklenir ve
@@ -218,18 +226,18 @@ yapı SwiGLU {
     yukarı
     kapı_yukarı
     aşağı
-    fonksiyon kurucu(boyut, ara_boyut = yok, sapmalı = yanlış, std = 0.02, çıkış_std = 0.02, tohum = 1, birleşik = yanlış) {
+    fonksiyon kurucu(boyut, ara_boyut = yok, sapmalı = yanlış, std = 0.02, çıkış_std = 0.02, tohum = 1, birleşik = yanlış, ağırlık_türü = "float32") {
         eğer ara_boyut == yok { ara_boyut = swiglu_ara_boyutu(boyut) }
         eğer birleşik {
             kendi.kapı = yok
             kendi.yukarı = yok
-            kendi.kapı_yukarı = Doğrusal(boyut, 2 * ara_boyut, sapmalı: sapmalı, std: std, tohum: tohum)
+            kendi.kapı_yukarı = Doğrusal(boyut, 2 * ara_boyut, sapmalı: sapmalı, std: std, tohum: tohum, tür: ağırlık_türü)
         } değilse {
-            kendi.kapı = Doğrusal(boyut, ara_boyut, sapmalı: sapmalı, std: std, tohum: tohum)
-            kendi.yukarı = Doğrusal(boyut, ara_boyut, sapmalı: sapmalı, std: std, tohum: tohum + 1)
+            kendi.kapı = Doğrusal(boyut, ara_boyut, sapmalı: sapmalı, std: std, tohum: tohum, tür: ağırlık_türü)
+            kendi.yukarı = Doğrusal(boyut, ara_boyut, sapmalı: sapmalı, std: std, tohum: tohum + 1, tür: ağırlık_türü)
             kendi.kapı_yukarı = yok
         }
-        kendi.aşağı = Doğrusal(ara_boyut, boyut, sapmalı: sapmalı, std: çıkış_std, tohum: tohum + 2)
+        kendi.aşağı = Doğrusal(ara_boyut, boyut, sapmalı: sapmalı, std: çıkış_std, tohum: tohum + 2, tür: ağırlık_türü)
     }
     fonksiyon ileri(x) {
         eğer kendi.kapı_yukarı != yok {
@@ -316,11 +324,11 @@ yapı TransformerBloğu {
     norm2
     ileri_besleme
     ple
-    fonksiyon kurucu(boyut, bakış_sayısı, kv_bakış_sayısı = yok, ara_boyut = yok, std = 0.02, çıkış_std = 0.02, tohum = 1, epsilon = 0.00001, pencere = 0, qk_normu = yanlış, birleşik_kv = yanlış, sapmalı = yanlış, ileri_sapmalı = yanlış, birleşik_kapı = yanlış, ple_boyutu = yok, dağarcık = yok, bakış_boyutu = yok) {
+    fonksiyon kurucu(boyut, bakış_sayısı, kv_bakış_sayısı = yok, ara_boyut = yok, std = 0.02, çıkış_std = 0.02, tohum = 1, epsilon = 0.00001, pencere = 0, qk_normu = yanlış, birleşik_kv = yanlış, sapmalı = yanlış, ileri_sapmalı = yanlış, birleşik_kapı = yanlış, ple_boyutu = yok, dağarcık = yok, bakış_boyutu = yok, ağırlık_türü = "float32") {
         kendi.norm1 = RMSNormKatmanı(boyut, epsilon: epsilon)
-        kendi.dikkat = NedenselDikkat(boyut, bakış_sayısı, kv_bakış_sayısı: kv_bakış_sayısı, sapmalı: sapmalı, std: std, çıkış_std: çıkış_std, tohum: tohum, pencere: pencere, qk_normu: qk_normu, birleşik_kv: birleşik_kv, epsilon: epsilon, bakış_boyutu: bakış_boyutu)
+        kendi.dikkat = NedenselDikkat(boyut, bakış_sayısı, kv_bakış_sayısı: kv_bakış_sayısı, sapmalı: sapmalı, std: std, çıkış_std: çıkış_std, tohum: tohum, pencere: pencere, qk_normu: qk_normu, birleşik_kv: birleşik_kv, epsilon: epsilon, bakış_boyutu: bakış_boyutu, ağırlık_türü: ağırlık_türü)
         kendi.norm2 = RMSNormKatmanı(boyut, epsilon: epsilon)
-        kendi.ileri_besleme = SwiGLU(boyut, ara_boyut: ara_boyut, sapmalı: ileri_sapmalı, std: std, çıkış_std: çıkış_std, tohum: tohum + 10, birleşik: birleşik_kapı)
+        kendi.ileri_besleme = SwiGLU(boyut, ara_boyut: ara_boyut, sapmalı: ileri_sapmalı, std: std, çıkış_std: çıkış_std, tohum: tohum + 10, birleşik: birleşik_kapı, ağırlık_türü: ağırlık_türü)
         eğer ple_boyutu != yok {
             doğrula(dağarcık != yok, "TransformerBloğu: ple_boyutu için dağarcık da verilmeli")
             kendi.ple = PLEBloğu(boyut, dağarcık, ple_boyutu, epsilon: epsilon, std: std, çıkış_std: çıkış_std, tohum: tohum + 20)
@@ -463,6 +471,9 @@ yapı KVÖnbellek {
 //               (bakış_boyutu döner konum tablolarının da boyudur; yok ise boyut / bakış_sayısı).
 //   rope_tabanı: döner konumun frekans tabanı (Hugging Face rope_theta; Llama 2 10000, SmolLM2
 //               100000, Qwen3 1000000).
+//   ağırlık_türü: matris ağırlıklarının (gömme tablosu ve doğrusal katmanlar) türü; normlar float32
+//               kalır, etkinleşmeler hesap türündedir (karışık hassasiyet dışında float32).
+//               "bf16" hazır modellerin saklandığı türdür: çıkarımda GPU okunan baytı yarıya indirir.
 //   ple_boyutu: verilirse her blokta PLE vardır; modelde ortak PLEBağlamı (`ple_bağlamı`) gömme
 //               çıktısından katman başına bağlamı üretir ve i. bloğa i. parçayı verir.
 // RGN-512 gibi bir model bu yapıyla tek çağrıdır:
@@ -480,27 +491,27 @@ yapı GPT {
     ple_bağlamı
     kos
     sin
-    fonksiyon kurucu(dağarcık, bağlam = 256, boyut = 256, katman = 4, bakış_sayısı = 4, kv_bakış_sayısı = yok, ara_boyut = yok, paylaşımlı = yanlış, tohum = 1, pencereler = yok, qk_normu = yanlış, birleşik_kv = yanlış, birleşik_kapı = yanlış, ileri_sapmalı = yanlış, epsilon = 0.00001, ple_boyutu = yok, bakış_boyutu = yok, rope_tabanı = 10000.0) {
+    fonksiyon kurucu(dağarcık, bağlam = 256, boyut = 256, katman = 4, bakış_sayısı = 4, kv_bakış_sayısı = yok, ara_boyut = yok, paylaşımlı = yanlış, tohum = 1, pencereler = yok, qk_normu = yanlış, birleşik_kv = yanlış, birleşik_kapı = yanlış, ileri_sapmalı = yanlış, epsilon = 0.00001, ple_boyutu = yok, bakış_boyutu = yok, rope_tabanı = 10000.0, ağırlık_türü = "float32") {
         kendi.ayar = {dağarcık: dağarcık, bağlam: bağlam, boyut: boyut, katman: katman, bakış_sayısı: bakış_sayısı, bakış_boyutu: bakış_boyutu,
             kv_bakış_sayısı: kv_bakış_sayısı, ara_boyut: ara_boyut, paylaşımlı: paylaşımlı, tohum: tohum,
             pencereler: pencereler, qk_normu: qk_normu, birleşik_kv: birleşik_kv, birleşik_kapı: birleşik_kapı,
-            ileri_sapmalı: ileri_sapmalı, epsilon: epsilon, ple_boyutu: ple_boyutu, rope_tabanı: rope_tabanı}
+            ileri_sapmalı: ileri_sapmalı, epsilon: epsilon, ple_boyutu: ple_boyutu, rope_tabanı: rope_tabanı, ağırlık_türü: ağırlık_türü}
         eğer pencereler != yok {
             doğrula(pencereler.uzunluk == katman, "pencereler ({pencereler.uzunluk} eleman) katman sayısına ({katman}) eşit olmalı")
         }
         değişken std = 0.02
         değişken çıkış_std = std / karekök(2 * katman)
-        kendi.gömme = GömmeKatmanı(dağarcık, boyut, std: std, tohum: tohum)
+        kendi.gömme = GömmeKatmanı(dağarcık, boyut, std: std, tohum: tohum, tür: ağırlık_türü)
         kendi.bloklar = []
         döngü i içinde 0..katman {
             kendi.bloklar.ekle(TransformerBloğu(boyut, bakış_sayısı, kv_bakış_sayısı: kv_bakış_sayısı, ara_boyut: ara_boyut,
                 std: std, çıkış_std: çıkış_std, tohum: tohum + 100 * (i + 1), epsilon: epsilon,
                 pencere: eğer pencereler == yok { 0 } değilse { pencereler[i] }, qk_normu: qk_normu,
                 birleşik_kv: birleşik_kv, birleşik_kapı: birleşik_kapı, ileri_sapmalı: ileri_sapmalı,
-                ple_boyutu: ple_boyutu, dağarcık: dağarcık, bakış_boyutu: bakış_boyutu))
+                ple_boyutu: ple_boyutu, dağarcık: dağarcık, bakış_boyutu: bakış_boyutu, ağırlık_türü: ağırlık_türü))
         }
         kendi.son_norm = RMSNormKatmanı(boyut, epsilon: epsilon)
-        kendi.çıkış = eğer paylaşımlı { yok } değilse { Doğrusal(boyut, dağarcık, std: std, tohum: tohum + 1) }
+        kendi.çıkış = eğer paylaşımlı { yok } değilse { Doğrusal(boyut, dağarcık, std: std, tohum: tohum + 1, tür: ağırlık_türü) }
         kendi.ple_bağlamı = eğer ple_boyutu == yok { yok } değilse { PLEBağlamı(boyut, katman, ple_boyutu, epsilon: epsilon, std: std, tohum: tohum + 2) }
         değişken tablolar = döner_konum_tablosu(bağlam, eğer bakış_boyutu == yok { boyut / bakış_sayısı } değilse { bakış_boyutu }, taban: rope_tabanı)
         kendi.kos = tablolar[0]

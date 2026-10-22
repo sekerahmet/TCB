@@ -58,14 +58,16 @@ func (g *backend) gemm(batch, M, N, K int, a tensor.View, transA bool, b tensor.
 
 // gemv M = 1 çarpımını tek satırlık çekirdekle yapar (kernel_gemv.go); kapalıysa ya da K = 0
 // ise yanlış döner. M = 1'de transA önemsizdir: A [1, K] de [K, 1] de bitişik K elemandır.
-// Dört float32'lik vektörel okuma, satırlar 16 bayta hizalıysa seçilir (devrik değilken
-// B'nin satırları: N 4'ün katı; devrikken A ile B'nin satırları: K 4'ün katı).
+// Dörtlü vektörel okuma satırlar dört elemana hizalıysa seçilir (devrik değilken B'nin satırları:
+// N 4'ün katı; devrikken A ile B'nin satırları: K 4'ün katı). A ve C float32'dir; B float32 ya da
+// 16 bitlik olabilir (ağırlık açılmadan okunur, kernel_gemv.go).
 func (g *backend) gemv(batch, N, K int, a tensor.View, b tensor.View, transB bool, c *storage, cOf int, over bool) bool {
 	if g.gemvOff || K == 0 {
 		return false
 	}
 	ad, bd := g.storageOf(a.S), g.storageOf(b.S)
-	alignA, alignB := align(g.addressOf(a)) >= 16, align(g.addressOf(b)) >= 16
+	bt := bd.dtype
+	alignA, alignB := align(g.addressOf(a)) >= 16, align(g.addressOf(b)) >= uint32(4*dtypeSize(bt))
 	vw := 1
 	var pull *kernel
 	var cfg gemvConfig
@@ -73,13 +75,13 @@ func (g *backend) gemv(batch, N, K int, a tensor.View, b tensor.View, transB boo
 		if K%4 == 0 && alignA && alignB {
 			vw = 4
 		}
-		pull = g.takeKernel(fmt.Sprintf("gemv_t:%d:%v", vw, over), gemvTKernel(vw, over))
+		pull = g.takeKernel(fmt.Sprintf("gemv_t:%d:%v:%s", vw, over, bt), gemvTKernel(vw, over, bt))
 	} else {
 		if N%4 == 0 && alignB {
 			vw = 4
 		}
 		cfg = g.pickGemv(batch, N, vw)
-		pull = g.takeKernel(fmt.Sprintf("gemv:%+v:%d:%v", cfg, vw, over), gemvKernel(cfg, vw, over))
+		pull = g.takeKernel(fmt.Sprintf("gemv:%+v:%d:%v:%s", cfg, vw, over, bt), gemvKernel(cfg, vw, over, bt))
 	}
 	for z0 := 0; z0 < batch; z0 += 65535 {
 		nz := min(batch-z0, 65535)
@@ -136,6 +138,13 @@ func (g *backend) gemmOuter(batch, M, N, K int, a tensor.View, transA bool, b te
 	gt := g.temp()
 	defer gt.finish()
 	cd, last := gt.write(c, !over)
+	// Tek satır ve 16 bitlik bitişik B (ör. float32 etkinleşme @ bf16 ağırlık): ağırlık float32'ye
+	// açılmadan gemv ile okunur.
+	if M == 1 && b.IsContiguous() && g.storageOf(b.S).dtype != tensor.Float32 &&
+		g.gemv(batch, N, K, gt.read(a), b, transB, cd, 0, over) {
+		last()
+		return
+	}
 	if !g.gemm16(batch, M, N, K, a, transA, b, transB, cd, over) {
 		g.gemm(batch, M, N, K, gt.read(a), transA, gt.read(b), transB, cd, 0, over)
 	}

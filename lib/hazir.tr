@@ -30,21 +30,24 @@ fonksiyon ayar_değeri(ayar, anahtar, öntanımlı) {
     sonuç öntanımlı
 }
 
-// hazır_model klasördeki config.json'dan modeli kurar ve model.safetensors'ı yükler.
-fonksiyon hazır_model(klasör) {
+// hazır_model klasördeki config.json'dan modeli kurar ve model.safetensors'ı yükler. tür matris
+// ağırlıklarının türüdür ("float32", "bf16", "fp16"); normlar float32, hesap float32 kalır.
+// Hugging Face modelleri çoğunlukla bf16 saklanır (config.json torch_dtype): "bf16" ağırlıkları
+// olduğu gibi tutar (sonuç float32 ağırlıkla aynı matematiktir), GPU'da okunan bayt yarıya iner.
+fonksiyon hazır_model(klasör, tür = "float32") {
     değişken k = yol(klasör)
     değişken ayar = json_çöz(dosya_oku(yol(k, "config.json")))
-    değişken model = hazır_model_kur(ayar)
+    değişken model = hazır_model_kur(ayar, tür: tür)
     değişken ağırlıklar = tensör_yükle(yol(k, "model.safetensors"))
     parametreleri_yükle(model, hugging_face_eşle(ağırlıklar, ayar))
     sonuç model
 }
 
 // hazır_model_kur config.json sözlüğünden (ağırlıklar yüklenmeden) GPT'yi kurar.
-fonksiyon hazır_model_kur(ayar) {
-    değişken tür = ayar_değeri(ayar, "model_type", "")
-    eğer değil DESTEKLENEN_MİMARİLER.içerir(tür) {
-        fırlat "hazır_model: {tür} mimarisi desteklenmiyor (desteklenenler: {DESTEKLENEN_MİMARİLER})"
+fonksiyon hazır_model_kur(ayar, tür = "float32") {
+    değişken mimari = ayar_değeri(ayar, "model_type", "")
+    eğer değil DESTEKLENEN_MİMARİLER.içerir(mimari) {
+        fırlat "hazır_model: {mimari} mimarisi desteklenmiyor (desteklenenler: {DESTEKLENEN_MİMARİLER})"
     }
     eğer ayar_değeri(ayar, "attention_bias", yanlış) veya ayar_değeri(ayar, "mlp_bias", yanlış) {
         fırlat "hazır_model: sapmalı dikkat ya da MLP katmanları desteklenmiyor"
@@ -64,8 +67,8 @@ fonksiyon hazır_model_kur(ayar) {
         katman: ayar["num_hidden_layers"], bakış_sayısı: bakış,
         kv_bakış_sayısı: ayar_değeri(ayar, "num_key_value_heads", bakış), ara_boyut: ayar["intermediate_size"],
         paylaşımlı: ayar_değeri(ayar, "tie_word_embeddings", yanlış), epsilon: ayar_değeri(ayar, "rms_norm_eps", 0.000001),
-        qk_normu: tür == "qwen3", bakış_boyutu: ayar_değeri(ayar, "head_dim", tam(boyut / bakış)),
-        rope_tabanı: rope_tabanı(ayar), birleşik_kv: doğru, birleşik_kapı: doğru)
+        qk_normu: mimari == "qwen3", bakış_boyutu: ayar_değeri(ayar, "head_dim", tam(boyut / bakış)),
+        rope_tabanı: rope_tabanı(ayar), birleşik_kv: doğru, birleşik_kapı: doğru, ağırlık_türü: tür)
 }
 
 // rope_tabanı: üst düzeyde rope_theta (eski transformers) ya da rope_parameters.rope_theta (5.x);

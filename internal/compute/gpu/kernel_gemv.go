@@ -1,6 +1,10 @@
 package gpu
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/sekerahmet/TCB/internal/compute/tensor"
+)
 
 // ============================================================================
 // Tek satırlık matris çarpımı (M = 1: çıkarımda bir parça), float32
@@ -20,6 +24,10 @@ import "fmt"
 // dX = dY @ Wᵀ): her warp bir çıktı sütununu hesaplar; şeritler bitişik K satırını vw'lik
 // parçalarla gezer.
 //
+// B (ağırlık) float32 ya da 16 bitlik (bf16, fp16) olabilir: 16 bitlik ağırlık açılmadan okunur
+// (bayt yarıya iner), a, toplayıcılar ve c float32'dir (ağırlığı 16 bit, hesabı 32 bit; dil
+// tanımı 15.12'de farklı türlerin çarpımı float32'dir).
+//
 // Toplama sırası sabittir: toplayıcılar sırayla, warp içi kelebek karıştırmayla (shfl.bfly;
 // iki eş aynı toplamı bulur), warp'lar paylaşımlı bellekte warp sırasıyla. Sonuç aynı ayarla
 // her koşuda aynıdır (belirlenimci); ayar (L, T) yalnızca boydan ve SM sayısından seçilir.
@@ -31,9 +39,9 @@ type gemvConfig struct{ L, T int }
 // gemvUnroll iş parçacığının aynı anda okuduğu satır sayısı (bağımsız toplayıcılar).
 const gemvUnroll = 4
 
-func gemvKernel(a gemvConfig, vw int, over bool) func() *emitter {
+func gemvKernel(a gemvConfig, vw int, over bool, bt tensor.DType) func() *emitter {
 	return func() *emitter {
-		k := newEmitter(fmt.Sprintf("gemv_%d_%d_%d_%v", a.L, a.T, vw, over))
+		k := newEmitter(fmt.Sprintf("gemv_%d_%d_%d_%v_%s", a.L, a.T, vw, over, bt))
 		pa, pb := k.pointer("a"), k.pointer("b")
 		pc := k.written("c")
 		N, K := k.u32p("n"), k.u32p("k")
@@ -49,9 +57,12 @@ func gemvKernel(a gemvConfig, vw int, over bool) func() *emitter {
 		n0, n := k.r(), k.r()
 		k.e("mul.lo.s32", n0, k.special("%ctaid.x"), BN)
 		k.e("mad.lo.s32", n, cg, vw, n0)
-		k.batchOffsets(pa, pb, pc, N, K)
-		in := k.p()
-		k.e("setp.lt.u32", in, n, N) // vw = 4'te N 4'ün katıdır: dörtlü ya tam içerde ya dışarda
+		k.batchOffsets(pa, pb, pc, N, K, dtypeSize(bt))
+		// Son bloğun dışarda kalan sütunları geçerli bir sütunu okur (sonuçları yazılmaz): yükleme
+		// koşulsuzdur. vw = 4'te N 4'ün katıdır.
+		nr := k.r()
+		k.e("sub.s32", nr, N, vw)
+		k.e("min.u32", nr, n, nr)
 		acc := make([][]reg, gemvUnroll)
 		for u := range acc {
 			acc[u] = make([]reg, vw)
@@ -63,15 +74,8 @@ func gemvKernel(a gemvConfig, vw int, over bool) func() *emitter {
 			xv := k.f()
 			k.e("ld.global.f32", xv, mem(k.address(pa, kk, 4), 0))
 			idx := k.r()
-			k.e("mad.lo.s32", idx, kk, N, n)
-			addr := k.address(pb, idx, 4)
-			var bv []reg
-			if vw == 4 {
-				bv = k.loadV("global", in, addr, 0, 4)
-			} else {
-				bv = []reg{k.constant(0)}
-				k.ifCase(in, "ld.global.f32", bv[0], mem(addr, 0))
-			}
+			k.e("mad.lo.s32", idx, kk, N, nr)
+			bv := k.gemvLoad(bt, k.address(pb, idx, dtypeSize(bt)), vw)
 			for j := range acc {
 				k.e("fma.rn.f32", acc[j], xv, bv[j], acc[j])
 			}
@@ -138,9 +142,9 @@ func (k *emitter) gemvWarpSum(a gemvConfig, vw int, t []reg, sm, tid, lane, warp
 // gemvTWarps devrik tek satırlık çarpımın bloğundaki warp sayısı (blok başına çıktı).
 const gemvTWarps = 8
 
-func gemvTKernel(vw int, over bool) func() *emitter {
+func gemvTKernel(vw int, over bool, bt tensor.DType) func() *emitter {
 	return func() *emitter {
-		k := newEmitter(fmt.Sprintf("gemv_t_%d_%v", vw, over))
+		k := newEmitter(fmt.Sprintf("gemv_t_%d_%v_%s", vw, over, bt))
 		pa, pb := k.pointer("a"), k.pointer("b")
 		pc := k.written("c")
 		N, K := k.u32p("n"), k.u32p("k")
@@ -149,7 +153,7 @@ func gemvTKernel(vw int, over bool) func() *emitter {
 		k.e("and.b32", lane, tid, 31)
 		k.e("shr.u32", n, tid, 5)
 		k.e("mad.lo.s32", n, k.special("%ctaid.x"), gemvTWarps, n)
-		k.batchOffsets(pa, pb, pc, N, K)
+		k.batchOffsets(pa, pb, pc, N, K, dtypeSize(bt))
 		end := k.label()
 		p := k.p()
 		k.e("setp.ge.u32", p, n, N) // bütün warp aynı sütunda: warp birlikte çıkar
@@ -166,15 +170,8 @@ func gemvTKernel(vw int, over bool) func() *emitter {
 		row := func(kk reg, acc []reg) {
 			idx := k.r()
 			k.e("add.s32", idx, base, kk)
-			xa, ba := k.address(pa, kk, 4), k.address(pb, idx, 4)
-			var xv, bv []reg
-			if vw == 4 {
-				xv, bv = k.loadV("global", "", xa, 0, 4), k.loadV("global", "", ba, 0, 4)
-			} else {
-				xv, bv = []reg{k.f()}, []reg{k.f()}
-				k.e("ld.global.f32", xv[0], mem(xa, 0))
-				k.e("ld.global.f32", bv[0], mem(ba, 0))
-			}
+			xv := k.gemvLoad(tensor.Float32, k.address(pa, kk, 4), vw)
+			bv := k.gemvLoad(bt, k.address(pb, idx, dtypeSize(bt)), vw)
 			for j := range acc {
 				k.e("fma.rn.f32", acc[j], xv[j], bv[j], acc[j])
 			}
@@ -203,17 +200,43 @@ func gemvTKernel(vw int, over bool) func() *emitter {
 }
 
 // batchOffsets toplu işin (ctaid.y) kaydırmalarını göstericilere ekler: a += z·K,
-// b += z·K·N, c += z·N (64 bit).
-func (k *emitter) batchOffsets(pa, pb, pc, N, K reg) {
+// b += z·K·N, c += z·N (64 bit; b'nin elemanı bb bayt, a ile c float32).
+func (k *emitter) batchOffsets(pa, pb, pc, N, K reg, bb int) {
 	z := k.special("%ctaid.y")
 	kn := k.r()
 	k.e("mul.lo.s32", kn, K, N)
-	for _, s := range []struct{ p, size reg }{{pa, K}, {pb, kn}, {pc, N}} {
+	for _, s := range []struct {
+		p, size reg
+		shift   int
+	}{{pa, K, 2}, {pb, kn, log2(bb)}, {pc, N, 2}} {
 		off := k.rd()
 		k.e("mul.wide.u32", off, z, s.size)
-		k.e("shl.b64", off, off, 2)
+		k.e("shl.b64", off, off, s.shift)
 		k.e("add.s64", s.p, s.p, off)
 	}
+}
+
+// gemvLoad adresteki n (1 ya da 4) bitişik dt elemanını float32 olarak okur: float32 dörtlüsü
+// tek ld.v4, bf16 dörtlüsü iki 32 bitlik sözcük (ceValues), fp16 dörtlüsü dört 16 bitlik okuma.
+func (k *emitter) gemvLoad(dt tensor.DType, addr reg, n int) []reg {
+	switch {
+	case n == 1:
+		return []reg{k.load(dt, addr)}
+	case dt == tensor.Float32:
+		return k.loadV("global", "", addr, 0, 4)
+	case dt == tensor.BFloat16:
+		return k.ceValues(dt, addr, 4)
+	}
+	out := make([]reg, n)
+	for j := range out {
+		a := addr
+		if j > 0 {
+			a = k.rd()
+			k.e("add.s64", a, addr, 2*j)
+		}
+		out[j] = k.load(dt, a)
+	}
+	return out
 }
 
 // unrolledRows kk, kk+step, ... (< K) satırlarını gezer: önce gemvUnroll'lu gruplar (u.
