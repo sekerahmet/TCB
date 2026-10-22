@@ -28,7 +28,6 @@ func gemv(batch, N, K int, a, b []float32, transB bool, c []float32) {
 	}
 	strips := (N + gemvStripN - 1) / gemvStripN
 	parallelFor(batch*strips, K*gemvStripN, func(lo, hi int) {
-		var tail [gemvStripN]float32
 		for t := lo; t < hi; t++ {
 			bi, j0 := t/strips, (t%strips)*gemvStripN
 			ab, bb := a[bi*K:(bi+1)*K], b[bi*K*N:(bi+1)*K*N]
@@ -37,17 +36,7 @@ func gemv(batch, N, K int, a, b []float32, transB bool, c []float32) {
 				continue
 			}
 			// Son şerit kısa: geçerli sütunlar Go ile (şerit çekirdeği 64 sütun okur).
-			out := tail[:N-j0]
-			clear(out)
-			for k, s := range ab {
-				row := bb[k*N+j0 : k*N+N]
-				for j, v := range row {
-					out[j] += s * v
-				}
-			}
-			for j, v := range out {
-				c[bi*N+j0+j] += v
-			}
+			gemvStripGo(ab, bb[j0:], N, c[bi*N+j0:bi*N+N])
 		}
 	})
 }
