@@ -22,6 +22,13 @@ düzenini sınayan test hem benzeticide hem gerçek kartta koşar; ikisinin sonu
 
 **Belirlenimcidir.** Aynı girdi, her çalıştırmada bit bit aynı sonucu verir. Denetim: `TestDeterministic`, `TestWide16BitDeterministic`.
 
+**PTX'in değişimi görünürdür.** Benzeticide sınamalar sırasında derlenen her çekirdeğin PTX
+özeti `testdata/ptx_ozet.txt`'dedir: bilinen bir çekirdeğin PTX'i değişirse ya da kısa kipte
+özette olmayan çekirdek derlenirse paketin testi kalır. Bilinçli değişiklikte özet
+`TR_GPU_PTX_GUNCELLE=1 go test -short ./internal/compute/gpu` ile yenilenir ve diff'te görünür;
+"değişmeyen çekirdeklerin PTX'i aynı" iddiası böylece her koşuda denetlenir. Denetim:
+`behavior_ptx_digest_test.go`.
+
 **Profil adları kararlıdır.** Çekirdek aileleri (ör. `carpim`) profil çıktısında ve araçlarda
 kullanılan metinlerdir; kodun Go adlarına bağlı değildir. Denetim: `TestKernelFamily`.
 
@@ -39,4 +46,5 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 - `behavior_half_precision_test.go`: 16 bitlik türlerin bütün kernel ailelerinde açılmadan işlenmesi
 - `behavior_nn_test.go`: sinir ağı işlemlerinin GPU'da CPU arka ucuna karşı sonuçları
 - `behavior_grad_parity_test.go`: gradyan kapısının GPU ayağı: başka testte GPU-CPU gradyan karşılaştırması olmayan türevli işlemler (tür dönüşümü, cihaz aktarımı, kopya, dış işlem)
+- `behavior_ptx_digest_test.go`: benzeticide derlenen her çekirdeğin PTX özetinin `testdata/ptx_ozet.txt` ile aynı olması (TestMain'den sonra)
 - `behavior_sim_instruction_coverage_test.go`: kernellerin ürettiği her PTX komut adının benzetici tarafından tanınması

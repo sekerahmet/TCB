@@ -30,6 +30,9 @@ func (g *backend) takeKernel(key string, generate func() *emitter) *kernel {
 	}
 	k := generate()
 	text := k.text()
+	if kernelBuilt != nil {
+		kernelBuilt(key, text)
+	}
 	mod, log, s := g.sr.module(text)
 	if s != succeeded {
 		panic(g.compileError(k.ad, text, log, s))
@@ -44,6 +47,10 @@ func (g *backend) takeKernel(key string, generate func() *emitter) *kernel {
 	g.kernels[key] = c
 	return c
 }
+
+// kernelBuilt derlenen her çekirdeğin anahtarını ve PTX metnini alır. Yalnızca sınamalar kurar
+// (PTX özeti: behavior_ptx_digest_test.go); üretimde nil'dir.
+var kernelBuilt func(key, text string)
 
 // ptxDumpDir derlenemeyen PTX metninin teşhis için yazıldığı klasördür ("": işletim
 // sisteminin geçici klasörü). Sınamalar kendi geçici klasörlerine yönlendirir; yoksa her koşu

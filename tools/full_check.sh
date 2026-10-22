@@ -19,6 +19,11 @@
 #   --kip=uzun        Go testleri -short olmadan (her .tr dosyasının İngilizce gidiş-dönüşü
 #                     gibi uzun sınamalar dahil)
 #   --hizli           --kip=dagitim ile aynı (iş sırasında; birleştirmeden önce bayraksız koşulur)
+#   --kip=on          ön denetim (~1 dk): üretilmiş dosyalar, gofmt, vet, go.mod, düzen kuralları
+#                     (dosya adı, satır sınırı, Türkçe metin, çıplak ad, ileti kullanımı), değişen
+#                     paketlerin kısa testleri ve yeni tekrar adayları (codegraph dups --changed).
+#                     Yan oturumlar devir notundan, ana oturum GPU yan dalına göndermeden önce
+#                     koşar; tam denetimin yerini tutmaz.
 #
 # Durağan denetimler: üretilmiş dosyalar güncel mi (her üreticinin -check bayrağı olmalı),
 # gofmt, go vet, go.mod/go.sum (go mod verify, go mod tidy -diff), ARM (arm64) derlemesi ve
@@ -48,8 +53,9 @@ for arg in "$@"; do
 	--kip=v3) modes=v3 ;;
 	--kip=yaris) modes=yaris ;;
 	--kip=uzun) modes=uzun ;;
+	--kip=on) modes=on ;;
 	*)
-		echo "bilinmeyen argüman: $arg (kullanım: bash tools/full_check.sh [--hizli] [--kip=dagitim|go-esleri|v3|yaris|uzun])" >&2
+		echo "bilinmeyen argüman: $arg (kullanım: bash tools/full_check.sh [--hizli] [--kip=dagitim|go-esleri|v3|yaris|uzun|on])" >&2
 		exit 2
 		;;
 	esac
@@ -124,7 +130,8 @@ mode_env() {
 repo_state() { git status --porcelain=v1 --untracked-files=all 2>/dev/null; }
 initial_state=$(repo_state)
 
-static_checks() {
+# quick_static_checks tam denetimin ve ön denetimin ortak durağan adımlarıdır.
+quick_static_checks() {
 	step "Üretilmiş dosyalar güncel mi"
 	for tool in tools/gen/*/; do
 		# -check bayrağı üreticinin kendisinde ya da ortak genmain.RunMain'dedir.
@@ -149,6 +156,10 @@ static_checks() {
 	go vet ./... || fail "go vet"
 	go mod verify >/dev/null || fail "go mod verify (modül önbelleği go.sum ile uyuşmuyor)"
 	go mod tidy -diff >/dev/null || fail "go.mod/go.sum düzenli değil (go mod tidy ile düzeltin)"
+}
+
+static_checks() {
+	quick_static_checks
 
 	step "ARM (arm64) derlemesi ve vet"
 	for os in linux darwin windows; do
@@ -200,8 +211,53 @@ go_tests() {
 	local name=$1
 	shift
 	step "Go testleri ($name: GOAMD64=$GOAMD64, TR_CPU_AVX2=${TR_CPU_AVX2:-otomatik})"
-	go test "${p_flag[@]}" "$@" "${test_paketleri[@]}" 2>&1 | grep -v '^ok\|no test files'
+	local okfile
+	okfile=$(mktemp)
+	go test "${p_flag[@]}" "$@" "${test_paketleri[@]}" 2>&1 | tee "$okfile" | grep -v '^ok\|no test files'
 	[ "${PIPESTATUS[0]}" -eq 0 ] || fail "go test ($name)"
+	slowest_packages "$okfile"
+	rm -f "$okfile"
+}
+
+# slowest_packages go test çıktısındaki "ok paket süre" satırlarından en yavaş beş paketi yazar
+# (önbellekten gelenler sayılmaz): yarış kipinin ve otomatik sınamanın paket başına zaman sınırına
+# (10 dk) yaklaşan paket erken görünsün.
+slowest_packages() {
+	local list
+	list=$(awk '$1 == "ok" && $3 ~ /^[0-9.]+s$/ { sub(/s$/, "", $3); printf "%8.1f sn  %s\n", $3, $2 }' "$1" | sort -rn | head -5)
+	[ -z "$list" ] || printf 'En yavaş paketler:\n%s\n' "$list"
+}
+
+# changed_packages ana dala göre (birleşme tabanından, çalışma ağacındaki ve izlenmeyen dosyalar
+# dahil) değişen Go paketlerini ./yol olarak verir.
+changed_packages() {
+	local base
+	base=$(git merge-base origin/main HEAD 2>/dev/null || git merge-base main HEAD 2>/dev/null) || return 0
+	{ git diff --name-only "$base"; git ls-files -o --exclude-standard; } | grep '\.go$' | grep -v '^\.claude/' |
+		xargs -r -n1 dirname | sort -u | while IFS= read -r d; do
+		if ls "$d"/*.go >/dev/null 2>&1; then printf './%s\n' "$d"; fi
+	done
+}
+
+# gpu_race GPU paketi değiştiyse ve bir C derleyicisi varsa (yarış dedektörü cgo ister) GPU
+# paketini yerelde de yarış dedektörüyle koşar: otomatik sınamanın yarış işi PTX benzeticisini
+# 10 dk sınırla koşar, yeni bir sınama bu sınırı yalnızca orada aşmasın. Süre sınırın yarısını
+# geçerse uyarır. Derleyici yoksa adım atlanır ve bu yazılır.
+gpu_race() {
+	# Otomatik sınamada yarış işi ayrıca koşar.
+	[ "${GITHUB_ACTIONS:-}" != "true" ] || return 0
+	changed_packages | grep -qx './internal/compute/gpu' || return 0
+	step "GPU paketi yarış dedektörüyle (değişti; go test -race -short)"
+	if ! command -v "$(go env CC)" >/dev/null 2>&1; then
+		echo "not: C derleyicisi ($(go env CC)) yok, adım atlandı; otomatik sınamanın yarış işi koşar"
+		return 0
+	fi
+	local start=$SECONDS
+	CGO_ENABLED=1 go test -race -short -timeout 10m ./internal/compute/gpu 2>&1 | grep -v '^ok\|no test files'
+	[ "${PIPESTATUS[0]}" -eq 0 ] || fail "go test -race ./internal/compute/gpu"
+	if [ $((SECONDS - start)) -gt 300 ]; then
+		echo "uyarı: GPU paketi yarış dedektörüyle $((SECONDS - start)) sn sürdü; otomatik sınamanın sınırı 10 dk (büyük boyları !testing.Short() arkasına alın)"
+	fi
 }
 
 build_tr() {
@@ -285,6 +341,7 @@ for mode in $modes; do
 		step "Derleme (go build, GOAMD64=$GOAMD64)"
 		go build ./... || fail "go build"
 		go_tests "$mode" -short
+		[ "$mode" = v3 ] || gpu_race
 		step "TR testleri ve örnekler ($mode)"
 		if build_tr; then
 			summarize "tr test tests" "$TR" test tests
@@ -323,6 +380,20 @@ for mode in $modes; do
 	uzun)
 		go_tests uzun
 		;;
+	on)
+		quick_static_checks
+		step "Düzen kuralları (dosya adı, boy sınırı, Türkçe metin, çıplak ad, ileti kullanımı)"
+		go test "${p_flag[@]}" -short ./internal/ ./internal/reporoot ./tools/gen/... 2>&1 | grep -v '^ok\|no test files'
+		[ "${PIPESTATUS[0]}" -eq 0 ] || fail "düzen kuralları"
+		mapfile -t changed < <(changed_packages)
+		if [ ${#changed[@]} -gt 0 ]; then
+			step "Değişen paketlerin kısa testleri (${#changed[@]} paket)"
+			go test "${p_flag[@]}" -short "${changed[@]}" 2>&1 | grep -v '^ok\|no test files'
+			[ "${PIPESTATUS[0]}" -eq 0 ] || fail "değişen paketlerin testleri"
+		fi
+		step "Tekrar adayları (codegraph dups --changed main)"
+		go run ./tools/codegraph dups --changed main 2>&1 | head -40
+		;;
 	esac
 done
 step_end
@@ -334,6 +405,16 @@ fi
 echo
 echo "Adım süreleri:"
 printf '%s\n' "${durations[@]}"
+if [ "$modes" = on ]; then
+	# Ön denetim tam denetimin yerini tutmaz; sonuç satırı push koşulundaki satırla karışmasın.
+	if [ $failed -eq 0 ]; then
+		echo "✅ Ön denetim geçti (tam denetim değildir)"
+	else
+		echo "❌ Ön denetimde kalan var:"
+		printf '  - %s\n' "${failures[@]}"
+	fi
+	exit $failed
+fi
 if [ $failed -eq 0 ]; then
 	echo "✅ Tam denetim geçti"
 else

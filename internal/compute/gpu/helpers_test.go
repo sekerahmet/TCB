@@ -22,7 +22,12 @@ func TestMain(m *testing.M) {
 	} else {
 		fmt.Println("GPU sınamaları gerçek GPU'da koşuyor: " + Status())
 	}
-	os.Exit(m.Run())
+	kernelBuilt = recordPTX
+	code := m.Run()
+	if code == 0 {
+		code = checkPTXDigest()
+	}
+	os.Exit(code)
 }
 
 // gpuBackend sınamaların GPU arka ucu.
