@@ -14,12 +14,33 @@ import (
 // changedLines dosya başına değişen (eklenen ya da değişen) satır aralıklarıdır.
 type changedLines map[string][][2]int
 
-// changedGoLines ref'in (dal ya da a..b / a...b aralığı) Go dosyalarında yeni taraftaki değişen satırlarını verir.
-func changedGoLines(root, base, ref string) (changedLines, error) {
-	rng, right := base+"..."+ref, ref
-	if strings.Contains(ref, "..") {
-		rng, right = ref, ref[strings.LastIndex(ref, ".")+1:]
+// changedRange --changed değerini git aralığına çevirir; her biçim `git diff A...B` gibi birleşme
+// tabanından B'ye bakar (ağaç farkı değil: A sonradan ilerlediyse A'daki yeni işler B'nin değişikliği
+// sayılmaz):
+//   - `A..B` ve `A...B`: tabandan B'ye (B boşsa HEAD, A boşsa base);
+//   - çıkış yapılmış dalın adı: base...dal;
+//   - başka bir ad (main gibi): ad...HEAD, yani çıkış yapılmış dalda o ada göre ne yeni.
+func changedRange(root, base, ref string) (rng, right string) {
+	if i := strings.Index(ref, ".."); i >= 0 {
+		a, b := ref[:i], strings.TrimLeft(ref[i:], ".")
+		if a == "" {
+			a = base
+		}
+		if b == "" {
+			b = "HEAD"
+		}
+		return a + "..." + b, b
 	}
+	if sameCommit(root, ref, "HEAD") {
+		return base + "..." + ref, ref
+	}
+	return ref + "...HEAD", "HEAD"
+}
+
+// changedGoLines --changed değerinin Go dosyalarında yeni taraftaki değişen satırlarını verir (aralığın
+// sağ ucu çıkış yapılmış olmalıdır: satır numaraları çalışma ağacınındır).
+func changedGoLines(root, base, ref string) (changedLines, error) {
+	rng, right := changedRange(root, base, ref)
 	if !sameCommit(root, right, "HEAD") {
 		return nil, fmt.Errorf("--changed %s: %s is not the checked-out commit; check the branch out first (the line numbers are those of the working tree)", ref, right)
 	}

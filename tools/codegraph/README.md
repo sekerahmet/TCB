@@ -221,10 +221,15 @@ go run ./tools/codegraph dups --list-exclusions     # the deliberate exceptions 
   `--min` nodes (default 100, dupl's default). Each location is `file:from-to` plus the function it
   is in; the diff summary says whether the copies are exact (names and values too) or only the same
   shape and lists the most frequent `a -> b` renamings. `--in` keeps candidates with a location under
-  a directory. `--changed` keeps candidates with a location on the lines `git diff -U0 base...branch`
-  added or changed (the `changed` command's hunks) and marks those locations `[changed]`; the other
+  a directory. `--changed` keeps candidates with a location on the lines the branch added or
+  changed (the `changed` command's hunks) and marks those locations `[changed]`; the other
   locations can be anywhere, so "this new function copies an existing one" is the case it exists
-  for. The branch has to be the checked-out commit (the line numbers are the working tree's).
+  for. Every form compares from the **merge base**, like `git diff A...B` (a tree diff would count
+  what `main` did meanwhile as the branch's work): `--changed main` and `--changed main..HEAD`
+  (also `main...HEAD`, `main..`) mean "what is new on the checked-out branch since it left main";
+  the checked-out branch's own name means `--base...branch` (`--base` defaults to `main`); a range
+  `A..B` needs B to be the checked-out commit (the line numbers are the working tree's), otherwise
+  it is refused. Pinned by `TestDupsChangedUsesTheMergeBaseNotTheTreeDiff`.
   Exit codes as elsewhere; JSON schema `codegraph-dups/1`.
 - **`similar <func> [--limit N] [--json]`.** Dice score (0..1) between the target and every other
   function over the sets of 4-grams of their node sequences; functions of fewer than 12 nodes and
