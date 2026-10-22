@@ -46,15 +46,7 @@ func (ix *index) packageDirs(in string) []string {
 }
 
 func dirMatches(dir string, dirs []string) bool {
-	if dirs == nil {
-		return true
-	}
-	for _, d := range dirs {
-		if dir == d || strings.HasPrefix(dir, d+"/") {
-			return true
-		}
-	}
-	return false
+	return dirs == nil || underAny(dir, dirs) // süzgeç yoksa (nil) her klasör uyar; boş ama nil olmayan liste hiçbirine
 }
 
 // printCallees bir işlevin çağırdığı işlevleri paketlere göre gruplayıp yazar (--in: yalnızca o paket).

@@ -175,7 +175,7 @@ func (x *goExtractor) implements() {
 				continue
 			}
 			pos := x.m.Fset.Position(tn.Pos())
-			d := decl{typeID(p, name), named, x.rel(pos.Filename), pos.Line}
+			d := decl{typeID(p, name), named, x.m.Rel(pos.Filename), pos.Line}
 			if it, isIface := named.Underlying().(*types.Interface); isIface {
 				if it.NumMethods() > 0 {
 					ifaces = append(ifaces, d)

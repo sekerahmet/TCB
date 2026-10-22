@@ -121,9 +121,15 @@ func resolveTests(idx *goIndex, name string, hints []string, docDir string) ([]*
 	return nil, ""
 }
 
+// underDir file'ın dir klasörünün kendisi ya da altında olduğunu söyler (yollar ileri eğik çizgili).
+func underDir(file, dir string) bool {
+	return file == dir || strings.HasPrefix(file, dir+"/")
+}
+
+// underAny file'ın dirs'ten birinin altında olduğunu söyler; boş listede yanlıştır.
 func underAny(file string, dirs []string) bool {
 	for _, d := range dirs {
-		if file == d || strings.HasPrefix(file, d+"/") {
+		if underDir(file, d) {
 			return true
 		}
 	}

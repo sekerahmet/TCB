@@ -186,7 +186,7 @@ func filterIn(clusters []*dupCluster, pkg string) []*dupCluster {
 	var out []*dupCluster
 	for _, c := range clusters {
 		for _, l := range c.Locs {
-			if l.File == pkg || strings.HasPrefix(l.File, pkg+"/") {
+			if underDir(l.File, pkg) {
 				out = append(out, c)
 				break
 			}

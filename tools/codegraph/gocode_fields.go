@@ -7,6 +7,8 @@ import (
 	"go/types"
 	"strconv"
 	"strings"
+
+	"github.com/sekerahmet/TCB/internal/devtools/goload"
 )
 
 // rawFieldUse tip bilgisiyle çözülmüş bir alan erişimidir; alanın düğümü bütün birimler
@@ -19,7 +21,7 @@ type rawFieldUse struct {
 
 func (x *goExtractor) posKey(p token.Pos) string {
 	pos := x.m.Fset.Position(p)
-	return x.rel(pos.Filename) + ":" + strconv.Itoa(pos.Line) + ":" + strconv.Itoa(pos.Column)
+	return x.m.Rel(pos.Filename) + ":" + strconv.Itoa(pos.Line) + ":" + strconv.Itoa(pos.Column)
 }
 
 // fieldNodes bir struct tipinin alanlarını düğüm yapar (type → field `contains`) ve alanın bildirim
@@ -48,7 +50,7 @@ func (x *goExtractor) fieldNodes(fc *fileCtx, ts *ast.TypeSpec, typeNode, pkg st
 			if obj := fc.u.Info.Defs[id]; obj != nil {
 				detail = types.TypeString(obj.Type(), qual)
 			}
-			x.b.addNode(Node{ID: fid, Kind: kindField, Name: pathBase(pkg) + "." + ts.Name.Name + "." + id.Name,
+			x.b.addNode(Node{ID: fid, Kind: kindField, Name: goload.PathBase(pkg) + "." + ts.Name.Name + "." + id.Name,
 				File: fc.rel, Line: line, End: x.line(f.End()), Detail: detail})
 			x.b.addEdge(typeNode, fid, edgeContains, extracted, fc.rel, line)
 			x.fieldAt[x.posKey(id.Pos())] = fid
@@ -74,13 +76,6 @@ func embeddedIdent(e ast.Expr) *ast.Ident {
 			return nil
 		}
 	}
-}
-
-func pathBase(p string) string {
-	if i := strings.LastIndexByte(p, '/'); i >= 0 {
-		return p[i+1:]
-	}
-	return p
 }
 
 // resolveFieldUses biriken ham erişimleri alan düğümlerine bağlar: okuma `reads_field`, yazma ve

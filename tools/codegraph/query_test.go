@@ -274,3 +274,24 @@ func TestWhoUsesByPackage(t *testing.T) {
 	}
 	testkit.MustContain(t, out, "users by package (1 packages):", "shape: 2 functions, 3 use sites")
 }
+
+// Kural: dirMatches süzgeç yoksa (nil) her klasörü kabul eder, boş ama nil olmayan listede hiçbirini;
+// underAny ise boş listede her zaman yanlıştır; klasörün kendisi ve altı uyar, ön ek benzeri uymaz.
+// Neden: iki işlev tek bir önek denetiminde birleşti; nil ile boş liste farkı sessizce kayarsa
+// sorgu süzgeci ya da kural denetimi tersine dönerdi.
+func TestDirMatchesAndUnderAnyKeepTheirEmptyListRules(t *testing.T) {
+	if !dirMatches("x/y", nil) || dirMatches("x/y", []string{}) {
+		t.Error("dirMatches: nil her şeyi, boş liste hiçbir şeyi kabul etmeli")
+	}
+	if underAny("x/y", nil) || underAny("x/y", []string{}) {
+		t.Error("underAny: boş listede yanlış olmalı")
+	}
+	for file, want := range map[string]bool{"x/y": true, "x/y/z.go": true, "x/yz": false, "x": false} {
+		if got := underAny(file, []string{"x/y"}); got != want {
+			t.Errorf("underAny(%q, [x/y]) = %v", file, got)
+		}
+		if got := dirMatches(file, []string{"x/y"}); got != want {
+			t.Errorf("dirMatches(%q, [x/y]) = %v", file, got)
+		}
+	}
+}

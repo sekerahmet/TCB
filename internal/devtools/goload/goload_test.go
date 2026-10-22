@@ -2,6 +2,7 @@ package goload
 
 import (
 	"go/ast"
+	"go/types"
 	"os"
 	"path/filepath"
 	"testing"
@@ -83,5 +84,24 @@ func TestOrderPutsImportsFirst(t *testing.T) {
 	got := order([]*Listed{c, b, a})
 	if len(got) != 3 || got[0] != a || got[1] != b || got[2] != c {
 		t.Errorf("order: %v %v %v", got[0].ImportPath, got[1].ImportPath, got[2].ImportPath)
+	}
+}
+
+// Kural: PathBase son "/" sonrasını verir (path.Base'den farklı olarak boş yolda ve sonda "/"
+// olan yolda boş döner); RecvName göstericiyi atar ve adlı olmayan tipte boş döner.
+// Neden: codegraph ve impact bu yardımcıları ayrı ayrı yazmıştı; ince farklar sabitlenmezse
+// sessizce kayardı.
+func TestPathBaseAndRecvName(t *testing.T) {
+	for in, want := range map[string]string{"a/b/c": "c", "c": "c", "": "", "a/": ""} {
+		if got := PathBase(in); got != want {
+			t.Errorf("PathBase(%q) = %q, beklenen %q", in, got, want)
+		}
+	}
+	named := types.NewNamed(types.NewTypeName(0, nil, "T", nil), types.Typ[types.Int], nil)
+	if got := RecvName(types.NewPointer(named)); got != "T" {
+		t.Errorf("RecvName(*T) = %q", got)
+	}
+	if got := RecvName(types.Typ[types.Int]); got != "" {
+		t.Errorf("RecvName(int) = %q, boş bekleniyordu", got)
 	}
 }

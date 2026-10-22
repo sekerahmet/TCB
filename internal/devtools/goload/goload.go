@@ -198,3 +198,32 @@ func (m *Module) check(path, dir string, names []string, imp types.Importer, opt
 type importerFunc func(path string) (*types.Package, error)
 
 func (f importerFunc) Import(path string) (*types.Package, error) { return f(path) }
+
+// Rel dosya yolunu modül köküne göre, ileri eğik çizgilerle verir (göreli yazılamazsa mutlak yol).
+func (m *Module) Rel(abs string) string {
+	r, err := filepath.Rel(m.Root, abs)
+	if err != nil {
+		return filepath.ToSlash(abs)
+	}
+	return filepath.ToSlash(r)
+}
+
+// RecvName bir metodun alıcı tipinin adını verir (göstericiyi atar); adlı bir tip değilse "".
+func RecvName(t types.Type) string {
+	if p, ok := t.(*types.Pointer); ok {
+		t = p.Elem()
+	}
+	if n, ok := t.(*types.Named); ok {
+		return n.Obj().Name()
+	}
+	return ""
+}
+
+// PathBase içe aktarma yolunun son parçasıdır. path.Base'den bilerek ayrıdır: boş yolda "" (path.Base
+// "."), sonda "/" olan yolda "" (path.Base "/"'yi atar) verir; paket yollarında ikisi aynıdır.
+func PathBase(p string) string {
+	if i := strings.LastIndexByte(p, '/'); i >= 0 {
+		return p[i+1:]
+	}
+	return p
+}
