@@ -47,15 +47,6 @@ func hasErr(errs []error, line, col int, code messages.Code) bool {
 	return false
 }
 
-// errorTexts hataların metinlerini ("Satır N, Sütun M: ...") döndürür; tam metin denetimi içindir.
-func errorTexts(errs []error) []string {
-	out := make([]string, len(errs))
-	for i, e := range errs {
-		out[i] = e.Error()
-	}
-	return out
-}
-
 // tokensNoErrors hata beklenmeyen girdiler içindir.
 func tokensNoErrors(t *testing.T, input string) []Token {
 	t.Helper()

@@ -83,11 +83,7 @@ func (c *Checker) Errs() []error {
 
 // Errors returns the texts of Errs ("Satır N: ...").
 func (c *Checker) Errors() []string {
-	out := make([]string, len(c.errors))
-	for i, e := range c.errors {
-		out[i] = e.Error()
-	}
-	return out
+	return messages.Texts(c.errors)
 }
 
 // addError records err at the given position (col 0 when unknown).

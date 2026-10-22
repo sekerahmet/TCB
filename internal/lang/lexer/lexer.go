@@ -94,11 +94,7 @@ func (l *Lexer) Errs() []error {
 
 // Errors returns the texts of Errs ("Satır N, Sütun M: ...").
 func (l *Lexer) Errors() []string {
-	out := make([]string, len(l.errors))
-	for i, e := range l.errors {
-		out[i] = e.Error()
-	}
-	return out
+	return messages.Texts(l.errors)
 }
 
 func (l *Lexer) addError(line, col int, err error) {

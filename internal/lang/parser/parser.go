@@ -236,11 +236,7 @@ func (p *Parser) Errs() []error {
 
 // Errors returns the texts of Errs ("Satır N, Sütun M: ...").
 func (p *Parser) Errors() []string {
-	out := make([]string, len(p.errors))
-	for i, e := range p.errors {
-		out[i] = e.Error()
-	}
-	return out
+	return messages.Texts(p.errors)
 }
 
 func (p *Parser) curToken() lexer.Token {
