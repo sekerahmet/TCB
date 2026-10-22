@@ -10,9 +10,7 @@ import (
 //   - test → doğrudan çağırdığı test dışı işlev (EXTRACTED: çağrıdan);
 //   - test → adından anlaşılan işlev ya da tip (INFERRED: TestParse → Parse, TestVM_Run → VM.Run).
 func addTestEdges(b *builder, idx *goIndex) {
-	byID := map[string]*testFunc{}
 	for _, t := range idx.tests {
-		byID[t.id] = t
 		b.addEdge(t.id, pkgID(t.pkg), edgeTests, extracted, t.file, 0)
 		for _, id := range nameTargets(t.name, idx.pkgSyms[t.pkg]) {
 			b.addEdge(t.id, id, edgeTests, inferred, t.file, 0)

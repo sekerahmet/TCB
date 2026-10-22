@@ -5,7 +5,6 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
-	"sort"
 	"strconv"
 	"strings"
 )
@@ -263,15 +262,4 @@ func (x *goExtractor) closureNode(fc *fileCtx, owner string, lit *ast.FuncLit, s
 		File: fc.rel, Line: pos.Line, End: x.line(lit.End()), Detail: "func literal", Captured: x.captured(fc.u.Info, lit)})
 	x.b.addEdge(parent, id, edgeContains, extracted, fc.rel, pos.Line)
 	return id
-}
-
-// sortSites erişim yerlerini dosya ve satıra göre sıralar.
-func sortSites(sites []Site) {
-	sort.SliceStable(sites, func(i, j int) bool {
-		a, b := sites[i], sites[j]
-		if a.File != b.File {
-			return a.File < b.File
-		}
-		return a.Line < b.Line
-	})
 }

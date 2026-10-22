@@ -2,6 +2,7 @@ package main
 
 import (
 	"sort"
+	"strconv"
 )
 
 // Bu dosya tekrar adaylarını bulur. Yöntem: düğüm dizisinde uzunluğu minNodes olan her pencerenin
@@ -287,7 +288,7 @@ func (co *dupCorpus) findDups(minNodes int) (clusters []*dupCluster, skippedGrou
 		if groups[i].Nodes != groups[j].Nodes {
 			return groups[i].Nodes > groups[j].Nodes
 		}
-		return groups[i].Locs[0].File+itoa(groups[i].Locs[0].From) < groups[j].Locs[0].File+itoa(groups[j].Locs[0].From)
+		return groups[i].Locs[0].File+strconv.Itoa(groups[i].Locs[0].From) < groups[j].Locs[0].File+strconv.Itoa(groups[j].Locs[0].From)
 	})
 	return dropSubsumed(groups), skipped
 }
