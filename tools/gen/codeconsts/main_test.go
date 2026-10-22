@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bytes"
+	"github.com/sekerahmet/TCB/tools/internal/genmain"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -30,18 +30,7 @@ func TestFamilyLettersMatch(t *testing.T) {
 // silindiğinde ya da adı değiştiğinde `go run ./tools/gen/codeconsts` çalıştırılmadıysa
 // bu test düşer.
 func TestConstantsUpToDate(t *testing.T) {
-	root := reporoot.Root()
-	fresh, err := Generate(root)
-	if err != nil {
-		t.Fatal(err)
-	}
-	old, err := os.ReadFile(filepath.Join(root, outputPath))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(bytes.ReplaceAll(old, []byte("\r\n"), []byte("\n")), fresh) {
-		t.Fatalf("%s güncel değil; depo kökünde `go run ./tools/gen/codeconsts` çalıştırın", outputPath)
-	}
+	genmain.AssertUpToDate(t, reporoot.Root(), "codeconsts", outputPath, Generate)
 }
 
 // Go kaynaklarında (internal/lang/codes dışında) kodlar yalnızca adlı sabitlerle yazılır: aile + sayı

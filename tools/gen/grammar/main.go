@@ -18,9 +18,8 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"flag"
 	"fmt"
-	"os"
+	"github.com/sekerahmet/TCB/tools/internal/genmain"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -33,34 +32,7 @@ import (
 var grammarPath = filepath.Join("editors", "vscode", "syntaxes", "tr.tmLanguage.json")
 
 func main() {
-	check := flag.Bool("check", false, "do not write the file; exit 1 if it is out of date")
-	root := flag.String("root", ".", "repository root")
-	flag.Parse()
-
-	path := filepath.Join(*root, grammarPath)
-	fresh, err := Generate()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
-	}
-	if *check {
-		old, err := os.ReadFile(path)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error: %v\n", err)
-			os.Exit(1)
-		}
-		if !bytes.Equal(old, fresh) {
-			fmt.Fprintf(os.Stderr, "%s is out of date; regenerate it with go run ./tools/gen/grammar\n", path)
-			os.Exit(1)
-		}
-		fmt.Printf("%s is up to date\n", path)
-		return
-	}
-	if err := os.WriteFile(path, fresh, 0o644); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
-	}
-	fmt.Printf("%s written\n", path)
+	genmain.RunMain("grammar", grammarPath, func(string) ([]byte, error) { return Generate() })
 }
 
 // --- sözlükten listeler ---

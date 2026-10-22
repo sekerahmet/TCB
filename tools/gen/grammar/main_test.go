@@ -1,10 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
-	"os"
-	"path/filepath"
+	"github.com/sekerahmet/TCB/tools/internal/genmain"
 	"regexp"
 	"strings"
 	"testing"
@@ -17,17 +15,7 @@ import (
 // Eklentinin dil bilgisi dosyası sözlükten üretilenle aynı olmalı: bir ad değiştiğinde
 // `go run ./tools/gen/grammar` çalıştırılmadıysa bu test düşer.
 func TestGrammarUpToDate(t *testing.T) {
-	fresh, err := Generate()
-	if err != nil {
-		t.Fatal(err)
-	}
-	old, err := os.ReadFile(filepath.Join(reporoot.Root(), grammarPath))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(bytes.ReplaceAll(old, []byte("\r\n"), []byte("\n")), fresh) {
-		t.Fatalf("%s güncel değil; depo kökünde `go run ./tools/gen/grammar` çalıştırın", grammarPath)
-	}
+	genmain.AssertUpToDate(t, reporoot.Root(), "grammar", grammarPath, func(string) ([]byte, error) { return Generate() })
 }
 
 // Üretilen listeler yalnızca yazım dillerinin bugünkü adlarını içerir: Türkçe adların ASCII

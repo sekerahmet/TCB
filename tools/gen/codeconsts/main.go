@@ -21,15 +21,13 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"flag"
 	"fmt"
+	"github.com/sekerahmet/TCB/tools/internal/genmain"
 	"go/format"
 	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
-
-	"github.com/sekerahmet/TCB/tools/internal/repodir"
 )
 
 // Depo köküne göre yollar.
@@ -40,37 +38,7 @@ var (
 )
 
 func main() {
-	check := flag.Bool("check", false, "do not write the file; exit 1 if it is out of date")
-	root := flag.String("root", "", "repository root (if empty, go.mod is searched upwards from the working directory)")
-	flag.Parse()
-
-	if *root == "" {
-		*root = repodir.Find()
-	}
-	fresh, err := Generate(*root)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
-	}
-	path := filepath.Join(*root, outputPath)
-	if *check {
-		old, err := os.ReadFile(path)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error: %v\n", err)
-			os.Exit(1)
-		}
-		if !bytes.Equal(bytes.ReplaceAll(old, []byte("\r\n"), []byte("\n")), fresh) {
-			fmt.Fprintf(os.Stderr, "%s is out of date; regenerate it with go run ./tools/gen/codeconsts\n", path)
-			os.Exit(1)
-		}
-		fmt.Printf("%s is up to date\n", path)
-		return
-	}
-	if err := os.WriteFile(path, fresh, 0o644); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
-	}
-	fmt.Printf("%s written\n", path)
+	genmain.RunMain("codeconsts", outputPath, Generate)
 }
 
 // familyLetters internal/lang/codes'daki sırayla aynıdır (A=1000, G=2000, H=3000 ...).

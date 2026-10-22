@@ -1,8 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
+	"github.com/sekerahmet/TCB/tools/internal/genmain"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -50,15 +50,7 @@ var migrated = []string{
 
 // Üretilmiş sabitler katalogla aynıdır.
 func TestGeneratedUpToDate(t *testing.T) {
-	root := reporoot.Root()
-	fresh, err := Generate(root)
-	if err != nil {
-		t.Fatal(err)
-	}
-	old, err := os.ReadFile(filepath.Join(root, outputPath))
-	if err != nil || !bytes.Equal(old, fresh) {
-		t.Fatalf("%s güncel değil: go run ./tools/gen/msgconsts", outputPath)
-	}
+	genmain.AssertUpToDate(t, reporoot.Root(), "msgconsts", outputPath, Generate)
 }
 
 // call bir ileti çağrısıdır (messages.New / messages.Text; paketin kendi içinde New / Text).
