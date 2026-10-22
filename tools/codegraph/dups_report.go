@@ -55,7 +55,10 @@ func (co *dupCorpus) diffOf(c *dupCluster) dupDiff {
 		if d.Changes[i].Count != d.Changes[j].Count {
 			return d.Changes[i].Count > d.Changes[j].Count
 		}
-		return d.Changes[i].From+d.Changes[i].To < d.Changes[j].From+d.Changes[j].To
+		if d.Changes[i].From != d.Changes[j].From {
+			return d.Changes[i].From < d.Changes[j].From
+		}
+		return d.Changes[i].To < d.Changes[j].To
 	})
 	if len(d.Changes) > maxChanges {
 		d.Changes = d.Changes[:maxChanges]

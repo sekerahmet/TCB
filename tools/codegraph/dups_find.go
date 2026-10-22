@@ -2,7 +2,6 @@ package main
 
 import (
 	"sort"
-	"strconv"
 )
 
 // Bu dosya tekrar adaylarını bulur. Yöntem: düğüm dizisinde uzunluğu minNodes olan her pencerenin
@@ -198,9 +197,14 @@ func (co *dupCorpus) dupGroups(pairs []pairMatch) []*dupCluster {
 		r := find(x)
 		byRoot[r] = append(byRoot[r], x)
 	}
-	var out []*dupCluster
+	groups := make([][]int, 0, len(byRoot))
 	for _, members := range byRoot {
 		sort.Ints(members)
+		groups = append(groups, members)
+	}
+	sort.Slice(groups, func(i, j int) bool { return groups[i][0] < groups[j][0] }) // harita sırası değil, konum sırası
+	var out []*dupCluster
+	for _, members := range groups {
 		if c := co.clusterOf(members, length); c != nil {
 			out = append(out, c)
 		}
@@ -284,13 +288,30 @@ func (co *dupCorpus) funcAt(pos int) string {
 func (co *dupCorpus) findDups(minNodes int) (clusters []*dupCluster, skippedGroups int) {
 	pairs, skipped := co.matches(minNodes)
 	groups := co.dupGroups(pairs)
-	sort.SliceStable(groups, func(i, j int) bool {
-		if groups[i].Nodes != groups[j].Nodes {
-			return groups[i].Nodes > groups[j].Nodes
-		}
-		return groups[i].Locs[0].File+strconv.Itoa(groups[i].Locs[0].From) < groups[j].Locs[0].File+strconv.Itoa(groups[j].Locs[0].From)
-	})
+	sort.SliceStable(groups, func(i, j int) bool { return clusterBefore(groups[i], groups[j]) })
 	return dropSubsumed(groups), skipped
+}
+
+// clusterBefore kümelerin tam sıralamasıdır: büyük önce, eşitse konumları sırayla (dosya, satır) karşılaştırılır.
+// Sıra tam olmazsa (eşit büyüklük ve aynı ilk konum) dropSubsumed'ın hangisini bırakacağı çalıştırmadan
+// çalıştırmaya değişirdi.
+func clusterBefore(a, b *dupCluster) bool {
+	if a.Nodes != b.Nodes {
+		return a.Nodes > b.Nodes
+	}
+	for k := 0; k < len(a.Locs) && k < len(b.Locs); k++ {
+		x, y := a.Locs[k], b.Locs[k]
+		if x.File != y.File {
+			return x.File < y.File
+		}
+		if x.From != y.From {
+			return x.From < y.From
+		}
+		if x.To != y.To {
+			return x.To < y.To
+		}
+	}
+	return len(a.Locs) > len(b.Locs)
 }
 
 // dropSubsumed her konumu, önce gelen (daha büyük) bir kümenin bir konumunun içinde kalan kümeleri atar.

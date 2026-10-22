@@ -375,3 +375,28 @@ func TestDupsChangedUsesTheMergeBaseNotTheTreeDiff(t *testing.T) {
 		t.Errorf("a range whose right end is not the checked-out commit: %d", code)
 	}
 }
+
+// Çıktı çalıştırmadan çalıştırmaya aynıdır: eşit büyüklükte kümelerin sırası ve eşit sayılı fark
+// değişimlerinin sırası harita dolaşma sırasına bağlı değildir (bu depoda --min 25 kümeleri ve çok
+// sayıda eşit durum üretir).
+func TestDupsOutputIsStableOnTheRepository(t *testing.T) {
+	if testing.Short() {
+		t.Skip("depoyu birkaç kez tarar")
+	}
+	root, err := resolveRoot("")
+	if err != nil {
+		t.Skip(err)
+	}
+	var first string
+	for i := 0; i < 4; i++ {
+		var out, errb bytes.Buffer
+		if code := run([]string{"dups", "--root", root, "--min", "25", "--all", "--json"}, &out, &errb); code != exitOK {
+			t.Fatalf("exit %d: %s", code, errb.String())
+		}
+		if i == 0 {
+			first = out.String()
+		} else if out.String() != first {
+			t.Fatalf("run %d prints different output", i+1)
+		}
+	}
+}
