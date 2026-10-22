@@ -25,7 +25,7 @@ döngü i, satır içinde beklenen["logits"] {
 yazdır(en_büyük)
 `
 
-// Kural (Evre 4, hazır modeller; dil tanımı 15.47): Hugging Face biçiminde kaydedilmiş bir model
+// Kural (Evre 5, hazır modeller; dil tanımı 15.47): Hugging Face biçiminde kaydedilmiş bir model
 // (config.json + model.safetensors) tr/hazir ile yüklenince aynı token kimlikleri için
 // transformers'la float32 yuvarlama düzeyinde aynı logitleri verir. İki mimari: Llama (paylaşımlı
 // gömme, RoPE tabanı 10⁵) ve Qwen3 (bakış boyutu gizli boyuttan bağımsız, QK-norm, RoPE tabanı

@@ -6,15 +6,15 @@ Bugün TR, tek GPU'da sıfırdan model eğitmekte derlenmiş PyTorch'un (`torch.
 
 ## Bugün nerede duruyoruz (2026-10-23)
 
-Tek GPU'da Transformer eğitmek ve hazır bir modeli çalıştırmak için kullanılabilir bir dil; henüz bir ekosistem dili değil: modeli dışarı vermek, ince ayar, sunum ve ölçek eksik. Python + PyTorch'la kıyasla çekirdek dil ve eğitim hızında yakın, eğitim kalitesi, belirlenimcilik ve bellek bırakmada önde; kullanıcıyı kazandıran alışveriş tarafında Evre 4'ün yarısında.
+Tek GPU'da Transformer eğitmek ve hazır bir modeli çalıştırmak için kullanılabilir bir dil; henüz bir ekosistem dili değil: modeli dışarı vermek, ince ayar, sunum ve ölçek eksik. Python + PyTorch'la kıyasla çekirdek dil ve eğitim hızında yakın, eğitim kalitesi, belirlenimcilik ve bellek bırakmada önde; kullanıcıyı kazandıran alışveriş tarafında Evre 5'in yarısında.
 
 | Alan | Durum | Kanıt / eksik |
 | :-- | :-- | :-- |
 | Dil çekirdeği | güçlü | dil tanımı (her kural testli), tip denetimi, sahiplik ve belirlenimci bellek bırakma, iki yazım dili, kodlu saklama |
 | Tensör ve türev | güçlü | otomatik türev, bf16/fp16, karışık hassasiyet, `kaynaştır`, `tekrar_oynat`, birleşik dikkat; eksik: genel indeksleme (`t[:, 0]`), tam sayı ve bool tensör türleri, yığ/doldur |
-| GPU eğitim hızı | iyi | hedef modelde RTX PRO 6000'de 145 ms/adım, `torch.compile` 136 (1,07 kat); A100'de 246 / 214 (1,15); L4'te TR önde (892 / 974); bellek eşit; H4 süren hedef (Evre 6) |
+| GPU eğitim hızı | iyi | hedef modelde RTX PRO 6000'de 145 ms/adım, `torch.compile` 136 (1,07 kat); A100'de 246 / 214 (1,15); L4'te TR önde (892 / 974); bellek eşit; H4 süren hedef (Evre 7) |
 | Eğitim kalitesi | iyi | 0,8 milyar parça, iki tohum: doğrulama kaybı TR 3,5305, PyTorch 3,5536 (−0,023; tohum gürültüsü ≤ 0,005); ölçücüler birebir aynı (Evre 3, "Uzun koşu") |
-| GPU üretim hızı | iyi | transformers'ın en hızlı yolu geçildi; llama.cpp f32'nin %63–83'ü (Evre 4, "Üretim hızı") |
+| GPU üretim hızı | iyi | transformers'ın en hızlı yolu geçildi; llama.cpp f32'nin %63–83'ü (Evre 5, "Üretim hızı") |
 | CPU | zayıf | üretimde llama.cpp'nin ~1/5'i; CPU'da 16 bitlik ağırlık kerneli ve nicemleme yok |
 | Eğitim araçları | iyi | Muon/AdamW, kontrol noktası ve sürdürme, NaN/sıçrama koruması, veri hattı ve önbellek, parçalayıcı, profil, canlı izleme |
 | Hazır modellerle alışveriş | yarım | Hugging Face'ten okuma var (Llama, Qwen3; transformers'la aynı sonuç); yazma (safetensors, `.pt`, GGUF), LoRA ve ince ayar yok |
@@ -22,9 +22,9 @@ Tek GPU'da Transformer eğitmek ve hazır bir modeli çalıştırmak için kulla
 | Ölçek | yok | tek GPU; çoklu GPU, nicemleme, AMD ve Apple arka ucu yok |
 | Araçlar | iyi | VS Code eklentisi, hata ayıklayıcı, `tr dizin`, kod grafiği, profil, Colab'da GPU sınaması |
 | Belgeler ve örnekler | iyi | dil tanımı, rehber, iki dilde örnekler; kitaplığın kullanıcıya görünen adları örneklerde geçer (kitaplık kapsamı testi; istisna listesi gerekçeli ve küçülüyor); iletilerin hepsi İngilizce; dil tanımı ve rehber yalnızca Türkçe |
-| Kullanıcı | yok | yalnızca geliştiriciler; sürüm ve kararlılık sözü yok (Evre 4, sürüm politikası) |
+| Kullanıcı | yok | yalnızca geliştiriciler; sürüm ve kararlılık sözü yok (Evre 5, sürüm politikası) |
 
-Öncelik: dili kullanılır yapan Evre 4'ün kalanıdır (safetensors yazma, LoRA ile ince ayar, OpenAI uyumlu sunucu: "Hugging Face modelini al, ince ayar yap, kaydet, sun" yolu). H4'te önce ölçümün gösterdiği ucuz kalemler alınır.
+Öncelik (2026-10-23): Evre 4, dilin ve kod tabanının sağlamlaştırılması (tekrarlar, güvenlik, eksik kodlar, codegraph, yeni yazım dilleri, sayısal doğruluk); maddeler kolaydan zora. Ardından dili kullanılır yapan Evre 5 (safetensors yazma, LoRA ile ince ayar, OpenAI uyumlu sunucu: "Hugging Face modelini al, ince ayar yap, kaydet, sun" yolu). H4'te önce ölçümün gösterdiği ucuz kalemler alınır.
 
 ## İlkeler
 
@@ -54,13 +54,13 @@ Dil, tensörler, otomatik türev, veri hattı ve GPU üst üste kuruldu; TR ile 
 1. **İleti kodları.** Kullanıcıya giden her ileti, adlar gibi sabit bir koda bağlanır (`H` ve dört basamak, `internal/lang/messages`). Metinler dil dosyasındadır; parametreler adlıdır (`{fn}: {path|q} bir klasör`). Testler metni değil kodu denetler.
    - Tamamlandı: altyapı ve denetim testi; ortak hata yardımcıları; standart kitaplık, `devtools`, `tr` komutu; dil çekirdeği; yapılı hata (hata konumu her yerde yapıdan okunur, metinden okunmaz); hesap çekirdeği (tensör, GPU, veri hattı, parçalayıcı). Bütün paketler geçti.
    - Bitiş testi (tamamlandı): Go metninde Türkçe harfli metin sabiti yalnızca izinli yerdedir (`TestNoTurkishLiterals`): dilbilgisi paketi, yapı etiketleri ve gerekçeli kayıtlar (veri biçimi anahtarları, Türkçe belge üreten aracın içeriği). İlk taramada 40 dosyada 244 metin bulundu; adlar ad koduna, iletiler ileti koduna taşındı, geliştirici hataları ve araç çıktıları İngilizceye geçti (`tools/` Go adları dahil).
-2. **İletiler her dile hazır (tamamlandı).** Türkçenin dilbilgisi Go kodundan şablona taşındı; asıl çeviri Evre 7'de yapılır ([`internal/lang/messages/README.md`](../internal/lang/messages/README.md)):
+2. **İletiler her dile hazır (tamamlandı).** Türkçenin dilbilgisi Go kodundan şablona taşındı; asıl çeviri Evre 8'de yapılır ([`internal/lang/messages/README.md`](../internal/lang/messages/README.md)):
    - Şablon dili ICU MessageFormat'ın alt kümesi: çoğul (`{n, plural, ...}`, dile göre CLDR kuralı), seçim (`select`), hâl eki (`{ad|dat}`; çekimciyi dilin paketi kaydeder), seçenek listesi (`messages.OrList`, CLDR liste kalıbı).
    - Go'da sözcük çekimlenmez (`turkish.Suffix` yalnızca kendi paketinde; testle), sayıya bakıp sözcük seçilmez, ileti metni `strings` ile düzenlenmez.
    - Her dil kodun bütün parametrelerini kullanır; aynı anlam tek koddur, parametre adı farklı olsa da (testle; bu denetim 8 çift kod buldu, birleştirildi).
    - İngilizce: bütün iletiler (1648 kod, `en.json`; eksik çeviri test hatasıdır, 2026-10-22), `TR_DIL=en` ile gösterilir. Bir ileti bütünüyle tek dildedir: kendisinin ya da içindeki kodlu hatanın çevirisi yoksa iletinin tamamı Türkçe gösterilir; süreç dili bir kez okunur, adlar ve iletiler aynı dildedir.
    - Dış denetimden sonra (2026-10-20): çoğul kuralı CLDR işlenenlerini alır (2^53 üstünde de doğru, Rusça gibi dillere hazır); bir parametre ya dal dışında ya her dalda geçer (testle; birbirini dışlayan değerli iki ileti ikişer koda ayrıldı); parçadan kurulan iletiler (dosya hataları, yüklem ve iyelik parçaları) tam cümleye çevrildi ve bir ileti metninin başka iletiye değer olarak geçmesini test yakalar.
-   - Kalan küçükler: değer olarak geçen ad öbekleri ve sona eklenen ipuçları (ör. GPU tanı zinciri H4033–H4035, `{hint}` eki, "Bunu mu demek istediniz" eki, `testrunner` sayım satırı) çeviride sorun çıkarabilir; Evre 7'de tek şablona çevrilir. Parça testi değişkene alınmış metni ve `+` birleştirmeyi henüz görmüyor.
+   - Kalan küçükler: değer olarak geçen ad öbekleri ve sona eklenen ipuçları (ör. GPU tanı zinciri H4033–H4035, `{hint}` eki, "Bunu mu demek istediniz" eki, `testrunner` sayım satırı) çeviride sorun çıkarabilir; Evre 8'de tek şablona çevrilir. Parça testi değişkene alınmış metni ve `+` birleştirmeyi henüz görmüyor.
 3. **Gradyan doğruluğu kapısı (tamamlandı).** Her türevli tensör işleminin float64 sonlu fark testi ve bf16 tolerans testi var (`gradSpec`); `behavior_grad_coverage_test.go` testi olmayan işlemi yakalar; GPU'da her türevli işlemin gradyanı CPU ile karşılaştırılır (gerçek kartta doğrulandı). `stdlib/ml`'deki 14 bileşik türev de (softmax, normlar, çapraz entropi, gömme, dikkat ...) aynı kapıdadır. bf16 toleransları ölçülerek işlem başına seçildi (ölçülenin 2 katı; tablo `internal/compute/tensor/README.md`). Bulunan tek yanlış: `üstel_eksi_bir`'in türevi çok negatif girdide 0 çıkıyordu, düzeltildi. Kalan: GPU'daki bf16 sapma tablosu Colab'da ölçülecek.
 4. **Anlam kuralları yazılı ve testli (tamamlandı).** Yayınlama, tür yükseltme, tensör indeksi ve dilimi, `.dilim`, liste ve metin indeksi, sayı olmayan işlenen ve NaN kuralları dil tanımının 15.41 maddesinde tek tabloda; her biri PyTorch/NumPy ile karşılaştırıldı ve `tests/tensor_test.tr`'de testli. Tek davranış değişikliği: liste ve metinde sınır dışı okuma artık hatadır, bilinçli durum için `varsa_al` (3.6).
 5. **Açık işler ve bekleyen dil kararları.** Her karar başka dillerle karşılaştırılarak verildi; gerekçeleri dil tanımında.
@@ -88,7 +88,7 @@ Dilin asıl sınavı, Python/PyTorch ile yazılmış, hız ve doğruluk için op
 
 **Kapanış kararı (2026-10-21):** Evre 3'ün hız ölçütü H3'tür (≤ 1,2 × compile).
 
-H4 (compile ile başa baş) süren bir hedef olarak Evre 6'ya taşındı. Kalan kazançlar derin GPU işidir: norm geri yönünü kaynaştırma, adımlı dikkat, çarpım eplogları.
+H4 (compile ile başa baş) süren bir hedef olarak Evre 7'ye taşındı. Kalan kazançlar derin GPU işidir: norm geri yönünü kaynaştırma, adımlı dikkat, çarpım eplogları.
 
 İki madde ilgili evrelere ertelendi, çünkü hedef model 10,8 GB'a sığıyor ve dropout kullanmıyor; ince ayar ve büyük model geldiğinde gerekir:
 - aktivasyonların yeniden hesaplanması,
@@ -133,8 +133,8 @@ Veri: dört parça dosyasından tam 800M parça (veri bir kez görülür). Doğr
 | L4 (Ada, sm_89) | geçti | 892 | 974 | 2348 | **0,92** | 10,20 / 10,43 / 16,54 | 120 adım (300 adımlık doğrulama sürüyordu) |
 
 - TR her kartı ayar gerektirmeden tanır (sürücü, mimari, cuBLASLt) ve çekirdeklerini o karta göre üretir. İlk adımın ek yükü ~0,7 sn; `torch.compile`'ın hazırlığı L4'te ~45–50 sn.
-- A100 profili (RTX'le aynı kod, adım başına GPU süresi oranı): cuBLASLt çarpımı ×1,45 (kart farkı), TR'nin kendi çekirdeklerinden `dikkat_d` ×3,4, kaynaşık zincirler ×2,15, dikkat ×2, norm ileri ×2. A100'deki farkın kaynağı bu çekirdekler (H4 adayları, Evre 6).
-- H100 Colab'da verilemedi; T4'te bf16 tensör çekirdeği yoktur (fp16 yolu, Evre 6).
+- A100 profili (RTX'le aynı kod, adım başına GPU süresi oranı): cuBLASLt çarpımı ×1,45 (kart farkı), TR'nin kendi çekirdeklerinden `dikkat_d` ×3,4, kaynaşık zincirler ×2,15, dikkat ×2, norm ileri ×2. A100'deki farkın kaynağı bu çekirdekler (H4 adayları, Evre 7).
+- H100 Colab'da verilemedi; T4'te bf16 tensör çekirdeği yoktur (fp16 yolu, Evre 7).
 
 **Kod.** Aynı mimari ve eğitim tarifi, tek dosya, PyTorch dosyasıyla aynı mertebede uzunluk:
 - yerel ve genel katmanlar, pencere, GQA, QK-norm,
@@ -193,35 +193,35 @@ Veri: dört parça dosyasından tam 800M parça (veri bir kez görülür). Doğr
 1. **Önce ölçüm.** Yapıldı. 12 katman D768 düz GPT'de TR eager PyTorch'la başa baştı, `torch.compile`'dan 1,15 kat yavaştı; fark kernel süresindeydi (kaynaşmamış küçük işler). Hedef modelde derleme eager'a göre 2,55 kat kazandırıyordu; asıl kıyas bu modelle yapıldı (yukarıda).
 2. **Bellek.**
    - Parçalı doğrusal + çapraz entropi: yapıldı.
-   - Aktivasyonların yeniden hesaplanması: Evre 4'e ertelendi.
-   - Dikkatin adımlı girdi okuması: H4 işi olarak Evre 6'ya taşındı.
-3. **Rastgelelik anahtarı ve dropout.** Evre 4'e ertelendi; yeniden hesaplamanın önkoşulu.
+   - Aktivasyonların yeniden hesaplanması: Evre 5'e ertelendi.
+   - Dikkatin adımlı girdi okuması: H4 işi olarak Evre 7'ye taşındı.
+3. **Rastgelelik anahtarı ve dropout.** Evre 5'e ertelendi; yeniden hesaplamanın önkoşulu.
 4. **Bakış boyu uyumu. Yapıldı.** (Bakış: dikkatin *head*'i; 2026-10-21'de "baş" yerine, literatürün birebir çevirisi eş sesliydi.)
    - Tensör çekirdekli dikkatin geri yönü bakış boyu 128'e: **yapıldı (2026-10-22).** Bakış boyu 64'ü aşınca iki geri çekirdeğin döşemesi 32'dir (FlashAttention-2 `run_mha_bwd_hdim128` ve Triton fused-attention emsali; paylaşımlı bellek 48 KB'nin altında). RTX PRO 6000'de bf16 nedensel ileri + geri: B8 H8 T1024 3,81 → 0,73 ms, B4 H16 GQA T2048 14,04 → 2,41 ms; bakış boyu 64 değişmedi.
    - Gizli boyuttan bağımsız bakış boyu: yapıldı (2026-10-21). `NedenselDikkat`, `TransformerBloğu` ve `GPT` `bakış_boyutu:` alır (Hugging Face `head_dim` kuralı: verilmezse `boyut / bakış_sayısı`; sorgu `[boyut, bakış_sayısı · bakış_boyutu]`, çıkış `[bakış_sayısı · bakış_boyutu, boyut]`).
 
-   Açık modellerin neredeyse hepsi 128 kullanır; Evre 4'teki hazır model yüklemenin önkoşuludur.
+   Açık modellerin neredeyse hepsi 128 kullanır; Evre 5'teki hazır model yüklemenin önkoşuludur.
 5. **Hız.**
    - Yapıldı: dönüşüm kopyalarının azaltılması, RoPE ve SwiGLU zincirleri, kural tabanlı birleştirici (`kaynaştır`).
-   - Kalanlar H4 olarak Evre 6'da.
+   - Kalanlar H4 olarak Evre 7'de.
    - Gerçek verideki ~10 ms'lik fark: giderildi (gömme geri yönü, yukarıda "Hız yolu").
 6. **Eğitim gözlemlenebilirliği.**
    - NaN/Inf ve kayıp sıçramasında durma ya da son kontrol noktasına dönme: yapıldı (2026-10-21). Dil parçaları verir, politikayı döngü seçer: `sonlu_mu`, `gradyan_kırp(..., sonlu_değilse_hata:)` (dil tanımı 15.46), `kn.geri_dön()` ve `ö.atla(n)` (20.14, 20.15), kitaplıkta `tr/egitim`'in sıçrama bekçisi (OLMo-core ölçütü: son 128 sağlam adıma göre 6σ). `rgn512.tr --koşu` NaN ya da sıçramada son noktaya döner ve 200 toplu iş atlar (PaLM §5.1); kontrol noktası yoksa NaN'de açık hatayla durur. Bekçi adımın sonunda zaten okunan değerleri kullanır, adıma bekleme eklemez. Örnek 44.
    - Günlüğe kırpma öncesi ve sonrası gradyan normu, saniyede parça ve kontrol noktası bugün yazılıyor.
-   - Uzun eğitimin öbür ölçüleri ve seçenekleri Evre 6'da: parametre normu, etkinleşme RMS'i, log Z, MFU, z-loss, toplu iş atlama, eşzamansız kontrol noktası.
-7. **Belirlenimci veri sırası.** Sıralı ve tohumlu örnekleyiciyle sağlanıyor. Çoklu GPU'da (Evre 6) yeniden doğrulanır.
-8. **T4 yolu.** bf16 tensör çekirdeği olmayan kartlar için fp16 ve dinamik kayıp ölçekleme; ölçek günlüğe yazılır. Kapanış şartı değildi; Colab'ın ücretsiz kartı T4 olduğu için Evre 6'ya taşındı.
+   - Uzun eğitimin öbür ölçüleri ve seçenekleri Evre 7'de: parametre normu, etkinleşme RMS'i, log Z, MFU, z-loss, toplu iş atlama, eşzamansız kontrol noktası.
+7. **Belirlenimci veri sırası.** Sıralı ve tohumlu örnekleyiciyle sağlanıyor. Çoklu GPU'da (Evre 7) yeniden doğrulanır.
+8. **T4 yolu.** bf16 tensör çekirdeği olmayan kartlar için fp16 ve dinamik kayıp ölçekleme; ölçek günlüğe yazılır. Kapanış şartı değildi; Colab'ın ücretsiz kartı T4 olduğu için Evre 7'ye taşındı.
 9. **Model parçaları.**
    - Muon'un toplu Newton–Schulz adımı: yapıldı.
-   - PLE tabloları için seyrek satır güncellemesi: ölçümle önemsiz çıktı (~3 ms). Indeksle yazma (Evre 4, tensör dili) gelince ele alınır.
+   - PLE tabloları için seyrek satır güncellemesi: ölçümle önemsiz çıktı (~3 ms). Indeksle yazma (Evre 5, tensör dili) gelince ele alınır.
 10. **Karşılaştırma ve kartlar.**
     - Hedef model karşılaştırması: yapıldı.
     - İkinci kart: **yapıldı (2026-10-23)**, üç kart türü (yukarıda "Kartlar").
-    - CPU'da küçük modelle eğitim denemesi Evre 4'ün CPU maddesiyle birlikte yapılır.
+    - CPU'da küçük modelle eğitim denemesi Evre 5'in CPU maddesiyle birlikte yapılır.
 
 **Hedef modelin gösterdiği dil eksikleri** (her biri genel çözümü bulununca ele alınır; modele özel kestirme yapılmaz):
 - Liste üreteci tek değişkenlidir: `[f(i, x) döngü i, x içinde l]` yazılamaz (döngüde yazılır); dil tanımında iki biçim tutarsız.
-- Satırlara indeksle yazma yoktur (PyTorch `index_add_`/`index_copy_`, JAX `x.at[i].add`); Evre 4'ün tensör dili maddesinde.
+- Satırlara indeksle yazma yoktur (PyTorch `index_add_`/`index_copy_`, JAX `x.at[i].add`); Evre 5'in tensör dili maddesinde.
 - FP8 yoktur; d > 2000 modellerde kazandırır, tür adları metin olduğundan aynı yere eklenir (sonraki evre).
 
 **Bitiş ölçütü:**
@@ -233,7 +233,35 @@ Veri: dört parça dosyasından tam 800M parça (veri bir kez görülür). Doğr
 - Eğitim bir NaN'de ya da kayıp sıçramasında kendiliğinden durur ya da son kontrol noktasına döner. **Sağlandı** (`TestTargetModelRollsBackOnNaN`).
 - Ölçümler ve GPU testleri en az iki kart türünde geçer. **Sağlandı (2026-10-23):** RTX PRO 6000, A100, L4 ("Kartlar").
 
-## Evre 4: Hazır modeller ve üretim yolu
+## Evre 4: Dilin ve kod tabanının sağlamlaştırılması (şu an)
+
+Bundan sonra yazılacak her şey (hazır modeller, ince ayar, sunum, ölçek) dilin, tensör katmanının ve araçların üstüne kuruluyor. Evre 3'ün kapanışında bile telafisiz GPU toplamları, CPU ile GPU'da −0 farkı, çöp toplayıcıya bağlı kararsız testler ve uzun bir koşunun sonunda düşüp sonucunu kaybettiren bir satır bulundu. Temeldeki her çatlak üstüne kurulan her şeye taşınır; bu evre yeni özellik eklemeden önce temeli sağlamlaştırır ve dili yeni yazım dillerine açar. Bitince sıradaki evre (hazır modeller ve üretim yolu) başlar.
+
+Maddeler kolaydan zora sıralıdır (2026-10-23 kararı); iş bu sırayla alınır.
+
+1. **Özel değerlerde CPU/GPU birliği.** −0, NaN ve sonsuz için her işlemin davranışı tek tabloda yazılı ve testli (ilk bulgu: CPU yalnızca −0'lardan oluşan toplamı +0 veriyor, GPU −0).
+2. **Kararlı test düzeni.** Çöp toplayıcıya, tekrar sayısına ya da süreç geneli duruma bağlı test kalmaz; zorlama koşusu (`GOGC=1`, `-count=N`) düzenli yapılır (bilinen örnek: `TestBroadcastWarningLimited` `-count=2`'de kalıyor).
+3. **Kartlar arası sınama.** Her GPU değişikliği en az iki mimaride sınanır; bunun için tek komutluk kart sınama betiği (kurulum, GPU testleri, dil tanımı testleri, hız; Colab, RunPod ya da başka bir GPU makinesinde aynı).
+4. **Eksik kodlar.** Kullanıcıya görünüp henüz kodlu olmayan metinler (Türkçe sabitler, adı içine gömülü iletiler, `TR_GPU_*` ortam adları), kalan CLI adları, değer olarak geçen ad öbekleri ve sona eklenen ipuçları (Evre 2'nin "kalan küçükler"i).
+5. **Eğitim koşularının güvenliği, kitaplık düzeyinde.** `tr/egitim`'de bir koşu yapısı: ağırlıklar önce yazılır, kayıplar ve değerlendirmeler ara ara kaydedilir, kontrol noktası, prova kipi (aynı komut küçük boyda), sonuçların dışarı yazılması. Evre 3'ün uzun koşusunda elle eklenen güvenceler dilin kendisine geçer.
+6. **Tekrar eden kodun temizlenmesi.** `codegraph dups`'ın adayları ve Gemini tekrar denetiminin kalan partisi (paketler arası) birleştirilir; kalibre olunca "yeni tekrar" tam denetimde önce uyarı, sonra kural olur.
+7. **codegraph'ın geliştirilmesi.** `.tr` kodunda tekrar bulma; sorgu ve etki analizinin TR kitaplığını da kapsaması; CODEGRAPH oturumunda biriken fikirler.
+8. **Sayısal doğruluk kapısı.** Her tensör işleminin CPU ve GPU sonucu float64 referansa karşı sınanır (normlar ve toplamlar için 2026-10-22'de başladı: `TestNormsMatchFloat64Reference`, `TestSumsMatchFloat64Reference`); hata sınırları işlem başına yazılır; Evre 2'den kalan GPU bf16 sapma tablosu burada kapanır.
+9. **Güvenlik.** Saldırı yüzeyinin baştan sona denetimi (dosya biçimleri, kum havuzu, komut satırı, hata ayıklayıcı, VS Code eklentisi), bulanıklaştırma kapsamının genişletilmesi; govulncheck, staticcheck ve ölü kod kuralları sürer (2026-10-22'de kuruldu). Her bulgu önce yeniden üretilir, testle kapanır.
+10. **Yeni yazım dilleri: İspanyolca, Almanca, Fransızca** (Evre 8'den öne çekildi; altyapı Evre 2'de kuruldu, İngilizcede iletilerin hepsi var). Her dil için adların ve iletilerin çevirisi (anahtar sözcük ve ad çakışmaları testle, dile göre çoğul ve liste kalıpları), `tr göster --dil` ile gidiş-dönüş testi, Gemini çapraz okuması ve mümkünse ana dili konuşan birine örnek okutma.
+11. **"TR neden daha iyi eğitiyor?"** (Evre 3, "Uzun koşu"). Sebep bulunur, PyTorch'a uygulanıp PyTorch'un da iyileştiği gösterilir; kendi sayısal yolumuzu anlamak bu evrenin parçasıdır.
+
+**Bitiş ölçütü:**
+- Özel değer tablosu yazılı ve testlidir; zorlama koşusunda kararsız test yoktur; GPU testleri her değişiklikte en az iki mimaride geçer.
+- Kullanıcıya görünen her metin kodludur (testle).
+- Uzun bir eğitim koşusu sondaki bir hatayla sonucunu kaybedemez (testle).
+- Tam denetimde "yeni tekrar" kuralı açıktır; `.tr` kodu için tekrar bulma çalışır.
+- Her türevli tensör işleminin CPU ve GPU'da float64 referans testi vardır.
+- Güvenlik denetiminin bütün bulguları testle kapanmıştır.
+- Dört yazım dilinde (İngilizce, İspanyolca, Almanca, Fransızca) bütün adlar ve iletiler vardır; eksik çeviri test hatasıdır.
+- "TR neden daha iyi eğitiyor" sorusu kanıtla cevaplanmıştır.
+
+## Evre 5: Hazır modeller ve üretim yolu
 
 Modeli kullanan geliştiricinin ilk sorusu: "Hugging Face'teki modeli yükleyip ince ayar yapabilir miyim?" Bu evre o yolu açar. Sıra bağımlılığa göredir.
 
@@ -269,7 +297,7 @@ Modeli kullanan geliştiricinin ilk sorusu: "Hugging Face'teki modeli yükleyip 
    - Planlamasız iyileştirici (Schedule-Free): ısınma ve azalma planı ile toplam adım sayısını önceden bilmek gerekmez.
    - Düşük bitli iyileştirici durumu (bf16 ya da 8 bit momentler): durum bugün modelin 2–3 katı yer tutar.
    - Ağırlık gruplamanın kural tabanlı olması: hangi ağırlığa Muon, hangisine AdamW, hangisine ağırlık çürümesi (bugün `MuonVeAdamW` yarı yarıya yapıyor).
-   - Katman başına güncelleme/ağırlık oranı gibi göstergeler (Evre 6'nın gözlemlenebilirlik maddesiyle birlikte).
+   - Katman başına güncelleme/ağırlık oranı gibi göstergeler (Evre 7'nin gözlemlenebilirlik maddesiyle birlikte).
 
    Kaynaklar henüz okunmadı (kanıtsız): μP (Yang ve ark. 2022), Schedule-Free (Defazio ve ark. 2024), 8 bit Adam (Dettmers ve ark. 2021), Muon (Jordan 2024).
 6. **Çıkarım ve sunum.**
@@ -278,7 +306,7 @@ Modeli kullanan geliştiricinin ilk sorusu: "Hugging Face'teki modeli yükleyip 
    - 127.0.0.1'e bağlı OpenAI uyumlu HTTP sunucusu: completions ve chat, `logprobs` ile. Bu tek adım lm-evaluation-harness ile değerlendirmeyi, arayüzleri ve ajan çerçevelerini getirir.
    - Yorumlayıcı kilidi kernel çağrılarında ve G/Ç'de bırakılır; hangi yerleşiklerin bıraktığı belgelenir. Böylece sunucu, parçalayıcı ve GPU eşzamanlı çalışır.
    - CUDA Graphs önce üretim için: **yapıldı (2026-10-22)**, `tekrar_oynat(f)` (dil tanımı 15.48): ikinci çağrı kaydeder, sonrakiler oynatır; kayıtta cihazdan okuma, konaktan yükleme ve eşzamanlama kodlu hatadır; kayda özel bellek havuzu; ulaşılamaz kaydın belleği bırakılır. Gemini kayıt ve sayısal denetiminden sonra (2026-10-22, 16 bulgu, hepsi testli): kayıt dokunduğu her depolamayı tutar (bırakılsa da kayıt yaşadıkça başka işe verilmez), iç içe `tekrar_oynat` doğrudan çağrılır, kayıt sırasında yorumlayıcı kilidi başka göreve geçmez, yerinde değişen argüman çağırana geri yazılır, sayı işlenenleri cihazda doldurulur. Eğitimde kazanç konakta boşa giden süreye bağlıdır; H4 profili ölçecek.
-   - **CPU'da hazır model:** küçük bir hazır model (yüz milyonlarca parametre) GPU'suz, dizüstünde verimli çalışır. Ağırlıklar safetensors'tan bellek eşlemeyle (mmap) kopyasız yüklenir. KV önbellekli üretim tek ve çok çekirdekte koşar, AVX2/FMA kernelleri kullanılır (tek satırlık çarpım kerneli yapıldı, 2026-10-21: dizüstünde SmolLM2 ~%40); ağırlığı bf16 saklanan çarpım anında genişletilir (bugün CPU'da ağırlık her çağrıda açılıyor; kernel yok). Ölçüt: aynı model ve aynı ayarlarla PyTorch CPU ve llama.cpp'ye karşı token/sn ile ilk token süresi. Hedef oran ilk ölçümden sonra buraya yazılır (Evre 3'teki gibi). Yalnızca ağırlık int8/int4 nicemleme (Evre 6) bu yolu hızlandırır.
+   - **CPU'da hazır model:** küçük bir hazır model (yüz milyonlarca parametre) GPU'suz, dizüstünde verimli çalışır. Ağırlıklar safetensors'tan bellek eşlemeyle (mmap) kopyasız yüklenir. KV önbellekli üretim tek ve çok çekirdekte koşar, AVX2/FMA kernelleri kullanılır (tek satırlık çarpım kerneli yapıldı, 2026-10-21: dizüstünde SmolLM2 ~%40); ağırlığı bf16 saklanan çarpım anında genişletilir (bugün CPU'da ağırlık her çağrıda açılıyor; kernel yok). Ölçüt: aynı model ve aynı ayarlarla PyTorch CPU ve llama.cpp'ye karşı token/sn ile ilk token süresi. Hedef oran ilk ölçümden sonra buraya yazılır (Evre 3'teki gibi). Yalnızca ağırlık int8/int4 nicemleme (Evre 7) bu yolu hızlandırır.
 7. **Sürüm politikası.**
    - 0.y.z sürüm numaralama.
    - Her yerleşiğe ad kodu üzerinden kararlı, beta ya da prototip etiketi; kararlı davranış prototip ya da beta bir alternatif uğruna kaldırılmaz.
@@ -298,7 +326,7 @@ Modeli kullanan geliştiricinin ilk sorusu: "Hugging Face'teki modeli yükleyip 
 | SmolLM2-135M CPU | 36 (tek satırlık CPU kernelinden önce; yeniden ölçülecek) | 37 | — | 213 | 300 |
 | Qwen3-0.6B CPU | 12,1 (aynı) | 11,5 | — | 47,5 | 91 |
 
-GPU yolu: 213 → 224 (tek satırlık çarpım kernelleri) → 230 (kendi akış) → 496 (CUDA Graph) → 548 (kernel azaltma) → 608 (bf16 ağırlık); Qwen3 177 → 187 → 192 → 277 → 292 → 366. Her adımda çıktılar aynı parçalar (kayıtlı ve kayıtsız, float32 ve bf16 ağırlık). Yeniden üretmek: `tools/gpu/generation_race.sh` (`tools/gpu/COLAB.md` §12; rakip sürümleri sonuç dosyasının başına yazılır). GPU'da transformers'ın en hızlı yolu geçildi; llama.cpp f32'nin SmolLM2'de %63'ü, Qwen3'te %83'ü. CPU'da fark büyük (llama.cpp ~5 kat): CPU yolu Evre 4'ün bitiş ölçütündedir.
+GPU yolu: 213 → 224 (tek satırlık çarpım kernelleri) → 230 (kendi akış) → 496 (CUDA Graph) → 548 (kernel azaltma) → 608 (bf16 ağırlık); Qwen3 177 → 187 → 192 → 277 → 292 → 366. Her adımda çıktılar aynı parçalar (kayıtlı ve kayıtsız, float32 ve bf16 ağırlık). Yeniden üretmek: `tools/gpu/generation_race.sh` (`tools/gpu/COLAB.md` §12; rakip sürümleri sonuç dosyasının başına yazılır). GPU'da transformers'ın en hızlı yolu geçildi; llama.cpp f32'nin SmolLM2'de %63'ü, Qwen3'te %83'ü. CPU'da fark büyük (llama.cpp ~5 kat): CPU yolu Evre 5'in bitiş ölçütündedir.
 
 **Bitiş ölçütü:**
 - Hugging Face'ten Llama ailesinden küçük bir model safetensors ile yüklenir, TR'de LoRA ile ince ayar yapılır.
@@ -308,7 +336,7 @@ GPU yolu: 213 → 224 (tek satırlık çarpım kernelleri) → 230 (kendi akış
 - Model OpenAI uyumlu sunucudan sunulur ve lm-evaluation-harness ile değerlendirilir.
 - Sürüm politikası yazılıdır; ilk 0.y.z sürümü yayımlanır.
 
-## Evre 5: Geliştirici deneyimi
+## Evre 6: Geliştirici deneyimi
 
 - **Not defteri:** Jupyter çekirdeği ya da VS Code defteri; TR, Colab'da ve not defterinde hücre hücre çalışır. Yapay zekâ geliştiricileri not defterinde çalışır.
 - **VS Code dil sunucusu** `tr` programının içinde (ayrıştırıcı, tip denetleyicisi ve kod listesi yeniden kullanılır; tanıma git, kullanımları bul, yeniden adlandır ve anlamsal renklendirme [`internal/devtools/codeindex`](../internal/devtools/codeindex/README.md) dizininin üstüne kurulur, istek eşlemesi o README'nin "Dil sunucusu sözleşmesi" bölümündedir):
@@ -328,7 +356,7 @@ GPU yolu: 213 → 224 (tek satırlık çarpım kernelleri) → 230 (kendi akış
 - **Kodlu saklama:** otomatik sınamanın kodlu biçimi denetlemesi; depodaki örneklerin ve testlerin kodlu biçime çevrilmesi.
 - **Standart kitaplık:** sıkıştırma (zip), özet (hash), tarih ve saat, düzenli ifadeler; her ad önce tasarlanıp onaylanır.
 
-## Evre 6: Ölçek ve yerel çıkarım
+## Evre 7: Ölçek ve yerel çıkarım
 
 - **Tek GPU'da `torch.compile` ile başa baş hız (H4, ≤ 136 ms/adım hedef modelde; Evre 3'ten taşındı; profilde 162 ms, kaynaşık norm geri yönünden sonra 155, dikkat düzeninden sonra 151, normların warp çekirdeklerinden sonra 145 ms, 10,81 GiB, 2026-10-22; aşağıdaki kernel payları 151 ms'deki profilden).** Profil (2026-10-22, RTX PRO 6000): GPU boşluğu duvar süresinin %4,5'i, yani adım GPU'yla sınırlı; eğitim adımında CUDA Graph en çok ~%5 kazandırır, sona kalır. Kernel süresinin payları: çarpım %30, kopya %12 (bakışlara ayırma kopyası bf16 %3,5, float32→bf16 dönüşümü %3,2), indirge %8,4, ikili %8,2 (float32 + bf16 kalıntı toplaması %2,4), norm geri yönü %8,2, kaynaşık %7,5, çapraz entropi %6,2, dikkat %6,4, norm ileri %4. Ölçümün gösterdiği sırayla, her adım önce ve sonra ölçülür:
   - norm geri yönünün ağırlık gradyanı indirgemesiyle birlikte kaynaştırılması: **yapıldı (2026-10-22)**, tek geçiş, ağırlık gradyanı blok başına kısmi toplamlarla; 163 → 155 ms;
@@ -361,7 +389,7 @@ GPU yolu: 213 → 224 (tek satırlık çarpım kernelleri) → 230 (kendi akış
 - Model GGUF olarak dışa aktarılır ve llama.cpp'de çalışır.
 - GPU testleri otomatik koşar.
 
-## Evre 7: Yaygınlaşma
+## Evre 8: Yaygınlaşma
 
 - **Model Sihirbazı:** kod bilmeyenin bile model kurmasını sağlayan, okunur TR kodu üreten sihirbaz.
 - **Az teknik kullanıcı yolu:**
@@ -380,7 +408,7 @@ GPU yolu: 213 → 224 (tek satırlık çarpım kernelleri) → 230 (kendi akış
   - TR kitaplıkları için paket yöneticisi (kitaplık ekosistemi oluşunca);
   - deney takibi aktarımı (TensorBoard, MLflow; `.jsonl` günlük taban olarak yeterli);
   - değerlendirme kitaplığı (OpenAI uyumlu sunucuyla lm-evaluation-harness bunu büyük ölçüde karşılar).
-- **Yazım dilleri:** adların İngilizcesi var (`en.json`, `tr göster --dil en`). Altyapı Evre 2'de kurulduğu için burada iş çeviridir: iletilerin İngilizcesi **yapıldı (2026-10-22, 1648/1648)**; kalan dil tanımının, kılavuzun ve kod başvurusunun İngilizcesi, sonra İspanyolca ve Almanca.
+- **Yazım dilleri:** adların İngilizcesi var (`en.json`, `tr göster --dil en`). Altyapı Evre 2'de kurulduğu için burada iş çeviridir: iletilerin İngilizcesi **yapıldı (2026-10-22, 1648/1648)**; İspanyolca, Almanca ve Fransızca Evre 4'e öne çekildi; kalan dil tanımının, kılavuzun ve kod başvurusunun çevirisi.
 - **Platformlar:** Mac otomatik sınaması, Apple M ve ARM için vektör kernelleri, Metal arka ucu, AMD (ROCm).
 
 ## Sonra
@@ -395,7 +423,7 @@ GPU yolu: 213 → 224 (tek satırlık çarpım kernelleri) → 230 (kendi akış
     - satır içi PTX kaçış kapısı.
   - Otomatik ayarlama zorunlu değildir.
   - Bitiş: elle yazılmış norm, softmax, çapraz entropi ve AdamW kernelleri karo dilinde aynı hızda yeniden yazılır.
-- **Genel otomatik kaynaştırma:** ancak kural tabanlı birleştirici (`kaynaştır`, dil tanımı 15.45) ölçümle yetersiz kalırsa; indirgeme ve çarpım içeren zincirler (norm geri yönü, çarpım eplogları) için H4 (Evre 6) ölçümleri karar verir.
+- **Genel otomatik kaynaştırma:** ancak kural tabanlı birleştirici (`kaynaştır`, dil tanımı 15.45) ölçümle yetersiz kalırsa; indirgeme ve çarpım içeren zincirler (norm geri yönü, çarpım eplogları) için H4 (Evre 7) ölçümleri karar verir.
 - **Bölme bilgisi tensör tipinde:** tip denetleyicisi belirsiz bölmeyi hata sayar (JAX'ın açık kipi emsali).
 - **ONNX:** büyük işlem yüzeyi, kendi yürütme motoru olan bir dil için düşük getiri.
 - **Statik şekil denetimi:** tensör şekil hatalarının çalıştırmadan önce yakalanması.

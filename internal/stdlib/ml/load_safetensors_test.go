@@ -41,7 +41,7 @@ func u16Bytes(v ...uint16) []byte {
 // Kural (15.47): tensör_yükle safetensors dosyasını da okur; biçim uzantıdan değil içerikten
 // anlaşılır. F32, BF16 ve F16 kendi türünde gelir; 0 boyutlu ve boş tensör geçerlidir;
 // __metadata__ (metin → metin) tensör değildir; tensörler dosyadaki veri sırasıyla gelir.
-// Neden: Hugging Face ve PyTorch ağırlıkları bu biçimdedir (yol haritası Evre 4, madde 2).
+// Neden: Hugging Face ve PyTorch ağırlıkları bu biçimdedir (yol haritası Evre 5, madde 2).
 func TestSafetensorsLoad(t *testing.T) {
 	header := `{"__metadata__":{"format":"pt"},` +
 		`"b":{"dtype":"BF16","shape":[2],"data_offsets":[16,20]},` +

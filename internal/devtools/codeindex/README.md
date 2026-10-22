@@ -1,6 +1,6 @@
 # codeindex
 
-TR kodunun dizini: bir projenin `.tr` dosyalarındaki işlev, yapı, metot, alan, sabit, değişken, test ve yerleşik adlar; kimin neyi tanımladığı, çağırdığı, kullandığı, aktardığı ve sınadığı; her başvurunun yeri. Sorular: **tanım** (bu nerede), **kullananlar** (kimler başvuruyor), **sınayanlar** (hangi testler), **etki** (değişirse ne etkilenir). `tr dizin ...` komutu ve ileride dil sunucusu (Evre 5: tanıma git, kullanımları bul, yeniden adlandır, `aktar` satırından modüle atlama) bu paketin API'sini çağırır. `tools/codegraph` bu deponun *Go* kodunu inceleyen geliştirici aracıdır ve TR kısmını buradan alır.
+TR kodunun dizini: bir projenin `.tr` dosyalarındaki işlev, yapı, metot, alan, sabit, değişken, test ve yerleşik adlar; kimin neyi tanımladığı, çağırdığı, kullandığı, aktardığı ve sınadığı; her başvurunun yeri. Sorular: **tanım** (bu nerede), **kullananlar** (kimler başvuruyor), **sınayanlar** (hangi testler), **etki** (değişirse ne etkilenir). `tr dizin ...` komutu ve ileride dil sunucusu (Evre 6: tanıma git, kullanımları bul, yeniden adlandır, `aktar` satırından modüle atlama) bu paketin API'sini çağırır. `tools/codegraph` bu deponun *Go* kodunu inceleyen geliştirici aracıdır ve TR kısmını buradan alır.
 
 Paket yalnızca `internal/lang` paketlerini (ve gömülü kitaplığı) içe aktarır; başka katmana bağımlı değildir.
 
@@ -92,7 +92,7 @@ Bir ad değişirse değişecek yerleri listeler, **hiçbir dosyaya yazmaz** (LSP
 
 **Sonraki adım: yazma kipi.** Bu sürüm yalnızca listeler. Yazma kipi (`değiştir`) `certain` listesini `WorkspaceEdit`'e çevirecek; çakışma varsa varsayılan olarak **durur** (gopls'un çakışmada iptali gibi; rust-analyzer'ın onay notunun karşılığı bir `--zorla`), olası yerleri yalnızca açıkça seçileni değiştirir.
 
-## Dil sunucusu sözleşmesi (yol haritası, Evre 5)
+## Dil sunucusu sözleşmesi (yol haritası, Evre 6)
 
 Dil sunucusu bu paketin üstüne kurulur; ayrı bir dizin ya da ayrı bir ad çözümlemesi yazılmaz. Her LSP isteği bu pakette bir karşılığa eşlenir:
 
@@ -117,7 +117,7 @@ Dil sunucusu bu paketin üstüne kurulur; ayrı bir dizin ya da ayrı bir ad ç�
 - **Tür bilgisi sonra gelir.** Dizin ad çözümlemesidir; alıcı tipi bilinmeyen `x.metot()` çağrıları `INFERRED` kalır. Tip denetleyicisinin çıkarımı bağlandığında bu kenarlar `EXTRACTED` olur; arayüz değişmez, yalnızca `confidence` yükselir.
 - **Çıkış biçimi.** Sunucu `Result` ve `Index` Go türlerini doğrudan kullanır (JSON'a çevirmeden); `--json` yalnızca komut satırı ve ajanlar içindir.
 
-Bu bölüm [`docs/roadmap.md`](../../../docs/roadmap.md) Evre 5'teki "VS Code dil sunucusu" maddesine bağlıdır; sunucu yazılırken buradaki eşleme esas alınır, eksik bir istek çıkarsa önce bu pakette (testle) eklenir.
+Bu bölüm [`docs/roadmap.md`](../../../docs/roadmap.md) Evre 6'daki "VS Code dil sunucusu" maddesine bağlıdır; sunucu yazılırken buradaki eşleme esas alınır, eksik bir istek çıkarsa önce bu pakette (testle) eklenir.
 
 ## Başka dillerin ve araçların kod dizinleri: karşılaştırma ve kararlar
 
@@ -129,7 +129,7 @@ TR'nin bu karar için ilgili özellikleri: tek dil, dinamik tipli (bugün tip ç
 
 | Kaynak (sürüm) | Özellik | Karar | Gerekçe |
 | :-- | :-- | :-- | :-- |
-| [LSP 3.17 — `textDocument/definition`, `implementation`](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/) (sayfa 3.17.x'i anlatır, güncel 3.18) | Tanıma git; sonuç `Location`, `Location[]` ya da `LocationLink[]` (3.14'ten beri) | **Al** (`definition`); `LocationLink`'in `originSelectionRange` alanı `aktar "..."` dizgisinden modüle atlamada kullanılır | Evre 5'teki dil sunucusu doğrudan bunu döner. `implementation` TR'de yok: arayüz/tip uygulaması kavramı yok |
+| [LSP 3.17 — `textDocument/definition`, `implementation`](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/) (sayfa 3.17.x'i anlatır, güncel 3.18) | Tanıma git; sonuç `Location`, `Location[]` ya da `LocationLink[]` (3.14'ten beri) | **Al** (`definition`); `LocationLink`'in `originSelectionRange` alanı `aktar "..."` dizgisinden modüle atlamada kullanılır | Evre 6'daki dil sunucusu doğrudan bunu döner. `implementation` TR'de yok: arayüz/tip uygulaması kavramı yok |
 | [LSP 3.17 — `textDocument/references`](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/) | `context.includeDeclaration` ile tüm başvurular | **Al** (`users`); `--tanımla` bayrağıyla aynı seçenek | Dizinin `occurrence` listesinden doğrudan üretilir (aşağıda SCIP) |
 | [LSP 3.17 — çağrı hiyerarşisi](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/) (`prepareCallHierarchy`, `callHierarchy/incomingCalls`, `outgoingCalls`; 3.16.0'dan beri; öğe + `fromRanges`) | Bir işlevi çağıranlar / çağırdıkları, her çağrı yeri aralığıyla | **Al**: `calls` kenarları + occurrences'tan; CLI'de `tr kullananlar --çağıranlar` / `tr tanım --çağırdıkları`, API'de `CallsIn/CallsOut` | `fromRanges` modelimizin occurrence listesiyle birebir örtüşür. Dinamik `x.metot()` INFERRED gelir ve öyle işaretlenir |
 | [LSP 3.17 — tür hiyerarşisi](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/) (`prepareTypeHierarchy`, `typeHierarchy/supertypes`, `subtypes`; 3.17.0'dan beri) | Alt/üst tür ağacı | **Alma (şimdilik)** | TR yapılarının kalıtımı ya da gömmesi yok (`StructStatement` yalnızca alan ve metot taşır). Dile kalıtım/gömme eklenirse dizin modeli `extends` kenarıyla genişler; gopls da yalnızca adlandırılmış türleri kapsar ([gopls Type Hierarchy](https://go.dev/gopls/features/navigation)) |

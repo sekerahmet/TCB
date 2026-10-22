@@ -651,7 +651,7 @@ from google.colab import runtime; runtime.unassign()
 Hazır modellerle (SmolLM2-135M, Qwen3-0.6B) 100 parçalık açgözlü üretim; TR (float32 ve bf16 ağırlık),
 transformers (eager ve `cache_implementation="static"` ile derlenmiş), llama.cpp (f32 ve f16 GGUF); GPU ve
 CPU. Betikler `tools/gpu/generation_race.sh` (llama.cpp'yi CUDA'yla derler, modelleri indirip GGUF'a
-çevirir), `generation_race.tr`, `generation_race_hf.py`. Sonuçlar yol haritasında (Evre 4, "Üretim hızı").
+çevirir), `generation_race.tr`, `generation_race_hf.py`. Sonuçlar yol haritasında (Evre 5, "Üretim hızı").
 ~40 dakika; arka planda koşar.
 
 ```bash
