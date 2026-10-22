@@ -28,6 +28,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
+
+	"github.com/sekerahmet/TCB/tools/internal/repodir"
 )
 
 // Depo köküne göre yollar.
@@ -43,7 +45,7 @@ func main() {
 	flag.Parse()
 
 	if *root == "" {
-		*root = repoRoot()
+		*root = repodir.Find()
 	}
 	fresh, err := Generate(*root)
 	if err != nil {
@@ -69,25 +71,6 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Printf("%s written\n", path)
-}
-
-// repoRoot çalışma klasöründen yukarı doğru go.mod'un bulunduğu klasörü arar (go generate
-// internal/lang/codes içinden çalıştırır).
-func repoRoot() string {
-	d, err := os.Getwd()
-	if err != nil {
-		return "."
-	}
-	for {
-		if _, err := os.Stat(filepath.Join(d, "go.mod")); err == nil {
-			return d
-		}
-		parent := filepath.Dir(d)
-		if parent == d {
-			return "."
-		}
-		d = parent
-	}
 }
 
 // familyLetters internal/lang/codes'daki sırayla aynıdır (A=1000, G=2000, H=3000 ...).
