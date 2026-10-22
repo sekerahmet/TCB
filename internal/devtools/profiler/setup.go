@@ -60,7 +60,7 @@ func stepInfo(d stepState) *StepInfo {
 	if !d.var_ {
 		return nil
 	}
-	b := &StepInfo{Count: d.last, Total: d.total, All: d.all, Source: "ilerleme"}
+	b := &StepInfo{Count: d.last, Total: d.total, All: d.all, Source: "ilerleme_cubugu"}
 	if d.fromOptimizer {
 		b.Source = "iyilestirici"
 	}

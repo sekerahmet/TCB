@@ -54,7 +54,7 @@ type StepInfo struct {
 	All         int64   `json:"tüm_adım"`
 	MsPerStep   float64 `json:"ms_adım"`
 	StepsPerSec float64 `json:"adım_sn"`
-	// Source adım sınırının kaynağıdır: "ilerleme" (güncelle) ya da "iyilestirici" (program
+	// Source adım sınırının kaynağıdır: "ilerleme_cubugu" (güncelle) ya da "iyilestirici" (program
 	// ilerleme kullanmıyorsa ilk adım atan iyileştiricinin adımı). Sürüm 4.
 	Source string `json:"kaynak"`
 	// Adım başına evreler (konak süresi, sürüm 4): ileri; geri (geri yayılımlar); sonrası
