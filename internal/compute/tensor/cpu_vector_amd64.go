@@ -131,15 +131,8 @@ func lnForwardKernel(y, x, gammaPtr, betaPtr, mean, rstd *float32, row, size int
 //go:noescape
 func lnBackwardKernel(xg *float32, pg, pb *float64, x, gr, gammaPtr, mean, rstd *float32, row, size int, dD float64)
 
-// first32 dilimin ilk elemanının adresi; boş dilim için nil (çekirdeklerde "yok").
-func first32(s []float32) *float32 {
-	if len(s) == 0 {
-		return nil
-	}
-	return &s[0]
-}
-
-func first64(s []float64) *float64 {
+// firstPtr dilimin ilk elemanının adresi; boş dilim için nil (çekirdeklerde "yok").
+func firstPtr[T float32 | float64](s []T) *T {
 	if len(s) == 0 {
 		return nil
 	}
@@ -157,7 +150,7 @@ func lnForwardBlock(y, x, g, b, mean, rstd []float32, D int, eps float32) {
 		lnForwardBlockGo(y, x, g, b, mean, rstd, D, eps)
 		return
 	}
-	lnForwardKernel(&y[0], &x[0], first32(g), first32(b), first32(mean), &rstd[0], R, D, float64(D), float64(eps))
+	lnForwardKernel(&y[0], &x[0], firstPtr(g), firstPtr(b), firstPtr(mean), &rstd[0], R, D, float64(D), float64(eps))
 }
 
 // lnBackwardBlock katman normunun (mean nil ise RMS normunun) geri yönü; tanım ve
@@ -171,5 +164,5 @@ func lnBackwardBlock(xg []float32, pg, pb []float64, x, gr, gammaPtr, mean, rstd
 		lnBackwardBlockGo(xg, pg, pb, x, gr, gammaPtr, mean, rstd, D)
 		return
 	}
-	lnBackwardKernel(first32(xg), first64(pg), first64(pb), &x[0], &gr[0], first32(gammaPtr), first32(mean), &rstd[0], R, D, float64(D))
+	lnBackwardKernel(firstPtr(xg), firstPtr(pg), firstPtr(pb), &x[0], &gr[0], firstPtr(gammaPtr), firstPtr(mean), &rstd[0], R, D, float64(D))
 }
