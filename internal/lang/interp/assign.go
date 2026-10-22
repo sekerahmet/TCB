@@ -30,11 +30,8 @@ func (v *VM) setIndex(left Value, idx Value, codeVal uint8, rightVal Value, line
 		if !ok {
 			return messages.At(line, 0, messages.New(messages.H2400, ValList, ValInt))
 		}
-		pos := int(iv.Val)
-		if pos < 0 {
-			pos = len(container.Elements) + pos
-		}
-		if pos < 0 || pos >= len(container.Elements) {
+		pos, inRange := resolveIndex(iv.Val, len(container.Elements))
+		if !inRange {
 			return messages.At(line, 0, messages.New(messages.H2401, ValList, iv.Val))
 		}
 		finalVal, err := v.assignOp(codeVal, container.Elements[pos], rightVal, line)

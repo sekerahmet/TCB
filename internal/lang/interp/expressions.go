@@ -76,11 +76,8 @@ func (v *VM) indexValue(left Value, idx Value, line int) (Value, error) {
 	switch container := left.(type) {
 	case *ListVal:
 		if iv, ok := idx.(*IntVal); ok {
-			pos := int(iv.Val)
-			if pos < 0 {
-				pos = len(container.Elements) + pos
-			}
-			if pos < 0 || pos >= len(container.Elements) {
+			pos, inRange := resolveIndex(iv.Val, len(container.Elements))
+			if !inRange {
 				return nil, indexRangeError(line, ValList, iv.Val, len(container.Elements))
 			}
 			return container.Elements[pos], nil
@@ -114,11 +111,8 @@ func (v *VM) indexValue(left Value, idx Value, line int) (Value, error) {
 		if iv, ok := idx.(*IntVal); ok && ascii {
 			// ASCII hızlı yolu: karakter = bayt, dönüşüm ve ayırma yok
 			n := len(container.Val)
-			pos := int(iv.Val)
-			if pos < 0 {
-				pos = n + pos
-			}
-			if pos < 0 || pos >= n {
+			pos, inRange := resolveIndex(iv.Val, n)
+			if !inRange {
 				return nil, indexRangeError(line, ValString, iv.Val, n)
 			}
 			return asciiChars[container.Val[pos]], nil
@@ -134,11 +128,8 @@ func (v *VM) indexValue(left Value, idx Value, line int) (Value, error) {
 		if !ok {
 			return nil, messages.At(line, 0, messages.New(messages.H2400, ValString, ValInt))
 		}
-		pos := int(iv.Val)
-		if pos < 0 {
-			pos = len(runes) + pos
-		}
-		if pos < 0 || pos >= len(runes) {
+		pos, inRange := resolveIndex(iv.Val, len(runes))
+		if !inRange {
 			return nil, indexRangeError(line, ValString, iv.Val, len(runes))
 		}
 		return &StringVal{Val: string(runes[pos])}, nil
