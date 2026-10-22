@@ -2,15 +2,7 @@
 // genişletilmiş eleman bazlı fonksiyonlar, sınırlama, koşullu seçim, birikim ve sıralama
 // (15.31-15.38).
 
-// hata_metni: f'nin hata mesajı (hata yoksa boş metin).
-fonksiyon hata_metni(f) {
-    dene {
-        f()
-    } yakala h {
-        sonuç h
-    }
-    sonuç ""
-}
+aktar "yardimci_test_araclari"
 
 // yakın_mı: iki sayının farkı tolerans içinde mi?
 fonksiyon yakın_mı(a, b, tol = 0.000001) {

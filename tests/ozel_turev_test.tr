@@ -1,14 +1,6 @@
 // docs/spec/15_tensorler.md §15.20–15.24 — Kullanıcı tanımlı türev (özel_türev) ve türev_denetle
 
-// ot_hata: f çalışırken oluşan hatanın mesajını döndürür (hata yoksa boş metin).
-fonksiyon ot_hata(f) {
-    dene {
-        f()
-    } yakala h {
-        sonuç h
-    }
-    sonuç ""
-}
+aktar "yardimci_test_araclari"
 
 // yakın: iki tensör eleman eleman 1e-4'ten yakın mı?
 fonksiyon yakın(a, b) {
@@ -32,7 +24,7 @@ test "15.20 özel_türev: ileri ve geri hesabı kullanıcı yazar" {
     geri_yayılım(toplam(y))
     eşit_mi([6.0], x.gradyan.değer)
     // Sonuç bir işlemin sonucudur: .gradyan'ı yoktur.
-    doğrula(ot_hata(() => y.gradyan).içerir("işlemin sonucu"))
+    doğrula(hata_metni(() => y.gradyan).içerir("işlemin sonucu"))
     // Bileşik sürümle aynı gradyan: kare(x) * x = x³ → 3x².
     değişken a = tensör([[0.5, -2.0, 1.5]], türev_izle: doğru)
     değişken b = tensör([[0.5, -2.0, 1.5]], türev_izle: doğru)
@@ -135,34 +127,34 @@ test "15.23 özel_türev: hatalar" {
     değişken x = tensör([[1.0, 2.0]], türev_izle: doğru)
     // ileri yanlış biçim döndürürse.
     değişken bozuk = özel_türev(ileri: fonksiyon(x) { sonuç x * x }, geri: fonksiyon(k, g) { sonuç [g] })
-    doğrula(ot_hata(() => bozuk(x)).içerir("ileri [çıktı, saklananlar] döndürmeli"))
+    doğrula(hata_metni(() => bozuk(x)).içerir("ileri [çıktı, saklananlar] döndürmeli"))
     değişken bozuk2 = özel_türev(ileri: fonksiyon(x) { sonuç [x, x] }, geri: fonksiyon(k, g) { sonuç [g] })
-    doğrula(ot_hata(() => bozuk2(x)).içerir("saklananlar bir liste olmalıdır"))
+    doğrula(hata_metni(() => bozuk2(x)).içerir("saklananlar bir liste olmalıdır"))
     // Yanlış şekilli gradyan: yayınlama yapılmaz.
     değişken şekilsiz = özel_türev(ileri: fonksiyon(x) { sonuç [x * 2, []] }, geri: fonksiyon(k, g) { sonuç [toplam(g)] })
-    değişken h = ot_hata(() => geri_yayılım(toplam(şekilsiz(x))))
+    değişken h = hata_metni(() => geri_yayılım(toplam(şekilsiz(x))))
     doğrula(h.içerir("geri 1. girdi için [] şeklinde gradyan döndürdü, beklenen [1, 2]"))
     doğrula(h.içerir("yayınlama yapılmaz"))
     // Liste uzunluğu yanlış.
     değişken eksik = özel_türev(ileri: fonksiyon(a, b) { sonuç [a + b, []] }, geri: fonksiyon(k, g) { sonuç [g] })
-    doğrula(ot_hata(() => geri_yayılım(toplam(eksik(x, x)))).içerir("geri 1 öğeli liste döndürdü ama işlemin 2 konumlu girdisi var"))
+    doğrula(hata_metni(() => geri_yayılım(toplam(eksik(x, x)))).içerir("geri 1 öğeli liste döndürdü ama işlemin 2 konumlu girdisi var"))
     // Tensör olmayan girdi için gradyan verilemez.
     değişken sayılı = özel_türev(ileri: fonksiyon(a, n) { sonuç [a * n, []] }, geri: fonksiyon(k, g) { sonuç [g, g] })
-    doğrula(ot_hata(() => geri_yayılım(toplam(sayılı(x, 2)))).içerir("2. girdi tensör değil (Tam); geri bu girdi için yok döndürmeli"))
+    doğrula(hata_metni(() => geri_yayılım(toplam(sayılı(x, 2)))).içerir("2. girdi tensör değil (Tam); geri bu girdi için yok döndürmeli"))
     // Saklanan bir tensör ileri hesaptan sonra yerinde değiştirilirse geri yayılım hata verir.
     değişken c = tensör([[3.0, 4.0]])
     değişken ölçekle = özel_türev(ileri: fonksiyon(x, c) { sonuç [x * c, [c]] }, geri: fonksiyon(k, g) { sonuç [g * k[0], yok] })
     değişken y = ölçekle(x, c)
     c[0] = [9.0, 9.0]
-    doğrula(ot_hata(() => geri_yayılım(toplam(y))).içerir("yerinde değiştirildi"))
+    doğrula(hata_metni(() => geri_yayılım(toplam(y))).içerir("yerinde değiştirildi"))
     // geri'deki hata dene/yakala ile yakalanır.
     değişken fırlatan = özel_türev(ileri: fonksiyon(x) { sonuç [x, []] }, geri: fonksiyon(k, g) { fırlat "geri bozuk" })
-    doğrula(ot_hata(() => geri_yayılım(toplam(fırlatan(x)))).içerir("geri bozuk"))
+    doğrula(hata_metni(() => geri_yayılım(toplam(fırlatan(x)))).içerir("geri bozuk"))
     // Kullanım hataları.
-    doğrula(ot_hata(() => özel_türev(ileri: fonksiyon(x) { sonuç [x, []] })).içerir("geri: eksik"))
-    doğrula(ot_hata(() => özel_türev(ileri: 3, geri: fonksiyon(k, g) { sonuç [g] })).içerir("ileri bir fonksiyon olmalıdır"))
-    doğrula(ot_hata(() => özel_türev(ileri: fonksiyon(x) { sonuç [x, []] }, geri: fonksiyon(g) { sonuç [g] })).içerir("geri iki parametre almalıdır"))
-    doğrula(ot_hata(() => özel_türev(ileri: fonksiyon(x) { sonuç [x, []] }, backward: fonksiyon(k, g) { sonuç [g] })).içerir("'backward' adında bir parametre almaz"))
+    doğrula(hata_metni(() => özel_türev(ileri: fonksiyon(x) { sonuç [x, []] })).içerir("geri: eksik"))
+    doğrula(hata_metni(() => özel_türev(ileri: 3, geri: fonksiyon(k, g) { sonuç [g] })).içerir("ileri bir fonksiyon olmalıdır"))
+    doğrula(hata_metni(() => özel_türev(ileri: fonksiyon(x) { sonuç [x, []] }, geri: fonksiyon(g) { sonuç [g] })).içerir("geri iki parametre almalıdır"))
+    doğrula(hata_metni(() => özel_türev(ileri: fonksiyon(x) { sonuç [x, []] }, backward: fonksiyon(k, g) { sonuç [g] })).içerir("'backward' adında bir parametre almaz"))
 }
 
 test "15.24 türev_denetle: sayısal gradyanla karşılaştırma" {
@@ -172,7 +164,7 @@ test "15.24 türev_denetle: sayısal gradyanla karşılaştırma" {
         ileri: fonksiyon(x) { sonuç [x * x, [x]] },
         geri: fonksiyon(k, g) { sonuç [g * k[0]] }
     )
-    değişken h = ot_hata(() => türev_denetle(yanlış_kare, [tensör([[0.3, -1.2]], türev_izle: doğru)]))
+    değişken h = hata_metni(() => türev_denetle(yanlış_kare, [tensör([[0.3, -1.2]], türev_izle: doğru)]))
     doğrula(h.içerir("analitik (geri yayılım) ve sayısal gradyan uyuşmuyor"))
     doğrula(h.içerir("1. girdinin [0, 1] elemanında"))
     // Sıradan TR fonksiyonlarında, çok girdide ve çok çıktıda da çalışır.
@@ -184,9 +176,9 @@ test "15.24 türev_denetle: sayısal gradyanla karşılaştırma" {
     eşit_mi(yok, w.gradyan)
     // adım ve tolerans.
     doğrula(türev_denetle(kare, [tensör([1.0, 2.0], türev_izle: doğru)], fark_adımı: 0.01, tolerans: 0.001))
-    doğrula(ot_hata(() => türev_denetle(kare, [w], fark_adımı: 0)).içerir("fark_adımı pozitif bir sayı olmalıdır"))
-    doğrula(ot_hata(() => türev_denetle(kare, [tensör([1.0])])).içerir("girdilerden hiçbiri türev izlemiyor"))
-    doğrula(ot_hata(() => türev_denetle(kare, [w], step: 0.1)).içerir("'step' adında bir parametre almaz"))
+    doğrula(hata_metni(() => türev_denetle(kare, [w], fark_adımı: 0)).içerir("fark_adımı pozitif bir sayı olmalıdır"))
+    doğrula(hata_metni(() => türev_denetle(kare, [tensör([1.0])])).içerir("girdilerden hiçbiri türev izlemiyor"))
+    doğrula(hata_metni(() => türev_denetle(kare, [w], step: 0.1)).içerir("'step' adında bir parametre almaz"))
     // karışık_hassasiyet içinde: ileri ve geri bloğun türüyle çalışır, gradyanlar girdilerin türündedir.
     değişken çarp = özel_türev(
         ileri: fonksiyon(x, m) { sonuç [x @ m, [x, m]] },

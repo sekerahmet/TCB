@@ -3,15 +3,7 @@
 // --yardım, çıkış kodları ve terminaldeki çubuk Go testleriyle sınanır
 // (internal/stdlib/process, internal/stdlib/logging, cmd/tr/e2e).
 
-// hata_metni: f çalışırken oluşan hatanın mesajını döndürür (hata yoksa boş metin).
-fonksiyon hata_metni(f) {
-    dene {
-        f()
-    } yakala h {
-        sonuç h
-    }
-    sonuç ""
-}
+aktar "yardimci_test_araclari"
 
 // Günlük dosyaları depo dışında, bu koşunun geçici klasöründe (18.14); program bitince silinir.
 sabit KOŞU = geçici_klasör()

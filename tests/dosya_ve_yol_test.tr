@@ -4,15 +4,7 @@
 // Bağlantılı (sembolik bağlantı, Windows dizin bağlantısı) durumlar TR'den kurulamadığı için
 // internal/stdlib/files Go testlerinde sınanır.
 
-// hata_metni: f çalışırken oluşan hatanın mesajını döndürür (hata yoksa boş metin).
-fonksiyon hata_metni(f) {
-    dene {
-        f()
-    } yakala h {
-        sonuç h
-    }
-    sonuç ""
-}
+aktar "yardimci_test_araclari"
 
 test "18.1 yol parçaları birleştirip temizler; mutlak ikinci parça ve boş parça hatadır" {
     eşit_mi("a/c", metin(yol("a/./b/../c")))

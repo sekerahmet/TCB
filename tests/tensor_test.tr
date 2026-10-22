@@ -1,14 +1,6 @@
 // docs/spec/15_tensorler.md §15 — Tensörler ve otomatik türev
 
-// hata_metni: f çalışırken oluşan hatanın mesajını döndürür (hata yoksa boş metin).
-fonksiyon hata_metni(f) {
-    dene {
-        f()
-    } yakala h {
-        sonuç h
-    }
-    sonuç ""
-}
+aktar "yardimci_test_araclari"
 
 test "15.1 oluşturma: tensör, sıfırlar, birler, rastgele_normal" {
     değişken a = tensör([[1, 2, 3], [4, 5, 6]])

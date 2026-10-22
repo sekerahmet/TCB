@@ -1,0 +1,13 @@
+// Test dosyalarının ortak sınama yardımcıları (kendisi test dosyası değildir): tests/ altındaki
+// *_test.tr dosyaları takma adsız `aktar "yardimci_test_araclari"` ile kullanır. Kitaplık
+// (lib/) testleri buradan aktarmaz; her lib test dosyası kendi tanımını taşır.
+
+// hata_metni: f çalışırken oluşan hatanın mesajını döndürür (hata yoksa boş metin).
+fonksiyon hata_metni(f) {
+    dene {
+        f()
+    } yakala h {
+        sonuç h
+    }
+    sonuç ""
+}
