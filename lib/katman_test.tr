@@ -1,6 +1,7 @@
 // tr/katman testleri: her katmanın şekli ve türevi (türev_denetle), döner konumun özellikleri,
 // nedensellik, GPT'nin kuruluşu ve küçük bir görevde öğrenmesi. Koşturma: tr test lib
 aktar "tr/katman"
+aktar "tr/iyilestirici" // gradyanları_sıfırla
 
 // hata_metni: f çalışırken oluşan hatanın mesajını döndürür (hata yoksa boş metin).
 fonksiyon hata_metni(f) {
@@ -211,7 +212,7 @@ test "GPT.kayıp: sapmasız çıkışta doğrusal_çapraz_entropi kullanır; kay
         değişken k1 = m.kayıp(x, hedef)
         geri_yayılım(k1)
         değişken g1 = [tensör(p.gradyan) döngü p içinde parametreler(m)]
-        döngü p içinde parametreler(m) { türevsiz { p.gradyan[0..p.gradyan.şekil[0]] = 0.0 } }
+        gradyanları_sıfırla(parametreler(m))
         değişken k2 = çapraz_entropi(m.ileri(x), hedef)
         geri_yayılım(k2)
         doğrula(mutlak(k1.değer - k2.değer) < 0.00001, "paylaşımlı {paylaşımlı}: kayıp {k1.değer} / {k2.değer}")
