@@ -19,7 +19,7 @@ type rawFieldUse struct {
 }
 
 func (x *goExtractor) posKey(p token.Pos) string {
-	pos := x.m.fset.Position(p)
+	pos := x.m.Fset.Position(p)
 	return x.rel(pos.Filename) + ":" + strconv.Itoa(pos.Line) + ":" + strconv.Itoa(pos.Column)
 }
 
@@ -46,7 +46,7 @@ func (x *goExtractor) fieldNodes(fc *fileCtx, ts *ast.TypeSpec, typeNode, pkg st
 			fid := "go:field:" + pkg + "." + ts.Name.Name + "." + id.Name
 			line := x.line(id.Pos())
 			detail := ""
-			if obj := fc.u.info.Defs[id]; obj != nil {
+			if obj := fc.u.Info.Defs[id]; obj != nil {
 				detail = types.TypeString(obj.Type(), qual)
 			}
 			x.b.addNode(Node{ID: fid, Kind: kindField, Name: pathBase(pkg) + "." + ts.Name.Name + "." + id.Name,
@@ -257,10 +257,10 @@ func (x *goExtractor) closureNode(fc *fileCtx, owner string, lit *ast.FuncLit, s
 			break
 		}
 	}
-	pos := x.m.fset.Position(lit.Pos())
+	pos := x.m.Fset.Position(lit.Pos())
 	id := "go:closure:" + strings.TrimPrefix(owner, "go:") + "@" + strconv.Itoa(pos.Line) + ":" + strconv.Itoa(pos.Column)
 	x.b.addNode(Node{ID: id, Kind: kindClosure, Name: fmt.Sprintf("%s > func literal@L%d", parentName, pos.Line),
-		File: fc.rel, Line: pos.Line, End: x.line(lit.End()), Detail: "func literal", Captured: x.captured(fc.u.info, lit)})
+		File: fc.rel, Line: pos.Line, End: x.line(lit.End()), Detail: "func literal", Captured: x.captured(fc.u.Info, lit)})
 	x.b.addEdge(parent, id, edgeContains, extracted, fc.rel, pos.Line)
 	return id
 }

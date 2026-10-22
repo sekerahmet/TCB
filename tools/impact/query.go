@@ -17,13 +17,13 @@ type declKey struct {
 }
 
 func (m *module) key(obj types.Object) declKey {
-	p := m.fset.Position(obj.Pos())
+	p := m.Fset.Position(obj.Pos())
 	return declKey{p.Filename, p.Offset}
 }
 
 // rel shows a path relative to the module root, with forward slashes.
 func (m *module) rel(file string) string {
-	if r, err := filepath.Rel(m.root, file); err == nil {
+	if r, err := filepath.Rel(m.Root, file); err == nil {
 		return filepath.ToSlash(r)
 	}
 	return file
@@ -31,14 +31,14 @@ func (m *module) rel(file string) string {
 
 // shortPath drops the module prefix from an import path: internal/lang/codes.
 func (m *module) shortPath(path string) string {
-	return strings.TrimPrefix(strings.TrimPrefix(path, m.path), "/")
+	return strings.TrimPrefix(strings.TrimPrefix(path, m.Path), "/")
 }
 
 // findPackage resolves a package given by its import path, its path inside the module or, if
 // unique, its last element ("codes").
 func (m *module) findPackage(spec string) (string, error) {
 	var hits []string
-	for path := range m.base {
+	for path := range m.Base {
 		if path == spec || m.shortPath(path) == spec || pathBase(path) == spec {
 			hits = append(hits, path)
 		}
@@ -67,7 +67,7 @@ func (m *module) findObject(spec string) (types.Object, error) {
 		if err != nil {
 			continue
 		}
-		return lookup(m.base[path], spec[i+1:])
+		return lookup(m.Base[path], spec[i+1:])
 	}
 	return nil, fmt.Errorf("cannot resolve %q; write it as package.Name or package.Type.Member", spec)
 }
@@ -100,17 +100,17 @@ func (m *module) usesOf(obj types.Object) []use {
 	want := m.key(obj)
 	seen := map[token.Position]bool{}
 	var out []use
-	for _, u := range m.units {
-		for id, o := range u.info.Uses {
+	for _, u := range m.Units {
+		for id, o := range u.Info.Uses {
 			if o == nil || o.Pkg() == nil || m.key(o) != want {
 				continue
 			}
-			p := m.fset.Position(id.Pos())
+			p := m.Fset.Position(id.Pos())
 			if seen[p] {
 				continue
 			}
 			seen[p] = true
-			out = append(out, use{m.shortPath(u.pkgPath), m.rel(p.Filename), p.Line})
+			out = append(out, use{m.shortPath(u.PkgPath), m.rel(p.Filename), p.Line})
 		}
 	}
 	sort.Slice(out, func(i, j int) bool {
@@ -130,14 +130,14 @@ func (m *module) usesOf(obj types.Object) []use {
 // pointer), with the file and line of their declaration.
 func (m *module) implementers(iface *types.Interface) []string {
 	var out []string
-	for path, pkg := range m.base {
+	for path, pkg := range m.Base {
 		for _, name := range pkg.Scope().Names() {
 			tn, ok := pkg.Scope().Lookup(name).(*types.TypeName)
 			if !ok || types.IsInterface(tn.Type()) {
 				continue
 			}
 			if types.Implements(tn.Type(), iface) || types.Implements(types.NewPointer(tn.Type()), iface) {
-				p := m.fset.Position(tn.Pos())
+				p := m.Fset.Position(tn.Pos())
 				out = append(out, fmt.Sprintf("%s.%s  %s:%d", pathBase(path), name, m.rel(p.Filename), p.Line))
 			}
 		}
@@ -168,15 +168,15 @@ func interfaceOf(obj types.Object) *types.Interface {
 // it, with counts. In-package tests of target itself are left out.
 func (m *module) packageUsers(target string) map[string]map[string]int {
 	out := map[string]map[string]int{}
-	for _, u := range m.units {
-		if u.pkgPath == target {
+	for _, u := range m.Units {
+		if u.PkgPath == target {
 			continue
 		}
-		for _, o := range u.info.Uses {
+		for _, o := range u.Info.Uses {
 			if o == nil || o.Pkg() == nil || o.Pkg().Path() != target {
 				continue
 			}
-			who := m.shortPath(u.pkgPath)
+			who := m.shortPath(u.PkgPath)
 			if out[who] == nil {
 				out[who] = map[string]int{}
 			}

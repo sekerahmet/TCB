@@ -62,7 +62,7 @@ func enclosingClosure(stack []ast.Node, closures map[*ast.FuncLit]string) string
 
 // fieldAccess alan seçicisini (x.f) tip bilgisiyle çözer ve ham erişim olarak biriktirir.
 func (x *goExtractor) fieldAccess(fc *fileCtx, owner string, sel *ast.SelectorExpr, mode, closure string) {
-	s := fc.u.info.Selections[sel]
+	s := fc.u.Info.Selections[sel]
 	if s == nil || s.Kind() != types.FieldVal {
 		return
 	}
@@ -84,7 +84,7 @@ func (x *goExtractor) literalFields(fc *fileCtx, owner string, lit *ast.Composit
 		if !ok {
 			continue
 		}
-		if v, ok := fc.u.info.Uses[key].(*types.Var); ok && v.IsField() {
+		if v, ok := fc.u.Info.Uses[key].(*types.Var); ok && v.IsField() {
 			x.fieldUses = append(x.fieldUses, rawFieldUse{posKey: x.posKey(v.Pos()), owner: owner,
 				site: Site{File: fc.rel, Line: x.line(key.Pos()), Mode: modeLiteral, Closure: closure}})
 		}
@@ -112,7 +112,7 @@ func calleeIdent(e ast.Expr) *ast.Ident {
 }
 
 func (x *goExtractor) use(fc *fileCtx, owner string, id *ast.Ident, isCall bool) {
-	obj := fc.u.info.Uses[id]
+	obj := fc.u.Info.Uses[id]
 	if obj == nil || obj.Pkg() == nil || !x.inModule(obj.Pkg().Path()) {
 		return
 	}
@@ -133,9 +133,9 @@ func (x *goExtractor) use(fc *fileCtx, owner string, id *ast.Ident, isCall bool)
 		samePkg := o.Pkg().Path() == fc.base && !fc.isTest
 		switch {
 		case samePkg:
-		case o.Pkg().Path() == x.m.path+"/"+messagesDir && messageConst.MatchString(o.Name()):
+		case o.Pkg().Path() == x.m.Path+"/"+messagesDir && messageConst.MatchString(o.Name()):
 			x.b.addEdge(owner, "msg:"+o.Name(), edgeUsesMessage, extracted, fc.rel, line)
-		case o.Pkg().Path() == x.m.path+"/"+codesDir && nameConst.MatchString(o.Name()):
+		case o.Pkg().Path() == x.m.Path+"/"+codesDir && nameConst.MatchString(o.Name()):
 			x.b.addEdge(owner, "name:"+o.Name(), edgeUsesName, extracted, fc.rel, line)
 		}
 		if o.Parent() == o.Pkg().Scope() {
@@ -158,13 +158,13 @@ func (x *goExtractor) implements() {
 		line  int
 	}
 	var concrete, ifaces []decl
-	paths := make([]string, 0, len(x.m.base))
-	for p := range x.m.base {
+	paths := make([]string, 0, len(x.m.Base))
+	for p := range x.m.Base {
 		paths = append(paths, p)
 	}
 	sort.Strings(paths)
 	for _, p := range paths {
-		scope := x.m.base[p].Scope()
+		scope := x.m.Base[p].Scope()
 		for _, name := range scope.Names() {
 			tn, ok := scope.Lookup(name).(*types.TypeName)
 			if !ok || tn.IsAlias() {
@@ -174,7 +174,7 @@ func (x *goExtractor) implements() {
 			if !ok || named.TypeParams().Len() > 0 {
 				continue
 			}
-			pos := x.m.fset.Position(tn.Pos())
+			pos := x.m.Fset.Position(tn.Pos())
 			d := decl{typeID(p, name), named, x.rel(pos.Filename), pos.Line}
 			if it, isIface := named.Underlying().(*types.Interface); isIface {
 				if it.NumMethods() > 0 {
