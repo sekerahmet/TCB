@@ -138,12 +138,7 @@ func (p *Parser) parseVarStatement(isConst bool) ast.Statement {
 		}
 		p.nextToken() // '='
 		p.nextToken()
-		values := []ast.Expression{p.parseExpression(precLowest)}
-		for p.peekTokenIs(lexer.TokComma) {
-			p.nextToken() // ','
-			p.nextToken()
-			values = append(values, p.parseExpression(precLowest))
-		}
+		values := p.parseCommaExpressions(p.parseExpression(precLowest))
 		if p.peekTokenIs(lexer.TokSemicolon) {
 			p.nextToken()
 		}
@@ -224,23 +219,13 @@ func (p *Parser) parseExpressionOrAssignmentStatement() ast.Statement {
 
 	// Çoklu atama / değişken takası: a, b = b, a veya a, b = [10, 20]
 	if p.peekTokenIs(lexer.TokComma) {
-		targets := []ast.Expression{expr}
-		for p.peekTokenIs(lexer.TokComma) {
-			p.nextToken() // ','
-			p.nextToken()
-			targets = append(targets, p.parseExpression(precLowest))
-		}
+		targets := p.parseCommaExpressions(expr)
 		if !p.expectPeek(lexer.TokAssign) {
 			return nil
 		}
 		opTok := p.curToken()
 		p.nextToken()
-		values := []ast.Expression{p.parseExpression(precLowest)}
-		for p.peekTokenIs(lexer.TokComma) {
-			p.nextToken() // ','
-			p.nextToken()
-			values = append(values, p.parseExpression(precLowest))
-		}
+		values := p.parseCommaExpressions(p.parseExpression(precLowest))
 		if p.peekTokenIs(lexer.TokSemicolon) {
 			p.nextToken()
 		}
@@ -327,4 +312,15 @@ func (p *Parser) parseImportStatement() *ast.ImportStatement {
 		p.nextToken()
 	}
 	return stmt
+}
+
+// parseCommaExpressions ilk ifadeden sonra gelen ', ifade' dizisini okur ve hepsini döndürür.
+func (p *Parser) parseCommaExpressions(first ast.Expression) []ast.Expression {
+	list := []ast.Expression{first}
+	for p.peekTokenIs(lexer.TokComma) {
+		p.nextToken() // ','
+		p.nextToken()
+		list = append(list, p.parseExpression(precLowest))
+	}
+	return list
 }
