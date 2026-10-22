@@ -252,17 +252,7 @@ func (u *unigram) idTokens() []string { return u.tokenList }
 
 func (u *unigram) Encode(dst []int32, p Piece) []int32 {
 	m := p.Content()
-	o := u.cache
-	if o != nil && len(m) <= cacheMaxLen {
-		if v, ok := o.al(m); ok {
-			return append(dst, v...)
-		}
-		n := len(dst)
-		dst = u.encode(dst, m, p.budget)
-		o.put(m, dst[n:])
-		return dst
-	}
-	return u.encode(dst, m, p.budget)
+	return u.cache.encodeCached(dst, m, func(d []int32) []int32 { return u.encode(d, m, p.budget) })
 }
 
 func (u *unigram) encode(dst []int32, m string, budget *reBudget) []int32 {

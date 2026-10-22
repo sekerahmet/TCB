@@ -171,17 +171,7 @@ func (b *bpeModel) chr(r rune) int32 {
 
 // Encode parçayı (önbellek yardımıyla) kodlar.
 func (b *bpeModel) Encode(dst []int32, p Piece) []int32 {
-	o := b.cache
-	if o == nil || len(p.Text) > cacheMaxLen {
-		return b.encode(dst, p)
-	}
-	if v, ok := o.al(p.Text); ok {
-		return append(dst, v...)
-	}
-	n := len(dst)
-	dst = b.encode(dst, p)
-	o.put(p.Text, dst[n:])
-	return dst
+	return b.cache.encodeCached(dst, p.Text, func(d []int32) []int32 { return b.encode(d, p) })
 }
 
 func (b *bpeModel) encode(dst []int32, p Piece) []int32 {
