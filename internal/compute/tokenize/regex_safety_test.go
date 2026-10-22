@@ -204,9 +204,7 @@ func TestKnownPatternsLinear(t *testing.T) {
 // bütçe aşılınca *StepLimitError olur. Neden: düz metinli Replace ve ByteLevel adımları bütçeden
 // hiç düşmüyordu; birkaç yüz baytlık dosya 1 baytı üstel büyüterek belleği tüketirdi.
 func TestChainOutputGrowthSharesTheStepBudget(t *testing.T) {
-	old := CurrentRegexSettings()
-	SetRegexSettings(RegexSettings{StepBase: 64, StepFactor: 1, BacktrackLimit: 256})
-	defer SetRegexSettings(old)
+	setAndRestore(t, RegexSettings{StepBase: 64, StepFactor: 1, BacktrackLimit: 256})
 
 	rep := `{"type":"Replace","pattern":{"String":"a"},"content":"aaaaaaaaaaaaaaaa"}`
 	seq := strings.Repeat(rep+",", 4) + rep // her adım 16 kat: 16^5 bayt
@@ -279,9 +277,7 @@ func TestModestGrowthStaysUnderTheDefaultBudget(t *testing.T) {
 // tokenı aşan adayları aramaz; ayrıca çok uzun bir sözcük girdiyle doğrusal iş yapar. Neden:
 // max_input_chars_per_word büyükken her konumda her önek aranıyor (karesel ayırma ve özetleme).
 func TestWordPieceSearchIsBoundedByVocabularyAndBudget(t *testing.T) {
-	old := CurrentRegexSettings()
-	SetRegexSettings(RegexSettings{StepBase: 64, StepFactor: 1, BacktrackLimit: 256})
-	defer SetRegexSettings(old)
+	setAndRestore(t, RegexSettings{StepBase: 64, StepFactor: 1, BacktrackLimit: 256})
 
 	prefix := strings.Repeat("#", 64)
 	js := `{"model":{"type":"WordPiece","unk_token":"[UNK]","continuing_subword_prefix":"` + prefix + `",` +
@@ -305,9 +301,7 @@ func TestWordPieceSearchIsBoundedByVocabularyAndBudget(t *testing.T) {
 
 // Kural: Unigram'da ağaç araması da adım sayılır (bütçe aşılınca *StepLimitError).
 func TestUnigramSearchSharesTheBudget(t *testing.T) {
-	old := CurrentRegexSettings()
-	SetRegexSettings(RegexSettings{StepBase: 64, StepFactor: 1, BacktrackLimit: 256})
-	defer SetRegexSettings(old)
+	setAndRestore(t, RegexSettings{StepBase: 64, StepFactor: 1, BacktrackLimit: 256})
 	long := strings.Repeat("a", 200)
 	js := `{"model":{"type":"Unigram","unk_id":0,"vocab":[["<unk>",0],["` + long + `",-1],["a",-2]]}}`
 	p, err := Parse([]byte(js))
