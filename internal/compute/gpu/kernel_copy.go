@@ -2,6 +2,7 @@ package gpu
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -140,7 +141,7 @@ func (g *backend) fill(d *storage, v float32) {
 		return
 	}
 	if d.dtype == tensor.Float32 {
-		g.fill32(d, f32bit(v))
+		g.fill32(d, math.Float32bits(v))
 		return
 	}
 	checkSize(d.n)

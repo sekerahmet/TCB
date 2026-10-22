@@ -26,8 +26,7 @@ const (
 	ltR32F              = 0  // CUDA_R_32F
 	ltR16F              = 2  // CUDA_R_16F
 	ltR16BF             = 14 // CUDA_R_16BF
-	ltDescTransA        = 3  // CUBLASLT_MATMUL_DESC_TRANSA
-	ltDescTransB        = 4  // CUBLASLT_MATMUL_DESC_TRANSB
+	ltDescTransA        = 3  // CUBLASLT_MATMUL_DESC_TRANSA (TRANSB = TRANSA+1, döngüde)
 	ltLayoutBatch       = 5  // CUBLASLT_MATRIX_LAYOUT_BATCH_COUNT
 	ltLayoutBatchStride = 6  // CUBLASLT_MATRIX_LAYOUT_STRIDED_BATCH_OFFSET
 	ltPrefSpace         = 1  // CUBLASLT_MATMUL_PREF_MAX_WORKSPACE_BYTES

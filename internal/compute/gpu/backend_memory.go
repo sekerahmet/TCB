@@ -1,7 +1,6 @@
 package gpu
 
 import (
-	"math"
 	"unsafe"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
@@ -10,8 +9,6 @@ import (
 
 // Arka uç: bellek yöntemleri (Alloc, FromHost, ToHost, Copy, Fill, CopyStrided, Release)
 // ve 16 bitlik türler için geçici float32 tamponlar.
-
-func f32bit(v float32) uint32 { return math.Float32bits(v) }
 
 // temp, bir çağrının açtığı geçici tamponları toplar; bitir hepsini havuza iade eder.
 // Hesap çekirdekleri float32 bitişik görür: 16 bitlik (ya da adımlı) girdiler float32
@@ -83,15 +80,6 @@ func (g *backend) viewType(v *tensor.View) tensor.DType {
 		return tensor.Float32
 	}
 	return g.storageOf(v.S).dtype
-}
-
-// readP isteğe bağlı görünüm.
-func (t *temp) readP(v *tensor.View) *tensor.View {
-	if v == nil {
-		return nil
-	}
-	w := t.read(*v)
-	return &w
 }
 
 // readD düz depolamanın float32 karşılığı (nil için nil).
