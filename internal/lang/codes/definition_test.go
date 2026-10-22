@@ -43,6 +43,13 @@ func TestDefinitionsSortedOnePerLine(t *testing.T) {
 	if !json.Valid(data) {
 		t.Fatal("definitions.json geçerli JSON değil")
 	}
+	checkSortedOnePerLine(t, data, "tür")
+}
+
+// checkSortedOnePerLine kod sözlüğü dosyalarının (definitions.json, tr.json) biçimini sınar:
+// kodlar artan sırada, her girdi iki boşluk girintili tek satır ve satırda requiredField bir kez.
+func checkSortedOnePerLine(t *testing.T, data []byte, requiredField string) {
+	t.Helper()
 	dec := json.NewDecoder(bytes.NewReader(data))
 	if _, err := dec.Token(); err != nil {
 		t.Fatal(err)
@@ -71,7 +78,7 @@ func TestDefinitionsSortedOnePerLine(t *testing.T) {
 		if s == "{" || s == "}" {
 			continue
 		}
-		if !strings.HasPrefix(line, "  \"") || strings.Count(s, "\"tür\"") != 1 {
+		if !strings.HasPrefix(line, "  \"") || strings.Count(s, "\""+requiredField+"\"") != 1 {
 			t.Errorf("satır %d: her girdi iki boşluk girintili tek satır olmalı: %s", i+1, line)
 		}
 	}
