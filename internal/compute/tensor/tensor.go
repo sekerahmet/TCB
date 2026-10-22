@@ -523,17 +523,9 @@ func (t *Tensor) contigView() View {
 	return View{S: s, Shape: t.shape, Strides: contiguousStrides(t.shape)}
 }
 
-// giveBackCopy v, t'nin bitişik kopyasıysa (contigView'ün ayırdığı) depolamayı arka uca
-// iade eder; t'nin kendi depolamasıysa dokunmaz.
-func giveBackCopy(t *Tensor, v View) {
-	if v.S != t.storage {
-		giveBack(t.be, v.S)
-	}
-}
-
-// copyRelease giveBackCopy'nin ertelenmiş biçimidir: v, t'nin bitişik kopyasıysa onu iade
-// eden işlevi verir. t'yi yakalamaz (geri hesap kapanışlarında kullanılır: kapanış verisini
-// kaydetmediği bir tensörü tutmamalıdır).
+// copyRelease v, t'nin bitişik kopyasıysa (contigView'ün ayırdığı) onu arka uca iade eden
+// işlevi verir; t'nin kendi depolamasıysa hiçbir şey yapmaz. t'yi yakalamaz (geri hesap
+// kapanışlarında kullanılır: kapanış verisini kaydetmediği bir tensörü tutmamalıdır).
 func copyRelease(t *Tensor, v View) func() {
 	if v.S == t.storage {
 		return func() {}
