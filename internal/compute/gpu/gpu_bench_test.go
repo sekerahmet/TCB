@@ -58,6 +58,7 @@ func microAll(g *backend, peak, band float64, divide int) {
 	microCE(g, divide)
 	microAdamW(g, divide)
 	microElem(g, band, divide)
+	microNorm(g, band, divide)
 }
 
 // microMeasure f'yi bir kez ısındırıp n kez çalıştırır; tekrar başına GPU süresini (ms) verir.

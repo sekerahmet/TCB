@@ -102,9 +102,33 @@ def eleman():
     yaz(f"devrik kopya {kenar}²", ms, 8 * n / 1e9 / (ms / 1e3), "GB/s")
 
 
+def normlar():
+    # Hedef modelin RMS normları, bf16 (gpu_bench_norm_test.go microNorm ile aynı boylar):
+    # blok [T, 512], q [T, 8, 64], k [T, 4, 64] (K|V tek çarpımın yarısı: adımlı satırlar).
+    # Eager (F.rms_norm) ve torch.compile; ileri ve geri (girdi ve ağırlık gradyanı).
+    T = 32768
+    taban = torch.randn(T, 512, device=cihaz, dtype=torch.bfloat16)
+    durumlar = [(f"norm blok {T}×512", lambda t: t), (f"norm q {T}×8×64", lambda t: t.view(T, 8, 64)),
+                (f"norm k adımlı {T}×4×64", lambda t: t.view(T, 2, 4, 64)[:, 0])]
+    derli = torch.compile(F.rms_norm)
+    for ad, kes in durumlar:
+        for tur, f in (("eager", F.rms_norm), ("compile", derli)):
+            t = taban.clone().requires_grad_(True)
+            x = kes(t)
+            D = x.shape[-1]
+            w = torch.randn(D, device=cihaz, requires_grad=True)
+            e = x.numel()
+            ms = olc(lambda: f(x, (D,), w, 1e-6))
+            print(f"MIKRO|{ad} ileri|pytorch-{tur}|{ms:.4f}|{4 * e / 1e9 / (ms / 1e3):.1f}|GB/s", flush=True)
+            y = f(x, (D,), w, 1e-6)
+            gy = torch.randn_like(y)
+            ms = olc(lambda: torch.autograd.grad(y, (t, w), gy, retain_graph=True))
+            print(f"MIKRO|{ad} geri|pytorch-{tur}|{ms:.4f}|{6 * e / 1e9 / (ms / 1e3):.1f}|GB/s", flush=True)
+
+
 if __name__ == "__main__":
     print(f"MIKRO|bilgi|{torch.cuda.get_device_name()} torch {torch.__version__}|0|0|", flush=True)
-    for f in (carpimlar, dikkat, ce, adamw, eleman):
+    for f in (carpimlar, dikkat, ce, adamw, eleman, normlar):
         f()
         torch.cuda.empty_cache()
     print(f"MIKRO|bellek|pytorch|0|{torch.cuda.max_memory_allocated() / 2**20:.0f}|MB tepe", flush=True)
