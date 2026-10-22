@@ -128,10 +128,7 @@ func (b patternPart) match(name string) bool {
 		return false
 	}
 	if b.fixed {
-		if caseInsensitive {
-			return strings.EqualFold(b.text, name)
-		}
-		return b.text == name
+		return samePath(b.text, name)
 	}
 	return wildcard(b.text, name)
 }

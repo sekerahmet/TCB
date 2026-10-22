@@ -54,7 +54,7 @@ func resolvedDir(fpath string) string {
 }
 
 func samePath(a, b string) bool {
-	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
+	if caseInsensitive {
 		return strings.EqualFold(a, b)
 	}
 	return a == b
