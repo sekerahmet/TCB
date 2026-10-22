@@ -36,30 +36,12 @@ func (s *dapServer) scopes(msg *dapMessage) {
 
 // scopeVariables kapsamdaki değişkenleri (yerleşik fonksiyon ve tanımlar hariç) sıralı döndürür.
 func (s *dapServer) scopeVariables(h *dapHandle) []varEntry {
-	global := s.curVM.GlobalEnv
-	seen := map[string]bool{}
-	var list []varEntry
-	for cur := h.scope; cur != nil; cur = cur.Outer() {
-		if !h.isGlobal && cur == global {
-			break
-		}
-		cur.EachLocal(func(k string, v interp.Value) {
-			if seen[k] {
-				return
-			}
-			seen[k] = true
-			if v.Type() == interp.ValBuiltin || v.Type() == interp.ValStruct || v.Type() == interp.ValFunc || v.Type() == interp.ValType ||
-				s.curVM.IsBuiltinConstant(k, v) {
-				return
-			}
-			list = append(list, varEntry{Name: k, Val: v})
-		})
-		if h.isGlobal {
-			break
-		}
+	// Yerel kapsam zinciri global kapsama gelince durur; global kapsam tek başına taranır.
+	var stopBefore *interp.Environment
+	if !h.isGlobal {
+		stopBefore = s.curVM.GlobalEnv
 	}
-	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
-	return list
+	return collectVariables(s.curVM, h.scope, stopBefore, h.isGlobal)
 }
 
 // dapChild açılmış bir değerin alt öğesidir. val nil ise öğe yalnızca bilgi satırıdır

@@ -564,22 +564,30 @@ type varEntry struct {
 }
 
 func collectVisibleVariables(vm *interp.VM, env *interp.Environment) []varEntry {
+	return collectVariables(vm, env, nil, false)
+}
+
+// collectVariables start kapsamından dışa doğru görünür değişkenleri ad sırasıyla toplar: iç
+// kapsam dış kapsamdaki aynı adı gizler; yerleşik fonksiyonlar, yapı ve tip tanımları ile
+// yerleşik sabitler kalabalık yapmaması için atlanır. stopBefore doluysa o kapsama gelince durur
+// (kapsamın kendisi alınmaz); singleScope true ise yalnızca start taranır.
+func collectVariables(vm *interp.VM, start, stopBefore *interp.Environment, singleScope bool) []varEntry {
 	seen := make(map[string]bool)
 	var list []varEntry
-	cur := env
-	for cur != nil {
+	for cur := start; cur != nil && cur != stopBefore; cur = cur.Outer() {
 		cur.EachLocal(func(k string, v interp.Value) {
 			if seen[k] {
 				return
 			}
 			seen[k] = true
-			// Yerleşik fonksiyonları ve yapı tanımlarını kalabalık yapmaması için gizle
 			if v.Type() == interp.ValBuiltin || v.Type() == interp.ValStruct || v.Type() == interp.ValFunc || v.Type() == interp.ValType || vm.IsBuiltinConstant(k, v) {
 				return
 			}
 			list = append(list, varEntry{Name: k, Val: v})
 		})
-		cur = cur.Outer()
+		if singleScope {
+			break
+		}
 	}
 	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
 	return list
