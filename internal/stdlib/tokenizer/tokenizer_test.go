@@ -299,7 +299,7 @@ func TestWatchPanel(t *testing.T) {
 }
 
 // Uzun iş yorumlayıcıyı kilitlemez: parçalayıcı dosyasının yüklenmesi ve kodlama/çözme
-// çağrıları (tokenize.Load, Safe*, parallel) Blocking içinde (ya da uzun metinde
+// çağrıları (tokenize.Load, Safe*) Blocking içinde (ya da uzun metinde
 // maybeRelease ile) çalışır; böylece başka görevler bu sırada ilerler. Çağrılar, bu
 // ikisine verilen işlev gövdelerinin (doğrudan ya da bir değişkenle verilen) içinde olmalıdır.
 func TestHeavyWorkReleasesLock(t *testing.T) {
@@ -351,10 +351,6 @@ func TestHeavyWorkReleasesLock(t *testing.T) {
 			}
 			if strings.HasPrefix(f.Sel.Name, "Safe") && len(f.Sel.Name) > len("Safe") { // bind.Safe panik sarmalayıcıdır, ağır iş değil
 				return f.Sel.Name
-			}
-		case *ast.Ident:
-			if f.Name == "parallel" {
-				return "parallel"
 			}
 		}
 		return ""

@@ -50,6 +50,31 @@ func (p *Tokenizer) SafeEncodeBatch(texts []string, s Options, worker int) ([][]
 	return out, nil
 }
 
+// SafeEncodePairBatch her texts[i]'yi seconds[i] ile çift olarak kodlar (len(seconds) == len(texts));
+// hatalı çiftlerin sonucu nil'dir, errs[i] i. çiftin hatasıdır. Kimlikler int olarak verilir.
+func (p *Tokenizer) SafeEncodePairBatch(texts, seconds []string, s Options, worker int) ([][]int, []error) {
+	out := make([][]int, len(texts))
+	errs := make([]error, len(texts))
+	parallel(len(texts), worker, func(i int) {
+		k, err := p.SafeEncodePair(texts[i], &seconds[i], s)
+		errs[i] = err
+		if err == nil {
+			out[i] = ToInt(nil, k.IDs)
+		}
+	})
+	return out, errs
+}
+
+// SafeDecodeBatch her kimlik dizisini metne çevirir (SafeDecode); errs[i] i. dizinin hatasıdır.
+func (p *Tokenizer) SafeDecodeBatch(seqs [][]int, skipSpecial bool, worker int) ([]string, []error) {
+	out := make([]string, len(seqs))
+	errs := make([]error, len(seqs))
+	parallel(len(seqs), worker, func(i int) {
+		out[i], errs[i] = p.SafeDecode(seqs[i], skipSpecial)
+	})
+	return out, errs
+}
+
 // Warnings parçalayıcının düzenli ifadelerinde derleme sırasında bulunan
 // risk uyarılarını verir (ör. sınırsız yineleme içinde çakışan seçenekler).
 func (p *Tokenizer) Warnings() []string {

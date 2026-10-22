@@ -18,7 +18,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sync"
 
 	"github.com/sekerahmet/TCB/internal/compute/tokenize"
@@ -301,15 +300,7 @@ func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]inte
 				result, errs = n.p.SafeEncodeBatch(texts, pick, 0)
 				return
 			}
-			result = make([][]int, len(texts))
-			errs = make([]error, len(texts))
-			parallel(len(texts), func(i int) {
-				k, err := n.p.SafeEncodePair(texts[i], &seconds[i], pick)
-				errs[i] = err
-				if err == nil {
-					result[i] = tokenize.ToInt(nil, k.IDs)
-				}
-			})
+			result, errs = n.p.SafeEncodePairBatch(texts, seconds, pick, 0)
 		})
 		for i, h := range errs {
 			if h != nil {
@@ -344,49 +335,6 @@ func stringList(fn, what string, l *interp.ListVal) ([]string, error) {
 		out[i] = s.Val
 	}
 	return out, nil
-}
-
-// parallel f'yi 0..n-1 için işlemci sayısı kadar gorutinde çalıştırır. Bir gorutindeki
-// panik süreci çökertmez: iş bitince çağıranın gorutininde yeniden fırlatılır (ve
-// oradaki recover ile TR hatasına çevrilir).
-func parallel(n int, f func(i int)) {
-	worker := min(runtime.GOMAXPROCS(0), n)
-	var wg sync.WaitGroup
-	var mu sync.Mutex
-	var recovered any
-	order := 0
-	defer func() {
-		if recovered != nil {
-			panic(recovered)
-		}
-	}()
-	for w := 0; w < worker; w++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			defer func() {
-				if r := recover(); r != nil {
-					mu.Lock()
-					if recovered == nil {
-						recovered = r
-					}
-					order = n
-					mu.Unlock()
-				}
-			}()
-			for {
-				mu.Lock()
-				i := order
-				order++
-				mu.Unlock()
-				if i >= n {
-					return
-				}
-				f(i)
-			}
-		}()
-	}
-	wg.Wait()
 }
 
 // idList kimlikleri TR tam sayı listesine çevirir.
@@ -424,15 +372,9 @@ func (n *Object) decode(m *interp.VM, args []interp.Value, named map[string]inte
 	if err != nil {
 		return nil, err
 	}
-	result := make([]string, len(seqs))
-	errs := make([]error, len(seqs))
-	job := func() {
-		if len(seqs) == 1 {
-			result[0], errs[0] = n.p.SafeDecode(seqs[0], skip)
-			return
-		}
-		parallel(len(seqs), func(i int) { result[i], errs[i] = n.p.SafeDecode(seqs[i], skip) })
-	}
+	var result []string
+	var errs []error
+	job := func() { result, errs = n.p.SafeDecodeBatch(seqs, skip, 0) }
 	total := 0
 	for _, d := range seqs {
 		total += len(d)
