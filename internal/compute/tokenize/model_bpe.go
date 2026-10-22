@@ -97,17 +97,7 @@ func newBPE(raw json.RawMessage) (Model, error) {
 				b.lowID[r] = id
 			}
 		}
-		ok := true
-		bs := make([]byte, 0, len(tok))
-		for _, r := range tok {
-			c, var_ := charByte[r]
-			if !var_ {
-				ok = false
-				break
-			}
-			bs = append(bs, c)
-		}
-		if ok {
+		if bs, ok := decodeByteChars(tok); ok {
 			b.byteVocab[string(bs)] = id
 		}
 	}

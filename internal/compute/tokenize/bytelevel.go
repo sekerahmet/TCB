@@ -86,15 +86,24 @@ func bytesToChars(b []byte) string {
 // en az bir karakter eşlemede yoksa (ör. bayt düzeyi dışı bir ek token)
 // tokenın kendi UTF-8 baytları kullanılır.
 func tokenBytes(tok string) []byte {
+	if out, ok := decodeByteChars(tok); ok {
+		return out
+	}
+	return []byte(tok)
+}
+
+// decodeByteChars bir tokenın bayt düzeyi karakterlerini baytlara çevirir; bir karakter eşlemede
+// yoksa (bayt düzeyi dışı token) yanlış döner.
+func decodeByteChars(tok string) ([]byte, bool) {
 	out := make([]byte, 0, len(tok))
 	for _, r := range tok {
 		b, ok := charByte[r]
 		if !ok {
-			return []byte(tok)
+			return nil, false
 		}
 		out = append(out, b)
 	}
-	return out
+	return out, true
 }
 
 // lossyUTF8 bayt dizisini metne çevirir; geçersiz UTF-8 dizilerini U+FFFD
