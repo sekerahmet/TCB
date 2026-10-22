@@ -279,7 +279,7 @@ func (t *Tensor) DivScalar(s float32) *Tensor {
 	if t.sym != nil {
 		return symTensor(t.be, fuseBinary(OpDiv, t.sym, fuseConst(s, nil), t.shape, t.dtyp))
 	}
-	return binaryKind(t, fromStorage(t.be, t.be.FromHost([]float32{s}, Float32), nil), OpDiv, t.dtyp)
+	return binaryKind(t, fromStorage(t.be, scalarStorage(t.be, s), nil), OpDiv, t.dtyp)
 }
 
 // RSubScalar s - x hesaplar.

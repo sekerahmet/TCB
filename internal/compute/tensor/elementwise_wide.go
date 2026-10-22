@@ -136,7 +136,7 @@ func (t *Tensor) CompareScalar(s float32, op BinOp, onRight bool) *Tensor {
 		}
 		return symTensor(t.be, fuseBinary(op, t.sym, c, t.shape, Float32))
 	}
-	st := fromStorage(t.be, t.be.FromHost([]float32{s}, Float32), nil)
+	st := fromStorage(t.be, scalarStorage(t.be, s), nil)
 	if onRight {
 		return Compare(st, t, op)
 	}

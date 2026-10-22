@@ -235,7 +235,7 @@ func sumTensorList(ad string, mean bool, el []interp.Value) (interp.Value, error
 			out = out.AddScalar(float32(fixed))
 		}
 		if mean {
-			out = tensor.Div(out, tensor.Scalar(float32(len(el))).To(out.Device()))
+			out = out.DivScalar(float32(len(el)))
 		}
 		return out
 	})

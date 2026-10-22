@@ -159,6 +159,14 @@ func emptyOf(is opKind, be Backend, shape []int, dt DType) *Tensor {
 }
 
 // allocUninit be destekliyorsa sıfırlanmamış, değilse sıfırlanmış depolama verir.
+// scalarStorage değeri v olan tek elemanlı float32 depolama. Cihazda doldurulur (konaktan
+// yüklemez): GPU kaydında da kurulabilir, değer kayda sabit olarak girer.
+func scalarStorage(be Backend, v float32) Storage {
+	s := allocUninit(be, 1, Float32)
+	be.Fill(s, v)
+	return s
+}
+
 func allocUninit(be Backend, n int, dt DType) Storage {
 	switch b := be.(type) {
 	case emptyAllocator:
@@ -212,6 +220,14 @@ func Ones(shape ...int) *Tensor { return Full(1, shape...) }
 // Full tüm elemanları v olan tensör.
 func Full(v float32, shape ...int) *Tensor {
 	t := Zeros(shape...)
+	t.be.Fill(t.storage, v)
+	return t
+}
+
+// FullOn verilen cihazda tüm elemanları v olan tensör. Konaktan veri yüklemez (cihazda
+// doldurulur): GPU kaydında da kurulabilir.
+func FullOn(dev Device, v float32, shape ...int) *Tensor {
+	t := ZerosOn(dev, shape...)
 	t.be.Fill(t.storage, v)
 	return t
 }
@@ -314,6 +330,10 @@ func (t *Tensor) Detach() *Tensor {
 // DType tensörün eleman türü.
 func (t *Tensor) DType() DType { return t.dtyp }
 
+// SharesStorage t ile u aynı depolamaya bakıyor mu (biri öbürünün görünümüyse ya da ikisi
+// aynı tensörün görünümleriyse).
+func (t *Tensor) SharesStorage(u *Tensor) bool { return t.storage == u.storage }
+
 // Version tensörün depolamasının sürüm sayacı (yerinde her değişiklikte artar;
 // aynı depolamayı paylaşan görünümlerde ortaktır).
 func (t *Tensor) Version() uint64 { return t.storage.Version() }
@@ -358,7 +378,7 @@ func (t *Tensor) At(idx ...int) float32 {
 // bu tensörü ileri hesapta kullanmış ve henüz geri yayılmamış bir çizge varsa
 // geri yayılım hata verir.
 func (t *Tensor) Set(v float32, idx ...int) {
-	t.be.Copy(t.storage, t.index(idx), View{S: t.be.FromHost([]float32{v}, Float32)})
+	t.be.Copy(t.storage, t.index(idx), View{S: scalarStorage(t.be, v)})
 	t.storage.BumpVersion()
 }
 

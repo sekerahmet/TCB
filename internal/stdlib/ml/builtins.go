@@ -141,10 +141,11 @@ func dropTemp(keep *tensor.Tensor, temps ...*tensor.Tensor) {
 }
 
 // minAll tüm elemanların en küçüğünü 0 boyutlu tensör olarak verir. Çekirdekte Min
-// işlemi yoktur; türev gerekiyorsa -maks(-x) ile (gradyan doğru elemana gider) hesaplanır.
-// Türev gerekmiyorsa ara tensör ayırmadan konakta tek geçişle bulunur.
+// işlemi yoktur; türev gerekiyorsa ya da tensör CPU'da değilse -maks(-x) ile (gradyan doğru
+// elemana gider; GPU'da konağa okumaz, tekrar_oynat kaydında da çalışır) hesaplanır. CPU'da
+// türev gerekmiyorsa ara tensör ayırmadan tek geçişle bulunur.
 func minAll(t *tensor.Tensor) *tensor.Tensor {
-	if t.RequiresGrad() && tensor.GradEnabled() {
+	if t.RequiresGrad() && tensor.GradEnabled() || t.Device() != tensor.CPU {
 		return t.Neg().Reshape(-1).Max(0, false).Neg() // türev izlenir: ara başlıklar çizgededir
 	}
 	data := t.Data()

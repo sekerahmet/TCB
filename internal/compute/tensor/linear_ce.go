@@ -136,7 +136,7 @@ func validTargets(targets []int, R, C int) int {
 // ve w'nin (gw'ye eklenerek) gradyanına götürür.
 func linearCEChunkGrad(be Backend, lv View, lse Storage, tg []int, share float32, xc, wv View, gx, gw Storage, r0, D, C int, writer bool) {
 	n := len(tg)
-	seed := be.FromHost([]float32{share}, Float32)
+	seed := scalarStorage(be, share)
 	dl := allocUninit(be, n*C, lv.DType())
 	if cs, ok := be.(CrossEntropyGradSetter); ok {
 		cs.CrossEntropyGradSet(dl, seed, lv, lse, tg, C)
