@@ -282,24 +282,12 @@ func backwardResult(v interp.Value, args []interp.Value) ([]*tensor.Tensor, erro
 		if !ok {
 			return nil, messages.New(messages.H6417, fn, i+1, typeName(args[i]), backward, none)
 		}
-		if gs, is := d.t.Shape(), input.t.Shape(); !isShapeEqual(gs, is) {
+		if gs, is := d.t.Shape(), input.t.Shape(); !tensor.SameShape(gs, is) {
 			return nil, messages.New(messages.H6418, fn, backward, i+1, shapeText(gs), shapeText(is))
 		}
 		out[i] = d.t
 	}
 	return out, nil
-}
-
-func isShapeEqual(a, b []int) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }
 
 // ----------------------------------------------------------------------------

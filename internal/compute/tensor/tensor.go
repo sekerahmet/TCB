@@ -24,6 +24,7 @@ package tensor
 import (
 	"fmt"
 	"math/rand"
+	"slices"
 	"strings"
 	"sync/atomic"
 
@@ -96,17 +97,10 @@ func copyInts(a []int) []int {
 	return b
 }
 
-func sameShape(a, b []int) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
-}
+// SameShape iki şeklin aynı olup olmadığıdır (gpu ve ml de kullanır).
+func SameShape(a, b []int) bool { return slices.Equal(a, b) }
+
+func sameShape(a, b []int) bool { return SameShape(a, b) }
 
 // normAxis negatif eksen indeksini (sondan sayma) pozitife çevirir.
 func normAxis(axis, ndim int) int {

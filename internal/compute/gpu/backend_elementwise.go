@@ -169,18 +169,6 @@ func (g *backend) ExpandAdd(dst tensor.Storage, dstShape []int, src tensor.Stora
 	g.copyStrided(tensor.View{S: d, Shape: dstShape, Strides: contiguous(dstShape)}, kv, true, scale)
 }
 
-func sameShape(a, b []int) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
-}
-
 func (g *backend) Binary(op tensor.BinOp, out tensor.Storage, outShape []int, a, b tensor.View) {
 	g.enter()
 	defer g.exit()
