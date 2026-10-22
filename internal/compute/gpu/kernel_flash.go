@@ -464,7 +464,7 @@ func (f *flashShared) writeForward(O []reg, m, l, row reg, ob hmat, plse, lb reg
 		k.store(tensor.Float32, k.address(ob.base, idx, 4), v)
 		k.put(skip)
 	}
-	k.jumpIf(k.tidNonZeroTx(f.tx), last)
+	k.jumpIf(k.tidNonZero(f.tx), last)
 	lv := k.logarithm(l)
 	k.e("add.rn.f32", lv, lv, m)
 	k.e("selp.f32", lv, float32(math.Inf(1)), lv, empty)
@@ -472,13 +472,6 @@ func (f *flashShared) writeForward(O []reg, m, l, row reg, ob hmat, plse, lb reg
 	k.e("add.s32", li, lb, row)
 	k.store(tensor.Float32, k.address(plse, li, 4), lv)
 	k.put(last)
-}
-
-// tidNonZeroTx tx ≠ 0 yüklemi.
-func (k *emitter) tidNonZeroTx(tx reg) reg {
-	p := k.p()
-	k.e("setp.ne.u32", p, tx, 0)
-	return p
 }
 
 // keyRange sorgu döşemesinin [q0, q0+Br) bakabileceği anahtarları kapsayan döşeme
