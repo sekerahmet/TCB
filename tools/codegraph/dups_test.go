@@ -325,7 +325,53 @@ func TestDupsChangedOnlyReportsWhatTheBranchTouched(t *testing.T) {
 	gitIn(t, root, "checkout", "-q", "main")
 	out.Reset()
 	errb.Reset()
-	if code := run([]string{"dups", "--root", root, "--min", "60", "--changed", "claude/new"}, &out, &errb); code != exitFail || !strings.Contains(errb.String(), "check the branch out") {
+	if code := run([]string{"dups", "--root", root, "--min", "60", "--changed", "main..claude/new"}, &out, &errb); code != exitFail || !strings.Contains(errb.String(), "check the branch out") {
 		t.Errorf("a branch that is not checked out: %d %s", code, errb.String())
+	}
+}
+
+// main sonradan ilerlediyse (dalın tabanından sonra bir kopya main'de kaldırıldı) hiçbir --changed biçimi
+// main'deki bu işi dalın değişikliği saymaz: yalnızca birleşme tabanından beri dalda eklenen satırlar.
+func TestDupsChangedUsesTheMergeBaseNotTheTreeDiff(t *testing.T) {
+	root := dupTree(t, map[string]string{"old1.go": loopSource("a", "int"), "old2.go": loopSource("b", "int")})
+	gitIn(t, root, "init", "-q", "-b", "main")
+	gitIn(t, root, "add", "-A")
+	gitIn(t, root, "commit", "-q", "-m", "base")
+	gitIn(t, root, "checkout", "-q", "-b", "claude/new")
+	if err := os.WriteFile(filepath.Join(root, "new.go"), []byte(strings.TrimPrefix(loopSource("c", "int"), "src:")), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, root, "add", "-A")
+	gitIn(t, root, "commit", "-q", "-m", "copy")
+	// main ilerler: old2.go'daki kopya oradan kaldırılır; dal eski tabanda kalır.
+	gitIn(t, root, "checkout", "-q", "main")
+	gitIn(t, root, "rm", "-q", "old2.go")
+	gitIn(t, root, "commit", "-q", "-m", "remove one copy on main")
+	gitIn(t, root, "checkout", "-q", "claude/new")
+	for _, arg := range []string{"main..HEAD", "main...HEAD", "main", "claude/new", "main..", "..HEAD"} {
+		var out, errb bytes.Buffer
+		if code := run([]string{"dups", "--root", root, "--min", "60", "--json", "--changed", arg}, &out, &errb); code != exitOK {
+			t.Fatalf("%s: exit %d: %s", arg, code, errb.String())
+		}
+		var res dupResult
+		if err := json.Unmarshal(out.Bytes(), &res); err != nil {
+			t.Fatal(err)
+		}
+		var changed []string
+		for _, c := range res.Clusters {
+			for _, l := range c.Locs {
+				if l.Changed {
+					changed = append(changed, l.File)
+				}
+			}
+		}
+		if len(changed) != 1 || changed[0] != "new.go" {
+			t.Errorf("--changed %s marks %v, want only new.go (what the branch added since the merge base)", arg, changed)
+		}
+	}
+	// Dal main'e birleşmiş gibi, sağ uç çıkış yapılmış değilken: main'in ucu için aralık reddedilir.
+	var out, errb bytes.Buffer
+	if code := run([]string{"dups", "--root", root, "--min", "60", "--changed", "claude/new..main"}, &out, &errb); code != exitFail {
+		t.Errorf("a range whose right end is not the checked-out commit: %d", code)
 	}
 }
