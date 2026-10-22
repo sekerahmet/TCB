@@ -2,6 +2,8 @@ package checkpoint_test
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -302,4 +304,34 @@ func runHooked(t *testing.T, code string, broken *atomicBool) (string, error) {
 	}}, true)
 	_, err := runVM(t, m, code)
 	return w.String(), err
+}
+
+// resignCheckpoint noktanın ozet.json'unu (sürüm 2) durum.json ve tensorler.trt dosyalarının şimdiki
+// boyları ve SHA-256 özetleriyle yeniden yazar: testler dosyayı bozduktan sonra özet doğru kalır ve
+// yükleme özet denetiminden geçip içerik kurallarına ulaşır. Özet elle yazılır (üretimdeki yazıcı
+// çağrılmaz: yoksa test kendi kendini doğrulardı).
+func resignCheckpoint(t *testing.T, stepDir string, step int) {
+	t.Helper()
+	trtBytes, err := os.ReadFile(filepath.Join(stepDir, "tensorler.trt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	durumBytes, err := os.ReadFile(filepath.Join(stepDir, "durum.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	trtSum := sha256.Sum256(trtBytes)
+	durumSum := sha256.Sum256(durumBytes)
+	ozet := fmt.Sprintf(`{
+  "sürüm": 2,
+  "adım": %d,
+  "dosyalar": {
+    "durum.json": {"bayt": %d, "sha256": %q},
+    "tensorler.trt": {"bayt": %d, "sha256": %q}
+  }
+}
+`, step, len(durumBytes), hex.EncodeToString(durumSum[:]), len(trtBytes), hex.EncodeToString(trtSum[:]))
+	if err := os.WriteFile(filepath.Join(stepDir, "ozet.json"), []byte(ozet), 0o644); err != nil {
+		t.Fatal(err)
+	}
 }

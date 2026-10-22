@@ -1,8 +1,6 @@
 package checkpoint_test
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
@@ -216,28 +214,7 @@ tensör_kaydet(%q, {
 		t.Fatalf("tensör_kaydet başarısız: %v", err)
 	}
 
-	trtBytes, err := os.ReadFile(trtPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	durumBytes, err := os.ReadFile(filepath.Join(step2Dir, "durum.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	trtSum := sha256.Sum256(trtBytes)
-	durumSum := sha256.Sum256(durumBytes)
-	ozet := fmt.Sprintf(`{
-  "sürüm": 2,
-  "adım": 2,
-  "dosyalar": {
-    "durum.json": {"bayt": %d, "sha256": %q},
-    "tensorler.trt": {"bayt": %d, "sha256": %q}
-  }
-}
-`, len(durumBytes), hex.EncodeToString(durumSum[:]), len(trtBytes), hex.EncodeToString(trtSum[:]))
-	if err := os.WriteFile(filepath.Join(step2Dir, "ozet.json"), []byte(ozet), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	resignCheckpoint(t, step2Dir, 2)
 
 	// Başlangıçta w = [1.0, 2.0, 3.0]. Yükleme hata verdiğinde w hiç değişmemiş
 	// olmalı ve hata mesajı bir önceki sağlam noktayı (adim_0000000001) önermelidir.
@@ -306,33 +283,6 @@ kn.kaydet()
 		return runDir
 	}
 
-	resignStep2 := func(t *testing.T, runDir string) {
-		t.Helper()
-		step2Dir := filepath.Join(runDir, "kontrol_noktalari", "adim_0000000002")
-		trtBytes, err := os.ReadFile(filepath.Join(step2Dir, "tensorler.trt"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		durumBytes, err := os.ReadFile(filepath.Join(step2Dir, "durum.json"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		trtSum := sha256.Sum256(trtBytes)
-		durumSum := sha256.Sum256(durumBytes)
-		ozet := fmt.Sprintf(`{
-  "sürüm": 2,
-  "adım": 2,
-  "dosyalar": {
-    "durum.json": {"bayt": %d, "sha256": %q},
-    "tensorler.trt": {"bayt": %d, "sha256": %q}
-  }
-}
-`, len(durumBytes), hex.EncodeToString(durumSum[:]), len(trtBytes), hex.EncodeToString(trtSum[:]))
-		if err := os.WriteFile(filepath.Join(step2Dir, "ozet.json"), []byte(ozet), 0o644); err != nil {
-			t.Fatal(err)
-		}
-	}
-
 	wantHint := messages.Text(messages.H7471, "adim_0000000001", 1)
 
 	cases := []struct {
@@ -394,7 +344,7 @@ tensör_kaydet(%q, {
 			runDir := buildWithReader(t)
 			step2Dir := filepath.Join(runDir, "kontrol_noktalari", "adim_0000000002")
 			tc.tamper(t, step2Dir)
-			resignStep2(t, runDir)
+			resignCheckpoint(t, filepath.Join(runDir, "kontrol_noktalari", "adim_0000000002"), 2)
 
 			_, err := run(t, fmt.Sprintf(`
 değişken w = tensör([1.0, 2.0, 3.0], türev_izle: doğru)
