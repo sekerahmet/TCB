@@ -16,7 +16,7 @@ import (
 // değerler ve türler aynıdır.
 func TestTrtFilesBetweenPythonAndTR(t *testing.T) {
 	python := pythonOrSkip(t)
-	if exec.Command(python, "-c", "import numpy").Run() != nil {
+	if !hasPythonModules(python, "numpy") {
 		t.Skip("numpy yok")
 	}
 	dir := t.TempDir()

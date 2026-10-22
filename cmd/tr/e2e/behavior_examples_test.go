@@ -319,7 +319,10 @@ func TestExamplesSameOutput(t *testing.T) {
 			continue
 		}
 		t.Run(n, func(t *testing.T) {
-			a, b := runExample(t, trRoot, "tr", name), runExample(t, enRoot, "en", enName)
+			// İki yazım ayrı kopyalarda aynı anda koşar.
+			a, b := pair(t,
+				func(t *testing.T) []string { return runExample(t, trRoot, "tr", name) },
+				func(t *testing.T) []string { return runExample(t, enRoot, "en", enName) })
 			if i := firstDifference(a, b); i >= 0 {
 				t.Errorf("%s ile %s farklı sayılar üretti (%d. sayı)\ntr: %v\nen: %v", name, enName, i, a, b)
 			}

@@ -64,6 +64,28 @@ func tr(t *testing.T, dir string, args ...string) result {
 	return testkit.RunBinary(t, trBinary, dir, "", nil, args...)
 }
 
+// pair iki bağımsız işi (ör. ayrı klasörlerdeki iki kopyanın koşusu) iki paralel alt testte
+// aynı anda yapar ve sonuçlarını verir: alt testleri bir grup alt testi bekler (Go'nun
+// "parallel group" kalıbı). Biri düşerse t de orada durur.
+func pair[T any](t *testing.T, f1, f2 func(t *testing.T) T) (r1, r2 T) {
+	t.Helper()
+	ok := t.Run("ikili", func(t *testing.T) {
+		t.Run("1", func(t *testing.T) { t.Parallel(); r1 = f1(t) })
+		t.Run("2", func(t *testing.T) { t.Parallel(); r2 = f2(t) })
+	})
+	if !ok {
+		t.FailNow()
+	}
+	return r1, r2
+}
+
+// hasPythonModules Python modüllerinin kurulu olup olmadığını onları yüklemeden söyler
+// (importlib.util.find_spec): torch'u yalnızca yoklamak için yüklemek birkaç saniye sürer.
+func hasPythonModules(python string, modules ...string) bool {
+	code := "import importlib.util as u, sys; sys.exit(0 if all(u.find_spec(m) for m in sys.argv[1:]) else 1)"
+	return exec.Command(python, append([]string{"-c", code}, modules...)...).Run() == nil
+}
+
 // trVersion yorumlayıcının sürümünü kaynaktan (cmd/tr/main.go'daki Version sabiti) okur:
 // 'tr sürüm' çıktısı kaynaktaki sürümle karşılaştırılır.
 func trVersion(t *testing.T) string {

@@ -33,24 +33,28 @@ yazdır(en_büyük)
 // ağ yoktur. transformers yoksa atlanır.
 func TestReadyModelMatchesTransformers(t *testing.T) {
 	python := pythonOrSkip(t)
-	if exec.Command(python, "-c", "import torch, transformers, safetensors").Run() != nil {
+	if !hasPythonModules(python, "torch", "transformers", "safetensors") {
 		t.Skip("torch, transformers ya da safetensors yok")
 	}
 	dir := t.TempDir()
 	testkit.WriteFile(t, dir, "karsilastir.tr", readyModelCompare)
-	for _, c := range []struct {
-		arch string
-		tied bool
-	}{{"llama", true}, {"qwen3", false}} {
-		out := filepath.Join(dir, c.arch)
-		args := []string{"-I", reporoot.Path("tools/hf/small_model.py"), "--arch", c.arch, "--out", out}
-		if c.tied {
-			args = append(args, "--tied")
+	// İki model aynı anda kurulur (her kurulum torch'u yeniden yükler).
+	build := func(arch string, tied bool) func(t *testing.T) string {
+		return func(t *testing.T) string {
+			out := filepath.Join(dir, arch)
+			args := []string{"-I", reporoot.Path("tools/hf/small_model.py"), "--arch", arch, "--out", out}
+			if tied {
+				args = append(args, "--tied")
+			}
+			if b, err := exec.Command(python, args...).CombinedOutput(); err != nil {
+				t.Fatalf("%s modeli kurulamadı: %v\n%s", arch, err, b)
+			}
+			return out
 		}
-		if b, err := exec.Command(python, args...).CombinedOutput(); err != nil {
-			t.Fatalf("%s modeli kurulamadı: %v\n%s", c.arch, err, b)
-		}
-		s := testkit.RunBinary(t, trBinary, dir, "", nil, filepath.Join(dir, "karsilastir.tr"), "--klasör", out)
+	}
+	llama, qwen3 := pair(t, build("llama", true), build("qwen3", false))
+	for _, c := range []struct{ arch, out string }{{"llama", llama}, {"qwen3", qwen3}} {
+		s := testkit.RunBinary(t, trBinary, dir, "", nil, filepath.Join(dir, "karsilastir.tr"), "--klasör", c.out)
 		if s.Code != 0 {
 			t.Fatalf("%s: TR çıkış %d:\n%s\n%s", c.arch, s.Code, s.Stdout, s.Stderr)
 		}

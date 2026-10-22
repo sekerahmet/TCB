@@ -21,7 +21,7 @@ import (
 // PyTorch yoksa atlanır.
 func TestTargetModelMatchesPyTorch(t *testing.T) {
 	python := pythonOrSkip(t)
-	if exec.Command(python, "-c", "import torch, numpy").Run() != nil {
+	if !hasPythonModules(python, "torch", "numpy") {
 		t.Skip("torch ya da numpy yok")
 	}
 	dir := t.TempDir()

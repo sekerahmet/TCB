@@ -100,8 +100,15 @@ func TestCodedFilesGiveSameOutput(t *testing.T) {
 	// geçici_klasör() her süreçte başka bir klasör verir (tr_<süreç>_<sayı>, 18.14); yolu
 	// karşılaştırmadan çıkarılır.
 	tempDir := regexp.MustCompile(`[^\s"']*tr_\d+_\d+`)
+	// İki kopya ayrı klasörlerdedir: her karşılaştırmanın iki koşusu aynı anda yapılır.
+	both := func(args ...string) (result, result) {
+		return pair(t,
+			func(t *testing.T) result { return tr(t, tr1, args...) },
+			func(t *testing.T) result { return tr(t, tr2, args...) })
+	}
 	for _, dir := range []string{"tests", "examples", "lib"} {
-		s1, s2 := stripRoot(tr(t, tr1, "test", dir), tr1), stripRoot(tr(t, tr2, "test", dir), tr2)
+		s1, s2 := both("test", dir)
+		s1, s2 = stripRoot(s1, tr1), stripRoot(s2, tr2)
 		for _, s := range []*result{&s1, &s2} {
 			s.Stdout, s.Stderr = resumeLine.ReplaceAllString(s.Stdout, ""), resumeLine.ReplaceAllString(s.Stderr, "")
 			s.Stdout, s.Stderr = tempDir.ReplaceAllString(s.Stdout, "<geçici>"), tempDir.ReplaceAllString(s.Stderr, "<geçici>")
@@ -116,7 +123,7 @@ func TestCodedFilesGiveSameOutput(t *testing.T) {
 	}
 	for _, o := range examples {
 		ad := filepath.ToSlash(filepath.Join("examples", "tr", filepath.Base(o)))
-		s1, s2 := tr(t, tr1, ad), tr(t, tr2, ad)
+		s1, s2 := both(ad)
 		// İlerleme çubuğu terminal dışında zamanla ara satır yazar (19.7); yavaş makinede ara
 		// satır iki koşuda farklı adıma düşer. Çubuk satırları karşılaştırılmaz.
 		c1 := digits.ReplaceAllString(progressLine.ReplaceAllString(s1.Stdout+s1.Stderr, ""), "#")
