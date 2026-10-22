@@ -1,0 +1,23 @@
+// Üretim hızı yarışının TR tarafı (tools/gpu/generation_race.sh çağırır; COLAB.md §12).
+// Hazır modeli yükler, 5 parçayla ısınır, 100 parçalık açgözlü üretimi üç kez ölçer ve ortancayı
+// "model | cihaz | yol | parça/sn" satırı olarak yazar. GPU'da ayrıca kayıtlı (çizge) ve kayıtsız
+// üretimin aynı parçaları verdiğini denetler.
+aktar "tr/hazir"
+
+değişken arg = komut_satırı({klasör: "", adet: 100, cihaz: "cpu", ad: "", ağırlık_türü: "float32"})
+varsayılan_cihaz(arg.cihaz)
+değişken p = parçalayıcı_yükle(yol(arg.klasör, "tokenizer.json"))
+değişken model = hazır_model(arg.klasör, ağırlık_türü: arg.ağırlık_türü)
+değişken ids = p.kodla("The capital of France is")
+model.üret(ids, 5, sıcaklık: 0)
+değişken hızlar = []
+değişken son = yok
+döngü tur içinde 0..3 {
+    değişken başla = zaman_ms()
+    son = model.üret(ids, arg.adet, sıcaklık: 0)
+    hızlar.ekle(arg.adet * 1000.0 / (zaman_ms() - başla))
+}
+eğer arg.cihaz != "cpu" {
+    doğrula(son == model.üret(ids, arg.adet, sıcaklık: 0, çizge: yanlış), "kayıtlı ve kayıtsız üretim farklı")
+}
+yazdır("{arg.ad} | {arg.cihaz} | TR {arg.ağırlık_türü} | {yuvarla(hızlar.sırala()[1], 1)}")

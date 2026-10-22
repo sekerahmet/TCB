@@ -646,6 +646,27 @@ Python hücresi. GPU serbest bırakılır; arka plan koşuları da biter.
 from google.colab import runtime; runtime.unassign()
 ```
 
+## 12. Üretim hızı yarışı: TR, transformers ve llama.cpp
+
+Hazır modellerle (SmolLM2-135M, Qwen3-0.6B) 100 parçalık açgözlü üretim; TR (float32 ve bf16 ağırlık),
+transformers (eager ve `cache_implementation="static"` ile derlenmiş), llama.cpp (f32 ve f16 GGUF); GPU ve
+CPU. Betikler `tools/gpu/generation_race.sh` (llama.cpp'yi CUDA'yla derler, modelleri indirip GGUF'a
+çevirir), `generation_race.tr`, `generation_race_hf.py`. Sonuçlar yol haritasında (Evre 4, "Üretim hızı").
+~40 dakika; arka planda koşar.
+
+```bash
+%%bash
+# 21 · ÜRETİM HIZI YARIŞI (ARKA PLANDA, ~40 DK) · GPU
+setsid nohup bash /content/TCB/tools/gpu/generation_race.sh /content/tr/tr /content/yaris > /dev/null 2>&1 < /dev/null &
+echo "başladı (durum: hücre 22)"
+```
+
+```bash
+%%bash
+# 22 · ÜRETİM HIZI YARIŞI DURUMU (ANINDA BİTER, BEKLEMEZ) · CPU
+cat /content/yaris/sonuc.txt 2>/dev/null; [ -f /content/yaris/bitti ] && echo BİTTİ || echo sürüyor
+```
+
 ## Geri bildirilecekler
 
 1. 1. hücrenin son iki satırı (kart, matris çarpımı yolu).
@@ -656,6 +677,7 @@ from google.colab import runtime; runtime.unassign()
 6. 10. hücre (Evre 3 ölçümü): 10.2'nin tablosu, 10.3'ün tablosu, 10.4'ün iki tablosu.
 7. 9. hücre çalıştırıldıysa: speed.json, son doğrulama kaybı ve samples.json'daki son örnek.
 8. 11. bölüm (hedef model defteri): hücre 2 ve 4'ün satırları, hücre 8'in iki tablosu, hücre 9'un tablosu.
+9. 12. bölüm (üretim yarışı): `/content/yaris/sonuc.txt`.
 
 ## Ortam değişkenleri
 
