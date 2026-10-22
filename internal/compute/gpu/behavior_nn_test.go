@@ -93,7 +93,9 @@ func TestNorms(t *testing.T) {
 	// {1000, 8}, {300, 129}, {70, 600} kaynaşık geri yönde blok başına birden çok satır işletir
 	// (benzetimde 4 SM: D = 8'de 256 blok, D ≥ 129'da 32 blok). D = 32, 64, 256 ileri ve geri
 	// warp çekirdeğidir, D = 512 yalnızca geride (kernel_norm_warp.go).
-	for _, d := range [][2]int{{1, 1}, {3, 8}, {5, 129}, {2, 600}, {1000, 8}, {300, 129}, {70, 600}, {37, 64}, {9, 256}, {3, 32}, {21, 512}} {
+	// Warp başına birden çok satır için R > 256 (benzetimde en çok 32 blok).
+	for _, d := range [][2]int{{1, 1}, {3, 8}, {5, 129}, {2, 600}, {1000, 8}, {300, 129}, {70, 600}, {37, 64}, {9, 256}, {3, 32}, {21, 512},
+		{1000, 64}, {2000, 512}, {300, 32}, {777, 256}, {8, 64}, {257, 512}} {
 		R, D := d[0], d[1]
 		xv, gv, bv := random(rng, R*D, 2), random(rng, D, 1), random(rng, D, 1)
 		compare(t, fmt.Sprintf("rms normu %d×%d", R, D), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
@@ -142,24 +144,10 @@ func TestNormsWarpRows(t *testing.T) {
 	}
 }
 
-// Warp başına birden çok satır (benzetimde 4 SM: en çok 32 blok, R > 256 gerekir) ve adımlı
-// katman normu, yer değiştirmiş ön eksenler, üç düzeyli (kopyaya düşen) görünüm CPU ile aynıdır.
+// Adımlı katman normu, yer değiştirmiş ön eksenler ve üç düzeyli (kopyaya düşen) görünüm warp
+// çekirdekleriyle CPU ile aynıdır.
 func TestNormsWarpShapes(t *testing.T) {
 	rng := rand.New(rand.NewSource(77))
-	// Warp başına birden çok satır (benzetimde 4 SM: P ≤ 32 blok).
-	for _, d := range [][2]int{{1000, 64}, {2000, 512}, {300, 32}, {777, 256}, {8, 64}, {257, 512}} {
-		R, D := d[0], d[1]
-		xv, gv, bv := random(rng, R*D, 2), random(rng, D, 1), random(rng, D, 1)
-		compare(t, fmt.Sprintf("rms %d×%d", R, D), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
-			x, gm := twin(xv, true, R, D)[c], twin(gv, true, D)[c]
-			return tensor.RMSNorm(x, gm, 1e-5), []*tensor.Tensor{x, gm}
-		})
-		compare(t, fmt.Sprintf("katman %d×%d", R, D), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
-			x, gm, bt := twin(xv, true, R, D)[c], twin(gv, true, D)[c], twin(bv, true, D)[c]
-			return tensor.LayerNorm(x, gm, bt, 1e-5), []*tensor.Tensor{x, gm, bt}
-		})
-	}
-	// Adımlı katman normu, yer değiştirmiş ön eksenler, üç düzey (kopyaya düşer).
 	T, H := 13, 3
 	for _, D := range []int{32, 256, 512} {
 		kv, gv, bv := random(rng, T*2*H*D, 2), random(rng, D, 1), random(rng, D, 1)
