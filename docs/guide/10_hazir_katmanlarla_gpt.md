@@ -30,7 +30,7 @@ değişken model = GPT(4096, bağlam: 64, boyut: 64, katman: 4, bakış_sayısı
 yazdır(model.üret([1, 2, 3], 10, sıcaklık: 0, eos: 0)) // eos örneklenirse üretim durur
 ```
 
-`üret` KV önbelleğiyle çalışır: başlangıç bir kez işlenir, sonraki her adım yalnızca yeni parçayı hesaplar (anahtar ve değerler katman başına önbellekte tutulur). `önbellek: "sabit"` (varsayılan; bağlam boyunda bir kez ayrılır, yerine yazılır), `"büyüyen"` (her adımda uzar) ya da `yok` (her adımda bütün dizi) seçilebilir; sonuç üçünde de aynıdır. Kendi üretim döngüsünü yazan `değişken ö = model.önbellek_kur()` ile `model.ileri(kimlikler, önbellek: ö)` çağırır; `ö.kırp(n)` son parçaları geri alır.
+`üret` KV önbelleğiyle çalışır: başlangıç bir kez işlenir, sonraki her adım yalnızca yeni parçayı hesaplar (anahtar ve değerler katman başına önbellekte tutulur). `önbellek_çeşidi: "sabit"` (varsayılan; bir kez ayrılır, yerine yazılır), `"büyüyen"` (her adımda uzar) ya da `yok` (her adımda bütün dizi) seçilebilir; sonuç üçünde de aynıdır. Kendi üretim döngüsünü yazan `değişken ö = model.önbellek_kur()` ile `model.ileri(kimlikler, önbellek: ö)` çağırır; `ö.kırp(n)` son parçaları geri alır.
 
 Ayrıntılı anlatım ve formüller [`lib/README.md`](../../lib/README.md)'dedir. İyileştirici tarafında aynı tarif için `MuonVeAdamW(model, muon_ölçeği: "rms", adamw_çürümesi: 0.1, ayrı: ["gömme", "ple_bağlamı.ctx_katmanı"], seyrek: ["ple.tablo"])` yazılır: parametreler ada göre (önek, sonek ya da tam yol) gruplanır, PLE tabloları satır seyrek RMS iyileştiricisine (`SatırRMS`, yalnızca o adımda gradyanı olan satırları günceller) gider.
 

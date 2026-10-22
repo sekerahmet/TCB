@@ -227,21 +227,21 @@ test "GPT: üret istenen kadar parça ekler; tohumla tekrarlanır, bağlamdan uz
 
 // KV önbelleği: önbellekli ileri hesap önbelleksizle aynı logitleri verir. Başlangıç bir kez,
 // sonraki parçalar tek tek işlenir; her adımın son logiti bütün dizinin aynı konumdaki logitine
-// eşittir. GQA, kayan pencere, qk normu ve PLE'li model; iki önbellek türü.
+// eşittir. GQA, kayan pencere, qk normu ve PLE'li model; iki önbellek çeşidi.
 test "KVÖnbellek: önbellekli ileri önbelleksizle aynıdır (sabit ve büyüyen)" {
     değişken m = GPT(20, bağlam: 12, boyut: 16, katman: 3, bakış_sayısı: 4, kv_bakış_sayısı: 2,
         pencereler: [3, 0, 2], qk_normu: doğru, ple_boyutu: 4, tohum: 5)
     değişken dizi = [3, 7, 1, 9, 4, 4, 12, 0, 5, 18]
     türevsiz {
         değişken tam_logit = m.ileri([dizi])
-        döngü tür içinde ["sabit", "büyüyen"] {
-            değişken ö = m.önbellek_kur(tür: tür)
+        döngü çeşit içinde ["sabit", "büyüyen"] {
+            değişken ö = m.önbellek_kur(çeşit: çeşit)
             değişken ilk = m.ileri([dizi[0..4]], önbellek: ö)
-            doğrula(en_büyük_fark(ilk[0], tam_logit[0][0..4]) < 0.0001, "{tür}: başlangıç logitleri")
+            doğrula(en_büyük_fark(ilk[0], tam_logit[0][0..4]) < 0.0001, "{çeşit}: başlangıç logitleri")
             eşit_mi(4, ö.konum)
             döngü i içinde 4..dizi.uzunluk {
                 değişken l = m.ileri([[dizi[i]]], önbellek: ö)
-                doğrula(en_büyük_fark(l[0][0], tam_logit[0][i]) < 0.0001, "{tür}: {i}. konum")
+                doğrula(en_büyük_fark(l[0][0], tam_logit[0][i]) < 0.0001, "{çeşit}: {i}. konum")
             }
             eşit_mi(dizi.uzunluk, ö.konum)
         }
@@ -251,32 +251,32 @@ test "KVÖnbellek: önbellekli ileri önbelleksizle aynıdır (sabit ve büyüye
 test "KVÖnbellek: kırp son parçaları geri alır; aynı parçalar yeniden işlenince sonuç aynıdır" {
     değişken m = GPT(20, bağlam: 12, boyut: 16, katman: 2, bakış_sayısı: 2, tohum: 6)
     türevsiz {
-        döngü tür içinde ["sabit", "büyüyen"] {
-            değişken ö = m.önbellek_kur(tür: tür)
+        döngü çeşit içinde ["sabit", "büyüyen"] {
+            değişken ö = m.önbellek_kur(çeşit: çeşit)
             m.ileri([[1, 2, 3]], önbellek: ö)
             değişken a = m.ileri([[4]], önbellek: ö)
             ö.kırp(3)
             m.ileri([[9]], önbellek: ö) // reddedilen taslak gibi
             ö.kırp(3)
             değişken b = m.ileri([[4]], önbellek: ö)
-            doğrula(en_büyük_fark(a, b) < 0.000001, "{tür}: kırpmadan sonra aynı logit")
+            doğrula(en_büyük_fark(a, b) < 0.000001, "{çeşit}: kırpmadan sonra aynı logit")
         }
-        değişken ö = m.önbellek_kur(tür: "sabit", en_çok: 2)
+        değişken ö = m.önbellek_kur(çeşit: "sabit", en_çok: 2)
         değişken mesaj = ""
         dene { m.ileri([[1, 2, 3]], önbellek: ö) } yakala h { mesaj = h }
         doğrula(mesaj.içerir("sabit önbellek dolu"), mesaj)
         mesaj = ""
-        dene { KVÖnbellek(2, tür: "kocaman") } yakala h { mesaj = h }
-        doğrula(mesaj.içerir("önbellek türü"), mesaj)
+        dene { KVÖnbellek(2, çeşit: "kocaman") } yakala h { mesaj = h }
+        doğrula(mesaj.içerir("önbellek çeşidi"), mesaj)
     }
 }
 
 test "GPT: üret önbellekli ve önbelleksiz aynı parçaları verir, bağlam dolunca da" {
     değişken m = GPT(16, bağlam: 6, boyut: 16, katman: 2, bakış_sayısı: 2, kv_bakış_sayısı: 1, pencereler: [2, 0], tohum: 8)
-    değişken yok_ile = m.üret([1, 2, 3], 9, sıcaklık: 0, önbellek: yok)
+    değişken yok_ile = m.üret([1, 2, 3], 9, sıcaklık: 0, önbellek_çeşidi: yok)
     eşit_mi(yok_ile, m.üret([1, 2, 3], 9, sıcaklık: 0))
-    eşit_mi(yok_ile, m.üret([1, 2, 3], 9, sıcaklık: 0, önbellek: "büyüyen"))
-    eşit_mi(m.üret([1], 7, tohum: 4, önbellek: yok), m.üret([1], 7, tohum: 4, önbellek: "sabit"))
+    eşit_mi(yok_ile, m.üret([1, 2, 3], 9, sıcaklık: 0, önbellek_çeşidi: "büyüyen"))
+    eşit_mi(m.üret([1], 7, tohum: 4, önbellek_çeşidi: yok), m.üret([1], 7, tohum: 4, önbellek_çeşidi: "sabit"))
 }
 
 test "GPT.tek_adım: cihazdaki konumla adım önbellekli gizli_durum ile aynı logiti verir (pencere dahil); üret çizgeyle ve çizgesiz aynı" {
