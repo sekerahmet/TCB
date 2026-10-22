@@ -43,7 +43,7 @@ node tr:field:lib/geo.tr:Kare.kenar tr_field geo.Kare.kenar @lib/geo.tr:6-6 "ken
 node tr:file:examples/ana.tr file examples/ana.tr @examples/ana.tr:1-0 "tr"
 node tr:file:examples/broken.tr file examples/broken.tr @examples/broken.tr:1-0 "tr"
 node tr:file:examples/coded.tr file examples/coded.tr @examples/coded.tr:1-0 "tr, coded"
-node tr:file:examples/hatalar/01_bozuk.tr file examples/hatalar/01_bozuk.tr @examples/hatalar/01_bozuk.tr:1-0 "tr"
+node tr:file:examples/hatalar/01_broken.tr file examples/hatalar/01_broken.tr @examples/hatalar/01_broken.tr:1-0 "tr"
 node tr:file:lib/geo.tr file lib/geo.tr @lib/geo.tr:1-0 "tr"
 node tr:file:lib/geo_test.tr file lib/geo_test.tr @lib/geo_test.tr:1-0 "tr"
 node tr:func:examples/coded.tr:kodlu_işlev tr_func coded.kodlu_işlev @examples/coded.tr:2-5 "fonksiyon kodlu_işlev(x)"

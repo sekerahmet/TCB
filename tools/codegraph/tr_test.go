@@ -150,7 +150,7 @@ func TestErrorExamplesAreNotWarnings(t *testing.T) {
 			t.Errorf("an intentional syntax error must not warn: %s", w)
 		}
 	}
-	if !hasNode(g, "tr:file:examples/hatalar/01_bozuk.tr") {
+	if !hasNode(g, "tr:file:examples/hatalar/01_broken.tr") {
 		t.Error("the file is still a node")
 	}
 }
