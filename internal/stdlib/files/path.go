@@ -21,13 +21,6 @@ var PathType = interp.TypeName(codes.A250)
 // göre 13.1'in tek kuralıyla çözülür (interp.PathValuer).
 type Path struct{ fpath string }
 
-var (
-	_ interp.PathValuer     = (*Path)(nil)
-	_ interp.Equaler        = (*Path)(nil)
-	_ interp.TaskMemberHook = (*Path)(nil)
-	_ interp.PlainValuer    = (*Path)(nil)
-)
-
 // NewPath bir yol metnini temizleyip Yol yapar.
 func NewPath(s string) *Path { return &Path{fpath: clean(s)} }
 
