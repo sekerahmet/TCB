@@ -27,6 +27,7 @@ var dynamicTrackSites = map[string]struct {
 	"custom_op.go":   {3, []string{"custom"}},
 	"elementwise.go": {2, nil}, // binopName[op] ve unopName[op]: numaralandırmadan gelir
 	"reduce.go":      {3, []string{"sum", "mean", "sum_all", "mean_all", "softmax", "log_softmax"}},
+	"view.go":        {1, []string{"clone", "contiguous"}}, // copyAs(op)
 }
 
 // enumOpNames BinOp ve UnOp üyelerinin ad tablosundaki adlarıdır.
