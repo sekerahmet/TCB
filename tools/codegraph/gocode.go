@@ -74,11 +74,11 @@ func funcRef(f *types.Func) string {
 }
 
 func (x *goExtractor) inModule(p string) bool {
-	return p == x.m.path || strings.HasPrefix(p, x.m.path+"/")
+	return p == x.m.Path || strings.HasPrefix(p, x.m.Path+"/")
 }
 
 func (x *goExtractor) rel(abs string) string {
-	r, err := filepath.Rel(x.m.root, abs)
+	r, err := filepath.Rel(x.m.Root, abs)
 	if err != nil {
 		return filepath.ToSlash(abs)
 	}
@@ -87,10 +87,10 @@ func (x *goExtractor) rel(abs string) string {
 
 // pkgName paketin sorguda yazılan adıdır: modül köküne göre yol.
 func (x *goExtractor) pkgName(p string) string {
-	if p == x.m.path {
+	if p == x.m.Path {
 		return path.Base(p)
 	}
-	return strings.TrimPrefix(p, x.m.path+"/")
+	return strings.TrimPrefix(p, x.m.Path+"/")
 }
 
 // extractGo bütün modülün Go düğümlerini ve kenarlarını kurar.
@@ -99,7 +99,7 @@ func extractGo(m *module, b *builder) *goIndex {
 		pkgSyms: map[string]map[string]string{}, inTestFile: map[string]bool{},
 		byName: map[string][]*testFunc{}, dirFiles: map[string]bool{},
 	}, fieldAt: map[string]string{}}
-	for _, u := range m.units {
+	for _, u := range m.Units {
 		x.unit(u)
 	}
 	x.resolveFieldUses()
@@ -108,18 +108,18 @@ func extractGo(m *module, b *builder) *goIndex {
 }
 
 func (x *goExtractor) unit(u *unit) {
-	base := u.pkgPath
-	if _, ok := x.m.base[base]; !ok {
+	base := u.PkgPath
+	if _, ok := x.m.Base[base]; !ok {
 		base = strings.TrimSuffix(base, "_test")
 	}
 	x.b.addNode(Node{ID: pkgID(base), Kind: kindPackage, Name: x.pkgName(base), Detail: base})
-	for _, f := range u.files {
+	for _, f := range u.Files {
 		x.file(u, base, f)
 	}
 }
 
 func (x *goExtractor) file(u *unit, base string, f *ast.File) {
-	rel := x.rel(x.m.fset.Position(f.Pos()).Filename)
+	rel := x.rel(x.m.Fset.Position(f.Pos()).Filename)
 	isTest := strings.HasSuffix(rel, "_test.go")
 	detail := ""
 	switch {
@@ -133,7 +133,7 @@ func (x *goExtractor) file(u *unit, base string, f *ast.File) {
 	x.b.addEdge(pkgID(base), fileID(rel), edgeContains, extracted, rel, 0)
 	for _, is := range f.Imports {
 		if p, err := strconv.Unquote(is.Path.Value); err == nil && x.inModule(p) {
-			x.b.addEdge(pkgID(base), pkgID(p), edgeImports, extracted, rel, x.m.fset.Position(is.Pos()).Line)
+			x.b.addEdge(pkgID(base), pkgID(p), edgeImports, extracted, rel, x.m.Fset.Position(is.Pos()).Line)
 		}
 	}
 	fc := &fileCtx{u: u, base: base, rel: rel, isTest: isTest}
@@ -155,7 +155,7 @@ type fileCtx struct {
 	isTest bool
 }
 
-func (x *goExtractor) line(p token.Pos) int { return x.m.fset.Position(p).Line }
+func (x *goExtractor) line(p token.Pos) int { return x.m.Fset.Position(p).Line }
 
 func (x *goExtractor) addSym(base, key, id string) {
 	if x.idx.pkgSyms[base] == nil {
@@ -165,7 +165,7 @@ func (x *goExtractor) addSym(base, key, id string) {
 }
 
 func (x *goExtractor) funcDecl(fc *fileCtx, d *ast.FuncDecl) {
-	obj, _ := fc.u.info.Defs[d.Name].(*types.Func)
+	obj, _ := fc.u.Info.Defs[d.Name].(*types.Func)
 	if obj == nil {
 		return
 	}
@@ -234,7 +234,7 @@ func (x *goExtractor) genDecl(fc *fileCtx, d *ast.GenDecl) {
 		if !ok {
 			continue
 		}
-		obj, _ := fc.u.info.Defs[ts.Name].(*types.TypeName)
+		obj, _ := fc.u.Info.Defs[ts.Name].(*types.TypeName)
 		if obj == nil {
 			continue
 		}
@@ -295,7 +295,7 @@ func (x *goExtractor) valueDecl(fc *fileCtx, d *ast.GenDecl) {
 			continue
 		}
 		for _, name := range vs.Names {
-			obj := fc.u.info.Defs[name]
+			obj := fc.u.Info.Defs[name]
 			if obj == nil || name.Name == "_" {
 				continue
 			}
@@ -318,9 +318,9 @@ func (x *goExtractor) valueDecl(fc *fileCtx, d *ast.GenDecl) {
 func (x *goExtractor) denotes(fc *fileCtx, id, pkg, name string, line int) {
 	switch {
 	case fc.isTest:
-	case pkg == x.m.path+"/"+messagesDir && messageConst.MatchString(name):
+	case pkg == x.m.Path+"/"+messagesDir && messageConst.MatchString(name):
 		x.b.addEdge(id, "msg:"+name, edgeDenotes, extracted, fc.rel, line)
-	case pkg == x.m.path+"/"+codesDir && nameConst.MatchString(name):
+	case pkg == x.m.Path+"/"+codesDir && nameConst.MatchString(name):
 		x.b.addEdge(id, "name:"+name, edgeDenotes, extracted, fc.rel, line)
 	}
 }

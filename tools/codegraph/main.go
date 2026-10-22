@@ -120,7 +120,7 @@ func buildGraph(root string) (*Graph, error) {
 	if err != nil {
 		return nil, err
 	}
-	b := newBuilder(m.path)
+	b := newBuilder(m.Path)
 	idx := extractGo(m, b)
 	extractCodes(root, b)
 	addTestEdges(b, idx)

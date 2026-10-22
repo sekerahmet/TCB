@@ -11,7 +11,7 @@ TR'nin bütün Go kodu buradadır. Bu belge, buraya kod yazan herkesin (insan ya
 | Dil çekirdeği | `lang/` | Kaynak metinden çalışan programa: sözcük çözümleme, ayrıştırma, tip denetimi, yorumlayıcı, kod listesi, iletiler | yalnızca `lang/` |
 | Hesap çekirdeği | `compute/` | Tensörler, otomatik türev, CPU ve GPU arka uçları, veri hattı, parçalayıcı | `compute/` ve ileti kataloğu `lang/messages` |
 | Standart kitaplık | `stdlib/` | Dili hesap çekirdeğine ve dış dünyaya bağlayan yerleşikler (ml, dosyalar, günlük, kontrol noktası ...) | `lang/`, `compute/`, `stdlib/` |
-| Geliştirici araçları | `devtools/` | Hata ayıklayıcı, profilci, biçimlendirici, test çalıştırıcı | `lang/`, `compute/`, `stdlib/`, `devtools/` |
+| Geliştirici araçları | `devtools/` | Hata ayıklayıcı, profilci, biçimlendirici, test çalıştırıcı, kod dizini, Go modül yükleyici (`tools/impact` ve `tools/codegraph` ortak kullanır) | `lang/`, `compute/`, `stdlib/`, `devtools/` |
 | Test yardımcısı | `reporoot/` | Testlerin depo kökünü bulması | hiçbir iç paket |
 
 `cmd/tr` hepsini, `tools/` bütün `internal/`'ı kullanabilir. Dil çekirdeği ve hesap çekirdeği birbirini bilmez: dil, tensörü kancalarla tanır (`stdlib/ml`). Tek istisna ileti kataloğudur: `lang/messages` yalnızca Go standart kitaplığını içe aktaran en alt pakettir, hesap çekirdeği de iletilerini onun kodlarıyla verir.
