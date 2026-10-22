@@ -81,10 +81,6 @@ func incrementalBuild(root string, opts Options, prev *Index, changed []string) 
 	dirty := dirtyClosure(prev, changed)
 	x := &indexer{root: root, lang: source.Turkish(), library: opts.Library, files: map[string]*file{},
 		nodes: map[string]*Node{}, edges: map[edgeKey]*Edge{}}
-	skippedBefore := map[string]bool{}
-	for _, s := range prev.Skipped {
-		skippedBefore[s.File] = true
-	}
 	for _, n := range prev.Nodes {
 		if !dirty[nodeFile(&n)] {
 			c := n
