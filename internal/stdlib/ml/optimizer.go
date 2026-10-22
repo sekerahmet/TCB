@@ -64,13 +64,8 @@ func (o *Optimizer) SetMember(kd codes.Code, ad string, value interp.Value) erro
 	if kd != memberLR {
 		return messages.New(messages.H6502, o.ad, ad, codes.DisplayName(memberLR))
 	}
-	var f float64
-	switch x := value.(type) {
-	case *interp.IntVal:
-		f = float64(x.Val)
-	case *interp.FloatVal:
-		f = x.Val
-	default:
+	f, ok := interp.ToFloat(value)
+	if !ok {
 		return messages.New(messages.H6503, o.ad, codes.DisplayName(memberLR), codes.DisplayName(codes.A200), codes.DisplayName(codes.A201), typeName(value))
 	}
 	// 0 geçerlidir (kurucudaki gibi): oran planları eğitimin sonunda orana 0'a iner. Sıfır olmayan

@@ -38,7 +38,7 @@ func toTensor(fn string, v interp.Value) (*tensor.Tensor, error) {
 // diğer tarafı olan tensörün cihazında kurulur (ör. GPU'daki t için t + [1, 2]). Tensör
 // verilirse kendisi döner; cihazı farklıysa işlem açık hata verir (15.29).
 func toTensorOn(fn string, v interp.Value, otherVal *tensor.Tensor) (*tensor.Tensor, error) {
-	if x, ok := numberOf(v); ok {
+	if x, ok := interp.ToFloat(v); ok {
 		// Sayı cihazda doldurulur (konaktan yüklenmez; tekrar_oynat kaydında da çalışır).
 		return safe(func() *tensor.Tensor { return tensor.FullOn(otherVal.Device(), float32(x)) })
 	}
@@ -54,17 +54,6 @@ func toTensorOn(fn string, v interp.Value, otherVal *tensor.Tensor) (*tensor.Ten
 		tensor.NoGrad(func() { r = t.To(otherVal.Device()) })
 		return r
 	})
-}
-
-// numberOf v Tam ya da Ondalık sayıysa değerini verir.
-func numberOf(v interp.Value) (float64, bool) {
-	switch x := v.(type) {
-	case *interp.IntVal:
-		return float64(x.Val), true
-	case *interp.FloatVal:
-		return x.Val, true
-	}
-	return 0, false
 }
 
 // listData iç içe listeyi düz veri ve şekle çevirir; düzensiz listeleri reddeder.
