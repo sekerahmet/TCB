@@ -68,12 +68,8 @@ func OpenShard(path string, s ShardOptions) (*Shard, error) {
 }
 
 func buildShard(path string, f *os.File, s ShardOptions) (*Shard, error) {
-	bs, err := ReadHeader(f)
+	bs, err := readHeaderPath(f, path)
 	if err != nil {
-		var bh *FormatError
-		if errors.As(err, &bh) {
-			bh.Path = path
-		}
 		return nil, err
 	}
 	st, err := f.Stat()

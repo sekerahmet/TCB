@@ -122,6 +122,16 @@ const (
 	minFileStart   = headerPrefixV1
 )
 
+// readHeaderPath ReadHeader gibidir; biçim hatasına dosya yolunu ekler.
+func readHeaderPath(r io.ReaderAt, path string) (Header, error) {
+	bs, err := ReadHeader(r)
+	var bh *FormatError
+	if errors.As(err, &bh) {
+		bh.Path = path
+	}
+	return bs, err
+}
+
 // ReadHeader, r'nin başından .npy başlığını okur ve çözümler. Yalnızca
 // başlık baytları okunur; veri bölümüne dokunulmaz.
 func ReadHeader(r io.ReaderAt) (Header, error) {
