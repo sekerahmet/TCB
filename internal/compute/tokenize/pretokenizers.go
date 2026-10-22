@@ -174,6 +174,22 @@ func preTokenizeStream(o PreTokenizer, p Piece, f func(Piece)) {
 	})
 }
 
+// findSubstring sub'ın text içindeki çakışmayan her geçişini sırayla bildirir. Boş sub hiç geçiş
+// bildirmez: tokenizer.json'dan boş bir düz desen gelebilir ve strings.Index sonsuz döngü yapardı.
+func findSubstring(text, sub string, f func(begin, last int)) {
+	if sub == "" {
+		return
+	}
+	for i := 0; ; {
+		k := strings.Index(text[i:], sub)
+		if k < 0 {
+			return
+		}
+		f(i+k, i+k+len(sub))
+		i += k + len(sub)
+	}
+}
+
 func newSeqPreTok(raw json.RawMessage) (PreTokenizer, error) {
 	var t struct {
 		Pretokenizers []json.RawMessage `json:"pretokenizers"`
@@ -368,18 +384,7 @@ func (b *splitWithPattern) find(text string, f func(begin, last int), budget *re
 			i = j
 		}
 	case b.plain != nil:
-		d := *b.plain
-		if d == "" {
-			return
-		}
-		for i := 0; ; {
-			k := strings.Index(text[i:], d)
-			if k < 0 {
-				return
-			}
-			f(i+k, i+k+len(d))
-			i += k + len(d)
-		}
+		findSubstring(text, *b.plain, f)
 	default:
 		b.expr.allMatches(text, f, budget)
 	}
@@ -553,14 +558,7 @@ func (m *metaspace) PreTokenize(dst, pieces []Piece) []Piece {
 			continue
 		}
 		a := matchSpans(len(s), func(f func(b, e int)) {
-			for i := 0; ; {
-				k := strings.Index(s[i:], m.instead)
-				if k < 0 {
-					return
-				}
-				f(i+k, i+k+len(m.instead))
-				i += k + len(m.instead)
-			}
+			findSubstring(s, m.instead, f)
 		})
 		dst = applyBehavior(dst, Piece{Start: p.Start, budget: p.budget}, s, a, behaviorMergedWithNext)
 	}

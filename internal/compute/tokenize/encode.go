@@ -137,11 +137,7 @@ func (p *Tokenizer) Tokens(text string) []string {
 // karakterin yarısı) bozuk diziler U+FFFD ile değiştirilir.
 func (p *Tokenizer) Decode(idList []int, skipSpecial bool) string {
 	if p.byteDecoder {
-		buf := make([]byte, 0, len(idList)*4)
-		for _, id := range idList {
-			buf = p.addByte(buf, id, skipSpecial)
-		}
-		return lossyUTF8(buf)
+		return lossyUTF8(p.DecodeBytes(idList, skipSpecial))
 	}
 	tokenList := make([]string, 0, len(idList))
 	for _, id := range idList {
@@ -154,11 +150,7 @@ func (p *Tokenizer) Decode(idList []int, skipSpecial bool) string {
 	if p.decoder == nil {
 		return strings.Join(tokenList, " ")
 	}
-	n := 0
-	for _, t := range tokenList {
-		n += len(t)
-	}
-	budget := newBudget((p.parseRegex + 1) * n) // çözücülerin çıktı büyütmesi de bu bütçededir
+	budget := newBudget((p.parseRegex + 1) * listBytes(tokenList)) // çözücülerin çıktı büyütmesi de bu bütçededir
 	return strings.Join(decodeBudgeted(p.decoder, tokenList, budget), "")
 }
 
