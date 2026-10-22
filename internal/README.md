@@ -14,7 +14,7 @@ TR'nin bütün Go kodu buradadır. Bu belge, buraya kod yazan herkesin (insan ya
 | Geliştirici araçları | `devtools/` | Hata ayıklayıcı, profilci, biçimlendirici, test çalıştırıcı | `lang/`, `compute/`, `stdlib/`, `devtools/` |
 | Test yardımcısı | `reporoot/` | Testlerin depo kökünü bulması | hiçbir iç paket |
 
-`cmd/tr` hepsini, `tools/` bütün `internal/`'ı ve araçların ortak yardımcılarını (`tools/internal/`: `gomodule`, `repodir`) kullanabilir. Dil çekirdeği ve hesap çekirdeği birbirini bilmez: dil, tensörü kancalarla tanır (`stdlib/ml`). Tek istisna ileti kataloğudur: `lang/messages` yalnızca Go standart kitaplığını içe aktaran en alt pakettir, hesap çekirdeği de iletilerini onun kodlarıyla verir.
+`cmd/tr` hepsini, `tools/` bütün `internal/`'ı ve araçların ortak yardımcılarını (`tools/internal/`: `repodir`) kullanabilir. Dil çekirdeği ve hesap çekirdeği birbirini bilmez: dil, tensörü kancalarla tanır (`stdlib/ml`). Tek istisna ileti kataloğudur: `lang/messages` yalnızca Go standart kitaplığını içe aktaran en alt pakettir, hesap çekirdeği de iletilerini onun kodlarıyla verir.
 
 Dil çekirdeğinin içinde de bir sıra vardır; bir paket yalnızca listede kendinden öncekileri içe aktarır:
 
