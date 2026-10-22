@@ -12,7 +12,7 @@ Tek GPU'da Transformer eğitmek ve hazır bir modeli çalıştırmak için kulla
 | :-- | :-- | :-- |
 | Dil çekirdeği | güçlü | dil tanımı (her kural testli), tip denetimi, sahiplik ve belirlenimci bellek bırakma, iki yazım dili, kodlu saklama |
 | Tensör ve türev | güçlü | otomatik türev, bf16/fp16, karışık hassasiyet, `kaynaştır`, `tekrar_oynat`, birleşik dikkat; eksik: genel indeksleme (`t[:, 0]`), tam sayı ve bool tensör türleri, yığ/doldur |
-| GPU eğitim hızı | iyi | hedef modelde 162 ms/adım, `torch.compile` 136 (1,19 kat); bellek ve kalite eşit (Evre 3); H4 süren hedef (Evre 6) |
+| GPU eğitim hızı | iyi | hedef modelde 155 ms/adım, `torch.compile` 136 (1,14 kat); bellek ve kalite eşit (Evre 3); H4 süren hedef (Evre 6) |
 | GPU üretim hızı | iyi | transformers'ın en hızlı yolu geçildi; llama.cpp f32'nin %63–83'ü (Evre 4, "Üretim hızı") |
 | CPU | zayıf | üretimde llama.cpp'nin ~1/5'i; CPU'da 16 bitlik ağırlık kerneli ve nicemleme yok |
 | Eğitim araçları | iyi | Muon/AdamW, kontrol noktası ve sürdürme, NaN/sıçrama koruması, veri hattı ve önbellek, parçalayıcı, profil, canlı izleme |
@@ -20,7 +20,7 @@ Tek GPU'da Transformer eğitmek ve hazır bir modeli çalıştırmak için kulla
 | Sunum ve değerlendirme | yok | OpenAI uyumlu sunucu ve lm-evaluation-harness bağlantısı yok |
 | Ölçek | yok | tek GPU; çoklu GPU, nicemleme, AMD ve Apple arka ucu yok |
 | Araçlar | iyi | VS Code eklentisi, hata ayıklayıcı, `tr dizin`, kod grafiği, profil, Colab'da GPU sınaması |
-| Belgeler ve örnekler | iyi | dil tanımı, rehber, iki dilde örnekler; kitaplığın adları örneklerde az geçiyor (kitaplık kapsamı testi geliyor) |
+| Belgeler ve örnekler | iyi | dil tanımı, rehber, iki dilde örnekler; kitaplığın kullanıcıya görünen adları örneklerde geçer (kitaplık kapsamı testi; istisna listesi gerekçeli ve küçülüyor); iletilerin hepsi İngilizce; dil tanımı ve rehber yalnızca Türkçe |
 | Kullanıcı | yok | yalnızca geliştiriciler; sürüm ve kararlılık sözü yok (Evre 4, sürüm politikası) |
 
 Öncelik: dili kullanılır yapan Evre 4'ün kalanıdır (safetensors yazma, LoRA ile ince ayar, OpenAI uyumlu sunucu: "Hugging Face modelini al, ince ayar yap, kaydet, sun" yolu). H4'te önce ölçümün gösterdiği ucuz kalemler alınır.
@@ -57,7 +57,7 @@ Dil, tensörler, otomatik türev, veri hattı ve GPU üst üste kuruldu; TR ile 
    - Şablon dili ICU MessageFormat'ın alt kümesi: çoğul (`{n, plural, ...}`, dile göre CLDR kuralı), seçim (`select`), hâl eki (`{ad|dat}`; çekimciyi dilin paketi kaydeder), seçenek listesi (`messages.OrList`, CLDR liste kalıbı).
    - Go'da sözcük çekimlenmez (`turkish.Suffix` yalnızca kendi paketinde; testle), sayıya bakıp sözcük seçilmez, ileti metni `strings` ile düzenlenmez.
    - Her dil kodun bütün parametrelerini kullanır; aynı anlam tek koddur, parametre adı farklı olsa da (testle; bu denetim 8 çift kod buldu, birleştirildi).
-   - İngilizce pilot: 38 ileti (`en.json`), `TR_DIL=en` ile gösterilir. Bir ileti bütünüyle tek dildedir: kendisinin ya da içindeki kodlu hatanın çevirisi yoksa iletinin tamamı Türkçe gösterilir; süreç dili bir kez okunur, adlar ve iletiler aynı dildedir.
+   - İngilizce: bütün iletiler (1648 kod, `en.json`; eksik çeviri test hatasıdır, 2026-10-22), `TR_DIL=en` ile gösterilir. Bir ileti bütünüyle tek dildedir: kendisinin ya da içindeki kodlu hatanın çevirisi yoksa iletinin tamamı Türkçe gösterilir; süreç dili bir kez okunur, adlar ve iletiler aynı dildedir.
    - Dış denetimden sonra (2026-10-20): çoğul kuralı CLDR işlenenlerini alır (2^53 üstünde de doğru, Rusça gibi dillere hazır); bir parametre ya dal dışında ya her dalda geçer (testle; birbirini dışlayan değerli iki ileti ikişer koda ayrıldı); parçadan kurulan iletiler (dosya hataları, yüklem ve iyelik parçaları) tam cümleye çevrildi ve bir ileti metninin başka iletiye değer olarak geçmesini test yakalar.
    - Kalan küçükler: değer olarak geçen ad öbekleri ve sona eklenen ipuçları (ör. GPU tanı zinciri H4033–H4035, `{hint}` eki, "Bunu mu demek istediniz" eki, `testrunner` sayım satırı) çeviride sorun çıkarabilir; Evre 7'de tek şablona çevrilir. Parça testi değişkene alınmış metni ve `+` birleştirmeyi henüz görmüyor.
 3. **Gradyan doğruluğu kapısı (tamamlandı).** Her türevli tensör işleminin float64 sonlu fark testi ve bf16 tolerans testi var (`gradSpec`); `behavior_grad_coverage_test.go` testi olmayan işlemi yakalar; GPU'da her türevli işlemin gradyanı CPU ile karşılaştırılır (gerçek kartta doğrulandı). `stdlib/ml`'deki 14 bileşik türev de (softmax, normlar, çapraz entropi, gömme, dikkat ...) aynı kapıdadır. bf16 toleransları ölçülerek işlem başına seçildi (ölçülenin 2 katı; tablo `internal/compute/tensor/README.md`). Bulunan tek yanlış: `üstel_eksi_bir`'in türevi çok negatif girdide 0 çıkıyordu, düzeltildi. Kalan: GPU'daki bf16 sapma tablosu Colab'da ölçülecek.
@@ -243,7 +243,7 @@ Modeli kullanan geliştiricinin ilk sorusu: "Hugging Face'teki modeli yükleyip 
    - **Üretim hızı (2026-10-22, aşağıdaki "Üretim hızı" tablosu).** Yapılanlar sırasıyla: tek satırlık çarpım (M = 1) kernelleri CPU'da (AVX2/FMA) ve GPU'da; kendi akış; CUDA Graph (`tekrar_oynat`, dil tanımı 15.48; `yerine_yaz` 15.49; `GPT.tek_adım`: konum ve kimlik cihazda, transformers sabit önbelleği gibi); katman başına kernel azaltma (maske adımda bir kez, maske kopyasız, K|V ve kapı|yukarı birleşik yükleme); 16 bitlik ağırlık (`hazır_model(ağırlık_türü: "bf16")`: ağırlık açılmadan okunur, hesap float32). Kalan, ölçülmüş sırayla: açılış süresi (Qwen3 ~5 sn, çoğu boşa giden rastgele başlatma); katman başına kalan 14 kernelin kaynaştırılması (kalıntı + norm, q ve k RoPE tek kernel, k ve v yazımı tek kernel); CPU'da 16 bitlik ağırlık kerneli (bf16 varsayılan olabilsin diye); CPU hızının yeni kernellerle yeniden ölçülmesi.
    - 127.0.0.1'e bağlı OpenAI uyumlu HTTP sunucusu: completions ve chat, `logprobs` ile. Bu tek adım lm-evaluation-harness ile değerlendirmeyi, arayüzleri ve ajan çerçevelerini getirir.
    - Yorumlayıcı kilidi kernel çağrılarında ve G/Ç'de bırakılır; hangi yerleşiklerin bıraktığı belgelenir. Böylece sunucu, parçalayıcı ve GPU eşzamanlı çalışır.
-   - CUDA Graphs önce üretim için: **yapıldı (2026-10-22)**, `tekrar_oynat(f)` (dil tanımı 15.48): ikinci çağrı kaydeder, sonrakiler oynatır; kayıtta cihazdan okuma, konaktan yükleme ve eşzamanlama kodlu hatadır; kayda özel bellek havuzu; ulaşılamaz kaydın belleği bırakılır. Eğitimde kazanç konakta boşa giden süreye bağlıdır; H4 profili ölçecek.
+   - CUDA Graphs önce üretim için: **yapıldı (2026-10-22)**, `tekrar_oynat(f)` (dil tanımı 15.48): ikinci çağrı kaydeder, sonrakiler oynatır; kayıtta cihazdan okuma, konaktan yükleme ve eşzamanlama kodlu hatadır; kayda özel bellek havuzu; ulaşılamaz kaydın belleği bırakılır. Gemini kayıt ve sayısal denetiminden sonra (2026-10-22, 16 bulgu, hepsi testli): kayıt dokunduğu her depolamayı tutar (bırakılsa da kayıt yaşadıkça başka işe verilmez), iç içe `tekrar_oynat` doğrudan çağrılır, kayıt sırasında yorumlayıcı kilidi başka göreve geçmez, yerinde değişen argüman çağırana geri yazılır, sayı işlenenleri cihazda doldurulur. Eğitimde kazanç konakta boşa giden süreye bağlıdır; H4 profili ölçecek.
    - **CPU'da hazır model:** küçük bir hazır model (yüz milyonlarca parametre) GPU'suz, dizüstünde verimli çalışır. Ağırlıklar safetensors'tan bellek eşlemeyle (mmap) kopyasız yüklenir. KV önbellekli üretim tek ve çok çekirdekte koşar, AVX2/FMA kernelleri kullanılır (tek satırlık çarpım kerneli yapıldı, 2026-10-21: dizüstünde SmolLM2 ~%40); ağırlığı bf16 saklanan çarpım anında genişletilir (bugün CPU'da ağırlık her çağrıda açılıyor; kernel yok). Ölçüt: aynı model ve aynı ayarlarla PyTorch CPU ve llama.cpp'ye karşı token/sn ile ilk token süresi. Hedef oran ilk ölçümden sonra buraya yazılır (Evre 3'teki gibi). Yalnızca ağırlık int8/int4 nicemleme (Evre 6) bu yolu hızlandırır.
 7. **Sürüm politikası.**
    - 0.y.z sürüm numaralama.
@@ -296,9 +296,9 @@ GPU yolu: 213 → 224 (tek satırlık çarpım kernelleri) → 230 (kendi akış
 
 ## Evre 6: Ölçek ve yerel çıkarım
 
-- **Tek GPU'da `torch.compile` ile başa baş hız (H4, ≤ 136 ms/adım hedef modelde; Evre 3'ten taşındı; bugün 162 ms, 10,81 GiB, 2026-10-22).** Profil (2026-10-22, RTX PRO 6000): GPU boşluğu duvar süresinin %4,5'i, yani adım GPU'yla sınırlı; eğitim adımında CUDA Graph en çok ~%5 kazandırır, sona kalır. Kernel süresinin payları: çarpım %30, kopya %12 (bakışlara ayırma kopyası bf16 %3,5, float32→bf16 dönüşümü %3,2), indirge %8,4, ikili %8,2 (float32 + bf16 kalıntı toplaması %2,4), norm geri yönü %8,2, kaynaşık %7,5, çapraz entropi %6,2, dikkat %6,4, norm ileri %4. Ölçümün gösterdiği sırayla, her adım önce ve sonra ölçülür:
-  - norm geri yönünün ağırlık gradyanı indirgemesiyle birlikte kaynaştırılması (norm geri + ilgili indirgemeler);
-  - dikkatin adımlı girdi ve çıktı okuması (bakışlara ayırma kopyaları);
+- **Tek GPU'da `torch.compile` ile başa baş hız (H4, ≤ 136 ms/adım hedef modelde; Evre 3'ten taşındı; profilde 162 ms, kaynaşık norm geri yönünden sonra 155 ms, 10,81 GiB, 2026-10-22).** Profil (2026-10-22, RTX PRO 6000): GPU boşluğu duvar süresinin %4,5'i, yani adım GPU'yla sınırlı; eğitim adımında CUDA Graph en çok ~%5 kazandırır, sona kalır. Kernel süresinin payları: çarpım %30, kopya %12 (bakışlara ayırma kopyası bf16 %3,5, float32→bf16 dönüşümü %3,2), indirge %8,4, ikili %8,2 (float32 + bf16 kalıntı toplaması %2,4), norm geri yönü %8,2, kaynaşık %7,5, çapraz entropi %6,2, dikkat %6,4, norm ileri %4. Ölçümün gösterdiği sırayla, her adım önce ve sonra ölçülür:
+  - norm geri yönünün ağırlık gradyanı indirgemesiyle birlikte kaynaştırılması: **yapıldı (2026-10-22)**, tek geçiş, ağırlık gradyanı blok başına kısmi toplamlarla; 163 → 155 ms;
+  - dikkatin bakışlara ayırma kopyaları: **yapıldı (2026-10-22), ölçüm Colab'da**. `dikkat` `[..., T, H, dh]` alır (dil tanımı 15.17; JAX ve FlashAttention düzeni); birleşik çekirdekler bakışları adımlı okuyup yazar, kitaplık eksen sıralamayı bıraktı; katman başına 6 kopya kalkar;
   - float32→bf16 dönüşümlerinin kaynağının belirlenmesi (adayı: ağırlıkların dönüşümü mikro toplu iş başına yerine iyileştirici adımında bir kez);
   - kalıntı toplamasının normla kaynaştırılması (float32 + bf16 toplama);
   - cuBLASLt eplogları (sapma, GELU, sapma gradyanı);
@@ -339,7 +339,7 @@ GPU yolu: 213 → 224 (tek satırlık çarpım kernelleri) → 230 (kendi akış
   - TR kitaplıkları için paket yöneticisi (kitaplık ekosistemi oluşunca);
   - deney takibi aktarımı (TensorBoard, MLflow; `.jsonl` günlük taban olarak yeterli);
   - değerlendirme kitaplığı (OpenAI uyumlu sunucuyla lm-evaluation-harness bunu büyük ölçüde karşılar).
-- **Yazım dilleri:** adların İngilizcesi var (`en.json`, `tr göster --dil en`). Altyapı Evre 2'de kurulduğu için burada iş çeviridir: bütün iletilerin İngilizcesi (`internal/lang/messages/en.json`), dil tanımının, kılavuzun ve kod başvurusunun İngilizcesi.
+- **Yazım dilleri:** adların İngilizcesi var (`en.json`, `tr göster --dil en`). Altyapı Evre 2'de kurulduğu için burada iş çeviridir: iletilerin İngilizcesi **yapıldı (2026-10-22, 1648/1648)**; kalan dil tanımının, kılavuzun ve kod başvurusunun İngilizcesi, sonra İspanyolca ve Almanca.
 - **Platformlar:** Mac otomatik sınaması, Apple M ve ARM için vektör kernelleri, Metal arka ucu, AMD (ROCm).
 
 ## Sonra
