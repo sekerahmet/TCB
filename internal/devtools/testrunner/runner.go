@@ -6,7 +6,6 @@
 package testrunner
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -165,7 +164,7 @@ func RunFile(fpath string, out io.Writer) Summary {
 		summary.Total++
 		if err := machine.RunTest(t); err != nil {
 			summary.Failed++
-			if !located(err) {
+			if !interp.HasLine(err) {
 				// Konumsuz hatalarda (ör. fırlat) testin satırını göster
 				err = &interp.LineError{Line: t.Line(), Err: err}
 			}
@@ -184,15 +183,6 @@ func RunFile(fpath string, out io.Writer) Summary {
 		fmt.Fprintf(out, "  ✓ %s\n", t.Name)
 	}
 	return summary
-}
-
-// located hatanın konumu var mı: satırlı (messages.Pos) ya da bir dosyaya (modül) bağlı hata.
-// Konum yapıdan okunur; iletinin içinde geçen "Satır " sözcüğü (ör. fırlat "Satır sayısı
-// yanlış") konum sayılmaz.
-func located(err error) bool {
-	var me *interp.ModuleError
-	_, _, ok := messages.Pos(err)
-	return ok || errors.As(err, &me)
 }
 
 func writeError(out io.Writer, err error, source string) {
