@@ -56,9 +56,10 @@ func profileArguments(command string, args []string, allowed ...codes.Code) (pro
 	return s, args[0], args[1:]
 }
 
-// prepareProgram dosyayı hazırlar ve bir VM kurar (runFile ile aynı adımlar).
-func prepareProgram(path string, arguments []string) (*interp.VM, *ast.Program, string) {
-	_, s := prepareFile(path, runPreparation)
+// prepareProgram dosyayı h hazırlığıyla hazırlar ve bir VM kurar (çalıştırma, profil, izleme ve
+// hata ayıklama aynı adımları kullanır).
+func prepareProgram(path string, arguments []string, h preparation) (*interp.VM, *ast.Program, string) {
+	_, s := prepareFile(path, h)
 	machine := interp.New()
 	machine.SourceFile = path
 	machine.SourceCode = s.Text
@@ -89,7 +90,7 @@ func startMeasuredProfile(machine *interp.VM, path, code string, prog *ast.Progr
 // raporu standart çıktıya, istenmişse JSON raporu dosyaya yazar.
 func profileCommand(args []string) {
 	s, path, arguments := profileArguments(codes.DisplayName(codes.K013), args, codes.K103, codes.K104)
-	machine, prog, code := prepareProgram(path, arguments)
+	machine, prog, code := prepareProgram(path, arguments, runPreparation)
 	if s.goProfile != "" {
 		startGoProfile(s.goProfile)
 	}

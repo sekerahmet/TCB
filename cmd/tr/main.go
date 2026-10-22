@@ -202,13 +202,9 @@ func printHelp() {
 // runFile programı çalıştırır; argumanlar dosya adından sonra yazılanlardır ve programa
 // iletilir (tr betik.tr --adım 5).
 func runFile(path string, arguments []string) {
-	_, s := prepareFile(path, runPreparation)
-	machine := interp.New()
-	machine.SourceFile = path
-	machine.SourceCode = s.Text
-	machine.SetArgs(arguments)
-	startJobProfile(machine, path, s.Text, s.Program)
-	runProgram(machine, s.Program, s.Text)
+	machine, program, text := prepareProgram(path, arguments, runPreparation)
+	startJobProfile(machine, path, text, program)
+	runProgram(machine, program, text)
 	cleanup()
 }
 
@@ -222,15 +218,9 @@ func debugCommand(args []string) {
 }
 
 func debugFile(path string, arguments []string) {
-	_, s := prepareFile(path, debugPreparation)
-	machine := interp.New()
-	machine.SourceFile = path
-	machine.SourceCode = s.Text
-	machine.SetArgs(arguments)
-	dbg := debugger.NewDebugger(path, s.Text, true)
-	machine.Debugger = dbg
-
-	runProgram(machine, s.Program, s.Text)
+	machine, program, text := prepareProgram(path, arguments, debugPreparation)
+	machine.Debugger = debugger.NewDebugger(path, text, true)
+	runProgram(machine, program, text)
 }
 
 func checkFile(path string) {
