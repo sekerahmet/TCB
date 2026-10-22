@@ -3,6 +3,7 @@ package ml
 import (
 	"bytes"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -129,6 +130,10 @@ yazdır(t.değer)`)
 func TestReplayReleasesUnreachableRecordings(t *testing.T) {
 	gpu.RegisterSimulator()
 	defer tensor.SetDefaultDevice(tensor.CPU)
+	// Program sürerken çöp toplayıcı koşarsa önceki f'in kaydı sonraki tekrar_oynat çağrısında
+	// (programın içinde) bırakılır: sayaç programdan önce okunur, bekleme koşulu bırakılanları da
+	// sayar.
+	before := releasedRecordings.Load()
 	mustRun(t, `varsayılan_cihaz("gpu")
 türevsiz {
     döngü i içinde 0..3 {
@@ -136,14 +141,13 @@ türevsiz {
         döngü j içinde 0..3 { f(tensör([1.0, 2.0])) }
     }
 }`)
-	before := releasedRecordings.Load()
 	deadline := time.Now().Add(5 * time.Second)
 	for {
 		runtime.GC()
 		releaseQueue.mu.Lock()
-		n := len(releaseQueue.entries)
+		n := int64(len(releaseQueue.entries))
 		releaseQueue.mu.Unlock()
-		if n >= 3 || time.Now().After(deadline) {
+		if releasedRecordings.Load()-before+n >= 3 || time.Now().After(deadline) {
 			break
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -180,19 +184,23 @@ func TestReplayKeepsQueuedReleasesDuringCapture(t *testing.T) {
 	releaseQueue.mu.Lock()
 	releaseQueue.entries = append(releaseQueue.entries, e)
 	releaseQueue.mu.Unlock()
-	before := releasedRecordings.Load()
+	// Kuyruk paketin tektir: önceki testlerin ulaşılamaz kalan tekrar_oynat'larının temizliği
+	// (runtime.AddCleanup) çöp toplayıcı koştuğunda her an kayıt ekleyebilir. Bu yüzden kuyruğun
+	// uzunluğuna ya da bırakma sayısına değil, bu kaydın kendisine bakılır.
+	queued := func() bool {
+		releaseQueue.mu.Lock()
+		defer releaseQueue.mu.Unlock()
+		return slices.Contains(releaseQueue.entries, e)
+	}
 	rec := tensor.BackendFor(tensor.GPU(0)).(tensor.Recorder)
 	rec.BeginCapture()
 	drainReleases()
 	rec.AbortCapture()
-	releaseQueue.mu.Lock()
-	queued := len(releaseQueue.entries)
-	releaseQueue.mu.Unlock()
-	if queued != 1 || releasedRecordings.Load() != before {
-		t.Fatalf("kayıt sürerken kuyrukta %d kayıt kaldı (beklenen 1)", queued)
+	if !queued() || e.rec == nil {
+		t.Fatalf("kayıt sürerken kuyruktaki kayıt bırakıldı (kuyrukta: %v)", queued())
 	}
 	drainReleases()
-	if releasedRecordings.Load() != before+1 {
+	if queued() || e.rec != nil {
 		t.Fatalf("kayıt bitince kuyruktaki kayıt bırakılmadı")
 	}
 }
