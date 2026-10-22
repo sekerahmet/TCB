@@ -1,6 +1,7 @@
 package testkit
 
 import (
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -125,5 +126,28 @@ func TestCopyDirCopiesTreeAndContents(t *testing.T) {
 		if err != nil || string(got) != want {
 			t.Errorf("%s = %q, %v; beklenen %q", name, got, err, want)
 		}
+	}
+}
+
+// Kural: MustContain çıktı bütün parçaları içerdiğinde sessizdir; eksik parçayı çıktıyla birlikte
+// bildirir (burada kaydedici bir testing.TB ile).
+// Neden: codegraph ve impact testleri aynı yardımcıyı ayrı ayrı yazıyordu.
+type recordingTB struct {
+	testing.TB
+	errors []string
+}
+
+func (r *recordingTB) Helper()                   {}
+func (r *recordingTB) Errorf(f string, a ...any) { r.errors = append(r.errors, fmt.Sprintf(f, a...)) }
+
+func TestMustContainReportsEveryMissingPart(t *testing.T) {
+	r := &recordingTB{TB: t}
+	MustContain(r, "bir iki üç", "bir", "üç")
+	if len(r.errors) != 0 {
+		t.Fatalf("bütün parçalar var, hata beklenmiyordu: %v", r.errors)
+	}
+	MustContain(r, "bir iki", "bir", "dört", "beş")
+	if len(r.errors) != 2 {
+		t.Fatalf("iki eksik parça iki hata vermeli: %v", r.errors)
 	}
 }

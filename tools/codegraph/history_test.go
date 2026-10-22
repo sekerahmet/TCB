@@ -1,11 +1,12 @@
 package main
 
 import (
-	"bytes"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // commitAll geçici fikstür deposunda her şeyi verilen konuyla commit'ler.
@@ -35,10 +36,6 @@ func replaceIn(t *testing.T, path, old, new string) {
 	}
 }
 
-func runCmdIn(root, graph, cmd string, args ...string) (int, string, string) {
-	return commandIn(cmd, root, graph, args...)
-}
-
 func TestHistoryOfFunctionListsOnlyCommitsThatChangedIt(t *testing.T) {
 	root := gitFixture(t)
 	file := filepath.Join(root, "shape", "shape.go")
@@ -47,19 +44,19 @@ func TestHistoryOfFunctionListsOnlyCommitsThatChangedIt(t *testing.T) {
 	replaceIn(t, file, "func Orphan() {}", "func Orphan() { _ = 1 }")
 	commitAll(t, root, "shape: touch Orphan")
 	graph := buildInto(t, root)
-	code, out, errOut := runCmdIn(root, graph, "history", "shape.Square.Area")
+	code, out, errOut := commandIn("history", root, graph, "shape.Square.Area")
 	if code != exitOK {
 		t.Fatalf("exit %d: %s", code, errOut)
 	}
-	mustContain(t, out, "shape.Square.Area [method]", "shape: touch Area", "fixture")
+	testkit.MustContain(t, out, "shape.Square.Area [method]", "shape: touch Area", "fixture")
 	if strings.Contains(out, "touch Orphan") {
 		t.Errorf("a commit that did not touch Area is listed:\n%s", out)
 	}
 	if strings.Contains(out, "@@") || strings.Contains(out, "diff --git") {
 		t.Errorf("history lists commits, not diffs:\n%s", out)
 	}
-	_, out, _ = runCmdIn(root, graph, "history", "--limit", "1", "shape.Square.Area")
-	mustContain(t, out, "shape: touch Area", "limited to 1")
+	_, out, _ = commandIn("history", root, graph, "--limit", "1", "shape.Square.Area")
+	testkit.MustContain(t, out, "shape: touch Area", "limited to 1")
 }
 
 func TestHistoryOfCodeMarksAddedAndRemoved(t *testing.T) {
@@ -91,27 +88,19 @@ func TestHistoryOfCodeMarksAddedAndRemoved(t *testing.T) {
 	}
 
 	graph := buildInto(t, root)
-	code, out, errOut := runCmdIn(root, graph, "history", "H0001")
+	code, out, errOut := commandIn("history", root, graph, "H0001")
 	if code != exitOK {
 		t.Fatalf("exit %d: %s", code, errOut)
 	}
-	mustContain(t, out, "H0001 [message]", "added", "fixture")
+	testkit.MustContain(t, out, "H0001 [message]", "added", "fixture")
 }
 
 func TestHistoryUnsupportedKind(t *testing.T) {
 	slowFixture(t)
 	root := gitFixture(t)
 	graph := buildInto(t, root)
-	code, _, errOut := runCmdIn(root, graph, "history", "Empty shapes fail")
+	code, _, errOut := commandIn("history", root, graph, "Empty shapes fail")
 	if code != exitUsage || !strings.Contains(errOut, "not available for a rule node") {
 		t.Errorf("exit %d: %s", code, errOut)
 	}
-}
-
-// commandIn bir sorgu komutunu fikstür deposunda çalıştırır (yeniden kurma açık).
-func commandIn(cmd, root, graph string, extra ...string) (code int, out, errOut string) {
-	var so, se bytes.Buffer
-	args := append([]string{cmd, "--root", root, "--graph", graph}, extra...)
-	code = run(args, &so, &se)
-	return code, so.String(), se.String()
 }

@@ -3,6 +3,8 @@ package main
 import (
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 const (
@@ -88,7 +90,7 @@ func TestTRQueries(t *testing.T) {
 	if code != exitOK {
 		t.Fatalf("exit %d\n%s", code, out)
 	}
-	mustContain(t, out, "geo.Kare [tr_struct] lib/geo.tr:5", "<- calls", "geo_test: kare alanı yazılır [tr_test]")
+	testkit.MustContain(t, out, "geo.Kare [tr_struct] lib/geo.tr:5", "<- calls", "geo_test: kare alanı yazılır [tr_test]")
 	// Modül adı ve içe aktarma yolu dosyaya çözülür.
 	for _, q := range []string{"geo", "tr/geo"} {
 		code, out, _ = cli(t, "query", q)
@@ -98,9 +100,9 @@ func TestTRQueries(t *testing.T) {
 	}
 	// Yerleşik ad TR çağrı yerlerini de verir.
 	_, out, _ = cli(t, "who-uses", "yazdır")
-	mustContain(t, out, "geo.yaz_alan [tr_func] at lib/geo.tr:", "examples/ana.tr [file] at examples/ana.tr:")
+	testkit.MustContain(t, out, "geo.yaz_alan [tr_func] at lib/geo.tr:", "examples/ana.tr [file] at examples/ana.tr:")
 	_, out, _ = cli(t, "tests-for", "geo.Kare")
-	mustContain(t, out, "geo_test: kare alanı yazılır [tr_test]")
+	testkit.MustContain(t, out, "geo_test: kare alanı yazılır [tr_test]")
 }
 
 // Kodlu biçimli (başlıklı) dosya gösterim metniyle okunur: satırlar dosyadaki gerçek satırdır (başlık satırı sayılır).
@@ -139,7 +141,7 @@ func TestTRParametersAndNamedArguments(t *testing.T) {
 	mustEdge(t, g, "tr:method:lib/geo.tr:Kare.kurucu", param, edgeContains, extracted)
 	mustEdge(t, g, "tr:var:examples/ana.tr:k2", param, edgeUses, extracted) // g.Kare(kenar: 3)
 	_, out, _ := cli(t, "who-uses", "geo.Kare.kurucu.kenar")
-	mustContain(t, out, "examples/ana.tr")
+	testkit.MustContain(t, out, "examples/ana.tr")
 }
 
 // Bilerek sözdizimi hatalı yazılan hata örnekleri (examples/*/hatalar, errors) uyarı değildir.

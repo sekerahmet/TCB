@@ -57,13 +57,6 @@ func buildInto(t *testing.T, root string) string {
 	return out
 }
 
-func queryIn(root, graph string, extra ...string) (code int, out, errOut string) {
-	var so, se bytes.Buffer
-	args := append([]string{"query", "--root", root, "--graph", graph}, extra...)
-	code = run(args, &so, &se)
-	return code, so.String(), se.String()
-}
-
 func TestStampIsStableAndFollowsContent(t *testing.T) {
 	root := gitFixture(t)
 	a, err := sourceStamp(root)
@@ -97,7 +90,7 @@ func TestStampIsStableAndFollowsContent(t *testing.T) {
 func TestQueryRebuildsStaleGraph(t *testing.T) {
 	root := gitFixture(t)
 	graph := buildInto(t, root)
-	code, _, errOut := queryIn(root, graph, "shape.Describe")
+	code, _, errOut := commandIn("query", root, graph, "shape.Describe")
 	if code != exitOK || strings.Contains(errOut, "rebuilt") {
 		t.Fatalf("a fresh graph must not be rebuilt: exit %d: %s", code, errOut)
 	}
@@ -105,18 +98,18 @@ func TestQueryRebuildsStaleGraph(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "shape", "fresh.go"), []byte(extra), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	code, out, errOut := queryIn(root, graph, "--no-rebuild", "shape.Fresh")
+	code, out, errOut := commandIn("query", root, graph, "--no-rebuild", "shape.Fresh")
 	if code != exitNotFound || strings.Contains(errOut, "rebuilt") {
 		t.Errorf("--no-rebuild must use the old graph: exit %d: %s", code, errOut)
 	}
-	code, out, errOut = queryIn(root, graph, "shape.Fresh")
+	code, out, errOut = commandIn("query", root, graph, "shape.Fresh")
 	if code != exitOK || !strings.Contains(out, "shape.Fresh [func]") {
 		t.Fatalf("the query must see the new function: exit %d\nout: %s\nerr: %s", code, out, errOut)
 	}
 	if !strings.HasPrefix(errOut, "graph rebuilt (") || strings.Count(errOut, "\n") != 1 {
 		t.Errorf("stderr must be the single line \"graph rebuilt (N s)\": %q", errOut)
 	}
-	if _, _, errOut = queryIn(root, graph, "shape.Fresh"); errOut != "" {
+	if _, _, errOut = commandIn("query", root, graph, "shape.Fresh"); errOut != "" {
 		t.Errorf("the rebuilt graph is fresh, stderr: %q", errOut)
 	}
 }
@@ -128,7 +121,7 @@ func TestQueryKeepsOldGraphWhenRebuildFails(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "shape", "broken.go"), []byte("package shape\n\nfunc {\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	code, out, errOut := queryIn(root, graph, "shape.Describe")
+	code, out, errOut := commandIn("query", root, graph, "shape.Describe")
 	if code != exitOK || !strings.Contains(out, "shape.Describe") {
 		t.Errorf("the old graph still answers: exit %d: %s", code, out)
 	}
@@ -142,7 +135,7 @@ func TestQueryWarnsWhenGitFails(t *testing.T) {
 	root := gitFixture(t)
 	graph := buildInto(t, root)
 	notRepo := t.TempDir()
-	code, out, errOut := queryIn(notRepo, graph, "shape.Describe")
+	code, out, errOut := commandIn("query", notRepo, graph, "shape.Describe")
 	if code != exitOK || !strings.Contains(out, "shape.Describe") {
 		t.Errorf("exit %d: %s", code, out)
 	}

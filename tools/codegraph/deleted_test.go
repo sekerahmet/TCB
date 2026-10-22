@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // dropH0002 H0002'yi hem ileti kataloğundan hem tanımlardan siler ve commit'ler.
@@ -34,7 +36,7 @@ func TestDeletedListsCodesGoneFromTheDictionary(t *testing.T) {
 	if code != exitOK {
 		t.Fatalf("exit %d: %s", code, errOut)
 	}
-	mustContain(t, out, "messages: 1 deleted codes", "H0002  removed ", "messages: drop H0002", "(added ", "fixture")
+	testkit.MustContain(t, out, "messages: 1 deleted codes", "H0002  removed ", "messages: drop H0002", "(added ", "fixture")
 	if strings.Contains(out, "defined again") {
 		t.Errorf("H0002 is not defined again:\n%s", out)
 	}
@@ -47,7 +49,7 @@ func TestDeletedFlagsRedefinedCodes(t *testing.T) {
 	replaceIn(t, filepath.Join(dir, "tr.json"), "\"H0001\": \"first message {name}\"", "\"H0001\": \"first message {name}\",\n\"H0002\": \"back\"")
 	commitAll(t, root, "messages: reuse H0002 (wrong)")
 	_, out, _ := runDeletedIn(root)
-	mustContain(t, out, "messages: 0 deleted codes", "1 codes defined again after being deleted", "H0002  removed ")
+	testkit.MustContain(t, out, "messages: 0 deleted codes", "1 codes defined again after being deleted", "H0002  removed ")
 }
 
 func TestDeletedRetiredJSON(t *testing.T) {

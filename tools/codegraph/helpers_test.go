@@ -85,3 +85,11 @@ func slowFixture(t *testing.T) {
 		t.Skip("kısa kipte atlandı: geçici git deposunda grafik kuruyor (uzun kipte koşar)")
 	}
 }
+
+// commandIn codegraph alt komutunu (cmd) bir kök ve grafik dosyasıyla çalıştırır.
+func commandIn(cmd, root, graph string, extra ...string) (code int, out, errOut string) {
+	var so, se bytes.Buffer
+	args := append([]string{cmd, "--root", root, "--graph", graph}, extra...)
+	code = run(args, &so, &se)
+	return code, so.String(), se.String()
+}

@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // dupTree geçici bir ağaç kurar: anahtar yol, değer ya testdata/dups'taki bir örnek dosyanın adı
@@ -276,6 +278,21 @@ func TestSimilarRanksTheTemplateCopyFirst(t *testing.T) {
 	}
 }
 
+// copyBranchRepo main'de iki benzemeyen dosya ve ondan ayrılan claude/new dalında bunlardan birine
+// benzeyen yeni bir dosya (new.go) taşıyan geçici bir git deposu kurar.
+func copyBranchRepo(t *testing.T) string {
+	t.Helper()
+	root := dupTree(t, map[string]string{"old1.go": loopSource("a", "int"), "old2.go": loopSource("b", "int")})
+	gitIn(t, root, "init", "-q", "-b", "main")
+	gitIn(t, root, "add", "-A")
+	gitIn(t, root, "commit", "-q", "-m", "base")
+	gitIn(t, root, "checkout", "-q", "-b", "claude/new")
+	testkit.WritePath(t, filepath.Join(root, "new.go"), strings.TrimPrefix(loopSource("c", "int"), "src:"))
+	gitIn(t, root, "add", "-A")
+	gitIn(t, root, "commit", "-q", "-m", "copy")
+	return root
+}
+
 // gitIn bir git komutunu dizinde çalıştırır.
 func gitIn(t *testing.T, dir string, args ...string) {
 	t.Helper()
@@ -288,16 +305,7 @@ func gitIn(t *testing.T, dir string, args ...string) {
 // --changed yalnızca dalın eklediği koda dokunan adayları bırakır: dalda var olan koda benzeyen yeni
 // işlev yakalanır, daldan önce var olan çift (dalın dokunmadığı) görünmez.
 func TestDupsChangedOnlyReportsWhatTheBranchTouched(t *testing.T) {
-	root := dupTree(t, map[string]string{"old1.go": loopSource("a", "int"), "old2.go": loopSource("b", "int")})
-	gitIn(t, root, "init", "-q", "-b", "main")
-	gitIn(t, root, "add", "-A")
-	gitIn(t, root, "commit", "-q", "-m", "base")
-	gitIn(t, root, "checkout", "-q", "-b", "claude/new")
-	if err := os.WriteFile(filepath.Join(root, "new.go"), []byte(strings.TrimPrefix(loopSource("c", "int"), "src:")), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	gitIn(t, root, "add", "-A")
-	gitIn(t, root, "commit", "-q", "-m", "copy")
+	root := copyBranchRepo(t)
 	var out, errb bytes.Buffer
 	if code := run([]string{"dups", "--root", root, "--min", "60", "--json", "--changed", "claude/new"}, &out, &errb); code != exitOK {
 		t.Fatalf("exit %d: %s", code, errb.String())
@@ -333,16 +341,7 @@ func TestDupsChangedOnlyReportsWhatTheBranchTouched(t *testing.T) {
 // main sonradan ilerlediyse (dalın tabanından sonra bir kopya main'de kaldırıldı) hiçbir --changed biçimi
 // main'deki bu işi dalın değişikliği saymaz: yalnızca birleşme tabanından beri dalda eklenen satırlar.
 func TestDupsChangedUsesTheMergeBaseNotTheTreeDiff(t *testing.T) {
-	root := dupTree(t, map[string]string{"old1.go": loopSource("a", "int"), "old2.go": loopSource("b", "int")})
-	gitIn(t, root, "init", "-q", "-b", "main")
-	gitIn(t, root, "add", "-A")
-	gitIn(t, root, "commit", "-q", "-m", "base")
-	gitIn(t, root, "checkout", "-q", "-b", "claude/new")
-	if err := os.WriteFile(filepath.Join(root, "new.go"), []byte(strings.TrimPrefix(loopSource("c", "int"), "src:")), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	gitIn(t, root, "add", "-A")
-	gitIn(t, root, "commit", "-q", "-m", "copy")
+	root := copyBranchRepo(t)
 	// main ilerler: old2.go'daki kopya oradan kaldırılır; dal eski tabanda kalır.
 	gitIn(t, root, "checkout", "-q", "main")
 	gitIn(t, root, "rm", "-q", "old2.go")
