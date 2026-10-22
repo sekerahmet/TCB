@@ -267,7 +267,7 @@ func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]inte
 			if err != nil {
 				return nil, stepError(fn, err)
 			}
-			return idList32(k.IDs), nil
+			return idList(k.IDs), nil
 		}
 		var ids []int
 		var err error
@@ -307,7 +307,7 @@ func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]inte
 				k, err := n.p.SafeEncodePair(texts[i], &seconds[i], pick)
 				errs[i] = err
 				if err == nil {
-					result[i] = int32ToInt(k.IDs)
+					result[i] = tokenize.ToInt(nil, k.IDs)
 				}
 			})
 		})
@@ -389,23 +389,8 @@ func parallel(n int, f func(i int)) {
 	wg.Wait()
 }
 
-func int32ToInt(ids []int32) []int {
-	out := make([]int, len(ids))
-	for i, x := range ids {
-		out[i] = int(x)
-	}
-	return out
-}
-
-func idList(ids []int) *interp.ListVal {
-	elems := make([]interp.Value, len(ids))
-	for i, id := range ids {
-		elems[i] = interp.NewInt(int64(id))
-	}
-	return &interp.ListVal{Elements: elems}
-}
-
-func idList32(ids []int32) *interp.ListVal {
+// idList kimlikleri TR tam sayı listesine çevirir.
+func idList[T ~int | ~int32](ids []T) *interp.ListVal {
 	elems := make([]interp.Value, len(ids))
 	for i, id := range ids {
 		elems[i] = interp.NewInt(int64(id))

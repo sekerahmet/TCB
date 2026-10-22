@@ -32,16 +32,17 @@ func (p *Tokenizer) Encode(text string) []int {
 
 // EncodeWithOptions metni verilen seçeneklerle kodlar.
 func (p *Tokenizer) EncodeWithOptions(text string, s Options) []int {
-	return toInt(nil, p.Encode32(nil, text, s))
+	return ToInt(nil, p.Encode32(nil, text, s))
 }
 
 // EncodeAppend metnin kimliklerini dst'nin sonuna ekler ve dst'yi döndürür.
 // ozelleriTani yanlışsa özel tokenlar metin içinde tanınmaz.
 func (p *Tokenizer) EncodeAppend(dst []int, text string, parseSpecial bool) []int {
-	return toInt(dst, p.Encode32(nil, text, Options{DontParseSpecial: !parseSpecial}))
+	return ToInt(dst, p.Encode32(nil, text, Options{DontParseSpecial: !parseSpecial}))
 }
 
-func toInt(dst []int, ids []int32) []int {
+// ToInt 32 bitlik kimlikleri int olarak dst'ye ekler (dst nil ise yeni dilim ayrılır).
+func ToInt(dst []int, ids []int32) []int {
 	if dst == nil {
 		dst = make([]int, 0, len(ids))
 	}
@@ -163,7 +164,7 @@ func (p *Tokenizer) Decode(idList []int, skipSpecial bool) string {
 
 // Decode32 32 bitlik kimlik dizisini metne çevirir (bkz. Coz).
 func (p *Tokenizer) Decode32(idList []int32, skipSpecial bool) string {
-	return p.Decode(toInt(nil, idList), skipSpecial)
+	return p.Decode(ToInt(nil, idList), skipSpecial)
 }
 
 // DecodeBytes kimlik dizisinin ham baytlarını verir. Bayt düzeyi çözücüde UTF-8
