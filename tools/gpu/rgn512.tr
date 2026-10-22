@@ -167,22 +167,23 @@ döngü adım < arg.adım {
     eğer kn != yok { kn.güncelle(adım) }
 }
 
+// Ağırlıklar sonuç dosyalarından önce yazılır: en pahalı sonuç odur, sonraki bir hata onu kaybettirmez.
+eğer arg.kaydet != "" {
+    tensör_kaydet(arg.kaydet, parametreler(model, adlarıyla: doğru))
+}
+
 // --adım 0: eğitmeden yalnızca değerlendirir (ör. --ağırlık ile yüklenen, PyTorch'ta eğitilmiş modelin
 // doğrulama kaybı; tools/gpu/rgn_to_tr.py).
 eğer arg.adım == 0 ve doğrulama_kümesi != yok {
     yazdır("  DEĞERLENDİRME adım 0: kayıp {yuvarla(değerlendir(), 4)}")
 }
 
-eğer arg.çıktı != "" {
-    değişken ölçülen = süreler[maks(0, süreler.uzunluk / 2)..süreler.uzunluk]
+eğer arg.çıktı != "" ve süreler.uzunluk > 0 {
+    değişken ölçülen = süreler[tam(süreler.uzunluk / 2)..süreler.uzunluk]
     dosya_yaz(arg.çıktı, json_metin({tool: "tr", model: "target", steps: arg.adım, tokens_per_step: adım_başına,
         first_step_ms: süreler[0], measured: {median_ms: ortanca(ölçülen), mean_ms: ortalama(ölçülen)}}))
 }
 
 eğer arg.kayıplar != "" {
     dosya_yaz(arg.kayıplar, json_metin({steps: kayıt, valid: doğrulama_kaydı}))
-}
-
-eğer arg.kaydet != "" {
-    tensör_kaydet(arg.kaydet, parametreler(model, adlarıyla: doğru))
 }
