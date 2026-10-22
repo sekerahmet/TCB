@@ -49,22 +49,7 @@ func CrossEntropy(logits *Tensor, targets []int) *Tensor {
 	sy := counterStart(logits.be, OpKindCrossEntropy).start()
 	C := logits.shape[len(logits.shape)-1]
 	R := logits.Numel() / max(C, 1)
-	if len(targets) != R {
-		panic(messages.New(messages.H3045, R, len(targets)))
-	}
-	valid := 0
-	for _, t := range targets {
-		if t >= C {
-			panic(messages.New(messages.H3046, t, C))
-		}
-		if t >= 0 {
-			valid++
-		}
-	}
-	if valid == 0 {
-		// Ortalama boş küme üzerinden alınırdı: tanımsız; sessizce 0 dönmesin.
-		panic(messages.New(messages.H3047, R))
-	}
+	validTargets(targets, R, C) // ortalama boş küme üzerinden alınamaz: geçerli hedef yoksa panikler
 	tg := append([]int(nil), targets...)
 	be := logits.be
 	loss, lse := be.CrossEntropy(logits.view(), tg, C)
