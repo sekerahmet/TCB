@@ -223,7 +223,7 @@ func TestGeluVectorMatchesGo(t *testing.T) {
 				a, b float32
 				ref  float64
 			}{
-				{"ileri", y1[i], y2[i], geluRef(float64(v))},
+				{"ileri", y1[i], y2[i], gelu64(float64(v))},
 				{"geri", gx1[i], gx2[i], 0.25 + float64(g[i])*geluDerivRef(float64(v))},
 			} {
 				if c.a != c.a || c.b != c.b {
@@ -307,10 +307,6 @@ func TestCrossEntropyVectorMatchesGo(t *testing.T) {
 			}
 		}
 	}
-}
-
-func geluRef(x float64) float64 {
-	return 0.5 * x * (1 + math.Tanh(geluC*(x+geluA*x*x*x)))
 }
 
 func geluDerivRef(x float64) float64 {

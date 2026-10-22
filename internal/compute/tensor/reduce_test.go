@@ -112,10 +112,7 @@ func init() {
 	one := func(f func([]float64) float64) func([]float64) []float64 {
 		return func(l []float64) []float64 { return []float64{f(l)} }
 	}
-	lane := func(shape []int, axis int, f func([]float64) []float64) refFn {
-		g := lanes64(shape, axis, f)
-		return func(in [][]float64) []float64 { return g(in[0]) }
-	}
+	lane := laneRef
 	softmax := func(l []float64) []float64 {
 		z := logSumExp64(l)
 		r := make([]float64, len(l))
@@ -138,9 +135,7 @@ func init() {
 			inputs: genInputs(in), ref: ref}
 	}
 	nrm := func(shape ...int) func(*rand.Rand) *Tensor { return gen(-1, 1, 0, shape...) }
-	dis := func(shape ...int) func(*rand.Rand) *Tensor {
-		return func(r *rand.Rand) *Tensor { return disjoint(r, shape...) }
-	}
+	dis := genDisjoint
 	all := func(f func([]float64) float64) refFn {
 		return func(in [][]float64) []float64 { return []float64{f(in[0])} }
 	}

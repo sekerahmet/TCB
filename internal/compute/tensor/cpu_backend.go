@@ -571,7 +571,7 @@ func unaryLoop(op UnOp, p float32, y, x []float32) {
 		}
 	case OpTanh:
 		for i, v := range x {
-			y[i] = tanh32(v)
+			y[i] = tanhf32(v)
 		}
 	case OpRelu:
 		for i, v := range x {
@@ -584,24 +584,9 @@ func unaryLoop(op UnOp, p float32, y, x []float32) {
 	case OpGelu:
 		geluForwardVec(y, x)
 	case OpSigmoid:
-		// e = e^{-|x|}; x ≥ 0 için 1/(1+e), aksi halde e/(1+e) (sayısal kararlı).
-		var t [vecBlock]float32
 		for i0 := 0; i0 < len(x); i0 += vecBlock {
 			xs := x[i0:min(i0+vecBlock, len(x))]
-			tb := t[:len(xs)]
-			for i, v := range xs {
-				tb[i] = -abs32(v)
-			}
-			expVec(tb, tb)
-			ys := y[i0 : i0+len(xs)]
-			for i, v := range xs {
-				e := tb[i]
-				if v >= 0 {
-					ys[i] = 1 / (1 + e)
-				} else {
-					ys[i] = e / (1 + e)
-				}
-			}
+			sigmoidBlock(y[i0:i0+len(xs)], xs)
 		}
 	case OpAddScalar:
 		for i, v := range x {
@@ -732,10 +717,8 @@ func (cpuBackend) f32UnaryGrad(op UnOp, p float32, gx, g Storage, x View, y Stor
 }
 
 // float32 yardımcıları
-func exp32(x float32) float32  { return expf32(x) }
 func log32(x float32) float32  { return float32(math.Log(float64(x))) }
 func sqrt32(x float32) float32 { return float32(math.Sqrt(float64(x))) }
-func tanh32(x float32) float32 { return tanhf32(x) }
 
 // Compile-time checks: optional backend interfaces are found by type assertion, so a renamed
 // method would otherwise drop a fast path silently.

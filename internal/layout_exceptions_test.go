@@ -72,7 +72,6 @@ var longFuncs = map[string]exception{
 	"internal/compute/tensor/cpu_attention.go:cpuBackend.f32Attention": {146, reasonKernel},
 	"internal/compute/tensor/cpu_matmul.go:gemmPart":                   {115, reasonKernel},
 	"internal/compute/tensor/autograd.go:Tensor.BackwardCtx":           {89, reasonKernel},
-	"internal/compute/tensor/cpu_backend.go:unaryLoop":                 {89, reasonKernel},
 	"internal/compute/tensor/cpu_backend.go:cpuBackend.f32BinaryGrad":  {85, reasonKernel},
 	"internal/compute/tensor/cpu_backend.go:unaryGradLoop":             {81, reasonKernel},
 	"internal/compute/tokenize/regex_match.go:reMatcher.run":           {167, reasonTokenizer},

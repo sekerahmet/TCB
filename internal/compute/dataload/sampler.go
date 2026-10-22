@@ -163,15 +163,19 @@ func (o *Sampler) random(label, epoch, ek uint64) *rand.Rand {
 
 // epochOrder, verilen dönemin karıştırılmış parça sırasını hesaplar.
 func (o *Sampler) epochOrder(epoch int, dst []int) []int {
-	n := len(o.k.shards)
+	return shuffleRange(o.random(1, uint64(epoch), 0), dst, len(o.k.shards))
+}
+
+// shuffleRange dst'yi (kapasite yetmezse yeniden ayırarak) n uzunluğuna getirir, 0..n-1 ile
+// doldurur ve r ile karıştırır.
+func shuffleRange[T ~int | ~uint32 | ~uint64](r *rand.Rand, dst []T, n int) []T {
 	if cap(dst) < n {
-		dst = make([]int, n)
+		dst = make([]T, n)
 	}
 	dst = dst[:n]
 	for i := range dst {
-		dst[i] = i
+		dst[i] = T(i)
 	}
-	r := o.random(1, uint64(epoch), 0)
 	r.Shuffle(n, func(i, j int) { dst[i], dst[j] = dst[j], dst[i] })
 	return dst
 }
@@ -215,21 +219,10 @@ func (o *Sampler) load(ctx context.Context) error {
 	o.n = o.limit[len(o.limit)-1]
 	if o.n <= math.MaxUint32 {
 		o.perm64 = nil
-		if int64(cap(o.perm32)) < o.n {
-			o.perm32 = make([]uint32, o.n)
-		}
-		o.perm32 = o.perm32[:o.n]
-		for i := range o.perm32 {
-			o.perm32[i] = uint32(i)
-		}
-		r.Shuffle(len(o.perm32), func(i, j int) { o.perm32[i], o.perm32[j] = o.perm32[j], o.perm32[i] })
+		o.perm32 = shuffleRange(r, o.perm32, int(o.n))
 	} else {
 		o.perm32 = nil
-		o.perm64 = make([]uint64, o.n)
-		for i := range o.perm64 {
-			o.perm64[i] = uint64(i)
-		}
-		r.Shuffle(len(o.perm64), func(i, j int) { o.perm64[i], o.perm64[j] = o.perm64[j], o.perm64[i] })
+		o.perm64 = shuffleRange(r, o.perm64, int(o.n))
 	}
 	o.loaded = true
 	return nil

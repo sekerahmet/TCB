@@ -338,20 +338,18 @@ func (t *Tensor) Contiguous() *Tensor {
 	if t.IsContiguous() {
 		return t
 	}
-	sy := counterStart(t.be, OpKindCopy).start()
-	out := emptyOf(isCopy, t.be, t.shape, t.dtyp)
-	t.be.Copy(out.storage, 0, t.view())
-	r := trackPass(out, "contiguous", t, handOff)
-	sy.finish()
-	return r
+	return t.copyAs("contiguous")
 }
 
 // Clone verinin bitişik bir kopyasını üretir (türevlenebilir).
-func (t *Tensor) Clone() *Tensor {
+func (t *Tensor) Clone() *Tensor { return t.copyAs("clone") }
+
+// copyAs verinin bitişik kopyasını op adlı çizge düğümüyle üretir.
+func (t *Tensor) copyAs(op string) *Tensor {
 	sy := counterStart(t.be, OpKindCopy).start()
 	out := emptyOf(isCopy, t.be, t.shape, t.dtyp)
 	t.be.Copy(out.storage, 0, t.view())
-	r := trackPass(out, "clone", t, handOff)
+	r := trackPass(out, op, t, handOff)
 	sy.finish()
 	return r
 }

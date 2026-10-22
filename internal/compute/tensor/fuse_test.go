@@ -201,12 +201,7 @@ func TestFusedErrors(t *testing.T) {
 	x := Randn(rng, 4, 6)
 	expectCode := func(name string, code messages.Code, fn func([]*Tensor) []*Tensor, ins ...*Tensor) {
 		t.Helper()
-		defer func() {
-			if !messages.Has(asError(recover()), code) {
-				t.Fatalf("%s: %s bekleniyordu", name, code)
-			}
-		}()
-		runFusedFn(fn, ins)
+		panicCode(t, name, code, func() { runFusedFn(fn, ins) })
 	}
 	expectCode("indirgeme", messages.H3107, func(a []*Tensor) []*Tensor { return []*Tensor{a[0].SumAll()} }, x)
 	outside := Randn(rng, 4, 6)
@@ -217,13 +212,6 @@ func TestFusedErrors(t *testing.T) {
 }
 
 // asError kurtarılan paniği hataya çevirir.
-func asError(r any) error {
-	if e, ok := r.(error); ok {
-		return e
-	}
-	return nil
-}
-
 // cmpMask karşılaştırmaların kaynaşmış ve kaynaşmamış hâlini sınar: iki tensörle ve sayıyla,
 // bf16 girdide, NaN'lı elemanla, bir maske ile çarpılarak (gradyan yalnızca çarpılandan akar).
 func cmpMask(args []*Tensor) []*Tensor {

@@ -284,7 +284,7 @@ func (cpuBackend) f32SoftmaxGrad(gx, g, y Storage, shape []int, axis int, logMod
 				sf := float32(s)
 				for d := 0; d < dim; d++ {
 					k := base + d*inner
-					pg[k] += gd[k] - exp32(yd[k])*sf
+					pg[k] += gd[k] - expf32(yd[k])*sf
 				}
 			} else {
 				// dx = y · (g - Σ g·y)

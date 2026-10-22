@@ -90,7 +90,6 @@ type cacheCore struct {
 	worker   int
 	closed   bool
 	statsNow CacheStats
-	lastErr  error
 
 	warning chan struct{}
 	ctx     context.Context
@@ -616,12 +615,6 @@ func (o *cacheCore) stats() CacheStats {
 	return s
 }
 
-func (o *cacheCore) takeLastErr() error {
-	o.mu.Lock()
-	defer o.mu.Unlock()
-	return o.lastErr
-}
-
 // interleaveLists istemcilerin listelerini sırayla (her birinden birer
 // dosya) birleştirir ve listenin değiştiğini işçilere bildirir; kilit tutulur.
 func (o *cacheCore) interleaveLists() {
@@ -738,9 +731,6 @@ func (h *Cache) Dir() string { return h.c.dir }
 
 // Stats, dizinin (paylaşılan) sayaçlarının anlık kopyasıdır.
 func (h *Cache) Stats() CacheStats { return h.c.stats() }
-
-// LastError, arka plan kopyalamasında görülen son hatadır (yoksa nil).
-func (h *Cache) LastError() error { return h.c.takeLastErr() }
 
 // Wait, Hazirla ile istenen dosyaların arka plan kopyası bitene (ya da
 // kota yüzünden durana) kadar bekler. Çoğunlukla testler içindir.

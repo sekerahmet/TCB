@@ -122,6 +122,44 @@ const (
 	minFileStart   = headerPrefixV1
 )
 
+// readHeaderPath ReadHeader gibidir; biçim hatasına dosya yolunu ekler.
+func readHeaderPath(r io.ReaderAt, path string) (Header, error) {
+	bs, err := ReadHeader(r)
+	var bh *FormatError
+	if errors.As(err, &bh) {
+		bh.Path = path
+	}
+	return bs, err
+}
+
+// headerExtent b'nin (en az minFileStart bayt) sürümünden başlık metninin uzunluğunu (bl) ve ön ek
+// boyunu (prefix) çıkarır. magicFirst doğruysa büyü baytları önce denetlenir (H5053); değilse yalnızca
+// bilinmeyen sürümde (ReadHeader: yanlış dosyada daha anlamlı hata). shortCode sürüm 2/3'te ön ek
+// 12 bayttan kısaysa verilen hatadır (ReadHeader H5052, ParseHeader H5058).
+func headerExtent(b []byte, magicFirst bool, shortCode messages.Code) (bl, prefix int, err error) {
+	if magicFirst && string(b[:6]) != npyMagic {
+		return 0, 0, formatError(messages.H5053)
+	}
+	switch b[6] {
+	case 1:
+		bl, prefix = int(binary.LittleEndian.Uint16(b[8:10])), headerPrefixV1
+	case 2, 3:
+		if len(b) < headerPrefixV2 {
+			return 0, 0, formatError(shortCode, b[6])
+		}
+		bl, prefix = int(binary.LittleEndian.Uint32(b[8:12])), headerPrefixV2
+	default:
+		if string(b[:6]) != npyMagic {
+			return 0, 0, formatError(messages.H5053)
+		}
+		return 0, 0, formatError(messages.H5054, b[6], b[7])
+	}
+	if bl > maxHeader {
+		return 0, 0, formatError(messages.H5055, bl)
+	}
+	return bl, prefix, nil
+}
+
 // ReadHeader, r'nin başından .npy başlığını okur ve çözümler. Yalnızca
 // başlık baytları okunur; veri bölümüne dokunulmaz.
 func ReadHeader(r io.ReaderAt) (Header, error) {
@@ -133,25 +171,9 @@ func ReadHeader(r io.ReaderAt) (Header, error) {
 		}
 		return Header{}, messages.New(messages.H5030, err)
 	}
-	base := on[6]
-	var bl, prefix int
-	switch base {
-	case 1:
-		bl, prefix = int(binary.LittleEndian.Uint16(on[8:10])), headerPrefixV1
-	case 2, 3:
-		if n < headerPrefixV2 {
-			return Header{}, formatError(messages.H5052, base)
-		}
-		bl, prefix = int(binary.LittleEndian.Uint32(on[8:12])), headerPrefixV2
-	default:
-		// Önce büyü baytlarını denetle ki yanlış dosyada daha anlamlı hata verelim.
-		if string(on[:6]) != npyMagic {
-			return Header{}, formatError(messages.H5053)
-		}
-		return Header{}, formatError(messages.H5054, base, on[7])
-	}
-	if bl > maxHeader {
-		return Header{}, formatError(messages.H5055, bl)
+	bl, prefix, err := headerExtent(on[:n], false, messages.H5052)
+	if err != nil {
+		return Header{}, err
 	}
 	exact := make([]byte, prefix+bl)
 	copy(exact, on[:n])
@@ -177,20 +199,9 @@ func ParseHeader(b []byte) (Header, error) {
 	}
 	var bs Header
 	bs.Version, bs.MinorVersion = b[6], b[7]
-	var bl, prefix int
-	switch bs.Version {
-	case 1:
-		bl, prefix = int(binary.LittleEndian.Uint16(b[8:10])), headerPrefixV1
-	case 2, 3:
-		if len(b) < headerPrefixV2 {
-			return Header{}, formatError(messages.H5058, bs.Version)
-		}
-		bl, prefix = int(binary.LittleEndian.Uint32(b[8:12])), headerPrefixV2
-	default:
-		return Header{}, formatError(messages.H5054, bs.Version, bs.MinorVersion)
-	}
-	if bl > maxHeader {
-		return Header{}, formatError(messages.H5055, bl)
+	bl, prefix, err := headerExtent(b, true, messages.H5058)
+	if err != nil {
+		return Header{}, err
 	}
 	if len(b) < prefix+bl {
 		return Header{}, formatError(messages.H5059, prefix+bl, len(b))

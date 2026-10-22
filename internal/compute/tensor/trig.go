@@ -53,6 +53,12 @@ func sinf32(x float32) float32 {
 	if !ok {
 		return float32(math.Sin(float64(x)))
 	}
+	return sinQuadrant(r, c)
+}
+
+// sinQuadrant sin'in c. çeyrekteki değeridir (r indirgenmiş argüman): sin, cos, −sin, −cos.
+// cos(x) = sin'in (c+1)&3. çeyreğidir.
+func sinQuadrant(r float64, c int) float32 {
 	switch c {
 	case 0:
 		return float32(sinPoly(r))
@@ -70,13 +76,5 @@ func cosf32(x float32) float32 {
 	if !ok {
 		return float32(math.Cos(float64(x)))
 	}
-	switch c {
-	case 0:
-		return float32(cosPoly(r))
-	case 1:
-		return float32(-sinPoly(r))
-	case 2:
-		return float32(-cosPoly(r))
-	}
-	return float32(sinPoly(r))
+	return sinQuadrant(r, (c+1)&3)
 }

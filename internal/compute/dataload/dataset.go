@@ -3,7 +3,6 @@ package dataload
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"os"
 	"path/filepath"
 	"sort"
@@ -191,12 +190,8 @@ func headerLen(path string) (int64, error) {
 		return 0, messages.New(messages.H5024, err)
 	}
 	defer f.Close()
-	bs, err := ReadHeader(f)
+	bs, err := readHeaderPath(f, path)
 	if err != nil {
-		var bh *FormatError
-		if errors.As(err, &bh) {
-			bh.Path = path
-		}
 		return 0, err
 	}
 	return bs.Length, nil

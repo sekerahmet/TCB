@@ -2,6 +2,7 @@ package dataload
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -10,11 +11,11 @@ import (
 	"time"
 )
 
-// writeU16, dizinde ad adlı '<u2' .npy dosyası oluşturur.
-func writeU16(t testing.TB, dir, ad string, data []uint16) string {
+// writeNpyFile veriyi writeFn ile .npy olarak yazar ve dizinde ad adlı dosyaya koyar.
+func writeNpyFile[T any](t testing.TB, dir, ad string, data []T, writeFn func(io.Writer, []T) error) string {
 	t.Helper()
 	var b bytes.Buffer
-	if err := WriteNpyU16(&b, data); err != nil {
+	if err := writeFn(&b, data); err != nil {
 		t.Fatal(err)
 	}
 	path := filepath.Join(dir, ad)
@@ -24,18 +25,16 @@ func writeU16(t testing.TB, dir, ad string, data []uint16) string {
 	return path
 }
 
+// writeU16, dizinde ad adlı '<u2' .npy dosyası oluşturur.
+func writeU16(t testing.TB, dir, ad string, data []uint16) string {
+	t.Helper()
+	return writeNpyFile(t, dir, ad, data, WriteNpyU16)
+}
+
 // writeI32, dizinde ad adlı '<i4' .npy dosyası oluşturur.
 func writeI32(t testing.TB, dir, ad string, data []int32) string {
 	t.Helper()
-	var b bytes.Buffer
-	if err := WriteNpyI32(&b, data); err != nil {
-		t.Fatal(err)
-	}
-	path := filepath.Join(dir, ad)
-	if err := os.WriteFile(path, b.Bytes(), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	return path
+	return writeNpyFile(t, dir, ad, data, WriteNpyI32)
 }
 
 // encodedDataset, her tokenın değeri parça*1e6 + konum olan '<i4' parçalardan

@@ -27,6 +27,7 @@ var dynamicTrackSites = map[string]struct {
 	"custom_op.go":   {3, []string{"custom"}},
 	"elementwise.go": {2, nil}, // binopName[op] ve unopName[op]: numaralandırmadan gelir
 	"reduce.go":      {3, []string{"sum", "mean", "sum_all", "mean_all", "softmax", "log_softmax"}},
+	"view.go":        {1, []string{"clone", "contiguous"}}, // copyAs(op)
 }
 
 // enumOpNames BinOp ve UnOp üyelerinin ad tablosundaki adlarıdır.
@@ -174,11 +175,6 @@ func TestGradCoverage(t *testing.T) {
 			for _, op := range s.ops {
 				covered[op] = true
 			}
-		}
-	}
-	for key := range bf16Tolerances {
-		if !seen[key] {
-			t.Errorf("bf16Tolerances %q kaydını içeriyor ama böyle bir gradyan kaydı yok (tabloyu yenileyin)", key)
 		}
 	}
 	for key := range bf16Tolerances {

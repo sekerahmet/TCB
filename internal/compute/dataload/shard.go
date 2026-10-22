@@ -68,12 +68,8 @@ func OpenShard(path string, s ShardOptions) (*Shard, error) {
 }
 
 func buildShard(path string, f *os.File, s ShardOptions) (*Shard, error) {
-	bs, err := ReadHeader(f)
+	bs, err := readHeaderPath(f, path)
 	if err != nil {
-		var bh *FormatError
-		if errors.As(err, &bh) {
-			bh.Path = path
-		}
 		return nil, err
 	}
 	st, err := f.Stat()
@@ -133,27 +129,8 @@ func (p *Shard) checkRange(n int, begin int64) error {
 // (2^31 ve üstü) da hata döner: eksiye dönen bir token çapraz entropide yok
 // sayılan hedef olur ve bozuk veri sessizce eğitimden düşerdi.
 func (p *Shard) Read(dst []int32, begin int64) error {
-	if err := p.checkRange(len(dst), begin); err != nil {
-		return err
-	}
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-	if p.closed {
-		return ErrClosed
-	}
-	if len(dst) == 0 {
-		return nil
-	}
-	es := p.header.DType.Size()
 	fits := true
-	var err error
-	if p.data != nil {
-		err = p.mmapRead(func() {
-			fits = decodeI32(dst, p.data[begin*int64(es):(begin+int64(len(dst)))*int64(es)], p.header.DType)
-		})
-	} else {
-		err = p.readAtRead(len(dst), begin, func(i int, b []byte, k int) { fits = decodeI32(dst[i:i+k], b, p.header.DType) && fits })
-	}
+	err := p.readSpan(len(dst), begin, func(i int, b []byte, k int) { fits = decodeI32(dst[i:i+k], b, p.header.DType) && fits })
 	if err == nil && !fits {
 		err = messages.New(messages.H5086, p.path, begin, begin+int64(len(dst)))
 	}
@@ -167,7 +144,14 @@ func (p *Shard) ReadU16(dst []uint16, begin int64) error {
 	if p.header.DType != DTypeU16 {
 		return messages.New(messages.H5087, p.path, p.header.DType)
 	}
-	if err := p.checkRange(len(dst), begin); err != nil {
+	return p.readSpan(len(dst), begin, func(i int, b []byte, k int) { decodeU16(dst[i:i+k], b) })
+}
+
+// readSpan [begin, begin+n) aralığını okur (Read ve ReadU16'nın ortak iskeleti): aralığı denetler,
+// okuma kilidini tutar, kapalı parçada ErrClosed verir ve baytları fn(i, bayt, k) ile verir
+// (dst[i:i+k] parçası). Eşlenmişse tek parça, değilse ReadAt parçalarıyla.
+func (p *Shard) readSpan(n int, begin int64, fn func(i int, b []byte, k int)) error {
+	if err := p.checkRange(n, begin); err != nil {
 		return err
 	}
 	p.mu.RLock()
@@ -175,13 +159,14 @@ func (p *Shard) ReadU16(dst []uint16, begin int64) error {
 	if p.closed {
 		return ErrClosed
 	}
-	if len(dst) == 0 {
+	if n == 0 {
 		return nil
 	}
 	if p.data != nil {
-		return p.mmapRead(func() { decodeU16(dst, p.data[begin*2:(begin+int64(len(dst)))*2]) })
+		es := int64(p.header.DType.Size())
+		return p.mmapRead(func() { fn(0, p.data[begin*es:(begin+int64(n))*es], n) })
 	}
-	return p.readAtRead(len(dst), begin, func(i int, b []byte, k int) { decodeU16(dst[i:i+k], b) })
+	return p.readAtRead(n, begin, fn)
 }
 
 // mmapRead, eşlenmiş bellekten okuyan f'yi korumalı çalıştırır. Eşlenmiş
