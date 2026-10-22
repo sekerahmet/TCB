@@ -110,6 +110,17 @@ func CopyDir(t testing.TB, srcDir, dstDir string) {
 	}
 }
 
+// MustContain çıktının verilen parçaların hepsini içerdiğini sınar; eksik her parça için çıktıyla
+// birlikte hata verir (testi durdurmaz).
+func MustContain(t testing.TB, out string, parts ...string) {
+	t.Helper()
+	for _, p := range parts {
+		if !strings.Contains(out, p) {
+			t.Errorf("output lacks %q:\n%s", p, out)
+		}
+	}
+}
+
 // HasJSONName alanın boş olmayan bir json adı ya da "-" etiketi taşıyıp taşımadığını söyler.
 func HasJSONName(f *ast.Field) bool {
 	if f.Tag == nil {

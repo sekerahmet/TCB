@@ -5,17 +5,12 @@
 
 const assert = require('assert');
 const { findInterpreter } = require('../find_interpreter');
+const { createSuite } = require('./fake_vscode');
 
-let passed = 0;
-function test(name, fn) {
-    try {
-        fn();
-        passed++;
-    } catch (e) {
-        console.error('KALDI: ' + name + '\n' + (e && e.stack));
-        process.exitCode = 1;
-    }
-}
+const suite = createSuite('find_interpreter_test', {
+    summary: ({ passed }) => `find_interpreter_test: ${passed} test geçti`,
+});
+const test = suite.test;
 
 // Sahte dosya sistemi: yalnızca listedeki yollar vardır.
 function g(files, extra) {
@@ -84,4 +79,4 @@ test('PATH içindeki göreli girdiler atlanır, yalnızca mutlak yol bulunur', (
     assert.strictEqual(findInterpreter(g(['tr.exe', 'bin\\tr.exe'], { folder: undefined, trusted: false, pathValue: '.;bin' })), undefined);
 });
 
-console.log(`find_interpreter_test: ${passed} test geçti`);
+suite.run();

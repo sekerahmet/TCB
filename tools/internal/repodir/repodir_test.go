@@ -2,8 +2,12 @@ package repodir
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // Kural: Find çalışma klasöründen yukarı doğru go.mod'un bulunduğu ilk klasörü verir (test paket

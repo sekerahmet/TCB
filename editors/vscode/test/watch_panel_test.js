@@ -7,12 +7,10 @@
 
 const assert = require('assert');
 const path = require('path');
-const { setup, wait } = require('./fake_vscode');
+const { setup, wait, createSuite } = require('./fake_vscode');
 
-const tests = [];
-function test(name, fn) {
-    tests.push({ name, fn });
-}
+const suite = createSuite('watch_panel_test', { exit: true });
+const test = suite.test;
 
 // openPanel eklentiyi kurar, sahte bir TR oturumuyla paneli açar ve oturumun isteklerini kaydeder.
 async function openPanel(replies) {
@@ -75,17 +73,4 @@ test('tablo isteği kapsamla gider; yanıt ve hata kapsamıyla panele döner (ay
     assert.deepStrictEqual(replies, [['tablo', 'Genel'], ['tablo', 'Yerel'], ['tabloHata', 'Yok']]);
 });
 
-(async () => {
-    let passed = 0;
-    for (const { name, fn } of tests) {
-        try {
-            await fn();
-            passed++;
-        } catch (e) {
-            console.error('KALDI: ' + name + '\n' + (e && e.stack));
-            process.exitCode = 1;
-        }
-    }
-    console.log(`watch_panel_test: ${passed}/${tests.length} geçti`);
-    process.exit(process.exitCode || 0);
-})();
+suite.run();

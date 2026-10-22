@@ -8,18 +8,13 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 const { WATCH_COMMANDS, resolveWatchCommand } = require('../watch_commands');
+const { createSuite } = require('./fake_vscode');
 
 const MEDIA = path.join(__dirname, '..', 'media');
-let passed = 0;
-function test(name, fn) {
-    try {
-        fn();
-        passed++;
-    } catch (e) {
-        console.error('KALDI: ' + name + '\n' + (e && e.stack));
-        process.exitCode = 1;
-    }
-}
+const suite = createSuite('watch_commands_test', {
+    summary: ({ passed }) => (process.exitCode ? 'watch_commands_test: kalan var' : `watch_commands_test: ${passed} test geçti`),
+});
+const test = suite.test;
 
 // --- Eklenti tarafı: komut → VS Code komutu / DAP isteği ---
 
@@ -107,6 +102,7 @@ function loadPanel() {
     };
     windowObj.innerHeight = 800;
     vm.createContext(context);
+    vm.runInContext(fs.readFileSync(path.join(MEDIA, 'table_common.js'), 'utf8'), context, { filename: 'table_common.js' });
     vm.runInContext(fs.readFileSync(path.join(MEDIA, 'watch_panel.js'), 'utf8'), context, { filename: 'watch_panel.js' });
     const button = (k) => buttons.find((d) => d.dataset.komut === k);
     const sendState = (line, reason) => windowObj.dispatch('message', {
@@ -161,8 +157,4 @@ test('aynı satırda yeniden duruş sayaçla görünür', () => {
     assert.match(m.elements.neden.textContent, /1\. duruş/);
 });
 
-if (process.exitCode) {
-    console.error('watch_commands_test: kalan var');
-} else {
-    console.log('watch_commands_test: ' + passed + ' test geçti');
-}
+suite.run();

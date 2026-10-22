@@ -27,47 +27,14 @@ def ozet(sureler):
             "mean_ms": statistics.fmean(sureler), "min_ms": min(sureler), "max_ms": max(sureler)}
 
 
-def sentetik(B, T, V, adim, torch, cihaz):
-    """phase3_tr.tr ile aynı formül: 8 sabit toplu iş, adım % 8."""
-    s = adim % 8
-    w = [[(s * 7919 + i * 104729 + t * 31) % V for t in range(T + 1)] for i in range(B)]
-    return torch.tensor(w, dtype=torch.int64, device=cihaz)
-
-
 def kos(arg):
-    import torch, torch.nn as nn, torch.nn.functional as F
+    import torch
+    from torch_bench_model import egitim_adimi, model_sinifi, sentetik_toplu
     c = json.load(open(arg.config, encoding="utf-8"))
     B, T, D, H, FF, L, V = c["B"], c["T"], c["D"], c["H"], c["FF"], c["LAYERS"], c["V"]
     cihaz = "cuda"
 
-    class Blok(nn.Module):
-        def __init__(s):
-            super().__init__()
-            s.g1, s.g2 = nn.RMSNorm(D), nn.RMSNorm(D)
-            s.q, s.k, s.v, s.o = (nn.Linear(D, D, bias=False) for _ in range(4))
-            s.wg, s.wu, s.w2 = nn.Linear(D, FF, bias=False), nn.Linear(D, FF, bias=False), nn.Linear(FF, D, bias=False)
-
-        def forward(s, x):
-            h = s.g1(x)
-            bas = lambda t: t.view(B, T, H, D // H).transpose(1, 2)
-            y = F.scaled_dot_product_attention(bas(s.q(h)), bas(s.k(h)), bas(s.v(h)), is_causal=True)
-            x = x + s.o(y.transpose(1, 2).reshape(B, T, D))
-            m = s.g2(x)
-            return x + s.w2(F.silu(s.wg(m)) * s.wu(m))
-
-    class Model(nn.Module):
-        def __init__(s):
-            super().__init__()
-            s.E = nn.Embedding(V, D)
-            nn.init.normal_(s.E.weight, 0, 0.02)
-            s.bloklar = nn.ModuleList(Blok() for _ in range(L))
-            s.gs = nn.RMSNorm(D)
-
-        def forward(s, i):
-            x = s.E(i)
-            for b in s.bloklar:
-                x = b(x)
-            return s.gs(x) @ s.E.weight.T
+    Model = model_sinifi(B, T, D, H, FF, L, V)
 
     torch.manual_seed(1)
     m = Model().to(cihaz)
@@ -78,14 +45,8 @@ def kos(arg):
     torch.cuda.reset_peak_memory_stats()
 
     def adim_at(adim):
-        w = sentetik(B, T, V, adim, torch, cihaz)
-        op.zero_grad(set_to_none=True)
-        with torch.autocast("cuda", dtype=torch.bfloat16, enabled=bf16):
-            kayip = F.cross_entropy(ileri(w[:, :-1]).reshape(-1, V), w[:, 1:].reshape(-1))
-        kayip.backward()
-        torch.nn.utils.clip_grad_norm_(m.parameters(), 1.0)
-        op.step()
-        return kayip
+        w = sentetik_toplu(B, T, V, adim, cihaz)
+        return egitim_adimi(m, ileri, op, w, V, bf16)
 
     kayiplar, isinma_ms = [], []
     for adim in range(isinma):

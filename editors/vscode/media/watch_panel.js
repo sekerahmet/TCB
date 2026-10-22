@@ -4,8 +4,15 @@ const vscode = acquireVsCodeApi();
 window.addEventListener('error', (e) => vscode.postMessage({ tur: 'panelHatasi', mesaj: String(e.message) + ' (' + e.lineno + ':' + e.colno + ')' }));
 const ICONS = { tablo: '▦', liste: '☰', sozluk: '{}', yapi: '◆', tensor: '▣', sayi: '#', metin: 'Aa', mantik: '◐', yok: '∅', diger: '•' };
 const KIND_NAMES = { tablo: 'Tablo', liste: 'Liste', sozluk: 'Sözlük', yapi: 'Yapı', tensor: 'Tensör', sayi: 'Sayı', metin: 'Metin', mantik: 'Mantık', yok: 'Yok', diger: 'Değer' };
-const isNumber = (x) => x !== '' && x !== null && !isNaN(Number(x));
 const el = (tag, text, cssClass) => { const e = document.createElement(tag); if (text !== undefined) e.textContent = text; if (cssClass) e.className = cssClass; return e; };
+
+// linkButton link görünümlü, fare ve klavyeyle (Enter, Boşluk) kullanılabilen bir düğme kurar.
+const linkButton = (text, onTrigger) => {
+  const b = el('span', text, 'link'); b.setAttribute('role', 'button'); b.tabIndex = 0;
+  b.addEventListener('click', (e) => { e.stopPropagation(); onTrigger(); });
+  b.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onTrigger(); } });
+  return b;
+};
 
 // Durum: değişkenler, açık sekmeler (her biri ayrı tablo), etkin sekme ve sekme başına arama/sıralama.
 let state = null, previousValues = {}, sessionEnded = false, paused = false;
@@ -119,17 +126,12 @@ function renderVariables() {
     let valueCell;
     if (d.tablo) {
       // <a href> tıklamalarını VS Code'un web görünümü yakalar; link görünümlü span kullanılır.
-      const nameLink = el('span', d.ad, 'link'); nameLink.setAttribute('role', 'button'); nameLink.tabIndex = 0;
-      nameLink.addEventListener('click', (e) => { e.stopPropagation(); openTable(d); });
-      nameLink.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTable(d); } });
-      nameCell.appendChild(nameLink);
+      nameCell.appendChild(linkButton(d.ad, () => openTable(d)));
       valueCell = el('td', undefined, 'deger');
       // Küçük değerler (ör. 1-8 elemanlı tensör) satır içinde de görünür; tablo bağlantısı yanında kalır.
       if (d.ozet) { valueCell.appendChild(el('span', d.ozet + '  ', 'ozet')); valueCell.title = d.ozet; }
-      const link = el('span', isOpen ? '● Açık — sekmeye git' : (d.ozet ? '▸ Tablo' : '▸ Tabloyu aç'), 'link'); link.setAttribute('role', 'button'); link.tabIndex = 0;
+      const link = linkButton(isOpen ? '● Açık — sekmeye git' : (d.ozet ? '▸ Tablo' : '▸ Tabloyu aç'), () => openTable(d));
       link.title = d.tip;
-      link.addEventListener('click', (e) => { e.stopPropagation(); openTable(d); });
-      link.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTable(d); } });
       valueCell.appendChild(link);
       tr.classList.add('tablo-satiri');
       tr.title = 'Çift tıklayın: tabloyu alttaki pencerede aç';
@@ -185,15 +187,7 @@ function renderPane() {
 
   const columns = ['#'].concat(s.veri.sutunlar || []);
   const rows = (s.veri.satirlar || []).map((r, i) => [String(i)].concat(r));
-  const q = s.search.toLocaleLowerCase('tr');
-  let list = rows.filter((r) => !q || r.some((h) => String(h).toLocaleLowerCase('tr').includes(q)));
-  if (s.sortState.column >= 0) {
-    const k = s.sortState.column;
-    list = list.slice().sort((a, b) => {
-      const c = isNumber(a[k]) && isNumber(b[k]) ? Number(a[k]) - Number(b[k]) : String(a[k]).localeCompare(String(b[k]), 'tr');
-      return s.sortState.descending ? -c : c;
-    });
-  }
+  const list = tableRows(rows, s.search, s.sortState);
   const t = el('table'); const thead = el('thead'); const headerRow = el('tr'); const body = el('tbody');
   columns.forEach((name, i) => {
     const th = el('th', name + (s.sortState.column === i ? (s.sortState.descending ? ' ▼' : ' ▲') : ''));

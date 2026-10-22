@@ -18,9 +18,8 @@ import (
 	"bytes"
 	_ "embed"
 	"encoding/json"
-	"flag"
 	"fmt"
-	"os"
+	"github.com/sekerahmet/TCB/tools/internal/genmain"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -32,34 +31,7 @@ import (
 var docPath = filepath.Join("docs", "codes.md")
 
 func main() {
-	check := flag.Bool("check", false, "do not write the file; exit 1 if it is out of date")
-	root := flag.String("root", ".", "repository root")
-	flag.Parse()
-
-	path := filepath.Join(*root, docPath)
-	fresh, err := Generate()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
-	}
-	if *check {
-		old, err := os.ReadFile(path)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error: %v\n", err)
-			os.Exit(1)
-		}
-		if !bytes.Equal(bytes.ReplaceAll(old, []byte("\r\n"), []byte("\n")), fresh) {
-			fmt.Fprintf(os.Stderr, "%s is out of date; regenerate it with go run ./tools/gen/codesdoc\n", path)
-			os.Exit(1)
-		}
-		fmt.Printf("%s is up to date\n", path)
-		return
-	}
-	if err := os.WriteFile(path, fresh, 0o644); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
-	}
-	fmt.Printf("%s written\n", path)
+	genmain.RunMain("codesdoc", docPath, func(string) ([]byte, error) { return Generate() })
 }
 
 // section bir ailenin bir grubudur (ailenin harfini family taşır) (group < 0: bütün aile).

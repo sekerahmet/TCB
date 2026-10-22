@@ -179,6 +179,36 @@ function create(vscode, g) {
 
     const filesystems = codedFilesystem.create(vscode, { VIEW_SCHEME, RAW_SCHEME, localPath, readView, saveText, revision });
 
+    // showTranslation metnin lang yazımındaki gösterimini yorumlayıcıdan ister; yorumlayıcı yoksa
+    // başarısız bir sonuç verir ({code: -1, error}).
+    async function showTranslation(filePath, lang, data) {
+        const y = interpreter(filePath);
+        return y.error ? { code: -1, error: y.error } : await g.translate(y.filePath, 'göster', lang, data);
+    }
+
+    // settleSave çevirinin sonucuna göre kaydı bitirir: başarıdaysa bekleyen işareti (pendingKey)
+    // kaldırılır, bildirim unutulur ve çevrilmiş metin yazılır; başarısızsa metnin kendisi (kayıpsız)
+    // yazılır, dosya çevrilmeyi bekler ve bir kez bildirim gösterilir. messages.syntax sözdizimi
+    // hatasında (bilgi), messages.failure öbür hatalarda (hata) metni (name, reason) ile üretir.
+    async function settleSave(filePath, content, s, pendingKey, messages) {
+        if (s.code === 0) {
+            await setPending(filePath, false, pendingKey);
+            forget('bozuk', filePath);
+            return s.output;
+        }
+        await setPending(filePath, true, pendingKey);
+        const name = path.basename(filePath);
+        const reason = codedFormat.errorSummary(s.error);
+        once('bozuk', filePath, () => {
+            if (s.code === codedFormat.EXIT_SYNTAX) {
+                vscode.window.showInformationMessage(messages.syntax(name, reason));
+            } else {
+                vscode.window.showErrorMessage(messages.failure(name, reason));
+            }
+        });
+        return content;
+    }
+
     // readView dosyanın görünümde gösterilecek metnidir. Kodlu dosyanın gösterimi üretilemezse
     // (dosya ayrıştırılamıyor, ör. birleştirme çakışması işaretleri; ya da yorumlayıcı yok) ham
     // baytlar gösterilir: kaydedilince olduğu gibi yazılır, hiçbir şey kaybolmaz. Bekleyen
@@ -187,9 +217,8 @@ function create(vscode, g) {
         if (!codedFormat.isCoded(data)) {
             return anyPending(filePath) ? data : readPlain(filePath, data);
         }
-        const y = interpreter(filePath);
         const lang = g.writingLanguage();
-        const s = y.error ? { code: -1, error: y.error } : await g.translate(y.filePath, 'göster', lang, data);
+        const s = await showTranslation(filePath, lang, data);
         if (s.code === 0) {
             resolvedLanguage.set(key(filePath), lang);
             forget('ham', filePath);
@@ -209,8 +238,7 @@ function create(vscode, g) {
             resolvedLanguage.set(key(filePath), lang);
             return data;
         }
-        const y = interpreter(filePath);
-        const s = y.error ? { code: -1, error: y.error } : await g.translate(y.filePath, 'göster', lang, data);
+        const s = await showTranslation(filePath, lang, data);
         if (s.code === 0) {
             resolvedLanguage.set(key(filePath), lang);
             forget('turkce', filePath);
@@ -236,25 +264,11 @@ function create(vscode, g) {
         if (s.code === 0) {
             s = await g.translate(y.filePath, 'göster', SOURCE_LANGUAGE, s.output);
         }
-        if (s.code === 0) {
-            await setPending(filePath, false, PLAIN_PENDING_KEY);
-            forget('bozuk', filePath);
-            return s.output;
-        }
-        await setPending(filePath, true, PLAIN_PENDING_KEY);
-        const name = path.basename(filePath);
-        const reason = codedFormat.errorSummary(s.error);
-        once('bozuk', filePath, () => {
-            const kept = `Yazdıklarınız kaybolmadı: dosya şimdilik "${lang}" yazımıyla kaydedildi; `;
-            if (s.code === codedFormat.EXIT_SYNTAX) {
-                vscode.window.showInformationMessage(
-                    `${name}: kodda sözdizimi hatası var (${reason}). ${kept}sözdizimi hatası düzelince ilk kayıtta yeniden Türkçe yazılacak.`);
-            } else {
-                vscode.window.showErrorMessage(
-                    `${name} Türkçe yazılamadı: ${reason} ${kept}sorun giderilince ilk kayıtta yeniden Türkçe yazılacak.`);
-            }
+        const kept = `Yazdıklarınız kaybolmadı: dosya şimdilik "${lang}" yazımıyla kaydedildi; `;
+        return settleSave(filePath, content, s, PLAIN_PENDING_KEY, {
+            syntax: (name, reason) => `${name}: kodda sözdizimi hatası var (${reason}). ${kept}sözdizimi hatası düzelince ilk kayıtta yeniden Türkçe yazılacak.`,
+            failure: (name, reason) => `${name} Türkçe yazılamadı: ${reason} ${kept}sorun giderilince ilk kayıtta yeniden Türkçe yazılacak.`,
         });
-        return content;
     }
 
     // saveText görünümdeki metnin diske yazılacak biçimidir. Kodlu dosyada kodlanabiliyorsa
@@ -276,26 +290,12 @@ function create(vscode, g) {
         const y = interpreter(filePath);
         const lang = resolvedLanguage.get(key(filePath)) || g.writingLanguage();
         const s = y.error ? { code: -1, error: y.error } : await g.translate(y.filePath, 'kodla', lang, content);
-        if (s.code === 0) {
-            await setPending(filePath, false);
-            forget('bozuk', filePath);
-            return s.output;
-        }
-        await setPending(filePath, true);
-        const name = path.basename(filePath);
-        const reason = codedFormat.errorSummary(s.error);
-        once('bozuk', filePath, () => {
-            if (s.code === codedFormat.EXIT_SYNTAX) {
-                vscode.window.showInformationMessage(
-                    `${name}: kodda sözdizimi hatası var (${reason}). Yazdıklarınız kaybolmadı: dosya şimdilik Türkçe yazımıyla kaydedildi; ` +
-                    'sözdizimi hatası düzelince ilk kayıtta yeniden kodlu yazılacak.');
-            } else {
-                vscode.window.showErrorMessage(
-                    `${name} kodlu biçimde kaydedilemedi: ${reason} Yazdıklarınız kaybolmadı: dosya Türkçe yazımıyla kaydedildi; ` +
-                    'sorun giderilince ilk kayıtta yeniden kodlu yazılacak.');
-            }
+        return settleSave(filePath, content, s, undefined, {
+            syntax: (name, reason) => `${name}: kodda sözdizimi hatası var (${reason}). Yazdıklarınız kaybolmadı: dosya şimdilik Türkçe yazımıyla kaydedildi; ` +
+                'sözdizimi hatası düzelince ilk kayıtta yeniden kodlu yazılacak.',
+            failure: (name, reason) => `${name} kodlu biçimde kaydedilemedi: ${reason} Yazdıklarınız kaybolmadı: dosya Türkçe yazımıyla kaydedildi; ` +
+                'sorun giderilince ilk kayıtta yeniden kodlu yazılacak.',
         });
-        return content;
     }
 
     // ---------------------------------------------------------------------------

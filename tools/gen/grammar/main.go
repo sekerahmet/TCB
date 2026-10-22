@@ -18,9 +18,8 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"flag"
 	"fmt"
-	"os"
+	"github.com/sekerahmet/TCB/tools/internal/genmain"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -33,34 +32,7 @@ import (
 var grammarPath = filepath.Join("editors", "vscode", "syntaxes", "tr.tmLanguage.json")
 
 func main() {
-	check := flag.Bool("check", false, "do not write the file; exit 1 if it is out of date")
-	root := flag.String("root", ".", "repository root")
-	flag.Parse()
-
-	path := filepath.Join(*root, grammarPath)
-	fresh, err := Generate()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
-	}
-	if *check {
-		old, err := os.ReadFile(path)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error: %v\n", err)
-			os.Exit(1)
-		}
-		if !bytes.Equal(old, fresh) {
-			fmt.Fprintf(os.Stderr, "%s is out of date; regenerate it with go run ./tools/gen/grammar\n", path)
-			os.Exit(1)
-		}
-		fmt.Printf("%s is up to date\n", path)
-		return
-	}
-	if err := os.WriteFile(path, fresh, 0o644); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
-	}
-	fmt.Printf("%s written\n", path)
+	genmain.RunMain("grammar", grammarPath, func(string) ([]byte, error) { return Generate() })
 }
 
 // --- sözlükten listeler ---
@@ -117,9 +89,6 @@ func namesInGroup(letter byte, group int, pred func(codes.Code) bool) []string {
 	}
 	return names(selected...)
 }
-
-// isBuiltin kodun genel kapsamdaki bir yerleşik fonksiyon olup olmadığıdır.
-func isBuiltin(k codes.Code) bool { return k.IsBuiltin() }
 
 // wordsPattern bir ad listesini \b(a|b|c)\b düzenli ifadesine çevirir. Adlar düzenli ifade
 // karakterleri içermez; yine de kaçışlanır.
@@ -204,8 +173,8 @@ func Generate() ([]byte, error) {
 	control := names(codes.A001, codes.A002, codes.A003, codes.A004, codes.A010, codes.A011, codes.A012, codes.A013, codes.A014, codes.A021, codes.A060, codes.A061, codes.A062, codes.A080, codes.A081)
 	declaration := names(codes.A030, codes.A031, codes.A020, codes.A050)
 	types := namesInGroup('A', 2, nil)
-	general := namesInGroup('G', -1, isBuiltin)
-	ai := append(namesInGroup('T', -1, isBuiltin), namesInGroup('V', -1, isBuiltin)...)
+	general := namesInGroup('G', -1, codes.Code.IsBuiltin)
+	ai := append(namesInGroup('T', -1, codes.Code.IsBuiltin), namesInGroup('V', -1, codes.Code.IsBuiltin)...)
 
 	inner := func(option string) string { return option } // adlar düzenli ifade karakteri içermez
 

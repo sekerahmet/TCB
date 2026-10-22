@@ -71,12 +71,19 @@ step_end() {
 	if [ -n "$step_name" ]; then durations+=("$(printf '%4d sn  %s' $((SECONDS - step_start)) "$step_name")"); fi
 	step_name=""
 }
-fail() {
-	echo "!! KALDI: $1"
+# record_failure kalan adımı özete ve sonuca kaydeder (satır yazmaz): "!! KALDI" satırı zaten
+# yazılmışsa (paralel adımın alt kabuğu) yalnızca bu çağrılır.
+record_failure() {
 	# Otomatik sınamada kalan adım özet sayfasında da görünsün.
 	if [ "${GITHUB_ACTIONS:-}" = "true" ]; then echo "::error title=Tam denetim::$1"; fi
 	failures+=("$1")
 	failed=1
+}
+
+# fail kalan adımı yazar ve kaydeder.
+fail() {
+	echo "!! KALDI: $1"
+	record_failure "$1"
 }
 
 # summarize komutu çalıştırır: geçerse çıktısının son satırını, kalırsa tamamını gösterir.
@@ -264,9 +271,7 @@ run_examples() {
 		echo "$line"
 	done
 	if [ -f "$workdir.failures" ]; then
-		while IFS= read -r line; do failures+=("$line"); done <"$workdir.failures"
-		[ "${GITHUB_ACTIONS:-}" != "true" ] || while IFS= read -r line; do echo "::error title=Tam denetim::$line"; done <"$workdir.failures"
-		failed=1
+		while IFS= read -r line; do record_failure "$line"; done <"$workdir.failures"
 	fi
 	rm -rf "$workdir" "$workdir.failures"
 }
