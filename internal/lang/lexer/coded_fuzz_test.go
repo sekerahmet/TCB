@@ -21,22 +21,7 @@ func FuzzCodedLexer(f *testing.F) {
 		begin := time.Now()
 		l := NewBody(source, true)
 		length := len(l.Input())
-		for i := 0; ; i++ {
-			if i > length+1 {
-				t.Fatalf("%d karakterlik girdiden %d'den fazla sözcük birimi: sonsuz döngü", length, i)
-			}
-			tok := l.NextToken()
-			b, e := l.LastRange()
-			if b < 0 || b > e || e > length {
-				t.Fatalf("geçersiz aralık [%d, %d) (girdi %d karakter)", b, e, length)
-			}
-			if tok.Line < 1 {
-				t.Fatalf("geçersiz satır %d", tok.Line)
-			}
-			if tok.Type == TokEOF {
-				break
-			}
-		}
+		checkFuzzLexer(t, l)
 		if d := time.Since(begin); d > 2*time.Second {
 			t.Fatalf("%d karakterlik girdi %v sürdü", length, d)
 		}
