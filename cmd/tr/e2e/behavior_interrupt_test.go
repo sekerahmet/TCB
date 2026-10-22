@@ -10,6 +10,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // lockedBuffer eşzamanlı yazılıp okunabilen bir çıktı tamponudur.
@@ -43,7 +45,7 @@ type interruptibleProcess struct {
 func startInterruptible(t *testing.T, code string) *interruptibleProcess {
 	t.Helper()
 	dir := t.TempDir()
-	writeFile(t, dir, "program.tr", code)
+	testkit.WriteFile(t, dir, "program.tr", code)
 	cmd := exec.Command(trBinary, "program.tr")
 	cmd.Dir = dir
 	stderr := &lockedBuffer{}

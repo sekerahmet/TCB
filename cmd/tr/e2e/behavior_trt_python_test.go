@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/reporoot"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // tools/gpu/trt_io.py TR'nin tensör dosyasını (.trt) Python'da yazar ve okur: hedef modelin
@@ -29,14 +30,14 @@ write_trt(sys.argv[2], {"w": np.array([[1.5, -2.0], [0.25, 3.0]], dtype=np.float
 	if out, err := exec.Command(python, "-I", "-c", write, tools, fromPy).CombinedOutput(); err != nil {
 		t.Fatalf("python yazamadı: %v\n%s", err, out)
 	}
-	writeFile(t, dir, "oku.tr", `değişken d = tensör_yükle("py.trt")
+	testkit.WriteFile(t, dir, "oku.tr", `değişken d = tensör_yükle("py.trt")
 yazdır(d["w"].değer)
 yazdır(d["b"].değer)
 tensör_kaydet("tr.trt", {"x": tensör([[0.5, 1.0, -4.0]])})
 `)
 	s := tr(t, dir, "oku.tr")
 	// bf16'da 0.333 en yakın değere (0.33203125) yuvarlanır.
-	wait(t, s, 0, []string{"[[1.5, -2.0], [0.25, 3.0]]", "[1.0, 0.33203125]"}, nil)
+	testkit.Wait(t, s, 0, []string{"[[1.5, -2.0], [0.25, 3.0]]", "[1.0, 0.33203125]"}, nil)
 
 	read := `import sys
 sys.path.insert(0, sys.argv[1])

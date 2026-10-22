@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/reporoot"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // Kural (Evre 3 bitiş ölçütü; dil tanımı 15.46, 20.14, 20.15): hedef modelin eğitimi bir NaN'de
@@ -21,14 +22,14 @@ func TestTargetModelRollsBackOnNaN(t *testing.T) {
 		"--boyut", "64", "--bakış_sayısı", "4", "--kv_bakış_sayısı", "2", "--ara", "96", "--nan_adımı", "8"}
 
 	dir := t.TempDir()
-	s := run(t, trBinary, dir, "", nil, append(args, "--koşu", "koşu", "--kayıt_dakika", "0", "--atla", "1",
+	s := testkit.RunBinary(t, trBinary, dir, "", nil, append(args, "--koşu", "koşu", "--kayıt_dakika", "0", "--atla", "1",
 		"--kayıplar", "k.json")...)
-	if s.code != 0 {
-		t.Fatalf("kontrol noktalı koşu çıkış %d:\n%s\n%s", s.code, s.stdout, s.stderr)
+	if s.Code != 0 {
+		t.Fatalf("kontrol noktalı koşu çıkış %d:\n%s\n%s", s.Code, s.Stdout, s.Stderr)
 	}
 	for _, want := range []string{"sonlu_değil adım 8", "7. adıma dönüldü, 1 toplu iş atlandı", "adım 12 / 12"} {
-		if !strings.Contains(s.stdout, want) {
-			t.Errorf("çıktıda %q yok:\n%s", want, s.stdout)
+		if !strings.Contains(s.Stdout, want) {
+			t.Errorf("çıktıda %q yok:\n%s", want, s.Stdout)
 		}
 	}
 	raw, err := os.ReadFile(filepath.Join(dir, "k.json"))
@@ -45,9 +46,9 @@ func TestTargetModelRollsBackOnNaN(t *testing.T) {
 		t.Errorf("kayıp kaydı geri dönülen adımdan sürmeliydi: %d adım, 12 bekleniyordu", len(k.Steps))
 	}
 
-	s = run(t, trBinary, t.TempDir(), "", nil, args...)
-	if s.code == 0 || !strings.Contains(s.stdout+s.stderr, "dönülecek kontrol noktası yok") {
-		t.Fatalf("kontrol noktasız koşu açık hatayla durmalıydı (çıkış %d):\n%s\n%s", s.code, s.stdout, s.stderr)
+	s = testkit.RunBinary(t, trBinary, t.TempDir(), "", nil, args...)
+	if s.Code == 0 || !strings.Contains(s.Stdout+s.Stderr, "dönülecek kontrol noktası yok") {
+		t.Fatalf("kontrol noktasız koşu açık hatayla durmalıydı (çıkış %d):\n%s\n%s", s.Code, s.Stdout, s.Stderr)
 	}
 }
 
@@ -64,13 +65,13 @@ func TestTargetModelLossLogSurvivesResumeAndRollback(t *testing.T) {
 		"--toplu", "4", "--mikro", "2", "--bağlam", "32", "--günlük", "4", "--dağarcık", "1000",
 		"--boyut", "64", "--bakış_sayısı", "4", "--kv_bakış_sayısı", "2", "--ara", "96"}
 	dir := t.TempDir()
-	if s := run(t, trBinary, dir, "", nil, append(base, "--adım", "4", "--koşu", "koşu",
-		"--kayıt_dakika", "0", "--kayıplar", "k.json")...); s.code != 0 {
-		t.Fatalf("ilk koşu çıkış %d:\n%s\n%s", s.code, s.stdout, s.stderr)
+	if s := testkit.RunBinary(t, trBinary, dir, "", nil, append(base, "--adım", "4", "--koşu", "koşu",
+		"--kayıt_dakika", "0", "--kayıplar", "k.json")...); s.Code != 0 {
+		t.Fatalf("ilk koşu çıkış %d:\n%s\n%s", s.Code, s.Stdout, s.Stderr)
 	}
-	if s := run(t, trBinary, dir, "", nil, append(base, "--adım", "8", "--koşu", "koşu",
-		"--kayıt_dakika", "15", "--nan_adımı", "6", "--atla", "1", "--kayıplar", "k.json")...); s.code != 0 {
-		t.Fatalf("devam koşusu çıkış %d:\n%s\n%s", s.code, s.stdout, s.stderr)
+	if s := testkit.RunBinary(t, trBinary, dir, "", nil, append(base, "--adım", "8", "--koşu", "koşu",
+		"--kayıt_dakika", "15", "--nan_adımı", "6", "--atla", "1", "--kayıplar", "k.json")...); s.Code != 0 {
+		t.Fatalf("devam koşusu çıkış %d:\n%s\n%s", s.Code, s.Stdout, s.Stderr)
 	}
 	raw, err := os.ReadFile(filepath.Join(dir, "k.json"))
 	if err != nil {
@@ -93,11 +94,11 @@ func TestTargetModelLossLogSurvivesResumeAndRollback(t *testing.T) {
 func TestTargetModelStopsWhenRollbackRepeats(t *testing.T) {
 	script := reporoot.Path("tools/gpu/rgn512.tr")
 	data := reporoot.Path("tests/data/text")
-	s := run(t, trBinary, t.TempDir(), "", nil, script, "--veri", data, "--cihaz", "cpu", "--hassasiyet", "fp32",
+	s := testkit.RunBinary(t, trBinary, t.TempDir(), "", nil, script, "--veri", data, "--cihaz", "cpu", "--hassasiyet", "fp32",
 		"--adım", "12", "--toplu", "4", "--mikro", "2", "--bağlam", "32", "--günlük", "4", "--dağarcık", "1000",
 		"--boyut", "64", "--bakış_sayısı", "4", "--kv_bakış_sayısı", "2", "--ara", "96", "--koşu", "koşu",
 		"--kayıt_dakika", "0", "--atla", "1", "--bekçi_pencere", "2", "--bekçi_eşik", "0.0001")
-	if s.code == 0 || !strings.Contains(s.stdout+s.stderr, "üç kez dönüldü") {
-		t.Fatalf("aynı noktaya üçüncü dönüşte durmalıydı (çıkış %d):\n%s\n%s", s.code, s.stdout, s.stderr)
+	if s.Code == 0 || !strings.Contains(s.Stdout+s.Stderr, "üç kez dönüldü") {
+		t.Fatalf("aynı noktaya üçüncü dönüşte durmalıydı (çıkış %d):\n%s\n%s", s.Code, s.Stdout, s.Stderr)
 	}
 }

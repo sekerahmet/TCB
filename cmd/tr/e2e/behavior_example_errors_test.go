@@ -12,6 +12,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 	_ "github.com/sekerahmet/TCB/internal/stdlib"
+	"github.com/sekerahmet/TCB/internal/testkit"
 	_ "github.com/sekerahmet/TCB/lib"
 )
 
@@ -107,9 +108,9 @@ func TestExampleErrors(t *testing.T) {
 			}
 			for lang, p := range map[string]string{"tr": trPath, "en": enPath} {
 				rel, _ := filepath.Rel(reporoot.Path(), p)
-				s := run(t, trBinary, reporoot.Path(), "", []string{"TR_DIL=" + lang}, filepath.ToSlash(rel))
-				if s.code != 1 || !strings.Contains(s.stderr, "❌") {
-					t.Errorf("%s: çıkış kodu %d (beklenen 1), hata çıktısı:\n%s", rel, s.code, s.stderr)
+				s := testkit.RunBinary(t, trBinary, reporoot.Path(), "", []string{"TR_DIL=" + lang}, filepath.ToSlash(rel))
+				if s.Code != 1 || !strings.Contains(s.Stderr, "❌") {
+					t.Errorf("%s: çıkış kodu %d (beklenen 1), hata çıktısı:\n%s", rel, s.Code, s.Stderr)
 				}
 			}
 		})

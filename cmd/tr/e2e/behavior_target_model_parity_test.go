@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/reporoot"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // Hedef modelin TR karşılığı (tools/gpu/rgn512.tr) PyTorch sürümüyle (rgn512.py) sayısal olarak
@@ -31,12 +32,12 @@ func TestTargetModelMatchesPyTorch(t *testing.T) {
 	if out, err := exec.Command(python, ref...).CombinedOutput(); err != nil {
 		t.Fatalf("referans koşusu: %v\n%s", err, out)
 	}
-	s := run(t, trBinary, dir, "", nil, filepath.Join(tools, "rgn512.tr"),
+	s := testkit.RunBinary(t, trBinary, dir, "", nil, filepath.Join(tools, "rgn512.tr"),
 		"--veri", "data", "--ağırlık", "init.trt", "--sıralı", "--hassasiyet", "fp32", "--cihaz", "cpu",
 		"--adım", "5", "--toplu", "4", "--mikro", "2", "--bağlam", "64", "--günlük", "5", "--kayıplar", "tr.json",
 		"--dağarcık", "256", "--boyut", "64", "--bakış_sayısı", "4", "--kv_bakış_sayısı", "2", "--ara", "96")
-	if s.code != 0 {
-		t.Fatalf("TR koşusu çıkış %d:\n%s\n%s", s.code, s.stdout, s.stderr)
+	if s.Code != 0 {
+		t.Fatalf("TR koşusu çıkış %d:\n%s\n%s", s.Code, s.Stdout, s.Stderr)
 	}
 	type steps struct {
 		Steps []struct {

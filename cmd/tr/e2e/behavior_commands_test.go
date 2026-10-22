@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // Komut satırının temel komutları: yardım ve sürüm, komut adları, dosya çalıştırma, kontrol,
@@ -16,12 +18,12 @@ func TestHelpAndVersion(t *testing.T) {
 	for _, a := range []string{"yardım", "-h"} {
 		s := tr(t, "", a)
 		// Yardım her komutu listeler (hakem mimari 22: dap eksikti)
-		wait(t, s, 0, []string{"Kullanım:", "tr derle <dosya.tr>", "tr test", "tr çalıştır", "tr hata_ayıkla",
+		testkit.Wait(t, s, 0, []string{"Kullanım:", "tr derle <dosya.tr>", "tr test", "tr çalıştır", "tr hata_ayıkla",
 			"tr kontrol", "tr biçimle", "tr dap", "tr yardım", "tr sürüm"}, nil)
 	}
 	for _, a := range []string{"sürüm", "-v"} {
 		s := tr(t, "", a)
-		wait(t, s, 0, []string{"v" + trVersion(t)}, nil)
+		testkit.Wait(t, s, 0, []string{"v" + trVersion(t)}, nil)
 	}
 }
 
@@ -30,31 +32,31 @@ func TestHelpAndVersion(t *testing.T) {
 // --version dosya adı sanılmaz, asıl komutu öneren bir hatayla 1 koduyla çıkar.
 func TestCommandsHaveOneName(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, dir, "a.tr", "yazdır(\"çalıştı\")\n")
+	testkit.WriteFile(t, dir, "a.tr", "yazdır(\"çalıştı\")\n")
 	for ad, actual := range map[string]string{
 		"calistir": "çalıştır", "bicimle": "biçimle", "hata_ayikla": "hata_ayıkla",
 		"yardim": "yardım", "--help": "yardım", "surum": "sürüm", "--version": "sürüm",
 	} {
 		s := tr(t, dir, ad, "a.tr")
-		wait(t, s, 1, nil, []string{"'" + ad + "' TR'de bir komut değil; 'tr " + actual + "' yazmak mı istediniz?"})
-		if strings.Contains(s.stdout, "çalıştı") {
+		testkit.Wait(t, s, 1, nil, []string{"'" + ad + "' TR'de bir komut değil; 'tr " + actual + "' yazmak mı istediniz?"})
+		if strings.Contains(s.Stdout, "çalıştı") {
 			t.Errorf("%s: program çalışmamalıydı", ad)
 		}
 	}
 	// Seçenekler de ad kodudur (K1xx): her dilin adı kabul edilir, sözcükleri tireyle yazılır.
-	wait(t, tr(t, dir, "biçimle", "--check", "a.tr"), 0, nil, nil)
-	wait(t, tr(t, dir, "format", "--kontrol", "a.tr"), 0, nil, nil)
-	wait(t, tr(t, dir, "profil", "--go_profili", "x.prof", "a.tr"), 1, nil, []string{"bilinmeyen seçenek \"--go_profili\"", "--go-profili"})
+	testkit.Wait(t, tr(t, dir, "biçimle", "--check", "a.tr"), 0, nil, nil)
+	testkit.Wait(t, tr(t, dir, "format", "--kontrol", "a.tr"), 0, nil, nil)
+	testkit.Wait(t, tr(t, dir, "profil", "--go_profili", "x.prof", "a.tr"), 1, nil, []string{"bilinmeyen seçenek \"--go_profili\"", "--go-profili"})
 	// İngilizce yazım dilinin adları da her makinede komuttur.
-	wait(t, tr(t, dir, "run", "a.tr"), 0, []string{"çalıştı"}, nil)
-	wait(t, tr(t, dir, "version"), 0, []string{"v" + trVersion(t)}, nil)
-	wait(t, tr(t, dir, "help"), 0, []string{"Kullanım:"}, nil)
+	testkit.Wait(t, tr(t, dir, "run", "a.tr"), 0, []string{"çalıştı"}, nil)
+	testkit.Wait(t, tr(t, dir, "version"), 0, []string{"v" + trVersion(t)}, nil)
+	testkit.Wait(t, tr(t, dir, "help"), 0, []string{"Kullanım:"}, nil)
 }
 
 func TestMissingArgument(t *testing.T) {
 	for _, k := range []string{"kontrol", "derle", "hata_ayıkla", "çalıştır", "biçimle"} {
 		s := tr(t, "", k)
-		wait(t, s, 1, nil, []string{"Hata: Lütfen"})
+		testkit.Wait(t, s, 1, nil, []string{"Hata: Lütfen"})
 	}
 }
 
@@ -62,106 +64,106 @@ func TestMissingArgument(t *testing.T) {
 // çalışır ve çıkış kodu 0 kalır.
 func TestShadowingWarning(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, dir, "a.tr", "değişken toplam = 5\nyazdır(toplam)\n")
+	testkit.WriteFile(t, dir, "a.tr", "değişken toplam = 5\nyazdır(toplam)\n")
 	for _, command := range [][]string{{"a.tr"}, {"kontrol", "a.tr"}} {
 		s := tr(t, dir, command...)
-		wait(t, s, 0, nil, []string{"⚠️ Uyarılar:\n  • Satır 1: 'toplam' yerleşik bir ad; bu kapsamda yerleşik 'toplam' artık kullanılamaz", "1 | değişken toplam = 5"})
-		if strings.Contains(s.stderr, "❌") || strings.Contains(s.stdout, "Uyarı") {
-			t.Errorf("%v: uyarı hata başlığıyla ya da standart çıktıya yazılmamalı:\n%s\n%s", command, s.stdout, s.stderr)
+		testkit.Wait(t, s, 0, nil, []string{"⚠️ Uyarılar:\n  • Satır 1: 'toplam' yerleşik bir ad; bu kapsamda yerleşik 'toplam' artık kullanılamaz", "1 | değişken toplam = 5"})
+		if strings.Contains(s.Stderr, "❌") || strings.Contains(s.Stdout, "Uyarı") {
+			t.Errorf("%v: uyarı hata başlığıyla ya da standart çıktıya yazılmamalı:\n%s\n%s", command, s.Stdout, s.Stderr)
 		}
 	}
-	wait(t, tr(t, dir, "a.tr"), 0, []string{"5"}, nil)
+	testkit.Wait(t, tr(t, dir, "a.tr"), 0, []string{"5"}, nil)
 }
 
 func TestUnknownCommand(t *testing.T) {
 	dir := t.TempDir()
 	s := tr(t, dir, "olmayan_komut")
-	wait(t, s, 1, nil, []string{"Dosya okuma hatası", "olmayan_komut", "böyle bir dosya ya da klasör yok"})
+	testkit.Wait(t, s, 1, nil, []string{"Dosya okuma hatası", "olmayan_komut", "böyle bir dosya ya da klasör yok"})
 }
 
 func TestRunFile(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, dir, "iyi.tr", "değişken ad = \"dünya\"\nyazdır(\"merhaba {ad}\")\n")
-	writeFile(t, dir, "sozdizimi.tr", "yazdır(\"a\"\n")
-	writeFile(t, dir, "tip.tr", "değişken x: Tam = \"metin\"\nyazdır(\"çalışmamalı\")\n")
-	writeFile(t, dir, "calisma.tr", "yazdır(\"önce\")\ndeğişken y = 1 / 0\nyazdır(\"sonra\")\n")
+	testkit.WriteFile(t, dir, "iyi.tr", "değişken ad = \"dünya\"\nyazdır(\"merhaba {ad}\")\n")
+	testkit.WriteFile(t, dir, "sozdizimi.tr", "yazdır(\"a\"\n")
+	testkit.WriteFile(t, dir, "tip.tr", "değişken x: Tam = \"metin\"\nyazdır(\"çalışmamalı\")\n")
+	testkit.WriteFile(t, dir, "calisma.tr", "yazdır(\"önce\")\ndeğişken y = 1 / 0\nyazdır(\"sonra\")\n")
 
 	for _, args := range [][]string{{"iyi.tr"}, {"çalıştır", "iyi.tr"}} {
-		wait(t, tr(t, dir, args...), 0, []string{"merhaba dünya"}, nil)
+		testkit.Wait(t, tr(t, dir, args...), 0, []string{"merhaba dünya"}, nil)
 	}
 
 	s := tr(t, dir, "sozdizimi.tr")
-	wait(t, s, 1, nil, []string{"❌ Sözdizimi Hataları:", "  • Satır 2, Sütun 1"})
+	testkit.Wait(t, s, 1, nil, []string{"❌ Sözdizimi Hataları:", "  • Satır 2, Sütun 1"})
 
 	s = tr(t, dir, "tip.tr")
-	wait(t, s, 1, nil, []string{"❌ Tip ve Güvenlik Denetimi Hataları:", "Tip uyuşmazlığı", "1 | değişken x: Tam"})
-	if strings.Contains(s.stdout, "çalışmamalı") {
+	testkit.Wait(t, s, 1, nil, []string{"❌ Tip ve Güvenlik Denetimi Hataları:", "Tip uyuşmazlığı", "1 | değişken x: Tam"})
+	if strings.Contains(s.Stdout, "çalışmamalı") {
 		t.Error("tip hatalı program çalıştırılmamalıydı")
 	}
 
 	s = tr(t, dir, "calisma.tr")
-	wait(t, s, 1, []string{"önce"}, []string{"❌ Çalışma Zamanı Hatası:", "Satır 2: Sıfıra bölme hatası", "2 | değişken y = 1 / 0"})
-	if strings.Contains(s.stdout, "sonra") {
+	testkit.Wait(t, s, 1, []string{"önce"}, []string{"❌ Çalışma Zamanı Hatası:", "Satır 2: Sıfıra bölme hatası", "2 | değişken y = 1 / 0"})
+	if strings.Contains(s.Stdout, "sonra") {
 		t.Error("çalışma hatasından sonra program durmalıydı")
 	}
 }
 
 func TestCheck(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, dir, "iyi.tr", "yazdır(\"çalışmamalı\")\n")
-	writeFile(t, dir, "tip.tr", "değişken x: Tam = \"metin\"\n")
-	writeFile(t, dir, "sozdizimi.tr", "fonksiyon f( {\n")
+	testkit.WriteFile(t, dir, "iyi.tr", "yazdır(\"çalışmamalı\")\n")
+	testkit.WriteFile(t, dir, "tip.tr", "değişken x: Tam = \"metin\"\n")
+	testkit.WriteFile(t, dir, "sozdizimi.tr", "fonksiyon f( {\n")
 
 	s := tr(t, dir, "kontrol", "iyi.tr")
-	wait(t, s, 0, []string{"iyi.tr başarıyla denetlendi"}, nil)
-	if strings.Contains(s.stdout, "çalışmamalı") {
+	testkit.Wait(t, s, 0, []string{"iyi.tr başarıyla denetlendi"}, nil)
+	if strings.Contains(s.Stdout, "çalışmamalı") {
 		t.Error("kontrol programı çalıştırmamalı")
 	}
-	wait(t, tr(t, dir, "kontrol", "tip.tr"), 1, nil, []string{"❌ Tip ve Güvenlik Denetimi Hataları:"})
-	wait(t, tr(t, dir, "kontrol", "sozdizimi.tr"), 1, nil, []string{"❌ Sözdizimi Hataları:"})
-	wait(t, tr(t, dir, "kontrol", "yok.tr"), 1, nil, []string{"Dosya okuma hatası", "yok.tr", "böyle bir dosya ya da klasör yok"})
+	testkit.Wait(t, tr(t, dir, "kontrol", "tip.tr"), 1, nil, []string{"❌ Tip ve Güvenlik Denetimi Hataları:"})
+	testkit.Wait(t, tr(t, dir, "kontrol", "sozdizimi.tr"), 1, nil, []string{"❌ Sözdizimi Hataları:"})
+	testkit.Wait(t, tr(t, dir, "kontrol", "yok.tr"), 1, nil, []string{"Dosya okuma hatası", "yok.tr", "böyle bir dosya ya da klasör yok"})
 }
 
 func TestTestCommand(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, dir, "gecen/a_test.tr", "test \"toplama\" {\n    eşit_mi(4, 2 + 2)\n}\n")
-	writeFile(t, dir, "kalan/b_test.tr", "test \"yanlış\" {\n    eşit_mi(5, 2 + 2)\n}\n")
+	testkit.WriteFile(t, dir, "gecen/a_test.tr", "test \"toplama\" {\n    eşit_mi(4, 2 + 2)\n}\n")
+	testkit.WriteFile(t, dir, "kalan/b_test.tr", "test \"yanlış\" {\n    eşit_mi(5, 2 + 2)\n}\n")
 
-	wait(t, tr(t, dir, "test", "gecen"), 0, []string{"toplama"}, nil)
-	wait(t, tr(t, dir, "test", "kalan"), 1, []string{"yanlış"}, nil)
+	testkit.Wait(t, tr(t, dir, "test", "gecen"), 0, []string{"toplama"}, nil)
+	testkit.Wait(t, tr(t, dir, "test", "kalan"), 1, []string{"yanlış"}, nil)
 	// Hedefsiz: bulunulan klasördeki tüm *_test.tr dosyaları (biri kalıyor).
-	wait(t, tr(t, dir, "test"), 1, []string{"toplama", "yanlış"}, nil)
-	wait(t, tr(t, dir, "test", "olmayan"), 1, nil, []string{"Hata:"})
+	testkit.Wait(t, tr(t, dir, "test"), 1, []string{"toplama", "yanlış"}, nil)
+	testkit.Wait(t, tr(t, dir, "test", "olmayan"), 1, nil, []string{"Hata:"})
 }
 
 func TestFormat(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, dir, "a.tr", "değişken   x=1\nyazdır( x )\n")
+	testkit.WriteFile(t, dir, "a.tr", "değişken   x=1\nyazdır( x )\n")
 
 	s := tr(t, dir, "biçimle", "--kontrol", "a.tr")
-	wait(t, s, 1, []string{"biçimlenmeli: a.tr"}, nil)
+	testkit.Wait(t, s, 1, []string{"biçimlenmeli: a.tr"}, nil)
 
-	wait(t, tr(t, dir, "biçimle", "a.tr"), 0, []string{"biçimlendi: a.tr"}, nil)
-	wait(t, tr(t, dir, "biçimle", "--kontrol", "."), 0, []string{"hepsi standart biçimde"}, nil)
-	wait(t, tr(t, dir, "biçimle", "olmayan.tr"), 1, nil, []string{`"olmayan.tr" biçimlenemedi: böyle bir dosya ya da klasör yok`})
+	testkit.Wait(t, tr(t, dir, "biçimle", "a.tr"), 0, []string{"biçimlendi: a.tr"}, nil)
+	testkit.Wait(t, tr(t, dir, "biçimle", "--kontrol", "."), 0, []string{"hepsi standart biçimde"}, nil)
+	testkit.Wait(t, tr(t, dir, "biçimle", "olmayan.tr"), 1, nil, []string{`"olmayan.tr" biçimlenemedi: böyle bir dosya ya da klasör yok`})
 	// Sözdizimi hatalı dosya varken "hepsi standart biçimde" denmez
-	writeFile(t, dir, "bozuk.tr", "yazdır(\n")
+	testkit.WriteFile(t, dir, "bozuk.tr", "yazdır(\n")
 	s = tr(t, dir, "biçimle", "--kontrol", ".")
-	wait(t, s, 1, []string{"1 tanesi biçimlenemedi"}, []string{"bozuk.tr"})
-	if strings.Contains(s.stdout, "standart biçimde") {
-		t.Errorf("hatalı dosya varken başarı yazılmamalı: %q", s.stdout)
+	testkit.Wait(t, s, 1, []string{"1 tanesi biçimlenemedi"}, []string{"bozuk.tr"})
+	if strings.Contains(s.Stdout, "standart biçimde") {
+		t.Errorf("hatalı dosya varken başarı yazılmamalı: %q", s.Stdout)
 	}
 }
 
 func TestDAPStartup(t *testing.T) {
 	body := `{"seq":1,"type":"request","command":"initialize","arguments":{"adapterID":"tr"}}`
 	input := fmt.Sprintf("Content-Length: %d\r\n\r\n%s", len(body), body)
-	s := run(t, trBinary, "", input, nil, "dap")
-	wait(t, s, 0, []string{"Content-Length:", `"command":"initialize"`, `"success":true`, `"event":"initialized"`}, nil)
+	s := testkit.RunBinary(t, trBinary, "", input, nil, "dap")
+	testkit.Wait(t, s, 0, []string{"Content-Length:", `"command":"initialize"`, `"success":true`, `"event":"initialized"`}, nil)
 
 	// Bozuk çerçeve: sunucu hatayı Türkçe bildirip 1 koduyla çıkar.
-	s = run(t, trBinary, "", "Content-Length: abc\r\n\r\n", nil, "dap")
-	wait(t, s, 1, nil, []string{"❌ Hata ayıklama sunucusu:"})
+	s = testkit.RunBinary(t, trBinary, "", "Content-Length: abc\r\n\r\n", nil, "dap")
+	testkit.Wait(t, s, 1, nil, []string{"❌ Hata ayıklama sunucusu:"})
 }
 
 func TestREPL(t *testing.T) {
@@ -174,8 +176,8 @@ func TestREPL(t *testing.T) {
 		`cikis`,
 		`çıkış`,
 	}, "\n") + "\n"
-	s := run(t, trBinary, "", input, nil)
-	wait(t, s, 0, []string{"merhaba", "=> 5", "Görüşmek üzere!"}, []string{
+	s := testkit.RunBinary(t, trBinary, "", input, nil)
+	testkit.Wait(t, s, 0, []string{"merhaba", "=> 5", "Görüşmek üzere!"}, []string{
 		"'cikis' TR'de bir komut değil; çıkmak için 'çıkış' yazın.",
 		"❌ Sözdizimi Hataları:\n  • Satır 1, Sütun 4",
 		"❌ Tip ve Güvenlik Denetimi Hataları:\n  • Satır 1: Tip uyuşmazlığı",
@@ -183,18 +185,18 @@ func TestREPL(t *testing.T) {
 		"1 | 1 / 0",
 	})
 	for _, p := range []string{"Hata", "❌"} {
-		if strings.Contains(s.stdout, p) {
-			t.Errorf("hatalar standart çıktıya yazılmamalı (%q bulundu):\n%s", p, s.stdout)
+		if strings.Contains(s.Stdout, p) {
+			t.Errorf("hatalar standart çıktıya yazılmamalı (%q bulundu):\n%s", p, s.Stdout)
 		}
 	}
 	// Denetleyici durumunu korur; eski tip hatası sonraki satırlarda yinelenmemeli.
-	if n := strings.Count(s.stderr, "Tip uyuşmazlığı"); n != 1 {
-		t.Errorf("tip hatası %d kez yazıldı, beklenen 1:\n%s", n, s.stderr)
+	if n := strings.Count(s.Stderr, "Tip uyuşmazlığı"); n != 1 {
+		t.Errorf("tip hatası %d kez yazıldı, beklenen 1:\n%s", n, s.Stderr)
 	}
 	// Kabuğun çıkış komutu bir ad kodudur (K200): her yazım dilinin adı kabul edilir.
-	s = run(t, trBinary, "", "exit\nyazdır(\"sürdü\")\n", nil)
-	wait(t, s, 0, []string{"Görüşmek üzere!"}, nil)
-	if strings.Contains(s.stdout, "sürdü") {
+	s = testkit.RunBinary(t, trBinary, "", "exit\nyazdır(\"sürdü\")\n", nil)
+	testkit.Wait(t, s, 0, []string{"Görüşmek üzere!"}, nil)
+	if strings.Contains(s.Stdout, "sürdü") {
 		t.Error("exit kabuğu kapatmalıydı")
 	}
 }
@@ -203,13 +205,13 @@ func TestREPL(t *testing.T) {
 // kabukta girdi() bir sonraki satırı alır, kabuk satırları yutulmaz.
 func TestInputPipeAndShell(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, dir, "g.tr", "değişken a = girdi()\ndeğişken b = girdi()\nyazdır(\"a=[{a}] b=[{b}]\")\n")
-	s := run(t, trBinary, dir, "bir\niki\n", nil, "g.tr")
-	wait(t, s, 0, []string{"a=[bir] b=[iki]"}, nil)
+	testkit.WriteFile(t, dir, "g.tr", "değişken a = girdi()\ndeğişken b = girdi()\nyazdır(\"a=[{a}] b=[{b}]\")\n")
+	s := testkit.RunBinary(t, trBinary, dir, "bir\niki\n", nil, "g.tr")
+	testkit.Wait(t, s, 0, []string{"a=[bir] b=[iki]"}, nil)
 
 	input := "değişken x = girdi()\nveri\nyazdır(\"x=\" + x)\nçıkış\n"
-	s = run(t, trBinary, "", input, nil)
-	wait(t, s, 0, []string{"x=veri", "Görüşmek üzere!"}, nil)
+	s = testkit.RunBinary(t, trBinary, "", input, nil)
+	testkit.Wait(t, s, 0, []string{"x=veri", "Görüşmek üzere!"}, nil)
 }
 
 // avxExpected derlenmiş yorumlayıcının GOAMD64=v3 ile derlenip derlenmediğini okur.
@@ -233,7 +235,7 @@ func avxExpected(t *testing.T) bool {
 
 func TestBuildEmbedsModules(t *testing.T) {
 	source := t.TempDir()
-	writeFile(t, source, "proje/ana.tr", strings.Join([]string{
+	testkit.WriteFile(t, source, "proje/ana.tr", strings.Join([]string{
 		`aktar "lib/yardimci"`,
 		`aktar "lib/yardimci.tr" olarak y`,
 		`eğer doğru {`,
@@ -242,20 +244,20 @@ func TestBuildEmbedsModules(t *testing.T) {
 		`}`,
 	}, "\n")+"\n")
 	// Modül içindeki aktarım, modülün klasörüne göre çözülür (yorumlayıcıdaki kural).
-	writeFile(t, source, "proje/lib/yardimci.tr", "aktar \"ic.tr\"\ndeğişken SELAM = \"merhaba\"\nfonksiyon topla(a, b) {\n    sonuç a + b + IC\n}\n")
-	writeFile(t, source, "proje/lib/ic.tr", "\xef\xbb\xbfdeğişken IC = 100\n")
-	writeFile(t, source, "proje/alt/derin.tr", "aktar \"../lib/ic\"\ndeğişken DERIN = IC + 1\n")
+	testkit.WriteFile(t, source, "proje/lib/yardimci.tr", "aktar \"ic.tr\"\ndeğişken SELAM = \"merhaba\"\nfonksiyon topla(a, b) {\n    sonuç a + b + IC\n}\n")
+	testkit.WriteFile(t, source, "proje/lib/ic.tr", "\xef\xbb\xbfdeğişken IC = 100\n")
+	testkit.WriteFile(t, source, "proje/alt/derin.tr", "aktar \"../lib/ic\"\ndeğişken DERIN = IC + 1\n")
 
 	// Önce yorumlayıcıyla: beklenen çıktı.
 	expected := "toplam 105 merhaba 101"
-	wait(t, tr(t, filepath.Join(source, "proje"), "ana.tr"), 0, []string{expected}, nil)
+	testkit.Wait(t, tr(t, filepath.Join(source, "proje"), "ana.tr"), 0, []string{expected}, nil)
 
 	exit := filepath.Join(t.TempDir(), "uygulama.exe")
 	s := tr(t, source, "derle", filepath.Join("proje", "ana.tr"), exit)
-	wait(t, s, 0, []string{"Başarıyla derlendi", "Gömülen modüller (3)", "proje/lib/yardimci.tr", "proje/lib/ic.tr", "proje/alt/derin.tr"}, nil)
-	avxNote := strings.Contains(s.stdout, "AVX2")
+	testkit.Wait(t, s, 0, []string{"Başarıyla derlendi", "Gömülen modüller (3)", "proje/lib/yardimci.tr", "proje/lib/ic.tr", "proje/alt/derin.tr"}, nil)
+	avxNote := strings.Contains(s.Stdout, "AVX2")
 	if avxNote != avxExpected(t) {
-		t.Errorf("AVX2 notu: çıktıda %v, beklenen %v\n%s", avxNote, !avxNote, s.stdout)
+		t.Errorf("AVX2 notu: çıktıda %v, beklenen %v\n%s", avxNote, !avxNote, s.Stdout)
 	}
 
 	// Kaynaklar silinir; uygulama başka bir klasörde çalışır. Oradaki aynı adlı dosya
@@ -264,12 +266,12 @@ func TestBuildEmbedsModules(t *testing.T) {
 		t.Fatal(err)
 	}
 	other := t.TempDir()
-	writeFile(t, other, "lib/yardimci.tr", "değişken SELAM = \"SAHTE\"\nfonksiyon topla(a, b) { sonuç 0 }\n")
+	testkit.WriteFile(t, other, "lib/yardimci.tr", "değişken SELAM = \"SAHTE\"\nfonksiyon topla(a, b) { sonuç 0 }\n")
 	temp := t.TempDir()
 	env := []string{"TMP=" + temp, "TEMP=" + temp, "TMPDIR=" + temp}
-	s = run(t, exit, other, "", env)
-	wait(t, s, 0, []string{expected}, nil)
-	if strings.Contains(s.stdout, "SAHTE") {
+	s = testkit.RunBinary(t, exit, other, "", env)
+	testkit.Wait(t, s, 0, []string{expected}, nil)
+	if strings.Contains(s.Stdout, "SAHTE") {
 		t.Error("bulunulan klasördeki dosya gömülü modülün yerine geçti")
 	}
 	if inputs, _ := os.ReadDir(temp); len(inputs) != 0 {
@@ -279,15 +281,15 @@ func TestBuildEmbedsModules(t *testing.T) {
 
 func TestBuildCleansUpOnRunError(t *testing.T) {
 	source := t.TempDir()
-	writeFile(t, source, "ana.tr", "aktar \"m\"\nyazdır(bol(1))\n")
-	writeFile(t, source, "m.tr", "fonksiyon bol(a) {\n    sonuç a / 0\n}\n")
+	testkit.WriteFile(t, source, "ana.tr", "aktar \"m\"\nyazdır(bol(1))\n")
+	testkit.WriteFile(t, source, "m.tr", "fonksiyon bol(a) {\n    sonuç a / 0\n}\n")
 	exit := filepath.Join(t.TempDir(), "app.exe")
-	wait(t, tr(t, source, "derle", "ana.tr", exit), 0, nil, nil)
+	testkit.Wait(t, tr(t, source, "derle", "ana.tr", exit), 0, nil, nil)
 
 	temp := t.TempDir()
 	env := []string{"TMP=" + temp, "TEMP=" + temp, "TMPDIR=" + temp}
-	s := run(t, exit, t.TempDir(), "", env)
-	wait(t, s, 1, nil, []string{"❌ Çalışma Zamanı Hatası:", "Sıfıra bölme hatası"})
+	s := testkit.RunBinary(t, exit, t.TempDir(), "", env)
+	testkit.Wait(t, s, 1, nil, []string{"❌ Çalışma Zamanı Hatası:", "Sıfıra bölme hatası"})
 	if inputs, _ := os.ReadDir(temp); len(inputs) != 0 {
 		t.Errorf("hata ile çıkışta geçici klasör silinmedi: %v", inputs)
 	}
@@ -295,41 +297,41 @@ func TestBuildCleansUpOnRunError(t *testing.T) {
 
 func TestBuildModuleErrors(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, dir, "eksik.tr", "yazdır(1)\naktar \"yok_boyle_modul\"\n")
-	writeFile(t, dir, "bozuk.tr", "aktar \"bozuk_modul\"\n")
-	writeFile(t, dir, "bozuk_modul.tr", "fonksiyon f( {\n")
+	testkit.WriteFile(t, dir, "eksik.tr", "yazdır(1)\naktar \"yok_boyle_modul\"\n")
+	testkit.WriteFile(t, dir, "bozuk.tr", "aktar \"bozuk_modul\"\n")
+	testkit.WriteFile(t, dir, "bozuk_modul.tr", "fonksiyon f( {\n")
 
 	exit := filepath.Join(dir, "x.exe")
 	s := tr(t, dir, "derle", "eksik.tr", exit)
-	wait(t, s, 1, nil, []string{"❌ Derleme hatası:", "satır 2", `"yok_boyle_modul" modülü bulunamadı`, "yok_boyle_modul.tr"})
+	testkit.Wait(t, s, 1, nil, []string{"❌ Derleme hatası:", "satır 2", `"yok_boyle_modul" modülü bulunamadı`, "yok_boyle_modul.tr"})
 	if _, err := os.Stat(exit); err == nil {
 		t.Error("hatalı derlemede çıktı dosyası oluşmamalı")
 	}
 
 	s = tr(t, dir, "derle", "bozuk.tr", exit)
-	wait(t, s, 1, nil, []string{"❌ Derleme Öncesi Sözdizimi Hataları (bozuk_modul.tr modülünde):"})
+	testkit.Wait(t, s, 1, nil, []string{"❌ Derleme Öncesi Sözdizimi Hataları (bozuk_modul.tr modülünde):"})
 
-	writeFile(t, dir, "tip.tr", "değişken x: Tam = \"a\"\n")
-	wait(t, tr(t, dir, "derle", "tip.tr", exit), 1, nil, []string{"❌ Derleme Öncesi Tip Güvenliği Hataları:"})
+	testkit.WriteFile(t, dir, "tip.tr", "değişken x: Tam = \"a\"\n")
+	testkit.Wait(t, tr(t, dir, "derle", "tip.tr", exit), 1, nil, []string{"❌ Derleme Öncesi Tip Güvenliği Hataları:"})
 
 	// Modüller de tip denetiminden geçer; modülde üst düzey 'sonuç' hatadır.
-	writeFile(t, dir, "tipli.tr", "aktar \"tip_modul\"\n")
-	writeFile(t, dir, "tip_modul.tr", "yazdır(1)\ndeğişken y: Tam = \"b\"\n")
-	wait(t, tr(t, dir, "derle", "tipli.tr", exit), 1, nil, []string{"❌ Derleme Öncesi Tip Güvenliği Hataları (tip_modul.tr modülünde):", "Satır 2: Tip uyuşmazlığı", "2 | değişken y: Tam"})
-	writeFile(t, dir, "sonuclu.tr", "aktar \"sonuc_modul\"\n")
-	writeFile(t, dir, "sonuc_modul.tr", "sonuç 1\n")
-	wait(t, tr(t, dir, "derle", "sonuclu.tr", exit), 1, nil, []string{"(sonuc_modul.tr modülünde)", "'sonuç' modülün üst düzeyinde kullanılamaz"})
+	testkit.WriteFile(t, dir, "tipli.tr", "aktar \"tip_modul\"\n")
+	testkit.WriteFile(t, dir, "tip_modul.tr", "yazdır(1)\ndeğişken y: Tam = \"b\"\n")
+	testkit.Wait(t, tr(t, dir, "derle", "tipli.tr", exit), 1, nil, []string{"❌ Derleme Öncesi Tip Güvenliği Hataları (tip_modul.tr modülünde):", "Satır 2: Tip uyuşmazlığı", "2 | değişken y: Tam"})
+	testkit.WriteFile(t, dir, "sonuclu.tr", "aktar \"sonuc_modul\"\n")
+	testkit.WriteFile(t, dir, "sonuc_modul.tr", "sonuç 1\n")
+	testkit.Wait(t, tr(t, dir, "derle", "sonuclu.tr", exit), 1, nil, []string{"(sonuc_modul.tr modülünde)", "'sonuç' modülün üst düzeyinde kullanılamaz"})
 }
 
 // tr derle kaynağın ya da başka bir .tr dosyasının üzerine yazmaz (veri kaybı).
 func TestBuildDoesNotOverwriteSource(t *testing.T) {
 	dir := t.TempDir()
 	source := "yazdır(\"uygulama\")\n"
-	writeFile(t, dir, "uyg.tr", source)
-	writeFile(t, dir, "baska.tr", "yazdır(2)\n")
+	testkit.WriteFile(t, dir, "uyg.tr", source)
+	testkit.WriteFile(t, dir, "baska.tr", "yazdır(2)\n")
 	for _, exit := range []string{"uyg.tr", "./uyg.tr", filepath.Join(dir, "uyg.tr"), "baska.tr", "yeni.TR"} {
 		s := tr(t, dir, "derle", "uyg.tr", exit)
-		wait(t, s, 1, nil, []string{"❌ Derleme hatası:"})
+		testkit.Wait(t, s, 1, nil, []string{"❌ Derleme hatası:"})
 	}
 	for ad, content := range map[string]string{"uyg.tr": source, "baska.tr": "yazdır(2)\n"} {
 		if data, _ := os.ReadFile(filepath.Join(dir, ad)); string(data) != content {
@@ -344,28 +346,28 @@ func TestBuildDoesNotOverwriteSource(t *testing.T) {
 // tr kontrol aktarılan modülleri de denetler; modül hatası modülün adı ve satırıyla yazılır.
 func TestCheckModules(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, dir, "ana.tr", "yazdır(\"ana\")\naktar \"lib/m\"\n")
-	writeFile(t, dir, "lib/m.tr", "aktar \"ic\"\n")
-	writeFile(t, dir, "lib/ic.tr", "değişken a = 1\nsabit S = 1\nS = 2\n")
+	testkit.WriteFile(t, dir, "ana.tr", "yazdır(\"ana\")\naktar \"lib/m\"\n")
+	testkit.WriteFile(t, dir, "lib/m.tr", "aktar \"ic\"\n")
+	testkit.WriteFile(t, dir, "lib/ic.tr", "değişken a = 1\nsabit S = 1\nS = 2\n")
 	s := tr(t, dir, "kontrol", "ana.tr")
-	wait(t, s, 1, nil, []string{"❌ Tip ve Güvenlik Denetimi Hataları (lib/ic.tr modülünde):", "Satır 3: Sabit hatası", "3 | S = 2"})
-	if strings.Contains(s.stdout, "ana") {
-		t.Errorf("kontrol programı çalıştırmamalı: %q", s.stdout)
+	testkit.Wait(t, s, 1, nil, []string{"❌ Tip ve Güvenlik Denetimi Hataları (lib/ic.tr modülünde):", "Satır 3: Sabit hatası", "3 | S = 2"})
+	if strings.Contains(s.Stdout, "ana") {
+		t.Errorf("kontrol programı çalıştırmamalı: %q", s.Stdout)
 	}
-	writeFile(t, dir, "eksik.tr", "aktar \"olmayan\"\n")
-	wait(t, tr(t, dir, "kontrol", "eksik.tr"), 1, nil, []string{"❌ Modül hatası:", `"olmayan" modülü bulunamadı`})
-	writeFile(t, dir, "lib/ic.tr", "değişken a = 1\n")
-	wait(t, tr(t, dir, "kontrol", "ana.tr"), 0, []string{"başarıyla denetlendi"}, nil)
+	testkit.WriteFile(t, dir, "eksik.tr", "aktar \"olmayan\"\n")
+	testkit.Wait(t, tr(t, dir, "kontrol", "eksik.tr"), 1, nil, []string{"❌ Modül hatası:", `"olmayan" modülü bulunamadı`})
+	testkit.WriteFile(t, dir, "lib/ic.tr", "değişken a = 1\n")
+	testkit.Wait(t, tr(t, dir, "kontrol", "ana.tr"), 0, []string{"başarıyla denetlendi"}, nil)
 }
 
 // Modüldeki çalışma hatası modülün adı, satırı ve kod çerçevesiyle yazılır.
 func TestModuleRunErrorFrame(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, dir, "ana.tr", "yazdır(1)\n\naktar \"m2\"\n")
-	writeFile(t, dir, "m2.tr", "değişken x = 1\n\ndeğişken z = x / 0\n")
+	testkit.WriteFile(t, dir, "ana.tr", "yazdır(1)\n\naktar \"m2\"\n")
+	testkit.WriteFile(t, dir, "m2.tr", "değişken x = 1\n\ndeğişken z = x / 0\n")
 	s := tr(t, dir, "ana.tr")
-	wait(t, s, 1, nil, []string{"• m2.tr, Satır 3: Sıfıra bölme hatası", "3 | değişken z = x / 0"})
-	if strings.Contains(s.stderr, "aktar \"m2\"") {
-		t.Errorf("çerçeve ana programın satırını göstermemeli:\n%s", s.stderr)
+	testkit.Wait(t, s, 1, nil, []string{"• m2.tr, Satır 3: Sıfıra bölme hatası", "3 | değişken z = x / 0"})
+	if strings.Contains(s.Stderr, "aktar \"m2\"") {
+		t.Errorf("çerçeve ana programın satırını göstermemeli:\n%s", s.Stderr)
 	}
 }

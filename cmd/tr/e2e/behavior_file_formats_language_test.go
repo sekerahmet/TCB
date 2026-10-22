@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/source"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // Dosya biçimleri sözleşmedir: kontrol noktasının dosya adları ve JSON anahtarları ile günlüğün
@@ -30,10 +31,10 @@ func TestFileFormatsIndependentOfWritingLanguage(t *testing.T) {
 	var shapes, outputs [2]string
 	for i, env := range [][]string{nil, {"TR_DIL=en"}} {
 		dir := t.TempDir()
-		writeFile(t, dir, "egit.tr", coded)
-		s := run(t, trBinary, dir, "", env, "egit.tr")
-		wait(t, s, 0, nil, nil)
-		outputs[i] = s.stdout
+		testkit.WriteFile(t, dir, "egit.tr", coded)
+		s := testkit.RunBinary(t, trBinary, dir, "", env, "egit.tr")
+		testkit.Wait(t, s, 0, nil, nil)
+		outputs[i] = s.Stdout
 		shapes[i] = fileFormatShape(t, dir)
 	}
 	// Program her yazım dilinde kanonik biçimiyle çalışır (17.7): çıktısı da aynıdır
@@ -43,8 +44,8 @@ func TestFileFormatsIndependentOfWritingLanguage(t *testing.T) {
 		t.Fatalf("program çıktısı yazım diline göre değişti: %q / %q", outputs[0], outputs[1])
 	}
 	bad := t.TempDir()
-	writeFile(t, bad, "bozuk.tr", "eğer {\n")
-	wait(t, run(t, trBinary, bad, "", []string{"TR_DIL=en"}, "bozuk.tr"), 1, nil, []string{"Syntax Errors"})
+	testkit.WriteFile(t, bad, "bozuk.tr", "eğer {\n")
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, bad, "", []string{"TR_DIL=en"}, "bozuk.tr"), 1, nil, []string{"Syntax Errors"})
 	if shapes[0] != shapes[1] {
 		t.Fatalf("dosya biçimi yazım diline göre değişti:\nvarsayılan:\n%s\nTR_DIL=en:\n%s", shapes[0], shapes[1])
 	}

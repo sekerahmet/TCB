@@ -2,9 +2,7 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,9 +11,9 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // Bu paketteki testler 'main' paketinin iç işlevlerini (gömülü paket biçimi, aktar
@@ -66,54 +64,7 @@ func trBuild(t *testing.T) string {
 }
 
 // result bir komutun çalıştırılmasının sonucudur.
-type result struct {
-	output, failure string
-	code            int
-}
-
-// runBinary ikiliyi verilen klasörde ve standart girişle çalıştırır (e2e'deki aynı adlı
-// yardımcının kısası).
-func runBinary(t *testing.T, exe, dir, input string, env []string, args ...string) result {
-	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	defer cancel()
-	cmd := exec.CommandContext(ctx, exe, args...)
-	cmd.Dir = dir
-	cmd.Stdin = strings.NewReader(input)
-	if env != nil {
-		cmd.Env = append(os.Environ(), env...)
-	}
-	var output, failure bytes.Buffer
-	cmd.Stdout, cmd.Stderr = &output, &failure
-	err := cmd.Run()
-	code := 0
-	if err != nil {
-		var exitError *exec.ExitError
-		if !errors.As(err, &exitError) {
-			t.Fatalf("%v çalıştırılamadı: %v", args, err)
-		}
-		code = exitError.ExitCode()
-	}
-	return result{output: output.String(), failure: failure.String(), code: code}
-}
-
-// wait sonucun çıkış kodunu ve çıktılarda geçmesi gereken parçaları denetler.
-func wait(t *testing.T, s result, code int, inOutput, inError []string) {
-	t.Helper()
-	if s.code != code {
-		t.Errorf("çıkış kodu %d, beklenen %d\nçıktı:\n%s\nhata:\n%s", s.code, code, s.output, s.failure)
-	}
-	for _, p := range inOutput {
-		if !strings.Contains(s.output, p) {
-			t.Errorf("standart çıktıda %q yok:\n%s", p, s.output)
-		}
-	}
-	for _, p := range inError {
-		if !strings.Contains(s.failure, p) {
-			t.Errorf("standart hatada %q yok:\n%s", p, s.failure)
-		}
-	}
-}
+type result = testkit.Result
 
 // template gömülü paketi olmayan yorumlayıcı ikilisinin baytlarıdır.
 func template(t *testing.T) []byte {
@@ -137,7 +88,7 @@ func TestReadsOldPackageFormat(t *testing.T) {
 	if err := os.WriteFile(filePath, content, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	wait(t, runBinary(t, filePath, t.TempDir(), "", nil), 0, []string{"eski biçim çalışıyor"}, nil)
+	testkit.Wait(t, testkit.RunBinary(t, filePath, t.TempDir(), "", nil), 0, []string{"eski biçim çalışıyor"}, nil)
 
 	// Derlemede şablonun sonundaki eski paket de doğru boyda atılır.
 	pk, templateSize, found, err := extractPackage(content)
@@ -158,7 +109,7 @@ func TestUnsupportedPackageVersion(t *testing.T) {
 	if err := os.WriteFile(filePath, content, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	wait(t, runBinary(t, filePath, t.TempDir(), "", nil), 1, nil, []string{"❌ Gömülü uygulama okunamadı:", "sürümü 99 desteklenmiyor"})
+	testkit.Wait(t, testkit.RunBinary(t, filePath, t.TempDir(), "", nil), 1, nil, []string{"❌ Gömülü uygulama okunamadı:", "sürümü 99 desteklenmiyor"})
 }
 
 // Birim testleri (süreç içinde).
