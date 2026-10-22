@@ -23,12 +23,15 @@
 // noktaya üçüncü kez dönülürse (sorun kalıcı) eğitim açık bir hatayla durur. Bekçi değeri
 // adımın sonunda zaten okunan kayıp ve normdan okur: adıma bekleme eklemez. --nan_adımı N (sınama
 // için) N. adımın kaybını bir kez NaN yapar.
+// Sonuç: --kaydet DOSYA eğitim bitince son ağırlıkları (parametreler, yol adlarıyla) tensör dosyası
+// olarak yazar; tools/gpu/rgn_from_tr.py onları PyTorch modeline yükleyip doğrulama kaybını hedefin
+// kendi koduyla ölçer ve metin üretir.
 
 değişken arg = komut_satırı({veri: "", adım: 120, toplu: 64, mikro: 32, bağlam: 1024, oran: 0.002,
         cihaz: "gpu", tohum: 0, günlük: 50, çıktı: "", ağırlık: "", sıralı: yanlış, hassasiyet: "bf16",
         kayıplar: "", dağarcık: 40000, boyut: 512, katman: 8, bakış_sayısı: 8, kv_bakış_sayısı: 4, ara: 672,
         doğrulama: "", değerlendirme: 1000, değerlendirme_parça: 4194304,
-        koşu: "", kayıt_dakika: 15, bekçi_pencere: 128, bekçi_eşik: 6.0, atla: 200, nan_adımı: -1},
+        koşu: "", kayıt_dakika: 15, bekçi_pencere: 128, bekçi_eşik: 6.0, atla: 200, nan_adımı: -1, kaydet: ""},
     açıklama: "Hedef modelin TR karşılığı (PyTorch: rgn512.py)")
 doğrula(arg.veri != "", "--veri ile .npy klasörü verilmeli")
 varsayılan_cihaz(arg.cihaz)
@@ -171,4 +174,8 @@ eğer arg.çıktı != "" {
 
 eğer arg.kayıplar != "" {
     dosya_yaz(arg.kayıplar, json_metin({steps: kayıt, valid: doğrulama_kaydı}))
+}
+
+eğer arg.kaydet != "" {
+    tensör_kaydet(arg.kaydet, parametreler(model, adlarıyla: doğru))
 }
