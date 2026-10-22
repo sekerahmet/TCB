@@ -71,3 +71,19 @@ func TestErrorFrameFromPosition(t *testing.T) {
 		t.Fatal("nil hata çerçevesiz olmalı")
 	}
 }
+
+// Kural: IndentLines her satırın başına öneki koyar, sondaki boş satırları atar ve her satırı satır
+// sonuyla bitirir; boş metin boş kalır.
+// Neden: hata çerçevesi girintileme üç pakette aynı döngüyle ayrı ayrı yazılmıştı.
+func TestIndentLinesPrefixesEveryLine(t *testing.T) {
+	for _, c := range []struct{ in, prefix, want string }{
+		{"", "  ", ""},
+		{"a", "  ", "  a\n"},
+		{"a\nb\n\n", "> ", "> a\n> b\n"},
+		{"a\n\nb", "--", "--a\n--\n--b\n"},
+	} {
+		if got := IndentLines(c.in, c.prefix); got != c.want {
+			t.Errorf("IndentLines(%q, %q) = %q, beklenen %q", c.in, c.prefix, got, c.want)
+		}
+	}
+}

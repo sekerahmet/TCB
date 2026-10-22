@@ -162,19 +162,7 @@ func exitWithError(message any) {
 func printError(err error, source string) {
 	// Denetim karakterleri görünür yazılır: iletideki dış veri terminali bozamaz (8.4).
 	fmt.Fprintf(os.Stderr, "  • %s\n", turkish.Printable(err.Error()))
-	fmt.Fprint(os.Stderr, turkish.Printable(indentFrame(turkish.ErrorFrame(source, err))))
-}
-
-// indentFrame kod çerçevesini madde işaretinin altına hizalar.
-func indentFrame(frame string) string {
-	if frame == "" {
-		return ""
-	}
-	var sb strings.Builder
-	for _, l := range strings.Split(strings.TrimRight(frame, "\n"), "\n") {
-		sb.WriteString("    " + l + "\n")
-	}
-	return sb.String()
+	fmt.Fprint(os.Stderr, turkish.Printable(turkish.IndentLines(turkish.ErrorFrame(source, err), "    ")))
 }
 
 func printHelp() {

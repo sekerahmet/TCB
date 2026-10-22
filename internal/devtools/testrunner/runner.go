@@ -155,7 +155,7 @@ func RunFile(fpath string, out io.Writer) Summary {
 		fmt.Fprintln(out, "  ✗ "+messages.Text(messages.H8507))
 		for _, m := range interp.ErrorItems(err, text) {
 			fmt.Fprintf(out, "    • %s\n", m.Message)
-			fmt.Fprint(out, indent(m.Frame, "      "))
+			fmt.Fprint(out, turkish.IndentLines(m.Frame, "      "))
 		}
 		summary.Unloadable++
 		return summary
@@ -176,7 +176,7 @@ func RunFile(fpath string, out io.Writer) Summary {
 				} else {
 					fmt.Fprintf(out, "      • %s\n", m.Message)
 				}
-				fmt.Fprint(out, indent(m.Frame, "      "))
+				fmt.Fprint(out, turkish.IndentLines(m.Frame, "      "))
 			}
 			continue
 		}
@@ -197,16 +197,5 @@ func located(err error) bool {
 
 func writeError(out io.Writer, err error, source string) {
 	fmt.Fprintf(out, "    • %s\n", turkish.Printable(err.Error()))
-	fmt.Fprint(out, turkish.Printable(indent(turkish.ErrorFrame(source, err), "      ")))
-}
-
-func indent(text, prefix string) string {
-	if text == "" {
-		return ""
-	}
-	var sb strings.Builder
-	for _, s := range strings.Split(strings.TrimRight(text, "\n"), "\n") {
-		sb.WriteString(prefix + s + "\n")
-	}
-	return sb.String()
+	fmt.Fprint(out, turkish.Printable(turkish.IndentLines(turkish.ErrorFrame(source, err), "      ")))
 }

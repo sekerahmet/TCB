@@ -184,7 +184,7 @@ func writeRunError(machine *interp.VM, err error, code string) {
 	sb.WriteString(runHeader + "\n")
 	for _, m := range interp.ErrorItems(err, code) {
 		fmt.Fprintf(&sb, "  • %s\n", m.Message)
-		sb.WriteString(indentFrame(m.Frame))
+		sb.WriteString(turkish.IndentLines(m.Frame, "    "))
 	}
 	machine.WriteOutput(os.Stderr, turkish.Printable(sb.String()))
 }

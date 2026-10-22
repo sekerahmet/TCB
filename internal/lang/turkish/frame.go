@@ -99,3 +99,16 @@ func lineAt(source string, n int) (string, bool) {
 	}
 	return strings.TrimRight(source, "\r"), true
 }
+
+// IndentLines metnin her satırının başına prefix koyar ve her satırı satır sonuyla bitirir
+// (hata çerçevelerini girintilemek için); metnin sonundaki boş satırlar atılır, boş metin boş kalır.
+func IndentLines(text, prefix string) string {
+	if text == "" {
+		return ""
+	}
+	var sb strings.Builder
+	for _, l := range strings.Split(strings.TrimRight(text, "\n"), "\n") {
+		sb.WriteString(prefix + l + "\n")
+	}
+	return sb.String()
+}
