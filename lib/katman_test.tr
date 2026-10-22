@@ -586,3 +586,14 @@ test "GPT: rope_tabanı döner konum tablolarının tabanıdır; varsayılan 100
     değişken v = GPT(12, bağlam: 6, boyut: 8, katman: 1, bakış_sayısı: 2)
     eşit_mi(döner_konum_tablosu(6, 4)[1].değer, v.sin.değer)
 }
+
+test "GPT: ağırlık_türü PLE tablolarına ve katmanlarına da iletilir" {
+    değişken m = GPT(12, bağlam: 6, boyut: 8, katman: 2, bakış_sayısı: 2, ple_boyutu: 4, ağırlık_türü: "bf16")
+    eşit_mi(["bf16", "bf16", "bf16", "bf16", "bf16"], [
+        m.gömme.tablo.tür,
+        m.ple_bağlamı.ctx_katmanı.ağırlık.tür,
+        m.bloklar[0].ple.tablo.tür,
+        m.bloklar[0].ple.kapı.ağırlık.tür,
+        m.bloklar[0].ple.izdüşüm.ağırlık.tür
+    ])
+}

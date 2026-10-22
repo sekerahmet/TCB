@@ -264,18 +264,18 @@ değişken ple_karış = kaynaştır(ple_karışımı)
 // katman başına P'lik parçalara bölünür ve her parça ortak bir RMS normundan geçer:
 //   bağlam_i = RMSNorm_P((x @ W_ctx) / √D)_i
 // `ileri(x)` katman sayısı kadar [B, T, P] tensörlük bir liste verir; i. eleman i. bloğun
-// PLEBloğu.ileri'sine girer.
+// PLEBloğu.ileri'sine girer. ağırlık_türü W_ctx'in türüdür (GPT'den iletilir).
 yapı PLEBağlamı {
     boyut
     katman
     ple_boyutu
     ctx_katmanı
     norm
-    fonksiyon kurucu(boyut, katman, ple_boyutu, epsilon = 0.00001, std = 0.02, tohum = 1) {
+    fonksiyon kurucu(boyut, katman, ple_boyutu, epsilon = 0.00001, std = 0.02, tohum = 1, ağırlık_türü = "float32") {
         kendi.boyut = boyut
         kendi.katman = katman
         kendi.ple_boyutu = ple_boyutu
-        kendi.ctx_katmanı = Doğrusal(boyut, katman * ple_boyutu, std: std, tohum: tohum)
+        kendi.ctx_katmanı = Doğrusal(boyut, katman * ple_boyutu, std: std, tohum: tohum, tür: ağırlık_türü)
         kendi.norm = RMSNormKatmanı(ple_boyutu, epsilon: epsilon)
     }
     fonksiyon ileri(x) {
@@ -289,17 +289,18 @@ yapı PLEBağlamı {
 //   e = (bağlam_i + √P · tablo_i[kelime]) / √2
 //   H ← H + RMSNorm_D(W_p · (GELU(W_g · H) ⊙ e))
 // W_g (kapı) [D, P], W_p (izdüşüm) [P, D]; izdüşüm artık yola yazar, çıkış_std ile başlar.
+// ağırlık_türü tablonun ve iki matrisin türüdür (GPT'den iletilir).
 yapı PLEBloğu {
     ple_boyutu
     tablo
     kapı
     izdüşüm
     norm
-    fonksiyon kurucu(boyut, dağarcık, ple_boyutu, epsilon = 0.00001, std = 0.02, çıkış_std = 0.02, tohum = 1) {
+    fonksiyon kurucu(boyut, dağarcık, ple_boyutu, epsilon = 0.00001, std = 0.02, çıkış_std = 0.02, tohum = 1, ağırlık_türü = "float32") {
         kendi.ple_boyutu = ple_boyutu
-        kendi.tablo = ağırlık_başlat([dağarcık, ple_boyutu], std, tohum)
-        kendi.kapı = Doğrusal(boyut, ple_boyutu, std: std, tohum: tohum + 1)
-        kendi.izdüşüm = Doğrusal(ple_boyutu, boyut, std: çıkış_std, tohum: tohum + 2)
+        kendi.tablo = ağırlık_başlat([dağarcık, ple_boyutu], std, tohum, ağırlık_türü)
+        kendi.kapı = Doğrusal(boyut, ple_boyutu, std: std, tohum: tohum + 1, tür: ağırlık_türü)
+        kendi.izdüşüm = Doğrusal(ple_boyutu, boyut, std: çıkış_std, tohum: tohum + 2, tür: ağırlık_türü)
         kendi.norm = RMSNormKatmanı(boyut, epsilon: epsilon)
     }
     // h [B, T, D]; kimlikler [B, T]; bağlam bu katmanın PLEBağlamı çıktısı [B, T, P].
@@ -331,7 +332,7 @@ yapı TransformerBloğu {
         kendi.ileri_besleme = SwiGLU(boyut, ara_boyut: ara_boyut, sapmalı: ileri_sapmalı, std: std, çıkış_std: çıkış_std, tohum: tohum + 10, birleşik: birleşik_kapı, ağırlık_türü: ağırlık_türü)
         eğer ple_boyutu != yok {
             doğrula(dağarcık != yok, "TransformerBloğu: ple_boyutu için dağarcık da verilmeli")
-            kendi.ple = PLEBloğu(boyut, dağarcık, ple_boyutu, epsilon: epsilon, std: std, çıkış_std: çıkış_std, tohum: tohum + 20)
+            kendi.ple = PLEBloğu(boyut, dağarcık, ple_boyutu, epsilon: epsilon, std: std, çıkış_std: çıkış_std, tohum: tohum + 20, ağırlık_türü: ağırlık_türü)
         } değilse {
             kendi.ple = yok
         }
@@ -512,7 +513,7 @@ yapı GPT {
         }
         kendi.son_norm = RMSNormKatmanı(boyut, epsilon: epsilon)
         kendi.çıkış = eğer paylaşımlı { yok } değilse { Doğrusal(boyut, dağarcık, std: std, tohum: tohum + 1, tür: ağırlık_türü) }
-        kendi.ple_bağlamı = eğer ple_boyutu == yok { yok } değilse { PLEBağlamı(boyut, katman, ple_boyutu, epsilon: epsilon, std: std, tohum: tohum + 2) }
+        kendi.ple_bağlamı = eğer ple_boyutu == yok { yok } değilse { PLEBağlamı(boyut, katman, ple_boyutu, epsilon: epsilon, std: std, tohum: tohum + 2, ağırlık_türü: ağırlık_türü) }
         değişken tablolar = döner_konum_tablosu(bağlam, eğer bakış_boyutu == yok { boyut / bakış_sayısı } değilse { bakış_boyutu }, taban: rope_tabanı)
         kendi.kos = tablolar[0]
         kendi.sin = tablolar[1]
