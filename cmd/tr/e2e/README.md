@@ -20,6 +20,7 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 - `behavior_file_formats_language_test.go`: dosya biçimlerinin (kontrol noktası, günlük) yazım diline göre değişmemesi: TR_DIL=en ile aynı dosya adları ve anahtarlar
 - `behavior_index_test.go`: `tr dizin` ve alt komutları (tanım, kullananlar, sınayanlar, etki, yeniden_adlandır): sonuçlar, her dilin alt komut adı, üst düzeyde komut olmaması, çıkış kodları 3/4, `--json`, proje kökü bulma
 - `behavior_example_errors_test.go`: hata örneklerinin (`examples/tr/hatalar`, `examples/en/errors`) beklenen ileti kodunu üretmesi, iki yazımın aynı kodu söylemesi ve çıkış kodu 1
+- `behavior_library_coverage_test.go`: `lib/*.tr`'nin kullanıcıya açık adlarının (üst düzey ve metot) bir örnekte geçmesi; geçmeyenler gerekçeli, yalnızca küçülen listede
 - `behavior_examples_coverage_test.go`: dilin her canlı adının bir örnekte geçmesi (kodlarla) ve komut satırı adlarının `examples/README.md`'de bulunması
 - `behavior_examples_test.go`: öğrenme yolundaki örneklerin (`examples/tr`, `examples/en`) eşleşmesi, kodlu iskeletlerinin aynılığı ve çıktılarının sayılarının eşitliği
 - `behavior_extension_test.go`: VS Code eklentisinin metinlerinin, ayarlarının ve JS testlerinin çeviri dosyasıyla tutarlılığı
