@@ -5,9 +5,6 @@ import (
 	"errors"
 	"strings"
 	"testing"
-
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
-	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
 // fakeLiveLine silinip çizildiğini ortak çıktıya işaretleyen bir canlı satırdır.
@@ -18,11 +15,7 @@ func (s *fakeLiveLine) Draw()  { s.w.WriteString("[çiz]") }
 
 func execCode(t *testing.T, vmx *VM, codeVal string) {
 	t.Helper()
-	p := parser.New(lexer.New(codeVal))
-	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		t.Fatal(p.Errors())
-	}
+	prog := mustParseProgram(t, codeVal)
 	if _, err := vmx.Run(prog); err != nil {
 		t.Fatal(err)
 	}

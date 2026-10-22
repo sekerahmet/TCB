@@ -5,19 +5,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
-	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
 // runTROut programı çalıştırır ve yazdır() çıktısını da döndürür.
 func runTROut(t *testing.T, code string) (string, Value, error) {
 	t.Helper()
-	p := parser.New(lexer.New(code))
-	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		t.Fatalf("Sözdizimi hatası: %v", p.Errors())
-	}
+	prog := mustParseProgram(t, code)
 	var out bytes.Buffer
 	machine := New()
 	machine.Out = &out

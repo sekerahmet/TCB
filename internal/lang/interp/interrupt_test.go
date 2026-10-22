@@ -34,11 +34,7 @@ fonksiyon iş() {
 iş()
 izler.ekle("sürdü")
 `
-	p := parser.New(lexer.New(codeVal))
-	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		t.Fatal(p.Errors())
-	}
+	prog := mustParseProgram(t, codeVal)
 	vmx := New()
 	var failure bytes.Buffer
 	vmx.Err = &failure

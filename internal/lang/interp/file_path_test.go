@@ -6,8 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
-	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
@@ -76,11 +74,7 @@ func TestFileBuiltinsUseSingleRule(t *testing.T) {
 	m.Out = &strings.Builder{}
 	run := func(codeVal string) (Value, error) {
 		t.Helper()
-		p := parser.New(lexer.New(codeVal))
-		prog := p.ParseProgram()
-		if len(p.Errors()) > 0 {
-			t.Fatalf("sözdizimi hatası: %v", p.Errors())
-		}
+		prog := mustParseProgram(t, codeVal)
 		return m.Run(prog)
 	}
 	// Programın yanındaki dosya okunur ve güncellenince yine oraya yazılır

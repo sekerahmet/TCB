@@ -13,14 +13,10 @@ import (
 // tampona çekiyor, sonraki satırlar tamponla birlikte kayboluyordu. VM başına tek okuyucu
 // kullanılır: art arda okumalar satırları sırayla verir.
 func TestInputReadsConsecutiveLines(t *testing.T) {
-	p := parser.New(lexer.New(`değişken a = girdi()
+	prog := mustParseProgram(t, `değişken a = girdi()
 değişken b = girdi()
 değişken c = girdi()
-yazdır("a=[{a}] b=[{b}] c=[{c}]")`))
-	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		t.Fatal(p.Errors())
-	}
+yazdır("a=[{a}] b=[{b}] c=[{c}]")`)
 	var out bytes.Buffer
 	m := New()
 	m.Out = &out

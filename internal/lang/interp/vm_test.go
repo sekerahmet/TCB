@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
@@ -15,16 +16,19 @@ import (
 
 func runTR(t *testing.T, code string) (Value, error) {
 	t.Helper()
-	l := lexer.New(code)
-	p := parser.New(l)
+	_, val, err := runTROut(t, code)
+	return val, err
+}
+
+// mustParseProgram kodu ayrıştırır; sözdizimi hatasında testi düşürür.
+func mustParseProgram(tb testing.TB, code string) *ast.Program {
+	tb.Helper()
+	p := parser.New(lexer.New(code))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
-		t.Fatalf("Sözdizimi hatası: %v", p.Errors())
+		tb.Fatalf("sözdizimi hatası: %v\nkod:\n%s", p.Errors(), code)
 	}
-	machine := New()
-	val, err := machine.Run(prog)
-	machine.WaitAsync()
-	return val, err
+	return prog
 }
 
 func TestCoreLanguageAndMultiAssign(t *testing.T) {
