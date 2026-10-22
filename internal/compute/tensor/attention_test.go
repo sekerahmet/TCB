@@ -562,3 +562,36 @@ func init() {
 }
 
 func TestGradAttention(t *testing.T) { runGradGroup(t, "attention") }
+
+// Kural: kopyalanmadan okunan (float32 bitişik) maske çizgeye kaydedilir: geri yönden önce
+// yerinde değişirse sürüm denetimi yakalar (H3012), bırakılsa da depolaması geri yöne kadar
+// tutulur (Gemini sayısal denetimi, bulgu 1).
+func TestAttentionMaskSavedForBackward(t *testing.T) {
+	qkv := func(T int) (*Tensor, *Tensor, *Tensor) {
+		x := func(s float32) *Tensor { return Arange(T*4).MulScalar(s).Reshape(1, 1, T, 4).SetRequiresGrad(true) }
+		return x(0.01), x(0.02), x(0.03)
+	}
+	q, k, v := qkv(2)
+	mask := New([]float32{1, 0, 1, 1}, 2, 2)
+	loss := Attention(q, k, v, AttentionOptions{Mask: mask}).SumAll()
+	mask.Set(0, 1, 1)
+	expectedPanic(t, "yerinde değişen maske", func() { loss.Backward() }, messages.H3012)
+	data := make([]float32, 64*64)
+	for i := 0; i < 64; i++ {
+		data[i*64] = 1
+	}
+	q1, k1, v1 := qkv(64)
+	Attention(q1, k1, v1, AttentionOptions{Mask: New(data, 64, 64)}).SumAll().Backward()
+	q2, k2, v2 := qkv(64)
+	m2 := New(data, 64, 64)
+	loss = Attention(q2, k2, v2, AttentionOptions{Mask: m2}).SumAll()
+	m2.Drop()
+	defer Ones(64, 64).Drop() // bırakılan blok verilseydi bu ezerdi
+	loss.Backward()
+	got, want := q2.Grad().Data(), q1.Grad().Data()
+	for i := range want {
+		if math.Abs(float64(got[i]-want[i])) > 1e-5 {
+			t.Fatalf("bırakılan maskenin belleği geri yönden önce ezildi: %v, beklenen %v", got[i], want[i])
+		}
+	}
+}

@@ -255,7 +255,7 @@ func (cpuBackend) f32Attention(out Storage, q, k, v View, mask Storage, p Attent
 		lsb := ld[bh*p.Tq+i0 : bh*p.Tq+i0+m]
 		floorV := 0
 		if md != nil {
-			floorV = p.MaskOffsets[bh]
+			floorV = p.MaskBase + p.MaskOffsets[bh]
 		}
 		jlo, wholeHi := p.Limits(i0)
 		wholeLo, jhi := p.Limits(i0 + m - 1)
@@ -405,7 +405,7 @@ func (s *attnBackward) binaryArg(tb *attnBuf, bh, kvh, i0, m, j0, n int, dVa []f
 	partial := j0 < wholeLo || j0+n > wholeHi || s.md != nil
 	mBase := 0
 	if s.md != nil {
-		mBase = p.MaskOffsets[bh]
+		mBase = p.MaskBase + p.MaskOffsets[bh]
 	}
 	for r := 0; r < m; r++ {
 		row := S[r*n : (r+1)*n]

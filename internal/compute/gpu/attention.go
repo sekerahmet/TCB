@@ -248,7 +248,7 @@ func (g *backend) attnRows(s, lse *storage, mask2 *storage, mo *storage, p tenso
 	if p.Causal {
 		reason2 = 1
 	}
-	pr.readFrom(mask2).readFrom(mo).u32(p.Tq).u32(p.Tk).u32(reason2).u32(p.Window).u32(p.MaskStrideQ).u32(p.MaskStrideK).f32(p.Scale)
+	pr.readMask(mask2, p).readFrom(mo).u32(p.Tq).u32(p.Tk).u32(reason2).u32(p.Window).u32(p.MaskStrideQ).u32(p.MaskStrideK).f32(p.Scale)
 	g.launch(c, [3]uint32{uint32(R), 1, 1}, [3]uint32{uint32(B), 1, 1}, pr)
 }
 

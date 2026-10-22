@@ -81,7 +81,7 @@ func (g *backend) attnShared(pr *paramWriter, md, mo *storage, p tensor.Attentio
 	if p.Causal {
 		reason2 = 1
 	}
-	pr.readFrom(md).readFrom(mo).u32(p.Tq).u32(p.Tk).u32(p.H).u32(p.H / p.Hkv).u32(reason2).u32(p.Window).
+	pr.readMask(md, p).readFrom(mo).u32(p.Tq).u32(p.Tk).u32(p.H).u32(p.H / p.Hkv).u32(reason2).u32(p.Window).
 		u32(p.MaskStrideQ).u32(p.MaskStrideK).f32(p.Scale)
 }
 

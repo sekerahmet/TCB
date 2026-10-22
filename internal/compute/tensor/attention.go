@@ -43,8 +43,11 @@ type AttentionParams struct {
 	Window                        int
 	Scale                         float32
 	// Maske (varsa) float32 bitişik bir depolamadır; (b, h) çifti için ilk
-	// eleman MaskOffsets[b*H+h], sorgu ve anahtar adımları MaskStrideQ,
-	// MaskStrideK'dır (yayınlanan eksenlerde 0).
+	// eleman MaskBase + MaskOffsets[b*H+h], sorgu ve anahtar adımları MaskStrideQ,
+	// MaskStrideK'dır (yayınlanan eksenlerde 0). MaskBase görünümün depolamadaki
+	// başlangıcıdır; ofset tablosu ona göreli olduğundan aynı şekilli maskelerde aynıdır
+	// (GPU onu bir kez yükler, tekrar_oynat kaydında da bulur).
+	MaskBase                 int
 	MaskOffsets              []int
 	MaskStrideQ, MaskStrideK int
 }
@@ -117,16 +120,23 @@ func AttentionOut(q, k, v *Tensor, opt AttentionOptions, outType DType) *Tensor 
 	outShape[len(outShape)-1] = p.Dv
 
 	var maskVal Storage
+	rm := func() {}
 	if opt.Mask != nil {
 		if opt.Mask.Device() != q.Device() {
 			panic(messages.New(messages.H3002, opt.Mask.Device(), q.Device()))
 		}
 		maskVal = prepareMask(be, opt.Mask, q.shape, &p)
+		if maskVal != opt.Mask.storage {
+			be, s := be, maskVal
+			rm = func() { giveBack(be, s) }
+		}
 	}
 	qv, kv, vv := q.contigView(), k.contigView(), v.contigView()
-	// Bitişik kopyalar geri yönde de okunur; geri yön bitince (türev izlenmiyorsa hemen) iade edilir.
+	// Bitişik kopyalar (maskeninki de) geri yönde de okunur; geri yön bitince (türev
+	// izlenmiyorsa hemen) iade edilir. Kopyalanmadan okunan maske çizgeye kaydedilir: geri
+	// yöne kadar tutulur ve yerinde değişirse sürüm denetimi yakalar.
 	rq, rk, rv := copyRelease(q, qv), copyRelease(k, kv), copyRelease(v, vv)
-	release := func() { rq(); rk(); rv() }
+	release := func() { rq(); rk(); rv(); rm() }
 	out := emptyOf(isAttention, be, outShape, outType)
 	lse := be.Attention(out.storage, qv, kv, vv, maskVal, p)
 	os := out.storage
@@ -147,12 +157,21 @@ func AttentionOut(q, k, v *Tensor, opt AttentionOptions, outType DType) *Tensor 
 		be.AttentionGrad(g[0], g[1], g[2], o.grad, qv, kv, vv, maskVal, os, lse, p)
 		// Geri yön ileri çıktıyı da okur (D = Σ dO·O): çıktı yerinde değişirse sürüm
 		// denetimi yakalar.
-	}, q, k, v, out)
+	}, q, k, v, out, savedMask(opt.Mask, maskVal))
 	if r.IsLeaf() {
 		release()
 	}
 	sy.finish()
 	return r
+}
+
+// savedMask kopyalanmadan okunan maskeyi (geri yön onun depolamasını okur) verir; maske yoksa
+// ya da kopyalandıysa nil.
+func savedMask(m *Tensor, s Storage) *Tensor {
+	if m == nil || s != m.storage {
+		return nil
+	}
+	return m
 }
 
 // attentionParams şekilleri denetler ve arka uç tanımını kurar.
@@ -219,6 +238,7 @@ func prepareMask(be Backend, m *Tensor, qShape []int, p *AttentionParams) Storag
 	st := broadcastStrides(contiguousStrides(m.shape), m.shape, whole)
 	n := len(whole)
 	p.MaskStrideQ, p.MaskStrideK = st[n-2], st[n-1]
+	p.MaskBase = base
 	p.MaskOffsets = make([]int, p.Batch*p.H)
 	// Öndeki eksenler (lead) ve bakış ekseni satır öncelikli gezilir.
 	on := whole[:n-2]
@@ -229,7 +249,7 @@ func prepareMask(be Backend, m *Tensor, qShape []int, p *AttentionParams) Storag
 		for d := range idx {
 			o += idx[d] * preSt[d]
 		}
-		p.MaskOffsets[bh] = base + o
+		p.MaskOffsets[bh] = o
 		for d := len(idx) - 1; d >= 0; d-- {
 			idx[d]++
 			if idx[d] < on[d] {
