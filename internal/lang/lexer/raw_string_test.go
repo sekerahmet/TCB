@@ -22,10 +22,7 @@ func TestUnknownEscapeIsError(t *testing.T) {
 		{"\"{f(\\u)}\"", 5, `'\u'`},
 	}
 	for _, tt := range tests {
-		l := New(tt.src)
-		for l.NextToken().Type != TokEOF {
-		}
-		h := l.Errs()
+		h := lexErrors(tt.src)
 		if len(h) != 1 || !hasErr(h, 1, tt.col, messages.H0008) {
 			t.Errorf("%q: satır 1, sütun %d konumunda %s için H0008 bekleniyordu, alınan: %v", tt.src, tt.col, tt.escape, h)
 		}
@@ -68,10 +65,7 @@ func TestRawString(t *testing.T) {
 }
 
 func TestUnterminatedRawString(t *testing.T) {
-	l := New("x = `açık\nmetin")
-	for l.NextToken().Type != TokEOF {
-	}
-	h := l.Errs()
+	h := lexErrors("x = `açık\nmetin")
 	if len(h) != 1 || !hasErr(h, 1, 5, messages.H0007) {
 		t.Errorf("kapatılmamış ham metin hatası bekleniyordu: %v", h)
 	}

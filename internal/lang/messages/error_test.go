@@ -115,3 +115,16 @@ func TestLanguageReadOnce(t *testing.T) {
 		t.Fatalf("dil ortamdan yeniden okundu: %s → %s", first, ActiveLanguage())
 	}
 }
+
+// Kural: Texts her hatanın metnini sırayla verir; boş girdi boş dizi verir (nil değil).
+// Neden: lexer, parser ve denetleyicinin Errors yöntemleri aynı dönüşümü kendi içinde tekrarlıyordu.
+func TestTextsRendersEveryErrorInOrder(t *testing.T) {
+	errs := []error{New(H0003), fmt.Errorf("düz hata")}
+	got := Texts(errs)
+	if len(got) != 2 || got[0] != errs[0].Error() || got[1] != "düz hata" {
+		t.Fatalf("Texts = %q", got)
+	}
+	if got := Texts(nil); got == nil || len(got) != 0 {
+		t.Fatalf("Texts(nil) = %#v, boş dizi bekleniyordu", got)
+	}
+}

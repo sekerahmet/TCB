@@ -54,16 +54,7 @@ type NameBinding struct {
 // a file written in Turkish (lexer.Lexer.Language).
 func NameBindings(prog *ast.Program, treeLang, lang *codes.Language, globalNames []string, dynamic bool) (bindings []NameBinding, conflicts map[string]bool) {
 	d := &nameChecker{bindings: &bindings, treeLang: treeLang, lang: lang, conflicts: map[string]bool{}}
-	parent := newNameScope(nil)
-	for _, a := range globalNames {
-		parent.define(a)
-	}
-	parent.dynamic = dynamic
-	k := newNameScope(parent)
-	d.declare(prog.Statements, k)
-	for _, st := range prog.Statements {
-		d.statement(st, k)
-	}
+	d.statements(prog.Statements, newGlobalNameScope(globalNames, dynamic))
 	return bindings, d.conflicts
 }
 

@@ -71,6 +71,15 @@ func Internal(detail string) *Error { return New(H9000, detail) }
 // Internalf is Internal with a formatted English detail.
 func Internalf(form string, a ...any) *Error { return Internal(fmt.Sprintf(form, a...)) }
 
+// Texts returns the rendered text of every error, in order.
+func Texts(errs []error) []string {
+	out := make([]string, len(errs))
+	for i, e := range errs {
+		out[i] = e.Error()
+	}
+	return out
+}
+
 // HasAny reports whether err's chain carries any of the codes.
 func HasAny(err error, codes ...Code) bool {
 	for _, c := range codes {

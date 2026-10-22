@@ -6,6 +6,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
 // nameKind bir adın tanımlandığı yerdir; yazılış kuralı (dil tanımı 2.3b) buna göre seçilir.
@@ -133,18 +134,10 @@ func upperSnake(s string) string {
 // dosyayı başka dilde okuyan kullanıcının adları o dildedir: TOKENIZER'ın İngilizce önerisi
 // tokenızer değil tokenizer olmalıdır.
 func caseOf(s string) unicode.SpecialCase {
-	if strings.ContainsFunc(s, isTurkishLetter) || codes.Display().Code == "tr" {
+	if turkish.HasTurkishLetter(s) || codes.Display().Code == "tr" {
 		return unicode.TurkishCase
 	}
 	return nil
-}
-
-func isTurkishLetter(r rune) bool {
-	switch r {
-	case 'ç', 'ğ', 'ı', 'ö', 'ş', 'ü', 'Ç', 'Ğ', 'İ', 'Ö', 'Ş', 'Ü':
-		return true
-	}
-	return false
 }
 
 func upperCamel(s string) string {

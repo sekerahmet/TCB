@@ -12,18 +12,11 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// Tek kaynak: ad ipucu iletileri (H1101-H1106: ASCII yazım, en yakın ad,
-// tanımsız ad) yalnızca bu pakette kurulur; öbür dil paketleri hint işlevlerini çağırır.
-// outsideUse, bu kuralın bugünkü ihlalleridir: dosya → ileti kodu → kullanım sayısı. Liste
-// yalnızca küçülür: ihlal giderilince kayıt silinir, yeni kayıt eklenmez.
-//
-// interp/calls.go: yapı alanı ve parametre adı önerisi "Bunu mu demek istediniz" (H1104) ipucunu
-// kendisi kuruyor (hint'te karşılığı yok). interp/compiler_expr.go: çalışma anındaki tanımsız ad
-// iletisi hint.UndefinedNameMessage yerine H1106'yı kendisi kuruyor.
-var outsideUse = map[string]map[string]int{
-	"internal/lang/interp/calls.go":         {"H1104": 2},
-	"internal/lang/interp/compiler_expr.go": {"H1106": 1},
-}
+// Tek kaynak: ad ipucu iletileri (H1101-H1106: ASCII yazım, en yakın ad, tanımsız ad)
+// yalnızca bu pakette kurulur; öbür dil paketleri hint işlevlerini çağırır. outsideUse, bu
+// kuralın istisnalarıdır: dosya → ileti kodu → kullanım sayısı. Liste boştur ve yalnızca
+// küçülebilir: yeni kayıt eklenmez, ipucu hint'e eklenir.
+var outsideUse = map[string]map[string]int{}
 
 func TestHintMessagesBuiltOnlyHere(t *testing.T) {
 	root := reporoot.Root()

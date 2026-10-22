@@ -42,28 +42,7 @@ func (p *Parser) parseSingleParamLambda() ast.Expression {
 	tok := p.curToken()
 	param := ast.Param{Name: tok.Literal}
 	p.nextToken() // '=>'
-	arrowTok := p.curToken()
-
-	var body *ast.BlockStatement
-	if p.peekTokenIs(lexer.TokLBrace) {
-		p.nextToken()
-		body = p.functionBody()
-	} else {
-		p.nextToken()
-		expr := p.functionExpr()
-		body = &ast.BlockStatement{
-			Token: arrowTok,
-			Statements: []ast.Statement{
-				&ast.ReturnStatement{Token: arrowTok, ReturnValue: expr},
-			},
-		}
-	}
-
-	return &ast.FunctionLiteral{
-		Token:      tok,
-		Parameters: []ast.Param{param},
-		Body:       body,
-	}
+	return p.finishLambda(tok, []ast.Param{param})
 }
 func (p *Parser) parseLambdaExpression() ast.Expression {
 	tok := p.curToken() // '('
@@ -71,6 +50,12 @@ func (p *Parser) parseLambdaExpression() ast.Expression {
 	if !p.expectPeek(lexer.TokArrow) {
 		return nil
 	}
+	return p.finishLambda(tok, params)
+}
+
+// finishLambda '=>' belirtecinde duran imleçten sonrasını (küme ayraçlı gövde ya da tek ifade)
+// okuyup lambdayı kurar; tok lambdanın ilk belirtecidir.
+func (p *Parser) finishLambda(tok lexer.Token, params []ast.Param) ast.Expression {
 	arrowTok := p.curToken()
 
 	var body *ast.BlockStatement
@@ -146,18 +131,7 @@ func (p *Parser) parseFunctionParameters() []ast.Param {
 
 	for {
 		param := ast.Param{Name: p.curToken().Literal}
-		if p.peekTokenIs(lexer.TokColon) {
-			p.nextToken() // ':'
-			if p.expectPeek(lexer.TokIdent) {
-				param.TypeName = p.curToken().Literal
-				p.role(p.curToken(), RoleType)
-			}
-		}
-		if p.peekTokenIs(lexer.TokAssign) {
-			p.nextToken() // '='
-			p.nextToken()
-			param.DefaultValue = p.parseExpression(precLowest)
-		}
+		param.TypeName, param.DefaultValue = p.parseTypeAndDefault()
 		params = append(params, param)
 
 		if !p.peekTokenIs(lexer.TokComma) {
@@ -216,4 +190,22 @@ func (p *Parser) parseCallArguments() ([]ast.Expression, []ast.NamedArg) {
 	}
 
 	return args, named
+}
+
+// parseTypeAndDefault isteğe bağlı ': Tip' ve '= varsayılan' bölümlerini okur (parametre ve yapı
+// alanı için); olmayan bölüm boş döner.
+func (p *Parser) parseTypeAndDefault() (typeName string, def ast.Expression) {
+	if p.peekTokenIs(lexer.TokColon) {
+		p.nextToken() // ':'
+		if p.expectPeek(lexer.TokIdent) {
+			typeName = p.curToken().Literal
+			p.role(p.curToken(), RoleType)
+		}
+	}
+	if p.peekTokenIs(lexer.TokAssign) {
+		p.nextToken() // '='
+		p.nextToken()
+		def = p.parseExpression(precLowest)
+	}
+	return typeName, def
 }

@@ -55,21 +55,15 @@ func (p *Parser) parseForStatement() ast.Statement {
 		}
 	}
 
-	// Koşullu döngü: döngü x < 10 { ... }
-	p.nextToken()
-	cond := p.parseHeaderExpression()
-	if !p.expectPeek(lexer.TokLBrace) {
-		return nil
+	// Koşullu döngü: döngü x < 10 { ... }; imleç hâlâ 'döngü'dedir, 'iken' ile aynı gövde.
+	// Boş *WhileStatement arayüze sarılıp nil olmaktan çıkmasın diye hata ayrıca döndürülür.
+	if loop := p.parseWhileStatement(); loop != nil {
+		return loop
 	}
-	body := p.loopBody()
-	return &ast.WhileStatement{
-		Token:     tok,
-		Condition: cond,
-		Body:      body,
-	}
+	return nil
 }
 func (p *Parser) parseWhileStatement() *ast.WhileStatement {
-	tok := p.curToken() // iken
+	tok := p.curToken() // iken ya da döngü (koşullu döngü)
 	p.nextToken()
 	cond := p.parseHeaderExpression()
 	if !p.expectPeek(lexer.TokLBrace) {

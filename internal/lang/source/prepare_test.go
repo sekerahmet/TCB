@@ -82,10 +82,4 @@ func TestPrepareLimitsErrors(t *testing.T) {
 	wantPos(t, r.Errors[0], 1, 1)
 }
 
-func joinErrors(errs []error) string {
-	parts := make([]string, len(errs))
-	for i, e := range errs {
-		parts[i] = e.Error()
-	}
-	return strings.Join(parts, "\n")
-}
+func joinErrors(errs []error) string { return strings.Join(messages.Texts(errs), "\n") }

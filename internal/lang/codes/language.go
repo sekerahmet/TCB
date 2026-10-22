@@ -8,6 +8,7 @@ import (
 	"unicode"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
 //go:embed tr.json
@@ -85,7 +86,7 @@ func Load(langCode string, data []byte) (*Language, error) {
 
 	raw, err := parseFile(data)
 	if err != nil {
-		return nil, internalf("language list %s: the file could not be read (it must be a JSON object { \"G100\": { \"ad\": ... }, ... }): %v", langCode, err)
+		return nil, messages.Internalf("language list %s: the file could not be read (it must be a JSON object { \"G100\": { \"ad\": ... }, ... }): %v", langCode, err)
 	}
 
 	d := &Language{Code: langCode, entries: make(map[Code]*Entry, len(raw)), spellings: make(map[Code][]string, len(raw))}
@@ -115,7 +116,7 @@ func Load(langCode string, data []byte) (*Language, error) {
 			if e == "" || strings.IndexFunc(e, unicode.IsSpace) >= 0 {
 				errorf("%s: a foreign name must not be empty or contain spaces (%q)", k, e)
 			}
-			if e == g.name || asciiForm(e) == asciiForm(g.name) {
+			if e == g.name || turkish.ASCII(e) == turkish.ASCII(g.name) {
 				errorf("%s: the foreign name %q must not be the name itself (or its ASCII form)", k, e)
 			}
 		}
@@ -155,7 +156,7 @@ func Load(langCode string, data []byte) (*Language, error) {
 		g := d.entries[k]
 		ns := k.Namespace()
 		name := g.Name
-		ascii := asciiForm(name)
+		ascii := turkish.ASCII(name)
 		if o, ok := owners[ns][ascii]; ok {
 			errorf("%s %q and %s %q clash in the same namespace (%s) (ASCII forms: %q)", o.code, o.name, k, name, ns, ascii)
 			continue
@@ -178,11 +179,11 @@ func Load(langCode string, data []byte) (*Language, error) {
 		ns := k.Namespace()
 		for _, e := range g.Foreign {
 			spellings := []string{e}
-			if a := asciiForm(e); a != e {
+			if a := turkish.ASCII(e); a != e {
 				spellings = append(spellings, a)
 			}
 			for i, name := range spellings {
-				if o, ok := owners[ns][asciiForm(name)]; ok && (name == o.name || name == asciiForm(o.name)) {
+				if o, ok := owners[ns][turkish.ASCII(name)]; ok && (name == o.name || name == turkish.ASCII(o.name)) {
 					errorf("the foreign name %q of %s clashes with %s %q (or its ASCII form)", name, k, o.code, o.name)
 					continue
 				}
@@ -196,7 +197,7 @@ func Load(langCode string, data []byte) (*Language, error) {
 		}
 	}
 	if len(errs) > 0 {
-		return nil, internalf("code list %s:\n  %s", langCode, strings.Join(errs, "\n  "))
+		return nil, messages.Internalf("code list %s:\n  %s", langCode, strings.Join(errs, "\n  "))
 	}
 	return d, nil
 }

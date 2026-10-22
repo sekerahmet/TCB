@@ -1,6 +1,6 @@
 # testkit
 
-Birden çok paketin testlerinde aynı yazılan küçük yardımcıların tek yeri: `WriteFile`/`WritePath` (dosya yazma), `TRSeeds` (bulanıklaştırma tohumları), `HasJSONName` (yapı etiketi denetimi), `RunBinary`/`Wait` (derlenmiş `tr` ikilisini çalıştırıp sonucunu denetleme). `trrun/` altpaketi TR programı çalıştıran yardımcılardır (`Parse`, `Exec`, `MustExec`, `MustExecChecked`).
+Birden çok paketin testlerinde aynı yazılan küçük yardımcıların tek yeri: `WriteFile`/`WritePath` (dosya yazma), `TRSeeds` (bulanıklaştırma tohumları), `GlobFiles` (depo köküne göre dosya kalıbı), `HasJSONName` (yapı etiketi denetimi), `RunBinary`/`Wait` (derlenmiş `tr` ikilisini çalıştırıp sonucunu denetleme). `trrun/` altpaketi TR programı çalıştıran yardımcılardır (`Parse`, `Exec`, `MustExec`, `MustExecChecked`).
 
 ## Kurallar
 

@@ -76,43 +76,43 @@ var typeSuggestions = func() map[string]string {
 	return m
 }()
 
-// lowerCase tip adlarını Türkçe kurala göre küçültür (MANTIK → mantık, METİN → metin);
-// yalnızca kabul edilmeyen bir yazımın ipucunu bulmak için kullanılır.
-
-// checkTypeName tip açıklamasındaki ad bir tip adının kabul edilmeyen bir yazımıysa
-// (tam, ondalik, int) asıl adı öneren bir hata ekler.
-func (c *Checker) checkTypeName(name string, line int) {
+// resolveTypeAnnotation tip açıklamasındaki adı tek aramada çözer: asıl tip adını ve adın
+// kabul edilmeyen bir yazım olup olmadığını verir. Kabul edilen yazımda code 0'dır; yalnızca
+// büyük/küçük harfi farklı yazımda H1006 (asıl yazım söylenir), Türkçe karaktersiz biçimde ya da
+// başka dillerden alışılmış adta (ondalik, int, str) H1007 (öneri söylenir). Tanınmayan adın
+// kendisi döner. Kabul edilmeyen yazımda da önerilen tip varsayılır: aynı satırda bir de tip
+// uyuşmazlığı çıkmasın.
+func resolveTypeAnnotation(name string) (canonical string, code messages.Code) {
 	if name == "" {
-		return
+		return typeAny, 0
 	}
-	if _, valid := typeSpellings[name]; valid {
-		return
+	if canonical, valid := typeSpellings[name]; valid {
+		return canonical, 0
 	}
-	if canonical, ok := typeCaseSpellings[turkish.Lower(name)]; ok {
-		c.addError(line, 0, messages.New(messages.H1006, name, canonical))
-		return
+	lower := turkish.Lower(name)
+	if canonical, ok := typeCaseSpellings[lower]; ok {
+		return canonical, messages.H1006
 	}
-	if suggestion, ok := typeSuggestions[turkish.Lower(name)]; ok {
-		c.addError(line, 0, messages.New(messages.H1007, name, suggestion))
+	if suggestion, ok := typeSuggestions[lower]; ok {
+		return suggestion, messages.H1007
 	}
+	return name, 0
 }
 
+// checkedTypeName tip açıklamasındaki adı çözer ve kabul edilmeyen bir yazımsa (tam, ondalik,
+// int) asıl adı öneren bir hata ekler; asıl tip adını döndürür.
+func (c *Checker) checkedTypeName(name string, line int) string {
+	canonical, code := resolveTypeAnnotation(name)
+	if code != 0 {
+		c.addError(line, 0, messages.New(code, name, canonical))
+	}
+	return canonical
+}
+
+// normalizeTypeName tip açıklamasındaki adı asıl tip adına çevirir (hata eklemeden).
 func normalizeTypeName(t string) string {
-	if t == "" {
-		return typeAny
-	}
-	if name, ok := typeSpellings[t]; ok {
-		return name
-	}
-	// Kabul edilmeyen yazım (tam, ondalik) tipAdiDenetle'de hata verir; aynı satırda bir de
-	// tip uyuşmazlığı çıkmasın diye önerilen tip varsayılır.
-	if name, ok := typeCaseSpellings[turkish.Lower(t)]; ok {
-		return name
-	}
-	if name, ok := typeSuggestions[turkish.Lower(t)]; ok {
-		return name
-	}
-	return t
+	canonical, _ := resolveTypeAnnotation(t)
+	return canonical
 }
 
 func typesCompatible(expected, actual string) bool {

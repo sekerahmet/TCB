@@ -96,12 +96,18 @@ type nameChecker struct {
 // with no alias), in which case undefined names are not reported in the module. Call it
 // before CheckProgram.
 func (c *Checker) SetGlobalScope(names []string, dynamic bool) {
+	c.globalNames = newGlobalNameScope(names, dynamic)
+}
+
+// newGlobalNameScope dil ve çalışma ortamının hazır adlarını (names) taşıyan bir üst kapsamın
+// altında, programın kendi genel kapsamını açar; dynamic adların çalışma anında da eklenebildiğini söyler.
+func newGlobalNameScope(names []string, dynamic bool) *nameScope {
 	parent := newNameScope(nil)
 	for _, a := range names {
 		parent.define(a)
 	}
-	parent.dynamic = parent.dynamic || dynamic
-	c.globalNames = newNameScope(parent)
+	parent.dynamic = dynamic
+	return newNameScope(parent)
 }
 
 // TopLevelNames returns the names the program defines directly in its global scope; dinamik
@@ -124,10 +130,7 @@ func (c *Checker) checkNames(prog *ast.Program) {
 		c.globalNames = newNameScope(nil)
 	}
 	d := &nameChecker{c: c, decl: map[string]bool{}, lang: codes.Active(), treeLang: codes.Active()}
-	d.declare(prog.Statements, c.globalNames)
-	for _, st := range prog.Statements {
-		d.statement(st, c.globalNames)
-	}
+	d.statements(prog.Statements, c.globalNames)
 }
 
 // declare deyimlerin, çalıştıkları kapsama doğrudan tanımladığı adları kapsama ekler
@@ -264,8 +267,13 @@ func (d *nameChecker) blockInScope(b *ast.BlockStatement, k *nameScope) {
 	if b == nil {
 		return
 	}
-	d.declare(b.Statements, k)
-	for _, st := range b.Statements {
+	d.statements(b.Statements, k)
+}
+
+// statements deyim listesini k kapsamında önce bildirir (ileri başvurular için), sonra gezer.
+func (d *nameChecker) statements(stmts []ast.Statement, k *nameScope) {
+	d.declare(stmts, k)
+	for _, st := range stmts {
 		d.statement(st, k)
 	}
 }
@@ -319,12 +327,7 @@ func (d *nameChecker) statement(st ast.Statement, k *nameScope) {
 		for _, f := range s.Fields {
 			d.expression(f.DefaultValue, k)
 		}
-		names := make([]string, 0, len(s.Methods))
-		for name := range s.Methods {
-			names = append(names, name)
-		}
-		sort.Strings(names) // hatalar kararlı sırada
-		for _, name := range names {
+		for _, name := range sortedMethodNames(s) {
 			d.function(s.Methods[name], k, d.treeLang.Name(codes.A051))
 		}
 	case *ast.DeferStatement:

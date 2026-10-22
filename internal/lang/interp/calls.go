@@ -7,7 +7,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
-	"github.com/sekerahmet/TCB/internal/lang/turkish"
+	"github.com/sekerahmet/TCB/internal/lang/hint"
 )
 
 // maxCallDepth iç içe kullanıcı fonksiyonu çağrılarının üst sınırıdır. Sınırsız özyineleme
@@ -93,11 +93,7 @@ func checkStructArgs(def *StructDefVal, nargs int, named map[string]Value, line 
 	}
 	for k := range named {
 		if !slices.Contains(nameList, k) {
-			suggestion := ""
-			if o := turkish.Closest(k, nameList); o != "" {
-				suggestion = messages.Text(messages.H1104, o)
-			}
-			return messages.At(line, 0, messages.New(messages.H2418, def.Name, k, suggestion))
+			return messages.At(line, 0, messages.New(messages.H2418, def.Name, k, hint.ClosestSuggestion(k, nameList)))
 		}
 	}
 	if nargs > len(def.Fields) {
@@ -116,10 +112,7 @@ func suggestParam(name string, params []ast.Param) string {
 	for _, p := range params {
 		names = append(names, p.Name)
 	}
-	if o := turkish.Closest(name, names); o != "" {
-		return messages.Text(messages.H1104, o)
-	}
-	return ""
+	return hint.ClosestSuggestion(name, names)
 }
 
 func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, line int) (Value, error) {

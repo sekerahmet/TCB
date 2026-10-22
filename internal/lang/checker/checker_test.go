@@ -12,6 +12,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"github.com/sekerahmet/TCB/internal/reporoot"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // ---------------------------------------------------------------------------
@@ -532,12 +533,7 @@ func TestExamplesCheckWithoutErrors(t *testing.T) {
 	// Depodaki programlar (örnekler, dil tanımı testleri ve kıyas programları)
 	// uyarısız denetlenmeli: yerleşik adları gölgeleyen ya da yazılış kuralına (2.3b) uymayan
 	// kullanıcı adı olmamalı.
-	var all []string
-	for _, pattern := range []string{"examples/tr/*.tr", "examples/tr/helpers/*.tr", "tests/*.tr", "tools/bench/tr/*.tr"} {
-		d, _ := filepath.Glob(reporoot.Path(pattern))
-		all = append(all, d...)
-	}
-	for _, file := range all {
+	for _, file := range testkit.GlobFiles(t, "examples/tr/*.tr", "examples/tr/helpers/*.tr", "tests/*.tr", "tools/bench/tr/*.tr") {
 		data, err := os.ReadFile(file)
 		if err != nil {
 			t.Fatal(err)

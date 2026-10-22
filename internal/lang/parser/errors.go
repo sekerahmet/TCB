@@ -28,7 +28,7 @@ func typeDescription(t lexer.TokenType) string {
 	case lexer.TokIllegal:
 		return messages.Text(messages.H0115)
 	}
-	if spelling := keywordSpelling(t); spelling != "" {
+	if spelling := lexer.KeywordName(t); spelling != "" {
 		return messages.Text(messages.H0116, spelling)
 	}
 	return messages.Text(messages.H0117, string(t))
@@ -49,16 +49,10 @@ func tokenDescription(tok lexer.Token) string {
 	case lexer.TokIllegal:
 		return messages.Text(messages.H0121, tok.Literal)
 	}
-	if keywordSpelling(tok.Type) != "" {
+	if lexer.KeywordName(tok.Type) != "" {
 		return messages.Text(messages.H0116, tok.Literal)
 	}
 	return messages.Text(messages.H0117, tok.Literal)
-}
-
-// keywordSpelling anahtar kelime türünün sözlükteki adını bulur; tür bir anahtar
-// kelime değilse "" döner.
-func keywordSpelling(t lexer.TokenType) string {
-	return lexer.KeywordName(t)
 }
 
 // shortText hata mesajında gösterilecek metin sabitini kısaltır.

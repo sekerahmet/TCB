@@ -57,8 +57,7 @@ func EncodeIn(text string, lang *codes.Language) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	coded := Parts{BOM: b.BOM, Coded: true, Body: c.codedBody()}
-	coded.HeaderEOL = findEOL(coded.Body)
+	coded := c.codedParts(b)
 	result := coded.Join()
 	if err := c.sameMeaning(coded); err != nil {
 		return "", err
@@ -77,9 +76,14 @@ func toCoded(b Parts, lang *codes.Language) (Parts, error) {
 	if err != nil {
 		return b, err
 	}
+	return c.codedParts(b), nil
+}
+
+// codedParts b'nin (kodsuz, çözümlenmiş) kodlu biçimidir: BOM korunur, başlık satır sonu bulunur.
+func (c *analysis) codedParts(b Parts) Parts {
 	coded := Parts{BOM: b.BOM, Coded: true, Body: c.codedBody()}
 	coded.HeaderEOL = findEOL(coded.Body)
-	return coded, nil
+	return coded
 }
 
 // Show is the text of a file (the whole file) in lang's spelling: a coded file is decoded
@@ -103,13 +107,8 @@ func reencodes(decoded, coded string, lang *codes.Language) bool {
 	if err != nil || b.Coded {
 		return false
 	}
-	c, err := analyze(b, lang)
-	if err != nil {
-		return false
-	}
-	fresh := Parts{BOM: b.BOM, Coded: true, Body: c.codedBody()}
-	fresh.HeaderEOL = findEOL(fresh.Body)
-	return fresh.Join() == coded
+	fresh, err := toCoded(b, lang)
+	return err == nil && fresh.Join() == coded
 }
 
 // codedBody Türkçe gövdenin kodlu biçimidir: anahtar kelimeler ve dilin öğesi olan adlar
@@ -123,7 +122,7 @@ func (c *analysis) codedBody() string {
 			d = append(d, change{r.Start, r.End, k.String()})
 		}
 	}
-	return apply(c.input, d)
+	return apply(c.input, uniqueChanges(d))
 }
 
 // Decode converts coded source (the whole file) to dil's spelling; source that is not coded
@@ -155,7 +154,7 @@ func reencodesBody(view, codedBody string, lang *codes.Language) bool {
 }
 
 // viewBody kodlu gövdenin c.dil'deki yazımıdır.
-func (c *analysis) viewBody() string { return apply(c.input, c.viewChanges()) }
+func (c *analysis) viewBody() string { return apply(c.input, uniqueChanges(c.viewChanges())) }
 
 // viewChanges gövdeyi gösterime çeviren değişimlerdir: kodlar adlarına, dilin bir sözcüğü
 // gibi okunacak kullanıcı adları '$ad' yazımına.
@@ -178,7 +177,7 @@ func (c *analysis) viewChanges() []change {
 // veren sözcük çözümleyicidir: konumlar tam bu metne göredir, '$ad' kaçışları dahil.
 func view(b Parts) (string, *lexer.Lexer) {
 	if c, err := analyze(b, codes.Active()); err == nil {
-		d := c.viewChanges()
+		d := uniqueChanges(c.viewChanges())
 		return apply(c.input, d), lexer.NewBodyView(b.Body, viewEdits(d))
 	}
 	l := b.scanLexer(codes.Active())
@@ -191,20 +190,33 @@ func view(b Parts) (string, *lexer.Lexer) {
 			d = append(d, change{r.Start, r.End, langName(codes.Active(), r.Code)})
 		}
 	}
+	d = uniqueChanges(d)
 	return apply(l.Input(), d), lexer.NewBodyView(b.Body, viewEdits(d))
 }
 
 // viewEdits değişimleri sözcük çözümleyicinin sütun kaymalarına çevirir; apply gibi aynı
 // aralığı bir kez sayar.
+// d uniqueChanges'ten geçmiş olmalıdır.
 func viewEdits(d []change) []lexer.ViewEdit {
-	sort.SliceStable(d, func(i, j int) bool { return d[i].start < d[j].start })
 	var out []lexer.ViewEdit
+	for _, x := range d {
+		out = append(out, lexer.ViewEdit{Start: x.start, End: x.end, Len: utf8.RuneCountInString(x.text)})
+	}
+	return out
+}
+
+// uniqueChanges değişimleri başlangıca göre sıralar (yerinde, kararlı) ve önceki bir değişimin
+// aralığıyla çakışanları eler. apply ve viewEdits bunun çıktısını bekler: bir değişim kümesi
+// iki biçime çevrilecekse bir kez sıralanır.
+func uniqueChanges(d []change) []change {
+	sort.SliceStable(d, func(i, j int) bool { return d[i].start < d[j].start })
+	out := d[:0:0]
 	prev := 0
 	for _, x := range d {
 		if x.start < prev {
 			continue
 		}
-		out = append(out, lexer.ViewEdit{Start: x.start, End: x.end, Len: utf8.RuneCountInString(x.text)})
+		out = append(out, x)
 		prev = x.end
 	}
 	return out
@@ -307,16 +319,12 @@ type change struct {
 	text       string
 }
 
-// apply değişimleri girdiye uygular; aynı aralık iki kez kaydedilmişse (bir yerleştirme iki
-// kez ayrıştırıldıysa) bir kez uygulanır.
+// apply değişimleri girdiye uygular; d uniqueChanges'ten geçmiş olmalıdır (aynı aralık iki kez
+// kaydedilmişse, örneğin bir yerleştirme iki kez ayrıştırıldıysa, orada bir kez sayılır).
 func apply(input []rune, d []change) string {
-	sort.SliceStable(d, func(i, j int) bool { return d[i].start < d[j].start })
 	var sb strings.Builder
 	prev := 0
 	for _, x := range d {
-		if x.start < prev {
-			continue
-		}
 		sb.WriteString(string(input[prev:x.start]))
 		sb.WriteString(x.text)
 		prev = x.end

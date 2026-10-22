@@ -61,6 +61,21 @@ func TRSeeds(f *testing.F) {
 	}
 }
 
+// GlobFiles depo köküne göre verilen kalıplara uyan dosyaların tam yollarını sırayla verir
+// (kalıp sırası, içinde alfabetik); geçersiz kalıp testi düşürür.
+func GlobFiles(tb testing.TB, patterns ...string) []string {
+	tb.Helper()
+	var all []string
+	for _, pattern := range patterns {
+		files, err := filepath.Glob(reporoot.Path(pattern))
+		if err != nil {
+			tb.Fatal(err)
+		}
+		all = append(all, files...)
+	}
+	return all
+}
+
 // HasJSONName alanın boş olmayan bir json adı ya da "-" etiketi taşıyıp taşımadığını söyler.
 func HasJSONName(f *ast.Field) bool {
 	if f.Tag == nil {

@@ -18,20 +18,30 @@ func FuzzLexer(f *testing.F) {
 		f.Add(s)
 	}
 	f.Fuzz(func(t *testing.T, source string) {
-		l := New(source)
-		length := len(l.Input())
-		for i := 0; ; i++ {
-			if i > length+1 {
-				t.Fatalf("%d karakterlik girdiden %d'den fazla sözcük birimi: sonsuz döngü", length, i)
-			}
-			tok := l.NextToken()
-			begin, end := l.LastRange()
-			if begin < 0 || begin > end || end > length {
-				t.Fatalf("geçersiz aralık [%d, %d) (girdi %d karakter)", begin, end, length)
-			}
-			if tok.Type == TokEOF {
-				return
-			}
-		}
+		checkFuzzLexer(t, New(source))
 	})
+}
+
+// checkFuzzLexer sözcük çözümleyiciyi sonuna kadar çalıştırır: girdi uzunluğundan fazla sözcük
+// birimi üretmemeli (sonsuz döngü yok), her aralık girdinin içinde kalmalı ve satır 1'den küçük
+// olmamalıdır.
+func checkFuzzLexer(t *testing.T, l *Lexer) {
+	t.Helper()
+	length := len(l.Input())
+	for i := 0; ; i++ {
+		if i > length+1 {
+			t.Fatalf("%d karakterlik girdiden %d'den fazla sözcük birimi: sonsuz döngü", length, i)
+		}
+		tok := l.NextToken()
+		begin, end := l.LastRange()
+		if begin < 0 || begin > end || end > length {
+			t.Fatalf("geçersiz aralık [%d, %d) (girdi %d karakter)", begin, end, length)
+		}
+		if tok.Line < 1 {
+			t.Fatalf("geçersiz satır %d", tok.Line)
+		}
+		if tok.Type == TokEOF {
+			return
+		}
+	}
 }

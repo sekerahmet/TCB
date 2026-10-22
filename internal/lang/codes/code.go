@@ -6,6 +6,8 @@ package codes
 
 import (
 	"fmt"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Code is the language-independent, unchanging identity of a name. Its value is
@@ -60,7 +62,7 @@ func (k Code) String() string {
 // Parse converts text such as "A001" to a code.
 func Parse(s string) (Code, error) {
 	if len(s) != 4 {
-		return None, internalf("invalid code %q: want one letter and three digits (e.g. G100)", s)
+		return None, messages.Internalf("invalid code %q: want one letter and three digits (e.g. G100)", s)
 	}
 	family := -1
 	for i := 0; i < len(familyLetters); i++ {
@@ -69,17 +71,17 @@ func Parse(s string) (Code, error) {
 		}
 	}
 	if family < 0 {
-		return None, internalf("invalid code %q: family letter must be one of %s", s, familyLetters)
+		return None, messages.Internalf("invalid code %q: family letter must be one of %s", s, familyLetters)
 	}
 	n := 0
 	for _, c := range s[1:] {
 		if c < '0' || c > '9' {
-			return None, internalf("invalid code %q: three digits must follow the letter", s)
+			return None, messages.Internalf("invalid code %q: three digits must follow the letter", s)
 		}
 		n = n*10 + int(c-'0')
 	}
 	if n == 0 {
-		return None, internalf("invalid code %q: 000 is not used", s)
+		return None, messages.Internalf("invalid code %q: 000 is not used", s)
 	}
 	return Code(1000*(family+1) + n), nil
 }

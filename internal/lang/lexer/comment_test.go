@@ -51,7 +51,7 @@ func TestHashIsNotComment(t *testing.T) {
 			t.Errorf("%q: tek hata (H0005, satır 1, sütun %d) bekleniyordu, gelen: %v", c.src, c.col, errList)
 		}
 		// Tam metin biçimi (Errors çıktısı) de sınanır.
-		if got := errorTexts(errList); len(got) != 1 || got[0] != c.failed {
+		if got := messages.Texts(errList); len(got) != 1 || got[0] != c.failed {
 			t.Errorf("%q: tam metin %q bekleniyordu, gelen: %v", c.src, c.failed, got)
 		}
 		var names []string

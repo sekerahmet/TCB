@@ -61,12 +61,7 @@ func (c *Checker) checkStruct(s *ast.StructStatement) {
 	for _, f := range s.Fields {
 		c.inferExpression(f.DefaultValue)
 	}
-	names := make([]string, 0, len(s.Methods))
-	for name := range s.Methods {
-		names = append(names, name)
-	}
-	sort.Strings(names) // hatalar kararlı sırada
-	for _, name := range names {
+	for _, name := range sortedMethodNames(s) {
 		// metodun adı kapsama tanımlanmaz: yalnızca 'nesne.metot' ile çağrılır
 		m := s.Methods[name]
 		_, retType := c.functionSignature(m)
@@ -78,11 +73,9 @@ func (c *Checker) checkStruct(s *ast.StructStatement) {
 // dönüş tipini (yoksa Herhangi) verir.
 func (c *Checker) functionSignature(e *ast.FunctionLiteral) (paramTypes []string, retType string) {
 	for _, p := range e.Parameters {
-		c.checkTypeName(p.TypeName, e.Line())
-		paramTypes = append(paramTypes, normalizeTypeName(p.TypeName))
+		paramTypes = append(paramTypes, c.checkedTypeName(p.TypeName, e.Line()))
 	}
-	c.checkTypeName(e.ReturnType, e.Line())
-	return paramTypes, normalizeTypeName(e.ReturnType)
+	return paramTypes, c.checkedTypeName(e.ReturnType, e.Line())
 }
 
 // functionBody parametrelerin tanımlı olduğu yeni bir kapsamda varsayılan değerleri ve
@@ -95,9 +88,7 @@ func (c *Checker) functionBody(e *ast.FunctionLiteral, retType string) {
 		c.returnType = retType
 	}
 	for _, p := range e.Parameters {
-		c.checkShadowing(p.Name, e.Line())
-		c.checkNameStyle(p.Name, kindValue, e.Line())
-		c.scope.Define(p.Name, TypeInfo{TypeName: normalizeTypeName(p.TypeName)})
+		c.defineName(p.Name, kindValue, e.Line(), TypeInfo{TypeName: normalizeTypeName(p.TypeName)})
 	}
 	for _, p := range e.Parameters {
 		if p.DefaultValue != nil {
@@ -110,4 +101,14 @@ func (c *Checker) functionBody(e *ast.FunctionLiteral, retType string) {
 		}
 	}
 	c.scope, c.returnType = prev, prevRet
+}
+
+// sortedMethodNames yapının metot adlarını sıralı verir; hatalar kararlı sırada çıkar.
+func sortedMethodNames(s *ast.StructStatement) []string {
+	names := make([]string, 0, len(s.Methods))
+	for name := range s.Methods {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }

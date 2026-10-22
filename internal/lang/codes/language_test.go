@@ -1,7 +1,6 @@
 package codes
 
 import (
-	"bytes"
 	"encoding/json"
 	"os"
 	"os/exec"
@@ -25,38 +24,7 @@ func TestTRLoads(t *testing.T) {
 // Dosya insanlar tarafından düzenlenir: kodlar artan sırada ve her girdi kendi satırında
 // olmalı.
 func TestTRSortedOnePerLine(t *testing.T) {
-	dec := json.NewDecoder(bytes.NewReader(trJSON))
-	if _, err := dec.Token(); err != nil {
-		t.Fatal(err)
-	}
-	var prev Code
-	for dec.More() {
-		tk, err := dec.Token()
-		if err != nil {
-			t.Fatal(err)
-		}
-		k, err := Parse(tk.(string))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if k <= prev {
-			t.Errorf("%s, %s'den sonra geliyor; kodlar artan sırada olmalı", k, prev)
-		}
-		prev = k
-		var g json.RawMessage
-		if err := dec.Decode(&g); err != nil {
-			t.Fatal(err)
-		}
-	}
-	for i, line := range strings.Split(strings.TrimSpace(string(trJSON)), "\n") {
-		s := strings.TrimSpace(line)
-		if s == "{" || s == "}" {
-			continue
-		}
-		if !strings.HasPrefix(line, "  \"") || strings.Count(s, "\"ad\"") != 1 {
-			t.Errorf("satır %d: her girdi iki boşluk girintili tek satır olmalı: %s", i+1, line)
-		}
-	}
+	checkSortedOnePerLine(t, trJSON, "ad")
 }
 
 // Farklı iki ad, ad alanları farklı olsa bile aynı ASCII biçime

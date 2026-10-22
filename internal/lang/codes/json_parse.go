@@ -6,19 +6,8 @@ import (
 	"strconv"
 	"unicode/utf8"
 
-	"github.com/sekerahmet/TCB/internal/lang/turkish"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
-
-// asciiForm adın Türkçe karakterleri ASCII'ye çevrilmiş biçimidir (turkce.ASCII); ASCII
-// adlarda ayırma yapmadan adın kendisini döndürür.
-func asciiForm(s string) string {
-	for i := 0; i < len(s); i++ {
-		if s[i] >= utf8.RuneSelf {
-			return turkish.ASCII(s)
-		}
-	}
-	return s
-}
 
 // Dil dosyası program her başladığında okunur. encoding/json'un yansıma (reflect) ile
 // çalışan çözümleyicisi ilk çağrıda yaklaşık bir milisaniye harcadığı için dosya bu küçük,
@@ -49,7 +38,7 @@ func (c *jsonParser) errorf(form string, a ...any) error {
 			col++
 		}
 	}
-	return internalf("line %d, column %d: %s", line, col, fmt.Sprintf(form, a...))
+	return messages.Internalf("line %d, column %d: %s", line, col, fmt.Sprintf(form, a...))
 }
 
 func (c *jsonParser) skipSpace() {

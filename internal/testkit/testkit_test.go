@@ -100,3 +100,15 @@ func TestHelpersAreImportedOnlyByTests(t *testing.T) {
 		}
 	}
 }
+
+// Kural: GlobFiles kalıp sırasını korur ve depo köküne göre çalışır; eşleşmeyen kalıp boş kalır.
+// Neden: checker ve başka paketlerin testleri aynı glob döngüsünü kendileri yazıyordu.
+func TestGlobFilesKeepsPatternOrder(t *testing.T) {
+	got := GlobFiles(t, "tests/*.tr", "no/such/dir/*.tr", "examples/tr/*.tr")
+	if len(got) < 2 {
+		t.Fatalf("depo programları bulunamadı: %v", got)
+	}
+	if !strings.Contains(filepath.ToSlash(got[0]), "/tests/") || !strings.Contains(filepath.ToSlash(got[len(got)-1]), "/examples/tr/") {
+		t.Fatalf("kalıp sırası bozuldu: ilk %s, son %s", got[0], got[len(got)-1])
+	}
+}
