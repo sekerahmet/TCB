@@ -26,6 +26,7 @@
 // Sonuç: --kaydet DOSYA eğitim bitince son ağırlıkları (parametreler, yol adlarıyla) tensör dosyası
 // olarak yazar; tools/gpu/rgn_from_tr.py onları PyTorch modeline yükleyip doğrulama kaybını hedefin
 // kendi koduyla ölçer ve metin üretir.
+// Tersi: --ağırlık DOSYA --adım 0 PyTorch'ta eğitilmiş modeli (rgn_to_tr.py) eğitmeden TR'nin koduyla ölçer.
 
 değişken arg = komut_satırı({veri: "", adım: 120, toplu: 64, mikro: 32, bağlam: 1024, oran: 0.002,
         cihaz: "gpu", tohum: 0, günlük: 50, çıktı: "", ağırlık: "", sıralı: yanlış, hassasiyet: "bf16",
@@ -164,6 +165,12 @@ döngü adım < arg.adım {
     }
     adım += 1
     eğer kn != yok { kn.güncelle(adım) }
+}
+
+// --adım 0: eğitmeden yalnızca değerlendirir (ör. --ağırlık ile yüklenen, PyTorch'ta eğitilmiş modelin
+// doğrulama kaybı; tools/gpu/rgn_to_tr.py).
+eğer arg.adım == 0 ve doğrulama_kümesi != yok {
+    yazdır("  DEĞERLENDİRME adım 0: kayıp {yuvarla(değerlendir(), 4)}")
 }
 
 eğer arg.çıktı != "" {
