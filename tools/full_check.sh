@@ -127,7 +127,8 @@ initial_state=$(repo_state)
 static_checks() {
 	step "Üretilmiş dosyalar güncel mi"
 	for tool in tools/gen/*/; do
-		if grep -q -- '"check"' "$tool"*.go 2>/dev/null; then
+		# -check bayrağı üreticinin kendisinde ya da ortak genmain.RunMain'dedir.
+		if grep -q -e '"check"' -e 'genmain\.RunMain' "$tool"*.go 2>/dev/null; then
 			go run "./$tool" -check >/dev/null || fail "$tool güncel değil (go run ./$tool ile üretin)"
 		else
 			fail "$tool -check bayrağı yok: üretilmiş dosyalarının güncelliği denetlenemiyor"
