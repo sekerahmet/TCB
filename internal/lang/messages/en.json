@@ -653,7 +653,6 @@
 "H5270": "regular expression {pattern|q} exceeded the step limit ({budget}) in the search starting at byte position {pos} of the input: the pattern backtracks exponentially or excessively on this input; tokenization was stopped",
 "H5271": "in the unbounded repetition, alternatives {first} and {second} can start with the same character; on long inputs this can cause excessive backtracking",
 "H5272": "the tokenizer file could not be read: {error}",
-"H5273": "the tokenizer data could not be read: {error}",
 "H5274": "the tokenizer JSON could not be parsed: {error}",
 "H5275": "unsupported configuration: truncation is defined; it is not supported because it would change the encoding output",
 "H5276": "unsupported configuration: padding is defined; it is not supported because it would change the encoding output",

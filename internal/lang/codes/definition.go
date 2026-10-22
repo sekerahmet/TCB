@@ -134,21 +134,6 @@ func (t Definition) Types() []Code {
 	return out
 }
 
-// TypeSpecific reports whether the member's signature depends on the type (written with
-// "imzalar").
-func (t Definition) TypeSpecific() bool {
-	return len(t.Members) > 1 && !sigEqual(t.Members[0].Signature, t.Members[1:]...)
-}
-
-func sigEqual(a Signature, others ...TypeSignature) bool {
-	for _, d := range others {
-		if fmt.Sprint(a) != fmt.Sprint(d.Signature) {
-			return false
-		}
-	}
-	return true
-}
-
 var (
 	defOnce  sync.Once
 	defs     map[Code]Definition
@@ -359,23 +344,6 @@ func MemberName(y Code) string {
 		a = ReceiverName(t.Members[0].Type)
 	}
 	return a + "." + Name(y)
-}
-
-// MemberSpelling returns how a member is written: x.uzunluk, liste.filtrele(...),
-// liste.sırala(). The receiver is as in MemberName. Error messages and docs use it to show
-// the new form of moved codes.
-func MemberSpelling(y Code) string {
-	t, _ := DefinitionOf(y)
-	s := MemberName(y)
-	if t.Kind != KindMethod {
-		return s
-	}
-	for _, u := range t.Members {
-		if len(u.Signature.Params) > 0 {
-			return s + "(...)"
-		}
-	}
-	return s + "()"
 }
 
 // SourceLanguage is the code of the source language file (Turkish, the canonical language).

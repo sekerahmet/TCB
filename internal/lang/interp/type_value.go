@@ -1,8 +1,6 @@
 package interp
 
 import (
-	"fmt"
-
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/hint"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -63,14 +61,6 @@ func init() {
 			typeValueByName[TypeName(k)] = t
 		}
 	}
-}
-
-// TypeValue returns the type value of a type code (A2xx).
-func TypeValue(k codes.Code) *TypeVal {
-	if k.Namespace() != codes.NamespaceType || typeValues[k.Number()] == nil {
-		panic(fmt.Sprintf("TypeValue: %s is not a live type code (A2xx)", k))
-	}
-	return typeValues[k.Number()]
 }
 
 // TypeOfValue is the result of tip(v): v's type value.

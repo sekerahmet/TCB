@@ -653,7 +653,6 @@
 "H5270": "düzenli ifade {pattern|q}, girdinin {pos}. bayt konumundan başlayan aramada adım sınırını ({budget}) aştı: desen bu girdide üstel ya da aşırı geri izleme yapıyor; parçalama durduruldu",
 "H5271": "sınırsız yineleme içinde {first}. ve {second}. seçenek aynı karakterle başlayabiliyor; uzun girdilerde aşırı geri izleme olabilir",
 "H5272": "parçalayıcı dosyası okunamadı: {error}",
-"H5273": "parçalayıcı verisi okunamadı: {error}",
 "H5274": "parçalayıcı JSON'u çözümlenemedi: {error}",
 "H5275": "desteklenmeyen yapılandırma: truncation (kırpma) tanımlı; kodlama çıktısını değiştireceği için desteklenmiyor",
 "H5276": "desteklenmeyen yapılandırma: padding (dolgu) tanımlı; kodlama çıktısını değiştireceği için desteklenmiyor",

@@ -245,15 +245,6 @@ func Randn(rng *rand.Rand, shape ...int) *Tensor {
 	return New(d, shape...)
 }
 
-// Rand [lo, hi) aralığında düzgün dağılımlı tensör.
-func Rand(rng *rand.Rand, lo, hi float32, shape ...int) *Tensor {
-	d := make([]float32, allocSize(isCreate, shape, Float32))
-	for i := range d {
-		d[i] = lo + (hi-lo)*rng.Float32()
-	}
-	return New(d, shape...)
-}
-
 // ----------------------------------------------------------------------------
 // Erişimciler
 // ----------------------------------------------------------------------------

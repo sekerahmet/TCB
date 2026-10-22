@@ -658,7 +658,6 @@ const (
 	H5270 Code = 5270 // düzenli ifade {pattern|q}, girdinin {pos}. bayt konumundan başlayan aramada adım sınırını ({budget}) aştı: desen bu girdide üstel ya da aşırı geri izleme yapıyor; parçalama durduruldu
 	H5271 Code = 5271 // sınırsız yineleme içinde {first}. ve {second}. seçenek aynı karakterle başlayabiliyor; uzun girdilerde aşırı geri izleme olabilir
 	H5272 Code = 5272 // parçalayıcı dosyası okunamadı: {error}
-	H5273 Code = 5273 // parçalayıcı verisi okunamadı: {error}
 	H5274 Code = 5274 // parçalayıcı JSON'u çözümlenemedi: {error}
 	H5275 Code = 5275 // desteklenmeyen yapılandırma: truncation (kırpma) tanımlı; kodlama çıktısını değiştireceği için desteklenmiyor
 	H5276 Code = 5276 // desteklenmeyen yapılandırma: padding (dolgu) tanımlı; kodlama çıktısını değiştireceği için desteklenmiyor

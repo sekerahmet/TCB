@@ -26,7 +26,6 @@ package tokenize
 import (
 	"bytes"
 	"encoding/json"
-	"io"
 	"os"
 	"sort"
 
@@ -94,15 +93,6 @@ func Load(path string) (*Tokenizer, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, messages.New(messages.H5272, err)
-	}
-	return Parse(data)
-}
-
-// Read bir okuyucudan tokenizer.json içeriğini okur.
-func Read(r io.Reader) (*Tokenizer, error) {
-	data, err := io.ReadAll(r)
-	if err != nil {
-		return nil, messages.New(messages.H5273, err)
 	}
 	return Parse(data)
 }

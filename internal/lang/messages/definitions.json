@@ -653,7 +653,6 @@
 "H5270": { "param": ["pattern", "pos", "budget"] },
 "H5271": { "param": ["first", "second"] },
 "H5272": { "param": ["error"] },
-"H5273": { "param": ["error"] },
 "H5274": { "param": ["error"] },
 "H5275": { "param": [] },
 "H5276": { "param": [] },
