@@ -42,28 +42,7 @@ func (p *Parser) parseSingleParamLambda() ast.Expression {
 	tok := p.curToken()
 	param := ast.Param{Name: tok.Literal}
 	p.nextToken() // '=>'
-	arrowTok := p.curToken()
-
-	var body *ast.BlockStatement
-	if p.peekTokenIs(lexer.TokLBrace) {
-		p.nextToken()
-		body = p.functionBody()
-	} else {
-		p.nextToken()
-		expr := p.functionExpr()
-		body = &ast.BlockStatement{
-			Token: arrowTok,
-			Statements: []ast.Statement{
-				&ast.ReturnStatement{Token: arrowTok, ReturnValue: expr},
-			},
-		}
-	}
-
-	return &ast.FunctionLiteral{
-		Token:      tok,
-		Parameters: []ast.Param{param},
-		Body:       body,
-	}
+	return p.finishLambda(tok, []ast.Param{param})
 }
 func (p *Parser) parseLambdaExpression() ast.Expression {
 	tok := p.curToken() // '('
@@ -71,6 +50,12 @@ func (p *Parser) parseLambdaExpression() ast.Expression {
 	if !p.expectPeek(lexer.TokArrow) {
 		return nil
 	}
+	return p.finishLambda(tok, params)
+}
+
+// finishLambda '=>' belirtecinde duran imleçten sonrasını (küme ayraçlı gövde ya da tek ifade)
+// okuyup lambdayı kurar; tok lambdanın ilk belirtecidir.
+func (p *Parser) finishLambda(tok lexer.Token, params []ast.Param) ast.Expression {
 	arrowTok := p.curToken()
 
 	var body *ast.BlockStatement
