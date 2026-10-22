@@ -423,35 +423,36 @@ yapı KVÖnbellek {
     // ekle: katman no'nun yeni anahtar ve değerlerini ([B, T, kv_bakış, bakış_boyutu]) konumdan
     // başlayarak ekler; o katmanın 0..konum+T anahtar ve değerlerini verir.
     fonksiyon ekle(no, k, v) {
-        değişken T = k.şekil[1]
-        değişken son = kendi.konum + T
-        eğer kendi.çeşit == "büyüyen" {
-            eğer kendi.anahtarlar[no] == yok {
-                kendi.anahtarlar[no] = k
-                kendi.değerler[no] = v
-            } değilse {
-                kendi.anahtarlar[no] = bitiştir([kendi.anahtarlar[no].dilim(1, 0, kendi.konum), k], eksen: 1)
-                kendi.değerler[no] = bitiştir([kendi.değerler[no].dilim(1, 0, kendi.konum), v], eksen: 1)
-            }
-            sonuç [kendi.anahtarlar[no], kendi.değerler[no]]
-        }
-        eğer kendi.adım_konumu != yok {
-            yerine_yaz(kendi.anahtarlar[no], k, eksen: 1, başlangıç: kendi.adım_konumu[0])
-            yerine_yaz(kendi.değerler[no], v, eksen: 1, başlangıç: kendi.adım_konumu[0])
-            sonuç [kendi.anahtarlar[no], kendi.değerler[no]]
-        }
-        doğrula(son <= kendi.en_çok, "sabit önbellek dolu: {son} konum, en çok {kendi.en_çok}")
-        eğer kendi.anahtarlar[no] == yok {
-            kendi.anahtarlar[no] = sıfırlar([k.şekil[0], kendi.en_çok, k.şekil[2], k.şekil[3]], tür: k.tür).cihaza(k.cihaz)
-            kendi.değerler[no] = sıfırlar([v.şekil[0], kendi.en_çok, v.şekil[2], v.şekil[3]], tür: v.tür).cihaza(v.cihaz)
-            eğer kendi.pozisyonlar == yok {
+        değişken son = kendi.konum + k.şekil[1]
+        eğer kendi.çeşit == "sabit" ve kendi.adım_konumu == yok {
+            doğrula(son <= kendi.en_çok, "sabit önbellek dolu: {son} konum, en çok {kendi.en_çok}")
+            eğer kendi.anahtarlar[no] == yok ve kendi.pozisyonlar == yok {
                 kendi.pozisyonlar = tensör([i * 1.0 döngü i içinde 0..kendi.en_çok]).cihaza(k.cihaz)
             }
         }
-        değişken B = k.şekil[0]
-        kendi.anahtarlar[no].dilim(1, kendi.konum, son)[0..B] = k
-        kendi.değerler[no].dilim(1, kendi.konum, son)[0..B] = v
-        sonuç [kendi.anahtarlar[no].dilim(1, 0, son), kendi.değerler[no].dilim(1, 0, son)]
+        sonuç [kendi.tampon_ekle(kendi.anahtarlar, no, k, son), kendi.tampon_ekle(kendi.değerler, no, v, son)]
+    }
+    // tampon_ekle: anahtar ya da değer tamponları listesinde (liste) katman no'nun tamponuna yeni
+    // parçayı çeşide göre ekler ve katmanın görünür kısmını verir: büyüyen bitiştirir, cihaz adımında
+    // yerine yazar, sabit tamponu ilk kullanımda ayırıp konumdan başlayarak dilime yazar.
+    fonksiyon tampon_ekle(liste, no, yeni, son) {
+        eğer kendi.çeşit == "büyüyen" {
+            eğer liste[no] == yok {
+                liste[no] = yeni
+            } değilse {
+                liste[no] = bitiştir([liste[no].dilim(1, 0, kendi.konum), yeni], eksen: 1)
+            }
+            sonuç liste[no]
+        }
+        eğer kendi.adım_konumu != yok {
+            yerine_yaz(liste[no], yeni, eksen: 1, başlangıç: kendi.adım_konumu[0])
+            sonuç liste[no]
+        }
+        eğer liste[no] == yok {
+            liste[no] = sıfırlar([yeni.şekil[0], kendi.en_çok, yeni.şekil[2], yeni.şekil[3]], tür: yeni.tür).cihaza(yeni.cihaz)
+        }
+        liste[no].dilim(1, kendi.konum, son)[0..yeni.şekil[0]] = yeni
+        sonuç liste[no].dilim(1, 0, son)
     }
     // ilerle: bir ileri hesabın T parçası bütün katmanlara yazıldıktan sonra konumu ilerletir.
     fonksiyon ilerle(T) { kendi.konum = kendi.konum + T }
@@ -520,13 +521,25 @@ yapı GPT {
         kendi.kos = tablolar[0]
         kendi.sin = tablolar[1]
     }
+    // gömülü: kimlikleri gömer; [x, bağlamlar] verir (bağlamlar: katman başına PLE bağlamı ya da yok).
+    fonksiyon gömülü(kimlikler) {
+        değişken x = kendi.gömme.ileri(kimlikler)
+        sonuç [x, eğer kendi.ple_bağlamı == yok { yok } değilse { kendi.ple_bağlamı.ileri(x) }]
+    }
+    // blokları_işle: x'i bloklardan sırayla geçirir (gizli_durum ve tek_adım ortak gövdesi).
+    fonksiyon blokları_işle(x, bağlamlar, kos, sin, kimlikler, önbellek) {
+        döngü i, blok içinde kendi.bloklar {
+            x = blok.ileri(x, kos, sin, kimlikler, eğer bağlamlar == yok { yok } değilse { bağlamlar[i] }, önbellek: önbellek, no: i)
+        }
+        sonuç x
+    }
     // gizli_durum: kimlikler [B, T] → son normdan geçmiş gizli durum [B, T, boyut]; karışık
     // hassasiyette hesap türünde (çıkış çarpımı için).
     // önbellek verilirse (KVÖnbellek) kimlikler önbellekteki konumdan devam eder: döner konum
     // tabloları o konumdan dilimlenir, anahtar ve değerler önbelleğe eklenir, konum ilerler.
     fonksiyon gizli_durum(kimlikler, önbellek = yok) {
-        değişken x = kendi.gömme.ileri(kimlikler)
-        değişken bağlamlar = eğer kendi.ple_bağlamı == yok { yok } değilse { kendi.ple_bağlamı.ileri(x) }
+        değişken gb = kendi.gömülü(kimlikler)
+        değişken x = gb[0]
         değişken kos = kendi.kos
         değişken sin = kendi.sin
         değişken T = x.şekil[1]
@@ -536,9 +549,7 @@ yapı GPT {
             kos = kos.dilim(0, baş, baş + T)
             sin = sin.dilim(0, baş, baş + T)
         }
-        döngü i, blok içinde kendi.bloklar {
-            x = blok.ileri(x, kos, sin, kimlikler, eğer bağlamlar == yok { yok } değilse { bağlamlar[i] }, önbellek: önbellek, no: i)
-        }
+        x = kendi.blokları_işle(x, gb[1], kos, sin, kimlikler, önbellek)
         eğer önbellek != yok { önbellek.ilerle(T) }
         // Gizli durumu yalnızca çıkış çarpımı (ya da doğrusal_çapraz_entropi) okur.
         sonuç kendi.son_norm.ileri(x, çıktı_türü: hesap_türü())
@@ -548,14 +559,11 @@ yapı GPT {
     // konum sayacını çağıran ilerletir); bu yüzden tekrar_oynat ile kaydedilip oynatılabilir
     // (dil tanımı 15.48). Önbellek sabit olmalı ve ilk parçalar gizli_durum ile işlenmiş olmalı.
     fonksiyon tek_adım(kimlik, konum, önbellek) {
-        değişken x = kendi.gömme.ileri(kimlik)
-        değişken bağlamlar = eğer kendi.ple_bağlamı == yok { yok } değilse { kendi.ple_bağlamı.ileri(x) }
+        değişken gb = kendi.gömülü(kimlik)
         değişken kos = gömme(kendi.kos, konum)
         değişken sin = gömme(kendi.sin, konum)
         önbellek.cihaz_adımı(konum)
-        döngü i, blok içinde kendi.bloklar {
-            x = blok.ileri(x, kos, sin, kimlik, eğer bağlamlar == yok { yok } değilse { bağlamlar[i] }, önbellek: önbellek, no: i)
-        }
+        değişken x = kendi.blokları_işle(gb[0], gb[1], kos, sin, kimlik, önbellek)
         önbellek.cihaz_adımı(yok)
         sonuç kendi.logit(kendi.son_norm.ileri(x, çıktı_türü: hesap_türü()))[0][0]
     }

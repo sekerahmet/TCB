@@ -2,15 +2,7 @@
 // genişletilmiş eleman bazlı fonksiyonlar, sınırlama, koşullu seçim, birikim ve sıralama
 // (15.31-15.38).
 
-// hata_metni: f'nin hata mesajı (hata yoksa boş metin).
-fonksiyon hata_metni(f) {
-    dene {
-        f()
-    } yakala h {
-        sonuç h
-    }
-    sonuç ""
-}
+aktar "yardimci_test_araclari"
 
 // yakın_mı: iki sayının farkı tolerans içinde mi?
 fonksiyon yakın_mı(a, b, tol = 0.000001) {
@@ -250,15 +242,9 @@ test "15.30 genişletilmiş matematik GPU'da CPU ile aynı sonucu verir" {
         değişken g = hesap("gpu")
         eşit_mi(c[1], g[1])
         eşit_mi(c[2], g[2])
-        doğrula(en_büyük_fark(tensör(c[0]), tensör(g[0])) < 0.00001)
-        doğrula(en_büyük_fark(tensör(c[3]), tensör(g[3])) < 0.00001)
+        doğrula(en_büyük_kare_fark(tensör(c[0]), tensör(g[0])) < 0.00001)
+        doğrula(en_büyük_kare_fark(tensör(c[3]), tensör(g[3])) < 0.00001)
     }
-}
-
-// en_büyük_fark: iki tensörün elemanları arasındaki en büyük kare fark.
-fonksiyon en_büyük_fark(a, b) {
-    değişken d = a - b
-    sonuç maks(d * d).değer
 }
 
 test "13.7 sonlu_mu: NaN ve sonsuzda yanlış, öbür sayılarda doğru" {

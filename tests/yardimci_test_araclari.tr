@@ -1,0 +1,20 @@
+// Test dosyalarının ortak sınama yardımcıları (kendisi test dosyası değildir): tests/ altındaki
+// *_test.tr dosyaları takma adsız `aktar "yardimci_test_araclari"` ile kullanır. Kitaplık
+// (lib/) testleri buradan aktarmaz; her lib test dosyası kendi tanımını taşır.
+
+// hata_metni: f çalışırken oluşan hatanın mesajını döndürür (hata yoksa boş metin).
+fonksiyon hata_metni(f) {
+    dene {
+        f()
+    } yakala h {
+        sonuç h
+    }
+    sonuç ""
+}
+
+// en_büyük_kare_fark: iki tensörün elemanları arasındaki en büyük kare fark (eşikler kare ölçeğindedir:
+// 1e-8 kare fark ≈ 1e-4 mutlak fark). lib testlerindeki en_büyük_mutlak_fark başka bir ölçüdür.
+fonksiyon en_büyük_kare_fark(a, b) {
+    değişken d = a - b
+    sonuç maks(d * d).değer
+}

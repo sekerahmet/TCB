@@ -18,11 +18,7 @@ sabit YOL = "../../tests/data/hf_tiny"
 değişken model = hazır_model(YOL)
 değişken p = parçalayıcı_yükle("../../tests/data/tokenizer.json")
 değişken parametre_sayısı = 0
-döngü w içinde parametreler(model) {
-    değişken n = 1
-    döngü boyut içinde w.şekil { n *= boyut }
-    parametre_sayısı += n
-}
+döngü w içinde parametreler(model) { parametre_sayısı += w.şekil.indirge(1) { birikim * o } } // şeklin boyutlarının çarpımı
 yazdır("bağlam:", model.ayar.bağlam, "| dağarcık:", p.dağarcık_boyutu, "| parametre:", parametre_sayısı)
 
 // üret(başlangıç, adet): başlangıç kimliklerinin ardına adet parça ekler ve bütün listeyi verir.

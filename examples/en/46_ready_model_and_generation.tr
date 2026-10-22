@@ -20,11 +20,7 @@ A031 PATH = "../../tests/data/hf_tiny"
 A030 model = hazır_model(PATH)
 A030 tok = V200("../../tests/data/tokenizer.json")
 A030 param_count = 0
-A010 w A011 T530(model) {
-    A030 n = 1
-    A010 dim A011 w.Y400 { n *= dim }
-    param_count += n
-}
+A010 w A011 T530(model) { param_count += w.Y400.Y207(1) { A105 * A104 } } // product of the shape's dimensions
 G100("context:", model.ayar.bağlam, "| vocabulary:", tok.Y612, "| parameters:", param_count)
 
 // üret(start, count): appends count tokens after the start ids and gives the whole list.

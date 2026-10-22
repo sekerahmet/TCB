@@ -9,15 +9,7 @@ sabit TABAN = geçici_klasör()
 // Günlük dosyaları bu koşunun geçici klasöründe (18.14); program bitince silinir.
 sabit GÜNLÜKLER = geçici_klasör()
 
-// hata_metni: f çalışırken oluşan hatanın mesajını döndürür (hata yoksa boş metin).
-fonksiyon hata_metni(f) {
-    dene {
-        f()
-    } yakala h {
-        sonuç h
-    }
-    sonuç ""
-}
+aktar "yardimci_test_araclari"
 
 // koşu: testin kendi boş koşu klasörünün yolu (önceki bir koşudan kalmışsa silinir).
 fonksiyon koşu(ad) {

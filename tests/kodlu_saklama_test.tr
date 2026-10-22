@@ -1,6 +1,8 @@
 // Kodlu saklama (docs/spec/17_kodlar.md, 17.1-17.7) ve '$ad' kaçışı (2.11). Kodlu modül:
 // tests/coded/ornek_kodlu.tr (Türkçe gösterimi: tr göster tests/coded/ornek_kodlu.tr).
 
+aktar "yardimci_test_araclari"
+
 test "17.1 ilk satırı başlık olan dosya kodludur ve çevrilmeden çalışır" {
     aktar "coded/ornek_kodlu" olarak m
     eşit_mi([1, 4, 9], m.kareler([1, 2, 3]))
@@ -71,11 +73,7 @@ test "2.11 '$ad' kaçışı: ad dilin bir sözcüğüyle aynı olsa da kullanıc
 test "17.8 komut satırı adları kodludur: programın yardım seçeneğinin her dildeki adı ayrılmıştır" {
     // tr komutlarının, seçeneklerin, kabuğun ve hata ayıklayıcının adları Go testleriyle
     // sınanır (dil tanımı 17.8, Sınamalar); programın --yardım'ı (K106) her dilde ayrılmıştır.
-    fonksiyon hata(f) {
-        dene { f() } yakala h { sonuç h }
-        sonuç ""
-    }
-    doğrula(hata(() => komut_satırı({yardım: doğru})).içerir("seçenek adı olamaz"))
-    doğrula(hata(() => komut_satırı({help: doğru})).içerir("seçenek adı olamaz"))
-    doğrula(hata(() => komut_satırı({h: doğru})).içerir("seçenek adı olamaz"))
+    doğrula(hata_metni(() => komut_satırı({yardım: doğru})).içerir("seçenek adı olamaz"))
+    doğrula(hata_metni(() => komut_satırı({help: doğru})).içerir("seçenek adı olamaz"))
+    doğrula(hata_metni(() => komut_satırı({h: doğru})).içerir("seçenek adı olamaz"))
 }

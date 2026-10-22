@@ -75,11 +75,7 @@ değişken ss = sabit_parametre([D], 0.0)
 değişken Wu = parametre([D, V], 0.1)
 
 değişken toplam_parametre = 0
-döngü p içinde ağırlıklar {
-    değişken n = 1
-    döngü boyut içinde p.şekil { n = n * boyut }
-    toplam_parametre += n
-}
+döngü p içinde ağırlıklar { toplam_parametre += p.şekil.indirge(1) { birikim * o } } // şeklin boyutlarının çarpımı
 yazdır("veri: {veri.uzunluk} karakter, sözlük: {V} karakter, parametre: {toplam_parametre}")
 
 // --- Model ---
@@ -144,10 +140,7 @@ türevsiz {
     döngü n içinde 0..120 {
         değişken en_iyi = maks_indeks(ileri([bağlam], 1), eksen: -1).değer[0][T - 1]
         üretilen = üretilen + harfler[en_iyi]
-        değişken yeni = []
-        döngü t içinde 1..T { yeni.ekle(bağlam[t]) }
-        yeni.ekle(en_iyi)
-        bağlam = yeni
+        bağlam = bağlam[1..T] + [en_iyi] // pencereyi bir kaydır
     }
 }
 yazdır("model şunu yazdı: {üretilen}")

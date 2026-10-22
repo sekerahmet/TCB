@@ -71,6 +71,31 @@ fonksiyon yığ_dikleştir(güncellemeler, adım_sayısı, tür) {
     sonuç dikleştir(yığın, adım_sayısı, tür: tür)
 }
 
+// _grup_momentumu bir şekil grubunun (grup: ağırlık sıraları) momentumlarını yerinde b·m + (1 − b)·g
+// ile günceller; gradyanı olmayan ağırlıklar atlanır. [sıra, güncellemeler] verir: güncellemeler
+// dikleştirilecek matrislerdir (nesterov: b·m + (1 − b)·g, değilse momentumun kendisi).
+// Yalnızca türevsiz blokta çağrılır.
+fonksiyon _grup_momentumu(ağırlıklar, momentumlar, grup, b, nesterov) {
+    değişken sıra = []
+    değişken güncellemeler = []
+    döngü i içinde grup {
+        değişken g = ağırlıklar[i].gradyan
+        eğer g == yok { devam }
+        değişken m = momentumlar[i]
+        m[0..m.şekil[0]] = b * m + (1 - b) * g
+        güncellemeler.ekle(eğer nesterov { b * m + (1 - b) * g } değilse { m })
+        sıra.ekle(i)
+    }
+    sonuç [sıra, güncellemeler]
+}
+
+// _ağırlık_güncelle p'yi yerinde günceller: önce ağırlık çürümesi (p ← p·(1 − oran·çürüme), çürüme > 0
+// ise), sonra p ← p − adım. Yalnızca türevsiz blokta çağrılır.
+fonksiyon _ağırlık_güncelle(p, oran, çürüme, adım) {
+    eğer çürüme > 0 { p[0..p.şekil[0]] = p * (1 - oran * çürüme) }
+    p[0..p.şekil[0]] -= adım
+}
+
 // durum_tensörü p ile aynı şekilde ve cihazda, sıfırla başlayan bir durum tensörü kurar
 // (türev izlemez; yalnızca türevsiz blokta yerinde güncellenir).
 fonksiyon durum_tensörü(şekil, cihaz) {
@@ -133,25 +158,14 @@ yapı Muon {
         kendi.durum = {momentum: [durum_tensörü(p.şekil, p.cihaz) döngü p içinde ağırlıklar]}
     }
     fonksiyon adım() {
-        değişken b = kendi.momentum
         türevsiz {
             döngü grup içinde kendi.gruplar {
-                değişken sıra = []
-                değişken güncellemeler = []
-                döngü i içinde grup {
-                    değişken g = kendi.ağırlıklar[i].gradyan
-                    eğer g == yok { devam }
-                    değişken m = kendi.durum.momentum[i]
-                    m[0..m.şekil[0]] = b * m + (1 - b) * g
-                    güncellemeler.ekle(eğer kendi.nesterov { b * m + (1 - b) * g } değilse { m })
-                    sıra.ekle(i)
-                }
+                değişken sg = _grup_momentumu(kendi.ağırlıklar, kendi.durum.momentum, grup, kendi.momentum, kendi.nesterov)
+                değişken sıra = sg[0]
                 eğer sıra.uzunluk == 0 { devam }
-                değişken O = yığ_dikleştir(güncellemeler, kendi.ns_adımı, kendi.ns_türü)
+                değişken O = yığ_dikleştir(sg[1], kendi.ns_adımı, kendi.ns_türü)
                 döngü j, i içinde sıra {
-                    değişken p = kendi.ağırlıklar[i]
-                    eğer kendi.ağırlık_çürümesi > 0 { p[0..p.şekil[0]] = p * (1 - kendi.öğrenme_oranı * kendi.ağırlık_çürümesi) }
-                    p[0..p.şekil[0]] -= (kendi.öğrenme_oranı * kendi.ölçekler[i]) * O[j]
+                    _ağırlık_güncelle(kendi.ağırlıklar[i], kendi.öğrenme_oranı, kendi.ağırlık_çürümesi, (kendi.öğrenme_oranı * kendi.ölçekler[i]) * O[j])
                 }
             }
         }
@@ -203,16 +217,10 @@ yapı NorMuon {
         değişken oran = kendi.öğrenme_oranı
         türevsiz {
             döngü grup içinde kendi.gruplar {
-                değişken sıra = []
-                döngü i içinde grup {
-                    değişken g = kendi.ağırlıklar[i].gradyan
-                    eğer g == yok { devam }
-                    değişken M = kendi.durum.momentum[i]
-                    M[0..M.şekil[0]] = kendi.beta1 * M + (1 - kendi.beta1) * g
-                    sıra.ekle(i)
-                }
+                değişken sg = _grup_momentumu(kendi.ağırlıklar, kendi.durum.momentum, grup, kendi.beta1, yanlış)
+                değişken sıra = sg[0]
                 eğer sıra.uzunluk == 0 { devam }
-                değişken yığın = yığ_dikleştir([kendi.durum.momentum[i] döngü i içinde sıra], kendi.ns_adımı, kendi.ns_türü)
+                değişken yığın = yığ_dikleştir(sg[1], kendi.ns_adımı, kendi.ns_türü)
                 döngü j, i içinde sıra {
                     değişken p = kendi.ağırlıklar[i]
                     değişken v = kendi.durum.ikinci_moment[i]
@@ -220,8 +228,7 @@ yapı NorMuon {
                     v[0..1] = kendi.beta2 * v + (1 - kendi.beta2) * ortalama(O * O, eksen: 0, boyutu_koru: doğru)
                     değişken N = O / (karekök(v) + kendi.epsilon)
                     değişken adım_oranı = 0.2 * oran * karekök(p.şekil[0] * p.şekil[1]) / karekök(toplam(N * N))
-                    eğer kendi.ağırlık_çürümesi > 0 { p[0..p.şekil[0]] = p * (1 - oran * kendi.ağırlık_çürümesi) }
-                    p[0..p.şekil[0]] -= adım_oranı * N
+                    _ağırlık_güncelle(p, oran, kendi.ağırlık_çürümesi, adım_oranı * N)
                 }
             }
         }
@@ -257,12 +264,8 @@ fonksiyon bir_desen_uyar_mı(ad, desenler) {
 // Adlar parametreler(model, adlarıyla: doğru) adlarıdır ("gömme.tablo", "çıkış.ağırlık"); desenler
 // ad_uyar_mı'daki gibi yol parçalarıdır (önek "gömme", sonek "ple_tablo", tam "gömme.tablo").
 fonksiyon parametre_grupları(model, ayrı = ["gömme", "çıkış"]) {
-    değişken gizli = []
-    değişken diğer = []
-    döngü ad, p içinde parametreler(model, adlarıyla: doğru) {
-        eğer p.şekil.uzunluk == 2 ve değil bir_desen_uyar_mı(ad, ayrı) { gizli.ekle(p) } değilse { diğer.ekle(p) }
-    }
-    sonuç {gizli: gizli, diğer: diğer}
+    değişken k = parametre_kümeleri(model, ayrı: ayrı)
+    sonuç {gizli: k.gizli, diğer: k.diğer}
 }
 
 // parametre_kümeleri parametre_grupları'nın ayrıntılı hâlidir: {gizli, sönümlü, sönümsüz, seyrek, diğer}.

@@ -96,15 +96,8 @@ A010 step A011 0..300 {
 // Did it learn? Give it a sequence and print the predictions.
 A030 probe = make_batch()
 A030 prediction = T301 { forward(probe[0]) }
-A030 scores = prediction.Y404[0] // the [T, V] output of the first sequence
-A030 predictions = []
-A010 row A011 scores {
-    A030 best = 0
-    A010 j A011 0..V {
-        A001 row[j] > row[best] { best = j }
-    }
-    predictions.Y004(best)
-}
+A030 scores = prediction[0] // the [T, V] output of the first sequence
+A030 predictions = T230(scores, T902: -1).Y404 // index of the largest score at every position
 G100("input     : {probe[0][0]}")
 G100("prediction: {predictions}")
 

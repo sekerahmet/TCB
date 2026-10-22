@@ -76,11 +76,7 @@ A030 ss = constant_param([D], 0.0)
 A030 Wu = param([D, V], 0.1)
 
 A030 total_params = 0
-A010 p A011 weights {
-    A030 n = 1
-    A010 dim A011 p.Y400 { n = n * dim }
-    total_params += n
-}
+A010 p A011 weights { total_params += p.Y400.Y207(1) { A105 * A104 } } // product of the shape's dimensions
 G100("data: {data.Y001} characters, vocabulary: {V} characters, parameters: {total_params}")
 
 // --- Model ---
@@ -145,10 +141,7 @@ T301 {
     A010 n A011 0..120 {
         A030 best = T230(forward([context], 1), T902: -1).Y404[0][T - 1]
         generated = generated + chars[best]
-        A030 next_context = []
-        A010 t A011 1..T { next_context.Y004(context[t]) }
-        next_context.Y004(best)
-        context = next_context
+        context = context[1..T] + [best] // shift the window by one
     }
 }
 G100("the model wrote: {generated}")

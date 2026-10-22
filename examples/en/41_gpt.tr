@@ -62,9 +62,8 @@ A030 validation = V100("../../tests/data/text").Y601(V902: config.batch, V903: c
 A030 total_loss = 0.0
 A030 count = 0
 T301 {
-    A010 {
-        A030 job = validation.Y602()
-        A001 job == A042 A044 count == 10 { A013 }
+    A010 job A011 validation {
+        A001 count == 10 { A013 }
         total_loss += model.kayıp(job[0], job[1]).Y404
         count += 1
     }

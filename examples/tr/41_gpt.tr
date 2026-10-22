@@ -59,9 +59,8 @@ değişken doğrulama = veri_kümesi("../../tests/data/text").sıralı(toplu: ay
 değişken toplam_kayıp = 0.0
 değişken sayı = 0
 türevsiz {
-    döngü {
-        değişken iş = doğrulama.sonraki()
-        eğer iş == yok veya sayı == 10 { çık }
+    döngü iş içinde doğrulama {
+        eğer sayı == 10 { çık }
         toplam_kayıp += model.kayıp(iş[0], iş[1]).değer
         sayı += 1
     }
