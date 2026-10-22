@@ -521,13 +521,25 @@ yapı GPT {
         kendi.kos = tablolar[0]
         kendi.sin = tablolar[1]
     }
+    // gömülü: kimlikleri gömer; [x, bağlamlar] verir (bağlamlar: katman başına PLE bağlamı ya da yok).
+    fonksiyon gömülü(kimlikler) {
+        değişken x = kendi.gömme.ileri(kimlikler)
+        sonuç [x, eğer kendi.ple_bağlamı == yok { yok } değilse { kendi.ple_bağlamı.ileri(x) }]
+    }
+    // blokları_işle: x'i bloklardan sırayla geçirir (gizli_durum ve tek_adım ortak gövdesi).
+    fonksiyon blokları_işle(x, bağlamlar, kos, sin, kimlikler, önbellek) {
+        döngü i, blok içinde kendi.bloklar {
+            x = blok.ileri(x, kos, sin, kimlikler, eğer bağlamlar == yok { yok } değilse { bağlamlar[i] }, önbellek: önbellek, no: i)
+        }
+        sonuç x
+    }
     // gizli_durum: kimlikler [B, T] → son normdan geçmiş gizli durum [B, T, boyut]; karışık
     // hassasiyette hesap türünde (çıkış çarpımı için).
     // önbellek verilirse (KVÖnbellek) kimlikler önbellekteki konumdan devam eder: döner konum
     // tabloları o konumdan dilimlenir, anahtar ve değerler önbelleğe eklenir, konum ilerler.
     fonksiyon gizli_durum(kimlikler, önbellek = yok) {
-        değişken x = kendi.gömme.ileri(kimlikler)
-        değişken bağlamlar = eğer kendi.ple_bağlamı == yok { yok } değilse { kendi.ple_bağlamı.ileri(x) }
+        değişken gb = kendi.gömülü(kimlikler)
+        değişken x = gb[0]
         değişken kos = kendi.kos
         değişken sin = kendi.sin
         değişken T = x.şekil[1]
@@ -537,9 +549,7 @@ yapı GPT {
             kos = kos.dilim(0, baş, baş + T)
             sin = sin.dilim(0, baş, baş + T)
         }
-        döngü i, blok içinde kendi.bloklar {
-            x = blok.ileri(x, kos, sin, kimlikler, eğer bağlamlar == yok { yok } değilse { bağlamlar[i] }, önbellek: önbellek, no: i)
-        }
+        x = kendi.blokları_işle(x, gb[1], kos, sin, kimlikler, önbellek)
         eğer önbellek != yok { önbellek.ilerle(T) }
         // Gizli durumu yalnızca çıkış çarpımı (ya da doğrusal_çapraz_entropi) okur.
         sonuç kendi.son_norm.ileri(x, çıktı_türü: hesap_türü())
@@ -549,14 +559,11 @@ yapı GPT {
     // konum sayacını çağıran ilerletir); bu yüzden tekrar_oynat ile kaydedilip oynatılabilir
     // (dil tanımı 15.48). Önbellek sabit olmalı ve ilk parçalar gizli_durum ile işlenmiş olmalı.
     fonksiyon tek_adım(kimlik, konum, önbellek) {
-        değişken x = kendi.gömme.ileri(kimlik)
-        değişken bağlamlar = eğer kendi.ple_bağlamı == yok { yok } değilse { kendi.ple_bağlamı.ileri(x) }
+        değişken gb = kendi.gömülü(kimlik)
         değişken kos = gömme(kendi.kos, konum)
         değişken sin = gömme(kendi.sin, konum)
         önbellek.cihaz_adımı(konum)
-        döngü i, blok içinde kendi.bloklar {
-            x = blok.ileri(x, kos, sin, kimlik, eğer bağlamlar == yok { yok } değilse { bağlamlar[i] }, önbellek: önbellek, no: i)
-        }
+        değişken x = kendi.blokları_işle(gb[0], gb[1], kos, sin, kimlik, önbellek)
         önbellek.cihaz_adımı(yok)
         sonuç kendi.logit(kendi.son_norm.ileri(x, çıktı_türü: hesap_türü()))[0][0]
     }

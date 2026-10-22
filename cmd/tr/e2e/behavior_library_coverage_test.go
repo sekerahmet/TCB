@@ -19,6 +19,9 @@ import (
 // uncoveredLibraryNames, örneği henüz olmayan ya da örnek gerektirmeyen kitaplık adlarıdır ve gerekçesiyle durur.
 // Liste yalnızca küçülür: örneği olan bir ad listede kalırsa test düşer.
 var uncoveredLibraryNames = map[string]string{
+	"katman.gömülü()":                  "iç yardımcı metot: GPT.gizli_durum ve tek_adım ortak gövdesi",
+	"katman.blokları_işle()":           "iç yardımcı metot: GPT.gizli_durum ve tek_adım ortak gövdesi",
+	"katman.tampon_ekle()":             "iç yardımcı metot: KVÖnbellek.ekle'nin anahtar ve değer tamponları için ortak gövdesi",
 	"katman.ağırlık_başlat":            "belgeli ad; yazılacak: katman yapı taşlarıyla elle model kurma örneği",
 	"katman.Doğrusal":                  "belgeli ad; yazılacak: katman yapı taşlarıyla elle model kurma örneği",
 	"katman.GömmeKatmanı":              "belgeli ad; yazılacak: katman yapı taşlarıyla elle model kurma örneği",
