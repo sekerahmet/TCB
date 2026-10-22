@@ -29,7 +29,7 @@ func formatCommand(args []string) {
 		}
 	}
 	if len(targets) == 0 {
-		exitWithError(messages.Text(messages.H8691, codes.DisplayName(codes.K008), optionName(codes.K101)))
+		exitWithError(messages.Text(messages.H8691, codes.DisplayName(codes.K008), codes.OptionFlag(codes.K101)))
 	}
 
 	var files []string

@@ -54,7 +54,7 @@ func languageArgument(args []string, command string) *codes.Language {
 			languageCode = args[i+1]
 			i++
 		case isOption(args[i], codes.K100):
-			exitWithError(messages.Text(messages.H8700, optionName(codes.K100), command))
+			exitWithError(messages.Text(messages.H8700, codes.OptionFlag(codes.K100), command))
 		default:
 			exitWithError(messages.Text(messages.H8701, command, args[i]))
 		}
@@ -177,7 +177,7 @@ func showCommand(args []string) {
 			languageCode = args[i+1]
 			i++
 		case isOption(args[i], codes.K100):
-			exitWithError(messages.Text(messages.H8708, optionName(codes.K100), codes.DisplayName(codes.K011)))
+			exitWithError(messages.Text(messages.H8708, codes.OptionFlag(codes.K100), codes.DisplayName(codes.K011)))
 		case file == "":
 			file = args[i]
 		default:
@@ -185,7 +185,7 @@ func showCommand(args []string) {
 		}
 	}
 	if file == "" {
-		exitWithError(messages.Text(messages.H8710, codes.DisplayName(codes.K011), optionName(codes.K100)))
+		exitWithError(messages.Text(messages.H8710, codes.DisplayName(codes.K011), codes.OptionFlag(codes.K100)))
 	}
 	language, err := writingLanguage(languageCode)
 	if err != nil {

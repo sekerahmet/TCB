@@ -26,8 +26,3 @@ func isOption(arg string, k codes.Code) bool {
 	c, ok := optionCode(arg)
 	return ok && c == k
 }
-
-// optionName seçeneğin etkin dildeki yazımıdır (--dil, --go-profili).
-func optionName(k codes.Code) string {
-	return "--" + strings.ReplaceAll(codes.DisplayName(k), "_", "-")
-}

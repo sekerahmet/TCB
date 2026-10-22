@@ -36,7 +36,7 @@ func profileArguments(command string, args []string, allowed ...codes.Code) (pro
 		if !ok || !slices.Contains(allowed, k) {
 			names := make([]string, len(allowed))
 			for i, a := range allowed {
-				names[i] = optionName(a)
+				names[i] = codes.OptionFlag(a)
 			}
 			exitWithError(messages.Text(messages.H8674, command, name, strings.Join(names, ", ")))
 		}
@@ -44,7 +44,7 @@ func profileArguments(command string, args []string, allowed ...codes.Code) (pro
 		args = args[1:]
 		if !equal {
 			if len(args) == 0 {
-				exitWithError(messages.Text(messages.H8675, optionName(k), command))
+				exitWithError(messages.Text(messages.H8675, codes.OptionFlag(k), command))
 			}
 			value, args = args[0], args[1:]
 		}

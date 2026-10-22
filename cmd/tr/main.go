@@ -182,7 +182,7 @@ func printHelp() {
 	fmt.Println(messages.Text(messages.H8611))
 	// Her satır tek iletidir: kullanım ve açıklama arasında sekme; komut ve seçenek adları
 	// koddan, etkin dilde gelir. Sütunu tabwriter hizalar (adların uzunluğu dile göre değişir).
-	lang := optionName(codes.K100)
+	lang := codes.OptionFlag(codes.K100)
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	for _, row := range []string{
 		messages.Text(messages.H8612),
@@ -192,14 +192,14 @@ func printHelp() {
 		messages.Text(messages.H8616, codes.DisplayName(codes.K004)),
 		messages.Text(messages.H8617, codes.DisplayName(codes.K005)),
 		messages.Text(messages.H8618, codes.DisplayName(codes.K007)),
-		messages.Text(messages.H8619, codes.DisplayName(codes.K008), optionName(codes.K101)),
+		messages.Text(messages.H8619, codes.DisplayName(codes.K008), codes.OptionFlag(codes.K101)),
 		messages.Text(messages.H8620, codes.DisplayName(codes.K009)),
 		messages.Text(messages.H8621, codes.DisplayName(codes.K010)),
 		messages.Text(messages.H8622, codes.DisplayName(codes.K011), lang),
 		messages.Text(messages.H8623, codes.DisplayName(codes.K011), lang),
 		messages.Text(messages.H8624, codes.DisplayName(codes.K009), lang),
 		messages.Text(messages.H8625, codes.DisplayName(codes.K012)),
-		messages.Text(messages.H8626, codes.DisplayName(codes.K013), optionName(codes.K103)),
+		messages.Text(messages.H8626, codes.DisplayName(codes.K013), codes.OptionFlag(codes.K103)),
 		messages.Text(messages.H8627, codes.DisplayName(codes.K014)),
 		messages.Text(messages.H8830, codes.DisplayName(codes.K015), codes.DisplayName(codes.K016), codes.DisplayName(codes.K017), codes.DisplayName(codes.K018), codes.DisplayName(codes.K019)),
 		messages.Text(messages.H8863, codes.DisplayName(codes.K015), codes.DisplayName(codes.K020)),
