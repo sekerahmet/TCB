@@ -28,10 +28,130 @@ type normConfig struct {
 	xGrad, gammaGrad   bool // geri yön
 	// dt: x, y (ileri) ya da g (geri), γ, β, gx (geri) türleri.
 	dt [5]tensor.DType
+	// D > 0 warp çekirdeğidir (normWarpD): her warp bir satır, D derleme anında bilinir;
+	// blok warpRows satır işler. Sıfır: satır başına blok (B iş parçacığı).
+	D int
 }
 
 func (a normConfig) key(ad string) string {
+	if a.D > 0 {
+		return fmt.Sprintf("%s:w%d:%v:%v:%v:%v:%v:%v", ad, a.D, a.layer, a.gamma, a.beta, a.xGrad, a.gammaGrad, a.dt)
+	}
 	return fmt.Sprintf("%s:%d:%v:%v:%v:%v:%v:%v", ad, a.B, a.layer, a.gamma, a.beta, a.xGrad, a.gammaGrad, a.dt)
+}
+
+// warpRows warp çekirdeğinde bir bloğun işlediği satır (warp) sayısıdır.
+const warpRows = 8
+
+// normWarpD D'nin warp çekirdeğine uygun olduğudur: 32'nin katı ve en çok 256 (şerit başına en
+// çok 8 eleman yazmaçta tutulur). Daha geniş satırlar satır başına blokla kalır.
+func normWarpD(D int) bool { return D > 0 && D%32 == 0 && D <= 256 }
+
+// rowsAddress warp çekirdeğinde satırın girdideki ilk elemanının ofsetidir: satırlar iki
+// düzeyli adımla gezilir, (row / H)·S1 + (row % H)·S0. Bitişik girdide H = 1, S1 = D.
+// Böylece ön eksenleri iki düzeye inen adımlı görünümler (ör. K ile V'nin tek çarpımdan
+// bölünmüş K yarısı) kopyalanmadan okunur.
+func (k *emitter) rowsAddress(row, H, S0, S1 reg) reg {
+	q, r, o := k.r(), k.r(), k.r()
+	k.e("div.u32", q, row, H)
+	k.e("rem.u32", r, row, H)
+	k.e("mul.lo.s32", o, q, S1)
+	k.e("mad.lo.s32", o, r, S0, o)
+	return o
+}
+
+// warpSum warp içindeki 32 şeridin değerini kelebek karıştırmayla (sabit sıra) toplar; sonuç
+// bütün şeritlerdedir.
+func (k *emitter) warpSum(v reg) reg {
+	for m := 16; m > 0; m /= 2 {
+		v = k.sum(v, k.shflXor(v, m))
+	}
+	return v
+}
+
+// normForwardWarpKernel normForwardKernel'in warp biçimidir (a.D > 0): blok warpRows satırdır,
+// her şerit satırın D/32 elemanını yazmaçta tutar (x bir kez okunur), toplamlar warp içinde
+// kelebek karıştırmayla indirgenir (paylaşımlı bellek ve engel yok). Formül aynıdır; toplama
+// sırası farklıdır (şerit içi sıralı, sonra kelebek): sonuç belirlenimcidir.
+func normForwardWarpKernel(a normConfig) func() *emitter {
+	return func() *emitter {
+		k := newEmitter(fmt.Sprintf("norm_ileri_w%d_%v_%v_%v_%s_%s_%s_%s", a.D, a.layer, a.gamma, a.beta, a.dt[0], a.dt[1], a.dt[2], a.dt[3]))
+		xt, yt, gt, bt2 := a.dt[0], a.dt[1], a.dt[2], a.dt[3]
+		x := k.pointer("x")
+		gm := k.pointer("gamma")
+		bt := k.pointer("beta")
+		y := k.written("y")
+		avg := k.written("ortalama")
+		rstd := k.written("rstd")
+		R := k.u32p("satir")
+		H := k.u32p("h")
+		S0 := k.u32p("s0")
+		S1 := k.u32p("s1")
+		eps := k.f32p("eps")
+		tid := k.special("%tid.x")
+		lane, w, row := k.r(), k.r(), k.r()
+		k.e("and.b32", lane, tid, 31)
+		k.e("shr.u32", w, tid, 5)
+		k.e("mad.lo.s32", row, k.special("%ctaid.x"), warpRows, w)
+		last := k.label()
+		outside := k.p()
+		k.e("setp.ge.u32", outside, row, R)
+		k.jumpIf(outside, last)
+		E := a.D / 32
+		xo := k.rowsAddress(row, H, S0, S1)
+		k.e("add.s32", xo, xo, lane)
+		yo := k.r()
+		k.e("mad.lo.s32", yo, row, a.D, lane)
+		v := make([]reg, E)
+		for e := range v {
+			o := k.r()
+			k.e("add.s32", o, xo, 32*e)
+			v[e] = k.load(xt, k.rowAt(x, o, xt))
+		}
+		df := k.constant(float32(a.D))
+		mu := k.constant(0)
+		if a.layer {
+			for _, h := range v {
+				k.e("add.rn.f32", mu, mu, h)
+			}
+			mu = k.warpSum(mu)
+			k.e("div.rn.f32", mu, mu, df)
+		}
+		q := k.constant(0)
+		for _, h := range v {
+			d := k.f()
+			k.e("sub.rn.f32", d, h, mu)
+			k.e("fma.rn.f32", q, d, d, q)
+		}
+		q = k.warpSum(q)
+		k.e("div.rn.f32", q, q, df)
+		k.e("add.rn.f32", q, q, eps)
+		k.e("sqrt.rn.f32", q, q)
+		rs := k.f()
+		k.e("rcp.rn.f32", rs, q)
+		for e, h := range v {
+			j := k.r()
+			k.e("add.s32", j, lane, 32*e)
+			k.e("sub.rn.f32", h, h, mu)
+			k.e("mul.rn.f32", h, h, rs)
+			if a.gamma {
+				k.e("mul.rn.f32", h, h, k.load(gt, k.rowAt(gm, j, gt)))
+			}
+			if a.beta {
+				k.e("add.rn.f32", h, h, k.load(bt2, k.rowAt(bt, j, bt2)))
+			}
+			o := k.r()
+			k.e("add.s32", o, yo, 32*e)
+			k.store(yt, k.rowAt(y, o, yt), h)
+		}
+		k.jumpIf(k.tidNonZero(lane), last)
+		if a.layer {
+			k.store(tensor.Float32, k.address(avg, row, 4), mu)
+		}
+		k.store(tensor.Float32, k.address(rstd, row, 4), rs)
+		k.put(last)
+		return k
+	}
 }
 
 func normForwardKernel(a normConfig) func() *emitter {

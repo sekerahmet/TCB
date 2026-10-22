@@ -230,8 +230,24 @@ func (g *backend) normForward(out tensor.Storage, x tensor.View, gamma, beta *te
 		return avg, rstd
 	}
 	checkSize(R * D)
-	xv := gt.readNative(x)
 	gv, bv := gt.readNativeP(gamma), gt.readNativeP(beta)
+	if H, S0, S1, ok := rowMap(x, D); ok && normWarpD(D) {
+		a := normConfig{D: D, layer: layer, gamma: gv != nil, beta: bv != nil,
+			dt: [5]tensor.DType{g.storageOf(x.S).dtype, o.dtype, g.viewType(gv), g.viewType(bv), tensor.Float32}}
+		c := g.takeKernel(a.key("norm_ileri"), normForwardWarpKernel(a))
+		p := g.param().readV(x)
+		for _, v := range []*tensor.View{gv, bv} {
+			if v != nil {
+				p.readV(*v)
+			} else {
+				p.empty()
+			}
+		}
+		p.write(o, 0).writeTo(avg).write(rstd, 0).u32(R).u32(H).u32(S0).u32(S1).f32(eps)
+		g.launch(c, [3]uint32{uint32((R + warpRows - 1) / warpRows), 1, 1}, [3]uint32{32 * warpRows, 1, 1}, p)
+		return avg, rstd
+	}
+	xv := gt.readNative(x)
 	a := normConfig{B: powerOfTwo(D, 32, 256), layer: layer, gamma: gv != nil, beta: bv != nil,
 		dt: [5]tensor.DType{g.storageOf(xv.S).dtype, o.dtype, g.viewType(gv), g.viewType(bv), tensor.Float32}}
 	c := g.takeKernel(a.key("norm_ileri"), normForwardKernel(a))
@@ -246,6 +262,38 @@ func (g *backend) normForward(out tensor.Storage, x tensor.View, gamma, beta *te
 	p.write(o, 0).writeTo(avg).write(rstd, 0).u32(D).f32(eps)
 	g.launch(c, [3]uint32{uint32(R), 1, 1}, [3]uint32{uint32(a.B), 1, 1}, p)
 	return avg, rstd
+}
+
+// rowMap x'in satırlarını (son eksen D, bitişik) iki düzeyli adımla verir: satır r'nin ilk
+// elemanı (r / H)·S1 + (r % H)·S0'dadır (görünümün ofsetine göre). Ön eksenler, birbirinin
+// devamı olanlar birleştirildikten sonra en çok iki kalıyorsa ok doğrudur; yoksa çağıran
+// girdiyi bitişik kopyaya alır.
+func rowMap(x tensor.View, D int) (H, S0, S1 int, ok bool) {
+	n := len(x.Shape)
+	if n == 0 || x.Shape[n-1] != D || (D > 1 && x.Strides[n-1] != 1) {
+		return 0, 0, 0, false
+	}
+	var dims, strides []int
+	for i := 0; i < n-1; i++ {
+		if x.Shape[i] == 1 {
+			continue
+		}
+		if k := len(dims) - 1; k >= 0 && strides[k] == x.Strides[i]*x.Shape[i] {
+			dims[k] *= x.Shape[i]
+			strides[k] = x.Strides[i]
+			continue
+		}
+		dims, strides = append(dims, x.Shape[i]), append(strides, x.Strides[i])
+	}
+	switch len(dims) {
+	case 0:
+		return 1, 0, D, true
+	case 1:
+		return 1, 0, strides[0], true
+	case 2:
+		return dims[1], strides[1], strides[0], true
+	}
+	return 0, 0, 0, false
 }
 
 // rowSums hedef (D) += Σ_satır kaynak (R×D).
