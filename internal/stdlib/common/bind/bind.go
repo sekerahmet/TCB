@@ -179,27 +179,23 @@ func IsNotExist(err error) bool { return errors.Is(err, os.ErrNotExist) }
 // ShortNumber büyük sayıları Türkçe kısa biçimde yazar: 999 → "999", 12 345 → "12,3 bin",
 // 56 900 000 000 → "56,9 milyar".
 func ShortNumber(n int64) string {
-	units := []struct {
-		threshold int64
-		name      string
-	}{{1e12, "trilyon"}, {1e9, "milyar"}, {1e6, "milyon"}, {1e3, "bin"}}
-	for _, b := range units {
-		if n >= b.threshold {
-			x := float64(n) / float64(b.threshold)
-			s := strconv.FormatFloat(x, 'f', 1, 64)
-			s = strings.TrimSuffix(s, ".0")
-			return strings.Replace(s, ".", ",", 1) + " " + b.name
-		}
-	}
-	return strconv.FormatInt(n, 10)
+	return formatScaled(n, []scaleUnit{{1e12, "trilyon"}, {1e9, "milyar"}, {1e6, "milyon"}, {1e3, "bin"}}, "")
 }
 
 // FormatBytes bayt sayısını okunur biçimde yazar (ör. "1,2 GB").
 func FormatBytes(n int64) string {
-	units := []struct {
-		threshold int64
-		name      string
-	}{{1 << 40, "TB"}, {1 << 30, "GB"}, {1 << 20, "MB"}, {1 << 10, "KB"}}
+	return formatScaled(n, []scaleUnit{{1 << 40, "TB"}, {1 << 30, "GB"}, {1 << 20, "MB"}, {1 << 10, "KB"}}, " bayt")
+}
+
+// scaleUnit bir ölçek basamağıdır: n en az threshold ise "x,y ad" yazılır.
+type scaleUnit struct {
+	threshold int64
+	name      string
+}
+
+// formatScaled n'yi en büyük uygun basamakta bir ondalıkla yazar (".0" atılır, ondalık ayracı
+// virgül); hiçbir basamağa ulaşmazsa sayının kendisi ve smallSuffix yazılır.
+func formatScaled(n int64, units []scaleUnit, smallSuffix string) string {
 	for _, b := range units {
 		if n >= b.threshold {
 			s := strconv.FormatFloat(float64(n)/float64(b.threshold), 'f', 1, 64)
@@ -207,5 +203,5 @@ func FormatBytes(n int64) string {
 			return strings.Replace(s, ".", ",", 1) + " " + b.name
 		}
 	}
-	return strconv.FormatInt(n, 10) + " bayt"
+	return strconv.FormatInt(n, 10) + smallSuffix
 }
