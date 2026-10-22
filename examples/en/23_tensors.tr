@@ -37,9 +37,10 @@ G100("sum:", G400(A), "mean:", G410(A))
 A030 t: A212 = T100([[1, 2, 3], [4, 5, 6]])
 G100(G201(t) == A212, t.Y400)
 
-// transpose swaps the last two axes; slice(axis, start, end) cuts a range;
-// concat joins a list of tensors end to end along an axis.
+// transpose swaps the last two axes; permute puts the axes in the given order;
+// slice(axis, start, end) cuts a range; concat joins a list of tensors end to end along an axis.
 G100(t.Y411().Y404)
+G100(T101([2, 3, 4]).Y412([2, 0, 1]).Y400)
 G100(t.Y413(1, 0, 2).Y404)
 G100(T121([T102([2, 1]), T101([2, 2])], T902: -1).Y400)
 

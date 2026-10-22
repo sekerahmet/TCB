@@ -36,9 +36,10 @@ yazdır("toplam:", toplam(A), "ortalama:", ortalama(A))
 değişken t: Tensör = tensör([[1, 2, 3], [4, 5, 6]])
 yazdır(tip(t) == Tensör, t.şekil)
 
-// devrik son iki ekseni yer değiştirir; dilim(eksen, baş, son) bir aralığı keser;
-// bitiştir tensör listesini bir eksen boyunca uç uca ekler.
+// devrik son iki ekseni yer değiştirir; eksenleri_sırala eksenleri verilen sıraya dizer;
+// dilim(eksen, baş, son) bir aralığı keser; bitiştir tensör listesini bir eksen boyunca uç uca ekler.
 yazdır(t.devrik().değer)
+yazdır(sıfırlar([2, 3, 4]).eksenleri_sırala([2, 0, 1]).şekil)
 yazdır(t.dilim(1, 0, 2).değer)
 yazdır(bitiştir([birler([2, 1]), sıfırlar([2, 2])], eksen: -1).şekil)
 

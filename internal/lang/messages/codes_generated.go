@@ -883,11 +883,11 @@ const (
 	H6324 Code = 6324 // {fn}: {argName} bir tensör olmalıdır, {given} verildi
 	H6325 Code = 6325 // {fn}: {epsilonArg} pozitif ve sonlu bir sayı olmalıdır, {value} verildi
 	H6326 Code = 6326 // {fn}: pencere negatif olmayan bir tam sayı olmalıdır (0: pencere yok), {value} verildi
-	H6327 Code = 6327 // {fn}: q en az 2 boyutlu olmalıdır ([..., bakış, T, dh]), {shape} verildi
+	H6327 Code = 6327 // {fn}: q en az 2 boyutlu olmalıdır ([..., T, bakış, dh]), {shape} verildi
 	H6328 Code = 6328 // {fn}: q, k ve v aynı sayıda eksenli olmalıdır; {qShape}, {kShape}, {vShape} verildi
 	H6329 Code = 6329 // {fn}: öndeki (toplu) eksenler eşit olmalıdır; q {qShape}, k {kShape}, v {vShape}
 	H6330 Code = 6330 // {fn}: q ve k'nin son ekseni (dh) eşit olmalıdır; q {qShape}, k {kShape}
-	H6331 Code = 6331 // {fn}: k ve v'nin anahtar sayısı (sondan 2. eksen) eşit olmalıdır; k {kShape}, v {vShape}
+	H6331 Code = 6331 // {fn}: k ve v'nin anahtar sayısı (sondan 3. eksen; 2 boyutluda ilk eksen) eşit olmalıdır; k {kShape}, v {vShape}
 	H6332 Code = 6332 // {fn}: k ve v'nin bakış sayısı eşit olmalıdır; k {kShape}, v {vShape}
 	H6333 Code = 6333 // {fn}: q'nun bakış sayısı ({heads}), k/v bakış sayısının ({kvHeads}) katı olmalıdır (gruplu sorgu dikkati)
 	H6334 Code = 6334 // {fn}: maske {maskShape}, puan şekline {scoreShape} yayınlanamaz
