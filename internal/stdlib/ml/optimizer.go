@@ -188,25 +188,17 @@ func gradClip(_ *interp.VM, args []interp.Value, named map[string]interp.Value) 
 	if err := bind.CheckNamed(fn+"()", named, nameMax, nameErrNonfinite); err != nil {
 		return nil, err
 	}
-	strict := false
-	if v, ok := bind.GetNamed(named, nameErrNonfinite); ok {
-		b, err := bind.Bool(fn, nameErrNonfinite.TR, v)
-		if err != nil {
-			return nil, err
-		}
-		strict = b
+	strict, err := namedBool(fn, named, nameErrNonfinite, false)
+	if err != nil {
+		return nil, err
 	}
 	params, err := parameters(fn, args[0])
 	if err != nil {
 		return nil, err
 	}
-	maxVal := 1.0
-	if v, ok := bind.GetNamed(named, nameMax); ok {
-		f, ok := interp.ToFloat(v)
-		if !ok || !(f > 0) || math.IsInf(f, 0) {
-			return nil, messages.New(messages.H6429, fn, nameMax.TR, v.Inspect())
-		}
-		maxVal = f
+	maxVal, err := positiveFloat(fn, named, nameMax, 1.0)
+	if err != nil {
+		return nil, err
 	}
 	// Norm 0 boyutlu tensördür (kayıp gibi): GPU'da norm ve kırpma cihazda yapılır, program
 	// ancak norm okununca (.değer, yazdırma) bekler.
@@ -229,18 +221,6 @@ func gradClip(_ *interp.VM, args []interp.Value, named map[string]interp.Value) 
 		return nil, err
 	}
 	return New(norm), nil
-}
-
-// masterCopyArg ana_kopya: doğru adlı argümanını okur (varsayılan doğru). Açıkken 16 bitlik
-// (bf16/fp16) parametrelerin float32 ana kopyası tutulur: güncelleme ana kopyada yapılıp
-// parametreye yuvarlanarak yazılır, böylece küçük adımlar 16 bitte kaybolmaz. float32
-// parametreleri etkilemez.
-func masterCopyArg(fn string, named map[string]interp.Value) (bool, error) {
-	v, ok := bind.GetNamed(named, nameMasterCopy)
-	if !ok {
-		return true, nil
-	}
-	return bind.Bool(fn, nameMasterCopy.TR, v)
 }
 
 func optimizerParams(fn string, args []interp.Value) ([]*tensor.Tensor, error) {
@@ -287,7 +267,7 @@ func setupAdamW(_ *interp.VM, args []interp.Value, named map[string]interp.Value
 		v, _ := bind.GetNamed(named, nameEpsilon)
 		return nil, messages.New(messages.H6527, fn, nameEpsilon.TR, v.Inspect())
 	}
-	masterCopy, err := masterCopyArg(fn, named)
+	masterCopy, err := namedBool(fn, named, nameMasterCopy, true)
 	if err != nil {
 		return nil, err
 	}
@@ -321,7 +301,7 @@ func setupSGD(_ *interp.VM, args []interp.Value, named map[string]interp.Value) 
 	if err != nil {
 		return nil, err
 	}
-	masterCopy, err := masterCopyArg(fn, named)
+	masterCopy, err := namedBool(fn, named, nameMasterCopy, true)
 	if err != nil {
 		return nil, err
 	}
