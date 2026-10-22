@@ -239,20 +239,9 @@ func (d *TensorValue) index(idx interp.Value) (interp.Value, error) {
 	}
 	n := sh[0]
 	if rng, ok := idx.(*interp.RangeVal); ok {
-		// Listelerdeki gibi: negatif uç sondan sayılır, dahil uç (..=) bundan sonra eklenir
-		// (t[0..=-1] bütün tensör); sınır dışı uçlar kırpılır.
-		head, last := int(rng.Start), int(rng.End)
-		if head < 0 {
-			head += n
-		}
-		if last < 0 {
-			last += n
-		}
-		if rng.Inclusive {
-			last++
-		}
-		head = min(max(head, 0), n)
-		last = min(max(last, head), n)
+		// Listelerle aynı sınır hesabı: negatif uç sondan sayılır, dahil uç (..=) bundan sonra
+		// eklenir (t[0..=-1] bütün tensör); sınır dışı uçlar kırpılır.
+		head, last := interp.SliceBounds(rng, n)
 		r, err := safe(func() *tensor.Tensor { return d.t.Slice(0, head, last) })
 		if err != nil {
 			return nil, err

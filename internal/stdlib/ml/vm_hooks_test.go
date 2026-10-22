@@ -147,3 +147,17 @@ döngü b içinde [t[0..=-1], t[-5..2], t[2..1], t[1..=10], t[-2..=-2], t[-1..3]
 		t.Fatalf("çıktı:\n%s\nbeklenen:\n%s", out, want)
 	}
 }
+
+// Kural: tensör dilimi ile liste dilimi sınırları tek yerde (interp.SliceBounds) hesaplanır;
+// en büyük tam sayı üst ucu ikisinde de bütün kalanı verir.
+// Neden: tensörün eski kopyası 'son++' ile taşıp dilimi boş yapıyordu, liste ise tam veriyordu.
+func TestRangeIndexMaxInclusiveEndMatchesLists(t *testing.T) {
+	out := mustRun(t, `değişken l = [1, 2, 3]
+değişken t = tensör([1, 2, 3])
+yazdır(l[0..=9223372036854775807])
+yazdır(t[0..=9223372036854775807].değer)`)
+	want := "[1, 2, 3]\n[1.0, 2.0, 3.0]\n"
+	if out != want {
+		t.Fatalf("çıktı:\n%s\nbeklenen:\n%s", out, want)
+	}
+}

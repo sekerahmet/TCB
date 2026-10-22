@@ -84,7 +84,7 @@ func (v *VM) indexValue(left Value, idx Value, line int) (Value, error) {
 		}
 		// Dilimleme: liste[1..4]; negatif uç sondan sayar (liste[-2..] gibi)
 		if rng, ok := idx.(*RangeVal); ok {
-			start, end := sliceBounds(rng, len(container.Elements))
+			start, end := SliceBounds(rng, len(container.Elements))
 			sliced := make([]Value, end-start)
 			copy(sliced, container.Elements[start:end])
 			return &ListVal{Elements: sliced}, nil
@@ -121,7 +121,7 @@ func (v *VM) indexValue(left Value, idx Value, line int) (Value, error) {
 			runes = []rune(container.Val) // ASCII dilimleme: nadir yol
 		}
 		if rng, ok := idx.(*RangeVal); ok {
-			start, end := sliceBounds(rng, len(runes))
+			start, end := SliceBounds(rng, len(runes))
 			return &StringVal{Val: string(runes[start:end])}, nil
 		}
 		iv, ok := idx.(*IntVal)
