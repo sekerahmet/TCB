@@ -181,11 +181,6 @@ func TestGradCoverage(t *testing.T) {
 			t.Errorf("bf16Tolerances %q kaydını içeriyor ama böyle bir gradyan kaydı yok (tabloyu yenileyin)", key)
 		}
 	}
-	for key := range bf16Tolerances {
-		if !seen[key] {
-			t.Errorf("bf16Tolerances %q kaydını içeriyor ama böyle bir gradyan kaydı yok (tabloyu yenileyin)", key)
-		}
-	}
 	for _, n := range sortedKeys(expected) {
 		if !covered[n] {
 			t.Errorf("%q işleminin gradyan testi (gradSpec) yok", n)
