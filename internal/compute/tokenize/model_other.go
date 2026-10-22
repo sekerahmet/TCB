@@ -2,7 +2,6 @@ package tokenize
 
 import (
 	"encoding/json"
-	"fmt"
 	"math"
 	"unicode/utf8"
 
@@ -242,12 +241,7 @@ func newUnigram(raw json.RawMessage) (Model, error) {
 		}
 		u.unknown = int32(*m.UnkID)
 	}
-	for c := 0; c < 256; c++ {
-		u.fallbackID[c] = -1
-		if id, ok := u.vocab[fmt.Sprintf("<0x%02X>", c)]; ok {
-			u.fallbackID[c] = id
-		}
-	}
+	u.fallbackID = initFallbackTable(u.vocab)
 	return u, nil
 }
 
@@ -350,17 +344,8 @@ func (u *unigram) encode(dst []int32, m string, budget *reBudget) []int32 {
 			continue
 		}
 		if u.byteFallback {
-			done := true
-			for k := 0; k < len(piece); k++ {
-				if u.fallbackID[piece[k]] < 0 {
-					done = false
-					break
-				}
-			}
-			if done {
-				for k := 0; k < len(piece); k++ {
-					dst = append(dst, u.fallbackID[piece[k]])
-				}
+			var done bool
+			if dst, done = appendByteFallback(dst, &u.fallbackID, piece); done {
 				continue
 			}
 		}
