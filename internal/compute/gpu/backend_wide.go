@@ -162,21 +162,9 @@ func (g *backend) Atan2Grad(ga, gb tensor.Storage, aShape, bShape, outShape []in
 // Birikimli toplam
 // ----------------------------------------------------------------------------
 
-// axisEnd (dış, eksen, iç) üçlüsü.
-func axisEnd(shape []int, axis int) (outer, L, ic int) {
-	outer, ic = 1, 1
-	for _, d := range shape[:axis] {
-		outer *= d
-	}
-	for _, d := range shape[axis+1:] {
-		ic *= d
-	}
-	return outer, shape[axis], ic
-}
-
 // accum satır başına bir blokla birikimli toplam başlatır.
 func (g *backend) accum(y *storage, x tensor.View, shape []int, axis int, inverse, add bool) {
-	outer, L, ic := axisEnd(shape, axis)
+	outer, L, ic := axisOrder(shape, axis)
 	row := outer * ic
 	if row == 0 || L == 0 {
 		return
@@ -222,7 +210,7 @@ func (g *backend) Sort(vals, idx tensor.Storage, x tensor.View, axis, kCount int
 	v, lastV := gt.write(vals, false)
 	id := g.storageOf(idx)
 	xv := gt.read(x)
-	outer, L, ic := axisEnd(x.Shape, axis)
+	outer, L, ic := axisOrder(x.Shape, axis)
 	row := outer * ic
 	if row == 0 || kCount == 0 {
 		return
@@ -283,7 +271,7 @@ func (g *backend) GatherGrad(gx, gs, idx tensor.Storage, shape []int, axis, kCou
 	defer gt.finish()
 	d, last := gt.write(gx, true)
 	gd, id := gt.readD(gs), gt.readD(idx)
-	outer, L, ic := axisEnd(shape, axis)
+	outer, L, ic := axisOrder(shape, axis)
 	n := outer * kCount * ic
 	if n == 0 {
 		return
