@@ -107,43 +107,20 @@ func decodeSafetensors(r io.Reader, size int64) ([]fileEntry, error) {
 // safetensorsHeader başlığı sırayla çözer: yinelenen anahtar, bilinmeyen alan, eksik alan ve
 // başlıktan sonra gelen fazladan JSON hatadır; __metadata__ yalnızca metin değerler tutar.
 func safetensorsHeader(header []byte) ([]*safetensorsEntry, error) {
-	d := json.NewDecoder(bytes.NewReader(header))
-	if _, err := d.Token(); err != nil { // '{' (header[0] denetlendi)
-		return nil, messages.New(messages.H6641, err)
-	}
-	seen := map[string]bool{}
 	var entries []*safetensorsEntry
-	for d.More() {
-		tok, err := d.Token()
-		if err != nil {
-			return nil, messages.New(messages.H6641, err)
-		}
-		name, _ := tok.(string)
-		if seen[name] {
-			return nil, messages.New(messages.H6642, name)
-		}
-		seen[name] = true
-		var raw json.RawMessage
-		if err := d.Decode(&raw); err != nil {
-			return nil, messages.New(messages.H6641, err)
-		}
+	err := strictObject(header, "", func(name string, raw json.RawMessage) error {
 		if name == "__metadata__" {
-			if err := checkSafetensorsMetadata(raw); err != nil {
-				return nil, err
-			}
-			continue
+			return checkSafetensorsMetadata(raw)
 		}
 		e, err := safetensorsEntryOf(name, raw)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		entries = append(entries, e)
-	}
-	if _, err := d.Token(); err != nil { // '}'
-		return nil, messages.New(messages.H6641, err)
-	}
-	if _, err := d.Token(); !errors.Is(err, io.EOF) {
-		return nil, messages.New(messages.H6651)
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 	return entries, nil
 }
@@ -186,6 +163,12 @@ func strictObject(raw json.RawMessage, prefix string, each func(key string, valu
 		if err := each(key, v); err != nil {
 			return err
 		}
+	}
+	if _, err := d.Token(); err != nil { // '}'
+		return messages.New(messages.H6641, err)
+	}
+	if _, err := d.Token(); !errors.Is(err, io.EOF) {
+		return messages.New(messages.H6651)
 	}
 	return nil
 }
