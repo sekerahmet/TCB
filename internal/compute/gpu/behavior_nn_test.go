@@ -90,9 +90,10 @@ func TestCrossEntropy(t *testing.T) {
 
 func TestNorms(t *testing.T) {
 	rng := rand.New(rand.NewSource(10))
-	// Son üç boy kaynaşık geri yönde blok başına birden çok satır işletir (benzetimde 4 SM:
-	// D = 8'de 256 blok, D ≥ 129'da 32 blok).
-	for _, d := range [][2]int{{1, 1}, {3, 8}, {5, 129}, {2, 600}, {1000, 8}, {300, 129}, {70, 600}} {
+	// {1000, 8}, {300, 129}, {70, 600} kaynaşık geri yönde blok başına birden çok satır işletir
+	// (benzetimde 4 SM: D = 8'de 256 blok, D ≥ 129'da 32 blok). D = 32, 64, 256 ileri ve geri
+	// warp çekirdeğidir, D = 512 yalnızca geride (kernel_norm_warp.go).
+	for _, d := range [][2]int{{1, 1}, {3, 8}, {5, 129}, {2, 600}, {1000, 8}, {300, 129}, {70, 600}, {37, 64}, {9, 256}, {3, 32}, {21, 512}} {
 		R, D := d[0], d[1]
 		xv, gv, bv := random(rng, R*D, 2), random(rng, D, 1), random(rng, D, 1)
 		compare(t, fmt.Sprintf("rms normu %d×%d", R, D), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
@@ -114,23 +115,10 @@ func TestNorms(t *testing.T) {
 	}
 }
 
-// Warp çekirdeği (D 32'nin katı, en çok 256: warp başına satır) bitişik ve adımlı satırlarda
-// CPU ile aynıdır; adımlı satırlar (K ile V'nin tek çarpımdan bölünmüş K yarısı gibi) kopyasız
-// okunur: normun içinde örtük adımlı kopya sayılmaz.
+// Adımlı satırlar (K ile V'nin tek çarpımdan bölünmüş K yarısı gibi) warp çekirdeklerinde CPU ile
+// aynıdır ve kopyasız okunur: normun ileri ve geri yönünde örtük adımlı kopya sayılmaz.
 func TestNormsWarpRows(t *testing.T) {
 	rng := rand.New(rand.NewSource(12))
-	for _, d := range [][2]int{{37, 64}, {9, 256}, {3, 32}} {
-		R, D := d[0], d[1]
-		xv, gv, bv := random(rng, R*D, 2), random(rng, D, 1), random(rng, D, 1)
-		compare(t, fmt.Sprintf("warp rms normu %d×%d", R, D), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
-			x, gm := twin(xv, true, R, D)[c], twin(gv, true, D)[c]
-			return tensor.RMSNorm(x, gm, 1e-5), []*tensor.Tensor{x, gm}
-		})
-		compare(t, fmt.Sprintf("warp katman normu %d×%d", R, D), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
-			x, gm, bt := twin(xv, true, R, D)[c], twin(gv, true, D)[c], twin(bv, true, D)[c]
-			return tensor.LayerNorm(x, gm, bt, 1e-5), []*tensor.Tensor{x, gm, bt}
-		})
-	}
 	// [T, 2, H, D] içinden [T, H, D]: satırlar D adımlı, tokenler 2·H·D adımlı.
 	T, H, D := 11, 3, 64
 	kv, gv := random(rng, T*2*H*D, 2), random(rng, D, 1)
@@ -141,7 +129,7 @@ func TestNormsWarpRows(t *testing.T) {
 	copies := func() int64 {
 		var n int64
 		for _, r := range tensor.ImplicitSnapshot() {
-			if r.Device != tensor.KindCPU && !r.Backward && r.Parent == tensor.OpKindRMSNorm && r.Kind == tensor.ImplicitStrided {
+			if r.Device != tensor.KindCPU && r.Parent == tensor.OpKindRMSNorm && r.Kind == tensor.ImplicitStrided {
 				n += r.Calls
 			}
 		}
@@ -150,7 +138,7 @@ func TestNormsWarpRows(t *testing.T) {
 	before := copies()
 	compare(t, "warp rms normu, adımlı satırlar", 2e-5, strided)
 	if n := copies() - before; n != 0 {
-		t.Errorf("adımlı satırlı normun ileri yönünde %d örtük adımlı kopya; satırlar kopyasız okunmalı", n)
+		t.Errorf("adımlı satırlı normun ileri ve geri yönünde %d örtük adımlı kopya; satırlar kopyasız okunmalı", n)
 	}
 }
 

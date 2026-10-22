@@ -235,14 +235,7 @@ func (g *backend) normForward(out tensor.Storage, x tensor.View, gamma, beta *te
 		a := normConfig{D: D, layer: layer, gamma: gv != nil, beta: bv != nil,
 			dt: [5]tensor.DType{g.storageOf(x.S).dtype, o.dtype, g.viewType(gv), g.viewType(bv), tensor.Float32}}
 		c := g.takeKernel(a.key("norm_ileri"), normForwardWarpKernel(a))
-		p := g.param().readV(x)
-		for _, v := range []*tensor.View{gv, bv} {
-			if v != nil {
-				p.readV(*v)
-			} else {
-				p.empty()
-			}
-		}
+		p := normAffineOperands(g.param().readV(x), gv, bv)
 		p.write(o, 0).writeTo(avg).write(rstd, 0).u32(R).u32(H).u32(S0).u32(S1).f32(eps)
 		g.launch(c, [3]uint32{uint32((R + warpRows - 1) / warpRows), 1, 1}, [3]uint32{32 * warpRows, 1, 1}, p)
 		return avg, rstd
@@ -251,7 +244,14 @@ func (g *backend) normForward(out tensor.Storage, x tensor.View, gamma, beta *te
 	a := normConfig{B: powerOfTwo(D, 32, 256), layer: layer, gamma: gv != nil, beta: bv != nil,
 		dt: [5]tensor.DType{g.storageOf(xv.S).dtype, o.dtype, g.viewType(gv), g.viewType(bv), tensor.Float32}}
 	c := g.takeKernel(a.key("norm_ileri"), normForwardKernel(a))
-	p := g.param().readV(xv)
+	p := normAffineOperands(g.param().readV(xv), gv, bv)
+	p.write(o, 0).writeTo(avg).write(rstd, 0).u32(D).f32(eps)
+	g.launch(c, [3]uint32{uint32(R), 1, 1}, [3]uint32{uint32(a.B), 1, 1}, p)
+	return avg, rstd
+}
+
+// normAffineOperands ileri norm çekirdeklerinin γ ve β işlenenlerini ekler (olmayan boş).
+func normAffineOperands(p *paramWriter, gv, bv *tensor.View) *paramWriter {
 	for _, v := range []*tensor.View{gv, bv} {
 		if v != nil {
 			p.readV(*v)
@@ -259,9 +259,7 @@ func (g *backend) normForward(out tensor.Storage, x tensor.View, gamma, beta *te
 			p.empty()
 		}
 	}
-	p.write(o, 0).writeTo(avg).write(rstd, 0).u32(D).f32(eps)
-	g.launch(c, [3]uint32{uint32(R), 1, 1}, [3]uint32{uint32(a.B), 1, 1}, p)
-	return avg, rstd
+	return p
 }
 
 // rowMap x'in satırlarını (son eksen D, bitişik) iki düzeyli adımla verir: satır r'nin ilk
@@ -322,6 +320,31 @@ func (g *backend) normBackwardFused(gt *temp, dx *storage, ggamma tensor.Storage
 	g.rowSums(ggamma, part, P, D)
 }
 
+// normBackwardWarp γ'nın gradyanı istenen geri yönü warp çekirdeğiyle yürütür (normWarpGradD):
+// satırlar blok parçalarına bölünür (normBackwardFused ile aynı sayıda blok), x iki düzeyli
+// adımla yerinde okunur, γ'nın kısmi toplamları [P, D] sabit sırayla toplanır.
+func (g *backend) normBackwardWarp(gt *temp, gx, ggamma tensor.Storage, gd *storage, x tensor.View, gamma *tensor.View, avg, rstd tensor.Storage, R, D, H, S0, S1 int, layer bool) {
+	gv := gt.readNativeP(gamma)
+	var dx *storage
+	dxT := tensor.Float32
+	if gx != nil {
+		dx = g.storageOf(gx)
+		dxT = dx.dtype
+	}
+	_, sm := g.sr.capability()
+	P := min((R+warpRows-1)/warpRows, max(sm, 1)*8)
+	chunk := (R + P - 1) / P
+	P = (R + chunk - 1) / chunk
+	part := gt.buffer(P*D, false)
+	a := normConfig{D: D, layer: layer, gamma: gv != nil, xGrad: dx != nil, gammaGrad: true,
+		dt: [5]tensor.DType{g.storageOf(x.S).dtype, gd.dtype, g.viewType(gv), tensor.Float32, dxT}}
+	c := g.takeKernel(a.key("norm_geri"), normBackwardWarpKernel(a))
+	p := g.param().writeTo(dx).write(part, 0).read(gd, 0).readV(x)
+	g.normOperands(p, gv, avg, rstd).u32(R).u32(chunk).u32(H).u32(S0).u32(S1)
+	g.launch(c, [3]uint32{uint32(P), 1, 1}, [3]uint32{32 * warpRows, 1, 1}, p)
+	g.rowSums(ggamma, part, P, D)
+}
+
 // normOperands norm geri çekirdeklerinin ortak işlenenlerini parametre listesine ekler: gamma (yoksa boş),
 // ortalama (yoksa boş) ve rstd.
 func (g *backend) normOperands(p *paramWriter, gv *tensor.View, avg, rstd tensor.Storage) *paramWriter {
@@ -350,6 +373,13 @@ func (g *backend) normBackward(gx, ggamma, gbeta, gs tensor.Storage, x tensor.Vi
 	}
 	checkSize(R * D)
 	gd := g.storageOf(gs)
+	if H, S0, S1, ok := rowMap(x, D); ok && ggamma != nil && normWarpGradD(D) {
+		g.normBackwardWarp(gt, gx, ggamma, gd, x, gamma, avg, rstd, R, D, H, S0, S1, layer)
+		if gbeta != nil {
+			g.rowSums(gbeta, gd, R, D)
+		}
+		return
+	}
 	if gx != nil || ggamma != nil {
 		xv := gt.readNative(x)
 		gv := gt.readNativeP(gamma)

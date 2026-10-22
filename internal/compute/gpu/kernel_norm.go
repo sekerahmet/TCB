@@ -40,124 +40,59 @@ func (a normConfig) key(ad string) string {
 	return fmt.Sprintf("%s:%d:%v:%v:%v:%v:%v:%v", ad, a.B, a.layer, a.gamma, a.beta, a.xGrad, a.gammaGrad, a.dt)
 }
 
-// warpRows warp çekirdeğinde bir bloğun işlediği satır (warp) sayısıdır.
-const warpRows = 8
-
-// normWarpD D'nin warp çekirdeğine uygun olduğudur: 32'nin katı ve en çok 256 (şerit başına en
-// çok 8 eleman yazmaçta tutulur). Daha geniş satırlar satır başına blokla kalır.
-func normWarpD(D int) bool { return D > 0 && D%32 == 0 && D <= 256 }
-
-// rowsAddress warp çekirdeğinde satırın girdideki ilk elemanının ofsetidir: satırlar iki
-// düzeyli adımla gezilir, (row / H)·S1 + (row % H)·S0. Bitişik girdide H = 1, S1 = D.
-// Böylece ön eksenleri iki düzeye inen adımlı görünümler (ör. K ile V'nin tek çarpımdan
-// bölünmüş K yarısı) kopyalanmadan okunur.
-func (k *emitter) rowsAddress(row, H, S0, S1 reg) reg {
-	q, r, o := k.r(), k.r(), k.r()
-	k.e("div.u32", q, row, H)
-	k.e("rem.u32", r, row, H)
-	k.e("mul.lo.s32", o, q, S1)
-	k.e("mad.lo.s32", o, r, S0, o)
-	return o
+// normRstd q = Σ(x − mu)² iken rs = 1 / √(q/D + eps) (q yerinde değişir); bütün norm
+// çekirdeklerinin ortak adımı.
+func (k *emitter) normRstd(q, df, eps reg) reg {
+	k.e("div.rn.f32", q, q, df)
+	k.e("add.rn.f32", q, q, eps)
+	k.e("sqrt.rn.f32", q, q)
+	rs := k.f()
+	k.e("rcp.rn.f32", rs, q)
+	return rs
 }
 
-// warpSum warp içindeki 32 şeridin değerini kelebek karıştırmayla (sabit sıra) toplar; sonuç
-// bütün şeritlerdedir.
-func (k *emitter) warpSum(v reg) reg {
-	for m := 16; m > 0; m /= 2 {
-		v = k.sum(v, k.shflXor(v, m))
+// normAffine h ← ((h − mu)·rs)·γ[j] + β[j] (yerinde; γ ve β varsa): ileri yönün çıktısı.
+func (k *emitter) normAffine(a normConfig, h, mu, rs, gm, bt, j reg) {
+	k.e("sub.rn.f32", h, h, mu)
+	k.e("mul.rn.f32", h, h, rs)
+	if a.gamma {
+		k.e("mul.rn.f32", h, h, k.load(a.dt[2], k.rowAt(gm, j, a.dt[2])))
 	}
-	return v
+	if a.beta {
+		k.e("add.rn.f32", h, h, k.load(a.dt[3], k.rowAt(bt, j, a.dt[3])))
+	}
 }
 
-// normForwardWarpKernel normForwardKernel'in warp biçimidir (a.D > 0): blok warpRows satırdır,
-// her şerit satırın D/32 elemanını yazmaçta tutar (x bir kez okunur), toplamlar warp içinde
-// kelebek karıştırmayla indirgenir (paylaşımlı bellek ve engel yok). Formül aynıdır; toplama
-// sırası farklıdır (şerit içi sıralı, sonra kelebek): sonuç belirlenimcidir.
-func normForwardWarpKernel(a normConfig) func() *emitter {
-	return func() *emitter {
-		k := newEmitter(fmt.Sprintf("norm_ileri_w%d_%v_%v_%v_%s_%s_%s_%s", a.D, a.layer, a.gamma, a.beta, a.dt[0], a.dt[1], a.dt[2], a.dt[3]))
-		xt, yt, gt, bt2 := a.dt[0], a.dt[1], a.dt[2], a.dt[3]
-		x := k.pointer("x")
-		gm := k.pointer("gamma")
-		bt := k.pointer("beta")
-		y := k.written("y")
-		avg := k.written("ortalama")
-		rstd := k.written("rstd")
-		R := k.u32p("satir")
-		H := k.u32p("h")
-		S0 := k.u32p("s0")
-		S1 := k.u32p("s1")
-		eps := k.f32p("eps")
-		tid := k.special("%tid.x")
-		lane, w, row := k.r(), k.r(), k.r()
-		k.e("and.b32", lane, tid, 31)
-		k.e("shr.u32", w, tid, 5)
-		k.e("mad.lo.s32", row, k.special("%ctaid.x"), warpRows, w)
-		last := k.label()
-		outside := k.p()
-		k.e("setp.ge.u32", outside, row, R)
-		k.jumpIf(outside, last)
-		E := a.D / 32
-		xo := k.rowsAddress(row, H, S0, S1)
-		k.e("add.s32", xo, xo, lane)
-		yo := k.r()
-		k.e("mad.lo.s32", yo, row, a.D, lane)
-		v := make([]reg, E)
-		for e := range v {
-			o := k.r()
-			k.e("add.s32", o, xo, 32*e)
-			v[e] = k.load(xt, k.rowAt(x, o, xt))
-		}
-		df := k.constant(float32(a.D))
-		mu := k.constant(0)
-		if a.layer {
-			for _, h := range v {
-				k.e("add.rn.f32", mu, mu, h)
-			}
-			mu = k.warpSum(mu)
-			k.e("div.rn.f32", mu, mu, df)
-		}
-		q := k.constant(0)
-		for _, h := range v {
-			d := k.f()
-			k.e("sub.rn.f32", d, h, mu)
-			k.e("fma.rn.f32", q, d, d, q)
-		}
-		q = k.warpSum(q)
-		k.e("div.rn.f32", q, q, df)
-		k.e("add.rn.f32", q, q, eps)
-		k.e("sqrt.rn.f32", q, q)
-		rs := k.f()
-		k.e("rcp.rn.f32", rs, q)
-		for e, h := range v {
-			j := k.r()
-			k.e("add.s32", j, lane, 32*e)
-			k.e("sub.rn.f32", h, h, mu)
-			k.e("mul.rn.f32", h, h, rs)
-			if a.gamma {
-				k.e("mul.rn.f32", h, h, k.load(gt, k.rowAt(gm, j, gt)))
-			}
-			if a.beta {
-				k.e("add.rn.f32", h, h, k.load(bt2, k.rowAt(bt, j, bt2)))
-			}
-			o := k.r()
-			k.e("add.s32", o, yo, 32*e)
-			k.store(yt, k.rowAt(y, o, yt), h)
-		}
-		k.jumpIf(k.tidNonZero(lane), last)
-		if a.layer {
-			k.store(tensor.Float32, k.address(avg, row, 4), mu)
-		}
-		k.store(tensor.Float32, k.address(rstd, row, 4), rs)
-		k.put(last)
-		return k
-	}
+// normGradTerm bir sütunun geri yön terimleri (yüklenmiş g ve x ile): h = (x − m)·rs, γ terimi
+// acc += g·h, dh = g·γ, a1 += dh, a2 += dh·h; h ve dh döner.
+func (k *emitter) normGradTerm(gv, h, m, rs, gam, acc, a1, a2 reg) (reg, reg) {
+	k.e("sub.rn.f32", h, h, m)
+	k.e("mul.rn.f32", h, h, rs)
+	k.e("fma.rn.f32", acc, gv, h, acc)
+	dh := k.f()
+	k.e("mul.rn.f32", dh, gv, gam)
+	k.e("add.rn.f32", a1, a1, dh)
+	k.e("fma.rn.f32", a2, dh, h, a2)
+	return h, dh
+}
+
+// normGradX x'in gradyanını ekler: gx += rs·((dh − m1) − h·m2); adres hesaptan sonra kurulur.
+func (k *emitter) normGradX(dh, h, m1, m2, rs reg, gxt tensor.DType, addr func() reg) {
+	t, hm := k.f(), k.f()
+	k.e("sub.rn.f32", t, dh, m1)
+	k.e("mul.rn.f32", hm, h, m2)
+	k.e("sub.rn.f32", t, t, hm)
+	k.e("mul.rn.f32", t, t, rs)
+	ha := addr()
+	old := k.load(gxt, ha)
+	k.e("add.rn.f32", old, old, t)
+	k.store(gxt, ha, old)
 }
 
 func normForwardKernel(a normConfig) func() *emitter {
 	return func() *emitter {
 		k := newEmitter(fmt.Sprintf("norm_ileri_%d_%v_%v_%v_%s_%s_%s_%s", a.B, a.layer, a.gamma, a.beta, a.dt[0], a.dt[1], a.dt[2], a.dt[3]))
-		xt, yt, gt, bt2 := a.dt[0], a.dt[1], a.dt[2], a.dt[3]
+		xt, yt := a.dt[0], a.dt[1]
 		x := k.pointer("x")
 		gm := k.pointer("gamma")
 		bt := k.pointer("beta")
@@ -189,21 +124,10 @@ func normForwardKernel(a normConfig) func() *emitter {
 			k.e("fma.rn.f32", v, d, d, v)
 		})
 		v = k.blockReduce(v, sm, tid, a.B, k.sum)
-		k.e("div.rn.f32", v, v, df)
-		k.e("add.rn.f32", v, v, eps)
-		k.e("sqrt.rn.f32", v, v)
-		rs := k.f()
-		k.e("rcp.rn.f32", rs, v)
+		rs := k.normRstd(v, df, eps)
 		k.rowLoopE(tid, D, one, base2, a.B, func(o, j reg) {
 			h := k.load(xt, k.rowAt(x, o, xt))
-			k.e("sub.rn.f32", h, h, mu)
-			k.e("mul.rn.f32", h, h, rs)
-			if a.gamma {
-				k.e("mul.rn.f32", h, h, k.load(gt, k.rowAt(gm, j, gt)))
-			}
-			if a.beta {
-				k.e("add.rn.f32", h, h, k.load(bt2, k.rowAt(bt, j, bt2)))
-			}
+			k.normAffine(a, h, mu, rs, gm, bt, j)
 			k.store(yt, k.rowAt(y, o, yt), h)
 		})
 		last := k.label()
@@ -393,15 +317,7 @@ func (k *emitter) fusedNormRow(f *fusedNorm, r reg) {
 		k.e("add.s32", o, base2, f.cols[c])
 		gv := k.load(ggt, k.rowAt(f.g, o, ggt))
 		k.e("selp.f32", gv, gv, f.zero, f.valid[c])
-		h := k.load(xt, k.rowAt(f.x, o, xt))
-		k.e("sub.rn.f32", h, h, m)
-		k.e("mul.rn.f32", h, h, rs)
-		k.e("fma.rn.f32", f.acc[c], gv, h, f.acc[c])
-		dh := k.f()
-		k.e("mul.rn.f32", dh, gv, f.gam[c])
-		hs[c], dhs[c] = h, dh
-		k.e("add.rn.f32", a1, a1, dh)
-		k.e("fma.rn.f32", a2, dh, h, a2)
+		hs[c], dhs[c] = k.normGradTerm(gv, k.load(xt, k.rowAt(f.x, o, xt)), m, rs, f.gam[c], f.acc[c], a1, a2)
 	}
 	if !a.xGrad {
 		return
@@ -416,18 +332,11 @@ func (k *emitter) fusedNormRow(f *fusedNorm, r reg) {
 	for c := range f.cols {
 		skip := k.label()
 		k.jumpUnless(f.valid[c], skip)
-		t := k.f()
-		k.e("sub.rn.f32", t, dhs[c], m1)
-		hm := k.f()
-		k.e("mul.rn.f32", hm, hs[c], m2)
-		k.e("sub.rn.f32", t, t, hm)
-		k.e("mul.rn.f32", t, t, rs)
-		o := k.r()
-		k.e("add.s32", o, base2, f.cols[c])
-		ha := k.rowAt(f.gx, o, gxt)
-		old := k.load(gxt, ha)
-		k.e("add.rn.f32", old, old, t)
-		k.store(gxt, ha, old)
+		k.normGradX(dhs[c], hs[c], m1, m2, rs, gxt, func() reg {
+			o := k.r()
+			k.e("add.s32", o, base2, f.cols[c])
+			return k.rowAt(f.gx, o, gxt)
+		})
 		k.put(skip)
 	}
 }
