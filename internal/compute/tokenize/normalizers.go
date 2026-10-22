@@ -70,17 +70,11 @@ func newSeqNorm(raw json.RawMessage) (Normalizer, error) {
 	if err := strictDecode(raw, &t); err != nil {
 		return nil, err
 	}
-	var s NormalizerSequence
-	for i, h := range t.Normalizers {
-		n, err := NewNormalizer(h)
-		if err != nil {
-			return nil, messages.New(messages.H5213, i, err)
-		}
-		if n != nil {
-			s = append(s, n)
-		}
+	s, err := buildSequence(t.Normalizers, NewNormalizer)
+	if err != nil {
+		return nil, err
 	}
-	return s, nil
+	return NormalizerSequence(s), nil
 }
 
 type unicodeNorm struct{ compat, joinFn bool }

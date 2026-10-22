@@ -197,17 +197,11 @@ func newSeqPreTok(raw json.RawMessage) (PreTokenizer, error) {
 	if err := strictDecode(raw, &t); err != nil {
 		return nil, err
 	}
-	var s PreTokenizerSequence
-	for i, h := range t.Pretokenizers {
-		o, err := NewPreTokenizer(h)
-		if err != nil {
-			return nil, messages.New(messages.H5213, i, err)
-		}
-		if o != nil {
-			s = append(s, o)
-		}
+	s, err := buildSequence(t.Pretokenizers, NewPreTokenizer)
+	if err != nil {
+		return nil, err
 	}
-	return s, nil
+	return PreTokenizerSequence(s), nil
 }
 
 // ---------------------------------------------------------------------------
