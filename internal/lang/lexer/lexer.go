@@ -349,28 +349,29 @@ func (l *Lexer) readIdentifier() string {
 	return string(l.input[start:l.position])
 }
 
-func (l *Lexer) readNumber() (string, bool) {
-	var sb strings.Builder
-	isFloat := false
-
+// readDigits rakamları (ve ayırıcı '_' işaretlerini, onları yazmadan) sb'ye okur. Metottur,
+// kapanış değil: sayı başına en çok üç çağrıdır ve sb yakalanıp yığından kaçmaz.
+func (l *Lexer) readDigits(sb *strings.Builder) {
 	for isDigit(l.ch) || l.ch == '_' {
 		if l.ch != '_' {
 			sb.WriteRune(l.ch)
 		}
 		l.readChar()
 	}
+}
+
+func (l *Lexer) readNumber() (string, bool) {
+	var sb strings.Builder
+	isFloat := false
+
+	l.readDigits(&sb)
 
 	// Ondalık kısım kontrolü ('1..10' aralığı ile karışmaması için peekChar() != '.' kontrolü)
 	if l.ch == '.' && isDigit(l.peekChar()) {
 		isFloat = true
 		sb.WriteRune(l.ch)
 		l.readChar()
-		for isDigit(l.ch) || l.ch == '_' {
-			if l.ch != '_' {
-				sb.WriteRune(l.ch)
-			}
-			l.readChar()
-		}
+		l.readDigits(&sb)
 	}
 
 	// Bilimsel yazım: 1e-5, 3.2E+4, 2e10 (üsten sonra en az bir rakam gelmelidir)
@@ -385,12 +386,7 @@ func (l *Lexer) readNumber() (string, bool) {
 				sb.WriteRune(l.ch)
 				l.readChar()
 			}
-			for isDigit(l.ch) || l.ch == '_' {
-				if l.ch != '_' {
-					sb.WriteRune(l.ch)
-				}
-				l.readChar()
-			}
+			l.readDigits(&sb)
 		}
 	}
 
