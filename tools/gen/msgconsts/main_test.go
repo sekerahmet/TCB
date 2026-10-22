@@ -12,6 +12,8 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
 // migrated ileti kodlarına geçirilmiş paketlerdir: test dışı kodlarında fmt.Errorf ve errors.New
@@ -48,7 +50,7 @@ var migrated = []string{
 
 // Üretilmiş sabitler katalogla aynıdır.
 func TestGeneratedUpToDate(t *testing.T) {
-	root := repoRoot()
+	root := reporoot.Root()
 	fresh, err := Generate(root)
 	if err != nil {
 		t.Fatal(err)
@@ -69,7 +71,7 @@ type call struct {
 // Depodaki her ileti çağrısı tanımdaki kadar değer verir; tanımlı her kod kullanılır;
 // geçirilmiş paketlerde fmt.Errorf ve errors.New yoktur; ileti sözcüğü Go'da çekimlenmez.
 func TestMessageUsage(t *testing.T) {
-	root := repoRoot()
+	root := reporoot.Root()
 	data, err := os.ReadFile(filepath.Join(root, "internal", "lang", "messages", "definitions.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -213,7 +215,7 @@ func codeArg(e ast.Expr) string {
 // retired.json silinmiş kodları tutar; hiçbiri katalogda ya da tanımlarda yeniden yok, her kaydın
 // commit'i ve gerekçesi dolu.
 func TestRetiredCodesStayRetired(t *testing.T) {
-	root := repoRoot()
+	root := reporoot.Root()
 	data, err := os.ReadFile(filepath.Join(root, retiredPath))
 	if err != nil {
 		t.Fatal(err)

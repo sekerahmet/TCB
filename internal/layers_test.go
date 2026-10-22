@@ -35,7 +35,7 @@ var layers = []struct {
 	{"internal/reporoot", nil}, // testlerin depo kökü yardımcısı; yalnızca testlerden ve tools/'dan içe aktarılır
 	{"lib", nil},               // TR ile yazılı kitaplık: Go tarafında yalnızca gömme dosyası
 	{"cmd/", []string{"internal/lang/", "internal/compute/", "internal/stdlib/", "internal/devtools/", "lib"}},
-	{"tools/", []string{"internal/", "lib"}},
+	{"tools/", []string{"internal/", "lib", "tools/internal/"}}, // araçların ortak yardımcıları: tools/internal/
 }
 
 // langOrder dil çekirdeğinin iç sırasıdır: bir dil paketi yalnızca bu listede kendisinden

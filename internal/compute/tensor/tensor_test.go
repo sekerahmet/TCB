@@ -21,3 +21,18 @@ func init() {
 }
 
 func TestGradTo(t *testing.T) { runGradGroup(t, "tensor") }
+
+// Kural: SameShape iki şeklin boy ve eksen uzunluklarının aynı olduğunu söyler (boş şekil,
+// 0 boyutlu tensörün şeklidir); gpu ve ml aynı yardımcıyı kullanır, kendi kopyalarını tutmaz.
+func TestSameShapeComparesRankAndExtents(t *testing.T) {
+	for _, c := range []struct {
+		a, b []int
+		want bool
+	}{
+		{nil, []int{}, true}, {[]int{2, 3}, []int{2, 3}, true}, {[]int{2, 3}, []int{3, 2}, false}, {[]int{2}, []int{2, 1}, false},
+	} {
+		if got := SameShape(c.a, c.b); got != c.want {
+			t.Errorf("SameShape(%v, %v) = %v", c.a, c.b, got)
+		}
+	}
+}

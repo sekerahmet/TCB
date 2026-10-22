@@ -26,6 +26,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/sekerahmet/TCB/tools/internal/repodir"
 )
 
 // Depo köküne göre yollar.
@@ -42,7 +44,7 @@ func main() {
 	root := flag.String("root", "", "repository root (if empty, go.mod is searched upwards from the working directory)")
 	flag.Parse()
 	if *root == "" {
-		*root = repoRoot()
+		*root = repodir.Find()
 	}
 	fresh, err := Generate(*root)
 	if err != nil {
@@ -117,24 +119,6 @@ func orderedTexts(data []byte) ([]string, map[string]string, error) {
 		texts[k] = text
 	}
 	return keys, texts, nil
-}
-
-// repoRoot çalışma klasöründen yukarı doğru go.mod'un bulunduğu ilk klasördür.
-func repoRoot() string {
-	dir, err := os.Getwd()
-	if err != nil {
-		return "."
-	}
-	for {
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-			return dir
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return "."
-		}
-		dir = parent
-	}
 }
 
 // checkRetired silinmiş (retired.json) bir kodun katalogda ya da tanımlarda yeniden
