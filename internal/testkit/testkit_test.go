@@ -1,6 +1,7 @@
 package testkit
 
 import (
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -125,5 +126,28 @@ func TestCopyDirCopiesTreeAndContents(t *testing.T) {
 		if err != nil || string(got) != want {
 			t.Errorf("%s = %q, %v; beklenen %q", name, got, err, want)
 		}
+	}
+}
+
+// recorder hataları toplayan sahte testing.TB'dir.
+type recorder struct {
+	testing.TB
+	errors []string
+}
+
+func (r *recorder) Helper() {}
+func (r *recorder) Errorf(format string, args ...any) {
+	r.errors = append(r.errors, fmt.Sprintf(format, args...))
+}
+
+func TestMustContainReportsEveryMissingPart(t *testing.T) {
+	r := &recorder{TB: t}
+	MustContain(r, "alpha beta", "alpha", "gamma", "beta", "delta")
+	if len(r.errors) != 2 || !strings.Contains(r.errors[0], `"gamma"`) || !strings.Contains(r.errors[1], `"delta"`) {
+		t.Errorf("one report per missing part: %v", r.errors)
+	}
+	MustContain(r, "x", "x")
+	if len(r.errors) != 2 {
+		t.Error("a present part is not reported")
 	}
 }

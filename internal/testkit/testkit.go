@@ -46,6 +46,16 @@ func WriteFile(t testing.TB, dir, name, content string) string {
 	return WritePath(t, filepath.Join(dir, filepath.FromSlash(name)), content)
 }
 
+// MustContain çıktının verilen parçaların hepsini içerdiğini sınar; eksik her parça için çıktıyı da yazar.
+func MustContain(t testing.TB, out string, parts ...string) {
+	t.Helper()
+	for _, p := range parts {
+		if !strings.Contains(out, p) {
+			t.Errorf("output lacks %q:\n%s", p, out)
+		}
+	}
+}
+
 // TRSeeds depodaki bütün .tr dosyalarını (tests/, examples/, lib/) bulanıklaştırma tohumu olarak
 // ekler.
 func TRSeeds(f *testing.F) {

@@ -4,14 +4,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-)
 
-func gitMust(t *testing.T, root string, args ...string) {
-	t.Helper()
-	if _, err := gitOut(root, args...); err != nil {
-		t.Fatal(err)
-	}
-}
+	"github.com/sekerahmet/TCB/internal/testkit"
+)
 
 // branchFixture main'de fikstürü, ondan ayrılan üç claude/ dalını kurar:
 // a ve b aynı satırı değiştirir (çakışır), c yalnızca belgeyi.
@@ -43,7 +38,7 @@ func TestChangedMapsHunksTestsAndOtherBranches(t *testing.T) {
 	if code != exitOK {
 		t.Fatalf("exit %d: %s", code, errOut)
 	}
-	mustContain(t, out,
+	testkit.MustContain(t, out,
 		"changed main...claude/a", "old-side lines",
 		"shape.Describe [func]",                 // gövdesindeki satır değişti
 		"H0003 (added or removed",               // grafikte olmayan yeni kod
@@ -58,7 +53,7 @@ func TestChangedMapsHunksTestsAndOtherBranches(t *testing.T) {
 		t.Errorf("a function that exists only on the branch has no graph node:\n%s", out)
 	}
 	// ... ama dalın kendi dosyasından adlandırılır.
-	mustContain(t, out, "declarations on the branch that the graph does not have", "shape/shape.go: Added (func)")
+	testkit.MustContain(t, out, "declarations on the branch that the graph does not have", "shape/shape.go: Added (func)")
 }
 
 func TestChangedOnCheckedOutBranchMapsNewSide(t *testing.T) {
@@ -70,7 +65,7 @@ func TestChangedOnCheckedOutBranchMapsNewSide(t *testing.T) {
 	if code != exitOK {
 		t.Fatalf("exit %d: %s", code, errOut)
 	}
-	mustContain(t, out, "new-side lines", "shape.Added [func]", "H0003 [message]")
+	testkit.MustContain(t, out, "new-side lines", "shape.Added [func]", "H0003 [message]")
 }
 
 func TestChangedAcceptsRangeAndRejectsUnknownRef(t *testing.T) {
