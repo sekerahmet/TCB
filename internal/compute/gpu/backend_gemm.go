@@ -65,6 +65,12 @@ func (g *backend) gemv(batch, N, K int, a tensor.View, b tensor.View, transB boo
 	if g.gemvOff || K == 0 {
 		return false
 	}
+	for _, n := range []int{K, K * N, N} {
+		checkSize(n) // gemm'in sınırı (H4016): 16 bitlik B de float32'deki gibi reddedilir
+	}
+	if batch*K*N > maxN {
+		return false // toplu ofsetler 32 bite sığmaz: gemm'e kalır
+	}
 	ad, bd := g.storageOf(a.S), g.storageOf(b.S)
 	bt := bd.dtype
 	alignA, alignB := align(g.addressOf(a)) >= 16, align(g.addressOf(b)) >= uint32(4*dtypeSize(bt))

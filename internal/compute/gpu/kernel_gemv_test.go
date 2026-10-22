@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Tek satırlık çarpım (M = 1) gemv çekirdeğine gider ve float64 başvuruyla aynıdır: iki B
@@ -126,4 +127,23 @@ func gemvOffCase(t *testing.T, g *backend) {
 		t.Fatalf("gemv kapalıyken gemv çekirdeği çalıştı")
 	}
 	checkDiff(t, "gemv kapalı", fromDevice(g, cs), []float32{13, 16}, 1e-6)
+}
+
+// Kural: 32 bitlik dizin sınırını aşan tek satırlık çarpım gemv'e gitmez; 16 bitlik B'de de
+// float32'deki gibi H4016 verilir (Gemini sayısal denetimi, bulgu 5).
+func TestGemvRespectsIndexLimit(t *testing.T) {
+	const K, N = 1 << 15, 1 << 16 // K·N = 2³¹
+	be := newBackend(tensor.GPU(7), newSim(64<<20))
+	a, c := be.Alloc(4, tensor.Float32), be.Alloc(4, tensor.Float32)
+	defer be.Release(a)
+	defer be.Release(c)
+	av := tensor.View{S: a, Shape: []int{1, K}, Strides: []int{K, 1}}
+	for _, dt := range []tensor.DType{tensor.Float32, tensor.BFloat16, tensor.Float16} {
+		b := be.Alloc(4, dt)
+		bv := tensor.View{S: b, Shape: []int{K, N}, Strides: []int{N, 1}}
+		if err := catchPanic(func() { be.GemmSet(1, 1, N, K, av, false, bv, false, c) }); !messages.Has(err, messages.H4016) {
+			t.Errorf("%s: H4016 bekleniyordu, %v", dt, err)
+		}
+		be.Release(b)
+	}
 }
