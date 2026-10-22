@@ -277,11 +277,7 @@ func specRngSeed(s gradSpec, k int) *rand.Rand {
 func toFloat64(xs []*Tensor) [][]float64 {
 	in := make([][]float64, len(xs))
 	for k, x := range xs {
-		d := x.Data()
-		in[k] = make([]float64, len(d))
-		for i, v := range d {
-			in[k][i] = float64(v)
-		}
+		in[k] = x.Float64s()
 	}
 	return in
 }
@@ -343,10 +339,7 @@ func checkGradFloat64(t *testing.T, s gradSpec) {
 	}
 	w := Randn(rng, out.shape...)
 	out.BackwardWith(w)
-	wd := make([]float64, w.Numel())
-	for i, v := range w.Data() {
-		wd[i] = float64(v)
-	}
+	wd := w.Float64s()
 	tol := orDefault(s.gradTol, gradF64Tol)
 	for k := range xs {
 		an := xs[k].Grad().Data()
@@ -578,4 +571,24 @@ func lanes64(shape []int, axis int, f func(lane []float64) []float64) func(x []f
 		}
 		return res
 	}
+}
+
+// randomSlice n elemanlı standart normal float32 dilimidir.
+func randomSlice(rng *rand.Rand, n int) []float32 {
+	d := make([]float32, n)
+	for i := range d {
+		d[i] = float32(rng.NormFloat64())
+	}
+	return d
+}
+
+// laneRef bir eksen boyunca şeritlere f uygulayan başvuruyu tek girdili refFn'e çevirir.
+func laneRef(shape []int, axis int, f func([]float64) []float64) refFn {
+	g := lanes64(shape, axis, f)
+	return func(in [][]float64) []float64 { return g(in[0]) }
+}
+
+// genDisjoint elemanları ayrık (eşitliksiz) bir tensör üreten girdi üreteci verir (max/min gradyanları).
+func genDisjoint(shape ...int) func(*rand.Rand) *Tensor {
+	return func(r *rand.Rand) *Tensor { return disjoint(r, shape...) }
 }

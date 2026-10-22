@@ -17,14 +17,6 @@ const (
 
 func speedRand(shape ...int) *Tensor { return Randn(rand.New(rand.NewSource(3)), shape...) }
 
-func speedSlice(rng *rand.Rand, n int) []float32 {
-	d := make([]float32, n)
-	for i := range d {
-		d[i] = float32(rng.NormFloat64())
-	}
-	return d
-}
-
 func BenchmarkSpeedSumLastAxis(b *testing.B) {
 	x := speedRand(speedR, speedD)
 	b.ResetTimer()
@@ -252,8 +244,8 @@ func BenchmarkSpeedModelMatMul(b *testing.B) {
 		{"dikkat_QKt_64x64x16", 64, 64, 64, 16, false, true},
 		{"dikkat_AV_64x16x64", 64, 64, 16, 64, false, false},
 	} {
-		a := speedSlice(rng, d.batch*d.M*d.K)
-		bb := speedSlice(rng, d.batch*d.K*d.N)
+		a := randomSlice(rng, d.batch*d.M*d.K)
+		bb := randomSlice(rng, d.batch*d.K*d.N)
 		c := make([]float32, d.batch*d.M*d.N)
 		b.Run(d.ad, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {

@@ -40,14 +40,6 @@ func gemmRef(batch, M, N, K int, a []float32, transA bool, b []float32, transB b
 	return out, abs
 }
 
-func randomSlice(rng *rand.Rand, n int) []float32 {
-	d := make([]float32, n)
-	for i := range d {
-		d[i] = float32(rng.NormFloat64())
-	}
-	return d
-}
-
 func TestGemmEdgeSizes(t *testing.T) {
 	rng := rand.New(rand.NewSource(31))
 	size := []int{1, 3, 7, 16, 17, 63, 65}

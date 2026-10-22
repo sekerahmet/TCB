@@ -191,13 +191,8 @@ func init() {
 		})
 		return s[:2]
 	}
-	lane := func(shape []int, axis int, f func([]float64) []float64) refFn {
-		g := lanes64(shape, axis, f)
-		return func(in [][]float64) []float64 { return g(in[0]) }
-	}
-	dis := func(shape ...int) func(*rand.Rand) *Tensor {
-		return func(r *rand.Rand) *Tensor { return disjoint(r, shape...) }
-	}
+	lane := laneRef
+	dis := genDisjoint
 	registerGrad("cumsum_sort",
 		gradSpec{name: "cumsum eksen 0", ops: []string{"cumsum"}, build: func(xs []*Tensor) *Tensor { return xs[0].CumSum(0) },
 			inputs: genInputs(gen(-1, 1, 0, 4, 3)), ref: lane([]int{4, 3}, 0, cum)},
