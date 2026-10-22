@@ -18,7 +18,8 @@ func ASCII(s string) string {
 	return asciiFolder.Replace(s)
 }
 
-func hasTurkishLetter(s string) bool {
+// HasTurkishLetter reports whether s contains a letter specific to Turkish (ı İ ş Ş ğ Ğ ü Ü ö Ö ç Ç).
+func HasTurkishLetter(s string) bool {
 	return strings.ContainsAny(s, "ıİşŞğĞüÜöÖçÇ")
 }
 
@@ -57,7 +58,7 @@ func Closest(wanted string, candidates []string) string {
 	if limit > 3 {
 		limit = 3
 	}
-	typesTurkish := hasTurkishLetter(wanted)
+	typesTurkish := HasTurkishLetter(wanted)
 	best, farthest, bestMatch := "", limit+1, false
 	for _, a := range candidates {
 		if a == wanted || a == "" {
@@ -66,7 +67,7 @@ func Closest(wanted string, candidates []string) string {
 		u := distance(target, foldASCII(a))
 		// Eşit uzaklıkta kullanıcının yazım tercihine (Türkçe / ASCII) uyan aday seçilir:
 		// 'yazdr' → 'yazdir', 'yazdırr' → 'yazdır'
-		sameScript := hasTurkishLetter(a) == typesTurkish
+		sameScript := HasTurkishLetter(a) == typesTurkish
 		if u < farthest || (u == farthest && sameScript && !bestMatch) || (u == farthest && sameScript == bestMatch && a < best) {
 			best, farthest, bestMatch = a, u, sameScript
 		}
