@@ -2,6 +2,12 @@
 // değer, z-skoru eşiği), sıçramanın geçmişe girmemesi ve kayan pencere. Koşturma: tr test lib
 aktar "tr/egitim"
 
+// hata_metni: f çalışırken oluşan hatanın mesajını döndürür (hata yoksa boş metin).
+fonksiyon hata_metni(f) {
+    dene { f() } yakala h { sonuç h }
+    sonuç ""
+}
+
 // Hafif gürültülü, sabit bir kayıp ve norm dizisi (her biri 1,0 ± 0,01).
 fonksiyon besle(b, n) {
     döngü i içinde 0..n {
@@ -47,12 +53,8 @@ test "SıçramaBekçisi: değişmeyen dizide (σ = 0) eşik yerine en küçük s
 }
 
 test "SıçramaBekçisi: geçersiz ayar hatadır" {
-    değişken hata_verdi = yanlış
-    dene { SıçramaBekçisi(pencere: 1) } yakala h { hata_verdi = doğru }
-    doğrula(hata_verdi)
-    hata_verdi = yanlış
-    dene { SıçramaBekçisi(eşik: 0) } yakala h { hata_verdi = doğru }
-    doğrula(hata_verdi)
+    doğrula(hata_metni(() => SıçramaBekçisi(pencere: 1)) != "")
+    doğrula(hata_metni(() => SıçramaBekçisi(eşik: 0)) != "")
 }
 
 test "SıçramaBekçisi: ölçekten bağımsızdır; çok büyük sonlu değerlerde taşmaz" {
@@ -73,10 +75,6 @@ test "SıçramaBekçisi: geçmiş tamamen sıfırsa karar vermez, kilitlenmez" {
 }
 
 test "SıçramaBekçisi: kesirli pencere ve sonsuz eşik reddedilir" {
-    değişken hata_verdi = yanlış
-    dene { SıçramaBekçisi(pencere: 2.5) } yakala h { hata_verdi = doğru }
-    doğrula(hata_verdi)
-    hata_verdi = yanlış
-    dene { SıçramaBekçisi(eşik: ondalık("inf")) } yakala h { hata_verdi = doğru }
-    doğrula(hata_verdi)
+    doğrula(hata_metni(() => SıçramaBekçisi(pencere: 2.5)) != "")
+    doğrula(hata_metni(() => SıçramaBekçisi(eşik: ondalık("inf"))) != "")
 }

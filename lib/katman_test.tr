@@ -2,6 +2,12 @@
 // nedensellik, GPT'nin kuruluşu ve küçük bir görevde öğrenmesi. Koşturma: tr test lib
 aktar "tr/katman"
 
+// hata_metni: f çalışırken oluşan hatanın mesajını döndürür (hata yoksa boş metin).
+fonksiyon hata_metni(f) {
+    dene { f() } yakala h { sonuç h }
+    sonuç ""
+}
+
 fonksiyon rastgele_girdi(şekil, tohum) {
     sonuç tensör(rastgele_normal(şekil, tohum: tohum), türev_izle: doğru)
 }
@@ -139,8 +145,7 @@ test "NedenselDikkat: bir konum sonraki konumlardan etkilenmez" {
 }
 
 test "NedenselDikkat: boyut bakış sayısına bölünmeli" {
-    değişken mesaj = ""
-    dene { NedenselDikkat(10, 4) } yakala h { mesaj = h }
+    değişken mesaj = hata_metni(() => NedenselDikkat(10, 4))
     doğrula(mesaj.içerir("boyut (10) bakış sayısına (4) bölünmeli"), mesaj)
 }
 
@@ -262,11 +267,9 @@ test "KVÖnbellek: kırp son parçaları geri alır; aynı parçalar yeniden iş
             doğrula(en_büyük_fark(a, b) < 0.000001, "{çeşit}: kırpmadan sonra aynı logit")
         }
         değişken ö = m.önbellek_kur(çeşit: "sabit", en_çok: 2)
-        değişken mesaj = ""
-        dene { m.ileri([[1, 2, 3]], önbellek: ö) } yakala h { mesaj = h }
+        değişken mesaj = hata_metni(() => m.ileri([[1, 2, 3]], önbellek: ö))
         doğrula(mesaj.içerir("sabit önbellek dolu"), mesaj)
-        mesaj = ""
-        dene { KVÖnbellek(2, çeşit: "kocaman") } yakala h { mesaj = h }
+        mesaj = hata_metni(() => KVÖnbellek(2, çeşit: "kocaman"))
         doğrula(mesaj.içerir("önbellek çeşidi"), mesaj)
     }
 }
@@ -366,8 +369,7 @@ test "NedenselDikkat: pencere yalnızca son w konuma bakar" {
     // pencere uzunluğa eşit ya da büyükse tam nedensel dikkatle aynıdır
     değişken geniş = NedenselDikkat(8, 2, tohum: 4, pencere: 6)
     doğrula(en_büyük_fark(geniş.ileri(x, tablolar[0], tablolar[1]), t1) < 0.0000001, "pencere ≥ T tam dikkattir")
-    değişken mesaj = ""
-    dene { NedenselDikkat(8, 2, pencere: -1) } yakala h { mesaj = h }
+    değişken mesaj = hata_metni(() => NedenselDikkat(8, 2, pencere: -1))
     doğrula(mesaj.içerir("pencere negatif olamaz"), mesaj)
 }
 
@@ -500,16 +502,14 @@ test "TransformerBloğu: PLE'siz varsayılan değişmez; PLE, epsilon, pencere v
         sonuç b.ileri(x, tablolar[0], tablolar[1], [[1, 2, 3, 4]], bağlam)
     }
     doğrula(türev_denetle(f, [rastgele_girdi([1, 4, 8], 2), rastgele_girdi([8, 4], 3), rastgele_girdi([10, 4], 4), rastgele_girdi([1, 4, 4], 5)]))
-    değişken mesaj = ""
-    dene { TransformerBloğu(8, 2, ple_boyutu: 4) } yakala h { mesaj = h }
+    değişken mesaj = hata_metni(() => TransformerBloğu(8, 2, ple_boyutu: 4))
     doğrula(mesaj.içerir("ple_boyutu için dağarcık da verilmeli"), mesaj)
 }
 
 test "katman_pencereleri: G katmanı 0, Y katmanları pencereleri sırayla alır" {
     eşit_mi([32, 64, 0, 32, 0, 64, 32, 0], katman_pencereleri("YYGYGYYG", [32, 64]))
     eşit_mi([0, 0], katman_pencereleri("GG", [8]))
-    değişken mesaj = ""
-    dene { katman_pencereleri("YXG", [8]) } yakala h { mesaj = h }
+    değişken mesaj = hata_metni(() => katman_pencereleri("YXG", [8]))
     doğrula(mesaj.içerir("yalnızca Y ve G"), mesaj)
 }
 
@@ -534,8 +534,7 @@ test "GPT: yeni seçenekler varsayılanda modeli değiştirmez; PLE'li yerel/gen
     değişken l2 = m.ileri([[1, 2, 3, 4, 6]])
     doğrula(en_büyük_fark(l1[0][0..4], l2[0][0..4]) < 0.000001, "PLE ve pencere nedenselliği bozmamalı")
     doğrula(en_büyük_fark(l1[0][4], l2[0][4]) > 0.000001, "son konum değişmeli")
-    değişken mesaj = ""
-    dene { GPT(12, katman: 2, pencereler: [1, 2, 3]) } yakala h { mesaj = h }
+    değişken mesaj = hata_metni(() => GPT(12, katman: 2, pencereler: [1, 2, 3]))
     doğrula(mesaj.içerir("katman sayısına (2) eşit olmalı"), mesaj)
     doğrula(m.kayıp([[1, 2, 3]], [[2, 3, 4]]).değer > 0)
 }
@@ -565,8 +564,7 @@ test "NedenselDikkat: bakış_boyutu gizli boyuttan bağımsızdır (Hugging Fac
     eşit_mi(4, NedenselDikkat(8, 2).bakış_boyutu)
     // bakış_boyutu verilince boyut bakış sayısına bölünmek zorunda değildir.
     eşit_mi([6, 8], NedenselDikkat(6, 4, bakış_boyutu: 2).sorgu_katmanı.ağırlık.şekil)
-    değişken mesaj = ""
-    dene { NedenselDikkat(8, 2, bakış_boyutu: 3) } yakala h { mesaj = h }
+    değişken mesaj = hata_metni(() => NedenselDikkat(8, 2, bakış_boyutu: 3))
     doğrula(mesaj.içerir("çift"), mesaj)
 }
 

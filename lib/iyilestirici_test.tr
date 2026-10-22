@@ -4,6 +4,12 @@
 aktar "tr/katman"
 aktar "tr/iyilestirici"
 
+// hata_metni: f çalışırken oluşan hatanın mesajını döndürür (hata yoksa boş metin).
+fonksiyon hata_metni(f) {
+    dene { f() } yakala h { sonuç h }
+    sonuç ""
+}
+
 // sapma_rms ‖XᵀX − I‖'nın eleman başına kök ortalama karesidir (dik matriste 0).
 fonksiyon sapma_rms(X) {
     değişken n = X.şekil[1]
@@ -47,11 +53,9 @@ test "Muon: güncelleme dikleştirilmiş momentumdur; ölçek √max(1, çıkı�
 }
 
 test "Muon ve NorMuon yalnızca 2 boyutlu ağırlık alır" {
-    değişken mesaj = ""
-    dene { Muon([tensör(birler([4]), türev_izle: doğru)]) } yakala h { mesaj = h }
+    değişken mesaj = hata_metni(() => Muon([tensör(birler([4]), türev_izle: doğru)]))
     doğrula(mesaj.içerir("Muon yalnızca 2 boyutlu ağırlıklar içindir; 0. ağırlığın şekli [4]"), mesaj)
-    mesaj = ""
-    dene { NorMuon([tensör(birler([2, 2, 2]), türev_izle: doğru)]) } yakala h { mesaj = h }
+    mesaj = hata_metni(() => NorMuon([tensör(birler([2, 2, 2]), türev_izle: doğru)]))
     doğrula(mesaj.içerir("NorMuon yalnızca 2 boyutlu ağırlıklar içindir"), mesaj)
 }
 
@@ -121,8 +125,7 @@ test "MuonVeAdamW: oran çarpanı iki grubun öğrenme oranını ölçekler (½:
     değişken c = kur()
     değişken op_c = MuonVeAdamW(c, normuon: doğru)
     eşit_mi(NorMuon, tip(op_c.muon))
-    değişken mesaj = ""
-    dene { op_c.çarpan_ayarla(0.0) } yakala h { mesaj = h }
+    değişken mesaj = hata_metni(() => op_c.çarpan_ayarla(0.0))
     doğrula(mesaj.içerir("oran çarpanı pozitif olmalı"), mesaj)
     eşit_mi(1.0, op_c.oran_çarpanı)
 }
@@ -250,8 +253,7 @@ test "Muon: ölçek \"rms\" güncellemeyi 0.2·√max(giriş, çıkış) ile öl
     değişken beklenen = önce - 0.1 * 0.2 * karekök(8.0) * dikleştir(G)
     doğrula(fark_en_büyük(W, beklenen) < 0.00001, "rms ölçeği: {fark_en_büyük(W, beklenen)}")
     eşit_mi([karekök(2.0)], Muon([W]).ölçekler) // varsayılan "oran": √max(1, 8/4)
-    değişken mesaj = ""
-    dene { Muon([W], ölçek: "x") } yakala h { mesaj = h }
+    değişken mesaj = hata_metni(() => Muon([W], ölçek: "x"))
     doğrula(mesaj.içerir("ölçek \"oran\" ya da \"rms\" olmalı"), mesaj)
 }
 
@@ -321,8 +323,7 @@ test "SatırRMS: yalnızca gradyanı sıfırdan farklı satırlar değişir; sat
     değişken U = tensör(birler([2, 2]), türev_izle: doğru)
     SatırRMS([U]).adım()
     eşit_mi(birler([2, 2]), türevsiz(U))
-    değişken mesaj = ""
-    dene { SatırRMS([tensör(birler([4]), türev_izle: doğru)]) } yakala h { mesaj = h }
+    değişken mesaj = hata_metni(() => SatırRMS([tensör(birler([4]), türev_izle: doğru)]))
     doğrula(mesaj.içerir("SatırRMS yalnızca 2 boyutlu ağırlıklar içindir"), mesaj)
 }
 
