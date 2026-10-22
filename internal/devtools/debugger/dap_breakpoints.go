@@ -2,7 +2,6 @@ package debugger
 
 import (
 	"encoding/json"
-	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -160,10 +159,7 @@ func (s *dapServer) evalQuiet(v *interp.VM, env *interp.Environment, expr string
 	if len(p.Errors()) > 0 {
 		return nil, p.Errs()[0]
 	}
-	if len(prog.Statements) != 1 {
-		return nil, messages.New(messages.H8112, expr)
-	}
-	es, ok := prog.Statements[0].(*ast.ExpressionStatement)
+	es, ok := singleExpression(prog)
 	if !ok {
 		return nil, messages.New(messages.H8112, expr)
 	}

@@ -12,9 +12,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
-	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"os"
 	"sort"
 	"strconv"
@@ -212,37 +210,6 @@ func (d *Debugger) hasBreakpoint(line int) bool {
 	return d.Breakpoints[line]
 }
 
-func (d *Debugger) checkWatchpoints(v *interp.VM, env *interp.Environment) string {
-	for _, wp := range d.Watchpoints {
-		if wp.IsCond {
-			l := lexer.New(wp.Expression)
-			p := parser.New(l)
-			prog := p.ParseProgram()
-			if len(p.Errors()) == 0 && len(prog.Statements) > 0 {
-				if es, ok := prog.Statements[0].(*ast.ExpressionStatement); ok {
-					val, err := d.quietly(func() (interp.Value, error) { return v.EvalExpression(es.Expression, env) })
-					if err == nil && val.IsTruthy() {
-						curStr := interp.True.Inspect()
-						if wp.LastVal != curStr {
-							wp.LastVal = curStr
-							return "⚡ " + messages.Text(messages.H8032, wp.ID, wp.Expression)
-						}
-					} else {
-						wp.LastVal = interp.False.Inspect()
-					}
-				}
-			}
-		} else {
-			if val, ok := env.Get(wp.Expression); ok {
-				if old, changed := wp.observe(val); changed {
-					return "⚡ " + messages.Text(messages.H8033, wp.ID, wp.Expression, v.Mask(old), v.Mask(wp.LastVal))
-				}
-			}
-		}
-	}
-	return ""
-}
-
 // Adımlama sonrası durum metinleri; terminalde ve düzenleyicide aynıdır.
 func stateStep() string     { return messages.Text(messages.H8034) }
 func stateStepOver() string { return messages.Text(messages.H8035) }
@@ -308,15 +275,13 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 			eqParts := strings.SplitN(rest, "=", 2)
 			varName := strings.TrimSpace(eqParts[0])
 			exprStr := strings.TrimSpace(eqParts[1])
-			l := lexer.New(exprStr)
-			p := parser.New(l)
-			prog := p.ParseProgram()
-			if len(p.Errors()) > 0 || len(prog.Statements) == 0 {
+			e, status := parseFirstExpression(exprStr)
+			if status == exprSyntaxError {
 				fmt.Println("  ❌ " + messages.Text(messages.H8043))
 				continue
 			}
-			if es, ok := prog.Statements[0].(*ast.ExpressionStatement); ok {
-				newVal, err := d.quietly(func() (interp.Value, error) { return v.EvalExpression(es.Expression, env) })
+			if status == exprParsed {
+				newVal, err := d.evalQuiet(v, env, e)
 				if err != nil {
 					fmt.Println("  ❌ " + messages.Text(messages.H8044, err))
 					continue
@@ -410,17 +375,12 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 				continue
 			}
 			exprStr := strings.TrimSpace(cmdLine[len(parts[0]):])
-			l := lexer.New(exprStr)
-			p := parser.New(l)
-			prog := p.ParseProgram()
-			if len(p.Errors()) == 0 && len(prog.Statements) > 0 {
-				if es, ok := prog.Statements[0].(*ast.ExpressionStatement); ok {
-					val, err := d.quietly(func() (interp.Value, error) { return v.EvalExpression(es.Expression, env) })
-					if err != nil {
-						fmt.Println("  ❌ " + messages.Text(messages.H8060, err))
-					} else {
-						fmt.Println("  💡 " + messages.Text(messages.H8061, val.Type(), v.Mask(val.Inspect())))
-					}
+			if e, status := parseFirstExpression(exprStr); status == exprParsed {
+				val, err := d.evalQuiet(v, env, e)
+				if err != nil {
+					fmt.Println("  ❌ " + messages.Text(messages.H8060, err))
+				} else {
+					fmt.Println("  💡 " + messages.Text(messages.H8061, val.Type(), v.Mask(val.Inspect())))
 				}
 			}
 
