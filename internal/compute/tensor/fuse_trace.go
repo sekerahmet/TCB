@@ -143,6 +143,10 @@ func (p *FuseProgram) Run(op string, inputs []*Tensor) []*Tensor {
 		panic(messages.Internal("fused program called with a different input count"))
 	}
 	be := sameDevice(op, inputs...)
+	// Kaynaşık program kendi sayaç türündedir; tek çıktılıda düğüm de bu türü alır (track),
+	// geri hesabı profilde "kaynaşık" olarak görünür.
+	sy := counterStart(be, OpKindFused).start()
+	defer sy.finish()
 	views := make([]View, len(inputs))
 	for k, t := range inputs {
 		views[k] = t.view()

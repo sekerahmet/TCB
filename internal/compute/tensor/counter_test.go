@@ -164,3 +164,24 @@ func TestCounterOpNames(t *testing.T) {
 		t.Error("ikili ve tekli işlemlerin sırası BinOp/UnOp sırasıyla aynı olmalı")
 	}
 }
+
+// Kaynaşık program kendi türüyle sayılır; geri hesabı "diğer"e düşmez (profilde adsız
+// kalmaz).
+func TestCounterFusedOwnKind(t *testing.T) {
+	gu := New([]float32{1, -2, 3, 4, 0.5, -1, 2, 1}, 2, 4).SetRequiresGrad(true)
+	var y *Tensor
+	if call, _, _, _ := counterDiff(false, OpKindFused, func() { y = runFusedFn(swiglu, []*Tensor{gu})[0] }); call != 1 {
+		t.Fatalf("ileri kaynaşık %d, beklenen 1", call)
+	}
+	if y.n.opKind != OpKindFused {
+		t.Fatalf("düğümün işlemi %v, beklenen kaynaşık", y.n.opKind)
+	}
+	lossVal := y.Reshape(-1).SumAll()
+	var other int64
+	back, _, _, _ := counterDiff(true, OpKindFused, func() {
+		other, _, _, _ = counterDiff(true, OpKindOther, lossVal.Backward)
+	})
+	if back != 1 || other != 0 {
+		t.Errorf("geri kaynaşık %d, diğer %d; beklenen 1 ve 0", back, other)
+	}
+}

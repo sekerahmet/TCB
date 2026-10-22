@@ -94,6 +94,7 @@ var opCode = map[tensor.OpKind]codes.Code{
 	tensor.OpKindConcat:       codes.T121,
 	tensor.OpKindClipGrad:     codes.T402,
 	tensor.OpKindCustom:       codes.T310,
+	tensor.OpKindFused:        codes.T312,
 	tensor.OpKindSilu:         codes.T204,
 	tensor.OpKindTan:          codes.T224,
 	tensor.OpKindAsin:         codes.T225,
