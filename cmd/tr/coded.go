@@ -47,18 +47,34 @@ func encodeCommand(args []string) {
 // languageArgument standart giriş kipinin '--dil <kod>' argümanını okur (yoksa kişinin yazım
 // dili, codes.Display) ve yazım dilini doğrular; başka bir argüman ya da bilinmeyen dil hatadır.
 func languageArgument(args []string, command string) *codes.Language {
-	languageCode := codes.Display().Code
+	languageCode, _ := parseLanguageArgs(args, false, messages.Text(messages.H8700, codes.OptionFlag(codes.K100), command),
+		func(arg string) string { return messages.Text(messages.H8701, command, arg) })
+	return mustLoadLanguage(languageCode)
+}
+
+// parseLanguageArgs '--dil <kod>' argümanını (yoksa kişinin yazım dili) ve allowFile ise tek bir
+// konumlu dosya argümanını okur; dil kodunu ve dosyayı döndürür. Değersiz '--dil' missingValue
+// iletisiyle, başka argüman unexpected(arg) iletisiyle çıkışa götürür (iletiler çağıranındır).
+func parseLanguageArgs(args []string, allowFile bool, missingValue string, unexpected func(arg string) string) (languageCode, file string) {
+	languageCode = codes.Display().Code
 	for i := 0; i < len(args); i++ {
 		switch {
 		case isOption(args[i], codes.K100) && i+1 < len(args):
 			languageCode = args[i+1]
 			i++
 		case isOption(args[i], codes.K100):
-			exitWithError(messages.Text(messages.H8700, codes.OptionFlag(codes.K100), command))
+			exitWithError(missingValue)
+		case allowFile && file == "":
+			file = args[i]
 		default:
-			exitWithError(messages.Text(messages.H8701, command, args[i]))
+			exitWithError(unexpected(args[i]))
 		}
 	}
+	return languageCode, file
+}
+
+// mustLoadLanguage yazım dili kodunun kod listesini yükler; bilinmeyen dil hatadır.
+func mustLoadLanguage(languageCode string) *codes.Language {
 	language, err := codes.LoadLanguage(languageCode)
 	if err != nil {
 		exitWithError(err)
@@ -179,28 +195,13 @@ func showCommand(args []string) {
 		convertFromInput(source.Turkish(), func(text string) (string, error) { return source.Show(text, language) })
 		return
 	}
-	var file, languageCode string
-	languageCode = codes.Display().Code
-	for i := 0; i < len(args); i++ {
-		switch {
-		case isOption(args[i], codes.K100) && i+1 < len(args):
-			languageCode = args[i+1]
-			i++
-		case isOption(args[i], codes.K100):
-			exitWithError(messages.Text(messages.H8708, codes.OptionFlag(codes.K100), codes.DisplayName(codes.K011)))
-		case file == "":
-			file = args[i]
-		default:
-			exitWithError(messages.Text(messages.H8709, codes.DisplayName(codes.K011), args[i]))
-		}
-	}
+	showName := codes.DisplayName(codes.K011)
+	languageCode, file := parseLanguageArgs(args, true, messages.Text(messages.H8708, codes.OptionFlag(codes.K100), showName),
+		func(arg string) string { return messages.Text(messages.H8709, showName, arg) })
 	if file == "" {
 		exitWithError(messages.Text(messages.H8710, codes.DisplayName(codes.K011), codes.OptionFlag(codes.K100)))
 	}
-	language, err := codes.LoadLanguage(languageCode)
-	if err != nil {
-		exitWithError(err)
-	}
+	language := mustLoadLanguage(languageCode)
 	content, err := os.ReadFile(file)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, messages.Text(messages.H8657, turkish.FileError("", file, messages.H2100, err)))
