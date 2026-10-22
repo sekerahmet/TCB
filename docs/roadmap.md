@@ -12,7 +12,7 @@ Tek GPU'da Transformer eğitmek ve hazır bir modeli çalıştırmak için kulla
 | :-- | :-- | :-- |
 | Dil çekirdeği | güçlü | dil tanımı (her kural testli), tip denetimi, sahiplik ve belirlenimci bellek bırakma, iki yazım dili, kodlu saklama |
 | Tensör ve türev | güçlü | otomatik türev, bf16/fp16, karışık hassasiyet, `kaynaştır`, `tekrar_oynat`, birleşik dikkat; eksik: genel indeksleme (`t[:, 0]`), tam sayı ve bool tensör türleri, yığ/doldur |
-| GPU eğitim hızı | iyi | hedef modelde 155 ms/adım, `torch.compile` 136 (1,14 kat); bellek ve kalite eşit (Evre 3); H4 süren hedef (Evre 6) |
+| GPU eğitim hızı | iyi | hedef modelde 151 ms/adım, `torch.compile` 136 (1,11 kat); bellek ve kalite eşit (Evre 3); H4 süren hedef (Evre 6) |
 | GPU üretim hızı | iyi | transformers'ın en hızlı yolu geçildi; llama.cpp f32'nin %63–83'ü (Evre 4, "Üretim hızı") |
 | CPU | zayıf | üretimde llama.cpp'nin ~1/5'i; CPU'da 16 bitlik ağırlık kerneli ve nicemleme yok |
 | Eğitim araçları | iyi | Muon/AdamW, kontrol noktası ve sürdürme, NaN/sıçrama koruması, veri hattı ve önbellek, parçalayıcı, profil, canlı izleme |
@@ -296,9 +296,9 @@ GPU yolu: 213 → 224 (tek satırlık çarpım kernelleri) → 230 (kendi akış
 
 ## Evre 6: Ölçek ve yerel çıkarım
 
-- **Tek GPU'da `torch.compile` ile başa baş hız (H4, ≤ 136 ms/adım hedef modelde; Evre 3'ten taşındı; profilde 162 ms, kaynaşık norm geri yönünden sonra 155 ms, 10,81 GiB, 2026-10-22).** Profil (2026-10-22, RTX PRO 6000): GPU boşluğu duvar süresinin %4,5'i, yani adım GPU'yla sınırlı; eğitim adımında CUDA Graph en çok ~%5 kazandırır, sona kalır. Kernel süresinin payları: çarpım %30, kopya %12 (bakışlara ayırma kopyası bf16 %3,5, float32→bf16 dönüşümü %3,2), indirge %8,4, ikili %8,2 (float32 + bf16 kalıntı toplaması %2,4), norm geri yönü %8,2, kaynaşık %7,5, çapraz entropi %6,2, dikkat %6,4, norm ileri %4. Ölçümün gösterdiği sırayla, her adım önce ve sonra ölçülür:
+- **Tek GPU'da `torch.compile` ile başa baş hız (H4, ≤ 136 ms/adım hedef modelde; Evre 3'ten taşındı; profilde 162 ms, kaynaşık norm geri yönünden sonra 155, dikkat düzeninden sonra 151 ms, 10,81 GiB, 2026-10-22).** Profil (2026-10-22, RTX PRO 6000): GPU boşluğu duvar süresinin %4,5'i, yani adım GPU'yla sınırlı; eğitim adımında CUDA Graph en çok ~%5 kazandırır, sona kalır. Kernel süresinin payları: çarpım %30, kopya %12 (bakışlara ayırma kopyası bf16 %3,5, float32→bf16 dönüşümü %3,2), indirge %8,4, ikili %8,2 (float32 + bf16 kalıntı toplaması %2,4), norm geri yönü %8,2, kaynaşık %7,5, çapraz entropi %6,2, dikkat %6,4, norm ileri %4. Ölçümün gösterdiği sırayla, her adım önce ve sonra ölçülür:
   - norm geri yönünün ağırlık gradyanı indirgemesiyle birlikte kaynaştırılması: **yapıldı (2026-10-22)**, tek geçiş, ağırlık gradyanı blok başına kısmi toplamlarla; 163 → 155 ms;
-  - dikkatin bakışlara ayırma kopyaları: **yapıldı (2026-10-22), ölçüm Colab'da**. `dikkat` `[..., T, H, dh]` alır (dil tanımı 15.17; JAX ve FlashAttention düzeni); birleşik çekirdekler bakışları adımlı okuyup yazar, kitaplık eksen sıralamayı bıraktı; katman başına 6 kopya kalkar;
+  - dikkatin bakışlara ayırma kopyaları: **yapıldı (2026-10-22)**, 155 → 151 ms, PyTorch'la eşleşme 0,0039 (önce 0,0037), üretim hızı değişmedi. `dikkat` `[..., T, H, dh]` alır (dil tanımı 15.17; JAX ve FlashAttention düzeni); birleşik çekirdekler bakışları adımlı okuyup yazar, kitaplık eksen sıralamayı bıraktı; katman başına 6 kopya kalkar;
   - float32→bf16 dönüşümlerinin kaynağının belirlenmesi (adayı: ağırlıkların dönüşümü mikro toplu iş başına yerine iyileştirici adımında bir kez);
   - kalıntı toplamasının normla kaynaştırılması (float32 + bf16 toplama);
   - cuBLASLt eplogları (sapma, GELU, sapma gradyanı);
