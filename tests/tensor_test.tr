@@ -791,12 +791,6 @@ test "15.7 iyileştirici ana_kopya: 16 bitlik parametrelerde küçük adımlar k
     doğrula(hata_metni(() => SGD([q], ana_kopya: 1)).içerir("ana_kopya doğru ya da yanlış olmalıdır"))
 }
 
-// en_büyük_fark: iki tensörün elemanları arasındaki en büyük kare fark.
-fonksiyon en_büyük_fark(a, b) {
-    değişken d = a - b
-    sonuç maks(d * d).değer
-}
-
 test "15.14 sinüs ve kosinüs: sayıda ve tensörde, listede değil; türevli" {
     eşit_mi(0.0, sinüs(0))
     eşit_mi(1.0, kosinüs(0.0))
@@ -867,7 +861,7 @@ test "15.17 dikkat: bileşik sürümle aynı; GQA, pencere, maske, önbellekli �
     değişken beklenen = bd(softmax((bd(q) @ çoğalt(bd(k)).devrik()) * (1.0 / karekök(8)) + ek, eksen: -1) @ çoğalt(bd(v)))
     değişken o = dikkat(q, k, v)
     eşit_mi([2, 6, 4, 8], o.şekil)
-    doğrula(en_büyük_fark(o, beklenen) < 0.0000000001)
+    doğrula(en_büyük_kare_fark(o, beklenen) < 0.0000000001)
     // Gradyanlar da aynıdır.
     geri_yayılım(toplam(beklenen * beklenen))
     değişken gq = tensör(q.gradyan)
@@ -876,18 +870,18 @@ test "15.17 dikkat: bileşik sürümle aynı; GQA, pencere, maske, önbellekli �
     değişken k2 = tensör(k, türev_izle: doğru)
     değişken o2 = dikkat(q2, k2, v)
     geri_yayılım(toplam(o2 * o2))
-    doğrula(en_büyük_fark(q2.gradyan, gq) < 0.0000000001)
-    doğrula(en_büyük_fark(k2.gradyan, gk) < 0.0000000001)
+    doğrula(en_büyük_kare_fark(q2.gradyan, gq) < 0.0000000001)
+    doğrula(en_büyük_kare_fark(k2.gradyan, gk) < 0.0000000001)
     // pencere: 1 yalnızca kendi konumuna bakar: çıktı kendi değeridir.
-    doğrula(en_büyük_fark(dikkat(q, k, v, pencere: 1)[0][3][1], v[0][3][0]) < 0.0000000001)
+    doğrula(en_büyük_kare_fark(dikkat(q, k, v, pencere: 1)[0][3][1], v[0][3][0]) < 0.0000000001)
     // Tq < Tk (önbellekli üretim): son sorgu bütün anahtarları görür, nedensellik sondan hizalıdır.
     değişken son = dikkat(q.dilim(1, 5, 6), k, v)
-    doğrula(en_büyük_fark(son[0][0][0], o[0][5][0]) < 0.0000000001)
+    doğrula(en_büyük_kare_fark(son[0][0][0], o[0][5][0]) < 0.0000000001)
     // Ek maske: 1 bakılır, 0 bakılmaz; yayınlanır.
     değişken m = birler([6, 6])
     m[3] = 0
     m[3][1] = 1
-    doğrula(en_büyük_fark(dikkat(q, k, v, nedensel: yanlış, maske: m)[1][3][2], v[1][1][1]) < 0.0000000001)
+    doğrula(en_büyük_kare_fark(dikkat(q, k, v, nedensel: yanlış, maske: m)[1][3][2], v[1][1][1]) < 0.0000000001)
     doğrula(hata_metni(() => dikkat(q, rastgele_normal([2, 6, 3, 8]), rastgele_normal([2, 6, 3, 8]))).içerir("katı olmalıdır"))
     doğrula(hata_metni(() => dikkat(q, k, v, ölçek: 1)).içerir("'ölçek' adında bir parametre almaz"))
     // Karışık hassasiyet: girdiler bf16'ya çevrilir, biriktirme float32, sonuç bf16 ('@' gibi).

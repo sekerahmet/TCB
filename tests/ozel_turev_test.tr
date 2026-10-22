@@ -4,8 +4,7 @@ aktar "yardimci_test_araclari"
 
 // yakın: iki tensör eleman eleman 1e-4'ten yakın mı?
 fonksiyon yakın(a, b) {
-    değişken f = a - b
-    sonuç maks(f * f).değer < 0.00000001
+    sonuç en_büyük_kare_fark(a, b) < 0.00000001
 }
 
 değişken kare = özel_türev(

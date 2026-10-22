@@ -11,3 +11,10 @@ fonksiyon hata_metni(f) {
     }
     sonuç ""
 }
+
+// en_büyük_kare_fark: iki tensörün elemanları arasındaki en büyük kare fark (eşikler kare ölçeğindedir:
+// 1e-8 kare fark ≈ 1e-4 mutlak fark). lib testlerindeki en_büyük_mutlak_fark başka bir ölçüdür.
+fonksiyon en_büyük_kare_fark(a, b) {
+    değişken d = a - b
+    sonuç maks(d * d).değer
+}

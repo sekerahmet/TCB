@@ -37,7 +37,7 @@ test "Doğrusal: karışık hassasiyette sapma çarpımın türünde eklenir; ç
     değişken y = yok
     karışık_hassasiyet("bf16") { y = d.ileri(x) }
     eşit_mi("bf16", y.tür)
-    değişken fark = maks(mutlak(y.türe("float32") - tam_y)).değer
+    değişken fark = en_büyük_mutlak_fark(y.türe("float32"), tam_y)
     doğrula(fark < 0.05, "bf16 çıktı float32'dekinden uzak: {fark}")
     geri_yayılım(toplam(y.türe("float32")))
     eşit_mi("float32", d.sapma.gradyan.tür)
@@ -86,7 +86,7 @@ test "döner konum: normu korur, iç çarpım yalnızca uzaklığa bağlıdır, 
     // q'yu ve k'yı bütün konumlara koy: [8, 1 bakış, 4] → [8, 4]
     değişken Q = döner_konum_uygula(tensör([q.değer döngü i içinde 0..8]), kos, sin).şekillendir([8, 4])
     değişken K = döner_konum_uygula(tensör([k.değer döngü i içinde 0..8]), kos, sin).şekillendir([8, 4])
-    değişken fark = maks(mutlak(toplam(Q * Q, eksen: -1) - toplam(q * q))).değer
+    değişken fark = en_büyük_mutlak_fark(toplam(Q * Q, eksen: -1), toplam(q * q))
     doğrula(fark < 0.00002, "döndürme normu korumalı: {fark}")
     değişken p = Q @ K.devrik() // p[i][j] = <R_i q, R_j k>
     değişken a = p[3][1].değer
@@ -217,7 +217,7 @@ test "GPT.kayıp: sapmasız çıkışta doğrusal_çapraz_entropi kullanır; kay
         geri_yayılım(k2)
         doğrula(mutlak(k1.değer - k2.değer) < 0.00001, "paylaşımlı {paylaşımlı}: kayıp {k1.değer} / {k2.değer}")
         döngü i, p içinde parametreler(m) {
-            doğrula(maks(mutlak(g1[i] - p.gradyan)).değer < 0.00001, "paylaşımlı {paylaşımlı}: {i}. parametrenin gradyanı farklı")
+            doğrula(en_büyük_mutlak_fark(g1[i], p.gradyan) < 0.00001, "paylaşımlı {paylaşımlı}: {i}. parametrenin gradyanı farklı")
         }
     }
 }
@@ -243,11 +243,11 @@ test "KVÖnbellek: önbellekli ileri önbelleksizle aynıdır (sabit ve büyüye
         döngü çeşit içinde ["sabit", "büyüyen"] {
             değişken ö = m.önbellek_kur(çeşit: çeşit)
             değişken ilk = m.ileri([dizi[0..4]], önbellek: ö)
-            doğrula(en_büyük_fark(ilk[0], tam_logit[0][0..4]) < 0.0001, "{çeşit}: başlangıç logitleri")
+            doğrula(en_büyük_mutlak_fark(ilk[0], tam_logit[0][0..4]) < 0.0001, "{çeşit}: başlangıç logitleri")
             eşit_mi(4, ö.konum)
             döngü i içinde 4..dizi.uzunluk {
                 değişken l = m.ileri([[dizi[i]]], önbellek: ö)
-                doğrula(en_büyük_fark(l[0][0], tam_logit[0][i]) < 0.0001, "{çeşit}: {i}. konum")
+                doğrula(en_büyük_mutlak_fark(l[0][0], tam_logit[0][i]) < 0.0001, "{çeşit}: {i}. konum")
             }
             eşit_mi(dizi.uzunluk, ö.konum)
         }
@@ -265,7 +265,7 @@ test "KVÖnbellek: kırp son parçaları geri alır; aynı parçalar yeniden iş
             m.ileri([[9]], önbellek: ö) // reddedilen taslak gibi
             ö.kırp(3)
             değişken b = m.ileri([[4]], önbellek: ö)
-            doğrula(en_büyük_fark(a, b) < 0.000001, "{çeşit}: kırpmadan sonra aynı logit")
+            doğrula(en_büyük_mutlak_fark(a, b) < 0.000001, "{çeşit}: kırpmadan sonra aynı logit")
         }
         değişken ö = m.önbellek_kur(çeşit: "sabit", en_çok: 2)
         değişken mesaj = hata_metni(() => m.ileri([[1, 2, 3]], önbellek: ö))
@@ -295,7 +295,7 @@ test "GPT.tek_adım: cihazdaki konumla adım önbellekli gizli_durum ile aynı l
             değişken beklenen = m.logit(x)[0][0]
             değişken l = m.tek_adım(tensör([[id * 1.0]]), tensör([ö2.konum * 1.0]), ö2)
             ö2.ilerle(1)
-            doğrula(maks(mutlak(l - beklenen)).değer < 0.00001, "adım {i}: tek_adım farklı")
+            doğrula(en_büyük_mutlak_fark(l, beklenen) < 0.00001, "adım {i}: tek_adım farklı")
         }
     }
     eşit_mi(m.üret([1, 2, 3], 9, sıcaklık: 0, çizge: yanlış), m.üret([1, 2, 3], 9, sıcaklık: 0))
@@ -340,7 +340,8 @@ test "GPT: küçük model kopyalama görevini öğrenir (kayıp belirgin düşer
 
 // ---- Hedef model (RGN) için seçenekler: pencere, qk normu, birleşik KV/[G|U], epsilon, PLE, düzen, eos ----
 
-fonksiyon en_büyük_fark(a, b) { sonuç maks(mutlak(a - b)).değer }
+// en_büyük_mutlak_fark: iki tensörün elemanları arasındaki en büyük mutlak fark.
+fonksiyon en_büyük_mutlak_fark(a, b) { sonuç maks(mutlak(a - b)).değer }
 
 test "NedenselDikkat: varsayılan seçenekler eski yapıyı verir (kv_katmanı, q_norm, k_norm yok)" {
     değişken d = NedenselDikkat(8, 4, kv_bakış_sayısı: 2, tohum: 1)
@@ -362,14 +363,14 @@ test "NedenselDikkat: pencere yalnızca son w konuma bakar" {
     değişken y2 = yerel.ileri(x2, tablolar[0], tablolar[1])
     // pencere 2: t. konum yalnızca t ve t-1'e bakar; 0. konumun değişimi 0 ve 1'i etkiler, 2.'den sonrasını etkilemez.
     doğrula(y1[0][0] != y2[0][0] ve y1[0][1] != y2[0][1], "0. ve 1. konum değişmeli")
-    doğrula(en_büyük_fark(y1[0][2..6], y2[0][2..6]) < 0.0000001, "2. konumdan sonrası değişmemeli")
+    doğrula(en_büyük_mutlak_fark(y1[0][2..6], y2[0][2..6]) < 0.0000001, "2. konumdan sonrası değişmemeli")
     // aynı ağırlıkla pencerenin dışındaki konum tam dikkatte değişir
     değişken t1 = genel.ileri(x, tablolar[0], tablolar[1])
     değişken t2 = genel.ileri(x2, tablolar[0], tablolar[1])
-    doğrula(en_büyük_fark(t1[0][5], t2[0][5]) > 0.000001, "tam dikkatte son konum 0. konumdan etkilenir")
+    doğrula(en_büyük_mutlak_fark(t1[0][5], t2[0][5]) > 0.000001, "tam dikkatte son konum 0. konumdan etkilenir")
     // pencere uzunluğa eşit ya da büyükse tam nedensel dikkatle aynıdır
     değişken geniş = NedenselDikkat(8, 2, tohum: 4, pencere: 6)
-    doğrula(en_büyük_fark(geniş.ileri(x, tablolar[0], tablolar[1]), t1) < 0.0000001, "pencere ≥ T tam dikkattir")
+    doğrula(en_büyük_mutlak_fark(geniş.ileri(x, tablolar[0], tablolar[1]), t1) < 0.0000001, "pencere ≥ T tam dikkattir")
     değişken mesaj = hata_metni(() => NedenselDikkat(8, 2, pencere: -1))
     doğrula(mesaj.içerir("pencere negatif olamaz"), mesaj)
 }
@@ -384,11 +385,11 @@ test "NedenselDikkat: qk_normu q ve k'yı bakış boyutunda normlar (sorgu ölç
     eşit_mi([1, 4, 8], y.şekil)
     // q normlu olduğundan sorgu ağırlığını 1000 ile çarpmak çıktıyı değiştirmez; normsuzda değiştirir.
     d.sorgu_katmanı.ağırlık = d.sorgu_katmanı.ağırlık * 1000
-    doğrula(en_büyük_fark(y, d.ileri(x, tablolar[0], tablolar[1])) < 0.0001, "qk normu ölçeği silmeli")
+    doğrula(en_büyük_mutlak_fark(y, d.ileri(x, tablolar[0], tablolar[1])) < 0.0001, "qk normu ölçeği silmeli")
     değişken n = NedenselDikkat(8, 2, tohum: 3)
     değişken y0 = n.ileri(x, tablolar[0], tablolar[1])
     n.sorgu_katmanı.ağırlık = n.sorgu_katmanı.ağırlık * 1000
-    doğrula(en_büyük_fark(y0, n.ileri(x, tablolar[0], tablolar[1])) > 0.001, "normsuzda ölçek çıktıyı değiştirir")
+    doğrula(en_büyük_mutlak_fark(y0, n.ileri(x, tablolar[0], tablolar[1])) > 0.001, "normsuzda ölçek çıktıyı değiştirir")
     değişken e = NedenselDikkat(8, 2, qk_normu: doğru, epsilon: 0.000001)
     eşit_mi(0.000001, e.q_norm.epsilon)
     fonksiyon f(x, wq, wq_n) {
@@ -411,7 +412,7 @@ test "NedenselDikkat: birleşik KV, ayrı K ve V ile aynı sonucu verir ([K | V]
     b.sorgu_katmanı.ağırlık = a.sorgu_katmanı.ağırlık
     b.çıkış_katmanı.ağırlık = a.çıkış_katmanı.ağırlık
     b.kv_katmanı.ağırlık = bitiştir([a.anahtar_katmanı.ağırlık, a.değer_katmanı.ağırlık], eksen: 1)
-    doğrula(en_büyük_fark(a.ileri(x, tablolar[0], tablolar[1]), b.ileri(x, tablolar[0], tablolar[1])) < 0.000001, "birleşik KV ayrıyla aynı olmalı")
+    doğrula(en_büyük_mutlak_fark(a.ileri(x, tablolar[0], tablolar[1]), b.ileri(x, tablolar[0], tablolar[1])) < 0.000001, "birleşik KV ayrıyla aynı olmalı")
     fonksiyon f(x, w) {
         b.kv_katmanı.ağırlık = w
         sonuç b.ileri(x, tablolar[0], tablolar[1])
@@ -429,7 +430,7 @@ test "SwiGLU: birleşik [G | U] ayrı kapı ve yukarı ile aynıdır; sapmalı s
     b.kapı_yukarı.ağırlık = bitiştir([a.kapı.ağırlık, a.yukarı.ağırlık], eksen: 1)
     b.aşağı.ağırlık = a.aşağı.ağırlık
     değişken x = rastgele_normal([2, 3, 4], tohum: 2)
-    doğrula(en_büyük_fark(a.ileri(x), b.ileri(x)) < 0.000001, "birleşik [G | U] ayrıyla aynı olmalı")
+    doğrula(en_büyük_mutlak_fark(a.ileri(x), b.ileri(x)) < 0.000001, "birleşik [G | U] ayrıyla aynı olmalı")
     değişken s = SwiGLU(4, ara_boyut: 6, sapmalı: doğru, birleşik: doğru, tohum: 1)
     eşit_mi([12], s.kapı_yukarı.sapma.şekil)
     eşit_mi([4], s.aşağı.sapma.şekil)
@@ -453,8 +454,8 @@ test "PLEBağlamı: x @ W_ctx / √D, katman başına parçalara bölünüp orta
     // RMS normu ölçekten bağımsızdır: √D bölümü silinir; parça i, [11, 14] ve [17, 20]'nin normlusudur.
     değişken r0 = karekök((11.0 * 11.0 + 14.0 * 14.0) / 2)
     değişken r1 = karekök((17.0 * 17.0 + 20.0 * 20.0) / 2)
-    doğrula(en_büyük_fark(b[0], tensör([[[11.0 / r0, 14.0 / r0]]])) < 0.0001, "parça 0")
-    doğrula(en_büyük_fark(b[1], tensör([[[17.0 / r1, 20.0 / r1]]])) < 0.0001, "parça 1")
+    doğrula(en_büyük_mutlak_fark(b[0], tensör([[[11.0 / r0, 14.0 / r0]]])) < 0.0001, "parça 0")
+    doğrula(en_büyük_mutlak_fark(b[1], tensör([[[17.0 / r1, 20.0 / r1]]])) < 0.0001, "parça 1")
 }
 
 test "PLEBloğu: H + RMSNorm(W_p · (GELU(W_g · H) ⊙ (bağlam + √P · tablo[kelime]) / √2)) elle hesaplanan değeri verir" {
@@ -474,9 +475,9 @@ test "PLEBloğu: H + RMSNorm(W_p · (GELU(W_g · H) ⊙ (bağlam + √P · tablo
     değişken k1 = g[1] * e1
     değişken r = karekök((k0 * k0 + k1 * k1) / 2 + 0.00001)
     değişken beklenen = tensör([[[1.0 + k0 / r, 2.0 + k1 / r]]])
-    doğrula(en_büyük_fark(çıktı, beklenen) < 0.0001, "PLE formülü: {çıktı.değer} ≠ {beklenen.değer}")
+    doğrula(en_büyük_mutlak_fark(çıktı, beklenen) < 0.0001, "PLE formülü: {çıktı.değer} ≠ {beklenen.değer}")
     // gelu'nun kendisi: tek çağrı yeri ple_gelu
-    doğrula(en_büyük_fark(ple_gelu(tensör([0.5, -1.0])), gelu(tensör([0.5, -1.0]), yaklaşık: yanlış)) < 0.0000001)
+    doğrula(en_büyük_mutlak_fark(ple_gelu(tensör([0.5, -1.0])), gelu(tensör([0.5, -1.0]), yaklaşık: yanlış)) < 0.0000001)
 }
 
 test "TransformerBloğu: PLE'siz varsayılan değişmez; PLE, epsilon, pencere ve birleşik seçenekleri bağlanır" {
@@ -533,8 +534,8 @@ test "GPT: yeni seçenekler varsayılanda modeli değiştirmez; PLE'li yerel/gen
     // nedensellik: 4. konumdaki kelimeyi değiştirmek ilk dört konumun logit'ini değiştirmez
     değişken l1 = m.ileri([[1, 2, 3, 4, 5]])
     değişken l2 = m.ileri([[1, 2, 3, 4, 6]])
-    doğrula(en_büyük_fark(l1[0][0..4], l2[0][0..4]) < 0.000001, "PLE ve pencere nedenselliği bozmamalı")
-    doğrula(en_büyük_fark(l1[0][4], l2[0][4]) > 0.000001, "son konum değişmeli")
+    doğrula(en_büyük_mutlak_fark(l1[0][0..4], l2[0][0..4]) < 0.000001, "PLE ve pencere nedenselliği bozmamalı")
+    doğrula(en_büyük_mutlak_fark(l1[0][4], l2[0][4]) > 0.000001, "son konum değişmeli")
     değişken mesaj = hata_metni(() => GPT(12, katman: 2, pencereler: [1, 2, 3]))
     doğrula(mesaj.içerir("katman sayısına (2) eşit olmalı"), mesaj)
     doğrula(m.kayıp([[1, 2, 3]], [[2, 3, 4]]).değer > 0)
