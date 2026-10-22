@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/pprof"
-	"slices"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/devtools/profiler"
@@ -31,24 +30,9 @@ func profileArguments(command string, args []string, allowed ...codes.Code) (pro
 	var s profileOptions
 	target := map[codes.Code]*string{codes.K103: &s.json, codes.K104: &s.goProfile, codes.K105: &s.output}
 	for len(args) > 0 && strings.HasPrefix(args[0], "--") {
-		name, value, equal := strings.Cut(args[0], "=")
-		k, ok := optionCode(name)
-		if !ok || !slices.Contains(allowed, k) {
-			names := make([]string, len(allowed))
-			for i, a := range allowed {
-				names[i] = codes.OptionFlag(a)
-			}
-			exitWithError(messages.Text(messages.H8674, command, name, strings.Join(names, ", ")))
-		}
-		p := target[k]
-		args = args[1:]
-		if !equal {
-			if len(args) == 0 {
-				exitWithError(messages.Text(messages.H8675, codes.OptionFlag(k), command))
-			}
-			value, args = args[0], args[1:]
-		}
-		*p = value
+		k, value, rest := parseLongOption(command, args[0], args[1:], allowed, func(codes.Code) bool { return true })
+		args = rest
+		*target[k] = value
 	}
 	if len(args) == 0 {
 		exitWithError(messages.Text(messages.H8605, command, "egit.tr"))

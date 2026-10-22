@@ -113,21 +113,9 @@ func parseIndexArguments(sub codes.Code, args []string) (indexOptions, []string)
 			names = append(names, arg)
 			continue
 		}
-		name, value, hasValue := strings.Cut(arg, "=")
-		k, ok := optionCode(name)
-		if !ok || !slices.Contains(allowed, k) {
-			list := make([]string, len(allowed))
-			for i, a := range allowed {
-				list[i] = codes.OptionFlag(a)
-			}
-			exitWithError(messages.Text(messages.H8674, command, name, strings.Join(list, ", ")))
-		}
-		if slices.Contains(indexValueOptions, k) && !hasValue {
-			if len(args) == 0 {
-				exitWithError(messages.Text(messages.H8675, codes.OptionFlag(k), command))
-			}
-			value, args = args[0], args[1:]
-		}
+		var k codes.Code
+		var value string
+		k, value, args = parseLongOption(command, arg, args, allowed, func(k codes.Code) bool { return slices.Contains(indexValueOptions, k) })
 		applyIndexOption(&o, k, value)
 	}
 	if o.all {
