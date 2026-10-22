@@ -74,9 +74,6 @@ type Dataset struct {
 	resource *resource // yalnızca önbellek varsa
 }
 
-// GoDataset sarılı Go kümesini verir.
-func (k *Dataset) GoDataset() *dataload.Dataset { return k.k }
-
 func (k *Dataset) Type() interp.ValueType { return interp.ValueType(DatasetType) }
 func (k *Dataset) IsTruthy() bool         { return true }
 

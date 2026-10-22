@@ -30,11 +30,6 @@ func (p *Tokenizer) Encode(text string) []int {
 	return p.EncodeWithOptions(text, Options{})
 }
 
-// EncodePlain metni, içindeki özel tokenları TANIMADAN kodlar.
-func (p *Tokenizer) EncodePlain(text string) []int {
-	return p.EncodeWithOptions(text, Options{DontParseSpecial: true})
-}
-
 // EncodeWithOptions metni verilen seçeneklerle kodlar.
 func (p *Tokenizer) EncodeWithOptions(text string, s Options) []int {
 	return toInt(nil, p.Encode32(nil, text, s))
@@ -64,12 +59,6 @@ func (p *Tokenizer) Encode32(dst []int32, text string, s Options) []int32 {
 	}
 	k := p.postProcessor.Process(&Encoding{IDs: p.arr(nil, text, s.DontParseSpecial)}, nil, !s.DontAddSpecial)
 	return append(dst, k.IDs...)
-}
-
-// EncodeDetailed tek bir metni kodlar; tür kimliklerini ve özel token
-// maskesini de verir.
-func (p *Tokenizer) EncodeDetailed(text string, s Options) *Encoding {
-	return p.EncodePair(text, nil, s)
 }
 
 // EncodePair bir metin çiftini (ör. soru ve bağlam) kodlar; ikinci nil ise

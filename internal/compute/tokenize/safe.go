@@ -19,16 +19,6 @@ func (p *Tokenizer) SafeEncode(text string, s Options) (ids []int, err error) {
 	return
 }
 
-// SafeEncode32 Kodla32'nin hata döndüren biçimidir; hata olursa dst değişmeden döner.
-func (p *Tokenizer) SafeEncode32(dst []int32, text string, s Options) ([]int32, error) {
-	n := len(dst)
-	err := catchStepError(func() { dst = p.Encode32(dst, text, s) })
-	if err != nil {
-		return dst[:n], err
-	}
-	return dst, nil
-}
-
 // SafeEncodePair KodlaCift'in hata döndüren biçimidir.
 func (p *Tokenizer) SafeEncodePair(firstArg string, second *string, s Options) (k *Encoding, err error) {
 	err = catchStepError(func() { k = p.EncodePair(firstArg, second, s) })
