@@ -52,7 +52,7 @@ func collectScope(root any) *scope {
 			}
 		}
 	}
-	walkAST(root, func(n any) bool {
+	ast.Walk(root, func(n any) bool {
 		switch n := n.(type) {
 		case *ast.FunctionLiteral:
 			for _, p := range n.Parameters {
@@ -150,7 +150,7 @@ func (x *indexer) scanStruct(f *file, s *ast.StructStatement) {
 func (x *indexer) scan(f *file, o owner, root any) {
 	sc := collectScope(root)
 	x.bindOwner(f, o, sc, root)
-	walkAST(root, func(n any) bool {
+	ast.Walk(root, func(n any) bool {
 		switch n := n.(type) {
 		case *ast.CallExpression:
 			x.call(f, o, sc, n)
