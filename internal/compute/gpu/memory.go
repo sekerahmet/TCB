@@ -60,6 +60,11 @@ type storage struct {
 	// havuzdaki istek boyu (graph.go).
 	priv *privatePool
 	want uint64
+	// pins bu depolamayı okuyan ya da yazan canlı kayıt sayısı (graph.go: kayıttan önce
+	// ayrılmış olup kayda giren depolamalar); parked, kayıt yaşarken bırakılmış ve iadesi kaydın
+	// bırakılmasına ertelenmiş olduğunu gösterir.
+	pins   int
+	parked bool
 }
 
 func (d *storage) Device() tensor.Device { return d.g.dev }
@@ -69,7 +74,8 @@ func (d *storage) DType() tensor.DType   { return d.dtype }
 // shadowLimit bundan büyük depolamalar konak gölgesi tutmaz.
 const shadowLimit = 1 << 20
 
-// storageOf depolamanın bu arka uca ait GPU depolaması olduğunu denetler.
+// storageOf depolamanın bu arka uca ait GPU depolaması olduğunu denetler. Kayıt sürerken
+// depolama kayda girer (privatePool.hold): kayıt yaşadıkça belleği başka işe verilmez.
 func (g *backend) storageOf(s tensor.Storage) *storage {
 	d, ok := s.(*storage)
 	if !ok || d.g != g {
@@ -77,6 +83,9 @@ func (g *backend) storageOf(s tensor.Storage) *storage {
 	}
 	if d.release2 {
 		panic(internalf("storage already returned to the pool was used"))
+	}
+	if c := g.capturing; c != nil {
+		c.hold(d)
 	}
 	return d
 }
@@ -103,9 +112,6 @@ type pool struct {
 	siteLive, sitePeak uint64
 	// large 1 MB'den büyük blokların parçaları (memory_blocks.go).
 	large largePool
-	// capture süren kaydın havuzu (graph.go): kayıt sırasında genel havuza bırakılan bloklar
-	// oraya gider.
-	capture *privatePool
 }
 
 // classSize küçük (≤ 1 MB) ayırmanın yuvarlandığı boy: 256 bayta kadar 256, üstü ikinin
@@ -121,13 +127,6 @@ func classSize(byteN uint64) uint64 {
 // çağrılır; yalnızca havuzun kilidini alır).
 func (h *pool) release2(addr, class uint64) {
 	h.mu.Lock()
-	if c := h.capture; c != nil {
-		// Kayıt sürerken bırakılan blok (kayıttan önce ayrılmış olsa da) kaydın havuzuna girer:
-		// kaydedilen iş onu okumuş olabilir, kayıt bırakılana kadar başka işe verilmez.
-		h.mu.Unlock()
-		c.give(class, addr, class)
-		return
-	}
 	if class > smallLimit {
 		h.large.give(addr)
 	} else {
@@ -135,13 +134,25 @@ func (h *pool) release2(addr, class uint64) {
 	}
 	h.pooled += class
 	h.live -= class
+	h.untrackLocked(addr, class)
+	h.mu.Unlock()
+}
+
+// untrack bloğun ayrıldığı konumun kaydını siler (blok kaydın havuzuna girerken: yeniden
+// verilince track onu yeni konumuyla sayar).
+func (h *pool) untrack(addr, class uint64) {
+	h.mu.Lock()
+	h.untrackLocked(addr, class)
+	h.mu.Unlock()
+}
+
+func (h *pool) untrackLocked(addr, class uint64) {
 	if s, ok := h.sites[addr]; ok {
 		delete(h.sites, addr)
 		u := h.liveBy[s]
 		h.liveBy[s] = siteUse{u.bytes - class, u.blocks - 1}
 		h.siteLive -= class
 	}
-	h.mu.Unlock()
 }
 
 // track tensöre verilen bloğu ayıran konumu kaydeder (izleme kapalıyken yalnızca bir atomik
@@ -440,6 +451,10 @@ func (g *backend) release(d *storage) {
 	d.clean.Stop()
 	d.host = nil
 	g.volume -= min(g.volume, d.class)
+	if d.pins > 0 {
+		d.parked = true // canlı bir kayıt onu okur ya da yazar: kayıt bırakılınca iade edilir
+		return
+	}
 	cleanupInfo{&g.pool, d.priv, d.addr, d.class, d.want}.back()
 }
 
@@ -511,13 +526,14 @@ func (g *backend) loadInt(v []int32) *storage {
 	return d
 }
 
-// constIntLimit cihazda tutulan değişmeyen tablo sayısının sınırı; aşılınca tablo her çağrıda
-// geçici olarak yüklenir.
+// constIntLimit cihazda tutulan değişmeyen tablo sayısının sınırı; aşılınca tablolar bırakılır
+// ve baştan doldurulur.
 const constIntLimit = 1024
 
 // constInts değişmeyen bir tam sayı tablosunu (şekillerden hesaplanan ofsetler) cihazda bir kez
 // yükler ve sonraki çağrılarda aynı depolamayı verir: kayıt sırasında konaktan yükleme yapılamaz
-// (graph.go), ısınma çağrısı tabloyu yüklemiş olur. Tablolar süreç boyunca kalır (küçüktürler).
+// (graph.go), ısınma çağrısı tabloyu yüklemiş olur. Sınır dolunca (kayıt dışında) tablolar
+// bırakılır; bir kaydın okuduğu tablonun belleği kayıt bırakılana kadar kalır (pins).
 func (g *backend) constInts(gt *temp, v []int) *storage {
 	var sb strings.Builder
 	for _, x := range v {
@@ -529,7 +545,13 @@ func (g *backend) constInts(gt *temp, v []int) *storage {
 		return d
 	}
 	if len(g.ints) >= constIntLimit {
-		return gt.loadInt(v)
+		if g.capturing != nil {
+			return gt.loadInt(v) // kayıtta yüklenemez (H4066)
+		}
+		for _, d := range g.ints {
+			g.release(d)
+		}
+		clear(g.ints)
 	}
 	if g.ints == nil {
 		g.ints = map[string]*storage{}

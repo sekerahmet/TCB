@@ -5,6 +5,7 @@ import (
 	"unsafe"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Arka uç: bellek yöntemleri (Alloc, FromHost, ToHost, Copy, Fill, CopyStrided, Release)
@@ -157,6 +158,7 @@ func (g *backend) Release(s tensor.Storage) {
 func (g *backend) FromHost(data []float32, dt tensor.DType) tensor.Storage {
 	g.enter()
 	defer g.exit()
+	g.noCapture(messages.H4066) // boş veri de: kayıtta yükleme kuralı veriden bağımsızdır
 	n := len(data)
 	d := g.allocate(n, dt, false)
 	if n == 0 {
@@ -183,6 +185,7 @@ func (g *backend) FromHost(data []float32, dt tensor.DType) tensor.Storage {
 func (g *backend) ToHost(src tensor.View) []float32 {
 	g.enter()
 	defer g.exit()
+	g.noCapture(messages.H4065) // gölgeden ya da boş tensörden okuma da: kaydedilen iş henüz çalışmadı
 	d := g.storageOf(src.S)
 	n := src.Numel()
 	out := make([]float32, n)

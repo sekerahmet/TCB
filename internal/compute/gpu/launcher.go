@@ -86,6 +86,8 @@ type paramWriter struct {
 	// açıkken yeni bir param() (ör. zincirin ortasında kopya çekirdeği başlatan bir
 	// gecici.oku) dış zincirin parametrelerini silerdi: iç hata.
 	open bool
+	// capture süren kayıt (yoksa nil): göstericisi verilen depolama kayda girer (graph.go).
+	capture *privatePool
 }
 
 func (p *paramWriter) reset() *paramWriter {
@@ -103,6 +105,9 @@ func (p *paramWriter) addVariant(b []byte, c int) *paramWriter {
 func (p *paramWriter) add(b []byte) *paramWriter { return p.addVariant(b, pValue) }
 
 func (p *paramWriter) indicator(d *storage, offset int, c int) *paramWriter {
+	if p.capture != nil {
+		p.capture.hold(d)
+	}
 	addr := d.addr + uint64(offset*dtypeSize(d.dtype))
 	if c == pWrite {
 		p.writer = append(p.writer, d)
@@ -148,6 +153,14 @@ func (p *paramWriter) readFrom(d *storage) *paramWriter {
 		return p.empty()
 	}
 	return p.read(d, 0)
+}
+
+// readMask dikkat maskesinin göstericisi: görünümün başlangıcından (MaskBase); maske yoksa boş.
+func (p *paramWriter) readMask(d *storage, a tensor.AttentionParams) *paramWriter {
+	if d == nil {
+		return p.empty()
+	}
+	return p.read(d, a.MaskBase)
 }
 
 func (p *paramWriter) writeTo(d *storage) *paramWriter {
@@ -205,6 +218,7 @@ func (g *backend) param() *paramWriter {
 		panic(internalf("new launch prepared while a parameter chain is open (nested param())"))
 	}
 	g.prm.open = true
+	g.prm.capture = g.capturing
 	return g.prm.reset()
 }
 

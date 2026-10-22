@@ -23,10 +23,14 @@ import (
 //     blok kayıt içinde yeniden kullanılabilir (sıra her oynatmada aynıdır), ama kayıt
 //     kapanana kadar kayıt dışındaki işlere verilmez (oynatma onlara yazardı). Kayıt
 //     kapanınca boştaki bloklar genel havuza döner, kayıttan sonra yaşayan tensörlerin
-//     blokları da öldüklerinde genel havuza döner. Kayıttan önce ayrılıp kayıt sırasında
-//     bırakılan bloklar da kaydın havuzuna girer: kaydedilen iş onları okumuş olabilir
-//     (PyTorch bunu kullanıcıya bırakır: girdiler canlı tutulmalıdır). Kaydın havuzunda blok yoksa genel havuzdan
+//     blokları da öldüklerinde genel havuza döner. Kaydın havuzunda blok yoksa genel havuzdan
 //     ya da sürücüden alınır (RELAXED kipte ayırmaya izin vardır).
+//   - Kayıttan önce ayrılmış olup kayda giren (bir işin okuduğu ya da yazdığı) depolamaları
+//     kayıt tutar (hold): kayıt yaşadıkça çöp toplayıcı onları bırakamaz, açıkça bırakılırlarsa
+//     (Drop) iadeleri kaydın bırakılmasına ertelenir. Oynatma her seferinde onları okur; kayıt
+//     içinde başka işe verilselerdi ilk oynatmadan sonra veri ezilirdi. PyTorch bunu
+//     kullanıcıya bırakır (girdiler canlı tutulmalıdır); TR'de başlıkların ömrünü yorumlayıcı
+//     yönettiğinden kural arka uçtadır. Kayda girmeden bırakılan blok genel havuza döner.
 //   - Kayıt sırasında cihazdan okuma (H4065), konaktan yükleme (H4066) ve eşzamanlama
 //     (H4067) hatadır: kaydedilen iş henüz çalışmamıştır, yüklenen veri her oynatmada aynı
 //     kalırdı. Bellek yetmeyip havuz sürücüye iade edilmek istenirse de eşzamanlama gerektiği
@@ -35,12 +39,14 @@ import (
 //     oluşturulamadı) CaptureSupported yanlış döner; çağıran işi doğrudan çalıştırır.
 
 // privatePool bir kaydın bellek havuzu: kayıt içinde bırakılan bloklar istek boyuna göre
-// tutulur (küçük bloklarda sınıf, büyüklerde largeSize).
+// tutulur (küçük bloklarda sınıf, büyüklerde largeSize). held kayıttan önce ayrılmış olup
+// kayda giren depolamalardır (yalnızca yorumlayıcının gorutini dokunur).
 type privatePool struct {
 	mu     sync.Mutex
 	h      *pool
 	free   map[uint64][]privateBlock
 	closed bool
+	held   map[*storage]struct{}
 }
 
 type privateBlock struct{ addr, class uint64 }
@@ -63,10 +69,42 @@ func (p *privatePool) give(want, addr, class uint64) {
 	if !p.closed {
 		p.free[want] = append(p.free[want], privateBlock{addr, class})
 		p.mu.Unlock()
+		p.h.untrack(addr, class)
 		return
 	}
 	p.mu.Unlock()
 	p.h.release2(addr, class)
+}
+
+// hold kayıttan önce ayrılmış (ya da başka bir kaydın) depolamasını bu kayda bağlar; kaydın
+// kendi ayırdığı bloklar havuzun kuralıyla yaşar.
+func (p *privatePool) hold(d *storage) {
+	if d.priv == p || d.n == 0 {
+		return
+	}
+	if _, ok := p.held[d]; !ok {
+		p.held[d] = struct{}{}
+		d.pins++
+	}
+}
+
+// unhold kaydın tuttuğu depolamaları bırakır: kayıt yaşarken bırakılmış olanlar şimdi iade
+// edilir (sahibinin havuzuna).
+func (p *privatePool) unhold() {
+	for d := range p.held {
+		if d.pins--; d.pins == 0 && d.parked {
+			d.parked = false
+			cleanupInfo{p.h, d.priv, d.addr, d.class, d.want}.back()
+		}
+	}
+	p.held = nil
+}
+
+// finish havuzu kapatır ve tuttuğu depolamaları bırakır (kayıt bırakılınca ya da kayıt
+// bozulunca).
+func (p *privatePool) finish() {
+	p.close()
+	p.unhold()
 }
 
 // close boştaki blokları genel havuza döndürür; sonra bırakılanlar doğrudan oraya gider.
@@ -101,15 +139,7 @@ func (g *backend) BeginCapture() {
 	}
 	g.equalize()
 	g.try_("cuStreamBeginCapture", g.sr.beginCapture())
-	g.capturing = &privatePool{h: &g.pool, free: map[uint64][]privateBlock{}}
-	g.pool.setCapture(g.capturing)
-}
-
-// setCapture kaydın havuzunu genel havuza bağlar (nil: kayıt bitti).
-func (h *pool) setCapture(c *privatePool) {
-	h.mu.Lock()
-	h.capture = c
-	h.mu.Unlock()
+	g.capturing = &privatePool{h: &g.pool, free: map[uint64][]privateBlock{}, held: map[*storage]struct{}{}}
 }
 
 // EndCapture kaydı bitirir ve oynatılabilir çizgeyi kurar. Kayıt bir sürücü kuralıyla
@@ -122,16 +152,15 @@ func (g *backend) EndCapture() tensor.Recording {
 		panic(internalf("EndCapture without BeginCapture"))
 	}
 	g.capturing = nil
-	g.pool.setCapture(nil)
 	graph, s := g.sr.endCapture()
 	if s != succeeded || graph == 0 {
-		priv.close()
+		priv.finish()
 		panic(messages.New(messages.H4069, g.sr.errName(s)))
 	}
 	exec, s := g.sr.instantiate(graph)
 	if s != succeeded {
 		g.sr.destroyGraph(graph, 0)
-		priv.close()
+		priv.finish()
 		panic(messages.New(messages.H4069, g.sr.errName(s)))
 	}
 	return &Graph{g: g, graph: graph, exec: exec, priv: priv}
@@ -147,11 +176,10 @@ func (g *backend) AbortCapture() {
 		return
 	}
 	g.capturing = nil
-	g.pool.setCapture(nil)
 	if graph, s := g.sr.endCapture(); s == succeeded && graph != 0 {
 		g.sr.destroyGraph(graph, 0)
 	}
-	priv.close()
+	priv.finish()
 }
 
 // Replay kaydı sıraya koyar (beklemez).
@@ -173,7 +201,8 @@ func (c *Graph) Replay() {
 	}
 }
 
-// Release çizgeyi yok eder ve havuzunu genel havuza döndürür (sıradaki işler önce biter).
+// Release çizgeyi yok eder, havuzunu genel havuza döndürür ve tuttuğu depolamaları bırakır
+// (sıradaki işler önce biter).
 func (c *Graph) Release() {
 	g := c.g
 	g.enter()
@@ -184,7 +213,7 @@ func (c *Graph) Release() {
 	g.equalize()
 	g.sr.destroyGraph(c.graph, c.exec)
 	c.graph, c.exec = 0, 0
-	c.priv.close()
+	c.priv.finish()
 }
 
 // noCapture kayıt sürerken yapılamayan bir işlemde iletisiyle hata verir.
