@@ -59,7 +59,7 @@ func languageArgument(args []string, command string) *codes.Language {
 			exitWithError(messages.Text(messages.H8701, command, args[i]))
 		}
 	}
-	language, err := writingLanguage(languageCode)
+	language, err := codes.LoadLanguage(languageCode)
 	if err != nil {
 		exitWithError(err)
 	}
@@ -187,7 +187,7 @@ func showCommand(args []string) {
 	if file == "" {
 		exitWithError(messages.Text(messages.H8710, codes.DisplayName(codes.K011), codes.OptionFlag(codes.K100)))
 	}
-	language, err := writingLanguage(languageCode)
+	language, err := codes.LoadLanguage(languageCode)
 	if err != nil {
 		exitWithError(err)
 	}
@@ -207,9 +207,4 @@ func showCommand(args []string) {
 		os.Exit(1)
 	}
 	fmt.Print(text)
-}
-
-// writingLanguage bir yazım dili kodunun (ISO 639-1) kod listesidir.
-func writingLanguage(langCode string) (*codes.Language, error) {
-	return codes.LoadLanguage(langCode)
 }
