@@ -246,6 +246,18 @@ func TestAttentionNumericalGrad(t *testing.T) {
 	}
 }
 
+// Bitişik float32 maske kopyalanmadan okunur; görünümün ofseti (ör. büyük bir maskenin bir
+// satırı) hesaba katılır: sonuç maskenin kopyasıyla aynıdır.
+func TestAttentionMaskViewWithOffset(t *testing.T) {
+	rng := rand.New(rand.NewSource(6))
+	q, k, v := Randn(rng, 2, 3, 4), Randn(rng, 2, 5, 4), Randn(rng, 2, 5, 4)
+	big := New([]float32{1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0}, 4, 5)
+	view := big.Slice(0, 1, 4) // [3, 5], ofset 5
+	a := Attention(q, k, v, AttentionOptions{Mask: view}).Data()
+	b := Attention(q, k, v, AttentionOptions{Mask: view.Clone()}).Data()
+	near(t, "ofsetli maske", a, b, 0)
+}
+
 // Bitişik olmayan girdiler (eksen sırası görünümü) ve 2/3 boyutlu girdiler.
 func TestAttentionViewsAndShapes(t *testing.T) {
 	rng := rand.New(rand.NewSource(5))

@@ -195,8 +195,8 @@ func attentionParams(q, k, v *Tensor, opt AttentionOptions) AttentionParams {
 	return p
 }
 
-// prepareMask maskeyi float32 bitişik depolamaya çevirir ve [lead..., H, Tq,
-// Tk]'ye yayınlanmış adımlarını p'ye yazar.
+// prepareMask maskeyi float32 bitişik depolamaya çevirir (zaten öyleyse kopyalamaz; ofsetler
+// görünümün başlangıcını içerir) ve [lead..., H, Tq, Tk]'ye yayınlanmış adımlarını p'ye yazar.
 func prepareMask(be Backend, m *Tensor, qShape []int, p *AttentionParams) Storage {
 	whole := append(copyInts(qShape[:len(qShape)-1]), p.Tk) // [..., H, Tq, Tk]
 	if len(qShape) == 2 {
@@ -211,8 +211,11 @@ func prepareMask(be Backend, m *Tensor, qShape []int, p *AttentionParams) Storag
 			panic(messages.New(messages.H3010, m.shape, whole))
 		}
 	}
-	s := allocUninit(be, m.Numel(), Float32)
-	be.Copy(s, 0, m.view())
+	s, base := m.storage, m.offset
+	if m.dtyp != Float32 || !m.IsContiguous() {
+		s, base = allocUninit(be, m.Numel(), Float32), 0
+		be.Copy(s, 0, m.view())
+	}
 	st := broadcastStrides(contiguousStrides(m.shape), m.shape, whole)
 	n := len(whole)
 	p.MaskStrideQ, p.MaskStrideK = st[n-2], st[n-1]
@@ -226,7 +229,7 @@ func prepareMask(be Backend, m *Tensor, qShape []int, p *AttentionParams) Storag
 		for d := range idx {
 			o += idx[d] * preSt[d]
 		}
-		p.MaskOffsets[bh] = o
+		p.MaskOffsets[bh] = base + o
 		for d := len(idx) - 1; d >= 0; d-- {
 			idx[d]++
 			if idx[d] < on[d] {
