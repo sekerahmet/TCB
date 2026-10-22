@@ -102,6 +102,7 @@ function loadPanel() {
     };
     windowObj.innerHeight = 800;
     vm.createContext(context);
+    vm.runInContext(fs.readFileSync(path.join(MEDIA, 'table_common.js'), 'utf8'), context, { filename: 'table_common.js' });
     vm.runInContext(fs.readFileSync(path.join(MEDIA, 'watch_panel.js'), 'utf8'), context, { filename: 'watch_panel.js' });
     const button = (k) => buttons.find((d) => d.dataset.komut === k);
     const sendState = (line, reason) => windowObj.dispatch('message', {

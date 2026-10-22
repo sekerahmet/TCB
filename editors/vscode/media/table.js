@@ -3,19 +3,9 @@
 const columns = ['#'].concat(veri.sutunlar || []);
 const rows = (veri.satirlar || []).map((s, i) => [String(i)].concat(s));
 let sortState = { column: -1, descending: false };
-const isNumber = (x) => x !== '' && !isNaN(Number(x));
 document.getElementById('baslik').textContent = veri.baslik + ' — ' + (veri.tip || '') + ' (' + rows.length + ' satır)';
 function render() {
-  const q = document.getElementById('ara').value.toLocaleLowerCase('tr');
-  let list = rows.filter(s => !q || s.some(h => String(h).toLocaleLowerCase('tr').includes(q)));
-  if (sortState.column >= 0) {
-    const k = sortState.column;
-    list = list.slice().sort((a, b) => {
-      const x = a[k], y = b[k];
-      const c = isNumber(x) && isNumber(y) ? Number(x) - Number(y) : String(x).localeCompare(String(y), 'tr');
-      return sortState.descending ? -c : c;
-    });
-  }
+  const list = tableRows(rows, document.getElementById('ara').value, sortState);
   const headerRow = document.getElementById('basliklar');
   headerRow.replaceChildren();
   columns.forEach((name, i) => {

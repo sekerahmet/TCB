@@ -317,7 +317,8 @@ function webviewHtml(webview, name, values) {
         nonce: crypto.randomBytes(16).toString('base64'),
         cspSource: webview.cspSource,
         css: webview.asWebviewUri(vscode.Uri.joinPath(media, name + '.css')).toString(),
-        js: webview.asWebviewUri(vscode.Uri.joinPath(media, name + '.js')).toString()
+        js: webview.asWebviewUri(vscode.Uri.joinPath(media, name + '.js')).toString(),
+        common: webview.asWebviewUri(vscode.Uri.joinPath(media, 'table_common.js')).toString()
     }, values);
     const template = fs.readFileSync(vscode.Uri.joinPath(media, name + '.html').fsPath, 'utf8');
     return template.replace(/\{\{(\w+)\}\}/g, (_, key) => all[key]);
