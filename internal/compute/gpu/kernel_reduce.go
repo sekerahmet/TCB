@@ -159,6 +159,57 @@ func (k *emitter) sum(a, b reg) reg {
 	return r
 }
 
+// compensatedSum bir iş parçacığının sıralı toplamıdır: Neumaier'in telafili toplaması
+// (Kahan–Babuška). Her toplamanın yuvarlama hatası c'de ayrıca toplanır ve sonda eklenir;
+// sıralı float32 toplamın hatası terim sayısıyla büyür, telafilininki büyümez (~2u·Σ|x|).
+// Kahan'ınkinden farkı: terim toplamdan büyükken de doğru kalır; s'nin bağımlılık zinciri tek
+// toplamadır. Toplamaların hepsi açık yuvarlamalıdır (.rn): PTX iyileştiricisi onları yeniden
+// düzenlemez, telafi kaybolmaz.
+type compensatedSum struct{ s, c reg }
+
+// newCompensatedSum -0'dan başlar: -0 toplamanın etkisiz elemanıdır (-0 + x = x, -0 dahil);
+// +0'dan başlasa tek terimli çıktılar (dağıtma, birleştirme) -0'ı +0'a çevirirdi.
+func (k *emitter) newCompensatedSum() *compensatedSum {
+	return &compensatedSum{s: k.constant(float32(math.Copysign(0, -1))), c: k.constant(0)}
+}
+
+// addCompensated t'yi toplama ekler: n = s + t; kaybolan kısım büyük ve küçük terimden
+// (|s| ≥ |t| ise (s − n) + t, değilse (t − n) + s) tam olarak bulunur ve c'ye eklenir.
+func (k *emitter) addCompensated(a *compensatedSum, t reg) {
+	n := k.f()
+	k.e("add.rn.f32", n, a.s, t)
+	as, at := k.f(), k.f()
+	k.e("abs.f32", as, a.s)
+	k.e("abs.f32", at, t)
+	p := k.p()
+	k.e("setp.ge.f32", p, as, at)
+	big, small := k.f(), k.f()
+	k.e("selp.f32", big, a.s, t, p)
+	k.e("selp.f32", small, t, a.s, p)
+	d := k.f()
+	k.e("sub.rn.f32", d, big, n)
+	k.e("add.rn.f32", d, d, small)
+	k.e("add.rn.f32", a.c, a.c, d)
+	k.e("mov.f32", a.s, n)
+}
+
+// compensatedTotal toplamı verir. Telafi yalnızca toplam sonluysa ve telafi sıfır değilse
+// eklenir: sonsuz bir terimde telafi NaN olur (∞ − ∞), sıfır telafiyi eklemek -0'ı +0'a
+// çevirirdi.
+func (k *emitter) compensatedTotal(a *compensatedSum) reg {
+	as := k.f()
+	k.e("abs.f32", as, a.s)
+	use, nz := k.p(), k.p()
+	k.e("setp.lt.f32", use, as, float32(math.Inf(1)))
+	k.e("setp.ne.f32", nz, a.c, float32(0))
+	k.e("and.pred", use, use, nz)
+	sc := k.f()
+	k.e("add.rn.f32", sc, a.s, a.c)
+	r := k.f()
+	k.e("selp.f32", r, sc, a.s, use)
+	return r
+}
+
 func reduceKernel(a reduceConfig) func() *emitter {
 	return func() *emitter {
 		k := newEmitter(fmt.Sprintf("indirge_%d_%d_%d_%v_%d_%v_%s_%s_%s_%s", a.nk, a.nr, a.term, a.add, a.block, a.chunked,
@@ -191,9 +242,7 @@ func reduceKernel(a reduceConfig) func() *emitter {
 			begin, step = tid, k.whole(a.block)
 		}
 		kofs := k.parseBase(j, a.nk, 3, 0, "meta")
-		// Birikim -0'dan başlar: -0 toplamanın etkisiz elemanıdır (-0 + x = x, -0 dahil);
-		// +0'dan başlasa tek terimli çıktılar (dağıtma, birleştirme) -0'ı +0'a çevirirdi.
-		acc := k.constant(float32(math.Copysign(0, -1)))
+		sum := k.newCompensatedSum()
 		r := k.r()
 		k.e("mov.u32", r, begin)
 		rEnd = R
@@ -210,10 +259,11 @@ func reduceKernel(a reduceConfig) func() *emitter {
 		k.e("add.s32", oa, kofs[0], rofs[0])
 		k.e("add.s32", oo, kofs[1], rofs[1])
 		t := k.computeTerm(a.term, a.dt, pa, po, py, oa, oo)
-		k.e("add.rn.f32", acc, acc, t)
+		k.addCompensated(sum, t)
 		k.e("add.s32", r, r, step)
 		k.jump(loop)
 		k.put(done)
+		acc := k.compensatedTotal(sum)
 		if a.block > 0 {
 			acc = k.blockReduce(acc, sm, tid, a.block, k.sum)
 			p0 := k.p()

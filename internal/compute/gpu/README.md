@@ -9,6 +9,13 @@ PTX benzeticisinde çalıştırılarak sınanır.
 **CPU ile aynı sonuç.** Her GPU işlemi CPU arka ucunun sonucuyla karşılaştırılarak sınanır
 (16 bitlik türlerde tanımlı bir toleransla). Denetim: `behavior_nn_test.go`, `behavior_half_precision_test.go`, `behavior_grad_parity_test.go`.
 
+**Toplamlar terim sayısıyla bozulmaz.** Bir iş parçacığının sıralı toplamı telafilidir
+(Neumaier; `kernel_reduce.go` `compensatedSum`): düz float32 toplamın hatası terim sayısıyla
+büyür, CPU ise float64'te toplar. float64 birikim seçilmedi: hedef kartlarda FP32:FP64 64:1'dir
+ve ölçümde sütun toplamları 2,3–3,9 kat yavaşladı (telafili toplam %5–11). Sonuç CPU'ya değil,
+float64 referansa karşı sınanır. Denetim: `TestSumsMatchFloat64Reference`,
+`TestSumsKeepSpecialValues`, `TestNormsMatchFloat64Reference`.
+
 **GPU yoksa zarif.** Sürücü ya da kart yoksa program çökmez; GPU görünmez olur ve nedeni
 sorulabilir. Denetim: `TestNoDriverGraceful`.
 
@@ -45,6 +52,8 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 
 - `behavior_half_precision_test.go`: 16 bitlik türlerin bütün kernel ailelerinde açılmadan işlenmesi
 - `behavior_nn_test.go`: sinir ağı işlemlerinin GPU'da CPU arka ucuna karşı sonuçları
+- `behavior_norm_reference_test.go`: normların ileri sonucu ve gradyanlarının CPU'da ve GPU'da float64 referansa göre doğruluğu
+- `behavior_reduce_accuracy_test.go`: indirgemenin her yolunun float64 referansa göre doğruluğu ve özel değerler (sonsuz, NaN, -0)
 - `behavior_grad_parity_test.go`: gradyan kapısının GPU ayağı: başka testte GPU-CPU gradyan karşılaştırması olmayan türevli işlemler (tür dönüşümü, cihaz aktarımı, kopya, dış işlem)
 - `behavior_ptx_digest_test.go`: benzeticide derlenen her çekirdeğin PTX özetinin `testdata/ptx_ozet.txt` ile aynı olması (TestMain'den sonra)
 - `behavior_sim_instruction_coverage_test.go`: kernellerin ürettiği her PTX komut adının benzetici tarafından tanınması
