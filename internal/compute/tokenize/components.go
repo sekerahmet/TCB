@@ -163,50 +163,42 @@ func unsupported(component, kind, supported string) error {
 	return messages.New(messages.H5202, component, kind, supported)
 }
 
-// NewNormalizer JSON tanımından normalleştirici kurar (null için nil).
-func NewNormalizer(raw json.RawMessage) (Normalizer, error) {
+// buildComponent kayıt defterinden (registry) bileşen kurar: null için sıfır değer (nil), "type"
+// alanı yoksa, kayıtlı değilse ya da kurucu hata verirse ilgili ileti. nameCode bileşenin adı,
+// kindCode desteklenen türleri sayan ileti için adıdır; failCode kurucu hatasını sarar.
+func buildComponent[F, T any](raw json.RawMessage, registry map[string]F, nameCode, kindCode, failCode messages.Code, build func(F) (T, error)) (T, error) {
+	var zero T
 	if isEmpty(raw) {
-		return nil, nil
+		return zero, nil
 	}
-	kind, err := readKind(raw, messages.Text(messages.H5280))
+	kind, err := readKind(raw, messages.Text(nameCode))
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
 	registryLock.RLock()
-	k, ok := normalizers[kind]
-	list := kinds(normalizers)
+	k, ok := registry[kind]
+	list := kinds(registry)
 	registryLock.RUnlock()
 	if !ok {
-		return nil, unsupported(messages.Text(messages.H5281), kind, list)
+		return zero, unsupported(messages.Text(kindCode), kind, list)
 	}
-	n, err := k(raw)
+	v, err := build(k)
 	if err != nil {
-		return nil, messages.New(messages.H5203, kind, err)
+		return zero, messages.New(failCode, kind, err)
 	}
-	return n, nil
+	return v, nil
+}
+
+// NewNormalizer JSON tanımından normalleştirici kurar (null için nil).
+func NewNormalizer(raw json.RawMessage) (Normalizer, error) {
+	return buildComponent(raw, normalizers, messages.H5280, messages.H5281, messages.H5203,
+		func(k NormalizerFactory) (Normalizer, error) { return k(raw) })
 }
 
 // NewPreTokenizer JSON tanımından ön bölücü kurar (null için nil).
 func NewPreTokenizer(raw json.RawMessage) (PreTokenizer, error) {
-	if isEmpty(raw) {
-		return nil, nil
-	}
-	kind, err := readKind(raw, messages.Text(messages.H5282))
-	if err != nil {
-		return nil, err
-	}
-	registryLock.RLock()
-	k, ok := preTokenizers[kind]
-	list := kinds(preTokenizers)
-	registryLock.RUnlock()
-	if !ok {
-		return nil, unsupported(messages.Text(messages.H5283), kind, list)
-	}
-	o, err := k(raw)
-	if err != nil {
-		return nil, messages.New(messages.H5204, kind, err)
-	}
-	return o, nil
+	return buildComponent(raw, preTokenizers, messages.H5282, messages.H5283, messages.H5204,
+		func(k PreTokenizerFactory) (PreTokenizer, error) { return k(raw) })
 }
 
 // NewModel JSON tanımından model kurar. "type" alanı yoksa tür alanlardan
@@ -255,48 +247,14 @@ func NewModel(raw json.RawMessage) (Model, error) {
 
 // NewPostProcessor JSON tanımından son işleyici kurar (null için nil).
 func NewPostProcessor(raw json.RawMessage, vocab func(string) (int32, bool)) (PostProcessor, error) {
-	if isEmpty(raw) {
-		return nil, nil
-	}
-	kind, err := readKind(raw, messages.Text(messages.H5284))
-	if err != nil {
-		return nil, err
-	}
-	registryLock.RLock()
-	k, ok := postProcessors[kind]
-	list := kinds(postProcessors)
-	registryLock.RUnlock()
-	if !ok {
-		return nil, unsupported(messages.Text(messages.H5285), kind, list)
-	}
-	s, err := k(raw, vocab)
-	if err != nil {
-		return nil, messages.New(messages.H5209, kind, err)
-	}
-	return s, nil
+	return buildComponent(raw, postProcessors, messages.H5284, messages.H5285, messages.H5209,
+		func(k PostProcessorFactory) (PostProcessor, error) { return k(raw, vocab) })
 }
 
 // NewDecoder JSON tanımından çözücü kurar (null için nil).
 func NewDecoder(raw json.RawMessage) (Decoder, error) {
-	if isEmpty(raw) {
-		return nil, nil
-	}
-	kind, err := readKind(raw, messages.Text(messages.H5286))
-	if err != nil {
-		return nil, err
-	}
-	registryLock.RLock()
-	k, ok := decoders[kind]
-	list := kinds(decoders)
-	registryLock.RUnlock()
-	if !ok {
-		return nil, unsupported(messages.Text(messages.H5287), kind, list)
-	}
-	c, err := k(raw)
-	if err != nil {
-		return nil, messages.New(messages.H5210, kind, err)
-	}
-	return c, nil
+	return buildComponent(raw, decoders, messages.H5286, messages.H5287, messages.H5210,
+		func(k DecoderFactory) (Decoder, error) { return k(raw) })
 }
 
 // strictDecode JSON'u yapıya çözer; bilinmeyen alanlara izin verir, yanlış harfli ya da
