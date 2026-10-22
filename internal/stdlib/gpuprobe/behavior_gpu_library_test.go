@@ -1,7 +1,6 @@
 package gpuprobe_test
 
 import (
-	"bytes"
 	"strconv"
 	"strings"
 	"testing"
@@ -9,8 +8,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/gpu"
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
-	"github.com/sekerahmet/TCB/internal/lang/parser"
+	"github.com/sekerahmet/TCB/internal/testkit/trrun"
 	"github.com/sekerahmet/TCB/lib"
 )
 
@@ -54,33 +52,22 @@ func TestGPULibraryGPT(t *testing.T) {
 	defer tensor.SetDefaultDevice(tensor.CPU)
 	interp.SetLibrary(lib.Files)
 	defer interp.SetLibrary(nil)
-	p := parser.New(lexer.New(gpuLibraryProgram))
-	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		t.Fatalf("sözdizimi hatası: %v", p.Errors())
-	}
-	m := interp.New()
-	var out bytes.Buffer
-	m.Out = &out
-	if _, err := m.Run(prog); err != nil {
-		t.Fatalf("program hatası: %v\nçıktı:\n%s", err, out.String())
-	}
-	m.WaitAsync()
-	lines := strings.Split(strings.TrimSpace(out.String()), "\n")
+	out := trrun.MustExec(t, gpuLibraryProgram).Out
+	lines := strings.Split(strings.TrimSpace(out), "\n")
 	if len(lines) != 10 {
-		t.Fatalf("beklenmeyen çıktı:\n%s", out.String())
+		t.Fatalf("beklenmeyen çıktı:\n%s", out)
 	}
 	for block := 0; block < 2; block++ {
 		s := lines[block*5:]
 		if s[0] != "cpu cpu cpu" || s[1] != "gpu gpu gpu" {
-			t.Fatalf("ağırlıklar ve iyileştirici durumu seçilen cihazda olmalı:\n%s", out.String())
+			t.Fatalf("ağırlıklar ve iyileştirici durumu seçilen cihazda olmalı:\n%s", out)
 		}
 		for _, line := range s[2:5] {
 			f := strings.Fields(line)
 			c, _ := strconv.ParseFloat(f[0], 64)
 			g, _ := strconv.ParseFloat(f[1], 64)
 			if d := c - g; d > 1e-4*c || d < -1e-4*c {
-				t.Fatalf("kayıplar uyuşmuyor (CPU, GPU):\n%s", out.String())
+				t.Fatalf("kayıplar uyuşmuyor (CPU, GPU):\n%s", out)
 			}
 		}
 	}
