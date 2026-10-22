@@ -40,11 +40,7 @@ func (v *VM) ResolvePath(filePath string) (resolved string, searched []string) {
 	candidates := []string{filePath}
 	searched = []string{absPath(filePath)}
 	for _, folder := range v.searchDirs() {
-		candidate := filepath.Join(folder, filePath)
-		if absolute := absPath(candidate); !slices.Contains(searched, absolute) {
-			candidates = append(candidates, candidate)
-			searched = append(searched, absolute)
-		}
+		candidates, searched = addCandidate(candidates, searched, folder, filePath)
 	}
 	// 1. Dosyanın (ya da klasörün) kendisinin bulunduğu ilk yer
 	for _, candidate := range candidates {
@@ -99,14 +95,22 @@ func (v *VM) searchDirs() []string {
 	if v == nil {
 		return nil
 	}
-	var dirs []string
-	if v.source != nil && !v.source.Embedded && v.source.Path != "" && !strings.HasPrefix(v.source.Path, "<") {
-		dirs = append(dirs, filepath.Dir(v.source.Path))
+	src := ""
+	if v.source != nil && !v.source.Embedded {
+		src = v.source.Path
 	}
-	if v.SourceFile != "" && !strings.HasPrefix(v.SourceFile, "<") {
-		dirs = append(dirs, filepath.Dir(v.SourceFile))
+	return FileDirs(src, v.SourceFile)
+}
+
+// addCandidate folder/filePath yolunu, mutlak karşılığı daha önce bakılmadıysa aday listesine
+// ve bakılan yerlere ekler. Birinci adayın (çalışma klasörü ya da boş) seçimi çağıranındır.
+func addCandidate(candidates, searched []string, folder, filePath string) ([]string, []string) {
+	candidate := filepath.Join(folder, filePath)
+	absolute := absPath(candidate)
+	if slices.Contains(searched, absolute) {
+		return candidates, searched
 	}
-	return dirs
+	return append(candidates, candidate), append(searched, absolute)
 }
 
 func absPath(filePath string) string {
