@@ -15,6 +15,7 @@ import (
 // Listelerin uzunlukları: dosyaya yazılan görüntü ekrandakinden fazlasını taşır.
 const (
 	maxOps       = 30
+	maxImplicit  = 30
 	maxLines     = 30
 	maxFunctions = 20
 )
@@ -37,6 +38,7 @@ func (p *Profile) setup(a snap, before *snap, last bool) *Snapshot {
 	g.Step = stepInfo(a.step)
 	// Sayaçlar profil başından beridir: bütün adımları (ilk adım sınırından öncekini de) içerir.
 	g.Tensor = p.tensorInfo(a.counters, p.base.counters, elapsed, a.step.all)
+	g.Tensor.Implicit = implicitInfo(a.implicit, p.base.implicit)
 	g.GPU = p.gpuInfo(a.gpu)
 	g.Memory = p.memoryInfo(a)
 	g.GC = GCInfo{Count: a.memory.NumGC - p.base.memory.NumGC,
@@ -148,6 +150,63 @@ func (p *Profile) tensorInfo(counters, minus []tensor.CounterRecord, dur time.Du
 	}
 	t.Share = ratio(t.Seconds, sn(dur))
 	return t
+}
+
+// implicitKey bir örtük iş kaydının kimliğidir.
+type implicitKey struct {
+	c tensor.DeviceKind
+	g bool
+	p tensor.OpKind
+	k tensor.ImplicitKind
+}
+
+// implicitInfo örtük iş kayıtlarından (eksi varsa farkından) listeyi kurar; işlemin kendisi
+// olan kopyalar (.kopya()'nın kopyası, .türe'nin dönüşümü) işlem tablosunda zaten vardır,
+// alınmaz.
+func implicitInfo(records, minus []tensor.ImplicitRecord) []ImplicitInfo {
+	prev := map[implicitKey]tensor.ImplicitRecord{}
+	for _, r := range minus {
+		prev[implicitKey{r.Device, r.Backward, r.Parent, r.Kind}] = r
+	}
+	var out []ImplicitInfo
+	for _, r := range records {
+		if explicitCopy(r.Parent, r.Kind) {
+			continue
+		}
+		o := prev[implicitKey{r.Device, r.Backward, r.Parent, r.Kind}]
+		r.Calls, r.Elems, r.Measured, r.Duration = r.Calls-o.Calls, r.Elems-o.Elems, r.Measured-o.Measured, r.Duration-o.Duration
+		if r.Calls == 0 {
+			continue
+		}
+		b := ImplicitInfo{
+			Code: r.Kind.Code(), Parent: r.Parent.Code(), Direction: "ileri", Device: "cpu",
+			Name: implicitName(r.Kind), ParentName: fullName(r.Parent, r.Backward, 1),
+			Calls: r.Calls, Elements: r.Elems, Measured: r.Measured, Seconds: sn(r.Duration),
+		}
+		if r.Backward {
+			b.Direction = "geri"
+		}
+		if r.Device != tensor.KindCPU {
+			b.Device = "gpu"
+		}
+		out = append(out, b)
+	}
+	sort.SliceStable(out, func(i, j int) bool { return out[i].Elements > out[j].Elements })
+	if len(out) > maxImplicit {
+		out = out[:maxImplicit]
+	}
+	return out
+}
+
+// explicitCopy örtük işin, üst işlemin kendi işi olduğudur.
+func explicitCopy(parent tensor.OpKind, k tensor.ImplicitKind) bool {
+	switch parent {
+	case tensor.OpKindCopy:
+		return k == tensor.ImplicitCopy || k == tensor.ImplicitStrided
+	case tensor.OpKindCast:
+		return k == tensor.ImplicitCast
+	}
+	return false
 }
 
 // samplingInfo konum örneklerinden (eksi varsa farkından) satır ve fonksiyon listesini

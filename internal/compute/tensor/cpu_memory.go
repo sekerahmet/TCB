@@ -135,6 +135,7 @@ func (cpuBackend) ToHost(src View) []float32 {
 func (b cpuBackend) Copy(dst Storage, dstOff int, src View) {
 	n := src.Numel()
 	c := cpuStore(dst)
+	defer NoteImplicit(false, ImplicitKindOf(c.dtyp, src, true), n).Finish()
 	if c.dtyp == Float32 {
 		if src.DType() == Float32 {
 			copyTo(c.d[dstOff:dstOff+n], src)
@@ -155,6 +156,7 @@ func (b cpuBackend) Copy(dst Storage, dstOff int, src View) {
 }
 
 func (cpuBackend) CopyStrided(dst, src View) {
+	defer NoteImplicit(false, ImplicitKindOf(dst.DType(), src, dst.IsContiguous()), dst.Numel()).Finish()
 	var gt temp
 	defer gt.finish()
 	c := cpuStore(dst.S)

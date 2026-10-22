@@ -117,6 +117,7 @@ const (
 	OpKindClipGrad
 	OpKindCustom
 	OpKindFused
+	OpKindAssign
 	// OpKindCount işlem türlerinin sayısıdır (dizi boyu).
 	OpKindCount
 )
@@ -134,7 +135,7 @@ var opCodes = [OpKindCount]string{
 	"katman_normu", "rms_normu", "dikkat", "sinirlama", "kosullu_secim", "birikimli_toplam",
 	"en_buyuk_k", "siralama_indeksi", "birlestirme", "gorunum", "kopya", "tur_donusumu",
 	"cihaza_tasima", "konaga_okuma", "olusturma", "gradyan_sifirlama", "sgd", "adamw",
-	"gradyan_kirpma", "ozel", "kaynasik",
+	"gradyan_kirpma", "ozel", "kaynasik", "yerinde_yazma",
 }
 
 // Code işlemin dosya biçimlerindeki değişmez anahtarıdır (ör. "matris_carpimi").

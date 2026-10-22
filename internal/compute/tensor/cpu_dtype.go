@@ -311,6 +311,7 @@ func (g *temp) writeAll(ss ...Storage) ([]Storage, func()) {
 }
 
 func (b cpuBackend) AddTo(dst, src Storage, scale float32) {
+	defer NoteImplicit(false, ImplicitAccumulate, src.Len()).Finish()
 	var gt temp
 	defer gt.finish()
 	d, last := gt.write(dst, true)
@@ -319,6 +320,7 @@ func (b cpuBackend) AddTo(dst, src Storage, scale float32) {
 }
 
 func (b cpuBackend) ScatterAdd(dst Storage, dstOff int, dstStrides []int, src Storage, shape []int) {
+	defer NoteImplicit(false, ImplicitAccumulate, src.Len()).Finish()
 	var gt temp
 	defer gt.finish()
 	d, last := gt.write(dst, true)
@@ -327,6 +329,7 @@ func (b cpuBackend) ScatterAdd(dst Storage, dstOff int, dstStrides []int, src St
 }
 
 func (b cpuBackend) ExpandAdd(dst Storage, dstShape []int, src Storage, srcShape []int, scale float32) {
+	defer NoteImplicit(false, ImplicitAccumulate, numelOf(dstShape)).Finish()
 	var gt temp
 	defer gt.finish()
 	d, last := gt.write(dst, true)

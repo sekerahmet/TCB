@@ -120,6 +120,11 @@ func (g *backend) copyStrided(target, source tensor.View, add bool, scaleF float
 	}
 	checkSize(n)
 	hd, kd := g.storageOf(target.S), g.storageOf(source.S)
+	kind := tensor.ImplicitAccumulate
+	if !add {
+		kind = tensor.ImplicitKindOf(hd.dtype, source, target.IsContiguous())
+	}
+	tensor.NoteImplicit(true, kind, n) // GPU'da süre ölçülmez (Finish gerekmez)
 	sh, st := mergeAxes(target.Shape, source.Strides, target.Strides)
 	// Aynı tür, iki taraf bitişik: sürücünün cihaz içi kopyası.
 	if !add && kd.dtype == hd.dtype && len(sh) == 1 && st[0][0] == 1 && st[1][0] == 1 {

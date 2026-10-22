@@ -29,6 +29,7 @@ func ReportText(g *Snapshot) string {
 	}
 	b.WriteString("\n")
 	reportOps(&b, t)
+	reportImplicit(&b, t.Implicit)
 	reportGPU(&b, g)
 	if o := g.Sampling; o != nil {
 		b.WriteString("\n")
@@ -64,6 +65,28 @@ func reportOps(b *strings.Builder, t TensorInfo) {
 			line += right(msText(*x.MsPerStep), 10)
 		}
 		b.WriteString(line + right(nBytes(x.Bytes), 10) + right(x.Device, 7) + "\n")
+	}
+}
+
+// reportImplicit örtük kopya ve dönüşüm tablosudur (en büyük 12, elemana göre).
+func reportImplicit(b *strings.Builder, list []ImplicitInfo) {
+	if len(list) == 0 {
+		return
+	}
+	b.WriteString("\n" + messages.Text(messages.H8287) + "\n")
+	b.WriteString(left("", 64) + right(messages.Text(messages.H8241), 10) + right(messages.Text(messages.H8288), 16) +
+		right(messages.Text(messages.H8239), 10) + right(messages.Text(messages.H8244), 7) + "\n")
+	for i, x := range list {
+		if i == 12 {
+			b.WriteString("  " + messages.Text(messages.H8245, len(list)-i) + "\n")
+			break
+		}
+		t := ""
+		if x.Measured > 0 {
+			t = durationText(x.Seconds)
+		}
+		b.WriteString("  " + left(x.Name, 22) + left(x.ParentName, 40) + right(full(x.Calls), 10) +
+			right(full(x.Elements), 16) + right(t, 10) + right(x.Device, 7) + "\n")
 	}
 }
 

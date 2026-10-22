@@ -229,6 +229,7 @@ func (p *Profile) Finish(code int) *Snapshot {
 type snap struct {
 	time2      time.Time
 	counters   []tensor.CounterRecord
+	implicit   []tensor.ImplicitRecord
 	step       stepState
 	positions  []posSample
 	sampleTime time.Duration
@@ -238,7 +239,7 @@ type snap struct {
 }
 
 func (p *Profile) takeSnap() snap {
-	a := snap{time2: time.Now(), counters: tensor.CounterSnapshot()}
+	a := snap{time2: time.Now(), counters: tensor.CounterSnapshot(), implicit: tensor.ImplicitSnapshot()}
 	p.isStep.Lock()
 	a.step = p.step
 	p.isStep.Unlock()

@@ -66,6 +66,18 @@ var opLabel = map[tensor.OpKind]messages.Code{
 	tensor.OpKindZeroGrad:   messages.H8253,
 	tensor.OpKindCopy:       messages.H3096,
 	tensor.OpKindCreate:     messages.H3089,
+	tensor.OpKindAssign:     messages.H8284,
+}
+
+// implicitLabels örtük iş türlerinin adlarıdır.
+var implicitLabels = [tensor.ImplicitKindCount]messages.Code{messages.H3096, messages.H8285, messages.H3097, messages.H8286}
+
+// implicitName örtük iş türünün insana gösterilen adıdır (üst işlemin adı ayrı sütundadır).
+func implicitName(k tensor.ImplicitKind) string {
+	if k < tensor.ImplicitKindCount {
+		return messages.Text(implicitLabels[k])
+	}
+	return k.Code()
 }
 
 // opCode dildeki bir yerleşiğe birebir karşılık gelen işlemlerdir.

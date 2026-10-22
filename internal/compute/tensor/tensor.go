@@ -372,8 +372,10 @@ func (t *Tensor) At(idx ...int) float32 {
 // bu tensörü ileri hesapta kullanmış ve henüz geri yayılmamış bir çizge varsa
 // geri yayılım hata verir.
 func (t *Tensor) Set(v float32, idx ...int) {
+	sy := counterStart(t.be, OpKindAssign).start()
 	t.be.Copy(t.storage, t.index(idx), View{S: scalarStorage(t.be, v)})
 	t.storage.BumpVersion()
+	sy.finish()
 }
 
 // CopyFrom src'nin elemanlarını t'nin elemanlarına yerinde yazar; t bitişik olmayan bir
@@ -393,6 +395,8 @@ func (t *Tensor) CopyFrom(src *Tensor) {
 	if !suitable {
 		panic(messages.New(messages.H3069, src.shape, t.shape))
 	}
+	sy := counterStart(t.be, OpKindAssign).start()
+	defer sy.finish()
 	sv := src.view()
 	if src.storage == t.storage {
 		s := allocUninit(src.be, src.Numel(), src.dtyp)

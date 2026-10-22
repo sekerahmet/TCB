@@ -156,6 +156,7 @@ func (g *backend) AddTo(dst, src tensor.Storage, scale float32) {
 func (g *backend) ScatterAdd(dst tensor.Storage, dstOff int, dstStrides []int, src tensor.Storage, shape []int) {
 	g.enter()
 	defer g.exit()
+	tensor.NoteImplicit(true, tensor.ImplicitAccumulate, src.Len())
 	g.reduce(reduceJob{a: g.storageOf(src), output: g.storageOf(dst), outputOf: dstOff, shape2: shape, stA2: contiguous(shape),
 		st: dstStrides, term: tA, add: true, scaleF: 1})
 }

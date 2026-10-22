@@ -5,7 +5,7 @@ import (
 )
 
 // ============================================================================
-// Profil biçimi (sürüm 1): canlı durum (profil.json) ve rapor (speed.json) aynı yapıdadır
+// Profil biçimi (sürüm 2): canlı durum (profil.json) ve rapor (speed.json) aynı yapıdadır
 // ============================================================================
 //
 // Anahtarlar dosya biçiminin parçasıdır (yazım dilinden bağımsız, çevrilmez; günlük
@@ -16,7 +16,7 @@ import (
 // FormatName ve FormatVersion dosyanın kimliğidir.
 const (
 	FormatName    = "tr-profil"
-	FormatVersion = 1
+	FormatVersion = 2
 )
 
 // Snapshot bir programın profilinin anlık görüntüsüdür (canlı ya da son rapor).
@@ -63,6 +63,23 @@ type TensorInfo struct {
 	Calls   int64    `json:"çağrı"`
 	Bytes   int64    `json:"bayt"`
 	Ops     []OpInfo `json:"işlemler"`
+	// Implicit işlemlerin içinde arka uçta yapılan kopya, dönüşüm ve eklemelerdir (sürüm 2).
+	Implicit []ImplicitInfo `json:"örtük"`
+}
+
+// ImplicitInfo bir (örtük tür, üst işlem, yön, cihaz) dörtlüsüdür; elemana göre büyükten
+// küçüğe sıralıdır (GPU'da süre yoktur, eleman iki cihazda da kesindir).
+type ImplicitInfo struct {
+	Code       string  `json:"kod"`     // örtük türün değişmez anahtarı (ör. "adimli_kopya")
+	Parent     string  `json:"üst_kod"` // üst işlemin değişmez anahtarı (ör. "matris_carpimi")
+	Name       string  `json:"ad"`      // örtük türün insana gösterilen adı (ör. "adımlı kopya")
+	ParentName string  `json:"üst_ad"`  // üst işlemin insana gösterilen adı (ör. "geri · @")
+	Direction  string  `json:"yön"`     // üst işlemin yönü: "ileri" ya da "geri"
+	Device     string  `json:"cihaz"`
+	Calls      int64   `json:"çağrı"`
+	Elements   int64   `json:"eleman"`
+	Measured   int64   `json:"ölçüm"`   // süresi ölçülen çağrı (yalnızca CPU'da büyük kopyalar)
+	Seconds    float64 `json:"süre_sn"` // ölçülen çağrıların süresi
 }
 
 // OpInfo bir (işlem, yön, cihaz) üçlüsüdür; süreye göre büyükten küçüğe sıralıdır.
