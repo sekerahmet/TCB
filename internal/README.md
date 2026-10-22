@@ -186,6 +186,8 @@ Denetim: `TestTestFileMatchesSource` (birim testinin kaynağı var, her davranı
 - Commit mesajları İngilizcedir: ilk satır `paket: ne değişti`, gövdede neden.
 - Sıcak yola dokunan değişiklik önce ve sonra ölçülür; kazandırmayan "iyileştirme" geri alınır ([`docs/development.md`](../docs/development.md#ölçüm-disiplini)).
 - Bir adı ya da kancayı değiştirmeden önce nerede kullanıldığını koddan sorun: `go run ./tools/impact codes.Name`.
+- Durağan çözümleme tam denetimdedir: staticcheck'in varsayılan denetimleri ve ölü kod (deadcode). Bilerek yazılmış bir kalıp (testin ürettiği panik, yalnızca assembly'nin okuduğu değişken) satırının üstünde gerekçeli `//lint:ignore DENETİM gerekçe` ile işaretlenir; gerekçesiz işaret ve yapılandırmayla kapatılan denetim yoktur. Hiçbir programdan ve testten çağrılmayan fonksiyon tutulmaz ("ileride lazım olur" diye kod bırakılmaz). Araç sürümleri `tools/full_check.sh`'ın başındadır; sürüm yükseltilince yeni bulgular aynı commit'te düzeltilir.
+- Kodun çağırdığı yollarda bilinen güvenlik açığı bulunmaz: govulncheck her gönderimde ve haftada bir üç işletim sistemi için koşar (`.github/workflows/vuln.yml`). Açık standart kitaplıktaysa `go.mod`'daki `toolchain` satırı düzeltmeyi içeren, desteklenen bir sürüme yükseltilir.
 
 ## Kural → test
 
@@ -204,5 +206,7 @@ Denetim: `TestTestFileMatchesSource` (birim testinin kaynağı var, her davranı
 | Kullanıcıya görünen adlar koddan | `tools/gen/codeconsts` (`TestNoBareNames`) |
 | İleti kodları | `tools/gen/msgconsts` (`TestMessageUsage`) |
 | Üretilmiş dosyalar güncel | `tools/gen/*` `-check` (tam denetim) |
+| staticcheck bulgusu yok, çağrılmayan fonksiyon yok | `tools/full_check.sh` (staticcheck, deadcode) |
+| Çağrılan yollarda bilinen güvenlik açığı yok | `.github/workflows/vuln.yml` (govulncheck) |
 | Kod listesindeki her örnek çalışır | `internal/lang/codes`, `internal/stdlib` (`definition_test.go`, `behavior_definitions_test.go`) |
 | Dil kuralları | `tests/*_test.tr` (`tr test tests`) |

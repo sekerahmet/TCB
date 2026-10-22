@@ -39,3 +39,11 @@ Yukarıdaki her girdinin bir bulanıklaştırma testi vardır (`go test` içinde
 ```sh
 bash tools/fuzz.sh 30s '^FuzzTensorKaydiCoz$'
 ```
+
+## Bağımlılık ve araç zinciri açıkları
+
+govulncheck her gönderimde ve haftada bir, Linux, Windows ve macOS hedefleri için kodun gerçekten çağırdığı yollarda Go'nun açık veri tabanındaki (vuln.go.dev) bilinen açıkları arar (`.github/workflows/vuln.yml`). Açık standart kitaplıktaysa `go.mod`'daki `toolchain` satırı düzeltmeyi içeren, hâlâ desteklenen bir Go sürümüne yükseltilir (Go her ana sürümü, iki yeni ana sürüm çıkana kadar destekler). Yerelde:
+
+```sh
+go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
+```

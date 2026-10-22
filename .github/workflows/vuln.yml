@@ -1,0 +1,47 @@
+# Güvenlik açıkları: govulncheck, Go'nun açık veri tabanına (vuln.go.dev) bakıp kodun gerçekten
+# çağırdığı yollarda bilinen bir açık olup olmadığını denetler (standart kitaplık dahil: açık
+# araç zincirinin sürümündeyse go.mod'daki toolchain satırı yükseltilir). Her gönderimde ve
+# haftada bir koşar: açıklar kod değişmeden de yayımlanır. Bazı açıklar tek bir işletim
+# sistemindedir (ör. Windows'ta os.Root), bu yüzden üç hedef ayrı ayrı denetlenir. Veri tabanı
+# ağ ister; bu yüzden tam denetimde (tools/full_check.sh) değil, buradadır.
+name: Güvenlik açıkları
+
+on:
+  push:
+  pull_request:
+  schedule:
+    # Her pazartesi 03:47 (UTC).
+    - cron: "47 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  govulncheck:
+    name: Güvenlik açıkları (govulncheck)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # Eylemler tam commit özetiyle sabitlenir (ci.yml ile aynı sürümler).
+      - name: Kaynağı al
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Go kurulumu
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      # Araç sabit sürümle kurulur (sürüm modül sağlama veri tabanıyla doğrulanır); GOOS
+      # yalnızca çözümlemeye verilir, araç koşucunun kendi ikilisidir.
+      - name: govulncheck (linux, windows, darwin)
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
+          status=0
+          for os in linux windows darwin; do
+            echo "== $os"
+            GOOS=$os "$(go env GOPATH)/bin/govulncheck" ./... || status=1
+          done
+          exit $status

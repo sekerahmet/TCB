@@ -19,14 +19,16 @@
 #   --kip=uzun        Go testleri -short olmadan (her .tr dosyasının İngilizce gidiş-dönüşü
 #                     gibi uzun sınamalar dahil)
 #   --hizli           --kip=dagitim ile aynı (iş sırasında; birleştirmeden önce bayraksız koşulur)
-#   --kip=on          ön denetim (~1 dk): üretilmiş dosyalar, gofmt, vet, go.mod, düzen kuralları
-#                     (dosya adı, satır sınırı, Türkçe metin, çıplak ad, ileti kullanımı), değişen
+#   --kip=on          ön denetim (~1 dk): üretilmiş dosyalar, gofmt, vet, go.mod, staticcheck,
+#                     ölü kod, düzen kuralları (dosya adı, satır sınırı, Türkçe metin, çıplak ad,
+#                     ileti kullanımı), değişen
 #                     paketlerin kısa testleri ve yeni tekrar adayları (codegraph dups --changed).
 #                     Yan oturumlar devir notundan, ana oturum GPU yan dalına göndermeden önce
 #                     koşar; tam denetimin yerini tutmaz.
 #
 # Durağan denetimler: üretilmiş dosyalar güncel mi (her üreticinin -check bayrağı olmalı),
-# gofmt, go vet, go.mod/go.sum (go mod verify, go mod tidy -diff), ARM (arm64) derlemesi ve
+# gofmt, go vet, go.mod/go.sum (go mod verify, go mod tidy -diff), staticcheck, ölü kod
+# (deadcode), ARM (arm64) derlemesi ve
 # vet'i, GPU'suz (-tags gpusuz) Linux program dosyasının statik olması, VS Code eklentisinin
 # JavaScript dosyaları ve package.json. Go testleri -short ile koşar (uzun kipi hariç): dil
 # tanımı testleri (tests/) Go testinin içinde yinelenmez, burada `tr test tests` ile koşar.
@@ -130,6 +132,13 @@ mode_env() {
 repo_state() { git status --porcelain=v1 --untracked-files=all 2>/dev/null; }
 initial_state=$(repo_state)
 
+# Çözümleme araçları sabit sürümle `go run paket@sürüm` ile koşar: go.mod'a bağımlılık olarak
+# girmezler, indirilen modül sağlama veri tabanıyla (sum.golang.org) doğrulanır, ilk koşudan
+# sonra modül önbelleğinden gelir. Sürüm yalnızca burada yükseltilir; yeni sürümün bulguları
+# aynı commit'te düzeltilir.
+STATICCHECK=honnef.co/go/tools/cmd/staticcheck@v0.8.2
+DEADCODE=golang.org/x/tools/cmd/deadcode@v0.52.0
+
 # quick_static_checks tam denetimin ve ön denetimin ortak durağan adımlarıdır.
 quick_static_checks() {
 	step "Üretilmiş dosyalar güncel mi"
@@ -156,6 +165,16 @@ quick_static_checks() {
 	go vet ./... || fail "go vet"
 	go mod verify >/dev/null || fail "go mod verify (modül önbelleği go.sum ile uyuşmuyor)"
 	go mod tidy -diff >/dev/null || fail "go.mod/go.sum düzenli değil (go mod tidy ile düzeltin)"
+
+	# staticcheck'in varsayılan denetimleri (yapılandırma dosyası yok). Bilerek yazılmış bir
+	# kalıp (ör. testin ürettiği panik, yalnızca assembly'nin okuduğu değişken) satırının
+	# üstünde gerekçeli `//lint:ignore DENETİM gerekçe` ile işaretlenir.
+	step "Durağan çözümleme (staticcheck) ve ölü kod (deadcode)"
+	go run "$STATICCHECK" ./... || fail "staticcheck"
+	# Hiçbir programdan ve testten ulaşılamayan fonksiyonlar silinir.
+	local dead
+	dead=$(go run "$DEADCODE" -test ./...) || fail "deadcode çalışmadı"
+	[ -z "$dead" ] || fail "hiçbir yerden çağrılmayan fonksiyonlar (silin): $dead"
 }
 
 static_checks() {
@@ -391,8 +410,12 @@ for mode in $modes; do
 			go test "${p_flag[@]}" -short "${changed[@]}" 2>&1 | grep -v '^ok\|no test files'
 			[ "${PIPESTATUS[0]}" -eq 0 ] || fail "değişen paketlerin testleri"
 		fi
-		step "Tekrar adayları (codegraph dups --changed main)"
-		go run ./tools/codegraph dups --changed main 2>&1 | head -40
+		# Taban changed_packages'takiyle aynıdır: ana dalda henüz gönderilmemiş commit'ler de
+		# sayılsın diye önce origin/main.
+		dups_base=main
+		if git rev-parse --verify -q origin/main >/dev/null; then dups_base=origin/main; fi
+		step "Tekrar adayları (codegraph dups --changed $dups_base)"
+		go run ./tools/codegraph dups --changed "$dups_base" 2>&1 | head -40
 		;;
 	esac
 done
