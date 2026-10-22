@@ -103,20 +103,10 @@ func (c *compiler) multiVarStatement(k *compilerScope, s *ast.MultiVarStatement)
 	}
 	constant := s.IsConst
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
-		evalVals, err := multiValues(v, env, values, len(definitions))
-		if err != nil {
-			return nil, signalNone, err
-		}
-		var lastVal Value = Null
-		for i, definition := range definitions {
-			var val Value = Null
-			if i < len(evalVals) {
-				val = evalVals[i]
-			}
-			definition(env, val, constant)
-			lastVal = val
-		}
-		return lastVal, signalNone, nil
+		return applyMultiValues(v, env, values, len(definitions), func(i int, val Value) error {
+			definitions[i](env, val, constant)
+			return nil
+		})
 	}
 }
 
@@ -145,23 +135,31 @@ func (c *compiler) multiAssignStatement(k *compilerScope, s *ast.MultiAssignStat
 		dests[i] = c.assignTarget(k, t, opAssign, s.Line())
 	}
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
-		evalVals, err := multiValues(v, env, values, len(dests))
-		if err != nil {
+		return applyMultiValues(v, env, values, len(dests), func(i int, val Value) error {
+			return dests[i](v, env, val)
+		})
+	}
+}
+
+// applyMultiValues çoklu tanım/atamanın sağ tarafını hesaplar ve her değeri sırayla apply ile
+// i. hedefe uygular (eksik değer Boş); sonuç son değerdir.
+func applyMultiValues(v *VM, env *Environment, values []exprCode, count int, apply func(i int, val Value) error) (Value, flowSignal, error) {
+	evalVals, err := multiValues(v, env, values, count)
+	if err != nil {
+		return nil, signalNone, err
+	}
+	var lastVal Value = Null
+	for i := 0; i < count; i++ {
+		var val Value = Null
+		if i < len(evalVals) {
+			val = evalVals[i]
+		}
+		if err := apply(i, val); err != nil {
 			return nil, signalNone, err
 		}
-		var lastVal Value = Null
-		for i, dest := range dests {
-			var val Value = Null
-			if i < len(evalVals) {
-				val = evalVals[i]
-			}
-			if err := dest(v, env, val); err != nil {
-				return nil, signalNone, err
-			}
-			lastVal = val
-		}
-		return lastVal, signalNone, nil
+		lastVal = val
 	}
+	return lastVal, signalNone, nil
 }
 
 // deferStatement 'ertele' deyimini derler.
