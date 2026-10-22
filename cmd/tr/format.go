@@ -6,12 +6,9 @@ import (
 	"github.com/sekerahmet/TCB/internal/devtools/formatter"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
-	"io/fs"
 	"os"
-	"path/filepath"
-	"sort"
-	"strings"
 )
 
 // formatCommand 'tr biçimle [--kontrol] <dosya.tr | klasör>...' komutudur. Dosyaları standart
@@ -90,29 +87,9 @@ func formatCommand(args []string) {
 // trFiles hedef bir dosyaysa onu, klasörse altındaki tüm .tr dosyalarını (gizli
 // klasörler hariç) sıralı olarak döndürür.
 func trFiles(target string) ([]string, error) {
-	info, err := os.Stat(target)
-	if err != nil {
-		return nil, turkish.FileError("", target, messages.H2108, err)
-	}
-	if !info.IsDir() {
-		return []string{target}, nil
-	}
-	var files []string
-	err = filepath.WalkDir(target, func(filePath string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return turkish.FileError("", filePath, messages.H2109, err)
-		}
-		if d.IsDir() {
-			if filePath != target && (strings.HasPrefix(d.Name(), ".") || d.Name() == "node_modules") {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if strings.HasSuffix(d.Name(), ".tr") {
-			files = append(files, filePath)
-		}
-		return nil
+	return source.WalkFiles(target, ".tr", func(target string, err error) error {
+		return turkish.FileError("", target, messages.H2108, err)
+	}, func(path string, err error) error {
+		return turkish.FileError("", path, messages.H2109, err)
 	})
-	sort.Strings(files)
-	return files, err
 }
