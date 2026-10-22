@@ -20,3 +20,23 @@ func TestClosest(t *testing.T) {
 		}
 	}
 }
+
+// Kural: foldASCII, Türkçe küçük harf kuralı (Lower) ve ASCII karşılıkları (ASCII) birleşimidir;
+// I, İ, ı ve i dördü de i olur, öbür Türkçe harfler ASCII karşılığına iner.
+// Neden: eski ayrı döngü bu iki kuralı yeniden yazıyordu ve I/İ/ı davranışı ayrışabilirdi.
+func TestFoldASCIIFoldsTurkishLetters(t *testing.T) {
+	for in, want := range map[string]string{
+		"Iİıi":          "iiii",
+		"IŞIK":          "isik",
+		"İşler":         "isler",
+		"ÂÎÛ":           "âîû",
+		"değişken_adı":  "degisken_adi",
+		"ÖĞRENME_ORANI": "ogrenme_orani",
+		"a\xffb":        "a\uFFFDb",
+		"":              "",
+	} {
+		if got := foldASCII(in); got != want {
+			t.Errorf("foldASCII(%q) = %q, beklenen %q", in, got, want)
+		}
+	}
+}

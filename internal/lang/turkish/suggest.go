@@ -4,28 +4,7 @@ import "strings"
 
 // foldASCII Türkçe karakterleri ASCII karşılıklarına indirger ve küçük harfe çevirir;
 // böylece 'degisken_adi' ile 'değişken_adı' aynı sözcük sayılır.
-func foldASCII(s string) string {
-	var sb strings.Builder
-	for _, r := range s {
-		switch r {
-		case 'ı', 'I', 'İ':
-			sb.WriteRune('i')
-		case 'ş', 'Ş':
-			sb.WriteRune('s')
-		case 'ğ', 'Ğ':
-			sb.WriteRune('g')
-		case 'ü', 'Ü':
-			sb.WriteRune('u')
-		case 'ö', 'Ö':
-			sb.WriteRune('o')
-		case 'ç', 'Ç':
-			sb.WriteRune('c')
-		default:
-			sb.WriteString(strings.ToLower(string(r)))
-		}
-	}
-	return sb.String()
-}
+func foldASCII(s string) string { return ASCII(Lower(s)) }
 
 // asciiFolder Türkçe harfleri ASCII karşılıklarına çevirir; büyük/küçük harf korunur.
 var asciiFolder = strings.NewReplacer(
