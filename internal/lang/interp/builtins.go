@@ -147,39 +147,27 @@ func stringBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 // rangeBuiltin aralık() yerleşiğidir.
 // Liste: aralık(bitiş) ya da aralık(başlangıç, bitiş)
 func rangeBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
-	if len(args) == 1 {
-		end, ok := args[0].(*IntVal)
-		if !ok {
-			return nil, ArgTypeError(codes.G305, 1, args[0], codes.A200)
-		}
-		if err := checkRangeSize(0, end.Val); err != nil {
-			return nil, err
-		}
-		elems := []Value{}
-		for i := int64(0); i < end.Val; i++ {
-			elems = append(elems, NewInt(i))
-		}
-		return &ListVal{Elements: elems}, nil
+	if len(args) != 1 && len(args) != 2 {
+		return nil, ArgCountError(codes.G305, Counts(1, 2), len(args), messages.Text(messages.H2302), messages.Text(messages.H2303))
 	}
-	if len(args) == 2 {
-		start, ok := args[0].(*IntVal)
+	var bounds [2]int64 // tek argümanda başlangıç 0
+	first := 2 - len(args)
+	for i, arg := range args {
+		n, ok := arg.(*IntVal)
 		if !ok {
-			return nil, ArgTypeError(codes.G305, 1, args[0], codes.A200)
+			return nil, ArgTypeError(codes.G305, i+1, arg, codes.A200)
 		}
-		end, ok := args[1].(*IntVal)
-		if !ok {
-			return nil, ArgTypeError(codes.G305, 2, args[1], codes.A200)
-		}
-		if err := checkRangeSize(start.Val, end.Val); err != nil {
-			return nil, err
-		}
-		elems := []Value{}
-		for i := start.Val; i < end.Val; i++ {
-			elems = append(elems, NewInt(i))
-		}
-		return &ListVal{Elements: elems}, nil
+		bounds[first+i] = n.Val
 	}
-	return nil, ArgCountError(codes.G305, Counts(1, 2), len(args), messages.Text(messages.H2302), messages.Text(messages.H2303))
+	start, end := bounds[0], bounds[1]
+	if err := checkRangeSize(start, end); err != nil {
+		return nil, err
+	}
+	elems := []Value{}
+	for i := start; i < end; i++ {
+		elems = append(elems, NewInt(i))
+	}
+	return &ListVal{Elements: elems}, nil
 }
 
 // sumBuiltin toplam() yerleşiğidir.

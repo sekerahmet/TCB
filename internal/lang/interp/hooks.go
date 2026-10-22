@@ -113,23 +113,23 @@ func lineSuffix(line int, err error) error {
 
 // hookOperator ikili işlemi (varsa) değerlerin işleç kancalarıyla yapar.
 func (v *VM) hookOperator(op string, left, right Value, line int) (Value, bool, error) {
-	if k, ok := left.(TaskOperatorHook); ok {
-		if val, ok, err := k.TaskOperator(v, op, right, false); ok {
-			return val, true, lineSuffix(line, err)
-		}
-	} else if k, ok := left.(OperatorHook); ok {
-		if val, ok, err := k.Operator(op, right, false); ok {
-			return val, true, lineSuffix(line, err)
-		}
+	if val, ok, err := v.tryOperandHook(op, left, right, false); ok {
+		return val, true, lineSuffix(line, err)
 	}
-	if k, ok := right.(TaskOperatorHook); ok {
-		if val, ok, err := k.TaskOperator(v, op, left, true); ok {
-			return val, true, lineSuffix(line, err)
-		}
-	} else if k, ok := right.(OperatorHook); ok {
-		if val, ok, err := k.Operator(op, left, true); ok {
-			return val, true, lineSuffix(line, err)
-		}
+	if val, ok, err := v.tryOperandHook(op, right, left, true); ok {
+		return val, true, lineSuffix(line, err)
+	}
+	return nil, false, nil
+}
+
+// tryOperandHook hedef işlenenin işleç kancasını dener (görev kancası önce); other öbür işlenen,
+// onRight hedefin işlecin sağında olduğunu söyler.
+func (v *VM) tryOperandHook(op string, target, other Value, onRight bool) (Value, bool, error) {
+	if k, ok := target.(TaskOperatorHook); ok {
+		return k.TaskOperator(v, op, other, onRight)
+	}
+	if k, ok := target.(OperatorHook); ok {
+		return k.Operator(op, other, onRight)
 	}
 	return nil, false, nil
 }
