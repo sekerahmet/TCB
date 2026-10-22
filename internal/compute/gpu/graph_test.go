@@ -378,3 +378,35 @@ func TestGraphConstIntsRefillAfterLimit(t *testing.T) {
 		t.Fatalf("ısınmada yüklenen tablo kayıtta bulunmadı: %v", err)
 	}
 }
+
+// Kural: bırakılan bir kaydın çizge tutamacı yeni bir kayda verilmez; yaşayan kayıt, başka bir
+// kayıt bırakıldıktan sonra da oynatılır (benzetici tutamacı bırakılanların sayısından
+// türetiyordu: yeni kayıt yaşayanın tutamacını alıp onu eziyordu).
+func TestGraphHandlesNotReused(t *testing.T) {
+	g := gpuBackend()
+	if !g.CaptureSupported() {
+		t.Skip("sürücü kaydı desteklemiyor")
+	}
+	x := tensor.NewOn(gpuDevice, []float32{1, 2}, 2)
+	x.AddScalar(1).Drop() // ısınma
+	record := func(c float32) (tensor.Recording, *tensor.Tensor) {
+		g.BeginCapture()
+		y := x.AddScalar(c)
+		return g.EndCapture(), y
+	}
+	a, ya := record(1)
+	b, yb := record(2)
+	a.Release()
+	c, yc := record(3) // a bırakıldı: tutamaç yeniden verilmemeli (b'ninki de)
+	defer b.Release()
+	defer c.Release()
+	b.Replay()
+	c.Replay()
+	if got := yb.Data(); got[0] != 3 || got[1] != 4 {
+		t.Fatalf("yaşayan kayıt bozuldu: %v", got)
+	}
+	if got := yc.Data(); got[0] != 4 || got[1] != 5 {
+		t.Fatalf("yeni kayıt: %v", got)
+	}
+	ya.Drop()
+}

@@ -36,10 +36,13 @@ type simDriver struct {
 	allow     map[uintptr]int
 	// Kayıt: capturing doğruyken sıraya konan işler çalıştırılmaz, captured'a eklenir;
 	// kayıt sırasında eşzamanlama gerektiren işlem kaydı bozar (broken; gerçek sürücüde
-	// CUDA_ERROR_STREAM_CAPTURE_IMPLICIT). graphs çizge numarasından iş listesine.
+	// CUDA_ERROR_STREAM_CAPTURE_IMPLICIT). graphs çizge numarasından iş listesine; numaralar
+	// lastGraph'tan artarak verilir, bırakılan çizgenin numarası yeniden verilmez (gerçek
+	// sürücüdeki tutamaçlar gibi tekildir).
 	capturing, broken bool
 	captured          []func() error
 	graphs            map[uintptr][]func() error
+	lastGraph         uintptr
 }
 
 // newSim toplam belleği verilen bir benzetim sürücüsü kurar.
@@ -102,7 +105,8 @@ func (b *simDriver) endCapture() (uintptr, result) {
 	if b.graphs == nil {
 		b.graphs = map[uintptr][]func() error{}
 	}
-	id := uintptr(len(b.graphs) + 1)
+	b.lastGraph++
+	id := b.lastGraph
 	b.graphs[id] = b.captured
 	b.captured = nil
 	return id, succeeded
