@@ -95,15 +95,8 @@ döngü adım içinde 0..300 {
 // Öğrendi mi? Bir diziyi verip tahminleri yazdır.
 değişken deneme = toplu_iş_üret()
 değişken tahmin = türevsiz { ileri(deneme[0]) }
-değişken olasılıklar = tahmin.değer[0] // ilk dizinin [T, V] çıktısı
-değişken tahminler = []
-döngü satır içinde olasılıklar {
-    değişken en_iyi = 0
-    döngü j içinde 0..V {
-        eğer satır[j] > satır[en_iyi] { en_iyi = j }
-    }
-    tahminler.ekle(en_iyi)
-}
+değişken olasılıklar = tahmin[0] // ilk dizinin [T, V] çıktısı
+değişken tahminler = maks_indeks(olasılıklar, eksen: -1).değer // her konumda en büyük olasılığın indeksi
 yazdır("girdi  : {deneme[0][0]}")
 yazdır("tahmin : {tahminler}")
 
