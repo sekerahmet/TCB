@@ -100,12 +100,18 @@ func (ix *index) printTouched(w io.Writer, ts *touchSet, limit int) {
 }
 
 func printLimited(w io.Writer, list []string, limit int, indent string) {
-	for i, l := range list {
+	forEachLimited(w, list, limit, indent, func(l string) string { return l })
+}
+
+// forEachLimited list'in her öğesini indent ile ve line'ın verdiği metinle bir satır yazar; limit > 0
+// ise ilk limit öğeden sonra "... N more (--all lists them)" satırıyla keser.
+func forEachLimited[T any](w io.Writer, list []T, limit int, indent string, line func(T) string) {
+	for i, x := range list {
 		if limit > 0 && i >= limit {
 			fmt.Fprintf(w, "%s... %d more (--all lists them)\n", indent, len(list)-limit)
 			return
 		}
-		fmt.Fprintf(w, "%s%s\n", indent, l)
+		fmt.Fprintf(w, "%s%s\n", indent, line(x))
 	}
 }
 

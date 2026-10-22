@@ -184,13 +184,7 @@ func (ix *index) printGroups(w io.Writer, heading string, edges []*Edge, otherOf
 			return a.Line < b.Line
 		})
 		fmt.Fprintf(w, "%s %s (%d):\n", heading, k, len(list))
-		for i, e := range list {
-			if limit > 0 && i >= limit {
-				fmt.Fprintf(w, "    ... %d more (--all lists them)\n", len(list)-limit)
-				break
-			}
-			fmt.Fprintf(w, "    %s\n", ix.edgeLine(e, otherOf(e), site))
-		}
+		forEachLimited(w, list, limit, "    ", func(e *Edge) string { return ix.edgeLine(e, otherOf(e), site) })
 	}
 }
 

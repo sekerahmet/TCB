@@ -104,13 +104,9 @@ func (ix *index) printIndirect(w io.Writer, list []indirectTest, limit int) {
 		return
 	}
 	fmt.Fprintf(w, "  <- tests, indirect (%d, through calls, up to %d steps):\n", len(list), maxTestDepth)
-	for i, it := range list {
-		if limit > 0 && i >= limit {
-			fmt.Fprintf(w, "    ... %d more (--all lists them)\n", len(list)-limit)
-			break
-		}
-		fmt.Fprintf(w, "    %s  %d steps via %s  [INFERRED]\n", describe(it.test), it.steps, it.via.Name)
-	}
+	forEachLimited(w, list, limit, "    ", func(it indirectTest) string {
+		return fmt.Sprintf("%s  %d steps via %s  [INFERRED]", describe(it.test), it.steps, it.via.Name)
+	})
 }
 
 // printGuardedRules testlerin koruduğu kuralları (rule düğümleri) yazar.
@@ -139,11 +135,5 @@ func (ix *index) printGuardedRules(w io.Writer, tests []*Edge, indirect []indire
 		return
 	}
 	fmt.Fprintf(w, "  rules guarded by these tests (%d):\n", len(ids))
-	for i, id := range ids {
-		if limit > 0 && i >= limit {
-			fmt.Fprintf(w, "    ... %d more (--all lists them)\n", len(ids)-limit)
-			break
-		}
-		fmt.Fprintf(w, "    %s\n", describe(ix.byID[id]))
-	}
+	forEachLimited(w, ids, limit, "    ", func(id string) string { return describe(ix.byID[id]) })
 }
