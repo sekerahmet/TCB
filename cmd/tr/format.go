@@ -32,13 +32,9 @@ func formatCommand(args []string) {
 		exitWithError(messages.Text(messages.H8691, codes.DisplayName(codes.K008), codes.OptionFlag(codes.K101)))
 	}
 
-	var files []string
-	for _, h := range targets {
-		d, err := trFiles(h)
-		if err != nil {
-			exitWithError(err)
-		}
-		files = append(files, d...)
+	files, err := collectTrFiles(targets)
+	if err != nil {
+		exitWithError(err)
 	}
 
 	changed, faulty := 0, 0
@@ -68,13 +64,8 @@ func formatCommand(args []string) {
 			fmt.Println(messages.Text(messages.H8693, filePath))
 			continue
 		}
-		info, _ := os.Stat(filePath)
-		perm := fs.FileMode(0644)
-		if info != nil {
-			perm = info.Mode().Perm()
-		}
-		if err := os.WriteFile(filePath, []byte(updated), perm); err != nil {
-			fmt.Fprintf(os.Stderr, "✗ %v\n", turkish.FileError("", filePath, messages.H2101, err))
+		if err := writeInPlace(filePath, updated); err != nil {
+			fmt.Fprintf(os.Stderr, "✗ %v\n", err)
 			faulty++
 			continue
 		}

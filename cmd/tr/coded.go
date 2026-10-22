@@ -107,13 +107,9 @@ func convertCommand(args []string, command, verb string, convert func(string) (s
 	if len(args) == 0 {
 		exitWithError(messages.Text(messages.H8703, command))
 	}
-	var files []string
-	for _, h := range args {
-		d, err := trFiles(h)
-		if err != nil {
-			exitWithError(err)
-		}
-		files = append(files, d...)
+	files, err := collectTrFiles(args)
+	if err != nil {
+		exitWithError(err)
 	}
 	changed, faulty := 0, 0
 	for _, filePath := range files {
@@ -145,6 +141,20 @@ func convertCommand(args []string, command, verb string, convert func(string) (s
 		fmt.Println(messages.Text(messages.H8707, faulty))
 		os.Exit(1)
 	}
+}
+
+// collectTrFiles komut satırı hedeflerinin (dosya ya da klasör) .tr dosyalarını sırayla toplar;
+// ilk açılamayan hedefin hatasını döndürür.
+func collectTrFiles(targets []string) ([]string, error) {
+	var files []string
+	for _, h := range targets {
+		d, err := trFiles(h)
+		if err != nil {
+			return nil, err
+		}
+		files = append(files, d...)
+	}
+	return files, nil
 }
 
 // writeInPlace dosyayı izinlerini koruyarak yeniden yazar.
