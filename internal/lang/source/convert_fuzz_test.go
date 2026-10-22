@@ -2,12 +2,11 @@ package source
 
 import (
 	"errors"
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
-	"github.com/sekerahmet/TCB/internal/reporoot"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // FuzzEncodeDecode: rastgele Türkçe kaynakta kodlu biçim kayıpsızdır (17.4). Ayrıştırılabilen her
@@ -17,11 +16,7 @@ import (
 //
 //	go test ./internal/lang/source -run '^$' -fuzz FuzzEncodeDecode -fuzztime 5m
 func FuzzEncodeDecode(f *testing.F) {
-	for _, path := range []string{"examples/tr/08_fonksiyonlar.tr", "examples/tr/17_testler_test.tr", "tests/yapilar_test.tr", "tests/sozcuk_yapisi_test.tr"} {
-		if data, err := os.ReadFile(reporoot.Path(path)); err == nil {
-			f.Add(string(data))
-		}
-	}
+	testkit.TRSeeds(f)
 	for _, s := range []string{"\xef\xbb\xbfyazdır(1)\r\n", "değişken $eğer = 1", "yazdır(\"{\"{toplam([1])}\"}\")", Header + "\nG100(1)", "//! tr kodlu 9", "`{eğer}` // yazdır"} {
 		f.Add(s)
 	}
