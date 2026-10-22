@@ -245,3 +245,43 @@ func TestSharedGradStorage16Bit(t *testing.T) {
 		})
 	}
 }
+
+// Warp çekirdekleri 16 bitte (bf16, f16; gradyan float32 ya da 16 bit) CPU ile aynıdır; As biçimi
+// float32 norm ardından dönüşümle bit düzeyinde aynıdır.
+func TestNormsWarp16Bit(t *testing.T) {
+	old := tensor.GradDType()
+	defer tensor.SetGradDType(old)
+	rng := rand.New(rand.NewSource(23))
+	for _, dt := range []tensor.DType{tensor.BFloat16, tensor.Float16} {
+		for _, gt := range []tensor.DType{tensor.Float32, dt} {
+			tensor.SetGradDType(gt)
+			for _, d := range [][2]int{{37, 64}, {9, 256}, {300, 512}, {3, 32}} {
+				R, D := d[0], d[1]
+				xv, gv, bv := random(rng, R*D, 2), random(rng, D, 1), random(rng, D, 1)
+				name := fmt.Sprintf("%s (gradyan %s) %d×%d", dt, gt, R, D)
+				compare(t, "rms "+name, 2e-2, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+					x, gm := twin(xv, true, R, D)[c], twin(gv, true, D)[c]
+					return tensor.RMSNorm(x.Cast(dt), gm.Cast(dt), 1e-5).Cast(tensor.Float32), []*tensor.Tensor{x, gm}
+				})
+				compare(t, "katman "+name, 2e-2, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+					x, gm, bt := twin(xv, true, R, D)[c], twin(gv, true, D)[c], twin(bv, true, D)[c]
+					return tensor.LayerNorm(x.Cast(dt), gm, bt, 1e-5).Cast(tensor.Float32), []*tensor.Tensor{x, gm, bt}
+				})
+			}
+			T, H, D := 11, 3, 64
+			kv, gv := random(rng, T*2*H*D, 2), random(rng, D, 1)
+			compare(t, fmt.Sprintf("adımlı %s (gradyan %s)", dt, gt), 2e-2, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+				base, gm := twin(kv, true, T, 2, H, D)[c], twin(gv, true, D)[c]
+				return tensor.RMSNorm(base.Cast(dt).Slice(1, 0, 1), gm.Cast(dt), 1e-5).Cast(tensor.Float32), []*tensor.Tensor{base, gm}
+			})
+		}
+		for _, d := range [][2]int{{37, 64}, {9, 256}} {
+			R, D := d[0], d[1]
+			xv, gv, bv := random(rng, R*D, 2), random(rng, D, 1), random(rng, D, 1)
+			x, gm, bt := tensor.NewOn(gpuDevice, xv, R, D), tensor.NewOn(gpuDevice, gv, D), tensor.NewOn(gpuDevice, bv, D)
+			name := fmt.Sprintf("%s %d×%d", dt, R, D)
+			bitsEqual(t, "rms çıktısı "+name, tensor.RMSNormAs(x, gm, 1e-5, dt), tensor.RMSNorm(x, gm, 1e-5).Cast(dt))
+			bitsEqual(t, "katman çıktısı "+name, tensor.LayerNormAs(x, gm, bt, 1e-5, dt), tensor.LayerNorm(x, gm, bt, 1e-5).Cast(dt))
+		}
+	}
+}

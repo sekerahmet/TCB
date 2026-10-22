@@ -142,6 +142,69 @@ func TestNormsWarpRows(t *testing.T) {
 	}
 }
 
+// Warp başına birden çok satır (benzetimde 4 SM: en çok 32 blok, R > 256 gerekir) ve adımlı
+// katman normu, yer değiştirmiş ön eksenler, üç düzeyli (kopyaya düşen) görünüm CPU ile aynıdır.
+func TestNormsWarpShapes(t *testing.T) {
+	rng := rand.New(rand.NewSource(77))
+	// Warp başına birden çok satır (benzetimde 4 SM: P ≤ 32 blok).
+	for _, d := range [][2]int{{1000, 64}, {2000, 512}, {300, 32}, {777, 256}, {8, 64}, {257, 512}} {
+		R, D := d[0], d[1]
+		xv, gv, bv := random(rng, R*D, 2), random(rng, D, 1), random(rng, D, 1)
+		compare(t, fmt.Sprintf("rms %d×%d", R, D), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+			x, gm := twin(xv, true, R, D)[c], twin(gv, true, D)[c]
+			return tensor.RMSNorm(x, gm, 1e-5), []*tensor.Tensor{x, gm}
+		})
+		compare(t, fmt.Sprintf("katman %d×%d", R, D), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+			x, gm, bt := twin(xv, true, R, D)[c], twin(gv, true, D)[c], twin(bv, true, D)[c]
+			return tensor.LayerNorm(x, gm, bt, 1e-5), []*tensor.Tensor{x, gm, bt}
+		})
+	}
+	// Adımlı katman normu, yer değiştirmiş ön eksenler, üç düzey (kopyaya düşer).
+	T, H := 13, 3
+	for _, D := range []int{32, 256, 512} {
+		kv, gv, bv := random(rng, T*2*H*D, 2), random(rng, D, 1), random(rng, D, 1)
+		compare(t, fmt.Sprintf("adımlı katman D=%d", D), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+			base, gm, bt := twin(kv, true, T, 2, H, D)[c], twin(gv, true, D)[c], twin(bv, true, D)[c]
+			return tensor.LayerNorm(base.Slice(1, 1, 2), gm, bt, 1e-5), []*tensor.Tensor{base, gm, bt}
+		})
+		compare(t, fmt.Sprintf("yer değiştirmiş D=%d", D), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+			base, gm := twin(kv, true, 2*H, T, D)[c], twin(gv, true, D)[c]
+			return tensor.RMSNorm(base.Transpose(0, 1), gm, 1e-5), []*tensor.Tensor{base, gm}
+		})
+		compare(t, fmt.Sprintf("üç düzey D=%d", D), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+			base, gm := twin(kv, true, T, 2, H, D)[c], twin(gv, true, D)[c]
+			v := base.SliceStep(0, 0, T, 2).Slice(1, 0, 1).Slice(2, 0, 2)
+			return tensor.RMSNorm(v, gm, 1e-5), []*tensor.Tensor{base, gm}
+		})
+	}
+}
+
+// Adım 0 (yayın) satırları doğrudan arka uçla: her satır aynı x satırının normudur.
+func TestNormsWarpZeroStride(t *testing.T) {
+	g := gpuBackend()
+	rng := rand.New(rand.NewSource(5))
+	R, D := 19, 64
+	row, gm := random(rng, D, 2), random(rng, D, 1)
+	xs, gs := g.FromHost(row, tensor.Float32), g.FromHost(gm, tensor.Float32)
+	out := g.allocate(R*D, tensor.Float32, false)
+	gview := tensor.View{S: gs, Shape: []int{D}, Strides: []int{1}}
+	g.normForward(out, tensor.View{S: xs, Shape: []int{R, D}, Strides: []int{0, 1}}, &gview, nil, D, 1e-5, false)
+	y := g.ToHost(tensor.View{S: out, Shape: []int{R, D}, Strides: []int{D, 1}})
+	q := 0.0
+	for _, v := range row {
+		q += float64(v) * float64(v)
+	}
+	rs := 1 / math.Sqrt(q/float64(D)+1e-5)
+	for r := 0; r < R; r++ {
+		for j := 0; j < D; j++ {
+			want := float64(row[j]) * rs * float64(gm[j])
+			if d := math.Abs(float64(y[r*D+j]) - want); d > 1e-5*(1+math.Abs(want)) {
+				t.Fatalf("satır %d sütun %d: %v, beklenen %v", r, j, y[r*D+j], want)
+			}
+		}
+	}
+}
+
 func TestEmbedding(t *testing.T) {
 	rng := rand.New(rand.NewSource(11))
 	V, D := 50, 13

@@ -321,7 +321,7 @@ func (g *backend) normBackwardFused(gt *temp, dx *storage, ggamma tensor.Storage
 }
 
 // normBackwardWarp γ'nın gradyanı istenen geri yönü warp çekirdeğiyle yürütür (normWarpGradD):
-// satırlar blok parçalarına bölünür (normBackwardFused ile aynı sayıda blok), x iki düzeyli
+// satırlar blok parçalarına bölünür (normBackwardFused ile SM başına aynı iş parçacığı sayısı: 2048), x iki düzeyli
 // adımla yerinde okunur, γ'nın kısmi toplamları [P, D] sabit sırayla toplanır.
 func (g *backend) normBackwardWarp(gt *temp, gx, ggamma tensor.Storage, gd *storage, x tensor.View, gamma *tensor.View, avg, rstd tensor.Storage, R, D, H, S0, S1 int, layer bool) {
 	gv := gt.readNativeP(gamma)
