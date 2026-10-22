@@ -415,7 +415,7 @@ def evaluate(model, valid, tc, device, ctx):
 # ======================================================================================================== eğitim
 def train(a, model_kw=None):
     cfg, tc = Config(vocab_size=a.vocab, eos_id=a.eos, **(model_kw or {})), TrainConfig(seq_len=a.seq_len, batch_size=a.batch,
-                                                                    micro_batch=a.micro, lr=a.lr, compile=not a.no_compile)
+                                                                    micro_batch=a.micro, lr=a.lr, compile=not a.no_compile, seed=a.seed)
     os.makedirs(a.out, exist_ok=True)
     ck = os.path.join(a.out, "ckpt.pt")
     state = torch.load(ck, map_location="cpu", weights_only=False) if a.resume and os.path.exists(ck) else None
@@ -569,6 +569,7 @@ def parser():
     ap.add_argument("--batch", type=int, default=64)
     ap.add_argument("--micro", type=int, default=32)
     ap.add_argument("--lr", type=float, default=2e-3)
+    ap.add_argument("--seed", type=int, default=0, help="model başlangıcı ve toplu iş sırası")
     ap.add_argument("--no_compile", action="store_true")
     ap.add_argument("--ckpt", default="")
     ap.add_argument("--tokenizer", default="")
