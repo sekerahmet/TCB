@@ -91,7 +91,7 @@ func (t *temp) readD(s tensor.Storage) *storage {
 	if d.dtype == tensor.Float32 {
 		return d
 	}
-	return t.g.storageOf(t.read(tensor.View{S: d, Shape: []int{d.n}, Strides: []int{1}}).S)
+	return t.g.storageOf(t.read(plainV(d)).S)
 }
 
 // write hedefin float32 karşılığını ve geri yazma işlevini verir; eski doğruysa geçici
@@ -105,7 +105,6 @@ func (t *temp) write(s tensor.Storage, old bool) (*storage, func()) {
 		return d, func() {}
 	}
 	tmp := t.buffer(d.n, !old)
-	plainV := func(x *storage) tensor.View { return tensor.View{S: x, Shape: []int{x.n}, Strides: []int{1}} }
 	if old {
 		t.g.copyStrided(plainV(tmp), plainV(d), false, 0)
 	}
@@ -163,8 +162,7 @@ func (g *backend) FromHost(data []float32, dt tensor.DType) tensor.Storage {
 	defer gt.finish()
 	tmp := gt.buffer(n, false)
 	g.loadHost(tmp, unsafe.Pointer(&data[0]), 4*n)
-	plain := []int{n}
-	g.copyStrided(tensor.View{S: d, Shape: plain, Strides: []int{1}}, tensor.View{S: tmp, Shape: plain, Strides: []int{1}}, false, 0)
+	g.copyStrided(plainV(d), plainV(tmp), false, 0)
 	return d
 }
 

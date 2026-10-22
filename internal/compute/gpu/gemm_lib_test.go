@@ -21,9 +21,7 @@ func TestGemmLibraryMatchesOwnKernel(t *testing.T) {
 	for _, d := range [][4]int{{1, 1, 1, 1}, {1, 130, 70, 33}, {3, 65, 129, 31}, {2, 512, 512, 512}, {1, 1000, 7, 1024}} {
 		b, M, K, N := d[0], d[1], d[2], d[3]
 		av, bv, cv := random(rng, b*M*K, 1), random(rng, b*K*N, 1), random(rng, b*M*N, 1)
-		v := func(s tensor.Storage, n int) tensor.View {
-			return tensor.View{S: s, Shape: []int{n}, Strides: []int{1}}
-		}
+		v := flatView
 		for _, ta := range []bool{false, true} {
 			for _, tb := range []bool{false, true} {
 				for _, uz := range []bool{false, true} {
@@ -62,9 +60,7 @@ func TestGemmLibrary16Bit(t *testing.T) {
 		t.Skip("kitaplık yok: " + g.gemmPath())
 	}
 	rng := rand.New(rand.NewSource(37))
-	v := func(s tensor.Storage, n int) tensor.View {
-		return tensor.View{S: s, Shape: []int{n}, Strides: []int{1}}
-	}
+	v := flatView
 	for _, dt := range []tensor.DType{tensor.BFloat16, tensor.Float16} {
 		for _, d := range [][4]int{{1, 64, 64, 64}, {3, 130, 72, 40}, {1, 1024, 512, 2048}} {
 			b, M, K, N := d[0], d[1], d[2], d[3]
