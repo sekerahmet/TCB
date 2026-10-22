@@ -121,24 +121,14 @@ func (x *indexer) blockEnd(f *file, start int) (line, endCol int) {
 	depth, opened := 0, false
 	for i := start - 1; i < len(f.lines); i++ {
 		text := f.lines[i]
-		inStr := false
-		for j := 0; j < len(text); j++ {
-			c := text[j]
-			switch {
-			case inStr:
-				if c == '\\' {
-					j++
-				} else if c == '"' {
-					inStr = false
-				}
-			case c == '"':
-				inStr = true
-			case c == '/' && j+1 < len(text) && text[j+1] == '/':
-				j = len(text)
-			case c == '{':
+		runes := []rune(text)
+		sc := newCodeScanner(runes, 0, len(runes), true)
+		for _, c, ok := sc.next(); ok; _, c, ok = sc.next() {
+			switch c {
+			case '{':
 				depth++
 				opened = true
-			case c == '}':
+			case '}':
 				depth--
 			}
 		}
@@ -158,24 +148,13 @@ func (x *indexer) blockEnd(f *file, start int) (line, endCol int) {
 func valueEnd(f *file, start int) (line, endCol int) {
 	depth := 0
 	for i := start - 1; i < len(f.lines); i++ {
-		text := f.lines[i]
-		inStr := false
-		for j := 0; j < len(text); j++ {
-			c := text[j]
-			switch {
-			case inStr:
-				if c == '\\' {
-					j++
-				} else if c == '"' {
-					inStr = false
-				}
-			case c == '"':
-				inStr = true
-			case c == '/' && j+1 < len(text) && text[j+1] == '/':
-				j = len(text)
-			case c == '(' || c == '[' || c == '{':
+		runes := []rune(f.lines[i])
+		sc := newCodeScanner(runes, 0, len(runes), true)
+		for _, c, ok := sc.next(); ok; _, c, ok = sc.next() {
+			switch c {
+			case '(', '[', '{':
 				depth++
-			case c == ')' || c == ']' || c == '}':
+			case ')', ']', '}':
 				depth--
 			}
 		}
