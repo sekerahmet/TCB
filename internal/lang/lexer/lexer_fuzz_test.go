@@ -1,28 +1,10 @@
 package lexer
 
 import (
-	"io/fs"
-	"os"
-	"path/filepath"
-	"strings"
 	"testing"
 
-	"github.com/sekerahmet/TCB/internal/reporoot"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
-
-// trSeeds depodaki bütün .tr dosyalarını (tests/, examples/, lib/) tohum olarak ekler.
-func trSeeds(f *testing.F) {
-	for _, dir := range []string{"tests", "examples", "lib"} {
-		_ = filepath.WalkDir(filepath.Join(reporoot.Root(), dir), func(path string, g fs.DirEntry, err error) error {
-			if err == nil && !g.IsDir() && strings.HasSuffix(path, ".tr") {
-				if data, err := os.ReadFile(path); err == nil {
-					f.Add(string(data))
-				}
-			}
-			return nil
-		})
-	}
-}
 
 // FuzzLexer: kaynak kod güvenilmeyen girdidir ('tr kontrol', biçimlendirici ve
 // düzenleyici bir dosyayı çalıştırmadan okur). Sözcük çözümleyici hiçbir girdide çökmemeli,
@@ -31,7 +13,7 @@ func trSeeds(f *testing.F) {
 //
 //	go test ./internal/lang/lexer -run '^$' -fuzz FuzzLexer -fuzztime 5m
 func FuzzLexer(f *testing.F) {
-	trSeeds(f)
+	testkit.TRSeeds(f)
 	for _, s := range []string{"\ufeff", `"{'{"{}"}'}"`, "\"\\", "'''", "1e999999", "0x", "/*", "#", "\x00", "\xff\xfe"} {
 		f.Add(s)
 	}
