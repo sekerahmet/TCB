@@ -571,7 +571,7 @@ func unaryLoop(op UnOp, p float32, y, x []float32) {
 		}
 	case OpTanh:
 		for i, v := range x {
-			y[i] = tanh32(v)
+			y[i] = tanhf32(v)
 		}
 	case OpRelu:
 		for i, v := range x {
@@ -732,10 +732,8 @@ func (cpuBackend) f32UnaryGrad(op UnOp, p float32, gx, g Storage, x View, y Stor
 }
 
 // float32 yardımcıları
-func exp32(x float32) float32  { return expf32(x) }
 func log32(x float32) float32  { return float32(math.Log(float64(x))) }
 func sqrt32(x float32) float32 { return float32(math.Sqrt(float64(x))) }
-func tanh32(x float32) float32 { return tanhf32(x) }
 
 // Compile-time checks: optional backend interfaces are found by type assertion, so a renamed
 // method would otherwise drop a fast path silently.
