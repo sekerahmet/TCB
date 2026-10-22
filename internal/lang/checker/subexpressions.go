@@ -95,9 +95,7 @@ func (c *Checker) functionBody(e *ast.FunctionLiteral, retType string) {
 		c.returnType = retType
 	}
 	for _, p := range e.Parameters {
-		c.checkShadowing(p.Name, e.Line())
-		c.checkNameStyle(p.Name, kindValue, e.Line())
-		c.scope.Define(p.Name, TypeInfo{TypeName: normalizeTypeName(p.TypeName)})
+		c.defineName(p.Name, kindValue, e.Line(), TypeInfo{TypeName: normalizeTypeName(p.TypeName)})
 	}
 	for _, p := range e.Parameters {
 		if p.DefaultValue != nil {

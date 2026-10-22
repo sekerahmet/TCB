@@ -97,6 +97,15 @@ func (c *Checker) Warnings() []error {
 	return c.warnings
 }
 
+// defineName bir adı kapsama tanımlar: önce gölgeleme uyarısı, sonra yazım kuralı denetimi, en
+// sonda kapsam kaydı. Değeri çıkarılacak tanımlarda (değişken bildirimi) kayıt değerden sonra
+// yapılır; onlar bu yardımcıyı kullanmaz.
+func (c *Checker) defineName(name string, kind nameKind, line int, info TypeInfo) {
+	c.checkShadowing(name, line)
+	c.checkNameStyle(name, kind, line)
+	c.scope.Define(name, info)
+}
+
 // checkShadowing ad bir yerleşik fonksiyonun adıysa (sözlükte G/T/V/W yerleşik kodu) uyarı
 // ekler: kullanıcı tanımı o kapsamda yerleşiği gölgeler; yerleşik orada artık çağrılamaz.
 func (c *Checker) checkShadowing(name string, line int) {
@@ -170,13 +179,9 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		prev := c.scope
 		c.scope = NewScope(prev)
 		if s.KeyVar != "" {
-			c.checkShadowing(s.KeyVar, s.Line())
-			c.checkNameStyle(s.KeyVar, kindVariable, s.Line())
-			c.scope.Define(s.KeyVar, TypeInfo{TypeName: typeAny})
+			c.defineName(s.KeyVar, kindVariable, s.Line(), TypeInfo{TypeName: typeAny})
 		}
-		c.checkShadowing(s.ValueVar, s.Line())
-		c.checkNameStyle(s.ValueVar, kindVariable, s.Line())
-		c.scope.Define(s.ValueVar, TypeInfo{TypeName: typeAny})
+		c.defineName(s.ValueVar, kindVariable, s.Line(), TypeInfo{TypeName: typeAny})
 		for _, bs := range s.Body.Statements {
 			c.checkStatement(bs)
 		}
@@ -194,10 +199,8 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		if s.CatchBody != nil {
 			catchLine = s.CatchBody.Line()
 		}
-		c.checkShadowing(s.ErrorVar, catchLine)
-		c.checkNameStyle(s.ErrorVar, kindVariable, catchLine)
 		// Yakalanan hata Metin'dir, ama değişken açıklamasızdır: sonra başka tipte değer alabilir.
-		c.scope.Define(s.ErrorVar, TypeInfo{TypeName: typeAny})
+		c.defineName(s.ErrorVar, kindVariable, catchLine, TypeInfo{TypeName: typeAny})
 		for _, bs := range s.CatchBody.Statements {
 			c.checkStatement(bs)
 		}
@@ -220,9 +223,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 			c.inferExpression(v)
 		}
 		for _, name := range s.Names {
-			c.checkShadowing(name.Value, s.Line())
-			c.checkNameStyle(name.Value, varKind(s.IsConst), s.Line())
-			c.scope.Define(name.Value, TypeInfo{TypeName: typeAny, IsConst: s.IsConst})
+			c.defineName(name.Value, varKind(s.IsConst), s.Line(), TypeInfo{TypeName: typeAny, IsConst: s.IsConst})
 		}
 
 	case *ast.MultiAssignStatement:
@@ -346,9 +347,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 	case *ast.FunctionLiteral:
 		paramTypes, retType := c.functionSignature(e)
 		if e.Name != "" {
-			c.checkShadowing(e.Name, e.Line())
-			c.checkNameStyle(e.Name, kindValue, e.Line())
-			c.scope.Define(e.Name, TypeInfo{
+			c.defineName(e.Name, kindValue, e.Line(), TypeInfo{
 				TypeName:   typeFunction,
 				ParamTypes: paramTypes,
 				ReturnType: retType,
