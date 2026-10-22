@@ -91,11 +91,11 @@ A020 forward(inputs, b) {
     A010 L A011 layers {
         // Pre-normalization block: attention, then feed-forward
         A030 a = T501(x, L["g1"], L["s1"])
-        A030 q = (a @ L["Wq"]).Y410([b, T, H, Dh]).Y412([0, 2, 1, 3])
-        A030 k = (a @ L["Wk"]).Y410([b, T, H, Dh]).Y412([0, 2, 1, 3])
-        A030 v = (a @ L["Wv"]).Y410([b, T, H, Dh]).Y412([0, 2, 1, 3])
+        A030 q = (a @ L["Wq"]).Y410([b, T, H, Dh])
+        A030 k = (a @ L["Wk"]).Y410([b, T, H, Dh])
+        A030 v = (a @ L["Wv"]).Y410([b, T, H, Dh])
         // Causal attention, scale 1/√Dh = 0.25 (same as softmax(q·kᵀ·0.25 + causal mask) · v)
-        A030 y = T503(q, k, v).Y412([0, 2, 1, 3]).Y410([b, T, D])
+        A030 y = T503(q, k, v).Y410([b, T, D])
         x = x + y @ L["Wo"]
         A030 m = T501(x, L["g2"], L["s2"])
         x = x + T203(m @ L["W1"]) @ L["W2"]

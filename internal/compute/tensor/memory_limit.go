@@ -186,13 +186,20 @@ func checkElem(n int, dt DType) int {
 // ör. GPU belleği) denetler; şekli bilinen ve bir arka uçta ayrılan her tensör buradan
 // geçer.
 func allocSizeOn(be Backend, is opKind, shape []int, dt DType) int {
+	n := checkAllocOn(be, is, shape, dt)
+	counterBytes(be, dt.StorageBytes(n))
+	return n
+}
+
+// checkAllocOn allocSizeOn'un denetimidir (sayaç işlemez): ayırma başka bir şekille yapılacaksa
+// (dikkatin bakış önde yolu) hata kullanıcının gördüğü şekille önceden verilir.
+func checkAllocOn(be Backend, is opKind, shape []int, dt DType) int {
 	n := allocSize(is, shape, dt)
 	if l, ok := be.(MemoryLimiter); ok {
 		if byteN := uint64(dt.StorageBytes(n)); byteN > uint64(l.MemoryLimit()) {
 			panic(limitErrorAt(is, shape, dt, false, l.MemoryLimit(), l.MemoryPlace()))
 		}
 	}
-	counterBytes(be, dt.StorageBytes(n))
 	return n
 }
 

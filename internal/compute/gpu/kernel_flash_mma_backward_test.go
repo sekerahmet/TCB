@@ -37,9 +37,9 @@ func TestFlashMmaBackward(t *testing.T) {
 			kv := random(rng, d.B*d.Hkv*d.Tk*d.Dh, 1)
 			vv := random(rng, d.B*d.Hkv*d.Tk*d.Dv, 1)
 			compare(t, ad, 3e-2, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
-				q := twin(qv, true, d.B, d.H, d.Tq, d.Dh)[c]
-				k := twin(kv, true, d.B, d.Hkv, d.Tk, d.Dh)[c]
-				v := twin(vv, true, d.B, d.Hkv, d.Tk, d.Dv)[c]
+				q := twin(qv, true, d.B, d.Tq, d.H, d.Dh)[c]
+				k := twin(kv, true, d.B, d.Tk, d.Hkv, d.Dh)[c]
+				v := twin(vv, true, d.B, d.Tk, d.Hkv, d.Dv)[c]
 				out := tensor.AttentionOut(q.Cast(dt), k.Cast(dt), v.Cast(dt), d.opt, tensor.Float32)
 				return out, []*tensor.Tensor{q, k, v}
 			})

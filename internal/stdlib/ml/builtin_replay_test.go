@@ -398,8 +398,8 @@ func TestReplayAttentionMaskViewsAndPLEGeneration(t *testing.T) {
 	defer tensor.SetDefaultDevice(tensor.CPU)
 	out := mustRun(t, `varsayılan_cihaz("gpu")
 değişken q = birler([1, 1, 1, 4])
-değişken k = birler([1, 1, 4, 4])
-değişken v = tensör([[[[1.0, 2.0, 3.0, 4.0], [5.0, 6.0, 7.0, 8.0], [1.0, 1.0, 1.0, 1.0], [2.0, 2.0, 2.0, 2.0]]]])
+değişken k = birler([1, 4, 1, 4])
+değişken v = tensör([[[[1.0, 2.0, 3.0, 4.0]], [[5.0, 6.0, 7.0, 8.0]], [[1.0, 1.0, 1.0, 1.0]], [[2.0, 2.0, 2.0, 2.0]]]])
 değişken tampon = tensör([[1.0, 0.0, 0.0, 0.0], [1.0, 1.0, 0.0, 0.0]])
 değişken f = tekrar_oynat((m) => dikkat(q, k, v, nedensel: yanlış, maske: m))
 türevsiz {

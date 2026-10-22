@@ -27,18 +27,23 @@ type AttentionOptions struct {
 	// Nedensel değilse pencere iki yönlüdür: |Tk-Tq+i - j| < Window.
 	Window int
 	// Mask isteğe bağlı 0/1 maskesidir (sıfırdan farklı = bakılır); şekli
-	// [..., H, Tq, Tk]'ye yayınlanabilir olmalıdır. Türev izlenmez.
+	// [..., H, Tq, Tk]'ye yayınlanabilir olmalıdır (girdilerin düzeninden bağımsız; JAX'ta da
+	// maske BNTS'dir). Türev izlenmez.
 	Mask *Tensor
 	// Scale puanların ölçeğidir; 0 ise 1/√dh.
 	Scale float32
 }
 
 // AttentionParams arka uca verilen, şekilleri çözülmüş dikkat tanımıdır. q, k,
-// v görünümleri bitişiktir: q [Batch, H, Tq, Dh], k [Batch, Hkv, Tk, Dh],
-// v [Batch, Hkv, Tk, Dv]. H, Hkv'nin katıdır; bakış h, k/v bakışı h/(H/Hkv)'yi
-// kullanır (GQA: k ve v kopyalanmaz).
+// v görünümleri bitişiktir. SeqMajor ise düzen dilinkidir (dil tanımı 15.17; JAX
+// dot_product_attention ve FlashAttention gibi): q [Batch, Tq, H, Dh], k [Batch, Tk, Hkv, Dh],
+// v [Batch, Tk, Hkv, Dv], çıktı ve gradyanlar da öyle. Değilse bakış öndedir: q [Batch, H, Tq,
+// Dh] ... (arka ucun yeni düzeni desteklemediği durum; AttentionOut girdileri görünüm olarak
+// çevirir). H, Hkv'nin katıdır; bakış h, k/v bakışı h/(H/Hkv)'yi kullanır (GQA: k ve v
+// kopyalanmaz). lse her iki düzende [Batch, H, Tq]'dur.
 type AttentionParams struct {
 	Batch, H, Hkv, Tq, Tk, Dh, Dv int
+	SeqMajor                      bool
 	Causal                        bool
 	Window                        int
 	Scale                         float32
@@ -108,24 +113,79 @@ func Attention(q, k, v *Tensor, opt AttentionOptions) *Tensor {
 // AttentionOut çıktı türü açıkça verilen birleşik dikkattir (karışık
 // hassasiyet: 16 bitlik girdiler, float32 biriktirme ve çıktı).
 //
-// Şekiller: q [..., H, Tq, dh], k [..., Hkv, Tk, dh], v [..., Hkv, Tk, dv];
+// Şekiller: q [..., Tq, H, dh], k [..., Tk, Hkv, dh], v [..., Tk, Hkv, dv];
 // öndeki eksenler eşit olmalıdır. 2 boyutlu girdiler tek bakışlı sayılır.
-// Sonuç [..., H, Tq, dv] şeklindedir. Hiçbir anahtara bakamayan sorgu
-// satırının çıktısı 0'dır (gradyanı da 0).
+// Sonuç [..., Tq, H, dv] şeklindedir. Hiçbir anahtara bakamayan sorgu
+// satırının çıktısı 0'dır (gradyanı da 0). Bakışlar doğrusal katmanın
+// çıktısını şekillendirmekle ayrılır, eksen sıralama ve kopya gerekmez.
 func AttentionOut(q, k, v *Tensor, opt AttentionOptions, outType DType) *Tensor {
 	be := sameDevice("attention", q, k, v)
-	sy := counterStart(be, OpKindAttention).start()
 	p := attentionParams(q, k, v, opt)
+	if opt.Mask != nil && opt.Mask.Device() != q.Device() {
+		panic(messages.New(messages.H3002, opt.Mask.Device(), q.Device()))
+	}
+	whole := []int{p.Tq, p.Tk}
+	if nd := len(q.shape); nd >= 3 {
+		whole = append(copyInts(q.shape[:nd-3]), p.H, p.Tq, p.Tk)
+	}
+	if len(q.shape) >= 3 && !seqMajorNative(be, q, k, v, opt.Mask != nil, p) {
+		// Arka uç bu tanımı bakış önde hesaplar: girdiler görünüm olarak çevrilir, sonuç
+		// geri çevrilmiş bir görünümdür; geri yön eksen sıralamanın türeviyle gelir.
+		out := copyInts(q.shape)
+		out[len(out)-1] = p.Dv
+		checkAllocOn(be, isAttention, out, outType)
+		h := swapHeadAxis(len(q.shape))
+		return attend(be, q.Permute(h...), k.Permute(h...), v.Permute(h...), opt, outType, p, whole).Permute(h...)
+	}
+	p.SeqMajor = true
+	return attend(be, q, k, v, opt, outType, p, whole)
+}
+
+// SeqMajorAttender (isteğe bağlı) dikkati dilin düzeninde (SeqMajor) kopyasız hesaplayabilen
+// arka uç: bitişik görünümlerle bu tanım için ileri ve geri yolu varsa doğru verir.
+type SeqMajorAttender interface {
+	AttentionSeqMajor(q, k, v View, mask bool, p AttentionParams) bool
+}
+
+// seqMajorNative arka ucun bu dikkati dilin düzeninde hesaplayıp hesaplayamayacağı (görünümler
+// bitişik olacakları biçimde sorulur: bitişik değilse attend kopyalar).
+func seqMajorNative(be Backend, q, k, v *Tensor, mask bool, p AttentionParams) bool {
+	a, ok := be.(SeqMajorAttender)
+	if !ok {
+		return false
+	}
+	view := func(t *Tensor) View {
+		if t.IsContiguous() {
+			return t.view()
+		}
+		return View{S: t.storage, Shape: t.shape, Strides: contiguousStrides(t.shape)}
+	}
+	p.SeqMajor = true
+	return a.AttentionSeqMajor(view(q), view(k), view(v), mask, p)
+}
+
+// swapHeadAxis T ile bakış eksenlerini (sondan üçüncü ve ikinci) değiştiren eksen sırası
+// (kendisinin tersidir).
+func swapHeadAxis(nd int) []int {
+	ax := make([]int, nd)
+	for i := range ax {
+		ax[i] = i
+	}
+	ax[nd-3], ax[nd-2] = nd-2, nd-3
+	return ax
+}
+
+// attend dikkat düğümünü kurar: q, k, v p'nin düzenindedir (SeqMajor ya da bakış önde),
+// whole maskenin yayınlandığı [..., H, Tq, Tk] şeklidir.
+func attend(be Backend, q, k, v *Tensor, opt AttentionOptions, outType DType, p AttentionParams, whole []int) *Tensor {
+	sy := counterStart(be, OpKindAttention).start()
 	outShape := copyInts(q.shape)
 	outShape[len(outShape)-1] = p.Dv
 
 	var maskVal Storage
 	rm := func() {}
 	if opt.Mask != nil {
-		if opt.Mask.Device() != q.Device() {
-			panic(messages.New(messages.H3002, opt.Mask.Device(), q.Device()))
-		}
-		maskVal = prepareMask(be, opt.Mask, q.shape, &p)
+		maskVal = prepareMask(be, opt.Mask, whole, &p)
 		if maskVal != opt.Mask.storage {
 			be, s := be, maskVal
 			rm = func() { giveBack(be, s) }
@@ -187,19 +247,24 @@ func attentionParams(q, k, v *Tensor, opt AttentionOptions) AttentionParams {
 	if !sameShape(q.shape[:lead], k.shape[:lead]) || !sameShape(q.shape[:lead], v.shape[:lead]) {
 		panic(messages.New(messages.H3004, q.shape, k.shape, v.shape))
 	}
+	// Düzen [..., T, bakış, D]: T sondan üçüncü (2 boyutluda ikinci), bakış sondan ikinci.
+	tAxis := nd - 2
+	if nd >= 3 {
+		tAxis = nd - 3
+	}
 	p := AttentionParams{Batch: numelOf(q.shape[:lead]), H: 1, Hkv: 1,
-		Tq: q.shape[nd-2], Dh: q.shape[nd-1], Tk: k.shape[nd-2], Dv: v.shape[nd-1],
+		Tq: q.shape[tAxis], Dh: q.shape[nd-1], Tk: k.shape[tAxis], Dv: v.shape[nd-1],
 		Causal: opt.Causal, Window: opt.Window, Scale: opt.Scale}
 	if nd >= 3 {
-		p.H, p.Hkv = q.shape[nd-3], k.shape[nd-3]
-		if v.shape[nd-3] != p.Hkv {
+		p.H, p.Hkv = q.shape[nd-2], k.shape[nd-2]
+		if v.shape[nd-2] != p.Hkv {
 			panic(messages.New(messages.H3005, k.shape, v.shape))
 		}
 	}
 	if k.shape[nd-1] != p.Dh {
 		panic(messages.New(messages.H3006, q.shape, k.shape))
 	}
-	if v.shape[nd-2] != p.Tk {
+	if v.shape[tAxis] != p.Tk {
 		panic(messages.New(messages.H3007, k.shape, v.shape))
 	}
 	if p.Hkv == 0 || p.H%p.Hkv != 0 {
@@ -215,12 +280,9 @@ func attentionParams(q, k, v *Tensor, opt AttentionOptions) AttentionParams {
 }
 
 // prepareMask maskeyi float32 bitişik depolamaya çevirir (zaten öyleyse kopyalamaz; ofsetler
-// görünümün başlangıcını içerir) ve [lead..., H, Tq, Tk]'ye yayınlanmış adımlarını p'ye yazar.
-func prepareMask(be Backend, m *Tensor, qShape []int, p *AttentionParams) Storage {
-	whole := append(copyInts(qShape[:len(qShape)-1]), p.Tk) // [..., H, Tq, Tk]
-	if len(qShape) == 2 {
-		whole = []int{p.Tq, p.Tk}
-	}
+// görünümün başlangıcını içerir) ve whole'a ([lead..., H, Tq, Tk]) yayınlanmış adımlarını p'ye
+// yazar.
+func prepareMask(be Backend, m *Tensor, whole []int, p *AttentionParams) Storage {
 	if len(m.shape) > len(whole) {
 		panic(messages.New(messages.H3010, m.shape, whole))
 	}

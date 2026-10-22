@@ -223,6 +223,7 @@ func microAttn(g *backend, divide int) {
 	old := g.attnPath
 	for _, y := range []struct{ path, ek, ad string }{{"birlesik", "", "birleşik"}, {"carpim", " (matris yolu)", "kendi"}} {
 		g.attnPath = y.path
+		p.SeqMajor = y.path != "carpim" // birleşik çekirdekler [B, T, H, D], matris yolu bakış önde okur
 		ms := microMeasure(g, 10, forward)
 		microWrite("dikkat ileri"+y.ek, y.ad, ms, flop/(ms*1e6), "GFLOPS")
 		ms = microMeasure(g, 10, backward)

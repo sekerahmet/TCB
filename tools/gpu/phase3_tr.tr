@@ -57,11 +57,11 @@ yapı Blok {
         kendi.Wu = ağırlık([D, FF], 0.02)
         kendi.W2 = ağırlık([FF, D], 0.01)
     }
-    fonksiyon başlar(x) { sonuç x.şekillendir([B, T, H, Dh]).eksenleri_sırala([0, 2, 1, 3]) }
+    fonksiyon başlar(x) { sonuç x.şekillendir([B, T, H, Dh]) } // dikkat'in düzeni [B, T, H, Dh]
     fonksiyon ileri(x) {
         değişken h = rms_normu(x, kendi.g1)
         değişken y = dikkat(kendi.başlar(h @ kendi.Wq), kendi.başlar(h @ kendi.Wk), kendi.başlar(h @ kendi.Wv), nedensel: doğru)
-        değişken s = x + y.eksenleri_sırala([0, 2, 1, 3]).şekillendir([B, T, D]) @ kendi.Wo
+        değişken s = x + y.şekillendir([B, T, D]) @ kendi.Wo
         değişken m = rms_normu(s, kendi.g2)
         sonuç s + (silu(m @ kendi.Wg) * (m @ kendi.Wu)) @ kendi.W2
     }

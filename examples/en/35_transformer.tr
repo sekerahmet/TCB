@@ -1,6 +1,6 @@
 //! tr kodlu 1
 // 35 — Transformer: a small transformer written by hand.
-// What it teaches: embedding and position embedding, multi-head causal attention (reshape, permute and the
+// What it teaches: embedding and position embedding, multi-head causal attention (reshape and the
 // fused attention(...)), layer norm, a feed-forward step with gelu, the cross_entropy loss.
 // Builds on: tensors and autodiff (23–28), a multi-layer network (30), layers (31): layer_norm, gelu, cross_entropy.
 // Task: predict the next token in sequences that cycle through 0..V-1.
@@ -37,8 +37,8 @@ A030 Wu = param([D, V], 0.2)
 A030 positions = G305(T)
 
 A020 split_heads(x) {
-    // [B, T, D] -> [B, H, T, Dh]
-    A021 x.Y410([B, T, H, Dh]).Y412([0, 2, 1, 3])
+    // [B, T, D] -> [B, T, H, Dh]: attention reads this layout, no permute needed
+    A021 x.Y410([B, T, H, Dh])
 }
 
 A020 forward(inputs) {
@@ -50,7 +50,7 @@ A020 forward(inputs) {
     // hand-written equivalent is softmax((q @ k.transpose()) / sqrt(Dh) + mask, dim: -1) @ v (the
     // mask is a very large negative number at future positions); attention(...) computes the
     // same result in one step without keeping the T×T score matrix.
-    A030 y = T503(q, k, v, T950: A040).Y412([0, 2, 1, 3]).Y410([B, T, D])
+    A030 y = T503(q, k, v, T950: A040).Y410([B, T, D])
     A030 h = T501(x + y @ Wo, g1, s1)
     A030 m = T203(h @ W1) @ W2
     A030 out = T501(h + m, g2, s2)

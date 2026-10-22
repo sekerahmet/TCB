@@ -26,16 +26,23 @@ const (
 	gradOver
 )
 
-// flashDKernel D[r] = Σ_d dO[r,d]·O[r,d]; satır başına iş parçacığı.
+// flashDKernel D[r] = Σ_d dO[r,d]·O[r,d]; satır başına iş parçacığı. r = (b·H + h)·Tq + t
+// (lse'nin sırası); dO ve O [toplu, Tq, H, Dv] düzenindedir.
 func flashDKernel() *emitter {
 	k := newEmitter("dikkat_d")
 	do, o := k.pointer("do"), k.pointer("o")
 	d := k.written("d")
-	R, Dv := k.u32p("r"), k.u32p("dv")
+	R, Dv, H, Tq := k.u32p("r"), k.u32p("dv"), k.u32p("h"), k.u32p("tq")
 	r := k.globalIndex()
 	last := k.bounded(r, R)
-	base2 := k.r()
-	k.e("mul.lo.s32", base2, r, Dv)
+	bh, t, bi, h, base2 := k.r(), k.r(), k.r(), k.r(), k.r()
+	k.e("div.u32", bh, r, Tq)
+	k.e("rem.u32", t, r, Tq)
+	k.e("div.u32", bi, bh, H)
+	k.e("rem.u32", h, bh, H)
+	k.e("mad.lo.s32", base2, bi, Tq, t)
+	k.e("mad.lo.s32", base2, base2, H, h)
+	k.e("mul.lo.s32", base2, base2, Dv)
 	acc := k.constant(0)
 	j := k.whole(0)
 	loop, done := k.label(), k.label()
@@ -132,7 +139,7 @@ func (f *flashBackwardState) probs(row0 reg, rows []reg, j0 reg, limit [][3]reg,
 func (f *flashBackwardState) psWrite(M [][]reg, row0 reg) { f.writeTile(M, row0, f.ps) }
 
 // gradWriteMode biriktirilen döşemeyi (satırlar r0 + ty·rpt + i < lim, sütunlar < D) yazar.
-func (f *flashBackwardState) gradWriteMode(M [][]reg, mode2 int, ptr, r0, lim reg, D int) {
+func (f *flashBackwardState) gradWriteMode(M [][]reg, mode2 int, m hmat, r0, lim reg, D int) {
 	if mode2 == noGrad {
 		return
 	}
@@ -153,8 +160,8 @@ func (f *flashBackwardState) gradWriteMode(M [][]reg, mode2 int, ptr, r0, lim re
 			k.e("setp.ge.u32", q, column, D)
 			k.jumpIf(q, skip)
 			idx := k.r()
-			k.e("mad.lo.s32", idx, row, D, column)
-			ha := k.address(ptr, idx, 4)
+			k.e("mad.lo.s32", idx, row, m.stride, column)
+			ha := k.address(m.base, idx, 4)
 			if mode2 == addGrad {
 				old := k.load(tensor.Float32, ha)
 				k.e("add.rn.f32", v, old, v)
@@ -216,8 +223,8 @@ func flashBackwardKVKernel(a flashConfig, modeK, modeV int) func() *emitter {
 		f.tiles()
 		j0 := k.r()
 		k.e("mul.lo.s32", j0, k.special("%ctaid.x"), a.Bc)
-		kb := k.matrixBase(pk, f.bhkv, f.Tk, a.Dh)
-		vb := k.matrixBase(pv, f.bhkv, f.Tk, a.Dv)
+		kb := k.seqBase(pk, f.bhkv, f.Tk, f.Hkv, a.Dh, 4)
+		vb := k.seqBase(pv, f.bhkv, f.Tk, f.Hkv, a.Dv, 4)
 		k.loadTile(f.ks, a.Dh, f.dhp, kb, j0, f.Tk, f.tid)
 		k.loadTile(f.vs, a.Dv, f.dvp, vb, j0, f.Tk, f.tid)
 		rptK := a.Bc / 16
@@ -234,8 +241,8 @@ func flashBackwardKVKernel(a flashConfig, modeK, modeV int) func() *emitter {
 		bh := k.r()
 		k.e("add.s32", bh, f.h, g)
 		k.e("mad.lo.s32", bh, f.b, f.H, bh)
-		qb := k.matrixBase(pq, bh, f.Tq, a.Dh)
-		dob := k.matrixBase(pdo, bh, f.Tq, a.Dv)
+		qb := k.seqBase(pq, bh, f.Tq, f.H, a.Dh, 4)
+		dob := k.seqBase(pdo, bh, f.Tq, f.H, a.Dv, 4)
 		i0 := k.r()
 		k.e("mov.u32", i0, iStart)
 		loop, done := k.label(), k.label()
@@ -263,8 +270,8 @@ func flashBackwardKVKernel(a flashConfig, modeK, modeV int) func() *emitter {
 		k.e("add.s32", g, g, 1)
 		k.jump(beginD)
 		k.put(beginB)
-		f.gradWriteMode(dK, modeK, k.matrixBase(pdk, f.bhkv, f.Tk, a.Dh), j0, f.Tk, a.Dh)
-		f.gradWriteMode(dV, modeV, k.matrixBase(pdv, f.bhkv, f.Tk, a.Dv), j0, f.Tk, a.Dv)
+		f.gradWriteMode(dK, modeK, k.seqBase(pdk, f.bhkv, f.Tk, f.Hkv, a.Dh, 4), j0, f.Tk, a.Dh)
+		f.gradWriteMode(dV, modeV, k.seqBase(pdv, f.bhkv, f.Tk, f.Hkv, a.Dv, 4), j0, f.Tk, a.Dv)
 		return k
 	}
 }
@@ -283,10 +290,10 @@ func flashBackwardQKernel(a flashConfig, modeQ int) func() *emitter {
 		f.tiles()
 		q0 := k.r()
 		k.e("mul.lo.s32", q0, k.special("%ctaid.x"), a.Br)
-		qb := k.matrixBase(pq, f.bh, f.Tq, a.Dh)
-		dob := k.matrixBase(pdo, f.bh, f.Tq, a.Dv)
-		kb := k.matrixBase(pk, f.bhkv, f.Tk, a.Dh)
-		vb := k.matrixBase(pv, f.bhkv, f.Tk, a.Dv)
+		qb := k.seqBase(pq, f.bh, f.Tq, f.H, a.Dh, 4)
+		dob := k.seqBase(pdo, f.bh, f.Tq, f.H, a.Dv, 4)
+		kb := k.seqBase(pk, f.bhkv, f.Tk, f.Hkv, a.Dh, 4)
+		vb := k.seqBase(pv, f.bhkv, f.Tk, f.Hkv, a.Dv, 4)
 		k.loadTile(f.qs, a.Dh, f.dhp, qb, q0, f.Tq, f.tid)
 		k.loadTile(f.tilesDone, a.Dv, f.dvp, dob, q0, f.Tq, f.tid)
 		row0 := k.mul(f.ty, a.Br/16)
@@ -311,7 +318,7 @@ func flashBackwardQKernel(a flashConfig, modeQ int) func() *emitter {
 		k.e("add.s32", j0, j0, a.Bc)
 		k.jump(loop)
 		k.put(done)
-		f.gradWriteMode(dQ, modeQ, k.matrixBase(pdq, f.bh, f.Tq, a.Dh), q0, f.Tq, a.Dh)
+		f.gradWriteMode(dQ, modeQ, k.seqBase(pdq, f.bh, f.Tq, f.H, a.Dh, 4), q0, f.Tq, a.Dh)
 		return k
 	}
 }

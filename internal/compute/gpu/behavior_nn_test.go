@@ -229,9 +229,9 @@ func TestAttention(t *testing.T) {
 			}
 		}
 		compare(t, "dikkat "+d.ad, 5e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
-			q := twin(qv, true, d.B, d.H, d.Tq, d.Dh)[c]
-			k := twin(kv, true, d.B, d.Hkv, d.Tk, d.Dh)[c]
-			v := twin(vv, true, d.B, d.Hkv, d.Tk, d.Dv)[c]
+			q := twin(qv, true, d.B, d.Tq, d.H, d.Dh)[c]
+			k := twin(kv, true, d.B, d.Tk, d.Hkv, d.Dh)[c]
+			v := twin(vv, true, d.B, d.Tk, d.Hkv, d.Dv)[c]
 			opt := d.opt
 			if d.mask2 {
 				opt.Mask = twin(mv, false, d.Tq, d.Tk)[c]
@@ -242,7 +242,7 @@ func TestAttention(t *testing.T) {
 	// Aynı q, k, v'den iki dikkat: ikinci geri yayılım gradyanları eskisine ekler.
 	qv, kv, vv := random(rng, 2*20*8, 1), random(rng, 2*20*8, 1), random(rng, 2*20*8, 1)
 	compare(t, "dikkat birikim", 5e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
-		q, k, v := twin(qv, true, 1, 2, 20, 8)[c], twin(kv, true, 1, 2, 20, 8)[c], twin(vv, true, 1, 2, 20, 8)[c]
+		q, k, v := twin(qv, true, 1, 20, 2, 8)[c], twin(kv, true, 1, 20, 2, 8)[c], twin(vv, true, 1, 20, 2, 8)[c]
 		y := tensor.Add(tensor.Attention(q, k, v, tensor.AttentionOptions{Causal: true}), tensor.Attention(q, k, v, tensor.AttentionOptions{}))
 		return y, []*tensor.Tensor{q, k, v}
 	})

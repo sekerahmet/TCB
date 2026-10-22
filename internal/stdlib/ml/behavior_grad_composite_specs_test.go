@@ -80,24 +80,25 @@ func rmsNorm64(in [][]float64) []float64 {
 	})
 }
 
-// attention64 q, k, v [2 başlık, 3 konum, 4 boyut]; nedensel; ölçek 1/√4.
+// attention64 q, k, v [3 konum, 2 bakış, 4 boyut] (dikkat düzeni [T, H, dh]); nedensel; ölçek 1/√4.
 func attention64(in [][]float64) []float64 {
 	const H, T, D = 2, 3, 4
+	at := func(t, h, d int) int { return (t*H+h)*D + d }
 	out := make([]float64, H*T*D)
 	for h := 0; h < H; h++ {
-		q, k, v := in[0][h*T*D:], in[1][h*T*D:], in[2][h*T*D:]
+		q, k, v := in[0], in[1], in[2]
 		for i := 0; i < T; i++ {
 			sc := make([]float64, i+1)
 			for j := 0; j <= i; j++ {
 				for d := 0; d < D; d++ {
-					sc[j] += q[i*D+d] * k[j*D+d] / 2
+					sc[j] += q[at(i, h, d)] * k[at(j, h, d)] / 2
 				}
 			}
 			p := make([]float64, i+1)
 			softmax64(sc, p)
 			for j := 0; j <= i; j++ {
 				for d := 0; d < D; d++ {
-					out[h*T*D+i*D+d] += p[j] * v[j*D+d]
+					out[at(i, h, d)] += p[j] * v[at(j, h, d)]
 				}
 			}
 		}
@@ -213,7 +214,7 @@ func compositeSpecs() []compositeSpec {
 				}
 				return out
 			}},
-		{name: "attention", funcs: []string{"attentionBuiltin"}, shapes: [][]int{{2, 3, 4}, {2, 3, 4}, {2, 3, 4}}, bf16Tol: 0.038,
+		{name: "attention", funcs: []string{"attentionBuiltin"}, shapes: [][]int{{3, 2, 4}, {3, 2, 4}, {3, 2, 4}}, bf16Tol: 0.038,
 			run: call(codes.T503), ref: attention64},
 		{name: "matmul", funcs: []string{"matmulDType"}, shapes: [][]int{{3, 4}, {4, 2}}, bf16Tol: 0.008,
 			run: func(m *interp.VM, xs []*tensor.Tensor) (*tensor.Tensor, error) {

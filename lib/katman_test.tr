@@ -76,9 +76,9 @@ test "döner konum: normu korur, iç çarpım yalnızca uzaklığa bağlıdır, 
     eşit_mi([8, 2], kos.şekil)
     değişken q = rastgele_normal([1, 4], tohum: 1)
     değişken k = rastgele_normal([1, 4], tohum: 2)
-    // q'yu ve k'yı bütün konumlara koy: [8, 4]
-    değişken Q = döner_konum_uygula(tensör([q.değer[0] döngü i içinde 0..8]), kos, sin)
-    değişken K = döner_konum_uygula(tensör([k.değer[0] döngü i içinde 0..8]), kos, sin)
+    // q'yu ve k'yı bütün konumlara koy: [8, 1 bakış, 4] → [8, 4]
+    değişken Q = döner_konum_uygula(tensör([q.değer döngü i içinde 0..8]), kos, sin).şekillendir([8, 4])
+    değişken K = döner_konum_uygula(tensör([k.değer döngü i içinde 0..8]), kos, sin).şekillendir([8, 4])
     değişken fark = maks(mutlak(toplam(Q * Q, eksen: -1) - toplam(q * q))).değer
     doğrula(fark < 0.00002, "döndürme normu korumalı: {fark}")
     değişken p = Q @ K.devrik() // p[i][j] = <R_i q, R_j k>
@@ -86,12 +86,12 @@ test "döner konum: normu korur, iç çarpım yalnızca uzaklığa bağlıdır, 
     değişken b = p[6][4].değer
     doğrula(mutlak(a - b) < 0.0001, "iç çarpım yalnızca i - j'ye bağlı olmalı: {a} / {b}")
     fonksiyon f(x) { sonuç döner_konum_uygula(x, kos, sin) }
-    doğrula(türev_denetle(f, [rastgele_girdi([2, 5, 4], 3)]))
+    doğrula(türev_denetle(f, [rastgele_girdi([2, 5, 3, 4], 3)]))
 }
 
 test "döner konum ve PLE karışımı: sonuç girdinin türündedir, değer float32 sonucun dönüşümüdür" {
     değişken tablolar = döner_konum_tablosu(6, 4)
-    değişken x = rastgele_normal([2, 6, 4], tohum: 4)
+    değişken x = rastgele_normal([2, 6, 2, 4], tohum: 4)
     değişken xb = x.türe("bf16")
     // float32 tablolarla bf16 girdi: sonuç bf16, float32 hesabın bir kez yuvarlanmışı.
     değişken r = döner_konum_uygula(xb, tablolar[0], tablolar[1])

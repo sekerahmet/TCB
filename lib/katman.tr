@@ -86,17 +86,18 @@ fonksiyon döner_konum_tablosu(bağlam, bakış_boyutu, taban = 10000.0) {
     sonuç [kosinüs(açılar), sinüs(açılar)]
 }
 
-// döner_konum_hesapla x'i ([..., T, bakış_boyutu]) tablonun ilk T satırıyla döndürür; sonuç
+// döner_konum_hesapla x'i ([..., T, bakış, bakış_boyutu]; dikkat'in düzeni) tablonun ilk T satırıyla
+// döndürür (bütün bakışlar aynı açıyla); sonuç
 // x'in türündedir. Tablolar float32'dir: karışık hassasiyette bf16 x ile çarpım float32'ye
 // yükselir, sonucu okuyan `dikkat` onu yine bf16'ya çevirirdi. Dönüşüm burada, kaynaşık
 // geçişin sonunda yapılır: değer aynıdır (bir kez yuvarlanır), float32 sonuç ve ayrı dönüşüm
 // kalkar. döner_konum_uygula aynı hesabın kaynaşmış biçimidir (kaynaştır, dil tanımı 15.45):
 // zincir tek geçişte hesaplanır, ara sonuçlar belleğe yazılmaz; sonuç aynıdır.
 fonksiyon döner_konum_hesapla(x, kos, sin) {
-    değişken T = x.şekil[-2]
+    değişken T = x.şekil[-3]
     değişken a, b = x.böl(2, eksen: -1)
-    değişken c = kos[0..T]
-    değişken s = sin[0..T]
+    değişken c = kos[0..T].şekillendir([T, 1, kos.şekil[-1]])
+    değişken s = sin[0..T].şekillendir([T, 1, sin.şekil[-1]])
     sonuç bitiştir([a * c - b * s, a * s + b * c], eksen: -1).türe(x.tür)
 }
 değişken döner_konum_uygula = kaynaştır(döner_konum_hesapla)
@@ -174,10 +175,11 @@ yapı NedenselDikkat {
             k_ham = kendi.anahtar_katmanı.ileri(x)
             v_ham = kendi.değer_katmanı.ileri(x)
         }
-        // [B, T, bakış · bakış_boyutu] → [B, bakış, T, bakış_boyutu]
-        değişken q = kendi.sorgu_katmanı.ileri(x).şekillendir([B, T, kendi.bakış_sayısı, kendi.bakış_boyutu]).eksenleri_sırala([0, 2, 1, 3])
-        değişken k = k_ham.şekillendir([B, T, kendi.kv_bakış_sayısı, kendi.bakış_boyutu]).eksenleri_sırala([0, 2, 1, 3])
-        değişken v = v_ham.şekillendir([B, T, kendi.kv_bakış_sayısı, kendi.bakış_boyutu]).eksenleri_sırala([0, 2, 1, 3])
+        // [B, T, bakış · bakış_boyutu] → [B, T, bakış, bakış_boyutu]: dikkat'in düzeni (dil tanımı 15.17),
+        // bakışlar şekillendirmeyle ayrılır, kopya yoktur.
+        değişken q = kendi.sorgu_katmanı.ileri(x).şekillendir([B, T, kendi.bakış_sayısı, kendi.bakış_boyutu])
+        değişken k = k_ham.şekillendir([B, T, kendi.kv_bakış_sayısı, kendi.bakış_boyutu])
+        değişken v = v_ham.şekillendir([B, T, kendi.kv_bakış_sayısı, kendi.bakış_boyutu])
         eğer kendi.q_norm != yok {
             q = kendi.q_norm.ileri(q)
             k = kendi.k_norm.ileri(k)
@@ -195,9 +197,9 @@ yapı NedenselDikkat {
                 k = kv[0]
                 v = kv[1]
             }
-            y = dikkat(q, k, v, nedensel: doğru, pencere: kendi.pencere) // [B, bakış, T, bakış_boyutu]
+            y = dikkat(q, k, v, nedensel: doğru, pencere: kendi.pencere) // [B, T, bakış, bakış_boyutu]
         }
-        sonuç kendi.çıkış_katmanı.ileri(y.eksenleri_sırala([0, 2, 1, 3]).şekillendir([B, T, kendi.bakış_sayısı * kendi.bakış_boyutu]))
+        sonuç kendi.çıkış_katmanı.ileri(y.şekillendir([B, T, kendi.bakış_sayısı * kendi.bakış_boyutu]))
     }
 }
 
@@ -367,12 +369,12 @@ fonksiyon katman_pencereleri(düzen, pencereler) {
 // KVÖnbellek: üretimde (çıkarımda) katmanların döner konumlu anahtar ve değerlerini tutar; her
 // yeni parçada yalnızca o parça hesaplanır, öncekilerin anahtarları önbellekten okunur. Önbellek
 // türev izlemez (çıkarım içindir). İki çeşidi vardır (transformers DynamicCache ve StaticCache gibi):
-//   "sabit"   : her katman için [B, kv_bakış, en_çok, bakış_boyutu] tampon ilk yazmada bir kez
+//   "sabit"   : her katman için [B, en_çok, kv_bakış, bakış_boyutu] tampon ilk yazmada bir kez
 //               ayrılır; yeni anahtarlar zaman ekseninde yerine yazılır (gpt-fast, FlashAttention
 //               kv önbelleği gibi), dikkat tamponun dolu kısmını görünüm olarak okur.
 //   "büyüyen" : her adımda yeni anahtarlar bitiştir ile eklenir; bellek yalnızca kullanılan kadar.
-// Düzen bakış önceliklidir ([B, kv_bakış, T, bakış_boyutu]): dikkat'in beklediği düzen, GQA'da
-// kv bakışları çoğaltılmaz. konum önbellekteki parça sayısıdır (sonraki parçanın konumu).
+// Düzen [B, T, kv_bakış, bakış_boyutu]: dikkat'in beklediği düzen (FlashAttention'ın kv önbelleği
+// gibi), GQA'da kv bakışları çoğaltılmaz. konum önbellekteki parça sayısıdır (sonraki parçanın konumu).
 // kırp(n) son parçaları geri alır (ör. reddedilen taslak); sabitte yazılı veri kalır ama okunmaz.
 // Cihaz adımı (yalnızca sabit; GPT.tek_adım, tekrar_oynat ile kaydedilen üretim adımı):
 // cihaz_adımı(konum) ile konum cihazdaki bir tensör olur ([1]); ekle yeni anahtarları o konuma
@@ -418,38 +420,38 @@ yapı KVÖnbellek {
         }
         sonuç kendi.maskeler[anahtar]
     }
-    // ekle: katman no'nun yeni anahtar ve değerlerini ([B, kv_bakış, T, bakış_boyutu]) konumdan
+    // ekle: katman no'nun yeni anahtar ve değerlerini ([B, T, kv_bakış, bakış_boyutu]) konumdan
     // başlayarak ekler; o katmanın 0..konum+T anahtar ve değerlerini verir.
     fonksiyon ekle(no, k, v) {
-        değişken T = k.şekil[2]
+        değişken T = k.şekil[1]
         değişken son = kendi.konum + T
         eğer kendi.çeşit == "büyüyen" {
             eğer kendi.anahtarlar[no] == yok {
                 kendi.anahtarlar[no] = k
                 kendi.değerler[no] = v
             } değilse {
-                kendi.anahtarlar[no] = bitiştir([kendi.anahtarlar[no].dilim(2, 0, kendi.konum), k], eksen: 2)
-                kendi.değerler[no] = bitiştir([kendi.değerler[no].dilim(2, 0, kendi.konum), v], eksen: 2)
+                kendi.anahtarlar[no] = bitiştir([kendi.anahtarlar[no].dilim(1, 0, kendi.konum), k], eksen: 1)
+                kendi.değerler[no] = bitiştir([kendi.değerler[no].dilim(1, 0, kendi.konum), v], eksen: 1)
             }
             sonuç [kendi.anahtarlar[no], kendi.değerler[no]]
         }
         eğer kendi.adım_konumu != yok {
-            yerine_yaz(kendi.anahtarlar[no], k, eksen: 2, başlangıç: kendi.adım_konumu[0])
-            yerine_yaz(kendi.değerler[no], v, eksen: 2, başlangıç: kendi.adım_konumu[0])
+            yerine_yaz(kendi.anahtarlar[no], k, eksen: 1, başlangıç: kendi.adım_konumu[0])
+            yerine_yaz(kendi.değerler[no], v, eksen: 1, başlangıç: kendi.adım_konumu[0])
             sonuç [kendi.anahtarlar[no], kendi.değerler[no]]
         }
         doğrula(son <= kendi.en_çok, "sabit önbellek dolu: {son} konum, en çok {kendi.en_çok}")
         eğer kendi.anahtarlar[no] == yok {
-            kendi.anahtarlar[no] = sıfırlar([k.şekil[0], k.şekil[1], kendi.en_çok, k.şekil[3]], tür: k.tür).cihaza(k.cihaz)
-            kendi.değerler[no] = sıfırlar([v.şekil[0], v.şekil[1], kendi.en_çok, v.şekil[3]], tür: v.tür).cihaza(v.cihaz)
+            kendi.anahtarlar[no] = sıfırlar([k.şekil[0], kendi.en_çok, k.şekil[2], k.şekil[3]], tür: k.tür).cihaza(k.cihaz)
+            kendi.değerler[no] = sıfırlar([v.şekil[0], kendi.en_çok, v.şekil[2], v.şekil[3]], tür: v.tür).cihaza(v.cihaz)
             eğer kendi.pozisyonlar == yok {
                 kendi.pozisyonlar = tensör([i * 1.0 döngü i içinde 0..kendi.en_çok]).cihaza(k.cihaz)
             }
         }
         değişken B = k.şekil[0]
-        kendi.anahtarlar[no].dilim(2, kendi.konum, son)[0..B] = k
-        kendi.değerler[no].dilim(2, kendi.konum, son)[0..B] = v
-        sonuç [kendi.anahtarlar[no].dilim(2, 0, son), kendi.değerler[no].dilim(2, 0, son)]
+        kendi.anahtarlar[no].dilim(1, kendi.konum, son)[0..B] = k
+        kendi.değerler[no].dilim(1, kendi.konum, son)[0..B] = v
+        sonuç [kendi.anahtarlar[no].dilim(1, 0, son), kendi.değerler[no].dilim(1, 0, son)]
     }
     // ilerle: bir ileri hesabın T parçası bütün katmanlara yazıldıktan sonra konumu ilerletir.
     fonksiyon ilerle(T) { kendi.konum = kendi.konum + T }

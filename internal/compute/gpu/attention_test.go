@@ -30,12 +30,12 @@ func TestAttentionAlias(t *testing.T) {
 			return x.Cast(dt)
 		}
 		compare(t, "dikkat q=k=v "+dt.String(), tol, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
-			x := twin(xv, true, 1, 2, 20, 8)[c]
+			x := twin(xv, true, 1, 20, 2, 8)[c]
 			xb := convert(x)
 			return tensor.Attention(xb, xb, xb, tensor.AttentionOptions{Causal: true}).Cast(tensor.Float32), []*tensor.Tensor{x}
 		})
 		compare(t, "dikkat k=v "+dt.String(), tol, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
-			x, q := twin(xv, true, 1, 2, 20, 8)[c], twin(qv, true, 1, 2, 20, 8)[c]
+			x, q := twin(xv, true, 1, 20, 2, 8)[c], twin(qv, true, 1, 20, 2, 8)[c]
 			xb := convert(x)
 			return tensor.Attention(convert(q), xb, xb, tensor.AttentionOptions{}).Cast(tensor.Float32), []*tensor.Tensor{q, x}
 		})
@@ -96,9 +96,9 @@ func attnRealSizes(t *testing.T) {
 			}
 		}
 		compare(t, "dikkat "+d.ad, 5e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
-			q := twin(qv, true, d.B, d.H, d.Tq, d.Dh)[c]
-			k := twin(kv, true, d.B, d.Hkv, d.Tk, d.Dh)[c]
-			v := twin(vv, true, d.B, d.Hkv, d.Tk, d.Dv)[c]
+			q := twin(qv, true, d.B, d.Tq, d.H, d.Dh)[c]
+			k := twin(kv, true, d.B, d.Tk, d.Hkv, d.Dh)[c]
+			v := twin(vv, true, d.B, d.Tk, d.Hkv, d.Dv)[c]
 			opt := d.opt
 			if mv != nil {
 				opt.Mask = twin(mv, false, d.Tq, d.Tk)[c]
@@ -128,7 +128,7 @@ func TestAttentionLongContextLimit(t *testing.T) {
 	T := 200
 	qv, kv, vv := random(rng, T*8, 1), random(rng, T*8, 1), random(rng, T*8, 1)
 	compare(t, "dikkat T=200", 5e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
-		q, k, v := twin(qv, true, 1, 1, T, 8)[c], twin(kv, true, 1, 1, T, 8)[c], twin(vv, true, 1, 1, T, 8)[c]
+		q, k, v := twin(qv, true, 1, T, 1, 8)[c], twin(kv, true, 1, T, 1, 8)[c], twin(vv, true, 1, T, 1, 8)[c]
 		return tensor.Attention(q, k, v, tensor.AttentionOptions{Causal: true}), []*tensor.Tensor{q, k, v}
 	})
 }
@@ -145,7 +145,7 @@ func TestAttentionPathForced(t *testing.T) {
 	rng := rand.New(rand.NewSource(8))
 	qv, kv, vv := random(rng, 2*9*8, 1), random(rng, 2*9*8, 1), random(rng, 2*9*8, 1)
 	compare(t, "dikkat matris yolu", 5e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
-		q, k, v := twin(qv, true, 1, 2, 9, 8)[c], twin(kv, true, 1, 2, 9, 8)[c], twin(vv, true, 1, 2, 9, 8)[c]
+		q, k, v := twin(qv, true, 1, 9, 2, 8)[c], twin(kv, true, 1, 9, 2, 8)[c], twin(vv, true, 1, 9, 2, 8)[c]
 		return tensor.Attention(q, k, v, tensor.AttentionOptions{Causal: true}), []*tensor.Tensor{q, k, v}
 	})
 }

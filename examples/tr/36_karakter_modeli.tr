@@ -90,11 +90,11 @@ fonksiyon ileri(girdiler, b) {
     döngü L içinde katmanlar {
         // Ön normalizasyonlu blok: dikkat, ardından ileri besleme
         değişken a = katman_normu(x, L["g1"], L["s1"])
-        değişken q = (a @ L["Wq"]).şekillendir([b, T, H, Dh]).eksenleri_sırala([0, 2, 1, 3])
-        değişken k = (a @ L["Wk"]).şekillendir([b, T, H, Dh]).eksenleri_sırala([0, 2, 1, 3])
-        değişken v = (a @ L["Wv"]).şekillendir([b, T, H, Dh]).eksenleri_sırala([0, 2, 1, 3])
+        değişken q = (a @ L["Wq"]).şekillendir([b, T, H, Dh])
+        değişken k = (a @ L["Wk"]).şekillendir([b, T, H, Dh])
+        değişken v = (a @ L["Wv"]).şekillendir([b, T, H, Dh])
         // Nedensel dikkat, ölçek 1/√Dh = 0.25 (softmax(q·kᵀ·0.25 + nedensel maske) · v ile aynı)
-        değişken y = dikkat(q, k, v).eksenleri_sırala([0, 2, 1, 3]).şekillendir([b, T, D])
+        değişken y = dikkat(q, k, v).şekillendir([b, T, D])
         x = x + y @ L["Wo"]
         değişken m = katman_normu(x, L["g2"], L["s2"])
         x = x + gelu(m @ L["W1"]) @ L["W2"]

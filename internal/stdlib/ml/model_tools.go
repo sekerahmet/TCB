@@ -234,12 +234,14 @@ func checkAttentionShapes(fn string, q, k, v *tensor.Tensor) error {
 	if ks[n-1] != qs[n-1] {
 		return messages.New(messages.H6330, fn, shapeText(qs), shapeText(ks))
 	}
-	if vs[n-2] != ks[n-2] {
+	// Düzen [..., T, bakış, dh] (dil tanımı 15.17); 2 boyutlu girdi tek bakışlı [T, dh].
+	t := max(n-3, 0)
+	if vs[t] != ks[t] {
 		return messages.New(messages.H6331, fn, shapeText(ks), shapeText(vs))
 	}
 	if n >= 3 {
-		H, Hkv := qs[n-3], ks[n-3]
-		if vs[n-3] != Hkv {
+		H, Hkv := qs[n-2], ks[n-2]
+		if vs[n-2] != Hkv {
 			return messages.New(messages.H6332, fn, shapeText(ks), shapeText(vs))
 		}
 		if Hkv == 0 || H%Hkv != 0 {
@@ -249,10 +251,15 @@ func checkAttentionShapes(fn string, q, k, v *tensor.Tensor) error {
 	return nil
 }
 
-// checkMask maskenin [..., H, Tq, Tk] şekline yayınlanabildiğini denetler.
+// checkMask maskenin puan şekline ([..., H, Tq, Tk]; girdiler [..., T, H, dh]) yayınlanabildiğini
+// denetler.
 func checkMask(fn string, mt, q, k *tensor.Tensor) error {
-	qs, ms := q.Shape(), mt.Shape()
-	target := append(qs[:len(qs)-1:len(qs)-1], k.Shape()[k.Dim()-2])
+	qs, ks, ms := q.Shape(), k.Shape(), mt.Shape()
+	n := len(qs)
+	target := []int{qs[0], ks[0]}
+	if n >= 3 {
+		target = append(append([]int{}, qs[:n-3]...), qs[n-2], qs[n-3], ks[n-3])
+	}
 	if len(ms) > len(target) {
 		return messages.New(messages.H6334, fn, shapeText(ms), shapeText(target))
 	}

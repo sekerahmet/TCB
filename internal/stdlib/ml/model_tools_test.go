@@ -96,8 +96,10 @@ doğrula(mutlak(w.gradyan.değer[0][0] - 0.1875) < 0.000001)
 }
 
 // dikkat(...) bileşik sürümle (softmax(q·kᵀ/√dh + maske)·v) aynı sonucu ve gradyanı verir.
+// Başvuru bakış önde ([B, H, T, dh]) kurulur; dikkat [B, T, H, dh] düzenini alır (bd çevirir).
 func TestAttentionBuiltin(t *testing.T) {
 	mustRun(t, `
+fonksiyon bd(x) { sonuç x.eksenleri_sırala([0, 2, 1, 3]) }
 değişken q = tensör(rastgele_normal([2, 4, 6, 8], tohum: 1), türev_izle: doğru)
 değişken k = tensör(rastgele_normal([2, 4, 6, 8], tohum: 2), türev_izle: doğru)
 değişken v = tensör(rastgele_normal([2, 4, 6, 8], tohum: 3), türev_izle: doğru)
@@ -117,12 +119,12 @@ geri_yayılım(toplam(beklenen * beklenen))
 değişken gq = tensör(q.gradyan)
 değişken gk = tensör(k.gradyan)
 değişken gv = tensör(v.gradyan)
-değişken o = dikkat(tensör(q, türev_izle: doğru), tensör(k, türev_izle: doğru), tensör(v, türev_izle: doğru))
+değişken o = bd(dikkat(bd(tensör(q, türev_izle: doğru)), bd(tensör(k, türev_izle: doğru)), bd(tensör(v, türev_izle: doğru))))
 doğrula(fark(o, beklenen) < 0.0000000001, "ileri")
 değişken q2 = tensör(q, türev_izle: doğru)
 değişken k2 = tensör(k, türev_izle: doğru)
 değişken v2 = tensör(v, türev_izle: doğru)
-değişken o2 = dikkat(q2, k2, v2)
+değişken o2 = bd(dikkat(bd(q2), bd(k2), bd(v2)))
 geri_yayılım(toplam(o2 * o2))
 doğrula(fark(q2.gradyan, gq) < 0.0000000001, "dq")
 doğrula(fark(k2.gradyan, gk) < 0.0000000001, "dk")
@@ -136,26 +138,26 @@ fonksiyon fark(a, b) {
     değişken d = a - b
     sonuç maks(d * d).değer
 }
-değişken q = rastgele_normal([1, 2, 5, 4], tohum: 1)
-değişken k = rastgele_normal([1, 1, 7, 4], tohum: 2)
-değişken v = rastgele_normal([1, 1, 7, 3], tohum: 3)
+değişken q = rastgele_normal([1, 5, 2, 4], tohum: 1)
+değişken k = rastgele_normal([1, 7, 1, 4], tohum: 2)
+değişken v = rastgele_normal([1, 7, 1, 3], tohum: 3)
 yazdır(dikkat(q, k, v).şekil)
 yazdır(dikkat(q, k, v, nedensel: yanlış, pencere: 2).şekil)
 // Son sorgu (Tq < Tk: sondan hizalı) bütün anahtarları görür: nedensel ile nedensel olmayan aynı.
 değişken a = dikkat(q, k, v)
 değişken b = dikkat(q, k, v, nedensel: yanlış)
-yazdır(a[0][0][4].değer == b[0][0][4].değer, a[0][0][0].değer == b[0][0][0].değer)
+yazdır(a[0][4][0].değer == b[0][4][0].değer, a[0][0][0].değer == b[0][0][0].değer)
 // Tek anahtara bakan pencere: çıktı o anahtarın değeridir.
 değişken p = dikkat(q, k, v, pencere: 1)
-yazdır(fark(p[0][1][4], v[0][0][6]) < 0.0000000001)
+yazdır(fark(p[0][4][1], v[0][6][0]) < 0.0000000001)
 // Maske 0 olan anahtarlar görülmez.
 değişken m = birler([5, 7])
 m[0] = 0
 m[0][2] = 1
-yazdır(fark(dikkat(q, k, v, nedensel: yanlış, maske: m)[0][0][0], v[0][0][2]) < 0.0000000001)
+yazdır(fark(dikkat(q, k, v, nedensel: yanlış, maske: m)[0][0][0], v[0][2][0]) < 0.0000000001)
 yazdır(dikkat(q, k, v, maske: yok).şekil)
 `)
-	want := "[1, 2, 5, 3]\n[1, 2, 5, 3]\ndoğru yanlış\ndoğru\ndoğru\n[1, 2, 5, 3]\n"
+	want := "[1, 5, 2, 3]\n[1, 5, 2, 3]\ndoğru yanlış\ndoğru\ndoğru\n[1, 5, 2, 3]\n"
 	if out != want {
 		t.Fatalf("çıktı:\n%s\nbeklenen:\n%s", out, want)
 	}
@@ -164,9 +166,9 @@ yazdır(dikkat(q, k, v, maske: yok).şekil)
 		want messages.Code
 	}{
 		{"dikkat(tensör([1.0]), tensör([1.0]), tensör([1.0]))", messages.H6327},
-		{"dikkat(sıfırlar([3, 4, 2]), sıfırlar([2, 4, 2]), sıfırlar([2, 4, 2]))", messages.H6333},
+		{"dikkat(sıfırlar([4, 3, 2]), sıfırlar([4, 2, 2]), sıfırlar([4, 2, 2]))", messages.H6333},
 		{"dikkat(sıfırlar([2, 4, 2]), sıfırlar([2, 4, 3]), sıfırlar([2, 4, 3]))", messages.H6330},
-		{"dikkat(sıfırlar([2, 4, 2]), sıfırlar([2, 4, 2]), sıfırlar([2, 5, 2]))", messages.H6331},
+		{"dikkat(sıfırlar([2, 4, 2]), sıfırlar([2, 4, 2]), sıfırlar([3, 4, 2]))", messages.H6331},
 		{"dikkat(sıfırlar([1, 2, 4, 2]), sıfırlar([2, 2, 4, 2]), sıfırlar([2, 2, 4, 2]))", messages.H6329},
 		{"dikkat(sıfırlar([4, 2]), sıfırlar([4, 2]), sıfırlar([4, 2]), maske: birler([3, 4]))", messages.H6335},
 		{"dikkat(sıfırlar([4, 2]), sıfırlar([4, 2]), sıfırlar([4, 2]), pencere: -1)", messages.H6326},

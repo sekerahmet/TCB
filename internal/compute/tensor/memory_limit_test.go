@@ -129,8 +129,8 @@ func TestOpOutputsBounded(t *testing.T) {
 	}
 	table := Zeros(2, 5000)
 	expectedPanic(t, "gömme", func() { Embedding(table, []int{0, 1, 0, 1}) }, messages.H3085, isEmbedding, "[4, 5000]")
-	q, k, v := Zeros(1, 3000, 1), Zeros(1, 1, 1), Zeros(1, 1, 8)
-	expectedPanic(t, "dikkat", func() { Attention(q, k, v, AttentionOptions{}) }, messages.H3085, isAttention, "[1, 3000, 8]")
+	q, k, v := Zeros(3000, 1, 1), Zeros(1, 1, 1), Zeros(1, 1, 8)
+	expectedPanic(t, "dikkat", func() { Attention(q, k, v, AttentionOptions{}) }, messages.H3085, isAttention, "[3000, 1, 8]")
 	// Taşan indeks şekli sessizce 0'a sarıp boş indeks listesine uymaz.
 	expectedPanic(t, "gömme taşma", func() { Embedding(Zeros(2, 4), nil, 1<<62, 4) }, messages.H3042, 0)
 }

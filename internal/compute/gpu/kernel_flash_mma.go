@@ -61,16 +61,6 @@ func (g *backend) mmaFits(q, k, v tensor.View, mask2 bool, p tensor.AttentionPar
 	return flashMma{Dh: p.Dh, Dv: p.Dv, f16: dt == tensor.Float16}, true
 }
 
-// base16 ptr + (sıra·T·D)·2: 16 bitlik [T][D] matrisin başı.
-func (k *emitter) base16(ptr, order, T reg, D int) reg {
-	e := k.r()
-	k.e("mul.lo.s32", e, order, T)
-	r := k.rd()
-	k.e("mul.wide.u32", r, e, 2*D)
-	k.e("add.s64", r, r, ptr)
-	return r
-}
-
 // mmaLanes warp içi konum: w warp, g = şerit/4, t = şerit%4.
 type mmaLanes struct{ w, g, t reg }
 
@@ -85,15 +75,15 @@ func (k *emitter) lanes(tid reg) mmaLanes {
 	return l
 }
 
-// loadPair16 genel bellekteki 16 bitlik [T][D] matrisin (satır, sütun) ve (satır, sütun+1)
+// loadPair16 genel bellekteki 16 bitlik [T][D] matrisin (m) (satır, sütun) ve (satır, sütun+1)
 // elemanlarını bir 32 bitlik yazmaca yükler; satır lim'in dışındaysa 0.
-func (k *emitter) loadPair16(base2, row, col, lim reg, D int) reg {
+func (k *emitter) loadPair16(m hmat, row, col, lim reg) reg {
 	v := k.whole(0)
 	p := k.p()
 	k.e("setp.lt.u32", p, row, lim)
 	idx := k.r()
-	k.e("mad.lo.s32", idx, row, D, col)
-	k.ifCase(p, "ld.global.b32", v, mem(k.address(base2, idx, 2), 0))
+	k.e("mad.lo.s32", idx, row, m.stride, col)
+	k.ifCase(p, "ld.global.b32", v, mem(k.address(m.base, idx, 2), 0))
 	return v
 }
 
@@ -158,18 +148,18 @@ func (k *emitter) tileWork(tid reg, R, D int, f func(r, c reg)) {
 
 // loadTile16 genel bellekteki 16 bitlik [T][D] matrisin r0'dan başlayan R satırını döşemeye
 // yükler; lim'in dışındaki satırlar 0.
-func (k *emitter) loadTile16(t tile16, base2, r0, lim, tid reg) {
+func (k *emitter) loadTile16(t tile16, m hmat, r0, lim, tid reg) {
 	k.tileWork(tid, t.R, t.D, func(r, c reg) {
 		g0, g1 := k.r(), k.r()
 		k.e("add.s32", g0, r0, r)
 		k.e("add.s32", g1, g0, 1)
-		k.store2x2(t, r, c, k.loadPair16(base2, g0, c, lim, t.D), k.loadPair16(base2, g1, c, lim, t.D))
+		k.store2x2(t, r, c, k.loadPair16(m, g0, c, lim), k.loadPair16(m, g1, c, lim))
 	})
 }
 
 // loadTileF32 genel bellekteki float32 [T][D] matrisin r0'dan başlayan R satırını 16 bite
 // (en yakına-çifte) yuvarlayarak döşemeye yükler; lim'in dışındaki satırlar 0.
-func (k *emitter) loadTileF32(t tile16, base2, r0, lim, tid reg, f16 bool) {
+func (k *emitter) loadTileF32(t tile16, m hmat, r0, lim, tid reg, f16 bool) {
 	k.tileWork(tid, t.R, t.D, func(r, c reg) {
 		var v [2][2]reg
 		for i := range 2 {
@@ -179,8 +169,8 @@ func (k *emitter) loadTileF32(t tile16, base2, r0, lim, tid reg, f16 bool) {
 			p := k.p()
 			k.e("setp.lt.u32", p, g, lim)
 			idx := k.r()
-			k.e("mad.lo.s32", idx, g, t.D, c)
-			ad := k.address(base2, idx, 4)
+			k.e("mad.lo.s32", idx, g, m.stride, c)
+			ad := k.address(m.base, idx, 4)
 			for j := range 2 {
 				v[i][j] = k.constant(0)
 				k.ifCase(p, "ld.global.f32", v[i][j], mem(ad, 4*j))
@@ -208,9 +198,9 @@ func flashMmaForwardKernel(a flashMma) func() *emitter {
 		q0 := k.r()
 		k.e("mul.lo.s32", q0, k.special("%ctaid.x"), mmaBr)
 		rows := k.fragRows(q0, l)
-		qa := k.fragA16(k.base16(pq, f.bh, f.Tq, a.Dh), rows, t2, f.Tq, a.Dh)
-		kb := k.base16(pk, f.bhkv, f.Tk, a.Dh)
-		vb := k.base16(pv, f.bhkv, f.Tk, a.Dv)
+		qa := k.fragA16(k.seqBase(pq, f.bh, f.Tq, f.H, a.Dh, 2), rows, t2, f.Tq, a.Dh)
+		kb := k.seqBase(pk, f.bhkv, f.Tk, f.Hkv, a.Dh, 2)
+		vb := k.seqBase(pv, f.bhkv, f.Tk, f.Hkv, a.Dv, 2)
 		lo, hi := f.rowLimits(rows)
 		jStart, jEnd := f.keyRange(q0)
 		sc2 := k.f()
@@ -325,7 +315,7 @@ func (f *flashShared) mmaSoftmax(S, O [][4]reg, rows, lo, hi, m, sum [2]reg, j0,
 // satırlar yazılmaz, boş satırda O = 0, lse = +∞ (birleşik yolla aynı).
 func (f *flashShared) mmaWriteForward(O [][4]reg, rows, m, sum [2]reg, t2, t, pout, plse reg) {
 	k := f.k
-	ob := k.matrixBase(pout, f.bh, f.Tq, f.a.Dv)
+	ob := k.seqBase(pout, f.bh, f.Tq, f.H, f.a.Dv, 4)
 	lb := k.r()
 	k.e("mul.lo.s32", lb, f.bh, f.Tq)
 	for r := range 2 {
@@ -344,8 +334,8 @@ func (f *flashShared) mmaWriteForward(O [][4]reg, rows, m, sum [2]reg, t2, t, po
 				k.e("mul.rn.f32", v, v, inverse)
 				idx := k.r()
 				k.e("add.s32", idx, t2, 8*n+c%2)
-				k.e("mad.lo.s32", idx, rows[r], f.a.Dv, idx)
-				k.store(tensor.Float32, k.address(ob, idx, 4), v)
+				k.e("mad.lo.s32", idx, rows[r], ob.stride, idx)
+				k.store(tensor.Float32, k.address(ob.base, idx, 4), v)
 			}
 		}
 		nz := k.p()

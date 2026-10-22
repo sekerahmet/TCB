@@ -10,11 +10,30 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
+// seqLayout bakış önde [..., H, T, D] tensörünün dilin düzenindeki ([..., T, H, D]) görünümü
+// (ve tersi); 2 boyutluda kendisi. Testlerin başvuruları bakış önde kurulur.
+func seqLayout(t *Tensor) *Tensor {
+	if len(t.shape) < 3 {
+		return t
+	}
+	return t.Permute(swapHeadAxis(len(t.shape))...)
+}
+
+// attentionHM bakış önde girdilerle dikkat: girdiler dilin düzenine görünüm olarak çevrilir
+// (adımlı girdi), sonuç geri çevrilir.
+func attentionHM(q, k, v *Tensor, opt AttentionOptions) *Tensor {
+	return seqLayout(Attention(seqLayout(q), seqLayout(k), seqLayout(v), opt))
+}
+
+func attentionOutHM(q, k, v *Tensor, opt AttentionOptions, dt DType) *Tensor {
+	return seqLayout(AttentionOut(seqLayout(q), seqLayout(k), seqLayout(v), opt, dt))
+}
+
 // fusedAttention başvuru sürümüdür: softmax(q·kᵀ·ölçek + toplamsal maske)·v,
 // GQA için k/v bakışları birleştirilerek çoğaltılır. Toplamsal maske nedensellik,
 // pencere ve ek maskeden kurulur (bakılamayan yer -1e9).
 func fusedAttention(q, k, v *Tensor, opt AttentionOptions) *Tensor {
-	p := attentionParams(q, k, v, opt)
+	p := attentionParams(seqLayout(q), seqLayout(k), seqLayout(v), opt)
 	nd := len(q.shape)
 	if p.Hkv != p.H {
 		group := p.H / p.Hkv
@@ -107,7 +126,7 @@ func compareAttention(t *testing.T, d attnState, tol float64) {
 	if d.maskVal {
 		opt.Mask = randomMask(rng, d)
 	}
-	p := attentionParams(q, k, v, opt)
+	p := attentionParams(seqLayout(q), seqLayout(k), seqLayout(v), opt)
 	valid := validRows(d, p, opt.Mask)
 	g := Randn(rng, d.B, d.H, d.Tq, d.Dv)
 	// Geçersiz satırların çıktı gradyanı sıfırlanır (bileşik sürüm orada tanımsız).
@@ -127,7 +146,7 @@ func compareAttention(t *testing.T, d attnState, tol float64) {
 		return o.Data(), qq.Grad().Data(), kk.Grad().Data(), vv.Grad().Data()
 	}
 	bo, bq, bk, bv := execute(fusedAttention)
-	fo, fq, fk, fv := execute(Attention)
+	fo, fq, fk, fv := execute(attentionHM)
 	for r, ok := range valid {
 		if !ok {
 			for _, x := range fo[r*d.Dv : (r+1)*d.Dv] {
@@ -212,7 +231,7 @@ func TestAttentionIndependentOfWorkers(t *testing.T) {
 	execute := func(n int) [][]float32 {
 		runtime.GOMAXPROCS(n)
 		qq, kk, vv := q.Detach().SetRequiresGrad(true), k.Detach().SetRequiresGrad(true), v.Detach().SetRequiresGrad(true)
-		o := Attention(qq, kk, vv, AttentionOptions{Causal: true, Window: 90})
+		o := attentionHM(qq, kk, vv, AttentionOptions{Causal: true, Window: 90})
 		o.BackwardWith(g)
 		return [][]float32{o.Data(), qq.Grad().Data(), kk.Grad().Data(), vv.Grad().Data()}
 	}
@@ -241,7 +260,7 @@ func TestAttentionNumericalGrad(t *testing.T) {
 		k := random(rng, -1, 1, 0, 1, 2, 5, 3)
 		v := random(rng, -1, 1, 0, 1, 2, 5, 2)
 		checkGrad(t, fmt.Sprintf("dikkat %+v", opt), func(xs []*Tensor) *Tensor {
-			return Attention(xs[0], xs[1], xs[2], opt)
+			return attentionHM(xs[0], xs[1], xs[2], opt)
 		}, q, k, v)
 	}
 }
@@ -253,8 +272,8 @@ func TestAttentionMaskViewWithOffset(t *testing.T) {
 	q, k, v := Randn(rng, 2, 3, 4), Randn(rng, 2, 5, 4), Randn(rng, 2, 5, 4)
 	big := New([]float32{1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0}, 4, 5)
 	view := big.Slice(0, 1, 4) // [3, 5], ofset 5
-	a := Attention(q, k, v, AttentionOptions{Mask: view}).Data()
-	b := Attention(q, k, v, AttentionOptions{Mask: view.Clone()}).Data()
+	a := attentionHM(q, k, v, AttentionOptions{Mask: view}).Data()
+	b := attentionHM(q, k, v, AttentionOptions{Mask: view.Clone()}).Data()
 	near(t, "ofsetli maske", a, b, 0)
 }
 
@@ -264,16 +283,16 @@ func TestAttentionViewsAndShapes(t *testing.T) {
 	x := Randn(rng, 2, 9, 3, 4) // [B, T, H, dh]
 	q := x.Permute(0, 2, 1, 3)
 	opt := AttentionOptions{Causal: true}
-	near(t, "görünüm", Attention(q, q, q, opt).Data(), fusedAttention(q, q, q, opt).Data(), 1e-5)
+	near(t, "görünüm", attentionHM(q, q, q, opt).Data(), fusedAttention(q, q, q, opt).Data(), 1e-5)
 	q3 := Randn(rng, 3, 6, 4)
-	near(t, "3 boyut", Attention(q3, q3, q3, opt).Data(), fusedAttention(q3, q3, q3, opt).Data(), 1e-5)
+	near(t, "3 boyut", attentionHM(q3, q3, q3, opt).Data(), fusedAttention(q3, q3, q3, opt).Data(), 1e-5)
 	q2 := Randn(rng, 6, 4)
-	near(t, "2 boyut", Attention(q2, q2, q2, opt).Data(), fusedAttention(q2, q2, q2, opt).Data(), 1e-5)
-	shapeEqual(t, "şekil", Attention(q, q, q, opt).shape, []int{2, 3, 9, 4})
-	expectPanic(t, "bakış katı değil", func() { Attention(Randn(rng, 3, 4, 2), Randn(rng, 2, 4, 2), Randn(rng, 2, 4, 2), opt) })
-	expectPanic(t, "dh farklı", func() { Attention(Randn(rng, 2, 4, 2), Randn(rng, 2, 4, 3), Randn(rng, 2, 4, 3), opt) })
+	near(t, "2 boyut", attentionHM(q2, q2, q2, opt).Data(), fusedAttention(q2, q2, q2, opt).Data(), 1e-5)
+	shapeEqual(t, "şekil", attentionHM(q, q, q, opt).shape, []int{2, 3, 9, 4})
+	expectPanic(t, "bakış katı değil", func() { attentionHM(Randn(rng, 3, 4, 2), Randn(rng, 2, 4, 2), Randn(rng, 2, 4, 2), opt) })
+	expectPanic(t, "dh farklı", func() { attentionHM(Randn(rng, 2, 4, 2), Randn(rng, 2, 4, 3), Randn(rng, 2, 4, 3), opt) })
 	expectPanic(t, "maske yayınlanamaz", func() {
-		Attention(Randn(rng, 2, 4, 2), Randn(rng, 2, 4, 2), Randn(rng, 2, 4, 2), AttentionOptions{Mask: Ones(3, 4)})
+		attentionHM(Randn(rng, 2, 4, 2), Randn(rng, 2, 4, 2), Randn(rng, 2, 4, 2), AttentionOptions{Mask: Ones(3, 4)})
 	})
 }
 
@@ -286,12 +305,12 @@ func TestAttentionBF16(t *testing.T) {
 	v32 := Randn(rng, 1, 2, 33, 16).Cast(BFloat16).Cast(Float32)
 	opt := AttentionOptions{Causal: true}
 	q, k, v := q32.Cast(BFloat16).SetRequiresGrad(true), k32.Cast(BFloat16).SetRequiresGrad(true), v32.Cast(BFloat16).SetRequiresGrad(true)
-	o := AttentionOut(q, k, v, opt, Float32)
+	o := attentionOutHM(q, k, v, opt, Float32)
 	if o.DType() != Float32 {
 		t.Fatalf("çıktı türü %s", o.DType())
 	}
 	q32.SetRequiresGrad(true)
-	o32 := Attention(q32, k32, v32, opt)
+	o32 := attentionHM(q32, k32, v32, opt)
 	near(t, "bf16 ileri", o.Data(), o32.Data(), 1e-5)
 	o.SumAll().Backward()
 	o32.SumAll().Backward()
@@ -299,7 +318,7 @@ func TestAttentionBF16(t *testing.T) {
 	if q.Grad().DType() != Float32 {
 		t.Fatalf("bf16 gradyanı float32 olmalı")
 	}
-	if Attention(q, k, v, opt).DType() != BFloat16 {
+	if attentionHM(q, k, v, opt).DType() != BFloat16 {
 		t.Fatalf("bf16 girdilerin varsayılan çıktısı bf16 olmalı")
 	}
 }
@@ -317,7 +336,7 @@ func TestAttentionMemoryLinear(t *testing.T) {
 	k := Randn(rng, 1, headCount, T, 32).SetRequiresGrad(true)
 	v := Randn(rng, 1, headCount, T, 32).SetRequiresGrad(true)
 	allocated := float64(allocatedBytes(func() {
-		Attention(q, k, v, AttentionOptions{Causal: true}).SumAll().Backward()
+		attentionHM(q, k, v, AttentionOptions{Causal: true}).SumAll().Backward()
 	}))
 	scoreMatrix := float64(headCount * T * T * 4) // float32 puanlar
 	if allocated > scoreMatrix/4 {
@@ -420,9 +439,9 @@ func TestAttentionAliasGrad(t *testing.T) {
 		SetGradDType(dt)
 		x0 := random(rand.New(rand.NewSource(5)), -1, 1, 0, 1, 2, 9, 4)
 		x := x0.Clone().SetRequiresGrad(true)
-		Attention(x, x, x, AttentionOptions{Causal: true}).SumAll().Backward()
+		attentionHM(x, x, x, AttentionOptions{Causal: true}).SumAll().Backward()
 		a, b, c := x0.Clone().SetRequiresGrad(true), x0.Clone().SetRequiresGrad(true), x0.Clone().SetRequiresGrad(true)
-		Attention(a, b, c, AttentionOptions{Causal: true}).SumAll().Backward()
+		attentionHM(a, b, c, AttentionOptions{Causal: true}).SumAll().Backward()
 		total := Add(Add(a.Grad().Cast(Float32), b.Grad().Cast(Float32)), c.Grad().Cast(Float32))
 		tol := 1e-5
 		if dt != Float32 {
@@ -440,7 +459,7 @@ func TestAttentionNaNRow(t *testing.T) {
 	q := New([]float32{nan, nan, 1, 0}, 2, 2).SetRequiresGrad(true)
 	k := New([]float32{1, 0, 0, 1, 1, 1}, 3, 2)
 	v := New([]float32{1, 2, 3, 4, 5, 6}, 3, 2)
-	y := Attention(q, k, v, AttentionOptions{})
+	y := attentionHM(q, k, v, AttentionOptions{})
 	d := y.Data()
 	if d[0] == d[0] || d[1] == d[1] {
 		t.Fatalf("NaN satırı NaN vermeli: %v", d)
@@ -460,7 +479,7 @@ func TestAttentionOutputChangedInPlace(t *testing.T) {
 	q := New([]float32{1, 0, 0, 1}, 2, 2).SetRequiresGrad(true)
 	k := New([]float32{1, 0, 0, 1, 1, 1}, 3, 2)
 	v := New([]float32{1, 2, 3, 4, 5, 6}, 3, 2)
-	y := Attention(q, k, v, AttentionOptions{})
+	y := attentionHM(q, k, v, AttentionOptions{})
 	y.Set(100, 0, 0)
 	panicCode(t, "dikkat çıktısı", messages.H3012, func() { y.SumAll().Backward() })
 }
@@ -546,7 +565,7 @@ func init() {
 			p.Scale = float32(1 / math.Sqrt(float64(p.Dh)))
 		}
 		return gradSpec{name: name, ops: []string{"attention"},
-			build:  func(xs []*Tensor) *Tensor { return Attention(xs[0], xs[1], xs[2], opt) },
+			build:  func(xs []*Tensor) *Tensor { return attentionHM(xs[0], xs[1], xs[2], opt) },
 			inputs: genInputs(gen(-1, 1, 0, sq...), gen(-1, 1, 0, sk...), gen(-1, 1, 0, sv...)),
 			ref:    attention64(p, mask)}
 	}
@@ -573,7 +592,7 @@ func TestAttentionMaskSavedForBackward(t *testing.T) {
 	}
 	q, k, v := qkv(2)
 	mask := New([]float32{1, 0, 1, 1}, 2, 2)
-	loss := Attention(q, k, v, AttentionOptions{Mask: mask}).SumAll()
+	loss := attentionHM(q, k, v, AttentionOptions{Mask: mask}).SumAll()
 	mask.Set(0, 1, 1)
 	expectedPanic(t, "yerinde değişen maske", func() { loss.Backward() }, messages.H3012)
 	data := make([]float32, 64*64)
@@ -581,10 +600,10 @@ func TestAttentionMaskSavedForBackward(t *testing.T) {
 		data[i*64] = 1
 	}
 	q1, k1, v1 := qkv(64)
-	Attention(q1, k1, v1, AttentionOptions{Mask: New(data, 64, 64)}).SumAll().Backward()
+	attentionHM(q1, k1, v1, AttentionOptions{Mask: New(data, 64, 64)}).SumAll().Backward()
 	q2, k2, v2 := qkv(64)
 	m2 := New(data, 64, 64)
-	loss = Attention(q2, k2, v2, AttentionOptions{Mask: m2}).SumAll()
+	loss = attentionHM(q2, k2, v2, AttentionOptions{Mask: m2}).SumAll()
 	m2.Drop()
 	defer Ones(64, 64).Drop() // bırakılan blok verilseydi bu ezerdi
 	loss.Backward()

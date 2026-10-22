@@ -97,9 +97,9 @@ type smTile struct {
 	row, step int // satır sayısı ve satır adımı (eleman)
 }
 
-// loadTile genel bellekteki satır öncelikli [T][D] matrisin r0'dan başlayan satırlarını
-// döşemeye yükler; lim'den sonraki satırlar ve D'den sonraki sütunlar (Dp'ye kadar) 0 olur.
-func (k *emitter) loadTile(d smTile, D, Dp int, ptr, r0, lim, tid reg) {
+// loadTile genel bellekteki [T][D] matrisin (m) r0'dan başlayan satırlarını döşemeye yükler;
+// lim'den sonraki satırlar ve D'den sonraki sütunlar (Dp'ye kadar) 0 olur.
+func (k *emitter) loadTile(d smTile, D, Dp int, m hmat, r0, lim, tid reg) {
 	total := d.row * Dp
 	for q := 0; q*flashJob < total; q++ {
 		e := k.r()
@@ -120,9 +120,9 @@ func (k *emitter) loadTile(d smTile, D, Dp int, ptr, r0, lim, tid reg) {
 		k.e("setp.lt.u32", p2, column, D)
 		k.e("and.pred", p1, p1, p2)
 		idx := k.r()
-		k.e("mad.lo.s32", idx, gr, D, column)
+		k.e("mad.lo.s32", idx, gr, m.stride, column)
 		v := k.constant(0)
-		k.ifCase(p1, "ld.global.f32", v, mem(k.address(ptr, idx, 4), 0))
+		k.ifCase(p1, "ld.global.f32", v, mem(k.address(m.base, idx, 4), 0))
 		so := k.r()
 		k.e("mad.lo.s32", so, row2, d.step, column)
 		k.e("mad.lo.s32", so, so, 4, d.base2)
@@ -217,7 +217,7 @@ type flashShared struct {
 	reason2, pending2, msQ, msK reg
 	scaleF                      reg
 	tid, tx, ty                 reg
-	b, h, bh, kvh, bhkv         reg
+	b, h, bh, kvh, bhkv, Hkv    reg
 }
 
 // sharedParams maske, boylar ve dikkat seçeneklerinin parametrelerini bildirir.
@@ -240,8 +240,8 @@ func (f *flashShared) headIndexes(yKV bool) {
 	k := f.k
 	f.b = k.special("%ctaid.z")
 	y := k.special("%ctaid.y")
-	Hkv := k.r()
-	k.e("div.u32", Hkv, f.H, f.G)
+	f.Hkv = k.r()
+	k.e("div.u32", f.Hkv, f.H, f.G)
 	f.bh, f.bhkv = k.r(), k.r()
 	if yKV {
 		f.kvh = y
@@ -253,17 +253,27 @@ func (f *flashShared) headIndexes(yKV bool) {
 		k.e("div.u32", f.kvh, y, f.G)
 	}
 	k.e("mad.lo.s32", f.bh, f.b, f.H, f.h)
-	k.e("mad.lo.s32", f.bhkv, f.b, Hkv, f.kvh)
+	k.e("mad.lo.s32", f.bhkv, f.b, f.Hkv, f.kvh)
 }
 
-// matrixBase ptr + (sira·T·D)·4 (bir bakışın [T][D] matrisinin başı).
-func (k *emitter) matrixBase(ptr, order, T reg, D int) reg {
-	e := k.r()
-	k.e("mul.lo.s32", e, order, T)
+// hmat bir bakışın genel bellekteki [T][D] matrisi: ilk elemanın adresi ve satır adımı
+// (eleman). Dikkat girdileri [toplu, T, bakış, D] düzenindedir (dil tanımı 15.17): bakışın
+// satırları Hx·D adımlıdır.
+type hmat struct{ base, stride reg }
+
+// seqBase sıra = b·Hx + h bakışının matrisi: taban ptr + ((b·T)·Hx + h)·D·elem, adım Hx·D.
+func (k *emitter) seqBase(ptr, order, T, Hx reg, D, elem int) hmat {
+	b, h, e := k.r(), k.r(), k.r()
+	k.e("div.u32", b, order, Hx)
+	k.e("rem.u32", h, order, Hx)
+	k.e("mul.lo.s32", e, b, T)
+	k.e("mad.lo.s32", e, e, Hx, h)
 	r := k.rd()
-	k.e("mul.wide.u32", r, e, 4*D)
+	k.e("mul.wide.u32", r, e, elem*D)
 	k.e("add.s64", r, r, ptr)
-	return r
+	st := k.r()
+	k.e("mul.lo.s32", st, Hx, D)
+	return hmat{r, st}
 }
 
 // visibility sorgu satırı i için sınırlar ve maske tabanı (bh: maske ofsetinin başı).
@@ -318,9 +328,9 @@ func flashForwardKernel(a flashConfig) func() *emitter {
 		red1, red2 := k.shared("red1", 4*a.Br*17), k.shared("red2", 4*a.Br*17)
 		q0 := k.r()
 		k.e("mul.lo.s32", q0, k.special("%ctaid.x"), a.Br)
-		qb := k.matrixBase(pq, f.bh, f.Tq, a.Dh)
-		kb := k.matrixBase(pk, f.bhkv, f.Tk, a.Dh)
-		vb := k.matrixBase(pv, f.bhkv, f.Tk, a.Dv)
+		qb := k.seqBase(pq, f.bh, f.Tq, f.H, a.Dh, 4)
+		kb := k.seqBase(pk, f.bhkv, f.Tk, f.Hkv, a.Dh, 4)
+		vb := k.seqBase(pv, f.bhkv, f.Tk, f.Hkv, a.Dv, 4)
 		k.loadTile(qs, a.Dh, dhp, qb, q0, f.Tq, f.tid)
 		// Satırların sınırları ve bloğun gezeceği anahtar döşemeleri.
 		row0 := k.r()
@@ -364,7 +374,7 @@ func flashForwardKernel(a flashConfig) func() *emitter {
 		k.e("add.s32", j0, j0, a.Bc)
 		k.jump(loop)
 		k.put(done)
-		ob := k.matrixBase(pout, f.bh, f.Tq, a.Dv)
+		ob := k.seqBase(pout, f.bh, f.Tq, f.H, a.Dv, 4)
 		lb := k.r()
 		k.e("mul.lo.s32", lb, f.bh, f.Tq)
 		for i := range O {
@@ -430,7 +440,7 @@ func (k *emitter) mul(r reg, c int) reg {
 }
 
 // writeForward bir satırın O/l'sini ve (tx = 0) lse'sini yazar; boş satırda O = 0, lse = +∞.
-func (f *flashShared) writeForward(O []reg, m, l, row, ob, plse, lb reg) {
+func (f *flashShared) writeForward(O []reg, m, l, row reg, ob hmat, plse, lb reg) {
 	k := f.k
 	last := k.label()
 	p := k.p()
@@ -450,8 +460,8 @@ func (f *flashShared) writeForward(O []reg, m, l, row, ob, plse, lb reg) {
 		k.jumpIf(q, skip)
 		k.e("mul.rn.f32", v, v, inverse)
 		idx := k.r()
-		k.e("mad.lo.s32", idx, row, f.a.Dv, column)
-		k.store(tensor.Float32, k.address(ob, idx, 4), v)
+		k.e("mad.lo.s32", idx, row, ob.stride, column)
+		k.store(tensor.Float32, k.address(ob.base, idx, 4), v)
 		k.put(skip)
 	}
 	k.jumpIf(k.tidNonZeroTx(f.tx), last)

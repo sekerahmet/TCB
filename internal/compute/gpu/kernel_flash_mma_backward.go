@@ -39,20 +39,20 @@ func (k *emitter) fragRows(base2 reg, l mmaLanes) [2]reg {
 }
 
 // fragA16 16 bitlik [T][D] matristen şeridin satırlarının A parçaları (her k adımı için).
-func (k *emitter) fragA16(base2 reg, rows [2]reg, t2, lim reg, D int) [][4]reg {
+func (k *emitter) fragA16(m hmat, rows [2]reg, t2, lim reg, D int) [][4]reg {
 	a := make([][4]reg, D/16)
 	for s := range a {
 		for i, o := range [4][2]int{{0, 0}, {1, 0}, {0, 8}, {1, 8}} {
 			c := k.r()
 			k.e("add.s32", c, t2, 16*s+o[1])
-			a[s][i] = k.loadPair16(base2, rows[o[0]], c, lim, D)
+			a[s][i] = k.loadPair16(m, rows[o[0]], c, lim)
 		}
 	}
 	return a
 }
 
 // fragAF32 float32 [T][D] matristen 16 bite yuvarlanmış A parçaları.
-func (k *emitter) fragAF32(base2 reg, rows [2]reg, t2, lim reg, D int, f16 bool) [][4]reg {
+func (k *emitter) fragAF32(m hmat, rows [2]reg, t2, lim reg, D int, f16 bool) [][4]reg {
 	a := make([][4]reg, D/16)
 	var ok [2]reg
 	for i := range 2 {
@@ -64,8 +64,8 @@ func (k *emitter) fragAF32(base2 reg, rows [2]reg, t2, lim reg, D int, f16 bool)
 			c := k.r()
 			k.e("add.s32", c, t2, 16*s+o[1])
 			idx := k.r()
-			k.e("mad.lo.s32", idx, rows[o[0]], D, c)
-			ad := k.address(base2, idx, 4)
+			k.e("mad.lo.s32", idx, rows[o[0]], m.stride, c)
+			ad := k.address(m.base, idx, 4)
 			x0, x1 := k.constant(0), k.constant(0)
 			k.ifCase(ok[o[0]], "ld.global.f32", x0, mem(ad, 0))
 			k.ifCase(ok[o[0]], "ld.global.f32", x1, mem(ad, 4))
@@ -131,7 +131,7 @@ func (k *emitter) clearFrags(m [][4]reg) {
 
 // mmaGradWrite parçaları (satırlar rows, sütunlar 8n + 2t + 0/1) float32 [T][D] gradyana kipine
 // göre yazar (ekle ya da üzerine yaz); lim dışındaki satırlar yazılmaz.
-func (k *emitter) mmaGradWrite(M [][4]reg, mode int, base2 reg, rows [2]reg, lim, t2 reg, D int) {
+func (k *emitter) mmaGradWrite(M [][4]reg, mode int, m hmat, rows [2]reg, lim, t2 reg, D int) {
 	if mode == noGrad {
 		return
 	}
@@ -144,8 +144,8 @@ func (k *emitter) mmaGradWrite(M [][4]reg, mode int, base2 reg, rows [2]reg, lim
 			for c := 2 * r; c < 2*r+2; c++ {
 				idx := k.r()
 				k.e("add.s32", idx, t2, 8*n+c%2)
-				k.e("mad.lo.s32", idx, rows[r], D, idx)
-				ad := k.address(base2, idx, 4)
+				k.e("mad.lo.s32", idx, rows[r], m.stride, idx)
+				ad := k.address(m.base, idx, 4)
 				v := M[n][c]
 				if mode == addGrad {
 					old := k.load(tensor.Float32, ad)
@@ -205,10 +205,10 @@ func flashMmaBackwardQKernel(a flashMma, modeQ int) func() *emitter {
 		q0 := k.r()
 		k.e("mul.lo.s32", q0, k.special("%ctaid.x"), mmaBr)
 		rows := k.fragRows(q0, l)
-		qa := k.fragA16(k.base16(pq, f.bh, f.Tq, a.Dh), rows, t2, f.Tq, a.Dh)
-		doa := k.fragAF32(k.matrixBase(pdo, f.bh, f.Tq, a.Dv), rows, t2, f.Tq, a.Dv, a.f16)
-		kb := k.base16(pk, f.bhkv, f.Tk, a.Dh)
-		vb := k.base16(pv, f.bhkv, f.Tk, a.Dv)
+		qa := k.fragA16(k.seqBase(pq, f.bh, f.Tq, f.H, a.Dh, 2), rows, t2, f.Tq, a.Dh)
+		doa := k.fragAF32(k.seqBase(pdo, f.bh, f.Tq, f.H, a.Dv, 4), rows, t2, f.Tq, a.Dv, a.f16)
+		kb := k.seqBase(pk, f.bhkv, f.Tk, f.Hkv, a.Dh, 2)
+		vb := k.seqBase(pv, f.bhkv, f.Tk, f.Hkv, a.Dv, 2)
 		var lse2, dd, lo, hi [2]reg
 		lb := k.r()
 		k.e("mul.lo.s32", lb, f.bh, f.Tq)
@@ -262,7 +262,7 @@ func flashMmaBackwardQKernel(a flashMma, modeQ int) func() *emitter {
 		k.e("add.s32", j0, j0, mmaBc)
 		k.jump(loop)
 		k.put(done)
-		k.mmaGradWrite(dQ, modeQ, k.matrixBase(pdq, f.bh, f.Tq, a.Dh), rows, f.Tq, t2, a.Dh)
+		k.mmaGradWrite(dQ, modeQ, k.seqBase(pdq, f.bh, f.Tq, f.H, a.Dh, 4), rows, f.Tq, t2, a.Dh)
 		return k
 	}
 }
@@ -289,8 +289,8 @@ func flashMmaBackwardKVKernel(a flashMma, modeK, modeV int) func() *emitter {
 		j0 := k.r()
 		k.e("mul.lo.s32", j0, k.special("%ctaid.x"), mmaKeys)
 		keys := k.fragRows(j0, l)
-		ka := k.fragA16(k.base16(pk, f.bhkv, f.Tk, a.Dh), keys, t2, f.Tk, a.Dh)
-		va := k.fragA16(k.base16(pv, f.bhkv, f.Tk, a.Dv), keys, t2, f.Tk, a.Dv)
+		ka := k.fragA16(k.seqBase(pk, f.bhkv, f.Tk, f.Hkv, a.Dh, 2), keys, t2, f.Tk, a.Dh)
+		va := k.fragA16(k.seqBase(pv, f.bhkv, f.Tk, f.Hkv, a.Dv, 2), keys, t2, f.Tk, a.Dv)
 		dK, dV := k.zeroFrags(a.Dh/8), k.zeroFrags(a.Dv/8)
 		St, dPt := k.zeroFrags(mmaQT/8), k.zeroFrags(mmaQT/8)
 		qsAddr := k.laneAddr(qs, l, t2, a.Dh+8)
@@ -309,8 +309,8 @@ func flashMmaBackwardKVKernel(a flashMma, modeK, modeV int) func() *emitter {
 		bh := k.r()
 		k.e("add.s32", bh, f.h, g)
 		k.e("mad.lo.s32", bh, f.b, f.H, bh)
-		qb := k.base16(pq, bh, f.Tq, a.Dh)
-		dob := k.matrixBase(pdo, bh, f.Tq, a.Dv)
+		qb := k.seqBase(pq, bh, f.Tq, f.H, a.Dh, 2)
+		dob := k.seqBase(pdo, bh, f.Tq, f.H, a.Dv, 4)
 		lb := k.r()
 		k.e("mul.lo.s32", lb, bh, f.Tq)
 		i0 := k.r()
@@ -338,8 +338,8 @@ func flashMmaBackwardKVKernel(a flashMma, modeK, modeV int) func() *emitter {
 		k.e("add.s32", g, g, 1)
 		k.jump(beginH)
 		k.put(endH)
-		k.mmaGradWrite(dK, modeK, k.matrixBase(pdk, f.bhkv, f.Tk, a.Dh), keys, f.Tk, t2, a.Dh)
-		k.mmaGradWrite(dV, modeV, k.matrixBase(pdv, f.bhkv, f.Tk, a.Dv), keys, f.Tk, t2, a.Dv)
+		k.mmaGradWrite(dK, modeK, k.seqBase(pdk, f.bhkv, f.Tk, f.Hkv, a.Dh, 4), keys, f.Tk, t2, a.Dh)
+		k.mmaGradWrite(dV, modeV, k.seqBase(pdv, f.bhkv, f.Tk, f.Hkv, a.Dv, 4), keys, f.Tk, t2, a.Dv)
 		return k
 	}
 }

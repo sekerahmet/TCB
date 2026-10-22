@@ -173,11 +173,9 @@ func (m *smallModel) parameters() []*tensor.Tensor {
 func (m *smallModel) loss2(input, target []int) *tensor.Tensor {
 	x := tensor.Embedding(m.E, input, kmB, kmT)
 	h := tensor.RMSNorm(x, m.g1, 1e-5)
-	begin := func(t *tensor.Tensor) *tensor.Tensor {
-		return t.Reshape(kmB, kmT, kmH, kmD/kmH).Permute(0, 2, 1, 3)
-	}
+	begin := func(t *tensor.Tensor) *tensor.Tensor { return t.Reshape(kmB, kmT, kmH, kmD/kmH) } // [B, T, H, dh]
 	y := tensor.Attention(begin(tensor.MatMul(h, m.wq)), begin(tensor.MatMul(h, m.wk)), begin(tensor.MatMul(h, m.wv)), tensor.AttentionOptions{Causal: true})
-	s := tensor.Add(x, tensor.MatMul(y.Permute(0, 2, 1, 3).Reshape(kmB, kmT, kmD), m.wo))
+	s := tensor.Add(x, tensor.MatMul(y.Reshape(kmB, kmT, kmD), m.wo))
 	a := tensor.MatMul(s, m.wg)
 	f := tensor.Mul(tensor.Mul(a, a.Sigmoid()), tensor.MatMul(s, m.wu))
 	s = tensor.Add(s, tensor.MatMul(f, m.w2))

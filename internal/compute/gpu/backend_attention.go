@@ -55,6 +55,12 @@ func (g *backend) Attention(out tensor.Storage, q, k, v tensor.View, mask tensor
 		return lse
 	}
 	md, mo := g.prepareAttn(gt, mask, p)
+	if !p.SeqMajor && p.H > 1 {
+		// Birleşik çekirdekler dilin düzenini ([toplu, T, bakış, D]) okur; bakış önde verilen
+		// tanım (tensor.AttentionOut yalnızca AttentionSeqMajor yanlışsa verir) matris yolundadır.
+		g.attnMatrix(gt, od, lse, q, k, v, md, mo, p)
+		return lse
+	}
 	if tc, ok := g.mmaFits(q, k, v, md != nil, p); ok {
 		c := g.takeKernel(tc.key("dikkat_ileri_tc"), flashMmaForwardKernel(tc))
 		pr := g.param().readV(q).readV(k).readV(v).write(od, 0).write(lse, 0)
@@ -73,6 +79,19 @@ func (g *backend) Attention(out tensor.Storage, q, k, v tensor.View, mask tensor
 	g.attnShared(pr, md, mo, p)
 	g.launch(c, [3]uint32{blocks(p.Tq, a.Br), uint32(p.H), uint32(p.Batch)}, [3]uint32{flashJob, 1, 1}, pr)
 	return lse
+}
+
+// AttentionSeqMajor (tensor.SeqMajorAttender) dikkatin dilin düzeninde birleşik çekirdeklerle
+// (ileri ve geri) hesaplanabildiği: tensör çekirdekli ya da SIMT birleşik yol uyuyorsa doğru.
+// Uymuyorsa (bakış boyları büyük, TR_GPU_DIKKAT=carpim) tensör katmanı girdileri bakış önde
+// görünümlere çevirir ve matris yolu çalışır.
+func (g *backend) AttentionSeqMajor(q, k, v tensor.View, mask bool, p tensor.AttentionParams) bool {
+	g.enter()
+	defer g.exit()
+	tc, tcOK := g.mmaFits(q, k, v, mask, p)
+	_, fw := g.flashFits(p, mask, false)
+	_, bw := g.flashFits(p, mask, true)
+	return (tcOK || fw) && (tcOK && tc.Dh <= mmaBackMax && tc.Dv <= mmaBackMax || bw)
 }
 
 // attnShared çekirdeklerin ortak parametreleri (flashOrtak.ortakParametreler sırası).
@@ -107,6 +126,9 @@ func (g *backend) attnBackward(gq, gk, gv, gs tensor.Storage, q, k, v tensor.Vie
 	tc, tcOK := g.mmaFits(q, k, v, md != nil, p)
 	tcOK = tcOK && R > 0 && p.Tk > 0 && tc.Dh <= mmaBackMax && tc.Dv <= mmaBackMax
 	a, ok := g.flashFits(p, md != nil, true)
+	if !p.SeqMajor && p.H > 1 {
+		tcOK, ok = false, false // bakış önde: matris yolu (bkz. Attention)
+	}
 	if !tcOK && (!ok || R == 0 || p.Tk == 0) {
 		// Taze gradyanlar sıfırlanmamıştır: önce sıfırlanır, sonra eklenir.
 		for i, s := range []tensor.Storage{gq, gk, gv} {
@@ -134,7 +156,7 @@ func (g *backend) attnBackward(gq, gk, gv, gs tensor.Storage, q, k, v tensor.Vie
 	D := gt.buffer(R, false)
 	cd := g.takeKernel("dikkat_d", flashDKernel)
 	iz, bl := plain(R, sameBlock)
-	g.launch(cd, iz, bl, g.param().read(dO, 0).read(od, 0).write(D, 0).u32(R).u32(p.Dv))
+	g.launch(cd, iz, bl, g.param().read(dO, 0).read(od, 0).write(D, 0).u32(R).u32(p.Dv).u32(p.H).u32(p.Tq))
 	if tcOK {
 		g.attnBackwardTC(tc, q, k, v, dO, ld, D, md, mo, dq, dk, dv, kq, kk, kv, p)
 		for _, last := range lasts {
