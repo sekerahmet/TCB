@@ -77,7 +77,9 @@ func TestTestsUseRepoRootNotRelativePaths(t *testing.T) {
 }
 
 // Yardımcı yalnızca testler içindir ve hiçbir iç paketi içe aktarmaz: test dışı hiçbir Go dosyası
-// reporoot'u içe aktarmaz, reporoot'un kendisi de iç paket içe aktarmaz. (internal/layers_test.go
+// reporoot'u içe aktarmaz (ortak test yardımcıları internal/testkit hariç: onlar da yalnızca
+// testlerden içe aktarılır, internal/testkit TestHelpersAreImportedOnlyByTests), reporoot'un
+// kendisi de iç paket içe aktarmaz. (internal/layers_test.go
 // araçlara izin verir; bugün hiçbir araç kullanmıyor, kural README'deki gibi katıdır.)
 func TestHelperImportedOnlyByTests(t *testing.T) {
 	root := Root()
@@ -98,7 +100,7 @@ func TestHelperImportedOnlyByTests(t *testing.T) {
 				switch {
 				case strings.HasPrefix(rel, "internal/reporoot/") && strings.HasPrefix(p, "github.com/sekerahmet/TCB/"):
 					t.Errorf("%s: reporoot hiçbir iç paketi içe aktarmaz (%s)", rel, p)
-				case p == self && !strings.HasSuffix(rel, "_test.go"):
+				case p == self && !strings.HasSuffix(rel, "_test.go") && !strings.HasPrefix(rel, "internal/testkit/"):
 					t.Errorf("%s: reporoot yalnızca testlerden içe aktarılır", rel)
 				}
 			}
