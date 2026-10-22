@@ -332,12 +332,14 @@ func (n *node) backwardCounted(ctx any) {
 	c := deviceNo(n.be) & 1
 	if n.outer != nil {
 		add64(&counters[c][1][OpKindCustom].call, 1)
+		store64u(&backwardPos, 0) // dış geri hesap TR kodudur: süresi kendi satırlarındadır
 		n.outer.back(ctx)
 		return
 	}
 	k := &counters[c][1][n.opKind]
 	add64(&k.call, 1)
 	write32i(&activeNo, k.no)
+	store64u(&backwardPos, n.pos)
 	var s counterMeasure
 	if add32(&k.back, -1) <= 0 {
 		s.k = k

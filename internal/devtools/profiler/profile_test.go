@@ -194,6 +194,40 @@ döngü i içinde 0..120 {
 	}
 }
 
+// Geri yayılımın süresi geri_yayılım(...) satırına değil, düğümleri üreten ileri satıra yazılır.
+func TestProfileBackwardTimeGoesToForwardLine(t *testing.T) {
+	if !hasDepth {
+		t.Skip("yarış denetimli derlemede örnekleyici çağrı derinliğini okumaz")
+	}
+	code := `değişken w = tensör(rastgele_normal([256, 256], tohum: 1), türev_izle: doğru)
+değişken x = rastgele_normal([256, 256], tohum: 2)
+döngü i içinde 0..60 {
+    değişken y = x @ w @ w @ w
+    değişken kayıp = toplam(y)
+    geri_yayılım(kayıp)
+}
+`
+	g, _ := run(t, code, Options{SampleLines: true})
+	var forward, backward *LineInfo
+	for i, s := range g.Sampling.Lines {
+		switch s.Line {
+		case 4:
+			forward = &g.Sampling.Lines[i]
+		case 6:
+			backward = &g.Sampling.Lines[i]
+		}
+	}
+	if forward == nil || forward.Share*float64(g.Sampling.Samples) < 20 {
+		t.Skip("4. satırda yeterli örnek yok (çok hızlı makine); denetlenmedi")
+	}
+	if forward.BackwardShare < 0.3 {
+		t.Errorf("4. satırın geri payı %v; çarpımların geri hesabı bu satıra yazılmalı", forward.BackwardShare)
+	}
+	if backward != nil && backward.Seconds > forward.Seconds/2 {
+		t.Errorf("geri_yayılım satırı %v sn, ileri satır %v sn; geri hesap ileri satıra yazılmalı", backward.Seconds, forward.Seconds)
+	}
+}
+
 // profil.json biçimi: sürüm, kimlik alanları, atomik yazma (geçici dosya kalmaz).
 func TestProfileStatusFile(t *testing.T) {
 	dir := t.TempDir()

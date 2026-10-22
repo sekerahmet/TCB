@@ -226,7 +226,7 @@ func (p *Profile) samplingInfo(positions, minus []posSample, total time.Duration
 	var inTensor time.Duration
 	for _, k := range positions {
 		e := prev[key{k.function, k.src, k.line}]
-		k.dur, k.tensor = k.dur-e.dur, k.tensor-e.tensor
+		k.dur, k.tensor, k.back = k.dur-e.dur, k.tensor-e.tensor, k.back-e.back
 		if k.dur <= 0 {
 			continue
 		}
@@ -259,6 +259,7 @@ func (p *Profile) lineInfo(k posSample, total time.Duration) LineInfo {
 	s := LineInfo{
 		Line: k.line, Function: k.function, Seconds: sn(k.dur),
 		Share: ratio(sn(k.dur), sn(total)), TensorShare: ratio(sn(k.tensor), sn(k.dur)),
+		BackwardShare: ratio(sn(k.back), sn(k.dur)),
 	}
 	lines := p.lines
 	s.File = p.pick.Program

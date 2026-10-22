@@ -13,3 +13,5 @@ func read64(p *int64) int64         { return atomic.LoadInt64(p) }
 func add32(p *int32, d int32) int32 { return atomic.AddInt32(p, d) }
 func read32i(p *int32) int32        { return atomic.LoadInt32(p) }
 func write32i(p *int32, v int32)    { atomic.StoreInt32(p, v) }
+func store64u(p *uint64, v uint64)  { atomic.StoreUint64(p, v) }
+func load64u(p *uint64) uint64      { return atomic.LoadUint64(p) }

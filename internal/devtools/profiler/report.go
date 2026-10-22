@@ -97,7 +97,11 @@ func reportLines(b *strings.Builder, o *SamplingInfo) {
 		if i == 10 {
 			break
 		}
-		fmt.Fprintf(b, "  %s  %s  %s  %s\n", right(percent(s.Share), 5), left(linePos(s), 30), right(messages.Text(messages.H8247, percent(s.TensorShare)), 11), trim(lineText(s), 70))
+		back := ""
+		if s.BackwardShare > 0 {
+			back = messages.Text(messages.H8289, percent(s.BackwardShare))
+		}
+		fmt.Fprintf(b, "  %s  %s  %s  %s  %s\n", right(percent(s.Share), 5), left(linePos(s), 30), right(messages.Text(messages.H8247, percent(s.TensorShare)), 11), left(back, 9), trim(lineText(s), 70))
 	}
 	b.WriteString(messages.Text(messages.H8248) + "\n")
 	for i, f := range o.Functions {

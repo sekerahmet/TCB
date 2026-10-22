@@ -5,7 +5,7 @@ import (
 )
 
 // ============================================================================
-// Profil biçimi (sürüm 2): canlı durum (profil.json) ve rapor (speed.json) aynı yapıdadır
+// Profil biçimi (sürüm 3): canlı durum (profil.json) ve rapor (speed.json) aynı yapıdadır
 // ============================================================================
 //
 // Anahtarlar dosya biçiminin parçasıdır (yazım dilinden bağımsız, çevrilmez; günlük
@@ -16,7 +16,7 @@ import (
 // FormatName ve FormatVersion dosyanın kimliğidir.
 const (
 	FormatName    = "tr-profil"
-	FormatVersion = 2
+	FormatVersion = 3
 )
 
 // Snapshot bir programın profilinin anlık görüntüsüdür (canlı ya da son rapor).
@@ -151,6 +151,9 @@ type LineInfo struct {
 	Seconds     float64 `json:"süre_sn"`
 	Share       float64 `json:"pay"`
 	TensorShare float64 `json:"tensör_payı"`
+	// BackwardShare satırın süresinden geri hesaba düşen paydır: satırın ürettiği düğümlerin
+	// geri yayılımı (sürüm 3; geri_yayılım(...) satırına değil, düğümü üreten satıra yazılır).
+	BackwardShare float64 `json:"geri_payı"`
 }
 
 // PeakLine tepe GPU belleği anında bir satırın ayırdığı canlı bellektir. Yalnızca metin

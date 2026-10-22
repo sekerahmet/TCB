@@ -223,6 +223,7 @@ Yorumlayıcının motorlara sunduğu ortak hizmetler:
 - **Tensör sayaçları** (`internal/compute/tensor/counter*.go`): her zaman açık. Her işlem türü (`tensor.OpKind`), yön (ileri / geri yayılım) ve cihaz (CPU / GPU) için çağrı sayısı (kesin), ayrılan bayt (kesin) ve süre. CPU'da süre uyarlamalı örneklenir: kısa işlemlerde her çağrı p = 1/32 olasılıkla ölçülür ve ölçülen süre 1/p ile ağırlıklanır (Horvitz–Thompson; p yalnızca geçmiş ölçümlere bağlı olduğundan yansız); uzun işlemde (`longOpTicks`) her çağrı ölçülür. GPU işlemlerinin her çağrısı ölçülür. Saat amd64'te değişmez zaman damgası sayacıdır (`counter_clock_amd64.go`), başka yerde monoton saat. Sayaçlar kilitsizdir (yarış denetimli derlemede atomik: `counter_race.go`). Okuma: `tensor.CounterSnapshot`, `tensor.ActiveOp`.
 - **Örtük kopya sayaçları** (`internal/compute/tensor/implicit.go`): her zaman açık. Arka ucun her kopyası, tür dönüşümü ve ekleyerek yazması (`Copy`, `CopyStrided`, `AddTo`, `ExpandAdd`, `ScatterAdd`; GPU'da her `copyStrided`) o anda çalışan işleme (üst işlem; yoksa "diğer") bağlanır: çağrı ve eleman kesin, süre yalnızca CPU'da ve en az 4096 elemanlı kopyada ölçülür (GPU'da konak süresi yalnızca başlatmadır). PyTorch profilinde `aten::copy_` / `aten::to` çağıran işlemin altında görünür; burada tablo düzdür, üst işlem anahtardır. İşlemin kendisi olan kopyalar (`.kopya()`, `.türe`) işlem tablosundadır, örtük tabloya alınmaz. Okuma: `tensor.ImplicitSnapshot`.
 - **Yorumlayıcı örneklemesi** (`sampler.go`): yalnızca `tr izle` ve `tr profil` altında. Yorumlayıcının hata ayıklayıcı yuvasına (`VM.Debugger`) bağlanır; yuva boşken yorumlayıcının her deyimdeki maliyeti bir nil denetimidir. Açıkken her deyim konumunu (fonksiyon, satır) çağrı derinliğinin yuvasına yazar; ayrı bir gorutin 1 ms'de bir o anki konuma geçen süreyi ve o an bir tensör işlemi çalışıyorsa tensör payını ekler. `kesme_noktası` profil altında yok sayılır.
+- **Geri hesabın satırı** (`internal/compute/tensor/position.go`): örnekleme açıkken örnekleyici tensör paketine konum kaynağı olur (`tensor.SetPositionSource`); her düğüm oluştuğu satırı taşır, geri hesabı çalışırken o satır etkin geri konumdur (`tensor.BackwardPosition`) ve örnekleyici o ana düşen süreyi `geri_yayılım(...)` satırına değil, düğümü üreten ileri satıra yazar (satırın `geri_payı`). PyTorch'ta aynı eşleme `emit_nvtx`'in sıra numarasıyla yapılır (ileri `seq=N`, geri `stashed seq=N`); burada eşleme düğümün kendisindedir. Dış (özel) geri hesap TR kodu çalıştırdığından kendi satırlarında sayılır. Kapalıyken maliyet düğüm başına bir atomik gösterici okumasıdır.
 - **Adım sınırı** (`logging.SetStepHook`): ms/adım ve adım başına işlem dağılımı buradan.
 - **GPU arka ucunun profili** (`gpu.KernelSamples`, `gpu.MemorySamples`): `tr izle` ve `tr profil` kernel ölçümünü açar (`gpu.EnableProfile`; `TR_GPU_PROFIL=1` ile zaten açıksa dokunmaz); program bitince, motorlar kapanmadan önce (`Profile.BeforeClose`, komut satırının `kapanmadanOnce` işleri) cihazı eşzamanlayıp arka ucun raporunu alır. Arka plan işinin profili ölçümü açmaz; GPU belleği yine okunur. Okumalar arka ucu beklemez.
 
@@ -230,11 +231,11 @@ Profil saniyede bir anlık görüntü alır (`snapshot.go`), son 5 saniyenin far
 
 **Canlı tablo** (`screen.go`): standart hata bir terminalse tablo ekranın başından denetim dizileriyle yeniden çizilir (Windows'ta konsolun sanal terminal kipi açılır; `live_windows.go`). Programın standart çıkışı ve hatası bir boruya alınır (`capture.go`): tamamı bir dosyaya yazılır, son satırları tablonun altında görünür, program bitince yeniden yazılır; boru terminal olmadığından ilerleme çubuğu düz satır kipine geçer. Terminal değilse çıktı olduğu gibi akar, 10 saniyede bir tek satırlık özet eklenir.
 
-**Dosya biçimi** (`snapshot.go`): `profil.json` (canlı, iş klasöründe) ve `speed.json` / `tr profil --json` (son rapor) aynı yapıdadır. Anahtarlar dosya biçiminin parçasıdır (yazım dilinden bağımsız, çevrilmez); işlemlerin `kod` alanı değişmez anahtardır, `ad` insana gösterilen addır (dildeki ad; çevrilebilir). Süreler saniye, baytlar bayt, paylar 0..1'dir. Yazma atomiktir (aynı klasörde geçici dosya + yeniden adlandırma); yazma başarısızsa sonraki saniyede yeniden denenir, program hiçbir durumda durmaz. Sürüm 2 (sürüm 1'e göre `tensör.örtük` eklendi):
+**Dosya biçimi** (`snapshot.go`): `profil.json` (canlı, iş klasöründe) ve `speed.json` / `tr profil --json` (son rapor) aynı yapıdadır. Anahtarlar dosya biçiminin parçasıdır (yazım dilinden bağımsız, çevrilmez); işlemlerin `kod` alanı değişmez anahtardır, `ad` insana gösterilen addır (dildeki ad; çevrilebilir). Süreler saniye, baytlar bayt, paylar 0..1'dir. Yazma atomiktir (aynı klasörde geçici dosya + yeniden adlandırma); yazma başarısızsa sonraki saniyede yeniden denenir, program hiçbir durumda durmaz. Sürüm 3 (sürüm 1'e göre `tensör.örtük` (2) ve satırların `geri_payı` (3) eklendi):
 
 ```jsonc
 {
-  "biçim": "tr-profil", "sürüm": 2, "tür": "canlı",        // "canlı" ya da "rapor"
+  "biçim": "tr-profil", "sürüm": 3, "tür": "canlı",        // "canlı" ya da "rapor"
   "program": "egit.tr", "başlangıç": "2026-10-19T08:49:12.511+03:00",
   "zaman": "2026-10-19T08:49:24.511+03:00", "süre_sn": 12.0, "bitti": false,
   "çıkış_kodu": 0,                                          // yalnızca bitince
@@ -254,7 +255,8 @@ Profil saniyede bir anlık görüntü alır (`snapshot.go`), son 5 saniyenin far
       "tepe_canlı_bayt": 113664, "tepe_ayrılmış_bayt": 114176, "çöp_toplama": 0}]},
   "örnekleme": {"aralık_ms": 1, "örnek": 11800, "süre_sn": 11.8, "tensör_payı": 0.95,  // kapalıysa null
     "satırlar": [{"dosya": "examples/tr/41_gpt.tr", "satır": 49, "fonksiyon": "",
-      "metin": "geri_yayılım(kayıp)", "süre_sn": 4.6, "pay": 0.39, "tensör_payı": 0.99}],
+      "metin": "değişken y = x @ kendi.ağırlık", "süre_sn": 4.6, "pay": 0.39, "tensör_payı": 0.99,
+      "geri_payı": 0.64}],
     "fonksiyonlar": [{"ad": "dikleştir", "süre_sn": 3.9, "pay": 0.33}]},
   "bellek": {"go_yığını_bayt": 7864320, "go_sistem_bayt": 44564480, "cpu_tensör_ayrılan_bayt": 7642211100},
   "çöp_toplama": {"sayı": 423, "duraklama_sn": 0.113},

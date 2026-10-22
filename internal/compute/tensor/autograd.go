@@ -78,6 +78,8 @@ type node struct {
 	dtyp  DType
 	// opKind, düğümü üreten işlemin profil sayacı türüdür (geri yayılım bu adla sayılır).
 	opKind OpKind
+	// pos, düğümü üreten satırın TR konumudur (satır örneklemesi açıkken; bkz. position.go).
+	pos uint64
 
 	grad         Storage // bitişik gradyan (şekil = shape), gerekince ayrılır
 	requiresGrad bool
@@ -163,6 +165,7 @@ func track(out *Tensor, op string, parents []*Tensor, bw func(o *node), save ...
 	o.backward = bw
 	o.op = op
 	o.opKind = activeKind() // düğümün profil sayacı türü (bkz. counter.go)
+	o.pos = currentPosition()
 	for _, k := range save {
 		if k != nil {
 			o.registered = append(o.registered, savedVersion{k, k.storage.Version()})
@@ -310,6 +313,7 @@ func (t *Tensor) BackwardCtx(seed *Tensor, ctx any) {
 	// gradyanlar iki kez ya da eksik birikeceği için açık hata verir.
 	allocated := 0
 	defer func() {
+		store64u(&backwardPos, 0) // geri hesap bitti (ya da panikle kesildi)
 		// Hata (panik) durumunda henüz bırakılmamış düğümlerin işaretini kaldır.
 		for _, n := range order[:allocated] {
 			if !n.free {

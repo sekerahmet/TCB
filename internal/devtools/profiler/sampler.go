@@ -55,6 +55,7 @@ type funcKey struct {
 // posInfo bir konumda biriken örnek süreleridir.
 type posInfo struct {
 	dur, tensor time.Duration
+	back        time.Duration // geri hesabın bu satırın düğümlerine düşen süresi
 }
 
 // sampler satır/fonksiyon örnekleyicisidir (bkz. dosya başı).
@@ -134,8 +135,10 @@ func (o *sampler) functionNo(f funcKey) uint64 {
 	return n
 }
 
-// start örnekleme goroutine'ini başlatır.
+// start örnekleme goroutine'ini başlatır ve tensör düğümlerine konum kaynağı olur: her düğüm
+// oluştuğu satırı taşır, geri hesabının süresi o satıra yazılır (tensor/position.go).
 func (o *sampler) start() {
+	tensor.SetPositionSource(o.current)
 	o.done.Add(1)
 	go o.loop()
 }
@@ -149,6 +152,7 @@ func (o *sampler) halt() {
 	}
 	close(o.stop)
 	o.done.Wait()
+	tensor.SetPositionSource(nil)
 }
 
 func (o *sampler) loop() {
@@ -168,8 +172,11 @@ func (o *sampler) loop() {
 	}
 }
 
-// sample2 geçen d süresini o anki konuma yazar.
-func (o *sampler) sample2(d time.Duration) {
+// current o anki konumdur: son deyimi çalıştıran görevin çağrı derinliğindeki son deyim.
+// Derinlikten okumak, bir fonksiyon döndükten sonra çağıran satırın kalan işini (ör.
+// kayıp = çapraz_entropi(ileri(x), y) satırında ileri döndükten sonraki çapraz entropi)
+// çağıran satıra yazar; yalnızca son deyime bakılsaydı dönen fonksiyonun son satırına düşerdi.
+func (o *sampler) current() uint64 {
 	k := loadPos(&o.pos)
 	if v := (*interp.VM)(loadTask(&o.task)); v != nil {
 		if n := readDepth(v); n >= 0 && n < stackLimit {
@@ -177,6 +184,17 @@ func (o *sampler) sample2(d time.Duration) {
 				k = y
 			}
 		}
+	}
+	return k
+}
+
+// sample2 geçen d süresini o anki konuma yazar.
+func (o *sampler) sample2(d time.Duration) {
+	k := o.current()
+	// Geri hesap çalışıyorsa süre, çalışan düğümü üreten ileri satırındır.
+	back := false
+	if bp := tensor.BackwardPosition(); bp != 0 {
+		k, back = bp, true
 	}
 	if k == 0 || d <= 0 {
 		return // program henüz ilk deyime gelmedi
@@ -192,6 +210,9 @@ func (o *sampler) sample2(d time.Duration) {
 	if inTensor {
 		b.tensor += d
 	}
+	if back {
+		b.back += d
+	}
 	o.total += d
 	o.sample++
 	o.mu.Unlock()
@@ -203,6 +224,7 @@ type posSample struct {
 	src         *interp.Source // satırın dosyası; nil ana programdır
 	line        int
 	dur, tensor time.Duration
+	back        time.Duration // geri hesaptan gelen pay (bkz. posInfo)
 }
 
 // site o an çalışan deyimin konumudur (fonksiyon<<32 | satır); GPU belleğini ayıran konum
@@ -239,7 +261,7 @@ func (o *sampler) snapshot() (positions []posSample, total time.Duration, sample
 	for k, b := range o.positions {
 		f := o.names[k>>32]
 		positions = append(positions, posSample{
-			function: f.name, src: f.src, line: int(uint32(k)), dur: b.dur, tensor: b.tensor,
+			function: f.name, src: f.src, line: int(uint32(k)), dur: b.dur, tensor: b.tensor, back: b.back,
 		})
 	}
 	return positions, o.total, o.sample
