@@ -1,0 +1,29 @@
+package fixture
+
+func wrapA() {
+	resign := func(t *testing.T, step2Dir string) {
+		t.Helper()
+		trtBytes, err := os.ReadFile(filepath.Join(step2Dir, "tensorler.trt"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		durumBytes, err := os.ReadFile(filepath.Join(step2Dir, "durum.json"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		trtSum := sha256.Sum256(trtBytes)
+		durumSum := sha256.Sum256(durumBytes)
+		ozet := fmt.Sprintf(`{
+  "sürüm": 2,
+  "adım": 2,
+  "dosyalar": {
+    "durum.json": {"bayt": %d, "sha256": %q},
+    "tensorler.trt": {"bayt": %d, "sha256": %q}
+  }
+}
+`, len(durumBytes), hex.EncodeToString(durumSum[:]), len(trtBytes), hex.EncodeToString(trtSum[:]))
+		if err := os.WriteFile(filepath.Join(step2Dir, "ozet.json"), []byte(ozet), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+}

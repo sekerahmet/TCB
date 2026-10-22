@@ -165,7 +165,7 @@ func (ix *index) resolve(q string, o *queryOpts, kinds ...string) (*Node, int) {
 // reorderFlags bayrakları adların önüne alır (flag paketi ilk addan sonrasını bayrak saymaz):
 // "query New --limit 5" ile "query --limit 5 New" aynıdır.
 func reorderFlags(args []string) []string {
-	valued := map[string]bool{"graph": true, "limit": true, "root": true, "base": true, "in": true, "min": true, "mode": true, "type": true}
+	valued := map[string]bool{"graph": true, "limit": true, "root": true, "base": true, "in": true, "min": true, "mode": true, "type": true, "changed": true}
 	var flags, names []string
 	for i := 0; i < len(args); i++ {
 		a := args[i]

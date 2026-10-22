@@ -203,6 +203,83 @@ repository (a failing git is an error, exit 1).
   dictionary, so the `names` list shows them too. History
   before a file was renamed is not visible to it.
 
+## Duplicate code (`dups`, `similar`)
+
+Say "this looks like a copy of ..." before code is written or merged. Both commands read the Go
+sources directly (no graph needed, no network, no new dependency) and are deterministic.
+
+```sh
+go run ./tools/codegraph dups                       # candidates in the whole repository
+go run ./tools/codegraph dups --changed claude/x    # only what the branch added or changed (the branch must be checked out)
+go run ./tools/codegraph dups --min 60 --in internal/stdlib --json
+go run ./tools/codegraph similar tokenize.parallel  # the functions most like this one, with a score
+go run ./tools/codegraph dups --list-exclusions     # the deliberate exceptions and why
+```
+
+- **`dups [--min N] [--in DIR] [--changed branch|range] [--base B] [--limit N|--all] [--json] [--no-exclude]`.**
+  A candidate is a set of two or more places whose syntax trees have the same shape for at least
+  `--min` nodes (default 100, dupl's default). Each location is `file:from-to` plus the function it
+  is in; the diff summary says whether the copies are exact (names and values too) or only the same
+  shape and lists the most frequent `a -> b` renamings. `--in` keeps candidates with a location under
+  a directory. `--changed` keeps candidates with a location on the lines `git diff -U0 base...branch`
+  added or changed (the `changed` command's hunks) and marks those locations `[changed]`; the other
+  locations can be anywhere, so "this new function copies an existing one" is the case it exists
+  for. The branch has to be the checked-out commit (the line numbers are the working tree's).
+  Exit codes as elsewhere; JSON schema `codegraph-dups/1`.
+- **`similar <func> [--limit N] [--json]`.** Dice score (0..1) between the target and every other
+  function over the sets of 4-grams of their node sequences; functions of fewer than 12 nodes and
+  scores below 0.30 are not listed. The name is `Func`, `Type.Method`, or either with a package
+  directory (`tokenize.parallel`, `internal/compute/tokenize.parallel`); an ambiguous name lists its
+  candidates (exit 3). It finds the *near-miss* copies `dups` cannot (an extra statement, a
+  different literal shape), e.g. `ShortNumber` and `FormatBytes` score 0.76 and `registerIsFinite`
+  and `registerRounding` 0.85. Schema `codegraph-similar/1`.
+
+**Method.** Each file's syntax tree is flattened in pre-order into one sequence of numbers, one per
+node: (node type, operator, child count). Names and literal values are *not* in it (they only
+feed the diff summary), the child count makes the sequence decode to exactly one tree, and a unique
+separator between files stops every match at a file boundary. Import declarations are skipped.
+The tool then looks for runs of `--min` equal numbers with a rolling hash (Karp-Rabin) over all
+windows, confirms hash hits by comparing the windows, keeps only matches that cannot be extended
+to the left (so a long clone is reported once, not at every offset), extends them to the right as
+far as they go, merges matches that start at the same place into sets of three or more
+locations, and drops a set whose every location lies inside a bigger set's location. Groups of
+more than 60 identical windows are boilerplate and are counted, not paired.
+
+| | dupl ([mibk/dupl](https://github.com/mibk/dupl)) | PMD CPD ([docs](https://pmd.github.io/pmd/pmd_userdocs_cpd.html)) | here |
+| :-- | :-- | :-- | :-- |
+| Unit | serialised Go AST, node types only ("ignores the values of AST nodes"), threshold `-t` in tokens, default 100 | token stream, `--minimum-tokens` (required), Karp-Rabin | AST node sequence with the child count, `--min` nodes, default 100 |
+| Search | suffix tree | Karp-Rabin string matching | rolling hash over windows + verification: simpler, no suffix tree, same result for the clone sizes asked for; memory is O(nodes) |
+| Names and literals | ignored | identical by default; `--ignore-identifiers` / `--ignore-literals` loosen it | ignored always (same shape = clone); kept for the diff summary |
+| Operators | not stated on the page | tokens | part of the node (`a + b` and `a - b` differ) |
+| Suppression | none stated | `CPD-OFF` / `CPD-ON` comments | the exclusion list below (file or pair patterns with a reason) |
+| Near-miss copies | not found | not found | `similar` (n-gram score) |
+| Changed-only mode | none | none | `--changed` |
+
+dupl's and CPD's pages do not say how they treat operators or how a match inside a function is
+trimmed; those cells are "not stated", not claims.
+
+**Deliberate exceptions** (`dups --list-exclusions` prints them with the reason; a silenced
+candidate is counted by name in the output, `--no-exclude` shows it): the GPU simulator
+(`internal/compute/gpu/sim*.go`) against the tensor conversions and arithmetic (an independent
+re-implementation, sharing it would make the check circular); float64 reference implementations in
+tests against production code; `internal/lang/ast` node boilerplate; generated files (the
+`// Code generated ... DO NOT EDIT.` header, which also covers the Unicode tables) are not read;
+tables are one leaf (every composite literal in a `*_test.go` file, and in production code those
+with 8 or more elements: name tables, operator sets); `examples/tr` against `examples/en` are
+`.tr` files, which this command does not read. To add an exception write one entry in
+`dups_exclude.go` with a reason.
+
+**Limits.** Exact-shape clones only (type 1 and 2 in the clone literature): a copy with an extra
+statement is found by `similar`, not by `dups`. A match may begin in the middle of a function (the
+span is the lines its nodes cover). Switch arms and sequences of one-line wrappers are reported
+although they are rarely worth merging: judge each candidate. On this repository `dups` takes about
+1 s and reads about 700 000 nodes of 800 files; at `--min 100` it lists about 30 candidates.
+
+**For `.tr` code** the same idea belongs in `tr dizin` (the TR code index already has the syntax
+trees and a language-independent reader): a `tr dizin kopya` subcommand over the `codeindex`
+parser output with the same node sequence, which would see the parallel `examples/tr` and
+`examples/en` as one family; see the hand-over note for the proposal.
+
 ## Why this design (comparison)
 
 [Graphify](https://github.com/Graphify-Labs/graphify) builds a graph from code (tree-sitter, about
@@ -260,3 +337,10 @@ full check (`tools/full_check.sh`) runs Go tests with `-short`; the skipped ones
   missing graph, `build`.
 - `fresh_test.go`, `root_test.go`, `history_test.go`, `changed_test.go`, `deleted_test.go`: the
   stamp and automatic rebuild, finding the repository root, and the three git commands.
+- `dups_test.go`: the known duplicates from the Gemini duplicate audits (Parti 3 and 4: `teeWriter`,
+  the `resign` closures, `registerIsFinite`/`registerRounding`; excerpts of the code at main
+  `04c83dc0` in `testdata/dups`) are found by `dups`, the near-miss ones (`ShortNumber`/`FormatBytes`,
+  `exprNames`/`exprCaptures`) by `similar`; the threshold; deterministic JSON; each exclusion
+  silences exactly its case and `--no-exclude` shows it again, two production copies are still
+  reported; generated files and tables are not duplicates; `--changed` on a temporary git repository
+  (only the branch's new copy touches the set; a branch that is not checked out is refused).
