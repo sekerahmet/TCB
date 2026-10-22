@@ -1,0 +1,59 @@
+// Ölçüm modeli: compare_gpu.tr ve phase3_tr.tr aynı modeli (RMS normlu, SwiGLU'lu, paylaşımlı çıkışlı
+// küçük bir GPT) kurar; PyTorch karşılıkları compare_gpu.py ve phase3_torch.py'dedir. Model kasıtlı
+// olarak lib/katman.tr'ye bağlanmaz: ölçüm programı PyTorch dosyasıyla katman katman eşleşir, kitaplık
+// değişince ölçüm sessizce değişmesin. Bu dosya aktaranın B, T, D, H, Dh, FF, KATMAN ve V adlarını
+// kullanır (aktar'dan önce tanımlı olmalıdır); ağırlık tohumları kurulum sırasına bağlıdır.
+// Kendisi program değildir: tr kontrol/çalıştırma aktaran dosyalardan yapılır.
+
+değişken tohum_sayacı = 0
+fonksiyon ağırlık(şekil, ölçek) {
+    tohum_sayacı += 1
+    sonuç tensör(türevsiz(rastgele_normal(şekil, tohum: tohum_sayacı) * ölçek), türev_izle: doğru)
+}
+
+yapı Blok {
+    g1
+    g2
+    Wq
+    Wk
+    Wv
+    Wo
+    Wg
+    Wu
+    W2
+    fonksiyon kurucu() {
+        kendi.g1 = tensör(birler([D]), türev_izle: doğru)
+        kendi.g2 = tensör(birler([D]), türev_izle: doğru)
+        kendi.Wq = ağırlık([D, D], 0.02)
+        kendi.Wk = ağırlık([D, D], 0.02)
+        kendi.Wv = ağırlık([D, D], 0.02)
+        kendi.Wo = ağırlık([D, D], 0.01)
+        kendi.Wg = ağırlık([D, FF], 0.02)
+        kendi.Wu = ağırlık([D, FF], 0.02)
+        kendi.W2 = ağırlık([FF, D], 0.01)
+    }
+    fonksiyon başlar(x) { sonuç x.şekillendir([B, T, H, Dh]) } // dikkat'in düzeni [B, T, H, Dh]
+    fonksiyon ileri(x) {
+        değişken h = rms_normu(x, kendi.g1)
+        değişken y = dikkat(kendi.başlar(h @ kendi.Wq), kendi.başlar(h @ kendi.Wk), kendi.başlar(h @ kendi.Wv), nedensel: doğru)
+        değişken s = x + y.şekillendir([B, T, D]) @ kendi.Wo
+        değişken m = rms_normu(s, kendi.g2)
+        sonuç s + (silu(m @ kendi.Wg) * (m @ kendi.Wu)) @ kendi.W2
+    }
+}
+
+yapı Model {
+    E
+    bloklar
+    gs
+    fonksiyon kurucu() {
+        kendi.E = ağırlık([V, D], 0.02)
+        kendi.bloklar = aralık(KATMAN).haritala { Blok() }
+        kendi.gs = tensör(birler([D]), türev_izle: doğru)
+    }
+    fonksiyon ileri(girdi) {
+        değişken x = gömme(kendi.E, girdi)
+        döngü bl içinde kendi.bloklar { x = bl.ileri(x) }
+        sonuç rms_normu(x, kendi.gs) @ kendi.E.devrik() // paylaşımlı çıkış
+    }
+}
