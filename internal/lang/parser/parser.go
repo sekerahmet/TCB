@@ -304,10 +304,16 @@ func (p *Parser) peekPrecedence() int {
 
 // ParseProgram parses the whole input as a program.
 func (p *Parser) ParseProgram() *ast.Program {
-	program := &ast.Program{}
-	program.Statements = []ast.Statement{}
+	program := &ast.Program{Statements: p.parseStatementList(true)}
+	p.removedSpellingHints()
+	return program
+}
 
-	for !p.curTokenIs(lexer.TokEOF) {
+// parseStatementList deyimleri dosya sonuna (topLevel) ya da bloğun '}' ya da dosya sonuna kadar
+// okur; her deyimden sonra hata kurtarma noktasına eşitlenir.
+func (p *Parser) parseStatementList(topLevel bool) []ast.Statement {
+	stmts := []ast.Statement{}
+	for !p.curTokenIs(lexer.TokEOF) && (topLevel || !p.curTokenIs(lexer.TokRBrace)) {
 		if p.curTokenIs(lexer.TokSemicolon) {
 			p.nextToken()
 			continue
@@ -315,13 +321,12 @@ func (p *Parser) ParseProgram() *ast.Program {
 		stmtStart := p.pos
 		stmt := p.parseStatement()
 		if stmt != nil {
-			program.Statements = append(program.Statements, stmt)
+			stmts = append(stmts, stmt)
 		}
-		p.synchronize(stmtStart, true)
+		p.synchronize(stmtStart, topLevel)
 		p.nextToken()
 	}
-	p.removedSpellingHints()
-	return program
+	return stmts
 }
 
 // removedSpellingHints sözdizimi hatası olan satırlarda kaldırılmış bir anahtar kelime

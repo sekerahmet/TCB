@@ -278,7 +278,7 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	defer p.allowBlocks()()
 	defer p.enterBlockBody()()
 	block := &ast.BlockStatement{Token: p.curToken()}
-	block.Statements = []ast.Statement{}
+	block.Statements = []ast.Statement{} // atlanırsa da boş dizi
 	if !p.enterDepth() {
 		p.skipToBlockEnd()
 		return block
@@ -287,19 +287,7 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 
 	p.nextToken()
 
-	for !p.curTokenIs(lexer.TokRBrace) && !p.curTokenIs(lexer.TokEOF) {
-		if p.curTokenIs(lexer.TokSemicolon) {
-			p.nextToken()
-			continue
-		}
-		stmtStart := p.pos
-		stmt := p.parseStatement()
-		if stmt != nil {
-			block.Statements = append(block.Statements, stmt)
-		}
-		p.synchronize(stmtStart, false)
-		p.nextToken()
-	}
+	block.Statements = p.parseStatementList(false)
 	p.requireClosingBrace(block.Token)
 
 	return block
