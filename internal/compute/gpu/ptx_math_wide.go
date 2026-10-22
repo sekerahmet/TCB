@@ -483,25 +483,9 @@ func (k *emitter) expMinusOne(x reg) reg {
 	return k.pick(nan, x, o)
 }
 
-// siluSig σ(x) = e^{-|x|} ile sayısal kararlı biçimde (x ≥ 0: 1/(1+e), değilse e/(1+e)).
-func (k *emitter) siluSig(x reg) reg {
-	a := k.f()
-	k.e("abs.f32", a, x)
-	k.e("neg.f32", a, a)
-	e := k.exponential(a)
-	b := k.f()
-	k.e("add.rn.f32", b, e, float32(1))
-	r1, r2 := k.f(), k.f()
-	k.e("div.rn.f32", r1, float32(1), b)
-	k.e("div.rn.f32", r2, e, b)
-	p := k.p()
-	k.e("setp.ge.f32", p, x, float32(0))
-	return k.pick(p, r1, r2)
-}
-
 // silu x·σ(x); σ(x) = 0 iken (x → −sonsuz) 0 (CPU siluIleri ile aynı).
 func (k *emitter) silu(x reg) reg {
-	s := k.siluSig(x)
+	s := k.sigmoid(x)
 	r := k.f()
 	k.e("mul.rn.f32", r, x, s)
 	zero := k.p()
@@ -511,7 +495,7 @@ func (k *emitter) silu(x reg) reg {
 
 // siluGrad s + x·s(1−s); s(1−s) = 0 iken s.
 func (k *emitter) siluGrad(x reg) reg {
-	s := k.siluSig(x)
+	s := k.sigmoid(x)
 	q := k.f()
 	k.e("sub.rn.f32", q, float32(1), s)
 	k.e("mul.rn.f32", q, s, q)
