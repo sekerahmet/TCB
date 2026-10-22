@@ -20,27 +20,6 @@ import (
 // kimliği internal/lang/source'ta sınanır.)
 
 // copyFile kaynak klasörü (alt klasörleriyle) hedefe kopyalar.
-func copyFile(t *testing.T, sourceDir, target string) {
-	t.Helper()
-	err := filepath.WalkDir(sourceDir, func(filePath string, g fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		relative, _ := filepath.Rel(sourceDir, filePath)
-		h := filepath.Join(target, relative)
-		if g.IsDir() {
-			return os.MkdirAll(h, 0o755)
-		}
-		data, err := os.ReadFile(filePath)
-		if err != nil {
-			return err
-		}
-		return os.WriteFile(h, data, 0o644)
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-}
 
 // trFilesWithData testlerin veri olarak (metnini) okuduğu .tr dosyalarıdır; kodlu kopyada
 // da Türkçe kalırlar (tests/dosya_ve_yol_test.tr, 18.11: BOM'lu dosyanın ilk satırı).
@@ -90,8 +69,8 @@ func TestCodedFilesGiveSameOutput(t *testing.T) {
 	tr1, tr2 := t.TempDir(), t.TempDir()
 	// docs/ karakter modelinin eğitim verisidir.
 	for _, k := range []string{"tests", "examples", "docs", "lib"} {
-		copyFile(t, reporoot.Path(k), filepath.Join(tr1, k))
-		copyFile(t, reporoot.Path(k), filepath.Join(tr2, k))
+		testkit.CopyDir(t, reporoot.Path(k), filepath.Join(tr1, k))
+		testkit.CopyDir(t, reporoot.Path(k), filepath.Join(tr2, k))
 	}
 	// Karakter modelinin eğitimi kısaltılır (iki kopyada da aynı biçimde).
 	for _, root := range []string{tr1, tr2} {

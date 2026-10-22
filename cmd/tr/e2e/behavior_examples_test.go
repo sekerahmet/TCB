@@ -310,8 +310,8 @@ func TestExamplesSameOutput(t *testing.T) {
 	turkish, english := exampleFiles(t, "tr"), exampleFiles(t, "en")
 	trRoot, enRoot := t.TempDir(), t.TempDir()
 	for _, k := range []string{"examples", "tests", "docs", "lib"} {
-		copyFile(t, reporoot.Path(k), filepath.Join(trRoot, k))
-		copyFile(t, reporoot.Path(k), filepath.Join(enRoot, k))
+		testkit.CopyDir(t, reporoot.Path(k), filepath.Join(trRoot, k))
+		testkit.CopyDir(t, reporoot.Path(k), filepath.Join(enRoot, k))
 	}
 	for n, name := range turkish {
 		enName, ok := english[n]
