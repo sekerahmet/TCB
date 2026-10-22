@@ -5,7 +5,8 @@
 # işler kullanılır. Derlemeli ölçümde derleme süresi ısınma adımlarında kalır.
 # Çıktı: ısınma hariç ms/adım ve son kayıp. Veri yalnızca okunur.
 import argparse, glob, os, time
-import numpy as np, torch, torch.nn as nn, torch.nn.functional as F
+import numpy as np, torch
+from torch_bench_model import egitim_adimi, model_sinifi, sentetik_toplu
 
 BOYUTLAR = {
     "kucuk": dict(B=8, T=64, D=128, H=4, FF=256, L=2, ADIM=220, ISINMA=20),
@@ -25,35 +26,7 @@ B, T, D, H, FF, L = a["B"], a["T"], a["D"], a["H"], a["FF"], a["L"]
 cihaz = "cuda"
 
 
-class Blok(nn.Module):
-    def __init__(s):
-        super().__init__()
-        s.g1, s.g2 = nn.RMSNorm(D), nn.RMSNorm(D)
-        s.q, s.k, s.v, s.o = (nn.Linear(D, D, bias=False) for _ in range(4))
-        s.wg, s.wu, s.w2 = nn.Linear(D, FF, bias=False), nn.Linear(D, FF, bias=False), nn.Linear(FF, D, bias=False)
-
-    def forward(s, x):
-        h = s.g1(x)
-        bas = lambda t: t.view(B, T, H, D // H).transpose(1, 2)
-        y = F.scaled_dot_product_attention(bas(s.q(h)), bas(s.k(h)), bas(s.v(h)), is_causal=True)
-        x = x + s.o(y.transpose(1, 2).reshape(B, T, D))
-        m = s.g2(x)
-        return x + s.w2(F.silu(s.wg(m)) * s.wu(m))
-
-
-class Model(nn.Module):
-    def __init__(s):
-        super().__init__()
-        s.E = nn.Embedding(V, D)
-        nn.init.normal_(s.E.weight, 0, 0.02)
-        s.bloklar = nn.ModuleList(Blok() for _ in range(L))
-        s.gs = nn.RMSNorm(D)
-
-    def forward(s, i):
-        x = s.E(i)
-        for b in s.bloklar:
-            x = b(x)
-        return s.gs(x) @ s.E.weight.T
+Model = model_sinifi(B, T, D, H, FF, L, V)
 
 
 def toplu_isler():
@@ -66,10 +39,7 @@ def toplu_isler():
             k = rng.integers(0, len(veri) - T - 1, B)
             w = np.stack([np.asarray(veri[j:j + T + 1], dtype=np.int64) for j in k])
             yield torch.from_numpy(w).to(cihaz, non_blocking=True)
-    sabit = []
-    for s in range(8):
-        w = [[(s * 7919 + i * 104729 + t * 31) % V for t in range(T + 1)] for i in range(B)]
-        sabit.append(torch.tensor(w, dtype=torch.int64, device=cihaz))
+    sabit = [sentetik_toplu(B, T, V, s, cihaz) for s in range(8)]
     adim = 0
     while True:
         yield sabit[adim % 8]
@@ -87,12 +57,7 @@ def olc(derle):
             torch.cuda.synchronize()
             bas = time.perf_counter()
         w = next(kaynak)
-        op.zero_grad(set_to_none=True)
-        with torch.autocast("cuda", dtype=torch.bfloat16, enabled=arg.hassasiyet == "bf16"):
-            kayip = F.cross_entropy(ileri(w[:, :-1]).reshape(-1, V), w[:, 1:].reshape(-1))
-        kayip.backward()
-        torch.nn.utils.clip_grad_norm_(m.parameters(), 1.0)
-        op.step()
+        kayip = egitim_adimi(m, ileri, op, w, V, arg.hassasiyet == "bf16")
     son = kayip.item()
     torch.cuda.synchronize()
     sure = (time.perf_counter() - bas) * 1000 / (a["ADIM"] - a["ISINMA"])

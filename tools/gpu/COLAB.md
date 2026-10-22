@@ -17,7 +17,7 @@ cd /content/TCB && git log -1 --format='commit: %h (%cd)' --date=iso
 mkdir -p /content/tr
 CGO_ENABLED=0 go build -trimpath -o /content/tr/tr ./cmd/tr
 CGO_ENABLED=0 go test -c -trimpath -o /content/tr/gpu_sinama ./internal/compute/gpu
-cp tools/gpu/compare_gpu.tr tools/gpu/gpt_training.tr tools/gpu/compare_gpu.py tools/gpu/micro_compare.py tools/gpu/micro_table.py \
+cp tools/gpu/compare_gpu.tr tools/gpu/gpt_training.tr tools/gpu/compare_gpu.py tools/gpu/torch_bench_model.py tools/gpu/micro_compare.py tools/gpu/micro_table.py \
    tools/gpu/phase3_tr.tr tools/gpu/phase3_torch.py tools/gpu/phase3_table.py tools/gpu/phase3_nsys.py tools/gpu/phase3_config.json /content/tr/
 cp -r tests /content/tr/
 nvidia-smi --query-gpu=name,compute_cap,memory.total,driver_version --format=csv,noheader
