@@ -60,12 +60,17 @@ func stepInfo(d stepState) *StepInfo {
 	if !d.var_ {
 		return nil
 	}
-	b := &StepInfo{Count: d.last, Total: d.total, All: d.all}
+	b := &StepInfo{Count: d.last, Total: d.total, All: d.all, Source: "ilerleme"}
+	if d.fromOptimizer {
+		b.Source = "iyilestirici"
+	}
 	// Süre ilk adım sınırından sonuncusuna kadardır: aradaki adımlara bölünür.
 	if n := d.all - d.allAtFirst; n > 0 {
 		s := d.lastTime.Sub(d.firstTime)
 		b.MsPerStep = float64(s.Nanoseconds()) / 1e6 / float64(n)
 		b.StepsPerSec = ratio(float64(n), s.Seconds())
+		perStep := func(x time.Duration) float64 { return float64(x.Nanoseconds()) / 1e6 / float64(n) }
+		b.ForwardMs, b.BackwardMs, b.AfterMs = perStep(d.forward), perStep(d.backward), perStep(d.after)
 	}
 	return b
 }

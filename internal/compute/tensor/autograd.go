@@ -283,6 +283,7 @@ func (t *Tensor) BackwardCtx(seed *Tensor, ctx any) {
 	if !t.n.wants() {
 		panic(messages.New(messages.H3014))
 	}
+	defer backwardDone(backwardBegin())
 	root := t.n
 	// Önce çizgeyi kur: bırakılmış bir ara düğüme rastlanırsa gradyan
 	// biriktirmeden hata ver (aksi halde yaprakların gradyanı sessizce eksik kalırdı).

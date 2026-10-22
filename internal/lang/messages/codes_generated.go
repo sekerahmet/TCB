@@ -1467,6 +1467,7 @@ const (
 	H8287 Code = 8287 // Örtük kopya ve dönüşümler (bir işlemin içinde arka uçta yapılan; süre yalnızca CPU'daki büyük kopyalarda ölçülür):
 	H8288 Code = 8288 // eleman
 	H8289 Code = 8289 // geri {share}
+	H8290 Code = 8290 // Adım evreleri (adım başına, konakta): ileri {forward} ms · geri {backward} ms · sonrası {after} ms (iyileştirici, kırpma, günlük){source, select, optimizer { · adım sınırı iyileştiricinin adımı, ilerleme(...) yok} other {}}
 	H8400 Code = 8400 // biçimlendirme programın anlamını değiştirecekti, dosyaya dokunulmadı ({detail})
 	H8401 Code = 8401 // sözdizimi hatası olan kod biçimlenmez: {error}
 	H8402 Code = 8402 // dosyanın biçimi (kodlu ya da Türkçe yazım) değişti

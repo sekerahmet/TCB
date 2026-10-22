@@ -3,6 +3,7 @@ package tensor
 import (
 	"fmt"
 	"math"
+	"unsafe"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -101,6 +102,7 @@ func (o *SGD) SetMasterWeights(on bool) { o.master.configure(on) }
 // Step bir güncelleme adımı uygular. Gradyanı olmayan parametreler atlanır.
 // Parametreler yerinde değiştiği için sürümleri artar.
 func (o *SGD) Step() {
+	defer optimizerStepped(unsafe.Pointer(o))
 	sy := stepCounter(o.Params, OpKindSGD).start()
 	defer sy.finish()
 	sorted := repeated(o.Params)
@@ -240,6 +242,7 @@ func (o *AdamW) StepCount() int { return o.step }
 // almayan bir parametre (ör. o adımda kullanılmayan gömme satırları değil, hiç gradyan
 // akmayan bir parametre) ilk güncellemesinde yeni bir iyileştiricideki gibi davranır.
 func (o *AdamW) Step() {
+	defer optimizerStepped(unsafe.Pointer(o))
 	sy := stepCounter(o.Params, OpKindAdamW).start()
 	defer sy.finish()
 	o.step++

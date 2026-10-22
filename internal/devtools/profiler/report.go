@@ -20,6 +20,13 @@ func ReportText(g *Snapshot) string {
 		write(messages.Text(messages.H8232, noStep()))
 	} else {
 		write(messages.Text(messages.H8233, full(g.Step.Count), count(g.Step.MsPerStep), count(g.Step.StepsPerSec)))
+		if g.Step.MsPerStep > 0 {
+			source := "progress"
+			if g.Step.Source == "iyilestirici" {
+				source = "optimizer"
+			}
+			write(messages.Text(messages.H8290, count(g.Step.ForwardMs), count(g.Step.BackwardMs), count(g.Step.AfterMs), source))
+		}
 	}
 	t := g.Tensor
 	write(messages.Text(messages.H8234,

@@ -61,6 +61,10 @@ type Profile struct {
 
 	isStep sync.Mutex
 	step   stepState
+	// optStep iyileştiricinin adımlarıdır (program ilerleme(...) kullanmıyorsa adım sınırı
+	// budur); optID adımları sayılan iyileştiricidir (ilk adım atan).
+	optStep stepState
+	optID   uintptr
 
 	mu       sync.Mutex
 	base     snap   // profil başladığındaki sayaçlar (süreç geneli sayaçlardan çıkarılır)
@@ -106,6 +110,39 @@ type stepState struct {
 	// sayar), allAtFirst ilk adım sınırındaki all'dır.
 	last, total, all, allAtFirst int64
 	firstTime, lastTime          time.Time
+	// Evreler (ilk sınırdan beri toplam): ileri, geri ve sonrası (son geri yayılımdan adım
+	// sınırına: iyileştirici, kırpma, günlük); backTotal son sınırdaki toplam geri süredir.
+	forward, backward, after time.Duration
+	backTotal                time.Duration
+	// fromOptimizer adım sınırının iyileştiricinin adımı olduğudur (ilerleme yok).
+	fromOptimizer bool
+}
+
+// advance adım sınırını işler: tamamlanan adım sayısını (çubuğun sayacı) ve anı yazar,
+// önceki sınırdan bu yana geçen süreyi evrelere böler.
+func (d *stepState) advance(step, total int64, at time.Time) {
+	if step >= d.last {
+		d.all += step - d.last
+	} else {
+		d.all += step // yeni çubuk (adım geriye düştü): adımları baştan sayıyor
+	}
+	back, end := tensor.BackwardTimes()
+	if d.var_ {
+		b := back - d.backTotal
+		var a time.Duration
+		if b > 0 && end.After(d.lastTime) {
+			a = at.Sub(end)
+		}
+		// Kırpılmaz: adım sınırının saati ile geri sürenin sayaç saati ayrıdır, tek adımda küçük
+		// bir fark eksiye düşebilir; toplamda ileri + geri + sonrası tam adım süresidir.
+		d.forward += at.Sub(d.lastTime) - b - a
+		d.backward += b
+		d.after += a
+	} else {
+		d.var_, d.allAtFirst, d.firstTime = true, d.all, at
+	}
+	d.backTotal = back
+	d.last, d.lastTime, d.total = step, at, total
 }
 
 // Start m üzerinde çalışacak programın profilini başlatır; m.Run'dan önce çağrılır.
@@ -128,6 +165,7 @@ func Start(m *interp.VM, s Options) *Profile {
 		p.gpuOpened, p.gpuMeasured = !p.gpuPrev, true
 	}
 	logging.SetStepHook(p.stepBoundary)
+	tensor.SetOptimizerStepHook(p.optimizerStep)
 	p.mu.Lock()
 	p.base = p.takeSnap()
 	p.history = []snap{p.base}
@@ -147,16 +185,21 @@ func (p *Profile) Listen(f func(*Snapshot)) {
 // stepBoundary ilerleme(...).güncelle(...)'nin her çağrısında çalışır (yorumlayıcı kilidi altında).
 func (p *Profile) stepBoundary(a logging.StepBoundary) {
 	p.isStep.Lock()
-	d := &p.step
-	if a.Step >= d.last {
-		d.all += a.Step - d.last
-	} else {
-		d.all += a.Step // yeni çubuk (adım geriye düştü): adımları baştan sayıyor
+	p.step.advance(a.Step, a.Total, a.Time)
+	p.isStep.Unlock()
+}
+
+// optimizerStep iyileştiricinin her adımında çalışır: ilk adım atan iyileştiricinin adımları
+// sayılır (ilerleme(...) kullanılmıyorsa adım sınırı budur).
+func (p *Profile) optimizerStep(id uintptr, at time.Time) {
+	p.isStep.Lock()
+	if p.optID == 0 {
+		p.optID = id
 	}
-	if !d.var_ {
-		d.var_, d.allAtFirst, d.firstTime = true, d.all, a.Time
+	if id == p.optID {
+		p.optStep.advance(p.optStep.last+1, 0, at)
+		p.optStep.fromOptimizer = true
 	}
-	d.last, d.lastTime, d.total = a.Step, a.Time, a.Total
 	p.isStep.Unlock()
 }
 
@@ -206,6 +249,7 @@ func (p *Profile) Finish(code int) *Snapshot {
 		}
 		p.takeGPUPeak()
 		logging.SetStepHook(nil)
+		tensor.SetOptimizerStepHook(nil)
 		p.mu.Lock()
 		if p.gpuOpened {
 			p.gpuOpened = false
@@ -242,6 +286,9 @@ func (p *Profile) takeSnap() snap {
 	a := snap{time2: time.Now(), counters: tensor.CounterSnapshot(), implicit: tensor.ImplicitSnapshot()}
 	p.isStep.Lock()
 	a.step = p.step
+	if !a.step.var_ {
+		a.step = p.optStep
+	}
 	p.isStep.Unlock()
 	if p.smp != nil {
 		a.positions, a.sampleTime, a.sample = p.smp.snapshot()

@@ -12,7 +12,7 @@ Program dosyasından sonraki argümanlar her zamanki gibi programa gider (`komut
 
 ## Ne gösterilir
 
-**Adım hızı.** Eğitim döngünüzde `ilerleme(...)` ve `.güncelle(...)` kullanıyorsanız her `güncelle` bir adım sınırıdır: ms/adım, adım/sn ve kalan süre buradan ölçülür. Kullanmıyorsanız tablo bunu söyler; işlem ve satır ölçüleri yine çalışır.
+**Adım hızı.** Eğitim döngünüzde `ilerleme(...)` ve `.güncelle(...)` kullanıyorsanız her `güncelle` bir adım sınırıdır: ms/adım, adım/sn ve kalan süre buradan ölçülür. Kullanmıyorsanız iyileştiricinin her `adım()` çağrısı bir adım sınırı sayılır (birden çok iyileştiricide ilk adım atan); hiçbiri yoksa tablo bunu söyler, işlem ve satır ölçüleri yine çalışır. `tr profil` raporu adımı üç evreye böler: ileri, geri (geri yayılım) ve sonrası (iyileştirici, gradyan kırpma, günlük). Evreler konakta ölçülür; GPU'da çekirdekler eşzamansız çalıştığından GPU'nun beklendiği süre beklenen evreye düşer.
 
 **Tensör işlemleri.** Her tensör işlemi türüne (matris çarpımı, `softmax`, `dikkat` ...), yönüne (ileri ya da geri yayılım: `geri · matris çarpımı (@)`) ve cihazına göre sayılır: çağrı sayısı ve ayırdığı bellek kesindir, süresi ölçülür (çok kısa işlemlerde örneklenerek, tahmin yansızdır). Tablo en pahalı işlemleri pay, adım başına süre (ms/adım) ve adım başına çağrı sayısıyla gösterir. İşlemlerin adları dildeki adlarıdır (`çapraz_entropi`, `AdamW.adım`); işleçler simgesiyle yazılır.
 

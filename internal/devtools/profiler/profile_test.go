@@ -194,6 +194,30 @@ döngü i içinde 0..120 {
 	}
 }
 
+// ilerleme(...) yoksa adım sınırı iyileştiricinin adımıdır; adım evrelerin toplamıdır.
+func TestProfileStepsFromOptimizerWithPhases(t *testing.T) {
+	code := `değişken w = tensör(rastgele_normal([64, 64], tohum: 1), türev_izle: doğru)
+değişken x = rastgele_normal([32, 64], tohum: 2)
+değişken op = AdamW([w], öğrenme_oranı: 0.01)
+döngü i içinde 0..40 {
+    op.sıfırla()
+    geri_yayılım(toplam(relu(x @ w @ w)))
+    op.adım()
+}
+`
+	g, _ := run(t, code, Options{})
+	d := g.Step
+	if d == nil || d.Source != "iyilestirici" || d.All != 40 {
+		t.Fatalf("adım bilgisi %+v; iyileştiriciden 40 adım bekleniyordu", d)
+	}
+	if d.BackwardMs <= 0 {
+		t.Errorf("geri evresi %v ms; geri yayılım sayılmalı", d.BackwardMs)
+	}
+	if sum := d.ForwardMs + d.BackwardMs + d.AfterMs; sum < d.MsPerStep*0.99 || sum > d.MsPerStep*1.01 {
+		t.Errorf("evreler %v + %v + %v = %v ms, adım %v ms; toplam adıma eşit olmalı", d.ForwardMs, d.BackwardMs, d.AfterMs, sum, d.MsPerStep)
+	}
+}
+
 // Geri yayılımın süresi geri_yayılım(...) satırına değil, düğümleri üreten ileri satıra yazılır.
 func TestProfileBackwardTimeGoesToForwardLine(t *testing.T) {
 	if !hasDepth {

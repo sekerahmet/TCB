@@ -5,7 +5,7 @@ import (
 )
 
 // ============================================================================
-// Profil biçimi (sürüm 3): canlı durum (profil.json) ve rapor (speed.json) aynı yapıdadır
+// Profil biçimi (sürüm 4): canlı durum (profil.json) ve rapor (speed.json) aynı yapıdadır
 // ============================================================================
 //
 // Anahtarlar dosya biçiminin parçasıdır (yazım dilinden bağımsız, çevrilmez; günlük
@@ -16,7 +16,7 @@ import (
 // FormatName ve FormatVersion dosyanın kimliğidir.
 const (
 	FormatName    = "tr-profil"
-	FormatVersion = 3
+	FormatVersion = 4
 )
 
 // Snapshot bir programın profilinin anlık görüntüsüdür (canlı ya da son rapor).
@@ -54,6 +54,14 @@ type StepInfo struct {
 	All         int64   `json:"tüm_adım"`
 	MsPerStep   float64 `json:"ms_adım"`
 	StepsPerSec float64 `json:"adım_sn"`
+	// Source adım sınırının kaynağıdır: "ilerleme" (güncelle) ya da "iyilestirici" (program
+	// ilerleme kullanmıyorsa ilk adım atan iyileştiricinin adımı). Sürüm 4.
+	Source string `json:"kaynak"`
+	// Adım başına evreler (konak süresi, sürüm 4): ileri; geri (geri yayılımlar); sonrası
+	// (son geri yayılımdan adım sınırına: iyileştirici, kırpma, günlük).
+	ForwardMs  float64 `json:"ileri_ms"`
+	BackwardMs float64 `json:"geri_ms"`
+	AfterMs    float64 `json:"sonra_ms"`
 }
 
 // TensorInfo tensör işlemleridir (süre konakta ölçülür; bkz. tensor/counter.go).
