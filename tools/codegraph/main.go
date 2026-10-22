@@ -51,6 +51,8 @@ const usage = `usage: codegraph <command> [flags] [args]
   calls-into <pkg> [--min N] [--in SRC] [--tests]  functions that call at least N distinct functions of a package
   deleted [--retired-json]   message and name codes that existed in the git history and are gone today, with the commit that removed them
   changed <branch|range>     graph nodes touched by a branch (git diff main...branch), their tests, other claude/ branches on the same code
+  dups [--min N] [--in DIR] [--changed branch|range] [--json]   duplicate-code candidates in the Go sources (token-sequence clones of at least N syntax-tree nodes, default 100); --changed keeps those that touch what a branch changed; deliberate exceptions are listed by --list-exclusions
+  similar <func> [--json]    the functions most like this one, with a similarity score
 
 query flags: --graph FILE (default <root>/.codegraph/graph.json), --limit N (default 12), --all, --by-package, --min N, --in X, --tests, --base B, --root DIR (default: the repository root above the current directory), --no-rebuild
 A query rebuilds the graph first when the sources changed since it was built (see README).
@@ -73,6 +75,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return runQuery(args[0], args[1:], stdout, stderr)
 	case "deleted":
 		return runDeleted(args[1:], stdout, stderr)
+	case "dups":
+		return runDups(args[1:], stdout, stderr)
+	case "similar":
+		return runSimilar(args[1:], stdout, stderr)
 	case "help", "-h", "--help":
 		fmt.Fprint(stdout, usage)
 		return exitOK

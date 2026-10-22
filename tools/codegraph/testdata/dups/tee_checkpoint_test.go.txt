@@ -1,0 +1,20 @@
+package fixture
+
+// teeWriter bir tamponu birden çok çıkışa paylaştırır.
+type teeWriter struct {
+	mu sync.Mutex
+	b  bytes.Buffer
+}
+
+func (e *teeWriter) Write(p []byte) (int, error) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.b.Write(p)
+}
+
+func (e *teeWriter) String() string {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.b.String()
+}
+

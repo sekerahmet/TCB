@@ -1,0 +1,139 @@
+package fixture
+
+func exprNames(e ast.Expression, name func(string)) {
+	switch x := e.(type) {
+	case nil:
+	case *ast.FunctionLiteral:
+		if x.Name != "" {
+			name(x.Name)
+		}
+	case *ast.InterpolatedString:
+		for _, p := range x.Parts {
+			exprNames(p, name)
+		}
+	case *ast.ListLiteral:
+		for _, el := range x.Elements {
+			exprNames(el, name)
+		}
+	case *ast.DictLiteral:
+		for _, p := range x.Pairs {
+			exprNames(p.Key, name)
+			exprNames(p.Value, name)
+		}
+	case *ast.RangeExpression:
+		exprNames(x.Start, name)
+		exprNames(x.End, name)
+	case *ast.PrefixExpression:
+		exprNames(x.Right, name)
+	case *ast.InfixExpression:
+		exprNames(x.Left, name)
+		exprNames(x.Right, name)
+	case *ast.IfExpression:
+		exprNames(x.Condition, name)
+		for _, ei := range x.ElseIfs {
+			exprNames(ei.Condition, name)
+		}
+	case *ast.MatchExpression:
+		exprNames(x.Subject, name)
+		for _, mc := range x.Cases {
+			for _, p := range mc.Patterns {
+				exprNames(p, name)
+			}
+			exprNames(mc.ValueExpr, name)
+		}
+	case *ast.CallExpression:
+		exprNames(x.Function, name)
+		for _, a := range x.Arguments {
+			exprNames(a, name)
+		}
+		for _, na := range x.NamedArgs {
+			exprNames(na.Value, name)
+		}
+	case *ast.IndexExpression:
+		exprNames(x.Left, name)
+		exprNames(x.Index, name)
+	case *ast.MemberExpression:
+		exprNames(x.Object, name)
+	case *ast.ListComprehension:
+		// Çıktı ve koşul kendi ortamında değerlendirilir; yalnızca kaynak bu ortamdadır
+		exprNames(x.Iterable, name)
+	}
+}
+
+func (fc blockFlagCache) exprCaptures(e ast.Expression) bool {
+	switch x := e.(type) {
+	case nil:
+		return false
+	case *ast.FunctionLiteral:
+		return true
+	case *ast.InterpolatedString:
+		for _, p := range x.Parts {
+			if fc.exprCaptures(p) {
+				return true
+			}
+		}
+	case *ast.ListLiteral:
+		for _, el := range x.Elements {
+			if fc.exprCaptures(el) {
+				return true
+			}
+		}
+	case *ast.DictLiteral:
+		for _, p := range x.Pairs {
+			if fc.exprCaptures(p.Key) || fc.exprCaptures(p.Value) {
+				return true
+			}
+		}
+	case *ast.RangeExpression:
+		return fc.exprCaptures(x.Start) || fc.exprCaptures(x.End)
+	case *ast.PrefixExpression:
+		return fc.exprCaptures(x.Right)
+	case *ast.InfixExpression:
+		return fc.exprCaptures(x.Left) || fc.exprCaptures(x.Right)
+	case *ast.IfExpression:
+		if fc.exprCaptures(x.Condition) || fc.doesBlockCapture(x.Consequence) || fc.doesBlockCapture(x.Alternative) {
+			return true
+		}
+		for _, ei := range x.ElseIfs {
+			if fc.exprCaptures(ei.Condition) || fc.doesBlockCapture(ei.Consequence) {
+				return true
+			}
+		}
+	case *ast.MatchExpression:
+		if fc.exprCaptures(x.Subject) {
+			return true
+		}
+		for _, mc := range x.Cases {
+			for _, p := range mc.Patterns {
+				if fc.exprCaptures(p) {
+					return true
+				}
+			}
+			if fc.exprCaptures(mc.ValueExpr) || fc.doesBlockCapture(mc.Body) {
+				return true
+			}
+		}
+	case *ast.CallExpression:
+		if fc.exprCaptures(x.Function) {
+			return true
+		}
+		for _, a := range x.Arguments {
+			if fc.exprCaptures(a) {
+				return true
+			}
+		}
+		for _, na := range x.NamedArgs {
+			if fc.exprCaptures(na.Value) {
+				return true
+			}
+		}
+	case *ast.IndexExpression:
+		return fc.exprCaptures(x.Left) || fc.exprCaptures(x.Index)
+	case *ast.MemberExpression:
+		return fc.exprCaptures(x.Object)
+	case *ast.ListComprehension:
+		return fc.exprCaptures(x.Iterable) || fc.exprCaptures(x.Output) || fc.exprCaptures(x.Condition)
+	}
+	return false
+}
+
