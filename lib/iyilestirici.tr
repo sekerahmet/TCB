@@ -257,12 +257,8 @@ fonksiyon bir_desen_uyar_mı(ad, desenler) {
 // Adlar parametreler(model, adlarıyla: doğru) adlarıdır ("gömme.tablo", "çıkış.ağırlık"); desenler
 // ad_uyar_mı'daki gibi yol parçalarıdır (önek "gömme", sonek "ple_tablo", tam "gömme.tablo").
 fonksiyon parametre_grupları(model, ayrı = ["gömme", "çıkış"]) {
-    değişken gizli = []
-    değişken diğer = []
-    döngü ad, p içinde parametreler(model, adlarıyla: doğru) {
-        eğer p.şekil.uzunluk == 2 ve değil bir_desen_uyar_mı(ad, ayrı) { gizli.ekle(p) } değilse { diğer.ekle(p) }
-    }
-    sonuç {gizli: gizli, diğer: diğer}
+    değişken k = parametre_kümeleri(model, ayrı: ayrı)
+    sonuç {gizli: k.gizli, diğer: k.diğer}
 }
 
 // parametre_kümeleri parametre_grupları'nın ayrıntılı hâlidir: {gizli, sönümlü, sönümsüz, seyrek, diğer}.
