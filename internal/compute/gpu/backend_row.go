@@ -269,6 +269,14 @@ func (g *backend) normBackwardFused(gt *temp, dx *storage, ggamma tensor.Storage
 		dt: [5]tensor.DType{g.storageOf(xv.S).dtype, gd.dtype, g.viewType(gv), tensor.Float32, dxT}}
 	c := g.takeKernel(fmt.Sprintf("%s:%d", a.key("norm_geri_parcali"), C), normBackwardFusedKernel(a, C))
 	p := g.param().writeTo(dx).write(part, 0).read(gd, 0).readV(xv)
+	g.normOperands(p, gv, avg, rstd).u32(D).u32(R).u32(chunk)
+	g.launch(c, [3]uint32{uint32(P), 1, 1}, [3]uint32{uint32(B), 1, 1}, p)
+	g.rowSums(ggamma, part, P, D)
+}
+
+// normOperands norm geri çekirdeklerinin ortak işlenenlerini parametre listesine ekler: gamma (yoksa boş),
+// ortalama (yoksa boş) ve rstd.
+func (g *backend) normOperands(p *paramWriter, gv *tensor.View, avg, rstd tensor.Storage) *paramWriter {
 	if gv != nil {
 		p.readV(*gv)
 	} else {
@@ -278,9 +286,7 @@ func (g *backend) normBackwardFused(gt *temp, dx *storage, ggamma tensor.Storage
 	if avg != nil {
 		od = g.storageOf(avg)
 	}
-	p.readFrom(od).read(g.storageOf(rstd), 0).u32(D).u32(R).u32(chunk)
-	g.launch(c, [3]uint32{uint32(P), 1, 1}, [3]uint32{uint32(B), 1, 1}, p)
-	g.rowSums(ggamma, part, P, D)
+	return p.readFrom(od).read(g.storageOf(rstd), 0)
 }
 
 // normBackward katman ya da RMS normunun geri yönü.
@@ -322,16 +328,7 @@ func (g *backend) normBackward(gx, ggamma, gbeta, gs tensor.Storage, x tensor.Vi
 			dt: [5]tensor.DType{g.storageOf(xv.S).dtype, gd.dtype, g.viewType(gv), tensor.Float32, dxT}}
 		c := g.takeKernel(a.key("norm_geri"), normBackwardKernel(a))
 		p := g.param().writeTo(dx).writeTo(term).read(gd, 0).readV(xv)
-		if gv != nil {
-			p.readV(*gv)
-		} else {
-			p.empty()
-		}
-		var od *storage
-		if avg != nil {
-			od = g.storageOf(avg)
-		}
-		p.readFrom(od).read(g.storageOf(rstd), 0).u32(D)
+		g.normOperands(p, gv, avg, rstd).u32(D)
 		g.launch(c, [3]uint32{uint32(R), 1, 1}, [3]uint32{uint32(a.B), 1, 1}, p)
 		if term != nil {
 			g.rowSums(ggamma, term, R, D)

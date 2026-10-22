@@ -57,7 +57,7 @@ func TestShadowInvalidatedOnWrite(t *testing.T) {
 	rng := rand.New(rand.NewSource(13))
 	n := 12
 	fresh2 := func() tensor.Storage { return g.FromHost(random(rng, n, 1), tensor.Float32) }
-	plain := func(s tensor.Storage) tensor.View { return tensor.View{S: s, Shape: []int{n}, Strides: []int{1}} }
+	plain := func(s tensor.Storage) tensor.View { return flatView(s, n) }
 	paths := map[string]func(s tensor.Storage){
 		"AddTo":      func(s tensor.Storage) { g.AddTo(s, fresh2(), 2) },
 		"ScatterAdd": func(s tensor.Storage) { g.ScatterAdd(s, 0, []int{1}, fresh2(), []int{n}) },

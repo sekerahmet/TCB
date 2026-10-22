@@ -1,7 +1,6 @@
 package gpu
 
 import (
-	"math"
 	"unsafe"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
@@ -10,8 +9,6 @@ import (
 
 // Arka uç: bellek yöntemleri (Alloc, FromHost, ToHost, Copy, Fill, CopyStrided, Release)
 // ve 16 bitlik türler için geçici float32 tamponlar.
-
-func f32bit(v float32) uint32 { return math.Float32bits(v) }
 
 // temp, bir çağrının açtığı geçici tamponları toplar; bitir hepsini havuza iade eder.
 // Hesap çekirdekleri float32 bitişik görür: 16 bitlik (ya da adımlı) girdiler float32
@@ -85,15 +82,6 @@ func (g *backend) viewType(v *tensor.View) tensor.DType {
 	return g.storageOf(v.S).dtype
 }
 
-// readP isteğe bağlı görünüm.
-func (t *temp) readP(v *tensor.View) *tensor.View {
-	if v == nil {
-		return nil
-	}
-	w := t.read(*v)
-	return &w
-}
-
 // readD düz depolamanın float32 karşılığı (nil için nil).
 func (t *temp) readD(s tensor.Storage) *storage {
 	if s == nil {
@@ -103,7 +91,7 @@ func (t *temp) readD(s tensor.Storage) *storage {
 	if d.dtype == tensor.Float32 {
 		return d
 	}
-	return t.g.storageOf(t.read(tensor.View{S: d, Shape: []int{d.n}, Strides: []int{1}}).S)
+	return t.g.storageOf(t.read(plainV(d)).S)
 }
 
 // write hedefin float32 karşılığını ve geri yazma işlevini verir; eski doğruysa geçici
@@ -117,7 +105,6 @@ func (t *temp) write(s tensor.Storage, old bool) (*storage, func()) {
 		return d, func() {}
 	}
 	tmp := t.buffer(d.n, !old)
-	plainV := func(x *storage) tensor.View { return tensor.View{S: x, Shape: []int{x.n}, Strides: []int{1}} }
 	if old {
 		t.g.copyStrided(plainV(tmp), plainV(d), false, 0)
 	}
@@ -175,8 +162,7 @@ func (g *backend) FromHost(data []float32, dt tensor.DType) tensor.Storage {
 	defer gt.finish()
 	tmp := gt.buffer(n, false)
 	g.loadHost(tmp, unsafe.Pointer(&data[0]), 4*n)
-	plain := []int{n}
-	g.copyStrided(tensor.View{S: d, Shape: plain, Strides: []int{1}}, tensor.View{S: tmp, Shape: plain, Strides: []int{1}}, false, 0)
+	g.copyStrided(plainV(d), plainV(tmp), false, 0)
 	return d
 }
 

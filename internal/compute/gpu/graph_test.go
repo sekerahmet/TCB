@@ -60,7 +60,7 @@ func TestGraphForbiddenOps(t *testing.T) {
 		{messages.H4068, func() { g.BeginCapture() }},
 	} {
 		g.BeginCapture()
-		err := catchPanic(c.f)
+		err := panicError(c.f)
 		g.AbortCapture()
 		if !messages.Has(err, c.code) {
 			t.Fatalf("%s bekleniyordu, %v", c.code, err)
@@ -105,16 +105,6 @@ func TestGraphPrivatePool(t *testing.T) {
 	for _, s := range live {
 		g.Release(s)
 	}
-}
-
-func catchPanic(f func()) (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err, _ = r.(error)
-		}
-	}()
-	f()
-	return nil
 }
 
 // Kayıt içinde indeksi cihazdan okuyan gömme ve dilim yazma: her oynatma indeks tensörünün o
@@ -285,9 +275,9 @@ func TestGraphHostTransfersForbiddenEvenFromShadow(t *testing.T) {
 	x := tensor.NewOn(gpuDevice, []float32{10}, 1) // konak gölgesi var
 	empty := tensor.NewOn(gpuDevice, []float32{}, 0)
 	g.BeginCapture()
-	errShadow := catchPanic(func() { _ = x.Item() })
-	errRead := catchPanic(func() { _ = empty.Data() })
-	errLoad := catchPanic(func() { _ = tensor.NewOn(gpuDevice, []float32{}, 0) })
+	errShadow := panicError(func() { _ = x.Item() })
+	errRead := panicError(func() { _ = empty.Data() })
+	errLoad := panicError(func() { _ = tensor.NewOn(gpuDevice, []float32{}, 0) })
 	g.AbortCapture()
 	if !messages.Has(errShadow, messages.H4065) || !messages.Has(errRead, messages.H4065) || !messages.Has(errLoad, messages.H4066) {
 		t.Fatalf("gölge %v, boş okuma %v, boş yükleme %v", errShadow, errRead, errLoad)
@@ -366,7 +356,7 @@ func TestGraphConstIntsRefillAfterLimit(t *testing.T) {
 		g.exit()
 	}()
 	g.BeginCapture()
-	err := catchPanic(func() {
+	err := panicError(func() {
 		g.enter()
 		defer g.exit()
 		gt := g.temp()

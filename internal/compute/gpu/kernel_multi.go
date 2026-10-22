@@ -200,26 +200,7 @@ func clipNormKernel() *emitter {
 	k.e("add.s32", i, i, squareBlock)
 	k.jump(loop)
 	k.put(last)
-	sm := k.shared("sm", 8*squareBlock)
-	addr := k.r()
-	k.e("mad.lo.s32", addr, tid, 8, sm)
-	k.e("st.shared.f64", mem(addr, 0), acc)
-	k.barrier()
-	for s := squareBlock / 2; s > 0; s /= 2 {
-		skip := k.label()
-		q := k.p()
-		k.e("setp.ge.u32", q, tid, s)
-		k.jumpIf(q, skip)
-		a, c := k.fd(), k.fd()
-		k.e("ld.shared.f64", a, mem(addr, 0))
-		k.e("ld.shared.f64", c, mem(addr, 8*s))
-		k.e("add.f64", a, a, c)
-		k.e("st.shared.f64", mem(addr, 0), a)
-		k.put(skip)
-		k.barrier()
-	}
-	end := k.label()
-	k.jumpIf(k.tidNonZero(tid), end)
+	sm, end := k.reduceSquareBlock(acc, tid)
 	t, nd, ef := k.fd(), k.fd(), k.fd()
 	k.e("ld.shared.f64", t, mem(sm, 0))
 	k.e("sqrt.rn.f64", nd, t)
@@ -248,9 +229,11 @@ func clipNormKernel() *emitter {
 	return k
 }
 
-// writeSquareBlock bloğun float64 kısmi toplamlarını ağaç biçiminde indirger ve kismi[b]'ye yazar.
-func (k *emitter) writeSquareBlock(acc, partial, b, tid reg) {
-	sm := k.shared("sm", 8*squareBlock)
+// reduceSquareBlock bloğun float64 kısmi toplamlarını (acc) paylaşımlı bellekte ağaç biçiminde
+// indirger; tid ≠ 0 iş parçacıklarını verilen etikete atlatır. Paylaşımlı belleğin adresini (sm,
+// toplam sm[0]'dadır) ve atlama etiketini verir; etiketi çağıran koyar.
+func (k *emitter) reduceSquareBlock(acc, tid reg) (sm reg, end string) {
+	sm = k.shared("sm", 8*squareBlock)
 	addr := k.r()
 	k.e("mad.lo.s32", addr, tid, 8, sm)
 	k.e("st.shared.f64", mem(addr, 0), acc)
@@ -268,8 +251,14 @@ func (k *emitter) writeSquareBlock(acc, partial, b, tid reg) {
 		k.put(skip)
 		k.barrier()
 	}
-	last := k.label()
-	k.jumpIf(k.tidNonZero(tid), last)
+	end = k.label()
+	k.jumpIf(k.tidNonZero(tid), end)
+	return sm, end
+}
+
+// writeSquareBlock bloğun float64 kısmi toplamlarını ağaç biçiminde indirger ve kismi[b]'ye yazar.
+func (k *emitter) writeSquareBlock(acc, partial, b, tid reg) {
+	sm, last := k.reduceSquareBlock(acc, tid)
 	r := k.fd()
 	k.e("ld.shared.f64", r, mem(sm, 0))
 	k.e("st.global.f64", mem(k.address(partial, b, 8), 0), r)

@@ -213,16 +213,7 @@ func flashMmaBackwardQKernel(a flashMma, modeQ int) func() *emitter {
 		lb := k.r()
 		k.e("mul.lo.s32", lb, f.bh, f.Tq)
 		for r := range 2 {
-			lo[r], hi[r] = k.attnLimits(rows[r], f.Tq, f.Tk, f.reason2, f.pending2)
-			in := k.p()
-			k.e("setp.lt.u32", in, rows[r], f.Tq)
-			k.e("selp.b32", hi[r], hi[r], lo[r], in)
-			li := k.r()
-			k.e("add.s32", li, lb, rows[r])
-			lse2[r], dd[r] = k.constant(float32(math.Inf(1))), k.constant(0)
-			k.ifCase(in, "ld.global.f32", lse2[r], mem(k.address(plse, li, 4), 0))
-			k.ifCase(in, "ld.global.f32", dd[r], mem(k.address(pd, li, 4), 0))
-			k.e("mul.rn.f32", lse2[r], lse2[r], float32(math.Log2E))
+			lo[r], hi[r], lse2[r], dd[r] = f.rowStats(rows[r], lb, plse, pd)
 		}
 		sc2 := k.f()
 		k.e("mul.rn.f32", sc2, f.scaleF, float32(math.Log2E))
@@ -383,6 +374,23 @@ func (k *emitter) columnInfo(info, t2 reg) func(n, c int) [4]reg {
 	}
 }
 
+// rowStats bir sorgu satırının görünür anahtar aralığını (lo, hi; Tq dışındaki satırda boş), lse·log2e'yi
+// (Tq dışında +∞) ve D'yi (Tq dışında 0) verir. lb = bh·Tq (lse ve D dizilerinin satır tabanı).
+func (f *flashShared) rowStats(row, lb, plse, pd reg) (lo, hi, lse, dd reg) {
+	k := f.k
+	lo, hi = k.attnLimits(row, f.Tq, f.Tk, f.reason2, f.pending2)
+	in := k.p()
+	k.e("setp.lt.u32", in, row, f.Tq)
+	k.e("selp.b32", hi, hi, lo, in)
+	li := k.r()
+	k.e("add.s32", li, lb, row)
+	lse, dd = k.constant(float32(math.Inf(1))), k.constant(0)
+	k.ifCase(in, "ld.global.f32", lse, mem(k.address(plse, li, 4), 0))
+	k.ifCase(in, "ld.global.f32", dd, mem(k.address(pd, li, 4), 0))
+	k.e("mul.rn.f32", lse, lse, float32(math.Log2E))
+	return lo, hi, lse, dd
+}
+
 // queryInfo sorgu döşemesinin (i0..i0+mmaQT) satır bilgilerini paylaşımlı belleğe yazar:
 // lse·log2e (Tq dışında +∞), D, görünür anahtar aralığının alt ve üst sınırı (Tq dışında boş).
 // İlk mmaQT iş parçacığı yazar.
@@ -394,16 +402,7 @@ func (f *flashShared) queryInfo(info, i0, lb, plse, pd reg) {
 	k.jumpIf(p, skip)
 	i := k.r()
 	k.e("add.s32", i, i0, f.tid)
-	lo, hi := k.attnLimits(i, f.Tq, f.Tk, f.reason2, f.pending2)
-	in := k.p()
-	k.e("setp.lt.u32", in, i, f.Tq)
-	k.e("selp.b32", hi, hi, lo, in)
-	li := k.r()
-	k.e("add.s32", li, lb, i)
-	lse, dd := k.constant(float32(math.Inf(1))), k.constant(0)
-	k.ifCase(in, "ld.global.f32", lse, mem(k.address(plse, li, 4), 0))
-	k.ifCase(in, "ld.global.f32", dd, mem(k.address(pd, li, 4), 0))
-	k.e("mul.rn.f32", lse, lse, float32(math.Log2E))
+	lo, hi, lse, dd := f.rowStats(i, lb, plse, pd)
 	ad := k.r()
 	k.e("mad.lo.s32", ad, f.tid, 4, info)
 	k.e("st.shared.f32", mem(ad, 0), lse)

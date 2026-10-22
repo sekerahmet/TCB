@@ -173,3 +173,6 @@ func skipUnderRace(t *testing.T) {
 		t.Skip("ağır sayısal çekirdek testi; yarış dedektörü altında atlanır (öbür kiplerde koşar)")
 	}
 }
+
+// flatView depolamanın ilk n elemanına 1 boyutlu bitişik görünümdür.
+func flatView(s tensor.Storage, n int) tensor.View { return tensor.DenseView(s, []int{n}) }

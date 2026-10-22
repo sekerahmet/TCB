@@ -125,13 +125,9 @@ func (p *paramWriter) write(d *storage, offset int) *paramWriter {
 	return p.indicator(d, offset, pWrite)
 }
 
-// readV ve yazV görünümün ilk elemanından başlayan gösterici.
+// readV görünümün ilk elemanından başlayan gösterici.
 func (p *paramWriter) readV(v tensor.View) *paramWriter {
 	return p.read(v.S.(*storage), v.Offset)
-}
-
-func (p *paramWriter) writeV(v tensor.View) *paramWriter {
-	return p.write(v.S.(*storage), v.Offset)
 }
 
 // empty, çekirdeğin bu başlatmada kullanmadığı bir okuma göstericisi (0 adres); bosYaz

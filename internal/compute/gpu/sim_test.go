@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-	"unsafe"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -228,8 +227,5 @@ func TestNoDriverGraceful(t *testing.T) {
 func fromDevice(g *backend, s tensor.Storage) []float32 {
 	g.enter()
 	defer g.exit()
-	d := g.storageOf(s)
-	out := make([]float32, d.n)
-	g.download(unsafe.Pointer(&out[0]), d.addr, 4*d.n)
-	return out
+	return lockedDownload(g, g.storageOf(s))
 }

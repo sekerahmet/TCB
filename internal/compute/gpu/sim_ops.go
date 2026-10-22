@@ -219,6 +219,9 @@ func fromInt(k *simInst, f float64, s int64) (uint64, error) {
 	return 0, internalf("cvt target unsupported by the simulator")
 }
 
+// Bilerek bağımsız: bu işlev ve f16ToF32Sim donanım komutlarının ayrı bir modelidir, tensor.Bits16 /
+// FromBits16'ya bağlanmaz (CPU↔GPU eşlik testleri iki uygulamanın ayrı olmasından güç alır; ayrıca
+// NaN burada tek biçimli sessiz NaN'dır, tensor yükü korur).
 // f32ToF16Sim IEEE yarım hassasiyete en yakına-çifte yuvarlama (donanımın cvt.rn.f16.f32
 // komutunun benzetimi): taşma sonsuza, küçükler normal altına ya da sıfıra gider.
 func f32ToF16Sim(f float32) uint16 {
