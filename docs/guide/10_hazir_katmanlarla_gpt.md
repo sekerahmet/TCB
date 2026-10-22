@@ -101,3 +101,20 @@ yazdır(p.çöz(model.üret(p.kodla("Bugün"), 12, sıcaklık: 0.8, tohum: 1)))
 ```
 
 Kontrol noktasına modelin yanında iki iyileştiricinin durumu da verilir: `op.adamw` ve `op.muon.durum`. GPU'da eğitmek için model kurulmadan önce `varsayılan_cihaz("gpu")` çağrılır; ağırlıklar, Muon'un durumu ve toplu işler GPU'da olur ([15.27](../spec/15_tensorler.md)). Bulut not defterinde büyük bir eğitim için [`tools/gpu/gpt_training.tr`](../../tools/gpu/gpt_training.tr) hazır betiğine bakın (SimpleStories, d512, 8 katman; [`tools/gpu/COLAB.md`](../../tools/gpu/COLAB.md) 9. hücre).
+
+## Hazır model, üretim ve kayıtlı oynatma
+
+Hugging Face biçiminde kaydedilmiş bir Llama ya da Qwen3 modelini (`config.json` + `model.safetensors`) eğitmeden kullanmak için `tr/hazir` yeter. Ağ gerekmez: model önceden indirilmiş bir klasördür.
+
+```tr
+aktar "tr/hazir"
+
+değişken model = hazır_model("modeller/SmolLM2-135M", ağırlık_türü: "bf16")
+değişken p = parçalayıcı_yükle("modeller/SmolLM2-135M/tokenizer.json")
+değişken kimlikler = model.üret(p.kodla("Bugün hava"), 20, sıcaklık: 0)
+yazdır(p.çöz(kimlikler))
+```
+
+- **`ağırlık_türü`:** matris ağırlıklarının (gömme ve doğrusal katmanlar) türüdür (`"float32"`, `"bf16"`, `"fp16"`); normlar ve hesap float32 kalır. Hugging Face modelleri çoğunlukla bf16 saklanır, `ağırlık_türü: "bf16"` ağırlıkları yarı bellekle tutar. Ayrıntı: [`lib/README.md`](../../lib/README.md).
+- **`üret` ve önbellek:** `model.üret(kimlikler, adet, sıcaklık:, en_iyi_k:, tohum:, eos:, önbellek_çeşidi:, çizge:)` KV önbelleğiyle çalışır: başlangıç bir kez işlenir, her sonraki adım yalnızca yeni parçayı hesaplar. `önbellek_çeşidi` `"sabit"` (varsayılan; bir kez ayrılır, yerine yazılır), `"büyüyen"` ya da `yok` (her adımda bütün dizi) olabilir; sonuç üçünde de aynıdır. `sıcaklık: 0` her adımda en olası parçayı seçer (açgözlü); aynı `tohum` aynı örneği verir. Ayrıntı: [`lib/README.md`](../../lib/README.md) "Üretim".
+- **`çizge` ve `tekrar_oynat`:** GPU'da sabit önbellekle (`çizge: doğru`, varsayılan) her üretim adımı bir kez kaydedilir (CUDA Graph) ve sonraki adımlarda tek seferde oynatılır; yorumlayıcı adımı yeniden çalıştırmaz ve yüzlerce kernelin tek tek başlatılması ortadan kalkar. Aynı mekanizmayı kendi adımınız için `tekrar_oynat(f)` ile, durumu yerinde güncellemek için `yerine_yaz(hedef, kaynak, eksen:, başlangıç:)` ile kullanırsınız; değişen her değer (konum, parça kimliği) tensör olarak verilir. CPU'da `tekrar_oynat(f)` `f`'i doğrudan çağırır, sonuç aynıdır. Kurallar: [dil tanımı 15.48–15.49](../spec/15_tensorler.md). Örnekler: [`46_hazir_model_ve_uretim.tr`](../../examples/tr/46_hazir_model_ve_uretim.tr), [`47_kendi_uretim_dongusu.tr`](../../examples/tr/47_kendi_uretim_dongusu.tr), [`45_tekrar_oynat.tr`](../../examples/tr/45_tekrar_oynat.tr).
