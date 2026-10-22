@@ -24,18 +24,8 @@ func (k *emitter) mma(d, c [4]reg, a [4]reg, b [2]reg, f16 bool) {
 	if f16 {
 		t = "f16"
 	}
-	list := func(r ...reg) string {
-		s := "{"
-		for i, x := range r {
-			if i > 0 {
-				s += ", "
-			}
-			s += string(x)
-		}
-		return s + "}"
-	}
 	k.e(fmt.Sprintf("mma.sync.aligned.m16n8k16.row.col.f32.%s.%s.f32", t, t),
-		list(d[:]...), list(a[:]...), list(b[:]...), list(c[:]...))
+		vlist(d[:]), vlist(a[:]), vlist(b[:]), vlist(c[:]))
 }
 
 // shflXor warp içinde şerit ^ maske şeridinin 32 bitlik değerini verir (v ile aynı türde).
