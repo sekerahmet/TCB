@@ -8,18 +8,13 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 const { WATCH_COMMANDS, resolveWatchCommand } = require('../watch_commands');
+const { createSuite } = require('./fake_vscode');
 
 const MEDIA = path.join(__dirname, '..', 'media');
-let passed = 0;
-function test(name, fn) {
-    try {
-        fn();
-        passed++;
-    } catch (e) {
-        console.error('KALDI: ' + name + '\n' + (e && e.stack));
-        process.exitCode = 1;
-    }
-}
+const suite = createSuite('watch_commands_test', {
+    summary: ({ passed }) => (process.exitCode ? 'watch_commands_test: kalan var' : `watch_commands_test: ${passed} test geçti`),
+});
+const test = suite.test;
 
 // --- Eklenti tarafı: komut → VS Code komutu / DAP isteği ---
 
@@ -161,8 +156,4 @@ test('aynı satırda yeniden duruş sayaçla görünür', () => {
     assert.match(m.elements.neden.textContent, /1\. duruş/);
 });
 
-if (process.exitCode) {
-    console.error('watch_commands_test: kalan var');
-} else {
-    console.log('watch_commands_test: ' + passed + ' test geçti');
-}
+suite.run();

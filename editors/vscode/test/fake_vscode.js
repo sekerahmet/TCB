@@ -379,4 +379,48 @@ async function waitUntil(condition, what, duration) {
     }
 }
 
-module.exports = { setup, wait, waitUntil, Uri, FakeState };
+// createSuite bir test dosyasının test kaydını ve çalıştırıcısını verir: test(ad, fn, bilgi) testi
+// toplar (fn eşzamanlı ya da async olabilir), run() hepsini sırayla çalıştırır; bir test kalırsa
+// "KALDI: ad" ve yığın yazılır ve süreç sıfır olmayan çıkış koduyla biter (full_check'in eklenti
+// adımı buna bakar). options:
+//   skip(bilgi)  true dönen test atlanır; bilgi test'in üçüncü argümanıdır (ör. yorumlayıcı gerekir)
+//   afterAll()   testler bittikten sonra çalışır (geçici klasörü silmek gibi)
+//   summary(r)   özet satırı; r = { passed, total, skipped } (varsayılan "ad: geçen/toplam geçti")
+//   exit         true ise run sonunda process.exit çağrılır (açık kalan zamanlayıcılar bitirmesin)
+function createSuite(suiteName, options) {
+    const opts = options || {};
+    const tests = [];
+    return {
+        test(name, fn, info) {
+            tests.push({ name, fn, info });
+        },
+        async run() {
+            let passed = 0;
+            let skipped = 0;
+            for (const { name, fn, info } of tests) {
+                if (opts.skip && opts.skip(info)) {
+                    skipped++;
+                    continue;
+                }
+                try {
+                    await fn();
+                    passed++;
+                } catch (e) {
+                    console.error('KALDI: ' + name + '\n' + (e && e.stack));
+                    process.exitCode = 1;
+                }
+            }
+            if (opts.afterAll) {
+                await opts.afterAll();
+            }
+            const result = { passed, total: tests.length, skipped };
+            console.log(opts.summary ? opts.summary(result) : `${suiteName}: ${passed}/${tests.length} geçti`);
+            if (opts.exit) {
+                process.exit(process.exitCode || 0);
+            }
+            return result;
+        },
+    };
+}
+
+module.exports = { setup, wait, waitUntil, Uri, FakeState, createSuite };

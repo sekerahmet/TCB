@@ -7,13 +7,11 @@
 
 const assert = require('assert');
 const path = require('path');
-const { setup, wait } = require('./fake_vscode');
+const { setup, wait, createSuite } = require('./fake_vscode');
 const { programArguments } = require('../program_arguments');
 
-const tests = [];
-function test(name, fn) {
-    tests.push({ name, fn });
-}
+const suite = createSuite('execution_test');
+const test = suite.test;
 
 // Yorumlayıcı olarak var olan bir dosya gerekir (yalnızca yolu kullanılır, çalıştırılmaz).
 const INTERPRETER = process.execPath;
@@ -152,16 +150,4 @@ test('güvenilmeyen çalışma alanında Ctrl+F5 yorumlayıcıyı çalıştırma
     assert.strictEqual(log.warnings.length, 1);
 });
 
-(async () => {
-    let passed = 0;
-    for (const { name, fn } of tests) {
-        try {
-            await fn();
-            passed++;
-        } catch (e) {
-            console.error('KALDI: ' + name + '\n' + (e && e.stack));
-            process.exitCode = 1;
-        }
-    }
-    console.log(`execution_test: ${passed}/${tests.length} geçti`);
-})();
+suite.run();

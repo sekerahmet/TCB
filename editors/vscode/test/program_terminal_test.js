@@ -6,12 +6,11 @@
 'use strict';
 
 const assert = require('assert');
+const { createSuite } = require('./fake_vscode');
 const { programTerminal } = require('../program_terminal');
 
-const tests = [];
-function test(name, fn) {
-    tests.push({ name, fn });
-}
+const suite = createSuite('program_terminal_test');
+const test = suite.test;
 
 // start, Node betiğini sahte terminalde açar; yazılanlar ve kapanış kaydedilir.
 function start(script, env) {
@@ -87,16 +86,4 @@ test('başlatılamayan program terminalde bildirilir', async () => {
     await until({ out }, () => out.includes('Program başlatılamadı'));
 });
 
-(async () => {
-    let passed = 0;
-    for (const { name, fn } of tests) {
-        try {
-            await fn();
-            passed++;
-        } catch (e) {
-            console.error('KALDI: ' + name + '\n' + (e && e.stack));
-            process.exitCode = 1;
-        }
-    }
-    console.log(`program_terminal_test: ${passed}/${tests.length} geçti`);
-})();
+suite.run();

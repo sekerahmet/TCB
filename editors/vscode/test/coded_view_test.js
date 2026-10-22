@@ -12,7 +12,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
-const { setup, waitUntil, Uri, FakeState } = require('./fake_vscode');
+const { setup, waitUntil, Uri, FakeState, createSuite } = require('./fake_vscode');
 const codedFormat = require('../coded_format');
 const { globEscape } = require('../coded_filesystem');
 const { PENDING_KEY, PLAIN_PENDING_KEY } = require('../coded_view');
@@ -21,10 +21,18 @@ const repoRoot = path.resolve(__dirname, '..', '..', '..');
 const TR = [process.env.TR_YORUMLAYICI, path.join(repoRoot, 'bin', process.platform === 'win32' ? 'tr.exe' : 'tr')]
     .find((y) => y && fs.existsSync(y));
 
-const tests = [];
-function test(name, fn, needsTr) {
-    tests.push({ name, fn, needsTr: needsTr !== false });
-}
+// Üçüncü argüman false ise test yorumlayıcı gerektirmez; yorumlayıcı yoksa gerekenler atlanır.
+const suite = createSuite('coded_view_test', {
+    skip: (needsTr) => needsTr !== false && !TR,
+    afterAll: async () => {
+        // Eklentinin yedek zamanlayıcıları (sekme yönlendirmesi) bitsin; sonra geçici klasör silinir.
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+    },
+    summary: ({ passed, total, skipped }) => `coded_view_test: ${passed}/${total} geçti` + (skipped ? ` (${skipped} test atlandı: TR yorumlayıcısı yok; TR_YORUMLAYICI ile verin)` : ''),
+    exit: true, // Eklentinin yedek zamanlayıcıları sınamayı bekletmesin.
+});
+const test = suite.test;
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tr-eklenti-kodlu-'));
 let counter = 0;
@@ -453,26 +461,4 @@ test('kısıtlı kipte tr-kodlu: yazma, silme, taşıma ve klasör oluşturma re
     assert.deepStrictEqual(fs.readdirSync(dir), ['program.tr']);
 }, false);
 
-(async () => {
-    let passed = 0;
-    let skipped = 0;
-    for (const { name, fn, needsTr } of tests) {
-        if (needsTr && !TR) {
-            skipped++;
-            continue;
-        }
-        try {
-            await fn();
-            passed++;
-        } catch (e) {
-            console.error('KALDI: ' + name + '\n' + (e && e.stack));
-            process.exitCode = 1;
-        }
-    }
-    // Eklentinin yedek zamanlayıcıları (sekme yönlendirmesi) bitsin; sonra geçici klasör silinir.
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
-    console.log(`coded_view_test: ${passed}/${tests.length} geçti` + (skipped ? ` (${skipped} test atlandı: TR yorumlayıcısı yok; TR_YORUMLAYICI ile verin)` : ''));
-    // Eklentinin yedek zamanlayıcıları sınamayı bekletmesin.
-    process.exit(process.exitCode || 0);
-})();
+suite.run();
