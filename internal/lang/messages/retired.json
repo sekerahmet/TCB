@@ -55,6 +55,10 @@
   "commit": "0d6949c",
   "reason": "deleted: messages: whole-sentence templates instead of message fragments"
  },
+ "H5273": {
+  "commit": "07013c1",
+  "reason": "deleted: all: remove functions nothing calls (deadcode -test)"
+ },
  "H5534": {
   "commit": "ab7f634",
   "reason": "deleted: messages: one code per meaning, coded reasons kept, safe generator comments"
