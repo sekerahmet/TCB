@@ -30,23 +30,19 @@ func (p *Tokenizer) Encode(text string) []int {
 	return p.EncodeWithOptions(text, Options{})
 }
 
-// EncodePlain metni, içindeki özel tokenları TANIMADAN kodlar.
-func (p *Tokenizer) EncodePlain(text string) []int {
-	return p.EncodeWithOptions(text, Options{DontParseSpecial: true})
-}
-
 // EncodeWithOptions metni verilen seçeneklerle kodlar.
 func (p *Tokenizer) EncodeWithOptions(text string, s Options) []int {
-	return toInt(nil, p.Encode32(nil, text, s))
+	return ToInt(nil, p.Encode32(nil, text, s))
 }
 
 // EncodeAppend metnin kimliklerini dst'nin sonuna ekler ve dst'yi döndürür.
 // ozelleriTani yanlışsa özel tokenlar metin içinde tanınmaz.
 func (p *Tokenizer) EncodeAppend(dst []int, text string, parseSpecial bool) []int {
-	return toInt(dst, p.Encode32(nil, text, Options{DontParseSpecial: !parseSpecial}))
+	return ToInt(dst, p.Encode32(nil, text, Options{DontParseSpecial: !parseSpecial}))
 }
 
-func toInt(dst []int, ids []int32) []int {
+// ToInt 32 bitlik kimlikleri int olarak dst'ye ekler (dst nil ise yeni dilim ayrılır).
+func ToInt(dst []int, ids []int32) []int {
 	if dst == nil {
 		dst = make([]int, 0, len(ids))
 	}
@@ -64,12 +60,6 @@ func (p *Tokenizer) Encode32(dst []int32, text string, s Options) []int32 {
 	}
 	k := p.postProcessor.Process(&Encoding{IDs: p.arr(nil, text, s.DontParseSpecial)}, nil, !s.DontAddSpecial)
 	return append(dst, k.IDs...)
-}
-
-// EncodeDetailed tek bir metni kodlar; tür kimliklerini ve özel token
-// maskesini de verir.
-func (p *Tokenizer) EncodeDetailed(text string, s Options) *Encoding {
-	return p.EncodePair(text, nil, s)
 }
 
 // EncodePair bir metin çiftini (ör. soru ve bağlam) kodlar; ikinci nil ise
@@ -147,11 +137,7 @@ func (p *Tokenizer) Tokens(text string) []string {
 // karakterin yarısı) bozuk diziler U+FFFD ile değiştirilir.
 func (p *Tokenizer) Decode(idList []int, skipSpecial bool) string {
 	if p.byteDecoder {
-		buf := make([]byte, 0, len(idList)*4)
-		for _, id := range idList {
-			buf = p.addByte(buf, id, skipSpecial)
-		}
-		return lossyUTF8(buf)
+		return lossyUTF8(p.DecodeBytes(idList, skipSpecial))
 	}
 	tokenList := make([]string, 0, len(idList))
 	for _, id := range idList {
@@ -164,17 +150,13 @@ func (p *Tokenizer) Decode(idList []int, skipSpecial bool) string {
 	if p.decoder == nil {
 		return strings.Join(tokenList, " ")
 	}
-	n := 0
-	for _, t := range tokenList {
-		n += len(t)
-	}
-	budget := newBudget((p.parseRegex + 1) * n) // çözücülerin çıktı büyütmesi de bu bütçededir
+	budget := newBudget((p.parseRegex + 1) * listBytes(tokenList)) // çözücülerin çıktı büyütmesi de bu bütçededir
 	return strings.Join(decodeBudgeted(p.decoder, tokenList, budget), "")
 }
 
 // Decode32 32 bitlik kimlik dizisini metne çevirir (bkz. Coz).
 func (p *Tokenizer) Decode32(idList []int32, skipSpecial bool) string {
-	return p.Decode(toInt(nil, idList), skipSpecial)
+	return p.Decode(ToInt(nil, idList), skipSpecial)
 }
 
 // DecodeBytes kimlik dizisinin ham baytlarını verir. Bayt düzeyi çözücüde UTF-8

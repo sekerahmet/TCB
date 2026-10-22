@@ -1,6 +1,9 @@
 package tokenize
 
-import "unicode/utf8"
+import (
+	"fmt"
+	"unicode/utf8"
+)
 
 // ============================================================================
 // Bayt düzeyi eşleme ve kayıplı UTF-8 çözme
@@ -45,6 +48,31 @@ func init() {
 }
 
 // bytesToChars bayt dizisini temsil karakterlerinden oluşan metne çevirir.
+// initFallbackTable sözlükteki "<0xXX>" bayt tokenlarının kimliklerini bayt değerine göre dizer (-1: yok).
+func initFallbackTable(vocab map[string]int32) (table [256]int32) {
+	for c := range table {
+		table[c] = -1
+		if id, ok := vocab[fmt.Sprintf("<0x%02X>", c)]; ok {
+			table[c] = id
+		}
+	}
+	return table
+}
+
+// appendByteFallback s'nin her baytı için "<0xXX>" tokenı varsa hepsini dst'ye ekler ve doğru döner;
+// biri eksikse dst'ye hiçbir şey eklemez ve yanlış döner.
+func appendByteFallback(dst []int32, table *[256]int32, s string) ([]int32, bool) {
+	for k := 0; k < len(s); k++ {
+		if table[s[k]] < 0 {
+			return dst, false
+		}
+	}
+	for k := 0; k < len(s); k++ {
+		dst = append(dst, table[s[k]])
+	}
+	return dst, true
+}
+
 func bytesToChars(b []byte) string {
 	r := make([]rune, len(b))
 	for i, c := range b {
@@ -58,15 +86,24 @@ func bytesToChars(b []byte) string {
 // en az bir karakter eşlemede yoksa (ör. bayt düzeyi dışı bir ek token)
 // tokenın kendi UTF-8 baytları kullanılır.
 func tokenBytes(tok string) []byte {
+	if out, ok := decodeByteChars(tok); ok {
+		return out
+	}
+	return []byte(tok)
+}
+
+// decodeByteChars bir tokenın bayt düzeyi karakterlerini baytlara çevirir; bir karakter eşlemede
+// yoksa (bayt düzeyi dışı token) yanlış döner.
+func decodeByteChars(tok string) ([]byte, bool) {
 	out := make([]byte, 0, len(tok))
 	for _, r := range tok {
 		b, ok := charByte[r]
 		if !ok {
-			return []byte(tok)
+			return nil, false
 		}
 		out = append(out, b)
 	}
-	return out
+	return out, true
 }
 
 // lossyUTF8 bayt dizisini metne çevirir; geçersiz UTF-8 dizilerini U+FFFD

@@ -81,9 +81,9 @@ func (c *Progress) Inspect() string {
 func (c *Progress) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	switch kd {
 	case codes.Y010:
-		return &interp.BuiltinVal{Name: codes.Name(codes.Y010), Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-			return bind.Safe(interp.CallName(codes.Y010), func() (interp.Value, error) { return c.update(m, args, named) })
-		}}, nil
+		return bind.CodeMethod(codes.Y010, false, func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+			return c.update(m, args, named)
+		}), nil
 	case codes.Y011:
 		return &interp.BuiltinVal{Name: codes.Name(codes.Y011), NoNamedArgs: true, Fn: func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 			if len(args) != 0 {

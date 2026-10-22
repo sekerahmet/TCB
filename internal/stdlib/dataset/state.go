@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
-	"errors"
 	"io"
 	"strings"
 
@@ -285,18 +284,10 @@ func (o *Reader) skipTR(m *interp.VM, args []interp.Value, named map[string]inte
 		o.mu.Lock()
 		defer o.mu.Unlock()
 		for ; skipped < n.Val && !o.done; skipped++ {
-			err = o.pf.Take(&o.ti)
-			if errors.Is(err, io.EOF) {
-				o.done, err = true, nil
-				_ = o.resource.Close(0)
+			var eof bool
+			if eof, err = o.takeOne(); eof || err != nil {
 				return
 			}
-			if err != nil {
-				return
-			}
-			o.counter++
-			o.epoch = o.ti.State.Epoch
-			o.pos = o.ti.State
 		}
 	})
 	if err != nil {

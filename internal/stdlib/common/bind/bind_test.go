@@ -240,3 +240,24 @@ func TestShortNumberAndFormatBytes(t *testing.T) {
 		}
 	}
 }
+
+// Kural: Method ve CodeMethod yöntemi Go paniğine karşı korur (panik, adlı bir H2000 hatasına döner);
+// CodeMethod değerin adını kodun kanonik adı yapar, panik iletisinde interp.CallName(kd) kullanır ve
+// noNamedArgs bayrağını değere yazar.
+func TestMethodWrappersTurnPanicsIntoNamedErrors(t *testing.T) {
+	boom := func(*interp.VM, []interp.Value, map[string]interp.Value) (interp.Value, error) { panic("patladı") }
+	b := Method("yöntem", boom)
+	if b.Name != "yöntem" || b.NoNamedArgs {
+		t.Fatalf("Method: %+v", b)
+	}
+	if _, err := b.Fn(nil, nil, nil); !messages.Has(err, messages.H2000) || !strings.Contains(err.Error(), "yöntem") {
+		t.Fatalf("Method panik hatası: %v", err)
+	}
+	c := CodeMethod(codes.Y010, true, boom)
+	if c.Name != codes.Name(codes.Y010) || !c.NoNamedArgs {
+		t.Fatalf("CodeMethod: %+v", c)
+	}
+	if _, err := c.Fn(nil, nil, nil); !messages.Has(err, messages.H2000) || !strings.Contains(err.Error(), interp.CallName(codes.Y010)) {
+		t.Fatalf("CodeMethod panik hatası: %v", err)
+	}
+}

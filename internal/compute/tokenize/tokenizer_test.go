@@ -134,7 +134,7 @@ func equalInt(a, b []int) bool {
 	return true
 }
 
-func equal32(a []int32, b []int) bool { return equalInt(toInt(nil, a), b) }
+func equal32(a []int32, b []int) bool { return equalInt(ToInt(nil, a), b) }
 
 func equalBool(a []bool, b []int) bool {
 	if len(a) != len(b) {
@@ -534,11 +534,7 @@ func TestBatchAndParallel(t *testing.T) {
 	}
 	joined := p.JoinDocuments([]string{"bir", "iki"}, eot, 0)
 	expectedB := append(append(append(p.Encode("bir"), eot), p.Encode("iki")...), eot)
-	got := make([]int, len(joined))
-	for i, v := range joined {
-		got[i] = int(v)
-	}
-	if !equalInt(got, expectedB) {
+	if got := ToInt(nil, joined); !equalInt(got, expectedB) {
 		t.Fatalf("BelgeleriBirlestir = %v, beklenen %v", got, expectedB)
 	}
 }

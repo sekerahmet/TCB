@@ -18,7 +18,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sync"
 
 	"github.com/sekerahmet/TCB/internal/compute/tokenize"
@@ -86,21 +85,15 @@ var members = codes.Names(memberEncode, memberDecode, memberVocabSize, memberTok
 func (n *Object) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	switch kd {
 	case memberEncode:
-		return n.method(codes.Name(memberEncode), n.encode), nil
+		return bind.Method(codes.Name(memberEncode), n.encode), nil
 	case memberDecode:
-		return n.method(codes.Name(memberDecode), n.decode), nil
+		return bind.Method(codes.Name(memberDecode), n.decode), nil
 	case memberVocabSize:
 		return interp.NewInt(int64(n.p.VocabSize())), nil
 	case memberTokenID:
-		return n.method(codes.Name(memberTokenID), n.tokenID), nil
+		return bind.Method(codes.Name(memberTokenID), n.tokenID), nil
 	}
 	return nil, bind.MemberError(TypeName, prop, members)
-}
-
-func (n *Object) method(name string, fn interp.BuiltinFunc) *interp.BuiltinVal {
-	return &interp.BuiltinVal{Name: name, Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		return bind.Safe(name, func() (interp.Value, error) { return fn(m, args, named) })
-	}}
 }
 
 // ----------------------------------------------------------------------------
@@ -267,7 +260,7 @@ func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]inte
 			if err != nil {
 				return nil, stepError(fn, err)
 			}
-			return idList32(k.IDs), nil
+			return idList(k.IDs), nil
 		}
 		var ids []int
 		var err error
@@ -301,15 +294,7 @@ func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]inte
 				result, errs = n.p.SafeEncodeBatch(texts, pick, 0)
 				return
 			}
-			result = make([][]int, len(texts))
-			errs = make([]error, len(texts))
-			parallel(len(texts), func(i int) {
-				k, err := n.p.SafeEncodePair(texts[i], &seconds[i], pick)
-				errs[i] = err
-				if err == nil {
-					result[i] = int32ToInt(k.IDs)
-				}
-			})
+			result, errs = n.p.SafeEncodePairBatch(texts, seconds, pick, 0)
 		})
 		for i, h := range errs {
 			if h != nil {
@@ -346,66 +331,8 @@ func stringList(fn, what string, l *interp.ListVal) ([]string, error) {
 	return out, nil
 }
 
-// parallel f'yi 0..n-1 için işlemci sayısı kadar gorutinde çalıştırır. Bir gorutindeki
-// panik süreci çökertmez: iş bitince çağıranın gorutininde yeniden fırlatılır (ve
-// oradaki recover ile TR hatasına çevrilir).
-func parallel(n int, f func(i int)) {
-	worker := min(runtime.GOMAXPROCS(0), n)
-	var wg sync.WaitGroup
-	var mu sync.Mutex
-	var recovered any
-	order := 0
-	defer func() {
-		if recovered != nil {
-			panic(recovered)
-		}
-	}()
-	for w := 0; w < worker; w++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			defer func() {
-				if r := recover(); r != nil {
-					mu.Lock()
-					if recovered == nil {
-						recovered = r
-					}
-					order = n
-					mu.Unlock()
-				}
-			}()
-			for {
-				mu.Lock()
-				i := order
-				order++
-				mu.Unlock()
-				if i >= n {
-					return
-				}
-				f(i)
-			}
-		}()
-	}
-	wg.Wait()
-}
-
-func int32ToInt(ids []int32) []int {
-	out := make([]int, len(ids))
-	for i, x := range ids {
-		out[i] = int(x)
-	}
-	return out
-}
-
-func idList(ids []int) *interp.ListVal {
-	elems := make([]interp.Value, len(ids))
-	for i, id := range ids {
-		elems[i] = interp.NewInt(int64(id))
-	}
-	return &interp.ListVal{Elements: elems}
-}
-
-func idList32(ids []int32) *interp.ListVal {
+// idList kimlikleri TR tam sayı listesine çevirir.
+func idList[T ~int | ~int32](ids []T) *interp.ListVal {
 	elems := make([]interp.Value, len(ids))
 	for i, id := range ids {
 		elems[i] = interp.NewInt(int64(id))
@@ -439,15 +366,9 @@ func (n *Object) decode(m *interp.VM, args []interp.Value, named map[string]inte
 	if err != nil {
 		return nil, err
 	}
-	result := make([]string, len(seqs))
-	errs := make([]error, len(seqs))
-	job := func() {
-		if len(seqs) == 1 {
-			result[0], errs[0] = n.p.SafeDecode(seqs[0], skip)
-			return
-		}
-		parallel(len(seqs), func(i int) { result[i], errs[i] = n.p.SafeDecode(seqs[i], skip) })
-	}
+	var result []string
+	var errs []error
+	job := func() { result, errs = n.p.SafeDecodeBatch(seqs, skip, 0) }
 	total := 0
 	for _, d := range seqs {
 		total += len(d)

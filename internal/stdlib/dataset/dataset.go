@@ -74,9 +74,6 @@ type Dataset struct {
 	resource *resource // yalnızca önbellek varsa
 }
 
-// GoDataset sarılı Go kümesini verir.
-func (k *Dataset) GoDataset() *dataload.Dataset { return k.k }
-
 func (k *Dataset) Type() interp.ValueType { return interp.ValueType(DatasetType) }
 func (k *Dataset) IsTruthy() bool         { return true }
 
@@ -122,17 +119,11 @@ var datasetMembers = codes.Names(memberSampler, memberSequential)
 func (k *Dataset) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	switch kd {
 	case memberSampler:
-		return method(codes.Name(memberSampler), k.sampler), nil
+		return bind.Method(codes.Name(memberSampler), k.sampler), nil
 	case memberSequential:
-		return method(codes.Name(memberSequential), k.sequentialTR), nil
+		return bind.Method(codes.Name(memberSequential), k.sequentialTR), nil
 	}
 	return nil, bind.MemberError(messages.Text(messages.H5502), prop, datasetMembers)
-}
-
-func method(name string, fn interp.BuiltinFunc) *interp.BuiltinVal {
-	return &interp.BuiltinVal{Name: name, Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		return bind.Safe(name, func() (interp.Value, error) { return fn(m, args, named) })
-	}}
 }
 
 // resolveCacheDir önbellek: adlı argümanının (verildiyse) çözülmüş klasör yoludur.
@@ -180,7 +171,7 @@ func openDataset(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 		if cacheDir == "" {
 			return nil, messages.New(messages.H5510, fn, nameQuota.TR, nameCache.TR)
 		}
-		gb, ok := number(quotaV)
+		gb, ok := interp.ToFloat(quotaV)
 		if !ok || gb <= 0 || math.IsInf(gb, 0) || math.IsNaN(gb) {
 			return nil, messages.New(messages.H5511, fn, nameQuota.TR, quotaV.Inspect())
 		}
@@ -234,16 +225,6 @@ func largestShard(k *dataload.Dataset) int64 {
 		b = max(b, p.Bytes)
 	}
 	return b
-}
-
-func number(v interp.Value) (float64, bool) {
-	switch n := v.(type) {
-	case *interp.IntVal:
-		return float64(n.Val), true
-	case *interp.FloatVal:
-		return n.Val, true
-	}
-	return 0, false
 }
 
 // dataError Go veri paketinin hatasını yol gösterici bir TR hatasına çevirir; ekler
@@ -351,13 +332,13 @@ func (o *Reader) TableData() ([]string, [][]string, error) {
 func (o *Reader) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	switch kd {
 	case memberNext:
-		return method(codes.Name(memberNext), o.nextTR), nil
+		return bind.Method(codes.Name(memberNext), o.nextTR), nil
 	case memberState:
 		return o.StateDict(nil)
 	case memberLoadState:
-		return method(codes.Name(memberLoadState), o.loadStateTR), nil
+		return bind.Method(codes.Name(memberLoadState), o.loadStateTR), nil
 	case memberSkip:
-		return method(codes.Name(memberSkip), o.skipTR), nil
+		return bind.Method(codes.Name(memberSkip), o.skipTR), nil
 	}
 	what := SamplerType
 	if o.sequential {
@@ -491,6 +472,24 @@ func prefetcherCloser(pf *dataload.Prefetcher) func(time.Duration) error {
 	}
 }
 
+// takeOne önden yükleyiciden bir toplu iş çeker (o.mu tutulur) ve sayaç, dönem ve konumu günceller.
+// Veri bitmişse okuyucuyu kapatır ve eof döner (hata nil).
+func (o *Reader) takeOne() (eof bool, err error) {
+	err = o.pf.Take(&o.ti)
+	if errors.Is(err, io.EOF) {
+		o.done = true
+		_ = o.resource.Close(0)
+		return true, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	o.counter++
+	o.epoch = o.ti.State.Epoch
+	o.pos = o.ti.State
+	return false, nil
+}
+
 // nextTR bir sonraki toplu işi [girdi, hedef] olarak verir; sıralı okuyucu bitince yok.
 func (o *Reader) nextTR(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.DisplayName(memberNext)
@@ -513,18 +512,11 @@ func (o *Reader) nextTR(m *interp.VM, args []interp.Value, named map[string]inte
 			last = true
 			return
 		}
-		err = o.pf.Take(&o.ti)
-		if errors.Is(err, io.EOF) {
-			o.done, last, err = true, true, nil
-			_ = o.resource.Close(0)
+		var eof bool
+		if eof, err = o.takeOne(); eof || err != nil {
+			last = eof
 			return
 		}
-		if err != nil {
-			return
-		}
-		o.counter++
-		o.epoch = o.ti.State.Epoch
-		o.pos = o.ti.State
 		b, t = o.ti.B, o.ti.T
 		input, target, err = split(&o.ti)
 	})

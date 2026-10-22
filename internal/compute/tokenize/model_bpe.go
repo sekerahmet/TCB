@@ -2,7 +2,6 @@ package tokenize
 
 import (
 	"encoding/json"
-	"fmt"
 	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -98,28 +97,14 @@ func newBPE(raw json.RawMessage) (Model, error) {
 				b.lowID[r] = id
 			}
 		}
-		ok := true
-		bs := make([]byte, 0, len(tok))
-		for _, r := range tok {
-			c, var_ := charByte[r]
-			if !var_ {
-				ok = false
-				break
-			}
-			bs = append(bs, c)
-		}
-		if ok {
+		if bs, ok := decodeByteChars(tok); ok {
 			b.byteVocab[string(bs)] = id
 		}
 	}
 	for c := 0; c < 256; c++ {
 		b.byteCharID[c] = b.chr(byteChar[c])
-		if id, ok := vocab[fmt.Sprintf("<0x%02X>", c)]; ok {
-			b.fallbackID[c] = id
-		} else {
-			b.fallbackID[c] = -1
-		}
 	}
+	b.fallbackID = initFallbackTable(vocab)
 	mergeList := make(map[uint64]mergeRule, len(m.Merges))
 	for i, r := range m.Merges {
 		x, y, err := parseMergePair(r)
@@ -186,17 +171,7 @@ func (b *bpeModel) chr(r rune) int32 {
 
 // Encode parçayı (önbellek yardımıyla) kodlar.
 func (b *bpeModel) Encode(dst []int32, p Piece) []int32 {
-	o := b.cache
-	if o == nil || len(p.Text) > cacheMaxLen {
-		return b.encode(dst, p)
-	}
-	if v, ok := o.al(p.Text); ok {
-		return append(dst, v...)
-	}
-	n := len(dst)
-	dst = b.encode(dst, p)
-	o.put(p.Text, dst[n:])
-	return dst
+	return b.cache.encodeCached(dst, p.Text, func(d []int32) []int32 { return b.encode(d, p) })
 }
 
 func (b *bpeModel) encode(dst []int32, p Piece) []int32 {
@@ -287,17 +262,8 @@ func (b *bpeModel) symbols(sem []int32, p Piece) []int32 {
 			s = string(c)
 		}
 		if b.byteFallback {
-			done := true
-			for k := 0; k < len(s); k++ {
-				if b.fallbackID[s[k]] < 0 {
-					done = false
-					break
-				}
-			}
-			if done {
-				for k := 0; k < len(s); k++ {
-					sem = append(sem, b.fallbackID[s[k]])
-				}
+			var done bool
+			if sem, done = appendByteFallback(sem, &b.fallbackID, s); done {
 				continue
 			}
 		}

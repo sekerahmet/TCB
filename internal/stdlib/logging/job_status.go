@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -69,25 +70,8 @@ func (c *Progress) writeJobStatus(now time.Time, last bool) {
 	if err != nil {
 		return
 	}
-	_ = atomicWrite(c.jobPath, b)
-}
-
-// atomicWrite veriyi aynı klasörde geçici bir dosyaya yazar ve hedefin yerine koyar.
-func atomicWrite(path string, data []byte) error {
-	f, err := os.CreateTemp(filepath.Dir(path), "."+jobFile+".*")
-	if err != nil {
+	_ = interp.WriteAtomic(c.jobPath, func(w io.Writer) error {
+		_, err := w.Write(b)
 		return err
-	}
-	tmp := f.Name()
-	_, err = f.Write(data)
-	if cErr := f.Close(); err == nil {
-		err = cErr
-	}
-	if err == nil {
-		err = os.Rename(tmp, path)
-	}
-	if err != nil {
-		os.Remove(tmp)
-	}
-	return err
+	})
 }

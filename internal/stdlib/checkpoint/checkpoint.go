@@ -110,17 +110,17 @@ func (kn *Checkpoint) GetProperty(kd codes.Code, prop string) (interp.Value, err
 	case codes.Y520:
 		return interp.NewInt(kn.resumed), nil
 	case codes.Y010:
-		return &interp.BuiltinVal{Name: codes.Name(codes.Y010), NoNamedArgs: true, Fn: func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-			return bind.Safe(interp.CallName(codes.Y010), func() (interp.Value, error) { return kn.update(m, args) })
-		}}, nil
+		return bind.CodeMethod(codes.Y010, true, func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+			return kn.update(m, args)
+		}), nil
 	case codes.Y521:
-		return &interp.BuiltinVal{Name: codes.Name(codes.Y521), NoNamedArgs: true, Fn: func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-			return bind.Safe(interp.CallName(codes.Y521), func() (interp.Value, error) { return kn.saveTR(m, args) })
-		}}, nil
+		return bind.CodeMethod(codes.Y521, true, func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+			return kn.saveTR(m, args)
+		}), nil
 	case codes.Y522:
-		return &interp.BuiltinVal{Name: codes.Name(codes.Y522), NoNamedArgs: true, Fn: func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-			return bind.Safe(interp.CallName(codes.Y522), func() (interp.Value, error) { return kn.rollback(m, args) })
-		}}, nil
+		return bind.CodeMethod(codes.Y522, true, func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+			return kn.rollback(m, args)
+		}), nil
 	}
 	return nil, bind.MemberError(string(CheckpointType), prop, codes.Names(codes.Y010, codes.Y520, codes.Y521, codes.Y522))
 }

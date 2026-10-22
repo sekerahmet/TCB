@@ -62,11 +62,10 @@ var longFuncs = map[string]exception{
 	"tools/bench/go/compare.go:main":                            {92, reasonGenerator + " (kıyas programları sırayla)"},
 
 	// Motorlar
-	"internal/stdlib/ml/custom_grad.go:checkGrad":          {181, reasonBuiltin + " (sayısal türev denetimi)"},
-	"internal/stdlib/ml/print.go:TensorValue.Inspect":      {120, "tensör yazdırma: boyut, kısaltma ve biçim tek özyinelemede"},
-	"internal/stdlib/ml/model_tools.go:sampleBuiltin":      {118, reasonBuiltin},
-	"internal/stdlib/ml/builtin_reduce.go:reduction":       {85, reasonBuiltin},
-	"internal/stdlib/tokenizer/tokenizer.go:Object.encode": {88, reasonBuiltin},
+	"internal/stdlib/ml/custom_grad.go:checkGrad":     {181, reasonBuiltin + " (sayısal türev denetimi)"},
+	"internal/stdlib/ml/print.go:TensorValue.Inspect": {120, "tensör yazdırma: boyut, kısaltma ve biçim tek özyinelemede"},
+	"internal/stdlib/ml/model_tools.go:sampleBuiltin": {118, reasonBuiltin},
+	"internal/stdlib/ml/builtin_reduce.go:reduction":  {85, reasonBuiltin},
 
 	// Hesap çekirdekleri
 	"internal/compute/tensor/cpu_attention.go:cpuBackend.f32Attention": {146, reasonKernel},
@@ -80,7 +79,5 @@ var longFuncs = map[string]exception{
 	"internal/compute/tokenize/model_bpe.go:newBPE":                    {99, reasonTokenizer},
 	"internal/compute/tokenize/model_other.go:unigram.encode":          {96, reasonTokenizer},
 	"internal/compute/tokenize/regex.go:reParser.classInner":           {89, reasonTokenizer},
-	"internal/compute/tokenize/model_bpe.go:bpeModel.symbols":          {84, reasonTokenizer},
-	"internal/compute/tokenize/decoders.go:init":                       {82, reasonTable},
 	"internal/compute/dataload/cache.go:cacheCore.fetch":               {112, "önbellekten getirme: kilit, bayatlık ve kopyalama durumları tek akışta (veri sahibinin alanı)"},
 }

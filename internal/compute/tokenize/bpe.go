@@ -252,6 +252,21 @@ func (o *cache) piece(k string) *cacheShard {
 	return &o.pieces[maphash.String(o.seed, k)%cacheShardCount]
 }
 
+// encodeCached key için önbellekteki kimlikleri dst'ye ekler; yoksa fn ile hesaplatır ve önbelleğe
+// yazar. o nil ya da key çok uzunsa (cacheMaxLen) önbelleğe bakmadan fn çağrılır.
+func (o *cache) encodeCached(dst []int32, key string, fn func([]int32) []int32) []int32 {
+	if o == nil || len(key) > cacheMaxLen {
+		return fn(dst)
+	}
+	if v, ok := o.al(key); ok {
+		return append(dst, v...)
+	}
+	n := len(dst)
+	dst = fn(dst)
+	o.put(key, dst[n:])
+	return dst
+}
+
 func (o *cache) al(k string) ([]int32, bool) {
 	pp := o.piece(k)
 	pp.mu.RLock()

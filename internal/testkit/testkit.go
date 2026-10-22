@@ -20,6 +20,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -125,4 +126,24 @@ func Wait(t testing.TB, s Result, code int, inOutput, inStderr []string) {
 			t.Errorf("stderr lacks %q:\n%s", p, s.Stderr)
 		}
 	}
+}
+
+// TeeWriter birden çok çıkışa (standart çıktı ve hata) paylaştırılan, eşzamanlı yazmaya dayanıklı bir
+// tampondur.
+type TeeWriter struct {
+	mu sync.Mutex
+	b  bytes.Buffer
+}
+
+func (e *TeeWriter) Write(p []byte) (int, error) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.b.Write(p)
+}
+
+// String şimdiye kadar yazılanları verir.
+func (e *TeeWriter) String() string {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.b.String()
 }

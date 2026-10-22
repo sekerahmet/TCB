@@ -42,11 +42,6 @@ type LineReader struct {
 	closed  bool // kullanıcı close() ile kapattı: sonraki satır istemek hatadır
 }
 
-var (
-	_ interp.Stream         = (*LineReader)(nil)
-	_ interp.PropertyGetter = (*LineReader)(nil)
-)
-
 // openReaders açık satır okuyucularının dosyalarıdır (bağlantıları çözülmüş mutlak yollarıyla):
 // program bitince kapatılırlar; sil açık bir dosyayı içeren yolu silmeye kalkınca yol gösterir.
 var openReaders = struct {

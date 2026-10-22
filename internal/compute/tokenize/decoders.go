@@ -82,17 +82,11 @@ func init() {
 		if err := strictDecode(raw, &t); err != nil {
 			return nil, err
 		}
-		var s DecoderSequence
-		for i, h := range t.Decoders {
-			c, err := NewDecoder(h)
-			if err != nil {
-				return nil, messages.New(messages.H5213, i, err)
-			}
-			if c != nil {
-				s = append(s, c)
-			}
+		s, err := buildSequence(t.Decoders, NewDecoder)
+		if err != nil {
+			return nil, err
 		}
-		return s, nil
+		return DecoderSequence(s), nil
 	})
 }
 

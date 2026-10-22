@@ -3,17 +3,14 @@
 package gpuprobe_test
 
 import (
-	"bytes"
 	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/compute/gpu"
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
-	"github.com/sekerahmet/TCB/internal/lang/interp"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
-	"github.com/sekerahmet/TCB/internal/lang/parser"
 	_ "github.com/sekerahmet/TCB/internal/stdlib" // bütün motorlar
+	"github.com/sekerahmet/TCB/internal/testkit/trrun"
 )
 
 // GPU'da eğitimin dil düzeyinde uçtan uca sınaması: kıyas modelinin (tools/gpu/compare_gpu.tr)
@@ -85,29 +82,17 @@ döngü i içinde 0..3 { yazdır(c[0][i], g[0][i]) }
 func TestGPUTrainingLanguageLevel(t *testing.T) {
 	gpu.RegisterSimulator() // gerçek GPU varsa o kullanılır
 	defer tensor.SetDefaultDevice(tensor.CPU)
-	code := gpuTrainingProgram
-	p := parser.New(lexer.New(code))
-	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		t.Fatalf("sözdizimi hatası: %v", p.Errors())
-	}
-	m := interp.New()
-	var out bytes.Buffer
-	m.Out = &out
-	if _, err := m.Run(prog); err != nil {
-		t.Fatalf("program hatası: %v\nçıktı:\n%s", err, out.String())
-	}
-	m.WaitAsync()
-	lines := strings.Split(strings.TrimSpace(out.String()), "\n")
+	out := trrun.MustExec(t, gpuTrainingProgram).Out
+	lines := strings.Split(strings.TrimSpace(out), "\n")
 	if len(lines) != 5 || lines[0] != "cpu cpu cpu" || lines[1] != "gpu gpu gpu" {
-		t.Fatalf("beklenmeyen çıktı:\n%s", out.String())
+		t.Fatalf("beklenmeyen çıktı:\n%s", out)
 	}
 	for _, s := range lines[2:] {
 		f := strings.Fields(s)
 		c, _ := strconv.ParseFloat(f[0], 64)
 		g, _ := strconv.ParseFloat(f[1], 64)
 		if d := c - g; d > 1e-4*c || d < -1e-4*c {
-			t.Fatalf("kayıplar uyuşmuyor (CPU, GPU):\n%s", out.String())
+			t.Fatalf("kayıplar uyuşmuyor (CPU, GPU):\n%s", out)
 		}
 	}
 }

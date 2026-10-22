@@ -189,6 +189,23 @@ func buildComponent[F, T any](raw json.RawMessage, registry map[string]F, nameCo
 	return v, nil
 }
 
+// buildSequence "Sequence" bileşenlerinin öğelerini build ile kurar (null öğeler atlanır); hata
+// H5213 ile öğenin sırasını bildirir. Her bileşen kendi alanını strictDecode ile çözer.
+func buildSequence[T comparable](items []json.RawMessage, build func(json.RawMessage) (T, error)) ([]T, error) {
+	var out []T
+	var zero T
+	for i, h := range items {
+		v, err := build(h)
+		if err != nil {
+			return nil, messages.New(messages.H5213, i, err)
+		}
+		if v != zero {
+			out = append(out, v)
+		}
+	}
+	return out, nil
+}
+
 // NewNormalizer JSON tanımından normalleştirici kurar (null için nil).
 func NewNormalizer(raw json.RawMessage) (Normalizer, error) {
 	return buildComponent(raw, normalizers, messages.H5280, messages.H5281, messages.H5203,

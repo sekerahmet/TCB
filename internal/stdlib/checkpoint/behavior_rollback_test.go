@@ -12,6 +12,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 	"github.com/sekerahmet/TCB/internal/stdlib/checkpoint"
 	"github.com/sekerahmet/TCB/internal/stdlib/ml"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // rollbackProgram trainingProgram'ın eğitimidir; tek farkı corruptAt adımında kaybın NaN'a
@@ -134,7 +135,7 @@ func TestRollbackStopsBeforeWritingWhenAParamIsUnusable(t *testing.T) {
 	dataDir := filepath.Join(reporoot.Root(), "tests", "data", "text")
 
 	m := interp.New()
-	w := &teeWriter{}
+	w := &testkit.TeeWriter{}
 	m.Out, m.Err = w, w
 	m.GlobalEnv.Define("tensör_bırak", &interp.BuiltinVal{
 		Name: "tensör_bırak",

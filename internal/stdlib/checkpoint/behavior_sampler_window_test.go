@@ -1,8 +1,6 @@
 package checkpoint_test
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -45,25 +43,7 @@ kn.kaydet()
 		t.Fatal(err)
 	}
 
-	trtBytes, err := os.ReadFile(filepath.Join(step1Dir, "tensorler.trt"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	durumBytes := []byte(corrupted)
-	trtSum := sha256.Sum256(trtBytes)
-	durumSum := sha256.Sum256(durumBytes)
-	ozet := fmt.Sprintf(`{
-  "sürüm": 2,
-  "adım": 1,
-  "dosyalar": {
-    "durum.json": {"bayt": %d, "sha256": %q},
-    "tensorler.trt": {"bayt": %d, "sha256": %q}
-  }
-}
-`, len(durumBytes), hex.EncodeToString(durumSum[:]), len(trtBytes), hex.EncodeToString(trtSum[:]))
-	if err := os.WriteFile(filepath.Join(step1Dir, "ozet.json"), []byte(ozet), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	resignCheckpoint(t, step1Dir, 1)
 
 	loadOut, err := run(t, fmt.Sprintf(`
 değişken w = tensör([0.0, 0.0], türev_izle: doğru)

@@ -160,6 +160,21 @@ func Safe(fn string, f func() (interp.Value, error)) (interp.Value, error) {
 	return result, ferr
 }
 
+// Method nesne yöntemi değeri kurar: fn Go paniğine karşı korunur (panik name adlı bir hataya döner).
+func Method(name string, fn interp.BuiltinFunc) *interp.BuiltinVal {
+	return &interp.BuiltinVal{Name: name, Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+		return Safe(name, func() (interp.Value, error) { return fn(m, args, named) })
+	}}
+}
+
+// CodeMethod üye koduyla (kd) adlı yöntem değeri kurar: değerin adı kodun kanonik adıdır, panik
+// iletisindeki ad interp.CallName(kd)'dir. noNamedArgs doğruysa adlı argüman verilmesi hatadır.
+func CodeMethod(kd codes.Code, noNamedArgs bool, fn interp.BuiltinFunc) *interp.BuiltinVal {
+	b := Method(interp.CallName(kd), fn)
+	b.Name, b.NoNamedArgs = codes.Name(kd), noNamedArgs
+	return b
+}
+
 // ResolvePath göreli bir yolu TR'nin tek yol kuralıyla çözer (bkz. interp.(*VM).ResolvePath: önce
 // çalışma klasörü, sonra programın klasörü). Hiçbir yerde yoksa hata mesajı kullanıcının
 // yazdığı yolu gösterebilsin diye çalışma klasörüne göre yol döner.
@@ -179,27 +194,23 @@ func IsNotExist(err error) bool { return errors.Is(err, os.ErrNotExist) }
 // ShortNumber büyük sayıları Türkçe kısa biçimde yazar: 999 → "999", 12 345 → "12,3 bin",
 // 56 900 000 000 → "56,9 milyar".
 func ShortNumber(n int64) string {
-	units := []struct {
-		threshold int64
-		name      string
-	}{{1e12, "trilyon"}, {1e9, "milyar"}, {1e6, "milyon"}, {1e3, "bin"}}
-	for _, b := range units {
-		if n >= b.threshold {
-			x := float64(n) / float64(b.threshold)
-			s := strconv.FormatFloat(x, 'f', 1, 64)
-			s = strings.TrimSuffix(s, ".0")
-			return strings.Replace(s, ".", ",", 1) + " " + b.name
-		}
-	}
-	return strconv.FormatInt(n, 10)
+	return formatScaled(n, []scaleUnit{{1e12, "trilyon"}, {1e9, "milyar"}, {1e6, "milyon"}, {1e3, "bin"}}, "")
 }
 
 // FormatBytes bayt sayısını okunur biçimde yazar (ör. "1,2 GB").
 func FormatBytes(n int64) string {
-	units := []struct {
-		threshold int64
-		name      string
-	}{{1 << 40, "TB"}, {1 << 30, "GB"}, {1 << 20, "MB"}, {1 << 10, "KB"}}
+	return formatScaled(n, []scaleUnit{{1 << 40, "TB"}, {1 << 30, "GB"}, {1 << 20, "MB"}, {1 << 10, "KB"}}, " bayt")
+}
+
+// scaleUnit bir ölçek basamağıdır: n en az threshold ise "x,y ad" yazılır.
+type scaleUnit struct {
+	threshold int64
+	name      string
+}
+
+// formatScaled n'yi en büyük uygun basamakta bir ondalıkla yazar (".0" atılır, ondalık ayracı
+// virgül); hiçbir basamağa ulaşmazsa sayının kendisi ve smallSuffix yazılır.
+func formatScaled(n int64, units []scaleUnit, smallSuffix string) string {
 	for _, b := range units {
 		if n >= b.threshold {
 			s := strconv.FormatFloat(float64(n)/float64(b.threshold), 'f', 1, 64)
@@ -207,5 +218,5 @@ func FormatBytes(n int64) string {
 			return strings.Replace(s, ".", ",", 1) + " " + b.name
 		}
 	}
-	return strconv.FormatInt(n, 10) + " bayt"
+	return strconv.FormatInt(n, 10) + smallSuffix
 }
