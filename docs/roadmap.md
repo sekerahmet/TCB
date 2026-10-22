@@ -2,7 +2,7 @@
 
 TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici için en iyi programlama dili. Model eğitimi dilin sınavıdır; ürün dilin kendisidir. Dilin en önemli yan faydası: biraz teknik bilgisi olan herkesin kendi yapay zekâ modelini kurup eğitebilmesi.
 
-Bugün TR, tek GPU'da sıfırdan model eğitmekte derlenmemiş PyTorch kadar hızlı ve daha az bellek kullanıyor; ama kendi içinde kapalı: hazır bir modeli yükleyemiyor, ince ayar yapamıyor, eğittiği modeli yaygın araçlara veremiyor. Yeni ML dillerinin (Swift for TensorFlow, Julia, Mojo, Dex, Futhark) ve Python dışı çerçevelerin (Gorgonia, GoMLX, Candle, Burn, llama.cpp) ortak dersi: kullanıcıyı dil tasarımı kazanmaz. Hazır modellere erişim, doğru gradyan, kararlı sürümler ve her gün kullanan bir iç kullanıcı kazanır. Bu yüzden sıra şudur: önce ölçüm ve doğruluk kapıları, sonra tek GPU'da bellek ve bakış boyu uyumu, sonra hazır ağırlık, ince ayar ve üretim yolu. Çoklu GPU ve genel derleyici ancak bunlar yerine oturunca gelir.
+Bugün TR, tek GPU'da sıfırdan model eğitmekte derlenmemiş PyTorch kadar hızlı ve daha az bellek kullanıyor; hazır modelleri (Llama, Qwen3) safetensors'tan yükleyip GPU'da derlenmiş transformers'tan hızlı üretiyor; ama ince ayar yapamıyor, eğittiği modeli yaygın araçlara veremiyor. Yeni ML dillerinin (Swift for TensorFlow, Julia, Mojo, Dex, Futhark) ve Python dışı çerçevelerin (Gorgonia, GoMLX, Candle, Burn, llama.cpp) ortak dersi: kullanıcıyı dil tasarımı kazanmaz. Hazır modellere erişim, doğru gradyan, kararlı sürümler ve her gün kullanan bir iç kullanıcı kazanır. Bu yüzden sıra şudur: önce ölçüm ve doğruluk kapıları, sonra tek GPU'da bellek ve bakış boyu uyumu, sonra hazır ağırlık, ince ayar ve üretim yolu. Çoklu GPU ve genel derleyici ancak bunlar yerine oturunca gelir.
 
 ## İlkeler
 
@@ -193,7 +193,7 @@ Modeli kullanan geliştiricinin ilk sorusu: "Hugging Face'teki modeli yükleyip 
    KV önbellek, örnekleme, maske ve LoRA yükleme bunlara dayanır.
 2. **safetensors yerel ağırlık biçimi olur.**
    - `.trt`'nin kullanıcıya safetensors'un vermediği bir şey vermediği için TR'nin kendi biçimi bırakılır; TR'ye özgü bilgi `__metadata__`'da durur.
-   - **Okuma yapıldı (2026-10-21, öne çekildi):** `tensör_yükle` safetensors'u okur (dil tanımı 15.47); `tr/hazir` Llama ve Qwen3 biçimindeki modelleri `GPT`'ye yükler, küçük modellerde transformers'la logit farkı ~3·10⁻⁷. Kalan: yazma, bölünmüş dizin, gerçek bir hazır modelle (SmolLM2-135M, Qwen3-0.6B) karşılaştırma ve hız.
+   - **Okuma yapıldı (2026-10-21, öne çekildi):** `tensör_yükle` safetensors'u okur (dil tanımı 15.47); `tr/hazir` Llama ve Qwen3 biçimindeki modelleri `GPT`'ye yükler, küçük modellerde transformers'la logit farkı ~3·10⁻⁷. Gerçek modellerle (SmolLM2-135M, Qwen3-0.6B) transformers'la en büyük logit farkı 1,8·10⁻⁴ / 2,5·10⁻⁵, açgözlü üretim aynı (2026-10-22). Kalan: yazma, bölünmüş dizin.
    - Okuma kuralları ileti kodu, dil kuralı ve bulanıklaştırma testi olur:
      - başlık sınırı (100 MB);
      - sıralı ve çakışmasız bayt aralıkları;
@@ -218,11 +218,12 @@ Modeli kullanan geliştiricinin ilk sorusu: "Hugging Face'teki modeli yükleyip 
 
    Kaynaklar henüz okunmadı (kanıtsız): μP (Yang ve ark. 2022), Schedule-Free (Defazio ve ark. 2024), 8 bit Adam (Dettmers ve ark. 2021), Muon (Jordan 2024).
 6. **Çıkarım ve sunum.**
-   - KV önbellekli `üret`: **yapıldı (2026-10-21)**; `KVÖnbellek` sabit ve büyüyen, `kırp`, yalnızca son logit. SmolLM2-135M CPU'da 24,7 parça/sn (transformers 23,2), GPU'da ~216 (transformers ~109). Kalan: kayan pencereli katmanlarda halka tampon (pencere boyunda önbellek), 8 bitlik önbellek, önek saklama (ortak başlangıcı yeniden işlememe), tahminli çözme (taslak model ya da MTP; `kırp` hazır). Örnekleme: en iyi p kalan.
+   - KV önbellekli `üret`: **yapıldı (2026-10-21)**; `KVÖnbellek` sabit ve büyüyen (`çeşit:`), `kırp`, yalnızca son logit. Kalan: kayan pencereli katmanlarda halka tampon (pencere boyunda önbellek), 8 bitlik önbellek, önek saklama (ortak başlangıcı yeniden işlememe), tahminli çözme (taslak model ya da MTP; `kırp` hazır). Örnekleme: en iyi p kalan.
+   - **Üretim hızı (2026-10-22, aşağıdaki "Üretim hızı" tablosu).** Yapılanlar sırasıyla: tek satırlık çarpım (M = 1) kernelleri CPU'da (AVX2/FMA) ve GPU'da; kendi akış; CUDA Graph (`tekrar_oynat`, dil tanımı 15.48; `yerine_yaz` 15.49; `GPT.tek_adım`: konum ve kimlik cihazda, transformers sabit önbelleği gibi); katman başına kernel azaltma (maske adımda bir kez, maske kopyasız, K|V ve kapı|yukarı birleşik yükleme); 16 bitlik ağırlık (`hazır_model(ağırlık_türü: "bf16")`: ağırlık açılmadan okunur, hesap float32). Kalan, ölçülmüş sırayla: açılış süresi (Qwen3 ~5 sn, çoğu boşa giden rastgele başlatma); katman başına kalan 14 kernelin kaynaştırılması (kalıntı + norm, q ve k RoPE tek kernel, k ve v yazımı tek kernel); CPU'da 16 bitlik ağırlık kerneli (bf16 varsayılan olabilsin diye); CPU hızının yeni kernellerle yeniden ölçülmesi.
    - 127.0.0.1'e bağlı OpenAI uyumlu HTTP sunucusu: completions ve chat, `logprobs` ile. Bu tek adım lm-evaluation-harness ile değerlendirmeyi, arayüzleri ve ajan çerçevelerini getirir.
    - Yorumlayıcı kilidi kernel çağrılarında ve G/Ç'de bırakılır; hangi yerleşiklerin bıraktığı belgelenir. Böylece sunucu, parçalayıcı ve GPU eşzamanlı çalışır.
-   - CUDA Graphs önce üretim için: statik şekil kipinde, isteğe bağlı yakalama. Yakalanan bölgede ana belleğe okuma dil düzeyinde hatadır. Eğitimde beklenen kazanç küçüktür (%0–5).
-   - **CPU'da hazır model:** küçük bir hazır model (yüz milyonlarca parametre) GPU'suz, dizüstünde verimli çalışır. Ağırlıklar safetensors'tan bellek eşlemeyle (mmap) kopyasız yüklenir. KV önbellekli üretim tek ve çok çekirdekte koşar, AVX2/FMA kernelleri kullanılır; ağırlığı bf16 saklanan çarpım anında genişletilir. Ölçüt: aynı model ve aynı ayarlarla PyTorch CPU ve llama.cpp'ye karşı token/sn ile ilk token süresi. Hedef oran ilk ölçümden sonra buraya yazılır (Evre 3'teki gibi). Yalnızca ağırlık int8/int4 nicemleme (Evre 6) bu yolu hızlandırır.
+   - CUDA Graphs önce üretim için: **yapıldı (2026-10-22)**, `tekrar_oynat(f)` (dil tanımı 15.48): ikinci çağrı kaydeder, sonrakiler oynatır; kayıtta cihazdan okuma, konaktan yükleme ve eşzamanlama kodlu hatadır; kayda özel bellek havuzu; ulaşılamaz kaydın belleği bırakılır. Eğitimde kazanç konakta boşa giden süreye bağlıdır; H4 profili ölçecek.
+   - **CPU'da hazır model:** küçük bir hazır model (yüz milyonlarca parametre) GPU'suz, dizüstünde verimli çalışır. Ağırlıklar safetensors'tan bellek eşlemeyle (mmap) kopyasız yüklenir. KV önbellekli üretim tek ve çok çekirdekte koşar, AVX2/FMA kernelleri kullanılır (tek satırlık çarpım kerneli yapıldı, 2026-10-21: dizüstünde SmolLM2 ~%40); ağırlığı bf16 saklanan çarpım anında genişletilir (bugün CPU'da ağırlık her çağrıda açılıyor; kernel yok). Ölçüt: aynı model ve aynı ayarlarla PyTorch CPU ve llama.cpp'ye karşı token/sn ile ilk token süresi. Hedef oran ilk ölçümden sonra buraya yazılır (Evre 3'teki gibi). Yalnızca ağırlık int8/int4 nicemleme (Evre 6) bu yolu hızlandırır.
 7. **Sürüm politikası.**
    - 0.y.z sürüm numaralama.
    - Her yerleşiğe ad kodu üzerinden kararlı, beta ya da prototip etiketi; kararlı davranış prototip ya da beta bir alternatif uğruna kaldırılmaz.
@@ -232,6 +233,17 @@ Modeli kullanan geliştiricinin ilk sorusu: "Hugging Face'teki modeli yükleyip 
    - Dil ve dosya biçimi dondurma kuralları; yayın ikilileri.
 
    Bugünkü "deneme dönemi, geriye uyum yok" durumu bu politikayla sınırlanır ve 1.0'da biter.
+
+### Üretim hızı (2026-10-22, Colab RTX PRO 6000 Blackwell + EPYC 9B45 48 iş parçacığı; parça/sn, 100 parça açgözlü)
+
+| Model / cihaz | TR | transformers eager | transformers static + `torch.compile` | llama.cpp f32 | llama.cpp f16 |
+| :-- | --: | --: | --: | --: | --: |
+| SmolLM2-135M GPU | **608** (bf16 ağırlık; float32 548) | 107 | 472 | 965 | 1091 |
+| Qwen3-0.6B GPU | **366** (bf16 ağırlık; float32 290) | 94 | 281 | 442 | 665 |
+| SmolLM2-135M CPU | 36 (tek satırlık CPU kernelinden önce; yeniden ölçülecek) | 37 | — | 213 | 300 |
+| Qwen3-0.6B CPU | 12,1 (aynı) | 11,5 | — | 47,5 | 91 |
+
+GPU yolu: 213 → 224 (tek satırlık çarpım kernelleri) → 230 (kendi akış) → 496 (CUDA Graph) → 548 (kernel azaltma) → 608 (bf16 ağırlık); Qwen3 177 → 187 → 192 → 277 → 292 → 366. Her adımda çıktılar aynı parçalar (kayıtlı ve kayıtsız, float32 ve bf16 ağırlık). Yeniden üretmek: `tools/gpu/generation_race.sh` (`tools/gpu/COLAB.md` §12; rakip sürümleri sonuç dosyasının başına yazılır). GPU'da transformers'ın en hızlı yolu geçildi; llama.cpp f32'nin SmolLM2'de %63'ü, Qwen3'te %83'ü. CPU'da fark büyük (llama.cpp ~5 kat): CPU yolu Evre 4'ün bitiş ölçütündedir.
 
 **Bitiş ölçütü:**
 - Hugging Face'ten Llama ailesinden küçük bir model safetensors ile yüklenir, TR'de LoRA ile ince ayar yapılır.
@@ -263,11 +275,12 @@ Modeli kullanan geliştiricinin ilk sorusu: "Hugging Face'teki modeli yükleyip 
 
 ## Evre 6: Ölçek ve yerel çıkarım
 
-- **Tek GPU'da `torch.compile` ile başa baş hız (H4, ≤ 136 ms/adım hedef modelde; Evre 3'ten taşındı).** Ölçümün gösterdiği sırayla, her adım önce ve sonra ölçülür:
+- **Tek GPU'da `torch.compile` ile başa baş hız (H4, ≤ 136 ms/adım hedef modelde; Evre 3'ten taşındı; bugün 162 ms, 2026-10-22).** Ölçümün gösterdiği sırayla, her adım önce ve sonra ölçülür (profil 2026-10-21; üretim işinden sonra yeniden alınacak):
   - norm geri yönünün kaynaştırılması (bugün adımda ~14 ms);
   - dikkatin adımlı girdi ve çıktı okuması (bakışlara ayırma kopyaları, ~6 ms);
   - kalan float32→bf16 dönüşümleri (~5,6 ms);
-  - indirgemeler (~15 ms) ve cuBLASLt eplogları (sapma, GELU, sapma gradyanı).
+  - indirgemeler (~15 ms) ve cuBLASLt eplogları (sapma, GELU, sapma gradyanı);
+  - eğitim adımında CUDA Graph (`tekrar_oynat`'ın altyapısı hazır): önce konakta boşa giden süre ölçülür.
 - **Uzun eğitimin gözlemlenebilirliği:** parametre normu, katman başına etkinleşme RMS'i, en büyük logit ya da log Z, fp16'da kayıp ölçeği, MFU; z-loss, "N toplu işi atla", devamda öğrenme oranı ölçeği; eşzamansız kontrol noktası (Colab'da asıl arıza oturumun kesilmesidir).
 
 - **Yerel çıkarım:**
