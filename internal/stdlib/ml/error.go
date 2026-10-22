@@ -73,21 +73,18 @@ func intNumber(v interp.Value) (int, bool) {
 }
 
 // shapeText bir şekli "[2, 3]" biçiminde yazar.
-func shapeText(sh []int) string {
-	parts := make([]string, len(sh))
-	for i, d := range sh {
-		parts[i] = strconv.Itoa(d)
-	}
-	return "[" + strings.Join(parts, ", ") + "]"
-}
+func shapeText(sh []int) string { return "[" + joinInts(sh, ", ") + "]" }
 
 // shapeProduct bir şekli "2×3" biçiminde yazar (izleme masası ve yazdırma başlığı için).
-func shapeProduct(sh []int) string {
+func shapeProduct(sh []int) string { return joinInts(sh, "×") }
+
+// joinInts sayıları ayraçla birleştirir.
+func joinInts(sh []int, sep string) string {
 	parts := make([]string, len(sh))
 	for i, d := range sh {
 		parts[i] = strconv.Itoa(d)
 	}
-	return strings.Join(parts, "×")
+	return strings.Join(parts, sep)
 }
 
 // parseAxis negatif ekseni (sondan sayma) pozitife çevirir ve sınırı denetler.

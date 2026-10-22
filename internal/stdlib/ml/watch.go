@@ -23,7 +23,7 @@ func (d *TensorValue) WatchLabel() string {
 	sh := d.t.Shape()
 	dtypeSuffix := ""
 	if dt := d.t.DType(); dt != tensor.Float32 {
-		dtypeSuffix = " " + dtypeName(dt)
+		dtypeSuffix = " " + dt.Name()
 	}
 	if len(sh) == 0 {
 		return string(interp.ValTensor) + " (skaler)" + dtypeSuffix
@@ -118,7 +118,7 @@ func (d *TensorValue) WatchSummary() string {
 		ek = append(ek, shapeProduct(sh))
 	}
 	if dt := t.DType(); dt != tensor.Float32 {
-		ek = append(ek, dtypeName(dt))
+		ek = append(ek, dt.Name())
 	}
 	return sb.String() + " (" + strings.Join(ek, ", ") + ")"
 }
