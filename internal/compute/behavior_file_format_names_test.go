@@ -6,10 +6,10 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
-	"reflect"
-	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // Diske yazılan ya da diskten okunan JSON biçimleri (meta.json, tokenizer.json) Go alan
@@ -50,7 +50,7 @@ func TestJSONFieldsHaveExplicitNames(t *testing.T) {
 							continue
 						}
 						checked++
-						if !hasJSONName(f) {
+						if !testkit.HasJSONName(f) {
 							t.Errorf("%s: dışa açık alan %s için json etiketi yok; dosya biçimi Go adına bağlı kalır", path, name)
 						}
 					}
@@ -92,21 +92,4 @@ func fieldNames(f *ast.Field) []string {
 		names = append(names, n.Name)
 	}
 	return names
-}
-
-// hasJSONName alanın boş olmayan bir json adı ya da "-" etiketi taşıyıp taşımadığını söyler.
-func hasJSONName(f *ast.Field) bool {
-	if f.Tag == nil {
-		return false
-	}
-	raw, err := strconv.Unquote(f.Tag.Value)
-	if err != nil {
-		return false
-	}
-	tag, ok := reflect.StructTag(raw).Lookup("json")
-	if !ok {
-		return false
-	}
-	name, _, _ := strings.Cut(tag, ",")
-	return name != "" || tag == "-"
 }
