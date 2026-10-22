@@ -193,7 +193,7 @@ func (r *Reader) Suggest(q string, limit int) []*Node {
 				best = 0
 				break
 			}
-			if d := editDistance(lq, lc, maxD); d <= maxD && (best < 0 || d < best) {
+			if d := EditDistance(lq, lc, maxD); d <= maxD && (best < 0 || d < best) {
 				best = d
 			}
 		}
@@ -221,8 +221,9 @@ func (r *Reader) Suggest(q string, limit int) []*Node {
 	return out
 }
 
-// editDistance iki metnin Levenshtein uzaklığıdır; bound'u aşacağı belliyse bound+1 verir.
-func editDistance(a, b string, bound int) int {
+// EditDistance iki metnin Levenshtein uzaklığıdır (kod noktası olarak); bound'u aşacağı belliyse bound+1 verir.
+// Önerilerde yakın adları bulmak için codegraph da kullanır: tek kopya burada durur.
+func EditDistance(a, b string, bound int) int {
 	ra, rb := []rune(a), []rune(b)
 	if d := len(ra) - len(rb); d > bound || -d > bound {
 		return bound + 1

@@ -5,6 +5,8 @@ import (
 	"io"
 	"sort"
 	"strings"
+
+	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
 )
 
 // suggestion yakın ad önerisidir; score küçüldükçe iyi: 0 içerme, sonrası düzenleme uzaklığı.
@@ -74,41 +76,11 @@ func nameScore(n *Node, lq string, maxD int) int {
 		if strings.Contains(lc, lq) {
 			return 0
 		}
-		if d := editDistance(lq, lc, maxD); d <= maxD && (best < 0 || d < best) {
+		if d := codeindex.EditDistance(lq, lc, maxD); d <= maxD && (best < 0 || d < best) {
 			best = d
 		}
 	}
 	return best
-}
-
-// editDistance iki metnin Levenshtein uzaklığıdır; bound'u aşacağı belliyse bound+1 verir.
-func editDistance(a, b string, bound int) int {
-	ra, rb := []rune(a), []rune(b)
-	if d := len(ra) - len(rb); d > bound || -d > bound {
-		return bound + 1
-	}
-	prev := make([]int, len(rb)+1)
-	cur := make([]int, len(rb)+1)
-	for j := range prev {
-		prev[j] = j
-	}
-	for i := 1; i <= len(ra); i++ {
-		cur[0] = i
-		rowMin := cur[0]
-		for j := 1; j <= len(rb); j++ {
-			cost := 1
-			if ra[i-1] == rb[j-1] {
-				cost = 0
-			}
-			cur[j] = min(prev[j]+1, cur[j-1]+1, prev[j-1]+cost)
-			rowMin = min(rowMin, cur[j])
-		}
-		if rowMin > bound {
-			return bound + 1
-		}
-		prev, cur = cur, prev
-	}
-	return prev[len(rb)]
 }
 
 // printSuggestions "did you mean" listesini yazar (varsa).

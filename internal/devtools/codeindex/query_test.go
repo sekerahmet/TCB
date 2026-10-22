@@ -219,3 +219,18 @@ func TestTextOutput(t *testing.T) {
 		t.Errorf("the users heading comes from H8785:\n%s", text)
 	}
 }
+
+func TestEditDistance(t *testing.T) {
+	for _, c := range []struct {
+		a, b  string
+		bound int
+		want  int
+	}{
+		{"kare", "kare", 4, 0}, {"yaz_alan", "yaz_alam", 4, 1}, {"işık", "isik", 4, 2},
+		{"abc", "abcdefgh", 2, 3}, {"katman", "kitap", 1, 2},
+	} {
+		if got := EditDistance(c.a, c.b, c.bound); got != c.want {
+			t.Errorf("EditDistance(%q, %q, %d) = %d, want %d", c.a, c.b, c.bound, got, c.want)
+		}
+	}
+}
