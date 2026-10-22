@@ -327,12 +327,7 @@ func (d *nameChecker) statement(st ast.Statement, k *nameScope) {
 		for _, f := range s.Fields {
 			d.expression(f.DefaultValue, k)
 		}
-		names := make([]string, 0, len(s.Methods))
-		for name := range s.Methods {
-			names = append(names, name)
-		}
-		sort.Strings(names) // hatalar kararlı sırada
-		for _, name := range names {
+		for _, name := range sortedMethodNames(s) {
 			d.function(s.Methods[name], k, d.treeLang.Name(codes.A051))
 		}
 	case *ast.DeferStatement:

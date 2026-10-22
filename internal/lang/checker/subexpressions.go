@@ -61,12 +61,7 @@ func (c *Checker) checkStruct(s *ast.StructStatement) {
 	for _, f := range s.Fields {
 		c.inferExpression(f.DefaultValue)
 	}
-	names := make([]string, 0, len(s.Methods))
-	for name := range s.Methods {
-		names = append(names, name)
-	}
-	sort.Strings(names) // hatalar kararlı sırada
-	for _, name := range names {
+	for _, name := range sortedMethodNames(s) {
 		// metodun adı kapsama tanımlanmaz: yalnızca 'nesne.metot' ile çağrılır
 		m := s.Methods[name]
 		_, retType := c.functionSignature(m)
@@ -108,4 +103,14 @@ func (c *Checker) functionBody(e *ast.FunctionLiteral, retType string) {
 		}
 	}
 	c.scope, c.returnType = prev, prevRet
+}
+
+// sortedMethodNames yapının metot adlarını sıralı verir; hatalar kararlı sırada çıkar.
+func sortedMethodNames(s *ast.StructStatement) []string {
+	names := make([]string, 0, len(s.Methods))
+	for name := range s.Methods {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }
