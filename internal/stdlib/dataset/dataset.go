@@ -177,7 +177,7 @@ func openDataset(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 		if cacheDir == "" {
 			return nil, messages.New(messages.H5510, fn, nameQuota.TR, nameCache.TR)
 		}
-		gb, ok := number(quotaV)
+		gb, ok := interp.ToFloat(quotaV)
 		if !ok || gb <= 0 || math.IsInf(gb, 0) || math.IsNaN(gb) {
 			return nil, messages.New(messages.H5511, fn, nameQuota.TR, quotaV.Inspect())
 		}
@@ -231,16 +231,6 @@ func largestShard(k *dataload.Dataset) int64 {
 		b = max(b, p.Bytes)
 	}
 	return b
-}
-
-func number(v interp.Value) (float64, bool) {
-	switch n := v.(type) {
-	case *interp.IntVal:
-		return float64(n.Val), true
-	case *interp.FloatVal:
-		return n.Val, true
-	}
-	return 0, false
 }
 
 // dataError Go veri paketinin hatasını yol gösterici bir TR hatasına çevirir; ekler
