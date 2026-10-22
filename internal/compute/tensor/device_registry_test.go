@@ -36,8 +36,11 @@ func TestLazyBackendRegistration(t *testing.T) {
 		delete(backends, GPU(1))
 		backendMu.Unlock()
 	}()
-	if !HasDevice(GPU(1)) || !HasDevice(GPU(1)) {
-		t.Fatal("tembel GPU kurulmadı")
+	// İkinci sorgu kurulumu yinelemez (aşağıda built == 1).
+	for range 2 {
+		if !HasDevice(GPU(1)) {
+			t.Fatal("tembel GPU kurulmadı")
+		}
 	}
 	if HasDevice(GPU(2)) {
 		t.Fatal("sayının dışındaki cihaz görünüyor")

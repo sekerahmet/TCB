@@ -14,9 +14,9 @@ import (
 
 const options = `{öğrenme_oranı: 0.001, adım: 5000, veri: "veri/train", katmanlar: [64, 64], hızlı: yanlış, etiket: yok, hf_token: ""}`
 
-// commandLine komut_satırı'nı verilen argümanlarla çalıştırır; sonucu (sözlüğün görünümü)
-// ya da hatayı döndürür.
-func commandLine(t *testing.T, code string, arguments ...string) (string, error, *interp.VM) {
+// commandLine komut_satırı'nı verilen argümanlarla çalıştırır; sonucu (sözlüğün görünümü),
+// yorumlayıcıyı ve hatayı döndürür.
+func commandLine(t *testing.T, code string, arguments ...string) (string, *interp.VM, error) {
 	t.Helper()
 	m := interp.New()
 	m.Out, m.Err = io.Discard, io.Discard
@@ -29,9 +29,9 @@ func commandLine(t *testing.T, code string, arguments ...string) (string, error,
 	}
 	v, err := m.Run(prog)
 	if err != nil {
-		return "", err, m
+		return "", m, err
 	}
-	return v.Inspect(), nil, m
+	return v.Inspect(), m, nil
 }
 
 func TestCommandLineValues(t *testing.T) {
@@ -47,7 +47,7 @@ func TestCommandLineValues(t *testing.T) {
 			`{"öğrenme_oranı": 3.0, "adım": 5000, "veri": "-x", "katmanlar": [], "hızlı": yanlış, "etiket": yok, "hf_token": ""}`},
 		{[]string{"--adım", "-5"}, `{"öğrenme_oranı": 0.001, "adım": -5, "veri": "veri/train", "katmanlar": [64, 64], "hızlı": yanlış, "etiket": yok, "hf_token": ""}`},
 	} {
-		got, err, _ := commandLine(t, code, d.arg...)
+		got, _, err := commandLine(t, code, d.arg...)
 		if err != nil || got != d.want {
 			t.Errorf("%v:\n  %s (%v)\nbeklenen\n  %s", d.arg, got, err, d.want)
 		}
@@ -73,7 +73,7 @@ func TestCommandLineUsageErrors(t *testing.T) {
 		{[]string{"--hızlı=evet"}, `'--hızlı' Mantık bir seçenek; doğru ya da yanlış verin (yalnız --hızlı yazmak doğru demektir), "evet" verildi.`},
 		{[]string{"--adım"}, "'--adım' bir değer bekler (ör. --adım 5000 ya da --adım=5000)"},
 	} {
-		_, err, _ := commandLine(t, code, d.arg...)
+		_, _, err := commandLine(t, code, d.arg...)
 		c, ok := interp.IsExitRequest(err)
 		if !ok || c.Code != 2 || !strings.Contains(c.Message, d.want) || !strings.HasPrefix(c.Message, "Hata: ") {
 			t.Errorf("%.60v: 2 kodlu, %q içeren çıkış isteği bekleniyordu: %v", d.arg, d.want, err)
@@ -99,7 +99,7 @@ Seçenekler:
   --yardım, -h                bu yardımı gösterir`
 	// --yardım bir ad kodudur (K106): her yazım dilinin adı (--help) da yardımı verir.
 	for _, arg := range [][]string{{"--yardım"}, {"-h"}, {"--adım", "x", "-h"}, {"--help"}} {
-		_, err, _ := commandLine(t, code, arg...)
+		_, _, err := commandLine(t, code, arg...)
 		c, ok := interp.IsExitRequest(err)
 		if !ok || c.Code != 0 || c.Message != want {
 			t.Errorf("%v: yardım bekleniyordu:\n%v", arg, err)
@@ -115,7 +115,7 @@ func TestCommandLineSetupErrors(t *testing.T) {
 		{`komut_satırı({adım: 1}, açıklamalar: {adim: "x"})`, "açıklamalar içindeki 'adim' bir seçenek değil. Bunu mu demek istediniz: 'adım'?"},
 		{`komut_satırı([1])`, "1. argüman olarak Sözlük bekler"},
 	} {
-		_, err, _ := commandLine(t, d.code)
+		_, _, err := commandLine(t, d.code)
 		if _, exit := interp.IsExitRequest(err); err == nil || exit || !strings.Contains(err.Error(), d.want) {
 			t.Errorf("%s: %q içeren hata bekleniyordu: %v", d.code, d.want, err)
 		}
@@ -143,13 +143,13 @@ func TestCommandLineSetupErrors(t *testing.T) {
 		{`komut_satırı({a: 1}, açklama: "x")`, messages.H7900},
 		{`komut_satırı({a: 1}); komut_satırı({a: 1})`, messages.H7218},
 	} {
-		_, err, _ := commandLine(t, d.code)
+		_, _, err := commandLine(t, d.code)
 		if _, exit := interp.IsExitRequest(err); exit || !messages.Has(err, d.want) {
 			t.Errorf("%s: %s bekleniyordu: %v", d.code, d.want, err)
 		}
 	}
 	// Kurulum hatası çağrıyı tüketmez; dene/yakala yakalar.
-	if got, err, _ := commandLine(t, `dene { komut_satırı({uzunluk: 1}) } yakala { }
+	if got, _, err := commandLine(t, `dene { komut_satırı({uzunluk: 1}) } yakala { }
 komut_satırı({a: 1})`); err != nil || got != `{"a": 1}` {
 		t.Errorf("hatalı kurulumdan sonra çağrı geçerli olmalı: %s %v", got, err)
 	}
@@ -157,7 +157,7 @@ komut_satırı({a: 1})`); err != nil || got != `{"a": 1}` {
 
 // Çıkış isteği dene/yakala ile yakalanmaz; ertele blokları çalışır.
 func TestExitRequestNotCaught(t *testing.T) {
-	_, err, m := commandLine(t, `değişken iz = []
+	_, m, err := commandLine(t, `değişken iz = []
 fonksiyon kur() {
     ertele iz.ekle("ertele")
     dene { sonuç komut_satırı({a: 1}) } yakala h { iz.ekle("yakalandı") }
@@ -174,7 +174,7 @@ kur()`, "--b")
 
 // Gizli adlı seçeneğin (sayı olmayan) değeri süzgece girer; sayı değerli olan girmez.
 func TestCommandLineSecretValue(t *testing.T) {
-	_, err, m := commandLine(t, `komut_satırı({hf_token: "", max_tokens: 0, api_key: ""})`, "--hf_token", "hf_abcdefgh123", "--max_tokens", "131072", "--api_key=123456789")
+	_, m, err := commandLine(t, `komut_satırı({hf_token: "", max_tokens: 0, api_key: ""})`, "--hf_token", "hf_abcdefgh123", "--max_tokens", "131072", "--api_key=123456789")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -182,7 +182,7 @@ func TestCommandLineSecretValue(t *testing.T) {
 		t.Errorf("maskeleme: %q", got)
 	}
 	// Bilinmeyen gizli adlı seçeneğin değeri de hata mesajında görünmez.
-	_, err, m = commandLine(t, `komut_satırı({a: 1})`, "--hf_token_x=hf_yazimhatasi")
+	_, m, err = commandLine(t, `komut_satırı({a: 1})`, "--hf_token_x=hf_yazimhatasi")
 	if c, ok := interp.IsExitRequest(err); !ok || strings.Contains(c.Message, "hf_yazimhatasi") || m.Mask("hf_yazimhatasi") != interp.SecretMask {
 		t.Errorf("bilinmeyen gizli seçeneğin değeri mesajda olmamalı ve süzgece girmeli: %v", err)
 	}
@@ -191,18 +191,18 @@ func TestCommandLineSecretValue(t *testing.T) {
 // Tek tireyle yanlış yazılmış bir seçeneğin değeri (-api_key=...) hata mesajında görünmez;
 // liste türündeki gizli seçeneğin her öğesi de (varsayılanda ve komut satırında) gizlenir.
 func TestCommandLineSecretLeaks(t *testing.T) {
-	_, err, _ := commandLine(t, `komut_satırı({api_key: ""})`, "-api_key=gizlideger99")
+	_, _, err := commandLine(t, `komut_satırı({api_key: ""})`, "-api_key=gizlideger99")
 	if c, ok := interp.IsExitRequest(err); !ok || strings.Contains(c.Message, "gizlideger99") {
 		t.Errorf("tek tireli seçeneğin değeri mesajda olmamalı: %v", err)
 	}
-	_, err, m := commandLine(t, `komut_satırı({api_key: ["varsayilangizli1"]})`, "--api_key=anahtarbir1,anahtariki2")
+	_, m, err := commandLine(t, `komut_satırı({api_key: ["varsayilangizli1"]})`, "--api_key=anahtarbir1,anahtariki2")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got := m.Mask("anahtarbir1 anahtariki2"); got != interp.SecretMask+" "+interp.SecretMask {
 		t.Errorf("liste öğeleri gizlenmeli: %q", got)
 	}
-	_, err, m = commandLine(t, `komut_satırı({api_key: ["varsayilangizli1", "varsayilangizli2"]})`)
+	_, m, err = commandLine(t, `komut_satırı({api_key: ["varsayilangizli1", "varsayilangizli2"]})`)
 	if err != nil {
 		t.Fatal(err)
 	}

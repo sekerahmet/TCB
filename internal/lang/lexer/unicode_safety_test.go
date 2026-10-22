@@ -17,9 +17,9 @@ func lexErrors(src string) []error {
 // in code, comments and strings alike.
 func TestBidiControlsRejected(t *testing.T) {
 	for _, src := range []string{
-		"değişken a = 1 // yorum ‮ gizli\n",
-		"değişken a = \"metin ⁦ içinde\"\n",
-		"değişken‏ a = 1\n",
+		"değişken a = 1 // yorum \u202e gizli\n",
+		"değişken a = \"metin \u2066 içinde\"\n",
+		"değişken\u200f a = 1\n",
 	} {
 		errs := lexErrors(src)
 		if len(errs) != 1 || !messages.Has(errs[0], messages.H0011) || !hasLine(errs[0], 1) {

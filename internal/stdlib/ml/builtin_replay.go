@@ -241,7 +241,7 @@ func (e *replayEntry) capture(m *interp.VM, rec tensor.Recorder, f interp.Value,
 			continue
 		}
 		k := len(e.inputs)
-		in := d.t
+		var in *tensor.Tensor
 		if j := alias[k]; j >= 0 {
 			in = e.inputs[j]
 		} else {

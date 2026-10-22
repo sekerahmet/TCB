@@ -31,7 +31,7 @@ func TestPropertyClassesMatchReference(t *testing.T) {
 		{`(?i)[\p{Lu}]`, "aA", "11"},
 		{`(?i)[^a-z]`, "AK1", "001"},
 		{`(?i)k`, "KK", "11"},
-		{`[[:word:]]`, "_‌", "10"},
+		{`[[:word:]]`, "_\u200c", "10"},
 		{`[[:graph:]]`, "  a", "001"},
 	}
 	for _, d := range cases {

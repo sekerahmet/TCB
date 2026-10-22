@@ -467,8 +467,7 @@ func Suggest(ns Namespace, spelling string, accept func(Code) bool) (Code, bool)
 // MemberCode returns the code of a method or property name (x.name), or None when it is not
 // a member. The compiler calls it once at compile time; at run time only codes are compared.
 func MemberCode(name string) Code {
-	k, _ := active.names[NamespaceMember][name]
-	return k
+	return active.names[NamespaceMember][name]
 }
 
 // Names returns the names of the codes in the same order (for suggestion lists).

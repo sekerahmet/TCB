@@ -194,7 +194,7 @@ func TestExtensionDoesNotFlagTurkishLetters(t *testing.T) {
 		}
 	}
 	allowed, _ := tr["editor.unicodeHighlight.allowedCharacters"].(map[string]any)
-	turkish := []rune("çÇğĞıIİiöÖşŞüÜ")
+	turkish := "çÇğĞıIİiöÖşŞüÜ"
 	var letters []string
 	for _, h := range turkish {
 		if h < 0x80 { // I ve i ASCII: zaten işaretlenmez, listede olmamalı

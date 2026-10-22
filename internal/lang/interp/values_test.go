@@ -10,7 +10,7 @@ func TestSmallIntCache(t *testing.T) {
 		}
 	}
 	for _, n := range []int64{smallIntMin - 1, smallIntMax + 1, 1 << 40} {
-		if NewInt(n) == NewInt(n) || NewInt(n).Val != n {
+		if a, b := NewInt(n), NewInt(n); a == b || a.Val != n {
 			t.Errorf("NewInt(%d) önbellek dışında yeni nesne döndürmeliydi", n)
 		}
 	}

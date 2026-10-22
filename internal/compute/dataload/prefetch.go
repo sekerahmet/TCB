@@ -36,9 +36,6 @@ type Prefetcher struct {
 	srcErr error
 }
 
-// closer, kendi Kapat yöntemi olan kaynaklardır (Ornekleyici, SiraliOkuyucu).
-type closer interface{ Close() error }
-
 type resultBatch struct {
 	ti    *Batch
 	fault error
@@ -184,10 +181,8 @@ func (o *Prefetcher) closeFn(duration time.Duration) error {
 		o.wg.Wait()
 	}
 	o.srcOne.Do(func() {
-		switch k := o.src.(type) {
-		case closer:
-			o.srcErr = k.Close()
-		case io.Closer:
+		// Kendi Kapat yöntemi olan kaynaklar (Ornekleyici, SiraliOkuyucu) kapatılır.
+		if k, ok := o.src.(io.Closer); ok {
 			o.srcErr = k.Close()
 		}
 	})

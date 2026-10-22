@@ -17,6 +17,7 @@ var (
 	// ErrClosed, kapatılmış bir kaynağın kullanılmaya çalışıldığını bildirir.
 	ErrClosed error = messages.New(messages.H5080)
 
+	//lint:ignore U1000 mmap_other.go kullanır (bellek eşlemesiz platformlar)
 	errNoMmap       error = messages.New(messages.H5081)
 	errMmapEmpty    error = messages.New(messages.H5082)
 	errMmapTooLarge error = messages.New(messages.H5083)

@@ -47,11 +47,15 @@ func expVec(dst, src []float32) {
 	}
 }
 
-// vecMask kuyruk maskeleri: &vekMaske[8-k]'dan okunan 8 değerin ilk k'sı -1'dir
+// vecMask kuyruk maskeleri: &vecMask[8-k]'dan okunan 8 değerin ilk k'sı -1'dir
 // (k < 8 elemanlık kuyruk, maskeli yükleme ve saklamayla işlenir).
+//
+//lint:ignore U1000 cpu_vector_amd64.s okur
 var vecMask = [16]int32{-1, -1, -1, -1, -1, -1, -1, -1}
 
 // geluConst GELU çekirdeklerinin sabitleri (her biri 8 kez): a, −2c, 1, c, 3a.
+//
+//lint:ignore U1000 cpu_vector_amd64.s okur
 var geluConst = func() (t [5 * 8]float32) {
 	for i, v := range [...]float32{geluA, geluM2C, 1, geluC, gelu3A} {
 		for j := 0; j < 8; j++ {

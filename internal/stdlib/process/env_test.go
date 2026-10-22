@@ -14,7 +14,7 @@ func TestEnvVar(t *testing.T) {
 	t.Setenv("TR_DENEME_HF_TOKEN", "hf_ortamgizli99")
 	t.Setenv("TR_DENEME_MAX_TOKENS", "4096000")
 	t.Setenv("TR_DENEME_TOKENIZER", "D:/veri/tokenizer.json")
-	got, err, m := commandLine(t, `[ortam_değişkeni("TR_DENEME_KLASOR"), ortam_değişkeni("TR_DENEME_YOK_BOYLE") ?? "varsayılan",
+	got, m, err := commandLine(t, `[ortam_değişkeni("TR_DENEME_KLASOR"), ortam_değişkeni("TR_DENEME_YOK_BOYLE") ?? "varsayılan",
   ortam_değişkeni("TR_DENEME_HF_TOKEN"), ortam_değişkeni("TR_DENEME_MAX_TOKENS"), ortam_değişkeni("TR_DENEME_TOKENIZER")]`)
 	if err != nil {
 		t.Fatal(err)
@@ -29,12 +29,12 @@ func TestEnvVar(t *testing.T) {
 		{`ortam_değişkeni(5)`, "1. argüman olarak Metin bekler"},
 		{`ortam_değişkeni()`, "1 argüman bekler"},
 	} {
-		if _, err, _ := commandLine(t, d.code); err == nil || !strings.Contains(err.Error(), d.want) {
+		if _, _, err := commandLine(t, d.code); err == nil || !strings.Contains(err.Error(), d.want) {
 			t.Errorf("%s: %q içeren hata bekleniyordu: %v", d.code, d.want, err)
 		}
 	}
 	for _, code := range []string{`ortam_değişkeni("")`, `ortam_değişkeni("A=B")`} {
-		if _, err, _ := commandLine(t, code); !messages.Has(err, messages.H7231) {
+		if _, _, err := commandLine(t, code); !messages.Has(err, messages.H7231) {
 			t.Errorf("%s: %s bekleniyordu: %v", code, messages.H7231, err)
 		}
 	}

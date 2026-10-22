@@ -35,7 +35,7 @@ func comprehensionItems(v *VM, iterVal Value, line int) ([]Value, error) {
 			items = append(items, it.KeyValue(k))
 		}
 	case *StringVal:
-		for _, ch := range []rune(it.Val) {
+		for _, ch := range it.Val {
 			items = append(items, &StringVal{Val: string(ch)})
 		}
 	case Iterable:

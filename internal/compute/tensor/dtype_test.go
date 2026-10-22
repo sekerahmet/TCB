@@ -252,7 +252,7 @@ func TestCastShared(t *testing.T) {
 	if c := h.CastShared(Float16); c == a || c.DType() != Float16 {
 		t.Fatal("başka türe dönüşüm paylaşılmamalı")
 	}
-	if x.CastShared(BFloat16) == x.CastShared(BFloat16) {
+	if p, q := x.CastShared(BFloat16), x.CastShared(BFloat16); p == q {
 		t.Fatal("yaprağın dönüşümü paylaşılmamalı")
 	}
 	var n1, n2 *Tensor

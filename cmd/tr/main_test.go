@@ -63,9 +63,6 @@ func trBuild(t *testing.T) string {
 	return trBinary
 }
 
-// result bir komutun çalıştırılmasının sonucudur.
-type result = testkit.Result
-
 // template gömülü paketi olmayan yorumlayıcı ikilisinin baytlarıdır.
 func template(t *testing.T) []byte {
 	t.Helper()

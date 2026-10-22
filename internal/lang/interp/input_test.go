@@ -41,7 +41,7 @@ func TestInputReaderShared(t *testing.T) {
 	if err != nil || val.Inspect() != "veri" {
 		t.Fatalf("girdi() ikinci satırı okumalıydı: %v %v", val, err)
 	}
-	if StdinReader() != StdinReader() {
+	if r1, r2 := StdinReader(), StdinReader(); r1 != r2 {
 		t.Fatal("standart giriş okuyucusu süreç başına tek olmalı")
 	}
 	if New().InputReader() != StdinReader() {

@@ -48,6 +48,7 @@ func TestRunRecoversFromBuiltinPanic(t *testing.T) {
 	machine.Out = io.Discard
 	machine.RegisterBuiltin("patla", func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		var m map[string]int
+		//lint:ignore SA5000 test bilerek bir Go çalışma zamanı paniği üretir
 		m["x"] = 1 // nil map paniği
 		return Null, nil
 	})

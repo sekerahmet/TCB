@@ -1,7 +1,6 @@
 package gpu
 
 import (
-	"fmt"
 	"math/rand"
 	"testing"
 
@@ -113,7 +112,7 @@ func TestOptimizers(t *testing.T) {
 		for c := 0; c < 2; c++ {
 			p := twin(pv, true, 300)[c]
 			h := twin(hv, false, 300)[c]
-			step := func() {}
+			var step func()
 			switch ad {
 			case "adamw":
 				o := tensor.NewAdamW([]*tensor.Tensor{p}, 0.01, 0.1)
@@ -235,5 +234,5 @@ func trainSmallModel(t *testing.T, dt tensor.DType, tol float64) {
 	if losses[1][steps-1] >= losses[1][0] {
 		t.Fatalf("%s: kayıp düşmedi: %v", dt, losses[1])
 	}
-	t.Log(fmt.Sprintf("%s kayıplar GPU %v, CPU %v", dt, losses[1], losses[0]))
+	t.Logf("%s kayıplar GPU %v, CPU %v", dt, losses[1], losses[0])
 }

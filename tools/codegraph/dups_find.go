@@ -13,15 +13,14 @@ import (
 
 // dupLoc bir tekrar konumudur.
 type dupLoc struct {
-	File     string `json:"file"`
-	From     int    `json:"from"` // başlangıç satırı
-	To       int    `json:"to"`   // bitiş satırı
-	Func     string `json:"func,omitempty"`
-	Nodes    int    `json:"nodes"`
-	Changed  bool   `json:"changed,omitempty"` // --changed: konum değişen satırlara dokunuyor
-	start    int    // düğüm dizisinde başlangıç
-	fileIdx  int
-	lineFrom int
+	File    string `json:"file"`
+	From    int    `json:"from"` // başlangıç satırı
+	To      int    `json:"to"`   // bitiş satırı
+	Func    string `json:"func,omitempty"`
+	Nodes   int    `json:"nodes"`
+	Changed bool   `json:"changed,omitempty"` // --changed: konum değişen satırlara dokunuyor
+	start   int    // düğüm dizisinde başlangıç
+	fileIdx int
 }
 
 // dupCluster birbirinin tekrarı olan konumlardır.

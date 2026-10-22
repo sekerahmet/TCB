@@ -66,7 +66,7 @@ func TestUnaryOps(t *testing.T) {
 // işlemlerin CPU ile uyuştuğunu denetler.
 func TestUnarySpecialValues(t *testing.T) {
 	inf := float32(math.Inf(1))
-	data := []float32{0, -0.0, 1e-30, -1e-30, 1e-4, -1e-4, 0.29, 0.31, 30, -30, 88, -88, 100, -100, 1e20, -1e20, inf, -inf}
+	data := []float32{0, float32(math.Copysign(0, -1)), 1e-30, -1e-30, 1e-4, -1e-4, 0.29, 0.31, 30, -30, 88, -88, 100, -100, 1e20, -1e20, inf, -inf}
 	for _, is := range []struct {
 		ad string
 		f  func(x *tensor.Tensor) *tensor.Tensor

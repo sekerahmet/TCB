@@ -44,7 +44,7 @@ func TestExpf32(t *testing.T) {
 		check(x, 2)
 	}
 	// Uçlar: taşma sınırı, normal altı sonuçlar, alt taşma, sonsuzlar, NaN.
-	for _, x := range []float32{0, -0.0, 1e-8, -1e-8, 1, -1, 88.7, 88.72283, 88.7229, 89, 1000,
+	for _, x := range []float32{0, float32(math.Copysign(0, -1)), 1e-8, -1e-8, 1, -1, 88.7, 88.72283, 88.7229, 89, 1000,
 		-87.3, -87.33654, -87.34, -95, -103.9, -103.97, -104, -1000,
 		float32(math.Inf(1)), float32(math.Inf(-1)), float32(math.NaN())} {
 		check(x, 2)
@@ -92,7 +92,7 @@ func TestExpVec(t *testing.T) {
 	for i := 0; i < 1<<20; i++ {
 		xs = append(xs, float32(rng.Float64()*220-115))
 	}
-	xs = append(xs, 0, -0.0, 88.7, 88.72283, 88.7229, 89, 1000, -87.33654, -87.34, -95, -100, -103.9, -103.97,
+	xs = append(xs, 0, float32(math.Copysign(0, -1)), 88.7, 88.72283, 88.7229, 89, 1000, -87.33654, -87.34, -95, -100, -103.9, -103.97,
 		-104, -150, float32(math.Inf(1)), float32(math.Inf(-1)), float32(math.NaN()), 1e-8, -1e-8)
 	for k := 0; k < 9; k++ { // farklı kuyruk uzunlukları
 		xs = append(xs, float32(k)-4)

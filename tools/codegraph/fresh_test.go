@@ -98,11 +98,11 @@ func TestQueryRebuildsStaleGraph(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "shape", "fresh.go"), []byte(extra), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	code, out, errOut := commandIn("query", root, graph, "--no-rebuild", "shape.Fresh")
+	code, _, errOut = commandIn("query", root, graph, "--no-rebuild", "shape.Fresh")
 	if code != exitNotFound || strings.Contains(errOut, "rebuilt") {
 		t.Errorf("--no-rebuild must use the old graph: exit %d: %s", code, errOut)
 	}
-	code, out, errOut = commandIn("query", root, graph, "shape.Fresh")
+	code, out, errOut := commandIn("query", root, graph, "shape.Fresh")
 	if code != exitOK || !strings.Contains(out, "shape.Fresh [func]") {
 		t.Fatalf("the query must see the new function: exit %d\nout: %s\nerr: %s", code, out, errOut)
 	}
