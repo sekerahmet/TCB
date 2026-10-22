@@ -10,7 +10,7 @@ Her hücrenin geri bildirilecek çıktısı kısadır ve tablo biçimindedir.
 ```bash
 %%bash
 # Go (oturumda bir kez, ~1 dk); sürüm go.mod'daki araç zinciridir.
-[ -x /usr/local/go/bin/go ] || { wget -q https://go.dev/dl/go1.25.13.linux-amd64.tar.gz -O /tmp/go.tgz && tar -C /usr/local -xzf /tmp/go.tgz; }
+[ -x /usr/local/go/bin/go ] || { wget -q https://go.dev/dl/go1.26.10.linux-amd64.tar.gz -O /tmp/go.tgz && tar -C /usr/local -xzf /tmp/go.tgz; }
 export PATH=/usr/local/go/bin:$PATH
 rm -rf /content/TCB && git clone -q --depth 1 https://github.com/sekerahmet/TCB /content/TCB
 cd /content/TCB && git log -1 --format='commit: %h (%cd)' --date=iso
@@ -304,7 +304,7 @@ Kurallar:
 # 1 · KURULUM: KODU ÇEK VE TR'Yİ DERLE · CPU
 # DAL: main (GPU işi sınanırken gpu-dogrulama)
 DAL=main
-[ -x /usr/local/go/bin/go ] || { wget -q https://go.dev/dl/go1.25.13.linux-amd64.tar.gz -O /tmp/go.tgz && tar -C /usr/local -xzf /tmp/go.tgz; }
+[ -x /usr/local/go/bin/go ] || { wget -q https://go.dev/dl/go1.26.10.linux-amd64.tar.gz -O /tmp/go.tgz && tar -C /usr/local -xzf /tmp/go.tgz; }
 export PATH=/usr/local/go/bin:$PATH
 rm -rf /content/TCB && git clone -q --depth 1 -b $DAL https://github.com/sekerahmet/TCB /content/TCB
 cd /content/TCB && git log -1 --format='commit: %h %s'
