@@ -380,23 +380,12 @@ func writeSliceBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 	if !dst.t.IsContiguous() {
 		return nil, messages.New(messages.H6443, fn)
 	}
-	axis := -1
-	if av, ok := bind.GetNamed(named, nameAxis); ok {
-		a, integer := intNumber(av)
-		if !integer {
-			return nil, messages.New(messages.H6016, fn, av.Inspect(), shapeText(dst.t.Shape()), dst.t.Dim(), -dst.t.Dim(), dst.t.Dim()-1)
-		}
-		axis = a
-	}
-	sh := dst.t.Shape()
-	if axis, err = parseAxis(fn, axis, sh); err != nil {
+	axis, err := writeSliceAxis(fn, named, dst.t, src)
+	if err != nil {
 		return nil, err
 	}
-	ssh := src.Shape()
-	if !sliceFits(ssh, sh, axis) {
-		return nil, messages.New(messages.H3111, fn, ssh, sh, axis)
-	}
-	n := ssh[axis]
+	sh := dst.t.Shape()
+	n := src.Shape()[axis]
 	sv, ok := bind.GetNamed(named, nameStart)
 	if !ok {
 		sv = interp.NewInt(0)
@@ -435,6 +424,28 @@ func writeSliceBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 		return nil, err
 	}
 	return interp.Null, nil
+}
+
+// writeSliceAxis yerine_yaz'ın eksenini çözer (varsayılan son eksen) ve kaynağın o eksendeki
+// dilime yazılabildiğini denetler (H3111).
+func writeSliceAxis(fn string, named map[string]interp.Value, dst, src *tensor.Tensor) (int, error) {
+	axis := -1
+	if av, ok := bind.GetNamed(named, nameAxis); ok {
+		a, integer := intNumber(av)
+		if !integer {
+			return 0, messages.New(messages.H6016, fn, av.Inspect(), shapeText(dst.Shape()), dst.Dim(), -dst.Dim(), dst.Dim()-1)
+		}
+		axis = a
+	}
+	sh := dst.Shape()
+	axis, err := parseAxis(fn, axis, sh)
+	if err != nil {
+		return 0, err
+	}
+	if ssh := src.Shape(); !sliceFits(ssh, sh, axis) {
+		return 0, messages.New(messages.H3111, fn, ssh, sh, axis)
+	}
+	return axis, nil
 }
 
 // sliceFits kaynak şeklinin hedefin eksenindeki bir dilime yazılabildiği: eksen sayısı ve
