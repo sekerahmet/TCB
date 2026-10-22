@@ -1,6 +1,7 @@
 package ml
 
 import (
+	"bytes"
 	"runtime"
 	"strings"
 	"testing"
@@ -8,7 +9,10 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/compute/gpu"
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
 // replayStep KV önbelleği gibi kullanılan bir adım: indeksle gömme seçer, konuma yazar,
@@ -147,5 +151,269 @@ türevsiz {
 	drainReleases()
 	if got := releasedRecordings.Load() - before; got < 3 {
 		t.Fatalf("3 kayıt bırakılmalıydı, %d bırakıldı", got)
+	}
+}
+
+// Kural: cihazda kayıt sürerken çağrılan tekrar_oynat fonksiyonu doğrudan çağrılır; işi dıştaki
+// kayda girer (iç içe tekrar_oynat; JAX'ta iç içe jit gibi). Gemini kayıt denetimi, bulgu 2A.
+func TestReplayNestedRunsInsideOuterRecording(t *testing.T) {
+	gpu.RegisterSimulator()
+	defer tensor.SetDefaultDevice(tensor.CPU)
+	out := mustRun(t, `varsayılan_cihaz("gpu")
+değişken iç = tekrar_oynat((x) => x + 1)
+değişken dış = tekrar_oynat((x) => iç(x) * 2)
+türevsiz {
+    yazdır([dış(tensör([3.0])).değer, dış(tensör([4.0])).değer, dış(tensör([5.0])).değer])
+}`)
+	if want := "[[8.0], [10.0], [12.0]]\n"; out != want {
+		t.Fatalf("çıktı %q, beklenen %q", out, want)
+	}
+}
+
+// Kural: kayıt sürerken bırakılmayı bekleyen kayıtlar kuyrukta kalır (bırakmak eşzamanlama
+// ister); kayıt bitince bırakılır (bulgu 2B).
+func TestReplayKeepsQueuedReleasesDuringCapture(t *testing.T) {
+	gpu.RegisterSimulator()
+	defer tensor.SetDefaultDevice(tensor.CPU)
+	drainReleases()
+	e := recordedEntry(t)
+	releaseQueue.mu.Lock()
+	releaseQueue.entries = append(releaseQueue.entries, e)
+	releaseQueue.mu.Unlock()
+	before := releasedRecordings.Load()
+	rec := tensor.BackendFor(tensor.GPU(0)).(tensor.Recorder)
+	rec.BeginCapture()
+	drainReleases()
+	rec.AbortCapture()
+	releaseQueue.mu.Lock()
+	queued := len(releaseQueue.entries)
+	releaseQueue.mu.Unlock()
+	if queued != 1 || releasedRecordings.Load() != before {
+		t.Fatalf("kayıt sürerken kuyrukta %d kayıt kaldı (beklenen 1)", queued)
+	}
+	drainReleases()
+	if releasedRecordings.Load() != before+1 {
+		t.Fatalf("kayıt bitince kuyruktaki kayıt bırakılmadı")
+	}
+}
+
+// recordedEntry kaydı yapılmış bir girdi bileşimi kurar (f'i tekrar_oynat gibi üç kez çağırır:
+// ısınma, kayıt, oynatma).
+func recordedEntry(t *testing.T) *replayEntry {
+	t.Helper()
+	m := interp.New()
+	m.Out = &bytes.Buffer{}
+	if _, err := m.Run(parser.New(lexer.New(`varsayılan_cihaz("gpu")
+fonksiyon f(x) { sonuç x * 2 + 1 }`)).ParseProgram()); err != nil {
+		t.Fatal(err)
+	}
+	f, _ := m.GlobalEnv.Get("f")
+	r := &replayFn{f: f, cache: map[string]*replayEntry{}}
+	x := New(tensor.NewOn(tensor.GPU(0), []float32{1, 2}, 2))
+	tensor.NoGrad(func() {
+		for i := 0; i < 3; i++ {
+			if _, err := r.call(m, []interp.Value{x}, nil); err != nil {
+				t.Fatal(err)
+			}
+		}
+	})
+	for _, e := range r.cache {
+		if e.rec != nil {
+			return e
+		}
+	}
+	t.Fatal("kayıt yok")
+	return nil
+}
+
+// Kural: kayıt bırakılınca girdi ve çıktı başlıkları düşer (her konumun sarıcısı bir kez
+// bırakılır; fazladan sarıcı belirlenimci bırakmayı önlerdi). Bulgu 3.
+func TestReplayReleaseDropsHeaders(t *testing.T) {
+	gpu.RegisterSimulator()
+	defer tensor.SetDefaultDevice(tensor.CPU)
+	e := recordedEntry(t)
+	in, out := e.inputs[0], e.outs[0]
+	e.release()
+	if !in.IsDropped() || !out.IsDropped() {
+		t.Fatalf("girdi düştü: %v, çıktı düştü: %v", in.IsDropped(), out.IsDropped())
+	}
+}
+
+// Kural: kayıt sırasında yorumlayıcı kilidi başka göreve geçmez: başka bir eşzamanlı görevin
+// işi kayda girmez; kayıtta görevleri beklemek (bekle_hepsi) H2522'dir. Isınma bitmeden bileşim
+// ısınmış sayılmaz (bulgu 4).
+func TestReplayCaptureHoldsTheLock(t *testing.T) {
+	gpu.RegisterSimulator()
+	defer tensor.SetDefaultDevice(tensor.CPU)
+	out := mustRun(t, `varsayılan_cihaz("gpu")
+değişken yan = sıfırlar([4])
+değişken d = {"çağrı": 0}
+değişken f = tekrar_oynat(fonksiyon(x) {
+    d["çağrı"] += 1
+    eğer d["çağrı"] == 2 {
+        eşzamanlı { türevsiz { yerine_yaz(yan, birler([4]), eksen: 0) } }
+        döngü i içinde 0..300 { d["boş"] = i } // kilit devredilseydi görev burada koşardı
+    }
+    sonuç x * 2
+})
+türevsiz {
+    değişken x = tensör([3.0, 4.0])
+    f(x)
+    f(x)
+    bekle_hepsi()
+    yerine_yaz(yan, sıfırlar([4]), eksen: 0)
+    f(x)
+    yazdır(yan.değer)
+}`)
+	if want := "[0.0, 0.0, 0.0, 0.0]\n"; out != want {
+		t.Fatalf("başka görevin işi kayda girdi: yan %q, beklenen %q", out, want)
+	}
+	_, err := run(t, `varsayılan_cihaz("gpu")
+değişken f = tekrar_oynat(fonksiyon(x) {
+    bekle_hepsi()
+    sonuç x * 2
+})
+türevsiz {
+    f(tensör([1.0]))
+    f(tensör([1.0]))
+}`)
+	if !messages.Has(err, messages.H2522) {
+		t.Fatalf("kayıtta bekle_hepsi H2522 vermeliydi: %v", err)
+	}
+}
+
+// Kural: f'in yerinde değiştirdiği girdi her oynatmadan sonra çağıranın tensörüne geri
+// yazılır; aynı tensör iki argümanda verilirse kayıtta da tek tensördür; tensörler farklı
+// cihazlardaysa f doğrudan çağrılır (bulgu 6).
+func TestReplayArgumentsKeepDirectCallMeaning(t *testing.T) {
+	gpu.RegisterSimulator()
+	defer tensor.SetDefaultDevice(tensor.CPU)
+	out := mustRun(t, `varsayılan_cihaz("gpu")
+fonksiyon adım(ön, yeni, konum) {
+    yerine_yaz(ön, yeni, eksen: 0, başlangıç: konum)
+    sonuç ön * 1
+}
+değişken oynat = tekrar_oynat(adım)
+değişken ö1 = sıfırlar([3])
+değişken ö2 = sıfırlar([3])
+değişken dokuz = tensör([9.0])
+değişken g = tekrar_oynat(fonksiyon(a, b) {
+    yerine_yaz(a, dokuz, eksen: 0)
+    sonuç b * 2
+})
+değişken h = tekrar_oynat((x, c) => [x * 2, c * 3])
+türevsiz {
+    döngü i içinde 0..3 {
+        değişken v = tensör([(i + 1) * 10.0])
+        değişken k = tensör(i * 1.0)
+        oynat(ö1, v, k)
+        adım(ö2, v, k)
+    }
+    yazdır(ö1.değer == ö2.değer)
+    değişken s = []
+    döngü i içinde 0..3 {
+        değişken x = sıfırlar([2])
+        s.ekle(g(x, x).değer)
+    }
+    yazdır(s)
+    yazdır([h(tensör([1.0]), tensör([c * 1.0]).cihaza("cpu"))[1].değer döngü c içinde [10, 20, 100]])
+}`)
+	want := "doğru\n[[18.0, 0.0], [18.0, 0.0], [18.0, 0.0]]\n[[30.0], [60.0], [300.0]]\n"
+	if out != want {
+		t.Fatalf("çıktı:\n%s\nbeklenen:\n%s", out, want)
+	}
+}
+
+// Kural (yerine_yaz): kaynak hedefin depolamasındaysa (örtüşen dilim) kayıtta da önce
+// kopyalanır (bulgu 7A). Bitişik olmayan hedef (H6443), eksen sayısı ya da öbür eksenleri
+// farklı kaynak (H3111, yayınlama yok) ve hedeften farklı cihazdaki başlangıç (H6102) kayıt
+// yolundan önce denetlenir: kayıt içinde ve dışında aynı hatadır (bulgu 7B–D, 8A). gömme'nin
+// indeks tensörü de tabloyla aynı cihazda olmalıdır.
+func TestWriteSliceSameRulesInsideAndOutsideRecording(t *testing.T) {
+	gpu.RegisterSimulator()
+	defer tensor.SetDefaultDevice(tensor.CPU)
+	out := mustRun(t, `varsayılan_cihaz("gpu")
+fonksiyon kur() { sonuç tensör([i * 1.0 döngü i içinde 0..64]) }
+değişken a = kur()
+değişken b = kur()
+türevsiz { yerine_yaz(a, a.dilim(0, 0, 48), eksen: 0, başlangıç: tensör(16.0)) }
+değişken f = tekrar_oynat(fonksiyon(konum) {
+    yerine_yaz(b, b.dilim(0, 0, 48), eksen: 0, başlangıç: konum)
+    sonuç b * 1
+})
+türevsiz {
+    f(tensör(0.0))
+    yerine_yaz(b, kur(), eksen: 0)
+    f(tensör(16.0))
+}
+yazdır(a.değer == b.değer, b.değer[48])`)
+	if out != "doğru 32.0\n" {
+		t.Fatalf("örtüşen dilim kayıtta bozuldu: %q", out)
+	}
+	for code, call := range map[messages.Code]string{
+		messages.H6443: `yerine_yaz(sıfırlar([3, 4]).devrik(), birler([4, 1]), eksen: 1, başlangıç: tensör(0.0))`,
+		messages.H3111: `yerine_yaz(sıfırlar([2, 4]), birler([1, 2]), eksen: 1, başlangıç: tensör(0.0))`,
+		messages.H6102: `yerine_yaz(sıfırlar([4]), birler([2]), eksen: 0, başlangıç: tensör(0.0).cihaza("cpu"))`,
+	} {
+		if _, err := run(t, `varsayılan_cihaz("gpu")
+türevsiz { `+call+` }`); !messages.Has(err, code) {
+			t.Errorf("%s: %s bekleniyordu, %v", call, code, err)
+		}
+	}
+	if _, err := run(t, `yerine_yaz(sıfırlar([4]), 5.0, eksen: 0)`); !messages.Has(err, messages.H3111) {
+		t.Errorf("0 boyutlu kaynak H3111 vermeliydi: %v", err)
+	}
+	if _, err := run(t, `varsayılan_cihaz("gpu")
+gömme(birler([4, 2]), tensör([1.0]).cihaza("cpu"))`); !messages.Has(err, messages.H6102) {
+		t.Errorf("gömme farklı cihazdaki indekste H6102 vermeliydi: %v", err)
+	}
+}
+
+// Kural: sayı işlenenli işlemler (koşullu, ortalama listesi, eksensiz min, arktanjant2, sayıyla
+// karşılaştırma ve bölme) kayıtta da çalışır: sayı cihazda doldurulur, konaktan yüklenmez
+// (bulgu 8B).
+func TestReplayScalarOperands(t *testing.T) {
+	gpu.RegisterSimulator()
+	defer tensor.SetDefaultDevice(tensor.CPU)
+	for _, expr := range []string{`koşullu(x > 0, x, 0.0)`, `ortalama([x, x * 2])`, `min(x)`, `arktanjant2(x, 1.0)`, `x / 3`} {
+		out, err := run(t, `varsayılan_cihaz("gpu")
+değişken f = tekrar_oynat((x) => `+expr+`)
+türevsiz {
+    değişken x = tensör([1.0, -2.0, 3.0, 4.0]) + 1
+    değişken s = [f(x).değer döngü i içinde 0..3]
+    yazdır(s[0] == s[2], s[2] == (`+expr+`).değer)
+}`)
+		if err != nil || out != "doğru doğru\n" {
+			t.Errorf("%s: %q %v", expr, out, err)
+		}
+	}
+}
+
+// Kural: görünümün depolamadaki başlangıcı maske ofset tablosuna girmez: ofsetli bir maske
+// görünümüyle (ısınmada argümanın kendisi, kayıtta kopyası) tablo aynıdır, kayıt yükleme
+// yapmaz (Gemini sayısal denetimi, bulgu 3). PLE'li GPT'nin üretimi kayıtla da kayıtsızla aynı
+// parçaları verir (bulgu 2).
+func TestReplayAttentionMaskViewsAndPLEGeneration(t *testing.T) {
+	gpu.RegisterSimulator()
+	defer tensor.SetDefaultDevice(tensor.CPU)
+	out := mustRun(t, `varsayılan_cihaz("gpu")
+değişken q = birler([1, 1, 1, 4])
+değişken k = birler([1, 1, 4, 4])
+değişken v = tensör([[[[1.0, 2.0, 3.0, 4.0], [5.0, 6.0, 7.0, 8.0], [1.0, 1.0, 1.0, 1.0], [2.0, 2.0, 2.0, 2.0]]]])
+değişken tampon = tensör([[1.0, 0.0, 0.0, 0.0], [1.0, 1.0, 0.0, 0.0]])
+değişken f = tekrar_oynat((m) => dikkat(q, k, v, nedensel: yanlış, maske: m))
+türevsiz {
+    değişken s = [f(tampon[1]).değer döngü i içinde 0..3]
+    yazdır(s[0] == s[2], s[2] == dikkat(q, k, v, nedensel: yanlış, maske: tampon[1]).değer)
+}`)
+	if out != "doğru doğru\n" {
+		t.Fatalf("ofsetli maske: %q", out)
+	}
+	out = mustRun(t, `aktar "../../../lib/katman.tr"
+varsayılan_cihaz("gpu")
+değişken m = GPT(12, bağlam: 6, boyut: 8, katman: 2, bakış_sayısı: 2, ple_boyutu: 4, tohum: 5)
+yazdır(m.üret([1, 2], 4, sıcaklık: 0, çizge: doğru) == m.üret([1, 2], 4, sıcaklık: 0, çizge: yanlış))`)
+	if out != "doğru\n" {
+		t.Fatalf("PLE'li üretim kayıtla farklı: %q", out)
 	}
 }

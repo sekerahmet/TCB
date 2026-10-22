@@ -18,12 +18,17 @@ import (
 //
 // tekrar_oynat(f) f'in cihaz işini bir kez kaydedip sonraki çağrılarda oynatır (GPU'da CUDA
 // Graph; PyTorch torch.cuda.graph ve make_graphed_callables gibi). Girdi bileşimi başına
-// (tensörlerin şekli, türü, cihazı, tam sayı işareti; sayı argümanlarının değeri; hesap_türü())
-// ilk çağrı f'i olduğu gibi çalıştırır (ısınma: çekirdekler derlenir, kitaplık planları ve
-// tembel kurulan durum, ör. KV önbelleği, hazırlanır), ikinci çağrı tensör argümanlarını
-// kaydın kendi girdi tensörlerine kopyalayıp f'i kayıt altında çalıştırır, sonraki çağrılar
-// girdileri kopyalayıp kaydı oynatır. Çıktı her çağrıda kopyalanarak verilir (sonraki oynatma
-// üzerine yazmaz). Kayıt arka uçta yoksa (CPU) f doğrudan çağrılır.
+// (tensörlerin şekli, türü, cihazı, tam sayı işareti, aynı tensörün tekrarı; sayı argümanlarının
+// değeri; hesap_türü()) ilk çağrı f'i olduğu gibi çalıştırır (ısınma: çekirdekler derlenir,
+// kitaplık planları ve tembel kurulan durum, ör. KV önbelleği, hazırlanır), ikinci çağrı tensör
+// argümanlarını kaydın kendi girdi tensörlerine kopyalayıp f'i kayıt altında çalıştırır, sonraki
+// çağrılar girdileri kopyalayıp kaydı oynatır. f'in yerinde değiştirdiği girdiler her oynatmadan
+// sonra çağıranın tensörüne geri yazılır. Çıktı her çağrıda kopyalanarak verilir (sonraki oynatma
+// üzerine yazmaz). f doğrudan çağrılır: kayıt arka uçta yoksa (CPU), tensörler farklı
+// cihazlardaysa, ayrı argümanlar aynı depolamanın farklı görünümleriyse (kopyalar bu bağı
+// koparırdı) ve cihazda zaten bir kayıt sürüyorsa (iç içe tekrar_oynat: iç fonksiyonun işi
+// dıştaki kayda girer, JAX'ta iç içe jit gibi). Kayıt sırasında yorumlayıcı kilidi başka göreve
+// geçmez (VM.Exclusive): başka bir eşzamanlı görevin işi kayda girmez.
 
 // registerReplay tekrar_oynat ve yerine_yaz yerleşiklerini kaydeder.
 func registerReplay(v *interp.VM) {
@@ -37,15 +42,20 @@ type replayFn struct {
 	cache map[string]*replayEntry
 }
 
-// replayEntry bir girdi bileşiminin kaydı: girdi ve çıktı tensörleri kaydın kendisinindir
-// (başlıkları sarılı tutulur, düşmez).
+// replayEntry bir girdi bileşiminin kaydı. inputs her tensör argümanının kayıttaki karşılığıdır
+// (aynı tensör iki kez verildiyse aynı kopya; alias[i] >= 0 o argümanın ilk geçtiği yer);
+// mutated f'in yerinde değiştirdiği girdilerdir. Girdi ve çıktı başlıklarının her konumda bir
+// sarıcısı kaydındır: kayıt bırakılınca her konum için bir kez bırakılır.
 type replayEntry struct {
-	warm   bool
-	rec    tensor.Recording
-	inputs []*tensor.Tensor
-	outs   []*tensor.Tensor
-	ints   []bool
-	single bool
+	warm    bool
+	dev     tensor.Device
+	rec     tensor.Recording
+	inputs  []*tensor.Tensor
+	alias   []int
+	mutated []int
+	outs    []*tensor.Tensor
+	ints    []bool
+	single  bool
 }
 
 // releaseQueue çöp toplayıcının ulaşılamaz bulduğu tekrar_oynat fonksiyonlarının kayıtları.
@@ -73,20 +83,42 @@ func queueRelease(cache map[string]*replayEntry) {
 	}
 }
 
-// drainReleases kuyruktaki kayıtları bırakır: çizge ve kayda özel bellek, girdi ve çıktı
-// başlıkları (yorumlayıcının gorutininde, kayıt dışında).
+// drainReleases kuyruktaki kayıtları bırakır (yorumlayıcının gorutininde). Cihazında kayıt
+// süren kayıt kuyrukta kalır: bırakmak eşzamanlama ister.
 func drainReleases() {
 	releaseQueue.mu.Lock()
 	entries := releaseQueue.entries
 	releaseQueue.entries = nil
 	releaseQueue.mu.Unlock()
+	var keep []*replayEntry
 	for _, e := range entries {
-		e.rec.Release()
-		for _, t := range append(e.inputs, e.outs...) {
-			t.Unwrap()
+		if tensor.Capturing(e.dev) {
+			keep = append(keep, e)
+			continue
 		}
+		e.release()
 		releasedRecordings.Add(1)
 	}
+	if len(keep) > 0 {
+		releaseQueue.mu.Lock()
+		releaseQueue.entries = append(releaseQueue.entries, keep...)
+		releaseQueue.mu.Unlock()
+	}
+}
+
+// release kaydı ve kaydın girdi ve çıktı başlıklarını bırakır.
+func (e *replayEntry) release() {
+	if e.rec != nil {
+		e.rec.Release()
+		e.rec = nil
+	}
+	for _, t := range e.inputs {
+		t.Unwrap()
+	}
+	for _, t := range e.outs {
+		t.Unwrap()
+	}
+	e.inputs, e.alias, e.outs = nil, nil, nil
 }
 
 func replayBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
@@ -108,11 +140,12 @@ func replayBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 // call oynatılan fonksiyonu çalıştırır (bkz. dosya başı).
 func (r *replayFn) call(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 	fn := codes.DisplayName(codes.T313)
-	drainReleases()
 	if tensor.GradEnabled() {
 		return nil, messages.New(messages.H6440, fn)
 	}
 	var inputs []*tensor.Tensor
+	var alias []int
+	shared := false
 	var key strings.Builder
 	fmt.Fprintf(&key, "%s|", mixedDType(m))
 	for i, a := range args {
@@ -124,92 +157,160 @@ func (r *replayFn) call(m *interp.VM, args []interp.Value, _ map[string]interp.V
 		if !ok {
 			return nil, messages.New(messages.H6438, fn, i+1, typeName(a))
 		}
-		inputs = append(inputs, d.t)
-		fmt.Fprintf(&key, "%v:%s:%v:%v;", d.t.Shape(), d.t.DType(), d.t.Device(), d.hasInts)
+		same := -1
+		for j, t := range inputs {
+			if t == d.t {
+				same = j
+				break
+			}
+			shared = shared || t.SharesStorage(d.t)
+		}
+		inputs, alias = append(inputs, d.t), append(alias, same)
+		fmt.Fprintf(&key, "%v:%s:%v:%v:%d;", d.t.Shape(), d.t.DType(), d.t.Device(), d.hasInts, same)
 	}
-	var rec tensor.Recorder
-	if len(inputs) > 0 {
-		rec, _ = tensor.BackendFor(inputs[0].Device()).(tensor.Recorder)
-	}
-	if rec == nil || !rec.CaptureSupported() {
+	rec := recorderOf(inputs)
+	if rec == nil || shared {
 		return m.ApplyFunction(r.f, args, nil, 0)
 	}
+	drainReleases()
 	e := r.cache[key.String()]
 	if e == nil {
-		e = &replayEntry{}
+		e = &replayEntry{dev: inputs[0].Device()}
 		r.cache[key.String()] = e
 	}
 	if !e.warm {
-		e.warm = true
-		return m.ApplyFunction(r.f, args, nil, 0)
+		// Isınma bitmeden işaretlenmez: başka bir görev aynı bileşimi bu arada çağırırsa o da
+		// ısınır (tembel kurulum yarım kalmış bir kayda girmez).
+		res, err := m.ApplyFunction(r.f, args, nil, 0)
+		if err == nil {
+			e.warm = true
+		}
+		return res, err
 	}
 	if e.rec == nil {
-		if err := e.capture(m, rec, r.f, args); err != nil {
+		var err error
+		m.Exclusive(fn, func() { err = e.capture(m, rec, r.f, args, alias) })
+		if err != nil {
 			delete(r.cache, key.String())
 			return nil, err
 		}
 	} else {
 		for i, t := range inputs {
-			e.inputs[i].CopyFrom(t)
+			if alias[i] < 0 {
+				e.inputs[i].CopyFrom(t)
+			}
 		}
 	}
 	e.rec.Replay()
+	for _, i := range e.mutated {
+		inputs[i].CopyFrom(e.inputs[i])
+	}
 	return e.result(), nil
 }
 
-// capture kaydın girdi tensörlerini kurar (argümanların kopyaları) ve f'i kayıt altında
-// çalıştırır. f'in hatası kaydı bırakıp olduğu gibi döner.
-func (e *replayEntry) capture(m *interp.VM, rec tensor.Recorder, f interp.Value, args []interp.Value) error {
+// recorderOf tensör argümanlarının ortak cihazının kaydedicisini verir; argüman yoksa, cihazlar
+// farklıysa, cihaz kaydı desteklemiyorsa ya da cihazda zaten bir kayıt sürüyorsa nil (f doğrudan
+// çağrılır).
+func recorderOf(inputs []*tensor.Tensor) tensor.Recorder {
+	if len(inputs) == 0 {
+		return nil
+	}
+	dev := inputs[0].Device()
+	for _, t := range inputs[1:] {
+		if t.Device() != dev {
+			return nil
+		}
+	}
+	rec, _ := tensor.BackendFor(dev).(tensor.Recorder)
+	if rec == nil || !rec.CaptureSupported() || tensor.Capturing(dev) {
+		return nil
+	}
+	return rec
+}
+
+// capture kaydın girdi tensörlerini kurar (argümanların kopyaları; aynı tensörün tekrarı aynı
+// kopya) ve f'i kayıt altında çalıştırır. f'in hatası kaydı bırakıp olduğu gibi döner.
+func (e *replayEntry) capture(m *interp.VM, rec tensor.Recorder, f interp.Value, args []interp.Value, alias []int) (err error) {
 	fn := codes.DisplayName(codes.T313)
 	vals := make([]interp.Value, len(args))
+	var versions []uint64
 	for i, a := range args {
 		d, ok := a.(*TensorValue)
 		if !ok {
 			vals[i] = a // sayı: kayda sabit olarak girer
 			continue
 		}
-		in := d.t.Clone()
-		in.Wrap() // kaydın girdisi: yorumlayıcı argümanı bıraksa da düşmez
-		e.inputs = append(e.inputs, in)
+		k := len(e.inputs)
+		in := d.t
+		if j := alias[k]; j >= 0 {
+			in = e.inputs[j]
+		} else {
+			in = d.t.Clone()
+		}
+		// Değerin sarıcısı kaydındır: f'e geçen değer yorumlayıcıya kaçar, bırakılmaz.
 		v := New(in)
 		v.hasInts = d.hasInts
 		vals[i] = v
+		e.inputs, e.alias = append(e.inputs, in), append(e.alias, alias[k])
+		versions = append(versions, in.Version())
 	}
-	var res interp.Value
-	err := func() (err error) {
-		rec.BeginCapture()
-		defer func() {
-			if p := recover(); p != nil {
-				rec.AbortCapture()
-				if interp.IsInterrupt(p) {
-					panic(p)
-				}
-				err = panicError(p)
+	e.mutated = nil
+	defer func() {
+		if p := recover(); p != nil {
+			rec.AbortCapture()
+			e.release()
+			if interp.IsInterrupt(p) {
+				panic(p)
 			}
-		}()
-		if res, err = m.ApplyFunction(f, vals, nil, 0); err != nil {
-			rec.AbortCapture()
-			return err
+			err = panicError(p)
 		}
-		outs, ints, single, err := replayOutputs(fn, res)
-		if err != nil {
-			rec.AbortCapture()
-			return err
-		}
-		for _, o := range outs {
-			o.Wrap() // kaydın çıktısı: her oynatma buraya yazar
-		}
-		e.outs, e.ints, e.single = outs, ints, single
-		e.rec = rec.EndCapture()
-		return nil
 	}()
-	if err != nil {
-		for _, in := range e.inputs {
-			in.Unwrap()
-		}
-		e.inputs = nil
+	start := tensor.Created()
+	rec.BeginCapture()
+	res, err := m.ApplyFunction(f, vals, nil, 0)
+	var outs []*tensor.Tensor
+	var ints []bool
+	single := false
+	if err == nil {
+		outs, ints, single, err = takeOutputs(fn, res, start)
 	}
-	return err
+	if err != nil {
+		rec.AbortCapture()
+		e.release()
+		return err
+	}
+	e.outs, e.ints, e.single = outs, ints, single
+	for i, in := range e.inputs {
+		if e.alias[i] < 0 && in.Version() != versions[i] {
+			e.mutated = append(e.mutated, i)
+		}
+	}
+	e.rec = rec.EndCapture()
+	return nil
+}
+
+// takeOutputs f'in sonucunu çıktılara ayırır ve her konum için bir sarıcıyı kayda alır: f'in
+// içinde oluşan başlığın kaçan değerinin sarıcısı zaten çağıranındır (ilk geçtiği konumda);
+// önceden var olan başlık (girdi, dışarıdaki bir tensör) ya da tekrarı için yeni sarıcı alınır.
+func takeOutputs(fn string, res interp.Value, start uint64) ([]*tensor.Tensor, []bool, bool, error) {
+	outs, ints, single, err := replayOutputs(fn, res)
+	if err != nil {
+		return nil, nil, false, err
+	}
+	vals := []interp.Value{res}
+	if l, ok := res.(*interp.ListVal); ok {
+		vals = l.Elements
+	}
+	seen := map[*TensorValue]bool{}
+	for _, el := range vals {
+		v := el.(*TensorValue)
+		if v.t.Serial() > start && !seen[v] {
+			seen[v] = true
+			continue
+		}
+		v.t.Wrap()
+	}
+	return outs, ints, single, nil
 }
 
 // replayOutputs f'in sonucunu (tensör ya da tensör listesi) çıktılara ayırır.
@@ -250,8 +351,10 @@ var nameStart = bind.NamedArg(codes.T908)
 
 // writeSliceBuiltin yerine_yaz(hedef, kaynak, eksen:, başlangıç:): kaynağı hedefin eksenindeki
 // dilime başlangıçtan itibaren yerinde yazar. Başlangıç sayı ya da 0 boyutlu tam sayı tensörüdür.
-// Kayıt dışında konum konakta okunur ve denetlenir; kayıt içinde tensörle verilen konum
-// cihazdan okunur (her oynatmada), sınır dışıysa kırpılır (lax.dynamic_update_slice gibi).
+// Hedef bitişik olmalıdır; kaynağın eksen sayısı ve öbür eksenleri hedefinkiyle aynıdır
+// (yayınlama yok). Bu denetimler kayıt içinde ve dışında aynıdır. Kayıt dışında konum konakta
+// okunur ve denetlenir; kayıt içinde tensörle verilen konum cihazdan okunur (her oynatmada),
+// sınır dışıysa kırpılır (lax.dynamic_update_slice gibi).
 func writeSliceBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.DisplayName(codes.T122)
 	if len(args) != 2 {
@@ -262,7 +365,7 @@ func writeSliceBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 	}
 	dst, ok := args[0].(*TensorValue)
 	if !ok {
-		return nil, messages.New(messages.H6324, fn, "hedef", typeName(args[0]))
+		return nil, messages.New(messages.H6444, fn, typeName(args[0]))
 	}
 	src, err := toTensorOn(fn, args[1], dst.t)
 	if err != nil {
@@ -273,6 +376,9 @@ func writeSliceBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 	}
 	if dst.t.RequiresGrad() && tensor.GradEnabled() {
 		return nil, messages.New(messages.H6716)
+	}
+	if !dst.t.IsContiguous() {
+		return nil, messages.New(messages.H6443, fn)
 	}
 	axis := -1
 	if av, ok := bind.GetNamed(named, nameAxis); ok {
@@ -286,23 +392,26 @@ func writeSliceBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 	if axis, err = parseAxis(fn, axis, sh); err != nil {
 		return nil, err
 	}
+	ssh := src.Shape()
+	if !sliceFits(ssh, sh, axis) {
+		return nil, messages.New(messages.H3111, fn, ssh, sh, axis)
+	}
+	n := ssh[axis]
 	sv, ok := bind.GetNamed(named, nameStart)
 	if !ok {
 		sv = interp.NewInt(0)
 	}
 	st, isTensor := sv.(*TensorValue)
-	if isTensor && st.t.Dim() != 0 {
-		return nil, messages.New(messages.H6441, fn, sv.Inspect())
-	}
-	n := src.Shape()[min(axis, max(src.Dim()-1, 0))]
-	if src.Dim() != dst.t.Dim() {
-		n = -1
+	if isTensor {
+		if st.t.Dim() != 0 {
+			return nil, messages.New(messages.H6441, fn, sv.Inspect())
+		}
+		if err := checkDevice(fn, dst.t, st.t); err != nil {
+			return nil, err
+		}
 	}
 	_, err = safe(func() *tensor.Tensor {
 		if isTensor && tensor.Capturing(dst.t.Device()) {
-			if err := checkDevice(fn, dst.t, st.t); err != nil {
-				panic(err)
-			}
 			tensor.UpdateSliceAt(dst.t, src, st.t, axis)
 			return nil
 		}
@@ -316,8 +425,8 @@ func writeSliceBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 		if !integer {
 			panic(messages.New(messages.H6441, fn, sv.Inspect()))
 		}
-		if n < 0 || start < 0 || start+n > sh[axis] {
-			panic(messages.New(messages.H6442, fn, start, max(n, 0), sh[axis]))
+		if start < 0 || start+n > sh[axis] {
+			panic(messages.New(messages.H6442, fn, start, n, sh[axis]))
 		}
 		tensor.NoGrad(func() { dst.t.Slice(axis, start, start+n).CopyFrom(src) })
 		return nil
@@ -326,4 +435,18 @@ func writeSliceBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 		return nil, err
 	}
 	return interp.Null, nil
+}
+
+// sliceFits kaynak şeklinin hedefin eksenindeki bir dilime yazılabildiği: eksen sayısı ve
+// öbür eksenler aynı, eksende kaynak hedeften uzun değil.
+func sliceFits(src, dst []int, axis int) bool {
+	if len(src) != len(dst) {
+		return false
+	}
+	for i, n := range dst {
+		if i == axis && src[i] > n || i != axis && src[i] != n {
+			return false
+		}
+	}
+	return true
 }

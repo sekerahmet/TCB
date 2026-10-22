@@ -282,6 +282,10 @@ func waitAllBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) 
 	if y.asyncTask {
 		return nil, messages.New(messages.H2432, CallPrefix(codes.G501), codes.DisplayName(codes.A080))
 	}
+	if y.exclusive != "" {
+		// Kilit devredilmediğinden görevler hiç ilerlemez: beklemek kilitlenirdi.
+		return nil, messages.New(messages.H2522, CallPrefix(codes.G501), y.exclusive)
+	}
 	y.WaitAsync()
 	return True, nil
 }

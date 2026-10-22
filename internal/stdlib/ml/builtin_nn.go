@@ -56,12 +56,17 @@ func embedding(_ *interp.VM, args []interp.Value, named map[string]interp.Value)
 	if len(tsh) != 2 {
 		return nil, messages.New(messages.H6303, fn, shapeText(tsh))
 	}
-	if it, ok := args[1].(*TensorValue); ok && tensor.Capturing(table.t.Device()) {
-		// Kayıt içinde indeks konağa okunamaz: her oynatma onu cihazdan okur (sınır dışı
-		// indeks kırpılır; tensor.EmbeddingAt).
+	it, isTensor := args[1].(*TensorValue)
+	if isTensor {
+		// İndeks tensörü tabloyla aynı cihazda olmalıdır (kayıt içinde ve dışında aynı kural;
+		// PyTorch embedding gibi).
 		if err := checkDevice(fn, table.t, it.t); err != nil {
 			return nil, err
 		}
+	}
+	if isTensor && tensor.Capturing(table.t.Device()) {
+		// Kayıt içinde indeks konağa okunamaz: her oynatma onu cihazdan okur (sınır dışı
+		// indeks kırpılır, kesirli indeks budanır; tensor.EmbeddingAt).
 		r, err := safe(func() *tensor.Tensor { return tensor.EmbeddingAt(table.t, it.t) })
 		if err != nil {
 			return nil, err

@@ -67,7 +67,8 @@ func EmbeddingAt(w, idx *Tensor) *Tensor {
 
 // UpdateSliceAt dst'nin axis eksenindeki [s, s+src.şekil[axis]) dilimine src'yi yazar
 // (yerinde; dst'nin sürümü artar). s 0 boyutlu start tensöründen okunur. dst bitişik olmalı,
-// src'nin öbür eksenleri dst'ninkilerle aynı olmalıdır.
+// src'nin öbür eksenleri dst'ninkilerle aynı olmalıdır. src dst'nin depolamasındaysa (örtüşen
+// dilim) önce kopyalanır: çekirdek okuduğu yere yazardı (CopyFrom gibi).
 func UpdateSliceAt(dst, src, start *Tensor, axis int) {
 	sameDevice("UpdateSliceAt", dst, src)
 	sameDevice("UpdateSliceAt", dst, start)
@@ -90,6 +91,11 @@ func UpdateSliceAt(dst, src, start *Tensor, axis int) {
 		panic(messages.Internal("UpdateSliceAt needs a contiguous destination"))
 	}
 	if src.Numel() > 0 {
+		if src.storage == dst.storage {
+			c := src.Clone()
+			defer c.Drop()
+			src = c
+		}
 		indexReader("UpdateSliceAt", dst).UpdateSliceAt(dst.view(), src.view(), start.view(), outer, dst.shape[axis], src.shape[axis], inner)
 	}
 	dst.storage.BumpVersion()
