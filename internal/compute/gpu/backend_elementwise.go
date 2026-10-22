@@ -180,20 +180,7 @@ func (g *backend) Binary(op tensor.BinOp, out tensor.Storage, outShape []int, a,
 		return
 	}
 	checkSize(n)
-	sa := broadcastStride(a.Strides, a.Shape, outShape)
-	sb := broadcastStride(b.Strides, b.Shape, outShape)
-	sh, st := mergeAxes(outShape, sa, sb, contiguous(outShape))
-	nd := len(sh)
-	if nd == 1 && st[0][0] == 1 && st[1][0] == 1 {
-		nd = 0 // üçü de düz bitişik
-	}
-	if nd > maxAxis {
-		none(messages.H4052, nd, maxAxis)
-	}
-	var meta []int
-	if nd > 0 {
-		meta = append(append(append(meta, sh...), st[0]...), st[1]...)
-	}
+	nd, meta := broadcastMeta(messages.H4052, outShape, a, b)
 	dt := [3]tensor.DType{g.storageOf(a.S).dtype, g.storageOf(b.S).dtype, o.dtype}
 	c := g.takeKernel(fmt.Sprintf("ikili:%d:%d:%v", op, nd, dt), binaryKernel(op, nd, dt))
 	iz, bl := plain(n, sameBlock)
