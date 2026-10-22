@@ -104,32 +104,13 @@ func parseDupFlags(cmd string, args []string, stderr io.Writer) (*dupOpts, []str
 	fs.BoolVar(&o.asJSON, "json", false, "machine-readable output")
 	fs.BoolVar(&o.noExclude, "no-exclude", false, "dups: also report the deliberately separate places (see --list-exclusions)")
 	fs.BoolVar(&o.listRules, "list-exclusions", false, "dups: print the exclusions with their reasons and exit")
-	if err := fs.Parse(reorderDupFlags(args)); err != nil {
+	if err := fs.Parse(reorderFlags(args)); err != nil {
 		return nil, nil, exitUsage
 	}
 	if *all {
 		o.limit = 0
 	}
 	return o, fs.Args(), exitOK
-}
-
-// reorderDupFlags bayrakları adların önüne alır (reorderFlags'ın dups bayrakları için sürümü).
-func reorderDupFlags(args []string) []string {
-	valued := map[string]bool{"root": true, "min": true, "in": true, "changed": true, "base": true, "limit": true}
-	var flags, names []string
-	for i := 0; i < len(args); i++ {
-		a := args[i]
-		if !strings.HasPrefix(a, "-") || a == "-" {
-			names = append(names, a)
-			continue
-		}
-		flags = append(flags, a)
-		if name := strings.TrimLeft(a, "-"); valued[name] && !strings.Contains(a, "=") && i+1 < len(args) {
-			i++
-			flags = append(flags, args[i])
-		}
-	}
-	return append(flags, names...)
 }
 
 // runDups `dups` komutudur.
