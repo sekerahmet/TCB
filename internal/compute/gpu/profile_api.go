@@ -195,7 +195,7 @@ func (g *backend) closeFn() {
 	defer g.exit()
 	if profileOn.Load() && g.profiler.support > 0 {
 		g.equalize()
-		g.markStep() // son adımın duvar süresi
+		g.markStepNow() // son adımın duvar süresi
 		if g.profiler.callN != g.profiler.written {
 			g.profiler.written = g.profiler.callN
 			g.writeSummary(os.Stderr)

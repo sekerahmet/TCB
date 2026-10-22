@@ -1,6 +1,7 @@
 package gpu
 
 import (
+	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"os"
 	"sort"
 	"strings"
@@ -40,6 +41,7 @@ type profRecord struct {
 	ad          string
 	begin, last uintptr
 	step        int32
+	owner       tensor.Owner // çekirdeği başlatan işlem ve TR konumu (profile_owner.go)
 }
 
 // pullStats bir çekirdeğin toplamları.
@@ -74,6 +76,7 @@ type profile struct {
 
 	mu        sync.Mutex
 	stats     map[string]*pullStats
+	owners    map[tensor.Owner]*pullStats // çekirdek süresinin işleme ve satıra dağılımı
 	steps     []stepStats
 	stepStart time.Time
 	callN     int64 // başlatma sayısı (bellek işleri dahil)
@@ -96,6 +99,7 @@ func (g *backend) measureStart() uintptr {
 			p.emptyEvent = append(p.emptyEvent, ev)
 			p.mu.Lock()
 			p.stats = map[string]*pullStats{}
+			p.owners = map[tensor.Owner]*pullStats{}
 			p.mu.Unlock()
 		}
 	}
@@ -120,7 +124,7 @@ func (g *backend) measureEnd(ad string, begin uintptr) {
 		p.emptyEvent = append(p.emptyEvent, begin)
 		return
 	}
-	p.pending = append(p.pending, profRecord{ad: ad, begin: begin, last: last, step: p.stepNo()})
+	p.pending = append(p.pending, profRecord{ad: ad, begin: begin, last: last, step: p.stepNo(), owner: tensor.CurrentOwner()})
 	switch {
 	case len(p.pending) >= 16384:
 		g.equalize() // olaylar tükenmesin (yalnızca ölçüm kipinde)
@@ -162,6 +166,7 @@ func (g *backend) measureParse() {
 		}
 		st.num++
 		st.ms += float64(ms)
+		p.addOwner(k.owner, float64(ms))
 		a := p.takeStep(k.step)
 		a.gpuMS += float64(ms)
 		a.launching++
@@ -187,8 +192,17 @@ func (p *profile) takeStep(i int32) *stepStats {
 	return &p.steps[i-1]
 }
 
-// markStep yeni bir eğitim adımını başlatır (iyileştiricinin adımı çağırır).
+// markStep iyileştiricinin adım işaretidir: adım sınırını profil veriyorsa (externalSteps)
+// yok sayılır; birden çok iyileştirici bir adımda birden çok kez çağırırdı.
 func (g *backend) markStep() {
+	if externalSteps.Load() {
+		return
+	}
+	g.markStepNow()
+}
+
+// markStepNow yeni bir eğitim adımını başlatır.
+func (g *backend) markStepNow() {
 	if !profileOn.Load() || g.profiler.support < 0 {
 		return
 	}

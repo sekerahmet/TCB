@@ -148,7 +148,44 @@ func reportGPU(b *strings.Builder, g *Snapshot) {
 		b.WriteString(" · " + messages.Text(messages.H8251, msText(gp.Seconds*1000/float64(g.Step.All))))
 	}
 	fmt.Fprintf(b, " · %s\n", familySummary(gp.Families, 5))
+	reportGPUOwners(b, g)
 	if gp.summary != "" {
 		b.WriteString("\n" + gp.summary + "\n")
+	}
+}
+
+// reportGPUOwners çekirdeklerin cihaz süresinin işleme ve satıra göre dağılımıdır (en büyük
+// 12'şer); adım varsa adım başına ms ile.
+func reportGPUOwners(b *strings.Builder, g *Snapshot) {
+	gp := g.GPU
+	perStep := func(s float64) string {
+		if g.Step == nil || g.Step.All == 0 {
+			return ""
+		}
+		return msText(s * 1000 / float64(g.Step.All))
+	}
+	if len(gp.Ops) > 0 {
+		b.WriteString("\n" + messages.Text(messages.H8291) + "\n")
+		b.WriteString(left("", 32) + right(messages.Text(messages.H8242), 10) + right(messages.Text(messages.H8240), 7) + right(messages.Text(messages.H8241), 10) + "\n")
+		for i, x := range gp.Ops {
+			if i == 12 {
+				break
+			}
+			b.WriteString("  " + left(x.Name, 30) + right(perStep(x.Seconds), 10) + right(percent(x.Share), 7) + right(full(x.Calls), 10) + "\n")
+		}
+	}
+	if len(gp.Lines) > 0 {
+		b.WriteString("\n" + messages.Text(messages.H8292) + "\n")
+		for i, s := range gp.Lines {
+			if i == 12 {
+				break
+			}
+			back := ""
+			if s.BackwardShare > 0 {
+				back = messages.Text(messages.H8289, percent(s.BackwardShare))
+			}
+			l := LineInfo{File: s.File, Line: s.Line, Function: s.Function, Text: s.Text}
+			fmt.Fprintf(b, "  %s  %s  %s  %s  %s\n", right(percent(s.Share), 5), right(perStep(s.Seconds), 9), left(linePos(l), 30), left(back, 9), trim(lineText(l), 64))
+		}
 	}
 }

@@ -1463,6 +1463,8 @@
 "H8288": { "param": [] },
 "H8289": { "param": ["share"] },
 "H8290": { "param": ["forward", "backward", "after", "source"] },
+"H8291": { "param": [] },
+"H8292": { "param": [] },
 "H8400": { "param": ["detail"] },
 "H8401": { "param": ["error"] },
 "H8402": { "param": [] },

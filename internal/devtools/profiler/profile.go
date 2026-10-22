@@ -162,6 +162,7 @@ func Start(m *interp.VM, s Options) *Profile {
 	if s.GPUMeasure {
 		// Ölçüm zaten açıksa (TR_GPU_PROFIL=1) dokunulmaz: arka uç raporunu kendisi yazar.
 		p.gpuPrev = enableGPUMeasure()
+		gpu.SetExternalSteps(true)
 		p.gpuOpened, p.gpuMeasured = !p.gpuPrev, true
 	}
 	logging.SetStepHook(p.stepBoundary)
@@ -187,6 +188,15 @@ func (p *Profile) stepBoundary(a logging.StepBoundary) {
 	p.isStep.Lock()
 	p.step.advance(a.Step, a.Total, a.Time)
 	p.isStep.Unlock()
+	p.markGPUStep()
+}
+
+// markGPUStep GPU arka ucunun adımını profilin adım sınırıyla işaretler (ölçüm profilinse):
+// iyileştiricinin kendi işareti bir adımda birden çok iyileştiriciyle birden çok kez düşerdi.
+func (p *Profile) markGPUStep() {
+	if p.pick.GPUMeasure {
+		gpu.MarkStep()
+	}
 }
 
 // optimizerStep iyileştiricinin her adımında çalışır: ilk adım atan iyileştiricinin adımları
@@ -196,11 +206,16 @@ func (p *Profile) optimizerStep(id uintptr, at time.Time) {
 	if p.optID == 0 {
 		p.optID = id
 	}
+	mark := false
 	if id == p.optID {
 		p.optStep.advance(p.optStep.last+1, 0, at)
 		p.optStep.fromOptimizer = true
+		mark = !p.step.var_ // ilerleme(...) varsa adım sınırı odur
 	}
 	p.isStep.Unlock()
+	if mark {
+		p.markGPUStep()
+	}
 }
 
 func (p *Profile) loop() {
@@ -250,6 +265,9 @@ func (p *Profile) Finish(code int) *Snapshot {
 		p.takeGPUPeak()
 		logging.SetStepHook(nil)
 		tensor.SetOptimizerStepHook(nil)
+		if p.pick.GPUMeasure {
+			gpu.SetExternalSteps(false)
+		}
 		p.mu.Lock()
 		if p.gpuOpened {
 			p.gpuOpened = false

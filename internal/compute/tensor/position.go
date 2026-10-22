@@ -42,3 +42,24 @@ var backwardPos uint64
 // BackwardPosition geri hesabı çalışan düğümün TR konumunu verir (0: yok). Örnekleyici
 // goroutine'i okur; değer tek kelimedir.
 func BackwardPosition() uint64 { return load64u(&backwardPos) }
+
+// Owner bir arka uç işini (ör. bir GPU çekirdeğini) başlatan tensör işlemidir: türü, yönü ve
+// TR konumu (geri yönde düğümü üreten ileri satır; konum kaynağı yoksa 0). GPU profili her
+// çekirdeğin cihaz süresini buna yazar.
+type Owner struct {
+	Kind     OpKind
+	Backward bool
+	Pos      uint64
+}
+
+// CurrentOwner o anda çalışan işlemi ve konumunu verir (işlem yoksa diğer).
+func CurrentOwner() Owner {
+	is, back, _ := ActiveOp()
+	o := Owner{Kind: is, Backward: back}
+	if back {
+		o.Pos = BackwardPosition()
+	} else {
+		o.Pos = currentPosition()
+	}
+	return o
+}

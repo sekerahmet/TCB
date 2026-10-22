@@ -24,6 +24,7 @@ import (
 type gpuSnap struct {
 	kernel map[string]gpu.KernelSample
 	memory []gpu.MemorySample
+	owners []gpu.OwnerSample // çekirdek süresinin işleme ve satıra dağılımı (gpu_owner.go)
 }
 
 // takeGPUSnap ölçüleri okur (GPU kurulmamışsa ikisi de boş; sürücü yüklenmez).
@@ -36,6 +37,7 @@ func takeGPUSnap() gpuSnap {
 	for _, c := range gpu.KernelSamples() {
 		a.kernel[c.Name] = c
 	}
+	a.owners = gpu.OwnerSamples()
 	return a
 }
 
@@ -109,6 +111,7 @@ func (p *Profile) gpuInfo(a gpuSnap) GPUInfo {
 	g.Kernels, g.Families, total = gpuDelta(a.kernel, p.base.gpu.kernel)
 	g.Seconds = sn(total)
 	g.Kernels = g.Kernels[:min(len(g.Kernels), maxKernels)]
+	g.Ops, g.Lines = p.gpuOwners(a.owners, p.base.gpu.owners)
 	switch {
 	case !g.Measured:
 		g.Note = messages.Text(messages.H8204, codes.DisplayName(codes.K012), codes.DisplayName(codes.K013))

@@ -159,3 +159,52 @@ varsayılan_cihaz("cpu")
 		t.Errorf("büyük tensör çağıran satırda (3) sayılmalı: %+v", top)
 	}
 }
+
+// gpuTwoOptimizers ilerleme kullanmayan, adımda iki iyileştiricisi olan 6 adımlık eğitimdir.
+const gpuTwoOptimizers = `varsayılan_cihaz("gpu")
+değişken w = tensör(rastgele_normal([16, 16], tohum: 1), türev_izle: doğru)
+değişken v = tensör(rastgele_normal([16, 16], tohum: 3), türev_izle: doğru)
+değişken x = rastgele_normal([8, 16], tohum: 2)
+değişken a = AdamW([w], öğrenme_oranı: 0.01)
+değişken b = AdamW([v], öğrenme_oranı: 0.01)
+döngü i içinde 0..6 {
+    a.sıfırla()
+    b.sıfırla()
+    değişken kayıp = toplam(relu(x @ w @ v))
+    geri_yayılım(kayıp)
+    a.adım()
+    b.adım()
+}
+varsayılan_cihaz("cpu")
+`
+
+// Çekirdeklerin cihaz süresi onları başlatan işleme ve satıra yazılır (geri yöndekiler ileri
+// satıra); iki iyileştiricili adım bir adımdır (GPU arka ucunun işareti: gpu paketinin
+// TestOwnerSamplesAndExternalSteps).
+func TestProfileGPUTimeByOperationAndLine(t *testing.T) {
+	setupGPU(t)
+	g, _ := runWithClose(t, gpuTwoOptimizers, Options{GPUMeasure: true, SampleLines: true})
+	gp := g.GPU
+	var fwd, back bool
+	for _, o := range gp.Ops {
+		if o.Code == "matris_carpimi" {
+			fwd = fwd || o.Direction == "ileri"
+			back = back || o.Direction == "geri"
+		}
+	}
+	if !fwd || !back {
+		t.Errorf("GPU süresi işleme göre: %+v; matris çarpımının ileri ve geri çekirdekleri olmalı", gp.Ops)
+	}
+	var line *GPULineInfo
+	for i := range gp.Lines {
+		if gp.Lines[i].Line == 10 {
+			line = &gp.Lines[i]
+		}
+	}
+	if line == nil || line.BackwardShare <= 0 {
+		t.Errorf("GPU süresi satıra göre: %+v; 10. satır (x @ w @ v) geri payıyla olmalı", gp.Lines)
+	}
+	if g.Step == nil || g.Step.All != 6 {
+		t.Errorf("adım %+v; iki iyileştiricili adım bir kez sayılmalı (6)", g.Step)
+	}
+}

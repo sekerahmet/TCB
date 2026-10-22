@@ -5,7 +5,7 @@ import (
 )
 
 // ============================================================================
-// Profil biçimi (sürüm 4): canlı durum (profil.json) ve rapor (speed.json) aynı yapıdadır
+// Profil biçimi (sürüm 5): canlı durum (profil.json) ve rapor (speed.json) aynı yapıdadır
 // ============================================================================
 //
 // Anahtarlar dosya biçiminin parçasıdır (yazım dilinden bağımsız, çevrilmez; günlük
@@ -16,7 +16,7 @@ import (
 // FormatName ve FormatVersion dosyanın kimliğidir.
 const (
 	FormatName    = "tr-profil"
-	FormatVersion = 4
+	FormatVersion = 5
 )
 
 // Snapshot bir programın profilinin anlık görüntüsüdür (canlı ya da son rapor).
@@ -114,11 +114,36 @@ type GPUInfo struct {
 	Seconds  float64      `json:"süre_sn"` // çekirdeklerin toplam GPU süresi
 	Families []KernelInfo `json:"aileler,omitempty"`
 	Kernels  []KernelInfo `json:"çekirdekler,omitempty"`
-	Memory   []GPUMemory  `json:"bellek,omitempty"`
+	// Ops ve Lines çekirdeklerin cihaz süresinin onları başlatan tensör işlemine ve TR satırına
+	// göre dağılımıdır (sürüm 5; geri yöndeki çekirdekler düğümü üreten ileri satırdadır).
+	Ops    []GPUOpInfo   `json:"işlemler,omitempty"`
+	Lines  []GPULineInfo `json:"satırlar,omitempty"`
+	Memory []GPUMemory   `json:"bellek,omitempty"`
 	// summary GPU arka ucunun kendi son raporudur (adım başına GPU süresi, boşluk, çekirdek
 	// tabloları); yalnızca metin raporunda ve yalnızca ölçümü profil açtıysa (TR_GPU_PROFIL
 	// ile açıksa arka uç onu program sonunda kendisi yazar).
 	summary string
+}
+
+// GPUOpInfo bir (işlem, yön) ikilisinin başlattığı çekirdeklerin cihaz süresidir.
+type GPUOpInfo struct {
+	Code      string  `json:"kod"`
+	Name      string  `json:"ad"`
+	Direction string  `json:"yön"`
+	Calls     int64   `json:"çağrı"`
+	Seconds   float64 `json:"süre_sn"`
+	Share     float64 `json:"pay"` // GPU süresi içindeki payı
+}
+
+// GPULineInfo bir TR satırının başlattığı çekirdeklerin cihaz süresidir.
+type GPULineInfo struct {
+	File          string  `json:"dosya"`
+	Line          int     `json:"satır"`
+	Function      string  `json:"fonksiyon"`
+	Text          string  `json:"metin,omitempty"`
+	Seconds       float64 `json:"süre_sn"`
+	Share         float64 `json:"pay"`       // GPU süresi içindeki payı
+	BackwardShare float64 `json:"geri_payı"` // satırın GPU süresinden geri hesaba düşen
 }
 
 // KernelInfo bir GPU çekirdeği ya da çekirdek ailesidir (süreye göre sıralı).
