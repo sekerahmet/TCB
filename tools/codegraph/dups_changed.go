@@ -21,8 +21,7 @@ type changedLines map[string][][2]int
 //   - çıkış yapılmış dalın adı: base...dal;
 //   - başka bir ad (main gibi): ad...HEAD, yani çıkış yapılmış dalda o ada göre ne yeni.
 func changedRange(root, base, ref string) (rng, right string) {
-	if i := strings.Index(ref, ".."); i >= 0 {
-		a, b := ref[:i], strings.TrimLeft(ref[i:], ".")
+	if a, b, ok := splitRange(ref); ok {
 		if a == "" {
 			a = base
 		}

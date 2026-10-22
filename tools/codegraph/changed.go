@@ -25,8 +25,8 @@ type changeOpts struct {
 // tarafta karşılığı yok) "mapped to no node" altında dosya olarak sayılır.
 func (ix *index) runChanged(o changeOpts, ref string, stdout, stderr io.Writer) int {
 	rng, right := o.base+"..."+ref, ref
-	if strings.Contains(ref, "..") {
-		rng, right = ref, ref[strings.LastIndex(ref, ".")+1:]
+	if _, b, ok := splitRange(ref); ok {
+		rng, right = ref, b
 	}
 	hs, err := diffHunks(o.root, rng)
 	if err != nil {
@@ -46,6 +46,16 @@ func (ix *index) runChanged(o changeOpts, ref string, stdout, stderr io.Writer) 
 	ix.printTestsToRun(stdout, main, o.limit)
 	ix.printOverlaps(stdout, o, ref, oldSide)
 	return exitOK
+}
+
+// splitRange "A..B" ve "A...B" biçimini ayırır (changed ve dups --changed aynı ayrıştırmayı kullanır); ref bir
+// aralık değilse ok=false. A ve B boş olabilir.
+func splitRange(ref string) (a, b string, ok bool) {
+	i := strings.Index(ref, "..")
+	if i < 0 {
+		return "", "", false
+	}
+	return ref[:i], strings.TrimLeft(ref[i:], "."), true
 }
 
 // diffHunks `git diff` parçalarını verir (yollar root'a göre).
