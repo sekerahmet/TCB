@@ -126,3 +126,33 @@ func TestHeaderErrors(t *testing.T) {
 		t.Fatalf("BaslikOku sürüm hatası bekleniyordu: %v", err)
 	}
 }
+
+// Kural: ReadHeader ve ParseHeader başlık ön ekini aynı yardımcıyla çözer ama hata sırası
+// korunur: ReadHeader sürümü büyüden önce denetler (büyüsü yanlış ama sürümü geçerli bir dosyada
+// kısa ön ek H5052 verir; bilinmeyen sürümde büyü yanlışsa H5053), ParseHeader büyüyü önce
+// denetler (H5053) ve kısa ön ekte H5058 verir.
+func TestHeaderPrefixErrorOrder(t *testing.T) {
+	wrongMagic := func(version byte, n int) []byte {
+		b := make([]byte, n)
+		copy(b, "XNUMPY")
+		b[6] = version
+		return b
+	}
+	for _, c := range []struct {
+		name         string
+		b            []byte
+		read, parsed messages.Code
+	}{
+		{"büyü yanlış, sürüm 2, kısa ön ek", wrongMagic(2, 10), messages.H5052, messages.H5053},
+		{"büyü yanlış, bilinmeyen sürüm", wrongMagic(9, 12), messages.H5053, messages.H5053},
+		{"büyü doğru, bilinmeyen sürüm", append([]byte(npyMagic), 9, 0, 0, 0, 0, 0), messages.H5054, messages.H5054},
+		{"büyü doğru, sürüm 2, kısa ön ek", append([]byte(npyMagic), 2, 0, 0, 0), messages.H5052, messages.H5058},
+	} {
+		if _, err := ReadHeader(bytes.NewReader(c.b)); !messages.Has(err, c.read) {
+			t.Errorf("%s: ReadHeader %v, beklenen %s", c.name, err, c.read)
+		}
+		if _, err := ParseHeader(c.b); !messages.Has(err, c.parsed) {
+			t.Errorf("%s: ParseHeader %v, beklenen %s", c.name, err, c.parsed)
+		}
+	}
+}
