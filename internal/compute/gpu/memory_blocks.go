@@ -3,8 +3,6 @@ package gpu
 import (
 	"runtime"
 	"sort"
-
-	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -212,7 +210,7 @@ func (g *backend) allocLarge(size, requested uint64) (uint64, uint64) {
 		return addr, got
 	}
 	seg := segmentSize(size)
-	if g.pool.fresh2+seg > max(g.sr.totalMemory()/32, 256<<20) {
+	if g.pool.fresh2+seg > g.freshLimit() {
 		g.collectGarbage(0)
 		for i := 0; i < 64; i++ {
 			if addr, got, ok := g.pool.takeLarge(size); ok {
@@ -233,11 +231,7 @@ func (g *backend) allocLarge(size, requested uint64) (uint64, uint64) {
 			addr, s = g.sr.allocate(seg)
 		}
 	}
-	if s == errNoMemory {
-		empty, total, _ := g.sr.freeMemory()
-		panic(messages.New(messages.H4014, bytesText(requested), bytesText(empty), bytesText(total), g.sr.errName(s)))
-	}
-	g.try_("cuMemAlloc", s)
+	g.checkAllocResult(s, requested)
 	g.pool.fresh2 += seg
 	return addr, g.pool.newSegment(addr, seg, size)
 }
@@ -264,10 +258,6 @@ func (g *backend) releaseEmptySegments() {
 	segs := g.pool.large.emptySegments()
 	g.pool.mu.Unlock()
 	for _, sg := range segs {
-		g.try_("cuMemFree", g.sr.release(sg.addr))
-		g.pool.mu.Lock()
-		g.pool.reserved -= sg.size
-		g.pool.pooled -= sg.size
-		g.pool.mu.Unlock()
+		g.freeDriverBlock(sg.addr, sg.size)
 	}
 }

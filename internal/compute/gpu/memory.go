@@ -343,10 +343,34 @@ func (g *backend) dCopy(target *storage, hOfs int, source *storage, kOfs, n int)
 	g.measureEnd("surucu_kopya", ev)
 }
 
+// freshLimit son çöp toplamadan bu yana sürücüden ayrılabilecek bellek eşiğidir; aşılırsa ayırmadan
+// önce çöp toplanır.
+func (g *backend) freshLimit() uint64 { return max(g.sr.totalMemory()/32, 256<<20) }
+
+// checkAllocResult sürücü ayırma sonucunu denetler: bellek yetmediyse H4014 ile panikler, başka
+// bir hata varsa onu bildirir. requested kullanıcının istediği bayt sayısıdır (ileti için).
+func (g *backend) checkAllocResult(s result, requested uint64) {
+	if s == errNoMemory {
+		empty, total, _ := g.sr.freeMemory()
+		panic(messages.New(messages.H4014, bytesText(requested), bytesText(empty), bytesText(total), g.sr.errName(s)))
+	}
+	g.try_("cuMemAlloc", s)
+}
+
+// freeDriverBlock adresi sürücüye geri verir ve havuz sayaçlarından (reserved, pooled) size
+// kadar düşer.
+func (g *backend) freeDriverBlock(addr, size uint64) {
+	g.try_("cuMemFree", g.sr.release(addr))
+	g.pool.mu.Lock()
+	g.pool.reserved -= size
+	g.pool.pooled -= size
+	g.pool.mu.Unlock()
+}
+
 // driverAlloc sürücüden yeni blok ayırır; gerekirse çöp toplamayı başlatır, bellek
 // yetmezse havuzu boşaltıp yeniden dener.
 func (g *backend) driverAlloc(class, requested uint64) uint64 {
-	if g.pool.fresh2+class > max(g.sr.totalMemory()/32, 256<<20) {
+	if g.pool.fresh2+class > g.freshLimit() {
 		if addr, ok := g.collectGarbage(class); ok {
 			return addr
 		}
@@ -356,11 +380,7 @@ func (g *backend) driverAlloc(class, requested uint64) uint64 {
 	if s == errNoMemory {
 		addr, s, fromPool = g.reclaimMemory(class)
 	}
-	if s == errNoMemory {
-		empty, total, _ := g.sr.freeMemory()
-		panic(messages.New(messages.H4014, bytesText(requested), bytesText(empty), bytesText(total), g.sr.errName(s)))
-	}
-	g.try_("cuMemAlloc", s)
+	g.checkAllocResult(s, requested)
 	if fromPool {
 		return addr // havuzdan alındı: al() sayaçları zaten işledi
 	}
@@ -431,11 +451,7 @@ func (g *backend) releaseSmall() {
 	g.pool.mu.Unlock()
 	for class, l := range empty {
 		for _, addr := range l {
-			g.try_("cuMemFree", g.sr.release(addr))
-			g.pool.mu.Lock()
-			g.pool.reserved -= class
-			g.pool.pooled -= class
-			g.pool.mu.Unlock()
+			g.freeDriverBlock(addr, class)
 		}
 	}
 }
