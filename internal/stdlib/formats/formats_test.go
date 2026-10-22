@@ -1,7 +1,6 @@
 package formats
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -15,6 +14,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/jsonwrite"
+	"github.com/sekerahmet/TCB/internal/testkit/trrun"
 )
 
 // Testlerdeki VM'ler bu paketin yerleşiklerini de içersin (github.com/sekerahmet/TCB/internal/stdlib gibi).
@@ -25,17 +25,8 @@ func init() {
 // run programı çalıştırır; yazdır() çıktısını ve son değeri döndürür.
 func run(t *testing.T, code string) (string, interp.Value, error) {
 	t.Helper()
-	p := parser.New(lexer.New(code))
-	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		t.Fatalf("Sözdizimi hatası: %v", p.Errors())
-	}
-	var out bytes.Buffer
-	machine := interp.New()
-	machine.Out = &out
-	val, err := machine.Run(prog)
-	machine.WaitAsync()
-	return out.String(), val, err
+	o := trrun.Exec(t, code)
+	return o.Out, o.Value, o.Err
 }
 
 // json_çöz sözlük anahtarlarının sırasını korumuyordu (Go map'i sırasızdır).

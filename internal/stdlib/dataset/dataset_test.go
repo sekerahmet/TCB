@@ -21,31 +21,20 @@ import (
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 	"github.com/sekerahmet/TCB/internal/stdlib/dataset"
 	"github.com/sekerahmet/TCB/internal/stdlib/ml"
+	"github.com/sekerahmet/TCB/internal/testkit/trrun"
 )
 
 // run TR kodunu tam dille (motorlar dahil) çalıştırır; çıktıyı ve VM'yi döndürür.
 func run(t *testing.T, kd string) (string, *interp.VM, error) {
 	t.Helper()
-	p := parser.New(lexer.New(kd))
-	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		t.Fatalf("sözdizimi hatası: %v", p.Errors())
-	}
-	m := interp.New()
-	var out bytes.Buffer
-	m.Out = &out
-	_, err := m.Run(prog)
-	m.WaitAsync()
-	return out.String(), m, err
+	o := trrun.Exec(t, kd)
+	return o.Out, o.VM, o.Err
 }
 
 func mustRun(t *testing.T, kd string) (string, *interp.VM) {
 	t.Helper()
-	out, m, err := run(t, kd)
-	if err != nil {
-		t.Fatalf("beklenmeyen hata: %v\nkod:\n%s", err, kd)
-	}
-	return out, m
+	o := trrun.MustExec(t, kd)
+	return o.Out, o.VM
 }
 
 // trPath bir yolu TR metin değişmezi içine yazılabilir biçime getirir.

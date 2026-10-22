@@ -1,7 +1,6 @@
 package tokenizer_test
 
 import (
-	"bytes"
 	"encoding/json"
 	"go/ast"
 	goparser "go/parser"
@@ -16,11 +15,10 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tokenize"
 	"github.com/sekerahmet/TCB/internal/devtools/debugger"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
-	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 	_ "github.com/sekerahmet/TCB/internal/stdlib"
+	"github.com/sekerahmet/TCB/internal/testkit/trrun"
 )
 
 // Test parçalayıcıları; yollar TR kaynağına da yazıldığı için bölü çizgisiyle.
@@ -31,24 +29,13 @@ var (
 
 func run(t *testing.T, code string) (*interp.VM, error) {
 	t.Helper()
-	p := parser.New(lexer.New(code))
-	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		t.Fatalf("sözdizimi hatası: %v", p.Errors())
-	}
-	m := interp.New()
-	m.Out = &bytes.Buffer{}
-	_, err := m.Run(prog)
-	return m, err
+	o := trrun.Exec(t, code)
+	return o.VM, o.Err
 }
 
 func mustRun(t *testing.T, code string) *interp.VM {
 	t.Helper()
-	m, err := run(t, code)
-	if err != nil {
-		t.Fatalf("beklenmeyen hata: %v\nkod:\n%s", err, code)
-	}
-	return m
+	return trrun.MustExec(t, code).VM
 }
 
 func al(t *testing.T, m *interp.VM, name string) interp.Value {

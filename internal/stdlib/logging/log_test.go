@@ -11,11 +11,10 @@ import (
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
-	"github.com/sekerahmet/TCB/internal/lang/parser"
 	_ "github.com/sekerahmet/TCB/internal/stdlib"
 	"github.com/sekerahmet/TCB/internal/stdlib/logging"
+	"github.com/sekerahmet/TCB/internal/testkit/trrun"
 )
 
 // teeWriter bir tamponu birden çok çıkışa (standart çıktı ve hata) paylaştırır.
@@ -50,11 +49,7 @@ func newVM(t *testing.T, dir string, arguments ...string) (*interp.VM, *teeWrite
 
 func run(t *testing.T, m *interp.VM, code string) (interp.Value, error) {
 	t.Helper()
-	p := parser.New(lexer.New(code))
-	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		t.Fatalf("sözdizimi hatası: %v\n%s", p.Errors(), code)
-	}
+	prog := trrun.Parse(t, code)
 	return m.Run(prog)
 }
 
