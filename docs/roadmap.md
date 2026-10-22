@@ -4,6 +4,27 @@ TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici iç
 
 Bugün TR, tek GPU'da sıfırdan model eğitmekte derlenmemiş PyTorch kadar hızlı ve daha az bellek kullanıyor; hazır modelleri (Llama, Qwen3) safetensors'tan yükleyip GPU'da derlenmiş transformers'tan hızlı üretiyor; ama ince ayar yapamıyor, eğittiği modeli yaygın araçlara veremiyor. Yeni ML dillerinin (Swift for TensorFlow, Julia, Mojo, Dex, Futhark) ve Python dışı çerçevelerin (Gorgonia, GoMLX, Candle, Burn, llama.cpp) ortak dersi: kullanıcıyı dil tasarımı kazanmaz. Hazır modellere erişim, doğru gradyan, kararlı sürümler ve her gün kullanan bir iç kullanıcı kazanır. Bu yüzden sıra şudur: önce ölçüm ve doğruluk kapıları, sonra tek GPU'da bellek ve bakış boyu uyumu, sonra hazır ağırlık, ince ayar ve üretim yolu. Çoklu GPU ve genel derleyici ancak bunlar yerine oturunca gelir.
 
+## Bugün nerede duruyoruz (2026-10-22)
+
+Tek GPU'da Transformer eğitmek ve hazır bir modeli çalıştırmak için kullanılabilir bir dil; henüz bir ekosistem dili değil: modeli dışarı vermek, ince ayar, sunum ve ölçek eksik. Python + PyTorch'la kıyasla çekirdek dil, eğitim hızı ve doğrulukta yakın, belirlenimcilik ve bellek bırakmada önde; kullanıcıyı kazandıran alışveriş tarafında Evre 4'ün yarısında.
+
+| Alan | Durum | Kanıt / eksik |
+| :-- | :-- | :-- |
+| Dil çekirdeği | güçlü | dil tanımı (her kural testli), tip denetimi, sahiplik ve belirlenimci bellek bırakma, iki yazım dili, kodlu saklama |
+| Tensör ve türev | güçlü | otomatik türev, bf16/fp16, karışık hassasiyet, `kaynaştır`, `tekrar_oynat`, birleşik dikkat; eksik: genel indeksleme (`t[:, 0]`), tam sayı ve bool tensör türleri, yığ/doldur |
+| GPU eğitim hızı | iyi | hedef modelde 162 ms/adım, `torch.compile` 136 (1,19 kat); bellek ve kalite eşit (Evre 3); H4 süren hedef (Evre 6) |
+| GPU üretim hızı | iyi | transformers'ın en hızlı yolu geçildi; llama.cpp f32'nin %63–83'ü (Evre 4, "Üretim hızı") |
+| CPU | zayıf | üretimde llama.cpp'nin ~1/5'i; CPU'da 16 bitlik ağırlık kerneli ve nicemleme yok |
+| Eğitim araçları | iyi | Muon/AdamW, kontrol noktası ve sürdürme, NaN/sıçrama koruması, veri hattı ve önbellek, parçalayıcı, profil, canlı izleme |
+| Hazır modellerle alışveriş | yarım | Hugging Face'ten okuma var (Llama, Qwen3; transformers'la aynı sonuç); yazma (safetensors, `.pt`, GGUF), LoRA ve ince ayar yok |
+| Sunum ve değerlendirme | yok | OpenAI uyumlu sunucu ve lm-evaluation-harness bağlantısı yok |
+| Ölçek | yok | tek GPU; çoklu GPU, nicemleme, AMD ve Apple arka ucu yok |
+| Araçlar | iyi | VS Code eklentisi, hata ayıklayıcı, `tr dizin`, kod grafiği, profil, Colab'da GPU sınaması |
+| Belgeler ve örnekler | iyi | dil tanımı, rehber, iki dilde örnekler; kitaplığın adları örneklerde az geçiyor (kitaplık kapsamı testi geliyor) |
+| Kullanıcı | yok | yalnızca geliştiriciler; sürüm ve kararlılık sözü yok (Evre 4, sürüm politikası) |
+
+Öncelik: dili kullanılır yapan Evre 4'ün kalanıdır (safetensors yazma, LoRA ile ince ayar, OpenAI uyumlu sunucu: "Hugging Face modelini al, ince ayar yap, kaydet, sun" yolu). H4'te önce ölçümün gösterdiği ucuz kalemler alınır.
+
 ## İlkeler
 
 - **Önce sağlam temel, sonra özellik.** İlk evre, yapılabildiğini görmek için hızlı bir koşuydu. Bundan sonra her özellik, kuralları belli ve testle korunan bir temelin üstüne eklenir. Her eksiği aynı anda kapatmaya çalışmak en pahalı hatadır.
@@ -275,12 +296,13 @@ GPU yolu: 213 → 224 (tek satırlık çarpım kernelleri) → 230 (kendi akış
 
 ## Evre 6: Ölçek ve yerel çıkarım
 
-- **Tek GPU'da `torch.compile` ile başa baş hız (H4, ≤ 136 ms/adım hedef modelde; Evre 3'ten taşındı; bugün 162 ms, 2026-10-22).** Ölçümün gösterdiği sırayla, her adım önce ve sonra ölçülür (profil 2026-10-21; üretim işinden sonra yeniden alınacak):
-  - norm geri yönünün kaynaştırılması (bugün adımda ~14 ms);
-  - dikkatin adımlı girdi ve çıktı okuması (bakışlara ayırma kopyaları, ~6 ms);
-  - kalan float32→bf16 dönüşümleri (~5,6 ms);
-  - indirgemeler (~15 ms) ve cuBLASLt eplogları (sapma, GELU, sapma gradyanı);
-  - eğitim adımında CUDA Graph (`tekrar_oynat`'ın altyapısı hazır): önce konakta boşa giden süre ölçülür.
+- **Tek GPU'da `torch.compile` ile başa baş hız (H4, ≤ 136 ms/adım hedef modelde; Evre 3'ten taşındı; bugün 162 ms, 10,81 GiB, 2026-10-22).** Profil (2026-10-22, RTX PRO 6000): GPU boşluğu duvar süresinin %4,5'i, yani adım GPU'yla sınırlı; eğitim adımında CUDA Graph en çok ~%5 kazandırır, sona kalır. Kernel süresinin payları: çarpım %30, kopya %12 (bakışlara ayırma kopyası bf16 %3,5, float32→bf16 dönüşümü %3,2), indirge %8,4, ikili %8,2 (float32 + bf16 kalıntı toplaması %2,4), norm geri yönü %8,2, kaynaşık %7,5, çapraz entropi %6,2, dikkat %6,4, norm ileri %4. Ölçümün gösterdiği sırayla, her adım önce ve sonra ölçülür:
+  - norm geri yönünün ağırlık gradyanı indirgemesiyle birlikte kaynaştırılması (norm geri + ilgili indirgemeler);
+  - dikkatin adımlı girdi ve çıktı okuması (bakışlara ayırma kopyaları);
+  - float32→bf16 dönüşümlerinin kaynağının belirlenmesi (adayı: ağırlıkların dönüşümü mikro toplu iş başına yerine iyileştirici adımında bir kez);
+  - kalıntı toplamasının normla kaynaştırılması (float32 + bf16 toplama);
+  - cuBLASLt eplogları (sapma, GELU, sapma gradyanı);
+  - en son, eğitim adımında CUDA Graph (`tekrar_oynat`'ın altyapısı hazır).
 - **Uzun eğitimin gözlemlenebilirliği:** parametre normu, katman başına etkinleşme RMS'i, en büyük logit ya da log Z, fp16'da kayıp ölçeği, MFU; z-loss, "N toplu işi atla", devamda öğrenme oranı ölçeği; eşzamansız kontrol noktası (Colab'da asıl arıza oturumun kesilmesidir).
 
 - **Yerel çıkarım:**
