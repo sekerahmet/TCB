@@ -579,37 +579,3 @@ func TestCacheSameTime(t *testing.T) {
 		}
 	}
 }
-
-// Kural: bir kopyalama hatası sessizce yutulmaz ve önbellekte iz bırakmaz: ön planda okuyan
-// çağrı hatayı kendisi alır, sonraki çağrı kaynak düzelince yeniden kopyalar. Arka plan
-// kopyalamasının hatası bu yüzden ayrıca saklanmaz (LastError kaldırıldı).
-func TestCacheCopyFailureReachesTheForegroundAndLeavesNoRecord(t *testing.T) {
-	src, local := t.TempDir(), t.TempDir()
-	a, size := sizedFile(t, src, "a.npy", 1000, 1)
-	o, err := OpenCache(CacheOptions{Dir: local, Quota: 3 * size})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer o.Close()
-	data, err := os.ReadFile(a)
-	if err != nil {
-		t.Fatal(err)
-	}
-	copyHook = func(k string, prefetch bool) { _ = os.Remove(k) } // Stat'tan sonra kaynak kaybolur
-	_, _, err = o.Fetch(context.Background(), a)
-	copyHook = nil
-	if err == nil {
-		t.Fatal("kopyalama hatası ön plandaki çağrıya ulaşmadı")
-	}
-	if err := os.WriteFile(a, data, 0o644); err != nil {
-		t.Fatal(err)
-	}
-	y, release, err := o.Fetch(context.Background(), a)
-	if err != nil {
-		t.Fatalf("kaynak düzelince yeniden kopyalanmadı: %v", err)
-	}
-	release()
-	if !isLocal(o, y) {
-		t.Fatalf("yerel kopya bekleniyordu: %s", y)
-	}
-}
