@@ -102,22 +102,32 @@ func sign32(x float32) float32 {
 // siluForward y = x·σ(x); σ sigmoid'deki gibi e = e^{-|x|} ile sayısal kararlı biçimde
 // (x ≥ 0 için 1/(1+e), aksi halde e/(1+e)) hesaplanır. x < −87 civarında σ(x) normal
 // altı bölgededir: sonucun göreli hatası büyür, mutlak hatası 1e-38'in altında kalır.
+// sigmoidBlock bir blok için dst[i] = σ(xs[i]) hesaplar (len(xs) ≤ vecBlock; dst, xs ile örtüşmez):
+// e = e^{-|x|}; x ≥ 0 için 1/(1+e), aksi halde e/(1+e) (sayısal kararlı).
+func sigmoidBlock(dst, xs []float32) {
+	for i, v := range xs {
+		dst[i] = -abs32(v)
+	}
+	expVec(dst, dst)
+	for i, v := range xs {
+		e := dst[i]
+		if v >= 0 {
+			dst[i] = 1 / (1 + e)
+		} else {
+			dst[i] = e / (1 + e)
+		}
+	}
+}
+
 func siluForward(y, x []float32) {
 	var t [vecBlock]float32
 	for i0 := 0; i0 < len(x); i0 += vecBlock {
 		xs := x[i0:min(i0+vecBlock, len(x))]
 		tb := t[:len(xs)]
-		for i, v := range xs {
-			tb[i] = -abs32(v)
-		}
-		expVec(tb, tb)
+		sigmoidBlock(tb, xs)
 		ys := y[i0 : i0+len(xs)]
 		for i, v := range xs {
-			e := tb[i]
-			s := e / (1 + e)
-			if v >= 0 {
-				s = 1 / (1 + e)
-			}
+			s := tb[i]
 			if s == 0 {
 				v = 0 // x -> -sonsuz: x·σ(x) -> 0 (-sonsuz·0 NaN üretirdi)
 			}
@@ -133,17 +143,10 @@ func siluBackward(gx, g, x []float32) {
 	for i0 := 0; i0 < len(x); i0 += vecBlock {
 		xs := x[i0:min(i0+vecBlock, len(x))]
 		tb := t[:len(xs)]
-		for i, v := range xs {
-			tb[i] = -abs32(v)
-		}
-		expVec(tb, tb)
+		sigmoidBlock(tb, xs)
 		gs, gxs := g[i0:i0+len(xs)], gx[i0:i0+len(xs)]
 		for i, v := range xs {
-			e := tb[i]
-			s := e / (1 + e)
-			if v >= 0 {
-				s = 1 / (1 + e)
-			}
+			s := tb[i]
 			d := s
 			if q := s * (1 - s); q != 0 {
 				d = s + v*q

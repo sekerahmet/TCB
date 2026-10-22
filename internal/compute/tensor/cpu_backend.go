@@ -584,24 +584,9 @@ func unaryLoop(op UnOp, p float32, y, x []float32) {
 	case OpGelu:
 		geluForwardVec(y, x)
 	case OpSigmoid:
-		// e = e^{-|x|}; x ≥ 0 için 1/(1+e), aksi halde e/(1+e) (sayısal kararlı).
-		var t [vecBlock]float32
 		for i0 := 0; i0 < len(x); i0 += vecBlock {
 			xs := x[i0:min(i0+vecBlock, len(x))]
-			tb := t[:len(xs)]
-			for i, v := range xs {
-				tb[i] = -abs32(v)
-			}
-			expVec(tb, tb)
-			ys := y[i0 : i0+len(xs)]
-			for i, v := range xs {
-				e := tb[i]
-				if v >= 0 {
-					ys[i] = 1 / (1 + e)
-				} else {
-					ys[i] = e / (1 + e)
-				}
-			}
+			sigmoidBlock(y[i0:i0+len(xs)], xs)
 		}
 	case OpAddScalar:
 		for i, v := range x {
