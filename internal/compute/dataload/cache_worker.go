@@ -55,11 +55,6 @@ func (o *cacheCore) fetchList(list []string, generation uint64) bool {
 		if errors.Is(err, ErrCacheInsufficient) {
 			return true
 		}
-		if err != nil && o.ctx.Err() == nil {
-			o.mu.Lock()
-			o.lastErr = err
-			o.mu.Unlock()
-		}
 	}
 	return true
 }
