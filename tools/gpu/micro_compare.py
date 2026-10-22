@@ -110,6 +110,7 @@ def normlar():
     taban = torch.randn(T, 512, device=cihaz, dtype=torch.bfloat16)
     durumlar = [(f"norm blok {T}×512", lambda t: t), (f"norm q {T}×8×64", lambda t: t.view(T, 8, 64)),
                 (f"norm k adımlı {T}×4×64", lambda t: t.view(T, 2, 4, 64)[:, 0])]
+    torch._functorch.config.donated_buffer = False  # derlenmiş geri yönü tekrar ölçülebilsin
     derli = torch.compile(F.rms_norm)
     for ad, kes in durumlar:
         for tur, f in (("eager", F.rms_norm), ("compile", derli)):
