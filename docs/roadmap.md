@@ -2,17 +2,18 @@
 
 TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici için en iyi programlama dili. Model eğitimi dilin sınavıdır; ürün dilin kendisidir. Dilin en önemli yan faydası: biraz teknik bilgisi olan herkesin kendi yapay zekâ modelini kurup eğitebilmesi.
 
-Bugün TR, tek GPU'da sıfırdan model eğitmekte derlenmemiş PyTorch kadar hızlı ve daha az bellek kullanıyor; hazır modelleri (Llama, Qwen3) safetensors'tan yükleyip GPU'da derlenmiş transformers'tan hızlı üretiyor; ama ince ayar yapamıyor, eğittiği modeli yaygın araçlara veremiyor. Yeni ML dillerinin (Swift for TensorFlow, Julia, Mojo, Dex, Futhark) ve Python dışı çerçevelerin (Gorgonia, GoMLX, Candle, Burn, llama.cpp) ortak dersi: kullanıcıyı dil tasarımı kazanmaz. Hazır modellere erişim, doğru gradyan, kararlı sürümler ve her gün kullanan bir iç kullanıcı kazanır. Bu yüzden sıra şudur: önce ölçüm ve doğruluk kapıları, sonra tek GPU'da bellek ve bakış boyu uyumu, sonra hazır ağırlık, ince ayar ve üretim yolu. Çoklu GPU ve genel derleyici ancak bunlar yerine oturunca gelir.
+Bugün TR, tek GPU'da sıfırdan model eğitmekte derlenmiş PyTorch'un (`torch.compile`) %7–15 gerisinde, belleği eşit kullanıyor ve aynı tarifle daha düşük kayba iniyor; hazır modelleri (Llama, Qwen3) safetensors'tan yükleyip GPU'da derlenmiş transformers'tan hızlı üretiyor; ama ince ayar yapamıyor, eğittiği modeli yaygın araçlara veremiyor. Yeni ML dillerinin (Swift for TensorFlow, Julia, Mojo, Dex, Futhark) ve Python dışı çerçevelerin (Gorgonia, GoMLX, Candle, Burn, llama.cpp) ortak dersi: kullanıcıyı dil tasarımı kazanmaz. Hazır modellere erişim, doğru gradyan, kararlı sürümler ve her gün kullanan bir iç kullanıcı kazanır. Bu yüzden sıra şudur: önce ölçüm ve doğruluk kapıları, sonra tek GPU'da bellek ve bakış boyu uyumu, sonra hazır ağırlık, ince ayar ve üretim yolu. Çoklu GPU ve genel derleyici ancak bunlar yerine oturunca gelir.
 
-## Bugün nerede duruyoruz (2026-10-22)
+## Bugün nerede duruyoruz (2026-10-23)
 
-Tek GPU'da Transformer eğitmek ve hazır bir modeli çalıştırmak için kullanılabilir bir dil; henüz bir ekosistem dili değil: modeli dışarı vermek, ince ayar, sunum ve ölçek eksik. Python + PyTorch'la kıyasla çekirdek dil, eğitim hızı ve doğrulukta yakın, belirlenimcilik ve bellek bırakmada önde; kullanıcıyı kazandıran alışveriş tarafında Evre 4'ün yarısında.
+Tek GPU'da Transformer eğitmek ve hazır bir modeli çalıştırmak için kullanılabilir bir dil; henüz bir ekosistem dili değil: modeli dışarı vermek, ince ayar, sunum ve ölçek eksik. Python + PyTorch'la kıyasla çekirdek dil ve eğitim hızında yakın, eğitim kalitesi, belirlenimcilik ve bellek bırakmada önde; kullanıcıyı kazandıran alışveriş tarafında Evre 4'ün yarısında.
 
 | Alan | Durum | Kanıt / eksik |
 | :-- | :-- | :-- |
 | Dil çekirdeği | güçlü | dil tanımı (her kural testli), tip denetimi, sahiplik ve belirlenimci bellek bırakma, iki yazım dili, kodlu saklama |
 | Tensör ve türev | güçlü | otomatik türev, bf16/fp16, karışık hassasiyet, `kaynaştır`, `tekrar_oynat`, birleşik dikkat; eksik: genel indeksleme (`t[:, 0]`), tam sayı ve bool tensör türleri, yığ/doldur |
-| GPU eğitim hızı | iyi | hedef modelde 145 ms/adım, `torch.compile` 136 (1,07 kat); bellek ve kalite eşit (Evre 3); H4 süren hedef (Evre 6) |
+| GPU eğitim hızı | iyi | hedef modelde RTX PRO 6000'de 145 ms/adım, `torch.compile` 136 (1,07 kat); A100'de 246 / 214 (1,15); L4'te TR önde (892 / 974); bellek eşit; H4 süren hedef (Evre 6) |
+| Eğitim kalitesi | iyi | 0,8 milyar parça, iki tohum: doğrulama kaybı TR 3,5305, PyTorch 3,5536 (−0,023; tohum gürültüsü ≤ 0,005); ölçücüler birebir aynı (Evre 3, "Uzun koşu") |
 | GPU üretim hızı | iyi | transformers'ın en hızlı yolu geçildi; llama.cpp f32'nin %63–83'ü (Evre 4, "Üretim hızı") |
 | CPU | zayıf | üretimde llama.cpp'nin ~1/5'i; CPU'da 16 bitlik ağırlık kerneli ve nicemleme yok |
 | Eğitim araçları | iyi | Muon/AdamW, kontrol noktası ve sürdürme, NaN/sıçrama koruması, veri hattı ve önbellek, parçalayıcı, profil, canlı izleme |
@@ -79,11 +80,11 @@ Dil, tensörler, otomatik türev, veri hattı ve GPU üst üste kuruldu; TR ile 
 
 **Bitiş ölçütü:** kodda Türkçe ileti metni kalmaz (testle); ileti kataloğu çoğul ve liste kalıplarını taşır, Go'da ileti sözcüğü çekimlenmez ve İngilizce pilot geçer; her türevli işlemin gradyan testi vardır; anlam kuralları yazılı ve testlidir; her kural bir testle korunur; bekleyen dil kararı kalmaz.
 
-## Evre 3: Tek GPU'da gerçek model (şu an)
+## Evre 3: Tek GPU'da gerçek model (tamamlandı)
 
 Dilin asıl sınavı, Python/PyTorch ile yazılmış, hız ve doğruluk için optimize edilmiş, yalnızca kod çözücülü (decoder-only) bir Transformer ve küçük sürümleridir (hedef model: `tools/gpu/rgn512.py`). Eksik parçalar Evre 2'nin kurallarına uyarak eklenir.
 
-**Durum (2026-10-21):** Hedef model TR'de yazıldı (`tools/gpu/rgn512.tr`). TR, PyTorch'la aynı kalitede eğitiyor, bellekte derlenmiş PyTorch'la başa baş. Hızda H3'te: derlenmiş PyTorch'un 1,2 katı. Kapanış için kalanlar aşağıdaki "Bitiş ölçütü"ndedir.
+**Durum (2026-10-23): tamamlandı.** Bitiş ölçütünün bütün maddeleri sağlandı. Hedef model TR'de yazıldı (`tools/gpu/rgn512.tr`); 0,8 milyar parçalık iki tohumlu koşuda PyTorch'tan daha düşük doğrulama kaybına iniyor (aşağıda "Uzun koşu"), bellekte derlenmiş PyTorch'la başa baş, hızda derlenmiş PyTorch'un 1,07 katı (H3 ölçütü 1,2). Üç kart türünde (RTX PRO 6000, A100, L4) bütün GPU testleri geçiyor.
 
 **Kapanış kararı (2026-10-21):** Evre 3'ün hız ölçütü H3'tür (≤ 1,2 × compile).
 
@@ -97,10 +98,43 @@ H4 (compile ile başa baş) süren bir hedef olarak Evre 6'ya taşındı. Kalan 
 
 | | PyTorch eager | `torch.compile` | TR |
 | :-- | --: | --: | --: |
-| ms/adım, sentetik veri | 347 | 136 | **162** |
-| ms/adım, gerçek veri | — | 134 | **162** |
+| ms/adım, sentetik veri | 347 | 136 | **145** (kapanışta 162) |
+| ms/adım, gerçek veri (uzun koşu) | — | 133 | **147** |
 | tepe bellek (nvidia-smi, GiB) | 17,0 | 10,8 | **10,81** |
 | doğrulama kaybı, 2000. adım (gerçek veri) | — | 3,9113 | **3,8816** |
+| doğrulama kaybı, 0,8 milyar parça (iki tohum ortalaması) | — | 3,5536 | **3,5305** |
+
+### Uzun koşu (2026-10-22, RTX PRO 6000, Türkçe FineWeb-2, 0,8 milyar parça = 12 207 adım, iki tohum)
+
+Veri: dört parça dosyasından tam 800M parça (veri bir kez görülür). Doğrulama: `valid.npy`'nin başından 4,2M parça, 1000 adımda bir.
+
+| adım | PyTorch t0 | PyTorch t1 | TR t0 | TR t1 | TR − PyTorch (ortalama) |
+| --: | --: | --: | --: | --: | --: |
+| 1000 | 4,3547 | 4,3499 | 4,3510 | 4,3485 | −0,003 |
+| 2000 | 4,1112 | 4,1157 | 4,1000 | 4,1001 | −0,013 |
+| 4000 | 3,9392 | 3,9362 | 3,9206 | 3,9209 | −0,017 |
+| 6000 | 3,8618 | 3,8626 | 3,8404 | 3,8415 | −0,021 |
+| 8000 | 3,8191 | 3,8171 | 3,7931 | 3,7929 | −0,025 |
+| 10000 | 3,7695 | 3,7721 | 3,7473 | 3,7465 | −0,024 |
+| 12000 | 3,5628 | 3,5645 | 3,5395 | 3,5402 | −0,024 |
+| **12207 (son)** | **3,5530** | **3,5542** | **3,5303** | **3,5306** | **−0,023** |
+
+- Tohum farkı iki tarafta da ≤ 0,005; TR'nin farkı bunun ~20 katı, iki tohumda aynı yönde. Perplexity'de ~%2,3 daha düşük; aynı kayba PyTorch ~%9–10 daha fazla adımda ulaşıyor.
+- Ölçücü denetimi: PyTorch'un iki modeli TR'ye aktarılıp TR'nin değerlendirmesiyle ölçüldü (`tools/gpu/rgn_to_tr.py`, `rgn512.tr --adım 0`): 3,5530 ve 3,5542, PyTorch'un kendi ölçümüyle dört basamakta aynı. Fark ölçümden değil eğitimden.
+- Açık soru, araştırma maddesi (Evre 4): aynı tarifle TR neden daha iyi eğitiyor? Adaylar (kanıtsız): sayısal hassasiyet (16 bite daraltılan çıktının float32 tutulan gradyanı, telafili toplamlar), iyileştiricinin bir ayrıntısı, örnekleme. Sebep bulunup PyTorch'a uygulanınca PyTorch da iyileşmeli; "TR daha iyi eğitir" ancak o zaman yazılır.
+- Koşudan çıkan ders: TR tohum 1'in ağırlıkları sondaki bir hatayla kayboldu (tek adım sayısında hız dosyası satırı); düzeltildi, testli (`TestTargetModelWritesResultsAfterOddSteps`); ağırlıklar artık önce, kayıp kaydı her değerlendirmede yazılır. Metin kıyası ve "PyTorch'un ölçücüsü TR modelini ölçerse" köşesi araştırma maddesinin koşularıyla tamamlanır.
+
+### Kartlar (2026-10-22/23, Colab; hedef model, sentetik veri)
+
+| kart | GPU testleri ve dil tanımı testleri | TR ms/adım | `torch.compile` | eager | TR / compile | tepe bellek TR / compile / eager (GiB) | ölçüm |
+| :-- | :-- | --: | --: | --: | --: | :-- | :-- |
+| RTX PRO 6000 (Blackwell, sm_120) | geçti | 145 | 136 | 347 | 1,07 | 10,81 / 10,8 / 17,0 | 120 adımın ortancası, A/B 3 tur |
+| A100 40 GB (Ampere, sm_80) | geçti | 246 | 214 | 549 | 1,15 | 10,76 (TR) | 300 adım × 2 tur, 100. adımdan sonraki 50'lik pencereler |
+| L4 (Ada, sm_89) | geçti | 892 | 974 | 2348 | **0,92** | 10,20 / 10,43 / 16,54 | 120 adım (300 adımlık doğrulama sürüyordu) |
+
+- TR her kartı ayar gerektirmeden tanır (sürücü, mimari, cuBLASLt) ve çekirdeklerini o karta göre üretir. İlk adımın ek yükü ~0,7 sn; `torch.compile`'ın hazırlığı L4'te ~45–50 sn.
+- A100 profili (RTX'le aynı kod, adım başına GPU süresi oranı): cuBLASLt çarpımı ×1,45 (kart farkı), TR'nin kendi çekirdeklerinden `dikkat_d` ×3,4, kaynaşık zincirler ×2,15, dikkat ×2, norm ileri ×2. A100'deki farkın kaynağı bu çekirdekler (H4 adayları, Evre 6).
+- H100 Colab'da verilemedi; T4'te bf16 tensör çekirdeği yoktur (fp16 yolu, Evre 6).
 
 **Kod.** Aynı mimari ve eğitim tarifi, tek dosya, PyTorch dosyasıyla aynı mertebede uzunluk:
 - yerel ve genel katmanlar, pencere, GQA, QK-norm,
@@ -162,7 +196,7 @@ H4 (compile ile başa baş) süren bir hedef olarak Evre 6'ya taşındı. Kalan 
    - Aktivasyonların yeniden hesaplanması: Evre 4'e ertelendi.
    - Dikkatin adımlı girdi okuması: H4 işi olarak Evre 6'ya taşındı.
 3. **Rastgelelik anahtarı ve dropout.** Evre 4'e ertelendi; yeniden hesaplamanın önkoşulu.
-4. **Bakış boyu uyumu. Kalan (kapanış şartı).** (Bakış: dikkatin *head*'i; 2026-10-21'de "baş" yerine, literatürün birebir çevirisi eş sesliydi.)
+4. **Bakış boyu uyumu. Yapıldı.** (Bakış: dikkatin *head*'i; 2026-10-21'de "baş" yerine, literatürün birebir çevirisi eş sesliydi.)
    - Tensör çekirdekli dikkatin geri yönü bakış boyu 128'e: **yapıldı (2026-10-22).** Bakış boyu 64'ü aşınca iki geri çekirdeğin döşemesi 32'dir (FlashAttention-2 `run_mha_bwd_hdim128` ve Triton fused-attention emsali; paylaşımlı bellek 48 KB'nin altında). RTX PRO 6000'de bf16 nedensel ileri + geri: B8 H8 T1024 3,81 → 0,73 ms, B4 H16 GQA T2048 14,04 → 2,41 ms; bakış boyu 64 değişmedi.
    - Gizli boyuttan bağımsız bakış boyu: yapıldı (2026-10-21). `NedenselDikkat`, `TransformerBloğu` ve `GPT` `bakış_boyutu:` alır (Hugging Face `head_dim` kuralı: verilmezse `boyut / bakış_sayısı`; sorgu `[boyut, bakış_sayısı · bakış_boyutu]`, çıkış `[bakış_sayısı · bakış_boyutu, boyut]`).
 
@@ -176,13 +210,13 @@ H4 (compile ile başa baş) süren bir hedef olarak Evre 6'ya taşındı. Kalan 
    - Günlüğe kırpma öncesi ve sonrası gradyan normu, saniyede parça ve kontrol noktası bugün yazılıyor.
    - Uzun eğitimin öbür ölçüleri ve seçenekleri Evre 6'da: parametre normu, etkinleşme RMS'i, log Z, MFU, z-loss, toplu iş atlama, eşzamansız kontrol noktası.
 7. **Belirlenimci veri sırası.** Sıralı ve tohumlu örnekleyiciyle sağlanıyor. Çoklu GPU'da (Evre 6) yeniden doğrulanır.
-8. **T4 yolu.** bf16 tensör çekirdeği olmayan kartlar için fp16 ve dinamik kayıp ölçekleme; ölçek günlüğe yazılır. Kapanış şartı değil, ama Colab'ın ücretsiz kartı T4 olduğundan ikinci kart işiyle birlikte ele alınır.
+8. **T4 yolu.** bf16 tensör çekirdeği olmayan kartlar için fp16 ve dinamik kayıp ölçekleme; ölçek günlüğe yazılır. Kapanış şartı değildi; Colab'ın ücretsiz kartı T4 olduğu için Evre 6'ya taşındı.
 9. **Model parçaları.**
    - Muon'un toplu Newton–Schulz adımı: yapıldı.
    - PLE tabloları için seyrek satır güncellemesi: ölçümle önemsiz çıktı (~3 ms). Indeksle yazma (Evre 4, tensör dili) gelince ele alınır.
 10. **Karşılaştırma ve kartlar.**
     - Hedef model karşılaştırması: yapıldı.
-    - **Kalan (kapanış şartı):** ölçümler ve GPU testleri en az bir ikinci kartta (L4 ya da A100) tekrarlanır.
+    - İkinci kart: **yapıldı (2026-10-23)**, üç kart türü (yukarıda "Kartlar").
     - CPU'da küçük modelle eğitim denemesi Evre 4'ün CPU maddesiyle birlikte yapılır.
 
 **Hedef modelin gösterdiği dil eksikleri** (her biri genel çözümü bulununca ele alınır; modele özel kestirme yapılmaz):
@@ -192,12 +226,12 @@ H4 (compile ile başa baş) süren bir hedef olarak Evre 6'ya taşındı. Kalan 
 
 **Bitiş ölçütü:**
 - Hedef model TR'de PyTorch sürümüyle aynı kalitede eğitilir. **Sağlandı (2000 adım).**
-- Kalite uzun koşuda da tutar: en az 0,8 milyar parça, iki tohum. Doğrulama kaybı PyTorch'la gürültü düzeyinde aynıdır.
-- Hız en çok 1,2 × `torch.compile`'dır (H3). **Sağlandı (162 / 136 ms).** Gerçek verideki ~10 ms'lik fark giderildi; gerçek veride 162 / 134 ms (1,21; compile'ın gerçek veri sayısı tek koşudan, yeniden ölçülecek).
+- Kalite uzun koşuda da tutar: en az 0,8 milyar parça, iki tohum. Doğrulama kaybı PyTorch'la gürültü düzeyinde aynıdır. **Sağlandı, TR daha iyi (2026-10-22):** 3,5305 / 3,5536; ölçücüler birebir aynı ("Uzun koşu").
+- Hız en çok 1,2 × `torch.compile`'dır (H3). **Sağlandı:** kapanışta 162 / 136 ms, bugün 145 / 136 (1,07); gerçek veride uzun koşuda 147 / 133 (1,10).
 - Bellek en çok 1,1 × `torch.compile`'dır. **Sağlandı (10,81 / 10,8 GiB).**
 - Bakış boyu 128 tensör çekirdeğiyle ileri ve geri çalışır; bakış boyu gizli boyuttan bağımsızdır. **Sağlandı (2026-10-22).**
 - Eğitim bir NaN'de ya da kayıp sıçramasında kendiliğinden durur ya da son kontrol noktasına döner. **Sağlandı** (`TestTargetModelRollsBackOnNaN`).
-- Ölçümler ve GPU testleri en az iki kart türünde geçer.
+- Ölçümler ve GPU testleri en az iki kart türünde geçer. **Sağlandı (2026-10-23):** RTX PRO 6000, A100, L4 ("Kartlar").
 
 ## Evre 4: Hazır modeller ve üretim yolu
 
@@ -303,6 +337,9 @@ GPU yolu: 213 → 224 (tek satırlık çarpım kernelleri) → 230 (kendi akış
   - GPU toplamlarının telafili (Neumaier) yapılması: doğruluk işi (gerçek kartta `TestNorms`'u düşüren sütun toplamı hatası), 145,0 → 145,4 ms (2026-10-22; `internal/compute/gpu/README.md`);
   - sütun toplamının paralelliği (yeni aday, 2026-10-22 ölçümü): tek aşamalı sütun toplamı 2000×512'de 0,1 ms, 41 GB/s (çıktı başına bir iş parçacığı; satırlar 2048'den azsa iki aşama yok). Norm geri yönünün ağırlık gradyanının son toplamı bu yoldadır. PyTorch ve XLA satırları bloğun iş parçacıklarına böler (32×32 karo, paylaşımlı bellekte ağaç);
   - float32→bf16 dönüşümleri (2026-10-22 ölçümü): adım başına ~247 dönüşüm, hepsi mikro toplu iş başına (~122). Ağırlık dönüşümlerini parametre değişene kadar saklamak (PyTorch autocast'in yaprak önbelleği gibi, mikro toplu işler arasında) denendi: 57 dönüşüm/adım kalktı ama yalnızca ~0,5 ms/adım kazandırdı, adım süresinde görünmedi; geri alındı. Asıl pay etkinleşmelerin dönüşümlerinde (kitaplıktaki açık `.türe`: döner konum, norm çıktıları; ara sonuçların `CastShared`'i): sıradaki aday bu dönüşümleri üreten çekirdeklerin sonucu doğrudan hedef türde yazması;
+  - A100 profilinin gösterdikleri (2026-10-23, "Kartlar"): `dikkat_d` çekirdeği (A100'de ×3,4; paralelliği zayıf, ucuz aday, RTX'te de kazandırabilir), kaynaşık zincirlerin, dikkatin ve norm ileri yönün karta göre ayarı (A100'de ×2);
+  - TR'de adım sayısıyla hafif artan adım süresi (A100'de 1000 adımda 244 → 251 ms, RTX'te 146 → 147; `torch.compile` düz): sebebi araştırılacak;
+  - doğrusal + çapraz entropi (LCE) en büyük tek kalem (RTX'te ~%21); ama payı model büyüdükçe düşer (çıkış katmanı d·V, gövde d²·L): karar model boyuna göre verilir;
   - kalıntı toplamasının normla kaynaştırılması (float32 + bf16 toplama);
   - cuBLASLt eplogları (sapma, GELU, sapma gradyanı);
   - en son, eğitim adımında CUDA Graph (`tekrar_oynat`'ın altyapısı hazır).
@@ -315,6 +352,7 @@ GPU yolu: 213 → 224 (tek satırlık çarpım kernelleri) → 230 (kendi akış
   - NCCL ile veri paralelliği (DDP): kova sırası sabit (belirlenimcilik için), fp32 biriktirme, hesapla örtüşen iletişim, gradyan biriktirirken eşitlemeyi atlama;
   - her GPU'ya kendi veri parçası (Evre 3'teki belirlenimci sıra üstünde);
   - ardından ZeRO-1 (ek iletişim hacmi yok). Bölme parametre başınadır, kontrol noktasındaki adlar değişmez.
+- **T4 yolu (Evre 3'ten):** bf16 tensör çekirdeği olmayan kartlar (Colab'ın ücretsiz kartı T4, sm_75) için fp16 ve dinamik kayıp ölçekleme; önce T4'te uyumluluk testi (GPU testleri ve dil tanımı testleri).
 - **GPU otomatik sınaması:** gradyan kapısı ve GPU testleri zamanlanmış olarak, en az iki kart türünde (T4 ve L4).
 - **Veri:** Parquet ve jsonl akışı.
 
@@ -366,9 +404,8 @@ GPU yolu: 213 → 224 (tek satırlık çarpım kernelleri) → 230 (kendi akış
 
 ## Doğrulanacaklar
 
-Kararlar bu soruların yanıtıyla gözden geçirilir; ilk ikisi TR'nin kendi ölçümüyle kapanır:
+Kararlar bu soruların yanıtıyla gözden geçirilir; ilki TR'nin kendi ölçümüyle kapanır:
 
-- 100 M ölçekli GPT'de Blackwell üzerinde `torch.compile`'a karşı adım süresi.
 - Küçük modellerde L4 ya da RTX PRO 6000'de FP8 kazancı.
 - RTX PRO 6000'in (SM120) hangi tensör çekirdeği komutlarını desteklediği (SM100'ün tcgen05/TMEM'i dahil mi): PTX ISA belgesinden.
 - Colab oturumlarının kesilme sıklığı (kontrol noktası aralığını belirler).
@@ -377,7 +414,7 @@ Kararlar bu soruların yanıtıyla gözden geçirilir; ilk ikisi TR'nin kendi ö
 
 - **Windows, Linux (Intel/AMD):** tam destek, her değişiklikte otomatik sınama.
 - **Linux ve Mac (ARM):** derleniyor ve sınanıyor; vektör kernelleri yok (düz Go yolu).
-- **GPU:** NVIDIA (sürücü ve isteğe bağlı cuBLASLt çalışma anında yüklenir); ölçümler RTX PRO 6000 Blackwell üzerinde, GPU testleri elle ve Colab'da.
+- **GPU:** NVIDIA (sürücü ve isteğe bağlı cuBLASLt çalışma anında yüklenir); ölçümler ve GPU testleri RTX PRO 6000 (Blackwell), A100 (Ampere) ve L4 (Ada) üzerinde, elle ve Colab'da; H100 ve T4 denenmedi.
 
 ## Tamamlananlar
 
