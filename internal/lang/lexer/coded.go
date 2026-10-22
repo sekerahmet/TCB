@@ -229,6 +229,8 @@ func (l *Lexer) nulChar(line, col int) Token {
 }
 
 // checkCodeForm Türkçe yazılmış kaynakta kod biçimli bir adı (2.3a) hata olarak bildirir.
+// Kod biçimi ASCII'dir ([A-Z][0-9]{3}); küçük harfli öneri bu yüzden bilerek Türkçe kuralla
+// (turkish.Lower) değil strings.ToLower ile üretilir: I100 için ı100 değil i100 önerilir.
 func (l *Lexer) checkCodeForm(lit string, line, col int) {
 	if !codes.IsCodeForm(lit) {
 		return
