@@ -73,10 +73,25 @@ func useLanguage(t *testing.T, lang string) {
 	t.Cleanup(func() { activeLanguage = old })
 }
 
+// withoutTranslation bir kodun çevirisini test süresince katalogdan çıkarır: en.json tamamlandığı
+// için çevrilmemiş kod kalmadı, yedek davranışı bu yolla sınanır.
+func withoutTranslation(t *testing.T, lang string, code Code) {
+	t.Helper()
+	load()
+	c := catalogs[lang]
+	saved, ok := c.templates[code]
+	if !ok {
+		t.Fatalf("%s: %s zaten çevrilmemiş", lang, code)
+	}
+	delete(c.templates, code)
+	t.Cleanup(func() { c.templates[code] = saved })
+}
+
 // Bir ileti bütünüyle tek dilde gösterilir: içindeki kodlu hatalardan biri etkin dilde
 // çevrilmemişse çerçeve de kaynak dilde (Türkçe) kalır; yarı İngilizce yarı Türkçe satır olmaz.
 func TestFallbackKeepsOneLanguage(t *testing.T) {
 	useLanguage(t, "en")
+	withoutTranslation(t, "en", H7004)
 	if got := At(1, 2, New(H7004, "x")).Error(); got != "Satır 1, Sütun 2: CSV okuma hatası: x" {
 		t.Errorf("çevrilmemiş iç ileti: %q", got)
 	}
