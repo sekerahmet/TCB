@@ -119,17 +119,11 @@ var datasetMembers = codes.Names(memberSampler, memberSequential)
 func (k *Dataset) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	switch kd {
 	case memberSampler:
-		return method(codes.Name(memberSampler), k.sampler), nil
+		return bind.Method(codes.Name(memberSampler), k.sampler), nil
 	case memberSequential:
-		return method(codes.Name(memberSequential), k.sequentialTR), nil
+		return bind.Method(codes.Name(memberSequential), k.sequentialTR), nil
 	}
 	return nil, bind.MemberError(messages.Text(messages.H5502), prop, datasetMembers)
-}
-
-func method(name string, fn interp.BuiltinFunc) *interp.BuiltinVal {
-	return &interp.BuiltinVal{Name: name, Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		return bind.Safe(name, func() (interp.Value, error) { return fn(m, args, named) })
-	}}
 }
 
 // resolveCacheDir önbellek: adlı argümanının (verildiyse) çözülmüş klasör yoludur.
@@ -338,13 +332,13 @@ func (o *Reader) TableData() ([]string, [][]string, error) {
 func (o *Reader) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	switch kd {
 	case memberNext:
-		return method(codes.Name(memberNext), o.nextTR), nil
+		return bind.Method(codes.Name(memberNext), o.nextTR), nil
 	case memberState:
 		return o.StateDict(nil)
 	case memberLoadState:
-		return method(codes.Name(memberLoadState), o.loadStateTR), nil
+		return bind.Method(codes.Name(memberLoadState), o.loadStateTR), nil
 	case memberSkip:
-		return method(codes.Name(memberSkip), o.skipTR), nil
+		return bind.Method(codes.Name(memberSkip), o.skipTR), nil
 	}
 	what := SamplerType
 	if o.sequential {

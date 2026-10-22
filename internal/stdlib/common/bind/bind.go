@@ -160,6 +160,21 @@ func Safe(fn string, f func() (interp.Value, error)) (interp.Value, error) {
 	return result, ferr
 }
 
+// Method nesne yöntemi değeri kurar: fn Go paniğine karşı korunur (panik name adlı bir hataya döner).
+func Method(name string, fn interp.BuiltinFunc) *interp.BuiltinVal {
+	return &interp.BuiltinVal{Name: name, Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+		return Safe(name, func() (interp.Value, error) { return fn(m, args, named) })
+	}}
+}
+
+// CodeMethod üye koduyla (kd) adlı yöntem değeri kurar: değerin adı kodun kanonik adıdır, panik
+// iletisindeki ad interp.CallName(kd)'dir. noNamedArgs doğruysa adlı argüman verilmesi hatadır.
+func CodeMethod(kd codes.Code, noNamedArgs bool, fn interp.BuiltinFunc) *interp.BuiltinVal {
+	b := Method(interp.CallName(kd), fn)
+	b.Name, b.NoNamedArgs = codes.Name(kd), noNamedArgs
+	return b
+}
+
 // ResolvePath göreli bir yolu TR'nin tek yol kuralıyla çözer (bkz. interp.(*VM).ResolvePath: önce
 // çalışma klasörü, sonra programın klasörü). Hiçbir yerde yoksa hata mesajı kullanıcının
 // yazdığı yolu gösterebilsin diye çalışma klasörüne göre yol döner.

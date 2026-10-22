@@ -85,21 +85,15 @@ var members = codes.Names(memberEncode, memberDecode, memberVocabSize, memberTok
 func (n *Object) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	switch kd {
 	case memberEncode:
-		return n.method(codes.Name(memberEncode), n.encode), nil
+		return bind.Method(codes.Name(memberEncode), n.encode), nil
 	case memberDecode:
-		return n.method(codes.Name(memberDecode), n.decode), nil
+		return bind.Method(codes.Name(memberDecode), n.decode), nil
 	case memberVocabSize:
 		return interp.NewInt(int64(n.p.VocabSize())), nil
 	case memberTokenID:
-		return n.method(codes.Name(memberTokenID), n.tokenID), nil
+		return bind.Method(codes.Name(memberTokenID), n.tokenID), nil
 	}
 	return nil, bind.MemberError(TypeName, prop, members)
-}
-
-func (n *Object) method(name string, fn interp.BuiltinFunc) *interp.BuiltinVal {
-	return &interp.BuiltinVal{Name: name, Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		return bind.Safe(name, func() (interp.Value, error) { return fn(m, args, named) })
-	}}
 }
 
 // ----------------------------------------------------------------------------

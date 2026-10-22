@@ -56,9 +56,9 @@ func IsLog(v interp.Value) (*Log, bool) {
 
 func (g *Log) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	if kd == codes.Y004 {
-		return &interp.BuiltinVal{Name: codes.Name(codes.Y004), NoNamedArgs: true, Fn: func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-			return bind.Safe(interp.CallName(codes.Y004), func() (interp.Value, error) { return g.add(args) })
-		}}, nil
+		return bind.CodeMethod(codes.Y004, true, func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+			return g.add(args)
+		}), nil
 	}
 	return nil, bind.MemberError(string(LogType), prop, codes.Names(codes.Y004))
 }
