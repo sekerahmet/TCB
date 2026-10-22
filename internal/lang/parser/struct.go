@@ -78,18 +78,7 @@ func (p *Parser) parseStructStatement() *ast.StructStatement {
 		fieldTok := p.curToken()
 		p.role(fieldTok, RoleStructField)
 		field := ast.StructField{Name: fieldTok.Literal}
-		if p.peekTokenIs(lexer.TokColon) {
-			p.nextToken() // ':'
-			if p.expectPeek(lexer.TokIdent) {
-				field.TypeName = p.curToken().Literal
-				p.role(p.curToken(), RoleType)
-			}
-		}
-		if p.peekTokenIs(lexer.TokAssign) {
-			p.nextToken() // '='
-			p.nextToken()
-			field.DefaultValue = p.parseExpression(precLowest)
-		}
+		field.TypeName, field.DefaultValue = p.parseTypeAndDefault()
 		// Alan virgül, ';', satır sonu ya da '}' ile biter: aynı satırda başka bir şey
 		// (ör. 'yazdır("...")' çağrısının '(' işareti) alan değildir.
 		if next := p.peekToken(); next.Type != lexer.TokRBrace && next.Type != lexer.TokComma &&

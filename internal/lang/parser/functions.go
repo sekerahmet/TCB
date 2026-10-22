@@ -131,18 +131,7 @@ func (p *Parser) parseFunctionParameters() []ast.Param {
 
 	for {
 		param := ast.Param{Name: p.curToken().Literal}
-		if p.peekTokenIs(lexer.TokColon) {
-			p.nextToken() // ':'
-			if p.expectPeek(lexer.TokIdent) {
-				param.TypeName = p.curToken().Literal
-				p.role(p.curToken(), RoleType)
-			}
-		}
-		if p.peekTokenIs(lexer.TokAssign) {
-			p.nextToken() // '='
-			p.nextToken()
-			param.DefaultValue = p.parseExpression(precLowest)
-		}
+		param.TypeName, param.DefaultValue = p.parseTypeAndDefault()
 		params = append(params, param)
 
 		if !p.peekTokenIs(lexer.TokComma) {
@@ -201,4 +190,22 @@ func (p *Parser) parseCallArguments() ([]ast.Expression, []ast.NamedArg) {
 	}
 
 	return args, named
+}
+
+// parseTypeAndDefault isteğe bağlı ': Tip' ve '= varsayılan' bölümlerini okur (parametre ve yapı
+// alanı için); olmayan bölüm boş döner.
+func (p *Parser) parseTypeAndDefault() (typeName string, def ast.Expression) {
+	if p.peekTokenIs(lexer.TokColon) {
+		p.nextToken() // ':'
+		if p.expectPeek(lexer.TokIdent) {
+			typeName = p.curToken().Literal
+			p.role(p.curToken(), RoleType)
+		}
+	}
+	if p.peekTokenIs(lexer.TokAssign) {
+		p.nextToken() // '='
+		p.nextToken()
+		def = p.parseExpression(precLowest)
+	}
+	return typeName, def
 }
