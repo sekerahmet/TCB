@@ -80,14 +80,7 @@ func (f *fusedFn) call(m *interp.VM, args []interp.Value, _ map[string]interp.Va
 		f.cache[key.String()] = p
 	}
 	outs := p.Run(fn, inputs)
-	if len(outs) == 1 && p.Single {
-		return New(outs[0]), nil
-	}
-	el := make([]interp.Value, len(outs))
-	for i, o := range outs {
-		el[i] = New(o)
-	}
-	return &interp.ListVal{Elements: el}, nil
+	return packTensorValues(outs, len(outs) == 1 && p.Single), nil
 }
 
 // trace f'i iz tensörleriyle çalıştırıp programını kurar. f'in hatası olduğu gibi döner.

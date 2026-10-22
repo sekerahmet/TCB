@@ -157,14 +157,20 @@ func (o *customOp) call(m *interp.VM, args []interp.Value, named map[string]inte
 	if err != nil {
 		return nil, err
 	}
-	if !many {
-		return New(outs[0]), nil
+	return packTensorValues(outs, !many), nil
+}
+
+// packTensorValues geri çağrı çıktılarını kullanıcıya paketler: single ise tek tensör, değilse
+// tensör listesi.
+func packTensorValues(ts []*tensor.Tensor, single bool) interp.Value {
+	if single {
+		return New(ts[0])
 	}
-	el := make([]interp.Value, len(outs))
-	for i, t := range outs {
+	el := make([]interp.Value, len(ts))
+	for i, t := range ts {
 		el[i] = New(t)
 	}
-	return &interp.ListVal{Elements: el}, nil
+	return &interp.ListVal{Elements: el}
 }
 
 // forwardResult ileri'nin [çıktı, saklananlar] dönüşünü çözer.
