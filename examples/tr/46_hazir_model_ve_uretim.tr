@@ -1,0 +1,58 @@
+// 46 — Hazır model ve üretim: Hugging Face biçiminde bir modeli yükleyip metin üretmek.
+// Ne öğretir: hazır_model(klasör, ağırlık_türü:) ile modeli kurmak ve yüklemek, model.üret(başlangıç, adet,
+// sıcaklık:, en_iyi_k:, tohum:, eos:, önbellek_çeşidi:) ile parça üretmek, üretimi tekrarlanabilir yapmak.
+// Önceki örnekten: GPT ve kitaplık (41), parçalayıcı (39), örnekleme (34).
+// Çalıştırma (proje kökünden): tr examples/tr/46_hazir_model_ve_uretim.tr
+// Ayrıntılar: docs/guide/10_hazir_katmanlarla_gpt.md, docs/spec/15_tensorler.md §15.47–15.48, lib/README.md (tr/hazir).
+//
+// Model: tests/data/hf_tiny, RASTGELE ağırlıklı 18 KB'lık küçük bir Llama (config.json + model.safetensors);
+// anlamlı metin üretmez, bu yüzden örnek metni değil parça kimliklerini yazdırır. Aynı kod gerçek bir
+// modelle (ör. indirilmiş bir SmolLM2-135M klasörü) çalışır: yalnızca YOL değişir. Ağ gerekmez.
+
+aktar "tr/hazir"
+
+sabit YOL = "../../tests/data/hf_tiny"
+
+// hazır_model, klasördeki config.json'dan modeli kurar (bir GPT) ve model.safetensors'ı yükler.
+// Parçalayıcı ayrıca açılır; bu modelin gömme tablosu tests/data/tokenizer.json'ın dağarcığıyla eşleşir.
+değişken model = hazır_model(YOL)
+değişken p = parçalayıcı_yükle("../../tests/data/tokenizer.json")
+değişken parametre_sayısı = 0
+döngü w içinde parametreler(model) {
+    değişken n = 1
+    döngü boyut içinde w.şekil { n *= boyut }
+    parametre_sayısı += n
+}
+yazdır("bağlam:", model.ayar.bağlam, "| dağarcık:", p.dağarcık_boyutu, "| parametre:", parametre_sayısı)
+
+// üret(başlangıç, adet): başlangıç kimliklerinin ardına adet parça ekler ve bütün listeyi verir.
+// sıcaklık: 0 her adımda en olası parçayı seçer (açgözlü); aynı girdiyle hep aynı sonucu verir.
+değişken başlangıç = p.kodla("Bugün hava")
+yazdır("başlangıç:", başlangıç)
+değişken açgözlü = model.üret(başlangıç, 6, sıcaklık: 0)
+yazdır("açgözlü:", açgözlü)
+
+// sıcaklık ve en_iyi_k rastgeleliği ayarlar (34. örnek); tohum: verilirse sonuç tekrarlanır.
+değişken örnek_1 = model.üret(başlangıç, 6, sıcaklık: 0.8, en_iyi_k: 5, tohum: 3)
+değişken örnek_2 = model.üret(başlangıç, 6, sıcaklık: 0.8, en_iyi_k: 5, tohum: 3)
+yazdır("örnekleme:", örnek_1, "| aynı tohum aynı sonuç:", örnek_1 == örnek_2)
+
+// eos: bir parça kimliğidir; o parça üretilince dizide kalır ve üretim adet dolmadan durur.
+değişken ilk_üretilen = açgözlü[başlangıç.uzunluk]
+yazdır("eos ile:", model.üret(başlangıç, 6, sıcaklık: 0, eos: ilk_üretilen))
+
+// önbellek_çeşidi: üret, KV önbelleğiyle çalışır (başlangıç bir kez işlenir, sonra yalnızca yeni parça).
+// "sabit" (varsayılan) bir kez ayrılır ve yerine yazılır, "büyüyen" her adımda uzar, yok her adımda
+// bütün diziyi yeniden hesaplar. Üçü de aynı parçaları verir.
+değişken büyüyen = model.üret(başlangıç, 6, sıcaklık: 0, önbellek_çeşidi: "büyüyen")
+değişken önbelleksiz = model.üret(başlangıç, 6, sıcaklık: 0, önbellek_çeşidi: yok)
+yazdır("üç önbellek çeşidi aynı mı:", açgözlü == büyüyen ve büyüyen == önbelleksiz)
+
+// ağırlık_türü: matris ağırlıklarının türüdür. Hugging Face modelleri çoğunlukla bf16 saklanır;
+// "bf16" ağırlıkları yarı bellekle tutar (normlar ve hesap float32 kalır).
+değişken küçük = hazır_model(YOL, ağırlık_türü: "bf16")
+yazdır("türler:", parametreler(model)[0].tür, "ve", parametreler(küçük)[0].tür)
+
+// --- Kendin dene ---
+// 1. Başlangıcı p.kodla("İstanbul") yap ve açgözlü üretimin nasıl değiştiğine bak.
+// 2. tohum: 3'ü 4 yap: örnekleme sonucu değişir mi? ağırlık_türü: "bf16" ile açgözlü sonuç hâlâ aynı mı?

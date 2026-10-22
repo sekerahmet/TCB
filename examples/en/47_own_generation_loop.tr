@@ -1,0 +1,73 @@
+//! tr kodlu 1
+// 47 — Your own generation loop: writing by hand what model.üret does.
+// What it teaches: model.önbellek_kur(), cached forward passes with model.ileri(ids, önbellek:), choosing a token
+// from the logits of the last position, rewinding with cache.strip(n) (the library calls it kırp) to the first n tokens,
+// showing that the hand-written loop gives the same result as model.üret; gizli_durum + tek_adım + replay on a fixed cache.
+// Builds on: ready model and generation (46), replay (45), selecting and sorting (25).
+// Run (from the project root): tr examples/en/47_own_generation_loop.tr
+// Details: docs/guide/10_hazir_katmanlarla_gpt.md, docs/spec/15_tensorler.md §15.48–15.49, lib/README.md (Üretim).
+// Model: the small random-weight model of 46 (tests/data/hf_tiny); what is printed is token ids.
+
+A070 "tr/hazir"
+
+A030 model = hazır_model("../../tests/data/hf_tiny")
+A030 tok = V200("../../tests/data/tokenizer.json")
+A030 start = tok.Y610("Bugün hava")
+A031 COUNT = 6
+
+// The ready way: model.üret.
+A030 ready = model.üret(start, COUNT, sıcaklık: 0)
+G100("üret:  ", ready)
+
+// The hand-written loop. önbellek_kur() gives an empty KV cache: the keys and values of each layer are kept there,
+// an ileri call adds the new tokens to it and advances the position. The start is processed once; after that
+// every step gives only the last token. ileri gives a logit [vocabulary] for every position: the logit of the
+// last position decides the next token.
+A030 cache = model.önbellek_kur()
+A030 output = [k A010 k A011 start]
+T301 {
+    A030 logits = model.ileri([start], önbellek: cache)
+    A010 i A011 0..COUNT {
+        A030 last = logits.Y400[1] - 1
+        A030 chosen = T230(logits, T902: -1).Y404[0][last] // greedy choice
+        output.Y004(chosen)
+        logits = model.ileri([[chosen]], önbellek: cache) // processes only the new token
+    }
+}
+G100("by hand:", output)
+G100("same:", output == ready)
+
+// strip(n) (the library's kırp) brings the cache down to the first n tokens: the later ones are taken back (for
+// example a rejected draft). The position becomes n; if the remaining tokens are processed again the same result comes out.
+G100("position in the cache:", cache.konum)
+cache.Y102(start.Y001 + 3)
+G100("position after trimming:", cache.konum)
+T301 {
+    // Take one more token back (position start + 2) and process that token again: the token chosen after it must be the same.
+    cache.Y102(start.Y001 + 2)
+    A030 again = model.ileri([[output[start.Y001 + 2]]], önbellek: cache)
+    G100("chosen again is the same:", T230(again, T902: -1).Y404[0][0] == output[start.Y001 + 3])
+}
+
+// Fixed cache and recorded step (the path üret uses on a GPU; the mechanism of example 45): the cache is allocated
+// once, the start is processed with gizli_durum, then every token comes with tek_adım(id, position, cache).
+// id is a [1, 1] tensor, position a [1] tensor; the caller advances the position counter (ilerle). On the CPU
+// replay calls tek_adım directly, the result is the same.
+A030 fixed_cache = model.önbellek_kur(çeşit: "sabit", en_çok: start.Y001 + COUNT)
+A030 fixed_output = [k A010 k A011 start]
+T301 {
+    A030 x = model.gizli_durum([start], önbellek: fixed_cache)
+    A030 last_logit = model.logit(x.Y413(1, start.Y001 - 1, start.Y001))[0][0]
+    A030 step_fn = T313((id, position) => model.tek_adım(id, position, fixed_cache))
+    A010 i A011 0..COUNT {
+        A030 chosen = T230(last_logit, T902: -1).Y404
+        fixed_output.Y004(chosen)
+        last_logit = step_fn(T100([[chosen * 1.0]]), T100([fixed_cache.konum * 1.0]))
+        fixed_cache.ilerle(1)
+    }
+}
+G100("tek_adım:", fixed_output, "| same:", fixed_output == ready)
+
+// --- Try it yourself ---
+// 1. Replace the greedy choice with sample(logit, temperature: 0.8, top_k: 5, seed: i) and compare the results.
+// 2. Add the eos rule: if the chosen token is 80 end the loop with break.

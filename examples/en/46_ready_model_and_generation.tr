@@ -1,0 +1,60 @@
+//! tr kodlu 1
+// 46 — Ready model and generation: loading a model in Hugging Face format and generating text.
+// What it teaches: building and loading a model with hazır_model(folder, ağırlık_türü:), generating tokens with
+// model.üret(start, count, sıcaklık:, en_iyi_k:, tohum:, eos:, önbellek_çeşidi:), making generation reproducible.
+// Builds on: GPT and the library (41), the tokenizer (39), sampling (34).
+// Run (from the project root): tr examples/en/46_ready_model_and_generation.tr
+// Details: docs/guide/10_hazir_katmanlarla_gpt.md, docs/spec/15_tensorler.md §15.47–15.48, lib/README.md (tr/hazir).
+//
+// Model: tests/data/hf_tiny, a small Llama with RANDOM weights, 18 KB (config.json + model.safetensors);
+// it does not produce meaningful text, so the example prints token ids, not text. The same code works with a real
+// model (for instance a downloaded SmolLM2-135M folder): only PATH changes. No network is needed.
+// The library's own names (hazır_model, üret, ağırlık_türü ...) are not translated yet and stay in Turkish.
+
+A070 "tr/hazir"
+
+A031 PATH = "../../tests/data/hf_tiny"
+
+// hazır_model builds the model (a GPT) from config.json in the folder and loads model.safetensors.
+// The tokenizer is opened separately; the embedding table of this model matches the vocabulary of tests/data/tokenizer.json.
+A030 model = hazır_model(PATH)
+A030 tok = V200("../../tests/data/tokenizer.json")
+A030 param_count = 0
+A010 w A011 T530(model) {
+    A030 n = 1
+    A010 dim A011 w.Y400 { n *= dim }
+    param_count += n
+}
+G100("context:", model.ayar.bağlam, "| vocabulary:", tok.Y612, "| parameters:", param_count)
+
+// üret(start, count): appends count tokens after the start ids and gives the whole list.
+// sıcaklık: 0 picks the most likely token at every step (greedy); the same input always gives the same result.
+A030 start = tok.Y610("Bugün hava")
+G100("start:", start)
+A030 greedy = model.üret(start, 6, sıcaklık: 0)
+G100("greedy:", greedy)
+
+// sıcaklık and en_iyi_k adjust the randomness (example 34); if tohum: is given the result repeats.
+A030 draw_1 = model.üret(start, 6, sıcaklık: 0.8, en_iyi_k: 5, tohum: 3)
+A030 draw_2 = model.üret(start, 6, sıcaklık: 0.8, en_iyi_k: 5, tohum: 3)
+G100("sampling:", draw_1, "| same seed same result:", draw_1 == draw_2)
+
+// eos: is a token id; when that token is produced it stays in the list and generation stops before count is reached.
+A030 first_generated = greedy[start.Y001]
+G100("with eos:", model.üret(start, 6, sıcaklık: 0, eos: first_generated))
+
+// önbellek_çeşidi: üret works with a KV cache (the start is processed once, then only the new token).
+// "sabit" (default) is allocated once and written in place, "büyüyen" grows at every step, none recomputes the
+// whole sequence at every step. All three give the same tokens.
+A030 growing = model.üret(start, 6, sıcaklık: 0, önbellek_çeşidi: "büyüyen")
+A030 uncached = model.üret(start, 6, sıcaklık: 0, önbellek_çeşidi: A042)
+G100("the three cache kinds agree:", greedy == growing A043 growing == uncached)
+
+// ağırlık_türü: the type of the matrix weights. Hugging Face models are mostly stored in bf16;
+// "bf16" keeps the weights in half the memory (norms and calculation stay float32).
+A030 smaller = hazır_model(PATH, ağırlık_türü: "bf16")
+G100("types:", T530(model)[0].Y402, "and", T530(smaller)[0].Y402)
+
+// --- Try it yourself ---
+// 1. Make the start tok.encode("Istanbul") and see how greedy generation changes.
+// 2. Change tohum: 3 to 4: does the sampling result change? With ağırlık_türü: "bf16" is the greedy result still the same?
