@@ -12,6 +12,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // Öğrenme yolu: examples/tr/NN_ad.tr ve examples/en/NN_name.tr aynı programın iki yazımıdır.
@@ -293,14 +294,14 @@ func runExample(t *testing.T, root, lang, name string) []string {
 	t.Helper()
 	// Her yazım kendi dilinin etkin olduğu ortamda koşar (VS Code'da tr.yazimDili): yerleşik adı
 	// gölgeleyen kullanıcı adı uyarısı etkin dile bağlıdır (input, sample ... İngilizce yerleşiklerdir).
-	s := run(t, trBinary, root, "", []string{"TR_DIL=" + lang}, filepath.ToSlash(filepath.Join("examples", lang, name)))
-	if s.code != 0 {
-		t.Fatalf("examples/%s/%s çıkış kodu %d\n%s%s", lang, name, s.code, s.stdout, s.stderr)
+	s := testkit.RunBinary(t, trBinary, root, "", []string{"TR_DIL=" + lang}, filepath.ToSlash(filepath.Join("examples", lang, name)))
+	if s.Code != 0 {
+		t.Fatalf("examples/%s/%s çıkış kodu %d\n%s%s", lang, name, s.Code, s.Stdout, s.Stderr)
 	}
-	if strings.Contains(s.stderr, "Uyar") || strings.Contains(s.stderr, "Warning") {
-		t.Errorf("examples/%s/%s uyarı verdi: %s", lang, name, s.stderr)
+	if strings.Contains(s.Stderr, "Uyar") || strings.Contains(s.Stderr, "Warning") {
+		t.Errorf("examples/%s/%s uyarı verdi: %s", lang, name, s.Stderr)
 	}
-	return numberBag(s.stdout+s.stderr, root)
+	return numberBag(s.Stdout+s.Stderr, root)
 }
 
 // Çiftler aynı programı çalıştırır: ikisi de 0 koduyla biter, uyarı vermez ve çıktılarının

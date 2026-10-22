@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/reporoot"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // readyModelCompare tr/hazir ile yüklenen modelin logitlerini transformers'ın yazdığı logits.json
@@ -36,7 +37,7 @@ func TestReadyModelMatchesTransformers(t *testing.T) {
 		t.Skip("torch, transformers ya da safetensors yok")
 	}
 	dir := t.TempDir()
-	writeFile(t, dir, "karsilastir.tr", readyModelCompare)
+	testkit.WriteFile(t, dir, "karsilastir.tr", readyModelCompare)
 	for _, c := range []struct {
 		arch string
 		tied bool
@@ -49,13 +50,13 @@ func TestReadyModelMatchesTransformers(t *testing.T) {
 		if b, err := exec.Command(python, args...).CombinedOutput(); err != nil {
 			t.Fatalf("%s modeli kurulamadı: %v\n%s", c.arch, err, b)
 		}
-		s := run(t, trBinary, dir, "", nil, filepath.Join(dir, "karsilastir.tr"), "--klasör", out)
-		if s.code != 0 {
-			t.Fatalf("%s: TR çıkış %d:\n%s\n%s", c.arch, s.code, s.stdout, s.stderr)
+		s := testkit.RunBinary(t, trBinary, dir, "", nil, filepath.Join(dir, "karsilastir.tr"), "--klasör", out)
+		if s.Code != 0 {
+			t.Fatalf("%s: TR çıkış %d:\n%s\n%s", c.arch, s.Code, s.Stdout, s.Stderr)
 		}
-		diff, err := strconv.ParseFloat(strings.TrimSpace(s.stdout), 64)
+		diff, err := strconv.ParseFloat(strings.TrimSpace(s.Stdout), 64)
 		if err != nil || diff > 1e-5 {
-			t.Errorf("%s: en büyük logit farkı %q (en çok 1e-5)", c.arch, s.stdout)
+			t.Errorf("%s: en büyük logit farkı %q (en çok 1e-5)", c.arch, s.Stdout)
 		}
 	}
 }

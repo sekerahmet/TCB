@@ -13,6 +13,7 @@ TR'nin bütün Go kodu buradadır. Bu belge, buraya kod yazan herkesin (insan ya
 | Standart kitaplık | `stdlib/` | Dili hesap çekirdeğine ve dış dünyaya bağlayan yerleşikler (ml, dosyalar, günlük, kontrol noktası ...) | `lang/`, `compute/`, `stdlib/` |
 | Geliştirici araçları | `devtools/` | Hata ayıklayıcı, profilci, biçimlendirici, test çalıştırıcı, kod dizini, Go modül yükleyici (`tools/impact` ve `tools/codegraph` ortak kullanır) | `lang/`, `compute/`, `stdlib/`, `devtools/` |
 | Test yardımcısı | `reporoot/` | Testlerin depo kökünü bulması | hiçbir iç paket |
+| Test yardımcısı | `testkit/`, `testkit/trrun/` | Paketler arası ortak test yardımcıları (dosya yazma, ikili çalıştırma, TR programı çalıştırma) | `testkit`: yalnızca `reporoot`; `trrun`: `lang/` |
 
 `cmd/tr` hepsini, `tools/` bütün `internal/`'ı ve araçların ortak yardımcılarını (`tools/internal/`: `repodir`) kullanabilir. Dil çekirdeği ve hesap çekirdeği birbirini bilmez: dil, tensörü kancalarla tanır (`stdlib/ml`). Tek istisna ileti kataloğudur: `lang/messages` yalnızca Go standart kitaplığını içe aktaran en alt pakettir, hesap çekirdeği de iletilerini onun kodlarıyla verir.
 

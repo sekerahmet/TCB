@@ -11,6 +11,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // Kodlu dosya Türkçesiyle aynı programdır (docs/spec/17_kodlar.md, 17.4): tests/, examples/ ve
@@ -110,7 +111,7 @@ func TestCodedFilesGiveSameOutput(t *testing.T) {
 	// devam: ..." satırı) karşılaştırmadan çıkarılır.
 	stripRoot := func(s result, root string) result {
 		for _, k := range []string{filepath.ToSlash(root), root} {
-			s.stdout, s.stderr = strings.ReplaceAll(s.stdout, k, "<kök>"), strings.ReplaceAll(s.stderr, k, "<kök>")
+			s.Stdout, s.Stderr = strings.ReplaceAll(s.Stdout, k, "<kök>"), strings.ReplaceAll(s.Stderr, k, "<kök>")
 		}
 		return s
 	}
@@ -123,11 +124,11 @@ func TestCodedFilesGiveSameOutput(t *testing.T) {
 	for _, dir := range []string{"tests", "examples", "lib"} {
 		s1, s2 := stripRoot(tr(t, tr1, "test", dir), tr1), stripRoot(tr(t, tr2, "test", dir), tr2)
 		for _, s := range []*result{&s1, &s2} {
-			s.stdout, s.stderr = resumeLine.ReplaceAllString(s.stdout, ""), resumeLine.ReplaceAllString(s.stderr, "")
-			s.stdout, s.stderr = tempDir.ReplaceAllString(s.stdout, "<geçici>"), tempDir.ReplaceAllString(s.stderr, "<geçici>")
+			s.Stdout, s.Stderr = resumeLine.ReplaceAllString(s.Stdout, ""), resumeLine.ReplaceAllString(s.Stderr, "")
+			s.Stdout, s.Stderr = tempDir.ReplaceAllString(s.Stdout, "<geçici>"), tempDir.ReplaceAllString(s.Stderr, "<geçici>")
 		}
-		if s1.code != 0 || s1.code != s2.code || s1.stdout != s2.stdout || s1.stderr != s2.stderr {
-			t.Errorf("tr test %s: Türkçe ve kodlu kopyalar farklı (çıkış %d / %d)\n%s", dir, s1.code, s2.code, lineDiff(s1.stdout+s1.stderr, s2.stdout+s2.stderr))
+		if s1.Code != 0 || s1.Code != s2.Code || s1.Stdout != s2.Stdout || s1.Stderr != s2.Stderr {
+			t.Errorf("tr test %s: Türkçe ve kodlu kopyalar farklı (çıkış %d / %d)\n%s", dir, s1.Code, s2.Code, lineDiff(s1.Stdout+s1.Stderr, s2.Stdout+s2.Stderr))
 		}
 	}
 	examples, _ := filepath.Glob(filepath.Join(tr1, "examples", "tr", "*.tr"))
@@ -139,10 +140,10 @@ func TestCodedFilesGiveSameOutput(t *testing.T) {
 		s1, s2 := tr(t, tr1, ad), tr(t, tr2, ad)
 		// İlerleme çubuğu terminal dışında zamanla ara satır yazar (19.7); yavaş makinede ara
 		// satır iki koşuda farklı adıma düşer. Çubuk satırları karşılaştırılmaz.
-		c1 := digits.ReplaceAllString(progressLine.ReplaceAllString(s1.stdout+s1.stderr, ""), "#")
-		c2 := digits.ReplaceAllString(progressLine.ReplaceAllString(s2.stdout+s2.stderr, ""), "#")
-		if s1.code != 0 || s1.code != s2.code || c1 != c2 {
-			t.Errorf("tr %s: Türkçe ve kodlu kopyalar farklı (çıkış %d / %d)\n%s", ad, s1.code, s2.code, lineDiff(c1, c2))
+		c1 := digits.ReplaceAllString(progressLine.ReplaceAllString(s1.Stdout+s1.Stderr, ""), "#")
+		c2 := digits.ReplaceAllString(progressLine.ReplaceAllString(s2.Stdout+s2.Stderr, ""), "#")
+		if s1.Code != 0 || s1.Code != s2.Code || c1 != c2 {
+			t.Errorf("tr %s: Türkçe ve kodlu kopyalar farklı (çıkış %d / %d)\n%s", ad, s1.Code, s2.Code, lineDiff(c1, c2))
 		}
 	}
 }
@@ -152,11 +153,11 @@ func TestCodedFilesGiveSameOutput(t *testing.T) {
 func TestEncodeDecodeShowCommands(t *testing.T) {
 	k := t.TempDir()
 	tr1 := "değişken x = 1\r\nyazdır(\"x: {x}\") // yorum\r\n"
-	filePath := writeFile(t, k, "a.tr", tr1)
-	corrupt := writeFile(t, k, "alt/bozuk.tr", "eğer {\n")
+	filePath := testkit.WriteFile(t, k, "a.tr", tr1)
+	corrupt := testkit.WriteFile(t, k, "alt/bozuk.tr", "eğer {\n")
 
 	s := tr(t, k, "kodla", k)
-	wait(t, s, 1, []string{"kodlandı: ", "2 dosya incelendi, 1 dosya kodlandı."}, []string{"bozuk.tr: sözdizimi hatası olan kaynak çevrilmez"})
+	testkit.Wait(t, s, 1, []string{"kodlandı: ", "2 dosya incelendi, 1 dosya kodlandı."}, []string{"bozuk.tr: sözdizimi hatası olan kaynak çevrilmez"})
 	data, _ := os.ReadFile(filePath)
 	if want := source.Header + "\r\nA030 x = 1\r\nG100(\"x: {x}\") // yorum\r\n"; string(data) != want {
 		t.Errorf("kodlu dosya: %q, beklenen %q", data, want)
@@ -165,23 +166,23 @@ func TestEncodeDecodeShowCommands(t *testing.T) {
 		t.Errorf("hatalı dosyaya dokunuldu: %q", v)
 	}
 	// Kodlu dosya çevrilmeden çalışır; zaten kodlu dosya yeniden kodlanmaz.
-	wait(t, tr(t, k, "a.tr"), 0, []string{"x: 1"}, nil)
-	wait(t, tr(t, k, "kodla", "a.tr"), 0, []string{"1 dosya incelendi, 0 dosya kodlandı."}, nil)
+	testkit.Wait(t, tr(t, k, "a.tr"), 0, []string{"x: 1"}, nil)
+	testkit.Wait(t, tr(t, k, "kodla", "a.tr"), 0, []string{"1 dosya incelendi, 0 dosya kodlandı."}, nil)
 	// Gösterim dosyayı değiştirmez.
-	if s := tr(t, k, "göster", "a.tr", "--dil", "tr"); s.code != 0 || s.stdout != tr1 {
-		t.Errorf("tr göster: %q (çıkış %d, hata %q)", s.stdout, s.code, s.stderr)
+	if s := tr(t, k, "göster", "a.tr", "--dil", "tr"); s.Code != 0 || s.Stdout != tr1 {
+		t.Errorf("tr göster: %q (çıkış %d, hata %q)", s.Stdout, s.Code, s.Stderr)
 	}
-	if s := tr(t, k, "göster", "a.tr", "--dil", "en"); s.code != 0 || s.stdout != "var x = 1\r\nprint(\"x: {x}\") // yorum\r\n" {
-		t.Errorf("tr göster --dil en: %q (çıkış %d, hata %q)", s.stdout, s.code, s.stderr)
+	if s := tr(t, k, "göster", "a.tr", "--dil", "en"); s.Code != 0 || s.Stdout != "var x = 1\r\nprint(\"x: {x}\") // yorum\r\n" {
+		t.Errorf("tr göster --dil en: %q (çıkış %d, hata %q)", s.Stdout, s.Code, s.Stderr)
 	}
-	wait(t, tr(t, k, "göster", "a.tr", "--dil", "xx"), 1, nil, []string{"'xx' yazım dili yok; var olanlar: en, tr"})
-	wait(t, tr(t, k, "göster", "a.tr", "--dil"), 1, nil, []string{"'--dil' bir yazım dili bekler"})
-	wait(t, tr(t, k, "çöz", "a.tr"), 0, []string{"çözüldü: a.tr"}, nil)
+	testkit.Wait(t, tr(t, k, "göster", "a.tr", "--dil", "xx"), 1, nil, []string{"'xx' yazım dili yok; var olanlar: en, tr"})
+	testkit.Wait(t, tr(t, k, "göster", "a.tr", "--dil"), 1, nil, []string{"'--dil' bir yazım dili bekler"})
+	testkit.Wait(t, tr(t, k, "çöz", "a.tr"), 0, []string{"çözüldü: a.tr"}, nil)
 	if v, _ := os.ReadFile(filePath); string(v) != tr1 {
 		t.Errorf("çözülen dosya özgün değil: %q", v)
 	}
-	wait(t, tr(t, k, "coz", "a.tr"), 1, nil, []string{"'tr çöz' yazmak mı istediniz?"})
-	wait(t, tr(t, k, "yardım"), 0, []string{"tr kodla <dosya.tr|klasör>", "tr çöz <dosya.tr|klasör>", "tr göster <dosya.tr> [--dil tr]"}, nil)
+	testkit.Wait(t, tr(t, k, "coz", "a.tr"), 1, nil, []string{"'tr çöz' yazmak mı istediniz?"})
+	testkit.Wait(t, tr(t, k, "yardım"), 0, []string{"tr kodla <dosya.tr|klasör>", "tr çöz <dosya.tr|klasör>", "tr göster <dosya.tr> [--dil tr]"}, nil)
 }
 
 // Standart giriş kipi (düzenleyiciler için; 17_kodlar.md, "Düzenleyicide"): 'tr kodla -' ve 'tr göster -' metni
@@ -190,31 +191,31 @@ func TestEncodeDecodeShowCommands(t *testing.T) {
 // hatalar 1 koduyla.
 func TestEncodeShowStandardInput(t *testing.T) {
 	turkish := "\xef\xbb\xbfdeğişken eğer_değil = 1\r\nyazdır(eğer_değil) // yorum\r\n"
-	encode := run(t, trBinary, "", turkish, nil, "kodla", "-", "--dil", "tr")
-	if want := "\xef\xbb\xbf" + source.Header + "\r\nA030 eğer_değil = 1\r\nG100(eğer_değil) // yorum\r\n"; encode.code != 0 || encode.stdout != want || encode.stderr != "" {
-		t.Fatalf("tr kodla -: %q (çıkış %d, hata %q), beklenen %q", encode.stdout, encode.code, encode.stderr, want)
+	encode := testkit.RunBinary(t, trBinary, "", turkish, nil, "kodla", "-", "--dil", "tr")
+	if want := "\xef\xbb\xbf" + source.Header + "\r\nA030 eğer_değil = 1\r\nG100(eğer_değil) // yorum\r\n"; encode.Code != 0 || encode.Stdout != want || encode.Stderr != "" {
+		t.Fatalf("tr kodla -: %q (çıkış %d, hata %q), beklenen %q", encode.Stdout, encode.Code, encode.Stderr, want)
 	}
-	if s := run(t, trBinary, "", encode.stdout, nil, "göster", "-"); s.code != 0 || s.stdout != turkish {
-		t.Errorf("tr göster -: %q (çıkış %d, hata %q)", s.stdout, s.code, s.stderr)
+	if s := testkit.RunBinary(t, trBinary, "", encode.Stdout, nil, "göster", "-"); s.Code != 0 || s.Stdout != turkish {
+		t.Errorf("tr göster -: %q (çıkış %d, hata %q)", s.Stdout, s.Code, s.Stderr)
 	}
 	// Zaten kodlu metin kodlanınca, Türkçe metin gösterilince değişmez.
-	if s := run(t, trBinary, "", encode.stdout, nil, "kodla", "-"); s.code != 0 || s.stdout != encode.stdout {
-		t.Errorf("kodlu metin yeniden kodlandı: %q (çıkış %d)", s.stdout, s.code)
+	if s := testkit.RunBinary(t, trBinary, "", encode.Stdout, nil, "kodla", "-"); s.Code != 0 || s.Stdout != encode.Stdout {
+		t.Errorf("kodlu metin yeniden kodlandı: %q (çıkış %d)", s.Stdout, s.Code)
 	}
-	if s := run(t, trBinary, "", turkish, nil, "göster", "-"); s.code != 0 || s.stdout != turkish {
-		t.Errorf("Türkçe metnin gösterimi değişti: %q (çıkış %d)", s.stdout, s.code)
+	if s := testkit.RunBinary(t, trBinary, "", turkish, nil, "göster", "-"); s.Code != 0 || s.Stdout != turkish {
+		t.Errorf("Türkçe metnin gösterimi değişti: %q (çıkış %d)", s.Stdout, s.Code)
 	}
-	corrupt := run(t, trBinary, "", "eğer {\n", nil, "kodla", "-")
-	wait(t, corrupt, 2, nil, []string{"Sözdizimi Hataları", "Satır 2, Sütun 1"})
-	if corrupt.stdout != "" {
-		t.Errorf("ayrıştırılamayan metinde çıktı boş olmalı: %q", corrupt.stdout)
+	corrupt := testkit.RunBinary(t, trBinary, "", "eğer {\n", nil, "kodla", "-")
+	testkit.Wait(t, corrupt, 2, nil, []string{"Sözdizimi Hataları", "Satır 2, Sütun 1"})
+	if corrupt.Stdout != "" {
+		t.Errorf("ayrıştırılamayan metinde çıktı boş olmalı: %q", corrupt.Stdout)
 	}
-	wait(t, run(t, trBinary, "", source.Header+"\nA001 {\n", nil, "göster", "-"), 2, nil, []string{"Sözdizimi Hataları"})
-	wait(t, run(t, trBinary, "", "//! tr kodlu 2\n", nil, "kodla", "-"), 1, nil, []string{"tanımadığı bir kodlu biçim başlığı"})
-	wait(t, run(t, trBinary, "", "x\n", nil, "göster", "-", "--dil", "xx"), 1, nil, []string{"'xx' yazım dili yok"})
-	wait(t, run(t, trBinary, "", "x\n", nil, "kodla", "-", "--dil", "xx"), 1, nil, []string{"'xx' yazım dili yok"})
-	wait(t, run(t, trBinary, "", "x\n", nil, "kodla", "-", "a.tr"), 1, nil, []string{"fazladan argüman: a.tr"})
-	wait(t, tr(t, "", "yardım"), 0, []string{"tr göster - [--dil tr]", "tr kodla - [--dil tr]"}, nil)
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", source.Header+"\nA001 {\n", nil, "göster", "-"), 2, nil, []string{"Sözdizimi Hataları"})
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "//! tr kodlu 2\n", nil, "kodla", "-"), 1, nil, []string{"tanımadığı bir kodlu biçim başlığı"})
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "x\n", nil, "göster", "-", "--dil", "xx"), 1, nil, []string{"'xx' yazım dili yok"})
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "x\n", nil, "kodla", "-", "--dil", "xx"), 1, nil, []string{"'xx' yazım dili yok"})
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "x\n", nil, "kodla", "-", "a.tr"), 1, nil, []string{"fazladan argüman: a.tr"})
+	testkit.Wait(t, tr(t, "", "yardım"), 0, []string{"tr göster - [--dil tr]", "tr kodla - [--dil tr]"}, nil)
 }
 
 // İngilizce yazım dili (17.6): kodlu dosya İngilizce gösterilir, İngilizce yazılmış metin aynı
@@ -235,35 +236,35 @@ func TestEnglishWritingLanguage(t *testing.T) {
 		"}\n" +
 		"var len = {$name: ayar.length}\n" +
 		"print(len.$name)\n"
-	coded := run(t, trBinary, "", turkish, nil, "kodla", "-")
-	if coded.code != 0 {
-		t.Fatalf("tr kodla -: çıkış %d, hata %q", coded.code, coded.stderr)
+	coded := testkit.RunBinary(t, trBinary, "", turkish, nil, "kodla", "-")
+	if coded.Code != 0 {
+		t.Fatalf("tr kodla -: çıkış %d, hata %q", coded.Code, coded.Stderr)
 	}
-	english := run(t, trBinary, "", coded.stdout, nil, "göster", "-", "--dil", "en")
-	if english.code != 0 || english.stdout != englishText {
-		t.Fatalf("tr göster - --dil en:\n%s(çıkış %d, hata %q)\nbeklenen:\n%s", english.stdout, english.code, english.stderr, englishText)
+	english := testkit.RunBinary(t, trBinary, "", coded.Stdout, nil, "göster", "-", "--dil", "en")
+	if english.Code != 0 || english.Stdout != englishText {
+		t.Fatalf("tr göster - --dil en:\n%s(çıkış %d, hata %q)\nbeklenen:\n%s", english.Stdout, english.Code, english.Stderr, englishText)
 	}
-	back := run(t, trBinary, "", english.stdout, nil, "kodla", "-", "--dil", "en")
-	if back.code != 0 || back.stdout != coded.stdout {
-		t.Fatalf("İngilizce metin aynı kodlu biçime kodlanmadı:\n%s(çıkış %d, hata %q)\nbeklenen:\n%s", back.stdout, back.code, back.stderr, coded.stdout)
+	back := testkit.RunBinary(t, trBinary, "", english.Stdout, nil, "kodla", "-", "--dil", "en")
+	if back.Code != 0 || back.Stdout != coded.Stdout {
+		t.Fatalf("İngilizce metin aynı kodlu biçime kodlanmadı:\n%s(çıkış %d, hata %q)\nbeklenen:\n%s", back.Stdout, back.Code, back.Stderr, coded.Stdout)
 	}
-	if s := run(t, trBinary, "", back.stdout, nil, "göster", "-"); s.code != 0 || s.stdout != turkish {
-		t.Errorf("İngilizceden kodlanan metnin Türkçesi özgün değil: %q", s.stdout)
+	if s := testkit.RunBinary(t, trBinary, "", back.Stdout, nil, "göster", "-"); s.Code != 0 || s.Stdout != turkish {
+		t.Errorf("İngilizceden kodlanan metnin Türkçesi özgün değil: %q", s.Stdout)
 	}
 	// Metin --dil'in dilinde okunur; iletiler kişinin yazım dilindedir (TR_DIL): İngilizce
 	// metnin sözdizimi hatası TR_DIL=en ile İngilizce başlıkla, yoksa Türkçe bildirilir.
-	wait(t, run(t, trBinary, "", "if {\n", []string{"TR_DIL=en"}, "kodla", "-", "--dil", "en"), 2, nil, []string{"Syntax Errors"})
-	wait(t, run(t, trBinary, "", "if {\n", nil, "kodla", "-", "--dil", "en"), 2, nil, []string{"Sözdizimi"})
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "if {\n", []string{"TR_DIL=en"}, "kodla", "-", "--dil", "en"), 2, nil, []string{"Syntax Errors"})
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "if {\n", nil, "kodla", "-", "--dil", "en"), 2, nil, []string{"Sözdizimi"})
 	// Gösterim de o dilde yeniden kodlanabilmeli: G200'ün İngilizce adı yok, "G200(l)" diye bir
 	// gösterim geri okunamaz; komut onu vermez (dosyayla da standart girişle de).
 	lossy := source.Header + "\nA030 l = [1]\nG200(l)\n"
-	if s := run(t, trBinary, "", lossy, nil, "göster", "-", "--dil", "en"); s.code == 0 {
-		t.Errorf("geri okunamayan gösterim verildi: %q", s.stdout)
+	if s := testkit.RunBinary(t, trBinary, "", lossy, nil, "göster", "-", "--dil", "en"); s.Code == 0 {
+		t.Errorf("geri okunamayan gösterim verildi: %q", s.Stdout)
 	}
 	k := t.TempDir()
-	writeFile(t, k, "k.tr", lossy)
-	if s := tr(t, k, "göster", "k.tr", "--dil", "en"); s.code == 0 {
-		t.Errorf("dosyadan geri okunamayan gösterim verildi: %q", s.stdout)
+	testkit.WriteFile(t, k, "k.tr", lossy)
+	if s := tr(t, k, "göster", "k.tr", "--dil", "en"); s.Code == 0 {
+		t.Errorf("dosyadan geri okunamayan gösterim verildi: %q", s.Stdout)
 	}
 }
 
@@ -291,14 +292,14 @@ func TestRepoFilesEnglishLossless(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		coded := run(t, trBinary, "", string(data), nil, "kodla", "-")
-		if coded.code == exitSyntax {
+		coded := testkit.RunBinary(t, trBinary, "", string(data), nil, "kodla", "-")
+		if coded.Code == exitSyntax {
 			continue // bilerek hatalı olumsuz test dosyaları
 		}
-		english := run(t, trBinary, "", coded.stdout, nil, "göster", "-", "--dil", "en")
-		back := run(t, trBinary, "", english.stdout, nil, "kodla", "-", "--dil", "en")
-		if coded.code != 0 || english.code != 0 || back.code != 0 || back.stdout != coded.stdout {
-			t.Errorf("%s: İngilizce gidiş dönüş kayıplı (çıkış %d/%d/%d, hata %q%q)\n%s", filePath, coded.code, english.code, back.code, english.stderr, back.stderr, lineDiff(coded.stdout, back.stdout))
+		english := testkit.RunBinary(t, trBinary, "", coded.Stdout, nil, "göster", "-", "--dil", "en")
+		back := testkit.RunBinary(t, trBinary, "", english.Stdout, nil, "kodla", "-", "--dil", "en")
+		if coded.Code != 0 || english.Code != 0 || back.Code != 0 || back.Stdout != coded.Stdout {
+			t.Errorf("%s: İngilizce gidiş dönüş kayıplı (çıkış %d/%d/%d, hata %q%q)\n%s", filePath, coded.Code, english.Code, back.Code, english.Stderr, back.Stderr, lineDiff(coded.Stdout, back.Stdout))
 			continue
 		}
 		tested++
@@ -333,7 +334,7 @@ func lineDiff(a, b string) string {
 // İngilizce gösterir; dosyaya yazan 'tr kodla' ve 'tr biçimle' onu Türkçe okur.
 func TestUncodedFileIsTurkishInEveryLanguage(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, dir, "m.tr", "fonksiyon iki_kat(x) { sonuç x * 2 }\n")
+	testkit.WriteFile(t, dir, "m.tr", "fonksiyon iki_kat(x) { sonuç x * 2 }\n")
 	program := "aktar \"m\" olarak m\n" +
 		"değişken kat = 5\n" +
 		"yapı Ayar {\n    öğrenme_oranı = 0.5\n    adım = 1\n}\n" +
@@ -345,38 +346,38 @@ func TestUncodedFileIsTurkishInEveryLanguage(t *testing.T) {
 		"değişken l = [1, 2, 3].haritala { o * kat }\n" +
 		"dene { fırlat \"x\" } yakala { yazdır(\"yakalandı {hata}\") }\n" +
 		"yazdır(k.alan(), l, l.indirge(0) { birikim + o }, m.iki_kat(4), a.öğrenme_oranı, a.adım)\n"
-	writeFile(t, dir, "ana.tr", program)
+	testkit.WriteFile(t, dir, "ana.tr", program)
 	want := "yakalandı x\n36 [5, 10, 15] 30 8 0.25 1\n"
 	for _, env := range [][]string{nil, {"TR_DIL=en"}} {
-		wait(t, run(t, trBinary, dir, "", env, "ana.tr"), 0, []string{want}, nil)
+		testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", env, "ana.tr"), 0, []string{want}, nil)
 	}
-	if s := run(t, trBinary, dir, "", []string{"TR_DIL=en"}, "ana.tr"); s.stdout != want {
-		t.Errorf("TR_DIL=en çıktısı %q, beklenen %q", s.stdout, want)
+	if s := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "ana.tr"); s.Stdout != want {
+		t.Errorf("TR_DIL=en çıktısı %q, beklenen %q", s.Stdout, want)
 	}
 
-	writeFile(t, dir, "bozuk.tr", "değişken x = )\n")
-	wait(t, run(t, trBinary, dir, "", []string{"TR_DIL=en"}, "bozuk.tr"), 1, nil, []string{"1 | değişken x = )"})
+	testkit.WriteFile(t, dir, "bozuk.tr", "değişken x = )\n")
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "bozuk.tr"), 1, nil, []string{"1 | değişken x = )"})
 
 	shown := tr(t, dir, "göster", "ana.tr", "--dil", "en")
-	wait(t, shown, 0, []string{"import \"m\" as m\n", "func init(kenar, çarpan = 1) { self.boy = kenar * çarpan }", "{ acc + it }"}, nil)
+	testkit.Wait(t, shown, 0, []string{"import \"m\" as m\n", "func init(kenar, çarpan = 1) { self.boy = kenar * çarpan }", "{ acc + it }"}, nil)
 
-	writeFile(t, dir, "bicim.tr", "değişken  y=1\n")
-	wait(t, run(t, trBinary, dir, "", []string{"TR_DIL=en"}, "biçimle", "bicim.tr"), 0, nil, nil)
+	testkit.WriteFile(t, dir, "bicim.tr", "değişken  y=1\n")
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "biçimle", "bicim.tr"), 0, nil, nil)
 	if got := readFile(t, filepath.Join(dir, "bicim.tr")); got != "değişken y = 1\n" {
 		t.Errorf("TR_DIL=en ile biçimlenen Türkçe dosya %q", got)
 	}
-	wait(t, run(t, trBinary, dir, "", []string{"TR_DIL=en"}, "kodla", "ana.tr"), 0, nil, nil)
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "kodla", "ana.tr"), 0, nil, nil)
 	if got := readFile(t, filepath.Join(dir, "ana.tr")); !strings.HasPrefix(got, source.Header) {
 		t.Fatalf("TR_DIL=en ile 'tr kodla' Türkçe dosyayı kodlamadı:\n%s", got)
 	}
-	wait(t, run(t, trBinary, dir, "", []string{"TR_DIL=en"}, "çöz", "ana.tr"), 0, nil, nil)
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "çöz", "ana.tr"), 0, nil, nil)
 	if got := readFile(t, filepath.Join(dir, "ana.tr")); got != program {
 		t.Errorf("TR_DIL=en ile 'tr çöz' Türkçe yazmadı:\n%s", got)
 	}
 	// Kabuğa yazılan satır kişinin yazım dilindedir; kanonik biçime çevrilip çalışır: değerlerin
 	// adları (tip()) kanoniktir.
-	repl := run(t, trBinary, dir, "var x = [1, 2].map { it * 10 }\nprint(x, type(x))\nexit\n", []string{"TR_DIL=en"})
-	wait(t, repl, 0, []string{"[10, 20] Liste"}, nil)
+	repl := testkit.RunBinary(t, trBinary, dir, "var x = [1, 2].map { it * 10 }\nprint(x, type(x))\nexit\n", []string{"TR_DIL=en"})
+	testkit.Wait(t, repl, 0, []string{"[10, 20] Liste"}, nil)
 }
 
 // readFile dosyanın metnidir.
@@ -404,12 +405,12 @@ func TestAuditUncodedTurkishNamesCollideWithActiveLanguageWords(t *testing.T) {
 		"print.tr": "değişken print = 5\nyazdır(print)\n",
 	}
 	for name, program := range cases {
-		writeFile(t, dir, name, program)
-		want := run(t, trBinary, dir, "", []string{"TR_DIL=tr"}, name)
-		got := run(t, trBinary, dir, "", []string{"TR_DIL=en"}, name)
-		if got.code != want.code || got.stdout != want.stdout {
+		testkit.WriteFile(t, dir, name, program)
+		want := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=tr"}, name)
+		got := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, name)
+		if got.Code != want.Code || got.Stdout != want.Stdout {
 			t.Errorf("%s: TR_DIL=en sonucu (kod %d) %q, TR_DIL=tr (kod %d) %q\nhata:\n%s",
-				name, got.code, got.stdout, want.code, want.stdout, got.stderr)
+				name, got.Code, got.Stdout, want.Code, want.Stdout, got.Stderr)
 		}
 	}
 }
@@ -422,12 +423,12 @@ func TestAuditUncodedTurkishNamesCollideWithActiveLanguageWords(t *testing.T) {
 // tests/kodlu_saklama_test.tr) TR_DIL=en ile kalır.
 func TestAuditDictMemberKeysChangeWithWritingLanguage(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, dir, "d.tr", "değişken s = {\"tür\": 1, \"adım\": 2}\nyazdır(s.tür, s.adım)\ns.adım = 5\n"+
+	testkit.WriteFile(t, dir, "d.tr", "değişken s = {\"tür\": 1, \"adım\": 2}\nyazdır(s.tür, s.adım)\ns.adım = 5\n"+
 		"değişken k = {adım: 3}\nyazdır(s, k.anahtarlar())\n")
 	want := "1 2\n{\"tür\": 1, \"adım\": 5} [\"adım\"]\n"
 	for _, lang := range []string{"TR_DIL=tr", "TR_DIL=en"} {
-		if s := run(t, trBinary, dir, "", []string{lang}, "d.tr"); s.code != 0 || s.stdout != want {
-			t.Errorf("%s: çıktı (kod %d) %q, beklenen %q\nhata:\n%s", lang, s.code, s.stdout, want, s.stderr)
+		if s := testkit.RunBinary(t, trBinary, dir, "", []string{lang}, "d.tr"); s.Code != 0 || s.Stdout != want {
+			t.Errorf("%s: çıktı (kod %d) %q, beklenen %q\nhata:\n%s", lang, s.Code, s.Stdout, want, s.Stderr)
 		}
 	}
 }
@@ -437,10 +438,10 @@ func TestAuditDictMemberKeysChangeWithWritingLanguage(t *testing.T) {
 // ile Türkçe adla (rms_normu).
 func TestDiagnosticsUseDisplayNames(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, dir, "yanlis.tr", "rms_normu(1, yanlis: 2)\n")
-	wait(t, run(t, trBinary, dir, "", []string{"TR_DIL=en"}, "yanlis.tr"), 1, nil, []string{"rms_norm()", "eps, dtype, weight"})
-	if s := run(t, trBinary, dir, "", []string{"TR_DIL=en"}, "yanlis.tr"); strings.Contains(s.stderr+s.stdout, "rms_normu()") {
-		t.Errorf("TR_DIL=en iletisinde Türkçe ad var:\n%s%s", s.stdout, s.stderr)
+	testkit.WriteFile(t, dir, "yanlis.tr", "rms_normu(1, yanlis: 2)\n")
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "yanlis.tr"), 1, nil, []string{"rms_norm()", "eps, dtype, weight"})
+	if s := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "yanlis.tr"); strings.Contains(s.Stderr+s.Stdout, "rms_normu()") {
+		t.Errorf("TR_DIL=en iletisinde Türkçe ad var:\n%s%s", s.Stdout, s.Stderr)
 	}
-	wait(t, run(t, trBinary, dir, "", []string{"TR_DIL=tr"}, "yanlis.tr"), 1, nil, []string{"rms_normu()"})
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=tr"}, "yanlis.tr"), 1, nil, []string{"rms_normu()"})
 }

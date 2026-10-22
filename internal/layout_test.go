@@ -41,6 +41,7 @@ var layerDoc = []struct{ prefix, line string }{
 	{"internal/compute/", "Layer: compute core (internal/compute)"},
 	{"internal/stdlib", "Layer: standard library (internal/stdlib)"},
 	{"internal/devtools/", "Layer: developer tools (internal/devtools)"},
+	{"internal/testkit", "Layer: test helper (internal/testkit)"},
 	{"internal/reporoot", "Layer: test helper (internal/reporoot)"},
 	{"cmd/", "Layer: command (cmd)"},
 	{"lib", "Layer: TR library (lib)"},

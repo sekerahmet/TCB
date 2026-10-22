@@ -5,10 +5,10 @@ import (
 	"go/parser"
 	"go/token"
 	"os"
-	"reflect"
-	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // Düzenleyiciye giden ve ondan gelen JSON alan adları eklentiyle sözleşmedir: bir Go alan
@@ -40,7 +40,7 @@ func TestDAPWireFieldsHaveExplicitNames(t *testing.T) {
 						continue
 					}
 					checked++
-					if !hasJSONName(f) {
+					if !testkit.HasJSONName(f) {
 						t.Errorf("%s: dışa açık alan %s için json etiketi yok; protokol alan adı Go adına bağlı kalır", name, id.Name)
 					}
 				}
@@ -60,21 +60,4 @@ func anyJSONTag(st *ast.StructType) bool {
 		}
 	}
 	return false
-}
-
-// hasJSONName alanın boş olmayan bir json adı ya da "-" etiketi taşıyıp taşımadığını söyler.
-func hasJSONName(f *ast.Field) bool {
-	if f.Tag == nil {
-		return false
-	}
-	raw, err := strconv.Unquote(f.Tag.Value)
-	if err != nil {
-		return false
-	}
-	tag, ok := reflect.StructTag(raw).Lookup("json")
-	if !ok {
-		return false
-	}
-	name, _, _ := strings.Cut(tag, ",")
-	return name != "" || tag == "-"
 }

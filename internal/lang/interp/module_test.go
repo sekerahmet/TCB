@@ -11,13 +11,14 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // runWithModules klasör altına dosyaları yazar, çalışma klasörünü kok yapar ve ana.tr'yi çalıştırır.
 func runWithModules(t *testing.T, root string, files map[string]string) (string, error) {
 	t.Helper()
 	for name, content := range files {
-		writeFile(t, filepath.Join(root, filepath.FromSlash(name)), content)
+		testkit.WritePath(t, filepath.Join(root, filepath.FromSlash(name)), content)
 	}
 	codeVal := files["ana.tr"]
 	p := parser.New(lexer.New(codeVal))
@@ -150,7 +151,7 @@ func TestConcurrentSameModule(t *testing.T) {
 func TestSourceFileBelongsToTask(t *testing.T) {
 	root := t.TempDir()
 	execution := filepath.Join(root, "C")
-	writeFile(t, filepath.Join(execution, "bos.txt"), "")
+	testkit.WritePath(t, filepath.Join(execution, "bos.txt"), "")
 	runInDir(t, execution)
 	mainSrc := filepath.Join(root, "A")
 	files := map[string]string{

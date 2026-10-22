@@ -13,10 +13,9 @@ import (
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
-	"github.com/sekerahmet/TCB/internal/lang/parser"
 	_ "github.com/sekerahmet/TCB/internal/stdlib"
 	"github.com/sekerahmet/TCB/internal/stdlib/logging"
+	"github.com/sekerahmet/TCB/internal/testkit/trrun"
 )
 
 // bufferedWriter programın çıktısını toplar (birden çok goroutine yazabilir).
@@ -57,11 +56,7 @@ func run(t *testing.T, code string, s Options) (*Snapshot, *interp.VM) {
 func runThen(t *testing.T, code string, s Options, after func(*Profile)) (*Snapshot, *interp.VM) {
 	t.Helper()
 	t.Cleanup(logging.CloseAll)
-	p := parser.New(lexer.New(code))
-	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		t.Fatalf("sözdizimi hatası: %v", p.Errors())
-	}
+	prog := trrun.Parse(t, code)
 	m := interp.New()
 	w := &bufferedWriter{}
 	m.Out, m.Err = w, w

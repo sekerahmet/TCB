@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // watchTraining 60 adımlık kısa bir eğitimdir (tr izle / tr profil alt süreç testleri).
@@ -78,13 +80,13 @@ func processCall(d map[string]any, code, direction string) float64 {
 // tr profil: metin rapor standart çıktıya, JSON rapor koşu klasörüne (speed.json).
 func TestProfileCommand(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, dir, "egit.tr", watchTraining)
+	testkit.WriteFile(t, dir, "egit.tr", watchTraining)
 	run := filepath.Join(dir, "runs", "deneme1") + string(os.PathSeparator)
 	s := tr(t, dir, "profil", "--json", run, "egit.tr")
-	wait(t, s, 0, []string{"eğitim bitti", "⏱ Profil: egit.tr", "Adımlar: 60 adım", "Tensör işlemleri",
+	testkit.Wait(t, s, 0, []string{"eğitim bitti", "⏱ Profil: egit.tr", "Adımlar: 60 adım", "Tensör işlemleri",
 		"matris çarpımı (@)", "geri · matris çarpımı (@)", "AdamW.adım", "En çok zaman alan satırlar"},
 		[]string{"speed.json"})
-	checkLineExample(t, s.stdout+s.stderr, "egit.tr:")
+	checkLineExample(t, s.Stdout+s.Stderr, "egit.tr:")
 	d := readReport(t, filepath.Join(run, "speed.json"))
 	if d["biçim"] != "tr-profil" || d["tür"] != "rapor" || d["çıkış_kodu"] != float64(0) {
 		t.Errorf("rapor kimliği: %v %v %v", d["biçim"], d["tür"], d["çıkış_kodu"])
@@ -105,9 +107,9 @@ func TestProfileCommand(t *testing.T) {
 // tr profil program hata verse de raporu yazar; çıkış kodu programınkidir.
 func TestProfileCommandReportsOnError(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, dir, "hata.tr", "değişken a = birler([2, 3])\nyazdır(a @ a)\n")
+	testkit.WriteFile(t, dir, "hata.tr", "değişken a = birler([2, 3])\nyazdır(a @ a)\n")
 	s := tr(t, dir, "profil", "--json", "rapor.json", "hata.tr")
-	wait(t, s, 1, []string{"⏱ Profil: hata.tr", "çıkış kodu 1"}, []string{"Çalışma Zamanı Hatası"})
+	testkit.Wait(t, s, 1, []string{"⏱ Profil: hata.tr", "çıkış kodu 1"}, []string{"Çalışma Zamanı Hatası"})
 	if d := readReport(t, filepath.Join(dir, "rapor.json")); d["çıkış_kodu"] != float64(1) {
 		t.Errorf("rapordaki çıkış kodu %v", d["çıkış_kodu"])
 	}
@@ -116,12 +118,12 @@ func TestProfileCommandReportsOnError(t *testing.T) {
 // tr izle terminal değilken: program çıktısı olduğu gibi akar, son rapor standart hataya.
 func TestWatchCommandNotTerminal(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, dir, "egit.tr", watchTraining)
+	testkit.WriteFile(t, dir, "egit.tr", watchTraining)
 	s := tr(t, dir, "izle", "egit.tr")
-	wait(t, s, 0, []string{"eğitim bitti"}, []string{"adım 60/60", "⏱ Profil: egit.tr", "Adımlar: 60 adım",
+	testkit.Wait(t, s, 0, []string{"eğitim bitti"}, []string{"adım 60/60", "⏱ Profil: egit.tr", "Adımlar: 60 adım",
 		"geri · matris çarpımı (@)", "En çok zaman alan satırlar"})
-	checkLineExample(t, s.stderr, "egit.tr:")
-	if strings.Contains(s.stderr, "\x1b[") {
+	checkLineExample(t, s.Stderr, "egit.tr:")
+	if strings.Contains(s.Stderr, "\x1b[") {
 		t.Error("terminal değilken denetim dizisi yazılmamalı")
 	}
 }
@@ -129,29 +131,29 @@ func TestWatchCommandNotTerminal(t *testing.T) {
 // Program ilerleme(...) kullanmıyorsa rapor nasıl kullanılacağını söyler.
 func TestWatchNoStepInfo(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, dir, "dongu.tr", "değişken s = 0\ndöngü i içinde 0..1000 {\n    s += i\n}\nyazdır(s)\n")
+	testkit.WriteFile(t, dir, "dongu.tr", "değişken s = 0\ndöngü i içinde 0..1000 {\n    s += i\n}\nyazdır(s)\n")
 	s := tr(t, dir, "izle", "dongu.tr")
-	wait(t, s, 0, []string{"499500"}, []string{"adım bilgisi yok: eğitim döngüsünde ilerleme(...) ve .güncelle(...) kullanın"})
+	testkit.Wait(t, s, 0, []string{"499500"}, []string{"adım bilgisi yok: eğitim döngüsünde ilerleme(...) ve .güncelle(...) kullanın"})
 }
 
 // tr izle .tr olmayan bir adla (arka plan işini izleme henüz yok) açık hata verir.
 func TestWatchJobNameNotYet(t *testing.T) {
 	s := tr(t, t.TempDir(), "izle", "deneme1")
-	wait(t, s, 1, nil, []string{"bir .tr dosyası değil", "tr izle <dosya.tr>"})
+	testkit.Wait(t, s, 1, nil, []string{"bir .tr dosyası değil", "tr izle <dosya.tr>"})
 	s = tr(t, t.TempDir(), "profil", "--bilinmeyen", "x.tr")
-	wait(t, s, 1, nil, []string{"bilinmeyen seçenek"})
+	testkit.Wait(t, s, 1, nil, []string{"bilinmeyen seçenek"})
 }
 
 // Arka plan işi (TR_IS_KLASORU) olarak çalışan program iş klasörüne profil.json yazar.
 func TestJobProfileFile(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, dir, "egit.tr", watchTraining)
+	testkit.WriteFile(t, dir, "egit.tr", watchTraining)
 	is := filepath.Join(dir, ".tr", "işler", "deneme1")
 	if err := os.MkdirAll(is, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	s := run(t, trBinary, dir, "", []string{"TR_IS_KLASORU=" + is}, "egit.tr")
-	wait(t, s, 0, []string{"eğitim bitti"}, nil)
+	s := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_IS_KLASORU=" + is}, "egit.tr")
+	testkit.Wait(t, s, 0, []string{"eğitim bitti"}, nil)
 	d := readReport(t, filepath.Join(is, "profil.json"))
 	if d["bitti"] != true || d["örnekleme"] != nil {
 		t.Errorf("profil.json: bitti %v, örnekleme %v (iş profilinde örnekleme kapalı)", d["bitti"], d["örnekleme"])
@@ -182,7 +184,7 @@ yazdır("gpu eğitimi bitti")
 // ile açıksa arka ucun kendisince).
 func TestProfileAndWatchGPU(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, dir, "gpu.tr", gpuWatchTraining)
+	testkit.WriteFile(t, dir, "gpu.tr", gpuWatchTraining)
 	for _, d := range []struct {
 		ad, gpuProfile string
 		args           []string
@@ -192,11 +194,11 @@ func TestProfileAndWatchGPU(t *testing.T) {
 		{"profil_TR_GPU_PROFIL", "1", []string{"profil", "gpu.tr"}},
 	} {
 		t.Run(d.ad, func(t *testing.T) {
-			s := run(t, trBinary, dir, "", []string{"TR_GPU_BENZETIM=1", "TR_GPU_PROFIL=" + d.gpuProfile}, d.args...)
-			if s.code != 0 {
-				t.Fatalf("çıkış kodu %d\nçıktı:\n%s\nhata:\n%s", s.code, s.stdout, s.stderr)
+			s := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_GPU_BENZETIM=1", "TR_GPU_PROFIL=" + d.gpuProfile}, d.args...)
+			if s.Code != 0 {
+				t.Fatalf("çıkış kodu %d\nçıktı:\n%s\nhata:\n%s", s.Code, s.Stdout, s.Stderr)
 			}
-			all := s.stdout + s.stderr
+			all := s.Stdout + s.Stderr
 			for _, p := range []string{"gpu eğitimi bitti", "GPU kernelleri: cihazda", "carpim", "GPU canlı"} {
 				if !strings.Contains(all, p) {
 					t.Errorf("çıktıda %q yok:\n%s", p, all)

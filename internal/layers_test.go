@@ -32,6 +32,8 @@ var layers = []struct {
 	{"internal/lang/", []string{"internal/lang/"}},
 	{"internal/stdlib/", []string{"internal/lang/", "internal/compute/", "internal/stdlib/"}},
 	{"internal/devtools/", []string{"internal/lang/", "internal/compute/", "internal/stdlib/", "internal/devtools/"}},
+	{"internal/testkit/trrun", []string{"internal/lang/"}}, // TR programı çalıştıran test yardımcıları; yalnızca testler kullanır
+	{"internal/testkit", []string{"internal/reporoot"}},    // ortak test yardımcıları (yalnızca reporoot); yalnızca testler kullanır
 	{"internal/reporoot", nil}, // testlerin depo kökü yardımcısı; yalnızca testlerden ve tools/'dan içe aktarılır
 	{"lib", nil},               // TR ile yazılı kitaplık: Go tarafında yalnızca gömme dosyası
 	{"cmd/", []string{"internal/lang/", "internal/compute/", "internal/stdlib/", "internal/devtools/", "lib"}},

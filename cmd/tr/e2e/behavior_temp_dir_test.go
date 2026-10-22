@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/reporoot"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // tempEnv işletim sisteminin geçici klasörünü boş bir klasöre çeviren ortam değişkenleridir.
@@ -35,8 +36,8 @@ func tempIsEmpty(t *testing.T, temp, ne string) {
 func TestTestCommandLeavesNoTempDir(t *testing.T) {
 	for _, file := range []string{"tests/surec_ve_kayit_test.tr", "tests/dosya_ve_yol_test.tr"} {
 		temp, env := tempEnv(t)
-		s := run(t, trBinary, reporoot.Root(), "", env, "test", filepath.FromSlash(file))
-		wait(t, s, 0, []string{"0 kaldı"}, nil)
+		s := testkit.RunBinary(t, trBinary, reporoot.Root(), "", env, "test", filepath.FromSlash(file))
+		testkit.Wait(t, s, 0, []string{"0 kaldı"}, nil)
 		tempIsEmpty(t, temp, file)
 	}
 	if old, _ := filepath.Glob(reporoot.Path("tests/gecici_*")); len(old) != 0 {
@@ -59,13 +60,13 @@ func TestTempDirRemovedWhenProgramEnds(t *testing.T) {
 	}
 	for _, d := range states {
 		temp, env := tempEnv(t)
-		writeFile(t, dir, "p.tr", shared+d.last)
+		testkit.WriteFile(t, dir, "p.tr", shared+d.last)
 		args := []string{"p.tr"}
 		if d.argument != "" {
 			args = append(args, d.argument)
 		}
-		s := run(t, trBinary, dir, "", env, args...)
-		wait(t, s, d.code, []string{"doğru"}, nil)
+		s := testkit.RunBinary(t, trBinary, dir, "", env, args...)
+		testkit.Wait(t, s, d.code, []string{"doğru"}, nil)
 		tempIsEmpty(t, temp, d.ad)
 	}
 }

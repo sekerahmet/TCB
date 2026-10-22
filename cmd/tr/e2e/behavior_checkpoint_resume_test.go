@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/compute/dataload"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // Kontrol noktasının kabul testi (docs/spec/20_kontrol_noktasi.md): N adım kesintisiz eğitim
@@ -93,7 +94,7 @@ func checkData(t *testing.T) string {
 		if err := dataload.WriteNpyU16(&b, v); err != nil {
 			t.Fatal(err)
 		}
-		writeFile(t, d, fmt.Sprintf("parca_%d.npy", i), b.String())
+		testkit.WriteFile(t, d, fmt.Sprintf("parca_%d.npy", i), b.String())
 	}
 	return d
 }
@@ -334,7 +335,7 @@ func copyDir(t *testing.T, source, target string, half int64) {
 
 func TestCheckpointResumeBitExact(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, dir, "egit.tr", checkTrainingProgram)
+	testkit.WriteFile(t, dir, "egit.tr", checkTrainingProgram)
 	data := checkData(t)
 	run := func(ad string) string { return filepath.ToSlash(filepath.Join(dir, ad)) }
 

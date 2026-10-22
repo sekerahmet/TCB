@@ -14,12 +14,11 @@ import (
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
-	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 	"github.com/sekerahmet/TCB/internal/stdlib"
 	"github.com/sekerahmet/TCB/internal/stdlib/checkpoint"
+	"github.com/sekerahmet/TCB/internal/testkit/trrun"
 )
 
 // teeWriter bir tamponu birden çok çıkışa paylaştırır.
@@ -56,11 +55,7 @@ func run(t *testing.T, code string) (string, error) {
 func runVM(t *testing.T, m *interp.VM, code string) (interp.Value, error) {
 	t.Helper()
 	m.SourceFile = filepath.Join(reporoot.Root(), "egit.tr")
-	p := parser.New(lexer.New(code))
-	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		t.Fatalf("sözdizimi hatası: %v\n%s", p.Errors(), code)
-	}
+	prog := trrun.Parse(t, code)
 	v, err := m.Run(prog)
 	m.WaitAsync()
 	stdlib.Close()

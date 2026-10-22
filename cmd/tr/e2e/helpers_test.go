@@ -8,9 +8,6 @@
 package e2e
 
 import (
-	"bytes"
-	"context"
-	"errors"
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -20,11 +17,10 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
-	"strings"
 	"testing"
-	"time"
 
 	"github.com/sekerahmet/TCB/internal/reporoot"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // trBinary TestMain'in derlediği 'tr' yorumlayıcısının yoludur. Komut satırı testleri
@@ -60,71 +56,12 @@ func TestMain(m *testing.M) {
 }
 
 // result bir komutun çalıştırılmasının sonucudur.
-type result struct {
-	stdout, stderr string
-	code           int
-}
-
-// run ikiliyi verilen klasörde (boşsa bulunulan klasörde) ve standart girişle çalıştırır.
-func run(t *testing.T, exe, dir, input string, env []string, args ...string) result {
-	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	defer cancel()
-	cmd := exec.CommandContext(ctx, exe, args...)
-	cmd.Dir = dir
-	cmd.Stdin = strings.NewReader(input)
-	if env != nil {
-		cmd.Env = append(os.Environ(), env...)
-	}
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout, cmd.Stderr = &stdout, &stderr
-	err := cmd.Run()
-	code := 0
-	if err != nil {
-		var exitError *exec.ExitError
-		if !errors.As(err, &exitError) {
-			t.Fatalf("%v çalıştırılamadı: %v", args, err)
-		}
-		code = exitError.ExitCode()
-	}
-	return result{stdout: stdout.String(), stderr: stderr.String(), code: code}
-}
+type result = testkit.Result
 
 // tr yorumlayıcıyı çalıştırır.
 func tr(t *testing.T, dir string, args ...string) result {
 	t.Helper()
-	return run(t, trBinary, dir, "", nil, args...)
-}
-
-// writeFile klasör altına (ara klasörleri açarak) bir dosya yazar.
-func writeFile(t *testing.T, dir, ad, content string) string {
-	t.Helper()
-	filePath := filepath.Join(dir, filepath.FromSlash(ad))
-	if err := os.MkdirAll(filepath.Dir(filePath), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filePath, []byte(content), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	return filePath
-}
-
-// wait sonucun çıkış kodunu ve çıktılarda geçmesi gereken parçaları denetler.
-func wait(t *testing.T, s result, code int, inOutput, inStderr []string) {
-	t.Helper()
-	if s.code != code {
-		t.Errorf("çıkış kodu %d, beklenen %d\nçıktı:\n%s\nhata:\n%s", s.code, code, s.stdout, s.stderr)
-	}
-	for _, p := range inOutput {
-		if !strings.Contains(s.stdout, p) {
-			t.Errorf("standart çıktıda %q yok:\n%s", p, s.stdout)
-		}
-	}
-	for _, p := range inStderr {
-		if !strings.Contains(s.stderr, p) {
-			t.Errorf("standart hatada %q yok:\n%s", p, s.stderr)
-		}
-	}
+	return testkit.RunBinary(t, trBinary, dir, "", nil, args...)
 }
 
 // trVersion yorumlayıcının sürümünü kaynaktan (cmd/tr/main.go'daki Version sabiti) okur:

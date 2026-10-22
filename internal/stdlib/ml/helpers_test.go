@@ -1,14 +1,11 @@
 package ml
 
 import (
-	"bytes"
 	"math"
 	"testing"
 
-	"github.com/sekerahmet/TCB/internal/lang/checker"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
-	"github.com/sekerahmet/TCB/internal/lang/parser"
+	"github.com/sekerahmet/TCB/internal/testkit/trrun"
 )
 
 // Testlerdeki VM'ler tensör motorunu içersin.
@@ -19,17 +16,8 @@ func init() {
 // run TR kodunu çalıştırır; çıktıyı ve hatayı döndürür.
 func run(t *testing.T, code string) (string, error) {
 	t.Helper()
-	p := parser.New(lexer.New(code))
-	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		t.Fatalf("sözdizimi hatası: %v", p.Errors())
-	}
-	m := interp.New()
-	var out bytes.Buffer
-	m.Out = &out
-	_, err := m.Run(prog)
-	m.WaitAsync()
-	return out.String(), err
+	o := trrun.Exec(t, code)
+	return o.Out, o.Err
 }
 
 // mustRun kodu hatasız çalıştırır. Önce, tr komutunun yaptığı gibi tip denetiminden
@@ -37,31 +25,13 @@ func run(t *testing.T, code string) (string, error) {
 // olarak çalışan bir satırda olsa da test her makinede kalır.
 func mustRun(t *testing.T, code string) string {
 	t.Helper()
-	p := parser.New(lexer.New(code))
-	if errs := checker.New().CheckProgram(p.ParseProgram()); len(errs) > 0 {
-		t.Fatalf("tip denetimi hatası: %v\nkod:\n%s", errs, code)
-	}
-	out, err := run(t, code)
-	if err != nil {
-		t.Fatalf("beklenmeyen hata: %v\nkod:\n%s", err, code)
-	}
-	return out
+	return trrun.MustExecChecked(t, code).Out
 }
 
 // value kodu çalıştırır ve son satırdaki 'cikti' değişkeninin değerini döndürür.
 func value(t *testing.T, code string) interp.Value {
 	t.Helper()
-	p := parser.New(lexer.New(code))
-	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		t.Fatalf("sözdizimi hatası: %v", p.Errors())
-	}
-	m := interp.New()
-	m.Out = &bytes.Buffer{}
-	if _, err := m.Run(prog); err != nil {
-		t.Fatalf("beklenmeyen hata: %v", err)
-	}
-	v, ok := m.GlobalEnv.Get("cikti")
+	v, ok := trrun.MustExec(t, code).VM.GlobalEnv.Get("cikti")
 	if !ok {
 		t.Fatal("'cikti' tanımlı değil")
 	}
