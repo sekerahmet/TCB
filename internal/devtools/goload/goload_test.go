@@ -2,6 +2,7 @@ package goload
 
 import (
 	"go/ast"
+	"go/types"
 	"os"
 	"path/filepath"
 	"testing"
@@ -83,5 +84,20 @@ func TestOrderPutsImportsFirst(t *testing.T) {
 	got := order([]*Listed{c, b, a})
 	if len(got) != 3 || got[0] != a || got[1] != b || got[2] != c {
 		t.Errorf("order: %v %v %v", got[0].ImportPath, got[1].ImportPath, got[2].ImportPath)
+	}
+}
+
+func TestRelAndRecvName(t *testing.T) {
+	dir := writeModule(t)
+	m, err := Load(dir, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := m.Rel(filepath.Join(dir, "a", "a.go")); got != "a/a.go" {
+		t.Errorf("Rel = %q", got)
+	}
+	named := m.Base["example.com/m/a"].Scope().Lookup("T").Type()
+	if RecvName(named) != "T" || RecvName(types.NewPointer(named)) != "T" || RecvName(types.Typ[types.Int]) != "" {
+		t.Error("RecvName: a named type, a pointer to it, and an unnamed type")
 	}
 }
