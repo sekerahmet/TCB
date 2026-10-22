@@ -34,6 +34,8 @@ fonksiyon ayar_değeri(ayar, anahtar, öntanımlı) {
 // matris ağırlıklarının türüdür ("float32", "bf16", "fp16"); normlar float32, hesap float32 kalır.
 // Hugging Face modelleri çoğunlukla bf16 saklanır (config.json torch_dtype): "bf16" ağırlıkları
 // olduğu gibi tutar (sonuç float32 ağırlıkla aynı matematiktir), GPU'da okunan bayt yarıya iner.
+// Dosyada F32 saklanan ağırlıklar "bf16" ile bf16'ya yuvarlanır (sonuç float32 yüklemeden biraz
+// ayrılır); dosyanın türünü korumak için config.json'daki torch_dtype'a uyan tür seçilir.
 fonksiyon hazır_model(klasör, ağırlık_türü = "float32") {
     değişken k = yol(klasör)
     değişken ayar = json_çöz(dosya_oku(yol(k, "config.json")))
