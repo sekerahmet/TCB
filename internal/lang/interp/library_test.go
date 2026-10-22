@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 	"testing/fstest"
+
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // withLibrary f kitaplığını test boyunca bağlar.
@@ -21,8 +23,8 @@ func withLibrary(t *testing.T, f fstest.MapFS) {
 func TestImportIgnoresWorkingDir(t *testing.T) {
 	root := t.TempDir()
 	execution := filepath.Join(root, "scratch")
-	writeFile(t, filepath.Join(execution, "yardimci.tr"), "değişken kimden = \"çalışma klasörü\"\n")
-	writeFile(t, filepath.Join(execution, "ozel.tr"), "değişken ozel = \"çalışma klasörü\"\n")
+	testkit.WritePath(t, filepath.Join(execution, "yardimci.tr"), "değişken kimden = \"çalışma klasörü\"\n")
+	testkit.WritePath(t, filepath.Join(execution, "ozel.tr"), "değişken ozel = \"çalışma klasörü\"\n")
 	runInDir(t, execution)
 	prog := filepath.Join(root, "program")
 	out, err := runWithModules(t, prog, map[string]string{

@@ -2,25 +2,13 @@ package testrunner
 
 import (
 	"bytes"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
-
-func writeFile(t *testing.T, dir, ad, content string) string {
-	t.Helper()
-	fpath := filepath.Join(dir, ad)
-	if err := os.MkdirAll(filepath.Dir(fpath), 0755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(fpath, []byte(content), 0644); err != nil {
-		t.Fatal(err)
-	}
-	return fpath
-}
 
 const exampleTests = `fonksiyon topla(a, b) { sonuç a + b }
 değişken sayac = 0
@@ -53,7 +41,7 @@ test "mesajlı doğrulama" {
 `
 
 func TestRunFile(t *testing.T) {
-	fpath := writeFile(t, t.TempDir(), "ornek_test.tr", exampleTests)
+	fpath := testkit.WriteFile(t, t.TempDir(), "ornek_test.tr", exampleTests)
 	var out bytes.Buffer
 	summary := RunFile(fpath, &out)
 	text := out.String()
@@ -85,7 +73,7 @@ func TestRunFile(t *testing.T) {
 // eskiden yalnızca rapora yazılıyor, test geçmiş görünüyordu (Go'da başka goroutine'den t.Error
 // testi kaldırır). Hata, görevi başlatan testte kalır; sonraki teste taşmaz.
 func TestTaskErrorFailsTest(t *testing.T) {
-	fpath := writeFile(t, t.TempDir(), "gorev_test.tr", `test "görevde başarısız doğrulama" {
+	fpath := testkit.WriteFile(t, t.TempDir(), "gorev_test.tr", `test "görevde başarısız doğrulama" {
     eşzamanlı {
         doğrula(yanlış, "görevde kaldı")
     }
@@ -118,10 +106,10 @@ func TestSummaryLine(t *testing.T) {
 
 func TestDirScan(t *testing.T) {
 	root := t.TempDir()
-	writeFile(t, root, "a_test.tr", `test "a" { doğrula(doğru) }`)
-	writeFile(t, root, "alt/b_test.tr", `test "b" { eşit_mi("x", "x") }`)
-	writeFile(t, root, "yardimci.tr", `test "çalışmamalı" { doğrula(yanlış) }`)
-	writeFile(t, root, ".gizli/c_test.tr", `test "gizli" { doğrula(yanlış) }`)
+	testkit.WriteFile(t, root, "a_test.tr", `test "a" { doğrula(doğru) }`)
+	testkit.WriteFile(t, root, "alt/b_test.tr", `test "b" { eşit_mi("x", "x") }`)
+	testkit.WriteFile(t, root, "yardimci.tr", `test "çalışmamalı" { doğrula(yanlış) }`)
+	testkit.WriteFile(t, root, ".gizli/c_test.tr", `test "gizli" { doğrula(yanlış) }`)
 
 	var out bytes.Buffer
 	summary, err := Run(root, &out)
@@ -147,9 +135,9 @@ func TestEmptyDirErrors(t *testing.T) {
 
 func TestUnloadableFile(t *testing.T) {
 	root := t.TempDir()
-	writeFile(t, root, "bozuk_test.tr", "test \"a\" { doğrula(doğru) }\ndeğişken = 5\n")
-	writeFile(t, root, "ustduzey_test.tr", "fırlat \"yükleme hatası\"\ntest \"b\" { doğrula(doğru) }\n")
-	writeFile(t, root, "iyi_test.tr", "test \"c\" { doğrula(doğru) }\n")
+	testkit.WriteFile(t, root, "bozuk_test.tr", "test \"a\" { doğrula(doğru) }\ndeğişken = 5\n")
+	testkit.WriteFile(t, root, "ustduzey_test.tr", "fırlat \"yükleme hatası\"\ntest \"b\" { doğrula(doğru) }\n")
+	testkit.WriteFile(t, root, "iyi_test.tr", "test \"c\" { doğrula(doğru) }\n")
 	var out bytes.Buffer
 	summary, err := Run(root, &out)
 	if err != nil {
@@ -169,7 +157,7 @@ func TestUnloadableFile(t *testing.T) {
 
 // Test içindeki 'ertele' test bitince çalışmalı; testin kendisi kalsa bile.
 func TestDeferAndOutput(t *testing.T) {
-	fpath := writeFile(t, t.TempDir(), "e_test.tr", `test "ertele" {
+	fpath := testkit.WriteFile(t, t.TempDir(), "e_test.tr", `test "ertele" {
     ertele yazdır("temizlik")
     yazdır("gövde")
     doğrula(yanlış)
@@ -187,7 +175,7 @@ func TestDeferAndOutput(t *testing.T) {
 // Testin başlattığı eşzamanlı görevin hatası raporda testin hatası olarak görünür (standart
 // hataya kaçmaz; 10.1).
 func TestTaskErrorShownInReport(t *testing.T) {
-	fpath := writeFile(t, t.TempDir(), "g_test.tr", `test "görev" {
+	fpath := testkit.WriteFile(t, t.TempDir(), "g_test.tr", `test "görev" {
     eşzamanlı { değişken x = 1 / 0 }
 }
 `)
@@ -201,7 +189,7 @@ func TestTaskErrorShownInReport(t *testing.T) {
 // Testin 'ertele' blokları, programın üst düzeyinde olduğu gibi, testin başlattığı görevler
 // bittikten sonra çalışır.
 func TestDeferRunsAfterTasks(t *testing.T) {
-	f := writeFile(t, t.TempDir(), "ertele_test.tr", `test "ertele görevden sonra" {
+	f := testkit.WriteFile(t, t.TempDir(), "ertele_test.tr", `test "ertele görevden sonra" {
     değişken l = [1]
     ertele { doğrula(l.uzunluk == 2, "görev erteleden önce bitmeli") }
     eşzamanlı {
@@ -218,7 +206,7 @@ func TestDeferRunsAfterTasks(t *testing.T) {
 
 // Kullanıcı iletisinde geçen "Satır " sözcüğü konum sayılmaz: konumsuz hataya testin satırı eklenir.
 func TestUserMessageWithSatirGetsLine(t *testing.T) {
-	f := writeFile(t, t.TempDir(), "satır_test.tr", "test \"satır kelimesi\" {\n    fırlat \"Satır sayısı yanlış\"\n}\n")
+	f := testkit.WriteFile(t, t.TempDir(), "satır_test.tr", "test \"satır kelimesi\" {\n    fırlat \"Satır sayısı yanlış\"\n}\n")
 	var b bytes.Buffer
 	RunFile(f, &b)
 	if out := b.String(); !strings.Contains(out, "Satır 1: Satır sayısı yanlış") || !strings.Contains(out, `1 | test "satır kelimesi" {`) {
