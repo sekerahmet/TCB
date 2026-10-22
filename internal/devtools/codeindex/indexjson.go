@@ -5,7 +5,12 @@ import "encoding/json"
 // EncodeIndex dizini girintili JSON olarak yazar: düğümler, kenarlar ve başvurular sıralıdır, aynı
 // proje aynı baytları verir.
 func EncodeIndex(idx *Index) ([]byte, error) {
-	data, err := json.MarshalIndent(idx, "", " ")
+	return marshalIndentLine(idx, " ")
+}
+
+// marshalIndentLine v'yi indent girintisiyle JSON'a çevirir ve sona satır sonu ekler.
+func marshalIndentLine(v any, indent string) ([]byte, error) {
+	data, err := json.MarshalIndent(v, "", indent)
 	if err != nil {
 		return nil, err
 	}

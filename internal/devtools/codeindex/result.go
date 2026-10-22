@@ -1,7 +1,5 @@
 package codeindex
 
-import "encoding/json"
-
 // Komutlar (Result.Command): JSON'daki değişmez tanımlayıcılar.
 const (
 	CommandDefinition = "definition"
@@ -105,11 +103,7 @@ func NewResult(command string, q Query) *Result {
 // EncodeJSON sonucu girintili JSON olarak yazar (sonunda satır sonu). Alan sırası yapıdaki sıradır,
 // sözlük anahtarları sıralıdır: aynı sonuç aynı baytları verir.
 func EncodeJSON(r *Result) ([]byte, error) {
-	data, err := json.MarshalIndent(r, "", "  ")
-	if err != nil {
-		return nil, err
-	}
-	return append(data, '\n'), nil
+	return marshalIndentLine(r, "  ")
 }
 
 // ModeTerm yeniden adlandırma etkisinin terim kipidir (Result.Mode).
