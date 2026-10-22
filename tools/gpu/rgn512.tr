@@ -162,6 +162,8 @@ döngü adım < arg.adım {
         değişken d = değerlendir()
         doğrulama_kaydı.ekle({step: adım + 1, loss: d})
         yazdır("  DEĞERLENDİRME adım {adım + 1}: kayıp {yuvarla(d, 4)}")
+        // Kayıp kaydı her değerlendirmede yazılır: koşu sonra bir hatayla biterse ölçülenler kalır.
+        eğer arg.kayıplar != "" { dosya_yaz(arg.kayıplar, json_metin({steps: kayıt, valid: doğrulama_kaydı})) }
     }
     adım += 1
     eğer kn != yok { kn.güncelle(adım) }
