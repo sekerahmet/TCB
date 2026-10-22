@@ -5,7 +5,7 @@ import "testing"
 // untranslatedEnglish en.json'da henüz çevirisi olmayan kod aralıklarıdır (iki uç dahil).
 // Liste yalnızca küçülür; çeviri bitince boştur.
 var untranslatedEnglish = [][2]Code{
-	{2000, 9999},
+	{3000, 9999},
 }
 
 func isUntranslatedEnglish(c Code) bool {
