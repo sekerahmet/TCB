@@ -127,9 +127,6 @@ func cases(f suffixForm) []string {
 	}
 }
 
-// foldedRunes bir sözcüğün Türkçe küçük harfli kod noktalarıdır.
-func foldedRunes(s string) []rune { return []rune(fold(s)) }
-
 // wordRune bir tanımlayıcı ya da sözcük karakteri mi (harf, rakam, alt çizgi).
 func wordRune(r rune) bool { return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' }
 
