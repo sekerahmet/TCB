@@ -29,3 +29,7 @@ türevsiz {
     }
 }
 yazdır("önbellek:", önbellek.şekil)
+
+// --- Kendin dene ---
+// 1. Listedeki parça kimliklerini değiştir: önbelleğin hangi satırları değişiyor?
+// 2. Önbelleği 3 konumluk yap: konum 3 ve ötesinde yerine_yaz ne der? (Önce dene/yakala ile yakala.)

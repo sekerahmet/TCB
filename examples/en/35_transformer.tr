@@ -2,7 +2,7 @@
 // 35 — Transformer: a small transformer written by hand.
 // What it teaches: embedding and position embedding, multi-head causal attention (reshape, permute and the
 // fused attention(...)), layer norm, a feed-forward step with gelu, the cross_entropy loss.
-// Builds on: tensors and autodiff (23–28), a multi-layer network (30).
+// Builds on: tensors and autodiff (23–28), a multi-layer network (30), layers (31): layer_norm, gelu, cross_entropy.
 // Task: predict the next token in sequences that cycle through 0..V-1.
 // Run (from the project root): tr examples/en/35_transformer.tr
 

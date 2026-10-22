@@ -1,6 +1,6 @@
 // 07 — Döngüler: bir işi yinelemek.
 // Ne öğretir: döngü ... içinde ile aralık gezmek (1..=5 sonu dahil, 1..5 sonu hariç), çık, devam,
-// iken, iç içe döngü.
+// iken, döngü koşul { }, döngü { }, iç içe döngü.
 // Önceki örnekten: koşullar (05), metne değer yerleştirme (04), += (02).
 // Çalıştırma (proje kökünden): tr examples/tr/07_donguler.tr
 
@@ -42,6 +42,19 @@ döngü satır içinde 1..=3 {
         yazdır("{satır} x {sütun} = {satır * sütun}")
     }
 }
+
+// Döngünün üç yazımı daha: döngü koşul { }, iken ile aynı işi yapar; döngü { } koşulsuzdur ve çık ile biter.
+değişken m = 1
+döngü m < 50 {
+    m = m * 2
+}
+yazdır("2'nin 50'yi aşan ilk kuvveti: {m}")
+değişken tur = 0
+döngü {
+    tur += 1
+    eğer tur * tur > 50 { çık }
+}
+yazdır("karesi 50'yi aşan ilk sayı: {tur}")
 
 // --- Kendin dene ---
 // 1. 1'den 20'ye kadar yalnızca çift sayıların toplamını bul.

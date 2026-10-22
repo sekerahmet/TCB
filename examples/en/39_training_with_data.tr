@@ -15,7 +15,7 @@
 // use a local cache: dataset(DATA_PATH, cache: "cache/data", quota_gb: 20)
 // Relative paths are resolved first against the working folder, then against this file's folder.
 // Run (from the project root): tr examples/en/39_training_with_data.tr
-// The settings change from the command line (docs/guide/04_yapay_zeka_ve_veri.md §4.E):
+// The settings change from the command line (docs/guide/04_yapay_zeka_ve_veri.md §4.F; settings are in 37, progress and log in 38):
 //     tr examples/en/39_training_with_data.tr --step 500 --log-file logs/training.jsonl
 //     tr examples/en/39_training_with_data.tr --help
 

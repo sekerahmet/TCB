@@ -26,3 +26,7 @@ döngü adım içinde 0..800 {
 değişken son_kayıp = türevsiz { ortalama((ağ(X_veri) - Y_hedef) ** 2) }.değer
 yazdır("ilk kayıp {yuvarla(ilk_kayıp, 4)} → son kayıp {yuvarla(son_kayıp, 6)}")
 yazdır("XOR tahminleri (beklenen 0, 1, 1, 0): {[yuvarla(t[0], 2) döngü t içinde türevsiz { ağ(X_veri) }.değer]}")
+
+// --- Kendin dene ---
+// 1. Gizli katmanı 8 yerine 2 nörona indir: ağ hâlâ öğreniyor mu?
+// 2. Tahminleri yuvarlamadan yazdır ve 0/1'e ne kadar yaklaştıklarına bak.

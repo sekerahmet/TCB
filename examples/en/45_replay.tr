@@ -30,3 +30,7 @@ T301 {
     }
 }
 G100("cache:", cache.Y400)
+
+// --- Try it yourself ---
+// 1. Change the token ids in the list: which rows of the cache change?
+// 2. Make the cache 3 positions long: what does write_slice say at position 3 and beyond? (Catch it with try/catch first.)
