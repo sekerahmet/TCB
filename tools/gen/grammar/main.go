@@ -118,9 +118,6 @@ func namesInGroup(letter byte, group int, pred func(codes.Code) bool) []string {
 	return names(selected...)
 }
 
-// isBuiltin kodun genel kapsamdaki bir yerleşik fonksiyon olup olmadığıdır.
-func isBuiltin(k codes.Code) bool { return k.IsBuiltin() }
-
 // wordsPattern bir ad listesini \b(a|b|c)\b düzenli ifadesine çevirir. Adlar düzenli ifade
 // karakterleri içermez; yine de kaçışlanır.
 func wordsPattern(names []string) string {
@@ -204,8 +201,8 @@ func Generate() ([]byte, error) {
 	control := names(codes.A001, codes.A002, codes.A003, codes.A004, codes.A010, codes.A011, codes.A012, codes.A013, codes.A014, codes.A021, codes.A060, codes.A061, codes.A062, codes.A080, codes.A081)
 	declaration := names(codes.A030, codes.A031, codes.A020, codes.A050)
 	types := namesInGroup('A', 2, nil)
-	general := namesInGroup('G', -1, isBuiltin)
-	ai := append(namesInGroup('T', -1, isBuiltin), namesInGroup('V', -1, isBuiltin)...)
+	general := namesInGroup('G', -1, codes.Code.IsBuiltin)
+	ai := append(namesInGroup('T', -1, codes.Code.IsBuiltin), namesInGroup('V', -1, codes.Code.IsBuiltin)...)
 
 	inner := func(option string) string { return option } // adlar düzenli ifade karakteri içermez
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -158,7 +159,7 @@ func (co *dupCorpus) similarTo(target *dupFunc, limit int) *similarResult {
 		if res.Matches[i].Score != res.Matches[j].Score {
 			return res.Matches[i].Score > res.Matches[j].Score
 		}
-		return res.Matches[i].File+itoa(res.Matches[i].From) < res.Matches[j].File+itoa(res.Matches[j].From)
+		return res.Matches[i].File+strconv.Itoa(res.Matches[i].From) < res.Matches[j].File+strconv.Itoa(res.Matches[j].From)
 	})
 	res.Total = len(res.Matches)
 	if limit > 0 && len(res.Matches) > limit {

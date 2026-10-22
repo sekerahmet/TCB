@@ -7,12 +7,9 @@ import (
 	"io"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 )
-
-func itoa(n int) string { return strconv.Itoa(n) }
 
 // dupDiff bir kümenin konumları arasındaki farktır: ilk konumla öbürleri aynı sırayla karşılaştırılır,
 // ad ya da değeri farklı olan düğümler değişim olarak sayılır.
