@@ -90,7 +90,9 @@ func TestCrossEntropy(t *testing.T) {
 
 func TestNorms(t *testing.T) {
 	rng := rand.New(rand.NewSource(10))
-	for _, d := range [][2]int{{1, 1}, {3, 8}, {5, 129}, {2, 600}} {
+	// Son üç boy kaynaşık geri yönde blok başına birden çok satır işletir (benzetimde 4 SM:
+	// D = 8'de 256 blok, D ≥ 129'da 32 blok).
+	for _, d := range [][2]int{{1, 1}, {3, 8}, {5, 129}, {2, 600}, {1000, 8}, {300, 129}, {70, 600}} {
 		R, D := d[0], d[1]
 		xv, gv, bv := random(rng, R*D, 2), random(rng, D, 1), random(rng, D, 1)
 		compare(t, fmt.Sprintf("rms normu %d×%d", R, D), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
@@ -100,6 +102,10 @@ func TestNorms(t *testing.T) {
 		compare(t, fmt.Sprintf("katman normu %d×%d", R, D), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
 			x, gm, bt := twin(xv, true, R, D)[c], twin(gv, true, D)[c], twin(bv, true, D)[c]
 			return tensor.LayerNorm(x, gm, bt, 1e-5), []*tensor.Tensor{x, gm, bt}
+		})
+		compare(t, fmt.Sprintf("rms normu, yalnız γ gradyanı %d×%d", R, D), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+			x, gm := twin(xv, false, R, D)[c], twin(gv, true, D)[c]
+			return tensor.RMSNorm(x, gm, 1e-5), []*tensor.Tensor{gm}
 		})
 		compare(t, fmt.Sprintf("ölçeksiz katman normu %d×%d", R, D), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
 			x := twin(xv, true, R, D)[c]

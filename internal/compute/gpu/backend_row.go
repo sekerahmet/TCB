@@ -253,6 +253,36 @@ func (g *backend) rowSums(target tensor.Storage, source *storage, R, D int) {
 	g.reduce(reduceJob{a: source, output: g.storageOf(target), shape2: []int{R, D}, stA2: []int{D, 1}, st: []int{0, 1}, term: tA, add: true, scaleF: 1})
 }
 
+// normBackwardFused γ'nın gradyanı istenen geri yön (kernel_norm.go normBackwardFusedKernel):
+// P blok, her biri ardışık satır parçası; blok başına kısmi γ toplamları [P, D] sonra satırlar
+// boyunca sabit sırayla indirgenir. P SM başına 2048 iş parçacığını dolduracak kadardır (ayar SM
+// sayısından seçilir; aynı kartta her koşuda aynı sonuç).
+func (g *backend) normBackwardFused(gt *temp, dx *storage, ggamma tensor.Storage, gd *storage, xv tensor.View, gv *tensor.View, avg, rstd tensor.Storage, R, D int, layer bool, dxT tensor.DType) {
+	B := powerOfTwo(D, 32, 256)
+	C := (D + B - 1) / B
+	_, sm := g.sr.capability()
+	P := min(R, max(sm, 1)*max(2048/B, 1))
+	chunk := (R + P - 1) / P
+	P = (R + chunk - 1) / chunk
+	part := gt.buffer(P*D, false)
+	a := normConfig{B: B, layer: layer, gamma: gv != nil, xGrad: dx != nil, gammaGrad: true,
+		dt: [5]tensor.DType{g.storageOf(xv.S).dtype, gd.dtype, g.viewType(gv), tensor.Float32, dxT}}
+	c := g.takeKernel(fmt.Sprintf("%s:%d", a.key("norm_geri_parcali"), C), normBackwardFusedKernel(a, C))
+	p := g.param().writeTo(dx).write(part, 0).read(gd, 0).readV(xv)
+	if gv != nil {
+		p.readV(*gv)
+	} else {
+		p.empty()
+	}
+	var od *storage
+	if avg != nil {
+		od = g.storageOf(avg)
+	}
+	p.readFrom(od).read(g.storageOf(rstd), 0).u32(D).u32(R).u32(chunk)
+	g.launch(c, [3]uint32{uint32(P), 1, 1}, [3]uint32{uint32(B), 1, 1}, p)
+	g.rowSums(ggamma, part, P, D)
+}
+
 // normBackward katman ya da RMS normunun geri yönü.
 func (g *backend) normBackward(gx, ggamma, gbeta, gs tensor.Storage, x tensor.View, gamma *tensor.View, avg, rstd tensor.Storage, D int, layer bool) {
 	gt := g.temp()
@@ -273,13 +303,20 @@ func (g *backend) normBackward(gx, ggamma, gbeta, gs tensor.Storage, x tensor.Vi
 		if gx != nil {
 			dx = g.storageOf(gx)
 		}
-		var term *storage
-		if ggamma != nil {
-			term = gt.buffer(R*D, false)
-		}
 		dxT := tensor.Float32
 		if dx != nil {
 			dxT = dx.dtype
+		}
+		if B := powerOfTwo(D, 32, 256); ggamma != nil && D <= B*normGradCols {
+			g.normBackwardFused(gt, dx, ggamma, gd, xv, gv, avg, rstd, R, D, layer, dxT)
+			if gbeta != nil {
+				g.rowSums(gbeta, gd, R, D)
+			}
+			return
+		}
+		var term *storage
+		if ggamma != nil {
+			term = gt.buffer(R*D, false)
 		}
 		a := normConfig{B: powerOfTwo(D, 32, 256), layer: layer, gamma: gv != nil, xGrad: dx != nil, gammaGrad: term != nil,
 			dt: [5]tensor.DType{g.storageOf(xv.S).dtype, gd.dtype, g.viewType(gv), tensor.Float32, dxT}}

@@ -172,3 +172,142 @@ func normBackwardKernel(a normConfig) func() *emitter {
 		return k
 	}
 }
+
+// normGradCols kaynaşık geri yönde iş parçacığı başına sütun sayısının sınırı: D ≤ B·8 (B = 256
+// ile 2048) kaynaşık çekirdekle, daha genişi satır başına bloklu çekirdek ve geçici tamponla.
+const normGradCols = 8
+
+// normBackwardFusedKernel γ'nın gradyanı istenen geri yöndür (Apex, Liger ve Triton layer-norm
+// geri yönündeki yöntem): blok b ardışık satır parçasını [b·parça, min((b+1)·parça, R)) sırayla
+// işler; iş parçacığı sütunları j = tid + c·B (c < C) yazmaçlarda tutar. Her satırda x ve g bir
+// kez okunur, h ve dh yazmaçta kalır; γ teriminin (g·h) toplamı sütun başına yazmaçta, satır
+// sırasıyla birikir ve sonda blok başına kısmi toplam [b, D] yazılır (satırlar boyunca son toplam
+// ayrı, sabit sıralı indirgemededir: backend_row.go). R×D'lik terim tamponu yoktur. x'in gradyanı
+// satır başına iki blok indirgemesiyle normBackwardKernel'deki formülle aynıdır.
+func normBackwardFusedKernel(a normConfig, C int) func() *emitter {
+	return func() *emitter {
+		k := newEmitter(fmt.Sprintf("norm_geri_%d_%d_%v_%v_%v_parcali_%s_%s_%s_%s", a.B, C, a.layer, a.gamma, a.xGrad, a.dt[0], a.dt[1], a.dt[2], a.dt[4]))
+		f := &fusedNorm{a: a, gx: k.written("gx"), part: k.written("kismi"), g: k.pointer("g"), x: k.pointer("x")}
+		gm := k.pointer("gamma")
+		f.avg, f.rstd = k.pointer("ortalama"), k.pointer("rstd")
+		f.D = k.u32p("d")
+		R, chunk := k.u32p("r"), k.u32p("parca")
+		f.sm = k.shared("sm", 4*a.B)
+		f.tid = k.special("%tid.x")
+		b := k.special("%ctaid.x")
+		f.df = k.f()
+		k.e("cvt.rn.f32.u32", f.df, f.D)
+		f.zero = k.constant(0)
+		k.fusedNormColumns(f, C, gm)
+		r, r1 := k.r(), k.r()
+		k.e("mul.lo.s32", r, b, chunk)
+		k.e("add.s32", r1, r, chunk)
+		k.e("min.u32", r1, r1, R)
+		loop, done := k.label(), k.label()
+		k.put(loop)
+		p := k.p()
+		k.e("setp.ge.u32", p, r, r1)
+		k.jumpIf(p, done)
+		k.fusedNormRow(f, r)
+		k.e("add.s32", r, r, 1)
+		k.jump(loop)
+		k.put(done)
+		pb := k.r()
+		k.e("mul.lo.s32", pb, b, f.D)
+		for c := range f.cols {
+			skip := k.label()
+			k.jumpUnless(f.valid[c], skip)
+			o := k.r()
+			k.e("add.s32", o, pb, f.cols[c])
+			k.store(tensor.Float32, k.rowAt(f.part, o, tensor.Float32), f.acc[c])
+			k.put(skip)
+		}
+		return k
+	}
+}
+
+// fusedNorm kaynaşık norm geri yönünün yazmaçları: göstericiler, sütunlar (geçersiz sütun son
+// sütunu okur, katkısı 0), sütun başına γ ve γ teriminin toplayıcısı.
+type fusedNorm struct {
+	a                                normConfig
+	gx, part, g, x, avg, rstd, D, sm reg
+	tid, df, zero                    reg
+	cols, valid, gam, acc            []reg
+}
+
+// fusedNormColumns iş parçacığının sütunlarını, geçerliliklerini, γ değerlerini (bir kez okunur)
+// ve sıfır toplayıcıları kurar.
+func (k *emitter) fusedNormColumns(f *fusedNorm, C int, gm reg) {
+	last := k.r()
+	k.e("add.s32", last, f.D, -1)
+	f.cols, f.valid, f.gam, f.acc = make([]reg, C), make([]reg, C), make([]reg, C), make([]reg, C)
+	for c := range f.cols {
+		f.cols[c], f.valid[c] = k.r(), k.p()
+		k.e("add.s32", f.cols[c], f.tid, c*f.a.B)
+		k.e("setp.lt.u32", f.valid[c], f.cols[c], f.D)
+		k.e("min.u32", f.cols[c], f.cols[c], last)
+		f.gam[c] = k.constant(1)
+		if f.a.gamma {
+			f.gam[c] = k.load(f.a.dt[2], k.rowAt(gm, f.cols[c], f.a.dt[2]))
+		}
+		f.acc[c] = k.constant(0)
+	}
+}
+
+// fusedNormRow r. satırı işler: x ve g bir kez okunur, γ terimi toplayıcılara eklenir, x'in
+// gradyanı (isteniyorsa) iki blok indirgemesiyle yazılır.
+func (k *emitter) fusedNormRow(f *fusedNorm, r reg) {
+	a := f.a
+	xt, ggt, gxt := a.dt[0], a.dt[1], a.dt[4]
+	base2 := k.r()
+	k.e("mul.lo.s32", base2, r, f.D)
+	m := f.zero
+	if a.layer {
+		m = k.load(tensor.Float32, k.address(f.avg, r, 4))
+	}
+	rs := k.load(tensor.Float32, k.address(f.rstd, r, 4))
+	hs, dhs := make([]reg, len(f.cols)), make([]reg, len(f.cols))
+	a1, a2 := k.constant(0), k.constant(0)
+	for c := range f.cols {
+		o := k.r()
+		k.e("add.s32", o, base2, f.cols[c])
+		gv := k.load(ggt, k.rowAt(f.g, o, ggt))
+		k.e("selp.f32", gv, gv, f.zero, f.valid[c])
+		h := k.load(xt, k.rowAt(f.x, o, xt))
+		k.e("sub.rn.f32", h, h, m)
+		k.e("mul.rn.f32", h, h, rs)
+		k.e("fma.rn.f32", f.acc[c], gv, h, f.acc[c])
+		dh := k.f()
+		k.e("mul.rn.f32", dh, gv, f.gam[c])
+		hs[c], dhs[c] = h, dh
+		k.e("add.rn.f32", a1, a1, dh)
+		k.e("fma.rn.f32", a2, dh, h, a2)
+	}
+	if !a.xGrad {
+		return
+	}
+	m1 := f.zero
+	if a.layer {
+		m1 = k.blockReduce(a1, f.sm, f.tid, a.B, k.sum)
+		k.e("div.rn.f32", m1, m1, f.df)
+	}
+	m2 := k.blockReduce(a2, f.sm, f.tid, a.B, k.sum)
+	k.e("div.rn.f32", m2, m2, f.df)
+	for c := range f.cols {
+		skip := k.label()
+		k.jumpUnless(f.valid[c], skip)
+		t := k.f()
+		k.e("sub.rn.f32", t, dhs[c], m1)
+		hm := k.f()
+		k.e("mul.rn.f32", hm, hs[c], m2)
+		k.e("sub.rn.f32", t, t, hm)
+		k.e("mul.rn.f32", t, t, rs)
+		o := k.r()
+		k.e("add.s32", o, base2, f.cols[c])
+		ha := k.rowAt(f.gx, o, gxt)
+		old := k.load(gxt, ha)
+		k.e("add.rn.f32", old, old, t)
+		k.store(gxt, ha, old)
+		k.put(skip)
+	}
+}
