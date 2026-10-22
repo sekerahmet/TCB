@@ -1,8 +1,10 @@
 package ml
 
 import (
+	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/sekerahmet/TCB/internal/compute/gpu"
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
@@ -114,5 +116,36 @@ yazdır(t.değer)`)
 		if _, err := run(t, src); !messages.Has(err, code) {
 			t.Errorf("%s: %s bekleniyordu, %v", src, code, err)
 		}
+	}
+}
+
+// Kural: ulaşılamaz tekrar_oynat fonksiyonunun kaydı (çizge, kayda özel bellek, girdi ve çıktı
+// tensörleri) bırakılır; sonraki tekrar_oynat çağrısı kuyruktakileri bırakır. Bırakılmasaydı her
+// üret çağrısının kaydı süreç boyunca kalırdı.
+func TestReplayReleasesUnreachableRecordings(t *testing.T) {
+	gpu.RegisterSimulator()
+	defer tensor.SetDefaultDevice(tensor.CPU)
+	mustRun(t, `varsayılan_cihaz("gpu")
+türevsiz {
+    döngü i içinde 0..3 {
+        değişken f = tekrar_oynat((x) => x * 2)
+        döngü j içinde 0..3 { f(tensör([1.0, 2.0])) }
+    }
+}`)
+	before := releasedRecordings.Load()
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		runtime.GC()
+		releaseQueue.mu.Lock()
+		n := len(releaseQueue.entries)
+		releaseQueue.mu.Unlock()
+		if n >= 3 || time.Now().After(deadline) {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	drainReleases()
+	if got := releasedRecordings.Load() - before; got < 3 {
+		t.Fatalf("3 kayıt bırakılmalıydı, %d bırakıldı", got)
 	}
 }

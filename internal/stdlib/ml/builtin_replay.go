@@ -2,7 +2,10 @@ package ml
 
 import (
 	"fmt"
+	"runtime"
 	"strings"
+	"sync"
+	"sync/atomic"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -45,6 +48,47 @@ type replayEntry struct {
 	single bool
 }
 
+// releaseQueue çöp toplayıcının ulaşılamaz bulduğu tekrar_oynat fonksiyonlarının kayıtları.
+// Temizlik ayrı bir gorutinde çalışır; kaydı bırakmak ise arka ucun kilidini alır ve cihazı
+// eşzamanlar (kayıt sürerken yapılamaz), girdi ve çıktı başlıklarını düşürmek de yorumlayıcının
+// işidir. Bu yüzden kayıtlar kuyruğa girer ve sonraki tekrar_oynat çağrısı, kayda başlamadan
+// önce onları bırakır (üret her çağrıda yeni bir tekrar_oynat kurar: kuyruk olmasa her çağrının
+// kaydı ve kayda özel belleği süreç boyunca kalırdı).
+var releaseQueue struct {
+	mu      sync.Mutex
+	entries []*replayEntry
+}
+
+// releasedRecordings bırakılan kayıt sayısı (sınama).
+var releasedRecordings atomic.Int64
+
+// queueRelease ulaşılamaz bir fonksiyonun kayıtlarını kuyruğa koyar (temizlik gorutini).
+func queueRelease(cache map[string]*replayEntry) {
+	releaseQueue.mu.Lock()
+	defer releaseQueue.mu.Unlock()
+	for _, e := range cache {
+		if e.rec != nil {
+			releaseQueue.entries = append(releaseQueue.entries, e)
+		}
+	}
+}
+
+// drainReleases kuyruktaki kayıtları bırakır: çizge ve kayda özel bellek, girdi ve çıktı
+// başlıkları (yorumlayıcının gorutininde, kayıt dışında).
+func drainReleases() {
+	releaseQueue.mu.Lock()
+	entries := releaseQueue.entries
+	releaseQueue.entries = nil
+	releaseQueue.mu.Unlock()
+	for _, e := range entries {
+		e.rec.Release()
+		for _, t := range append(e.inputs, e.outs...) {
+			t.Unwrap()
+		}
+		releasedRecordings.Add(1)
+	}
+}
+
 func replayBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.DisplayName(codes.T313)
 	if len(named) > 0 {
@@ -57,12 +101,14 @@ func replayBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 		return nil, messages.New(messages.H6437, fn, typeName(args[0]))
 	}
 	r := &replayFn{f: args[0], cache: map[string]*replayEntry{}}
+	runtime.AddCleanup(r, queueRelease, r.cache)
 	return &interp.BuiltinVal{Name: codes.Name(codes.T313), Fn: guarded(r.call), NoNamedArgs: true}, nil
 }
 
 // call oynatılan fonksiyonu çalıştırır (bkz. dosya başı).
 func (r *replayFn) call(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 	fn := codes.DisplayName(codes.T313)
+	drainReleases()
 	if tensor.GradEnabled() {
 		return nil, messages.New(messages.H6440, fn)
 	}
