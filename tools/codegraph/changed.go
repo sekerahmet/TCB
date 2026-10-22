@@ -99,14 +99,23 @@ func (ix *index) printTouched(w io.Writer, ts *touchSet, limit int) {
 	}
 }
 
-func printLimited(w io.Writer, list []string, limit int, indent string) {
-	for i, l := range list {
+// moreHint kesilen listelerin sonundaki ipucudur.
+const moreHint = " (--all lists them)"
+
+// forEachLimited list'in ilk limit öğesini line ile yazar (limit 0: hepsi); kalanı "... N more" ile bildirir.
+func forEachLimited[T any](w io.Writer, list []T, limit int, indent, hint string, line func(T) string) {
+	for i, v := range list {
 		if limit > 0 && i >= limit {
-			fmt.Fprintf(w, "%s... %d more (--all lists them)\n", indent, len(list)-limit)
+			fmt.Fprintf(w, "%s... %d more%s\n", indent, len(list)-limit, hint)
 			return
 		}
-		fmt.Fprintf(w, "%s%s\n", indent, l)
+		fmt.Fprintf(w, "%s%s\n", indent, line(v))
 	}
+}
+
+// printLimited satırları forEachLimited ile yazar.
+func printLimited(w io.Writer, list []string, limit int, indent string) {
+	forEachLimited(w, list, limit, indent, moreHint, func(s string) string { return s })
 }
 
 // printTestsToRun değişen işlev, metot ve tiplerin testlerini yazar: doğrudan olanlar önce,

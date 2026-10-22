@@ -134,12 +134,6 @@ func historyCode(root string, n *Node, limit int, w io.Writer) error {
 		fmt.Fprintln(w, "  no commits found")
 		return nil
 	}
-	for i, l := range formatEvents(list) {
-		if limit > 0 && i >= limit {
-			fmt.Fprintf(w, "  ... %d more (--all lists them)\n", len(list)-limit)
-			break
-		}
-		fmt.Fprintf(w, "  %s\n", l)
-	}
+	printLimited(w, formatEvents(list), limit, "  ")
 	return nil
 }

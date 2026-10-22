@@ -132,13 +132,7 @@ func (ix *index) printCandidates(w io.Writer, q string, cands []*Node, limit int
 	fmt.Fprintf(w, "%q is ambiguous: %d candidates (repeat with an id or a longer name)\n", q, len(cands))
 	sorted := append([]*Node(nil), cands...)
 	sort.Slice(sorted, func(i, j int) bool { return sorted[i].ID < sorted[j].ID })
-	for i, n := range sorted {
-		if limit > 0 && i >= limit {
-			fmt.Fprintf(w, "  ... %d more\n", len(sorted)-limit)
-			break
-		}
-		fmt.Fprintf(w, "  %s  (id %s)\n", describe(n), n.ID)
-	}
+	forEachLimited(w, sorted, limit, "  ", "", func(n *Node) string { return fmt.Sprintf("%s  (id %s)", describe(n), n.ID) })
 }
 
 // edgeLine bir kenarın karşı ucunu yazar; INFERRED etiketi yalnızca çıkarımda görünür.
@@ -184,13 +178,7 @@ func (ix *index) printGroups(w io.Writer, heading string, edges []*Edge, otherOf
 			return a.Line < b.Line
 		})
 		fmt.Fprintf(w, "%s %s (%d):\n", heading, k, len(list))
-		for i, e := range list {
-			if limit > 0 && i >= limit {
-				fmt.Fprintf(w, "    ... %d more (--all lists them)\n", len(list)-limit)
-				break
-			}
-			fmt.Fprintf(w, "    %s\n", ix.edgeLine(e, otherOf(e), site))
-		}
+		forEachLimited(w, list, limit, "    ", moreHint, func(e *Edge) string { return ix.edgeLine(e, otherOf(e), site) })
 	}
 }
 
