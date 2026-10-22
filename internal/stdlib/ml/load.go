@@ -221,24 +221,34 @@ func (k *fileReader) data(order string, dtype tensor.DType, shape []int, n int64
 	if n*size > k.remaining-4 {
 		return nil, messages.New(messages.H6623, order, shapeText(shape), n*size, max(k.remaining-4, 0))
 	}
-	data := make([]float32, n)
+	data, ok := decodeValues(int(n), dtype, k.integer)
+	if !ok {
+		return nil, k.missing(messages.Text(messages.H6635, order))
+	}
+	return data, nil
+}
+
+// decodeValues n elemanlık küçük uçlu veriyi 64 KiB'lık parçalarla readChunk ile okur ve
+// float32'ye açar; okuma başarısızsa ok=false döner. Boy denetimi çağıranındır (ayırmadan önce).
+func decodeValues(n int, dt tensor.DType, readChunk func([]byte) bool) (data []float32, ok bool) {
+	data = make([]float32, n)
 	buffer := make([]byte, 1<<16)
-	eb := int(size)
-	for i := 0; i < len(data); {
-		part := min(len(buffer)/eb, len(data)-i)
-		if !k.integer(buffer[:part*eb]) {
-			return nil, k.missing(messages.Text(messages.H6635, order))
+	eb := dt.Bits() / 8
+	for i := 0; i < n; {
+		part := min(len(buffer)/eb, n-i)
+		if !readChunk(buffer[:part*eb]) {
+			return nil, false
 		}
 		for j := 0; j < part; j++ {
 			if eb == 2 {
-				data[i+j] = tensor.FromBits16(dtype, binary.LittleEndian.Uint16(buffer[j*2:]))
+				data[i+j] = tensor.FromBits16(dt, binary.LittleEndian.Uint16(buffer[j*2:]))
 			} else {
 				data[i+j] = math.Float32frombits(binary.LittleEndian.Uint32(buffer[j*4:]))
 			}
 		}
 		i += part
 	}
-	return data, nil
+	return data, true
 }
 
 // checksum dosyanın sonundaki sağlama toplamını denetler; sonrasında veri kalmamalıdır.

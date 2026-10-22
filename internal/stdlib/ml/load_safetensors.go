@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -322,22 +321,13 @@ func compareU64(a, b uint64) int {
 
 // readValues n elemanı dt türünde okur ve float32'ye kayıpsız açar.
 func readValues(r io.Reader, dt tensor.DType, n int) ([]float32, error) {
-	data := make([]float32, n)
-	eb := dt.Bits() / 8
-	buffer := make([]byte, 1<<16)
-	for i := 0; i < n; {
-		part := min(len(buffer)/eb, n-i)
-		if _, err := io.ReadFull(r, buffer[:part*eb]); err != nil {
-			return nil, err
-		}
-		for j := 0; j < part; j++ {
-			if eb == 2 {
-				data[i+j] = tensor.FromBits16(dt, binary.LittleEndian.Uint16(buffer[j*2:]))
-			} else {
-				data[i+j] = math.Float32frombits(binary.LittleEndian.Uint32(buffer[j*4:]))
-			}
-		}
-		i += part
+	var readErr error
+	data, ok := decodeValues(n, dt, func(chunk []byte) bool {
+		_, readErr = io.ReadFull(r, chunk)
+		return readErr == nil
+	})
+	if !ok {
+		return nil, readErr
 	}
 	return data, nil
 }
