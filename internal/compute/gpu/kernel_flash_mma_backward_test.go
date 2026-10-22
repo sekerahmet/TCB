@@ -30,6 +30,10 @@ func TestFlashMmaBackward(t *testing.T) {
 		{1, 2, 2, 130, 130, 64, 64, tensor.AttentionOptions{Causal: true}},
 		{1, 4, 2, 70, 200, 32, 48, tensor.AttentionOptions{}},
 		{2, 2, 1, 150, 150, 16, 16, tensor.AttentionOptions{Causal: true, Window: 40}},
+		// Bakış boyu 64'ün üstü: döşeme 32 (mmaBackTile); 32'nin katı olmayan boylar kenarları yoklar.
+		{1, 4, 2, 70, 130, 128, 128, tensor.AttentionOptions{Causal: true}},
+		{1, 2, 2, 50, 90, 96, 80, tensor.AttentionOptions{Window: 30}},
+		{1, 2, 1, 40, 40, 128, 64, tensor.AttentionOptions{}},
 	} {
 		for _, dt := range []tensor.DType{tensor.BFloat16, tensor.Float16} {
 			ad := fmt.Sprintf("dikkat_tc_geri %v %+v", dt, d)

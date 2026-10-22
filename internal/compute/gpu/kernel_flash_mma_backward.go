@@ -12,21 +12,33 @@ import (
 // ============================================================================
 //
 // SIMT geri yönüyle aynı iki geçiş (atomiksiz, belirlenimci); çarpımlar mma.sync ile:
-//   - dikkat_geri_kv_tc: blok mmaKeys anahtarı tutar (8 warp × 16). Sorgular mmaQT'lik
+//   - dikkat_geri_kv_tc: blok mmaKeys anahtarı tutar (8 warp × 16). Sorgular mmaBackTile'lık
 //     döşemelerle (o anahtar bakışını paylaşan bütün sorgu bakışları için) gezilir. Warp kendi
 //     anahtarları için Sᵀ = K·Qᵀ ve dPᵀ = V·dOᵀ'yi kurar; Pᵀ = 2^{Sᵀ·ölçek·log2e − lse·log2e},
 //     dSᵀ = Pᵀ·(dPᵀ − D)·ölçek; dV += Pᵀ·dO ve dK += dSᵀ·Q (Pᵀ ve dSᵀ parçaları doğrudan A
 //     parçalarına paketlenir). Q ve dO döşemeleri hem satır öncelikli hem devrik tutulur.
-//   - dikkat_geri_q_tc: blok mmaBr sorgu satırı tutar; anahtarlar mmaBc'lik döşemelerle
+//   - dikkat_geri_q_tc: blok mmaBr sorgu satırı tutar; anahtarlar mmaBackTile'lık döşemelerle
 //     gezilir: S = Q·Kᵀ, dP = dO·Vᵀ, dS, dQ += dS·K (K devrik de tutulur).
 // dO float32 gelir ve 16 bite yuvarlanır (çarpımın geri yönündeki gradyan yuvarlamasıyla
 // aynı). Bakış boyları en çok mmaBackMax'tır (yazmaç bütçesi); büyüğünde SIMT geri yön kalır.
 
 const (
 	mmaKeys    = 128 // geri dK/dV bloğunun anahtar sayısı (8 warp × 16)
-	mmaQT      = 64  // geri dK/dV'de sorgu döşemesi
-	mmaBackMax = 64  // tensör çekirdekli geri yönün en büyük bakış boyu
+	mmaBackMax = 128 // tensör çekirdekli geri yönün en büyük bakış boyu
 )
+
+// mmaBackTile geri çekirdeklerin döşemesi (dQ'da anahtar, dK/dV'de sorgu döşemesi): bakış boyu
+// 64'e kadar 64, üstünde 32. Bakış boyu 128'de döşeme 64 olsa paylaşımlı bellek dQ'da 53.248,
+// dK/dV'de 72.704 bayt olurdu (statik sınır 48 KB); 32 ile 27.648 ve 38.400 bayttır, parça
+// yazmaçları da yarıya iner. Emsal: FlashAttention-2'nin hdim128 geri yönü paylaşımlı bellek
+// azken döşemeyi daraltır (run_mha_bwd_hdim128); Triton'un fused-attention örneği geri yönde
+// 32'lik döşeme kullanır (BLOCK_M1 = BLOCK_N2 = 32).
+func mmaBackTile(a flashMma) int {
+	if max(a.Dh, a.Dv) > 64 {
+		return 32
+	}
+	return 64
+}
 
 // fragRows şeridin parça satırları: r[0] = taban + 16w + g, r[1] = r[0] + 8.
 func (k *emitter) fragRows(base2 reg, l mmaLanes) [2]reg {
@@ -190,15 +202,16 @@ func flashMmaBackwardQKernel(a flashMma, modeQ int) func() *emitter {
 	return func() *emitter {
 		k := newEmitter(fmt.Sprintf("%s_%d", a.key("dikkat_geri_q_tc"), modeQ))
 		k.target = 80
-		f := &flashShared{k: k, a: flashConfig{Br: mmaBr, Bc: mmaBc, Dh: a.Dh, Dv: a.Dv}}
+		bc := mmaBackTile(a)
+		f := &flashShared{k: k, a: flashConfig{Br: mmaBr, Bc: bc, Dh: a.Dh, Dv: a.Dv}}
 		pq, pk, pv, pdo := k.pointer("q"), k.pointer("k"), k.pointer("v"), k.pointer("do")
 		plse, pd := k.pointer("lse"), k.pointer("d")
 		pdq := k.written("dq")
 		f.sharedParams()
 		f.headIndexes(false)
-		ks := k.shared("ks", 2*mmaBc*(a.Dh+8))
-		kts := k.shared("kts", 2*a.Dh*(mmaBc+8))
-		vs := k.shared("vs", 2*mmaBc*(a.Dv+8))
+		ks := k.shared("ks", 2*bc*(a.Dh+8))
+		kts := k.shared("kts", 2*a.Dh*(bc+8))
+		vs := k.shared("vs", 2*bc*(a.Dv+8))
 		l := k.lanes(f.tid)
 		t2 := k.r()
 		k.e("shl.b32", t2, l.t, 1)
@@ -219,10 +232,10 @@ func flashMmaBackwardQKernel(a flashMma, modeQ int) func() *emitter {
 		k.e("mul.rn.f32", sc2, f.scaleF, float32(math.Log2E))
 		jStart, jEnd := f.keyRange(q0)
 		dQ := k.zeroFrags(a.Dh / 8)
-		S, dP := k.zeroFrags(mmaBc/8), k.zeroFrags(mmaBc/8)
+		S, dP := k.zeroFrags(bc/8), k.zeroFrags(bc/8)
 		ksAddr := k.laneAddr(ks, l, t2, a.Dh+8)
 		vsAddr := k.laneAddr(vs, l, t2, a.Dv+8)
-		ktsAddr := k.laneAddr(kts, l, t2, mmaBc+8)
+		ktsAddr := k.laneAddr(kts, l, t2, bc+8)
 		j0 := k.r()
 		k.e("mov.u32", j0, jStart)
 		loop, done := k.label(), k.label()
@@ -231,8 +244,8 @@ func flashMmaBackwardQKernel(a flashMma, modeQ int) func() *emitter {
 		k.e("setp.ge.u32", p, j0, jEnd)
 		k.jumpIf(p, done)
 		k.barrier()
-		k.loadTile16(tile16{row: ks, trans: kts, R: mmaBc, D: a.Dh}, kb, j0, f.Tk, f.tid)
-		k.loadTile16(tile16{row: vs, R: mmaBc, D: a.Dv}, vb, j0, f.Tk, f.tid)
+		k.loadTile16(tile16{row: ks, trans: kts, R: bc, D: a.Dh}, kb, j0, f.Tk, f.tid)
+		k.loadTile16(tile16{row: vs, R: bc, D: a.Dv}, vb, j0, f.Tk, f.tid)
 		k.barrier()
 		k.clearFrags(S)
 		k.clearFrags(dP)
@@ -249,8 +262,8 @@ func flashMmaBackwardQKernel(a flashMma, modeQ int) func() *emitter {
 			k.e("and.pred", p1, p1, p2)
 			return p1
 		}, func(n, c int) reg { return lse2[c/2] }, func(n, c int) reg { return dd[c/2] })
-		k.fragMul(dQ, k.fragToA(dP, a.f16), ktsAddr, mmaBc+8, a.f16)
-		k.e("add.s32", j0, j0, mmaBc)
+		k.fragMul(dQ, k.fragToA(dP, a.f16), ktsAddr, bc+8, a.f16)
+		k.e("add.s32", j0, j0, bc)
 		k.jump(loop)
 		k.put(done)
 		k.mmaGradWrite(dQ, modeQ, k.seqBase(pdq, f.bh, f.Tq, f.H, a.Dh, 4), rows, f.Tq, t2, a.Dh)
@@ -263,17 +276,18 @@ func flashMmaBackwardKVKernel(a flashMma, modeK, modeV int) func() *emitter {
 	return func() *emitter {
 		k := newEmitter(fmt.Sprintf("%s_%d_%d", a.key("dikkat_geri_kv_tc"), modeK, modeV))
 		k.target = 80
-		f := &flashBackwardState{flashShared: &flashShared{k: k, a: flashConfig{Br: mmaQT, Bc: mmaKeys, Dh: a.Dh, Dv: a.Dv}}}
+		qt := mmaBackTile(a)
+		f := &flashBackwardState{flashShared: &flashShared{k: k, a: flashConfig{Br: qt, Bc: mmaKeys, Dh: a.Dh, Dv: a.Dv}}}
 		pq, pk, pv, pdo := k.pointer("q"), k.pointer("k"), k.pointer("v"), k.pointer("do")
 		plse, pd := k.pointer("lse"), k.pointer("d")
 		pdk, pdv := k.written("dk"), k.written("dv")
 		f.sharedParams()
 		f.headIndexes(true)
-		qs := k.shared("qs", 2*mmaQT*(a.Dh+8))
-		qts := k.shared("qts", 2*a.Dh*(mmaQT+8))
-		dos := k.shared("dos", 2*mmaQT*(a.Dv+8))
-		dots := k.shared("dots", 2*a.Dv*(mmaQT+8))
-		info := k.shared("satir", 4*4*mmaQT) // sorgu başına lse·log2e, D, alt ve üst sınır
+		qs := k.shared("qs", 2*qt*(a.Dh+8))
+		qts := k.shared("qts", 2*a.Dh*(qt+8))
+		dos := k.shared("dos", 2*qt*(a.Dv+8))
+		dots := k.shared("dots", 2*a.Dv*(qt+8))
+		info := k.shared("satir", 4*4*qt) // sorgu başına lse·log2e, D, alt ve üst sınır
 		l := k.lanes(f.tid)
 		t2 := k.r()
 		k.e("shl.b32", t2, l.t, 1)
@@ -283,11 +297,11 @@ func flashMmaBackwardKVKernel(a flashMma, modeK, modeV int) func() *emitter {
 		ka := k.fragA16(k.seqBase(pk, f.bhkv, f.Tk, f.Hkv, a.Dh, 2), keys, t2, f.Tk, a.Dh)
 		va := k.fragA16(k.seqBase(pv, f.bhkv, f.Tk, f.Hkv, a.Dv, 2), keys, t2, f.Tk, a.Dv)
 		dK, dV := k.zeroFrags(a.Dh/8), k.zeroFrags(a.Dv/8)
-		St, dPt := k.zeroFrags(mmaQT/8), k.zeroFrags(mmaQT/8)
+		St, dPt := k.zeroFrags(qt/8), k.zeroFrags(qt/8)
 		qsAddr := k.laneAddr(qs, l, t2, a.Dh+8)
 		dosAddr := k.laneAddr(dos, l, t2, a.Dv+8)
-		qtsAddr := k.laneAddr(qts, l, t2, mmaQT+8)
-		dotsAddr := k.laneAddr(dots, l, t2, mmaQT+8)
+		qtsAddr := k.laneAddr(qts, l, t2, qt+8)
+		dotsAddr := k.laneAddr(dots, l, t2, qt+8)
 		sc2 := k.f()
 		k.e("mul.rn.f32", sc2, f.scaleF, float32(math.Log2E))
 		iStart, iEnd := f.queryRange(j0)
@@ -312,8 +326,8 @@ func flashMmaBackwardKVKernel(a flashMma, modeK, modeV int) func() *emitter {
 		k.e("setp.ge.s32", p, i0, iEnd)
 		k.jumpIf(p, done)
 		k.barrier()
-		k.loadTile16(tile16{row: qs, trans: qts, R: mmaQT, D: a.Dh}, qb, i0, f.Tq, f.tid)
-		k.loadTileF32(tile16{row: dos, trans: dots, R: mmaQT, D: a.Dv}, dob, i0, f.Tq, f.tid, a.f16)
+		k.loadTile16(tile16{row: qs, trans: qts, R: qt, D: a.Dh}, qb, i0, f.Tq, f.tid)
+		k.loadTileF32(tile16{row: dos, trans: dots, R: qt, D: a.Dv}, dob, i0, f.Tq, f.tid, a.f16)
 		f.queryInfo(info, i0, lb, plse, pd)
 		k.barrier()
 		k.clearFrags(St)
@@ -321,9 +335,9 @@ func flashMmaBackwardKVKernel(a flashMma, modeK, modeV int) func() *emitter {
 		k.fragMul(St, ka, qsAddr, a.Dh+8, a.f16)
 		k.fragMul(dPt, va, dosAddr, a.Dv+8, a.f16)
 		f.kvProbs(St, dPt, keys, info, t2, sc2)
-		k.fragMul(dV, k.fragToA(St, a.f16), dotsAddr, mmaQT+8, a.f16)
-		k.fragMul(dK, k.fragToA(dPt, a.f16), qtsAddr, mmaQT+8, a.f16)
-		k.e("add.s32", i0, i0, mmaQT)
+		k.fragMul(dV, k.fragToA(St, a.f16), dotsAddr, qt+8, a.f16)
+		k.fragMul(dK, k.fragToA(dPt, a.f16), qtsAddr, qt+8, a.f16)
+		k.e("add.s32", i0, i0, qt)
 		k.jump(loop)
 		k.put(done)
 		k.e("add.s32", g, g, 1)
@@ -339,7 +353,7 @@ func flashMmaBackwardKVKernel(a flashMma, modeK, modeV int) func() *emitter {
 // sorgu bilgileri (lse2, D, görünür anahtar aralığı) paylaşımlı bellekten.
 func (f *flashShared) kvProbs(St, dPt [][4]reg, keys [2]reg, info, t2, sc2 reg) {
 	k := f.k
-	get := k.columnInfo(info, t2)
+	get := k.columnInfo(info, t2, f.a.Br)
 	f.probsGrad(St, dPt, sc2, func(n, c int) reg {
 		v := get(n, c)
 		p1, p2 := k.p(), k.p()
@@ -351,8 +365,8 @@ func (f *flashShared) kvProbs(St, dPt [][4]reg, keys [2]reg, info, t2, sc2 reg) 
 }
 
 // columnInfo parça sütununun (sorgunun) paylaşımlı bellekteki bilgilerini [lse2, D, alt, üst]
-// okuyan işlevi verir; her sütun bir kez okunur.
-func (k *emitter) columnInfo(info, t2 reg) func(n, c int) [4]reg {
+// okuyan işlevi verir; her sütun bir kez okunur. qt sorgu döşemesidir (bilgi dizilerinin adımı).
+func (k *emitter) columnInfo(info, t2 reg, qt int) func(n, c int) [4]reg {
 	cache := map[int][4]reg{}
 	return func(n, c int) [4]reg {
 		key := 8*n + c%2
@@ -366,9 +380,9 @@ func (k *emitter) columnInfo(info, t2 reg) func(n, c int) [4]reg {
 		v[0], v[1] = k.f(), k.f()
 		v[2], v[3] = k.r(), k.r()
 		k.e("ld.shared.f32", v[0], mem(ad, 0))
-		k.e("ld.shared.f32", v[1], mem(ad, 4*mmaQT))
-		k.e("ld.shared.u32", v[2], mem(ad, 8*mmaQT))
-		k.e("ld.shared.u32", v[3], mem(ad, 12*mmaQT))
+		k.e("ld.shared.f32", v[1], mem(ad, 4*qt))
+		k.e("ld.shared.u32", v[2], mem(ad, 8*qt))
+		k.e("ld.shared.u32", v[3], mem(ad, 12*qt))
 		cache[key] = v
 		return v
 	}
@@ -391,14 +405,14 @@ func (f *flashShared) rowStats(row, lb, plse, pd reg) (lo, hi, lse, dd reg) {
 	return lo, hi, lse, dd
 }
 
-// queryInfo sorgu döşemesinin (i0..i0+mmaQT) satır bilgilerini paylaşımlı belleğe yazar:
+// queryInfo sorgu döşemesinin (i0..i0+f.a.Br) satır bilgilerini paylaşımlı belleğe yazar:
 // lse·log2e (Tq dışında +∞), D, görünür anahtar aralığının alt ve üst sınırı (Tq dışında boş).
-// İlk mmaQT iş parçacığı yazar.
+// İlk f.a.Br iş parçacığı yazar.
 func (f *flashShared) queryInfo(info, i0, lb, plse, pd reg) {
 	k := f.k
 	skip := k.label()
 	p := k.p()
-	k.e("setp.ge.u32", p, f.tid, mmaQT)
+	k.e("setp.ge.u32", p, f.tid, f.a.Br)
 	k.jumpIf(p, skip)
 	i := k.r()
 	k.e("add.s32", i, i0, f.tid)
@@ -406,8 +420,8 @@ func (f *flashShared) queryInfo(info, i0, lb, plse, pd reg) {
 	ad := k.r()
 	k.e("mad.lo.s32", ad, f.tid, 4, info)
 	k.e("st.shared.f32", mem(ad, 0), lse)
-	k.e("st.shared.f32", mem(ad, 4*mmaQT), dd)
-	k.e("st.shared.u32", mem(ad, 8*mmaQT), lo)
-	k.e("st.shared.u32", mem(ad, 12*mmaQT), hi)
+	k.e("st.shared.f32", mem(ad, 4*f.a.Br), dd)
+	k.e("st.shared.u32", mem(ad, 8*f.a.Br), lo)
+	k.e("st.shared.u32", mem(ad, 12*f.a.Br), hi)
 	k.put(skip)
 }

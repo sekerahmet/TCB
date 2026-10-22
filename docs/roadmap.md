@@ -163,7 +163,7 @@ H4 (compile ile başa baş) süren bir hedef olarak Evre 6'ya taşındı. Kalan 
    - Dikkatin adımlı girdi okuması: H4 işi olarak Evre 6'ya taşındı.
 3. **Rastgelelik anahtarı ve dropout.** Evre 4'e ertelendi; yeniden hesaplamanın önkoşulu.
 4. **Bakış boyu uyumu. Kalan (kapanış şartı).** (Bakış: dikkatin *head*'i; 2026-10-21'de "baş" yerine, literatürün birebir çevirisi eş sesliydi.)
-   - Tensör çekirdekli dikkatin geri yönü bakış boyu 128'e: bugün en çok 64, büyüğünde SIMT yola düşer.
+   - Tensör çekirdekli dikkatin geri yönü bakış boyu 128'e: **yapıldı (2026-10-22).** Bakış boyu 64'ü aşınca iki geri çekirdeğin döşemesi 32'dir (FlashAttention-2 `run_mha_bwd_hdim128` ve Triton fused-attention emsali; paylaşımlı bellek 48 KB'nin altında). RTX PRO 6000'de bf16 nedensel ileri + geri: B8 H8 T1024 3,81 → 0,73 ms, B4 H16 GQA T2048 14,04 → 2,41 ms; bakış boyu 64 değişmedi.
    - Gizli boyuttan bağımsız bakış boyu: yapıldı (2026-10-21). `NedenselDikkat`, `TransformerBloğu` ve `GPT` `bakış_boyutu:` alır (Hugging Face `head_dim` kuralı: verilmezse `boyut / bakış_sayısı`; sorgu `[boyut, bakış_sayısı · bakış_boyutu]`, çıkış `[bakış_sayısı · bakış_boyutu, boyut]`).
 
    Açık modellerin neredeyse hepsi 128 kullanır; Evre 4'teki hazır model yüklemenin önkoşuludur.
@@ -195,7 +195,7 @@ H4 (compile ile başa baş) süren bir hedef olarak Evre 6'ya taşındı. Kalan 
 - Kalite uzun koşuda da tutar: en az 0,8 milyar parça, iki tohum. Doğrulama kaybı PyTorch'la gürültü düzeyinde aynıdır.
 - Hız en çok 1,2 × `torch.compile`'dır (H3). **Sağlandı (162 / 136 ms).** Gerçek verideki ~10 ms'lik fark giderildi; gerçek veride 162 / 134 ms (1,21; compile'ın gerçek veri sayısı tek koşudan, yeniden ölçülecek).
 - Bellek en çok 1,1 × `torch.compile`'dır. **Sağlandı (10,81 / 10,8 GiB).**
-- Bakış boyu 128 tensör çekirdeğiyle ileri ve geri çalışır; bakış boyu gizli boyuttan bağımsızdır (**bağımsızlık sağlandı**; geri yön 128 kalan).
+- Bakış boyu 128 tensör çekirdeğiyle ileri ve geri çalışır; bakış boyu gizli boyuttan bağımsızdır. **Sağlandı (2026-10-22).**
 - Eğitim bir NaN'de ya da kayıp sıçramasında kendiliğinden durur ya da son kontrol noktasına döner. **Sağlandı** (`TestTargetModelRollsBackOnNaN`).
 - Ölçümler ve GPU testleri en az iki kart türünde geçer.
 
@@ -385,7 +385,7 @@ Kararlar bu soruların yanıtıyla gözden geçirilir; ilk ikisi TR'nin kendi ö
 - Tensör çekirdeği: AVX2/FMA matris çarpımı (çalışma anında seçilir), ters yönlü otomatik türev, kalıcı işçi havuzu.
 - Veri hattı: `.npy` parçaları, önden yükleme, önbellek; genel `tokenizer.json` parçalayıcısı.
 - bf16/fp16 veri türleri ve `karışık_hassasiyet` bloğu; 16 bitlik ara gradyanlar kendi türünde, float32 ağırlığın gradyanı yuvarlanmadan.
-- GPU arka ucu: Go'nun ürettiği GPU kodu, bütün tensör işlemleri ve gradyanları, tensör çekirdekli dikkat (ileri ve geri, bakış boyu 64'e kadar), cuBLASLt ile bf16 matris çarpımı, çok tensörlü iyileştirici adımları, kontrol noktası ve gradyan kırpma cihazda.
+- GPU arka ucu: Go'nun ürettiği GPU kodu, bütün tensör işlemleri ve gradyanları, tensör çekirdekli dikkat (ileri ve geri, bakış boyu 128'e kadar), cuBLASLt ile bf16 matris çarpımı, çok tensörlü iyileştirici adımları, kontrol noktası ve gradyan kırpma cihazda.
 - Kodlar: dilin bütün adları sabit kodlara bağlı (`internal/lang/codes`); açıklamalı başvuru `docs/codes.md`; kodlu saklama (`tr kodla`, `tr çöz`, `tr göster`) ve VS Code izdüşümü; İngilizce yazım dili.
 - Tek yazım: Türkçe harfsiz biçimler, eş yazımlar ve İngilizce eşler kaldırıldı; yerleşik ad gölgeleme uyarısı.
 - Matematik ve model yapı taşları: genişletilmiş eleman bazlı matematik, birleşik `dikkat`, `örnekle`, `parametreler(model)`, `türev_denetle`; Transformer kitaplığı (`tr/katman`: Doğrusal, RMSNorm, RoPE, gruplu sorgu dikkati, SwiGLU, GPT).
