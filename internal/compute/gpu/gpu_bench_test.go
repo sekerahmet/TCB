@@ -357,8 +357,11 @@ func microNorm(g *backend, band float64, divide int) {
 			rinv = g.RMSNorm(out, xv, &gv, D, 1e-6)
 		})
 		microWrite(c.ad+" ileri", "kendi", ms, float64(4*e)/1e9/(ms/1e3), fmt.Sprintf("GB/s (%%%.0f)", 100*float64(4*e)/1e9/(ms/1e3)/band))
-		ms = microMeasure(g, 10, func() { g.RMSNormGrad(gx, ggamma, gs, xv, &gv, rinv, D) })
+		// Taze gx (ilk gradyan; üzerine yazılır, NormGradSetter) ve ekleyerek (gx okunur).
+		ms = microMeasure(g, 10, func() { g.RMSNormGradSet(gx, ggamma, gs, xv, &gv, rinv, D) })
 		microWrite(c.ad+" geri", "kendi", ms, float64(6*e)/1e9/(ms/1e3), fmt.Sprintf("GB/s (%%%.0f)", 100*float64(6*e)/1e9/(ms/1e3)/band))
+		ms = microMeasure(g, 10, func() { g.RMSNormGrad(gx, ggamma, gs, xv, &gv, rinv, D) })
+		microWrite(c.ad+" geri ekleyerek", "kendi", ms, float64(8*e)/1e9/(ms/1e3), fmt.Sprintf("GB/s (%%%.0f)", 100*float64(8*e)/1e9/(ms/1e3)/band))
 		for _, s := range []tensor.Storage{x, gamma, gs, out, gx, ggamma, rinv} {
 			g.Release(s)
 		}

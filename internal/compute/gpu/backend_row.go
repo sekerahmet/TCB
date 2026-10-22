@@ -303,7 +303,7 @@ func (g *backend) rowSums(target tensor.Storage, source *storage, R, D int) {
 // P blok, her biri ardışık satır parçası; blok başına kısmi γ toplamları [P, D] sonra satırlar
 // boyunca sabit sırayla indirgenir. P SM başına 2048 iş parçacığını dolduracak kadardır (ayar SM
 // sayısından seçilir; aynı kartta her koşuda aynı sonuç).
-func (g *backend) normBackwardFused(gt *temp, dx *storage, ggamma tensor.Storage, gd *storage, xv tensor.View, gv *tensor.View, avg, rstd tensor.Storage, R, D int, layer bool, dxT tensor.DType) {
+func (g *backend) normBackwardFused(gt *temp, dx *storage, ggamma tensor.Storage, gd *storage, xv tensor.View, gv *tensor.View, avg, rstd tensor.Storage, R, D int, layer, set bool, dxT tensor.DType) {
 	B := powerOfTwo(D, 32, 256)
 	C := (D + B - 1) / B
 	_, sm := g.sr.capability()
@@ -311,7 +311,7 @@ func (g *backend) normBackwardFused(gt *temp, dx *storage, ggamma tensor.Storage
 	chunk := (R + P - 1) / P
 	P = (R + chunk - 1) / chunk
 	part := gt.buffer(P*D, false)
-	a := normConfig{B: B, layer: layer, gamma: gv != nil, xGrad: dx != nil, gammaGrad: true,
+	a := normConfig{B: B, layer: layer, gamma: gv != nil, xGrad: dx != nil, gammaGrad: true, set: set,
 		dt: [5]tensor.DType{g.storageOf(xv.S).dtype, gd.dtype, g.viewType(gv), tensor.Float32, dxT}}
 	c := g.takeKernel(fmt.Sprintf("%s:%d", a.key("norm_geri_parcali"), C), normBackwardFusedKernel(a, C))
 	p := g.param().writeTo(dx).write(part, 0).read(gd, 0).readV(xv)
@@ -323,7 +323,7 @@ func (g *backend) normBackwardFused(gt *temp, dx *storage, ggamma tensor.Storage
 // normBackwardWarp γ'nın gradyanı istenen geri yönü warp çekirdeğiyle yürütür (normWarpGradD):
 // satırlar blok parçalarına bölünür (normBackwardFused ile SM başına aynı iş parçacığı sayısı: 2048), x iki düzeyli
 // adımla yerinde okunur, γ'nın kısmi toplamları [P, D] sabit sırayla toplanır.
-func (g *backend) normBackwardWarp(gt *temp, gx, ggamma tensor.Storage, gd *storage, x tensor.View, gamma *tensor.View, avg, rstd tensor.Storage, R, D, H, S0, S1 int, layer bool) {
+func (g *backend) normBackwardWarp(gt *temp, gx, ggamma tensor.Storage, gd *storage, x tensor.View, gamma *tensor.View, avg, rstd tensor.Storage, R, D, H, S0, S1 int, layer, set bool) {
 	gv := gt.readNativeP(gamma)
 	var dx *storage
 	dxT := tensor.Float32
@@ -336,7 +336,7 @@ func (g *backend) normBackwardWarp(gt *temp, gx, ggamma tensor.Storage, gd *stor
 	chunk := (R + P - 1) / P
 	P = (R + chunk - 1) / chunk
 	part := gt.buffer(P*D, false)
-	a := normConfig{D: D, layer: layer, gamma: gv != nil, xGrad: dx != nil, gammaGrad: true,
+	a := normConfig{D: D, layer: layer, gamma: gv != nil, xGrad: dx != nil, gammaGrad: true, set: set,
 		dt: [5]tensor.DType{g.storageOf(x.S).dtype, gd.dtype, g.viewType(gv), tensor.Float32, dxT}}
 	c := g.takeKernel(a.key("norm_geri"), normBackwardWarpKernel(a))
 	p := g.param().writeTo(dx).write(part, 0).read(gd, 0).readV(x)
@@ -361,7 +361,9 @@ func (g *backend) normOperands(p *paramWriter, gv *tensor.View, avg, rstd tensor
 }
 
 // normBackward katman ya da RMS normunun geri yönü.
-func (g *backend) normBackward(gx, ggamma, gbeta, gs tensor.Storage, x tensor.View, gamma *tensor.View, avg, rstd tensor.Storage, D int, layer bool) {
+// set doğruysa gx tazedir (NormGradSetter): eski içeriği okunmadan üzerine yazılır; satır başına
+// bloklu çekirdeğin yolunda (γ gradyanı yok ya da çok geniş satır) önce sıfırlanır.
+func (g *backend) normBackward(gx, ggamma, gbeta, gs tensor.Storage, x tensor.View, gamma *tensor.View, avg, rstd tensor.Storage, D int, layer, set bool) {
 	gt := g.temp()
 	defer gt.finish()
 	R := 0
@@ -374,7 +376,7 @@ func (g *backend) normBackward(gx, ggamma, gbeta, gs tensor.Storage, x tensor.Vi
 	checkSize(R * D)
 	gd := g.storageOf(gs)
 	if H, S0, S1, ok := rowMap(x, D); ok && ggamma != nil && normWarpGradD(D) {
-		g.normBackwardWarp(gt, gx, ggamma, gd, x, gamma, avg, rstd, R, D, H, S0, S1, layer)
+		g.normBackwardWarp(gt, gx, ggamma, gd, x, gamma, avg, rstd, R, D, H, S0, S1, layer, set)
 		if gbeta != nil {
 			g.rowSums(gbeta, gd, R, D)
 		}
@@ -392,11 +394,14 @@ func (g *backend) normBackward(gx, ggamma, gbeta, gs tensor.Storage, x tensor.Vi
 			dxT = dx.dtype
 		}
 		if B := powerOfTwo(D, 32, 256); ggamma != nil && D <= B*normGradCols {
-			g.normBackwardFused(gt, dx, ggamma, gd, xv, gv, avg, rstd, R, D, layer, dxT)
+			g.normBackwardFused(gt, dx, ggamma, gd, xv, gv, avg, rstd, R, D, layer, set, dxT)
 			if gbeta != nil {
 				g.rowSums(gbeta, gd, R, D)
 			}
 			return
+		}
+		if set && dx != nil {
+			g.fill(dx, 0) // satır başına bloklu çekirdek ekler: taze gradyan önce sıfırlanır
 		}
 		var term *storage
 		if ggamma != nil {
@@ -427,7 +432,14 @@ func (g *backend) LayerNorm(out tensor.Storage, x tensor.View, gamma, beta *tens
 func (g *backend) LayerNormGrad(gx, ggamma, gbeta, gs tensor.Storage, x tensor.View, gamma *tensor.View, mean, rstd tensor.Storage, D int) {
 	g.enter()
 	defer g.exit()
-	g.normBackward(gx, ggamma, gbeta, gs, x, gamma, mean, rstd, D, true)
+	g.normBackward(gx, ggamma, gbeta, gs, x, gamma, mean, rstd, D, true, false)
+}
+
+// LayerNormGradSet (tensor.NormGradSetter) LayerNormGrad'ın taze gx'in üzerine yazan biçimi.
+func (g *backend) LayerNormGradSet(gx, ggamma, gbeta, gs tensor.Storage, x tensor.View, gamma *tensor.View, mean, rstd tensor.Storage, D int) {
+	g.enter()
+	defer g.exit()
+	g.normBackward(gx, ggamma, gbeta, gs, x, gamma, mean, rstd, D, true, true)
 }
 
 func (g *backend) RMSNorm(out tensor.Storage, x tensor.View, gamma *tensor.View, D int, eps float32) tensor.Storage {
@@ -440,5 +452,12 @@ func (g *backend) RMSNorm(out tensor.Storage, x tensor.View, gamma *tensor.View,
 func (g *backend) RMSNormGrad(gx, ggamma, gs tensor.Storage, x tensor.View, gamma *tensor.View, rinv tensor.Storage, D int) {
 	g.enter()
 	defer g.exit()
-	g.normBackward(gx, ggamma, nil, gs, x, gamma, nil, rinv, D, false)
+	g.normBackward(gx, ggamma, nil, gs, x, gamma, nil, rinv, D, false, false)
+}
+
+// RMSNormGradSet (tensor.NormGradSetter) RMSNormGrad'ın taze gx'in üzerine yazan biçimi.
+func (g *backend) RMSNormGradSet(gx, ggamma, gs tensor.Storage, x tensor.View, gamma *tensor.View, rinv tensor.Storage, D int) {
+	g.enter()
+	defer g.exit()
+	g.normBackward(gx, ggamma, nil, gs, x, gamma, nil, rinv, D, false, true)
 }

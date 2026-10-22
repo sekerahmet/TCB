@@ -202,6 +202,25 @@ func TestNormsWarpZeroStride(t *testing.T) {
 	}
 }
 
+// x'in ilk gradyanı taze depoya üzerine yazılır (NormGradSetter: warp, kaynaşık ve satır başına
+// bloklu yolda), sonraki gradyanlar eklenir: x iki norma girdiğinde gradyan ikisinin toplamıdır;
+// γ'nın gradyanı istenmeyen (satır başına bloklu) yolda taze gx önce sıfırlanır.
+func TestNormsFreshAndAccumulatedGrad(t *testing.T) {
+	rng := rand.New(rand.NewSource(13))
+	for _, d := range [][2]int{{40, 64}, {6, 600}, {3, 2100}} {
+		R, D := d[0], d[1]
+		xv, gv := random(rng, R*D, 2), random(rng, D, 1)
+		compare(t, fmt.Sprintf("iki rms normu, birikim %d×%d", R, D), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+			x, gm := twin(xv, true, R, D)[c], twin(gv, true, D)[c]
+			return tensor.Add(tensor.RMSNorm(x, gm, 1e-5), tensor.LayerNorm(x, gm, nil, 1e-5).MulScalar(2)), []*tensor.Tensor{x, gm}
+		})
+		compare(t, fmt.Sprintf("γ gradyansız rms normu %d×%d", R, D), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+			x, gm := twin(xv, true, R, D)[c], twin(gv, false, D)[c]
+			return tensor.RMSNorm(x, gm, 1e-5), []*tensor.Tensor{x}
+		})
+	}
+}
+
 func TestEmbedding(t *testing.T) {
 	rng := rand.New(rand.NewSource(11))
 	V, D := 50, 13

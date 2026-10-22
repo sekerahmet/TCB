@@ -138,7 +138,7 @@ type warpGrad struct {
 // kısmi toplam [b, D] yazılır (satırlar boyunca son toplam ayrı, sabit sıralı indirgemededir).
 func normBackwardWarpKernel(a normConfig) func() *emitter {
 	return func() *emitter {
-		k := newEmitter(fmt.Sprintf("norm_geri_w%d_%v_%v_%v_%s_%s_%s_%s", a.D, a.layer, a.gamma, a.xGrad, a.dt[0], a.dt[1], a.dt[2], a.dt[4]))
+		k := newEmitter(fmt.Sprintf("norm_geri_w%d_%v_%v_%v_%s_%s_%s_%s%s", a.D, a.layer, a.gamma, a.xGrad, a.dt[0], a.dt[1], a.dt[2], a.dt[4], setSuffix(a.set)))
 		f := &warpGrad{a: a, gx: k.written("gx")}
 		part := k.written("kismi")
 		f.g, f.x = k.pointer("g"), k.pointer("x")
@@ -209,7 +209,7 @@ func (k *emitter) warpGradRow(f *warpGrad, r reg) {
 	m2 := k.warpSum(a2)
 	k.e("div.rn.f32", m2, m2, f.df)
 	for e := range hs {
-		k.normGradX(dhs[e], hs[e], m1, m2, rs, gxt, func() reg { return k.rowAt(f.gx, k.laneOffset(gofs, e), gxt) })
+		k.normGradX(dhs[e], hs[e], m1, m2, rs, gxt, a.set, func() reg { return k.rowAt(f.gx, k.laneOffset(gofs, e), gxt) })
 	}
 }
 

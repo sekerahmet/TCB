@@ -31,9 +31,15 @@ type normConfig struct {
 	// D > 0 warp çekirdeğidir (normWarpD): her warp bir satır, D derleme anında bilinir;
 	// blok warpRows satır işler. Sıfır: satır başına blok (B iş parçacığı).
 	D int
+	// set: x'in gradyanı taze, eski içeriği okunmadan üzerine yazılır (NormGradSetter);
+	// yanlışsa eklenir.
+	set bool
 }
 
 func (a normConfig) key(ad string) string {
+	if a.set {
+		ad += ":yaz"
+	}
 	if a.D > 0 {
 		return fmt.Sprintf("%s:w%d:%v:%v:%v:%v:%v:%v", ad, a.D, a.layer, a.gamma, a.beta, a.xGrad, a.gammaGrad, a.dt)
 	}
@@ -76,14 +82,19 @@ func (k *emitter) normGradTerm(gv, h, m, rs, gam, acc, a1, a2 reg) (reg, reg) {
 	return h, dh
 }
 
-// normGradX x'in gradyanını ekler: gx += rs·((dh − m1) − h·m2); adres hesaptan sonra kurulur.
-func (k *emitter) normGradX(dh, h, m1, m2, rs reg, gxt tensor.DType, addr func() reg) {
+// normGradX x'in gradyanını ekler: gx += rs·((dh − m1) − h·m2) (set: gx = ...; eski içerik
+// okunmaz); adres hesaptan sonra kurulur.
+func (k *emitter) normGradX(dh, h, m1, m2, rs reg, gxt tensor.DType, set bool, addr func() reg) {
 	t, hm := k.f(), k.f()
 	k.e("sub.rn.f32", t, dh, m1)
 	k.e("mul.rn.f32", hm, h, m2)
 	k.e("sub.rn.f32", t, t, hm)
 	k.e("mul.rn.f32", t, t, rs)
 	ha := addr()
+	if set {
+		k.store(gxt, ha, t)
+		return
+	}
 	old := k.load(gxt, ha)
 	k.e("add.rn.f32", old, old, t)
 	k.store(gxt, ha, old)
@@ -230,7 +241,7 @@ const normGradCols = 8
 // satır başına iki blok indirgemesiyle normBackwardKernel'deki formülle aynıdır.
 func normBackwardFusedKernel(a normConfig, C int) func() *emitter {
 	return func() *emitter {
-		k := newEmitter(fmt.Sprintf("norm_geri_%d_%d_%v_%v_%v_parcali_%s_%s_%s_%s", a.B, C, a.layer, a.gamma, a.xGrad, a.dt[0], a.dt[1], a.dt[2], a.dt[4]))
+		k := newEmitter(fmt.Sprintf("norm_geri_%d_%d_%v_%v_%v_parcali_%s_%s_%s_%s%s", a.B, C, a.layer, a.gamma, a.xGrad, a.dt[0], a.dt[1], a.dt[2], a.dt[4], setSuffix(a.set)))
 		f := &fusedNorm{a: a, gx: k.written("gx"), part: k.written("kismi"), g: k.pointer("g"), x: k.pointer("x")}
 		gm := k.pointer("gamma")
 		f.avg, f.rstd = k.pointer("ortalama"), k.pointer("rstd")
@@ -332,11 +343,19 @@ func (k *emitter) fusedNormRow(f *fusedNorm, r reg) {
 	for c := range f.cols {
 		skip := k.label()
 		k.jumpUnless(f.valid[c], skip)
-		k.normGradX(dhs[c], hs[c], m1, m2, rs, gxt, func() reg {
+		k.normGradX(dhs[c], hs[c], m1, m2, rs, gxt, a.set, func() reg {
 			o := k.r()
 			k.e("add.s32", o, base2, f.cols[c])
 			return k.rowAt(f.gx, o, gxt)
 		})
 		k.put(skip)
 	}
+}
+
+// setSuffix üzerine yazan (set) çekirdeğin ad ekidir; ekleyen çekirdeğin adı (ve PTX'i) değişmez.
+func setSuffix(set bool) string {
+	if set {
+		return "_yaz"
+	}
+	return ""
 }

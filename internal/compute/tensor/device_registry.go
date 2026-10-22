@@ -207,6 +207,14 @@ type UnaryGradSetter interface {
 	UnaryGradSet(op UnOp, p float32, gx, g Storage, x View, y Storage)
 }
 
+// NormGradSetter LayerNormGrad ve RMSNormGrad'ın taze gx'in üzerine yazan biçimini (gx'in eski
+// içeriği okunmaz) veren arka uçların isteğe bağlı arayüzüdür; γ ve β'nın gradyanları her zaman
+// eklenir.
+type NormGradSetter interface {
+	LayerNormGradSet(gx, ggamma, gbeta, g Storage, x View, gamma *View, mean, rstd Storage, D int)
+	RMSNormGradSet(gx, ggamma, g Storage, x View, gamma *View, rinv Storage, D int)
+}
+
 // CrossEntropyGradSetter CrossEntropyGrad'ın gx'in üzerine yazan biçimini (hedefi negatif
 // satırlar 0 olur) veren arka uçların isteğe bağlı arayüzüdür.
 type CrossEntropyGradSetter interface {

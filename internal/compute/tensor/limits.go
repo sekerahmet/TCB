@@ -108,6 +108,10 @@ func LayerNormAs(x, gamma, beta *Tensor, eps float32, dt DType) *Tensor {
 	// konumla bulur.
 	xv := x.view()
 	r := track(out, "layer_norm", []*Tensor{x, gamma, beta}, func(o *node) {
+		if gx, ns := freshNormGrad(be, o.parents[0]); ns != nil {
+			ns.LayerNormGradSet(gx, optGrad(o.parents[1]), optGrad(o.parents[2]), o.grad, xv, gv, mean, rstd, D)
+			return
+		}
 		be.LayerNormGrad(optGrad(o.parents[0]), optGrad(o.parents[1]), optGrad(o.parents[2]), o.grad, xv, gv, mean, rstd, D)
 	}, x, gamma)
 	if x.dtyp == Float32 {
@@ -135,6 +139,10 @@ func RMSNormAs(x, gamma *Tensor, eps float32, dt DType) *Tensor {
 	rinv := be.RMSNorm(out.storage, x.view(), gv, D, eps)
 	xv := x.view()
 	r := track(out, "rms_norm", []*Tensor{x, gamma}, func(o *node) {
+		if gx, ns := freshNormGrad(be, o.parents[0]); ns != nil {
+			ns.RMSNormGradSet(gx, optGrad(o.parents[1]), o.grad, xv, gv, rinv, D)
+			return
+		}
 		be.RMSNormGrad(optGrad(o.parents[0]), optGrad(o.parents[1]), o.grad, xv, gv, rinv, D)
 	}, x, gamma)
 	if x.dtyp == Float32 {
@@ -142,6 +150,20 @@ func RMSNormAs(x, gamma *Tensor, eps float32, dt DType) *Tensor {
 	}
 	sy.finish()
 	return r
+}
+
+// freshNormGrad x'in gradyanı taze (ilk) ve arka uç üzerine yazabiliyorsa (NormGradSetter) taze
+// depoyu ve arka ucu verir: gradyan sıfırlanmadan ayrılır, norm onun eski içeriğini okumaz. Değilse
+// (gradyan yok, birikiyor ya da arka uç yazamıyor) arka uç nil'dir ve çağıran ekleyen biçimi kullanır.
+func freshNormGrad(be Backend, x *node) (Storage, NormGradSetter) {
+	ns, writer := be.(NormGradSetter)
+	if !writer || !x.wants() {
+		return nil, nil
+	}
+	if gx, fresh := x.freshGrad(true); fresh {
+		return gx, ns
+	}
+	return nil, nil
 }
 
 // checkNormDims normalleştirilecek girdinin en az 1 boyutlu olduğunu denetler.
