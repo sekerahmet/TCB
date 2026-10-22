@@ -346,15 +346,6 @@ func TestCacheCopyValidation(t *testing.T) {
 	}
 }
 
-// runningWorkers cekirdekAc'ın başlattığı işçi gorutinlerini sayar ("created by" satırı
-// gorutin henüz çalışmaya başlamamışken de vardır; giriş fonksiyonunun adı o sırada farklı
-// görünür). Toplam gorutin sayısıyla karşılaştırmak kararsızdı: önceki testlerden kalan
-// gorutinler bu arada bitince sayı düşüyor, işçiler başlamış olsa da test kalıyordu.
-func runningWorkers() int {
-	b := make([]byte, 1<<20)
-	return strings.Count(string(b[:runtime.Stack(b, true)]), "created by github.com/sekerahmet/TCB/internal/compute/dataload.openCore ")
-}
-
 func TestCacheWorkerCounts(t *testing.T) {
 	baseOff := runtime.NumGoroutine()
 	src := t.TempDir()
@@ -369,7 +360,7 @@ func TestCacheWorkerCounts(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if n := runningWorkers(); n != worker {
+		if n := waitWorkers(worker); n != worker {
 			t.Fatalf("%d işçi gorutini bekleniyordu, %d çalışıyor", worker, n)
 		}
 		o.Prepare(paths)

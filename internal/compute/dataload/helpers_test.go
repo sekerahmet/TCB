@@ -132,3 +132,25 @@ func checkShardLeak(t *testing.T) {
 		}
 	})
 }
+
+// runningWorkers cekirdekAc'ın başlattığı işçi gorutinlerini sayar ("created by" satırı
+// gorutin henüz çalışmaya başlamamışken de vardır; giriş fonksiyonunun adı o sırada farklı
+// görünür). Toplam gorutin sayısıyla karşılaştırmak kararsızdı: önceki testlerden kalan
+// gorutinler bu arada bitince sayı düşüyor, işçiler başlamış olsa da test kalıyordu.
+func runningWorkers() int {
+	b := make([]byte, 1<<20)
+	return strings.Count(string(b[:runtime.Stack(b, true)]), "created by github.com/sekerahmet/TCB/internal/compute/dataload.openCore ")
+}
+
+// waitWorkers işçi sayısı n olana kadar (en çok 3 sn) bekler ve son sayıyı verir. Tek bir
+// sayım kararsızdı: kapanan önceki önbelleğin işçisi wg.Done'dan sonra bir an daha yığın
+// dökümünde görünebilir (yarış dedektörüyle CI'da 4 yerine 5 sayıldı).
+func waitWorkers(n int) int {
+	last := time.Now().Add(3 * time.Second)
+	for {
+		if c := runningWorkers(); c == n || time.Now().After(last) {
+			return c
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+}
