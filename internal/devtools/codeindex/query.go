@@ -1,7 +1,9 @@
 package codeindex
 
 import (
+	"cmp"
 	"sort"
+	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 )
@@ -123,13 +125,18 @@ func posLess(a, b *Pos) bool {
 	if a == nil || b == nil {
 		return a != nil
 	}
-	if a.File != b.File {
-		return a.File < b.File
+	return comparePos(*a, *b) < 0
+}
+
+// comparePos iki konumu dosya, satır, sütun sırasıyla karşılaştırır (-1, 0, 1).
+func comparePos(a, b Pos) int {
+	if c := strings.Compare(a.File, b.File); c != 0 {
+		return c
 	}
-	if a.Line != b.Line {
-		return a.Line < b.Line
+	if c := cmp.Compare(a.Line, b.Line); c != 0 {
+		return c
 	}
-	return a.Col < b.Col
+	return cmp.Compare(a.Col, b.Col)
 }
 
 // TestedBy düğümü sınayan test bloklarını verir: önce doğrudan olanlar (testin kendisi çağırır),
