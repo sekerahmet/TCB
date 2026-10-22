@@ -478,6 +478,24 @@ func prefetcherCloser(pf *dataload.Prefetcher) func(time.Duration) error {
 	}
 }
 
+// takeOne önden yükleyiciden bir toplu iş çeker (o.mu tutulur) ve sayaç, dönem ve konumu günceller.
+// Veri bitmişse okuyucuyu kapatır ve eof döner (hata nil).
+func (o *Reader) takeOne() (eof bool, err error) {
+	err = o.pf.Take(&o.ti)
+	if errors.Is(err, io.EOF) {
+		o.done = true
+		_ = o.resource.Close(0)
+		return true, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	o.counter++
+	o.epoch = o.ti.State.Epoch
+	o.pos = o.ti.State
+	return false, nil
+}
+
 // nextTR bir sonraki toplu işi [girdi, hedef] olarak verir; sıralı okuyucu bitince yok.
 func (o *Reader) nextTR(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.DisplayName(memberNext)
@@ -500,18 +518,11 @@ func (o *Reader) nextTR(m *interp.VM, args []interp.Value, named map[string]inte
 			last = true
 			return
 		}
-		err = o.pf.Take(&o.ti)
-		if errors.Is(err, io.EOF) {
-			o.done, last, err = true, true, nil
-			_ = o.resource.Close(0)
+		var eof bool
+		if eof, err = o.takeOne(); eof || err != nil {
+			last = eof
 			return
 		}
-		if err != nil {
-			return
-		}
-		o.counter++
-		o.epoch = o.ti.State.Epoch
-		o.pos = o.ti.State
 		b, t = o.ti.B, o.ti.T
 		input, target, err = split(&o.ti)
 	})
