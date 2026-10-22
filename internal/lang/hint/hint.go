@@ -53,7 +53,13 @@ func NameSuggestion(name string, visible []string) string {
 	if i := BuiltinSpellingHint(name); i != "" {
 		return i
 	}
-	if o := turkish.Closest(name, visible); o != "" {
+	return ClosestSuggestion(name, visible)
+}
+
+// ClosestSuggestion returns the "Bunu mu demek istediniz?" suggestion (H1104) for the
+// candidate closest to name; the empty string when none is close enough.
+func ClosestSuggestion(name string, candidates []string) string {
+	if o := turkish.Closest(name, candidates); o != "" {
 		return messages.Text(messages.H1104, o)
 	}
 	return ""
@@ -81,5 +87,10 @@ func TypeTextComparisonError(op, text, example string) *messages.Error {
 // UndefinedNameMessage returns the same message for an undefined name at run time and in the
 // checker (without the position prefix).
 func UndefinedNameMessage(name string, visible []string) string {
-	return messages.Text(messages.H1106, name, NameSuggestion(name, visible))
+	return UndefinedNameError(name, visible).Error()
+}
+
+// UndefinedNameError is UndefinedNameMessage as a coded error (H1106).
+func UndefinedNameError(name string, visible []string) *messages.Error {
+	return messages.New(messages.H1106, name, NameSuggestion(name, visible))
 }

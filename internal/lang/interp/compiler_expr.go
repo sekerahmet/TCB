@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/hint"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -300,7 +301,7 @@ func (c *compiler) readName(k *compilerScope, e *ast.Identifier) exprCode {
 func readByName(env *Environment, e *ast.Identifier) (Value, error) {
 	val, ok := env.Get(e.Value)
 	if !ok {
-		return nil, messages.At(e.Line(), e.Token.Column, messages.New(messages.H1106, e.Value, suggestName(e.Value, env)))
+		return nil, messages.At(e.Line(), e.Token.Column, hint.UndefinedNameError(e.Value, env.Names()))
 	}
 	return val, nil
 }
