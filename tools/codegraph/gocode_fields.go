@@ -34,7 +34,7 @@ func (x *goExtractor) fieldNodes(fc *fileCtx, ts *ast.TypeSpec, typeNode, pkg st
 	for _, f := range st.Fields.List {
 		idents := f.Names
 		if len(idents) == 0 { // gömülü alan: adı tipin adıdır
-			if id := embeddedIdent(f.Type); id != nil {
+			if id := nameIdent(f.Type); id != nil {
 				idents = []*ast.Ident{id}
 			}
 		}
@@ -52,26 +52,6 @@ func (x *goExtractor) fieldNodes(fc *fileCtx, ts *ast.TypeSpec, typeNode, pkg st
 				File: fc.rel, Line: line, End: x.line(f.End()), Detail: detail})
 			x.b.addEdge(typeNode, fid, edgeContains, extracted, fc.rel, line)
 			x.fieldAt[x.posKey(id.Pos())] = fid
-		}
-	}
-}
-
-// embeddedIdent gömülü alanın tip adını verir (*pkg.T, T[int] biçimleri dahil).
-func embeddedIdent(e ast.Expr) *ast.Ident {
-	for {
-		switch v := e.(type) {
-		case *ast.StarExpr:
-			e = v.X
-		case *ast.IndexExpr:
-			e = v.X
-		case *ast.IndexListExpr:
-			e = v.X
-		case *ast.SelectorExpr:
-			return v.Sel
-		case *ast.Ident:
-			return v
-		default:
-			return nil
 		}
 	}
 }

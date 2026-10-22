@@ -230,24 +230,9 @@ func nodeAtom(n ast.Node) string {
 		return n.Value
 	case *ast.FuncDecl:
 		if n.Recv != nil && len(n.Recv.List) > 0 {
-			return receiverName(n.Recv.List[0].Type) + "." + n.Name.Name
+			return recvTypeName(n.Recv.List[0].Type) + "." + n.Name.Name
 		}
 		return n.Name.Name
 	}
 	return ""
-}
-
-// receiverName alıcı türünün adıdır (işaretçi ve tür parametreleri atılır).
-func receiverName(e ast.Expr) string {
-	switch e := e.(type) {
-	case *ast.StarExpr:
-		return receiverName(e.X)
-	case *ast.IndexExpr:
-		return receiverName(e.X)
-	case *ast.IndexListExpr:
-		return receiverName(e.X)
-	case *ast.Ident:
-		return e.Name
-	}
-	return "?"
 }
