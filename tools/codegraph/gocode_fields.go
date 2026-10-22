@@ -5,7 +5,7 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
-	"sort"
+	"path"
 	"strconv"
 	"strings"
 )
@@ -20,7 +20,7 @@ type rawFieldUse struct {
 
 func (x *goExtractor) posKey(p token.Pos) string {
 	pos := x.m.Fset.Position(p)
-	return x.rel(pos.Filename) + ":" + strconv.Itoa(pos.Line) + ":" + strconv.Itoa(pos.Column)
+	return x.m.Rel(pos.Filename) + ":" + strconv.Itoa(pos.Line) + ":" + strconv.Itoa(pos.Column)
 }
 
 // fieldNodes bir struct tipinin alanlarını düğüm yapar (type → field `contains`) ve alanın bildirim
@@ -35,7 +35,7 @@ func (x *goExtractor) fieldNodes(fc *fileCtx, ts *ast.TypeSpec, typeNode, pkg st
 	for _, f := range st.Fields.List {
 		idents := f.Names
 		if len(idents) == 0 { // gömülü alan: adı tipin adıdır
-			if id := embeddedIdent(f.Type); id != nil {
+			if id := nameIdent(f.Type); id != nil {
 				idents = []*ast.Ident{id}
 			}
 		}
@@ -49,39 +49,12 @@ func (x *goExtractor) fieldNodes(fc *fileCtx, ts *ast.TypeSpec, typeNode, pkg st
 			if obj := fc.u.Info.Defs[id]; obj != nil {
 				detail = types.TypeString(obj.Type(), qual)
 			}
-			x.b.addNode(Node{ID: fid, Kind: kindField, Name: pathBase(pkg) + "." + ts.Name.Name + "." + id.Name,
+			x.b.addNode(Node{ID: fid, Kind: kindField, Name: path.Base(pkg) + "." + ts.Name.Name + "." + id.Name,
 				File: fc.rel, Line: line, End: x.line(f.End()), Detail: detail})
 			x.b.addEdge(typeNode, fid, edgeContains, extracted, fc.rel, line)
 			x.fieldAt[x.posKey(id.Pos())] = fid
 		}
 	}
-}
-
-// embeddedIdent gömülü alanın tip adını verir (*pkg.T, T[int] biçimleri dahil).
-func embeddedIdent(e ast.Expr) *ast.Ident {
-	for {
-		switch v := e.(type) {
-		case *ast.StarExpr:
-			e = v.X
-		case *ast.IndexExpr:
-			e = v.X
-		case *ast.IndexListExpr:
-			e = v.X
-		case *ast.SelectorExpr:
-			return v.Sel
-		case *ast.Ident:
-			return v
-		default:
-			return nil
-		}
-	}
-}
-
-func pathBase(p string) string {
-	if i := strings.LastIndexByte(p, '/'); i >= 0 {
-		return p[i+1:]
-	}
-	return p
 }
 
 // resolveFieldUses biriken ham erişimleri alan düğümlerine bağlar: okuma `reads_field`, yazma ve
@@ -263,15 +236,4 @@ func (x *goExtractor) closureNode(fc *fileCtx, owner string, lit *ast.FuncLit, s
 		File: fc.rel, Line: pos.Line, End: x.line(lit.End()), Detail: "func literal", Captured: x.captured(fc.u.Info, lit)})
 	x.b.addEdge(parent, id, edgeContains, extracted, fc.rel, pos.Line)
 	return id
-}
-
-// sortSites erişim yerlerini dosya ve satıra göre sıralar.
-func sortSites(sites []Site) {
-	sort.SliceStable(sites, func(i, j int) bool {
-		a, b := sites[i], sites[j]
-		if a.File != b.File {
-			return a.File < b.File
-		}
-		return a.Line < b.Line
-	})
 }

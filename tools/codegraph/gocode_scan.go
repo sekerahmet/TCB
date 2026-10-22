@@ -34,7 +34,7 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 		accessModes(modes, n)
 		switch n := n.(type) {
 		case *ast.CallExpr:
-			if id := calleeIdent(n.Fun); id != nil {
+			if id := nameIdent(n.Fun); id != nil {
 				callee[id] = true
 			}
 		case *ast.Ident:
@@ -91,11 +91,15 @@ func (x *goExtractor) literalFields(fc *fileCtx, owner string, lit *ast.Composit
 	}
 }
 
-// calleeIdent çağrılan ifadenin adını verir (parantez ve tip bağımsız değişkenleri atılır).
-func calleeIdent(e ast.Expr) *ast.Ident {
+// nameIdent bir ifadenin adını verir: parantez, gösterici ve tip bağımsız değişkenleri atılır, `pkg.Ad`ta
+// Ad alınır. Gömülü alanın tipi (*pkg.T, T[int]) ve çağrılan ifade (f, pkg.F, F[int], (f)) aynı kuralla
+// çözülür.
+func nameIdent(e ast.Expr) *ast.Ident {
 	for {
 		switch v := e.(type) {
 		case *ast.ParenExpr:
+			e = v.X
+		case *ast.StarExpr:
 			e = v.X
 		case *ast.IndexExpr:
 			e = v.X
@@ -175,7 +179,7 @@ func (x *goExtractor) implements() {
 				continue
 			}
 			pos := x.m.Fset.Position(tn.Pos())
-			d := decl{typeID(p, name), named, x.rel(pos.Filename), pos.Line}
+			d := decl{typeID(p, name), named, x.m.Rel(pos.Filename), pos.Line}
 			if it, isIface := named.Underlying().(*types.Interface); isIface {
 				if it.NumMethods() > 0 {
 					ifaces = append(ifaces, d)

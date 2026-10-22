@@ -121,9 +121,15 @@ func resolveTests(idx *goIndex, name string, hints []string, docDir string) ([]*
 	return nil, ""
 }
 
+// underDir file dir'in kendisi ya da altındaki bir yol mu (her ikisi köke göre, '/' ile).
+func underDir(file, dir string) bool {
+	return file == dir || strings.HasPrefix(file, dir+"/")
+}
+
+// underAny file dirs'ten birinin altında mı (boş listede yanlış; süzgeç yoksa sayılan dirMatches'tir).
 func underAny(file string, dirs []string) bool {
 	for _, d := range dirs {
-		if file == d || strings.HasPrefix(file, d+"/") {
+		if underDir(file, d) {
 			return true
 		}
 	}

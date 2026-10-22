@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"go/token"
 	"go/types"
-	"path/filepath"
+	gopath "path"
 	"sort"
 	"strings"
+
+	"github.com/sekerahmet/TCB/internal/devtools/goload"
 )
 
 // declKey names a declaration by its file and offset: the same declaration seen from different
@@ -21,14 +23,6 @@ func (m *module) key(obj types.Object) declKey {
 	return declKey{p.Filename, p.Offset}
 }
 
-// rel shows a path relative to the module root, with forward slashes.
-func (m *module) rel(file string) string {
-	if r, err := filepath.Rel(m.Root, file); err == nil {
-		return filepath.ToSlash(r)
-	}
-	return file
-}
-
 // shortPath drops the module prefix from an import path: internal/lang/codes.
 func (m *module) shortPath(path string) string {
 	return strings.TrimPrefix(strings.TrimPrefix(path, m.Path), "/")
@@ -39,7 +33,7 @@ func (m *module) shortPath(path string) string {
 func (m *module) findPackage(spec string) (string, error) {
 	var hits []string
 	for path := range m.Base {
-		if path == spec || m.shortPath(path) == spec || pathBase(path) == spec {
+		if path == spec || m.shortPath(path) == spec || gopath.Base(path) == spec {
 			hits = append(hits, path)
 		}
 	}
@@ -52,8 +46,6 @@ func (m *module) findPackage(spec string) (string, error) {
 	}
 	return "", fmt.Errorf("%q is ambiguous: %s", spec, strings.Join(hits, ", "))
 }
-
-func pathBase(p string) string { return p[strings.LastIndex(p, "/")+1:] }
 
 // findObject resolves "pkg.Name" or "pkg.Type.Member" (fields and methods). pkg is anything
 // findPackage accepts.
@@ -110,7 +102,7 @@ func (m *module) usesOf(obj types.Object) []use {
 				continue
 			}
 			seen[p] = true
-			out = append(out, use{m.shortPath(u.PkgPath), m.rel(p.Filename), p.Line})
+			out = append(out, use{m.shortPath(u.PkgPath), m.Rel(p.Filename), p.Line})
 		}
 	}
 	sort.Slice(out, func(i, j int) bool {
@@ -138,7 +130,7 @@ func (m *module) implementers(iface *types.Interface) []string {
 			}
 			if types.Implements(tn.Type(), iface) || types.Implements(types.NewPointer(tn.Type()), iface) {
 				p := m.Fset.Position(tn.Pos())
-				out = append(out, fmt.Sprintf("%s.%s  %s:%d", pathBase(path), name, m.rel(p.Filename), p.Line))
+				out = append(out, fmt.Sprintf("%s.%s  %s:%d", gopath.Base(path), name, m.Rel(p.Filename), p.Line))
 			}
 		}
 	}
@@ -191,12 +183,8 @@ func objName(o types.Object) string {
 	switch o := o.(type) {
 	case *types.Func:
 		if recv := o.Type().(*types.Signature).Recv(); recv != nil {
-			t := recv.Type()
-			if p, ok := t.(*types.Pointer); ok {
-				t = p.Elem()
-			}
-			if n, ok := t.(*types.Named); ok {
-				return n.Obj().Name() + "." + o.Name()
+			if n := goload.RecvName(recv.Type()); n != "" {
+				return n + "." + o.Name()
 			}
 		}
 	case *types.Var:

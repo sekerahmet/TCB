@@ -5,9 +5,10 @@ import (
 	"go/token"
 	"go/types"
 	"path"
-	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/sekerahmet/TCB/internal/devtools/goload"
 )
 
 // goIndex Go çıkarımının, sonradan çalışan çıkarıcıların (test ve kural bağları) kullandığı
@@ -47,17 +48,6 @@ func memberID(p, recv, name string) string {
 	return "go:func:" + p + "." + name
 }
 
-// recvName bir alıcı tipinin adını verir (gösterici ve tip parametreleri atılır); adsız tipte "".
-func recvName(t types.Type) string {
-	if p, ok := t.(*types.Pointer); ok {
-		t = p.Elem()
-	}
-	if n, ok := t.(*types.Named); ok {
-		return n.Obj().Name()
-	}
-	return ""
-}
-
 // funcRef bir işlevin kimliğini verir; adsız arayüzlerin metotları için "".
 func funcRef(f *types.Func) string {
 	sig, ok := f.Type().(*types.Signature)
@@ -66,7 +56,7 @@ func funcRef(f *types.Func) string {
 	}
 	recv := ""
 	if sig.Recv() != nil {
-		if recv = recvName(sig.Recv().Type()); recv == "" {
+		if recv = goload.RecvName(sig.Recv().Type()); recv == "" {
 			return ""
 		}
 	}
@@ -75,14 +65,6 @@ func funcRef(f *types.Func) string {
 
 func (x *goExtractor) inModule(p string) bool {
 	return p == x.m.Path || strings.HasPrefix(p, x.m.Path+"/")
-}
-
-func (x *goExtractor) rel(abs string) string {
-	r, err := filepath.Rel(x.m.Root, abs)
-	if err != nil {
-		return filepath.ToSlash(abs)
-	}
-	return filepath.ToSlash(r)
 }
 
 // pkgName paketin sorguda yazılan adıdır: modül köküne göre yol.
@@ -119,7 +101,7 @@ func (x *goExtractor) unit(u *unit) {
 }
 
 func (x *goExtractor) file(u *unit, base string, f *ast.File) {
-	rel := x.rel(x.m.Fset.Position(f.Pos()).Filename)
+	rel := x.m.Rel(x.m.Fset.Position(f.Pos()).Filename)
 	isTest := strings.HasSuffix(rel, "_test.go")
 	detail := ""
 	switch {
@@ -174,7 +156,7 @@ func (x *goExtractor) funcDecl(fc *fileCtx, d *ast.FuncDecl) {
 	kind := kindFunc
 	if d.Recv != nil {
 		kind = kindMethod
-		recv = recvName(obj.Type().(*types.Signature).Recv().Type())
+		recv = goload.RecvName(obj.Type().(*types.Signature).Recv().Type())
 	}
 	name := d.Name.Name
 	id := memberID(pkg, recv, name)

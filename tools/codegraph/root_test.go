@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 func sameDir(t *testing.T, got, want string) {
@@ -18,25 +20,15 @@ func sameDir(t *testing.T, got, want string) {
 	}
 }
 
-func writeFile(t *testing.T, path, body string) {
-	t.Helper()
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
-		t.Fatal(err)
-	}
-}
-
 func TestFindRootByModule(t *testing.T) {
 	top := t.TempDir()
-	writeFile(t, filepath.Join(top, "go.mod"), "module "+repoModule+"\n\ngo 1.25\n")
+	testkit.WritePath(t, filepath.Join(top, "go.mod"), "module "+repoModule+"\n\ngo 1.25\n")
 	deep := filepath.Join(top, "a", "b")
 	if err := os.MkdirAll(deep, 0o755); err != nil {
 		t.Fatal(err)
 	}
 	// Ara klasördeki başka bir modül kök sayılmaz.
-	writeFile(t, filepath.Join(top, "a", "go.mod"), "module example.com/other\n")
+	testkit.WritePath(t, filepath.Join(top, "a", "go.mod"), "module example.com/other\n")
 	got, err := findRoot(deep)
 	if err != nil {
 		t.Fatal(err)
@@ -49,7 +41,7 @@ func TestFindRootFallsBackToGitToplevel(t *testing.T) {
 		t.Skip("git yok")
 	}
 	top := t.TempDir()
-	writeFile(t, filepath.Join(top, "go.mod"), "module example.com/not-tr\n")
+	testkit.WritePath(t, filepath.Join(top, "go.mod"), "module example.com/not-tr\n")
 	if _, err := gitOut(top, "init", "-q"); err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +69,7 @@ func TestFindRootErrorsWhenNothingMatches(t *testing.T) {
 // Alt klasörden --root ve --graph olmadan sorulabilir; grafik kökteki .codegraph'tadır.
 func TestQueryFromSubdirectoryUsesRootGraph(t *testing.T) {
 	top := t.TempDir()
-	writeFile(t, filepath.Join(top, "go.mod"), "module "+repoModule+"\n")
+	testkit.WritePath(t, filepath.Join(top, "go.mod"), "module "+repoModule+"\n")
 	if err := writeGraph(filepath.Join(top, ".codegraph", "graph.json"), fixture(t)); err != nil {
 		t.Fatal(err)
 	}

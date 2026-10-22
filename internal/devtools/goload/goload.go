@@ -198,3 +198,23 @@ func (m *Module) check(path, dir string, names []string, imp types.Importer, opt
 type importerFunc func(path string) (*types.Package, error)
 
 func (f importerFunc) Import(path string) (*types.Package, error) { return f(path) }
+
+// Rel dosya yolunu modül köküne göre, '/' ile verir; göreli yazılamayan yol olduğu gibi (eğik çizgili) kalır.
+func (m *Module) Rel(file string) string {
+	r, err := filepath.Rel(m.Root, file)
+	if err != nil {
+		return filepath.ToSlash(file)
+	}
+	return filepath.ToSlash(r)
+}
+
+// RecvName bir alıcı tipinin adını verir (gösterici atılır); adsız tipte "".
+func RecvName(t types.Type) string {
+	if p, ok := t.(*types.Pointer); ok {
+		t = p.Elem()
+	}
+	if n, ok := t.(*types.Named); ok {
+		return n.Obj().Name()
+	}
+	return ""
+}

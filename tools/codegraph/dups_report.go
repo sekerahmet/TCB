@@ -7,12 +7,9 @@ import (
 	"io"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 )
-
-func itoa(n int) string { return strconv.Itoa(n) }
 
 // dupDiff bir kümenin konumları arasındaki farktır: ilk konumla öbürleri aynı sırayla karşılaştırılır,
 // ad ya da değeri farklı olan düğümler değişim olarak sayılır.
@@ -58,7 +55,10 @@ func (co *dupCorpus) diffOf(c *dupCluster) dupDiff {
 		if d.Changes[i].Count != d.Changes[j].Count {
 			return d.Changes[i].Count > d.Changes[j].Count
 		}
-		return d.Changes[i].From+d.Changes[i].To < d.Changes[j].From+d.Changes[j].To
+		if d.Changes[i].From != d.Changes[j].From {
+			return d.Changes[i].From < d.Changes[j].From
+		}
+		return d.Changes[i].To < d.Changes[j].To
 	})
 	if len(d.Changes) > maxChanges {
 		d.Changes = d.Changes[:maxChanges]
@@ -189,7 +189,7 @@ func filterIn(clusters []*dupCluster, pkg string) []*dupCluster {
 	var out []*dupCluster
 	for _, c := range clusters {
 		for _, l := range c.Locs {
-			if l.File == pkg || strings.HasPrefix(l.File, pkg+"/") {
+			if underDir(l.File, pkg) {
 				out = append(out, c)
 				break
 			}

@@ -3,6 +3,8 @@ package main
 import (
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 const (
@@ -88,18 +90,18 @@ func TestFieldsCommands(t *testing.T) {
 	if code != exitOK {
 		t.Fatalf("exit %d\n%s", code, out)
 	}
-	mustContain(t, out, "shape.Counter.n [field] shape/shape.go:", "7 accesses in 2 functions: 2 read, 1 write, 2 read+write, 1 addr, 1 literal", "shape/shape.go:83  read+write  shape.Bump",
+	testkit.MustContain(t, out, "shape.Counter.n [field] shape/shape.go:", "7 accesses in 2 functions: 2 read, 1 write, 2 read+write, 1 addr, 1 literal", "shape/shape.go:83  read+write  shape.Bump",
 		"shape/shape.go:94  read        shape.Bump > func literal@L91", "shape/shape.go:99  literal     shape.Make")
 	if strings.Contains(out, ":88 ") {
 		t.Errorf("Other.n must not appear:\n%s", out)
 	}
 	_, out, _ = cli(t, "fields", "Counter.n", "--mode", "write")
-	mustContain(t, out, "write accesses (", "shape/shape.go:84  write")
+	testkit.MustContain(t, out, "write accesses (", "shape/shape.go:84  write")
 	if strings.Contains(out, ":89 ") {
 		t.Errorf("--mode write hides plain reads:\n%s", out)
 	}
 	_, out, _ = cli(t, "fields", "shape.Counter")
-	mustContain(t, out, "n [int]:", "list [[]int]: 0 reads, 1 writes", "next [*shape.Counter]: 0 reads, 0 writes")
+	testkit.MustContain(t, out, "n [int]:", "list [[]int]: 0 reads, 1 writes", "next [*shape.Counter]: 0 reads, 0 writes")
 }
 
 func TestCaptures(t *testing.T) {
@@ -107,15 +109,15 @@ func TestCaptures(t *testing.T) {
 	if code != exitOK {
 		t.Fatalf("exit %d\n%s", code, out)
 	}
-	mustContain(t, out, "shape.Bump > func literal@L91", "c *shape.Counter", "x int", "sum int (assigned)")
+	testkit.MustContain(t, out, "shape.Bump > func literal@L91", "c *shape.Counter", "x int", "sum int (assigned)")
 	if strings.Contains(out, "o *shape.Other") {
 		t.Errorf("o is not used in the closure:\n%s", out)
 	}
 	_, out, _ = cli(t, "captures", "shape.Bump", "--type", "Counter")
-	mustContain(t, out, "c *shape.Counter")
+	testkit.MustContain(t, out, "c *shape.Counter")
 	if strings.Contains(out, "x int") {
 		t.Errorf("--type filters the captured variables:\n%s", out)
 	}
 	_, out, _ = cli(t, "captures", "shape.Describe")
-	mustContain(t, out, "no func literals")
+	testkit.MustContain(t, out, "no func literals")
 }

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/reporoot"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // The module is loaded once for all tests (a few seconds).
@@ -33,34 +34,25 @@ func query(t *testing.T, spec string) string {
 	return b.String()
 }
 
-func mustContain(t *testing.T, out string, parts ...string) {
-	t.Helper()
-	for _, p := range parts {
-		if !strings.Contains(out, p) {
-			t.Errorf("output lacks %q:\n%s", p, out)
-		}
-	}
-}
-
 // A name's uses are found across packages, including test files.
 func TestNameUses(t *testing.T) {
 	out := query(t, "codes.Name")
-	mustContain(t, out, "internal/lang/codes/language.go", "internal/lang/interp\n", "internal/lang/interp/calls.go:", "_test.go:")
+	testkit.MustContain(t, out, "internal/lang/codes/language.go", "internal/lang/interp\n", "internal/lang/interp/calls.go:", "_test.go:")
 }
 
 // The hooks the interpreter finds by type assertion: the implementers must be listed, because
 // a renamed method drops a hook without a compile error.
 func TestInterfaceImplementers(t *testing.T) {
-	mustContain(t, query(t, "interp.MemberAssignable"), "1 implementers", "ml.Optimizer")
-	mustContain(t, query(t, "interp.Iterable"), "ml.TensorValue")
-	mustContain(t, query(t, "interp.MemberAssignable.SetMember"), "ml.Optimizer")
+	testkit.MustContain(t, query(t, "interp.MemberAssignable"), "1 implementers", "ml.Optimizer")
+	testkit.MustContain(t, query(t, "interp.Iterable"), "ml.TensorValue")
+	testkit.MustContain(t, query(t, "interp.MemberAssignable.SetMember"), "ml.Optimizer")
 }
 
 // Methods are written Type.Member; a package can be named by its path or its last element.
 func TestMembersAndPackages(t *testing.T) {
-	mustContain(t, query(t, "interp.VM.Interrupt"), "internal/lang/interp/interrupt.go:")
+	testkit.MustContain(t, query(t, "interp.VM.Interrupt"), "internal/lang/interp/interrupt.go:")
 	out := query(t, "internal/lang/parser")
-	mustContain(t, out, "internal/lang/source: ", "Parser.RecordRoles (1)")
+	testkit.MustContain(t, out, "internal/lang/source: ", "Parser.RecordRoles (1)")
 	if out != query(t, "parser") {
 		t.Error("the package's path and its last element gave different answers")
 	}

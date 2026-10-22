@@ -85,3 +85,26 @@ func slowFixture(t *testing.T) {
 		t.Skip("kısa kipte atlandı: geçici git deposunda grafik kuruyor (uzun kipte koşar)")
 	}
 }
+
+// runCLI codegraph'ı verilen bağımsız değişkenlerle çalıştırır ve çıkış kodunu, standart çıktıyı ve standart
+// hatayı verir.
+func runCLI(args ...string) (code int, out, errOut string) {
+	var so, se bytes.Buffer
+	code = run(args, &so, &se)
+	return code, so.String(), se.String()
+}
+
+// commandIn bir komutu fikstür deposunda ve grafiğiyle çalıştırır (yeniden kurma açık).
+func commandIn(cmd, root, graph string, extra ...string) (code int, out, errOut string) {
+	return runCLI(append([]string{cmd, "--root", root, "--graph", graph}, extra...)...)
+}
+
+// gitMust bir git komutunu fikstür deposunda çalıştırır (commit kimliği ve imzasız commit ayarları
+// verilir); hata testi durdurur.
+func gitMust(t *testing.T, root string, args ...string) {
+	t.Helper()
+	identity := []string{"-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "commit.gpgsign=false"}
+	if _, err := gitOut(root, append(identity, args...)...); err != nil {
+		t.Fatal(err)
+	}
+}

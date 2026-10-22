@@ -5,11 +5,9 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 )
@@ -21,9 +19,13 @@ import (
 // ağacı tek türlü çözer: iki dizi eşitse iki ağaç aynı biçimdedir.
 
 // dupSkipDirs taranmayan klasörlerdir (sürüm denetimi, araç çıktıları, sınama verisi, kopya ağaçlar).
-var dupSkipDirs = map[string]bool{
-	".git": true, ".claude": true, ".codegraph": true, "testdata": true, "vendor": true, "node_modules": true,
-}
+var dupSkipDirs = func() map[string]bool {
+	m := map[string]bool{"vendor": true}
+	for d := range skipDirs {
+		m[d] = true
+	}
+	return m
+}()
 
 var generatedHeader = regexp.MustCompile(`(?m)^// Code generated .* DO NOT EDIT\.$`)
 
@@ -60,27 +62,7 @@ const tableElements = 8
 // ("Code generated ... DO NOT EDIT.") alınmaz; ayrıştırılamayan dosya atlanır ve adı skipped'e yazılır.
 func loadCorpus(root string) (co *dupCorpus, skipped []string, err error) {
 	co = &dupCorpus{kinds: map[string]uint32{}}
-	var rels []string
-	err = filepath.WalkDir(root, func(p string, d fs.DirEntry, werr error) error {
-		if werr != nil {
-			return nil
-		}
-		if d.IsDir() {
-			if p != root && dupSkipDirs[d.Name()] {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if strings.HasSuffix(d.Name(), ".go") {
-			rel, _ := filepath.Rel(root, p)
-			rels = append(rels, filepath.ToSlash(rel))
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-	sort.Strings(rels)
+	rels := walkFiles(root, dupSkipDirs, ".go")
 	fset := token.NewFileSet()
 	for _, rel := range rels {
 		src, rerr := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))
@@ -230,24 +212,9 @@ func nodeAtom(n ast.Node) string {
 		return n.Value
 	case *ast.FuncDecl:
 		if n.Recv != nil && len(n.Recv.List) > 0 {
-			return receiverName(n.Recv.List[0].Type) + "." + n.Name.Name
+			return recvTypeName(n.Recv.List[0].Type) + "." + n.Name.Name
 		}
 		return n.Name.Name
 	}
 	return ""
-}
-
-// receiverName alıcı türünün adıdır (işaretçi ve tür parametreleri atılır).
-func receiverName(e ast.Expr) string {
-	switch e := e.(type) {
-	case *ast.StarExpr:
-		return receiverName(e.X)
-	case *ast.IndexExpr:
-		return receiverName(e.X)
-	case *ast.IndexListExpr:
-		return receiverName(e.X)
-	case *ast.Ident:
-		return e.Name
-	}
-	return "?"
 }

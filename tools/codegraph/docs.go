@@ -16,6 +16,30 @@ var skipDirs = map[string]bool{
 	".git": true, ".claude": true, ".codegraph": true, "node_modules": true, "testdata": true,
 }
 
+// walkFiles root altında adı suffix ile biten dosyaların köke göre yollarını verir ('/' ile, sıralı); skip'teki
+// adlı klasörlere girilmez (kökün kendisi hariç). Markdown ve Go taraması aynı gezintiyi kullanır.
+func walkFiles(root string, skip map[string]bool, suffix string) []string {
+	var rels []string
+	_ = filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if d.IsDir() {
+			if p != root && skip[d.Name()] {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if strings.HasSuffix(d.Name(), suffix) {
+			r, _ := filepath.Rel(root, p)
+			rels = append(rels, filepath.ToSlash(r))
+		}
+		return nil
+	})
+	sort.Strings(rels)
+	return rels
+}
+
 func docID(rel string) string           { return "doc:" + rel }
 func headingID(rel, slug string) string { return "heading:" + rel + "#" + slug }
 
@@ -30,24 +54,7 @@ type docSet struct {
 // çalışır: bağlantılar Go dosya ve paket düğümlerine de gidebilir.
 func extractMarkdown(root string, b *builder, idx *goIndex) {
 	set := &docSet{docs: map[string]*mdDoc{}, slug: map[string]map[string]string{}}
-	var rels []string
-	_ = filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return nil
-		}
-		if d.IsDir() {
-			if p != root && skipDirs[d.Name()] {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if strings.HasSuffix(d.Name(), ".md") {
-			r, _ := filepath.Rel(root, p)
-			rels = append(rels, filepath.ToSlash(r))
-		}
-		return nil
-	})
-	sort.Strings(rels)
+	rels := walkFiles(root, skipDirs, ".md")
 	for _, rel := range rels {
 		data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))
 		if err != nil {

@@ -5,23 +5,16 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-)
 
-func mustContain(t *testing.T, out string, parts ...string) {
-	t.Helper()
-	for _, p := range parts {
-		if !strings.Contains(out, p) {
-			t.Errorf("output lacks %q:\n%s", p, out)
-		}
-	}
-}
+	"github.com/sekerahmet/TCB/internal/testkit"
+)
 
 func TestQueryShowsNeighbours(t *testing.T) {
 	code, out, _ := cli(t, "query", "shape.Describe")
 	if code != exitOK {
 		t.Fatalf("exit %d", code)
 	}
-	mustContain(t, out, "shape.Describe [func] shape/shape.go:21", "-> calls", "shape.Shape.Area", "-> uses_message", "H0001",
+	testkit.MustContain(t, out, "shape.Describe [func] shape/shape.go:21", "-> calls", "shape.Shape.Area", "-> uses_message", "H0001",
 		"<- calls", "shape.Twice")
 }
 
@@ -30,7 +23,7 @@ func TestQueryAmbiguousListsCandidates(t *testing.T) {
 	if code != exitAmbiguous {
 		t.Fatalf("exit %d, want %d", code, exitAmbiguous)
 	}
-	mustContain(t, out, "ambiguous", "messages.Code", "codes.Code")
+	testkit.MustContain(t, out, "ambiguous", "messages.Code", "codes.Code")
 }
 
 func TestQueryQualifiedNameDisambiguates(t *testing.T) {
@@ -45,7 +38,7 @@ func TestQueryNotFound(t *testing.T) {
 	if code != exitNotFound || out != "" {
 		t.Errorf("exit %d, stdout %q", code, out)
 	}
-	mustContain(t, errOut, "not found")
+	testkit.MustContain(t, errOut, "not found")
 }
 
 func TestFlagsMayFollowNames(t *testing.T) {
@@ -60,7 +53,7 @@ func TestWhoUsesMessage(t *testing.T) {
 	if code != exitOK {
 		t.Fatalf("exit %d", code)
 	}
-	mustContain(t, out, "first message", "<- uses_message", "shape.Describe [func] at shape/shape.go:")
+	testkit.MustContain(t, out, "first message", "<- uses_message", "shape.Describe [func] at shape/shape.go:")
 	code, out, _ = cli(t, "who-uses", "H0002")
 	if code != exitOK || !strings.Contains(out, "no uses") {
 		t.Errorf("H0002 is unused: exit %d\n%s", code, out)
@@ -72,14 +65,14 @@ func TestTestsFor(t *testing.T) {
 	if code != exitOK {
 		t.Fatalf("exit %d", code)
 	}
-	mustContain(t, out, "shape.TestDescribe", "rules guarded by these tests", "Empty shapes fail")
+	testkit.MustContain(t, out, "shape.TestDescribe", "rules guarded by these tests", "Empty shapes fail")
 	code, out, _ = cli(t, "tests-for", "shape.Square.Area")
 	if code != exitOK {
 		t.Fatalf("exit %d", code)
 	}
-	mustContain(t, out, "shape.TestSquare_Area")
+	testkit.MustContain(t, out, "shape.TestSquare_Area")
 	_, out, _ = cli(t, "tests-for", "shape.Orphan")
-	mustContain(t, out, "no tests found")
+	testkit.MustContain(t, out, "no tests found")
 }
 
 func TestPath(t *testing.T) {
@@ -87,7 +80,7 @@ func TestPath(t *testing.T) {
 	if code != exitOK {
 		t.Fatalf("exit %d", code)
 	}
-	mustContain(t, out, "path (directed, 2 steps)", "-calls->", "-uses_message->", "H0001")
+	testkit.MustContain(t, out, "path (directed, 2 steps)", "-calls->", "-uses_message->", "H0001")
 	// İki ayrık düğüm arasında yol yoktur (fikstürde her şey birbirine bağlı, bu yüzden elle kurulmuş grafik).
 	g := &Graph{SchemaVersion: schemaVersion, Extractor: extractorRevision,
 		Nodes: []Node{{ID: "a", Kind: kindFunc, Name: "p.a"}, {ID: "b", Kind: kindFunc, Name: "p.b"}}}
@@ -134,19 +127,19 @@ func TestBuildCommandWritesGraph(t *testing.T) {
 	if err != nil || len(g.Nodes) == 0 {
 		t.Fatalf("graph not readable: %v", err)
 	}
-	mustContain(t, so.String(), "nodes", "EXTRACTED", "warnings:")
+	testkit.MustContain(t, so.String(), "nodes", "EXTRACTED", "warnings:")
 }
 
 func TestTestsForIndirect(t *testing.T) {
 	// Report → Twice → Describe: TestReport sınar Describe'ı üç adım uzaktan.
 	_, out, _ := cli(t, "tests-for", "shape.Describe")
-	mustContain(t, out, "shape.TestDescribe", "tests, indirect", "shape.TestReport", "3 steps via shape.Twice", "[INFERRED]")
+	testkit.MustContain(t, out, "shape.TestDescribe", "tests, indirect", "shape.TestReport", "3 steps via shape.Twice", "[INFERRED]")
 	if strings.Count(out, "shape.TestDescribe") != 1 {
 		t.Errorf("a direct test is not repeated as indirect:\n%s", out)
 	}
 	// Twice'ı yalnızca TestReport sınar, iki adım uzaktan (Twice ← Report ← TestReport); Report doğrudan.
 	_, out, _ = cli(t, "tests-for", "shape.Twice")
-	mustContain(t, out, "shape.TestReport", "2 steps via shape.Report")
+	testkit.MustContain(t, out, "shape.TestReport", "2 steps via shape.Report")
 	_, out, _ = cli(t, "tests-for", "shape.Report")
 	if strings.Contains(out, "indirect") {
 		t.Errorf("TestReport calls Report directly:\n%s", out)
@@ -205,15 +198,15 @@ func TestWhoUsesGoConstants(t *testing.T) {
 	if code != exitOK {
 		t.Fatalf("exit %d", code)
 	}
-	mustContain(t, out, "shape.Sides [const] shape/shape.go:", "const shape.Sides untyped int = 4", "<- uses", "shape.Corners [func]")
+	testkit.MustContain(t, out, "shape.Sides [const] shape/shape.go:", "const shape.Sides untyped int = 4", "<- uses", "shape.Corners [func]")
 	code, out, _ = cli(t, "who-uses", "messages.H0001")
 	if code != exitOK {
 		t.Fatalf("exit %d", code)
 	}
-	mustContain(t, out, "messages.H0001 [const]", "shape.Describe [func]")
+	testkit.MustContain(t, out, "messages.H0001 [const]", "shape.Describe [func]")
 	// Kodun düğümü Go sabitini gösterir; kullanılmayan kod "no uses" der ama sabitini yine bildirir.
 	_, out, _ = cli(t, "who-uses", "H0002")
-	mustContain(t, out, "Go constant: messages.H0002 [const]", "no uses")
+	testkit.MustContain(t, out, "Go constant: messages.H0002 [const]", "no uses")
 	code, out, _ = cli(t, "who-uses", "shape.Default")
 	if code != exitOK || !strings.Contains(out, "shape.Corners") {
 		t.Errorf("var: exit %d\n%s", code, out)
@@ -225,9 +218,9 @@ func TestCalleesAndCallsInto(t *testing.T) {
 	if code != exitOK {
 		t.Fatalf("exit %d", code)
 	}
-	mustContain(t, out, "calls 2 distinct functions in 1 packages", "internal/lang/messages (2):", "messages.New [func]", "messages.Text [func]")
+	testkit.MustContain(t, out, "calls 2 distinct functions in 1 packages", "internal/lang/messages (2):", "messages.New [func]", "messages.Text [func]")
 	_, out, _ = cli(t, "callees", "shape.Describe", "--in", "messages")
-	mustContain(t, out, "(in messages)", "messages.New")
+	testkit.MustContain(t, out, "(in messages)", "messages.New")
 	if strings.Contains(out, "Shape.Area") {
 		t.Errorf("--in must restrict the packages:\n%s", out)
 	}
@@ -236,14 +229,14 @@ func TestCalleesAndCallsInto(t *testing.T) {
 	}
 
 	_, out, _ = cli(t, "calls-into", "messages", "--min", "2")
-	mustContain(t, out, "at least 2 distinct functions of internal/lang/messages: 1", "shape.Both [func]", "messages.New, messages.Text")
+	testkit.MustContain(t, out, "at least 2 distinct functions of internal/lang/messages: 1", "shape.Both [func]", "messages.New, messages.Text")
 	if strings.Contains(out, "shape.Describe") {
 		t.Errorf("Describe calls only one function of messages:\n%s", out)
 	}
 	_, out, _ = cli(t, "calls-into", "messages", "--min", "1", "--in", "shape")
-	mustContain(t, out, "shape.Describe [func]", "shape.Both [func]")
+	testkit.MustContain(t, out, "shape.Describe [func]", "shape.Both [func]")
 	_, out, _ = cli(t, "calls-into", "messages", "--min", "1", "--in", "internal/lang/codes")
-	mustContain(t, out, ": 0")
+	testkit.MustContain(t, out, ": 0")
 	if code, _, _ := cli(t, "calls-into", "shape.Describe"); code != exitNotFound {
 		t.Errorf("calls-into needs a package: exit %d", code)
 	}
@@ -254,7 +247,7 @@ func TestDidYouMean(t *testing.T) {
 	if code != exitNotFound || out != "" {
 		t.Fatalf("exit %d, stdout %q", code, out)
 	}
-	mustContain(t, errOut, "not found", "did you mean:", "shape.Describe [func]")
+	testkit.MustContain(t, errOut, "not found", "did you mean:", "shape.Describe [func]")
 	// Çok uzak bir ad öneri vermez.
 	_, _, errOut = cli(t, "query", "qqqqzzzz")
 	if strings.Contains(errOut, "did you mean") {
@@ -269,7 +262,7 @@ func TestNameCodeChain(t *testing.T) {
 		if code != exitOK {
 			t.Fatalf("%s: exit %d\n%s", q, code, out)
 		}
-		mustContain(t, out, "A001 [name]", "names: eger · if", "Go constant: codes.A001 [const]",
+		testkit.MustContain(t, out, "A001 [name]", "names: eger · if", "Go constant: codes.A001 [const]",
 			"registered or used in Go", "shape at shape/shape.go:", "shape.runIf [shape/shape.go:")
 	}
 }
@@ -279,5 +272,5 @@ func TestWhoUsesByPackage(t *testing.T) {
 	if code != exitOK {
 		t.Fatalf("exit %d", code)
 	}
-	mustContain(t, out, "users by package (1 packages):", "shape: 2 functions, 3 use sites")
+	testkit.MustContain(t, out, "users by package (1 packages):", "shape: 2 functions, 3 use sites")
 }

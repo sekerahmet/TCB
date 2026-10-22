@@ -63,7 +63,7 @@ func run(w io.Writer, m *module, spec string) error {
 
 func printObject(w io.Writer, m *module, spec string, obj types.Object) {
 	p := m.Fset.Position(obj.Pos())
-	fmt.Fprintf(w, "%s  %s:%d\n", spec, m.rel(p.Filename), p.Line)
+	fmt.Fprintf(w, "%s  %s:%d\n", spec, m.Rel(p.Filename), p.Line)
 	uses := m.usesOf(obj)
 	pkgs := map[string]bool{}
 	for _, u := range uses {
