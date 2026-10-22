@@ -71,7 +71,7 @@ computed when you ask, not stored in `graph.json`.
 | `message` | `msg:H2100` | `internal/lang/messages/tr.json` (text) and `definitions.json` (params) |
 | `name` | `name:A001` | `internal/lang/codes/tr.json` (name and family) |
 | `rule` | `rule:<readme>:<line>` | a list item or paragraph with `Denetim:`, or a row of a `Kural` / `Test` table |
-| `tr_func`, `tr_method`, `tr_struct`, `tr_field`, `tr_const`, `tr_var`, `tr_test` | `tr:func:<file>:<name>`, `tr:method:<file>:<Struct>.<name>`, ... | `.tr` sources, see "TR sources" |
+| `tr_func`, `tr_method`, `tr_struct`, `tr_field`, `tr_const`, `tr_var`, `tr_test`, `tr_param` | `tr:func:<file>:<name>`, `tr:method:<file>:<Struct>.<name>`, ... | `.tr` sources, see "TR sources" |
 | `doc`, `heading` | `doc:<path>`, `heading:<path>#<slug>` | every `.md` file; headings use GitHub slugs |
 
 | Edge | Meaning | Label |
@@ -124,8 +124,8 @@ of other types never mix), and keyed composite literals `T{f: v}` too. The acces
 the header is always read as Turkish, a coded one is first decoded to Turkish (`source.Decode` with
 `source.Turkish()`), never through `source.Prepare`, which follows the active language; the test
 `TestTRGraphIsIndependentOfTheActiveLanguage` builds the fixture graph under `TR_DIL=tr` and `TR_DIL=en`
-in sub-processes and compares the `.tr` facts. Node kinds: `tr_func`, `tr_struct`, `tr_method`, `tr_field`, `tr_const`, `tr_var` (top level)
-and `tr_test` (a `test` block), all with file:line:end; the file is a `file` node `tr:file:<path>`
+in sub-processes and compares the `.tr` facts. Syntax errors in the intentional error examples (`examples/*/hatalar/`, `examples/*/errors/`) are not warnings. Node kinds: `tr_func`, `tr_struct`, `tr_method`, `tr_field`, `tr_const`, `tr_var` (top level)
+and `tr_test` (a `test` block), all with file:line:end; `tr_param` is a function or method parameter (`tr:param:<file>:<Owner>.<name>`, `contains` edge from its owner, detail = `name = default text`; a bare-name `query`/`who-uses` lists same-named parameters together with other matches, so one name used in several meanings shows up at once; named arguments `f(name: v)` are `uses` edges from the caller to the parameter, or to the field for a struct without `kurucu`); the file is a `file` node `tr:file:<path>`
 with the module name (`katman`) and the import path (`tr/katman`) as aliases.
 
 **Division of labour with `tr dizin`.** The `.tr` extraction above is only a thin adapter

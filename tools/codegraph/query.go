@@ -68,10 +68,34 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 			}
 		}
 		if len(found) > 0 {
-			return found
+			return ix.withParams(q, found, kinds)
 		}
 	}
 	return nil
+}
+
+// withParams çıplak ad sorgusuna aynı adı taşıyan TR parametrelerini ekler (kinds boşsa ya da tr_param içeriyorsa):
+// aynı adın farklı anlamlarda kullanıldığı yerler birlikte görünür. Sorgu ad kodu ya da işlev adı olsa da
+// eklenir; parametre yoksa found olduğu gibi döner.
+func (ix *index) withParams(q string, found []*Node, kinds []string) []*Node {
+	if strings.ContainsAny(q, "./:") || len(kinds) > 0 && !contains(kinds, kindTRParam) {
+		return found
+	}
+	for i := range ix.g.Nodes {
+		if n := &ix.g.Nodes[i]; n.Kind == kindTRParam && strings.HasSuffix(n.Name, "."+q) && !containsNode(found, n) {
+			found = append(found, n)
+		}
+	}
+	return found
+}
+
+func containsNode(list []*Node, n *Node) bool {
+	for _, m := range list {
+		if m == n {
+			return true
+		}
+	}
+	return false
 }
 
 // idTailEquals kimliğin ':' sonrası kuyruklarından biri q mu (doc:docs/a.md#b için docs/a.md#b).

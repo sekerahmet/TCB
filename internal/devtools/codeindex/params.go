@@ -19,10 +19,14 @@ func (x *indexer) paramNodes(f *file, owner string, ownerID string, fl *ast.Func
 		name := owner + "." + p.Name
 		id := NodeID(KindParameter, f.rel, name)
 		sig := p.Name
-		if p.DefaultValue != nil {
-			sig += " = …"
-		}
 		at := pos[i]
+		if p.DefaultValue != nil {
+			var next *Pos
+			if i+1 < len(pos) {
+				next = &pos[i+1]
+			}
+			sig += " = " + defaultText(f, at, next)
+		}
 		x.nodes[id] = &Node{ID: id, Kind: KindParameter, Name: name, Pos: &at, Signature: sig, Qualified: f.base + "." + name}
 		x.addEdge(ownerID, id, EdgeDefines, Extracted, Pos{File: f.rel, Line: at.Line})
 		x.occurrence(id, RoleDefinition, Extracted, at, ownerID)
@@ -86,4 +90,51 @@ func paramPositions(f *file, fl *ast.FunctionLiteral) []Pos {
 		}
 	}
 	return out
+}
+
+// defaultText parametrenin varsayılan değerinin kaynak metnidir (`ad = değer` başlığındaki değer):
+// adın bitişinden bir sonraki parametrenin başına ya da parantezin kapanışına kadar, aynı satırda.
+// Birden çok satıra yayılan ya da bulunamayan değer için "…".
+func defaultText(f *file, at Pos, next *Pos) string {
+	if at.EndCol == 0 || at.Line < 1 || at.Line > len(f.lines) {
+		return "…"
+	}
+	runes := []rune(strings.TrimRight(f.lines[at.Line-1], "\r"))
+	from := at.EndCol - 1
+	if from > len(runes) {
+		return "…"
+	}
+	to := len(runes)
+	if next != nil && next.Line == at.Line && next.Col > 0 {
+		to = next.Col - 1
+	}
+	depth, inStr := 0, false
+	for i := from; i < to; i++ {
+		c := runes[i]
+		switch {
+		case inStr:
+			if c == '\\' {
+				i++
+			} else if c == '"' {
+				inStr = false
+			}
+		case c == '"':
+			inStr = true
+		case c == '(' || c == '[' || c == '{':
+			depth++
+		case c == ')' || c == ']' || c == '}':
+			if depth == 0 {
+				to = i
+			} else {
+				depth--
+			}
+		}
+	}
+	text := strings.TrimSpace(string(runes[from:to]))
+	text = strings.TrimSpace(strings.TrimSuffix(text, ","))
+	text = strings.TrimSpace(strings.TrimPrefix(text, "="))
+	if text == "" || to == len(runes) && depth != 0 {
+		return "…"
+	}
+	return text
 }

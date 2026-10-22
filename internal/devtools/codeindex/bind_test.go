@@ -76,6 +76,9 @@ func TestMemberAccessBindsToTheField(t *testing.T) {
 
 func TestParameterAndNamedArgumentOccurrences(t *testing.T) {
 	r := buildSource(t, bindSource)
+	if n := r.Node("parameter:m.tr#Dikkat.kurucu.kv_baş"); n == nil || n.Signature != "kv_baş = yok" {
+		t.Errorf("the default value text is part of the signature: %+v", n)
+	}
 	wantUses(t, r, "parameter:m.tr#Dikkat.kurucu.baş",
 		"definition@4:29/EXTRACTED", "read@5:21/EXTRACTED")
 	wantUses(t, r, "parameter:m.tr#Dikkat.kurucu.kv_baş",

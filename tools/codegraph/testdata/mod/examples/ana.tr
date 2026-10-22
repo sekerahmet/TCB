@@ -3,3 +3,5 @@ aktar "tr/geo" olarak g
 değişken k = g.Kare(2)
 yazdır(g.çevre_hesapla(k))
 yazdır(g.PI2)
+
+değişken k2 = g.Kare(kenar: 3)

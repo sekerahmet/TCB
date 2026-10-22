@@ -121,3 +121,36 @@ func TestTRCodedFile(t *testing.T) {
 	}
 	mustEdge(t, g, fn, printG, edgeUsesName, extracted) // G100 olarak yazılmış çağrı
 }
+
+// Parametreler grafikte düğümdür (tr_param): sahibinden `contains`, varsayılan değer metniyle; adlı
+// argüman olarak geçtiği yerler `who-uses` ile bulunur.
+func TestTRParametersAndNamedArguments(t *testing.T) {
+	g := fixture(t)
+	const param = "tr:param:lib/geo.tr:Kare.kurucu.kenar"
+	found := false
+	for _, n := range g.Nodes {
+		if n.ID == param && n.Kind == kindTRParam && n.Detail == "kenar = 1" && n.Name == "geo.Kare.kurucu.kenar" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("parameter node missing or wrong")
+	}
+	mustEdge(t, g, "tr:method:lib/geo.tr:Kare.kurucu", param, edgeContains, extracted)
+	mustEdge(t, g, "tr:var:examples/ana.tr:k2", param, edgeUses, extracted) // g.Kare(kenar: 3)
+	_, out, _ := cli(t, "who-uses", "geo.Kare.kurucu.kenar")
+	mustContain(t, out, "examples/ana.tr")
+}
+
+// Bilerek sözdizimi hatalı yazılan hata örnekleri (examples/*/hatalar, errors) uyarı değildir.
+func TestErrorExamplesAreNotWarnings(t *testing.T) {
+	g := fixture(t)
+	for _, w := range g.Warnings {
+		if strings.Contains(w, "examples/hatalar/") {
+			t.Errorf("an intentional syntax error must not warn: %s", w)
+		}
+	}
+	if !hasNode(g, "tr:file:examples/hatalar/01_bozuk.tr") {
+		t.Error("the file is still a node")
+	}
+}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
 )
@@ -15,6 +16,7 @@ const (
 	kindTRConst  = "tr_const"
 	kindTRVar    = "tr_var"
 	kindTRTest   = "tr_test"
+	kindTRParam  = "tr_param"
 )
 
 // trRoots .tr dosyalarının aranacağı klasörlerdir (modül köküne göre).
@@ -33,12 +35,15 @@ func extractTR(root string, b *builder) {
 		return
 	}
 	for _, s := range idx.Skipped {
+		if isErrorExample(s.File) {
+			continue // bilerek hatalı örnek: uyarı değil
+		}
 		b.warn("tr syntax error, definitions skipped: " + s.File + ": " + s.Reason)
 	}
 	ids := map[string]string{}
 	for _, n := range idx.Nodes {
-		if n.Kind == codeindex.KindParameter || n.Kind == codeindex.KindOption {
-			continue // parametre ve seçenek düğümleri yalnızca tr dizin içindir
+		if n.Kind == codeindex.KindOption {
+			continue // seçenek düğümleri yalnızca tr dizin içindir
 		}
 		ids[n.ID] = graphID(n)
 		if n.Kind != codeindex.KindBuiltin { // ad kodu düğümlerini codes.go kurar
@@ -58,6 +63,7 @@ func extractTR(root string, b *builder) {
 			b.addEdge(ids[e.From], ids[e.To], kind, string(e.Confidence), e.Pos.File, line)
 		}
 	}
+	namedArgumentEdges(idx, ids, b)
 }
 
 // graphID bir codeindex düğümünün grafikteki kimliğidir.
@@ -73,6 +79,7 @@ func graphID(n codeindex.Node) string {
 	prefix := map[codeindex.Kind]string{
 		codeindex.KindFunction: "func", codeindex.KindStruct: "struct", codeindex.KindMethod: "method",
 		codeindex.KindField: "field", codeindex.KindConstant: "const", codeindex.KindVariable: "var",
+		codeindex.KindParameter: "param",
 	}[n.Kind]
 	return "tr:" + prefix + ":" + n.Pos.File + ":" + n.Name
 }
@@ -88,7 +95,7 @@ func graphNode(n codeindex.Node, id string) Node {
 	kind := map[codeindex.Kind]string{
 		codeindex.KindFunction: kindTRFunc, codeindex.KindStruct: kindTRStruct, codeindex.KindMethod: kindTRMethod,
 		codeindex.KindField: kindTRField, codeindex.KindConstant: kindTRConst, codeindex.KindVariable: kindTRVar,
-		codeindex.KindTest: kindTRTest,
+		codeindex.KindTest: kindTRTest, codeindex.KindParameter: kindTRParam,
 	}[n.Kind]
 	return Node{ID: id, Kind: kind, Name: n.Qualified, File: n.Pos.File, Line: n.Pos.Line, End: n.Pos.EndLine, Detail: n.Signature}
 }
@@ -103,4 +110,22 @@ func trEdgeKind(e codeindex.Edge, ids map[string]string) string {
 		return edgeUsesName
 	}
 	return string(e.Kind)
+}
+
+// namedArgumentEdges çağrı yerindeki `ad: değer` adlı argümanlarını çağrılan parametreye (kurucusuz
+// yapı çağrısında alana) bağlar: kenar, çağrının bulunduğu bildirimden parametreye, `uses` türünde;
+// böylece `who-uses` parametrenin adlı argüman olarak geçtiği yerleri verir.
+func namedArgumentEdges(idx *codeindex.Index, ids map[string]string, b *builder) {
+	for _, o := range idx.Occurrences {
+		if o.Role != codeindex.RoleArgument || ids[o.Node] == "" || ids[o.In] == "" {
+			continue
+		}
+		b.addEdge(ids[o.In], ids[o.Node], edgeUses, string(o.Confidence), o.Pos.File, o.Pos.Line)
+	}
+}
+
+// isErrorExample bilerek sözdizimi hatalı yazılmış hata örneklerinin klasörlerindeki dosya mı
+// (examples/tr/hatalar, examples/en/errors): oradaki ayrıştırma hataları beklenendir.
+func isErrorExample(file string) bool {
+	return strings.HasPrefix(file, "examples/") && (strings.Contains(file, "/hatalar/") || strings.Contains(file, "/errors/"))
 }
