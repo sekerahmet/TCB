@@ -423,35 +423,36 @@ yapı KVÖnbellek {
     // ekle: katman no'nun yeni anahtar ve değerlerini ([B, T, kv_bakış, bakış_boyutu]) konumdan
     // başlayarak ekler; o katmanın 0..konum+T anahtar ve değerlerini verir.
     fonksiyon ekle(no, k, v) {
-        değişken T = k.şekil[1]
-        değişken son = kendi.konum + T
-        eğer kendi.çeşit == "büyüyen" {
-            eğer kendi.anahtarlar[no] == yok {
-                kendi.anahtarlar[no] = k
-                kendi.değerler[no] = v
-            } değilse {
-                kendi.anahtarlar[no] = bitiştir([kendi.anahtarlar[no].dilim(1, 0, kendi.konum), k], eksen: 1)
-                kendi.değerler[no] = bitiştir([kendi.değerler[no].dilim(1, 0, kendi.konum), v], eksen: 1)
-            }
-            sonuç [kendi.anahtarlar[no], kendi.değerler[no]]
-        }
-        eğer kendi.adım_konumu != yok {
-            yerine_yaz(kendi.anahtarlar[no], k, eksen: 1, başlangıç: kendi.adım_konumu[0])
-            yerine_yaz(kendi.değerler[no], v, eksen: 1, başlangıç: kendi.adım_konumu[0])
-            sonuç [kendi.anahtarlar[no], kendi.değerler[no]]
-        }
-        doğrula(son <= kendi.en_çok, "sabit önbellek dolu: {son} konum, en çok {kendi.en_çok}")
-        eğer kendi.anahtarlar[no] == yok {
-            kendi.anahtarlar[no] = sıfırlar([k.şekil[0], kendi.en_çok, k.şekil[2], k.şekil[3]], tür: k.tür).cihaza(k.cihaz)
-            kendi.değerler[no] = sıfırlar([v.şekil[0], kendi.en_çok, v.şekil[2], v.şekil[3]], tür: v.tür).cihaza(v.cihaz)
-            eğer kendi.pozisyonlar == yok {
+        değişken son = kendi.konum + k.şekil[1]
+        eğer kendi.çeşit == "sabit" ve kendi.adım_konumu == yok {
+            doğrula(son <= kendi.en_çok, "sabit önbellek dolu: {son} konum, en çok {kendi.en_çok}")
+            eğer kendi.anahtarlar[no] == yok ve kendi.pozisyonlar == yok {
                 kendi.pozisyonlar = tensör([i * 1.0 döngü i içinde 0..kendi.en_çok]).cihaza(k.cihaz)
             }
         }
-        değişken B = k.şekil[0]
-        kendi.anahtarlar[no].dilim(1, kendi.konum, son)[0..B] = k
-        kendi.değerler[no].dilim(1, kendi.konum, son)[0..B] = v
-        sonuç [kendi.anahtarlar[no].dilim(1, 0, son), kendi.değerler[no].dilim(1, 0, son)]
+        sonuç [kendi.tampon_ekle(kendi.anahtarlar, no, k, son), kendi.tampon_ekle(kendi.değerler, no, v, son)]
+    }
+    // tampon_ekle: anahtar ya da değer tamponları listesinde (liste) katman no'nun tamponuna yeni
+    // parçayı çeşide göre ekler ve katmanın görünür kısmını verir: büyüyen bitiştirir, cihaz adımında
+    // yerine yazar, sabit tamponu ilk kullanımda ayırıp konumdan başlayarak dilime yazar.
+    fonksiyon tampon_ekle(liste, no, yeni, son) {
+        eğer kendi.çeşit == "büyüyen" {
+            eğer liste[no] == yok {
+                liste[no] = yeni
+            } değilse {
+                liste[no] = bitiştir([liste[no].dilim(1, 0, kendi.konum), yeni], eksen: 1)
+            }
+            sonuç liste[no]
+        }
+        eğer kendi.adım_konumu != yok {
+            yerine_yaz(liste[no], yeni, eksen: 1, başlangıç: kendi.adım_konumu[0])
+            sonuç liste[no]
+        }
+        eğer liste[no] == yok {
+            liste[no] = sıfırlar([yeni.şekil[0], kendi.en_çok, yeni.şekil[2], yeni.şekil[3]], tür: yeni.tür).cihaza(yeni.cihaz)
+        }
+        liste[no].dilim(1, kendi.konum, son)[0..yeni.şekil[0]] = yeni
+        sonuç liste[no].dilim(1, 0, son)
     }
     // ilerle: bir ileri hesabın T parçası bütün katmanlara yazıldıktan sonra konumu ilerletir.
     fonksiyon ilerle(T) { kendi.konum = kendi.konum + T }
