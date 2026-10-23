@@ -112,4 +112,23 @@ func TestGPTTrainingScriptSmoke(t *testing.T) {
 	}
 	// Aynı komut: eğitim bitmiş, kontrol noktasından yüklenir.
 	testkit.Wait(t, tr(t, t.TempDir(), args...), 0, []string{"bitti"}, []string{"Kaldığı yerden devam: adım 12"})
+
+	// SimpleStories sınavı (tools/gpu/ss_exam.tr) eğitilen modeli koşu klasöründen kurar ve exam.json yazar.
+	exam := tr(t, t.TempDir(), reporoot.Path("tools/gpu/ss_exam.tr"), "--koşu", run, "--veri", data, "--cihaz", "cpu",
+		"--hassasiyet", "float32", "--toplu", "4", "--sonda_uzunluğu", "6", "--örnek_uzunluğu", "6")
+	testkit.Wait(t, exam, 0, []string{"sınav: kayıp", "bant 0-16", "sonda: farklı_4", "örnek: Once upon a time"}, nil)
+	var result struct {
+		Loss     float64          `json:"kayıp"`
+		BPB      float64          `json:"bpb"`
+		Accuracy float64          `json:"doğruluk"`
+		Tokens   int              `json:"parça"`
+		Probes   []map[string]any `json:"sondalar"`
+		Samples  []map[string]any `json:"örnekler"`
+	}
+	if b, err := os.ReadFile(filepath.Join(run, "exam.json")); err != nil || json.Unmarshal(b, &result) != nil {
+		t.Fatalf("exam.json okunamadı: %v", err)
+	}
+	if result.Loss <= 0 || result.BPB <= 0 || result.Accuracy < 0 || result.Tokens == 0 || len(result.Probes) != 2 || len(result.Samples) != 4 {
+		t.Errorf("exam.json alanları: %+v", result)
+	}
 }

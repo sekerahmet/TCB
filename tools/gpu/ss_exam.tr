@@ -1,0 +1,119 @@
+// SimpleStories sınavı: gpt_training.tr ile eğitilmiş bir modeli, PyTorch kıyas koşularının
+// (araştırma deposu rgn/train/evaluate.py: evaluate, probes, samples) ölçüsüyle değerlendirir.
+//
+//   kayıp, ppl     doğrulama verisinin baştan ardışık, örtüşmeyen bütün pencerelerinde (sıralı okuyucu,
+//                  16.6) parça başına ortalama çapraz entropi; logitler float32
+//   bpb            kayıp / ln 2 / bayt_parça (doğrulama verisinin UTF-8 bayt / parça oranı)
+//   doğruluk       en olası parçanın hedefe eşit olma oranı; bantlar pencere içi konuma göre (0-64,
+//                  64-256, 256-512)
+//   sondalar       ilk iki istemle açgözlü 48 parça; farklı_4: farklı 4'lü oranı, döngüde: bir 4'lü
+//                  en az 3 kez
+//   örnekler       dört istemle açgözlü 64 parça
+// Sonuç koşu klasörüne exam.json olarak yazılır.
+//
+// Kullanım (Colab, GPU):
+//   ./tr ss_exam.tr --koşu /content/drive/MyDrive/TR_dili/kosular/ss_d512_tf_tr --veri /content/ss_gpt2
+// bayt_parça varsayılanı PyTorch koşusunun (ss_d512_transformer) kendi kayıp ve bpb'sinden çıkan orandır
+// (1,5196237 / ln 2 / 0,5073415); aynı doğrulama verisi için iki taraf aynı paydayla ölçülür.
+
+aktar "tr/katman"
+
+değişken ayar = komut_satırı({koşu: "", veri: "", cihaz: "gpu", hassasiyet: "bf16", toplu: 16,
+        bayt_parça: 4.32125793698609, sonda_uzunluğu: 48, örnek_uzunluğu: 64, eos: 50256},
+    açıklama: "gpt_training.tr ile eğitilmiş modeli SimpleStories sınavıyla değerlendirir",
+    açıklamalar: {koşu: "koşu klasörü (config.json, model.trt)", veri: "tokenizer.json ve valid.npy klasörü",
+        bayt_parça: "doğrulama verisinin UTF-8 bayt / parça oranı (bpb paydası)",
+        eos: "hikâye sonu parçası (GPT-2: 50256); üretimde görülünce durulur"})
+
+eğer ayar.koşu == "" veya ayar.veri == "" {
+    fırlat("koşu ve veri klasörü verilmeli: --koşu <koşu klasörü> --veri <veri klasörü>")
+}
+varsayılan_cihaz(ayar.cihaz)
+değişken eğitim = json_çöz(dosya_oku(yol(ayar.koşu, "config.json"))).ayar
+değişken p = parçalayıcı_yükle(yol(ayar.veri, "tokenizer.json"))
+değişken model = GPT(eğer eğitim.dağarcık == 0 { p.dağarcık_boyutu } değilse { eğitim.dağarcık }, bağlam: eğitim.bağlam,
+    boyut: eğitim.boyut, katman: eğitim.katman, bakış_sayısı: eğitim.bakış_sayısı,
+    kv_bakış_sayısı: eğer eğitim.kv_bakış_sayısı == 0 { yok } değilse { eğitim.kv_bakış_sayısı },
+    ara_boyut: eğer eğitim.ara_boyut == 0 { yok } değilse { eğitim.ara_boyut }, epsilon: eğitim.epsilon,
+    qk_normu: eğitim.qk_normu, birleşik_kv: eğitim.birleşik_kv, birleşik_kapı: eğitim.birleşik_kapı,
+    ileri_sapmalı: eğitim.ileri_sapmalı, paylaşımlı: eğitim.paylaşımlı, tohum: eğitim.tohum)
+parametreleri_yükle(model, tensör_yükle(yol(ayar.koşu, "model.trt")))
+değişken T = eğitim.bağlam
+
+// --- Kayıp, doğruluk ve bantlar ---
+değişken toplam_kayıp = 0.0
+değişken parça = 0
+değişken doğru_konum = [] // pencere içi konum başına doğru tahmin sayısı
+döngü i içinde 0..T { doğru_konum.ekle(0) }
+değişken başla = zaman_ms()
+değişken okuyucu = veri_kümesi(yol(ayar.veri, "valid.npy")).sıralı(toplu: ayar.toplu, bağlam: T)
+türevsiz {
+    döngü iş içinde okuyucu {
+        değişken h = yok
+        karışık_hassasiyet(ayar.hassasiyet) { h = model.gizli_durum(iş[0]) }
+        // Logitler float32: gizli durum ve çıkış ağırlığı float32'ye çevrilip çarpılır (evaluate.py ile aynı).
+        değişken w = eğer model.çıkış == yok { model.gömme.tablo } değilse { model.çıkış.ağırlık.devrik() }
+        değişken logit = h.türe("float32") @ w.türe("float32").devrik()
+        değişken n = iş[0].şekil[0] * T
+        toplam_kayıp += çapraz_entropi(logit, iş[1]).değer * n
+        parça += n
+        değişken isabet = mutlak(maks_indeks(logit, eksen: -1) - iş[1]) < 0.5
+        değişken konum = toplam(isabet, 0).değer
+        döngü i içinde 0..T { doğru_konum[i] += konum[i] }
+    }
+}
+değişken kayıp = toplam_kayıp / maks(parça, 1)
+değişken pencere = parça / T
+değişken bant_sınırları = [[0, 64], [64, 256], [256, 512]]
+değişken bantlar = {}
+döngü b içinde bant_sınırları {
+    eğer b[0] < T {
+        değişken son = min(b[1], T)
+        değişken d = 0.0
+        döngü i içinde b[0]..son { d += doğru_konum[i] }
+        bantlar["{b[0]}-{son}"] = d / maks(pencere * (son - b[0]), 1)
+    }
+}
+değişken toplam_doğru = 0.0
+döngü i içinde 0..T { toplam_doğru += doğru_konum[i] }
+
+// --- Sondalar ve örnekler (açgözlü) ---
+// farklı_4: üretilen parçalarda farklı 4'lü oranı; döngüde: bir 4'lü en az 3 kez (evaluate.py distinct4).
+fonksiyon farklı_4(kimlikler) {
+    eğer kimlikler.uzunluk < 4 { sonuç [1.0, yanlış] }
+    değişken sayım = {}
+    döngü i içinde 0..kimlikler.uzunluk - 3 {
+        değişken anahtar = "{kimlikler[i]},{kimlikler[i + 1]},{kimlikler[i + 2]},{kimlikler[i + 3]}"
+        sayım[anahtar] = eğer sayım.içerir(anahtar) { sayım[anahtar] + 1 } değilse { 1 }
+    }
+    değişken en_çok = 0
+    döngü a, s içinde sayım { en_çok = maks(en_çok, s) }
+    sonuç [sayım.uzunluk / (kimlikler.uzunluk - 3), en_çok >= 3]
+}
+değişken istemler = ["Once upon a time", "The little dog", "One day, a girl named", "In a small village,"]
+fonksiyon açgözlü(istem, adet) {
+    değişken başlangıç = p.kodla(istem)
+    değişken kimlikler = yok
+    karışık_hassasiyet(ayar.hassasiyet) { kimlikler = model.üret(başlangıç, adet, sıcaklık: 0, eos: ayar.eos) }
+    değişken yeni = kimlikler[başlangıç.uzunluk..kimlikler.uzunluk]
+    eğer yeni.uzunluk > 0 ve yeni.son == ayar.eos { yeni = yeni[0..yeni.uzunluk - 1] }
+    sonuç [yeni, istem + p.çöz(yeni)]
+}
+değişken sondalar = []
+döngü istem içinde istemler[0..2] {
+    değişken g = açgözlü(istem, ayar.sonda_uzunluğu)
+    değişken f = farklı_4(g[0])
+    sondalar.ekle({istem: istem, metin: g[1], farklı_4: f[0], döngüde: f[1]})
+}
+değişken örnekler = []
+döngü istem içinde istemler { örnekler.ekle({istem: istem, metin: açgözlü(istem, ayar.örnek_uzunluğu)[1]}) }
+
+değişken sonuç_ = {kayıp: kayıp, ppl: üstel(min(kayıp, 50.0)), bpb: kayıp / log(2.0) / ayar.bayt_parça,
+    doğruluk: toplam_doğru / maks(parça, 1), bantlar: bantlar, parça: parça, pencere: pencere,
+    sondalar: sondalar, örnekler: örnekler, süre_sn: (zaman_ms() - başla) / 1000.0,
+    hassasiyet: ayar.hassasiyet, cihaz: varsayılan_cihaz()}
+dosya_yaz(yol(ayar.koşu, "exam.json"), json_metin(sonuç_))
+yazdır("sınav: kayıp {yuvarla(kayıp, 4)} · ppl {yuvarla(sonuç_.ppl, 3)} · bpb {yuvarla(sonuç_.bpb, 4)} · doğruluk {yuvarla(sonuç_.doğruluk, 4)} · {parça} parça ({pencere} pencere)")
+döngü ad, v içinde bantlar { yazdır("  bant {ad}: {yuvarla(v, 4)}") }
+döngü s içinde sondalar { yazdır("  sonda: farklı_4 {yuvarla(s.farklı_4, 3)} · döngüde {s.döngüde} · {s.metin}") }
+döngü ö içinde örnekler { yazdır("  örnek: {ö.metin}") }
