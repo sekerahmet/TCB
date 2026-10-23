@@ -127,6 +127,10 @@ func (ix *index) pkgOf(id string) string {
 // uzakta, en yakın önce); koruduğu kurallar en sonda.
 func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	fmt.Fprintln(w, describe(n))
+	if n.Kind == kindFile && strings.HasSuffix(n.File, ".go") {
+		ix.printGoFileTests(w, n, limit)
+		return
+	}
 	var tests, measured []*Edge
 	for _, e := range ix.in[n.ID] {
 		switch {
@@ -226,6 +230,11 @@ func (ix *index) printGuardedRules(w io.Writer, tests []*Edge, indirect []indire
 	for _, it := range indirect {
 		froms[it.test.ID] = true
 	}
+	ix.printRulesGuardedBy(w, froms, limit)
+}
+
+// printRulesGuardedBy testlerin koruduğu kuralları yazar.
+func (ix *index) printRulesGuardedBy(w io.Writer, froms map[string]bool, limit int) {
 	rules := map[string]bool{}
 	for id := range froms {
 		for _, g := range ix.in[id] {
@@ -486,4 +495,25 @@ func (ix *index) importsTransitively(from, to string) bool {
 		}
 	}
 	return false
+}
+
+// printGoFileTests bir Go dosyasını koruyan testlerdir: dosyadaki bildirimlerin (işlev, metot, tip, değer) testlerinin
+// birleşimi, `changed`'in değişen düğümler için yaptığı toplamanın aynısı (testDistances; alt süreç testleri dahil).
+// "Bir dosyaya dokunmadan önce tests-for <dosya>" kuralı Go dosyasında da cevap alır.
+func (ix *index) printGoFileTests(w io.Writer, file *Node, limit int) {
+	ts := newTouchSet()
+	for _, e := range ix.out[file.ID] {
+		if d := ix.byID[e.To]; e.Kind == edgeContains && d != nil && strings.HasPrefix(d.ID, "go:") && d.Kind != kindFile {
+			ts.nodes[d.ID] = d
+		}
+	}
+	fmt.Fprintf(w, "  declarations in this file: %d\n", len(ts.nodes))
+	ix.printTestsToRun(w, ts, limit, "the declarations in this file")
+	tests := map[string]bool{}
+	for _, d := range ts.nodes {
+		for id := range ix.testDistances(d) {
+			tests[id] = true
+		}
+	}
+	ix.printRulesGuardedBy(w, tests, limit)
 }

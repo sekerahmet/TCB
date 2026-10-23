@@ -59,7 +59,9 @@ answered (`query "Cümle parçalardan"` finds the rule); several are listed (exi
 `tests-for` lists the direct tests (`tests` edges), then the indirect ones: callers are followed
 backwards over the chain rule below (EXTRACTED `calls`, TR-to-TR `calls`, `uses`, `reads_var`, `writes_var`), up to the first test (Go or TR) on each chain. They
 are shown nearest first as `N steps via <caller next to the target>`, always `[INFERRED]`. This is
-computed when you ask, not stored in `graph.json`. A function a test file uses as a value (a table entry
+computed when you ask, not stored in `graph.json`. For a Go file, `tests-for path/file.go` lists the tests of the
+declarations in it (the collection `changed` uses) and the rules those tests guard, so "run tests-for <file> before
+touching it" answers for Go files too. A function a test file uses as a value (a table entry
 `{"ceil", (*Tensor).Ceil}`, a method expression, `f := Cube`) is an INFERRED `calls` edge that the chain does not follow
 (the call happens later, elsewhere); when its owner is in a test file, `tests-for` lists the tests under "tests that use
 it as a function value": the test itself, or the first tests that read the table or call the helper (chain rule).

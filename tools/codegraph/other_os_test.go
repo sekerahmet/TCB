@@ -24,6 +24,8 @@ import "example.com/mini/internal/lang/messages"
 
 // OnlyElsewhere yalnızca plan9'da derlenir.
 func OnlyElsewhere() error { return messages.New(messages.H0002) }
+
+var tool = "go"
 `)
 	testkit.WriteFile(t, root, "shape/elsewhere_plan9_test.go", `//go:build plan9
 
@@ -50,6 +52,10 @@ func TestElsewhere(t *testing.T) { _ = OnlyElsewhere(); _ = Describe(nil) }
 	// (DENETİM doğrulaması Y4: not ilgisiz boş cevaplara da düşüyordu).
 	_, out, _ = commandIn("who-uses", root, graph, "--no-rebuild", "shape.OnlyElsewhere")
 	testkit.MustContain(t, out, "in other build configurations", "shape.TestElsewhere [func] at shape/elsewhere_plan9_test.go:7  [test]")
+	// Dosya adı bir bildirim adı değildir: "shape.go"nun son parçası "go", derlenmeyen dosyadaki "go" sözcüğüyle eşleşmez.
+	if _, out, _ = commandIn("query", root, graph, "--no-rebuild", "shape/shape.go"); strings.Contains(out, "other build configurations") {
+		t.Errorf("a file name is not a declaration name:%s", out)
+	}
 	if _, out, _ = commandIn("who-uses", root, graph, "--no-rebuild", "shape.Square.Area"); strings.Contains(out, "other build configurations") {
 		t.Errorf("a name the other files never mention gets no note:\n%s", out)
 	}

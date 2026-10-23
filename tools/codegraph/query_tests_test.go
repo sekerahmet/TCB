@@ -123,3 +123,21 @@ func TestCubeValue(t *testing.T) {
 		t.Errorf("Unused is not in any test file:\n%s", got)
 	}
 }
+
+// Kural: `tests-for <Go dosyası>` dosyadaki bildirimlerin testlerinin birleşimini verir (`changed`'in toplamasıyla) ve
+// onların koruduğu kuralları; "bir dosyaya dokunmadan önce tests-for <dosya>" kuralı Go dosyasında boş dönmez.
+func TestTestsForAGoFileListsTheTestsOfItsDeclarations(t *testing.T) {
+	root := auditModule(t, measurementFiles)
+	var out, errb strings.Builder
+	if code := run([]string{"build", "--root", root}, &out, &errb); code != exitOK {
+		t.Fatalf("build: %d %s", code, errb.String())
+	}
+	out.Reset()
+	if code := run([]string{"tests-for", "p/p.go", "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
+		t.Fatalf("tests-for: %d %s", code, errb.String())
+	}
+	got := out.String()
+	if !strings.Contains(got, "declarations in this file: 2") || !strings.Contains(got, "p.TestWork") || strings.Contains(got, "no tests found") {
+		t.Errorf("the file's two functions and their test:\n%s", got)
+	}
+}

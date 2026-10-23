@@ -324,8 +324,8 @@ type otherConfigMention struct {
 // doğrulaması Y4: dataload.mmapFile'ın Linux tanımı ve onu sınayan TestMmapTruncatedDoesNotCrash görünmüyordu, "25 files"
 // notu ise ilgisiz boş cevaplara da düşüyordu).
 func (ix *index) otherConfigMentions(n *Node) (config string, out []otherConfigMention) {
-	if !strings.HasPrefix(n.ID, "go:") || ix.root == "" {
-		return "", nil
+	if !strings.HasPrefix(n.ID, "go:") || n.Kind == kindFile || n.Kind == kindPackage || ix.root == "" {
+		return "", nil // dosya ve paket adı bir bildirim adı değildir ("text.go"nun son parçası "go" olurdu)
 	}
 	name := n.Name[strings.LastIndex(n.Name, ".")+1:]
 	for i := range ix.g.Nodes {

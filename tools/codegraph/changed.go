@@ -43,7 +43,7 @@ func (ix *index) runChanged(o changeOpts, ref string, stdout, stderr io.Writer) 
 	if main == oldSide { // grafik dalın ağacı değil: dalda yeni olan bildirimleri dalın kendi dosyalarından adlandır
 		printBranchDecls(stdout, branchDecls(o.root, right, main.unmappedHunks), o.limit)
 	}
-	ix.printTestsToRun(stdout, main, o.limit)
+	ix.printTestsToRun(stdout, main, o.limit, "the changed code")
 	ix.printOverlaps(stdout, o, ref, oldSide)
 	return exitOK
 }
@@ -130,7 +130,7 @@ func printLimited(w io.Writer, list []string, limit int, indent string) {
 
 // printTestsToRun değişen düğümlerin (Go ve TR bildirimleri, ad kodları, dosyalar) testlerini yazar: tests-for'un topladığının
 // aynısı (testDistances), doğrudan olanlar önce, sonra dolaylılar (kaç adım uzakta); her test bir kez.
-func (ix *index) printTestsToRun(w io.Writer, ts *touchSet, limit int) {
+func (ix *index) printTestsToRun(w io.Writer, ts *touchSet, limit int, what string) {
 	best := map[string]int{} // test kimliği -> en kısa uzaklık (0: doğrudan)
 	subprocess := map[string][]*Node{}
 	pkgs := map[string]bool{}
@@ -156,7 +156,7 @@ func (ix *index) printTestsToRun(w io.Writer, ts *touchSet, limit int) {
 	}
 	if len(ids) == 0 {
 		if len(subprocess) == 0 {
-			fmt.Fprintln(w, "  tests: none found for the changed code")
+			fmt.Fprintln(w, "  tests: none found for "+what)
 		}
 		return
 	}
@@ -166,7 +166,7 @@ func (ix *index) printTestsToRun(w io.Writer, ts *touchSet, limit int) {
 		}
 		return ix.byID[ids[i]].Name < ix.byID[ids[j]].Name
 	})
-	fmt.Fprintf(w, "  tests that exercise the changed code (%d, direct first):\n", len(ids))
+	fmt.Fprintf(w, "  tests that exercise "+what+" (%d, direct first):\n", len(ids))
 	lines := make([]string, len(ids))
 	for i, id := range ids {
 		how := "direct"
