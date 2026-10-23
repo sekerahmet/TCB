@@ -101,3 +101,22 @@ func TestRelAndRecvName(t *testing.T) {
 		t.Error("RecvName: a named type, a pointer to it, and an unnamed type")
 	}
 }
+
+// Types seçeneği ifade tiplerini ve sabit değerleri doldurur; varsayılan doldurmaz.
+func TestLoadTypesOption(t *testing.T) {
+	dir := writeModule(t)
+	with, err := Load(dir, Options{Types: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(with.Units[0].Info.Types) == 0 {
+		t.Error("Types: true fills Info.Types")
+	}
+	without, err := Load(dir, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if without.Units[0].Info.Types != nil {
+		t.Error("the default leaves Info.Types nil")
+	}
+}
