@@ -141,18 +141,23 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	asValue, _ := splitMeasurements(ix.valueTests(n), func(t indirectTest) *Node { return t.test })
 	indirect, indirectMeasured := splitMeasurements(ix.indirectTests(n), func(t indirectTest) *Node { return t.test })
 	viaNames, _ := splitMeasurements(ix.testsThroughNames(n), func(t nameTest) *Node { return t.test })
+	subprocess := ix.subprocessTests(n)
 	found := len(tests) + len(walks) + len(asValue) + len(indirect) + len(viaNames)
-	if found == 0 && len(measured) == 0 && len(indirectMeasured) == 0 {
+	if found == 0 && len(measured) == 0 && len(indirectMeasured) == 0 && len(subprocess) == 0 {
 		fmt.Fprintln(w, "  no tests found")
 		return
 	}
-	if found == 0 {
+	switch {
+	case found == 0 && len(subprocess) > 0:
+		fmt.Fprintln(w, "  no tests traced to it (only subprocess tests, below)")
+	case found == 0:
 		fmt.Fprintln(w, "  no tests found (only measurements, below)")
 	}
 	ix.printGroups(w, "  <-", tests, fromOf, limit, true) // doğrudan testler önce: bu adı ya da dosyayı kullananlar
 	ix.printWalks(w, walks, limit)
 	ix.printValueTests(w, asValue, limit)
 	ix.printInferred(w, n, indirect, viaNames, limit)
+	ix.printSubprocessTests(w, subprocess)
 	ix.printMeasurements(w, measured, indirectMeasured, limit)
 	ix.printGuardedRules(w, tests, indirect, limit)
 }
@@ -334,3 +339,75 @@ func (ix *index) testDistances(n *Node) map[string]int {
 	return best
 }
 
+// subprocessTests n'nin paketini derleyip ikilisini koşan testlerdir, paket klasörüne göre gruplu. Derleyen TestMain ise
+// onun paketindeki bütün testler (ikiliyi hepsi paylaşır); başka bir işlevse onu çağıran ilk testler (zincir kuralı).
+func (ix *index) subprocessTests(n *Node) map[string][]*Node {
+	var builders []*Node
+	for _, e := range ix.in[ix.goPackageOf(n)] {
+		if e.Kind == edgeBuilds && ix.byID[e.From] != nil {
+			builders = append(builders, ix.byID[e.From])
+		}
+	}
+	out := map[string][]*Node{}
+	seen := map[string]bool{}
+	add := func(t *Node) {
+		if !seen[t.ID] && !isMeasurement(t) {
+			seen[t.ID] = true
+			out[path.Dir(t.File)] = append(out[path.Dir(t.File)], t)
+		}
+	}
+	for _, b := range builders {
+		if strings.HasSuffix(b.Name, ".TestMain") {
+			for _, t := range ix.testsInDir(path.Dir(b.File)) {
+				if t.ID != b.ID {
+					add(t)
+				}
+			}
+			continue
+		}
+		walkCallers(b.ID, ix.callersOf, ix.pkgOf, func(r reached) bool {
+			if t := ix.byID[r.ID]; isTestNode(t) {
+				add(t)
+				return false
+			}
+			return true
+		})
+	}
+	return out
+}
+
+// goPackageOf düğümün dosyasını içeren Go paketi düğümünün kimliğidir (paket → dosya `contains` kenarı); yoksa "".
+func (ix *index) goPackageOf(n *Node) string {
+	for _, e := range ix.in[fileID(n.File)] {
+		if e.Kind == edgeContains && strings.HasPrefix(e.From, "go:pkg:") {
+			return e.From
+		}
+	}
+	return ""
+}
+
+// testsInDir klasördeki Go testleridir.
+func (ix *index) testsInDir(dir string) []*Node {
+	var out []*Node
+	for i := range ix.g.Nodes {
+		if t := &ix.g.Nodes[i]; path.Dir(t.File) == dir && isTestNode(t) {
+			out = append(out, t)
+		}
+	}
+	return out
+}
+
+// printSubprocessTests alt süreç testlerini klasör başına tek satırda sayar.
+func (ix *index) printSubprocessTests(w io.Writer, byDir map[string][]*Node) {
+	if len(byDir) == 0 {
+		return
+	}
+	dirs := make([]string, 0, len(byDir))
+	total := 0
+	for d, ts := range byDir {
+		dirs = append(dirs, fmt.Sprintf("%s (%d)", d, len(ts)))
+		total += len(ts)
+	}
+	sort.Strings(dirs)
+	fmt.Fprintf(w, "  <- covered by subprocess tests (%d; they build this package and run the binary, not traced per function): %s\n", total, strings.Join(dirs, ", "))
+}

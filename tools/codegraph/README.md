@@ -62,6 +62,7 @@ computed when you ask, not stored in `graph.json`. A function a test file uses a
 `{"ceil", (*Tensor).Ceil}`, a method expression, `f := Cube`) is an INFERRED `calls` edge that the chain does not follow
 (the call happens later, elsewhere); when its owner is in a test file, `tests-for` lists the tests under "tests that use
 it as a function value": the test itself, or the first tests that read the table or call the helper (chain rule).
+Functions of a package that a test builds and runs as a binary get the "covered by subprocess tests" line (`builds`).
 
 ## Graph
 
@@ -99,6 +100,7 @@ it as a function value": the test itself, or the first tests that read the table
 | `uses_env` | func → `name:K4nn`, from `os.Getenv`/`LookupEnv`/`Setenv`/`Unsetenv` (or `testing.T.Setenv`) given a string constant (or a named one) equal to the variable's name in any writing language; the compute core cannot see name codes, so it reads the variable by its source-language name | EXTRACTED |
 | `guarded_by` | rule → test func or test file named after `Denetim:` | EXTRACTED when the test sits under a path the rule names or under the README's folder, else INFERRED |
 | `links_to` | heading → heading, doc, Go file, package or any file; Markdown links | EXTRACTED; link whose `#anchor` is missing: INFERRED (to the file) |
+| `builds` | function in a test file → module package it compiles with `exec.Command("go", "build", ..., pkg)` (a module path, or `.` / `./x` from the test file's folder) | EXTRACTED. The tests that run the binary cannot be traced per function, so `tests-for` counts them on one line for every function of that package, "covered by subprocess tests (N; ...): cmd/tr (2), cmd/tr/e2e (86)": all tests of the package when the builder is `TestMain`, else the tests that reach the builder (chain rule); `changed` prints the same line |
 
 Every edge has `confidence`, and `file`/`line` of the first place it was seen and `count`.
 `warnings` lists what could not be resolved: a `Denetim:` test that does not exist, a broken

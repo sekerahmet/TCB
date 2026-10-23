@@ -43,6 +43,7 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 			}
 			x.envUse(fc, owner, n)
 			x.pathCall(fc, owner, n)
+			x.buildCall(fc, owner, n)
 		case *ast.Ident:
 			x.use(fc, owner, n, callee[n], writes, enclosingClosure(stack, closures))
 		case *ast.RangeStmt:

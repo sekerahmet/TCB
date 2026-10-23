@@ -132,13 +132,22 @@ func printLimited(w io.Writer, list []string, limit int, indent string) {
 // aynısı (testDistances), doğrudan olanlar önce, sonra dolaylılar (kaç adım uzakta); her test bir kez.
 func (ix *index) printTestsToRun(w io.Writer, ts *touchSet, limit int) {
 	best := map[string]int{} // test kimliği -> en kısa uzaklık (0: doğrudan)
+	subprocess := map[string][]*Node{}
+	pkgs := map[string]bool{}
 	for _, n := range ts.nodes {
 		for id, d := range ix.testDistances(n) { // tests-for ile aynı toplama: doğrudan, gezen, zincir, ad kodu
 			if old, ok := best[id]; !ok || d < old {
 				best[id] = d
 			}
 		}
+		if p := ix.goPackageOf(n); p != "" && !pkgs[p] { // alt süreç testleri paketin tamamınındır: paket başına bir kez
+			pkgs[p] = true
+			for dir, list := range ix.subprocessTests(n) {
+				subprocess[dir] = append(subprocess[dir], list...)
+			}
+		}
 	}
+	defer ix.printSubprocessTests(w, subprocess)
 	ids := make([]string, 0, len(best))
 	for id := range best {
 		if isTestNode(ix.byID[id]) {
@@ -146,7 +155,9 @@ func (ix *index) printTestsToRun(w io.Writer, ts *touchSet, limit int) {
 		}
 	}
 	if len(ids) == 0 {
-		fmt.Fprintln(w, "  tests: none found for the changed code")
+		if len(subprocess) == 0 {
+			fmt.Fprintln(w, "  tests: none found for the changed code")
+		}
 		return
 	}
 	sort.Slice(ids, func(i, j int) bool {
