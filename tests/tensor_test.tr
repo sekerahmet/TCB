@@ -909,6 +909,19 @@ test "15.26 örnekle: sıcaklık, en_iyi_k, tohum" {
     doğrula(hata_metni(() => örnekle(l, sıcaklık: -1)).içerir("sıcaklık negatif olmayan"))
 }
 
+test "15.26 örnekle: dağılım kurulamayan satır her yolda hatadır (sıcaklık: 0 ve en_iyi_k dahil)" {
+    değişken eksi_sonsuz = ondalık("-inf")
+    değişken nan = ondalık("nan")
+    // Hepsi -∞ ve NaN içeren satır: sıcaklık: 0 da, en_iyi_k da sessizce bir indeks seçmez.
+    doğrula(hata_metni(() => örnekle(tensör([eksi_sonsuz, eksi_sonsuz]), sıcaklık: 0)).içerir("dağılım kurulamıyor"))
+    doğrula(hata_metni(() => örnekle(tensör([nan, 1.0]), sıcaklık: 0)).içerir("dağılım kurulamıyor"))
+    doğrula(hata_metni(() => örnekle(tensör([1.0, 2.0, nan]), sıcaklık: 1.0, en_iyi_k: 1, tohum: 1)).içerir("dağılım kurulamıyor"))
+    doğrula(hata_metni(() => örnekle(tensör([1.0, nan]), sıcaklık: 1.0, en_iyi_k: 1, tohum: 1)).içerir("dağılım kurulamıyor"))
+    // Geçerli satır (bazı -∞ değerlerle) hata vermez.
+    eşit_mi(1, örnekle(tensör([eksi_sonsuz, 3.0]), sıcaklık: 0).değer)
+    eşit_mi(1, örnekle(tensör([eksi_sonsuz, 3.0]), en_iyi_k: 1, tohum: 1).değer)
+}
+
 test "15.33 parametreler: sabit sıra, tekillik, yol adları" {
     fonksiyon p(x) { sonuç tensör([x], türev_izle: doğru) }
     yapı Dikkat { Wq, Wk }
