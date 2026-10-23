@@ -215,6 +215,9 @@ func sumTensorList(m *interp.VM, ad string, mean bool, el []interp.Value) (inter
 			if err := checkBroadcast(m, "+", acc, x.t); err != nil {
 				return nil, messages.New(messages.H6222, ad, i+1, err)
 			}
+			if err := checkDevice(ad, acc, x.t); err != nil {
+				return nil, err
+			}
 			a := acc
 			r, err := safe(func() *tensor.Tensor { return tensor.Add(a, x.t) })
 			if err != nil {

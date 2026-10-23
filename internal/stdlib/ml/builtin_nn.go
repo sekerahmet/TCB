@@ -181,6 +181,9 @@ func linearCrossEntropy(m *interp.VM, args []interp.Value, named map[string]inte
 	if err != nil {
 		return nil, err
 	}
+	if err := checkDevice(fn, x, w); err != nil {
+		return nil, err
+	}
 	xs, ws := x.Shape(), w.Shape()
 	if len(xs) == 0 || len(ws) != 2 || xs[len(xs)-1] != ws[0] {
 		return nil, messages.New(messages.H6346, fn, shapeText(xs), shapeText(ws))
@@ -213,12 +216,15 @@ func isZeroOne(x []int) bool {
 }
 
 // normParam ağırlık/sapma argümanını okur (yok verilebilir) ve şeklini denetler.
-func normParam(fn, ad string, v interp.Value, D int) (*tensor.Tensor, error) {
+func normParam(fn, ad string, v interp.Value, D int, x *tensor.Tensor) (*tensor.Tensor, error) {
 	if v == nil || v == interp.Null {
 		return nil, nil
 	}
-	t, err := toTensor(fn, v)
+	t, err := toTensorOn(fn, v, x) // liste, girdinin cihazında tensöre çevrilir (15.38)
 	if err != nil {
+		return nil, err
+	}
+	if err := checkDevice(fn, x, t); err != nil {
 		return nil, err
 	}
 	if sh := t.Shape(); len(sh) != 1 || sh[0] != D {
@@ -284,11 +290,11 @@ func layerNorm(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 	// (dil tanımı 15.4). Ağırlık ve sapma float32 kalır.
 	sh := x.Shape()
 	D := sh[len(sh)-1]
-	w, err := normParam(fn, nameWeight.TR, p[0], D)
+	w, err := normParam(fn, nameWeight.TR, p[0], D, x)
 	if err != nil {
 		return nil, err
 	}
-	b, err := normParam(fn, nameBias.TR, p[1], D)
+	b, err := normParam(fn, nameBias.TR, p[1], D, x)
 	if err != nil {
 		return nil, err
 	}
@@ -312,7 +318,7 @@ func rmsNorm(m *interp.VM, args []interp.Value, named map[string]interp.Value) (
 		return nil, err
 	}
 	sh := x.Shape()
-	w, err := normParam(fn, nameWeight.TR, p[0], sh[len(sh)-1])
+	w, err := normParam(fn, nameWeight.TR, p[0], sh[len(sh)-1], x)
 	if err != nil {
 		return nil, err
 	}

@@ -354,7 +354,7 @@
 "H3069": "CopyFrom: {src} şeklindeki kaynak {dst} şeklindeki hedefe yazılamaz (şekiller aynı ya da kaynak hedefe yayınlanabilir olmalı)",
 "H3070": "{n} indeks verildi, tensör {ndim} boyutlu",
 "H3071": "indeks {index} şekil {shape} dışında",
-"H3072": "{op} girdileri farklı cihazlarda ({a}, {b}); önce To ile taşıyın",
+"H3072": "{op} girdileri farklı cihazlarda ({a}, {b}); önce aynı cihaza taşıyın",
 "H3073": "Reshape içinde yalnızca bir eksen -1 olabilir",
 "H3074": "Reshape için geçersiz şekil {shape}",
 "H3075": "{shape} şekli {n} elemana uydurulamaz",

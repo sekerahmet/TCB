@@ -187,8 +187,11 @@ func attentionBuiltin(m *interp.VM, args []interp.Value, named map[string]interp
 		return nil, err
 	}
 	if mv, ok := bind.GetNamed(named, nameMask); ok && mv != interp.Null {
-		mt, err := toTensor(fn+": maske", mv)
+		mt, err := toTensorOn(fn+": maske", mv, q) // liste, q'nun cihazında tensöre çevrilir (15.38)
 		if err != nil {
+			return nil, err
+		}
+		if err := checkDevice(fn, q, mt); err != nil {
 			return nil, err
 		}
 		if err := checkMask(fn, mt, q, k); err != nil {

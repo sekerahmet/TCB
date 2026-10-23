@@ -354,7 +354,7 @@
 "H3069": "CopyFrom: the source of shape {src} cannot be written to the destination of shape {dst} (the shapes must be the same or the source must be broadcastable to the destination)",
 "H3070": "{n} {n, plural, one {index was} other {indices were}} given, the tensor has {ndim} dimensions",
 "H3071": "index {index} is outside shape {shape}",
-"H3072": "the inputs of {op} are on different devices ({a}, {b}); move them first with To",
+"H3072": "the inputs of {op} are on different devices ({a}, {b}); move them to the same device first",
 "H3073": "only one axis can be -1 in Reshape",
 "H3074": "invalid shape {shape} for Reshape",
 "H3075": "shape {shape} cannot be fitted to {n} {n, plural, one {element} other {elements}}",
