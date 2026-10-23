@@ -22,7 +22,7 @@ const schemaVersion = 1
 // 7: .tr kaynakları etkin yazım dilinden bağımsız okunur (TR_DIL=en grafiği eksik bırakıyordu).
 // 8: sabit, değişken ve alan düğümlerinin bitiş satırı kendi değeriyle biter (öncekiler sonraki bloğun sonuna uzanıyordu).
 // 9: aynı modül hem takma adsız hem takma adla aktarılınca takma ad tanınır (yutuluyordu).
-const extractorRevision = 37
+const extractorRevision = 38
 
 // Düğüm türleri.
 const (
@@ -44,29 +44,30 @@ const (
 
 // Kenar türleri.
 const (
-	edgeContains    = "contains"
-	edgeImports     = "imports"
-	edgeCalls       = "calls"
-	edgeImplements  = "implements"
-	edgeTests       = "tests"
-	edgeUsesMessage = "uses_message"
-	edgeUsesName    = "uses_name"
-	edgeUsesEnv     = "uses_env"
-	edgeReadsFile   = "reads_file"
-	edgeEmbeds      = "embeds"
-	edgeWalks       = "walks"
-	edgeDispatches  = "dispatches_to"
-	edgeReadsVar    = "reads_var"
-	edgeWritesVar   = "writes_var"
-	edgeInitsVar    = "inits_var"
-	edgeUses        = "uses"
-	edgeReadsField  = "reads_field"
-	edgeWritesField = "writes_field"
-	edgeDenotes     = "denotes"
-	edgeGuardedBy   = "guarded_by"
-	edgeLinksTo     = "links_to"
-	edgeBuilds      = "builds"
-	edgeRelated     = "related"
+	edgeContains      = "contains"
+	edgeImports       = "imports"
+	edgeCalls         = "calls"
+	edgeImplements    = "implements"
+	edgeTests         = "tests"
+	edgeUsesMessage   = "uses_message"
+	edgeUsesName      = "uses_name"
+	edgeUsesEnv       = "uses_env"
+	edgeReadsFile     = "reads_file"
+	edgeEmbeds        = "embeds"
+	edgeWalks         = "walks"
+	edgeDispatches    = "dispatches_to"
+	edgeReadsVar      = "reads_var"
+	edgeWritesVar     = "writes_var"
+	edgeInitsVar      = "inits_var"
+	edgeUses          = "uses"
+	edgeReadsField    = "reads_field"
+	edgeWritesField   = "writes_field"
+	edgeDenotes       = "denotes"
+	edgeGuardedBy     = "guarded_by"
+	edgeLinksTo       = "links_to"
+	edgeBuilds        = "builds"
+	edgeRelated       = "related"
+	edgeImplementedBy = "implemented_by" // TR bildirimi -> kullandığı dil yapısını çalıştıran Go işlevi (dispatch.go)
 )
 
 // Güven etiketleri: EXTRACTED kaynaktan ya da tip bilgisinden kesin okunan, INFERRED addan ya da

@@ -116,3 +116,8 @@ codegraph tests-for gpu.backend.ltMul | contains: gpu.TestGemmLibraryMatchesOwnK
 # Bağımsız denetim karar maddeleri (2026-10-24)
 tr dizin sınayanlar ağırlık_başlat | contains: lib/katman_test.tr | not: sınayan yok | src: bağımsız denetim Y12 (kurucu çağrısı), 2026-10-24
 codegraph query sıçramabekçisi | contains: egitim.SıçramaBekçisi [tr_struct] | not: is ambiguous | src: bağımsız denetim Y12 (Türkçe harf katlaması), 2026-10-24
+
+# Deneme 9 ve 10: dil yapısı → Go uygulaması; değer dili 3. tur (2026-10-24)
+codegraph tests-for interp.VM.callPrepared --all | group: measurements, not tests => tools/bench/tr/fib.tr | src: deneme 10 (çağrı maliyeti ölçümü), 2026-10-24
+codegraph who-uses interp.Value.Inspect | contains: <- implemented_by | src: değer dili 3. tur (metin yerleştirmesi → Inspect), 2026-10-24
+codegraph query katman.Doğrusal.ileri --all | group: implemented_by => interp.compiler.call | group: implemented_by => interp.VM.memberValue | src: deneme 9 H1 (yapı → uygulama), 2026-10-24
