@@ -38,8 +38,11 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 				callee[id] = true
 			}
 			x.envUse(fc, owner, n)
+			x.pathCall(fc, owner, n)
 		case *ast.Ident:
 			x.use(fc, owner, n, callee[n])
+		case *ast.BasicLit:
+			x.pathLit(fc, owner, n)
 		case *ast.FuncLit:
 			closures[n] = x.closureNode(fc, owner, n, stack, closures)
 		case *ast.SelectorExpr:

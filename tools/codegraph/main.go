@@ -144,6 +144,7 @@ func buildGraph(root string) (*Graph, error) {
 	addTestEdges(b, idx)
 	extractTR(root, b)
 	extractMarkdown(root, b, idx)
+	linkTestPaths(b, idx)
 	g := b.graph()
 	g.Stamp = stamp
 	return g, nil

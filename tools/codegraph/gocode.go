@@ -19,6 +19,7 @@ type goIndex struct {
 	tests      []*testFunc                  // TestX/BenchmarkX/FuzzX/ExampleX işlevleri
 	byName     map[string][]*testFunc
 	dirFiles   map[string]bool // dosya düğümü olan göreli yollar
+	pathRefs   []pathRef       // test dosyalarındaki yol sabitleri (test_paths.go)
 }
 
 // testFunc bir test işlevidir.
@@ -33,6 +34,7 @@ type goExtractor struct {
 	fieldAt   map[string]string // alanın bildirim konumu -> alan düğümünün kimliği
 	fieldUses []rawFieldUse     // çözülmeyi bekleyen alan erişimleri
 	env       map[string]string // ortam değişkeni adı -> K4xx ad kodu (env_names.go)
+	consumed  map[*ast.BasicLit]bool
 }
 
 func pkgID(p string) string    { return "go:pkg:" + p }
@@ -81,7 +83,7 @@ func extractGo(m *module, b *builder) *goIndex {
 	x := &goExtractor{m: m, b: b, idx: &goIndex{
 		pkgSyms: map[string]map[string]string{}, inTestFile: map[string]bool{},
 		byName: map[string][]*testFunc{}, dirFiles: map[string]bool{},
-	}, fieldAt: map[string]string{}, env: envCodes(m.Root)}
+	}, fieldAt: map[string]string{}, env: envCodes(m.Root), consumed: map[*ast.BasicLit]bool{}}
 	for _, u := range m.Units {
 		x.unit(u)
 	}
