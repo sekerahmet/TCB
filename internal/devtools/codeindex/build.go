@@ -21,6 +21,9 @@ type Options struct {
 	Dirs []string
 	// SkipDirs gezilmeyen klasör adlarıdır (nil ise DefaultSkipDirs).
 	SkipDirs map[string]bool
+	// Tracked doğruysa yalnızca git'in izlediği .tr dosyaları dizine girer (depo aracı: codegraph); yanlışsa (tr dizin)
+	// kökün altındaki her .tr, .gitignore'a bakılmadan (ListFiles kipleri).
+	Tracked bool
 	// Library gömülü TR kitaplığıdır (kökünde katman.tr gibi dosyalar): projede lib/ad.tr yoksa
 	// `aktar "tr/ad"` buraya çözülür ve modül "tr:lib/ad.tr" yoluyla dizine girer. Boşsa yok.
 	Library fs.FS
@@ -84,7 +87,7 @@ func Build(root string, opts Options) (*Index, error) {
 	if skip == nil {
 		skip = DefaultSkipDirs
 	}
-	for _, rel := range x.discover(opts.Dirs, skip) {
+	for _, rel := range x.discover(opts, skip) {
 		x.read(rel)
 	}
 	x.addLibrary()
@@ -100,9 +103,13 @@ func Build(root string, opts Options) (*Index, error) {
 	return x.finish(), nil
 }
 
-// discover .tr dosyalarının köke göre yollarını sıralı verir (ListFiles: izlenmeyen yeni dosyalar da).
-func (x *indexer) discover(dirs []string, skip map[string]bool) []string {
-	return ListFiles(x.root, dirs, skip, true, func(rel string) bool { return strings.HasSuffix(rel, ".tr") })
+// discover .tr dosyalarının köke göre yollarını sıralı verir (ListFiles; opts.Tracked kipi seçer).
+func (x *indexer) discover(opts Options, skip map[string]bool) []string {
+	set := AllFiles
+	if opts.Tracked {
+		set = TrackedFiles
+	}
+	return ListFiles(x.root, opts.Dirs, skip, set, func(rel string) bool { return strings.HasSuffix(rel, ".tr") })
 }
 
 // read diskteki bir dosyayı okur ve modül düğümünü ekler.

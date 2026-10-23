@@ -50,7 +50,7 @@ const (
 // textFiles yeniden adlandırma taramasının dosyalarıdır: yalnızca izlenenler (izlenmeyen dosyalar kullanıcınındır; git
 // yoksa klasör gezintisi), ListFiles'ın kuralıyla.
 func textFiles(root string) []string {
-	return ListFiles(root, nil, DefaultSkipDirs, false, func(rel string) bool {
+	return ListFiles(root, nil, DefaultSkipDirs, TrackedFiles, func(rel string) bool {
 		switch strings.ToLower(filepath.Ext(rel)) {
 		case ".md", ".json", ".tr", ".go":
 			return true
@@ -289,14 +289,29 @@ func clip(line string) string {
 	return line
 }
 
-// ListFiles depo araçlarının tek dosya listesidir (dizin, kod grafiği, madde taraması; bağımsız denetim T1, Y11): köke
-// göre yollar, "/" ile, sıralı. Git varsa git'in gördüğü dosyalar: izlenenler; untracked doğruysa izlenmeyip yok
-// sayılmayanlar da (yeni, henüz commit'lenmemiş kaynak dizine girer; .gitignore'dakiler, scratch/ ve runs/ gibi,
-// girmez). Dosya yazan araç untracked=false verir: depo kökündeki izlenmeyen dosyalar kullanıcınındır. Git yoksa
-// klasör gezintisi. İkisinde de skip'teki adlı bir klasörün (testdata, .claude ...) altı atlanır; dirs boş değilse
-// yalnızca onların altı; keep nil değilse süzgeçtir.
-func ListFiles(root string, dirs []string, skip map[string]bool, untracked bool, keep func(rel string) bool) []string {
-	rels, ok := gitFiles(root, untracked)
+// FileSet ListFiles'ın iki kipidir: hangi dosyaların sayıldığı aracın kime hizmet ettiğine bağlıdır.
+type FileSet int
+
+const (
+	// TrackedFiles depo araçlarınındır (codegraph, renumber, yeniden adlandırmanın metin taraması): git'in izlediği
+	// dosyalar; git yoksa klasör gezintisi. Depo kökündeki izlenmeyen dosyalar kullanıcınındır, grafiğe ve yazılan
+	// plana girmez.
+	TrackedFiles FileSet = iota
+	// AllFiles kullanıcı aracınındır (tr dizin; ileride dil sunucusu): kökün altındaki her dosya, .gitignore'a
+	// bakılmadan; scratch/ gibi yok sayılan bir klasörde yazılan .tr da dizine girer (örnekler denemeleri orada
+	// yapmayı öğütler).
+	AllFiles
+)
+
+// ListFiles araçların tek dosya listesidir (dizin, kod grafiği, madde taraması; bağımsız denetim T1, Y11): köke göre
+// yollar, "/" ile, sıralı; set kipi (TrackedFiles, AllFiles) hangi dosyaların sayıldığını seçer. İki kipte de skip'teki
+// adlı bir klasörün (testdata, .claude ...) altı atlanır; dirs boş değilse yalnızca onların altı; keep nil değilse
+// süzgeçtir.
+func ListFiles(root string, dirs []string, skip map[string]bool, set FileSet, keep func(rel string) bool) []string {
+	rels, ok := []string(nil), false
+	if set == TrackedFiles {
+		rels, ok = GitTracked(root)
+	}
 	if !ok {
 		_ = filepath.WalkDir(root, func(p string, d os.DirEntry, err error) error {
 			if err != nil {
@@ -350,19 +365,10 @@ func underAnyDir(rel string, dirs []string) bool {
 
 // GitTracked `.git` varsa ve git çalışıyorsa izlenen dosyalardır (git ls-files); aksi halde ok=false.
 func GitTracked(root string) ([]string, bool) {
-	return gitFiles(root, false)
-}
-
-// gitFiles git'in listesidir; untracked ise yok sayılmayan izlenmeyen dosyalar da.
-func gitFiles(root string, untracked bool) ([]string, bool) {
 	if _, err := os.Stat(filepath.Join(root, ".git")); err != nil {
 		return nil, false
 	}
-	args := []string{"-C", root, "ls-files", "-z"}
-	if untracked {
-		args = append(args, "--cached", "--others", "--exclude-standard")
-	}
-	out, err := exec.Command("git", args...).Output()
+	out, err := exec.Command("git", "-C", root, "ls-files", "-z").Output()
 	if err != nil {
 		return nil, false
 	}

@@ -14,7 +14,7 @@ import (
 // walkFiles root altında adı suffix ile biten dosyaların köke göre yollarını verir ('/' ile, sıralı): depo araçlarının
 // tek listesi (codeindex.ListFiles: git'in gördüğü dosyalar, izlenmeyen yeni dosyalar dahil; tek atlama listesi).
 func walkFiles(root, suffix string) []string {
-	return codeindex.ListFiles(root, nil, codeindex.DefaultSkipDirs, true, func(rel string) bool { return strings.HasSuffix(rel, suffix) })
+	return codeindex.ListFiles(root, nil, codeindex.DefaultSkipDirs, codeindex.TrackedFiles, func(rel string) bool { return strings.HasSuffix(rel, suffix) })
 }
 
 func docID(rel string) string           { return "doc:" + rel }

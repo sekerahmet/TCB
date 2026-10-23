@@ -26,7 +26,7 @@ type File struct {
 // Collect kökteki .md, .go ve .tr dosyalarını okur: yalnızca izlenenler (git varsa; depo kökündeki izlenmeyen dosyalar
 // kullanıcınındır ve renumber dosya yazar), codeindex.ListFiles'ın tek atlama listesiyle (testdata taranmaz).
 func Collect(root string) ([]File, error) {
-	rels := codeindex.ListFiles(root, nil, codeindex.DefaultSkipDirs, false, func(rel string) bool {
+	rels := codeindex.ListFiles(root, nil, codeindex.DefaultSkipDirs, codeindex.TrackedFiles, func(rel string) bool {
 		switch strings.ToLower(filepath.Ext(rel)) {
 		case ".md", ".go", ".tr":
 			return true

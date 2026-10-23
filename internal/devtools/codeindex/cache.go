@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -58,7 +59,7 @@ func (o Options) signature() string {
 	if o.Library != nil {
 		lib = "lib"
 	}
-	return strings.Join(o.Dirs, ",") + "|" + strings.Join(names, ",") + "|" + lib
+	return strings.Join(o.Dirs, ",") + "|" + strings.Join(names, ",") + "|" + lib + "|" + strconv.FormatBool(o.Tracked)
 }
 
 func hashBytes(data []byte) string {
@@ -146,7 +147,7 @@ func inputs(root string, opts Options, prev map[string]manifestFile) (map[string
 		skip = DefaultSkipDirs
 	}
 	out := map[string]manifestFile{}
-	for _, rel := range x.discover(opts.Dirs, skip) {
+	for _, rel := range x.discover(opts, skip) {
 		path := filepath.Join(root, filepath.FromSlash(rel))
 		st, err := os.Stat(path)
 		if err != nil {

@@ -29,7 +29,7 @@ func trFileID(rel string) string { return "tr:file:" + rel }
 // ad kodu, aktarma ve test kenarları. Ayrıştırılamayan dosya uyarı olur. Kimlikler (tr:func:...)
 // ajanların alışkanlığı bozulmasın diye korunur.
 func extractTR(root string, b *builder) {
-	idx, err := codeindex.Build(root, codeindex.Options{Dirs: trRoots})
+	idx, err := codeindex.Build(root, codeindex.Options{Dirs: trRoots, Tracked: true})
 	if err != nil {
 		b.warn("tr sources skipped: " + err.Error())
 		return

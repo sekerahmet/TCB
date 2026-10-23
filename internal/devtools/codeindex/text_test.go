@@ -138,13 +138,16 @@ func TestGitTrackedListsOnlyTrackedFiles(t *testing.T) {
 	}
 }
 
-// Kural: depo araçlarının tek dosya listesi (ListFiles) git'in gördüğünü verir: izlenen; untracked ile izlenmeyip yok
-// sayılmayan yeni dosya da; .gitignore'daki (scratch/) hiç; atlama listesindeki klasörün (testdata) altı hiç; dirs ve
-// keep süzer. git yoksa aynı kural klasör gezintisiyle (bağımsız denetim T1, Y11).
-func TestListFilesSeesWhatGitSeesMinusSkippedDirs(t *testing.T) {
+// Kural: araçların tek dosya listesinin (ListFiles) iki kipi vardır. TrackedFiles (depo araçları): git'in izlediği
+// dosyalar. AllFiles (tr dizin): kökün altındaki her dosya, .gitignore'a bakılmadan; scratch/ gibi yok sayılan bir
+// klasörde yazılan .tr da girer (DENETİM: 0fb3351e'de tr dizin scratch/deneme.tr'yi görmüyordu). İki kipte de atlama
+// listesindeki klasörün (testdata) altı girmez, izlense de; dirs ve keep süzer; git yoksa iki kip de gezintidir.
+// Dizin kipi Options.Tracked'tan alır: tr dizin yok sayılan klasördeki .tr'yi bulur, codegraph'ın dizini bulmaz.
+func TestListFilesKeepsTwoRules(t *testing.T) {
 	dir := t.TempDir()
-	for name, text := range map[string]string{"lib/a.tr": "x", "lib/new.tr": "y", "scratch/s.tr": "z", "lib/testdata/f.tr": "w",
-		"docs/d.md": "m", ".gitignore": "scratch/\n"} {
+	for name, text := range map[string]string{"lib/a.tr": "fonksiyon a() {\n    sonuç 1\n}\n", "lib/new.tr": "y",
+		"scratch/deneme.tr": "fonksiyon deneme_fonk() {\n    sonuç 1\n}\n", "lib/testdata/f.tr": "w", "docs/d.md": "m",
+		".gitignore": "scratch/\n"} {
 		if err := os.MkdirAll(filepath.Dir(filepath.Join(dir, name)), 0o755); err != nil {
 			t.Fatal(err)
 		}
@@ -153,32 +156,43 @@ func TestListFilesSeesWhatGitSeesMinusSkippedDirs(t *testing.T) {
 		}
 	}
 	tr := func(rel string) bool { return strings.HasSuffix(rel, ".tr") }
-	walked := strings.Join(ListFiles(dir, nil, DefaultSkipDirs, true, tr), " ")
-	if walked != "lib/a.tr lib/new.tr scratch/s.tr" {
-		t.Errorf("without git (walk): %q", walked)
+	for _, set := range []FileSet{TrackedFiles, AllFiles} {
+		if got := strings.Join(ListFiles(dir, nil, DefaultSkipDirs, set, tr), " "); got != "lib/a.tr lib/new.tr scratch/deneme.tr" {
+			t.Errorf("without git, set %d walks: %q", set, got)
+		}
 	}
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git yok")
 	}
-	for _, args := range [][]string{{"init", "-q"}, {"add", "lib/a.tr", "docs/d.md", ".gitignore"}} {
+	for _, args := range [][]string{{"init", "-q"}, {"add", "lib/a.tr", "docs/d.md", ".gitignore"}, {"add", "-f", "lib/testdata/f.tr"}} {
 		if out, err := exec.Command("git", append([]string{"-C", dir}, args...)...).CombinedOutput(); err != nil {
 			t.Fatalf("git %v: %v\n%s", args, err, out)
 		}
 	}
-	if err := exec.Command("git", "-C", dir, "add", "-f", "lib/testdata/f.tr").Run(); err != nil {
-		t.Fatal(err)
+	for _, c := range []struct {
+		set  FileSet
+		dirs []string
+		want string
+	}{
+		{TrackedFiles, nil, "lib/a.tr"},                          // depo aracı: yalnızca izlenen
+		{AllFiles, nil, "lib/a.tr lib/new.tr scratch/deneme.tr"}, // kullanıcı aracı: yok sayılan klasör dahil
+		{AllFiles, []string{"scratch"}, "scratch/deneme.tr"},     // dirs süzer
+		{AllFiles, []string{"docs"}, ""},
+	} {
+		if got := strings.Join(ListFiles(dir, c.dirs, DefaultSkipDirs, c.set, tr), " "); got != c.want {
+			t.Errorf("ListFiles(set=%d, dirs=%v) = %q, want %q", c.set, c.dirs, got, c.want)
+		}
 	}
 	for _, c := range []struct {
-		untracked bool
-		dirs      []string
-		want      string
-	}{
-		{true, nil, "lib/a.tr lib/new.tr"}, // yeni dosya girer; yok sayılan scratch/ ve izlenen testdata girmez
-		{false, nil, "lib/a.tr"},           // dosya yazan araç: yalnızca izlenen
-		{true, []string{"docs"}, ""},
-	} {
-		if got := strings.Join(ListFiles(dir, c.dirs, DefaultSkipDirs, c.untracked, tr), " "); got != c.want {
-			t.Errorf("ListFiles(untracked=%v, dirs=%v) = %q, want %q", c.untracked, c.dirs, got, c.want)
+		tracked bool
+		want    int
+	}{{false, 1}, {true, 0}} {
+		idx, err := Build(dir, Options{Tracked: c.tracked})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := len(NewReader(idx).Resolve("deneme_fonk", "")); got != c.want {
+			t.Errorf("Build(Tracked: %v) finds deneme_fonk %d times, want %d", c.tracked, got, c.want)
 		}
 	}
 }
