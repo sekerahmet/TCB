@@ -383,29 +383,15 @@ func (a *methodAudit) markShadowed(first, later guard) {
 
 // runDeadMethods `dead-methods` komutudur.
 func runDeadMethods(args []string, stdout, stderr io.Writer) int {
-	o, rest := parseAuditFlags("dead-methods", args, stderr)
-	if o == nil {
-		return exitUsage
-	}
-	if len(rest) != 0 {
-		fmt.Fprintf(stderr, "codegraph dead-methods: unexpected argument %q\n%s", rest[0], usage)
-		return exitUsage
-	}
-	m, code := loadAudit(o, stderr, true)
-	if m == nil {
-		return code
-	}
-	var list []deadMethod
-	for _, d := range findDeadMethods(m) {
-		if underIn(d.File, o.in) {
-			list = append(list, d)
+	return runGoAudit("dead-methods", args, true, stdout, stderr, func(m *goload.Module, o *auditOpts) (map[string]any, func(io.Writer)) {
+		var list []deadMethod
+		for _, d := range findDeadMethods(m) {
+			if underIn(d.File, o.in) {
+				list = append(list, d)
+			}
 		}
-	}
-	if o.asJSON {
-		return writeJSON(stdout, stderr, map[string]any{"schema": "codegraph-dead-methods/1", "methods": list})
-	}
-	printDeadMethods(stdout, list, o.limit)
-	return exitOK
+		return map[string]any{"methods": list}, func(w io.Writer) { printDeadMethods(w, list, o.limit) }
+	})
 }
 
 func printDeadMethods(w io.Writer, list []deadMethod, limit int) {

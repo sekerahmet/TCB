@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"strings"
 	"testing"
 )
@@ -95,9 +94,8 @@ func TestTimeCeilingsListsConstantCeilings(t *testing.T) {
 			t.Errorf("%s is not a wall-clock ceiling", quiet)
 		}
 	}
-	var out, errb bytes.Buffer
-	run([]string{"time-ceilings", "--root", root}, &out, &errb)
-	if !strings.Contains(out.String(), "4 wall-clock ceiling(s)") || !strings.Contains(out.String(), "p_test.go:15") || !strings.Contains(out.String(), "time.Since(begin) > 3*time.Second") {
-		t.Errorf("text:\n%s", out.String())
+	text := auditText(t, "time-ceilings", root)
+	if !strings.Contains(text, "4 wall-clock ceiling(s)") || !strings.Contains(text, "p_test.go:15") || !strings.Contains(text, "time.Since(begin) > 3*time.Second") {
+		t.Errorf("text:\n%s", text)
 	}
 }

@@ -104,3 +104,29 @@ func limited[T any](list []T, n int) ([]T, bool) {
 	}
 	return list, false
 }
+
+// runGoAudit tip bilgili denetim komutlarının ortak çalıştırıcısıdır: bayrakları okur, fazla argümanı
+// reddeder, modülü yükler, audit'i çalıştırır ve sonucu "codegraph-<ad>/1" şemalı JSON ya da düz metin
+// olarak yazar. audit JSON gövdesini ve metin yazıcısını verir.
+func runGoAudit(name string, args []string, withTypes bool, stdout, stderr io.Writer,
+	audit func(m *goload.Module, o *auditOpts) (map[string]any, func(io.Writer))) int {
+	o, rest := parseAuditFlags(name, args, stderr)
+	if o == nil {
+		return exitUsage
+	}
+	if len(rest) != 0 {
+		fmt.Fprintf(stderr, "codegraph %s: unexpected argument %q\n%s", name, rest[0], usage)
+		return exitUsage
+	}
+	m, code := loadAudit(o, stderr, withTypes)
+	if m == nil {
+		return code
+	}
+	body, text := audit(m, o)
+	if o.asJSON {
+		body["schema"] = "codegraph-" + name + "/1"
+		return writeJSON(stdout, stderr, body)
+	}
+	text(stdout)
+	return exitOK
+}

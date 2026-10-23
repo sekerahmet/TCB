@@ -259,3 +259,19 @@ func TestCollectReadsDocsAndSkipsTestdata(t *testing.T) {
 		t.Errorf("collected %v", names)
 	}
 }
+
+// Kural: kod içindeki numaralar atıf değildir: Markdown'da `...` aralıkları ve çit blokları, Go'da // öncesi
+// (dize sabitleri); Go yorumları ve düz metin atıftır.
+func TestCodeIsNotScannedForReferences(t *testing.T) {
+	spec := specFile(15, 1)
+	doc := File{Path: "docs/a.md", Text: "örnek `**15.77**` ve dil tanımı 15.88\n```\n**15.99**\n```\n"}
+	code := File{Path: "x/a.go", Text: "package x\n\nvar s = \"**15.55**\" /" + "/ dil tanımı 15.66\n/" + "/ dil tanımı 15.1\n"}
+	ix, ms := build(spec, doc, code)
+	var got []string
+	for _, f := range Check(ms, ix) {
+		got = append(got, f.Ref)
+	}
+	if strings.Join(got, ",") != "15.88,15.66" {
+		t.Errorf("findings = %v", got)
+	}
+}

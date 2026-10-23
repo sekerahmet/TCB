@@ -211,9 +211,10 @@ func Scan(files []File, ix *Index) []Mention {
 	var out []Mention
 	for _, f := range files {
 		offset := 0
+		fence := false
 		for i, line := range strings.SplitAfter(f.Text, "\n") {
 			body := strings.TrimRight(line, "\r\n")
-			out = append(out, scanLine(f.Path, i+1, offset, body, ix)...)
+			out = append(out, scanLine(f.Path, i+1, offset, body, maskCode(f.Path, body, &fence), ix)...)
 			offset += len(line)
 		}
 	}
@@ -254,11 +255,51 @@ func (s *lineScan) add(kind string, start, end int, rng bool, toks []Token) {
 	s.out = append(s.out, m)
 }
 
+// maskCode kod olan kısımları boşlukla örter (bayt uzunluğu korunur): numaralar yalnızca düz metinde atıftır,
+// kod içinde (Markdown'da `...` aralıkları ve çit bloklar, Go'da // öncesi) örnek ya da veridir. fence, açık
+// çit bloğunun durumunu satırdan satıra taşır.
+func maskCode(path, line string, fence *bool) string {
+	blank := func(s string) string { return strings.Repeat(" ", len(s)) }
+	switch {
+	case strings.HasSuffix(path, ".md"):
+		if strings.HasPrefix(strings.TrimSpace(line), "```") {
+			*fence = !*fence
+			return blank(line)
+		}
+		if *fence {
+			return blank(line)
+		}
+		var b strings.Builder
+		in := false
+		for _, part := range strings.SplitAfter(line, "`") {
+			if in {
+				b.WriteString(blank(part))
+			} else {
+				b.WriteString(part)
+			}
+			if strings.HasSuffix(part, "`") {
+				in = !in
+			}
+		}
+		return b.String()
+	case strings.HasSuffix(path, ".go"):
+		t := strings.TrimSpace(line)
+		if strings.HasPrefix(t, "*") || strings.HasPrefix(t, "/*") {
+			return line
+		}
+		if i := strings.Index(line, "//"); i >= 0 {
+			return blank(line[:i]) + line[i:]
+		}
+		return blank(line)
+	}
+	return line
+}
+
 // scanLine bir satırdaki atıfları verir; offset satırın dosyadaki bayt başlangıcıdır.
-func scanLine(path string, no, offset int, line string, ix *Index) []Mention {
+func scanLine(path string, no, offset int, raw, line string, ix *Index) []Mention {
 	s := &lineScan{path: path, no: no, offset: offset, line: line, covered: make([]bool, len(line)+1)}
-	if m := itemLine.FindStringSubmatchIndex(line); m != nil && IsSpecFile(path) {
-		s.add("definition", m[2]-2, m[3]+2, false, []Token{{ID: line[m[2]:m[3]], Start: m[2], End: m[3]}})
+	if m := itemLine.FindStringSubmatchIndex(raw); m != nil && IsSpecFile(path) {
+		s.add("definition", m[2]-2, m[3]+2, false, []Token{{ID: raw[m[2]:m[3]], Start: m[2], End: m[3]}})
 	}
 	for _, m := range reBold.FindAllStringSubmatchIndex(line, -1) {
 		if overlaps(s.covered, m[0], m[1]) {
