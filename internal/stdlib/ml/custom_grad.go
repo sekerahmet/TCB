@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-	"strings"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -179,7 +178,7 @@ func forwardResult(v interp.Value) (outputs []*tensor.Tensor, many bool, savedVa
 	forwards := nameForward.TR
 	l, ok := v.(*interp.ListVal)
 	if !ok || len(l.Elements) != 2 {
-		return nil, false, nil, messages.New(messages.H6409, fn, nameForward.TR, result, shortForm(v))
+		return nil, false, nil, messages.New(messages.H6409, fn, nameForward.TR, result, interp.TypeAndSummary(v))
 	}
 	savedVals, ok = l.Elements[1].(*interp.ListVal)
 	if !ok {
@@ -202,18 +201,6 @@ func forwardResult(v interp.Value) (outputs []*tensor.Tensor, many bool, savedVa
 		return outputs, true, savedVals, nil
 	}
 	return nil, false, nil, messages.New(messages.H6413, fn, forwards, typeName(l.Elements[0]))
-}
-
-// shortForm hata mesajı için değerin tipini ve (kısaysa) kendisini yazar.
-func shortForm(v interp.Value) string {
-	if v == nil {
-		return interp.Null.Inspect()
-	}
-	s := v.Inspect()
-	if len(s) > 60 || strings.Contains(s, "\n") {
-		return typeName(v)
-	}
-	return fmt.Sprintf("%s (%s)", s, typeName(v))
 }
 
 // sumTensors saklananlar içindeki (iç içe listeler dahil) tensörleri toplar; bunların
@@ -270,7 +257,7 @@ func backwardResult(v interp.Value, args []interp.Value) ([]*tensor.Tensor, erro
 	fn, backward, none := codes.DisplayName(codes.T310), nameBackward.TR, codes.DisplayName(codes.A042)
 	l, ok := v.(*interp.ListVal)
 	if !ok {
-		return nil, messages.New(messages.H6414, fn, backward, none, codes.DisplayName(codes.A021), shortForm(v))
+		return nil, messages.New(messages.H6414, fn, backward, none, codes.DisplayName(codes.A021), interp.TypeAndSummary(v))
 	}
 	if len(l.Elements) != len(args) {
 		return nil, messages.New(messages.H6415, fn, backward, len(l.Elements), len(args), none)
@@ -512,7 +499,7 @@ func checkOutputs(fn string, v interp.Value) ([]*tensor.Tensor, error) {
 		}
 		return out, nil
 	}
-	return nil, messages.New(messages.H6428, fn, shortForm(v))
+	return nil, messages.New(messages.H6428, fn, interp.TypeAndSummary(v))
 }
 
 // positiveFloat adlı pozitif sayısal argümanı okur.
