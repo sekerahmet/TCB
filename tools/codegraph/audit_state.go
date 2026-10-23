@@ -301,30 +301,16 @@ func pkgLevel(o types.Object) *types.Var {
 
 // runPackageState `package-state` komutudur.
 func runPackageState(args []string, stdout, stderr io.Writer) int {
-	o, rest := parseAuditFlags("package-state", args, stderr)
-	if o == nil {
-		return exitUsage
-	}
-	if len(rest) != 0 {
-		fmt.Fprintf(stderr, "codegraph package-state: unexpected argument %q\n%s", rest[0], usage)
-		return exitUsage
-	}
-	m, code := loadAudit(o, stderr, false)
-	if m == nil {
-		return code
-	}
-	all, readOnly := findPackageState(m)
-	var vars []*stateVar
-	for _, v := range all {
-		if underIn(v.File, o.in) {
-			vars = append(vars, v)
+	return runGoAudit("package-state", args, false, stdout, stderr, func(m *goload.Module, o *auditOpts) (map[string]any, func(io.Writer)) {
+		all, readOnly := findPackageState(m)
+		var vars []*stateVar
+		for _, v := range all {
+			if underIn(v.File, o.in) {
+				vars = append(vars, v)
+			}
 		}
-	}
-	if o.asJSON {
-		return writeJSON(stdout, stderr, map[string]any{"schema": "codegraph-package-state/1", "variables": vars, "read_only": readOnly})
-	}
-	printPackageState(stdout, vars, readOnly, o.limit)
-	return exitOK
+		return map[string]any{"variables": vars, "read_only": readOnly}, func(w io.Writer) { printPackageState(w, vars, readOnly, o.limit) }
+	})
 }
 
 func printPackageState(w io.Writer, vars []*stateVar, readOnly, limit int) {

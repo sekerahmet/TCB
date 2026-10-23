@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"strings"
 	"testing"
 )
@@ -87,9 +86,8 @@ func TestPackageStateListsProcessWideMutableVariables(t *testing.T) {
 	if int(res["read_only"].(float64)) != 3 {
 		t.Errorf("table, initOnly and lazy are only read after init: %v", res["read_only"])
 	}
-	var out, errb bytes.Buffer
-	run([]string{"package-state", "--root", root}, &out, &errb)
-	if !strings.Contains(out.String(), "mutable (") || !strings.Contains(out.String(), "Register (element/field write)") {
-		t.Errorf("text:\n%s", out.String())
+	text := auditText(t, "package-state", root)
+	if !strings.Contains(text, "mutable (") || !strings.Contains(text, "Register (element/field write)") {
+		t.Errorf("text:\n%s", text)
 	}
 }

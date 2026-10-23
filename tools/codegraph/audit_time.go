@@ -185,32 +185,20 @@ func (a *timeAudit) source(e ast.Expr) string {
 
 // runTimeCeilings `time-ceilings` komutudur.
 func runTimeCeilings(args []string, stdout, stderr io.Writer) int {
-	o, rest := parseAuditFlags("time-ceilings", args, stderr)
-	if o == nil {
-		return exitUsage
-	}
-	if len(rest) != 0 {
-		fmt.Fprintf(stderr, "codegraph time-ceilings: unexpected argument %q\n%s", rest[0], usage)
-		return exitUsage
-	}
-	m, code := loadAudit(o, stderr, true)
-	if m == nil {
-		return code
-	}
-	var list []timeCeiling
-	for _, c := range findTimeCeilings(m) {
-		if underIn(c.File, o.in) {
-			list = append(list, c)
+	return runGoAudit("time-ceilings", args, true, stdout, stderr, func(m *goload.Module, o *auditOpts) (map[string]any, func(io.Writer)) {
+		var list []timeCeiling
+		for _, c := range findTimeCeilings(m) {
+			if underIn(c.File, o.in) {
+				list = append(list, c)
+			}
 		}
-	}
-	if o.asJSON {
-		return writeJSON(stdout, stderr, map[string]any{"schema": "codegraph-time-ceilings/1", "ceilings": list})
-	}
-	fmt.Fprintf(stdout, "%d wall-clock ceiling(s) in tests (a duration compared with a constant)\n", len(list))
-	forEachLimited(stdout, list, o.limit, "  ", moreHint, func(c timeCeiling) string {
-		return fmt.Sprintf("%s:%d  %s  ceiling %s  `%s`", c.File, c.Line, c.Test, c.Constant, c.Compare)
+		return map[string]any{"ceilings": list}, func(w io.Writer) {
+			fmt.Fprintf(w, "%d wall-clock ceiling(s) in tests (a duration compared with a constant)\n", len(list))
+			forEachLimited(w, list, o.limit, "  ", moreHint, func(c timeCeiling) string {
+				return fmt.Sprintf("%s:%d  %s  ceiling %s  `%s`", c.File, c.Line, c.Test, c.Constant, c.Compare)
+			})
+		}
 	})
-	return exitOK
 }
 
 // constInt64 sabit bir tam sayı değerini verir (süreler nanosaniyedir).
