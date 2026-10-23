@@ -6,7 +6,9 @@ import (
 
 // PTX benzetimi: kayan noktalı işlemler ve dönüşümler. Yaklaşık komutlar (ex2, lg2, sin,
 // cos) tam doğrulukla hesaplanır; donanım birkaç ulp farklı olabilir, sınamalar bu yüzden
-// toleranslıdır. Normal altı sayılar korunur (donanımda .ftz'siz komutlar gibi).
+// toleranslıdır. Normal altı sayılar korunur (donanımda .ftz'siz komutlar gibi); yalnızca
+// sin.approx ve cos.approx normal altı girdiyi işaretli sıfıra indirir: gerçek kartta
+// (sm_120, 2026-10-23) sin.approx(1e-40) = 0 ölçüldü.
 
 func computeF32(k *simInst, ab, bb, cb uint64) (uint64, error) {
 	a, b, c := f32(ab), f32(bb), f32(cb)
@@ -41,9 +43,9 @@ func computeF32(k *simInst, ab, bb, cb uint64) (uint64, error) {
 	case simLg2:
 		return f32b(float32(math.Log2(float64(a)))), nil
 	case simSin:
-		return f32b(float32(math.Sin(float64(a)))), nil
+		return f32b(float32(math.Sin(float64(flushSubnormal(a))))), nil
 	case simCos:
-		return f32b(float32(math.Cos(float64(a)))), nil
+		return f32b(float32(math.Cos(float64(flushSubnormal(a))))), nil
 	case simSelp:
 		if cb != 0 {
 			return ab, nil
@@ -53,6 +55,14 @@ func computeF32(k *simInst, ab, bb, cb uint64) (uint64, error) {
 		return compareF(k.mode2, float64(a), float64(b)), nil
 	}
 	return 0, internalf("operation unsupported by the simulator for .f32")
+}
+
+// flushSubnormal normal altı sayıyı işaretli sıfıra indirir (donanımın .ftz davranışı).
+func flushSubnormal(a float32) float32 {
+	if a != 0 && math.Abs(float64(a)) < 0x1p-126 {
+		return float32(math.Copysign(0, float64(a)))
+	}
+	return a
 }
 
 func computeF64(k *simInst, ab, bb, cb uint64) (uint64, error) {

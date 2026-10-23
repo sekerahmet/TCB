@@ -172,10 +172,17 @@ func (k *emitter) angleReduce(x reg) reg {
 	return r
 }
 
-// sine ve kosinus aralık indirgemeli sin.approx/cos.approx.
+// sine ve kosinus aralık indirgemeli sin.approx/cos.approx. |x| < 2⁻¹²'de sin(x) float32'de
+// x'in kendisidir (x³/6 yarım ulp'tan küçük; CPU da öyle verir): sin.approx normal altı girdiyi
+// sıfıra indirdiğinden ve ±0'ın işaretini korumak için orada x verilir.
 func (k *emitter) sine(x reg) reg {
 	r := k.f()
 	k.e("sin.approx.f32", r, k.angleReduce(x))
+	a := k.f()
+	k.e("abs.f32", a, x)
+	tiny := k.p()
+	k.e("setp.lt.f32", tiny, a, float32(1.0/4096))
+	k.e("selp.f32", r, x, r, tiny)
 	return r
 }
 
