@@ -32,6 +32,8 @@ Denetim: `TestPanicToError`, `TestWrappedBuiltinPanicIsCatchable`.
 
 Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`). Birden çok dosyayı kesen davranış testleri:
 
+- `behavior_device_rules_test.go`: indeksle atamada cihaz kuralları (15.40) ve tekrar_oynat kaydında sayı işleneninin cihazda doldurulması (15.45)
+- `behavior_device_args_test.go`: liste argümanlarının girdinin cihazında çevrilmesi (15.38) ve farklı cihaz iletisinin .cihaza(...) önermesi (15.40)
 - `behavior_file_paths_test.go`: tensör dosya işlemlerinde yol çözümü ve Türkçe hata iletileri
 - `behavior_scalar_tensor_test.go`: 0 boyutlu tensörün sıradan tensör gibi işlemlere ve türeve girmesi
 - `behavior_tensor_test.go`: tensör işlemlerinin uçtan uca davranışı: ileri/geri işlemler, yazdırma, türev, doğrusal bağlanım ve İzleme Masası

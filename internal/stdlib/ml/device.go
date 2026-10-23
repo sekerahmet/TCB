@@ -1,7 +1,7 @@
 package ml
 
 import (
-	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/compute/gpu"
@@ -34,9 +34,11 @@ func parseDevice(ad string) (tensor.Device, error) {
 	case a == "gpu":
 		return tensor.GPU(0), nil
 	case strings.HasPrefix(a, "gpu:"):
-		var i int
-		if _, err := fmt.Sscanf(a[4:], "%d", &i); err == nil && i >= 0 {
-			return tensor.GPU(i), nil
+		// Yalnızca rakamlar: işaret, boşluk ve sayıdan sonraki çöp ("gpu:0abc") kabul edilmez.
+		if digits := a[4:]; digits != "" && strings.Trim(digits, "0123456789") == "" {
+			if i, err := strconv.Atoi(digits); err == nil {
+				return tensor.GPU(i), nil
+			}
 		}
 	}
 	return tensor.Device{}, messages.New(messages.H6800, ad)

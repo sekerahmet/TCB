@@ -359,7 +359,7 @@ const (
 	H3069 Code = 3069 // CopyFrom: {src} şeklindeki kaynak {dst} şeklindeki hedefe yazılamaz (şekiller aynı ya da kaynak hedefe yayınlanabilir olmalı)
 	H3070 Code = 3070 // {n} indeks verildi, tensör {ndim} boyutlu
 	H3071 Code = 3071 // indeks {index} şekil {shape} dışında
-	H3072 Code = 3072 // {op} girdileri farklı cihazlarda ({a}, {b}); önce To ile taşıyın
+	H3072 Code = 3072 // {op} girdileri farklı cihazlarda ({a}, {b}); önce aynı cihaza taşıyın
 	H3073 Code = 3073 // Reshape içinde yalnızca bir eksen -1 olabilir
 	H3074 Code = 3074 // Reshape için geçersiz şekil {shape}
 	H3075 Code = 3075 // {shape} şekli {n} elemana uydurulamaz
@@ -942,6 +942,7 @@ const (
 	H6442 Code = 6442 // {fn}: {start} konumundan yazılan {len} uzunluklu dilim {size} uzunluklu eksene sığmıyor
 	H6443 Code = 6443 // {fn}: hedef bitişik bir tensör olmalıdır (görünüm değil); görünüme yazmak için indeksle atama kullanın
 	H6444 Code = 6444 // {fn}: ilk argüman (hedef) bir tensör olmalıdır, {given} verildi
+	H6445 Code = 6445 // {fn}: {step} {input}. girdinin {index} elemanında float32'de etkisiz (x + {step} ve x - {step} aynı değer); daha büyük bir {step} verin
 	H6500 Code = 6500 // {fn}(model, {withNamesArg}: {falseValue}) 1 konumlu parametre bekler, {given} verildi
 	H6501 Code = 6501 // {fn}: sözlük {stateMethod} ile alınmış olmalı (anahtarları {stringType}, değerleri {tensorType}); {key|q} girdisi {given}
 	H6502 Code = 6502 // {optimizer} üzerinde {member|q} üyesine atama yapılamaz; atanabilen üye: {lrMember}

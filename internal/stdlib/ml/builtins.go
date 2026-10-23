@@ -158,7 +158,7 @@ func minAll(t *tensor.Tensor) *tensor.Tensor {
 			}
 		}
 	}
-	return tensor.Scalar(m).To(t.Device())
+	return tensor.Scalar(m).Cast(t.DType()).To(t.Device()) // girdinin türünde (15.4)
 }
 
 // wrap kodun bütün yazımlarına (ad ve sözlüğe göre Türkçe karaktersiz biçimi) aynı yeni

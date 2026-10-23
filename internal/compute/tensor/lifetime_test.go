@@ -153,3 +153,27 @@ func TestCustomOpBackwardReturnsItsTemporaryGradients(t *testing.T) {
 			log.returned(g0), log.returned(g1), log.returned(gx))
 	}
 }
+
+// Kural (dil tanımı 15.43): türev izlenirken de bitişik olmayan bir tensörün .şekillendir ara
+// kopyasının başlığı bırakılır; çizge yalnızca düğümü tutar, veriyi tutmaz. Geri yayılım ve Drop
+// sonrası sonucun depolaması havuza döner ve gradyan doğru kalır.
+// Neden: ara başlık türev izlenirken hiç bırakılmıyor, depolama üzerindeki sahipliği sızıyordu.
+func TestReshapeNonContiguousWithGradReturnsStorage(t *testing.T) {
+	log := watchReturns(t)
+	x := big(rand.New(rand.NewSource(1))).SetRequiresGrad(true)
+	v := x.Transpose(0, 1)
+	r := v.Reshape(64 * 64)
+	loss := r.SumAll()
+	loss.Backward()
+	for i, g := range x.Grad().Data() {
+		if g != 1 {
+			t.Fatalf("gradyan[%d] = %v, 1 bekleniyordu", i, g)
+		}
+	}
+	loss.Drop()
+	v.Drop()
+	r.Drop()
+	if !log.returned(r) {
+		t.Fatal("türev izlenen bitişik olmayan tensörün Reshape çıktısı geri yayılım ve Drop sonrasında havuza dönmedi")
+	}
+}

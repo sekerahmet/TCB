@@ -34,6 +34,15 @@ test "15.2 özellikler ve görünüm metotları" {
     değişken a = tensör([[1, 2, 3], [4, 5, 6]])
     eşit_mi([3, 2], a.şekillendir([3, 2]).şekil)
     eşit_mi([6], a.şekillendir([-1]).şekil)
+    // .gradyan: türev izlemeyen işlemin sonucu yapraktır (yok); türev izleyenin sonucunda hata.
+    eşit_mi(yok, (tensör([1.0]) + tensör([2.0])).gradyan)
+    değişken izlenen = tensör([1.0], türev_izle: doğru) * 2.0
+    doğrula(hata_metni(() => izlenen.gradyan) != "")
+    // Tek liste argümanı zorunludur ([] 0 boyutlu şekil); sayı argümanları şekil sayılmaz.
+    eşit_mi([], tensör([3.0]).şekillendir([]).şekil)
+    eşit_mi(3.0, tensör([3.0]).şekillendir([]).değer)
+    doğrula(hata_metni(() => sıfırlar([6]).şekillendir(2, 3)).içerir("liste olarak bekler"))
+    doğrula(hata_metni(() => sıfırlar([6]).şekillendir(6)).içerir("liste olarak bekler"))
     eşit_mi([[1.0, 4.0], [2.0, 5.0], [3.0, 6.0]], a.devrik().değer)
     eşit_mi([[2.0, 3.0], [5.0, 6.0]], a.dilim(1, 1, 3).değer)
     eşit_mi([[4.0, 5.0, 6.0]], a.dilim(0, -1, 2).değer)
@@ -828,6 +837,13 @@ test "15.7 bitiştir ve .böl" {
     doğrula(hata_metni(() => tensör([1, 2, 3]).böl(2)).içerir("2 eşit parçaya bölünemez"))
     // Metin'in .böl'ü aynı addır ve değişmez.
     eşit_mi(["a", "b"], "a b".böl(" "))
+    // Boş yaprak girdinin gradyanı da boş tensördür (yok değil), tek başına toplamdaki gibi.
+    değişken boş = tensör([], türev_izle: doğru)
+    değişken dolu = tensör([1.0, 2.0], türev_izle: doğru)
+    geri_yayılım(toplam(bitiştir([boş, dolu])))
+    doğrula(boş.gradyan != yok, "boş yaprak tensörün gradyanı yok kaldı")
+    eşit_mi([0], boş.gradyan.şekil)
+    eşit_mi([1.0, 1.0], dolu.gradyan.değer)
 }
 
 test "15.18 indirgemelerde boyutu_koru" {
@@ -841,6 +857,32 @@ test "15.18 indirgemelerde boyutu_koru" {
     // Korunan eksen yayınlamayla geri bölünebilir.
     eşit_mi([[0.25, 0.75]], (tensör([[1.0, 3.0]]) / toplam(tensör([[1.0, 3.0]]), eksen: -1, boyutu_koru: doğru)).değer)
     doğrula(hata_metni(() => toplam([1, 2], boyutu_koru: doğru)).içerir("yalnızca tensörlerde"))
+}
+
+test "15.24 dikkat: NaN satırı bakmadığı anahtarlara NaN sızdırmaz (pencere, nedensellik, maske)" {
+    değişken nan = ondalık("nan")
+    değişken k_satırı = (k) => sonlu_mu(k.gradyan).değer
+    // pencere: 1 ve nedensel: 1. sorgu (NaN) yalnızca 1. anahtara bakar; 0. anahtara yalnızca sonlu 0. sorgu bakar.
+    değişken q = tensör([[1.0, 0.0], [nan, 0.0]], türev_izle: doğru)
+    değişken k = tensör([[1.0, 0.0], [0.0, 1.0]], türev_izle: doğru)
+    değişken v = tensör([[1.0, 2.0], [3.0, 4.0]], türev_izle: doğru)
+    geri_yayılım(toplam(dikkat(q, k, v, nedensel: doğru, pencere: 1)))
+    eşit_mi([1.0, 1.0], k_satırı(k)[0])
+    eşit_mi([0.0, 0.0], k_satırı(k)[1])
+    // Yalnızca nedensellik: NaN 0. sorgu yalnızca 0. anahtara bakar; 1. anahtarın gradyanı 1. sorgudan gelir (sonlu).
+    değişken q2 = tensör([[nan, 0.0], [1.0, 0.0]], türev_izle: doğru)
+    değişken k2 = tensör([[1.0, 0.0], [0.0, 1.0]], türev_izle: doğru)
+    değişken v2 = tensör([[1.0, 2.0], [3.0, 4.0]], türev_izle: doğru)
+    geri_yayılım(toplam(dikkat(q2, k2, v2, nedensel: doğru)))
+    eşit_mi([0.0, 0.0], k_satırı(k2)[0])
+    eşit_mi([1.0, 1.0], k_satırı(k2)[1])
+    // Maske: NaN sorgunun maskelediği anahtara NaN gitmez.
+    değişken q3 = tensör([[nan, 0.0], [1.0, 0.0]], türev_izle: doğru)
+    değişken k3 = tensör([[1.0, 0.0], [0.0, 1.0]], türev_izle: doğru)
+    değişken v3 = tensör([[1.0, 2.0], [3.0, 4.0]], türev_izle: doğru)
+    değişken maske = tensör([[1.0, 0.0], [1.0, 1.0]])
+    geri_yayılım(toplam(dikkat(q3, k3, v3, nedensel: yanlış, maske: maske)))
+    eşit_mi([0.0, 0.0], k_satırı(k3)[0])
 }
 
 test "15.24 dikkat: bileşik sürümle aynı; GQA, pencere, maske, önbellekli üretim" {
@@ -909,6 +951,45 @@ test "15.26 örnekle: sıcaklık, en_iyi_k, tohum" {
     doğrula(hata_metni(() => örnekle(l, sıcaklık: -1)).içerir("sıcaklık negatif olmayan"))
 }
 
+test "15.26 örnekle: dağılım kurulamayan satır her yolda hatadır (sıcaklık: 0 ve en_iyi_k dahil)" {
+    değişken eksi_sonsuz = ondalık("-inf")
+    değişken nan = ondalık("nan")
+    // Hepsi -∞ ve NaN içeren satır: sıcaklık: 0 da, en_iyi_k da sessizce bir indeks seçmez.
+    doğrula(hata_metni(() => örnekle(tensör([eksi_sonsuz, eksi_sonsuz]), sıcaklık: 0)).içerir("dağılım kurulamıyor"))
+    doğrula(hata_metni(() => örnekle(tensör([nan, 1.0]), sıcaklık: 0)).içerir("dağılım kurulamıyor"))
+    doğrula(hata_metni(() => örnekle(tensör([1.0, 2.0, nan]), sıcaklık: 1.0, en_iyi_k: 1, tohum: 1)).içerir("dağılım kurulamıyor"))
+    doğrula(hata_metni(() => örnekle(tensör([1.0, nan]), sıcaklık: 1.0, en_iyi_k: 1, tohum: 1)).içerir("dağılım kurulamıyor"))
+    // Geçerli satır (bazı -∞ değerlerle) hata vermez.
+    eşit_mi(1, örnekle(tensör([eksi_sonsuz, 3.0]), sıcaklık: 0).değer)
+    eşit_mi(1, örnekle(tensör([eksi_sonsuz, 3.0]), en_iyi_k: 1, tohum: 1).değer)
+}
+
+test "15.4 maks ve min 16 bitlik tensörde girdinin türünde kalır (eksensiz min dahil)" {
+    döngü tür içinde ["bf16", "fp16"] {
+        değişken x = tensör([3.0, 1.0, 2.0], tür: tür)
+        eşit_mi(tür, maks(x).tür)
+        eşit_mi(tür, min(x, eksen: 0).tür)
+        eşit_mi(tür, min(x).tür)
+        eşit_mi(1.0, min(x).değer)
+    }
+}
+
+test "15.44 kaynaştır: büyük tensör yazdırma ve tensörde döngü iç hata değil açık hata verir" {
+    // 1000'den çok elemanlı tensörü yazdırmak ve üzerinde dönmek veri okumak demektir (.değer gibi).
+    değişken yaz = kaynaştır((x) => {
+        yazdır(x)
+        sonuç x + 1
+    })
+    değişken e1 = hata_metni(() => yaz(sıfırlar([1001])))
+    doğrula(e1.içerir("kaynaştır") ve değil e1.içerir("nil") ve değil e1.içerir("runtime error"), e1)
+    değişken don = kaynaştır((x) => {
+        döngü e içinde x { yazdır(e) }
+        sonuç x + 1
+    })
+    değişken e2 = hata_metni(() => don(sıfırlar([1001])))
+    doğrula(e2.içerir("kaynaştır") ve değil e2.içerir("nil") ve değil e2.içerir("runtime error"), e2)
+}
+
 test "15.33 parametreler: sabit sıra, tekillik, yol adları" {
     fonksiyon p(x) { sonuç tensör([x], türev_izle: doğru) }
     yapı Dikkat { Wq, Wk }
@@ -949,6 +1030,10 @@ test "15.37 cihazlar: ilk eleman cpu, adlar metin, bilinmeyen ad hata" {
     döngü ad içinde c { doğrula(tip(ad) == Metin) }
     eşit_mi("cpu", tensör([1.0]).cihaza(" CPU ").cihaz)
     doğrula(hata_metni(() => tensör([1.0]).cihaza("tpu")).içerir("bilinmeyen cihaz \"tpu\""))
+    // Sayıdan sonra çöp ya da işaret olan ad da bilinmeyen cihazdır (gpu:0abc, gpu:+1, gpu:-1, gpu:).
+    döngü kötü içinde ["gpu:0abc", "gpu:+1", "gpu:-1", "gpu:", "gpu: 1"] {
+        doğrula(hata_metni(() => tensör([1.0]).cihaza(kötü)).içerir("bilinmeyen cihaz"), kötü)
+    }
     doğrula(hata_metni(() => cihazlar(1)).içerir("parametre almaz"))
     eğer c.içerir("gpu") {
         eşit_mi("gpu", tensör([1.0]).cihaza("gpu:0").cihaz)
@@ -1106,6 +1191,11 @@ test "15.50 özel değerler: −0, sonsuz ve NaN tablodaki gibi" {
     doğrula(eksi(sinüs(ez)) ve eksi(tanh(ez)) ve eksi(üstel_eksi_bir(ez)) ve eksi(ez ** 3))
     // Yalnızca −0'lardan oluşan toplam +0'dır (PyTorch ve NumPy gibi).
     doğrula((1 / toplam(tensör([0.0, 0.0]) * -1)).değer > 0)
+    // Tensör listesinin toplamı ve ortalaması da (Python sum gibi): tek ve iki elemanlı listede +0.
+    değişken eksi_sıfır = tensör([0.0]) * -1
+    doğrula((1 / toplam([eksi_sıfır, eksi_sıfır])).değer[0] > 0)
+    doğrula((1 / toplam([eksi_sıfır])).değer[0] > 0)
+    doğrula((1 / ortalama([eksi_sıfır, eksi_sıfır])).değer[0] > 0)
     // Üs C99 Ek F'deki gibidir: (±1)^sonsuz = 1, (−sonsuz)^0,5 = sonsuz, (−0)^−1 = −sonsuz.
     eşit_mi([1.0, 1.0, 0.0], (tensör([1.0, -1.0, 0.5]) ** sn).değer)
     doğrula((tensör([-sn]) ** 0.5).değer[0] > 1e308 ve (ez ** -1).değer[0] < -1e308)

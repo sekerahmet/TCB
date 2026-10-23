@@ -188,7 +188,7 @@ func nonTensorReduce(kd codes.Code, old interp.BuiltinFunc, m *interp.VM, args [
 				}
 				return nil, messages.New(messages.H6225, ad, nameAxis.TR)
 			}
-			return sumTensorList(ad, kd == codes.G410, l.Elements)
+			return sumTensorList(m, ad, kd == codes.G410, l.Elements)
 		}
 	}
 	for _, a := range args[1:] {
@@ -201,19 +201,21 @@ func nonTensorReduce(kd codes.Code, old interp.BuiltinFunc, m *interp.VM, args [
 
 // sumTensorList sayı ve tensörlerden oluşan bir listeyi yayınlamalı toplamla katlar;
 // ortalama için eleman sayısına böler. Sonuç türev izlenen girdilere bağlı kalır.
-func sumTensorList(ad string, mean bool, el []interp.Value) (interp.Value, error) {
+func sumTensorList(m *interp.VM, ad string, mean bool, el []interp.Value) (interp.Value, error) {
 	var acc *tensor.Tensor
-	var first *TensorValue
 	fixed := 0.0
 	for i, e := range el {
 		switch x := e.(type) {
 		case *TensorValue:
 			if acc == nil {
-				acc, first = x.t, x
+				acc = x.t
 				continue
 			}
-			if err := checkBroadcast("+", acc, x.t); err != nil {
+			if err := checkBroadcast(m, "+", acc, x.t); err != nil {
 				return nil, messages.New(messages.H6222, ad, i+1, err)
+			}
+			if err := checkDevice(ad, acc, x.t); err != nil {
+				return nil, err
 			}
 			a := acc
 			r, err := safe(func() *tensor.Tensor { return tensor.Add(a, x.t) })
@@ -230,10 +232,9 @@ func sumTensorList(ad string, mean bool, el []interp.Value) (interp.Value, error
 		}
 	}
 	r, err := safe(func() *tensor.Tensor {
-		out := acc
-		if fixed != 0 {
-			out = out.AddScalar(float32(fixed))
-		}
+		// Toplam +0'dan başlar (Python sum gibi): yalnızca −0'lardan oluşan toplam ve ortalama +0'dır
+		// (15.50). Sayı toplamı yoksa da +0 eklenir; başka her değeri olduğu gibi bırakır.
+		out := acc.AddScalar(float32(fixed))
 		if mean {
 			out = out.DivScalar(float32(len(el)))
 		}
@@ -241,9 +242,6 @@ func sumTensorList(ad string, mean bool, el []interp.Value) (interp.Value, error
 	})
 	if err != nil {
 		return nil, err
-	}
-	if r == acc && first != nil && first.t == r {
-		return first, nil // tek tensörlü liste: başlık yeniden sarılmaz
 	}
 	return New(r), nil
 }

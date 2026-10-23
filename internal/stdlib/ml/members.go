@@ -215,10 +215,16 @@ func unpackListOrVarargs(args []interp.Value) []interp.Value {
 }
 
 func (d *TensorValue) reshape(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-	target := unpackListOrVarargs(args)
-	if len(target) == 0 {
+	// Yeni şekil tek bir liste olarak verilir; [] 0 boyutlu şekildir (15.2). Sayı argümanları
+	// ('.şekillendir(2, 3)') şekil sayılmaz.
+	var list *interp.ListVal
+	if len(args) == 1 {
+		list, _ = args[0].(*interp.ListVal)
+	}
+	if list == nil {
 		return nil, messages.New(messages.H6705, codes.DisplayName(memberReshape))
 	}
+	target := list.Elements
 	sh := make([]int, len(target))
 	unknown := 0
 	for i, v := range target {

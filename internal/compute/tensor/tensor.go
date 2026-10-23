@@ -355,6 +355,10 @@ func (t *Tensor) Item() float32 {
 
 // At verilen çok boyutlu indeksteki değeri verir.
 func (t *Tensor) At(idx ...int) float32 {
+	t.mustLive()
+	if t.sym != nil {
+		panic(messages.New(messages.H3107)) // kaynaştırma sırasında veri yok (Data gibi)
+	}
 	return t.be.ToHost(View{S: t.storage, Offset: t.index(idx)})[0]
 }
 

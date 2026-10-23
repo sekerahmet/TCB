@@ -107,11 +107,13 @@ func (t *Tensor) Reshape(shape ...int) *Tensor {
 	} else if g, ok := viewStrides(t.shape, t.strides, sh); ok {
 		st = g
 	} else {
-		// Ara kopya yalnızca sonuç görünümünün depolamasıdır: başlığı bırakılır (türev
-		// izleniyorsa başlık çizgenin ebeveynidir, bırakılmaz).
+		// Ara kopya yalnızca sonuç görünümünün depolamasıdır: başlığı bırakılır. Türev
+		// izleniyorsa da güvenlidir: çizge yalnızca düğümü tutar (c.n, görünümün ebeveyni) ve
+		// ne kopya ne görünüm geri hesap için tensör kaydeder (trackPass), yani çizge başlığa
+		// ihtiyaç duymaz; depolamayı görünüm tutar.
 		c := t.Contiguous()
 		r := c.Reshape(sh...)
-		if c != t && !(GradEnabled() && c.RequiresGrad()) {
+		if c != t {
 			c.Drop()
 		}
 		return r

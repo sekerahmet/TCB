@@ -296,7 +296,7 @@
   "Y402": { "tür": "özellik", "tipler": ["A212"], "dönüş": "A202", "ilişkili": ["Y415", "T901"] },
   "Y403": { "tür": "özellik", "tipler": ["A212"], "dönüş": "A212|A204", "ilişkili": ["T300", "T900"] },
   "Y404": { "tür": "özellik", "tipler": ["A212"], "dönüş": "A205|A201|A200" },
-  "Y410": { "tür": "metot", "tipler": ["A212"], "param": ["A205|A200", "A200*"], "dönüş": "A212", "ilişkili": ["Y400"] },
+  "Y410": { "tür": "metot", "tipler": ["A212"], "param": ["A205"], "dönüş": "A212", "ilişkili": ["Y400"] },
   "Y411": { "tür": "metot", "tipler": ["A212"], "dönüş": "A212", "ilişkili": ["Y412"] },
   "Y412": { "tür": "metot", "tipler": ["A212"], "param": ["A205|A200", "A200*"], "dönüş": "A212", "ilişkili": ["Y411"] },
   "Y413": { "tür": "metot", "tipler": ["A212"], "param": ["A200", "A200", "A200"], "dönüş": "A212" },

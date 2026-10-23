@@ -187,8 +187,11 @@ func attentionBuiltin(m *interp.VM, args []interp.Value, named map[string]interp
 		return nil, err
 	}
 	if mv, ok := bind.GetNamed(named, nameMask); ok && mv != interp.Null {
-		mt, err := toTensor(fn+": maske", mv)
+		mt, err := toTensorOn(fn+": maske", mv, q) // liste, q'nun cihazında tensöre çevrilir (15.38)
 		if err != nil {
+			return nil, err
+		}
+		if err := checkDevice(fn, q, mt); err != nil {
 			return nil, err
 		}
 		if err := checkMask(fn, mt, q, k); err != nil {
@@ -350,6 +353,11 @@ func sampleBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 	weight := make([]float64, C)
 	for r := 0; r < line; r++ {
 		x := data[r*C : (r+1)*C]
+		// Dağılım kurulamayan satır (NaN, +∞ ya da hepsi -∞) hangi yolla örneklenirse örneklensin
+		// hatadır: sıcaklık: 0 ve en_iyi_k sessizce bir indeks seçmez (15.26).
+		if !validSamplingRow(x) {
+			return nil, messages.New(messages.H6343, fn, r+1)
+		}
 		if temperature == 0 {
 			en := 0
 			for j, v := range x {
@@ -402,4 +410,18 @@ func sampleBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 		return nil, err
 	}
 	return NewInt(r), nil
+}
+
+// validSamplingRow logitlerden dağılım kurulabilen satırı söyler: NaN ve +∞ yok, en az bir değer -∞ değil.
+func validSamplingRow(x []float32) bool {
+	finiteOrLow := false
+	for _, v := range x {
+		if v != v || math.IsInf(float64(v), 1) {
+			return false
+		}
+		if !math.IsInf(float64(v), -1) {
+			finiteOrLow = true
+		}
+	}
+	return finiteOrLow
 }

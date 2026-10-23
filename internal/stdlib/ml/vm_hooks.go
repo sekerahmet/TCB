@@ -138,7 +138,7 @@ func (d *TensorValue) operator(m *interp.VM, op string, otherVal interp.Value, o
 		if err != nil {
 			return nil, true, err
 		}
-		if err := checkBroadcast(op, o, d.t); err != nil {
+		if err := checkBroadcast(m, op, o, d.t); err != nil {
 			return nil, true, err
 		}
 		if err := checkDevice(tensorOperation(op), o, d.t); err != nil {
@@ -171,7 +171,7 @@ func (d *TensorValue) operator(m *interp.VM, op string, otherVal interp.Value, o
 		return New(r), true, nil
 
 	case "<", ">", "<=", ">=":
-		v, err := d.compare(op, otherVal, onRight)
+		v, err := d.compare(m, op, otherVal, onRight)
 		return v, true, err
 	}
 	return nil, true, messages.New(messages.H6703, interp.ValTensor, op, supportedOps)
@@ -183,7 +183,7 @@ var comparisonOp = map[string]tensor.BinOp{"<": tensor.OpLt, ">": tensor.OpGt, "
 // compare eleman bazlı karşılaştırmanın 0/1 maskesini (türev izlemeyen float32 tensör)
 // tensörün cihazında verir. Diğer işlenen sayı, liste ya da tensör olabilir; şekiller
 // yayınlanır (+ - * / gibi). NaN içeren karşılaştırma 0'dır.
-func (d *TensorValue) compare(op string, otherVal interp.Value, onRight bool) (interp.Value, error) {
+func (d *TensorValue) compare(m *interp.VM, op string, otherVal interp.Value, onRight bool) (interp.Value, error) {
 	bop := comparisonOp[op]
 	if s, ok := interp.ToFloat(otherVal); ok {
 		r, err := safe(func() *tensor.Tensor { return d.t.CompareScalar(float32(s), bop, onRight) })
@@ -201,7 +201,7 @@ func (d *TensorValue) compare(op string, otherVal interp.Value, onRight bool) (i
 	if onRight {
 		a, b = o, d.t
 	}
-	if err := checkBroadcast(ad, a, b); err != nil {
+	if err := checkBroadcast(m, ad, a, b); err != nil {
 		return nil, err
 	}
 	if err := checkDevice(ad, a, b); err != nil {
@@ -330,9 +330,18 @@ func (d *TensorValue) SetIndex(idx, value interp.Value) error {
 	sh := target.Shape()
 	var src *tensor.Tensor
 	if f, ok := interp.ToFloat(value); ok {
-		src = tensor.Scalar(float32(f)) // hedefin tüm elemanlarına yayınlanır
+		// Hedefin tüm elemanlarına yayınlanır; sayı cihazda doldurulur (konaktan yüklenmez:
+		// tekrar_oynat kaydında da çalışır).
+		if src, err = safe(func() *tensor.Tensor { return tensor.FullOn(target.Device(), float32(f)) }); err != nil {
+			return err
+		}
 	} else {
-		if src, err = toTensor(messages.Text(messages.H6130), value); err != nil {
+		// Liste hedefin cihazında tensöre çevrilir (15.38); başka cihazdaki tensör sessizce
+		// kopyalanmaz, açık hatadır (15.40).
+		if src, err = toTensorOn(messages.Text(messages.H6130), value, target); err != nil {
+			return err
+		}
+		if err = checkDevice(messages.Text(messages.H6130), src, target); err != nil {
 			return err
 		}
 		if ks := src.Shape(); shapeText(ks) != shapeText(sh) {
@@ -341,9 +350,6 @@ func (d *TensorValue) SetIndex(idx, value interp.Value) error {
 	}
 	// Tek arka uç kopyası, tek sürüm artışı; hedef bitişik olmayan bir görünüm olabilir.
 	_, err = safe(func() bool {
-		if src.Device() != target.Device() {
-			tensor.NoGrad(func() { src = src.To(target.Device()) })
-		}
 		target.CopyFrom(src)
 		return true
 	})

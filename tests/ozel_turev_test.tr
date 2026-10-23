@@ -176,6 +176,11 @@ test "15.32 türev_denetle: sayısal gradyanla karşılaştırma" {
     // adım ve tolerans.
     doğrula(türev_denetle(kare, [tensör([1.0, 2.0], türev_izle: doğru)], fark_adımı: 0.01, tolerans: 0.001))
     doğrula(hata_metni(() => türev_denetle(kare, [w], fark_adımı: 0)).içerir("fark_adımı pozitif bir sayı olmalıdır"))
+    // float32'de etkisiz fark_adımı (x ± adım == x): sahte uyuşmazlık değil, açık hata.
+    döngü etkisiz içinde [1e-46, 1e-30] {
+        değişken e = hata_metni(() => türev_denetle(kare, [tensör([2.0], türev_izle: doğru)], fark_adımı: etkisiz))
+        doğrula(e.içerir("float32'de etkisiz") ve e.içerir("fark_adımı"), e)
+    }
     doğrula(hata_metni(() => türev_denetle(kare, [tensör([1.0])])).içerir("girdilerden hiçbiri türev izlemiyor"))
     doğrula(hata_metni(() => türev_denetle(kare, [w], step: 0.1)).içerir("'step' adında bir parametre almaz"))
     // karışık_hassasiyet içinde: ileri ve geri bloğun türüyle çalışır, gradyanlar girdilerin türündedir.

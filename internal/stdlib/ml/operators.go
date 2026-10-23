@@ -39,8 +39,9 @@ func axisFromEnd(t *tensor.Tensor, i int) int {
 // checkBroadcast iki tensörün şekillerinin yayınlanabilirliğini denetler (eksenler sağdan
 // hizalanır; eşit ya da biri 1 olan eksenler uyumludur). Sık çağrıldığı için ayırma
 // yapmaz; şekil metni yalnızca hata durumunda üretilir. op bir işleçse (+ - * /) işlemin
-// adı, değilse (ör. bir yerleşiğin adı) olduğu gibi yazılır.
-func checkBroadcast(op string, a, b *tensor.Tensor) error {
+// adı, değilse (ör. bir yerleşiğin adı) olduğu gibi yazılır. İki taraf birden genişliyorsa (m nil
+// değilse) programa bir kez uyarı yazar (15.49): her yayınlayan yol bu denetimi kullanır.
+func checkBroadcast(m *interp.VM, op string, a, b *tensor.Tensor) error {
 	nd := max(a.Dim(), b.Dim())
 	for i := 1; i <= nd; i++ {
 		da, db := axisFromEnd(a, i), axisFromEnd(b, i)
@@ -48,6 +49,9 @@ func checkBroadcast(op string, a, b *tensor.Tensor) error {
 			ad := operationName(op)
 			return messages.New(messages.H6100, shapeText(a.Shape()), shapeText(b.Shape()), ad, i, da, db)
 		}
+	}
+	if m != nil && bothWiden(a, b) {
+		broadcastWarning(m, op, a, b)
 	}
 	return nil
 }
@@ -162,14 +166,11 @@ func (d *TensorValue) binary(m *interp.VM, op string, other interp.Value) (inter
 			return nil, err
 		}
 	}
-	if err := checkBroadcast(op, d.t, o); err != nil {
+	if err := checkBroadcast(m, op, d.t, o); err != nil {
 		return nil, err
 	}
 	if d.t.Device() != o.Device() {
 		return nil, checkDevice(tensorOperation(op), d.t, o)
-	}
-	if m != nil && bothWiden(d.t, o) {
-		broadcastWarning(m, op, d.t, o)
 	}
 	r, err := safe(func() *tensor.Tensor {
 		switch op {
