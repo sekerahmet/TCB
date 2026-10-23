@@ -32,26 +32,36 @@ func HasTurkishLetter(s string) bool {
 	return strings.ContainsAny(s, "ıİşŞğĞüÜöÖçÇ")
 }
 
-// distance iki sözcük arasındaki düzenleme (Levenshtein) uzaklığıdır.
-func distance(a, b string) int {
-	x, y := []rune(a), []rune(b)
-	prev := make([]int, len(y)+1)
-	curr := make([]int, len(y)+1)
+// Distance iki metnin düzenleme (Levenshtein) uzaklığıdır, kod noktası olarak; uzaklığın bound'u aşacağı belli olunca
+// bound+1 verir (aday taramasında erken çıkış). Gerçek uzaklık için bound en az max(len(a), len(b)) olmalıdır. Dilin
+// önerileri (Closest), codeindex'in ve codegraph'ın yakın ad önerileri bu tek uygulamayı kullanır.
+func Distance(a, b string, bound int) int {
+	ra, rb := []rune(a), []rune(b)
+	if d := len(ra) - len(rb); d > bound || -d > bound {
+		return bound + 1
+	}
+	prev := make([]int, len(rb)+1)
+	cur := make([]int, len(rb)+1)
 	for j := range prev {
 		prev[j] = j
 	}
-	for i := 1; i <= len(x); i++ {
-		curr[0] = i
-		for j := 1; j <= len(y); j++ {
+	for i := 1; i <= len(ra); i++ {
+		cur[0] = i
+		rowMin := cur[0]
+		for j := 1; j <= len(rb); j++ {
 			cost := 1
-			if x[i-1] == y[j-1] {
+			if ra[i-1] == rb[j-1] {
 				cost = 0
 			}
-			curr[j] = min(prev[j]+1, curr[j-1]+1, prev[j-1]+cost)
+			cur[j] = min(prev[j]+1, cur[j-1]+1, prev[j-1]+cost)
+			rowMin = min(rowMin, cur[j])
 		}
-		prev, curr = curr, prev
+		if rowMin > bound {
+			return bound + 1
+		}
+		prev, cur = cur, prev
 	}
-	return prev[len(y)]
+	return prev[len(rb)]
 }
 
 // Closest suggests the candidate closest to the searched word ("Bunu mu demek istediniz?",
@@ -73,7 +83,8 @@ func Closest(wanted string, candidates []string) string {
 		if a == wanted || a == "" {
 			continue
 		}
-		u := distance(target, foldASCII(a))
+		fa := foldASCII(a)
+		u := Distance(target, fa, max(len(target), len(fa))) // sınırsız: gerçek uzaklık (bayt sayısı kod noktası sayısından az değildir)
 		// Eşit uzaklıkta kullanıcının yazım tercihine (Türkçe / ASCII) uyan aday seçilir:
 		// 'yazdr' → 'yazdir', 'yazdırr' → 'yazdır'
 		sameScript := HasTurkishLetter(a) == typesTurkish

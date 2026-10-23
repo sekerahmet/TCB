@@ -220,21 +220,6 @@ func TestTextOutput(t *testing.T) {
 	}
 }
 
-func TestEditDistance(t *testing.T) {
-	for _, c := range []struct {
-		a, b  string
-		bound int
-		want  int
-	}{
-		{"kare", "kare", 4, 0}, {"yaz_alan", "yaz_alam", 4, 1}, {"işık", "isik", 4, 2},
-		{"abc", "abcdefgh", 2, 3}, {"katman", "kitap", 1, 2},
-	} {
-		if got := EditDistance(c.a, c.b, c.bound); got != c.want {
-			t.Errorf("EditDistance(%q, %q, %d) = %d, want %d", c.a, c.b, c.bound, got, c.want)
-		}
-	}
-}
-
 // Kural: bir test bloğu bir işlev yerleşiğini yalnızca çağırınca sınar; çağırmadan değer olarak anması (`f = zaman_ms`)
 // onu sınamaz. Sabit yerleşik (pi) okunarak kullanılır, okunması sınamaktır (bağımsız denetim S3: anılan yerleşik
 // testli görünüyor, untested_names.txt'teki istisnayı bayat yapıyordu). Go testindeki TR parçası da aynı kuralla (Snippet).

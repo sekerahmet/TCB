@@ -18,6 +18,11 @@ yapılır (`i` ↔ `İ`, `ı` ↔ `I`). Denetim: `TestTurkishCaseConversion`.
 **Öneri yazana göredir.** Tanımsız bir ada en yakın ad önerilirken Türkçe karakterle yazana Türkçe,
 ASCII yazana ASCII aday öne çıkar. Denetim: `TestClosest`.
 
+**Düzenleme uzaklığı tektir.** `Distance(a, b, bound)` kod noktası olarak Levenshtein uzaklığıdır; sınır aşılınca
+bound+1 verir. `Closest` gerçek uzaklığı alır (sınır iki uzunluğun büyüğü); `internal/devtools/codeindex` ve
+`tools/codegraph`'ın yakın ad önerileri de bunu çağırır (katman: devtools lang'ı içe aktarır). Denetim:
+`TestDistanceAndClosestUnchanged`.
+
 **Dosya hataları anlaşılır.** Bir dosya hatası işletim sisteminin ham metniyle gösterilmez: hangi
 yolun, hangi işlemde, neden başarısız olduğu ve ne yapılacağı Türkçe söylenir. Anlatım her işletim
 sisteminde aynıdır; tanınmayan bir hata da Türkçe bir mesajla gösterilir. Denetim: `TestFileErrorTurkishAndHelpful`, `TestFileErrorUnknownStatusCode`, `TestFileErrorReasonThroughCodedWrapper`.

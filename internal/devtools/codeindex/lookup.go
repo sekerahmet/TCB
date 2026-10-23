@@ -8,6 +8,7 @@ import (
 	"unicode"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
 // positionQuery "dosya.tr:satır[:sütun]" biçimli sorgudur: imlecin altındaki ad.
@@ -199,7 +200,7 @@ func (r *Reader) Suggest(q string, limit int) []*Node {
 				best = 0
 				break
 			}
-			if d := EditDistance(lq, lc, maxD); d <= maxD && (best < 0 || d < best) {
+			if d := turkish.Distance(lq, lc, maxD); d <= maxD && (best < 0 || d < best) {
 				best = d
 			}
 		}
@@ -225,35 +226,4 @@ func (r *Reader) Suggest(q string, limit int) []*Node {
 		out[i] = f.n
 	}
 	return out
-}
-
-// EditDistance iki metnin Levenshtein uzaklığıdır (kod noktası olarak); bound'u aşacağı belliyse bound+1 verir.
-// Önerilerde yakın adları bulmak için codegraph da kullanır: tek kopya burada durur.
-func EditDistance(a, b string, bound int) int {
-	ra, rb := []rune(a), []rune(b)
-	if d := len(ra) - len(rb); d > bound || -d > bound {
-		return bound + 1
-	}
-	prev := make([]int, len(rb)+1)
-	cur := make([]int, len(rb)+1)
-	for j := range prev {
-		prev[j] = j
-	}
-	for i := 1; i <= len(ra); i++ {
-		cur[0] = i
-		rowMin := cur[0]
-		for j := 1; j <= len(rb); j++ {
-			cost := 1
-			if ra[i-1] == rb[j-1] {
-				cost = 0
-			}
-			cur[j] = min(prev[j]+1, cur[j-1]+1, prev[j-1]+cost)
-			rowMin = min(rowMin, cur[j])
-		}
-		if rowMin > bound {
-			return bound + 1
-		}
-		prev, cur = cur, prev
-	}
-	return prev[len(rb)]
 }

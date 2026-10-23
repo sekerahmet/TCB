@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
+	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
 // suggestion yakın ad önerisidir; score küçüldükçe iyi: 0 içerme, sonrası düzenleme uzaklığı.
@@ -73,7 +73,7 @@ func nameScore(n *Node, lq string, maxD int) int {
 		if strings.Contains(lc, lq) {
 			return 0
 		}
-		if d := codeindex.EditDistance(lq, lc, maxD); d <= maxD && (best < 0 || d < best) {
+		if d := turkish.Distance(lq, lc, maxD); d <= maxD && (best < 0 || d < best) {
 			best = d
 		}
 	}
