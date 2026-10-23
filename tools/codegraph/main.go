@@ -144,6 +144,7 @@ func buildGraph(root string) (*Graph, error) {
 	addTestEdges(b, idx)
 	extractTR(root, b)
 	extractMarkdown(root, b, idx)
+	extractSpecRefs(root, b)
 	extractDataFiles(root, b)
 	reach := newTestReach(b, idx)
 	linkTestPaths(b, idx, reach)

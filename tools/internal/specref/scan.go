@@ -297,6 +297,9 @@ func maskCode(path, line string, fence *bool) string {
 
 // scanLine bir satırdaki atıfları verir; offset satırın dosyadaki bayt başlangıcıdır.
 func scanLine(path string, no, offset int, raw, line string, ix *Index) []Mention {
+	if !hasNumberDotNumber(raw) {
+		return nil // madde numarası içeremeyen satırda düzenli ifadeleri çalıştırmanın anlamı yok (satırların çoğu)
+	}
 	s := &lineScan{path: path, no: no, offset: offset, line: line, covered: make([]bool, len(line)+1)}
 	if m := itemLine.FindStringSubmatchIndex(raw); m != nil && IsSpecFile(path) {
 		s.add("definition", m[2]-2, m[3]+2, false, []Token{{ID: raw[m[2]:m[3]], Start: m[2], End: m[3]}})
@@ -327,9 +330,7 @@ func scanLine(path string, no, offset int, raw, line string, ix *Index) []Mentio
 			s.add("link", m[0], m[1], false, []Token{{line[m[2]:m[3]], m[2], m[3]}})
 		}
 	}
-	if IsSpecFile(path) {
-		s.weak(ix)
-	}
+	s.weak(ix)
 	return s.out
 }
 
@@ -356,14 +357,18 @@ func listTokens(line string, start, end int) (toks []Token, rng bool) {
 	return toks, rng
 }
 
-// weak spec dosyalarında açık biçimi olmayan, ama var olan bir bölümün maddesine benzeyen anmaları ekler
-// (örn. "(karışık hassasiyet, 15.3)"); bölümün numaralı maddesi yoksa (1 ve 14) sayılmaz.
+// weak açık biçimi olmayan, ama var olan bir bölümün maddesine benzeyen anmaları ekler (örn. "(karışık hassasiyet,
+// 15.3)", Go yorumunda "(docs/spec/N_x.md, N.M)"); bölümün numaralı maddesi yoksa (1 ve 14) sayılmaz. Spec dışında yalnızca var olan
+// bir maddenin numarası anma sayılır: "15.5 ms" gibi ondalıklar olmayan maddeyi ya da madde olmayanı anmaz.
 func (s *lineScan) weak(ix *Index) {
 	for _, m := range reWeak.FindAllStringSubmatchIndex(s.line, -1) {
 		a, b := m[2], m[3]
 		id := s.line[a:b]
 		if overlaps(s.covered, a, b) || !standsAlone(s.line, a, b) || !ix.Chapters[chapterOf(id)] || looksNumeric(id) {
 			continue
+		}
+		if _, exists := ix.Items[id]; !exists && !IsSpecFile(s.path) {
+			continue // spec dışında çıplak sayı yalnızca var olan bir maddeyse anmadır (sürüm ve ondalık sayılardan ayrılır)
 		}
 		s.add("weak", a, b, false, []Token{{s.line[a:b], a, b}})
 	}
@@ -385,4 +390,14 @@ func standsAlone(line string, s, e int) bool {
 		return false
 	}
 	return true
+}
+
+// hasNumberDotNumber satırda "rakam.rakam" geçiyor mu: her madde numarası (N.M) bunu içerir; ucuz bir ön süzgeçtir.
+func hasNumberDotNumber(s string) bool {
+	for i := 1; i+1 < len(s); i++ {
+		if s[i] == '.' && s[i-1] >= '0' && s[i-1] <= '9' && s[i+1] >= '0' && s[i+1] <= '9' {
+			return true
+		}
+	}
+	return false
 }

@@ -290,3 +290,30 @@ func TestWhoUsesByPackage(t *testing.T) {
 	}
 	testkit.MustContain(t, out, "users by package (1 packages):", "shape: 2 functions, 3 use sites")
 }
+
+// Kural: tür düğümünde alanlar metotlardan ayrı bir grupta ve sınırdan bağımsız hep gösterilir; metotlar ayrı grupta
+// sınırlı kalır (yapının biçimi bilinecek ilk şeydir, 34 metodun altında kaybolmamalı).
+func TestQueryShowsFieldsApartFromMethodsRegardlessOfTheLimit(t *testing.T) {
+	var src strings.Builder
+	src.WriteString("package p\n\ntype C struct {\n\t// root genel kapsamdır.\n\troot int\n\tsource *C\n}\n\n")
+	for i := 0; i < 20; i++ {
+		src.WriteString("func (c *C) m" + string(rune('a'+i)) + "() {}\n")
+	}
+	root := auditModule(t, map[string]string{"p/p.go": src.String()})
+	var out, errb strings.Builder
+	if code := run([]string{"build", "--root", root}, &out, &errb); code != exitOK {
+		t.Fatalf("build: %d %s", code, errb.String())
+	}
+	out.Reset()
+	if code := run([]string{"query", "p.C", "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
+		t.Fatalf("query: %d %s", code, errb.String())
+	}
+	got := out.String()
+	fields, methods, _ := strings.Cut(got, "-> contains (20)")
+	if !strings.Contains(fields, "fields (2, always shown)") || !strings.Contains(fields, "p.C.root") || !strings.Contains(fields, "p.C.source  *p.C") {
+		t.Errorf("both fields above the methods, without --all:\n%s", got)
+	}
+	if !strings.Contains(methods, "more") || strings.Contains(methods, "p.C.root") {
+		t.Errorf("methods stay limited and carry no fields:\n%s", got)
+	}
+}
