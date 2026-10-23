@@ -279,7 +279,7 @@ re-implementation, sharing it would make the check circular); float64 reference 
 tests against production code; `internal/lang/ast` node boilerplate; generated files (the
 `// Code generated ... DO NOT EDIT.` header, which also covers the Unicode tables) are not read;
 tables are one leaf (every composite literal in a `*_test.go` file, and in production code those
-with 8 or more elements: name tables, operator sets); **sibling runs** are one leaf too
+with 8 or more elements: name tables, operator sets); **sibling runs** are one leaf too (PMD CPD has the same idea behind `--ignore-sequences`, [CPD docs](https://pmd.github.io/pmd/pmd_userdocs_cpd.html), 7.x)
 (3 or more consecutive, same-shape units under one parent, each under 40 syntax-tree nodes:
 the items of a `const (...)` block, back-to-back registration calls `wrap(v, codes.T500, ...)`,
 a kernel's `x := k.pointer("x")` parameter declarations, consecutive one-statement test
