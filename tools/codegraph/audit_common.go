@@ -97,14 +97,6 @@ func forEachFile(m *goload.Module, fn func(u *goload.Unit, f *ast.File, rel stri
 	}
 }
 
-// limited ilk n öğeyi verir (n 0 ise hepsini) ve kesilip kesilmediğini söyler.
-func limited[T any](list []T, n int) ([]T, bool) {
-	if n > 0 && len(list) > n {
-		return list[:n], true
-	}
-	return list, false
-}
-
 // runGoAudit tip bilgili denetim komutlarının ortak çalıştırıcısıdır: bayrakları okur, fazla argümanı
 // reddeder, modülü yükler, audit'i çalıştırır ve sonucu "codegraph-<ad>/1" şemalı JSON ya da düz metin
 // olarak yazar. audit JSON gövdesini ve metin yazıcısını verir.
