@@ -20,6 +20,7 @@
 // Model ayarları varsayılan olarak d512, 8 katman, 8 bakış, bağlam 512, toplu 128'dir.
 
 aktar "tr/katman"
+aktar "training_model"
 aktar "tr/iyilestirici"
 
 değişken ayar = komut_satırı({
@@ -54,15 +55,7 @@ değişken p = parçalayıcı_yükle(yol(ayar.veri, "tokenizer.json"))
 değişken eğitim_verisi = veri_kümesi(yol(ayar.veri, "train.npy"))
 değişken ö = eğitim_verisi.örnekleyici(toplu: ayar.toplu, bağlam: ayar.bağlam, tohum: ayar.tohum)
 
-eğer ayar.dağarcık != 0 ve ayar.dağarcık < p.dağarcık_boyutu {
-    fırlat("--dağarcık {ayar.dağarcık} parçalayıcının dağarcığından ({p.dağarcık_boyutu}) küçük olamaz")
-}
-değişken model = GPT(eğer ayar.dağarcık == 0 { p.dağarcık_boyutu } değilse { ayar.dağarcık }, bağlam: ayar.bağlam,
-    boyut: ayar.boyut, katman: ayar.katman, bakış_sayısı: ayar.bakış_sayısı,
-    kv_bakış_sayısı: eğer ayar.kv_bakış_sayısı == 0 { yok } değilse { ayar.kv_bakış_sayısı },
-    ara_boyut: eğer ayar.ara_boyut == 0 { yok } değilse { ayar.ara_boyut }, epsilon: ayar.epsilon,
-    qk_normu: ayar.qk_normu, birleşik_kv: ayar.birleşik_kv, birleşik_kapı: ayar.birleşik_kapı, ileri_sapmalı: ayar.ileri_sapmalı,
-    paylaşımlı: ayar.paylaşımlı, tohum: ayar.tohum)
+değişken model = eğitim_modeli(ayar, p.dağarcık_boyutu)
 değişken op = MuonVeAdamW(model, muon_oranı: ayar.muon_oranı, adamw_oranı: ayar.adamw_oranı,
     ağırlık_çürümesi: ayar.ağırlık_çürümesi, adamw_çürümesi: ayar.adamw_çürümesi, muon_ölçeği: ayar.muon_ölçeği,
     ns_türü: ayar.ns_türü, normuon: ayar.normuon)

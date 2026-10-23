@@ -1,0 +1,19 @@
+// Eğitim modeli: gpt_training.tr ve ss_exam.tr aynı GPT'yi eğitim ayarlarından (gpt_training.tr'nin
+// komut satırı sözlüğü ya da koşu klasöründeki config.json'un "ayar"ı) bu tek fonksiyonla kurar; yeni bir
+// model seçeneği yalnızca burada eklenir. Kendisi program değildir.
+
+aktar "tr/katman"
+
+// eğitim_modeli: ayar.dağarcık 0 ise parçalayıcının dağarcığı kullanılır; büyükse dolgu satırları eklenir,
+// küçükse hatadır. 0 verilen kv_bakış_sayısı ve ara_boyut kitaplığın varsayılanıdır.
+fonksiyon eğitim_modeli(ayar, parçalayıcı_dağarcığı) {
+    eğer ayar.dağarcık != 0 ve ayar.dağarcık < parçalayıcı_dağarcığı {
+        fırlat("--dağarcık {ayar.dağarcık} parçalayıcının dağarcığından ({parçalayıcı_dağarcığı}) küçük olamaz")
+    }
+    sonuç GPT(eğer ayar.dağarcık == 0 { parçalayıcı_dağarcığı } değilse { ayar.dağarcık }, bağlam: ayar.bağlam,
+        boyut: ayar.boyut, katman: ayar.katman, bakış_sayısı: ayar.bakış_sayısı,
+        kv_bakış_sayısı: eğer ayar.kv_bakış_sayısı == 0 { yok } değilse { ayar.kv_bakış_sayısı },
+        ara_boyut: eğer ayar.ara_boyut == 0 { yok } değilse { ayar.ara_boyut }, epsilon: ayar.epsilon,
+        qk_normu: ayar.qk_normu, birleşik_kv: ayar.birleşik_kv, birleşik_kapı: ayar.birleşik_kapı,
+        ileri_sapmalı: ayar.ileri_sapmalı, paylaşımlı: ayar.paylaşımlı, tohum: ayar.tohum)
+}

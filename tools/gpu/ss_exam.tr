@@ -17,7 +17,7 @@
 // bayt_parça varsayılanı PyTorch koşusunun (ss_d512_transformer) kendi kayıp ve bpb'sinden çıkan orandır
 // (1,5196237 / ln 2 / 0,5073415); aynı doğrulama verisi için iki taraf aynı paydayla ölçülür.
 
-aktar "tr/katman"
+aktar "training_model"
 
 değişken ayar = komut_satırı({koşu: "", veri: "", cihaz: "gpu", hassasiyet: "bf16", toplu: 16,
         bayt_parça: 4.32125793698609, sonda_uzunluğu: 48, örnek_uzunluğu: 64, eos: 50256},
@@ -33,12 +33,7 @@ varsayılan_cihaz(ayar.cihaz)
 değişken yapılandırma = json_çöz(dosya_oku(yol(ayar.koşu, "config.json")))
 değişken eğitim = yapılandırma.ayar
 değişken p = parçalayıcı_yükle(yol(ayar.veri, "tokenizer.json"))
-değişken model = GPT(eğer eğitim.dağarcık == 0 { p.dağarcık_boyutu } değilse { eğitim.dağarcık }, bağlam: eğitim.bağlam,
-    boyut: eğitim.boyut, katman: eğitim.katman, bakış_sayısı: eğitim.bakış_sayısı,
-    kv_bakış_sayısı: eğer eğitim.kv_bakış_sayısı == 0 { yok } değilse { eğitim.kv_bakış_sayısı },
-    ara_boyut: eğer eğitim.ara_boyut == 0 { yok } değilse { eğitim.ara_boyut }, epsilon: eğitim.epsilon,
-    qk_normu: eğitim.qk_normu, birleşik_kv: eğitim.birleşik_kv, birleşik_kapı: eğitim.birleşik_kapı,
-    ileri_sapmalı: eğitim.ileri_sapmalı, paylaşımlı: eğitim.paylaşımlı, tohum: eğitim.tohum)
+değişken model = eğitim_modeli(eğitim, p.dağarcık_boyutu)
 parametreleri_yükle(model, tensör_yükle(yol(ayar.koşu, "model.trt")))
 değişken T = eğitim.bağlam
 
