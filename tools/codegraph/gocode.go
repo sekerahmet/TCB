@@ -20,6 +20,7 @@ type goIndex struct {
 	byName     map[string][]*testFunc
 	dirFiles   map[string]bool // dosya düğümü olan göreli yollar
 	pathRefs   []pathRef       // dosya yolu sabitleri ve gömme yönergeleri (test_paths.go)
+	snip       *snippetState   // Go test dizelerindeki TR metinleri (tr_snippets.go)
 	ranges     []rangeRef      // koleksiyon döndüren işlev/değişken üzerinde dönen range deyimleri (walks.go)
 }
 
@@ -82,7 +83,7 @@ func (x *goExtractor) pkgName(p string) string {
 // extractGo bütün modülün Go düğümlerini ve kenarlarını kurar.
 func extractGo(m *module, b *builder) *goIndex {
 	x := &goExtractor{m: m, b: b, idx: &goIndex{
-		pkgSyms: map[string]map[string]string{}, inTestFile: map[string]bool{},
+		pkgSyms: map[string]map[string]string{}, inTestFile: map[string]bool{}, snip: newSnippetState(),
 		byName: map[string][]*testFunc{}, dirFiles: map[string]bool{},
 	}, fieldAt: map[string]string{}, env: envCodes(m.Root), consumed: map[*ast.BasicLit]bool{}}
 	for _, u := range m.Units {
@@ -191,6 +192,7 @@ func (x *goExtractor) funcDecl(fc *fileCtx, d *ast.FuncDecl) {
 		}
 		x.addSym(fc.base, key, id)
 	}
+	x.enterFunc(obj, id, strings.TrimPrefix(strings.TrimPrefix(pkg, x.m.Path), "/"), recv != "")
 	x.scan(fc, id, d) // imza (alıcı, parametre, sonuç tipleri) ve gövde: tür kullanımı imzada da vardır
 }
 

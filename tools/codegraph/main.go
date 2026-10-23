@@ -145,7 +145,9 @@ func buildGraph(root string) (*Graph, error) {
 	extractTR(root, b)
 	extractMarkdown(root, b, idx)
 	extractDataFiles(root, b)
-	linkTestPaths(b, idx)
+	reach := newTestReach(b, idx)
+	linkTestPaths(b, idx, reach)
+	linkSnippets(b, idx, reach)
 	g := b.graph()
 	g.Stamp = stamp
 	return g, nil

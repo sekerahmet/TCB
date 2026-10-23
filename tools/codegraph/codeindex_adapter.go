@@ -20,7 +20,7 @@ const (
 )
 
 // trRoots .tr dosyalarının aranacağı klasörlerdir (modül köküne göre).
-var trRoots = []string{"lib", "tools", "examples"}
+var trRoots = []string{"lib", "tools", "examples", "tests"}
 
 func trFileID(rel string) string { return "tr:file:" + rel }
 

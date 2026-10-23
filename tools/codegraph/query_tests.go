@@ -91,13 +91,15 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	}
 	walks := ix.walkEdges(n)
 	indirect := ix.indirectTests(n)
-	if len(tests) == 0 && len(indirect) == 0 && len(walks) == 0 {
+	viaNames := ix.testsThroughNames(n)
+	if len(tests) == 0 && len(indirect) == 0 && len(walks) == 0 && len(viaNames) == 0 {
 		fmt.Fprintln(w, "  no tests found")
 		return
 	}
+	ix.printGroups(w, "  <-", tests, fromOf, limit, true) // doğrudan testler önce: bu adı ya da dosyayı kullananlar
 	ix.printWalks(w, walks, limit)
-	ix.printGroups(w, "  <-", tests, fromOf, limit, true)
 	ix.printIndirect(w, indirect, limit)
+	ix.printViaNames(w, viaNames, limit)
 	ix.printGuardedRules(w, tests, indirect, limit)
 }
 

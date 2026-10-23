@@ -35,6 +35,7 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 		stack = append(stack, n)
 		accessModes(modes, n)
 		x.noteVarWrites(fc, writes, atomicAddr, n)
+		x.noteSnippets(fc, owner, n)
 		switch n := n.(type) {
 		case *ast.CallExpr:
 			if id := nameIdent(n.Fun); id != nil {

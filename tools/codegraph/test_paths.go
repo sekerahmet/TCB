@@ -117,11 +117,8 @@ func (x *goExtractor) addPathRef(fc *fileCtx, owner string, pos token.Pos, text 
 // linkTestPaths yol sabitlerini var olan dosya ve belge düğümlerine çözer ve test işlevinden `tests` kenarı çeker.
 // Yalnızca TestX/BenchmarkX/FuzzX/ExampleX işlevlerinin sabitleri sayılır. Çözüm, düğümlerin eklendiği
 // sıradan bağımsız olsun diye bütün çıkarıcılardan sonra çalışır.
-func linkTestPaths(b *builder, idx *goIndex) {
-	isTest := map[string]bool{}
-	for _, t := range idx.tests {
-		isTest[t.id] = true
-	}
+func linkTestPaths(b *builder, idx *goIndex, reach *testReach) {
+	isTest, callers, pkgOf := reach.isTest, reach.callers, reach.pkgOf
 	byFile := map[string][]*Node{}
 	var targets []*Node // glob kalıpları bunlara karşı denenir
 	for _, n := range b.nodes {
@@ -131,23 +128,8 @@ func linkTestPaths(b *builder, idx *goIndex) {
 		}
 	}
 	sort.Slice(targets, func(i, j int) bool { return targets[i].ID < targets[j].ID })
-	callers := map[string][]string{} // işlev ya da değişken -> onu çağıran ya da kullananlar
-	for k := range b.edges {
-		if k.kind == edgeCalls || k.kind == edgeUses || k.kind == edgeReadsVar || k.kind == edgeWritesVar {
-			callers[k.to] = append(callers[k.to], k.from)
-		}
-	}
-	for _, list := range callers {
-		sort.Strings(list)
-	}
-	pkgOf := func(id string) string {
-		if n := b.nodes[id]; n != nil {
-			return path.Dir(n.File)
-		}
-		return ""
-	}
 	for _, r := range idx.pathRefs {
-		tests := testsReaching(r.owner, isTest, callers, pkgOf)
+		tests := reach.testsReaching(r.owner)
 		pats := []string{path.Join(r.dir, r.text)}
 		if !r.embed {
 			pats = append([]string{path.Clean(r.text)}, pats...)
@@ -169,7 +151,7 @@ func linkTestPaths(b *builder, idx *goIndex) {
 				}
 				if r.prod && !isTest[r.owner] {
 					for _, rg := range walkersOf(r.owner, idx.ranges, callers, pkgOf, b) {
-						for _, t := range testsReaching(rg.owner, isTest, callers, pkgOf) {
+						for _, t := range reach.testsReaching(rg.owner) {
 							b.addEdge(t, n.ID, edgeWalks, inferred, rg.file, rg.line)
 						}
 					}
@@ -296,4 +278,38 @@ func wildcardParts(args []ast.Expr) ([]string, bool) {
 		dyn++
 	}
 	return parts, lits >= 2 && dyn > 0
+}
+
+// testReach bir işlevden onu çağıran testlere giden zincirin ortak durumudur (yol sabitleri ve TR metinleri aynı kuralı
+// kullanır).
+type testReach struct {
+	isTest  map[string]bool
+	callers map[string][]string // işlev ya da değişken -> onu çağıran ya da kullananlar
+	pkgOf   func(string) string
+}
+
+func newTestReach(b *builder, idx *goIndex) *testReach {
+	r := &testReach{isTest: map[string]bool{}, callers: map[string][]string{}}
+	for _, t := range idx.tests {
+		r.isTest[t.id] = true
+	}
+	for k := range b.edges {
+		if k.kind == edgeCalls || k.kind == edgeUses || k.kind == edgeReadsVar || k.kind == edgeWritesVar {
+			r.callers[k.to] = append(r.callers[k.to], k.from)
+		}
+	}
+	for _, list := range r.callers {
+		sort.Strings(list)
+	}
+	r.pkgOf = func(id string) string {
+		if n := b.nodes[id]; n != nil {
+			return path.Dir(n.File)
+		}
+		return ""
+	}
+	return r
+}
+
+func (r *testReach) testsReaching(owner string) []string {
+	return testsReaching(owner, r.isTest, r.callers, r.pkgOf)
 }

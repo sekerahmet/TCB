@@ -360,6 +360,32 @@ consecutive is split (`15.31–15.38` → `15.11–15.15, 15.20–15.22`); text 
 reference (`15.0` as a version) is never touched. Collisions and unknown old numbers are refused
 before anything is written; `--apply` refuses a plan that no longer matches the files.
 
+## Tests written in TR (`tests/*.tr`, TR code inside Go test strings)
+
+Behaviour is tested with TR code, and a test that the graph cannot see leaves `tests-for` empty. Three
+things close that:
+
+- **`tests/*.tr` is indexed** (`trRoots`), so its `test "..."` blocks are `tr_test` nodes. Member (`.güncelle`) and
+  named-argument (`her_dakika:`) codes are builtin nodes in `tr dizin`, and every builtin a test block uses is a
+  `tests` edge to its name code (`tests-for T720` lists `tests/tensor_test.tr:1044`).
+- **TR in Go test strings** (`tr_snippets.go`): a string a Go test gives to a function that reaches the TR reader is
+  a TR program; `codeindex.Snippet` reads the name codes it uses and the test gets a `tests` edge to each. The
+  helper is not named: the language entry points (`lexer.New`, `source.Prepare` ...) are the sinks, and a function
+  that passes its own string parameter to a sink makes that parameter a sink, until nothing changes. The text may be
+  a constant, a `fmt.Sprintf` format (verbs become placeholders: `%q` → `"x"`), a named constant, a local variable,
+  the text another function returns, or parts joined with `+` (an unknown part becomes `x`). A string that goes to a
+  helper that never reaches the reader (`notTR(t, "kn.güncelle(1)")`) links nothing. Same chain rule as path
+  constants (one package boundary, eight steps).
+- **A Go function is tested through the name it implements**: `tests-for checkpoint.Checkpoint.saveOnInterval`
+  walks up its callers (`update` implements `güncelle`, Y010) and lists the tests of the builtin, member and
+  named-argument codes they use (`tests through the name codes it implements`, tests of the same package first).
+  Type names, keywords and messages do not count: every test uses them.
+
+`tests-for` prints direct tests (a test that uses the name or file) before the tests that walk the whole list.
+`name_tests_test.go` (`test_names_test.go`) keeps this from decaying: every builtin, member and named-argument code
+has a direct test or is listed with a reason in `testdata/untested_names.txt` (today three gaps are written down
+there honestly: `zaman_ms`, `ağırlık:`, `sapma:`). A stale exception fails too.
+
 ## Package variables: reads and writes (`reads_var`, `writes_var`, `inits_var`)
 
 `query codes.active` used to give its 16 users under one `uses`; "who writes it" had no answer. The rule of

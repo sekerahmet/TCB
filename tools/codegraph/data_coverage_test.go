@@ -75,11 +75,12 @@ func TestEveryTrackedDataFileHasATestOrAReason(t *testing.T) {
 			guardedDocs[ix.byID[e.From].File] = true
 		}
 	}
+	importedByTests := trImportedByTestFiles(g)
 	var uncovered []string
 	for _, n := range g.Nodes {
 		ext := path.Ext(n.File)
 		if (n.Kind != kindFile && n.Kind != kindDoc) || !tracked[n.File] || (ext != ".json" && ext != ".tr" && ext != ".md") ||
-			underAnyName(n.File, "testdata") || hit[n.ID] || guardedDocs[n.File] {
+			underAnyName(n.File, "testdata") || hit[n.ID] || guardedDocs[n.File] || importedByTests[n.ID] {
 			continue
 		}
 		uncovered = append(uncovered, n.File)
@@ -110,6 +111,35 @@ func TestEveryTrackedDataFileHasATestOrAReason(t *testing.T) {
 			t.Errorf("testdata/uncovered_data.txt entry %q matches no uncovered file any more: remove it", ex.pattern)
 		}
 	}
+}
+
+// trImportedByTestFiles test bloğu taşıyan bir .tr dosyasının (doğrudan ya da dolaylı) `aktar`dığı .tr dosyalarının
+// düğümleridir: testin yardımcı modülü, o testin bir parçası olarak çalışır.
+func trImportedByTestFiles(g *Graph) map[string]bool {
+	imports := map[string][]string{}
+	for _, e := range g.Edges {
+		if e.Kind == edgeImports && strings.HasPrefix(e.From, "tr:file:") {
+			imports[e.From] = append(imports[e.From], e.To)
+		}
+	}
+	reached := map[string]bool{}
+	var queue []string
+	for _, n := range g.Nodes {
+		if n.Kind == kindTRTest {
+			queue = append(queue, trFileID(n.File))
+		}
+	}
+	for len(queue) > 0 {
+		id := queue[0]
+		queue = queue[1:]
+		for _, to := range imports[id] {
+			if !reached[to] {
+				reached[to] = true
+				queue = append(queue, to)
+			}
+		}
+	}
+	return reached
 }
 
 // underAnyName yolun klasör parçalarından biri name mi.
