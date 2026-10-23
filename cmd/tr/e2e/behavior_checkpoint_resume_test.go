@@ -103,8 +103,8 @@ func checkData(t *testing.T) string {
 type trainingRun struct {
 	cmd    *exec.Cmd
 	run    string // koşu klasörü
-	stderr *lockedBuffer
-	stdout *lockedBuffer
+	stderr *testkit.TeeWriter
+	stdout *testkit.TeeWriter
 	done   chan error
 }
 
@@ -114,7 +114,7 @@ func startTraining(t *testing.T, dir, run, data string, worker int, ek ...string
 	cmd := exec.Command(trBinary, append([]string{"egit.tr", "--koşu", run, "--veri", data}, ek...)...)
 	cmd.Dir = dir
 	cmd.Env = append(os.Environ(), fmt.Sprintf("GOMAXPROCS=%d", worker))
-	k := &trainingRun{cmd: cmd, run: filepath.FromSlash(run), stderr: &lockedBuffer{}, stdout: &lockedBuffer{}, done: make(chan error, 1)}
+	k := &trainingRun{cmd: cmd, run: filepath.FromSlash(run), stderr: &testkit.TeeWriter{}, stdout: &testkit.TeeWriter{}, done: make(chan error, 1)}
 	cmd.Stdout, cmd.Stderr = k.stdout, k.stderr
 	prepareProcess(cmd)
 	if err := cmd.Start(); err != nil {
