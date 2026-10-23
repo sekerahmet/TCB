@@ -204,7 +204,8 @@ func (ix *index) printQuery(w io.Writer, n *Node, limit int) {
 	if len(n.Params) > 0 {
 		fmt.Fprintf(w, "  params: %s\n", strings.Join(n.Params, ", "))
 	}
-	ix.printGroups(w, "  ->", ix.out[n.ID], toOf, limit, false)
+	out := ix.printFields(w, n)
+	ix.printGroups(w, "  ->", out, toOf, limit, false)
 	ix.printGroups(w, "  <-", ix.in[n.ID], fromOf, limit, true)
 	if n.Kind == kindName {
 		ix.printNameChain(w, n, limit)
@@ -238,4 +239,35 @@ func (ix *index) whoUsesHeader(w io.Writer, n *Node) []*Edge {
 		}
 	}
 	return uses
+}
+
+// printFields bir türün alanlarını (type → field `contains`) metotlardan ayrı ve sınırsız yazar: alanlar azdır ve yapının
+// biçimi bilinecek ilk şeydir; 34 metodun altında kalan iki alan ("compiler.source") yanlış bir tasarım sonucuna götürmüştü.
+// Alan olmayan çıkan kenarları döner (metotlar vb., sınırlı gruplara gider).
+func (ix *index) printFields(w io.Writer, n *Node) []*Edge {
+	var fields []*Node
+	var rest []*Edge
+	for _, e := range ix.out[n.ID] {
+		if t := ix.byID[e.To]; e.Kind == edgeContains && t != nil && t.Kind == kindField {
+			fields = append(fields, t)
+		} else {
+			rest = append(rest, e)
+		}
+	}
+	if len(fields) == 0 {
+		return rest
+	}
+	sort.SliceStable(fields, func(i, j int) bool { return fields[i].Line < fields[j].Line })
+	fmt.Fprintf(w, "  -> fields (%d, always shown):\n", len(fields))
+	for _, f := range fields {
+		line := fmt.Sprintf("    %s", f.Name)
+		if f.Detail != "" {
+			line += "  " + f.Detail
+		}
+		if f.Doc != "" {
+			line += "  // " + truncate(f.Doc, 100)
+		}
+		fmt.Fprintln(w, line)
+	}
+	return rest
 }
