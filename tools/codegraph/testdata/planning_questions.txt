@@ -64,3 +64,12 @@ codegraph tests-for 17.7 | not: no tests found | src: deneme 5, 2026-10-23
 codegraph tests-for tools/gpu/gpt_training.tr | contains: TestGPTTrainingScriptSmoke | src: madde 7 / 2, 2026-10-23
 codegraph tests-for lib/egitim.tr | contains: TestExamplesCoverLibraryNames | contains: Kitaplık kapsamı | src: madde 7 / 2, 2026-10-23
 codegraph tests-for lib/README.md | contains: TestDocTRCodeBlocks | src: madde 7 / 2, 2026-10-23
+
+# Deneme 6: bir yerleşiği kaldırmayı planlamak (koşullu, T234) (2026-10-23)
+codegraph query koşullu | contains: T234 [name] | group: <- tests ( => 15.15 koşullu | group: uses_name => iyilestirici.SatırRMS.adım | group: registered or used in Go => ml.registerWideMath at | group: registered or used in Go => -> ml.whereBuiltin | contains: docs/codes.md | src: deneme 6, 2026-10-23
+codegraph callees ml.whereBuiltin | contains: tensor.Where [func] | src: deneme 6, 2026-10-23
+codegraph callees tensor.Where | contains: dispatches to: gpu.backend.Where, tensor.cpuBackend.Where | contains: dispatches to: gpu.backend.WhereGrad, tensor.cpuBackend.WhereGrad | src: deneme 6, 2026-10-23
+codegraph who-uses gpu.selectKernel | contains: gpu.backend.Where | src: deneme 6, 2026-10-23
+codegraph callees gpu.backend.Where --all | contains: gpu.selectKernel | src: deneme 6, 2026-10-23
+codegraph deleted | group: names: => K102  removed 020a98a7 | src: deneme 6, 2026-10-23
+codegraph query "ölü" | not: bölüm | not: Bölüm | contains: source.langName | src: deneme 6 (N1: metin araması önce bütün sözcük), 2026-10-23
