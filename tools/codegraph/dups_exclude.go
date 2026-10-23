@@ -45,6 +45,7 @@ var dupRules = []dupRule{
 var dupLoaderExclusions = []dupRule{
 	{Name: "generated-files", Reason: "files with the `// Code generated ... DO NOT EDIT.` header (codes_generated.go, Unicode tables) are not read: they are produced from one source."},
 	{Name: "tables", Reason: "composite literals count as one leaf in *_test.go files (test tables) and, in production code, when they have 8 or more elements (name tables, operator sets): similar table rows are not duplicates."},
+	{Name: "sibling-runs", Reason: "3 or more consecutive same-shape units under one parent, each under 40 syntax-tree nodes (const block items, registration calls, kernel parameter declarations, one-statement test functions), count as one leaf: a list is a table of facts, not logic."},
 	{Name: "imports", Reason: "import declarations are not read."},
 	{Name: "tr-sources", Reason: "only Go is read; examples/tr and examples/en are parallel on purpose and are .tr files (tr dizin territory)."},
 }

@@ -1,0 +1,41 @@
+package gpu
+
+// mergeAxes, bütün işlenenler için bitişik olan komşu eksenleri birleştirir ve
+// uzunluğu 1 olan eksenleri atar (CPU coalesce ile aynı kural). Boş şekil tek eksene
+// ([1], adım 0) döner.
+func mergeAxes(shape []int, steps ...[]int) ([]int, [][]int) {
+	ns := make([]int, 0, len(shape))
+	nst := make([][]int, len(steps))
+	for d := range shape {
+		if shape[d] == 1 {
+			continue
+		}
+		if last := len(ns) - 1; last >= 0 {
+			merges := true
+			for k := range steps {
+				if nst[k][last] != steps[k][d]*shape[d] {
+					merges = false
+					break
+				}
+			}
+			if merges {
+				ns[last] *= shape[d]
+				for k := range steps {
+					nst[k][last] = steps[k][d]
+				}
+				continue
+			}
+		}
+		ns = append(ns, shape[d])
+		for k := range steps {
+			nst[k] = append(nst[k], steps[k][d])
+		}
+	}
+	if len(ns) == 0 {
+		ns = append(ns, 1)
+		for k := range nst {
+			nst[k] = append(nst[k], 0)
+		}
+	}
+	return ns, nst
+}

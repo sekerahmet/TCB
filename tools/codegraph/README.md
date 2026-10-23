@@ -271,7 +271,13 @@ re-implementation, sharing it would make the check circular); float64 reference 
 tests against production code; `internal/lang/ast` node boilerplate; generated files (the
 `// Code generated ... DO NOT EDIT.` header, which also covers the Unicode tables) are not read;
 tables are one leaf (every composite literal in a `*_test.go` file, and in production code those
-with 8 or more elements: name tables, operator sets); `examples/tr` against `examples/en` are
+with 8 or more elements: name tables, operator sets); **sibling runs** are one leaf too
+(3 or more consecutive, same-shape units under one parent, each under 40 syntax-tree nodes:
+the items of a `const (...)` block, back-to-back registration calls `wrap(v, codes.T500, ...)`,
+a kernel's `x := k.pointer("x")` parameter declarations, consecutive one-statement test
+functions. The order of such a list is information, each unit says something else, and a real copy
+of a list is a copy of a table, not of logic; 40 nodes is the size of `func TestX(t) { expectOut(t,
+`...`, `...`) }`, so a unit with a branch or a loop is never a sibling); `examples/tr` against `examples/en` are
 `.tr` files, which this command does not read. To add an exception write one entry in
 `dups_exclude.go` with a reason.
 

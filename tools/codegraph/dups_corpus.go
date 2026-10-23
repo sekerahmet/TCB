@@ -112,6 +112,7 @@ func flatten(fset *token.FileSet, f *ast.File, isTest bool) ([]flatNode, []local
 	var nodes []flatNode
 	var funcs []localFunc
 	var open []openFrame
+	runs := siblingRuns(fset, f)
 	ast.Inspect(f, func(n ast.Node) bool {
 		if n == nil {
 			top := open[len(open)-1]
@@ -123,6 +124,15 @@ func flatten(fset *token.FileSet, f *ast.File, isTest bool) ([]flatNode, []local
 			return true
 		}
 		if gd, ok := n.(*ast.GenDecl); ok && gd.Tok == token.IMPORT {
+			return false
+		}
+		if r, ok := runs[n]; ok { // kardeş dizisi: ilk üye tek yaprak, öbürleri atlanır (dups_siblings.go)
+			if r.head {
+				nodes = append(nodes, flatNode{kind: "SiblingRun", line: int32(fset.Position(n.Pos()).Line), last: r.endLine})
+				if len(open) > 0 {
+					nodes[open[len(open)-1].idx].children++
+				}
+			}
 			return false
 		}
 		idx := len(nodes)

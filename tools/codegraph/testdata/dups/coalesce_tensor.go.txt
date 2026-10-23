@@ -1,0 +1,44 @@
+package tensor
+
+// coalesce, tüm işlenenler için bitişik olan komşu eksenleri birleştirerek
+// gezinme döngüsünün boyut sayısını azaltır. Uzunluğu 1 olan eksenler atılır.
+func coalesce(shape []int, strides [][]int) ([]int, [][]int) {
+	ns := make([]int, 0, len(shape))
+	nst := make([][]int, len(strides))
+	for k := range nst {
+		nst[k] = make([]int, 0, len(shape))
+	}
+	for d := 0; d < len(shape); d++ {
+		if shape[d] == 1 {
+			continue
+		}
+		if len(ns) > 0 {
+			last := len(ns) - 1
+			ok := true
+			for k := range strides {
+				if nst[k][last] != strides[k][d]*shape[d] {
+					ok = false
+					break
+				}
+			}
+			if ok {
+				ns[last] *= shape[d]
+				for k := range strides {
+					nst[k][last] = strides[k][d]
+				}
+				continue
+			}
+		}
+		ns = append(ns, shape[d])
+		for k := range strides {
+			nst[k] = append(nst[k], strides[k][d])
+		}
+	}
+	if len(ns) == 0 {
+		ns = append(ns, 1)
+		for k := range nst {
+			nst[k] = append(nst[k], 0)
+		}
+	}
+	return ns, nst
+}

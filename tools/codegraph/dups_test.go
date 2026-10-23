@@ -89,6 +89,14 @@ func TestDupsFindsKnownDuplicates(t *testing.T) {
 			"internal/stdlib/checkpoint/a_test.go": "resign_a",
 			"internal/stdlib/checkpoint/b_test.go": "resign_b",
 		}, 80, []string{"internal/stdlib/checkpoint/a_test.go", "internal/stdlib/checkpoint/b_test.go"}, true},
+		{"mergeAxes and coalesce (merged in 99f04289)", map[string]string{
+			"internal/compute/gpu/kernel_copy.go":    "merge_axes_gpu",
+			"internal/compute/tensor/cpu_backend.go": "coalesce_tensor",
+		}, 100, []string{"internal/compute/gpu/kernel_copy.go:mergeAxes", "internal/compute/tensor/cpu_backend.go:coalesce"}, false},
+		{"hand-written counted loops in the flash kernels (removed in 001a808d)", map[string]string{
+			"internal/compute/gpu/kernel_flash_backward.go":     "flash_backward_kv",
+			"internal/compute/gpu/kernel_flash_mma_backward.go": "flash_mma_backward_kv",
+		}, 100, []string{"internal/compute/gpu/kernel_flash_backward.go:flashBackwardKVKernel", "internal/compute/gpu/kernel_flash_mma_backward.go:flashMmaBackwardKVKernel"}, false},
 		{"registerIsFinite and registerRounding (Parti 4, Bulgu 13)", map[string]string{
 			"internal/stdlib/ml/builtin_math.go": "math_wrappers",
 		}, 100, []string{"internal/stdlib/ml/builtin_math.go:registerIsFinite", "internal/stdlib/ml/builtin_math.go:registerRounding"}, false},
@@ -388,4 +396,63 @@ func branchWithCopy(t *testing.T) string {
 	gitMust(t, root, "add", "-A")
 	gitMust(t, root, "commit", "-q", "-m", "copy")
 	return root
+}
+
+// siblingSource art arda gelen kardeş birimlerden oluşan bir kaynak kurar: bildirim bloğu, kayıt çağrıları, parametre
+// bildirimleri ve tek ifadeli test fonksiyonları.
+func siblingSource(pkg string, names []string) string {
+	var b strings.Builder
+	b.WriteString("package " + pkg + "\n\nconst (\n")
+	for _, n := range names {
+		fmt.Fprintf(&b, "\tTok%s = %q\n", n, n)
+	}
+	b.WriteString(")\n\nfunc register() {\n")
+	for _, n := range names {
+		fmt.Fprintf(&b, "\twrap(v, codes.T%s, newBuiltin(%s))\n", n, n)
+	}
+	b.WriteString("}\n\nfunc kernel(k *emitter) {\n")
+	for _, n := range names {
+		fmt.Fprintf(&b, "\t%s := k.pointer(%q)\n", strings.ToLower(n), n)
+	}
+	b.WriteString("}\n")
+	for _, n := range names {
+		fmt.Fprintf(&b, "\nfunc Test%s(t *testing.T) {\n\texpectOut(t, `%s`, `%s`)\n}\n", n, n, n)
+	}
+	return b.String()
+}
+
+// realCopy kardeş listesi olmayan, gerçek mantık taşıyan bir işlev kaynağıdır.
+const realCopy = `
+func Real(xs []int) int {
+	total := 0
+	for i, x := range xs {
+		if x > 0 {
+			total += x * i
+		}
+	}
+	if total > 100 {
+		total = 100
+	}
+	return total
+}
+`
+
+// Kural: aynı biçimli, küçük, art arda gelen kardeş birimler (bildirim bloğu öğeleri, kayıt çağrıları, parametre
+// bildirimleri, tek ifadeli test fonksiyonları) tek yaprak sayılır: iki paketin liste benzerliği tekrar değildir.
+// Ama listenin yanındaki gerçek kopya bulunmaya devam eder.
+func TestDupsTreatsSiblingRunsAsLeaves(t *testing.T) {
+	var a, b []string
+	for i := 0; i < 24; i++ {
+		a = append(a, fmt.Sprintf("A%02d", i))
+		b = append(b, fmt.Sprintf("B%02d", i))
+	}
+	root := dupTree(t, map[string]string{"x/a.go": "src:" + siblingSource("x", a), "y/b.go": "src:" + siblingSource("y", b)})
+	if clusters, _ := dupsOf(t, root, 100, false); len(clusters) != 0 {
+		t.Errorf("sibling lists reported as duplicates: %d clusters, first %+v", len(clusters), clusters[0].Locs)
+	}
+	root = dupTree(t, map[string]string{"x/a.go": "src:" + siblingSource("x", a) + realCopy,
+		"y/b.go": "src:" + siblingSource("y", b) + strings.ReplaceAll(realCopy, "Real", "Other")})
+	if clusters, _ := dupsOf(t, root, 30, false); hasCluster(clusters, "x/a.go", "y/b.go") == nil {
+		t.Error("a real copy next to sibling lists must still be found")
+	}
 }
