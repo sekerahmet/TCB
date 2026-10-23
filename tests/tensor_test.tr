@@ -962,6 +962,10 @@ test "15.37 cihazlar: ilk eleman cpu, adlar metin, bilinmeyen ad hata" {
     döngü ad içinde c { doğrula(tip(ad) == Metin) }
     eşit_mi("cpu", tensör([1.0]).cihaza(" CPU ").cihaz)
     doğrula(hata_metni(() => tensör([1.0]).cihaza("tpu")).içerir("bilinmeyen cihaz \"tpu\""))
+    // Sayıdan sonra çöp ya da işaret olan ad da bilinmeyen cihazdır (gpu:0abc, gpu:+1, gpu:-1, gpu:).
+    döngü kötü içinde ["gpu:0abc", "gpu:+1", "gpu:-1", "gpu:", "gpu: 1"] {
+        doğrula(hata_metni(() => tensör([1.0]).cihaza(kötü)).içerir("bilinmeyen cihaz"), kötü)
+    }
     doğrula(hata_metni(() => cihazlar(1)).içerir("parametre almaz"))
     eğer c.içerir("gpu") {
         eşit_mi("gpu", tensör([1.0]).cihaza("gpu:0").cihaz)
