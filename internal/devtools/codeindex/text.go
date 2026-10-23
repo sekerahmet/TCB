@@ -47,38 +47,16 @@ const (
 	maxContext      = 160
 )
 
-// textFiles yeniden adlandırma taramasının dosyalarıdır: `.git` varsa yalnızca izlenenler (git ls-files;
-// izlenmeyen dosyalar kullanıcınındır), yoksa DefaultSkipDirs dışındaki klasörler dolaşılır.
+// textFiles yeniden adlandırma taramasının dosyalarıdır: yalnızca izlenenler (izlenmeyen dosyalar kullanıcınındır; git
+// yoksa klasör gezintisi), ListFiles'ın kuralıyla.
 func textFiles(root string) []string {
-	var rels []string
-	tracked, ok := GitTracked(root)
-	if ok {
-		rels = tracked
-	} else {
-		_ = filepath.WalkDir(root, func(p string, d os.DirEntry, err error) error {
-			if err != nil {
-				return nil
-			}
-			if d.IsDir() {
-				if p != root && (DefaultSkipDirs[d.Name()] || d.Name() == CacheDir) {
-					return filepath.SkipDir
-				}
-				return nil
-			}
-			r, _ := filepath.Rel(root, p)
-			rels = append(rels, filepath.ToSlash(r))
-			return nil
-		})
-	}
-	var out []string
-	for _, r := range rels {
-		switch strings.ToLower(filepath.Ext(r)) {
+	return ListFiles(root, nil, DefaultSkipDirs, false, func(rel string) bool {
+		switch strings.ToLower(filepath.Ext(rel)) {
 		case ".md", ".json", ".tr", ".go":
-			out = append(out, r)
+			return true
 		}
-	}
-	sort.Strings(out)
-	return out
+		return false
+	})
 }
 
 // displayText bir .tr dosyasının Türkçe gösterim metnidir (kodlu dosya önce çözülür; çözülemezse
@@ -311,13 +289,80 @@ func clip(line string) string {
 	return line
 }
 
-// GitTracked `.git` varsa ve git çalışıyorsa izlenen dosyalardır (git ls-files); aksi halde ok=false:
-// çağıran klasörü dolaşır. Dizin, `tools/internal/specref` ve başka araçlar aynı işlevi kullanır (Parti 9 Y2).
+// ListFiles depo araçlarının tek dosya listesidir (dizin, kod grafiği, madde taraması; bağımsız denetim T1, Y11): köke
+// göre yollar, "/" ile, sıralı. Git varsa git'in gördüğü dosyalar: izlenenler; untracked doğruysa izlenmeyip yok
+// sayılmayanlar da (yeni, henüz commit'lenmemiş kaynak dizine girer; .gitignore'dakiler, scratch/ ve runs/ gibi,
+// girmez). Dosya yazan araç untracked=false verir: depo kökündeki izlenmeyen dosyalar kullanıcınındır. Git yoksa
+// klasör gezintisi. İkisinde de skip'teki adlı bir klasörün (testdata, .claude ...) altı atlanır; dirs boş değilse
+// yalnızca onların altı; keep nil değilse süzgeçtir.
+func ListFiles(root string, dirs []string, skip map[string]bool, untracked bool, keep func(rel string) bool) []string {
+	rels, ok := gitFiles(root, untracked)
+	if !ok {
+		_ = filepath.WalkDir(root, func(p string, d os.DirEntry, err error) error {
+			if err != nil {
+				return nil
+			}
+			if d.IsDir() {
+				if p != root && skip[d.Name()] {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+			r, _ := filepath.Rel(root, p)
+			rels = append(rels, filepath.ToSlash(r))
+			return nil
+		})
+	}
+	var out []string
+	for _, r := range rels {
+		if underSkipped(r, skip) || !underAnyDir(r, dirs) || keep != nil && !keep(r) {
+			continue
+		}
+		out = append(out, r)
+	}
+	sort.Strings(out)
+	return out
+}
+
+// underSkipped yolun klasörlerinden biri skip'te mi.
+func underSkipped(rel string, skip map[string]bool) bool {
+	parts := strings.Split(rel, "/")
+	for _, part := range parts[:len(parts)-1] {
+		if skip[part] {
+			return true
+		}
+	}
+	return false
+}
+
+// underAnyDir yol dirs'ten birinin altında mı (dirs boşsa ya da "." içeriyorsa hep).
+func underAnyDir(rel string, dirs []string) bool {
+	if len(dirs) == 0 {
+		return true
+	}
+	for _, d := range dirs {
+		if d == "." || rel == d || strings.HasPrefix(rel, strings.TrimSuffix(d, "/")+"/") {
+			return true
+		}
+	}
+	return false
+}
+
+// GitTracked `.git` varsa ve git çalışıyorsa izlenen dosyalardır (git ls-files); aksi halde ok=false.
 func GitTracked(root string) ([]string, bool) {
+	return gitFiles(root, false)
+}
+
+// gitFiles git'in listesidir; untracked ise yok sayılmayan izlenmeyen dosyalar da.
+func gitFiles(root string, untracked bool) ([]string, bool) {
 	if _, err := os.Stat(filepath.Join(root, ".git")); err != nil {
 		return nil, false
 	}
-	out, err := exec.Command("git", "-C", root, "ls-files", "-z").Output()
+	args := []string{"-C", root, "ls-files", "-z"}
+	if untracked {
+		args = append(args, "--cached", "--others", "--exclude-standard")
+	}
+	out, err := exec.Command("git", args...).Output()
 	if err != nil {
 		return nil, false
 	}

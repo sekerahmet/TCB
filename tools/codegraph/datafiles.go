@@ -16,7 +16,7 @@ import (
 // extractDataFiles root altındaki JSON dosyalarını (testdata hariç) `file` düğümü yapar ve ad/ileti dil
 // dosyalarındaki kodların düğümlerini dosyaya bağlar.
 func extractDataFiles(root string, b *builder) {
-	for _, rel := range walkFiles(root, skipDirs, ".json") {
+	for _, rel := range walkFiles(root, ".json") {
 		b.addNode(Node{ID: "file:" + rel, Kind: kindFile, Name: rel, File: rel, Line: 1, Detail: "data"})
 	}
 	for _, dir := range []struct{ rel, prefix string }{{codesDir, "name:"}, {messagesDir, "msg:"}} {

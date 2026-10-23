@@ -137,3 +137,48 @@ func TestGitTrackedListsOnlyTrackedFiles(t *testing.T) {
 		t.Errorf("GitTracked = %v, %v; want only a.tr", got, ok)
 	}
 }
+
+// Kural: depo araçlarının tek dosya listesi (ListFiles) git'in gördüğünü verir: izlenen; untracked ile izlenmeyip yok
+// sayılmayan yeni dosya da; .gitignore'daki (scratch/) hiç; atlama listesindeki klasörün (testdata) altı hiç; dirs ve
+// keep süzer. git yoksa aynı kural klasör gezintisiyle (bağımsız denetim T1, Y11).
+func TestListFilesSeesWhatGitSeesMinusSkippedDirs(t *testing.T) {
+	dir := t.TempDir()
+	for name, text := range map[string]string{"lib/a.tr": "x", "lib/new.tr": "y", "scratch/s.tr": "z", "lib/testdata/f.tr": "w",
+		"docs/d.md": "m", ".gitignore": "scratch/\n"} {
+		if err := os.MkdirAll(filepath.Dir(filepath.Join(dir, name)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	tr := func(rel string) bool { return strings.HasSuffix(rel, ".tr") }
+	walked := strings.Join(ListFiles(dir, nil, DefaultSkipDirs, true, tr), " ")
+	if walked != "lib/a.tr lib/new.tr scratch/s.tr" {
+		t.Errorf("without git (walk): %q", walked)
+	}
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git yok")
+	}
+	for _, args := range [][]string{{"init", "-q"}, {"add", "lib/a.tr", "docs/d.md", ".gitignore"}} {
+		if out, err := exec.Command("git", append([]string{"-C", dir}, args...)...).CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	if err := exec.Command("git", "-C", dir, "add", "-f", "lib/testdata/f.tr").Run(); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		untracked bool
+		dirs      []string
+		want      string
+	}{
+		{true, nil, "lib/a.tr lib/new.tr"}, // yeni dosya girer; yok sayılan scratch/ ve izlenen testdata girmez
+		{false, nil, "lib/a.tr"},           // dosya yazan araç: yalnızca izlenen
+		{true, []string{"docs"}, ""},
+	} {
+		if got := strings.Join(ListFiles(dir, c.dirs, DefaultSkipDirs, c.untracked, tr), " "); got != c.want {
+			t.Errorf("ListFiles(untracked=%v, dirs=%v) = %q, want %q", c.untracked, c.dirs, got, c.want)
+		}
+	}
+}

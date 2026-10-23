@@ -26,9 +26,10 @@ type Options struct {
 	Library fs.FS
 }
 
-// DefaultSkipDirs sürüm denetimi, araç ve örnek verisi klasörleridir.
+// DefaultSkipDirs sürüm denetimi, araç çıktısı, bağımlılık ve sınama verisi klasörleridir; depo araçlarının tek atlama
+// listesi (ListFiles).
 var DefaultSkipDirs = map[string]bool{
-	".git": true, ".claude": true, ".codegraph": true, "node_modules": true, "testdata": true,
+	".git": true, ".claude": true, ".codegraph": true, CacheDir: true, "node_modules": true, "testdata": true, "vendor": true,
 }
 
 // file ayrıştırılmış bir .tr dosyasıdır.
@@ -99,43 +100,9 @@ func Build(root string, opts Options) (*Index, error) {
 	return x.finish(), nil
 }
 
-// discover .tr dosyalarının köke göre yollarını sıralı verir.
+// discover .tr dosyalarının köke göre yollarını sıralı verir (ListFiles: izlenmeyen yeni dosyalar da).
 func (x *indexer) discover(dirs []string, skip map[string]bool) []string {
-	if len(dirs) == 0 {
-		dirs = []string{"."}
-	}
-	var rels []string
-	for _, top := range dirs {
-		dir := filepath.Join(x.root, filepath.FromSlash(top))
-		_ = filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
-			if err != nil {
-				return nil
-			}
-			if d.IsDir() {
-				if p != x.root && skip[d.Name()] {
-					return filepath.SkipDir
-				}
-				return nil
-			}
-			if strings.HasSuffix(d.Name(), ".tr") {
-				r, _ := filepath.Rel(x.root, p)
-				rels = append(rels, filepath.ToSlash(r))
-			}
-			return nil
-		})
-	}
-	sort.Strings(rels)
-	return dedupe(rels)
-}
-
-func dedupe(sorted []string) []string {
-	var out []string
-	for i, s := range sorted {
-		if i == 0 || s != sorted[i-1] {
-			out = append(out, s)
-		}
-	}
-	return out
+	return ListFiles(x.root, dirs, skip, true, func(rel string) bool { return strings.HasSuffix(rel, ".tr") })
 }
 
 // read diskteki bir dosyayı okur ve modül düğümünü ekler.

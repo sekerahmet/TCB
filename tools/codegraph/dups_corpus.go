@@ -20,15 +20,6 @@ import (
 // "atom" dizisinde durur, yalnızca fark özeti için). Çocuk sayısı dizide olduğu için önek sırası
 // ağacı tek türlü çözer: iki dizi eşitse iki ağaç aynı biçimdedir.
 
-// dupSkipDirs taranmayan klasörlerdir (sürüm denetimi, araç çıktıları, sınama verisi, kopya ağaçlar).
-var dupSkipDirs = func() map[string]bool {
-	m := map[string]bool{"vendor": true}
-	for d := range skipDirs {
-		m[d] = true
-	}
-	return m
-}()
-
 var generatedHeader = regexp.MustCompile(`(?m)^// Code generated .* DO NOT EDIT\.$`)
 
 // dupFunc bir işlev ya da metodun düğüm aralığıdır.
@@ -64,7 +55,7 @@ const tableElements = 8
 // ("Code generated ... DO NOT EDIT.") alınmaz; ayrıştırılamayan dosya atlanır ve adı skipped'e yazılır.
 func loadCorpus(root string) (co *dupCorpus, skipped []string, err error) {
 	co = &dupCorpus{kinds: map[string]uint32{}}
-	rels := walkFiles(root, dupSkipDirs, ".go")
+	rels := walkFiles(root, ".go")
 	fset := token.NewFileSet()
 	for _, rel := range rels {
 		src, rerr := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))

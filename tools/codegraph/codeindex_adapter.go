@@ -24,12 +24,12 @@ var trRoots = []string{"lib", "tools", "examples", "tests"}
 
 func trFileID(rel string) string { return "tr:file:" + rel }
 
-// extractTR lib/, tools/ ve examples/ altındaki .tr dosyalarını codeindex ile dizinler ve dizini
+// extractTR trRoots altındaki .tr dosyalarını codeindex ile dizinler ve dizini
 // grafiğe çevirir: işlev, yapı, metot, alan, sabit/değişken ve test düğümleri; çağrı, kullanım,
 // ad kodu, aktarma ve test kenarları. Ayrıştırılamayan dosya uyarı olur. Kimlikler (tr:func:...)
 // ajanların alışkanlığı bozulmasın diye korunur.
 func extractTR(root string, b *builder) {
-	idx, err := codeindex.Build(root, codeindex.Options{Dirs: trRoots, SkipDirs: skipDirs})
+	idx, err := codeindex.Build(root, codeindex.Options{Dirs: trRoots})
 	if err != nil {
 		b.warn("tr sources skipped: " + err.Error())
 		return

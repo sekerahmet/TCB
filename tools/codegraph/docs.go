@@ -1,43 +1,20 @@
 package main
 
 import (
-	"io/fs"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
 )
 
-// skipDirs Markdown ve kural taramasında girilmeyen klasörlerdir.
-var skipDirs = map[string]bool{
-	".git": true, ".claude": true, ".codegraph": true, "node_modules": true, "testdata": true,
-}
-
-// walkFiles root altında adı suffix ile biten dosyaların köke göre yollarını verir ('/' ile, sıralı); skip'teki
-// adlı klasörlere girilmez (kökün kendisi hariç). Markdown ve Go taraması aynı gezintiyi kullanır.
-func walkFiles(root string, skip map[string]bool, suffix string) []string {
-	var rels []string
-	_ = filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return nil
-		}
-		if d.IsDir() {
-			if p != root && skip[d.Name()] {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if strings.HasSuffix(d.Name(), suffix) {
-			r, _ := filepath.Rel(root, p)
-			rels = append(rels, filepath.ToSlash(r))
-		}
-		return nil
-	})
-	sort.Strings(rels)
-	return rels
+// walkFiles root altında adı suffix ile biten dosyaların köke göre yollarını verir ('/' ile, sıralı): depo araçlarının
+// tek listesi (codeindex.ListFiles: git'in gördüğü dosyalar, izlenmeyen yeni dosyalar dahil; tek atlama listesi).
+func walkFiles(root, suffix string) []string {
+	return codeindex.ListFiles(root, nil, codeindex.DefaultSkipDirs, true, func(rel string) bool { return strings.HasSuffix(rel, suffix) })
 }
 
 func docID(rel string) string           { return "doc:" + rel }
@@ -54,7 +31,7 @@ type docSet struct {
 // çalışır: bağlantılar Go dosya ve paket düğümlerine de gidebilir.
 func extractMarkdown(root string, b *builder, idx *goIndex) {
 	set := &docSet{docs: map[string]*mdDoc{}, slug: map[string]map[string]string{}}
-	rels := walkFiles(root, skipDirs, ".md")
+	rels := walkFiles(root, ".md")
 	for _, rel := range rels {
 		data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))
 		if err != nil {

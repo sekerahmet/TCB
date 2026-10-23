@@ -9,11 +9,9 @@ package specref
 
 import (
 	"bytes"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
@@ -25,44 +23,18 @@ type File struct {
 	Text string
 }
 
-// skipDirs taranmayan klasör adlarıdır.
-var skipDirs = map[string]bool{".git": true, ".claude": true, ".codegraph": true, "node_modules": true, "testdata": true, "vendor": true}
-
-// Collect kökteki .md, .go ve .tr dosyalarını okur: `.git` varsa yalnızca izlenenler (git ls-files; depo
-// kökündeki izlenmeyen dosyalar kullanıcınındır), yoksa klasör dolaşılır. testdata taranmaz.
+// Collect kökteki .md, .go ve .tr dosyalarını okur: yalnızca izlenenler (git varsa; depo kökündeki izlenmeyen dosyalar
+// kullanıcınındır ve renumber dosya yazar), codeindex.ListFiles'ın tek atlama listesiyle (testdata taranmaz).
 func Collect(root string) ([]File, error) {
-	rels, ok := codeindex.GitTracked(root)
-	if !ok {
-		rels = nil
-		err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
-			if err != nil {
-				return nil
-			}
-			if d.IsDir() {
-				if p != root && skipDirs[d.Name()] {
-					return filepath.SkipDir
-				}
-				return nil
-			}
-			r, _ := filepath.Rel(root, p)
-			rels = append(rels, filepath.ToSlash(r))
-			return nil
-		})
-		if err != nil {
-			return nil, err
+	rels := codeindex.ListFiles(root, nil, codeindex.DefaultSkipDirs, false, func(rel string) bool {
+		switch strings.ToLower(filepath.Ext(rel)) {
+		case ".md", ".go", ".tr":
+			return true
 		}
-	}
-	sort.Strings(rels)
+		return false
+	})
 	var out []File
 	for _, r := range rels {
-		switch strings.ToLower(filepath.Ext(r)) {
-		case ".md", ".go", ".tr":
-		default:
-			continue
-		}
-		if inSkipped(r) {
-			continue
-		}
 		data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(r)))
 		if err != nil || bytes.IndexByte(data, 0) >= 0 {
 			continue
@@ -70,16 +42,6 @@ func Collect(root string) ([]File, error) {
 		out = append(out, File{Path: r, Text: string(data)})
 	}
 	return out, nil
-}
-
-// inSkipped yolun taranmayan bir klasörde olup olmadığı.
-func inSkipped(rel string) bool {
-	for _, part := range strings.Split(rel, "/")[:strings.Count(rel, "/")] {
-		if skipDirs[part] {
-			return true
-		}
-	}
-	return false
 }
 
 // Item dil tanımının numaralı bir maddesidir.
