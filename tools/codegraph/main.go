@@ -73,6 +73,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return runBuild(args[1:], stdout, stderr)
 	case "query", "explain", "path", "who-uses", "tests-for", "history", "changed", "callees", "calls-into", "fields", "captures":
 		return runQuery(args[0], args[1:], stdout, stderr)
+	case "time-ceilings":
+		return runTimeCeilings(args[1:], stdout, stderr)
 	case "package-state":
 		return runPackageState(args[1:], stdout, stderr)
 	case "dead-methods":
