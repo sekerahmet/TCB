@@ -2,6 +2,7 @@ package gpu
 
 import (
 	"fmt"
+	"github.com/sekerahmet/TCB/internal/testkit"
 	"math"
 	"math/rand"
 	"strings"
@@ -141,7 +142,7 @@ func TestGemvRespectsIndexLimit(t *testing.T) {
 	for _, dt := range []tensor.DType{tensor.Float32, tensor.BFloat16, tensor.Float16} {
 		b := be.Alloc(4, dt)
 		bv := tensor.View{S: b, Shape: []int{K, N}, Strides: []int{N, 1}}
-		if err := panicError(func() { be.GemmSet(1, 1, N, K, av, false, bv, false, c) }); !messages.Has(err, messages.H4016) {
+		if err := testkit.PanicError(func() { be.GemmSet(1, 1, N, K, av, false, bv, false, c) }); !messages.Has(err, messages.H4016) {
 			t.Errorf("%s: H4016 bekleniyordu, %v", dt, err)
 		}
 		be.Release(b)

@@ -1,6 +1,7 @@
 package gpu
 
 import (
+	"github.com/sekerahmet/TCB/internal/testkit"
 	"strings"
 	"testing"
 	"unsafe"
@@ -75,7 +76,7 @@ func vecRun(t *testing.T, mode2 string) ([]float32, error) {
 	y := g.allocate(16, tensor.Float32, true)
 	c := g.takeKernel("vek:"+mode2, vecKernel(mode2))
 	g.launch(c, [3]uint32{1, 1, 1}, [3]uint32{4, 1, 1}, g.param().read(x, 0).write(y, 0))
-	err := panicError(g.equalize)
+	err := testkit.PanicError(g.equalize)
 	if err != nil {
 		return nil, err
 	}

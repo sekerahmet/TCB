@@ -12,6 +12,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -266,5 +267,21 @@ func GoStringLiterals(path string, fn func(value string, line int)) error {
 		}
 		return true
 	})
+	return nil
+}
+
+// PanicError fn'in verdiği paniği hata olarak verir (panik yoksa nil); hata olmayan değer metne
+// çevrilir (üretimdeki paniklerin hepsi error'dur).
+func PanicError(fn func()) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if e, ok := r.(error); ok {
+				err = e
+				return
+			}
+			err = fmt.Errorf("%v", r)
+		}
+	}()
+	fn()
 	return nil
 }

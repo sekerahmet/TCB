@@ -1,6 +1,7 @@
 package testkit
 
 import (
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -148,5 +149,19 @@ func TestGoStringLiteralsSkipsTagsAndImports(t *testing.T) {
 	}
 	if want := []string{"9:merhaba", "10:ham"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+// Kural: PanicError hata paniğini olduğu gibi, başka değeri metne çevirerek verir; panik yoksa nil.
+func TestPanicError(t *testing.T) {
+	sentinel := errors.New("hata")
+	if err := PanicError(func() { panic(sentinel) }); err != sentinel {
+		t.Errorf("error paniği: %v", err)
+	}
+	if err := PanicError(func() { panic(42) }); err == nil || err.Error() != "42" {
+		t.Errorf("error olmayan panik: %v", err)
+	}
+	if err := PanicError(func() {}); err != nil {
+		t.Errorf("panik yok: %v", err)
 	}
 }

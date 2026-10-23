@@ -2,6 +2,7 @@ package gpu
 
 import (
 	"fmt"
+	"github.com/sekerahmet/TCB/internal/testkit"
 	"math/rand"
 	"testing"
 
@@ -113,14 +114,14 @@ func attnRealSizes(t *testing.T) {
 // puan matrisini de denetler.
 func TestAttentionLongContextLimit(t *testing.T) {
 	long := tensor.AttentionParams{Batch: 16, H: 16, Hkv: 16, Tq: 4096, Tk: 4096, Dh: 64, Dv: 64}
-	if err := panicError(func() { checkAttnSize(long, true) }); err != nil {
+	if err := testkit.PanicError(func() { checkAttnSize(long, true) }); err != nil {
 		t.Fatalf("birleşik yol uzun bağlamı reddetti: %v", err)
 	}
-	if err := panicError(func() { checkAttnSize(long, false) }); !messages.Has(err, messages.H4016) {
+	if err := testkit.PanicError(func() { checkAttnSize(long, false) }); !messages.Has(err, messages.H4016) {
 		t.Fatalf("matris yolu puan matrisi sınırını denetlemedi: %v", err)
 	}
 	tooLarge := tensor.AttentionParams{Batch: 64, H: 32, Hkv: 8, Tq: 16384, Tk: 16384, Dh: 128, Dv: 128}
-	if err := panicError(func() { checkAttnSize(tooLarge, true) }); !messages.Has(err, messages.H4016) {
+	if err := testkit.PanicError(func() { checkAttnSize(tooLarge, true) }); !messages.Has(err, messages.H4016) {
 		t.Fatalf("q dizin sınırı denetlenmedi: %v", err)
 	}
 	// Benzetimde küçük bir uzun bağlam: birden çok sorgu ve anahtar döşemesi, nedensel.
