@@ -142,3 +142,76 @@ func TestTestsForShowsTheRuleLineOfEachGoTest(t *testing.T) {
 		t.Errorf("only the first comment line, and none for a test without a comment:\n%s", got)
 	}
 }
+
+var embedFiles = map[string]string{
+	"internal/lang/codes/tr.json": "{\n  \"A001\": { \"ad\": \"eger\", \"aile\": \"keyword\" }\n}\n",
+	"internal/lang/codes/codes.go": `package codes
+
+import _ "embed"
+
+//go:embed tr.json
+var trJSON []byte
+
+var all = parse(trJSON)
+
+func parse(b []byte) []string { return []string{string(b)} }
+
+// All bütün girdileri verir.
+func All() []string { return all }
+
+// Name tek bir girdiyi verir.
+func Name(i int) string { return all[i] }
+`,
+	"app/cover_test.go": `package app
+
+import (
+	"testing"
+
+	"example.com/audit/internal/lang/codes"
+)
+
+// Kural: her girdi gezilir.
+func TestWalksEveryEntry(t *testing.T) {
+	for _, e := range codes.All() {
+		_ = e
+	}
+}
+
+// Kural: tek girdiye bakar.
+func TestLooksOneUp(t *testing.T) { _ = codes.Name(0) }
+`,
+}
+
+// Kural: gömülen veri dosyası düğümdür; gömen değişkenden `embeds`, dosyayı kullanan test(ler)den `tests` gelir;
+// dosyadaki bütün girdileri gezen test (range) ayrıca `walks` alır, tek girdiye bakan almaz. Ad ve ileti kodları
+// tanımlandıkları dosyadan `contains` alır; `tests-for <kod>` kodun dosyasını gezen testi kural satırıyla gösterir.
+func TestEmbeddedDataFilesLinkToTheTestsThatWalkThem(t *testing.T) {
+	root := auditModule(t, embedFiles)
+	g, err := buildGraph(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const file = "file:internal/lang/codes/tr.json"
+	const app = "go:func:example.com/audit/app."
+	mustEdge(t, g, "go:var:example.com/audit/internal/lang/codes.trJSON", file, edgeEmbeds, inferred)
+	mustEdge(t, g, app+"TestWalksEveryEntry", file, edgeTests, inferred)
+	mustEdge(t, g, app+"TestLooksOneUp", file, edgeTests, inferred)
+	mustEdge(t, g, app+"TestWalksEveryEntry", file, edgeWalks, inferred)
+	if edge(g, app+"TestLooksOneUp", file, edgeWalks) != nil {
+		t.Error("a test that looks one entry up does not walk the list")
+	}
+	mustEdge(t, g, file, "name:A001", edgeContains, extracted)
+	var out, errb strings.Builder
+	if code := run([]string{"build", "--root", root}, &out, &errb); code != exitOK {
+		t.Fatalf("build: %d %s", code, errb.String())
+	}
+	out.Reset()
+	if code := run([]string{"tests-for", "A001", "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
+		t.Fatalf("tests-for: %d %s", code, errb.String())
+	}
+	walks, _, _ := strings.Cut(out.String(), "<- tests (")
+	if !strings.Contains(walks, "tests that walk the whole list (1") || !strings.Contains(walks, "TestWalksEveryEntry") ||
+		!strings.Contains(walks, "Kural: her girdi gezilir.") || strings.Contains(walks, "TestLooksOneUp") {
+		t.Errorf("tests-for A001 must list only the walking test, with its rule line first:\n%s", out.String())
+	}
+}

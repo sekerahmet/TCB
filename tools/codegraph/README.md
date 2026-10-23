@@ -81,6 +81,9 @@ computed when you ask, not stored in `graph.json`.
 | `calls` | func → func; a call resolved by `go/types` | EXTRACTED; a function used as a value: INFERRED |
 | `implements` | type → interface of the module, by `types.Implements` | EXTRACTED |
 | `uses` | owner → package-level `type`, `const` or `var` it refers to, wherever the name is written: signatures (parameter, result, receiver), field types, embedded types, interface method signatures, type constraints, composite literals, initialisers. The owner is the function or method; for a type declaration the type; for a package-level `const`/`var` the declared name (`var ValInt = TypeName(codes.A200)`: ValInt), for an unnamed spec (`var _ T = ...`) the file | EXTRACTED |
+| `embeds` | `//go:embed` variable → the data file(s) its patterns name (relative to the package folder) | INFERRED |
+| `reads_file` | function (non-test) → repository file named by a string constant it passes to `reporoot.Path`/`filepath.Join`/`Glob` | INFERRED |
+| `walks` | test → data file whose whole list it walks: the test (or a test helper) has a `range` over a function or variable that returns a collection and depends on the file inside the package that embeds it (`for _, k := range codes.Codes()`) | INFERRED |
 | `denotes` | Go constant `messages.H2100` / `codes.K003` → the message / name code node `H2100` / `K003` it stands for | EXTRACTED |
 | `tests` | test → its package; test → function it calls (directly or through helpers in test files); test → function its name says (`TestParse`, `TestVM_Run`) | EXTRACTED / EXTRACTED / INFERRED Also test → repository file (a `.tr` file, a doc) when the test, or a helper it calls within 3 steps, writes the path as a string constant: `reporoot.Path("tools/gpu/gpt_training.tr")`, `reporoot.Path("lib", "*.tr")` or a `filepath.Glob` pattern; a bare wildcard literal is test data and does not count, nor does a bare file name (no `/`); INFERRED, so `tests-for lib/egitim.tr` lists the Go tests that guard it. `tests-for` writes under each Go test the first line of the rule it guards (the test's doc comment, else the first `//` block after the imports), read from the file at query time. `tr dizin` stays TR-only (it parses `.tr`, not Go); the Go-to-`.tr` link lives here. |
 | `uses_message` | func → `msg:Hnnnn`, from the `messages.Hnnnn` constant | EXTRACTED |
@@ -353,6 +356,30 @@ change together; suffixes are re-fitted to the new number; a range whose targets
 consecutive is split (`15.31–15.38` → `15.11–15.15, 15.20–15.22`); text that is not a recognised
 reference (`15.0` as a version) is never touched. Collisions and unknown old numbers are refused
 before anything is written; `--apply` refuses a plan that no longer matches the files.
+
+## Data files and `tests-for` (`embeds`, `reads_file`, `walks`)
+
+A data file (`tr.json`, `en.json`, `messages/*.json`, `definitions.json`, anything `//go:embed`ded) is a graph
+node, so `tests-for internal/lang/codes/tr.json` is no longer "not found". Three things tie it to tests:
+
+- **Where the file is read**: the `//go:embed` variable (`embeds`) and any non-test function that passes the
+  file's path to `reporoot.Path`, `filepath.Join` or `Glob` (`reads_file`). Tests that call the loader, or a
+  function that uses the embedded variable, are `tests` edges, followed up the call/use chain with two limits:
+  at most one package boundary and eight steps. Steps alone were not a usable limit: from a loader to a function
+  every package calls, hundreds of tests would "guard" the file.
+- **Whole-list walkers** (`walks`): a test whose own `range` goes over a collection produced by the file's
+  package (`for _, k := range codes.Codes()`) covers every entry; a test that asks for one entry (`codes.Name(k)`)
+  does not. `tests-for` prints these first (with their rule line), the other tests after. This is what separates
+  the 18 tests that guard every name of `tr.json` from the 200 that merely use a name.
+- **Codes inherit their file**: each name or message code is `contains`-ed by every language file that defines it
+  (`tr.json`, `en.json`, `definitions.json`), so `tests-for T720` or `tests-for H4009` lists the walkers of those
+  files: the question "which tests look at this new built-in" has an answer before the first edit.
+
+`data_coverage_test.go` keeps the answer from going empty: every tracked `.json`, `.tr` and `.md` file (not
+`testdata`) is tied to a test (a `tests`/`walks` edge, or for a README one of its rules has a `Denetim:` test) or
+is listed with a reason in `testdata/uncovered_data.txt` (a data file, not a Go string: a path-looking string in
+test code would itself count as the file being tested). A stale exception also fails. Where a path is built from
+a variable (`reporoot.Path("examples", lang, "*.tr")`) the variable part becomes `*`.
 
 ## Why this design (comparison)
 

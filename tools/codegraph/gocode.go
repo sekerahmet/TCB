@@ -19,7 +19,8 @@ type goIndex struct {
 	tests      []*testFunc                  // TestX/BenchmarkX/FuzzX/ExampleX işlevleri
 	byName     map[string][]*testFunc
 	dirFiles   map[string]bool // dosya düğümü olan göreli yollar
-	pathRefs   []pathRef       // test dosyalarındaki yol sabitleri (test_paths.go)
+	pathRefs   []pathRef       // dosya yolu sabitleri ve gömme yönergeleri (test_paths.go)
+	ranges     []rangeRef      // koleksiyon döndüren işlev/değişken üzerinde dönen range deyimleri (walks.go)
 }
 
 // testFunc bir test işlevidir.
@@ -209,6 +210,7 @@ func (x *goExtractor) genDecl(fc *fileCtx, d *ast.GenDecl) {
 		if d.Tok == token.CONST || d.Tok == token.VAR {
 			x.valueDecl(fc, d)
 		}
+		x.embedRefs(fc, d)
 		x.scanValueSpecs(fc, d)
 		return
 	}
