@@ -4,7 +4,7 @@
 // sonucu verdiğini göstermek; sabit önbellekte gizli_durum + tek_adım + tekrar_oynat.
 // Önceki örnekten: hazır model ve üretim (46), kaydedip oynatmak (45), seçme ve sıralama (25).
 // Çalıştırma (proje kökünden): tr examples/tr/47_kendi_uretim_dongusu.tr
-// Ayrıntılar: docs/guide/10_hazir_katmanlarla_gpt.md, docs/spec/15_tensorler.md §15.48–15.49, lib/README.md (Üretim).
+// Ayrıntılar: docs/guide/10_hazir_katmanlarla_gpt.md, docs/spec/15_tensorler.md §15.45, §15.8, lib/README.md (Üretim).
 // Model: 46'daki rastgele ağırlıklı küçük model (tests/data/hf_tiny); yazdırılan şey parça kimlikleridir.
 
 aktar "tr/hazir"

@@ -297,7 +297,7 @@ func TestCrossEntropyForward(t *testing.T) {
 	expectPanic(t, "hedef aralığı", func() { CrossEntropy(l, []int{1, 3}) })
 }
 
-// Normun çıktı türü (RMSNormAs, LayerNormAs; 15.13): hesap float32'dir; çıktı float32 normun o
+// Normun çıktı türü (RMSNormAs, LayerNormAs; 15.4): hesap float32'dir; çıktı float32 normun o
 // türe dönüşümüyle bit düzeyinde aynıdır, girdinin gradyanı da dönüşüm yolununkiyle aynıdır:
 // iki tüketicinin gradyanı float32'de toplanır (dönüşümün gradyanı gibi; node.wideGrad).
 func TestNormOutputDType(t *testing.T) {

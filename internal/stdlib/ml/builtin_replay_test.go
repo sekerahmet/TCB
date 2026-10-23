@@ -37,7 +37,7 @@ fonksiyon sür(f, ön) {
 }
 `
 
-// Kural (dil tanımı 15.48): tekrar_oynat'ın sonucu (ısınma, kayıt ve oynatma çağrıları)
+// Kural (dil tanımı 15.45): tekrar_oynat'ın sonucu (ısınma, kayıt ve oynatma çağrıları)
 // doğrudan çağrıyla aynıdır; kayıtta tensörle verilen konum ve indeks her oynatmada
 // cihazdan okunur. CPU'da f doğrudan çağrılır.
 func TestReplayMatchesDirectCalls(t *testing.T) {

@@ -36,7 +36,7 @@ func toTensor(fn string, v interp.Value) (*tensor.Tensor, error) {
 
 // toTensorOn toTensor gibidir; ancak sayı ve listeden oluşan tensör, işlemin
 // diğer tarafı olan tensörün cihazında kurulur (ör. GPU'daki t için t + [1, 2]). Tensör
-// verilirse kendisi döner; cihazı farklıysa işlem açık hata verir (15.29).
+// verilirse kendisi döner; cihazı farklıysa işlem açık hata verir (15.40).
 func toTensorOn(fn string, v interp.Value, otherVal *tensor.Tensor) (*tensor.Tensor, error) {
 	if x, ok := interp.ToFloat(v); ok {
 		// Sayı cihazda doldurulur (konaktan yüklenmez; tekrar_oynat kaydında da çalışır).

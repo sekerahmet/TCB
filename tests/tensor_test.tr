@@ -46,7 +46,7 @@ test "15.2 özellikler ve görünüm metotları" {
     doğrula(hata_metni(() => a.cihaza("gpu:9")).içerir("gpu:9 cihazı kullanılamıyor"))
 }
 
-test "15.3 işleçler ve yayınlama" {
+test "15.6 işleçler ve yayınlama" {
     değişken a = tensör([[1, 2, 3], [4, 5, 6]])
     değişken b = tensör([[1, 0], [0, 1], [1, 1]])
     eşit_mi([[4.0, 5.0], [10.0, 11.0]], (a @ b).değer)
@@ -72,7 +72,7 @@ test "15.3 işleçler ve yayınlama" {
     eşit_mi([5.0, 2.0], w.değer)
 }
 
-test "15.3 bitişik olmayan tensörde t[i], döngü öğesi ve şekillendir görünümdür" {
+test "15.6 bitişik olmayan tensörde t[i], döngü öğesi ve şekillendir görünümdür" {
     değişken t = tensör([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
     değişken d = t.devrik()
     d[0] = 9                                  // d'nin 0. satırı t'nin 0. sütunudur
@@ -88,7 +88,7 @@ test "15.3 bitişik olmayan tensörde t[i], döngü öğesi ve şekillendir gör
     eşit_mi([[1.0, 7.0], [100.0, 4.0]], u.değer)
 }
 
-test "15.42 gelu: varsayılan tanh yaklaşımı, yaklaşık: yanlış tam (erf) biçimi" {
+test "15.17 gelu: varsayılan tanh yaklaşımı, yaklaşık: yanlış tam (erf) biçimi" {
     // Tam GELU: x · Φ(x); gelu(1) = 0.8413447, tanh yaklaşımı 0.8411920.
     eşit_mi(0.841192, yuvarla(gelu(1.0), 6))
     eşit_mi(0.841192, yuvarla(gelu(1.0, yaklaşık: doğru), 6))
@@ -110,7 +110,7 @@ test "15.42 gelu: varsayılan tanh yaklaşımı, yaklaşık: yanlış tam (erf) 
     doğrula(hata_metni(() => gelu(t, yaklasik: yanlış)).içerir("yaklaşık"))
 }
 
-// 15.44: bırakma görünmezdir; ara sonuçlar, yereller ve kaydedilenler bırakılsa da dönen,
+// 15.43: bırakma görünmezdir; ara sonuçlar, yereller ve kaydedilenler bırakılsa da dönen,
 // görünümü alınan, kaçan ve geri yayılımın okuyacağı değerler doğru kalır.
 yapı ÖnbellekSınaması {
     t
@@ -128,7 +128,7 @@ fonksiyon kapanış15_44() {
     değişken gizli = tensör([5.0, 6.0])
     sonuç () => toplam(gizli).değer
 }
-test "15.44 tensör belleğinin ömrü: bırakılan ara sonuçlar sonucu değiştirmez" {
+test "15.43 tensör belleğinin ömrü: bırakılan ara sonuçlar sonucu değiştirmez" {
     değişken x = tensör([[1.0, 2.0, 3.0, 4.0]], türev_izle: doğru)
     değişken y = döndür15_44(x)
     eşit_mi([[-1.0, 0.0, 7.0, 10.0]], y.değer)
@@ -144,7 +144,7 @@ test "15.44 tensör belleğinin ömrü: bırakılan ara sonuçlar sonucu değiş
     eşit_mi([3.0], l[1].değer)
 }
 
-test "15.45 kaynaştır: zincir tek geçişte, sonuç ve gradyan kaynaşmamışla aynı" {
+test "15.44 kaynaştır: zincir tek geçişte, sonuç ve gradyan kaynaşmamışla aynı" {
     fonksiyon döner(x, kos, sin, ölçek) {
         değişken a, b = x.böl(2, eksen: -1)
         sonuç bitiştir([a * kos - b * sin, (a * sin + b * kos) * ölçek], eksen: -1)
@@ -178,7 +178,7 @@ test "15.45 kaynaştır: zincir tek geçişte, sonuç ve gradyan kaynaşmamışl
     doğrula(hata_metni(() => kaynaştır(3)).içerir("fonksiyon"))
 }
 
-test "15.43 doğrusal_çapraz_entropi: çapraz_entropi(girdi @ ağırlık) ile aynı kayıp ve gradyanlar" {
+test "15.25 doğrusal_çapraz_entropi: çapraz_entropi(girdi @ ağırlık) ile aynı kayıp ve gradyanlar" {
     değişken x = tensör(rastgele_normal([6, 4], tohum: 1), türev_izle: doğru)
     değişken w = tensör(rastgele_normal([4, 5], tohum: 2), türev_izle: doğru)
     değişken hedef = [0, 4, -1, 2, 2, 1]
@@ -205,7 +205,7 @@ test "15.43 doğrusal_çapraz_entropi: çapraz_entropi(girdi @ ağırlık) ile a
     doğrula(hata_metni(() => doğrusal_çapraz_entropi(x, w, [0, 9, 0, 0, 0, 0])).içerir("9"))
 }
 
-test "15.4 matematik fonksiyonları ve indirgemeler" {
+test "15.9 matematik fonksiyonları ve indirgemeler" {
     değişken a = tensör([[1, 2, 3], [4, 5, 6]])
     eşit_mi([[0.0, 0.0, 0.0], [1.0, 2.0, 3.0]], relu(a - 3).değer)
     eşit_mi([2.0, 3.0], karekök(tensör([4, 9])).değer)
@@ -242,7 +242,7 @@ test "15.4 matematik fonksiyonları ve indirgemeler" {
     eşit_mi(e[0], e[8])
 }
 
-test "15.4 sayı olmayan değer (NaN) yayılır; türevli ve türevsiz yol aynı" {
+test "15.9 sayı olmayan değer (NaN) yayılır; türevli ve türevsiz yol aynı" {
     değişken nan_mı = (x) => x != x
     değişken y = tensör([1.0, 0.0, 3.0]) / tensör([1.0, 0.0, 1.0])     // [1, NaN, 3]
     değişken yg = tensör(y, türev_izle: doğru)
@@ -257,7 +257,7 @@ test "15.4 sayı olmayan değer (NaN) yayılır; türevli ve türevsiz yol aynı
     doğrula(r[0] == 1.0 ve nan_mı(r[1]) ve r[2] == 3.0)
 }
 
-test "15.4 tamamen maskeli softmax satırı 0, log_softmax -sonsuz; gradyanı 0" {
+test "15.9 tamamen maskeli softmax satırı 0, log_softmax -sonsuz; gradyanı 0" {
     değişken m = log(tensör([[0.0, 0.0, 0.0], [1.0, 0.0, 1.0]]))        // satır 0: hepsi -sonsuz
     eşit_mi([[0.0, 0.0, 0.0], [0.5, 0.0, 0.5]], softmax(m).değer)
     eşit_mi([0.0, 0.0, 0.0], softmax(m.devrik(), eksen: 0).devrik().değer[0])
@@ -270,7 +270,7 @@ test "15.4 tamamen maskeli softmax satırı 0, log_softmax -sonsuz; gradyanı 0"
     eşit_mi([0.0, 0.0, 0.0], x.gradyan.değer[0])
 }
 
-test "15.5 tanımsız sonuçlar hata verir: boş ortalama, hedefsiz çapraz entropi" {
+test "15.23 tanımsız sonuçlar hata verir: boş ortalama, hedefsiz çapraz entropi" {
     doğrula(hata_metni(() => ortalama(tensör([]))).içerir("boş tensörün ortalaması tanımsız"))
     doğrula(hata_metni(() => ortalama(sıfırlar([2, 0]), eksen: 1)).içerir("ortalaması tanımsız"))
     eşit_mi(0.0, toplam(tensör([])).değer)
@@ -283,7 +283,7 @@ test "15.5 tanımsız sonuçlar hata verir: boş ortalama, hedefsiz çapraz entr
     doğrula(hata_metni(() => gömme(sıfırlar([3, 2]), [1.5])).içerir("tam sayı olmalıdır"))
 }
 
-test "15.5 sinir ağı fonksiyonları" {
+test "15.23 sinir ağı fonksiyonları" {
     değişken tablo = tensör([[1, 1], [2, 2], [3, 3]])
     eşit_mi([[3.0, 3.0], [1.0, 1.0]], gömme(tablo, [2, 0]).değer)
     eşit_mi([2, 2, 2], gömme(tablo, [[0, 1], [2, 2]]).şekil)
@@ -294,7 +294,7 @@ test "15.5 sinir ağı fonksiyonları" {
     eşit_mi([0.8485, 1.1314], r.değer[0].haritala((x) => yuvarla(x, 4)))
 }
 
-test "15.6 geri yayılım, gradyan ve türevsiz" {
+test "15.27 geri yayılım, gradyan ve türevsiz" {
     değişken w = tensör([[0.5], [-0.5]], türev_izle: doğru)
     değişken x = tensör([[1, 2], [3, 4]])
     değişken y = x @ w
@@ -317,7 +317,7 @@ test "15.6 geri yayılım, gradyan ve türevsiz" {
     doğrula(hata_metni(() => ara.gradyan).içerir("bir işlemin sonucu"))
 }
 
-test "15.6 türevsiz(x) veriyi paylaşan görünümdür, tensör(x) bağımsız kopyadır" {
+test "15.27 türevsiz(x) veriyi paylaşan görünümdür, tensör(x) bağımsız kopyadır" {
     değişken x = tensör([1.0, 2.0])
     değişken g = türevsiz(x)
     değişken k = tensör(x)
@@ -326,7 +326,7 @@ test "15.6 türevsiz(x) veriyi paylaşan görünümdür, tensör(x) bağımsız 
     eşit_mi([1.0, 2.0], k.değer)
 }
 
-test "15.6 türevsiz göreve bağlıdır; eşzamanlı görevlere sızmaz" {
+test "15.27 türevsiz göreve bağlıdır; eşzamanlı görevlere sızmaz" {
     değişken w = tensör([1.0, 2.0], türev_izle: doğru)
     değişken izli = (t) => hata_metni(() => geri_yayılım(toplam(t))) == ""
     değişken d = {"başladı": yanlış, "devam": yanlış}
@@ -355,7 +355,7 @@ test "15.6 türevsiz göreve bağlıdır; eşzamanlı görevlere sızmaz" {
     eşit_mi([1.0, 2.0], w.değer)
 }
 
-test "15.6 .gradyan canlı takma addır; değişince onu kullanan hesap hata verir" {
+test "15.27 .gradyan canlı takma addır; değişince onu kullanan hesap hata verir" {
     değişken x = tensör([1.0, 2.0], türev_izle: doğru)
     değişken w = tensör([1.0, 1.0], türev_izle: doğru)
     geri_yayılım(toplam(x * 3))
@@ -380,7 +380,7 @@ test "15.6 .gradyan canlı takma addır; değişince onu kullanan hesap hata ver
     eşit_mi([3.0, 3.0], w.gradyan.değer)
 }
 
-test "15.7 AdamW ve SGD'nin tipi İyileştirici'dir" {
+test "15.34 AdamW ve SGD'nin tipi İyileştirici'dir" {
     değişken w = tensör([1.0], türev_izle: doğru)
     eşit_mi(İyileştirici, tip(AdamW([w])))
     eşit_mi(İyileştirici, tip(SGD([w], öğrenme_oranı: 0.1)))
@@ -388,7 +388,7 @@ test "15.7 AdamW ve SGD'nin tipi İyileştirici'dir" {
     doğrula(metin(SGD([w])).başlar("SGD("))
 }
 
-test "15.7 kendi iyileştiricisi: parametre türevsiz blokta indeksle atamayla yerinde güncellenir" {
+test "15.34 kendi iyileştiricisi: parametre türevsiz blokta indeksle atamayla yerinde güncellenir" {
     // TR'de yazılan bir iyileştiricinin (ör. tr/iyilestirici'deki Muon) tek yapı taşı:
     // gradyanla hesaplanan yeni değer parametrenin kendisine, kopyasız yazılır.
     değişken w = tensör([[1.0, 2.0], [3.0, 4.0]], türev_izle: doğru)
@@ -412,7 +412,7 @@ test "15.7 kendi iyileştiricisi: parametre türevsiz blokta indeksle atamayla y
     doğrula(mesaj.içerir("türev izlenen tensöre indeksle atama yapılamaz"), mesaj)
 }
 
-test "15.7 iyileştiriciler: küçük doğrusal regresyon" {
+test "15.34 iyileştiriciler: küçük doğrusal regresyon" {
     // y = 2·x1 - 3·x2 + 0.5
     değişken X = tensör([[0, 0], [1, 0], [0, 1], [1, 1], [2, 1], [1, 2]])
     değişken Y = tensör([[0.5], [2.5], [-2.5], [-0.5], [1.5], [-3.5]])
@@ -444,7 +444,7 @@ test "15.7 iyileştiriciler: küçük doğrusal regresyon" {
     doğrula(hata_metni(() => AdamW([p], öğrenme_oranı: 1e300)).içerir("sonlu bir sayı olmalıdır"))
 }
 
-test "15.39 öğrenme_oranı okunur ve atanabilir; yeni oran sonraki adımda kullanılır" {
+test "15.35 öğrenme_oranı okunur ve atanabilir; yeni oran sonraki adımda kullanılır" {
     değişken w = tensör([1.0], türev_izle: doğru)
     eşit_mi(0.001, AdamW([w]).öğrenme_oranı)
     eşit_mi(0.01, SGD([w]).öğrenme_oranı)
@@ -498,7 +498,7 @@ test "15.39 öğrenme_oranı okunur ve atanabilir; yeni oran sonraki adımda kul
     doğrula(hata_metni(() => { op.durum = {} }).içerir("atama yapılamaz"))
 }
 
-test "15.9 maks_indeks ve gradyan_kırp" {
+test "15.19 maks_indeks ve gradyan_kırp" {
     değişken x = tensör([[1, 9, 3], [7, 2, 7]])
     eşit_mi([1, 0], maks_indeks(x).değer)
     eşit_mi([1, 0, 1], maks_indeks(x, eksen: 0).değer)
@@ -516,7 +516,7 @@ test "15.9 maks_indeks ve gradyan_kırp" {
     eşit_mi([0.6, 0.8], w.gradyan.değer)
 }
 
-test "15.10 tensör_kaydet ve tensör_yükle hataları" {
+test "15.46 tensör_kaydet ve tensör_yükle hataları" {
     // Gidiş-dönüş Go testlerinde (geçici klasörde) denetlenir; burada dosya oluşturmayan hatalar.
     doğrula(hata_metni(() => tensör_yükle("bu_dosya_yok_12345.trt")).içerir("yüklenemedi: böyle bir dosya ya da klasör yok"))
     doğrula(hata_metni(() => tensör_yükle(".")).içerir("bir klasör, tensör dosyası değil"))
@@ -524,7 +524,7 @@ test "15.10 tensör_kaydet ve tensör_yükle hataları" {
     doğrula(hata_metni(() => tensör_kaydet("x.trt", {"a": 1})).içerir("değeri bir tensör olmalıdır"))
 }
 
-test "15.10 tensör dosyası sürüm 2 türü korur; eski sürüm 1 dosyaları reddedilir" {
+test "15.46 tensör dosyası sürüm 2 türü korur; eski sürüm 1 dosyaları reddedilir" {
     // Fikstürler tests/data altındadır; yazma gidiş-dönüşü Go testlerinde denetlenir.
     // tensor_version2.trt: bf16, fp16 ve float32 girdili sürüm 2 dosyası.
     değişken y = tensör_yükle("data/tensor_version2.trt")
@@ -538,7 +538,7 @@ test "15.10 tensör dosyası sürüm 2 türü korur; eski sürüm 1 dosyaları r
     doğrula(h.içerir("dosya biçimi sürümü 1; bu TR sürümü yalnızca sürüm 2 okur"), h)
 }
 
-test "15.10 tensör dosyası eleman sınırını sıfır uzunluklu eksenlerle aşamaz" {
+test "15.46 tensör dosyası eleman sınırını sıfır uzunluklu eksenlerle aşamaz" {
     // tensor_zero_axis.trt (74 bayt): [2, 0] ve [1048576, 0, 8192] şekilli, verisiz iki
     // tensör. Sıfır eksen 1 sayılınca ikincisi 8,6 milyar eleman eder; kabul edilseydi
     // [4, 2] @ W1 @ W2 gibi bir ileri geçiş belleği tüketip süreci çökertirdi.
@@ -548,7 +548,7 @@ test "15.10 tensör dosyası eleman sınırını sıfır uzunluklu eksenlerle a�
     eşit_mi([0, 3], sıfırlar([0, 3]).şekil)
 }
 
-test "15.11 tensör üzerinde döngü ve liste üreteci" {
+test "15.5 tensör üzerinde döngü ve liste üreteci" {
     değişken t = tensör([[1, 2], [3, 4], [5, 6]])
     değişken satırlar = []
     döngü s içinde t {
@@ -576,7 +576,7 @@ test "15.11 tensör üzerinde döngü ve liste üreteci" {
     doğrula(hata_metni(() => [x döngü x içinde tensör(3.0)]).içerir("0 boyutlu) tensör üzerinde döngü kurulamaz"))
 }
 
-test "15.8 hatalar şekli gösterir ve yakalanabilir" {
+test "15.48 hatalar şekli gösterir ve yakalanabilir" {
     doğrula(hata_metni(() => sıfırlar([32, 1024]) @ sıfırlar([512, 10])).içerir("[32, 1024] ile [512, 10] matris çarpımı yapılamaz; 1024 ≠ 512"))
     doğrula(hata_metni(() => sıfırlar([2, 3]) + sıfırlar([4])).içerir("[2, 3] ile [4] şekilleri toplama için yayınlanamaz"))
     doğrula(hata_metni(() => toplam(sıfırlar([2, 3]), eksen: 2)).içerir("eksen 2, [2, 3] şeklindeki 2 boyutlu tensör için geçersiz"))
@@ -587,7 +587,7 @@ test "15.8 hatalar şekli gösterir ve yakalanabilir" {
     doğrula(hata_metni(() => AdamW([tensör(3.0)])).içerir("1. parametre ([]) türev izlemiyor"))
 }
 
-test "15.12 veri türleri: tür seçimi, .tür ve .türe" {
+test "15.3 veri türleri: tür seçimi, .tür ve .türe" {
     değişken a = tensör([[1.001, 2.0], [3.0, 4.0]], tür: "bf16")
     eşit_mi("bf16", a.tür)
     eşit_mi("float32", tensör([1.0]).tür)
@@ -619,7 +619,7 @@ test "15.12 veri türleri: tür seçimi, .tür ve .türe" {
     doğrula(!metin(tensör([1.0])).içerir("float32"))
 }
 
-test "15.12 bilinmeyen tür yol gösteren bir hata verir" {
+test "15.3 bilinmeyen tür yol gösteren bir hata verir" {
     doğrula(hata_metni(() => tensör([1], tür: "bfloat16")).içerir("bilinmeyen veri türü \"bfloat16\"; geçerli türler: \"float32\", \"bf16\", \"fp16\". Bunu mu demek istediniz: \"bf16\"?"))
     doğrula(hata_metni(() => sıfırlar([2], tür: "float16")).içerir("Bunu mu demek istediniz: \"fp16\"?"))
     doğrula(hata_metni(() => tensör([1.0]).türe("float64")).içerir("Bunu mu demek istediniz: \"float32\"?"))
@@ -665,7 +665,7 @@ fonksiyon küçük_eğitim_başlangıç() {
     sonuç ortalama((gelu(x @ w1) @ w2 - hedef) ** 2).değer
 }
 
-test "15.13 karışık_hassasiyet: blok değeri, iç içe bloklar, eğitim" {
+test "15.4 karışık_hassasiyet: blok değeri, iç içe bloklar, eğitim" {
     değişken x = tensör([[1.001]])
     değişken y = tensör([[1.0]])
     eşit_mi([[1.001]], (x @ y).değer)
@@ -707,7 +707,7 @@ test "15.13 karışık_hassasiyet: blok değeri, iç içe bloklar, eğitim" {
     doğrula(mutlak(kbf - k32) <= 0.1 * k32 + 0.01, "float32 kaybı {k32}, bf16 kaybı {kbf}")
 }
 
-test "15.13 normun çıktı türü (tür:) ve hesap_türü()" {
+test "15.4 normun çıktı türü (tür:) ve hesap_türü()" {
     eşit_mi("float32", hesap_türü())
     eşit_mi(["bf16", "fp16", "float32"], [karışık_hassasiyet("bf16") { hesap_türü() }, karışık_hassasiyet("fp16") { hesap_türü() },
         karışık_hassasiyet("bf16") { karışık_hassasiyet("float32") { hesap_türü() } }])
@@ -729,7 +729,7 @@ test "15.13 normun çıktı türü (tür:) ve hesap_türü()" {
     dene { rms_normu(x, tür: "int3") } yakala h { doğrula(h.içerir("int3")) }
 }
 
-test "15.13 karışık_hassasiyet göreve bağlıdır; eşzamanlı görevlere sızmaz" {
+test "15.4 karışık_hassasiyet göreve bağlıdır; eşzamanlı görevlere sızmaz" {
     değişken x = tensör([[1.001]])
     değişken y = tensör([[1.0]])
     değişken görev = []
@@ -763,7 +763,7 @@ test "15.13 karışık_hassasiyet göreve bağlıdır; eşzamanlı görevlere s�
     eşit_mi([1.0, 1.0], görev)
 }
 
-test "15.7 iyileştirici ana_kopya: 16 bitlik parametrelerde küçük adımlar kaybolmaz" {
+test "15.34 iyileştirici ana_kopya: 16 bitlik parametrelerde küçük adımlar kaybolmaz" {
     fonksiyon eğit(ana) {
         değişken p = tensör([1.0], tür: "bf16", türev_izle: doğru)
         değişken opt = SGD([p], öğrenme_oranı: 0.001, ana_kopya: ana)
@@ -791,7 +791,7 @@ test "15.7 iyileştirici ana_kopya: 16 bitlik parametrelerde küçük adımlar k
     doğrula(hata_metni(() => SGD([q], ana_kopya: 1)).içerir("ana_kopya doğru ya da yanlış olmalıdır"))
 }
 
-test "15.14 sinüs ve kosinüs: sayıda ve tensörde, listede değil; türevli" {
+test "15.10 sinüs ve kosinüs: sayıda ve tensörde, listede değil; türevli" {
     eşit_mi(0.0, sinüs(0))
     eşit_mi(1.0, kosinüs(0.0))
     doğrula(hata_metni(() => kosinüs([0, 1])).içerir("kosinüs listede çalışmaz"))
@@ -804,7 +804,7 @@ test "15.14 sinüs ve kosinüs: sayıda ve tensörde, listede değil; türevli" 
     doğrula(mutlak(x.gradyan.değer[1] - (kosinüs(1.0) - sinüs(1.0))) < 0.000001)
 }
 
-test "15.15 bitiştir ve .böl" {
+test "15.7 bitiştir ve .böl" {
     değişken a = tensör([[1, 2], [3, 4]], türev_izle: doğru)
     değişken b = tensör([[5], [6]], türev_izle: doğru)
     değişken c = bitiştir([a, b], eksen: -1)
@@ -827,7 +827,7 @@ test "15.15 bitiştir ve .böl" {
     eşit_mi(["a", "b"], "a b".böl(" "))
 }
 
-test "15.16 indirgemelerde boyutu_koru" {
+test "15.18 indirgemelerde boyutu_koru" {
     değişken x = tensör([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
     eşit_mi([2, 2, 1], toplam(x, eksen: -1, boyutu_koru: doğru).şekil)
     eşit_mi([[[2.0], [4.0]], [[6.0], [8.0]]], maks(x, eksen: -1, boyutu_koru: doğru).değer)
@@ -840,7 +840,7 @@ test "15.16 indirgemelerde boyutu_koru" {
     doğrula(hata_metni(() => toplam([1, 2], boyutu_koru: doğru)).içerir("yalnızca tensörlerde"))
 }
 
-test "15.17 dikkat: bileşik sürümle aynı; GQA, pencere, maske, önbellekli üretim" {
+test "15.24 dikkat: bileşik sürümle aynı; GQA, pencere, maske, önbellekli üretim" {
     // Düzen [B, T, bakış, dh]; bileşik sürüm bakış önde ([B, bakış, T, dh]) hesaplanır (bd çevirir).
     değişken q = tensör(rastgele_normal([2, 6, 4, 8], tohum: 1), türev_izle: doğru)
     değişken k = tensör(rastgele_normal([2, 6, 2, 8], tohum: 2), türev_izle: doğru)
@@ -888,7 +888,7 @@ test "15.17 dikkat: bileşik sürümle aynı; GQA, pencere, maske, önbellekli �
     eşit_mi("bf16", karışık_hassasiyet("bf16") { dikkat(q, k, v) }.tür)
 }
 
-test "15.18 örnekle: sıcaklık, en_iyi_k, tohum" {
+test "15.26 örnekle: sıcaklık, en_iyi_k, tohum" {
     değişken l = tensör([[0.0, 3.0, 1.0], [2.0, 0.0, 0.5]])
     değişken e = örnekle(l, sıcaklık: 0)
     eşit_mi([1, 0], e.değer)
@@ -906,7 +906,7 @@ test "15.18 örnekle: sıcaklık, en_iyi_k, tohum" {
     doğrula(hata_metni(() => örnekle(l, sıcaklık: -1)).içerir("sıcaklık negatif olmayan"))
 }
 
-test "15.19 parametreler: sabit sıra, tekillik, yol adları" {
+test "15.33 parametreler: sabit sıra, tekillik, yol adları" {
     fonksiyon p(x) { sonuç tensör([x], türev_izle: doğru) }
     yapı Dikkat { Wq, Wk }
     yapı Blok { dikkat, mlp }
@@ -928,7 +928,7 @@ test "15.19 parametreler: sabit sıra, tekillik, yol adları" {
     eşit_mi([-1.0], m.gömme.değer)
 }
 
-test "15.25 bellek sınırı: dev sonuç tensörü ayrılmadan yakalanabilir bir hata verir" {
+test "15.42 bellek sınırı: dev sonuç tensörü ayrılmadan yakalanabilir bir hata verir" {
     // İki küçük tensörün yayınlanması [2000000, 2000000] (yaklaşık 14,6 TB) isterdi.
     değişken m = hata_metni(() => sıfırlar([2000000, 1]) + sıfırlar([2000000]))
     doğrula(m.içerir("toplama: sonuç tensörü [2000000, 2000000] şeklinde"))
@@ -940,7 +940,7 @@ test "15.25 bellek sınırı: dev sonuç tensörü ayrılmadan yakalanabilir bir
     eşit_mi([3, 4], (sıfırlar([3, 4]) + sıfırlar([4])).şekil)
 }
 
-test "15.26 cihazlar: ilk eleman cpu, adlar metin, bilinmeyen ad hata" {
+test "15.37 cihazlar: ilk eleman cpu, adlar metin, bilinmeyen ad hata" {
     değişken c = cihazlar()
     eşit_mi("cpu", c[0])
     döngü ad içinde c { doğrula(tip(ad) == Metin) }
@@ -952,7 +952,7 @@ test "15.26 cihazlar: ilk eleman cpu, adlar metin, bilinmeyen ad hata" {
     }
 }
 
-test "15.27 varsayılan_cihaz: oluşturucuların cihazı; olmayan cihaz hata, cihaz değişmez" {
+test "15.38 varsayılan_cihaz: oluşturucuların cihazı; olmayan cihaz hata, cihaz değişmez" {
     eşit_mi("cpu", varsayılan_cihaz())
     eşit_mi("cpu", varsayılan_cihaz("cpu"))
     eşit_mi("cpu", sıfırlar([2]).cihaz)
@@ -971,7 +971,7 @@ test "15.27 varsayılan_cihaz: oluşturucuların cihazı; olmayan cihaz hata, ci
     }
 }
 
-test "15.28 cihaza: aynı cihazda kendisi; taşınan yaprak yeni yaprak, ara tensörde türev geri akar" {
+test "15.39 cihaza: aynı cihazda kendisi; taşınan yaprak yeni yaprak, ara tensörde türev geri akar" {
     değişken w = tensör([1.0, 2.0], türev_izle: doğru)
     değişken w2 = w.cihaza("cpu")
     geri_yayılım(toplam(w2 * 3))
@@ -988,7 +988,7 @@ test "15.28 cihaza: aynı cihazda kendisi; taşınan yaprak yeni yaprak, ara ten
     }
 }
 
-test "15.29 farklı cihazlardaki tensörlerle işlem hata" {
+test "15.40 farklı cihazlardaki tensörlerle işlem hata" {
     eğer cihazlar().içerir("gpu") {
         değişken a = tensör([1.0])
         değişken b = a.cihaza("gpu")
@@ -997,7 +997,7 @@ test "15.29 farklı cihazlardaki tensörlerle işlem hata" {
     }
 }
 
-test "15.30 GPU'da hesap: CPU ile aynı sonuç, belirlenimci, GPU belleği sınırı" {
+test "15.41 GPU'da hesap: CPU ile aynı sonuç, belirlenimci, GPU belleği sınırı" {
     eğer cihazlar().içerir("gpu") {
         değişken x = rastgele_normal([4, 6], tohum: 3)
         değişken w = rastgele_normal([6, 5], tohum: 4)
@@ -1019,7 +1019,7 @@ test "15.30 GPU'da hesap: CPU ile aynı sonuç, belirlenimci, GPU belleği sın�
     }
 }
 
-test "15.41 yayınlama: sağdan hizalanır, uymayan eksen hatadır" {
+test "15.49 yayınlama: sağdan hizalanır, uymayan eksen hatadır" {
     değişken t = tensör([1.0, 2.0, 3.0, 4.0, 5.0])
     eşit_mi([2, 5], (t + tensör([[1.0], [2.0]])).şekil)
     eşit_mi([2, 5], (tensör([[1.0], [2.0]]) * t).şekil)
@@ -1027,7 +1027,7 @@ test "15.41 yayınlama: sağdan hizalanır, uymayan eksen hatadır" {
     doğrula(m.içerir("yayınlanamaz") ve m.içerir("5 ≠ 2"), m)
 }
 
-test "15.41 tür yükseltme: aynı tür korunur, farklı türler float32, sayı türü korur, maske float32" {
+test "15.49 tür yükseltme: aynı tür korunur, farklı türler float32, sayı türü korur, maske float32" {
     değişken a = tensör([1.0, 2.0]).türe("bf16")
     değişken b = tensör([1.0, 2.0]).türe("fp16")
     eşit_mi("bf16", (a + a).tür)
@@ -1039,7 +1039,7 @@ test "15.41 tür yükseltme: aynı tür korunur, farklı türler float32, sayı 
     eşit_mi([0.0, 1.0], (tensör([1.0, 2.0]) > 1).değer)
 }
 
-test "15.41 tensör indeksi hata verir, dilim kırpar, .dilim hata verir" {
+test "15.49 tensör indeksi hata verir, dilim kırpar, .dilim hata verir" {
     değişken t = tensör([1.0, 2.0, 3.0, 4.0, 5.0])
     eşit_mi(5.0, t[-1].değer)
     doğrula(hata_metni(() => t[5]).içerir("sınır dışı"))
@@ -1051,7 +1051,7 @@ test "15.41 tensör indeksi hata verir, dilim kırpar, .dilim hata verir" {
     doğrula(hata_metni(() => t.dilim(0, 1, 10)).içerir("geçersiz"))
 }
 
-test "15.41 sayı olmayan işlenen tensörle işleme girmez" {
+test "15.49 sayı olmayan işlenen tensörle işleme girmez" {
     değişken t = tensör([1.0, 2.0])
     doğrula(hata_metni(() => t + "a").içerir("Metin"))
     doğrula(hata_metni(() => t + doğru).içerir("Mantık"))
@@ -1070,7 +1070,7 @@ test "15.47 tensör_yükle safetensors dosyasını da okur; biçim içerikten an
     eşit_mi([0, 2], y["e"].şekil)
 }
 
-test "15.48 tekrar_oynat: sonuç doğrudan çağrıyla aynı, yalnızca türevsiz içinde" {
+test "15.45 tekrar_oynat: sonuç doğrudan çağrıyla aynı, yalnızca türevsiz içinde" {
     fonksiyon f(x, s) { sonuç x * s + 1.0 }
     değişken oy = tekrar_oynat(f)
     türevsiz {
@@ -1085,7 +1085,7 @@ test "15.48 tekrar_oynat: sonuç doğrudan çağrıyla aynı, yalnızca türevsi
     doğrula(hata_metni(() => tekrar_oynat(3)).içerir("fonksiyon"))
 }
 
-test "15.49 yerine_yaz: kaynağı eksendeki dilime başlangıçtan yerinde yazar" {
+test "15.8 yerine_yaz: kaynağı eksendeki dilime başlangıçtan yerinde yazar" {
     değişken t = sıfırlar([2, 4])
     yerine_yaz(t, birler([2, 2]), eksen: 1, başlangıç: 1)
     eşit_mi([[0.0, 1.0, 1.0, 0.0], [0.0, 1.0, 1.0, 0.0]], t.değer)

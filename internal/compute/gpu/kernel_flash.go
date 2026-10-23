@@ -257,7 +257,7 @@ func (f *flashShared) headIndexes(yKV bool) {
 }
 
 // hmat bir bakışın genel bellekteki [T][D] matrisi: ilk elemanın adresi ve satır adımı
-// (eleman). Dikkat girdileri [toplu, T, bakış, D] düzenindedir (dil tanımı 15.17): bakışın
+// (eleman). Dikkat girdileri [toplu, T, bakış, D] düzenindedir (dil tanımı 15.24): bakışın
 // satırları Hx·D adımlıdır.
 type hmat struct{ base, stride reg }
 

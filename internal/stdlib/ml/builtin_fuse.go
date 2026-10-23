@@ -10,7 +10,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// Bu dosya kaynaştır(f)'i (dil tanımı 15.45) TR'ye bağlar: f eleman bazlı tensör
+// Bu dosya kaynaştır(f)'i (dil tanımı 15.44) TR'ye bağlar: f eleman bazlı tensör
 // işlemlerinden oluşan bir fonksiyondur; kaynaştır aynı şeyi hesaplayan bir fonksiyon
 // döndürür. İlk çağrıda (ve her yeni şekil, tür ya da türev isteği bileşiminde) f iz
 // tensörleriyle bir kez çalışır ve programı kaydedilir (tensor.TraceFused); sonraki çağrılar
@@ -51,7 +51,7 @@ func (f *fusedFn) call(m *interp.VM, args []interp.Value, _ map[string]interp.Va
 	var inputs []*tensor.Tensor
 	var info []tensor.FuseInputInfo
 	var key strings.Builder
-	fmt.Fprintf(&key, "%s|", mixedDType(m)) // hesap_türü() izde sabitlenir (15.45)
+	fmt.Fprintf(&key, "%s|", mixedDType(m)) // hesap_türü() izde sabitlenir (15.44)
 	for i, a := range args {
 		if x, ok := interp.ToFloat(a); ok {
 			fmt.Fprintf(&key, "#%T%v;", a, x)

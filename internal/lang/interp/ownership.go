@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 )
 
-// --- SAHİPLİK: BELİRLENİMCİ BIRAKMA (dil tanımı 15.44) ---
+// --- SAHİPLİK: BELİRLENİMCİ BIRAKMA (dil tanımı 15.43) ---
 //
 // Bazı motor değerleri (tensör) Go'nun çöp toplayıcısının görmediği bir kaynak tutar (cihaz
 // belleği). Yorumlayıcı böyle bir değere artık hiçbir yoldan ulaşılamayacağını bildiği anda

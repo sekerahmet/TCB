@@ -164,7 +164,7 @@ func lossTargets(fn string, sh []int, v interp.Value) ([]int, error) {
 
 // linearCrossEntropy doğrusal_çapraz_entropi(x, ağırlık, hedef): çapraz_entropi(x @ ağırlık,
 // hedef) ile aynı kayıp ve gradyanlar, ama bütün logitler hiç tutulmaz (tensor.LinearCrossEntropy,
-// dil tanımı 15.43). Karışık hassasiyet bloğunda x ve ağırlık `@` gibi blok türüne çevrilir.
+// dil tanımı 15.25). Karışık hassasiyet bloğunda x ve ağırlık `@` gibi blok türüne çevrilir.
 func linearCrossEntropy(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.DisplayName(codes.T512)
 	if len(args) != 3 {
@@ -264,7 +264,7 @@ func normArgs(fn string, args []interp.Value, named map[string]interp.Value, nam
 		}
 		eps = float32(f)
 	}
-	// tür: çıktının türü (hesap float32'dir); verilmezse girdinin türü (15.13).
+	// tür: çıktının türü (hesap float32'dir); verilmezse girdinin türü (15.4).
 	dt := x.DType()
 	if v, ok := bind.GetNamed(named, nameDType); ok {
 		if dt, err = parseDTypeValue(fn, v); err != nil {
@@ -281,7 +281,7 @@ func layerNorm(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 		return nil, err
 	}
 	// 16 bitlik girdi açılmaz: çekirdek onu float32'de normlar, sonuç girdinin türündedir
-	// (dil tanımı 15.13). Ağırlık ve sapma float32 kalır.
+	// (dil tanımı 15.4). Ağırlık ve sapma float32 kalır.
 	sh := x.Shape()
 	D := sh[len(sh)-1]
 	w, err := normParam(fn, nameWeight.TR, p[0], D)
@@ -316,7 +316,7 @@ func rmsNorm(m *interp.VM, args []interp.Value, named map[string]interp.Value) (
 	if err != nil {
 		return nil, err
 	}
-	// 16 bitlik girdi açılmaz (katman_normu gibi; dil tanımı 15.13).
+	// 16 bitlik girdi açılmaz (katman_normu gibi; dil tanımı 15.4).
 	if w, err = highPrecision(m, w); err != nil {
 		return nil, err
 	}

@@ -14,7 +14,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
 
-// Bu dosya tekrar_oynat(f)'i (dil tanımı 15.48) ve yerine_yaz'ı TR'ye bağlar.
+// Bu dosya tekrar_oynat(f)'i (dil tanımı 15.45) ve yerine_yaz'ı TR'ye bağlar.
 //
 // tekrar_oynat(f) f'in cihaz işini bir kez kaydedip sonraki çağrılarda oynatır (GPU'da CUDA
 // Graph; PyTorch torch.cuda.graph ve make_graphed_callables gibi). Girdi bileşimi başına

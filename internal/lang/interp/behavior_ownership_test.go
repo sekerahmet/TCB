@@ -9,7 +9,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
-// Sahiplik kuralları (ownership.go, dil tanımı 15.44). Testler sahte bir kaynak değeriyle
+// Sahiplik kuralları (ownership.go, dil tanımı 15.43). Testler sahte bir kaynak değeriyle
 // koşar: her kaynağın bir numarası vardır, bırakılınca numarası kayda yazılır ve bırakılmış
 // kaynağın kullanılması hatadır. Her test iki şeyi denetler: hiçbir kaynak ulaşılabilirken
 // bırakılmaz (program hatasız biter ve kaynakları okur) ve bırakılması gereken kaynak

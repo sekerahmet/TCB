@@ -1,6 +1,6 @@
-// Matematik genişletmesi: sayı matematiği (13.7), tensör karşılaştırmaları (15.3) ve
+// Matematik genişletmesi: sayı matematiği (13.7), tensör karşılaştırmaları (15.6) ve
 // genişletilmiş eleman bazlı fonksiyonlar, sınırlama, koşullu seçim, birikim ve sıralama
-// (15.31-15.38).
+// (15.11–15.15, 15.20–15.22).
 
 aktar "yardimci_test_araclari"
 
@@ -29,7 +29,7 @@ test "13.7 taban, tavan, işaret: Tam'da Tam, Ondalık'ta Ondalık; pi sabittir"
     doğrula(hata_metni(() => taban("a")).içerir("taban() 1. argüman olarak"))
 }
 
-test "15.3 tensör karşılaştırmaları yayınlamalıdır; NaN 0 verir; == tamamını karşılaştırır" {
+test "15.6 tensör karşılaştırmaları yayınlamalıdır; NaN 0 verir; == tamamını karşılaştırır" {
     değişken a = tensör([1, 2, 3])
     eşit_mi([0.0, 1.0, 1.0], (a > 1).değer)
     eşit_mi([1.0, 0.0, 0.0], (2 > a).değer)
@@ -43,7 +43,7 @@ test "15.3 tensör karşılaştırmaları yayınlamalıdır; NaN 0 verir; == tam
     doğrula(hata_metni(() => a < tensör([1, 2])).içerir("şekilleri tensör karşılaştırması (<) için yayınlanamaz"))
 }
 
-test "15.31 genişletilmiş eleman bazlı fonksiyonlar: sayıda Ondalık, tensörde türevli; listede değil" {
+test "15.11 genişletilmiş eleman bazlı fonksiyonlar: sayıda Ondalık, tensörde türevli; listede değil" {
     doğrula(yakın_mı(silu(1.0), 1.0 / (1 + üstel(-1.0))))
     doğrula(yakın_mı(tanjant(0.5), sinüs(0.5) / kosinüs(0.5)))
     doğrula(yakın_mı(arksinüs(1.0), pi / 2))
@@ -69,7 +69,7 @@ test "15.31 genişletilmiş eleman bazlı fonksiyonlar: sayıda Ondalık, tensö
     doğrula(hata_metni(() => log10([1])).içerir("tensör(...) ile çevirin"))
 }
 
-test "15.31 genişletilmiş fonksiyonların türevleri sayısal türevle uyuşur" {
+test "15.11 genişletilmiş fonksiyonların türevleri sayısal türevle uyuşur" {
     değişken x = tensör([[-1.3, -0.4, 0.2], [0.7, 1.1, 1.9]], türev_izle: doğru)
     değişken p = tensör([[0.3, 0.9, 1.7], [2.5, 4.0, 6.5]], türev_izle: doğru)
     değişken a = tensör([[-0.8, -0.3, 0.1], [0.4, 0.6, 0.85]], türev_izle: doğru)
@@ -86,7 +86,7 @@ test "15.31 genişletilmiş fonksiyonların türevleri sayısal türevle uyuşur
     doğrula(türev_denetle(üstel_eksi_bir, [x]))
 }
 
-test "15.32 taban, tavan, işaret tensörde: tam sayılı tensör tam sayılı kalır, türev 0" {
+test "15.12 taban, tavan, işaret tensörde: tam sayılı tensör tam sayılı kalır, türev 0" {
     eşit_mi([-2.0, 2.0], taban(tensör([-1.5, 2.5])).değer)
     eşit_mi([-1.0, 3.0], tavan(tensör([-1.5, 2.5])).değer)
     eşit_mi([-1.0, 0.0, 1.0], işaret(tensör([-2.0, 0.0, 3.0])).değer)
@@ -97,7 +97,7 @@ test "15.32 taban, tavan, işaret tensörde: tam sayılı tensör tam sayılı k
     eşit_mi([0.0, 0.0, 0.0], x.gradyan.değer)
 }
 
-test "15.40 mutlak tensörde: eleman bazlı, türevi işaret(x) (0'da 0), 16 bit ve tam sayılı tür korunur" {
+test "15.16 mutlak tensörde: eleman bazlı, türevi işaret(x) (0'da 0), 16 bit ve tam sayılı tür korunur" {
     eşit_mi([2.0, 0.0, 3.5], mutlak(tensör([-2.0, 0.0, 3.5])).değer)
     // −0'ın mutlağı +0'dır: 1 / +0 pozitif sonsuz verir.
     değişken eksi_sıfır = tensör([0.0]) * -1
@@ -122,7 +122,7 @@ test "15.40 mutlak tensörde: eleman bazlı, türevi işaret(x) (0'da 0), 16 bit
     doğrula(hata_metni(() => mutlak([-1, 2])).içerir("tensör("))
 }
 
-test "15.33 sınırla: aralık, tek sınır, NaN korunur, türev aralık içinde 1; hatalar" {
+test "15.13 sınırla: aralık, tek sınır, NaN korunur, türev aralık içinde 1; hatalar" {
     eşit_mi([0.0, 0.5, 1.0], sınırla(tensör([-2.0, 0.5, 3.0]), en_az: 0, en_fazla: 1).değer)
     eşit_mi([0.0, 3.0], sınırla(tensör([-2.0, 3.0]), en_az: 0).değer)
     eşit_mi([-2.0, 1.0], sınırla(tensör([-2.0, 3.0]), en_fazla: 1).değer)
@@ -139,7 +139,7 @@ test "15.33 sınırla: aralık, tek sınır, NaN korunur, türev aralık içinde
     doğrula(hata_metni(() => maks(tensör([1, 2]), 0)).içerir("sınırla(x, en_az: 0)"))
 }
 
-test "15.34 arktanjant2: dört bölge, (0, 0), işaretli sıfır, yayınlama, türev" {
+test "15.14 arktanjant2: dört bölge, (0, 0), işaretli sıfır, yayınlama, türev" {
     doğrula(yakın_mı(arktanjant2(1, -1), 3 * pi / 4))
     doğrula(yakın_mı(arktanjant2(-1, -1), -3 * pi / 4))
     doğrula(yakın_mı(arktanjant2(-1, 1), -pi / 4))
@@ -161,7 +161,7 @@ test "15.34 arktanjant2: dört bölge, (0, 0), işaretli sıfır, yayınlama, t�
     doğrula(hata_metni(() => arktanjant2(tensör([1, 2]), tensör([1, 2, 3]))).içerir("arktanjant2 için yayınlanamaz"))
 }
 
-test "15.35 koşullu: yayınlamalı seçim; gradyan seçilen dala akar, NaN sızmaz" {
+test "15.15 koşullu: yayınlamalı seçim; gradyan seçilen dala akar, NaN sızmaz" {
     değişken x = tensör([-1.0, 2.0, -3.0], türev_izle: doğru)
     eşit_mi([0.0, 2.0, 0.0], koşullu(x > 0, x, 0).değer)
     eşit_mi([[1.0, 2.0], [-1.0, -1.0]], koşullu(tensör([[1.0], [0.0]]), tensör([1.0, 2.0]), -1).değer)
@@ -184,7 +184,7 @@ test "15.35 koşullu: yayınlamalı seçim; gradyan seçilen dala akar, NaN sız
     doğrula(hata_metni(() => koşullu([1], 1, 2)).içerir("koşullu listede çalışmaz"))
 }
 
-test "15.36 birikimli_toplam: eksen, şekil, türev; eksen adlı" {
+test "15.20 birikimli_toplam: eksen, şekil, türev; eksen adlı" {
     eşit_mi([1.0, 3.0, 6.0, 10.0], birikimli_toplam(tensör([1, 2, 3, 4])).değer)
     eşit_mi([[1.0, 2.0], [4.0, 6.0]], birikimli_toplam(tensör([[1, 2], [3, 4]]), eksen: 0).değer)
     eşit_mi([[1.0, 3.0], [3.0, 7.0]], birikimli_toplam(tensör([[1, 2], [3, 4]])).değer)
@@ -198,7 +198,7 @@ test "15.36 birikimli_toplam: eksen, şekil, türev; eksen adlı" {
     doğrula(hata_metni(() => birikimli_toplam(tensör(2.0))).içerir("skaler (0 boyutlu) tensörde eksen seçilemez"))
 }
 
-test "15.37 en_büyük_k: değerler ve indeksler; eşitlikte küçük indeks; türev seçilenlere" {
+test "15.21 en_büyük_k: değerler ve indeksler; eşitlikte küçük indeks; türev seçilenlere" {
     değişken s = en_büyük_k(tensör([3.0, 1.0, 4.0, 1.5]), 2)
     eşit_mi([4.0, 3.0], s[0].değer)
     eşit_mi([2, 0], s[1].değer)
@@ -217,7 +217,7 @@ test "15.37 en_büyük_k: değerler ve indeksler; eşitlikte küçük indeks; t�
     doğrula(hata_metni(() => en_büyük_k(tensör([1, 2]), 1.5)).içerir("k bir Tam olmalıdır"))
 }
 
-test "15.38 sıralama_indeksi: kararlı, NaN sonda; türevsiz" {
+test "15.22 sıralama_indeksi: kararlı, NaN sonda; türevsiz" {
     eşit_mi([1, 2, 0], sıralama_indeksi(tensör([3.0, 1.0, 2.0])).değer)
     eşit_mi([3, 1, 0, 2], sıralama_indeksi(tensör([2, 1, 2, 0])).değer)
     eşit_mi([[1, 0], [0, 1]], sıralama_indeksi(tensör([[3, 1], [0, 2]]), eksen: 0).değer)
@@ -228,7 +228,7 @@ test "15.38 sıralama_indeksi: kararlı, NaN sonda; türevsiz" {
     doğrula(hata_metni(() => sıralama_indeksi([3, 1])).içerir("sıralama_indeksi listede çalışmaz"))
 }
 
-test "15.30 genişletilmiş matematik GPU'da CPU ile aynı sonucu verir" {
+test "15.41 genişletilmiş matematik GPU'da CPU ile aynı sonucu verir" {
     eğer cihazlar().içerir("gpu") {
         değişken v = rastgele_normal([4, 7], tohum: 5)
         fonksiyon hesap(c) {
@@ -255,7 +255,7 @@ test "13.7 sonlu_mu: NaN ve sonsuzda yanlış, öbür sayılarda doğru" {
     doğrula(değil sonlu_mu(-ondalık("inf")))
 }
 
-test "15.46 sonlu_mu tensörde eleman bazlıdır; gradyan_kırp sonlu olmayan normda isteğe bağlı hata verir" {
+test "15.36 sonlu_mu tensörde eleman bazlıdır; gradyan_kırp sonlu olmayan normda isteğe bağlı hata verir" {
     değişken x = tensör([1.0, ondalık("nan"), ondalık("inf"), 0.0])
     eşit_mi([1.0, 0.0, 0.0, 1.0], sonlu_mu(x).değer)
     eşit_mi([1.0, 0.0, 0.0, 1.0], sonlu_mu(x.türe("bf16")).değer)

@@ -173,7 +173,7 @@ func TestNorms16Bit(t *testing.T) {
 }
 
 // TestNormsOutputDType float32 girdili normun çıktısını 16 bitte yazar (RMSNormAs, LayerNormAs;
-// dil tanımı 15.13): değer float32 normun o türe dönüşümüyle bit düzeyinde aynıdır, ileri ve
+// dil tanımı 15.4): değer float32 normun o türe dönüşümüyle bit düzeyinde aynıdır, ileri ve
 // geri yön CPU ile karşılaştırılır.
 func TestNormsOutputDType(t *testing.T) {
 	rng := rand.New(rand.NewSource(24))

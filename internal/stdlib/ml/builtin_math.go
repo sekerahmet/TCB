@@ -50,7 +50,7 @@ func registerWideMath(v *interp.VM) {
 	wrap(v, codes.T233, newBuiltin(argsortBuiltin))
 }
 
-// isFinite sonlu_mu'nun tensör yoludur (15.46): x − x sonlu elemanda 0, NaN ve ±∞'da NaN'dır;
+// isFinite sonlu_mu'nun tensör yoludur (15.36): x − x sonlu elemanda 0, NaN ve ±∞'da NaN'dır;
 // "≥ 0" karşılaştırması NaN'da 0 verir. Sonuç karşılaştırmalar gibi float32 0/1'dir ve türevsizdir
 // (torch.isfinite de x == x ile |x| ≠ ∞'u birleştirir). Ara fark başlığı hemen bırakılır.
 func isFinite(t *tensor.Tensor) *tensor.Tensor {
@@ -64,7 +64,7 @@ func isFinite(t *tensor.Tensor) *tensor.Tensor {
 }
 
 // registerIsFinite sonlu_mu'nun tensör yolunu bağlar: sonuç karşılaştırmalar gibi her zaman
-// Ondalık 0/1'dir (15.46), tam sayılı işaretli girdide de (kaynaştır'daki sonuçla aynı).
+// Ondalık 0/1'dir (15.36), tam sayılı işaretli girdide de (kaynaştır'daki sonuçla aynı).
 func registerIsFinite(v *interp.VM) {
 	registerTensorWrap(v, codes.G415, false, isFinite)
 }

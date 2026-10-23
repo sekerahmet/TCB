@@ -20,11 +20,11 @@ fonksiyon ağırlık_başlat(şekil, std, tohum, tür = "float32") {
 }
 
 // Doğrusal: y = x @ ağırlık (+ sapma). ağırlık [giriş, çıkış], sapma [çıkış] ya da yok. tür
-// ağırlığın türüdür (sapma float32): float32 x ile 16 bitlik ağırlığın çarpımı float32'dir (15.12),
+// ağırlığın türüdür (sapma float32): float32 x ile 16 bitlik ağırlığın çarpımı float32'dir (15.3),
 // GPU'da ağırlık açılmadan okunur (çıkarımda okunan bayt yarıya iner).
 // Sapma çarpımın türünde eklenir: karışık_hassasiyet("bf16") bloğunda çıktı bf16 kalır (float32
 // sapma toplamı float32'ye yükseltmez). PyTorch'un autocast'i (F.linear sapmayı da bf16 işler) ve
-// Flax'ın Dense'i (dtype sapmayı da kapsar) böyledir; sapmanın gradyanı float32 birikir (15.12).
+// Flax'ın Dense'i (dtype sapmayı da kapsar) böyledir; sapmanın gradyanı float32 birikir (15.3).
 // Hedef modelde float32 ara sonuçları ve geri dönüşümleri kaldırır (221 → 203 ms/adım).
 yapı Doğrusal {
     ağırlık
@@ -91,7 +91,7 @@ fonksiyon döner_konum_tablosu(bağlam, bakış_boyutu, taban = 10000.0) {
 // x'in türündedir. Tablolar float32'dir: karışık hassasiyette bf16 x ile çarpım float32'ye
 // yükselir, sonucu okuyan `dikkat` onu yine bf16'ya çevirirdi. Dönüşüm burada, kaynaşık
 // geçişin sonunda yapılır: değer aynıdır (bir kez yuvarlanır), float32 sonuç ve ayrı dönüşüm
-// kalkar. döner_konum_uygula aynı hesabın kaynaşmış biçimidir (kaynaştır, dil tanımı 15.45):
+// kalkar. döner_konum_uygula aynı hesabın kaynaşmış biçimidir (kaynaştır, dil tanımı 15.44):
 // zincir tek geçişte hesaplanır, ara sonuçlar belleğe yazılmaz; sonuç aynıdır.
 fonksiyon döner_konum_hesapla(x, kos, sin) {
     değişken T = x.şekil[-3]
@@ -161,7 +161,7 @@ yapı NedenselDikkat {
     }
     // x [B, T, D]; kos/sin döner_konum_tablosu'ndan (önbellekli çağrıda konumdan başlayan
     // satırlar). önbellek verilirse (KVÖnbellek) yeni anahtar ve değerler katman no'ya eklenir ve
-    // sorgular önbellekteki bütün konumlara bakar (dikkat'te nedensellik sondan hizalıdır, 15.17).
+    // sorgular önbellekteki bütün konumlara bakar (dikkat'te nedensellik sondan hizalıdır, 15.24).
     fonksiyon ileri(x, kos, sin, önbellek = yok, no = 0) {
         değişken B = x.şekil[0]
         değişken T = x.şekil[1]
@@ -175,7 +175,7 @@ yapı NedenselDikkat {
             k_ham = kendi.anahtar_katmanı.ileri(x)
             v_ham = kendi.değer_katmanı.ileri(x)
         }
-        // [B, T, bakış · bakış_boyutu] → [B, T, bakış, bakış_boyutu]: dikkat'in düzeni (dil tanımı 15.17),
+        // [B, T, bakış · bakış_boyutu] → [B, T, bakış, bakış_boyutu]: dikkat'in düzeni (dil tanımı 15.24),
         // bakışlar şekillendirmeyle ayrılır, kopya yoktur.
         değişken q = kendi.sorgu_katmanı.ileri(x).şekillendir([B, T, kendi.bakış_sayısı, kendi.bakış_boyutu])
         değişken k = k_ham.şekillendir([B, T, kendi.kv_bakış_sayısı, kendi.bakış_boyutu])
@@ -557,7 +557,7 @@ yapı GPT {
     // tek_adım: bir parçalık üretim adımı, konum cihazdadır: kimlik [1, 1] ve konum [1]
     // tensörleri → son konumun logiti [dağarcık]. Konakta hiçbir şey değiştirmez (önbelleğin
     // konum sayacını çağıran ilerletir); bu yüzden tekrar_oynat ile kaydedilip oynatılabilir
-    // (dil tanımı 15.48). Önbellek sabit olmalı ve ilk parçalar gizli_durum ile işlenmiş olmalı.
+    // (dil tanımı 15.45). Önbellek sabit olmalı ve ilk parçalar gizli_durum ile işlenmiş olmalı.
     fonksiyon tek_adım(kimlik, konum, önbellek) {
         değişken gb = kendi.gömülü(kimlik)
         değişken kos = gömme(kendi.kos, konum)
@@ -578,7 +578,7 @@ yapı GPT {
     }
     // kayıp: bir sonraki parçayı tahmin etmenin ortalama çapraz entropisi. Çıkış sapmasızsa
     // (paylaşımlı gömme ya da sapmasız Doğrusal) logitler bütün olarak tutulmaz:
-    // doğrusal_çapraz_entropi aynı kaybı dilim dilim hesaplar (dil tanımı 15.43).
+    // doğrusal_çapraz_entropi aynı kaybı dilim dilim hesaplar (dil tanımı 15.25).
     fonksiyon kayıp(girdi, hedef) {
         eğer kendi.çıkış == yok {
             sonuç doğrusal_çapraz_entropi(kendi.gizli_durum(girdi), kendi.gömme.tablo.devrik(), hedef)

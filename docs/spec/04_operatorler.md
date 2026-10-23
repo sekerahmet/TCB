@@ -22,7 +22,7 @@
 
 **4.3** `**` üs alır; negatif üs `Ondalık` verir (`2 ** -1` = `0.5`).
 
-**4.4** `< > <= >=` yalnızca sayılar arasında tanımlıdır (tensörlerde eleman bazlı 0/1 maskesi verir, bkz. 15.3); karşılaştırmalar zincirlenmez (`1 < 2 < 3` hatadır).
+**4.4** `< > <= >=` yalnızca sayılar arasında tanımlıdır (tensörlerde eleman bazlı 0/1 maskesi verir, bkz. 15.6); karşılaştırmalar zincirlenmez (`1 < 2 < 3` hatadır).
 
 **4.5** Eşitlik: iki sayı tipten bağımsız değerle karşılaştırılır (`1 == 1.0`); iki `Tam` tam olarak karşılaştırılır (`9007199254740993 != 9007199254740992`); `Tam` ile `Ondalık` da değerleriyle kesin karşılaştırılır, `Tam` yuvarlanmaz (`9007199254740993 != 9007199254740992.0`, `9007199254740993 > 9007199254740992.0`); `<`, `>`, `<=`, `>=` aynı kurala uyar ve NaN hiçbir sayıya eşit değildir; diğer değerler aynı tipte ve aynı içerikteyse eşittir (`[1, "a"] == [1, "a"]`, `"1" != 1`, `yok != yanlış`). Listeler, sözlükler ve yapı nesneleri eleman eleman bu kuralla karşılaştırılır (`[1, 2] == [1.0, 2]`); sözlüklerde anahtar sırası önemsizdir. Fonksiyonlar, yerleşikler ve yapı tanımları kimlikle karşılaştırılır: aynı değer kendisine eşittir, görünüşleri aynı olsa da ayrı tanımlar eşit değildir (`(x => x) != (x => x)`); bir nesnenin metodu aynı nesne için kendisine eşittir (`k.selamla == k.selamla`). Aralıklar uçları ve dahil olup olmamalarıyla karşılaştırılır. Tensörler şekilleri ve tüm elemanları aynıysa eşittir. 0 boyutlu tensör, değeri (`.değer`) bir sayıya eşitse o sayıya eşittir (`tensör(7.0) == 7`, `tensör([[1, 2]])[0][1] == 2.0`, `toplam(t) == 10`); en az bir ekseni olan tensör sayıya eşit değildir (`tensör([7.0]) != 7`).
 
@@ -40,4 +40,4 @@
 
 **4.10** `+` en az bir tarafı metinse öbürünü metne çevirip birleştirir (`"a" + 1` → `"a1"`); iki listeyi uç uca ekler.
 
-**4.11** `@` matris çarpımıdır (`tensör([[1, 2], [3, 4]]) @ tensör([[1], [1]])`; matris 2 boyutlu tensördür); `+ - * /` tensörlerde eleman bazlıdır (bkz. 15.3).
+**4.11** `@` matris çarpımıdır (`tensör([[1, 2], [3, 4]]) @ tensör([[1], [1]])`; matris 2 boyutlu tensördür); `+ - * /` tensörlerde eleman bazlıdır (bkz. 15.6).

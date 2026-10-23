@@ -44,7 +44,7 @@ Tensör, n boyutlu bir sayı dizisidir (veri türü varsayılan olarak `float32`
   | Sıralama | `sıralama_indeksi(x)` | kararlı, küçükten büyüğe |
   | π | `pi` | sabit; `e` yerine `üstel(1)` |
 
-  Karşılaştırmalar (`<`, `>`, `<=`, `>=`) tensörlerde yayınlamalıdır ve 0/1 maskesi verir; `==` ise iki tensörün tamamen aynı olup olmadığını söyler. Hepsi GPU'da da çalışır (dil tanımı **15.31**–**15.38**).
+  Karşılaştırmalar (`<`, `>`, `<=`, `>=`) tensörlerde yayınlamalıdır ve 0/1 maskesi verir; `==` ise iki tensörün tamamen aynı olup olmadığını söyler. Hepsi GPU'da da çalışır (dil tanımı **15.11**–**15.15**, **15.20**–**15.22**).
 - **İndirgemeler:** `toplam(x)`, `ortalama(x)`, `maks(x)`, `min(x)` tüm elemanları skaler (0 boyutlu) tensöre indirger; `eksen: 1` verilirse o eksen kaldırılır; `boyutu_koru: doğru` ile 1 uzunlukta korunur (`[B, T, D]` → `toplam(x, eksen: -1, boyutu_koru: doğru)` → `[B, T, 1]`, böylece `x / toplam(x, eksen: -1, boyutu_koru: doğru)` yayınlanır; eksen verilmezse bütün eksenler 1 olur). `toplam(x, 1)` / `ortalama(x, 1)` konumlu ekseni de kabul eder; `maks`/`min` için eksen **yalnızca adlı** verilir (`maks(x, 0)` eleman bazlı sınırla karışmasın diye hatadır). `toplam([a, b])` / `ortalama([a, 1, b])` listedeki tensörleri yayınlamalı toplamla katlar (türev korunur); iç içe sayı listesi indirgenemez, önce `tensör(...)` ile çevirin. `eksen:` yalnızca tensörlerde geçerlidir.
 - **Sinir ağı:** `gömme(tablo, indeksler)` (tablo `[V, D]`; sonuç `indeks şekli + [D]`), `çapraz_entropi(çıktı, hedef)` (çıktı `[..., C]`, hedef sınıf indeksleri; negatif hedefler yok sayılır), `katman_normu(x, ağırlık, sapma, epsilon: 0.00001)`, `rms_normu(x, ağırlık, epsilon: 0.00001)` (ağırlık/sapma `yok` olabilir).
 - **Bitiştirme ve bölme:** `bitiştir([a, b, c], eksen: -1)` tensörleri bir eksen boyunca uç uca ekler (diğer eksenler eşit olmalı; türevli). `x.böl(3, eksen: -1)` tensörü o eksende 3 eşit parçaya böler ve parçaların listesini verir (görünümler, türevli): `değişken q, k, v = (x @ Wqkv).böl(3)`.
@@ -99,7 +99,7 @@ yazdır(türev_denetle(kapılı, [a, b]))               // doğru (yanlış bir 
 
 Şekil hataları şekli gösterir ve `dene/yakala` ile yakalanabilir: `[32, 1024] ile [512, 10] matris çarpımı yapılamaz; 1024 ≠ 512`. Fonksiyon, metot, işleç (`@`, `+`, `<`...) ve özellik hatalarının başında `Satır N:` bulunur: `Satır 3: [2, 2] ile [1, 3] matris çarpımı yapılamaz; 2 ≠ 1 (...)`.
 
-Bellek sınırı: bir işlemin sonucu tek başına makinenin fiziksel belleğinden büyükse tensör ayrılmadan önce Türkçe bir hata verilir ve program çökmez. Çoğu zaman sebep beklenmedik bir yayınlamadır: `sıfırlar([185000, 1, 1]) + sıfırlar([4, 46000])` hatası `toplama: sonuç tensörü [185000, 4, 46000] şeklinde, 126,8 GB bellek ister; bu makinede 31,5 GB var. Şekilleri denetleyin (yayınlama beklenmedik bir boyut üretmiş olabilir).` olur. Sınır ayarlanmaz; ayrıntı: dil tanımı **15.25**.
+Bellek sınırı: bir işlemin sonucu tek başına makinenin fiziksel belleğinden büyükse tensör ayrılmadan önce Türkçe bir hata verilir ve program çökmez. Çoğu zaman sebep beklenmedik bir yayınlamadır: `sıfırlar([185000, 1, 1]) + sıfırlar([4, 46000])` hatası `toplama: sonuç tensörü [185000, 4, 46000] şeklinde, 126,8 GB bellek ister; bu makinede 31,5 GB var. Şekilleri denetleyin (yayınlama beklenmedik bir boyut üretmiş olabilir).` olur. Sınır ayarlanmaz; ayrıntı: dil tanımı **15.42**.
 
 > **Not (türevsiz ve eşzamanlılık):** Türevsiz kip her görevin kendi durumudur. `türevsiz { ... }` bloğu fonksiyon çağırsa, döngü kursa ya da `bekle(...)` gibi yorumlayıcı kilidini bırakan bir çağrı yapsa da, aynı anda çalışan başka bir `eşzamanlı` görev (ör. eğitim döngüsü) türev izlemeye devam eder; yani bir görevde türevsiz çıkarım (ör. örnek metin üretme) yaparken arka planda eğitim sürdürebilirsiniz. Yeni bir `eşzamanlı` görev her zaman türevli kipte başlar. Bir geri yayılım sürerken başka bir görev aynı çizgeden geri yayılım başlatırsa açık hata alır.
 
@@ -148,7 +148,7 @@ cihazda verir; büyük bir modelin tamamı için örnek: `tools/gpu/compare_gpu.
   Kitaplık başka bir yerdeyse yolu `TR_GPU_CUBLASLT=/tam/yol/libcublasLt.so.12` ile verilir
   (çalışma klasörü hiçbir zaman aranmaz); hangi yolun kullanıldığı profil özetinin ilk
   satırında görünür.
-- Kurallar: `docs/spec/15_tensorler.md` **15.26–15.30**.
+- Kurallar: `docs/spec/15_tensorler.md` **15.37–15.41**.
 
 ## D. Veri ve Parçalayıcı
 Büyük metin derlemleriyle model eğitmek için iki yerleşik nesne vardır: `tokenizer.json` dosyalarını okuyan **parçalayıcı** ve `.npy` veri dosyalarını okuyan **veri kümesi**. Uçtan uca örnek: `examples/tr/39_veri_ile_egitim.tr`.

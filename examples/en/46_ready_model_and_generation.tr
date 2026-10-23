@@ -4,7 +4,7 @@
 // model.üret(start, count, sıcaklık:, en_iyi_k:, tohum:, eos:, önbellek_çeşidi:), making generation reproducible.
 // Builds on: GPT and the library (41), the tokenizer (39), sampling (34).
 // Run (from the project root): tr examples/en/46_ready_model_and_generation.tr
-// Details: docs/guide/10_hazir_katmanlarla_gpt.md, docs/spec/15_tensorler.md §15.47–15.48, lib/README.md (tr/hazir).
+// Details: docs/guide/10_hazir_katmanlarla_gpt.md, docs/spec/15_tensorler.md §15.47, §15.45, lib/README.md (tr/hazir).
 //
 // Model: tests/data/hf_tiny, a small Llama with RANDOM weights, 18 KB (config.json + model.safetensors);
 // it does not produce meaningful text, so the example prints token ids, not text. The same code works with a real

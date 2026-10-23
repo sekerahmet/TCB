@@ -40,7 +40,7 @@ yazdır(sıralama_indeksi(tensör([2, 1, 2, 0]), eksen: 0).değer, birikimli_top
 değişken m = tensör([[1.0], [0.0]])
 yazdır(koşullu(m, tensör([1.0, 2.0]), -1).değer, koşullu(yanlış, tensör([1.0]), 7).değer)
 yazdır((tensör([1, 2, 3]) >= tensör([[2], [1]])).değer, (2 < tensör([1, 2, 3])).değer)`)
-	want := "[1, 0] [0.0, -1.0] [0, 0] [0.5, 0.0]\n" + // i - 1 tam sayılı değil (15.9)
+	want := "[1, 0] [0.0, -1.0] [0, 0] [0.5, 0.0]\n" + // i - 1 tam sayılı değil (15.19)
 		"[0.0, 1.0, 0.0]\n" +
 		"[[3.0, 3.0], [2.0, 1.0]] [[0, 2], [1, 2]] Tam\n" +
 		"[3, 1, 0, 2] [1, 1]\n" +
@@ -103,7 +103,7 @@ yazdır(sınırla(7, en_az: 1, en_fazla: 3), sınırla(7, en_az: 1.5))`)
 	}
 }
 
-// Kural (13.7, 15.46): sonlu_mu sayıda Mantık verir (NaN ve ±sonsuz yanlış, her Tam doğru);
+// Kural (13.7, 15.36): sonlu_mu sayıda Mantık verir (NaN ve ±sonsuz yanlış, her Tam doğru);
 // tensörde eleman bazlı, sonlu yerde 1 öbür yerde 0 olan float32 tensör verir, 16 bitte de
 // aynıdır ve türev izlemez. Listede, argümansız ve adlı argümanla açık hatadır.
 // Neden: eğitim döngüsü gradyan normunu ve kaybı NaN için böyle denetler (torch.isfinite).
@@ -137,7 +137,7 @@ yazdır(sonlu_mu(x.türe("bf16")).değer, sonlu_mu(tensör([[1, 2]])).değer)`)
 	}
 }
 
-// Kural (15.46): sonlu_mu'nun sonucu karşılaştırmalar gibi her zaman Ondalık 0/1'dir; tam sayılı
+// Kural (15.36): sonlu_mu'nun sonucu karşılaştırmalar gibi her zaman Ondalık 0/1'dir; tam sayılı
 // işaretli girdide (maks_indeks, sıralama_indeksi) de, kaynaştır içindekiyle aynı.
 // Neden: eskiden tam sayı işareti korunup [1, 1] veriyordu (Gemini kararlılık denetimi, bulgu 5).
 func TestIsFiniteIsAFloatMaskOnIntTensors(t *testing.T) {

@@ -161,7 +161,7 @@ func CheckParamShapes(fn string, names []string, found []*TensorValue, src map[s
 
 // CopyInto kaynağın değerlerini p'ye yerinde yazar: kaynak p'nin cihazına taşınır, türü
 // farklıysa dönüştürülür (şekiller aynı olmalıdır). İşlem çizgeye kaydedilmez; p'nin sürüm
-// sayacı artar (p'yi kullanmış eski bir çizgeden geri yayılım hata verir, 15.6). İyileştirici
+// sayacı artar (p'yi kullanmış eski bir çizgeden geri yayılım hata verir, 15.27). İyileştirici
 // p'nin kendisini tuttuğu için güncellemeler yüklenen değerlerle sürer. Çekirdek panikleri
 // (cihaz belleği) çağıranın kurtarıcısına gider.
 func CopyInto(p, src *tensor.Tensor) {

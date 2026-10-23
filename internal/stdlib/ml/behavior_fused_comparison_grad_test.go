@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-// Kural (dil tanımı 15.45, 15.46): karşılaştırma ve sonlu_mu kaynaştır içinde de türev izlemez;
+// Kural (dil tanımı 15.44, 15.36): karşılaştırma ve sonlu_mu kaynaştır içinde de türev izlemez;
 // çıktısı türev isteyen girdiye türevlenebilir bir yoldan bağlı olmayan kaynaşmış fonksiyonun
 // sonucu kaynaştır dışındaki gibi türevsizdir. (Gemini gerileme denetimi, Bulgu 7.)
 func TestFusedComparisonDoesNotTrackGrad(t *testing.T) {
@@ -29,6 +29,6 @@ yazdır("IC_HATA:", iç_hata, "IC_GRAD:", x.gradyan)
 `)
 	want := "DIS_HATA: doğru DIS_GRAD: yok\nIC_HATA: doğru IC_GRAD: yok\n"
 	if out != want {
-		t.Fatalf("sonlu_mu kaynaştır içinde de türev izlememeliydi (15.46):\nalınan:\n%s\nbeklenen:\n%s", out, want)
+		t.Fatalf("sonlu_mu kaynaştır içinde de türev izlememeliydi (15.36):\nalınan:\n%s\nbeklenen:\n%s", out, want)
 	}
 }

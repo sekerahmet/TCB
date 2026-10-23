@@ -5,7 +5,7 @@
 // showing that the hand-written loop gives the same result as model.üret; gizli_durum + tek_adım + replay on a fixed cache.
 // Builds on: ready model and generation (46), replay (45), selecting and sorting (25).
 // Run (from the project root): tr examples/en/47_own_generation_loop.tr
-// Details: docs/guide/10_hazir_katmanlarla_gpt.md, docs/spec/15_tensorler.md §15.48–15.49, lib/README.md (Üretim).
+// Details: docs/guide/10_hazir_katmanlarla_gpt.md, docs/spec/15_tensorler.md §15.45, §15.8, lib/README.md (Üretim).
 // Model: the small random-weight model of 46 (tests/data/hf_tiny); what is printed is token ids.
 
 A070 "tr/hazir"

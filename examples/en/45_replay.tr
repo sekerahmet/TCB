@@ -5,7 +5,7 @@
 // In generation every token does the same small work; the main cost is often launching hundreds of
 // kernels one by one. replay records the work on the second call, then skips the interpreter and replays it.
 // Builds on: the ready-made GPT (41); GPT.üret (the library is written in Turkish) uses the same path on the GPU by itself.
-// Details: docs/spec/15_tensorler.md §15.48–15.49, lib/README.md (Üretim).
+// Details: docs/spec/15_tensorler.md §15.45, §15.8, lib/README.md (Üretim).
 //
 // Run (from the project root): tr examples/en/45_replay.tr
 // On the GPU: uncomment the line below; on the CPU replay calls f directly and the result is the same.

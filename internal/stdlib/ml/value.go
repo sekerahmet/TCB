@@ -29,7 +29,7 @@ type TensorValue struct {
 	// Tam döndürür, yazdırma ondalıksız yapılır. İşlem sonuçlarına geçmez.
 	hasInts bool
 	// own yorumlayıcının sahiplik durumudur: değer bırakılınca başlığın bu sarıcısı düşer
-	// (dil tanımı 15.44; internal/lang/interp/ownership.go).
+	// (dil tanımı 15.43; internal/lang/interp/ownership.go).
 	own interp.Ownership
 }
 

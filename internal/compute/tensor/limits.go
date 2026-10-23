@@ -91,7 +91,7 @@ func LayerNorm(x, gamma, beta *Tensor, eps float32) *Tensor {
 }
 
 // LayerNormAs LayerNorm'dur, çıktısı dt türündedir: hesap her türde float32'dir, çıktı yazılırken
-// dt'ye yuvarlanır (ardından gelen çarpım için ayrı bir dönüşüm gerekmez; 15.13). float32
+// dt'ye yuvarlanır (ardından gelen çarpım için ayrı bir dönüşüm gerekmez; 15.4). float32
 // girdinin daraltılmış çıktısının gradyanı float32 tutulur: ileri ve geri yön, float32 normun
 // ardından ayrı dönüşümle bit düzeyinde aynıdır.
 func LayerNormAs(x, gamma, beta *Tensor, eps float32, dt DType) *Tensor {

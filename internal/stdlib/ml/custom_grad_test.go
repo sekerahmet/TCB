@@ -276,7 +276,7 @@ yazdır(türev_denetle((a) => a * w, [x]))`)
 }
 
 // Kural: adlı argümanlı tensör metodu çağrısı (x.böl(2, eksen: 0)) alıcıyı kaçırmaz; yerel tensör
-// kapsam sonunda konumlu çağrıdaki gibi bırakılır (15.44).
+// kapsam sonunda konumlu çağrıdaki gibi bırakılır (15.43).
 func TestNamedArgumentMethodCallReleasesReceiverAtScopeExit(t *testing.T) {
 	m := interp.New()
 	m.Out = &bytes.Buffer{}
@@ -306,7 +306,7 @@ sına()
 }
 
 // Kural: var olan başlığı aynen döndüren işlemler (aynı cihaza cihaza, tek tensörlü toplam)
-// başlığı ikinci kez sarmaz; yerel tensör kapsam sonunda bırakılır (15.44). Neden: ikinci
+// başlığı ikinci kez sarmaz; yerel tensör kapsam sonunda bırakılır (15.43). Neden: ikinci
 // sarıcı sahipliği alamaz ve başlık hiç düşmez.
 func TestRewrappingBuiltinsKeepSingleOwner(t *testing.T) {
 	for _, expr := range []string{`x.cihaza("cpu")`, `toplam([x])`} {
@@ -333,7 +333,7 @@ func TestRewrappingBuiltinsKeepSingleOwner(t *testing.T) {
 }
 
 // Kural: x[i] ve maks(x) ara görünüm başlıklarını bırakır; yerel tensör bırakılınca depolaması
-// arka uca iade edilir (15.44). Not: sondaki 'değişken' deyimi dönüş değeridir, bu yüzden
+// arka uca iade edilir (15.43). Not: sondaki 'değişken' deyimi dönüş değeridir, bu yüzden
 // fonksiyonun son satırı başka bir deyimdir.
 func TestIndexAndWholeReductionsReturnStorageAtScopeExit(t *testing.T) {
 	for _, stmt := range []string{`değişken y = x[0]`, `değişken y = maks(x)`} {

@@ -40,10 +40,10 @@ Testler:
 | `internal/compute/tensor/elementwise_wide_test.go` (`gradSpec` kaydı) | float64 başvuruya karşı sonlu fark gradyanı ve bf16 gradyan toleransı (3e-2); kayıt yoksa `behavior_grad_coverage_test.go` düşer; sınır değerlerde türev `TestUnaryGradEdges` |
 | `internal/compute/gpu/backend_wide_test.go` | GPU'nun CPU ile aynı sonucu vermesi, bf16/fp16 |
 | `internal/stdlib/ml/builtin_math_test.go` | sayıda ve tensörde dönüş tipi, listede açık hata |
-| `tests/matematik_test.tr` | dil kuralı: `test "15.31 ..."` (madde numarasıyla başlar) |
+| `tests/matematik_test.tr` | dil kuralı: `test "15.11 ..."` (madde numarasıyla başlar) |
 | `tr.json`'daki örnek | kendiliğinden tip denetiminden geçer ve çalışır (`internal/lang/codes`, `internal/stdlib`) |
 
-Belge: `docs/spec/15_tensorler.md`'de ilgili madde (15.31 genişletilmiş eleman bazlı fonksiyonlar).
+Belge: `docs/spec/15_tensorler.md`'de ilgili madde (15.11 genişletilmiş eleman bazlı fonksiyonlar).
 
 Bitti: NaN ve sonsuzlar tanımlı; türev sınırlarda doğru; 16 bit tensörde tür korunuyor; GPU testi benzeticide ve gerçek kartta geçiyor.
 

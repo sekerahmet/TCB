@@ -3,7 +3,7 @@
 // sıcaklık:, en_iyi_k:, tohum:, eos:, önbellek_çeşidi:) ile parça üretmek, üretimi tekrarlanabilir yapmak.
 // Önceki örnekten: GPT ve kitaplık (41), parçalayıcı (39), örnekleme (34).
 // Çalıştırma (proje kökünden): tr examples/tr/46_hazir_model_ve_uretim.tr
-// Ayrıntılar: docs/guide/10_hazir_katmanlarla_gpt.md, docs/spec/15_tensorler.md §15.47–15.48, lib/README.md (tr/hazir).
+// Ayrıntılar: docs/guide/10_hazir_katmanlarla_gpt.md, docs/spec/15_tensorler.md §15.47, §15.45, lib/README.md (tr/hazir).
 //
 // Model: tests/data/hf_tiny, RASTGELE ağırlıklı 18 KB'lık küçük bir Llama (config.json + model.safetensors);
 // anlamlı metin üretmez, bu yüzden örnek metni değil parça kimliklerini yazdırır. Aynı kod gerçek bir

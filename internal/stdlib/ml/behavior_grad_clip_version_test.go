@@ -7,7 +7,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 )
 
-// Kural (dil tanımı 15.46): sonlu_değilse_hata: doğru sonlu olmayan normda gradyanlara dokunmadan
+// Kural (dil tanımı 15.36): sonlu_değilse_hata: doğru sonlu olmayan normda gradyanlara dokunmadan
 // hata verir; gradyanın sürümü de artmaz, CPU ve GPU'da aynı. (Gemini gerileme denetimi, Bulgu 8.)
 func TestGradClipStrictFailureLeavesGradsUntouched(t *testing.T) {
 	gpu.RegisterSimulator()
@@ -35,7 +35,7 @@ yazdır("GPU:", sına("gpu"))
 	}
 }
 
-// Kural (dil tanımı 15.46): kırpma gradyanları yerinde yazar sayılır; norm sınırın altında olsa da
+// Kural (dil tanımı 15.36): kırpma gradyanları yerinde yazar sayılır; norm sınırın altında olsa da
 // gradyanın sürümü artar (PyTorch clip_grad_norm_ ölçek 1'de de yerinde çarpar). Kırpmadan önce
 // gradyanı kaydetmiş bir hesabın geri yayılımı CPU'da da GPU'da da aynı hatayı verir.
 func TestGradClipBumpsVersionOnBothDevices(t *testing.T) {

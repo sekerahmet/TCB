@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-// Kural (dil tanımı 15.46): float32'de taşan norm ([3e38, 3e38]) sonsuzdur; ölçek 0 olur, sonlu
+// Kural (dil tanımı 15.36): float32'de taşan norm ([3e38, 3e38]) sonsuzdur; ölçek 0 olur, sonlu
 // gradyanlar 0'dır (PyTorch 2.14 clip_grad_norm_ ile aynı). (Gemini gerileme denetimi, Bulgu 2.)
 func TestGradClipOverflowingNormZeroesGrads(t *testing.T) {
 	out := mustRun(t, `

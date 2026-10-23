@@ -26,7 +26,7 @@ import (
 //
 // B (ağırlık) float32 ya da 16 bitlik (bf16, fp16) olabilir: 16 bitlik ağırlık açılmadan okunur
 // (bayt yarıya iner), a, toplayıcılar ve c float32'dir (ağırlığı 16 bit, hesabı 32 bit; dil
-// tanımı 15.12'de farklı türlerin çarpımı float32'dir).
+// tanımı 15.3'te farklı türlerin çarpımı float32'dir).
 //
 // Toplama sırası sabittir: toplayıcılar sırayla, warp içi kelebek karıştırmayla (shfl.bfly;
 // iki eş aynı toplamı bulur), warp'lar paylaşımlı bellekte warp sırasıyla. Sonuç aynı ayarla

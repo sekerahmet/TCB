@@ -152,7 +152,7 @@ func checkShapeLimit(fn string, sh []int) error {
 	return nil
 }
 
-// maxTensorElements veri taşıyan bir tensörün en çok eleman sayısıdır (dil tanımı 15.10). Liste
+// maxTensorElements veri taşıyan bir tensörün en çok eleman sayısıdır (dil tanımı 15.46). Liste
 // sınırından (interp.MaxCollectionSize) ayrıdır: hazır modellerin tabloları onu aşar (Qwen3-0.6B
 // gömmesi 155 milyon, 70B modellerinkiler 1 milyar eleman). Asıl koruma ayırmadaki fiziksel
 // bellek denetimi (tensor paketi) ve dosyalarda bildirilen verinin dosyada bulunmasıdır; bu

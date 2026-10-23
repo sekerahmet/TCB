@@ -16,7 +16,7 @@ Denetim: `TestBuiltinsMatchDictionary`, `TestMembersMatchDictionary` (`internal/
 
 **Karışık hassasiyet bloğa bağlıdır.** `karışık_hassasiyet(tür) { ... }` görevin durumudur:
 başka görevlere sızmaz, blok bitince (hata ile de) önceki tür geri gelir. Ağırlıkların türü
-değişmez; dönüşümler türevlenebilir kopyalardır. Kurallar dil tanımının 15.13 maddesindedir.
+değişmez; dönüşümler türevlenebilir kopyalardır. Kurallar dil tanımının 15.4 maddesindedir.
 Denetim: `TestMixedPrecisionBlock`, `TestMixedPrecisionTaskIsolation`, `TestMixedPrecisionGradient`, `TestOptimizerMasterCopy`.
 
 **Tensör dosyası doğrulanır.** Başlık, sürüm, tür, boyutlar, eleman sınırı, uzunluk ve sağlama

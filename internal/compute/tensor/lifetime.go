@@ -7,7 +7,7 @@ import (
 )
 
 // ============================================================================
-// Tensör ömrü: belirlenimci bırakma (dil tanımı 15.44)
+// Tensör ömrü: belirlenimci bırakma (dil tanımı 15.43)
 // ============================================================================
 //
 // Bir depolamanın sahipleri onu gösteren tensör başlıkları (her görünüm ayrı bir başlıktır)

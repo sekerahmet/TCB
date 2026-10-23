@@ -43,7 +43,7 @@ func TestAdamWEpsilonPositive(t *testing.T) {
 	}
 }
 
-// Kural (15.46): gradyan_kırp(..., sonlu_değilse_hata: doğru) toplam norm NaN ya da sonsuzsa
+// Kural (15.36): gradyan_kırp(..., sonlu_değilse_hata: doğru) toplam norm NaN ya da sonsuzsa
 // H6534 verir (PyTorch error_if_nonfinite); varsayılan (yanlış) ve sonlu normda davranış
 // değişmez. Mantık olmayan değer açık hatadır.
 // Neden: uzun eğitim bozuk bir gradyanla sessizce sürmesin; isteyen erken durur.
@@ -77,7 +77,7 @@ gradyan_kırp([v], sonlu_değilse_hata: 1)`, messages.H7905},
 	}
 }
 
-// Kural (15.46): sonlu_değilse_hata: doğru normu kırpmadan önce denetler; float32'de taşan norm
+// Kural (15.36): sonlu_değilse_hata: doğru normu kırpmadan önce denetler; float32'de taşan norm
 // ([3e38, 3e38]) sonsuzdur, hata verilir ve gradyanlar değişmez. Hata istenmezse sonlu olmayan
 // normda kırpma PyTorch 2.14 clip_grad_norm_ ile aynıdır: sonsuz eleman NaN, sonlu eleman 0.
 // Neden: eskiden gradyanlar önce kırpılıp sonra hata veriliyordu (Gemini kararlılık denetimi,

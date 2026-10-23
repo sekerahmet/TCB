@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// Tensör ömrünün kuralları (lifetime.go, dil tanımı 15.44): depolama bütün sahipleri
+// Tensör ömrünün kuralları (lifetime.go, dil tanımı 15.43): depolama bütün sahipleri
 // bırakılınca havuza döner; bırakılmamış bir sahip (görünüm, kayıt, sarıcı) onu tutar.
 
 // returnLog iade edilen depolamaları kaydeder (havuz onları hemen yeniden verebilir; iade
@@ -120,7 +120,7 @@ func TestCastMemoSkipsDroppedEntry(t *testing.T) {
 }
 
 // Kural: bitişik olmayan tensörün Reshape'i ara kopyasının başlığını bırakır; sonuç bırakılınca
-// depolama havuza döner (15.44). Neden: ara başlık sahip kalırsa depolama hiç dönmez.
+// depolama havuza döner (15.43). Neden: ara başlık sahip kalırsa depolama hiç dönmez.
 func TestReshapeOfNonContiguousReturnsStorageOnDrop(t *testing.T) {
 	log := watchReturns(t)
 	x := big(rand.New(rand.NewSource(1)))
@@ -135,7 +135,7 @@ func TestReshapeOfNonContiguousReturnsStorageOnDrop(t *testing.T) {
 }
 
 // Kural: CustomOp geri hesabının gelen gradyanları ve ürettiği ara gradyanlar geri hesaptan
-// sonra havuza döner (15.44). Neden: bu başlıkları kimse bırakmazsa depolamaları çöp
+// sonra havuza döner (15.43). Neden: bu başlıkları kimse bırakmazsa depolamaları çöp
 // toplayıcıya kalır.
 func TestCustomOpBackwardReturnsItsTemporaryGradients(t *testing.T) {
 	x := big(rand.New(rand.NewSource(1))).SetRequiresGrad(true)

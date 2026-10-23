@@ -35,7 +35,7 @@ type AttentionOptions struct {
 }
 
 // AttentionParams arka uca verilen, şekilleri çözülmüş dikkat tanımıdır. q, k,
-// v görünümleri bitişiktir. SeqMajor ise düzen dilinkidir (dil tanımı 15.17; JAX
+// v görünümleri bitişiktir. SeqMajor ise düzen dilinkidir (dil tanımı 15.24; JAX
 // dot_product_attention ve FlashAttention gibi): q [Batch, Tq, H, Dh], k [Batch, Tk, Hkv, Dh],
 // v [Batch, Tk, Hkv, Dv], çıktı ve gradyanlar da öyle. Değilse bakış öndedir: q [Batch, H, Tq,
 // Dh] ... (arka ucun yeni düzeni desteklemediği durum; AttentionOut girdileri görünüm olarak

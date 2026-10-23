@@ -5,7 +5,7 @@
 //             değişken karar = bekçi.gözle(kayıp.değer, norm.değer)   // TAMAM, SONLU_DEĞİL ya da SIÇRAMA
 //
 // Bekçi yalnızca karar verir; ne yapılacağını (adımı atlamak, son kontrol noktasına dönüp toplu
-// işleri atlamak, durmak) eğitim döngüsü seçer (dil tanımı 15.46, 20.14, 20.15). Örnek:
+// işleri atlamak, durmak) eğitim döngüsü seçer (dil tanımı 15.36, 20.14, 20.15). Örnek:
 //
 //     eğer karar == SONLU_DEĞİL { op.sıfırla(); devam }          // adımı atla (GradScaler gibi)
 //     eğer karar == SIÇRAMA { adım = kn.geri_dön(); ö.atla(200); devam }   // PaLM §5.1

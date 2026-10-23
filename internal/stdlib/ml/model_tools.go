@@ -234,7 +234,7 @@ func checkAttentionShapes(fn string, q, k, v *tensor.Tensor) error {
 	if ks[n-1] != qs[n-1] {
 		return messages.New(messages.H6330, fn, shapeText(qs), shapeText(ks))
 	}
-	// Düzen [..., T, bakış, dh] (dil tanımı 15.17); 2 boyutlu girdi tek bakışlı [T, dh].
+	// Düzen [..., T, bakış, dh] (dil tanımı 15.24); 2 boyutlu girdi tek bakışlı [T, dh].
 	t := max(n-3, 0)
 	if vs[t] != ks[t] {
 		return messages.New(messages.H6331, fn, shapeText(ks), shapeText(vs))

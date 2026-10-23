@@ -62,7 +62,7 @@ Dil, tensörler, otomatik türev, veri hattı ve GPU üst üste kuruldu; TR ile 
    - Dış denetimden sonra (2026-10-20): çoğul kuralı CLDR işlenenlerini alır (2^53 üstünde de doğru, Rusça gibi dillere hazır); bir parametre ya dal dışında ya her dalda geçer (testle; birbirini dışlayan değerli iki ileti ikişer koda ayrıldı); parçadan kurulan iletiler (dosya hataları, yüklem ve iyelik parçaları) tam cümleye çevrildi ve bir ileti metninin başka iletiye değer olarak geçmesini test yakalar.
    - Kalan küçükler: değer olarak geçen ad öbekleri ve sona eklenen ipuçları (ör. GPU tanı zinciri H4033–H4035, `{hint}` eki, "Bunu mu demek istediniz" eki, `testrunner` sayım satırı) çeviride sorun çıkarabilir; Evre 8'de tek şablona çevrilir. Parça testi değişkene alınmış metni ve `+` birleştirmeyi henüz görmüyor.
 3. **Gradyan doğruluğu kapısı (tamamlandı).** Her türevli tensör işleminin float64 sonlu fark testi ve bf16 tolerans testi var (`gradSpec`); `behavior_grad_coverage_test.go` testi olmayan işlemi yakalar; GPU'da her türevli işlemin gradyanı CPU ile karşılaştırılır (gerçek kartta doğrulandı). `stdlib/ml`'deki 14 bileşik türev de (softmax, normlar, çapraz entropi, gömme, dikkat ...) aynı kapıdadır. bf16 toleransları ölçülerek işlem başına seçildi (ölçülenin 2 katı; tablo `internal/compute/tensor/README.md`). Bulunan tek yanlış: `üstel_eksi_bir`'in türevi çok negatif girdide 0 çıkıyordu, düzeltildi. Kalan: GPU'daki bf16 sapma tablosu Colab'da ölçülecek.
-4. **Anlam kuralları yazılı ve testli (tamamlandı).** Yayınlama, tür yükseltme, tensör indeksi ve dilimi, `.dilim`, liste ve metin indeksi, sayı olmayan işlenen ve NaN kuralları dil tanımının 15.41 maddesinde tek tabloda; her biri PyTorch/NumPy ile karşılaştırıldı ve `tests/tensor_test.tr`'de testli. Tek davranış değişikliği: liste ve metinde sınır dışı okuma artık hatadır, bilinçli durum için `varsa_al` (3.6).
+4. **Anlam kuralları yazılı ve testli (tamamlandı).** Yayınlama, tür yükseltme, tensör indeksi ve dilimi, `.dilim`, liste ve metin indeksi, sayı olmayan işlenen ve NaN kuralları dil tanımının 15.49 maddesinde tek tabloda; her biri PyTorch/NumPy ile karşılaştırıldı ve `tests/tensor_test.tr`'de testli. Tek davranış değişikliği: liste ve metinde sınır dışı okuma artık hatadır, bilinçli durum için `varsa_al` (3.6).
 5. **Açık işler ve bekleyen dil kararları.** Her karar başka dillerle karşılaştırılarak verildi; gerekçeleri dil tanımında.
    - Tamamlandı:
      - `csv_çöz(metin)`; `csv_oku` yalnızca dosya okur (13.8). Ortam değişkeni adları ASCII (`TR_IS_KLASORU`).
@@ -160,15 +160,15 @@ Veri: dört parça dosyasından tam 800M parça (veri bir kez görülür). Doğr
   - Muon aynı şekilli ağırlıkları tek yığında, bf16'da dikleştirir (56 dikleştirme yerine 3).
   - `Doğrusal` sapmayı çarpımın türünde ekler.
 - **Normlar** 16 bitlik girdiyi açmadan okur (194).
-- **Belirlenimci bırakma**, dil tanımı 15.44 (189 ms, 11,84 GB):
+- **Belirlenimci bırakma**, dil tanımı 15.43 (189 ms, 11,84 GB):
   - Yorumlayıcının sahiplik kuralları ve depolamanın sahip sayacı, tensörün belleğini ona artık ulaşılamayacağı kesinleşince havuza döndürür.
   - Yalnızca çöp toplayıcıyla bellek ancak toplama sıklaşınca iniyordu (128 MB eşikte 11,61 GB / 696 ms).
   - Saf skaler TR döngülerinde ek yük ~%19.
-- **Kaynaştırma**, dil tanımı 15.45: `kaynaştır(f)` eleman bazlı zinciri tek geçişe indirir.
+- **Kaynaştırma**, dil tanımı 15.44: `kaynaştır(f)` eleman bazlı zinciri tek geçişe indirir.
   - RoPE, SwiGLU kapısı ve PLE karışımı (179).
   - Tek çıktılı kaynaşık işlemin gradyanı girdinin gradyanına doğrudan yazılır (167).
 - **H3 (162 ms):** normların ve kaynaşık zincirlerin çıktısı doğrudan çarpımın türünde yazılır.
-  - Dil tanımı 15.13: `tür:`, `hesap_türü()`.
+  - Dil tanımı 15.4: `tür:`, `hesap_türü()`.
   - float32'den daraltılan çıktının gradyanı float32 tutulur; ileri ve geri yön bit düzeyinde aynıdır.
 - **Gerçek veri (173 → 162 ms):** gömmenin geri yönü sık geçen parçaların satırını tek blokta topluyordu.
   - Gerçek metinde parça sıklığı Zipf dağılımlıdır; aynı satıra binlerce konum düşer. Tekdüze sentetik veride bu görünmez: Zipf verisinde adım 196, tekdüzede 163 ms ölçüldü.
@@ -181,7 +181,7 @@ Veri: dört parça dosyasından tam 800M parça (veri bir kez görülür). Doğr
 
 **Bellek yolu** (30,8 GB'tan 10,81 GiB'a):
 - otomatik türev çizgesi yalnızca kaydedilen tensörleri tutar (PyTorch'un grad_fn / saved tensors ayrımı),
-- `doğrusal_çapraz_entropi` logitleri bütün olarak tutmaz (dil tanımı 15.43),
+- `doğrusal_çapraz_entropi` logitleri bütün olarak tutmaz (dil tanımı 15.25),
 - 1 MB üstü bloklar sürücü parçalarından en uygun boş bloğa bölünür (PyTorch'un önbellekli ayırıcısı),
 - normlar 16 bitlik girdinin türünde çıktı verir,
 - belirlenimci bırakma.
@@ -206,7 +206,7 @@ Veri: dört parça dosyasından tam 800M parça (veri bir kez görülür). Doğr
    - Kalanlar H4 olarak Evre 7'de.
    - Gerçek verideki ~10 ms'lik fark: giderildi (gömme geri yönü, yukarıda "Hız yolu").
 6. **Eğitim gözlemlenebilirliği.**
-   - NaN/Inf ve kayıp sıçramasında durma ya da son kontrol noktasına dönme: yapıldı (2026-10-21). Dil parçaları verir, politikayı döngü seçer: `sonlu_mu`, `gradyan_kırp(..., sonlu_değilse_hata:)` (dil tanımı 15.46), `kn.geri_dön()` ve `ö.atla(n)` (20.14, 20.15), kitaplıkta `tr/egitim`'in sıçrama bekçisi (OLMo-core ölçütü: son 128 sağlam adıma göre 6σ). `rgn512.tr --koşu` NaN ya da sıçramada son noktaya döner ve 200 toplu iş atlar (PaLM §5.1); kontrol noktası yoksa NaN'de açık hatayla durur. Bekçi adımın sonunda zaten okunan değerleri kullanır, adıma bekleme eklemez. Örnek 44.
+   - NaN/Inf ve kayıp sıçramasında durma ya da son kontrol noktasına dönme: yapıldı (2026-10-21). Dil parçaları verir, politikayı döngü seçer: `sonlu_mu`, `gradyan_kırp(..., sonlu_değilse_hata:)` (dil tanımı 15.36), `kn.geri_dön()` ve `ö.atla(n)` (20.14, 20.15), kitaplıkta `tr/egitim`'in sıçrama bekçisi (OLMo-core ölçütü: son 128 sağlam adıma göre 6σ). `rgn512.tr --koşu` NaN ya da sıçramada son noktaya döner ve 200 toplu iş atlar (PaLM §5.1); kontrol noktası yoksa NaN'de açık hatayla durur. Bekçi adımın sonunda zaten okunan değerleri kullanır, adıma bekleme eklemez. Örnek 44.
    - Günlüğe kırpma öncesi ve sonrası gradyan normu, saniyede parça ve kontrol noktası bugün yazılıyor.
    - Uzun eğitimin öbür ölçüleri ve seçenekleri Evre 7'de: parametre normu, etkinleşme RMS'i, log Z, MFU, z-loss, toplu iş atlama, eşzamansız kontrol noktası.
 7. **Belirlenimci veri sırası.** Sıralı ve tohumlu örnekleyiciyle sağlanıyor. Çoklu GPU'da (Evre 7) yeniden doğrulanır.
@@ -302,10 +302,10 @@ Modeli kullanan geliştiricinin ilk sorusu: "Hugging Face'teki modeli yükleyip 
    Kaynaklar henüz okunmadı (kanıtsız): μP (Yang ve ark. 2022), Schedule-Free (Defazio ve ark. 2024), 8 bit Adam (Dettmers ve ark. 2021), Muon (Jordan 2024).
 6. **Çıkarım ve sunum.**
    - KV önbellekli `üret`: **yapıldı (2026-10-21)**; `KVÖnbellek` sabit ve büyüyen (`çeşit:`), `kırp`, yalnızca son logit. Kalan: kayan pencereli katmanlarda halka tampon (pencere boyunda önbellek), 8 bitlik önbellek, önek saklama (ortak başlangıcı yeniden işlememe), tahminli çözme (taslak model ya da MTP; `kırp` hazır). Örnekleme: en iyi p kalan.
-   - **Üretim hızı (2026-10-22, aşağıdaki "Üretim hızı" tablosu).** Yapılanlar sırasıyla: tek satırlık çarpım (M = 1) kernelleri CPU'da (AVX2/FMA) ve GPU'da; kendi akış; CUDA Graph (`tekrar_oynat`, dil tanımı 15.48; `yerine_yaz` 15.49; `GPT.tek_adım`: konum ve kimlik cihazda, transformers sabit önbelleği gibi); katman başına kernel azaltma (maske adımda bir kez, maske kopyasız, K|V ve kapı|yukarı birleşik yükleme); 16 bitlik ağırlık (`hazır_model(ağırlık_türü: "bf16")`: ağırlık açılmadan okunur, hesap float32). Kalan, ölçülmüş sırayla: açılış süresi (Qwen3 ~5 sn, çoğu boşa giden rastgele başlatma); katman başına kalan 14 kernelin kaynaştırılması (kalıntı + norm, q ve k RoPE tek kernel, k ve v yazımı tek kernel); CPU'da 16 bitlik ağırlık kerneli (bf16 varsayılan olabilsin diye); CPU hızının yeni kernellerle yeniden ölçülmesi.
+   - **Üretim hızı (2026-10-22, aşağıdaki "Üretim hızı" tablosu).** Yapılanlar sırasıyla: tek satırlık çarpım (M = 1) kernelleri CPU'da (AVX2/FMA) ve GPU'da; kendi akış; CUDA Graph (`tekrar_oynat`, dil tanımı 15.45; `yerine_yaz` 15.8; `GPT.tek_adım`: konum ve kimlik cihazda, transformers sabit önbelleği gibi); katman başına kernel azaltma (maske adımda bir kez, maske kopyasız, K|V ve kapı|yukarı birleşik yükleme); 16 bitlik ağırlık (`hazır_model(ağırlık_türü: "bf16")`: ağırlık açılmadan okunur, hesap float32). Kalan, ölçülmüş sırayla: açılış süresi (Qwen3 ~5 sn, çoğu boşa giden rastgele başlatma); katman başına kalan 14 kernelin kaynaştırılması (kalıntı + norm, q ve k RoPE tek kernel, k ve v yazımı tek kernel); CPU'da 16 bitlik ağırlık kerneli (bf16 varsayılan olabilsin diye); CPU hızının yeni kernellerle yeniden ölçülmesi.
    - 127.0.0.1'e bağlı OpenAI uyumlu HTTP sunucusu: completions ve chat, `logprobs` ile. Bu tek adım lm-evaluation-harness ile değerlendirmeyi, arayüzleri ve ajan çerçevelerini getirir.
    - Yorumlayıcı kilidi kernel çağrılarında ve G/Ç'de bırakılır; hangi yerleşiklerin bıraktığı belgelenir. Böylece sunucu, parçalayıcı ve GPU eşzamanlı çalışır.
-   - CUDA Graphs önce üretim için: **yapıldı (2026-10-22)**, `tekrar_oynat(f)` (dil tanımı 15.48): ikinci çağrı kaydeder, sonrakiler oynatır; kayıtta cihazdan okuma, konaktan yükleme ve eşzamanlama kodlu hatadır; kayda özel bellek havuzu; ulaşılamaz kaydın belleği bırakılır. Gemini kayıt ve sayısal denetiminden sonra (2026-10-22, 16 bulgu, hepsi testli): kayıt dokunduğu her depolamayı tutar (bırakılsa da kayıt yaşadıkça başka işe verilmez), iç içe `tekrar_oynat` doğrudan çağrılır, kayıt sırasında yorumlayıcı kilidi başka göreve geçmez, yerinde değişen argüman çağırana geri yazılır, sayı işlenenleri cihazda doldurulur. Eğitimde kazanç konakta boşa giden süreye bağlıdır; H4 profili ölçecek.
+   - CUDA Graphs önce üretim için: **yapıldı (2026-10-22)**, `tekrar_oynat(f)` (dil tanımı 15.45): ikinci çağrı kaydeder, sonrakiler oynatır; kayıtta cihazdan okuma, konaktan yükleme ve eşzamanlama kodlu hatadır; kayda özel bellek havuzu; ulaşılamaz kaydın belleği bırakılır. Gemini kayıt ve sayısal denetiminden sonra (2026-10-22, 16 bulgu, hepsi testli): kayıt dokunduğu her depolamayı tutar (bırakılsa da kayıt yaşadıkça başka işe verilmez), iç içe `tekrar_oynat` doğrudan çağrılır, kayıt sırasında yorumlayıcı kilidi başka göreve geçmez, yerinde değişen argüman çağırana geri yazılır, sayı işlenenleri cihazda doldurulur. Eğitimde kazanç konakta boşa giden süreye bağlıdır; H4 profili ölçecek.
    - **CPU'da hazır model:** küçük bir hazır model (yüz milyonlarca parametre) GPU'suz, dizüstünde verimli çalışır. Ağırlıklar safetensors'tan bellek eşlemeyle (mmap) kopyasız yüklenir. KV önbellekli üretim tek ve çok çekirdekte koşar, AVX2/FMA kernelleri kullanılır (tek satırlık çarpım kerneli yapıldı, 2026-10-21: dizüstünde SmolLM2 ~%40); ağırlığı bf16 saklanan çarpım anında genişletilir (bugün CPU'da ağırlık her çağrıda açılıyor; kernel yok). Ölçüt: aynı model ve aynı ayarlarla PyTorch CPU ve llama.cpp'ye karşı token/sn ile ilk token süresi. Hedef oran ilk ölçümden sonra buraya yazılır (Evre 3'teki gibi). Yalnızca ağırlık int8/int4 nicemleme (Evre 7) bu yolu hızlandırır.
 7. **Sürüm politikası.**
    - 0.y.z sürüm numaralama.
@@ -360,7 +360,7 @@ GPU yolu: 213 → 224 (tek satırlık çarpım kernelleri) → 230 (kendi akış
 
 - **Tek GPU'da `torch.compile` ile başa baş hız (H4, ≤ 136 ms/adım hedef modelde; Evre 3'ten taşındı; profilde 162 ms, kaynaşık norm geri yönünden sonra 155, dikkat düzeninden sonra 151, normların warp çekirdeklerinden sonra 145 ms, 10,81 GiB, 2026-10-22; aşağıdaki kernel payları 151 ms'deki profilden).** Profil (2026-10-22, RTX PRO 6000): GPU boşluğu duvar süresinin %4,5'i, yani adım GPU'yla sınırlı; eğitim adımında CUDA Graph en çok ~%5 kazandırır, sona kalır. Kernel süresinin payları: çarpım %30, kopya %12 (bakışlara ayırma kopyası bf16 %3,5, float32→bf16 dönüşümü %3,2), indirge %8,4, ikili %8,2 (float32 + bf16 kalıntı toplaması %2,4), norm geri yönü %8,2, kaynaşık %7,5, çapraz entropi %6,2, dikkat %6,4, norm ileri %4. Ölçümün gösterdiği sırayla, her adım önce ve sonra ölçülür:
   - norm geri yönünün ağırlık gradyanı indirgemesiyle birlikte kaynaştırılması: **yapıldı (2026-10-22)**, tek geçiş, ağırlık gradyanı blok başına kısmi toplamlarla; 163 → 155 ms;
-  - dikkatin bakışlara ayırma kopyaları: **yapıldı (2026-10-22)**, 155 → 151 ms, PyTorch'la eşleşme 0,0039 (önce 0,0037), üretim hızı değişmedi. `dikkat` `[..., T, H, dh]` alır (dil tanımı 15.17; JAX ve FlashAttention düzeni); birleşik çekirdekler bakışları adımlı okuyup yazar, kitaplık eksen sıralamayı bıraktı; katman başına 6 kopya kalkar;
+  - dikkatin bakışlara ayırma kopyaları: **yapıldı (2026-10-22)**, 155 → 151 ms, PyTorch'la eşleşme 0,0039 (önce 0,0037), üretim hızı değişmedi. `dikkat` `[..., T, H, dh]` alır (dil tanımı 15.24; JAX ve FlashAttention düzeni); birleşik çekirdekler bakışları adımlı okuyup yazar, kitaplık eksen sıralamayı bıraktı; katman başına 6 kopya kalkar;
   - normların satır başına warp çekirdekleri (ileri D ≤ 256, geri D ≤ 512; adımlı ve iki düzeyli görünümler yerinde okunur) ve ilk x gradyanının okunmadan üzerine yazılması (`NormGradSetter`): **yapıldı (2026-10-22)**, 151 → 145 ms. bf16 mikro ölçüm (µs, `torch.compile` parantezde): q normu ileri 150 → 31,5 (84), geri 96 → 31,8 (121); blok normu geri 132 → 98,6 (98);
   - GPU toplamlarının telafili (Neumaier) yapılması: doğruluk işi (gerçek kartta `TestNorms`'u düşüren sütun toplamı hatası), 145,0 → 145,4 ms (2026-10-22; `internal/compute/gpu/README.md`);
   - sütun toplamının paralelliği (yeni aday, 2026-10-22 ölçümü): tek aşamalı sütun toplamı 2000×512'de 0,1 ms, 41 GB/s (çıktı başına bir iş parçacığı; satırlar 2048'den azsa iki aşama yok). Norm geri yönünün ağırlık gradyanının son toplamı bu yoldadır. PyTorch ve XLA satırları bloğun iş parçacıklarına böler (32×32 karo, paylaşımlı bellekte ağaç);
@@ -423,7 +423,7 @@ GPU yolu: 213 → 224 (tek satırlık çarpım kernelleri) → 230 (kendi akış
     - satır içi PTX kaçış kapısı.
   - Otomatik ayarlama zorunlu değildir.
   - Bitiş: elle yazılmış norm, softmax, çapraz entropi ve AdamW kernelleri karo dilinde aynı hızda yeniden yazılır.
-- **Genel otomatik kaynaştırma:** ancak kural tabanlı birleştirici (`kaynaştır`, dil tanımı 15.45) ölçümle yetersiz kalırsa; indirgeme ve çarpım içeren zincirler (norm geri yönü, çarpım eplogları) için H4 (Evre 7) ölçümleri karar verir.
+- **Genel otomatik kaynaştırma:** ancak kural tabanlı birleştirici (`kaynaştır`, dil tanımı 15.44) ölçümle yetersiz kalırsa; indirgeme ve çarpım içeren zincirler (norm geri yönü, çarpım eplogları) için H4 (Evre 7) ölçümleri karar verir.
 - **Bölme bilgisi tensör tipinde:** tip denetleyicisi belirsiz bölmeyi hata sayar (JAX'ın açık kipi emsali).
 - **ONNX:** büyük işlem yüzeyi, kendi yürütme motoru olan bir dil için düşük getiri.
 - **Statik şekil denetimi:** tensör şekil hatalarının çalıştırmadan önce yakalanması.
@@ -456,7 +456,7 @@ Kararlar bu soruların yanıtıyla gözden geçirilir; ilki TR'nin kendi ölçü
 - Matematik ve model yapı taşları: genişletilmiş eleman bazlı matematik, birleşik `dikkat`, `örnekle`, `parametreler(model)`, `türev_denetle`; Transformer kitaplığı (`tr/katman`: Doğrusal, RMSNorm, RoPE, gruplu sorgu dikkati, SwiGLU, GPT).
 - Standart kitaplık: dosya ve yol işlemleri, komut satırı, günlük ve ilerleme çubuğu, kontrol noktası, profil ve canlı izleme.
 - Kod tabanı İngilizceye geçti (klasörler, dosyalar, Go adları); her paketin README'si standartlarını yazar.
-- Evre 3'ün yolu (2026-10-21): hedef modelin TR karşılığı, PyTorch'la aynı kalite, `torch.compile` belleği ve 1,2 katı hız; belirlenimci bırakma (15.44), kaynaştırma (15.45), normların çıktı türü (15.13), parçalı doğrusal + çapraz entropi (15.43), önbellekli GPU ayırıcısı; programın her yazım dilinde kanonik biçimiyle çalışması (17.7).
+- Evre 3'ün yolu (2026-10-21): hedef modelin TR karşılığı, PyTorch'la aynı kalite, `torch.compile` belleği ve 1,2 katı hız; belirlenimci bırakma (15.43), kaynaştırma (15.44), normların çıktı türü (15.4), parçalı doğrusal + çapraz entropi (15.25), önbellekli GPU ayırıcısı; programın her yazım dilinde kanonik biçimiyle çalışması (17.7).
 - Dış incelemeler: dil çekirdeği, hesap çekirdeği, standart kitaplık, geliştirici araçları, ileti altyapısı ve VS Code eklentisi raporları doğrulanarak düzeltildi.
 - Kod grafiği (`tools/codegraph`): Go çağrıları, ileti ve ad kodları, kural→test bağları ve belge başlıkları yerel, belirlenimci bir grafikte; ajanlar dosya okumadan önce sorgular.
 - Kod disiplini (2026-10-22): staticcheck ve ölü kod denetimi (deadcode) tam denetimde; govulncheck her gönderimde ve haftada bir üç işletim sistemi için; araç zinciri Go 1.26.10; uçtan uca testler 220 → 124 sn; GPU toplamları telafili ve float64 referansa karşı sınanır.

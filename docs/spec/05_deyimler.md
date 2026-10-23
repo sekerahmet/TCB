@@ -33,7 +33,7 @@ eşle puan {
 }
 ```
 
-**5.7** `döngü x içinde kaynak { ... }` listede, aralıkta, metinde (karakterler), sözlükte (anahtarlar) ve tensörde (ilk eksen boyunca, bkz. 15.11) dolaşır; akışlı kaynaklarda (veri kümesinin sıralı okuyucusu, 16.6) öğeler istendikçe okunur ve kaynak bitince döngü biter. İki değişkenli biçim `döngü i, x içinde ...` liste/metin/tensörde indeks ile elemanı, sözlükte anahtar ile değeri verir.
+**5.7** `döngü x içinde kaynak { ... }` listede, aralıkta, metinde (karakterler), sözlükte (anahtarlar) ve tensörde (ilk eksen boyunca, bkz. 15.5) dolaşır; akışlı kaynaklarda (veri kümesinin sıralı okuyucusu, 16.6) öğeler istendikçe okunur ve kaynak bitince döngü biter. İki değişkenli biçim `döngü i, x içinde ...` liste/metin/tensörde indeks ile elemanı, sözlükte anahtar ile değeri verir.
 
 **5.8** `döngü koşul { ... }` ve `iken koşul { ... }` koşul doğru oldukça tekrarlar.
 

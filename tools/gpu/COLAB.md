@@ -469,7 +469,7 @@ PY
 
 ### Hücre 15 · BELİRLENİMCİ BIRAKMA SINAMASI · GPU
 
-Dil tanımı 15.44'ün GPU sınaması: GPU arka ucunun testleri, hedef modelde bırakma açık ve kapalı
+Dil tanımı 15.43'ün GPU sınaması: GPU arka ucunun testleri, hedef modelde bırakma açık ve kapalı
 (`TR_BIRAKMA=0`) hız ve tepe bellek, PyTorch ile eşleşme (hücre 9 ile aynı) ve bellek dökümlü profil.
 Hücre 1'in GPU sınama ikilisini de derlemesi gerekir (`go test -c ... -o /content/tr/gpu_sinama
 ./internal/compute/gpu`, bölüm 1).

@@ -15,7 +15,7 @@
 // kurar), --hassasiyet fp32 bf16'yı kapatır, --kayıplar adım başına kaybı ve gradyan normunu yazar.
 // Kalite: --doğrulama valid.npy her --değerlendirme adımda ve sonda doğrulama kaybını hedefin yöntemiyle
 // ölçer (dosyanın başından --değerlendirme_parça kadar ardışık pencere; rgn512.py evaluate).
-// Kararlılık (dil tanımı 15.46, 20.14, 20.15; tr/egitim): her adımın kaybını ve gradyan normunu bir
+// Kararlılık (dil tanımı 15.36, 20.14, 20.15; tr/egitim): her adımın kaybını ve gradyan normunu bir
 // sıçrama bekçisi izler (son --bekçi_pencere sağlam adıma göre --bekçi_eşik standart sapma). --koşu
 // KLASÖR verilince kontrol noktası kurulur (her --kayıt_dakika dakikada bir; yeniden çalıştırılınca
 // kaldığı adımdan sürer): NaN, sonsuz ya da sıçramada son noktaya dönülür ve --atla toplu iş atlanır.

@@ -230,7 +230,7 @@ func TestMatMulMatchesFloat64(t *testing.T) {
 }
 
 // TestMatMul16BitBackwardRoundsGrad 16 bitlik girdili çarpımın geri yönünde gelen gradyanın
-// girdi türüne yuvarlandığını denetler (karışık hassasiyet, 15.13). B birim matris olduğundan
+// girdi türüne yuvarlandığını denetler (karışık hassasiyet, 15.4). B birim matris olduğundan
 // dA = yuvarla(dC)·Bᵀ tam olarak yuvarlanmış gradyandır (gradyanlar float32 biriktirilir).
 func TestMatMul16BitBackwardRoundsGrad(t *testing.T) {
 	rng := rand.New(rand.NewSource(13))

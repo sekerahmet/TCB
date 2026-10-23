@@ -4,7 +4,7 @@
 // Uzun bir eğitim bir gün bozuk bir gradyanla NaN'e düşer ya da kaybı birden sıçrar; bu örnek bunu
 // bilerek bir kez yapar ve eğitimin son sağlam noktadan, sorunlu toplu işleri atlayarak sürdüğünü gösterir.
 // Önceki örnekten: kontrol noktası (40), hazır kitaplık (41).
-// Ayrıntılar: docs/spec/15_tensorler.md §15.46, docs/spec/20_kontrol_noktasi.md §20.14–20.15.
+// Ayrıntılar: docs/spec/15_tensorler.md §15.36, docs/spec/20_kontrol_noktasi.md §20.14–20.15.
 //
 // Çalıştırma (proje kökünden): tr examples/tr/44_egitim_kararliligi.tr
 

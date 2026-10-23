@@ -3,7 +3,7 @@ package ml
 import "testing"
 
 // Kaynaştırılan fonksiyonun dışarıdan okuduğu sayı kayıtta (ilk çağrıda) programa sabit
-// olarak girer (dil tanımı 15.45; JAX jit de kapanıştaki sayıları iz anında sabitler).
+// olarak girer (dil tanımı 15.44; JAX jit de kapanıştaki sayıları iz anında sabitler).
 // Sonradan değişen sayı kaynaşmış sonucu değiştirmez; argüman olarak verilen değiştirir.
 func TestFuseCapturedNumberIsBakedIn(t *testing.T) {
 	out := mustRun(t, `değişken ölçek = 2.0
@@ -21,7 +21,7 @@ yazdır(kf(t).değer, kg(t, ölçek).değer)`)
 	}
 }
 
-// Dil tanımı 15.45 karşılaştırmaları kaynaştırılabilir işlemler arasında sayar (türevleri 0):
+// Dil tanımı 15.44 karşılaştırmaları kaynaştırılabilir işlemler arasında sayar (türevleri 0):
 // kaynaştırılan fonksiyonda '<', '>' hata vermez.
 func TestFuseComparisons(t *testing.T) {
 	for _, code := range []string{
@@ -50,7 +50,7 @@ kf()`)
 	}
 }
 
-// Kural: kaynaştırılan fonksiyon en az bir tensör döndürür (15.45); boş liste hatadır (H6436),
+// Kural: kaynaştırılan fonksiyon en az bir tensör döndürür (15.44); boş liste hatadır (H6436),
 // türevli ve türevsiz kipte aynı. Neden: türevli kipte çekirdek iç hata (H3028) verirdi.
 func TestFuseRejectsFunctionReturningEmptyList(t *testing.T) {
 	if out, err := run(t, `değişken kf = kaynaştır((x) => [])
@@ -59,7 +59,7 @@ yazdır(kf(tensör([1.0])))`); err == nil {
 	}
 }
 
-// Kural: kaynaştır önbellek anahtarı etkin hesap türünü (hesap_türü()) içerir (15.45). Neden:
+// Kural: kaynaştır önbellek anahtarı etkin hesap türünü (hesap_türü()) içerir (15.44). Neden:
 // iz hesap türünü sabitler; anahtarda yoksa blok içindeki çağrı blok dışındaki programı çalıştırır.
 func TestFuseCacheKeyIncludesComputeDType(t *testing.T) {
 	out := mustRun(t, `değişken kf = kaynaştır((x) => x.türe(hesap_türü()))

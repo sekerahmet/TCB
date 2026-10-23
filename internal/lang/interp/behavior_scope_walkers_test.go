@@ -16,7 +16,7 @@ import (
 
 // Kural: exprNames ve exprCaptures ortak çocuk gezintisini (subExpressions) kullanır ama
 // sonuçları eski ayrı gezginlerle bire bir aynıdır: aynı adlar aynı sırayla, aynı yakalama
-// kararı. Yakalama kararı yanlış 'yok' derse sahiplik modeli (15.44) tensörü erken bırakır.
+// kararı. Yakalama kararı yanlış 'yok' derse sahiplik modeli (15.43) tensörü erken bırakır.
 // Neden: iki gezgin birleştirilirken bilerek farklı yerlere inen kolları (if/eşle blokları,
 // liste üretecinin çıktı ve koşulu) kaybetmek sessizce yanlış sonuç verirdi.
 // Referans gezginler aşağıda eski uygulamanın birebir kopyasıdır.

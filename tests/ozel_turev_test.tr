@@ -1,4 +1,4 @@
-// docs/spec/15_tensorler.md §15.20–15.24 — Kullanıcı tanımlı türev (özel_türev) ve türev_denetle
+// docs/spec/15_tensorler.md §15.28–15.32 — Kullanıcı tanımlı türev (özel_türev) ve türev_denetle
 
 aktar "yardimci_test_araclari"
 
@@ -15,7 +15,7 @@ değişken kare = özel_türev(
     }
 )
 
-test "15.20 özel_türev: ileri ve geri hesabı kullanıcı yazar" {
+test "15.28 özel_türev: ileri ve geri hesabı kullanıcı yazar" {
     eşit_mi(YerleşikFonksiyon, tip(kare))
     değişken x = tensör([3.0], türev_izle: doğru)
     değişken y = kare(x)
@@ -49,7 +49,7 @@ test "15.20 özel_türev: ileri ve geri hesabı kullanıcı yazar" {
     doğrula(iç_izli)
 }
 
-test "15.21 özel_türev: çok girdi, türev izlemeyen ve tensör olmayan girdiler, adlı argümanlar" {
+test "15.29 özel_türev: çok girdi, türev izlemeyen ve tensör olmayan girdiler, adlı argümanlar" {
     // Kapılı çarpım a * sigmoid(b), geri elle.
     değişken kapılı = özel_türev(
         ileri: fonksiyon(a, b) {
@@ -93,7 +93,7 @@ test "15.21 özel_türev: çok girdi, türev izlemeyen ve tensör olmayan girdil
     eşit_mi([1.5, 1.5], x.gradyan.değer)
 }
 
-test "15.22 özel_türev: çok çıktı" {
+test "15.30 özel_türev: çok çıktı" {
     // ileri bir çıktı listesi döndürür; geri'nin g'si her çıktı için bir gradyan listesidir.
     değişken topla_fark = özel_türev(
         ileri: fonksiyon(a, b) { sonuç [[a + b, a - b], []] },
@@ -122,7 +122,7 @@ test "15.22 özel_türev: çok çıktı" {
     eşit_mi([2.0, 2.0], x.gradyan.değer)
 }
 
-test "15.23 özel_türev: hatalar" {
+test "15.31 özel_türev: hatalar" {
     değişken x = tensör([[1.0, 2.0]], türev_izle: doğru)
     // ileri yanlış biçim döndürürse.
     değişken bozuk = özel_türev(ileri: fonksiyon(x) { sonuç x * x }, geri: fonksiyon(k, g) { sonuç [g] })
@@ -156,7 +156,7 @@ test "15.23 özel_türev: hatalar" {
     doğrula(hata_metni(() => özel_türev(ileri: fonksiyon(x) { sonuç [x, []] }, backward: fonksiyon(k, g) { sonuç [g] })).içerir("'backward' adında bir parametre almaz"))
 }
 
-test "15.24 türev_denetle: sayısal gradyanla karşılaştırma" {
+test "15.32 türev_denetle: sayısal gradyanla karşılaştırma" {
     doğrula(türev_denetle(kare, [tensör([[0.3, -1.2]], türev_izle: doğru)]))
     // Yanlış bir geri hesabını yakalar ve en büyük farkın yerini yazar.
     değişken yanlış_kare = özel_türev(
@@ -288,7 +288,7 @@ değişken kapılı_nöron_tam = özel_türev(
 )
 // --- kapılı nöron tanımları sonu ---
 
-test "15.20 örnek: satıra özel kapılı nöron (özel türevli sürümler bileşik sürümle aynı gradyanı verir)" {
+test "15.28 örnek: satıra özel kapılı nöron (özel türevli sürümler bileşik sürümle aynı gradyanı verir)" {
     değişken x0 = rastgele_normal([6, 4], tohum: 11)
     değişken W0 = rastgele_normal([5, 12], tohum: 12) * 0.5
     değişken indeks = tensör([0, 3, 3, 1, 4, 0])

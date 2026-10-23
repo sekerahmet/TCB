@@ -5,7 +5,7 @@
 // One day a long training falls into NaN through a broken gradient, or its loss suddenly spikes; this example
 // does that on purpose once and shows the training resuming from the last sound checkpoint, skipping the troublesome batches.
 // Builds on: checkpoints (40), the ready-made library (41).
-// Details: docs/spec/15_tensorler.md §15.46, docs/spec/20_kontrol_noktasi.md §20.14–20.15.
+// Details: docs/spec/15_tensorler.md §15.36, docs/spec/20_kontrol_noktasi.md §20.14–20.15.
 //
 // Run (from the project root): tr examples/en/44_training_stability.tr
 

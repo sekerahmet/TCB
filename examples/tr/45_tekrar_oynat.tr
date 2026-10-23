@@ -4,7 +4,7 @@
 // Üretimde her parça aynı küçük işi yapar; asıl maliyet çoğu zaman yüzlerce kernelin tek tek
 // başlatılmasıdır. tekrar_oynat ikinci çağrıda işi kaydeder, sonra yorumlayıcıyı atlayıp kaydı oynatır.
 // Önceki örnekten: hazır katmanlarla GPT (41); GPT.üret aynı yolu GPU'da kendiliğinden kullanır.
-// Ayrıntılar: docs/spec/15_tensorler.md §15.48–15.49, lib/README.md (Üretim).
+// Ayrıntılar: docs/spec/15_tensorler.md §15.45, §15.8, lib/README.md (Üretim).
 //
 // Çalıştırma (proje kökünden): tr examples/tr/45_tekrar_oynat.tr
 // GPU'da: aşağıdaki satırın yorumunu kaldırın; CPU'da tekrar_oynat f'i doğrudan çağırır, sonuç aynıdır.

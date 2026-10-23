@@ -11,7 +11,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
-// Kural (Evre 3 bitiş ölçütü; dil tanımı 15.46, 20.14, 20.15): hedef modelin eğitimi bir NaN'de
+// Kural (Evre 3 bitiş ölçütü; dil tanımı 15.36, 20.14, 20.15): hedef modelin eğitimi bir NaN'de
 // kendiliğinden son kontrol noktasına döner, toplu işleri atlar ve sürer; kontrol noktası yoksa
 // açık bir hatayla durur. Küçük boyutlarla CPU'da birkaç saniye sürer (--nan_adımı sınama seçeneği).
 func TestTargetModelRollsBackOnNaN(t *testing.T) {

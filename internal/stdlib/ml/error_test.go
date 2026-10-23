@@ -34,7 +34,7 @@ func TestMessageConsistency(t *testing.T) {
 	}
 }
 
-// Kural (dil tanımı 15.10): veri taşıyan tensörün sınırı 2³² eleman (hazır modellerin tabloları
+// Kural (dil tanımı 15.46): veri taşıyan tensörün sınırı 2³² eleman (hazır modellerin tabloları
 // liste sınırını aşar); sıfır eksenli (verisiz) şeklin sınırı listelerinki, sıfır eksenler 1
 // sayılır.
 func TestTensorLimit(t *testing.T) {
