@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"path"
 	"sort"
 	"strings"
 	"unicode"
@@ -222,6 +223,7 @@ func (ix *index) printWhoUses(w io.Writer, n *Node, limit int) {
 	uses := ix.whoUsesHeader(w, n)
 	if len(uses) == 0 {
 		fmt.Fprintln(w, "  no uses")
+		ix.printOtherConfigNote(w, n)
 		return
 	}
 	ix.printGroups(w, "  <-", uses, fromOf, limit, true)
@@ -304,4 +306,35 @@ func foldTR(s string) string { return strings.ToLowerSpecial(unicode.TurkishCase
 
 func isWordRune(r rune) bool {
 	return r != utf8.RuneError && (unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_')
+}
+
+// printOtherConfigNote boş kalan bir Go cevabının ("no uses", "no tests found") altına, grafiğin tiplerle okumadığı
+// dosyaları yazar: oradaki çağrılar ve tür kullanımları görünmez, cevap o dosyalar için kanıt değildir.
+func (ix *index) printOtherConfigNote(w io.Writer, n *Node) {
+	if !strings.HasPrefix(n.ID, "go:") {
+		return
+	}
+	var all, here []string
+	pkg := ix.goPackageOf(n)
+	for i := range ix.g.Nodes {
+		f := &ix.g.Nodes[i]
+		if f.Kind != kindFile || !strings.HasPrefix(f.Detail, otherConfigDetail) {
+			continue
+		}
+		all = append(all, f.Name)
+		for _, e := range ix.in[f.ID] {
+			if e.Kind == edgeContains && e.From == pkg {
+				here = append(here, path.Base(f.Name))
+			}
+		}
+	}
+	if len(all) == 0 {
+		return
+	}
+	config := strings.TrimPrefix(ix.byID[fileID(all[0])].Detail, otherConfigDetail)
+	fmt.Fprintf(w, "  note: %d Go files are not built for %s; calls and type uses in them are not seen (build --warnings lists them)", len(all), config)
+	if len(here) > 0 {
+		fmt.Fprintf(w, "; in this package: %s", strings.Join(here, ", "))
+	}
+	fmt.Fprintln(w)
 }

@@ -140,6 +140,7 @@ func buildGraph(root string) (*Graph, error) {
 	}
 	b := newBuilder(m.Path)
 	idx := extractGo(m, b)
+	extractOtherConfigs(m, b)
 	extractCodes(root, b)
 	addTestEdges(b, idx)
 	extractTR(root, b)

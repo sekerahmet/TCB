@@ -21,6 +21,7 @@ func (ix *index) printWhoUsesByPackage(w io.Writer, n *Node, limit int) {
 	uses := ix.whoUsesHeader(w, n)
 	if len(uses) == 0 {
 		fmt.Fprintln(w, "  no uses")
+		ix.printOtherConfigNote(w, n)
 		return
 	}
 	byDir := map[string]*pkgUse{}

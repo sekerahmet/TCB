@@ -84,3 +84,7 @@ tr dizin sınayanlar ayar_değeri | contains: lib/hazir_test.tr | src: bağıms�
 codegraph tests-for tensor.Tensor.Ceil | not: no tests found | group: function value => tensor.TestUnaryNoGrad | group: function value => via gpu.wideUnaries | src: bağımsız denetim Y2, 2026-10-24
 codegraph tests-for codes.FindOption | group: function value => codes.TestCommandLineNamesInEveryLanguage | src: bağımsız denetim Y2, 2026-10-24
 codegraph tests-for tr.catchInterrupt | not: no tests found | contains: covered by subprocess tests | contains: cmd/tr/e2e ( | src: bağımsız denetim Y5, 2026-10-24
+
+# Bağımsız denetim: başka yapılandırmanın dosyaları (Y4) (2026-10-24)
+codegraph who-uses H2154 | not: no uses | contains: internal/lang/turkish/file_error_unix.go | src: bağımsız denetim Y4, 2026-10-24
+codegraph query gpu.runExitHandlers | contains: internal/compute/gpu/cuda_linux.go | contains: internal/compute/gpu/cuda_windows.go | src: bağımsız denetim Y4, 2026-10-24

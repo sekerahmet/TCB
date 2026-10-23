@@ -145,6 +145,7 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	found := len(tests) + len(walks) + len(asValue) + len(indirect) + len(viaNames)
 	if found == 0 && len(measured) == 0 && len(indirectMeasured) == 0 && len(subprocess) == 0 {
 		fmt.Fprintln(w, "  no tests found")
+		ix.printOtherConfigNote(w, n)
 		return
 	}
 	switch {

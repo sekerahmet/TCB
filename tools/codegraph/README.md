@@ -107,7 +107,16 @@ Every edge has `confidence`, and `file`/`line` of the first place it was seen an
 `warnings` lists what could not be resolved: a `Denetim:` test that does not exist, a broken
 Markdown link. They are real findings; `build` prints the first five.
 
-Limits: only files built for the current OS are read (like `tools/impact`); `implements` and
+Limits: types come from one build configuration, this machine's GOOS/GOARCH (like `tools/impact`). The files that
+configuration does not build (`cuda_linux.go`, `file_error_unix.go`, `race_on.go` on Windows; `go list`'s
+`IgnoredGoFiles`) are read without types (`other_os.go`): each becomes a file node "not built for windows/amd64", a
+function declared only there becomes a node, every declaration in it is `contains`-linked from that file (so `query
+gpu.runExitHandlers` lists `cuda_linux.go`, `cuda_other.go` and `cuda_windows.go`), and its message and name code uses
+(`messages.H2154`, resolved from the import, not from types) are INFERRED `uses_message`/`uses_name` edges, so `who-uses
+H2154` finds `file_error_unix.go`. Calls and type uses in those files are not seen: `build` warns which configuration
+was type-checked and lists the files, and a Go answer that comes back empty ("no uses", "no tests found") adds a note
+naming them. Type-checking every configuration and merging (as `staticcheck -matrix` does) was not chosen: it multiplies
+every build, and the Windows and Linux versions of a function share one node ID. `implements` and
 `dispatches_to` look at non-test types only. A call through an interface points at the interface
 method and, from there, at every implementation (`dispatches_to`, below).
 
