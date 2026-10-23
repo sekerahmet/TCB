@@ -934,6 +934,16 @@ test "15.26 örnekle: dağılım kurulamayan satır her yolda hatadır (sıcakl�
     eşit_mi(1, örnekle(tensör([eksi_sonsuz, 3.0]), en_iyi_k: 1, tohum: 1).değer)
 }
 
+test "15.4 maks ve min 16 bitlik tensörde girdinin türünde kalır (eksensiz min dahil)" {
+    döngü tür içinde ["bf16", "fp16"] {
+        değişken x = tensör([3.0, 1.0, 2.0], tür: tür)
+        eşit_mi(tür, maks(x).tür)
+        eşit_mi(tür, min(x, eksen: 0).tür)
+        eşit_mi(tür, min(x).tür)
+        eşit_mi(1.0, min(x).değer)
+    }
+}
+
 test "15.33 parametreler: sabit sıra, tekillik, yol adları" {
     fonksiyon p(x) { sonuç tensör([x], türev_izle: doğru) }
     yapı Dikkat { Wq, Wk }
