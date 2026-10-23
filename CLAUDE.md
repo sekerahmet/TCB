@@ -24,6 +24,19 @@ TR, yapay zekâ modeli geliştirmek ve eğitmek için Türkçe bir programlama d
 - **Önce ölç, sonra değiştir:** hıza dokunan değişiklik önce ve sonra ölçülür; kazandırmayan geri alınır.
 - **Dış inceleme bulguları doğrulanarak düzeltilir:** önce yeniden üretilir; düzeltmenin testi önce kalır, sonra geçer.
 
+### Sadelik: kod gereksiz büyümez
+
+1. **Önce ara, sonra yaz.** "Yok" demeden önce codegraph, `tr dizin`, dil tanımı ve `lib/` taranır; bulunamazsa nerelere bakıldığı söylenir.
+2. **Var olanı aç, yenisini kurma.** Go'da hesaplanan bir şey dile lazımsa mevcut olan açılır; ikinci sayaç, ikinci yol yazılmaz.
+3. **Somut ihtiyaç olmadan ekleme yok.** Bugün kullanan bir yer gösterilemiyorsa eklenmez, yol haritasına not düşülür.
+4. **Kullanıcıya görünen her yeni ad bir karardır.** Yerleşik, parametre, betik seçeneği: kaynaklı karşılaştırma ve onay olmadan eklenmez.
+5. **Bir sorun, bir değişiklik.** Çalışırken fark edilen başka eksik o işe eklenmez; ayrı not olur.
+6. **Silmek eklemekten önce gelir.** Yeni şeyin gereksizleştirdiği kod aynı değişiklikte silinir.
+7. **En küçük çözüm.** Aynı sonucu daha az kodla veren yol seçilir; genelleştirme ikinci gerçek kullanım gelince yapılır.
+8. **Gerekçe bir cümle.** "Neden gerekli, mevcut olan neden yetmedi" commit mesajında tek cümleyle yazılamıyorsa eklenmez.
+9. **Boyut sinyaldir.** Değişiklik beklenenden büyüyorsa durulur, tasarım yeniden düşünülür.
+10. **Kopya kalmaz.** `codegraph dups` her birleştirmede çalışır; çıkan aday aynı işte giderilir.
+
 ## Kesin kurallar
 
 - Kullanıcıyla iletişim **Türkçe** ve kısadır.
