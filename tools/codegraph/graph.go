@@ -1,10 +1,12 @@
 package main
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 
 	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
@@ -184,15 +186,8 @@ func (b *builder) graph() *Graph {
 		}
 		g.Edges = append(g.Edges, *e)
 	}
-	sort.Slice(g.Edges, func(i, j int) bool {
-		a, c := g.Edges[i], g.Edges[j]
-		if a.From != c.From {
-			return a.From < c.From
-		}
-		if a.To != c.To {
-			return a.To < c.To
-		}
-		return a.Kind < c.Kind
+	slices.SortFunc(g.Edges, func(a, c Edge) int {
+		return cmp.Or(cmp.Compare(a.From, c.From), cmp.Compare(a.To, c.To), cmp.Compare(a.Kind, c.Kind))
 	})
 	g.Warnings = append(g.Warnings, b.warnings...)
 	sort.Strings(g.Warnings)
