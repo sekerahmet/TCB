@@ -237,17 +237,17 @@ func limitErrorAt(is opKind, shape []int, dt DType, overflow bool, limit int64, 
 	}
 	switch {
 	case overflow && is == isCreate:
-		return messages.New(messages.H3086, is, shapeText(shape), numberText(elemFn), BytesText(byteN), place, BytesText(float64(limit)), hint)
+		return messages.New(messages.H3086, is, ShapeText(shape), numberText(elemFn), BytesText(byteN), place, BytesText(float64(limit)), hint)
 	case overflow:
-		return messages.New(messages.H3087, is, shapeText(shape), numberText(elemFn), BytesText(byteN), place, BytesText(float64(limit)), hint)
+		return messages.New(messages.H3087, is, ShapeText(shape), numberText(elemFn), BytesText(byteN), place, BytesText(float64(limit)), hint)
 	case is == isCreate:
-		return messages.New(messages.H3084, is, shapeText(shape), BytesText(byteN), place, BytesText(float64(limit)), hint)
+		return messages.New(messages.H3084, is, ShapeText(shape), BytesText(byteN), place, BytesText(float64(limit)), hint)
 	}
-	return messages.New(messages.H3085, is, shapeText(shape), BytesText(byteN), place, BytesText(float64(limit)), hint)
+	return messages.New(messages.H3085, is, ShapeText(shape), BytesText(byteN), place, BytesText(float64(limit)), hint)
 }
 
-// shapeText bir şekli "[2, 3]" biçiminde yazar.
-func shapeText(shape []int) string {
+// ShapeText bir şekli "[2, 3]" biçiminde yazar; kontrol noktası iletileri de bunu kullanır.
+func ShapeText(shape []int) string {
 	p := make([]string, len(shape))
 	for i, d := range shape {
 		p[i] = strconv.Itoa(d)
