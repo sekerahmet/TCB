@@ -96,7 +96,10 @@ func splitArgs(s string) []string {
 
 // queryCommands grafiği okuyan codegraph komutlarıdır; sınav onları yüklenmiş grafikle çalıştırır (runQueryOn).
 var queryCommands = map[string]bool{"query": true, "explain": true, "path": true, "who-uses": true, "tests-for": true,
-	"callees": true, "calls-into": true, "fields": true, "captures": true}
+	"callees": true, "calls-into": true, "fields": true, "captures": true, "changed": true}
+
+// historyCommands git geçmişini okuyan komutlardır; sığ klonda (CI) cevapları yoktur, sınav onları atlar.
+var historyCommands = map[string]bool{"changed": true, "deleted": true, "history": true}
 
 // examRunner sorulara cevap verir: grafik ve TR dizini bir kez kurulur.
 type examRunner struct {
@@ -293,7 +296,13 @@ func TestPlanningQuestionsAreAnswered(t *testing.T) {
 		t.Fatal(err)
 	}
 	x := &examRunner{root: root, graph: g, reader: codeindex.NewReader(idx)}
+	out, _ := gitStdout(root, "rev-parse", "--is-shallow-repository")
+	shallow := strings.TrimSpace(string(out)) == "true" // CI kaynağı derinlik 1 ile alır: geçmiş yok
 	for _, r := range records {
+		if shallow && r.tool == "codegraph" && historyCommands[r.args[0]] {
+			t.Logf("planning_questions.txt:%d: skipped, the clone has no history (%s)", r.line, r.args[0])
+			continue
+		}
 		out, code := x.answer(t, r)
 		for _, c := range r.checks {
 			if why := checkExam(c, out, code); why != "" {
