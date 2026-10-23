@@ -175,54 +175,6 @@ func resolvePattern(pat string, byFile map[string][]*Node, targets []*Node) []*N
 	return hit
 }
 
-// Bir yol sabitinden (ya da gömülen dosyadan) onu sınayan teste giden yol, çağıran/kullanan zinciridir. Zincir iki
-// ölçüyle sınırlanır: paket sınırını en çok testMaxHops kez geçer (veriyi yükleyen paketin kendi içi serbesttir;
-// `codes.Codes()` çağıran bir test bir sınır geçer, onu çağıranın çağıranı iki geçer ve konunun dışına çıkar) ve
-// en çok testMaxSteps adımdır. Yalnızca adım sayısıyla sınırlansaydı, bir yükleyiciden her yerde kullanılan
-// ortak bir işleve kadar yüzlerce test "korur" görünürdü.
-const (
-	testMaxHops  = 1
-	testMaxSteps = 8
-)
-
-// testsReaching owner'ın kendisi test işleviyse onu, değilse onu çağıran (ya da kullanan) testleri sınırlar
-// içinde verir; bir testin ötesine geçilmez. pkgOf düğümün paket klasörünü verir.
-func testsReaching(owner string, isTest map[string]bool, callers map[string][]string, pkgOf func(string) string) []string {
-	if isTest[owner] {
-		return []string{owner}
-	}
-	type state struct {
-		id   string
-		hops int
-	}
-	seen := map[string]bool{owner: true}
-	frontier := []state{{owner, 0}}
-	var out []string
-	for steps := 0; steps < testMaxSteps && len(frontier) > 0; steps++ {
-		var next []state
-		for _, st := range frontier {
-			for _, c := range callers[st.id] {
-				hops := st.hops
-				if pkgOf(c) != pkgOf(st.id) {
-					hops++
-				}
-				if hops > testMaxHops || seen[c] {
-					continue
-				}
-				seen[c] = true
-				if isTest[c] {
-					out = append(out, c)
-				} else {
-					next = append(next, state{c, hops})
-				}
-			}
-		}
-		frontier = next
-	}
-	sort.Strings(out)
-	return out
-}
-
 // embedRefs `//go:embed kalıp...` yönergesi taşıyan değişkenden gömülen dosyalara başvuru kaydeder (kalıplar
 // değişkenin paket klasörüne görelidir). Yönerge bildirimin ya da belirtimin doc yorumundadır.
 func (x *goExtractor) embedRefs(fc *fileCtx, d *ast.GenDecl) {
@@ -293,8 +245,8 @@ func newTestReach(b *builder, idx *goIndex) *testReach {
 	for _, t := range idx.tests {
 		r.isTest[t.id] = true
 	}
-	for k := range b.edges {
-		if k.kind == edgeCalls || k.kind == edgeUses || k.kind == edgeReadsVar || k.kind == edgeWritesVar {
+	for k, e := range b.edges {
+		if reachEdge(k.kind, e.Confidence) {
 			r.callers[k.to] = append(r.callers[k.to], k.from)
 		}
 	}
@@ -310,6 +262,20 @@ func newTestReach(b *builder, idx *goIndex) *testReach {
 	return r
 }
 
+// testsReaching owner'ın kendisi test işleviyse onu, değilse onu (reachEdge zinciriyle, sınırlar içinde) çağıran ya da
+// kullanan testleri verir; bir testin ötesine geçilmez.
 func (r *testReach) testsReaching(owner string) []string {
-	return testsReaching(owner, r.isTest, r.callers, r.pkgOf)
+	if r.isTest[owner] {
+		return []string{owner}
+	}
+	var out []string
+	walkCallers(owner, func(id string) []string { return r.callers[id] }, r.pkgOf, func(n reached) bool {
+		if r.isTest[n.id] {
+			out = append(out, n.id)
+			return false
+		}
+		return true
+	})
+	sort.Strings(out)
+	return out
 }

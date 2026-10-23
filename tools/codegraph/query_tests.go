@@ -3,12 +3,10 @@ package main
 import (
 	"fmt"
 	"io"
+	"path"
 	"sort"
 	"strings"
 )
-
-// maxTestDepth dolaylı testlerin izlendiği en çok çağrı adımıdır (hedef ← ... ← test).
-const maxTestDepth = 4
 
 // indirectTest hedefi çağrı zinciriyle dolaylı sınayan bir testtir.
 type indirectTest struct {
@@ -26,9 +24,8 @@ func isTestNode(n *Node) bool {
 	return isTestName(name)
 }
 
-// indirectTests hedefi çağıranları geriye doğru, en çok maxTestDepth adım izler ve yolda
-// bulduğu testleri en yakından uzağa verir. Zincir yalnızca EXTRACTED `calls` kenarlarından
-// oluşur; bir testin ötesine geçilmez. Doğrudan `tests` kenarı olanlar listeye girmez.
+// indirectTests hedefi çağıranlara doğru (walkCallers: tek zincir kuralı, test_reach.go) izler ve yolda bulduğu testleri
+// en yakından uzağa verir; bir testin ötesine geçilmez. Doğrudan `tests` kenarı olanlar listeye girmez.
 func (ix *index) indirectTests(target *Node) []indirectTest {
 	direct := map[string]bool{}
 	for _, e := range ix.in[target.ID] {
@@ -36,39 +33,17 @@ func (ix *index) indirectTests(target *Node) []indirectTest {
 			direct[e.From] = true
 		}
 	}
-	type item struct {
-		id    string
-		steps int
-		via   string
-	}
-	seen := map[string]bool{target.ID: true}
-	queue := []item{{target.ID, 0, ""}}
 	var out []indirectTest
-	for len(queue) > 0 {
-		cur := queue[0]
-		queue = queue[1:]
-		if cur.steps >= maxTestDepth {
-			continue
+	walkCallers(target.ID, ix.callersOf, ix.pkgOf, func(r reached) bool {
+		n := ix.byID[r.id]
+		if !isTestNode(n) {
+			return true
 		}
-		for _, e := range ix.in[cur.id] {
-			if e.Kind != edgeCalls || e.Confidence != extracted || seen[e.From] {
-				continue
-			}
-			seen[e.From] = true
-			via := cur.via
-			if cur.steps == 0 {
-				via = e.From
-			}
-			n := ix.byID[e.From]
-			if isTestNode(n) {
-				if !direct[n.ID] {
-					out = append(out, indirectTest{n, cur.steps + 1, ix.byID[via]})
-				}
-				continue
-			}
-			queue = append(queue, item{e.From, cur.steps + 1, via})
+		if !direct[n.ID] {
+			out = append(out, indirectTest{n, r.steps, ix.byID[r.via]})
 		}
-	}
+		return false
+	})
 	sort.SliceStable(out, func(i, j int) bool {
 		if out[i].steps != out[j].steps {
 			return out[i].steps < out[j].steps
@@ -76,6 +51,26 @@ func (ix *index) indirectTests(target *Node) []indirectTest {
 		return out[i].test.Name < out[j].test.Name
 	})
 	return out
+}
+
+// callersOf bir düğümü çağıran ya da kullananlardır (reachEdge kenarları), kimliğe göre sıralı.
+func (ix *index) callersOf(id string) []string {
+	var out []string
+	for _, e := range ix.in[id] {
+		if reachEdge(e.Kind, e.Confidence) {
+			out = append(out, e.From)
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
+// pkgOf düğümün paket klasörüdür.
+func (ix *index) pkgOf(id string) string {
+	if n := ix.byID[id]; n != nil {
+		return path.Dir(n.File)
+	}
+	return ""
 }
 
 // printTestsFor n'yi sınayan testleri yazar: önce doğrudan (EXTRACTED: çağrıdan ya da paketten),
@@ -107,7 +102,7 @@ func (ix *index) printIndirect(w io.Writer, list []indirectTest, limit int) {
 	if len(list) == 0 {
 		return
 	}
-	fmt.Fprintf(w, "  <- tests, indirect (%d, through calls, up to %d steps):\n", len(list), maxTestDepth)
+	fmt.Fprintf(w, "  <- tests, indirect (%d, through calls, up to %d steps and %d package boundary):\n", len(list), testMaxSteps, testMaxHops)
 	forEachLimited(w, list, limit, "    ", moreHint, func(it indirectTest) string {
 		return fmt.Sprintf("%s  %d steps via %s  [INFERRED]", describe(it.test), it.steps, it.via.Name)
 	})

@@ -56,7 +56,7 @@ a `detail` (message text, rule text, heading) that contains it, all case-insensi
 answered (`query "Cümle parçalardan"` finds the rule); several are listed (exit 3).
 
 `tests-for` lists the direct tests (`tests` edges), then the indirect ones: callers are followed
-backwards over EXTRACTED `calls` edges, at most 4 steps, up to the first test on each chain. They
+backwards over the chain rule below (EXTRACTED `calls`, `uses`, `reads_var`, `writes_var`), up to the first test on each chain. They
 are shown nearest first as `N steps via <caller next to the target>`, always `[INFERRED]`. This is
 computed when you ask, not stored in `graph.json`.
 
@@ -359,6 +359,20 @@ change together; suffixes are re-fitted to the new number; a range whose targets
 consecutive is split (`15.31–15.38` → `15.11–15.15, 15.20–15.22`); text that is not a recognised
 reference (`15.0` as a version) is never touched. Collisions and unknown old numbers are refused
 before anything is written; `--apply` refuses a plan that no longer matches the files.
+
+## One rule for "a test reaches this through helpers"
+
+Path constants, `go:embed` files, TR text in Go tests, the name codes' tests and the *indirect* tests of `tests-for` are
+all the same question, so there is one function for it (`walkCallers`, `reachEdge`, `testMaxHops`, `testMaxSteps` in
+`test_reach.go`) and one rule: walk from the thing to its callers and users (EXTRACTED calls, type and const uses,
+variable reads and writes; a function value passed around, INFERRED, is not followed), stop at the first test on a
+chain, cross **at most one package boundary** and take **at most eight steps**.
+
+Why these numbers. The honest chain inside the package that loads or implements something is long
+(loader → parser → registry → accessor → test is 5 steps), so steps are generous (8) while boundaries are tight (1):
+the tests that guard something come from its own package or from a package that calls it directly. Steps alone were
+not usable (7 steps gave 209 tests for `tr.json`); the older limits (3 steps for path constants, 4 for indirect
+tests) cut the honest inner chains. The old two places now call the one function.
 
 ## Tests written in TR (`tests/*.tr`, TR code inside Go test strings)
 

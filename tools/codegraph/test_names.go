@@ -35,45 +35,38 @@ func containsByte(s string, b byte) bool {
 	return false
 }
 
-// testsThroughNames n'den çağıranlara doğru en çok maxTestDepth adım yürür; her işlevin uyguladığı (uses_name) ad kodlarının
-// testlerini verir. Aynı test bir kez, en yakın haliyle gelir; n ile aynı paketteki testler önce.
+// testsThroughNames n'den çağıranlara doğru (walkCallers: tek zincir kuralı) yürür; n'nin ve çağıranlarının uyguladığı
+// (uses_name) ad kodlarının testlerini verir. Aynı test bir kez, en yakın haliyle gelir; n ile aynı paketteki testler önce.
 func (ix *index) testsThroughNames(n *Node) []nameTest {
 	if n.Kind != kindFunc && n.Kind != kindMethod {
 		return nil
 	}
-	seenNode := map[string]bool{n.ID: true}
 	seenTest := map[string]bool{}
 	var out []nameTest
-	frontier := []string{n.ID}
-	for step := 0; step <= maxTestDepth && len(frontier) > 0; step++ {
-		var next []string
-		for _, id := range frontier {
-			for _, e := range ix.out[id] {
-				if e.Kind != edgeUsesName {
-					continue
-				}
-				name := ix.byID[e.To]
-				if name == nil || !implementable(name) {
-					continue
-				}
-				for _, t := range ix.in[name.ID] {
-					if t.Kind != edgeTests || seenTest[t.From] {
-						continue
-					}
-					seenTest[t.From] = true
-					tn := ix.byID[t.From]
-					out = append(out, nameTest{test: tn, name: name, steps: step + 1, local: path.Dir(tn.File) == path.Dir(n.File)})
-				}
+	collect := func(id string, steps int) {
+		for _, e := range ix.out[id] {
+			name := ix.byID[e.To]
+			if e.Kind != edgeUsesName || name == nil || !implementable(name) {
+				continue
 			}
-			for _, e := range ix.in[id] {
-				if e.Kind == edgeCalls && e.Confidence == extracted && !seenNode[e.From] && !isTestNode(ix.byID[e.From]) {
-					seenNode[e.From] = true
-					next = append(next, e.From)
+			for _, t := range ix.in[name.ID] {
+				if t.Kind != edgeTests || seenTest[t.From] {
+					continue
 				}
+				seenTest[t.From] = true
+				tn := ix.byID[t.From]
+				out = append(out, nameTest{test: tn, name: name, steps: steps + 1, local: path.Dir(tn.File) == path.Dir(n.File)})
 			}
 		}
-		frontier = next
 	}
+	collect(n.ID, 0)
+	walkCallers(n.ID, ix.callersOf, ix.pkgOf, func(r reached) bool {
+		if isTestNode(ix.byID[r.id]) {
+			return false
+		}
+		collect(r.id, r.steps)
+		return true
+	})
 	sort.SliceStable(out, func(i, j int) bool {
 		a, b := out[i], out[j]
 		if a.local != b.local {

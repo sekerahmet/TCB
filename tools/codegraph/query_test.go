@@ -146,23 +146,39 @@ func TestTestsForIndirect(t *testing.T) {
 	}
 }
 
-func TestIndirectDepthIsLimited(t *testing.T) {
-	g := &Graph{Nodes: []Node{
-		{ID: "t", Kind: kindFunc, Name: "p.TestX", File: "p_test.go"},
-		{ID: "a", Kind: kindFunc, Name: "p.a"}, {ID: "b", Kind: kindFunc, Name: "p.b"},
-		{ID: "c", Kind: kindFunc, Name: "p.c"}, {ID: "d", Kind: kindFunc, Name: "p.d"},
-		{ID: "e", Kind: kindFunc, Name: "p.e"},
-	}}
-	for _, p := range [][2]string{{"t", "a"}, {"a", "b"}, {"b", "c"}, {"c", "d"}, {"d", "e"}} {
-		g.Edges = append(g.Edges, Edge{From: p[0], To: p[1], Kind: edgeCalls, Confidence: extracted})
+// Kural: test ile hedef arasındaki zincir tek kurala bağlıdır (test_reach.go): en çok testMaxSteps adım ve en çok
+// testMaxHops paket sınırı. Sınırın içi bulunur, bir adım ya da bir sınır ötesi bulunmaz.
+func TestIndirectChainIsLimitedByOneRule(t *testing.T) {
+	chain := func(n int, dirOf func(i int) string) *index {
+		g := &Graph{Nodes: []Node{{ID: "t", Kind: kindFunc, Name: "p.TestX", File: "p_test.go"}}}
+		prev := "t"
+		for i := 1; i <= n; i++ {
+			id := "f" + string(rune('a'+i))
+			g.Nodes = append(g.Nodes, Node{ID: id, Kind: kindFunc, Name: "p." + id, File: dirOf(i) + "/x.go"})
+			g.Edges = append(g.Edges, Edge{From: prev, To: id, Kind: edgeCalls, Confidence: extracted})
+			prev = id
+		}
+		return newIndex(g)
 	}
-	ix := newIndex(g)
-	if got := ix.indirectTests(ix.byID["e"]); len(got) != 0 {
-		t.Errorf("5 steps away must not be found: %+v", got)
+	same := func(int) string { return "." }
+	last := func(n int) *Node { return &Node{ID: "f" + string(rune('a'+n))} }
+	ix := chain(testMaxSteps, same)
+	if got := ix.indirectTests(last(testMaxSteps)); len(got) != 1 || got[0].steps != testMaxSteps {
+		t.Errorf("%d steps away must be found: %+v", testMaxSteps, got)
 	}
-	got := ix.indirectTests(ix.byID["d"])
-	if len(got) != 1 || got[0].steps != 4 {
-		t.Errorf("4 steps away must be found: %+v", got)
+	ix = chain(testMaxSteps+1, same)
+	if got := ix.indirectTests(last(testMaxSteps + 1)); len(got) != 0 {
+		t.Errorf("%d steps away must not be found: %+v", testMaxSteps+1, got)
+	}
+	// Paket sınırı: test "." klasöründe, zincir her adımda başka klasöre geçer.
+	across := func(i int) string { return "d" + string(rune('a'+i)) }
+	ix = chain(testMaxHops, across)
+	if got := ix.indirectTests(last(testMaxHops)); len(got) != 1 {
+		t.Errorf("%d package boundary must be found: %+v", testMaxHops, got)
+	}
+	ix = chain(testMaxHops+1, across)
+	if got := ix.indirectTests(last(testMaxHops + 1)); len(got) != 0 {
+		t.Errorf("%d package boundaries must not be found: %+v", testMaxHops+1, got)
 	}
 }
 
