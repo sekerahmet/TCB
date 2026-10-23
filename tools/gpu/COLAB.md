@@ -9,7 +9,7 @@ Her hücrenin geri bildirilecek çıktısı kısadır ve tablo biçimindedir.
 
 Ağır CPU koşuları geliştiricinin makinesinde değil, Colab'ın CPU çalışma zamanında (High-RAM) yapılır
 ([`docs/development.md`](../../docs/development.md#ölçüm-disiplini)). Kod yan daldan çekilir; koşu
-kayıt aracıyla sarılır ve sonucu Drive'daki `TR_dili/olcumler/<iş>/<UTC zaman>.json` olarak kalır
+kayıt aracıyla sarılır ve sonucu Drive'daki `TR_dili/olcumler/<iş>/<zaman>.json` olarak kalır (Türkiye saati, ör. `20261023114642`)
 ([`tools/record`](../record/README.md)). Drive'ı bağlamak çalışma zamanı başına bir kez onay ister.
 
 ```python

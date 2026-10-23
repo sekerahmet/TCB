@@ -7,8 +7,8 @@
 //
 //	go run ./tools/record --name zorlama --out /content/drive/MyDrive/TR_dili/olcumler -- bash tools/full_check.sh --kip=zorlama
 //
-// Düzen: her işin bir klasörü vardır, koşuları içinde zamanla adlanır (UTC, YYYYAAGGSSDDSS; adlar
-// tarih sırasıyla dizilir):
+// Düzen: her işin bir klasörü vardır, koşuları içinde zamanla adlanır (Türkiye saati, YYYYAAGGSSDDSS;
+// adlar tarih sırasıyla dizilir):
 //
 //	<out>/index.jsonl                    bütün işlerin koşuları, koşu başına bir satır
 //	<out>/<name>/20261023143005.json     kayıt
@@ -44,9 +44,13 @@ const envDir = "TR_KAYIT_KLASORU"
 // schemaVersion kayıt biçiminin sürümü; alan anlamı değişince artar.
 const schemaVersion = 1
 
-// stamp koşu dosyalarının adının başı: YYYYAAGGSSDDSS, UTC. Adlar böylece tarih sırasıyla dizilir;
-// UTC'dir, çünkü kayıtlar farklı saat dilimli makinelerden gelir (Colab UTC, yerel makine +03).
+// stamp koşu dosyalarının adının başı: YYYYAAGGSSDDSS. Adlar böylece tarih sırasıyla dizilir.
 const stamp = "20060102150405"
+
+// turkey kayıtların saat dilimi: Türkiye saati (UTC+3; Türkiye 2016'dan beri yaz saati uygulamaz).
+// Kayıtları okuyan geliştiricinin saatidir; her makine (Colab UTC'dir) zamanı buna çevirdiği için
+// farklı makinelerden gelen kayıtlar karışmaz. JSON'daki zamanlar "+03:00" ekiyle yazılır.
+var turkey = time.FixedZone("+03", 3*60*60)
 
 // Record bir koşunun kaydıdır (<name>/<zaman>.json ve index.jsonl'ın bir satırı).
 type Record struct {
@@ -102,7 +106,7 @@ func run(o options, command []string, stdout io.Writer) (int, error) {
 	if !validName.MatchString(o.name) {
 		return 2, fmt.Errorf("--name %q: use letters, digits, - and _", o.name)
 	}
-	start := time.Now().UTC()
+	start := time.Now().In(turkey)
 	id := start.Format(stamp)
 	job := filepath.Join(o.out, o.name)
 	work := filepath.Join(job, "."+id) // komutun geçici dosyaları; koşudan sonra taşınır
@@ -113,7 +117,7 @@ func run(o options, command []string, stdout io.Writer) (int, error) {
 	if err != nil {
 		return 2, err
 	}
-	end := time.Now().UTC()
+	end := time.Now().In(turkey)
 	r := Record{Schema: schemaVersion, Name: o.name, Started: start, Ended: end,
 		Seconds: end.Sub(start).Round(time.Millisecond).Seconds(), Command: command, ExitCode: code,
 		Commit: commitInfo(), Machine: machineInfo()}

@@ -20,7 +20,7 @@ go run ./tools/record --name zorlama --out /content/drive/MyDrive/TR_dili/olcuml
 <out>/<name>/20261023143005_<dosya>     komutun bıraktığı dosyalar (alt klasör / yerine _)
 ```
 
-Zaman koşunun başladığı andır, UTC, `YYYYAAGGSSDDSS`: adlar tarih sırasıyla dizilir ve farklı saat dilimli makinelerden (Colab UTC, yerel makine +03) gelen kayıtlar karışmaz.
+Zaman koşunun başladığı andır, Türkiye saatiyle (UTC+3), `YYYYAAGGSSDDSS`: adlar tarih sırasıyla dizilir ve kayıtları okuyanın saatiyle uyuşur. Her makine zamanı Türkiye saatine çevirdiği için (Colab UTC'dir) farklı makinelerden gelen kayıtlar karışmaz; Türkiye 2016'dan beri yaz saati uygulamadığından fark sabittir. Kayıttaki zamanlar `+03:00` ekiyle yazılır.
 
 Komut, koşu sürerken dosyalarını `TR_KAYIT_KLASORU` ortam değişkeninin gösterdiği geçici klasöre (`<out>/<name>/.<zaman>/`) yazar; koşu bitince araç onları zaman önekiyle iş klasörüne taşır ve geçici klasörü siler. Komut oraya `metrics.json` bırakırsa içeriği kayda `metrics` olarak da gömülür: `tools/full_check.sh` adım sürelerini, kalan adımları ve sonucu böyle yazar.
 
@@ -30,7 +30,7 @@ Komut, koşu sürerken dosyalarını `TR_KAYIT_KLASORU` ortam değişkeninin gö
 | :-- | :-- |
 | `schema` | biçimin sürümü (alan anlamı değişince artar) |
 | `name`, `command` | iş ve çalıştırılan komut |
-| `started`, `ended`, `seconds`, `exit_code` | zaman (UTC), süre, çıkış kodu |
+| `started`, `ended`, `seconds`, `exit_code` | zaman (Türkiye saati, `+03:00`), süre, çıkış kodu |
 | `commit` | `id`, `branch`, `dirty` (izlenen dosyalarda gönderilmemiş değişiklik), `subject` |
 | `machine` | `host`, `os`, `arch`, `cpu` (işlemcinin adı), `cores`, `memory_gb` (Linux), `gpus` (`nvidia-smi`: ad, bellek, sürücü), `go` |
 | `metrics` | komutun `metrics.json`'ı (varsa) |
