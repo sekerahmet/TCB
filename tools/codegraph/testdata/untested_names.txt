@@ -1,4 +1,4 @@
-# Hiçbir testin doğrudan kullanmadığı yerleşik, üye ve adlı argüman kodları: kod <TAB> gerekçe. Liste yalnızca küçülür (name_tests_test.go).
+# Hiçbir testin doğrudan kullanmadığı yerleşik, üye ve adlı argüman kodları: kod <TAB> gerekçe. Liste yalnızca küçülür: satır sayısı test_names_test.go'da sabitlenir (maxUntestedNames).
 G502	açık boşluk: zaman_ms'yi yalnızca örnekler ve ölçüm betikleri (tools/bench/tr) çağırır, davranışını sınayan test yok; yazılacak
 T920	açık boşluk: rms_normu(ağırlık:) adlı argümanını yalnızca examples/tr/31_katmanlar.tr geçirir, sınayan test yok; yazılacak
 T921	açık boşluk: katman_normu(sapma:) adlı argümanını yalnızca examples/tr/31_katmanlar.tr geçirir, sınayan test yok; yazılacak

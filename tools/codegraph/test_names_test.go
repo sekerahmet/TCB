@@ -12,8 +12,9 @@ import (
 // ya da kod gerekçesiyle testdata/untested_names.txt'te durur. "Doğrudan": bir TR test bloğunun ya da Go davranış
 // testinin (TR kodunu dize olarak çalıştıran) o adı kullanması; yalnızca listeyi gezen testler (`walks`) sayılmaz, çünkü
 // onlar her adı sayıp hiçbirini davranışıyla sınamaz. Yeni bir yerleşik eklenip testsiz bırakılırsa ya da bir testin
-// silinmesiyle bir ad testsiz kalırsa bu test düşer; bayat bir istisna da düşürür (liste yalnızca küçülür).
+// silinmesiyle bir ad testsiz kalırsa bu test düşer; bayat bir istisna da düşürür; liste yalnızca küçülür (onlyShrinks).
 func TestEveryBuiltinNameHasADirectTestOrAReason(t *testing.T) {
+	const maxUntestedNames = 3 // testdata/untested_names.txt: yalnızca küçülür (onlyShrinks)
 	root, err := resolveRoot("")
 	if err != nil {
 		t.Fatal(err)
@@ -43,6 +44,7 @@ func TestEveryBuiltinNameHasADirectTestOrAReason(t *testing.T) {
 		}
 		reasons[code] = reason
 	}
+	onlyShrinks(t, "testdata/untested_names.txt", len(reasons), maxUntestedNames)
 	var blind, stale []string
 	live := map[string]bool{}
 	for i := range g.Nodes {

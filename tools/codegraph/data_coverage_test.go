@@ -17,6 +17,22 @@ import (
 // boş dönecek dosya ya testle bağlanır ya da gerekçesiyle o dosyaya yazılır. Liste yalnızca küçülür: bir istisna
 // artık işe yaramıyorsa (dosya bağlandı ya da hiç yok) test düşer.
 
+// maxUncoveredData istisna listesinin bugünkü satır sayısıdır (onlyShrinks).
+const maxUncoveredData = 28
+
+// onlyShrinks bir istisna listesinin yalnızca küçülmesini sağlar (bağımsız denetim S4: kural yalnızca yorumdaydı). Satır
+// sayısı testte sabittir: artarsa test düşer, yeni boşluk listeye değil teste gider; bilerek eklemek sabiti de
+// değiştirmeyi ister ve değişiklik incelemede görünür. Azalırsa sabit de düşürülür, kazanılan yer geri verilmez.
+func onlyShrinks(t *testing.T, list string, n, limit int) {
+	t.Helper()
+	switch {
+	case n > limit:
+		t.Errorf("%s has %d entries, more than %d: the list only shrinks; link a test instead of adding an exception", list, n, limit)
+	case n < limit:
+		t.Errorf("%s has %d entries now: lower its limit from %d to %d so the list cannot grow back", list, n, limit, n)
+	}
+}
+
 // uncoveredData istisna kalıplarını ve gerekçelerini okur. Liste Go dizesi olarak değil dosya olarak durur: test
 // kodunda yol gibi görünen her dize kendi dosyasını "sınanmış" gösterirdi, istisnanın kendisi kapsama sayılırdı.
 func uncoveredData(t *testing.T) []struct{ pattern, reason string } {
@@ -85,6 +101,7 @@ func TestEveryTrackedDataFileHasATestOrAReason(t *testing.T) {
 	}
 	sort.Strings(uncovered)
 	exceptions := uncoveredData(t)
+	onlyShrinks(t, "testdata/uncovered_data.txt", len(exceptions), maxUncoveredData)
 	used := map[int]bool{}
 	var blind []string
 	for _, f := range uncovered {
