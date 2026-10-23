@@ -429,8 +429,10 @@ Behaviour is tested with TR code, and a test that the graph cannot see leaves `t
 things close that:
 
 - **`tests/*.tr` is indexed** (`trRoots`), so its `test "..."` blocks are `tr_test` nodes. Member (`.güncelle`) and
-  named-argument (`her_dakika:`) codes are builtin nodes in `tr dizin`, and every builtin a test block uses is a
-  `tests` edge to its name code (`tests-for T720` lists `tests/tensor_test.tr:1044`).
+  named-argument (`her_dakika:`) codes are builtin nodes in `tr dizin`, and every builtin a test block exercises is a
+  `tests` edge to its name code (`tests-for T720` lists `tests/tensor_test.tr:1044`). A function or method builtin is
+  exercised when it is called; naming it as a value (`değişken f = zaman_ms`) is not a test of it. Constants,
+  properties, types and named arguments are used by reading them (`codeindex.exercisesBuiltin`; independent audit S3).
 - **TR in Go test strings** (`tr_snippets.go`): a string a Go test gives to a function that reaches the TR reader is
   a TR program; `codeindex.Snippet` reads the name codes it uses and the test gets a `tests` edge to each. The
   helper is not named: the language entry points (`lexer.New`, `source.Prepare` ...) are the sinks, and a function
@@ -438,7 +440,8 @@ things close that:
   a constant, a `fmt.Sprintf` format (verbs become placeholders: `%q` → `"x"`), a named constant, a local variable,
   the text another function returns, or parts joined with `+` (an unknown part becomes `x`). A string that goes to a
   helper that never reaches the reader (`notTR(t, "kn.güncelle(1)")`) links nothing. Same chain rule as path
-  constants (one package boundary, eight steps).
+  constants (one package boundary) but at most four steps (half the limit): this edge is listed as a direct test, and
+  a longer chain is weak evidence. The codes counted are the ones the text exercises (same rule as a test block).
 - **A Go function is tested through the name it implements**: `tests-for checkpoint.Checkpoint.saveOnInterval`
   walks up its callers (`update` implements `güncelle`, Y010) and lists the tests of the builtin, member and
   named-argument codes they use (`tests through the name codes it implements`, tests of the same package first).

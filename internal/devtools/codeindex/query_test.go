@@ -234,3 +234,31 @@ func TestEditDistance(t *testing.T) {
 		}
 	}
 }
+
+// Kural: bir test bloğu bir işlev yerleşiğini yalnızca çağırınca sınar; çağırmadan değer olarak anması (`f = zaman_ms`)
+// onu sınamaz. Sabit yerleşik (pi) okunarak kullanılır, okunması sınamaktır (bağımsız denetim S3: anılan yerleşik
+// testli görünüyor, untested_names.txt'teki istisnayı bayat yapıyordu). Go testindeki TR parçası da aynı kuralla (Snippet).
+func TestATestBlockTestsAFunctionBuiltinOnlyByCallingIt(t *testing.T) {
+	dir := t.TempDir()
+	src := "test \"değer\" {\n    değişken f = zaman_ms\n    doğrula(doğru)\n}\n\ntest \"çağrı\" {\n    doğrula(sinüs(pi) < 1)\n}\n"
+	if err := os.WriteFile(filepath.Join(dir, "m_test.tr"), []byte(src), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	idx, err := Build(dir, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := NewReader(idx)
+	for name, want := range map[string]int{"zaman_ms": 0, "sinüs": 1, "pi": 1, "doğrula": 2} {
+		if got := len(r.TestedBy(name, QueryOptions{}).Tests); got != want {
+			t.Errorf("TestedBy(%s): %d tests, want %d", name, got, want)
+		}
+	}
+	codes := map[string]bool{}
+	for _, u := range Snippet("değişken f = zaman_ms\nyazdır(sinüs(pi))\n") {
+		codes[u.Code] = true
+	}
+	if codes["G502"] || !codes["G414"] || len(codes) != 3 {
+		t.Errorf("Snippet: zaman_ms only named, sinüs and yazdır called, pi read: %v", codes)
+	}
+}

@@ -265,11 +265,19 @@ func newTestReach(b *builder, idx *goIndex) *testReach {
 // testsReaching owner'ın kendisi test işleviyse onu, değilse onu (reachEdge zinciriyle, sınırlar içinde) çağıran ya da
 // kullanan testleri verir; bir testin ötesine geçilmez.
 func (r *testReach) testsReaching(owner string) []string {
+	return r.testsWithin(owner, testMaxSteps)
+}
+
+// testsWithin testsReaching'dir, zincir en çok maxSteps adım.
+func (r *testReach) testsWithin(owner string, maxSteps int) []string {
 	if r.isTest[owner] {
 		return []string{owner}
 	}
 	var out []string
 	walkCallers(owner, func(id string) []string { return r.callers[id] }, r.pkgOf, func(n reached) bool {
+		if n.Steps > maxSteps {
+			return false
+		}
 		if r.isTest[n.ID] {
 			out = append(out, n.ID)
 			return false

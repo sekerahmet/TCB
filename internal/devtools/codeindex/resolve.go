@@ -338,11 +338,30 @@ func (x *indexer) link(o owner, to string, kind EdgeKind, conf Confidence, role 
 // linkBasis link gibidir; üye erişiminin dayanağını da kaydeder.
 func (x *indexer) linkBasis(o owner, to string, kind EdgeKind, conf Confidence, role Role, pos Pos, basis Basis) {
 	x.addEdge(o.id, to, kind, conf, pos)
-	if o.kind == KindTest && (kind == EdgeCalls || x.nodes[to] != nil && x.nodes[to].Kind == KindBuiltin) {
+	if o.kind == KindTest && (kind == EdgeCalls || x.exercisesBuiltin(to, role)) {
 		x.addEdge(o.id, to, EdgeTests, conf, pos)
 		role = RoleTest
 	}
 	x.occurrenceBasis(to, role, conf, pos, o.id, basis)
+}
+
+// exercisesBuiltin test bloğunda bir yerleşiğin geçmesi onu sınamak mıdır. İşlev ve metot yerleşiği yalnızca çağrılınca
+// sınanır; çağrılmadan değer olarak anılması (`değişken f = zaman_ms`) onu sınamaz (bağımsız denetim S3: böyle bir blok
+// testsiz yerleşiği testli gösteriyordu). Sabit, özellik, tip ve adlı argüman okunarak kullanılır, okunması sınamaktır.
+func (x *indexer) exercisesBuiltin(to string, role Role) bool {
+	n := x.nodes[to]
+	if n == nil || n.Kind != KindBuiltin {
+		return false
+	}
+	if role == RoleCall {
+		return true
+	}
+	k, err := codes.Parse(n.Name)
+	if err != nil {
+		return false
+	}
+	def, _ := codes.DefinitionOf(k)
+	return def.Kind != codes.KindFunction && def.Kind != codes.KindMethod
 }
 
 func (x *indexer) occurrence(node string, role Role, conf Confidence, pos Pos, in string) {

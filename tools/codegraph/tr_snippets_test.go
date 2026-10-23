@@ -44,6 +44,14 @@ func TestConcatenated(t *testing.T) {
 }
 
 func TestNotTRCode(t *testing.T) { notTR(t, "kn.güncelle(1)") }
+
+func far5(t *testing.T) int { return run(t, "kontrol_noktası(2, {})") }
+func far4(t *testing.T) int { return far5(t) }
+func far3(t *testing.T) int { return far4(t) }
+func far2(t *testing.T) int { return far3(t) }
+func far1(t *testing.T) int { return far2(t) }
+
+func TestFar(t *testing.T) { far1(t) }
 `,
 }
 
@@ -64,5 +72,10 @@ func TestGoTestsLinkToTheNameCodesOfTheTRTheyRun(t *testing.T) {
 	}
 	if e := edge(g, app+"TestNotTRCode", "name:Y010", edgeTests); e != nil {
 		t.Errorf("a string given to a helper that never reaches the TR reader is not TR: %+v", e)
+	}
+	// TR metni testten beş adım uzakta: bu bağ "doğrudan" test sayılır, bu yüzden zincir en çok yarı sınırdır (4 adım;
+	// daha uzunu tests-for'da zayıf kanıttır). Bağımsız denetim S3.
+	if e := edge(g, app+"TestFar", "name:T702", edgeTests); e != nil {
+		t.Errorf("TR text five steps from the test is weak evidence, not a tests edge: %+v", e)
 	}
 }

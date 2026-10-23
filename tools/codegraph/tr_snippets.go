@@ -306,7 +306,7 @@ func linkSnippets(b *builder, idx *goIndex, reach *testReach) {
 		if f.from.fn != "" || !st.sinks[f.callee] {
 			continue
 		}
-		tests := reach.testsReaching(f.owner)
+		tests := reach.testsWithin(f.owner, testMaxSteps/2) // "doğrudan" test bağı: zincir en çok yarı sınır (S3)
 		if len(tests) == 0 {
 			continue
 		}

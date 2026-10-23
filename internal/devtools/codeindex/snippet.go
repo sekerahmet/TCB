@@ -17,8 +17,8 @@ type SnippetUse struct {
 	Line int
 }
 
-// Snippet src'yi TR programı olarak ayrıştırıp kullandığı yerleşik, üye ve adlı argüman kodlarını verir (koda göre
-// sıralı, her kod bir kez). Metin ayrıştırılamıyorsa nil: TR olmayan bir metin ya da eksik parça.
+// Snippet src'yi TR programı olarak ayrıştırıp sınadığı yerleşik, üye ve adlı argüman kodlarını verir (koda göre
+// sıralı, her kod bir kez; test bloğuyla aynı kural, exercisesBuiltin: işlev yerleşiği çağrılınca sayılır). Metin ayrıştırılamıyorsa nil: TR olmayan bir metin ya da eksik parça.
 func Snippet(src string) []SnippetUse {
 	x := &indexer{root: "", lang: source.Turkish(), files: map[string]*file{}, nodes: map[string]*Node{}, edges: map[edgeKey]*Edge{}}
 	x.addFile("snippet.tr", []byte(src), nil)
@@ -36,7 +36,7 @@ func Snippet(src string) []SnippetUse {
 	}
 	first := map[string]int{}
 	for _, o := range x.finish().Occurrences {
-		if n := x.nodes[o.Node]; n != nil && n.Kind == KindBuiltin && strings.HasPrefix(o.Pos.File, "snippet.tr") {
+		if n := x.nodes[o.Node]; n != nil && x.exercisesBuiltin(n.ID, o.Role) && strings.HasPrefix(o.Pos.File, "snippet.tr") {
 			if l, seen := first[n.Name]; !seen || o.Pos.Line < l {
 				first[n.Name] = o.Pos.Line
 			}
