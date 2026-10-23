@@ -49,17 +49,12 @@ func (k *emitter) rowLoop(tid, L, I, base2 reg, B int, body func(addr reg, l reg
 func (k *emitter) rowLoopE(tid, L, I, base2 reg, B int, body func(o reg, l reg)) {
 	l := k.r()
 	k.e("mov.u32", l, tid)
-	begin, last := k.label(), k.label()
-	k.put(begin)
-	p := k.p()
-	k.e("setp.ge.u32", p, l, L)
-	k.jumpIf(p, last)
-	o := k.r()
-	k.e("mad.lo.s32", o, l, I, base2)
-	body(o, l)
-	k.e("add.s32", l, l, B)
-	k.jump(begin)
-	k.put(last)
+	k.whileLess("u32", l, L, func() {
+		o := k.r()
+		k.e("mad.lo.s32", o, l, I, base2)
+		body(o, l)
+		k.e("add.s32", l, l, B)
+	})
 }
 
 // rowAt dt türündeki depolamada o. elemanın adresi.

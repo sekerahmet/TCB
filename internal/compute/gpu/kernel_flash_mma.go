@@ -214,22 +214,17 @@ func flashMmaForwardKernel(a flashMma) func() *emitter {
 		vAddr := k.laneAddr(vts, l, t2, mmaBc+8)
 		j0 := k.r()
 		k.e("mov.u32", j0, jStart)
-		loop, done := k.label(), k.label()
-		k.put(loop)
-		p := k.p()
-		k.e("setp.ge.u32", p, j0, jEnd)
-		k.jumpIf(p, done)
-		k.barrier() // önceki döşemeyi okuyan warp'lar bitti
-		k.loadTile16(tile16{row: ks, R: mmaBc, D: a.Dh}, kb, j0, f.Tk, f.tid)
-		k.loadTile16(tile16{trans: vts, R: mmaBc, D: a.Dv}, vb, j0, f.Tk, f.tid)
-		k.barrier()
-		k.clearFrags(S)
-		k.fragMul(S, qa, kAddr, a.Dh+8, a.f16) // S = Q·Kᵀ
-		f.mmaSoftmax(S, O, rows, lo, hi, m, sum, j0, t2, sc2)
-		k.fragMul(O, k.fragToA(S, a.f16), vAddr, mmaBc+8, a.f16) // O += P·V
-		k.e("add.s32", j0, j0, mmaBc)
-		k.jump(loop)
-		k.put(done)
+		k.whileLess("u32", j0, jEnd, func() {
+			k.barrier() // önceki döşemeyi okuyan warp'lar bitti
+			k.loadTile16(tile16{row: ks, R: mmaBc, D: a.Dh}, kb, j0, f.Tk, f.tid)
+			k.loadTile16(tile16{trans: vts, R: mmaBc, D: a.Dv}, vb, j0, f.Tk, f.tid)
+			k.barrier()
+			k.clearFrags(S)
+			k.fragMul(S, qa, kAddr, a.Dh+8, a.f16) // S = Q·Kᵀ
+			f.mmaSoftmax(S, O, rows, lo, hi, m, sum, j0, t2, sc2)
+			k.fragMul(O, k.fragToA(S, a.f16), vAddr, mmaBc+8, a.f16) // O += P·V
+			k.e("add.s32", j0, j0, mmaBc)
+		})
 		f.mmaWriteForward(O, rows, m, sum, t2, l.t, pout, plse)
 		return k
 	}

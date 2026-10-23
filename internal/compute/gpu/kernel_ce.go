@@ -30,15 +30,10 @@ func (k *emitter) ceWalk(tid, C reg, vec bool, body func(c reg, n int)) {
 	}
 	c := k.r()
 	k.e("mul.lo.s32", c, tid, n)
-	begin, last := k.label(), k.label()
-	k.put(begin)
-	p := k.p()
-	k.e("setp.ge.u32", p, c, C)
-	k.jumpIf(p, last)
-	body(c, n)
-	k.e("add.s32", c, c, step)
-	k.jump(begin)
-	k.put(last)
+	k.whileLess("u32", c, C, func() {
+		body(c, n)
+		k.e("add.s32", c, c, step)
+	})
 }
 
 // ceRow satır r'nin taban adresi: ptr + r·C·boy.

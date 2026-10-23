@@ -164,15 +164,10 @@ func normBackwardWarpKernel(a normConfig) func() *emitter {
 		k.e("add.s32", r, r1, w)
 		k.e("add.s32", r1, r1, chunk)
 		k.e("min.u32", r1, r1, R)
-		loop, done := k.label(), k.label()
-		k.put(loop)
-		p := k.p()
-		k.e("setp.ge.u32", p, r, r1)
-		k.jumpIf(p, done)
-		k.warpGradRow(f, r)
-		k.e("add.s32", r, r, warpRows)
-		k.jump(loop)
-		k.put(done)
+		k.whileLess("u32", r, r1, func() {
+			k.warpGradRow(f, r)
+			k.e("add.s32", r, r, warpRows)
+		})
 		k.warpGammaPartials(f, sm, tid, w, b, part)
 		return k
 	}

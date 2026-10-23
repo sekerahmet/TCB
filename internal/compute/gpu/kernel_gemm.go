@@ -105,19 +105,14 @@ func gemmKernel(a gemmConfig, transA, transB, over bool) func() *emitter {
 			acc[i] = k.constant(0)
 		}
 		k0 := k.whole(0)
-		loop, done := k.label(), k.label()
-		k.put(loop)
-		p := k.p()
-		k.e("setp.ge.u32", p, k0, K)
-		k.jumpIf(p, done)
-		k.loadGemm(aShare, pa, sa, m0, k0, M, K, transA)
-		k.loadGemm(bShare, pb, sb, n0, k0, N, K, !transB)
-		k.barrier()
-		k.computeGemm(a, acc, sa, sb, tx, ty)
-		k.barrier()
-		k.e("add.s32", k0, k0, a.BK)
-		k.jump(loop)
-		k.put(done)
+		k.whileLess("u32", k0, K, func() {
+			k.loadGemm(aShare, pa, sa, m0, k0, M, K, transA)
+			k.loadGemm(bShare, pb, sb, n0, k0, N, K, !transB)
+			k.barrier()
+			k.computeGemm(a, acc, sa, sb, tx, ty)
+			k.barrier()
+			k.e("add.s32", k0, k0, a.BK)
+		})
 		k.writeGemm(a, acc, pc, m0, n0, tx, ty, M, N, over)
 		return k
 	}

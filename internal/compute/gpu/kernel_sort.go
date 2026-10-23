@@ -65,15 +65,10 @@ func accumKernel(B int, inverse, add bool) func() *emitter {
 		walk := func(body func(p reg)) {
 			p := k.r()
 			k.e("mov.u32", p, begin)
-			loop, done := k.label(), k.label()
-			k.put(loop)
-			q := k.p()
-			k.e("setp.ge.u32", q, p, bit)
-			k.jumpIf(q, done)
-			body(p)
-			k.e("add.s32", p, p, 1)
-			k.jump(loop)
-			k.put(done)
+			k.whileLess("u32", p, bit, func() {
+				body(p)
+				k.e("add.s32", p, p, 1)
+			})
 		}
 		s := k.constant(0)
 		walk(func(p reg) { k.e("add.rn.f32", s, s, k.load(tensor.Float32, addressOf(x, p))) })
@@ -287,15 +282,10 @@ func sortSharedKernel(P int, descending, valued bool) func() *emitter {
 		loop := func(limit any, body func(t reg)) {
 			t := k.r()
 			k.e("mov.u32", t, tid)
-			begin, done := k.label(), k.label()
-			k.put(begin)
-			q := k.p()
-			k.e("setp.ge.u32", q, t, limit)
-			k.jumpIf(q, done)
-			body(t)
-			k.e("add.s32", t, t, T)
-			k.jump(begin)
-			k.put(done)
+			k.whileLess("u32", t, limit, func() {
+				body(t)
+				k.e("add.s32", t, t, T)
+			})
 		}
 		loop(P, func(t reg) {
 			k.e("st.shared.u64", mem(address64(t), 0), k.loadKey(x, t, L, ic, base2, descending))

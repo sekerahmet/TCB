@@ -144,6 +144,19 @@ func (k *emitter) jump(l string) { k.e("bra", l) }
 func (k *emitter) jumpIf(p reg, l string)     { k.ifCase(p, "bra", l) }
 func (k *emitter) jumpUnless(p reg, l string) { k.otherwise(p, "bra", l) }
 
+// whileLess i < end oldukça body'yi yineler: başta setp.ge ile çıkılır, sonda başa dönülür;
+// sayacı body ilerletir. typ karşılaştırmanın türüdür (u32, s32).
+func (k *emitter) whileLess(typ string, i, end any, body func()) {
+	loop, done := k.label(), k.label()
+	k.put(loop)
+	p := k.p()
+	k.e("setp.ge."+typ, p, i, end)
+	k.jumpIf(p, done)
+	body()
+	k.jump(loop)
+	k.put(done)
+}
+
 // barrier bloktaki bütün iş parçacıklarını bekler.
 func (k *emitter) barrier() { k.e("bar.sync", 0) }
 
