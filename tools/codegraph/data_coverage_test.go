@@ -66,17 +66,10 @@ func trackedSet(root string) (map[string]bool, bool) {
 }
 
 func TestEveryTrackedDataFileHasATestOrAReason(t *testing.T) {
-	root, err := resolveRoot("")
-	if err != nil {
-		t.Fatal(err)
-	}
+	root, _, g := repoGraph(t) // sınavla paylaşılan yükleme
 	tracked, ok := trackedSet(root)
 	if !ok {
 		t.Skip("needs a git checkout")
-	}
-	g, err := buildGraph(root)
-	if err != nil {
-		t.Fatal(err)
 	}
 	ix := newIndex(g)
 	hit := map[string]bool{}

@@ -15,14 +15,7 @@ import (
 // silinmesiyle bir ad testsiz kalırsa bu test düşer; bayat bir istisna da düşürür; liste yalnızca küçülür (onlyShrinks).
 func TestEveryBuiltinNameHasADirectTestOrAReason(t *testing.T) {
 	const maxUntestedNames = 3 // testdata/untested_names.txt: yalnızca küçülür (onlyShrinks)
-	root, err := resolveRoot("")
-	if err != nil {
-		t.Fatal(err)
-	}
-	g, err := buildGraph(root)
-	if err != nil {
-		t.Fatal(err)
-	}
+	_, _, g := repoGraph(t)    // sınavla paylaşılan yükleme
 	direct := map[string]bool{}
 	for _, e := range g.Edges {
 		if e.Kind == edgeTests {
