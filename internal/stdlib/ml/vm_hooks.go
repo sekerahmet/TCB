@@ -82,7 +82,7 @@ func (d *TensorValue) TaskOperator(m *interp.VM, op string, otherVal interp.Valu
 
 func (d *TensorValue) taskOperator(m *interp.VM, op string, otherVal interp.Value, onRight bool) (interp.Value, bool, error) {
 	if op != "@" {
-		return d.operator(op, otherVal, onRight) // TaskOperator zaten markFresh çağırır
+		return d.operator(m, op, otherVal, onRight) // TaskOperator zaten markFresh çağırır
 	}
 	return d.matmulOp(otherVal, onRight, mixedDType(m))
 }
@@ -106,26 +106,28 @@ func (d *TensorValue) matmulOp(otherVal interp.Value, onRight bool, dt tensor.DT
 
 // Operator tensörün ikili işleçlerini uygular: '+', '-', '*', '/' (eleman bazlı, yayınlamalı;
 // diğer işlenen sayı, liste ya da tensör) ve '@' (matris çarpımı) her iki yönde; '**' sol
-// işlenenken (sayı üs); '<', '>', '<=', '>=' her iki yönde (0/1 maskesi).
+// işlenenken (sayı üs); '<', '>', '<=', '>=' her iki yönde (0/1 maskesi). Yorumlayıcı
+// tensörde TaskOperator'ı çağırır; bu biçim program olmadan çağrılır ve yayın uyarısı yazmaz.
 func (d *TensorValue) Operator(op string, otherVal interp.Value, onRight bool) (interp.Value, bool, error) {
 	start := tensor.Created()
-	res, ok, err := d.operator(op, otherVal, onRight)
+	res, ok, err := d.operator(nil, op, otherVal, onRight)
 	if err == nil {
 		markFresh(res, start)
 	}
 	return res, ok, err
 }
 
-func (d *TensorValue) operator(op string, otherVal interp.Value, onRight bool) (interp.Value, bool, error) {
+// operator ikili işleci uygular; m işlemi yapan görevdir (nil: program yok, uyarı yazılmaz).
+func (d *TensorValue) operator(m *interp.VM, op string, otherVal interp.Value, onRight bool) (interp.Value, bool, error) {
 	switch op {
 	case "+", "*":
 		// Değişmeli: yön sonucu değiştirmez.
-		v, err := d.binary(op, otherVal)
+		v, err := d.binary(m, op, otherVal)
 		return v, true, err
 
 	case "-", "/":
 		if !onRight {
-			v, err := d.binary(op, otherVal)
+			v, err := d.binary(m, op, otherVal)
 			return v, true, err
 		}
 		if s, ok := interp.ToFloat(otherVal); ok {

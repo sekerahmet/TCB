@@ -32,10 +32,11 @@ func Parse(t testing.TB, code string) *ast.Program {
 
 // Outcome bir programın çalışmasının sonucudur.
 type Outcome struct {
-	Out   string       // yazdır() çıktısı
-	VM    *interp.VM   // programın çalıştığı VM (genel değişkenleri okumak için)
-	Value interp.Value // programın son değeri
-	Err   error
+	Out    string       // yazdır() çıktısı
+	ErrOut string       // programın hata akışı (VM.Err): uyarılar ve görev hataları
+	VM     *interp.VM   // programın çalıştığı VM (genel değişkenleri okumak için)
+	Value  interp.Value // programın son değeri
+	Err    error
 }
 
 // Exec kodu yeni bir VM'de çalıştırır, eşzamanlı görevleri bekler ve sonucu verir.
@@ -43,11 +44,11 @@ func Exec(t testing.TB, code string) Outcome {
 	t.Helper()
 	prog := Parse(t, code)
 	m := interp.New()
-	var out bytes.Buffer
-	m.Out = &out
+	var out, errOut bytes.Buffer
+	m.Out, m.Err = &out, &errOut
 	val, err := m.Run(prog)
 	m.WaitAsync()
-	return Outcome{Out: out.String(), VM: m, Value: val, Err: err}
+	return Outcome{Out: out.String(), ErrOut: errOut.String(), VM: m, Value: val, Err: err}
 }
 
 // MustExec Exec gibidir; program hata verirse testi düşürür.

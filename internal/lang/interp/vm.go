@@ -104,6 +104,11 @@ type vmShared struct {
 	// builtinConstants genel kapsama kaydedilen yerleşik sabitlerdir (ad → değer; ör. pi);
 	// hata ayıklayıcı onları kullanıcı değişkenlerinden ayırır (YerlesikSabitMi).
 	builtinConstants map[string]Value
+	// programValues motorların programa bağlı durumudur (bütün görevler paylaşır; ör. tensör
+	// motorunun bir kez gösterilen uyarıları). Süreç geneli değişkende tutulsaydı aynı süreçte
+	// çalışan programlar (tr test'in dosyaları, düzenleyici oturumu) birbirini etkilerdi.
+	isProgramValue sync.Mutex
+	programValues  map[any]any
 
 	// gil (Yorumlayıcı Kilidi): Aynı anda yalnızca bir görev TR kodu çalıştırır. Böylece
 	// paylaşılan Liste/Sözlük/Yapı değerleri eşzamanlı yazımda bozulmaz ve 's += 1' gibi
@@ -217,6 +222,23 @@ func (v *VM) SetTaskValue(keyStr, value any) {
 		v.taskValues = map[any]any{}
 	}
 	v.taskValues[keyStr] = value
+}
+
+// ProgramValue programa bağlı motor durumunu verir; anahtar için ilk çağrıda create ile
+// kurulur. Durum programın bütün görevlerince paylaşılır; eşzamanlı erişimi korumak durumun
+// kendi işidir. Anahtar motorun dışa açık olmayan bir tipi olmalıdır (çakışmasın).
+func (v *VM) ProgramValue(key any, create func() any) any {
+	v.isProgramValue.Lock()
+	defer v.isProgramValue.Unlock()
+	if val, ok := v.programValues[key]; ok {
+		return val
+	}
+	if v.programValues == nil {
+		v.programValues = map[any]any{}
+	}
+	val := create()
+	v.programValues[key] = val
+	return val
 }
 
 func New() *VM {

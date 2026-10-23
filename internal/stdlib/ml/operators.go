@@ -6,8 +6,6 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
-	"io"
-	"os"
 	"sync"
 )
 
@@ -84,45 +82,55 @@ func bothWiden(a, b *tensor.Tensor) bool {
 	return aWide && bWide
 }
 
-var (
-	isWarning       sync.Mutex
-	warningOutput   io.Writer = os.Stderr
-	givenWarning              = map[string]bool{}
-	warningSilenced bool      // sınır bildirimi yapıldı mı
-)
+// broadcastWarnings bir programın gösterdiği yayın uyarılarıdır; programa bağlıdır
+// (interp.VM.ProgramValue): aynı süreçte çalışan başka bir program (tr test'in öbür dosyaları)
+// kendi uyarılarını baştan gösterir.
+type broadcastWarnings struct {
+	mu       sync.Mutex
+	given    map[string]bool
+	silenced bool // sınır bildirimi yapıldı mı
+}
+
+type warningsKey struct{}
+
+// warningsOf programın yayın uyarıları.
+func warningsOf(m *interp.VM) *broadcastWarnings {
+	return m.ProgramValue(warningsKey{}, func() any { return &broadcastWarnings{given: map[string]bool{}} }).(*broadcastWarnings)
+}
 
 // maxBroadcastWarnings gösterilecek en çok farklı yayın uyarısı (işlem ve şekil çifti).
 const maxBroadcastWarnings = 100
 
-// broadcastWarning iki tarafın da genişletildiği yayınlamayı standart hataya bir kez yazar.
-// İşleçler satır bilgisini almadığından (yorumlayıcı işleç çağrısına satır geçirmez)
-// tekrar, işlem ve şekil çiftine göre önlenir.
-func broadcastWarning(op string, a, b *tensor.Tensor) {
+// broadcastWarning iki tarafın da genişletildiği yayınlamayı programın hata akışına (m.Err) bir
+// kez yazar. İşleçler satır bilgisini almadığından (yorumlayıcı işleç çağrısına satır
+// geçirmez) tekrar, işlem ve şekil çiftine göre önlenir.
+func broadcastWarning(m *interp.VM, op string, a, b *tensor.Tensor) {
 	as, bs := shapeText(a.Shape()), shapeText(b.Shape())
 	key := op + as + bs
-	isWarning.Lock()
-	defer isWarning.Unlock()
-	if givenWarning[key] {
+	w := warningsOf(m)
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if w.given[key] {
 		return
 	}
 	// Harita sınırlıdır: değişken uzunluklu dizilerde her şekil çifti yeni bir anahtar
 	// olurdu. Sınıra varılınca bir kez bildirilir, sonraki yeni uyarılar gösterilmez.
-	if len(givenWarning) >= maxBroadcastWarnings {
-		if !warningSilenced {
-			warningSilenced = true
-			fmt.Fprintln(warningOutput, messages.Text(messages.H6127, maxBroadcastWarnings))
+	if len(w.given) >= maxBroadcastWarnings {
+		if !w.silenced {
+			w.silenced = true
+			fmt.Fprintln(m.Err, messages.Text(messages.H6127, maxBroadcastWarnings))
 		}
 		return
 	}
-	givenWarning[key] = true
+	w.given[key] = true
 	result := make([]int, max(a.Dim(), b.Dim()))
 	for i := 1; i <= len(result); i++ {
 		result[len(result)-i] = max(axisFromEnd(a, i), axisFromEnd(b, i))
 	}
-	fmt.Fprintln(warningOutput, messages.Text(messages.H6128, as, bs, shapeText(result)))
+	fmt.Fprintln(m.Err, messages.Text(messages.H6128, as, bs, shapeText(result)))
 }
 
-func (d *TensorValue) binary(op string, other interp.Value) (interp.Value, error) {
+func (d *TensorValue) binary(m *interp.VM, op string, other interp.Value) (interp.Value, error) {
 	if s, ok := interp.ToFloat(other); ok {
 		f := float32(s)
 		r, err := safe(func() *tensor.Tensor {
@@ -160,8 +168,8 @@ func (d *TensorValue) binary(op string, other interp.Value) (interp.Value, error
 	if d.t.Device() != o.Device() {
 		return nil, checkDevice(tensorOperation(op), d.t, o)
 	}
-	if bothWiden(d.t, o) {
-		broadcastWarning(op, d.t, o)
+	if m != nil && bothWiden(d.t, o) {
+		broadcastWarning(m, op, d.t, o)
 	}
 	r, err := safe(func() *tensor.Tensor {
 		switch op {
