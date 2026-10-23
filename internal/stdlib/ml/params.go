@@ -13,8 +13,9 @@ import (
 )
 
 // Bir modelin parametrelerini toplama (parametreler) ve var olan parametrelere yükleme
-// (parametreleri_yükle). Kontrol noktası (internal/stdlib/checkpoint) aynı Go fonksiyonlarını
-// kullanır: CollectParams, CollectTensors, CheckParamShapes, CopyInto.
+// (parametreleri_yükle). Kontrol noktası (internal/stdlib/checkpoint) CollectTensors ve CopyInto'yu
+// kullanır; CheckParamShapes yalnızca parametreleri_yükle içindir (kontrol noktası kendi şekil ve tür
+// denetimini yapar).
 
 // paramsBuiltin parametreler(model, adlarıyla: yanlış) yerleşiğidir: bir yapı
 // nesnesini (iç içe yapılar, listeler ve sözlüklerle birlikte) gezip türev izleyen yaprak
