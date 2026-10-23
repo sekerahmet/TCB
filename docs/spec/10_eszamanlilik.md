@@ -12,4 +12,4 @@ bekle_hepsi()      // toplam == 20100
 
 **10.3** Engelleyici işlemler (`bekle(saniye)`, `bekle_hepsi()`, `girdi()`, ağ istekleri, dış süreç ve sunucu beklemeleri) kilidi bırakır; böylece bekleyen görevler iç içe ilerler (4 görevde `bekle(0.2)` toplam ~0.2 sn sürer).
 
-**10.4** Görev, başlatıldığı kapsamı yakalar; döngü içinde başlatılan her görev o turun değişkenlerini görür.
+**10.4** Görev, başlatıldığı kapsamı yakalar; döngü içinde başlatılan her görev o turun değişkenlerini görür. `eşzamanlı çağrı(...)` içinde tanımlanan adlı fonksiyon görevin kapsamındadır, çevre kapsama girmez (5.12).
