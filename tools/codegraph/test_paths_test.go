@@ -74,3 +74,71 @@ func TestGoTestsLinkToTheRepositoryFilesTheyUse(t *testing.T) {
 		}
 	}
 }
+
+var testNoteFiles = map[string]string{
+	"lib/a.tr": "fonksiyon a() {\n}\n",
+	"app/doc_test.go": `package app
+
+import (
+	"testing"
+
+	"example.com/audit/internal/reporoot"
+)
+
+// Belgeli kural: lib/a.tr yazılışı korur.
+// İkinci satır gösterilmez.
+func TestWithDoc(t *testing.T) { _ = reporoot.Path("lib/a.tr") }
+`,
+	"app/head_test.go": `package app
+
+import (
+	"testing"
+
+	"example.com/audit/internal/reporoot"
+)
+
+// Baş yorum: dosyanın kuralı.
+// Devamı gösterilmez.
+const unrelated = 1
+
+func TestWithoutDoc(t *testing.T) { _ = reporoot.Path("lib/a.tr") }
+`,
+	"app/none_test.go": `package app
+
+import (
+	"testing"
+
+	"example.com/audit/internal/reporoot"
+)
+
+func TestNoComment(t *testing.T) { _ = reporoot.Path("lib/a.tr") }
+`,
+	"internal/reporoot/root.go": "package reporoot\n\nfunc Path(parts ...string) string { return \"\" }\n",
+}
+
+// Kural: tests-for her Go testinin altına koruduğu kuralın ilk satırını yazar: önce testin doc yorumu, yoksa test
+// dosyasının baş yorumu (içe aktarmalardan sonraki ilk // bloğu); yorumsuz testte not yoktur.
+func TestTestsForShowsTheRuleLineOfEachGoTest(t *testing.T) {
+	root := auditModule(t, testNoteFiles)
+	var out, errb strings.Builder
+	if code := run([]string{"build", "--root", root}, &out, &errb); code != exitOK {
+		t.Fatalf("build: %d %s", code, errb.String())
+	}
+	out.Reset()
+	if code := run([]string{"tests-for", "lib/a.tr", "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
+		t.Fatalf("tests-for: %d %s", code, errb.String())
+	}
+	got := out.String()
+	for _, want := range []string{
+		"TestWithDoc [func] at app/doc_test.go:11  [INFERRED]\n      Belgeli kural: lib/a.tr yazılışı korur.\n",
+		"TestWithoutDoc [func] at app/head_test.go:13  [INFERRED]\n      Baş yorum: dosyanın kuralı.\n",
+		"TestNoComment [func] at app/none_test.go:9  [INFERRED]\n",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("tests-for lacks %q in:\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, "İkinci satır") || strings.Contains(got, "Devamı") || strings.Contains(got, "TestNoComment [func] at app/none_test.go:9  [INFERRED]\n      ") {
+		t.Errorf("only the first comment line, and none for a test without a comment:\n%s", got)
+	}
+}

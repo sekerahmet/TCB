@@ -13,6 +13,7 @@ type index struct {
 	byID map[string]*Node
 	out  map[string][]*Edge
 	in   map[string][]*Edge
+	note func(*Node) string // verilirse edgeLine her düğümün altına bir not satırı ekler (test_notes.go)
 }
 
 func newIndex(g *Graph) *index {
@@ -149,6 +150,11 @@ func (ix *index) edgeLine(e *Edge, other string, withSite bool) string {
 	}
 	if e.Confidence == inferred {
 		s += "  [INFERRED]"
+	}
+	if ix.note != nil {
+		if t := ix.note(n); t != "" {
+			s += "\n      " + t
+		}
 	}
 	return s
 }

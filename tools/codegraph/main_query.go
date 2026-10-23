@@ -122,6 +122,7 @@ func (ix *index) answer(cmd string, nodes []*Node, o *queryOpts) int {
 			ix.printWhoUses(o.stdout, nodes[0], o.limit)
 		}
 	case "tests-for":
+		ix.withTestNotes(o.root)
 		ix.printTestsFor(o.stdout, nodes[0], o.limit)
 	case "history":
 		return ix.runHistory(o.root, nodes[0], o.limit, o.stdout, o.stderr)
