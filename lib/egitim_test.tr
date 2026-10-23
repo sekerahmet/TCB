@@ -28,10 +28,10 @@ test "SıçramaBekçisi: pencere dolana kadar yalnızca sonlu olmayanı yakalar"
 test "SıçramaBekçisi: kayıp ya da norm eşik kadar standart sapma yukarıdaysa sıçramadır" {
     değişken b = SıçramaBekçisi(pencere: 16, eşik: 6.0)
     besle(b, 16)
-    eşit_mi(TAMAM, b.gözle(1.05, 1.0))  // 5σ: eşiğin altında
+    eşit_mi(TAMAM, b.gözle(1.05, 1.0)) // 5σ: eşiğin altında
     eşit_mi(SIÇRAMA, b.gözle(1.2, 1.0)) // kayıp 20σ
     eşit_mi(SIÇRAMA, b.gözle(1.0, 1.5)) // norm 50σ
-    eşit_mi(TAMAM, b.gözle(0.5, 1.0))   // aşağı yönde düşüş sıçrama değildir
+    eşit_mi(TAMAM, b.gözle(0.5, 1.0)) // aşağı yönde düşüş sıçrama değildir
     eşit_mi(2, b.sıçrama_sayısı)
 }
 
@@ -77,4 +77,40 @@ test "SıçramaBekçisi: geçmiş tamamen sıfırsa karar vermez, kilitlenmez" {
 test "SıçramaBekçisi: kesirli pencere ve sonsuz eşik reddedilir" {
     doğrula(hata_metni(() => SıçramaBekçisi(pencere: 2.5)) != "")
     doğrula(hata_metni(() => SıçramaBekçisi(eşik: ondalık("inf"))) != "")
+}
+
+// Küçük bir koşu: iki parametreli model, adım_sayısı adım, her adımda ölçü, sonda değerlendirme.
+fonksiyon koş(klasör, model, adım_sayısı, prova = yanlış) {
+    değişken koşu = Koşu(klasör, {deneme: 1}, {model: model}, adım_sayısı: adım_sayısı, prova: prova)
+    döngü adım içinde koşu.kaldığı_adım..koşu.son_adım {
+        koşu.adım_bitti(adım + 1, {kayıp: 1.0 / (adım + 1)})
+    }
+    koşu.değerlendirildi(koşu.son_adım, {doğrulama_kaybı: 0.5})
+    koşu.bitir(model)
+    sonuç koşu
+}
+
+test "Koşu: klasöre ayarları, günlüğü, kontrol noktasını ve ağırlıkları yazar; aynı klasör kaldığı adımdan sürer" {
+    değişken k = geçici_klasör()
+    değişken model = {w: tensör([1.0, 2.0], türev_izle: doğru)}
+    değişken koşu = koş(k, model, 3)
+    eşit_mi(0, koşu.kaldığı_adım)
+    eşit_mi(2, json_çöz(dosya_oku(yol(k, "config.json"))).parametre_sayısı)
+    değişken günlük_metni = dosya_oku(yol(k, "metrics.jsonl"))
+    doğrula(günlük_metni.içerir("doğrulama_kaybı") ve günlük_metni.içerir("kayıp"), "günlük ölçüleri taşımalı: {günlük_metni}")
+    eşit_mi([1.0, 2.0], tensör_yükle(yol(k, "model.trt"))["w"].değer)
+    eşit_mi(3, Koşu(k, {deneme: 1}, {model: model}, adım_sayısı: 3).kaldığı_adım)
+}
+
+test "Koşu: prova geçici klasörde en çok PROVA_ADIMI adım sürer ve dosyaları denetler" {
+    değişken k = geçici_klasör()
+    değişken koşu = koş(k, {w: tensör([1.0], türev_izle: doğru)}, 100, prova: doğru)
+    eşit_mi(PROVA_ADIMI, koşu.son_adım)
+    doğrula(koşu.klasör.mutlak != yol(k).mutlak, "prova verilen klasöre yazmamalı")
+    doğrula(yol(koşu.klasör, "model.trt").var_mı, "provada ağırlıklar yazılmalı")
+    doğrula(değil yol(k, "config.json").var_mı, "prova asıl klasörü kirletmemeli")
+}
+
+test "Koşu: adım_sayısı pozitif bir Tam olmalıdır" {
+    doğrula(hata_metni(() => Koşu(geçici_klasör(), {}, {}, adım_sayısı: 0)).içerir("en az 1"), "0 reddedilmeli")
 }

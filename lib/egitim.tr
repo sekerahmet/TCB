@@ -1,4 +1,5 @@
-// tr/egitim — uzun eğitimin kararlılığı: kayıp ve gradyan normu sıçrama bekçisi.
+// tr/egitim — uzun eğitimin güvencesi: koşu düzeni (Koşu) ve kayıp ile gradyan normu sıçrama
+// bekçisi (SıçramaBekçisi).
 //
 // Kullanım:   aktar "tr/egitim"
 //             değişken bekçi = SıçramaBekçisi(pencere: 128, eşik: 6.0)
@@ -71,5 +72,89 @@ yapı SıçramaBekçisi {
         geçmiş.ekle(değer)
         eğer geçmiş.uzunluk > kendi.pencere { sonuç geçmiş[1..geçmiş.uzunluk] }
         sonuç geçmiş
+    }
+}
+
+// --- Koşu ---
+//
+// Koşu bir eğitimin kayıt işlerini üstlenir; döngü kullanıcıda kalır (Hugging Face Accelerate'in
+// yolu: save_state/load_state, kullanıcının kendi döngüsü). Lightning ve Keras döngüyü kendileri
+// sürer ve geri çağırma düzeni ister; TR'de özel adımlar (bekçinin geri dönüşü, birikim,
+// kaynaştırma) döngüde açık kalsın diye yalnızca kayıt işleri toplanır.
+//
+//     değişken koşu = Koşu(ayar.koşu, ayar, {model: model, adamw: op.adamw, ö: ö}, adım_sayısı: ayar.adım, prova: ayar.prova)
+//     döngü adım içinde koşu.kaldığı_adım..koşu.son_adım {
+//         ... adım ...
+//         koşu.adım_bitti(adım + 1, eğer günlük_adımı { {kayıp: kayıp} } değilse { yok })
+//         eğer değerlendirme_adımı { koşu.değerlendirildi(adım + 1, {doğrulama_kaybı: dk}) }
+//     }
+//     koşu.bitir(model)
+//
+// Klasörde config.json (ayarlar, parametre sayısı, cihaz), metrics.jsonl (günlük; çubuğun ve
+// değerlendirmelerin kayıtları), kontrol_noktalari/ (nesneler ve günlük) ve sonda model.trt durur.
+// Aynı komut kaldığı adımdan sürer (dil tanımı 20). bitir ağırlıkları her şeyden önce yazar: sonrası
+// bir hatayla bitse de eğitimin sonucu kaybolmaz.
+//
+// prova: doğru, aynı komutun uzun koşudan önceki denemesidir (Lightning fast_dev_run'ın karşılığı):
+// koşu geçici bir klasörde PROVA_ADIMI adım sürer, kontrol noktası her adımda yazılır, bitir koşunun
+// dosyalarının hepsinin yazıldığını denetler. Böylece uzun koşunun sonunda düşecek bir satır
+// (ör. yalnızca son adımda çalışan bir değerlendirme ya da kayıt) önceden görülür.
+
+sabit PROVA_ADIMI = 2
+
+yapı Koşu {
+    klasör
+    prova
+    günlük
+    çubuk
+    nokta
+    kaldığı_adım
+    son_adım
+    fonksiyon kurucu(klasör, ayar, nesneler, adım_sayısı, her_dakika = 15.0, prova = yanlış) {
+        eğer tip(adım_sayısı) != Tam veya adım_sayısı < 1 { fırlat "Koşu: adım_sayısı en az 1 olan bir Tam olmalıdır, {adım_sayısı} verildi" }
+        kendi.prova = prova
+        kendi.son_adım = eğer prova { min(adım_sayısı, PROVA_ADIMI) } değilse { adım_sayısı }
+        kendi.klasör = eğer prova { yol(geçici_klasör(), "prova") } değilse { yol(klasör) }
+        klasör_oluştur(kendi.klasör)
+        değişken sayı = 0
+        eğer nesneler.içerir("model") {
+            döngü w içinde parametreler(nesneler["model"]) { sayı += w.şekil.indirge(1) { birikim * o } }
+        }
+        dosya_yaz(yol(kendi.klasör, "config.json"), json_metin({ayar: ayar, parametre_sayısı: sayı, cihaz: varsayılan_cihaz()}))
+        kendi.günlük = günlük(yol(kendi.klasör, "metrics.jsonl"))
+        değişken kayıtlılar = {}
+        döngü ad, d içinde nesneler { kayıtlılar[ad] = d }
+        kayıtlılar["günlük"] = kendi.günlük
+        kendi.nokta = kontrol_noktası(kendi.klasör, kayıtlılar, her_dakika: eğer prova { 0 } değilse { her_dakika })
+        kendi.kaldığı_adım = kendi.nokta.kaldığı_adım
+        kendi.çubuk = ilerleme(kendi.son_adım, günlük: kendi.günlük)
+        eğer kendi.kaldığı_adım > 0 { kendi.çubuk.güncelle(adım: kendi.kaldığı_adım) }
+    }
+    // adım_bitti eğitimin adım sınırıdır: ölçüler verilirse (sözlük; okumak GPU'yu bekletir, bu yüzden
+    // her adımda değil) çubuk ve günlük güncellenir; kontrol noktası zamanı geldiyse kaydedilir.
+    // Kayıt yapıldıysa doğru verir.
+    fonksiyon adım_bitti(adım, ölçüler = yok) {
+        eğer ölçüler != yok { kendi.çubuk.güncelle(ölçüler, adım: adım) }
+        sonuç kendi.nokta.güncelle(adım)
+    }
+    // değerlendirildi bir değerlendirmenin ölçülerini (sözlük) adımıyla günlüğe yazar.
+    fonksiyon değerlendirildi(adım, ölçüler) {
+        değişken kayıt = {adım: adım}
+        döngü ad, d içinde ölçüler { kayıt[ad] = d }
+        kendi.günlük.ekle(kayıt)
+    }
+    // geri_dön son kontrol noktasına döner ve onun adımını verir (sıçrama bekçisinin kararıyla).
+    fonksiyon geri_dön() { sonuç kendi.nokta.geri_dön() }
+    // bitir önce modelin ağırlıklarını (model.trt) yazar, sonra son kontrol noktasını; provada koşunun
+    // dosyalarının hepsinin yazıldığını denetler ve sonucu yazar.
+    fonksiyon bitir(model) {
+        tensör_kaydet(yol(kendi.klasör, "model.trt"), parametreler(model, adlarıyla: doğru))
+        kendi.nokta.kaydet()
+        eğer kendi.prova {
+            döngü ad içinde ["config.json", "metrics.jsonl", "model.trt", "kontrol_noktalari"] {
+                eğer değil yol(kendi.klasör, ad).var_mı { fırlat "Koşu provası: {ad} yazılmadı ({kendi.klasör.mutlak})" }
+            }
+            yazdır("Prova geçti: {kendi.son_adım} adım, bütün dosyalar yazıldı ({kendi.klasör.mutlak})")
+        }
     }
 }

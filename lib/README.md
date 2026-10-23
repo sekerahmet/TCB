@@ -6,7 +6,7 @@ TR ile yazılmış, `tr` ikilisine gömülü kitaplık. Modüller `aktar "tr/...
 | :-- | :-- | :-- |
 | `tr/katman` | [`katman.tr`](katman.tr) | Transformer katmanları ve yalnızca kod çözücülü `GPT` |
 | `tr/iyilestirici` | [`iyilestirici.tr`](iyilestirici.tr) | Muon, NorMuon, parametre grupları, öğrenme oranı planı |
-| `tr/egitim` | [`egitim.tr`](egitim.tr) | Uzun eğitimin kararlılığı: kayıp ve gradyan normu sıçrama bekçisi |
+| `tr/egitim` | [`egitim.tr`](egitim.tr) | Uzun eğitimin güvenliği: koşunun kayıt işleri (`Koşu`, prova) ve kayıp ile gradyan normu sıçrama bekçisi |
 | `tr/hazir` | [`hazir.tr`](hazir.tr) | Hugging Face biçimindeki hazır modelleri (Llama, Qwen3) GPT'ye yüklemek |
 
 Testler her modülün yanındadır (`katman_test.tr`, `iyilestirici_test.tr`, `egitim_test.tr`, `hazir_test.tr`) ve `tr test lib` ile koşar (tam denetimin parçasıdır). Test dosyaları gömülür ama modül olarak aktarılamaz. Kullanım rehberi: [kılavuz §10](../docs/guide/10_hazir_katmanlarla_gpt.md); tam örnek: [`examples/tr/41_gpt.tr`](../examples/tr/41_gpt.tr); GPU'da SimpleStories eğitimi: [`tools/gpu/gpt_training.tr`](../tools/gpu/gpt_training.tr).
@@ -107,6 +107,25 @@ Kitaplığın adları kullanıcı düzeyi TR adlarıdır; dilin kodu değildir, 
 **Açık konu (Ç3, yazım dilleri):** kodlu saklamada (dil tanımı [17](../docs/spec/17_kodlar.md)) kitaplığın adları kullanıcı adı gibi çevrilmeden kalır: İngilizce yazım dilinde de `GPT`, `Doğrusal`, `MuonVeAdamW` yazılır. Kitaplık adlarının çevirisi (kitaplığın kendi ad listesi mi, ayrı bir kod aralığı mı) İngilizce aşamasında ayrıca ele alınacaktır.
 
 ## `tr/egitim`
+
+`Koşu(klasör, ayar, nesneler, adım_sayısı, her_dakika: 15.0, prova: yanlış)` bir eğitimin kayıt işlerini üstlenir, döngü kullanıcıda kalır (Hugging Face Accelerate'in yolu; Lightning ve Keras döngüyü kendileri sürer). Klasöre `config.json` (ayarlar, parametre sayısı, cihaz) yazar, `metrics.jsonl` günlüğünü, ilerleme çubuğunu ve kontrol noktasını (dil tanımı 20; `nesneler` ve günlük) kurar; aynı komut `kaldığı_adım`'dan sürer. `adım_bitti(adım, ölçüler)` adım sınırıdır: ölçüler verilirse çubuk ve günlük güncellenir, zamanı geldiyse kontrol noktası yazılır (yazıldıysa `doğru`). `değerlendirildi(adım, ölçüler)` değerlendirmeyi günlüğe yazar. `bitir(model)` ağırlıkları (`model.trt`) her şeyden önce yazar, sonra son kontrol noktasını: sonrası bir hatayla bitse de eğitimin sonucu kaybolmaz. `prova: doğru` aynı komutun uzun koşudan önceki denemesidir (Lightning `fast_dev_run`): yeni bir geçici klasörde `PROVA_ADIMI` (2) adım, kontrol noktası her adımda; `bitir` bütün dosyaların yazıldığını denetler. Döngü `koşu.kaldığı_adım..koşu.son_adım` üzerinde döner.
+
+```tr
+aktar "tr/egitim"
+değişken model = {w: tensör([1.0, 2.0], türev_izle: doğru)}
+değişken op = AdamW(parametreler(model))
+değişken koşu = Koşu("koşu", {oran: 0.001}, {model: model, op: op}, adım_sayısı: 1000)
+döngü adım içinde koşu.kaldığı_adım..koşu.son_adım {
+    op.sıfırla()
+    değişken kayıp = toplam(model.w * model.w)
+    geri_yayılım(kayıp)
+    op.adım()
+    koşu.adım_bitti(adım + 1, eğer (adım + 1) % 100 == 0 { {kayıp: kayıp.değer} } değilse { yok })
+}
+koşu.bitir(model)
+```
+
+GPU'da tam kullanım: [`tools/gpu/gpt_training.tr`](../tools/gpu/gpt_training.tr) (`--prova`).
 
 `SıçramaBekçisi(pencere: 128, eşik: 6.0)` her adımın kaybını ve gradyan normunu izler; `gözle(kayıp, norm)` (sayılar) `TAMAM`, `SONLU_DEĞİL` ya da `SIÇRAMA` verir. Sıçrama: değerin son `pencere` sağlam adımın ortalamasından `eşik` standart sapma yukarıda olması (OLMo-core `StabilityMonitor`'ın ölçütü; değişmeyen dizide sapma ortalamanın %1'inden küçük alınmaz). Pencere dolana kadar yalnızca sonlu olmayan değer yakalanır; sıçrama ve sonlu olmayan değer geçmişe girmez. `sıçrama_sayısı` sayar, `geçmiş_uzunluğu()` geçmişin boyudur.
 
