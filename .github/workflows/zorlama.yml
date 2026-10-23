@@ -1,0 +1,39 @@
+# Zorlama: testlerin kararlılığı. Bir test tekrar sayısına, çalışma sırasına, süreç geneli
+# duruma ya da çöp toplayıcının zamanlamasına bağlıysa sıradan koşuda geçip başka bir koşuda
+# kalır. Bu iş haftada bir bütün Go testlerini iki kez ve karışık sırayla (-count=2
+# -shuffle=on), sonra GOGC=1 ile koşar (tools/full_check.sh --kip=zorlama). Elle de
+# tetiklenebilir (Actions → Zorlama → Run workflow). Kalan bir testin karışık sırası günlükteki
+# -test.shuffle tohumuyla yerelde yeniden üretilir: go test -run=<Test> -shuffle=<tohum> <paket>.
+name: Zorlama
+
+on:
+  schedule:
+    # Her pazartesi 03:37 (UTC).
+    - cron: "37 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  zorlama:
+    name: Zorlama (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    defaults:
+      run:
+        shell: bash
+    steps:
+      # Eylemler tam commit özetiyle sabitlenir (ci.yml ile aynı sürümler).
+      - name: Kaynağı al
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Go kurulumu
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Zorlama
+        run: bash tools/full_check.sh --kip=zorlama

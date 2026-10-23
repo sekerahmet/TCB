@@ -178,6 +178,8 @@ Denetim: `TestTestFileMatchesSource` (birim testinin kaynağı var, her davranı
 - **Depo kökü** `reporoot.Root()` ile bulunur; testler `../../` gibi göreli yol yazmaz.
 - **Dış ağ yoktur;** sunucular yalnızca `127.0.0.1`'e bağlanır; açılan her süreç ve geçici dosya kapatılır, silinir.
 - **Uzun testler** `testing.Short()` ile atlanır (tam denetim `-short` koşar, `uzun` kipi hepsini koşar); bir testi hızlandırmak için sınırlar test içinde küçültülebilir.
+- **Testler kararlıdır:** sonucu tekrar sayısına, çalışma sırasına, süreç geneli duruma ya da çöp toplayıcının zamanlamasına bağlı değildir. Bir programa ya da göreve ait durum paket değişkeninde değil yorumlayıcıda tutulur (`VM.ProgramValue`, `VM.TaskValue`): aynı süreçte birden çok program çalışır (`tr test`'in dosyaları, düzenleyici oturumu, testler). Denetim: `tools/full_check.sh --kip=zorlama` (iki tekrar ve karışık sıra, sonra `GOGC=1`; otomatik sınamada haftalık, `.github/workflows/zorlama.yml`).
+- **Süre ölçen test mutlak süreye değil büyümeye bakar:** duvar saati tavanı yüklü makinede aşılır (bütün takım paralel koşarken tek bir sürenin 90 katına uzadığı ölçüldü). Doğrusallık `testkit.ScalesLinearly` ile sınanır (n ve 4n aynı yükte, oran en çok 8). Bir beklemenin erken bittiğini gösteren tavan, ayırt ettiği sürenin yarısı kadar geniş seçilir.
 - Dilin kendi davranışı Go testinde değil, `tests/*_test.tr` programlarında sınanır (her test bir dil kuralı numarasıyla başlar).
 
 ## Değişiklikler
@@ -208,5 +210,6 @@ Denetim: `TestTestFileMatchesSource` (birim testinin kaynağı var, her davranı
 | Üretilmiş dosyalar güncel | `tools/gen/*` `-check` (tam denetim) |
 | staticcheck bulgusu yok, çağrılmayan fonksiyon yok | `tools/full_check.sh` (staticcheck, deadcode) |
 | Çağrılan yollarda bilinen güvenlik açığı yok | `.github/workflows/vuln.yml` (govulncheck) |
+| Testler tekrar sayısından, sıradan, süreç geneli durumdan ve çöp toplayıcıdan bağımsız | `.github/workflows/zorlama.yml` (`tools/full_check.sh --kip=zorlama`) |
 | Kod listesindeki her örnek çalışır | `internal/lang/codes`, `internal/stdlib` (`definition_test.go`, `behavior_definitions_test.go`) |
 | Dil kuralları | `tests/*_test.tr` (`tr test tests`) |

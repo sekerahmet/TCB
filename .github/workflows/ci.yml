@@ -7,7 +7,8 @@
 # testleri ve örnekler) ve go-esleri (AVX2 kapalı: assembly'siz Go eşleri).
 #
 # Ayrıca Linux'ta yarış dedektörü (--kip=yaris) ve -short olmadan uzun Go testleri (--kip=uzun)
-# koşar. Bulanıklaştırma testleri haftalık ayrı bir işte uzun koşar (fuzz.yml).
+# koşar. Bulanıklaştırma testleri (fuzz.yml) ve testlerin kararlılığı (zorlama.yml) haftalık ayrı
+# işlerde koşar.
 name: CI
 
 on:

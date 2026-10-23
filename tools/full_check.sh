@@ -18,6 +18,11 @@
 #                     cgo ve bir C derleyicisi ister (otomatik sınamada Linux'ta koşar)
 #   --kip=uzun        Go testleri -short olmadan (her .tr dosyasının İngilizce gidiş-dönüşü
 #                     gibi uzun sınamalar dahil)
+#   --kip=zorlama     kararlılık (yerelde ~40 dk; otomatik sınamada haftalık, zorlama.yml): bütün
+#                     Go testleri -short olmadan iki kez ve karışık sırayla (-count=2 -shuffle=on;
+#                     tekrar sayısına, sıraya ve süreç geneli duruma bağlı test), sonra GOGC=1 ile
+#                     (çöp toplayıcının zamanlamasına bağlı test). Kalan testin karışık sırası
+#                     çıktıdaki -test.shuffle tohumuyla yeniden üretilir.
 #   --hizli           --kip=dagitim ile aynı (iş sırasında; birleştirmeden önce bayraksız koşulur)
 #   --kip=on          ön denetim (~1 dk): üretilmiş dosyalar, gofmt, vet, go.mod, staticcheck,
 #                     ölü kod, düzen kuralları (dosya adı, satır sınırı, Türkçe metin, çıplak ad,
@@ -55,9 +60,10 @@ for arg in "$@"; do
 	--kip=v3) modes=v3 ;;
 	--kip=yaris) modes=yaris ;;
 	--kip=uzun) modes=uzun ;;
+	--kip=zorlama) modes=zorlama ;;
 	--kip=on) modes=on ;;
 	*)
-		echo "bilinmeyen argüman: $arg (kullanım: bash tools/full_check.sh [--hizli] [--kip=dagitim|go-esleri|v3|yaris|uzun|on])" >&2
+		echo "bilinmeyen argüman: $arg (kullanım: bash tools/full_check.sh [--hizli] [--kip=dagitim|go-esleri|v3|yaris|uzun|zorlama|on])" >&2
 		exit 2
 		;;
 	esac
@@ -398,6 +404,14 @@ for mode in $modes; do
 		;;
 	uzun)
 		go_tests uzun
+		;;
+	zorlama)
+		step "Zorlama: iki tekrar, karışık sıra (go test -count=2 -shuffle=on)"
+		go test "${p_flag[@]}" -count=2 -shuffle=on -timeout 90m ./... 2>&1 | grep -v '^ok\|no test files'
+		[ "${PIPESTATUS[0]}" -eq 0 ] || fail "go test -count=2 -shuffle=on"
+		step "Zorlama: sık çöp toplama (GOGC=1 go test)"
+		GOGC=1 go test "${p_flag[@]}" -count=1 -timeout 120m ./... 2>&1 | grep -v '^ok\|no test files'
+		[ "${PIPESTATUS[0]}" -eq 0 ] || fail "GOGC=1 go test"
 		;;
 	on)
 		quick_static_checks
