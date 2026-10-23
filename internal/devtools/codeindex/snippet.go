@@ -20,7 +20,8 @@ type SnippetUse struct {
 // Snippet src'yi TR programı olarak ayrıştırıp sınadığı yerleşik, üye ve adlı argüman kodlarını verir (koda göre
 // sıralı, her kod bir kez; test bloğuyla aynı kural, exercisesBuiltin: işlev yerleşiği çağrılınca sayılır). Metin ayrıştırılamıyorsa nil: TR olmayan bir metin ya da eksik parça.
 func Snippet(src string) []SnippetUse {
-	x := &indexer{root: "", lang: source.Turkish(), files: map[string]*file{}, nodes: map[string]*Node{}, edges: map[edgeKey]*Edge{}}
+	x := &indexer{root: "", lang: source.Turkish(), files: map[string]*file{}, nodes: map[string]*Node{}, edges: map[edgeKey]*Edge{},
+		constructSeen: map[string]bool{}}
 	x.addFile("snippet.tr", []byte(src), nil)
 	if len(x.order) == 0 {
 		return nil

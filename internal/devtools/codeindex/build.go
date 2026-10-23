@@ -62,16 +62,18 @@ type edgeKey struct {
 
 // indexer dizini kurarken biriken durumdur.
 type indexer struct {
-	root       string
-	lang       *codes.Language
-	files      map[string]*file
-	order      []string
-	nodes      map[string]*Node
-	edges      map[edgeKey]*Edge
-	occ        []Occurrence
-	skipped    []Skipped
-	unresolved []Unresolved
-	library    fs.FS
+	root          string
+	lang          *codes.Language
+	files         map[string]*file
+	order         []string
+	nodes         map[string]*Node
+	edges         map[edgeKey]*Edge
+	occ           []Occurrence
+	skipped       []Skipped
+	unresolved    []Unresolved
+	library       fs.FS
+	constructs    []Construct // bildirimlerin kullandığı dil yapıları (constructs.go)
+	constructSeen map[string]bool
 }
 
 // Build root altındaki .tr dosyalarından dizini kurar. Okunamayan ya da ayrıştırılamayan dosya
@@ -82,7 +84,7 @@ func Build(root string, opts Options) (*Index, error) {
 		return nil, err
 	}
 	x := &indexer{root: abs, lang: source.Turkish(), library: opts.Library, files: map[string]*file{},
-		nodes: map[string]*Node{}, edges: map[edgeKey]*Edge{}}
+		nodes: map[string]*Node{}, edges: map[edgeKey]*Edge{}, constructSeen: map[string]bool{}}
 	skip := opts.SkipDirs
 	if skip == nil {
 		skip = DefaultSkipDirs
@@ -242,6 +244,18 @@ func (x *indexer) finish() *Index {
 		return a.Name < b.Name
 	})
 	sort.SliceStable(idx.Skipped, func(i, j int) bool { return idx.Skipped[i].File < idx.Skipped[j].File })
+	for _, c := range x.constructs {
+		if x.nodes[c.In] != nil {
+			idx.Constructs = append(idx.Constructs, c)
+		}
+	}
+	sort.SliceStable(idx.Constructs, func(i, j int) bool {
+		a, b := idx.Constructs[i], idx.Constructs[j]
+		if c := comparePos(a.Pos, b.Pos); c != 0 {
+			return c < 0
+		}
+		return a.In+a.Kind < b.In+b.Kind
+	})
 	return idx
 }
 

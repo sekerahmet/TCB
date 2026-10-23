@@ -23,7 +23,7 @@ const Schema = "tr-codeindex/1"
 
 // IndexVersion dizinin kaynaktan türettiği içerik değişince artar (yeni düğüm türü, farklı
 // çözümleme). Başka sürümün önbelleği hiçbir zaman kullanılmaz.
-const IndexVersion = 10
+const IndexVersion = 11
 
 // Kind bir düğümün türüdür; değerler JSON'a yazılan değişmez tanımlayıcılardır.
 type Kind string
@@ -182,6 +182,8 @@ type Index struct {
 	Nodes       []Node       `json:"nodes"`
 	Edges       []Edge       `json:"edges"`
 	Occurrences []Occurrence `json:"occurrences"`
+	// Constructs bildirimlerin kullandığı dil yapılarıdır (constructs.go; kod grafiği Go uygulamasına bağlar).
+	Constructs []Construct `json:"constructs,omitempty"`
 }
 
 // Skipped okunamayan ya da ayrıştırılamayan bir dosyadır: modül düğümü vardır, bildirimleri yoktur.

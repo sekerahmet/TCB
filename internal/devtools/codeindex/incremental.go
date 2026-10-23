@@ -80,7 +80,7 @@ func incrementalBuild(root string, opts Options, prev *Index, changed []string) 
 	}
 	dirty := dirtyClosure(prev, changed)
 	x := &indexer{root: root, lang: source.Turkish(), library: opts.Library, files: map[string]*file{},
-		nodes: map[string]*Node{}, edges: map[edgeKey]*Edge{}}
+		nodes: map[string]*Node{}, edges: map[edgeKey]*Edge{}, constructSeen: map[string]bool{}}
 	for _, n := range prev.Nodes {
 		if !dirty[nodeFile(&n)] {
 			c := n
@@ -96,6 +96,12 @@ func incrementalBuild(root string, opts Options, prev *Index, changed []string) 
 	for _, o := range prev.Occurrences {
 		if !dirty[o.Pos.File] {
 			x.occ = append(x.occ, o)
+		}
+	}
+	for _, c := range prev.Constructs {
+		if !dirty[c.Pos.File] {
+			x.constructs = append(x.constructs, c)
+			x.constructSeen[c.In+"|"+c.Kind] = true
 		}
 	}
 	for _, u := range prev.Unresolved {
