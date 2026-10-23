@@ -73,3 +73,34 @@ func TestInferredTypesBindMemberAccess(t *testing.T) {
 		}
 	}
 }
+
+// Kural: her bildirimin kullandığı dil yapıları kaydedilir; işlecin sol işleneninin türü yerleşik dönüşünden
+// (`metin(x)` → Metin, A202; `tensör(...)` → Tensör, A212) ya da değişmez değerden gelir, bilinmezse boştur. Kod
+// grafiği bu türle işleci doğru uygulamaya bağlar (deneme 9 H1; değer dili tasarımı 3. tur).
+func TestConstructsRecordOperatorsWithOperandTypes(t *testing.T) {
+	dir := t.TempDir()
+	src := "fonksiyon f(x, y) {\n    değişken a = metin(x) == \"1\"\n    değişken b = tensör([1.0]) @ y\n    sonuç x + y\n}\n"
+	if err := os.WriteFile(filepath.Join(dir, "m.tr"), []byte(src), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	idx, err := Build(dir, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]string{} // işleç -> işlenen türü
+	kinds := map[string]bool{}
+	for _, c := range idx.Constructs {
+		if c.In == "function:m.tr#f" {
+			kinds[c.Kind] = true
+			if c.Op != "" {
+				got[c.Op] = c.Operand
+			}
+		}
+	}
+	if got["=="] != "type:A202" || got["@"] != "type:A212" || got["+"] != "" {
+		t.Errorf("operand types: %v", got)
+	}
+	if !kinds["CallExpression"] || !kinds["ListLiteral"] || !kinds["InfixExpression"] {
+		t.Errorf("constructs: %v", kinds)
+	}
+}

@@ -178,7 +178,7 @@ func (x *indexer) scan(f *file, o owner, root any) {
 	sc := collectScope(root)
 	x.bindOwner(f, o, sc, root)
 	ast.Walk(root, func(n any) bool {
-		x.recordConstruct(f, o, n)
+		x.recordConstruct(f, o, sc, n)
 		switch n := n.(type) {
 		case *ast.CallExpression:
 			x.call(f, o, sc, n)

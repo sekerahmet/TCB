@@ -72,9 +72,9 @@ type indexer struct {
 	skipped       []Skipped
 	unresolved    []Unresolved
 	library       fs.FS
-	constructs    []Construct // bildirimlerin kullandığı dil yapıları (constructs.go)
-	constructSeen map[string]bool
 	bodies        map[string]fnBody // dönüş türü çıkarımı için işlev gövdeleri (infer.go)
+	constructs    []Construct       // bildirimlerin kullandığı dil yapıları (constructs.go)
+	constructSeen map[string]bool
 	retDone       map[string]bool
 }
 
@@ -257,7 +257,7 @@ func (x *indexer) finish() *Index {
 		if c := comparePos(a.Pos, b.Pos); c != 0 {
 			return c < 0
 		}
-		return a.In+a.Kind < b.In+b.Kind
+		return a.In+a.Kind+a.Op+a.Operand < b.In+b.Kind+b.Op+b.Operand
 	})
 	return idx
 }

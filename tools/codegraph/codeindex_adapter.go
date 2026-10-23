@@ -63,7 +63,7 @@ func extractTR(root string, b *builder, m *module) {
 	}
 	namedArgumentEdges(idx, ids, b)
 	if m != nil {
-		linkConstructs(b, readDispatch(m), idx, ids)
+		linkConstructs(b, readDispatch(m), idx, ids, m.Path+"/internal/lang/interp")
 	}
 }
 

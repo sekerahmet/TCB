@@ -2,6 +2,7 @@ package main
 
 import (
 	"go/ast"
+	"go/constant"
 	"go/types"
 	"sort"
 	"strings"
@@ -10,43 +11,120 @@ import (
 )
 
 // Bu dosya TR dil yapılarını onları çalıştıran Go işlevlerine bağlar (deneme 9 H1, deneme 10; kod-grafigi-40 tasarımı,
-// TCB onaylı). Gönderim tablosu elle yazılmaz, yorumlayıcının kodundan okunur: derleyicinin (interp.compiler
-// metotları) `switch e := expr.(type) { case *ast.CallExpression: ... }` dallarında çağrılan işlevler (dalın içindeki
-// kapanışlar dahil). codeindex her TR bildiriminin kullandığı yapıları kaydeder (Construct); her biri bu tablodaki
-// işlevlere `implemented_by` kenarı (INFERRED) olur: metin yerleştirmesi değeri metne çeviren Value.Inspect'e, çağrı
-// derleyicinin çağrı işlevine (oradan VM.callPrepared'a).
+// TCB onaylı). Gönderim tablosu elle yazılmaz, yorumlayıcının kodundan okunur:
+//   - yapı: derleyicinin (interp.compiler metotları) `switch e := expr.(type) { case *ast.CallExpression: ... }`
+//     dallarında çağrılan işlevler;
+//   - işleç (yorumlayıcı ve internal/stdlib kancaları; denetleyicinin tür kuralları değil): işlecin metnini
+//     dallayan `switch op { case "@": ... }` (ml'deki tensör işleçleri) ya da metni sabite çeviren
+//     (`case "+", "+=": return opAdd`) ve o sabiti dallayan (`case opAdd: ...`) switch'lerin dalları. Dalda çağrı yoksa
+//     işlem dalın kendisindedir; uygulama o switch'i taşıyan işlevdir.
+// codeindex her TR bildiriminin kullandığı yapıları kaydeder (Construct); her biri bu tablodaki işlevlere
+// `implemented_by` kenarı (INFERRED) olur. İşlenen türü biliniyorsa (tensör, sayı, metin ...) yalnız o türün
+// uygulamalarına gider: Tensör yorumlayıcı dışındaki kancalara (ml), yerleşik değer türleri yorumlayıcıya.
 
-// dispatchTable dil yapısından Go uygulamalarına giden tablodur.
-type dispatchTable struct {
-	kinds map[string][]string // AST türü ("CallExpression") -> işlev kimlikleri
+// trOperators TR'nin işleç metinleridir: işleç switch'i yalnızca bunlardan oluşan dallarıyla tanınır.
+var trOperators = map[string]bool{
+	"+": true, "-": true, "*": true, "/": true, "%": true, "**": true, "@": true, "<": true, ">": true, "<=": true,
+	">=": true, "==": true, "!=": true, "&&": true, "||": true, "??": true, "|>": true, "!": true,
+	"+=": true, "-=": true, "*=": true, "/=": true,
 }
 
-// readDispatch derleyicinin gönderim tablosunu modülden okur.
+// dispatchTable dil yapısından ve işleçten Go uygulamalarına giden tablodur.
+type dispatchTable struct {
+	kinds map[string][]string // AST türü ("CallExpression") -> işlev kimlikleri
+	ops   map[string][]string // işleç ("@") -> işlev kimlikleri
+	pkg   map[string]string   // işlev kimliği -> paket yolu (işlenen türüne göre süzmek için)
+}
+
+// readDispatch yorumlayıcının ve kancaların gönderim tablosunu modülden okur.
 func readDispatch(m *module) *dispatchTable {
-	t := &dispatchTable{kinds: map[string][]string{}}
+	t := &dispatchTable{kinds: map[string][]string{}, ops: map[string][]string{}, pkg: map[string]string{}}
 	astPkg, interpPkg := m.Path+"/internal/lang/ast", m.Path+"/internal/lang/interp"
+	constOps := map[types.Object][]string{} // işleç sabiti -> metinleri (opCode'un dalları)
+	type sw struct {
+		fd   *ast.FuncDecl
+		s    *ast.SwitchStmt
+		info *types.Info
+		pkg  string
+	}
+	var switches []sw
 	forEachFile(m, func(u *unit, f *ast.File, rel string) {
-		if isTestFile(rel) || strings.TrimSuffix(u.PkgPath, "_test") != interpPkg {
+		if isTestFile(rel) {
 			return
 		}
 		for _, d := range f.Decls {
 			fd, ok := d.(*ast.FuncDecl)
-			if !ok || fd.Body == nil || !strings.Contains(recvTypeName(fd), "compiler") {
+			if !ok || fd.Body == nil {
 				continue
 			}
+			pkg := strings.TrimSuffix(u.PkgPath, "_test")
+			if pkg != interpPkg && !strings.HasPrefix(pkg, m.Path+"/internal/stdlib/") {
+				continue // gönderim çalışma anındadır: yorumlayıcı ve kancaları; denetleyicinin işleç kuralı değil
+			}
+			compiler := pkg == interpPkg && fd.Recv != nil && strings.Contains(recvTypeName(fd), "compiler")
 			ast.Inspect(fd.Body, func(n ast.Node) bool {
-				if s, ok := n.(*ast.TypeSwitchStmt); ok {
-					t.typeSwitch(u.Info, s, astPkg)
+				switch s := n.(type) {
+				case *ast.TypeSwitchStmt:
+					if compiler {
+						t.typeSwitch(u.Info, fd, s, astPkg, pkg)
+					}
+				case *ast.SwitchStmt:
+					switches = append(switches, sw{fd, s, u.Info, pkg})
+					for _, cc := range s.Body.List {
+						c := cc.(*ast.CaseClause)
+						if lits := operatorLits(c.List); lits != nil && len(c.Body) == 1 {
+							if r, ok := c.Body[0].(*ast.ReturnStmt); ok && len(r.Results) == 1 {
+								if id, ok := r.Results[0].(*ast.Ident); ok {
+									if obj, ok := u.Info.Uses[id].(*types.Const); ok {
+										constOps[obj] = append(constOps[obj], lits...)
+									}
+								}
+							}
+						}
+					}
 				}
 				return true
 			})
 		}
 	})
+	for _, s := range switches { // sabitler bilinince ikinci geçiş: metin ya da sabit dallayan switch'ler
+		for _, cc := range s.s.Body.List {
+			c := cc.(*ast.CaseClause)
+			ops := operatorLits(c.List)
+			if ops == nil {
+				ops = constLits(s.info, c.List, constOps)
+			}
+			if ops == nil || returnsOnlyValue(c.Body) {
+				continue // işleç dalı değil ya da yalnız bir değer döndüren eşleme dalı (opCode, metin tablosu)
+			}
+			impl := clauseCallees(s.info, c.Body, m.Path, astPkg)
+			if len(impl) == 0 {
+				if fn, ok := s.info.Defs[s.fd.Name].(*types.Func); ok {
+					impl = []string{funcRef(fn)}
+				}
+			}
+			for _, op := range ops {
+				for _, id := range impl {
+					t.add(t.ops, op, id, s.pkg)
+				}
+			}
+		}
+	}
 	return t
 }
 
+func (t *dispatchTable) add(m map[string][]string, key, id, pkg string) {
+	for _, have := range m[key] {
+		if have == id {
+			return
+		}
+	}
+	m[key] = append(m[key], id)
+	t.pkg[id] = pkg
+}
+
 // typeSwitch derleyicinin AST türü dallarını tabloya yazar.
-func (t *dispatchTable) typeSwitch(info *types.Info, s *ast.TypeSwitchStmt, astPkg string) {
+func (t *dispatchTable) typeSwitch(info *types.Info, fd *ast.FuncDecl, s *ast.TypeSwitchStmt, astPkg, pkg string) {
 	for _, cc := range s.Body.List {
 		c := cc.(*ast.CaseClause)
 		for _, e := range c.List {
@@ -59,17 +137,68 @@ func (t *dispatchTable) typeSwitch(info *types.Info, s *ast.TypeSwitchStmt, astP
 			if id == nil || !ok || tn.Pkg() == nil || tn.Pkg().Path() != astPkg {
 				continue
 			}
-			for _, f := range clauseCallees(info, c.Body, astPkg) {
-				if !contains(t.kinds[tn.Name()], f) {
-					t.kinds[tn.Name()] = append(t.kinds[tn.Name()], f)
-				}
+			for _, f := range clauseCallees(info, c.Body, "", astPkg) {
+				t.add(t.kinds, tn.Name(), f, pkg)
 			}
 		}
 	}
 }
 
-// clauseCallees dalın (iç kapanışları dahil) çağırdığı işlevlerdir; AST ve ileti yardımcıları hariç.
-func clauseCallees(info *types.Info, body []ast.Stmt, astPkg string) []string {
+// operatorLits dal ifadeleri hepsi TR işleci olan metinlerse onları verir; değilse nil.
+func operatorLits(list []ast.Expr) []string {
+	var out []string
+	for _, e := range list {
+		lit, ok := e.(*ast.BasicLit)
+		if !ok {
+			return nil
+		}
+		s, ok := stringLit(lit)
+		if !ok || !trOperators[s] {
+			return nil
+		}
+		out = append(out, s)
+	}
+	return out
+}
+
+// constLits dal ifadeleri hepsi işleç sabitiyse onların metinlerini verir; değilse nil.
+func constLits(info *types.Info, list []ast.Expr, constOps map[types.Object][]string) []string {
+	var out []string
+	for _, e := range list {
+		id, ok := e.(*ast.Ident)
+		if !ok {
+			return nil
+		}
+		obj, ok := info.Uses[id].(*types.Const)
+		if !ok || len(constOps[obj]) == 0 || obj.Val().Kind() != constant.Int {
+			return nil
+		}
+		out = append(out, constOps[obj]...)
+	}
+	return out
+}
+
+// returnsOnlyValue dal yalnızca bir değişmez ya da ad döndürüyor mu (eşleme dalı, işlem değil).
+func returnsOnlyValue(body []ast.Stmt) bool {
+	if len(body) != 1 {
+		return false
+	}
+	r, ok := body[0].(*ast.ReturnStmt)
+	if !ok || len(r.Results) == 0 {
+		return false
+	}
+	for _, e := range r.Results {
+		switch e.(type) {
+		case *ast.BasicLit, *ast.Ident:
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// clauseCallees dalın (iç kapanışları dahil) çağırdığı modül işlevleridir; AST ve ileti yardımcıları hariç.
+func clauseCallees(info *types.Info, body []ast.Stmt, mod, astPkg string) []string {
 	seen := map[string]bool{}
 	var out []string
 	for _, st := range body {
@@ -80,6 +209,9 @@ func clauseCallees(info *types.Info, body []ast.Stmt, astPkg string) []string {
 			}
 			fn, ok := info.Uses[nameIdent(c.Fun)].(*types.Func)
 			if !ok || fn.Pkg() == nil || fn.Pkg().Path() == astPkg || strings.HasSuffix(fn.Pkg().Path(), "/internal/lang/messages") {
+				return true
+			}
+			if mod != "" && !strings.HasPrefix(fn.Pkg().Path(), mod) {
 				return true
 			}
 			if id := funcRef(fn); id != "" && !seen[id] {
@@ -109,12 +241,34 @@ func recvTypeName(fd *ast.FuncDecl) string {
 }
 
 // linkConstructs TR bildirimlerinin dil yapılarını gönderim tablosundaki Go işlevlerine `implemented_by` ile bağlar.
-func linkConstructs(b *builder, t *dispatchTable, idx *codeindex.Index, ids map[string]string) {
+func linkConstructs(b *builder, t *dispatchTable, idx *codeindex.Index, ids map[string]string, interpPkg string) {
 	for _, c := range idx.Constructs {
-		if from := ids[c.In]; from != "" {
-			for _, to := range t.kinds[c.Kind] {
+		from := ids[c.In]
+		if from == "" {
+			continue
+		}
+		targets := t.kinds[c.Kind]
+		if c.Op != "" {
+			targets = t.ops[c.Op]
+		}
+		for _, to := range targets {
+			if operandRules(c.Operand, t.pkg[to] == interpPkg) {
 				b.addEdge(from, to, edgeImplementedBy, inferred, c.Pos.File, c.Pos.Line)
 			}
 		}
 	}
+}
+
+// operandRules işlenen türünün bu uygulamayla çalışıp çalışmadığıdır: Tensör (A212) yorumlayıcı dışındaki kancalarla,
+// yerleşik değer türleri (Tam, Ondalık, Metin, Mantık, Liste, Sözlük) yorumlayıcıyla; bilinmeyen tür ikisiyle.
+func operandRules(operand string, inInterp bool) bool {
+	switch operand {
+	case "":
+		return true
+	case "type:A212":
+		return !inInterp
+	case "type:A200", "type:A201", "type:A202", "type:A203", "type:A205", "type:A206":
+		return inInterp
+	}
+	return true // yapı ya da başka tür: kancası da olabilir
 }
