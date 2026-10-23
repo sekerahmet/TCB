@@ -96,7 +96,7 @@ func TestOps(t *testing.T) {
 	}
 }
 
-func TestCubeValue(t *testing.T) {
+func TestPowerValue(t *testing.T) {
 	f := Cube
 	_ = f(2)
 }
@@ -116,7 +116,7 @@ func TestCubeValue(t *testing.T) {
 	if got := ask("p.Square"); !strings.Contains(got, "function value") || !strings.Contains(got, "p.TestOps") || !strings.Contains(got, "via p.ops") {
 		t.Errorf("Square is tested through the table ops:\n%s", got)
 	}
-	if got := ask("p.Cube"); !strings.Contains(got, "p.TestCubeValue") || !strings.Contains(got, "in the test itself") {
+	if got := ask("p.Cube"); !strings.Contains(got, "p.TestPowerValue") || !strings.Contains(got, "in the test itself") {
 		t.Errorf("Cube is used as a value by the test itself:\n%s", got)
 	}
 	if got := ask("p.Unused"); !strings.Contains(got, "no tests found") {
@@ -139,5 +139,37 @@ func TestTestsForAGoFileListsTheTestsOfItsDeclarations(t *testing.T) {
 	got := out.String()
 	if !strings.Contains(got, "declarations in this file: 2") || !strings.Contains(got, "p.TestWork") || strings.Contains(got, "no tests found") {
 		t.Errorf("the file's two functions and their test:\n%s", got)
+	}
+}
+
+// Kural: tests-for tek sıralamayla yazar: önce hedefi konu edinen testler (adı ya da belge yorumu hedefin adını anıyor,
+// ya da hedefin ürettiği iletiyi bekliyor), sonra onu yalnızca kullanan doğrudan testler, sonra zincirler; her test bir
+// kez, en güçlü kanıtının grubunda (deneme 8 S1: çok kullanılan bir adda onu sınayan testler en dipte kalıyordu).
+func TestTestsForPutsTheTestsAboutItFirst(t *testing.T) {
+	root := auditModule(t, map[string]string{
+		"p/p.go": "package p\n\nfunc Area(x int) int { return x * x }\n",
+		"p/p_test.go": `package p
+
+import "testing"
+
+func TestUsesSomething(t *testing.T) { _ = Area(2) }
+
+// Kare alanı kenarın karesidir.
+func TestAreaOfSquare(t *testing.T) { _ = Area(3) }
+`,
+	})
+	var out, errb strings.Builder
+	if code := run([]string{"build", "--root", root}, &out, &errb); code != exitOK {
+		t.Fatalf("build: %d %s", code, errb.String())
+	}
+	out.Reset()
+	if code := run([]string{"tests-for", "p.Area", "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
+		t.Fatalf("tests-for: %d %s", code, errb.String())
+	}
+	got := out.String()
+	about, rest, ok := strings.Cut(got, "<- tests (")
+	if !ok || !strings.Contains(about, "tests about it (1") || !strings.Contains(about, "p.TestAreaOfSquare") ||
+		!strings.Contains(rest, "p.TestUsesSomething") || strings.Contains(rest, "TestAreaOfSquare") {
+		t.Errorf("the test named after Area first, once; the other one under the direct tests:\n%s", got)
 	}
 }

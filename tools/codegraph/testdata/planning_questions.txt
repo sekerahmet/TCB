@@ -106,3 +106,4 @@ tr dizin tanım bakış_sayısı | contains: 7 aday | src: deneme 7 R1, 2026-10-
 # Deneme 8: çok kullanılan bir şeye ekleme (yazdır'a adlı ayırıcı argümanı) (2026-10-24)
 codegraph query Y203 | group: related => Y103 | src: deneme 8 S2, 2026-10-24
 codegraph query G100 | group: related => G101 | src: deneme 8 S2, 2026-10-24
+codegraph tests-for G100 | group: tests about it => 13.5 yerleşikler ve metotlar bilinmeyen adlı argümanı reddeder | before: tests about it => hatalar_ertele_test | src: deneme 8 S1 (tek sıralama), 2026-10-24

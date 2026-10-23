@@ -13,12 +13,13 @@ import (
 
 // index okunmuş grafiğin arama tablolarıdır.
 type index struct {
-	root string // depo kökü (sorgu anında dosya okuyan yardımcılar için; boşsa okunmaz)
-	g    *Graph
-	byID map[string]*Node
-	out  map[string][]*Edge
-	in   map[string][]*Edge
-	note func(*Node) string // verilirse edgeLine her düğümün altına bir not satırı ekler (test_notes.go)
+	root       string  // depo kökü (sorgu anında dosya okuyan yardımcılar için; boşsa okunmaz)
+	fnMessages []*Node // işlev adı taşıyan iletiler (functionMessages; tembel)
+	g          *Graph
+	byID       map[string]*Node
+	out        map[string][]*Edge
+	in         map[string][]*Edge
+	note       func(*Node) string // verilirse edgeLine her düğümün altına bir not satırı ekler (test_notes.go)
 }
 
 func newIndex(g *Graph) *index {

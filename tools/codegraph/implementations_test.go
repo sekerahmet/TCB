@@ -47,8 +47,8 @@ var _ tensor.Backend = backend{}
 
 import "testing"
 
-// Softmax sonucu girdiyi korur.
-func TestSoftmaxOp(t *testing.T) { _ = SoftmaxOp(1) }
+// Arka uç işlemi girdiyi korur.
+func TestBackendOp(t *testing.T) { _ = SoftmaxOp(1) }
 `,
 }
 
@@ -86,7 +86,7 @@ func TestInterfaceMethodsDispatchToTheirImplementations(t *testing.T) {
 	if got := ask("path", "tensor.SoftmaxOp", "tensor.cpuBackend.Softmax"); !strings.Contains(got, "(directed, 2 steps)") {
 		t.Errorf("path follows the dispatch:\n%s", got)
 	}
-	if got := ask("tests-for", "tensor.cpuBackend.Softmax"); !strings.Contains(got, "tensor.TestSoftmaxOp") || !strings.Contains(got, "[INFERRED]") {
+	if got := ask("tests-for", "tensor.cpuBackend.Softmax"); !strings.Contains(got, "tensor.TestBackendOp") || !strings.Contains(got, "[INFERRED]") {
 		t.Errorf("tests-for reaches the implementation through the interface call:\n%s", got)
 	}
 }
