@@ -8,6 +8,7 @@ package goload
 import (
 	"fmt"
 	"go/ast"
+	"go/build"
 	"go/importer"
 	"go/parser"
 	"go/token"
@@ -15,6 +16,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -34,6 +36,11 @@ type Module struct {
 	Fset  *token.FileSet
 	Units []*Unit
 	Base  map[string]*types.Package // içe aktarma yolu -> testsiz paket
+	// Config yüklenen yapılandırmadır ("windows/amd64"): tip denetimi tek yapılandırmada yapılır.
+	Config string
+	// Ignored bu yapılandırmada derlenmeyen modül dosyalarıdır (kökten göreli, "/" ile; sıralı). Tip denetimine girmezler;
+	// araç onları ya ayrıca okur ya da görmediğini söyler.
+	Ignored []string
 }
 
 // Options yüklemenin araçlara göre değişen ayarlarıdır.
@@ -72,7 +79,14 @@ func Load(dir string, opts Options) (*Module, error) {
 	if err != nil {
 		return nil, err
 	}
-	m := &Module{Path: modPath, Root: dir, Fset: token.NewFileSet(), Base: map[string]*types.Package{}}
+	m := &Module{Path: modPath, Root: dir, Fset: token.NewFileSet(), Base: map[string]*types.Package{},
+		Config: build.Default.GOOS + "/" + build.Default.GOARCH}
+	for _, p := range own {
+		for _, f := range p.IgnoredGoFiles {
+			m.Ignored = append(m.Ignored, m.Rel(filepath.Join(p.Dir, f)))
+		}
+	}
+	sort.Strings(m.Ignored)
 	ext := importer.ForCompiler(m.Fset, "gc", func(path string) (io.ReadCloser, error) {
 		if f, ok := exports[path]; ok {
 			return os.Open(f)

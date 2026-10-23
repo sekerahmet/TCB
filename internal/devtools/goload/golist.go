@@ -14,9 +14,12 @@ type Listed struct {
 	GoFiles      []string
 	TestGoFiles  []string
 	XTestGoFiles []string
-	Imports      []string
-	Export       string
-	Module       *struct{ Path string }
+	// IgnoredGoFiles yapı kısıtı yüzünden bu yapılandırmada derlenmeyen dosyalardır (başka işletim sistemi, mimari ya da
+	// etiket; testler dahil).
+	IgnoredGoFiles []string
+	Imports        []string
+	Export         string
+	Module         *struct{ Path string }
 }
 
 func goList(dir string) ([]*Listed, error) {
