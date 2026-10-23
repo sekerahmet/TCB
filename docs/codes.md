@@ -1998,7 +1998,7 @@ yazdır(türev_denetle(fonksiyon(x) { sonuç x * x }, [tensör([0.5, -1.0], tür
 
     kaynaştır(Fonksiyon | YerleşikFonksiyon) → YerleşikFonksiyon
 
-Eleman bazlı tensör işlemlerinden oluşan bir fonksiyonu kaynaştırır ve aynı şeyi hesaplayan bir fonksiyon döndürür: her çağrıda zincirin tamamı tek geçişte (GPU'da tek çekirdekte) hesaplanır, ara sonuçlar belleğe yazılmaz; geri yayılım ara değerleri saklamadan girdilerden yeniden hesaplar. Sonuç kaynaşmamış hesapla aynıdır. Fonksiyon eleman bazlı işlemleri, dilimi, .böl'ü, bitiştir'i, boyu 1 eksen ekleyip çıkarmayı ve tür dönüşümünü kullanabilir; argümanları tensördür.
+Eleman bazlı tensör işlemlerinden oluşan bir fonksiyonu kaynaştırır ve aynı şeyi hesaplayan bir fonksiyon döndürür: her çağrıda zincirin tamamı tek geçişte (GPU'da tek çekirdekte) hesaplanır, ara sonuçlar belleğe yazılmaz; geri yayılım ara değerleri saklamadan girdilerden yeniden hesaplar. Sonuç kaynaşmamış hesapla aynıdır. Fonksiyon eleman bazlı işlemleri, dilimi, .böl'ü, bitiştir'i, boyu 1 eksen ekleyip çıkarmayı ve tür dönüşümünü kullanabilir; argümanları tensör ya da sayıdır (sayı programa sabit olarak girer).
 
 ```tr
 değişken f = kaynaştır((a, b) => a * b + a); yazdır(f(tensör([1.0, 2.0]), tensör([3.0, 4.0])).değer)
@@ -3271,7 +3271,7 @@ değişken w = tensör([1.0], türev_izle: doğru); değişken op = AdamW([w]); 
 
     İyileştirici.öğrenme_oranı → Ondalık
 
-İyileştiricinin (AdamW, SGD) şimdiki öğrenme oranıdır (Ondalık); okunur ve atanabilir: op.öğrenme_oranı = 0.0005 ataması sonraki adımdan başlayarak yeni oranı kullanır (ısınma, düşürme gibi öğrenme oranı planları). Atanan değer sonlu ve pozitif bir Tam ya da Ondalık olmalıdır; oran 32 bit saklanır. Ayar olduğu için duruma (durum) girmez.
+İyileştiricinin (AdamW, SGD) şimdiki öğrenme oranıdır (Ondalık); okunur ve atanabilir: op.öğrenme_oranı = 0.0005 ataması sonraki adımdan başlayarak yeni oranı kullanır (ısınma, düşürme gibi öğrenme oranı planları). Atanan değer sonlu ve negatif olmayan bir Tam ya da Ondalık olmalıdır; oran 32 bit saklanır. Ayar olduğu için duruma (durum) girmez.
 
 ```tr
 değişken w = tensör([1.0], türev_izle: doğru); değişken op = SGD([w], öğrenme_oranı: 0.5); op.öğrenme_oranı = 0.25; geri_yayılım(toplam(w * w)); op.adım(); yazdır(op.öğrenme_oranı, w.değer)

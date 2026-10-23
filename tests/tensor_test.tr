@@ -34,6 +34,10 @@ test "15.2 özellikler ve görünüm metotları" {
     değişken a = tensör([[1, 2, 3], [4, 5, 6]])
     eşit_mi([3, 2], a.şekillendir([3, 2]).şekil)
     eşit_mi([6], a.şekillendir([-1]).şekil)
+    // .gradyan: türev izlemeyen işlemin sonucu yapraktır (yok); türev izleyenin sonucunda hata.
+    eşit_mi(yok, (tensör([1.0]) + tensör([2.0])).gradyan)
+    değişken izlenen = tensör([1.0], türev_izle: doğru) * 2.0
+    doğrula(hata_metni(() => izlenen.gradyan) != "")
     // Tek liste argümanı zorunludur ([] 0 boyutlu şekil); sayı argümanları şekil sayılmaz.
     eşit_mi([], tensör([3.0]).şekillendir([]).şekil)
     eşit_mi(3.0, tensör([3.0]).şekillendir([]).değer)
