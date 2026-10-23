@@ -177,105 +177,33 @@ func (l *Lexer) NextToken() (result Token) {
 
 	switch l.ch {
 	case '=':
-		if l.peekChar() == '=' {
-			l.readChar()
-			tok = Token{Type: TokEq, Literal: "==", Line: line, Column: col}
-		} else if l.peekChar() == '>' {
-			l.readChar()
-			tok = Token{Type: TokArrow, Literal: "=>", Line: line, Column: col}
-		} else {
-			tok = Token{Type: TokAssign, Literal: "=", Line: line, Column: col}
-		}
+		tok = l.operator(line, col, TokAssign, follow{'=', TokEq}, follow{'>', TokArrow})
 	case ':':
-		if l.peekChar() == '=' {
-			l.readChar()
-			tok = Token{Type: TokWalrus, Literal: ":=", Line: line, Column: col}
-		} else {
-			tok = Token{Type: TokColon, Literal: ":", Line: line, Column: col}
-		}
+		tok = l.operator(line, col, TokColon, follow{'=', TokWalrus})
 	case '+':
-		if l.peekChar() == '=' {
-			l.readChar()
-			tok = Token{Type: TokPlusAssign, Literal: "+=", Line: line, Column: col}
-		} else {
-			tok = Token{Type: TokPlus, Literal: "+", Line: line, Column: col}
-		}
+		tok = l.operator(line, col, TokPlus, follow{'=', TokPlusAssign})
 	case '-':
-		if l.peekChar() == '=' {
-			l.readChar()
-			tok = Token{Type: TokMinusAssign, Literal: "-=", Line: line, Column: col}
-		} else {
-			tok = Token{Type: TokMinus, Literal: "-", Line: line, Column: col}
-		}
+		tok = l.operator(line, col, TokMinus, follow{'=', TokMinusAssign})
 	case '*':
-		if l.peekChar() == '*' {
-			l.readChar()
-			tok = Token{Type: TokPower, Literal: "**", Line: line, Column: col}
-		} else if l.peekChar() == '=' {
-			l.readChar()
-			tok = Token{Type: TokMulAssign, Literal: "*=", Line: line, Column: col}
-		} else {
-			tok = Token{Type: TokAsterisk, Literal: "*", Line: line, Column: col}
-		}
+		tok = l.operator(line, col, TokAsterisk, follow{'*', TokPower}, follow{'=', TokMulAssign})
 	case '/':
-		if l.peekChar() == '=' {
-			l.readChar()
-			tok = Token{Type: TokDivAssign, Literal: "/=", Line: line, Column: col}
-		} else {
-			tok = Token{Type: TokSlash, Literal: "/", Line: line, Column: col}
-		}
+		tok = l.operator(line, col, TokSlash, follow{'=', TokDivAssign})
 	case '%':
-		tok = Token{Type: TokPercent, Literal: "%", Line: line, Column: col}
+		tok = l.operator(line, col, TokPercent)
 	case '@':
-		tok = Token{Type: TokMatmul, Literal: "@", Line: line, Column: col}
+		tok = l.operator(line, col, TokMatmul)
 	case '!':
-		if l.peekChar() == '=' {
-			l.readChar()
-			tok = Token{Type: TokNotEq, Literal: "!=", Line: line, Column: col}
-		} else {
-			tok = Token{Type: TokBang, Literal: "!", Line: line, Column: col}
-		}
+		tok = l.operator(line, col, TokBang, follow{'=', TokNotEq})
 	case '<':
-		if l.peekChar() == '=' {
-			l.readChar()
-			tok = Token{Type: TokLte, Literal: "<=", Line: line, Column: col}
-		} else {
-			tok = Token{Type: TokLt, Literal: "<", Line: line, Column: col}
-		}
+		tok = l.operator(line, col, TokLt, follow{'=', TokLte})
 	case '>':
-		if l.peekChar() == '=' {
-			l.readChar()
-			tok = Token{Type: TokGte, Literal: ">=", Line: line, Column: col}
-		} else {
-			tok = Token{Type: TokGt, Literal: ">", Line: line, Column: col}
-		}
+		tok = l.operator(line, col, TokGt, follow{'=', TokGte})
 	case '&':
-		if l.peekChar() == '&' {
-			l.readChar()
-			tok = Token{Type: TokAnd, Literal: "&&", Line: line, Column: col}
-		} else {
-			tok = Token{Type: TokIllegal, Literal: string(l.ch), Line: line, Column: col}
-		}
+		tok = l.operator(line, col, TokIllegal, follow{'&', TokAnd})
 	case '|':
-		if l.peekChar() == '|' {
-			l.readChar()
-			tok = Token{Type: TokOr, Literal: "||", Line: line, Column: col}
-		} else if l.peekChar() == '>' {
-			l.readChar()
-			tok = Token{Type: TokPipe, Literal: "|>", Line: line, Column: col}
-		} else {
-			tok = Token{Type: TokIllegal, Literal: string(l.ch), Line: line, Column: col}
-		}
+		tok = l.operator(line, col, TokIllegal, follow{'|', TokOr}, follow{'>', TokPipe})
 	case '?':
-		if l.peekChar() == '?' {
-			l.readChar()
-			tok = Token{Type: TokNullCoalesc, Literal: "??", Line: line, Column: col}
-		} else if l.peekChar() == '.' {
-			l.readChar()
-			tok = Token{Type: TokSafeDot, Literal: "?.", Line: line, Column: col}
-		} else {
-			tok = Token{Type: TokQuestion, Literal: "?", Line: line, Column: col}
-		}
+		tok = l.operator(line, col, TokQuestion, follow{'?', TokNullCoalesc}, follow{'.', TokSafeDot})
 	case '.':
 		if l.peekChar() == '.' {
 			l.readChar()
@@ -289,21 +217,21 @@ func (l *Lexer) NextToken() (result Token) {
 			tok = Token{Type: TokDot, Literal: ".", Line: line, Column: col}
 		}
 	case ',':
-		tok = Token{Type: TokComma, Literal: ",", Line: line, Column: col}
+		tok = l.operator(line, col, TokComma)
 	case ';':
-		tok = Token{Type: TokSemicolon, Literal: ";", Line: line, Column: col}
+		tok = l.operator(line, col, TokSemicolon)
 	case '(':
-		tok = Token{Type: TokLParen, Literal: "(", Line: line, Column: col}
+		tok = l.operator(line, col, TokLParen)
 	case ')':
-		tok = Token{Type: TokRParen, Literal: ")", Line: line, Column: col}
+		tok = l.operator(line, col, TokRParen)
 	case '{':
-		tok = Token{Type: TokLBrace, Literal: "{", Line: line, Column: col}
+		tok = l.operator(line, col, TokLBrace)
 	case '}':
-		tok = Token{Type: TokRBrace, Literal: "}", Line: line, Column: col}
+		tok = l.operator(line, col, TokRBrace)
 	case '[':
-		tok = Token{Type: TokLBracket, Literal: "[", Line: line, Column: col}
+		tok = l.operator(line, col, TokLBracket)
 	case ']':
-		tok = Token{Type: TokRBracket, Literal: "]", Line: line, Column: col}
+		tok = l.operator(line, col, TokRBracket)
 	case '"', '\'':
 		quote := l.ch
 		str := l.readString(quote, line, col)
@@ -391,6 +319,26 @@ func (l *Lexer) readNumber() (string, bool) {
 	}
 
 	return sb.String(), isFloat
+}
+
+// follow, iki karakterli bir işlecin ikinci karakteri ve türüdür.
+type follow struct {
+	ch  rune
+	typ TokenType
+}
+
+// operator, l.ch'de başlayan işleci verir: sonraki karakter follows'taki karakterlerden biriyse
+// iki karakterli işleç (ilk karakter tüketilir; ikincisini NextToken'ın sonu tüketir), değilse
+// single. go/scanner'ın switch2/switch3 yardımcılarının karşılığı: işleç tablosu tek yerde durur.
+func (l *Lexer) operator(line, col int, single TokenType, follows ...follow) Token {
+	for _, f := range follows {
+		if l.peekChar() == f.ch {
+			lit := string(l.ch) + string(f.ch)
+			l.readChar()
+			return Token{Type: f.typ, Literal: lit, Line: line, Column: col}
+		}
+	}
+	return Token{Type: single, Literal: string(l.ch), Line: line, Column: col}
 }
 
 func isLetter(ch rune) bool {
