@@ -2,6 +2,7 @@ package goload
 
 import (
 	"go/ast"
+	"go/parser"
 	"go/types"
 	"os"
 	"path/filepath"
@@ -118,5 +119,20 @@ func TestLoadTypesOption(t *testing.T) {
 	}
 	if without.Units[0].Info.Types != nil {
 		t.Error("the default leaves Info.Types nil")
+	}
+}
+
+// Kural: RecvExprName yazılmış alıcı tipinin adını verir; gösterici, parantez ve tür parametreleri atılır, ad olmayan "?" olur.
+func TestRecvExprNameStripsPointersParensAndTypeArguments(t *testing.T) {
+	for src, want := range map[string]string{
+		"T": "T", "*T": "T", "(*T)": "T", "*T[int]": "T", "T[K, V]": "T", "pkg.T": "?", "[]T": "?",
+	} {
+		e, err := parser.ParseExpr(src)
+		if err != nil {
+			t.Fatalf("%s: %v", src, err)
+		}
+		if got := RecvExprName(e); got != want {
+			t.Errorf("RecvExprName(%s) = %q, want %q", src, got, want)
+		}
 	}
 }

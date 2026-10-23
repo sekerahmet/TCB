@@ -161,7 +161,7 @@ func (a *stateAudit) collectWrites() {
 			}
 			name := fn.Name.Name
 			if fn.Recv != nil && len(fn.Recv.List) > 0 {
-				name = recvTypeName(fn.Recv.List[0].Type) + "." + name
+				name = goload.RecvExprName(fn.Recv.List[0].Type) + "." + name
 			}
 			ast.Inspect(fn.Body, func(n ast.Node) bool {
 				a.noteWrites(u, n, name, rel)

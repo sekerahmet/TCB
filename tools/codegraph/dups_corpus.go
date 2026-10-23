@@ -10,6 +10,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/sekerahmet/TCB/internal/devtools/goload"
 )
 
 // Bu dosya kod tekrarı aramasının girdisidir (dups ve similar komutları): Go dosyalarının
@@ -222,7 +224,7 @@ func nodeAtom(n ast.Node) string {
 		return n.Value
 	case *ast.FuncDecl:
 		if n.Recv != nil && len(n.Recv.List) > 0 {
-			return recvTypeName(n.Recv.List[0].Type) + "." + n.Name.Name
+			return goload.RecvExprName(n.Recv.List[0].Type) + "." + n.Name.Name
 		}
 		return n.Name.Name
 	}
