@@ -199,7 +199,7 @@ func TestConstAndVarNodes(t *testing.T) {
 		}
 	}
 	mustEdge(t, g, "go:func:"+pkg+"Corners", "go:const:"+pkg+"Sides", edgeUses, extracted)
-	mustEdge(t, g, "go:func:"+pkg+"Corners", "go:var:"+pkg+"Default", edgeUses, extracted)
+	mustEdge(t, g, "go:func:"+pkg+"Corners", "go:var:"+pkg+"Default", edgeReadsVar, extracted)
 	mustEdge(t, g, "go:file:shape/shape.go", "go:const:"+pkg+"Sides", edgeContains, extracted)
 	if hasNode(g, "go:var:"+pkg+"s") || hasNode(g, "go:var:"+pkg+"err") {
 		t.Error("parameters and locals are not package-level variables")

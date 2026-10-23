@@ -328,5 +328,21 @@ func (x *goExtractor) scanValueSpecs(fc *fileCtx, d *ast.GenDecl) {
 			}
 		}
 		x.scan(fc, owner, spec)
+		x.initializerSites(fc, d, spec)
+	}
+}
+
+// initializerSites başlatıcılı bir paket değişkenini yazanın kendi bildirimi olarak işaretler: değişkenden kendine
+// `inits_var` (kip "initializer"). `query codes.active` yazanları "başlatıcı" ve "init" ayrı grupta gösterir.
+func (x *goExtractor) initializerSites(fc *fileCtx, d *ast.GenDecl, spec ast.Spec) {
+	vs, ok := spec.(*ast.ValueSpec)
+	if !ok || d.Tok != token.VAR || len(vs.Values) == 0 {
+		return
+	}
+	for _, name := range vs.Names {
+		if obj := fc.u.Info.Defs[name]; obj != nil && name.Name != "_" && obj.Pkg() != nil {
+			id := valueID(kindVar, obj.Pkg().Path(), name.Name)
+			x.b.addSite(id, id, edgeInitsVar, Site{File: fc.rel, Line: x.line(name.Pos()), Mode: "initializer"})
+		}
 	}
 }

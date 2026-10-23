@@ -18,7 +18,7 @@ const schemaVersion = 1
 // 7: .tr kaynakları etkin yazım dilinden bağımsız okunur (TR_DIL=en grafiği eksik bırakıyordu).
 // 8: sabit, değişken ve alan düğümlerinin bitiş satırı kendi değeriyle biter (öncekiler sonraki bloğun sonuna uzanıyordu).
 // 9: aynı modül hem takma adsız hem takma adla aktarılınca takma ad tanınır (yutuluyordu).
-const extractorRevision = 17
+const extractorRevision = 18
 
 // Düğüm türleri.
 const (
@@ -51,6 +51,9 @@ const (
 	edgeReadsFile   = "reads_file"
 	edgeEmbeds      = "embeds"
 	edgeWalks       = "walks"
+	edgeReadsVar    = "reads_var"
+	edgeWritesVar   = "writes_var"
+	edgeInitsVar    = "inits_var"
 	edgeUses        = "uses"
 	edgeReadsField  = "reads_field"
 	edgeWritesField = "writes_field"
