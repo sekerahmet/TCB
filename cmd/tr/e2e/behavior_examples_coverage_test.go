@@ -13,7 +13,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// Kapsam: dilin her canlı adı (ölü ve taşınmış kodlar hariç) examples/tr altındaki bir örnekte
+// Kapsam: dilin her adı examples/tr altındaki bir örnekte
 // geçer. Ad kontrolü metin aramasıyla değil kodlarladır: örnek `source.Encode` ile kodlanır ve
 // iskeletindeki kodlar (A001, G100, .Y004, T910: ...) sayılır. K ailesi (komut satırı:
 // `tr test`, `tr biçimle`, --dil ...) .tr dosyasında geçmez; örneklerin yorum satırlarında ve
