@@ -285,6 +285,60 @@ trees and a language-independent reader): a `tr dizin kopya` subcommand over the
 parser output with the same node sequence, which would see the parallel `examples/tr` and
 `examples/en` as one family; see the hand-over note for the proposal.
 
+## Audits (`dead-methods`, `package-state`, `time-ceilings`, `spec-refs`)
+
+Four audits that were once done by hand (roadmap Evre 4 item 7). They read the sources directly
+(type-checked with `goload`, or plain text for `spec-refs`), need no graph, and print **lists to
+review, not decisions**. All take `--in DIR` (only results under a path), `--json`, `--limit N`.
+
+```sh
+go run ./tools/codegraph dead-methods     # methods nobody calls
+go run ./tools/codegraph package-state    # process-wide mutable package variables
+go run ./tools/codegraph time-ceilings    # tests with a wall-clock ceiling
+go run ./tools/codegraph spec-refs        # language-definition references: missing items, suffixes
+go run ./tools/codegraph spec-refs --list # every reference with the heading it points to
+```
+
+- **`dead-methods`** lists methods with no caller. A method called through an interface counts as
+  used (the interface method's call sites are followed); a method that only *satisfies* an
+  interface whose method nobody calls is `assertion-only`. Kinds: `unreferenced`, `assertion-only`,
+  `shadowed` (an earlier interface check always catches the value first, as `ml.TensorValue.Operator`
+  was before 00d36f84), `tests-only`. Sealed-interface markers (`statementNode`) and methods of
+  external contracts (`String`, `Error`, `Unwrap`, `Read` ...) are skipped.
+- **`package-state`** lists package variables that are written after their declaration, per
+  package: `mutable`, `test-hook` (written only by tests), `address-taken`, and `synchronized`
+  (`sync.Mutex`/`Once`, `sync/atomic` types) separately. Tables that are only read after `init`
+  are counted but not listed.
+- **`time-ceilings`** lists the places in `_test.go` files where `time.Since`/`time.Until`/
+  `Time.Sub` (or a variable holding one of them) is compared with a constant. Rule
+  (internal/README.md): duration tests look at growth (`testkit.ScalesLinearly`), not at a ceiling;
+  a ceiling is allowed only for a wait that must end early, at half the distinguishing time.
+- **`spec-refs`** scans docs/, `tests/*.tr`, Go comments, `lib/` and `examples/` (tracked files)
+  for references to language-definition items: `**N.M**`, `**N.M–K.L**`, `dil tanımı N.M`,
+  `§N.M`, `[N.M](…spec/…)` (errors) and bare numbers in parentheses inside `docs/spec` (notes).
+  (a) a reference to an item that does not exist is an error (exit 1); (b) `--list` prints each
+  reference with the heading of its target; (c) the Turkish suffix after the number is checked for
+  vowel harmony and consonant assimilation (`15.9'daki`, `15.24'teki`, `15.3'ün`, `15.2'ye`).
+  The scanner and the suffix rules live in `tools/internal/specref`, shared with the renumber tool.
+
+### Renumbering items (`tools/renumber`, separate on purpose)
+
+Renumbering writes files, and codegraph is read-only (a write would also make its graph stamp
+stale), so it is its own tool:
+
+```sh
+go run ./tools/renumber --map moves.txt           # the plan: every mention, file:line
+go run ./tools/renumber --map moves.txt --apply   # write it
+go run ./tools/renumber --suffixes --apply        # only repair suffixes that break vowel harmony
+```
+
+`moves.txt` has one `old new` pair per line (`#` comments, `->` accepted). Edits are computed from
+the original positions, so swaps do not chain; definitions, references and in-spec mentions
+change together; suffixes are re-fitted to the new number; a range whose targets are not
+consecutive is split (`15.31–15.38` → `15.11–15.15, 15.20–15.22`); text that is not a recognised
+reference (`15.0` as a version) is never touched. Collisions and unknown old numbers are refused
+before anything is written; `--apply` refuses a plan that no longer matches the files.
+
 ## Why this design (comparison)
 
 [Graphify](https://github.com/Graphify-Labs/graphify) builds a graph from code (tree-sitter, about

@@ -24,6 +24,11 @@ type auditOpts struct {
 
 // parseAuditFlags --root, --in, --json ve --limit/--all bayraklarını okur; hata varsa nil.
 func parseAuditFlags(cmd string, args []string, stderr io.Writer) (*auditOpts, []string) {
+	return parseAuditFlagsWith(cmd, args, stderr, nil)
+}
+
+// parseAuditFlagsWith ortak bayrakların yanında komuta özgü bayrakları extra ile tanımlar.
+func parseAuditFlagsWith(cmd string, args []string, stderr io.Writer, extra func(*flag.FlagSet)) (*auditOpts, []string) {
 	fs := flag.NewFlagSet(cmd, flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	o := &auditOpts{}
@@ -32,6 +37,9 @@ func parseAuditFlags(cmd string, args []string, stderr io.Writer) (*auditOpts, [
 	fs.BoolVar(&o.asJSON, "json", false, "machine-readable output")
 	fs.IntVar(&o.limit, "limit", 0, "lines per list (0: all)")
 	all := fs.Bool("all", false, "no limit (the default)")
+	if extra != nil {
+		extra(fs)
+	}
 	if err := fs.Parse(reorderFlags(args)); err != nil {
 		return nil, nil
 	}

@@ -140,7 +140,7 @@ func (a *stateAudit) collectVars() {
 				continue
 			}
 			sv := &stateVar{Package: shortPkg(a.m, p), Name: name, File: file, Line: line,
-				Type: types.TypeString(v.Type(), func(pk *types.Package) string { return pk.Path() })}
+				Type: strings.ReplaceAll(types.TypeString(v.Type(), func(pk *types.Package) string { return pk.Path() }), a.m.Path+"/", "")}
 			k := a.vkey(v)
 			a.vars[k] = sv
 			a.order = append(a.order, k)

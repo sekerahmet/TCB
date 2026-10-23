@@ -53,6 +53,10 @@ const usage = `usage: codegraph <command> [flags] [args]
   changed <branch|range>     graph nodes touched by a branch (git diff main...branch), their tests, other claude/ branches on the same code
   dups [--min N] [--in DIR] [--changed branch|range] [--json]   duplicate-code candidates in the Go sources (token-sequence clones of at least N syntax-tree nodes, default 100); --changed keeps those that touch what a branch changed; deliberate exceptions are listed by --list-exclusions
   similar <func> [--json]    the functions most like this one, with a similarity score
+  dead-methods [--in DIR] [--json]   methods with no caller: unreferenced, kept alive only by an interface-satisfaction assertion (assertion-only), shadowed by an earlier interface check, or used only by tests
+  package-state [--in DIR] [--json]  package variables written outside their declaration (process-wide mutable state): mutable, test-hook, address-taken, synchronized
+  time-ceilings [--in DIR] [--json]  tests that compare an elapsed duration with a constant ceiling (file:line, constant, test name)
+  spec-refs [--list] [--in DIR] [--json]   references to language-definition items (**N.M**, §N.M, the "dil tan…" form): a missing item is an error (exit 1), suffix vowel harmony after N.M is checked; --list prints each reference with the heading it points to
 
 query flags: --graph FILE (default <root>/.codegraph/graph.json), --limit N (default 12), --all, --by-package, --min N, --in X, --tests, --base B, --root DIR (default: the repository root above the current directory), --no-rebuild
 A query rebuilds the graph first when the sources changed since it was built (see README).
@@ -73,6 +77,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return runBuild(args[1:], stdout, stderr)
 	case "query", "explain", "path", "who-uses", "tests-for", "history", "changed", "callees", "calls-into", "fields", "captures":
 		return runQuery(args[0], args[1:], stdout, stderr)
+	case "spec-refs":
+		return runSpecRefs(args[1:], stdout, stderr)
 	case "time-ceilings":
 		return runTimeCeilings(args[1:], stdout, stderr)
 	case "package-state":
