@@ -20,6 +20,8 @@ type queryOpts struct {
 	byPackage      bool   // who-uses: kullanıcıları pakete göre özetle
 	mode           string // who-uses, fields: yalnızca "read" ya da "write" erişimleri
 	typeFilter     string // captures: yakalanan değişkenin tipinde geçen metin
+	undirected     bool   // path: yön yok sayılır (tür, paket ve dosyalardan geçmeden)
+	throughHubs    bool   // path: yön yok sayılır, çok bağlı düğümlerden de geçer
 }
 
 // runQuery grafiği okuyan komutları çalıştırır: query, explain, path, who-uses, tests-for,
@@ -39,6 +41,8 @@ func runQuery(cmd string, args []string, stdout, stderr io.Writer) int {
 	fs.BoolVar(&o.tests, "tests", false, "calls-into: count callers in test files too")
 	fs.StringVar(&o.mode, "mode", "", "fields: only read or write accesses")
 	fs.StringVar(&o.typeFilter, "type", "", "captures: only variables whose type contains this text")
+	fs.BoolVar(&o.undirected, "undirected", false, "path: also look for a connection ignoring edge direction (never through a type, package or file)")
+	fs.BoolVar(&o.throughHubs, "through-hubs", false, "path: ignore direction and allow types, packages and files on the way (marked [hub])")
 	fs.BoolVar(&o.byPackage, "by-package", false, "who-uses: summarise the users per package")
 	if err := fs.Parse(reorderFlags(args)); err != nil {
 		return exitUsage
@@ -139,8 +143,15 @@ func (ix *index) answer(cmd string, nodes []*Node, o *queryOpts) int {
 	case "calls-into":
 		return ix.printCallsInto(nodes[0], o)
 	case "path":
-		if !ix.printPath(o.stdout, nodes[0], nodes[1]) {
-			fmt.Fprintf(o.stderr, "no path between %s and %s\n", nodes[0].Name, nodes[1].Name)
+		mode := pathDirected
+		switch {
+		case o.throughHubs:
+			mode = pathThroughHubs
+		case o.undirected:
+			mode = pathUndirected
+		}
+		if !ix.printPath(o.stdout, nodes[0], nodes[1], mode) {
+			fmt.Fprintln(o.stderr, noPathMessage(nodes[0], nodes[1], mode))
 			return exitNotFound
 		}
 	}

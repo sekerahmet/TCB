@@ -89,7 +89,7 @@ func TestPath(t *testing.T) {
 		t.Fatal(err)
 	}
 	var so, se bytes.Buffer
-	if code := run([]string{"path", "--graph", file, "--no-rebuild", "p.a", "p.b"}, &so, &se); code != exitNotFound || !strings.Contains(se.String(), "no path") {
+	if code := run([]string{"path", "--graph", file, "--no-rebuild", "p.a", "p.b"}, &so, &se); code != exitNotFound || !strings.Contains(se.String(), "no directed path") {
 		t.Errorf("exit %d: %s", code, se.String())
 	}
 }

@@ -12,21 +12,39 @@ type step struct {
 	forward bool
 }
 
-// shortestPath from'dan to'ya en kısa yolu bulur. Üç deneme sırayla: yönlü (contains hariç),
-// yönsüz (contains hariç), yönsüz (hepsi). Hangisinin tuttuğu mode'da döner.
-func (ix *index) shortestPath(from, to string) (steps []step, mode string, ok bool) {
-	for _, try := range []struct {
-		mode               string
-		directed, contains bool
-	}{{"directed", true, false}, {"undirected", false, false}, {"undirected, through containment", false, true}} {
-		if s, found := ix.bfs(from, to, try.directed, try.contains); found {
-			return s, try.mode, true
-		}
+// pathMode yol aramasının nasıl yapılacağıdır.
+type pathMode int
+
+const (
+	pathDirected    pathMode = iota // yalnızca kenar yönünde (contains hariç): "A, B'ye ulaşır mı"
+	pathUndirected                  // yön yok sayılır, ama tür/paket/dosya düğümlerinden geçmez
+	pathThroughHubs                 // yön yok sayılır, çok bağlı düğümlerden de geçer (işaretlenir)
+)
+
+// isHub çok bağlı bir düğüm mü: tür, paket, dosya ve belge. Yönsüz bir yol bunlardan geçince her şeyi her şeye bağlar
+// ("Attention -uses-> Tensor <-uses- Tensor.Softmax": iki işlev aynı türü kullanıyor diye çağrı yolu yoktur).
+func isHub(n *Node) bool {
+	switch n.Kind {
+	case kindType, kindPackage, kindFile, kindDoc:
+		return true
 	}
-	return nil, "", false
+	return false
 }
 
-func (ix *index) bfs(from, to string, directed, withContains bool) ([]step, bool) {
+// shortestPath from'dan to'ya en kısa yolu bulur. Varsayılan yalnızca yönlü yol arar ve yoksa söyler; yönsüz arama ve
+// çok bağlı düğümlerden geçen arama açık seçenektir (mode).
+func (ix *index) shortestPath(from, to string, mode pathMode) (steps []step, ok bool) {
+	switch mode {
+	case pathDirected:
+		return ix.bfs(from, to, true, false, false)
+	case pathUndirected:
+		return ix.bfs(from, to, false, false, false)
+	}
+	return ix.bfs(from, to, false, true, true)
+}
+
+// bfs yön ve hub kurallarıyla en kısa yolu arar; ara düğüm hub ise (hubs=false iken) geçilmez, uçlar serbesttir.
+func (ix *index) bfs(from, to string, directed, withContains, hubs bool) ([]step, bool) {
 	prev := map[string]step{}
 	prevFrom := map[string]string{}
 	seen := map[string]bool{from: true}
@@ -47,7 +65,7 @@ func (ix *index) bfs(from, to string, directed, withContains bool) ([]step, bool
 			}
 		}
 		for _, s := range next {
-			if seen[s.to] || (!withContains && s.e.Kind == edgeContains) {
+			if seen[s.to] || (!withContains && s.e.Kind == edgeContains) || (!hubs && s.to != to && isHub(ix.byID[s.to])) {
 				continue
 			}
 			seen[s.to] = true
@@ -69,17 +87,19 @@ func (ix *index) bfs(from, to string, directed, withContains bool) ([]step, bool
 	return steps, true
 }
 
-func (ix *index) printPath(w io.Writer, a, b *Node) bool {
+func (ix *index) printPath(w io.Writer, a, b *Node, mode pathMode) bool {
 	if a.ID == b.ID {
 		fmt.Fprintln(w, describe(a))
 		fmt.Fprintln(w, "  (same node)")
 		return true
 	}
-	steps, mode, ok := ix.shortestPath(a.ID, b.ID)
+	steps, ok := ix.shortestPath(a.ID, b.ID, mode)
 	if !ok {
 		return false
 	}
-	fmt.Fprintf(w, "path (%s, %d steps):\n", mode, len(steps))
+	label := map[pathMode]string{pathDirected: "directed", pathUndirected: "undirected, not through types, packages or files",
+		pathThroughHubs: "undirected, may pass through types, packages and files"}[mode]
+	fmt.Fprintf(w, "path (%s, %d steps):\n", label, len(steps))
 	fmt.Fprintf(w, "  %s\n", describe(a))
 	for _, s := range steps {
 		arrow := fmt.Sprintf("-%s->", s.e.Kind)
@@ -90,7 +110,22 @@ func (ix *index) printPath(w io.Writer, a, b *Node) bool {
 		if s.e.Confidence == inferred {
 			tag = "  [INFERRED]"
 		}
+		if n := ix.byID[s.to]; isHub(n) && n.ID != b.ID {
+			tag += "  [hub: connects everything that uses it]"
+		}
 		fmt.Fprintf(w, "  %s %s%s\n", arrow, describe(ix.byID[s.to]), tag)
 	}
 	return true
+}
+
+// noPathMessage yol bulunamayınca söylenen cümledir; yönlü aramada ne yapılabileceğini de söyler.
+func noPathMessage(a, b *Node, mode pathMode) string {
+	switch mode {
+	case pathDirected:
+		return fmt.Sprintf("no directed path from %s to %s (edges are followed in their direction: a call path exists only if %s reaches %s through calls, uses and dispatches).\n"+
+			"  --undirected looks for any connection ignoring direction, never through a type, package or file; --through-hubs allows those too.", a.Name, b.Name, a.Name, b.Name)
+	case pathUndirected:
+		return fmt.Sprintf("no connection between %s and %s that avoids types, packages and files (--through-hubs allows them, marked [hub])", a.Name, b.Name)
+	}
+	return fmt.Sprintf("no path between %s and %s", a.Name, b.Name)
 }
