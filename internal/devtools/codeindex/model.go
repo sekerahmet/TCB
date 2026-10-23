@@ -23,7 +23,7 @@ const Schema = "tr-codeindex/1"
 
 // IndexVersion dizinin kaynaktan türettiği içerik değişince artar (yeni düğüm türü, farklı
 // çözümleme). Başka sürümün önbelleği hiçbir zaman kullanılmaz.
-const IndexVersion = 7
+const IndexVersion = 8
 
 // Kind bir düğümün türüdür; değerler JSON'a yazılan değişmez tanımlayıcılardır.
 type Kind string
@@ -163,6 +163,10 @@ const (
 	BasisLocalType Basis = "local_type"
 	BasisNameMatch Basis = "name_match"
 	BasisNameOnly  Basis = "name_only"
+	// BasisCallableValue işlev yerleşiğinin çağrılmadan değer olarak kullanılıp çağrılabilir bir yere gittiğidir: bir
+	// çağrının argümanı (`[3, 1, 2].indirge(maks)`) ya da aynı gövdede çağrılan bir değişkene atanması
+	// (`değişken g = mutlak` ... `g(-2)`). Test bloğunda bu, yerleşiği sınamaktır (exercisesBuiltin).
+	BasisCallableValue Basis = "callable_value"
 )
 
 // Index bir projenin bütün dizinidir. Düğümler, kenarlar ve başvurular sıralıdır: aynı proje aynı

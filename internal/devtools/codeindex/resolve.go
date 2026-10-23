@@ -28,6 +28,9 @@ type scope struct {
 	bindCount    map[string]int                 // gövdede (parametre dışında) kaç kez bağlandığı
 	assigned     map[string]bool                // sonradan atanan adlar
 	localType    map[string]string              // yapıcıdan tek atamayla kurulan yerel: ad -> yapı kimliği
+	passed       map[*ast.Identifier]bool       // çağrının argümanı olan çıplak adlar
+	boundTo      map[*ast.Identifier]string     // `değişken g = ad` / `g = ad`: değer olan ad -> atandığı yerel
+	calledNames  map[string]bool                // gövdede çağrılan adlar (`g(...)`)
 }
 
 // collectScope gövdede bağlanan adları toplar (parametreler, değişkenler, döngü ve yakala
@@ -36,7 +39,8 @@ func collectScope(root any) *scope {
 	sc := &scope{locals: map[string]bool{}, bindings: map[*ast.Identifier]bool{}, handled: map[*ast.Identifier]bool{},
 		called: map[*ast.Identifier]bool{}, calledMember: map[*ast.MemberExpression]bool{},
 		writes: map[*ast.Identifier]bool{}, writeMember: map[*ast.MemberExpression]bool{},
-		params: map[string]string{}, bindCount: map[string]int{}, assigned: map[string]bool{}, localType: map[string]string{}}
+		params: map[string]string{}, bindCount: map[string]int{}, assigned: map[string]bool{}, localType: map[string]string{},
+		passed: map[*ast.Identifier]bool{}, boundTo: map[*ast.Identifier]string{}, calledNames: map[string]bool{}}
 	add := func(names ...string) {
 		for _, n := range names {
 			if n != "" {
@@ -65,6 +69,23 @@ func collectScope(root any) *scope {
 		case *ast.VarStatement:
 			sc.bindings[n.Name] = true
 			bind(n.Name.Value)
+			if v, ok := n.Value.(*ast.Identifier); ok {
+				sc.boundTo[v] = n.Name.Value
+			}
+		case *ast.CallExpression:
+			if fn, ok := n.Function.(*ast.Identifier); ok {
+				sc.calledNames[fn.Value] = true
+			}
+			for _, a := range n.Arguments {
+				if id, ok := a.(*ast.Identifier); ok {
+					sc.passed[id] = true
+				}
+			}
+			for _, a := range n.NamedArgs {
+				if id, ok := a.Value.(*ast.Identifier); ok {
+					sc.passed[id] = true
+				}
+			}
 		case *ast.MultiVarStatement:
 			for _, id := range n.Names {
 				sc.bindings[id] = true
@@ -72,6 +93,11 @@ func collectScope(root any) *scope {
 			}
 		case *ast.AssignStatement:
 			sc.markWrite(n.Target)
+			if t, ok := n.Target.(*ast.Identifier); ok {
+				if v, ok := n.Value.(*ast.Identifier); ok {
+					sc.boundTo[v] = t.Value
+				}
+			}
 		case *ast.MultiAssignStatement:
 			for _, t := range n.Targets {
 				sc.markWrite(t)
@@ -201,11 +227,14 @@ func (x *indexer) ident(f *file, o owner, sc *scope, id *ast.Identifier) {
 	}
 	if k, ok := x.lang.Find(codes.NamespaceGlobal, id.Value); ok {
 		if code, ok := x.builtin(k); ok {
-			role := RoleRead
-			if sc.called[id] {
+			role, basis := RoleRead, Basis("")
+			switch {
+			case sc.called[id]:
 				role = RoleCall
+			case sc.passed[id] || sc.calledNames[sc.boundTo[id]]:
+				basis = BasisCallableValue // çağrılabilir bir yere gidiyor: argüman ya da çağrılan değişken
 			}
-			x.link(o, code, EdgeUses, Extracted, role, pos)
+			x.linkBasis(o, code, EdgeUses, Extracted, role, pos, basis)
 		}
 		return
 	}
@@ -338,22 +367,23 @@ func (x *indexer) link(o owner, to string, kind EdgeKind, conf Confidence, role 
 // linkBasis link gibidir; üye erişiminin dayanağını da kaydeder.
 func (x *indexer) linkBasis(o owner, to string, kind EdgeKind, conf Confidence, role Role, pos Pos, basis Basis) {
 	x.addEdge(o.id, to, kind, conf, pos)
-	if o.kind == KindTest && (kind == EdgeCalls || x.exercisesBuiltin(to, role)) {
+	if o.kind == KindTest && (kind == EdgeCalls || x.exercisesBuiltin(to, role, basis)) {
 		x.addEdge(o.id, to, EdgeTests, conf, pos)
 		role = RoleTest
 	}
 	x.occurrenceBasis(to, role, conf, pos, o.id, basis)
 }
 
-// exercisesBuiltin test bloğunda bir yerleşiğin geçmesi onu sınamak mıdır. İşlev ve metot yerleşiği yalnızca çağrılınca
-// sınanır; çağrılmadan değer olarak anılması (`değişken f = zaman_ms`) onu sınamaz (bağımsız denetim S3: böyle bir blok
+// exercisesBuiltin test bloğunda bir yerleşiğin geçmesi onu sınamak mıdır. İşlev ve metot yerleşiği çağrılınca ya da
+// çağrılabilir bir yere gidince (BasisCallableValue: argüman olarak verilir ya da atandığı değişken çağrılır) sınanır;
+// yalnızca değer olarak anılması (`değişken f = zaman_ms`, f çağrılmaz) onu sınamaz (bağımsız denetim S3: böyle bir blok
 // testsiz yerleşiği testli gösteriyordu). Sabit, özellik, tip ve adlı argüman okunarak kullanılır, okunması sınamaktır.
-func (x *indexer) exercisesBuiltin(to string, role Role) bool {
+func (x *indexer) exercisesBuiltin(to string, role Role, basis Basis) bool {
 	n := x.nodes[to]
 	if n == nil || n.Kind != KindBuiltin {
 		return false
 	}
-	if role == RoleCall {
+	if role == RoleCall || basis == BasisCallableValue {
 		return true
 	}
 	k, err := codes.Parse(n.Name)

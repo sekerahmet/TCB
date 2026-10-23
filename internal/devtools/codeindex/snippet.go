@@ -36,7 +36,7 @@ func Snippet(src string) []SnippetUse {
 	}
 	first := map[string]int{}
 	for _, o := range x.finish().Occurrences {
-		if n := x.nodes[o.Node]; n != nil && x.exercisesBuiltin(n.ID, o.Role) && strings.HasPrefix(o.Pos.File, "snippet.tr") {
+		if n := x.nodes[o.Node]; n != nil && x.exercisesBuiltin(n.ID, o.Role, o.Basis) && strings.HasPrefix(o.Pos.File, "snippet.tr") {
 			if l, seen := first[n.Name]; !seen || o.Pos.Line < l {
 				first[n.Name] = o.Pos.Line
 			}

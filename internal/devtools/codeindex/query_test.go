@@ -220,12 +220,16 @@ func TestTextOutput(t *testing.T) {
 	}
 }
 
-// Kural: bir test bloğu bir işlev yerleşiğini yalnızca çağırınca sınar; çağırmadan değer olarak anması (`f = zaman_ms`)
-// onu sınamaz. Sabit yerleşik (pi) okunarak kullanılır, okunması sınamaktır (bağımsız denetim S3: anılan yerleşik
-// testli görünüyor, untested_names.txt'teki istisnayı bayat yapıyordu). Go testindeki TR parçası da aynı kuralla (Snippet).
+// Kural: bir test bloğu bir işlev yerleşiğini çağırınca, argüman olarak verince (`indirge(maks)`) ya da atadığı
+// değişkeni çağırınca (`g = karekök` ... `g(4)`) sınar; yalnızca değer olarak anması (`f = zaman_ms`, f çağrılmaz) onu
+// sınamaz. Sabit yerleşik (pi) okunarak kullanılır, okunması sınamaktır (bağımsız denetim S3: anılan yerleşik testli
+// görünüyor, untested_names.txt'teki istisnayı bayat yapıyordu; DENETİM doğrulaması: argüman ve atama da sınamaktır).
+// Go testindeki TR parçası da aynı kuralla (Snippet).
 func TestATestBlockTestsAFunctionBuiltinOnlyByCallingIt(t *testing.T) {
 	dir := t.TempDir()
-	src := "test \"değer\" {\n    değişken f = zaman_ms\n    doğrula(doğru)\n}\n\ntest \"çağrı\" {\n    doğrula(sinüs(pi) < 1)\n}\n"
+	src := "test \"değer\" {\n    değişken f = zaman_ms\n    doğrula(doğru)\n}\n\ntest \"çağrı\" {\n    doğrula(sinüs(pi) < 1)\n}\n" +
+		"test \"argüman\" {\n    doğrula([3, 1, 2].indirge(maks) == 3)\n}\n" +
+		"test \"atama\" {\n    değişken g = karekök\n    doğrula(g(4) == 2)\n}\n"
 	if err := os.WriteFile(filepath.Join(dir, "m_test.tr"), []byte(src), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -234,7 +238,7 @@ func TestATestBlockTestsAFunctionBuiltinOnlyByCallingIt(t *testing.T) {
 		t.Fatal(err)
 	}
 	r := NewReader(idx)
-	for name, want := range map[string]int{"zaman_ms": 0, "sinüs": 1, "pi": 1, "doğrula": 2} {
+	for name, want := range map[string]int{"zaman_ms": 0, "sinüs": 1, "pi": 1, "doğrula": 4, "maks": 1, "karekök": 1} {
 		if got := len(r.TestedBy(name, QueryOptions{}).Tests); got != want {
 			t.Errorf("TestedBy(%s): %d tests, want %d", name, got, want)
 		}
