@@ -78,7 +78,11 @@ func TestGPTTrainingScriptSmoke(t *testing.T) {
 		"--boyut", "16", "--katman", "1", "--bakış_sayısı", "2", "--bağlam", "16", "--toplu", "4", "--birikim", "2",
 		"--adım", "12", "--ısınma", "2", "--değerlendir_her", "6", "--değerlendir_toplu", "2", "--örnek_her", "6",
 		"--örnek_sayısı", "2", "--örnek_uzunluğu", "6", "--ölçüm_ısınması", "2", "--günlük_her", "3",
-		"--istemler", "Once upon a time|The dog"}
+		"--istemler", "Once upon a time|The dog",
+		// PyTorch tarifini eşleyen seçenekler (tools/gpu/COLAB.md §9): hepsi kurulup bir adım çalışmalı.
+		"--dağarcık", "1024", "--qk_normu", "--birleşik_kv", "--birleşik_kapı",
+		"--ileri_sapmalı", "--epsilon", "0.000001", "--ara_boyut", "48", "--muon_ölçeği", "rms",
+		"--adamw_çürümesi", "0.1", "--ağırlık_çürümesi", "0.1", "--son_değerlendir_toplu", "1000"}
 	s := tr(t, t.TempDir(), args...)
 	testkit.Wait(t, s, 0, []string{"ms/adım", "bitti: en iyi doğrulama kaybı", "Once upon a time", "The dog"}, nil)
 	if strings.Contains(s.Stderr, "Uyar") {

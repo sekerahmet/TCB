@@ -23,8 +23,9 @@ değişken ayar = komut_satırı({
         veri: "", koşu: "runs/gpt_ss", cihaz: "gpu", hassasiyet: "float32",
         boyut: 512, katman: 8, bakış_sayısı: 8, kv_bakış_sayısı: 0, bağlam: 512, toplu: 128, birikim: 1,
         adım: 5000, ısınma: 200, azalma: 0.2, muon_oranı: 0.02, adamw_oranı: 0.003,
-        ağırlık_çürümesi: 0.0, normuon: yanlış, kırp: 1.0, paylaşımlı: doğru,
-        günlük_her: 10, değerlendir_her: 250, değerlendir_toplu: 20, örnek_her: 1000,
+        ağırlık_çürümesi: 0.0, adamw_çürümesi: 0.0, muon_ölçeği: "oran", ns_türü: "float32", normuon: yanlış, kırp: 1.0, paylaşımlı: doğru,
+        dağarcık: 0, ara_boyut: 0, epsilon: 0.00001, qk_normu: yanlış, birleşik_kv: yanlış, birleşik_kapı: yanlış, ileri_sapmalı: yanlış,
+        günlük_her: 10, değerlendir_her: 250, değerlendir_toplu: 20, son_değerlendir_toplu: 0, örnek_her: 1000,
         örnek_sayısı: 3, örnek_uzunluğu: 120, istemler: "Once upon a time", ölçüm_ısınması: 10, her_dakika: 15.0, tohum: 1},
     açıklama: "SimpleStories verisiyle GPT eğitir (Muon + AdamW, WSD planı, kontrol noktası)",
     açıklamalar: {veri: "tokenizer.json, train.npy, valid.npy klasörü", koşu: "koşu klasörü",
@@ -32,7 +33,15 @@ değişken ayar = komut_satırı({
         kv_bakış_sayısı: "anahtar/değer bakış sayısı (0: bakış_sayısı ile aynı)", birikim: "adım başına toplu iş (gradyan biriktirme)",
         azalma: "son adımların azalan oranlı kesri", normuon: "gizli ağırlıklarda NorMuon",
         kırp: "gradyan normu sınırı (0: kırpma yok)", paylaşımlı: "çıkış katmanı gömme tablosunu kullanır",
-        istemler: "örnek metinlerin başlangıçları, | ile ayrılır (her istem için örnek_sayısı metin)"})
+        istemler: "örnek metinlerin başlangıçları, | ile ayrılır (her istem için örnek_sayısı metin)",
+        ağırlık_çürümesi: "Muon'un (gizli matrisler) ağırlık çürümesi", adamw_çürümesi: "gömmenin ağırlık çürümesi (normlar ve sapmalar çürümesiz)",
+        muon_ölçeği: "oran ya da rms (güncellemenin RMS'i AdamW'ninkiyle eşlenir; öğrenme oranı AdamW ölçeğinde)",
+        ns_türü: "Newton–Schulz hesap türü: float32 ya da bf16",
+        dağarcık: "0: parçalayıcının dağarcığı; büyükse dolgu satırları eklenir (ör. 64'ün katı: çarpım hızlanır)",
+        ara_boyut: "SwiGLU ara boyutu (0: 8/3 · boyut, 32'nin katına)", epsilon: "RMS normunun epsilonu",
+        qk_normu: "sorgu ve anahtar normu", birleşik_kv: "K ve V tek matris", birleşik_kapı: "SwiGLU kapı ve yukarı tek matris",
+        ileri_sapmalı: "SwiGLU katmanları sapmalı",
+        son_değerlendir_toplu: "son adımdaki değerlendirmenin toplu işi (0: değerlendir_toplu; büyük sayı: bütün doğrulama verisi)"})
 
 eğer ayar.veri == "" {
     fırlat("veri klasörü verilmedi: --veri /content/ss4096 (tokenizer.json, train.npy, valid.npy)")
@@ -42,15 +51,22 @@ değişken p = parçalayıcı_yükle(yol(ayar.veri, "tokenizer.json"))
 değişken eğitim_verisi = veri_kümesi(yol(ayar.veri, "train.npy"))
 değişken ö = eğitim_verisi.örnekleyici(toplu: ayar.toplu, bağlam: ayar.bağlam, tohum: ayar.tohum)
 
-değişken model = GPT(p.dağarcık_boyutu, bağlam: ayar.bağlam, boyut: ayar.boyut, katman: ayar.katman,
-    bakış_sayısı: ayar.bakış_sayısı, kv_bakış_sayısı: eğer ayar.kv_bakış_sayısı == 0 { yok } değilse { ayar.kv_bakış_sayısı },
+eğer ayar.dağarcık != 0 ve ayar.dağarcık < p.dağarcık_boyutu {
+    fırlat("--dağarcık {ayar.dağarcık} parçalayıcının dağarcığından ({p.dağarcık_boyutu}) küçük olamaz")
+}
+değişken model = GPT(eğer ayar.dağarcık == 0 { p.dağarcık_boyutu } değilse { ayar.dağarcık }, bağlam: ayar.bağlam,
+    boyut: ayar.boyut, katman: ayar.katman, bakış_sayısı: ayar.bakış_sayısı,
+    kv_bakış_sayısı: eğer ayar.kv_bakış_sayısı == 0 { yok } değilse { ayar.kv_bakış_sayısı },
+    ara_boyut: eğer ayar.ara_boyut == 0 { yok } değilse { ayar.ara_boyut }, epsilon: ayar.epsilon,
+    qk_normu: ayar.qk_normu, birleşik_kv: ayar.birleşik_kv, birleşik_kapı: ayar.birleşik_kapı, ileri_sapmalı: ayar.ileri_sapmalı,
     paylaşımlı: ayar.paylaşımlı, tohum: ayar.tohum)
 değişken op = MuonVeAdamW(model, muon_oranı: ayar.muon_oranı, adamw_oranı: ayar.adamw_oranı,
-    ağırlık_çürümesi: ayar.ağırlık_çürümesi, normuon: ayar.normuon)
+    ağırlık_çürümesi: ayar.ağırlık_çürümesi, adamw_çürümesi: ayar.adamw_çürümesi, muon_ölçeği: ayar.muon_ölçeği,
+    ns_türü: ayar.ns_türü, normuon: ayar.normuon)
 değişken ağırlıklar = parametreler(model)
 değişken parametre_sayısı = 0
 döngü w içinde ağırlıklar { parametre_sayısı += w.şekil.indirge(1) { birikim * o } }
-yazdır("model: {yuvarla(parametre_sayısı / 1000000, 2)} M parametre · cihaz {model.gömme.tablo.cihaz} · dağarcık {p.dağarcık_boyutu}")
+yazdır("model: {yuvarla(parametre_sayısı / 1000000, 2)} M parametre · cihaz {model.gömme.tablo.cihaz} · dağarcık {p.dağarcık_boyutu} (model {model.ayar.dağarcık})")
 
 klasör_oluştur(ayar.koşu)
 dosya_yaz(yol(ayar.koşu, "config.json"), json_metin({ayar: ayar, parametre_sayısı: parametre_sayısı,
@@ -60,21 +76,25 @@ değişken izlenen = {en_iyi_doğrulama: 99.0, örnekler: []}
 değişken kn = kontrol_noktası(ayar.koşu, {model: model, adamw: op.adamw, muon: op.muon.durum, ö: ö, g: g, izlenen: izlenen},
     her_dakika: ayar.her_dakika)
 
-// doğrulama_kaybı: valid.npy'nin ilk değerlendir_toplu toplu işinin ortalama kaybı.
-fonksiyon doğrulama_kaybı() {
+// doğrulama_kaybı: valid.npy'nin baştan ardışık, örtüşmeyen pencerelerinden ilk toplu_sayısı toplu işin
+// parça başına ortalama kaybı (eksik son toplu iş satır sayısıyla ağırlıklanır).
+fonksiyon doğrulama_kaybı(toplu_sayısı) {
     değişken okuyucu = veri_kümesi(yol(ayar.veri, "valid.npy")).sıralı(toplu: ayar.toplu, bağlam: ayar.bağlam)
     değişken toplam_kayıp = 0.0
+    değişken satır = 0
     değişken sayı = 0
     türevsiz {
         karışık_hassasiyet(ayar.hassasiyet) {
             döngü iş içinde okuyucu {
-                toplam_kayıp += model.kayıp(iş[0], iş[1]).değer
+                değişken n = iş[0].şekil[0]
+                toplam_kayıp += model.kayıp(iş[0], iş[1]).değer * n
+                satır += n
                 sayı += 1
-                eğer sayı == ayar.değerlendir_toplu { çık }
+                eğer sayı == toplu_sayısı { çık }
             }
         }
     }
-    sonuç toplam_kayıp / maks(sayı, 1)
+    sonuç toplam_kayıp / maks(satır, 1)
 }
 
 // örnek_yaz: her istemin devamı olarak örnek_sayısı metin üretir ve samples.json'a yazar.
@@ -122,7 +142,8 @@ döngü adım içinde kn.kaldığı_adım..ayar.adım {
         ç.güncelle({kayıp: kayıp, oran_çarpanı: çarpan}, adım: adım + 1)
     }
     eğer (adım + 1) % ayar.değerlendir_her == 0 veya adım + 1 == ayar.adım {
-        değişken dk = doğrulama_kaybı()
+        değişken son_adım = adım + 1 == ayar.adım ve ayar.son_değerlendir_toplu > 0
+        değişken dk = doğrulama_kaybı(eğer son_adım { ayar.son_değerlendir_toplu } değilse { ayar.değerlendir_toplu })
         g.ekle({adım: adım + 1, doğrulama_kaybı: dk})
         eğer dk < izlenen.en_iyi_doğrulama { izlenen.en_iyi_doğrulama = dk }
     }
@@ -140,8 +161,9 @@ eğer kayıp != yok {
     }
     kn.kaydet()
 }
-örnek_yaz(ayar.adım)
+// Ağırlıklar örneklerden önce yazılır: üretimde bir hata olsa da eğitimin sonucu kaybolmaz.
 tensör_kaydet(yol(ayar.koşu, "model.trt"), parametreler(model, adlarıyla: doğru))
+örnek_yaz(ayar.adım)
 yazdır("bitti: en iyi doğrulama kaybı {yuvarla(izlenen.en_iyi_doğrulama, 4)} · koşu klasörü {yol(ayar.koşu).mutlak}")
 // Her istemin ilk örneği.
 döngü i içinde 0..izlenen.örnekler.son.metinler.uzunluk {
