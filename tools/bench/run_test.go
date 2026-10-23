@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
 // python returns the Python interpreter, or skips the test when there is none.
@@ -69,7 +71,7 @@ func TestRunPyTestsExist(t *testing.T) {
 	for _, name := range names {
 		if name == "karakter_modeli" {
 			// Model kıyası örnek 36'yı ve py/char_model.py'yi çalıştırır; Go sürümü yoktur.
-			for _, p := range []string{filepath.Join("..", "..", "examples", "tr", "36_karakter_modeli.tr"), filepath.Join("py", "char_model.py")} {
+			for _, p := range []string{reporoot.Path("examples/tr/36_karakter_modeli.tr"), filepath.Join("py", "char_model.py")} {
 				if _, err := os.Stat(p); err != nil {
 					t.Errorf("%s: %v", name, err)
 				}
