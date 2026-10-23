@@ -69,8 +69,12 @@ func (d *TensorValue) negate() (interp.Value, error) {
 // supportedOps hata mesajlarında gösterilir.
 const supportedOps = "+ - * / @ ** < > <= >= == !="
 
-// TaskOperator işleci yapan görevle birlikte çağrılır: '@' görevin karışık hassasiyet
-// türüne göre (bkz. karışık_hassasiyet) hesaplanır; diğer işleçler Islec'e gider.
+// TaskOperator tensörün ikili işleçlerini uygular: '+', '-', '*', '/' (eleman bazlı,
+// yayınlamalı; diğer işlenen sayı, liste ya da tensör) ve '@' (matris çarpımı) her iki yönde;
+// '**' sol işlenenken (sayı üs); '<', '>', '<=', '>=' her iki yönde (0/1 maskesi). İşleci yapan
+// görevle çağrılır: '@' görevin karışık hassasiyet türüne göre hesaplanır (bkz.
+// karışık_hassasiyet), yayın uyarısı programın durumuna ve hata akışına yazılır. Tensörün
+// görevsiz işleç kancası (interp.OperatorHook) yoktur: yorumlayıcı önce bu kancayı dener.
 func (d *TensorValue) TaskOperator(m *interp.VM, op string, otherVal interp.Value, onRight bool) (interp.Value, bool, error) {
 	start := tensor.Created()
 	res, ok, err := d.taskOperator(m, op, otherVal, onRight)
@@ -102,19 +106,6 @@ func (d *TensorValue) matmulOp(otherVal interp.Value, onRight bool, dt tensor.DT
 		return nil, true, err
 	}
 	return New(r), true, nil
-}
-
-// Operator tensörün ikili işleçlerini uygular: '+', '-', '*', '/' (eleman bazlı, yayınlamalı;
-// diğer işlenen sayı, liste ya da tensör) ve '@' (matris çarpımı) her iki yönde; '**' sol
-// işlenenken (sayı üs); '<', '>', '<=', '>=' her iki yönde (0/1 maskesi). Yorumlayıcı
-// tensörde TaskOperator'ı çağırır; bu biçim program olmadan çağrılır ve yayın uyarısı yazmaz.
-func (d *TensorValue) Operator(op string, otherVal interp.Value, onRight bool) (interp.Value, bool, error) {
-	start := tensor.Created()
-	res, ok, err := d.operator(nil, op, otherVal, onRight)
-	if err == nil {
-		markFresh(res, start)
-	}
-	return res, ok, err
 }
 
 // operator ikili işleci uygular; m işlemi yapan görevdir (nil: program yok, uyarı yazılmaz).
@@ -368,7 +359,6 @@ var (
 	_ interp.IndexAssignable  = (*TensorValue)(nil)
 	_ interp.Iterable         = (*TensorValue)(nil)
 	_ interp.Negatable        = (*TensorValue)(nil)
-	_ interp.OperatorHook     = (*TensorValue)(nil)
 	_ interp.TaskOperatorHook = (*TensorValue)(nil)
 	_ interp.PlainValuer      = (*TensorValue)(nil)
 )
