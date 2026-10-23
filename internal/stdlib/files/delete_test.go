@@ -107,8 +107,12 @@ func TestDeleteProtections(t *testing.T) {
 		`sil("` + forwardPath(filepath.VolumeName(k)+string(filepath.Separator)) + `")`: messages.H7147, // kök
 	}
 	if home != "" {
-		cases[`sil("`+forwardPath(home)+`")`] = messages.H7148               // ev klasörü
-		cases[`sil("`+forwardPath(filepath.Dir(home))+`")`] = messages.H7149 // ev klasörünün üstü
+		cases[`sil("`+forwardPath(home)+`")`] = messages.H7148 // ev klasörü
+		// Ev klasörünün üstü; ev klasörü kökün hemen altındaysa (Linux'ta root: /root) üstü kökün
+		// kendisidir ve kök koruması (H7147, yukarıda) verilir.
+		if parent := filepath.Dir(home); filepath.Dir(parent) != parent {
+			cases[`sil("`+forwardPath(parent)+`")`] = messages.H7149
+		}
 	}
 	for code, wants := range cases {
 		s := runTR(t, program, code)

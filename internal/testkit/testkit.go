@@ -207,10 +207,10 @@ func (e *TeeWriter) String() string {
 func ScalesLinearly(t testing.TB, what string, n int, prepare func(n int) func()) {
 	t.Helper()
 	small, large, r := linearRatio(n, prepare)
-	t.Logf("%s: %d için %v, %d için %v; oran %.1f", what, n, small, linearFactor*n, large, r)
+	t.Logf("%s: %v at %d, %v at %d; ratio %.1f", what, small, n, large, linearFactor*n, r)
 	if r > linearLimit {
-		t.Errorf("%s doğrusal büyümüyor: %d için %v, %d için %v; oran %.1f (doğrusalda ~%d, sınır %g)",
-			what, n, small, linearFactor*n, large, r, linearFactor, linearLimit)
+		t.Errorf("%s does not grow linearly: %v at %d, %v at %d; ratio %.1f (linear ~%d, limit %g)",
+			what, small, n, large, linearFactor*n, r, linearFactor, linearLimit)
 	}
 }
 
