@@ -451,6 +451,11 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 		for j, orig := range data {
 			flatIndex(j, sh, idx)
 			xp, xm := orig+float32(step), orig-float32(step)
+			if xp == xm {
+				// fark_adımı bu elemanda float32'de etkisiz (alt taşma ya da x'e göre çok küçük):
+				// sonlu fark 0/0 olurdu ve geri hesabını suçlayan sahte bir uyuşmazlık çıkardı.
+				return nil, messages.New(messages.H6445, fn, nameStep.TR, i+1, shapeText(append([]int(nil), idx...)))
+			}
 			if err := setSafe(c, xp, idx); err != nil {
 				return nil, err
 			}

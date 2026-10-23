@@ -937,6 +937,7 @@
 "H6442": "{fn}: {start} konumundan yazılan {len} uzunluklu dilim {size} uzunluklu eksene sığmıyor",
 "H6443": "{fn}: hedef bitişik bir tensör olmalıdır (görünüm değil); görünüme yazmak için indeksle atama kullanın",
 "H6444": "{fn}: ilk argüman (hedef) bir tensör olmalıdır, {given} verildi",
+"H6445": "{fn}: {step} {input}. girdinin {index} elemanında float32'de etkisiz (x + {step} ve x - {step} aynı değer); daha büyük bir {step} verin",
 "H6500": "{fn}(model, {withNamesArg}: {falseValue}) 1 konumlu parametre bekler, {given} verildi",
 "H6501": "{fn}: sözlük {stateMethod} ile alınmış olmalı (anahtarları {stringType}, değerleri {tensorType}); {key|q} girdisi {given}",
 "H6502": "{optimizer} üzerinde {member|q} üyesine atama yapılamaz; atanabilen üye: {lrMember}",

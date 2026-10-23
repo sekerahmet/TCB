@@ -937,6 +937,7 @@
 "H6442": "{fn}: the slice of length {len} written from position {start} does not fit in the axis of length {size}",
 "H6443": "{fn}: the target must be a contiguous tensor (not a view); to write into a view, use index assignment",
 "H6444": "{fn}: the first argument (the target) must be a tensor, {given} given",
+"H6445": "{fn}: {step} has no effect at element {index} of input {input} in float32 (x + {step} and x - {step} are the same value); give a larger {step}",
 "H6500": "{fn}(model, {withNamesArg}: {falseValue}) expects 1 positional parameter, {given} given",
 "H6501": "{fn}: the dictionary must have been obtained with {stateMethod} (keys {stringType}, values {tensorType}); the entry {key|q} is {given}",
 "H6502": "the member {member|q} of {optimizer} cannot be assigned to; the assignable member is: {lrMember}",
