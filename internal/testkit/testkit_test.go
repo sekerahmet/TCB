@@ -146,7 +146,7 @@ func TestGoStringLiteralsSkipsTagsAndImports(t *testing.T) {
 	if err := GoStringLiterals(path, func(s string, line int) { got = append(got, strconv.Itoa(line)+":"+s) }); err != nil {
 		t.Fatal(err)
 	}
-	if want := []string{"9:merhaba", "10:ham"};!reflect.DeepEqual(got, want) {
+	if want := []string{"9:merhaba", "10:ham"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("got %q, want %q", got, want)
 	}
 }
