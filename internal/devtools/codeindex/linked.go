@@ -89,10 +89,9 @@ func (r *Reader) linkedTo(id string) []*Node {
 // biçimidir (kaydedilen ayar dosyası onu okur): yeniden adlandırılan parametreyle aynı yazılsa da değiştirilmesi bir veri
 // biçimi kararıdır. Metin eşleşmesi böyle bir anahtarsa ayrı rol ve eşleşme türüyle (sözlük anahtarı; veri biçimi,
 // kendiliğinden değişmez) olası grupta kalır.
-const (
-	RoleDictKey     Role = "dict_key"    // sözlük değişmezinin tırnaksız anahtarı
-	MatchDataFormat      = "data_format" // anahtar verinin biçimidir: kendiliğinden değişmez
-)
+const RoleDictKey Role = "dict_key" // sözlük değişmezinin tırnaksız anahtarı
+
+const MatchDataFormat = "data_format" // anahtar verinin biçimidir: kendiliğinden değişmez
 
 // lines dosyanın Türkçe gösterim satırlarıdır (yoksa nil).
 func (s *lineSource) lines(file string) []string {
