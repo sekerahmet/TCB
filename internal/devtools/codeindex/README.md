@@ -72,7 +72,7 @@ Birim testleri sınadıkları dosyanın adını taşır (`model_test.go` → `mo
 
 ## Yeniden adlandırma etkisi (`tr dizin yeniden_adlandır`)
 
-Bir ad değişirse değişecek yerleri listeler, **hiçbir dosyaya yazmaz** (LSP `textDocument/rename` ve `prepareRename`'in karşılığı: `Reader.RenameImpact` ve `Reader.PrepareRename`). Kaynaklı karşılaştırma ve gerekçe: `yeniden-adlandirma-tasarim.md` devir notunda; özeti:
+Bir ad değişirse değişecek yerleri listeler, **hiçbir dosyaya yazmaz** (LSP `textDocument/rename` ve `prepareRename`'in karşılığı: `Reader.RenameImpact` ve `Reader.PrepareRename`). `PrepareRename`'in (ve `Reader.Node`'un) bugün üretimde çağıranı yoktur: dil sunucusu (Evre 6) çağıracak, o zamana kadar davranışını testleri korur (bağımsız denetim O1). Kaynaklı karşılaştırma ve gerekçe: `yeniden-adlandirma-tasarim.md` devir notunda; özeti:
 
 | Konu | Kaynak | Kararımız |
 | :-- | :-- | :-- |
