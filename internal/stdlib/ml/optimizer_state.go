@@ -38,22 +38,17 @@ func (o *Optimizer) stateMember(kd codes.Code) (interp.Value, bool, error) {
 		})
 		return v, true, err
 	case memberLoadState:
-		return &interp.BuiltinVal{Name: codes.Name(memberLoadState), NoNamedArgs: true, Fn: func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-			return bind.Safe(interp.CallName(memberLoadState), func() (interp.Value, error) { return o.loadStateTR(args) })
-		}}, true, nil
+		return bind.CodeMethod(memberLoadState, true, o.loadStateTR), true, nil
 	}
 	return nil, false, nil
 }
 
 // loadStateTR op.durumu_yükle(sözlük) metodudur.
-func (o *Optimizer) loadStateTR(args []interp.Value) (interp.Value, error) {
+func (o *Optimizer) loadStateTR(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 	fn := interp.CallPrefix(memberLoadState)
-	if len(args) != 1 {
-		return nil, interp.ArgCountError(memberLoadState, "1", len(args), messages.Text(messages.H2326, codes.DisplayName(memberState)))
-	}
-	s, ok := args[0].(*interp.DictVal)
-	if !ok {
-		return nil, interp.ArgTypeError(memberLoadState, 1, args[0], codes.A206)
+	s, err := bind.SingleDictArg(memberLoadState, args, messages.Text(messages.H2326, codes.DisplayName(memberState)))
+	if err != nil {
+		return nil, err
 	}
 	st := make(map[string]*tensor.Tensor, len(s.Order))
 	for _, k := range s.Order {

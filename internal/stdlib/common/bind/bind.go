@@ -170,6 +170,19 @@ func Safe(fn string, f func() (interp.Value, error)) (interp.Value, error) {
 	return result, ferr
 }
 
+// SingleDictArg tek bir sözlük argümanı bekleyen yöntemin (kod kd) argümanını verir; sayı ya da tür
+// yanlışsa interp.ArgCountError/ArgTypeError verir. example sayı hatasında kullanım ipucu olarak anılır.
+func SingleDictArg(kd codes.Code, args []interp.Value, example string) (*interp.DictVal, error) {
+	if len(args) != 1 {
+		return nil, interp.ArgCountError(kd, "1", len(args), example)
+	}
+	d, ok := args[0].(*interp.DictVal)
+	if !ok {
+		return nil, interp.ArgTypeError(kd, 1, args[0], codes.A206)
+	}
+	return d, nil
+}
+
 // SafeBuiltin fn yerleşiğini Go paniğine karşı korur: panik name adlı bir iç hataya döner (Safe).
 func SafeBuiltin(name string, fn interp.BuiltinFunc) interp.BuiltinFunc {
 	return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {

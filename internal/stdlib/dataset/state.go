@@ -89,15 +89,12 @@ func (o *Reader) StateDict(*interp.VM) (*interp.DictVal, error) {
 
 // loadStateTR ö.durumu_yükle(sözlük) metodudur.
 func (o *Reader) loadStateTR(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	if len(named) > 0 || len(args) != 1 {
-		if len(named) > 0 {
-			return nil, messages.New(messages.H5537, interp.CallPrefix(memberLoadState))
-		}
-		return nil, interp.ArgCountError(memberLoadState, "1", len(args), messages.Text(messages.H2315, codes.DisplayName(memberState)))
+	if len(named) > 0 {
+		return nil, messages.New(messages.H5537, interp.CallPrefix(memberLoadState))
 	}
-	s, ok := args[0].(*interp.DictVal)
-	if !ok {
-		return nil, interp.ArgTypeError(memberLoadState, 1, args[0], codes.A206)
+	s, err := bind.SingleDictArg(memberLoadState, args, messages.Text(messages.H2315, codes.DisplayName(memberState)))
+	if err != nil {
+		return nil, err
 	}
 	if err := o.LoadState(m, s); err != nil {
 		return nil, err

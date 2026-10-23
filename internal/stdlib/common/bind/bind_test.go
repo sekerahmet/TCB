@@ -298,3 +298,18 @@ func TestSafeBuiltin(t *testing.T) {
 		t.Errorf("sonuç: %v, %v", v, err)
 	}
 }
+
+// Kural: SingleDictArg tam bir sözlük argümanı bekler; sayı ve tür hatalarında yöntemin koduyla
+// ArgCountError/ArgTypeError verir.
+func TestSingleDictArg(t *testing.T) {
+	d := interp.NewDictVal()
+	if got, err := SingleDictArg(codes.Y503, []interp.Value{d}, "örnek"); err != nil || got != d {
+		t.Errorf("sözlük = %v, %v", got, err)
+	}
+	if _, err := SingleDictArg(codes.Y503, nil, "örnek"); err == nil || !strings.Contains(err.Error(), "örnek") {
+		t.Errorf("argümansız çağrı sayı hatası vermeli (örnek anılmalı): %v", err)
+	}
+	if _, err := SingleDictArg(codes.Y503, []interp.Value{&interp.IntVal{Val: 1}}, "örnek"); err == nil {
+		t.Error("sözlük olmayan argüman hata vermeli")
+	}
+}
