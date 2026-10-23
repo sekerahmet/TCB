@@ -859,6 +859,32 @@ test "15.18 indirgemelerde boyutu_koru" {
     doğrula(hata_metni(() => toplam([1, 2], boyutu_koru: doğru)).içerir("yalnızca tensörlerde"))
 }
 
+test "15.24 dikkat: NaN satırı bakmadığı anahtarlara NaN sızdırmaz (pencere, nedensellik, maske)" {
+    değişken nan = ondalık("nan")
+    değişken k_satırı = (k) => sonlu_mu(k.gradyan).değer
+    // pencere: 1 ve nedensel: 1. sorgu (NaN) yalnızca 1. anahtara bakar; 0. anahtara yalnızca sonlu 0. sorgu bakar.
+    değişken q = tensör([[1.0, 0.0], [nan, 0.0]], türev_izle: doğru)
+    değişken k = tensör([[1.0, 0.0], [0.0, 1.0]], türev_izle: doğru)
+    değişken v = tensör([[1.0, 2.0], [3.0, 4.0]], türev_izle: doğru)
+    geri_yayılım(toplam(dikkat(q, k, v, nedensel: doğru, pencere: 1)))
+    eşit_mi([1.0, 1.0], k_satırı(k)[0])
+    eşit_mi([0.0, 0.0], k_satırı(k)[1])
+    // Yalnızca nedensellik: NaN 0. sorgu yalnızca 0. anahtara bakar; 1. anahtarın gradyanı 1. sorgudan gelir (sonlu).
+    değişken q2 = tensör([[nan, 0.0], [1.0, 0.0]], türev_izle: doğru)
+    değişken k2 = tensör([[1.0, 0.0], [0.0, 1.0]], türev_izle: doğru)
+    değişken v2 = tensör([[1.0, 2.0], [3.0, 4.0]], türev_izle: doğru)
+    geri_yayılım(toplam(dikkat(q2, k2, v2, nedensel: doğru)))
+    eşit_mi([0.0, 0.0], k_satırı(k2)[0])
+    eşit_mi([1.0, 1.0], k_satırı(k2)[1])
+    // Maske: NaN sorgunun maskelediği anahtara NaN gitmez.
+    değişken q3 = tensör([[nan, 0.0], [1.0, 0.0]], türev_izle: doğru)
+    değişken k3 = tensör([[1.0, 0.0], [0.0, 1.0]], türev_izle: doğru)
+    değişken v3 = tensör([[1.0, 2.0], [3.0, 4.0]], türev_izle: doğru)
+    değişken maske = tensör([[1.0, 0.0], [1.0, 1.0]])
+    geri_yayılım(toplam(dikkat(q3, k3, v3, nedensel: yanlış, maske: maske)))
+    eşit_mi([0.0, 0.0], k_satırı(k3)[0])
+}
+
 test "15.24 dikkat: bileşik sürümle aynı; GQA, pencere, maske, önbellekli üretim" {
     // Düzen [B, T, bakış, dh]; bileşik sürüm bakış önde ([B, bakış, T, dh]) hesaplanır (bd çevirir).
     değişken q = tensör(rastgele_normal([2, 6, 4, 8], tohum: 1), türev_izle: doğru)

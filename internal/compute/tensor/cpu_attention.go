@@ -88,6 +88,7 @@ type attnBuf struct {
 	bp, ap     []float32 // matris çarpımı paketleme
 	s, dp      []float32 // puan / olasılık ve dP blokları
 	o, ka, va  []float32 // O biriktirici, dK ve dV biriktiricileri
+	qz         []float32 // NaN puanlı satırları sıfırlanmış sorgu bloğu kopyası (dK için)
 	enb, denom []float32 // satır başına koşan en büyük ve payda
 }
 
@@ -446,10 +447,41 @@ func (s *attnBackward) binaryArg(tb *attnBuf, bh, kvh, i0, m, j0, n int, dVa []f
 	for r := 0; r < m; r++ {
 		Dr := s.D[bh*p.Tq+i0+r]
 		ps, ds := S[r*n:(r+1)*n], dP[r*n:(r+1)*n]
-		for jj, x := range ps {
-			ds[jj] = x * (ds[jj] - Dr) * s.scale
+		if s.ld[bh*p.Tq+i0+r] == negInf {
+			clear(ds) // hiçbir anahtara bakmayan satır: gradyan 0
+			continue
+		}
+		a, c := 0, n
+		if partial {
+			a, c = p.blockRange(i0+r, j0, n)
+		}
+		// Bakılmayan (pencere, nedensellik ya da maske dışı) hücrenin gradyanı 0'dır; çarpımla
+		// bulunmaz: satırın Dr'ı NaN ise 0·NaN bakmadığı anahtarlara NaN sızdırırdı (15.24).
+		clear(ds[:a])
+		clear(ds[c:])
+		for jj := a; jj < c; jj++ {
+			if s.md != nil && masked(s.md, mBase, i0+r, j0+jj, p) {
+				ds[jj] = 0
+				continue
+			}
+			ds[jj] = ps[jj] * (ds[jj] - Dr) * s.scale
 		}
 	}
+}
+
+// nanRows bakış bh'nin [i0, i0+m) sorgu satırlarından logsumexp'i NaN olanları (puanı NaN satır)
+// işaretler; hiç yoksa nil verir (yaygın yol ayırma yapmaz).
+func (s *attnBackward) nanRows(bh, i0, m int) []bool {
+	var rows []bool
+	for r := 0; r < m; r++ {
+		if l := s.ld[bh*s.p.Tq+i0+r]; l != l {
+			if rows == nil {
+				rows = make([]bool, m)
+			}
+			rows[r] = true
+		}
+	}
+	return rows
 }
 
 // queryRange anahtar bloğu [j0, j1)'e bakan sorgu satırlarını kapsayan,
@@ -501,6 +533,19 @@ func (s *attnBackward) keyBlock(tb *attnBuf, kvh, jb int, dq bool) {
 			}
 			if dKa != nil {
 				qi := s.qd[(bh*p.Tq+i0)*p.Dh:]
+				// NaN puanlı bir satırın sorgusu dK çarpımına girerken sıfırlanır: bakmadığı anahtarın
+				// dS'si 0'dır ama 0·NaN NaN verirdi; bakılan anahtarlar dS'den zaten NaN alır (15.24).
+				if rows := s.nanRows(bh, i0, m); rows != nil {
+					tb.qz = sized(tb.qz, m*p.Dh)
+					for r := 0; r < m; r++ {
+						if rows[r] {
+							clear(tb.qz[r*p.Dh : (r+1)*p.Dh])
+						} else {
+							copy(tb.qz[r*p.Dh:(r+1)*p.Dh], qi[r*p.Dh:(r+1)*p.Dh])
+						}
+					}
+					qi = tb.qz
+				}
 				gemmSingle(n, p.Dh, m, tb.dp, 1, n, qi, p.Dh, 1, dKa, p.Dh, tb)
 			}
 		}
