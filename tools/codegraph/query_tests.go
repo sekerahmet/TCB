@@ -189,6 +189,7 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	ix.printWalks(w, walks, limit)
 	ix.printValueTests(w, asValue, limit)
 	ix.printInferred(w, n, indirect, viaNames, limit)
+	ix.printAllSkipNote(w, about, allTests, walks, asValue, indirect, viaNames)
 	ix.printSubprocessTests(w, subprocess)
 	ix.printMeasurements(w, measured, indirectMeasured, limit)
 	ix.printGuardedRules(w, allTests, allIndirect, limit)
@@ -396,4 +397,26 @@ func (ix *index) printGoFileTests(w io.Writer, file *Node, limit int) {
 		}
 	}
 	ix.printRulesGuardedBy(w, tests, limit)
+}
+
+// printAllSkipNote listelenen testlerin hepsi bir atlama koşuluna bağlıysa bunu tek satırla söyler: CI'da hiçbiri
+// koşmayabilir (deneme 9 H2: gpu.backend.ltMul'un testleri kitaplık yoksa atlanıyordu, okuyan CI'ın koruduğunu sanıyordu).
+func (ix *index) printAllSkipNote(w io.Writer, about []aboutTest, tests, walks []*Edge, asValue, indirect []indirectTest, viaNames []nameTest) {
+	var all []*Node
+	for _, a := range about {
+		all = append(all, a.test)
+	}
+	for _, e := range append(append([]*Edge(nil), tests...), walks...) {
+		all = append(all, ix.byID[e.From])
+	}
+	for _, it := range append(append([]indirectTest(nil), asValue...), indirect...) {
+		all = append(all, it.test)
+	}
+	for _, t := range viaNames {
+		all = append(all, t.test)
+	}
+	if len(all) == 0 || slices.ContainsFunc(all, func(t *Node) bool { return t == nil || t.Skip == "" }) {
+		return
+	}
+	fmt.Fprintln(w, "  note: every test above skips under a condition ([skips when: ...]); CI may run none of them: check where the condition holds (real GPU, library, OS)")
 }

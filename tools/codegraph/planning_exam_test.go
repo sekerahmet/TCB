@@ -13,6 +13,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/testkit"
 	"github.com/sekerahmet/TCB/lib"
 )
 
@@ -287,7 +288,7 @@ func firstOr(items []string) string {
 func TestPlanningQuestionsAreAnswered(t *testing.T) {
 	root, _, g := repoGraph(t)
 	records := parseExam(t, filepath.Join("testdata", "planning_questions.txt"))
-	idx, err := codeindex.Build(root, codeindex.Options{Library: lib.Files})
+	idx, err := repoIndex(root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -313,6 +314,14 @@ func TestPlanningQuestionsAreAnswered(t *testing.T) {
 			}
 		}
 	}
+}
+
+// repoIndex depo testlerinin TR dizinidir: kod grafiğiyle aynı dosya kümesi, git'in izlediği dosyalar (Tracked).
+// Depo testleri geliştiricinin izlenmeyen dosyalarına bağlı olmaz: ana kopyada scratch/ altındaki .gitignore'lu .tr
+// dosyaları tr dizin'e girer (AllFiles, T1 kararı) ama grafiğe girmez; iki aracı karşılaştıran sınav bu yüzden yalnız
+// orada düşüyordu (TCB, 2026-10-24). TestToolComparisonsIgnoreUntrackedFiles korur.
+func repoIndex(root string) (*codeindex.Index, error) {
+	return codeindex.Build(root, codeindex.Options{Library: lib.Files, Tracked: true})
 }
 
 // trTestSetMismatches iki aracın her TR işlev ve metodu için verdiği TR test kümelerini karşılaştırır: `tr dizin
@@ -396,4 +405,28 @@ func indentOutput(out string) string {
 		lines = append(lines[:25], "...")
 	}
 	return "    | " + strings.Join(lines, "\n    | ")
+}
+
+// Kural: iki aracı karşılaştıran depo denetimleri (sınayan kümesi, çıplak ad kümesi) aynı dosya kümesiyle çalışır;
+// .gitignore'lu bir klasörde yazılmış .tr (geliştiricinin denemesi) karşılaştırmayı değiştirmez. Fikstürde `kenar`
+// iki bildirimdir (alan ve kurucu parametresi); scratch/ altına aynı adlı bir işlev eklenir.
+func TestToolComparisonsIgnoreUntrackedFiles(t *testing.T) {
+	root := gitFixture(t)
+	testkit.WriteFile(t, root, ".gitignore", "scratch/\n")
+	testkit.WriteFile(t, root, "scratch/deneme.tr", "fonksiyon kenar(kenar) {\n    sonuç kenar\n}\n")
+	g, err := buildGraph(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	idx, err := repoIndex(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reader := codeindex.NewReader(idx)
+	if bad, checked := trNameSetMismatches(g, idx, reader); len(bad) > 0 || checked == 0 {
+		t.Errorf("bare names compared %d, differing: %v", checked, bad)
+	}
+	if bad, _ := trTestSetMismatches(g, idx, reader); len(bad) > 0 {
+		t.Errorf("test sets differing: %v", bad)
+	}
 }

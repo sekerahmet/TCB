@@ -23,7 +23,7 @@ func maxEdit(q string) int {
 // suggest bulunamayan bir ada yakın düğümleri verir: ad (ya da son parçası, takma ad) sorguyu
 // içeriyorsa ya da sorguya Levenshtein uzaklığı küçükse; kinds doluysa yalnızca o türler.
 func (ix *index) suggest(q string, kinds []string) []*Node {
-	lq := strings.ToLower(q)
+	lq := foldTR(q)
 	maxD := maxEdit(q)
 	var found []suggestion
 	for i := range ix.g.Nodes {
@@ -69,7 +69,7 @@ func nameScore(n *Node, lq string, maxD int) int {
 	}
 	best := -1
 	for _, c := range cands {
-		lc := strings.ToLower(c)
+		lc := foldTR(c)
 		if strings.Contains(lc, lq) {
 			return 0
 		}

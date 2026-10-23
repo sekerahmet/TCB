@@ -22,7 +22,7 @@ const schemaVersion = 1
 // 7: .tr kaynakları etkin yazım dilinden bağımsız okunur (TR_DIL=en grafiği eksik bırakıyordu).
 // 8: sabit, değişken ve alan düğümlerinin bitiş satırı kendi değeriyle biter (öncekiler sonraki bloğun sonuna uzanıyordu).
 // 9: aynı modül hem takma adsız hem takma adla aktarılınca takma ad tanınır (yutuluyordu).
-const extractorRevision = 35
+const extractorRevision = 37
 
 // Düğüm türleri.
 const (
@@ -91,6 +91,8 @@ type Node struct {
 	Aliases []string `json:"aliases,omitempty"`
 	// Captured bir func literal'in dış kapsamdan yakaladığı değişkenlerdir ("ad tip").
 	Captured []string `json:"captured,omitempty"`
+	// Skip bir testin başındaki atlama koşuludur (kaynak metni; test_skips.go): yalnızca bu koşul yanlışken koşar.
+	Skip string `json:"skip,omitempty"`
 }
 
 // Edge yönlü bir bağdır; File ve Line bağın ilk görüldüğü yerdir, Count aynı bağın kaç kez
