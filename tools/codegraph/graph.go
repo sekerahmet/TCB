@@ -18,7 +18,7 @@ const schemaVersion = 1
 // 7: .tr kaynakları etkin yazım dilinden bağımsız okunur (TR_DIL=en grafiği eksik bırakıyordu).
 // 8: sabit, değişken ve alan düğümlerinin bitiş satırı kendi değeriyle biter (öncekiler sonraki bloğun sonuna uzanıyordu).
 // 9: aynı modül hem takma adsız hem takma adla aktarılınca takma ad tanınır (yutuluyordu).
-const extractorRevision = 16
+const extractorRevision = 17
 
 // Düğüm türleri.
 const (
@@ -75,6 +75,7 @@ type Node struct {
 	Line   int      `json:"line,omitempty"`
 	End    int      `json:"end,omitempty"` // son satır (işlev/tip/başlık bölümü): hunk'ları düğüme eşlemek için
 	Detail string   `json:"detail,omitempty"`
+	Doc    string   `json:"doc,omitempty"` // bildirimin belge yorumunun ilk satırları (go_docs.go)
 	Params []string `json:"params,omitempty"`
 	// Aliases düğümün başka adlarıdır (ad kodunun dildeki adları: sorguda ad gibi çözülür).
 	Aliases []string `json:"aliases,omitempty"`

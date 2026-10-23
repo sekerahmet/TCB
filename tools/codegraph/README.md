@@ -357,6 +357,15 @@ consecutive is split (`15.31–15.38` → `15.11–15.15, 15.20–15.22`); text 
 reference (`15.0` as a version) is never touched. Collisions and unknown old numbers are refused
 before anything is written; `--apply` refuses a plan that no longer matches the files.
 
+## Doc comments (`doc:` in `query`)
+
+Every Go node (function, method, type, field, const, var, interface method) carries `doc`: the first
+paragraph of its doc comment (at most 3 lines, 300 characters), else its end-of-line comment; for a
+single-spec `const X = 1` or `type T int` the comment on the declaration counts. `query codes.active` prints
+"active programın okunduğu ve çalıştığı kanonik dildir: her zaman Türkçe.", so the answer is not one file
+open away. `//go:` directives are not comments. `.tr` nodes get the same line from `tr dizin`'s `Doc`.
+Pinned by `TestQueryShowsGoDocComments`.
+
 ## Data files and `tests-for` (`embeds`, `reads_file`, `walks`)
 
 A data file (`tr.json`, `en.json`, `messages/*.json`, `definitions.json`, anything `//go:embed`ded) is a graph

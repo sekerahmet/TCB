@@ -50,7 +50,7 @@ func (x *goExtractor) fieldNodes(fc *fileCtx, ts *ast.TypeSpec, typeNode, pkg st
 				detail = types.TypeString(obj.Type(), qual)
 			}
 			x.b.addNode(Node{ID: fid, Kind: kindField, Name: path.Base(pkg) + "." + ts.Name.Name + "." + id.Name,
-				File: fc.rel, Line: line, End: x.line(f.End()), Detail: detail})
+				File: fc.rel, Line: line, End: x.line(f.End()), Detail: detail, Doc: docText(f.Doc, f.Comment)})
 			x.b.addEdge(typeNode, fid, edgeContains, extracted, fc.rel, line)
 			x.fieldAt[x.posKey(id.Pos())] = fid
 		}

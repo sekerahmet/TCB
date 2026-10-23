@@ -198,6 +198,9 @@ func (ix *index) printQuery(w io.Writer, n *Node, limit int) {
 	if n.Detail != "" {
 		fmt.Fprintf(w, "  %s\n", n.Detail)
 	}
+	if n.Doc != "" {
+		fmt.Fprintf(w, "  doc: %s\n", n.Doc)
+	}
 	if len(n.Params) > 0 {
 		fmt.Fprintf(w, "  params: %s\n", strings.Join(n.Params, ", "))
 	}
