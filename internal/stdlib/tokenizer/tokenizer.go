@@ -256,7 +256,7 @@ func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]inte
 			if err != nil {
 				return nil, stepError(fn, err)
 			}
-			return idList(k.IDs), nil
+			return bind.IntList(k.IDs), nil
 		}
 		var ids []int
 		var err error
@@ -264,7 +264,7 @@ func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]inte
 		if err != nil {
 			return nil, stepError(fn, err)
 		}
-		return idList(ids), nil
+		return bind.IntList(ids), nil
 	case *interp.ListVal:
 		texts, err := stringList(fn, messages.Text(messages.H5626), x)
 		if err != nil {
@@ -299,7 +299,7 @@ func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]inte
 		}
 		elems := make([]interp.Value, len(result))
 		for i, ids := range result {
-			elems[i] = idList(ids)
+			elems[i] = bind.IntList(ids)
 		}
 		return &interp.ListVal{Elements: elems}, nil
 	}
@@ -325,15 +325,6 @@ func stringList(fn, what string, l *interp.ListVal) ([]string, error) {
 		out[i] = s.Val
 	}
 	return out, nil
-}
-
-// idList kimlikleri TR tam sayı listesine çevirir.
-func idList[T ~int | ~int32](ids []T) *interp.ListVal {
-	elems := make([]interp.Value, len(ids))
-	for i, id := range ids {
-		elems[i] = interp.NewInt(int64(id))
-	}
-	return &interp.ListVal{Elements: elems}
 }
 
 // ----------------------------------------------------------------------------

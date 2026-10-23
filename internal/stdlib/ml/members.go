@@ -6,6 +6,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
+	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 	"math"
 	"slices"
 	"strconv"
@@ -41,7 +42,7 @@ func (d *TensorValue) GetProperty(kd codes.Code, prop string) (interp.Value, err
 	t := d.t
 	switch kd {
 	case memberShape:
-		return intList(t.Shape()), nil
+		return bind.IntList(t.Shape()), nil
 	case memberDevice:
 		return &interp.StringVal{Val: t.Device().String()}, nil
 	case memberDType:
@@ -109,14 +110,6 @@ func freshResult(fn interp.BuiltinFunc) interp.BuiltinFunc {
 		}
 		return res, err
 	}
-}
-
-func intList(sh []int) *interp.ListVal {
-	el := make([]interp.Value, len(sh))
-	for i, x := range sh {
-		el[i] = interp.NewInt(int64(x))
-	}
-	return &interp.ListVal{Elements: el}
 }
 
 // shortFloat64 float32 değeri, onu yazan en kısa ondalık gösterime karşılık gelen

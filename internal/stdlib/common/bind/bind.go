@@ -170,6 +170,15 @@ func Safe(fn string, f func() (interp.Value, error)) (interp.Value, error) {
 	return result, ferr
 }
 
+// IntList tam sayı dilimini TR tam sayı listesine çevirir.
+func IntList[T ~int | ~int32 | ~int64](xs []T) *interp.ListVal {
+	elems := make([]interp.Value, len(xs))
+	for i, x := range xs {
+		elems[i] = interp.NewInt(int64(x))
+	}
+	return &interp.ListVal{Elements: elems}
+}
+
 // SingleDictArg tek bir sözlük argümanı bekleyen yöntemin (kod kd) argümanını verir; sayı ya da tür
 // yanlışsa interp.ArgCountError/ArgTypeError verir. example sayı hatasında kullanım ipucu olarak anılır.
 func SingleDictArg(kd codes.Code, args []interp.Value, example string) (*interp.DictVal, error) {

@@ -313,3 +313,19 @@ func TestSingleDictArg(t *testing.T) {
 		t.Error("sözlük olmayan argüman hata vermeli")
 	}
 }
+
+// Kural: IntList her tam sayı türünü (int, int32, int64) TR tam sayı listesine çevirir; boş dilim boş liste verir.
+func TestIntList(t *testing.T) {
+	if got := IntList([]int{1, 2}).Inspect(); got != "[1, 2]" {
+		t.Errorf("int: %s", got)
+	}
+	if got := IntList([]int32{-3}).Inspect(); got != "[-3]" {
+		t.Errorf("int32: %s", got)
+	}
+	if got := IntList([]int64{7, 8, 9}).Inspect(); got != "[7, 8, 9]" {
+		t.Errorf("int64: %s", got)
+	}
+	if l := IntList[int](nil); l == nil || len(l.Elements) != 0 {
+		t.Errorf("boş: %v", l)
+	}
+}
