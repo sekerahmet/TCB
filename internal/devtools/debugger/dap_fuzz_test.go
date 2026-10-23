@@ -46,6 +46,9 @@ var dapPauseCommands = []string{"stackTrace", "scopes", "variables", "setVariabl
 	"gotoTargets", "goto", "dataBreakpointInfo", "setDataBreakpoints", "trTablo", "trDegiskenler",
 	"next", "stepIn", "stepOut", "pause", "threads", "setBreakpoints"}
 
+// dapResumeCommands başarılı olunca programı sürdüren isteklerdir (yanıttan sonra bir duraklama gelir).
+var dapResumeCommands = map[string]bool{"next": true, "stepIn": true, "stepOut": true, "goto": true}
+
 // FuzzDAPPauseRequest: düzenleyicinin program duraklatılmışken gönderdiği istekler
 // (değişken tutamakları, çerçeve kimlikleri, satır hedefleri) bozuk ya da kötü niyetli
 // argümanlarla hata ayıklayıcıyı çökertmemeli ve asmamalıdır: her isteğe bir yanıt gelmeli,
@@ -80,10 +83,20 @@ func FuzzDAPPauseRequest(f *testing.F) {
 		seq := c.seq
 		body := fmt.Sprintf(`{"seq":%d,"type":"request","command":%q,"arguments":%s}`, seq, command, arg)
 		fmt.Fprintf(c.w, "Content-Length: %d\r\n\r\n%s", len(body), body)
-		c.next(func(m map[string]interface{}) bool {
+		resp := c.next(func(m map[string]interface{}) bool {
 			r, _ := m["request_seq"].(float64)
 			return m["type"] == "response" && int(r) == seq
 		}, command+" yanıtı")
+		// Başarılı bir adımlama ya da goto programı çalışır bırakır; aşağıdaki temizlik istekleri
+		// duraklama ister. Duraklama (ya da bitiş) beklenmezse sonuç makinenin hızına bağlı olurdu.
+		if dapResumeCommands[command] && resp["success"] == true {
+			m := c.next(func(m map[string]interface{}) bool {
+				return m["type"] == "event" && (m["event"] == "terminated" || m["event"] == "stopped")
+			}, command+" sonrası duraklama")
+			if m["event"] == "terminated" {
+				return
+			}
+		}
 
 		// Program sonuna kadar sürdürülür (istek yeni duraklamalara yol açmış olabilir).
 		c.request("setBreakpoints", map[string]interface{}{"source": map[string]interface{}{"path": fpath}, "breakpoints": []interface{}{}})
