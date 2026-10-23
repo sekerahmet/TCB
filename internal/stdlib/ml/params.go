@@ -30,7 +30,7 @@ func paramsBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 	if err := bind.CheckNamed(fn+"()", named, nameWithNames); err != nil {
 		return nil, err
 	}
-	withNames, err := namedBool(fn, named, nameWithNames, false)
+	withNames, err := bind.OptionalBool(fn, nameWithNames.TR, named, nameWithNames, false)
 	if err != nil {
 		return nil, err
 	}

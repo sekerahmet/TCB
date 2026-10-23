@@ -41,7 +41,7 @@ func reduction(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, axis int, 
 			if err := bind.CheckNamed(ad+"()", named, nameAxis, nameKeepDim); err != nil {
 				return nil, err
 			}
-			keep, err := namedBool(ad, named, nameKeepDim, false)
+			keep, err := bind.OptionalBool(ad, nameKeepDim.TR, named, nameKeepDim, false)
 			if err != nil {
 				return nil, err
 			}

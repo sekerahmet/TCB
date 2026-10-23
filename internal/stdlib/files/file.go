@@ -63,8 +63,3 @@ func readPath(kd codes.Code, order int, d interp.Value) (string, error) {
 	}
 	return raw, nil
 }
-
-// boolNamed adlı bir Mantık argümanını okur (verilmemişse yanlış).
-func boolNamed(kd codes.Code, named map[string]interp.Value, a bind.Named) (bool, error) {
-	return bind.OptionalBool(interp.CallPrefix(kd), a.TR+":", named, a, false)
-}

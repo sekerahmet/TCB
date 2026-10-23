@@ -75,7 +75,7 @@ func prepareMove(m *interp.VM, kd codes.Code, args []interp.Value, named map[str
 	if err != nil {
 		return nil, err
 	}
-	overwrite, err := boolNamed(kd, named, nameOverwrite)
+	overwrite, err := bind.OptionalBool(interp.CallPrefix(kd), nameOverwrite.TR+":", named, nameOverwrite, false)
 	if err != nil {
 		return nil, err
 	}

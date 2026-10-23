@@ -183,7 +183,7 @@ func gradClip(_ *interp.VM, args []interp.Value, named map[string]interp.Value) 
 	if err := bind.CheckNamed(fn+"()", named, nameMax, nameErrNonfinite); err != nil {
 		return nil, err
 	}
-	strict, err := namedBool(fn, named, nameErrNonfinite, false)
+	strict, err := bind.OptionalBool(fn, nameErrNonfinite.TR, named, nameErrNonfinite, false)
 	if err != nil {
 		return nil, err
 	}
@@ -262,7 +262,7 @@ func setupAdamW(_ *interp.VM, args []interp.Value, named map[string]interp.Value
 		v, _ := bind.GetNamed(named, nameEpsilon)
 		return nil, messages.New(messages.H6527, fn, nameEpsilon.TR, v.Inspect())
 	}
-	masterCopy, err := namedBool(fn, named, nameMasterCopy, true)
+	masterCopy, err := bind.OptionalBool(fn, nameMasterCopy.TR, named, nameMasterCopy, true)
 	if err != nil {
 		return nil, err
 	}
@@ -296,7 +296,7 @@ func setupSGD(_ *interp.VM, args []interp.Value, named map[string]interp.Value) 
 	if err != nil {
 		return nil, err
 	}
-	masterCopy, err := namedBool(fn, named, nameMasterCopy, true)
+	masterCopy, err := bind.OptionalBool(fn, nameMasterCopy.TR, named, nameMasterCopy, true)
 	if err != nil {
 		return nil, err
 	}

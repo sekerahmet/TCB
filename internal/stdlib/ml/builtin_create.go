@@ -26,7 +26,7 @@ func requiresGrad(fn string, named map[string]interp.Value, positional interp.Va
 		}
 		defaultVal = b
 	}
-	return namedBool(fn, named, nameRequiresGrad, defaultVal)
+	return bind.OptionalBool(fn, nameRequiresGrad.TR, named, nameRequiresGrad, defaultVal)
 }
 
 // tensorBuiltin tensör(veri, türev_izle: yanlış, tür: "float32") yerleşiğidir. Veri tek

@@ -39,7 +39,7 @@ func registerGelu(v *interp.VM) {
 			if len(args) != 1 {
 				return nil, messages.New(messages.H6101, ad, len(args))
 			}
-			approximate, err := namedBool(ad, named, nameApproximate, true)
+			approximate, err := bind.OptionalBool(ad, nameApproximate.TR, named, nameApproximate, true)
 			if err != nil {
 				return nil, err
 			}
