@@ -109,3 +109,6 @@ codegraph query G100 | group: related => G101 | src: deneme 8 S2, 2026-10-24
 codegraph tests-for G100 | group: tests about it => 13.5 yerleşikler ve metotlar bilinmeyen adlı argümanı reddeder | before: tests about it => hatalar_ertele_test | src: deneme 8 S1 (tek sıralama), 2026-10-24
 codegraph query katman.GPT.kurucu.bakış_sayısı | group: forwards => katman.TransformerBloğu.kurucu.bakış_sayısı | src: deneme 7 R2 (bağlı bildirim), 2026-10-24
 codegraph query katman.NedenselDikkat.kurucu.bakış_sayısı | group: forwards => katman.NedenselDikkat.bakış_sayısı | src: deneme 7 R2 (alana atanan), 2026-10-24
+
+# Deneme 9: GPU'da sapma eklemesini matris çarpımına kaynaştırmayı planlamak (2026-10-24)
+codegraph tests-for gpu.backend.ltMul | contains: gpu.TestGemmLibraryMatchesOwnKernel [func] internal/compute/gpu/gemm_lib_test.go:15  [skips when: g.lt == nil] | contains: gpu.TestGemmLibrary16Bit | src: deneme 9 H2, 2026-10-24

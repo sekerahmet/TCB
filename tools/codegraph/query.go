@@ -149,6 +149,9 @@ func describe(n *Node) string {
 	if w := where(n.File, n.Line); w != "" {
 		s += " " + w
 	}
+	if n.Skip != "" {
+		s += "  [skips when: " + n.Skip + "]" // yalnızca koşul yanlışken koşar (test_skips.go)
+	}
 	return s
 }
 
@@ -167,6 +170,9 @@ func (ix *index) edgeLine(e *Edge, other string, withSite bool) string {
 	if withSite {
 		if w := where(e.File, e.Line); w != "" {
 			s = fmt.Sprintf("%s [%s] at %s", n.Name, n.Kind, w)
+			if n.Skip != "" {
+				s += "  [skips when: " + n.Skip + "]"
+			}
 		}
 	}
 	if e.Count > 1 {

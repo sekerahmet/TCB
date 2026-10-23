@@ -91,6 +91,7 @@ func extractGo(m *module, b *builder) *goIndex {
 	}
 	x.resolveFieldUses()
 	x.implements()
+	x.testSkips()
 	return x.idx
 }
 
