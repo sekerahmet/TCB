@@ -10,6 +10,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/compute/gpu"
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -86,6 +87,10 @@ değişken f = tekrar_oynat((x) => x * 2)
 f(tensör([1.0]))`)
 	if !messages.Has(err, messages.H6440) {
 		t.Fatalf("türevsiz dışında H6440 bekleniyordu: %v", err)
+	}
+	// Bloğun adı metne gömülü değildir, ad kodundan gelir (yazım diline göre değişir).
+	if e, _ := messages.As(err); e.Args[1] != codes.DisplayName(codes.T301) {
+		t.Errorf("H6440 bloğun adını ad kodundan almalı: %v", e.Args)
 	}
 	out, err := run(t, `varsayılan_cihaz("gpu")
 fonksiyon g(x) {

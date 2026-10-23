@@ -393,7 +393,7 @@ const (
 	H3103 Code = 3103 // gradyan
 	H3104 Code = 3104 // arka uç
 	H3106 Code = 3106 // LinearCrossEntropy: girdi {x} ile ağırlık {w} uyumsuz; ağırlık [girdinin son ekseni, sınıf sayısı] şeklinde olmalı
-	H3107 Code = 3107 // kaynaştırılan fonksiyonda kaynaştırılamayan bir tensör işlemi var: kaynaştırma eleman bazlı işlemleri, dilimi, .böl'ü, bitiştir'i, boyu 1 eksen ekleyip çıkarmayı ve tür dönüşümünü kapsar
+	H3107 Code = 3107 // kaynaştırılan fonksiyonda kaynaştırılamayan bir tensör işlemi var: kaynaştırma eleman bazlı işlemleri, dilimi, bölmeyi, birleştirmeyi, boyu 1 eksen ekleyip çıkarmayı ve tür dönüşümünü kapsar
 	H3108 Code = 3108 // kaynaştırılan fonksiyon dışarıdan bir tensör ({shape}) kullanıyor; onu argüman olarak verin
 	H3109 Code = 3109 // kaynaştırılan fonksiyonda türev isteyen {shape} şekilli girdi {out} şekline yayınlanıyor; gradyanı indirgeme gerektirdiğinden kaynaştırılamaz
 	H3110 Code = 3110 // kaynaştırılan fonksiyonda {from} → {to} yeniden şekillendirmesi kaynaştırılamaz; yalnızca boyu 1 eksen eklenip çıkarılabilir
@@ -936,7 +936,7 @@ const (
 	H6437 Code = 6437 // {fn}: oynatılacak bir fonksiyon verilmelidir, {given} verildi
 	H6438 Code = 6438 // {fn}: oynatılan fonksiyonun {index}. argümanı tensör ya da sayı olmalıdır, {given} verildi
 	H6439 Code = 6439 // {fn}: oynatılan fonksiyon bir tensör ya da tensör listesi döndürmelidir, {given} döndürdü
-	H6440 Code = 6440 // {fn}: yalnızca türevsiz içinde çağrılabilir (kayıt gradyan çizgesi kurmaz); çağrıyı türevsiz {{ ... }} içine alın
+	H6440 Code = 6440 // {fn}: yalnızca {noGrad} içinde çağrılabilir (kayıt gradyan çizgesi kurmaz); çağrıyı {noGrad} {{ ... }} içine alın
 	H6441 Code = 6441 // {fn}: başlangıç tam sayı ya da tam sayı değerli 0 boyutlu tensör olmalıdır, {given} verildi
 	H6442 Code = 6442 // {fn}: {start} konumundan yazılan {len} uzunluklu dilim {size} uzunluklu eksene sığmıyor
 	H6443 Code = 6443 // {fn}: hedef bitişik bir tensör olmalıdır (görünüm değil); görünüme yazmak için indeksle atama kullanın
@@ -1046,7 +1046,7 @@ const (
 	H6713 Code = 6713 // {fn}: {shape} şeklindeki {dims} boyutlu tensör için {dims} eksen verilmeli, {given} verildi
 	H6714 Code = 6714 // {fn}: eksenler tam sayı olmalıdır, {value} verildi
 	H6715 Code = 6715 // {fn}: {axis}. eksen birden çok kez verildi; her eksen bir kez yer almalı
-	H6716 Code = 6716 // türev izlenen tensöre indeksle atama yapılamaz; değeri türevsiz {{ ... }} içinde değiştirin
+	H6716 Code = 6716 // türev izlenen tensöre indeksle atama yapılamaz; değeri {noGrad} {{ ... }} içinde değiştirin
 	H6717 Code = 6717 // {fn}(eksen, baş, son) 3 parametre bekler, {given} verildi
 	H6718 Code = 6718 // {fn}(eksen, baş, son) tam sayılar bekler, {value} verildi
 	H6719 Code = 6719 // tensör ataması: {target} şeklindeki yere {given} şeklinde veri atanamaz (şekiller aynı olmalı)
@@ -1229,7 +1229,7 @@ const (
 	H7434 Code = 7434 // {fn}: sözlük anahtarları nesne adları ({type}) olmalıdır, {given} verildi
 	H7435 Code = 7435 // {fn}: kaydedilecek nesneler sözlüğü 1 ile {max} arası nesne içermeli, ör. {example}("runs/deneme1", {{model: model, op: op}})
 	H7436 Code = 7436 // {fn}: {name|q} bir {type}; düz bir değer doğrudan verilemez (geri yüklenirken yerine yazılamaz). Bir sözlüğe koyun: {{{key}: {{değer: ...}}}}
-	H7437 Code = 7437 // {fn}: {name|q} bir işlemin sonucu (ara tensör, {given}); kaydedilecek tensörler yaprak olmalıdır: parametreler ve türevsiz güncellenen durum tensörleri
+	H7437 Code = 7437 // {fn}: {name|q} bir işlemin sonucu (ara tensör, {given}); kaydedilecek tensörler yaprak olmalıdır: parametreler ve {noGrad} içinde güncellenen durum tensörleri
 	H7438 Code = 7438 // {fn}: {name|q} kaydedilemez ({given}); modeller, iyileştiriciler, okuyucular, günlükler ve düz değerli sözlük ya da listeler verilebilir
 	H7439 Code = 7439 // {name|q}: {error}
 	H7440 Code = 7440 // {fn}: {name|q} kayıtta bir {recorded}, şimdi bir {now}; aynı nesnelerle sürdürün ya da yeni bir koşu klasörü verin

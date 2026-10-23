@@ -141,7 +141,7 @@ func replayBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 func (r *replayFn) call(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 	fn := codes.DisplayName(codes.T313)
 	if tensor.GradEnabled() {
-		return nil, messages.New(messages.H6440, fn)
+		return nil, messages.New(messages.H6440, fn, codes.DisplayName(codes.T301))
 	}
 	var inputs []*tensor.Tensor
 	var alias []int
@@ -375,7 +375,7 @@ func writeSliceBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 		return nil, err
 	}
 	if dst.t.RequiresGrad() && tensor.GradEnabled() {
-		return nil, messages.New(messages.H6716)
+		return nil, messages.New(messages.H6716, codes.DisplayName(codes.T301))
 	}
 	if !dst.t.IsContiguous() {
 		return nil, messages.New(messages.H6443, fn)

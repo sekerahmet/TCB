@@ -107,7 +107,7 @@ func newObject(fn, name string, v interp.Value) (*object, error) {
 		return nil, messages.New(messages.H7436,
 			fn, name, x.Type(), name)
 	case *ml.TensorValue:
-		return nil, messages.New(messages.H7437, fn, name, interp.TypeAndSummary(v))
+		return nil, messages.New(messages.H7437, fn, name, interp.TypeAndSummary(v), codes.DisplayName(codes.T301))
 	}
 	return nil, messages.New(messages.H7438,
 		fn, name, interp.TypeAndSummary(v))

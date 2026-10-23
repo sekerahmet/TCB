@@ -307,7 +307,7 @@ func (d *TensorValue) IterItem(i int) (interp.Value, error) {
 // tensöre yalnızca türevsiz { ... } içinde atanabilir.
 func (d *TensorValue) SetIndex(idx, value interp.Value) error {
 	if d.t.RequiresGrad() && tensor.GradEnabled() {
-		return messages.New(messages.H6716)
+		return messages.New(messages.H6716, codes.DisplayName(codes.T301))
 	}
 	var target *tensor.Tensor
 	var view *TensorValue
