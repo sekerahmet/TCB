@@ -308,11 +308,25 @@ func (s *lineScan) weak(ix *Index) {
 		if overlaps(s.covered, a, b) || !standsAlone(s.line, a, b) || !ix.Chapters[chapterOf(id)] || looksNumeric(id) {
 			continue
 		}
-		if _, exists := ix.Items[id]; !exists && !IsSpecFile(s.path) {
-			continue // spec dışında çıplak sayı yalnızca var olan bir maddeyse anmadır (sürüm ve ondalık sayılardan ayrılır)
+		if _, exists := ix.Items[id]; !exists && (!IsSpecFile(s.path) || versionContext(s.line[:a])) {
+			continue // çıplak sayı spec dışında yalnızca var olan bir maddeyse, spec içinde ürün sürümü değilse anmadır
 		}
 		s.add("weak", a, b, false, []Token{{s.line[a:b], a, b}})
 	}
+}
+
+// versionWords ardından gelen numarayı ürün sürümü yapan adlardır: karşılaştırılan diller, çerçeveler ve belgeler ile
+// "sürüm" sözcüğü. Liste somut kullanıma göre büyür (dil tanımında geçenler).
+var versionWords = regexp.MustCompile(`\b(PyTorch|NumPy|JAX|Go|go|CUDA|cuDNN|cuBLAS|cuBLASLt|Python|Rust|Swift|Kotlin|LSP|CommonMark|Unicode|IEEE|Triton|TensorFlow|Hugging Face|sürüm|sürümü|version)\b[^.!?]*$`)
+
+// versionContext numaranın önündeki aynı cümle parçası bir ürün adı ya da "sürüm" içeriyor mu: "PyTorch 2.14",
+// "PyTorch (`CUDA_LAUNCH_BLOCKING`, `PYTORCH_*`; 2.14 ...)" ürün sürümüdür, var olmayan madde atfı değil (TCB sağlık
+// taraması P2). Yalnızca var olmayan madde numarasına uygulanır: var olan maddenin anılması bu bağlamda da anmadır.
+func versionContext(before string) bool {
+	if len(before) > 120 {
+		before = before[len(before)-120:]
+	}
+	return versionWords.MatchString(before)
 }
 
 // looksNumeric zayıf anma bir madde numarasından çok ondalık sayıya benziyor mu ("3.0", "2.7e-3"): madde

@@ -316,3 +316,22 @@ func TestFenceFollowsCommonMark(t *testing.T) {
 		}
 	}
 }
+
+// Kural: dil tanımında ürün adını (PyTorch, NumPy, Go ...) ya da "sürüm"ü aynı cümlede izleyen, var olmayan madde
+// numarası bir ürün sürümüdür, atıf değildir; üç parçalı numara (2.14.0) hiç sayılmaz; var olan madde aynı bağlamda da
+// anmadır (TCB sağlık taraması P2: "PyTorch 2.14" beş "no item 2.14" notu veriyordu).
+func TestProductVersionsAreNotItemReferences(t *testing.T) {
+	spec := specFile(15, 1, 2, 3)
+	spec.Text += "PyTorch 15.14 ve NumPy 15.1.1 ile; PyTorch (`CUDA_LAUNCH_BLOCKING`; 15.14 belgesi) ve PyTorch 15.3 gibi; sürüm 15.19\n" +
+		"ayrıca (15.9) bkz.\n"
+	_, ms := build(spec)
+	var weak []string
+	for _, m := range ms {
+		if m.Kind == "weak" {
+			weak = append(weak, m.Tokens[0].ID)
+		}
+	}
+	if strings.Join(weak, ",") != "15.3,15.9" {
+		t.Errorf("weak mentions = %v, want the existing 15.3 and the plain missing 15.9", weak)
+	}
+}

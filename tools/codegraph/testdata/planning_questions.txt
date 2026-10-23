@@ -92,3 +92,4 @@ codegraph query gpu.runExitHandlers | contains: internal/compute/gpu/cuda_linux.
 # Sağlık taraması: gömülü alandan yükseltilen metot (P1) ve ürün sürüm numarası (P2) (2026-10-24)
 codegraph dead-methods --in internal/compute/tensor | not: VersionCounter | src: sağlık taraması P1, 2026-10-24
 codegraph query tensor.Storage.Hold | group: dispatches_to => tensor.VersionCounter.Hold | src: sağlık taraması P1, 2026-10-24
+codegraph spec-refs | contains: 0 note(s) | not: no item 2.14 | src: sağlık taraması P2, 2026-10-24
