@@ -243,3 +243,32 @@ func (ix *index) printInferred(w io.Writer, n *Node, indirect []indirectTest, vi
 	printLimited(w, lines, limit, "    ")
 }
 
+// testDistances n'yi sınayan testlerin en kısa uzaklığıdır (0: doğrudan ya da bütün listeyi gezen; >0: zincir ya da ad kodu
+// üzerinden adım sayısı). tests-for'un gösterdiği testlerin aynısıdır (ölçümler hariç); `changed` bunu kullanır, böylece
+// "bu değişikliği hangi testler koşar" ile "bu işlevi hangi testler sınar" aynı cevabı verir (bağımsız denetim Y3).
+func (ix *index) testDistances(n *Node) map[string]int {
+	best := map[string]int{}
+	note := func(id string, d int) {
+		if t := ix.byID[id]; t == nil || !isTestNode(t) || isMeasurement(t) {
+			return
+		}
+		if old, ok := best[id]; !ok || d < old {
+			best[id] = d
+		}
+	}
+	for _, e := range ix.in[n.ID] {
+		if e.Kind == edgeTests {
+			note(e.From, 0)
+		}
+	}
+	for _, e := range ix.walkEdges(n) {
+		note(e.From, 0)
+	}
+	for _, it := range ix.indirectTests(n) {
+		note(it.test.ID, it.steps)
+	}
+	for _, t := range ix.testsThroughNames(n) {
+		note(t.test.ID, t.steps)
+	}
+	return best
+}

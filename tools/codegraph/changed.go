@@ -128,22 +128,14 @@ func printLimited(w io.Writer, list []string, limit int, indent string) {
 	forEachLimited(w, list, limit, indent, moreHint, func(s string) string { return s })
 }
 
-// printTestsToRun değişen işlev, metot ve tiplerin testlerini yazar: doğrudan olanlar önce,
-// sonra dolaylılar (kaç adım uzakta); her test bir kez.
+// printTestsToRun değişen düğümlerin (Go ve TR bildirimleri, ad kodları, dosyalar) testlerini yazar: tests-for'un topladığının
+// aynısı (testDistances), doğrudan olanlar önce, sonra dolaylılar (kaç adım uzakta); her test bir kez.
 func (ix *index) printTestsToRun(w io.Writer, ts *touchSet, limit int) {
 	best := map[string]int{} // test kimliği -> en kısa uzaklık (0: doğrudan)
 	for _, n := range ts.nodes {
-		if n.Kind != kindFunc && n.Kind != kindMethod && n.Kind != kindType {
-			continue
-		}
-		for _, e := range ix.in[n.ID] {
-			if e.Kind == edgeTests {
-				best[e.From] = 0
-			}
-		}
-		for _, it := range ix.indirectTests(n) {
-			if d, ok := best[it.test.ID]; !ok || it.steps < d {
-				best[it.test.ID] = it.steps
+		for id, d := range ix.testDistances(n) { // tests-for ile aynı toplama: doğrudan, gezen, zincir, ad kodu
+			if old, ok := best[id]; !ok || d < old {
+				best[id] = d
 			}
 		}
 	}
