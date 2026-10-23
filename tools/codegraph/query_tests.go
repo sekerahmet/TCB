@@ -100,8 +100,7 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	}
 	ix.printGroups(w, "  <-", tests, fromOf, limit, true) // doğrudan testler önce: bu adı ya da dosyayı kullananlar
 	ix.printWalks(w, walks, limit)
-	ix.printIndirect(w, indirect, limit)
-	ix.printViaNames(w, viaNames, limit)
+	ix.printInferred(w, n, indirect, viaNames, limit)
 	ix.printMeasurements(w, measured, indirectMeasured, limit)
 	ix.printGuardedRules(w, tests, indirect, limit)
 }
@@ -184,4 +183,71 @@ func (ix *index) printGuardedRules(w io.Writer, tests []*Edge, indirect []indire
 	}
 	fmt.Fprintf(w, "  rules guarded by these tests (%d):\n", len(ids))
 	forEachLimited(w, ids, limit, "    ", moreHint, func(id string) string { return describe(ix.byID[id]) })
+}
+
+// weakSteps bundan uzun zincirle bulunan test zayıf kanıttır: zincir sınırının (testMaxSteps) yarısı. Sekiz adımlık bir
+// yol genellikle ortak bir altyapıdan (yorumlayıcı, kayıt) geçer ve konuyla ilgisiz testleri de toplar; bir adımlık bir
+// yol testin konuyu sınadığını söyler.
+const weakSteps = testMaxSteps / 2
+
+// evidence bir test grubunun en güçlü kanıtıdır: en az adım ve hedefle aynı paket. Gruplar buna göre sıralanır.
+type evidence struct {
+	steps int
+	local bool
+}
+
+func (a evidence) stronger(b evidence) bool {
+	if a.steps != b.steps {
+		return a.steps < b.steps
+	}
+	return a.local && !b.local
+}
+
+// printInferred çağrı zinciriyle ve ad koduyla bulunan testleri kanıt gücüne göre yazar: kısa zincirler (en çok weakSteps
+// adım) iki grupta, en güçlü kanıtı olan grup önce; uzun zincirler ayrı "weak evidence" başlığı altında en sonda.
+func (ix *index) printInferred(w io.Writer, n *Node, indirect []indirectTest, viaNames []nameTest, limit int) {
+	dir := path.Dir(n.File)
+	var strongInd, weakInd []indirectTest
+	bestInd := evidence{steps: testMaxSteps + 1}
+	for _, it := range indirect {
+		if it.steps > weakSteps {
+			weakInd = append(weakInd, it)
+			continue
+		}
+		strongInd = append(strongInd, it)
+		if e := (evidence{it.steps, path.Dir(it.test.File) == dir}); e.stronger(bestInd) {
+			bestInd = e
+		}
+	}
+	var strongNames, weakNames []nameTest
+	bestNames := evidence{steps: testMaxSteps + 1}
+	for _, t := range viaNames {
+		if t.steps > weakSteps {
+			weakNames = append(weakNames, t)
+			continue
+		}
+		strongNames = append(strongNames, t)
+		if e := (evidence{t.steps, t.local}); e.stronger(bestNames) {
+			bestNames = e
+		}
+	}
+	if bestNames.stronger(bestInd) {
+		ix.printViaNames(w, strongNames, limit)
+		ix.printIndirect(w, strongInd, limit)
+	} else {
+		ix.printIndirect(w, strongInd, limit)
+		ix.printViaNames(w, strongNames, limit)
+	}
+	if len(weakInd)+len(weakNames) == 0 {
+		return
+	}
+	fmt.Fprintf(w, "  <- weak evidence (%d; chains longer than %d steps, often through shared machinery: read with care):\n", len(weakInd)+len(weakNames), weakSteps)
+	var lines []string
+	for _, it := range weakInd {
+		lines = append(lines, fmt.Sprintf("%s  %d steps via %s  [INFERRED]", describe(it.test), it.steps, it.via.Name))
+	}
+	for _, t := range weakNames {
+		lines = append(lines, fmt.Sprintf("%s  via %s, %d steps  [INFERRED]", describe(t.test), t.name.Name, t.steps))
+	}
+	printLimited(w, lines, limit, "    ")
 }

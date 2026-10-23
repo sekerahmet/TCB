@@ -419,7 +419,7 @@ things close that:
   named-argument codes they use (`tests through the name codes it implements`, tests of the same package first).
   Type names, keywords and messages do not count: every test uses them.
 
-`tests-for` keeps **measurements** apart: `Benchmark*` functions and anything under `tools/bench` are listed under "measurements, not tests" (they time the code, they do not check it; the "measure first" rule wants them, a test count does not), direct and indirect alike. `tests-for` prints direct tests (a test that uses the name or file) before the tests that walk the whole list.
+`tests-for` orders what it infers by **strength of evidence**: direct tests first, then the inferred groups (through calls, through the name codes a function implements) with the group holding the shortest, same-package chain first; tests found only through a chain longer than half the limit (more than 4 of 8 steps) go last under "weak evidence" (an 8-step chain usually passes through shared machinery: the interpreter, a registry). `tests-for` keeps **measurements** apart: `Benchmark*` functions and anything under `tools/bench` are listed under "measurements, not tests" (they time the code, they do not check it; the "measure first" rule wants them, a test count does not), direct and indirect alike. `tests-for` prints direct tests (a test that uses the name or file) before the tests that walk the whole list.
 `name_tests_test.go` (`test_names_test.go`) keeps this from decaying: every builtin, member and named-argument code
 has a direct test or is listed with a reason in `testdata/untested_names.txt` (today three gaps are written down
 there honestly: `zaman_ms`, `ağırlık:`, `sapma:`). A stale exception fails too.
