@@ -9,6 +9,13 @@ import (
 // TokenType is the type of a token.
 type TokenType string
 
+// IsOpener açan parantez, köşeli parantez ya da süslü parantezdir; ayrıştırıcının hata sonrası
+// toparlanması ve biçimlendiricinin iç içelik sayımı bunu kullanır.
+func (t TokenType) IsOpener() bool { return t == TokLBrace || t == TokLParen || t == TokLBracket }
+
+// IsCloser kapayan parantez, köşeli parantez ya da süslü parantezdir.
+func (t TokenType) IsCloser() bool { return t == TokRBrace || t == TokRParen || t == TokRBracket }
+
 // Token is one token with its position.
 type Token struct {
 	Type    TokenType

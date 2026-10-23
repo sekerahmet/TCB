@@ -299,14 +299,6 @@ var continuingStart = map[lexer.TokenType]bool{
 	lexer.TokRange: true, lexer.TokRangeIncl: true,
 }
 
-func opening(t lexer.TokenType) bool {
-	return t == lexer.TokLBrace || t == lexer.TokLParen || t == lexer.TokLBracket
-}
-
-func closing(t lexer.TokenType) bool {
-	return t == lexer.TokRBrace || t == lexer.TokRParen || t == lexer.TokRBracket
-}
-
 // isUnary '-' işaretinin önceki sözcüğe bakarak önek (tekli) olup olmadığını belirler.
 func isUnary(prev *item) bool {
 	if prev == nil {
@@ -444,7 +436,7 @@ func format(src string, coded bool, braces map[pos]int) string {
 		// Satır başındaki kapanışlar
 		startsWithClose := 0
 		for _, o := range s.items {
-			if !closing(o.kind) {
+			if !o.kind.IsCloser() {
 				break
 			}
 			startsWithClose++
@@ -473,7 +465,7 @@ func format(src string, coded bool, braces map[pos]int) string {
 
 		// Boş satır kuralları: dosya başında, '{' / '(' / '[' ile biten satırdan sonra ve
 		// kapanışla başlayan satırdan önce boş satır olmaz.
-		if s.blankBefore && si > 0 && startsWithClose == 0 && !(prevLineEndTok != nil && opening(prevLineEndTok.kind) && lastItem(lines[si-1].items) == prevLineEndTok) {
+		if s.blankBefore && si > 0 && startsWithClose == 0 && !(prevLineEndTok != nil && prevLineEndTok.kind.IsOpener() && lastItem(lines[si-1].items) == prevLineEndTok) {
 			sb.WriteString("\n")
 		}
 
@@ -484,13 +476,13 @@ func format(src string, coded bool, braces map[pos]int) string {
 				lineSb.WriteString(" ")
 			}
 			lineSb.WriteString(o.text)
-			if opening(o.kind) {
+			if o.kind.IsOpener() {
 				push := indent
 				if o.body && len(stack) == stmtDepth {
 					push = stmtIndent
 				}
 				stack = append(stack, open{indent: push})
-			} else if closing(o.kind) && len(stack) > 0 {
+			} else if o.kind.IsCloser() && len(stack) > 0 {
 				stack = stack[:len(stack)-1]
 			}
 			if o.kind != tokComment {

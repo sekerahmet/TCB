@@ -111,15 +111,6 @@ func (p *Parser) skipToBlockEnd() {
 	}
 }
 
-// isOpener ve kapayanMi parantez, köşeli parantez ve süslü parantezleri tanır.
-func isOpener(t lexer.TokenType) bool {
-	return t == lexer.TokLBrace || t == lexer.TokLParen || t == lexer.TokLBracket
-}
-
-func isCloser(t lexer.TokenType) bool {
-	return t == lexer.TokRBrace || t == lexer.TokRParen || t == lexer.TokRBracket
-}
-
 // synchronize, hatalı bir deyimden sonra (deyim deyimBas konumundaki token'da
 // başlamıştı) deyimin geri kalanını atlar: açılıp kapanan parantezleri ve blokları
 // sayarak, yeni bir satırda başlayan ilk deyime, ';' işaretine ya da içinde bulunulan
@@ -162,9 +153,9 @@ func (p *Parser) synchronize(stmtStart int, topLevel bool) {
 				return
 			}
 		}
-		if isOpener(pk.Type) {
+		if pk.Type.IsOpener() {
 			nesting++
-		} else if isCloser(pk.Type) && nesting > 0 {
+		} else if pk.Type.IsCloser() && nesting > 0 {
 			nesting--
 		}
 		p.nextToken()
