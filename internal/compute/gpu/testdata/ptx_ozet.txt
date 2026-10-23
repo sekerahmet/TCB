@@ -4,10 +4,10 @@ bf48d6fd19395e2829463e890b1eab71f21720969a78b8af56ab8373ae3fa3db argmax:1:1
 d656974f1012379a08e720cf2592b2c423005987600b043eee5486fe0b4c9f1a argmax:2:0
 59475cc3f73aea857183760ab769378cd070ee4276106279345d676071b9a30c argmax:2:1
 0fa0f7f3a220acba065862b437a16075239c955c79a787164da6625784248cf1 argmax:2:2
-d4f31df2fcc68d86f67c4d20b315450af3ead46c603b20a8895a14b91aab99d7 atan2_turev:0
-2a7bf80188d873a3fdfa0d7c1b3c0b306c87c47d1d1ad58b8bfd25d4a5817da4 atan2_turev:1
-c710fe0aedaefdec952af5c79b869a4098bbc081cf210144245595231f3a4f52 atan2_turev:2
-9942ac98468afde38bcd21a99a1e47a62ffa220c6bc72aa3d4a6cd5e5e8690f1 atan2_turev:3
+0b4ec2eb7a2dd9e0805a7ba12309b56fb989616b31d3a4d6135e3c7a9b0f843a atan2_turev:0
+99931f6af392240c008ea779a88d294cd6e15368b518d72cfe338fbb8da8b3fc atan2_turev:1
+8633e404db9a27675d507a59853af97fbb90e7fca6384a2a94a075c32af100c6 atan2_turev:2
+b52eaa8c6f7ef29dd36f86bdc7ee80d5b0f2d2f869eb9cc6ae47ee84bff677e3 atan2_turev:3
 0096c831f041aa67804128cea2d64e2394c3382f34c623de9f1f99e8de6ac8a8 birikim:128:false:false
 296fbca1fb46399c5bdedf69445f6867eaba25817a7cdfa7a43bf161d1824de3 birikim:256:false:false
 74bb717929bd17c89ca4eb8df36d5807394eadd98c6f37a9c856cc44b467bada birikim:256:true:true
@@ -278,68 +278,68 @@ d02151b8d64c09cc503c8d4e12ec3c4d306fe295c8ca796a0716b52653df1a4e ikili:7:3:[floa
 83a20e9f8beaf1a309f4bac7e850e480dd29e879f498aa6eed6d4d7e6d02be9f ikili:8:2:[bfloat16 bfloat16 float32]
 444d6acd9872ca96cab7bc49490d899424edec80f518af9566a198193377de88 ikili:8:2:[float32 float32 float32]
 df2c6009b3ecdb824d9bf8adfc3e8cd20d84cfab17dd219a73561337c5eb9dd6 ikili:8:3:[float32 float32 float32]
-9dd6218b68526a3d042f28b4bfdaf9d8aefc63ad5c1ab990892340734f70fa2b indirge:1:1:0:false:0:false:[bfloat16 float32 float32 bfloat16]
-8636256610743395d8b5509b7d454306f98756cc51954a0b9324491720d88a4b indirge:1:1:0:false:0:false:[float16 float32 float32 float16]
-411fd9844ff3456a7dc4457b865a6386760cfe416daa9f5e67434a6ee67f9521 indirge:1:1:0:false:0:false:[float32 float32 float32 bfloat16]
-8b42dd878a67640c940ee8de39450fc718db6fa749f6c077da8ce20826a826eb indirge:1:1:0:false:0:false:[float32 float32 float32 float16]
-95bc0607cb047fd0426437deab9c22083423f93f1755caed6a3bc546a65f062f indirge:1:1:0:false:0:false:[float32 float32 float32 float32]
-93584288417d7d254dc2336b0c1b1701dd39ef16897ad32939db0a5583eb4532 indirge:1:1:0:false:0:true:[float32 float32 float32 float32]
-d9f1a723cbd22be599c33383cc62b50ce52d84674df02e9c5751d7bb402422fd indirge:1:1:0:false:128:false:[bfloat16 float32 float32 bfloat16]
-210a8a841df7930ef8a8b2180ed0cf3fef8734c85060e41cde011a2ad13d3347 indirge:1:1:0:false:128:false:[float32 float32 float32 float32]
-0b318cc89b5c47d70df7435558449ae5f3f2cd5d93b1f0fd678d1aeb52fdad88 indirge:1:1:0:false:256:false:[bfloat16 float32 float32 bfloat16]
-51119f7e07003e96a27874f63a74a57e82f7b3e9fa3b8d8dc773fc095296d44b indirge:1:1:0:false:256:false:[float16 float32 float32 float16]
-7a42b2c71cadc406178f848069b37cfba710ad1c86079501bbadcdbdec5c2f27 indirge:1:1:0:false:256:false:[float32 float32 float32 float32]
-02dcecff29144219ff33df0cdfaa5262bf2b8c0b3dbf89dfc879ea55bbf60278 indirge:1:1:0:false:256:true:[bfloat16 float32 float32 float32]
-b105d842ac51fd3d003f8df479926bfbefe37ea8ceb8c978ce1602a94863d802 indirge:1:1:0:false:256:true:[float16 float32 float32 float32]
-c3c312e1bec7e63e242970f8a86e6eb1c4300214423041492acf6151b5c99c56 indirge:1:1:0:false:256:true:[float32 float32 float32 float32]
-462140136456f49ffb7d253fa1850327b84b88e035af3a511b04ee5f2ec9e925 indirge:1:1:0:false:64:false:[float32 float32 float32 float32]
-816d69b6e554d60dee55edf3c0b40a7faaf26a2c5991a2276910f087f4e25180 indirge:1:1:0:true:0:false:[bfloat16 float32 float32 bfloat16]
-a73f11410a9a784c0e64763309d802c1db1e55514c6eae59f761106d0113deb6 indirge:1:1:0:true:0:false:[bfloat16 float32 float32 float32]
-4549a5d40b15f47924e11dfcdbaef877f86e9a52e4b1436cf28ec42e5d5665f5 indirge:1:1:0:true:0:false:[float16 float32 float32 float16]
-b9960b8243c05faef89eb1929bdcd4486d25050a53f9cea08c39f4e45c72e2a9 indirge:1:1:0:true:0:false:[float16 float32 float32 float32]
-b8d7ec2af1d708d0a699c798dd7cdc2f7ac0c8712c31fe5c41cedc852a2368c4 indirge:1:1:0:true:0:false:[float32 float32 float32 bfloat16]
-4d12751b729a4a78b7a4d33bdd3205a71336b2d0cb98923638473422895b18f0 indirge:1:1:0:true:0:false:[float32 float32 float32 float16]
-f599746ddcdc8c91e9221a2bc38ca85e365ef4602b7bae2915ed4a70d272a72e indirge:1:1:0:true:0:false:[float32 float32 float32 float32]
-877f79864fd8d44315b118c3ea078e485498bbed93b1f870eab59286ec504469 indirge:1:1:0:true:256:false:[float32 float32 float32 float32]
-aaf0442e0ab2b1f1c9c809b88c4ba1b4bc3553bf51b2ab8d8d32be1bb0c38adb indirge:1:1:1:false:256:true:[float32 float32 float32 float32]
-a31b9b0f547e9996271f1c04f6ef977373024b18adcb5ee3944205f7f04b36bc indirge:1:1:1:true:0:false:[bfloat16 bfloat16 float32 bfloat16]
-a576bc40edd94d6f7ec0c2aaeafb27a91717e3d09e44ca550d3334b22264e873 indirge:1:1:1:true:0:false:[bfloat16 bfloat16 float32 float32]
-ef84e13c669e077bb3e7a2e7731e6012de6042953fce971206904b8f41a8dbe2 indirge:1:1:1:true:0:false:[float16 float16 float32 float32]
-79718288808d3f88fd1ff4baae989e86e201d395da47f10ab6fde4f2a1a56336 indirge:1:1:1:true:0:false:[float32 bfloat16 float32 float32]
-bb715909f8aa0f244fe01a82cc54a2805fc2e7202496e3179543b7b8c5f99a1d indirge:1:1:1:true:0:false:[float32 float16 float32 float32]
-63184e78848e3fdcf00e95f87be89c5435f4380b74567658cad5247eb589ee13 indirge:1:1:1:true:0:false:[float32 float32 float32 float32]
-34aef2c7ddf1cfb2ea8a00fd2b611688f006228679c3053be13f36c058d1acab indirge:1:1:1:true:256:false:[float32 float32 float32 float32]
-d014dee1962bb4ca1df130686263a58bfbe8835afe474110a0467e30dd848633 indirge:1:1:2:true:0:false:[float32 float32 float32 float32]
-521159fdc248a95c4bf70cdd8cf8af07820f78ebce5da60bbbfd7af50de63a07 indirge:1:1:3:true:0:false:[bfloat16 bfloat16 bfloat16 float32]
-467869f24f65dcf919bf17db3bb36cbc16c840901f2937276406030bfa8cd97d indirge:1:1:3:true:0:false:[float16 float16 float16 float32]
-b9f71a22c3676c1fdaaf7e2c184f10876fe04308db7dec3ca1a7744aaaaf9787 indirge:1:1:3:true:0:false:[float32 float32 float32 float32]
-313dc192eac5fc71d5aafe07a75b78cfba611e2cb29d820e08e3e88f64b3791e indirge:1:1:3:true:256:false:[float32 float32 float32 float32]
-a1f95b9f3f5c8b017fc46ba6f51a666a219bc466bbe50d262eb25ae40975e718 indirge:1:1:4:true:0:false:[float32 float32 float32 float32]
-90c38f83bb21730072f1913345f505bff98030f5e93f6ed152b9ebc21a6d0efb indirge:1:1:5:true:0:false:[float32 float32 float32 float32]
-fb2d7ecc2de1a0e7023b711ba05e1ddf560e3dc3eb14d1f68a625cb0d2c4dcdf indirge:1:2:0:false:0:false:[float32 float32 float32 float32]
-5aa3ab618128020ec911e563407bcc25b3ad41f79de9abd1074d7b17895804ca indirge:1:2:0:false:256:false:[float32 float32 float32 float32]
-c6f0cc14e6be7d05ad45f69ff4d76ca004286c765b4f1a54a2ece0a4084acd4f indirge:1:2:0:false:256:true:[float32 float32 float32 float32]
-6cb95ca79eb48e0be52f248348f5cb519ff2d85c24482f100880380ed9ab5f35 indirge:1:2:0:true:0:false:[float32 float32 float32 float32]
-6ade1475b7903cf1909f6e2070d5d92474005bb32915953c510ae61891e83a73 indirge:1:2:1:true:0:false:[float32 float32 float32 float32]
-f6b19dd72df12feecdf581c78932e3f51c35c2301947ff2c56238bfb6b2a78da indirge:1:2:3:true:0:false:[float32 float32 float32 float32]
-771d7d36ac6d65feb49c4956c288ea9c7227fe72bccf61ab166aef2a3b58c006 indirge:1:2:5:true:0:false:[float32 float32 float32 float32]
-cdaeec975b6f06fd5caa9323bab1f840284104b209a59726b2bd30848fd111a3 indirge:1:3:0:false:256:false:[float32 float32 float32 float32]
-622a49e110c5658af8879e5ed7b92b037b563b87952fd7a63bdc1b6c3a664b1f indirge:2:1:0:false:0:false:[float32 float32 float32 float32]
-839fe3639585ee8db1522df1dea69c7ebe5976e93fc39e9b19610a3847f9e160 indirge:2:1:0:true:0:false:[bfloat16 float32 float32 float32]
-853dd9862b415c2855d5b0b51fae1665f43b6948fd8e7e65a92692550dfdaec9 indirge:2:1:0:true:0:false:[float32 float32 float32 float32]
-65e5d3c493fe63e4550e1261ed38687ec2e7cbd50eb168d523307b69109b335d indirge:2:1:1:true:0:false:[float32 float32 float32 float32]
-1776426d596d3859a668c44f0235e8ebc2b690403f23080e382792eea4faf860 indirge:2:1:2:true:0:false:[float32 float32 float32 float32]
-e82c719c0982b57e6a5afed33382fc394362aa85cce08975c1093522eb7bc35f indirge:2:1:4:true:0:false:[float32 float32 float32 float32]
-8abcd89d23fba5400b475ed958639e76808e058c3f78d7a4cdff6471e4ba6cc6 indirge:2:1:5:true:0:false:[float32 float32 float32 float32]
-5c5b5fc8da15eee1ee21c7ad16bd0c824191e5e94f715c7c87deede3a42664f9 indirge:2:2:0:true:0:false:[float32 float32 float32 float32]
-39741f51b22064b16bebce7a1e556bfed3be79935fa52dbedcc8a998e2f58d14 indirge:2:2:1:true:0:false:[float32 float32 float32 float32]
-78187905e90540cc46ed07d0495a567e31d84133984f313d82bb7c2c13bde464 indirge:2:2:3:true:0:false:[float32 float32 float32 float32]
-616252113e4d17dc365e677b1d56fc2a0812696baf99dc860fe11f8cef9999af indirge:2:3:0:true:0:false:[float32 float32 float32 float32]
-51fe19544519199385dea09d902eb1f657a758dfad0ce93908feeb23b729f8ce indirge:2:3:1:true:0:false:[float32 float32 float32 float32]
-fc3bf3fb2882bcbe1ccdf90c45566f37ce641663640c694e8518f1c13b5d2e9e indirge:2:3:3:true:0:false:[float32 float32 float32 float32]
-15d3dec2d3fa3193072966d8e53f344808825ee674448a02f164612a88f2011b indirge:3:2:0:true:0:false:[float32 float32 float32 float32]
-085dc8084f9fd04f2bbaf04473fd0bd363065ce8ac4adc74214e79a45e18fcbc indirge:3:2:1:true:0:false:[float32 float32 float32 float32]
-91efaf1f36c7d098e01b15d457b8e1ed9bd35789e525e1667a83cb330d44753d indirge:3:2:2:true:0:false:[float32 float32 float32 float32]
+8f11491b50ede00954e660fd6ddfd584ac33f0f0182817390fd30d135c48164a indirge:1:1:0:false:0:false:true:[bfloat16 float32 float32 bfloat16]
+d83e1a595b505718800fc1a238f34e485e3743af4ff11d802dd2422304fa8114 indirge:1:1:0:false:0:false:true:[float16 float32 float32 float16]
+f53f84e88fe9ac2120af5cc03c4347e1c2108ee964881dd0b3976044bc37cf05 indirge:1:1:0:false:0:false:true:[float32 float32 float32 bfloat16]
+1756168b494bc014c9fa5a9f6a1dd3f03e05290748be634c4bb1e7906666d6e1 indirge:1:1:0:false:0:false:true:[float32 float32 float32 float16]
+3b021b6c01409d47096475ae6ee95da4be7818a7b1990580a38dd9945b8f4b64 indirge:1:1:0:false:0:false:true:[float32 float32 float32 float32]
+4b727ba14d9b254fdbf06e46ebe6cb34a70e75bd9281d0263ea5b3408aa9dea6 indirge:1:1:0:false:0:true:false:[float32 float32 float32 float32]
+2d25f6b833fb21cfd2ea7ffd0e8b08dc5619e9783bf45031b5db98cbc4ee44eb indirge:1:1:0:false:128:false:true:[bfloat16 float32 float32 bfloat16]
+0f161e9d25eb5f53f54fa3663092859f7b9ceb53dd474dbffbc5fc9bdab07bc4 indirge:1:1:0:false:128:false:true:[float32 float32 float32 float32]
+49a35f95e040732c4837670063c5648cb71df91ecf4c9e0bd97473d8d3e2ee57 indirge:1:1:0:false:256:false:true:[bfloat16 float32 float32 bfloat16]
+7a1464cad051c462331109e2526dcab0dc523c19aa1e0aa03ad1d530841e8977 indirge:1:1:0:false:256:false:true:[float16 float32 float32 float16]
+44228ababed81284887dbed8144888e3207958b92df0fed22e53994f11d3548f indirge:1:1:0:false:256:false:true:[float32 float32 float32 float32]
+36d6541cee23aa97b0f445cef4b9b709b73ddf206d60f28221ab483ad939f612 indirge:1:1:0:false:256:true:false:[bfloat16 float32 float32 float32]
+2afedc1c482714484b911e53582dddf53925390eec4338d46c312ced1b9f7be8 indirge:1:1:0:false:256:true:false:[float16 float32 float32 float32]
+41b12ebf260cfbc5928da03b9346783f31dee9c860c68429716db0360507f89c indirge:1:1:0:false:256:true:false:[float32 float32 float32 float32]
+ab41a2a9b90dab30af356691c9594a3cd6f090c92801ba1bd6089bf723a43033 indirge:1:1:0:false:64:false:true:[float32 float32 float32 float32]
+e1be32c6737333cf1d4689e2ad63deaafe97ac696a33728cec6e926906a8736d indirge:1:1:0:true:0:false:false:[bfloat16 float32 float32 bfloat16]
+0dc3be400f78e2e1f47f1886fba2f03c0180115117b38477dec546fe35669fcd indirge:1:1:0:true:0:false:false:[bfloat16 float32 float32 float32]
+430d87eee9b5fdbe1df48b26aa0dfd2d44bae81ed97770cfa2f8a19a4200e86d indirge:1:1:0:true:0:false:false:[float16 float32 float32 float16]
+335ab58c4f189695498b334cd5adc10b90653170739a1ca8e2eb0e6e7c4910f6 indirge:1:1:0:true:0:false:false:[float16 float32 float32 float32]
+1acdc2981bfa696b94a6c13eb9f892fa2864054e752cecc5efed731058ee39c8 indirge:1:1:0:true:0:false:false:[float32 float32 float32 bfloat16]
+a9e84b231c52df4ad39abb0c33b35b86fbb74838d1089ec334f5713b3cf26ae8 indirge:1:1:0:true:0:false:false:[float32 float32 float32 float16]
+2d0c831bbcadb39d46d298e7c99b82f81f3e13d118e28211992f7294664ddef5 indirge:1:1:0:true:0:false:false:[float32 float32 float32 float32]
+ada5eff766f90270786144cc0165dd2a9209f2aa9fb5d79d3e67e9b3b7e29d49 indirge:1:1:0:true:256:false:false:[float32 float32 float32 float32]
+42b3e84e5f645f0079ae1a5ab6731b1e824c086bf3d80bf04bbd1415b030f610 indirge:1:1:1:false:256:true:false:[float32 float32 float32 float32]
+c211a9872b54c7a2f84dc71bcd0ccb484f00e42c0abc99083c5fe63d083bc0e4 indirge:1:1:1:true:0:false:false:[bfloat16 bfloat16 float32 bfloat16]
+81436fe358da217b3d52930e5d12ac9ca6a1fb3dc6450652255222f68acf894b indirge:1:1:1:true:0:false:false:[bfloat16 bfloat16 float32 float32]
+76b5e3e57616a02562961d9aacee0cf33094488053b1ddf333fbb9db536179a1 indirge:1:1:1:true:0:false:false:[float16 float16 float32 float32]
+65a22545cc518a445ac524d51c457960f2b004a2cd4b1e0730e630444f0ca7f7 indirge:1:1:1:true:0:false:false:[float32 bfloat16 float32 float32]
+7b71f3a7a91b6654c7542d940d5cd3e97e8af7171e8e3eacfef1869043ef2c00 indirge:1:1:1:true:0:false:false:[float32 float16 float32 float32]
+0fe548c6f7ea10141fbc6272f5c72f2e03920adb27064998abd5170a0128f0c5 indirge:1:1:1:true:0:false:false:[float32 float32 float32 float32]
+5570a28a848683570f0df6f1c062586b5bbb4a2c6567e5da60282d57fcea0e7b indirge:1:1:1:true:256:false:false:[float32 float32 float32 float32]
+05392b7e70b6cbbd2b0e97be579e6fac175b09acb30115a9a2257f06961ff1de indirge:1:1:2:true:0:false:false:[float32 float32 float32 float32]
+62a8f91ba47b5d9fafde9ccc972b6473251b2eb046edd2daa6b6a5f8e1c8c9b3 indirge:1:1:3:true:0:false:false:[bfloat16 bfloat16 bfloat16 float32]
+30804918de66e2c6793e79aaad1328f6a749f9b410f9fd7adaee82fc74bd61be indirge:1:1:3:true:0:false:false:[float16 float16 float16 float32]
+042d752d174336d2aa37ca05653856fe60e73a1080100c9120812fac0e00ba39 indirge:1:1:3:true:0:false:false:[float32 float32 float32 float32]
+9988a3c8a7fef9256ff59338adff6fdb22e24e4e19f712c1bd837bc7d2020a5a indirge:1:1:3:true:256:false:false:[float32 float32 float32 float32]
+de6e5611c8f8e91948fe6f0cce08f6692944fe8bba5ce957a3dbf37184fe02c9 indirge:1:1:4:true:0:false:false:[float32 float32 float32 float32]
+8169aba1d223586b6c3848ce6c8b2428abd01f01ada4dc79a83d64d3a2d51f54 indirge:1:1:5:true:0:false:false:[float32 float32 float32 float32]
+1a42add02b98c936c855a1e7aa8f927ddd3a505365ed37fc19a63bbabe874bf0 indirge:1:2:0:false:0:false:true:[float32 float32 float32 float32]
+086ea8e6325c34fa901a4df9dddbcd3431717d866fa2be1e0c7cbda0d565ea4e indirge:1:2:0:false:256:false:true:[float32 float32 float32 float32]
+6460bc631d26d1f48731ac507b2cfa688bfcfa7cf7109a2092e30063f61031bb indirge:1:2:0:false:256:true:false:[float32 float32 float32 float32]
+3075ed652b92fc4f6e9e56b22135d84b10f3f93de6f38df7286c94c0d544ec55 indirge:1:2:0:true:0:false:false:[float32 float32 float32 float32]
+5563ed2f8b1cb4e5c4164a059c56f816f6c85b82172a200a7cc06c68dbd262b5 indirge:1:2:1:true:0:false:false:[float32 float32 float32 float32]
+725e30e843cde4c7f048331623e14b4faa21cf963fe4318b545ecce015e24ec9 indirge:1:2:3:true:0:false:false:[float32 float32 float32 float32]
+06b0402587dbc966285ee2049481739d1825fe98cca4a2ba48a47dbfd0651547 indirge:1:2:5:true:0:false:false:[float32 float32 float32 float32]
+c6ba045e0e3bfbf31f5cc84ca3c86344af1782f7922348d6356a4e6e9d21f73f indirge:1:3:0:false:256:false:true:[float32 float32 float32 float32]
+f9530e48acaf797d4d562b0e7b4a2dae5ea7f1a7506379c75c29f8907d996d9b indirge:2:1:0:false:0:false:true:[float32 float32 float32 float32]
+3e751f0f1bb29996d21ad2ac3c77d6e96b428ceabd05b90ad8787dabd18f3591 indirge:2:1:0:true:0:false:false:[bfloat16 float32 float32 float32]
+4882ba97ed363fc097966c2f6c51d48e04127241d0f1144a1770d4efd0cb4d48 indirge:2:1:0:true:0:false:false:[float32 float32 float32 float32]
+9d507f54bc10fbbfaf31b5edb64c736dcab8070992087f610553564e3cf52130 indirge:2:1:1:true:0:false:false:[float32 float32 float32 float32]
+72914d1c2c2a6cc396598cd3c3a79b51d7d4b753ddee96741d994e8a2424ef44 indirge:2:1:2:true:0:false:false:[float32 float32 float32 float32]
+f4b5af3b1c5d808997bd7732dee5820e1361500d9ca1a432df93ae5b788532df indirge:2:1:4:true:0:false:false:[float32 float32 float32 float32]
+520a525a2e48eb7232cb096dfb7d134ef47ebc7177df0b32789bf86b6ecd3001 indirge:2:1:5:true:0:false:false:[float32 float32 float32 float32]
+cb295df8df1e8edcd9c2a0a7a3fa1a3b6710acf7e0d7d75bfb90b12af4c6bba7 indirge:2:2:0:true:0:false:false:[float32 float32 float32 float32]
+2a7ef7746b3d15f909031a895a686d89f8ece37adc905c379060525281bfa6c4 indirge:2:2:1:true:0:false:false:[float32 float32 float32 float32]
+171fdfe42e4e54afdcee99639ce1287f8528a318d66e1f1cea660bd874856598 indirge:2:2:3:true:0:false:false:[float32 float32 float32 float32]
+571ab62701ec199283c77a3a8518e590dfd4de4cad6c44be1bf603ff5fd58c79 indirge:2:3:0:true:0:false:false:[float32 float32 float32 float32]
+532dc94462bc48d32d3c9759a46e817f0cefd5c5c226e7f9e4cb5e534b5b28f7 indirge:2:3:1:true:0:false:false:[float32 float32 float32 float32]
+571655de10644000d6587e8502c23bb53c3bb0aa2785715149b8f11eb1027ab9 indirge:2:3:3:true:0:false:false:[float32 float32 float32 float32]
+d67be47e40ec76fee6c6b65cf10142f5b42155d70f6a3f053b0eb6d1eec845c0 indirge:3:2:0:true:0:false:false:[float32 float32 float32 float32]
+48489757e0f4b0f17e86f2927c32dbb29d3984fa1b0cb4e688eab449a09c8a2d indirge:3:2:1:true:0:false:false:[float32 float32 float32 float32]
+43931de2e805d1787c3545d23aad43a218c2b3f3648742422e8ea4cf30390898 indirge:3:2:2:true:0:false:false:[float32 float32 float32 float32]
 14bcd66cf0f02204d11bd5ab6bca815716e010a449a278e570d654fbf1d8cd48 kaynasik:0=0:0:0:0:bfloat16:[2 3 5 8]:[]:0:0;1=6:0:0:0:bfloat16:[2 3 5 4]:[0]:0:0:[0 1 2 3]/[0 0 0 0]/[1 1 1 1];2=0:0:0:0:bfloat16:[7 4]:[]:0:1;3=6:0:0:0:bfloat16:[5 4]:[2]:0:0:[0 1]/[0 0]/[1 1];4=6:0:0:0:bfloat16:[2 3 5 4]:[3]:0:0:[2 3]/[0 0]/[1 1];5=4:0:2:0:bfloat16:[2 3 5 4]:[1 4]:0:0;6=6:0:0:0:bfloat16:[2 3 5 4]:[0]:0:0:[0 1 2 3]/[0 0 0 4]/[1 1 1 1];7=0:0:0:0:bfloat16:[7 4]:[]:0:2;8=6:0:0:0:bfloat16:[5 4]:[7]:0:0:[0 1]/[0 0]/[1 1];9=6:0:0:0:bfloat16:[2 3 5 4]:[8]:0:0:[2 3]/[0 0]/[1 1];10=4:0:2:0:bfloat16:[2 3 5 4]:[6 9]:0:0;11=4:0:1:0:bfloat16:[2 3 5 4]:[5 10]:0:0;12=6:0:0:0:bfloat16:[2 3 5 4]:[8]:0:0:[2 3]/[0 0]/[1 1];13=4:0:2:0:bfloat16:[2 3 5 4]:[1 12]:0:0;14=6:0:0:0:bfloat16:[2 3 5 4]:[3]:0:0:[2 3]/[0 0]/[1 1];15=4:0:2:0:bfloat16:[2 3 5 4]:[6 14]:0:0;16=4:0:0:0:bfloat16:[2 3 5 4]:[13 15]:0:0;17=8:0:0:0:bfloat16:[2 3 5 8]:[11 16]:3:0;|bfloat16:false|0:bfloat16:4|1:bfloat16:2|2:bfloat16:2
 404f693350de9e5cdd53d2ac8439f9f58b3c10a57b431b4ee110e4c3d89116a8 kaynasik:0=0:0:0:0:bfloat16:[2 3 5 8]:[]:0:3;1=6:0:0:0:bfloat16:[2 3 5 4]:[0]:0:0:[0 1 2 3]/[0 0 0 4]/[1 1 1 1];2=0:0:0:0:bfloat16:[7 4]:[]:0:1;3=6:0:0:0:bfloat16:[5 4]:[2]:0:0:[0 1]/[0 0]/[1 1];4=6:0:0:0:bfloat16:[2 3 5 4]:[3]:0:0:[2 3]/[0 0]/[1 1];5=4:0:2:0:float32:[2 3 5 4]:[1 4]:0:0;6=6:0:0:0:bfloat16:[2 3 5 4]:[0]:0:0:[0 1 2 3]/[0 0 0 0]/[1 1 1 1];7=2:9:0:-1:bfloat16:[2 3 5 4]:[6]:0:0;8=0:0:0:0:bfloat16:[7 4]:[]:0:2;9=6:0:0:0:bfloat16:[5 4]:[8]:0:0:[0 1]/[0 0]/[1 1];10=6:0:0:0:bfloat16:[2 3 5 4]:[9]:0:0:[2 3]/[0 0]/[1 1];11=4:0:2:0:float32:[2 3 5 4]:[7 10]:0:0;12=4:0:0:0:float32:[2 3 5 4]:[5 11]:0:0;13=7:0:0:0:float32:[2 3 5 8]:[12]:0:0:[0 1 2 3]/[0 0 0 4]/[1 1 1 1];14=6:0:0:0:bfloat16:[2 3 5 4]:[9]:0:0:[2 3]/[0 0]/[1 1];15=4:0:2:0:float32:[2 3 5 4]:[1 14]:0:0;16=6:0:0:0:bfloat16:[2 3 5 4]:[3]:0:0:[2 3]/[0 0]/[1 1];17=4:0:2:0:float32:[2 3 5 4]:[6 16]:0:0;18=4:0:0:0:float32:[2 3 5 4]:[15 17]:0:0;19=7:0:0:0:float32:[2 3 5 8]:[18]:0:0:[0 1 2 3]/[0 0 0 0]/[1 1 1 1];20=4:0:0:0:float32:[2 3 5 8]:[13 19]:0:0;|float32:false|1:bfloat16:2|2:bfloat16:2|3:bfloat16:4
 097d77a6411384c5c6b2c7b115adbceb18f521b1baa5eb6039d432126eb4d8df kaynasik:0=0:0:0:0:bfloat16:[3 4 12]:[]:0:0;1=6:0:0:0:bfloat16:[3 4 6]:[0]:0:0:[0 1 2]/[0 0 0]/[1 1 1];2=2:14:0:0:bfloat16:[3 4 6]:[1]:0:0;3=6:0:0:0:bfloat16:[3 4 6]:[0]:0:0:[0 1 2]/[0 0 6]/[1 1 1];4=4:0:2:0:bfloat16:[3 4 6]:[2 3]:0:0;|bfloat16:false|0:bfloat16:3
@@ -390,6 +390,7 @@ f1c194a0a4b0b79ad85ef0aef5355f583d95002ab97373d28cbe7fb38883e15b mma_duzen_true
 8c3254d3934562c60435dbb98a91a54161c57e684b76bde8aa69252d9c11ee9b norm_geri:256:false:true:false:true:true:[float32 float32 float32 float32 float32]
 eda8908c1c9fd3fe5dad2ab625a8e9cf0668506fa563891a9bbf9bc478aa6b84 norm_geri:256:true:false:false:true:false:[float32 float32 float32 float32 float32]
 887143b67a25ea614357177ab4d144b259eeacd6030cf227d4a80844b8bd5bc5 norm_geri:256:true:true:false:true:true:[float32 float32 float32 float32 float32]
+e538865a00a46756f47844fc2570748043915085c74ef2b561f64c38a85de14f norm_geri:32:false:false:false:true:false:[float32 float32 float32 float32 float32]
 f6efbd07910ac06be45da0ef4b86cbed2946159c9f40d8c21f1301c839ed1a58 norm_geri:32:true:false:false:true:false:[float32 float32 float32 float32 float32]
 bce42e6831109005504e83c6d3cc9588d5f635bcf1b569b9b5980f76fc0e74cf norm_geri:64:false:true:false:true:false:[float32 float32 float32 float32 float32]
 958b7f24a25e20d310a139fe5d46be317ff756571918ed7dd2997b007e5476f1 norm_geri:64:true:false:false:true:false:[float32 float32 float32 float32 float32]
@@ -564,42 +565,42 @@ a9a543a465d47323a23f2653abd5a0e81da0727d99b9c12d314146724df35c7b softmax_turev:3
 fa35a6db9206c357c04af66512c7bb00e4d6cf68da503ed95e847e739dff67be tekli:0::float32:float32
 56b63b91cdaabc2cad430666bca4cd905d021432aa9d86e081426b227dd78592 tekli:10::float32:float32
 12fd0320e1d0a505aea1b4584c613ca287ad697ecaede3bd056c13ff0b69b616 tekli:11::float32:float32
-96360ab1d64386c40ccb14fa5cf8f083db4b1079c53243cb2db430f3b8910829 tekli:12::float32:float32
+62ef7c9a703baef9da2327bc3e2620584f69f9a6673847d31782d2191b0bd3cd tekli:12::float32:float32
 6a8e1fe6f49709e522270e5e76727c642ae40bfc0eff479508c3725e5d124b7d tekli:13::float32:float32
 a0d4b52b0a2a2b37644d315e9cb27c2d1e7343b66a366148536f60055a59a32f tekli:14::bfloat16:bfloat16
 4b9befd1492d4004af8a2ce7cba2d4fa878a97c437c7463933796b7f15edd853 tekli:14::float16:float16
 2940fab13b1b615f82c0f91dabd82e13f357565c7520f9710c208f1c80a21bbf tekli:14::float32:float32
-7d63a61c135672c53b8cd34efb43967608f6e3423dcb65db9648d8b245f53bef tekli:15::bfloat16:bfloat16
-c7351ac1d553c0d8a9f50ed0bc6422c40936d108cfdb48b7aba2b9f2a1d53d97 tekli:15::float16:float16
-a77b58a3a23eaef4403de5fb34a13dd6052169604b4f59649b4328a86e82be73 tekli:15::float32:float32
-9e96a3cfc52cb6f5abea6d0034214e91c233fd94aa37c51dc7a7e5b45ffe3346 tekli:16::bfloat16:bfloat16
-905073ab8f237bf5f5b5b7fd0057c7ba3cb4528e25f8739958d094a0b0e63f63 tekli:16::float16:float16
-683b53eb2f2b2148dfae8133c246e33cfdedfe57bb01340188a9d2848b68efd6 tekli:16::float32:float32
+37f8bddcbf2581b392c9b6c1ec199eac577e90af9715418756ddfe986755ed79 tekli:15::bfloat16:bfloat16
+3196b518261b5d1378cf043a9517242b5d43782d8a3a8a54d28d285610cb51c4 tekli:15::float16:float16
+3035bd2b6e5f25998e26d3153362162eb925a764dab71b7dfe37464f2f187253 tekli:15::float32:float32
+fe37a214801a473b1e2ceb8262cee751cda01f0f154b18d9e566f1c061457cc4 tekli:16::bfloat16:bfloat16
+415ce18e7c64c99130034e8b6b2eda4c616ff9bf8b4ed736f126b0983b637f10 tekli:16::float16:float16
+03fbc98ced0bebe92fbfbab56feae95e6a1d47e8b46b5e0f7862262acfa0147a tekli:16::float32:float32
 229d31b658a8bbc13199dc9d6c55c76ad020119137a6768ca56276e19a8a0f31 tekli:17::bfloat16:bfloat16
 e4832442bd197fd109014d0eb8478d3eca231e5c2010fc175ba97d798817f372 tekli:17::float16:float16
 8f05cbf0b78fbff9dc3d8601df519fc5cfe636fc460d303a9fd3c91011b462cd tekli:17::float32:float32
-6b885932fec20ec2af4abb53b71a4fe279b3dfc980916aa67273fc2008ff798c tekli:18::bfloat16:bfloat16
-420157f36b2d3497260fa3a555dbb2eabe94920161def16f285ab68a5f67111f tekli:18::float16:float16
-8d1957810691f17b85d0bf8bdfda7a2e998c2bd64dafb67cc4da0d051625d96c tekli:18::float32:float32
-e9b17e76ff52b8735399a0d217a97fe23b98584103a8d27a74f833dec8f924b9 tekli:19::bfloat16:bfloat16
-97e1eaa41fe3640122087923ec9ec6da2ca12d560f297b06703cd48b1d040cb7 tekli:19::float16:float16
-086c672862f29865c11d123e24919ce610fd8085e3cdefd13189749445b6aef9 tekli:19::float32:float32
+040f09953c7cc9cf625e61788e4443a647127df21078f9b9591f32b828779022 tekli:18::bfloat16:bfloat16
+c8ca257de9bc75665037e24fd3f41182b919208c24b55565c7e4603bb9082ddc tekli:18::float16:float16
+6a002662c0ef51f147d3f2843e2e7e0331ff29bbc780dd29132426f1d812d7c4 tekli:18::float32:float32
+8d97d06678691ab43a5bcc7ad6bb293eacdc3ac2e804295f2cf811b800e9cbf5 tekli:19::bfloat16:bfloat16
+7b9c6477bc771bccaff5c19e8051982007dafa275978a1a26938484e7b749599 tekli:19::float16:float16
+89cf9f6f95a4d2ce7772c18af4cc74974db8ba5f9aff39986329545cffe2bbe0 tekli:19::float32:float32
 ea45b791ae6ef1b1a73bbf188d07207f7ab6674779ef72cf2d440e9f67a0d4da tekli:1::float32:float32
 93e7f2dfd0eddb2bd577bc8cfc23ef2cfdea654fd68b3e08074d0fed9347ee54 tekli:20::bfloat16:bfloat16
 22634efac5cab9f6cbb0e2477f919e0897746f928fd8ac840dbeafc111ab32f4 tekli:20::float16:float16
 e15dd5ffa7add4497238ddb2c90695cfb8b17237f602c6f48e2c134555634e46 tekli:20::float32:float32
-e15b83a8aa9a3212cc823297cebcb240f2a3d167b690ff507151fad03d990a66 tekli:21::bfloat16:bfloat16
-c195222d2ec0a0fe304d143dd5786d7a628b59ac1318e629457489cba2f4923d tekli:21::float16:float16
-e0980a5cf52e0d15b59730ae58bfdd0ca5fe2f8d4f3a589335737080aefd5dd2 tekli:21::float32:float32
+f51580b7bce72550841cb52c1bdb043c30f5f35c9143255707918034b394d095 tekli:21::bfloat16:bfloat16
+6e58fffb311b8de87687eba5343af62e5ad540397e0d192ff6b516338b965e47 tekli:21::float16:float16
+7e7f69458538edb74f0a6c112caea53bb09f9c0b3ba074b1a68662ba4e9ac135 tekli:21::float32:float32
 47ceb7f9f72f6a7924e719d5b09e5a63c73d9b9bb7327b1c518827c9f4cffaea tekli:22::bfloat16:bfloat16
 3c5df85af020f837a952e4b71dc179ea2db9788ee39fe4555e66fcd3cbe9be89 tekli:22::float16:float16
 2bb23167fef690668bdc50d6008571ff727838625fc37c16e328ea8f21d2cdc3 tekli:22::float32:float32
 084df4833914b6596a8225a3d5ff8c5e3fd47cb3172c2628265b6f7c3b29c1ab tekli:23::bfloat16:bfloat16
 4c0ff188fc02e9081b969a7822d0751460502c96b99f6310bfbdee08a50ce334 tekli:23::float16:float16
 bf7eeacab737a458b3b2832b26abf60722bac3dc6f417b69a46ff5916789b9ca tekli:23::float32:float32
-036b338b2df7c87200729e02fddb2bf9d2ed454b94eee7ba8505174846254729 tekli:24::bfloat16:bfloat16
-65ceb6397970937085bad4aaae5e9280ab08aa6351164985a6cdb40f3048c092 tekli:24::float16:float16
-b188eacdfdc69daf56975b24dc9721c28836d5c5856bf5f1ece6d3119946ca50 tekli:24::float32:float32
+d405c489bd00e061bc54df88e25eb5b02f492f2b75b217093398c792f67bfb18 tekli:24::bfloat16:bfloat16
+f4e195d60e76c1c2b5a0d546362bb9fe3262b1e1a216732bca6429d4a7dba2ea tekli:24::float16:float16
+dbd64c8de8b10596f3a9946299b9b3f2d50a3edc08d78bbad81a10eaf3ea373e tekli:24::float32:float32
 dbc5ab9706cb5517b04757617e0b1b1276cd84b80850ffc837a3f684ee958229 tekli:25::bfloat16:bfloat16
 e9b27dbafb5446f80cfa4c6465a7cbc0d190129fc454aad0a744abbc9a148076 tekli:25::float16:float16
 fa847d377035848202b5b2e1df3cc62c2d0def08ece9311df1443c2d677da8ab tekli:25::float32:float32
@@ -621,16 +622,16 @@ d4c0a9ee607dc11d131eba35132e779ad196ef7b0b1b3679d8ea66b94a76cd3f tekli:3:1:float
 627c9d8ed75b15765fec3ba3f7ab2ba1281900f7cec59c08ac3b2ef5c73b7699 tekli:3:2:bfloat16:bfloat16
 264febcec5a827c9d85cdc999e0a7ba00dd9193f33304b0b2b8eb765fee849e0 tekli:3:2:float16:float16
 dd2cfcc630ccf73d37126c6c7cae6bebead5fc3632aab31138c3c450f8624794 tekli:3:2:float32:float32
-262d8887af106958c03ac1d8191f674aed286c3cd16405757bd18d9fb0767b03 tekli:3:genel:float32:float32
-aa9e6af815c5535057ebffdd27856dae054db9a2736b25cee111a3d2858da082 tekli:4::bfloat16:bfloat16
-95ea8f9b30a1fd3c2f1486112d342bc0960a0ae961846f2208900b7789efefec tekli:4::float16:float16
-610ab5cfb4f5508db738ac65557951e9090b3a9abecfa93728e30c1682d8871e tekli:4::float32:float32
+9ed7047556c85d7e01f46b85b901a835e9e21cc911a0cd26a155ac099d99e7ce tekli:3:genel:float32:float32
+e630b5dddd986fb71beb4c0f99ae23e90f8bc1aa01810b6300dcde648d290034 tekli:4::bfloat16:bfloat16
+d6300591d13f0c6f40205aa04ce5d45f604d22d0a39b5a278b04f3f37015e037 tekli:4::float16:float16
+5bd4f484b37532904a334336a283ea0d55df626bef5000778b067e95d3dbdbee tekli:4::float32:float32
 2af0b0543bf96a57f974f4223d27d672277a9a1f9915e9110cff9583400f58bc tekli:5::bfloat16:bfloat16
 c00de7a78436e62a0bd4324f103613f717724b5388768717077bf604c0cdb4c5 tekli:5::float16:float16
 8dd41a257d9c098611e34724b0d80c907a0dc56bfc6f1197d0ac05fbba76915d tekli:5::float32:float32
-0ced8af635db9d62edb7251978c5c47b8e827400b188ed6d90192e6ce2d94d28 tekli:6::bfloat16:bfloat16
-93186af148dd88d09670b8582bd9ae1bacb47f283f63f09965a0c986a94d0075 tekli:6::float16:float16
-45c214a6fb8d32c4175ee24df3b0ab451148bbfa89cbeed84906313ac988691a tekli:6::float32:float32
+2cacb1f1759e3629cfa1e5a499bd7727f22bf51801b4d5b65d98c5a4cc0cbff1 tekli:6::bfloat16:bfloat16
+f3f9e895a4e762e4c8c8bec158792c62688c0fd78a157daf78712c2099f9c137 tekli:6::float16:float16
+9f1f51566ff1c5dd509f412659bc7853541763f82cc48dc65f51015fd3c12007 tekli:6::float32:float32
 06dc1a6fe50db738a14922f8df7efff18014053c99dde72ad8feae37035dc8f4 tekli:7::bfloat16:bfloat16
 2b5c6d8dc0eb1ad2ae5e6d1464cbe21bbd060016558ed6b764484be4c42cd4f2 tekli:7::float16:float16
 36214232dde9411c1d24d64dfa64c9424b43a169f2eea9ffb972268e8e37bb3f tekli:7::float32:float32
@@ -669,7 +670,7 @@ fc6210820561755d616e32c99abef994b4f2b11cafa6d4b83fc5db7c6967d4ec tekli_turev:2::
 020ca9496e7622b09a5b0e3bd58e3527cdad181c2d0d4a0ed59bdf4d1f130f35 tekli_turev:3:2:[float32 bfloat16 bfloat16 bfloat16]:false
 c8c1206641c584dea4716dd78d7d93567149589037806fe874ebb6d963e01de7 tekli_turev:3:2:[float32 float16 float16 float16]:false
 9905914742cb3cb4485354b12079a56aee73890639664fc00a8af7f21ca49b17 tekli_turev:3:2:[float32 float32 float32 float32]:true
-95ba94c7c3dbd53f8aac66c78e96d4fa5fa0dc8131b522071d19af3aa29f443a tekli_turev:3:genel:[float32 float32 float32 float32]:true
+e765a65216a901b3334021c8a11b1fb0c56032f972b9ee1f8456d897dd1a1880 tekli_turev:3:genel:[float32 float32 float32 float32]:true
 21a342c3e560d76b48d34e516a379b1e496a6416665794068c11acfe7f7d4c70 tekli_turev:4::[float32 bfloat16 bfloat16 bfloat16]:false
 5d24fc3f40c3751513d384657fe6f6b0a29d7370ca4a00c30a86f4613ef6a630 tekli_turev:4::[float32 bfloat16 bfloat16 bfloat16]:true
 7430fd5c67ccd9290649dc513b876e2f05190c642e88d3b35e63624f32ce3f47 tekli_turev:4::[float32 float16 float16 float16]:false
@@ -690,6 +691,7 @@ cb16fac62c9f9c825253f2020aeed1d374e7e27b4f0a68feaabcab8c6302966d tekli_turev:7::
 c24f7f2f1863723e44df552af816a00608d7516be850a52c09549f6cb44aaa7d tekli_turev:8::[float32 bfloat16 bfloat16 bfloat16]:false
 09a6a2431f806cdd9fc8643be387e78b4f36d4f48e2877b67a44b6ae2e2549e7 tekli_turev:8::[float32 float16 float16 float16]:false
 fd8bac23e531c25ae4e332d55be411f55a04cb051657bfd52d98b12c61631ae3 tekli_turev:8::[float32 float32 float32 float32]:true
+8fc5e79391ef641bba8770c45d800b8b455ffafc821f091995a90a5675eb41a2 tekli_turev:9::[float32 float32 float32 float32]:false
 fc4d2702828bd73c476607a285c09db9bc9e85c795a6317a047a9d840f398c3e tekli_turev:9::[float32 float32 float32 float32]:true
 e512e2301f326dda6d589c33d9d38c8e3bd3b1e0ba655d81fa0c624d70bae741 topla_geri
 d7517766b954ceb014b0247df6ff3a09e77cb561f2d8802f975a2aae757823a3 vek:cp

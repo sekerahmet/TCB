@@ -23,8 +23,24 @@ func powMode(p float32) string {
 	return "genel"
 }
 
+// keepsZero f(±0) = ±0 olan tekli işlemler (C99 Ek F): sıfırda sonuç girdinin kendisidir.
+// Aralık indirgemesi ve çok terimliler −0'ı +0'a çevirebilir (CPU'da da aynı kural).
+var keepsZero = map[tensor.UnOp]bool{tensor.OpSin: true, tensor.OpTan: true, tensor.OpTanh: true,
+	tensor.OpExpm1: true, tensor.OpAsin: true, tensor.OpAtan: true, tensor.OpSinh: true, tensor.OpLog1p: true}
+
 // unaryExpr y = f(x, p).
 func (k *emitter) unaryExpr(op tensor.UnOp, mode2 string, x, p reg) reg {
+	y := k.unaryValue(op, mode2, x, p)
+	if keepsZero[op] {
+		z := k.p()
+		k.e("setp.eq.f32", z, x, float32(0))
+		k.e("selp.f32", y, x, y, z)
+	}
+	return y
+}
+
+// unaryValue f(x, p)'nin hesabı (sıfırın işareti unaryExpr'de düzeltilir).
+func (k *emitter) unaryValue(op tensor.UnOp, mode2 string, x, p reg) reg {
 	y := k.f()
 	switch op {
 	case tensor.OpExp:

@@ -108,7 +108,7 @@ func (g *backend) CrossEntropy(x tensor.View, targets []int, C int) (tensor.Stor
 	if n := validCount(targets); n > 0 {
 		scaleF = float32(1 / float64(n))
 	}
-	g.reduce(reduceJob{a: loss2, output: loss, shape2: []int{R}, stA2: []int{1}, st: []int{0}, term: tA, scaleF: scaleF})
+	g.reduce(reduceJob{a: loss2, output: loss, shape2: []int{R}, stA2: []int{1}, st: []int{0}, term: tA, scaleF: scaleF, sum: true})
 	return loss, lse
 }
 

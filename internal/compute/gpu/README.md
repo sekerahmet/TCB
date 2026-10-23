@@ -16,6 +16,13 @@ ve ölçümde sütun toplamları 2,3–3,9 kat yavaşladı (telafili toplam %5�
 float64 referansa karşı sınanır. Denetim: `TestSumsMatchFloat64Reference`,
 `TestSumsKeepSpecialValues`, `TestNormsMatchFloat64Reference`.
 
+**Özel değerlerde CPU ile bit bit aynı.** ±0, ±∞ ve NaN girdide her işlem (ileri ve türev) CPU
+ile aynı sonucu verir: NaN'lar NaN, sonsuzlar ve sıfırlar aynı işaretli (türevlerde sıfırın işareti
+önemsiz); davranış dil tanımı 15.50'nin tablosudur. f(±0) = ±0 olan tekli işlemler sıfırda girdiyi
+verir (`kernel_elementwise.go` `keepsZero`); gerçek toplamlar sonda +0 ekler, kopyalayan
+indirgemeler −0'ı korur (`reduceConfig.plusZero`). Denetim: `TestSpecialValuesSameOnBothDevices`,
+`TestSpecialValuesTable`.
+
 **GPU yoksa zarif.** Sürücü ya da kart yoksa program çökmez; GPU görünmez olur ve nedeni
 sorulabilir. Denetim: `TestNoDriverGraceful`.
 
@@ -54,6 +61,7 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 - `behavior_nn_test.go`: sinir ağı işlemlerinin GPU'da CPU arka ucuna karşı sonuçları
 - `behavior_norm_reference_test.go`: normların ileri sonucu ve gradyanlarının CPU'da ve GPU'da float64 referansa göre doğruluğu
 - `behavior_reduce_accuracy_test.go`: indirgemenin her yolunun float64 referansa göre doğruluğu ve özel değerler (sonsuz, NaN, -0)
+- `behavior_special_values_test.go`: ±0, ±∞ ve NaN girdide bütün işlemlerin (ileri ve türev) CPU ile aynılığı ve dil tanımı 15.50'nin tablosu
 - `behavior_grad_parity_test.go`: gradyan kapısının GPU ayağı: başka testte GPU-CPU gradyan karşılaştırması olmayan türevli işlemler (tür dönüşümü, cihaz aktarımı, kopya, dış işlem)
 - `behavior_ptx_digest_test.go`: benzeticide derlenen her çekirdeğin PTX özetinin `testdata/ptx_ozet.txt` ile aynı olması (TestMain'den sonra)
 - `behavior_sim_instruction_coverage_test.go`: kernellerin ürettiği her PTX komut adının benzetici tarafından tanınması

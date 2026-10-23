@@ -79,8 +79,8 @@ func TestSumsMatchFloat64Reference(t *testing.T) {
 }
 
 // Kural: telafili toplam özel değerleri düz toplam gibi verir: sonsuz terimli toplam sonsuz,
-// +∞ ile −∞ NaN, NaN terimli NaN, yalnızca -0'lardan oluşan toplam -0 (tek terimli de).
-// 256 sütun sütun başına iş parçacığı yolunu seçer.
+// +∞ ile −∞ NaN, NaN terimli NaN, yalnızca -0'lardan oluşan toplam +0 (tek terimli de; CPU,
+// PyTorch ve NumPy gibi, dil tanımı 15.50). 256 sütun sütun başına iş parçacığı yolunu seçer.
 func TestSumsKeepSpecialValues(t *testing.T) {
 	inf, nan, negZero := float32(math.Inf(1)), float32(math.NaN()), float32(math.Copysign(0, -1))
 	for _, R := range []int{1, 100} {
@@ -101,11 +101,9 @@ func TestSumsKeepSpecialValues(t *testing.T) {
 		v[(R/2)*D+3] = nan // 3. sütun: NaN
 		x := twin(v, false, R, D)
 		cpu, gpu := x[0].Sum(0, false).Data(), x[1].Sum(0, false).Data()
-		// 0. sütun (-0'lar) yalnızca GPU'da sınanır: CPU toplamı float64'te +0'dan başlar ve +0
-		// verir (ayrı bulgu).
-		for j := 1; j < D; j++ {
+		for j := 0; j < D; j++ {
 			c, g := float64(cpu[j]), float64(gpu[j])
-			// Özel sütunlar (1–3) bit bit aynı olmalı (NaN'lar NaN), öbürleri yuvarlama içinde.
+			// Özel sütunlar (0–3) bit bit aynı olmalı (NaN'lar NaN), öbürleri yuvarlama içinde.
 			same := math.Float64bits(c) == math.Float64bits(g) || (math.IsNaN(c) && math.IsNaN(g))
 			if j >= 4 {
 				same = same || math.Abs(c-g) <= 1e-6*(1+math.Abs(c))
@@ -114,8 +112,8 @@ func TestSumsKeepSpecialValues(t *testing.T) {
 				t.Errorf("R=%d, %d. sütun: GPU %v (işaret %v), CPU %v (işaret %v)", R, j, g, math.Signbit(g), c, math.Signbit(c))
 			}
 		}
-		if g := float64(gpu[0]); g != 0 || !math.Signbit(g) {
-			t.Errorf("R=%d: -0'ların toplamı %v (işaret %v), -0 olmalı", R, g, math.Signbit(g))
+		if g := float64(gpu[0]); g != 0 || math.Signbit(g) {
+			t.Errorf("R=%d: -0'ların toplamı %v (işaret %v), +0 olmalı", R, g, math.Signbit(g))
 		}
 		want2 := math.NaN()
 		if R == 1 {

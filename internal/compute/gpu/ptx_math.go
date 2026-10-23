@@ -117,12 +117,17 @@ func (k *emitter) geluU(x reg) reg {
 	return u
 }
 
-// gelu x / (1 + e^{u}).
+// gelu x / (1 + e^{u}); pay −∞'da en küçük sonlu sayıdır: −∞/∞ NaN yerine −0 (limit, CPU
+// geluForwardGo ile aynı).
 func (k *emitter) gelu(x reg) reg {
 	e := k.exponential(k.geluU(x))
 	k.e("add.rn.f32", e, e, float32(1))
+	ni := k.p()
+	k.e("setp.eq.f32", ni, x, float32(math.Inf(-1)))
+	n := k.f()
+	k.e("selp.f32", n, float32(-math.MaxFloat32), x, ni)
 	r := k.f()
-	k.e("div.rn.f32", r, x, e)
+	k.e("div.rn.f32", r, n, e)
 	return r
 }
 
@@ -180,9 +185,10 @@ func (k *emitter) cosine(x reg) reg {
 	return r
 }
 
-// us |x|^p = 2^{p·log2|x|} ile x^p; negatif x'te p tam sayıysa işaret tek/çiftliğe göre,
-// değilse NaN. x = 0'da lg2 = −sonsuz olduğundan p > 0 için 0, p < 0 için sonsuz çıkar.
-// p = 0, 1, 2 durumlarını çağıran ayrı ele alır.
+// us x^p: büyüklük |x|^p = 2^{p·log2|x|}, özel durumlar C99 Ek F'deki gibi (CPU math.Pow ile
+// aynı): p tek tam sayıysa işaret x'inkidir (−0 ve −∞ dahil); x sonlu negatif ve p tam sayı
+// değilse NaN; x = 1'de (p NaN olsa da) ve x = −1, p = ±∞'da 1. |x| = 0'da lg2 = −∞: p > 0
+// için 0, p < 0 için ∞; |x| = ∞'da tersi. p = 0, 1, 2 durumlarını çağıran ayrı ele alır.
 func (k *emitter) us(x, p reg) reg {
 	a := k.f()
 	k.e("abs.f32", a, x)
@@ -191,7 +197,11 @@ func (k *emitter) us(x, p reg) reg {
 	k.e("mul.rn.f32", l, l, p)
 	r := k.f()
 	k.e("ex2.approx.f32", r, l)
-	// Negatif taban: p tam sayı mı, tek mi?
+	// |x| = 1: l = 0·p, p = ±∞ ya da NaN'da NaN olurdu.
+	one := k.p()
+	k.e("setp.eq.f32", one, a, float32(1))
+	k.e("selp.f32", r, float32(1), r, one)
+	// p tam sayı mı, tek mi? (±∞ ve 2²⁴'ten büyükler çift tam sayıdır, NaN tam sayı değildir.)
 	pr := k.f()
 	k.e("cvt.rni.f32.f32", pr, p)
 	isWhole := k.p()
@@ -202,15 +212,26 @@ func (k *emitter) us(x, p reg) reg {
 	k.e("cvt.rni.f32.f32", yr, half)
 	isSingle := k.p()
 	k.e("setp.ne.f32", isSingle, yr, half)
+	k.e("and.pred", isSingle, isSingle, isWhole)
+	// İşaret biti (−0 ve −∞ dahil) ve tek p: sonuç negatif.
+	xb := k.r()
+	k.e("mov.b32", xb, x)
+	neg := k.p()
+	k.e("setp.lt.s32", neg, xb, 0)
+	k.e("and.pred", neg, neg, isSingle)
 	nr := k.f()
 	k.e("neg.f32", nr, r)
-	negR := k.f()
-	k.e("selp.f32", negR, nr, r, isSingle)
-	nan := k.constant(float32(math.NaN()))
-	k.e("selp.f32", negR, negR, nan, isWhole)
-	neg := k.p()
-	k.e("setp.lt.f32", neg, x, float32(0))
-	k.e("selp.f32", r, negR, r, neg)
+	k.e("selp.f32", r, nr, r, neg)
+	// Sonlu negatif taban, tam sayı olmayan üs: NaN.
+	bad := k.p()
+	k.e("setp.lt.f32", bad, x, float32(0))
+	fin := k.p()
+	k.e("setp.lt.f32", fin, a, float32(math.Inf(1)))
+	k.e("and.pred", bad, bad, fin)
+	whole := k.p()
+	k.e("not.pred", whole, isWhole)
+	k.e("and.pred", bad, bad, whole)
+	k.e("selp.f32", r, k.constant(float32(math.NaN())), r, bad)
 	return r
 }
 

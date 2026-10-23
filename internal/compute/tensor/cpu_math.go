@@ -16,7 +16,7 @@ const (
 	expZero        = -104           // bunun altında e^x float32'de 0'dır
 	roundMagic     = 12582912       // 1.5·2^23
 	tanhSmall      = 0.625          // bunun altında tanh için polinom
-	tanhSaturation = 9              // tanh bunun üstünde float32'de ±1'dir
+	tanhSaturation = 10             // tanh bunun üstünde float32'de ±1'dir (9,02'den sonra; tanh(9) = 1 − 2⁻²⁴)
 )
 
 // expf32 e^x. Aralık indirgemesi: x = n·ln2 + r, |r| ≤ ln2/2; e^r için 6.
@@ -58,7 +58,7 @@ func expAralikta(x float32) float32 {
 // tanhf32 hiperbolik tanjant. İki yol da hesaplanır ve sonuç bit maskesiyle
 // seçilir (rastgele girdilerde dal tahmini kaçırma maliyeti olmasın):
 //   - |x| < 0.625: x + x³·P(x²) tek dereceli polinom,
-//   - aksi halde 1 - 2/(e^{2|x|}+1) (|x| 9'a kırpılır; tanh(9) float32'de 1'dir).
+//   - aksi halde 1 - 2/(e^{2|x|}+1) (|x| 10'a kırpılır; tanh(10) float32'de 1'dir).
 //
 // İşaret sonradan geri konur; NaN girdi NaN döner.
 func tanhf32(x float32) float32 {

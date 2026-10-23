@@ -53,11 +53,11 @@ func expVec(dst, src []float32) {
 //lint:ignore U1000 cpu_vector_amd64.s okur
 var vecMask = [16]int32{-1, -1, -1, -1, -1, -1, -1, -1}
 
-// geluConst GELU çekirdeklerinin sabitleri (her biri 8 kez): a, −2c, 1, c, 3a.
+// geluConst GELU çekirdeklerinin sabitleri (her biri 8 kez): a, −2c, 1, c, 3a, −maks.
 //
 //lint:ignore U1000 cpu_vector_amd64.s okur
-var geluConst = func() (t [5 * 8]float32) {
-	for i, v := range [...]float32{geluA, geluM2C, 1, geluC, gelu3A} {
+var geluConst = func() (t [6 * 8]float32) {
+	for i, v := range [...]float32{geluA, geluM2C, 1, geluC, gelu3A, -math.MaxFloat32} {
 		for j := 0; j < 8; j++ {
 			t[i*8+j] = v
 		}

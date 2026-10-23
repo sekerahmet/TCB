@@ -494,13 +494,14 @@ const (
 // aksi halde aşağıdaki Go eşleridir; işlem sırası aynıdır, yalnızca üstel
 // (expVec ile expf32 gibi) 1-2 ulp farklı olabilir.
 
-// geluForwardGo y = x / (1 + e^{-2u}), u = c·(x + a·x³).
+// geluForwardGo y = x / (1 + e^{-2u}), u = c·(x + a·x³). Pay −∞'da en küçük sonlu sayıdır:
+// −∞/∞ NaN yerine −0 (limit) çıkar; NaN korunur.
 func geluForwardGo(y, x []float32) {
 	y = y[:len(x)]
 	for i, v := range x {
 		x3 := v * v * v
 		u := float32(x3*geluA) + v
-		y[i] = v / (1 + expf32(u*geluM2C))
+		y[i] = max(v, -math.MaxFloat32) / (1 + expf32(u*geluM2C))
 	}
 }
 

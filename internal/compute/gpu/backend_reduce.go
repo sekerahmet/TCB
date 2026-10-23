@@ -24,14 +24,14 @@ func (g *backend) Sum(out tensor.Storage, x tensor.View, axis int, scale float32
 	ks, _ := noAxis(x.Shape, x.Strides, axis)
 	kst := contiguous(ks)
 	st := append(append(append([]int{}, kst[:axis]...), 0), kst[axis:]...)
-	g.reduce(reduceJob{a: g.storageOf(x.S), aOf: x.Offset, output: g.storageOf(out), shape2: x.Shape, stA2: x.Strides, st: st, term: tA, scaleF: scale})
+	g.reduce(reduceJob{a: g.storageOf(x.S), aOf: x.Offset, output: g.storageOf(out), shape2: x.Shape, stA2: x.Strides, st: st, term: tA, scaleF: scale, sum: true})
 }
 
 func (g *backend) SumAll(out tensor.Storage, x tensor.View, scale float32) {
 	g.enter()
 	defer g.exit()
 	g.reduce(reduceJob{a: g.storageOf(x.S), aOf: x.Offset, output: g.storageOf(out), shape2: x.Shape, stA2: x.Strides,
-		st: make([]int, len(x.Shape)), term: tA, scaleF: scale})
+		st: make([]int, len(x.Shape)), term: tA, scaleF: scale, sum: true})
 }
 
 // argmax çekirdeğini kurar ve başlatır: kip 0 değer, 1 indeks, 2 gradyan.

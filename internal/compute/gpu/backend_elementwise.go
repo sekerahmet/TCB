@@ -22,6 +22,9 @@ type reduceJob struct {
 	term           termType
 	add            bool
 	scaleF         float32
+	// sum: gerçek toplam (Sum, SumAll, ortalama kayıp); yalnızca −0'lardan oluşan toplam +0
+	// olur (CPU, PyTorch, NumPy gibi). Kopyalayan ve biriktiren kullanımlar −0'ı korur.
+	sum bool
 }
 
 // powerOfTwo n'den küçük olmayan en küçük ikinin kuvveti (sınırlı).
@@ -59,7 +62,7 @@ func (g *backend) reduce(is reduceJob) {
 	if len(kSh) > maxAxis || len(rSh) > maxAxis {
 		none(messages.H4051, len(kSh), len(rSh), maxAxis)
 	}
-	config := reduceConfig{nk: len(kSh), nr: len(rSh), term: is.term, add: is.add}
+	config := reduceConfig{nk: len(kSh), nr: len(rSh), term: is.term, add: is.add, plusZero: is.sum}
 	for i, d := range []*storage{is.a, is.o, is.y, is.output} {
 		config.dt[i] = tensor.Float32
 		if d != nil {
@@ -121,7 +124,7 @@ func (g *backend) reduceTwoStage(is reduceJob, config reduceConfig, meta, kSh, k
 	P := (R + S - 1) / S
 	partial := g.allocate(S*K, tensor.Float32, false)
 	defer g.release(partial)
-	config.chunked, config.add, config.dt[3] = true, false, tensor.Float32
+	config.chunked, config.add, config.plusZero, config.dt[3] = true, false, false, tensor.Float32
 	c := g.takeKernel(config.key(), reduceKernel(config))
 	p := g.param().read(is.a, is.aOf)
 	if is.o != nil {
@@ -137,7 +140,7 @@ func (g *backend) reduceTwoStage(is reduceJob, config reduceConfig, meta, kSh, k
 	}
 	shape2 := append([]int{S}, kSh...)
 	g.reduce(reduceJob{a: partial, output: is.output, outputOf: is.outputOf, shape2: shape2,
-		stA2: append([]int{K}, contiguous(kSh)...), st: append([]int{0}, kSt...), term: tA, add: is.add, scaleF: is.scaleF})
+		stA2: append([]int{K}, contiguous(kSh)...), st: append([]int{0}, kSt...), term: tA, add: is.add, scaleF: is.scaleF, sum: is.sum})
 }
 
 // plainV depolamanın tamamına bitişik görünüm.

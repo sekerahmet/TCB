@@ -330,7 +330,8 @@ type Backend interface {
 	// elemanlarını dstShape'e indirgeyerek dst'ye ekler; diğer elemanlar katkı vermez.
 	WhereGrad(dst Storage, dstShape, outShape []int, g Storage, c View, pick bool)
 	// Atan2Grad atan2(a, b)'nin gradyanları: ga += indirge(g·b/(a²+b²)), gb +=
-	// indirge(−g·a/(a²+b²)); a = b = 0'da terim 0'dır. ga ya da gb nil olabilir.
+	// indirge(−g·a/(a²+b²)); a = b = 0'da ve bir girdi sonsuzken (limit) terim 0'dır, NaN
+	// girdide NaN. ga ya da gb nil olabilir.
 	Atan2Grad(ga, gb Storage, aShape, bShape, outShape []int, g Storage, a, b View)
 
 	// --- Eksen boyunca birikim ve sıralama ---

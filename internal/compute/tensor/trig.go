@@ -47,8 +47,11 @@ func cosPoly(r float64) float64 {
 	return 1 + z*(-0.5+z*(1.0/24+z*(-1.0/720+z*(1.0/40320+z*(-1.0/3628800)))))
 }
 
-// sinf32 sin(x).
+// sinf32 sin(x); sin(±0) = ±0 (indirgeme ve polinom −0'ı +0'a çevirirdi).
 func sinf32(x float32) float32 {
+	if x == 0 {
+		return x
+	}
 	r, c, ok := sinCosReduce(x)
 	if !ok {
 		return float32(math.Sin(float64(x)))

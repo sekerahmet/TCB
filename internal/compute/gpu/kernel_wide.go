@@ -212,7 +212,8 @@ func selectKernel(nd int) func() *emitter {
 
 // atan2GradKernel çıktı şeklinde iki terim yazar: ta = g·x/(x²+y²), tb = −g·y/(x²+y²)
 // (y = a, x = b; yayınlamalı). Taşma ve alt taşmaya karşı m = max(|x|, |y|) ile
-// ölçeklenir; m = 0 ya da sonsuzsa terimler 0'dır. Meta: şekil, a adımı, b adımı.
+// ölçeklenir; m = 0 ya da sonsuzsa terimler 0'dır (sonsuzda limit), NaN girdide NaN (max.f32
+// NaN'ı atar, ayrıca denetlenir). Meta: şekil, a adımı, b adımı.
 func atan2GradKernel(nd int) func() *emitter {
 	return func() *emitter {
 		k := newEmitter(fmt.Sprintf("atan2_turev_%d", nd))
@@ -251,6 +252,9 @@ func atan2GradKernel(nd int) func() *emitter {
 		k.e("setp.eq.f32", empty, m, float32(0))
 		k.e("setp.eq.f32", inf2, m, float32(math.Inf(1)))
 		k.e("or.pred", empty, empty, inf2)
+		num := k.p()
+		k.e("setp.num.f32", num, x, y)
+		k.e("and.pred", empty, empty, num)
 		k.store(tensor.Float32, k.address(ta, i, 4), k.pick(empty, float32(0), ga))
 		k.store(tensor.Float32, k.address(tb, i, 4), k.pick(empty, float32(0), gb))
 		k.put(last)

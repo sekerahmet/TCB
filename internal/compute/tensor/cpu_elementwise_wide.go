@@ -332,7 +332,8 @@ func (b cpuBackend) f32Atan2Grad(ga, gb Storage, aShape, bShape, outShape []int,
 				y, x := float64(ad[off[0]+i*in[0]]), float64(bd[off[1]+i*in[1]])
 				o := off[2] + i*in[2]
 				r := y*y + x*x
-				if r == 0 {
+				if r == 0 || math.IsInf(r, 1) {
+					// 0'da tanımsız, sonsuzda limit: terimler 0 (NaN girdide r NaN'dır, yayılır).
 					continue
 				}
 				gv := float64(gd[o])

@@ -42,6 +42,10 @@ type reduceConfig struct {
 	// kısmi toplamını (ölçeksiz) kismi[parça·K + j]'ye yazar (iki aşamalı indirgemenin
 	// ilk aşaması).
 	chunked bool
+	// plusZero: toplam sonda +0 ile toplanır; yalnızca −0'lardan oluşan toplam +0 olur, başka
+	// hiçbir değer değişmez (x + 0 = x). Birikim −0'dan başlar ki kopyalayan kullanımlar −0'ı
+	// korusun (newCompensatedSum).
+	plusZero bool
 	// dt: A, O, Y ve çıktının türleri (kendi türlerinde okunup yazılır; toplam float32'dedir).
 	// Kullanılmayan işlenenin türü Float32 kalır. Parçalı ilk aşamanın kısmi toplamları
 	// float32'dir.
@@ -49,7 +53,7 @@ type reduceConfig struct {
 }
 
 func (a reduceConfig) key() string {
-	return fmt.Sprintf("indirge:%d:%d:%d:%v:%d:%v:%v", a.nk, a.nr, a.term, a.add, a.block, a.chunked, a.dt)
+	return fmt.Sprintf("indirge:%d:%d:%d:%v:%d:%v:%v:%v", a.nk, a.nr, a.term, a.add, a.block, a.chunked, a.plusZero, a.dt)
 }
 
 // computeTerm A (ve gerekirse O, Y) ofsetlerinden terimi yükler; dt A, O, Y'nin türleri.
@@ -168,7 +172,8 @@ func (k *emitter) sum(a, b reg) reg {
 type compensatedSum struct{ s, c reg }
 
 // newCompensatedSum -0'dan başlar: -0 toplamanın etkisiz elemanıdır (-0 + x = x, -0 dahil);
-// +0'dan başlasa tek terimli çıktılar (dağıtma, birleştirme) -0'ı +0'a çevirirdi.
+// +0'dan başlasa tek terimli çıktılar (dağıtma, birleştirme) -0'ı +0'a çevirirdi. Gerçek
+// toplamlar sonda +0 ekler (reduceConfig.plusZero).
 func (k *emitter) newCompensatedSum() *compensatedSum {
 	return &compensatedSum{s: k.constant(float32(math.Copysign(0, -1))), c: k.constant(0)}
 }
@@ -212,8 +217,8 @@ func (k *emitter) compensatedTotal(a *compensatedSum) reg {
 
 func reduceKernel(a reduceConfig) func() *emitter {
 	return func() *emitter {
-		k := newEmitter(fmt.Sprintf("indirge_%d_%d_%d_%v_%d_%v_%s_%s_%s_%s", a.nk, a.nr, a.term, a.add, a.block, a.chunked,
-			a.dt[0], a.dt[1], a.dt[2], a.dt[3]))
+		k := newEmitter(fmt.Sprintf("indirge_%d_%d_%d_%v_%d_%v_%v_%s_%s_%s_%s", a.nk, a.nr, a.term, a.add, a.block, a.chunked,
+			a.plusZero, a.dt[0], a.dt[1], a.dt[2], a.dt[3]))
 		pa := k.pointer("a")
 		po := k.pointer("o")
 		py := k.pointer("y")
@@ -279,6 +284,9 @@ func reduceKernel(a reduceConfig) func() *emitter {
 		}
 		ot := a.dt[3]
 		ha := k.addressS(out, kofs[2], dtypeSize(ot))
+		if a.plusZero {
+			k.e("add.rn.f32", acc, acc, float32(0))
+		}
 		k.e("mul.rn.f32", acc, acc, scaleF)
 		if a.add {
 			old := k.load(ot, ha)

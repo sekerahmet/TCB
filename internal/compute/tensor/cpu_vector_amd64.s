@@ -120,7 +120,9 @@ bitti:
 
 // func geluIleriCekirdek(y, x *float32, n int)
 //
-// y = x / (1 + e^{−2u}), u = c·(x + a·x³) (tanh yaklaşımlı GELU; Go eşi geluIleriGo).
+// y = max(x, −maks) / (1 + e^{−2u}), u = c·(x + a·x³) (tanh yaklaşımlı GELU; Go eşi
+// geluForwardGo). Pay −∞'da en küçük sonlu sayıdır: −∞/∞ NaN yerine −0 (limit) çıkar; VMAXPS
+// NaN'da ikinci kaynağı (x) verir, NaN korunur.
 TEXT ·geluForwardKernel(SB), NOSPLIT, $0-24
 	MOVQ y+0(FP), DI
 	MOVQ x+8(FP), SI
@@ -131,6 +133,7 @@ TEXT ·geluForwardKernel(SB), NOSPLIT, $0-24
 	SHRQ $3, BX
 	ANDQ $7, DX
 	MASKE
+	VMOVUPS 160(R10), Y15
 	XORQ  AX, AX
 	TESTQ BX, BX
 	JZ    gi_k
@@ -140,7 +143,8 @@ gi_d:
 	GELUARG
 	UST
 	VADDPS  64(R10), Y3, Y3
-	VDIVPS  Y3, Y10, Y3
+	VMAXPS  Y10, Y15, Y4
+	VDIVPS  Y3, Y4, Y3
 	VMOVUPS Y3, (DI)(AX*1)
 	ADDQ    $32, AX
 	DECQ    BX
@@ -153,7 +157,8 @@ gi_k:
 	GELUARG
 	UST
 	VADDPS     64(R10), Y3, Y3
-	VDIVPS     Y3, Y10, Y3
+	VMAXPS     Y10, Y15, Y4
+	VDIVPS     Y3, Y4, Y3
 	VMASKMOVPS Y3, Y14, (DI)(AX*1)
 
 gi_s:
