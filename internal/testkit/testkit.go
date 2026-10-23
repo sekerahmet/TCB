@@ -321,3 +321,24 @@ func WaitGoroutineBlocked(t testing.TB, fatal bool, funcs ...string) {
 		time.Sleep(time.Millisecond)
 	}
 }
+
+// FirstLineDiff iki metnin ayrıldığı ilk satırı, satır numarası ve verilen etiketlerle gösterir;
+// ayrılmıyorsa "(fark yok)" verir.
+func FirstLineDiff(a, b, labelA, labelB string) string {
+	as, bs := strings.Split(a, "\n"), strings.Split(b, "\n")
+	for i := 0; i < len(as) || i < len(bs); i++ {
+		var x, y string
+		if i < len(as) {
+			x = as[i]
+		}
+		if i < len(bs) {
+			y = bs[i]
+		}
+		if x != y {
+			width := max(len([]rune(labelA)), len([]rune(labelB)))
+			pad := func(s string) string { return s + strings.Repeat(" ", width-len([]rune(s))) }
+			return "line " + strconv.Itoa(i+1) + ":\n  " + pad(labelA) + ": " + x + "\n  " + pad(labelB) + ": " + y
+		}
+	}
+	return "(fark yok)"
+}

@@ -117,7 +117,7 @@ func TestCodedFilesGiveSameOutput(t *testing.T) {
 			s.Stdout, s.Stderr = tempDir.ReplaceAllString(s.Stdout, "<geçici>"), tempDir.ReplaceAllString(s.Stderr, "<geçici>")
 		}
 		if s1.Code != 0 || s1.Code != s2.Code || s1.Stdout != s2.Stdout || s1.Stderr != s2.Stderr {
-			t.Errorf("tr test %s: Türkçe ve kodlu kopyalar farklı (çıkış %d / %d)\n%s", dir, s1.Code, s2.Code, lineDiff(s1.Stdout+s1.Stderr, s2.Stdout+s2.Stderr))
+			t.Errorf("tr test %s: Türkçe ve kodlu kopyalar farklı (çıkış %d / %d)\n%s", dir, s1.Code, s2.Code, testkit.FirstLineDiff(s1.Stdout+s1.Stderr, s2.Stdout+s2.Stderr, "Türkçe", "kodlu"))
 		}
 	}
 	examples, _ := filepath.Glob(filepath.Join(tr1, "examples", "tr", "*.tr"))
@@ -132,7 +132,7 @@ func TestCodedFilesGiveSameOutput(t *testing.T) {
 		c1 := digits.ReplaceAllString(progressLine.ReplaceAllString(s1.Stdout+s1.Stderr, ""), "#")
 		c2 := digits.ReplaceAllString(progressLine.ReplaceAllString(s2.Stdout+s2.Stderr, ""), "#")
 		if s1.Code != 0 || s1.Code != s2.Code || c1 != c2 {
-			t.Errorf("tr %s: Türkçe ve kodlu kopyalar farklı (çıkış %d / %d)\n%s", ad, s1.Code, s2.Code, lineDiff(c1, c2))
+			t.Errorf("tr %s: Türkçe ve kodlu kopyalar farklı (çıkış %d / %d)\n%s", ad, s1.Code, s2.Code, testkit.FirstLineDiff(c1, c2, "Türkçe", "kodlu"))
 		}
 	}
 }
@@ -288,7 +288,7 @@ func TestRepoFilesEnglishLossless(t *testing.T) {
 		english := testkit.RunBinary(t, trBinary, "", coded.Stdout, nil, "göster", "-", "--dil", "en")
 		back := testkit.RunBinary(t, trBinary, "", english.Stdout, nil, "kodla", "-", "--dil", "en")
 		if coded.Code != 0 || english.Code != 0 || back.Code != 0 || back.Stdout != coded.Stdout {
-			t.Errorf("%s: İngilizce gidiş dönüş kayıplı (çıkış %d/%d/%d, hata %q%q)\n%s", filePath, coded.Code, english.Code, back.Code, english.Stderr, back.Stderr, lineDiff(coded.Stdout, back.Stdout))
+			t.Errorf("%s: İngilizce gidiş dönüş kayıplı (çıkış %d/%d/%d, hata %q%q)\n%s", filePath, coded.Code, english.Code, back.Code, english.Stderr, back.Stderr, testkit.FirstLineDiff(coded.Stdout, back.Stdout, "Türkçe", "kodlu"))
 			continue
 		}
 		tested++
@@ -296,24 +296,6 @@ func TestRepoFilesEnglishLossless(t *testing.T) {
 	if tested < 40 {
 		t.Fatalf("yalnızca %d dosya sınandı", tested)
 	}
-}
-
-// lineDiff iki çıktının ayrıldığı ilk satırları gösterir.
-func lineDiff(a, b string) string {
-	as, bs := strings.Split(a, "\n"), strings.Split(b, "\n")
-	for i := 0; i < len(as) || i < len(bs); i++ {
-		var x, y string
-		if i < len(as) {
-			x = as[i]
-		}
-		if i < len(bs) {
-			y = bs[i]
-		}
-		if x != y {
-			return "Türkçe: " + x + "\nkodlu:  " + y
-		}
-	}
-	return "(çıktılar aynı)"
 }
 
 // Kodsuz (başlıksız) dosya etkin dil ne olursa olsun Türkçedir (17.7): TR_DIL=en ile de Türkçe

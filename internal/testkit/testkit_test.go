@@ -175,3 +175,16 @@ func TestWaitGoroutineBlocked(t *testing.T) {
 }
 
 func blockedOnChannel(c chan struct{}) { <-c }
+
+// Kural: FirstLineDiff ilk ayrılan satırı numarası ve etiketleriyle gösterir; aynı metinde "(fark yok)".
+func TestFirstLineDiff(t *testing.T) {
+	if got := FirstLineDiff("a\nb\nc", "a\nx\nc", "özgün", "geri"); got != "line 2:\n  özgün: b\n  geri : x" {
+		t.Errorf("fark: %q", got)
+	}
+	if got := FirstLineDiff("a\nb", "a\nb\nc", "1", "2"); got != "line 3:\n  1: \n  2: c" {
+		t.Errorf("uzunluk farkı: %q", got)
+	}
+	if got := FirstLineDiff("a", "a", "1", "2"); got != "(fark yok)" {
+		t.Errorf("aynı: %q", got)
+	}
+}
