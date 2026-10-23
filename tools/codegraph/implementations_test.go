@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"go/types"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -85,5 +88,133 @@ func TestInterfaceMethodsDispatchToTheirImplementations(t *testing.T) {
 	}
 	if got := ask("tests-for", "tensor.cpuBackend.Softmax"); !strings.Contains(got, "tensor.TestSoftmaxOp") || !strings.Contains(got, "[INFERRED]") {
 		t.Errorf("tests-for reaches the implementation through the interface call:\n%s", got)
+	}
+}
+
+var promotedFiles = map[string]string{"p/p.go": `package p
+
+type Storage interface {
+	Hold()
+	Len() int
+}
+
+// Counter depolamalara gömülür; Hold'u gömüldüğü tip üzerinden Storage'ı karşılar.
+type Counter struct{}
+
+func (*Counter) Hold() {}
+
+type cpu struct{ Counter }
+
+func (*cpu) Len() int { return 0 }
+
+func Use(s Storage) int { s.Hold(); return s.Len() }
+
+var _ = Use(&cpu{})
+`}
+
+// dispatchMisses go/types'ın kendi yöntem kümesine (types.NewMethodSet; codegraph'ın implementingMethods'u değil)
+// karşı her (arayüz yöntemi, uygulayan yöntem) çiftinin grafikte `dispatches_to` kenarı olduğunu denetler; gömülü
+// alandan yükseltilen uygulama dahil. Eksikleri verir.
+func dispatchMisses(t *testing.T, m *module, g *Graph) (misses []string, promoted int) {
+	t.Helper()
+	have := map[[2]string]bool{}
+	for _, e := range g.Edges {
+		if e.Kind == edgeDispatches {
+			have[[2]string{e.From, e.To}] = true
+		}
+	}
+	var ifaces, concrete []*types.Named
+	for _, pkg := range m.Base {
+		for _, name := range pkg.Scope().Names() {
+			tn, ok := pkg.Scope().Lookup(name).(*types.TypeName)
+			if !ok || tn.IsAlias() {
+				continue
+			}
+			if n, ok := tn.Type().(*types.Named); ok && n.TypeParams().Len() == 0 {
+				if _, isIface := n.Underlying().(*types.Interface); isIface {
+					ifaces = append(ifaces, n)
+				} else {
+					concrete = append(concrete, n)
+				}
+			}
+		}
+	}
+	for _, c := range concrete {
+		ptr := types.NewPointer(c)
+		set := types.NewMethodSet(ptr)
+		for _, i := range ifaces {
+			it := i.Underlying().(*types.Interface)
+			if !types.Implements(ptr, it) {
+				continue
+			}
+			for k := 0; k < it.NumMethods(); k++ {
+				im := it.Method(k)
+				sel := set.Lookup(im.Pkg(), im.Name())
+				impl := sel.Obj().(*types.Func)
+				if len(sel.Index()) > 1 {
+					promoted++
+				}
+				from := typesID(m.Path, im)
+				to := typesID(m.Path, impl)
+				if from != to && !have[[2]string{from, to}] {
+					misses = append(misses, fmt.Sprintf("%s -> %s (through %s)", from, to, c.Obj().Name()))
+				}
+			}
+		}
+	}
+	return misses, promoted
+}
+
+// Kural: arayüz gönderimi ve dead-methods yöntem kümesinin aynı kuralını kullanır (implementingMethods,
+// types.NewMethodSet): gömülü alandan yükseltilen yöntem, gömüldüğü tipin sağladığı arayüzü karşılar. Grafik go/types'ın
+// yöntem kümesine karşı tutarlıdır; yükseltilen kenarlar silinince tutarlılık testi düşer (mutasyon); dead-methods
+// yükseltilen yöntemi "unreferenced" saymaz (TCB sağlık taraması P1: tensor.VersionCounter.Hold).
+func TestPromotedMethodsSatisfyInterfacesInDispatchAndDeadMethods(t *testing.T) {
+	root := auditModule(t, promotedFiles)
+	m, err := load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	g, err := buildGraph(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	misses, promoted := dispatchMisses(t, m, g)
+	if len(misses) != 0 || promoted == 0 {
+		t.Fatalf("dispatches_to against go/types (promoted %d): %v", promoted, misses)
+	}
+	g.Edges = slices.DeleteFunc(g.Edges, func(e Edge) bool { return e.Kind == edgeDispatches && strings.Contains(e.To, ".Counter.") })
+	if misses, _ := dispatchMisses(t, m, g); len(misses) == 0 {
+		t.Error("removing the promoted dispatches_to edge must be caught")
+	}
+	res := auditJSON(t, "dead-methods", root)
+	listed, _ := res["methods"].([]any) // aday yoksa nil
+	for _, v := range listed {
+		if name := v.(map[string]any)["method"].(string); strings.Contains(name, "Counter.Hold") {
+			t.Errorf("Counter.Hold is called through Storage.Hold by embedding; listed as %v", v)
+		}
+	}
+}
+
+// Kural: deponun grafiği de go/types'ın yöntem kümesiyle tutarlıdır (yükseltilen yöntemler dahil). Modülü iki kez
+// yükler, -short ile atlanır.
+func TestDispatchesMatchMethodSetsOnTheRepository(t *testing.T) {
+	if testing.Short() {
+		t.Skip("loads the whole module twice")
+	}
+	root, err := resolveRoot("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m, err := load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	g, err := buildGraph(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if misses, promoted := dispatchMisses(t, m, g); len(misses) != 0 || promoted == 0 {
+		t.Errorf("promoted %d; missing dispatches_to (%d): %v", promoted, len(misses), misses)
 	}
 }

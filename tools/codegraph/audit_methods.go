@@ -6,6 +6,7 @@ import (
 	"go/token"
 	"go/types"
 	"io"
+	"slices"
 	"sort"
 	"strings"
 
@@ -68,6 +69,7 @@ type methodAudit struct {
 	ifaceByID map[string]*types.Named   // tip anahtarı -> arayüz
 	concrete  []*types.Named            // modülün adlı somut tipleri
 	implement map[string][]*types.Named // somut tip anahtarı -> sağladığı modül arayüzleri
+	satisfies map[string][]ifaceSlot    // yöntem anahtarı -> karşıladığı arayüz yöntemleri (gömülü alandan yükseltilen dahil)
 	shadow    map[string]string         // "tip.metot" -> gölgeleme açıklaması
 }
 
@@ -111,9 +113,22 @@ func (a *methodAudit) collectTypes() {
 		a.ifaceByID[typeKey(i)] = i
 	}
 	a.implement = map[string][]*types.Named{}
+	a.satisfies = map[string][]ifaceSlot{}
 	for _, p := range pairs {
 		a.implement[typeKey(p.concrete)] = append(a.implement[typeKey(p.concrete)], p.iface)
+		// dispatches_to ile aynı kural (implementingMethods, types.NewMethodSet): bir yöntem, gömüldüğü tipin
+		// sağladığı arayüzü de karşılar (tensor.VersionCounter.Hold, cpuStorage ve gpu.storage üzerinden Storage.Hold).
+		for _, pair := range implementingMethods(p) {
+			k := a.fkey(pair[1])
+			a.satisfies[k] = append(a.satisfies[k], ifaceSlot{p.iface, pair[0]})
+		}
 	}
+}
+
+// ifaceSlot bir arayüzün bir yöntemidir.
+type ifaceSlot struct {
+	iface  *types.Named
+	method *types.Func
 }
 
 // collectDecls somut tiplerin bildirilmiş yöntemlerini toplar.
@@ -182,11 +197,11 @@ func (a *methodAudit) classify(d methodDecl) (deadMethod, bool) {
 	}
 	var satisfied []string
 	called := false
-	for _, i := range a.implement[typeKey(d.recv)] {
-		if im := ifaceMethod(i, name); im != nil {
-			satisfied = append(satisfied, i.Obj().Name())
-			called = called || a.prodUses[a.fkey(im)] > 0
+	for _, s := range a.satisfies[key] {
+		if !slices.Contains(satisfied, s.iface.Obj().Name()) {
+			satisfied = append(satisfied, s.iface.Obj().Name())
 		}
+		called = called || a.prodUses[a.fkey(s.method)] > 0
 	}
 	switch {
 	case called:
