@@ -90,10 +90,6 @@ func declNames(t *testing.T, dir string, files []string) (stubs int) {
 	return stubs
 }
 
-// recvName goload.RecvExprName'dir; behavior_file_format_names_test.go da çağırdığı için ad şimdilik kalır (o dosya
-// başka bir partide; geçince bu satır silinir).
-func recvName(e ast.Expr) string { return goload.RecvExprName(e) }
-
 // Her işletim sistemi, mimari ve etiket kümesinde her hesap paketinin dosya seçimi tutarlıdır:
 // en az bir dosya kalır, cgo yoktur, bir ad iki dosyada tanımlanmaz ve gövdesiz (assembly)
 // işlev ancak assembly dosyası seçildiğinde bulunur. Gerçek derleme: TestCompileEveryConfiguration.

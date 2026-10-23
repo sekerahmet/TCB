@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/devtools/goload"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
@@ -85,7 +86,7 @@ func importsJSON(f *ast.File) bool {
 // fieldNames bir alan bildiriminin adlarıdır; gömülü alanda tip adı.
 func fieldNames(f *ast.Field) []string {
 	if len(f.Names) == 0 {
-		return []string{recvName(f.Type)}
+		return []string{goload.RecvExprName(f.Type)}
 	}
 	var names []string
 	for _, n := range f.Names {
