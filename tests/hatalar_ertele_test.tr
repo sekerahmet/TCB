@@ -121,4 +121,3 @@ test "8.4 yakalanan hata metni değişmez; denetim karakterleri yalnızca termin
     doğrula(m.içerir("\r"), "yakalanan metin kaçırılmamalı")
     eşit_mi("kötü\rveri", m)
 }
-

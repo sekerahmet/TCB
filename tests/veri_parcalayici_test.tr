@@ -146,7 +146,7 @@ test "16.6 sıralı okuyucu döngüyle gezilir; örnekleyici gezilmez" {
     değişken s2 = küme.sıralı(toplu: 2, bağlam: 4)
     döngü iş içinde s2 { çık }
     eşit_mi(30, [1 döngü iş içinde s2].uzunluk)
-    doğrula(hata_metni(() => { döngü iş içinde küme.örnekleyici(toplu: 2, bağlam: 4) { } }).içerir("örnekleyici sonsuz toplu iş üretir"))
+    doğrula(hata_metni(() => { döngü iş içinde küme.örnekleyici(toplu: 2, bağlam: 4) {} }).içerir("örnekleyici sonsuz toplu iş üretir"))
 }
 
 test "16.7 hatalar Türkçe ve yakalanabilir" {

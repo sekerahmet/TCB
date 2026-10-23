@@ -59,7 +59,7 @@ fonksiyon yüzdelik(değerler, p) {
 değişken kayıplar = []
 değişken ısınma_ms = []
 değişken ölçülen_ms = []
-döngü adım içinde 0..(ISINMA + ÖLÇÜLEN) {
+döngü adım içinde 0.. (ISINMA + ÖLÇÜLEN) {
     değişken t0 = zaman_ms()
     değişken v = adım_at(adım)
     değişken ms = zaman_ms() - t0

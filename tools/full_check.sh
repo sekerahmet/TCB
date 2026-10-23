@@ -408,6 +408,8 @@ for mode in $modes; do
 			# Örnekler öğrenme yoludur: standart biçimde olmalı (iki yazım da; kodlu dosya kodlu biçimlenir).
 			# Hata örnekleri (hatalar/, errors/) bilerek bozuktur ve biçimlenmez; yalnızca numaralı örnekler ve yardımcılar.
 			summarize "tr biçimle --kontrol examples" "$TR" biçimle --kontrol examples/tr/[0-9]*.tr examples/tr/helpers examples/en/[0-9]*.tr examples/en/helpers
+			# Kitaplık, testler ve araç betikleri de standart biçimde olmalı; tests/negative bilerek bozuktur.
+			summarize "tr biçimle --kontrol lib tests tools" "$TR" biçimle --kontrol lib tests/*.tr tests/sub tests/tr tests/coded tools/gpu tools/bench/tr
 			run_examples
 			[ "$mode" = v3 ] || extension_tests
 		else

@@ -29,10 +29,10 @@
 // Tersi: --ağırlık DOSYA --adım 0 PyTorch'ta eğitilmiş modeli (rgn_to_tr.py) eğitmeden TR'nin koduyla ölçer.
 
 değişken arg = komut_satırı({veri: "", adım: 120, toplu: 64, mikro: 32, bağlam: 1024, oran: 0.002,
-        cihaz: "gpu", tohum: 0, günlük: 50, çıktı: "", ağırlık: "", sıralı: yanlış, hassasiyet: "bf16",
-        kayıplar: "", dağarcık: 40000, boyut: 512, katman: 8, bakış_sayısı: 8, kv_bakış_sayısı: 4, ara: 672,
-        doğrulama: "", değerlendirme: 1000, değerlendirme_parça: 4194304,
-        koşu: "", kayıt_dakika: 15, bekçi_pencere: 128, bekçi_eşik: 6.0, atla: 200, nan_adımı: -1, kaydet: ""},
+    cihaz: "gpu", tohum: 0, günlük: 50, çıktı: "", ağırlık: "", sıralı: yanlış, hassasiyet: "bf16",
+    kayıplar: "", dağarcık: 40000, boyut: 512, katman: 8, bakış_sayısı: 8, kv_bakış_sayısı: 4, ara: 672,
+    doğrulama: "", değerlendirme: 1000, değerlendirme_parça: 4194304,
+    koşu: "", kayıt_dakika: 15, bekçi_pencere: 128, bekçi_eşik: 6.0, atla: 200, nan_adımı: -1, kaydet: ""},
     açıklama: "Hedef modelin TR karşılığı (PyTorch: rgn512.py)")
 doğrula(arg.veri != "", "--veri ile .npy klasörü verilmeli")
 varsayılan_cihaz(arg.cihaz)
