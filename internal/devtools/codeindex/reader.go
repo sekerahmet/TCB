@@ -25,7 +25,13 @@ func NewReader(idx *Index) *Reader {
 	r.callers, r.importers = map[string][]string{}, map[string][]string{}
 	for _, e := range idx.Edges {
 		switch e.Kind {
-		case EdgeCalls:
+		case EdgeCalls, EdgeUses:
+			// Zincire giren bağlar codegraph'ınkiyle aynıdır (test_reach.go reachEdge: TR tanımına çağrı ve kullanım;
+			// işlev değer olarak geçip başka yerde çağrılabilir; yerleşik ada kullanım grafikte uses_name'dir, zincire
+			// girmez, yerleşiği yalnızca çağıran test sınar). İki aracın sınayan kümesi aynı olur (DENETİM doğrulaması T3).
+			if e.Kind == EdgeUses && r.byID[e.To] != nil && r.byID[e.To].Kind == KindBuiltin {
+				continue
+			}
 			r.callers[e.To] = append(r.callers[e.To], e.From)
 		case EdgeImports:
 			r.importers[e.To] = append(r.importers[e.To], e.From)

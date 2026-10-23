@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -296,6 +298,9 @@ func TestPlanningQuestionsAreAnswered(t *testing.T) {
 		t.Fatal(err)
 	}
 	x := &examRunner{root: root, graph: g, reader: codeindex.NewReader(idx)}
+	if bad, checked := trTestSetMismatches(g, idx, x.reader); len(bad) > 0 || checked < 100 {
+		t.Errorf("tr dizin sınayanlar and tests-for disagree on %d of %d TR functions:\n  %s", len(bad), checked, strings.Join(bad[:min(len(bad), 20)], "\n  "))
+	}
 	out, _ := gitStdout(root, "rev-parse", "--is-shallow-repository")
 	shallow := strings.TrimSpace(string(out)) == "true" // CI kaynağı derinlik 1 ile alır: geçmiş yok
 	for _, r := range records {
@@ -311,6 +316,40 @@ func TestPlanningQuestionsAreAnswered(t *testing.T) {
 			}
 		}
 	}
+}
+
+// trTestSetMismatches iki aracın her TR işlev ve metodu için verdiği TR test kümelerini karşılaştırır: `tr dizin
+// sınayanlar` (codeindex.TestedBy) ile `tests-for`'un TR testleri (testDistances) aynı olmalı. Zincir kuralı tek
+// (codeindex.WalkCallers); giren çağıran kümesi de aynı olmalı (DENETİM doğrulaması T3).
+func trTestSetMismatches(g *Graph, idx *codeindex.Index, reader *codeindex.Reader) (bad []string, checked int) {
+	ix := newIndex(g)
+	for _, n := range idx.Nodes {
+		if n.Kind != codeindex.KindFunction && n.Kind != codeindex.KindMethod {
+			continue
+		}
+		gn := ix.byID[graphID(n)]
+		if gn == nil {
+			continue
+		}
+		checked++
+		want := map[string]bool{}
+		for _, u := range reader.TestedBy(n.ID, codeindex.QueryOptions{}).Tests {
+			if u.In != nil {
+				want["tr:test:"+u.In.Pos.File+":"+strconv.Itoa(u.In.Pos.Line)] = true
+			}
+		}
+		got := map[string]bool{}
+		for id := range ix.testDistances(gn) {
+			if ix.byID[id].Kind == kindTRTest {
+				got[id] = true
+			}
+		}
+		if !maps.Equal(want, got) {
+			bad = append(bad, fmt.Sprintf("%s: tr dizin %d, tests-for %d", gn.Name, len(want), len(got)))
+		}
+	}
+	sort.Strings(bad)
+	return bad, checked
 }
 
 func indentOutput(out string) string {

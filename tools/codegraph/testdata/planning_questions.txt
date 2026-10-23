@@ -93,3 +93,4 @@ codegraph query gpu.runExitHandlers | contains: internal/compute/gpu/cuda_linux.
 codegraph dead-methods --in internal/compute/tensor | not: VersionCounter | src: sağlık taraması P1, 2026-10-24
 codegraph query tensor.Storage.Hold | group: dispatches_to => tensor.VersionCounter.Hold | src: sağlık taraması P1, 2026-10-24
 codegraph spec-refs | contains: 0 note(s) | not: no item 2.14 | src: sağlık taraması P2, 2026-10-24
+tr dizin sınayanlar swiglu_kapısı | contains: lib/katman_test.tr | src: DENETİM doğrulaması T3 (iki aracın sınayan kümesi), 2026-10-24
