@@ -415,16 +415,12 @@ func idSeqs(v interp.Value) (seqs [][]int, single bool, err error) {
 	case *ml.TensorValue:
 		t := x.Tensor()
 		sh := t.Shape()
-		data := t.Data()
 		if len(sh) > 2 {
 			return nil, false, messages.New(messages.H5636, fn, len(sh))
 		}
-		ids := make([]int, len(data))
-		for i, f := range data {
-			if float32(int(f)) != f {
-				return nil, false, messages.New(messages.H5637, fn, f)
-			}
-			ids[i] = int(f)
+		ids, bad, ok := x.IntElements()
+		if !ok {
+			return nil, false, messages.New(messages.H5637, fn, bad)
 		}
 		if len(sh) < 2 {
 			return [][]int{ids}, true, nil

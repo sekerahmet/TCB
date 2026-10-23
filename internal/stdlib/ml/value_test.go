@@ -1,6 +1,7 @@
 package ml
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -75,5 +76,20 @@ AdamW([y])`)
 	out := mustRun(t, `yazdır(tensör([1.0], türev_izle: doğru).gradyan, sıfırlar([2]).gradyan)`)
 	if out != "yok yok\n" {
 		t.Fatalf("yaprak gradyanı: %q", out)
+	}
+}
+
+// Kural: IntElements tensörün bütün elemanlarını tam sayı olarak verir; tam sayı olmayan ilk eleman
+// bad ile bildirilir (ok yanlış).
+func TestIntElements(t *testing.T) {
+	ids, _, ok := New(tensor.NewOn(tensor.CPU, []float32{3, -1, 0}, 3)).IntElements()
+	if !ok || !slices.Equal(ids, []int{3, -1, 0}) {
+		t.Errorf("IntElements = %v, %v", ids, ok)
+	}
+	if _, bad, ok := New(tensor.NewOn(tensor.CPU, []float32{1, 2.5, 3.5}, 3)).IntElements(); ok || bad != 2.5 {
+		t.Errorf("tam sayı olmayan eleman: bad = %v, ok = %v", bad, ok)
+	}
+	if ids, _, ok := New(tensor.NewOn(tensor.CPU, []float32{}, 0)).IntElements(); !ok || len(ids) != 0 {
+		t.Errorf("boş tensör: %v, %v", ids, ok)
 	}
 }

@@ -19,25 +19,18 @@ func intIndices(fn string, v interp.Value) ([]int, []int, error) {
 	if n, ok := intNumber(v); ok {
 		return []int{n}, nil, nil
 	}
-	var data []float32
-	var sh []int
 	switch x := v.(type) {
 	case *TensorValue:
-		data, sh = x.t.Data(), x.t.Shape()
+		ids, bad, ok := x.IntElements()
+		if !ok {
+			return nil, nil, messages.New(messages.H6012, fn, bad)
+		}
+		return ids, x.t.Shape(), nil
 	case *interp.ListVal:
 		// Liste değerleri tam sayı olarak okunur (float32'den geçmez).
 		return listInts(fn, x)
-	default:
-		return nil, nil, messages.New(messages.H6300, fn, typeName(v))
 	}
-	out := make([]int, len(data))
-	for i, f := range data {
-		if float32(int(f)) != f {
-			return nil, nil, messages.New(messages.H6012, fn, f)
-		}
-		out[i] = int(f)
-	}
-	return out, sh, nil
+	return nil, nil, messages.New(messages.H6300, fn, typeName(v))
 }
 
 func embedding(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
