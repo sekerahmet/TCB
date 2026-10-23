@@ -353,3 +353,24 @@ func TestBuildScalesLinearly(t *testing.T) {
 		}
 	})
 }
+
+// Kural: WriteFileAtomic dosyayı bütün olarak yerine koyar (eski içerik tam değişir), geçici dosya bırakmaz ve klasör yoksa
+// hata verir; dizin önbelleği ile codegraph'ın graph.json'ı aynı yazıcıyı kullanır.
+func TestWriteFileAtomicReplacesWholeAndLeavesNoTemp(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "x.json")
+	for _, content := range []string{"{\"a\": 1}", "{}"} {
+		if err := WriteFileAtomic(path, []byte(content)); err != nil {
+			t.Fatal(err)
+		}
+		if got, _ := os.ReadFile(path); string(got) != content {
+			t.Errorf("content = %q, want %q", got, content)
+		}
+	}
+	if entries, _ := os.ReadDir(dir); len(entries) != 1 {
+		t.Errorf("temporary file left behind: %v", entries)
+	}
+	if err := WriteFileAtomic(filepath.Join(dir, "none", "y.json"), []byte("x")); err == nil {
+		t.Error("a missing directory is an error")
+	}
+}

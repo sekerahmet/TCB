@@ -7,6 +7,8 @@ import (
 	"go/token"
 	"sort"
 	"strings"
+
+	"github.com/sekerahmet/TCB/internal/devtools/goload"
 )
 
 // branchDecls ref'teki Go dosyalarını ayrıştırıp, verilen hunk'ların yeni taraftaki satırlarına
@@ -55,7 +57,7 @@ func declName(d ast.Decl) (name, kind string) {
 	switch d := d.(type) {
 	case *ast.FuncDecl:
 		if d.Recv != nil && len(d.Recv.List) == 1 {
-			return recvTypeName(d.Recv.List[0].Type) + "." + d.Name.Name, "method"
+			return goload.RecvExprName(d.Recv.List[0].Type) + "." + d.Name.Name, "method"
 		}
 		return d.Name.Name, "func"
 	case *ast.GenDecl:
@@ -64,22 +66,4 @@ func declName(d ast.Decl) (name, kind string) {
 		}
 	}
 	return "", ""
-}
-
-// recvTypeName alıcı ifadesinin tip adıdır (gösterici ve tip parametreleri atılır).
-func recvTypeName(e ast.Expr) string {
-	for {
-		switch v := e.(type) {
-		case *ast.StarExpr:
-			e = v.X
-		case *ast.IndexExpr:
-			e = v.X
-		case *ast.IndexListExpr:
-			e = v.X
-		case *ast.Ident:
-			return v.Name
-		default:
-			return "?"
-		}
-	}
 }

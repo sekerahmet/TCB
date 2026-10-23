@@ -222,3 +222,25 @@ func RecvName(t types.Type) string {
 	}
 	return ""
 }
+
+// RecvExprName bir alıcı tipi ifadesinin (yazıldığı hâliyle, ast) adını verir: gösterici, parantez ve tür parametreleri
+// atılır (`*T[K, V]` → T); ad değilse "?". RecvName tip bilgisinden, bu ifadeden çalışır; tip denetimi gerekmeyen yerler
+// (derlemesi kapalı dosyalar, sözdizimi taramaları) bunu kullanır.
+func RecvExprName(e ast.Expr) string {
+	for {
+		switch v := e.(type) {
+		case *ast.StarExpr:
+			e = v.X
+		case *ast.ParenExpr:
+			e = v.X
+		case *ast.IndexExpr:
+			e = v.X
+		case *ast.IndexListExpr:
+			e = v.X
+		case *ast.Ident:
+			return v.Name
+		default:
+			return "?"
+		}
+	}
+}

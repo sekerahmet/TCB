@@ -1,10 +1,12 @@
 package codeindex
 
 import (
+	"cmp"
 	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
@@ -240,15 +242,8 @@ func (x *indexer) finish() *Index {
 			idx.Edges = append(idx.Edges, *e)
 		}
 	}
-	sort.Slice(idx.Edges, func(i, j int) bool {
-		a, b := idx.Edges[i], idx.Edges[j]
-		if a.From != b.From {
-			return a.From < b.From
-		}
-		if a.To != b.To {
-			return a.To < b.To
-		}
-		return a.Kind < b.Kind
+	slices.SortFunc(idx.Edges, func(a, b Edge) int {
+		return cmp.Or(cmp.Compare(a.From, b.From), cmp.Compare(a.To, b.To), cmp.Compare(a.Kind, b.Kind))
 	})
 	for _, o := range x.occ {
 		if x.nodes[o.Node] != nil {

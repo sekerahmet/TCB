@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/devtools/goload"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
@@ -62,7 +63,7 @@ func declNames(t *testing.T, dir string, files []string) (stubs int) {
 			case *ast.FuncDecl:
 				key := d.Name.Name
 				if d.Recv != nil && len(d.Recv.List) == 1 {
-					key = recvName(d.Recv.List[0].Type) + "." + key
+					key = goload.RecvExprName(d.Recv.List[0].Type) + "." + key
 				}
 				if d.Name.Name != "init" && d.Name.Name != "_" {
 					add(key, f)
@@ -89,20 +90,9 @@ func declNames(t *testing.T, dir string, files []string) (stubs int) {
 	return stubs
 }
 
-// recvName alıcı tipinin adını verir (yıldız ve tür parametreleri atılır).
-func recvName(e ast.Expr) string {
-	switch x := e.(type) {
-	case *ast.StarExpr:
-		return recvName(x.X)
-	case *ast.IndexExpr:
-		return recvName(x.X)
-	case *ast.IndexListExpr:
-		return recvName(x.X)
-	case *ast.Ident:
-		return x.Name
-	}
-	return "?"
-}
+// recvName goload.RecvExprName'dir; behavior_file_format_names_test.go da çağırdığı için ad şimdilik kalır (o dosya
+// başka bir partide; geçince bu satır silinir).
+func recvName(e ast.Expr) string { return goload.RecvExprName(e) }
 
 // Her işletim sistemi, mimari ve etiket kümesinde her hesap paketinin dosya seçimi tutarlıdır:
 // en az bir dosya kalır, cgo yoktur, bir ad iki dosyada tanımlanmaz ve gövdesiz (assembly)

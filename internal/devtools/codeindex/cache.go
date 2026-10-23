@@ -105,7 +105,7 @@ func saveCache(root string, man manifest, idx *Index) error {
 		if err != nil {
 			return err
 		}
-		if err := writeAtomic(filepath.Join(dir, indexName), data); err != nil {
+		if err := WriteFileAtomic(filepath.Join(dir, indexName), data); err != nil {
 			return err
 		}
 	}
@@ -113,11 +113,11 @@ func saveCache(root string, man manifest, idx *Index) error {
 	if err != nil {
 		return err
 	}
-	return writeAtomic(filepath.Join(dir, manifestName), mdata)
+	return WriteFileAtomic(filepath.Join(dir, manifestName), mdata)
 }
 
 // writeAtomic dosyayı geçici dosyaya yazıp yerine koyar: eşzamanlı okuyan yarım dosya görmez.
-func writeAtomic(path string, data []byte) error {
+func WriteFileAtomic(path string, data []byte) error {
 	tmp, err := os.CreateTemp(filepath.Dir(path), ".tmp-*")
 	if err != nil {
 		return err

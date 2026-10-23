@@ -3,7 +3,6 @@ package codeindex
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -12,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/source"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // fixtureDir deneme projesidir: modül, test, takma adlı aktarma, kodlu dosya, bozuk dosya.
@@ -131,23 +131,7 @@ func TestSkippedFileKeepsItsModuleNode(t *testing.T) {
 
 // Dizin yazım dilinden bağımsızdır: aynı proje TR_DIL=tr ve TR_DIL=en ile aynı olguları verir.
 func TestIndexIndependentOfActiveLanguage(t *testing.T) {
-	tr, en := facts(buildWithLanguage(t, "tr")), facts(buildWithLanguage(t, "en"))
-	if len(tr) < 40 {
-		t.Fatalf("too few facts to compare: %d", len(tr))
-	}
-	if strings.Join(tr, "\n") != strings.Join(en, "\n") {
-		have := map[string]bool{}
-		for _, f := range en {
-			have[f] = true
-		}
-		var missing []string
-		for _, f := range tr {
-			if !have[f] {
-				missing = append(missing, f)
-			}
-		}
-		t.Errorf("TR_DIL=en changes the index (%d facts vs %d); only in tr:\n%s", len(tr), len(en), strings.Join(missing, "\n"))
-	}
+	testkit.AssertSameFactSet(t, "the index", 40, facts(buildWithLanguage(t, "tr")), facts(buildWithLanguage(t, "en")))
 }
 
 // TestHelperBuildFixture bir test değil, alt süreçtir: çıktı yolu verilirse fikstürün dizinini oraya yazar.
@@ -168,17 +152,7 @@ func TestHelperBuildFixture(t *testing.T) {
 // buildWithLanguage fikstürün dizinini TR_DIL=lang ortamında bir alt süreçte kurar.
 func buildWithLanguage(t *testing.T, lang string) *Index {
 	t.Helper()
-	out := filepath.Join(t.TempDir(), "index_"+lang+".json")
-	cmd := exec.Command(os.Args[0], "-test.run=^TestHelperBuildFixture$")
-	cmd.Env = append(os.Environ(), "TR_DIL="+lang, "CODEINDEX_HELPER_OUT="+out)
-	if b, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("TR_DIL=%s: %v\n%s", lang, err, b)
-	}
-	data, err := os.ReadFile(out)
-	if err != nil {
-		t.Fatal(err)
-	}
-	idx, err := DecodeIndex(data)
+	idx, err := DecodeIndex(testkit.RunWithLanguageFile(t, "TestHelperBuildFixture", "CODEINDEX_HELPER_OUT", lang))
 	if err != nil {
 		t.Fatal(err)
 	}

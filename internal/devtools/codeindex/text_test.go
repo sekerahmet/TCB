@@ -109,3 +109,31 @@ func TestScanTextDerivedFormsAndGoLexicalState(t *testing.T) {
 		t.Errorf("hits:\n%s\nwant:\n%s\nother=%d", got, want, other)
 	}
 }
+
+// Kural: GitTracked izlenen dosyaları verir ve yalnızca onları (izlenmeyen dosya yok); .git yoksa ok=false (çağıran klasörü dolaşır).
+func TestGitTrackedListsOnlyTrackedFiles(t *testing.T) {
+	dir := t.TempDir()
+	if _, ok := GitTracked(dir); ok {
+		t.Error("a folder without .git has no tracked list")
+	}
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git yok")
+	}
+	for _, args := range [][]string{{"init", "-q"}} {
+		if out, err := exec.Command("git", append([]string{"-C", dir}, args...)...).CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	for name, text := range map[string]string{"a.tr": "x", "b.tr": "y"} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if out, err := exec.Command("git", "-C", dir, "add", "a.tr").CombinedOutput(); err != nil {
+		t.Fatalf("git add: %v\n%s", err, out)
+	}
+	got, ok := GitTracked(dir)
+	if !ok || len(got) != 1 || got[0] != "a.tr" {
+		t.Errorf("GitTracked = %v, %v; want only a.tr", got, ok)
+	}
+}

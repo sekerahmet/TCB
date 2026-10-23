@@ -11,11 +11,12 @@ import (
 	"bytes"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
 )
 
 // File taranan bir dosyadır (Path köke göre, '/' ile).
@@ -30,7 +31,7 @@ var skipDirs = map[string]bool{".git": true, ".claude": true, ".codegraph": true
 // Collect kökteki .md, .go ve .tr dosyalarını okur: `.git` varsa yalnızca izlenenler (git ls-files; depo
 // kökündeki izlenmeyen dosyalar kullanıcınındır), yoksa klasör dolaşılır. testdata taranmaz.
 func Collect(root string) ([]File, error) {
-	rels, ok := tracked(root)
+	rels, ok := codeindex.GitTracked(root)
 	if !ok {
 		rels = nil
 		err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
@@ -79,24 +80,6 @@ func inSkipped(rel string) bool {
 		}
 	}
 	return false
-}
-
-// tracked git ls-files çıktısıdır; git yoksa ya da kök bir depo değilse ok=false.
-func tracked(root string) ([]string, bool) {
-	if _, err := os.Stat(filepath.Join(root, ".git")); err != nil {
-		return nil, false
-	}
-	out, err := exec.Command("git", "-C", root, "ls-files", "-z").Output()
-	if err != nil {
-		return nil, false
-	}
-	var rels []string
-	for _, n := range bytes.Split(out, []byte{0}) {
-		if len(n) > 0 {
-			rels = append(rels, string(n))
-		}
-	}
-	return rels, true
 }
 
 // Item dil tanımının numaralı bir maddesidir.

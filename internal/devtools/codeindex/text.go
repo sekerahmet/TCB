@@ -51,7 +51,7 @@ const (
 // izlenmeyen dosyalar kullanıcınındır), yoksa DefaultSkipDirs dışındaki klasörler dolaşılır.
 func textFiles(root string) []string {
 	var rels []string
-	tracked, ok := gitTracked(root)
+	tracked, ok := GitTracked(root)
 	if ok {
 		rels = tracked
 	} else {
@@ -311,9 +311,9 @@ func clip(line string) string {
 	return line
 }
 
-// gitTracked `.git` varsa ve git çalışıyorsa izlenen dosyalardır (git ls-files); aksi halde ok=false:
-// çağıran klasörü dolaşır.
-func gitTracked(root string) ([]string, bool) {
+// GitTracked `.git` varsa ve git çalışıyorsa izlenen dosyalardır (git ls-files); aksi halde ok=false:
+// çağıran klasörü dolaşır. Dizin, `tools/internal/specref` ve başka araçlar aynı işlevi kullanır (Parti 9 Y2).
+func GitTracked(root string) ([]string, bool) {
 	if _, err := os.Stat(filepath.Join(root, ".git")); err != nil {
 		return nil, false
 	}

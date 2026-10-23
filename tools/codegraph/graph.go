@@ -1,11 +1,15 @@
 package main
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
+
+	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
 )
 
 // schemaVersion graph.json biçimi değişince artar; okuyucular bilmedikleri sürümü reddeder.
@@ -182,15 +186,8 @@ func (b *builder) graph() *Graph {
 		}
 		g.Edges = append(g.Edges, *e)
 	}
-	sort.Slice(g.Edges, func(i, j int) bool {
-		a, c := g.Edges[i], g.Edges[j]
-		if a.From != c.From {
-			return a.From < c.From
-		}
-		if a.To != c.To {
-			return a.To < c.To
-		}
-		return a.Kind < c.Kind
+	slices.SortFunc(g.Edges, func(a, c Edge) int {
+		return cmp.Or(cmp.Compare(a.From, c.From), cmp.Compare(a.To, c.To), cmp.Compare(a.Kind, c.Kind))
 	})
 	g.Warnings = append(g.Warnings, b.warnings...)
 	sort.Strings(g.Warnings)
@@ -206,24 +203,7 @@ func writeGraph(path string, g *Graph) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	// Geçici dosyaya yazıp yer değiştirmek: aynı anda çalışan iki sorgu yarım dosya okumaz.
-	tmp, err := os.CreateTemp(filepath.Dir(path), ".graph-*.json")
-	if err != nil {
-		return err
-	}
-	_, werr := tmp.Write(append(data, '\n'))
-	if cerr := tmp.Close(); werr == nil {
-		werr = cerr
-	}
-	if werr != nil {
-		os.Remove(tmp.Name())
-		return werr
-	}
-	if err := os.Rename(tmp.Name(), path); err != nil {
-		os.Remove(tmp.Name())
-		return err
-	}
-	return nil
+	return codeindex.WriteFileAtomic(path, append(data, byte(10))) // aynı anda çalışan iki sorgu yarım dosya okumaz
 }
 
 // readGraph graph.json'ı okur ve sürümünü denetler.

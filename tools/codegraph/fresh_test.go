@@ -2,12 +2,13 @@ package main
 
 import (
 	"bytes"
-	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // gitFixture testdata modülünün kopyasını geçici bir git deposu yapar ve ilk commit'i atar.
@@ -17,24 +18,7 @@ func gitFixture(t *testing.T) string {
 		t.Skip("git yok")
 	}
 	dst := t.TempDir()
-	src := filepath.Join("testdata", "mod")
-	err := filepath.WalkDir(src, func(p string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		rel, _ := filepath.Rel(src, p)
-		if d.IsDir() {
-			return os.MkdirAll(filepath.Join(dst, rel), 0o755)
-		}
-		data, err := os.ReadFile(p)
-		if err != nil {
-			return err
-		}
-		return os.WriteFile(filepath.Join(dst, rel), data, 0o644)
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	testkit.CopyDir(t, filepath.Join("testdata", "mod"), dst)
 	for _, args := range [][]string{
 		{"init", "-q", "-b", "main"}, {"add", "-A"},
 		{"-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "commit.gpgsign=false", "commit", "-q", "-m", "fixture"},

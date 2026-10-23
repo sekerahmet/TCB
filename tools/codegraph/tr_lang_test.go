@@ -4,11 +4,12 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // buildEnv alt süreçte fikstür grafiğini kurmak için kullanılan ortam değişkenidir.
@@ -37,13 +38,11 @@ func TestHelperBuildFixture(t *testing.T) {
 // buildWithLanguage fikstür grafiğini TR_DIL=lang ortamında bir alt süreçte kurar.
 func buildWithLanguage(t *testing.T, lang string) *Graph {
 	t.Helper()
-	out := filepath.Join(t.TempDir(), "g_"+lang+".json")
-	cmd := exec.Command(os.Args[0], "-test.run=^TestHelperBuildFixture$")
-	cmd.Env = append(os.Environ(), "TR_DIL="+lang, helperOut+"="+out)
-	if b, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("TR_DIL=%s: %v\n%s", lang, err, b)
+	path := filepath.Join(t.TempDir(), "g_"+lang+".json")
+	if err := os.WriteFile(path, testkit.RunWithLanguageFile(t, "TestHelperBuildFixture", helperOut, lang), 0o644); err != nil {
+		t.Fatal(err)
 	}
-	g, err := readGraph(out)
+	g, err := readGraph(path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,23 +70,7 @@ func trFacts(g *Graph) []string {
 // kenarları (uses_name, calls, uses, imports, tests) aynıdır. Kodsuz dosya her zaman Türkçe, kodlu
 // dosya Türkçe görünümüyle okunur.
 func TestTRGraphIsIndependentOfTheActiveLanguage(t *testing.T) {
-	tr, en := trFacts(buildWithLanguage(t, "tr")), trFacts(buildWithLanguage(t, "en"))
-	if len(tr) < 20 {
-		t.Fatalf("too few .tr facts to compare: %d", len(tr))
-	}
-	if strings.Join(tr, "\n") != strings.Join(en, "\n") {
-		have := map[string]bool{}
-		for _, f := range en {
-			have[f] = true
-		}
-		var missing []string
-		for _, f := range tr {
-			if !have[f] {
-				missing = append(missing, f)
-			}
-		}
-		t.Errorf("TR_DIL=en changes the .tr graph (%d facts vs %d); only in tr:\n%s", len(tr), len(en), strings.Join(missing, "\n"))
-	}
+	testkit.AssertSameFactSet(t, "the .tr graph", 20, trFacts(buildWithLanguage(t, "tr")), trFacts(buildWithLanguage(t, "en")))
 }
 
 // Altın olgu dosyası: fikstürdeki .tr düğümleri ve kenarları (kimlik, tür, ad, güven) tek tek
