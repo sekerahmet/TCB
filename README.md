@@ -142,6 +142,7 @@ Bu depoyu VS Code'da klasör olarak açtığınızda `Ctrl+Shift+B` açık dosya
 | 45 | [`45_tekrar_oynat.tr`](examples/tr/45_tekrar_oynat.tr) | [`45_replay.tr`](examples/en/45_replay.tr) | Kaydedip oynatmak: sık tekrarlanan küçük bir GPU adımını bir kez kaydedip tek seferde oynatmak (`tekrar_oynat`, `yerine_yaz`) |
 | 46 | [`46_hazir_model_ve_uretim.tr`](examples/tr/46_hazir_model_ve_uretim.tr) | [`46_ready_model_and_generation.tr`](examples/en/46_ready_model_and_generation.tr) | Hazır model ve üretim: Hugging Face biçimindeki bir modeli yüklemek (`hazır_model`, `ağırlık_türü`) ve `üret` ile parça üretmek (küçük, rastgele ağırlıklı model `tests/data/hf_tiny`) |
 | 47 | [`47_kendi_uretim_dongusu.tr`](examples/tr/47_kendi_uretim_dongusu.tr) | [`47_own_generation_loop.tr`](examples/en/47_own_generation_loop.tr) | Kendi üretim döngün: `önbellek_kur`, önbellekli `ileri`, `kırp`; elle yazılan döngü `üret` ile aynı diziyi verir; `gizli_durum` + `tek_adım` + `tekrar_oynat` |
+| 48 | [`48_egitim_kosusu.tr`](examples/tr/48_egitim_kosusu.tr) | [`48_training_run.tr`](examples/en/48_training_run.tr) | Eğitim koşusu: kayıt işlerini kitaplığa bırakmak (`Koşu`: klasör, günlük, çubuk, kontrol noktası, ağırlıklar önce) ve uzun koşudan önce `prova` |
 
 **Hata örnekleri.** [`examples/tr/hatalar/`](examples/tr/hatalar/) ve [`examples/en/errors/`](examples/en/errors/) sık yapılan hataları tek tek gösterir: her dosya bir hatayı bilerek yapar, yorumunda iletinin kodunu, nedenini ve düzeltilmiş hâlini yazar (çıkış kodu 1).
 

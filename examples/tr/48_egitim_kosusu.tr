@@ -1,0 +1,74 @@
+// 48 — Eğitim koşusu: kayıt işlerini kitaplığa bırakmak, uzun koşudan önce prova yapmak.
+// Ne öğretir: aktar "tr/egitim" ile Koşu: koşu klasörü, config.json, metrics.jsonl, ilerleme çubuğu ve kontrol
+// noktası tek satırda; koşu.adım_bitti(adım, ölçüler), koşu.değerlendirildi(adım, ölçüler), koşu.bitir(model)
+// (ağırlıklar her şeyden önce yazılır); prova: doğru ile aynı eğitimin PROVA_ADIMI adımlık denemesi. Döngü sizde kalır.
+// Önceki örnekten: kontrol noktası (40): orada elle kurulan klasör, günlük ve çubuk burada Koşu'nun işidir;
+// eğitimin kararlılığı (44): aynı kitaplık modülü.
+// Ayrıntılar: lib/README.md (tr/egitim), docs/spec/20_kontrol_noktasi.md §20.
+//
+// Çalıştırma (proje kökünden): tr examples/tr/48_egitim_kosusu.tr
+
+aktar "tr/egitim"
+
+// Koşu klasörü her çalıştırmada silinir: örnek her seferinde baştan başlar.
+sabit KOŞU = yol("runs/kosu_ornegi")
+eğer KOŞU.var_mı { sil(KOŞU, içindekilerle: doğru) }
+değişken ayar = {adım: 60, öğrenme_oranı: 0.01}
+
+// --- Veri ve model (40. örnekteki küçük model) ---
+değişken p = parçalayıcı_yükle("../../tests/data/tokenizer.json")
+değişken V = p.dağarcık_boyutu
+değişken doğrulama_girişi, doğrulama_hedefi = veri_kümesi("../../tests/data/text").örnekleyici(toplu: 8, bağlam: 32, tohum: 2).sonraki()
+
+// eğit bir koşuyu baştan sona sürer; prova doğruysa aynı eğitim kısa bir denemedir.
+fonksiyon eğit(prova) {
+    değişken ö = veri_kümesi("../../tests/data/text").örnekleyici(toplu: 8, bağlam: 32, tohum: 1)
+    değişken parametre_tohumu = 0
+    fonksiyon parametre(şekil, ölçek) {
+        parametre_tohumu += 1
+        sonuç tensör(türevsiz(rastgele_normal(şekil, tohum: parametre_tohumu) * ölçek), türev_izle: doğru)
+    }
+    değişken model = {E: parametre([V, 32], 0.1), W1: parametre([32, 64], 0.1), W2: parametre([64, V], 0.1)}
+    fonksiyon ileri(giriş) {
+        sonuç gelu(gömme(model.E, giriş) @ model.W1) @ model.W2
+    }
+    değişken op = AdamW(parametreler(model), öğrenme_oranı: ayar.öğrenme_oranı, ağırlık_çürümesi: 0.0)
+    // Sözlükteki her şey kontrol noktasına girer; klasörde bir nokta varsa burada yüklenir.
+    değişken koşu = Koşu(KOŞU, ayar, {model: model, op: op, ö: ö}, adım_sayısı: ayar.adım, prova: prova)
+    döngü adım içinde koşu.kaldığı_adım..koşu.son_adım {
+        değişken giriş, hedef = ö.sonraki()
+        op.sıfırla()
+        değişken kayıp = çapraz_entropi(ileri(giriş), hedef)
+        geri_yayılım(kayıp)
+        op.adım()
+        // Kaybı okumak (GPU'da) beklemek demektir: ölçüler her adımda değil, 10 adımda bir verilir.
+        koşu.adım_bitti(adım + 1, eğer (adım + 1) % 10 == 0 { {kayıp: kayıp.değer} } değilse { yok })
+        eğer (adım + 1) % 30 == 0 {
+            değişken dk = çapraz_entropi(ileri(doğrulama_girişi), doğrulama_hedefi).değer
+            koşu.değerlendirildi(adım + 1, {doğrulama_kaybı: dk})
+            yazdır("adım {adım + 1}: doğrulama kaybı {yuvarla(dk, 3)}")
+        }
+    }
+    koşu.bitir(model)
+    sonuç koşu
+}
+
+// --- Önce prova: geçici bir klasörde PROVA_ADIMI adım; koşu klasörüne dokunmaz ---
+yazdır("prova {PROVA_ADIMI} adım sürer")
+eğit(doğru)
+yazdır("prova koşu klasörünü açtı mı:", KOŞU.var_mı)
+
+// --- Asıl koşu ---
+değişken koşu = eğit(yanlış)
+döngü ad içinde ["config.json", "metrics.jsonl", "model.trt"] {
+    yazdır(ad, yol(KOŞU, ad).var_mı)
+}
+yazdır("ağırlıklar:", tensör_yükle(yol(KOŞU, "model.trt"))["W2"].şekil)
+
+// --- Aynı koşu yeniden: bitmiş eğitim kaldığı adımdan (sondan) sürer, döngü bir şey yapmaz ---
+yazdır("kaldığı adım:", eğit(yanlış).kaldığı_adım)
+
+// --- Kendin dene ---
+// 1. ayar.adım'ı 1 yap: prova kaç adım sürer?
+// 2. koşu.bitir(model) satırını silip örneği çalıştır: prova neyi söyler?
+// 3. Asıl koşuyu 30. adımda Ctrl+C ile kes (önce silme satırını kaldır), sonra yeniden çalıştır: nereden sürer?

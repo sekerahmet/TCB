@@ -1,0 +1,75 @@
+//! tr kodlu 1
+// 48 — Training run: leaving the bookkeeping to the library, a trial before a long run.
+// What it teaches: Koşu with import "tr/egitim": the run folder, config.json, metrics.jsonl, the progress bar and the
+// checkpoint in one line; run.adım_bitti(step, measures), run.değerlendirildi(step, measures), run.bitir(model)
+// (the weights are written before anything else); prova: true, a PROVA_ADIMI-step trial of the same training. The loop stays yours.
+// Builds on: checkpoints (40): the folder, log and bar built by hand there are Koşu's job here;
+// training stability (44): the same library module.
+// Details: lib/README.md (tr/egitim), docs/spec/20_kontrol_noktasi.md §20.
+//
+// Run (from the project root): tr examples/en/48_training_run.tr
+
+A070 "tr/egitim"
+
+// The run folder is deleted on every run: the example always starts from scratch.
+A031 RUN = G120("runs/run_example")
+A001 RUN.Y315 { G123(RUN, G901: A040) }
+A030 config = {Y500: 60, Y504: 0.01}
+
+// --- Data and model (the small model of example 40) ---
+A030 tok = V200("../../tests/data/tokenizer.json")
+A030 V = tok.Y612
+A030 val_inputs, val_targets = V100("../../tests/data/text").Y600(V902: 8, V903: 32, T903: 2).Y602()
+
+// train runs one training from start to end; with trial true the same training is a short test.
+A020 train(trial) {
+    A030 batches = V100("../../tests/data/text").Y600(V902: 8, V903: 32, T903: 1)
+    A030 param_seed = 0
+    A020 param(shape, scale) {
+        param_seed += 1
+        A021 T100(T301(T103(shape, T903: param_seed) * scale), T900: A040)
+    }
+    A030 model = {E: param([V, 32], 0.1), W1: param([32, 64], 0.1), W2: param([64, V], 0.1)}
+    A020 forward(inputs) {
+        A021 T203(T500(model.E, inputs) @ model.W1) @ model.W2
+    }
+    A030 opt = T400(T530(model), T910: config.Y504, T911: 0.0)
+    // Everything in the dictionary goes into the checkpoint; if the folder holds one, it is loaded here.
+    A030 run = Koşu(RUN, config, {model: model, opt: opt, batches: batches}, adım_sayısı: config.Y500, prova: trial)
+    A010 i A011 run.Y520..run.son_adım {
+        A030 inputs, targets = batches.Y602()
+        opt.Y501()
+        A030 loss = T510(forward(inputs), targets)
+        T300(loss)
+        opt.Y500()
+        // Reading the loss (on a GPU) means waiting: measures are given every 10 steps, not every step.
+        run.adım_bitti(i + 1, A001 (i + 1) % 10 == 0 { {loss: loss.Y404} } A002 { A042 })
+        A001 (i + 1) % 30 == 0 {
+            A030 vl = T510(forward(val_inputs), val_targets).Y404
+            run.değerlendirildi(i + 1, {val_loss: vl})
+            G100("step {i + 1}: validation loss {G405(vl, 3)}")
+        }
+    }
+    run.bitir(model)
+    A021 run
+}
+
+// --- First the trial: PROVA_ADIMI steps in a temporary folder; it does not touch the run folder ---
+G100("the trial takes {PROVA_ADIMI} steps")
+train(A040)
+G100("did the trial open the run folder:", RUN.Y315)
+
+// --- The real run ---
+A030 run = train(A041)
+A010 name A011 ["config.json", "metrics.jsonl", "model.trt"] {
+    G100(name, G120(RUN, name).Y315)
+}
+G100("weights:", T701(G120(RUN, "model.trt"))["W2"].Y400)
+
+// --- The same run again: a finished training resumes at its last step (the end), the loop does nothing ---
+G100("resume step:", train(A041).Y520)
+
+// --- Try it yourself ---
+// 1. Set config.step to 1: how many steps does the trial take?
+// 2. Delete the run.bitir(model) line and run the example: what does the trial say?
+// 3. Stop the real run at step 30 with Ctrl+C (remove the delete line first), then run it again: where does it resume?

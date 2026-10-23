@@ -131,10 +131,14 @@ yapı Koşu {
         eğer kendi.kaldığı_adım > 0 { kendi.çubuk.güncelle(adım: kendi.kaldığı_adım) }
     }
     // adım_bitti eğitimin adım sınırıdır: ölçüler verilirse (sözlük; okumak GPU'yu bekletir, bu yüzden
-    // her adımda değil) çubuk ve günlük güncellenir; kontrol noktası zamanı geldiyse kaydedilir.
-    // Kayıt yapıldıysa doğru verir.
+    // her adımda değil) çubuk ve günlük güncellenir; son adımda ölçü verilmese de çubuk kapanır.
+    // Kontrol noktası zamanı geldiyse kaydedilir; kayıt yapıldıysa doğru verir.
     fonksiyon adım_bitti(adım, ölçüler = yok) {
-        eğer ölçüler != yok { kendi.çubuk.güncelle(ölçüler, adım: adım) }
+        eğer ölçüler != yok {
+            kendi.çubuk.güncelle(ölçüler, adım: adım)
+        } değilse eğer adım == kendi.son_adım {
+            kendi.çubuk.güncelle(adım: adım)
+        }
         sonuç kendi.nokta.güncelle(adım)
     }
     // değerlendirildi bir değerlendirmenin ölçülerini (sözlük) adımıyla günlüğe yazar.
@@ -154,7 +158,7 @@ yapı Koşu {
             döngü ad içinde ["config.json", "metrics.jsonl", "model.trt", "kontrol_noktalari"] {
                 eğer değil yol(kendi.klasör, ad).var_mı { fırlat "Koşu provası: {ad} yazılmadı ({kendi.klasör.mutlak})" }
             }
-            yazdır("Prova geçti: {kendi.son_adım} adım, bütün dosyalar yazıldı ({kendi.klasör.mutlak})")
+            yazdır("Prova geçti: {kendi.son_adım} adım, bütün dosyalar yazıldı")
         }
     }
 }
