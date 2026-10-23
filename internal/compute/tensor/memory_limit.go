@@ -246,7 +246,7 @@ func limitErrorAt(is opKind, shape []int, dt DType, overflow bool, limit int64, 
 	return messages.New(messages.H3085, is, ShapeText(shape), BytesText(byteN), place, BytesText(float64(limit)), hint)
 }
 
-// ShapeText bir şekli "[2, 3]" biçiminde yazar; kontrol noktası iletileri de bunu kullanır.
+// ShapeText bir şekli "[2, 3]" biçiminde yazar; ml ve kontrol noktası iletileri de bunu kullanır.
 func ShapeText(shape []int) string {
 	p := make([]string, len(shape))
 	for i, d := range shape {

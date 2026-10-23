@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -72,8 +73,8 @@ func intNumber(v interp.Value) (int, bool) {
 	return int(n), ok
 }
 
-// shapeText bir şekli "[2, 3]" biçiminde yazar.
-func shapeText(sh []int) string { return "[" + joinInts(sh, ", ") + "]" }
+// shapeText bir şekli "[2, 3]" biçiminde yazar (tensor.ShapeText).
+func shapeText(sh []int) string { return tensor.ShapeText(sh) }
 
 // shapeProduct bir şekli "2×3" biçiminde yazar (izleme masası ve yazdırma başlığı için).
 func shapeProduct(sh []int) string { return joinInts(sh, "×") }
