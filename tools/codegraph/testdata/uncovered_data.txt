@@ -1,0 +1,12 @@
+# Bir teste bağlanamayan izlenen veri dosyaları: kalıp <TAB> gerekçe. Liste yalnızca küçülür (data_coverage_test.go).
+examples/en/**	yazım klasörleri os.ReadDir ile listelenir (yazım dili değişken); hiçbir dize yolu adlandırmaz. Kapsamı exampleFiles(t, lang) üstünden behavior_examples_test.go'dadır
+docs/**	kullanıcı ve geliştirici düzyazısı (kılavuz, tarif, süreç); içindeki kurallar README'lerdeki `Denetim:` testlerine bağlıdır, dosyanın kendisini okuyan test yoktur
+*.md	kök belgeleri (README, CLAUDE, SECURITY, CONTRIBUTING): düzyazı; kuralları ilgili paket README'lerinde ve testlerindedir
+.vscode/**	VS Code çalışma alanı ayarı; Go testi okumaz
+editors/vscode/*.json	VS Code eklentisinin bildirim dosyaları; eklenti kendi kod akışında (JS) yüklenir, Go testi okumaz
+tests/data/**	örnek veri kümesini kuran testin (internal/stdlib/dataset/behavior_sample_data_test.go) çıktısıdır; izlenen kopya örnekler tarafından okunur, yol dize olarak geçmez
+tools/gpu/phase3_config.json	Colab 3. aşama koşusunun ayarı; yalnızca Colab betikleri okur
+cmd/tr/e2e/README.md	testlerin kendi açıklaması; `Denetim:` satırlı kuralı yok
+tools/codegraph/README.md	aracın kullanım belgesi; `Denetim:` satırlı kuralı yok (testleri README'nin Tests bölümünde anlatılır)
+tools/hf/README.md	aracın kullanım belgesi; `Denetim:` satırlı kuralı yok
+tools/record/README.md	aracın kullanım belgesi; `Denetim:` satırlı kuralı yok

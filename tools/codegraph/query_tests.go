@@ -89,11 +89,13 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 			tests = append(tests, e)
 		}
 	}
+	walks := ix.walkEdges(n)
 	indirect := ix.indirectTests(n)
-	if len(tests) == 0 && len(indirect) == 0 {
+	if len(tests) == 0 && len(indirect) == 0 && len(walks) == 0 {
 		fmt.Fprintln(w, "  no tests found")
 		return
 	}
+	ix.printWalks(w, walks, limit)
 	ix.printGroups(w, "  <-", tests, fromOf, limit, true)
 	ix.printIndirect(w, indirect, limit)
 	ix.printGuardedRules(w, tests, indirect, limit)

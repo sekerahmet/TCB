@@ -19,7 +19,8 @@ type goIndex struct {
 	tests      []*testFunc                  // TestX/BenchmarkX/FuzzX/ExampleX işlevleri
 	byName     map[string][]*testFunc
 	dirFiles   map[string]bool // dosya düğümü olan göreli yollar
-	pathRefs   []pathRef       // test dosyalarındaki yol sabitleri (test_paths.go)
+	pathRefs   []pathRef       // dosya yolu sabitleri ve gömme yönergeleri (test_paths.go)
+	ranges     []rangeRef      // koleksiyon döndüren işlev/değişken üzerinde dönen range deyimleri (walks.go)
 }
 
 // testFunc bir test işlevidir.
@@ -164,7 +165,7 @@ func (x *goExtractor) funcDecl(fc *fileCtx, d *ast.FuncDecl) {
 	name := d.Name.Name
 	id := memberID(pkg, recv, name)
 	if name == "init" || name == "_" {
-		id += "#" + strconv.Itoa(x.line(d.Pos()))
+		id += "#" + path.Base(fc.rel) + ":" + strconv.Itoa(x.line(d.Pos())) // aynı satırdaki init'ler farklı dosyalarda çakışmasın
 	}
 	qual := path.Base(pkg)
 	if recv != "" {
@@ -190,9 +191,7 @@ func (x *goExtractor) funcDecl(fc *fileCtx, d *ast.FuncDecl) {
 		}
 		x.addSym(fc.base, key, id)
 	}
-	if d.Body != nil {
-		x.scan(fc, id, d.Body)
-	}
+	x.scan(fc, id, d) // imza (alıcı, parametre, sonuç tipleri) ve gövde: tür kullanımı imzada da vardır
 }
 
 // isTestName go test'in tanıdığı işlev adlarını ayırır: önek, ardından küçük harf olmayan.
@@ -211,7 +210,8 @@ func (x *goExtractor) genDecl(fc *fileCtx, d *ast.GenDecl) {
 		if d.Tok == token.CONST || d.Tok == token.VAR {
 			x.valueDecl(fc, d)
 		}
-		x.scan(fc, pkgID(fc.base), d)
+		x.embedRefs(fc, d)
+		x.scanValueSpecs(fc, d)
 		return
 	}
 	for _, spec := range d.Specs {
@@ -248,6 +248,7 @@ func (x *goExtractor) typeSpec(fc *fileCtx, ts *ast.TypeSpec, obj *types.TypeNam
 		x.addSym(fc.base, obj.Name(), id)
 	}
 	x.fieldNodes(fc, ts, id, pkg)
+	x.scan(fc, id, ts) // alan tipleri, gömülü tipler, arayüz yöntem imzaları, tür kısıtları
 	it, ok := obj.Type().Underlying().(*types.Interface)
 	if !ok || obj.IsAlias() {
 		return
@@ -307,5 +308,24 @@ func (x *goExtractor) denotes(fc *fileCtx, id, pkg, name string, line int) {
 		x.b.addEdge(id, "msg:"+name, edgeDenotes, extracted, fc.rel, line)
 	case pkg == x.m.Path+"/"+codesDir && nameConst.MatchString(name):
 		x.b.addEdge(id, "name:"+name, edgeDenotes, extracted, fc.rel, line)
+	}
+}
+
+// scanValueSpecs paket düzeyindeki const/var bildirimlerinin kullanımlarını bildirimin kendi düğümünden çıkarır
+// (`var ValInt = TypeName(codes.A200)`: ValInt TypeName'i ve A200'ü kullanır). Hepsini paket düğümüne yazmak aynı
+// hedefe giden farklı dosyalardaki kullanımları tek kenara indirirdi. Adı olmayan (`var _ = ...`) ya da çözülemeyen
+// belirtim dosya düğümüne yazılır (dosyalar arasında aynı hedefe giden kullanımlar tek kenara inmesin).
+func (x *goExtractor) scanValueSpecs(fc *fileCtx, d *ast.GenDecl) {
+	for _, spec := range d.Specs {
+		owner := fileID(fc.rel) // `var _ T = ...` gibi adsız belirtim dosyanın kendisinden kullanır
+		if vs, ok := spec.(*ast.ValueSpec); ok {
+			for _, name := range vs.Names {
+				if obj := fc.u.Info.Defs[name]; obj != nil && name.Name != "_" && obj.Pkg() != nil {
+					owner = valueID(map[token.Token]string{token.CONST: kindConst, token.VAR: kindVar}[d.Tok], obj.Pkg().Path(), name.Name)
+					break
+				}
+			}
+		}
+		x.scan(fc, owner, spec)
 	}
 }

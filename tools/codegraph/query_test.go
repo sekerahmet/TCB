@@ -263,7 +263,7 @@ func TestNameCodeChain(t *testing.T) {
 			t.Fatalf("%s: exit %d\n%s", q, code, out)
 		}
 		testkit.MustContain(t, out, "A001 [name]", "names: eger · if", "Go constant: codes.A001 [const]",
-			"registered or used in Go", "shape at shape/shape.go:", "shape.runIf [shape/shape.go:")
+			"registered or used in Go", "shape.table at shape/shape.go:", "shape.runIf [shape/shape.go:")
 	}
 }
 

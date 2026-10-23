@@ -1,8 +1,13 @@
 package main
 
 import (
+	"fmt"
+	"io"
 	"os"
+	"path"
 	"path/filepath"
+	"slices"
+	"sort"
 	"strings"
 	"unicode/utf8"
 )
@@ -84,4 +89,50 @@ func commentText(line string) string {
 		t = string([]rune(t)[:maxNoteRunes]) + "…"
 	}
 	return t
+}
+
+// walkEdges n'yi bütün listesini gezerek koruyan testlerin kenarlarıdır: n bir veri dosyasıysa kendisine, bir ad ya
+// da ileti kodu ise tanımlandığı dosya(lar)a gelen `walks` kenarları. Kod için tek bir girdisini arayan testler
+// değil, listeyi gezen testler gösterilir: her girdiyi o korur.
+func (ix *index) walkEdges(n *Node) []*Edge {
+	var out []*Edge
+	collect := func(id string) {
+		for _, e := range ix.in[id] {
+			if e.Kind == edgeWalks {
+				out = append(out, e)
+			}
+		}
+	}
+	collect(n.ID)
+	if n.Kind == kindName || n.Kind == kindMessage {
+		for _, e := range ix.in[n.ID] {
+			if e.Kind == edgeContains && ix.byID[e.From].Kind == kindFile {
+				collect(e.From)
+			}
+		}
+	}
+	return out
+}
+
+// printWalks gezen testleri yazar; aynı test birden çok dosyayı geziyorsa (tr.json ve en.json) bir kez, dosyalarıyla.
+func (ix *index) printWalks(w io.Writer, walks []*Edge, limit int) {
+	if len(walks) == 0 {
+		return
+	}
+	files := map[string][]string{}
+	var firsts []*Edge
+	for _, e := range walks {
+		if _, seen := files[e.From]; !seen {
+			firsts = append(firsts, e)
+		}
+		if name := path.Base(ix.byID[e.To].Name); !slices.Contains(files[e.From], name) {
+			files[e.From] = append(files[e.From], name)
+		}
+	}
+	sort.SliceStable(firsts, func(i, j int) bool { return ix.byID[firsts[i].From].Name < ix.byID[firsts[j].From].Name })
+	fmt.Fprintf(w, "  <- tests that walk the whole list (%d, each entry is covered by them):\n", len(firsts))
+	forEachLimited(w, firsts, limit, "    ", moreHint, func(e *Edge) string {
+		sort.Strings(files[e.From])
+		return ix.edgeLine(e, e.From, true) + "  (" + strings.Join(files[e.From], ", ") + ")"
+	})
 }

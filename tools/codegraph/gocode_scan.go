@@ -41,6 +41,8 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 			x.pathCall(fc, owner, n)
 		case *ast.Ident:
 			x.use(fc, owner, n, callee[n])
+		case *ast.RangeStmt:
+			x.rangeUse(fc, owner, n)
 		case *ast.BasicLit:
 			x.pathLit(fc, owner, n)
 		case *ast.FuncLit:
@@ -119,40 +121,61 @@ func nameIdent(e ast.Expr) *ast.Ident {
 	}
 }
 
+// objectID modülün paket düzeyindeki bir nesnesinin (işlev, metot, tür, sabit, değişken) düğüm kimliğidir;
+// başka bir nesne (yerel, alan, standart kitaplık) için "". Kullanım kenarları ve tutarlılık testi aynı eşlemeyi
+// kullanır: nesne türü başına ayrı bir kol yazılmaz, Info.Uses'taki her tanımlayıcı buradan geçer.
+func (x *goExtractor) objectID(obj types.Object) string {
+	if obj == nil || obj.Pkg() == nil || !x.inModule(obj.Pkg().Path()) {
+		return ""
+	}
+	pkg := obj.Pkg()
+	switch o := obj.(type) {
+	case *types.Func:
+		return funcRef(o.Origin())
+	case *types.TypeName:
+		if o.Parent() == pkg.Scope() {
+			return typeID(pkg.Path(), o.Name())
+		}
+	case *types.Const:
+		if o.Parent() == pkg.Scope() {
+			return valueID(kindConst, pkg.Path(), o.Name())
+		}
+	case *types.Var:
+		if !o.IsField() && o.Parent() == pkg.Scope() {
+			return valueID(kindVar, pkg.Path(), o.Name())
+		}
+	}
+	return ""
+}
+
 func (x *goExtractor) use(fc *fileCtx, owner string, id *ast.Ident, isCall bool) {
 	obj := fc.u.Info.Uses[id]
-	if obj == nil || obj.Pkg() == nil || !x.inModule(obj.Pkg().Path()) {
+	ref := x.objectID(obj)
+	if ref == "" {
 		return
 	}
 	line := x.line(id.Pos())
-	switch o := obj.(type) {
-	case *types.Func:
-		ref := funcRef(o.Origin())
-		if ref == "" {
-			return
-		}
+	if _, isFunc := obj.(*types.Func); isFunc {
 		conf := inferred // işlev değeri olarak kullanım: çağrı sonradan olabilir
 		if isCall {
 			conf = extracted
 		}
 		x.b.addEdge(owner, ref, edgeCalls, conf, fc.rel, line)
-	case *types.Const:
+		return
+	}
+	if c, isConst := obj.(*types.Const); isConst {
 		// Kodun kendi paketindeki (test dışı) kullanım tanım tablolarıdır; kullanım sayılmaz.
-		samePkg := o.Pkg().Path() == fc.base && !fc.isTest
+		samePkg := c.Pkg().Path() == fc.base && !fc.isTest
 		switch {
 		case samePkg:
-		case o.Pkg().Path() == x.m.Path+"/"+messagesDir && messageConst.MatchString(o.Name()):
-			x.b.addEdge(owner, "msg:"+o.Name(), edgeUsesMessage, extracted, fc.rel, line)
-		case o.Pkg().Path() == x.m.Path+"/"+codesDir && nameConst.MatchString(o.Name()):
-			x.b.addEdge(owner, "name:"+o.Name(), edgeUsesName, extracted, fc.rel, line)
+		case c.Pkg().Path() == x.m.Path+"/"+messagesDir && messageConst.MatchString(c.Name()):
+			x.b.addEdge(owner, "msg:"+c.Name(), edgeUsesMessage, extracted, fc.rel, line)
+		case c.Pkg().Path() == x.m.Path+"/"+codesDir && nameConst.MatchString(c.Name()):
+			x.b.addEdge(owner, "name:"+c.Name(), edgeUsesName, extracted, fc.rel, line)
 		}
-		if o.Parent() == o.Pkg().Scope() {
-			x.b.addEdge(owner, valueID(kindConst, o.Pkg().Path(), o.Name()), edgeUses, extracted, fc.rel, line)
-		}
-	case *types.Var:
-		if !o.IsField() && o.Parent() == o.Pkg().Scope() {
-			x.b.addEdge(owner, valueID(kindVar, o.Pkg().Path(), o.Name()), edgeUses, extracted, fc.rel, line)
-		}
+	}
+	if ref != owner { // bir türün kendi adına başvurusu (özyineli alan) kullanım değildir
+		x.b.addEdge(owner, ref, edgeUses, extracted, fc.rel, line)
 	}
 }
 
