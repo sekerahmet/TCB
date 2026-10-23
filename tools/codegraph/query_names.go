@@ -25,7 +25,9 @@ func (ix *index) printNameChain(w io.Writer, n *Node, limit int) {
 			continue
 		}
 		owner := ix.byID[e.From]
-		if inTestFile(owner) || strings.HasSuffix(e.File, "_test.go") {
+		// Yalnızca Go kodu: .tr dosyalarının ve iletilerin kullanımı uses_name ile gelir ama kayıt yeri değildir; yüzlerce
+		// TR kullanıcısı arasında yerleşiğin Go'daki kaydı (G100 → interp.printBuiltin) kayboluyordu.
+		if inTestFile(owner) || !strings.HasSuffix(e.File, ".go") || strings.HasSuffix(e.File, "_test.go") {
 			continue
 		}
 		line := fmt.Sprintf("%s at %s", owner.Name, where(e.File, e.Line))
@@ -34,7 +36,13 @@ func (ix *index) printNameChain(w io.Writer, n *Node, limit int) {
 		}
 		lines = append(lines, line)
 	}
-	sort.Strings(lines)
+	sort.SliceStable(lines, func(i, j int) bool { // uygulamayı adlandıran kayıt satırları önce
+		ai, bj := strings.Contains(lines[i], " -> "), strings.Contains(lines[j], " -> ")
+		if ai != bj {
+			return ai
+		}
+		return lines[i] < lines[j]
+	})
 	if len(lines) > 0 {
 		fmt.Fprintf(w, "  registered or used in Go (%d; implementation named on the same line):\n", len(lines))
 		printLimited(w, lines, limit, "    ")
