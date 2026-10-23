@@ -34,11 +34,7 @@ const memberSplit = codes.Y103
 
 // namedBool adlı bir Mantık argümanını okur; verilmemişse varsayilan döner.
 func namedBool(fn string, named map[string]interp.Value, a bind.Named, defaultVal bool) (bool, error) {
-	v, ok := bind.GetNamed(named, a)
-	if !ok {
-		return defaultVal, nil
-	}
-	return bind.Bool(fn, a.TR, v)
+	return bind.OptionalBool(fn, a.TR, named, a, defaultVal)
 }
 
 // ----------------------------------------------------------------------------

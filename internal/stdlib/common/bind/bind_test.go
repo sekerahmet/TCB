@@ -261,3 +261,21 @@ func TestMethodWrappersTurnPanicsIntoNamedErrors(t *testing.T) {
 		t.Fatalf("CodeMethod panik hatası: %v", err)
 	}
 }
+
+// Kural: OptionalBool verilmemiş adlı Mantık argümanında varsayılanı verir, verilmişte değeri okur,
+// Mantık olmayan değerde etiketli hata verir (iki ileti biçimi etiketle korunur).
+func TestOptionalBool(t *testing.T) {
+	a := NamedArg(codes.T902)
+	for _, def := range []bool{false, true} {
+		if b, err := OptionalBool("f", "x", map[string]interp.Value{}, a, def); err != nil || b != def {
+			t.Errorf("verilmemiş (varsayılan %v) = %v, %v", def, b, err)
+		}
+	}
+	if b, err := OptionalBool("f", "x", map[string]interp.Value{a.TR: &interp.BoolVal{Val: true}}, a, false); err != nil || !b {
+		t.Errorf("doğru = %v, %v", b, err)
+	}
+	_, err := OptionalBool("f", "etiket:", map[string]interp.Value{a.TR: &interp.IntVal{Val: 1}}, a, false)
+	if err == nil || !strings.Contains(err.Error(), "f: etiket:") {
+		t.Errorf("Mantık olmayan değer etiketli hata vermeli: %v", err)
+	}
+}

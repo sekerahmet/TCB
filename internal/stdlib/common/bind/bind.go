@@ -130,6 +130,16 @@ func Bool(fn, name string, v interp.Value) (bool, error) {
 	return b.Val, nil
 }
 
+// OptionalBool adlı bir Mantık argümanını okur; verilmemişse defaultVal döner. label hata iletisinde
+// argümanı anar (ör. "ad" ya da "ad:"; çağıranın ileti biçimi korunur).
+func OptionalBool(fn, label string, named map[string]interp.Value, a Named, defaultVal bool) (bool, error) {
+	v, ok := GetNamed(named, a)
+	if !ok {
+		return defaultVal, nil
+	}
+	return Bool(fn, label, v)
+}
+
 // Recover fn'i çalıştırır; fn panik yaparsa programı çökertmek yerine paniği cevir ile
 // TR'nin dene/yakala ile yakalanabilen bir hataya çevirir.
 func Recover[T any](fn func() T, convert func(r any) error) (result T, err error) {

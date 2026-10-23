@@ -238,13 +238,11 @@ func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]inte
 		return nil, messages.New(messages.H5624, fn, len(args))
 	}
 	var pick tokenize.Options
-	if v, ok := bind.GetNamed(named, nameSpecial); ok {
-		b, err := bind.Bool(fn, codes.Name(codes.V910), v)
-		if err != nil {
-			return nil, err
-		}
-		pick.DontAddSpecial = !b
+	special, err := bind.OptionalBool(fn, codes.Name(codes.V910), named, nameSpecial, true)
+	if err != nil {
+		return nil, err
 	}
+	pick.DontAddSpecial = !special
 	secondV, hasSecond := bind.GetNamed(named, nameSecond)
 
 	switch x := args[0].(type) {
@@ -354,14 +352,11 @@ func (n *Object) decode(m *interp.VM, args []interp.Value, named map[string]inte
 	}
 	// Varsayılan, başvuru kütüphanesininki gibi özel parçaları ATLAMAKTIR;
 	// özel_parçalar: doğru onları da çıktıya yazar.
-	skip := true
-	if v, ok := bind.GetNamed(named, nameSpecial); ok {
-		b, err := bind.Bool(fn, codes.Name(codes.V910), v)
-		if err != nil {
-			return nil, err
-		}
-		skip = !b
+	special, err := bind.OptionalBool(fn, codes.Name(codes.V910), named, nameSpecial, false)
+	if err != nil {
+		return nil, err
 	}
+	skip := !special
 	seqs, single, err := idSeqs(args[0])
 	if err != nil {
 		return nil, err
