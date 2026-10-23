@@ -1386,7 +1386,7 @@ const (
 	H8201 Code = 8201 // (aktarılan modülde)
 	H8202 Code = 8202 // (üst düzey)
 	H8203 Code = 8203 // GPU kullanılmadı
-	H8204 Code = 8204 // kernel süreleri ölçülmüyor (tr {watch} ve tr {profile} ölçer; ya da TR_GPU_PROFIL=1)
+	H8204 Code = 8204 // kernel süreleri ölçülmüyor (tr {watch} ve tr {profile} ölçer; ya da {env}=1)
 	H8205 Code = 8205 // henüz kernel ölçümü yok
 	H8206 Code = 8206 // {type} işlemleri
 	H8207 Code = 8207 // toplama (+)

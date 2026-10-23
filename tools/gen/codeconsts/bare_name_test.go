@@ -38,6 +38,11 @@ import (
 
 // bareNameAllowances: dosya (depo köküne göre) ve o dosyada izin verilen ad → gerekçe.
 var bareNameAllowances = map[string]map[string]string{
+	// Yazım dilini seçen değişken (K400) dil listeleri kurulmadan okunur; messages kodları
+	// bilmez. codes.TestLanguageEnvVarsAreK400 listeyi K400'ün her dildeki adıyla eşler.
+	"internal/lang/messages/code.go": {
+		"TR_DIL": "yazım dili değişkeni K400, dil listelerinden önce okunur",
+	},
 	// Eklentiyle konuşulan iletinin alan adları ve değer türleri: protokolün sabit anahtarları
 	// (eklenti bunlara göre ikon ve sütun seçer); kullanıcıya dilin adı olarak görünmez.
 	"internal/devtools/debugger/dap_table.go": {

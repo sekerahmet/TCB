@@ -48,6 +48,9 @@ func main() {
 		fmt.Fprintln(os.Stderr, messages.Text(messages.H8060, err))
 		os.Exit(2)
 	}
+	// Ortam değişkenleri her yazım dilinin adıyla verilebilir (TR_GPU_SYNC = TR_GPU_ESZAMANLI);
+	// hesap çekirdeği kaynak dildeki adı okur.
+	codes.ExportEnvironment()
 	setGCTarget()
 	// Bu .exe 'tr derle' ile üretilmiş bağımsız bir uygulama ise gömülü paketi çalıştır.
 	if pk, found, err := findEmbeddedPackage(); found {

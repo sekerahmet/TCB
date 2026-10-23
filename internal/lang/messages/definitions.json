@@ -1381,7 +1381,7 @@
 "H8201": { "param": [] },
 "H8202": { "param": [] },
 "H8203": { "param": [] },
-"H8204": { "param": ["watch", "profile"] },
+"H8204": { "param": ["watch", "profile", "env"] },
 "H8205": { "param": [] },
 "H8206": { "param": ["type"] },
 "H8207": { "param": [] },

@@ -106,15 +106,16 @@ func IsCodeForm(s string) bool {
 type Namespace uint8
 
 const (
-	NamespaceNone       Namespace = iota // a code with no namespace (H: error messages)
-	NamespaceGlobal                      // keywords, contextual words, G/T/V/W builtins
-	NamespaceType                        // type names (A2xx)
-	NamespaceMember                      // methods and properties (Y)
-	NamespaceParam                       // named arguments (the x9xx groups in G/T/V/W)
-	NamespaceCommand                     // commands of tr and the shell (K0xx, K2xx)
-	NamespaceOption                      // command-line options, written --name (K1xx): 'kontrol' there is not 'tr kontrol'
-	NamespaceDebugger                    // terminal debugger commands (K3xx): its 'izle' is not 'tr izle'
-	NamespaceSubcommand                  // subcommands of 'tr dizin' (K016-K020): 'tr tanım' is not a command
+	NamespaceNone        Namespace = iota // a code with no namespace (H: error messages)
+	NamespaceGlobal                       // keywords, contextual words, G/T/V/W builtins
+	NamespaceType                         // type names (A2xx)
+	NamespaceMember                       // methods and properties (Y)
+	NamespaceParam                        // named arguments (the x9xx groups in G/T/V/W)
+	NamespaceCommand                      // commands of tr and the shell (K0xx, K2xx)
+	NamespaceOption                       // command-line options, written --name (K1xx): 'kontrol' there is not 'tr kontrol'
+	NamespaceDebugger                     // terminal debugger commands (K3xx): its 'izle' is not 'tr izle'
+	NamespaceSubcommand                   // subcommands of 'tr dizin' (K016-K020): 'tr tanım' is not a command
+	NamespaceEnvironment                  // environment variables (K4xx): TR_DIL, TR_GPU_ESZAMANLI ...
 	namespaceCount
 )
 
@@ -136,6 +137,8 @@ func (a Namespace) String() string {
 		return "debugger commands"
 	case NamespaceSubcommand:
 		return "index subcommands"
+	case NamespaceEnvironment:
+		return "environment variables"
 	}
 	return "no namespace"
 }
@@ -161,6 +164,8 @@ func (k Code) Namespace() Namespace {
 			return NamespaceOption
 		case 3:
 			return NamespaceDebugger
+		case 4:
+			return NamespaceEnvironment
 		}
 		if k.IsIndexSubcommand() {
 			return NamespaceSubcommand

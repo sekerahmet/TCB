@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 319 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 105 fonksiyon, 1 sabit, 40 metot, 21 özellik, 43 adlı argüman.
+Toplam 325 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 105 fonksiyon, 1 sabit, 40 metot, 21 özellik, 43 adlı argüman.
 
 ## İçindekiler
 

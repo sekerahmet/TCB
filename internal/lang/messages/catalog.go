@@ -68,8 +68,10 @@ func load() {
 // değeri kullanır). Bir süreç tek dil konuşur; erken kurulup geç gösterilen bir ileti ile adlar
 // iki dile bölünmez. Testler değişkeni bu paketin içinden değiştirir.
 var activeLanguage = sync.OnceValue(func() string {
-	if lang := os.Getenv(LanguageEnvVar); lang != "" {
-		return lang
+	for _, name := range LanguageEnvVars {
+		if lang := os.Getenv(name); lang != "" {
+			return lang
+		}
 	}
 	return "tr"
 })

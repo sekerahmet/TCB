@@ -114,7 +114,7 @@ func (p *Profile) gpuInfo(a gpuSnap) GPUInfo {
 	g.Ops, g.Lines = p.gpuOwners(a.owners, p.base.gpu.owners)
 	switch {
 	case !g.Measured:
-		g.Note = messages.Text(messages.H8204, codes.DisplayName(codes.K012), codes.DisplayName(codes.K013))
+		g.Note = messages.Text(messages.H8204, codes.DisplayName(codes.K012), codes.DisplayName(codes.K013), codes.DisplayName(codes.K403))
 	case len(g.Kernels) == 0:
 		g.Note = messages.Text(messages.H8205)
 	}

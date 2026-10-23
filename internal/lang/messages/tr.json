@@ -1381,7 +1381,7 @@
 "H8201": "(aktarılan modülde)",
 "H8202": "(üst düzey)",
 "H8203": "GPU kullanılmadı",
-"H8204": "kernel süreleri ölçülmüyor (tr {watch} ve tr {profile} ölçer; ya da TR_GPU_PROFIL=1)",
+"H8204": "kernel süreleri ölçülmüyor (tr {watch} ve tr {profile} ölçer; ya da {env}=1)",
 "H8205": "henüz kernel ölçümü yok",
 "H8206": "{type} işlemleri",
 "H8207": "toplama (+)",

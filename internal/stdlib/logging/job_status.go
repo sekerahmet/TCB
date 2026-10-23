@@ -2,10 +2,10 @@ package logging
 
 import (
 	"io"
-	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/jsonwrite"
 )
@@ -19,8 +19,12 @@ import (
 //
 // Dosya geçici bir dosyaya yazılıp yerine konur: okuyan hiçbir zaman yarım dosya görmez.
 
-// jobEnvVar arka plan işinin klasörünü gösteren ortam değişkenidir.
-const jobEnvVar = "TR_IS_KLASORU"
+// jobDir arka plan işinin klasörüdür (ortam değişkeni K401, her yazım dilinin adıyla:
+// TR_IS_KLASORU, TR_JOB_DIR); iş değilse boş.
+func jobDir() string {
+	k, _ := codes.EnvValue(codes.K401)
+	return k
+}
 
 // jobFile iş klasöründeki ilerleme anlık görüntüsünün adıdır.
 const jobFile = "ilerleme.json"
@@ -30,7 +34,7 @@ const jobInterval = time.Second
 
 // jobStatusPath ilerleme.json'un yoludur; program bir arka plan işi değilse boş.
 func jobStatusPath() string {
-	k := os.Getenv(jobEnvVar)
+	k := jobDir()
 	if k == "" {
 		return ""
 	}

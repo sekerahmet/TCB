@@ -165,6 +165,12 @@ const (
 	K311 Code = K + 311 // screen · ekran
 	K312 Code = K + 312 // help · yardım
 	K313 Code = K + 313 // quit · çıkış
+	K400 Code = K + 400 // TR_LANG · TR_DIL
+	K401 Code = K + 401 // TR_JOB_DIR · TR_IS_KLASORU
+	K402 Code = K + 402 // TR_GPU_SYNC · TR_GPU_ESZAMANLI
+	K403 Code = K + 403 // TR_GPU_PROFILE · TR_GPU_PROFIL
+	K404 Code = K + 404 // TR_CPU_AVX2
+	K405 Code = K + 405 // TR_GPU_CUBLASLT
 	T100 Code = T + 100 // tensor · tensör
 	T101 Code = T + 101 // zeros · sıfırlar
 	T102 Code = T + 102 // ones · birler

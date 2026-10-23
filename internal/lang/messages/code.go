@@ -22,8 +22,14 @@ import (
 type Code uint16
 
 // LanguageEnvVar selects the active writing language (empty: tr); codes.LanguageEnvVar is
-// the same variable.
+// the same variable. It is the source-language name of the name code K400.
 const LanguageEnvVar = "TR_DIL"
+
+// LanguageEnvVars, LanguageEnvVar'ın bütün gömülü yazım dillerindeki adlarıdır, kaynak dil önce:
+// öbür ortam değişkenleri gibi her dilin adıyla okunur (codes.EnvValue, dil tanımı 17.8). Bu paket
+// dil listelerinden önce okunduğu için adlar burada yazılıdır; codes'un
+// TestLanguageEnvVarsAreK400 testi listeyi K400'ün adlarıyla aynı tutar.
+var LanguageEnvVars = []string{LanguageEnvVar, "TR_LANG"}
 
 // String writes the code as in the language file (H7003).
 func (c Code) String() string { return fmt.Sprintf("H%04d", uint16(c)) }
