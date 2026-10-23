@@ -192,11 +192,11 @@ type View struct {
 func (v View) DType() DType { return v.S.DType() }
 
 // Numel görünümdeki eleman sayısı.
-func (v View) Numel() int { return numelOf(v.Shape) }
+func (v View) Numel() int { return NumelOf(v.Shape) }
 
 // DenseView s'nin baştan, satır öncelikli ve boşluksuz okunan shape şekilli görünümüdür.
 func DenseView(s Storage, shape []int) View {
-	return View{S: s, Shape: shape, Strides: contiguousStrides(shape)}
+	return View{S: s, Shape: shape, Strides: ContiguousStrides(shape)}
 }
 
 // IsContiguous görünümün satır öncelikli ve boşluksuz olup olmadığı.

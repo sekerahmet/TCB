@@ -220,7 +220,7 @@ const (
 // hatalarıyla aynı biçimdedir.
 func SizeError(n int, dt DType, limit int64, place string) *messages.Error {
 	return messages.New(messages.H3083,
-		numberText(float64(n)), dt, bytesText(float64(n)*float64(max(dt.Bits(), 1))/8), place, bytesText(float64(limit)))
+		numberText(float64(n)), dt, BytesText(float64(n)*float64(max(dt.Bits(), 1))/8), place, BytesText(float64(limit)))
 }
 
 // limitErrorAt sınırı aşan ayırmanın hatasını, sınır ve yer (PlaceHost, PlaceGPU) verilerek
@@ -237,17 +237,17 @@ func limitErrorAt(is opKind, shape []int, dt DType, overflow bool, limit int64, 
 	}
 	switch {
 	case overflow && is == isCreate:
-		return messages.New(messages.H3086, is, shapeText(shape), numberText(elemFn), bytesText(byteN), place, bytesText(float64(limit)), hint)
+		return messages.New(messages.H3086, is, ShapeText(shape), numberText(elemFn), BytesText(byteN), place, BytesText(float64(limit)), hint)
 	case overflow:
-		return messages.New(messages.H3087, is, shapeText(shape), numberText(elemFn), bytesText(byteN), place, bytesText(float64(limit)), hint)
+		return messages.New(messages.H3087, is, ShapeText(shape), numberText(elemFn), BytesText(byteN), place, BytesText(float64(limit)), hint)
 	case is == isCreate:
-		return messages.New(messages.H3084, is, shapeText(shape), bytesText(byteN), place, bytesText(float64(limit)), hint)
+		return messages.New(messages.H3084, is, ShapeText(shape), BytesText(byteN), place, BytesText(float64(limit)), hint)
 	}
-	return messages.New(messages.H3085, is, shapeText(shape), bytesText(byteN), place, bytesText(float64(limit)), hint)
+	return messages.New(messages.H3085, is, ShapeText(shape), BytesText(byteN), place, BytesText(float64(limit)), hint)
 }
 
-// shapeText bir şekli "[2, 3]" biçiminde yazar.
-func shapeText(shape []int) string {
+// ShapeText bir şekli "[2, 3]" biçiminde yazar; ml ve kontrol noktası iletileri de bunu kullanır.
+func ShapeText(shape []int) string {
 	p := make([]string, len(shape))
 	for i, d := range shape {
 		p[i] = strconv.Itoa(d)
@@ -255,16 +255,18 @@ func shapeText(shape []int) string {
 	return "[" + strings.Join(p, ", ") + "]"
 }
 
-// bytesText bayt sayısını insan okunur birimle (1024 tabanlı, ondalık virgülle) yazar.
-func bytesText(b float64) string {
-	units := [...]string{"bayt", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"}
+// BytesText bayt sayısını insan okunur birimle (1024 tabanlı, ondalık virgülle) yazar; 1 KB altı
+// bayt sayısı iletinin dilindedir (H4020). GPU arka ucunun bellek iletileri de bunu kullanır
+// (dil tanımı 15.41, 15.42).
+func BytesText(b float64) string {
+	units := [...]string{"", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"}
 	i := 0
 	for b >= 1024 && i < len(units)-1 {
 		b /= 1024
 		i++
 	}
 	if i == 0 {
-		return strconv.FormatFloat(b, 'f', 0, 64) + " bayt"
+		return messages.Text(messages.H4020, int64(b))
 	}
 	if b >= 1e6 {
 		return numberText(b) + " " + units[i]

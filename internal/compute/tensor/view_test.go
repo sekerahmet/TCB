@@ -204,7 +204,7 @@ func permute64(shape, dims []int) refFn {
 
 // slice64 axis boyunca [start,end) aralığını step adımıyla alır.
 func slice64(shape []int, axis, start, end, step int) refFn {
-	outer, n, inner := numelOf(shape[:axis]), shape[axis], numelOf(shape[axis+1:])
+	outer, n, inner := NumelOf(shape[:axis]), shape[axis], NumelOf(shape[axis+1:])
 	return func(in [][]float64) []float64 {
 		var res []float64
 		for o := 0; o < outer; o++ {

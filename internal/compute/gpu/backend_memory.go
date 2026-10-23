@@ -45,7 +45,7 @@ func (t *temp) read(v tensor.View) tensor.View {
 	}
 	n := v.Numel()
 	tmp := t.buffer(n, false)
-	hv := tensor.View{S: tmp, Shape: v.Shape, Strides: contiguous(v.Shape)}
+	hv := tensor.View{S: tmp, Shape: v.Shape, Strides: tensor.ContiguousStrides(v.Shape)}
 	t.g.copyStrided(hv, v, false, 0)
 	return hv
 }
@@ -60,7 +60,7 @@ func (t *temp) readNative(v tensor.View) tensor.View {
 	d := t.g.storageOf(v.S)
 	n := v.Numel()
 	tmp := t.bufferOf(n, d.dtype, false)
-	hv := tensor.View{S: tmp, Shape: v.Shape, Strides: contiguous(v.Shape)}
+	hv := tensor.View{S: tmp, Shape: v.Shape, Strides: tensor.ContiguousStrides(v.Shape)}
 	t.g.copyStrided(hv, v, false, 0)
 	return hv
 }
@@ -213,7 +213,7 @@ func sumFromShadow(out, source []float32, v tensor.View) {
 func (g *backend) Copy(dst tensor.Storage, dstOff int, src tensor.View) {
 	g.enter()
 	defer g.exit()
-	hv := tensor.View{S: dst, Offset: dstOff, Shape: src.Shape, Strides: contiguous(src.Shape)}
+	hv := tensor.View{S: dst, Offset: dstOff, Shape: src.Shape, Strides: tensor.ContiguousStrides(src.Shape)}
 	g.copyStrided(hv, src, false, 0)
 }
 

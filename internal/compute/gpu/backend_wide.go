@@ -53,9 +53,9 @@ func (g *backend) ClampGrad(gx, gs tensor.Storage, x tensor.View, lo, hi float32
 func broadcastMeta(op messages.Code, outShape []int, vs ...tensor.View) (int, []int) {
 	steps := make([][]int, 0, len(vs)+1)
 	for _, v := range vs {
-		steps = append(steps, broadcastStride(v.Strides, v.Shape, outShape))
+		steps = append(steps, tensor.BroadcastStrides(v.Strides, v.Shape, outShape))
 	}
-	steps = append(steps, contiguous(outShape))
+	steps = append(steps, tensor.ContiguousStrides(outShape))
 	sh, st := tensor.MergeAxes(outShape, steps...)
 	nd := len(sh)
 	isPlain := nd == 1
@@ -82,7 +82,7 @@ func (g *backend) Where(out tensor.Storage, outShape []int, c, a, b tensor.View)
 	defer gt.finish()
 	o, last := gt.write(out, false)
 	c, a, b = gt.readStrided(c), gt.readStrided(a), gt.readStrided(b)
-	n := numel(outShape)
+	n := tensor.NumelOf(outShape)
 	if n == 0 {
 		return
 	}
@@ -106,8 +106,8 @@ func (g *backend) WhereGrad(dst tensor.Storage, dstShape, outShape []int, gs ten
 	if !pick {
 		term = tAsecOdegil
 	}
-	g.reduce(reduceJob{a: gd, o: g.storageOf(c.S), oOf: c.Offset, stO2: broadcastStride(c.Strides, c.Shape, outShape),
-		output: d, shape2: outShape, stA2: contiguous(outShape), st: broadcastStride(contiguous(dstShape), dstShape, outShape),
+	g.reduce(reduceJob{a: gd, o: g.storageOf(c.S), oOf: c.Offset, stO2: tensor.BroadcastStrides(c.Strides, c.Shape, outShape),
+		output: d, shape2: outShape, stA2: tensor.ContiguousStrides(outShape), st: tensor.BroadcastStrides(tensor.ContiguousStrides(dstShape), dstShape, outShape),
 		term: term, add: true, scaleF: 1})
 	last()
 }
@@ -117,7 +117,7 @@ func (g *backend) Atan2Grad(ga, gb tensor.Storage, aShape, bShape, outShape []in
 	defer g.exit()
 	gt := g.temp()
 	defer gt.finish()
-	n := numel(outShape)
+	n := tensor.NumelOf(outShape)
 	if n == 0 {
 		return
 	}
@@ -153,8 +153,8 @@ func (g *backend) Atan2Grad(ga, gb tensor.Storage, aShape, bShape, outShape []in
 		if h.d == nil {
 			continue
 		}
-		g.reduce(reduceJob{a: h.t, output: h.d, shape2: outShape, stA2: contiguous(outShape),
-			st: broadcastStride(contiguous(h.sh), h.sh, outShape), term: tA, add: true, scaleF: 1})
+		g.reduce(reduceJob{a: h.t, output: h.d, shape2: outShape, stA2: tensor.ContiguousStrides(outShape),
+			st: tensor.BroadcastStrides(tensor.ContiguousStrides(h.sh), h.sh, outShape), term: tA, add: true, scaleF: 1})
 	}
 }
 
@@ -164,7 +164,7 @@ func (g *backend) Atan2Grad(ga, gb tensor.Storage, aShape, bShape, outShape []in
 
 // accum satır başına bir blokla birikimli toplam başlatır.
 func (g *backend) accum(y *storage, x tensor.View, shape []int, axis int, inverse, add bool) {
-	outer, L, ic := axisOrder(shape, axis)
+	outer, L, ic := tensor.AxisOrder(shape, axis)
 	row := outer * ic
 	if row == 0 || L == 0 {
 		return
@@ -194,7 +194,7 @@ func (g *backend) CumSumGrad(gx, gs tensor.Storage, shape []int, axis int) {
 	defer gt.finish()
 	d, last := gt.write(gx, true)
 	gd := gt.readD(gs)
-	g.accum(d, tensor.View{S: gd, Shape: shape, Strides: contiguous(shape)}, shape, axis, true, true)
+	g.accum(d, tensor.View{S: gd, Shape: shape, Strides: tensor.ContiguousStrides(shape)}, shape, axis, true, true)
 	last()
 }
 
@@ -210,7 +210,7 @@ func (g *backend) Sort(vals, idx tensor.Storage, x tensor.View, axis, kCount int
 	v, lastV := gt.write(vals, false)
 	id := g.storageOf(idx)
 	xv := gt.read(x)
-	outer, L, ic := axisOrder(x.Shape, axis)
+	outer, L, ic := tensor.AxisOrder(x.Shape, axis)
 	row := outer * ic
 	if row == 0 || kCount == 0 {
 		return
@@ -271,7 +271,7 @@ func (g *backend) GatherGrad(gx, gs, idx tensor.Storage, shape []int, axis, kCou
 	defer gt.finish()
 	d, last := gt.write(gx, true)
 	gd, id := gt.readD(gs), gt.readD(idx)
-	outer, L, ic := axisOrder(shape, axis)
+	outer, L, ic := tensor.AxisOrder(shape, axis)
 	n := outer * kCount * ic
 	if n == 0 {
 		return

@@ -36,12 +36,12 @@ func MatMulOut(a, b *Tensor, outType DType) *Tensor {
 	if len(b.shape) == 2 {
 		// Sağ taraf tek matris: soldaki öndeki eksenler satırlara katlanır.
 		batch = 1
-		M = numelOf(a.shape[:len(a.shape)-1])
+		M = NumelOf(a.shape[:len(a.shape)-1])
 	} else {
 		if len(a.shape) != len(b.shape) || !sameShape(a.shape[:len(a.shape)-2], b.shape[:len(b.shape)-2]) {
 			panic(messages.New(messages.H3052, a.shape, b.shape))
 		}
-		batch = numelOf(a.shape[:len(a.shape)-2])
+		batch = NumelOf(a.shape[:len(a.shape)-2])
 		M = a.shape[len(a.shape)-2]
 	}
 
@@ -78,7 +78,7 @@ func MatMulOut(a, b *Tensor, outType DType) *Tensor {
 		// gradyan da o türe yuvarlanır; böylece geri yöndeki iki çarpım da 16 bitlik girdiyle
 		// (GPU'da tensör çekirdekleri) yapılır. Biriktirme yine en az float32'dedir.
 		if ad == bd && ad != Float32 && g.DType() != ad {
-			s := allocUninit(be, numelOf(g.Shape), ad)
+			s := allocUninit(be, NumelOf(g.Shape), ad)
 			be.Copy(s, 0, g)
 			defer giveBack(be, s)
 			g = View{S: s, Shape: g.Shape, Strides: g.Strides}

@@ -15,7 +15,7 @@ import (
 
 // naiveSum float64 birikimli başvuru eksen toplamı.
 func naiveSum(xd []float32, shape []int, axis int) []float32 {
-	outer, dim, inner := axisOrder(shape, axis)
+	outer, dim, inner := AxisOrder(shape, axis)
 	out := make([]float32, outer*inner)
 	for o := 0; o < outer; o++ {
 		for i := 0; i < inner; i++ {

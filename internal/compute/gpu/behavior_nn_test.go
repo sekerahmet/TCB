@@ -43,7 +43,7 @@ func TestMatMul(t *testing.T) {
 func TestSoftmax(t *testing.T) {
 	rng := rand.New(rand.NewSource(8))
 	for _, sh := range [][]int{{1, 1}, {3, 7}, {2, 300}, {5, 4, 3}, {1, 1031}} {
-		v := random(rng, numel(sh), 3)
+		v := random(rng, tensor.NumelOf(sh), 3)
 		for ax := range sh {
 			for _, lg := range []bool{false, true} {
 				compare(t, fmt.Sprintf("softmax %v eksen %d log=%v", sh, ax, lg), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {

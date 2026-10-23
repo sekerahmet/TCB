@@ -266,7 +266,7 @@ func TestMatMul16BitBackwardRoundsGrad(t *testing.T) {
 func matmul64(ash, bsh []int, transA, transB bool) refFn {
 	nd := len(ash)
 	M, K, N := ash[nd-2], ash[nd-1], bsh[len(bsh)-1]
-	batch := numelOf(ash[:nd-2])
+	batch := NumelOf(ash[:nd-2])
 	return func(in [][]float64) []float64 {
 		a, b := in[0], in[1]
 		res := make([]float64, batch*M*N)

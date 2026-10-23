@@ -59,8 +59,9 @@ type Tensor struct {
 // Şekil yardımcıları
 // ----------------------------------------------------------------------------
 
-// numelOf bir şeklin toplam eleman sayısını verir (0 boyutlu şekil için 1).
-func numelOf(shape []int) int {
+// NumelOf bir şeklin toplam eleman sayısını verir (0 boyutlu şekil için 1). GPU arka ucu da
+// şekil hesaplarında bunu, ContiguousStrides'ı, BroadcastStrides'ı ve AxisOrder'ı kullanır.
+func NumelOf(shape []int) int {
 	n := 1
 	for _, d := range shape {
 		n *= d
@@ -68,8 +69,8 @@ func numelOf(shape []int) int {
 	return n
 }
 
-// contiguousStrides satır öncelikli (son eksen en hızlı) adımları üretir.
-func contiguousStrides(shape []int) []int {
+// ContiguousStrides satır öncelikli (son eksen en hızlı) adımları üretir.
+func ContiguousStrides(shape []int) []int {
 	st := make([]int, len(shape))
 	s := 1
 	for i := len(shape) - 1; i >= 0; i-- {
@@ -120,7 +121,7 @@ func normAxis(axis, ndim int) int {
 // fromStorage depolamayı bitişik tensör olarak sarar.
 func fromStorage(be Backend, s Storage, shape []int) *Tensor {
 	sh := copyInts(shape)
-	return newHeader(&Tensor{storage: s, be: be, shape: sh, strides: contiguousStrides(sh), dtyp: s.DType()})
+	return newHeader(&Tensor{storage: s, be: be, shape: sh, strides: ContiguousStrides(sh), dtyp: s.DType()})
 }
 
 // zerosOn verilen arka uçta sıfırlarla dolu bitişik float32 tensör ayırır.
@@ -280,7 +281,7 @@ func (t *Tensor) Dim() int { return len(t.shape) }
 func (t *Tensor) Size(axis int) int { return t.shape[normAxis(axis, len(t.shape))] }
 
 // Numel toplam eleman sayısı.
-func (t *Tensor) Numel() int { return numelOf(t.shape) }
+func (t *Tensor) Numel() int { return NumelOf(t.shape) }
 
 // IsContiguous tensörün depoda satır öncelikli ve boşluksuz durup durmadığı.
 func (t *Tensor) IsContiguous() bool { return isContiguous(t.shape, t.strides) }
@@ -396,9 +397,9 @@ func (t *Tensor) CopyFrom(src *Tensor) {
 	if src.storage == t.storage {
 		s := allocUninit(src.be, src.Numel(), src.dtyp)
 		src.be.Copy(s, 0, sv)
-		sv = View{S: s, Shape: src.shape, Strides: contiguousStrides(src.shape)}
+		sv = View{S: s, Shape: src.shape, Strides: ContiguousStrides(src.shape)}
 	}
-	sv.Strides = broadcastStrides(sv.Strides, sv.Shape, t.shape)
+	sv.Strides = BroadcastStrides(sv.Strides, sv.Shape, t.shape)
 	sv.Shape = t.shape
 	t.be.CopyStrided(t.view(), sv)
 	t.storage.BumpVersion()
@@ -519,7 +520,7 @@ func (t *Tensor) contigView() View {
 	}
 	s := allocUninit(t.be, t.Numel(), t.dtyp)
 	t.be.Copy(s, 0, t.view())
-	return View{S: s, Shape: t.shape, Strides: contiguousStrides(t.shape)}
+	return View{S: s, Shape: t.shape, Strides: ContiguousStrides(t.shape)}
 }
 
 // copyRelease v, t'nin bitişik kopyasıysa (contigView'ün ayırdığı) onu arka uca iade eden

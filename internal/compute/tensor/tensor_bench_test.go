@@ -63,7 +63,7 @@ func BenchmarkSpeedScatterAdd(b *testing.B) {
 	x := speedRand(speedR, 3*speedD)
 	g := speedRand(speedR, speedD)
 	target := x.be.Alloc(x.Numel(), Float32)
-	st := contiguousStrides(x.shape)
+	st := ContiguousStrides(x.shape)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		x.be.ScatterAdd(target, speedD, st, g.storage, g.shape)

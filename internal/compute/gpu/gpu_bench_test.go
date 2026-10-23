@@ -202,7 +202,9 @@ func microAttn(g *backend, divide int) {
 	n := B * H * T * Dh
 	q, k, v := randomStorage(g, rng, n, 1), randomStorage(g, rng, n, 1), randomStorage(g, rng, n, 1)
 	sh := []int{B, H, T, Dh}
-	see := func(s tensor.Storage) tensor.View { return tensor.View{S: s, Shape: sh, Strides: contiguous(sh)} }
+	see := func(s tensor.Storage) tensor.View {
+		return tensor.View{S: s, Shape: sh, Strides: tensor.ContiguousStrides(sh)}
+	}
 	p := tensor.AttentionParams{Batch: B, H: H, Hkv: H, Tq: T, Tk: T, Dh: Dh, Dv: Dh, Causal: true,
 		Scale: float32(1 / math.Sqrt(float64(Dh)))}
 	out := g.AllocUninit(n, tensor.Float32)
@@ -314,7 +316,7 @@ func microElem(g *backend, band float64, divide int) {
 	write(fmt.Sprintf("eleman sınırla %dM", n>>20), 8*n, func() { g.Clamp(out, av, -0.5, 0.5) })
 	sh := []int{edge, edge}
 	dev := tensor.View{S: a, Shape: sh, Strides: []int{1, edge}}
-	write(fmt.Sprintf("devrik kopya %d²", edge), 8*n, func() { g.CopyStrided(tensor.View{S: out, Shape: sh, Strides: contiguous(sh)}, dev) })
+	write(fmt.Sprintf("devrik kopya %d²", edge), 8*n, func() { g.CopyStrided(tensor.View{S: out, Shape: sh, Strides: tensor.ContiguousStrides(sh)}, dev) })
 	for _, s := range []tensor.Storage{a, b, out} {
 		g.Release(s)
 	}
@@ -339,7 +341,7 @@ func microNorm(g *backend, band float64, divide int) {
 	}
 	for _, c := range cases {
 		D := c.shape[len(c.shape)-1]
-		rows := numel(c.shape) / D
+		rows := tensor.NumelOf(c.shape) / D
 		x := g.FromHost(random(rng, c.n, 1), tensor.BFloat16)
 		gamma := g.FromHost(random(rng, D, 1), tensor.Float32)
 		gs := g.FromHost(random(rng, rows*D, 1), tensor.BFloat16)

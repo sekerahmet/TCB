@@ -4,9 +4,9 @@ import "math"
 
 // CPU arka ucu: indirgemeler ve softmax.
 
-// axisOrder bir eksen etrafında tensörü (dış, eksen, iç) üçlüsüne ayırır:
+// AxisOrder bir eksen etrafında tensörü (dış, eksen, iç) üçlüsüne ayırır:
 // bitişik düzende eleman (o, d, i) konumu (o*dim + d)*inner + i'dedir.
-func axisOrder(shape []int, axis int) (outer, dim, inner int) {
+func AxisOrder(shape []int, axis int) (outer, dim, inner int) {
 	outer, inner = 1, 1
 	for i := 0; i < axis; i++ {
 		outer *= shape[i]
@@ -31,7 +31,7 @@ const (
 func (cpuBackend) f32Sum(out Storage, x View, axis int, scale float32) {
 	xd := gatherCPU(x)
 	y := cd(out)
-	outer, dim, inner := axisOrder(x.Shape, axis)
+	outer, dim, inner := AxisOrder(x.Shape, axis)
 	sc := float64(scale)
 	switch {
 	case inner == 1:
@@ -159,14 +159,14 @@ func argmaxCPU(xd []float32, outer, dim, inner int, fn func(k, d int, v float32)
 func (cpuBackend) f32Max(out Storage, x View, axis int) {
 	xd := gatherCPU(x)
 	y := cd(out)
-	outer, dim, inner := axisOrder(x.Shape, axis)
+	outer, dim, inner := AxisOrder(x.Shape, axis)
 	argmaxCPU(xd, outer, dim, inner, func(k, d int, v float32) { y[k] = v })
 }
 
 func (cpuBackend) f32MaxGrad(gx, g Storage, x View, axis int) {
 	xd := gatherCPU(x)
 	pg, gd := cd(gx), cd(g)
-	outer, dim, inner := axisOrder(x.Shape, axis)
+	outer, dim, inner := AxisOrder(x.Shape, axis)
 	argmaxCPU(xd, outer, dim, inner, func(k, d int, v float32) {
 		o, i := k/inner, k%inner
 		pg[(o*dim+d)*inner+i] += gd[k]
@@ -175,7 +175,7 @@ func (cpuBackend) f32MaxGrad(gx, g Storage, x View, axis int) {
 
 func (cpuBackend) f32ArgMax(x View, axis int) []int {
 	xd := gatherCPU(x)
-	outer, dim, inner := axisOrder(x.Shape, axis)
+	outer, dim, inner := AxisOrder(x.Shape, axis)
 	res := make([]int, outer*inner)
 	argmaxCPU(xd, outer, dim, inner, func(k, d int, v float32) { res[k] = d })
 	return res
@@ -184,7 +184,7 @@ func (cpuBackend) f32ArgMax(x View, axis int) []int {
 func (cpuBackend) f32Softmax(out Storage, x View, axis int, logMode bool) {
 	xd := gatherCPU(x)
 	y := cd(out)
-	outer, dim, inner := axisOrder(x.Shape, axis)
+	outer, dim, inner := AxisOrder(x.Shape, axis)
 	rows := outer * inner
 	if inner == 1 {
 		// Son eksen: satırlar bitişik; üstel vektörel hesaplanır.
@@ -258,7 +258,7 @@ func softmaxRow(y, x []float32, logMode bool) {
 
 func (cpuBackend) f32SoftmaxGrad(gx, g, y Storage, shape []int, axis int, logMode bool) {
 	pg, gd, yd := cd(gx), cd(g), cd(y)
-	outer, dim, inner := axisOrder(shape, axis)
+	outer, dim, inner := AxisOrder(shape, axis)
 	rows := outer * inner
 	parallelFor(rows, dim*4, func(lo, hi int) {
 		for r := lo; r < hi; r++ {

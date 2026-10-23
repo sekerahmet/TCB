@@ -77,7 +77,7 @@ func randomMask(rng *rand.Rand, d attnState) *Tensor {
 	if d.maskBroadcast {
 		sh = []int{d.Tq, d.Tk}
 	}
-	m := make([]float32, numelOf(sh))
+	m := make([]float32, NumelOf(sh))
 	for i := range m {
 		if rng.Float32() < 0.7 {
 			m[i] = 1

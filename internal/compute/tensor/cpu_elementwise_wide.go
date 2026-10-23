@@ -282,10 +282,10 @@ func (cpuBackend) f32ClampGrad(gx, g Storage, x View, lo, hi float32) {
 
 func (cpuBackend) f32Where(out Storage, outShape []int, c, a, b View) {
 	od, cdat, ad, bd := cd(out), cd(c.S), cd(a.S), cd(b.S)
-	sc := broadcastStrides(c.Strides, c.Shape, outShape)
-	sa := broadcastStrides(a.Strides, a.Shape, outShape)
-	sb := broadcastStrides(b.Strides, b.Shape, outShape)
-	iterRowsPar(outShape, []int{c.Offset, a.Offset, b.Offset, 0}, [][]int{sc, sa, sb, contiguousStrides(outShape)}, 3,
+	sc := BroadcastStrides(c.Strides, c.Shape, outShape)
+	sa := BroadcastStrides(a.Strides, a.Shape, outShape)
+	sb := BroadcastStrides(b.Strides, b.Shape, outShape)
+	iterRowsPar(outShape, []int{c.Offset, a.Offset, b.Offset, 0}, [][]int{sc, sa, sb, ContiguousStrides(outShape)}, 3,
 		func(off []int, m int, in []int) {
 			for i := 0; i < m; i++ {
 				v := bd[off[2]+i*in[2]]
@@ -299,11 +299,11 @@ func (cpuBackend) f32Where(out Storage, outShape []int, c, a, b View) {
 
 func (cpuBackend) f32WhereGrad(dst Storage, dstShape, outShape []int, g Storage, c View, pick bool) {
 	dg, gd, cdat := cd(dst), cd(g), cd(c.S)
-	sc := broadcastStrides(c.Strides, c.Shape, outShape)
-	sd := broadcastStrides(contiguousStrides(dstShape), dstShape, outShape)
+	sc := BroadcastStrides(c.Strides, c.Shape, outShape)
+	sd := BroadcastStrides(ContiguousStrides(dstShape), dstShape, outShape)
 	// Hedefin indirgenen (adım 0) eksenleri bölünmez: her hedef elemanı tek görevde ve
 	// sabit sırayla biriktirilir (belirlenimci).
-	iterRowsPar(outShape, []int{0, 0, c.Offset}, [][]int{contiguousStrides(outShape), sd, sc}, 1,
+	iterRowsPar(outShape, []int{0, 0, c.Offset}, [][]int{ContiguousStrides(outShape), sd, sc}, 1,
 		func(off []int, m int, in []int) {
 			for i := 0; i < m; i++ {
 				if (cdat[off[2]+i*in[2]] != 0) == pick {
@@ -316,17 +316,17 @@ func (cpuBackend) f32WhereGrad(dst Storage, dstShape, outShape []int, g Storage,
 // f32Atan2Grad önce çıktı şeklinde iki terimi (float64 ile) hesaplar, sonra her birini
 // girdinin şekline indirgeyerek ekler.
 func (b cpuBackend) f32Atan2Grad(ga, gb Storage, aShape, bShape, outShape []int, g Storage, a, bv View) {
-	n := numelOf(outShape)
+	n := NumelOf(outShape)
 	if n == 0 {
 		return
 	}
 	gd := cd(g)
 	ta := make([]float32, n)
 	tb := make([]float32, n)
-	sa := broadcastStrides(a.Strides, a.Shape, outShape)
-	sb := broadcastStrides(bv.Strides, bv.Shape, outShape)
+	sa := BroadcastStrides(a.Strides, a.Shape, outShape)
+	sb := BroadcastStrides(bv.Strides, bv.Shape, outShape)
 	ad, bd := cd(a.S), cd(bv.S)
-	iterRowsPar(outShape, []int{a.Offset, bv.Offset, 0}, [][]int{sa, sb, contiguousStrides(outShape)}, 2,
+	iterRowsPar(outShape, []int{a.Offset, bv.Offset, 0}, [][]int{sa, sb, ContiguousStrides(outShape)}, 2,
 		func(off []int, m int, in []int) {
 			for i := 0; i < m; i++ {
 				y, x := float64(ad[off[0]+i*in[0]]), float64(bd[off[1]+i*in[1]])

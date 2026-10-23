@@ -52,7 +52,7 @@ func Concat(ts []*Tensor, axis int) *Tensor {
 		sy.finish()
 		return symConcat(ts, axis, outShape, dt)
 	}
-	ost := contiguousStrides(outShape)
+	ost := ContiguousStrides(outShape)
 
 	// Girdiler float32 bir tampona eklenir; 16 bitlik çıktıda tek kez yuvarlanır. Tampon -0
 	// ile başlar: -0 + x her x için (-0 dahil) x'tir, girdilerin işaretli sıfırları korunur.

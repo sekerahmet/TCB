@@ -128,7 +128,7 @@ func TestAtan2ClampCompare(t *testing.T) {
 		return tensor.Atan2(twin(ys, false, len(ys))[c], twin(xs, false, len(xs))[c]), nil
 	})
 	for _, sh := range [][2][]int{{{37}, {37}}, {{5, 1}, {1, 7}}, {{3, 1, 4}, {2, 1}}, {{1}, {6, 3}}} {
-		av, bv := random(rng, numel(sh[0]), 2), random(rng, numel(sh[1]), 2)
+		av, bv := random(rng, tensor.NumelOf(sh[0]), 2), random(rng, tensor.NumelOf(sh[1]), 2)
 		compare(t, fmt.Sprintf("atan2 %v %v", sh[0], sh[1]), 3e-6, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
 			a, b := twin(av, true, sh[0]...)[c], twin(bv, true, sh[1]...)[c]
 			return tensor.Atan2(a, b), []*tensor.Tensor{a, b}
@@ -153,7 +153,7 @@ func TestAtan2ClampCompare(t *testing.T) {
 func TestWhere(t *testing.T) {
 	rng := rand.New(rand.NewSource(13))
 	for _, sh := range [][3][]int{{{41}, {41}, {41}}, {{4, 1}, {1, 5}, {4, 5}}, {{2, 3, 1}, {3, 4}, {1}}, {{6}, {1}, {6}}} {
-		cv := random(rng, numel(sh[0]), 1)
+		cv := random(rng, tensor.NumelOf(sh[0]), 1)
 		for i := range cv {
 			if cv[i] < 0 {
 				cv[i] = 0
@@ -162,7 +162,7 @@ func TestWhere(t *testing.T) {
 		if len(cv) > 2 {
 			cv[1] = float32(math.NaN()) // NaN koşul doğru sayılır
 		}
-		av, bv := random(rng, numel(sh[1]), 1), random(rng, numel(sh[2]), 1)
+		av, bv := random(rng, tensor.NumelOf(sh[1]), 1), random(rng, tensor.NumelOf(sh[2]), 1)
 		compare(t, fmt.Sprintf("koşullu %v", sh), 0, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
 			k := twin(cv, false, sh[0]...)[c]
 			a, b := twin(av, true, sh[1]...)[c], twin(bv, true, sh[2]...)[c]
@@ -174,7 +174,7 @@ func TestWhere(t *testing.T) {
 func TestCumSum(t *testing.T) {
 	rng := rand.New(rand.NewSource(14))
 	for _, sh := range [][]int{{1}, {37}, {3, 5}, {2, 3, 4}, {2, 3000}, {300, 2}, {4, 0}} {
-		v := random(rng, numel(sh), 1)
+		v := random(rng, tensor.NumelOf(sh), 1)
 		for axis := range sh {
 			compare(t, fmt.Sprintf("birikimli %v eksen %d", sh, axis), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
 				x := twin(v, true, sh...)[c]
@@ -206,7 +206,7 @@ func sortCompare(t *testing.T, shapes [][]int) {
 	t.Helper()
 	rng := rand.New(rand.NewSource(15))
 	for _, sh := range shapes {
-		v := sortData(rng, numel(sh))
+		v := sortData(rng, tensor.NumelOf(sh))
 		for axis := range sh {
 			ad := fmt.Sprintf("%v eksen %d", sh, axis)
 			c, g := twin(v, false, sh...)[0], twin(v, false, sh...)[1]

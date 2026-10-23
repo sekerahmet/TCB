@@ -236,7 +236,7 @@ func (n *object) modelMatch(fn string, y *pending, version int) error {
 		}
 		found++
 		if sm := t.Shape(); !slices.Equal(sm, sk) {
-			return messages.New(messages.H7450, fn, name, shapeText(sm), shapeText(sk))
+			return messages.New(messages.H7450, fn, name, tensor.ShapeText(sm), tensor.ShapeText(sk))
 		}
 		if tm, tk := t.DType(), y.kinds[name]; tm != tk {
 			return messages.New(messages.H7451, fn, name, tm, tk)
@@ -255,9 +255,6 @@ func (n *object) modelMatch(fn string, y *pending, version int) error {
 	}
 	return nil
 }
-
-// shapeText bir şekli [2, 3] biçiminde yazar.
-func shapeText(s []int) string { return strings.ReplaceAll(fmt.Sprint(s), " ", ", ") }
 
 // settingsText programın komut satırı ayarlarıdır (gizliler maskeli, karşılaştırma için).
 func settingsText(m *interp.VM, a *interp.DictVal) json.RawMessage {

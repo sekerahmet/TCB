@@ -74,7 +74,7 @@ func fillKernel(dt tensor.DType) func() *emitter {
 // copyStrided hedef görünümüne kaynak görünümünü yazar (ekle: hedef += ölçek·kaynak).
 // Şekiller aynıdır; kaynak yayınlanmış olabilir (adım 0).
 func (g *backend) copyStrided(target, source tensor.View, add bool, scaleF float32) {
-	n := numel(target.Shape)
+	n := tensor.NumelOf(target.Shape)
 	if n == 0 {
 		return
 	}
@@ -113,36 +113,4 @@ func (g *backend) fill(d *storage, v float32) {
 	c := g.takeKernel("doldur:"+d.dtype.String(), fillKernel(d.dtype))
 	iz, bl := plain(d.n, sameBlock)
 	g.launch(c, iz, bl, g.param().write(d, 0).u32(d.n).f32(v))
-}
-
-// contiguous görünümün satır öncelikli adımları.
-func contiguous(shape []int) []int {
-	st := make([]int, len(shape))
-	s := 1
-	for i := len(shape) - 1; i >= 0; i-- {
-		st[i] = s
-		s *= shape[i]
-	}
-	return st
-}
-
-func numel(shape []int) int {
-	n := 1
-	for _, d := range shape {
-		n *= d
-	}
-	return n
-}
-
-// broadcastStride, şekli shape ve adımları st olan görünümün hedef şekle yayınlanmış adımları
-// (eksik ve 1 uzunluklu eksenlerde 0).
-func broadcastStride(st, shape, target []int) []int {
-	out := make([]int, len(target))
-	diff := len(target) - len(shape)
-	for i := range shape {
-		if shape[i] != 1 {
-			out[diff+i] = st[i]
-		}
-	}
-	return out
 }

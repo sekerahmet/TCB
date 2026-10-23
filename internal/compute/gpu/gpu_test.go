@@ -2,6 +2,7 @@ package gpu
 
 import (
 	"math/rand"
+	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
@@ -152,7 +153,7 @@ const (
 func newSmallModel(dev tensor.Device, seed int64, dt tensor.DType) *smallModel {
 	rng := rand.New(rand.NewSource(seed))
 	w := func(scaleF float64, sh ...int) *tensor.Tensor {
-		return inLeafDType(tensor.NewOn(dev, random(rng, numel(sh), scaleF), sh...), dt)
+		return inLeafDType(tensor.NewOn(dev, random(rng, tensor.NumelOf(sh), scaleF), sh...), dt)
 	}
 	one := func(n int) *tensor.Tensor {
 		v := make([]float32, n)
@@ -235,4 +236,28 @@ func trainSmallModel(t *testing.T, dt tensor.DType, tol float64) {
 		t.Fatalf("%s: kayıp düşmedi: %v", dt, losses[1])
 	}
 	t.Logf("%s kayıplar GPU %v, CPU %v", dt, losses[1], losses[0])
+}
+
+// GPU iletilerindeki bellek miktarı tensör paketinin bellek iletileriyle aynı biçimdedir: 1024
+// tabanlı, ondalık virgüllü (dil tanımı 15.41: "bu GPU'da 96,0 GB var"); 1 KB altı bayt sayısı
+// iletinin dilindedir (H4020).
+func TestMemoryTextIsTheTensorRule(t *testing.T) {
+	g := newSimBackend(1 << 20)
+	err := panicError(func() {
+		var hold []tensor.Storage
+		for i := 0; i < 8; i++ {
+			hold = append(hold, g.Alloc(64<<10, tensor.Float32)) // 256 KB
+		}
+		_ = hold
+	})
+	for _, want := range []string{tensor.BytesText(256 << 10), tensor.BytesText(1 << 20)} {
+		if err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("GPU bellek iletisi miktarı tensör iletileriyle aynı yazmalı (%q): %v", want, err)
+		}
+	}
+	for b, want := range map[float64]string{0: "0 bayt", 1023: "1023 bayt", 1536: "1,5 KB", 1 << 30: "1,0 GB"} {
+		if got := tensor.BytesText(b); got != want {
+			t.Errorf("BytesText(%v) = %q, beklenen %q", b, got, want)
+		}
+	}
 }

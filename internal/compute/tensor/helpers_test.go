@@ -44,7 +44,7 @@ func expectPanic(t *testing.T, ad string, fn func()) {
 
 // sorted 1, 2, 3, ... değerleriyle tensör.
 func sorted(shape ...int) *Tensor {
-	d := make([]float32, numelOf(shape))
+	d := make([]float32, NumelOf(shape))
 	for i := range d {
 		d[i] = float32(i + 1)
 	}
@@ -69,7 +69,7 @@ func naiveMatMul(a, b []float32, M, N, K int) []float32 {
 // random [lo,hi) aralığında; mutlak değeri enAz'dan küçük değerleri iter
 // (türevi süreksiz noktalardan uzak durmak için).
 func random(rng *rand.Rand, lo, hi, minN float32, shape ...int) *Tensor {
-	d := make([]float32, numelOf(shape))
+	d := make([]float32, NumelOf(shape))
 	for i := range d {
 		for {
 			v := lo + (hi-lo)*rng.Float32()
@@ -501,7 +501,7 @@ func bcastShape(a, b []int) []int {
 func bcast64(ash, bsh []int, f func(a, b float64) float64) refFn {
 	out := bcastShape(ash, bsh)
 	return func(in [][]float64) []float64 {
-		res := make([]float64, numelOf(out))
+		res := make([]float64, NumelOf(out))
 		st := strides64(out)
 		coord := make([]int, len(out))
 		for i := range res {

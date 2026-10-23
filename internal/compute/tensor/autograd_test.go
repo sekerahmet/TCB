@@ -123,7 +123,7 @@ func TestGradCheck(t *testing.T) {
 
 // disjoint birbirinden en az 0.1 uzak değerlerle tensör (Max eşitliklerinden kaçınmak için).
 func disjoint(rng *rand.Rand, shape ...int) *Tensor {
-	n := numelOf(shape)
+	n := NumelOf(shape)
 	p := rng.Perm(n)
 	d := make([]float32, n)
 	for i, v := range p {

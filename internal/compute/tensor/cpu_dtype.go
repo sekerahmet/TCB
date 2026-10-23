@@ -186,7 +186,7 @@ func widenInto(out []float32, v View) {
 		return
 	}
 	bf := c.dtyp == BFloat16
-	iterRowsPar(v.Shape, []int{v.Offset, 0}, [][]int{v.Strides, contiguousStrides(v.Shape)}, 1, func(off []int, m int, in []int) {
+	iterRowsPar(v.Shape, []int{v.Offset, 0}, [][]int{v.Strides, ContiguousStrides(v.Shape)}, 1, func(off []int, m int, in []int) {
 		src, dst, s := off[0], off[1], in[0]
 		o := out[dst : dst+m]
 		for i := range o {
@@ -244,7 +244,7 @@ func (g *temp) read(v View) View {
 	}
 	tmp := g.buffer(v.Numel(), false)
 	widenInto(tmp.d, v)
-	return View{S: tmp, Shape: v.Shape, Strides: contiguousStrides(v.Shape)}
+	return View{S: tmp, Shape: v.Shape, Strides: ContiguousStrides(v.Shape)}
 }
 
 func (g *temp) readP(v *View) *View {
@@ -329,7 +329,7 @@ func (b cpuBackend) ScatterAdd(dst Storage, dstOff int, dstStrides []int, src St
 }
 
 func (b cpuBackend) ExpandAdd(dst Storage, dstShape []int, src Storage, srcShape []int, scale float32) {
-	defer NoteImplicit(false, ImplicitAccumulate, numelOf(dstShape)).Finish()
+	defer NoteImplicit(false, ImplicitAccumulate, NumelOf(dstShape)).Finish()
 	var gt temp
 	defer gt.finish()
 	d, last := gt.write(dst, true)
@@ -373,7 +373,7 @@ func (b cpuBackend) UnaryGrad(op UnOp, p float32, gx, g Storage, x View, y Stora
 	if readY {
 		yd = gt.readD(y)
 	}
-	xv := View{S: yd, Shape: x.Shape, Strides: contiguousStrides(x.Shape)}
+	xv := View{S: yd, Shape: x.Shape, Strides: ContiguousStrides(x.Shape)}
 	if readX {
 		xv = gt.read(x)
 	}

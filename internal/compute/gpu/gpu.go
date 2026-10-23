@@ -12,7 +12,6 @@
 package gpu
 
 import (
-	"fmt"
 	"os"
 	"runtime"
 	"strconv"
@@ -139,7 +138,7 @@ func Status() string {
 		return messages.Text(messages.H4023, n, readSetupError())
 	}
 	be := tensor.BackendFor(tensor.GPU(0)).(*backend)
-	return messages.Text(messages.H4024, n, be.sr.cardName(), bytesText(be.sr.totalMemory()), be.gemmPath())
+	return messages.Text(messages.H4024, n, be.sr.cardName(), tensor.BytesText(float64(be.sr.totalMemory())), be.gemmPath())
 }
 
 func newBackend(dev tensor.Device, sr driver) *backend {
@@ -256,16 +255,6 @@ func checkSize(n int) {
 // işlemi anlatan H40xx iletisidir.
 func none(code messages.Code, args ...any) {
 	panic(messages.New(code, args...))
-}
-
-func bytesText(b uint64) string {
-	switch {
-	case b >= 1<<30:
-		return fmt.Sprintf("%.1f GB", float64(b)/(1<<30))
-	case b >= 1<<20:
-		return fmt.Sprintf("%.1f MB", float64(b)/(1<<20))
-	}
-	return messages.Text(messages.H4020, b)
 }
 
 // Compile-time checks: the tensor package finds the optional fast paths of a backend by type

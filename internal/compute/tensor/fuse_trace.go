@@ -13,7 +13,7 @@ import (
 
 // symTensor n düğümünün iz tensörü.
 func symTensor(be Backend, n *FuseNode) *Tensor {
-	return newHeader(&Tensor{be: be, shape: copyInts(n.Shape), strides: contiguousStrides(n.Shape), dtyp: n.DType, sym: n})
+	return newHeader(&Tensor{be: be, shape: copyInts(n.Shape), strides: ContiguousStrides(n.Shape), dtyp: n.DType, sym: n})
 }
 
 // symOf t'nin düğümü; t iz tensörü değilse fonksiyon dışarıdan bir tensör kullanıyordur.
