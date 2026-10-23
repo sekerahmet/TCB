@@ -43,7 +43,8 @@
           "end_col": 23
         },
         "signature": "var k",
-        "qualified": "ana.k"
+        "qualified": "ana.k",
+        "inferred_type": "struct:lib/geo.tr#Kare"
       }
     },
     {

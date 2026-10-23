@@ -121,3 +121,6 @@ codegraph query sıçramabekçisi | contains: egitim.SıçramaBekçisi [tr_struc
 codegraph tests-for interp.VM.callPrepared --all | group: measurements, not tests => tools/bench/tr/fib.tr | src: deneme 10 (çağrı maliyeti ölçümü), 2026-10-24
 codegraph who-uses interp.Value.Inspect | contains: <- implemented_by | src: değer dili 3. tur (metin yerleştirmesi → Inspect), 2026-10-24
 codegraph query katman.Doğrusal.ileri --all | group: implemented_by => interp.compiler.call | group: implemented_by => interp.VM.memberValue | src: deneme 9 H1 (yapı → uygulama), 2026-10-24
+codegraph query katman.Doğrusal.ileri --all | group: implemented_by => ml.TensorValue.matmulOp | group: implemented_by => tensor.Add | src: deneme 9 H1 (işleç → uygulama), 2026-10-24
+codegraph path katman.Doğrusal.ileri tensor.MatMul | contains: (directed | contains: -implemented_by-> | src: deneme 9 H1, 2026-10-24
+tr dizin kullananlar field:lib/katman.tr#GPT.ayar --tümü | contains: tools/gpu/gpt_training.tr:73 | contains: lib/hazir_test.tr:22 | contains: lib/hazir_test.tr:27 | contains: examples/en/46_ready_model_and_generation.tr:24 | src: deneme 7 R4 (tür çıkarımı), 2026-10-24

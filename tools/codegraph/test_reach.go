@@ -24,8 +24,8 @@ func reachEdge(kind, confidence, from, to string) bool {
 	case edgeUses, edgeReadsVar, edgeWritesVar, edgeDispatches:
 		return true
 	case edgeImplementedBy:
-		// Yalnızca ölçüm programlarından (tools/bench): her TR testi çağrı kullanır, hepsini yorumlayıcının testi saymak
-		// tests-for'u binlerce satırla gömerdi (TCB, kod-grafigi-40 onayı, 3. madde).
+		// Yalnızca ölçüm programlarından (tools/bench): her TR testi çağrı ve işleç kullanır, hepsini yorumlayıcının
+		// testi saymak tests-for'u binlerce satırla gömerdi (TCB, kod-grafigi-40 onayı, 3. madde).
 		return strings.Contains(from, ":tools/bench/")
 	}
 	return false

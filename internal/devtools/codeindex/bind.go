@@ -14,7 +14,7 @@ import (
 // ownerName sahip kimliğindeki "#"den sonraki addır ("Yapı.metot", "işlev").
 func ownerName(id string) string { return id[strings.Index(id, "#")+1:] }
 
-// bindOwner sahibin parametrelerini kapsama tanıtır ve yapıcıdan tek atamayla kurulan yerelleri bulur.
+// bindOwner sahibin parametrelerini kapsama tanıtır ve türü çıkarılabilen tek atamalı yerelleri bulur (infer.go).
 func (x *indexer) bindOwner(f *file, o owner, sc *scope, root any) {
 	if fl, ok := root.(*ast.FunctionLiteral); ok && (o.kind == KindFunction || o.kind == KindMethod) {
 		for _, p := range fl.Parameters {
@@ -30,10 +30,8 @@ func (x *indexer) bindOwner(f *file, o owner, sc *scope, root any) {
 		if sc.bindCount[name] != 1 || sc.assigned[name] || sc.params[name] != "" {
 			return true
 		}
-		if call, ok := v.Value.(*ast.CallExpression); ok {
-			if id, _ := x.calleeStruct(f, sc, call.Function); id != "" {
-				sc.localType[name] = id
-			}
+		if t, basis := x.exprType(f, sc, v.Value); t != "" {
+			sc.localType[name], sc.localBasis[name] = t, basis
 		}
 		return true
 	})
@@ -74,7 +72,10 @@ func (x *indexer) receiver(f *file, o owner, sc *scope, obj ast.Expression) (str
 		return NodeID(KindStruct, f.rel, name[:strings.LastIndex(name, ".")]), Extracted, BasisSelf
 	}
 	if t := sc.localType[id.Value]; t != "" && sc.locals[id.Value] {
-		return t, Inferred, BasisLocalType
+		return t, Inferred, sc.localBasis[id.Value]
+	}
+	if t := x.globalType(f, sc, id.Value); t != "" {
+		return t, Inferred, BasisInferredType
 	}
 	return "", "", ""
 }

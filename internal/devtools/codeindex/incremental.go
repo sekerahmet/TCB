@@ -101,7 +101,7 @@ func incrementalBuild(root string, opts Options, prev *Index, changed []string) 
 	for _, c := range prev.Constructs {
 		if !dirty[c.Pos.File] {
 			x.constructs = append(x.constructs, c)
-			x.constructSeen[c.In+"|"+c.Kind] = true
+			x.constructSeen[c.In+"|"+c.Kind+"|"+c.Op+"|"+c.Operand] = true
 		}
 	}
 	for _, u := range prev.Unresolved {
@@ -140,6 +140,7 @@ func incrementalBuild(root string, opts Options, prev *Index, changed []string) 
 	for _, rel := range dirtyOrder {
 		x.resolveImports(x.files[rel])
 	}
+	x.inferReturns(dirtyOrder)
 	for _, rel := range dirtyOrder {
 		x.resolve(x.files[rel])
 	}
