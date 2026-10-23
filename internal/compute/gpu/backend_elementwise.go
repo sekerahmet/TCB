@@ -53,7 +53,7 @@ func (g *backend) reduce(is reduceJob) {
 	}
 	kSh, ks := tensor.MergeAxes(kSh, kA, kO, kC)
 	rSh, rs := tensor.MergeAxes(rSh, rA, rO)
-	K, R := numel(kSh), numel(rSh)
+	K, R := tensor.NumelOf(kSh), tensor.NumelOf(rSh)
 	if K == 0 {
 		return
 	}
@@ -140,7 +140,7 @@ func (g *backend) reduceTwoStage(is reduceJob, config reduceConfig, meta, kSh, k
 	}
 	shape2 := append([]int{S}, kSh...)
 	g.reduce(reduceJob{a: partial, output: is.output, outputOf: is.outputOf, shape2: shape2,
-		stA2: append([]int{K}, contiguous(kSh)...), st: append([]int{0}, kSt...), term: tA, add: is.add, scaleF: is.scaleF, sum: is.sum})
+		stA2: append([]int{K}, tensor.ContiguousStrides(kSh)...), st: append([]int{0}, kSt...), term: tA, add: is.add, scaleF: is.scaleF, sum: is.sum})
 }
 
 // plainV depolamanın tamamına bitişik görünüm.
@@ -160,7 +160,7 @@ func (g *backend) ScatterAdd(dst tensor.Storage, dstOff int, dstStrides []int, s
 	g.enter()
 	defer g.exit()
 	tensor.NoteImplicit(true, tensor.ImplicitAccumulate, src.Len())
-	g.reduce(reduceJob{a: g.storageOf(src), output: g.storageOf(dst), outputOf: dstOff, shape2: shape, stA2: contiguous(shape),
+	g.reduce(reduceJob{a: g.storageOf(src), output: g.storageOf(dst), outputOf: dstOff, shape2: shape, stA2: tensor.ContiguousStrides(shape),
 		st: dstStrides, term: tA, add: true, scaleF: 1})
 }
 
@@ -169,8 +169,8 @@ func (g *backend) ExpandAdd(dst tensor.Storage, dstShape []int, src tensor.Stora
 	g.enter()
 	defer g.exit()
 	d, s := g.storageOf(dst), g.storageOf(src)
-	kv := tensor.View{S: s, Shape: dstShape, Strides: broadcastStride(contiguous(srcShape), srcShape, dstShape)}
-	g.copyStrided(tensor.View{S: d, Shape: dstShape, Strides: contiguous(dstShape)}, kv, true, scale)
+	kv := tensor.View{S: s, Shape: dstShape, Strides: tensor.BroadcastStrides(tensor.ContiguousStrides(srcShape), srcShape, dstShape)}
+	g.copyStrided(tensor.View{S: d, Shape: dstShape, Strides: tensor.ContiguousStrides(dstShape)}, kv, true, scale)
 }
 
 func (g *backend) Binary(op tensor.BinOp, out tensor.Storage, outShape []int, a, b tensor.View) {
@@ -179,7 +179,7 @@ func (g *backend) Binary(op tensor.BinOp, out tensor.Storage, outShape []int, a,
 	gt := g.temp()
 	defer gt.finish()
 	o := g.storageOf(out)
-	n := numel(outShape)
+	n := tensor.NumelOf(outShape)
 	if n == 0 {
 		return
 	}
@@ -216,10 +216,10 @@ func (g *backend) BinaryGrad(mode tensor.GradMode, dst tensor.Storage, dstShape,
 		yd = g.storageOf(y)
 	}
 	tm := gradTerm[mode]
-	is := reduceJob{a: g.storageOf(gs), y: yd, output: g.storageOf(dst), shape2: outShape, stA2: contiguous(outShape),
-		st: broadcastStride(contiguous(dstShape), dstShape, outShape), term: tm.t, add: true, scaleF: tm.scaleF}
+	is := reduceJob{a: g.storageOf(gs), y: yd, output: g.storageOf(dst), shape2: outShape, stA2: tensor.ContiguousStrides(outShape),
+		st: tensor.BroadcastStrides(tensor.ContiguousStrides(dstShape), dstShape, outShape), term: tm.t, add: true, scaleF: tm.scaleF}
 	if o.S != nil && tm.t != tA {
-		is.o, is.oOf, is.stO2 = g.storageOf(o.S), o.Offset, broadcastStride(o.Strides, o.Shape, outShape)
+		is.o, is.oOf, is.stO2 = g.storageOf(o.S), o.Offset, tensor.BroadcastStrides(o.Strides, o.Shape, outShape)
 	}
 	g.reduce(is)
 }

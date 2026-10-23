@@ -52,7 +52,7 @@ func (g *backend) RunFused(node *tensor.FuseNode, out tensor.Storage, ins []tens
 	g.enter()
 	defer g.exit()
 	o := g.storageOf(out)
-	n := numel(node.Shape)
+	n := tensor.NumelOf(node.Shape)
 	if n == 0 {
 		return
 	}

@@ -9,18 +9,6 @@ import (
 
 // Arka uç: softmax, çapraz entropi, normlar ve gömme.
 
-// axisOrder şekli eksen etrafında (dış, eksen, iç) üçlüsüne ayırır.
-func axisOrder(shape []int, axis int) (outer, L, ic int) {
-	outer, ic = 1, 1
-	for i := 0; i < axis; i++ {
-		outer *= shape[i]
-	}
-	for i := axis + 1; i < len(shape); i++ {
-		ic *= shape[i]
-	}
-	return outer, shape[axis], ic
-}
-
 func (g *backend) Softmax(out tensor.Storage, x tensor.View, axis int, logMode bool) {
 	g.enter()
 	defer g.exit()
@@ -28,7 +16,7 @@ func (g *backend) Softmax(out tensor.Storage, x tensor.View, axis int, logMode b
 	defer gt.finish()
 	o := g.storageOf(out)
 	xv := gt.readNative(x)
-	outer, L, ic := axisOrder(x.Shape, axis)
+	outer, L, ic := tensor.AxisOrder(x.Shape, axis)
 	row := outer * ic
 	if row == 0 || L == 0 {
 		return
@@ -44,7 +32,7 @@ func (g *backend) SoftmaxGrad(gx, gs, y tensor.Storage, shape []int, axis int, l
 	g.enter()
 	defer g.exit()
 	d, gd, yd := g.storageOf(gx), g.storageOf(gs), g.storageOf(y)
-	outer, L, ic := axisOrder(shape, axis)
+	outer, L, ic := tensor.AxisOrder(shape, axis)
 	row := outer * ic
 	if row == 0 || L == 0 {
 		return

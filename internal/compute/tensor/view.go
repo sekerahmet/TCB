@@ -33,7 +33,7 @@ func permuteBackward(ax, gst []int) func(o *node) {
 			scatter(o)
 			return
 		}
-		oc := contiguousStrides(o.shape)
+		oc := ContiguousStrides(o.shape)
 		st := make([]int, len(ax))
 		for i, d := range ax {
 			st[d] = oc[i]
@@ -103,7 +103,7 @@ func (t *Tensor) Reshape(shape ...int) *Tensor {
 	}
 	var st []int
 	if t.IsContiguous() {
-		st = contiguousStrides(sh)
+		st = ContiguousStrides(sh)
 	} else if g, ok := viewStrides(t.shape, t.strides, sh); ok {
 		st = g
 	} else {
@@ -139,8 +139,8 @@ func reshaped(t *Tensor, sh, st []int) *Tensor {
 // küçük adımından türetilir.
 func viewStrides(old, oldStep, freshT []int) ([]int, bool) {
 	st := make([]int, len(freshT))
-	if numelOf(old) == 0 {
-		return contiguousStrides(freshT), true
+	if NumelOf(old) == 0 {
+		return ContiguousStrides(freshT), true
 	}
 	var size, step []int
 	for i, d := range old {
@@ -243,7 +243,7 @@ func (t *Tensor) Permute(dims ...int) *Tensor {
 	st := make([]int, nd)
 	gst := make([]int, nd)
 	ax := make([]int, nd)
-	cst := contiguousStrides(t.shape)
+	cst := ContiguousStrides(t.shape)
 	for i, d := range dims {
 		d = normAxis(d, nd)
 		ax[i] = d
@@ -326,7 +326,7 @@ func (t *Tensor) SliceStep(axis, start, end, step int) *Tensor {
 	sh[axis] = m
 	st := copyInts(t.strides)
 	st[axis] *= step
-	gst := contiguousStrides(t.shape)
+	gst := ContiguousStrides(t.shape)
 	gOff := start * gst[axis]
 	gst[axis] *= step
 	out := viewOf(t, t.offset+start*t.strides[axis], sh, st)

@@ -92,8 +92,8 @@ func TestBinaryBroadcast(t *testing.T) {
 	}{{"+", tensor.Add}, {"-", tensor.Sub}, {"*", tensor.Mul}, {"/", tensor.Div}}
 	for _, sh := range shapes {
 		for _, is := range ops {
-			av := random(rng, numel(sh[0]), 1)
-			bv := random(rng, numel(sh[1]), 1)
+			av := random(rng, tensor.NumelOf(sh[0]), 1)
+			bv := random(rng, tensor.NumelOf(sh[1]), 1)
 			for i := range bv {
 				bv[i] += 3 // bölmede sıfırdan uzak
 			}

@@ -158,7 +158,7 @@ func seqMajorNative(be Backend, q, k, v *Tensor, mask bool, p AttentionParams) b
 		if t.IsContiguous() {
 			return t.view()
 		}
-		return View{S: t.storage, Shape: t.shape, Strides: contiguousStrides(t.shape)}
+		return View{S: t.storage, Shape: t.shape, Strides: ContiguousStrides(t.shape)}
 	}
 	p.SeqMajor = true
 	return a.AttentionSeqMajor(view(q), view(k), view(v), mask, p)
@@ -252,7 +252,7 @@ func attentionParams(q, k, v *Tensor, opt AttentionOptions) AttentionParams {
 	if nd >= 3 {
 		tAxis = nd - 3
 	}
-	p := AttentionParams{Batch: numelOf(q.shape[:lead]), H: 1, Hkv: 1,
+	p := AttentionParams{Batch: NumelOf(q.shape[:lead]), H: 1, Hkv: 1,
 		Tq: q.shape[tAxis], Dh: q.shape[nd-1], Tk: k.shape[tAxis], Dv: v.shape[nd-1],
 		Causal: opt.Causal, Window: opt.Window, Scale: opt.Scale}
 	if nd >= 3 {
@@ -297,7 +297,7 @@ func prepareMask(be Backend, m *Tensor, whole []int, p *AttentionParams) Storage
 		s, base = allocUninit(be, m.Numel(), Float32), 0
 		be.Copy(s, 0, m.view())
 	}
-	st := broadcastStrides(contiguousStrides(m.shape), m.shape, whole)
+	st := BroadcastStrides(ContiguousStrides(m.shape), m.shape, whole)
 	n := len(whole)
 	p.MaskStrideQ, p.MaskStrideK = st[n-2], st[n-1]
 	p.MaskBase = base

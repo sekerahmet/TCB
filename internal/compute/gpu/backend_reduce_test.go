@@ -19,9 +19,9 @@ func TestSums(t *testing.T) {
 	shapes := [][]int{{1}, {7}, {3, 5}, {4, 300}, {300, 4}, {2, 3, 70}, {5, 0, 3}, {2, 1031}, {1031, 3}, {600, 260},
 		{3000, 5}, {9000}, {2100, 300}}
 	for _, sh := range shapes {
-		v := random(rng, numel(sh), 1)
+		v := random(rng, tensor.NumelOf(sh), 1)
 		tol := 1e-5
-		if numel(sh) > 5000 {
+		if tensor.NumelOf(sh) > 5000 {
 			tol = 1e-4 // binlerce float32 terimin toplamı (CPU float64 biriktirir)
 		}
 		for ax := range sh {
@@ -94,7 +94,7 @@ func TestMax(t *testing.T) {
 	rng := rand.New(rand.NewSource(6))
 	nan := float32(math.NaN())
 	for _, sh := range [][]int{{1}, {9}, {4, 6}, {3, 4, 5}, {2, 300}} {
-		v := random(rng, numel(sh), 1)
+		v := random(rng, tensor.NumelOf(sh), 1)
 		// Eşit en büyükler: ilk indeks kazanmalı.
 		v[0] = 5
 		if len(v) > 2 {

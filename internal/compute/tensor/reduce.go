@@ -39,7 +39,7 @@ func (t *Tensor) sumScaled(axis int, keepdim, mean bool) *Tensor {
 		if n == 0 {
 			// Boş kümenin ortalaması tanımsızdır; sessizce 0 dönmesin (çıktı da boşsa
 			// hesaplanacak eleman yoktur).
-			if numelOf(reducedShape(t.shape, axis, false)) > 0 {
+			if NumelOf(reducedShape(t.shape, axis, false)) > 0 {
 				panic(messages.New(messages.H3063, t.shape, axis))
 			}
 		} else {

@@ -182,7 +182,7 @@ func scaledAdd(be Backend, n *node, s, g Storage) {
 		be.Binary(OpMul, c, shape, DenseView(s, shape), gv)
 		return
 	}
-	tmp := allocUninit(be, numelOf(shape), n.gradDType())
+	tmp := allocUninit(be, NumelOf(shape), n.gradDType())
 	be.Binary(OpMul, tmp, shape, DenseView(s, shape), gv)
 	be.AddTo(n.accGrad(), tmp, 1)
 	giveBack(be, tmp)

@@ -152,7 +152,7 @@ const (
 func newSmallModel(dev tensor.Device, seed int64, dt tensor.DType) *smallModel {
 	rng := rand.New(rand.NewSource(seed))
 	w := func(scaleF float64, sh ...int) *tensor.Tensor {
-		return inLeafDType(tensor.NewOn(dev, random(rng, numel(sh), scaleF), sh...), dt)
+		return inLeafDType(tensor.NewOn(dev, random(rng, tensor.NumelOf(sh), scaleF), sh...), dt)
 	}
 	one := func(n int) *tensor.Tensor {
 		v := make([]float32, n)

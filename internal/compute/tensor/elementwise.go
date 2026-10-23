@@ -40,9 +40,9 @@ func broadcastShapes(a, b []int) []int {
 	return out
 }
 
-// broadcastStrides, shape/strides ile tanımlı tensörün outShape'e yayınlanmış
+// BroadcastStrides, shape/strides ile tanımlı tensörün outShape'e yayınlanmış
 // adımlarını verir: eklenen ya da 1'den genişletilen eksenlerin adımı 0'dır.
-func broadcastStrides(strides, shape, outShape []int) []int {
+func BroadcastStrides(strides, shape, outShape []int) []int {
 	nd := len(outShape)
 	st := make([]int, nd)
 	for i := 0; i < nd; i++ {

@@ -62,7 +62,7 @@ func (a *masterWeights) target(k int, p *Tensor) Storage {
 // parametrenin sürümünü artırır (yerinde değişiklik).
 func (a *masterWeights) write(k int, p *Tensor, h Storage) {
 	if h != p.storage {
-		p.be.Copy(p.storage, 0, View{S: h, Shape: p.shape, Strides: contiguousStrides(p.shape)})
+		p.be.Copy(p.storage, 0, View{S: h, Shape: p.shape, Strides: ContiguousStrides(p.shape)})
 	}
 	p.storage.BumpVersion()
 	a.version[k] = p.storage.Version()
@@ -441,7 +441,7 @@ func stateTensor(p *Tensor, s Storage, dup bool) *Tensor {
 // stateCopy depolamanın bitişik float32 kopyasını tensör olarak verir.
 func stateCopy(p *Tensor, s Storage) *Tensor {
 	c := p.be.Alloc(s.Len(), s.DType())
-	p.be.Copy(c, 0, View{S: s, Shape: p.shape, Strides: contiguousStrides(p.shape)})
+	p.be.Copy(c, 0, View{S: s, Shape: p.shape, Strides: ContiguousStrides(p.shape)})
 	return fromStorage(p.be, c, p.shape)
 }
 

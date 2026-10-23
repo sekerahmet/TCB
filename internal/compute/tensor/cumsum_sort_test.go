@@ -14,7 +14,7 @@ import (
 
 // cumsumRef eksen boyunca float64 birikimli toplam.
 func cumsumRef(x []float32, shape []int, axis int) []float32 {
-	outer, dim, inner := axisOrder(shape, axis)
+	outer, dim, inner := AxisOrder(shape, axis)
 	out := make([]float32, len(x))
 	for o := 0; o < outer; o++ {
 		for i := 0; i < inner; i++ {
@@ -58,7 +58,7 @@ func TestCumSum(t *testing.T) {
 
 // sortRef eksen boyunca kararlı sıralama (NaN en büyük, eşitlerde küçük indeks önce).
 func sortRef(x []float32, shape []int, axis int, desc bool) []float32 {
-	outer, dim, inner := axisOrder(shape, axis)
+	outer, dim, inner := AxisOrder(shape, axis)
 	out := make([]float32, len(x))
 	for o := 0; o < outer; o++ {
 		for i := 0; i < inner; i++ {
@@ -100,7 +100,7 @@ func TestArgSortAndTopK(t *testing.T) {
 	rng := rand.New(rand.NewSource(2))
 	for _, sh := range [][]int{{9}, {4, 6}, {2, 5, 3}, {3, 1}} {
 		for axis := range sh {
-			data := make([]float32, numelOf(sh))
+			data := make([]float32, NumelOf(sh))
 			for i := range data {
 				data[i] = float32(rng.Intn(5)) - 2 // bol eşitlik
 			}
@@ -117,7 +117,7 @@ func TestArgSortAndTopK(t *testing.T) {
 				want := New(descending, sh...).Slice(axis, 0, k).Contiguous().Data()
 				nanSame(t, "topk indeks", idx.Data(), want)
 				wv := make([]float32, len(want))
-				outer, _, inner := axisOrder(ksh, axis)
+				outer, _, inner := AxisOrder(ksh, axis)
 				for o := 0; o < outer; o++ {
 					for j := 0; j < k; j++ {
 						for i := 0; i < inner; i++ {

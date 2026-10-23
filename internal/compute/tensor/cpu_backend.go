@@ -67,7 +67,7 @@ func MergeAxes(shape []int, strides ...[]int) ([]int, [][]int) {
 // çağırır. strides[k], k. işlenenin her eksendeki adımıdır; base[k] başlangıç
 // ofsetidir. Eksenler önce birleştirilir.
 func iterRows(shape []int, base []int, strides [][]int, fn func(off []int, n int, inner []int)) {
-	if numelOf(shape) == 0 {
+	if NumelOf(shape) == 0 {
 		return
 	}
 	sh, st := MergeAxes(shape, strides...)
@@ -114,7 +114,7 @@ func iterRows(shape []int, base []int, strides [][]int, fn func(off []int, n int
 // (indirgenen) eksenler bölünmez, böylece her hedef elemanı tek bir görevde ve
 // sabit sırayla biriktirilir (sonuç belirlenimcidir). fn eşzamanlı çağrılabilir.
 func iterRowsPar(shape []int, base []int, strides [][]int, write int, fn func(off []int, n int, inner []int)) {
-	n := numelOf(shape)
+	n := NumelOf(shape)
 	if n == 0 {
 		return
 	}
@@ -185,7 +185,7 @@ func gatherCPU(v View) []float32 {
 // (paralel, satırlara bölerek) yazar.
 func gatherInto(out []float32, v View) {
 	d := cd(v.S)
-	iterRowsPar(v.Shape, []int{v.Offset, 0}, [][]int{v.Strides, contiguousStrides(v.Shape)}, 1, func(off []int, m int, in []int) {
+	iterRowsPar(v.Shape, []int{v.Offset, 0}, [][]int{v.Strides, ContiguousStrides(v.Shape)}, 1, func(off []int, m int, in []int) {
 		src, dst, s := off[0], off[1], in[0]
 		o := out[dst : dst+m]
 		if s == 1 {
@@ -226,7 +226,7 @@ func (cpuBackend) f32AddTo(dst, src Storage, scale float32) {
 
 func (cpuBackend) f32ScatterAdd(dst Storage, dstOff int, dstStrides []int, src Storage, shape []int) {
 	d, s := cd(dst), cd(src)
-	iterRowsPar(shape, []int{0, dstOff}, [][]int{contiguousStrides(shape), dstStrides}, 1, func(off []int, n int, in []int) {
+	iterRowsPar(shape, []int{0, dstOff}, [][]int{ContiguousStrides(shape), dstStrides}, 1, func(off []int, n int, in []int) {
 		si, di, ss, ds := off[0], off[1], in[0], in[1]
 		for i := 0; i < n; i++ {
 			d[di+i*ds] += s[si+i*ss]
@@ -236,10 +236,10 @@ func (cpuBackend) f32ScatterAdd(dst Storage, dstOff int, dstStrides []int, src S
 
 func (cpuBackend) f32ExpandAdd(dst Storage, dstShape []int, src Storage, srcShape []int, scale float32) {
 	d, s := cd(dst), cd(src)
-	if numelOf(srcShape) == 1 {
+	if NumelOf(srcShape) == 1 {
 		// Skaler yayın (SumAll/MeanAll geri yayılımı).
 		v := scale * s[0]
-		d = d[:numelOf(dstShape)]
+		d = d[:NumelOf(dstShape)]
 		parallelFor(len(d), 1, func(lo, hi int) {
 			p := d[lo:hi]
 			for i := range p {
@@ -248,8 +248,8 @@ func (cpuBackend) f32ExpandAdd(dst Storage, dstShape []int, src Storage, srcShap
 		})
 		return
 	}
-	sst := broadcastStrides(contiguousStrides(srcShape), srcShape, dstShape)
-	iterRowsPar(dstShape, []int{0, 0}, [][]int{contiguousStrides(dstShape), sst}, 0, func(off []int, n int, in []int) {
+	sst := BroadcastStrides(ContiguousStrides(srcShape), srcShape, dstShape)
+	iterRowsPar(dstShape, []int{0, 0}, [][]int{ContiguousStrides(dstShape), sst}, 0, func(off []int, n int, in []int) {
 		di, si, ds, ss := off[0], off[1], in[0], in[1]
 		if ds == 1 && ss == 0 {
 			// Satır yayını (ör. eksen toplamının geri yayılımı): tek değer satıra eklenir.
@@ -322,7 +322,7 @@ func binStrided(op BinOp, out []float32, oo, os int, a []float32, ao, as int, b 
 
 func (cpuBackend) f32Binary(op BinOp, out Storage, outShape []int, a, b View) {
 	od := cd(out)
-	n := numelOf(outShape)
+	n := NumelOf(outShape)
 	if n == 0 {
 		return
 	}
@@ -342,9 +342,9 @@ func (cpuBackend) f32Binary(op BinOp, out Storage, outShape []int, a, b View) {
 		})
 	default:
 		ad, bd := cd(a.S), cd(b.S)
-		sa := broadcastStrides(a.Strides, a.Shape, outShape)
-		sb := broadcastStrides(b.Strides, b.Shape, outShape)
-		iterRowsPar(outShape, []int{a.Offset, b.Offset, 0}, [][]int{sa, sb, contiguousStrides(outShape)}, 2, func(off []int, m int, in []int) {
+		sa := BroadcastStrides(a.Strides, a.Shape, outShape)
+		sb := BroadcastStrides(b.Strides, b.Shape, outShape)
+		iterRowsPar(outShape, []int{a.Offset, b.Offset, 0}, [][]int{sa, sb, ContiguousStrides(outShape)}, 2, func(off []int, m int, in []int) {
 			binStrided(op, od, off[2], in[2], ad, off[0], in[0], bd, off[1], in[1], m)
 		})
 	}
@@ -352,7 +352,7 @@ func (cpuBackend) f32Binary(op BinOp, out Storage, outShape []int, a, b View) {
 
 func (cpuBackend) f32BinaryGrad(mode GradMode, dst Storage, dstShape, outShape []int, g Storage, o View, y Storage) {
 	dg, gd, yd := cd(dst), cd(g), cd(y)
-	n := numelOf(outShape)
+	n := NumelOf(outShape)
 	var od []float32
 	if o.S != nil {
 		od = cd(o.S)
@@ -390,7 +390,7 @@ func (cpuBackend) f32BinaryGrad(mode GradMode, dst Storage, dstShape, outShape [
 	}
 	// Satır indirgemesi (ör. (R, D) + (D) toplamının sapma gradyanı): satırlar
 	// sabit uzunluklu parçalara bölünür, parça toplamları sabit sırayla eklenir.
-	if m := numelOf(dstShape); m > 0 && isSuffixShape(dstShape, outShape) && n%m == 0 && mode <= GradMul &&
+	if m := NumelOf(dstShape); m > 0 && isSuffixShape(dstShape, outShape) && n%m == 0 && mode <= GradMul &&
 		(mode != GradMul || (o.IsContiguous() && sameShape(o.Shape, outShape))) {
 		if od != nil {
 			od = od[o.Offset : o.Offset+n]
@@ -398,12 +398,12 @@ func (cpuBackend) f32BinaryGrad(mode GradMode, dst Storage, dstShape, outShape [
 		rowReduce(mode, dg[:m], gd[:n], od, n/m, m)
 		return
 	}
-	cst := contiguousStrides(outShape)
-	dst2 := broadcastStrides(contiguousStrides(dstShape), dstShape, outShape)
+	cst := ContiguousStrides(outShape)
+	dst2 := BroadcastStrides(ContiguousStrides(dstShape), dstShape, outShape)
 	ost := make([]int, len(outShape))
 	ooff := 0
 	if o.S != nil {
-		ost = broadcastStrides(o.Strides, o.Shape, outShape)
+		ost = BroadcastStrides(o.Strides, o.Shape, outShape)
 		ooff = o.Offset
 	}
 	// Hedefin sıfır adımlı (indirgenen) eksenleri bölünmez: her hedef elemanı tek

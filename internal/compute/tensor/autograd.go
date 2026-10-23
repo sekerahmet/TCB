@@ -120,7 +120,7 @@ func newNode(t *Tensor) *node {
 }
 
 // Numel düğümün tensörünün eleman sayısı.
-func (n *node) Numel() int { return numelOf(n.shape) }
+func (n *node) Numel() int { return NumelOf(n.shape) }
 
 // wants düğümün gradyan isteyip istemediği (nil düğüm istemez).
 func (n *node) wants() bool { return n != nil && n.requiresGrad }
@@ -256,7 +256,7 @@ func (n *node) accGrad() Storage {
 
 // gradView gradyan depolamasını bitişik görünüm olarak verir.
 func (n *node) gradView() View {
-	return View{S: n.grad, Shape: n.shape, Strides: contiguousStrides(n.shape)}
+	return View{S: n.grad, Shape: n.shape, Strides: ContiguousStrides(n.shape)}
 }
 
 // Backward tek elemanlı (skaler) bir sonuçtan geri yayılım yapar; tohum

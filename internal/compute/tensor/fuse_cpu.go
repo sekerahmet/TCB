@@ -29,7 +29,7 @@ func (cpuBackend) RunFused(node *FuseNode, out Storage, ins []View, add bool) {
 	ev := &fuseEval{ins: ins}
 	sh := node.Shape
 	nd := len(sh)
-	total := numelOf(sh)
+	total := NumelOf(sh)
 	if total == 0 {
 		return
 	}

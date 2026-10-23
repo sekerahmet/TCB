@@ -22,7 +22,7 @@ func (g *backend) Sum(out tensor.Storage, x tensor.View, axis int, scale float32
 	defer g.exit()
 	// Çıktı adımları: eksensiz bitişik düzen, indirgenen eksende 0.
 	ks, _ := noAxis(x.Shape, x.Strides, axis)
-	kst := contiguous(ks)
+	kst := tensor.ContiguousStrides(ks)
 	st := append(append(append([]int{}, kst[:axis]...), 0), kst[axis:]...)
 	g.reduce(reduceJob{a: g.storageOf(x.S), aOf: x.Offset, output: g.storageOf(out), shape2: x.Shape, stA2: x.Strides, st: st, term: tA, scaleF: scale, sum: true})
 }
@@ -44,7 +44,7 @@ func (g *backend) argmax(mode2 int, out, gd *storage, x tensor.View, axis int, g
 		kg = make([]int, len(ks))
 	}
 	sh, st := tensor.MergeAxes(ks, kx, kg)
-	K, L := numel(sh), x.Shape[axis]
+	K, L := tensor.NumelOf(sh), x.Shape[axis]
 	if K == 0 || (mode2 == 2 && L == 0) {
 		return
 	}
@@ -84,7 +84,7 @@ func (g *backend) MaxGrad(gx, gs tensor.Storage, x tensor.View, axis int) {
 	gt := g.temp()
 	defer gt.finish()
 	d, last := gt.write(gx, true)
-	g.argmax(2, d, gt.readD(gs), gt.readStrided(x), axis, contiguous(x.Shape))
+	g.argmax(2, d, gt.readD(gs), gt.readStrided(x), axis, tensor.ContiguousStrides(x.Shape))
 	last()
 }
 
@@ -94,7 +94,7 @@ func (g *backend) ArgMax(x tensor.View, axis int) []int {
 	gt := g.temp()
 	defer gt.finish()
 	ks, _ := noAxis(x.Shape, x.Strides, axis)
-	n := numel(ks)
+	n := tensor.NumelOf(ks)
 	tmp := gt.buffer(n, false)
 	g.argmax(1, tmp, nil, gt.readStrided(x), axis, nil)
 	f := make([]uint32, n)

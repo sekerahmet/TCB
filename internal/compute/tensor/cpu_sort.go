@@ -12,7 +12,7 @@ import (
 // f32CumSum out[o, d, i] = Σ_{e ≤ d} x[o, e, i]; birikim float64'tedir. ters doğruysa
 // toplam sondan başlar (Σ_{e ≥ d}); ekle doğruysa out'a eklenir.
 func f32CumSum(out []float32, xd []float32, shape []int, axis int, inverse, add bool) {
-	outer, dim, inner := axisOrder(shape, axis)
+	outer, dim, inner := AxisOrder(shape, axis)
 	if outer*dim*inner == 0 {
 		return
 	}
@@ -69,7 +69,7 @@ func orderKey(v float32, descending bool) uint32 {
 // çiftler arasında tekil olduğu için sıralama kararlıdır (eşitlerde küçük indeks önce).
 func (cpuBackend) f32Sort(vals, idx Storage, x View, axis, k int, desc bool) {
 	xd := gatherCPU(x)
-	outer, dim, inner := axisOrder(x.Shape, axis)
+	outer, dim, inner := AxisOrder(x.Shape, axis)
 	vd, id := cd(vals), cd(idx)
 	if outer*inner == 0 || k == 0 {
 		return
@@ -109,7 +109,7 @@ func bitsLen(n int) int {
 // f32GatherGrad gx[o, idx[o, j, i], i] += g[o, j, i]. Bir satırdaki indeksler tekildir.
 func (cpuBackend) f32GatherGrad(gx, g, idx Storage, shape []int, axis, k int) {
 	pg, gd, id := cd(gx), cd(g), cd(idx)
-	outer, dim, inner := axisOrder(shape, axis)
+	outer, dim, inner := AxisOrder(shape, axis)
 	parallelFor(outer, k*inner, func(lo, hi int) {
 		for o := lo; o < hi; o++ {
 			for j := 0; j < k; j++ {
