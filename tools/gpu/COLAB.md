@@ -227,6 +227,26 @@ cd /content/tr
 cp -r /content/runs/gpt1 "/content/drive/MyDrive/TR_dili/kosular/"
 ```
 
+**PyTorch'la adil kıyas** (araştırma deposunun `ss_d512_transformer` koşusu: GPT-2 parçalı SimpleStories, Drive
+`simplestories/gpt2`; tarif onun `results.json`'ından). Veri önce yerel diske kopyalanır; koşu klasörü Drive'dadır,
+kopunca aynı komut sürer. Ardından `ss_exam.tr` araştırma deposunun ölçüsüyle sınar ve `results.json` yazar.
+
+```bash
+%%bash
+mkdir -p /content/ss_gpt2 && cp /content/drive/MyDrive/simplestories/gpt2/{tokenizer.json,train.npy,valid.npy} /content/ss_gpt2/
+R=/content/drive/MyDrive/TR_dili/kosular/ss_d512_tf_tr
+cd /content/TCB && /content/tr/tr tools/gpu/gpt_training.tr --veri /content/ss_gpt2 --koşu $R --hassasiyet bf16 \
+  --boyut 512 --katman 8 --bakış_sayısı 8 --bağlam 512 --toplu 64 --birikim 2 --adım 9241 --ısınma 92 --azalma 0.2001 \
+  --muon_oranı 0.002 --adamw_oranı 0.002 --ağırlık_çürümesi 0.1 --adamw_çürümesi 0.1 --muon_ölçeği rms --ns_türü bf16 \
+  --kırp 1.0 --tohum 0 --dağarcık 50304 --ara_boyut 1344 --epsilon 0.000001 --qk_normu --birleşik_kv --birleşik_kapı --ileri_sapmalı \
+  --değerlendir_her 1000 --değerlendir_toplu 128 --son_değerlendir_toplu 100000 --örnek_her 1000 --örnek_sayısı 1 --her_dakika 10 \
+  --istemler "Once upon a time|The little dog|One day, a girl named|In a small village," > /content/kosu.log 2>&1
+cp /content/kosu.log $R/stdout.log
+/content/tr/tr tools/gpu/ss_exam.tr --koşu $R --veri /content/ss_gpt2 | tail -12
+```
+
+İlk sonuç (2026-10-23, RTX PRO 6000): TR kayıp 1,5134, PyTorch 1,5196; ayrıntı `docs/roadmap.md` Evre 4.
+
 Oturum kesilirse aynı komut kaldığı yerden sürer (`kontrol_noktalari/`, 15 dakikada bir).
 Koşu klasörü: `config.json`, `metrics.jsonl` (eğitim kaybı 10 adımda bir, `oran_çarpanı`,
 `doğrulama_kaybı`), `samples.json` ("Once upon a time" ile örnekler), `speed.json`
