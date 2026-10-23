@@ -51,8 +51,8 @@ func (g *backend) reduce(is reduceJob) {
 			rSh, rA, rO = append(rSh, n), append(rA, is.stA2[d]), append(rO, oa)
 		}
 	}
-	kSh, ks := mergeAxes(kSh, kA, kO, kC)
-	rSh, rs := mergeAxes(rSh, rA, rO)
+	kSh, ks := tensor.MergeAxes(kSh, kA, kO, kC)
+	rSh, rs := tensor.MergeAxes(rSh, rA, rO)
 	K, R := numel(kSh), numel(rSh)
 	if K == 0 {
 		return

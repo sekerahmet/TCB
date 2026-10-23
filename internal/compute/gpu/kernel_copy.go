@@ -18,46 +18,6 @@ const maxAxis = 8
 // sameBlock eleman bazlı çekirdeklerin blok boyu.
 const sameBlock = 256
 
-// mergeAxes, bütün işlenenler için bitişik olan komşu eksenleri birleştirir ve
-// uzunluğu 1 olan eksenleri atar (CPU coalesce ile aynı kural). Boş şekil tek eksene
-// ([1], adım 0) döner.
-func mergeAxes(shape []int, steps ...[]int) ([]int, [][]int) {
-	ns := make([]int, 0, len(shape))
-	nst := make([][]int, len(steps))
-	for d := range shape {
-		if shape[d] == 1 {
-			continue
-		}
-		if last := len(ns) - 1; last >= 0 {
-			merges := true
-			for k := range steps {
-				if nst[k][last] != steps[k][d]*shape[d] {
-					merges = false
-					break
-				}
-			}
-			if merges {
-				ns[last] *= shape[d]
-				for k := range steps {
-					nst[k][last] = steps[k][d]
-				}
-				continue
-			}
-		}
-		ns = append(ns, shape[d])
-		for k := range steps {
-			nst[k] = append(nst[k], steps[k][d])
-		}
-	}
-	if len(ns) == 0 {
-		ns = append(ns, 1)
-		for k := range nst {
-			nst[k] = append(nst[k], 0)
-		}
-	}
-	return ns, nst
-}
-
 // parse i doğrusal indeksini (satır öncelikli) şekle göre ayrıştırıp her işlenenin
 // ofsetini verir. sekil ve adımlar "meta" dizisinden okunur: sekil[d] = meta[d],
 // adim[k][d] = meta[(k+1)·nd + d]. Ofsetler işaretli 32 bittir.
@@ -125,7 +85,7 @@ func (g *backend) copyStrided(target, source tensor.View, add bool, scaleF float
 		kind = tensor.ImplicitKindOf(hd.dtype, source, target.IsContiguous())
 	}
 	tensor.NoteImplicit(true, kind, n) // GPU'da süre ölçülmez (Finish gerekmez)
-	sh, st := mergeAxes(target.Shape, source.Strides, target.Strides)
+	sh, st := tensor.MergeAxes(target.Shape, source.Strides, target.Strides)
 	// Aynı tür, iki taraf bitişik: sürücünün cihaz içi kopyası.
 	if !add && kd.dtype == hd.dtype && len(sh) == 1 && st[0][0] == 1 && st[1][0] == 1 {
 		g.dCopy(hd, target.Offset, kd, source.Offset, n)

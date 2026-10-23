@@ -18,9 +18,10 @@ func (cpuBackend) Device() Device { return CPU }
 // Adımlı gezinme
 // ----------------------------------------------------------------------------
 
-// coalesce, tüm işlenenler için bitişik olan komşu eksenleri birleştirerek
-// gezinme döngüsünün boyut sayısını azaltır. Uzunluğu 1 olan eksenler atılır.
-func coalesce(shape []int, strides [][]int) ([]int, [][]int) {
+// MergeAxes, tüm işlenenler için bitişik olan komşu eksenleri birleştirerek
+// gezinme döngüsünün boyut sayısını azaltır. Uzunluğu 1 olan eksenler atılır; boş
+// şekil tek eksene ([1], adım 0) döner. GPU arka ucu da adımlı çekirdeklerini bununla kurar.
+func MergeAxes(shape []int, strides ...[]int) ([]int, [][]int) {
 	ns := make([]int, 0, len(shape))
 	nst := make([][]int, len(strides))
 	for k := range nst {
@@ -69,7 +70,7 @@ func iterRows(shape []int, base []int, strides [][]int, fn func(off []int, n int
 	if numelOf(shape) == 0 {
 		return
 	}
-	sh, st := coalesce(shape, strides)
+	sh, st := MergeAxes(shape, strides...)
 	nd := len(sh)
 	nops := len(base)
 	off := make([]int, nops)
@@ -117,7 +118,7 @@ func iterRowsPar(shape []int, base []int, strides [][]int, write int, fn func(of
 	if n == 0 {
 		return
 	}
-	sh, st := coalesce(shape, strides)
+	sh, st := MergeAxes(shape, strides...)
 	w := workers()
 	if n < parallelThreshold || w == 1 {
 		iterRows(sh, base, st, fn)

@@ -56,7 +56,7 @@ func broadcastMeta(op messages.Code, outShape []int, vs ...tensor.View) (int, []
 		steps = append(steps, broadcastStride(v.Strides, v.Shape, outShape))
 	}
 	steps = append(steps, contiguous(outShape))
-	sh, st := mergeAxes(outShape, steps...)
+	sh, st := tensor.MergeAxes(outShape, steps...)
 	nd := len(sh)
 	isPlain := nd == 1
 	for _, s := range st {

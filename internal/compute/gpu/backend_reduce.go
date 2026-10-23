@@ -43,7 +43,7 @@ func (g *backend) argmax(mode2 int, out, gd *storage, x tensor.View, axis int, g
 	} else {
 		kg = make([]int, len(ks))
 	}
-	sh, st := mergeAxes(ks, kx, kg)
+	sh, st := tensor.MergeAxes(ks, kx, kg)
 	K, L := numel(sh), x.Shape[axis]
 	if K == 0 || (mode2 == 2 && L == 0) {
 		return
