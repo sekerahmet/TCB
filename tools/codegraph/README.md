@@ -467,6 +467,22 @@ is listed with a reason in `testdata/uncovered_data.txt` (a data file, not a Go 
 test code would itself count as the file being tested). A stale exception also fails. Where a path is built from
 a variable (`reporoot.Path("examples", lang, "*.tr")`) the variable part becomes `*`.
 
+## Planning exam (`testdata/planning_questions.txt`)
+
+The questions asked while planning real work with codegraph and `tr dizin` (five trials on 2026-10-23: a GPU memory
+builtin, a debugging session, a checkpoint option, CPU softmax speed, the value-language rule), each with its expected
+answer, are a data file; `TestPlanningQuestionsAreAnswered` asks them of **this repository** (not a fixture) and fails
+naming the trial when a closed blind spot comes back. One line per question: `tool command args | expectation | ... |
+src: trial, date`. Expectations are structural so a better output format does not break them: `contains`, `not`, `exit`,
+`first-item`, `group: HEADING => TEXT`, `first-of`, `top: HEADING => N => TEXT`, `before: A => B`; `A || B` accepts either.
+`tr dizin` questions go to codeindex exactly as the command does (default limit 12, `--tümü` for all). The graph and the
+TR index are built once and every question is asked in-process (`runQueryOn`), so the exam takes about 7 s and runs under
+`-short` (the full check). A new trial adds lines, not code.
+
+Writing the exam found one more blind spot: `query G100` listed the builtin's Go registration among 170 TR users, beyond
+the limit, under "registered or used in Go". That section now lists Go code only, registrations naming the implementation
+first.
+
 ## Why this design (comparison)
 
 [Graphify](https://github.com/Graphify-Labs/graphify) builds a graph from code (tree-sitter, about

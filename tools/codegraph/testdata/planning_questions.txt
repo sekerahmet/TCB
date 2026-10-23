@@ -1,0 +1,66 @@
+# Planlama sınavı (planning_exam_test.go): codegraph ve tr dizin ile gerçek işleri planlarken sorulan sorular ve
+# beklenen cevapları. Yeni bir deneme gelince her soru bir satır olarak eklenir.
+#
+# Satır:  araç komut argümanlar | beklenti | beklenti | src: deneme, tarih
+#   araç: `codegraph` ya da `tr dizin` (tr dizin, komutun kendisi gibi codeindex'e sorulur; varsayılan sınır 12, --tümü sınırsız)
+#   boşluk içeren argüman çift tırnakla: codegraph query "Yeni yerleşik"
+# Beklentiler (yapısal: birebir çıktı değil; `A || B` seçeneklerden biri yeter):
+#   contains: A          çıktıda (stdout + stderr) A geçer
+#   not: A               A geçmez
+#   exit: N              çıkış kodu
+#   first-item: A        ilk öğe satırı (en az 4 boşlukla girintili ilk satır) A'yı içerir
+#   group: H => A        H'yi içeren başlığın altındaki satırlardan biri A'yı içerir
+#   first-of: H => A     o grubun ilk satırı A'yı içerir
+#   top: H => N => A     o grubun ilk N satırından biri A'yı içerir
+#   before: A => B       A, B'den önce geçer
+
+# Deneme 1: GPU belleğini okuyan yerleşik (2026-10-23)
+codegraph who-uses gpu.MemorySample | contains: profile_api.go | contains: gpu.MemorySamples | contains: gpu.pool.measurement | contains: profiler.gpuSnap | src: deneme 1, 2026-10-23
+codegraph who-uses gpu.MemorySamples | contains: profiler.takeGPUSnap | contains: profiler.Profile.BeforeClose | src: deneme 1, 2026-10-23
+codegraph query gpu.pool.peakLive | group: writes_field => gpu.pool.addLive | src: deneme 1, 2026-10-23
+codegraph query varsayılan_cihaz | first-item: T720 || internal/lang/codes | contains: T720 [name] | group: registered or used in Go => ml.defaultDeviceBuiltin | src: deneme 1, 2026-10-23
+codegraph path internal/stdlib/ml internal/compute/gpu | contains: (directed, 1 steps) | contains: -imports-> | src: deneme 1, 2026-10-23
+codegraph query bekle_gpu | contains: [tr_func] tools/gpu/gpt_training.tr | not: [name] internal/lang/codes/tr.json:1 | src: deneme 1, 2026-10-23
+codegraph similar ml.defaultDeviceBuiltin | top: similar function => 5 => devicesBuiltin | src: deneme 1, 2026-10-23
+codegraph tests-for internal/lang/codes/tr.json | group: tests that walk the whole list => e2e.TestExamplesCoverNames | src: deneme 1, 2026-10-23
+codegraph tests-for T720 | first-of: <- tests ( => tests/tensor_test.tr || behavior_device_ | before: <- tests ( => tests that walk the whole list | src: deneme 1, 2026-10-23
+codegraph query "Yeni yerleşik" | contains: docs/recipes.md | src: deneme 1, 2026-10-23
+
+# Deneme 2: hata ayıklama, TR_DIL=en'de print(true) neden "doğru" yazıyor (2026-10-23)
+codegraph query doğru | contains: A040 | contains: interp.BoolVal.Inspect | src: deneme 2, 2026-10-23
+codegraph query codes.active | contains: her zaman Türkçe | group: inits_var => codes.active | src: deneme 2, 2026-10-23
+codegraph query codes.DisplayName | contains: display language | src: deneme 2, 2026-10-23
+
+# Deneme 3: kontrol_noktası'na her_adım eklemek (2026-10-23)
+codegraph query T984 | group: registered or used in Go => checkpoint.nameEveryMinutes | src: deneme 3, 2026-10-23
+codegraph query checkpoint.nameEveryMinutes | group: reads_var => checkpoint.options | group: reads_var => checkpoint.setup | src: deneme 3, 2026-10-23
+codegraph who-uses güncelle | contains: checkpoint.Checkpoint.update | src: deneme 3, 2026-10-23
+codegraph tests-for checkpoint.Checkpoint.saveOnInterval | first-item: checkpoint_test. | group: weak evidence => 8 steps | src: deneme 3, 2026-10-23
+tr dizin kullananlar T984 --tümü | contains: Koşu.kurucu | src: deneme 3, 2026-10-23
+tr dizin sınayanlar varsayılan_cihaz | contains: tests/tensor_test.tr | src: deneme 3, 2026-10-23
+
+# Deneme 4: CPU softmax'ı hızlandırmak (2026-10-23)
+codegraph query T210 | group: registered or used in Go => ml.registerSoftmax | src: deneme 4, 2026-10-23
+codegraph callees tensor.Tensor.softmaxImpl | contains: tensor.Backend.Softmax | contains: dispatches to: | src: deneme 4, 2026-10-23
+codegraph query tensor.Backend.Softmax | group: dispatches_to => tensor.cpuBackend.Softmax | group: dispatches_to => gpu.backend.Softmax | src: deneme 4, 2026-10-23
+codegraph tests-for tensor.cpuBackend.Softmax | not: no tests found | src: deneme 4, 2026-10-23
+codegraph who-uses tensor.Tensor.Softmax --by-package | contains: internal/stdlib/ml | src: deneme 4, 2026-10-23
+codegraph path tensor.Attention tensor.Tensor.Softmax | contains: no directed path | exit: 4 | src: deneme 4, 2026-10-23
+codegraph tests-for tensor.Tensor.Softmax --all | group: measurements, not tests => tensor.BenchmarkSoftmax | src: deneme 4, 2026-10-23
+
+# Deneme 5: değer metni dosyanın dilinde (2026-10-23)
+codegraph query "tr kodlu" | contains: source.Header | contains: lexer.CodedHeader | src: deneme 5, 2026-10-23
+codegraph query source.Header | contains: display language is not stored | src: deneme 5, 2026-10-23
+codegraph tests-for source.Split | not: no tests found | src: deneme 5, 2026-10-23
+codegraph query interp.Value.Inspect | contains: dispatches_to (23) | src: deneme 5, 2026-10-23
+codegraph query G100 | group: registered or used in Go => interp.printBuiltin | src: deneme 5, 2026-10-23
+codegraph query G212 | group: registered or used in Go => interp.stringBuiltin | src: deneme 5, 2026-10-23
+codegraph query interp.VM.runModule | contains: interp.Source. | src: deneme 5, 2026-10-23
+codegraph query interp.compiler | group: fields ( => interp.compiler.root | group: fields ( => interp.compiler.source | group: fields ( => interp.compiler.blocks | src: deneme 5, 2026-10-23
+codegraph who-uses 17.7 --all | contains: internal/lang/codes/language.go | contains: lexer.NewBodyIn || internal/lang/lexer/coded.go | src: deneme 5, 2026-10-23
+codegraph tests-for 17.7 | not: no tests found | src: deneme 5, 2026-10-23
+
+# Önceki işler: .tr dosyasını, kitaplığı ve belgeyi koruyan Go testleri (2026-10-23)
+codegraph tests-for tools/gpu/gpt_training.tr | contains: TestGPTTrainingScriptSmoke | src: madde 7 / 2, 2026-10-23
+codegraph tests-for lib/egitim.tr | contains: TestExamplesCoverLibraryNames | contains: Kitaplık kapsamı | src: madde 7 / 2, 2026-10-23
+codegraph tests-for lib/README.md | contains: TestDocTRCodeBlocks | src: madde 7 / 2, 2026-10-23
