@@ -1,15 +1,12 @@
 package checkpoint_test
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -97,60 +94,11 @@ yazdır("ö:", ö.durum)
 `, trPath(runDir), trPath(filepath.Join(reporoot.Root(), "tests", "data", "text")), extraOption, total, stop)
 }
 
-// validMetrics günlüğün geçerli ölçü kayıtlarını (adım → kayıp) okur: bir devam kaydından
-// önce gelen ve adımı ondan büyük olan kayıtlar geçersizdir (19, günlük okuyucu kuralı).
-func validMetrics(t *testing.T, fpath string) []string {
-	t.Helper()
-	data, err := os.ReadFile(fpath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	type metric struct {
-		step int64
-		lost string
-	}
-	var metrics []metric
-	for _, s := range strings.Split(strings.TrimSpace(string(data)), "\n") {
-		var k map[string]json.RawMessage
-		if err := json.Unmarshal([]byte(s), &k); err != nil {
-			t.Fatalf("geçersiz satır %q", s)
-		}
-		var step int64
-		_ = json.Unmarshal(k["adım"], &step)
-		var kind string
-		_ = json.Unmarshal(k["tür"], &kind)
-		switch kind {
-		case "devam":
-			metrics = slices.DeleteFunc(metrics, func(o metric) bool { return o.step > step })
-		case "":
-			metrics = append(metrics, metric{step, string(k["kayıp"])})
-		}
-	}
-	var out []string
-	for _, o := range metrics {
-		out = append(out, fmt.Sprintf("%d:%s", o.step, o.lost))
-	}
-	return out
-}
-
 // sameResults iki koşunun parametre, iyileştirici dosyalarının, geçerli kayıp dizisinin ve
 // programın son çıktısının (düz değerler, okuyucu durumu) bit düzeyinde aynı olduğunu denetler.
 func sameResults(t *testing.T, a, b, outputA, outputB string) {
 	t.Helper()
-	for _, name := range []string{"son.trt", "op.trt", "op2.trt"} {
-		x, err1 := os.ReadFile(filepath.Join(a, name))
-		y, err2 := os.ReadFile(filepath.Join(b, name))
-		if err1 != nil || err2 != nil {
-			t.Fatalf("%s okunamadı: %v %v", name, err1, err2)
-		}
-		if !bytes.Equal(x, y) {
-			t.Errorf("%s bit düzeyinde aynı değil", name)
-		}
-	}
-	ka, kb := validMetrics(t, filepath.Join(a, "metrics.jsonl")), validMetrics(t, filepath.Join(b, "metrics.jsonl"))
-	if !slices.Equal(ka, kb) {
-		t.Errorf("geçerli kayıp dizileri farklı:\n%v\n%v", ka, kb)
-	}
+	testkit.AssertSameRunFiles(t, a, b, []string{"son.trt", "op.trt", "op2.trt"})
 	last := func(c string) string { return c[strings.LastIndex(c, "izlenen:"):] }
 	if last(outputA) != last(outputB) {
 		t.Errorf("son durum farklı:\n%s\n%s", last(outputA), last(outputB))
