@@ -113,12 +113,14 @@ func (r *Reader) Resolve(q, kind string) []*Node {
 			return false
 		},
 		// Bildirilmiş ad ve yerleşik ad aynı basamaktadır: `her_dakika` hem komut satırı seçeneği hem adlı argümandır, ikisi de
-		// aday olur (biri sessizce seçilmez).
+		// aday olur (biri sessizce seçilmez). Bildirilmiş ad kısa addır (alan, metot, parametre için son parça): çıplak ad o
+		// adı taşıyan bütün bildirimlerdir; tanım, kullananlar, sınayanlar, etki ve yeniden adlandırma aynı kümeyi görür
+		// (deneme 7 R1: tanım 3, yeniden_adlandır 7 aday veriyordu).
 		func(n *Node) bool {
 			if n.Kind == KindBuiltin {
 				return builtinMatch[n.ID]
 			}
-			return n.Kind != KindModule && same(n.Name, q)
+			return n.Kind != KindModule && same(shortName(n), q)
 		},
 		func(n *Node) bool { return n.Qualified != "" && same(n.Qualified, q) },
 		func(n *Node) bool { return n.Qualified != "" && suffix(n.Qualified, q) },

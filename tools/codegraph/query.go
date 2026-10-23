@@ -77,21 +77,36 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 			}
 		}
 		if len(found) > 0 {
-			return ix.withParams(q, found, kinds)
+			return ix.withSameNamed(q, found, kinds)
 		}
 	}
 	return nil
 }
 
-// withParams çıplak ad sorgusuna aynı adı taşıyan TR parametrelerini ekler (kinds boşsa ya da tr_param içeriyorsa):
-// aynı adın farklı anlamlarda kullanıldığı yerler birlikte görünür. Sorgu ad kodu ya da işlev adı olsa da
-// eklenir; parametre yoksa found olduğu gibi döner.
-func (ix *index) withParams(q string, found []*Node, kinds []string) []*Node {
-	if strings.ContainsAny(q, "./:") || len(kinds) > 0 && !contains(kinds, kindTRParam) {
+// withSameNamed çıplak ad sorgusuna aynı kısa adı taşıyan bütün TR bildirimlerini (alan, parametre, seçenek, işlev,
+// metot ...; kinds doluysa yalnızca o türler) ekler: codeindex.Resolve'un kuralı (çıplak ad o adı taşıyan bütün
+// bildirimlerdir), böylece `query`, `tr dizin tanım` ve `tr dizin yeniden_adlandır` aynı aday kümesini görür (deneme 7
+// R1). Sorguda büyük harf yoksa Türkçe büyük-küçük harf kuralıyla karşılaştırılır.
+func (ix *index) withSameNamed(q string, found []*Node, kinds []string) []*Node {
+	if strings.ContainsAny(q, "./:") {
 		return found
 	}
+	for _, n := range found {
+		if strings.HasPrefix(n.ID, "tr:file:") {
+			return found // modül adı önce çözülür (codeindex.Resolve'un ilk basamağı): `katman` modüldür
+		}
+	}
+	same := func(a string) bool { return a == q }
+	if !strings.ContainsFunc(q, unicode.IsUpper) {
+		fq := foldTR(q)
+		same = func(a string) bool { return foldTR(a) == fq }
+	}
 	for i := range ix.g.Nodes {
-		if n := &ix.g.Nodes[i]; n.Kind == kindTRParam && strings.HasSuffix(n.Name, "."+q) && !containsNode(found, n) {
+		n := &ix.g.Nodes[i]
+		if !strings.HasPrefix(n.ID, "tr:") || n.Kind == kindTRTest || n.Kind == kindFile || len(kinds) > 0 && !contains(kinds, n.Kind) {
+			continue
+		}
+		if same(n.Name[strings.LastIndex(n.Name, ".")+1:]) && !containsNode(found, n) {
 			found = append(found, n)
 		}
 	}

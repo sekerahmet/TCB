@@ -79,27 +79,10 @@ func shortName(n *Node) string {
 	return n.Name
 }
 
-// renameTargets sorgunun adını değiştirilecek düğümlere çözer. Çıplak ad (nokta, iki nokta, yol yok)
-// o adı taşıyan bütün bildirimlerdir (alan, parametre, işlev, ... hepsi: terim değişince hepsi
-// değişir); nitelenmiş ad, kimlik ya da konum Resolve'un bulduklarıdır.
+// renameTargets sorgunun adını değiştirilecek düğümlere çözer: Resolve'un bulduklarından yeniden adlandırılabilenler.
+// Çıplak ad o adı taşıyan bütün bildirimlerdir (alan, parametre, işlev, seçenek ...: terim değişince hepsi değişir);
+// nitelenmiş ad, kimlik ya da konum tek bildirimi seçer. Ad çözümü tek yerdedir (Resolve).
 func (r *Reader) renameTargets(q string) (targets []*Node, rejected string) {
-	exact := hasUpper(q)
-	same := func(a string) bool {
-		if exact {
-			return a == q
-		}
-		return fold(a) == fold(q)
-	}
-	if !strings.ContainsAny(q, ".:/#") {
-		for i := range r.Index.Nodes {
-			if n := &r.Index.Nodes[i]; renamable(n) && same(shortName(n)) {
-				targets = append(targets, n)
-			}
-		}
-		if len(targets) > 0 {
-			return targets, ""
-		}
-	}
 	for _, n := range r.Resolve(q, "") {
 		switch {
 		case renamable(n):

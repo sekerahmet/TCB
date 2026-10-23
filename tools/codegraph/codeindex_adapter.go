@@ -17,6 +17,7 @@ const (
 	kindTRVar    = "tr_var"
 	kindTRTest   = "tr_test"
 	kindTRParam  = "tr_param"
+	kindTROption = "tr_option" // komut_satırı sözlüğünün anahtarı: betiğin komut satırı seçeneği
 )
 
 // trRoots .tr dosyalarının aranacağı klasörlerdir (modül köküne göre).
@@ -42,9 +43,6 @@ func extractTR(root string, b *builder) {
 	}
 	ids := map[string]string{}
 	for _, n := range idx.Nodes {
-		if n.Kind == codeindex.KindOption {
-			continue // seçenek düğümleri yalnızca tr dizin içindir
-		}
 		ids[n.ID] = graphID(n)
 		if n.Kind != codeindex.KindBuiltin { // ad kodu düğümlerini codes.go kurar
 			b.addNode(graphNode(n, ids[n.ID]))
@@ -79,7 +77,7 @@ func graphID(n codeindex.Node) string {
 	prefix := map[codeindex.Kind]string{
 		codeindex.KindFunction: "func", codeindex.KindStruct: "struct", codeindex.KindMethod: "method",
 		codeindex.KindField: "field", codeindex.KindConstant: "const", codeindex.KindVariable: "var",
-		codeindex.KindParameter: "param",
+		codeindex.KindParameter: "param", codeindex.KindOption: "option",
 	}[n.Kind]
 	return "tr:" + prefix + ":" + n.Pos.File + ":" + n.Name
 }
@@ -95,7 +93,7 @@ func graphNode(n codeindex.Node, id string) Node {
 	kind := map[codeindex.Kind]string{
 		codeindex.KindFunction: kindTRFunc, codeindex.KindStruct: kindTRStruct, codeindex.KindMethod: kindTRMethod,
 		codeindex.KindField: kindTRField, codeindex.KindConstant: kindTRConst, codeindex.KindVariable: kindTRVar,
-		codeindex.KindTest: kindTRTest, codeindex.KindParameter: kindTRParam,
+		codeindex.KindTest: kindTRTest, codeindex.KindParameter: kindTRParam, codeindex.KindOption: kindTROption,
 	}[n.Kind]
 	return Node{ID: id, Kind: kind, Name: n.Qualified, File: n.Pos.File, Line: n.Pos.Line, End: n.Pos.EndLine, Detail: n.Signature, Doc: docLine(n.Doc)}
 }
