@@ -3,7 +3,8 @@ package main
 import (
 	"fmt"
 	"io"
-	"path"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"unicode"
@@ -12,6 +13,7 @@ import (
 
 // index okunmuş grafiğin arama tablolarıdır.
 type index struct {
+	root string // depo kökü (sorgu anında dosya okuyan yardımcılar için; boşsa okunmaz)
 	g    *Graph
 	byID map[string]*Node
 	out  map[string][]*Edge
@@ -216,6 +218,7 @@ func (ix *index) printQuery(w io.Writer, n *Node, limit int) {
 	if n.Kind == kindName {
 		ix.printNameChain(w, n, limit)
 	}
+	ix.printOtherConfigs(w, n, limit)
 }
 
 // printWhoUses bir düğümü kullananları yazar: gelen kenarlar (contains hariç), kullanım yeriyle.
@@ -223,10 +226,11 @@ func (ix *index) printWhoUses(w io.Writer, n *Node, limit int) {
 	uses := ix.whoUsesHeader(w, n)
 	if len(uses) == 0 {
 		fmt.Fprintln(w, "  no uses")
-		ix.printOtherConfigNote(w, n)
+		ix.printOtherConfigs(w, n, limit)
 		return
 	}
 	ix.printGroups(w, "  <-", uses, fromOf, limit, true)
+	ix.printOtherConfigs(w, n, limit)
 }
 
 // whoUsesHeader düğümü ve (kod ise) Go sabitini yazar, kullanım kenarlarını verir.
@@ -308,33 +312,82 @@ func isWordRune(r rune) bool {
 	return r != utf8.RuneError && (unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_')
 }
 
-// printOtherConfigNote boş kalan bir Go cevabının ("no uses", "no tests found") altına, grafiğin tiplerle okumadığı
-// dosyaları yazar: oradaki çağrılar ve tür kullanımları görünmez, cevap o dosyalar için kanıt değildir.
-func (ix *index) printOtherConfigNote(w io.Writer, n *Node) {
-	if !strings.HasPrefix(n.ID, "go:") {
-		return
+// otherConfigMention sorulan adın, grafiğin tiplerle okumadığı (bu yapılandırmada derlenmeyen) bir dosyada geçtiği yerdir.
+type otherConfigMention struct {
+	file string
+	line int
+	in   *Node // geçtiği bildirim (dosyada ondan önce başlayan son bildirim); yoksa nil
+}
+
+// otherConfigMentions n'nin kısa adının derlenmeyen dosyalarda sözcük olarak geçtiği yerlerdir (metin olarak okunur,
+// tiplerle değil). Grafik oradaki çağrıları ve tür kullanımlarını görmez; cevap bu yerleri ayrıca söyler (DENETİM
+// doğrulaması Y4: dataload.mmapFile'ın Linux tanımı ve onu sınayan TestMmapTruncatedDoesNotCrash görünmüyordu, "25 files"
+// notu ise ilgisiz boş cevaplara da düşüyordu).
+func (ix *index) otherConfigMentions(n *Node) (config string, out []otherConfigMention) {
+	if !strings.HasPrefix(n.ID, "go:") || ix.root == "" {
+		return "", nil
 	}
-	var all, here []string
-	pkg := ix.goPackageOf(n)
+	name := n.Name[strings.LastIndex(n.Name, ".")+1:]
 	for i := range ix.g.Nodes {
 		f := &ix.g.Nodes[i]
 		if f.Kind != kindFile || !strings.HasPrefix(f.Detail, otherConfigDetail) {
 			continue
 		}
-		all = append(all, f.Name)
-		for _, e := range ix.in[f.ID] {
-			if e.Kind == edgeContains && e.From == pkg {
-				here = append(here, path.Base(f.Name))
+		data, err := os.ReadFile(filepath.Join(ix.root, filepath.FromSlash(f.Name)))
+		if err != nil || !strings.Contains(string(data), name) {
+			continue
+		}
+		config = strings.TrimPrefix(f.Detail, otherConfigDetail)
+		type decl struct {
+			line int
+			node *Node
+		}
+		var decls []decl
+		for _, e := range ix.out[f.ID] {
+			if e.Kind == edgeContains && ix.byID[e.To] != nil {
+				decls = append(decls, decl{e.Line, ix.byID[e.To]})
 			}
 		}
+		sort.Slice(decls, func(a, b int) bool { return decls[a].line < decls[b].line })
+		for no, line := range strings.Split(string(data), "\n") {
+			if !hasWord(line, name) || strings.HasPrefix(strings.TrimSpace(line), "//") {
+				continue // yorum satırı kullanım değildir
+			}
+			m := otherConfigMention{file: f.Name, line: no + 1}
+			for _, d := range decls {
+				if d.line <= no+1 {
+					m.in = d.node
+				}
+			}
+			out = append(out, m)
+		}
 	}
-	if len(all) == 0 {
+	return config, out
+}
+
+// printOtherConfigs sorulan adın derlenmeyen dosyalarda geçtiği yerleri bildirime göre tek satırda yazar (testler
+// işaretli); geçmiyorsa bir şey yazmaz.
+func (ix *index) printOtherConfigs(w io.Writer, n *Node, limit int) {
+	config, ms := ix.otherConfigMentions(n)
+	if len(ms) == 0 {
 		return
 	}
-	config := strings.TrimPrefix(ix.byID[fileID(all[0])].Detail, otherConfigDetail)
-	fmt.Fprintf(w, "  note: %d Go files are not built for %s; calls and type uses in them are not seen (build --warnings lists them)", len(all), config)
-	if len(here) > 0 {
-		fmt.Fprintf(w, "; in this package: %s", strings.Join(here, ", "))
+	var lines []string
+	seen := map[string]bool{}
+	for _, m := range ms {
+		where := fmt.Sprintf("%s:%d", m.file, m.line)
+		if m.in != nil {
+			if seen[m.in.ID+m.file] {
+				continue
+			}
+			seen[m.in.ID+m.file] = true
+			where = fmt.Sprintf("%s [%s] at %s", m.in.Name, m.in.Kind, where)
+			if isTestNode(&Node{Kind: m.in.Kind, Name: m.in.Name, File: m.file}) {
+				where += "  [test]"
+			}
+		}
+		lines = append(lines, where)
 	}
-	fmt.Fprintln(w)
+	fmt.Fprintf(w, "  <- in other build configurations (%d; files not built for %s, read as text, not type-checked):\n", len(lines), config)
+	printLimited(w, lines, limit, "    ")
 }

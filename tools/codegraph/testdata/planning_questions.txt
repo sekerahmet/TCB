@@ -94,3 +94,6 @@ codegraph dead-methods --in internal/compute/tensor | not: VersionCounter | src:
 codegraph query tensor.Storage.Hold | group: dispatches_to => tensor.VersionCounter.Hold | src: sağlık taraması P1, 2026-10-24
 codegraph spec-refs | contains: 0 note(s) | not: no item 2.14 | src: sağlık taraması P2, 2026-10-24
 tr dizin sınayanlar swiglu_kapısı | contains: lib/katman_test.tr | src: DENETİM doğrulaması T3 (iki aracın sınayan kümesi), 2026-10-24
+codegraph tests-for codeindex.LoadCached | not: no tests found | contains: weak evidence | contains: linked into the binary of cmd/tr | src: DENETİM doğrulaması Y5, 2026-10-24
+codegraph tests-for dataload.mmapFile | contains: TestMmapTruncatedDoesNotCrash || internal/compute/dataload/mmap_windows.go | contains: in other build configurations || TestMmapTruncatedDoesNotCrash | src: DENETİM doğrulaması Y4a, 2026-10-24
+codegraph tests-for codeindex.Build | not: other build configurations | not: Go files are not built | src: DENETİM doğrulaması Y4b, 2026-10-24

@@ -101,7 +101,7 @@ Functions of a package that a test builds and runs as a binary get the "covered 
 | `uses_env` | func → `name:K4nn`, from `os.Getenv`/`LookupEnv`/`Setenv`/`Unsetenv` (or `testing.T.Setenv`) given a string constant (or a named one) equal to the variable's name in any writing language; the compute core cannot see name codes, so it reads the variable by its source-language name | EXTRACTED |
 | `guarded_by` | rule → test func or test file named after `Denetim:` | EXTRACTED when the test sits under a path the rule names or under the README's folder, else INFERRED |
 | `links_to` | heading → heading, doc, Go file, package or any file; Markdown links | EXTRACTED; link whose `#anchor` is missing: INFERRED (to the file) |
-| `builds` | function in a test file → module package it compiles with `exec.Command("go", "build", ..., pkg)` (a module path, or `.` / `./x` from the test file's folder) | EXTRACTED. The tests that run the binary cannot be traced per function, so `tests-for` counts them on one line for every function of that package, "covered by subprocess tests (N; ...): cmd/tr (2), cmd/tr/e2e (86)": all tests of the package when the builder is `TestMain`, else the tests that reach the builder (chain rule); `changed` prints the same line |
+| `builds` | function in a test file → module package it compiles with `exec.Command("go", "build", ..., pkg)` (a module path, or `.` / `./x` from the test file's folder) | EXTRACTED. The tests that run the binary cannot be traced per function, so `tests-for` counts them on one line for every function of that package, "covered by subprocess tests (N; ...): cmd/tr (2), cmd/tr/e2e (86)": all tests of the package when the builder is `TestMain`, else the tests that reach the builder (chain rule); `changed` prints the same line. A package the built one imports (transitively) gets, when nothing else tests it, "weak evidence: linked into the binary of cmd/tr (88 tests run it); a subprocess test may reach this code, which one is not traced" instead of "no tests found" |
 
 Every edge has `confidence`, and `file`/`line` of the first place it was seen and `count`.
 `warnings` lists what could not be resolved: a `Denetim:` test that does not exist, a broken
@@ -114,8 +114,11 @@ function declared only there becomes a node, every declaration in it is `contain
 gpu.runExitHandlers` lists `cuda_linux.go`, `cuda_other.go` and `cuda_windows.go`), and its message and name code uses
 (`messages.H2154`, resolved from the import, not from types) are INFERRED `uses_message`/`uses_name` edges, so `who-uses
 H2154` finds `file_error_unix.go`. Calls and type uses in those files are not seen: `build` warns which configuration
-was type-checked and lists the files, and a Go answer that comes back empty ("no uses", "no tests found") adds a note
-naming them. Type-checking every configuration and merging (as `staticcheck -matrix` does) was not chosen: it multiplies
+was type-checked and lists the files. Plain calls in those files (`F(...)` of the same package, `pkg.F(...)` of a module
+package, unless the function declares that name itself) are `calls` edges, so a test built only on Linux
+(`mmap_unix_test.go: TestMmapTruncatedDoesNotCrash` → `OpenShard`) joins the chain. When the asked name occurs in those
+files (as a word, outside comments), `query`, `who-uses` and `tests-for` add a group "in other build configurations" with
+each declaration it occurs in (tests marked); a name they never mention gets nothing (DENETİM verification Y4). Type-checking every configuration and merging (as `staticcheck -matrix` does) was not chosen: it multiplies
 every build, and the Windows and Linux versions of a function share one node ID. `implements` and
 `dispatches_to` look at non-test types only. A call through an interface points at the interface
 method and, from there, at every implementation (`dispatches_to`, below).

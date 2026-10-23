@@ -11,7 +11,7 @@ import (
 // sayılır; derlenmeyen paketin işlevi testsiz kalır (bağımsız denetim Y5).
 func TestTestsForCountsSubprocessTestsOfABuiltPackage(t *testing.T) {
 	root := auditModule(t, map[string]string{
-		"app/main.go": "package main\n\nfunc main() { greet() }\n\nfunc greet() {}\n\nfunc farewell() {}\n",
+		"app/main.go": "package main\n\nimport \"example.com/audit/lib\"\n\nfunc main() { greet(); lib.Helper() }\n\nfunc greet() {}\n\nfunc farewell() {}\n",
 		"app/main_test.go": `package main
 
 import (
@@ -42,7 +42,8 @@ func TestRuns(t *testing.T) {}
 
 func TestOther(t *testing.T) {}
 `,
-		"lib/lib.go": "package lib\n\nfunc Helper() {}\n",
+		"lib/lib.go":     "package lib\n\nfunc Helper() {}\n",
+		"other/other.go": "package other\n\nfunc Alone() {}\n",
 	})
 	var out, errb strings.Builder
 	if code := run([]string{"build", "--root", root}, &out, &errb); code != exitOK {
@@ -63,7 +64,11 @@ func TestOther(t *testing.T) {}
 	if got := ask("app.greet"); !strings.Contains(got, "app.TestGreet") || !strings.Contains(got, "covered by subprocess tests") {
 		t.Errorf("greet: its direct test and the subprocess line:\n%s", got)
 	}
-	if got := ask("lib.Helper"); !strings.Contains(got, "no tests found") {
-		t.Errorf("lib is not built by any test:\n%s", got)
+	// Derlenen paketin içe aktardığı paket: izlenmez, ama "no tests found" da değildir (DENETİM doğrulaması Y5).
+	if got := ask("lib.Helper"); strings.Contains(got, "no tests found") || !strings.Contains(got, "weak evidence (3): linked into the binary of app") {
+		t.Errorf("lib is linked into app's binary:\n%s", got)
+	}
+	if got := ask("other.Alone"); !strings.Contains(got, "no tests found") {
+		t.Errorf("other is in no binary a test builds:\n%s", got)
 	}
 }

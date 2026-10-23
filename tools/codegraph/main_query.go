@@ -80,7 +80,9 @@ func runQueryOn(loaded *Graph, cmd string, args []string, stdout, stderr io.Writ
 			return code
 		}
 	}
-	return newIndex(g).dispatch(cmd, fs.Args(), o)
+	ix := newIndex(g)
+	ix.root = o.root
+	return ix.dispatch(cmd, fs.Args(), o)
 }
 
 // loadGraph grafiği okur ve gerekirse tazeler; okunamazsa nil ve çıkış kodunu verir.

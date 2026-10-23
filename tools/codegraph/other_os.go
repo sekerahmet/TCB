@@ -50,9 +50,15 @@ func extractOtherConfigs(m *module, b *builder) {
 			if d, ok := decl.(*ast.FuncDecl); ok {
 				owner = otherConfigFunc(b, fset, pkg, rel, d, m.Config)
 			}
+			locals := declaredNames(decl)
 			ast.Inspect(decl, func(n ast.Node) bool {
-				if sel, ok := n.(*ast.SelectorExpr); ok {
-					codeUse(b, m.Path, imports, sel, owner, rel, fset.Position(sel.Pos()).Line)
+				switch n := n.(type) {
+				case *ast.SelectorExpr:
+					codeUse(b, m.Path, imports, n, owner, rel, fset.Position(n.Pos()).Line)
+				case *ast.CallExpr:
+					if to := callTarget(b, m.Path, pkg, imports, locals, n); to != "" && to != owner {
+						b.addEdge(owner, to, edgeCalls, extracted, rel, fset.Position(n.Pos()).Line)
+					}
 				}
 				return true
 			})
@@ -114,4 +120,64 @@ func codeUse(b *builder, mod string, imports map[string]string, sel *ast.Selecto
 			b.addEdge(owner, "name:"+sel.Sel.Name, edgeUsesName, inferred, rel, line)
 		}
 	}
+}
+
+// callTarget derlenmeyen dosyadaki düz bir işlev çağrısının hedefidir: aynı paketin `F(...)`'i ya da bir modül paketinin
+// `pkg.F(...)`'i, hedef düğüm varsa. Ad paket kapsamında çözülür (derleyicinin kuralı); işlevin kendisi aynı adı
+// tanımlıyorsa (parametre, yerel) gölgelenmiş sayılır ve bağlanmaz. Yöntem çağrıları tip ister, bağlanmaz. Böylece
+// başka işletim sisteminin testi (mmap_unix_test.go: TestMmapTruncatedDoesNotCrash → OpenShard) zincire girer.
+func callTarget(b *builder, mod, pkg string, imports map[string]string, locals map[string]bool, c *ast.CallExpr) string {
+	id := ""
+	switch fn := ast.Unparen(c.Fun).(type) {
+	case *ast.Ident:
+		if !locals[fn.Name] {
+			id = memberID(pkg, "", fn.Name)
+		}
+	case *ast.SelectorExpr:
+		if x, ok := fn.X.(*ast.Ident); ok && !locals[x.Name] {
+			if p := imports[x.Name]; p == mod || strings.HasPrefix(p, mod+"/") {
+				id = memberID(p, "", fn.Sel.Name)
+			}
+		}
+	}
+	if b.nodes[id] == nil {
+		return ""
+	}
+	return id
+}
+
+// declaredNames bir bildirimin içinde tanımlanan adlardır (parametre, sonuç, alıcı, :=, var, range değişkeni).
+func declaredNames(decl ast.Decl) map[string]bool {
+	out := map[string]bool{}
+	ast.Inspect(decl, func(n ast.Node) bool {
+		switch n := n.(type) {
+		case *ast.Field:
+			for _, id := range n.Names {
+				out[id.Name] = true
+			}
+		case *ast.AssignStmt:
+			if n.Tok == token.DEFINE {
+				for _, l := range n.Lhs {
+					if id, ok := l.(*ast.Ident); ok {
+						out[id.Name] = true
+					}
+				}
+			}
+		case *ast.ValueSpec:
+			for _, id := range n.Names {
+				out[id.Name] = true
+			}
+		case *ast.RangeStmt:
+			for _, e := range []ast.Expr{n.Key, n.Value} {
+				if id, ok := e.(*ast.Ident); ok && n.Tok == token.DEFINE {
+					out[id.Name] = true
+				}
+			}
+		}
+		return true
+	})
+	if f, ok := decl.(*ast.FuncDecl); ok {
+		delete(out, f.Name.Name) // işlevin kendi adı alan listesinde geçmez; özyineleme kendine çağrıdır
+	}
+	return out
 }
