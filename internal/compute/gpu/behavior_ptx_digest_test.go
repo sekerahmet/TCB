@@ -18,7 +18,7 @@ import (
 // PTX'i değişirse ya da kısa kipte (CI ve tam denetimin kipi) özette olmayan bir çekirdek
 // derlenirse paketin testi kalır. Bilinçli bir değişiklikte özet yenilenir:
 //
-//	TR_GPU_PTX_GUNCELLE=1 go test -short ./internal/compute/gpu
+//	TR_GPU_PTX_UPDATE=1 go test -short ./internal/compute/gpu
 //
 // Neden: "değişmeyen çekirdeklerin PTX'i aynı" iddiası her GPU işinde elle (geçici dökümle)
 // gösteriliyordu; şimdi her koşuda denetlenir ve bilinçli değişiklik diff'te özetin satırı olarak
@@ -51,7 +51,7 @@ func checkPTXDigest() int {
 	seen := ptxSeen.m
 	ptxSeen.Unlock()
 	subset := flag.Lookup("test.run") != nil && flag.Lookup("test.run").Value.String() != ""
-	if os.Getenv("TR_GPU_PTX_GUNCELLE") == "1" {
+	if os.Getenv("TR_GPU_PTX_UPDATE") == "1" {
 		if subset || !testing.Short() {
 			fmt.Println("PTX özeti yalnızca bütün paketin -short koşusuyla yenilenir (-run yok)")
 			return 1
@@ -84,7 +84,7 @@ func checkPTXDigest() int {
 	for _, k := range added {
 		fmt.Println("  yeni:   ", k)
 	}
-	fmt.Println("Değişiklik bilinçliyse: TR_GPU_PTX_GUNCELLE=1 go test -short ./internal/compute/gpu")
+	fmt.Println("Değişiklik bilinçliyse: TR_GPU_PTX_UPDATE=1 go test -short ./internal/compute/gpu")
 	return 1
 }
 

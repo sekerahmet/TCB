@@ -12,7 +12,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 )
 
-// TestMicroBench GPU mikro kıyasları (yalnızca gerçek GPU'da ve TR_GPU_MIKRO=1 iken): kıyas
+// TestMicroBench GPU mikro kıyasları (yalnızca gerçek GPU'da ve TR_GPU_MICRO=1 iken): kıyas
 // modelinin (B32 T256 D512 H8 FF2048 V40000) işlemleri tek tek ölçülür. Her satır
 //
 //	MIKRO|işlem|yol|ms|değer|birim
@@ -22,8 +22,8 @@ import (
 // sonra n tekrarın ortalaması). Matris çarpımı iki yolla ölçülür: kitaplık (varsa) ve kendi
 // çekirdeğimiz.
 func TestMicroBench(t *testing.T) {
-	if os.Getenv("TR_GPU_MIKRO") != "1" || inSim() {
-		t.Skip("yalnızca gerçek GPU'da ve TR_GPU_MIKRO=1 ile")
+	if os.Getenv("TR_GPU_MICRO") != "1" || inSim() {
+		t.Skip("yalnızca gerçek GPU'da ve TR_GPU_MICRO=1 ile")
 	}
 	g := gpuBackend()
 	cs, _ := g.sr.(*cudaDriver)
@@ -31,7 +31,7 @@ func TestMicroBench(t *testing.T) {
 	if cs != nil {
 		peak = cs.peakGFLOPS()
 	}
-	if v, err := strconv.ParseFloat(os.Getenv("TR_GPU_MIKRO_BANT"), 64); err == nil && v > 0 {
+	if v, err := strconv.ParseFloat(os.Getenv("TR_GPU_MICRO_BAND"), 64); err == nil && v > 0 {
 		band = v
 	}
 	fmt.Printf("MIKRO|bilgi|%s|0|%.0f|tepe GFLOPS (bant %.0f GB/s)\n", g.gemmPath(), peak, band)
@@ -220,7 +220,7 @@ func microAttn(g *backend, divide int) {
 	backward := func() {
 		g.AttentionGradSet(gq, gk, gv, dO, see(q), see(k), see(v), nil, out, lse, p, [3]bool{true, true, true})
 	}
-	// İki yol da ölçülür (TR_GPU_DIKKAT ile seçilen): birleşik çekirdek ve matris çarpımı yolu.
+	// İki yol da ölçülür (TR_GPU_ATTENTION ile seçilen): birleşik çekirdek ve matris çarpımı yolu.
 	old := g.attnPath
 	for _, y := range []struct{ path, ek, ad string }{{"birlesik", "", "birleşik"}, {"carpim", " (matris yolu)", "kendi"}} {
 		g.attnPath = y.path

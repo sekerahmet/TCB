@@ -12,14 +12,14 @@ import (
 )
 
 // TestRealDataSmoke, gerçek veri köküne karşı küçük bir duman testidir.
-// Yalnızca TR_VERI_YOLU ortam değişkeni veri kökünü (meta.json, train/,
+// Yalnızca TR_DATA_PATH ortam değişkeni veri kökünü (meta.json, train/,
 // _valid/ içeren dizin) gösteriyorsa çalışır. Yalnızca meta.json'u, birkaç
 // parçanın başlığını ve birkaç küçük pencereyi okur; dosyaları kopyalamaz,
 // eşleme yerine ReadAt kullanır (akışlı ağ sürücülerinde en az okuma).
 func TestRealDataSmoke(t *testing.T) {
-	root := os.Getenv("TR_VERI_YOLU")
+	root := os.Getenv("TR_DATA_PATH")
 	if root == "" {
-		t.Skip("TR_VERI_YOLU ayarlı değil; gerçek veri duman testi atlandı")
+		t.Skip("TR_DATA_PATH ayarlı değil; gerçek veri duman testi atlandı")
 	}
 	ctx := context.Background()
 	pick := DatasetOptions{Shard: ShardOptions{NoMmap: true}}

@@ -11,7 +11,7 @@
 # bazı testler paketin kaynak dosyalarını okur. Çıkış kodu: hepsi geçtiyse 0, değilse 1.
 set -u
 cd "$(dirname "$0")/../.."
-out=${TR_KAYIT_KLASORU:?tools/record ile çalıştırın}
+out=${TR_RECORD_DIR:?tools/record ile çalıştırın}
 bin=$(mktemp -d)
 veri=$(mktemp -d)
 trap 'rm -rf "$bin" "$veri"' EXIT

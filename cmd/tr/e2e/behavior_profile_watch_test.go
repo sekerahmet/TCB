@@ -163,7 +163,7 @@ func TestJobProfileFile(t *testing.T) {
 	}
 }
 
-// gpuWatchTraining GPU'da (TR_GPU_BENZETIM=1 ile benzetimde) 8 adımlık küçük bir eğitimdir.
+// gpuWatchTraining GPU'da (TR_GPU_SIM=1 ile benzetimde) 8 adımlık küçük bir eğitimdir.
 const gpuWatchTraining = `varsayılan_cihaz("gpu")
 değişken w = tensör(rastgele_normal([16, 16], tohum: 1), türev_izle: doğru)
 değişken x = rastgele_normal([8, 16], tohum: 2)
@@ -194,7 +194,7 @@ func TestProfileAndWatchGPU(t *testing.T) {
 		{"profil_TR_GPU_PROFIL", "1", []string{"profil", "gpu.tr"}},
 	} {
 		t.Run(d.ad, func(t *testing.T) {
-			s := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_GPU_BENZETIM=1", "TR_GPU_PROFIL=" + d.gpuProfile}, d.args...)
+			s := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_GPU_SIM=1", "TR_GPU_PROFIL=" + d.gpuProfile}, d.args...)
 			if s.Code != 0 {
 				t.Fatalf("çıkış kodu %d\nçıktı:\n%s\nhata:\n%s", s.Code, s.Stdout, s.Stderr)
 			}

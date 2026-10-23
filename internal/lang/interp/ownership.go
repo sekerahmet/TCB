@@ -38,7 +38,7 @@ import (
 // tensörlerini siler ama dönüş değerini ve saklanacakları kullanıcının işaretlemesini ister
 // (tf.keep, MoveToOuterDisposeScope); burada dönüş kendiliğinden çağırana geçer, kaçış
 // kendiliğinden algılanır. Ara sonuçların işlemden hemen sonra bırakılması Mojo'nun "ASAP"
-// yok etmesine benzer. TR_BIRAKMA=0 sahiplenmeyi kapatır (tanılama: yalnızca çöp toplayıcı).
+// yok etmesine benzer. TR_RELEASE=0 sahiplenmeyi kapatır (tanılama: yalnızca çöp toplayıcı).
 
 // Owned yorumlayıcının belirlenimci bırakabileceği bir değerdir.
 type Owned interface {
@@ -99,8 +99,8 @@ func ownershipOf(val Value) (Owned, *Ownership) {
 	return nil, nil
 }
 
-// ownershipOff TR_BIRAKMA=0 ise doğrudur (sahiplenme yok, her şey çöp toplayıcının).
-var ownershipOff = os.Getenv("TR_BIRAKMA") == "0"
+// ownershipOff TR_RELEASE=0 ise doğrudur (sahiplenme yok, her şey çöp toplayıcının).
+var ownershipOff = os.Getenv("TR_RELEASE") == "0"
 
 // ownActive ilk değer sahiplenilince doğru olur (süreç genelidir, atomiktir; okuması düz
 // bir yüklemedir). Ondan önce hiçbir değer bir çerçevenin sahipliğinde değildir: bağ, bağ

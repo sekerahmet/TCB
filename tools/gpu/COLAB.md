@@ -117,7 +117,7 @@ GFLOPS/GB/s verir; son sütun TR'nin en iyi süresinin PyTorch'a oranıdır (< 1
 ```bash
 %%bash
 cd /content/tr
-TR_GPU_MIKRO=1 ./gpu_sinama -test.run 'TestMicroBench$' -test.v > mikro_tr.txt 2>&1
+TR_GPU_MICRO=1 ./gpu_sinama -test.run 'TestMicroBench$' -test.v > mikro_tr.txt 2>&1
 python micro_compare.py > mikro_py.txt 2>&1
 python micro_table.py mikro_tr.txt mikro_py.txt
 ```
@@ -158,7 +158,7 @@ done
 ```
 
 Kendi matris çarpımı çekirdeğimizle karşılaştırmak için (isteğe bağlı) TR satırının önüne
-`TR_GPU_KENDI_CARPIM=1` ekleyin.
+`TR_GPU_OWN_GEMM=1` ekleyin.
 
 ## 7. Profil: büyük modelin kernel dökümü
 
@@ -192,7 +192,7 @@ Tek bir çekirdeğin donanım sayaçları (ör. kendi matris çarpımımız):
 ```bash
 %%bash
 cd /content/tr
-TR_GPU_MIKRO=1 TR_GPU_KENDI_CARPIM=1 ncu --target-processes all -k regex:carpim --launch-count 2 \
+TR_GPU_MICRO=1 TR_GPU_OWN_GEMM=1 ncu --target-processes all -k regex:carpim --launch-count 2 \
   --section SpeedOfLight ./gpu_sinama -test.run 'TestMicroBench$' 2>&1 | grep -E 'carpim|Throughput|Duration' | head -20
 ```
 
@@ -540,7 +540,7 @@ PY
 ### Hücre 15 · BELİRLENİMCİ BIRAKMA SINAMASI · GPU
 
 Dil tanımı 15.43'ün GPU sınaması: GPU arka ucunun testleri, hedef modelde bırakma açık ve kapalı
-(`TR_BIRAKMA=0`) hız ve tepe bellek, PyTorch ile eşleşme (hücre 9 ile aynı) ve bellek dökümlü profil.
+(`TR_RELEASE=0`) hız ve tepe bellek, PyTorch ile eşleşme (hücre 9 ile aynı) ve bellek dökümlü profil.
 Hücre 1'in GPU sınama ikilisini de derlemesi gerekir (`go test -c ... -o /content/tr/gpu_sinama
 ./internal/compute/gpu`, bölüm 1).
 
@@ -555,7 +555,7 @@ cd /content/TCB/internal/compute/gpu && /content/tr/gpu_sinama -test.count=1 > /
 cd /content/rgn
 for B in 1 0; do
   nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits -lms 100 > bir/mem_$B.log & P=$!
-  TR_BIRAKMA=$B /content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri trveri --adım 120 --çıktı bir/hiz_$B.json > bir/tr_$B.log 2>&1
+  TR_RELEASE=$B /content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri trveri --adım 120 --çıktı bir/hiz_$B.json > bir/tr_$B.log 2>&1
   kill $P; sleep 1
   printf "bırakma %s | tepe %.2f GiB | ortanca %s ms/adım | son kayıp %s\n" $([ $B = 1 ] && echo açık || echo kapalı) $(echo "$(sort -n bir/mem_$B.log | tail -1)/1024" | bc -l) $(python3 -c "import json;print(round(json.load(open('bir/hiz_$B.json'))['measured']['median_ms'],1))") "$(grep -o 'kayıp [0-9.]*' bir/tr_$B.log | tail -1)" >> bir/sonuc.txt
 done
@@ -589,14 +589,14 @@ else L=$(ls -t *.log /content/par/*.log 2>/dev/null | head -1); echo "sürüyor:
 
 ### Hücre 17 · EŞLEŞMEYİ BIRAKMA KAPALI TEKRARLA · GPU
 
-Hücre 15'in PyTorch referansıyla TR'yi `TR_BIRAKMA=0` ile yeniden koşar: bırakma sonucu değiştirmez
+Hücre 15'in PyTorch referansıyla TR'yi `TR_RELEASE=0` ile yeniden koşar: bırakma sonucu değiştirmez
 (iki TR koşusunun kayıpları aynı olmalıdır); PyTorch'a karşı fark bf16'nın koşudan koşuya
 belirlenimsizliğidir.
 
 ```bash
 # 17 · EŞLEŞMEYİ BIRAKMA KAPALI TEKRARLA (AYNI PYTORCH REFERANSI, ~2 DK) · GPU
 cd /content/par
-TR_BIRAKMA=0 /content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri data --ağırlık init.trt --sıralı --adım 100 --kayıplar tr0.json --günlük 100 > tr0.log 2>&1
+TR_RELEASE=0 /content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri data --ağırlık init.trt --sıralı --adım 100 --kayıplar tr0.json --günlük 100 > tr0.log 2>&1
 python - <<'PY'
 import json
 r = json.load(open("reference.json"))["steps"]
@@ -755,13 +755,13 @@ cat /content/yaris/sonuc.txt 2>/dev/null; [ -f /content/yaris/bitti ] && echo B�
 - `TR_GPU_ESZAMANLI=1`: her kernelden sonra eşzamanlar; eşzamansız bir hata tam olarak onu
   üreten kernelde bildirilir. Yavaştır; yalnızca teşhis için.
 - `TR_GPU_CUBLASLT=/tam/yol/libcublasLt.so.12`: matris çarpımı kitaplığının yolu.
-- `TR_GPU_KENDI_CARPIM=1`: kitaplık bulunsa da kendi matris çarpımı çekirdeğimiz.
+- `TR_GPU_OWN_GEMM=1`: kitaplık bulunsa da kendi matris çarpımı çekirdeğimiz.
 - `TR_GPU_GEMV=0`: tek satırlık çarpımlar (M = 1) gemv çekirdeği yerine kitaplığa ya da döşemeli
   çekirdeğe gider (karşılaştırma; mikro kıyas üç yolu da ölçer, `gemv ...` satırları).
-- `TR_GPU_DIKKAT=carpim`: dikkat birleşik kernel yerine matris çarpımı yolundan (karşılaştırma;
+- `TR_GPU_ATTENTION=carpim`: dikkat birleşik kernel yerine matris çarpımı yolundan (karşılaştırma;
   mikro kıyas iki yolu da ölçer, `dikkat ... (matris yolu)` satırları).
-- `TR_GPU_MIKRO=1`: gpu_sinama'da mikro kıyasları açar (`TR_GPU_MIKRO_BANT` kuramsal bant
+- `TR_GPU_MICRO=1`: gpu_sinama'da mikro kıyasları açar (`TR_GPU_MICRO_BAND` kuramsal bant
   genişliği, GB/s; varsayılan 1800).
-- `TR_GPU_BENZETIM=1`: gerçek GPU yokken PTX benzetimini `"gpu"` cihazı olarak kurar.
-- `TR_GPU_COP_ESIGI=MB`: GPU belleği için çöp toplama eşiği (varsayılan kart belleğinin 1/64'ü,
+- `TR_GPU_SIM=1`: gerçek GPU yokken PTX benzetimini `"gpu"` cihazı olarak kurar.
+- `TR_GPU_GC_THRESHOLD=MB`: GPU belleği için çöp toplama eşiği (varsayılan kart belleğinin 1/64'ü,
   256 MB–2 GB; `0` kapatır). Küçültmek tepe belleği düşürür, hız farkı küçüktür.

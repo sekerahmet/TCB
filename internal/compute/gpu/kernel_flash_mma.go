@@ -37,7 +37,7 @@ func (a flashMma) key(ad string) string { return fmt.Sprintf("%s_%d_%d_%v", ad, 
 
 // mmaFits tensör çekirdekli yolun bu girdilerle kullanılıp kullanılamayacağı: aynı 16 bitlik
 // tür, bitişik ve çift ofsetli görünümler (32 bitlik çift erişimi), 16'nın katı ve en çok 128
-// bakış boyları, ek maske yok, sm_80+ (TR_GPU_DIKKAT=tensor benzetimde sm denetimini atlar).
+// bakış boyları, ek maske yok, sm_80+ (TR_GPU_ATTENTION=tensor benzetimde sm denetimini atlar).
 func (g *backend) mmaFits(q, k, v tensor.View, mask2 bool, p tensor.AttentionParams) (flashMma, bool) {
 	if g.attnPath == "carpim" || g.attnPath == "birlesik" || mask2 || p.H > 65535 || p.Batch > 65535 {
 		return flashMma{}, false

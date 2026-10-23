@@ -39,7 +39,7 @@ düzenini sınayan test hem benzeticide hem gerçek kartta koşar; ikisinin sonu
 **PTX'in değişimi görünürdür.** Benzeticide sınamalar sırasında derlenen her çekirdeğin PTX
 özeti `testdata/ptx_ozet.txt`'dedir: bilinen bir çekirdeğin PTX'i değişirse ya da kısa kipte
 özette olmayan çekirdek derlenirse paketin testi kalır. Bilinçli değişiklikte özet
-`TR_GPU_PTX_GUNCELLE=1 go test -short ./internal/compute/gpu` ile yenilenir ve diff'te görünür;
+`TR_GPU_PTX_UPDATE=1 go test -short ./internal/compute/gpu` ile yenilenir ve diff'te görünür;
 "değişmeyen çekirdeklerin PTX'i aynı" iddiası böylece her koşuda denetlenir. Denetim:
 `behavior_ptx_digest_test.go`.
 

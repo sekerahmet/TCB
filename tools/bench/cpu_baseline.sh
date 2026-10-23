@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # CPU temel ölçümü: karakter modeli (TR ve PyTorch; 1, 2, 4, 8 iş parçacığı), dil kıyası ve tensör
-# kernelleri, 5'er tekrar. tools/record ile sarılır; sonuçlar TR_KAYIT_KLASORU'na yazılır, özeti
+# kernelleri, 5'er tekrar. tools/record ile sarılır; sonuçlar TR_RECORD_DIR'na yazılır, özeti
 # metrics.json'dadır (sürümler, model, tensör ortancası ve sapması, dil kıyası).
 #
 #   go run ./tools/record --name cpu-temel --out <kayıt kökü> -- bash tools/bench/cpu_baseline.sh
@@ -9,7 +9,7 @@
 # kurar (tools/gpu/COLAB.md §0).
 set -u
 cd "$(dirname "$0")/../.."
-out=${TR_KAYIT_KLASORU:?tools/record ile çalıştırın}
+out=${TR_RECORD_DIR:?tools/record ile çalıştırın}
 python3 -c "import sys, json, platform, torch, numpy; json.dump({'python': platform.python_version(), 'torch': torch.__version__, 'numpy': numpy.__version__}, open(sys.argv[1], 'w'))" "$out/versions.json"
 for n in 1 2 4 8; do
   echo "== Karakter modeli (TR/PyTorch, $n iş parçacığı, 5 tekrar)"

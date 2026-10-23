@@ -60,13 +60,13 @@ type backend struct {
 	// ltNotes kurulumda atlanan kitaplık adayları; ltSonHata kitaplığın son reddettiği çağrı.
 	ltNotes     []string
 	ltLastError string
-	// attnPath TR_GPU_DIKKAT: boş (varsayılan: 16 bitlik girdilerde sm_80+ tensör çekirdekli,
+	// attnPath TR_GPU_ATTENTION: boş (varsayılan: 16 bitlik girdilerde sm_80+ tensör çekirdekli,
 	// öbürlerinde SIMT birleşik yol), "birlesik" (SIMT birleşik yolu zorlar), "carpim" (matris
 	// çarpımı yolu) ya da "tensor" (tensör çekirdekli yolu sm denetimi olmadan zorlar; benzetimde
 	// sınama için). Ölçüm ve karşılaştırma içindir.
 	attnPath string
 	// gcThreshold son çöp toplamadan bu yana bu kadar depolama verilince çöp toplama başlatılır
-	// (bkz. copEsigiSec; TR_GPU_COP_ESIGI ile MB olarak değiştirilir).
+	// (bkz. copEsigiSec; TR_GPU_GC_THRESHOLD ile MB olarak değiştirilir).
 	gcThreshold uint64
 }
 
@@ -94,7 +94,7 @@ func readSetupError() error {
 }
 
 // deviceCount sürücünün gördüğü GPU sayısı (sürücü yoksa 0; geliştirme için
-// TR_GPU_BENZETIM=1 ile benzetim tek GPU sayılır).
+// TR_GPU_SIM=1 ile benzetim tek GPU sayılır).
 func deviceCount() int {
 	c := loadCUDA()
 	if c.failure != nil {
@@ -110,7 +110,7 @@ func deviceCount() int {
 // simRequested gerçek GPU yokken PTX benzetiminin "gpu" cihazı olarak kurulmasının
 // istenip istenmediği (geliştirme ve sınama aracı: GPU kodunu donanımsız, dil düzeyinde
 // uçtan uca çalıştırır; çok yavaştır).
-func simRequested() bool { return os.Getenv("TR_GPU_BENZETIM") == "1" }
+func simRequested() bool { return os.Getenv("TR_GPU_SIM") == "1" }
 
 func setupFn(order int) tensor.Backend {
 	if loadCUDA().failure != nil && simRequested() && order == 0 {
@@ -146,10 +146,10 @@ func newBackend(dev tensor.Device, sr driver) *backend {
 	g := &backend{dev: dev, sr: sr, kernels: map[string]*kernel{}}
 	g.pool.empty = map[uint64][]uint64{}
 	g.concurrent = os.Getenv("TR_GPU_ESZAMANLI") == "1"
-	g.attnPath = os.Getenv("TR_GPU_DIKKAT")
+	g.attnPath = os.Getenv("TR_GPU_ATTENTION")
 	g.gemm2 = defaultGemm
 	g.gemvOff = os.Getenv("TR_GPU_GEMV") == "0"
-	g.gcThreshold = pickGCThreshold(sr.totalMemory(), os.Getenv("TR_GPU_COP_ESIGI"))
+	g.gcThreshold = pickGCThreshold(sr.totalMemory(), os.Getenv("TR_GPU_GC_THRESHOLD"))
 	return g
 }
 
@@ -157,7 +157,7 @@ func newBackend(dev tensor.Device, sr driver) *backend {
 // ~1,5 GB, 24 GB'ta 384 MB). Ara tensörlerin cihaz belleği ancak Go çöp toplayıcısı
 // çalışınca havuza döner; eşik tepe belleği bir adımın canlı tensörlerine yakın tutar.
 // Ölçüm (RTX PRO 6000, gpt30m): eşiksiz 38,9 GB, 2 GB'ta 23,5 GB, 512 MB'ta 21,1 GB tepe;
-// hız farkı %0,6. ortam (TR_GPU_COP_ESIGI, MB) verilirse o kullanılır; "0" eşiği kapatır.
+// hız farkı %0,6. ortam (TR_GPU_GC_THRESHOLD, MB) verilirse o kullanılır; "0" eşiği kapatır.
 func pickGCThreshold(total uint64, env string) uint64 {
 	if mb, err := strconv.Atoi(env); err == nil && mb >= 0 {
 		return uint64(mb) << 20

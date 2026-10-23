@@ -12,7 +12,7 @@ import (
 // TestFlashMmaForward tensör çekirdekli dikkatin (16 bitlik girdiler) ileri yönünü CPU ile
 // karşılaştırır: sorgu ve anahtar döşemesi kenarları (Tq, Tk 128'in ve 64'ün katı değil),
 // nedensel, pencere, Tq ≠ Tk ve gruplu sorgu (Hkv < H). P 16 bite yuvarlandığı için tolerans
-// geniştir. Benzetimde yol TR_GPU_DIKKAT=tensor ile zorlanır.
+// geniştir. Benzetimde yol TR_GPU_ATTENTION=tensor ile zorlanır.
 func TestFlashMmaForward(t *testing.T) {
 	g := gpuBackend()
 	old := g.attnPath

@@ -222,13 +222,13 @@ func TestComponents(t *testing.T) {
 	compareComponent(t, g, records)
 }
 
-// TestComponentsWide, TR_PARCALAYICI_BILESEN_ALTIN ile verilen geniş altın
+// TestComponentsWide, TR_TOKENIZER_COMPONENT_GOLDEN ile verilen geniş altın
 // veriyle (ör. bütün Unicode kod noktaları) bileşenleri karşılaştırır.
 // Biçim: {"girdiler": [...], "kayitlar": [components.json kayıtları]}.
 func TestComponentsWide(t *testing.T) {
-	path := os.Getenv("TR_PARCALAYICI_BILESEN_ALTIN")
+	path := os.Getenv("TR_TOKENIZER_COMPONENT_GOLDEN")
 	if path == "" {
-		t.Skip("TR_PARCALAYICI_BILESEN_ALTIN ayarlı değil")
+		t.Skip("TR_TOKENIZER_COMPONENT_GOLDEN ayarlı değil")
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -578,14 +578,14 @@ func TestUncachedAndLong(t *testing.T) {
 // Gerçek parçalayıcıya karşı sınama (isteğe bağlı)
 // ============================================================================
 //
-// TR_PARCALAYICI_YOLU ayarlıysa çalışır. TR_PARCALAYICI_ALTIN ayrıca ayarlıysa
+// TR_TOKENIZER_PATH ayarlıysa çalışır. TR_TOKENIZER_GOLDEN ayrıca ayarlıysa
 // (her satırı {"metin":..., "idler":[...]} olan JSONL dosyası), kodlama ve
 // çözme sonuçları bu altın çıktılarla birebir karşılaştırılır.
 
 func TestRealTokenizer(t *testing.T) {
-	path := os.Getenv("TR_PARCALAYICI_YOLU")
+	path := os.Getenv("TR_TOKENIZER_PATH")
 	if path == "" {
-		t.Skip("TR_PARCALAYICI_YOLU ayarlı değil")
+		t.Skip("TR_TOKENIZER_PATH ayarlı değil")
 	}
 	p, err := Load(path)
 	if err != nil {
@@ -600,7 +600,7 @@ func TestRealTokenizer(t *testing.T) {
 			}
 		}
 	}
-	goldenPath := os.Getenv("TR_PARCALAYICI_ALTIN")
+	goldenPath := os.Getenv("TR_TOKENIZER_GOLDEN")
 	if goldenPath == "" {
 		return
 	}
@@ -664,10 +664,10 @@ func TestRealTokenizer(t *testing.T) {
 // Hız ölçümleri
 // ============================================================================
 
-// benchText ölçüm metnini verir: TR_PARCALAYICI_OLCUM_METNI ayarlıysa o
+// benchText ölçüm metnini verir: TR_TOKENIZER_BENCH_TEXT ayarlıysa o
 // dosyanın içeriği, değilse örnek metnin ~1 MB'a tekrarlanmış hâli.
 func benchText(tb testing.TB) string {
-	if path := os.Getenv("TR_PARCALAYICI_OLCUM_METNI"); path != "" {
+	if path := os.Getenv("TR_TOKENIZER_BENCH_TEXT"); path != "" {
 		data, err := os.ReadFile(path)
 		if err != nil {
 			tb.Fatal(err)
@@ -689,7 +689,7 @@ func benchText(tb testing.TB) string {
 }
 
 func benchTokenizer(b *testing.B) *Tokenizer {
-	if path := os.Getenv("TR_PARCALAYICI_YOLU"); path != "" {
+	if path := os.Getenv("TR_TOKENIZER_PATH"); path != "" {
 		p, err := Load(path)
 		if err != nil {
 			b.Fatal(err)

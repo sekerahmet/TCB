@@ -226,7 +226,7 @@ func TestLayoutGeneratedHeader(t *testing.T) {
 
 // envVarName TR'nin ortam değişkeni adının biçimidir: TR_ öneki, büyük ASCII harf, rakam ve
 // alt çizgi (POSIX'in taşınabilir ad kümesi). Türkçe harfli ad bazı kabuklarda ve Windows'ta
-// yazılamaz ya da kodlamaya göre bozulur; sözcükler Türkçe harfsiz yazılır (TR_GPU_KENDI_CARPIM).
+// yazılamaz ya da kodlamaya göre bozulur; sözcükler Türkçe harfsiz yazılır (TR_GPU_OWN_GEMM).
 var envVarName = regexp.MustCompile(`^TR_[A-Z0-9_]+$`)
 
 // Go kodundaki her "TR_..." metin sabiti (ortam değişkeni adı; "TR_X=değer" biçiminde de) ASCII

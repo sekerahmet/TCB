@@ -100,9 +100,9 @@ json_text() {
 	printf '"%s"' "$s"
 }
 # write_metrics kayıt aracının (tools/record) koşu klasörüne kipleri, adım sürelerini, kalan
-# adımları ve sonucu metrics.json olarak yazar; TR_KAYIT_KLASORU yoksa bir şey yapmaz.
+# adımları ve sonucu metrics.json olarak yazar; TR_RECORD_DIR yoksa bir şey yapmaz.
 write_metrics() {
-	[ -n "${TR_KAYIT_KLASORU:-}" ] || return 0
+	[ -n "${TR_RECORD_DIR:-}" ] || return 0
 	local i sep=""
 	{
 		printf '{"modes":%s,"passed":%s,"seconds":%d,"steps":[' "$(json_text "$modes")" "$([ $failed -eq 0 ] && echo true || echo false)" "$SECONDS"
@@ -117,7 +117,7 @@ write_metrics() {
 			sep=","
 		done
 		printf ']}\n'
-	} >"$TR_KAYIT_KLASORU/metrics.json"
+	} >"$TR_RECORD_DIR/metrics.json"
 }
 # record_failure kalan adımı özete ve sonuca kaydeder (satır yazmaz): "!! KALDI" satırı zaten
 # yazılmışsa (paralel adımın alt kabuğu) yalnızca bu çağrılır.

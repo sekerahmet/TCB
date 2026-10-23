@@ -22,7 +22,7 @@ import (
 // Bulunamazsa, sürümü kartın mimarisi için eskiyse, kurulamazsa, bir şekil için algoritma
 // vermezse ya da bir çağrı hata dönerse aynı cihazda kendi çekirdeğimiz (cekirdek_carpim.go)
 // kullanılır: sonuç aynıdır, yalnızca hız farklıdır; düşüşler sayılır ve durumda görünür.
-// TR_GPU_KENDI_CARPIM=1 kendi çekirdeğimizi zorlar (sınama ve karşılaştırma).
+// TR_GPU_OWN_GEMM=1 kendi çekirdeğimizi zorlar (sınama ve karşılaştırma).
 //
 // Aday seçimi: açıkça verilen yol (TR_GPU_CUBLASLT) önce; öbür adayların hepsi açılır ve
 // sürümleri (cublasLtGetVersion, sayısal) büyükten küçüğe denenir; kartın mimarisinin istediği
@@ -140,8 +140,8 @@ func versionText(v int) string { return fmt.Sprintf("%d.%d.%d", v/10000, v/100%1
 // ltSetup bu GPU için kitaplık bağlantısını kurar (kurulumda, bir kez). Kurulamazsa g.lt nil
 // kalır ve kendi çekirdeğimiz kullanılır; nedeni carpimYolu'nda görünür.
 func (g *backend) ltSetup() {
-	if os.Getenv("TR_GPU_KENDI_CARPIM") == "1" {
-		g.ltReason = messages.Text(messages.H4037, "TR_GPU_KENDI_CARPIM=1")
+	if os.Getenv("TR_GPU_OWN_GEMM") == "1" {
+		g.ltReason = messages.Text(messages.H4037, "TR_GPU_OWN_GEMM=1")
 		return
 	}
 	candidates, shared := ltOpenCandidates()

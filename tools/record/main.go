@@ -15,7 +15,7 @@
 //	<out>/<name>/20261023143005.log      komutun çıktısı
 //	<out>/<name>/20261023143005_<dosya>  komutun bıraktığı dosyalar
 //
-// Komut, koşu sürerken dosyalarını TR_KAYIT_KLASORU ortam değişkeninin gösterdiği geçici klasöre
+// Komut, koşu sürerken dosyalarını TR_RECORD_DIR ortam değişkeninin gösterdiği geçici klasöre
 // yazar; koşu bitince araç onları zaman önekiyle iş klasörüne taşır. Komut metrics.json bırakırsa
 // içeriği kayda "metrics" olarak da gömülür (tools/full_check.sh adım sürelerini ve sonucu böyle
 // yazar). Çıkış kodu komutunkidir. Kayıt biçimi pytest-benchmark'ın commit bilgisini (id, branch,
@@ -39,7 +39,7 @@ import (
 )
 
 // envDir komuta geçici dosya klasörünü bildiren ortam değişkeni.
-const envDir = "TR_KAYIT_KLASORU"
+const envDir = "TR_RECORD_DIR"
 
 // schemaVersion kayıt biçiminin sürümü; alan anlamı değişince artar.
 const schemaVersion = 1

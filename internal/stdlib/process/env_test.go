@@ -10,12 +10,12 @@ import (
 
 // ortam_değişkeni değeri ya da yok verir; gizli adlı değişkenin (sayı olmayan) değeri süzgece girer.
 func TestEnvVar(t *testing.T) {
-	t.Setenv("TR_DENEME_KLASOR", "D:/veri")
-	t.Setenv("TR_DENEME_HF_TOKEN", "hf_ortamgizli99")
-	t.Setenv("TR_DENEME_MAX_TOKENS", "4096000")
-	t.Setenv("TR_DENEME_TOKENIZER", "D:/veri/tokenizer.json")
-	got, m, err := commandLine(t, `[ortam_değişkeni("TR_DENEME_KLASOR"), ortam_değişkeni("TR_DENEME_YOK_BOYLE") ?? "varsayılan",
-  ortam_değişkeni("TR_DENEME_HF_TOKEN"), ortam_değişkeni("TR_DENEME_MAX_TOKENS"), ortam_değişkeni("TR_DENEME_TOKENIZER")]`)
+	t.Setenv("TR_TEST_DIR", "D:/veri")
+	t.Setenv("TR_TEST_HF_TOKEN", "hf_ortamgizli99")
+	t.Setenv("TR_TEST_MAX_TOKENS", "4096000")
+	t.Setenv("TR_TEST_TOKENIZER", "D:/veri/tokenizer.json")
+	got, m, err := commandLine(t, `[ortam_değişkeni("TR_TEST_DIR"), ortam_değişkeni("TR_TEST_NO_SUCH") ?? "varsayılan",
+  ortam_değişkeni("TR_TEST_HF_TOKEN"), ortam_değişkeni("TR_TEST_MAX_TOKENS"), ortam_değişkeni("TR_TEST_TOKENIZER")]`)
 	if err != nil {
 		t.Fatal(err)
 	}

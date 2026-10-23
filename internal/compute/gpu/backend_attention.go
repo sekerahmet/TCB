@@ -13,7 +13,7 @@ import (
 // yolu (attention.go).
 
 // flashFits birleşik yolun bu tanım için kullanılabildiği ve döşeme ayarı (yol
-// TR_GPU_DIKKAT ile zorlanmışsa ona göre).
+// TR_GPU_ATTENTION ile zorlanmışsa ona göre).
 func (g *backend) flashFits(p tensor.AttentionParams, mask2, backward bool) (flashConfig, bool) {
 	if g.attnPath == "carpim" || p.Dh == 0 || p.Dv == 0 || p.H > 65535 || p.Batch > 65535 {
 		return flashConfig{}, false
@@ -83,7 +83,7 @@ func (g *backend) Attention(out tensor.Storage, q, k, v tensor.View, mask tensor
 
 // AttentionSeqMajor (tensor.SeqMajorAttender) dikkatin dilin düzeninde birleşik çekirdeklerle
 // (ileri ve geri) hesaplanabildiği: tensör çekirdekli ya da SIMT birleşik yol uyuyorsa doğru.
-// Uymuyorsa (bakış boyları büyük, TR_GPU_DIKKAT=carpim) tensör katmanı girdileri bakış önde
+// Uymuyorsa (bakış boyları büyük, TR_GPU_ATTENTION=carpim) tensör katmanı girdileri bakış önde
 // görünümlere çevirir ve matris yolu çalışır.
 func (g *backend) AttentionSeqMajor(q, k, v tensor.View, mask bool, p tensor.AttentionParams) bool {
 	g.enter()
