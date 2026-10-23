@@ -372,7 +372,7 @@ func TestHeavyWorkReleasesLock(t *testing.T) {
 			if x, ok := f.X.(*ast.Ident); ok && x.Name == "tokenize" && f.Sel.Name == "Load" {
 				return "tokenize.Load"
 			}
-			if strings.HasPrefix(f.Sel.Name, "Safe") && len(f.Sel.Name) > len("Safe") { // bind.Safe panik sarmalayıcıdır, ağır iş değil
+			if strings.HasPrefix(f.Sel.Name, "Safe") && f.Sel.Name != "Safe" && f.Sel.Name != "SafeBuiltin" { // bind.Safe ve SafeBuiltin panik sarmalayıcıdır, ağır iş değil
 				return f.Sel.Name
 			}
 		}

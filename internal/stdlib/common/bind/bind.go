@@ -170,6 +170,13 @@ func Safe(fn string, f func() (interp.Value, error)) (interp.Value, error) {
 	return result, ferr
 }
 
+// SafeBuiltin fn yerleşiğini Go paniğine karşı korur: panik name adlı bir iç hataya döner (Safe).
+func SafeBuiltin(name string, fn interp.BuiltinFunc) interp.BuiltinFunc {
+	return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+		return Safe(name, func() (interp.Value, error) { return fn(m, args, named) })
+	}
+}
+
 // Method nesne yöntemi değeri kurar: fn Go paniğine karşı korunur (panik name adlı bir hataya döner).
 func Method(name string, fn interp.BuiltinFunc) *interp.BuiltinVal {
 	return &interp.BuiltinVal{Name: name, Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {

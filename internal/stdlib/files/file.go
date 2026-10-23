@@ -45,10 +45,7 @@ func Register(v *interp.VM) {
 
 // safe yerleşiği Go paniğine karşı korur (panik dene/yakala ile yakalanan bir hataya döner).
 func safe(kd codes.Code, fn interp.BuiltinFunc) interp.BuiltinFunc {
-	name := interp.CallPrefix(kd)
-	return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		return bind.Safe(name, func() (interp.Value, error) { return fn(m, args, named) })
-	}
+	return bind.SafeBuiltin(interp.CallPrefix(kd), fn)
 }
 
 // readPath yol alan bir yerleşiğin sira. argümanını (Metin ya da Yol) okur; yolda sekme ya da

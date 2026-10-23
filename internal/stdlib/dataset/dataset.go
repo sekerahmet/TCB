@@ -57,9 +57,7 @@ var (
 
 // Register veri yerleşiklerini VM'ye kaydeder.
 func Register(v *interp.VM) {
-	v.RegisterBuiltinCode(codes.V100, func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		return bind.Safe(codes.Name(codes.V100), func() (interp.Value, error) { return openDataset(m, args, named) })
-	})
+	v.RegisterBuiltinCode(codes.V100, bind.SafeBuiltin(codes.Name(codes.V100), openDataset))
 }
 
 // ----------------------------------------------------------------------------

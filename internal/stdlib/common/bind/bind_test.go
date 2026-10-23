@@ -279,3 +279,22 @@ func TestOptionalBool(t *testing.T) {
 		t.Errorf("Mantık olmayan değer etiketli hata vermeli: %v", err)
 	}
 }
+
+// Kural: SafeBuiltin yerleşiğin Go paniğini adlı iç hataya çevirir, sıradan sonucu ve hatayı olduğu gibi verir.
+func TestSafeBuiltin(t *testing.T) {
+	boom := func(*interp.VM, []interp.Value, map[string]interp.Value) (interp.Value, error) { panic("patladı") }
+	if _, err := SafeBuiltin("ad", boom)(nil, nil, nil); !messages.Has(err, messages.H2000) || !strings.Contains(err.Error(), "ad") {
+		t.Errorf("panik iç hataya dönmeli: %v", err)
+	}
+	want := errors.New("sıradan")
+	fail := func(*interp.VM, []interp.Value, map[string]interp.Value) (interp.Value, error) { return nil, want }
+	if _, err := SafeBuiltin("ad", fail)(nil, nil, nil); err != want {
+		t.Errorf("hata olduğu gibi dönmeli: %v", err)
+	}
+	ok := func(*interp.VM, []interp.Value, map[string]interp.Value) (interp.Value, error) {
+		return &interp.IntVal{Val: 2}, nil
+	}
+	if v, err := SafeBuiltin("ad", ok)(nil, nil, nil); err != nil || v.Inspect() != "2" {
+		t.Errorf("sonuç: %v, %v", v, err)
+	}
+}

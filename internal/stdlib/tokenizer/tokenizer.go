@@ -102,9 +102,7 @@ func (n *Object) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 
 // Register parçalayıcı yerleşiklerini VM'ye kaydeder.
 func Register(v *interp.VM) {
-	v.RegisterBuiltinCode(codes.V200, func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		return bind.Safe(codes.Name(codes.V200), func() (interp.Value, error) { return load(m, args, named) })
-	})
+	v.RegisterBuiltinCode(codes.V200, bind.SafeBuiltin(codes.Name(codes.V200), load))
 }
 
 // warned aynı dosyanın yükleme uyarılarının süreçte bir kez yazılmasını sağlar.
