@@ -80,6 +80,7 @@ computed when you ask, not stored in `graph.json`.
 | `imports` | package → package (module packages only) | EXTRACTED |
 | `calls` | func → func; a call resolved by `go/types` | EXTRACTED; a function used as a value: INFERRED |
 | `implements` | type → interface of the module, by `types.Implements` | EXTRACTED |
+| `dispatches_to` | interface method → every method that implements it (a method promoted from an embedded field counts), by `types.Implements` | INFERRED: which one runs depends on the value; `query Backend.Softmax` lists them, `callees` prints "dispatches to: ..." under an interface callee, `path` and `tests-for` follow the edge. The chain rule (`reachEdge`) includes it: the tests of `Tensor.Softmax` are tests of `cpuBackend.Softmax`. The type-to-interface pairs come from one function, `moduleImplementations`, shared with `dead-methods` |
 | `uses` | owner → package-level `type` or `const` it refers to (variables are `reads_var`/`writes_var`), wherever the name is written: signatures (parameter, result, receiver), field types, embedded types, interface method signatures, type constraints, composite literals, initialisers. The owner is the function or method; for a type declaration the type; for a package-level `const`/`var` the declared name (`var ValInt = TypeName(codes.A200)`: ValInt), for an unnamed spec (`var _ T = ...`) the file | EXTRACTED |
 | `reads_var` | owner → package-level `var` it reads | EXTRACTED; access sites with mode `read` (also the read half of `x += 1`, `x++`: mode `read` next to the `read+write` write site) |
 | `writes_var` | owner → package-level `var` it changes: assignment, `+=`, `++`/`--`, element or field write (`m[k] = v`, `v.f = x`), `delete`/`clear`, `&v`, `sync/atomic` call, qualified write from another package (`a.V = 1`) | EXTRACTED; site modes `write`, `read+write`, `elem-write`, `addr`, `atomic` (same vocabulary as `writes_field`) |
@@ -99,9 +100,9 @@ Every edge has `confidence`, and `file`/`line` of the first place it was seen an
 `warnings` lists what could not be resolved: a `Denetim:` test that does not exist, a broken
 Markdown link. They are real findings; `build` prints the first five.
 
-Limits: only files built for the current OS are read (like `tools/impact`); calls through an
-interface point at the interface method, not at implementers (use `implements`); `implements`
-looks at non-test types only.
+Limits: only files built for the current OS are read (like `tools/impact`); `implements` and
+`dispatches_to` look at non-test types only. A call through an interface points at the interface
+method and, from there, at every implementation (`dispatches_to`, below).
 
 ## Struct fields and closures
 

@@ -2,9 +2,9 @@ package main
 
 import (
 	"go/ast"
+	"go/token"
 	"go/types"
 	"regexp"
-	"sort"
 )
 
 // Kod kayıtlarının paketleri (modül köküne göre) ve sabit adlarının kalıpları.
@@ -190,47 +190,23 @@ func (x *goExtractor) use(fc *fileCtx, owner string, id *ast.Ident, isCall bool,
 // implements modüldeki her somut tipten, onun uyduğu modül arayüzlerine `implements` kenarı
 // çeker. Yalnızca test dışı tipler taranır (testsiz paket nesneleri tek tip evreni verir).
 func (x *goExtractor) implements() {
-	type decl struct {
-		id    string
-		named *types.Named
-		file  string
-		line  int
-	}
-	var concrete, ifaces []decl
-	paths := make([]string, 0, len(x.m.Base))
-	for p := range x.m.Base {
-		paths = append(paths, p)
-	}
-	sort.Strings(paths)
-	for _, p := range paths {
-		scope := x.m.Base[p].Scope()
-		for _, name := range scope.Names() {
-			tn, ok := scope.Lookup(name).(*types.TypeName)
-			if !ok || tn.IsAlias() {
-				continue
-			}
-			named, ok := tn.Type().(*types.Named)
-			if !ok || named.TypeParams().Len() > 0 {
-				continue
-			}
-			pos := x.m.Fset.Position(tn.Pos())
-			d := decl{typeID(p, name), named, x.m.Rel(pos.Filename), pos.Line}
-			if it, isIface := named.Underlying().(*types.Interface); isIface {
-				if it.NumMethods() > 0 {
-					ifaces = append(ifaces, d)
-				}
-			} else {
-				concrete = append(concrete, d)
+	_, _, pairs := moduleImplementations(x.m)
+	for _, p := range pairs {
+		cfile, cline := x.declPos(p.concrete.Obj().Pos())
+		x.b.addEdge(typeID(p.concrete.Obj().Pkg().Path(), p.concrete.Obj().Name()),
+			typeID(p.iface.Obj().Pkg().Path(), p.iface.Obj().Name()), edgeImplements, extracted, cfile, cline)
+		for _, pair := range implementingMethods(p) {
+			from, to := funcRef(pair[0]), funcRef(pair[1].Origin())
+			if from != "" && to != "" && from != to {
+				file, line := x.declPos(pair[1].Pos())
+				x.b.addEdge(from, to, edgeDispatches, inferred, file, line)
 			}
 		}
 	}
-	for _, t := range concrete {
-		ptr := types.NewPointer(t.named)
-		for _, i := range ifaces {
-			it := i.named.Underlying().(*types.Interface)
-			if types.Implements(t.named, it) || types.Implements(ptr, it) {
-				x.b.addEdge(t.id, i.id, edgeImplements, extracted, t.file, t.line)
-			}
-		}
-	}
+}
+
+// declPos bir bildirimin köke göre dosyası ve satırıdır.
+func (x *goExtractor) declPos(p token.Pos) (string, int) {
+	pos := x.m.Fset.Position(p)
+	return x.m.Rel(pos.Filename), pos.Line
 }

@@ -86,7 +86,7 @@ func (ix *index) printCallees(n *Node, o *queryOpts) int {
 		fmt.Fprintf(o.stdout, "    %s (%d):\n", d, len(list))
 		lines := make([]string, len(list))
 		for i, e := range list {
-			lines[i] = ix.edgeLine(e, e.To, true)
+			lines[i] = ix.edgeLine(e, e.To, true) + ix.dispatchNote(e.To)
 		}
 		printLimited(o.stdout, lines, o.limit, "      ")
 	}

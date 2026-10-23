@@ -23,7 +23,7 @@ func reachEdge(kind, confidence string) bool {
 	switch kind {
 	case edgeCalls:
 		return confidence == extracted
-	case edgeUses, edgeReadsVar, edgeWritesVar:
+	case edgeUses, edgeReadsVar, edgeWritesVar, edgeDispatches:
 		return true
 	}
 	return false

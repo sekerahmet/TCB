@@ -105,41 +105,14 @@ func findDeadMethods(m *goload.Module) []deadMethod {
 // collectTypes modülün adlı arayüzlerini ve somut tiplerini, hangi tipin hangi arayüzü sağladığını çıkarır
 // (testsiz paketlerden: bildirimler ve içe aktaranların gördüğü tipler).
 func (a *methodAudit) collectTypes() {
-	paths := make([]string, 0, len(a.m.Base))
-	for p := range a.m.Base {
-		paths = append(paths, p)
-	}
-	sort.Strings(paths)
-	for _, p := range paths {
-		scope := a.m.Base[p].Scope()
-		for _, name := range scope.Names() {
-			tn, ok := scope.Lookup(name).(*types.TypeName)
-			if !ok || tn.IsAlias() {
-				continue
-			}
-			named, ok := tn.Type().(*types.Named)
-			if !ok || named.TypeParams().Len() > 0 {
-				continue
-			}
-			if it, isIface := named.Underlying().(*types.Interface); isIface {
-				if it.NumMethods() > 0 {
-					a.ifaces = append(a.ifaces, named)
-					a.ifaceByID[typeKey(named)] = named
-				}
-			} else {
-				a.concrete = append(a.concrete, named)
-			}
-		}
+	var pairs []implPair
+	a.concrete, a.ifaces, pairs = moduleImplementations(a.m)
+	for _, i := range a.ifaces {
+		a.ifaceByID[typeKey(i)] = i
 	}
 	a.implement = map[string][]*types.Named{}
-	for _, t := range a.concrete {
-		ptr := types.NewPointer(t)
-		for _, i := range a.ifaces {
-			it := i.Underlying().(*types.Interface)
-			if types.Implements(t, it) || types.Implements(ptr, it) {
-				a.implement[typeKey(t)] = append(a.implement[typeKey(t)], i)
-			}
-		}
+	for _, p := range pairs {
+		a.implement[typeKey(p.concrete)] = append(a.implement[typeKey(p.concrete)], p.iface)
 	}
 }
 
