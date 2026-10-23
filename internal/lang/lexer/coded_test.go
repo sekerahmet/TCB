@@ -1,11 +1,12 @@
 package lexer
 
 import (
+	"strings"
 	"testing"
-	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // allOf bir çözümleyicinin bütün sözcük birimlerini (dosya sonu hariç) okur.
@@ -103,22 +104,20 @@ func TestInterpolationPositions(t *testing.T) {
 	}
 }
 
-// The coded-mode pre-scan descends into string interpolations; without a depth limit a file of
-// deeply nested strings took minutes (each level copies the text below it). It stops at the
-// parser's nesting limit, where the parser reports the error anyway, and a work budget keeps
-// the total linear in the input.
+// Kodlu kipin ön taraması metin yerleştirmelerinin içine iner; derinlik sınırı olmadan çok iç içe
+// metinli bir dosya dakikalar sürüyordu (her düzey altındaki metni kopyalar). Tarama ayrıştırıcının
+// iç içelik sınırında durur (ayrıştırıcı orada zaten hata verir) ve bir iş bütçesi toplamı girdiyle
+// doğrusal tutar. Duvar saati tavanı yerine büyüme ölçülür (testkit.ScalesLinearly: 5000 ve 20000
+// düzey); yüklü bir makine tavanı aşıyordu.
 func TestCodedPreScanDepthLimited(t *testing.T) {
-	body := "1"
-	for i := 0; i < 20000; i++ {
-		body = `"{` + body + `}"`
-	}
-	begin := time.Now()
-	l := NewBody("A030 s = "+body+"\n", true)
-	for l.NextToken().Type != TokEOF {
-	}
-	if d := time.Since(begin); d > 5*time.Second { // linear: about 0.2 s on an idle machine
-		t.Errorf("20000 nested interpolations took %v", d)
-	}
+	testkit.ScalesLinearly(t, "nested interpolations", 5000, func(n int) func() {
+		source := "A030 s = " + strings.Repeat(`"{`, n) + "1" + strings.Repeat(`}"`, n) + "\n"
+		return func() {
+			l := NewBody(source, true)
+			for l.NextToken().Type != TokEOF {
+			}
+		}
+	})
 }
 
 // Kodsuz gövde verilen dilde okunur (NewBodyIn): Türkçe yazılmış dosya etkin dil ne olursa

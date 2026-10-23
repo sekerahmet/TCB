@@ -151,3 +151,27 @@ func TestMustContainReportsEveryMissingPart(t *testing.T) {
 		t.Error("a present part is not reported")
 	}
 }
+
+// Kural: ScalesLinearly'nin oranı doğrusal işi karesel işten ayırır (sınır 8: doğrusal ~4,
+// karesel ~16). İş, ölçüm çözünürlüğünün çok üstünde olsun diye büyük tutulur.
+func TestLinearRatioSeparatesLinearFromQuadratic(t *testing.T) {
+	var sink int
+	work := func(steps int) func() {
+		return func() {
+			s := 0
+			for i := 0; i < steps; i++ {
+				s += i ^ (s >> 3)
+			}
+			sink += s
+		}
+	}
+	linear := func(n int) func() { return work(n * 20000) }
+	quadratic := func(n int) func() { return work(n * n * 100) }
+	if _, _, r := linearRatio(200, linear); r > linearLimit {
+		t.Errorf("doğrusal iş oranı %.1f, en çok %g olmalı", r, linearLimit)
+	}
+	if _, _, r := linearRatio(200, quadratic); r <= linearLimit {
+		t.Errorf("karesel iş oranı %.1f, %g'i aşmalı", r, linearLimit)
+	}
+	_ = sink
+}

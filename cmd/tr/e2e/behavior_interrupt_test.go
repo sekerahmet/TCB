@@ -138,16 +138,17 @@ func TestInterruptGracefulExit(t *testing.T) {
 	}
 }
 
-// Kesme isteği bekleme sırasında gelirse bekleme hemen biter.
+// Kesme isteği bekleme sırasında gelirse bekleme hemen biter. Tavan beklemenin yarısıdır: uyanmayan
+// bir bekleme onu aşar, yüklü makinede de (boşta ~1 sn sürer) payı geniştir.
 func TestInterruptWakesWait(t *testing.T) {
-	s := startInterruptible(t, "dosya_yaz(\"hazir.txt\", \"1\")\nbekle(120)\ndosya_yaz(\"devam_etti.txt\", \"1\")\n")
+	s := startInterruptible(t, "dosya_yaz(\"hazir.txt\", \"1\")\nbekle(600)\ndosya_yaz(\"devam_etti.txt\", \"1\")\n")
 	s.waitCond("program hazır", func() bool { return s.fileExists("hazir.txt") })
 	start := time.Now()
 	sendInterrupt(t, s.cmd)
 	if code := s.exitCode(); code != 3 {
 		t.Fatalf("çıkış kodu %d, 3 bekleniyordu; standart hata: %s", code, s.stderr.String())
 	}
-	if duration := time.Since(start); duration > 20*time.Second {
+	if duration := time.Since(start); duration > 300*time.Second {
 		t.Errorf("bekleme %v sonra bitti; hemen uyanmalıydı", duration)
 	}
 	if s.fileExists("devam_etti.txt") {

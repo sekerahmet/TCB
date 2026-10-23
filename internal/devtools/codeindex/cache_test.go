@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 	"testing/fstest"
-	"time"
 
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
@@ -323,27 +322,34 @@ func BenchmarkBuild(b *testing.B) {
 	})
 }
 
-// Gerilemeyi yakalayan cömert tavan: 150 modüllü sentetik projede sıfırdan kurulum, önbellekten
-// okuma ve yaprak düzenlemesi sonrası yenileme her biri birkaç saniyenin altında kalır (ölçülen
-// değerler README'dedir; burada ince ölçüm değil, kat kat sapma aranır).
-func TestBuildTimeCeiling(t *testing.T) {
+// Kural: kurulum modül sayısıyla doğrusal büyür (sıfırdan kurulum, önbellekten okuma, bir
+// modülün düzenlenmesinden sonra yenileme). Mutlak süre sınanmaz: bütün takım paralel koşarken
+// 62 ms'lik kurulum 5,8 sn sürdü ve eski 5 sn'lik tavanı aştı (testkit.ScalesLinearly). Önbelleğin
+// işini yaptığı (isabette ayrıştırma yok, düzenlemede yalnızca değişen ve içe aktaranlar) sayılarak
+// sınanır: TestCacheHitSkipsParsing, TestIncrementalReparsesOnlyChangedAndImporters.
+func TestBuildScalesLinearly(t *testing.T) {
 	if testing.Short() {
 		t.Skip("zaman ölçümü")
 	}
-	const ceiling = 5 * time.Second
-	dir := benchProject(t, 150)
-	timed := func(name string, f func()) {
-		start := time.Now()
-		f()
-		if d := time.Since(start); d > ceiling {
-			t.Errorf("%s took %v, over the %v ceiling", name, d, ceiling)
+	testkit.ScalesLinearly(t, "sıfırdan kurulum", 100, func(n int) func() {
+		dir := benchProject(t, n)
+		return func() { Build(dir, Options{}) }
+	})
+	testkit.ScalesLinearly(t, "önbellekten okuma", 100, func(n int) func() {
+		dir := benchProject(t, n)
+		BuildCached(dir, Options{})
+		return func() { BuildCached(dir, Options{}) }
+	})
+	testkit.ScalesLinearly(t, "bir modülün düzenlenmesinden sonra yenileme", 100, func(n int) func() {
+		dir := benchProject(t, n)
+		BuildCached(dir, Options{})
+		p := filepath.Join(dir, "m0.tr")
+		orig, _ := os.ReadFile(p)
+		edits := 0
+		return func() {
+			edits++
+			os.WriteFile(p, append(append([]byte(nil), orig...), fmt.Sprintf("// düzenleme %d", edits)...), 0o644)
+			BuildCached(dir, Options{})
 		}
-	}
-	timed("full build", func() { Build(dir, Options{}) })
-	timed("first cached build", func() { BuildCached(dir, Options{}) })
-	timed("cache hit", func() { BuildCached(dir, Options{}) })
-	p := filepath.Join(dir, "m149.tr")
-	orig, _ := os.ReadFile(p)
-	os.WriteFile(p, append(orig, []byte("// düzenleme\n")...), 0o644)
-	timed("refresh after a leaf edit", func() { BuildCached(dir, Options{}) })
+	})
 }

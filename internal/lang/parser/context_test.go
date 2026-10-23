@@ -3,11 +3,11 @@ package parser
 import (
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // Döngü dışındaki 'çık'/'devam' çalışma anında sessizce yok sayılıyor (fonksiyon 'yok'
@@ -134,16 +134,17 @@ func TestInterpolationDepthLimited(t *testing.T) {
 }
 
 // Çok yerleştirmeli bir metin doğrusal sürede ayrıştırılır (her yerleştirmenin konumu
-// metnin başından yeniden sayılmaz; 200 000 yerleştirme önceden ~40 sn sürüyordu).
+// metnin başından yeniden sayılmaz; 200 000 yerleştirme önceden ~40 sn sürüyordu). Duvar saati
+// tavanı yerine büyüme ölçülür (testkit.ScalesLinearly: 50 000 ve 200 000 yerleştirme).
 func TestManyInterpolationsLinear(t *testing.T) {
-	begin := time.Now()
-	h := parseErrors(`değişken s = "` + strings.Repeat("{a}", 200000) + `"`)
-	if len(h) > 0 {
-		t.Fatalf("beklenmeyen hata: %.200v", h)
-	}
-	if elapsed := time.Since(begin); elapsed > 10*time.Second {
-		t.Errorf("200 000 yerleştirmeli metin %v sürdü; ayrıştırma karesel olabilir", elapsed)
-	}
+	testkit.ScalesLinearly(t, "yerleştirmeli metin", 50000, func(n int) func() {
+		code := `değişken s = "` + strings.Repeat("{a}", n) + `"`
+		return func() {
+			if h := parseErrors(code); len(h) > 0 {
+				t.Fatalf("beklenmeyen hata: %.200v", h)
+			}
+		}
+	})
 }
 
 // aktar yalnızca metin olarak yazılmış bir yol alır (§11): tırnaksız yazım sözdizimi hatasıdır.

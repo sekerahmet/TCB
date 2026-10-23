@@ -278,7 +278,9 @@ func TestPrefetcherCloseTimeout(t *testing.T) {
 	if !messages.Has(err, messages.H5073) {
 		t.Fatalf("zaman aşımı hatası bekleniyordu: %v", err)
 	}
-	if elapsed := time.Since(begin); elapsed > time.Second {
+	// Takılan okumayı bekleseydi hiç dönmezdi; tavan yalnızca geç dönüşü yakalar ve yüklü makinede
+	// de aşılmasın diye 30 ms'nin çok üstündedir.
+	if elapsed := time.Since(begin); elapsed > 10*time.Second {
 		t.Fatalf("zamanlı kapatma çok uzun sürdü: %v", elapsed)
 	}
 	if k.isClosed.Load() {

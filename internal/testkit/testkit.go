@@ -196,3 +196,41 @@ func (e *TeeWriter) String() string {
 	defer e.mu.Unlock()
 	return e.b.String()
 }
+
+// ScalesLinearly bir işin girdi boyuyla doğrusal büyüdüğünü sınar. prepare(n) n boylu girdiyi
+// hazırlar (süreye girmez) ve ölçülecek işi verir; iş tekrar çalıştırılabilir olmalıdır. n ve
+// 4n'lik işler art arda, yani aynı makine yükünde ölçülür; her süre üç denemenin en kısasıdır
+// (Python timeit belgesi: yüksek değerler çoğunlukla başka süreçlerin karışmasıdır). Oran 8'i
+// aşarsa test kalır: doğrusal işte ~4 (sabit maliyet baskınsa daha az), karesel bir gerilemede
+// ~16'dır. Duvar saati tavanının aksine makinenin yükünden bağımsızdır: bütün takım paralel
+// koşarken tek bir sürenin 90 katına uzadığı ölçüldü (2026-10-23).
+func ScalesLinearly(t testing.TB, what string, n int, prepare func(n int) func()) {
+	t.Helper()
+	small, large, r := linearRatio(n, prepare)
+	t.Logf("%s: %d için %v, %d için %v; oran %.1f", what, n, small, linearFactor*n, large, r)
+	if r > linearLimit {
+		t.Errorf("%s doğrusal büyümüyor: %d için %v, %d için %v; oran %.1f (doğrusalda ~%d, sınır %g)",
+			what, n, small, linearFactor*n, large, r, linearFactor, linearLimit)
+	}
+}
+
+const (
+	linearFactor = 4
+	linearLimit  = 8.0
+)
+
+// linearRatio n ve linearFactor·n boylu işlerin en kısa sürelerini ve oranlarını verir.
+func linearRatio(n int, prepare func(n int) func()) (small, large time.Duration, ratio float64) {
+	best := func(f func()) time.Duration {
+		m := time.Duration(1<<63 - 1)
+		for i := 0; i < 3; i++ {
+			start := time.Now()
+			f()
+			m = min(m, time.Since(start))
+		}
+		return max(m, time.Microsecond)
+	}
+	fs, fl := prepare(n), prepare(linearFactor*n)
+	small, large = best(fs), best(fl)
+	return small, large, float64(large) / float64(small)
+}
