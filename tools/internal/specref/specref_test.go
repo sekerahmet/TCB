@@ -301,3 +301,18 @@ func TestBareNumbersOutsideTheSpecAreMentionsOnlyOfExistingItems(t *testing.T) {
 		t.Errorf("manual = %v", manual)
 	}
 }
+
+// Kural: Markdown kod çiti CommonMark kuralıyla okunur (Fence): ``` ve ~~~ açar, aynı karakterden en az o kadar uzun
+// çit kapatır; açık ``` içindeki ~~~ içeriktir; dört boşluk girintili ve satır içi kod çit değildir. Atıf taraması ve
+// codegraph'ın başlık ayrıştırıcısı bu tek kuralı kullanır (bağımsız denetim T6).
+func TestFenceFollowsCommonMark(t *testing.T) {
+	lines := []string{"a", "~~~", "**15.3**", "```", "~~~~", "b", "```go", "x", "````", "    ```", "```", "c", "```", "`` ``` ``", "d"}
+	want := []bool{false, true, true, true, false, false, true, true, false, false, true, true, false, false, false} // satırdan sonra çitin içinde mi
+	var f Fence
+	for i, l := range lines {
+		f.Line(l)
+		if f.In() != want[i] {
+			t.Errorf("after line %d %q: in=%v, want %v", i+1, l, f.In(), want[i])
+		}
+	}
+}

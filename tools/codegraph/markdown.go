@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+
+	"github.com/sekerahmet/TCB/tools/internal/specref"
 )
 
 // mdHeading bir Markdown başlığıdır; owner üst başlığın sırasıdır (-1: yok).
@@ -77,16 +79,15 @@ func headingText(s string) string {
 func parseMarkdown(rel, text string) *mdDoc {
 	d := &mdDoc{rel: rel}
 	p := &mdParser{doc: d, owner: -1, seen: map[string]int{}}
-	inFence := false
+	var fence specref.Fence // madde tarayıcısıyla aynı çit kuralı
 	for i, line := range strings.Split(text, "\n") {
 		n := i + 1
 		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "~~~") {
+		if fence.Line(line) {
 			p.flush()
-			inFence = !inFence
 			continue
 		}
-		if inFence {
+		if fence.In() {
 			continue
 		}
 		p.line(n, line, trimmed)

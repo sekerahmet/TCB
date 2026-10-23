@@ -156,7 +156,7 @@ func Scan(files []File, ix *Index) []Mention {
 	var out []Mention
 	for _, f := range files {
 		offset := 0
-		fence := false
+		var fence Fence
 		for i, line := range strings.SplitAfter(f.Text, "\n") {
 			body := strings.TrimRight(line, "\r\n")
 			out = append(out, scanLine(f.Path, i+1, offset, body, maskCode(f.Path, body, &fence), ix)...)
@@ -203,15 +203,11 @@ func (s *lineScan) add(kind string, start, end int, rng bool, toks []Token) {
 // maskCode kod olan kısımları boşlukla örter (bayt uzunluğu korunur): numaralar yalnızca düz metinde atıftır,
 // kod içinde (Markdown'da `...` aralıkları ve çit bloklar, Go'da // öncesi) örnek ya da veridir. fence, açık
 // çit bloğunun durumunu satırdan satıra taşır.
-func maskCode(path, line string, fence *bool) string {
+func maskCode(path, line string, fence *Fence) string {
 	blank := func(s string) string { return strings.Repeat(" ", len(s)) }
 	switch {
 	case strings.HasSuffix(path, ".md"):
-		if strings.HasPrefix(strings.TrimSpace(line), "```") {
-			*fence = !*fence
-			return blank(line)
-		}
-		if *fence {
+		if fence.Line(line) || fence.In() {
 			return blank(line)
 		}
 		var b strings.Builder
