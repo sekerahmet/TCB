@@ -32,7 +32,7 @@ func ValidLossMetrics(t testing.TB, path string, skipBroken bool) []string {
 			if skipBroken {
 				continue
 			}
-			t.Fatalf("geçersiz satır %q", line)
+			t.Fatalf("invalid line %q", line)
 		}
 		var step int64
 		var kind string
@@ -60,14 +60,14 @@ func AssertSameRunFiles(t testing.TB, dirA, dirB string, files []string) {
 		x, err1 := os.ReadFile(filepath.Join(dirA, name))
 		y, err2 := os.ReadFile(filepath.Join(dirB, name))
 		if err1 != nil || err2 != nil {
-			t.Errorf("%s okunamadı: %v %v", name, err1, err2)
+			t.Errorf("%s unreadable: %v %v", name, err1, err2)
 		} else if !bytes.Equal(x, y) {
-			t.Errorf("%s bit düzeyinde aynı değil", name)
+			t.Errorf("%s differs bitwise", name)
 		}
 	}
 	ka := ValidLossMetrics(t, filepath.Join(dirA, "metrics.jsonl"), true)
 	kb := ValidLossMetrics(t, filepath.Join(dirB, "metrics.jsonl"), true)
 	if !slices.Equal(ka, kb) {
-		t.Errorf("geçerli kayıp dizileri farklı (%d, %d kayıt):\n%v\n%v", len(ka), len(kb), ka, kb)
+		t.Errorf("valid loss series differ (%d, %d records):\n%v\n%v", len(ka), len(kb), ka, kb)
 	}
 }
