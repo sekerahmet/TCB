@@ -2,12 +2,13 @@ package main
 
 import (
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
 )
 
 // Kural: depodaki her izlenen veri dosyası (.json, .tr, .md; testdata hariç) ya bir teste bağlıdır (grafikte kendisine
@@ -38,17 +39,14 @@ func uncoveredData(t *testing.T) []struct{ pattern, reason string } {
 	return out
 }
 
-// gitTracked izlenen dosyaların kümesidir; git yoksa ok=false.
-func gitTracked(root string) (map[string]bool, bool) {
-	out, err := exec.Command("git", "-C", root, "ls-files").Output()
-	if err != nil {
-		return nil, false
-	}
+// trackedSet izlenen dosyaların kümesidir (codeindex.GitTracked'ın listesi); git yoksa ok=false.
+func trackedSet(root string) (map[string]bool, bool) {
+	files, ok := codeindex.GitTracked(root)
 	set := map[string]bool{}
-	for _, f := range strings.Split(string(out), "\n") {
-		set[strings.TrimSpace(f)] = true
+	for _, f := range files {
+		set[f] = true
 	}
-	return set, true
+	return set, ok
 }
 
 func TestEveryTrackedDataFileHasATestOrAReason(t *testing.T) {
@@ -56,7 +54,7 @@ func TestEveryTrackedDataFileHasATestOrAReason(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tracked, ok := gitTracked(root)
+	tracked, ok := trackedSet(root)
 	if !ok {
 		t.Skip("needs a git checkout")
 	}
