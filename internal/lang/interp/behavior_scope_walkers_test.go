@@ -128,7 +128,7 @@ func legacyExprNames(e ast.Expression, name func(string)) {
 			for _, p := range mc.Patterns {
 				legacyExprNames(p, name)
 			}
-			legacyExprNames(mc.ValueExpr, name)
+			// Tek satırlık kolun ifadesi kolun kendi kapsamındadır (5.12): çevre kapsama ad vermez.
 		}
 	case *ast.CallExpression:
 		legacyExprNames(x.Function, name)

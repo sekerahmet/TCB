@@ -57,7 +57,7 @@ func (c *compiler) matchExpr(k *compilerScope, e *ast.MatchExpression) statement
 			d.bodyBlock = c.blockStatement(k, mc.Body)
 		}
 		if mc.ValueExpr != nil {
-			d.value = c.expression(k, mc.ValueExpr)
+			d.value = c.armValue(k, mc.ValueExpr)
 		}
 		caseList[i] = d
 	}
@@ -108,4 +108,26 @@ func patternMatches(subj, patVal Value) bool {
 		return false
 	}
 	return ValuesEqual(subj, patVal)
+}
+
+// armValue tek satırlık kolun ('desen => ifade') değerini derler. Kol kendi kapsamını açar (5.12):
+// ifade adlı bir fonksiyon tanımlıyorsa ad kolun ortamında kalır, çevre kapsama yazılmaz. Ad
+// tanımlamayan kollar için ortam açılmaz.
+func (c *compiler) armValue(k *compilerScope, e ast.Expression) exprCode {
+	defines := false
+	exprNames(e, func(string) { defines = true })
+	if !defines {
+		return c.expression(k, e)
+	}
+	sub := subScope(k)
+	exprNames(e, sub.define)
+	value := c.expression(sub, e)
+	info := sub.info
+	info.local = !c.blocks.exprCaptures(e)
+	return func(v *VM, env *Environment) (Value, error) {
+		armEnv := newEnv(env, info)
+		val, err := value(v, armEnv)
+		armEnv.closeEnv()
+		return val, err
+	}
 }

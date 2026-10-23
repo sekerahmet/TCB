@@ -103,6 +103,15 @@ func exprNames(e ast.Expression, name func(string)) {
 			name(x.Name)
 		}
 		return
+	case *ast.MatchExpression:
+		// Kollar kendi kapsamını açar (5.12): yalnızca konu ve desenler bu ortamdadır.
+		exprNames(x.Subject, name)
+		for _, mc := range x.Cases {
+			for _, p := range mc.Patterns {
+				exprNames(p, name)
+			}
+		}
+		return
 	}
 	// Liste üretecinin çıktısı ve koşulu kendi ortamında değerlendirilir; yalnızca kaynağı bu
 	// ortamdadır (subExpressions yalnızca kaynağı verir). if/eşle blokları kendi kapsamlarıdır.
