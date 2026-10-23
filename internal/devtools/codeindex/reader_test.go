@@ -96,7 +96,7 @@ func TestEmbeddedLibraryModule(t *testing.T) {
 // sayan bir döküm dizindeki düğümlerle karşılaştırılır.
 func TestEveryDeclarationIndexed(t *testing.T) {
 	root := reporoot.Root()
-	idx, err := Build(root, Options{Dirs: []string{"lib", "examples", "tools"}})
+	idx, err := Build(root, Options{Dirs: []string{"lib", "examples", "tools"}, Tracked: true}) // geliştiricinin izlenmeyen dosyaları sayılmaz
 	if err != nil {
 		t.Fatal(err)
 	}
