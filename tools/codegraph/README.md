@@ -53,7 +53,7 @@ A name is resolved in this order, first tier with a match wins: node id (with or
 or `/` boundary (`New`, `lang/messages.New`), same case-insensitively. When none matches and the
 query has at least 3 characters, text search: a name that starts with it, a name that contains it,
 a `detail` (message text, rule text, heading) that contains it, all case-insensitive. One match is
-answered (`query "Cümle parçalardan"` finds the rule); several are listed (exit 3).
+answered (`query "Cümle parçalardan"` finds the rule); several are listed (exit 3). Text queries try whole words first (Turkish case folding, word boundary; name, then detail and doc comment), then a name prefix, then a substring: `query "ölü"` finds the doc comments that say "ölü", not every "bölüm".
 
 `tests-for` lists the direct tests (`tests` edges), then the indirect ones: callers are followed
 backwards over the chain rule below (EXTRACTED `calls`, `uses`, `reads_var`, `writes_var`), up to the first test on each chain. They

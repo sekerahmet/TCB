@@ -317,3 +317,24 @@ func TestQueryShowsFieldsApartFromMethodsRegardlessOfTheLimit(t *testing.T) {
 		t.Errorf("methods stay limited and carry no fields:\n%s", got)
 	}
 }
+
+// Kural: metin aramasında önce bütün sözcük eşleşir (Türkçe harf katlamasıyla, sözcük sınırında): "ölü" "bölüm"ün içinde
+// değil, "ölü kod"da bulunur; "ışık" "IŞIK"ı bulur; alt çizgi sözcüğün parçasıdır.
+func TestHasWordMatchesWholeTurkishWords(t *testing.T) {
+	for _, c := range []struct {
+		text, q string
+		want    bool
+	}{
+		{"ölü kod denetimi", "ölü", true},
+		{"Bölümler", "ölü", false},
+		{"bölüm_ve_kalan", "bölüm", false},
+		{"IŞIK yanar", "ışık", true},
+		{"İstanbul'da", "istanbul", true},
+		{"(ölü)", "ölü", true},
+		{"", "ölü", false},
+	} {
+		if got := hasWord(c.text, c.q); got != c.want {
+			t.Errorf("hasWord(%q, %q) = %v, want %v", c.text, c.q, got, c.want)
+		}
+	}
+}

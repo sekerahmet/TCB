@@ -5,6 +5,8 @@ import (
 	"io"
 	"sort"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 // index okunmuş grafiğin arama tablolarıdır.
@@ -56,6 +58,9 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 	if len([]rune(q)) >= minTextQuery {
 		lq := strings.ToLower(q)
 		tiers = append(tiers,
+			// Önce sözcüğün kendisi (Türkçe harf katlamasıyla, sözcük sınırında): "ölü" sorusu "bölüm"ü değil, "ölü kod"u bulur.
+			func(n *Node) bool { return hasWord(n.Name, q) },
+			func(n *Node) bool { return hasWord(n.Detail, q) || hasWord(n.Doc, q) },
 			func(n *Node) bool { return strings.HasPrefix(strings.ToLower(n.Name), lq) },
 			func(n *Node) bool { return strings.Contains(strings.ToLower(n.Name), lq) },
 			func(n *Node) bool { return strings.Contains(strings.ToLower(n.Detail), lq) },
@@ -270,4 +275,33 @@ func (ix *index) printFields(w io.Writer, n *Node) []*Edge {
 		fmt.Fprintln(w, line)
 	}
 	return rest
+}
+
+// hasWord text, q'yu bütün bir sözcük olarak içeriyor mu: Türkçe harf katlamasıyla (İ/i, I/ı) karşılaştırılır, eşleşmenin iki
+// yanında harf, rakam ya da alt çizgi olmamalıdır.
+func hasWord(text, q string) bool {
+	ft, fq := foldTR(text), foldTR(q)
+	if fq == "" {
+		return false
+	}
+	for start := 0; ; {
+		i := strings.Index(ft[start:], fq)
+		if i < 0 {
+			return false
+		}
+		i += start
+		before, _ := utf8.DecodeLastRuneInString(ft[:i])
+		after, _ := utf8.DecodeRuneInString(ft[i+len(fq):])
+		if !isWordRune(before) && !isWordRune(after) {
+			return true
+		}
+		_, size := utf8.DecodeRuneInString(ft[i:])
+		start = i + size
+	}
+}
+
+func foldTR(s string) string { return strings.ToLowerSpecial(unicode.TurkishCase, s) }
+
+func isWordRune(r rune) bool {
+	return r != utf8.RuneError && (unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_')
 }
