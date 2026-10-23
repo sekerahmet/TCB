@@ -186,6 +186,9 @@ func (f *flashShared) probsGrad(S, dP [][4]reg, sc2 reg, vis func(n, c int) reg,
 			k.e("sub.rn.f32", t, dP[n][c], dd(n, c))
 			k.e("mul.rn.f32", t, t, p)
 			k.e("mul.rn.f32", dP[n][c], t, f.scaleF)
+			// Görünmeyen konumun dS'si 0'dır; çarpımla bulunmaz: satırın D'si NaN ise (dP − D)·0 NaN
+			// olur ve bakılmayan anahtara sızar (15.24).
+			k.e("selp.f32", dP[n][c], dP[n][c], float32(0), vis(n, c))
 		}
 	}
 }
@@ -336,6 +339,8 @@ func flashMmaBackwardKVKernel(a flashMma, modeK, modeV int) func() *emitter {
 		k.fragMul(dPt, va, dosAddr, a.Dv+8, a.f16)
 		f.kvProbs(St, dPt, keys, info, t2, sc2)
 		k.fragMul(dV, k.fragToA(St, a.f16), dotsAddr, qt+8, a.f16)
+		f.zeroNaNQueryColumns(qts, info, qt, a.Dh)
+		k.barrier()
 		k.fragMul(dK, k.fragToA(dPt, a.f16), qtsAddr, qt+8, a.f16)
 		k.e("add.s32", i0, i0, qt)
 		k.jump(loop)
@@ -347,6 +352,46 @@ func flashMmaBackwardKVKernel(a flashMma, modeK, modeV int) func() *emitter {
 		k.mmaGradWrite(dV, modeV, k.seqBase(pdv, f.bhkv, f.Tk, f.Hkv, a.Dv, 4), keys, f.Tk, t2, a.Dv)
 		return k
 	}
+}
+
+// zeroNaNQueryColumns logsumexp'i NaN olan (puanı NaN) sorguların sütununu aktarılmış sorgu
+// döşemesinde (trans: [D][qt+8], 16 bit) 0'lar: dK = dSᵀ·Q çarpımında bakılmayan anahtarın dS'si 0'dır
+// ama 0·NaN NaN verirdi; bakılan anahtarlar dS'den zaten NaN alır (15.24). İlk qt/2 iş parçacığı
+// birer sorgu çiftini (bir 32 bitlik sözcük) işler; bilgi dizisi paylaşımlı bellekten okunur.
+// Sonrasında döşemeyi okumadan önce engel gerekir.
+func (f *flashShared) zeroNaNQueryColumns(trans, info reg, qt, D int) {
+	k := f.k
+	skip := k.label()
+	out := k.p()
+	k.e("setp.ge.u32", out, f.tid, qt/2)
+	k.jumpIf(out, skip)
+	i := k.mul(f.tid, 2)
+	ad := k.r()
+	k.e("mad.lo.s32", ad, i, 4, info)
+	var v, nan [2]reg
+	for j := range 2 {
+		v[j], nan[j] = k.f(), k.p()
+		k.e("ld.shared.f32", v[j], mem(ad, 4*j))
+		k.e("setp.nan.f32", nan[j], v[j], v[j])
+	}
+	either := k.p()
+	k.e("or.pred", either, nan[0], nan[1])
+	none := k.p()
+	k.e("not.pred", none, either)
+	k.jumpIf(none, skip)
+	m0, m1 := k.r(), k.r()
+	k.e("selp.b32", m0, -65536, -1, nan[0])
+	k.e("selp.b32", m1, 0xFFFF, -1, nan[1])
+	k.e("and.b32", m0, m0, m1)
+	so := k.r()
+	k.e("mad.lo.s32", so, i, 2, trans)
+	for d := range D {
+		w := k.r()
+		k.e("ld.shared.b32", w, mem(so, 2*d*(qt+8)))
+		k.e("and.b32", w, w, m0)
+		k.e("st.shared.b32", mem(so, 2*d*(qt+8)), w)
+	}
+	k.put(skip)
 }
 
 // kvProbs dK/dV çekirdeğinde Pᵀ ve dSᵀ'yi kurar: satırlar anahtar (keys), sütunlar sorgu;

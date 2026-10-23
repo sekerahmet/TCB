@@ -62,6 +62,7 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 - `behavior_norm_reference_test.go`: normların ileri sonucu ve gradyanlarının CPU'da ve GPU'da float64 referansa göre doğruluğu
 - `behavior_reduce_accuracy_test.go`: indirgemenin her yolunun float64 referansa göre doğruluğu ve özel değerler (sonsuz, NaN, -0)
 - `behavior_special_values_test.go`: ±0, ±∞ ve NaN girdide bütün işlemlerin (ileri ve türev) CPU ile aynılığı ve dil tanımı 15.50'nin tablosu
+- `behavior_attention_nan_test.go`: puanı NaN bir sorgu satırı bakmadığı anahtarlara NaN sızdırmaz (dikkat geri yönü, skaler ve tensör çekirdekli yol; dil tanımı 15.24)
 - `behavior_grad_parity_test.go`: gradyan kapısının GPU ayağı: başka testte GPU-CPU gradyan karşılaştırması olmayan türevli işlemler (tür dönüşümü, cihaz aktarımı, kopya, dış işlem)
 - `behavior_ptx_digest_test.go`: benzeticide derlenen her çekirdeğin PTX özetinin `testdata/ptx_ozet.txt` ile aynı olması (TestMain'den sonra)
 - `behavior_sim_instruction_coverage_test.go`: kernellerin ürettiği her PTX komut adının benzetici tarafından tanınması

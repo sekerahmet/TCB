@@ -130,9 +130,33 @@ func (f *flashBackwardState) probs(row0 reg, rows []reg, j0 reg, limit [][3]reg,
 			k.e("sub.rn.f32", t, dP[i][j], dd[i])
 			k.e("mul.rn.f32", t, t, S[i][j])
 			k.e("mul.rn.f32", dP[i][j], t, f.scaleF)
+			// Görünmeyen konumun dS'si 0'dır; çarpımla bulunmaz: satırın D'si NaN ise (dP − D)·0 NaN
+			// olur ve bakılmayan anahtara sızar (15.24).
+			k.e("selp.f32", dP[i][j], float32(0), dP[i][j], hidden)
 		}
 	}
 	return S, dP
+}
+
+// zeroNaNQueryRows logsumexp'i NaN olan (puanı NaN) satırların sorgusunu qs döşemesinde 0'lar:
+// dK = dSᵀ·Q çarpımında bakılmayan anahtarın dS'si 0'dır ama 0·NaN NaN verirdi; bakılan anahtarlar
+// dS'den zaten NaN alır (15.24). Döşemeyi probs okuyup bitirmiştir; sonraki engel yazıyı yayar.
+func (f *flashBackwardState) zeroNaNQueryRows(lse []reg, row0 reg) {
+	k := f.k
+	for i := range lse {
+		isNaN := k.p()
+		k.e("setp.nan.f32", isNaN, lse[i], lse[i])
+		line := k.r()
+		k.e("add.s32", line, row0, i)
+		for c := 0; c < f.dhp/16; c++ {
+			column := k.r()
+			k.e("add.s32", column, f.tx, 16*c)
+			ad := k.r()
+			k.e("mad.lo.s32", ad, line, f.qs.step, column)
+			k.e("mad.lo.s32", ad, ad, 4, f.qs.base2)
+			k.ifCase(isNaN, "st.shared.f32", mem(ad, 0), float32(0))
+		}
+	}
 }
 
 // psWrite P ya da dS'yi ps döşemesine yazar ([sorgu][anahtar]).
@@ -260,6 +284,7 @@ func flashBackwardKVKernel(a flashConfig, modeK, modeV int) func() *emitter {
 		// dV += Pᵀ·dO ve dK += dSᵀ·Q: satırlar anahtar, iç eksen sorgu.
 		k.microMul(dV, k.thAddr(f.ps.base2, key0, 1), 1, f.ps.step, k.thAddr(f.tilesDone.base2, k.mul(f.tx, f.dvp/16), 1), 1, f.tilesDone.step, a.Br)
 		k.barrier()
+		f.zeroNaNQueryRows(lse, row0)
 		f.psWrite(dS, row0)
 		k.barrier()
 		k.microMul(dK, k.thAddr(f.ps.base2, key0, 1), 1, f.ps.step, k.thAddr(f.qs.base2, k.mul(f.tx, f.dhp/16), 1), 1, f.qs.step, a.Br)
