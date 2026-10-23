@@ -944,6 +944,22 @@ test "15.4 maks ve min 16 bitlik tensörde girdinin türünde kalır (eksensiz m
     }
 }
 
+test "15.44 kaynaştır: büyük tensör yazdırma ve tensörde döngü iç hata değil açık hata verir" {
+    // 1000'den çok elemanlı tensörü yazdırmak ve üzerinde dönmek veri okumak demektir (.değer gibi).
+    değişken yaz = kaynaştır((x) => {
+        yazdır(x)
+        sonuç x + 1
+    })
+    değişken e1 = hata_metni(() => yaz(sıfırlar([1001])))
+    doğrula(e1.içerir("kaynaştır") ve değil e1.içerir("nil") ve değil e1.içerir("runtime error"), e1)
+    değişken don = kaynaştır((x) => {
+        döngü e içinde x { yazdır(e) }
+        sonuç x + 1
+    })
+    değişken e2 = hata_metni(() => don(sıfırlar([1001])))
+    doğrula(e2.içerir("kaynaştır") ve değil e2.içerir("nil") ve değil e2.içerir("runtime error"), e2)
+}
+
 test "15.33 parametreler: sabit sıra, tekillik, yol adları" {
     fonksiyon p(x) { sonuç tensör([x], türev_izle: doğru) }
     yapı Dikkat { Wq, Wk }
