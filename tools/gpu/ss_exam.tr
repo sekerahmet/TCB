@@ -9,7 +9,8 @@
 //   sondalar       ilk iki istemle açgözlü 48 parça; farklı_4: farklı 4'lü oranı, döngüde: bir 4'lü
 //                  en az 3 kez
 //   örnekler       dört istemle açgözlü 64 parça
-// Sonuç koşu klasörüne exam.json olarak yazılır.
+// Sonuç koşu klasörüne results.json olarak yazılır: PyTorch koşularının results.json'u gibi koşunun tek
+// özeti (sınav, eğitim adımı ve parça sayısı, parametre sayısı, speed.json'daki hız, eğitim ayarları).
 //
 // Kullanım (Colab, GPU):
 //   ./tr ss_exam.tr --koşu /content/drive/MyDrive/TR_dili/kosular/ss_d512_tf_tr --veri /content/ss_gpt2
@@ -29,7 +30,8 @@ eğer ayar.koşu == "" veya ayar.veri == "" {
     fırlat("koşu ve veri klasörü verilmeli: --koşu <koşu klasörü> --veri <veri klasörü>")
 }
 varsayılan_cihaz(ayar.cihaz)
-değişken eğitim = json_çöz(dosya_oku(yol(ayar.koşu, "config.json"))).ayar
+değişken yapılandırma = json_çöz(dosya_oku(yol(ayar.koşu, "config.json")))
+değişken eğitim = yapılandırma.ayar
 değişken p = parçalayıcı_yükle(yol(ayar.veri, "tokenizer.json"))
 değişken model = GPT(eğer eğitim.dağarcık == 0 { p.dağarcık_boyutu } değilse { eğitim.dağarcık }, bağlam: eğitim.bağlam,
     boyut: eğitim.boyut, katman: eğitim.katman, bakış_sayısı: eğitim.bakış_sayısı,
@@ -108,12 +110,16 @@ döngü istem içinde istemler[0..2] {
 değişken örnekler = []
 döngü istem içinde istemler { örnekler.ekle({istem: istem, metin: açgözlü(istem, ayar.örnek_uzunluğu)[1]}) }
 
-değişken sonuç_ = {kayıp: kayıp, ppl: üstel(min(kayıp, 50.0)), bpb: kayıp / log(2.0) / ayar.bayt_parça,
+değişken sınav = {kayıp: kayıp, ppl: üstel(min(kayıp, 50.0)), bpb: kayıp / log(2.0) / ayar.bayt_parça,
     doğruluk: toplam_doğru / maks(parça, 1), bantlar: bantlar, parça: parça, pencere: pencere,
-    sondalar: sondalar, örnekler: örnekler, süre_sn: (zaman_ms() - başla) / 1000.0,
-    hassasiyet: ayar.hassasiyet, cihaz: varsayılan_cihaz()}
-dosya_yaz(yol(ayar.koşu, "exam.json"), json_metin(sonuç_))
-yazdır("sınav: kayıp {yuvarla(kayıp, 4)} · ppl {yuvarla(sonuç_.ppl, 3)} · bpb {yuvarla(sonuç_.bpb, 4)} · doğruluk {yuvarla(sonuç_.doğruluk, 4)} · {parça} parça ({pencere} pencere)")
+    sondalar: sondalar, süre_sn: (zaman_ms() - başla) / 1000.0, hassasiyet: ayar.hassasiyet}
+değişken hız_yolu = yol(ayar.koşu, "speed.json")
+değişken sonuç_ = {ad: yol(ayar.koşu).dosya_adı, parametre_sayısı: yapılandırma.parametre_sayısı, adım: eğitim.adım,
+    eğitim_parçası: eğitim.adım * eğitim.toplu * eğitim.birikim * eğitim.bağlam, son: sınav,
+    hız: eğer hız_yolu.var_mı { json_çöz(dosya_oku(hız_yolu)) } değilse { yok }, örnekler: örnekler,
+    cihaz: varsayılan_cihaz(), ayar: eğitim}
+dosya_yaz(yol(ayar.koşu, "results.json"), json_metin(sonuç_))
+yazdır("sınav: kayıp {yuvarla(kayıp, 4)} · ppl {yuvarla(sınav.ppl, 3)} · bpb {yuvarla(sınav.bpb, 4)} · doğruluk {yuvarla(sınav.doğruluk, 4)} · {parça} parça ({pencere} pencere)")
 döngü ad, v içinde bantlar { yazdır("  bant {ad}: {yuvarla(v, 4)}") }
 döngü s içinde sondalar { yazdır("  sonda: farklı_4 {yuvarla(s.farklı_4, 3)} · döngüde {s.döngüde} · {s.metin}") }
 döngü ö içinde örnekler { yazdır("  örnek: {ö.metin}") }
