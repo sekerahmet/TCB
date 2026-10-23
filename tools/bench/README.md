@@ -51,16 +51,28 @@ kütüphanesiyle) 4–5 ms (20 turun ortalaması ~4,3 ms). TR tensörleri `float
 
 ## Model eğitimi karşılaştırması
 
-`examples/tr/36_karakter_modeli.tr` ile `py/karakter_modeli.py` aynı modeli (yaklaşık 119 bin parametreli,
+`examples/tr/36_karakter_modeli.tr` ile `py/char_model.py` aynı modeli (yaklaşık 119 bin parametreli,
 2 katmanlı, yalnızca kod çözücülü karakter transformer'ı; tam sayı belgelerdeki farklı karakter sayısına
 bağlıdır) aynı veriyle (projenin Türkçe belgeleri), aynı toplu iş örneklemesiyle ve aynı ayarlarla eğitir.
-Kayıp eğrileri neredeyse aynı çıkmalıdır; süreler karşılaştırılır. Örnek 300 adım eğitir (`ADIM`
-değişkeni); Python sürümü adım ve iş parçacığı sayısını argüman olarak alır.
+Başlangıç ağırlıkları iki çerçevenin kendi üreteciyle çekildiği için kayıplar aynı değil, yakındır (300
+adımda ~2,4–2,5); süreler karşılaştırılır. Örnek 300 adım eğitir (`ADIM` sabiti); Python sürümü adım ve iş
+parçacığı sayısını argüman olarak alır.
+
+```
+python tools/bench/run.py karakter_modeli --threads 2 --repeat 5
+```
+
+`run.py` iki programı 300 adımla ve adımsız çalıştırır; en iyi duvar sürelerinin farkı bölü 300 adım
+süresidir. Böylece açılış (yorumlayıcı, `import torch`), veri okuma ve metin üretimi iki tarafta da düşer.
+TR'de iş parçacığı `GOMAXPROCS`, PyTorch'ta `torch.set_num_threads` ile verilir. Tek tek çalıştırmak:
 
 ```
 GOMAXPROCS=2 tr examples/tr/36_karakter_modeli.tr
-python tools/bench/py/karakter_modeli.py 300 2
+python tools/bench/py/char_model.py 300 2
 ```
+
+**İlk ölçüm `run.py` ile (2026-10-23, dizüstü, 2 iş parçacığı, makine yüklü, 1 tekrar):** TR 13,8,
+PyTorch 2.14 15,2 ms/adım (TR/PyTorch 0,91).
 
 **Güncel ölçüm (18.10.2026, 2 çekirdek, 100 adım, `GOAMD64=v3`):** TR ~13,5 ms/adım, Python sürümü
 ~10–13,5 ms/adım. Aynı gün tekrar ölçüldü (dizüstü bilgisayar; makine başka işlerle paylaşılıyordu):

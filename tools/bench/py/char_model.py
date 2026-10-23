@@ -2,7 +2,7 @@
 
 Aynı veri, aynı karakter sözlüğü sırası, aynı boyutlar (V, T=64, D=64, H=4, 2 katman),
 aynı toplu iş örnekleme (aynı sözde rastgele üreteç) ve aynı iyileştirici ayarları.
-Kullanım (proje kökünden):  python tools/bench/py/karakter_modeli.py [adım] [iş parçacığı]
+Kullanım (proje kökünden):  python tools/bench/py/char_model.py [adım] [iş parçacığı]
 """
 import sys, time
 import torch
@@ -106,7 +106,7 @@ for adim in range(ADIM):
     if adim % 50 == 0 or adim == ADIM - 1:
         print(f"adım {adim}: kayıp = {kayip.item():.4f}")
 sure = (time.perf_counter() - bas) * 1000
-print(f"eğitim süresi: {sure:.0f} ms ({sure / ADIM:.2f} ms/adım, {torch.get_num_threads()} iş parçacığı)")
+print(f"eğitim süresi: {sure:.0f} ms ({sure / max(ADIM, 1):.2f} ms/adım, {torch.get_num_threads()} iş parçacığı)")
 
 baglam = veri[:T]
 uretilen = ""

@@ -67,6 +67,15 @@ func TestRunPyTestsExist(t *testing.T) {
 		t.Fatal("run.py --list printed nothing")
 	}
 	for _, name := range names {
+		if name == "karakter_modeli" {
+			// Model kıyası örnek 36'yı ve py/char_model.py'yi çalıştırır; Go sürümü yoktur.
+			for _, p := range []string{filepath.Join("..", "..", "examples", "tr", "36_karakter_modeli.tr"), filepath.Join("py", "char_model.py")} {
+				if _, err := os.Stat(p); err != nil {
+					t.Errorf("%s: %v", name, err)
+				}
+			}
+			continue
+		}
 		if _, err := os.Stat(filepath.Join("tr", name+".tr")); err != nil {
 			t.Errorf("%s: no TR program: %v", name, err)
 		}
