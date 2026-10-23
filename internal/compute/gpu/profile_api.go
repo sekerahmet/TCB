@@ -286,8 +286,9 @@ func (g *backend) writeSummary(w io.Writer) {
 	table(messages.Text(messages.H4045), families, 30)
 	table(messages.Text(messages.H4046), measurements, 25)
 	b := g.pool.measurement()
-	fmt.Fprintln(w, messages.Text(messages.H4047, bytesText(b.Reserved), bytesText(b.Pooled), bytesText(b.Live), bytesText(b.PeakLive),
-		bytesText(b.PeakReserved), b.DriverAllocs, b.GCRuns))
+	bt := func(n uint64) string { return tensor.BytesText(float64(n)) }
+	fmt.Fprintln(w, messages.Text(messages.H4047, bt(b.Reserved), bt(b.Pooled), bt(b.Live), bt(b.PeakLive),
+		bt(b.PeakReserved), b.DriverAllocs, b.GCRuns))
 }
 
 func shorten(s string, n int) string {

@@ -255,16 +255,18 @@ func shapeText(shape []int) string {
 	return "[" + strings.Join(p, ", ") + "]"
 }
 
-// BytesText bayt sayısını insan okunur birimle (1024 tabanlı, ondalık virgülle) yazar.
+// BytesText bayt sayısını insan okunur birimle (1024 tabanlı, ondalık virgülle) yazar; 1 KB altı
+// bayt sayısı iletinin dilindedir (H4020). GPU arka ucunun bellek iletileri de bunu kullanır
+// (dil tanımı 15.41, 15.42).
 func BytesText(b float64) string {
-	units := [...]string{"bayt", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"}
+	units := [...]string{"", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"}
 	i := 0
 	for b >= 1024 && i < len(units)-1 {
 		b /= 1024
 		i++
 	}
 	if i == 0 {
-		return strconv.FormatFloat(b, 'f', 0, 64) + " bayt"
+		return messages.Text(messages.H4020, int64(b))
 	}
 	if b >= 1e6 {
 		return numberText(b) + " " + units[i]
