@@ -46,6 +46,7 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 	if n := ix.byID[q]; n != nil && (len(kinds) == 0 || contains(kinds, n.Kind)) {
 		return []*Node{n}
 	}
+	fq := foldTR(q)
 	tiers := []func(n *Node) bool{
 		// Takma ad: ad kodunun dildeki adı (zaman_ms, print) ya da bir .tr dosyasının modül adı
 		// (katman, tr/katman); düğümü, aynı adlı belge başlığından önce gelir.
@@ -56,7 +57,12 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 		func(n *Node) bool { return n.Name == q },
 		func(n *Node) bool { return strings.HasSuffix(n.Name, "."+q) || strings.HasSuffix(n.Name, "/"+q) },
 		func(n *Node) bool { return strings.HasSuffix(n.ID, "/"+q) }, // yolla nitelenmiş: internal/lang/messages.New
-		func(n *Node) bool { return strings.EqualFold(n.Name, q) },
+		// Büyük-küçük harf yok sayılarak (Türkçe kuralıyla: I/ı, İ/i; codeindex.Resolve'un kuralı) tam ad, sonra ad sonu.
+		func(n *Node) bool { return foldTR(n.Name) == fq },
+		func(n *Node) bool {
+			f := foldTR(n.Name)
+			return strings.HasSuffix(f, "."+fq) || strings.HasSuffix(f, "/"+fq)
+		},
 	}
 	// Metin aramaları: ad ya da (ileti, kural, başlık) açıklama metninin başı/alt dizesi.
 	if len([]rune(q)) >= minTextQuery {

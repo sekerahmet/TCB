@@ -93,3 +93,23 @@ func TestIsDictKey(t *testing.T) {
 		}
 	}
 }
+
+// Kural: `Yapı(...)` çağrısı yapının kurucusunu da çağırır; kurucunun çağırdığı işlev o çağrıyı yapan testle sınanır
+// (bağımsız denetim Y12: ağırlık_başlat'ı yalnızca Doğrusal'ın kurucusu çağırıyordu, iki araç da "sınayan yok" diyordu).
+func TestAConstructorCallReachesItsKurucu(t *testing.T) {
+	dir := t.TempDir()
+	src := "fonksiyon başlat(n) {\n    sonuç n\n}\n\nyapı Katman {\n    w\n    fonksiyon kurucu(n) {\n        kendi.w = başlat(n)\n    }\n}\n"
+	test := "test \"katman kurulur\" {\n    değişken k = Katman(2)\n    doğrula(k.w == 2)\n}\n"
+	for name, text := range map[string]string{"m_test.tr": src + "\n" + test} { // aynı dosya: aktarma gerekmez
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	idx, err := Build(dir, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := NewReader(idx).TestedBy("başlat", QueryOptions{}); len(got.Tests) != 1 {
+		t.Errorf("başlat is tested through Katman's kurucu: %+v", got.Tests)
+	}
+}

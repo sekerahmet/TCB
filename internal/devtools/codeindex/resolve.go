@@ -271,6 +271,23 @@ func (x *indexer) useDef(o owner, def string, called, write bool, pos Pos) {
 		}
 	}
 	x.link(o, def, kind, conf, role, pos)
+	if n := x.nodes[def]; n != nil && n.Kind == KindStruct && called {
+		x.ctorCall(o, def, pos)
+	}
+}
+
+// ctorCall `Yapı(...)` çağrısını yapının kurucusuna da bağlar: çağrı kurucuyu çalıştırır, kurucunun çağırdıkları da
+// bu çağrının zincirindedir (bağımsız denetim Y12: ağırlık_başlat'ı yalnızca Doğrusal'ın kurucusu çağırıyordu ve iki
+// araç da "sınayan yok" diyordu). Başvuru eklenmez: kurucunun adı çağrı yerinde yazılı değildir.
+func (x *indexer) ctorCall(o owner, structID string, pos Pos) {
+	ctor, kind := x.structMember(structID, x.lang.Name(codes.A102))
+	if kind != KindMethod {
+		return
+	}
+	x.addEdge(o.id, ctor, EdgeCalls, Extracted, pos)
+	if o.kind == KindTest {
+		x.addEdge(o.id, ctor, EdgeTests, Extracted, pos)
+	}
 }
 
 // member `a.b` ifadesini çözer. a bir `olarak` takma adıysa b o modülün tanımıdır (EXTRACTED);

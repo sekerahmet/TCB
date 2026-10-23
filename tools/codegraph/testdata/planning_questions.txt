@@ -112,3 +112,7 @@ codegraph query katman.NedenselDikkat.kurucu.bakış_sayısı | group: forwards 
 
 # Deneme 9: GPU'da sapma eklemesini matris çarpımına kaynaştırmayı planlamak (2026-10-24)
 codegraph tests-for gpu.backend.ltMul | contains: gpu.TestGemmLibraryMatchesOwnKernel [func] internal/compute/gpu/gemm_lib_test.go:15  [skips when: g.lt == nil] | contains: gpu.TestGemmLibrary16Bit | src: deneme 9 H2, 2026-10-24
+
+# Bağımsız denetim karar maddeleri (2026-10-24)
+tr dizin sınayanlar ağırlık_başlat | contains: lib/katman_test.tr | not: sınayan yok | src: bağımsız denetim Y12 (kurucu çağrısı), 2026-10-24
+codegraph query sıçramabekçisi | contains: egitim.SıçramaBekçisi [tr_struct] | not: is ambiguous | src: bağımsız denetim Y12 (Türkçe harf katlaması), 2026-10-24
