@@ -139,7 +139,7 @@ func indexTensor(idx []int, shape ...int) *tensor.Tensor {
 
 // listSum sumTensorList'i iki tensör ve bir sayı (0.5) içeren listeyle çağırır.
 func listSum(ad string, mean bool, xs []*tensor.Tensor) (*tensor.Tensor, error) {
-	v, err := sumTensorList(ad, mean, []interp.Value{tv(xs[0]), tv(xs[1]), &interp.FloatVal{Val: 0.5}})
+	v, err := sumTensorList(nil, ad, mean, []interp.Value{tv(xs[0]), tv(xs[1]), &interp.FloatVal{Val: 0.5}})
 	if err != nil {
 		return nil, err
 	}

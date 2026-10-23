@@ -13,7 +13,7 @@ import (
 // whereBuiltin koşullu(koşul, a, b). Hiçbiri tensör değilse koşul Mantık ya da sayı
 // olmalıdır ve a ya da b olduğu gibi döner. Değilse sayılar ve Mantık tensöre çevrilir
 // (a ile b'deki sayılar ilk tensör işlenenin türünü alır), üç şekil yayınlanır.
-func whereBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+func whereBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	ad := codes.DisplayName(codes.T234)
 	if err := bind.CheckNamed(ad+"()", named); err != nil {
 		return nil, err
@@ -45,7 +45,7 @@ func whereBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Val
 	if err != nil {
 		return nil, err
 	}
-	if err := checkBroadcast3(ad, ts); err != nil {
+	if err := checkBroadcast3(m, ad, ts); err != nil {
 		return nil, err
 	}
 	r, err := safe(func() *tensor.Tensor { return tensor.Where(ts[0], ts[1], ts[2]) })
@@ -123,7 +123,7 @@ func condTensors(ad string, args []interp.Value) ([]*tensor.Tensor, error) {
 }
 
 // checkBroadcast3 koşul, a ve b şekillerinin birlikte yayınlanabilirliğini denetler.
-func checkBroadcast3(ad string, ts []*tensor.Tensor) error {
+func checkBroadcast3(m *interp.VM, ad string, ts []*tensor.Tensor) error {
 	nd := 0
 	for _, t := range ts {
 		nd = max(nd, t.Dim())
@@ -137,6 +137,15 @@ func checkBroadcast3(ad string, ts []*tensor.Tensor) error {
 			}
 			if d != 1 {
 				size = d
+			}
+		}
+	}
+	if m != nil {
+		// Üç şekilden herhangi ikisi birden genişliyorsa tek uyarı (15.49).
+		for _, pair := range [][2]int{{0, 1}, {0, 2}, {1, 2}} {
+			if bothWiden(ts[pair[0]], ts[pair[1]]) {
+				broadcastWarning(m, ad, ts[pair[0]], ts[pair[1]])
+				break
 			}
 		}
 	}

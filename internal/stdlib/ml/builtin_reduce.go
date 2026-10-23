@@ -188,7 +188,7 @@ func nonTensorReduce(kd codes.Code, old interp.BuiltinFunc, m *interp.VM, args [
 				}
 				return nil, messages.New(messages.H6225, ad, nameAxis.TR)
 			}
-			return sumTensorList(ad, kd == codes.G410, l.Elements)
+			return sumTensorList(m, ad, kd == codes.G410, l.Elements)
 		}
 	}
 	for _, a := range args[1:] {
@@ -201,7 +201,7 @@ func nonTensorReduce(kd codes.Code, old interp.BuiltinFunc, m *interp.VM, args [
 
 // sumTensorList sayı ve tensörlerden oluşan bir listeyi yayınlamalı toplamla katlar;
 // ortalama için eleman sayısına böler. Sonuç türev izlenen girdilere bağlı kalır.
-func sumTensorList(ad string, mean bool, el []interp.Value) (interp.Value, error) {
+func sumTensorList(m *interp.VM, ad string, mean bool, el []interp.Value) (interp.Value, error) {
 	var acc *tensor.Tensor
 	var first *TensorValue
 	fixed := 0.0
@@ -212,7 +212,7 @@ func sumTensorList(ad string, mean bool, el []interp.Value) (interp.Value, error
 				acc, first = x.t, x
 				continue
 			}
-			if err := checkBroadcast("+", acc, x.t); err != nil {
+			if err := checkBroadcast(m, "+", acc, x.t); err != nil {
 				return nil, messages.New(messages.H6222, ad, i+1, err)
 			}
 			a := acc

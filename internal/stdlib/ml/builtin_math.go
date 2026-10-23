@@ -208,7 +208,7 @@ func clamp64(x, lo, hi float64) float64 {
 
 // atan2Builtin arktanjant2(y, x): iki sayıda Ondalık; biri tensörse yayınlamalı,
 // türevli tensör (sayı tensörün türüne çevrilir).
-func atan2Builtin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+func atan2Builtin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	ad := codes.DisplayName(codes.T228)
 	if err := bind.CheckNamed(ad+"()", named); err != nil {
 		return nil, err
@@ -233,7 +233,7 @@ func atan2Builtin(_ *interp.VM, args []interp.Value, named map[string]interp.Val
 	if err != nil {
 		return nil, err
 	}
-	if err := checkBroadcast(ad, ts[0], ts[1]); err != nil {
+	if err := checkBroadcast(m, ad, ts[0], ts[1]); err != nil {
 		return nil, err
 	}
 	r, err := safe(func() *tensor.Tensor { return tensor.Atan2(ts[0], ts[1]) })
