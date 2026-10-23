@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -336,5 +337,24 @@ func TestHasWordMatchesWholeTurkishWords(t *testing.T) {
 		if got := hasWord(c.text, c.q); got != c.want {
 			t.Errorf("hasWord(%q, %q) = %v, want %v", c.text, c.q, got, c.want)
 		}
+	}
+}
+
+// Kural: "did you mean" en yakın altı öneriyi yazar, kalanını öbür çıktılar gibi "... N more" ile bildirir; --all
+// hepsini yazar (bağımsız denetim O3: liste sessizce altıda kesiliyordu).
+func TestSuggestionsSayHowManyMore(t *testing.T) {
+	g := &Graph{}
+	for i := 1; i <= 8; i++ {
+		g.Nodes = append(g.Nodes, Node{ID: fmt.Sprintf("n%d", i), Kind: kindFunc, Name: fmt.Sprintf("p.Abcdef%d", i)})
+	}
+	ix := newIndex(g)
+	var short, all strings.Builder
+	ix.printSuggestions(&short, "abcdef", nil, false)
+	ix.printSuggestions(&all, "abcdef", nil, true)
+	if strings.Count(short.String(), "[func]") != 6 || !strings.Contains(short.String(), "... 2 more") {
+		t.Errorf("six and the rest counted:\n%s", short.String())
+	}
+	if strings.Count(all.String(), "[func]") != 8 || strings.Contains(all.String(), "more") {
+		t.Errorf("--all lists every suggestion:\n%s", all.String())
 	}
 }

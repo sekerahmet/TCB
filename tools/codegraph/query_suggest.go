@@ -22,7 +22,7 @@ func maxEdit(q string) int {
 
 // suggest bulunamayan bir ada yakın düğümleri verir: ad (ya da son parçası, takma ad) sorguyu
 // içeriyorsa ya da sorguya Levenshtein uzaklığı küçükse; kinds doluysa yalnızca o türler.
-func (ix *index) suggest(q string, limit int, kinds []string) []*Node {
+func (ix *index) suggest(q string, kinds []string) []*Node {
 	lq := strings.ToLower(q)
 	maxD := maxEdit(q)
 	var found []suggestion
@@ -45,9 +45,6 @@ func (ix *index) suggest(q string, limit int, kinds []string) []*Node {
 		}
 		return a.node.ID < b.node.ID
 	})
-	if len(found) > limit {
-		found = found[:limit]
-	}
 	out := make([]*Node, len(found))
 	for i, f := range found {
 		out[i] = f.node
@@ -83,14 +80,17 @@ func nameScore(n *Node, lq string, maxD int) int {
 	return best
 }
 
-// printSuggestions "did you mean" listesini yazar (varsa).
-func (ix *index) printSuggestions(w io.Writer, q string, kinds []string) {
-	sug := ix.suggest(q, 6, kinds)
+// printSuggestions "did you mean" listesini yazar (varsa): en yakın altısı, kalanı öbür çıktılar gibi "... N more"
+// ile (--all hepsi; bağımsız denetim O3: liste sessizce kesiliyordu).
+func (ix *index) printSuggestions(w io.Writer, q string, kinds []string, all bool) {
+	sug := ix.suggest(q, kinds)
 	if len(sug) == 0 {
 		return
 	}
-	fmt.Fprintln(w, "did you mean:")
-	for _, n := range sug {
-		fmt.Fprintf(w, "  %s\n", describe(n))
+	limit := 6
+	if all {
+		limit = 0
 	}
+	fmt.Fprintln(w, "did you mean:")
+	forEachLimited(w, sug, limit, "  ", moreHint, describe)
 }

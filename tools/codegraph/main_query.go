@@ -176,7 +176,7 @@ func (ix *index) resolve(q string, o *queryOpts, kinds ...string) (*Node, int) {
 		return found[0], exitOK
 	case 0:
 		fmt.Fprintf(o.stderr, "%q not found\n", q)
-		ix.printSuggestions(o.stderr, q, kinds)
+		ix.printSuggestions(o.stderr, q, kinds, o.limit == 0)
 		return nil, exitNotFound
 	}
 	ix.printCandidates(o.stdout, q, found, o.limit)
