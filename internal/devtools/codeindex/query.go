@@ -2,6 +2,7 @@ package codeindex
 
 import (
 	"cmp"
+	"path"
 	"sort"
 	"strings"
 
@@ -14,9 +15,6 @@ type QueryOptions struct {
 	Kind              string // sorgu adını yalnızca bu türdeki düğümlere çöz (boş: hepsi)
 	IncludeDefinition bool   // References: tanımın kendisi de listelensin (LSP includeDeclaration)
 }
-
-// maxTestSteps dolaylı sınamanın izlendiği en çok çağrı adımıdır.
-const maxTestSteps = 4
 
 // prepare bir sorguyu çözer. Belirsiz ya da bulunamayan adda hazır sonucu (Status ayarlı) ve nil
 // verir; çözülürse sonucun iskeletini ve düğümü verir.
@@ -140,7 +138,7 @@ func comparePos(a, b Pos) int {
 }
 
 // TestedBy düğümü sınayan test bloklarını verir: önce doğrudan olanlar (testin kendisi çağırır),
-// sonra çağrı zinciriyle dolaylı olanlar (en çok maxTestSteps adım; INFERRED, Steps adım sayısı),
+// sonra çağrı zinciriyle dolaylı olanlar (WalkCallers sınırlarıyla; INFERRED, Steps adım sayısı),
 // yakından uzağa.
 func (r *Reader) TestedBy(q string, o QueryOptions) *Result {
 	res, n := r.prepare(CommandTestedBy, q, o)
@@ -170,36 +168,26 @@ func (r *Reader) testsOf(ids []string) []Use {
 			}
 		}
 	}
-	// Dolaylı: hedeften çağıranları geriye doğru izle; ilk teste kadar.
-	seen := map[string]bool{}
-	frontier := append([]string(nil), ids...)
-	for _, id := range ids {
-		seen[id] = true
-	}
-	for step := 1; step <= maxTestSteps && len(frontier) > 0; step++ {
-		var next []string
-		for _, id := range frontier {
-			for _, from := range r.callers[id] {
-				if seen[from] {
-					continue
-				}
-				seen[from] = true
-				c := r.byID[from]
-				if c == nil {
-					continue
-				}
-				if c.Kind == KindTest {
-					if !seenTest[from] {
-						seenTest[from] = true
-						d := r.display(*c)
-						out = append(out, Use{Role: RoleTest, Confidence: Inferred, Pos: *c.Pos, In: &d, Steps: step})
-					}
-					continue
-				}
-				next = append(next, from)
-			}
+	// Dolaylı: hedeften çağıranları geriye doğru izle (WalkCallers: codegraph ile aynı kural); ilk teste kadar.
+	pkgOf := func(id string) string {
+		if n := r.byID[id]; n != nil && n.Pos != nil {
+			return path.Dir(n.Pos.File)
 		}
-		frontier = next
+		return ""
+	}
+	for _, id := range ids {
+		WalkCallers(id, func(n string) []string { return r.callers[n] }, pkgOf, func(rc Reached) bool {
+			c := r.byID[rc.ID]
+			if c == nil || c.Kind != KindTest {
+				return c != nil
+			}
+			if !seenTest[rc.ID] {
+				seenTest[rc.ID] = true
+				d := r.display(*c)
+				out = append(out, Use{Role: RoleTest, Confidence: Inferred, Pos: *c.Pos, In: &d, Steps: rc.Steps})
+			}
+			return false
+		})
 	}
 	sort.SliceStable(out, func(i, j int) bool {
 		if out[i].Steps != out[j].Steps {

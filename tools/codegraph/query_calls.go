@@ -25,8 +25,6 @@ func (ix *index) dirOf(n *Node) string {
 
 func isFuncNode(n *Node) bool { return n.Kind == kindFunc || n.Kind == kindMethod }
 
-func inTestFile(n *Node) bool { return strings.HasSuffix(n.File, "_test.go") }
-
 // packageDirs --in değerini klasörlere çevirir: ad bir paketse onun klasörü, değilse değer
 // kendisi klasör önekidir. Boş değer: kısıt yok.
 func (ix *index) packageDirs(in string) []string {

@@ -61,10 +61,10 @@ func (ix *index) testsThroughNames(n *Node) []nameTest {
 	}
 	collect(n.ID, 0)
 	walkCallers(n.ID, ix.callersOf, ix.pkgOf, func(r reached) bool {
-		if isTestNode(ix.byID[r.id]) {
+		if isTestNode(ix.byID[r.ID]) {
 			return false
 		}
-		collect(r.id, r.steps)
+		collect(r.ID, r.Steps)
 		return true
 	})
 	sort.SliceStable(out, func(i, j int) bool {

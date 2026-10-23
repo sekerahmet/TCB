@@ -37,7 +37,7 @@ func extractSpecRefs(root string, b *builder) {
 	}
 	byFile := map[string][]*Node{}
 	for _, n := range b.nodes {
-		if n.File != "" && isReferrerKind(n.Kind) {
+		if n.File != "" && hasLineSpan(n.Kind) {
 			byFile[n.File] = append(byFile[n.File], n)
 		}
 	}
@@ -55,7 +55,7 @@ func extractSpecRefs(root string, b *builder) {
 				continue
 			}
 			b.addEdge(from, specID(t.ID), edgeRefsSpec, extracted, m.File, m.Line)
-			if n := b.nodes[from]; n != nil && isTestReferrer(n) {
+			if n := b.nodes[from]; n != nil && isTestNode(n) {
 				b.addEdge(from, specID(t.ID), edgeTests, inferred, m.File, m.Line)
 			}
 		}
@@ -64,18 +64,6 @@ func extractSpecRefs(root string, b *builder) {
 }
 
 func specID(item string) string { return "spec:" + item }
-
-// isReferrerKind atıf yapabilen, satır aralığı olan düğüm türleri.
-func isReferrerKind(k string) bool {
-	switch k {
-	case kindFunc, kindMethod, kindType, kindTRFunc, kindTRMethod, kindTRStruct, kindTRTest, kindHeading:
-		return true
-	}
-	return false
-}
-
-// isTestReferrer atıf yapan düğüm bir test mi (Go test işlevi ya da TR test bloğu).
-func isTestReferrer(n *Node) bool { return n.Kind == kindTRTest || isTestNode(n) }
 
 // referrer atıfın satırını içeren en iç düğümün kimliğini verir (yoksa satırın hemen altındaki bildirim, o da yoksa
 // dosya düğümü).

@@ -15,15 +15,6 @@ type indirectTest struct {
 	via   *Node // zincirde hedefe en yakın çağıran
 }
 
-// isTestNode test dosyasındaki bir TestX/BenchmarkX/FuzzX/ExampleX işlevi mi.
-func isTestNode(n *Node) bool {
-	if n.Kind != kindFunc || !strings.HasSuffix(n.File, "_test.go") {
-		return false
-	}
-	name := n.Name[strings.LastIndex(n.Name, ".")+1:]
-	return isTestName(name)
-}
-
 // indirectTests hedefi çağıranlara doğru (walkCallers: tek zincir kuralı, test_reach.go) izler ve yolda bulduğu testleri
 // en yakından uzağa verir; bir testin ötesine geçilmez. Doğrudan `tests` kenarı olanlar listeye girmez.
 func (ix *index) indirectTests(target *Node) []indirectTest {
@@ -35,12 +26,12 @@ func (ix *index) indirectTests(target *Node) []indirectTest {
 	}
 	var out []indirectTest
 	walkCallers(target.ID, ix.callersOf, ix.pkgOf, func(r reached) bool {
-		n := ix.byID[r.id]
+		n := ix.byID[r.ID]
 		if !isTestNode(n) {
 			return true
 		}
 		if !direct[n.ID] {
-			out = append(out, indirectTest{n, r.steps, ix.byID[r.via]})
+			out = append(out, indirectTest{n, r.Steps, ix.byID[r.Via]})
 		}
 		return false
 	})
@@ -57,7 +48,7 @@ func (ix *index) indirectTests(target *Node) []indirectTest {
 func (ix *index) callersOf(id string) []string {
 	var out []string
 	for _, e := range ix.in[id] {
-		if reachEdge(e.Kind, e.Confidence) {
+		if reachEdge(e.Kind, e.Confidence, e.From, e.To) {
 			out = append(out, e.From)
 		}
 	}
@@ -251,3 +242,4 @@ func (ix *index) printInferred(w io.Writer, n *Node, indirect []indirectTest, vi
 	}
 	printLimited(w, lines, limit, "    ")
 }
+

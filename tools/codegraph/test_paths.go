@@ -246,7 +246,7 @@ func newTestReach(b *builder, idx *goIndex) *testReach {
 		r.isTest[t.id] = true
 	}
 	for k, e := range b.edges {
-		if reachEdge(k.kind, e.Confidence) {
+		if reachEdge(k.kind, e.Confidence, k.from, k.to) {
 			r.callers[k.to] = append(r.callers[k.to], k.from)
 		}
 	}
@@ -270,8 +270,8 @@ func (r *testReach) testsReaching(owner string) []string {
 	}
 	var out []string
 	walkCallers(owner, func(id string) []string { return r.callers[id] }, r.pkgOf, func(n reached) bool {
-		if r.isTest[n.id] {
-			out = append(out, n.id)
+		if r.isTest[n.ID] {
+			out = append(out, n.ID)
 			return false
 		}
 		return true

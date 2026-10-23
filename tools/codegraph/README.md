@@ -56,7 +56,7 @@ a `detail` (message text, rule text, heading) that contains it, all case-insensi
 answered (`query "Cümle parçalardan"` finds the rule); several are listed (exit 3). Text queries try whole words first (Turkish case folding, word boundary; name, then detail and doc comment), then a name prefix, then a substring: `query "ölü"` finds the doc comments that say "ölü", not every "bölüm".
 
 `tests-for` lists the direct tests (`tests` edges), then the indirect ones: callers are followed
-backwards over the chain rule below (EXTRACTED `calls`, `uses`, `reads_var`, `writes_var`), up to the first test on each chain. They
+backwards over the chain rule below (EXTRACTED `calls`, TR-to-TR `calls`, `uses`, `reads_var`, `writes_var`), up to the first test (Go or TR) on each chain. They
 are shown nearest first as `N steps via <caller next to the target>`, always `[INFERRED]`. This is
 computed when you ask, not stored in `graph.json`.
 
@@ -193,10 +193,11 @@ repository (a failing git is an error, exit 1).
   code uses a pickaxe over the dictionary files and marks the commits that **added** and
   **removed** it; a file or doc uses `git log --follow`.
 - `changed <branch|range>`: maps the hunks of `git diff -U0 <base>...<branch>` (`--base`, default
-  `main`; or a literal `a..b` / `a...b`) onto function, type and doc-section line ranges, and onto
+  `main`; or a literal `a..b` / `a...b`) onto Go and TR declaration and doc-section line ranges, and onto
   the codes named in changed dictionary lines. Then it lists the tests that exercise the changed
-  code (direct first, then indirect with their distance, first `--limit`), and the other local
-  `claude/` branches that touch the same nodes or files, with the result of a
+  code (the same tests `tests-for` lists for each changed node; direct first, then indirect with their distance,
+  first `--limit`), and the other local `claude/` branches not yet merged into the base that touch the same nodes or
+  files, with the result of a
   `git merge-tree --write-tree` trial merge (`clean` or the conflicting files). The graph is of
   the checked-out tree: when the ref is the checked-out HEAD the new-side lines are mapped (new
   functions included), otherwise the old-side lines, which is exact only while the tree equals the
@@ -387,10 +388,19 @@ allows them and marks each `[hub]`. Pinned by `TestPathAnswersDirectedAndNeverSi
 ## One rule for "a test reaches this through helpers"
 
 Path constants, `go:embed` files, TR text in Go tests, the name codes' tests and the *indirect* tests of `tests-for` are
-all the same question, so there is one function for it (`walkCallers`, `reachEdge`, `testMaxHops`, `testMaxSteps` in
-`test_reach.go`) and one rule: walk from the thing to its callers and users (EXTRACTED calls, type and const uses,
-variable reads and writes; a function value passed around, INFERRED, is not followed), stop at the first test on a
+all the same question, so there is one function for it (`reachEdge` in `test_reach.go`; the walk and its limits,
+`WalkCallers`, `TestMaxHops`, `TestMaxSteps`, live in `internal/devtools/codeindex/reach.go`, so `tr dizin sınayanlar`
+answers with the same rule) and one rule: walk from the thing to its callers and users (EXTRACTED calls, type and const
+uses, variable reads and writes, TR-to-TR calls even when INFERRED, since a TR method call on a receiver of unknown
+type is an ordinary call; a Go function value passed around, INFERRED, is not followed), stop at the first test on a
 chain, cross **at most one package boundary** and take **at most eight steps**.
+
+What a test is, is one rule too (`test_rule.go`): a TR `test` block, or a Go function in a `_test.go` file whose name
+is `Test`, `Benchmark`, `Fuzz` or `Example` followed by nothing or a non-lowercase letter (the `go test` rule).
+`tests-for`, `changed`, the name-code tests and the spec tests all call `isTestNode`; `changed` lists the very tests
+`tests-for` would list for each changed node (`testDistances`: direct, list walkers, chains, name codes; measurements
+apart), and maps TR declarations as well as Go ones (`hasLineSpan`). Pinned by the planning exam (independent audit
+Y1, Y3, T3).
 
 Why these numbers. The honest chain inside the package that loads or implements something is long
 (loader → parser → registry → accessor → test is 5 steps), so steps are generous (8) while boundaries are tight (1):

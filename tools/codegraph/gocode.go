@@ -196,17 +196,6 @@ func (x *goExtractor) funcDecl(fc *fileCtx, d *ast.FuncDecl) {
 	x.scan(fc, id, d) // imza (alıcı, parametre, sonuç tipleri) ve gövde: tür kullanımı imzada da vardır
 }
 
-// isTestName go test'in tanıdığı işlev adlarını ayırır: önek, ardından küçük harf olmayan.
-func isTestName(name string) bool {
-	for _, p := range []string{"Test", "Benchmark", "Fuzz", "Example"} {
-		if strings.HasPrefix(name, p) {
-			rest := name[len(p):]
-			return rest == "" || !(rest[0] >= 'a' && rest[0] <= 'z')
-		}
-	}
-	return false
-}
-
 func (x *goExtractor) genDecl(fc *fileCtx, d *ast.GenDecl) {
 	if d.Tok != token.TYPE {
 		if d.Tok == token.CONST || d.Tok == token.VAR {

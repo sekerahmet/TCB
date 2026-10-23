@@ -58,14 +58,9 @@ func reachableCalls(from string, helpers map[string][]*Edge, idx *goIndex) []*Ed
 
 // nameTargets test adından sınanan simgeleri bulur. syms paketin "Ad" / "Tür.Metot" tablosudur.
 func nameTargets(name string, syms map[string]string) []string {
-	rest := ""
-	for _, p := range []string{"Test", "Benchmark", "Fuzz", "Example"} {
-		if strings.HasPrefix(name, p) {
-			rest = strings.TrimPrefix(name[len(p):], "_")
-			break
-		}
-	}
-	if rest == "" {
+	rest, ok := testNameRest(name)
+	rest = strings.TrimPrefix(rest, "_")
+	if !ok || rest == "" {
 		return nil
 	}
 	cands := []string{rest, strings.ReplaceAll(rest, "_", ".")}

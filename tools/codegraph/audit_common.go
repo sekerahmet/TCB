@@ -70,9 +70,6 @@ func position(m *goload.Module, p token.Pos) (file string, line int) {
 	return m.Rel(pos.Filename), pos.Line
 }
 
-// isTestFile yolu _test.go ile biten dosya mı.
-func isTestFile(file string) bool { return strings.HasSuffix(file, "_test.go") }
-
 // shortPkg bir paket yolunun modül önekini atar.
 func shortPkg(m *goload.Module, path string) string {
 	if path == m.Path {

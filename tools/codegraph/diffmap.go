@@ -72,11 +72,8 @@ func (ix *index) spans() map[string][]*Node {
 	m := map[string][]*Node{}
 	for i := range ix.g.Nodes {
 		n := &ix.g.Nodes[i]
-		switch n.Kind {
-		case kindFunc, kindMethod, kindType, kindHeading:
-			if n.File != "" && n.Line > 0 {
-				m[n.File] = append(m[n.File], n)
-			}
+		if hasLineSpan(n.Kind) && n.File != "" && n.Line > 0 {
+			m[n.File] = append(m[n.File], n)
 		}
 	}
 	return m
