@@ -108,3 +108,31 @@ func gitMust(t *testing.T, root string, args ...string) {
 		t.Fatal(err)
 	}
 }
+
+// repoModule bu deponun bir kez yüklenmiş modülü ve ondan kurulan grafiğidir: planlama sınavı ve go/types'a karşı
+// tutarlılık testleri (kullanım kapsamı, arayüz gönderimi) aynı yüklemeyi paylaşır; böylece -short'ta da koşarlar
+// (bağımsız denetim S7: tam denetim -short koşar, bu güvence günlük denetimde kapalıydı).
+var repoState struct {
+	once sync.Once
+	root string
+	m    *module
+	g    *Graph
+	err  error
+}
+
+func repoGraph(t *testing.T) (root string, m *module, g *Graph) {
+	t.Helper()
+	repoState.once.Do(func() {
+		if repoState.root, repoState.err = resolveRoot(""); repoState.err != nil {
+			return
+		}
+		if repoState.m, repoState.err = load(repoState.root); repoState.err != nil {
+			return
+		}
+		repoState.g = buildGraphFrom(repoState.root, repoState.m)
+	})
+	if repoState.err != nil {
+		t.Fatal(repoState.err)
+	}
+	return repoState.root, repoState.m, repoState.g
+}

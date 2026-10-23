@@ -259,6 +259,9 @@ func compareUses(g *Graph, uses []expectedUse, include func(pkg string) bool) []
 		if e.Kind != edgeCalls && e.Kind != edgeUses || !strings.HasPrefix(e.From, "go:") || !strings.HasPrefix(e.To, "go:") {
 			continue
 		}
+		if f := ix.byID[fileID(e.File)]; f != nil && strings.HasPrefix(f.Detail, otherConfigDetail) {
+			continue // bu yapılandırmada derlenmeyen dosyanın tipsiz okunan çağrısı: go/types onu görmez (other_os.go)
+		}
 		if from := ix.byID[e.From]; from != nil && include(goPkgOfFile(g, from.File)) && !expected[pair{e.To, ownerOf(e.From)}] {
 			miss(fmt.Sprintf("%s -%s-> %s at %s:%d: go/types has no such use", e.From, e.Kind, e.To, e.File, e.Line))
 		}
@@ -352,18 +355,13 @@ func TestUseCoverageOnADiverseModule(t *testing.T) {
 	}
 }
 
-// Kural: aynı örtme tutarlılığı bu deponun kendisinde de geçerlidir (gpu.MemorySample örneği buradan çıktı). Yavaştır
-// (modülü iki kez yükler), -short ile atlanır; CI'da çalışır.
+// Kural: aynı örtme tutarlılığı bu deponun kendisinde de geçerlidir (gpu.MemorySample örneği buradan çıktı). Modül ve
+// grafik planlama sınavıyla paylaşılır (repoGraph); -short'ta, yani tam denetimde de koşar.
 func TestUseCoverageOnTheRepository(t *testing.T) {
-	if testing.Short() {
-		t.Skip("loads the whole module twice")
-	}
-	root, err := resolveRoot("")
-	if err != nil {
-		t.Fatal(err)
-	}
-	misses, checked := useCoverageMisses(t, root, func(string) bool { return true })
-	if len(misses) != 0 {
+	_, m, g := repoGraph(t) // sınavla paylaşılan yükleme: -short'ta da koşar (S7)
+	all := func(string) bool { return true }
+	uses, checked := expectedUses(m, all, fieldsByDecl(g))
+	if misses := compareUses(g, uses, all); len(misses) != 0 {
 		limit := min(len(misses), 40)
 		t.Errorf("%d of %d uses are missing from the graph, first %d:\n  %s", len(misses), checked, limit, strings.Join(misses[:limit], "\n  "))
 	}

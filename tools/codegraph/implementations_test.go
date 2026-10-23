@@ -196,24 +196,10 @@ func TestPromotedMethodsSatisfyInterfacesInDispatchAndDeadMethods(t *testing.T) 
 	}
 }
 
-// Kural: deponun grafiği de go/types'ın yöntem kümesiyle tutarlıdır (yükseltilen yöntemler dahil). Modülü iki kez
-// yükler, -short ile atlanır.
+// Kural: deponun grafiği de go/types'ın yöntem kümesiyle tutarlıdır (yükseltilen yöntemler dahil). Modül ve grafik
+// planlama sınavıyla paylaşılır (repoGraph); -short'ta da koşar.
 func TestDispatchesMatchMethodSetsOnTheRepository(t *testing.T) {
-	if testing.Short() {
-		t.Skip("loads the whole module twice")
-	}
-	root, err := resolveRoot("")
-	if err != nil {
-		t.Fatal(err)
-	}
-	m, err := load(root)
-	if err != nil {
-		t.Fatal(err)
-	}
-	g, err := buildGraph(root)
-	if err != nil {
-		t.Fatal(err)
-	}
+	_, m, g := repoGraph(t) // sınavla paylaşılan yükleme: -short'ta da koşar (S7)
 	if misses, promoted := dispatchMisses(t, m, g); len(misses) != 0 || promoted == 0 {
 		t.Errorf("promoted %d; missing dispatches_to (%d): %v", promoted, len(misses), misses)
 	}

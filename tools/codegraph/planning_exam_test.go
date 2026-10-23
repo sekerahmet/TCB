@@ -284,15 +284,8 @@ func firstOr(items []string) string {
 // kör nokta (tür kullanımı, arayüz uygulaması, TR testleri, belge yorumu, madde atıfı ...) geri gelirse bu test düşer ve
 // hangi denemenin hangi sorusu olduğunu söyler. -short ile de koşar (tam denetim -short'tur).
 func TestPlanningQuestionsAreAnswered(t *testing.T) {
-	root, err := resolveRoot("")
-	if err != nil {
-		t.Fatal(err)
-	}
+	root, _, g := repoGraph(t)
 	records := parseExam(t, filepath.Join("testdata", "planning_questions.txt"))
-	g, err := buildGraph(root)
-	if err != nil {
-		t.Fatal(err)
-	}
 	idx, err := codeindex.Build(root, codeindex.Options{Library: lib.Files})
 	if err != nil {
 		t.Fatal(err)

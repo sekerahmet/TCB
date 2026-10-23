@@ -138,6 +138,14 @@ func buildGraph(root string) (*Graph, error) {
 	if err != nil {
 		return nil, err
 	}
+	g := buildGraphFrom(root, m)
+	g.Stamp = stamp
+	return g, nil
+}
+
+// buildGraphFrom yüklenmiş modülden grafiği kurar (damgasız): depo testleri modülü bir kez yükleyip grafiği ve
+// go/types karşılaştırmalarını aynı modülden yapar.
+func buildGraphFrom(root string, m *module) *Graph {
 	b := newBuilder(m.Path)
 	idx := extractGo(m, b)
 	extractOtherConfigs(m, b)
@@ -150,9 +158,7 @@ func buildGraph(root string) (*Graph, error) {
 	reach := newTestReach(b, idx)
 	linkTestPaths(b, idx, reach)
 	linkSnippets(b, idx, reach)
-	g := b.graph()
-	g.Stamp = stamp
-	return g, nil
+	return b.graph()
 }
 
 func printStats(w io.Writer, g *Graph, out string, took time.Duration, allWarnings bool) {
