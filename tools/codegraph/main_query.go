@@ -27,6 +27,12 @@ type queryOpts struct {
 // runQuery grafiği okuyan komutları çalıştırır: query, explain, path, who-uses, tests-for,
 // history, changed, callees, calls-into.
 func runQuery(cmd string, args []string, stdout, stderr io.Writer) int {
+	return runQueryOn(nil, cmd, args, stdout, stderr)
+}
+
+// runQueryOn runQuery'dir; loaded nil değilse grafik dosyadan okunmaz, o kullanılır (aynı süreçte çok soru soran planlama
+// sınavı grafiği bir kez yükler).
+func runQueryOn(loaded *Graph, cmd string, args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet(cmd, flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	graphPath := fs.String("graph", "", "graph file (default <root>/.codegraph/graph.json)")
@@ -67,9 +73,12 @@ func runQuery(cmd string, args []string, stdout, stderr io.Writer) int {
 	if *all {
 		o.limit = 0
 	}
-	g, code := loadGraph(*graphPath, o, *noRebuild)
+	g := loaded
 	if g == nil {
-		return code
+		var code int
+		if g, code = loadGraph(*graphPath, o, *noRebuild); g == nil {
+			return code
+		}
 	}
 	return newIndex(g).dispatch(cmd, fs.Args(), o)
 }
