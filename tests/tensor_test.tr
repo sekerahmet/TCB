@@ -498,7 +498,7 @@ test "15.35 öğrenme_oranı okunur ve atanabilir; yeni oran sonraki adımda kul
     doğrula(hata_metni(() => { op.durum = {} }).içerir("atama yapılamaz"))
 }
 
-test "15.19 maks_indeks ve gradyan_kırp" {
+test "15.19 maks_indeks" {
     değişken x = tensör([[1, 9, 3], [7, 2, 7]])
     eşit_mi([1, 0], maks_indeks(x).değer)
     eşit_mi([1, 0, 1], maks_indeks(x, eksen: 0).değer)
@@ -506,6 +506,9 @@ test "15.19 maks_indeks ve gradyan_kırp" {
     // .değer Tam verir; liste indeksi olarak doğrudan kullanılabilir.
     değişken harfler = ["a", "b", "c"]
     eşit_mi("b", harfler[maks_indeks(x).değer[0]])
+}
+
+test "15.36 gradyan_kırp normu aşan gradyanları küçültür, kırpma öncesi normu tensör olarak verir" {
     değişken w = tensör([1.0, 1.0], türev_izle: doğru)
     geri_yayılım(toplam(w * tensör([3.0, 4.0])))
     // Kırpma öncesi norm 0 boyutlu tensördür (kayıp gibi; GPU'da program okununca bekler).
