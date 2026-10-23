@@ -5,14 +5,10 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"io/fs"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
-
-	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
 // Kural: WriteFile ara klasörleri açar, bölü çizgili adı işletim sisteminin ayracına çevirir ve
@@ -63,42 +59,6 @@ func TestRunBinaryReportsOutputsAndExitCode(t *testing.T) {
 	bad := RunBinary(t, exe, "", "", nil, "-test.bilinmeyen-bayrak")
 	if bad.Code == 0 || bad.Stderr == "" {
 		t.Fatalf("geçersiz bayrak sıfırdan farklı kodla ve hata çıktısıyla dönmeli: %+v", bad)
-	}
-}
-
-// Kural: ortak test yardımcıları yalnızca _test.go dosyalarından içe aktarılır (üretim koduna
-// sızmaz) ve testkit reporoot dışında iç paket bilmez; trrun yalnızca dil çekirdeğini bilir.
-func TestHelpersAreImportedOnlyByTests(t *testing.T) {
-	root := reporoot.Root()
-	const mod = "github.com/sekerahmet/TCB/"
-	for _, top := range []string{"cmd", "internal", "lib", "tools"} {
-		err := filepath.WalkDir(filepath.Join(root, top), func(path string, d fs.DirEntry, err error) error {
-			if err != nil || d.IsDir() || !strings.HasSuffix(path, ".go") {
-				return err
-			}
-			rel, _ := filepath.Rel(root, path)
-			rel = filepath.ToSlash(rel)
-			f, err := parser.ParseFile(token.NewFileSet(), path, nil, parser.ImportsOnly)
-			if err != nil {
-				return err
-			}
-			for _, imp := range f.Imports {
-				p, _ := strconv.Unquote(imp.Path.Value)
-				switch {
-				case strings.HasPrefix(p, mod+"internal/testkit") && !strings.HasSuffix(rel, "_test.go") && !strings.HasPrefix(rel, "internal/testkit/"):
-					t.Errorf("%s: %s yalnızca testlerden içe aktarılır", rel, p)
-				case strings.HasPrefix(rel, "internal/testkit/") && !strings.HasPrefix(rel, "internal/testkit/trrun/") &&
-					strings.HasPrefix(p, mod) && p != mod+"internal/reporoot":
-					t.Errorf("%s: testkit reporoot dışında iç paket bilmez (%s)", rel, p)
-				case strings.HasPrefix(rel, "internal/testkit/trrun/") && strings.HasPrefix(p, mod) && !strings.HasPrefix(p, mod+"internal/lang/"):
-					t.Errorf("%s: trrun yalnızca dil çekirdeğini bilir (%s)", rel, p)
-				}
-			}
-			return nil
-		})
-		if err != nil {
-			t.Fatal(err)
-		}
 	}
 }
 

@@ -142,6 +142,12 @@ func TestLayerRule(t *testing.T) {
 				continue
 			}
 			target := strings.TrimPrefix(imp, module+"/")
+			// Ortak test yardımcıları yalnızca testlerden içe aktarılır (burada yalnızca test dışı
+			// içe aktarmalar var): tools/'un "internal/" izni onları kapsamaz.
+			if prefixMatches(target, "internal/testkit") && !prefixMatches(rel, "internal/testkit") {
+				t.Errorf("%s → %s: test yardımcısı yalnızca _test.go dosyalarından içe aktarılır", rel, target)
+				continue
+			}
 			allow := false
 			for _, o := range allowed {
 				if prefixMatches(target, o) {

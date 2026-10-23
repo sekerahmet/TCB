@@ -5,7 +5,7 @@ Testlerin depo kökünü bulmasına yarayan küçük yardımcı. Kök, çalışm
 ## Kurallar
 
 - Testler depodaki dosyalara (`docs/`, `tests/`, `examples/`, test verileri) `../../` gibi göreli yollarla değil bu yardımcıyla ulaşır; paket taşınınca testler kırılmaz. Denetim: `TestTestsUseRepoRootNotRelativePaths`.
-- Yalnızca testler kullanır; hiçbir iç paketi içe aktarmaz, her katmanın testi kullanabilir. Denetim: `TestHelperImportedOnlyByTests`.
+- Yalnızca testler kullanır; hiçbir iç paketi içe aktarmaz, her katmanın testi kullanabilir. Denetim: `internal/layers_test.go` (`TestLayerRule`).
 
 ## Testler
 
