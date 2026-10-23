@@ -117,23 +117,11 @@ func (p *Parser) parseThrowStatement() *ast.ThrowStatement {
 	tok := p.curToken()
 	p.nextToken()
 	val := p.parseExpression(precLowest)
-	if p.peekTokenIs(lexer.TokSemicolon) {
-		p.nextToken()
-	}
+	p.skipSemicolon()
 	return &ast.ThrowStatement{Token: tok, Value: val}
 }
 func (p *Parser) parseAsyncStatement() *ast.AsyncStatement {
 	tok := p.curToken()
-	if p.peekTokenIs(lexer.TokLBrace) {
-		p.nextToken()
-		var body *ast.BlockStatement
-		p.withinLimit(false, false, func() { body = p.parseBlockStatement() })
-		return &ast.AsyncStatement{Token: tok, Body: body}
-	}
-	p.nextToken()
-	call := p.parseExpression(precLowest)
-	if p.peekTokenIs(lexer.TokSemicolon) {
-		p.nextToken()
-	}
-	return &ast.AsyncStatement{Token: tok, Call: call}
+	body, call := p.parseBlockOrCall()
+	return &ast.AsyncStatement{Token: tok, Body: body, Call: call}
 }

@@ -20,16 +20,12 @@ func (p *Parser) parseStatement() ast.Statement {
 	case lexer.TokBreak:
 		p.checkSignal(p.curToken())
 		stmt := &ast.BreakStatement{Token: p.curToken()}
-		if p.peekTokenIs(lexer.TokSemicolon) {
-			p.nextToken()
-		}
+		p.skipSemicolon()
 		return stmt
 	case lexer.TokContinue:
 		p.checkSignal(p.curToken())
 		stmt := &ast.ContinueStatement{Token: p.curToken()}
-		if p.peekTokenIs(lexer.TokSemicolon) {
-			p.nextToken()
-		}
+		p.skipSemicolon()
 		return stmt
 	case lexer.TokFor:
 		return p.parseForStatement()
@@ -93,25 +89,34 @@ func (p *Parser) parseBreakpointStatement() *ast.BreakpointStatement {
 			p.nextToken() // ')'
 		}
 	}
-	if p.peekTokenIs(lexer.TokSemicolon) {
-		p.nextToken()
-	}
+	p.skipSemicolon()
 	return stmt
 }
 func (p *Parser) parseDeferStatement() *ast.DeferStatement {
 	tok := p.curToken()
+	body, call := p.parseBlockOrCall()
+	return &ast.DeferStatement{Token: tok, Body: body, Call: call}
+}
+
+// parseBlockOrCall ertele ve eşzamanlı'nın gövdesini okur: ardından '{' geliyorsa blok (call yok),
+// değilse tek bir ifade (body yok).
+func (p *Parser) parseBlockOrCall() (body *ast.BlockStatement, call ast.Expression) {
 	if p.peekTokenIs(lexer.TokLBrace) {
 		p.nextToken()
-		var body *ast.BlockStatement
 		p.withinLimit(false, false, func() { body = p.parseBlockStatement() })
-		return &ast.DeferStatement{Token: tok, Body: body}
+		return body, nil
 	}
 	p.nextToken()
-	call := p.parseExpression(precLowest)
+	call = p.parseExpression(precLowest)
+	p.skipSemicolon()
+	return nil, call
+}
+
+// skipSemicolon deyimin sonundaki isteğe bağlı ';' işaretini atlar.
+func (p *Parser) skipSemicolon() {
 	if p.peekTokenIs(lexer.TokSemicolon) {
 		p.nextToken()
 	}
-	return &ast.DeferStatement{Token: tok, Call: call}
 }
 func (p *Parser) parseVarStatement(isConst bool) ast.Statement {
 	tok := p.curToken()
@@ -139,9 +144,7 @@ func (p *Parser) parseVarStatement(isConst bool) ast.Statement {
 		p.nextToken() // '='
 		p.nextToken()
 		values := p.parseCommaExpressions(p.parseExpression(precLowest))
-		if p.peekTokenIs(lexer.TokSemicolon) {
-			p.nextToken()
-		}
+		p.skipSemicolon()
 		return &ast.MultiVarStatement{
 			Token:   tok,
 			Names:   names,
@@ -170,9 +173,7 @@ func (p *Parser) parseVarStatement(isConst bool) ast.Statement {
 		stmt.Value = &ast.NullLiteral{Token: p.curToken()}
 	}
 
-	if p.peekTokenIs(lexer.TokSemicolon) {
-		p.nextToken()
-	}
+	p.skipSemicolon()
 	return stmt
 }
 func (p *Parser) parseShortVarStatement() *ast.VarStatement {
@@ -187,9 +188,7 @@ func (p *Parser) parseShortVarStatement() *ast.VarStatement {
 		Value:   p.parseExpression(precLowest),
 		IsConst: false,
 	}
-	if p.peekTokenIs(lexer.TokSemicolon) {
-		p.nextToken()
-	}
+	p.skipSemicolon()
 	return stmt
 }
 func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
@@ -199,18 +198,14 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	// Eğer hemen ardından '}' veya ';' veya EOF geliyorsa boş dönüş
 	if p.peekTokenIs(lexer.TokRBrace) || p.peekTokenIs(lexer.TokSemicolon) || p.peekTokenIs(lexer.TokEOF) {
 		stmt.ReturnValue = &ast.NullLiteral{Token: p.curToken()}
-		if p.peekTokenIs(lexer.TokSemicolon) {
-			p.nextToken()
-		}
+		p.skipSemicolon()
 		return stmt
 	}
 
 	p.nextToken()
 	stmt.ReturnValue = p.parseExpression(precLowest)
 
-	if p.peekTokenIs(lexer.TokSemicolon) {
-		p.nextToken()
-	}
+	p.skipSemicolon()
 	return stmt
 }
 func (p *Parser) parseExpressionOrAssignmentStatement() ast.Statement {
@@ -226,9 +221,7 @@ func (p *Parser) parseExpressionOrAssignmentStatement() ast.Statement {
 		opTok := p.curToken()
 		p.nextToken()
 		values := p.parseCommaExpressions(p.parseExpression(precLowest))
-		if p.peekTokenIs(lexer.TokSemicolon) {
-			p.nextToken()
-		}
+		p.skipSemicolon()
 		return &ast.MultiAssignStatement{
 			Token:   opTok,
 			Targets: targets,
@@ -243,9 +236,7 @@ func (p *Parser) parseExpressionOrAssignmentStatement() ast.Statement {
 		opTok := p.curToken()
 		p.nextToken()
 		val := p.parseExpression(precLowest)
-		if p.peekTokenIs(lexer.TokSemicolon) {
-			p.nextToken()
-		}
+		p.skipSemicolon()
 		return &ast.AssignStatement{
 			Token:    opTok,
 			Target:   expr,
@@ -254,9 +245,7 @@ func (p *Parser) parseExpressionOrAssignmentStatement() ast.Statement {
 		}
 	}
 
-	if p.peekTokenIs(lexer.TokSemicolon) {
-		p.nextToken()
-	}
+	p.skipSemicolon()
 	return &ast.ExpressionStatement{Token: tok, Expression: expr}
 }
 func (p *Parser) parseBlockStatement() *ast.BlockStatement {
@@ -308,9 +297,7 @@ func (p *Parser) parseImportStatement() *ast.ImportStatement {
 			stmt.Alias = p.curToken().Literal
 		}
 	}
-	if p.peekTokenIs(lexer.TokSemicolon) {
-		p.nextToken()
-	}
+	p.skipSemicolon()
 	return stmt
 }
 
