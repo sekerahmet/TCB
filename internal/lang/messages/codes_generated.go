@@ -755,11 +755,10 @@ const (
 	H5632 Code = 5632 // {fn}(kimlikler) 1 parametre bekler (kimlik listesi, listelerin listesi ya da tensör), {given} verildi
 	H5633 Code = 5633 // {fn} ({n}. dizi)
 	H5634 Code = 5634 // {fn}: listelerin listesinde {n}. eleman liste değil ({given})
-	H5635 Code = 5635 // {n}. listenin
 	H5636 Code = 5636 // {fn}: tensör 1 boyutlu (tek dizi) ya da 2 boyutlu (dizi listesi) olmalıdır, {dims} boyutlu verildi
 	H5637 Code = 5637 // {fn}: tensördeki kimlikler tam sayı olmalıdır, {value} bulundu
 	H5638 Code = 5638 // {fn}: kimlik listesi, listelerin listesi ya da tensör bekler, {given} verildi
-	H5639 Code = 5639 // {fn}: kimlikler tam sayı olmalıdır; {what} {n}. elemanı {given}
+	H5639 Code = 5639 // {fn}: kimlikler tam sayı olmalıdır; {row, plural, =0 {listenin} other {#. listenin}} {n}. elemanı {given}
 	H5640 Code = 5640 // {fn}(parça) 1 parametre bekler, {given} verildi
 	H5641 Code = 5641 // {fn}: parça bir metin olmalıdır (ör. "<|endoftext|>"), {given} verildi
 	H6001 Code = 6001 // {example} en az 1 parametre bekler

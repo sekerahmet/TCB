@@ -283,6 +283,29 @@ func TestLoadErrors(t *testing.T) {
 	}
 }
 
+// Kural: tam sayı olmayan kimliğin hangi listede olduğu iletiye ileti parçası ya da Türkçe sözcük
+// olarak değil satır numarası olarak gider (0: düz liste); sözcükleri şablon seçer (H5639).
+func TestDecodeNonIntegerIDNamesTheRow(t *testing.T) {
+	for _, c := range []struct {
+		code string
+		row  int
+		text string
+	}{
+		{`parçalayıcı_yükle("` + bpePath + `").çöz([1, "a"])`, 0, "listenin 2. elemanı"},
+		{`parçalayıcı_yükle("` + bpePath + `").çöz([[1], [2, "a"]])`, 2, "2. listenin 2. elemanı"},
+	} {
+		_, err := run(t, c.code)
+		e, ok := messages.As(err)
+		if !ok || e.Code != messages.H5639 || len(e.Args) < 2 || e.Args[1] != c.row {
+			t.Errorf("%s: %#v, satır %d bekleniyordu", c.code, e, c.row)
+			continue
+		}
+		if !strings.Contains(err.Error(), c.text) {
+			t.Errorf("%s: %q, %q içermeli", c.code, err.Error(), c.text)
+		}
+	}
+}
+
 func TestWatchPanel(t *testing.T) {
 	m := mustRun(t, `değişken p = parçalayıcı_yükle("`+bpePath+`")`)
 	iz, ok := al(t, m, "p").(debugger.WatchValue)

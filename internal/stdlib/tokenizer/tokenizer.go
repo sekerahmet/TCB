@@ -408,13 +408,13 @@ func idSeqs(v interp.Value) (seqs [][]int, single bool, err error) {
 				if !ok {
 					return nil, false, messages.New(messages.H5634, fn, i+1, e.Type())
 				}
-				if seqs[i], err = intList(messages.Text(messages.H5635, i+1), l.Elements); err != nil {
+				if seqs[i], err = intList(i+1, l.Elements); err != nil {
 					return nil, false, err
 				}
 			}
 			return seqs, false, nil
 		}
-		d, err := intList("listenin", x.Elements)
+		d, err := intList(0, x.Elements)
 		if err != nil {
 			return nil, false, err
 		}
@@ -445,12 +445,14 @@ func idSeqs(v interp.Value) (seqs [][]int, single bool, err error) {
 	return nil, false, messages.New(messages.H5638, fn, v.Type())
 }
 
-func intList(what string, elems []interp.Value) ([]int, error) {
+// intList kimlik listesini tam sayılara çevirir; row iç içe listenin 1'den başlayan satırıdır, düz
+// listede 0 (iletide "listenin" ya da "3. listenin" diye yazılır, H5639).
+func intList(row int, elems []interp.Value) ([]int, error) {
 	out := make([]int, len(elems))
 	for i, e := range elems {
 		n, ok := bind.Int(e)
 		if !ok {
-			return nil, messages.New(messages.H5639, codes.DisplayName(memberDecode), what, i+1, e.Inspect())
+			return nil, messages.New(messages.H5639, codes.DisplayName(memberDecode), row, i+1, e.Inspect())
 		}
 		out[i] = int(n)
 	}
