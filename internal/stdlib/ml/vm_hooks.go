@@ -330,9 +330,18 @@ func (d *TensorValue) SetIndex(idx, value interp.Value) error {
 	sh := target.Shape()
 	var src *tensor.Tensor
 	if f, ok := interp.ToFloat(value); ok {
-		src = tensor.Scalar(float32(f)) // hedefin tüm elemanlarına yayınlanır
+		// Hedefin tüm elemanlarına yayınlanır; sayı cihazda doldurulur (konaktan yüklenmez:
+		// tekrar_oynat kaydında da çalışır).
+		if src, err = safe(func() *tensor.Tensor { return tensor.FullOn(target.Device(), float32(f)) }); err != nil {
+			return err
+		}
 	} else {
-		if src, err = toTensor(messages.Text(messages.H6130), value); err != nil {
+		// Liste hedefin cihazında tensöre çevrilir (15.38); başka cihazdaki tensör sessizce
+		// kopyalanmaz, açık hatadır (15.40).
+		if src, err = toTensorOn(messages.Text(messages.H6130), value, target); err != nil {
+			return err
+		}
+		if err = checkDevice(messages.Text(messages.H6130), src, target); err != nil {
 			return err
 		}
 		if ks := src.Shape(); shapeText(ks) != shapeText(sh) {
@@ -341,9 +350,6 @@ func (d *TensorValue) SetIndex(idx, value interp.Value) error {
 	}
 	// Tek arka uç kopyası, tek sürüm artışı; hedef bitişik olmayan bir görünüm olabilir.
 	_, err = safe(func() bool {
-		if src.Device() != target.Device() {
-			tensor.NoGrad(func() { src = src.To(target.Device()) })
-		}
 		target.CopyFrom(src)
 		return true
 	})
