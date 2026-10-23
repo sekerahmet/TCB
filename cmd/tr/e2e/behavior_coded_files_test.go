@@ -79,7 +79,10 @@ func TestCodedFilesGiveSameOutput(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		os.WriteFile(filePath, []byte(strings.Replace(string(data), "değişken ADIM = 300", "değişken ADIM = 10", 1)), 0o644)
+		if !strings.Contains(string(data), "sabit ADIM = 300") {
+			t.Fatal("36_karakter_modeli.tr: 'sabit ADIM = 300' yok; kısaltma eğitimi kısaltmıyor")
+		}
+		os.WriteFile(filePath, []byte(strings.Replace(string(data), "sabit ADIM = 300", "sabit ADIM = 10", 1)), 0o644)
 	}
 	n := codedCopy(t, tr2)
 	if n < 35 {
