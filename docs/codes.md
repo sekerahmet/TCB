@@ -3145,7 +3145,7 @@ yazdır(tensör([[1, 2], [3, 4]]).değer)
 
 #### Y410 `şekillendir`
 
-    Tensör.şekillendir(Liste | Tam, [Tam...]) → Tensör
+    Tensör.şekillendir(Liste) → Tensör
 
 Tensörü aynı eleman sayısıyla yeni bir şekle sokar; bir eksen -1 verilirse uzunluğu hesaplanır. Sonuç veriyi paylaşan bir görünümdür.
 
