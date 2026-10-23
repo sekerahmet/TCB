@@ -87,6 +87,10 @@ func Plan(ms []Mention, files []File, ix *Index, m map[string]string, fixAllSuff
 		if mn.Kind == "weak" && len(m) == 0 {
 			continue
 		}
+		if mn.Kind == "weak" && !IsSpecFile(mn.File) && touches(mn, m) {
+			manual = append(manual, mn) // spec dışı çıplak sayı ondalık sayı da olabilir: otomatik değiştirilmez, elle bakılır
+			continue
+		}
 		es, ok := planMention(mn, text[mn.File], ix, m, fixAllSuffixes)
 		if !ok {
 			manual = append(manual, mn)
@@ -332,4 +336,14 @@ func Apply(root string, edits []Edit) error {
 		}
 	}
 	return nil
+}
+
+// touches anmanın belirteçlerinden biri eşlemede mi.
+func touches(mn Mention, m map[string]string) bool {
+	for _, t := range mn.Tokens {
+		if _, hit := m[t.ID]; hit {
+			return true
+		}
+	}
+	return false
 }

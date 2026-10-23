@@ -70,11 +70,18 @@ func run(args []string, stdout, stderr io.Writer) int {
 	for _, e := range edits {
 		fmt.Fprintf(stdout, "%s:%d  %s → %s  [%s]\n", e.File, e.Line, e.Old, e.New, e.Why)
 	}
+	blocked, review := 0, 0
 	for _, m := range manual {
+		if m.Kind == "weak" { // spec dışında çıplak sayı: ondalık da olabilir, değiştirilmez ama uygulamayı da engellemez
+			review++
+			fmt.Fprintf(stdout, "%s:%d  review: a bare number that may be a renumbered item (not edited)\n", m.File, m.Line)
+			continue
+		}
+		blocked++
 		fmt.Fprintf(stderr, "%s:%d  needs a manual edit (range that cannot be mapped automatically)\n", m.File, m.Line)
 	}
-	fmt.Fprintf(stdout, "%d edit(s), %d manual\n", len(edits), len(manual))
-	if len(manual) > 0 {
+	fmt.Fprintf(stdout, "%d edit(s), %d to review, %d manual\n", len(edits), review, blocked)
+	if blocked > 0 {
 		return 1
 	}
 	if !*apply {

@@ -275,3 +275,29 @@ func TestCodeIsNotScannedForReferences(t *testing.T) {
 		t.Errorf("findings = %v", got)
 	}
 }
+
+// Kural: spec dışında çıplak bir sayı yalnızca var olan bir maddenin numarasıysa anmadır ("(17.1, 15.5 ms)"deki 15.5 ms olmayan maddeyi
+// anmaz); böyle bir anma yeniden numaralamada otomatik değişmez, elle bakılacaklara gider (ondalık sayı da olabilir).
+func TestBareNumbersOutsideTheSpecAreMentionsOnlyOfExistingItems(t *testing.T) {
+	spec := specFile(15, 1, 2, 3)
+	doc := File{Path: "docs/a.md", Text: "Süre 15.9 ms, bkz. 15.3 ve sürüm 1.20.\n"}
+	ix, ms := build(spec, doc)
+	var got []string
+	for _, m := range ms {
+		if m.File == "docs/a.md" {
+			got = append(got, m.Tokens[0].ID)
+		}
+	}
+	if strings.Join(got, ",") != "15.3" {
+		t.Errorf("mentions = %v", got)
+	}
+	edits, manual := Plan(ms, []File{spec, doc}, ix, map[string]string{"15.3": "15.7"}, false)
+	for _, e := range edits {
+		if e.File == "docs/a.md" {
+			t.Errorf("a bare number outside the spec must not be edited automatically: %+v", e)
+		}
+	}
+	if len(manual) != 1 || manual[0].File != "docs/a.md" {
+		t.Errorf("manual = %v", manual)
+	}
+}
