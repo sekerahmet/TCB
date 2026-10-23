@@ -40,6 +40,7 @@ type Module struct {
 type Options struct {
 	Comments   bool // yorumları da ayrıştır (belge yorumlarını okuyan araç)
 	Selections bool // types.Info.Selections'ı doldur (alan ve metot seçimlerini okuyan araç)
+	Types      bool // types.Info.Types'ı doldur (ifadelerin tipleri ve sabit değerleri)
 }
 
 // Load dir'deki modülün bütün paketlerini testleriyle birlikte yalnızca standart kitaplıkla tip
@@ -175,6 +176,9 @@ func (m *Module) check(path, dir string, names []string, imp types.Importer, opt
 	}}
 	if opts.Selections {
 		u.Info.Selections = map[*ast.SelectorExpr]*types.Selection{}
+	}
+	if opts.Types {
+		u.Info.Types = map[ast.Expr]types.TypeAndValue{}
 	}
 	var mode parser.Mode
 	if opts.Comments {
