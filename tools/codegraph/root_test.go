@@ -10,15 +10,6 @@ import (
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
-func sameDir(t *testing.T, got, want string) {
-	t.Helper()
-	g, err1 := filepath.EvalSymlinks(got)
-	w, err2 := filepath.EvalSymlinks(want)
-	if err1 != nil || err2 != nil || g != w {
-		t.Errorf("root = %q, want %q", got, want)
-	}
-}
-
 // Alt klasörden --root ve --graph olmadan sorulabilir; grafik kökteki .codegraph'tadır.
 func TestQueryFromSubdirectoryUsesRootGraph(t *testing.T) {
 	top := t.TempDir()

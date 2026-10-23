@@ -31,6 +31,8 @@ const turkishLetters = "çğıöşüâîûÇĞİÖŞÜÂÎÛ"
 // belge üreten aracın içeriği. Yeni kayıt gerekçesiz eklenmez; liste yalnızca küçülür. Bulguları
 // kayıt biçiminde yazdırmak için: TRLIT_LIST=1 go test -run TestNoTurkishLiterals ./internal
 var turkishLiteralAllowed = map[string]string{
+	// Dil tanımı atıf tarayıcısı Türkçe belgeleri okur: "PyTorch 2.14", "sürümü 2.1" gibi sürüm numaraları madde atfı sayılmaz.
+	"tools/internal/specref/scan.go:\\b(PyTorch|NumPy|JAX|Go|go|CUDA|cuDNN|cuBLAS|cuBLASLt|Python|Rust|Swift|Kotlin|LSP|CommonMark|Unicode|IEEE|Triton|TensorFlow|Hugging Face|sürüm|sürümü|version)\\b[^.!?]*$": "belgedeki sürüm numarasını tanıyan desen; Türkçe belge sözcüğü, ad ya da ileti değil",
 	// Kod listesi dosyalarının (internal/lang/codes) biçim anahtarları.
 	"internal/lang/codes/definition.go:bağlamsal":    "definitions.json'daki \"tür\" alanının değeri (dosya biçimi)",
 	"internal/lang/codes/definition.go:özellik":      "definitions.json'daki \"tür\" alanının değeri (dosya biçimi)",
