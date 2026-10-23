@@ -102,3 +102,7 @@ codegraph tests-for internal/devtools/codeindex/text.go --all | contains: TestLi
 # Deneme 7: bir kitaplık parametresini yeniden adlandırmayı planlamak (bakış_sayısı → baş_sayısı) (2026-10-24)
 codegraph query bakış_sayısı | contains: 7 candidates | contains: [tr_option] | contains: [tr_field] | src: deneme 7 R1, 2026-10-24
 tr dizin tanım bakış_sayısı | contains: 7 aday | src: deneme 7 R1, 2026-10-24
+
+# Deneme 8: çok kullanılan bir şeye ekleme (yazdır'a adlı ayırıcı argümanı) (2026-10-24)
+codegraph query Y203 | group: related => Y103 | src: deneme 8 S2, 2026-10-24
+codegraph query G100 | group: related => G101 | src: deneme 8 S2, 2026-10-24
