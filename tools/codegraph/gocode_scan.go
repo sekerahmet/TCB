@@ -37,6 +37,7 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 			if id := nameIdent(n.Fun); id != nil {
 				callee[id] = true
 			}
+			x.envUse(fc, owner, n)
 		case *ast.Ident:
 			x.use(fc, owner, n, callee[n])
 		case *ast.FuncLit:

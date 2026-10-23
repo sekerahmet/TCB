@@ -84,7 +84,8 @@ computed when you ask, not stored in `graph.json`.
 | `denotes` | Go constant `messages.H2100` / `codes.K003` → the message / name code node `H2100` / `K003` it stands for | EXTRACTED |
 | `tests` | test → its package; test → function it calls (directly or through helpers in test files); test → function its name says (`TestParse`, `TestVM_Run`) | EXTRACTED / EXTRACTED / INFERRED |
 | `uses_message` | func → `msg:Hnnnn`, from the `messages.Hnnnn` constant | EXTRACTED |
-| `uses_name` | func → `name:Xnnn`, from the `codes.Xnnn` constant | EXTRACTED |
+| `uses_name` | func → `name:Xnnn`, from the `codes.Xnnn` constant; message → `name:K4nn` when its template (any language) writes that environment variable's name (`TR_GPU_SYNC=1`) | EXTRACTED |
+| `uses_env` | func → `name:K4nn`, from `os.Getenv`/`LookupEnv`/`Setenv`/`Unsetenv` (or `testing.T.Setenv`) given a string constant (or a named one) equal to the variable's name in any writing language; the compute core cannot see name codes, so it reads the variable by its source-language name | EXTRACTED |
 | `guarded_by` | rule → test func or test file named after `Denetim:` | EXTRACTED when the test sits under a path the rule names or under the README's folder, else INFERRED |
 | `links_to` | heading → heading, doc, Go file, package or any file; Markdown links | EXTRACTED; link whose `#anchor` is missing: INFERRED (to the file) |
 

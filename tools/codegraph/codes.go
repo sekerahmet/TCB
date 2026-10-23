@@ -67,6 +67,7 @@ func extractCodes(root string, b *builder) {
 				Aliases: nameAliases(n.Ad, english[code].Ad)})
 		}
 	}
+	envMessages(root, b)
 }
 
 // nameAliases bir ad kodunun dildeki adlarıdır (Türkçe, İngilizce), boşlar ve yinelenenler atılır.
