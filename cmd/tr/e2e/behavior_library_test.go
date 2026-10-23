@@ -61,7 +61,8 @@ func TestLibraryModuleCheckAndBuild(t *testing.T) {
 
 // Colab eğitim betiğinin (tools/gpu/gpt_training.tr) duman testi: depodaki sentetik veri
 // SimpleStories klasörü düzenine (tokenizer.json, train.npy, valid.npy) konur, çok küçük ayarla
-// CPU'da koşturulur; koşu klasörüne beş çıktı yazılır, aynı komut kaldığı yerden sürer.
+// CPU'da koşturulur; koşu klasörüne beş çıktı yazılır, her istem için örnek_sayısı metin üretilir,
+// aynı komut kaldığı yerden sürer.
 func TestGPTTrainingScriptSmoke(t *testing.T) {
 	data := t.TempDir()
 	for target, source := range map[string]string{"tokenizer.json": "tests/data/tokenizer.json",
@@ -76,9 +77,10 @@ func TestGPTTrainingScriptSmoke(t *testing.T) {
 	args := []string{reporoot.Path("tools/gpu/gpt_training.tr"), "--veri", data, "--koşu", run, "--cihaz", "cpu",
 		"--boyut", "16", "--katman", "1", "--bakış_sayısı", "2", "--bağlam", "16", "--toplu", "4", "--birikim", "2",
 		"--adım", "12", "--ısınma", "2", "--değerlendir_her", "6", "--değerlendir_toplu", "2", "--örnek_her", "6",
-		"--örnek_sayısı", "2", "--örnek_uzunluğu", "6", "--ölçüm_ısınması", "2", "--günlük_her", "3"}
+		"--örnek_sayısı", "2", "--örnek_uzunluğu", "6", "--ölçüm_ısınması", "2", "--günlük_her", "3",
+		"--istemler", "Once upon a time|The dog"}
 	s := tr(t, t.TempDir(), args...)
-	testkit.Wait(t, s, 0, []string{"ms/adım", "bitti: en iyi doğrulama kaybı", "Once upon a time"}, nil)
+	testkit.Wait(t, s, 0, []string{"ms/adım", "bitti: en iyi doğrulama kaybı", "Once upon a time", "The dog"}, nil)
 	if strings.Contains(s.Stderr, "Uyar") {
 		t.Errorf("betik uyarı verdi:\n%s", s.Stderr)
 	}
@@ -94,6 +96,13 @@ func TestGPTTrainingScriptSmoke(t *testing.T) {
 	metric, _ := os.ReadFile(filepath.Join(run, "metrics.jsonl"))
 	if !strings.Contains(string(metric), `"doğrulama_kaybı"`) || !strings.Contains(string(metric), `"oran_çarpanı"`) {
 		t.Errorf("metrics.jsonl'de doğrulama kaybı ya da oran çarpanı yok:\n%s", metric)
+	}
+	var samples []struct{ Metinler []string `json:"metinler"` }
+	if b, err := os.ReadFile(filepath.Join(run, "samples.json")); err != nil || json.Unmarshal(b, &samples) != nil || len(samples) == 0 {
+		t.Fatalf("samples.json okunamadı: %v", err)
+	}
+	if m := samples[len(samples)-1].Metinler; len(m) != 4 || !strings.HasPrefix(m[0], "Once upon a time") || !strings.HasPrefix(m[2], "The dog") {
+		t.Errorf("son örnekler: iki istemin ikişer metni beklenirdi: %q", m)
 	}
 	// Aynı komut: eğitim bitmiş, kontrol noktasından yüklenir.
 	testkit.Wait(t, tr(t, t.TempDir(), args...), 0, []string{"bitti"}, []string{"Kaldığı yerden devam: adım 12"})

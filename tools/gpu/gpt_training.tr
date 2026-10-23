@@ -5,7 +5,7 @@
 // Koşu klasörüne (--koşu) yazılanlar:
 //   config.json     ayarlar, parametre sayısı, cihaz
 //   metrics.jsonl   eğitim kaybı (günlük_her adımda bir), öğrenme oranı çarpanı, doğrulama kaybı
-//   samples.json    "Once upon a time" ile başlayan örnek metinler (örnek_her adımda bir ve sonda)
+//   samples.json    her istemin devamı olarak üretilen örnek metinler (örnek_her adımda bir ve sonda)
 //   speed.json      ms/adım ve parça/sn (ilk ölçüm_ısınması adım hariç)
 //   model.trt       son ağırlıklar; kontrol_noktalari/ kaldığı yerden devam için
 // Kesilirse aynı komut kaldığı yerden sürer (her_dakika'da bir kayıt).
@@ -25,13 +25,14 @@ değişken ayar = komut_satırı({
         adım: 5000, ısınma: 200, azalma: 0.2, muon_oranı: 0.02, adamw_oranı: 0.003,
         ağırlık_çürümesi: 0.0, normuon: yanlış, kırp: 1.0, paylaşımlı: doğru,
         günlük_her: 10, değerlendir_her: 250, değerlendir_toplu: 20, örnek_her: 1000,
-        örnek_sayısı: 3, örnek_uzunluğu: 120, ölçüm_ısınması: 10, her_dakika: 15.0, tohum: 1},
+        örnek_sayısı: 3, örnek_uzunluğu: 120, istemler: "Once upon a time", ölçüm_ısınması: 10, her_dakika: 15.0, tohum: 1},
     açıklama: "SimpleStories verisiyle GPT eğitir (Muon + AdamW, WSD planı, kontrol noktası)",
     açıklamalar: {veri: "tokenizer.json, train.npy, valid.npy klasörü", koşu: "koşu klasörü",
         cihaz: "gpu ya da cpu", hassasiyet: "float32 ya da bf16 (karışık hassasiyet)",
         kv_bakış_sayısı: "anahtar/değer bakış sayısı (0: bakış_sayısı ile aynı)", birikim: "adım başına toplu iş (gradyan biriktirme)",
         azalma: "son adımların azalan oranlı kesri", normuon: "gizli ağırlıklarda NorMuon",
-        kırp: "gradyan normu sınırı (0: kırpma yok)", paylaşımlı: "çıkış katmanı gömme tablosunu kullanır"})
+        kırp: "gradyan normu sınırı (0: kırpma yok)", paylaşımlı: "çıkış katmanı gömme tablosunu kullanır",
+        istemler: "örnek metinlerin başlangıçları, | ile ayrılır (her istem için örnek_sayısı metin)"})
 
 eğer ayar.veri == "" {
     fırlat("veri klasörü verilmedi: --veri /content/ss4096 (tokenizer.json, train.npy, valid.npy)")
@@ -76,14 +77,16 @@ fonksiyon doğrulama_kaybı() {
     sonuç toplam_kayıp / maks(sayı, 1)
 }
 
-// örnek_yaz: "Once upon a time" ile başlayan örnek_sayısı metni samples.json'a yazar.
+// örnek_yaz: her istemin devamı olarak örnek_sayısı metin üretir ve samples.json'a yazar.
 fonksiyon örnek_yaz(adım) {
-    değişken başlangıç = p.kodla("Once upon a time")
     değişken metinler = []
     karışık_hassasiyet(ayar.hassasiyet) {
-        döngü i içinde 0..ayar.örnek_sayısı {
-            değişken kimlikler = model.üret(başlangıç, ayar.örnek_uzunluğu, sıcaklık: 0.8, en_iyi_k: 50, tohum: 1000 * adım + i)
-            metinler.ekle(p.çöz(kimlikler))
+        döngü j, istem içinde ayar.istemler.böl("|") {
+            değişken başlangıç = p.kodla(istem.kırp())
+            döngü i içinde 0..ayar.örnek_sayısı {
+                değişken kimlikler = model.üret(başlangıç, ayar.örnek_uzunluğu, sıcaklık: 0.8, en_iyi_k: 50, tohum: 1000 * adım + 100 * j + i)
+                metinler.ekle(p.çöz(kimlikler))
+            }
         }
     }
     izlenen.örnekler.ekle({adım: adım, metinler: metinler})
@@ -140,4 +143,7 @@ eğer kayıp != yok {
 örnek_yaz(ayar.adım)
 tensör_kaydet(yol(ayar.koşu, "model.trt"), parametreler(model, adlarıyla: doğru))
 yazdır("bitti: en iyi doğrulama kaybı {yuvarla(izlenen.en_iyi_doğrulama, 4)} · koşu klasörü {yol(ayar.koşu).mutlak}")
-yazdır(izlenen.örnekler.son.metinler[0])
+// Her istemin ilk örneği.
+döngü i içinde 0..izlenen.örnekler.son.metinler.uzunluk {
+    eğer i % ayar.örnek_sayısı == 0 { yazdır(izlenen.örnekler.son.metinler[i]) }
+}
