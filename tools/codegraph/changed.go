@@ -170,7 +170,8 @@ func (ix *index) printTestsToRun(w io.Writer, ts *touchSet, limit int) {
 // printOverlaps öbür yerel claude/ dallarının aynı düğümlere ya da dosyalara dokunup
 // dokunmadığını yazar; aynı dosyaya dokunanlar için `git merge-tree` çakışma önizlemesi verir.
 func (ix *index) printOverlaps(w io.Writer, o changeOpts, ref string, mine *touchSet) {
-	out, err := gitOut(o.root, "for-each-ref", "--format=%(refname:short)", "refs/heads/claude/")
+	// Tabana birleşmiş dalın base...dal farkı boştur; onları git tek çağrıda eler (83 dalda 9 sn yerine 0,3 sn).
+	out, err := gitOut(o.root, "for-each-ref", "--no-merged="+o.base, "--format=%(refname:short)", "refs/heads/claude/")
 	if err != nil {
 		fmt.Fprintf(w, "  other branches: cannot list (%v)\n", firstLine(err))
 		return
