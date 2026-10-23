@@ -282,20 +282,25 @@ func reduceKernel(a reduceConfig) func() *emitter {
 			k.put(last)
 			return k
 		}
-		ot := a.dt[3]
-		ha := k.addressS(out, kofs[2], dtypeSize(ot))
-		if a.plusZero {
-			k.e("add.rn.f32", acc, acc, float32(0))
-		}
-		k.e("mul.rn.f32", acc, acc, scaleF)
-		if a.add {
-			old := k.load(ot, ha)
-			k.e("add.rn.f32", acc, old, acc)
-		}
-		k.store(ot, ha, acc)
+		k.storeReduced(a, k.addressS(out, kofs[2], dtypeSize(a.dt[3])), acc, scaleF)
 		k.put(last)
 		return k
 	}
+}
+
+// storeReduced toplamı çıktıya yazar: gerçek toplamda +0 eklenir (plusZero), ölçekle çarpılır,
+// ekleme kipinde çıktının eski değerine eklenir; çıktının türünde yuvarlanır.
+func (k *emitter) storeReduced(a reduceConfig, ha, acc, scaleF reg) {
+	ot := a.dt[3]
+	if a.plusZero {
+		k.e("add.rn.f32", acc, acc, float32(0))
+	}
+	k.e("mul.rn.f32", acc, acc, scaleF)
+	if a.add {
+		old := k.load(ot, ha)
+		k.e("add.rn.f32", acc, old, acc)
+	}
+	k.store(ot, ha, acc)
 }
 
 // argmaxKernel her korunan çıktı için tek eksen boyunca ilk en büyük elemanı bulur

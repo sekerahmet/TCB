@@ -1093,3 +1093,26 @@ test "15.49 yerine_yaz: kaynağı eksendeki dilime başlangıçtan yerinde yazar
     eşit_mi([[0.0, 1.0, 1.0, 5.0], [0.0, 1.0, 1.0, 5.0]], t.değer)
     doğrula(hata_metni(() => yerine_yaz(t, birler([2, 2]), eksen: 1, başlangıç: 3)).içerir("sığmıyor"))
 }
+
+test "15.50 özel değerler: −0, sonsuz ve NaN tablodaki gibi" {
+    değişken sn = 1e308 * 10
+    değişken nan_mı = (x) => x != x
+    değişken ez = tensör([0.0]) * -1                                       // [−0]
+    değişken eksi = (t) => (1 / t).değer[0] < 0                           // sıfırın işareti: 1 / −0 = −sonsuz
+    // Tek işlevler sıfırın işaretini korur; üs tek tam sayıda da.
+    doğrula(eksi(sinüs(ez)) ve eksi(tanh(ez)) ve eksi(üstel_eksi_bir(ez)) ve eksi(ez ** 3))
+    // Yalnızca −0'lardan oluşan toplam +0'dır (PyTorch ve NumPy gibi).
+    doğrula((1 / toplam(tensör([0.0, 0.0]) * -1)).değer > 0)
+    // Üs C99 Ek F'deki gibidir: (±1)^sonsuz = 1, (−sonsuz)^0,5 = sonsuz, (−0)^−1 = −sonsuz.
+    eşit_mi([1.0, 1.0, 0.0], (tensör([1.0, -1.0, 0.5]) ** sn).değer)
+    doğrula((tensör([-sn]) ** 0.5).değer[0] > 1e308 ve (ez ** -1).değer[0] < -1e308)
+    // Doyma: tanh(±sonsuz) = ±1; limit: silu ve gelu −sonsuzda 0.
+    eşit_mi([1.0, -1.0, 1.0], tanh(tensör([sn, -sn, 10.0])).değer)
+    eşit_mi([0.0, 0.0, 0.0], [silu(tensör([-sn])).değer[0], gelu(tensör([-sn])).değer[0], gelu(tensör([-sn]), yaklaşık: yanlış).değer[0]])
+    // işaret(NaN) NaN, işaret(−0) −0.
+    doğrula(nan_mı(işaret(tensör([0.0]) / 0).değer[0]) ve eksi(işaret(ez)))
+    // arktanjant2'nin türevi bir girdi sonsuzken 0'dır (limit).
+    değişken a = tensör([1.0], türev_izle: doğru)
+    geri_yayılım(toplam(arktanjant2(a, tensör([sn]))))
+    eşit_mi([0.0], a.gradyan.değer)
+}
