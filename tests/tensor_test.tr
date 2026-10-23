@@ -1119,6 +1119,11 @@ test "15.50 özel değerler: −0, sonsuz ve NaN tablodaki gibi" {
     doğrula(eksi(sinüs(ez)) ve eksi(tanh(ez)) ve eksi(üstel_eksi_bir(ez)) ve eksi(ez ** 3))
     // Yalnızca −0'lardan oluşan toplam +0'dır (PyTorch ve NumPy gibi).
     doğrula((1 / toplam(tensör([0.0, 0.0]) * -1)).değer > 0)
+    // Tensör listesinin toplamı ve ortalaması da (Python sum gibi): tek ve iki elemanlı listede +0.
+    değişken eksi_sıfır = tensör([0.0]) * -1
+    doğrula((1 / toplam([eksi_sıfır, eksi_sıfır])).değer[0] > 0)
+    doğrula((1 / toplam([eksi_sıfır])).değer[0] > 0)
+    doğrula((1 / ortalama([eksi_sıfır, eksi_sıfır])).değer[0] > 0)
     // Üs C99 Ek F'deki gibidir: (±1)^sonsuz = 1, (−sonsuz)^0,5 = sonsuz, (−0)^−1 = −sonsuz.
     eşit_mi([1.0, 1.0, 0.0], (tensör([1.0, -1.0, 0.5]) ** sn).değer)
     doğrula((tensör([-sn]) ** 0.5).değer[0] > 1e308 ve (ez ** -1).değer[0] < -1e308)
