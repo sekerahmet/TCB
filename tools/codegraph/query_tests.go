@@ -28,7 +28,7 @@ func (ix *index) indirectTests(target *Node) []indirectTest {
 	var out []indirectTest
 	walkCallers(target.ID, ix.callersOf, ix.pkgOf, func(r reached) bool {
 		n := ix.byID[r.ID]
-		if !isTestNode(n) {
+		if !isTestNode(n) && !isTRMeasurement(n) {
 			return true
 		}
 		if !direct[n.ID] {
@@ -194,6 +194,11 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	ix.printMeasurements(w, measured, indirectMeasured, limit)
 	ix.printGuardedRules(w, allTests, allIndirect, limit)
 	ix.printOtherConfigs(w, n, limit)
+}
+
+// isTRMeasurement TR ölçüm programının bildirimi mi (tools/bench/tr/fib.tr): zincirde test gibi durak, ölçüm grubunda.
+func isTRMeasurement(n *Node) bool {
+	return n != nil && strings.HasPrefix(n.ID, "tr:") && isMeasurement(n)
 }
 
 // isMeasurement düğüm bir test değil ölçüm mü: Benchmark* işlevi ya da tools/bench altındaki kod. Ölçüm sonuç

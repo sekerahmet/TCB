@@ -151,7 +151,7 @@ func buildGraphFrom(root string, m *module) *Graph {
 	extractOtherConfigs(m, b)
 	extractCodes(root, b)
 	addTestEdges(b, idx)
-	extractTR(root, b)
+	extractTR(root, b, m)
 	extractMarkdown(root, b, idx)
 	extractSpecRefs(root, b)
 	extractDataFiles(root, b)

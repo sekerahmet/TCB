@@ -29,7 +29,7 @@ func trFileID(rel string) string { return "tr:file:" + rel }
 // grafiğe çevirir: işlev, yapı, metot, alan, sabit/değişken ve test düğümleri; çağrı, kullanım,
 // ad kodu, aktarma ve test kenarları. Ayrıştırılamayan dosya uyarı olur. Kimlikler (tr:func:...)
 // ajanların alışkanlığı bozulmasın diye korunur.
-func extractTR(root string, b *builder) {
+func extractTR(root string, b *builder, m *module) {
 	idx, err := codeindex.Build(root, codeindex.Options{Dirs: trRoots, Tracked: true})
 	if err != nil {
 		b.warn("tr sources skipped: " + err.Error())
@@ -62,6 +62,9 @@ func extractTR(root string, b *builder) {
 		}
 	}
 	namedArgumentEdges(idx, ids, b)
+	if m != nil {
+		linkConstructs(b, readDispatch(m), idx, ids)
+	}
 }
 
 // graphID bir codeindex düğümünün grafikteki kimliğidir.
