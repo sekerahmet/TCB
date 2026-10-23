@@ -1,7 +1,10 @@
 package main
 
 import (
+	"path"
 	"sort"
+	"strconv"
+	"strings"
 )
 
 // Bu dosya tekrar adaylarını bulur. Yöntem: düğüm dizisinde uzunluğu minNodes olan her pencerenin
@@ -25,6 +28,7 @@ type dupLoc struct {
 
 // dupCluster birbirinin tekrarı olan konumlardır.
 type dupCluster struct {
+	ID    string   `json:"id"`    // kararlı kimlik: konumların dosya:işlev adları (clusterID)
 	Nodes int      `json:"nodes"` // en kısa konumun düğüm sayısı
 	Locs  []dupLoc `json:"locations"`
 	Diff  dupDiff  `json:"diff"`
@@ -216,7 +220,7 @@ func (co *dupCorpus) clusterOf(starts []int, length map[int]int) *dupCluster {
 	c := &dupCluster{}
 	for _, s := range starts {
 		l := length[s]
-		loc := dupLoc{File: co.files[co.file[s]], Nodes: l, start: s, fileIdx: int(co.file[s]), Func: co.funcAt(s)}
+		loc := dupLoc{File: co.files[co.file[s]], Nodes: l, start: s, fileIdx: int(co.file[s]), Func: co.funcIn(s, l)}
 		loc.From, loc.To = co.lineSpan(s, l)
 		c.Locs = append(c.Locs, loc)
 		if c.Nodes == 0 || l < c.Nodes {
@@ -283,12 +287,29 @@ func (co *dupCorpus) funcAt(pos int) string {
 	return ""
 }
 
+// funcIn [pos, pos+n) aralığının işlevini verir: başlangıcı bir işlevin içindeyse o, değilse (eşleşme üst düzey
+// bildirimlerle ya da bir kardeş dizisiyle başlıyorsa) aralıkta başlayan ilk işlev, o da yoksa "".
+func (co *dupCorpus) funcIn(pos, n int) string {
+	if name := co.funcAt(pos); name != "" {
+		return name
+	}
+	i := sort.Search(len(co.funcs), func(i int) bool { return co.funcs[i].from >= pos })
+	if i < len(co.funcs) && co.funcs[i].from < pos+n {
+		return co.funcs[i].name
+	}
+	return ""
+}
+
 // findDups kümeleri bulur: büyükten küçüğe sıralı, daha büyük bir kümenin içinde kalanlar atılmış.
 func (co *dupCorpus) findDups(minNodes int) (clusters []*dupCluster, skippedGroups int) {
 	pairs, skipped := co.matches(minNodes)
 	groups := co.dupGroups(pairs)
 	sort.SliceStable(groups, func(i, j int) bool { return clusterBefore(groups[i], groups[j]) })
-	return dropSubsumed(groups), skipped
+	kept := dropSubsumed(groups)
+	for _, c := range kept {
+		c.ID = clusterID(c)
+	}
+	return kept, skipped
 }
 
 // clusterBefore kümelerin tam sıralamasıdır: büyük önce, eşitse konumları sırayla (dosya, satır) karşılaştırılır.
@@ -343,4 +364,31 @@ func coveredBy(spans [][2]int, from, to int) bool {
 		}
 	}
 	return false
+}
+
+// maxIDLocs kimlikte adı geçen en çok konum sayısıdır; fazlası "+N" olur.
+const maxIDLocs = 3
+
+// clusterID kümenin kararlı kimliğidir: konumların "klasör/dosya:işlev" adları sıralanıp "~" ile birleştirilir
+// (işlevi olmayan konumda "klasör/dosya@satır"). Sıra numarası kümeler değişince kayar, satır numaraları
+// dosya düzenlenince kayar; işlev adları ise kopya olduğu sürece sabit kalır. Belgeye yazılacak ad budur.
+func clusterID(c *dupCluster) string {
+	names := make([]string, 0, len(c.Locs))
+	for _, l := range c.Locs {
+		dir, file := path.Split(l.File)
+		name := path.Base(path.Clean(dir)) + "/" + file
+		if l.Func != "" {
+			name += ":" + l.Func
+		} else {
+			name += "@" + strconv.Itoa(l.From)
+		}
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	extra := ""
+	if len(names) > maxIDLocs {
+		extra = "+" + strconv.Itoa(len(names)-maxIDLocs)
+		names = names[:maxIDLocs]
+	}
+	return strings.Join(names, "~") + extra
 }

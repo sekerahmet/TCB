@@ -456,3 +456,34 @@ func TestDupsTreatsSiblingRunsAsLeaves(t *testing.T) {
 		t.Error("a real copy next to sibling lists must still be found")
 	}
 }
+
+// Kural: her adayın kimliği konumlarının dosya:işlev adlarından kurulur; satır numarası değişince (dosyanın başına
+// satır eklenince) ve başka kümeler araya girip sıra numarası kayınca aynı kalır, JSON'da "id" alanında durur.
+func TestDupsClusterIDIsStable(t *testing.T) {
+	files := map[string]string{"x/a.go": "src:" + siblingSource("x", []string{"A"}) + realCopy,
+		"y/b.go": "src:" + siblingSource("y", []string{"B"}) + strings.ReplaceAll(realCopy, "Real", "Other")}
+	idOf := func(files map[string]string) string {
+		clusters, _ := dupsOf(t, dupTree(t, files), 30, false)
+		c := hasCluster(clusters, "x/a.go", "y/b.go")
+		if c == nil {
+			t.Fatalf("no cluster in %v", clusters)
+		}
+		return c.ID
+	}
+	id := idOf(files)
+	if !strings.Contains(id, "x/a.go:") || !strings.Contains(id, "y/b.go:") || !strings.Contains(id, "~") {
+		t.Errorf("id = %q", id)
+	}
+	shifted := map[string]string{"x/a.go": "src:// kayma\n// kayma\n" + strings.TrimPrefix(files["x/a.go"], "src:"), "y/b.go": files["y/b.go"]}
+	if got := idOf(shifted); got != id {
+		t.Errorf("id changed when lines shifted: %q -> %q", id, got)
+	}
+	var out, errb bytes.Buffer
+	root := dupTree(t, files)
+	if code := run([]string{"dups", "--root", root, "--min", "30", "--json"}, &out, &errb); code != exitOK {
+		t.Fatalf("exit %d: %s", code, errb.String())
+	}
+	if !strings.Contains(out.String(), `"id": "`) {
+		t.Errorf("json lacks the id field:\n%s", out.String())
+	}
+}

@@ -240,6 +240,14 @@ go run ./tools/codegraph dups --list-exclusions     # the deliberate exceptions 
   different literal shape), e.g. `ShortNumber` and `FormatBytes` score 0.76 and `registerIsFinite`
   and `registerRounding` 0.85. Schema `codegraph-similar/1`.
 
+**Candidate ids.** Every candidate has a stable `id` (text and JSON): its locations' `dir/file:Func` names
+sorted and joined with `~` (`tensor/helpers_test.go:bf16Deviation~ml/behavior_grad_composite_test.go:compositeDeviation`;
+`@line` when no function starts in the span; more than 3 locations end in `+N`). The `#N` rank moves
+whenever another candidate appears or goes away and line numbers move with every edit; function names
+stay while the copy exists, so a document or a hand-over note should cite the id. There is no accept-by-id
+list on purpose: it would silence a specific pair even after the copy grows, and the exclusion rules
+(`dups_exclude.go`, a glob and a reason) already cover the deliberate exceptions.
+
 **Method.** Each file's syntax tree is flattened in pre-order into one sequence of numbers, one per
 node: (node type, operator, child count). Names and literal values are *not* in it (they only
 feed the diff summary), the child count makes the sequence decode to exactly one tree, and a unique

@@ -206,7 +206,7 @@ func printDups(w io.Writer, res *dupResult, took time.Duration) {
 	fmt.Fprintf(w, "%d duplicate candidate(s)%s (%d shown; >= %d nodes; %d files, %d nodes, %.1fs)\n",
 		res.Total, scope, len(res.Clusters), res.Min, res.Files, res.Nodes, took.Seconds())
 	for i, c := range res.Clusters {
-		fmt.Fprintf(w, "\n#%d  %d nodes, %d locations, %s\n", i+1, c.Nodes, len(c.Locs), diffSummary(c.Diff))
+		fmt.Fprintf(w, "\n#%d  %s\n    %d nodes, %d locations, %s\n", i+1, c.ID, c.Nodes, len(c.Locs), diffSummary(c.Diff))
 		for _, l := range c.Locs {
 			mark := ""
 			if l.Changed {
