@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"path"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -146,7 +147,30 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	indirect, indirectMeasured := splitMeasurements(ix.indirectTests(n), func(t indirectTest) *Node { return t.test })
 	viaNames, _ := splitMeasurements(ix.testsThroughNames(n), func(t nameTest) *Node { return t.test })
 	subprocess := ix.subprocessTests(n)
-	found := len(tests) + len(walks) + len(asValue) + len(indirect) + len(viaNames)
+	allTests, allIndirect := tests, indirect // koruduğu kurallar bütün testlerden
+	// Tek sıralama (deneme 8 S1 ve M): önce onu konu edinen testler, sonra doğrudan kullananlar, sonra kısa ve aynı paket
+	// zincirleri, en sonda zayıf kanıt; her test bir kez, en güçlü kanıtının grubunda.
+	var candidates []*Node
+	for _, e := range append(append([]*Edge(nil), tests...), walks...) {
+		candidates = append(candidates, ix.byID[e.From])
+	}
+	for _, it := range append(append([]indirectTest(nil), asValue...), indirect...) {
+		candidates = append(candidates, it.test)
+	}
+	for _, t := range viaNames {
+		candidates = append(candidates, t.test)
+	}
+	about := ix.aboutTests(n, candidates)
+	isAbout := map[string]bool{}
+	for _, a := range about {
+		isAbout[a.test.ID] = true
+	}
+	tests = slices.DeleteFunc(slices.Clone(tests), func(e *Edge) bool { return isAbout[e.From] })
+	walks = slices.DeleteFunc(slices.Clone(walks), func(e *Edge) bool { return isAbout[e.From] })
+	asValue = slices.DeleteFunc(slices.Clone(asValue), func(it indirectTest) bool { return isAbout[it.test.ID] })
+	indirect = slices.DeleteFunc(slices.Clone(indirect), func(it indirectTest) bool { return isAbout[it.test.ID] })
+	viaNames = slices.DeleteFunc(slices.Clone(viaNames), func(t nameTest) bool { return isAbout[t.test.ID] })
+	found := len(about) + len(tests) + len(walks) + len(asValue) + len(indirect) + len(viaNames)
 	if found == 0 && len(measured) == 0 && len(indirectMeasured) == 0 && len(subprocess) == 0 {
 		if !ix.printLinkedBinaries(w, n) {
 			fmt.Fprintln(w, "  no tests found")
@@ -160,13 +184,14 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	case found == 0:
 		fmt.Fprintln(w, "  no tests found (only measurements, below)")
 	}
-	ix.printGroups(w, "  <-", tests, fromOf, limit, true) // doğrudan testler önce: bu adı ya da dosyayı kullananlar
+	ix.printAboutTests(w, about, limit)
+	ix.printGroups(w, "  <-", tests, fromOf, limit, true) // sonra doğrudan testler: bu adı ya da dosyayı kullananlar
 	ix.printWalks(w, walks, limit)
 	ix.printValueTests(w, asValue, limit)
 	ix.printInferred(w, n, indirect, viaNames, limit)
 	ix.printSubprocessTests(w, subprocess)
 	ix.printMeasurements(w, measured, indirectMeasured, limit)
-	ix.printGuardedRules(w, tests, indirect, limit)
+	ix.printGuardedRules(w, allTests, allIndirect, limit)
 	ix.printOtherConfigs(w, n, limit)
 }
 
@@ -350,151 +375,6 @@ func (ix *index) testDistances(n *Node) map[string]int {
 		note(t.test.ID, t.steps)
 	}
 	return best
-}
-
-// subprocessTests n'nin paketini derleyip ikilisini koşan testlerdir, paket klasörüne göre gruplu. Derleyen TestMain ise
-// onun paketindeki bütün testler (ikiliyi hepsi paylaşır); başka bir işlevse onu çağıran ilk testler (zincir kuralı).
-func (ix *index) subprocessTests(n *Node) map[string][]*Node {
-	return ix.subprocessTestsOf(ix.goPackageOf(n))
-}
-
-// subprocessTestsOf subprocessTests'tir, paket kimliğiyle.
-func (ix *index) subprocessTestsOf(pkg string) map[string][]*Node {
-	var builders []*Node
-	for _, e := range ix.in[pkg] {
-		if e.Kind == edgeBuilds && ix.byID[e.From] != nil {
-			builders = append(builders, ix.byID[e.From])
-		}
-	}
-	out := map[string][]*Node{}
-	seen := map[string]bool{}
-	add := func(t *Node) {
-		if !seen[t.ID] && !isMeasurement(t) {
-			seen[t.ID] = true
-			out[path.Dir(t.File)] = append(out[path.Dir(t.File)], t)
-		}
-	}
-	for _, b := range builders {
-		if strings.HasSuffix(b.Name, ".TestMain") {
-			for _, t := range ix.testsInDir(path.Dir(b.File)) {
-				if t.ID != b.ID {
-					add(t)
-				}
-			}
-			continue
-		}
-		walkCallers(b.ID, ix.callersOf, ix.pkgOf, func(r reached) bool {
-			if t := ix.byID[r.ID]; isTestNode(t) {
-				add(t)
-				return false
-			}
-			return true
-		})
-	}
-	return out
-}
-
-// goPackageOf düğümün dosyasını içeren Go paketi düğümünün kimliğidir (paket → dosya `contains` kenarı); yoksa "".
-func (ix *index) goPackageOf(n *Node) string {
-	for _, e := range ix.in[fileID(n.File)] {
-		if e.Kind == edgeContains && strings.HasPrefix(e.From, "go:pkg:") {
-			return e.From
-		}
-	}
-	return ""
-}
-
-// testsInDir klasördeki Go testleridir.
-func (ix *index) testsInDir(dir string) []*Node {
-	var out []*Node
-	for i := range ix.g.Nodes {
-		if t := &ix.g.Nodes[i]; path.Dir(t.File) == dir && isTestNode(t) {
-			out = append(out, t)
-		}
-	}
-	return out
-}
-
-// printSubprocessTests alt süreç testlerini klasör başına tek satırda sayar.
-func (ix *index) printSubprocessTests(w io.Writer, byDir map[string][]*Node) {
-	if len(byDir) == 0 {
-		return
-	}
-	dirs := make([]string, 0, len(byDir))
-	total := 0
-	for d, ts := range byDir {
-		dirs = append(dirs, fmt.Sprintf("%s (%d)", d, len(ts)))
-		total += len(ts)
-	}
-	sort.Strings(dirs)
-	fmt.Fprintf(w, "  <- covered by subprocess tests (%d; they build this package and run the binary, not traced per function): %s\n", total, strings.Join(dirs, ", "))
-}
-
-// printLinkedBinaries n'nin paketi (geçişli içe aktarmayla) bir testin derleyip koştuğu ana pakete bağlıysa bunu zayıf
-// kanıt olarak yazar ve true verir: ikiliyi koşan testler bu koda varabilir, ama hangisinin vardığı izlenmez (DENETİM
-// doğrulaması Y5: codeindex.LoadCached, e2e'deki --dizin-yok testine rağmen "no tests found" diyordu). Paketin kendisi
-// derleniyorsa satır zaten "covered by subprocess tests"tir; burada yalnızca bağlanan paketler.
-func (ix *index) printLinkedBinaries(w io.Writer, n *Node) bool {
-	pkg := ix.goPackageOf(n)
-	if pkg == "" {
-		return false
-	}
-	var parts []string
-	total := 0
-	for _, bin := range ix.builtPackages() {
-		if bin == pkg || !ix.importsTransitively(bin, pkg) {
-			continue
-		}
-		byDir := ix.subprocessTestsOf(bin)
-		count := 0
-		for _, ts := range byDir {
-			count += len(ts)
-		}
-		total += count
-		parts = append(parts, fmt.Sprintf("%s (%d tests run it)", ix.byID[bin].Name, count))
-	}
-	if len(parts) == 0 {
-		return false
-	}
-	sort.Strings(parts)
-	fmt.Fprintln(w, "  no tests traced to it")
-	fmt.Fprintf(w, "  <- weak evidence (%d): linked into the binary of %s; a subprocess test may reach this code, which one is not traced\n", total, strings.Join(parts, ", "))
-	return true
-}
-
-// builtPackages bir testin `go build` ile derlediği paketlerdir (builds kenarının hedefi), sıralı.
-func (ix *index) builtPackages() []string {
-	seen := map[string]bool{}
-	var out []string
-	for i := range ix.g.Edges {
-		if e := &ix.g.Edges[i]; e.Kind == edgeBuilds && !seen[e.To] {
-			seen[e.To] = true
-			out = append(out, e.To)
-		}
-	}
-	sort.Strings(out)
-	return out
-}
-
-// importsTransitively from paketi to paketini (doğrudan ya da dolaylı) içe aktarıyor mu.
-func (ix *index) importsTransitively(from, to string) bool {
-	seen := map[string]bool{from: true}
-	queue := []string{from}
-	for len(queue) > 0 {
-		cur := queue[0]
-		queue = queue[1:]
-		for _, e := range ix.out[cur] {
-			if e.Kind != edgeImports || seen[e.To] {
-				continue
-			}
-			if e.To == to {
-				return true
-			}
-			seen[e.To] = true
-			queue = append(queue, e.To)
-		}
-	}
-	return false
 }
 
 // printGoFileTests bir Go dosyasını koruyan testlerdir: dosyadaki bildirimlerin (işlev, metot, tip, değer) testlerinin

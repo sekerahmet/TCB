@@ -93,7 +93,7 @@ func Update() {
 	Save()
 }
 `,
-	"tests/x_test.tr": "test \"güncelle adımı bildirir\" {\n    değişken kn = kontrol_noktası(1, {})\n    kn.güncelle(1)\n}\n",
+	"tests/x_test.tr": "test \"adım ilerlemesi bildirilir\" {\n    değişken kn = kontrol_noktası(1, {})\n    kn.güncelle(1)\n}\n",
 }
 
 // Kural: bir Go işlevi, uyguladığı (kodunu kullandığı) dil adının testleriyle ve onu çağıran işlevlerin uyguladığı adların
@@ -110,7 +110,7 @@ func TestAGoFunctionIsTestedThroughTheNameCodesItsCallersImplement(t *testing.T)
 		if code := run([]string{"tests-for", fn, "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
 			t.Fatalf("tests-for %s: %d %s", fn, code, errb.String())
 		}
-		if !strings.Contains(out.String(), "tests through the name codes") || !strings.Contains(out.String(), "güncelle adımı bildirir") {
+		if !strings.Contains(out.String(), "tests through the name codes") || !strings.Contains(out.String(), "adım ilerlemesi bildirilir") {
 			t.Errorf("tests-for %s lacks the TR test block of Y010:\n%s", fn, out.String())
 		}
 	}

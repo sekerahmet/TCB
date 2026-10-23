@@ -79,27 +79,10 @@ func shortName(n *Node) string {
 	return n.Name
 }
 
-// renameTargets sorgunun adını değiştirilecek düğümlere çözer. Çıplak ad (nokta, iki nokta, yol yok)
-// o adı taşıyan bütün bildirimlerdir (alan, parametre, işlev, ... hepsi: terim değişince hepsi
-// değişir); nitelenmiş ad, kimlik ya da konum Resolve'un bulduklarıdır.
+// renameTargets sorgunun adını değiştirilecek düğümlere çözer: Resolve'un bulduklarından yeniden adlandırılabilenler.
+// Çıplak ad o adı taşıyan bütün bildirimlerdir (alan, parametre, işlev, seçenek ...: terim değişince hepsi değişir);
+// nitelenmiş ad, kimlik ya da konum tek bildirimi seçer. Ad çözümü tek yerdedir (Resolve).
 func (r *Reader) renameTargets(q string) (targets []*Node, rejected string) {
-	exact := hasUpper(q)
-	same := func(a string) bool {
-		if exact {
-			return a == q
-		}
-		return fold(a) == fold(q)
-	}
-	if !strings.ContainsAny(q, ".:/#") {
-		for i := range r.Index.Nodes {
-			if n := &r.Index.Nodes[i]; renamable(n) && same(shortName(n)) {
-				targets = append(targets, n)
-			}
-		}
-		if len(targets) > 0 {
-			return targets, ""
-		}
-	}
 	for _, n := range r.Resolve(q, "") {
 		switch {
 		case renamable(n):
@@ -178,6 +161,7 @@ func (r *Reader) RenameImpact(q, newName string, o RenameOptions) *Result {
 	}
 	lines := &lineSource{root: o.Root}
 	skip := map[string]bool{}
+	r.addLinked(res, targets, skip)
 	for _, n := range targets {
 		for _, oc := range r.Occurrences(n.ID) {
 			ch := Change{Pos: oc.Pos, Node: n.ID, Role: oc.Role, Confidence: oc.Confidence, Basis: oc.Basis,
@@ -200,8 +184,7 @@ func (r *Reader) RenameImpact(q, newName string, o RenameOptions) *Result {
 			hits, other := ScanText(o.Root, w, newName, skip)
 			res.SkippedWords += other
 			for _, h := range hits {
-				res.Likely = append(res.Likely, Change{Pos: h.Pos, Where: h.Where, Match: h.Match, Word: h.Word,
-					Context: h.Context, Replacement: h.Suggestion, Check: h.Check})
+				res.Likely = append(res.Likely, textChange(h, lines))
 			}
 		}
 	}

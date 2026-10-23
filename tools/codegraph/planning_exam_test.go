@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"unicode"
 
 	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -294,6 +295,9 @@ func TestPlanningQuestionsAreAnswered(t *testing.T) {
 	if bad, checked := trTestSetMismatches(g, idx, x.reader); len(bad) > 0 || checked < 100 {
 		t.Errorf("tr dizin sınayanlar and tests-for disagree on %d of %d TR functions:\n  %s", len(bad), checked, strings.Join(bad[:min(len(bad), 20)], "\n  "))
 	}
+	if bad, checked := trNameSetMismatches(g, idx, x.reader); len(bad) > 0 || checked < 20 {
+		t.Errorf("tr dizin and codegraph resolve %d of %d bare TR names differently:"+"\n  %s", len(bad), checked, strings.Join(bad[:min(len(bad), 20)], "\n  "))
+	}
 	out, _ := gitStdout(root, "rev-parse", "--is-shallow-repository")
 	shallow := strings.TrimSpace(string(out)) == "true" // CI kaynağı derinlik 1 ile alır: geçmiş yok
 	for _, r := range records {
@@ -339,6 +343,47 @@ func trTestSetMismatches(g *Graph, idx *codeindex.Index, reader *codeindex.Reade
 		}
 		if !maps.Equal(want, got) {
 			bad = append(bad, fmt.Sprintf("%s: tr dizin %d, tests-for %d", gn.Name, len(want), len(got)))
+		}
+	}
+	sort.Strings(bad)
+	return bad, checked
+}
+
+// trNameSetMismatches her TR bildirim adını iki araca sorar: `tr dizin` (codeindex.Resolve) ile codegraph'ın lookup'ı
+// çıplak ad için aynı TR bildirim kümesini vermeli (deneme 7 R1: tanım 3, yeniden_adlandır 7, query 4 aday veriyordu).
+// Yerleşik ad kodları ve modüller karşılaştırılmaz: grafikte ad kodu düğümüdür, modül dosya düğümüdür.
+func trNameSetMismatches(g *Graph, idx *codeindex.Index, reader *codeindex.Reader) (bad []string, checked int) {
+	ix := newIndex(g)
+	names := map[string]bool{}
+	for _, n := range idx.Nodes {
+		if n.Kind == codeindex.KindBuiltin || n.Kind == codeindex.KindModule || n.Kind == codeindex.KindTest {
+			continue
+		}
+		names[n.Name[strings.LastIndex(n.Name, ".")+1:]] = true
+	}
+	for name := range names {
+		if strings.ContainsFunc(name, unicode.IsUpper) {
+			continue // büyük harfli ad yapı ya da tiptir; Go adlarıyla aynı basamakta çözülür, karşılaştırma küçük harfli adlarda
+		}
+		found := reader.Resolve(name, "")
+		if len(found) < 2 {
+			continue // tek adaylı ad belirsizlik taşımaz; karşılaştırma aday kümesi kurulan adlarda (sınav süresi)
+		}
+		checked++
+		want := map[string]bool{}
+		for _, n := range found {
+			if n.Kind != codeindex.KindBuiltin && n.Kind != codeindex.KindModule && n.Kind != codeindex.KindTest {
+				want[graphID(*n)] = true
+			}
+		}
+		got := map[string]bool{}
+		for _, n := range ix.lookup(name) {
+			if strings.HasPrefix(n.ID, "tr:") && n.Kind != kindFile && n.Kind != kindTRTest {
+				got[n.ID] = true
+			}
+		}
+		if !maps.Equal(want, got) {
+			bad = append(bad, fmt.Sprintf("%s: tr dizin %d, codegraph %d", name, len(want), len(got)))
 		}
 	}
 	sort.Strings(bad)

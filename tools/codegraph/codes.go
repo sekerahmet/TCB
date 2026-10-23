@@ -67,7 +67,27 @@ func extractCodes(root string, b *builder) {
 				Aliases: nameAliases(n.Ad, english[code].Ad)})
 		}
 	}
+	relatedNames(cdir, b)
 	envMessages(root, b)
+}
+
+// relatedNames dil tanımının "ilişkili" bağını (definitions.json: yazdır ↔ girdi, birleştir ↔ böl) ad kodları arasında
+// `related` kenarı yapar: yeni bir ad tasarlanırken akraba adlar ilk bakılacak yerdir (deneme 8 S2).
+func relatedNames(cdir string, b *builder) {
+	defs := map[string]struct {
+		Related []string `json:"ilişkili"`
+	}{}
+	path := filepath.Join(cdir, "definitions.json")
+	if !readJSON(path, &defs) {
+		return
+	}
+	rel := codesDir + "/definitions.json"
+	lines := jsonKeyLines(path)
+	for code, d := range defs {
+		for _, other := range d.Related {
+			b.addEdge("name:"+code, "name:"+other, edgeRelated, extracted, rel, lines[code])
+		}
+	}
 }
 
 // nameAliases bir ad kodunun dildeki adlarıdır (Türkçe, İngilizce), boşlar ve yinelenenler atılır.

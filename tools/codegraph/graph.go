@@ -22,7 +22,7 @@ const schemaVersion = 1
 // 7: .tr kaynakları etkin yazım dilinden bağımsız okunur (TR_DIL=en grafiği eksik bırakıyordu).
 // 8: sabit, değişken ve alan düğümlerinin bitiş satırı kendi değeriyle biter (öncekiler sonraki bloğun sonuna uzanıyordu).
 // 9: aynı modül hem takma adsız hem takma adla aktarılınca takma ad tanınır (yutuluyordu).
-const extractorRevision = 32
+const extractorRevision = 35
 
 // Düğüm türleri.
 const (
@@ -66,6 +66,7 @@ const (
 	edgeGuardedBy   = "guarded_by"
 	edgeLinksTo     = "links_to"
 	edgeBuilds      = "builds"
+	edgeRelated     = "related"
 )
 
 // Güven etiketleri: EXTRACTED kaynaktan ya da tip bilgisinden kesin okunan, INFERRED addan ya da

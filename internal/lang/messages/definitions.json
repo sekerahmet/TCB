@@ -1653,5 +1653,8 @@
 "H8864": { "param": ["command", "subcommand", "example"] },
 "H8865": { "param": [] },
 "H8866": { "param": [] },
+"H8867": { "param": ["count"] },
+"H8868": { "param": [] },
+"H8869": { "param": [] },
 "H9000": { "param": ["detail"] }
 }
