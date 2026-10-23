@@ -60,4 +60,4 @@ TR, yapay zekâ modeli geliştirmek ve eğitmek için Türkçe bir programlama d
 
 - Her yan oturum kendi çalışma ağacında (worktree) çalışır; aynı klasörü paylaşan iki oturum birbirinin denetimini bozar.
 - Yan oturum push etmez ve tam denetim çalıştırmaz; birleştirme ve gönderim ana oturumdadır.
-- İşin sonunda yönergedeki devir notunu yazar (durum, birleştirmede dikkat, kararlar, bulgular, öneriler, kalan) ve ana oturuma bulguları bildirir.
+- İşin sonunda yönergedeki devir notunu yazar (durum, birleştirmede dikkat, kararlar, bulgular, öneriler, kalan) ve ana oturuma bulguları bildirir. Durum bölümünde iki denetimin çıktısı yer alır: değiştirdiği her dosya için dokunmadan önce koşulan `codegraph tests-for <dosya>` sonucunun özeti (koruyan testler ve kurallar; "test yok" çıktıysa ikinci yoldan doğrulaması) ve `codegraph dups --changed main` sonucu.
