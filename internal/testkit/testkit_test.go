@@ -170,7 +170,7 @@ func TestPanicError(t *testing.T) {
 func TestWaitGoroutineBlocked(t *testing.T) {
 	c := make(chan struct{})
 	go blockedOnChannel(c)
-	WaitGoroutineBlocked(t, true, "testkit.blockedOnChannel")
+	WaitGoroutineBlocked(t, true, []string{"[chan receive"}, "testkit.blockedOnChannel")
 	close(c)
 }
 

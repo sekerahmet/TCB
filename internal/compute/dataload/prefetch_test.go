@@ -121,7 +121,7 @@ func TestPrefetcherCloseNoLeak(t *testing.T) {
 		var ti Batch
 		failure <- o.Take(&ti)
 	}()
-	testkit.WaitGoroutineBlocked(t, true, "(*Prefetcher).Take")
+	testkit.WaitGoroutineBlocked(t, true, []string{"[select", "[chan receive"}, "(*Prefetcher).Take")
 	_ = o.Close()
 	if err := <-failure; !errors.Is(err, ErrClosed) {
 		t.Fatalf("ErrKapali bekleniyordu: %v", err)

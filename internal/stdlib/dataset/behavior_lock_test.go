@@ -57,7 +57,7 @@ func TestNextReleasesLockWhileWaiting(t *testing.T) {
 			// Görev sonraki()'nin içinde önden yükleyiciyi beklemeye girene kadar beklenir
 			// (uyku değil): görev oraya varmadan kapı açılsaydı test, sınadığını sınamadan
 			// geçerdi.
-			testkit.WaitGoroutineBlocked(t, false, "(*Reader).nextTR", "(*Prefetcher).Take")
+			testkit.WaitGoroutineBlocked(t, false, []string{"[select"}, "(*Reader).nextTR", "(*Prefetcher).Take")
 		})
 		return interp.Null, nil
 	})

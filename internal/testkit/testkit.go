@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -287,12 +288,12 @@ func PanicError(fn func()) (err error) {
 	return nil
 }
 
-// WaitGoroutineBlocked, yığınında funcs'un hepsi geçen bir gorutin kanal beklemesinde (select ya da
-// kanaldan alma) durana kadar bekler. Uyku yerine kullanılır: "Al beklerken Kapat" gibi
+// WaitGoroutineBlocked, yığınında funcs'un hepsi geçen bir gorutin states'ten birinde (yığın
+// başlığındaki durum, ör. "[select", "[chan receive") durana kadar bekler; durumları çağıran verir. Uyku yerine kullanılır: "Al beklerken Kapat" gibi
 // sınamalar beklemenin gerçekten başladığından emin olur, yoksa sınadığını sınamadan da
 // geçebilirdi. Süre sınırı (5 sn) yalnızca takılmaya karşıdır. fatal false ise sınanan program
 // ayrı bir gorutinde koşuyordur: t.Fatalf yerine t.Errorf yazıp döner.
-func WaitGoroutineBlocked(t testing.TB, fatal bool, funcs ...string) {
+func WaitGoroutineBlocked(t testing.TB, fatal bool, states []string, funcs ...string) {
 	t.Helper()
 	last := time.Now().Add(5 * time.Second)
 	buf := make([]byte, 1<<20)
@@ -300,7 +301,7 @@ func WaitGoroutineBlocked(t testing.TB, fatal bool, funcs ...string) {
 		stack := string(buf[:runtime.Stack(buf, true)])
 		for _, g := range strings.Split(stack, "\n\n") {
 			header, _, _ := strings.Cut(g, "\n")
-			if !strings.Contains(header, "[select") && !strings.Contains(header, "[chan receive") {
+			if !slices.ContainsFunc(states, func(st string) bool { return strings.Contains(header, st) }) {
 				continue
 			}
 			all := true
