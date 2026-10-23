@@ -61,6 +61,17 @@ Seçenekler (komutlardan sonra, iki tireyle; adın sözcükleri tireyle ayrılı
 | `--terim` | `yeniden_adlandır` sorgusunda sembol aramaz, sözcüğü yalnızca metinde arar | `tr dizin yeniden_adlandır çekirdek kernel --terim` |
 | `--yardım` | Programın `komut_satırı` ile tanımlanan seçeneklerinin yardımı | `tr examples/tr/39_veri_ile_egitim.tr --yardım` |
 
+Ortam değişkenleri (komut ve seçenekler gibi her gömülü dilin adıyla okunur: `TR_GPU_ESZAMANLI` ile `TR_GPU_SYNC` aynıdır):
+
+| Değişken | Ne yapar | Örnek |
+| :-- | :-- | :-- |
+| `TR_DIL` | Yazım dilini seçer (`tr`, `en`): iletiler, yardım, kodlu dosyanın görünümü | `TR_DIL=en tr yardım` |
+| `TR_IS_KLASORU` | Arka plan işinin klasörü: ilerleme çubuğu oraya `ilerleme.json` yazar | `TR_IS_KLASORU=isler/egitim tr examples/tr/28_egitim_dongusu.tr` |
+| `TR_GPU_ESZAMANLI` | `1` ise her GPU kernelinden sonra beklenir; kernel hatası tam yerinde bildirilir (yavaş) | `TR_GPU_ESZAMANLI=1 tr examples/tr/33_cihaz_ve_hassasiyet.tr` |
+| `TR_GPU_PROFIL` | `1` ise GPU kernel süreleri ölçülür (`izle` ve `profil` kendileri açar) | `TR_GPU_PROFIL=1 tr examples/tr/33_cihaz_ve_hassasiyet.tr` |
+| `TR_CPU_AVX2` | `0` ise CPU'nun AVX2/FMA kernelleri kapanır, taşınabilir Go kernelleri çalışır | `TR_CPU_AVX2=0 tr examples/tr/23_tensor.tr` |
+| `TR_GPU_CUBLASLT` | Bulunamazsa cuBLASLt kitaplığının tam yolu | `TR_GPU_CUBLASLT=/usr/local/cuda/lib64/libcublasLt.so.12 tr examples/tr/33_cihaz_ve_hassasiyet.tr` |
+
 Etkileşimli kabuk `tr` ile açılır (dosya verilmeden); kabuktan `çıkış` ile çıkılır.
 
 Hata ayıklayıcı komutları ([42](tr/42_hata_ayiklama.tr) ve [43](tr/43_hata_ayiklama_alistirmasi.tr)'te kullanılır; VS Code'da aynı işler F5, F10, F11 tuşlarıdır):
