@@ -26,5 +26,24 @@ func TestAssertSameRunFiles(t *testing.T) {
 		WriteFile(t, d, "metrics.jsonl", `{"adım":1,"kayıp":0.5}`+"\n")
 	}
 	WriteFile(t, b, "metrics.jsonl", `{"adım":1,"kayıp":0.5}`+"\n"+`{"adım`)
-	AssertSameRunFiles(t, a, b, []string{"son.trt"})
+	AssertSameRunFiles(t, a, b, []string{"son.trt"}, true)
+	// Katı kipte yarım satır hatadır.
+	if !failsFatally(func(tb testing.TB) { AssertSameRunFiles(tb, a, b, []string{"son.trt"}, false) }) {
+		t.Error("katı kipte yarım satır düşmeliydi")
+	}
+}
+
+// fatalRecorder Fatalf'i panikle yakalanabilir kılan sahte testing.TB'dir.
+type fatalRecorder struct{ testing.TB }
+
+func (fatalRecorder) Helper()               {}
+func (fatalRecorder) Fatalf(string, ...any) { panic("fatal") }
+func (fatalRecorder) Fatal(...any)          { panic("fatal") }
+func (fatalRecorder) Errorf(string, ...any) { panic("fatal") }
+
+// failsFatally f'nin test düşürüp düşürmediğini söyler.
+func failsFatally(f func(testing.TB)) (failed bool) {
+	defer func() { failed = recover() != nil }()
+	f(fatalRecorder{})
+	return false
 }

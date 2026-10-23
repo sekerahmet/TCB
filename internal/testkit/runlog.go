@@ -53,8 +53,8 @@ func ValidLossMetrics(t testing.TB, path string, skipBroken bool) []string {
 }
 
 // AssertSameRunFiles iki koşu klasöründe files'ın her birinin bit düzeyinde aynı olduğunu ve
-// metrics.jsonl'lerin geçerli kayıp dizilerinin (yarım satırlar atlanarak) eşit olduğunu denetler.
-func AssertSameRunFiles(t testing.TB, dirA, dirB string, files []string) {
+// metrics.jsonl'lerin geçerli kayıp dizilerinin eşit olduğunu denetler; skipBroken için bkz. ValidLossMetrics.
+func AssertSameRunFiles(t testing.TB, dirA, dirB string, files []string, skipBroken bool) {
 	t.Helper()
 	for _, name := range files {
 		x, err1 := os.ReadFile(filepath.Join(dirA, name))
@@ -65,8 +65,8 @@ func AssertSameRunFiles(t testing.TB, dirA, dirB string, files []string) {
 			t.Errorf("%s differs bitwise", name)
 		}
 	}
-	ka := ValidLossMetrics(t, filepath.Join(dirA, "metrics.jsonl"), true)
-	kb := ValidLossMetrics(t, filepath.Join(dirB, "metrics.jsonl"), true)
+	ka := ValidLossMetrics(t, filepath.Join(dirA, "metrics.jsonl"), skipBroken)
+	kb := ValidLossMetrics(t, filepath.Join(dirB, "metrics.jsonl"), skipBroken)
 	if !slices.Equal(ka, kb) {
 		t.Errorf("valid loss series differ (%d, %d records):\n%v\n%v", len(ka), len(kb), ka, kb)
 	}

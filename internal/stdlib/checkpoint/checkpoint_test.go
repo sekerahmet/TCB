@@ -98,7 +98,7 @@ yazdır("ö:", ö.durum)
 // programın son çıktısının (düz değerler, okuyucu durumu) bit düzeyinde aynı olduğunu denetler.
 func sameResults(t *testing.T, a, b, outputA, outputB string) {
 	t.Helper()
-	testkit.AssertSameRunFiles(t, a, b, []string{"son.trt", "op.trt", "op2.trt"})
+	testkit.AssertSameRunFiles(t, a, b, []string{"son.trt", "op.trt", "op2.trt"}, false)
 	last := func(c string) string { return c[strings.LastIndex(c, "izlenen:"):] }
 	if last(outputA) != last(outputB) {
 		t.Errorf("son durum farklı:\n%s\n%s", last(outputA), last(outputB))

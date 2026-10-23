@@ -220,7 +220,7 @@ func measureCount(filePath string) int {
 // isSame iki koşunun sonucunu bit düzeyinde karşılaştırır.
 func isSame(t *testing.T, ne, a, b, stdoutA, stdoutB string) {
 	t.Helper()
-	testkit.AssertSameRunFiles(t, a, b, []string{"son.trt", "op.trt"})
+	testkit.AssertSameRunFiles(t, a, b, []string{"son.trt", "op.trt"}, true)
 	if n := len(testkit.ValidLossMetrics(t, filepath.Join(a, "metrics.jsonl"), true)); n != 40 {
 		t.Errorf("%s: geçerli kayıt sayısı %d, beklenen 40", ne, n)
 	}
