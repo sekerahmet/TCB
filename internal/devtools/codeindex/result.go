@@ -91,6 +91,7 @@ type Result struct {
 	Certain      []Change   `json:"certain,omitempty"`
 	Likely       []Change   `json:"likely,omitempty"`
 	Conflicts    []Conflict `json:"conflicts,omitempty"`
+	Linked       []Node     `json:"linked,omitempty"` // bağlı bildirimler: aynı adla iletilen ya da aynı adlı alana atanan (linked.go)
 	SkippedWords int        `json:"skipped_other_words,omitempty"`
 	Mode         string     `json:"mode,omitempty"` // "term": sembol aranmadı, yalnızca metin
 }

@@ -1653,5 +1653,8 @@
 "H8864": "give the old and the new name for tr {command} {subcommand}. E.g. tr {command} {subcommand} {example}",
 "H8865": "derived form",
 "H8866": "term mode: no symbol was searched, only text matches are listed (other meanings of the same word may also appear; look at the text of the line)",
+"H8867": "linked declarations ({count}; passed on under the same name or stored in a field of the same name; renaming them too is recommended):",
+"H8868": "dictionary key",
+"H8869": "data format; never changed automatically",
 "H9000": "an internal error occurred in TR (not an error in your program); please report it: {detail}"
 }

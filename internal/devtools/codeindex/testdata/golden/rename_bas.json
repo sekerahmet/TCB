@@ -7,7 +7,7 @@
     "language": "tr"
   },
   "counts": {
-    "total": 24
+    "total": 22
   },
   "truncated": false,
   "new_name": "bakış_sayısı",
@@ -149,20 +149,6 @@
       "pos": {
         "file": "m.tr",
         "line": 4,
-        "col": 29,
-        "end_line": 4,
-        "end_col": 32
-      },
-      "where": "code",
-      "match": "exact",
-      "word": "baş",
-      "context": "fonksiyon kurucu(boyut, baş, kv_baş = yok) {",
-      "replacement": "bakış_sayısı"
-    },
-    {
-      "pos": {
-        "file": "m.tr",
-        "line": 4,
         "col": 34,
         "end_line": 4,
         "end_col": 40
@@ -214,20 +200,6 @@
       "word": "kv_baş",
       "context": "kendi.kv_baş = kv_baş",
       "replacement": "kv_bakış_sayısı"
-    },
-    {
-      "pos": {
-        "file": "m.tr",
-        "line": 13,
-        "col": 15,
-        "end_line": 13,
-        "end_col": 18
-      },
-      "where": "code",
-      "match": "exact",
-      "word": "baş",
-      "context": "fonksiyon yap(baş) {",
-      "replacement": "bakış_sayısı"
     },
     {
       "pos": {
@@ -338,8 +310,9 @@
         "end_line": 29,
         "end_col": 34
       },
+      "role": "dict_key",
       "where": "code",
-      "match": "exact",
+      "match": "data_format",
       "word": "baş",
       "context": "değişken ayar = komut_satırı({baş: 8, adım: 1}, açıklamalar: {baş: \"baş sayısı\"})",
       "replacement": "bakış_sayısı"
@@ -352,8 +325,9 @@
         "end_line": 29,
         "end_col": 66
       },
+      "role": "dict_key",
       "where": "code",
-      "match": "exact",
+      "match": "data_format",
       "word": "baş",
       "context": "değişken ayar = komut_satırı({baş: 8, adım: 1}, açıklamalar: {baş: \"baş sayısı\"})",
       "replacement": "bakış_sayısı"
@@ -371,6 +345,36 @@
       "word": "baş",
       "context": "değişken ayar = komut_satırı({baş: 8, adım: 1}, açıklamalar: {baş: \"baş sayısı\"})",
       "replacement": "bakış_sayısı"
+    }
+  ],
+  "linked": [
+    {
+      "id": "parameter:m.tr#Dikkat.kurucu.baş",
+      "kind": "parameter",
+      "name": "Dikkat.kurucu.baş",
+      "pos": {
+        "file": "m.tr",
+        "line": 4,
+        "col": 29,
+        "end_line": 4,
+        "end_col": 32
+      },
+      "signature": "baş",
+      "qualified": "m.Dikkat.kurucu.baş"
+    },
+    {
+      "id": "parameter:m.tr#yap.baş",
+      "kind": "parameter",
+      "name": "yap.baş",
+      "pos": {
+        "file": "m.tr",
+        "line": 13,
+        "col": 15,
+        "end_line": 13,
+        "end_col": 18
+      },
+      "signature": "baş",
+      "qualified": "m.yap.baş"
     }
   ],
   "skipped_other_words": 1

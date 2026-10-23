@@ -1658,5 +1658,8 @@ const (
 	H8864 Code = 8864 // tr {command} {subcommand} için eski ve yeni adı verin. Örn: tr {command} {subcommand} {example}
 	H8865 Code = 8865 // türemiş biçim
 	H8866 Code = 8866 // terim kipi: sembol aranmadı, yalnızca metin eşleşmeleri listelenir (aynı sözcüğün başka anlamları da gelebilir; satırın metnine bakın)
+	H8867 Code = 8867 // bağlı bildirimler ({count}; aynı adla iletilen ya da aynı adlı alana atanan; birlikte değiştirilmesi önerilir):
+	H8868 Code = 8868 // sözlük anahtarı
+	H8869 Code = 8869 // veri biçimi; kendiliğinden değişmez
 	H9000 Code = 9000 // TR'de bir iç hata oluştu (bu sizin programınızın değil, TR'nin hatası); lütfen bildirin: {detail}
 )

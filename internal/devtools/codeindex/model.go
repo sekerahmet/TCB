@@ -23,7 +23,7 @@ const Schema = "tr-codeindex/1"
 
 // IndexVersion dizinin kaynaktan türettiği içerik değişince artar (yeni düğüm türü, farklı
 // çözümleme). Başka sürümün önbelleği hiçbir zaman kullanılmaz.
-const IndexVersion = 8
+const IndexVersion = 9
 
 // Kind bir düğümün türüdür; değerler JSON'a yazılan değişmez tanımlayıcılardır.
 type Kind string
@@ -51,6 +51,8 @@ const (
 	EdgeUses    EdgeKind = "uses" // sabit, değişken ya da yerleşik adına başvuru
 	EdgeImports EdgeKind = "imports"
 	EdgeTests   EdgeKind = "tests"
+	// EdgeForwards parametrenin aynı adla iletildiği parametre ya da atandığı alandır (bağlı bildirim; linked.go).
+	EdgeForwards EdgeKind = "forwards"
 )
 
 // Confidence bağın nasıl bulunduğunu söyler: EXTRACTED kesin (kapsamlarda ada göre çözüldü),

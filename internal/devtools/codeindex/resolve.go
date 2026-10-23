@@ -180,6 +180,9 @@ func (x *indexer) scan(f *file, o owner, root any) {
 		switch n := n.(type) {
 		case *ast.CallExpression:
 			x.call(f, o, sc, n)
+			x.forwardArgs(f, o, sc, n)
+		case *ast.AssignStatement:
+			x.storeParam(f, o, sc, n)
 		case *ast.MemberExpression:
 			x.member(f, o, sc, n)
 		case *ast.Identifier:

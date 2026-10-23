@@ -161,6 +161,7 @@ func (r *Reader) RenameImpact(q, newName string, o RenameOptions) *Result {
 	}
 	lines := &lineSource{root: o.Root}
 	skip := map[string]bool{}
+	r.addLinked(res, targets, skip)
 	for _, n := range targets {
 		for _, oc := range r.Occurrences(n.ID) {
 			ch := Change{Pos: oc.Pos, Node: n.ID, Role: oc.Role, Confidence: oc.Confidence, Basis: oc.Basis,
@@ -183,8 +184,7 @@ func (r *Reader) RenameImpact(q, newName string, o RenameOptions) *Result {
 			hits, other := ScanText(o.Root, w, newName, skip)
 			res.SkippedWords += other
 			for _, h := range hits {
-				res.Likely = append(res.Likely, Change{Pos: h.Pos, Where: h.Where, Match: h.Match, Word: h.Word,
-					Context: h.Context, Replacement: h.Suggestion, Check: h.Check})
+				res.Likely = append(res.Likely, textChange(h, lines))
 			}
 		}
 	}

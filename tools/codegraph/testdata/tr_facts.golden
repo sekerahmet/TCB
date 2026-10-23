@@ -24,6 +24,8 @@ edge tr:func:lib/geo.tr:çevre_hesapla contains tr:param:lib/geo.tr:çevre_hesap
 edge tr:method:lib/geo.tr:Kare.alan uses tr:field:lib/geo.tr:Kare.kenar EXTRACTED @lib/geo.tr:11 x2
 edge tr:method:lib/geo.tr:Kare.kurucu contains tr:param:lib/geo.tr:Kare.kurucu.kenar EXTRACTED @lib/geo.tr:7 x1
 edge tr:method:lib/geo.tr:Kare.kurucu uses tr:field:lib/geo.tr:Kare.kenar EXTRACTED @lib/geo.tr:8 x1
+edge tr:param:lib/geo.tr:Kare.kurucu.kenar forwards tr:field:lib/geo.tr:Kare.kenar EXTRACTED @lib/geo.tr:8 x1
+edge tr:param:lib/geo.tr:yaz_alan.k forwards tr:param:lib/geo.tr:çevre_hesapla.k EXTRACTED @lib/geo.tr:21 x1
 edge tr:struct:lib/geo.tr:Kare contains tr:field:lib/geo.tr:Kare.kenar EXTRACTED @lib/geo.tr:6 x1
 edge tr:struct:lib/geo.tr:Kare contains tr:method:lib/geo.tr:Kare.alan EXTRACTED @lib/geo.tr:10 x1
 edge tr:struct:lib/geo.tr:Kare contains tr:method:lib/geo.tr:Kare.kurucu EXTRACTED @lib/geo.tr:7 x1
