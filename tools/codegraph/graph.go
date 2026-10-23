@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+
+	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
 )
 
 // schemaVersion graph.json biçimi değişince artar; okuyucular bilmedikleri sürümü reddeder.
@@ -206,24 +208,7 @@ func writeGraph(path string, g *Graph) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	// Geçici dosyaya yazıp yer değiştirmek: aynı anda çalışan iki sorgu yarım dosya okumaz.
-	tmp, err := os.CreateTemp(filepath.Dir(path), ".graph-*.json")
-	if err != nil {
-		return err
-	}
-	_, werr := tmp.Write(append(data, '\n'))
-	if cerr := tmp.Close(); werr == nil {
-		werr = cerr
-	}
-	if werr != nil {
-		os.Remove(tmp.Name())
-		return werr
-	}
-	if err := os.Rename(tmp.Name(), path); err != nil {
-		os.Remove(tmp.Name())
-		return err
-	}
-	return nil
+	return codeindex.WriteFileAtomic(path, append(data, byte(10))) // aynı anda çalışan iki sorgu yarım dosya okumaz
 }
 
 // readGraph graph.json'ı okur ve sürümünü denetler.
