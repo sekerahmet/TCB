@@ -316,10 +316,10 @@ func (x *indexer) visibleFiles(f *file) []*file {
 	return out
 }
 
-// builtin bir ad kodunun yerleşik düğümünü (gerekirse ekleyerek) verir; yerleşik olmayan kodlar
-// (anahtar sözcük, ileti, komut) sayılmaz.
+// builtin bir ad kodunun yerleşik düğümünü (gerekirse ekleyerek) verir: global yerleşik, üye (Y) ve adlı argüman
+// (x9xx). Kullanıcının yazdığı kodun kullandığı adlar bunlardır; anahtar sözcük, ileti ve komut sayılmaz.
 func (x *indexer) builtin(k codes.Code) (string, bool) {
-	if k == codes.None || !k.IsBuiltin() {
+	if k == codes.None || !(k.IsBuiltin() || k.Namespace() == codes.NamespaceMember || k.Namespace() == codes.NamespaceParam) {
 		return "", false
 	}
 	id := NodeID(KindBuiltin, "", k.String())
@@ -338,7 +338,7 @@ func (x *indexer) link(o owner, to string, kind EdgeKind, conf Confidence, role 
 // linkBasis link gibidir; üye erişiminin dayanağını da kaydeder.
 func (x *indexer) linkBasis(o owner, to string, kind EdgeKind, conf Confidence, role Role, pos Pos, basis Basis) {
 	x.addEdge(o.id, to, kind, conf, pos)
-	if o.kind == KindTest && kind == EdgeCalls {
+	if o.kind == KindTest && (kind == EdgeCalls || x.nodes[to] != nil && x.nodes[to].Kind == KindBuiltin) {
 		x.addEdge(o.id, to, EdgeTests, conf, pos)
 		role = RoleTest
 	}

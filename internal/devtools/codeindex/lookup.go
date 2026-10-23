@@ -101,9 +101,15 @@ func (r *Reader) Resolve(q, kind string) []*Node {
 			}
 			return false
 		},
-		func(n *Node) bool { return n.Kind != KindBuiltin && n.Kind != KindModule && same(n.Name, q) },
+		// Bildirilmiş ad ve yerleşik ad aynı basamaktadır: `her_dakika` hem komut satırı seçeneği hem adlı argümandır, ikisi de
+		// aday olur (biri sessizce seçilmez).
+		func(n *Node) bool {
+			if n.Kind == KindBuiltin {
+				return r.builtinHas(n.ID, q, same)
+			}
+			return n.Kind != KindModule && same(n.Name, q)
+		},
 		func(n *Node) bool { return n.Qualified != "" && same(n.Qualified, q) },
-		func(n *Node) bool { return n.Kind == KindBuiltin && r.builtinHas(n.ID, q, same) },
 		func(n *Node) bool { return n.Qualified != "" && suffix(n.Qualified, q) },
 	}
 	for _, match := range tiers {
