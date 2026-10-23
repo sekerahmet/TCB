@@ -833,6 +833,13 @@ test "15.7 bitiştir ve .böl" {
     doğrula(hata_metni(() => tensör([1, 2, 3]).böl(2)).içerir("2 eşit parçaya bölünemez"))
     // Metin'in .böl'ü aynı addır ve değişmez.
     eşit_mi(["a", "b"], "a b".böl(" "))
+    // Boş yaprak girdinin gradyanı da boş tensördür (yok değil), tek başına toplamdaki gibi.
+    değişken boş = tensör([], türev_izle: doğru)
+    değişken dolu = tensör([1.0, 2.0], türev_izle: doğru)
+    geri_yayılım(toplam(bitiştir([boş, dolu])))
+    doğrula(boş.gradyan != yok, "boş yaprak tensörün gradyanı yok kaldı")
+    eşit_mi([0], boş.gradyan.şekil)
+    eşit_mi([1.0, 1.0], dolu.gradyan.değer)
 }
 
 test "15.18 indirgemelerde boyutu_koru" {

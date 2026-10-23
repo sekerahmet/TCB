@@ -90,7 +90,11 @@ func concatBackward(be Backend, lens, ost []int, axis int) func(o *node) {
 		for i, t := range o.parents {
 			begin := offset * ost[axis]
 			offset += lens[i]
-			if !t.wants() || t.Numel() == 0 {
+			if !t.wants() {
+				continue
+			}
+			if t.Numel() == 0 {
+				t.accGrad() // boş yaprağın gradyanı da boş tensördür (yok değil)
 				continue
 			}
 			g := View{S: o.grad, Offset: begin, Shape: t.shape, Strides: ost}
