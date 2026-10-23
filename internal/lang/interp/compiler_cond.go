@@ -115,12 +115,12 @@ func patternMatches(subj, patVal Value) bool {
 // tanımlamayan kollar için ortam açılmaz.
 func (c *compiler) armValue(k *compilerScope, e ast.Expression) exprCode {
 	defines := false
-	exprNames(e, func(string) { defines = true })
+	ast.ExprDefinedNames(e, func(string) { defines = true })
 	if !defines {
 		return c.expression(k, e)
 	}
 	sub := subScope(k)
-	exprNames(e, sub.define)
+	ast.ExprDefinedNames(e, sub.define)
 	value := c.expression(sub, e)
 	info := sub.info
 	info.local = !c.blocks.exprCaptures(e)

@@ -62,7 +62,7 @@ func (k *compilerScope) define(name string) {
 // doğru yuvaya çözülür.
 func (k *compilerScope) predefine(stmts []ast.Statement) {
 	for _, st := range stmts {
-		statementNames(st, k.define)
+		ast.StatementDefinedNames(st, k.define)
 		k.statementShadows(st)
 	}
 }

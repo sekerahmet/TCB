@@ -368,7 +368,7 @@ func (c *compiler) concurrent(k *compilerScope, s *ast.AsyncStatement) statement
 		sub.predefine(s.Body.Statements)
 		bodyBlock = c.statements(sub, s.Body.Statements)
 	} else if s.Call != nil {
-		exprNames(s.Call, sub.define)
+		ast.ExprDefinedNames(s.Call, sub.define)
 		call = c.expression(sub, s.Call)
 	}
 	info := sub.info

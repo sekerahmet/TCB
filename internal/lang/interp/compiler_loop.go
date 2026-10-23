@@ -348,8 +348,8 @@ func (c *compiler) listComprehension(k *compilerScope, lc *ast.ListComprehension
 	source := c.expression(k, lc.Iterable)
 	sub := subScope(k)
 	varSlot := sub.info.slot(lc.VarName)
-	exprNames(lc.Condition, sub.define)
-	exprNames(lc.Output, sub.define)
+	ast.ExprDefinedNames(lc.Condition, sub.define)
+	ast.ExprDefinedNames(lc.Output, sub.define)
 	var condition exprCode
 	if lc.Condition != nil {
 		condition = c.expression(sub, lc.Condition)
