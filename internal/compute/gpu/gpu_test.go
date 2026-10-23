@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // TestPickGCThreshold eşiğin kart belleğine göre seçildiğini ve ortam değişkeniyle
@@ -243,7 +244,7 @@ func trainSmallModel(t *testing.T, dt tensor.DType, tol float64) {
 // iletinin dilindedir (H4020).
 func TestMemoryTextIsTheTensorRule(t *testing.T) {
 	g := newSimBackend(1 << 20)
-	err := panicError(func() {
+	err := testkit.PanicError(func() {
 		var hold []tensor.Storage
 		for i := 0; i < 8; i++ {
 			hold = append(hold, g.Alloc(64<<10, tensor.Float32)) // 256 KB

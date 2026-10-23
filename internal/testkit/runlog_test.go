@@ -33,17 +33,17 @@ func TestAssertSameRunFiles(t *testing.T) {
 	}
 }
 
-// fatalRecorder Fatalf'i panikle yakalanabilir kılan sahte testing.TB'dir.
-type fatalRecorder struct{ testing.TB }
+// panickingTB Fatalf'i panikle yakalanabilir kılan sahte testing.TB'dir.
+type panickingTB struct{ testing.TB }
 
-func (fatalRecorder) Helper()               {}
-func (fatalRecorder) Fatalf(string, ...any) { panic("fatal") }
-func (fatalRecorder) Fatal(...any)          { panic("fatal") }
-func (fatalRecorder) Errorf(string, ...any) { panic("fatal") }
+func (panickingTB) Helper()               {}
+func (panickingTB) Fatalf(string, ...any) { panic("fatal") }
+func (panickingTB) Fatal(...any)          { panic("fatal") }
+func (panickingTB) Errorf(string, ...any) { panic("fatal") }
 
 // failsFatally f'nin test düşürüp düşürmediğini söyler.
 func failsFatally(f func(testing.TB)) (failed bool) {
 	defer func() { failed = recover() != nil }()
-	f(fatalRecorder{})
+	f(panickingTB{})
 	return false
 }
