@@ -97,7 +97,9 @@ func TestGPTTrainingScriptSmoke(t *testing.T) {
 	if !strings.Contains(string(metric), `"doğrulama_kaybı"`) || !strings.Contains(string(metric), `"oran_çarpanı"`) {
 		t.Errorf("metrics.jsonl'de doğrulama kaybı ya da oran çarpanı yok:\n%s", metric)
 	}
-	var samples []struct{ Metinler []string `json:"metinler"` }
+	var samples []struct {
+		Metinler []string `json:"metinler"`
+	}
 	if b, err := os.ReadFile(filepath.Join(run, "samples.json")); err != nil || json.Unmarshal(b, &samples) != nil || len(samples) == 0 {
 		t.Fatalf("samples.json okunamadı: %v", err)
 	}
