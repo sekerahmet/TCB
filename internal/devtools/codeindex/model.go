@@ -23,7 +23,7 @@ const Schema = "tr-codeindex/1"
 
 // IndexVersion dizinin kaynaktan türettiği içerik değişince artar (yeni düğüm türü, farklı
 // çözümleme). Başka sürümün önbelleği hiçbir zaman kullanılmaz.
-const IndexVersion = 11
+const IndexVersion = 12
 
 // Kind bir düğümün türüdür; değerler JSON'a yazılan değişmez tanımlayıcılardır.
 type Kind string
@@ -119,6 +119,9 @@ type Node struct {
 	Imports []Import `json:"imports,omitempty"`
 	// Doc bildirimin üstündeki yorum satırlarıdır.
 	Doc string `json:"doc,omitempty"`
+	// InferredType çıkarılan yapı türüdür (yapı düğümünün kimliği; infer.go): işlev ve metotta dönüş türü, üst düzey
+	// değişken ve sabitte değerin türü. Bilinmezse boş.
+	InferredType string `json:"inferred_type,omitempty"`
 }
 
 // Import bir `aktar` ifadesidir: Path yazıldığı gibi, Target çözülen modülün dosyası (çözülemezse
@@ -165,6 +168,8 @@ const (
 	BasisLocalType Basis = "local_type"
 	BasisNameMatch Basis = "name_match"
 	BasisNameOnly  Basis = "name_only"
+	// BasisInferredType alıcının türü bir işlevin çıkarılan dönüş türünden gelir (infer.go).
+	BasisInferredType Basis = "inferred_type"
 	// BasisCallableValue işlev yerleşiğinin çağrılmadan değer olarak kullanılıp çağrılabilir bir yere gittiğidir: bir
 	// çağrının argümanı (`[3, 1, 2].indirge(maks)`) ya da aynı gövdede çağrılan bir değişkene atanması
 	// (`değişken g = mutlak` ... `g(-2)`). Test bloğunda bu, yerleşiği sınamaktır (exercisesBuiltin).

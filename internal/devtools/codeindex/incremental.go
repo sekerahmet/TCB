@@ -140,6 +140,7 @@ func incrementalBuild(root string, opts Options, prev *Index, changed []string) 
 	for _, rel := range dirtyOrder {
 		x.resolveImports(x.files[rel])
 	}
+	x.inferReturns(dirtyOrder)
 	for _, rel := range dirtyOrder {
 		x.resolve(x.files[rel])
 	}

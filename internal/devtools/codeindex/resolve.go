@@ -27,7 +27,8 @@ type scope struct {
 	params       map[string]string              // sahibin parametresi: ad -> parametre düğümünün kimliği
 	bindCount    map[string]int                 // gövdede (parametre dışında) kaç kez bağlandığı
 	assigned     map[string]bool                // sonradan atanan adlar
-	localType    map[string]string              // yapıcıdan tek atamayla kurulan yerel: ad -> yapı kimliği
+	localType    map[string]string              // türü çıkarılan tek bağlamalı yerel: ad -> yapı kimliği (infer.go)
+	localBasis   map[string]Basis               // localType'ın dayanağı: yapıcı (local_type) ya da dönüş (inferred_type)
 	passed       map[*ast.Identifier]bool       // çağrının argümanı olan çıplak adlar
 	boundTo      map[*ast.Identifier]string     // `değişken g = ad` / `g = ad`: değer olan ad -> atandığı yerel
 	calledNames  map[string]bool                // gövdede çağrılan adlar (`g(...)`)
@@ -39,7 +40,7 @@ func collectScope(root any) *scope {
 	sc := &scope{locals: map[string]bool{}, bindings: map[*ast.Identifier]bool{}, handled: map[*ast.Identifier]bool{},
 		called: map[*ast.Identifier]bool{}, calledMember: map[*ast.MemberExpression]bool{},
 		writes: map[*ast.Identifier]bool{}, writeMember: map[*ast.MemberExpression]bool{},
-		params: map[string]string{}, bindCount: map[string]int{}, assigned: map[string]bool{}, localType: map[string]string{},
+		params: map[string]string{}, bindCount: map[string]int{}, assigned: map[string]bool{}, localType: map[string]string{}, localBasis: map[string]Basis{},
 		passed: map[*ast.Identifier]bool{}, boundTo: map[*ast.Identifier]string{}, calledNames: map[string]bool{}}
 	add := func(names ...string) {
 		for _, n := range names {

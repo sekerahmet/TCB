@@ -74,6 +74,8 @@ type indexer struct {
 	library       fs.FS
 	constructs    []Construct // bildirimlerin kullandığı dil yapıları (constructs.go)
 	constructSeen map[string]bool
+	bodies        map[string]fnBody // dönüş türü çıkarımı için işlev gövdeleri (infer.go)
+	retDone       map[string]bool
 }
 
 // Build root altındaki .tr dosyalarından dizini kurar. Okunamayan ya da ayrıştırılamayan dosya
@@ -99,6 +101,7 @@ func Build(root string, opts Options) (*Index, error) {
 	for _, rel := range x.order {
 		x.resolveImports(x.files[rel])
 	}
+	x.inferReturns(x.order)
 	for _, rel := range x.order {
 		x.resolve(x.files[rel])
 	}
