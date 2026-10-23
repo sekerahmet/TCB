@@ -3,9 +3,8 @@ package dataset
 import (
 	"bytes"
 	"context"
+	"github.com/sekerahmet/TCB/internal/testkit"
 	"io"
-	"runtime"
-	"strings"
 	"testing"
 	"time"
 
@@ -58,7 +57,7 @@ func TestNextReleasesLockWhileWaiting(t *testing.T) {
 			// Görev sonraki()'nin içinde önden yükleyiciyi beklemeye girene kadar beklenir
 			// (uyku değil): görev oraya varmadan kapı açılsaydı test, sınadığını sınamadan
 			// geçerdi.
-			nextWaiting(t)
+			testkit.WaitGoroutineBlocked(t, false, "(*Reader).nextTR", "(*Prefetcher).Take")
 		})
 		return interp.Null, nil
 	})
@@ -97,29 +96,6 @@ bekle_hepsi()
 	l, ok := v.(*interp.ListVal)
 	if !ok || len(l.Elements) != 2 {
 		t.Fatalf("[girdi, hedef] bekleniyordu: %v", v)
-	}
-}
-
-// nextWaiting bir görevin .sonraki() içinde önden yükleyiciden toplu iş beklediğini
-// (gorutinin kanal beklemesinde durduğunu) yığın dökümünden görene kadar bekler. Program
-// ayrı bir gorutinde koştuğu için t.Fatal değil t.Error kullanılır. Süre sınırı yalnızca
-// takılmaya karşıdır.
-func nextWaiting(t *testing.T) {
-	last := time.Now().Add(5 * time.Second)
-	buf := make([]byte, 1<<20)
-	for {
-		stack := string(buf[:runtime.Stack(buf, true)])
-		for _, g := range strings.Split(stack, "\n\n") {
-			header, _, _ := strings.Cut(g, "\n")
-			if strings.Contains(header, "[select") && strings.Contains(g, "(*Reader).nextTR") && strings.Contains(g, "(*Prefetcher).Take") {
-				return
-			}
-		}
-		if time.Now().After(last) {
-			t.Errorf("görev sonraki() içinde beklemeye girmedi:\n%s", stack)
-			return
-		}
-		time.Sleep(time.Millisecond)
 	}
 }
 

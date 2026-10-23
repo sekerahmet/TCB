@@ -88,29 +88,6 @@ func waitGoroutine(t *testing.T, baseOff int) {
 	}
 }
 
-// goroutineWaiting, yığınında islev geçen bir gorutin kanal beklemesinde (select ya da
-// kanaldan alma) durana kadar bekler. Uyku yerine kullanılır: "Al beklerken Kapat" gibi
-// sınamalar beklemenin gerçekten başladığından emin olur, yoksa sınadığını sınamadan da
-// geçebilirdi. Süre sınırı yalnızca takılmaya karşıdır.
-func goroutineWaiting(t *testing.T, function string) {
-	t.Helper()
-	last := time.Now().Add(5 * time.Second)
-	buf := make([]byte, 1<<20)
-	for {
-		stack := string(buf[:runtime.Stack(buf, true)])
-		for _, g := range strings.Split(stack, "\n\n") {
-			header, _, _ := strings.Cut(g, "\n")
-			if (strings.Contains(header, "[select") || strings.Contains(header, "[chan receive")) && strings.Contains(g, function) {
-				return
-			}
-		}
-		if time.Now().After(last) {
-			t.Fatalf("%s beklemeye girmedi:\n%s", function, stack)
-		}
-		time.Sleep(time.Millisecond)
-	}
-}
-
 // waitSignal kanaldan bir sinyal gelene kadar bekler; süre sınırı yalnızca takılmaya karşıdır.
 func waitSignal(t *testing.T, c <-chan struct{}, ne string) {
 	t.Helper()

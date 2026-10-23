@@ -21,6 +21,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -284,4 +285,39 @@ func PanicError(fn func()) (err error) {
 	}()
 	fn()
 	return nil
+}
+
+// WaitGoroutineBlocked, yığınında funcs'un hepsi geçen bir gorutin kanal beklemesinde (select ya da
+// kanaldan alma) durana kadar bekler. Uyku yerine kullanılır: "Al beklerken Kapat" gibi
+// sınamalar beklemenin gerçekten başladığından emin olur, yoksa sınadığını sınamadan da
+// geçebilirdi. Süre sınırı (5 sn) yalnızca takılmaya karşıdır. fatal false ise sınanan program
+// ayrı bir gorutinde koşuyordur: t.Fatalf yerine t.Errorf yazıp döner.
+func WaitGoroutineBlocked(t testing.TB, fatal bool, funcs ...string) {
+	t.Helper()
+	last := time.Now().Add(5 * time.Second)
+	buf := make([]byte, 1<<20)
+	for {
+		stack := string(buf[:runtime.Stack(buf, true)])
+		for _, g := range strings.Split(stack, "\n\n") {
+			header, _, _ := strings.Cut(g, "\n")
+			if !strings.Contains(header, "[select") && !strings.Contains(header, "[chan receive") {
+				continue
+			}
+			all := true
+			for _, f := range funcs {
+				all = all && strings.Contains(g, f)
+			}
+			if all {
+				return
+			}
+		}
+		if time.Now().After(last) {
+			if fatal {
+				t.Fatalf("%s beklemeye girmedi:\n%s", strings.Join(funcs, " + "), stack)
+			}
+			t.Errorf("%s beklemeye girmedi:\n%s", strings.Join(funcs, " + "), stack)
+			return
+		}
+		time.Sleep(time.Millisecond)
+	}
 }

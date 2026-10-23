@@ -165,3 +165,13 @@ func TestPanicError(t *testing.T) {
 		t.Errorf("panik yok: %v", err)
 	}
 }
+
+// Kural: WaitGoroutineBlocked, kanalda bekleyen gorutin görünene kadar bekler ve döner.
+func TestWaitGoroutineBlocked(t *testing.T) {
+	c := make(chan struct{})
+	go blockedOnChannel(c)
+	WaitGoroutineBlocked(t, true, "testkit.blockedOnChannel")
+	close(c)
+}
+
+func blockedOnChannel(c chan struct{}) { <-c }
