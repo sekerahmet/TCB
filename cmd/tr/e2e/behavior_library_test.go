@@ -101,6 +101,16 @@ func TestGPTTrainingScriptSmoke(t *testing.T) {
 	if !strings.Contains(string(metric), `"doğrulama_kaybı"`) || !strings.Contains(string(metric), `"oran_çarpanı"`) {
 		t.Errorf("metrics.jsonl'de doğrulama kaybı ya da oran çarpanı yok:\n%s", metric)
 	}
+	// Eğitim sağlığı ölçüleri (PyTorch kıyas koşularının metrics.jsonl'i gibi): gerçek oranlar, kırpma öncesi
+	// gradyan normu, aralığın ms/adım ve parça/sn'si (ilk günlük kaydında aralık yoktur).
+	for _, key := range []string{`"muon_oranı"`, `"adamw_oranı"`, `"gradyan_normu"`, `"ms_adım"`, `"parça_sn"`} {
+		if !strings.Contains(string(metric), key) {
+			t.Errorf("metrics.jsonl'de %s yok:\n%s", key, metric)
+		}
+	}
+	if speed["dış_sn"] == nil {
+		t.Errorf("speed.json'da dış_sn yok: %v", speed)
+	}
 	var samples []struct {
 		Metinler []string `json:"metinler"`
 	}

@@ -4,9 +4,12 @@
 // Veri klasörü (--veri): tokenizer.json, train.npy ve valid.npy (parça kimlikleri, uint16).
 // Koşu klasörüne (--koşu) yazılanlar:
 //   config.json     ayarlar, parametre sayısı, cihaz
-//   metrics.jsonl   eğitim kaybı (günlük_her adımda bir), öğrenme oranı çarpanı, doğrulama kaybı
+//   metrics.jsonl   günlük_her adımda bir: eğitim kaybı, oran çarpanı, Muon ve AdamW'nin o anki oranları,
+//                   kırpma öncesi gradyan normu (kırpma açıksa), aralığın ms/adım ve parça/sn'si;
+//                   değerlendir_her adımda bir doğrulama kaybı (başlangıç ve devam kayıtlarını günlük yazar, 19.5)
 //   samples.json    her istemin devamı olarak üretilen örnek metinler (örnek_her adımda bir ve sonda)
-//   speed.json      ms/adım ve parça/sn (ilk ölçüm_ısınması adım hariç)
+//   speed.json      ms/adım ve parça/sn (ilk ölçüm_ısınması adım, değerlendirme, örnek üretimi ve
+//                   kontrol noktası kaydı hariç)
 //   model.trt       son ağırlıklar; kontrol_noktalari/ kaldığı yerden devam için
 // Kesilirse aynı komut kaldığı yerden sürer (her_dakika'da bir kayıt).
 //
@@ -115,14 +118,26 @@ fonksiyon örnek_yaz(adım) {
 
 değişken ç = ilerleme(ayar.adım, günlük: g)
 eğer kn.kaldığı_adım > 0 { ç.güncelle(adım: kn.kaldığı_adım) }
+değişken parça_adım = ayar.toplu * ayar.birikim * ayar.bağlam
+// Hız ölçümü eğitim adımlarını kapsar: değerlendirme, örnek üretimi ve kontrol noktası kaydının süresi
+// (dış) çıkarılır. aralık_*: son günlük kaydından bu yana (ms_adım, parça_sn); ölçüm_*: speed.json.
 değişken ölçüm_başı = yok
 değişken ölçülen_adım = 0
+değişken dış = 0.0
+değişken aralık_başı = yok
+değişken aralık_adımı = 0
+değişken aralık_dış = 0.0
 değişken kayıp = yok
+// GPU'yu bekletir: ardından okunan zaman kuyruktaki bütün işi kapsar.
+fonksiyon bekle_gpu() {
+    eğer kayıp != yok { değişken b_ = kayıp.değer }
+}
 döngü adım içinde kn.kaldığı_adım..ayar.adım {
     eğer adım - kn.kaldığı_adım == ayar.ölçüm_ısınması {
-        eğer kayıp != yok { değişken bekle_ = kayıp.değer } // ısınma adımlarının GPU'da bitmesini bekle
+        bekle_gpu() // ısınma adımlarının GPU'da bitmesini bekle
         ölçüm_başı = zaman_ms()
         ölçülen_adım = 0
+        dış = 0.0
     }
     değişken çarpan = oran_planı(adım, ayar.adım, ısınma: ayar.ısınma, azalma: ayar.azalma)
     op.çarpan_ayarla(çarpan)
@@ -134,30 +149,60 @@ döngü adım içinde kn.kaldığı_adım..ayar.adım {
             geri_yayılım(kayıp / ayar.birikim)
         }
     }
-    eğer ayar.kırp > 0 { gradyan_kırp(ağırlıklar, en_fazla: ayar.kırp) }
+    değişken norm = yok // kırpma öncesi gradyan normu (0 boyutlu tensör; okununca GPU beklenir)
+    eğer ayar.kırp > 0 { norm = gradyan_kırp(ağırlıklar, en_fazla: ayar.kırp) }
     op.adım()
     ölçülen_adım += 1
     // Kaybın değerini okumak GPU'yu bekletir: çubuk ve günlük günlük_her adımda bir güncellenir.
     eğer (adım + 1) % ayar.günlük_her == 0 veya adım + 1 == ayar.adım {
-        ç.güncelle({kayıp: kayıp, oran_çarpanı: çarpan}, adım: adım + 1)
+        değişken k = kayıp.değer // GPU'yu bekler: aşağıdaki zaman tamamlanmış adımları kapsar
+        değişken şimdi = zaman_ms()
+        değişken ölçüler = {kayıp: k, oran_çarpanı: çarpan, muon_oranı: ayar.muon_oranı * çarpan,
+            adamw_oranı: ayar.adamw_oranı * çarpan}
+        eğer norm != yok { ölçüler["gradyan_normu"] = norm.değer }
+        eğer aralık_başı != yok {
+            değişken ms = (şimdi - aralık_başı - aralık_dış) / (adım + 1 - aralık_adımı)
+            ölçüler["ms_adım"] = ms
+            ölçüler["parça_sn"] = parça_adım * 1000.0 / ms
+        }
+        ç.güncelle(ölçüler, adım: adım + 1)
+        aralık_başı = şimdi
+        aralık_adımı = adım + 1
+        aralık_dış = 0.0
     }
     eğer (adım + 1) % ayar.değerlendir_her == 0 veya adım + 1 == ayar.adım {
+        bekle_gpu()
+        değişken t0 = zaman_ms()
         değişken son_adım = adım + 1 == ayar.adım ve ayar.son_değerlendir_toplu > 0
         değişken dk = doğrulama_kaybı(eğer son_adım { ayar.son_değerlendir_toplu } değilse { ayar.değerlendir_toplu })
         g.ekle({adım: adım + 1, doğrulama_kaybı: dk})
         eğer dk < izlenen.en_iyi_doğrulama { izlenen.en_iyi_doğrulama = dk }
+        dış += zaman_ms() - t0
+        aralık_dış += zaman_ms() - t0
     }
-    eğer (adım + 1) % ayar.örnek_her == 0 { örnek_yaz(adım + 1) }
-    kn.güncelle(adım + 1)
+    eğer (adım + 1) % ayar.örnek_her == 0 {
+        bekle_gpu()
+        değişken t0 = zaman_ms()
+        örnek_yaz(adım + 1)
+        dış += zaman_ms() - t0
+        aralık_dış += zaman_ms() - t0
+    }
+    // Kayıt GPU'daki tensörleri okuduğu için adımın bitmesini de bekler; kayıt yapılan adımda en çok bir
+    // adımın süresi dış sayılır (10 dakikada bir, ihmal edilir). Her adımda beklemek eğitimi yavaşlatırdı.
+    değişken t_kn = zaman_ms()
+    eğer kn.güncelle(adım + 1) {
+        dış += zaman_ms() - t_kn
+        aralık_dış += zaman_ms() - t_kn
+    }
 }
 eğer kayıp != yok {
     değişken son_kayıp = kayıp.değer // son adımın bitmesini bekler
     eğer ölçüm_başı != yok ve ölçülen_adım > 0 {
-        değişken ms = (zaman_ms() - ölçüm_başı) / ölçülen_adım
+        değişken ms = (zaman_ms() - ölçüm_başı - dış) / ölçülen_adım
         dosya_yaz(yol(ayar.koşu, "speed.json"), json_metin({ms_adım: ms,
-            parça_sn: ayar.toplu * ayar.birikim * ayar.bağlam * 1000.0 / ms, ölçülen_adım: ölçülen_adım,
+            parça_sn: parça_adım * 1000.0 / ms, ölçülen_adım: ölçülen_adım, dış_sn: dış / 1000.0,
             cihaz: varsayılan_cihaz(), hassasiyet: ayar.hassasiyet, son_kayıp: son_kayıp}))
-        yazdır("hız: {yuvarla(ms, 1)} ms/adım · {yuvarla(ayar.toplu * ayar.birikim * ayar.bağlam * 1000.0 / ms, 0)} parça/sn")
+        yazdır("hız: {yuvarla(ms, 1)} ms/adım · {yuvarla(parça_adım * 1000.0 / ms, 0)} parça/sn")
     }
     kn.kaydet()
 }
