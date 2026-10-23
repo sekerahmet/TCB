@@ -23,7 +23,7 @@ const Schema = "tr-codeindex/1"
 
 // IndexVersion dizinin kaynaktan türettiği içerik değişince artar (yeni düğüm türü, farklı
 // çözümleme). Başka sürümün önbelleği hiçbir zaman kullanılmaz.
-const IndexVersion = 5
+const IndexVersion = 6
 
 // Kind bir düğümün türüdür; değerler JSON'a yazılan değişmez tanımlayıcılardır.
 type Kind string
@@ -122,6 +122,7 @@ type Node struct {
 // Import bir `aktar` ifadesidir: Path yazıldığı gibi, Target çözülen modülün dosyası (çözülemezse
 // boş), Alias `olarak` adı (yoksa boş), Pos ifadenin yeri.
 type Import struct {
+	Nested bool   `json:"nested,omitempty"` // üst düzeyde değil, bir test bloğu ya da gövde içinde
 	Path   string `json:"path"`
 	Target string `json:"target,omitempty"`
 	Alias  string `json:"alias,omitempty"`

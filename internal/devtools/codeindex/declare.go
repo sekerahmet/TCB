@@ -37,6 +37,50 @@ func (x *indexer) declare(f *file) {
 			x.nodes[mod].Imports = append(x.nodes[mod].Imports, Import{Path: s.Path, Target: ref.file, Alias: ref.alias, Pos: ref.pos})
 		}
 	}
+	x.nestedImports(f, mod)
+}
+
+// nestedImports test bloklarında ve gövdelerde yazılan `aktar` ifadelerini toplar (testler yardımcı modülünü böyle alır:
+// `aktar "sub/sira_modulu" olarak sm`). Bunlar modülden modüle `imports` bağıdır; takma adı yalnızca dosyada tek bir
+// modülü gösteriyorsa bağlanır (blok kapsamı izlenmez, çakışan takma ad yanlış çözülmesin diye bırakılır) ve takma adsız
+// iç aktarma adları görünür kılmaz.
+func (x *indexer) nestedImports(f *file, mod string) {
+	top := map[*ast.ImportStatement]bool{}
+	for _, s := range f.res.program.Statements {
+		if imp, ok := s.(*ast.ImportStatement); ok {
+			top[imp] = true
+		}
+	}
+	var nested []*ast.ImportStatement
+	ast.Walk(f.res.program, func(n any) bool {
+		if imp, ok := n.(*ast.ImportStatement); ok && !top[imp] {
+			nested = append(nested, imp)
+		}
+		return true
+	})
+	targets := map[string]map[string]bool{} // takma ad -> gösterdiği dosyalar (üst düzey dahil)
+	note := func(alias, file string) {
+		if alias != "" {
+			if targets[alias] == nil {
+				targets[alias] = map[string]bool{}
+			}
+			targets[alias][file] = true
+		}
+	}
+	for _, r := range f.imports {
+		note(r.alias, r.file)
+	}
+	for _, s := range nested {
+		note(s.Alias, x.importTarget(f, s.Path))
+	}
+	for _, s := range nested {
+		ref := importRef{file: x.importTarget(f, s.Path), pos: f.importPos(s), nested: true}
+		if len(targets[s.Alias]) == 1 {
+			ref.alias = s.Alias
+		}
+		f.imports = append(f.imports, ref)
+		x.nodes[mod].Imports = append(x.nodes[mod].Imports, Import{Path: s.Path, Target: ref.file, Alias: ref.alias, Pos: ref.pos, Nested: true})
+	}
 }
 
 // def bir bildirimi düğüm yapar, üstünden `defines` kenarı çeker ve (üst düzeyse) ada kaydeder.
@@ -221,6 +265,9 @@ func (x *indexer) resolveImports(f *file) {
 				continue
 			}
 			// Takma adlı aktarma, aynı dosya takma adsız da aktarılmış olsa tanınır.
+			if imp.nested && imp.alias == "" {
+				continue // iç aktarma adları görünür kılmaz
+			}
 			if imp.alias != "" {
 				if g == f {
 					f.aliases[imp.alias] = target

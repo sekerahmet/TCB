@@ -46,6 +46,7 @@ type file struct {
 type importRef struct {
 	file, alias string
 	pos         Pos
+	nested      bool // test bloğunda ya da işlev gövdesinde: yalnızca `imports` bağı ve (çakışmıyorsa) takma ad
 }
 
 type edgeKey struct {
