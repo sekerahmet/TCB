@@ -74,6 +74,26 @@ python tools/bench/py/char_model.py 300 2
 **İlk ölçüm `run.py` ile (2026-10-23, dizüstü, 2 iş parçacığı, makine yüklü, 1 tekrar):** TR 13,8,
 PyTorch 2.14 15,2 ms/adım (TR/PyTorch 0,91).
 
+**Colab CPU (2026-10-23, AMD EPYC 7B12, 4 fiziksel / 8 sanal çekirdek, Python 3.13.16, PyTorch 2.14.1,
+5 tekrarın en iyisi; `09f0cb21`):**
+
+| İş parçacığı | TR ms/adım | PyTorch ms/adım | TR/PyTorch |
+| --: | --: | --: | --: |
+| 1 | 19,9 | 21,3 | 0,93 |
+| 2 | 16,3 | 15,2 | 1,08 |
+| 4 | 13,3 | 15,3 | 0,87 |
+| 8 | 14,8 | 14,3 | 1,03 |
+
+Colab'ın hazır PyTorch'u (2.11) ile oranlar aynıydı (0,94 / 1,07 / 0,87 / 1,01). 8 iş parçacığı 4'ten
+hızlı değildir: sanal çekirdek çiftleri bir fiziksel çekirdeği paylaşır ve bu boyda model için eşgüdüm
+yükü kazancı aşar.
+
+## CPU temel ölçümü
+
+[`cpu_baseline.sh`](cpu_baseline.sh) karakter modelini (1, 2, 4, 8 iş parçacığı), dil kıyasını ve tensör
+kernellerini (`BenchmarkSpeed*`) 5'er tekrarla ölçer; `tools/record` ile sarılır, özet `metrics.json`'a
+(sürümler dahil) yazılır. Colab'da hücre F ile koşar ([`tools/gpu/COLAB.md`](../gpu/COLAB.md) §0).
+
 **Güncel ölçüm (18.10.2026, 2 çekirdek, 100 adım, `GOAMD64=v3`):** TR ~13,5 ms/adım, Python sürümü
 ~10–13,5 ms/adım. Aynı gün tekrar ölçüldü (dizüstü bilgisayar; makine başka işlerle paylaşılıyordu):
 TR en iyi 13,5, çoğunlukla 13,5–16 ms/adım, yükün arttığı anlarda 18–22 ms/adım; Python sürümü

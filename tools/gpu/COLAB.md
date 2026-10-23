@@ -39,6 +39,23 @@ grep -E '^(--- FAIL|FAIL|panic|!! KALDI)' /content/kosu.log 2>/dev/null | head -
 [ -f /content/kosu_bitti ] && { echo "BİTTİ (çıkış $(cat /content/kosu_bitti))"; tail -3 /content/kosu.log; tail -1 /content/drive/MyDrive/TR_dili/olcumler/index.jsonl | cut -c1-300; } || echo "sürüyor"
 ```
 
+CPU temel ölçümü ([`tools/bench/cpu_baseline.sh`](../bench/cpu_baseline.sh): karakter modeli TR ve PyTorch, dil
+kıyası, tensör kernelleri; ~11 dk). PyTorch PyPI'daki son sürümüyle ölçülür (Colab'ın hazır sürümü geride
+kalabilir); `TORCH` güncellenir. Durum hücre C ile izlenir.
+
+```bash
+%%bash
+# F · CPU TEMEL ÖLÇÜMÜ, KAYITLI (ARKA PLANDA, ~11 DK) · CPU
+# DAL ve TORCH değiştirilir. Kayıt: Drive TR_dili/olcumler/cpu-temel/.
+DAL=main; TORCH=2.14.1
+export PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=local
+python3 -c "import torch,sys; sys.exit(torch.__version__.split('+')[0] != '$TORCH')" || pip install -q torch==$TORCH --index-url https://download.pytorch.org/whl/cpu 2>&1 | tail -2
+rm -rf /content/TCB && git clone -q --depth 1 -b $DAL https://github.com/sekerahmet/TCB /content/TCB
+cd /content/TCB && git log -1 --format='commit: %h %s' | cut -c1-80 && rm -f /content/kosu_bitti
+setsid nohup bash -c "cd /content/TCB && export PATH=/usr/local/go/bin:\$PATH GOTOOLCHAIN=local && go run ./tools/record --name cpu-temel --out /content/drive/MyDrive/TR_dili/olcumler -- bash tools/bench/cpu_baseline.sh > /content/kosu.log 2>&1; echo \$? > /content/kosu_bitti" > /dev/null 2>&1 < /dev/null &
+echo "başladı (durum: hücre C)"
+```
+
 ## 1. Kodu çek ve derle, GPU durumu
 
 ```bash
