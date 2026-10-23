@@ -135,7 +135,7 @@ func walkList(fn string, l *interp.ListVal, prepare func(n int), leaf func(v int
 		}
 		ll, ok := v.(*interp.ListVal)
 		if !ok {
-			return messages.New(messages.H6026, fn, axis+1, v.Inspect(), shapeText(sh))
+			return messages.New(messages.H6026, fn, axis+1, v.Inspect(), tensor.ShapeText(sh))
 		}
 		if len(ll.Elements) != sh[axis] {
 			return messages.New(messages.H6027, fn, axis+1, sh[axis], len(ll.Elements))

@@ -47,7 +47,7 @@ func checkBroadcast(m *interp.VM, op string, a, b *tensor.Tensor) error {
 		da, db := axisFromEnd(a, i), axisFromEnd(b, i)
 		if da != db && da != 1 && db != 1 {
 			ad := operationName(op)
-			return messages.New(messages.H6100, shapeText(a.Shape()), shapeText(b.Shape()), ad, i, da, db)
+			return messages.New(messages.H6100, tensor.ShapeText(a.Shape()), tensor.ShapeText(b.Shape()), ad, i, da, db)
 		}
 	}
 	if m != nil && bothWiden(a, b) {
@@ -109,7 +109,7 @@ const maxBroadcastWarnings = 100
 // kez yazar. İşleçler satır bilgisini almadığından (yorumlayıcı işleç çağrısına satır
 // geçirmez) tekrar, işlem ve şekil çiftine göre önlenir.
 func broadcastWarning(m *interp.VM, op string, a, b *tensor.Tensor) {
-	as, bs := shapeText(a.Shape()), shapeText(b.Shape())
+	as, bs := tensor.ShapeText(a.Shape()), tensor.ShapeText(b.Shape())
 	key := op + as + bs
 	w := warningsOf(m)
 	w.mu.Lock()
@@ -131,7 +131,7 @@ func broadcastWarning(m *interp.VM, op string, a, b *tensor.Tensor) {
 	for i := 1; i <= len(result); i++ {
 		result[len(result)-i] = max(axisFromEnd(a, i), axisFromEnd(b, i))
 	}
-	fmt.Fprintln(m.Err, messages.Text(messages.H6128, as, bs, shapeText(result)))
+	fmt.Fprintln(m.Err, messages.Text(messages.H6128, as, bs, tensor.ShapeText(result)))
 }
 
 func (d *TensorValue) binary(m *interp.VM, op string, other interp.Value) (interp.Value, error) {
@@ -198,7 +198,7 @@ func (d *TensorValue) binary(m *interp.VM, op string, other interp.Value) (inter
 func matmulDType(a, b *tensor.Tensor, mixed tensor.DType) (*tensor.Tensor, error) {
 	as, bs := a.Shape(), b.Shape()
 	if len(as) == 0 || len(bs) == 0 {
-		return nil, messages.New(messages.H6114, shapeText(as), shapeText(bs))
+		return nil, messages.New(messages.H6114, tensor.ShapeText(as), tensor.ShapeText(bs))
 	}
 	if err := checkDevice(messages.Text(messages.H6124), a, b); err != nil {
 		return nil, err
@@ -211,19 +211,19 @@ func matmulDType(a, b *tensor.Tensor, mixed tensor.DType) (*tensor.Tensor, error
 		bK = bs[len(bs)-2]
 	}
 	if K != bK && len(bs) == 1 {
-		return nil, messages.New(messages.H6125, shapeText(as), shapeText(bs), K, bK)
+		return nil, messages.New(messages.H6125, tensor.ShapeText(as), tensor.ShapeText(bs), K, bK)
 	}
 	if K != bK {
-		return nil, messages.New(messages.H6126, shapeText(as), shapeText(bs), K, bK)
+		return nil, messages.New(messages.H6126, tensor.ShapeText(as), tensor.ShapeText(bs), K, bK)
 	}
 	if len(as) >= 2 && len(bs) > 2 {
 		onA, onB := as[:len(as)-2], bs[:len(bs)-2]
-		if len(onA) != len(onB) || shapeText(onA) != shapeText(onB) {
-			return nil, messages.New(messages.H6115, shapeText(as), shapeText(bs), shapeText(onA), shapeText(onB))
+		if len(onA) != len(onB) || tensor.ShapeText(onA) != tensor.ShapeText(onB) {
+			return nil, messages.New(messages.H6115, tensor.ShapeText(as), tensor.ShapeText(bs), tensor.ShapeText(onA), tensor.ShapeText(onB))
 		}
 	}
 	if len(as) == 1 && len(bs) > 2 {
-		return nil, messages.New(messages.H6117, shapeText(as), shapeText(bs))
+		return nil, messages.New(messages.H6117, tensor.ShapeText(as), tensor.ShapeText(bs))
 	}
 	return safe(func() *tensor.Tensor {
 		x, y := a, b

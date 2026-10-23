@@ -208,7 +208,7 @@ func (o *Optimizer) checkStateEntry(fn, ad string, shape []int) error {
 		expected = o.params[k].Shape()
 	}
 	if !slices.Equal(shape, expected) {
-		return messages.New(messages.H6518, fn, ad, shapeText(shape), shapeText(expected))
+		return messages.New(messages.H6518, fn, ad, tensor.ShapeText(shape), tensor.ShapeText(expected))
 	}
 	return nil
 }

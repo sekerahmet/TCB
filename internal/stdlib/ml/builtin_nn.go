@@ -47,7 +47,7 @@ func embedding(_ *interp.VM, args []interp.Value, named map[string]interp.Value)
 	}
 	tsh := table.t.Shape()
 	if len(tsh) != 2 {
-		return nil, messages.New(messages.H6303, fn, shapeText(tsh))
+		return nil, messages.New(messages.H6303, fn, tensor.ShapeText(tsh))
 	}
 	it, isTensor := args[1].(*TensorValue)
 	if isTensor {
@@ -72,7 +72,7 @@ func embedding(_ *interp.VM, args []interp.Value, named map[string]interp.Value)
 	}
 	for _, i := range idx {
 		if i < 0 || i >= tsh[0] {
-			return nil, messages.New(messages.H6305, fn, i, shapeText(tsh), tsh[0]-1)
+			return nil, messages.New(messages.H6305, fn, i, tensor.ShapeText(tsh), tsh[0]-1)
 		}
 	}
 	r, err := safe(func() *tensor.Tensor {
@@ -135,10 +135,10 @@ func lossTargets(fn string, sh []int, v interp.Value) ([]int, error) {
 		line = n / C
 	}
 	if len(target) != line && C > 1 && len(target) == n && isZeroOne(target) {
-		return nil, messages.New(messages.H6312, fn, shapeText(sh))
+		return nil, messages.New(messages.H6312, fn, tensor.ShapeText(sh))
 	}
 	if len(target) != line {
-		return nil, messages.New(messages.H6313, fn, shapeText(sh), line, len(target))
+		return nil, messages.New(messages.H6313, fn, tensor.ShapeText(sh), line, len(target))
 	}
 	valid := 0
 	for _, h := range target {
@@ -179,7 +179,7 @@ func linearCrossEntropy(m *interp.VM, args []interp.Value, named map[string]inte
 	}
 	xs, ws := x.Shape(), w.Shape()
 	if len(xs) == 0 || len(ws) != 2 || xs[len(xs)-1] != ws[0] {
-		return nil, messages.New(messages.H6346, fn, shapeText(xs), shapeText(ws))
+		return nil, messages.New(messages.H6346, fn, tensor.ShapeText(xs), tensor.ShapeText(ws))
 	}
 	logits := append(append([]int(nil), xs[:len(xs)-1]...), ws[1])
 	target, err := lossTargets(fn, logits, args[2])
@@ -221,7 +221,7 @@ func normParam(fn, ad string, v interp.Value, D int, x *tensor.Tensor) (*tensor.
 		return nil, err
 	}
 	if sh := t.Shape(); len(sh) != 1 || sh[0] != D {
-		return nil, messages.New(messages.H6319, fn, ad, D, shapeText(sh))
+		return nil, messages.New(messages.H6319, fn, ad, D, tensor.ShapeText(sh))
 	}
 	return t, nil
 }

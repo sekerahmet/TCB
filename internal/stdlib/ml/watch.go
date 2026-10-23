@@ -62,7 +62,7 @@ func (d *TensorValue) TableData() ([]string, [][]string, error) {
 		}
 		return cols, rows, nil
 	}
-	return nil, nil, messages.New(messages.H6701, shapeText(sh))
+	return nil, nil, messages.New(messages.H6701, tensor.ShapeText(sh))
 }
 
 // watchInlineLimit, değerleri İzleme Masası'nda ve Değişkenler panelinde satır içinde

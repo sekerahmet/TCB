@@ -123,7 +123,7 @@ func tensorSave(m *interp.VM, args []interp.Value, named map[string]interp.Value
 		}
 		sh := d.t.Shape()
 		if len(sh) > maxDims {
-			return nil, messages.New(messages.H6609, fn, k, maxDims, shapeText(sh))
+			return nil, messages.New(messages.H6609, fn, k, maxDims, tensor.ShapeText(sh))
 		}
 		inputs = append(inputs, fileEntry{ad: k, shape: sh, dtype: d.t.DType(), data: d.t.Data()})
 	}
@@ -196,7 +196,7 @@ func (y *TensorWriter) Write(ad string, shape []int, dtype tensor.DType, data []
 	case len(ad) > maxNameLen:
 		return messages.New(messages.H6619, ad[:64], len(ad), maxNameLen)
 	case len(shape) > maxDims:
-		return messages.New(messages.H6620, ad, maxDims, shapeText(shape))
+		return messages.New(messages.H6620, ad, maxDims, tensor.ShapeText(shape))
 	}
 	y.remaining--
 	y.u32(uint32(len(ad)))

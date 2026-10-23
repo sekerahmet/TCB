@@ -219,7 +219,7 @@ func (k *fileReader) shape(order string, dim int) ([]int, int64, error) {
 func (k *fileReader) data(order string, dtype tensor.DType, shape []int, n int64) ([]float32, error) {
 	size := int64(dtype.Bits() / 8) // eleman başına bayt
 	if n*size > k.remaining-4 {
-		return nil, messages.New(messages.H6623, order, shapeText(shape), n*size, max(k.remaining-4, 0))
+		return nil, messages.New(messages.H6623, order, tensor.ShapeText(shape), n*size, max(k.remaining-4, 0))
 	}
 	data, ok := decodeValues(int(n), dtype, k.integer)
 	if !ok {

@@ -77,7 +77,7 @@ func topKBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Valu
 		return nil, messages.New(messages.H6208, ad, codes.DisplayName(codes.A200), typeName(args[1]))
 	}
 	if k.Val < 0 || k.Val > int64(L) {
-		return nil, messages.New(messages.H6210, ad, k.Val, shapeText(d.t.Shape()), e, L)
+		return nil, messages.New(messages.H6210, ad, k.Val, tensor.ShapeText(d.t.Shape()), e, L)
 	}
 	var vals, idx *tensor.Tensor
 	if _, err := safe(func() *tensor.Tensor { vals, idx = d.t.TopK(int(k.Val), e); return vals }); err != nil {

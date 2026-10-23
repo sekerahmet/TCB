@@ -1,6 +1,7 @@
 package ml
 
 import (
+	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"math"
 	"testing"
 
@@ -61,7 +62,7 @@ func near(t *testing.T, ad string, got, want []float32, tol float64) {
 
 func shapeEqual(t *testing.T, ad string, got, want []int) {
 	t.Helper()
-	if shapeText(got) != shapeText(want) {
+	if tensor.ShapeText(got) != tensor.ShapeText(want) {
 		t.Fatalf("%s: şekil %v, %v bekleniyordu", ad, got, want)
 	}
 }

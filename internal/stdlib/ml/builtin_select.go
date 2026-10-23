@@ -133,7 +133,7 @@ func checkBroadcast3(m *interp.VM, ad string, ts []*tensor.Tensor) error {
 		for _, t := range ts {
 			d := axisFromEnd(t, i)
 			if d != 1 && size != 1 && d != size {
-				return messages.New(messages.H6214, ad, shapeText(ts[0].Shape()), shapeText(ts[1].Shape()), shapeText(ts[2].Shape()), i)
+				return messages.New(messages.H6214, ad, tensor.ShapeText(ts[0].Shape()), tensor.ShapeText(ts[1].Shape()), tensor.ShapeText(ts[2].Shape()), i)
 			}
 			if d != 1 {
 				size = d

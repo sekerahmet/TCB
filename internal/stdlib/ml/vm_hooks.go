@@ -250,7 +250,7 @@ func (d *TensorValue) index(idx interp.Value) (interp.Value, error) {
 		j += n
 	}
 	if j < 0 || j >= n {
-		return nil, messages.New(messages.H6709, i, n, shapeText(sh))
+		return nil, messages.New(messages.H6709, i, n, tensor.ShapeText(sh))
 	}
 	r, err := safe(func() *tensor.Tensor {
 		s := d.t.Slice(0, j, j+1)
@@ -344,8 +344,8 @@ func (d *TensorValue) SetIndex(idx, value interp.Value) error {
 		if err = checkDevice(messages.Text(messages.H6130), src, target); err != nil {
 			return err
 		}
-		if ks := src.Shape(); shapeText(ks) != shapeText(sh) {
-			return messages.New(messages.H6719, shapeText(sh), shapeText(ks))
+		if ks := src.Shape(); tensor.ShapeText(ks) != tensor.ShapeText(sh) {
+			return messages.New(messages.H6719, tensor.ShapeText(sh), tensor.ShapeText(ks))
 		}
 	}
 	// Tek arka uç kopyası, tek sürüm artışı; hedef bitişik olmayan bir görünüm olabilir.

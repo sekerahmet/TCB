@@ -51,7 +51,7 @@ func (d *TensorValue) GetProperty(kd codes.Code, prop string) (interp.Value, err
 		return d.namedMethod(memberToDType, d.toDType), nil
 	case memberGrad:
 		if d.intermediate {
-			return nil, messages.New(messages.H6700, shapeText(t.Shape()), nameRequiresGrad.TR, codes.DisplayName(codes.A040), codes.DisplayName(codes.T400), codes.DisplayName(codes.T401), codes.DisplayName(codes.T301), gradExample("..."))
+			return nil, messages.New(messages.H6700, tensor.ShapeText(t.Shape()), nameRequiresGrad.TR, codes.DisplayName(codes.A040), codes.DisplayName(codes.T400), codes.DisplayName(codes.T401), codes.DisplayName(codes.T301), gradExample("..."))
 		}
 		g := t.Grad()
 		if g == nil {
@@ -231,7 +231,7 @@ func (d *TensorValue) reshape(_ *interp.VM, args []interp.Value, _ map[string]in
 		sh[i] = n
 	}
 	if unknown > 1 {
-		return nil, messages.New(messages.H6708, codes.DisplayName(memberReshape), shapeText(sh))
+		return nil, messages.New(messages.H6708, codes.DisplayName(memberReshape), tensor.ShapeText(sh))
 	}
 	if d.t.Numel() == 0 {
 		// Veri yokken eksenler serbesttir ([0] → [10¹², 0]); sınır sıfır eksenler 1 sayılarak
@@ -248,7 +248,7 @@ func (d *TensorValue) reshape(_ *interp.VM, args []interp.Value, _ map[string]in
 		}
 	}
 	if (unknown == 0 && product != n) || (unknown == 1 && (product == 0 || n%product != 0)) {
-		return nil, messages.New(messages.H6710, shapeText(d.t.Shape()), n, shapeText(sh))
+		return nil, messages.New(messages.H6710, tensor.ShapeText(d.t.Shape()), n, tensor.ShapeText(sh))
 	}
 	r, err := safe(func() *tensor.Tensor { return d.t.Reshape(sh...) })
 	if err != nil {
@@ -261,7 +261,7 @@ func transposed(d *TensorValue) (interp.Value, error) {
 	t := d.t
 	sh := t.Shape()
 	if len(sh) < 2 {
-		return nil, messages.New(messages.H6712, codes.DisplayName(memberTranspose), shapeText(sh))
+		return nil, messages.New(messages.H6712, codes.DisplayName(memberTranspose), tensor.ShapeText(sh))
 	}
 	r, err := safe(func() *tensor.Tensor { return t.T() })
 	if err != nil {
@@ -275,7 +275,7 @@ func (d *TensorValue) permute(_ *interp.VM, args []interp.Value, _ map[string]in
 	fn := codes.DisplayName(memberPermute)
 	sh := d.t.Shape()
 	if len(list) != len(sh) {
-		return nil, messages.New(messages.H6713, fn, shapeText(sh), len(sh), len(list))
+		return nil, messages.New(messages.H6713, fn, tensor.ShapeText(sh), len(sh), len(list))
 	}
 	dims := make([]int, len(list))
 	seen := make([]bool, len(sh))
@@ -328,7 +328,7 @@ func (d *TensorValue) slice(_ *interp.VM, args []interp.Value, _ map[string]inte
 		last += uz
 	}
 	if head < 0 || head > uz || last < head || last > uz {
-		return nil, messages.New(messages.H6720, fn, e, uz, shapeText(sh), n[1], n[2])
+		return nil, messages.New(messages.H6720, fn, e, uz, tensor.ShapeText(sh), n[1], n[2])
 	}
 	r, err := safe(func() *tensor.Tensor { return d.t.Slice(e, head, last) })
 	if err != nil {

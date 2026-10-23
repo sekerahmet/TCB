@@ -78,11 +78,11 @@ func concatBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 	for i, t := range ts[1:] {
 		sh := t.Shape()
 		if len(sh) != len(first) {
-			return nil, messages.New(messages.H6309, fn, i+2, len(sh), shapeText(sh), len(first), shapeText(first))
+			return nil, messages.New(messages.H6309, fn, i+2, len(sh), tensor.ShapeText(sh), len(first), tensor.ShapeText(first))
 		}
 		for d := range sh {
 			if d != e && sh[d] != first[d] {
-				return nil, messages.New(messages.H6311, fn, i+2, shapeText(sh), shapeText(first), e, d, sh[d], first[d])
+				return nil, messages.New(messages.H6311, fn, i+2, tensor.ShapeText(sh), tensor.ShapeText(first), e, d, sh[d], first[d])
 			}
 		}
 		if err := checkDevice(fn, ts[0], t); err != nil {
@@ -124,7 +124,7 @@ func (d *TensorValue) split(_ *interp.VM, args []interp.Value, named map[string]
 		return nil, err
 	}
 	if sh[e]%n != 0 {
-		return nil, messages.New(messages.H6318, fn, shapeText(sh), e, sh[e], n)
+		return nil, messages.New(messages.H6318, fn, tensor.ShapeText(sh), e, sh[e], n)
 	}
 	parts, err := safe(func() []*tensor.Tensor { return d.t.Split(n, e) })
 	if err != nil {
@@ -216,27 +216,27 @@ func checkAttentionShapes(fn string, q, k, v *tensor.Tensor) error {
 	qs, ks, vs := q.Shape(), k.Shape(), v.Shape()
 	n := len(qs)
 	if n < 2 {
-		return messages.New(messages.H6327, fn, shapeText(qs))
+		return messages.New(messages.H6327, fn, tensor.ShapeText(qs))
 	}
 	if len(ks) != n || len(vs) != n {
-		return messages.New(messages.H6328, fn, shapeText(qs), shapeText(ks), shapeText(vs))
+		return messages.New(messages.H6328, fn, tensor.ShapeText(qs), tensor.ShapeText(ks), tensor.ShapeText(vs))
 	}
 	on := max(n-3, 0)
-	if shapeText(qs[:on]) != shapeText(ks[:on]) || shapeText(qs[:on]) != shapeText(vs[:on]) {
-		return messages.New(messages.H6329, fn, shapeText(qs), shapeText(ks), shapeText(vs))
+	if tensor.ShapeText(qs[:on]) != tensor.ShapeText(ks[:on]) || tensor.ShapeText(qs[:on]) != tensor.ShapeText(vs[:on]) {
+		return messages.New(messages.H6329, fn, tensor.ShapeText(qs), tensor.ShapeText(ks), tensor.ShapeText(vs))
 	}
 	if ks[n-1] != qs[n-1] {
-		return messages.New(messages.H6330, fn, shapeText(qs), shapeText(ks))
+		return messages.New(messages.H6330, fn, tensor.ShapeText(qs), tensor.ShapeText(ks))
 	}
 	// Düzen [..., T, bakış, dh] (dil tanımı 15.24); 2 boyutlu girdi tek bakışlı [T, dh].
 	t := max(n-3, 0)
 	if vs[t] != ks[t] {
-		return messages.New(messages.H6331, fn, shapeText(ks), shapeText(vs))
+		return messages.New(messages.H6331, fn, tensor.ShapeText(ks), tensor.ShapeText(vs))
 	}
 	if n >= 3 {
 		H, Hkv := qs[n-2], ks[n-2]
 		if vs[n-2] != Hkv {
-			return messages.New(messages.H6332, fn, shapeText(ks), shapeText(vs))
+			return messages.New(messages.H6332, fn, tensor.ShapeText(ks), tensor.ShapeText(vs))
 		}
 		if Hkv == 0 || H%Hkv != 0 {
 			return messages.New(messages.H6333, fn, H, Hkv)
@@ -255,11 +255,11 @@ func checkMask(fn string, mt, q, k *tensor.Tensor) error {
 		target = append(append([]int{}, qs[:n-3]...), qs[n-2], qs[n-3], ks[n-3])
 	}
 	if len(ms) > len(target) {
-		return messages.New(messages.H6334, fn, shapeText(ms), shapeText(target))
+		return messages.New(messages.H6334, fn, tensor.ShapeText(ms), tensor.ShapeText(target))
 	}
 	for i := 1; i <= len(ms); i++ {
 		if d := ms[len(ms)-i]; d != 1 && d != target[len(target)-i] {
-			return messages.New(messages.H6335, fn, shapeText(ms), shapeText(target), i, d, target[len(target)-i])
+			return messages.New(messages.H6335, fn, tensor.ShapeText(ms), tensor.ShapeText(target), i, d, target[len(target)-i])
 		}
 	}
 	return nil
@@ -292,7 +292,7 @@ func sampleBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 	}
 	C := sh[len(sh)-1]
 	if C == 0 {
-		return nil, messages.New(messages.H6339, fn, shapeText(sh))
+		return nil, messages.New(messages.H6339, fn, tensor.ShapeText(sh))
 	}
 	temperature := 1.0
 	if sv, ok := bind.GetNamed(named, nameTemperature); ok {

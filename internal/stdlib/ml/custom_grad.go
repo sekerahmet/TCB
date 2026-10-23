@@ -276,7 +276,7 @@ func backwardResult(v interp.Value, args []interp.Value) ([]*tensor.Tensor, erro
 			return nil, messages.New(messages.H6417, fn, i+1, typeName(args[i]), backward, none)
 		}
 		if gs, is := d.t.Shape(), input.t.Shape(); !tensor.SameShape(gs, is) {
-			return nil, messages.New(messages.H6418, fn, backward, i+1, shapeText(gs), shapeText(is))
+			return nil, messages.New(messages.H6418, fn, backward, i+1, tensor.ShapeText(gs), tensor.ShapeText(is))
 		}
 		out[i] = d.t
 	}
@@ -441,7 +441,7 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 			if xp == xm {
 				// fark_adımı bu elemanda float32'de etkisiz (alt taşma ya da x'e göre çok küçük):
 				// sonlu fark 0/0 olurdu ve geri hesabını suçlayan sahte bir uyuşmazlık çıkardı.
-				return nil, messages.New(messages.H6445, fn, nameStep.TR, i+1, shapeText(append([]int(nil), idx...)))
+				return nil, messages.New(messages.H6445, fn, nameStep.TR, i+1, tensor.ShapeText(append([]int(nil), idx...)))
 			}
 			if err := setSafe(c, xp, idx); err != nil {
 				return nil, err
@@ -474,7 +474,7 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 		}
 	}
 	if bad.rate > tol {
-		return nil, messages.New(messages.H6432, fn, bad.input+1, shapeText(bad.index), fmt.Sprintf("%.6g", bad.an),
+		return nil, messages.New(messages.H6432, fn, bad.input+1, tensor.ShapeText(bad.index), fmt.Sprintf("%.6g", bad.an),
 			fmt.Sprintf("%.6g", bad.count), fmt.Sprintf("%.3g", bad.diff), fmt.Sprintf("%g", tol))
 	}
 	return interp.True, nil

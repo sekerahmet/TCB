@@ -136,10 +136,10 @@ func parameters(fn string, v interp.Value) ([]*tensor.Tensor, error) {
 		}
 		t := d.t
 		if !t.RequiresGrad() {
-			return nil, messages.New(messages.H6513, fn, i+1, shapeText(t.Shape()), gradExample("..."))
+			return nil, messages.New(messages.H6513, fn, i+1, tensor.ShapeText(t.Shape()), gradExample("..."))
 		}
 		if d.intermediate || !t.IsLeaf() {
-			return nil, messages.New(messages.H6514, fn, i+1, shapeText(t.Shape()), gradExample("..."))
+			return nil, messages.New(messages.H6514, fn, i+1, tensor.ShapeText(t.Shape()), gradExample("..."))
 		}
 		if seen[t] {
 			return nil, messages.New(messages.H6515, fn, i+1)

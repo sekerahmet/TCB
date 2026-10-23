@@ -433,7 +433,7 @@ func writeSliceAxis(fn string, named map[string]interp.Value, dst, src *tensor.T
 	if av, ok := bind.GetNamed(named, nameAxis); ok {
 		a, integer := intNumber(av)
 		if !integer {
-			return 0, messages.New(messages.H6016, fn, av.Inspect(), shapeText(dst.Shape()), dst.Dim(), -dst.Dim(), dst.Dim()-1)
+			return 0, messages.New(messages.H6016, fn, av.Inspect(), tensor.ShapeText(dst.Shape()), dst.Dim(), -dst.Dim(), dst.Dim()-1)
 		}
 		axis = a
 	}

@@ -73,9 +73,6 @@ func intNumber(v interp.Value) (int, bool) {
 	return int(n), ok
 }
 
-// shapeText bir şekli "[2, 3]" biçiminde yazar (tensor.ShapeText).
-func shapeText(sh []int) string { return tensor.ShapeText(sh) }
-
 // shapeProduct bir şekli "2×3" biçiminde yazar (izleme masası ve yazdırma başlığı için).
 func shapeProduct(sh []int) string { return joinInts(sh, "×") }
 
@@ -99,7 +96,7 @@ func parseAxis(fn string, axis int, sh []int) (int, error) {
 		e += nd
 	}
 	if e < 0 || e >= nd {
-		return 0, messages.New(messages.H6016, fn, axis, shapeText(sh), nd, -nd, nd-1)
+		return 0, messages.New(messages.H6016, fn, axis, tensor.ShapeText(sh), nd, -nd, nd-1)
 	}
 	return e, nil
 }
@@ -148,7 +145,7 @@ func checkShapeLimit(fn string, sh []int) error {
 		hasZero = hasZero || d == 0
 	}
 	if i, bound := tensorLimit(dims, hasZero); i >= 0 {
-		return messages.New(messages.H6028, fn, shapeText(sh[:i+1]), bound)
+		return messages.New(messages.H6028, fn, tensor.ShapeText(sh[:i+1]), bound)
 	}
 	return nil
 }

@@ -62,14 +62,14 @@ func reduction(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, axis int, 
 					return nil, err
 				}
 				if maxMin && sh[e] == 0 {
-					return nil, messages.New(messages.H6209, ad, shapeText(sh), e)
+					return nil, messages.New(messages.H6209, ad, tensor.ShapeText(sh), e)
 				}
 			} else if maxMin && t.Numel() == 0 {
-				return nil, messages.New(messages.H6211, ad, shapeText(sh))
+				return nil, messages.New(messages.H6211, ad, tensor.ShapeText(sh))
 			}
 			if kd == codes.G410 { // ortalama: boş kümenin ortalaması tanımsızdır
 				if !given && t.Numel() == 0 {
-					return nil, messages.New(messages.H6212, ad, shapeText(sh))
+					return nil, messages.New(messages.H6212, ad, tensor.ShapeText(sh))
 				}
 				if given && sh[e] == 0 {
 					exit := 1
@@ -79,7 +79,7 @@ func reduction(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, axis int, 
 						}
 					}
 					if exit > 0 {
-						return nil, messages.New(messages.H6213, ad, shapeText(sh), e)
+						return nil, messages.New(messages.H6213, ad, tensor.ShapeText(sh), e)
 					}
 				}
 			}
@@ -136,7 +136,7 @@ func argMax(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (i
 		return nil, err
 	}
 	if sh[e] == 0 {
-		return nil, messages.New(messages.H6209, ad, shapeText(sh), e)
+		return nil, messages.New(messages.H6209, ad, tensor.ShapeText(sh), e)
 	}
 	r, err := safe(func() *tensor.Tensor {
 		idx := t.ArgMax(e)

@@ -141,7 +141,7 @@ func CheckParamShapes(fn string, names []string, found []*TensorValue, src map[s
 			return messages.New(messages.H6508, fn, ad, srcName, len(names), len(src))
 		}
 		if sm := found[i].t.Shape(); !slices.Equal(sm, sk) {
-			return messages.New(messages.H6511, fn, ad, shapeText(sm), srcName, shapeText(sk))
+			return messages.New(messages.H6511, fn, ad, tensor.ShapeText(sm), srcName, tensor.ShapeText(sk))
 		}
 	}
 	if len(src) == len(names) {

@@ -299,7 +299,7 @@ func checkSafetensorsLayout(entries []*safetensorsEntry, buffer uint64) error {
 		}
 		want := count * uint64(safetensorsDTypes[*e.Dtype].Bits()/8)
 		if end-begin != want {
-			return messages.New(messages.H6645, e.name, shapeText(shape), want, end-begin)
+			return messages.New(messages.H6645, e.name, tensor.ShapeText(shape), want, end-begin)
 		}
 		expected = end
 	}
