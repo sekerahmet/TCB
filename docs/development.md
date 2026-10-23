@@ -64,13 +64,13 @@ Ana dal herkese açıktır; ona yalnızca bütün kapılardan geçmiş iş gider
 | :-- | :-- |
 | Yalnızca belge | Sonraki kod gönderimine eklenir; ayrı tam denetim koşulmaz. |
 | CPU tarafı (dil, standart kitaplık, araçlar, iletiler) | İş sırasında değişen paketlerin testleri → tam denetim → ana dala gönderim → otomatik sınama (CI) izlenir. |
-| GPU arka ucu ya da onu kullanan hesap yolu (`internal/compute/gpu`, tensörün GPU'ya giden yolları, GPU'da koşan `lib/*.tr`) | Değişen yerin testleri (Go paketi: `go test ./paket/...`, GPU kodu benzeticide; `lib/*.tr`: `tr test lib` ve ilgili e2e testi) → **yan dala** gönderim (`git push origin main:refs/heads/gpu-dogrulama`) → Colab'da o dalla GPU sınaması ([`tools/gpu/COLAB.md`](../tools/gpu/COLAB.md): `git clone -b gpu-dogrulama`) → geçerse tam denetim → ana dala gönderim, yan dal silinir → CI izlenir. |
+| GPU arka ucu ya da onu kullanan hesap yolu (`internal/compute/gpu`, tensörün GPU'ya giden yolları, GPU'da koşan `lib/*.tr`) | Değişen yerin testleri (Go paketi: `go test ./paket/...`, GPU kodu benzeticide; `lib/*.tr`: `tr test lib` ve ilgili e2e testi) → **yan dala** gönderim (`git push origin main:refs/heads/gpu-dogrulama`) → o dalla kart sınaması ([`tools/gpu/card_check.sh`](../tools/gpu/card_check.sh): GPU testleri, dil tanımı testleri, hız; kayıtlı; Colab'da [`COLAB.md`](../tools/gpu/COLAB.md) §2), en az iki mimaride → geçerse tam denetim → ana dala gönderim, yan dal silinir → CI izlenir. |
 | Hıza dokunan iş | Yukarıdaki sıraya ek olarak önce ve sonra ölçüm (aşağıda); GPU hızı Colab'da aynı kartta ölçülür. |
 
 - **Neden yan dal:** Colab kodu GitHub'dan çeker. Doğrudan ana dala gönderilen bir GPU değişikliği, gerçek kartta sınanmadan herkese açık olur. Yan dal, GPU sınamasını ana daldan önceye alır.
 - **Tam denetim ana dala her gönderimden önce bir kez koşar** (~5 dakika sürer; go-eşleri turu yalnızca assembly paketlerinde). Yan dal herkesin kullandığı dal değildir; ona değişen yerin testleriyle gönderilir, tam denetim Colab sınaması geçtikten sonra, ana daldan önce koşar. Birden çok dal birleşecekse hepsi birleştikten sonra tek bir denetim yeterlidir. Denetim sürerken depoda dosya düzenlenmez.
 - **GPU sınaması tam denetimin yerini tutmaz, ona eklenir.** Tam denetim gerçek GPU'yu sınamaz. GPU sınaması da CPU yollarını, ARM derlemesini ve Go eşlerini sınamaz.
-- Colab işi bitince çalışma zamanı kapatılır (`runtime.unassign()`).
+- GPU çalışma zamanında CPU işi (tam denetim, CPU ölçümü) yapılmaz; GPU işi bitince çalışma zamanı CPU'ya çevrilir ya da kapatılır (`runtime.unassign()`).
 
 ## Kod grafiği
 

@@ -84,31 +84,30 @@ olmalıdır (Blackwell için en az 12.8; eski sürümlü adaylar `atlanan:` diye
 verilebilir (PyTorch'un kurduğu kopya da olur):
 `export TR_GPU_CUBLASLT=$(python -c "import nvidia.cublas, os; print(os.path.join(nvidia.cublas.__path__[0], 'lib', 'libcublasLt.so.12'))")`.
 
-## 2. GPU arka ucunun sınamaları (her kernel CPU ile karşılaştırılır)
+## 2. Kart sınaması (GPU testleri, dil tanımı testleri, hız)
 
-İlk koşu her kernelden sonra eşzamanlar (`TR_GPU_ESZAMANLI=1`): bir kernel hata
-verirse hata tam olarak o kernelde bildirilir. Ardından normal (eşzamansız) koşu. Sınama
-ikilisi paketin klasöründen çalıştırılır: bazı sınamalar paketin kaynak dosyalarını okur
-(ör. `TestEveryEmittedInstructionIsSimulated`), başka klasörde "0 komut adı" diye kalır.
+Her GPU değişikliği yan dalda en az iki mimaride sınanır ([`docs/development.md`](../../docs/development.md#gönderim-sırası-cpu-ve-gpu)).
+[`card_check.sh`](card_check.sh) tek komutla kart bilgisini, derlemeyi, GPU testlerini (önce her kernelden sonra
+eşzamanlayarak, `TR_GPU_ESZAMANLI=1`: hata tam o kernelde bildirilir; sonra eşzamansız), dil tanımı testlerini ve
+hedef modelde 120 adımlık hızı (ortanca ms/adım, tepe bellek) yapar. Kayıt aracıyla sarılır: kart, sürücü ve commit
+Drive'daki kayda girer (`TR_dili/olcumler/kart/`), kartlar ve zaman arasında oradan karşılaştırılır. GPU çalışma
+zamanında koşulur; yalnızca Go kurulumu ister (hücre B'deki satır). Sınama ikilisi paketin klasöründen çalışır: bazı
+sınamalar paketin kaynak dosyalarını okur (`TestEveryEmittedInstructionIsSimulated`).
 
 ```bash
 %%bash
-cd /content/TCB/internal/compute/gpu
-TR_GPU_ESZAMANLI=1 /content/tr/gpu_sinama -test.count=1 2>&1 | tail -5
-/content/tr/gpu_sinama -test.v -test.count=1 2>&1 | grep -E '^(--- FAIL|FAIL|ok|PASS)|panic' | head -20
-/content/tr/gpu_sinama -test.v -test.count=1 -test.run 'GemmLibrary' 2>&1 | tail -3
+# KART SINAMASI, KAYITLI (ARKA PLANDA, ~5 DK) · GPU — DAL değiştirilir; durum: hücre C
+DAL=gpu-dogrulama
+[ -x /usr/local/go/bin/go ] || { wget -q https://go.dev/dl/go1.26.10.linux-amd64.tar.gz -O /tmp/go.tgz && tar -C /usr/local -xzf /tmp/go.tgz; }
+export PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=local
+rm -rf /content/TCB && git clone -q --depth 1 -b $DAL https://github.com/sekerahmet/TCB /content/TCB
+cd /content/TCB && git log -1 --format='commit: %h %s' | cut -c1-80 && rm -f /content/kosu_bitti
+setsid nohup bash -c "cd /content/TCB && export PATH=/usr/local/go/bin:\$PATH GOTOOLCHAIN=local && go run ./tools/record --name kart --out /content/drive/MyDrive/TR_dili/olcumler -- bash tools/gpu/card_check.sh > /content/kosu.log 2>&1; echo \$? > /content/kosu_bitti" > /dev/null 2>&1 < /dev/null &
+echo "başladı (durum: hücre C)"
 ```
 
 PTX derleme hatasında mesaj PTX metninin yazıldığı geçici dosyanın yolunu verir; o dosyayı da
 gönderin (`cat /tmp/tr_gpu_*.ptx | head -200`).
-
-## 3. Dil tanımı testleri
-
-```bash
-%%bash
-cd /content/tr
-./tr test tests 2>&1 | tail -3
-```
 
 ## 4. Mikro kıyaslar (TR ve PyTorch, işlem işlem)
 
