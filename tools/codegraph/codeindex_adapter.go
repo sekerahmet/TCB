@@ -90,14 +90,14 @@ func graphNode(n codeindex.Node, id string) Node {
 		if n.Coded {
 			detail = "tr, coded"
 		}
-		return Node{ID: id, Kind: kindFile, Name: n.Name, File: n.Pos.File, Line: 1, Detail: detail, Aliases: n.Aliases}
+		return Node{ID: id, Kind: kindFile, Name: n.Name, File: n.Pos.File, Line: 1, Detail: detail, Aliases: n.Aliases, Doc: docLine(n.Doc)}
 	}
 	kind := map[codeindex.Kind]string{
 		codeindex.KindFunction: kindTRFunc, codeindex.KindStruct: kindTRStruct, codeindex.KindMethod: kindTRMethod,
 		codeindex.KindField: kindTRField, codeindex.KindConstant: kindTRConst, codeindex.KindVariable: kindTRVar,
 		codeindex.KindTest: kindTRTest, codeindex.KindParameter: kindTRParam,
 	}[n.Kind]
-	return Node{ID: id, Kind: kind, Name: n.Qualified, File: n.Pos.File, Line: n.Pos.Line, End: n.Pos.EndLine, Detail: n.Signature}
+	return Node{ID: id, Kind: kind, Name: n.Qualified, File: n.Pos.File, Line: n.Pos.Line, End: n.Pos.EndLine, Detail: n.Signature, Doc: docLine(n.Doc)}
 }
 
 // trEdgeKind codeindex kenar türünü grafik kenar türüne çevirir: yerleşik adlara `uses`

@@ -24,6 +24,8 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 	callee := map[*ast.Ident]bool{}
 	modes := map[ast.Expr]string{}
 	closures := map[*ast.FuncLit]string{}
+	writes := map[*ast.Ident]writeTarget{} // yazılan paket değişkenlerinin kök tanımlayıcıları (var_access.go)
+	atomicAddr := map[*ast.UnaryExpr]bool{}
 	var stack []ast.Node
 	ast.Inspect(root, func(n ast.Node) bool {
 		if n == nil {
@@ -32,6 +34,7 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 		}
 		stack = append(stack, n)
 		accessModes(modes, n)
+		x.noteVarWrites(fc, writes, atomicAddr, n)
 		switch n := n.(type) {
 		case *ast.CallExpr:
 			if id := nameIdent(n.Fun); id != nil {
@@ -40,7 +43,7 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 			x.envUse(fc, owner, n)
 			x.pathCall(fc, owner, n)
 		case *ast.Ident:
-			x.use(fc, owner, n, callee[n])
+			x.use(fc, owner, n, callee[n], writes, enclosingClosure(stack, closures))
 		case *ast.RangeStmt:
 			x.rangeUse(fc, owner, n)
 		case *ast.BasicLit:
@@ -148,13 +151,17 @@ func (x *goExtractor) objectID(obj types.Object) string {
 	return ""
 }
 
-func (x *goExtractor) use(fc *fileCtx, owner string, id *ast.Ident, isCall bool) {
+func (x *goExtractor) use(fc *fileCtx, owner string, id *ast.Ident, isCall bool, writes map[*ast.Ident]writeTarget, closure string) {
 	obj := fc.u.Info.Uses[id]
 	ref := x.objectID(obj)
 	if ref == "" {
 		return
 	}
 	line := x.line(id.Pos())
+	if _, isVar := obj.(*types.Var); isVar {
+		x.varUse(fc, owner, ref, id, writes, closure)
+		return
+	}
 	if _, isFunc := obj.(*types.Func); isFunc {
 		conf := inferred // işlev değeri olarak kullanım: çağrı sonradan olabilir
 		if isCall {

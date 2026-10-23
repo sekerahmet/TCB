@@ -187,116 +187,25 @@ func (a *stateAudit) noteVarFuncLits(u *goload.Unit, gd *ast.GenDecl, rel string
 	})
 }
 
-// noteAtomicCall `atomic.AddInt64(&v, 1)` gibi bir sync/atomic çağrısındaki &değişken bağımsız değişkenlerini
-// "atomic" yazım olarak kaydeder (ayrıca "address taken" sayılmaz).
-func (a *stateAudit) noteAtomicCall(u *goload.Unit, c *ast.CallExpr, record func(ast.Expr, string)) {
-	sel, ok := c.Fun.(*ast.SelectorExpr)
-	if !ok {
-		return
-	}
-	fn, ok := u.Info.Uses[sel.Sel].(*types.Func)
-	if !ok || fn.Pkg() == nil || fn.Pkg().Path() != "sync/atomic" {
-		return
-	}
-	for _, arg := range c.Args {
-		if un, ok := arg.(*ast.UnaryExpr); ok && un.Op == token.AND {
-			a.atomicAddr[un] = true
-			record(un.X, "atomic")
-		}
-	}
-}
-
-// noteWrites bir düğümün yazdığı paket değişkenlerini kaydeder.
+// noteWrites bir düğümün yazdığı paket değişkenlerini kaydeder; "yazma nedir" kuralı writeTargets'tadır (var_access.go,
+// grafik kenarlarıyla ortak).
 func (a *stateAudit) noteWrites(u *goload.Unit, n ast.Node, fn, rel string) {
-	record := func(target ast.Expr, how string) {
-		if v := a.packageVar(u, target); v != nil {
-			if sv := a.vars[a.vkey(v)]; sv != nil {
-				if _, bare := stripParens(target).(*ast.Ident); !bare && how == "assign" {
-					how = "element/field write"
-				}
-				file, line := position(a.m, target.Pos())
-				sv.Writers = append(sv.Writers, stateWrite{Func: fn, File: file, Line: line, How: how, Test: isTestFile(rel)})
-			}
+	for _, w := range writeTargets(u.Info, n, a.atomicAddr) {
+		v := packageVar(u.Info, w.expr)
+		if v == nil {
+			continue
 		}
+		sv := a.vars[a.vkey(v)]
+		if sv == nil {
+			continue
+		}
+		how := w.how
+		if !w.bare && how == "assign" {
+			how = "element/field write"
+		}
+		file, line := position(a.m, w.expr.Pos())
+		sv.Writers = append(sv.Writers, stateWrite{Func: fn, File: file, Line: line, How: how, Test: isTestFile(rel)})
 	}
-	switch s := n.(type) {
-	case *ast.AssignStmt:
-		if s.Tok != token.DEFINE {
-			for _, l := range s.Lhs {
-				record(l, "assign")
-			}
-		}
-	case *ast.IncDecStmt:
-		record(s.X, "inc/dec")
-	case *ast.UnaryExpr:
-		if s.Op == token.AND && !a.atomicAddr[s] {
-			record(s.X, "address taken")
-		}
-	case *ast.RangeStmt:
-		if s.Tok == token.ASSIGN {
-			if s.Key != nil {
-				record(s.Key, "assign")
-			}
-			if s.Value != nil {
-				record(s.Value, "assign")
-			}
-		}
-	case *ast.CallExpr:
-		a.noteAtomicCall(u, s, record)
-		if id, ok := s.Fun.(*ast.Ident); ok && len(s.Args) > 0 && (id.Name == "delete" || id.Name == "clear") {
-			if _, isBuiltin := u.Info.Uses[id].(*types.Builtin); isBuiltin {
-				record(s.Args[0], "delete/clear")
-			}
-		}
-	}
-}
-
-func stripParens(e ast.Expr) ast.Expr {
-	for {
-		p, ok := e.(*ast.ParenExpr)
-		if !ok {
-			return e
-		}
-		e = p.X
-	}
-}
-
-// packageVar bir yazım hedefinin köküne inip modülün paket düzeyi değişkenini verir; değilse nil.
-func (a *stateAudit) packageVar(u *goload.Unit, e ast.Expr) *types.Var {
-	for {
-		switch v := e.(type) {
-		case *ast.ParenExpr:
-			e = v.X
-		case *ast.StarExpr:
-			e = v.X
-		case *ast.IndexExpr:
-			e = v.X
-		case *ast.IndexListExpr:
-			e = v.X
-		case *ast.SliceExpr:
-			e = v.X
-		case *ast.SelectorExpr:
-			if x, ok := v.X.(*ast.Ident); ok {
-				if _, isPkg := u.Info.Uses[x].(*types.PkgName); isPkg {
-					return pkgLevel(u.Info.Uses[v.Sel])
-				}
-			}
-			e = v.X
-		case *ast.Ident:
-			return pkgLevel(u.Info.Uses[v])
-		default:
-			return nil
-		}
-	}
-}
-
-// pkgLevel nesne bir paket düzeyi değişken ise onu verir.
-func pkgLevel(o types.Object) *types.Var {
-	v, ok := o.(*types.Var)
-	if !ok || v.IsField() || v.Pkg() == nil || v.Parent() != v.Pkg().Scope() {
-		return nil
-	}
-	return v
 }
 
 // runPackageState `package-state` komutudur.

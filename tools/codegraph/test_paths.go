@@ -133,7 +133,7 @@ func linkTestPaths(b *builder, idx *goIndex) {
 	sort.Slice(targets, func(i, j int) bool { return targets[i].ID < targets[j].ID })
 	callers := map[string][]string{} // işlev ya da değişken -> onu çağıran ya da kullananlar
 	for k := range b.edges {
-		if k.kind == edgeCalls || k.kind == edgeUses {
+		if k.kind == edgeCalls || k.kind == edgeUses || k.kind == edgeReadsVar || k.kind == edgeWritesVar {
 			callers[k.to] = append(callers[k.to], k.from)
 		}
 	}

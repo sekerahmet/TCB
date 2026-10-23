@@ -80,7 +80,10 @@ computed when you ask, not stored in `graph.json`.
 | `imports` | package → package (module packages only) | EXTRACTED |
 | `calls` | func → func; a call resolved by `go/types` | EXTRACTED; a function used as a value: INFERRED |
 | `implements` | type → interface of the module, by `types.Implements` | EXTRACTED |
-| `uses` | owner → package-level `type`, `const` or `var` it refers to, wherever the name is written: signatures (parameter, result, receiver), field types, embedded types, interface method signatures, type constraints, composite literals, initialisers. The owner is the function or method; for a type declaration the type; for a package-level `const`/`var` the declared name (`var ValInt = TypeName(codes.A200)`: ValInt), for an unnamed spec (`var _ T = ...`) the file | EXTRACTED |
+| `uses` | owner → package-level `type` or `const` it refers to (variables are `reads_var`/`writes_var`), wherever the name is written: signatures (parameter, result, receiver), field types, embedded types, interface method signatures, type constraints, composite literals, initialisers. The owner is the function or method; for a type declaration the type; for a package-level `const`/`var` the declared name (`var ValInt = TypeName(codes.A200)`: ValInt), for an unnamed spec (`var _ T = ...`) the file | EXTRACTED |
+| `reads_var` | owner → package-level `var` it reads | EXTRACTED; access sites with mode `read` (also the read half of `x += 1`, `x++`: mode `read` next to the `read+write` write site) |
+| `writes_var` | owner → package-level `var` it changes: assignment, `+=`, `++`/`--`, element or field write (`m[k] = v`, `v.f = x`), `delete`/`clear`, `&v`, `sync/atomic` call, qualified write from another package (`a.V = 1`) | EXTRACTED; site modes `write`, `read+write`, `elem-write`, `addr`, `atomic` (same vocabulary as `writes_field`) |
+| `inits_var` | a write inside a package's `func init` (owner = that init), and the variable's own declaration initializer (`var active = load()`: the variable to itself, mode `initializer`) | EXTRACTED; "who sets it up" is a separate group in `query`, apart from the steady-state writers |
 | `embeds` | `//go:embed` variable → the data file(s) its patterns name (relative to the package folder) | INFERRED |
 | `reads_file` | function (non-test) → repository file named by a string constant it passes to `reporoot.Path`/`filepath.Join`/`Glob` | INFERRED |
 | `walks` | test → data file whose whole list it walks: the test (or a test helper) has a `range` over a function or variable that returns a collection and depends on the file inside the package that embeds it (`for _, k := range codes.Codes()`) | INFERRED |
@@ -356,6 +359,25 @@ change together; suffixes are re-fitted to the new number; a range whose targets
 consecutive is split (`15.31–15.38` → `15.11–15.15, 15.20–15.22`); text that is not a recognised
 reference (`15.0` as a version) is never touched. Collisions and unknown old numbers are refused
 before anything is written; `--apply` refuses a plan that no longer matches the files.
+
+## Package variables: reads and writes (`reads_var`, `writes_var`, `inits_var`)
+
+`query codes.active` used to give its 16 users under one `uses`; "who writes it" had no answer. The rule of
+what a write is lives in one function, `writeTargets` (`var_access.go`): assignment, op-assignment, `++`/`--`,
+`range` assignment, `&x`, `delete`/`clear`, `sync/atomic`. The graph extractor and the `package-state` audit both
+call it, so there is no second rule: `TestPackageStateAndGraphAgreeOnWriters` pins that `package-state`'s writers
+(init and initializers aside) are exactly the `writes_var` sites. Compared with the field rule (`reads_field`/
+`writes_field`) the same modes apply, and an initializer or an `init` write is its own group because it runs
+once, before anything reads: that is the part "who sets it up" and "who changes it while running" must not mix.
+
+## Doc comments (`doc:` in `query`)
+
+Every Go node (function, method, type, field, const, var, interface method) carries `doc`: the first
+paragraph of its doc comment (at most 3 lines, 300 characters), else its end-of-line comment; for a
+single-spec `const X = 1` or `type T int` the comment on the declaration counts. `query codes.active` prints
+"active programın okunduğu ve çalıştığı kanonik dildir: her zaman Türkçe.", so the answer is not one file
+open away. `//go:` directives are not comments. `.tr` nodes get the same line from `tr dizin`'s `Doc`.
+Pinned by `TestQueryShowsGoDocComments`.
 
 ## Data files and `tests-for` (`embeds`, `reads_file`, `walks`)
 

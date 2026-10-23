@@ -171,7 +171,7 @@ func (x *goExtractor) funcDecl(fc *fileCtx, d *ast.FuncDecl) {
 	if recv != "" {
 		qual += "." + recv
 	}
-	x.b.addNode(Node{ID: id, Kind: kind, Name: qual + "." + name, File: fc.rel, Line: x.line(d.Pos()), End: x.line(d.End()),
+	x.b.addNode(Node{ID: id, Kind: kind, Name: qual + "." + name, File: fc.rel, Line: x.line(d.Pos()), End: x.line(d.End()), Doc: docText(d.Doc),
 		Detail: types.ObjectString(obj, func(p *types.Package) string { return p.Name() })})
 	x.b.addEdge(fileID(fc.rel), id, edgeContains, extracted, fc.rel, x.line(d.Pos()))
 	if recv != "" {
@@ -223,11 +223,11 @@ func (x *goExtractor) genDecl(fc *fileCtx, d *ast.GenDecl) {
 		if obj == nil {
 			continue
 		}
-		x.typeSpec(fc, ts, obj)
+		x.typeSpec(fc, d, ts, obj)
 	}
 }
 
-func (x *goExtractor) typeSpec(fc *fileCtx, ts *ast.TypeSpec, obj *types.TypeName) {
+func (x *goExtractor) typeSpec(fc *fileCtx, gen *ast.GenDecl, ts *ast.TypeSpec, obj *types.TypeName) {
 	pkg := obj.Pkg().Path()
 	id := typeID(pkg, obj.Name())
 	detail := "alias"
@@ -242,7 +242,7 @@ func (x *goExtractor) typeSpec(fc *fileCtx, ts *ast.TypeSpec, obj *types.TypeNam
 		}
 	}
 	line := x.line(ts.Pos())
-	x.b.addNode(Node{ID: id, Kind: kindType, Name: path.Base(pkg) + "." + obj.Name(), File: fc.rel, Line: line, End: x.line(ts.End()), Detail: detail})
+	x.b.addNode(Node{ID: id, Kind: kindType, Name: path.Base(pkg) + "." + obj.Name(), File: fc.rel, Line: line, End: x.line(ts.End()), Detail: detail, Doc: docText(singleSpecDoc(gen, ts.Doc), ts.Comment)})
 	x.b.addEdge(fileID(fc.rel), id, edgeContains, extracted, fc.rel, line)
 	if !fc.isTest {
 		x.addSym(fc.base, obj.Name(), id)
@@ -253,12 +253,13 @@ func (x *goExtractor) typeSpec(fc *fileCtx, ts *ast.TypeSpec, obj *types.TypeNam
 	if !ok || obj.IsAlias() {
 		return
 	}
+	docs := interfaceMethodDocs(ts)
 	for i := 0; i < it.NumExplicitMethods(); i++ {
 		mth := it.ExplicitMethod(i)
 		mid := memberID(pkg, obj.Name(), mth.Name())
 		ml := x.line(mth.Pos())
 		x.b.addNode(Node{ID: mid, Kind: kindMethod, Name: path.Base(pkg) + "." + obj.Name() + "." + mth.Name(),
-			File: fc.rel, Line: ml, End: ml, Detail: types.ObjectString(mth, func(p *types.Package) string { return p.Name() })})
+			File: fc.rel, Line: ml, End: ml, Doc: docs[mth.Name()], Detail: types.ObjectString(mth, func(p *types.Package) string { return p.Name() })})
 		x.b.addEdge(id, mid, edgeContains, extracted, fc.rel, ml)
 		if !fc.isTest {
 			x.addSym(fc.base, obj.Name()+"."+mth.Name(), mid)
@@ -293,7 +294,7 @@ func (x *goExtractor) valueDecl(fc *fileCtx, d *ast.GenDecl) {
 			}
 			line := x.line(name.Pos())
 			x.b.addNode(Node{ID: id, Kind: kind, Name: path.Base(pkg) + "." + name.Name, File: fc.rel,
-				Line: line, End: x.line(vs.End()), Detail: detail})
+				Line: line, End: x.line(vs.End()), Detail: detail, Doc: docText(singleSpecDoc(d, vs.Doc), vs.Comment)})
 			x.b.addEdge(fileID(fc.rel), id, edgeContains, extracted, fc.rel, line)
 			x.denotes(fc, id, pkg, name.Name, line)
 		}
@@ -327,5 +328,21 @@ func (x *goExtractor) scanValueSpecs(fc *fileCtx, d *ast.GenDecl) {
 			}
 		}
 		x.scan(fc, owner, spec)
+		x.initializerSites(fc, d, spec)
+	}
+}
+
+// initializerSites başlatıcılı bir paket değişkenini yazanın kendi bildirimi olarak işaretler: değişkenden kendine
+// `inits_var` (kip "initializer"). `query codes.active` yazanları "başlatıcı" ve "init" ayrı grupta gösterir.
+func (x *goExtractor) initializerSites(fc *fileCtx, d *ast.GenDecl, spec ast.Spec) {
+	vs, ok := spec.(*ast.ValueSpec)
+	if !ok || d.Tok != token.VAR || len(vs.Values) == 0 {
+		return
+	}
+	for _, name := range vs.Names {
+		if obj := fc.u.Info.Defs[name]; obj != nil && name.Name != "_" && obj.Pkg() != nil {
+			id := valueID(kindVar, obj.Pkg().Path(), name.Name)
+			x.b.addSite(id, id, edgeInitsVar, Site{File: fc.rel, Line: x.line(name.Pos()), Mode: "initializer"})
+		}
 	}
 }
