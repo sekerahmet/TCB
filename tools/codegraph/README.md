@@ -82,6 +82,7 @@ computed when you ask, not stored in `graph.json`.
 | `implements` | type → interface of the module, by `types.Implements` | EXTRACTED |
 | `dispatches_to` | interface method → every method that implements it (a method promoted from an embedded field counts), by `types.Implements` | INFERRED: which one runs depends on the value; `query Backend.Softmax` lists them, `callees` prints "dispatches to: ..." under an interface callee, `path` and `tests-for` follow the edge. The chain rule (`reachEdge`) includes it: the tests of `Tensor.Softmax` are tests of `cpuBackend.Softmax`. The type-to-interface pairs come from one function, `moduleImplementations`, shared with `dead-methods` |
 | `uses` | owner → package-level `type` or `const` it refers to (variables are `reads_var`/`writes_var`), wherever the name is written: signatures (parameter, result, receiver), field types, embedded types, interface method signatures, type constraints, composite literals, initialisers. The owner is the function or method; for a type declaration the type; for a package-level `const`/`var` the declared name (`var ValInt = TypeName(codes.A200)`: ValInt), for an unnamed spec (`var _ T = ...`) the file | EXTRACTED |
+| `refs_spec` | the declaration, heading or file that mentions a language-definition item → `spec:N.M` (see above) | EXTRACTED |
 | `reads_var` | owner → package-level `var` it reads | EXTRACTED; access sites with mode `read` (also the read half of `x += 1`, `x++`: mode `read` next to the `read+write` write site) |
 | `writes_var` | owner → package-level `var` it changes: assignment, `+=`, `++`/`--`, element or field write (`m[k] = v`, `v.f = x`), `delete`/`clear`, `&v`, `sync/atomic` call, qualified write from another package (`a.V = 1`) | EXTRACTED; site modes `write`, `read+write`, `elem-write`, `addr`, `atomic` (same vocabulary as `writes_field`) |
 | `inits_var` | a write inside a package's `func init` (owner = that init), and the variable's own declaration initializer (`var active = load()`: the variable to itself, mode `initializer`) | EXTRACTED; "who sets it up" is a separate group in `query`, apart from the steady-state writers |
@@ -360,6 +361,19 @@ change together; suffixes are re-fitted to the new number; a range whose targets
 consecutive is split (`15.31–15.38` → `15.11–15.15, 15.20–15.22`); text that is not a recognised
 reference (`15.0` as a version) is never touched. Collisions and unknown old numbers are refused
 before anything is written; `--apply` refuses a plan that no longer matches the files.
+
+## Language-definition items as nodes (`spec`, `refs_spec`)
+
+Every numbered item of `docs/spec` (`**17.7** ...`) is a node `spec:17.7` (name `17.7`, detail = its title), and every mention
+of it is an edge from the place that mentions it. The scanner is the one `spec-refs` and `tools/renumber` use
+(`tools/internal/specref`): bold `**17.7**`, `dil tanımı 17.7`, `§17.7`, link text, parenthesised numbers in the spec itself, and,
+outside the spec, a bare `17.7` in prose or in a Go comment **when item 17.7 exists** (`15.5 ms` and version numbers are not
+items). The mentioning place is the innermost declaration around the line (function, method, type, TR function or test,
+document heading), the declaration just below when the mention sits in its doc comment, else the file. `who-uses 17.7`
+is the impact list for a change or a renumbering (22 places today: documents, comments, tests); a test that mentions an item,
+and a TR test block whose name starts with the number (`test "17.7 ..."`), also gets a `tests` edge, so `tests-for 17.7` lists
+the tests of the rule. `tools/renumber` does not edit a bare number outside the spec (it may be a decimal): it lists it as
+"review". Pinned by `TestSpecItemsAreNodesWithReferenceEdges`.
 
 ## `path`: directed by default
 
