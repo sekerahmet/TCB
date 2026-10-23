@@ -21,7 +21,7 @@ func (ix *index) printNameChain(w io.Writer, n *Node, limit int) {
 	}
 	var lines []string
 	for _, e := range ix.in[n.ID] {
-		if e.Kind != edgeUsesName {
+		if e.Kind != edgeUsesName && e.Kind != edgeUsesEnv {
 			continue
 		}
 		owner := ix.byID[e.From]
