@@ -87,6 +87,16 @@ func (r *Reader) Resolve(q, kind string) []*Node {
 		}
 		return strings.HasSuffix(fold(full), "."+fold(tail))
 	}
+	// q'ya uyan yerleşik adların düğümleri bir kez bulunur (her yerleşik düğümde bütün adları yeniden katlamak sorguyu
+	// yavaşlatıyordu: 278 adlık denetimde 16 sn).
+	builtinMatch := map[string]bool{}
+	for name, ids := range r.builtins {
+		if same(name, q) {
+			for _, id := range ids {
+				builtinMatch[id] = true
+			}
+		}
+	}
 	tiers := []func(n *Node) bool{
 		func(n *Node) bool {
 			if n.Kind != KindModule {
@@ -106,7 +116,7 @@ func (r *Reader) Resolve(q, kind string) []*Node {
 		// aday olur (biri sessizce seçilmez).
 		func(n *Node) bool {
 			if n.Kind == KindBuiltin {
-				return r.builtinHas(n.ID, q, same)
+				return builtinMatch[n.ID]
 			}
 			return n.Kind != KindModule && same(n.Name, q)
 		},
@@ -126,20 +136,6 @@ func (r *Reader) Resolve(q, kind string) []*Node {
 		}
 	}
 	return nil
-}
-
-func (r *Reader) builtinHas(id, q string, same func(a, b string) bool) bool {
-	for name, ids := range r.builtins {
-		if !same(name, q) {
-			continue
-		}
-		for _, other := range ids {
-			if other == id {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 // atQuery konum sorgusunu düğüme çevirir; sütun verilmediyse satırdaki ilk başvuru alınır.
