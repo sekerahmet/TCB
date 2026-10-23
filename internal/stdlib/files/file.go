@@ -45,10 +45,7 @@ func Register(v *interp.VM) {
 
 // safe yerleşiği Go paniğine karşı korur (panik dene/yakala ile yakalanan bir hataya döner).
 func safe(kd codes.Code, fn interp.BuiltinFunc) interp.BuiltinFunc {
-	name := interp.CallPrefix(kd)
-	return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		return bind.Safe(name, func() (interp.Value, error) { return fn(m, args, named) })
-	}
+	return bind.SafeBuiltin(interp.CallPrefix(kd), fn)
 }
 
 // readPath yol alan bir yerleşiğin sira. argümanını (Metin ya da Yol) okur; yolda sekme ya da
@@ -65,13 +62,4 @@ func readPath(kd codes.Code, order int, d interp.Value) (string, error) {
 		return "", messages.New(messages.H7124, interp.CallPrefix(kd))
 	}
 	return raw, nil
-}
-
-// boolNamed adlı bir Mantık argümanını okur (verilmemişse yanlış).
-func boolNamed(kd codes.Code, named map[string]interp.Value, a bind.Named) (bool, error) {
-	d, ok := bind.GetNamed(named, a)
-	if !ok {
-		return false, nil
-	}
-	return bind.Bool(interp.CallPrefix(kd), a.TR+":", d)
 }

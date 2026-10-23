@@ -261,3 +261,71 @@ func TestMethodWrappersTurnPanicsIntoNamedErrors(t *testing.T) {
 		t.Fatalf("CodeMethod panik hatası: %v", err)
 	}
 }
+
+// Kural: OptionalBool verilmemiş adlı Mantık argümanında varsayılanı verir, verilmişte değeri okur,
+// Mantık olmayan değerde etiketli hata verir (iki ileti biçimi etiketle korunur).
+func TestOptionalBool(t *testing.T) {
+	a := NamedArg(codes.T902)
+	for _, def := range []bool{false, true} {
+		if b, err := OptionalBool("f", "x", map[string]interp.Value{}, a, def); err != nil || b != def {
+			t.Errorf("verilmemiş (varsayılan %v) = %v, %v", def, b, err)
+		}
+	}
+	if b, err := OptionalBool("f", "x", map[string]interp.Value{a.TR: &interp.BoolVal{Val: true}}, a, false); err != nil || !b {
+		t.Errorf("doğru = %v, %v", b, err)
+	}
+	_, err := OptionalBool("f", "etiket:", map[string]interp.Value{a.TR: &interp.IntVal{Val: 1}}, a, false)
+	if err == nil || !strings.Contains(err.Error(), "f: etiket:") {
+		t.Errorf("Mantık olmayan değer etiketli hata vermeli: %v", err)
+	}
+}
+
+// Kural: SafeBuiltin yerleşiğin Go paniğini adlı iç hataya çevirir, sıradan sonucu ve hatayı olduğu gibi verir.
+func TestSafeBuiltin(t *testing.T) {
+	boom := func(*interp.VM, []interp.Value, map[string]interp.Value) (interp.Value, error) { panic("patladı") }
+	if _, err := SafeBuiltin("ad", boom)(nil, nil, nil); !messages.Has(err, messages.H2000) || !strings.Contains(err.Error(), "ad") {
+		t.Errorf("panik iç hataya dönmeli: %v", err)
+	}
+	want := errors.New("sıradan")
+	fail := func(*interp.VM, []interp.Value, map[string]interp.Value) (interp.Value, error) { return nil, want }
+	if _, err := SafeBuiltin("ad", fail)(nil, nil, nil); err != want {
+		t.Errorf("hata olduğu gibi dönmeli: %v", err)
+	}
+	ok := func(*interp.VM, []interp.Value, map[string]interp.Value) (interp.Value, error) {
+		return &interp.IntVal{Val: 2}, nil
+	}
+	if v, err := SafeBuiltin("ad", ok)(nil, nil, nil); err != nil || v.Inspect() != "2" {
+		t.Errorf("sonuç: %v, %v", v, err)
+	}
+}
+
+// Kural: SingleDictArg tam bir sözlük argümanı bekler; sayı ve tür hatalarında yöntemin koduyla
+// ArgCountError/ArgTypeError verir.
+func TestSingleDictArg(t *testing.T) {
+	d := interp.NewDictVal()
+	if got, err := SingleDictArg(codes.Y503, []interp.Value{d}, "örnek"); err != nil || got != d {
+		t.Errorf("sözlük = %v, %v", got, err)
+	}
+	if _, err := SingleDictArg(codes.Y503, nil, "örnek"); err == nil || !strings.Contains(err.Error(), "örnek") {
+		t.Errorf("argümansız çağrı sayı hatası vermeli (örnek anılmalı): %v", err)
+	}
+	if _, err := SingleDictArg(codes.Y503, []interp.Value{&interp.IntVal{Val: 1}}, "örnek"); err == nil {
+		t.Error("sözlük olmayan argüman hata vermeli")
+	}
+}
+
+// Kural: IntList her tam sayı türünü (int, int32, int64) TR tam sayı listesine çevirir; boş dilim boş liste verir.
+func TestIntList(t *testing.T) {
+	if got := IntList([]int{1, 2}).Inspect(); got != "[1, 2]" {
+		t.Errorf("int: %s", got)
+	}
+	if got := IntList([]int32{-3}).Inspect(); got != "[-3]" {
+		t.Errorf("int32: %s", got)
+	}
+	if got := IntList([]int64{7, 8, 9}).Inspect(); got != "[7, 8, 9]" {
+		t.Errorf("int64: %s", got)
+	}
+	if l := IntList[int](nil); l == nil || len(l.Elements) != 0 {
+		t.Errorf("boş: %v", l)
+	}
+}

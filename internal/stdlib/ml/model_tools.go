@@ -32,15 +32,6 @@ var (
 // benzersiz olduğundan Metin'in .böl'üyle aynı koddur (Y103).
 const memberSplit = codes.Y103
 
-// namedBool adlı bir Mantık argümanını okur; verilmemişse varsayilan döner.
-func namedBool(fn string, named map[string]interp.Value, a bind.Named, defaultVal bool) (bool, error) {
-	v, ok := bind.GetNamed(named, a)
-	if !ok {
-		return defaultVal, nil
-	}
-	return bind.Bool(fn, a.TR, v)
-}
-
 // ----------------------------------------------------------------------------
 // bitiştir ve .böl
 // ----------------------------------------------------------------------------
@@ -173,7 +164,7 @@ func attentionBuiltin(m *interp.VM, args []interp.Value, named map[string]interp
 	q, k, v := qkv[0], qkv[1], qkv[2]
 	opt := tensor.AttentionOptions{Causal: true}
 	var err error
-	if opt.Causal, err = namedBool(fn, named, nameCausal, true); err != nil {
+	if opt.Causal, err = bind.OptionalBool(fn, nameCausal.TR, named, nameCausal, true); err != nil {
 		return nil, err
 	}
 	if pv, ok := bind.GetNamed(named, nameWindow); ok {

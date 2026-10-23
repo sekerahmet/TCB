@@ -2,6 +2,7 @@ package tensor
 
 import (
 	"fmt"
+	"github.com/sekerahmet/TCB/internal/testkit"
 	"runtime"
 	"strings"
 	"testing"
@@ -22,7 +23,7 @@ func setLimit(t *testing.T, byteN int64) {
 // iletinin parametrelerinde (metin olarak) bulunmasını ister.
 func expectedPanic(t *testing.T, ad string, fn func(), code messages.Code, want ...any) {
 	t.Helper()
-	err := panicError(fn)
+	err := testkit.PanicError(fn)
 	if err == nil {
 		t.Fatalf("%s: hata bekleniyordu, işlem başarılı oldu", ad)
 	}
@@ -65,7 +66,7 @@ func TestBroadcastLimit(t *testing.T) {
 		isAdd, "[185000, 4, 46000]", "126,8 GB", PlaceHost, "16,0 GB", "broadcast")
 	expectedPanic(t, "çarpma", func() { Mul(b, a) }, messages.H3085, isMul, "[185000, 4, 46000]")
 	// Yayınlamasız işlemlerin hatasında yayınlama ipucu boştur.
-	m, _ := messages.As(panicError(func() { MatMul(Zeros(100000, 1), Zeros(1, 100000)) }))
+	m, _ := messages.As(testkit.PanicError(func() { MatMul(Zeros(100000, 1), Zeros(1, 100000)) }))
 	if m == nil || m.Code != messages.H3085 || m.Args[0] != isMatMul || m.Args[1] != "[100000, 100000]" || m.Args[len(m.Args)-1] != "" {
 		t.Fatalf("matris çarpımı hatası: %v", m)
 	}

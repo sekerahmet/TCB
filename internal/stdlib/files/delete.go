@@ -28,7 +28,7 @@ func deleteBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Va
 	if err != nil {
 		return nil, err
 	}
-	withContents, err := boolNamed(codes.G123, named, nameWithContents)
+	withContents, err := bind.OptionalBool(interp.CallPrefix(codes.G123), nameWithContents.TR+":", named, nameWithContents, false)
 	if err != nil {
 		return nil, err
 	}

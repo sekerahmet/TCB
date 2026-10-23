@@ -15,20 +15,9 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	_ "github.com/sekerahmet/TCB/internal/stdlib"
 	"github.com/sekerahmet/TCB/internal/stdlib/logging"
+	"github.com/sekerahmet/TCB/internal/testkit"
 	"github.com/sekerahmet/TCB/internal/testkit/trrun"
 )
-
-// bufferedWriter programın çıktısını toplar (birden çok goroutine yazabilir).
-type bufferedWriter struct {
-	mu sync.Mutex
-	b  bytes.Buffer
-}
-
-func (w *bufferedWriter) Write(p []byte) (int, error) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	return w.b.Write(p)
-}
 
 // shortTraining 200 adımlık küçük bir eğitimdir: her adımda bilinen sayıda tensör işlemi.
 const shortTraining = `değişken w = tensör(rastgele_normal([16, 16], tohum: 1), türev_izle: doğru)
@@ -58,7 +47,7 @@ func runThen(t *testing.T, code string, s Options, after func(*Profile)) (*Snaps
 	t.Cleanup(logging.CloseAll)
 	prog := trrun.Parse(t, code)
 	m := interp.New()
-	w := &bufferedWriter{}
+	w := &testkit.TeeWriter{}
 	m.Out, m.Err = w, w
 	m.SourceFile = filepath.Join(t.TempDir(), "egit.tr")
 	s.Program, s.Source = "egit.tr", code

@@ -49,9 +49,7 @@ var (
 func Register(v *interp.VM) *State {
 	d := &State{}
 	v.RegisterNoNamed(codes.G800, envVar)
-	v.RegisterBuiltinCode(codes.G801, func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		return bind.Safe(codes.Name(codes.G801), func() (interp.Value, error) { return d.commandLine(m, args, named) })
-	})
+	v.RegisterBuiltinCode(codes.G801, bind.SafeBuiltin(codes.Name(codes.G801), d.commandLine))
 	return d
 }
 

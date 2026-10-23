@@ -1,6 +1,7 @@
 package tensor
 
 import (
+	"github.com/sekerahmet/TCB/internal/testkit"
 	"math/rand"
 	"testing"
 
@@ -126,7 +127,7 @@ func TestCustomOpSavedChangedIsError(t *testing.T) {
 		return []*Tensor{g[0].Mul(c)}
 	})[0]
 	c.Set(9, 0)
-	err := panicError(func() { out.SumAll().Backward() })
+	err := testkit.PanicError(func() { out.SumAll().Backward() })
 	if m, ok := messages.As(err); !ok || m.Code != messages.H3012 || m.Args[0] != "ölçekle" {
 		t.Fatalf("sürüm hatası beklenirdi, alınan: %v", err)
 	}
@@ -187,7 +188,7 @@ func TestCustomOpSecondBackwardDuringBackward(t *testing.T) {
 	var k2 *Tensor
 	var secondErr error
 	o := CustomOp("özdeş", []*Tensor{x}, []*Tensor{x.Detach()}, nil, func(_ any, g []*Tensor) []*Tensor {
-		secondErr = panicError(func() { k2.Backward() })
+		secondErr = testkit.PanicError(func() { k2.Backward() })
 		return g
 	})[0]
 	k1 := o.MulScalar(3).SumAll()

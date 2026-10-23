@@ -103,8 +103,8 @@ func checkData(t *testing.T) string {
 type trainingRun struct {
 	cmd    *exec.Cmd
 	run    string // koşu klasörü
-	stderr *lockedBuffer
-	stdout *lockedBuffer
+	stderr *testkit.TeeWriter
+	stdout *testkit.TeeWriter
 	done   chan error
 }
 
@@ -114,7 +114,7 @@ func startTraining(t *testing.T, dir, run, data string, worker int, ek ...string
 	cmd := exec.Command(trBinary, append([]string{"egit.tr", "--koşu", run, "--veri", data}, ek...)...)
 	cmd.Dir = dir
 	cmd.Env = append(os.Environ(), fmt.Sprintf("GOMAXPROCS=%d", worker))
-	k := &trainingRun{cmd: cmd, run: filepath.FromSlash(run), stderr: &lockedBuffer{}, stdout: &lockedBuffer{}, done: make(chan error, 1)}
+	k := &trainingRun{cmd: cmd, run: filepath.FromSlash(run), stderr: &testkit.TeeWriter{}, stdout: &testkit.TeeWriter{}, done: make(chan error, 1)}
 	cmd.Stdout, cmd.Stderr = k.stdout, k.stderr
 	prepareProcess(cmd)
 	if err := cmd.Start(); err != nil {
@@ -217,55 +217,12 @@ func measureCount(filePath string) int {
 	return strings.Count(string(b), `"kayıp":`) - strings.Count(string(b[bytes.LastIndexByte(b, '\n')+1:]), `"kayıp":`)
 }
 
-// validLosses günlüğün geçerli ölçü kayıtlarını "adım:kayıp" olarak verir: bir devam
-// kaydından önce gelen ve adımı ondan büyük olan kayıtlar geçersizdir (19, günlük okuyucu kuralı).
-func validLosses(t *testing.T, filePath string) []string {
-	t.Helper()
-	data, err := os.ReadFile(filePath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	type measure struct {
-		step int64
-		loss string
-	}
-	var measures []measure
-	for _, s := range strings.Split(strings.TrimSpace(string(data)), "\n") {
-		var k map[string]json.RawMessage
-		if json.Unmarshal([]byte(s), &k) != nil {
-			continue // öldürülen sürecin yarım kalmış son satırı
-		}
-		var step int64
-		var tur string
-		_ = json.Unmarshal(k["adım"], &step)
-		_ = json.Unmarshal(k["tür"], &tur)
-		switch {
-		case tur == "devam":
-			measures = slices.DeleteFunc(measures, func(o measure) bool { return o.step > step })
-		case tur == "" && k["kayıp"] != nil:
-			measures = append(measures, measure{step, string(k["kayıp"])})
-		}
-	}
-	var out []string
-	for _, o := range measures {
-		out = append(out, fmt.Sprintf("%d:%s", o.step, o.loss))
-	}
-	return out
-}
-
 // isSame iki koşunun sonucunu bit düzeyinde karşılaştırır.
 func isSame(t *testing.T, ne, a, b, stdoutA, stdoutB string) {
 	t.Helper()
-	for _, ad := range []string{"son.trt", "op.trt"} {
-		x, err1 := os.ReadFile(filepath.Join(a, ad))
-		y, err2 := os.ReadFile(filepath.Join(b, ad))
-		if err1 != nil || err2 != nil || !bytes.Equal(x, y) {
-			t.Errorf("%s: %s bit düzeyinde aynı değil (%v %v)", ne, ad, err1, err2)
-		}
-	}
-	ka, kb := validLosses(t, filepath.Join(a, "metrics.jsonl")), validLosses(t, filepath.Join(b, "metrics.jsonl"))
-	if len(ka) != 40 || !slices.Equal(ka, kb) {
-		t.Errorf("%s: geçerli kayıp dizileri farklı (%d, %d kayıt):\n%v\n%v", ne, len(ka), len(kb), ka, kb)
+	testkit.AssertSameRunFiles(t, a, b, []string{"son.trt", "op.trt"}, true)
+	if n := len(testkit.ValidLossMetrics(t, filepath.Join(a, "metrics.jsonl"), true)); n != 40 {
+		t.Errorf("%s: geçerli kayıt sayısı %d, beklenen 40", ne, n)
 	}
 	if stdoutA != stdoutB {
 		t.Errorf("%s: son durum farklı:\n%s\n%s", ne, stdoutA, stdoutB)

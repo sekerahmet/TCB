@@ -2,6 +2,7 @@ package gpu
 
 import (
 	"fmt"
+	"github.com/sekerahmet/TCB/internal/testkit"
 	"math/rand"
 	"reflect"
 	"runtime"
@@ -60,7 +61,7 @@ func TestGraphForbiddenOps(t *testing.T) {
 		{messages.H4068, func() { g.BeginCapture() }},
 	} {
 		g.BeginCapture()
-		err := panicError(c.f)
+		err := testkit.PanicError(c.f)
 		g.AbortCapture()
 		if !messages.Has(err, c.code) {
 			t.Fatalf("%s bekleniyordu, %v", c.code, err)
@@ -275,9 +276,9 @@ func TestGraphHostTransfersForbiddenEvenFromShadow(t *testing.T) {
 	x := tensor.NewOn(gpuDevice, []float32{10}, 1) // konak gölgesi var
 	empty := tensor.NewOn(gpuDevice, []float32{}, 0)
 	g.BeginCapture()
-	errShadow := panicError(func() { _ = x.Item() })
-	errRead := panicError(func() { _ = empty.Data() })
-	errLoad := panicError(func() { _ = tensor.NewOn(gpuDevice, []float32{}, 0) })
+	errShadow := testkit.PanicError(func() { _ = x.Item() })
+	errRead := testkit.PanicError(func() { _ = empty.Data() })
+	errLoad := testkit.PanicError(func() { _ = tensor.NewOn(gpuDevice, []float32{}, 0) })
 	g.AbortCapture()
 	if !messages.Has(errShadow, messages.H4065) || !messages.Has(errRead, messages.H4065) || !messages.Has(errLoad, messages.H4066) {
 		t.Fatalf("gölge %v, boş okuma %v, boş yükleme %v", errShadow, errRead, errLoad)
@@ -356,7 +357,7 @@ func TestGraphConstIntsRefillAfterLimit(t *testing.T) {
 		g.exit()
 	}()
 	g.BeginCapture()
-	err := panicError(func() {
+	err := testkit.PanicError(func() {
 		g.enter()
 		defer g.exit()
 		gt := g.temp()

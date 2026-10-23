@@ -102,3 +102,17 @@ func (d *TensorValue) IsTruthy() bool {
 	}
 	return true
 }
+
+// IntElements tensörün bütün elemanlarını düz tam sayı dizisi olarak verir. Tam sayı olmayan bir
+// eleman varsa ok yanlıştır ve bad o ilk elemandır (çağıran kendi iletisini kurar).
+func (d *TensorValue) IntElements() (ids []int, bad float32, ok bool) {
+	data := d.t.Data()
+	ids = make([]int, len(data))
+	for i, f := range data {
+		if float32(int(f)) != f {
+			return nil, f, false
+		}
+		ids[i] = int(f)
+	}
+	return ids, 0, true
+}

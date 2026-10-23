@@ -2,6 +2,7 @@ package tensor
 
 import (
 	"fmt"
+	"github.com/sekerahmet/TCB/internal/testkit"
 	"math"
 	"math/rand"
 	"testing"
@@ -145,26 +146,10 @@ func checkGrad(t *testing.T, ad string, f func(xs []*Tensor) *Tensor, xs ...*Ten
 	}
 }
 
-// panicError fn'in verdiği paniği hata olarak verir (panik yoksa nil); hata olmayan değer
-// metne çevrilir.
-func panicError(fn func()) (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			if e, ok := r.(error); ok {
-				err = e
-				return
-			}
-			err = fmt.Errorf("%v", r)
-		}
-	}()
-	fn()
-	return nil
-}
-
 // panicCode fn'in, code ileti koduyla panik ettiğini doğrular.
 func panicCode(t *testing.T, ad string, code messages.Code, fn func()) {
 	t.Helper()
-	err := panicError(fn)
+	err := testkit.PanicError(fn)
 	if err == nil {
 		t.Fatalf("%s: %s kodlu panik bekleniyordu, işlem başarılı oldu", ad, code)
 	}

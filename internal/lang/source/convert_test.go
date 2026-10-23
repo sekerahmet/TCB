@@ -2,6 +2,7 @@ package source
 
 import (
 	"errors"
+	"github.com/sekerahmet/TCB/internal/testkit"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -208,31 +209,13 @@ func roundTrip(t *testing.T, name, text string) bool {
 	}
 	back, err := Decode(coded, codes.Active())
 	if err != nil || back != text {
-		t.Errorf("%s: TR → kod → TR aynı değil (%v)\n%s", name, err, firstDiff(text, back))
+		t.Errorf("%s: TR → kod → TR aynı değil (%v)\n%s", name, err, testkit.FirstLineDiff(text, back, "özgün", "geri"))
 		return false
 	}
 	if again, err := Encode(back); err != nil || again != coded {
-		t.Errorf("%s: kod → TR → kod aynı değil (%v)\n%s", name, err, firstDiff(coded, again))
+		t.Errorf("%s: kod → TR → kod aynı değil (%v)\n%s", name, err, testkit.FirstLineDiff(coded, again, "özgün", "geri"))
 	}
 	return true
-}
-
-// firstDiff iki metnin ayrıldığı ilk satırı gösterir.
-func firstDiff(a, b string) string {
-	as, bs := strings.Split(a, "\n"), strings.Split(b, "\n")
-	for i := 0; i < len(as) || i < len(bs); i++ {
-		var x, y string
-		if i < len(as) {
-			x = as[i]
-		}
-		if i < len(bs) {
-			y = bs[i]
-		}
-		if x != y {
-			return "satır " + strconv.Itoa(i+1) + ":\n  özgün: " + x + "\n  geri:  " + y
-		}
-	}
-	return "(fark yok)"
 }
 
 func TestRepoTRFilesEncodeLossless(t *testing.T) {

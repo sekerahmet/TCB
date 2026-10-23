@@ -90,9 +90,7 @@ func Register(v *interp.VM, s *process.State) {
 	v.RegisterNoNamed(codes.G810, func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 		return bind.Safe(codes.Name(codes.G810), func() (interp.Value, error) { return d.openLog(m, args) })
 	})
-	v.RegisterBuiltinCode(codes.G811, func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		return bind.Safe(codes.Name(codes.G811), func() (interp.Value, error) { return d.openProgress(m, args, named) })
-	})
+	v.RegisterBuiltinCode(codes.G811, bind.SafeBuiltin(codes.Name(codes.G811), d.openProgress))
 }
 
 // Açık günlükler ve bitmemiş çubuklar: program bitince CloseAll hepsini kapatır.

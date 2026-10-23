@@ -1,43 +1,23 @@
 package e2e
 
 import (
-	"bytes"
 	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
-// lockedBuffer eşzamanlı yazılıp okunabilen bir çıktı tamponudur.
-type lockedBuffer struct {
-	mu sync.Mutex
-	b  bytes.Buffer
-}
-
-func (k *lockedBuffer) Write(p []byte) (int, error) {
-	k.mu.Lock()
-	defer k.mu.Unlock()
-	return k.b.Write(p)
-}
-
-func (k *lockedBuffer) String() string {
-	k.mu.Lock()
-	defer k.mu.Unlock()
-	return k.b.String()
-}
-
 // interruptibleProcess programı ayrı bir süreçte başlatır ve kosul doğru olana kadar (en çok 30
 // sn) bekler; ardından kesme isteğini (Ctrl+C eşdeğeri) gönderir.
 type interruptibleProcess struct {
 	t      *testing.T
 	cmd    *exec.Cmd
-	stderr *lockedBuffer
+	stderr *testkit.TeeWriter
 	dir    string
 	done   chan error
 }
@@ -48,8 +28,8 @@ func startInterruptible(t *testing.T, code string) *interruptibleProcess {
 	testkit.WriteFile(t, dir, "program.tr", code)
 	cmd := exec.Command(trBinary, "program.tr")
 	cmd.Dir = dir
-	stderr := &lockedBuffer{}
-	cmd.Stdout, cmd.Stderr = &lockedBuffer{}, stderr
+	stderr := &testkit.TeeWriter{}
+	cmd.Stdout, cmd.Stderr = &testkit.TeeWriter{}, stderr
 	prepareProcess(cmd)
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)

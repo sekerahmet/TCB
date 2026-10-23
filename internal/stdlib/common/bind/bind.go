@@ -130,6 +130,16 @@ func Bool(fn, name string, v interp.Value) (bool, error) {
 	return b.Val, nil
 }
 
+// OptionalBool adlı bir Mantık argümanını okur; verilmemişse defaultVal döner. label hata iletisinde
+// argümanı anar (ör. "ad" ya da "ad:"; çağıranın ileti biçimi korunur).
+func OptionalBool(fn, label string, named map[string]interp.Value, a Named, defaultVal bool) (bool, error) {
+	v, ok := GetNamed(named, a)
+	if !ok {
+		return defaultVal, nil
+	}
+	return Bool(fn, label, v)
+}
+
 // Recover fn'i çalıştırır; fn panik yaparsa programı çökertmek yerine paniği cevir ile
 // TR'nin dene/yakala ile yakalanabilen bir hataya çevirir.
 func Recover[T any](fn func() T, convert func(r any) error) (result T, err error) {
@@ -158,6 +168,35 @@ func Safe(fn string, f func() (interp.Value, error)) (interp.Value, error) {
 		return nil, err
 	}
 	return result, ferr
+}
+
+// IntList tam sayı dilimini TR tam sayı listesine çevirir.
+func IntList[T ~int | ~int32 | ~int64](xs []T) *interp.ListVal {
+	elems := make([]interp.Value, len(xs))
+	for i, x := range xs {
+		elems[i] = interp.NewInt(int64(x))
+	}
+	return &interp.ListVal{Elements: elems}
+}
+
+// SingleDictArg tek bir sözlük argümanı bekleyen yöntemin (kod kd) argümanını verir; sayı ya da tür
+// yanlışsa interp.ArgCountError/ArgTypeError verir. example sayı hatasında kullanım ipucu olarak anılır.
+func SingleDictArg(kd codes.Code, args []interp.Value, example string) (*interp.DictVal, error) {
+	if len(args) != 1 {
+		return nil, interp.ArgCountError(kd, "1", len(args), example)
+	}
+	d, ok := args[0].(*interp.DictVal)
+	if !ok {
+		return nil, interp.ArgTypeError(kd, 1, args[0], codes.A206)
+	}
+	return d, nil
+}
+
+// SafeBuiltin fn yerleşiğini Go paniğine karşı korur: panik name adlı bir iç hataya döner (Safe).
+func SafeBuiltin(name string, fn interp.BuiltinFunc) interp.BuiltinFunc {
+	return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+		return Safe(name, func() (interp.Value, error) { return fn(m, args, named) })
+	}
 }
 
 // Method nesne yöntemi değeri kurar: fn Go paniğine karşı korunur (panik name adlı bir hataya döner).

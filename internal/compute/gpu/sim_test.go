@@ -2,6 +2,7 @@ package gpu
 
 import (
 	"fmt"
+	"github.com/sekerahmet/TCB/internal/testkit"
 	"strings"
 	"testing"
 
@@ -34,7 +35,7 @@ func runErr(t *testing.T, ad string, body func(k *emitter, x reg)) error {
 		return k
 	})
 	g.launch(c, [3]uint32{1, 1, 1}, [3]uint32{4, 1, 1}, g.param().write(d, 0))
-	return panicError(g.equalize)
+	return testkit.PanicError(g.equalize)
 }
 
 func TestSimCatchesRace(t *testing.T) {
@@ -103,7 +104,7 @@ func TestPTXCompileErrorLog(t *testing.T) {
 	g := newSimBackend(1 << 20)
 	g.enter()
 	defer g.exit()
-	err := panicError(func() {
+	err := testkit.PanicError(func() {
 		g.takeKernel("bozuk", func() *emitter {
 			k := newEmitter("bozuk")
 			k.e("bilinmeyen.f32", k.f(), k.f())
@@ -123,7 +124,7 @@ func TestParamDeclChecked(t *testing.T) {
 	defer g.exit()
 	d := g.allocate(4, tensor.Float32, true)
 	c := g.takeKernel("doldur:float32x", fillKernel(tensor.Float32))
-	err := panicError(func() { g.launch(c, [3]uint32{1, 1, 1}, [3]uint32{4, 1, 1}, g.param().read(d, 0).u32(4).f32(1)) })
+	err := testkit.PanicError(func() { g.launch(c, [3]uint32{1, 1, 1}, [3]uint32{4, 1, 1}, g.param().read(d, 0).u32(4).f32(1)) })
 	if !messages.Has(err, messages.H9000) || !strings.Contains(internalDetail(err), "does not match the signature") {
 		t.Fatalf("yanlış bildirim yakalanmadı: %v", err)
 	}
@@ -135,7 +136,7 @@ func TestParamDeclChecked(t *testing.T) {
 func TestNestedParamChain(t *testing.T) {
 	g := newSimBackend(1 << 20)
 	g.enter()
-	err := panicError(func() { g.param().u32(1); g.param() })
+	err := testkit.PanicError(func() { g.param().u32(1); g.param() })
 	g.exit()
 	if !messages.Has(err, messages.H9000) || !strings.Contains(internalDetail(err), "nested param()") {
 		t.Fatalf("iç içe zincir yakalanmadı: %v", err)
@@ -149,7 +150,7 @@ func TestNestedParamChain(t *testing.T) {
 
 func TestOutOfMemory(t *testing.T) {
 	g := newSimBackend(1 << 20)
-	err := panicError(func() {
+	err := testkit.PanicError(func() {
 		var hold []tensor.Storage
 		for i := 0; i < 8; i++ {
 			hold = append(hold, g.Alloc(64<<10, tensor.Float32)) // 256 KB
@@ -161,7 +162,7 @@ func TestOutOfMemory(t *testing.T) {
 	}
 	// Cihaz belleğinden büyük tek ayırma, ayırmadan önce reddedilir.
 	place := tensor.PlaceGPU
-	err = panicError(func() { g.Alloc(1<<20, tensor.Float32) })
+	err = testkit.PanicError(func() { g.Alloc(1<<20, tensor.Float32) })
 	if !messages.Has(err, messages.H3083) || limitPlace(err) != place {
 		t.Fatalf("cihaz sınırı mesajı: %v", err)
 	}
@@ -169,7 +170,7 @@ func TestOutOfMemory(t *testing.T) {
 	// GPU belleğini az farkla aşar; konağın belleği GPU'nunkinden küçükse önce konak sınırı
 	// devreye girer (gerçek GPU'da), o da aynı biçimde Türkçe ve yakalanabilirdir.
 	row := int(gpuBackend().MemoryLimit()/16) + 1
-	err = panicError(func() { tensor.ZerosOn(gpuDevice, row, 4) })
+	err = testkit.PanicError(func() { tensor.ZerosOn(gpuDevice, row, 4) })
 	me, _ := messages.As(err)
 	if !messages.Has(err, messages.H3084) || me.Args[1] != fmt.Sprintf("[%d, 4]", row) ||
 		!(limitPlace(err) == place || limitPlace(err) == tensor.PlaceHost) {
@@ -192,12 +193,12 @@ func limitPlace(err error) string {
 
 func TestUnsupported(t *testing.T) {
 	g := gpuBackend()
-	if err := panicError(func() { g.Alloc(4, tensor.Int8) }); !messages.Has(err, messages.H4050) {
+	if err := testkit.PanicError(func() { g.Alloc(4, tensor.Int8) }); !messages.Has(err, messages.H4050) {
 		t.Fatalf("int8 mesajı: %v", err)
 	}
 	a := tensor.NewOn(tensor.CPU, []float32{1, 2}, 2)
 	b := tensor.NewOn(gpuDevice, []float32{1, 2}, 2)
-	if err := panicError(func() { tensor.Add(a, b) }); !messages.Has(err, messages.H3072) {
+	if err := testkit.PanicError(func() { tensor.Add(a, b) }); !messages.Has(err, messages.H3072) {
 		t.Fatalf("farklı cihaz mesajı: %v", err)
 	}
 }

@@ -102,9 +102,7 @@ func (n *Object) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 
 // Register parçalayıcı yerleşiklerini VM'ye kaydeder.
 func Register(v *interp.VM) {
-	v.RegisterBuiltinCode(codes.V200, func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		return bind.Safe(codes.Name(codes.V200), func() (interp.Value, error) { return load(m, args, named) })
-	})
+	v.RegisterBuiltinCode(codes.V200, bind.SafeBuiltin(codes.Name(codes.V200), load))
 }
 
 // warned aynı dosyanın yükleme uyarılarının süreçte bir kez yazılmasını sağlar.
@@ -238,13 +236,11 @@ func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]inte
 		return nil, messages.New(messages.H5624, fn, len(args))
 	}
 	var pick tokenize.Options
-	if v, ok := bind.GetNamed(named, nameSpecial); ok {
-		b, err := bind.Bool(fn, codes.Name(codes.V910), v)
-		if err != nil {
-			return nil, err
-		}
-		pick.DontAddSpecial = !b
+	special, err := bind.OptionalBool(fn, codes.Name(codes.V910), named, nameSpecial, true)
+	if err != nil {
+		return nil, err
 	}
+	pick.DontAddSpecial = !special
 	secondV, hasSecond := bind.GetNamed(named, nameSecond)
 
 	switch x := args[0].(type) {
@@ -260,7 +256,7 @@ func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]inte
 			if err != nil {
 				return nil, stepError(fn, err)
 			}
-			return idList(k.IDs), nil
+			return bind.IntList(k.IDs), nil
 		}
 		var ids []int
 		var err error
@@ -268,7 +264,7 @@ func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]inte
 		if err != nil {
 			return nil, stepError(fn, err)
 		}
-		return idList(ids), nil
+		return bind.IntList(ids), nil
 	case *interp.ListVal:
 		texts, err := stringList(fn, messages.Text(messages.H5626), x)
 		if err != nil {
@@ -303,7 +299,7 @@ func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]inte
 		}
 		elems := make([]interp.Value, len(result))
 		for i, ids := range result {
-			elems[i] = idList(ids)
+			elems[i] = bind.IntList(ids)
 		}
 		return &interp.ListVal{Elements: elems}, nil
 	}
@@ -331,15 +327,6 @@ func stringList(fn, what string, l *interp.ListVal) ([]string, error) {
 	return out, nil
 }
 
-// idList kimlikleri TR tam sayı listesine çevirir.
-func idList[T ~int | ~int32](ids []T) *interp.ListVal {
-	elems := make([]interp.Value, len(ids))
-	for i, id := range ids {
-		elems[i] = interp.NewInt(int64(id))
-	}
-	return &interp.ListVal{Elements: elems}
-}
-
 // ----------------------------------------------------------------------------
 // Çözme
 // ----------------------------------------------------------------------------
@@ -354,14 +341,11 @@ func (n *Object) decode(m *interp.VM, args []interp.Value, named map[string]inte
 	}
 	// Varsayılan, başvuru kütüphanesininki gibi özel parçaları ATLAMAKTIR;
 	// özel_parçalar: doğru onları da çıktıya yazar.
-	skip := true
-	if v, ok := bind.GetNamed(named, nameSpecial); ok {
-		b, err := bind.Bool(fn, codes.Name(codes.V910), v)
-		if err != nil {
-			return nil, err
-		}
-		skip = !b
+	special, err := bind.OptionalBool(fn, codes.Name(codes.V910), named, nameSpecial, false)
+	if err != nil {
+		return nil, err
 	}
+	skip := !special
 	seqs, single, err := idSeqs(args[0])
 	if err != nil {
 		return nil, err
@@ -422,16 +406,12 @@ func idSeqs(v interp.Value) (seqs [][]int, single bool, err error) {
 	case *ml.TensorValue:
 		t := x.Tensor()
 		sh := t.Shape()
-		data := t.Data()
 		if len(sh) > 2 {
 			return nil, false, messages.New(messages.H5636, fn, len(sh))
 		}
-		ids := make([]int, len(data))
-		for i, f := range data {
-			if float32(int(f)) != f {
-				return nil, false, messages.New(messages.H5637, fn, f)
-			}
-			ids[i] = int(f)
+		ids, bad, ok := x.IntElements()
+		if !ok {
+			return nil, false, messages.New(messages.H5637, fn, bad)
 		}
 		if len(sh) < 2 {
 			return [][]int{ids}, true, nil

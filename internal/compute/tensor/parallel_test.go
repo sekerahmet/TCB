@@ -1,6 +1,7 @@
 package tensor
 
 import (
+	"github.com/sekerahmet/TCB/internal/testkit"
 	"math"
 	"math/rand"
 	"runtime"
@@ -341,7 +342,7 @@ func TestWorkerPanicReachesCaller(t *testing.T) {
 			fn()
 		}
 		var executed atomic.Int64
-		err := panicError(func() {
+		err := testkit.PanicError(func() {
 			execute(func() {
 				distribute(4, 64, func(_, c int) {
 					executed.Add(1)

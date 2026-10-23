@@ -133,21 +133,6 @@ func panicText(fn func()) (m string) {
 	return ""
 }
 
-// panicError fn'in panik değerini hata olarak verir (panik yoksa nil); hata olmayan değer metne çevrilir.
-func panicError(fn func()) (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			if e, ok := r.(error); ok {
-				err = e
-				return
-			}
-			err = messages.Internal(fmt.Sprint(r))
-		}
-	}()
-	fn()
-	return nil
-}
-
 // internalDetail hata zincirindeki ilk iç hatanın (H9000) İngilizce ayrıntısını verir (yoksa boş).
 func internalDetail(err error) string {
 	if err == nil {

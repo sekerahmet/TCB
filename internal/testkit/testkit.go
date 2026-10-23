@@ -12,6 +12,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -20,6 +21,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -267,4 +270,76 @@ func GoStringLiterals(path string, fn func(value string, line int)) error {
 		return true
 	})
 	return nil
+}
+
+// PanicError fn'in verdiği paniği hata olarak verir (panik yoksa nil); hata olmayan değer metne
+// çevrilir (üretimdeki paniklerin hepsi error'dur).
+func PanicError(fn func()) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if e, ok := r.(error); ok {
+				err = e
+				return
+			}
+			err = fmt.Errorf("%v", r)
+		}
+	}()
+	fn()
+	return nil
+}
+
+// WaitGoroutineBlocked, yığınında funcs'un hepsi geçen bir gorutin states'ten birinde (yığın
+// başlığındaki durum, ör. "[select", "[chan receive") durana kadar bekler; durumları çağıran verir. Uyku yerine kullanılır: "Al beklerken Kapat" gibi
+// sınamalar beklemenin gerçekten başladığından emin olur, yoksa sınadığını sınamadan da
+// geçebilirdi. Süre sınırı (5 sn) yalnızca takılmaya karşıdır. fatal false ise sınanan program
+// ayrı bir gorutinde koşuyordur: t.Fatalf yerine t.Errorf yazıp döner.
+func WaitGoroutineBlocked(t testing.TB, fatal bool, states []string, funcs ...string) {
+	t.Helper()
+	last := time.Now().Add(5 * time.Second)
+	buf := make([]byte, 1<<20)
+	for {
+		stack := string(buf[:runtime.Stack(buf, true)])
+		for _, g := range strings.Split(stack, "\n\n") {
+			header, _, _ := strings.Cut(g, "\n")
+			if !slices.ContainsFunc(states, func(st string) bool { return strings.Contains(header, st) }) {
+				continue
+			}
+			all := true
+			for _, f := range funcs {
+				all = all && strings.Contains(g, f)
+			}
+			if all {
+				return
+			}
+		}
+		if time.Now().After(last) {
+			if fatal {
+				t.Fatalf("%s beklemeye girmedi:\n%s", strings.Join(funcs, " + "), stack)
+			}
+			t.Errorf("%s beklemeye girmedi:\n%s", strings.Join(funcs, " + "), stack)
+			return
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
+// FirstLineDiff iki metnin ayrıldığı ilk satırı, satır numarası ve verilen etiketlerle gösterir;
+// ayrılmıyorsa "(fark yok)" verir.
+func FirstLineDiff(a, b, labelA, labelB string) string {
+	as, bs := strings.Split(a, "\n"), strings.Split(b, "\n")
+	for i := 0; i < len(as) || i < len(bs); i++ {
+		var x, y string
+		if i < len(as) {
+			x = as[i]
+		}
+		if i < len(bs) {
+			y = bs[i]
+		}
+		if x != y {
+			width := max(len([]rune(labelA)), len([]rune(labelB)))
+			pad := func(s string) string { return s + strings.Repeat(" ", width-len([]rune(s))) }
+			return "line " + strconv.Itoa(i+1) + ":\n  " + pad(labelA) + ": " + x + "\n  " + pad(labelB) + ": " + y
+		}
+	}
+	return "(fark yok)"
 }

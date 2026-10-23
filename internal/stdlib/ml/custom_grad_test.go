@@ -351,3 +351,12 @@ func TestIndexAndWholeReductionsReturnStorageAtScopeExit(t *testing.T) {
 		}
 	}
 }
+
+// Kural: ileti, verilen değeri dilin ortak "Tip (özet)" biçiminde anar; uzun değerler özetlenir.
+func TestCustomGradMessagesUseTypeAndSummary(t *testing.T) {
+	_, err := run(t, `değişken x = tensör([[1.0, 2.0]], türev_izle: doğru)
+türev_denetle((a) => 3, [x])`)
+	if err == nil || !strings.Contains(err.Error(), "Tam (3)") {
+		t.Errorf("verilen değer \"Tam (3)\" biçiminde anılmalı: %v", err)
+	}
+}

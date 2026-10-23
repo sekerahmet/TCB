@@ -1,6 +1,7 @@
 package testkit
 
 import (
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -148,5 +149,42 @@ func TestGoStringLiteralsSkipsTagsAndImports(t *testing.T) {
 	}
 	if want := []string{"9:merhaba", "10:ham"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+// Kural: PanicError hata paniğini olduğu gibi, başka değeri metne çevirerek verir; panik yoksa nil.
+func TestPanicError(t *testing.T) {
+	sentinel := errors.New("hata")
+	if err := PanicError(func() { panic(sentinel) }); err != sentinel {
+		t.Errorf("error paniği: %v", err)
+	}
+	if err := PanicError(func() { panic(42) }); err == nil || err.Error() != "42" {
+		t.Errorf("error olmayan panik: %v", err)
+	}
+	if err := PanicError(func() {}); err != nil {
+		t.Errorf("panik yok: %v", err)
+	}
+}
+
+// Kural: WaitGoroutineBlocked, kanalda bekleyen gorutin görünene kadar bekler ve döner.
+func TestWaitGoroutineBlocked(t *testing.T) {
+	c := make(chan struct{})
+	go blockedOnChannel(c)
+	WaitGoroutineBlocked(t, true, []string{"[chan receive"}, "testkit.blockedOnChannel")
+	close(c)
+}
+
+func blockedOnChannel(c chan struct{}) { <-c }
+
+// Kural: FirstLineDiff ilk ayrılan satırı numarası ve etiketleriyle gösterir; aynı metinde "(fark yok)".
+func TestFirstLineDiff(t *testing.T) {
+	if got := FirstLineDiff("a\nb\nc", "a\nx\nc", "özgün", "geri"); got != "line 2:\n  özgün: b\n  geri : x" {
+		t.Errorf("fark: %q", got)
+	}
+	if got := FirstLineDiff("a\nb", "a\nb\nc", "1", "2"); got != "line 3:\n  1: \n  2: c" {
+		t.Errorf("uzunluk farkı: %q", got)
+	}
+	if got := FirstLineDiff("a", "a", "1", "2"); got != "(fark yok)" {
+		t.Errorf("aynı: %q", got)
 	}
 }
