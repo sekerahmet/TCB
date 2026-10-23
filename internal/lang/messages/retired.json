@@ -67,6 +67,10 @@
   "commit": "b3a5b22",
   "reason": "deleted: tokenizer: load errors keep the core's message instead of editing its text"
  },
+ "H5635": {
+  "commit": "085e86f",
+  "reason": "deleted: tokenizer, messages: a non-integer id names its list by row number and H5639's template words it"
+ },
  "H6000": {
   "commit": "ff5192a2",
   "reason": "deleted: ml: toMatrix was never called"
