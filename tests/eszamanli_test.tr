@@ -58,6 +58,12 @@ test "10.3 bekle() negatif, sayı olmayan ya da aşırı uzun süreyi reddeder" 
     bekle(0)
 }
 
+test "10.4 eşzamanlı çağrıdaki adlı fonksiyon görevin kapsamındadır, dışarıda tanımsızdır (5.12)" {
+    değişken mesaj = ""
+    dene { aktar "negative/eszamanli_kapsam" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("Satır 5, Sütun 8: Tanımsız ad — 'görev_işi' adında bir değişken ya da fonksiyon yok"), mesaj)
+}
+
 test "10.4 görev değişkenleri döngü turuna aittir" {
     değişken görülen = []
     döngü i içinde 1..=3 {

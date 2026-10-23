@@ -14,7 +14,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// Kural: exprNames ve exprCaptures ortak çocuk gezintisini (subExpressions) kullanır ama
+// Kural: ast.ExprDefinedNames ve exprCaptures ortak çocuk gezintisini (ast.SubExpressions) kullanır ama
 // sonuçları eski ayrı gezginlerle bire bir aynıdır: aynı adlar aynı sırayla, aynı yakalama
 // kararı. Yakalama kararı yanlış 'yok' derse sahiplik modeli (15.43) tensörü erken bırakır.
 // Neden: iki gezgin birleştirilirken bilerek farklı yerlere inen kolları (if/eşle blokları,
@@ -41,10 +41,10 @@ func TestExprWalkersMatchReferenceOnRepositoryPrograms(t *testing.T) {
 			forEachExpression(reflect.ValueOf(prog), map[uintptr]bool{}, func(e ast.Expression) {
 				expressions++
 				var got, want []string
-				exprNames(e, func(n string) { got = append(got, n) })
+				ast.ExprDefinedNames(e, func(n string) { got = append(got, n) })
 				legacyExprNames(e, func(n string) { want = append(want, n) })
 				if !slices.Equal(got, want) {
-					t.Fatalf("%s: exprNames %v, referans %v (%T)", path, got, want, e)
+					t.Fatalf("%s: ExprDefinedNames %v, referans %v (%T)", path, got, want, e)
 				}
 				if a, b := (blockFlagCache{}).exprCaptures(e), (blockFlagCache{}).legacyExprCaptures(e); a != b {
 					t.Fatalf("%s: exprCaptures %v, referans %v (%T)", path, a, b, e)
@@ -128,7 +128,7 @@ func legacyExprNames(e ast.Expression, name func(string)) {
 			for _, p := range mc.Patterns {
 				legacyExprNames(p, name)
 			}
-			legacyExprNames(mc.ValueExpr, name)
+			// Tek satırlık kolun ifadesi kolun kendi kapsamındadır (5.12): çevre kapsama ad vermez.
 		}
 	case *ast.CallExpression:
 		legacyExprNames(x.Function, name)

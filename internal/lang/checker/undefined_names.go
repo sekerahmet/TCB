@@ -115,7 +115,7 @@ func newGlobalNameScope(names []string, dynamic bool) *nameScope {
 // SetGlobalScope when the program's imported modules are checked.
 func TopLevelNames(prog *ast.Program) (names []string, dynamic bool) {
 	k := newNameScope(nil)
-	(&nameChecker{lang: codes.Active(), treeLang: codes.Active()}).declare(prog.Statements, k)
+	declare(prog.Statements, k)
 	for a := range k.names {
 		names = append(names, a)
 	}
@@ -133,120 +133,31 @@ func (c *Checker) checkNames(prog *ast.Program) {
 	d.statements(prog.Statements, c.globalNames)
 }
 
-// declare deyimlerin, çalıştıkları kapsama doğrudan tanımladığı adları kapsama ekler
-// (çalışma anının kapsam kuralıyla aynı: değişken, sabit, yapı, takma adlı aktar ve
-// ifadelerin içindeki adlı fonksiyonlar; iç bloklar ve fonksiyon gövdeleri kendi kapsamıdır).
-func (d *nameChecker) declare(stmts []ast.Statement, k *nameScope) {
+// declare deyimlerin, çalıştıkları kapsama doğrudan tanımladığı adları kapsama ekler (yorumlayıcıyla
+// aynı kural, ast.StatementDefinedNames: değişken, sabit, yapı, takma adlı aktar ve ifadelerin
+// içindeki adlı fonksiyonlar; iç bloklar, eşle kolları, eşzamanlı görevler ve fonksiyon gövdeleri
+// kendi kapsamıdır, koşul/konu/desen bulunulan kapsamdadır; 5.12).
+func declare(stmts []ast.Statement, k *nameScope) {
 	for _, st := range stmts {
-		switch s := st.(type) {
-		case *ast.VarStatement:
-			k.define(s.Name.Value)
-			d.exprDefinitions(s.Value, k)
-		case *ast.MultiVarStatement:
-			for _, n := range s.Names {
-				k.define(n.Value)
-			}
-			for _, v := range s.Values {
-				d.exprDefinitions(v, k)
-			}
-		case *ast.StructStatement:
-			k.define(s.Name)
+		ast.StatementDefinedNames(st, k.define)
+		if s, ok := st.(*ast.StructStatement); ok {
 			if k.structs == nil {
 				k.structs = map[string]*ast.StructStatement{}
 			}
 			k.structs[s.Name] = s
-		case *ast.ImportStatement:
-			k.define(s.Alias)
-		case *ast.ExpressionStatement:
-			d.exprDefinitions(s.Expression, k)
-		case *ast.AssignStatement:
-			d.exprDefinitions(s.Target, k)
-			d.exprDefinitions(s.Value, k)
-		case *ast.MultiAssignStatement:
-			for _, e := range s.Targets {
-				d.exprDefinitions(e, k)
-			}
-			for _, e := range s.Values {
-				d.exprDefinitions(e, k)
-			}
-		case *ast.ReturnStatement:
-			d.exprDefinitions(s.ReturnValue, k)
-		case *ast.ThrowStatement:
-			d.exprDefinitions(s.Value, k)
-		case *ast.ForInStatement:
-			d.exprDefinitions(s.Iterable, k)
-		case *ast.WhileStatement:
-			d.exprDefinitions(s.Condition, k)
-		case *ast.DeferStatement:
-			d.exprDefinitions(s.Call, k)
-		case *ast.AsyncStatement:
-			d.exprDefinitions(s.Call, k)
-		case *ast.BreakpointStatement:
-			d.exprDefinitions(s.Condition, k)
 		}
 	}
 }
 
-// exprDefinitions ifadenin, değerlendirildiği kapsama tanımladığı adları (fonksiyon f() { }
-// biçimindeki adlı fonksiyonlar) ekler; fonksiyon gövdelerine ve bloklara inmez.
-func (d *nameChecker) exprDefinitions(e ast.Expression, k *nameScope) {
-	walkTree(e, func(x ast.Expression) bool {
-		if f, ok := x.(*ast.FunctionLiteral); ok {
-			if f.Name != "" {
-				k.define(f.Name)
-			}
-			return false
-		}
-		_, block := x.(*ast.IfExpression)
-		_, match := x.(*ast.MatchExpression)
-		return !block && !match
-	})
-}
-
 // walkTree ifade ağacını ön sırayla gezer; ziyaret false dönerse düğümün çocuklarına inmez.
-// Blok içeren düğümlerin (eğer, eşle, fonksiyon) yalnızca ifade çocukları gezilir.
 func walkTree(e ast.Expression, visit func(ast.Expression) bool) {
 	if e == nil || !visit(e) {
 		return
 	}
-	switch x := e.(type) {
-	case *ast.InterpolatedString:
-		for _, p := range x.Parts {
-			walkTree(p, visit)
-		}
-	case *ast.ListLiteral:
-		for _, el := range x.Elements {
-			walkTree(el, visit)
-		}
-	case *ast.DictLiteral:
-		for _, p := range x.Pairs {
-			walkTree(p.Key, visit)
-			walkTree(p.Value, visit)
-		}
-	case *ast.RangeExpression:
-		walkTree(x.Start, visit)
-		walkTree(x.End, visit)
-	case *ast.PrefixExpression:
-		walkTree(x.Right, visit)
-	case *ast.InfixExpression:
-		walkTree(x.Left, visit)
-		walkTree(x.Right, visit)
-	case *ast.CallExpression:
-		walkTree(x.Function, visit)
-		for _, a := range x.Arguments {
-			walkTree(a, visit)
-		}
-		for _, na := range x.NamedArgs {
-			walkTree(na.Value, visit)
-		}
-	case *ast.IndexExpression:
-		walkTree(x.Left, visit)
-		walkTree(x.Index, visit)
-	case *ast.MemberExpression:
-		walkTree(x.Object, visit)
-	case *ast.ListComprehension:
-		walkTree(x.Iterable, visit)
-	}
+	ast.SubExpressions(e, func(child ast.Expression) bool {
+		walkTree(child, visit)
+		return false
+	})
 }
 
 // block deyimleri yeni bir alt kapsamda denetler; once alt kapsama önceden tanımlanacak
@@ -272,7 +183,7 @@ func (d *nameChecker) blockInScope(b *ast.BlockStatement, k *nameScope) {
 
 // statements deyim listesini k kapsamında önce bildirir (ileri başvurular için), sonra gezer.
 func (d *nameChecker) statements(stmts []ast.Statement, k *nameScope) {
-	d.declare(stmts, k)
+	declare(stmts, k)
 	for _, st := range stmts {
 		d.statement(st, k)
 	}

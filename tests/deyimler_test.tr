@@ -161,6 +161,24 @@ test "5.12 bloklar kapsam açar; dış değişkenler atanabilir" {
     doğrula(mesaj.içerir("Satır 9, Sütun 8: Tanımsız ad — 'iç' adında bir değişken ya da fonksiyon yok"), mesaj)
 }
 
+test "5.12 eşle kolu kendi kapsamını açar: kolda tanımlanan adlı fonksiyon dış adı ezmez" {
+    fonksiyon f() { sonuç 1 }
+    değişken r = eşle 1 { 1 => (fonksiyon f() { sonuç 7 })() _ => 0 }
+    eşit_mi(7, r)
+    eşit_mi(1, f())
+    // Süslü parantezli kol ve değer veren eğer de aynı: ad blokta kalır.
+    değişken s = eşle 1 { 1 => { (fonksiyon f() { sonuç 8 })() } _ => 0 }
+    değişken t = eğer doğru { (fonksiyon f() { sonuç 9 })() } değilse { 0 }
+    eşit_mi([8, 9, 1], [s, t, f()])
+}
+
+test "5.12 koşul, konu ve desen blok değildir: adlı fonksiyon bulunulan kapsama girer" {
+    eğer (fonksiyon koşul_işi() { sonuç 9 })() == 9 { }
+    eşit_mi(9, koşul_işi())
+    eşle (fonksiyon konu_işi() { sonuç 3 })() { 3 => { } _ => { } }
+    eşit_mi(3, konu_işi())
+}
+
 test "5.13 çık ve devam yalnızca döngü içinde geçerlidir" {
     değişken l = []
     döngü i içinde 0..5 {

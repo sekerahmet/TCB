@@ -1,0 +1,5 @@
+// Bilerek hatalı modül (5.12, 10.4): eşzamanlı çağrıdaki adlı fonksiyon görevin kapsamındadır,
+// dışarıda tanımsızdır; denetim bunu çalışmadan önce bulur. Satır numaraları testte geçer.
+eşzamanlı (fonksiyon görev_işi() { sonuç 1 })()
+bekle_hepsi()
+yazdır(görev_işi())

@@ -47,7 +47,7 @@ eşle puan {
 [x * x döngü x içinde 1..=5 eğer x % 2 == 1]   // [1, 9, 25]
 ```
 
-**5.12** Her `{ ... }` bloğu (eğer/döngü gövdesi dahil) yeni bir kapsam açar; içeride tanımlanan ad dışarıda görünmez, dıştaki adlar okunup atanabilir. Döngünün her turu kendi kapsamında çalışır.
+**5.12** Her `{ ... }` bloğu (eğer/döngü gövdesi dahil) yeni bir kapsam açar; içeride tanımlanan ad dışarıda görünmez, dıştaki adlar okunup atanabilir. Döngünün her turu kendi kapsamında çalışır. İfade içindeki bloklar da (değer veren `eğer`, `eşle` kolları — tek satırlık `desen => ifade` kolu dahil — ve sondaki blok) kapsam açar: kolda ya da blokta tanımlanan adlı fonksiyon orada kalır, dıştaki aynı adı ezmez; koşul, `eşle` konusu ve desenler blok değildir, bulundukları kapsamda değerlendirilir.
 
 **5.13** `çık` ve `devam` yalnızca bir döngünün gövdesinde geçerlidir (araya `eğer`, `eşle`, `dene` gibi bloklar girebilir); döngü dışında yazılmaları derleme hatasıdır ve program hiç çalışmaz. Fonksiyon, ok fonksiyonu, sondaki blok, `test`, `ertele` ve `eşzamanlı` gövdeleri sınırdır: içlerinden dıştaki döngüye `çık`/`devam` uygulanamaz (`döngü { fonksiyon f() { çık } }` hatadır; fonksiyondan çıkmak için `sonuç` yazılır).
 

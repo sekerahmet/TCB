@@ -41,75 +41,12 @@ func (fc blockFlagCache) flags(b *ast.BlockStatement) uint8 {
 func statementsDefine(stmts []ast.Statement) bool {
 	var var_ bool
 	for _, st := range stmts {
-		statementNames(st, func(string) { var_ = true })
+		ast.StatementDefinedNames(st, func(string) { var_ = true })
 		if var_ {
 			return true
 		}
 	}
 	return false
-}
-
-// statementNames deyimin, çalıştığı ortama doğrudan tanımladığı adları ad'a verir. Takma adsız
-// 'aktar' (adları çalışma anında belli olur) için ad("") çağrılır. İç bloklar (kendi
-// kararlarını verdikleri için) ve fonksiyon gövdeleri incelenmez.
-func statementNames(st ast.Statement, name func(string)) {
-	switch s := st.(type) {
-	case *ast.VarStatement:
-		name(s.Name.Value)
-	case *ast.MultiVarStatement:
-		for _, n := range s.Names {
-			name(n.Value)
-		}
-	case *ast.StructStatement:
-		name(s.Name)
-	case *ast.ImportStatement:
-		name(s.Alias)
-	case *ast.ExpressionStatement:
-		exprNames(s.Expression, name)
-	case *ast.AssignStatement:
-		exprNames(s.Target, name)
-		exprNames(s.Value, name)
-	case *ast.MultiAssignStatement:
-		for _, e := range s.Targets {
-			exprNames(e, name)
-		}
-		for _, e := range s.Values {
-			exprNames(e, name)
-		}
-	case *ast.ReturnStatement:
-		exprNames(s.ReturnValue, name)
-	case *ast.ThrowStatement:
-		exprNames(s.Value, name)
-	case *ast.ForInStatement:
-		exprNames(s.Iterable, name)
-	case *ast.WhileStatement:
-		exprNames(s.Condition, name)
-	case *ast.DeferStatement:
-		// 'ertele f()' çağrısı sonradan aynı ortamda değerlendirilir
-		exprNames(s.Call, name)
-	case *ast.BreakpointStatement:
-		exprNames(s.Condition, name)
-	}
-}
-
-// exprNames ifadenin, değerlendirildiği ortama tanımladığı adları (fonksiyon f() { ... }
-// biçimindeki adlı fonksiyonlar) ad'a verir.
-func exprNames(e ast.Expression, name func(string)) {
-	switch x := e.(type) {
-	case nil:
-		return
-	case *ast.FunctionLiteral:
-		if x.Name != "" {
-			name(x.Name)
-		}
-		return
-	}
-	// Liste üretecinin çıktısı ve koşulu kendi ortamında değerlendirilir; yalnızca kaynağı bu
-	// ortamdadır (subExpressions yalnızca kaynağı verir). if/eşle blokları kendi kapsamlarıdır.
-	subExpressions(e, func(child ast.Expression) bool {
-		exprNames(child, name)
-		return false
-	})
 }
 
 // statementCaptures deyimin (iç içe her yerinde) ortamı yakalayabilecek bir yapı içerip
@@ -196,91 +133,7 @@ func (fc blockFlagCache) exprCaptures(e ast.Expression) bool {
 			return true
 		}
 	}
-	return subExpressions(e, fc.exprCaptures)
-}
-
-// subExpressions ifadenin, hem ad hem yakalama çözümlemesinin gezdiği doğrudan alt ifadelerini
-// sırayla visit'e verir; visit true dönerse durur ve true döner. Bloklar ve liste üretecinin
-// çıktısı ile koşulu burada yoktur: onları çözümlemeler kendi kurallarıyla ele alır.
-func subExpressions(e ast.Expression, visit func(ast.Expression) bool) bool {
-	each := func(list ...ast.Expression) bool {
-		for _, c := range list {
-			if visit(c) {
-				return true
-			}
-		}
-		return false
-	}
-	switch x := e.(type) {
-	case *ast.InterpolatedString:
-		for _, p := range x.Parts {
-			if visit(p) {
-				return true
-			}
-		}
-	case *ast.ListLiteral:
-		for _, el := range x.Elements {
-			if visit(el) {
-				return true
-			}
-		}
-	case *ast.DictLiteral:
-		for _, p := range x.Pairs {
-			if each(p.Key, p.Value) {
-				return true
-			}
-		}
-	case *ast.RangeExpression:
-		return each(x.Start, x.End)
-	case *ast.PrefixExpression:
-		return visit(x.Right)
-	case *ast.InfixExpression:
-		return each(x.Left, x.Right)
-	case *ast.IfExpression:
-		if visit(x.Condition) {
-			return true
-		}
-		for _, ei := range x.ElseIfs {
-			if visit(ei.Condition) {
-				return true
-			}
-		}
-	case *ast.MatchExpression:
-		if visit(x.Subject) {
-			return true
-		}
-		for _, mc := range x.Cases {
-			for _, p := range mc.Patterns {
-				if visit(p) {
-					return true
-				}
-			}
-			if visit(mc.ValueExpr) {
-				return true
-			}
-		}
-	case *ast.CallExpression:
-		if visit(x.Function) {
-			return true
-		}
-		for _, a := range x.Arguments {
-			if visit(a) {
-				return true
-			}
-		}
-		for _, na := range x.NamedArgs {
-			if visit(na.Value) {
-				return true
-			}
-		}
-	case *ast.IndexExpression:
-		return each(x.Left, x.Index)
-	case *ast.MemberExpression:
-		return visit(x.Object)
-	case *ast.ListComprehension:
-		return visit(x.Iterable)
-	}
-	return false
+	return ast.SubExpressions(e, fc.exprCaptures)
 }
 
 // bodyHasDefer fonksiyon gövdesinde (iç fonksiyonlar ve eşzamanlı bloklar hariç; onların
