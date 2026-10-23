@@ -79,3 +79,7 @@ codegraph tests-for hazir.ayar_değeri | not: no tests found | group: tests, ind
 codegraph tests-for katman.GPT.gömülü | not: no tests found | first-of: tests, indirect => lib/katman_test.tr | src: bağımsız denetim Y1, 2026-10-23
 codegraph changed 99f04289~1..99f04289 | contains: egitim.Koşu.bitir | not: none found for the changed code | group: tests that exercise the changed code => lib/egitim_test.tr | src: bağımsız denetim Y3, 2026-10-23
 tr dizin sınayanlar ayar_değeri | contains: lib/hazir_test.tr | src: bağımsız denetim T3 (tr dizin ile tests-for aynı zincir kuralı), 2026-10-23
+
+# Bağımsız denetim: değer olarak geçen işlevler ve alt süreç testleri (Y2) (2026-10-24)
+codegraph tests-for tensor.Tensor.Ceil | not: no tests found | group: function value => tensor.TestUnaryNoGrad | group: function value => via gpu.wideUnaries | src: bağımsız denetim Y2, 2026-10-24
+codegraph tests-for codes.FindOption | group: function value => codes.TestCommandLineNamesInEveryLanguage | src: bağımsız denetim Y2, 2026-10-24

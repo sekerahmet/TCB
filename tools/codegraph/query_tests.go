@@ -44,6 +44,64 @@ func (ix *index) indirectTests(target *Node) []indirectTest {
 	return out
 }
 
+// valueTests hedefi test dosyasında işlev değeri olarak (tablo öğesi, metot ifadesi, kayıt) kullanan testlerdir. Go'da
+// değer olarak geçen işlev INFERRED `calls` kenarıdır ve zincire girmez (çağrı sonradan, başka yerde olabilir); ama
+// kullanan test dosyasındaysa o dosyanın testleri hedefi sınar: kullanan bir testse kendisi (1 adım), bir tablo ya da
+// yardımcıysa onu okuyan ve çağıran ilk testler (zincir kuralıyla). Doğrudan `tests` kenarı olanlar listeye girmez.
+func (ix *index) valueTests(target *Node) []indirectTest {
+	seen := map[string]bool{}
+	for _, e := range ix.in[target.ID] {
+		if e.Kind == edgeTests {
+			seen[e.From] = true
+		}
+	}
+	var out []indirectTest
+	add := func(t, via *Node, steps int) {
+		if !seen[t.ID] {
+			seen[t.ID] = true
+			out = append(out, indirectTest{t, steps, via})
+		}
+	}
+	for _, e := range ix.in[target.ID] {
+		from := ix.byID[e.From]
+		if e.Kind != edgeCalls || e.Confidence != inferred || from == nil || !inTestFile(from) {
+			continue
+		}
+		if isTestNode(from) {
+			add(from, nil, 1) // testin kendisi kullanıyor
+			continue
+		}
+		walkCallers(from.ID, ix.callersOf, ix.pkgOf, func(r reached) bool {
+			if t := ix.byID[r.ID]; isTestNode(t) {
+				add(t, from, r.Steps+1)
+				return false
+			}
+			return true
+		})
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		if out[i].steps != out[j].steps {
+			return out[i].steps < out[j].steps
+		}
+		return out[i].test.Name < out[j].test.Name
+	})
+	return out
+}
+
+// printValueTests değer olarak sınayan testleri yazar.
+func (ix *index) printValueTests(w io.Writer, list []indirectTest, limit int) {
+	if len(list) == 0 {
+		return
+	}
+	fmt.Fprintf(w, "  <- tests that use it as a function value (%d; a table entry, a method expression, a registration in a test file):\n", len(list))
+	forEachLimited(w, list, limit, "    ", moreHint, func(it indirectTest) string {
+		if it.via == nil {
+			return describe(it.test) + "  in the test itself  [INFERRED]"
+		}
+		return fmt.Sprintf("%s  %d steps via %s  [INFERRED]", describe(it.test), it.steps, it.via.Name)
+	})
+}
+
 // callersOf bir düğümü çağıran ya da kullananlardır (reachEdge kenarları), kimliğe göre sıralı.
 func (ix *index) callersOf(id string) []string {
 	var out []string
@@ -80,17 +138,20 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 		}
 	}
 	walks := ix.walkEdges(n)
+	asValue, _ := splitMeasurements(ix.valueTests(n), func(t indirectTest) *Node { return t.test })
 	indirect, indirectMeasured := splitMeasurements(ix.indirectTests(n), func(t indirectTest) *Node { return t.test })
 	viaNames, _ := splitMeasurements(ix.testsThroughNames(n), func(t nameTest) *Node { return t.test })
-	if len(tests) == 0 && len(indirect) == 0 && len(walks) == 0 && len(viaNames) == 0 && len(measured) == 0 && len(indirectMeasured) == 0 {
+	found := len(tests) + len(walks) + len(asValue) + len(indirect) + len(viaNames)
+	if found == 0 && len(measured) == 0 && len(indirectMeasured) == 0 {
 		fmt.Fprintln(w, "  no tests found")
 		return
 	}
-	if len(tests) == 0 && len(indirect) == 0 && len(walks) == 0 && len(viaNames) == 0 {
+	if found == 0 {
 		fmt.Fprintln(w, "  no tests found (only measurements, below)")
 	}
 	ix.printGroups(w, "  <-", tests, fromOf, limit, true) // doğrudan testler önce: bu adı ya da dosyayı kullananlar
 	ix.printWalks(w, walks, limit)
+	ix.printValueTests(w, asValue, limit)
 	ix.printInferred(w, n, indirect, viaNames, limit)
 	ix.printMeasurements(w, measured, indirectMeasured, limit)
 	ix.printGuardedRules(w, tests, indirect, limit)
@@ -264,7 +325,7 @@ func (ix *index) testDistances(n *Node) map[string]int {
 	for _, e := range ix.walkEdges(n) {
 		note(e.From, 0)
 	}
-	for _, it := range ix.indirectTests(n) {
+	for _, it := range append(ix.valueTests(n), ix.indirectTests(n)...) {
 		note(it.test.ID, it.steps)
 	}
 	for _, t := range ix.testsThroughNames(n) {
@@ -272,3 +333,4 @@ func (ix *index) testDistances(n *Node) map[string]int {
 	}
 	return best
 }
+

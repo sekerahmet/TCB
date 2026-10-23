@@ -77,3 +77,49 @@ func TestTestsForOrdersInferredTestsByEvidence(t *testing.T) {
 		t.Errorf("the eight-step chain must be under weak evidence, last:\n%s", out.String())
 	}
 }
+
+// Kural: test dosyasında işlev değeri olarak kullanılan (tablo öğesi, değişkene atanan) işlevin testleri "no tests found"
+// değil, "tests that use it as a function value" grubunda gelir: kullanan test kendisi, tablo ise onu okuyan test (bağımsız
+// denetim Y2). Test dosyasında hiç geçmeyen işlev testsiz kalır.
+func TestTestsForFindsTestsThatUseAFunctionAsAValue(t *testing.T) {
+	root := auditModule(t, map[string]string{
+		"p/p.go": "package p\n\nfunc Square(x int) int { return x * x }\n\nfunc Cube(x int) int { return x * x * x }\n\nfunc Unused(x int) int { return x }\n",
+		"p/p_test.go": `package p
+
+import "testing"
+
+var ops = []func(int) int{Square}
+
+func TestOps(t *testing.T) {
+	for _, f := range ops {
+		_ = f(2)
+	}
+}
+
+func TestCubeValue(t *testing.T) {
+	f := Cube
+	_ = f(2)
+}
+`,
+	})
+	var out, errb strings.Builder
+	if code := run([]string{"build", "--root", root}, &out, &errb); code != exitOK {
+		t.Fatalf("build: %d %s", code, errb.String())
+	}
+	ask := func(name string) string {
+		var out, errb strings.Builder
+		if code := run([]string{"tests-for", name, "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
+			t.Fatalf("tests-for %s: %d %s", name, code, errb.String())
+		}
+		return out.String()
+	}
+	if got := ask("p.Square"); !strings.Contains(got, "function value") || !strings.Contains(got, "p.TestOps") || !strings.Contains(got, "via p.ops") {
+		t.Errorf("Square is tested through the table ops:\n%s", got)
+	}
+	if got := ask("p.Cube"); !strings.Contains(got, "p.TestCubeValue") || !strings.Contains(got, "in the test itself") {
+		t.Errorf("Cube is used as a value by the test itself:\n%s", got)
+	}
+	if got := ask("p.Unused"); !strings.Contains(got, "no tests found") {
+		t.Errorf("Unused is not in any test file:\n%s", got)
+	}
+}
