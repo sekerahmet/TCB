@@ -5,6 +5,40 @@ içindir (`Drive'ım/TR_dili/`). Hücreler tek oturumda, bir GPU çalışma zama
 sırayla çalıştırılır: sınamalar → mikro kıyaslar (TR ve PyTorch) → model kıyası → profil.
 Her hücrenin geri bildirilecek çıktısı kısadır ve tablo biçimindedir.
 
+## 0. CPU koşuları ve kayıt (tam denetim, zorlama, uzun testler)
+
+Ağır CPU koşuları geliştiricinin makinesinde değil, Colab'ın CPU çalışma zamanında (High-RAM) yapılır
+([`docs/development.md`](../../docs/development.md#ölçüm-disiplini)). Kod yan daldan çekilir; koşu
+kayıt aracıyla sarılır ve sonucu Drive'daki `TR_dili/olcumler/<iş>/<UTC zaman>.json` olarak kalır
+([`tools/record`](../record/README.md)). Drive'ı bağlamak çalışma zamanı başına bir kez onay ister.
+
+```python
+# A · DRIVE'I BAĞLA (ONAY İSTER) · CPU
+from google.colab import drive
+drive.mount('/content/drive')
+```
+
+```bash
+%%bash
+# B · YAN DALI ÇEK, KOŞUYU KAYITLA BAŞLAT (ARKA PLANDA) · CPU
+# DAL ve İŞ değiştirilir; komut: tam denetim için bash tools/full_check.sh, zorlama için --kip=zorlama eklenir.
+DAL=zorlama-dogrulama; IS=tam-denetim
+[ -x /usr/local/go/bin/go ] || { wget -q https://go.dev/dl/go1.26.10.linux-amd64.tar.gz -O /tmp/go.tgz && tar -C /usr/local -xzf /tmp/go.tgz; }
+export PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=local
+rm -rf /content/TCB && git clone -q --depth 1 -b $DAL https://github.com/sekerahmet/TCB /content/TCB
+cd /content/TCB && git log -1 --format='commit: %h %s' | cut -c1-80 && rm -f /content/kosu_bitti
+setsid nohup bash -c "cd /content/TCB && export PATH=/usr/local/go/bin:\$PATH GOTOOLCHAIN=local && go run ./tools/record --name $IS --out /content/drive/MyDrive/TR_dili/olcumler -- bash tools/full_check.sh > /content/kosu.log 2>&1; echo \$? > /content/kosu_bitti" > /dev/null 2>&1 < /dev/null &
+echo "başladı (durum: hücre C)"
+```
+
+```bash
+%%bash
+# C · KOŞU DURUMU (ANINDA BİTER) · CPU
+echo "adım: $(grep -E '^== ' /content/kosu.log 2>/dev/null | tail -1)"
+grep -E '^(--- FAIL|FAIL|panic|!! KALDI)' /content/kosu.log 2>/dev/null | head -20
+[ -f /content/kosu_bitti ] && { echo "BİTTİ (çıkış $(cat /content/kosu_bitti))"; tail -3 /content/kosu.log; tail -1 /content/drive/MyDrive/TR_dili/olcumler/index.jsonl | cut -c1-300; } || echo "sürüyor"
+```
+
 ## 1. Kodu çek ve derle, GPU durumu
 
 ```bash

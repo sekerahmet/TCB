@@ -72,6 +72,8 @@ done
 failed=0
 failures=()
 durations=()
+step_names=()
+step_seconds=()
 step_name=""
 step_start=$SECONDS
 # step yeni bir adım başlatır; bir öncekinin süresi sondaki özete yazılır.
@@ -82,8 +84,40 @@ step() {
 	printf '\n== %s\n' "$1"
 }
 step_end() {
-	if [ -n "$step_name" ]; then durations+=("$(printf '%4d sn  %s' $((SECONDS - step_start)) "$step_name")"); fi
+	if [ -n "$step_name" ]; then
+		durations+=("$(printf '%4d sn  %s' $((SECONDS - step_start)) "$step_name")")
+		step_names+=("$step_name")
+		step_seconds+=($((SECONDS - step_start)))
+	fi
 	step_name=""
+}
+# json_text metni JSON dizgesi olarak yazar (ters bölü, tırnak, satır sonu ve sekme kaçırılır).
+json_text() {
+	local s=${1//\\/\\\\}
+	s=${s//\"/\\\"}
+	s=${s//$'\n'/\\n}
+	s=${s//$'\t'/\\t}
+	printf '"%s"' "$s"
+}
+# write_metrics kayıt aracının (tools/record) koşu klasörüne kipleri, adım sürelerini, kalan
+# adımları ve sonucu metrics.json olarak yazar; TR_KAYIT_KLASORU yoksa bir şey yapmaz.
+write_metrics() {
+	[ -n "${TR_KAYIT_KLASORU:-}" ] || return 0
+	local i sep=""
+	{
+		printf '{"modes":%s,"passed":%s,"seconds":%d,"steps":[' "$(json_text "$modes")" "$([ $failed -eq 0 ] && echo true || echo false)" "$SECONDS"
+		for i in "${!step_names[@]}"; do
+			printf '%s{"name":%s,"seconds":%d}' "$sep" "$(json_text "${step_names[$i]}")" "${step_seconds[$i]}"
+			sep=","
+		done
+		printf '],"failures":['
+		sep=""
+		for i in "${failures[@]}"; do
+			printf '%s%s' "$sep" "$(json_text "$i")"
+			sep=","
+		done
+		printf ']}\n'
+	} >"$TR_KAYIT_KLASORU/metrics.json"
 }
 # record_failure kalan adımı özete ve sonuca kaydeder (satır yazmaz): "!! KALDI" satırı zaten
 # yazılmışsa (paralel adımın alt kabuğu) yalnızca bu çağrılır.
@@ -442,6 +476,7 @@ fi
 echo
 echo "Adım süreleri:"
 printf '%s\n' "${durations[@]}"
+write_metrics
 if [ "$modes" = on ]; then
 	# Ön denetim tam denetimin yerini tutmaz; sonuç satırı push koşulundaki satırla karışmasın.
 	if [ $failed -eq 0 ]; then
