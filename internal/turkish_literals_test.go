@@ -2,9 +2,6 @@ package internal_test
 
 import (
 	"fmt"
-	"go/ast"
-	"go/parser"
-	"go/token"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -14,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/reporoot"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // Go metninde kullanıcıya görünen Türkçe yoktur: adlar ad kodudur (internal/lang/codes), iletiler
@@ -124,33 +122,15 @@ func TestNoTurkishLiterals(t *testing.T) {
 // anahtarları, `json:"adım"`) sayılmaz. Derleme etiketine bakılmaz: her işletim sisteminin
 // dosyası taranır.
 func turkishLiterals(t *testing.T, path string) []string {
-	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, path, nil, parser.SkipObjectResolution)
-	if err != nil {
-		t.Fatal(err)
-	}
-	tags := map[*ast.BasicLit]bool{}
-	ast.Inspect(f, func(n ast.Node) bool {
-		if fld, ok := n.(*ast.Field); ok && fld.Tag != nil {
-			tags[fld.Tag] = true
-		}
-		return true
-	})
 	var out []string
-	ast.Inspect(f, func(n ast.Node) bool {
-		lit, ok := n.(*ast.BasicLit)
-		if !ok || lit.Kind != token.STRING || tags[lit] {
-			return true
-		}
-		s, err := strconv.Unquote(lit.Value)
-		if err != nil {
-			s = lit.Value
-		}
+	err := testkit.GoStringLiterals(path, func(s string, _ int) {
 		if strings.ContainsAny(s, turkishLetters) {
 			out = append(out, s)
 		}
-		return true
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	return out
 }
 

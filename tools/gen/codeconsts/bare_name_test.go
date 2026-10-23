@@ -1,9 +1,6 @@
 package main
 
 import (
-	"go/ast"
-	"go/parser"
-	"go/token"
 	"io/fs"
 	"path/filepath"
 	"sort"
@@ -15,6 +12,7 @@ import (
 
 	dk "github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/reporoot"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // "Çıplak ad yok": dilin kullanıcıya görünen adları (anahtar kelimeler, tip adları,
@@ -195,32 +193,8 @@ func TestNoBareNames(t *testing.T) {
 }
 
 func scanFile(t *testing.T, path, relPath string, names map[string][]liveName, used map[string]map[string]bool) []string {
-	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, path, nil, parser.SkipObjectResolution)
-	if err != nil {
-		t.Errorf("%s: %v", relPath, err)
-		return nil
-	}
-	tagLits := map[*ast.BasicLit]bool{}
-	for _, im := range f.Imports {
-		tagLits[im.Path] = true
-	}
-	ast.Inspect(f, func(n ast.Node) bool {
-		if field, ok := n.(*ast.Field); ok && field.Tag != nil {
-			tagLits[field.Tag] = true
-		}
-		return true
-	})
 	var out []string
-	ast.Inspect(f, func(n ast.Node) bool {
-		lit, ok := n.(*ast.BasicLit)
-		if !ok || lit.Kind != token.STRING || tagLits[lit] {
-			return true
-		}
-		s, err := strconv.Unquote(lit.Value)
-		if err != nil {
-			return true
-		}
+	err := testkit.GoStringLiterals(path, func(s string, line int) {
 		for _, name := range bareNames(s, names) {
 			if _, isAllowed := bareNameAllowances[relPath][name]; isAllowed {
 				if used[relPath] == nil {
@@ -229,10 +203,13 @@ func scanFile(t *testing.T, path, relPath string, names map[string][]liveName, u
 				used[relPath][name] = true
 				continue
 			}
-			out = append(out, relPath+":"+strconv.Itoa(fset.Position(lit.Pos()).Line)+": "+strconv.Quote(name)+" :: "+shorten(s))
+			out = append(out, relPath+":"+strconv.Itoa(line)+": "+strconv.Quote(name)+" :: "+shorten(s))
 		}
-		return true
 	})
+	if err != nil {
+		t.Errorf("%s: %v", relPath, err)
+		return nil
+	}
 	return out
 }
 

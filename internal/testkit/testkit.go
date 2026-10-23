@@ -13,6 +13,8 @@ import (
 	"context"
 	"errors"
 	"go/ast"
+	"go/parser"
+	"go/token"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -233,4 +235,36 @@ func linearRatio(n int, prepare func(n int) func()) (small, large time.Duration,
 	fs, fl := prepare(n), prepare(linearFactor*n)
 	small, large = best(fs), best(fl)
 	return small, large, float64(large) / float64(small)
+}
+
+// GoStringLiterals bir Go dosyasındaki her metin sabitini çözülmüş değeri ve satırıyla fn'e verir;
+// yapı etiketleri ve içe aktarma yolları atlanır (metin değil, biçimdir). Go metnindeki kullanıcı
+// metnini ya da adını arayan kural testlerinin (Türkçe metin, çıplak ad) ortak gezintisidir.
+func GoStringLiterals(path string, fn func(value string, line int)) error {
+	fset := token.NewFileSet()
+	f, err := parser.ParseFile(fset, path, nil, parser.SkipObjectResolution)
+	if err != nil {
+		return err
+	}
+	skip := map[*ast.BasicLit]bool{}
+	for _, im := range f.Imports {
+		skip[im.Path] = true
+	}
+	ast.Inspect(f, func(n ast.Node) bool {
+		if field, ok := n.(*ast.Field); ok && field.Tag != nil {
+			skip[field.Tag] = true
+		}
+		return true
+	})
+	ast.Inspect(f, func(n ast.Node) bool {
+		lit, ok := n.(*ast.BasicLit)
+		if !ok || lit.Kind != token.STRING || skip[lit] {
+			return true
+		}
+		if s, err := strconv.Unquote(lit.Value); err == nil {
+			fn(s, fset.Position(lit.Pos()).Line)
+		}
+		return true
+	})
+	return nil
 }

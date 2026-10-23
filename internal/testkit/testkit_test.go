@@ -7,6 +7,8 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
+	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -134,4 +136,17 @@ func TestLinearRatioSeparatesLinearFromQuadratic(t *testing.T) {
 		t.Errorf("karesel iş oranı %.1f, %g'i aşmalı", r, linearLimit)
 	}
 	_ = sink
+}
+
+// Kural: GoStringLiterals her metin sabitini çözülmüş değeri ve satırıyla verir; yapı etiketleri
+// ve içe aktarma yolları atlanır.
+func TestGoStringLiteralsSkipsTagsAndImports(t *testing.T) {
+	path := WriteFile(t, t.TempDir(), "a.go", "package a\n\nimport \"strings\"\n\ntype T struct {\n\tA int `json:\"a\"`\n}\n\nvar x = \"merhaba\"\nvar y = `ham`\nvar _ = strings.ToUpper\n")
+	var got []string
+	if err := GoStringLiterals(path, func(s string, line int) { got = append(got, strconv.Itoa(line)+":"+s) }); err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{"9:merhaba", "10:ham"};!reflect.DeepEqual(got, want) {
+		t.Errorf("got %q, want %q", got, want)
+	}
 }
