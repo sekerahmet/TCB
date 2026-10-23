@@ -78,24 +78,73 @@ func (ix *index) pkgOf(id string) string {
 // uzakta, en yakın önce); koruduğu kurallar en sonda.
 func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	fmt.Fprintln(w, describe(n))
-	var tests []*Edge
+	var tests, measured []*Edge
 	for _, e := range ix.in[n.ID] {
-		if e.Kind == edgeTests {
+		switch {
+		case e.Kind != edgeTests:
+		case isMeasurement(ix.byID[e.From]):
+			measured = append(measured, e)
+		default:
 			tests = append(tests, e)
 		}
 	}
 	walks := ix.walkEdges(n)
-	indirect := ix.indirectTests(n)
-	viaNames := ix.testsThroughNames(n)
-	if len(tests) == 0 && len(indirect) == 0 && len(walks) == 0 && len(viaNames) == 0 {
+	indirect, indirectMeasured := splitMeasurements(ix.indirectTests(n), func(t indirectTest) *Node { return t.test })
+	viaNames, _ := splitMeasurements(ix.testsThroughNames(n), func(t nameTest) *Node { return t.test })
+	if len(tests) == 0 && len(indirect) == 0 && len(walks) == 0 && len(viaNames) == 0 && len(measured) == 0 && len(indirectMeasured) == 0 {
 		fmt.Fprintln(w, "  no tests found")
 		return
+	}
+	if len(tests) == 0 && len(indirect) == 0 && len(walks) == 0 && len(viaNames) == 0 {
+		fmt.Fprintln(w, "  no tests found (only measurements, below)")
 	}
 	ix.printGroups(w, "  <-", tests, fromOf, limit, true) // doğrudan testler önce: bu adı ya da dosyayı kullananlar
 	ix.printWalks(w, walks, limit)
 	ix.printIndirect(w, indirect, limit)
 	ix.printViaNames(w, viaNames, limit)
+	ix.printMeasurements(w, measured, indirectMeasured, limit)
 	ix.printGuardedRules(w, tests, indirect, limit)
+}
+
+// isMeasurement düğüm bir test değil ölçüm mü: Benchmark* işlevi ya da tools/bench altındaki kod. Ölçüm sonuç
+// doğrulamaz, süre ölçer; "önce ölç" kuralı için testlerden ayrı gösterilir.
+func isMeasurement(n *Node) bool {
+	if n == nil {
+		return false
+	}
+	if strings.HasPrefix(n.File, "tools/bench/") {
+		return true
+	}
+	return n.Kind == kindFunc && strings.HasPrefix(n.Name[strings.LastIndex(n.Name, ".")+1:], "Benchmark")
+}
+
+// splitMeasurements listeyi testler ve ölçümler olarak ikiye böler.
+func splitMeasurements[T any](list []T, node func(T) *Node) (tests, measured []T) {
+	for _, it := range list {
+		if isMeasurement(node(it)) {
+			measured = append(measured, it)
+		} else {
+			tests = append(tests, it)
+		}
+	}
+	return tests, measured
+}
+
+// printMeasurements ölçümleri (benchmark'lar, tools/bench) testlerden ayrı başlık altında yazar.
+func (ix *index) printMeasurements(w io.Writer, direct []*Edge, indirect []indirectTest, limit int) {
+	total := len(direct) + len(indirect)
+	if total == 0 {
+		return
+	}
+	fmt.Fprintf(w, "  <- measurements, not tests (%d; benchmarks and tools/bench: they time it, they do not check it):\n", total)
+	var lines []string
+	for _, e := range direct {
+		lines = append(lines, ix.edgeLine(e, e.From, true))
+	}
+	for _, it := range indirect {
+		lines = append(lines, fmt.Sprintf("%s  %d steps via %s  [INFERRED]", describe(it.test), it.steps, it.via.Name))
+	}
+	printLimited(w, lines, limit, "    ")
 }
 
 func (ix *index) printIndirect(w io.Writer, list []indirectTest, limit int) {

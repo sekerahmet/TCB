@@ -8,7 +8,7 @@ shipped to users.
 ```sh
 go run ./tools/codegraph build                  # writes .codegraph/graph.json (git ignores it)
 go run ./tools/codegraph query messages.New     # a node and its neighbours
-go run ./tools/codegraph path interp.VM H2100   # shortest path between two nodes
+go run ./tools/codegraph path interp.VM H2100   # shortest directed path between two nodes (--undirected, --through-hubs: see below)
 go run ./tools/codegraph who-uses H2100         # what uses a message code, name code or function
 go run ./tools/codegraph tests-for interp.VM.Run
 go run ./tools/codegraph history messages.New       # commits that touched it (computed from git)
@@ -89,7 +89,7 @@ computed when you ask, not stored in `graph.json`.
 | `reads_file` | function (non-test) → repository file named by a string constant it passes to `reporoot.Path`/`filepath.Join`/`Glob` | INFERRED |
 | `walks` | test → data file whose whole list it walks: the test (or a test helper) has a `range` over a function or variable that returns a collection and depends on the file inside the package that embeds it (`for _, k := range codes.Codes()`) | INFERRED |
 | `denotes` | Go constant `messages.H2100` / `codes.K003` → the message / name code node `H2100` / `K003` it stands for | EXTRACTED |
-| `tests` | test → its package; test → function it calls (directly or through helpers in test files); test → function its name says (`TestParse`, `TestVM_Run`) | EXTRACTED / EXTRACTED / INFERRED Also test → repository file (a `.tr` file, a doc) when the test, or a helper it calls within 3 steps, writes the path as a string constant: `reporoot.Path("tools/gpu/gpt_training.tr")`, `reporoot.Path("lib", "*.tr")` or a `filepath.Glob` pattern; a bare wildcard literal is test data and does not count, nor does a bare file name (no `/`); INFERRED, so `tests-for lib/egitim.tr` lists the Go tests that guard it. `tests-for` writes under each Go test the first line of the rule it guards (the test's doc comment, else the first `//` block after the imports), read from the file at query time. `tr dizin` stays TR-only (it parses `.tr`, not Go); the Go-to-`.tr` link lives here. |
+| `tests` | test → its package; test → function it calls (directly or through helpers in test files); test → function its name says (`TestParse`, `TestVM_Run`) | EXTRACTED / EXTRACTED / INFERRED Also test → repository file (a `.tr` file, a doc) when the test, or a helper it calls through the chain rule below, writes the path as a string constant: `reporoot.Path("tools/gpu/gpt_training.tr")`, `reporoot.Path("lib", "*.tr")` or a `filepath.Glob` pattern; a bare wildcard literal is test data and does not count, nor does a bare file name (no `/`); INFERRED, so `tests-for lib/egitim.tr` lists the Go tests that guard it. `tests-for` writes under each Go test the first line of the rule it guards (the test's doc comment, else the first `//` block after the imports), read from the file at query time. `tr dizin` stays TR-only (it parses `.tr`, not Go); the Go-to-`.tr` link lives here. |
 | `uses_message` | func → `msg:Hnnnn`, from the `messages.Hnnnn` constant | EXTRACTED |
 | `uses_name` | func → `name:Xnnn`, from the `codes.Xnnn` constant; message → `name:K4nn` when its template (any language) writes that environment variable's name (`TR_GPU_SYNC=1`) | EXTRACTED |
 | `uses_env` | func → `name:K4nn`, from `os.Getenv`/`LookupEnv`/`Setenv`/`Unsetenv` (or `testing.T.Setenv`) given a string constant (or a named one) equal to the variable's name in any writing language; the compute core cannot see name codes, so it reads the variable by its source-language name | EXTRACTED |
@@ -361,6 +361,15 @@ consecutive is split (`15.31–15.38` → `15.11–15.15, 15.20–15.22`); text 
 reference (`15.0` as a version) is never touched. Collisions and unknown old numbers are refused
 before anything is written; `--apply` refuses a plan that no longer matches the files.
 
+## `path`: directed by default
+
+`path A B` follows edges in their direction (`calls`, `uses`, `dispatches_to`, `reads_var` ...; `contains` is not a
+step) and says plainly when there is none: `no directed path from A to B` (exit 4). It used to fall back to an
+undirected search, and once types became `uses` targets that turned a question like "does `Attention` call `Softmax`"
+into the nonsense answer "both use the type `Tensor`". Two explicit options remain: `--undirected` ignores the
+direction but never passes through a type, package, file or doc (the hubs that connect everything), `--through-hubs`
+allows them and marks each `[hub]`. Pinned by `TestPathAnswersDirectedAndNeverSilentlyThroughATypeHub`.
+
 ## One rule for "a test reaches this through helpers"
 
 Path constants, `go:embed` files, TR text in Go tests, the name codes' tests and the *indirect* tests of `tests-for` are
@@ -396,7 +405,7 @@ things close that:
   named-argument codes they use (`tests through the name codes it implements`, tests of the same package first).
   Type names, keywords and messages do not count: every test uses them.
 
-`tests-for` prints direct tests (a test that uses the name or file) before the tests that walk the whole list.
+`tests-for` keeps **measurements** apart: `Benchmark*` functions and anything under `tools/bench` are listed under "measurements, not tests" (they time the code, they do not check it; the "measure first" rule wants them, a test count does not), direct and indirect alike. `tests-for` prints direct tests (a test that uses the name or file) before the tests that walk the whole list.
 `name_tests_test.go` (`test_names_test.go`) keeps this from decaying: every builtin, member and named-argument code
 has a direct test or is listed with a reason in `testdata/untested_names.txt` (today three gaps are written down
 there honestly: `zaman_ms`, `ağırlık:`, `sapma:`). A stale exception fails too.
