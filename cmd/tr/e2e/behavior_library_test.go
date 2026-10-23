@@ -123,6 +123,15 @@ func TestGPTTrainingScriptSmoke(t *testing.T) {
 	// Aynı komut: eğitim bitmiş, kontrol noktasından yüklenir.
 	testkit.Wait(t, tr(t, t.TempDir(), args...), 0, []string{"bitti"}, []string{"Kaldığı yerden devam: adım 12"})
 
+	// Prova (tr/egitim Koşu): aynı komut iki adım, geçici klasörde; verilen koşu klasörüne dokunmaz.
+	unused := filepath.Join(t.TempDir(), "kosu")
+	trial := append(append([]string{}, args...), "--prova")
+	trial[4] = unused
+	testkit.Wait(t, tr(t, t.TempDir(), trial...), 0, []string{"Prova geçti: 2 adım"}, nil)
+	if _, err := os.Stat(unused); err == nil {
+		t.Errorf("prova koşu klasörünü açtı: %s", unused)
+	}
+
 	// SimpleStories sınavı (tools/gpu/ss_exam.tr) eğitilen modeli koşu klasöründen kurar ve results.json yazar.
 	exam := tr(t, t.TempDir(), reporoot.Path("tools/gpu/ss_exam.tr"), "--koşu", run, "--veri", data, "--cihaz", "cpu",
 		"--hassasiyet", "float32", "--toplu", "4", "--sonda_uzunluğu", "6", "--örnek_uzunluğu", "6")

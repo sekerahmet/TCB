@@ -11,10 +11,13 @@
 //   speed.json      ms/adım ve parça/sn (ilk ölçüm_ısınması adım, değerlendirme, örnek üretimi ve
 //                   kontrol noktası kaydı hariç)
 //   model.trt       son ağırlıklar; kontrol_noktalari/ kaldığı yerden devam için
-// Kesilirse aynı komut kaldığı yerden sürer (her_dakika'da bir kayıt).
+// Kesilirse aynı komut kaldığı yerden sürer (her_dakika'da bir kayıt). Klasör, günlük, kontrol noktası
+// ve ağırlık kaydı kitaplığın Koşu yapısıdır (tr/egitim); --prova aynı komutu geçici bir klasörde iki
+// adım koşturup bütün dosyaların yazıldığını denetler (uzun koşudan önce).
 //
 // Kullanım:
 //   ./tr gpt_training.tr --veri /content/ss4096 --koşu /content/runs/gpt1
+//   ./tr gpt_training.tr --veri /content/ss4096 --koşu /content/runs/gpt1 --prova   (önce)
 //   ./tr gpt_training.tr --veri /content/ss4096 --toplu 64 --birikim 2      (bellek yetmezse)
 //   ./tr gpt_training.tr --yardım
 // Model ayarları varsayılan olarak d512, 8 katman, 8 bakış, bağlam 512, toplu 128'dir.
@@ -22,15 +25,16 @@
 aktar "tr/katman"
 aktar "training_model"
 aktar "tr/iyilestirici"
+aktar "tr/egitim"
 
 değişken ayar = komut_satırı({
-        veri: "", koşu: "runs/gpt_ss", cihaz: "gpu", hassasiyet: "float32",
-        boyut: 512, katman: 8, bakış_sayısı: 8, kv_bakış_sayısı: 0, bağlam: 512, toplu: 128, birikim: 1,
-        adım: 5000, ısınma: 200, azalma: 0.2, muon_oranı: 0.02, adamw_oranı: 0.003,
-        ağırlık_çürümesi: 0.0, adamw_çürümesi: 0.0, muon_ölçeği: "oran", ns_türü: "float32", normuon: yanlış, kırp: 1.0, paylaşımlı: doğru,
-        dağarcık: 0, ara_boyut: 0, epsilon: 0.00001, qk_normu: yanlış, birleşik_kv: yanlış, birleşik_kapı: yanlış, ileri_sapmalı: yanlış,
-        günlük_her: 10, değerlendir_her: 250, değerlendir_toplu: 20, son_değerlendir_toplu: 0, örnek_her: 1000,
-        örnek_sayısı: 3, örnek_uzunluğu: 120, istemler: "Once upon a time", ölçüm_ısınması: 10, her_dakika: 15.0, tohum: 1},
+    veri: "", koşu: "runs/gpt_ss", cihaz: "gpu", hassasiyet: "float32",
+    boyut: 512, katman: 8, bakış_sayısı: 8, kv_bakış_sayısı: 0, bağlam: 512, toplu: 128, birikim: 1,
+    adım: 5000, ısınma: 200, azalma: 0.2, muon_oranı: 0.02, adamw_oranı: 0.003,
+    ağırlık_çürümesi: 0.0, adamw_çürümesi: 0.0, muon_ölçeği: "oran", ns_türü: "float32", normuon: yanlış, kırp: 1.0, paylaşımlı: doğru,
+    dağarcık: 0, ara_boyut: 0, epsilon: 0.00001, qk_normu: yanlış, birleşik_kv: yanlış, birleşik_kapı: yanlış, ileri_sapmalı: yanlış,
+    günlük_her: 10, değerlendir_her: 250, değerlendir_toplu: 20, son_değerlendir_toplu: 0, örnek_her: 1000,
+    örnek_sayısı: 3, örnek_uzunluğu: 120, istemler: "Once upon a time", ölçüm_ısınması: 10, her_dakika: 15.0, tohum: 1, prova: yanlış},
     açıklama: "SimpleStories verisiyle GPT eğitir (Muon + AdamW, WSD planı, kontrol noktası)",
     açıklamalar: {veri: "tokenizer.json, train.npy, valid.npy klasörü", koşu: "koşu klasörü",
         cihaz: "gpu ya da cpu", hassasiyet: "float32 ya da bf16 (karışık hassasiyet)",
@@ -45,10 +49,11 @@ değişken ayar = komut_satırı({
         ara_boyut: "SwiGLU ara boyutu (0: 8/3 · boyut, 32'nin katına)", epsilon: "RMS normunun epsilonu",
         qk_normu: "sorgu ve anahtar normu", birleşik_kv: "K ve V tek matris", birleşik_kapı: "SwiGLU kapı ve yukarı tek matris",
         ileri_sapmalı: "SwiGLU katmanları sapmalı",
-        son_değerlendir_toplu: "son adımdaki değerlendirmenin toplu işi (0: değerlendir_toplu; büyük sayı: bütün doğrulama verisi)"})
+        son_değerlendir_toplu: "son adımdaki değerlendirmenin toplu işi (0: değerlendir_toplu; büyük sayı: bütün doğrulama verisi)",
+        prova: "aynı komutu geçici klasörde iki adım koşturup dosyaların yazıldığını denetler"})
 
 eğer ayar.veri == "" {
-    fırlat("veri klasörü verilmedi: --veri /content/ss4096 (tokenizer.json, train.npy, valid.npy)")
+    fırlat ("veri klasörü verilmedi: --veri /content/ss4096 (tokenizer.json, train.npy, valid.npy)")
 }
 varsayılan_cihaz(ayar.cihaz)
 değişken p = parçalayıcı_yükle(yol(ayar.veri, "tokenizer.json"))
@@ -60,17 +65,12 @@ değişken op = MuonVeAdamW(model, muon_oranı: ayar.muon_oranı, adamw_oranı: 
     ağırlık_çürümesi: ayar.ağırlık_çürümesi, adamw_çürümesi: ayar.adamw_çürümesi, muon_ölçeği: ayar.muon_ölçeği,
     ns_türü: ayar.ns_türü, normuon: ayar.normuon)
 değişken ağırlıklar = parametreler(model)
-değişken parametre_sayısı = 0
-döngü w içinde ağırlıklar { parametre_sayısı += w.şekil.indirge(1) { birikim * o } }
-yazdır("model: {yuvarla(parametre_sayısı / 1000000, 2)} M parametre · cihaz {model.gömme.tablo.cihaz} · dağarcık {p.dağarcık_boyutu} (model {model.ayar.dağarcık})")
-
-klasör_oluştur(ayar.koşu)
-dosya_yaz(yol(ayar.koşu, "config.json"), json_metin({ayar: ayar, parametre_sayısı: parametre_sayısı,
-    cihaz: varsayılan_cihaz(), muon_ağırlıkları: op.muon.ağırlıklar.uzunluk, adamw_ağırlıkları: op.diğer.uzunluk}))
-değişken g = günlük(yol(ayar.koşu, "metrics.jsonl"))
 değişken izlenen = {en_iyi_doğrulama: 99.0, örnekler: []}
-değişken kn = kontrol_noktası(ayar.koşu, {model: model, adamw: op.adamw, muon: op.muon.durum, ö: ö, g: g, izlenen: izlenen},
-    her_dakika: ayar.her_dakika)
+değişken koşu = Koşu(ayar.koşu, ayar, {model: model, adamw: op.adamw, muon: op.muon.durum, ö: ö, izlenen: izlenen},
+    adım_sayısı: ayar.adım, her_dakika: ayar.her_dakika, prova: ayar.prova)
+// Parametre sayısını Koşu sayıp config.json'a yazdı; ikinci kez sayılmaz.
+değişken parametre_sayısı = json_çöz(dosya_oku(yol(koşu.klasör, "config.json"))).parametre_sayısı
+yazdır("model: {yuvarla(parametre_sayısı / 1000000, 2)} M parametre · cihaz {model.gömme.tablo.cihaz} · dağarcık {p.dağarcık_boyutu} (model {model.ayar.dağarcık})")
 
 // doğrulama_kaybı: valid.npy'nin baştan ardışık, örtüşmeyen pencerelerinden ilk toplu_sayısı toplu işin
 // parça başına ortalama kaybı (eksik son toplu iş satır sayısıyla ağırlıklanır).
@@ -106,11 +106,9 @@ fonksiyon örnek_yaz(adım) {
         }
     }
     izlenen.örnekler.ekle({adım: adım, metinler: metinler})
-    dosya_yaz(yol(ayar.koşu, "samples.json"), json_metin(izlenen.örnekler))
+    dosya_yaz(yol(koşu.klasör, "samples.json"), json_metin(izlenen.örnekler))
 }
 
-değişken ç = ilerleme(ayar.adım, günlük: g)
-eğer kn.kaldığı_adım > 0 { ç.güncelle(adım: kn.kaldığı_adım) }
 değişken parça_adım = ayar.toplu * ayar.birikim * ayar.bağlam
 // Hız ölçümü eğitim adımlarını kapsar: değerlendirme, örnek üretimi ve kontrol noktası kaydının süresi
 // (dış) çıkarılır. aralık_*: son günlük kaydından bu yana (ms_adım, parça_sn); ölçüm_*: speed.json.
@@ -125,8 +123,8 @@ değişken kayıp = yok
 fonksiyon bekle_gpu() {
     eğer kayıp != yok { değişken b_ = kayıp.değer }
 }
-döngü adım içinde kn.kaldığı_adım..ayar.adım {
-    eğer adım - kn.kaldığı_adım == ayar.ölçüm_ısınması {
+döngü adım içinde koşu.kaldığı_adım..koşu.son_adım {
+    eğer adım - koşu.kaldığı_adım == ayar.ölçüm_ısınması {
         bekle_gpu() // ısınma adımlarının GPU'da bitmesini bekle
         ölçüm_başı = zaman_ms()
         ölçülen_adım = 0
@@ -147,10 +145,11 @@ döngü adım içinde kn.kaldığı_adım..ayar.adım {
     op.adım()
     ölçülen_adım += 1
     // Kaybın değerini okumak GPU'yu bekletir: çubuk ve günlük günlük_her adımda bir güncellenir.
-    eğer (adım + 1) % ayar.günlük_her == 0 veya adım + 1 == ayar.adım {
+    değişken ölçüler = yok
+    eğer (adım + 1) % ayar.günlük_her == 0 veya adım + 1 == koşu.son_adım {
         değişken k = kayıp.değer // GPU'yu bekler: aşağıdaki zaman tamamlanmış adımları kapsar
         değişken şimdi = zaman_ms()
-        değişken ölçüler = {kayıp: k, oran_çarpanı: çarpan, muon_oranı: ayar.muon_oranı * çarpan,
+        ölçüler = {kayıp: k, oran_çarpanı: çarpan, muon_oranı: ayar.muon_oranı * çarpan,
             adamw_oranı: ayar.adamw_oranı * çarpan}
         eğer norm != yok { ölçüler["gradyan_normu"] = norm.değer }
         eğer aralık_başı != yok {
@@ -158,17 +157,16 @@ döngü adım içinde kn.kaldığı_adım..ayar.adım {
             ölçüler["ms_adım"] = ms
             ölçüler["parça_sn"] = parça_adım * 1000.0 / ms
         }
-        ç.güncelle(ölçüler, adım: adım + 1)
         aralık_başı = şimdi
         aralık_adımı = adım + 1
         aralık_dış = 0.0
     }
-    eğer (adım + 1) % ayar.değerlendir_her == 0 veya adım + 1 == ayar.adım {
+    eğer (adım + 1) % ayar.değerlendir_her == 0 veya adım + 1 == koşu.son_adım {
         bekle_gpu()
         değişken t0 = zaman_ms()
-        değişken son_adım = adım + 1 == ayar.adım ve ayar.son_değerlendir_toplu > 0
+        değişken son_adım = adım + 1 == koşu.son_adım ve ayar.son_değerlendir_toplu > 0
         değişken dk = doğrulama_kaybı(eğer son_adım { ayar.son_değerlendir_toplu } değilse { ayar.değerlendir_toplu })
-        g.ekle({adım: adım + 1, doğrulama_kaybı: dk})
+        koşu.değerlendirildi(adım + 1, {doğrulama_kaybı: dk})
         eğer dk < izlenen.en_iyi_doğrulama { izlenen.en_iyi_doğrulama = dk }
         dış += zaman_ms() - t0
         aralık_dış += zaman_ms() - t0
@@ -183,7 +181,7 @@ döngü adım içinde kn.kaldığı_adım..ayar.adım {
     // Kayıt GPU'daki tensörleri okuduğu için adımın bitmesini de bekler; kayıt yapılan adımda en çok bir
     // adımın süresi dış sayılır (10 dakikada bir, ihmal edilir). Her adımda beklemek eğitimi yavaşlatırdı.
     değişken t_kn = zaman_ms()
-    eğer kn.güncelle(adım + 1) {
+    eğer koşu.adım_bitti(adım + 1, ölçüler) {
         dış += zaman_ms() - t_kn
         aralık_dış += zaman_ms() - t_kn
     }
@@ -192,17 +190,16 @@ eğer kayıp != yok {
     değişken son_kayıp = kayıp.değer // son adımın bitmesini bekler
     eğer ölçüm_başı != yok ve ölçülen_adım > 0 {
         değişken ms = (zaman_ms() - ölçüm_başı - dış) / ölçülen_adım
-        dosya_yaz(yol(ayar.koşu, "speed.json"), json_metin({ms_adım: ms,
+        dosya_yaz(yol(koşu.klasör, "speed.json"), json_metin({ms_adım: ms,
             parça_sn: parça_adım * 1000.0 / ms, ölçülen_adım: ölçülen_adım, dış_sn: dış / 1000.0,
             cihaz: varsayılan_cihaz(), hassasiyet: ayar.hassasiyet, son_kayıp: son_kayıp}))
         yazdır("hız: {yuvarla(ms, 1)} ms/adım · {yuvarla(parça_adım * 1000.0 / ms, 0)} parça/sn")
     }
-    kn.kaydet()
 }
-// Ağırlıklar örneklerden önce yazılır: üretimde bir hata olsa da eğitimin sonucu kaybolmaz.
-tensör_kaydet(yol(ayar.koşu, "model.trt"), parametreler(model, adlarıyla: doğru))
-örnek_yaz(ayar.adım)
-yazdır("bitti: en iyi doğrulama kaybı {yuvarla(izlenen.en_iyi_doğrulama, 4)} · koşu klasörü {yol(ayar.koşu).mutlak}")
+// Ağırlıklar örneklerden önce yazılır (Koşu.bitir): üretimde bir hata olsa da eğitimin sonucu kaybolmaz.
+koşu.bitir(model)
+örnek_yaz(koşu.son_adım)
+yazdır("bitti: en iyi doğrulama kaybı {yuvarla(izlenen.en_iyi_doğrulama, 4)} · koşu klasörü {koşu.klasör.mutlak}")
 // Her istemin ilk örneği.
 döngü i içinde 0..izlenen.örnekler.son.metinler.uzunluk {
     eğer i % ayar.örnek_sayısı == 0 { yazdır(izlenen.örnekler.son.metinler[i]) }

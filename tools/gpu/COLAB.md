@@ -219,9 +219,13 @@ Bellek yetmezse toplu işi bölün (adım başına aynı veri): `--toplu 64 --bi
 `--toplu 32 --birikim 4`). Karışık hassasiyet: `--hassasiyet bf16`. NorMuon: `--normuon`
 (öğrenme oranı AdamW ölçeğindedir: `--muon_oranı 0.003`). Bütün ayarlar: `./tr gpt_training.tr --yardım`.
 
+Uzun koşudan önce aynı komut `--prova` ile denenir: iki adım, geçici klasör, bütün dosyaların yazıldığı denetlenir
+(`Prova geçti` satırı).
+
 ```bash
 %%bash
 cd /content/tr
+./tr gpt_training.tr --veri /content/ss4096 --koşu /content/runs/gpt1 --adım 5000 --prova 2>&1 | tail -3
 ./tr gpt_training.tr --veri /content/ss4096 --koşu /content/runs/gpt1 --adım 5000 2>&1 | tail -8
 cp -r /content/runs/gpt1 "/content/drive/MyDrive/TR_dili/kosular/"
 ```
