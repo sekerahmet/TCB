@@ -67,7 +67,54 @@ func TestStampIsStableAndFollowsContent(t *testing.T) {
 		t.Fatal(err)
 	}
 	if d, _ := sourceStamp(root); d != c {
-		t.Error("a changed file that is not .go/.json/.md must not change the stamp")
+		t.Error("a changed file that is not a source must not change the stamp")
+	}
+	// TR kaynağı ve go.mod da kaynaktır (bağımsız denetim Y8: lib/*.tr'ye eklenen işlev grafiği eskitmiyordu).
+	for _, f := range []string{"lib/geo.tr", "go.mod"} {
+		before, _ := sourceStamp(root)
+		appendTo(t, filepath.Join(root, filepath.FromSlash(f)), "\n")
+		if after, _ := sourceStamp(root); after == before {
+			t.Errorf("a change to %s must change the stamp", f)
+		}
+	}
+}
+
+func appendTo(t *testing.T, file, text string) {
+	t.Helper()
+	f, err := os.OpenFile(file, os.O_APPEND|os.O_WRONLY, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	if _, err := f.WriteString(text); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// Kural: grafiğin bir düğüme kaynak yaptığı her dosya türü imzaya girer; yoksa o dosyadaki değişiklik grafiği eskitmez
+// ve sorgu eski cevabı verir. Bağımsız kaynak çıkarıcının kendi çıktısıdır: fikstür grafiğindeki her düğümün dosyası
+// (Go, sözlük, belge, TR) stamped olmalı.
+func TestStampCoversEverySourceTheGraphReads(t *testing.T) {
+	root := t.TempDir()
+	testkit.CopyDir(t, filepath.Join("testdata", "mod"), root) // testdata altında go list paket görmez
+	g, err := buildGraph(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	kinds := map[string]bool{}
+	for _, n := range g.Nodes {
+		if n.File == "" || n.Kind == kindFile || n.Kind == kindDoc {
+			continue // dosya düğümü yalnızca varlığı sayar; içeriği okunmaz
+		}
+		kinds[filepath.Ext(n.File)] = true
+		if !stamped(n.File) {
+			t.Errorf("%s [%s] comes from %s, whose changes do not change the stamp (fresh.go stampExts)", n.Name, n.Kind, n.File)
+		}
+	}
+	for _, ext := range []string{".go", ".json", ".md", ".tr"} {
+		if !kinds[ext] {
+			t.Errorf("the fixture has no node from a %s file; the rule is not exercised", ext)
+		}
 	}
 }
 

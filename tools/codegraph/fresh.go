@@ -14,8 +14,15 @@ import (
 	"time"
 )
 
-// stampExts imzaya giren değişmiş dosya uzantılarıdır: grafiği etkileyen kaynak türleri.
-var stampExts = map[string]bool{".go": true, ".json": true, ".md": true}
+// stampExts imzaya giren değişmiş dosya uzantılarıdır: grafiğin ayrıştırdığı kaynak türleri (Go, ad ve ileti sözlükleri,
+// belgeler, TR kaynakları). go.mod da girer: modül yolu düğüm kimliklerinin parçasıdır. Kural:
+// TestStampCoversEverySourceTheGraphReads (grafikteki her düğümün dosyası imzaya girer).
+var stampExts = map[string]bool{".go": true, ".json": true, ".md": true, ".tr": true}
+
+// stamped dosyanın değişikliği imzaya girer mi.
+func stamped(p string) bool {
+	return stampExts[strings.ToLower(filepath.Ext(p))] || filepath.Base(p) == "go.mod"
+}
 
 // gitOut root'ta git çalıştırır.
 func gitOut(root string, args ...string) ([]byte, error) {
@@ -30,7 +37,7 @@ func gitOut(root string, args ...string) ([]byte, error) {
 }
 
 // sourceStamp ağacın bugünkü durumunu tek metne indirir: `git rev-parse HEAD` ve izlenen ya da
-// izlenmeyen, değişmiş .go/.json/.md dosyalarının (git status --porcelain) yol, durum ve
+// izlenmeyen, değişmiş kaynak dosyalarının (stamped) (git status --porcelain) yol, durum ve
 // içerik özeti. Aynı metin aynı kaynak demektir; git yoksa ya da başarısızsa hata döner.
 func sourceStamp(root string) (string, error) {
 	head, err := gitOut(root, "rev-parse", "HEAD")
@@ -74,13 +81,13 @@ func changedEntries(status []byte) []changedEntry {
 		}
 		st, path := p[:2], p[3:]
 		if st[0] == 'R' || st[0] == 'C' {
-			if i+1 < len(parts) && stampExts[strings.ToLower(filepath.Ext(parts[i+1]))] {
+			if i+1 < len(parts) && stamped(parts[i+1]) {
 				out = append(out, changedEntry{"old", parts[i+1]})
 			}
 			i++
 		}
 		// Grafiğin kendi klasörü (git'e girmese de girse de) imzayı etkilemez.
-		if stampExts[strings.ToLower(filepath.Ext(path))] && !strings.HasPrefix(path, ".codegraph/") && !strings.Contains(path, "/.codegraph/") {
+		if stamped(path) && !strings.HasPrefix(path, ".codegraph/") && !strings.Contains(path, "/.codegraph/") {
 			out = append(out, changedEntry{st, path})
 		}
 	}

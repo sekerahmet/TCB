@@ -24,7 +24,8 @@ group, default 12) and `--all`, before or after the names. Output is short plain
 
 Nobody has to remember `build`. `build` writes a `stamp` into `graph.json`: `git rev-parse HEAD`
 plus a digest of the changed files (`git status --porcelain -uall`, tracked or untracked, only
-`.go`, `.json` and `.md`, with their contents; `.codegraph/` itself is ignored). Every query
+the sources the graph parses, `.go`, `.json`, `.md`, `.tr` and `go.mod`, with their contents; `.codegraph/` itself is
+ignored; `TestStampCoversEverySourceTheGraphReads` fails when a node comes from a file type the stamp misses). Every query
 (`query`, `explain`, `path`, `who-uses`, `tests-for`) computes the stamp again first. If it differs,
 the query rebuilds the graph, rewrites `graph.json` (through a temporary file, so two parallel
 queries never read half a file) and prints one line on stderr: `graph rebuilt (N s)`.
