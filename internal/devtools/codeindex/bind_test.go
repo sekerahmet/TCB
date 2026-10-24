@@ -121,13 +121,14 @@ func TestNameOnlyGuessesStayOutOfReferences(t *testing.T) {
 
 // Kural: komut satırı seçeneğinin adı çalışma anındaki adıdır: dilin bir üye adı olan çıplak anahtar dosyanın dilinde
 // yazılır (K3: İngilizce kodlu betikte `{Y500: 100}` → `--step`, Türkçe betikte `--adım`); kullanıcının kendi adı
-// (`run`) iki dilde aynıdır. Konum Türkçe gösterimdeki anahtarın yeridir; iki dilin eş betikleri ayrı dosyada, ayrı
+// (`run`) ve kod taşımayan, düz yazılmış `adım` (Türkçe gösterimde `$adım`) olduğu gibi kalır (bağımsız denetim grup 7). Konum Türkçe gösterimdeki anahtarın yeridir; iki dilin eş betikleri ayrı dosyada, ayrı
 // düğümlerdir (yerleşik adım yerleşiği onları birleştirir).
 func TestOptionNameFollowsTheFilesLanguage(t *testing.T) {
 	dir := t.TempDir()
 	for name, text := range map[string]string{
-		"en.tr": "//! tr kodlu 2 dil=en\nA030 config = G801({Y500: 100, run: \"trial\"}, G911: {Y500: \"steps\"})\n",
-		"tr.tr": "değişken ayar = komut_satırı({adım: 100, run: \"deneme\"})\n",
+		"en.tr":  "//! tr kodlu 2 dil=en\nA030 config = G801({Y500: 100, run: \"trial\"}, G911: {Y500: \"steps\"})\n",
+		"en2.tr": "//! tr kodlu 2 dil=en\nA030 c = G801({adım: 1, Y500: 2, run: 3})\n",
+		"tr.tr":  "değişken ayar = komut_satırı({adım: 100, run: \"deneme\"})\n",
 	} {
 		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644); err != nil {
 			t.Fatal(err)
@@ -146,5 +147,8 @@ func TestOptionNameFollowsTheFilesLanguage(t *testing.T) {
 	if n := r.Node("option:en.tr#adım"); n != nil {
 		t.Errorf("an English script's option is --step, not --adım: %+v", n)
 	}
+	// İngilizce betikte düz yazılmış `adım` anahtarı kod taşımaz: `--adım`'dır, kodlu Y500 `--step`; iki ayrı seçenek.
+	wantUses(t, r, "option:en2.tr#adım", "option_key@2:28/EXTRACTED")
+	wantUses(t, r, "option:en2.tr#step", "option_key@2:38/EXTRACTED")
 	wantUses(t, r, "option:en.tr#step", "option_key@2:33/EXTRACTED", "option_key@2:73/EXTRACTED")
 }
