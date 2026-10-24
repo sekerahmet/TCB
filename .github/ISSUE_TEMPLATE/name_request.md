@@ -6,8 +6,8 @@ labels: sözlük isteği
 ---
 
 <!--
-Dilin kullanıcıya görünen her adı sabit bir koda bağlıdır (internal/lang/codes/tr.json). Kodu ve
-son adı YALNIZCA baş geliştirici verir; bu şablon bir istektir, kodu kendiniz eklemeyin.
+Dilin kullanıcıya görünen her adı sabit bir koda bağlıdır (internal/lang/codes/tr.json). Kod
+numarası ailesinin kuralıyla verilir, son adı baş geliştirici onaylar; bu şablon bir istektir, kodu kendiniz eklemeyin.
 Önce docs/codes.md'ye bakın: aynı işi (fonksiyon ya da metot biçiminde) yapan bir kod varsa
 onu kullanın. Aynı işi yapan iki kod olamaz.
 -->
@@ -34,4 +34,4 @@ Ne işe yarayacak? Hangi programda, hangi adımda gerekiyor?
 
 ## Aile önerisi
 
-Hangi aileye ve gruba girmeli (ör. `T2xx` eleman bazlı matematik, `Y2xx` Liste, `V9xx` adlı argüman)? Kod numarasını baş geliştirici verir.
+Hangi aileye ve gruba girmeli (ör. `T2xx` eleman bazlı matematik, `Y2xx` Liste, `V9xx` adlı argüman)? Kod numarası ailenin kuralıyla (grubun sıradaki boş numarası) verilir.

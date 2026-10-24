@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 23 — Tensors: the number arrays of artificial intelligence.
 // What it teaches: creating tensors, the Tensor type, shape, transpose, slice, concat, @ (matrix product), broadcasting, relu/softmax, reading with .tolist.
 // Builds on: lists (09) and function calls (08); a tensor is built from nested lists.

@@ -235,9 +235,10 @@ func (l *Lexer) checkCodeForm(lit string, line, col int) {
 	if !codes.IsCodeForm(lit) {
 		return
 	}
-	l.addError(line, col, messages.New(messages.H0004, lit, strings.ToLower(lit), CodedHeader))
+	l.addError(line, col, messages.New(messages.H0004, lit, strings.ToLower(lit), CodedHeader+codes.SourceLanguage))
 }
 
-// CodedHeader is the first line of a coded file (format version 1). The header's rules live
+// CodedHeader is the start of a coded file's first line (format version 2): the code of the
+// file's writing language follows it ("//! tr kodlu 2 dil=en", 17.1). The header's rules live
 // in internal/lang/source; the text lives here so the lexer's hint can show it too.
-const CodedHeader = "//! tr kodlu 1"
+const CodedHeader = "//! tr kodlu 2 dil="

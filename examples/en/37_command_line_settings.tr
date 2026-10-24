@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 37 — Settings from the command line: adjusting a program without touching its code.
 // What it teaches: defining settings with defaults using command_line({...}), description and descriptions for the
 // help text, changing a setting with --name value, --help.

@@ -92,19 +92,21 @@ type BoolVal struct {
 }
 
 func (b *BoolVal) Type() ValueType { return ValBool }
-func (b *BoolVal) Inspect() string {
+func (b *BoolVal) Inspect() string { return b.text(codes.Active()) }
+func (b *BoolVal) text(lang *codes.Language) string {
 	if b.Val {
-		return codes.Name(codes.A040)
+		return lang.Name(codes.A040)
 	}
-	return codes.Name(codes.A041)
+	return lang.Name(codes.A041)
 }
 func (b *BoolVal) IsTruthy() bool { return b.Val }
 
 type NullVal struct{}
 
-func (n *NullVal) Type() ValueType { return ValNull }
-func (n *NullVal) Inspect() string { return codes.Name(codes.A042) }
-func (n *NullVal) IsTruthy() bool  { return false }
+func (n *NullVal) Type() ValueType                  { return ValNull }
+func (n *NullVal) Inspect() string                  { return n.text(codes.Active()) }
+func (n *NullVal) text(lang *codes.Language) string { return lang.Name(codes.A042) }
+func (n *NullVal) IsTruthy() bool                   { return false }
 
 var (
 	True  = &BoolVal{Val: true}
@@ -120,7 +122,7 @@ type ListVal struct {
 }
 
 func (l *ListVal) Type() ValueType { return ValList }
-func (l *ListVal) Inspect() string { return writeContainer(l, nil) }
+func (l *ListVal) Inspect() string { return writeContainer(l, nil, nil) }
 func (l *ListVal) IsTruthy() bool  { return len(l.Elements) > 0 }
 
 // DictVal is an ordered dict. String keys are stored as is in Pairs/Order (so Go-side accesses
@@ -322,7 +324,7 @@ func (d *DictVal) DisplayKey(k string) string {
 }
 
 func (d *DictVal) Type() ValueType { return ValDict }
-func (d *DictVal) Inspect() string { return writeContainer(d, nil) }
+func (d *DictVal) Inspect() string { return writeContainer(d, nil, nil) }
 func (d *DictVal) IsTruthy() bool  { return len(d.Pairs) > 0 }
 
 type RangeVal struct {
@@ -406,7 +408,7 @@ type StructInstanceVal struct {
 }
 
 func (si *StructInstanceVal) Type() ValueType { return ValueType(si.Def.Name) }
-func (si *StructInstanceVal) Inspect() string { return writeContainer(si, nil) }
+func (si *StructInstanceVal) Inspect() string { return writeContainer(si, nil, nil) }
 func (si *StructInstanceVal) IsTruthy() bool  { return true }
 
 // --- KÜÇÜK TAMSAYI ÖNBELLEĞİ ---

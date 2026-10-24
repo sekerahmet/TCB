@@ -23,6 +23,9 @@ type Source struct {
 	Path string // dosyanın çözülmüş yolu (kitaplık modülünde "tr/katman.tr")
 	Name string // hata mesajlarında gösterilen yol (mümkünse çalışma klasörüne göre)
 	Code string
+	// Language is the code of the file's writing language (17.1; Turkish for a file without the
+	// coded header).
+	Language string
 	// Embedded says the source lives in the language's embedded library, not on disk (11.6):
 	// relative file paths are not searched relative to its directory, and a relative 'aktar' is
 	// resolved inside the library.
@@ -49,7 +52,25 @@ func shownPath(filePath string) string {
 
 // mainSource ana programın kaynağıdır (SourceFile ve SourceCode'dan).
 func (v *VM) mainSource() *Source {
-	return &Source{Path: v.SourceFile, Name: shownPath(v.SourceFile), Code: v.SourceCode}
+	return &Source{Path: v.SourceFile, Name: shownPath(v.SourceFile), Code: v.SourceCode, Language: v.SourceLanguage}
+}
+
+// textLanguage şu an çalışan kodun dosyasının yazım dilidir: değerler o dosyada bu dilde metne
+// çevrilir (sözcüksel kural, 3; kitaplık fonksiyonu kitaplığın, geri çağırma kendi dosyasının
+// dilinde). nil kanonik dildir (Türkçe): değerin metni Inspect'tir.
+func (v *VM) textLanguage() *codes.Language {
+	language := v.SourceLanguage
+	if v.source != nil {
+		language = v.source.Language
+	}
+	if language == "" || language == codes.SourceLanguage {
+		return nil
+	}
+	l, err := codes.LoadLanguage(language)
+	if err != nil {
+		return nil // dil dosya okunurken doğrulandı (source.Split)
+	}
+	return l
 }
 
 // ModuleError is an error of a file (a module, or code of it called from another file). The
@@ -306,7 +327,7 @@ func (v *VM) runModule(s *ast.ImportStatement, path string, dest *Source, keyStr
 	// Modül genel kapsamın altında çalışır: genel kapsamda tanımlı (ya da yuvası ayrılmış)
 	// adları görür; yerleşikler de oradadır.
 	ms := CheckModule(dest.Code, v.GlobalEnv.scope.nameList, false)
-	modSource := &Source{Path: dest.Path, Name: dest.Name, Code: ms.Text, Embedded: dest.Embedded}
+	modSource := &Source{Path: dest.Path, Name: dest.Name, Code: ms.Text, Language: ms.Language, Embedded: dest.Embedded}
 	if ms.Stage != "" {
 		return nil, &ModuleError{Source: modSource, Kind: ms.Stage, Errors: ms.Errors, ModulePath: s.Path, ImportLine: s.Line(), Importer: v.source}
 	}

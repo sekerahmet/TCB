@@ -18,7 +18,7 @@ func wantPos(t *testing.T, err error, line, col int) {
 
 // Kodlu dosya çevrilmeden hazırlanır; konumlar Türkçe gösterime göredir (17.5).
 func TestCodedFilePrepares(t *testing.T) {
-	s := Prepare(Header+"\nA030 x = 1\nG100(x, tanımsız)\n", Options{TypeCheck: true})
+	s := Prepare(Header+"tr\nA030 x = 1\nG100(x, tanımsız)\n", Options{TypeCheck: true})
 	if s.Stage != StageType || len(s.Errors) != 1 {
 		t.Fatalf("tanımsız ad bildirilmeli: %v", s.Errors)
 	}
@@ -27,19 +27,19 @@ func TestCodedFilePrepares(t *testing.T) {
 		t.Errorf("hata çerçevesinin metni Türkçe gösterim olmalı: %q", s.Text)
 	}
 	// Yerleştirmedeki kodlar da sütunu kaydırır.
-	s = Prepare(Header+"\nG100(\"{G400([1])} {yok_ad}\")\n", Options{TypeCheck: true})
+	s = Prepare(Header+"tr\nG100(\"{G400([1])} {yok_ad}\")\n", Options{TypeCheck: true})
 	if len(s.Errors) != 1 {
 		t.Fatalf("yerleştirmedeki ad bildirilmeli: %v", s.Errors)
 	}
 	wantPos(t, s.Errors[0], 1, 24)
 	// Gösterimde '$' ile kaçırılan kullanıcı adı da sütunu kaydırır: konum gösterimdeki metne göredir.
-	s = Prepare(Header+"\nA030 eğer = 1 + tanımsız\n", Options{TypeCheck: true})
+	s = Prepare(Header+"tr\nA030 eğer = 1 + tanımsız\n", Options{TypeCheck: true})
 	if s.Text != "değişken $eğer = 1 + tanımsız\n" || len(s.Errors) != 1 {
 		t.Fatalf("gösterim %q, hatalar %v", s.Text, s.Errors)
 	}
 	wantPos(t, s.Errors[0], 1, 22)
 	// Kod olmayan her ad kullanıcının adıdır, anahtar kelime yazımında bile.
-	s = Prepare(Header+"\nA030 eğer = 1\nG100(eğer)\n", Options{TypeCheck: true})
+	s = Prepare(Header+"tr\nA030 eğer = 1\nG100(eğer)\n", Options{TypeCheck: true})
 	if s.Stage != "" {
 		t.Errorf("kodlu dosyada 'eğer' bir kullanıcı adıdır: %v", s.Errors)
 	}
@@ -47,7 +47,7 @@ func TestCodedFilePrepares(t *testing.T) {
 
 func TestCodedFileErrors(t *testing.T) {
 	cases := map[string]string{
-		Header + "\nG999(1)\n": "'G999' bilinen bir kod değil",
+		Header + "tr\nG999(1)\n": "'G999' bilinen bir kod değil",
 	}
 	for src, part := range cases {
 		s := Prepare(src, Options{TypeCheck: true})

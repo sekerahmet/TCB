@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 33 — Devices and precision: where tensors live and with which number type.
 // What it teaches: devices(), default_device(), .device and .to_device(), dtype: / .dtype / .to_dtype(), mixed_precision, compute_dtype(),
 // master_weights for 16-bit parameters.

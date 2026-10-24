@@ -273,7 +273,7 @@
 "H2509": "{variable}={language}: {error}",
 "H2510": "the file is not valid UTF-8 text (2.1); corrupt bytes cannot be preserved in translation, the file was not touched: save the file as UTF-8",
 "H2511": "the translation was not lossless (the meaning or text of the program would have changed), the file was not touched; please report this file with a bug report",
-"H2512": "'{line}' is a coded-format header this interpreter does not recognize; only '{header}' is read (the file may have been written with a newer TR version; the first line starting with '{prefix}' is reserved for the coded format)",
+"H2512": "'{line}' is a coded-format header that cannot be read: this format version cannot be read; only '{header}<language>' is read, where <language> is the code of the file's writing language ({languages}). A first line starting with '{prefix}' is reserved for the coded format",
 "H2513": "… and {count} more {count, plural, one {error} other {errors}} (first {max} shown)",
 "H2514": "source with a syntax error is not translated: {error}",
 "H2515": "{container} index out of range: {index} (length {length}); if the item may be missing write {get}({index}) ?? default",

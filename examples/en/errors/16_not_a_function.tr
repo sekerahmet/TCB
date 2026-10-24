@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // Error 16 — Calling something that is not a function.
 // Message code: H2421
 // What happens: Calling a value that is not a function raises an error at run time.

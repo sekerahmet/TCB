@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 07 — Loops: repeating work.
 // What it teaches: for ... in over a range (1..=5 includes the end, 1..5 excludes it), break, continue,
 // while, for condition { }, for { }, nested loops.

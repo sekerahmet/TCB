@@ -32,7 +32,7 @@ func makeViewURI(fpath string) string {
 func TestDAPCodedFileView(t *testing.T) {
 	turkishName := "değişken a = 1\na = 2\neğer a > 1 {\n    yazdır(\"büyük\")\n}\n"
 	coded, err := source.Encode(turkishName)
-	if err != nil || !strings.HasPrefix(coded, source.Header+"\n") {
+	if err != nil || !strings.HasPrefix(coded, source.Header+"tr\n") {
 		t.Fatalf("kodlanamadı: %q %v", coded, err)
 	}
 	path := writeProgram(t, coded)

@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 41 — GPT with ready-made layers: a small language model built from the layers and optimizers of the language library.
 // What it teaches: building a GPT with `import "tr/katman"`, giving the hidden weights to Muon and the rest to AdamW
 // (MuonVeAdamW), a warm-up–constant–decay learning-rate schedule, resuming with a checkpoint, generating text.

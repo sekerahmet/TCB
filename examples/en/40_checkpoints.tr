@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 40 — Checkpoints: resuming a long training where you left off.
 // What it teaches: Checkpoint, keep: (how many checkpoints are kept), writing every training to a run folder; saving the whole state of the training with checkpoint
 // (model, optimizer, sampler, log, your own counters) at regular intervals; stopping with Ctrl+C and resuming with the same

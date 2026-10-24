@@ -7,9 +7,14 @@
 
 const { spawn } = require('child_process');
 
-// HEADER kodlu bir dosyanın (varsa BOM'dan sonraki) ilk satırıdır (17.1).
-const HEADER = '//! tr kodlu 1';
+// HEADER kodlu bir dosyanın (varsa BOM'dan sonraki) ilk satırının başıdır; ardından dosyanın
+// yazım dilinin kodu gelir: '//! tr kodlu 2 dil=en' (17.1, biçim sürümü 2).
+const HEADER = '//! tr kodlu 2 dil=';
 const HEADER_BYTES = Buffer.from(HEADER, 'utf8');
+
+// LANGUAGE_CODE başlıktaki dil kodunun biçimidir (en, tr). Hangi dillerin gömülü olduğunu
+// yorumlayıcı bilir; bilinmeyen dil 'tr göster -' hatasıyla bildirilir.
+const LANGUAGE_CODE = /^[a-z]{1,8}$/;
 
 // EXIT_SYNTAX 'tr kodla -' ve 'tr göster -' komutlarının "metin ayrıştırılamadı, çevrilmedi"
 // çıkış kodudur (cmd/tr/coded.go, exitSyntax).
@@ -18,19 +23,49 @@ const EXIT_SYNTAX = 2;
 // TIMEOUT bir çevirinin en uzun süresidir (milisaniye); aşılırsa süreç durdurulur.
 const TIMEOUT = 30000;
 
-// isCoded dosyanın baytları kodlu biçimde mi: (BOM'dan sonraki) ilk satır tam olarak HEADER
-// (satır sonu LF ya da CRLF, ya da dosyanın tek satırı). Kural kaynak.Ayir ile aynıdır.
-function isCoded(data) {
+// header kodlu baytların başlığındaki dil kodunun aralığıdır ({ start, end }); baytlar kodlu
+// değilse null. Kodlu: (BOM'dan sonraki) ilk satır tam olarak HEADER ve bir dil kodu (satır
+// sonu LF ya da CRLF, ya da dosyanın tek satırı). Kural source.Split ile aynıdır.
+function header(data) {
     const bytes = Buffer.isBuffer(data) ? data : Buffer.from(data.buffer, data.byteOffset, data.byteLength);
     let i = 0;
     if (bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) {
         i = 3;
     }
     if (bytes.length < i + HEADER_BYTES.length || !bytes.subarray(i, i + HEADER_BYTES.length).equals(HEADER_BYTES)) {
-        return false;
+        return null;
     }
-    const j = i + HEADER_BYTES.length;
-    return j === bytes.length || bytes[j] === 0x0a || (bytes[j] === 0x0d && bytes[j + 1] === 0x0a);
+    const start = i + HEADER_BYTES.length;
+    let end = bytes.indexOf(0x0a, start);
+    if (end < 0) {
+        end = bytes.length;
+    } else if (end > start && bytes[end - 1] === 0x0d) {
+        end--; // CRLF
+    }
+    const language = bytes.subarray(start, end).toString('latin1');
+    return { bytes, start, end, language: LANGUAGE_CODE.test(language) ? language : null };
+}
+
+// fileLanguage kodlu dosyanın yazım dilinin kodudur (başlığın dil='si); kodlu değilse null.
+function fileLanguage(data) {
+    const h = header(data);
+    return h && h.language;
+}
+
+// isCoded dosyanın baytları kodlu biçimde mi (bkz. header).
+function isCoded(data) {
+    return fileLanguage(data) !== null;
+}
+
+// withLanguage kodlu metnin başlığındaki dili language yapar; gövde, BOM ve satır sonları
+// olduğu gibi kalır. Kodlu olmayan metin olduğu gibi döner. Dosya başka bir dilde düzenlenip
+// kaydedilince dosyanın dili korunur: 'tr kodla - --dil <görünüm>' başlığa görünümün dilini yazar.
+function withLanguage(data, language) {
+    const h = header(data);
+    if (!h || !h.language) {
+        return data;
+    }
+    return Buffer.concat([h.bytes.subarray(0, h.start), Buffer.from(language, 'latin1'), h.bytes.subarray(h.end)]);
 }
 
 // translate metni 'tr <command> - --dil <lang>' ile çevirir; komut 'göster' (kodlu → yazım dili) ya da
@@ -79,4 +114,4 @@ function errorSummary(text) {
     return summary.length > 300 ? summary.slice(0, 297) + '...' : summary;
 }
 
-module.exports = { HEADER, EXIT_SYNTAX, isCoded, translate, errorSummary };
+module.exports = { HEADER, EXIT_SYNTAX, isCoded, fileLanguage, withLanguage, translate, errorSummary };

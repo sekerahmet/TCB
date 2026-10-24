@@ -17,7 +17,7 @@ import (
 //	go test ./internal/lang/source -run '^$' -fuzz FuzzEncodeDecode -fuzztime 5m
 func FuzzEncodeDecode(f *testing.F) {
 	testkit.TRSeeds(f)
-	for _, s := range []string{"\xef\xbb\xbfyazdır(1)\r\n", "değişken $eğer = 1", "yazdır(\"{\"{toplam([1])}\"}\")", Header + "\nG100(1)", "//! tr kodlu 9", "`{eğer}` // yazdır"} {
+	for _, s := range []string{"\xef\xbb\xbfyazdır(1)\r\n", "değişken $eğer = 1", "yazdır(\"{\"{toplam([1])}\"}\")", Header + "tr\nG100(1)", "//! tr kodlu 9", "`{eğer}` // yazdır"} {
 		f.Add(s)
 	}
 	f.Fuzz(func(t *testing.T, tr string) {

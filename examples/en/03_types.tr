@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 03 — Types: every value has a type.
 // What it teaches: Int, Float, String, Bool, none; type(); the int()/float()/str() conversions;
 // operators and comparison; ?? for a value that may be none.

@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 29 — Optimizers: ways of updating the weights.
 // What it teaches: AdamW and SGD, the beta1/beta2 and momentum settings, limiting an exploding gradient with
 // clip_grad, taking the state of an optimizer and putting it back with load_state.

@@ -273,7 +273,7 @@
 "H2509": "{variable}={language}: {error}",
 "H2510": "dosya geçerli bir UTF-8 metni değil (2.1); bozuk baytlar çeviride korunamaz, dosyaya dokunulmadı: dosyayı UTF-8 olarak kaydedin",
 "H2511": "çeviri kayıpsız olmadı (programın anlamı ya da metni değişecekti), dosyaya dokunulmadı; lütfen bu dosyayı bir hata kaydıyla bildirin",
-"H2512": "'{line}' bu yorumlayıcının tanımadığı bir kodlu biçim başlığı; yalnızca '{header}' okunur (dosya daha yeni bir TR sürümüyle yazılmış olabilir; '{prefix}' ile başlayan ilk satır kodlu biçim için ayrılmıştır)",
+"H2512": "'{line}' okunamayan bir kodlu biçim başlığı: bu biçim sürümü okunamıyor; yalnızca '{header}<dil>' okunur, <dil> dosyanın yazım dilinin kodudur ({languages}). '{prefix}' ile başlayan ilk satır kodlu biçim için ayrılmıştır",
 "H2513": "… ve {count} hata daha (ilk {max} hata gösterildi)",
 "H2514": "sözdizimi hatası olan kaynak çevrilmez: {error}",
 "H2515": "{container} indeksi sınır dışı: {index} (uzunluk {length}); öğe olmayabilirse {get}({index}) ?? varsayılan yazın",

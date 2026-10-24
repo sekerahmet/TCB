@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 32 — Saving weights: writing a trained model to disk and loading it back.
 // What it teaches: save_tensors(path, dict), load_tensors(path), load_parameters, picking the most likely class with argmax.
 // Builds on: the training loop (28), the XOR network (30), dicts (11), files and JSON (19), paths (20).

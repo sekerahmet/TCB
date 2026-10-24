@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 31 — Layers: ready-made building blocks of neural networks.
 // What it teaches: layer_norm and rms_norm (weight, bias, eps), the two forms of gelu (approximate:),
 // linear_cross_entropy for the output loss with a large vocabulary.

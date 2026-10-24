@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 24 — Tensor math: applying operations to every element of a tensor.
 // What it teaches: math functions like exp, log, sin working element by element on tensors,
 // silu and log_softmax, reducing along an axis with sum/mean and keepdim.

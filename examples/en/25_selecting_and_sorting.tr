@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 25 — Selecting and sorting: choosing by condition in a tensor, finding the largest.
 // What it teaches: picking elements with where, argmax, topk, argsort, cumsum, clamp.
 // Builds on: tensor math (24), tensors (23), math (13).

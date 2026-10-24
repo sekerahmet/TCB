@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 27 — Custom gradients: writing your own differentiable operation and checking it.
 // What it teaches: building a new operation with custom_grad(forward:, backward:), comparing the gradient
 // with a numeric derivative using grad_check (tol:), computing element-wise operations in one pass with fuse.

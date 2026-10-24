@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // Error 03 — Unterminated text.
 // Message code: H0010
 // What happens: The program does not run at all; the message says that the opened double quote was never closed.

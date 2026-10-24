@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 22 — Concurrent tasks: running jobs at the same time.
 // What it teaches: starting background work with async, waiting for all of it to finish with wait_all().
 // The result is the same whatever the order.

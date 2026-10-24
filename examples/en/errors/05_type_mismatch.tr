@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // Error 05 — Type mismatch.
 // Message code: H1001
 // What happens: The type checker catches, before the program runs, that a value of another type was assigned to a variable with a declared type.
