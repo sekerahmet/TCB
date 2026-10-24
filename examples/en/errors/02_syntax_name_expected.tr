@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // Error 02 — A name was expected.
 // Message code: H0100
 // What happens: The program does not run at all; the message says that something else was found where a name was expected.

@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 20 — Paths and folders: managing the file system.
 // What it teaches: building a Path with path() and its properties (name, extension, stem, parent,
 // exists, is_file, is_dir, size), make_dir, list_dir, copy, move, remove, overwrite and recursive,

@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 43 — Debugging exercise: following a program step by step with the VS Code debugger.
 // What it teaches: setting a breakpoint, opening variables as a table, stepping into a function and changing a value
 // while running (for the breakpoint statement in code see 42).

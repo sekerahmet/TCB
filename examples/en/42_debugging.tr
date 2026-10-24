@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 42 — Debugging: finding and fixing a calculation error while running, with a breakpoint in the code.
 // INTERACTIVE: at the `breakpoint if ...` line the program stops and the debugger
 // waits for a command (it shows the variables; if standard input is empty or closed it goes on).

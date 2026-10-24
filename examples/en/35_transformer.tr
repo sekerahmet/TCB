@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 35 — Transformer: a small transformer written by hand.
 // What it teaches: embedding and position embedding, multi-head causal attention (reshape and the
 // fused attention(...)), layer norm, a feed-forward step with gelu, the cross_entropy loss.

@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 36 — Character model: a small language model trained on real text (~100 thousand parameters).
 // What it teaches: building a character vocabulary from text, a deep (2-layer) model with a list of layers, counting
 // parameters, greedy text generation with argmax. The same model in another language for a speed comparison: tools/bench/README.md.

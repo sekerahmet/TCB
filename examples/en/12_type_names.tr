@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 12 — Type names: asking for the type of a value and declaring types.
 // What it teaches: type() and type names as values in an expression (Bool, None, List, Dict, Range, Function,
 // BuiltinFunction, Any, Type), declaring a type with name: Type.

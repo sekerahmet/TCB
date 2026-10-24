@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 48 — Training run: leaving the bookkeeping to the library, a trial before a long run.
 // What it teaches: Koşu with import "tr/egitim": the run folder, config.json, metrics.jsonl, the progress bar and the
 // checkpoint in one line; run.adım_bitti(step, measures), run.değerlendirildi(step, measures), run.bitir(model)

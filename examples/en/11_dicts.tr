@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 11 — Dicts: keeping values under keys.
 // What it teaches: building a dict, reading/writing by key, a missing key (none), keys() and
 // values(), contains, a list of dicts.

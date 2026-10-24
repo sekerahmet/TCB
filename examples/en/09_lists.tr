@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 09 — Lists: keeping many values in order.
 // What it teaches: building a list, reading and writing by index (a negative index counts from the end), append,
 // length, walking with a loop (with the position too), sort, reverse, sum/mean, list comprehensions, join, get, multiple assignment and swap.

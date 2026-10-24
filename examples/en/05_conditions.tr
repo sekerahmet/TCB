@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 05 — Conditions: the program making decisions.
 // What it teaches: if / else if / else, combining conditions with and/or/not, nested conditions, match.
 // Builds on: comparison and Bool values (03), interpolation (04).

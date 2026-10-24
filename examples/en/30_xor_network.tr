@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 30 — A small neural network: a two-layer network learns XOR.
 // What it teaches: a hidden layer and non-linear activation (tanh, sigmoid), building the weights as
 // gradient-tracking tensors, the training loop in a multi-layer network.

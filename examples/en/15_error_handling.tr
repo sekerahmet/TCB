@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 15 — Error handling: managing the program properly when something unexpected happens.
 // What it teaches: catching an error with try/catch, raising your own with throw,
 // deciding where an error is handled, the error variable in a catch without a name.
