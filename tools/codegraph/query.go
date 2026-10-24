@@ -193,15 +193,6 @@ func (ix *index) trByName(q string, kinds []string) (found []*Node, folded bool)
 	return nil, false
 }
 
-func containsNode(list []*Node, n *Node) bool {
-	for _, m := range list {
-		if m == n {
-			return true
-		}
-	}
-	return false
-}
-
 // idTailEquals kimliğin ':' sonrası kuyruklarından biri q mu (doc:docs/a.md#b için docs/a.md#b).
 func idTailEquals(id, q string) bool {
 	for i := 0; i < len(id); i++ {
