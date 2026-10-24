@@ -18,7 +18,7 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 		// dilimi de ayırmaz). Diğer durumlarda üye değeri okunup çağrılır.
 		if mem, ok := e.Function.(*ast.MemberExpression); ok {
 			object := c.expression(k, mem.Object)
-			u := resolveMember(mem.Property) // ad → kod ve Metin/Liste/Sözlük metotları derleme anında
+			u := c.member(mem.Property) // ad → kod ve Metin/Liste/Sözlük metotları derleme anında
 			add := u.core != nil && u.codeVal == addMember
 			memberLine := mem.Line() // geri çağrıların hata satırı (bağlı yerleşikteki gibi)
 			return func(v *VM, env *Environment) (Value, error) {
@@ -104,7 +104,7 @@ func (c *compiler) namedCallee(k *compilerScope, e *ast.CallExpression, fun expr
 		return fun
 	}
 	object := c.expression(k, mem.Object)
-	u := resolveMember(mem.Property)
+	u := c.member(mem.Property)
 	return func(v *VM, env *Environment) (Value, error) {
 		obj, err := object(v, env)
 		if err != nil {

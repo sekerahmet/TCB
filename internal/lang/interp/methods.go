@@ -2,6 +2,7 @@ package interp
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -122,6 +123,56 @@ type memberInfo struct {
 	codeVal codes.Code // ad bir üye adı değilse kod.Yok
 	// core Metin/Liste/Sözlük metotlarıdır; ad bunların metodu değilse nil.
 	core *coreMethod
+	// keys, üye bir kod taşıyorsa (codeVal) sözlükte aranacak anahtarlardır: kodun her yazım
+	// dilindeki adı, önce erişimin yazıldığı dosyanın dilindeki (3.7, 17.3). nil ise anahtar
+	// erişimin adının kendisidir.
+	keys []string
+}
+
+// member adı derleme anında derlenen dosyanın diliyle çözer (resolveMember ve sözlük anahtarları).
+func (c *compiler) member(name string) memberInfo {
+	u := resolveMember(name)
+	if u.codeVal != codes.None {
+		u.keys = memberKeys(u.codeVal, c.textLang)
+	}
+	return u
+}
+
+// memberKeys bir üye kodunun gömülü yazım dillerindeki adlarıdır: önce lang'deki (nil: kanonik),
+// sonra kanonik ad, sonra öbür diller; her ad bir kez.
+func memberKeys(k codes.Code, lang *codes.Language) []string {
+	var keys []string
+	add := func(l *codes.Language) {
+		if e, ok := l.Entry(k); ok && !slices.Contains(keys, e.Name) {
+			keys = append(keys, e.Name)
+		}
+	}
+	if lang != nil {
+		add(lang)
+	}
+	add(codes.Active())
+	for _, code := range codes.Languages() {
+		if l, err := codes.LoadLanguage(code); err == nil {
+			add(l)
+		}
+	}
+	return keys
+}
+
+// dictKey sözlükte u erişiminin anahtarıdır: üye bir kod taşıyorsa kodun bir yazım dilindeki
+// adıyla duran anahtar (önce dosyanın dilindeki); yoksa ok false ve eklenecek ad (dosyanın
+// dilindeki ad). Böylece aynı sözlükte bir kodun iki dilde iki anahtarı oluşmaz.
+func (u memberInfo) dictKey(d *DictVal, prop string) (key string, ok bool) {
+	if u.keys == nil {
+		_, ok = d.Pairs[prop]
+		return prop, ok
+	}
+	for _, key := range u.keys {
+		if _, ok := d.Pairs[key]; ok {
+			return key, true
+		}
+	}
+	return u.keys[0], false
 }
 
 // resolveMember adı derleme anında çözer.
@@ -387,8 +438,8 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, u memberInfo, safe bool, 
 		}}, nil
 	}
 	if d, ok := obj.(*DictVal); ok {
-		if val, ok := d.Pairs[prop]; ok {
-			return val, nil
+		if key, ok := u.dictKey(d, prop); ok {
+			return d.Pairs[key], nil
 		}
 		if err := d.privateNameError(prop); err != nil {
 			return nil, messages.At(line, 0, err)
