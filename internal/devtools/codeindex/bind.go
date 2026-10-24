@@ -263,7 +263,7 @@ func (x *indexer) optionKeys(f *file, o owner, sc *scope, c *ast.CallExpression)
 	for _, d := range dicts {
 		for _, p := range d.Pairs {
 			key, ok := p.Key.(*ast.StringLiteral)
-			if !ok || key.Token.Column == 0 || !x.bareKey(f, key) {
+			if !ok || !f.res.dictKey(key.Token.Line, key.Token.Column) {
 				continue
 			}
 			id := NodeID(KindOption, f.rel, key.Value)
@@ -274,14 +274,4 @@ func (x *indexer) optionKeys(f *file, o owner, sc *scope, c *ast.CallExpression)
 			x.occurrenceBasis(id, RoleOptionKey, Extracted, pos, o.id, "")
 		}
 	}
-}
-
-// bareKey sözlük anahtarı tırnaksız yazılmış ad mı (satırda adın başladığı yerde tırnak yok).
-func (x *indexer) bareKey(f *file, key *ast.StringLiteral) bool {
-	if key.Token.Line < 1 || key.Token.Line > len(f.lines) {
-		return false
-	}
-	runes := []rune(f.lines[key.Token.Line-1])
-	i := key.Token.Column - 1
-	return i >= 0 && i < len(runes) && string(runes[i:min(i+len([]rune(key.Value)), len(runes))]) == key.Value
 }

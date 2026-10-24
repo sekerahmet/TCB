@@ -271,23 +271,31 @@ func (r *Reader) PrepareRename(file string, line, col int) (*PrepareResult, stri
 	return &PrepareResult{Range: oc.Pos, Placeholder: shortName(n), Node: r.display(*n)}, ""
 }
 
-// lineSource değişiklik satırlarının metnini diskten okur (Türkçe gösterim satırları).
+// lineSource değişiklik satırlarının metnini diskten okur (Türkçe gösterim satırları); .tr dosyasını sözdizimi kararları
+// (sözlük anahtarı) için bir kez ayrıştırır.
 type lineSource struct {
-	root  string
-	cache map[string][]string
+	root   string
+	cache  map[string][]string
+	parsed map[string]*parsed
+}
+
+// read dosyanın ham metnidir (okunamazsa ya da gömülü kitaplıktaysa ok false).
+func (s *lineSource) read(file string) (string, bool) {
+	if s.root == "" || strings.HasPrefix(file, libraryPrefix) {
+		return "", false
+	}
+	data, err := os.ReadFile(filepath.Join(s.root, filepath.FromSlash(file)))
+	return string(data), err == nil
 }
 
 func (s *lineSource) at(p Pos) string {
-	if s.root == "" || strings.HasPrefix(p.File, libraryPrefix) {
-		return ""
-	}
 	if s.cache == nil {
 		s.cache = map[string][]string{}
 	}
 	lines, ok := s.cache[p.File]
 	if !ok {
-		if data, err := os.ReadFile(filepath.Join(s.root, filepath.FromSlash(p.File))); err == nil {
-			lines = strings.Split(displayText(string(data)), "\n")
+		if text, ok := s.read(p.File); ok {
+			lines = strings.Split(displayText(text), "\n")
 		}
 		s.cache[p.File] = lines
 	}
@@ -295,6 +303,21 @@ func (s *lineSource) at(p Pos) string {
 		return ""
 	}
 	return clip(strings.TrimRight(lines[p.Line-1], "\r"))
+}
+
+// dictKey p'deki ad tırnaksız bir sözlük anahtarı mı (parsed.dictKey).
+func (s *lineSource) dictKey(p Pos) bool {
+	if s.parsed == nil {
+		s.parsed = map[string]*parsed{}
+	}
+	res, ok := s.parsed[p.File]
+	if !ok {
+		if text, ok := s.read(p.File); ok {
+			res = readFile(text)
+		}
+		s.parsed[p.File] = res
+	}
+	return res.dictKey(p.Line, p.Col)
 }
 
 // renameTerm terim kipidir: sembol aranmaz, q sözcüğü (ve ekli biçimleri) yalnızca metinde aranır.

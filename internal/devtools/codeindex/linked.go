@@ -87,60 +87,11 @@ func (r *Reader) linkedTo(id string) []*Node {
 
 // Sözlük anahtarı (deneme 7 R3). `kendi.ayar = {..., bakış_sayısı: bakış_sayısı, ...}` anahtarı bir ad değil, verinin
 // biçimidir (kaydedilen ayar dosyası onu okur): yeniden adlandırılan parametreyle aynı yazılsa da değiştirilmesi bir veri
-// biçimi kararıdır. Metin eşleşmesi böyle bir anahtarsa ayrı rol ve eşleşme türüyle (sözlük anahtarı; veri biçimi,
+// biçimi kararıdır. Metin eşleşmesi ayrıştırıcının tırnaksız sözlük anahtarı dediği yerdeyse (parsed.dictKey) ayrı rol ve eşleşme türüyle (sözlük anahtarı; veri biçimi,
 // kendiliğinden değişmez) olası grupta kalır.
 const RoleDictKey Role = "dict_key" // sözlük değişmezinin tırnaksız anahtarı
 
 const MatchDataFormat = "data_format" // anahtar verinin biçimidir: kendiliğinden değişmez
-
-// lines dosyanın Türkçe gösterim satırlarıdır (yoksa nil).
-func (s *lineSource) lines(file string) []string {
-	s.at(Pos{File: file, Line: 1})
-	return s.cache[file]
-}
-
-// isDictKey p'de başlayan word bir sözlük değişmezinin anahtarı mı: ardından ':' gelir (':=' değil) ve onu saran en
-// yakın açık parantez '{'dir. Çağrının adlı argümanı da `ad:` yazılır ama '(' içindedir; dizindeki adlı argümanlar
-// zaten kesin değişikliktir, metin taramasına gelmez.
-func isDictKey(lines []string, p Pos, word string) bool {
-	if p.Line < 1 || p.Line > len(lines) || p.Col < 1 {
-		return false
-	}
-	row := []rune(lines[p.Line-1])
-	end := p.Col - 1 + len([]rune(word))
-	if end > len(row) {
-		return false
-	}
-	rest := strings.TrimLeft(string(row[end:]), " \t")
-	if !strings.HasPrefix(rest, ":") || strings.HasPrefix(rest, ":=") {
-		return false
-	}
-	depth := 0 // geriye doğru kapanmış parantezler
-	for l := p.Line - 1; l >= 0 && l >= p.Line-40; l-- {
-		r := []rune(lines[l])
-		from := len(r) - 1
-		if l == p.Line-1 {
-			from = p.Col - 2
-		}
-		for i := from; i >= 0; i-- {
-			switch r[i] {
-			case ')', '}', ']':
-				depth++
-			case '(', '[':
-				if depth == 0 {
-					return false
-				}
-				depth--
-			case '{':
-				if depth == 0 {
-					return true
-				}
-				depth--
-			}
-		}
-	}
-	return false
-}
 
 // addLinked hedeflerin bağlı bildirimlerini sonuca ekler (hedefler hariç, her biri bir kez) ve bildirim yerlerini metin
 // taramasından çıkarır: onlar bu gruptadır.
@@ -165,7 +116,7 @@ func (r *Reader) addLinked(res *Result, targets []*Node, skip map[string]bool) {
 // textChange bir metin eşleşmesini olası değişikliğe çevirir; TR kodundaki sözlük anahtarı kendi rolünü alır.
 func textChange(h TextHit, lines *lineSource) Change {
 	ch := Change{Pos: h.Pos, Where: h.Where, Match: h.Match, Word: h.Word, Context: h.Context, Replacement: h.Suggestion, Check: h.Check}
-	if strings.HasSuffix(h.Pos.File, ".tr") && h.Where == WhereCode && isDictKey(lines.lines(h.Pos.File), h.Pos, h.Word) {
+	if strings.HasSuffix(h.Pos.File, ".tr") && h.Where == WhereCode && lines.dictKey(h.Pos) {
 		ch.Role, ch.Match = RoleDictKey, MatchDataFormat
 	}
 	return ch
