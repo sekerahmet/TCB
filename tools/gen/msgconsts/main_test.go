@@ -112,7 +112,7 @@ func scan(t *testing.T, root string) (calls, banned []call, used map[string]bool
 	t.Helper()
 	used = map[string]bool{}
 	fset := token.NewFileSet()
-	err := filepath.WalkDir(root, func(path string, e fs.DirEntry, err error) error {
+	err := reporoot.WalkDir(root, func(path string, e fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}

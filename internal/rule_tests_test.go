@@ -54,7 +54,7 @@ func ruleTestDecls(t *testing.T, root string) (funcs, files map[string]bool) {
 	t.Helper()
 	funcs, files = map[string]bool{}, map[string]bool{}
 	fset := token.NewFileSet()
-	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+	err := reporoot.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -100,7 +100,7 @@ func ruleFileExists(root string, g ruleGuard, files map[string]bool) bool {
 func ruleGuards(t *testing.T, root string) []ruleGuard {
 	t.Helper()
 	var out []ruleGuard
-	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+	err := reporoot.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}

@@ -102,7 +102,7 @@ func scanHookTypes(t *testing.T, root string) (map[hookTypeKey]hookTypeInfo, map
 	types := map[hookTypeKey]hookTypeInfo{}
 	checked := map[string]bool{}
 	for _, top := range []string{"internal", "cmd"} {
-		err := filepath.WalkDir(filepath.Join(root, top), func(path string, d fs.DirEntry, err error) error {
+		err := reporoot.WalkDir(filepath.Join(root, top), func(path string, d fs.DirEntry, err error) error {
 			if err != nil || !d.IsDir() {
 				return err
 			}

@@ -31,7 +31,7 @@ func TestGoEquivalentPackagesListed(t *testing.T) {
 	}
 	asm := map[string]bool{}
 	for _, dir := range []string{"internal", "cmd"} {
-		filepath.WalkDir(filepath.Join(root, dir), func(path string, d fs.DirEntry, err error) error {
+		reporoot.WalkDir(filepath.Join(root, dir), func(path string, d fs.DirEntry, err error) error {
 			if err == nil && !d.IsDir() && strings.HasSuffix(path, ".s") {
 				rel, _ := filepath.Rel(root, filepath.Dir(path))
 				asm[filepath.ToSlash(rel)] = true

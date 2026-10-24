@@ -21,7 +21,7 @@ var outsideUse = map[string]map[string]int{}
 func TestHintMessagesBuiltOnlyHere(t *testing.T) {
 	root := reporoot.Root()
 	found := map[string]map[string]int{}
-	err := filepath.WalkDir(filepath.Join(root, "internal", "lang"), func(path string, d fs.DirEntry, err error) error {
+	err := reporoot.WalkDir(filepath.Join(root, "internal", "lang"), func(path string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
 			return err
 		}

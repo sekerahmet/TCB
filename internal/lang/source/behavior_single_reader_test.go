@@ -20,7 +20,7 @@ func TestHeaderRulesLiveOnlyInSourceAndLexer(t *testing.T) {
 	root := reporoot.Root()
 	checked := 0
 	for _, top := range []string{"cmd", "internal", "lib", "tools"} {
-		err := filepath.WalkDir(filepath.Join(root, top), func(path string, d fs.DirEntry, err error) error {
+		err := reporoot.WalkDir(filepath.Join(root, top), func(path string, d fs.DirEntry, err error) error {
 			if err != nil || d.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
 				return err
 			}

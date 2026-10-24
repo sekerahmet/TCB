@@ -28,7 +28,7 @@ func exampleTexts(t *testing.T) map[string]string {
 	t.Helper()
 	out := map[string]string{}
 	root := reporoot.Path("examples", "tr")
-	err := filepath.WalkDir(root, func(p string, d os.DirEntry, err error) error {
+	err := reporoot.WalkDir(root, func(p string, d os.DirEntry, err error) error {
 		if err != nil || d.IsDir() || !strings.HasSuffix(p, ".tr") {
 			return err
 		}

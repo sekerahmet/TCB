@@ -71,7 +71,7 @@ func goFiles(t *testing.T) []goFile {
 	root := reporoot.Root()
 	var result []goFile
 	for _, k := range layoutRoots {
-		err := filepath.WalkDir(filepath.Join(root, k), func(path string, d fs.DirEntry, err error) error {
+		err := reporoot.WalkDir(filepath.Join(root, k), func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
 				return err
 			}

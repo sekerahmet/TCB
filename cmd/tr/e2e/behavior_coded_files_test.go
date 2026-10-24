@@ -30,7 +30,7 @@ var trFilesWithData = map[string]bool{"bom_ornegi.tr": true}
 func codedCopy(t *testing.T, dir string) int {
 	t.Helper()
 	n := 0
-	err := filepath.WalkDir(dir, func(filePath string, g fs.DirEntry, err error) error {
+	err := reporoot.WalkDir(dir, func(filePath string, g fs.DirEntry, err error) error {
 		if err != nil || g.IsDir() || !strings.HasSuffix(filePath, ".tr") || trFilesWithData[g.Name()] {
 			return err
 		}
@@ -265,7 +265,7 @@ func TestRepoFilesEnglishLossless(t *testing.T) {
 	}
 	var files []string
 	for _, k := range []string{"tests", "examples", "lib", "tools"} {
-		filepath.WalkDir(reporoot.Path(k), func(filePath string, g fs.DirEntry, err error) error {
+		reporoot.WalkDir(reporoot.Path(k), func(filePath string, g fs.DirEntry, err error) error {
 			if err == nil && g.IsDir() && (g.Name() == "negative" || g.Name() == errorsDir["tr"] || g.Name() == errorsDir["en"]) {
 				return filepath.SkipDir // bilerek hatalı dosyalar (ölü kodlar, bozuk başlıklar, hata örnekleri)
 			}

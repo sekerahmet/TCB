@@ -151,7 +151,7 @@ func TestNoBareNames(t *testing.T) {
 	usedAllowances := map[string]map[string]bool{}
 	var findings []string
 	for _, k := range scanRoots {
-		err := filepath.WalkDir(filepath.Join(root, k), func(path string, d fs.DirEntry, err error) error {
+		err := reporoot.WalkDir(filepath.Join(root, k), func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
 				return err
 			}
