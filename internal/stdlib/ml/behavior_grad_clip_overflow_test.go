@@ -14,7 +14,7 @@ değişken norm = gradyan_kırp([w], en_fazla: 1.0)
 yazdır("NORM:", norm.değer)
 yazdır("GRAD:", w.gradyan.değer)
 `)
-	want := "NORM: +Sonsuz\nGRAD: [0.0, 0.0]\n"
+	want := "NORM: sonsuz\nGRAD: [0.0, 0.0]\n"
 	if out != want {
 		t.Fatalf("float32'de taşan normda ([3e38, 3e38]) ölçek 0 ve sonlu gradyanlar [0.0, 0.0] olmalıydı:\nalınan:\n%s\nbeklenen:\n%s", out, want)
 	}

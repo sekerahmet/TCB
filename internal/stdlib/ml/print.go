@@ -2,6 +2,7 @@ package ml
 
 import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"math"
@@ -20,7 +21,16 @@ const printLimit = 1000
 // edgeItems kısaltılmış yazdırmada eksen başına baştan ve sondan gösterilen eleman sayısı.
 const edgeItems = 3
 
-func (d *TensorValue) Inspect() string {
+var _ interp.LanguageText = (*TensorValue)(nil)
+
+// Inspect is the tensor's display text, in the person's writing language (TR_DIL): the
+// debugger and messages show it.
+func (d *TensorValue) Inspect() string { return d.Text(codes.Display()) }
+
+// Text is the tensor's text in lang (docs/spec/03_tipler.md): the type name, the non-finite
+// numbers (the same names as Ondalık's, A110 and A111) and the notes are lang's; str(t) and
+// yazdır(t) give it in the language of the file they are written in.
+func (d *TensorValue) Text(lang *codes.Language) string {
 	t := d.t
 	sh := t.Shape()
 	var ek []string
@@ -33,20 +43,20 @@ func (d *TensorValue) Inspect() string {
 		ek = append(ek, t.Device().String())
 	}
 	if t.RequiresGrad() {
-		ek = append(ek, messages.Text(messages.H6814))
+		ek = append(ek, messages.TextIn(lang.Code, messages.H6814))
 	}
 	if len(sh) == 0 {
 		x := t.Item()
-		s := numberText(x, isScientific([]float32{x}))
+		s := numberText(x, isScientific([]float32{x}), lang)
 		if d.hasInts {
 			s = strconv.FormatInt(int64(x), 10)
 		}
 		if len(ek) > 0 {
 			s += ", " + strings.Join(ek, ", ")
 		}
-		return string(interp.ValTensor) + "(" + s + ")" + dtypeSuffix
+		return lang.Name(codes.A212) + "(" + s + ")" + dtypeSuffix
 	}
-	header := string(interp.ValTensor) + "[" + shapeProduct(sh) + "]" + dtypeSuffix
+	header := lang.Name(codes.A212) + "[" + shapeProduct(sh) + "]" + dtypeSuffix
 	if len(ek) > 0 {
 		header += " (" + strings.Join(ek, ", ") + ")"
 	}
@@ -91,7 +101,7 @@ func (d *TensorValue) Inspect() string {
 		if d.hasInts {
 			texts[i] = strconv.FormatInt(int64(x), 10)
 		} else {
-			texts[i] = numberText(x, scientific)
+			texts[i] = numberText(x, scientific, lang)
 		}
 		width = max(width, len([]rune(texts[i])))
 	}
@@ -177,17 +187,12 @@ func toShow(n int, shorten bool) []int {
 	return out
 }
 
-// numberText bir hücreyi yazar. Sayı olmayan değerler Türkçe ve tutarlıdır:
-// "Tanımsız" (NaN), "Sonsuz", "-Sonsuz".
-func numberText(x float32, scientific bool) string {
+// numberText bir hücreyi yazar. Sonsuz ve tanımsız değerler Ondalık'la aynı adlarla, lang
+// dilinde yazılır (interp.NonFiniteText: sonsuz, -sonsuz, NaN).
+func numberText(x float32, scientific bool, lang *codes.Language) string {
 	f := float64(x)
-	switch {
-	case math.IsNaN(f):
-		return messages.Text(messages.H6815)
-	case math.IsInf(f, 1):
-		return messages.Text(messages.H6816)
-	case math.IsInf(f, -1):
-		return messages.Text(messages.H6817)
+	if s, ok := interp.NonFiniteText(f, lang); ok {
+		return s
 	}
 	if scientific {
 		return strconv.FormatFloat(f, 'e', 4, 64)

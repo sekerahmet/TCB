@@ -8,6 +8,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -25,11 +26,11 @@ const barWidth = 16
 var partialCell = []rune(" ▏▎▍▌▋▊▉")
 
 // stepText "adım 1200/5000" ya da "adım 1200". c.mu tutulur.
-func (c *Progress) stepText() string {
+func (c *Progress) stepText(lang *codes.Language) string {
 	if c.total > 0 {
-		return messages.Text(messages.H7311, c.step, c.total)
+		return messages.TextIn(lang.Code, messages.H7311, c.step, c.total)
 	}
-	return messages.Text(messages.H7310, c.step)
+	return messages.TextIn(lang.Code, messages.H7310, c.step)
 }
 
 // bar dolu oranı (0–1) hücrelerle çizer.
@@ -61,7 +62,7 @@ func (c *Progress) metricParts() []string {
 
 // barLine çubuğun şimdiki satırıdır. c.mu tutulur.
 func (c *Progress) barLine(now time.Time) string {
-	head := c.stepText()
+	head := c.stepText(codes.Display())
 	if c.total > 0 {
 		ratio := float64(c.step) / float64(c.total)
 		head += " " + bar(ratio) + " %" + strconv.Itoa(int(math.Floor(ratio*100)))
@@ -81,7 +82,7 @@ func (c *Progress) barLine(now time.Time) string {
 
 // lastLine çubuk bitince yazılan özet satırdır. c.mu tutulur.
 func (c *Progress) lastLine(now time.Time) string {
-	parts := append([]string{c.stepText()}, c.metricParts()...)
+	parts := append([]string{c.stepText(codes.Display())}, c.metricParts()...)
 	parts = append(parts, messages.Text(messages.H7309, formatDuration(now.Sub(c.start).Seconds())))
 	return strings.Join(parts, " · ")
 }

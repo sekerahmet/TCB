@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 325 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 105 fonksiyon, 1 sabit, 40 metot, 21 özellik, 43 adlı argüman.
+Toplam 327 kod: 28 anahtar kelime, 8 bağlamsal sözcük, 25 tip, 105 fonksiyon, 1 sabit, 40 metot, 21 özellik, 43 adlı argüman.
 
 ## İçindekiler
 
@@ -361,6 +361,26 @@ yazdır([1, 2, 3, 4].indirge(0) { birikim + o }, [1, 2, 3].indirge(1) { birikim 
 ```
 
 İlişkili: Y207 `indirge`, A104 `o`
+
+#### A110 `sonsuz`
+
+Ondalık sonsuz değerin metindeki adıdır; eksi sonsuz başına - alır. Ayrılmış sözcük değildir: kodda ondalık("sonsuz") ile yazılır, sıradan bir ad olarak da kullanılabilir.
+
+```tr
+yazdır(ondalık("sonsuz"), -ondalık("sonsuz"))
+```
+
+İlişkili: A111 `NaN`, A201 `Ondalık`, G211 `ondalık`
+
+#### A111 `NaN`
+
+Ondalık tanımsız değerin (sayı olmayan, NaN) metindeki adıdır. Ayrılmış sözcük değildir: kodda ondalık("NaN") ile yazılır.
+
+```tr
+yazdır(ondalık("NaN"))
+```
+
+İlişkili: A110 `sonsuz`, A201 `Ondalık`, G211 `ondalık`
 
 ### Tip adları (A2xx)
 

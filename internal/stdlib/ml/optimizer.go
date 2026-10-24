@@ -5,6 +5,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"math"
 	"strconv"
+	"strings"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
@@ -27,17 +28,34 @@ type Optimizer struct {
 func (o *Optimizer) Type() interp.ValueType { return optimizerType }
 func (o *Optimizer) IsTruthy() bool         { return true }
 
-func (o *Optimizer) Inspect() string {
+// Inspect is the value's display text, in the person's writing language (TR_DIL).
+func (o *Optimizer) Inspect() string { return o.Text(codes.Display()) }
+
+var _ interp.LanguageText = (*Optimizer)(nil)
+
+// Text is the value's text in lang: str() and yazdır give it in the language of the file they
+// are written in (docs/spec/03_tipler.md).
+func (o *Optimizer) Text(lang *codes.Language) string {
 	f := func(x float32) string { return strconv.FormatFloat(float64(x), 'g', -1, 32) }
-	if o.adamw != nil {
-		a := o.adamw
-		return fmt.Sprintf("%s(parametre: %d, %s: %s, %s: %s, %s: %s, %s: %s, %s: %s, %s: %d)",
-			codes.Name(codes.T400), len(o.params), nameLR.TR, f(a.LR), nameWeightDecay.TR, f(a.WeightDecay),
-			nameBeta1.TR, f(a.Beta1), nameBeta2.TR, f(a.Beta2), nameEpsilon.TR, f(a.Eps), codes.Name(memberStep), a.StepCount())
+	var name codes.Code
+	var settings []string
+	set := func(k codes.Code, value string) { settings = append(settings, lang.Name(k)+": "+value) }
+	if a := o.adamw; a != nil {
+		name = codes.T400
+		set(nameLR.Code, f(a.LR))
+		set(nameWeightDecay.Code, f(a.WeightDecay))
+		set(nameBeta1.Code, f(a.Beta1))
+		set(nameBeta2.Code, f(a.Beta2))
+		set(nameEpsilon.Code, f(a.Eps))
+		set(memberStep, strconv.Itoa(a.StepCount()))
+	} else {
+		s := o.sgd
+		name = codes.T401
+		set(nameLR.Code, f(s.LR))
+		set(nameMomentum.Code, f(s.Momentum))
+		set(nameWeightDecay.Code, f(s.WeightDecay))
 	}
-	s := o.sgd
-	return fmt.Sprintf("%s(parametre: %d, %s: %s, %s: %s, %s: %s)",
-		codes.Name(codes.T401), len(o.params), nameLR.TR, f(s.LR), nameMomentum.TR, f(s.Momentum), nameWeightDecay.TR, f(s.WeightDecay))
+	return messages.TextIn(lang.Code, messages.H6820, lang.Name(name), len(o.params), strings.Join(settings, ", "))
 }
 
 // İyileştirici üyeleri (adları kod listesinde, internal/lang/codes Y50x).

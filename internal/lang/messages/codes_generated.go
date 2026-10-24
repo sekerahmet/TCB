@@ -1067,11 +1067,9 @@ const (
 	H6812 Code = 6812 // {device} cihazı kullanılamıyor; bu makinede kullanılabilir cihazlar: {devices} ({devicesFn}())
 	H6813 Code = 6813 // {device} cihazı kullanılamıyor; bu makinede kullanılabilir cihazlar: {devices} ({devicesFn}()). {status}
 	H6814 Code = 6814 // türev izleniyor
-	H6815 Code = 6815 // Tanımsız
-	H6816 Code = 6816 // Sonsuz
-	H6817 Code = 6817 // -Sonsuz
 	H6818 Code = 6818 // Değer
 	H6819 Code = 6819 // Sütun {n}
+	H6820 Code = 6820 // {name}(parametre: {count}, {settings})
 	H7000 Code = 7000 // {fn}: JSON metni ({text}) bekler, {given} verildi
 	H7001 Code = 7001 // JSON çözümleme hatası: {error}
 	H7003 Code = 7003 // {fn}: {path|q} bir klasör; CSV dosyasının yolunu verin

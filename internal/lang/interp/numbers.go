@@ -19,9 +19,28 @@ const intLimit = 9223372036854775808.0
 func floatToInt(name string, f float64) (int64, error) {
 	if math.IsNaN(f) || math.IsInf(f, 0) || f >= intLimit || f < -intLimit {
 		t := codes.Name(codes.A200)
-		return 0, messages.New(messages.H2484, name, (&FloatVal{Val: f}).Inspect(), t)
+		return 0, messages.New(messages.H2484, name, (&FloatVal{Val: f}).Text(codes.Display()), t)
 	}
 	return int64(f), nil
+}
+
+// parseNonFinite metni lang dilinin sonsuz ya da tanımsız sayı adı olarak okur (A110, A111;
+// '+' ya da '-' işaretli sonsuz da); lang nil kanonik dildir. Ondalık metnin dosyanın dilindeki
+// yazımı böylece geri okunur: Türkçe dosyada ondalık("sonsuz").
+func parseNonFinite(s string, lang *codes.Language) (float64, bool) {
+	if lang == nil {
+		lang = codes.Active()
+	}
+	inf := lang.Name(codes.A110)
+	switch s {
+	case inf, "+" + inf:
+		return math.Inf(1), true
+	case "-" + inf:
+		return math.Inf(-1), true
+	case lang.Name(codes.A111):
+		return math.NaN(), true
+	}
+	return 0, false
 }
 
 // compareIntFloat bir Tam ile (NaN olmayan) bir Ondalığı tam olarak karşılaştırır

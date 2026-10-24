@@ -16,7 +16,7 @@ yazdır(toplam(tensör([0.00002])))
 yazdır(min(tensör([3, -2, 5])), min(tensör([3, -2], türev_izle: doğru)))`)
 	want := "Tensör[2] [1.0000e-05, 1.0000e+00]\n" +
 		"Tensör[2] [1.0000e+09, 2.0000e+00]\n" +
-		"Tensör[3] [Tanımsız,  -Sonsuz,   0.0000] Tensör[1] [Sonsuz]\n" +
+		"Tensör[3] [    NaN, -sonsuz,  0.0000] Tensör[1] [sonsuz]\n" +
 		"Tensör(2.0000e-05)\n" +
 		"Tensör(-2.0000) Tensör(-2.0000, türev izleniyor)\n"
 	if out != want {

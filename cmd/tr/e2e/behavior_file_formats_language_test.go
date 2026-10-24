@@ -147,19 +147,57 @@ func TestDictKeysFollowFileLanguage(t *testing.T) {
 func TestFunctionTextFollowsFileLanguage(t *testing.T) {
 	program := "fonksiyon f() { sonuç 1 }\nyapı P { a }\ndeğişken l = [1]\n" +
 		"yazdır(metin(f), metin(P), metin(yazdır), metin(l.ekle), \"{f}\")\n"
+	sameOutputInEveryLanguage(t, program, map[string]string{
+		"tr": "<fonksiyon f> <yapı P> <yerleşik yazdır> <yerleşik ekle> <fonksiyon f>\n",
+		"en": "<function f> <struct P> <built-in print> <built-in append> <function f>\n",
+	})
+}
+
+// Sonsuz ve tanımsız sayının adı (A110, A111) sayıda ve tensörde aynıdır, dosyanın dilindedir
+// ve çalıştıranın diline (TR_DIL) bağlı değildir (3.2). Önceden tensör yazdırması adları
+// iletiden alıyordu: aynı program TR_DIL'e göre farklı yazıyordu ("Tanımsız" / "NaN").
+func TestNonFiniteNamesFollowFileLanguage(t *testing.T) {
+	program := "değişken t = tensör([0.0, 1.0, -1.0]) / 0.0\ndeğişken s = ondalık(\"inf\")\n" +
+		"yazdır(t, -s, s, ondalık(\"nan\"), metin(tensör([2.0], türev_izle: doğru)), \"{tensör(s)}\")\n"
+	sameOutputInEveryLanguage(t, program, map[string]string{
+		"tr": "Tensör[3] [    NaN,  sonsuz, -sonsuz] -sonsuz sonsuz NaN Tensör[1] (türev izleniyor) [2.0000] Tensör(sonsuz)\n",
+		"en": "Tensor[3] [ nan,  inf, -inf] -inf inf nan Tensor[1] (requires grad) [2.0000] Tensor(inf)\n",
+	})
+}
+
+// Motor değerlerinin metni (tip adı, ayar adları, içindeki iletiler) dosyanın dilindedir,
+// TR_DIL'e bağlı değildir (DENETİM 3): İlerleme, Günlük, iyileştirici, kontrol noktası, satır
+// okuyucu. Önceden tip adı kanonik, geri kalanı TR_DIL'deydi.
+func TestEngineValueTextFollowsFileLanguage(t *testing.T) {
+	program := "değişken w = tensör([1.0], türev_izle: doğru)\n" +
+		"dosya_yaz(\"s.txt\", \"a\\nb\\n\")\n" +
+		"yazdır(metin(ilerleme(2)))\nyazdır(metin(günlük(\"m.jsonl\")))\n" +
+		"yazdır(metin(AdamW([w], öğrenme_oranı: 0.1)))\nyazdır(metin(kontrol_noktası(\"k\", {w: w})))\n" +
+		"yazdır(metin(dosya_satırları(\"s.txt\")))\n"
 	coded, err := source.Encode(program)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for language, want := range map[string]string{
-		"tr": "<fonksiyon f> <yapı P> <yerleşik yazdır> <yerleşik ekle> <fonksiyon f>\n",
-		"en": "<function f> <struct P> <built-in print> <built-in append> <function f>\n",
+	for language, want := range map[string][]string{
+		"tr": {"İlerleme(adım 0/2)", "Günlük(m.jsonl, 0 kayıt)",
+			"AdamW(parametre: 1, öğrenme_oranı: 0.1, ağırlık_çürümesi: 0.01, beta1: 0.9, beta2: 0.999, epsilon: 1e-08, adım: 0)",
+			"KontrolNoktası(k/kontrol_noktalari, adım 0, 1 nesne)", "SatırOkuyucu("},
+		"en": {"Progress(step 0/2)", "Logger(m.jsonl, 0 records)",
+			"AdamW(parameters: 1, lr: 0.1, weight_decay: 0.01, beta1: 0.9, beta2: 0.999, eps: 1e-08, step: 0)",
+			"Checkpoint(k/kontrol_noktalari, step 0, 1 object)", "LineReader("},
 	} {
-		dir := t.TempDir()
-		testkit.WriteFile(t, dir, "p.tr", inLanguage(coded, language))
 		for _, env := range [][]string{{"TR_DIL=tr"}, {"TR_DIL=en"}} {
-			if s := testkit.RunBinary(t, trBinary, dir, "", env, "p.tr"); s.Code != 0 || s.Stdout != want {
-				t.Errorf("dil=%s, %s: %q (çıkış %d, %s), beklenen %q", language, env[0], s.Stdout, s.Code, s.Stderr, want)
+			dir := t.TempDir()
+			testkit.WriteFile(t, dir, "p.tr", inLanguage(coded, language))
+			s := testkit.RunBinary(t, trBinary, dir, "", env, "p.tr")
+			lines := strings.Split(s.Stdout, "\n")
+			if s.Code != 0 || len(lines) < len(want) {
+				t.Fatalf("dil=%s, %s: çıkış %d\n%s%s", language, env[0], s.Code, s.Stdout, s.Stderr)
+			}
+			for i, w := range want {
+				if !strings.HasPrefix(lines[i], w) {
+					t.Errorf("dil=%s, %s: %d. satır %q, beklenen %q", language, env[0], i+1, lines[i], w)
+				}
 			}
 		}
 	}
@@ -231,4 +269,24 @@ func jsonKeys(t *testing.T, data []byte) string {
 	walk("", v)
 	sort.Strings(keys)
 	return strings.Join(keys, " ")
+}
+
+// sameOutputInEveryLanguage Türkçe yazılmış programı dil=tr ve dil=en kodlu kopyalarıyla,
+// TR_DIL=tr ve TR_DIL=en ile çalıştırır: çıktı dosyanın diline göre want'takidir, çalıştıranın
+// diline bağlı değildir.
+func sameOutputInEveryLanguage(t *testing.T, program string, want map[string]string) {
+	t.Helper()
+	coded, err := source.Encode(program)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for language, want := range want {
+		dir := t.TempDir()
+		testkit.WriteFile(t, dir, "p.tr", inLanguage(coded, language))
+		for _, env := range [][]string{{"TR_DIL=tr"}, {"TR_DIL=en"}} {
+			if s := testkit.RunBinary(t, trBinary, dir, "", env, "p.tr"); s.Code != 0 || s.Stdout != want {
+				t.Errorf("dil=%s, %s: %q (çıkış %d, %s), beklenen %q", language, env[0], s.Stdout, s.Code, s.Stderr, want)
+			}
+		}
+	}
 }

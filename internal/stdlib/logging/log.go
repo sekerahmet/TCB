@@ -13,7 +13,7 @@
 //
 // "tür" taşımayan satırlar ölçü kayıtlarıdır. Anahtarlar yazım dilinden bağımsızdır ve
 // çevrilmez (TRTENSOR imzası gibi); okuyan araçlar (İzleme Masası, tr izle) bunlara bakar.
-// Tanımsız (NaN) ve sonsuz değerler gizlenmez, "NaN", "+Sonsuz", "-Sonsuz" metni olarak
+// Tanımsız (NaN) ve sonsuz değerler gizlenmez, "NaN", "Infinity", "-Infinity" metni olarak
 // yazılır. Bir "devam" kaydı (kontrol noktasından sürdürme, bkz. Log.WriteResume) kendinden
 // önce gelen ve adımı ondan büyük olan ölçü kayıtlarını geçersiz kılar (adımı eşit olan kayıt
 // kaydedilen noktaya dahildir).

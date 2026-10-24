@@ -83,7 +83,7 @@ g.ekle({zaman: "elle", x: [1, 2]})
 		t.Errorf("ayarlar gizli değeri maskelenmiş olarak taşımalı: %v", b["ayarlar"])
 	}
 	o := s[1]
-	if o["kayıp"] != 2.5 || o["nan"] != "NaN" || o["sonsuz"] != "+Sonsuz" || o["belirteç"] != interp.SecretMask {
+	if o["kayıp"] != 2.5 || o["nan"] != "NaN" || o["sonsuz"] != "Infinity" || o["belirteç"] != interp.SecretMask {
 		t.Errorf("ölçü kaydı: %v", o)
 	}
 	if _, ok := o["zaman"].(string); !ok {
