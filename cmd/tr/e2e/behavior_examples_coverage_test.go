@@ -21,7 +21,12 @@ import (
 
 // uncoveredNames bilerek ya da henüz örneği yazılmamış adlardır ve gerekçesiyle durur. Liste
 // yalnızca küçülür: örneği olan bir ad listede kalırsa test düşer.
-var uncoveredNames = map[string]string{}
+var uncoveredNames = map[string]string{
+	// Değer adları (A11x) kaynakta sözcük olarak yazılmaz, yalnızca programın metninde görünür
+	// (3.2: yazdır(ondalık("sonsuz"))); kodlu iskelette geçemezler.
+	"A110": "değer adı (sonsuz), kaynakta sözcük değil",
+	"A111": "değer adı (NaN), kaynakta sözcük değil",
+}
 
 // exampleTexts bütün örnek .tr dosyalarını (examples/tr, alt klasörleriyle) verir.
 func exampleTexts(t *testing.T) map[string]string {

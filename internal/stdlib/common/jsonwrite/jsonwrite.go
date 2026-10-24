@@ -15,6 +15,7 @@ import (
 	"math"
 	"strconv"
 
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -76,13 +77,26 @@ func (y *writer) text(s string) {
 	y.b = append(y.b, b...)
 }
 
+// nonFiniteData sonlu olmayan sayının veri biçimindeki metnidir (NonFiniteAsText: günlük,
+// durum dosyası; 19.5). Veri biçimi sözleşmedir: dilden ve değer adlarından (A110, A111)
+// bağımsız, sabit metin.
+func nonFiniteData(f float64) string {
+	switch {
+	case math.IsNaN(f):
+		return "NaN"
+	case math.IsInf(f, 1):
+		return "+Sonsuz"
+	}
+	return "-Sonsuz"
+}
+
 func (y *writer) number(f float64) error {
 	if math.IsNaN(f) || math.IsInf(f, 0) {
 		if y.nonFiniteAsText {
-			y.text((&interp.FloatVal{Val: f}).Inspect())
+			y.text(nonFiniteData(f))
 			return nil
 		}
-		return messages.New(messages.H7008, (&interp.FloatVal{Val: f}).Inspect())
+		return messages.New(messages.H7008, (&interp.FloatVal{Val: f}).Text(codes.Display()))
 	}
 	// encoding/json ile aynı biçim: küçük ve çok büyük sayılarda bilimsel yazım
 	format := byte('f')

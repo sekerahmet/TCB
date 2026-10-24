@@ -164,6 +164,30 @@ func TestFunctionTextFollowsFileLanguage(t *testing.T) {
 	}
 }
 
+// Sonsuz ve tanımsız sayının adı (A110, A111) sayıda ve tensörde aynıdır, dosyanın dilindedir
+// ve çalıştıranın diline (TR_DIL) bağlı değildir (3.2). Önceden tensör yazdırması adları
+// iletiden alıyordu: aynı program TR_DIL'e göre farklı yazıyordu ("Tanımsız" / "NaN").
+func TestNonFiniteNamesFollowFileLanguage(t *testing.T) {
+	program := "değişken t = tensör([0.0, 1.0, -1.0]) / 0.0\ndeğişken s = ondalık(\"inf\")\n" +
+		"yazdır(t, -s, s, ondalık(\"nan\"), metin(tensör([2.0], türev_izle: doğru)), \"{tensör(s)}\")\n"
+	coded, err := source.Encode(program)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for language, want := range map[string]string{
+		"tr": "Tensör[3] [    NaN,  sonsuz, -sonsuz] -sonsuz sonsuz NaN Tensör[1] (türev izleniyor) [2.0000] Tensör(sonsuz)\n",
+		"en": "Tensor[3] [ nan,  inf, -inf] -inf inf nan Tensor[1] (requires grad) [2.0000] Tensor(inf)\n",
+	} {
+		dir := t.TempDir()
+		testkit.WriteFile(t, dir, "p.tr", inLanguage(coded, language))
+		for _, env := range [][]string{{"TR_DIL=tr"}, {"TR_DIL=en"}} {
+			if s := testkit.RunBinary(t, trBinary, dir, "", env, "p.tr"); s.Code != 0 || s.Stdout != want {
+				t.Errorf("dil=%s, %s: %q (çıkış %d, %s), beklenen %q", language, env[0], s.Stdout, s.Code, s.Stderr, want)
+			}
+		}
+	}
+}
+
 // fileFormatShape klasördeki dosya adlarını ve her JSON dosyasının (satırının) anahtar
 // kümesini, değerleri atarak, sıralı bir özet olarak verir.
 func fileFormatShape(t *testing.T, dir string) string {

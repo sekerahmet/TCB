@@ -127,9 +127,13 @@ func floatBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	case *IntVal:
 		return &FloatVal{Val: float64(val.Val)}, nil
 	case *StringVal:
-		n, err := strconv.ParseFloat(strings.TrimSpace(val.Val), 64)
+		s := strings.TrimSpace(val.Val)
+		n, err := strconv.ParseFloat(s, 64) // "inf", "nan" her dilde okunur
 		if err != nil {
-			return nil, messages.New(messages.H2430, CallPrefix(codes.G211), val.Val)
+			var ok bool
+			if n, ok = parseNonFinite(s, y.textLanguage()); !ok {
+				return nil, messages.New(messages.H2430, CallPrefix(codes.G211), val.Val)
+			}
 		}
 		return &FloatVal{Val: n}, nil
 	default:

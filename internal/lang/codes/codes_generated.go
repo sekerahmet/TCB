@@ -40,6 +40,8 @@ const (
 	A103 Code = A + 103 // error · hata
 	A104 Code = A + 104 // it · o
 	A105 Code = A + 105 // acc · birikim
+	A110 Code = A + 110 // inf · sonsuz
+	A111 Code = A + 111 // nan · NaN
 	A200 Code = A + 200 // Int · Tam
 	A201 Code = A + 201 // Float · Ondalık
 	A202 Code = A + 202 // String · Metin

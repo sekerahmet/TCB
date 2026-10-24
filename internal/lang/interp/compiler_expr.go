@@ -252,8 +252,9 @@ func (c *compiler) interpolation(pieces []exprCode) exprCode {
 			return &StringVal{Val: sb.String()}, nil
 		}
 	}
-	// Kanonik dil (Türkçe dosya): değerin metni Inspect'tir; yalnız Inspect'i görüntü olan
-	// değerler (fonksiyon, yerleşik, yapı; valueText) ayrılır. Sıcak yol: tip anahtarı somut.
+	// Kanonik dil (Türkçe dosya): çekirdek değerlerin metni Inspect'tir; Inspect'i görüntü
+	// olan öbür değerler (fonksiyon, yerleşik, yapı, motor değerleri) valueText'e gider. Sıcak
+	// yol: tip anahtarı somut.
 	return func(v *VM, env *Environment) (Value, error) {
 		var sb strings.Builder
 		for _, p := range pieces {
@@ -261,11 +262,13 @@ func (c *compiler) interpolation(pieces []exprCode) exprCode {
 			if err != nil {
 				return nil, err
 			}
-			switch val.(type) {
-			case *FuncVal, *BuiltinVal, *StructDefVal:
-				sb.WriteString(valueText(val, nil))
-			default:
+			switch x := val.(type) {
+			case *StringVal:
+				sb.WriteString(x.Val)
+			case *IntVal, *FloatVal, *BoolVal, *NullVal:
 				sb.WriteString(val.Inspect())
+			default:
+				sb.WriteString(valueText(val, nil))
 			}
 		}
 		return &StringVal{Val: sb.String()}, nil

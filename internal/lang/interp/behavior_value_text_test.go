@@ -100,6 +100,21 @@ try { assert(false, none) } catch e { print(e.ends_with(": none")) }
 	}
 }
 
+// ondalık() sonsuz ve tanımsız sayının dosyanın dilindeki adını okur ("inf", "nan" her dilde
+// okunur); metin(ondalık(...)) aynı adı verir, gidiş dönüş tutar (3.2).
+func TestFloatValueNamesRoundTrip(t *testing.T) {
+	out := runEnglish(t, `print(float("inf"), -float("inf"), float("nan"), str(float("-inf")) == "-inf", float(str(float("inf"))))
+try { float("sonsuz") } catch e { print("not read") }
+`, nil)
+	if want := "inf -inf nan true inf\nnot read\n"; out != want {
+		t.Errorf("İngilizce dosyada değer adları:\n%s\nbeklenen:\n%s", out, want)
+	}
+	_, val, err := runTROut(t, `sonuç [ondalık("sonsuz"), ondalık("-sonsuz"), ondalık("+sonsuz"), ondalık("inf"), metin(ondalık("NaN")), ondalık(metin(ondalık("-inf")))]`)
+	if err != nil || val.Inspect() != `[sonsuz, -sonsuz, sonsuz, sonsuz, "NaN", -sonsuz]` {
+		t.Errorf("Türkçe dosyada değer adları: %v, %v", val, err)
+	}
+}
+
 // Kod taşıyan çıplak sözlük anahtarı ({step: 1}, Y500) işlemin yazıldığı dosyanın dilindeki
 // adıdır; d.ad okuması ve yazması anahtarı kodun her yazım dilindeki adıyla arar (önce dosyanın
 // dilindeki), yoksa dosyanın dilindeki adla ekler: aynı kodun iki anahtarı oluşmaz (3.7, 17.3).

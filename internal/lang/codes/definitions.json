@@ -33,6 +33,8 @@
   "A103": { "tür": "bağlamsal", "ilişkili": ["A061"] },
   "A104": { "tür": "bağlamsal", "ilişkili": ["A105"] },
   "A105": { "tür": "bağlamsal", "ilişkili": ["Y207", "A104"] },
+  "A110": { "tür": "bağlamsal", "ilişkili": ["A111", "A201", "G211"] },
+  "A111": { "tür": "bağlamsal", "ilişkili": ["A110", "A201", "G211"] },
   "A200": { "tür": "tip", "ilişkili": ["A201", "G210"] },
   "A201": { "tür": "tip", "ilişkili": ["A200", "G211"] },
   "A202": { "tür": "tip", "ilişkili": ["G212"] },

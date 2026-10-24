@@ -65,7 +65,7 @@ func metricText(v interp.Value) string {
 func formatNumber(f float64) string {
 	switch {
 	case math.IsNaN(f) || math.IsInf(f, 0):
-		return (&interp.FloatVal{Val: f}).Inspect()
+		return (&interp.FloatVal{Val: f}).Text(codes.Display()) // çubuğun satırı görüntüdür (TR_DIL)
 	case f == 0:
 		return "0"
 	}
