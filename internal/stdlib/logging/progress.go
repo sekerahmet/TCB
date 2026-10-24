@@ -69,13 +69,21 @@ type Progress struct {
 
 func (c *Progress) Type() interp.ValueType { return ProgressType }
 func (c *Progress) IsTruthy() bool         { return true }
-func (c *Progress) Inspect() string {
+
+// Inspect is the value's display text, in the person's writing language (TR_DIL).
+func (c *Progress) Inspect() string { return c.Text(codes.Display()) }
+
+var _ interp.LanguageText = (*Progress)(nil)
+
+// Text is the value's text in lang: str() and yazdır give it in the language of the file they
+// are written in (docs/spec/03_tipler.md).
+func (c *Progress) Text(lang *codes.Language) string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.stopped {
-		return messages.Text(messages.H7312, ProgressType, c.stepText())
+		return messages.TextIn(lang.Code, messages.H7312, lang.Name(codes.A255), c.stepText(lang))
 	}
-	return fmt.Sprintf("%s(%s)", ProgressType, c.stepText())
+	return fmt.Sprintf("%s(%s)", lang.Name(codes.A255), c.stepText(lang))
 }
 
 func (c *Progress) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
@@ -208,7 +216,7 @@ func (c *Progress) update(m *interp.VM, args []interp.Value, named map[string]in
 func (c *Progress) advance(fn string, now time.Time, newStep int64, metrics []metric) (bool, error) {
 	c.mu.Lock()
 	if c.stopped {
-		text := c.stepText()
+		text := c.stepText(codes.Display())
 		c.mu.Unlock()
 		return false, messages.New(messages.H7316, fn, text, codes.DisplayName(codes.G811))
 	}

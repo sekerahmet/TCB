@@ -1069,6 +1069,7 @@ const (
 	H6814 Code = 6814 // türev izleniyor
 	H6818 Code = 6818 // Değer
 	H6819 Code = 6819 // Sütun {n}
+	H6820 Code = 6820 // {name}(parametre: {count}, {settings})
 	H7000 Code = 7000 // {fn}: JSON metni ({text}) bekler, {given} verildi
 	H7001 Code = 7001 // JSON çözümleme hatası: {error}
 	H7003 Code = 7003 // {fn}: {path|q} bir klasör; CSV dosyasının yolunu verin

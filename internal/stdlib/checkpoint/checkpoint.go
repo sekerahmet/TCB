@@ -98,8 +98,16 @@ type Checkpoint struct {
 
 func (kn *Checkpoint) Type() interp.ValueType { return CheckpointType }
 func (kn *Checkpoint) IsTruthy() bool         { return true }
-func (kn *Checkpoint) Inspect() string {
-	return messages.Text(messages.H7406, CheckpointType, kn.shown, kn.step, len(kn.objects))
+
+// Inspect is the value's display text, in the person's writing language (TR_DIL).
+func (kn *Checkpoint) Inspect() string { return kn.Text(codes.Display()) }
+
+var _ interp.LanguageText = (*Checkpoint)(nil)
+
+// Text is the value's text in lang: str() and yazdır give it in the language of the file they
+// are written in (docs/spec/03_tipler.md).
+func (kn *Checkpoint) Text(lang *codes.Language) string {
+	return messages.TextIn(lang.Code, messages.H7406, lang.Name(codes.A258), kn.shown, kn.step, len(kn.objects))
 }
 
 // Dir noktaların çözülmüş klasörüdür (<koşu>/kontrol_noktalari).
