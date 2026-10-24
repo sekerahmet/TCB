@@ -107,6 +107,15 @@ func writeContainer(v Value, lang *codes.Language, filePath []Value) string {
 // denetimi sürer.
 func writeItem(v Value, lang *codes.Language, filePath []Value) string {
 	switch x := v.(type) {
+	case *StringVal:
+		return x.Val // sık tipler arayüz denetiminden önce (yerleştirmenin sıcak yolu)
+	case *IntVal:
+		return x.Inspect()
+	case *BoolVal:
+		if lang == nil {
+			return x.Inspect()
+		}
+		return x.text(lang)
 	case *ListVal, *DictVal, *StructInstanceVal:
 		return writeContainer(v, lang, filePath)
 	case languageText:

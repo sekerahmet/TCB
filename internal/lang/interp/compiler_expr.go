@@ -239,7 +239,21 @@ func (c *compiler) dictKey(k *compilerScope, key ast.Expression) exprCode {
 // interpolation metin yerleştirmesinin kodudur: parçaların değerleri derlenen dosyanın dilinde
 // metne çevrilip birleştirilir (3; c.textLang).
 func (c *compiler) interpolation(pieces []exprCode) exprCode {
-	lang := c.textLang
+	if lang := c.textLang; lang != nil {
+		return func(v *VM, env *Environment) (Value, error) {
+			var sb strings.Builder
+			for _, p := range pieces {
+				val, err := p(v, env)
+				if err != nil {
+					return nil, err
+				}
+				sb.WriteString(valueText(val, lang))
+			}
+			return &StringVal{Val: sb.String()}, nil
+		}
+	}
+	// Kanonik dil (Türkçe dosya): değerin metni Inspect'tir; yalnız Inspect'i görüntü olan
+	// değerler (fonksiyon, yerleşik, yapı; valueText) ayrılır. Sıcak yol: tip anahtarı somut.
 	return func(v *VM, env *Environment) (Value, error) {
 		var sb strings.Builder
 		for _, p := range pieces {
@@ -247,7 +261,12 @@ func (c *compiler) interpolation(pieces []exprCode) exprCode {
 			if err != nil {
 				return nil, err
 			}
-			sb.WriteString(valueText(val, lang))
+			switch val.(type) {
+			case *FuncVal, *BuiltinVal, *StructDefVal:
+				sb.WriteString(valueText(val, nil))
+			default:
+				sb.WriteString(val.Inspect())
+			}
 		}
 		return &StringVal{Val: sb.String()}, nil
 	}
