@@ -190,7 +190,7 @@ func (r *Reader) RenameImpact(q, newName string, o RenameOptions) *Result {
 	}
 	sortChanges(res.Certain)
 	sortChanges(res.Likely)
-	res.Counts = &Counts{Total: len(res.Certain) + len(res.Likely)}
+	res.Counts = &Counts{Total: len(res.Certain) + len(res.Likely), Certain: len(res.Certain), Likely: len(res.Likely)}
 	if o.Limit > 0 {
 		var cut1, cut2 bool
 		res.Certain, cut1 = limit(res.Certain, o.Limit)

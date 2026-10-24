@@ -224,13 +224,15 @@ func (r *Reader) Impact(q string, o QueryOptions) *Result {
 	for _, u := range tests {
 		aff.Tests = append(aff.Tests, *u.In)
 	}
-	res.Counts = &Counts{Total: len(uses), ByRole: map[Role]int{}}
+	res.Counts = &Counts{Total: len(uses), ByRole: map[Role]int{}, Modules: len(aff.Modules), Tests: len(aff.Tests)}
 	for _, u := range uses {
 		res.Counts.ByRole[u.Role]++
 	}
-	aff.Users, res.Truncated = limit(uses, o.Limit)
-	aff.Modules, _ = limit(aff.Modules, o.Limit)
-	aff.Tests, _ = limit(aff.Tests, o.Limit)
+	var cut1, cut2, cut3 bool
+	aff.Users, cut1 = limit(uses, o.Limit)
+	aff.Modules, cut2 = limit(aff.Modules, o.Limit)
+	aff.Tests, cut3 = limit(aff.Tests, o.Limit)
+	res.Truncated = cut1 || cut2 || cut3
 	res.Affected = aff
 	return res
 }

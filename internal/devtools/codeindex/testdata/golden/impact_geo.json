@@ -282,7 +282,9 @@
       "in_test": 4,
       "read": 1,
       "write": 1
-    }
+    },
+    "modules": 2,
+    "tests": 2
   },
   "truncated": false
 }

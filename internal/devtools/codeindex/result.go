@@ -55,10 +55,14 @@ type Use struct {
 	Steps      int        `json:"steps,omitempty"` // dolaylı sınama: kaç çağrı adımı uzakta (0: doğrudan)
 }
 
-// Counts sonuç sayılarıdır.
+// Counts sonuç sayılarıdır: listeler Limit ile kesilse de toplamlardır (metin çıktısının başlıkları bunları yazar).
 type Counts struct {
-	Total  int          `json:"total"`
-	ByRole map[Role]int `json:"by_role,omitempty"`
+	Total   int          `json:"total"`
+	ByRole  map[Role]int `json:"by_role,omitempty"`
+	Modules int          `json:"modules,omitempty"` // etki: aktaran modüller
+	Tests   int          `json:"tests,omitempty"`   // etki: etkilenen testler
+	Certain int          `json:"certain,omitempty"` // yeniden adlandırma: kesin değişiklikler
+	Likely  int          `json:"likely,omitempty"`  // yeniden adlandırma: olası değişiklikler
 }
 
 // Affected `etki` sorgusunun sonucudur: değişirse etkilenenler.
