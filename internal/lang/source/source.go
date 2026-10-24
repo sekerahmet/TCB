@@ -57,12 +57,20 @@ type HeaderError struct {
 // Unwrap returns the message at its position (line 1, column 1), so frames and tools read the
 // position from the error (messages.Pos), not from its text.
 func (e *HeaderError) Unwrap() error {
-	if language, ok := strings.CutPrefix(e.Line, Header); ok && language != "" {
+	languages := messages.OrList(codes.Languages()...)
+	switch language, ok := strings.CutPrefix(e.Line, Header); {
+	case ok && language != "":
 		_, err := codes.LoadLanguage(language)
 		return messages.At(1, 1, err)
+	case ok || e.Line == strings.TrimSuffix(Header, languageField):
+		// Sürüm okunur, dosyanın dili eksik.
+		return messages.At(1, 1, messages.New(messages.H2523, e.Line, Header, languages))
 	}
-	return messages.At(1, 1, messages.New(messages.H2512, e.Line, Header, messages.OrList(codes.Languages()...), headerPrefix))
+	return messages.At(1, 1, messages.New(messages.H2512, e.Line, Header, languages, headerPrefix))
 }
+
+// languageField başlıkta dosyanın dilini veren alanın başıdır (Header bununla biter).
+const languageField = " dil="
 
 func (e *HeaderError) Error() string {
 	return e.Unwrap().Error()
