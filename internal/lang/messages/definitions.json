@@ -1555,6 +1555,7 @@
 "H8708": { "param": ["option", "command"] },
 "H8709": { "param": ["command", "arg"] },
 "H8710": { "param": ["command", "option"] },
+"H8711": { "param": ["file", "language"] },
 "H8750": { "param": [] },
 "H8751": { "param": ["version", "max"] },
 "H8752": { "param": ["error"] },

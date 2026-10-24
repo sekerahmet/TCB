@@ -1555,6 +1555,7 @@
 "H8708": "'{option}' expects a spelling language. E.g. tr {command} example.tr {option} tr",
 "H8709": "'tr {command}' takes a single file; extra argument: {arg}",
 "H8710": "Please specify the .tr file to show. E.g. tr {command} example.tr {option} tr",
+"H8711": "{file}: the file's language is {language}; decoded to Turkish spelling, the file's language becomes Turkish and the text the program makes of values (Bool values, none, type names) comes out in Turkish",
 "H8750": "the length field of the embedded package is corrupt",
 "H8751": "embedded package version {version} is not supported (this interpreter reads versions up to {max}; the application may have been built with a newer 'tr')",
 "H8752": "the embedded package could not be decoded: {error}",

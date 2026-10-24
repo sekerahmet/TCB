@@ -1555,6 +1555,7 @@
 "H8708": "'{option}' bir yazım dili bekler. Örn: tr {command} ornek.tr {option} tr",
 "H8709": "'tr {command}' tek bir dosya alır; fazladan argüman: {arg}",
 "H8710": "Lütfen gösterilecek .tr dosyasını belirtin. Örn: tr {command} ornek.tr {option} tr",
+"H8711": "{file}: dosyanın dili {language}; Türkçe yazıma çözülünce dosyanın dili Türkçeye geçer ve programın değerlerden yaptığı metinler (Mantık değerleri, yok, tip adları) Türkçe çıkar",
 "H8750": "gömülü paketin uzunluk alanı bozuk",
 "H8751": "gömülü paket sürümü {version} desteklenmiyor (bu yorumlayıcı en çok {max} sürümünü okur; uygulamayı daha yeni bir 'tr' ile derlenmiş olabilir)",
 "H8752": "gömülü paket çözülemedi: {error}",

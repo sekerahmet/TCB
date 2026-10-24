@@ -1560,6 +1560,7 @@ const (
 	H8708 Code = 8708 // '{option}' bir yazım dili bekler. Örn: tr {command} ornek.tr {option} tr
 	H8709 Code = 8709 // 'tr {command}' tek bir dosya alır; fazladan argüman: {arg}
 	H8710 Code = 8710 // Lütfen gösterilecek .tr dosyasını belirtin. Örn: tr {command} ornek.tr {option} tr
+	H8711 Code = 8711 // {file}: dosyanın dili {language}; Türkçe yazıma çözülünce dosyanın dili Türkçeye geçer ve programın değerlerden yaptığı metinler (Mantık değerleri, yok, tip adları) Türkçe çıkar
 	H8750 Code = 8750 // gömülü paketin uzunluk alanı bozuk
 	H8751 Code = 8751 // gömülü paket sürümü {version} desteklenmiyor (bu yorumlayıcı en çok {max} sürümünü okur; uygulamayı daha yeni bir 'tr' ile derlenmiş olabilir)
 	H8752 Code = 8752 // gömülü paket çözülemedi: {error}

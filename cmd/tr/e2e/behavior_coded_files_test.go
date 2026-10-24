@@ -174,6 +174,23 @@ func TestEncodeDecodeShowCommands(t *testing.T) {
 	testkit.Wait(t, tr(t, k, "yardım"), 0, []string{"tr kodla <dosya.tr|klasör>", "tr çöz <dosya.tr|klasör>", "tr göster <dosya.tr> [--dil tr]"}, nil)
 }
 
+// 'tr çöz' dili Türkçe olmayan kodlu dosyayı kodsuz Türkçeye çevirince dosyanın dili (ve
+// değer metinleri) değişir: komut bunu dosya dosya uyarır (17.1). dil=tr dosyada uyarı yok.
+func TestDecodeWarnsWhenTheFileLanguageChanges(t *testing.T) {
+	dir := t.TempDir()
+	coded := source.Header + "tr\nG100(A040)\n"
+	testkit.WriteFile(t, dir, "en.tr", inLanguage(coded, "en"))
+	testkit.WriteFile(t, dir, "tr.tr", coded)
+	s := tr(t, dir, "çöz", "en.tr", "tr.tr")
+	testkit.Wait(t, s, 0, []string{"çözüldü: en.tr", "çözüldü: tr.tr"}, []string{"en.tr: dosyanın dili en; Türkçe yazıma çözülünce"})
+	if strings.Contains(s.Stderr, "tr.tr: dosyanın dili") {
+		t.Errorf("dil=tr dosya uyarı vermemeli:\n%s", s.Stderr)
+	}
+	if got := readFile(t, filepath.Join(dir, "en.tr")); got != "yazdır(doğru)\n" {
+		t.Errorf("çözülen dosya %q", got)
+	}
+}
+
 // Standart giriş kipi (düzenleyiciler için; 17_kodlar.md, "Düzenleyicide"): 'tr kodla -' ve 'tr göster -' metni
 // girişten okur, çıkışa yalnızca çevrilmiş metni yazar; BOM ve CRLF korunur, iki yön birbirinin
 // tersidir. Ayrıştırılamayan metin çevrilmez ve 2 koduyla (sözdizimi hatası) çıkar; başka
