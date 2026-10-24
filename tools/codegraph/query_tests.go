@@ -446,8 +446,8 @@ func (ix *index) printAllSkipNote(w io.Writer, about []aboutTest, tests, walks [
 	for _, t := range viaNames {
 		all = append(all, t.test)
 	}
-	if len(all) == 0 || slices.ContainsFunc(all, func(t *Node) bool { return t == nil || t.Skip == "" }) {
-		return
+	if len(all) == 0 || slices.ContainsFunc(all, func(t *Node) bool { return t == nil || t.Skip == "" || ciRunsIt(t.Skip) }) {
+		return // koşulsuz ya da yalnızca CI'ın bir kipinde zaten koşan (testing.Short(), raceEnabled) bir test var
 	}
 	fmt.Fprintln(w, "  note: every test above skips under a condition ([skips when: ...]); CI may run none of them: check where the condition holds (real GPU, library, OS)")
 }
