@@ -76,6 +76,7 @@ type indexer struct {
 	constructs    []Construct       // bildirimlerin kullandığı dil yapıları (constructs.go)
 	constructSeen map[string]bool
 	retDone       map[string]bool
+	paramOrder    map[string][]string // işlev ya da metot -> parametreleri başlıktaki sırayla (paramsInOrder; tembel)
 }
 
 // Build root altındaki .tr dosyalarından dizini kurar. Okunamayan ya da ayrıştırılamayan dosya

@@ -181,37 +181,44 @@ func (x *indexer) identParam(o owner, sc *scope, id *ast.Identifier, pos Pos) bo
 // namedArgs çağrının adlı argümanlarını çağrılan işlevin, metodun ya da yapının parametresine (kurucusu
 // yoksa alanına) bağlar; bağlanamayan, yerleşik adlı argüman olabilir (çağıran bakar).
 func (x *indexer) namedArgTarget(f *file, o owner, sc *scope, c *ast.CallExpression, arg string) (string, Confidence, Basis) {
+	def, conf, basis := x.callee(f, o, sc, c)
+	return x.calleeParam(def, arg), conf, basis
+}
+
+// callee çağrının çağırdığı TR bildirimidir: işlev, takma adlı modülün işlevi, alıcısı bilinen metot ya da yapı
+// (bilinmezse ""); güven ve dayanak alıcının çözümündendir.
+func (x *indexer) callee(f *file, o owner, sc *scope, c *ast.CallExpression) (string, Confidence, Basis) {
 	switch fn := c.Function.(type) {
 	case *ast.Identifier:
 		if sc.locals[fn.Value] {
 			return "", "", ""
 		}
-		def := f.visible[fn.Value]
-		return x.calleeParam(def, arg), Extracted, ""
+		return f.visible[fn.Value], Extracted, ""
 	case *ast.MemberExpression:
 		if obj, ok := fn.Object.(*ast.Identifier); ok && !sc.locals[obj.Value] {
 			if target := f.aliases[obj.Value]; target != nil {
-				return x.calleeParam(target.defs[fn.Property], arg), Extracted, ""
+				return target.defs[fn.Property], Extracted, ""
 			}
 		}
 		structID, conf, basis := x.receiver(f, o, sc, fn.Object)
 		if structID != "" {
 			if mid, kind := x.structMember(structID, fn.Property); kind == KindMethod {
-				return x.paramOf(mid, arg), conf, basis
+				return mid, conf, basis
 			}
 		}
 	}
 	return "", "", ""
 }
 
-// calleeParam bir tanımın (işlev ya da yapı) arg adlı parametresinin düğümüdür.
+// calleeParam bir tanımın (işlev, metot ya da yapı) arg adlı parametresinin düğümüdür; kurucusu olmayan yapıda aynı
+// adlı alan.
 func (x *indexer) calleeParam(def, arg string) string {
 	n := x.nodes[def]
 	if n == nil || n.Pos == nil {
 		return ""
 	}
 	switch n.Kind {
-	case KindFunction:
+	case KindFunction, KindMethod:
 		return x.paramOf(def, arg)
 	case KindStruct:
 		if ctor, kind := x.structMember(def, x.lang.Name(codes.A102)); kind == KindMethod {
@@ -222,6 +229,59 @@ func (x *indexer) calleeParam(def, arg string) string {
 		}
 	}
 	return ""
+}
+
+// calleeParamAt bir tanımın (işlev, metot ya da kurucusuyla yapı) i. konumlu parametresinin düğümüdür ("" yoksa ya
+// da sıra bilinmiyorsa).
+func (x *indexer) calleeParamAt(def string, i int) string {
+	n := x.nodes[def]
+	if n == nil {
+		return ""
+	}
+	if n.Kind == KindStruct {
+		ctor, kind := x.structMember(def, x.lang.Name(codes.A102))
+		if kind != KindMethod {
+			return "" // kurucusuz yapıda konumlu argümanın alanı bilinmez
+		}
+		def = ctor
+	}
+	if list := x.paramsInOrder()[def]; i < len(list) {
+		return list[i]
+	}
+	return ""
+}
+
+// paramsInOrder işlev ve metot kimliğinden parametre düğümlerine, başlıktaki sırayla. Düğümlerden kurulur (artımlı
+// yenilemede önbellekten gelen dosyaların parametreleri de böyle görünür); bir parametresinin konumu bulunamamış
+// (sütunsuz) bildirimin sırası bilinmez, listesi yoktur.
+func (x *indexer) paramsInOrder() map[string][]string {
+	if x.paramOrder != nil {
+		return x.paramOrder
+	}
+	x.paramOrder = map[string][]string{}
+	unknown := map[string]bool{}
+	for id, n := range x.nodes {
+		if n.Kind != KindParameter || n.Pos == nil {
+			continue
+		}
+		owner := n.Name[:strings.LastIndex(n.Name, ".")]
+		oid := NodeID(KindMethod, n.Pos.File, owner)
+		if x.nodes[oid] == nil {
+			oid = NodeID(KindFunction, n.Pos.File, owner)
+		}
+		if n.Pos.Col == 0 {
+			unknown[oid] = true
+		}
+		x.paramOrder[oid] = append(x.paramOrder[oid], id)
+	}
+	for oid, list := range x.paramOrder {
+		if unknown[oid] {
+			delete(x.paramOrder, oid)
+			continue
+		}
+		sort.Slice(list, func(a, b int) bool { return posLess(x.nodes[list[a]].Pos, x.nodes[list[b]].Pos) })
+	}
+	return x.paramOrder
 }
 
 // paramOf bir işlev ya da metot düğümünün arg adlı parametre düğümüdür ("" yoksa).

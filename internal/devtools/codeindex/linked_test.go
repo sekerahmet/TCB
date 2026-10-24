@@ -211,3 +211,57 @@ func TestAConstructorCallReachesItsKurucu(t *testing.T) {
 		t.Errorf("başlat is tested through Katman's kurucu: %+v", got.Tests)
 	}
 }
+
+// forwardSource konumlu iletimde sıra ve alana atamada gölgeleme: `f`'nin `a`'sı `g`'nin `b`'sine gider (bağ yok),
+// `h`'nin `a`'sı `g`'nin `a`'sına (bağ var); Kişi'nin kurucusunda döngü değişkeni `ad` parametreyi gölgeler (bağ yok).
+const forwardSource = `fonksiyon g(b, a) {
+    sonuç b + a
+}
+
+fonksiyon f(a) {
+    sonuç g(a, 1)
+}
+
+fonksiyon h(a) {
+    sonuç g(1, a)
+}
+
+yapı Kişi {
+    ad
+    fonksiyon kurucu(ad, adlar) {
+        döngü ad içinde adlar {
+            kendi.ad = ad
+        }
+    }
+}
+
+yapı Yer {
+    ad
+    fonksiyon kurucu(ad) {
+        kendi.ad = ad
+    }
+}
+`
+
+// Kural: konumlu argüman yalnızca çağrılanın aynı sıradaki parametresi aynı adı taşıyorsa bağlıdır; gövdede yeniden
+// bağlanan (gölgelenen) parametre ne iletimde ne alana atamada bağ kurar (bağımsız denetim grup 6, R2).
+func TestForwardsFollowPositionAndShadowing(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "m.tr"), []byte(forwardSource), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	idx, err := Build(dir, Options{})
+	if err != nil || len(idx.Skipped) > 0 {
+		t.Fatal(err, idx.Skipped)
+	}
+	var got []string
+	for _, e := range idx.Edges {
+		if e.Kind == EdgeForwards {
+			got = append(got, e.From+" -> "+e.To)
+		}
+	}
+	want := "parameter:m.tr#Yer.kurucu.ad -> field:m.tr#Yer.ad parameter:m.tr#h.a -> parameter:m.tr#g.a"
+	if strings.Join(got, " ") != want {
+		t.Errorf("forwards = %v, want %s", got, want)
+	}
+}

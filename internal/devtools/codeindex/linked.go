@@ -10,40 +10,61 @@ import (
 )
 
 // Bağlı bildirimler (deneme 7 R2). Bir parametre aynı adla başka bir çağrıya iletiliyorsa (`f(ad: ad)` ya da konumlu
-// `f(..., ad, ...)`, çağrılanın aynı adlı parametresi varsa) ya da aynı adlı alana atanıyorsa (`kendi.ad = ad`), iki
-// bildirim aynı kavramı taşır: biri yeniden adlandırılınca öbürünün de değiştirilmesi önerilir, ama zorunlu değildir
-// (zorunlu olan çağrı yerindeki adlı argümandır, o kesin değişikliktir). Bu bağ `forwards` kenarıdır; yeniden
-// adlandırma bağlı kümenin bütününü ayrı bir grupta verir.
+// `f(..., ad, ...)`, çağrılanın o sıradaki parametresinin adı da `ad` ise) ya da aynı adlı alana atanıyorsa
+// (`kendi.ad = ad`), iki bildirim aynı kavramı taşır: biri yeniden adlandırılınca öbürünün de değiştirilmesi önerilir,
+// ama zorunlu değildir (zorunlu olan çağrı yerindeki adlı argümandır, o kesin değişikliktir). Bu bağ `forwards`
+// kenarıdır; yeniden adlandırma bağlı kümenin bütününü ayrı bir grupta verir.
 
-// forwardArgs çağrıda sahibin parametresini aynı adla ileten argümanları çağrılanın parametresine bağlar.
+// forwardArgs çağrıda sahibin parametresini aynı adla ileten argümanları çağrılanın parametresine bağlar: adlı
+// argüman `f(ad: ad)` aynı adlı parametreye, konumlu argüman yalnızca çağrılanın aynı sıradaki parametresi aynı adı
+// taşıyorsa (`g(b, a)` için `f(a) { g(a, 1) }` ilk parametreye gider, adı `b`dir: bağ yoktur; bağımsız denetim grup 6,
+// R2).
 func (x *indexer) forwardArgs(f *file, o owner, sc *scope, c *ast.CallExpression) {
-	forward := func(v *ast.Identifier, name string) {
-		p := sc.params[name]
-		if p == "" || v.Value != name || sc.bindCount[name] > 0 {
-			return // parametre değil ya da gövdede yeniden bağlanmış
+	def, conf, called := "", Confidence(""), false
+	link := func(v *ast.Identifier, to func() string) {
+		p := sc.forwardedParam(v.Value)
+		if p == "" {
+			return
 		}
-		to, conf, _ := x.namedArgTarget(f, o, sc, c, name)
-		if to != "" && to != p {
-			x.addEdge(p, to, EdgeForwards, conf, tokenPos(f, v.Token.Line, v.Token.Column, v.Value))
+		if !called {
+			def, conf, _ = x.callee(f, o, sc, c)
+			called = true
+		}
+		if t := to(); t != "" && t != p {
+			x.addEdge(p, t, EdgeForwards, conf, tokenPos(f, v.Token.Line, v.Token.Column, v.Value))
 		}
 	}
 	for _, a := range c.NamedArgs {
-		if v, ok := a.Value.(*ast.Identifier); ok {
-			forward(v, a.Name)
+		if v, ok := a.Value.(*ast.Identifier); ok && v.Value == a.Name {
+			link(v, func() string { return x.calleeParam(def, a.Name) })
 		}
 	}
-	for _, a := range c.Arguments {
+	for i, a := range c.Arguments {
 		if v, ok := a.(*ast.Identifier); ok {
-			forward(v, v.Value) // konumlu: çağrılanın aynı adlı parametresine
+			link(v, func() string {
+				if t := x.calleeParamAt(def, i); t != "" && shortName(x.nodes[t]) == v.Value {
+					return t
+				}
+				return ""
+			})
 		}
 	}
+}
+
+// forwardedParam name gövdede yeniden bağlanmamış bir parametre ise onun düğümüdür, değilse "": döngü değişkeni ya da
+// yeniden tanım parametreyi gölgeler, o ad artık parametre değildir. İletim ve alana atama aynı kuralı kullanır.
+func (sc *scope) forwardedParam(name string) string {
+	if sc.bindCount[name] > 0 {
+		return ""
+	}
+	return sc.params[name]
 }
 
 // storeParam `kendi.ad = ad` atamasında parametreyi aynı adlı alana bağlar.
 func (x *indexer) storeParam(f *file, o owner, sc *scope, s *ast.AssignStatement) {
 	m, ok := s.Target.(*ast.MemberExpression)
 	v, ok2 := s.Value.(*ast.Identifier)
-	if !ok || !ok2 || m.Property != v.Value || sc.params[v.Value] == "" {
+	if !ok || !ok2 || m.Property != v.Value || sc.forwardedParam(v.Value) == "" {
 		return
 	}
 	structID, conf, basis := x.receiver(f, o, sc, m.Object)
