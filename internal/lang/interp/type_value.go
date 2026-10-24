@@ -26,11 +26,12 @@ type TypeVal struct {
 
 func (t *TypeVal) Type() ValueType { return ValType }
 func (t *TypeVal) IsTruthy() bool  { return true }
-func (t *TypeVal) Inspect() string {
+func (t *TypeVal) Inspect() string { return t.text(codes.Active()) }
+func (t *TypeVal) text(lang *codes.Language) string {
 	if t.Struct != nil {
 		return t.Struct.Name
 	}
-	return codes.Name(t.Code)
+	return lang.Name(t.Code)
 }
 
 // Equal is the equality of type values: the same type code or the same struct. The type of a

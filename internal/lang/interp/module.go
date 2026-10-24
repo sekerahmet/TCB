@@ -52,7 +52,25 @@ func shownPath(filePath string) string {
 
 // mainSource ana programın kaynağıdır (SourceFile ve SourceCode'dan).
 func (v *VM) mainSource() *Source {
-	return &Source{Path: v.SourceFile, Name: shownPath(v.SourceFile), Code: v.SourceCode}
+	return &Source{Path: v.SourceFile, Name: shownPath(v.SourceFile), Code: v.SourceCode, Language: v.SourceLanguage}
+}
+
+// textLanguage şu an çalışan kodun dosyasının yazım dilidir: değerler o dosyada bu dilde metne
+// çevrilir (sözcüksel kural, 3; kitaplık fonksiyonu kitaplığın, geri çağırma kendi dosyasının
+// dilinde). nil kanonik dildir (Türkçe): değerin metni Inspect'tir.
+func (v *VM) textLanguage() *codes.Language {
+	language := v.SourceLanguage
+	if v.source != nil {
+		language = v.source.Language
+	}
+	if language == "" || language == codes.SourceLanguage {
+		return nil
+	}
+	l, err := codes.LoadLanguage(language)
+	if err != nil {
+		return nil // dil dosya okunurken doğrulandı (source.Split)
+	}
+	return l
 }
 
 // ModuleError is an error of a file (a module, or code of it called from another file). The

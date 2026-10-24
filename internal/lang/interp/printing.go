@@ -3,12 +3,30 @@ package interp
 import (
 	"fmt"
 	"strings"
+
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 )
 
-// writeContainer bir kabı (Liste, Sözlük, yapı nesnesi) yazdırır. yol, şu an yazdırılmakta olan
-// dış kaplardır: kendini (doğrudan ya da dolaylı) içeren bir kap yeniden görülünce sonsuz
-// özyineleme yerine "[...]" / "{...}" / "Ad{...}" yazılır.
-func writeContainer(v Value, filePath []Value) string {
+// Değerin metni (3, 17.1): metin(), yazdır ve metin yerleştirmesi bir değeri işlemin yazıldığı
+// dosyanın dilinde metne çevirir (valueText). Dile bağlı olan yalnızca dilin değerlerinin adlarıdır
+// (doğru, yanlış, yok ve tip adları; languageText), iç içe kapların içindekiler dahil. Inspect
+// kanonik (Türkçe) kalır: veri biçimleri (JSON, günlük) ve iletiler onu kullanır.
+
+// languageText adı dilin bir sözcüğü olan değerlerdir: metinleri bir yazım dilinde verilir.
+type languageText interface {
+	text(lang *codes.Language) string
+}
+
+// valueText v'nin lang dilinde yazılmış bir dosyadaki metnidir; lang nil ise (kanonik dil)
+// Inspect'tir.
+func valueText(v Value, lang *codes.Language) string {
+	return writeItem(v, lang, nil)
+}
+
+// writeContainer bir kabı (Liste, Sözlük, yapı nesnesi) lang dilinde (nil: kanonik) yazdırır.
+// filePath, şu an yazdırılmakta olan dış kaplardır: kendini (doğrudan ya da dolaylı) içeren bir
+// kap yeniden görülünce sonsuz özyineleme yerine "[...]" / "{...}" / "Ad{...}" yazılır.
+func writeContainer(v Value, lang *codes.Language, filePath []Value) string {
 	for _, u := range filePath {
 		if u == v {
 			switch x := v.(type) {
@@ -32,7 +50,7 @@ func writeContainer(v Value, filePath []Value) string {
 			if el.Type() == ValString {
 				fmt.Fprintf(&sb, "%q", el.Inspect())
 			} else {
-				sb.WriteString(writeItem(el, filePath))
+				sb.WriteString(writeItem(el, lang, filePath))
 			}
 		}
 		sb.WriteByte(']')
@@ -43,7 +61,7 @@ func writeContainer(v Value, filePath []Value) string {
 				sb.WriteString(", ")
 			}
 			if kv, ok := x.KeyVals[k]; ok {
-				sb.WriteString(kv.Inspect())
+				sb.WriteString(writeItem(kv, lang, filePath))
 			} else {
 				fmt.Fprintf(&sb, "%q", k)
 			}
@@ -52,7 +70,7 @@ func writeContainer(v Value, filePath []Value) string {
 			if val.Type() == ValString {
 				fmt.Fprintf(&sb, "%q", val.Inspect())
 			} else {
-				sb.WriteString(writeItem(val, filePath))
+				sb.WriteString(writeItem(val, lang, filePath))
 			}
 		}
 		sb.WriteByte('}')
@@ -68,7 +86,7 @@ func writeContainer(v Value, filePath []Value) string {
 				first = false
 				sb.WriteString(f.Name)
 				sb.WriteString(": ")
-				sb.WriteString(writeItem(val, filePath))
+				sb.WriteString(writeItem(val, lang, filePath))
 			}
 		}
 		sb.WriteByte('}')
@@ -76,11 +94,16 @@ func writeContainer(v Value, filePath []Value) string {
 	return sb.String()
 }
 
-// writeItem bir kabın elemanını yazar; eleman da bir kapsa döngü denetimi sürer.
-func writeItem(v Value, filePath []Value) string {
-	switch v.(type) {
+// writeItem bir kabın elemanını lang dilinde (nil: kanonik) yazar; eleman da bir kapsa döngü
+// denetimi sürer.
+func writeItem(v Value, lang *codes.Language, filePath []Value) string {
+	switch x := v.(type) {
 	case *ListVal, *DictVal, *StructInstanceVal:
-		return writeContainer(v, filePath)
+		return writeContainer(v, lang, filePath)
+	case languageText:
+		if lang != nil {
+			return x.text(lang)
+		}
 	}
 	return v.Inspect()
 }

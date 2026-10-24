@@ -50,8 +50,9 @@ func (v *VM) registerBuiltins() {
 // Ekrana Yazdırma: yazdır(...)
 func printBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	var parts []string
+	lang := y.textLanguage()
 	for _, a := range args {
-		parts = append(parts, a.Inspect())
+		parts = append(parts, valueText(a, lang))
 	}
 	out := strings.Join(parts, " ")
 	y.WriteOutput(y.Out, out+"\n")
@@ -372,8 +373,8 @@ func callable(v Value) bool {
 const MaxCollectionSize = 50_000_000
 
 // singleChar metin(x) yerleşiğinin tek argümanlı gövdesidir.
-func singleChar(_ *VM, a Value) (Value, error) {
-	return &StringVal{Val: a.Inspect()}, nil
+func singleChar(y *VM, a Value) (Value, error) {
+	return &StringVal{Val: valueText(a, y.textLanguage())}, nil
 }
 
 // singleArg kayıtlı bir yerleşiğe, tek argümanla (adlı argümansız) çağrıldığında

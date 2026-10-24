@@ -67,6 +67,7 @@ func (s *dapServer) launch(msg *dapMessage) {
 	machine := interp.New()
 	machine.SourceFile = path
 	machine.SourceCode = code
+	machine.SourceLanguage = ready.Language
 	machine.Out = dapOutput{s, "stdout"}
 	machine.Err = dapOutput{s, "stderr"} // eşzamanlı görev hataları da hata ayıklama konsoluna
 	machine.Stdin = dapNoStdin{}

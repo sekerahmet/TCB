@@ -356,10 +356,10 @@ func TestUncodedFileIsTurkishInEveryLanguage(t *testing.T) {
 	if got := readFile(t, filepath.Join(dir, "ana.tr")); got != program {
 		t.Errorf("TR_DIL=en ile 'tr çöz' Türkçe yazmadı:\n%s", got)
 	}
-	// Kabuğa yazılan satır kişinin yazım dilindedir; kanonik biçime çevrilip çalışır: değerlerin
-	// adları (tip()) kanoniktir.
-	repl := testkit.RunBinary(t, trBinary, dir, "var x = [1, 2].map { it * 10 }\nprint(x, type(x))\nexit\n", []string{"TR_DIL=en"})
-	testkit.Wait(t, repl, 0, []string{"[10, 20] Liste"}, nil)
+	// Kabuğa yazılan satır kişinin yazım dilindedir; kanonik biçime çevrilip çalışır. Değerler
+	// satırın yazıldığı dilde metne çevrilir (3, 17.1): tip() adı İngilizcedir.
+	repl := testkit.RunBinary(t, trBinary, dir, "var x = [1, 2].map { it * 10 }\nprint(x, type(x), true)\nexit\n", []string{"TR_DIL=en"})
+	testkit.Wait(t, repl, 0, []string{"[10, 20] List true"}, nil)
 }
 
 // readFile dosyanın metnidir.
