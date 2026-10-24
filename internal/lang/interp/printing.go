@@ -24,8 +24,9 @@ type languageText interface {
 // kullanmaz: onlar Inspect'tedir.
 func (v *VM) textOf(val Value) string { return valueText(val, v.textLanguage()) }
 
-// valueText v'nin lang dilinde yazılmış bir dosyadaki metnidir; lang nil ise (kanonik dil)
-// Inspect'tir. Aynı dili birden çok değer için bir kez soran çağıranlar (yazdır, birleştir,
+// valueText v'nin lang dilinde yazılmış bir dosyadaki metnidir; lang nil kanonik dildir. Dilin
+// sözcüğü olan değerler (languageText) her zaman bir dilde çevrilir: fonksiyon, yerleşik ve yapı
+// değerlerinin Inspect'i görüntüdür (TR_DIL), program metni ondan alınmaz. Aynı dili birden çok değer için bir kez soran çağıranlar (yazdır, birleştir,
 // yerleştirme) bunu kullanır.
 func valueText(v Value, lang *codes.Language) string {
 	return writeItem(v, lang, nil)
@@ -106,12 +107,22 @@ func writeContainer(v Value, lang *codes.Language, filePath []Value) string {
 // denetimi sürer.
 func writeItem(v Value, lang *codes.Language, filePath []Value) string {
 	switch x := v.(type) {
+	case *StringVal:
+		return x.Val // sık tipler arayüz denetiminden önce (yerleştirmenin sıcak yolu)
+	case *IntVal:
+		return x.Inspect()
+	case *BoolVal:
+		if lang == nil {
+			return x.Inspect()
+		}
+		return x.text(lang)
 	case *ListVal, *DictVal, *StructInstanceVal:
 		return writeContainer(v, lang, filePath)
 	case languageText:
-		if lang != nil {
-			return x.text(lang)
+		if lang == nil {
+			lang = codes.Active()
 		}
+		return x.text(lang)
 	}
 	return v.Inspect()
 }

@@ -21,7 +21,7 @@ func (v *VM) registerTestBuiltins() {
 			return True, nil
 		}
 		if len(args) == 2 {
-			return nil, messages.New(messages.H2456, args[1].Inspect())
+			return nil, messages.New(messages.H2456, y.textOf(args[1])) // kullanıcının değeri dosyanın dilinde (3)
 		}
 		return nil, messages.New(messages.H2457, testShow(args[0]))
 	})

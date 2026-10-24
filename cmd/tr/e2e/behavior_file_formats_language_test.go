@@ -37,9 +37,9 @@ func TestFileFormatsIndependentOfWritingLanguage(t *testing.T) {
 		outputs[i] = s.Stdout
 		shapes[i] = fileFormatShape(t, dir)
 	}
-	// Program her yazım dilinde kanonik biçimiyle çalışır (17.7): çıktısı da aynıdır
-	// (yazdır(tip(...)) iki dilde aynı ad). TR_DIL yalnızca gösterimi değiştirir: aynı
-	// sözdizimi hatası İngilizce başlıkla bildirilir.
+	// Programın çıktısı çalıştıranın diline bağlı değildir: değerin metni dosyanın dilindedir
+	// (dil=tr; yazdır(tip(...)) iki koşuda da Türkçe ad, 3). TR_DIL yalnızca gösterimi
+	// değiştirir: aynı sözdizimi hatası İngilizce başlıkla bildirilir.
 	if outputs[0] != outputs[1] {
 		t.Fatalf("program çıktısı yazım diline göre değişti: %q / %q", outputs[0], outputs[1])
 	}
@@ -138,6 +138,29 @@ func TestDictKeysFollowFileLanguage(t *testing.T) {
 	}
 	if shapes[0] != shapes[1] || !strings.Contains(shapes[0], "\"sürüm\"") {
 		t.Errorf("kontrol noktasının biçimi dosyanın diline göre değişti:\ntr:\n%s\nen:\n%s", shapes[0], shapes[1])
+	}
+}
+
+// Fonksiyon, yerleşik ve yapı değerinin metni de dosyanın dilindedir, çalıştıranın diline
+// (TR_DIL) bağlı değildir (3): aynı program her makinede aynı metni verir.
+func TestFunctionTextFollowsFileLanguage(t *testing.T) {
+	program := "fonksiyon f() { sonuç 1 }\nyapı P { a }\ndeğişken l = [1]\n" +
+		"yazdır(metin(f), metin(P), metin(yazdır), metin(l.ekle), \"{f}\")\n"
+	coded, err := source.Encode(program)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for language, want := range map[string]string{
+		"tr": "<fonksiyon f> <yapı P> <yerleşik yazdır> <yerleşik ekle> <fonksiyon f>\n",
+		"en": "<function f> <struct P> <built-in print> <built-in append> <function f>\n",
+	} {
+		dir := t.TempDir()
+		testkit.WriteFile(t, dir, "p.tr", inLanguage(coded, language))
+		for _, env := range [][]string{{"TR_DIL=tr"}, {"TR_DIL=en"}} {
+			if s := testkit.RunBinary(t, trBinary, dir, "", env, "p.tr"); s.Code != 0 || s.Stdout != want {
+				t.Errorf("dil=%s, %s: %q (çıkış %d, %s), beklenen %q", language, env[0], s.Stdout, s.Code, s.Stderr, want)
+			}
+		}
 	}
 }
 

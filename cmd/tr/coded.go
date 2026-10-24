@@ -41,7 +41,7 @@ func encodeCommand(args []string) {
 		convertFromInput(language, func(text string) (string, error) { return source.EncodeIn(text, language) })
 		return
 	}
-	convertCommand(args, "kodla", messages.Text(messages.H8704), source.Encode)
+	convertCommand(args, "kodla", messages.Text(messages.H8704), func(_, text string) (string, error) { return source.Encode(text) })
 }
 
 // languageArgument standart giriş kipinin '--dil <kod>' argümanını okur (yoksa kişinin yazım
@@ -110,16 +110,21 @@ func convertFromInput(language *codes.Language, convert func(string) (string, er
 	fmt.Print(text)
 }
 
-// decodeCommand 'tr çöz' komutudur; Türkçe yazılmış dosyalara dokunulmaz.
+// decodeCommand 'tr çöz' komutudur; Türkçe yazılmış dosyalara dokunulmaz. Kodsuz dosya Türkçedir
+// (17.7): dili Türkçe olmayan kodlu dosya çözülünce dili değişir, bu yüzden uyarılır (17.1).
 func decodeCommand(args []string) {
-	convertCommand(args, codes.DisplayName(codes.K010), messages.Text(messages.H8705), func(text string) (string, error) {
-		return source.Decode(text, source.Turkish())
+	convertCommand(args, codes.DisplayName(codes.K010), messages.Text(messages.H8705), func(filePath, text string) (string, error) {
+		out, err := source.Decode(text, source.Turkish())
+		if b, _ := source.Split(text); err == nil && b.Coded && b.Language != codes.SourceLanguage {
+			fmt.Fprintln(os.Stderr, "⚠️ "+messages.Text(messages.H8711, filePath, b.Language))
+		}
+		return out, err
 	})
 }
 
 // convertCommand hedeflerdeki (klasörlerde alt klasörler dahil) bütün .tr dosyalarını cevir ile
 // dönüştürüp değişenleri yerine yazar. Hatalı dosyalar atlanır; biri bile varsa 1 koduyla çıkar.
-func convertCommand(args []string, command, verb string, convert func(string) (string, error)) {
+func convertCommand(args []string, command, verb string, convert func(filePath, text string) (string, error)) {
 	if len(args) == 0 {
 		exitWithError(messages.Text(messages.H8703, command))
 	}
@@ -135,7 +140,7 @@ func convertCommand(args []string, command, verb string, convert func(string) (s
 			faulty++
 			continue
 		}
-		updated, err := convert(string(content))
+		updated, err := convert(filePath, string(content))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "✗ %s: %v\n", filePath, err)
 			faulty++

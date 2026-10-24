@@ -84,6 +84,22 @@ y.uygula((x) => str([x]))
 	}
 }
 
+// Programa geri dönen hata metni de program metnidir: fırlatılan değer ve doğrula'nın mesaj
+// değeri fırlatıldığı dosyanın dilinde çevrilir (iletinin çerçevesi görüntüdür, TR_DIL).
+func TestThrownValueTextFollowsTheFilesLanguage(t *testing.T) {
+	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte("fonksiyon at() { fırlat [doğru, yok] }\n")}})
+	out := runEnglish(t, `import "tr/kitap" as k
+try { throw true } catch e { print(e, e == "true") }
+try { throw [none, Int] } catch e { print(e) }
+try { k.at() } catch e { print(e) }
+try { assert(false, none) } catch e { print(e.ends_with(": none")) }
+`, nil)
+	want := "true true\n[none, Int]\n[doğru, yok]\ntrue\n"
+	if out != want {
+		t.Errorf("yakalanan metin fırlatıldığı dosyanın dilinde olmalı:\n%s\nbeklenen:\n%s", out, want)
+	}
+}
+
 // Kod taşıyan çıplak sözlük anahtarı ({step: 1}, Y500) işlemin yazıldığı dosyanın dilindeki
 // adıdır; d.ad okuması ve yazması anahtarı kodun her yazım dilindeki adıyla arar (önce dosyanın
 // dilindeki), yoksa dosyanın dilindeki adla ekler: aynı kodun iki anahtarı oluşmaz (3.7, 17.3).
@@ -103,10 +119,13 @@ var both = {step: 1}
 both["adım"] = 2
 both.step += 10
 print(both)
+var d = {step: 1, foo: 2}
+print(d.keys(), d["step"], d.step)
 `, nil)
 	want := "2 [\"step\", \"renk\", \"öğrenme_oranı\"] 0.1 none 2\n" +
 		"{\"step\": 2, \"renk\": \"mavi\", \"öğrenme_oranı\": 0.2} {\"adım\": 8, \"renk\": 1} 8\n" +
-		"{\"step\": 11, \"adım\": 2}\n" // iki dildeki ad birden varsa dosyanın dilindeki seçilir
+		"{\"step\": 11, \"adım\": 2}\n" + // iki dildeki ad birden varsa dosyanın dilindeki seçilir
+		"[\"step\", \"foo\"] 1 1\n" // DENETİM 5: metin anahtar ve keys() dosyanın dilindeki adı görür
 	if out != want {
 		t.Errorf("sözlük anahtarları dosyanın dilinde, üye erişimi koda göre olmalı:\n%s\nbeklenen:\n%s", out, want)
 	}

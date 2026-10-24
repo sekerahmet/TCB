@@ -18,11 +18,13 @@ func TestHeaderRules(t *testing.T) {
 	if b, err := Split("A030 x = 1\n"); err != nil || b.Coded || b.Language != "tr" {
 		t.Errorf("başlıksız dosya Türkçe olmalı: %+v, %v", b, err)
 	}
-	// Eski ve yeni biçim sürümleri, dilsiz ya da bilinmeyen dilli başlık okunmaz (17.1, 17.6).
+	// Eski ve yeni biçim sürümleri, dilsiz ya da bilinmeyen dilli başlık okunmaz (17.1, 17.6); dilsiz
+	// sürüm 2 başlığı sürümü değil eksik dili söyler (H2523).
 	unreadable := map[string]messages.Code{
 		"//! tr kodlu 1\nA030 x = 1": messages.H2512, "//! tr kodlu 3 dil=en\n": messages.H2512,
-		"//! tr kodlu 2\n": messages.H2512, Header + "\n": messages.H2512, Header: messages.H2512, Header + "en \n": messages.H2508,
-		Header + "fr\n": messages.H2508, "//! tr kodlu\n": messages.H2512,
+		"//! tr kodlu 2\n": messages.H2523, Header + "\n": messages.H2523, Header: messages.H2523, Header + "en \n": messages.H2508,
+		"//! tr kodlu 2 \n": messages.H2512,
+		Header + "fr\n":     messages.H2508, "//! tr kodlu\n": messages.H2512,
 	}
 	for m, code := range unreadable {
 		var bh *HeaderError

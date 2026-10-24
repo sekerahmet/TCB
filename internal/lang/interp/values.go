@@ -359,6 +359,12 @@ func (f *FuncVal) Inspect() string {
 	}
 	return "<ok fonksiyonu>"
 }
+func (f *FuncVal) text(lang *codes.Language) string {
+	if f.Name != "" {
+		return messages.TextIn(lang.Code, messages.H2496, f.Name)
+	}
+	return f.Inspect()
+}
 func (f *FuncVal) IsTruthy() bool { return true }
 
 type BuiltinFunc func(y *VM, args []Value, named map[string]Value) (Value, error)
@@ -383,7 +389,20 @@ type BuiltinVal struct {
 
 func (b *BuiltinVal) Type() ValueType { return ValBuiltin }
 func (b *BuiltinVal) Inspect() string { return messages.Text(messages.H2497, b.Name) }
-func (b *BuiltinVal) IsTruthy() bool  { return true }
+
+// text yerleşiğin lang dilindeki metnidir: adı (kanonik ad, bir yerleşik ya da üye kodu) da o
+// dildedir; koda bağlı olmayan ad olduğu gibi kalır.
+func (b *BuiltinVal) text(lang *codes.Language) string {
+	name := b.Name
+	for _, ns := range []codes.Namespace{codes.NamespaceGlobal, codes.NamespaceMember} {
+		if k, ok := codes.Find(ns, name); ok {
+			name = lang.Name(k)
+			break
+		}
+	}
+	return messages.TextIn(lang.Code, messages.H2497, name)
+}
+func (b *BuiltinVal) IsTruthy() bool { return true }
 
 type StructDefVal struct {
 	Name    string
@@ -400,7 +419,10 @@ type StructDefVal struct {
 
 func (s *StructDefVal) Type() ValueType { return ValStruct }
 func (s *StructDefVal) Inspect() string { return messages.Text(messages.H2498, s.Name) }
-func (s *StructDefVal) IsTruthy() bool  { return true }
+func (s *StructDefVal) text(lang *codes.Language) string {
+	return messages.TextIn(lang.Code, messages.H2498, s.Name)
+}
+func (s *StructDefVal) IsTruthy() bool { return true }
 
 type StructInstanceVal struct {
 	Def    *StructDefVal

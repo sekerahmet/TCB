@@ -288,6 +288,7 @@ const (
 	H2520 Code = 2520 // Koddaki kesme noktası ({keyword})
 	H2521 Code = 2521 // JSON tam sayısı {token|q} Tam aralığının (64 bit işaretli) dışında; ondalık olarak yazın (ör. 1e30)
 	H2522 Code = 2522 // {fn} {owner} içinde çağrılamaz: orada kilit başka göreve geçmez, görevler ilerleyemez
+	H2523 Code = 2523 // '{line}' kodlu biçim başlığında dosyanın dili eksik: '{header}<dil>' yazın, <dil> dosyanın yazım dilinin kodudur ({languages})
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}
@@ -1560,6 +1561,7 @@ const (
 	H8708 Code = 8708 // '{option}' bir yazım dili bekler. Örn: tr {command} ornek.tr {option} tr
 	H8709 Code = 8709 // 'tr {command}' tek bir dosya alır; fazladan argüman: {arg}
 	H8710 Code = 8710 // Lütfen gösterilecek .tr dosyasını belirtin. Örn: tr {command} ornek.tr {option} tr
+	H8711 Code = 8711 // {file}: dosyanın dili {language}; Türkçe yazıma çözülünce dosyanın dili Türkçeye geçer ve programın değerlerden yaptığı metinler (Mantık değerleri, yok, tip adları) Türkçe çıkar
 	H8750 Code = 8750 // gömülü paketin uzunluk alanı bozuk
 	H8751 Code = 8751 // gömülü paket sürümü {version} desteklenmiyor (bu yorumlayıcı en çok {max} sürümünü okur; uygulamayı daha yeni bir 'tr' ile derlenmiş olabilir)
 	H8752 Code = 8752 // gömülü paket çözülemedi: {error}
