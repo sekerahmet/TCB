@@ -119,10 +119,13 @@ var both = {step: 1}
 both["adım"] = 2
 both.step += 10
 print(both)
+var d = {step: 1, foo: 2}
+print(d.keys(), d["step"], d.step)
 `, nil)
 	want := "2 [\"step\", \"renk\", \"öğrenme_oranı\"] 0.1 none 2\n" +
 		"{\"step\": 2, \"renk\": \"mavi\", \"öğrenme_oranı\": 0.2} {\"adım\": 8, \"renk\": 1} 8\n" +
-		"{\"step\": 11, \"adım\": 2}\n" // iki dildeki ad birden varsa dosyanın dilindeki seçilir
+		"{\"step\": 11, \"adım\": 2}\n" + // iki dildeki ad birden varsa dosyanın dilindeki seçilir
+		"[\"step\", \"foo\"] 1 1\n" // DENETİM 5: metin anahtar ve keys() dosyanın dilindeki adı görür
 	if out != want {
 		t.Errorf("sözlük anahtarları dosyanın dilinde, üye erişimi koda göre olmalı:\n%s\nbeklenen:\n%s", out, want)
 	}

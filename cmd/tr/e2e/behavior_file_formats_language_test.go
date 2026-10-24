@@ -37,9 +37,9 @@ func TestFileFormatsIndependentOfWritingLanguage(t *testing.T) {
 		outputs[i] = s.Stdout
 		shapes[i] = fileFormatShape(t, dir)
 	}
-	// Program her yazım dilinde kanonik biçimiyle çalışır (17.7): çıktısı da aynıdır
-	// (yazdır(tip(...)) iki dilde aynı ad). TR_DIL yalnızca gösterimi değiştirir: aynı
-	// sözdizimi hatası İngilizce başlıkla bildirilir.
+	// Programın çıktısı çalıştıranın diline bağlı değildir: değerin metni dosyanın dilindedir
+	// (dil=tr; yazdır(tip(...)) iki koşuda da Türkçe ad, 3). TR_DIL yalnızca gösterimi
+	// değiştirir: aynı sözdizimi hatası İngilizce başlıkla bildirilir.
 	if outputs[0] != outputs[1] {
 		t.Fatalf("program çıktısı yazım diline göre değişti: %q / %q", outputs[0], outputs[1])
 	}
