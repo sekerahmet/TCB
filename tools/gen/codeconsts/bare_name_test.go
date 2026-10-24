@@ -52,7 +52,7 @@ var bareNameAllowances = map[string]map[string]string{
 	// Veri biçimlerindeki sonlu olmayan sayının sabit metni (kontrol noktası, günlük; 19.5, 20):
 	// dilden bağımsız sözleşme, A111'in adı olarak değil, biçimin baytı olarak yazılır.
 	"internal/stdlib/checkpoint/plain.go":           {"NaN": "kontrol noktası veri biçimi (floatText)"},
-	"internal/stdlib/common/jsonwrite/jsonwrite.go": {"NaN": "günlük ve durum dosyası veri biçimi (nonFiniteData)"},
+	"internal/stdlib/common/jsonwrite/jsonwrite.go": {"NaN": "günlük ve durum dosyası veri biçimi (nonFiniteData: NaN, Infinity, -Infinity)"},
 	"internal/lang/codes/definition.go": {
 		"tip":       "definitions.json tür değeri (TurTip)",
 		"fonksiyon": "definitions.json tür değeri (TurFonksiyon)",
