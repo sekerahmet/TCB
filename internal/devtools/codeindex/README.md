@@ -72,7 +72,7 @@ Birim testleri sınadıkları dosyanın adını taşır (`model_test.go` → `mo
 
 **Adlı argüman çağrılan parametreye bağlanır.** `f(ad: 1)` işlevin, `Yapı(ad: 1)` yapının `kurucu` parametresine (kurucu yoksa alana), `a.f(ad: 1)` takma adlı modülün işlevine, `kendi.metot(ad: 1)` metodun parametresine `argument_name` rolüyle bağlanır; bulunamazsa yerleşik adlı argüman (`NamespaceParam`) olarak eskisi gibi çözülür. Denetim: `TestParameterAndNamedArgumentOccurrences`.
 
-**`komut_satırı({ad: ...})` anahtarı bir seçenektir.** Sözlüğün tırnaksız anahtarları (ve `açıklamalar: {ad: ...}` anahtarları) `option:dosya#ad` düğümüne `option_key` rolüyle bağlanır; anahtar komut satırında `--ad` olur. Denetim: `TestCommandLineOptionKeys`.
+**`komut_satırı({ad: ...})` anahtarı bir seçenektir.** Sözlüğün tırnaksız anahtarları (ve `açıklamalar: {ad: ...}` anahtarları) `option:dosya#ad` düğümüne `option_key` rolüyle bağlanır; anahtar komut satırında `--ad` olur. Seçeneğin adı çalışma anındaki adıdır: dilin bir üye adı olan anahtar dosyanın dilinde yazılır (K3; İngilizce kodlu betikte `{step: 100}` → `option:...#step`, `--step`), kullanıcının kendi adı iki dilde aynıdır; konum Türkçe gösterimdeki anahtarın yeridir. İki dilin eş betikleri ayrı dosyada, ayrı düğümlerdir. Denetim: `TestCommandLineOptionKeys`, `TestOptionNameFollowsTheFilesLanguage`.
 
 ## Yeniden adlandırma etkisi (`tr dizin yeniden_adlandır`)
 

@@ -13,6 +13,7 @@ type parsed struct {
 	coded   bool   // dosya kodlu biçimdeydi
 	errs    []error
 	roles   map[[2]int]parser.NameRole // ad sözcüklerinin sözdizimi görevi (satır, sütun): tırnaksız sözlük anahtarı, tip yazımı, alan adı ...
+	lang    string                     // dosyanın yazım dili (kodlu dosyada başlığınki, kodsuzda tr; 17.7)
 }
 
 // splitTurkish bir .tr dosyasını Türkçe gövdesine böler: kodlu dosya önce Türkçe yazıma çevrilir
@@ -31,6 +32,7 @@ func splitTurkish(text string) (parts source.Parts, coded bool, err error) {
 	if err != nil {
 		return parts, true, err
 	}
+	decoded.Language = parts.Language // gövde Türkçeye çevrildi, dosyanın dili başlığınkidir
 	return decoded, true, nil
 }
 
@@ -41,7 +43,7 @@ func splitTurkish(text string) (parts source.Parts, coded bool, err error) {
 func readTurkish(text string, module bool) *parsed {
 	res := &parsed{program: &ast.Program{}}
 	b, coded, err := splitTurkish(text)
-	res.coded = coded
+	res.coded, res.lang = coded, b.Language
 	if err != nil {
 		res.errs = []error{err}
 		return res

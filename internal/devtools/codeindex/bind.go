@@ -297,6 +297,32 @@ func (x *indexer) paramOf(fnID, arg string) string {
 	return id
 }
 
+// optionName seçeneğin komut satırındaki adıdır. Dilin bir üye adı olan çıplak anahtar çalışma anında derlenen dosyanın
+// dilinde yazılır (K3, compiler.dictKey: İngilizce betikte `{step: 100}` → `--step`); dizin dosyayı Türkçe okuduğu
+// için anahtar `adım` görünür, ad dosyanın dilinden alınır. Kullanıcının adı ve Türkçe dosya olduğu gibi kalır. Konum
+// Türkçe gösterimdeki anahtarın yeridir. İki dildeki eş betiklerin seçenekleri ayrı dosyalarda, ayrı düğümlerdir.
+func (x *indexer) optionName(f *file, key string) string {
+	if f.res.lang == "" || f.res.lang == codes.SourceLanguage {
+		return key
+	}
+	code, ok := x.lang.Find(codes.NamespaceMember, key)
+	if !ok {
+		return key
+	}
+	if x.fileLangs == nil {
+		x.fileLangs = map[string]*codes.Language{}
+	}
+	l, seen := x.fileLangs[f.res.lang]
+	if !seen {
+		l, _ = codes.LoadLanguage(f.res.lang)
+		x.fileLangs[f.res.lang] = l
+	}
+	if l == nil || l.Name(code) == "" {
+		return key
+	}
+	return l.Name(code)
+}
+
 // optionKeys komut_satırı({ad: ...}) çağrısının sözlük anahtarlarını (ve açıklamalar: {ad: ...}
 // anahtarlarını) seçenek düğümlerine bağlar: anahtar komut satırında `--ad` olur.
 func (x *indexer) optionKeys(f *file, o owner, sc *scope, c *ast.CallExpression) {
@@ -326,10 +352,11 @@ func (x *indexer) optionKeys(f *file, o owner, sc *scope, c *ast.CallExpression)
 			if !ok || !f.res.dictKey(key.Token.Line, key.Token.Column) {
 				continue
 			}
-			id := NodeID(KindOption, f.rel, key.Value)
+			name := x.optionName(f, key.Value)
+			id := NodeID(KindOption, f.rel, name)
 			pos := tokenPos(f, key.Token.Line, key.Token.Column, key.Value)
 			if x.nodes[id] == nil {
-				x.nodes[id] = &Node{ID: id, Kind: KindOption, Name: key.Value, Pos: &pos, Qualified: f.base + "." + key.Value}
+				x.nodes[id] = &Node{ID: id, Kind: KindOption, Name: name, Pos: &pos, Qualified: f.base + "." + name}
 			}
 			x.occurrenceBasis(id, RoleOptionKey, Extracted, pos, o.id, "")
 		}
