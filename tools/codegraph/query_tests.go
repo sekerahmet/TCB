@@ -161,14 +161,42 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 		candidates = append(candidates, t.test)
 	}
 	about := ix.aboutTests(n, candidates)
-	isAbout := map[string]bool{}
-	for _, a := range about {
-		isAbout[a.test.ID] = true
+	walks, tests, asValue, indirect, viaNames = keepStrongest(about, walks, tests, asValue, indirect, viaNames)
+	found := len(about) + len(tests) + len(walks) + len(asValue) + len(indirect) + len(viaNames)
+	if found == 0 && len(measured) == 0 && len(indirectMeasured) == 0 && len(subprocess) == 0 {
+		if !ix.printLinkedBinaries(w, n) {
+			fmt.Fprintln(w, "  no tests found")
+		}
+		ix.printOtherConfigs(w, n, limit)
+		return
 	}
-	// Bir test, en güçlü kanıtının grubundan başka gruplardan çıkarılır (bağımsız denetim grup 6, S1: doğrudan test ad
-	// kodu grubunda bir kez daha yazılıyordu). Zincir ve ad kodu grupları kanıt gücüne göre sıralanır (printInferred);
-	// ikisinde birden olan test daha kısa olanında kalır.
-	shown := isAbout
+	switch {
+	case found == 0 && len(subprocess) > 0:
+		fmt.Fprintln(w, "  no tests traced to it (only subprocess tests, below)")
+	case found == 0:
+		fmt.Fprintln(w, "  no tests found (only measurements, below)")
+	}
+	ix.printAboutTests(w, about, limit)
+	ix.printGroups(w, "  <-", tests, fromOf, limit, true) // sonra doğrudan testler: bu adı ya da dosyayı kullananlar
+	ix.printWalks(w, walks, limit)
+	ix.printValueTests(w, asValue, limit)
+	ix.printInferred(w, n, indirect, viaNames, limit)
+	ix.printAllSkipNote(w, about, allTests, walks, asValue, indirect, viaNames)
+	ix.printSubprocessTests(w, subprocess)
+	ix.printMeasurements(w, measured, indirectMeasured, limit)
+	ix.printGuardedRules(w, allTests, allIndirect, limit)
+	ix.printOtherConfigs(w, n, limit)
+}
+
+// keepStrongest bir testi, en güçlü kanıtının grubundan başka gruplardan çıkarır (bağımsız denetim grup 6, S1:
+// doğrudan test ad kodu grubunda bir kez daha yazılıyordu): önce onu konu edinenler, sonra bütün listeyi gezenler,
+// doğrudan kullananlar, değer olarak kullananlar; zincir ve ad kodu grupları kanıt gücüne göre sıralanır
+// (printInferred), ikisinde birden olan test daha kısa olanında kalır.
+func keepStrongest(about []aboutTest, walks, tests []*Edge, asValue, indirect []indirectTest, viaNames []nameTest) ([]*Edge, []*Edge, []indirectTest, []indirectTest, []nameTest) {
+	shown := map[string]bool{}
+	for _, a := range about {
+		shown[a.test.ID] = true
+	}
 	walks = slices.DeleteFunc(slices.Clone(walks), func(e *Edge) bool { return shown[e.From] })
 	for _, e := range walks {
 		shown[e.From] = true // bütün listeyi gezen test her öğeyi sınar: doğrudan kullananlardan önce kendi grubunda
@@ -196,30 +224,7 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 		return ok && s <= t.steps
 	})
 	indirect = slices.DeleteFunc(indirect, func(it indirectTest) bool { _, ok := byName[it.test.ID]; return ok })
-	found := len(about) + len(tests) + len(walks) + len(asValue) + len(indirect) + len(viaNames)
-	if found == 0 && len(measured) == 0 && len(indirectMeasured) == 0 && len(subprocess) == 0 {
-		if !ix.printLinkedBinaries(w, n) {
-			fmt.Fprintln(w, "  no tests found")
-		}
-		ix.printOtherConfigs(w, n, limit)
-		return
-	}
-	switch {
-	case found == 0 && len(subprocess) > 0:
-		fmt.Fprintln(w, "  no tests traced to it (only subprocess tests, below)")
-	case found == 0:
-		fmt.Fprintln(w, "  no tests found (only measurements, below)")
-	}
-	ix.printAboutTests(w, about, limit)
-	ix.printGroups(w, "  <-", tests, fromOf, limit, true) // sonra doğrudan testler: bu adı ya da dosyayı kullananlar
-	ix.printWalks(w, walks, limit)
-	ix.printValueTests(w, asValue, limit)
-	ix.printInferred(w, n, indirect, viaNames, limit)
-	ix.printAllSkipNote(w, about, allTests, walks, asValue, indirect, viaNames)
-	ix.printSubprocessTests(w, subprocess)
-	ix.printMeasurements(w, measured, indirectMeasured, limit)
-	ix.printGuardedRules(w, allTests, allIndirect, limit)
-	ix.printOtherConfigs(w, n, limit)
+	return walks, tests, asValue, indirect, viaNames
 }
 
 // isTRMeasurement TR ölçüm programının bildirimi mi (tools/bench/tr/fib.tr): zincirde test gibi durak, ölçüm grubunda.
