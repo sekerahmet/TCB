@@ -6,7 +6,7 @@ TR'ye yeni bir şey eklerken hangi dosyalara, hangi sırayla dokunulduğu ve "bi
 
 1. **Önce başka dillere bak.** Eklenecek şeyin başka dillerde ve çerçevelerde (Python, Swift, Kotlin, Rust, Go, PyTorch, JAX ...) nasıl çözüldüğünü kısa bir tabloyla karşılaştır: hangi davranış, hangi ad, hangi hata. Yerleşik olanı TR'ye uyarla; hiçbiri uymuyorsa gerekçesiyle yeni bir yöntem seç. Tabloyu ve kararı dil tanımı maddesine ya da commit mesajına yaz.
 2. **Önce var olana bak.** Aynı işi yapan bir ad ([`codes.md`](codes.md)), bir yardımcı (`bind`, `turkish.FileError`, `interp.ArgCountError`) ya da bir ileti (`internal/lang/messages/tr.json`) varsa onu kullan. Aynı işi yapan iki kod olmaz. Aramayı kod grafiğiyle yap ([`tools/codegraph`](../tools/codegraph/README.md)): benzer bir örneğin dokunduğu dosyaları `query <ad>`, çağıranlarını ve testlerini `tests-for <fonksiyon>` verir; değiştireceğin şeyin etki alanını da böyle gör.
-3. **Ad koddur, ileti koddur.** Kullanıcının yazacağı her ad kod listesinden bir kod alır (yeni ad kodunu baş geliştirici verir). Kullanıcının göreceği her ileti paketin aralığından bir ileti kodu alır (ileti kodunu işi yapan ekler). Kullanıcıya görünen her yeni ad bir örnekte geçer: dilin adları `examples/tr`'nin bir örneğinde (`TestExamplesCoverNames`), `lib/*.tr`'nin dışa açık adları da öyle (`TestExamplesCoverLibraryNames`); örnek yoksa yazılır, `examples/en` eşiyle birlikte.
+3. **Ad koddur, ileti koddur.** Kullanıcının yazacağı her ad kod listesinden bir kod alır (numarası ailesinin kuralıyla verilir, adı baş geliştirici onaylar). Kullanıcının göreceği her ileti paketin aralığından bir ileti kodu alır (ileti kodunu işi yapan ekler). Kullanıcıya görünen her yeni ad bir örnekte geçer: dilin adları `examples/tr`'nin bir örneğinde (`TestExamplesCoverNames`), `lib/*.tr`'nin dışa açık adları da öyle (`TestExamplesCoverLibraryNames`); örnek yoksa yazılır, `examples/en` eşiyle birlikte.
 4. **Testsiz ekleme yoktur.** Her davranışın bir testi olur. Bir düzeltmenin testi düzeltmeden önce kalır, sonra geçer.
 5. **Belge işle birlikte değişir.** Dil davranışı değiştiyse dil tanımında (`docs/spec/`) bir madde, kullanıcı için anlatmak gerekiyorsa kılavuzda (`docs/guide/`) bir satır.
 6. **Bitti = tam denetim.** `bash tools/full_check.sh` geçer. Sıcak yola dokunulduysa önce ve sonra ölçülür.
@@ -121,7 +121,7 @@ Testler: `x_test.go` her kaynak dosyanın yanında; birden çok dosyayı kesen d
 
 Örnek: `eşle` (A003).
 
-1. **Tasarım ve ad.** Dil tanımında yeni madde (`docs/spec/`); ad kodu (`A0xx` anahtar kelime, `A1xx` bağlamsal sözcük) baş geliştiriciden. Kodlu saklama da adı kodla yazar, bu yüzden ad sonradan değişebilir.
+1. **Tasarım ve ad.** Dil tanımında yeni madde (`docs/spec/`); ad kodu (`A0xx` anahtar kelime, `A1xx` bağlamsal sözcük) ailesinin kuralıyla, adı baş geliştiricinin onayıyla. Kodlu saklama da adı kodla yazar, bu yüzden ad sonradan değişebilir.
 2. **Sözdizimi.** `internal/lang/lexer` (gerekiyorsa yeni sözcük), `internal/lang/ast` (düğüm), `internal/lang/parser` (ayrıştırma; hata `messages.At(satır, sütun, messages.New(...))`).
 3. **Anlam.** `internal/lang/checker` (tip denetimi ve uyarılar), `internal/lang/interp` (derleme ve çalışma; sıcak yolda ad araması yok).
 4. **Araçlar.** Biçimlendirici (`internal/devtools/formatter`), düzenleyici renklendirmesi (`go generate ./internal/lang/codes`), gerekiyorsa hata ayıklayıcı.
