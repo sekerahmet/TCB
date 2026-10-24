@@ -128,3 +128,16 @@ func TestTextsRendersEveryErrorInOrder(t *testing.T) {
 		t.Fatalf("Texts(nil) = %#v, boş dizi bekleniyordu", got)
 	}
 }
+
+// TextIn iletiyi sürecin dilinden bağımsız, verilen dilde kurar; metni olmayan dilde kaynak dil.
+func TestTextIn(t *testing.T) {
+	if got := TextIn("en", H2496, "f"); got != "<function f>" {
+		t.Errorf("en: %q", got)
+	}
+	if got := TextIn("tr", H2496, "f"); got != "<fonksiyon f>" {
+		t.Errorf("tr: %q", got)
+	}
+	if got := TextIn("xx", H2496, "f"); got != "<fonksiyon f>" {
+		t.Errorf("bilinmeyen dil kaynak dile düşmeli: %q", got)
+	}
+}

@@ -20,6 +20,19 @@ func New(c Code, args ...any) *Error { return &Error{Code: c, Args: args} }
 // the code or any coded error among the values, it is all in the source language.
 func Text(c Code, args ...any) string { return catalogFor(c, args).render(c, args) }
 
+// TextIn is the message's text in the given language instead of the process's (the source
+// language when that language has no text for it). A value's text follows the language of the
+// file the program is written in, not TR_DIL (docs/spec/03_tipler.md): '<function f>' in an
+// English file wherever it runs.
+func TextIn(lang string, c Code, args ...any) string {
+	load()
+	cat, ok := catalogs[lang]
+	if !ok || !cat.translates(c, args) {
+		cat = catalogs["tr"]
+	}
+	return cat.render(c, args)
+}
+
 func (e *Error) Error() string { return Text(e.Code, e.Args...) }
 
 // errorText hatanın metnidir (nil için boş).

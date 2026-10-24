@@ -141,6 +141,29 @@ func TestDictKeysFollowFileLanguage(t *testing.T) {
 	}
 }
 
+// Fonksiyon, yerleşik ve yapı değerinin metni de dosyanın dilindedir, çalıştıranın diline
+// (TR_DIL) bağlı değildir (3): aynı program her makinede aynı metni verir.
+func TestFunctionTextFollowsFileLanguage(t *testing.T) {
+	program := "fonksiyon f() { sonuç 1 }\nyapı P { a }\ndeğişken l = [1]\n" +
+		"yazdır(metin(f), metin(P), metin(yazdır), metin(l.ekle), \"{f}\")\n"
+	coded, err := source.Encode(program)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for language, want := range map[string]string{
+		"tr": "<fonksiyon f> <yapı P> <yerleşik yazdır> <yerleşik ekle> <fonksiyon f>\n",
+		"en": "<function f> <struct P> <built-in print> <built-in append> <function f>\n",
+	} {
+		dir := t.TempDir()
+		testkit.WriteFile(t, dir, "p.tr", inLanguage(coded, language))
+		for _, env := range [][]string{{"TR_DIL=tr"}, {"TR_DIL=en"}} {
+			if s := testkit.RunBinary(t, trBinary, dir, "", env, "p.tr"); s.Code != 0 || s.Stdout != want {
+				t.Errorf("dil=%s, %s: %q (çıkış %d, %s), beklenen %q", language, env[0], s.Stdout, s.Code, s.Stderr, want)
+			}
+		}
+	}
+}
+
 // fileFormatShape klasördeki dosya adlarını ve her JSON dosyasının (satırının) anahtar
 // kümesini, değerleri atarak, sıralı bir özet olarak verir.
 func fileFormatShape(t *testing.T, dir string) string {
