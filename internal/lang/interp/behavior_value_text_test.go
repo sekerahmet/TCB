@@ -84,6 +84,22 @@ y.uygula((x) => str([x]))
 	}
 }
 
+// Programa geri dönen hata metni de program metnidir: fırlatılan değer ve doğrula'nın mesaj
+// değeri fırlatıldığı dosyanın dilinde çevrilir (iletinin çerçevesi görüntüdür, TR_DIL).
+func TestThrownValueTextFollowsTheFilesLanguage(t *testing.T) {
+	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte("fonksiyon at() { fırlat [doğru, yok] }\n")}})
+	out := runEnglish(t, `import "tr/kitap" as k
+try { throw true } catch e { print(e, e == "true") }
+try { throw [none, Int] } catch e { print(e) }
+try { k.at() } catch e { print(e) }
+try { assert(false, none) } catch e { print(e.ends_with(": none")) }
+`, nil)
+	want := "true true\n[none, Int]\n[doğru, yok]\ntrue\n"
+	if out != want {
+		t.Errorf("yakalanan metin fırlatıldığı dosyanın dilinde olmalı:\n%s\nbeklenen:\n%s", out, want)
+	}
+}
+
 // Kod taşıyan çıplak sözlük anahtarı ({step: 1}, Y500) işlemin yazıldığı dosyanın dilindeki
 // adıdır; d.ad okuması ve yazması anahtarı kodun her yazım dilindeki adıyla arar (önce dosyanın
 // dilindeki), yoksa dosyanın dilindeki adla ekler: aynı kodun iki anahtarı oluşmaz (3.7, 17.3).

@@ -241,7 +241,7 @@ func (c *compiler) throwStatement(k *compilerScope, s *ast.ThrowStatement) state
 		if err != nil {
 			return nil, signalNone, err
 		}
-		return nil, signalNone, messages.New(messages.H2441, val.Inspect())
+		return nil, signalNone, messages.New(messages.H2441, v.textOf(val)) // programa geri döner: dosyanın dilinde (3)
 	}
 }
 
