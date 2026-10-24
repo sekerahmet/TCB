@@ -38,7 +38,7 @@ func TestConstantsUpToDate(t *testing.T) {
 func TestNoBareCodes(t *testing.T) {
 	root := reporoot.Root()
 	pattern := regexp.MustCompile(`\bcodes\.[AGTYVWH] *\+`)
-	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+	err := reporoot.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}

@@ -105,7 +105,7 @@ func findLayer(path string) (allowed []string, ok bool) {
 func TestLayerRule(t *testing.T) {
 	root := reporoot.Root()
 	pkgCount := 0
-	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+	err := reporoot.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -184,7 +184,7 @@ func TestExternalDependencies(t *testing.T) {
 	for _, goos := range []string{"linux", "windows", "darwin"} {
 		ctx := build.Default
 		ctx.GOOS, ctx.CgoEnabled = goos, false
-		err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		err := reporoot.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 			if err != nil || !d.IsDir() {
 				return err
 			}

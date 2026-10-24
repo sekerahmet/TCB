@@ -63,7 +63,7 @@ func TestNoTurkishLiterals(t *testing.T) {
 	root := reporoot.Root()
 	found := map[string][]string{}
 	used := map[string]bool{}
-	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+	err := reporoot.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}

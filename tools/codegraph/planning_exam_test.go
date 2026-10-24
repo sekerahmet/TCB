@@ -5,6 +5,8 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -299,6 +301,9 @@ func TestPlanningQuestionsAreAnswered(t *testing.T) {
 	if bad, checked := trNameSetMismatches(g, idx, x.reader); len(bad) > 0 || checked < 20 {
 		t.Errorf("tr dizin and codegraph resolve %d of %d bare TR names differently:"+"\n  %s", len(bad), checked, strings.Join(bad[:min(len(bad), 20)], "\n  "))
 	}
+	if bad, checked := testsListedTwice(g); len(bad) > 0 || checked < 100 {
+		t.Errorf("tests-for lists a test in two groups for %d of %d targets:\n  %s", len(bad), checked, strings.Join(bad[:min(len(bad), 20)], "\n  "))
+	}
 	out, _ := gitStdout(root, "rev-parse", "--is-shallow-repository")
 	shallow := strings.TrimSpace(string(out)) == "true" // CI kaynağı derinlik 1 ile alır: geçmiş yok
 	for _, r := range records {
@@ -358,41 +363,98 @@ func trTestSetMismatches(g *Graph, idx *codeindex.Index, reader *codeindex.Reade
 	return bad, checked
 }
 
-// trNameSetMismatches her TR bildirim adını iki araca sorar: `tr dizin` (codeindex.Resolve) ile codegraph'ın lookup'ı
-// çıplak ad için aynı TR bildirim kümesini vermeli (deneme 7 R1: tanım 3, yeniden_adlandır 7, query 4 aday veriyordu).
-// Yerleşik ad kodları ve modüller karşılaştırılmaz: grafikte ad kodu düğümüdür, modül dosya düğümüdür.
+// trNameSetMismatches her TR adını iki araca sorar: `tr dizin` (codeindex.Resolve) ile codegraph (trByName, kaynakta
+// yazıldığı gibi sorulunca lookup'ın kendisi) çıplak ad için aynı TR aday kümesini vermeli (deneme 7 R1: tanım 3,
+// yeniden_adlandır 7, query 4 aday veriyordu; bağımsız denetim grup 6 R1: büyük harfli sorgu, modül + yerleşik ve
+// yerleşik + test çakışması farklıydı). Adlar: her bildirimin kısa adı, modülün adı ve takma adları, testin açıklaması,
+// dizindeki her yerleşiğin bütün adları; her ad yazıldığı gibi, küçük harfle ve büyük harfle (Türkçe kuralı) sorulur.
+// Karşılaştırma tr dizin'in bildiği düğümlerdedir: grafiğin ad kodlarından yalnızca dizinde yerleşik düğümü olanlar
+// sayılır (anahtar sözcükler ve kullanılmayan yerleşikler yalnızca grafiktedir).
 func trNameSetMismatches(g *Graph, idx *codeindex.Index, reader *codeindex.Reader) (bad []string, checked int) {
 	ix := newIndex(g)
+	known := map[string]bool{} // tr dizin'in düğümlerinin grafik kimlikleri
 	names := map[string]bool{}
 	for _, n := range idx.Nodes {
-		if n.Kind == codeindex.KindBuiltin || n.Kind == codeindex.KindModule || n.Kind == codeindex.KindTest {
-			continue
+		id := graphID(n)
+		known[id] = true
+		switch n.Kind {
+		case codeindex.KindBuiltin:
+			if gn := ix.byID[id]; gn != nil {
+				names[gn.Name] = true
+				for _, a := range gn.Aliases {
+					names[a] = true
+				}
+			}
+		case codeindex.KindModule:
+			names[n.Name] = true
+			for _, a := range n.Aliases {
+				names[a] = true
+			}
+		case codeindex.KindTest:
+			names[n.Name] = true // açıklamada '.' olabilir: kısaltılmaz
+		default:
+			names[n.Name[strings.LastIndex(n.Name, ".")+1:]] = true
 		}
-		names[n.Name[strings.LastIndex(n.Name, ".")+1:]] = true
 	}
 	for name := range names {
-		if strings.ContainsFunc(name, unicode.IsUpper) {
-			continue // büyük harfli ad yapı ya da tiptir; Go adlarıyla aynı basamakta çözülür, karşılaştırma küçük harfli adlarda
-		}
-		found := reader.Resolve(name, "")
-		if len(found) < 2 {
-			continue // tek adaylı ad belirsizlik taşımaz; karşılaştırma aday kümesi kurulan adlarda (sınav süresi)
-		}
-		checked++
-		want := map[string]bool{}
-		for _, n := range found {
-			if n.Kind != codeindex.KindBuiltin && n.Kind != codeindex.KindModule && n.Kind != codeindex.KindTest {
+		for vi, q := range []string{name, codeindex.Fold(name), strings.ToUpperSpecial(unicode.TurkishCase, name)} {
+			if vi > 0 && q == name {
+				continue
+			}
+			checked++
+			want := map[string]bool{}
+			for _, n := range reader.Resolve(q, "") {
 				want[graphID(*n)] = true
 			}
-		}
-		got := map[string]bool{}
-		for _, n := range ix.lookup(name) {
-			if strings.HasPrefix(n.ID, "tr:") && n.Kind != kindFile && n.Kind != kindTRTest {
-				got[n.ID] = true
+			got := map[string]bool{}
+			found, _ := ix.trByName(q, nil)
+			if vi == 0 && !strings.ContainsAny(q, "./:") {
+				found = ix.lookup(q) // yazıldığı gibi sorulan adda sorgunun kendisi
+			}
+			for _, n := range found {
+				if known[n.ID] {
+					got[n.ID] = true
+				}
+			}
+			if !maps.Equal(want, got) {
+				bad = append(bad, fmt.Sprintf("%q: tr dizin %d %v, codegraph %d %v", q, len(want), slices.Sorted(maps.Keys(want)), len(got), slices.Sorted(maps.Keys(got))))
 			}
 		}
-		if !maps.Equal(want, got) {
-			bad = append(bad, fmt.Sprintf("%s: tr dizin %d, codegraph %d", name, len(want), len(got)))
+	}
+	sort.Strings(bad)
+	return bad, checked
+}
+
+// testsListedTwice her TR işlevi ve metodu, testi olan her ad kodu ve internal/stdlib'in her Go işlevi için tests-for'un
+// test gruplarında bir testin iki kez yazılıp yazılmadığına bakar: her test bir kez, en güçlü kanıtının grubunda
+// (bağımsız denetim grup 6, S1: files.TestDeleteWindowsJunction doğrudan grupta ve ad kodu grubunda yazılıyordu).
+func testsListedTwice(g *Graph) (bad []string, checked int) {
+	ix := newIndex(g)
+	item := regexp.MustCompile(`^    (\S.*?) \[(func|tr_test)\]`)
+	for i := range g.Nodes {
+		n := &g.Nodes[i]
+		switch {
+		case n.Kind == kindTRFunc || n.Kind == kindTRMethod:
+		case n.Kind == kindName && len(ix.in[n.ID]) > 0:
+		case n.Kind == kindFunc && strings.HasPrefix(n.File, "internal/stdlib/") && !inTestFile(n):
+		default:
+			continue
+		}
+		checked++
+		var buf strings.Builder
+		ix.printTestsFor(&buf, n, 0)
+		seen, inGroup := map[string]bool{}, false
+		for _, line := range strings.Split(buf.String(), "\n") {
+			if strings.HasPrefix(line, "  ") && !strings.HasPrefix(line, "    ") {
+				inGroup = strings.HasPrefix(line, "  <- tests") || strings.HasPrefix(line, "  <- weak evidence (") && !strings.Contains(line, "linked into the binary")
+				continue
+			}
+			if m := item.FindStringSubmatch(line); inGroup && m != nil {
+				if seen[m[1]] {
+					bad = append(bad, n.Name+": "+m[1])
+				}
+				seen[m[1]] = true
+			}
 		}
 	}
 	sort.Strings(bad)

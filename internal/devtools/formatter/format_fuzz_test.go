@@ -18,7 +18,7 @@ import (
 //	go test ./internal/devtools/formatter -run '^$' -fuzz FuzzFormat -fuzztime 5m
 func FuzzFormat(f *testing.F) {
 	for _, dir := range []string{"tests", "examples", "lib"} {
-		_ = filepath.WalkDir(filepath.Join(reporoot.Root(), dir), func(fpath string, g fs.DirEntry, err error) error {
+		_ = reporoot.WalkDir(filepath.Join(reporoot.Root(), dir), func(fpath string, g fs.DirEntry, err error) error {
 			if err == nil && !g.IsDir() && strings.HasSuffix(fpath, ".tr") {
 				if data, err := os.ReadFile(fpath); err == nil {
 					f.Add(string(data))

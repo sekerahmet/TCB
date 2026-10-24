@@ -5,7 +5,6 @@ import (
 	"go/parser"
 	"go/token"
 	"io/fs"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -20,7 +19,7 @@ func TestStatefulImplementersAreAsserted(t *testing.T) {
 	fset := token.NewFileSet()
 	methods := map[string]map[string]bool{} // tip → yöntemler
 	asserted := map[string]bool{}
-	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+	err := reporoot.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".go") {
 			return err
 		}

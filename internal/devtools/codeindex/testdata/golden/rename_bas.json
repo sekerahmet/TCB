@@ -7,7 +7,9 @@
     "language": "tr"
   },
   "counts": {
-    "total": 22
+    "total": 22,
+    "certain": 4,
+    "likely": 18
   },
   "truncated": false,
   "new_name": "bakış_sayısı",

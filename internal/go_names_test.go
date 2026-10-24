@@ -70,7 +70,7 @@ func TestGoNamesMixedCaps(t *testing.T) {
 	var bad []string
 	used := map[string]bool{}
 	scanned := 0
-	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+	err := reporoot.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}

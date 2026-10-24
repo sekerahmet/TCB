@@ -5,6 +5,10 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/parser"
+	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
 const linkedSource = `yapı Dikkat {
@@ -79,18 +83,112 @@ func TestRenameShowsLinkedDeclarationsAndDictKeys(t *testing.T) {
 	}
 }
 
-// Kural: sözlük anahtarı, ardından ':' gelen ve en yakın açık parantezi '{' olan addır; '(' içindeki `ad:` adlı
-// argümandır, ':=' atamadır.
-func TestIsDictKey(t *testing.T) {
-	lines := []string{"x = {a: 1,", "    b: f(c: 2)}", "d := 3"}
-	for _, c := range []struct {
-		line, col int
-		word      string
-		want      bool
-	}{{1, 6, "a", true}, {2, 5, "b", true}, {2, 13, "c", false}, {3, 1, "d", false}} {
-		if got := isDictKey(lines, Pos{Line: c.line, Col: c.col}, c.word); got != c.want {
-			t.Errorf("isDictKey(%d:%d %s) = %v, want %v", c.line, c.col, c.word, got, c.want)
+// dictKeySource `a:` yazımının bütün biçimleri: yapı alanı, adlı argüman (dizgede ')' ile), sözlük anahtarı (dizgede ve
+// yorumda '(' ile), tip yazımı.
+const dictKeySource = `yapı Kişi {
+    a: Metin
+}
+
+fonksiyon hedef(a) {
+    sonuç a
+}
+
+fonksiyon çağır(nesne) {
+    sonuç nesne.koş(")", a: 1)
+}
+
+fonksiyon sözlükler(x) {
+    değişken s = {ad: "(", a: x}
+    değişken t = {
+        // açıklama (
+        a: x,
+    }
+    sonuç [s, t]
+}
+
+fonksiyon yerel() {
+    değişken a: Tam = 1
+    sonuç a
+}
+
+fonksiyon tipli(a: Metin) {
+    sonuç 1
+}
+`
+
+// Kural: sözlük anahtarı kararı satır metninden değil sözdizimi ağacından verilir: yalnızca sözlük değişmezinin
+// tırnaksız anahtarı "sözlük anahtarı"dır; yapı alanı, adlı argüman ve tip yazımı da `a:` yazılır ama değildir, dizgedeki
+// ve yorumdaki parantez kararı değiştirmez (bağımsız denetim grup 6, R3: bunlar sessizce "kendiliğinden değişmez"
+// etiketi alıyordu ya da gerçek anahtar kaçıyordu).
+func TestDictKeysComeFromTheSyntaxTree(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "m.tr"), []byte(dictKeySource), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	idx, err := Build(dir, Options{})
+	if err != nil || len(idx.Skipped) > 0 {
+		t.Fatal(err, idx.Skipped)
+	}
+	res := NewReader(idx).RenameImpact("parameter:m.tr#hedef.a", "yeni", RenameOptions{Root: dir})
+	var keys []string
+	for _, c := range res.Likely {
+		if c.Role == RoleDictKey {
+			keys = append(keys, c.Pos.String())
 		}
+	}
+	if want := "m.tr:14:28 m.tr:17:9"; strings.Join(keys, " ") != want {
+		t.Errorf("dictionary keys = %v, want %s:\n%s", keys, want, RenameText(res))
+	}
+}
+
+// Kural: ayrıştırıcının "tırnaksız sözlük anahtarı" kaydı (parsed.dictKey) sözdizimi ağacıyla aynıdır: depodaki her
+// .tr dosyasında sözlük değişmezinin tırnaksız yazılmış her anahtarı kayıtlıdır, kayıtlı her yer de böyle bir anahtardır.
+// Ayrıştırıcıya sözlük yazan yeni bir yol eklenip kayıt unutulursa yeniden adlandırma o anahtarları kaçırır.
+func TestDictKeyRecordMatchesTheSyntaxTree(t *testing.T) {
+	root := reporoot.Root()
+	files := ListFiles(root, []string{"lib", "examples", "tests", "tools"}, nil, TrackedFiles, func(rel string) bool {
+		return strings.HasSuffix(rel, ".tr")
+	})
+	checked := 0
+	for _, rel := range files {
+		data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		res := readFile(string(data))
+		if len(res.errs) > 0 {
+			continue // ayrıştırılamayan (olumsuz örnek) dosyada ağaç yarımdır
+		}
+		lines := strings.Split(res.text, "\n")
+		want := map[[2]int]bool{}
+		ast.Walk(res.program, func(n any) bool {
+			if d, ok := n.(*ast.DictLiteral); ok {
+				for _, p := range d.Pairs {
+					k, ok := p.Key.(*ast.StringLiteral)
+					if !ok || k.Token.Line < 1 || k.Token.Line > len(lines) {
+						continue
+					}
+					if row := []rune(lines[k.Token.Line-1]); k.Token.Column >= 1 && k.Token.Column <= len(row) && row[k.Token.Column-1] != '"' {
+						want[[2]int{k.Token.Line, k.Token.Column}] = true
+					}
+				}
+			}
+			return true
+		})
+		for at := range want {
+			checked++
+			if !res.dictKey(at[0], at[1]) {
+				t.Errorf("%s:%d:%d: a bare dictionary key is not recorded as one", rel, at[0], at[1])
+			}
+		}
+		for at, role := range res.roles {
+			if role == parser.RoleDictKey && !want[at] {
+				t.Errorf("%s:%d:%d: recorded as a dictionary key but the syntax tree has no bare key there", rel, at[0], at[1])
+			}
+		}
+	}
+	if checked < 50 {
+		t.Errorf("only %d dictionary keys checked; the repository's .tr files were not found", checked)
 	}
 }
 
@@ -111,5 +209,59 @@ func TestAConstructorCallReachesItsKurucu(t *testing.T) {
 	}
 	if got := NewReader(idx).TestedBy("başlat", QueryOptions{}); len(got.Tests) != 1 {
 		t.Errorf("başlat is tested through Katman's kurucu: %+v", got.Tests)
+	}
+}
+
+// forwardSource konumlu iletimde sıra ve alana atamada gölgeleme: `f`'nin `a`'sı `g`'nin `b`'sine gider (bağ yok),
+// `h`'nin `a`'sı `g`'nin `a`'sına (bağ var); Kişi'nin kurucusunda döngü değişkeni `ad` parametreyi gölgeler (bağ yok).
+const forwardSource = `fonksiyon g(b, a) {
+    sonuç b + a
+}
+
+fonksiyon f(a) {
+    sonuç g(a, 1)
+}
+
+fonksiyon h(a) {
+    sonuç g(1, a)
+}
+
+yapı Kişi {
+    ad
+    fonksiyon kurucu(ad, adlar) {
+        döngü ad içinde adlar {
+            kendi.ad = ad
+        }
+    }
+}
+
+yapı Yer {
+    ad
+    fonksiyon kurucu(ad) {
+        kendi.ad = ad
+    }
+}
+`
+
+// Kural: konumlu argüman yalnızca çağrılanın aynı sıradaki parametresi aynı adı taşıyorsa bağlıdır; gövdede yeniden
+// bağlanan (gölgelenen) parametre ne iletimde ne alana atamada bağ kurar (bağımsız denetim grup 6, R2).
+func TestForwardsFollowPositionAndShadowing(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "m.tr"), []byte(forwardSource), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	idx, err := Build(dir, Options{})
+	if err != nil || len(idx.Skipped) > 0 {
+		t.Fatal(err, idx.Skipped)
+	}
+	var got []string
+	for _, e := range idx.Edges {
+		if e.Kind == EdgeForwards {
+			got = append(got, e.From+" -> "+e.To)
+		}
+	}
+	want := "parameter:m.tr#Yer.kurucu.ad -> field:m.tr#Yer.ad parameter:m.tr#h.a -> parameter:m.tr#g.a"
+	if strings.Join(got, " ") != want {
+		t.Errorf("forwards = %v, want %s", got, want)
 	}
 }

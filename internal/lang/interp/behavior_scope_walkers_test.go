@@ -24,7 +24,7 @@ func TestExprWalkersMatchReferenceOnRepositoryPrograms(t *testing.T) {
 	root := reporoot.Root()
 	programs, expressions := 0, 0
 	for _, dir := range []string{"tests", "lib", "examples"} {
-		_ = filepath.WalkDir(filepath.Join(root, dir), func(path string, d fs.DirEntry, err error) error {
+		_ = reporoot.WalkDir(filepath.Join(root, dir), func(path string, d fs.DirEntry, err error) error {
 			if err != nil || d.IsDir() || filepath.Ext(path) != ".tr" {
 				return nil
 			}

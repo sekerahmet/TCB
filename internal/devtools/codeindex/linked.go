@@ -10,40 +10,61 @@ import (
 )
 
 // Bağlı bildirimler (deneme 7 R2). Bir parametre aynı adla başka bir çağrıya iletiliyorsa (`f(ad: ad)` ya da konumlu
-// `f(..., ad, ...)`, çağrılanın aynı adlı parametresi varsa) ya da aynı adlı alana atanıyorsa (`kendi.ad = ad`), iki
-// bildirim aynı kavramı taşır: biri yeniden adlandırılınca öbürünün de değiştirilmesi önerilir, ama zorunlu değildir
-// (zorunlu olan çağrı yerindeki adlı argümandır, o kesin değişikliktir). Bu bağ `forwards` kenarıdır; yeniden
-// adlandırma bağlı kümenin bütününü ayrı bir grupta verir.
+// `f(..., ad, ...)`, çağrılanın o sıradaki parametresinin adı da `ad` ise) ya da aynı adlı alana atanıyorsa
+// (`kendi.ad = ad`), iki bildirim aynı kavramı taşır: biri yeniden adlandırılınca öbürünün de değiştirilmesi önerilir,
+// ama zorunlu değildir (zorunlu olan çağrı yerindeki adlı argümandır, o kesin değişikliktir). Bu bağ `forwards`
+// kenarıdır; yeniden adlandırma bağlı kümenin bütününü ayrı bir grupta verir.
 
-// forwardArgs çağrıda sahibin parametresini aynı adla ileten argümanları çağrılanın parametresine bağlar.
+// forwardArgs çağrıda sahibin parametresini aynı adla ileten argümanları çağrılanın parametresine bağlar: adlı
+// argüman `f(ad: ad)` aynı adlı parametreye, konumlu argüman yalnızca çağrılanın aynı sıradaki parametresi aynı adı
+// taşıyorsa (`g(b, a)` için `f(a) { g(a, 1) }` ilk parametreye gider, adı `b`dir: bağ yoktur; bağımsız denetim grup 6,
+// R2).
 func (x *indexer) forwardArgs(f *file, o owner, sc *scope, c *ast.CallExpression) {
-	forward := func(v *ast.Identifier, name string) {
-		p := sc.params[name]
-		if p == "" || v.Value != name || sc.bindCount[name] > 0 {
-			return // parametre değil ya da gövdede yeniden bağlanmış
+	def, conf, called := "", Confidence(""), false
+	link := func(v *ast.Identifier, to func() string) {
+		p := sc.forwardedParam(v.Value)
+		if p == "" {
+			return
 		}
-		to, conf, _ := x.namedArgTarget(f, o, sc, c, name)
-		if to != "" && to != p {
-			x.addEdge(p, to, EdgeForwards, conf, tokenPos(f, v.Token.Line, v.Token.Column, v.Value))
+		if !called {
+			def, conf, _ = x.callee(f, o, sc, c)
+			called = true
+		}
+		if t := to(); t != "" && t != p {
+			x.addEdge(p, t, EdgeForwards, conf, tokenPos(f, v.Token.Line, v.Token.Column, v.Value))
 		}
 	}
 	for _, a := range c.NamedArgs {
-		if v, ok := a.Value.(*ast.Identifier); ok {
-			forward(v, a.Name)
+		if v, ok := a.Value.(*ast.Identifier); ok && v.Value == a.Name {
+			link(v, func() string { return x.calleeParam(def, a.Name) })
 		}
 	}
-	for _, a := range c.Arguments {
+	for i, a := range c.Arguments {
 		if v, ok := a.(*ast.Identifier); ok {
-			forward(v, v.Value) // konumlu: çağrılanın aynı adlı parametresine
+			link(v, func() string {
+				if t := x.calleeParamAt(def, i); t != "" && shortName(x.nodes[t]) == v.Value {
+					return t
+				}
+				return ""
+			})
 		}
 	}
+}
+
+// forwardedParam name gövdede yeniden bağlanmamış bir parametre ise onun düğümüdür, değilse "": döngü değişkeni ya da
+// yeniden tanım parametreyi gölgeler, o ad artık parametre değildir. İletim ve alana atama aynı kuralı kullanır.
+func (sc *scope) forwardedParam(name string) string {
+	if sc.bindCount[name] > 0 {
+		return ""
+	}
+	return sc.params[name]
 }
 
 // storeParam `kendi.ad = ad` atamasında parametreyi aynı adlı alana bağlar.
 func (x *indexer) storeParam(f *file, o owner, sc *scope, s *ast.AssignStatement) {
 	m, ok := s.Target.(*ast.MemberExpression)
 	v, ok2 := s.Value.(*ast.Identifier)
-	if !ok || !ok2 || m.Property != v.Value || sc.params[v.Value] == "" {
+	if !ok || !ok2 || m.Property != v.Value || sc.forwardedParam(v.Value) == "" {
 		return
 	}
 	structID, conf, basis := x.receiver(f, o, sc, m.Object)
@@ -87,60 +108,11 @@ func (r *Reader) linkedTo(id string) []*Node {
 
 // Sözlük anahtarı (deneme 7 R3). `kendi.ayar = {..., bakış_sayısı: bakış_sayısı, ...}` anahtarı bir ad değil, verinin
 // biçimidir (kaydedilen ayar dosyası onu okur): yeniden adlandırılan parametreyle aynı yazılsa da değiştirilmesi bir veri
-// biçimi kararıdır. Metin eşleşmesi böyle bir anahtarsa ayrı rol ve eşleşme türüyle (sözlük anahtarı; veri biçimi,
+// biçimi kararıdır. Metin eşleşmesi ayrıştırıcının tırnaksız sözlük anahtarı dediği yerdeyse (parsed.dictKey) ayrı rol ve eşleşme türüyle (sözlük anahtarı; veri biçimi,
 // kendiliğinden değişmez) olası grupta kalır.
 const RoleDictKey Role = "dict_key" // sözlük değişmezinin tırnaksız anahtarı
 
 const MatchDataFormat = "data_format" // anahtar verinin biçimidir: kendiliğinden değişmez
-
-// lines dosyanın Türkçe gösterim satırlarıdır (yoksa nil).
-func (s *lineSource) lines(file string) []string {
-	s.at(Pos{File: file, Line: 1})
-	return s.cache[file]
-}
-
-// isDictKey p'de başlayan word bir sözlük değişmezinin anahtarı mı: ardından ':' gelir (':=' değil) ve onu saran en
-// yakın açık parantez '{'dir. Çağrının adlı argümanı da `ad:` yazılır ama '(' içindedir; dizindeki adlı argümanlar
-// zaten kesin değişikliktir, metin taramasına gelmez.
-func isDictKey(lines []string, p Pos, word string) bool {
-	if p.Line < 1 || p.Line > len(lines) || p.Col < 1 {
-		return false
-	}
-	row := []rune(lines[p.Line-1])
-	end := p.Col - 1 + len([]rune(word))
-	if end > len(row) {
-		return false
-	}
-	rest := strings.TrimLeft(string(row[end:]), " \t")
-	if !strings.HasPrefix(rest, ":") || strings.HasPrefix(rest, ":=") {
-		return false
-	}
-	depth := 0 // geriye doğru kapanmış parantezler
-	for l := p.Line - 1; l >= 0 && l >= p.Line-40; l-- {
-		r := []rune(lines[l])
-		from := len(r) - 1
-		if l == p.Line-1 {
-			from = p.Col - 2
-		}
-		for i := from; i >= 0; i-- {
-			switch r[i] {
-			case ')', '}', ']':
-				depth++
-			case '(', '[':
-				if depth == 0 {
-					return false
-				}
-				depth--
-			case '{':
-				if depth == 0 {
-					return true
-				}
-				depth--
-			}
-		}
-	}
-	return false
-}
 
 // addLinked hedeflerin bağlı bildirimlerini sonuca ekler (hedefler hariç, her biri bir kez) ve bildirim yerlerini metin
 // taramasından çıkarır: onlar bu gruptadır.
@@ -165,7 +137,7 @@ func (r *Reader) addLinked(res *Result, targets []*Node, skip map[string]bool) {
 // textChange bir metin eşleşmesini olası değişikliğe çevirir; TR kodundaki sözlük anahtarı kendi rolünü alır.
 func textChange(h TextHit, lines *lineSource) Change {
 	ch := Change{Pos: h.Pos, Where: h.Where, Match: h.Match, Word: h.Word, Context: h.Context, Replacement: h.Suggestion, Check: h.Check}
-	if strings.HasSuffix(h.Pos.File, ".tr") && h.Where == WhereCode && isDictKey(lines.lines(h.Pos.File), h.Pos, h.Word) {
+	if strings.HasSuffix(h.Pos.File, ".tr") && h.Where == WhereCode && lines.dictKey(h.Pos) {
 		ch.Role, ch.Match = RoleDictKey, MatchDataFormat
 	}
 	return ch

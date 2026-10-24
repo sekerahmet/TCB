@@ -173,3 +173,74 @@ func TestAreaOfSquare(t *testing.T) { _ = Area(3) }
 		t.Errorf("the test named after Area first, once; the other one under the direct tests:\n%s", got)
 	}
 }
+
+// Kural: Go testinin adı hedefi paketsiz kısa adının sözcüklerinde anar (`TestTensorData` Data'yı anar,
+// `dataset_test.TestReaderState` anmaz); TR testinde modül adı sayılmaz (bağımsız denetim grup 6, S1).
+func TestTestNamesNameATargetByWord(t *testing.T) {
+	for _, c := range []struct {
+		test, name string
+		want       bool
+	}{
+		{"TestTensorData", "Data", true},
+		{"TestReaderStateResumesSameBatches", "Data", false},
+		{"TestSaveOnIntervalWrites", "saveOnInterval", true},
+		{"TestSaveOnce", "saveOnInterval", false},
+		{"TestHTTPServerStarts", "Server", true},
+		{"TestFormatterAligns", "Format", false},
+	} {
+		if got := containsWords(nameWords(c.test), nameWords(c.name)); got != c.want {
+			t.Errorf("%s names %s = %v, want %v (words %v)", c.test, c.name, got, c.want, nameWords(c.test))
+		}
+	}
+	if got := testTitle(&Node{Kind: kindTRTest, Name: "metin_test: böl ayırır"}); got != "böl ayırır" {
+		t.Errorf("TR test title = %q", got)
+	}
+	if got := testTitle(&Node{Kind: kindFunc, Name: "dataset_test.TestReaderState"}); got != "TestReaderState" {
+		t.Errorf("Go test title = %q", got)
+	}
+}
+
+// Kural: işlev adı yuvalı ({fn}) iletiyi bekleyen TR satırı, yuvada hedefin adı duruyorsa hedefi bekler: `metin.böl()`ün
+// iletisini bekleyen satır `metin`i beklemez (bağımsız denetim grup 6, S1).
+func TestMessageSlotMustHoldTheTarget(t *testing.T) {
+	const tpl = "{fn}() '{param}' adında bir parametre almaz"
+	for _, c := range []struct {
+		line  string
+		names []string
+		want  bool
+	}{
+		{`hata_bekle(yazdır(1, ayraç: 2), "yazdır() 'ayraç' adında bir parametre almaz")`, []string{"yazdır"}, true},
+		{`hata_bekle(metin.böl("a", x: 1), "böl() 'x' adında bir parametre almaz")`, []string{"metin"}, false},
+		{`yazdır(metin(1))`, []string{"metin"}, false},
+	} {
+		if got := fnSlotHolds(tpl, c.line, c.names); got != c.want {
+			t.Errorf("%s / %v = %v, want %v", c.line, c.names, got, c.want)
+		}
+	}
+	if !fnSlotHolds("{path|q} okunamadı: {reason}", "herhangi", []string{"x"}) {
+		t.Error("a template without {fn} sets no slot condition")
+	}
+}
+
+// Kural: hedefin ürettiği ileti yalnızca hedefin (ve çağırdıklarının) ürettiği iletidir; başka işlevlerin de ürettiği
+// sarmalayıcı ileti (`{fn}: {error}`) onu bekleyen testi hedefin "about" grubuna koymaz (bağımsız denetim grup 6, S1).
+func TestOnlyOwnMessagesMakeATestAboutTheTarget(t *testing.T) {
+	g := &Graph{Nodes: []Node{
+		{ID: "go:p.save", Kind: kindFunc, Name: "p.save", File: "p/p.go"},
+		{ID: "go:p.load", Kind: kindFunc, Name: "p.load", File: "p/p.go"},
+		{ID: "msg:H1", Kind: kindMessage, Name: "H1", Detail: "{fn}: {error}"},
+		{ID: "msg:H2", Kind: kindMessage, Name: "H2", Detail: "kayıt yazılamadı: {error}"},
+	}, Edges: []Edge{
+		{From: "go:p.save", To: "msg:H1", Kind: edgeUsesMessage},
+		{From: "go:p.load", To: "msg:H1", Kind: edgeUsesMessage},
+		{From: "go:p.save", To: "msg:H2", Kind: edgeUsesMessage},
+	}}
+	ix := newIndex(g)
+	var got []string
+	for _, m := range ix.producedMessages(ix.byID["go:p.save"]) {
+		got = append(got, m.Name)
+	}
+	if strings.Join(got, " ") != "H2" {
+		t.Errorf("messages of save = %v, want only H2 (H1 is load's too)", got)
+	}
+}

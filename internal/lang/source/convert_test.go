@@ -153,7 +153,7 @@ func repoFiles(t *testing.T, ext string) []string {
 	t.Helper()
 	var files []string
 	root := reporoot.Root()
-	err := filepath.WalkDir(root, func(path string, g fs.DirEntry, err error) error {
+	err := reporoot.WalkDir(root, func(path string, g fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}

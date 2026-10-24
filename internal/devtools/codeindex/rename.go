@@ -104,7 +104,7 @@ func validateNewName(old, name string) string {
 	switch {
 	case !identifierPattern.MatchString(name):
 		return ReasonInvalidName
-	case fold(name) == fold(old):
+	case Fold(name) == Fold(old):
 		return ReasonSameName
 	}
 	for _, code := range codes.Languages() {
@@ -147,7 +147,7 @@ func (r *Reader) RenameImpact(q, newName string, o RenameOptions) *Result {
 	}
 	words := map[string]string{} // katlanmış sözcük -> yazıldığı gibi
 	for _, n := range targets {
-		words[fold(shortName(n))] = shortName(n)
+		words[Fold(shortName(n))] = shortName(n)
 	}
 	for _, w := range words {
 		if reason := validateNewName(w, newName); reason != "" {
@@ -190,7 +190,7 @@ func (r *Reader) RenameImpact(q, newName string, o RenameOptions) *Result {
 	}
 	sortChanges(res.Certain)
 	sortChanges(res.Likely)
-	res.Counts = &Counts{Total: len(res.Certain) + len(res.Likely)}
+	res.Counts = &Counts{Total: len(res.Certain) + len(res.Likely), Certain: len(res.Certain), Likely: len(res.Likely)}
 	if o.Limit > 0 {
 		var cut1, cut2 bool
 		res.Certain, cut1 = limit(res.Certain, o.Limit)
@@ -271,23 +271,31 @@ func (r *Reader) PrepareRename(file string, line, col int) (*PrepareResult, stri
 	return &PrepareResult{Range: oc.Pos, Placeholder: shortName(n), Node: r.display(*n)}, ""
 }
 
-// lineSource değişiklik satırlarının metnini diskten okur (Türkçe gösterim satırları).
+// lineSource değişiklik satırlarının metnini diskten okur (Türkçe gösterim satırları); .tr dosyasını sözdizimi kararları
+// (sözlük anahtarı) için bir kez ayrıştırır.
 type lineSource struct {
-	root  string
-	cache map[string][]string
+	root   string
+	cache  map[string][]string
+	parsed map[string]*parsed
+}
+
+// read dosyanın ham metnidir (okunamazsa ya da gömülü kitaplıktaysa ok false).
+func (s *lineSource) read(file string) (string, bool) {
+	if s.root == "" || strings.HasPrefix(file, libraryPrefix) {
+		return "", false
+	}
+	data, err := os.ReadFile(filepath.Join(s.root, filepath.FromSlash(file)))
+	return string(data), err == nil
 }
 
 func (s *lineSource) at(p Pos) string {
-	if s.root == "" || strings.HasPrefix(p.File, libraryPrefix) {
-		return ""
-	}
 	if s.cache == nil {
 		s.cache = map[string][]string{}
 	}
 	lines, ok := s.cache[p.File]
 	if !ok {
-		if data, err := os.ReadFile(filepath.Join(s.root, filepath.FromSlash(p.File))); err == nil {
-			lines = strings.Split(displayText(string(data)), "\n")
+		if text, ok := s.read(p.File); ok {
+			lines = strings.Split(displayText(text), "\n")
 		}
 		s.cache[p.File] = lines
 	}
@@ -295,6 +303,21 @@ func (s *lineSource) at(p Pos) string {
 		return ""
 	}
 	return clip(strings.TrimRight(lines[p.Line-1], "\r"))
+}
+
+// dictKey p'deki ad tırnaksız bir sözlük anahtarı mı (parsed.dictKey).
+func (s *lineSource) dictKey(p Pos) bool {
+	if s.parsed == nil {
+		s.parsed = map[string]*parsed{}
+	}
+	res, ok := s.parsed[p.File]
+	if !ok {
+		if text, ok := s.read(p.File); ok {
+			res = readFile(text)
+		}
+		s.parsed[p.File] = res
+	}
+	return res.dictKey(p.Line, p.Col)
 }
 
 // renameTerm terim kipidir: sembol aranmaz, q sözcüğü (ve ekli biçimleri) yalnızca metinde aranır.
@@ -306,7 +329,7 @@ func (r *Reader) renameTerm(res *Result, q, newName string, o RenameOptions) *Re
 	case !identifierPattern.MatchString(newName):
 		res.Status, res.Reason = StatusRejected, ReasonInvalidName
 		return res
-	case fold(newName) == fold(q):
+	case Fold(newName) == Fold(q):
 		res.Status, res.Reason = StatusRejected, ReasonSameName
 		return res
 	}

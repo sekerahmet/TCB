@@ -86,12 +86,12 @@ type wordMatcher struct {
 }
 
 func newWordMatcher(word, repl string) *wordMatcher {
-	m := &wordMatcher{word: fold(word), repl: repl, suffix: suffixTails(fold(word)), derived: derivedTails(fold(word))}
-	oldH, _ := lastHarmony(fold(word))
-	newH, ok := lastHarmony(fold(repl))
+	m := &wordMatcher{word: Fold(word), repl: repl, suffix: suffixTails(Fold(word)), derived: derivedTails(Fold(word))}
+	oldH, _ := lastHarmony(Fold(word))
+	newH, ok := lastHarmony(Fold(repl))
 	m.harmOK = ok && oldH == newH
 	m.soft, _ = soften(m.word)
-	m.replSoft, _ = soften(fold(repl))
+	m.replSoft, _ = soften(Fold(repl))
 	return m
 }
 
@@ -108,14 +108,14 @@ func lastHarmony(s string) (harmony, bool) {
 // classify bir sözcüğün (alt çizgisiyle) aranan sözcükle ilişkisini söyler; ilişkisi yoksa "" ve
 // başında aranan sözcük varsa other=true (başka, başla: sayılır ama listelenmez).
 func (m *wordMatcher) classify(token string) (match, suggestion, check string, other bool) {
-	t := fold(token)
+	t := Fold(token)
 	if t == m.word {
 		return MatchExact, m.repl, "", false
 	}
 	if strings.Contains(t, "_") {
 		parts := strings.Split(token, "_")
 		for i, p := range parts {
-			if fold(p) == m.word {
+			if Fold(p) == m.word {
 				parts[i] = m.repl
 				return MatchCompound, strings.Join(parts, "_"), "", false
 			}
@@ -255,7 +255,7 @@ func scanFile(rel, ext, text string, m *wordMatcher, exclude map[string]bool) ([
 		line = strings.TrimRight(line, "\r")
 		runes := []rune(line)
 		where := state.line(runes) // durum her satırda ilerler (blok yorum ve ham metin)
-		if folded := fold(line); !strings.Contains(folded, m.word) && (m.soft == "" || !strings.Contains(folded, m.soft)) {
+		if folded := Fold(line); !strings.Contains(folded, m.word) && (m.soft == "" || !strings.Contains(folded, m.soft)) {
 			continue
 		}
 		for i := 0; i < len(runes); i++ {

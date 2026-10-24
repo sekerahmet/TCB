@@ -14,11 +14,11 @@ import (
 // positionQuery "dosya.tr:satır[:sütun]" biçimli sorgudur: imlecin altındaki ad.
 var positionQuery = regexp.MustCompile(`^(.+\.tr):(\d+)(?::(\d+))?$`)
 
-// fold Türkçe büyük-küçük harf kuralıyla küçültür (İ→i, I→ı): düz ToLower "I"yı "i" yapardı.
-func fold(s string) string { return strings.ToLowerSpecial(unicode.TurkishCase, s) }
+// Fold Türkçe büyük-küçük harf kuralıyla küçültür (İ→i, I→ı): düz ToLower "I"yı "i" yapardı. İki aracın (tr dizin ve
+// codegraph) tek harf katlamasıdır.
+func Fold(s string) string { return strings.ToLowerSpecial(unicode.TurkishCase, s) }
 
-// hasUpper sorguda büyük harf var mı: yoksa eşleştirme büyük-küçük harfe bakmaz, varsa tam eşleşir
-// (`go doc` ile aynı akıllı harf kuralı).
+// hasUpper sorguda büyük harf var mı (NameKeys).
 func hasUpper(s string) bool {
 	for _, r := range s {
 		if unicode.IsUpper(r) {
@@ -26,6 +26,71 @@ func hasUpper(s string) bool {
 		}
 	}
 	return false
+}
+
+// NameKey ad karşılaştırmasının bir geçişidir: Folded false ise ad aynen Key olmalı, true ise adın Türkçe katlanmışı
+// (Fold) Key olmalı.
+type NameKey struct {
+	Key    string
+	Folded bool
+}
+
+// NameKeys sorgunun harf kuralıdır; iki aracın (tr dizin ve codegraph) tek kuralı (bağımsız denetim grup 6, R1: biri
+// her zaman katlıyor, öbürü büyük harfli sorguda tam eşleşme istiyordu). Sorguda büyük harf yoksa büyük-küçük harf
+// Türkçe kuralıyla yok sayılır (`ışık` = `Işık`, `isik` ≠ `Işık`); varsa önce tam eşleşme aranır (ripgrep 14
+// `--smart-case` kuralı; `go doc` da büyük harfi tam eşleştirir), hiçbir aday tam tutmazsa harf yok sayılarak bir kez
+// daha (`GÖMMEKATMANI` → `GömmeKatmanı`: bütün harfleri büyük yazılmış sorgu bir harf kararı değildir).
+func NameKeys(q string) []NameKey {
+	if hasUpper(q) {
+		return []NameKey{{Key: q}, {Key: Fold(q), Folded: true}}
+	}
+	return []NameKey{{Key: Fold(q), Folded: true}}
+}
+
+// Match name (katlanmışı folded) bu geçişte uyuyor mu.
+func (k NameKey) Match(name, folded string) bool {
+	if k.Folded {
+		return folded == k.Key
+	}
+	return name == k.Key
+}
+
+// NameClass bir adayın çıplak ad çözümündeki sınıfıdır (PickByName).
+type NameClass int
+
+const (
+	ClassModule      NameClass = iota // modül adı ya da yolu (`katman`, `tr/katman`)
+	ClassDeclaration                  // bildirilmiş kısa ad: işlev, yapı, alan, metot, parametre, seçenek ...
+	ClassBuiltin                      // yerleşik ad (her dilde) ya da ad kodu
+	ClassTest                         // test bloğunun açıklaması
+	ClassNone                         // uymuyor
+)
+
+// PickByName çıplak adın adaylarını seçer; iki aracın tek sınıf kuralı. class i. adayın bu sorgudaki sınıfıdır.
+// Modül adı bildirimlerden önce gelir (`katman` modüldür, aynı adlı parametreler değil); yerleşik ad uyan ilk sınıfa
+// katılır, biri sessizce seçilmez (`metin` hem yerleşik hem modül, `her_dakika` hem seçenek hem adlı argüman); test
+// bloğunun açıklaması bir ad değil metindir, başka aday yoksa gelir (bağımsız denetim grup 6, R1: `ortalama` yerleşiği
+// aynı açıklamalı bir testle belirsiz, `metin` yerleşiği modülün arkasında kayboluyordu). Sıralar artan döner.
+func PickByName(n int, class func(i int) NameClass) []int {
+	var by [ClassNone][]int
+	for i := 0; i < n; i++ {
+		if c := class(i); c < ClassNone {
+			by[c] = append(by[c], i)
+		}
+	}
+	var out []int
+	switch {
+	case len(by[ClassModule]) > 0:
+		out = append(by[ClassModule], by[ClassBuiltin]...)
+	case len(by[ClassDeclaration]) > 0:
+		out = append(by[ClassDeclaration], by[ClassBuiltin]...)
+	case len(by[ClassBuiltin]) > 0:
+		return by[ClassBuiltin]
+	default:
+		return by[ClassTest]
+	}
+	sort.Ints(out)
+	return out
 }
 
 // builtinNames kodların her gömülü dildeki adlarını (ve okuyanın dilindeki adı) toplar: bir
@@ -61,10 +126,10 @@ func builtinNames(idx *Index) map[string][]string {
 }
 
 // Resolve bir sorgu metnini düğümlere çözer; ilk eşleşme veren basamaktaki bütün düğümleri döner
-// (birden çoksa belirsizdir). Basamaklar: "dosya.tr:satır:sütun" konumu; kimlik; modül yolu ya da
-// adı (`katman`, `tr/katman`); kanonik ad; modülle nitelenmiş ad (`katman.Doğrusal.ileri`);
-// yerleşik adı (her dilde); nitelenmiş adın sonu (`Doğrusal.ileri`, `ileri`). Sorguda büyük harf
-// yoksa büyük-küçük harf Türkçe kuralıyla yok sayılır. kind boş değilse yalnızca o tür.
+// (birden çoksa belirsizdir). Basamaklar: "dosya.tr:satır:sütun" konumu; kimlik; çıplak ad (PickByName: modül yolu ya
+// da adı `katman`, `tr/katman`; bildirilmiş kısa ad; yerleşik adı, her dilde; test açıklaması); modülle nitelenmiş ad
+// (`katman.Doğrusal.ileri`); nitelenmiş adın sonu (`Doğrusal.ileri`). Harf kuralı NameKeys'tir: her geçişte bütün
+// basamaklar denenir. kind boş değilse yalnızca o tür.
 func (r *Reader) Resolve(q, kind string) []*Node {
 	if m := positionQuery.FindStringSubmatch(q); m != nil {
 		line, _ := strconv.Atoi(m[2])
@@ -74,70 +139,94 @@ func (r *Reader) Resolve(q, kind string) []*Node {
 	if n := r.byID[q]; n != nil && (kind == "" || string(n.Kind) == kind) {
 		return []*Node{n}
 	}
-	exact := hasUpper(q)
-	same := func(a, b string) bool {
-		if exact {
-			return a == b
+	nodes := r.Index.Nodes
+	at := func(list []int) []*Node {
+		out := make([]*Node, len(list))
+		for i, j := range list {
+			out[i] = &nodes[j]
 		}
-		return fold(a) == fold(b)
+		return out
 	}
-	suffix := func(full, tail string) bool {
-		if exact {
-			return strings.HasSuffix(full, "."+tail)
+	for _, k := range NameKeys(q) {
+		// q'ya uyan yerleşik adların düğümleri bir kez bulunur (her yerleşik düğümde bütün adları yeniden katlamak sorguyu
+		// yavaşlatıyordu: 278 adlık denetimde 16 sn).
+		builtin := map[string]bool{}
+		for _, id := range r.builtinIDs(k) {
+			builtin[id] = true
 		}
-		return strings.HasSuffix(fold(full), "."+fold(tail))
-	}
-	// q'ya uyan yerleşik adların düğümleri bir kez bulunur (her yerleşik düğümde bütün adları yeniden katlamak sorguyu
-	// yavaşlatıyordu: 278 adlık denetimde 16 sn).
-	builtinMatch := map[string]bool{}
-	for name, ids := range r.builtins {
-		if same(name, q) {
-			for _, id := range ids {
-				builtinMatch[id] = true
+		if found := PickByName(len(nodes), func(i int) NameClass {
+			if kind != "" && string(nodes[i].Kind) != kind {
+				return ClassNone
 			}
+			return r.nameClass(i, k, builtin)
+		}); len(found) > 0 {
+			return at(found)
 		}
-	}
-	tiers := []func(n *Node) bool{
-		func(n *Node) bool {
-			if n.Kind != KindModule {
-				return false
-			}
-			if same(n.Name, q) {
-				return true
-			}
-			for _, a := range n.Aliases {
-				if same(a, q) {
-					return true
+		tail := NameKey{Key: "." + k.Key, Folded: k.Folded}
+		for _, match := range []func(i int) bool{
+			func(i int) bool { return k.Match(nodes[i].Qualified, r.folded[i].qualified) },
+			func(i int) bool {
+				if tail.Folded {
+					return strings.HasSuffix(r.folded[i].qualified, tail.Key)
+				}
+				return strings.HasSuffix(nodes[i].Qualified, tail.Key)
+			},
+		} {
+			var found []int
+			for i := range nodes {
+				if (kind == "" || string(nodes[i].Kind) == kind) && nodes[i].Qualified != "" && match(i) {
+					found = append(found, i)
 				}
 			}
-			return false
-		},
-		// Bildirilmiş ad ve yerleşik ad aynı basamaktadır: `her_dakika` hem komut satırı seçeneği hem adlı argümandır, ikisi de
-		// aday olur (biri sessizce seçilmez). Bildirilmiş ad kısa addır (alan, metot, parametre için son parça): çıplak ad o
-		// adı taşıyan bütün bildirimlerdir; tanım, kullananlar, sınayanlar, etki ve yeniden adlandırma aynı kümeyi görür
-		// (deneme 7 R1: tanım 3, yeniden_adlandır 7 aday veriyordu).
-		func(n *Node) bool {
-			if n.Kind == KindBuiltin {
-				return builtinMatch[n.ID]
+			if len(found) > 0 {
+				return at(found)
 			}
-			return n.Kind != KindModule && same(shortName(n), q)
-		},
-		func(n *Node) bool { return n.Qualified != "" && same(n.Qualified, q) },
-		func(n *Node) bool { return n.Qualified != "" && suffix(n.Qualified, q) },
-	}
-	for _, match := range tiers {
-		var found []*Node
-		for i := range r.Index.Nodes {
-			n := &r.Index.Nodes[i]
-			if (kind == "" || string(n.Kind) == kind) && match(n) {
-				found = append(found, n)
-			}
-		}
-		if len(found) > 0 {
-			return found
 		}
 	}
 	return nil
+}
+
+// foldedNames bir düğümün sorguda karşılaştırılan adlarının katlanmışlarıdır (NewReader bir kez hesaplar).
+type foldedNames struct {
+	short, qualified string
+	aliases          []string
+}
+
+// nameClass i. düğümün k geçişindeki çıplak ad sınıfıdır (PickByName); builtin k'ye uyan yerleşik düğümlerdir.
+func (r *Reader) nameClass(i int, k NameKey, builtin map[string]bool) NameClass {
+	n, f := &r.Index.Nodes[i], r.folded[i]
+	switch n.Kind {
+	case KindModule:
+		if k.Match(n.Name, f.short) {
+			return ClassModule
+		}
+		for j, a := range n.Aliases {
+			if k.Match(a, f.aliases[j]) {
+				return ClassModule
+			}
+		}
+	case KindBuiltin:
+		if builtin[n.ID] {
+			return ClassBuiltin
+		}
+	case KindTest:
+		if k.Match(n.Name, f.short) {
+			return ClassTest
+		}
+	default:
+		if k.Match(shortName(n), f.short) {
+			return ClassDeclaration
+		}
+	}
+	return ClassNone
+}
+
+// builtinIDs k'ye uyan yerleşik adların düğüm kimlikleridir.
+func (r *Reader) builtinIDs(k NameKey) []string {
+	if k.Folded {
+		return r.builtinsFolded[k.Key]
+	}
+	return r.builtins[k.Key]
 }
 
 // atQuery konum sorgusunu düğüme çevirir; sütun verilmediyse satırdaki ilk başvuru alınır.
@@ -163,7 +252,7 @@ func (r *Reader) atQuery(file string, line, col int, kind string) []*Node {
 // bir yerleşik adı) sorguyu içerenler önce, sonra Türkçe harf kuralıyla küçük düzenleme
 // uzaklığındakiler.
 func (r *Reader) Suggest(q string, limit int) []*Node {
-	lq := fold(q)
+	lq := Fold(q)
 	maxD := min(4, 1+len([]rune(lq))/4)
 	type scored struct {
 		n     *Node
@@ -190,7 +279,7 @@ func (r *Reader) Suggest(q string, limit int) []*Node {
 		}
 		best := -1
 		for _, c := range cands {
-			lc := fold(c)
+			lc := Fold(c)
 			if lc == "" {
 				continue
 			}

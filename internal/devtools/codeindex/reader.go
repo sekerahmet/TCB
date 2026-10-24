@@ -1,6 +1,9 @@
 package codeindex
 
-import "sort"
+import (
+	"slices"
+	"sort"
+)
 
 // Reader bir dizini sorgulamak için hazırlar: kimlik tablosu ve dosya başına sıralı başvurular.
 // Dizin değişmez; Reader onun üzerinde salt okunur bir görünümdür (dil sunucusu her istekte
@@ -10,9 +13,11 @@ type Reader struct {
 	byID   map[string]*Node
 	byFile map[string][]int // dosya -> Index.Occurrences sıraları (satır, sütun sırasıyla)
 	// builtins yerleşik adı (her gömülü dilde) -> düğüm kimlikleri.
-	builtins  map[string][]string
-	callers   map[string][]string // düğüm -> onu çağıran düğümler (calls kenarları, ters)
-	importers map[string][]string // modül -> onu aktaran modüller (imports kenarları, ters)
+	builtins       map[string][]string
+	builtinsFolded map[string][]string // aynısı, adlar Türkçe katlanmış (Fold)
+	folded         []foldedNames       // Index.Nodes sırasıyla
+	callers        map[string][]string // düğüm -> onu çağıran düğümler (calls kenarları, ters)
+	importers      map[string][]string // modül -> onu aktaran modüller (imports kenarları, ters)
 }
 
 // NewReader dizinden bir Reader kurar.
@@ -22,6 +27,24 @@ func NewReader(idx *Index) *Reader {
 		r.byID[idx.Nodes[i].ID] = &idx.Nodes[i]
 	}
 	r.builtins = builtinNames(idx)
+	r.builtinsFolded = map[string][]string{}
+	for name, ids := range r.builtins {
+		f := Fold(name)
+		for _, id := range ids {
+			if !slices.Contains(r.builtinsFolded[f], id) {
+				r.builtinsFolded[f] = append(r.builtinsFolded[f], id)
+			}
+		}
+	}
+	r.folded = make([]foldedNames, len(idx.Nodes))
+	for i := range idx.Nodes {
+		n := &idx.Nodes[i]
+		f := foldedNames{short: Fold(shortName(n)), qualified: Fold(n.Qualified)}
+		for _, a := range n.Aliases {
+			f.aliases = append(f.aliases, Fold(a))
+		}
+		r.folded[i] = f
+	}
 	r.callers, r.importers = map[string][]string{}, map[string][]string{}
 	for _, e := range idx.Edges {
 		switch e.Kind {

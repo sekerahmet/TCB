@@ -20,7 +20,7 @@ import (
 func TestRepoTRFilesPassCheck(t *testing.T) {
 	root := reporoot.Root()
 	sources := map[string]string{}
-	err := filepath.WalkDir(root, func(filePath string, d fs.DirEntry, err error) error {
+	err := reporoot.WalkDir(root, func(filePath string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}

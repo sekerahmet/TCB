@@ -5,10 +5,13 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
 )
 
 // index okunmuş grafiğin arama tablolarıdır.
@@ -20,6 +23,7 @@ type index struct {
 	out        map[string][]*Edge
 	in         map[string][]*Edge
 	note       func(*Node) string // verilirse edgeLine her düğümün altına bir not satırı ekler (test_notes.go)
+	trNames    []trName           // çıplak adla çözülen TR düğümleri (trNameTable; tembel)
 }
 
 func newIndex(g *Graph) *index {
@@ -38,15 +42,27 @@ func newIndex(g *Graph) *index {
 // minTextQuery metin aramasının en kısa sorgusudur (kısa parçalar her şeye uyar).
 const minTextQuery = 3
 
-// lookup bir sorgu metnini düğümlere çözer (kinds doluysa yalnızca o türlerde arar); ilk eşleşme veren basamaktaki bütün düğümleri döner
-// (birden çoksa belirsizdir): kimlik, kimliğin "tür:" önekleri atılmış hali, tam ad, sınırda
-// biten ad ("New" → "messages.New", yalnızca '.' ve '/' sınırında), büyük-küçük harfsiz tam ad; hiçbiri tutmazsa metin aramaları: adın başı, adın alt dizesi, açıklama
-// metninin alt dizesi (en az minTextQuery karakter).
+// lookup bir sorgu metnini düğümlere çözer (kinds doluysa yalnızca o türlerde arar); ilk eşleşme veren basamaktaki bütün
+// düğümleri döner (birden çoksa belirsizdir). Çıplak ad (`.`, `/`, `:` içermeyen) TR adlarında (modül, TR bildirimi,
+// test, ad kodu) tr dizin'in kuralıyla çözülür (trByName); Go ve belge düğümlerinde basamaklar: kimlik, kimliğin "tür:"
+// önekleri atılmış hali, takma ad, tam ad, sınırda biten ad ("New" → "messages.New", yalnızca '.' ve '/' sınırında),
+// büyük-küçük harfsiz tam ad ve ad sonu; hiçbiri tutmazsa metin aramaları: adın başı, adın alt dizesi, açıklama metninin
+// alt dizesi (en az minTextQuery karakter).
 func (ix *index) lookup(q string, kinds ...string) []*Node {
 	if n := ix.byID[q]; n != nil && (len(kinds) == 0 || contains(kinds, n.Kind)) {
 		return []*Node{n}
 	}
-	fq := foldTR(q)
+	bare := !strings.ContainsAny(q, "./:")
+	var tr []*Node
+	trFolded := false // TR adayları büyük harfli sorgunun harfsiz geçişinden (Go'nun harfsiz basamağıyla aynı sırada)
+	if bare {
+		tr, trFolded = ix.trByName(q, kinds)
+		if !trFolded && slices.ContainsFunc(tr, func(n *Node) bool { return !strings.HasPrefix(n.ID, "tr:") || n.Kind == kindFile }) {
+			return tr // modül ya da ad kodu: takma ad basamağıdır, Go adlarından önce gelir
+		}
+	}
+	fq := codeindex.Fold(q)
+	foldTiers := 5 // basamak listesinde harfsiz basamakların başladığı yer
 	tiers := []func(n *Node) bool{
 		// Takma ad: ad kodunun dildeki adı (zaman_ms, print) ya da bir .tr dosyasının modül adı
 		// (katman, tr/katman); düğümü, aynı adlı belge başlığından önce gelir.
@@ -57,13 +73,14 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 		func(n *Node) bool { return n.Name == q },
 		func(n *Node) bool { return strings.HasSuffix(n.Name, "."+q) || strings.HasSuffix(n.Name, "/"+q) },
 		func(n *Node) bool { return strings.HasSuffix(n.ID, "/"+q) }, // yolla nitelenmiş: internal/lang/messages.New
-		// Büyük-küçük harf yok sayılarak (Türkçe kuralıyla: I/ı, İ/i; codeindex.Resolve'un kuralı) tam ad, sonra ad sonu.
-		func(n *Node) bool { return foldTR(n.Name) == fq },
+		// Büyük-küçük harf yok sayılarak (Türkçe kuralıyla: I/ı, İ/i) tam ad, sonra ad sonu.
+		func(n *Node) bool { return codeindex.Fold(n.Name) == fq },
 		func(n *Node) bool {
-			f := foldTR(n.Name)
+			f := codeindex.Fold(n.Name)
 			return strings.HasSuffix(f, "."+fq) || strings.HasSuffix(f, "/"+fq)
 		},
 	}
+	nameTiers := len(tiers)
 	// Metin aramaları: ad ya da (ileti, kural, başlık) açıklama metninin başı/alt dizesi.
 	if len([]rune(q)) >= minTextQuery {
 		lq := strings.ToLower(q)
@@ -76,57 +93,104 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 			func(n *Node) bool { return strings.Contains(strings.ToLower(n.Detail), lq) },
 		)
 	}
-	for _, match := range tiers {
+	for ti, match := range tiers {
+		if len(tr) > 0 && ti >= nameTiers {
+			break // TR adayı varken metin aramasına inilmez
+		}
 		var found []*Node
 		for i := range ix.g.Nodes {
-			if n := &ix.g.Nodes[i]; (len(kinds) == 0 || contains(kinds, n.Kind)) && match(n) {
+			n := &ix.g.Nodes[i]
+			if bare && ti < nameTiers && isTRName(n) {
+				continue // çıplak TR adı trByName'in işidir
+			}
+			if (len(kinds) == 0 || contains(kinds, n.Kind)) && match(n) {
 				found = append(found, n)
 			}
 		}
+		if ti == foldTiers && trFolded {
+			found = append(found, tr...) // TR'nin harfsiz adayları Go'nun harfsiz basamağıyla aynı sırada
+		}
 		if len(found) > 0 {
-			return ix.withSameNamed(q, found, kinds)
+			if !trFolded {
+				found = append(found, tr...) // TR bildirimleri Go'nun ilk uyan ad basamağıyla birlikte (`wu`: Go alanı ve TR değişkenleri)
+			}
+			return found
 		}
 	}
-	return nil
+	return tr
 }
 
-// withSameNamed çıplak ad sorgusuna aynı kısa adı taşıyan bütün TR bildirimlerini (alan, parametre, seçenek, işlev,
-// metot ...; kinds doluysa yalnızca o türler) ekler: codeindex.Resolve'un kuralı (çıplak ad o adı taşıyan bütün
-// bildirimlerdir), böylece `query`, `tr dizin tanım` ve `tr dizin yeniden_adlandır` aynı aday kümesini görür (deneme 7
-// R1). Sorguda büyük harf yoksa Türkçe büyük-küçük harf kuralıyla karşılaştırılır.
-func (ix *index) withSameNamed(q string, found []*Node, kinds []string) []*Node {
-	if strings.ContainsAny(q, "./:") {
-		return found
+// isTRName düğümün çıplak adı trByName ile mi çözülür: .tr dosyası, TR bildirimi ya da testi, ad kodu.
+func isTRName(n *Node) bool {
+	return strings.HasPrefix(n.ID, "tr:") || strings.HasPrefix(n.ID, "name:")
+}
+
+// trName çıplak adla çözülen bir TR düğümüdür: sınıfı ve karşılaştırılan adları (katlanmışlarıyla).
+type trName struct {
+	node   *Node
+	class  codeindex.NameClass
+	names  []string
+	folded []string
+}
+
+// trNameTable grafiğin TR ad düğümlerini bir kez toplar. Adlar tr dizin'inkilerdir: modülün adı ve takma adları,
+// bildirimin kısa adı (son parça), testin açıklaması, ad kodunun kendisi ve dillerdeki adları.
+func (ix *index) trNameTable() []trName {
+	if ix.trNames != nil {
+		return ix.trNames
 	}
-	for _, n := range found {
-		if strings.HasPrefix(n.ID, "tr:file:") {
-			return found // modül adı önce çözülür (codeindex.Resolve'un ilk basamağı): `katman` modüldür
-		}
-	}
-	same := func(a string) bool { return a == q }
-	if !strings.ContainsFunc(q, unicode.IsUpper) {
-		fq := foldTR(q)
-		same = func(a string) bool { return foldTR(a) == fq }
-	}
+	ix.trNames = []trName{}
 	for i := range ix.g.Nodes {
 		n := &ix.g.Nodes[i]
-		if !strings.HasPrefix(n.ID, "tr:") || n.Kind == kindTRTest || n.Kind == kindFile || len(kinds) > 0 && !contains(kinds, n.Kind) {
+		c := trName{node: n}
+		switch {
+		case strings.HasPrefix(n.ID, "tr:file:"):
+			c.class, c.names = codeindex.ClassModule, append([]string{n.Name}, n.Aliases...)
+		case strings.HasPrefix(n.ID, "name:"):
+			c.class, c.names = codeindex.ClassBuiltin, append([]string{n.Name}, n.Aliases...)
+		case n.Kind == kindTRTest:
+			c.class, c.names = codeindex.ClassTest, []string{n.Name[strings.Index(n.Name, ": ")+2:]} // "modül: açıklama"
+		case strings.HasPrefix(n.ID, "tr:"):
+			c.class, c.names = codeindex.ClassDeclaration, []string{n.Name[strings.LastIndex(n.Name, ".")+1:]}
+		default:
 			continue
 		}
-		if same(n.Name[strings.LastIndex(n.Name, ".")+1:]) && !containsNode(found, n) {
-			found = append(found, n)
+		for _, name := range c.names {
+			c.folded = append(c.folded, codeindex.Fold(name))
 		}
+		ix.trNames = append(ix.trNames, c)
 	}
-	return found
+	return ix.trNames
 }
 
-func containsNode(list []*Node, n *Node) bool {
-	for _, m := range list {
-		if m == n {
-			return true
+// trByName çıplak adın TR adaylarıdır; tr dizin'in Resolve'uyla aynı kural (codeindex.NameKeys harf kuralı,
+// codeindex.PickByName sınıf sırası), böylece `query`, `tr dizin tanım` ve `tr dizin yeniden_adlandır` aynı aday kümesini
+// görür (deneme 7 R1, bağımsız denetim grup 6 R1). folded adaylar büyük harfli sorgunun harfsiz geçişinden geldiyse
+// true'dur. Grafikte tr dizin'in bilmediği ad kodları da vardır (anahtar sözcükler, kullanılmayan yerleşikler); onlar da
+// yerleşik sınıfındadır.
+func (ix *index) trByName(q string, kinds []string) (found []*Node, folded bool) {
+	table := ix.trNameTable()
+	for ki, k := range codeindex.NameKeys(q) {
+		picked := codeindex.PickByName(len(table), func(i int) codeindex.NameClass {
+			c := &table[i]
+			if len(kinds) > 0 && !contains(kinds, c.node.Kind) {
+				return codeindex.ClassNone
+			}
+			for j, name := range c.names {
+				if k.Match(name, c.folded[j]) {
+					return c.class
+				}
+			}
+			return codeindex.ClassNone
+		})
+		for _, i := range picked {
+			found = append(found, table[i].node)
+		}
+		if len(found) > 0 {
+			return found, ki > 0
 		}
 	}
-	return false
+	return nil, false
 }
 
 // idTailEquals kimliğin ':' sonrası kuyruklarından biri q mu (doc:docs/a.md#b için docs/a.md#b).
@@ -314,7 +378,7 @@ func (ix *index) printFields(w io.Writer, n *Node) []*Edge {
 // hasWord text, q'yu bütün bir sözcük olarak içeriyor mu: Türkçe harf katlamasıyla (İ/i, I/ı) karşılaştırılır, eşleşmenin iki
 // yanında harf, rakam ya da alt çizgi olmamalıdır.
 func hasWord(text, q string) bool {
-	ft, fq := foldTR(text), foldTR(q)
+	ft, fq := codeindex.Fold(text), codeindex.Fold(q)
 	if fq == "" {
 		return false
 	}
@@ -333,8 +397,6 @@ func hasWord(text, q string) bool {
 		start = i + size
 	}
 }
-
-func foldTR(s string) string { return strings.ToLowerSpecial(unicode.TurkishCase, s) }
 
 func isWordRune(r rune) bool {
 	return r != utf8.RuneError && (unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_')

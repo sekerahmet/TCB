@@ -87,3 +87,120 @@ func TestEnvironmentNamesLinkToTheirCodes(t *testing.T) {
 		}
 	}
 }
+
+// envSetFiles ortam değişkenini koyan testler: Setenv, alt süreç ortamı dizesi (düz, sabitli, başı sabit toplama) ve
+// test dosyasındaki bir yardımcı üzerinden; okuyan test ve HOME koyan test sınamaz.
+var envSetFiles = map[string]string{
+	"internal/lang/codes/tr.json": `{
+  "K400": { "ad": "TR_DIL", "aile": "ortam değişkeni" },
+  "K402": { "ad": "TR_GPU_ESZAMANLI", "aile": "ortam değişkeni" },
+  "K404": { "ad": "TR_CPU_AVX2", "aile": "ortam değişkeni" }
+}
+`,
+	"app/app.go": "package app\n\nfunc Run() {}\n",
+	"kit/kit.go": `package kit
+
+import (
+	"os"
+	"os/exec"
+)
+
+// WithLang yalnızca testlerden çağrılan ortak yardımcı.
+func WithLang(lang string) { cmd := exec.Command("x"); cmd.Env = append(os.Environ(), "TR_DIL="+lang); _ = cmd }
+
+// Serve üretim kodu: değişkeni kendi alt sürecine koyar, çağıran test onu sınamaz.
+func Serve() { cmd := exec.Command("x"); cmd.Env = []string{"TR_CPU_AVX2=0"}; _ = cmd }
+
+func Main() { Serve() }
+`,
+	"kit/kit_test.go": `package kit
+
+import "testing"
+
+func TestWithLang(t *testing.T) { WithLang("en") }
+
+func TestServe(t *testing.T) { Serve() }
+`,
+	"app/app_test.go": `package app
+
+import (
+	"os"
+	"os/exec"
+	"testing"
+)
+
+const langVar = "TR_DIL"
+
+func TestSetenv(t *testing.T) { t.Setenv("TR_CPU_AVX2", "0"); Run() }
+
+func TestChildEnv(t *testing.T) {
+	cmd := exec.Command("x")
+	cmd.Env = append(os.Environ(), "TR_DIL=en")
+	_ = cmd
+}
+
+func TestConstEnv(t *testing.T) { run(t, []string{langVar + "=en"}) }
+
+func TestPrefixEnv(t *testing.T) {
+	for _, lang := range []string{"tr", "en"} {
+		_ = []string{"TR_GPU_ESZAMANLI=" + lang}
+	}
+}
+
+func TestReads(t *testing.T) { _ = os.Getenv("TR_DIL") }
+
+func TestHome(t *testing.T) { t.Setenv("HOME", "/tmp") }
+
+func run(t *testing.T, env []string) { _ = env }
+`,
+}
+
+// Kural: bir ortam değişkenini koyan test (t.Setenv, os.Setenv, alt sürecin ortamındaki "AD=..." dizesi; kendisi ya
+// da test dosyasındaki yardımcısı) o değişkenin ad kodunu sınar: `tests` kenarı; yalnızca okuyan test sınamaz (değer
+// dili 3. tur: tests-for K400 TR_DIL'i koyan e2e testlerini göstermiyordu).
+func TestTestsThatSetAnEnvironmentVariableTestItsCode(t *testing.T) {
+	root := auditModule(t, envSetFiles)
+	g, err := buildGraph(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for test, code := range map[string]string{
+		"app.TestSetenv": "K404", "app.TestChildEnv": "K400", "app.TestConstEnv": "K400", "app.TestPrefixEnv": "K402",
+		"kit.TestWithLang": "K400",
+	} {
+		mustEdge(t, g, "go:func:example.com/audit/"+test, "name:"+code, edgeTests, extracted)
+	}
+	if e := edge(g, "go:func:example.com/audit/kit.TestServe", "name:K404", edgeTests); e != nil {
+		t.Errorf("Serve is production code (Main calls it); its child's variable is not TestServe's: %+v", e)
+	}
+	for _, e := range g.Edges {
+		if e.Kind == edgeTests && strings.HasPrefix(e.To, "name:") && (strings.HasSuffix(e.From, ".TestReads") || strings.HasSuffix(e.From, ".TestHome")) {
+			t.Errorf("reading TR_DIL or setting HOME tests no name code: %+v", e)
+		}
+	}
+}
+
+// Kural: dilin her ortam değişkeni ad kodunu (K4xx) koyan en az bir test vardır (kendisi, test dosyasındaki ya da
+// yalnızca testlerin çağırdığı bir yardımcı üzerinden): değişkenin etkisi sınanır, yalnızca okunması değil. Yeni bir
+// ortam değişkeni koyan testi olmadan eklenirse bu test düşer; istisna listesi yoktur (değer dili 3. tur).
+func TestEveryEnvironmentVariableIsSetByATest(t *testing.T) {
+	root, _, g := repoGraph(t)
+	codes := map[string]bool{}
+	for _, code := range envCodes(root) {
+		codes[code] = true
+	}
+	if len(codes) < 5 {
+		t.Fatalf("only %d environment-variable codes found; the code files were not read", len(codes))
+	}
+	set := map[string]bool{}
+	for _, e := range g.Edges {
+		if e.Kind == edgeTests && e.Confidence == extracted && strings.HasPrefix(e.From, "go:func:") {
+			set[strings.TrimPrefix(e.To, "name:")] = true
+		}
+	}
+	for code := range codes {
+		if !set[code] {
+			t.Errorf("%s: no test sets it (t.Setenv, os.Setenv or \"NAME=...\" in a child's environment)", code)
+		}
+	}
+}

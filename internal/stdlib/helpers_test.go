@@ -23,7 +23,7 @@ func productionFiles(t *testing.T) map[string]*ast.File {
 	root := reporoot.Root()
 	fset := token.NewFileSet()
 	files := map[string]*ast.File{}
-	err := filepath.WalkDir(reporoot.Path("internal", "stdlib"), func(path string, d fs.DirEntry, err error) error {
+	err := reporoot.WalkDir(reporoot.Path("internal", "stdlib"), func(path string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
 			return err
 		}

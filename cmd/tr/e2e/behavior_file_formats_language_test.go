@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/source"
+	"github.com/sekerahmet/TCB/internal/reporoot"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
@@ -169,7 +170,7 @@ func TestFunctionTextFollowsFileLanguage(t *testing.T) {
 func fileFormatShape(t *testing.T, dir string) string {
 	t.Helper()
 	var lines []string
-	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+	err := reporoot.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() {
 			return err
 		}

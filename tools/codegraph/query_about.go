@@ -9,6 +9,9 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"unicode"
+
+	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
 )
 
 // Bu dosya tests-for'un ilk grubunu kurar: hedefi konu edinen testler (deneme 8 S1).
@@ -85,10 +88,14 @@ func (ix *index) producedMessages(n *Node) []*Node {
 			}
 		}
 	}
+	own := map[string]bool{}
+	for _, s := range sources {
+		own[s] = true
+	}
 	var out []*Node
 	for _, s := range sources {
 		for _, e := range ix.out[s] {
-			if m := ix.byID[e.To]; e.Kind == edgeUsesMessage && m != nil && !slices.Contains(out, m) {
+			if m := ix.byID[e.To]; e.Kind == edgeUsesMessage && m != nil && !slices.Contains(out, m) && ix.producedOnlyBy(m, own) {
 				out = append(out, m)
 			}
 		}
@@ -96,10 +103,23 @@ func (ix *index) producedMessages(n *Node) []*Node {
 	return out
 }
 
+// producedOnlyBy iletiyi üreten her (test olmayan) düğüm own'da mı: başka işlevlerin de ürettiği ileti hedefin değildir,
+// onu bekleyen test hedefi konu edinmez (bağımsız denetim grup 6, S1: H2000 `{fn}: {error}` on iki işlevin sarmalayıcı
+// iletisi, yüklemeyi sınayan test saveOnInterval'ın ilk satırına çıkıyordu).
+func (ix *index) producedOnlyBy(m *Node, own map[string]bool) bool {
+	for _, e := range ix.in[m.ID] {
+		if p := ix.byID[e.From]; e.Kind == edgeUsesMessage && p != nil && !isTestNode(p) && !own[p.ID] {
+			return false
+		}
+	}
+	return true
+}
+
 func (ix *index) aboutReason(t *Node, names []string, msgs []*Node) string {
+	title := testTitle(t)
 	for _, name := range names {
-		if hasWord(t.Name, name) || hasWord(t.Doc, name) ||
-			strings.HasPrefix(t.ID, "go:") && strings.Contains(strings.ToLower(t.Name), strings.ToLower(name)) {
+		if hasWord(title, name) || hasWord(t.Doc, name) ||
+			strings.HasPrefix(t.ID, "go:") && containsWords(nameWords(title), nameWords(name)) {
 			return "names it"
 		}
 	}
@@ -129,12 +149,92 @@ func (ix *index) aboutReason(t *Node, names []string, msgs []*Node) string {
 			continue
 		}
 		for _, m := range msgs {
-			if fixed := longestFixedPart(m.Detail); len(fixed) >= 12 && len(fixed) > bestLen && strings.Contains(line, fixed) {
+			if fixed := longestFixedPart(m.Detail); len(fixed) >= 12 && len(fixed) > bestLen && strings.Contains(line, fixed) &&
+				fnSlotHolds(m.Detail, line, names) {
 				best, bestLen = "expects "+m.Name, len(fixed)
 			}
 		}
 	}
 	return best
+}
+
+// testTitle testin adının hedefle karşılaştırılan kısmıdır: Go testinde paketsiz kısa ad (`TestTensorData`; paket adı
+// `dataset_test` "Data"yı anmaz), TR testinde modül adı atılmış açıklama (bağımsız denetim grup 6, S1).
+func testTitle(t *Node) string {
+	if t.Kind == kindTRTest {
+		return t.Name[strings.Index(t.Name, ": ")+2:]
+	}
+	return t.Name[strings.LastIndex(t.Name, ".")+1:]
+}
+
+// nameWords bir adın sözcükleridir, Türkçe katlanmış: alt çizgide, harf ve rakam olmayan karakterde ve büyük harf
+// geçişinde bölünür (`TestTensorData` → test tensor data, `saveOnInterval` → save on interval, `HTTPServer` → http
+// server).
+func nameWords(s string) []string {
+	var words []string
+	runes := []rune(s)
+	start := -1
+	flush := func(end int) {
+		if start >= 0 && end > start {
+			words = append(words, codeindex.Fold(string(runes[start:end])))
+		}
+		start = -1
+	}
+	for i, r := range runes {
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
+			flush(i)
+			continue
+		}
+		if start >= 0 && unicode.IsUpper(r) && (unicode.IsLower(runes[i-1]) || i+1 < len(runes) && unicode.IsLower(runes[i+1]) && unicode.IsUpper(runes[i-1])) {
+			flush(i)
+		}
+		if start < 0 {
+			start = i
+		}
+	}
+	flush(len(runes))
+	return words
+}
+
+// containsWords sub, words içinde ardışık olarak geçiyor mu.
+func containsWords(words, sub []string) bool {
+	if len(sub) == 0 {
+		return false
+	}
+	for i := 0; i+len(sub) <= len(words); i++ {
+		if slices.Equal(words[i:i+len(sub)], sub) {
+			return true
+		}
+	}
+	return false
+}
+
+// fnSlotHolds şablonda işlev adı yuvası ({fn}) varsa satırda o yuvada hedefin adlarından biri durur mu: yuvanın hemen
+// önündeki ya da ardındaki sabit metin adla bitişik geçmeli (`{fn}() '{param}' adında ...` için `yazdır() '`). Yuvasız
+// şablonda koşul yoktur. `metin.böl()`ün iletisini bekleyen satır `metin` yerleşiğini beklemez (bağımsız denetim grup 6,
+// S1).
+func fnSlotHolds(template, line string, names []string) bool {
+	slots := templateSlot.FindAllStringIndex(template, -1)
+	holds, has := false, false
+	for i, at := range slots {
+		if template[at[0]:at[1]] != "{fn}" {
+			continue
+		}
+		has = true
+		before, after := template[:at[0]], template[at[1]:]
+		if i > 0 {
+			before = template[slots[i-1][1]:at[0]]
+		}
+		if i+1 < len(slots) {
+			after = template[at[1]:slots[i+1][0]]
+		}
+		for _, name := range names {
+			if after != "" && strings.Contains(line, name+after) || before != "" && strings.Contains(line, before+name) {
+				holds = true
+			}
+		}
+	}
+	return holds || !has
 }
 
 // functionMessages şablonu bir işlev adı ({fn}) taşıyan iletilerdir (sorgu başına bir kez hesaplanır).

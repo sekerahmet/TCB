@@ -29,7 +29,7 @@ func TestTestsUseRepoRootNotRelativePaths(t *testing.T) {
 	found := map[string]int{}
 	scanned := 0
 	for _, top := range []string{"cmd", "internal", "lib", "tools"} {
-		err := filepath.WalkDir(filepath.Join(root, top), func(path string, d fs.DirEntry, err error) error {
+		err := WalkDir(filepath.Join(root, top), func(path string, d fs.DirEntry, err error) error {
 			if err != nil || d.IsDir() || !strings.HasSuffix(path, "_test.go") {
 				return err
 			}
@@ -74,4 +74,68 @@ func TestTestsUseRepoRootNotRelativePaths(t *testing.T) {
 	for file, n := range found {
 		t.Errorf("%s: %d göreli yol (`..`) kullanımı; depo dosyalarına reporoot.Root() ile ulaşın", file, n)
 	}
+}
+
+// Testler klasör gezmeyi WalkDir ile yapar (filepath.Walk, filepath.WalkDir ya da os.DirFS üzerinde fs.WalkDir değil):
+// depo içindeki yolda yalnızca git'in izlediği dosyalar gezilir, depo testleri geliştiricinin izlenmeyen ve yok
+// sayılan dosyalarına bağlı olmaz (bağımsız denetim grup 6: TestNoTurkishLiterals scratch/'taki bir denemeyle,
+// TestRepoTRFilesPassCheck izlenmeyen bir .tr ile düşüyordu). Depo dışındaki yolda (t.TempDir) WalkDir
+// filepath.WalkDir'in kendisidir; istisna listesi yoktur.
+func TestTestsWalkThroughWalkDir(t *testing.T) {
+	root := Root()
+	scanned := 0
+	for _, top := range []string{"cmd", "internal", "lib", "tools"} {
+		err := WalkDir(filepath.Join(root, top), func(path string, d fs.DirEntry, err error) error {
+			if err != nil || d.IsDir() || !strings.HasSuffix(path, "_test.go") {
+				return err
+			}
+			f, err := parser.ParseFile(token.NewFileSet(), path, nil, 0)
+			if err != nil {
+				return err
+			}
+			scanned++
+			rel, _ := filepath.Rel(root, path)
+			ast.Inspect(f, func(n ast.Node) bool {
+				call, ok := n.(*ast.CallExpr)
+				if !ok {
+					return true
+				}
+				switch name := selectorName(call.Fun); {
+				case name == "filepath.Walk" || name == "filepath.WalkDir":
+					t.Errorf("%s: %s; klasörü reporoot.WalkDir ile gezin", filepath.ToSlash(rel), name)
+				case name == "fs.WalkDir" && len(call.Args) > 0 && selectorName(callFun(call.Args[0])) == "os.DirFS":
+					t.Errorf("%s: fs.WalkDir(os.DirFS(...)); klasörü reporoot.WalkDir ile gezin", filepath.ToSlash(rel))
+				}
+				return true
+			})
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	if scanned < 100 {
+		t.Fatalf("çok az test dosyası tarandı: %d", scanned)
+	}
+}
+
+// selectorName `paket.ad` biçimli ifadenin adıdır ("" değilse).
+func selectorName(e ast.Expr) string {
+	sel, ok := e.(*ast.SelectorExpr)
+	if !ok {
+		return ""
+	}
+	pkg, ok := sel.X.(*ast.Ident)
+	if !ok {
+		return ""
+	}
+	return pkg.Name + "." + sel.Sel.Name
+}
+
+// callFun çağrı ifadesinin çağrılanıdır (çağrı değilse nil).
+func callFun(e ast.Expr) ast.Expr {
+	if c, ok := e.(*ast.CallExpr); ok {
+		return c.Fun
+	}
+	return nil
 }

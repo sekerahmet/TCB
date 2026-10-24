@@ -18,10 +18,11 @@ type goIndex struct {
 	inTestFile map[string]bool              // test dosyasında tanımlı işlevlerin kimlikleri
 	tests      []*testFunc                  // TestX/BenchmarkX/FuzzX/ExampleX işlevleri
 	byName     map[string][]*testFunc
-	dirFiles   map[string]bool // dosya düğümü olan göreli yollar
-	pathRefs   []pathRef       // dosya yolu sabitleri ve gömme yönergeleri (test_paths.go)
-	snip       *snippetState   // Go test dizelerindeki TR metinleri (tr_snippets.go)
-	ranges     []rangeRef      // koleksiyon döndüren işlev/değişken üzerinde dönen range deyimleri (walks.go)
+	dirFiles   map[string]bool     // dosya düğümü olan göreli yollar
+	pathRefs   []pathRef           // dosya yolu sabitleri ve gömme yönergeleri (test_paths.go)
+	snip       *snippetState       // Go test dizelerindeki TR metinleri (tr_snippets.go)
+	ranges     []rangeRef          // koleksiyon döndüren işlev/değişken üzerinde dönen range deyimleri (walks.go)
+	envSets    map[string][]envSet // işlev -> koyduğu ortam değişkenleri (env_names.go)
 }
 
 // testFunc bir test işlevidir.
@@ -84,7 +85,7 @@ func (x *goExtractor) pkgName(p string) string {
 func extractGo(m *module, b *builder) *goIndex {
 	x := &goExtractor{m: m, b: b, idx: &goIndex{
 		pkgSyms: map[string]map[string]string{}, inTestFile: map[string]bool{}, snip: newSnippetState(),
-		byName: map[string][]*testFunc{}, dirFiles: map[string]bool{},
+		byName: map[string][]*testFunc{}, dirFiles: map[string]bool{}, envSets: map[string][]envSet{},
 	}, fieldAt: map[string]string{}, env: envCodes(m.Root), consumed: map[*ast.BasicLit]bool{}}
 	for _, u := range m.Units {
 		x.unit(u)

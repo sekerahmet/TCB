@@ -14,7 +14,7 @@ func computeDirs(t *testing.T) []string {
 	t.Helper()
 	base := filepath.Join(reporoot.Root(), "internal", "compute")
 	var dirs []string
-	err := filepath.WalkDir(base, func(path string, d fs.DirEntry, err error) error {
+	err := reporoot.WalkDir(base, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}

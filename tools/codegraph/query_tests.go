@@ -161,15 +161,7 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 		candidates = append(candidates, t.test)
 	}
 	about := ix.aboutTests(n, candidates)
-	isAbout := map[string]bool{}
-	for _, a := range about {
-		isAbout[a.test.ID] = true
-	}
-	tests = slices.DeleteFunc(slices.Clone(tests), func(e *Edge) bool { return isAbout[e.From] })
-	walks = slices.DeleteFunc(slices.Clone(walks), func(e *Edge) bool { return isAbout[e.From] })
-	asValue = slices.DeleteFunc(slices.Clone(asValue), func(it indirectTest) bool { return isAbout[it.test.ID] })
-	indirect = slices.DeleteFunc(slices.Clone(indirect), func(it indirectTest) bool { return isAbout[it.test.ID] })
-	viaNames = slices.DeleteFunc(slices.Clone(viaNames), func(t nameTest) bool { return isAbout[t.test.ID] })
+	walks, tests, asValue, indirect, viaNames = keepStrongest(about, walks, tests, asValue, indirect, viaNames)
 	found := len(about) + len(tests) + len(walks) + len(asValue) + len(indirect) + len(viaNames)
 	if found == 0 && len(measured) == 0 && len(indirectMeasured) == 0 && len(subprocess) == 0 {
 		if !ix.printLinkedBinaries(w, n) {
@@ -194,6 +186,45 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	ix.printMeasurements(w, measured, indirectMeasured, limit)
 	ix.printGuardedRules(w, allTests, allIndirect, limit)
 	ix.printOtherConfigs(w, n, limit)
+}
+
+// keepStrongest bir testi, en güçlü kanıtının grubundan başka gruplardan çıkarır (bağımsız denetim grup 6, S1:
+// doğrudan test ad kodu grubunda bir kez daha yazılıyordu): önce onu konu edinenler, sonra bütün listeyi gezenler,
+// doğrudan kullananlar, değer olarak kullananlar; zincir ve ad kodu grupları kanıt gücüne göre sıralanır
+// (printInferred), ikisinde birden olan test daha kısa olanında kalır.
+func keepStrongest(about []aboutTest, walks, tests []*Edge, asValue, indirect []indirectTest, viaNames []nameTest) ([]*Edge, []*Edge, []indirectTest, []indirectTest, []nameTest) {
+	shown := map[string]bool{}
+	for _, a := range about {
+		shown[a.test.ID] = true
+	}
+	walks = slices.DeleteFunc(slices.Clone(walks), func(e *Edge) bool { return shown[e.From] })
+	for _, e := range walks {
+		shown[e.From] = true // bütün listeyi gezen test her öğeyi sınar: doğrudan kullananlardan önce kendi grubunda
+	}
+	tests = slices.DeleteFunc(slices.Clone(tests), func(e *Edge) bool { return shown[e.From] })
+	for _, e := range tests {
+		shown[e.From] = true
+	}
+	asValue = slices.DeleteFunc(slices.Clone(asValue), func(it indirectTest) bool { return shown[it.test.ID] })
+	for _, it := range asValue {
+		shown[it.test.ID] = true
+	}
+	indirect = slices.DeleteFunc(slices.Clone(indirect), func(it indirectTest) bool { return shown[it.test.ID] })
+	viaNames = slices.DeleteFunc(slices.Clone(viaNames), func(t nameTest) bool { return shown[t.test.ID] })
+	chain := map[string]int{}
+	for _, it := range indirect {
+		chain[it.test.ID] = it.steps
+	}
+	byName := map[string]int{}
+	viaNames = slices.DeleteFunc(viaNames, func(t nameTest) bool {
+		s, ok := chain[t.test.ID]
+		if !ok || t.steps < s {
+			byName[t.test.ID] = t.steps
+		}
+		return ok && s <= t.steps
+	})
+	indirect = slices.DeleteFunc(indirect, func(it indirectTest) bool { _, ok := byName[it.test.ID]; return ok })
+	return walks, tests, asValue, indirect, viaNames
 }
 
 // isTRMeasurement TR ölçüm programının bildirimi mi (tools/bench/tr/fib.tr): zincirde test gibi durak, ölçüm grubunda.
@@ -420,8 +451,8 @@ func (ix *index) printAllSkipNote(w io.Writer, about []aboutTest, tests, walks [
 	for _, t := range viaNames {
 		all = append(all, t.test)
 	}
-	if len(all) == 0 || slices.ContainsFunc(all, func(t *Node) bool { return t == nil || t.Skip == "" }) {
-		return
+	if len(all) == 0 || slices.ContainsFunc(all, func(t *Node) bool { return t == nil || t.Skip == "" || ciRunsIt(t.Skip) }) {
+		return // koşulsuz ya da yalnızca CI'ın bir kipinde zaten koşan (testing.Short(), raceEnabled) bir test var
 	}
 	fmt.Fprintln(w, "  note: every test above skips under a condition ([skips when: ...]); CI may run none of them: check where the condition holds (real GPU, library, OS)")
 }

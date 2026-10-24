@@ -100,7 +100,7 @@ func Text(r *Result) string {
 	case CommandReferences:
 		writeUses(&b, messages.H8785, r.Users, r.Counts, r.Truncated, messages.H8792)
 	case CommandTestedBy:
-		writeUses(&b, messages.H8786, r.Tests, nil, r.Truncated, messages.H8793)
+		writeUses(&b, messages.H8786, r.Tests, r.Counts, r.Truncated, messages.H8793)
 	case CommandImpact:
 		writeImpact(&b, r)
 	}
@@ -113,18 +113,27 @@ func writeImpact(b *strings.Builder, r *Result) {
 		return
 	}
 	if len(a.Modules) > 0 {
-		fmt.Fprintf(b, "  %s\n", messages.Text(messages.H8787, len(a.Modules)))
+		fmt.Fprintf(b, "  %s\n", messages.Text(messages.H8787, total(r.Counts, func(c *Counts) int { return c.Modules }, len(a.Modules))))
 		for _, n := range a.Modules {
 			fmt.Fprintf(b, "    %s\n", Short(n))
 		}
 	}
 	writeUses(b, messages.H8788, a.Users, r.Counts, r.Truncated, messages.H8792)
 	if len(a.Tests) > 0 {
-		fmt.Fprintf(b, "  %s\n", messages.Text(messages.H8789, len(a.Tests)))
+		fmt.Fprintf(b, "  %s\n", messages.Text(messages.H8789, total(r.Counts, func(c *Counts) int { return c.Tests }, len(a.Tests))))
 		for _, n := range a.Tests {
 			fmt.Fprintf(b, "    %s\n", Short(n))
 		}
 	}
+}
+
+// total bir grubun başlıktaki sayısıdır: liste kesildiyse Counts'taki toplam, yoksa gösterilen satır sayısı (bağımsız
+// denetim grup 6: `sınayanlar (12)` 42 testin ilk 12'siydi).
+func total(c *Counts, field func(*Counts) int, shown int) int {
+	if c != nil && field(c) > shown {
+		return field(c)
+	}
+	return shown
 }
 
 // writeUses başvuru satırlarını yazar; başlıkta toplam ve rollere göre dağılım bulunur, liste
@@ -221,7 +230,7 @@ func RenameText(r *Result) string {
 	for _, c := range r.Conflicts {
 		fmt.Fprintln(&b, messages.Text(messages.H8839, r.NewName, Short(c.With)))
 	}
-	fmt.Fprintln(&b, messages.Text(messages.H8837, len(r.Certain)))
+	fmt.Fprintln(&b, messages.Text(messages.H8837, total(r.Counts, func(c *Counts) int { return c.Certain }, len(r.Certain))))
 	for _, c := range r.Certain {
 		writeChange(&b, c)
 	}
@@ -237,7 +246,7 @@ func RenameText(r *Result) string {
 
 // writeLikely olası yerleri, atlanan başka sözcük sayısını ve kesilmişse sınır notunu yazar.
 func writeLikely(b *strings.Builder, r *Result) {
-	fmt.Fprintln(b, messages.Text(messages.H8838, len(r.Likely)))
+	fmt.Fprintln(b, messages.Text(messages.H8838, total(r.Counts, func(c *Counts) int { return c.Likely }, len(r.Likely))))
 	for _, c := range r.Likely {
 		writeChange(b, c)
 	}
