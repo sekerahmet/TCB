@@ -14,8 +14,9 @@ import (
 // positionQuery "dosya.tr:satır[:sütun]" biçimli sorgudur: imlecin altındaki ad.
 var positionQuery = regexp.MustCompile(`^(.+\.tr):(\d+)(?::(\d+))?$`)
 
-// fold Türkçe büyük-küçük harf kuralıyla küçültür (İ→i, I→ı): düz ToLower "I"yı "i" yapardı.
-func fold(s string) string { return strings.ToLowerSpecial(unicode.TurkishCase, s) }
+// Fold Türkçe büyük-küçük harf kuralıyla küçültür (İ→i, I→ı): düz ToLower "I"yı "i" yapardı. İki aracın (tr dizin ve
+// codegraph) tek harf katlamasıdır.
+func Fold(s string) string { return strings.ToLowerSpecial(unicode.TurkishCase, s) }
 
 // hasUpper sorguda büyük harf var mı: yoksa eşleştirme büyük-küçük harfe bakmaz, varsa tam eşleşir
 // (`go doc` ile aynı akıllı harf kuralı).
@@ -79,13 +80,13 @@ func (r *Reader) Resolve(q, kind string) []*Node {
 		if exact {
 			return a == b
 		}
-		return fold(a) == fold(b)
+		return Fold(a) == Fold(b)
 	}
 	suffix := func(full, tail string) bool {
 		if exact {
 			return strings.HasSuffix(full, "."+tail)
 		}
-		return strings.HasSuffix(fold(full), "."+fold(tail))
+		return strings.HasSuffix(Fold(full), "."+Fold(tail))
 	}
 	// q'ya uyan yerleşik adların düğümleri bir kez bulunur (her yerleşik düğümde bütün adları yeniden katlamak sorguyu
 	// yavaşlatıyordu: 278 adlık denetimde 16 sn).
@@ -163,7 +164,7 @@ func (r *Reader) atQuery(file string, line, col int, kind string) []*Node {
 // bir yerleşik adı) sorguyu içerenler önce, sonra Türkçe harf kuralıyla küçük düzenleme
 // uzaklığındakiler.
 func (r *Reader) Suggest(q string, limit int) []*Node {
-	lq := fold(q)
+	lq := Fold(q)
 	maxD := min(4, 1+len([]rune(lq))/4)
 	type scored struct {
 		n     *Node
@@ -190,7 +191,7 @@ func (r *Reader) Suggest(q string, limit int) []*Node {
 		}
 		best := -1
 		for _, c := range cands {
-			lc := fold(c)
+			lc := Fold(c)
 			if lc == "" {
 				continue
 			}

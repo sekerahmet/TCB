@@ -104,7 +104,7 @@ func validateNewName(old, name string) string {
 	switch {
 	case !identifierPattern.MatchString(name):
 		return ReasonInvalidName
-	case fold(name) == fold(old):
+	case Fold(name) == Fold(old):
 		return ReasonSameName
 	}
 	for _, code := range codes.Languages() {
@@ -147,7 +147,7 @@ func (r *Reader) RenameImpact(q, newName string, o RenameOptions) *Result {
 	}
 	words := map[string]string{} // katlanmış sözcük -> yazıldığı gibi
 	for _, n := range targets {
-		words[fold(shortName(n))] = shortName(n)
+		words[Fold(shortName(n))] = shortName(n)
 	}
 	for _, w := range words {
 		if reason := validateNewName(w, newName); reason != "" {
@@ -329,7 +329,7 @@ func (r *Reader) renameTerm(res *Result, q, newName string, o RenameOptions) *Re
 	case !identifierPattern.MatchString(newName):
 		res.Status, res.Reason = StatusRejected, ReasonInvalidName
 		return res
-	case fold(newName) == fold(q):
+	case Fold(newName) == Fold(q):
 		res.Status, res.Reason = StatusRejected, ReasonSameName
 		return res
 	}

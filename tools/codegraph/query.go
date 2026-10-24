@@ -9,6 +9,8 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
 )
 
 // index okunmuş grafiğin arama tablolarıdır.
@@ -46,7 +48,7 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 	if n := ix.byID[q]; n != nil && (len(kinds) == 0 || contains(kinds, n.Kind)) {
 		return []*Node{n}
 	}
-	fq := foldTR(q)
+	fq := codeindex.Fold(q)
 	tiers := []func(n *Node) bool{
 		// Takma ad: ad kodunun dildeki adı (zaman_ms, print) ya da bir .tr dosyasının modül adı
 		// (katman, tr/katman); düğümü, aynı adlı belge başlığından önce gelir.
@@ -58,9 +60,9 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 		func(n *Node) bool { return strings.HasSuffix(n.Name, "."+q) || strings.HasSuffix(n.Name, "/"+q) },
 		func(n *Node) bool { return strings.HasSuffix(n.ID, "/"+q) }, // yolla nitelenmiş: internal/lang/messages.New
 		// Büyük-küçük harf yok sayılarak (Türkçe kuralıyla: I/ı, İ/i; codeindex.Resolve'un kuralı) tam ad, sonra ad sonu.
-		func(n *Node) bool { return foldTR(n.Name) == fq },
+		func(n *Node) bool { return codeindex.Fold(n.Name) == fq },
 		func(n *Node) bool {
-			f := foldTR(n.Name)
+			f := codeindex.Fold(n.Name)
 			return strings.HasSuffix(f, "."+fq) || strings.HasSuffix(f, "/"+fq)
 		},
 	}
@@ -105,8 +107,8 @@ func (ix *index) withSameNamed(q string, found []*Node, kinds []string) []*Node 
 	}
 	same := func(a string) bool { return a == q }
 	if !strings.ContainsFunc(q, unicode.IsUpper) {
-		fq := foldTR(q)
-		same = func(a string) bool { return foldTR(a) == fq }
+		fq := codeindex.Fold(q)
+		same = func(a string) bool { return codeindex.Fold(a) == fq }
 	}
 	for i := range ix.g.Nodes {
 		n := &ix.g.Nodes[i]
@@ -314,7 +316,7 @@ func (ix *index) printFields(w io.Writer, n *Node) []*Edge {
 // hasWord text, q'yu bütün bir sözcük olarak içeriyor mu: Türkçe harf katlamasıyla (İ/i, I/ı) karşılaştırılır, eşleşmenin iki
 // yanında harf, rakam ya da alt çizgi olmamalıdır.
 func hasWord(text, q string) bool {
-	ft, fq := foldTR(text), foldTR(q)
+	ft, fq := codeindex.Fold(text), codeindex.Fold(q)
 	if fq == "" {
 		return false
 	}
@@ -333,8 +335,6 @@ func hasWord(text, q string) bool {
 		start = i + size
 	}
 }
-
-func foldTR(s string) string { return strings.ToLowerSpecial(unicode.TurkishCase, s) }
 
 func isWordRune(r rune) bool {
 	return r != utf8.RuneError && (unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_')
