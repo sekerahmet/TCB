@@ -173,9 +173,9 @@ test "5.12 eşle kolu kendi kapsamını açar: kolda tanımlanan adlı fonksiyon
 }
 
 test "5.12 koşul, konu ve desen blok değildir: adlı fonksiyon bulunulan kapsama girer" {
-    eğer (fonksiyon koşul_işi() { sonuç 9 })() == 9 { }
+    eğer (fonksiyon koşul_işi() { sonuç 9 })() == 9 {}
     eşit_mi(9, koşul_işi())
-    eşle (fonksiyon konu_işi() { sonuç 3 })() { 3 => { } _ => { } }
+    eşle (fonksiyon konu_işi() { sonuç 3 })() { 3 => {} _ => {} }
     eşit_mi(3, konu_işi())
 }
 
