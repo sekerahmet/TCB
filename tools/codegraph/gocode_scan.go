@@ -27,6 +27,7 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 	writes := map[*ast.Ident]writeTarget{} // yazılan paket değişkenlerinin kök tanımlayıcıları (var_access.go)
 	atomicAddr := map[*ast.UnaryExpr]bool{}
 	var stack []ast.Node
+	x.envStrings(fc, owner, root)
 	ast.Inspect(root, func(n ast.Node) bool {
 		if n == nil {
 			stack = stack[:len(stack)-1]
