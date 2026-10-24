@@ -188,7 +188,7 @@ func setupStringMethods() {
 	addMethod(typeString, codes.Y103, signature{0, 1, messages.Text(messages.H2331), []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		sep := " "
 		if len(args) > 0 {
-			sep = args[0].Inspect()
+			sep = y.textOf(args[0])
 		}
 		parts := strings.Split(inst.(*StringVal).Val, sep)
 		elems := make([]Value, len(parts))
@@ -198,16 +198,16 @@ func setupStringMethods() {
 		return &ListVal{Elements: elems}, nil
 	})
 	addMethod(typeString, codes.Y104, signature{2, 2, "eski, yeni", []*argKind{textArg, textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
-		return &StringVal{Val: strings.ReplaceAll(inst.(*StringVal).Val, args[0].Inspect(), args[1].Inspect())}, nil
+		return &StringVal{Val: strings.ReplaceAll(inst.(*StringVal).Val, y.textOf(args[0]), y.textOf(args[1]))}, nil
 	})
 	addMethod(typeString, codes.Y002, signature{1, 1, "alt", []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
-		return BoolToVal(strings.Contains(inst.(*StringVal).Val, args[0].Inspect())), nil
+		return BoolToVal(strings.Contains(inst.(*StringVal).Val, y.textOf(args[0]))), nil
 	})
 	addMethod(typeString, codes.Y105, signature{1, 1, messages.Text(messages.H2332), []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
-		return BoolToVal(strings.HasPrefix(inst.(*StringVal).Val, args[0].Inspect())), nil
+		return BoolToVal(strings.HasPrefix(inst.(*StringVal).Val, y.textOf(args[0]))), nil
 	})
 	addMethod(typeString, codes.Y106, signature{1, 1, "sonek", []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
-		return BoolToVal(strings.HasSuffix(inst.(*StringVal).Val, args[0].Inspect())), nil
+		return BoolToVal(strings.HasSuffix(inst.(*StringVal).Val, y.textOf(args[0]))), nil
 	})
 	addMethod(typeString, codes.Y013, signature{1, 1, "indeks", []*argKind{intArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		runes := []rune(inst.(*StringVal).Val)
@@ -279,12 +279,13 @@ func setupListMethods() {
 	addMethod(typeList, codes.Y203, signature{0, 1, messages.Text(messages.H2331), []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		sep := ""
 		if len(args) > 0 {
-			sep = args[0].Inspect()
+			sep = y.textOf(args[0])
 		}
 		elems := inst.(*ListVal).Elements
 		parts := make([]string, len(elems))
+		lang := y.textLanguage()
 		for i, el := range elems {
-			parts[i] = el.Inspect()
+			parts[i] = valueText(el, lang)
 		}
 		return &StringVal{Val: strings.Join(parts, sep)}, nil
 	})

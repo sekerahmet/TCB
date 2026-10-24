@@ -3,6 +3,7 @@ package interp
 import (
 	"bytes"
 	"path/filepath"
+	"strings"
 	"testing"
 	"testing/fstest"
 
@@ -39,7 +40,7 @@ func runEnglish(t *testing.T, main string, files map[string]string) string {
 	}
 	var out bytes.Buffer
 	m := New()
-	m.Out, m.Err = &out, &out
+	m.Out, m.Err, m.Stdin = &out, &out, strings.NewReader("\n")
 	m.SourceFile, m.SourceCode, m.SourceLanguage = filepath.Join(root, "main.tr"), r.Text, r.Language
 	if _, err := m.Run(r.Program); err != nil {
 		t.Fatalf("%v\n%s", err, out.String())
@@ -80,5 +81,22 @@ y.uygula((x) => str([x]))
 	want := "doğru Mantık yok\ntrue true\n[none]\n"
 	if out != want {
 		t.Errorf("metin işlemin yazıldığı dosyanın dilinde olmalı:\n%s\nbeklenen:\n%s", out, want)
+	}
+}
+
+// Programın değerden metin yaptığı her yer aynı kuralı izler: Metin ile '+', birleştir,
+// dosya_yaz'ın içeriği, girdi'nin istemi. Kitaplığın içindeki birleştirme Türkçe kalır.
+func TestEveryTextConversionFollowsTheFilesLanguage(t *testing.T) {
+	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(
+		"fonksiyon ekle(x) { sonuç \"a\" + x + \",\" + [x, yok].birleştir(\"/\") }\n")}})
+	out := runEnglish(t, `import "tr/kitap" as k
+print("x" + true, none + "!", [true, none, Int].join(","), k.ekle(false))
+write_file("out.txt", [false])
+print(read_file("out.txt"))
+input(true)
+`, nil)
+	want := "xtrue none! true,none,Int ayanlış,yanlış/yok\n[false]\ntrue"
+	if out != want {
+		t.Errorf("değerin metni işlemin yazıldığı dosyanın dilinde olmalı:\n%q\nbeklenen:\n%q", out, want)
 	}
 }

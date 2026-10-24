@@ -27,11 +27,13 @@ yerleşik yolu aynı yerden çözer. Denetim: `TestResolvePathSingleRule`, `Test
 **Sıra belirlenimlidir.** Sözlükler ekleme sırasını korur, yapı alanları sabit bir sırayla gezilir;
 çıktı harita gezinme sırasına bağlı olmaz. Denetim: `TestOutputOrderIsDeterministic`.
 
-**Değerin metni dosyanın dilindedir.** `metin()`, `yazdır` ve metin yerleştirmesi bir değeri
-işlemin yazıldığı dosyanın dilinde metne çevirir (`valueText`; sözcüksel: kitaplık fonksiyonu
-kendi dilinde, geri çağırma kendi dosyasının dilinde). Dile bağlı olan yalnızca dilin
-değerlerinin adlarıdır (`doğru`, `yanlış`, `yok`, tip adları). `Inspect` kanonik kalır: veri
-biçimleri (JSON, günlük) onu kullanır. Denetim: `TestValueTextFollowsTheFilesLanguage`, `TestValueTextIsLexical`.
+**Değerin metni dosyanın dilindedir.** Programın bir değerden metin yaptığı her yer (`metin()`,
+`yazdır`, metin yerleştirmesi, Metin ile `+`, `birleştir`, `dosya_yaz`, `girdi`'nin istemi, metin
+metotlarının argümanları) değeri işlemin yazıldığı dosyanın dilinde çevirir (tek yol:
+`VM.textOf`/`valueText`; sözcüksel: kitaplık fonksiyonu kendi dilinde, geri çağırma kendi
+dosyasının dilinde). Dile bağlı olan yalnızca dilin değerlerinin adlarıdır (`doğru`, `yanlış`,
+`yok`, tip adları). `Inspect` kanonik kalır: veri biçimleri (JSON, günlük, kontrol noktası) ve
+iletiler onu kullanır. Denetim: `TestValueTextFollowsTheFilesLanguage`, `TestValueTextIsLexical`, `TestEveryTextConversionFollowsTheFilesLanguage`, `TestDataFormatsIndependentOfFileLanguage` (cmd/tr/e2e).
 
 **Sıcak yol ölçülerek değişir.** Yorumlayıcı döngüsündeki ve hızlı yollardaki değişiklikler
 önce/sonra hız ölçümüyle yapılır.

@@ -17,8 +17,16 @@ type languageText interface {
 	text(lang *codes.Language) string
 }
 
+// textOf val'ın şu an çalışan koddaki metnidir: program bir değeri işlemin yazıldığı dosyanın
+// dilinde metne çevirir (3, 17.1). Programın değerden metin yaptığı her yer bunu kullanır
+// (metin(), yazdır, yerleştirme, Metin ile '+', birleştir, dosya_yaz, girdi'nin istemi, metin
+// metotlarının argümanları). Veri biçimleri (JSON, günlük, kontrol noktası) ve iletiler
+// kullanmaz: onlar Inspect'tedir.
+func (v *VM) textOf(val Value) string { return valueText(val, v.textLanguage()) }
+
 // valueText v'nin lang dilinde yazılmış bir dosyadaki metnidir; lang nil ise (kanonik dil)
-// Inspect'tir.
+// Inspect'tir. Aynı dili birden çok değer için bir kez soran çağıranlar (yazdır, birleştir,
+// yerleştirme) bunu kullanır.
 func valueText(v Value, lang *codes.Language) string {
 	return writeItem(v, lang, nil)
 }

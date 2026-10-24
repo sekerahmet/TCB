@@ -56,6 +56,43 @@ func TestFileFormatsIndependentOfWritingLanguage(t *testing.T) {
 	}
 }
 
+// Veri biçimleri dosyanın dilinden de bağımsızdır (3, 17.1): aynı program Türkçe (dil=tr) ve
+// İngilizce (dil=en) yazıldığında değerlerin metni değişir ama JSON metni, CSV'den okunan değerler
+// ve günlük satırı bayt bayt aynıdır.
+func TestDataFormatsIndependentOfFileLanguage(t *testing.T) {
+	program := "yazdır(json_metin({a: doğru, b: yok, c: [1.5, yanlış], d: \"x\"}))\n" +
+		"yazdır(json_metin(csv_çöz(\"a,b\\ndoğru,1\\n\")))\n" +
+		"günlük(\"metrics.jsonl\").ekle({hazır: doğru, boş: yok})\n" +
+		"yazdır(doğru)\n"
+	coded, err := source.Encode(program)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var data, logs [2]string
+	for i, language := range []string{"tr", "en"} {
+		dir := t.TempDir()
+		testkit.WriteFile(t, dir, "p.tr", inLanguage(coded, language))
+		s := testkit.RunBinary(t, trBinary, dir, "", nil, "p.tr")
+		testkit.Wait(t, s, 0, nil, nil)
+		lines := strings.SplitN(s.Stdout, "\n", 3)
+		if want := map[string]string{"tr": "doğru\n", "en": "true\n"}[language]; lines[2] != want {
+			t.Errorf("dil=%s: değerin metni %q, beklenen %q", language, lines[2], want)
+		}
+		data[i] = lines[0] + "\n" + lines[1]
+		// Günlüğün kaydı (zaman damgasından sonrası).
+		_, logs[i], _ = strings.Cut(readFile(t, filepath.Join(dir, "metrics.jsonl")), "\"hazır\"")
+	}
+	if want := ":true,\"boş\":null}\n"; logs[0] != want {
+		t.Errorf("günlük kaydı %q, beklenen %q", logs[0], want)
+	}
+	if want := "{\"a\":true,\"b\":null,\"c\":[1.5,false],\"d\":\"x\"}\n[[\"a\",\"b\"],[\"doğru\",1]]"; data[0] != want {
+		t.Errorf("JSON ve CSV: %q, beklenen %q", data[0], want)
+	}
+	if data[0] != data[1] || logs[0] != logs[1] {
+		t.Errorf("veri biçimi dosyanın diline göre değişti:\ntr: %q %q\nen: %q %q", data[0], logs[0], data[1], logs[1])
+	}
+}
+
 // fileFormatShape klasördeki dosya adlarını ve her JSON dosyasının (satırının) anahtar
 // kümesini, değerleri atarak, sıralı bir özet olarak verir.
 func fileFormatShape(t *testing.T, dir string) string {
