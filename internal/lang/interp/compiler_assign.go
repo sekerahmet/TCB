@@ -71,7 +71,7 @@ func (c *compiler) assignTarget(k *compilerScope, target ast.Expression, codeVal
 	case *ast.MemberExpression:
 		object := c.expression(k, t.Object)
 		prop := t.Property
-		u := resolveMember(prop)
+		u := c.member(prop)
 		return func(v *VM, env *Environment, rhs Value) error {
 			obj, err := object(v, env)
 			if err != nil {

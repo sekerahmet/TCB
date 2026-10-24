@@ -32,8 +32,10 @@ yerleşik yolu aynı yerden çözer. Denetim: `TestResolvePathSingleRule`, `Test
 metotlarının argümanları) değeri işlemin yazıldığı dosyanın dilinde çevirir (tek yol:
 `VM.textOf`/`valueText`; sözcüksel: kitaplık fonksiyonu kendi dilinde, geri çağırma kendi
 dosyasının dilinde). Dile bağlı olan yalnızca dilin değerlerinin adlarıdır (`doğru`, `yanlış`,
-`yok`, tip adları). `Inspect` kanonik kalır: veri biçimleri (JSON, günlük, kontrol noktası) ve
-iletiler onu kullanır. Denetim: `TestValueTextFollowsTheFilesLanguage`, `TestValueTextIsLexical`, `TestEveryTextConversionFollowsTheFilesLanguage`, `TestDataFormatsIndependentOfFileLanguage` (cmd/tr/e2e).
+`yok`, tip adları) ile kod taşıyan çıplak sözlük anahtarları (`{step: 1}` İngilizce dosyada
+`"step"`); sözlükte üye erişimi (`d.adım`) anahtarı kodun her dildeki adıyla arar, önce dosyanın
+dilindekini (`memberInfo.keys`), aynı kodun ikinci anahtarını eklemez. `Inspect` kanonik kalır: veri biçimleri (JSON, günlük, kontrol noktası) ve
+iletiler onu kullanır. Denetim: `TestValueTextFollowsTheFilesLanguage`, `TestValueTextIsLexical`, `TestEveryTextConversionFollowsTheFilesLanguage`, `TestDictMemberKeysFollowTheFilesLanguage`, `TestDataFormatsIndependentOfFileLanguage` ve `TestDictKeysFollowFileLanguage` (cmd/tr/e2e).
 
 **Sıcak yol ölçülerek değişir.** Yorumlayıcı döngüsündeki ve hızlı yollardaki değişiklikler
 önce/sonra hız ölçümüyle yapılır.

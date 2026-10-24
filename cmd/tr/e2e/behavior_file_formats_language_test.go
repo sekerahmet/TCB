@@ -93,6 +93,54 @@ func TestDataFormatsIndependentOfFileLanguage(t *testing.T) {
 	}
 }
 
+// Kod taşıyan çıplak sözlük anahtarı dosyanın dilindedir (3.7, 17.3): İngilizce betikte
+// komut_satırı({step: …}) seçeneği --step, json_metin anahtarı "step" olur; Türkçe program
+// İngilizce yazılmış JSON'daki "step"'i .adım ile bulur. Kitaplığın ve motorların kendi dosya
+// anahtarları (config.json, kontrol noktası) Türkçe kalır.
+func TestDictKeysFollowFileLanguage(t *testing.T) {
+	program := "aktar \"tr/egitim\" olarak e\n" +
+		"değişken ayar = komut_satırı({adım: 3, öğrenme_oranı: 0.5})\n" +
+		"değişken koşu = e.Koşu(\"kosu\", ayar, {}, adım_sayısı: ayar.adım)\n" +
+		"değişken kn = kontrol_noktası(\"nokta\", {w: tensör([1.0])})\n" +
+		"kn.güncelle(1)\n" +
+		"kn.kaydet()\n" +
+		"yazdır(json_metin(ayar))\n" +
+		"yazdır(json_çöz(`{\"step\": 4}`).adım)\n"
+	coded, err := source.Encode(program)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var shapes [2]string
+	for i, c := range []struct{ language, option, want string }{
+		{"tr", "--adım", "{\"adım\":2,\"öğrenme_oranı\":0.5}\n4\n"},
+		{"en", "--step", "{\"step\":2,\"lr\":0.5}\n4\n"},
+	} {
+		dir := t.TempDir()
+		testkit.WriteFile(t, dir, "p.tr", inLanguage(coded, c.language))
+		s := testkit.RunBinary(t, trBinary, dir, "", nil, "p.tr", c.option, "2")
+		testkit.Wait(t, s, 0, nil, nil)
+		if got := progressLine.ReplaceAllString(s.Stdout, ""); got != c.want {
+			t.Errorf("dil=%s: çıktı %q, beklenen %q", c.language, got, c.want)
+		}
+		var config map[string]any
+		if err := json.Unmarshal([]byte(readFile(t, filepath.Join(dir, "kosu", "config.json"))), &config); err != nil {
+			t.Fatal(err)
+		}
+		var top []string
+		for k := range config {
+			top = append(top, k)
+		}
+		sort.Strings(top)
+		if got := strings.Join(top, " "); got != "ayar cihaz parametre_sayısı" {
+			t.Errorf("dil=%s: config.json anahtarları %q, kitaplığın Türkçe anahtarları kalmalı", c.language, got)
+		}
+		shapes[i] = fileFormatShape(t, filepath.Join(dir, "nokta"))
+	}
+	if shapes[0] != shapes[1] || !strings.Contains(shapes[0], "\"sürüm\"") {
+		t.Errorf("kontrol noktasının biçimi dosyanın diline göre değişti:\ntr:\n%s\nen:\n%s", shapes[0], shapes[1])
+	}
+}
+
 // fileFormatShape klasördeki dosya adlarını ve her JSON dosyasının (satırının) anahtar
 // kümesini, değerleri atarak, sıralı bir özet olarak verir.
 func fileFormatShape(t *testing.T, dir string) string {

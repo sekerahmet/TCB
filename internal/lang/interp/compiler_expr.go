@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/hint"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -97,7 +98,7 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 		keyList := make([]exprCode, len(e.Pairs))
 		values := make([]exprCode, len(e.Pairs))
 		for i, p := range e.Pairs {
-			keyList[i] = c.expression(k, p.Key)
+			keyList[i] = c.dictKey(k, p.Key)
 			values[i] = c.expression(k, p.Value)
 		}
 		return func(v *VM, env *Environment) (Value, error) {
@@ -207,7 +208,7 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 
 	case *ast.MemberExpression:
 		object := c.expression(k, e.Object)
-		u := resolveMember(e.Property) // ad → kod derleme anında bir kez çözülür
+		u := c.member(e.Property) // ad → kod derleme anında bir kez çözülür
 		return func(v *VM, env *Environment) (Value, error) {
 			obj, err := object(v, env)
 			if err != nil {
@@ -221,6 +222,18 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 		}
 	}
 	return nullCode
+}
+
+// dictKey sözlük yazımındaki bir anahtarın kodudur. Kod taşıyan çıplak anahtar ({Y500: 3})
+// derlenen dosyanın dilindeki adıdır (3.7, 17.3; yerleştirmeyle aynı yoldan, c.textLang); öbür
+// anahtarlar (kodsuz çıplak ad, metin, ifade) olduğu gibi derlenir.
+func (c *compiler) dictKey(k *compilerScope, key ast.Expression) exprCode {
+	if s, ok := key.(*ast.StringLiteral); ok && c.textLang != nil {
+		if code := s.Token.Code; code != codes.None && code.Namespace() == codes.NamespaceMember {
+			return constCode(&StringVal{Val: c.textLang.Name(code)})
+		}
+	}
+	return c.expression(k, key)
 }
 
 // interpolation metin yerleştirmesinin kodudur: parçaların değerleri derlenen dosyanın dilinde
