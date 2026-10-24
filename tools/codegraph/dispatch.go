@@ -18,6 +18,10 @@ import (
 //     dallayan `switch op { case "@": ... }` (ml'deki tensör işleçleri) ya da metni sabite çeviren
 //     (`case "+", "+=": return opAdd`) ve o sabiti dallayan (`case opAdd: ...`) switch'lerin dalları. Dalda çağrı yoksa
 //     işlem dalın kendisindedir; uygulama o switch'i taşıyan işlevdir.
+// Dal bir derleme yardımcısı çağırıyorsa (yorumlayıcının compiler metodu: `case *ast.InterpolatedString: return
+// c.interpolation(...)`) yardımcının (iç kapanışları dahil) çağırdıkları da o yapının uygulamasıdır, zincir halinde
+// (en çok testMaxSteps adım): kodu bir yardımcıya taşımak bağı koparmaz. Kendi AST tür switch'ini taşıyan genel derleme
+// metotlarına (compiler.expression gibi, her yapıyı dağıtan) yardımcı üzerinden inilmez.
 // codeindex her TR bildiriminin kullandığı yapıları kaydeder (Construct); her biri bu tablodaki işlevlere
 // `implemented_by` kenarı (INFERRED) olur. İşlenen türü biliniyorsa (tensör, sayı, metin ...) yalnız o türün
 // uygulamalarına gider: Tensör yorumlayıcı dışındaki kancalara (ml), yerleşik değer türleri yorumlayıcıya.
@@ -48,6 +52,7 @@ func readDispatch(m *module) *dispatchTable {
 		pkg  string
 	}
 	var switches []sw
+	helpers := map[string]compileHelper{} // yorumlayıcının compiler metotları (yardımcı izlemek için)
 	forEachFile(m, func(u *unit, f *ast.File, rel string) {
 		if isTestFile(rel) {
 			return
@@ -62,11 +67,18 @@ func readDispatch(m *module) *dispatchTable {
 				continue // gönderim çalışma anındadır: yorumlayıcı ve kancaları; denetleyicinin işleç kuralı değil
 			}
 			compiler := pkg == interpPkg && fd.Recv != nil && strings.Contains(recvTypeName(fd), "compiler")
+			var self string
+			if fn, ok := u.Info.Defs[fd.Name].(*types.Func); ok && compiler {
+				self = funcRef(fn)
+				helpers[self] = compileHelper{info: u.Info, body: fd.Body.List}
+			}
 			ast.Inspect(fd.Body, func(n ast.Node) bool {
 				switch s := n.(type) {
 				case *ast.TypeSwitchStmt:
-					if compiler {
-						t.typeSwitch(u.Info, fd, s, astPkg, pkg)
+					if compiler && t.typeSwitch(u.Info, fd, s, astPkg, pkg) {
+						h := helpers[self]
+						h.dispatcher = true
+						helpers[self] = h
 					}
 				case *ast.SwitchStmt:
 					switches = append(switches, sw{fd, s, u.Info, pkg})
@@ -87,6 +99,7 @@ func readDispatch(m *module) *dispatchTable {
 			})
 		}
 	})
+	t.followHelpers(helpers, m.Path, astPkg, interpPkg)
 	for _, s := range switches { // sabitler bilinince ikinci geçiş: metin ya da sabit dallayan switch'ler
 		for _, cc := range s.s.Body.List {
 			c := cc.(*ast.CaseClause)
@@ -123,8 +136,45 @@ func (t *dispatchTable) add(m map[string][]string, key, id, pkg string) {
 	t.pkg[id] = pkg
 }
 
-// typeSwitch derleyicinin AST türü dallarını tabloya yazar.
-func (t *dispatchTable) typeSwitch(info *types.Info, fd *ast.FuncDecl, s *ast.TypeSwitchStmt, astPkg, pkg string) {
+// compileHelper yorumlayıcının bir compiler metodudur: gövdesi ve AST türlerini dağıtıp dağıtmadığı.
+type compileHelper struct {
+	info       *types.Info
+	body       []ast.Stmt
+	dispatcher bool // kendi AST tür switch'i var: her yapıyı derleyen genel metot
+}
+
+// followHelpers her yapının uygulama listesine dalın çağırdığı derleme yardımcılarının (zincir halinde, en çok
+// testMaxSteps adım) çağırdıklarını ekler; dağıtıcı metotlara yardımcı üzerinden inilmez, onlar eklenmez.
+func (t *dispatchTable) followHelpers(helpers map[string]compileHelper, mod, astPkg, pkg string) {
+	for kind, direct := range t.kinds {
+		seen := map[string]bool{}
+		frontier := append([]string(nil), direct...)
+		for _, id := range direct {
+			seen[id] = true
+		}
+		for step := 0; step < testMaxSteps && len(frontier) > 0; step++ {
+			var next []string
+			for _, id := range frontier {
+				h, ok := helpers[id]
+				if !ok || h.dispatcher {
+					continue
+				}
+				for _, callee := range clauseCallees(h.info, h.body, mod, astPkg) {
+					if seen[callee] || helpers[callee].dispatcher {
+						continue
+					}
+					seen[callee] = true
+					t.add(t.kinds, kind, callee, pkg)
+					next = append(next, callee)
+				}
+			}
+			frontier = next
+		}
+	}
+}
+
+// typeSwitch derleyicinin AST türü dallarını tabloya yazar; switch AST türlerini dallıyorsa true döner.
+func (t *dispatchTable) typeSwitch(info *types.Info, fd *ast.FuncDecl, s *ast.TypeSwitchStmt, astPkg, pkg string) (kinds bool) {
 	for _, cc := range s.Body.List {
 		c := cc.(*ast.CaseClause)
 		for _, e := range c.List {
@@ -137,11 +187,13 @@ func (t *dispatchTable) typeSwitch(info *types.Info, fd *ast.FuncDecl, s *ast.Ty
 			if id == nil || !ok || tn.Pkg() == nil || tn.Pkg().Path() != astPkg {
 				continue
 			}
+			kinds = true
 			for _, f := range clauseCallees(info, c.Body, "", astPkg) {
 				t.add(t.kinds, tn.Name(), f, pkg)
 			}
 		}
 	}
+	return kinds
 }
 
 // operatorLits dal ifadeleri hepsi TR işleci olan metinlerse onları verir; değilse nil.
