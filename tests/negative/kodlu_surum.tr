@@ -1,3 +1,3 @@
-//! tr kodlu 2
-// Bilerek hatalı (17.1): bu yorumlayıcının tanımadığı bir kodlu biçim sürümü.
+//! tr kodlu 1
+// Bilerek hatalı (17.1, 17.6): eski kodlu biçim sürümü (1) okunmaz; yalnızca sürüm 2 okunur.
 A030 x = 1

@@ -109,8 +109,9 @@ func TestExamplesPaired(t *testing.T) {
 		t.Errorf("Türkçe örnekler kodsuz Türkçe yazılır")
 	}
 	for n, name := range english {
-		if !strings.HasPrefix(readExample(t, "en", name), source.Header) {
-			t.Errorf("examples/en/%s kodlu saklanmalı (%s ile başlamalı); %s numaralı örnek", name, source.Header, n)
+		// İngilizce örnekler İngilizce yazılmış kodlu dosyalardır (17.1: dil=en).
+		if header := source.Header + "en\n"; !strings.HasPrefix(readExample(t, "en", name), header) {
+			t.Errorf("examples/en/%s kodlu saklanmalı (%q ile başlamalı); %s numaralı örnek", name, header, n)
 		}
 	}
 }
@@ -119,7 +120,10 @@ func TestExamplesPaired(t *testing.T) {
 // düz yazısı ve kullanıcı adları atılır (ad → ID); kodlar, sayılar, işleçler ve metin içi
 // yerleştirmelerdeki kod kalır. Aynı programın iki yazımının iskeleti aynıdır.
 func structure(coded string) []string {
-	coded = strings.TrimPrefix(coded, source.Header)
+	// Başlık (dosyanın dili dahil) iskelete girmez: iki yazım ayrı dillerde kodludur.
+	if b, err := source.Split(coded); err == nil {
+		coded = b.Body
+	}
 	var out []string
 	s := &scanner{src: []rune(coded), out: &out}
 	s.code(false)

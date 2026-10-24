@@ -273,7 +273,7 @@
 "H2509": { "param": ["variable", "language", "error"] },
 "H2510": { "param": [] },
 "H2511": { "param": [] },
-"H2512": { "param": ["line", "header", "prefix"] },
+"H2512": { "param": ["line", "header", "languages", "prefix"] },
 "H2513": { "param": ["count", "max"] },
 "H2514": { "param": ["error"] },
 "H2515": { "param": ["container", "index", "length", "get"] },

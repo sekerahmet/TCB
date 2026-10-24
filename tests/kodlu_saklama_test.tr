@@ -6,10 +6,10 @@ aktar "yardimci_test_araclari"
 test "17.1 ilk satırı başlık olan dosya kodludur ve çevrilmeden çalışır" {
     aktar "coded/ornek_kodlu" olarak m
     eşit_mi([1, 4, 9], m.kareler([1, 2, 3]))
-    // Bu sürümün tanımadığı bir kodlu biçim sürümü Türkçe kaynak sanılmaz, hatadır.
+    // Başka bir kodlu biçim sürümü (burada eski sürüm 1) Türkçe kaynak sanılmaz, hatadır.
     değişken mesaj = ""
     dene { aktar "negative/kodlu_surum" } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("Satır 1, Sütun 1: '//! tr kodlu 2' bu yorumlayıcının tanımadığı bir kodlu biçim başlığı"), mesaj)
+    doğrula(mesaj.içerir("Satır 1, Sütun 1: '//! tr kodlu 1' okunamayan bir kodlu biçim başlığı: bu biçim sürümü okunamıyor"), mesaj)
 }
 
 test "17.2 kodlu dosyada dilin sözcükleri kodla, kullanıcının adları adıyla yazılır" {

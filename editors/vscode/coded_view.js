@@ -138,7 +138,7 @@ function create(vscode, g) {
         let handle;
         try {
             handle = await fs.promises.open(filePath, 'r');
-            // Başlık (BOM ve CRLF ile 19 bayt) ilk 64 baytın içindedir.
+            // Başlık (BOM ve CRLF ile 26 bayt) ilk 64 baytın içindedir.
             const head = Buffer.alloc(64);
             const { bytesRead } = await handle.read(head, 0, head.length, 0);
             if (codedFormat.isCoded(head.subarray(0, bytesRead))) {
@@ -171,6 +171,9 @@ function create(vscode, g) {
     // kodlanır. Ayar sonradan değişse de (kirli belge yeni dille yenilenemez) metin, yazıldığı
     // dille kodlanınca yerleşik kodlar bozulmaz.
     const resolvedLanguage = new Map();
+    // Her açılan kodlu dosyanın kendi dili (başlığın dil='si, 17.1): kayıtta korunur, çünkü
+    // değerlerin metni dosyanın dilindedir; dosyayı düzenleyen kişinin diline bağlı değildir.
+    const fileLanguages = new Map();
     // Yazım dili değişince yenilenen belgelerin sürümü (coded_filesystem.js stat).
     const revisions = new Map();
     function revision(filePath) {
@@ -217,6 +220,7 @@ function create(vscode, g) {
         if (!codedFormat.isCoded(data)) {
             return anyPending(filePath) ? data : readPlain(filePath, data);
         }
+        fileLanguages.set(key(filePath), codedFormat.fileLanguage(data));
         const lang = g.writingLanguage();
         const s = await showTranslation(filePath, lang, data);
         if (s.code === 0) {
@@ -290,6 +294,12 @@ function create(vscode, g) {
         const y = interpreter(filePath);
         const lang = resolvedLanguage.get(key(filePath)) || g.writingLanguage();
         const s = y.error ? { code: -1, error: y.error } : await g.translate(y.filePath, 'kodla', lang, content);
+        // Dosyanın dili korunur (diskteki başlıktan, bekleyen dosyada açılıştakinden); yeni
+        // dosya yazıldığı dilde kodlanır.
+        const kept = (disk && codedFormat.fileLanguage(disk)) || fileLanguages.get(key(filePath));
+        if (s.code === 0 && kept) {
+            s.output = codedFormat.withLanguage(s.output, kept);
+        }
         return settleSave(filePath, content, s, undefined, {
             syntax: (name, reason) => `${name}: kodda sözdizimi hatası var (${reason}). Yazdıklarınız kaybolmadı: dosya şimdilik Türkçe yazımıyla kaydedildi; ` +
                 'sözdizimi hatası düzelince ilk kayıtta yeniden kodlu yazılacak.',

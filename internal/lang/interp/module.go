@@ -23,6 +23,9 @@ type Source struct {
 	Path string // dosyanın çözülmüş yolu (kitaplık modülünde "tr/katman.tr")
 	Name string // hata mesajlarında gösterilen yol (mümkünse çalışma klasörüne göre)
 	Code string
+	// Language is the code of the file's writing language (17.1; Turkish for a file without the
+	// coded header).
+	Language string
 	// Embedded says the source lives in the language's embedded library, not on disk (11.6):
 	// relative file paths are not searched relative to its directory, and a relative 'aktar' is
 	// resolved inside the library.
@@ -306,7 +309,7 @@ func (v *VM) runModule(s *ast.ImportStatement, path string, dest *Source, keyStr
 	// Modül genel kapsamın altında çalışır: genel kapsamda tanımlı (ya da yuvası ayrılmış)
 	// adları görür; yerleşikler de oradadır.
 	ms := CheckModule(dest.Code, v.GlobalEnv.scope.nameList, false)
-	modSource := &Source{Path: dest.Path, Name: dest.Name, Code: ms.Text, Embedded: dest.Embedded}
+	modSource := &Source{Path: dest.Path, Name: dest.Name, Code: ms.Text, Language: ms.Language, Embedded: dest.Embedded}
 	if ms.Stage != "" {
 		return nil, &ModuleError{Source: modSource, Kind: ms.Stage, Errors: ms.Errors, ModulePath: s.Path, ImportLine: s.Line(), Importer: v.source}
 	}

@@ -81,7 +81,7 @@ func toCoded(b Parts, lang *codes.Language) (Parts, error) {
 
 // codedParts b'nin (kodsuz, çözümlenmiş) kodlu biçimidir: BOM korunur, başlık satır sonu bulunur.
 func (c *analysis) codedParts(b Parts) Parts {
-	coded := Parts{BOM: b.BOM, Coded: true, Body: c.codedBody()}
+	coded := Parts{BOM: b.BOM, Coded: true, Language: c.lang.Code, Body: c.codedBody()}
 	coded.HeaderEOL = findEOL(coded.Body)
 	return coded
 }

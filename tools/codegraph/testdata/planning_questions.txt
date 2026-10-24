@@ -50,7 +50,7 @@ codegraph tests-for tensor.Tensor.Softmax --all | group: measurements, not tests
 
 # Deneme 5: değer metni dosyanın dilinde (2026-10-23)
 codegraph query "tr kodlu" | contains: source.Header | contains: lexer.CodedHeader | src: deneme 5, 2026-10-23
-codegraph query source.Header | contains: display language is not stored | src: deneme 5, 2026-10-23
+codegraph query source.Header | contains: writing language follows it | src: deneme 5, 2026-10-23
 codegraph tests-for source.Split | not: no tests found | src: deneme 5, 2026-10-23
 codegraph query interp.Value.Inspect | contains: dispatches_to (23) | src: deneme 5, 2026-10-23
 codegraph query G100 | group: registered or used in Go => interp.printBuiltin | src: deneme 5, 2026-10-23
