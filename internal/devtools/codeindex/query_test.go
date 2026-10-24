@@ -3,6 +3,7 @@ package codeindex
 import (
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 
@@ -32,7 +33,7 @@ func TestResolveTiers(t *testing.T) {
 		"geo.Kare":               "struct:lib/geo.tr#Kare",
 		"geo.Kare.alan":          "method:lib/geo.tr#Kare.alan",
 		"Kare.alan":              "method:lib/geo.tr#Kare.alan",
-		"kare.ALAN":              "", // büyük harf var: tam eşleşme gerekir
+		"kare.ALAN":              "method:lib/geo.tr#Kare.alan", // büyük harf var, tam eşleşme yok: harf yok sayılır
 		"kare.alan":              "method:lib/geo.tr#Kare.alan",
 		"lib/geo.tr":             "module:lib/geo.tr",
 		"geo":                    "module:lib/geo.tr",
@@ -40,7 +41,8 @@ func TestResolveTiers(t *testing.T) {
 		"lib/geo_test.tr:5:6":    "function:lib/geo.tr#yaz_alan", // imlecin altındaki ad
 		"lib/geo.tr:15:12":       "function:lib/geo.tr#çevre_hesapla",
 		"çevre_hesapla":          "function:lib/geo.tr#çevre_hesapla",
-		"ÇEVRE_HESAPLA":          "",
+		"ÇEVRE_HESAPLA":          "function:lib/geo.tr#çevre_hesapla",
+		"ÇEVRE_HESAPLAMA":        "",
 		"geo.çevre_hesapla":      "function:lib/geo.tr#çevre_hesapla",
 		"yazdır":                 "builtin:G100", // TR adı
 		"print":                  "builtin:G100", // İngilizce adı
@@ -81,6 +83,74 @@ func TestTurkishCaseFolding(t *testing.T) {
 	}
 	if got := r.Resolve("isik", ""); len(got) != 0 {
 		t.Errorf("isik is another word: %v", got)
+	}
+}
+
+// Kural: harf kuralı NameKeys'tir (iki aracın tek kuralı): küçük harfli sorgu harfe bakmaz, büyük harfli sorgu önce tam
+// eşleşir, tam eşleşen yoksa harfe bakılmaz (bağımsız denetim grup 6, R1).
+func TestCaseRuleExactFirstThenFolded(t *testing.T) {
+	r := buildSource(t, `yapı Kare {
+    a
+}
+
+fonksiyon kare() {
+    sonuç 1
+}
+`)
+	for q, want := range map[string]string{
+		"Kare": "struct:m.tr#Kare",
+		"kare": "function:m.tr#kare struct:m.tr#Kare",
+		"KARE": "function:m.tr#kare struct:m.tr#Kare",
+	} {
+		var ids []string
+		for _, n := range r.Resolve(q, "") {
+			ids = append(ids, n.ID)
+		}
+		sort.Strings(ids)
+		if strings.Join(ids, " ") != want {
+			t.Errorf("%q -> %v, want %s", q, ids, want)
+		}
+	}
+}
+
+// Kural: çıplak adın sınıf sırası PickByName'dir: modül adı bildirimlerden önce, yerleşik ad uyan ilk sınıfa katılır
+// (`metin` hem modül hem yerleşik), test açıklaması başka aday yoksa (`ortalama` yerleşiktir, aynı açıklamalı test
+// değil) (bağımsız denetim grup 6, R1).
+func TestBareNameClasses(t *testing.T) {
+	dir := t.TempDir()
+	for name, text := range map[string]string{
+		"metin.tr": "değişken metin_boyu = uzunluk(metin(12))\n",
+		"m_test.tr": `test "ortalama" {
+    doğrula(ortalama([1, 3]) == 2)
+}
+
+test "yalnız bir test" {
+    doğrula(doğru)
+}
+`,
+	} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	idx, err := Build(dir, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := NewReader(idx)
+	for q, want := range map[string]string{
+		"metin":           "builtin:G212 module:metin.tr",
+		"ortalama":        "builtin:G410",
+		"yalnız bir test": "test_block:m_test.tr#5",
+	} {
+		var ids []string
+		for _, n := range r.Resolve(q, "") {
+			ids = append(ids, n.ID)
+		}
+		sort.Strings(ids)
+		if strings.Join(ids, " ") != want {
+			t.Errorf("%q -> %v, want %s", q, ids, want)
+		}
 	}
 }
 

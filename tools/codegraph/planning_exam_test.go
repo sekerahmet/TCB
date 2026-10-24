@@ -5,6 +5,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -358,41 +359,62 @@ func trTestSetMismatches(g *Graph, idx *codeindex.Index, reader *codeindex.Reade
 	return bad, checked
 }
 
-// trNameSetMismatches her TR bildirim adını iki araca sorar: `tr dizin` (codeindex.Resolve) ile codegraph'ın lookup'ı
-// çıplak ad için aynı TR bildirim kümesini vermeli (deneme 7 R1: tanım 3, yeniden_adlandır 7, query 4 aday veriyordu).
-// Yerleşik ad kodları ve modüller karşılaştırılmaz: grafikte ad kodu düğümüdür, modül dosya düğümüdür.
+// trNameSetMismatches her TR adını iki araca sorar: `tr dizin` (codeindex.Resolve) ile codegraph (trByName, kaynakta
+// yazıldığı gibi sorulunca lookup'ın kendisi) çıplak ad için aynı TR aday kümesini vermeli (deneme 7 R1: tanım 3,
+// yeniden_adlandır 7, query 4 aday veriyordu; bağımsız denetim grup 6 R1: büyük harfli sorgu, modül + yerleşik ve
+// yerleşik + test çakışması farklıydı). Adlar: her bildirimin kısa adı, modülün adı ve takma adları, testin açıklaması,
+// dizindeki her yerleşiğin bütün adları; her ad yazıldığı gibi, küçük harfle ve büyük harfle (Türkçe kuralı) sorulur.
+// Karşılaştırma tr dizin'in bildiği düğümlerdedir: grafiğin ad kodlarından yalnızca dizinde yerleşik düğümü olanlar
+// sayılır (anahtar sözcükler ve kullanılmayan yerleşikler yalnızca grafiktedir).
 func trNameSetMismatches(g *Graph, idx *codeindex.Index, reader *codeindex.Reader) (bad []string, checked int) {
 	ix := newIndex(g)
+	known := map[string]bool{} // tr dizin'in düğümlerinin grafik kimlikleri
 	names := map[string]bool{}
 	for _, n := range idx.Nodes {
-		if n.Kind == codeindex.KindBuiltin || n.Kind == codeindex.KindModule || n.Kind == codeindex.KindTest {
-			continue
+		id := graphID(n)
+		known[id] = true
+		switch n.Kind {
+		case codeindex.KindBuiltin:
+			if gn := ix.byID[id]; gn != nil {
+				names[gn.Name] = true
+				for _, a := range gn.Aliases {
+					names[a] = true
+				}
+			}
+		case codeindex.KindModule:
+			names[n.Name] = true
+			for _, a := range n.Aliases {
+				names[a] = true
+			}
+		case codeindex.KindTest:
+			names[n.Name] = true // açıklamada '.' olabilir: kısaltılmaz
+		default:
+			names[n.Name[strings.LastIndex(n.Name, ".")+1:]] = true
 		}
-		names[n.Name[strings.LastIndex(n.Name, ".")+1:]] = true
 	}
 	for name := range names {
-		if strings.ContainsFunc(name, unicode.IsUpper) {
-			continue // büyük harfli ad yapı ya da tiptir; Go adlarıyla aynı basamakta çözülür, karşılaştırma küçük harfli adlarda
-		}
-		found := reader.Resolve(name, "")
-		if len(found) < 2 {
-			continue // tek adaylı ad belirsizlik taşımaz; karşılaştırma aday kümesi kurulan adlarda (sınav süresi)
-		}
-		checked++
-		want := map[string]bool{}
-		for _, n := range found {
-			if n.Kind != codeindex.KindBuiltin && n.Kind != codeindex.KindModule && n.Kind != codeindex.KindTest {
+		for vi, q := range []string{name, codeindex.Fold(name), strings.ToUpperSpecial(unicode.TurkishCase, name)} {
+			if vi > 0 && q == name {
+				continue
+			}
+			checked++
+			want := map[string]bool{}
+			for _, n := range reader.Resolve(q, "") {
 				want[graphID(*n)] = true
 			}
-		}
-		got := map[string]bool{}
-		for _, n := range ix.lookup(name) {
-			if strings.HasPrefix(n.ID, "tr:") && n.Kind != kindFile && n.Kind != kindTRTest {
-				got[n.ID] = true
+			got := map[string]bool{}
+			found, _ := ix.trByName(q, nil)
+			if vi == 0 && !strings.ContainsAny(q, "./:") {
+				found = ix.lookup(q) // yazıldığı gibi sorulan adda sorgunun kendisi
 			}
-		}
-		if !maps.Equal(want, got) {
-			bad = append(bad, fmt.Sprintf("%s: tr dizin %d, codegraph %d", name, len(want), len(got)))
+			for _, n := range found {
+				if known[n.ID] {
+					got[n.ID] = true
+				}
+			}
+			if !maps.Equal(want, got) {
+				bad = append(bad, fmt.Sprintf("%q: tr dizin %d %v, codegraph %d %v", q, len(want), slices.Sorted(maps.Keys(want)), len(got), slices.Sorted(maps.Keys(got))))
+			}
 		}
 	}
 	sort.Strings(bad)
