@@ -21,7 +21,7 @@
   "ayiklayici.parcacik.etiket": "TR: Hata Ayıkla",
   "ayiklayici.parcacik.aciklama": "Açık .tr dosyasında VS Code hata ayıklayıcısını başlatır",
   "komut.kodluHaliniGoster": "Kodlu Hâlini Göster (salt okunur)",
-  "ayar.yazimDili": "Kodlu saklanan .tr dosyalarının (ilk satırı `//! tr kodlu 1`) düzenleyicide gösterildiği yazım dili. Dosya bu dilde açılır, düzenlenir ve kaydedilince diske yine kodlu yazılır; kodlu olmayan dosyalar olduğu gibi açılır. Türkçe (`tr`) ya da İngilizce (`en`); kullanıcının adları, yorumlar ve metinler yazıldığı gibi kalır, yalnızca dilin sözcükleri çevrilir. Değişiklik, açık dosyalar yeniden açılınca geçerli olur.",
+  "ayar.yazimDili": "Kodlu saklanan .tr dosyalarının (ilk satırı `//! tr kodlu 2 dil=<dil>`) düzenleyicide gösterildiği yazım dili. Dosya bu dilde açılır, düzenlenir ve kaydedilince diske yine kodlu yazılır; kodlu olmayan dosyalar olduğu gibi açılır. Türkçe (`tr`) ya da İngilizce (`en`); kullanıcının adları, yorumlar ve metinler yazıldığı gibi kalır, yalnızca dilin sözcükleri çevrilir. Değişiklik, açık dosyalar yeniden açılınca geçerli olur.",
   "ayar.yazimDili.tr": "Türkçe",
   "ayar.yazimDili.en": "İngilizce (English)"
 }

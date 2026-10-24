@@ -73,7 +73,7 @@ func TestEncodeEdgeCases(t *testing.T) {
 				// Kaçış dili sözcüğüyle çakışan ad için gereklidir: çözümde geri yazılır.
 				return
 			}
-			if want := Header + "\n" + d.coded; coded != want {
+			if want := Header + "tr\n" + d.coded; coded != want {
 				t.Errorf("kodlu biçim:\n%s\nbeklenen:\n%s", coded, want)
 			}
 		})
@@ -84,7 +84,7 @@ func TestEncodeEdgeCases(t *testing.T) {
 func TestEncodeBOMAndCRLF(t *testing.T) {
 	tr := "\xef\xbb\xbfdeğişken x = 1\r\nyazdır(\"a\r\nb\")\r\n"
 	coded := encodeDecode(t, tr)
-	if want := "\xef\xbb\xbf" + Header + "\r\nA030 x = 1\r\nG100(\"a\r\nb\")\r\n"; coded != want {
+	if want := "\xef\xbb\xbf" + Header + "tr\r\nA030 x = 1\r\nG100(\"a\r\nb\")\r\n"; coded != want {
 		t.Errorf("kodlu: %q, beklenen %q", coded, want)
 	}
 	// Zaten kodlu dosyaya dokunulmaz.
@@ -190,7 +190,14 @@ func roundTrip(t *testing.T, name, text string) bool {
 			t.Errorf("%s: kodlu dosya çözülemedi: %v", name, err)
 			return false
 		}
-		if back, err := Encode(tr); err != nil || back != text {
+		// Türkçe gösterimden kodlanan metin dil=tr yazar; dosyanın dili korunarak (düzenleyicinin
+		// kaydı gibi) özgüne dönmelidir.
+		back, err := Encode(tr)
+		if p, perr := Split(back); err == nil && perr == nil {
+			p.Language = b.Language
+			back = p.Join()
+		}
+		if err != nil || back != text {
 			t.Errorf("%s: kod → TR → kod aynı değil (%v)\n--- özgün\n%s\n--- geri\n%s", name, err, text, back)
 		}
 		return true
@@ -273,7 +280,7 @@ func TestDocCodeBlocksEncodeLossless(t *testing.T) {
 // global name): its view would not read back as the same program, so Decode must refuse it
 // instead of showing it.
 func TestDecodeRefusesLossyView(t *testing.T) {
-	coded := Header + "\nA030 l = Y001\n"
+	coded := Header + "tr\nA030 l = Y001\n"
 	if out, err := Decode(coded, codes.Active()); !errors.Is(err, ErrLossy) {
 		t.Fatalf("Decode gave %q, %v; ErrLossy expected", out, err)
 	}
@@ -284,7 +291,7 @@ func TestDecodeRefusesLossyView(t *testing.T) {
 func TestEncodeKeepsLineStructure(t *testing.T) {
 	tr := "// başlık yorumu\n\nfonksiyon f(a) {\n    sonuç a + 1\n}\n\n/* iki\nsatırlık */\nyazdır(f(1))\ndeğişken s = \"çok\nsatırlı {f(2)}\"\n"
 	coded := encodeDecode(t, tr)
-	body := strings.TrimPrefix(coded, Header+"\n")
+	body := strings.TrimPrefix(coded, Header+"tr\n")
 	if body == coded {
 		t.Fatalf("kodlu çıktı başlıkla başlamalı: %q", coded)
 	}
@@ -305,7 +312,7 @@ func TestEncodeKeepsLineStructure(t *testing.T) {
 // etkin dilde Decode(coded, codes.Active()) '$yazdır' kaçışını geri kodlayamadığı için
 // ErrLossy ile başarısız olmamalıdır.
 func TestDecodeKeepsEscapedUserNameApartFromBuiltin(t *testing.T) {
-	coded := Header + "\nA030 yazdır = 2\nG100(yazdır)\n"
+	coded := Header + "tr\nA030 yazdır = 2\nG100(yazdır)\n"
 	got, err := Decode(coded, codes.Active())
 	if err != nil {
 		t.Fatalf("etkin dilde çakışan kullanıcı değişkenli kodlu kaynak çözülemedi: %v", err)

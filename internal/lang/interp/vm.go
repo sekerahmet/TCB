@@ -80,6 +80,9 @@ type vmShared struct {
 	wg         sync.WaitGroup
 	SourceFile string
 	SourceCode string
+	// SourceLanguage is the code of the main program's writing language (17.1; source.Parts.
+	// Language; empty: Turkish). Values turn into text in it in the main program's code (3).
+	SourceLanguage string
 	// CommandName programı başlatan komuttur (ör. "tr egit.tr", derlenmiş uygulamada
 	// "uygulama.exe"); komut satırı seçeneklerinin yardımında ve hatalarında gösterilir.
 	// Boşsa "tr <SourceFile>" kullanılır.

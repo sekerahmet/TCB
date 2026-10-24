@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 21 — CSV, environment variables and time: taking data from the outside world.
 // What it teaches: reading a table with parse_csv and read_csv, taking a setting from the environment with env,
 // measuring time with time_ms.

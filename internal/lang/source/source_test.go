@@ -8,15 +8,26 @@ import (
 )
 
 func TestHeaderRules(t *testing.T) {
-	for _, m := range []string{Header + "\n", Header, "\xef\xbb\xbf" + Header + "\r\nA030 x = 1"} {
-		if b, err := Split(m); err != nil || !b.Coded || b.Join() != m {
-			t.Errorf("%q: kodlu okunmalı ve geri birleşmeli (%+v, %v)", m, b, err)
+	cases := map[string]string{Header + "tr\n": "tr", Header + "en": "en", "\xef\xbb\xbf" + Header + "en\r\nA030 x = 1": "en"}
+	for m, language := range cases {
+		if b, err := Split(m); err != nil || !b.Coded || b.Language != language || b.Join() != m {
+			t.Errorf("%q: %s dilinde kodlu okunmalı ve geri birleşmeli (%+v, %v)", m, language, b, err)
 		}
 	}
-	for _, m := range []string{"//! tr kodlu 2\nA030 x = 1", Header + " \n", "//! tr kodlu\n"} {
+	// Başlıksız dosya Türkçedir (17.7).
+	if b, err := Split("A030 x = 1\n"); err != nil || b.Coded || b.Language != "tr" {
+		t.Errorf("başlıksız dosya Türkçe olmalı: %+v, %v", b, err)
+	}
+	// Eski ve yeni biçim sürümleri, dilsiz ya da bilinmeyen dilli başlık okunmaz (17.1, 17.6).
+	unreadable := map[string]messages.Code{
+		"//! tr kodlu 1\nA030 x = 1": messages.H2512, "//! tr kodlu 3 dil=en\n": messages.H2512,
+		"//! tr kodlu 2\n": messages.H2512, Header + "\n": messages.H2512, Header: messages.H2512, Header + "en \n": messages.H2508,
+		Header + "fr\n": messages.H2508, "//! tr kodlu\n": messages.H2512,
+	}
+	for m, code := range unreadable {
 		var bh *HeaderError
-		if _, err := Split(m); !errors.As(err, &bh) {
-			t.Errorf("%q: tanınmayan başlık hatası bekleniyordu, alınan %v", m, err)
+		if _, err := Split(m); !errors.As(err, &bh) || !messages.Has(err, code) {
+			t.Errorf("%q: %v başlık hatası bekleniyordu, alınan %v", m, code, err)
 		}
 		if s := Prepare(m, Options{}); s.Stage != StageSyntax || !hasPos(s.Errors[0], 1, 1) {
 			t.Errorf("%q: hazırlık başlık hatasını sözdizimi hatası olarak bildirmeli: %+v", m, s.Errors)

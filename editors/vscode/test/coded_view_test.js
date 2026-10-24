@@ -82,13 +82,21 @@ function tabUris(o) {
 
 test('isCoded: başlık yalnızca ilk satırın tamamıysa (BOM, LF, CRLF, tek satır)', () => {
     const b = (m) => Buffer.from(m, 'utf8');
-    for (const yes of ['//! tr kodlu 1\nA030 x = 1\n', '//! tr kodlu 1\r\n', '﻿//! tr kodlu 1\n', '//! tr kodlu 1']) {
-        assert.ok(codedFormat.isCoded(b(yes)), JSON.stringify(yes));
+    const yes = { '//! tr kodlu 2 dil=tr\nA030 x = 1\n': 'tr', '//! tr kodlu 2 dil=en\r\n': 'en', '﻿//! tr kodlu 2 dil=tr\n': 'tr', '//! tr kodlu 2 dil=en': 'en' };
+    for (const [text, language] of Object.entries(yes)) {
+        assert.ok(codedFormat.isCoded(b(text)), JSON.stringify(text));
+        assert.strictEqual(codedFormat.fileLanguage(b(text)), language, JSON.stringify(text));
     }
-    for (const no of ['//! tr kodlu 2\n', '//! tr kodlu 1 \n', ' //! tr kodlu 1\n', '//! tr kodlu 1\r', 'değişken x = 1\n', '', '\n//! tr kodlu 1\n']) {
+    for (const no of ['//! tr kodlu 1\n', '//! tr kodlu 2\n', '//! tr kodlu 2 dil=\n', '//! tr kodlu 2 dil=en \n', ' //! tr kodlu 2 dil=en\n',
+        '//! tr kodlu 2 dil=en\r', 'değişken x = 1\n', '', '\n//! tr kodlu 2 dil=en\n']) {
         assert.ok(!codedFormat.isCoded(b(no)), JSON.stringify(no));
+        assert.strictEqual(codedFormat.fileLanguage(b(no)), null, JSON.stringify(no));
     }
-    assert.ok(codedFormat.isCoded(new Uint8Array(b('//! tr kodlu 1\n'))), 'Uint8Array da okunur');
+    assert.ok(codedFormat.isCoded(new Uint8Array(b('//! tr kodlu 2 dil=tr\n'))), 'Uint8Array da okunur');
+    // withLanguage yalnızca başlığın dilini değiştirir: BOM, satır sonu ve gövde aynı kalır.
+    assert.strictEqual(codedFormat.withLanguage(b('﻿//! tr kodlu 2 dil=tr\r\nA030 x = 1\r\n'), 'en').toString('utf8'), '﻿//! tr kodlu 2 dil=en\r\nA030 x = 1\r\n');
+    assert.strictEqual(codedFormat.withLanguage(b('//! tr kodlu 2 dil=en'), 'tr').toString('utf8'), '//! tr kodlu 2 dil=tr');
+    assert.strictEqual(codedFormat.withLanguage(b('değişken x = 1\n'), 'en').toString('utf8'), 'değişken x = 1\n');
     assert.strictEqual(codedFormat.errorSummary('❌ Sözdizimi Hataları:\n  • Satır 2, Sütun 1: eksik\n     2 | x\n'), 'Satır 2, Sütun 1: eksik');
     assert.strictEqual(globEscape('a[1]{b}*?.tr'), 'a?1??b???.tr');
 }, false);
@@ -112,7 +120,7 @@ test('düzenle ve kaydet: diskte kodlu; tr göster düzenleyicideki metnin aynı
     assert.ok(await b.save());
     assert.ok(!b.isDirty);
     const disk = fs.readFileSync(o.file, 'utf8');
-    assert.ok(disk.startsWith(codedFormat.HEADER + '\r\n'), 'diskte kodlu (satır sonu korunur): ' + disk);
+    assert.ok(disk.startsWith(codedFormat.HEADER + 'tr\r\n'), 'diskte kodlu (satır sonu korunur): ' + disk);
     assert.ok(disk.includes('G100("toplam: {sayaç}", G201(sayaç))'), disk);
     assert.strictEqual(showText(o.file), b.getText());
     // Kayıt belgenin metnine dokunmaz: geri al geçmişi aynen durur, geri alınıp kaydedilince
@@ -163,7 +171,7 @@ test('bozuk metin kayıpsız kaydedilir: başlıksız Türkçe, bir kez bilgi, i
     b2.edit(b2.getText() + 'k")\r\n}\r\n');
     assert.ok(await b2.save());
     const disk = fs.readFileSync(o.file, 'utf8');
-    assert.ok(disk.startsWith(codedFormat.HEADER + '\r\n') && disk.includes('A001 sayaç > 2'), disk);
+    assert.ok(disk.startsWith(codedFormat.HEADER + 'tr\r\n') && disk.includes('A001 sayaç > 2'), disk);
     assert.strictEqual(showText(o.file), b2.getText());
     assert.deepStrictEqual(state.get(PENDING_KEY, []), []);
     assert.strictEqual(o2.log.infos.length, 0);
@@ -206,13 +214,13 @@ test('kodlu olmayan dosya olduğu gibi açılır ve kaydedilir; yorumlayıcı hi
 });
 
 test('ayrıştırılamayan kodlu dosya (ör. birleştirme çakışması) ham hâliyle gösterilir, olduğu gibi kaydedilir', async () => {
-    const raw = codedFormat.HEADER + '\n<<<<<<< HEAD\nA030 x = 1\n=======\nA030 x = 2\n>>>>>>> dal\n';
+    const raw = codedFormat.HEADER + 'tr\n<<<<<<< HEAD\nA030 x = 1\n=======\nA030 x = 2\n>>>>>>> dal\n';
     const o = makeEnv({ disk: raw });
     const b = (await open(o, o.uri)).document;
     assert.strictEqual(b.getText(), raw);
     assert.strictEqual(o.log.warnings.length, 1);
     assert.ok(o.log.warnings[0].includes('ham (kodlu) hâliyle'), o.log.warnings[0]);
-    const resolved = codedFormat.HEADER + '\nA030 x = 2\n';
+    const resolved = codedFormat.HEADER + 'tr\nA030 x = 2\n';
     b.edit(resolved);
     assert.ok(await b.save());
     assert.strictEqual(fs.readFileSync(o.file, 'utf8'), resolved);
@@ -232,6 +240,23 @@ test('yazım dili ayarı tr göster ve tr kodla komutlarına --dil ile geçer', 
         codedFormat.translate = original;
     }
     assert.deepStrictEqual(calls, [['göster', 'tr'], ['kodla', 'tr']]);
+});
+
+// Kural (17.1): dosyanın dili kayıtta korunur; dosyayı başka bir yazım dilinde düzenleyen kişi
+// onun değerlerinin metnini (doğru/true) değiştirmez. Neden: çıktı dosyayı düzenleyene bağlı olmamalı.
+test('başka dilde düzenlenen kodlu dosya kaydedilince dil=\'si korunur', async () => {
+    const english = tr('kodla', '-', '--dil', 'en', 'var x = true\nprint(x)\n');
+    assert.strictEqual(english.code, 0, english.error);
+    assert.ok(english.output.startsWith(codedFormat.HEADER + 'en\n'), english.output);
+    const o = makeEnv({ disk: english.output, settings: { yazimDili: 'tr' } });
+    const b = (await open(o, o.uri)).document;
+    assert.strictEqual(b.getText(), 'değişken x = doğru\nyazdır(x)\n');
+    b.edit(b.getText() + 'yazdır(yanlış)\n');
+    assert.ok(await b.save());
+    const disk = fs.readFileSync(o.file, 'utf8');
+    assert.strictEqual(disk, codedFormat.HEADER + 'en\nA030 x = A040\nG100(x)\nG100(A041)\n');
+    // Yeni (Türkçe yazılmış) kodlu dosya Türkçe kodlanır.
+    assert.ok(encode(TURKISH_TEXT).startsWith(codedFormat.HEADER + 'tr\r\n'));
 });
 
 test('yazım dili değişince kirli olmayan açık görünüm yeni dille yenilenir', async () => {
@@ -443,7 +468,7 @@ test('yazım dili en, kısıtlı kip: kodsuz dosya Türkçe ve düzenlenebilir k
 test('kısıtlı kipte tr-kodlu: yazma, silme, taşıma ve klasör oluşturma reddedilir', async () => {
     const dir = makeFolder();
     const filePath = path.join(dir, 'program.tr');
-    const original = '//! tr kodlu 1\nA030 x = 1\n';
+    const original = '//! tr kodlu 2 dil=tr\nA030 x = 1\n';
     fs.writeFileSync(filePath, original, 'utf8');
     const o = setup({ folder: dir, trusted: false });
     const codedUri = Uri.file(filePath).with({ scheme: 'tr-kodlu' });

@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 10 — Arrow functions and chaining: using a function as a value.
 // What it teaches: the (x) => expression arrow function, passing a function as a parameter, trailing blocks and it,
 // filter/map/reduce, the pipeline (|>).

@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 26 — Automatic differentiation: having the computer compute the gradient.
 // What it teaches: tracking a tensor with requires_grad: true, backward(result), .grad,
 // gradients accumulating (and needing to be reset), no_grad { ... } for computing without tracking.

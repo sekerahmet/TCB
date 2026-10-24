@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 	"unicode"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -347,8 +348,9 @@ var displayErr error
 // display language then fell back to Turkish); nil when the selection is valid.
 func LanguageError() error { return displayErr }
 
-// LoadLanguage builds the code list of an embedded writing language; for the canonical and
-// the display language it returns the one already built.
+// LoadLanguage returns the code list of an embedded writing language. Each language is built
+// once (lists are read-only): a running program asks for the language of every file it loads
+// (17.1), and for the canonical and the display language it returns the one already built.
 func LoadLanguage(langCode string) (*Language, error) {
 	if active != nil && active.Code == langCode {
 		return active, nil
@@ -356,8 +358,19 @@ func LoadLanguage(langCode string) (*Language, error) {
 	if display != nil && display.Code == langCode {
 		return display, nil
 	}
-	return buildLanguage(langCode)
+	if l, ok := loaded.Load(langCode); ok {
+		return l.(*Language), nil
+	}
+	l, err := buildLanguage(langCode)
+	if err != nil {
+		return nil, err
+	}
+	stored, _ := loaded.LoadOrStore(langCode, l)
+	return stored.(*Language), nil
 }
+
+// loaded LoadLanguage'ın kurduğu öbür dillerin kod listeleridir (dil kodu → *Language).
+var loaded sync.Map
 
 // Display returns the person's writing language (LanguageEnvVar): the language of diagnostics,
 // help and command-line output, and of a coded file's view.

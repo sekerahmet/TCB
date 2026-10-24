@@ -147,10 +147,10 @@ func (v *VM) evalInfixKod(codeVal uint8, op string, left Value, right Value, lin
 	if codeVal == opAdd {
 		// Metin birleştirme
 		if ls, ok := left.(*StringVal); ok {
-			return &StringVal{Val: ls.Val + right.Inspect()}, nil
+			return &StringVal{Val: ls.Val + v.textOf(right)}, nil
 		}
 		if rs, ok := right.(*StringVal); ok {
-			return &StringVal{Val: left.Inspect() + rs.Val}, nil
+			return &StringVal{Val: v.textOf(left) + rs.Val}, nil
 		}
 
 		// Liste birleştirme

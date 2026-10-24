@@ -122,6 +122,7 @@ func RunFile(fpath string, out io.Writer) Summary {
 	machine.Err = out // eşzamanlı görev hataları da raporda görünür
 	machine.SourceFile = fpath
 	machine.SourceCode = text
+	machine.SourceLanguage = ready.Language
 	if _, err := machine.Run(prog); err != nil {
 		fmt.Fprintln(out, "  ✗ "+messages.Text(messages.H8507))
 		for _, m := range interp.ErrorItems(err, text) {

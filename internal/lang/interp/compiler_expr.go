@@ -69,18 +69,7 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 		return nullCode
 
 	case *ast.InterpolatedString:
-		pieces := c.expressions(k, e.Parts)
-		return func(v *VM, env *Environment) (Value, error) {
-			var sb strings.Builder
-			for _, p := range pieces {
-				val, err := p(v, env)
-				if err != nil {
-					return nil, err
-				}
-				sb.WriteString(val.Inspect())
-			}
-			return &StringVal{Val: sb.String()}, nil
-		}
+		return c.interpolation(c.expressions(k, e.Parts))
 
 	case *ast.Identifier:
 		return c.readName(k, e)
@@ -232,6 +221,36 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 		}
 	}
 	return nullCode
+}
+
+// interpolation metin yerleştirmesinin kodudur: parçaların değerleri derlenen dosyanın dilinde
+// metne çevrilip birleştirilir (3; c.textLang).
+func (c *compiler) interpolation(pieces []exprCode) exprCode {
+	if lang := c.textLang; lang != nil {
+		return func(v *VM, env *Environment) (Value, error) {
+			var sb strings.Builder
+			for _, p := range pieces {
+				val, err := p(v, env)
+				if err != nil {
+					return nil, err
+				}
+				sb.WriteString(valueText(val, lang))
+			}
+			return &StringVal{Val: sb.String()}, nil
+		}
+	}
+	// Kanonik dil (Türkçe dosya): değerin metni Inspect'tir; sıcak yola dal eklenmez.
+	return func(v *VM, env *Environment) (Value, error) {
+		var sb strings.Builder
+		for _, p := range pieces {
+			val, err := p(v, env)
+			if err != nil {
+				return nil, err
+			}
+			sb.WriteString(val.Inspect())
+		}
+		return &StringVal{Val: sb.String()}, nil
+	}
 }
 
 // --- DEĞİŞKEN OKUMA ---

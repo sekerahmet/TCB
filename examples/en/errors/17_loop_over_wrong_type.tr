@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // Error 17 — A value that cannot be walked.
 // Message code: H2443
 // What happens: Building a loop over a value that cannot be walked raises an error at run time.

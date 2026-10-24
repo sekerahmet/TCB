@@ -97,7 +97,7 @@ func Format(text string) (string, error) {
 func SameMeaning(before, after string) error {
 	b1, err1 := source.Split(before)
 	b2, err2 := source.Split(after)
-	if err1 != nil || err2 != nil || b1.Coded != b2.Coded {
+	if err1 != nil || err2 != nil || b1.Coded != b2.Coded || b1.Language != b2.Language {
 		return &MeaningChangedError{Detail: messages.Text(messages.H8402)}
 	}
 	p1 := parser.New(b1.Lexer())

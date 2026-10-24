@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // Error 15 — Conversion error.
 // Message code: H2429
 // What happens: If a text that cannot become a number is converted with int(), an error is raised at run time.

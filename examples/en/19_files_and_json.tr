@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 19 — Files and JSON: writing data to disk and reading it back.
 // What it teaches: temp_dir, path, write_file/read_file, read_lines, .exists, json_string to turn a value
 // into text, json_parse to turn text into a value.

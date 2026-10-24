@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 46 — Ready model and generation: loading a model in Hugging Face format and generating text.
 // What it teaches: building and loading a model with hazır_model(folder, ağırlık_türü:), generating tokens with
 // model.üret(start, count, sıcaklık:, en_iyi_k:, tohum:, eos:, önbellek_çeşidi:), making generation reproducible.

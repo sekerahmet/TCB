@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=tr
 // Bilerek hatalı kodlu modül (17.5): konumlar Türkçe gösterime göre bildirilir.
 A030 a = 1
 G100(a, tanımsız_ad)

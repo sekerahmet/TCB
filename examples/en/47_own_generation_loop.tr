@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 47 — Your own generation loop: writing by hand what model.üret does.
 // What it teaches: model.önbellek_kur(), cached forward passes with model.ileri(ids, önbellek:), choosing a token
 // from the logits of the last position, rewinding with cache.strip(n) (the library calls it kırp) to the first n tokens,

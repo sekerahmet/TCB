@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 38 — Progress bar and log: following a long job and keeping a record of it.
 // What it teaches: opening a bar with progress(total), advancing it with update, stop; writing the record of every
 // step as a JSON line with logger(path) and linking it with progress(log:); the Progress and Logger types.

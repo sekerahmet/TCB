@@ -2,6 +2,7 @@ package interp
 
 import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 )
 
 // --- KAPANIŞ DERLEYİCİSİ ---
@@ -111,6 +112,9 @@ type compiler struct {
 	root *compilerScope
 	// source derlenen kodun dosyasıdır (nil: ana program); fonksiyonlar onu taşır.
 	source *Source
+	// textLang derlenen kodun dosyasının yazım dilidir (nil: kanonik); metin yerleştirmesi
+	// değerleri bu dilde metne çevirir (3; VM.textLanguage).
+	textLang *codes.Language
 	// blocks blokların kapsam bayraklarının önbelleğidir (scope_analysis.go).
 	blocks blockFlagCache
 }
@@ -122,7 +126,7 @@ func (c *compiler) blockFlags(b *ast.BlockStatement) uint8 {
 
 // newCompiler görevin o an çalıştığı dosya için bir derleyici açar.
 func (v *VM) newCompiler() *compiler {
-	return &compiler{root: &compilerScope{info: v.GlobalEnv.scope, global: v.GlobalEnv}, source: v.source, blocks: blockFlagCache{}}
+	return &compiler{root: &compilerScope{info: v.GlobalEnv.scope, global: v.GlobalEnv}, source: v.source, textLang: v.textLanguage(), blocks: blockFlagCache{}}
 }
 
 // subScope ust içinde yeni bir ortama karşılık gelen kapsam açar.

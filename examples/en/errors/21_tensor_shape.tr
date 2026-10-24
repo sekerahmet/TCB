@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // Error 21 — Tensor shape mismatch.
 // Message code: H6126
 // What happens: If two tensors whose shapes do not fit enter a matrix product an error is raised at run time; the message shows the shapes.

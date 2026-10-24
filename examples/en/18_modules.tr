@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 18 — Modules: splitting code into files and importing them.
 // What it teaches: import to use the names in another .tr file, as to give an alias (avoids name clashes).
 // Imported file: helpers/geometry.tr.

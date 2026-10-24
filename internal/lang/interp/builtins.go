@@ -50,8 +50,9 @@ func (v *VM) registerBuiltins() {
 // Ekrana Yazdırma: yazdır(...)
 func printBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	var parts []string
+	lang := y.textLanguage()
 	for _, a := range args {
-		parts = append(parts, a.Inspect())
+		parts = append(parts, valueText(a, lang))
 	}
 	out := strings.Join(parts, " ")
 	y.WriteOutput(y.Out, out+"\n")
@@ -65,7 +66,7 @@ func inputBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 		return nil, ArgCountError(codes.G101, Counts(0, 1), len(args), "", messages.Text(messages.H2300))
 	}
 	if len(args) > 0 {
-		y.WriteOutput(y.Out, args[0].Inspect())
+		y.WriteOutput(y.Out, y.textOf(args[0]))
 	}
 	line, readErr := y.readLine()
 	if readErr != nil && readErr != io.EOF && line == "" {
@@ -317,7 +318,7 @@ func writeFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error
 		return nil, err
 	}
 	resolved, _ := y.ResolvePath(filePath)
-	content := []byte(args[1].Inspect())
+	content := []byte(y.textOf(args[1]))
 	y.Blocking(func() { err = WriteFileContent(resolved, content) })
 	if err != nil {
 		return nil, turkish.FileError(CallPrefix(codes.G111), filePath, messages.H2101, err)
@@ -372,8 +373,8 @@ func callable(v Value) bool {
 const MaxCollectionSize = 50_000_000
 
 // singleChar metin(x) yerleşiğinin tek argümanlı gövdesidir.
-func singleChar(_ *VM, a Value) (Value, error) {
-	return &StringVal{Val: a.Inspect()}, nil
+func singleChar(y *VM, a Value) (Value, error) {
+	return &StringVal{Val: y.textOf(a)}, nil
 }
 
 // singleArg kayıtlı bir yerleşiğe, tek argümanla (adlı argümansız) çağrıldığında

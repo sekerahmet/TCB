@@ -1,4 +1,4 @@
-//! tr kodlu 1
+//! tr kodlu 2 dil=en
 // 44 — Training stability: catching NaN and loss spikes, rolling back to the last checkpoint.
 // What it teaches: is_finite (on numbers and tensors), clip_grad(..., error_if_nonfinite:), ckpt.rollback(),
 // batches.skip(n) and the library's spike watcher (import "tr/egitim": SıçramaBekçisi, TAMAM, SONLU_DEĞİL, SIÇRAMA).
