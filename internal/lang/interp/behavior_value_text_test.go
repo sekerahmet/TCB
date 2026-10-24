@@ -84,6 +84,34 @@ y.uygula((x) => str([x]))
 	}
 }
 
+// Kod taşıyan çıplak sözlük anahtarı ({step: 1}, Y500) işlemin yazıldığı dosyanın dilindeki
+// adıdır; d.ad okuması ve yazması anahtarı kodun her yazım dilindeki adıyla arar (önce dosyanın
+// dilindeki), yoksa dosyanın dilindeki adla ekler: aynı kodun iki anahtarı oluşmaz (3.7, 17.3).
+// Metin anahtar (d["adım"]) tam metindir; kodsuz çıplak anahtar olduğu gibi kalır.
+func TestDictMemberKeysFollowTheFilesLanguage(t *testing.T) {
+	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(
+		"fonksiyon artır(ayar) {\n    ayar.adım += 1\n    ayar.öğrenme_oranı = 0.1\n    sonuç ayar.adım\n}\n" +
+			"fonksiyon yeni() { sonuç {adım: 7, renk: 1} }\n")}})
+	out := runEnglish(t, `import "tr/kitap" as k
+var cfg = {step: 1, renk: "mavi"}
+print(k.artır(cfg), cfg.keys(), cfg.lr, cfg["adım"], cfg["step"])
+cfg.lr = 0.2
+var t = k.yeni()
+t.step = 8
+print(cfg, t, t.step)
+var both = {step: 1}
+both["adım"] = 2
+both.step += 10
+print(both)
+`, nil)
+	want := "2 [\"step\", \"renk\", \"öğrenme_oranı\"] 0.1 none 2\n" +
+		"{\"step\": 2, \"renk\": \"mavi\", \"öğrenme_oranı\": 0.2} {\"adım\": 8, \"renk\": 1} 8\n" +
+		"{\"step\": 11, \"adım\": 2}\n" // iki dildeki ad birden varsa dosyanın dilindeki seçilir
+	if out != want {
+		t.Errorf("sözlük anahtarları dosyanın dilinde, üye erişimi koda göre olmalı:\n%s\nbeklenen:\n%s", out, want)
+	}
+}
+
 // Programın değerden metin yaptığı her yer aynı kuralı izler: Metin ile '+', birleştir,
 // dosya_yaz'ın içeriği, girdi'nin istemi. Kitaplığın içindeki birleştirme Türkçe kalır.
 func TestEveryTextConversionFollowsTheFilesLanguage(t *testing.T) {
