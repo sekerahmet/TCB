@@ -5,6 +5,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"sort"
 	"strconv"
@@ -300,6 +301,9 @@ func TestPlanningQuestionsAreAnswered(t *testing.T) {
 	if bad, checked := trNameSetMismatches(g, idx, x.reader); len(bad) > 0 || checked < 20 {
 		t.Errorf("tr dizin and codegraph resolve %d of %d bare TR names differently:"+"\n  %s", len(bad), checked, strings.Join(bad[:min(len(bad), 20)], "\n  "))
 	}
+	if bad, checked := testsListedTwice(g); len(bad) > 0 || checked < 100 {
+		t.Errorf("tests-for lists a test in two groups for %d of %d targets:\n  %s", len(bad), checked, strings.Join(bad[:min(len(bad), 20)], "\n  "))
+	}
 	out, _ := gitStdout(root, "rev-parse", "--is-shallow-repository")
 	shallow := strings.TrimSpace(string(out)) == "true" // CI kaynağı derinlik 1 ile alır: geçmiş yok
 	for _, r := range records {
@@ -414,6 +418,42 @@ func trNameSetMismatches(g *Graph, idx *codeindex.Index, reader *codeindex.Reade
 			}
 			if !maps.Equal(want, got) {
 				bad = append(bad, fmt.Sprintf("%q: tr dizin %d %v, codegraph %d %v", q, len(want), slices.Sorted(maps.Keys(want)), len(got), slices.Sorted(maps.Keys(got))))
+			}
+		}
+	}
+	sort.Strings(bad)
+	return bad, checked
+}
+
+// testsListedTwice her TR işlevi ve metodu, testi olan her ad kodu ve internal/stdlib'in her Go işlevi için tests-for'un
+// test gruplarında bir testin iki kez yazılıp yazılmadığına bakar: her test bir kez, en güçlü kanıtının grubunda
+// (bağımsız denetim grup 6, S1: files.TestDeleteWindowsJunction doğrudan grupta ve ad kodu grubunda yazılıyordu).
+func testsListedTwice(g *Graph) (bad []string, checked int) {
+	ix := newIndex(g)
+	item := regexp.MustCompile(`^    (\S.*?) \[(func|tr_test)\]`)
+	for i := range g.Nodes {
+		n := &g.Nodes[i]
+		switch {
+		case n.Kind == kindTRFunc || n.Kind == kindTRMethod:
+		case n.Kind == kindName && len(ix.in[n.ID]) > 0:
+		case n.Kind == kindFunc && strings.HasPrefix(n.File, "internal/stdlib/") && !inTestFile(n):
+		default:
+			continue
+		}
+		checked++
+		var buf strings.Builder
+		ix.printTestsFor(&buf, n, 0)
+		seen, inGroup := map[string]bool{}, false
+		for _, line := range strings.Split(buf.String(), "\n") {
+			if strings.HasPrefix(line, "  ") && !strings.HasPrefix(line, "    ") {
+				inGroup = strings.HasPrefix(line, "  <- tests") || strings.HasPrefix(line, "  <- weak evidence (") && !strings.Contains(line, "linked into the binary")
+				continue
+			}
+			if m := item.FindStringSubmatch(line); inGroup && m != nil {
+				if seen[m[1]] {
+					bad = append(bad, n.Name+": "+m[1])
+				}
+				seen[m[1]] = true
 			}
 		}
 	}

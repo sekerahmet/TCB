@@ -165,11 +165,37 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	for _, a := range about {
 		isAbout[a.test.ID] = true
 	}
-	tests = slices.DeleteFunc(slices.Clone(tests), func(e *Edge) bool { return isAbout[e.From] })
-	walks = slices.DeleteFunc(slices.Clone(walks), func(e *Edge) bool { return isAbout[e.From] })
-	asValue = slices.DeleteFunc(slices.Clone(asValue), func(it indirectTest) bool { return isAbout[it.test.ID] })
-	indirect = slices.DeleteFunc(slices.Clone(indirect), func(it indirectTest) bool { return isAbout[it.test.ID] })
-	viaNames = slices.DeleteFunc(slices.Clone(viaNames), func(t nameTest) bool { return isAbout[t.test.ID] })
+	// Bir test, en güçlü kanıtının grubundan başka gruplardan çıkarılır (bağımsız denetim grup 6, S1: doğrudan test ad
+	// kodu grubunda bir kez daha yazılıyordu). Zincir ve ad kodu grupları kanıt gücüne göre sıralanır (printInferred);
+	// ikisinde birden olan test daha kısa olanında kalır.
+	shown := isAbout
+	walks = slices.DeleteFunc(slices.Clone(walks), func(e *Edge) bool { return shown[e.From] })
+	for _, e := range walks {
+		shown[e.From] = true // bütün listeyi gezen test her öğeyi sınar: doğrudan kullananlardan önce kendi grubunda
+	}
+	tests = slices.DeleteFunc(slices.Clone(tests), func(e *Edge) bool { return shown[e.From] })
+	for _, e := range tests {
+		shown[e.From] = true
+	}
+	asValue = slices.DeleteFunc(slices.Clone(asValue), func(it indirectTest) bool { return shown[it.test.ID] })
+	for _, it := range asValue {
+		shown[it.test.ID] = true
+	}
+	indirect = slices.DeleteFunc(slices.Clone(indirect), func(it indirectTest) bool { return shown[it.test.ID] })
+	viaNames = slices.DeleteFunc(slices.Clone(viaNames), func(t nameTest) bool { return shown[t.test.ID] })
+	chain := map[string]int{}
+	for _, it := range indirect {
+		chain[it.test.ID] = it.steps
+	}
+	byName := map[string]int{}
+	viaNames = slices.DeleteFunc(viaNames, func(t nameTest) bool {
+		s, ok := chain[t.test.ID]
+		if !ok || t.steps < s {
+			byName[t.test.ID] = t.steps
+		}
+		return ok && s <= t.steps
+	})
+	indirect = slices.DeleteFunc(indirect, func(it indirectTest) bool { _, ok := byName[it.test.ID]; return ok })
 	found := len(about) + len(tests) + len(walks) + len(asValue) + len(indirect) + len(viaNames)
 	if found == 0 && len(measured) == 0 && len(indirectMeasured) == 0 && len(subprocess) == 0 {
 		if !ix.printLinkedBinaries(w, n) {
