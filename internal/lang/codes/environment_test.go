@@ -59,8 +59,8 @@ func TestExportEnvironmentGivesTheSourceName(t *testing.T) {
 	}
 }
 
-// messages yazım dilini dil listelerinden önce okuduğu için K400'ün adlarını kendisi tutar; liste
-// K400'ün bütün gömülü dillerdeki adlarıyla aynı olmalı (yeni dil eklenince burada yakalanır).
+// messages yazım dilini dil listelerinden önce okuduğu için TR_env_LANG'ün adlarını kendisi tutar; liste
+// TR_env_LANG'ün bütün gömülü dillerdeki adlarıyla aynı olmalı (yeni dil eklenince burada yakalanır).
 func TestLanguageEnvVarsAreK400(t *testing.T) {
 	if got, want := messages.LanguageEnvVars, envNames(EnvLang); !slices.Equal(got, want) {
 		t.Errorf("messages.LanguageEnvVars = %v, TR_env_LANG names = %v", got, want)

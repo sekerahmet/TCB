@@ -14,7 +14,7 @@ import (
 )
 
 // Optimizer AdamW ve SGD iyileştiricilerinin TR değeridir; ikisinin de tipi
-// İyileştirici'dir (A214). Metotları .adım() (parametreleri günceller) ve .sıfırla()
+// İyileştirici'dir (TR_type_Optimizer). Metotları .adım() (parametreleri günceller) ve .sıfırla()
 // (gradyanları sıfırlar). ad oluşturucunun adıdır (AdamW, SGD; yazdırmada görünür).
 type Optimizer struct {
 	ad     codes.Ref
@@ -57,7 +57,7 @@ func (o *Optimizer) Text(lang *codes.Language) string {
 	return messages.TextIn(lang.Code, messages.H6820, lang.Name(name), len(o.params), strings.Join(settings, ", "))
 }
 
-// İyileştirici üyeleri (adları kod listesinde, internal/lang/codes Y50x).
+// İyileştirici üyeleri (adları kod listesinde, internal/lang/codes mem).
 const (
 	memberStep     = codes.MemStep
 	memberZeroGrad = codes.MemZeroGrad

@@ -11,12 +11,12 @@ import (
 	"strings"
 )
 
-// Ortam değişkeni adları (K4xx ad kodları) iki yerde koda bağlanır: hesap çekirdeği ad kodlarını göremediği
+// Ortam değişkeni adları (env ad kodları) iki yerde koda bağlanır: hesap çekirdeği ad kodlarını göremediği
 // için değişkeni kaynak dildeki adıyla düz metin okur ya da koyar (`os.Getenv("TR_GPU_ESZAMANLI")`,
 // `t.Setenv(...)`, alt süreç ortamındaki `"TR_DIL=en"` → `uses_env`), iletiler de adı şablonda taşır (H4009:
 // "... TR_GPU_SYNC=1 ile çalıştırın" → `uses_name`, her dilin şablonu kendi adını yazar). Ad, hangi dilde
 // yazılmış olursa olsun aynı koda varır. Değişkeni koyan test (kendisi ya da test dosyasındaki bir yardımcısı)
-// o ad kodunu sınar: `tests` kenarı (addTestEdges; değer dili 3. tur: `tests-for K400` TR_DIL'i koyan e2e
+// o ad kodunu sınar: `tests` kenarı (addTestEdges; değer dili 3. tur: `tests-for TR_env_LANG` TR_DIL'i koyan e2e
 // testlerini göstermiyordu).
 
 // envCodePrefix ortam değişkeni kimliklerinin ön ekidir (env sınıfı, codes.NamespaceEnvironment).

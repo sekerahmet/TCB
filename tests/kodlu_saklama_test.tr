@@ -23,7 +23,7 @@ test "17.3 neyin kodlandığını kapsam belirler; üyeler tanımda ve kullanım
     aktar "coded/ornek_kodlu" olarak m
     // Gölgelenen 'toplam' modülde kullanıcının adıdır.
     eşit_mi(5, m.golge())
-    // Modüldeki yapının .Y004 metodu ve .Y001 alanı burada Türkçe adlarıyla çağrılır.
+    // Modüldeki yapının .TR_mem_append metodu ve .TR_mem_length alanı burada Türkçe adlarıyla çağrılır.
     değişken s = m.Sayac()
     s.ekle(2)
     s.ekle(3)
@@ -54,7 +54,7 @@ test "17.7 kodsuz dosya Türkçedir; başka yazım dillerinin sözcükleri burad
     değişken print = var + 1
     fonksiyon if(x) { sonuç x * 2 }
     eşit_mi(4, if(print))
-    // Kodlu dosyada üyenin adıyla aynı sözlük anahtarı ({Y500: 3}) Türkçe adıyla okunur.
+    // Kodlu dosyada üyenin adıyla aynı sözlük anahtarı ({TR_mem_step: 3}) Türkçe adıyla okunur.
     aktar "coded/sozluk_anahtari" olarak m
     eşit_mi(3, m.ayar.adım)
     eşit_mi(3, m.ayar["adım"])
@@ -72,7 +72,7 @@ test "2.11 '$ad' kaçışı: ad dilin bir sözcüğüyle aynı olsa da kullanıc
 
 test "17.8 komut satırı adları kodludur: programın yardım seçeneğinin her dildeki adı ayrılmıştır" {
     // tr komutlarının, seçeneklerin, kabuğun ve hata ayıklayıcının adları Go testleriyle
-    // sınanır (dil tanımı 17.8, Sınamalar); programın --yardım'ı (K106) her dilde ayrılmıştır.
+    // sınanır (dil tanımı 17.8, Sınamalar); programın --yardım'ı (TR_opt_help) her dilde ayrılmıştır.
     doğrula(hata_metni(() => komut_satırı({yardım: doğru})).içerir("seçenek adı olamaz"))
     doğrula(hata_metni(() => komut_satırı({help: doğru})).içerir("seçenek adı olamaz"))
     doğrula(hata_metni(() => komut_satırı({h: doğru})).içerir("seçenek adı olamaz"))

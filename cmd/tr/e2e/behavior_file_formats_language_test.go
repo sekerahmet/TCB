@@ -153,7 +153,7 @@ func TestFunctionTextFollowsFileLanguage(t *testing.T) {
 	})
 }
 
-// Sonsuz ve tanımsız sayının adı (A110, A111) sayıda ve tensörde aynıdır, dosyanın dilindedir
+// Sonsuz ve tanımsız sayının adı (TR_val_inf, TR_val_nan) sayıda ve tensörde aynıdır, dosyanın dilindedir
 // ve çalıştıranın diline (TR_DIL) bağlı değildir (3.2). Önceden tensör yazdırması adları
 // iletiden alıyordu: aynı program TR_DIL'e göre farklı yazıyordu ("Tanımsız" / "NaN").
 func TestNonFiniteNamesFollowFileLanguage(t *testing.T) {

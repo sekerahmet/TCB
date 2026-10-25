@@ -121,7 +121,7 @@ func TestTRCodedFile(t *testing.T) {
 	if !found {
 		t.Errorf("coded function node missing or wrong")
 	}
-	mustEdge(t, g, fn, printG, edgeUsesName, extracted) // G100 olarak yazılmış çağrı
+	mustEdge(t, g, fn, printG, edgeUsesName, extracted) // TR_fn_print olarak yazılmış çağrı
 }
 
 // Parametreler grafikte düğümdür (tr_param): sahibinden `contains`, varsayılan değer metniyle; adlı

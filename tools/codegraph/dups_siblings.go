@@ -7,7 +7,7 @@ import (
 )
 
 // Bu dosya kardeş birim dizilerini tek yaprağa çevirir. Bildirim ve kayıt listeleri (bir `const ( ... )`
-// bloğunun öğeleri, art arda `kaydet(T500, yeni(x))` çağrıları, bir çekirdeğin `x := k.pointer("x")`
+// bloğunun öğeleri, art arda `kaydet(TR_fn_embedding, yeni(x))` çağrıları, bir çekirdeğin `x := k.pointer("x")`
 // parametre bildirimleri, art arda tek ifadeli test fonksiyonları) tekrar değildir: sıra bilgidir, birimler
 // küçüktür ve her biri başka bir şey söyler. Ölçüt: aynı üst listede (dosya bildirimleri, bildirim bloğu
 // öğeleri, ifade listesi, case gövdesi) art arda gelen, en az siblingRunMin tane, hepsi aynı biçimli ve her biri

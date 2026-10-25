@@ -22,7 +22,7 @@ Yeniden adlandırmanın etkisini `tr dizin yeniden_adlandır <ad> <yeni>` (kod a
 Bir ad kod listesinde (`internal/lang/codes/tr.json`) birden çok canlı koda verilebilir ama yalnızca iki durumda (Swift API Design Guidelines: *"Methods can share a base name when they share the same basic meaning or when they operate in distinct domains"*):
 
 - **aynı anlam:** kodlar aynı işi ya da aynı kavramı adlandırır (`yardım` komutu, seçeneği ve hata ayıklayıcı komutu).
-- **ayrı alan:** biri komut satırının (`tr` komutları, seçenekleri, kabuk ve hata ayıklayıcı komutları, K kodları), öbürü dilin adıdır; ikisi aynı metinde karşılaşmaz.
+- **ayrı alan:** biri komut satırının (`tr` komutları, seçenekleri, kabuk ve hata ayıklayıcı komutları: `cmd`, `sub`, `opt`, `repl`, `dbg`, `env` sınıfları), öbürü dilin adıdır; ikisi aynı metinde karşılaşmaz.
 
 Dilin kendi içinde farklı işe aynı ad verilmez: tensörleri uç uca ekleyen fonksiyon bu yüzden `bitiştir`dir (liste metodu `.birleştir` metin yapar), türev denetiminin fark büyüklüğü `fark_adımı`dır (`adım` eğitim adımıdır). `internal/doc_terms_test.go` (`TestSharedNamesListed`) aynı adı taşıyan her canlı kod grubunun bu tabloda bulunduğunu, tablonun güncel olduğunu ve "ayrı alan" gerekçesinin gerçekten bir komut satırı koduyla bir dil kodunu ayırdığını denetler. Yeni bir eş ad bu tabloya gerekçesiyle girmeden kod listesine giremez.
 

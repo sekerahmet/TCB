@@ -7,7 +7,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 )
 
-// Anahtar kelimelerin adları kod listesindedir (internal/lang/codes, tr.json'daki A0xx kodları). Bu
+// Anahtar kelimelerin adları kod listesindedir (internal/lang/codes, tr.json'daki kw kodları). Bu
 // dosya yalnızca hangi kodun hangi token türünü ürettiğini söyler; adı değiştirmek için
 // sözlükteki satır değişir, sözcük çözümleyici, ayrıştırıcı ve yorumlayıcı kodu değişmez. Kabul edilen
 // yazımlar kod.Yazimlar'dan gelir (yalnızca Türkçe biçim; bkz. kod.ASCIIKabul).
@@ -102,7 +102,7 @@ func keywordMap(table []Keyword, spellings func(codes.Code) []string) (map[strin
 	codeList := make(map[TokenType]codes.Code)
 	for _, kw := range table {
 		if !kw.Code.IsKeyword() {
-			panic(fmt.Sprintf("keyword table: %s is not a keyword code (A0xx)", kw.Code))
+			panic(fmt.Sprintf("keyword table: %s is not a keyword code (kw)", kw.Code))
 		}
 		if prev, ok := codeList[kw.Type]; ok {
 			panic(fmt.Sprintf("anahtar kelime tablosu: %s hem %s hem %s", kw.Type, prev, kw.Code))

@@ -58,10 +58,10 @@ func TestCodedFileErrors(t *testing.T) {
 			t.Errorf("%q: %q içeren hata bekleniyordu: %v", src, part, s.Errors)
 		}
 	}
-	// Türkçe yazılmış dosyada kod biçimli ad hatadır ve başlığı gösterir (2.3a).
+	// Türkçe yazılmış dosyada TR_ ile başlayan ad hatadır ve başlığı gösterir (2.3a).
 	s := Prepare("TR_fn_print(1)\n", Options{})
 	if s.Stage != StageSyntax || !strings.Contains(s.Errors[0].Error(), Header) {
-		t.Errorf("kod biçimli ad hatası başlığı göstermeli: %v", s.Errors)
+		t.Errorf("ayrılmış ad hatası başlığı göstermeli: %v", s.Errors)
 	}
 	// Ayrıştırılamayan kaynak çevrilmez.
 	var sh *SyntaxError

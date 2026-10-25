@@ -6,7 +6,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
-// Denetleyicinin kullandığı tip adları kod listesindedir (internal/lang/codes, A2xx).
+// Denetleyicinin kullandığı tip adları kod listesindedir (internal/lang/codes, type).
 var (
 	typeInt      = codes.Name(codes.TypeInt)
 	typeFloat    = codes.Name(codes.TypeFloat)
@@ -25,7 +25,7 @@ var (
 // Tam / Tam: 6 / 3 = 2, 7 / 2 = 3.5). Kullanıcı açıklamasında yazılamaz; yalnızca Ondalık
 // (Tam da Ondalığa atanabildiği için) ve tipsiz yerlere atanabilir.
 //
-// Kimlik dilden bağımsızdır (iki tipin kanonik adı, kod listesindeki birleşim yazımıyla: A200|A201);
+// Kimlik dilden bağımsızdır (iki tipin kanonik adı, kod listesindeki birleşim yazımıyla: TR_type_Int|TR_type_Float);
 // iletide typeText onu iletinin dilinde yazar ("Tam ya da Ondalık", "Int or Float").
 var typeNumber = typeInt + "|" + typeFloat
 

@@ -319,7 +319,7 @@ func linkConstructs(b *builder, t *dispatchTable, idx *codeindex.Index, ids map[
 	}
 }
 
-// operandRules işlenen türünün bu uygulamayla çalışıp çalışmadığıdır: Tensör (A212) yorumlayıcı dışındaki kancalarla,
+// operandRules işlenen türünün bu uygulamayla çalışıp çalışmadığıdır: Tensör (TR_type_Tensor) yorumlayıcı dışındaki kancalarla,
 // yerleşik değer türleri (Tam, Ondalık, Metin, Mantık, Liste, Sözlük) yorumlayıcıyla; bilinmeyen tür ikisiyle.
 func operandRules(operand string, inInterp bool) bool {
 	switch operand {

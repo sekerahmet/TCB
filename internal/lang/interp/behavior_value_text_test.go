@@ -159,7 +159,7 @@ try { f() } catch e { print(e) }
 	}
 }
 
-// Kod taşıyan çıplak sözlük anahtarı ({step: 1}, Y500) işlemin yazıldığı dosyanın dilindeki
+// Kod taşıyan çıplak sözlük anahtarı ({step: 1}, TR_mem_step) işlemin yazıldığı dosyanın dilindeki
 // adıdır; d.ad okuması ve yazması anahtarı kodun her yazım dilindeki adıyla arar (önce dosyanın
 // dilindeki), yoksa dosyanın dilindeki adla ekler: aynı kodun iki anahtarı oluşmaz (3.7, 17.3).
 // Metin anahtar (d["adım"]) tam metindir; kodsuz çıplak anahtar olduğu gibi kalır.

@@ -224,7 +224,7 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 	return nullCode
 }
 
-// dictKey sözlük yazımındaki bir anahtarın kodudur. Kod taşıyan çıplak anahtar ({Y500: 3})
+// dictKey sözlük yazımındaki bir anahtarın kodudur. Kod taşıyan çıplak anahtar ({TR_mem_step: 3})
 // derlenen dosyanın dilindeki adıdır (3.7, 17.3; yerleştirmeyle aynı yoldan, c.textLang); öbür
 // anahtarlar (kodsuz çıplak ad, metin, ifade) olduğu gibi derlenir.
 func (c *compiler) dictKey(k *compilerScope, key ast.Expression) exprCode {

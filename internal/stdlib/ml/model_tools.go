@@ -16,7 +16,7 @@ import (
 // bölme, birleşik dikkat ve token örnekleme. Bir modelin parametrelerini toplama ve yükleme:
 // parametreler.go.
 
-// Adlı argümanlar (adları kod listesinde, internal/lang/codes T9xx).
+// Adlı argümanlar (adları kod listesinde, internal/lang/codes arg).
 var (
 	nameKeepDim     = bind.NamedArg(codes.ArgKeepdim)
 	nameCausal      = bind.NamedArg(codes.ArgCausal)
@@ -29,7 +29,7 @@ var (
 )
 
 // memberSplit tensörün .böl(parça_sayısı, eksen: -1) metodudur. Üye adları tipten bağımsız
-// benzersiz olduğundan Metin'in .böl'üyle aynı koddur (Y103).
+// benzersiz olduğundan Metin'in .böl'üyle aynı koddur (TR_mem_split).
 const memberSplit = codes.MemSplit
 
 // ----------------------------------------------------------------------------

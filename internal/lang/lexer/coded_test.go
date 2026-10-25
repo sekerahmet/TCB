@@ -46,12 +46,12 @@ func TestCodedTokens(t *testing.T) {
 	if toks[2].Column != 15 || toks[3].Column != 17 {
 		t.Errorf("gösterim sütunları: '=' %d, 'yazdır' %d (beklenen 15, 17)", toks[2].Column, toks[3].Column)
 	}
-	// Bilinmeyen kod hatadır; Türkçe yazılmış gövdede kodlar kod biçimli addır (2.3a).
+	// Bilinmeyen kimlik hatadır; Türkçe yazılmış gövdede kimlik ayrılmış addır (2.3a).
 	if l := NewBody("TR_fn_yok", true); len(allOf(l)) != 1 || !hasCode(l.Errs(), messages.H0001) {
-		t.Errorf("bilinmeyen kod hatası yok: %v", l.Errors())
+		t.Errorf("bilinmeyen kimlik hatası yok: %v", l.Errors())
 	}
 	if l := NewBody("TR_fn_print", false); allOf(l) == nil || !hasCode(l.Errs(), messages.H0004) {
-		t.Errorf("Türkçe gövdede kod biçimli ad hatası yok: %v", l.Errors())
+		t.Errorf("Türkçe gövdede ayrılmış ad hatası yok: %v", l.Errors())
 	}
 }
 

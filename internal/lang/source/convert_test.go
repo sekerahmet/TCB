@@ -61,7 +61,7 @@ func TestEncodeEdgeCases(t *testing.T) {
 		{"tip açıklaması; kabul edilmeyen harf yazımı (3.14) olduğu gibi kalır",
 			"değişken a: Tam = 1\ndeğişken b: tam = 2\nyazdır(tip(a) == Tam)\n",
 			"TR_kw_var a: TR_type_Int = 1\nTR_kw_var b: tam = 2\nTR_fn_print(TR_fn_type(a) == TR_type_Int)\n"},
-		{"Türkçe harfler ve kod biçimine benzeyen adlar",
+		{"Türkçe harfler ve eski kod biçimine benzeyen adlar",
 			"değişken İSİM_ı = \"Iİ\"\ndeğişken g100 = 1\nyazdır(İSİM_ı, g100)\n",
 			"TR_kw_var İSİM_ı = \"Iİ\"\nTR_kw_var g100 = 1\nTR_fn_print(İSİM_ı, g100)\n"},
 		{"kaçış '$' atılır", "değişken $eğer = 3\nyazdır($eğer)\n", "TR_kw_var eğer = 3\nTR_fn_print(eğer)\n"},
@@ -308,7 +308,7 @@ func TestEncodeKeepsLineStructure(t *testing.T) {
 
 // Başka bir yazım dilinde yazılıp kodlanmış bir dosyada, etkin dilin bir yerleşiğiyle
 // aynı adlı bir kullanıcı değişkeni ve o yerleşiğin çağrısı aynı kapsamda bulunduğunda
-// (ör. İngilizcede 'var yazdır = 2; print(yazdır)' → 'A030 yazdır = 2; G100(yazdır)'),
+// (ör. İngilizcede 'var yazdır = 2; print(yazdır)' → 'TR_kw_var yazdır = 2; TR_fn_print(yazdır)'),
 // etkin dilde Decode(coded, codes.Active()) '$yazdır' kaçışını geri kodlayamadığı için
 // ErrLossy ile başarısız olmamalıdır.
 func TestDecodeKeepsEscapedUserNameApartFromBuiltin(t *testing.T) {
@@ -324,7 +324,7 @@ func TestDecodeKeepsEscapedUserNameApartFromBuiltin(t *testing.T) {
 }
 
 // Kural: adı yazılmamış 'yakala' bloğunda kullanıcının 'değişken hata' tanımı örtük 'hata'yı
-// gölgeler; okuma örtük A103 koduyla değil kullanıcı adıyla kodlanır. Neden: yoksa başka
+// gölgeler; okuma örtük TR_ctx_error koduyla değil kullanıcı adıyla kodlanır. Neden: yoksa başka
 // yazım dilinde program yanlış değişkeni okur.
 func TestEncodeKeepsUserErrorVarApartFromImplicitCatchName(t *testing.T) {
 	tr := "dene {\n    fırlat \"x\"\n} yakala {\n    değişken hata = 10\n    yazdır(hata)\n}\n"

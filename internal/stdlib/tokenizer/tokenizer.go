@@ -27,7 +27,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/stdlib/ml"
 )
 
-// TypeName parçalayıcı nesnesinin TR'deki tip adıdır (kod listesinde A234).
+// TypeName parçalayıcı nesnesinin TR'deki tip adıdır (kod listesinde TR_type_Tokenizer).
 var TypeName = string(interp.TypeName(codes.TypeTokenizer))
 
 // Object TR'de yüklenmiş bir parçalayıcıdır. Salt okunurdur; dosya tutamağı ya da
@@ -79,7 +79,7 @@ func (n *Object) TableData() ([]string, [][]string, error) {
 	return []string{messages.Text(messages.H5605), messages.Text(messages.H5606), messages.Text(messages.H5607)}, satirlar, nil
 }
 
-// Parçalayıcı üyeleri (adları kod listesinde, internal/lang/codes Y61x).
+// Parçalayıcı üyeleri (adları kod listesinde, internal/lang/codes mem).
 const (
 	memberEncode    = codes.MemEncode
 	memberDecode    = codes.MemDecode

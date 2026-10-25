@@ -12,7 +12,7 @@ import (
 )
 
 // ValueType is the type name of a value (tip() result, error messages). The names are in the
-// dictionary (internal/lang/codes, A2xx) and are read once at startup.
+// dictionary (internal/lang/codes, type) and are read once at startup.
 type ValueType string
 
 var (
@@ -60,11 +60,11 @@ func (s shown) MessageText(lang string) string {
 	return valueText(s.v, l)
 }
 
-// TypeName is the ValueType of a type-name code from the dictionary (A2xx); engines get the
+// TypeName is the ValueType of a type-name code from the dictionary (type); engines get the
 // names of their own types with it.
 func TypeName(k codes.Code) ValueType {
 	if k.Namespace() != codes.NamespaceType {
-		panic(fmt.Sprintf("TypeName: %s is not a type name code (A2xx)", k))
+		panic(fmt.Sprintf("TypeName: %s is not a type name code (type)", k))
 	}
 	return ValueType(codes.Name(k))
 }
@@ -92,8 +92,8 @@ type FloatVal struct {
 func (f *FloatVal) Type() ValueType { return ValFloat }
 func (f *FloatVal) Inspect() string { return f.Text(codes.Active()) }
 
-// Text sayının lang dilindeki metnidir. Sonsuz ve tanımsız değerin adı dilin değer adıdır (A110,
-// A111; eksi sonsuz başına '-' alır); tensör yazdırması aynı adları kullanır (NonFiniteText).
+// Text sayının lang dilindeki metnidir. Sonsuz ve tanımsız değerin adı dilin değer adıdır (TR_val_inf,
+// TR_val_nan; eksi sonsuz başına '-' alır); tensör yazdırması aynı adları kullanır (NonFiniteText).
 func (f *FloatVal) Text(lang *codes.Language) string {
 	if s, ok := NonFiniteText(f.Val, lang); ok {
 		return s
@@ -106,8 +106,8 @@ func (f *FloatVal) Text(lang *codes.Language) string {
 }
 func (f *FloatVal) IsTruthy() bool { return f.Val != 0.0 }
 
-// NonFiniteText is the text of a non-finite number in lang (3.2): the value names A110 (sonsuz,
-// inf) and A111 (NaN, nan), minus infinity with a leading '-'; ok is false for a finite number.
+// NonFiniteText is the text of a non-finite number in lang (3.2): the value names TR_val_inf (sonsuz,
+// inf) and TR_val_nan (NaN, nan), minus infinity with a leading '-'; ok is false for a finite number.
 // Numbers and tensors write them the same way; data formats (JSON, logs) do not use it.
 func NonFiniteText(f float64, lang *codes.Language) (string, bool) {
 	switch {

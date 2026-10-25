@@ -13,7 +13,7 @@ var builtinCache struct {
 	names map[string]bool
 }
 
-// builtinNames sözlükteki yerleşiklerin (G/T/V/W) ve tip adlarının (A2xx; ifadede tip
+// builtinNames sözlükteki yerleşiklerin (fn, const) ve tip adlarının (type; ifadede tip
 // değeridir: tip(x) == Tam) kabul edilen adlarıdır; denetimde bu adlar her kapsamda
 // tanımlıdır (çalışma anında genel kapsama kaydedilirler).
 func builtinNames() map[string]bool {

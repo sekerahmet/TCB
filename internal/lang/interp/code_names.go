@@ -12,7 +12,7 @@ import (
 // Yorumlayıcının kaydettiği adlar kod listesinden gelir (internal/lang/codes). Adlar kayıt sırasında
 // (VM kurulurken) bir kez okunur; çalışma anında sözlüğe bakılmaz.
 
-// RegisterBuiltinCode registers a builtin code from the dictionary (G/T/V/W) in the global
+// RegisterBuiltinCode registers a builtin code from the dictionary (fn) in the global
 // scope. The name comes from the dictionary; every operation has one name. A code that is not
 // a builtin code or is missing from the dictionary is a developer error and panics at
 // registration.
@@ -44,7 +44,7 @@ func NoNamedArgsError(name any, named map[string]Value) error {
 // with which the tensor engine wraps an older builtin.
 func (v *VM) DefineBuiltin(kd codes.Code, b *BuiltinVal) *BuiltinVal {
 	if !kd.IsBuiltin() {
-		panic(fmt.Sprintf("builtin registry: %s is not a builtin code (G/T/V/W, not x9xx)", kd))
+		panic(fmt.Sprintf("builtin registry: %s is not a builtin code (fn or const, not arg)", kd))
 	}
 	for _, spelling := range codes.Spellings(kd) {
 		v.GlobalEnv.Define(spelling, b, true)
@@ -57,7 +57,7 @@ func (v *VM) DefineBuiltin(kd codes.Code, b *BuiltinVal) *BuiltinVal {
 // reassigned.
 func (v *VM) DefineConstant(kd codes.Code, value Value) {
 	if !kd.IsBuiltin() {
-		panic(fmt.Sprintf("constant registry: %s is not a builtin code (G/T/V/W, not x9xx)", kd))
+		panic(fmt.Sprintf("constant registry: %s is not a builtin code (fn or const, not arg)", kd))
 	}
 	if v.builtinConstants == nil {
 		v.builtinConstants = map[string]Value{}

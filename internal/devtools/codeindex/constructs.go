@@ -17,7 +17,7 @@ type Construct struct {
 	In      string `json:"in"`
 	Kind    string `json:"kind"`              // AST türünün adı: "InfixExpression", "CallExpression", ...
 	Op      string `json:"op,omitempty"`      // işlecin metni ("@", "+", "==")
-	Operand string `json:"operand,omitempty"` // sol işlenenin türü: yapı kimliği ya da "type:A212"; bilinmezse boş
+	Operand string `json:"operand,omitempty"` // sol işlenenin türü: yapı kimliği ya da "type:TR_type_Tensor"; bilinmezse boş
 	Pos     Pos    `json:"pos"`
 }
 

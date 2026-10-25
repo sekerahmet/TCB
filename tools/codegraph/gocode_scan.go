@@ -20,7 +20,7 @@ var messageConst = regexp.MustCompile(`^H\d{4}$`)
 
 // codeConstKeys modülün ad kodu paketindeki her sabitin dil dosyasındaki anahtarıdır (sabit adı → anahtar).
 // Sabitin adı kimlikten türer, anahtarla aynı değildir (codes.FnPrint); üreteç (tools/gen/codeconsts) anahtarı
-// sabitin satır yorumunun ilk sözcüğü olarak yazar (`FnPrint Code = ... // G100: print · yazdır`). Yorumu böyle
+// sabitin satır yorumunun ilk sözcüğü olarak yazar (`FnPrint Code = ... // TR_fn_print: print · yazdır`). Yorumu böyle
 // başlamayan sabit (aile tabanları, None) ad kodu değildir.
 func codeConstKeys(root string) map[string]string {
 	files, _ := filepath.Glob(filepath.Join(root, filepath.FromSlash(codesDir), "*.go"))

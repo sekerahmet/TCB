@@ -109,7 +109,7 @@ func (c *Checker) defineName(name string, kind nameKind, line int, info TypeInfo
 	c.scope.Define(name, info)
 }
 
-// checkShadowing ad bir yerleşik fonksiyonun adıysa (sözlükte G/T/V/W yerleşik kodu) uyarı
+// checkShadowing ad bir yerleşik fonksiyonun adıysa (sözlükte fn yerleşik kodu) uyarı
 // ekler: kullanıcı tanımı o kapsamda yerleşiği gölgeler; yerleşik orada artık çağrılamaz.
 func (c *Checker) checkShadowing(name string, line int) {
 	if k, ok := codes.Find(codes.NamespaceGlobal, name); ok && k.IsBuiltin() {

@@ -22,7 +22,7 @@ type Token struct {
 	Literal string
 	Line    int
 	Column  int
-	// Code is the code the word was written with in a coded file (A001, G100), otherwise
+	// Code is the code the word was written with in a coded file (TR_kw_if, TR_fn_print), otherwise
 	// codes.None. Literal is then the code's name in the active language (see coded.go).
 	Code codes.Code
 }
@@ -85,34 +85,34 @@ const (
 	TokRBracket  = "]"
 
 	// Keywords. The type names are internal and never shown to the user; the names the user
-	// writes are in the dictionary (internal/lang/codes, A0xx), and keywords.go says which
+	// writes are in the dictionary (internal/lang/codes, kw), and keywords.go says which
 	// code produces which type.
-	TokVar        = "VAR"        // A030
-	TokConst      = "CONST"      // A031
-	TokFunction   = "FUNCTION"   // A020
-	TokReturn     = "RETURN"     // A021
-	TokIf         = "IF"         // A001
-	TokElse       = "ELSE"       // A002
-	TokMatch      = "MATCH"      // A003
-	TokDefault    = "DEFAULT"    // A004
-	TokFor        = "FOR"        // A010
-	TokIn         = "IN"         // A011
-	TokWhile      = "WHILE"      // A012
-	TokBreak      = "BREAK"      // A013
-	TokContinue   = "CONTINUE"   // A014
-	TokTrue       = "TRUE"       // A040
-	TokFalse      = "FALSE"      // A041
-	TokNil        = "NIL"        // A042
-	TokKwAnd      = "AND"        // A043
-	TokKwOr       = "OR"         // A044
-	TokKwNot      = "NOT"        // A045
-	TokStruct     = "STRUCT"     // A050
-	TokSelf       = "SELF"       // A051
-	TokTry        = "TRY"        // A060
-	TokCatch      = "CATCH"      // A061
-	TokThrow      = "THROW"      // A062
-	TokImport     = "IMPORT"     // A070
-	TokConcurrent = "CONCURRENT" // A080
-	TokDefer      = "DEFER"      // A081
-	TokBreakpoint = "BREAKPOINT" // A090
+	TokVar        = "VAR"        // TR_kw_var
+	TokConst      = "CONST"      // TR_kw_const
+	TokFunction   = "FUNCTION"   // TR_kw_func
+	TokReturn     = "RETURN"     // TR_kw_return
+	TokIf         = "IF"         // TR_kw_if
+	TokElse       = "ELSE"       // TR_kw_else
+	TokMatch      = "MATCH"      // TR_kw_match
+	TokDefault    = "DEFAULT"    // TR_kw_default
+	TokFor        = "FOR"        // TR_kw_for
+	TokIn         = "IN"         // TR_kw_in
+	TokWhile      = "WHILE"      // TR_kw_while
+	TokBreak      = "BREAK"      // TR_kw_break
+	TokContinue   = "CONTINUE"   // TR_kw_continue
+	TokTrue       = "TRUE"       // TR_kw_true
+	TokFalse      = "FALSE"      // TR_kw_false
+	TokNil        = "NIL"        // TR_kw_none
+	TokKwAnd      = "AND"        // TR_kw_and
+	TokKwOr       = "OR"         // TR_kw_or
+	TokKwNot      = "NOT"        // TR_kw_not
+	TokStruct     = "STRUCT"     // TR_kw_struct
+	TokSelf       = "SELF"       // TR_kw_self
+	TokTry        = "TRY"        // TR_kw_try
+	TokCatch      = "CATCH"      // TR_kw_catch
+	TokThrow      = "THROW"      // TR_kw_throw
+	TokImport     = "IMPORT"     // TR_kw_import
+	TokConcurrent = "CONCURRENT" // TR_kw_async
+	TokDefer      = "DEFER"      // TR_kw_defer
+	TokBreakpoint = "BREAKPOINT" // TR_kw_breakpoint
 )

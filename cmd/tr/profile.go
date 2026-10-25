@@ -19,9 +19,9 @@ import (
 
 // profileOptions komutların program dosyasından önce yazılan seçenekleridir.
 type profileOptions struct {
-	json      string // K103 (--json): raporun JSON yolu (klasörse içine speed.json)
-	goProfile string // K104 (--go-profili): yorumlayıcının Go CPU profili (geliştiriciler için)
-	output    string // K105 (--çıktı): tr izle'de programın çıktısının dosyası
+	json      string // TR_opt_json (--json): raporun JSON yolu (klasörse içine speed.json)
+	goProfile string // TR_opt_go_profile (--go-profili): yorumlayıcının Go CPU profili (geliştiriciler için)
+	output    string // TR_opt_output (--çıktı): tr izle'de programın çıktısının dosyası
 }
 
 // profileArguments seçenekleri, program dosyasını ve programın argümanlarını ayırır.

@@ -131,7 +131,7 @@ func (x *examRunner) answer(t *testing.T, r examRecord) (string, int) {
 }
 
 // trIndex `tr dizin <alt komut> <ad> [--tümü]` sorusunu, komutun kendi kodu gibi codeindex'e sorar: alt komut adı
-// kodundan çözülür (K016 tanım, K017 kullananlar, K018 sınayanlar, K019 etki), metin codeindex.Text'tir.
+// kodundan çözülür (TR_sub_definition tanım, TR_sub_references kullananlar, TR_sub_tested_by sınayanlar, TR_sub_impact etki), metin codeindex.Text'tir.
 func (x *examRunner) trIndex(t *testing.T, r examRecord) (string, int) {
 	sub, ok := codes.Find(codes.NamespaceSubcommand, r.args[0])
 	if !ok || len(r.args) < 2 {

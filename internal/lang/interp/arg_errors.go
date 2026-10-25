@@ -73,7 +73,7 @@ func languageNamed(lang string) *codes.Language {
 }
 
 // ArgTypeError reports that argument number sira of builtin kd (or its member) is not one of
-// the expected types; the expected values are type codes (A2xx).
+// the expected types; the expected values are type codes (type).
 func ArgTypeError(kd codes.Code, order int, given Value, expected ...codes.Code) error {
 	return argTypeErrorByName(CallName(kd), order, TypeNames(expected...), given)
 }

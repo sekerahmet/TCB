@@ -15,8 +15,8 @@ import (
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
 
-// Okuyucu durumu: ö.durum (Y502) okuyucunun kaldığı yeri düz değerli bir sözlük olarak verir,
-// ö.durumu_yükle(sözlük) (Y503) aynı ayarla kurulmuş bir okuyucuyu o konuma getirir. Konum
+// Okuyucu durumu: ö.durum (TR_mem_state) okuyucunun kaldığı yeri düz değerli bir sözlük olarak verir,
+// ö.durumu_yükle(sözlük) (TR_mem_load_state) aynı ayarla kurulmuş bir okuyucuyu o konuma getirir. Konum
 // tüketilen son toplu işten sonraki konumdur (önden yükleme hattında bekleyen toplu işler
 // sayılmaz); yüklemede önden yükleme hattı boşaltılıp okuyucu konumdan yeniden kurulur. Böylece
 // sürdürülen eğitim kesintisizle aynı toplu işleri aynı sırayla alır. Kontrol noktası

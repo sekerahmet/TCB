@@ -15,12 +15,12 @@ TR'ye yeni bir şey eklerken hangi dosyalara, hangi sırayla dokunulduğu ve "bi
 
 ## 1. Eleman bazlı matematik fonksiyonu
 
-Örnek: `silu` (T204). Sayıda `Ondalık`, tensörde türev izleyen tensör verir; CPU ve GPU'da, 16 bitte de çalışır.
+Örnek: `silu` (TR_fn_silu). Sayıda `Ondalık`, tensörde türev izleyen tensör verir; CPU ve GPU'da, 16 bitte de çalışır.
 
 | Adım | Dosya | Ne eklenir |
 | :-- | :-- | :-- |
-| Ad | `internal/lang/codes/tr.json` | `"T204": { "ad": "silu", "aile": ..., "açıklama": ..., "örnek": "yazdır(silu(tensör([-1.0, 0.0, 2.0])).değer)" }` |
-| İmza | `internal/lang/codes/definitions.json` | `"T204": { "tür": "fonksiyon", "param": ["A212\|A200\|A201"], "dönüş": "A212\|A201" }` |
+| Ad | `internal/lang/codes/tr.json` | `"TR_fn_silu": { "ad": "silu", "aile": ..., "açıklama": ..., "örnek": "yazdır(silu(tensör([-1.0, 0.0, 2.0])).değer)" }` |
+| İmza | `internal/lang/codes/definitions.json` | `"TR_fn_silu": { "tür": "fonksiyon", "param": ["TR_type_Tensor\|TR_type_Int\|TR_type_Float"], "dönüş": "TR_type_Tensor\|TR_type_Float" }` |
 | Üret | — | `go generate ./internal/lang/codes`: Go sabitleri, `docs/codes.md`, düzenleyici renklendirmesi |
 | İşlem | `internal/compute/tensor/device.go` | `UnOp` listesinin sonuna, `numUnOps` sayacının **önüne** `OpSilu` (sayaç her zaman son kalır; kapsam testi işlemleri onunla sayar) |
 | Türev testi | `internal/compute/tensor/elementwise_wide_test.go` | `registerGrad` ile bir `gradSpec` kaydı: float64 başvuru işlevi ve türevi |
@@ -28,9 +28,9 @@ TR'ye yeni bir şey eklerken hangi dosyalara, hangi sırayla dokunulduğu ve "bi
 | Yöntem | `internal/compute/tensor/elementwise_wide.go` | `func (t *Tensor) Silu() *Tensor { return unary(t, OpSilu, 0) }` |
 | CPU | `internal/compute/tensor/cpu_elementwise_wide.go` | ileri kolu (`unaryLoopWide`) ve türev kolu (`unaryGradLoopWide`) |
 | CPU okuma | `internal/compute/tensor/cpu_dtype.go` | türev x'i mi y'yi mi okuyor: `unaryGradReads` |
-| Profil | `internal/compute/tensor/counter.go`, `internal/devtools/profiler/names.go` | `OpKindSilu` ve onun kodu (`codes.T204`) |
+| Profil | `internal/compute/tensor/counter.go`, `internal/devtools/profiler/names.go` | `OpKindSilu` ve onun kodu (`codes.FnSilu`) |
 | GPU | `internal/compute/gpu/kernel_wide.go` | ileri ve türev kolu (PTX); kararlı biçim (ör. `x·σ(x)`'te büyük \|x\|) |
-| Dile bağlama | `internal/stdlib/ml/builtin_math.go` | `unit(v, codes.T204, (*tensor.Tensor).Silu, silu64)` ve sayı karşılığı `silu64` |
+| Dile bağlama | `internal/stdlib/ml/builtin_math.go` | `unit(v, codes.FnSilu, (*tensor.Tensor).Silu, silu64)` ve sayı karşılığı `silu64` |
 
 Testler:
 
@@ -51,15 +51,15 @@ Bitti: NaN ve sonsuzlar tanımlı; türev sınırlarda doğru; 16 bit tensörde 
 
 ## 2. Standart kitaplığa yeni yerleşik fonksiyon
 
-Örnek: `csv_oku` (G602), `internal/stdlib/formats`.
+Örnek: `csv_oku` (TR_fn_read_csv), `internal/stdlib/formats`.
 
-1. **Ad ve imza.** `tr.json`'a ad, açıklama, çalışan tek satırlık örnek; `definitions.json`'a tür, konumlu parametreler (`"A202|A250"`), adlı argümanlar (`[kod, tip, varsayılan]`), dönüş. Adlı argüman da bir koddur (`G9xx`, `T9xx`). Sonra `go generate ./internal/lang/codes`.
+1. **Ad ve imza.** `tr.json`'a ad, açıklama, çalışan tek satırlık örnek; `definitions.json`'a tür, konumlu parametreler (`"TR_type_String|TR_type_Path"`), adlı argümanlar (`[kod, tip, varsayılan]`), dönüş. Adlı argüman da bir koddur (`arg` sınıfı: `TR_arg_dim`). Sonra `go generate ./internal/lang/codes`.
 2. **Kayıt.** Paketin `Register(v *interp.VM)` fonksiyonunda:
 
    ```go
-   v.RegisterNoNamed(codes.G602, func(vm *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+   v.RegisterNoNamed(codes.FnReadCsv, func(vm *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
        if len(args) != 1 {
-           return nil, interp.ArgCountError(codes.G602, "1", len(args), messages.Text(messages.H2321)) // "dosya ya da metin"
+           return nil, interp.ArgCountError(codes.FnReadCsv, "1", len(args), messages.Text(messages.H2321)) // "dosya ya da metin"
        }
        ...
    })
@@ -79,7 +79,7 @@ Testler: paketin birim testi (`formats_test.go`): davranış ve hatalar, hatalar
 
 Örnek: `SatırOkuyucu.sonraki()` (`internal/stdlib/files/lines.go`).
 
-1. **Ad.** Üye kodu (`Y...`); `definitions.json`'da `"tür": "metot"` ya da `"özellik"` ve hangi tiplerde geçerli olduğu (`"imzalar": { "A257": {...} }`).
+1. **Ad.** Üye kodu (`TR_mem_...`); `definitions.json`'da `"tür": "metot"` ya da `"özellik"` ve hangi tiplerde geçerli olduğu (`"imzalar": { "TR_type_LineReader": {...} }`).
 2. **Kanca.** Tip, yorumlayıcının arayüzünü uygular: üyeler için `GetProperty(kd codes.Code, prop string) (interp.Value, error)` (`interp.PropertyGetter`). Yineleme, indeksleme, işleçler için `interp.Iterable`, `interp.Indexable`, `interp.OperatorHook` ...
 3. **Derleme anı denetimi.** Her kanca için: `var _ interp.PropertyGetter = (*LineReader)(nil)`. Adı değişen bir metot kancayı sessizce koparmasın.
 4. **Bulunamayan üye** `bind.MemberError(ne, ad, üyeler)` ile en yakın üyeyi önerir.
@@ -119,9 +119,9 @@ Testler: `x_test.go` her kaynak dosyanın yanında; birden çok dosyayı kesen d
 
 ## 6. Yeni dil kuralı ya da anahtar kelime
 
-Örnek: `eşle` (A003).
+Örnek: `eşle` (TR_kw_match).
 
-1. **Tasarım ve ad.** Dil tanımında yeni madde (`docs/spec/`); ad kodu (`A0xx` anahtar kelime, `A1xx` bağlamsal sözcük) ailesinin kuralıyla, adı baş geliştiricinin onayıyla. Kodlu saklama da adı kodla yazar, bu yüzden ad sonradan değişebilir.
+1. **Tasarım ve ad.** Dil tanımında yeni madde (`docs/spec/`); ad kodu (`kw` anahtar kelime ya da `ctx` bağlamsal sözcük; kimlik İngilizce adından: `TR_kw_match`), adı baş geliştiricinin onayıyla. Kodlu saklama da adı kimlikle yazar, bu yüzden ad sonradan değişebilir.
 2. **Sözdizimi.** `internal/lang/lexer` (gerekiyorsa yeni sözcük), `internal/lang/ast` (düğüm), `internal/lang/parser` (ayrıştırma; hata `messages.At(satır, sütun, messages.New(...))`).
 3. **Anlam.** `internal/lang/checker` (tip denetimi ve uyarılar), `internal/lang/interp` (derleme ve çalışma; sıcak yolda ad araması yok).
 4. **Araçlar.** Biçimlendirici (`internal/devtools/formatter`), düzenleyici renklendirmesi (`go generate ./internal/lang/codes`), gerekiyorsa hata ayıklayıcı.

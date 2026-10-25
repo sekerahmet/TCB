@@ -317,7 +317,7 @@ func (x *goExtractor) denotes(fc *fileCtx, id, pkg, name string, line int) {
 }
 
 // scanValueSpecs paket düzeyindeki const/var bildirimlerinin kullanımlarını bildirimin kendi düğümünden çıkarır
-// (`var ValInt = TypeName(codes.TypeInt)`: ValInt TypeName'i ve A200'ü kullanır). Hepsini paket düğümüne yazmak aynı
+// (`var ValInt = TypeName(codes.TypeInt)`: ValInt TypeName'i ve TR_type_Int'ü kullanır). Hepsini paket düğümüne yazmak aynı
 // hedefe giden farklı dosyalardaki kullanımları tek kenara indirirdi. Adı olmayan (`var _ = ...`) ya da çözülemeyen
 // belirtim dosya düğümüne yazılır (dosyalar arasında aynı hedefe giden kullanımlar tek kenara inmesin).
 func (x *goExtractor) scanValueSpecs(fc *fileCtx, d *ast.GenDecl) {

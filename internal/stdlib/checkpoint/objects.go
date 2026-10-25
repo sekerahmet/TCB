@@ -17,7 +17,7 @@ import (
 
 // Stateful, durumu kontrol noktasına yazılıp geri yüklenebilen motor değerleridir: bugün
 // dataset.Reader (TR'de Örnekleyici ve SıralıOkuyucu tipleri), ileride rastgele üreteç. TR'de
-// x.durum (Y502) ve x.durumu_yükle(sözlük) (Y503) üyelerinin Go yüzüdür; bir motor yeni bir
+// x.durum (TR_mem_state) ve x.durumu_yükle(sözlük) (TR_mem_load_state) üyelerinin Go yüzüdür; bir motor yeni bir
 // tipi kontrol noktasına bu iki yöntemi yazarak katar (bu paketi içe aktarmasına gerek yoktur).
 type Stateful interface {
 	interp.Value

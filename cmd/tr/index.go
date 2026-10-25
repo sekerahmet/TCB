@@ -23,16 +23,16 @@ const defaultIndexLimit = 12
 
 // indexOptions komutun seçenekleridir.
 type indexOptions struct {
-	json    bool   // K103 (--json)
-	limit   int    // K107 (--sınır)
-	all     bool   // K108 (--tümü)
-	root    string // K109 (--kök)
-	kind    string // K110 (--tür)
-	noIndex bool   // K111 (--dizin-yok)
-	status  bool   // K112 (--durum)
-	clear   bool   // K113 (--temizle)
-	noText  bool   // K114 (--metin-yok)
-	term    bool   // K115 (--terim)
+	json    bool   // TR_opt_json (--json)
+	limit   int    // TR_opt_limit (--sınır)
+	all     bool   // TR_opt_all (--tümü)
+	root    string // TR_opt_root (--kök)
+	kind    string // TR_opt_kind (--tür)
+	noIndex bool   // TR_opt_no_index (--dizin-yok)
+	status  bool   // TR_opt_status (--durum)
+	clear   bool   // TR_opt_clear (--temizle)
+	noText  bool   // TR_opt_no_text (--metin-yok)
+	term    bool   // TR_opt_term (--terim)
 
 	limitSet bool // --sınır açıkça verildi
 }

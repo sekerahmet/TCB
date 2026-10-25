@@ -77,8 +77,8 @@ Birim testleri sınadıkları dosyanın adını taşır. Birden çok dosyayı ke
 - **Kullanıcıya görünen adlar Go metnine yazılmaz.** Anahtar kelime, yerleşik, tip, üye ve adlı argüman adları sabit kodlara bağlıdır (`lang/codes`, `tr.json`). Go kodu kodu yazar, ad dil dosyasından gelir:
 
   ```go
-  fn := codes.Name(codes.G602)                  // "csv_oku"
-  return interp.ArgCountError(codes.G602, "1", len(args))
+  fn := codes.Name(codes.FnReadCsv)                  // "csv_oku"
+  return interp.ArgCountError(codes.FnReadCsv, "1", len(args))
   ```
 
   Adı değiştirmek yalnızca dil dosyasının satırını değiştirir. Yeni bir ad (yeni kod) gerekiyorsa kendiniz eklemeyin: [`docs/development.md`](../docs/development.md#yeni-kod-ad-isteği). Denetim: `tools/gen/codeconsts` (`TestNoBareNames`: Go metnindeki çıplak ad).

@@ -36,11 +36,11 @@ Go test dosyalarının düzeni (birim testi `x_test.go`, davranış testi `behav
 
 ## Yeni kod (ad) isteği
 
-Yeni bir yerleşik, metot, anahtar kelime ya da adlı argüman yeni bir **kod** ister. Kodun numarası ailesinin ve grubunun kuralıyla belli olur (grubun sıradaki boş numarası, [`codes.md`](codes.md)); kullanıcıya görünen adı (Türkçe ve İngilizce karşılığı) baş geliştirici onaylar:
+Yeni bir yerleşik, metot, anahtar kelime ya da adlı argüman yeni bir **kod** ister. Kodun kimliği `TR_<sınıf>_<İngilizce ad>` kuralıyla bir kez verilir ve hiç değişmez ([`spec/17_kodlar.md`](spec/17_kodlar.md), sınıflar: `fn`, `mem`, `arg`, `kw` ...); kullanıcıya görünen adı (Türkçe ve İngilizce karşılığı) baş geliştirici onaylar:
 
 1. Önce [`codes.md`](codes.md)'ye bakın: aynı işi yapan bir kod (fonksiyon ya da metot biçiminde) varsa onu kullanın. Aynı işi yapan iki kod olamaz.
 2. Yoksa adı onaysız eklemeyin. O parçayı bırakın, işin geri kalanına devam edin ve raporunuza **sözlük isteği** başlığıyla yazın: ne işe yarayacak, imzası, neden var olan kodlar yetmiyor, baktığınız yakın kodlar. Depoya dışarıdan katkıda bulunuyorsanız aynı bilgilerle **Sözlük isteği** konu şablonunu açın ([`.github/ISSUE_TEMPLATE/name_request.md`](../.github/ISSUE_TEMPLATE/name_request.md)).
-3. Baş geliştirici ya var olan bir kodu gösterir ya da adı onaylar; kod grubun sıradaki boş numarasını alır. `tr.json`'a yalnızca adı onaylanan kodlar girer; Go sabitleri `go generate ./internal/lang/codes` ile üretilir. Kullanıcıya giden iletiler de kodludur (`H` ailesi, `internal/lang/messages`); ileti kodları adlardan farklı olarak işi yapan geliştirici tarafından kendi alanının aralığında eklenir.
+3. Baş geliştirici ya var olan bir kodu gösterir ya da adı onaylar; kod, onaylanan İngilizce adından kimliğini alır (aynı sınıfta aynı kimlik ya da yalnız harf büyüklüğüyle ayrılan iki kimlik çıkarsa kimliğe sahibinin adı eklenir: `TR_arg_G_muon`). `tr.json`'a yalnızca adı onaylanan kodlar girer; Go sabitleri `go generate ./internal/lang/codes` ile üretilir. Kullanıcıya giden iletiler de kodludur (`H` ve dört rakam, `internal/lang/messages`); ileti kodları adlardan farklı olarak işi yapan geliştirici tarafından kendi alanının aralığında eklenir.
 
 ## Bitti tanımı ve tam denetim
 

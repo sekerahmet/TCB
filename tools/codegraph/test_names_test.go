@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// Kural: dilin her yerleşik, üye ve adlı argüman kodu (G/T/V/W/Y) için `tests-for <kod>` doğrudan en az bir test verir
+// Kural: dilin her yerleşik, üye ve adlı argüman kodu (fn/Y) için `tests-for <kod>` doğrudan en az bir test verir
 // ya da kod gerekçesiyle testdata/untested_names.txt'te durur. "Doğrudan": bir TR test bloğunun ya da Go davranış
 // testinin (TR kodunu dize olarak çalıştıran) o adı kullanması; yalnızca listeyi gezen testler (`walks`) sayılmaz, çünkü
 // onlar her adı sayıp hiçbirini davranışıyla sınamaz. Yeni bir yerleşik eklenip testsiz bırakılırsa ya da bir testin

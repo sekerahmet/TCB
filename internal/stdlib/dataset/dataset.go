@@ -116,7 +116,7 @@ func (k *Dataset) TableData() ([]string, [][]string, error) {
 	return []string{messages.Text(messages.H5504), messages.Text(messages.H5505), messages.Text(messages.H5506)}, lines, nil
 }
 
-// Veri kümesi ve okuyucu üyeleri (adları kod listesinde, internal/lang/codes Y60x).
+// Veri kümesi ve okuyucu üyeleri (adları kod listesinde, internal/lang/codes mem).
 const (
 	memberSampler    = codes.MemSampler
 	memberSequential = codes.MemSequential

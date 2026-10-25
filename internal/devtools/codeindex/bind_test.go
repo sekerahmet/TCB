@@ -120,7 +120,7 @@ func TestNameOnlyGuessesStayOutOfReferences(t *testing.T) {
 }
 
 // Kural: komut satırı seçeneğinin adı çalışma anındaki adıdır: dilin bir üye adı olan çıplak anahtar dosyanın dilinde
-// yazılır (K3: İngilizce kodlu betikte `{Y500: 100}` → `--step`, Türkçe betikte `--adım`); kullanıcının kendi adı
+// yazılır (K3: İngilizce kodlu betikte `{TR_mem_step: 100}` → `--step`, Türkçe betikte `--adım`); kullanıcının kendi adı
 // (`run`) ve kod taşımayan, düz yazılmış `adım` (Türkçe gösterimde `$adım`) olduğu gibi kalır (bağımsız denetim grup 7). Konum Türkçe gösterimdeki anahtarın yeridir; iki dilin eş betikleri ayrı dosyada, ayrı
 // düğümlerdir (yerleşik adım yerleşiği onları birleştirir).
 func TestOptionNameFollowsTheFilesLanguage(t *testing.T) {
@@ -147,7 +147,7 @@ func TestOptionNameFollowsTheFilesLanguage(t *testing.T) {
 	if n := r.Node("option:en.tr#adım"); n != nil {
 		t.Errorf("an English script's option is --step, not --adım: %+v", n)
 	}
-	// İngilizce betikte düz yazılmış `adım` anahtarı kod taşımaz: `--adım`'dır, kodlu Y500 `--step`; iki ayrı seçenek.
+	// İngilizce betikte düz yazılmış `adım` anahtarı kod taşımaz: `--adım`'dır, kodlu TR_mem_step `--step`; iki ayrı seçenek.
 	wantUses(t, r, "option:en2.tr#adım", "option_key@2:28/EXTRACTED")
 	wantUses(t, r, "option:en2.tr#step", "option_key@2:38/EXTRACTED")
 	wantUses(t, r, "option:en.tr#step", "option_key@2:33/EXTRACTED", "option_key@2:73/EXTRACTED")

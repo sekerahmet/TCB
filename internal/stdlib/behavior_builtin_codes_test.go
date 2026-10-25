@@ -14,7 +14,7 @@ import (
 )
 
 // Tüm motorlar yüklüyken genel kapsamdaki her yerleşiğin sözlükte bir yerleşik kodu
-// (G/T/V/W) olmalı ve kayıtlı ad o kodun adı olmalı; sözlükteki her yerleşik kodu da
+// (fn) olmalı ve kayıtlı ad o kodun adı olmalı; sözlükteki her yerleşik kodu da
 // adıyla kayıtlı olmalı. Böylece sözlükte adı olmayan
 // bir yerleşik kaydedilemez, sözlükte de kaydı olmayan bir yerleşik kodu kalamaz.
 func TestBuiltinsMatchDictionary(t *testing.T) {
@@ -73,7 +73,7 @@ func runSame(t *testing.T, m *interp.VM, kd string) (interp.Value, error) {
 
 // Kod listesindeki her üye kodu (Y) bütün yazımlarıyla en az bir tipte çalışmalı: kodu
 // olup da hiçbir switch'te karşılanmayan (ya da yalnızca bir yazımı karşılanan) üye
-// kalmamalı. Veri kümesi ve okuyucu üyeleri (Y600-Y602) dizin gerektirdiği için
+// kalmamalı. Veri kümesi ve okuyucu üyeleri dizin gerektirdiği için
 // internal/stdlib/dataset testlerinde denenir.
 func TestMembersMatchDictionary(t *testing.T) {
 	m := interp.New()

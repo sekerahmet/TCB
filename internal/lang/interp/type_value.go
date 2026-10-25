@@ -9,17 +9,17 @@ import (
 )
 
 // Tip değerleri (3.11): tip(x) değerin tipini bir tip değeri olarak verir; tip adları (Tam,
-// Liste, Tensör ...) ifadede bu değerlerdir. Değer dilden bağımsızdır: tip kodunu (A2xx) ya da
+// Liste, Tensör ...) ifadede bu değerlerdir. Değer dilden bağımsızdır: tip kodunu (type) ya da
 // yapı nesnelerinde yapının tanımını taşır. Yazdırılınca adı çalıştırma dilinde görünür;
 // karşılaştırma değerle yapılır (tip(x) == Tam, tip(p) == Nokta). Böylece kodlu saklanan bir
 // program hangi dilde gösterilirse gösterilsin aynı sonucu verir.
 
-// ValType is the type of type values (A215 Tip).
+// ValType is the type of type values (TR_type_Type Tip).
 var ValType = TypeName(codes.TypeType)
 
 // TypeVal is a type value.
 type TypeVal struct {
-	// Code is the code of builtin and engine types (A2xx); codes.None for the type of struct
+	// Code is the code of builtin and engine types (type); codes.None for the type of struct
 	// instances.
 	Code codes.Code
 	// Struct is the type of struct instances (tip(p) → Nokta); nil for other types.

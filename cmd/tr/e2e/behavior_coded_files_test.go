@@ -415,7 +415,7 @@ func TestAuditUncodedTurkishNamesCollideWithActiveLanguageWords(t *testing.T) {
 }
 
 // Denetim (2026-10-21): sözlükte üye erişimi (s.adım, s.tür) ve tırnaksız anahtar ({adım: 2})
-// üye koduna (Y500, Y402) çevrilir ve TR_DIL=en ile İngilizce adıyla (step, dtype) okunur:
+// üye koduna (TR_mem_step, TR_mem_dtype) çevrilir ve TR_DIL=en ile İngilizce adıyla (step, dtype) okunur:
 // Türkçe yazılmış dosyada sözlüğün anahtarı yazım diline göre değişir; okuma yok verir, yazma
 // yeni bir "step" anahtarı ekler (JSON'a, kontrol noktasına giden veri değişir). Dil tanımı
 // 17.7'nin testi de ("Kodlu dosyada üyenin adıyla aynı sözlük anahtarı Türkçe adıyla okunur",

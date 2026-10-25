@@ -18,7 +18,7 @@ import (
 // "Satır N:" ekler. Adlı argüman denetimi ve paniği yakalama internal/stdlib/common/bind'nın
 // ortak yardımcılarıyla yapılır.
 
-// Adlı argümanlar. Adları kod listesindedir (internal/lang/codes, T9xx). Başka dillerden alışılmış
+// Adlı argümanlar. Adları kod listesindedir (internal/lang/codes, arg). Başka dillerden alışılmış
 // adlar (lr, axis...) kabul edilmez; bind.CheckNamed hata mesajında Türkçesini önerir.
 var (
 	nameRequiresGrad = bind.NamedArg(codes.ArgRequiresGrad)

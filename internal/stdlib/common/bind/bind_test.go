@@ -24,7 +24,7 @@ func names(codeList ...codes.Code) []Named {
 	return a
 }
 
-// NamedArg yalnızca adlı argüman kodlarını (x9xx) kabul eder; yanlış kod başlangıçta panikler.
+// NamedArg yalnızca adlı argüman kodlarını (arg) kabul eder; yanlış kod başlangıçta panikler.
 func TestNamedArg(t *testing.T) {
 	a := NamedArg(codes.ArgLr)
 	if a.TR != codes.Name(codes.ArgLr) || !a.Accepts(a.TR) || a.Spellings()[0] != a.TR {

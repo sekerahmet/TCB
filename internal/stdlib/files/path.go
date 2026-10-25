@@ -12,7 +12,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
 
-// PathType Yol değerlerinin tip adıdır (kod listesinde A250).
+// PathType Yol değerlerinin tip adıdır (kod listesinde TR_type_Path).
 var PathType = interp.TypeName(codes.TypePath)
 
 // Path temizlenmiş bir dosya ya da klasör yoludur. Değiştirilemez; ayırıcıyı her platformda
@@ -80,7 +80,7 @@ func pathBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 	return NewPath(filepath.Join(parts...)), nil
 }
 
-// Yol üyeleri (adları kod listesinde, internal/lang/codes Y31x).
+// Yol üyeleri (adları kod listesinde, internal/lang/codes mem).
 var pathMemberCodes = []codes.Code{codes.MemName, codes.MemExtension, codes.MemStem, codes.MemParent, codes.MemAbsolute, codes.MemExists, codes.MemIsFile, codes.MemIsDir, codes.MemSize}
 
 // GetProperty üyeyi görevsiz okur (göreli yol yalnızca çalışma klasörüne göre çözülür); nokta

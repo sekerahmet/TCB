@@ -310,7 +310,7 @@ func startREPL() {
 	}
 }
 
-// startsWithPrint satır yazdır yerleşiğinin (G100) kanonik ya da kişinin yazım dilindeki bir
+// startsWithPrint satır yazdır yerleşiğinin (TR_fn_print) kanonik ya da kişinin yazım dilindeki bir
 // yazımıyla mı başlıyor (kabuk satırı kişinin dilinde yazılır)?
 func startsWithPrint(ln string) bool {
 	for _, y := range append(codes.Spellings(codes.FnPrint), codes.Display().Spellings(codes.FnPrint)...) {
@@ -321,8 +321,8 @@ func startsWithPrint(ln string) bool {
 	return false
 }
 
-// exitHint kabukta çıkmak isteyen ama kabuğun çıkış komutunu (K200) yazmayan bir satırı tanır:
-// adın Türkçe harfsiz biçimi (cikis) ya da hata ayıklayıcının çıkış komutu (K313, quit).
+// exitHint kabukta çıkmak isteyen ama kabuğun çıkış komutunu (TR_repl_exit) yazmayan bir satırı tanır:
+// adın Türkçe harfsiz biçimi (cikis) ya da hata ayıklayıcının çıkış komutu (TR_dbg_quit, quit).
 // Böyle bir satır program sanılıp çalıştırılmaz; asıl komut önerilir.
 func exitHint(line string) bool {
 	if k, ok := codes.Display().Suggest(codes.NamespaceCommand, line, nil); ok && k == codes.ReplExit {

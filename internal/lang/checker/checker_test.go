@@ -552,7 +552,7 @@ func TestExamplesCheckWithoutErrors(t *testing.T) {
 	}
 }
 
-// Tip açıklamasında kabul edilen yazımlar sözlükten gelir (A2xx); her tipin tek yazımı
+// Tip açıklamasında kabul edilen yazımlar sözlükten gelir (type); her tipin tek yazımı
 // vardır, büyük/küçük harfi farklı biçim kabul edilen bir yazım değildir (3.14).
 func TestTypeSpellingsUnique(t *testing.T) {
 	expected := []string{"Tam", "Ondalık", "Metin", "Mantık", "Liste", "Sözlük", "Tensör", "Yok",

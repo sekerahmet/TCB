@@ -11,7 +11,7 @@ import (
 // metinden kurulur ve dosyalarla aynı çözümleyici (resolve) çalışır, bu yüzden yerel adlar, kapsam ve üye/adlı argüman
 // kuralları dosyadakiyle aynıdır. Kullanıcı tanımlı işlevler tek dosyalı metinde yoktur; yalnızca ad kodları döner.
 
-// SnippetUse bir metinde kullanılan ad kodudur ("T720", "Y010", "T984") ve ilk kullanıldığı satır (1'den).
+// SnippetUse bir metinde kullanılan ad kodudur ("TR_fn_default_device", "TR_mem_update", "TR_arg_every_minutes") ve ilk kullanıldığı satır (1'den).
 type SnippetUse struct {
 	Code string
 	Line int

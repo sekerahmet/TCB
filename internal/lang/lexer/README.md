@@ -1,7 +1,7 @@
 # lexer
 
 Kaynak metni satır ve sütun bilgisiyle sözcük birimlerine (anahtar kelime, ad, sayı, metin,
-işleç, yorum) ayırır. Hem Türkçe yazılmış kaynağı hem kodlu biçimi (`A001`, `G100` ...) okur.
+işleç, yorum) ayırır. Hem Türkçe yazılmış kaynağı hem kodlu biçimi (`TR_kw_if`, `TR_fn_print` ...) okur.
 
 ## Standartlar
 
@@ -10,8 +10,8 @@ listesinden alınır. Burada yalnızca hangi kodun hangi sözcük birimi türün
 
 **Kodlu kaynakta yalnızca kodlar dilin sözcüğüdür.** Kodlu bir dosyada kod olmayan her ad
 kullanıcının adıdır; başka bir dilde yazılmış bir kullanıcı adı TR'nin bir anahtar kelimesiyle aynı
-olsa bile anahtar kelime sayılmaz. Kod biçimindeki adlar (büyük harf ve üç rakam) dilin kodlarına
-ayrılmıştır; kullanıcı adı olamaz. Denetim: `TestCodedTokens`, `TestEscapedName`.
+olsa bile anahtar kelime sayılmaz. `TR_` ile başlayan adlar dilin kimliklerine
+ayrılmıştır; kullanıcı adı olamaz (2.3a); kodlu gövdede kod listesinde olmayan kimlik sözdizimi hatasıdır. Denetim: `TestCodedTokens`, `TestEscapedName`.
 
 **Konumlar kişinin gördüğü metne göredir.** Satır ve sütun karakter sayar, bayt değil. Kodlu
 dosyada konumlar Türkçe gösterime göre hesaplanır; metin içi yerleştirmelerdeki sözcükler de

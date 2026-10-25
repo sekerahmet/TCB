@@ -11,7 +11,7 @@ import (
 // TestMultiTensorOptimizer birden çok parametreyi (biri bir bloğun parçasından uzun, biri
 // bfloat16 ana kopyalı, biri gradyansız) tek başlatmada güncelleyen yolu ve gradyan kırpmanın
 // toplu ölçeklemesini CPU ile karşılaştırır. Öğrenme oranı adımlar arasında değiştirilir: yeni
-// oran sonraki adımda kullanılmalıdır (öğrenme_oranı ataması, Y504).
+// oran sonraki adımda kullanılmalıdır (öğrenme_oranı ataması, TR_mem_lr).
 func TestMultiTensorOptimizer(t *testing.T) {
 	rng := rand.New(rand.NewSource(21))
 	sizes := []int{7, multiPart + 300, 33, 5}

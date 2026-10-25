@@ -220,7 +220,7 @@ func TestCodedFileFormats(t *testing.T) {
 	if err := SameMeaning(got, "fonksiyon f(a) { sonuç a + 1 }\nyazdır(f(1))\n"); !errors.As(err, &meaning) {
 		t.Errorf("kodlu ve Türkçe biçim aynı sayıldı: %v", err)
 	}
-	// Kodlu sözcük kodla, kullanıcı adı metinle karşılaştırılır: G100 ile adı 'yazdır' olan
+	// Kodlu sözcük kodla, kullanıcı adı metinle karşılaştırılır: TR_fn_print ile adı 'yazdır' olan
 	// kullanıcı değişkeni aynı değildir.
 	if err := SameMeaning("//! tr kodlu 3 dil=tr\nTR_fn_print\n", "//! tr kodlu 3 dil=tr\nyazdır\n"); !errors.As(err, &meaning) {
 		t.Errorf("kod ile aynı adlı kullanıcı adı aynı sayıldı: %v", err)

@@ -18,7 +18,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
 
-// LineReaderType dosya_satırları'nın verdiği okuyucunun tip adıdır (kod listesinde A257).
+// LineReaderType dosya_satırları'nın verdiği okuyucunun tip adıdır (kod listesinde TR_type_LineReader).
 var LineReaderType = interp.TypeName(codes.TypeLineReader)
 
 // lineLimit bir satırın en çok bayt sayısıdır (64 MB); daha uzun bir "satır" çoğunlukla

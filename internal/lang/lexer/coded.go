@@ -10,7 +10,7 @@ import (
 )
 
 // Kodlu biçim (docs/spec/17_kodlar.md, 17.1-17.2): dosya diskte dilden bağımsız kodlarla
-// saklanır. Kodlu kaynakta dilin her sözcüğü kodla yazılır (A001, G100, .Y004, T910:); kod
+// saklanır. Kodlu kaynakta dilin her sözcüğü kodla yazılır (TR_kw_if, TR_fn_print, .TR_mem_append, TR_arg_lr:); kod
 // olmayan her ad kullanıcının adıdır ve hiçbir zaman anahtar kelime sayılmaz (başka bir
 // dilde yazılmış bir kullanıcı adı TR'nin bir anahtar kelimesiyle aynı olabilir). Kodlar
 // burada, sözcük çözümlemede kanonik (Türkçe) adlarına çevrilir: ayrıştırıcı, denetleyici ve

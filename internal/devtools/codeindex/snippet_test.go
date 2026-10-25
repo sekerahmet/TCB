@@ -32,8 +32,8 @@ func builtinUseReader(t *testing.T) *Reader {
 	return NewReader(idx)
 }
 
-// Kural: üye (Y) ve adlı argüman (x9xx) kodları da yerleşik düğümdür; test bloğunun kullandığı her yerleşik, üye ve
-// adlı argüman o ad koduna `tests` bağıdır (`sınayanlar` boş dönmez). Ad koduyla da sorulabilir (`T984`).
+// Kural: üye (mem) ve adlı argüman (arg) kodları da yerleşik düğümdür; test bloğunun kullandığı her yerleşik, üye ve
+// adlı argüman o ad koduna `tests` bağıdır (`sınayanlar` boş dönmez). Ad koduyla da sorulabilir (`TR_arg_every_minutes`).
 func TestMembersAndNamedArgumentsAreBuiltinsTestedByTestBlocks(t *testing.T) {
 	r := builtinUseReader(t)
 	for _, q := range []string{"TR_arg_every_minutes", "her_dakika", "TR_mem_update", "güncelle"} {

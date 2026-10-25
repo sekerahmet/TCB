@@ -15,7 +15,7 @@ import (
 // Özellikler ve metotlar
 // ----------------------------------------------------------------------------
 
-// Tensör üyeleri (adları kod listesinde, internal/lang/codes Y4xx).
+// Tensör üyeleri (adları kod listesinde, internal/lang/codes mem).
 const (
 	memberShape     = codes.MemShape
 	memberDevice    = codes.MemDevice

@@ -30,8 +30,8 @@ Ne işe yarayacak? Hangi programda, hangi adımda gerekiyor?
 
 ## Aynı işi yapan mevcut kod var mı?
 
-`docs/codes.md`'de baktığınız yakın kodlar (ör. `T401 SGD`, `Y202 sırala`) ve neden yetmedikleri.
+`docs/codes.md`'de baktığınız yakın kodlar (ör. `TR_fn_SGD SGD`, `TR_mem_sort sırala`) ve neden yetmedikleri.
 
-## Aile önerisi
+## Sınıf önerisi
 
-Hangi aileye ve gruba girmeli (ör. `T2xx` eleman bazlı matematik, `Y2xx` Liste, `V9xx` adlı argüman)? Kod numarası ailenin kuralıyla (grubun sıradaki boş numarası) verilir.
+Hangi sınıfa girmeli (ör. `fn` yerleşik fonksiyon, `mem` metot ya da özellik, `arg` adlı argüman)? Kimlik `TR_<sınıf>_<İngilizce ad>` kuralıyla bir kez verilir (`TR_fn_sum`).

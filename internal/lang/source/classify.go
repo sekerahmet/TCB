@@ -12,10 +12,10 @@ import (
 //
 //   - tip açıklaması (değişken x: Tam): tip adı;
 //   - üye adı (x.ad) ile yapı alanı ve metodu tanımı: üye kodu (Y5, tipten bağımsız; 'kurucu'
-//     bağlamsal A102);
+//     bağlamsal TR_ctx_init);
 //   - sözlük değişmezinin çıplak ad anahtarı ({ad: değer}): adı bir üye koduysa o kod (anahtar
 //     x.ad ile okunur; iki yer birlikte çevrilsin);
-//   - test deyiminin ve aktar ... olarak'ın sözcükleri (A101, A100);
+//   - test deyiminin ve aktar ... olarak'ın sözcükleri (TR_ctx_test, TR_ctx_as);
 //   - değer olarak okunan ad: kullanıcının görünen bir tanımı yoksa yerleşik ya da tip adı,
 //     kendi bloğunda örtük ad (o, birikim, hata);
 //   - adlı argüman: çağrılan dilin öğesiyse parametre kodu (denetci.AdBaglari).

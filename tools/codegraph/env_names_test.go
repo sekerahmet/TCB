@@ -46,8 +46,8 @@ func hook(t *testing.T) { t.Setenv("TR_CPU_AVX2", "0") }
 `,
 }
 
-// Kural: os.Getenv/LookupEnv/Setenv'e verilen ve bir K4xx adına (herhangi bir dildeki) eşit dize sabiti o ad koduna
-// `uses_env` kenarıyla bağlanır; sabit adlar çözülür, başka değişkenler bağlanmaz. Bir ileti şablonu K4xx adı
+// Kural: os.Getenv/LookupEnv/Setenv'e verilen ve bir env adına (herhangi bir dildeki) eşit dize sabiti o ad koduna
+// `uses_env` kenarıyla bağlanır; sabit adlar çözülür, başka değişkenler bağlanmaz. Bir ileti şablonu env adı
 // taşıyorsa ileti koda `uses_name` kenarıyla bağlanır (her dilin kendi adı); who-uses ve query bunları gösterir.
 func TestEnvironmentNamesLinkToTheirCodes(t *testing.T) {
 	root := auditModule(t, envFiles)
@@ -178,7 +178,7 @@ func run(t *testing.T, env []string) { _ = env }
 
 // Kural: bir ortam değişkenini koyan test (t.Setenv, os.Setenv, alt sürecin ortamındaki "AD=..." dizesi; kendisi ya
 // da test dosyasındaki yardımcısı) o değişkenin ad kodunu sınar: `tests` kenarı; yalnızca okuyan test sınamaz (değer
-// dili 3. tur: tests-for K400 TR_DIL'i koyan e2e testlerini göstermiyordu).
+// dili 3. tur: tests-for TR_env_LANG TR_DIL'i koyan e2e testlerini göstermiyordu).
 func TestTestsThatSetAnEnvironmentVariableTestItsCode(t *testing.T) {
 	root := auditModule(t, envSetFiles)
 	g, err := buildGraph(root)
@@ -201,7 +201,7 @@ func TestTestsThatSetAnEnvironmentVariableTestItsCode(t *testing.T) {
 	}
 }
 
-// Kural: dilin her ortam değişkeni ad kodunu (K4xx) koyan en az bir test vardır (kendisi, test dosyasındaki ya da
+// Kural: dilin her ortam değişkeni ad kodunu (env) koyan en az bir test vardır (kendisi, test dosyasındaki ya da
 // yalnızca testlerin çağırdığı bir yardımcı üzerinden): değişkenin etkisi sınanır, yalnızca okunması değil. Yeni bir
 // ortam değişkeni koyan testi olmadan eklenirse bu test düşer; istisna listesi yoktur (değer dili 3. tur).
 func TestEveryEnvironmentVariableIsSetByATest(t *testing.T) {

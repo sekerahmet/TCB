@@ -117,15 +117,15 @@
  },
  "H6815": {
   "commit": "d2a1a753",
-  "reason": "deleted: interp, ml: special numbers are value names A110/A111, one name for numbers and tensors"
+  "reason": "deleted: interp, ml: special numbers are value names TR_val_inf/TR_val_nan, one name for numbers and tensors"
  },
  "H6816": {
   "commit": "d2a1a753",
-  "reason": "deleted: interp, ml: special numbers are value names A110/A111, one name for numbers and tensors"
+  "reason": "deleted: interp, ml: special numbers are value names TR_val_inf/TR_val_nan, one name for numbers and tensors"
  },
  "H6817": {
   "commit": "d2a1a753",
-  "reason": "deleted: interp, ml: special numbers are value names A110/A111, one name for numbers and tensors"
+  "reason": "deleted: interp, ml: special numbers are value names TR_val_inf/TR_val_nan, one name for numbers and tensors"
  },
  "H7002": {
   "commit": "e5a76ed",

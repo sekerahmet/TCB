@@ -298,7 +298,7 @@ func TestInvalidLanguageFallsBack(t *testing.T) {
 }
 
 // Komut satırı adları her yazım dilinde bulunur ve ad alanları ayrıdır: 'kontrol' komut olarak
-// K004, seçenek olarak K101; 'izle' komut olarak K012, hata ayıklayıcıda K307.
+// TR_cmd_check, seçenek olarak TR_opt_check; 'izle' komut olarak TR_cmd_watch, hata ayıklayıcıda TR_dbg_watch.
 func TestCommandLineNamesInEveryLanguage(t *testing.T) {
 	for _, d := range []struct {
 		find func(string) (Code, bool)
@@ -321,7 +321,7 @@ func TestCommandLineNamesInEveryLanguage(t *testing.T) {
 	}
 }
 
-// 'tr dizin' alt komutları (K016-K020) yalnızca dizin komutunun altında geçerlidir: üst düzey
+// 'tr dizin' alt komutları (sub sınıfı) yalnızca dizin komutunun altında geçerlidir: üst düzey
 // komut adı değildir, ama her gömülü dilin adı alt komut olarak kabul edilir (17.8).
 func TestIndexSubcommandsAreNotCommands(t *testing.T) {
 	for _, name := range []string{"tanım", "kullananlar", "sınayanlar", "etki", "yeniden_adlandır", "definition", "references", "tested_by", "impact", "rename"} {

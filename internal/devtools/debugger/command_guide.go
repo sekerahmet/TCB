@@ -10,7 +10,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// Terminal hata ayıklayıcısının komut tabloları ve yardım metni. Komutlar ad kodudur (K3xx):
+// Terminal hata ayıklayıcısının komut tabloları ve yardım metni. Komutlar ad kodudur (dbg):
 // tr komutları gibi her yazım dilinin adı kabul edilir (devam da continue da), yardım ve
 // iletiler etkin dildedir. F tuşları simgedir, kod almaz. Kısaltmalar ve Türkçe harfsiz
 // biçimler çalışmaz, yalnızca asıl komutu söyler.

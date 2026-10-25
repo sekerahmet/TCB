@@ -19,7 +19,7 @@ type shadowDef struct {
 	message messages.Code // tanımın türünü anlatan tam cümle: messages.H2450 (değişken), H2451 (parametre) ...
 }
 
-// builtinName ad sözlükteki bir yerleşik fonksiyonun (G/T/V/W) adı mı?
+// builtinName ad sözlükteki bir yerleşik fonksiyonun (fn) adı mı?
 func builtinName(name string) bool {
 	k, ok := codes.Find(codes.NamespaceGlobal, name)
 	return ok && k.IsBuiltin()

@@ -1,8 +1,8 @@
 // Package checkpoint uzun eğitimin kontrol noktasıdır: kontrol_noktası(koşu, {ad: nesne, ...})
-// (T702; tip KontrolNoktası, A258) eğitimin bütün durumunu koşu klasörüne atomik kaydeder ve
+// (TR_fn_checkpoint; tip KontrolNoktası, TR_type_Checkpoint) eğitimin bütün durumunu koşu klasörüne atomik kaydeder ve
 // yeniden başlatılan programı kaldığı adımdan, kesintisiz eğitimle bit düzeyinde aynı
-// sürecek biçimde devam ettirir. Kayıt adım sınırında yapılır: kn.güncelle(adım) (Y010)
-// her_dakika süresi dolunca ya da durdurma istenince (Ctrl+C), kn.kaydet() (Y521) hemen.
+// sürecek biçimde devam ettirir. Kayıt adım sınırında yapılır: kn.güncelle(adım) (TR_mem_update)
+// her_dakika süresi dolunca ya da durdurma istenince (Ctrl+C), kn.kaydet() (TR_mem_save) hemen.
 //
 // Klasör düzeni (biçim sürümü 2; bkz. bicim.go):
 //

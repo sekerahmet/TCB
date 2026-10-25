@@ -15,7 +15,7 @@ import (
 
 // Kapsam: dilin her adı examples/tr altındaki bir örnekte
 // geçer. Ad kontrolü metin aramasıyla değil kodlarladır: örnek `source.Encode` ile kodlanır ve
-// iskeletindeki kodlar (A001, G100, .Y004, T910: ...) sayılır. K ailesi (komut satırı:
+// iskeletindeki kodlar (TR_kw_if, TR_fn_print, .TR_mem_append, TR_arg_lr: ...) sayılır. Komut satırı adları (cmd, opt, repl, dbg, env:
 // `tr test`, `tr biçimle`, --dil ...) .tr dosyasında geçmez; örneklerin yorum satırlarında ve
 // examples/README.md'de aranır.
 
@@ -73,7 +73,7 @@ func usedCodes(t *testing.T) map[string]bool {
 	return used
 }
 
-// commandLineSection K ailesinin adlarının aranacağı metindir: examples/README.md'nin "Komut satırı" bölümü
+// commandLineSection komut satırı adlarının aranacağı metindir: examples/README.md'nin "Komut satırı" bölümü
 // (bir sonraki "## " başlığına kadar).
 func commandLineSection(t *testing.T) string {
 	t.Helper()

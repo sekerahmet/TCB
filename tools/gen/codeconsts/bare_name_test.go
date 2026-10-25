@@ -36,8 +36,8 @@ import (
 
 // bareNameAllowances: dosya (depo köküne göre) ve o dosyada izin verilen ad → gerekçe.
 var bareNameAllowances = map[string]map[string]string{
-	// Yazım dilini seçen değişken (K400) dil listeleri kurulmadan okunur; messages kodları
-	// bilmez. codes.TestLanguageEnvVarsAreK400 listeyi K400'ün her dildeki adıyla eşler.
+	// Yazım dilini seçen değişken (TR_env_LANG) dil listeleri kurulmadan okunur; messages kodları
+	// bilmez. codes.TestLanguageEnvVarsAreK400 listeyi TR_env_LANG'ün her dildeki adıyla eşler.
 	"internal/lang/messages/code.go": {
 		"TR_DIL": "yazım dili değişkeni TR_env_LANG, dil listelerinden önce okunur",
 	},
@@ -50,7 +50,7 @@ var bareNameAllowances = map[string]map[string]string{
 	},
 	// definitions.json'un "tür" alanının değerleri: dosya biçiminin sabit anahtarlarıdır.
 	// Veri biçimlerindeki sonlu olmayan sayının sabit metni (kontrol noktası, günlük; 19.5, 20):
-	// dilden bağımsız sözleşme, A111'in adı olarak değil, biçimin baytı olarak yazılır.
+	// dilden bağımsız sözleşme, TR_val_nan'in adı olarak değil, biçimin baytı olarak yazılır.
 	"internal/stdlib/common/jsonwrite/jsonwrite.go": {"NaN": "günlük, durum dosyası ve kontrol noktası veri biçimi (NonFiniteData: NaN, Infinity, -Infinity)"},
 	"internal/lang/codes/definition.go": {
 		"tip":       "definitions.json tür değeri (TurTip)",

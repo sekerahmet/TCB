@@ -298,7 +298,7 @@ func (x *indexer) paramOf(fnID, arg string) string {
 }
 
 // optionName seçeneğin komut satırındaki adıdır. Kod taşıyan (kodlu dosyada bir üye kodu olan) çıplak anahtar çalışma
-// anında derlenen dosyanın dilinde yazılır (K3, compiler.dictKey `s.Token.Code`: İngilizce betikte `{Y500: 100}` →
+// anında derlenen dosyanın dilinde yazılır (K3, compiler.dictKey `s.Token.Code`: İngilizce betikte `{TR_mem_step: 100}` →
 // `--step`); dizin dosyayı Türkçe okuduğu için anahtar `adım` görünür, ad dosyanın dilinden alınır. Kodsuz anahtar
 // olduğu gibi kalır: Türkçe gösterimde dilin bir sözcüğüne denk gelen kodsuz ad `$adım` diye kaçışla yazılır (Decode,
 // 2.11), kaçışsız bir üye adı bu yüzden yalnızca koddan gelebilir; İngilizce betikte düz yazılmış `adım` anahtarı

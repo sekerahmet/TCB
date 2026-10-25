@@ -13,8 +13,8 @@ import (
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
 
-// İyileştirici durumu: op.durum (Y502) momentleri, adım sayaçlarını ve ana kopyaları ad →
-// tensör sözlüğü olarak verir; op.durumu_yükle(sözlük) (Y503) aynı parametre listesiyle
+// İyileştirici durumu: op.durum (TR_mem_state) momentleri, adım sayaçlarını ve ana kopyaları ad →
+// tensör sözlüğü olarak verir; op.durumu_yükle(sözlük) (TR_mem_load_state) aynı parametre listesiyle
 // kurulmuş bir iyileştiriciye geri yükler. Anahtarlar çekirdeğin anahtarlarıdır
 // (internal/compute/tensor, iyileştirici durumu): "m.k", "v.k", "hiz.k", "ana.k", "adim.k",
 // "adim"; k parametrenin listedeki sırasıdır. Kontrol noktası aynı Go yöntemlerini kullanır.

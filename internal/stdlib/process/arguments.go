@@ -21,7 +21,7 @@ const argLimit = 1 << 20
 // Kullanıcının yazdığı argümanlardaki hatanın çıkış kodu ("yanlış kullanım").
 const usageErrorCode = 2
 
-// Yardım seçeneği bir ad kodudur (K106): her yazım dilinin adı kabul edilir (--yardım de
+// Yardım seçeneği bir ad kodudur (TR_opt_help): her yazım dilinin adı kabul edilir (--yardım de
 // --help de), yardımda ve iletilerde etkin dilin adı yazılır; -h simgedir.
 
 // helpOption yardım seçeneğinin etkin dildeki yazımıdır (--yardım).
@@ -259,7 +259,7 @@ func parsePlainValue(t optKind, s string) (interp.Value, error) {
 // komutlar ve seçenek adları gibi). Yardım varsayılanı kişinin dilinde gösterir (TR_DIL), betik
 // kendi dilinde yazılmıştır; ikisinin yazımı da okunur.
 
-// boolName s bir gömülü yazım dilinde doğru ya da yanlışın adı mı (A040, A041)?
+// boolName s bir gömülü yazım dilinde doğru ya da yanlışın adı mı (TR_kw_true, TR_kw_false)?
 func boolName(s string) (value, ok bool) {
 	for _, code := range codes.Languages() {
 		if l, err := codes.LoadLanguage(code); err == nil {
@@ -274,7 +274,7 @@ func boolName(s string) (value, ok bool) {
 	return false, false
 }
 
-// nonFiniteName s bir gömülü yazım dilinde sonsuz ya da tanımsız sayının adı mı (A110, A111)?
+// nonFiniteName s bir gömülü yazım dilinde sonsuz ya da tanımsız sayının adı mı (TR_val_inf, TR_val_nan)?
 func nonFiniteName(s string) (float64, bool) {
 	for _, code := range codes.Languages() {
 		if l, err := codes.LoadLanguage(code); err == nil {
