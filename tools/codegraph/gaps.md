@@ -21,7 +21,9 @@ her durumu kapatan genel çözüm ve sınıfı koruyan bir testtir.
 
 ## Kritik
 
-Açık madde yok.
+- **İşleç simgesiyle sorgu "bulunamadı" diyor.** 2026-10-25, ana oturum (tam bölme ve `%` tasarımında).
+  - Komut: `go run ./tools/codegraph query "%"` ve `query "@"` → `not found` (öneriler ilgisiz: dil tanımı maddeleri, kapanışlar).
+  - Beklenen: işlecin Go uygulaması ve testleri (`%` için `interp.intOp`, hızlı yol `interp.intFastFunc`, `interp.floatOp`; test `TestIntOpErrorsAndFastPathAgree`). Doğrulama: `query opMod` ve `who-uses interp.opMod` bunları veriyor. Yanlış "yok": işlecin davranışını değiştirecek bir tasarım etkiyi göremez.
 
 ## İnce ayar
 
