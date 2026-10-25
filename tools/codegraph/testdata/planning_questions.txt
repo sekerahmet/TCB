@@ -167,3 +167,5 @@ codegraph query parser.contextWordsOf | contains: codes.Language.Name | src: iç
 codegraph who-uses source.Prepare --by-package | contains: cmd/tr: 6 functions | contains: internal/devtools/debugger | src: iç dil 2. tur, 2026-10-25 (kaynak okuyan her araç source paketinden geçer)
 codegraph who-uses lexer.Token.Literal --all | contains: parser.Parser.parseStatement | src: iç dil 2. tur, 2026-10-25 (ayrıştırıcı sözcüğü metniyle tanıyor)
 codegraph who-uses ast.Identifier.Value --all | contains: interp.compiler.readName | src: iç dil 2. tur, 2026-10-25 (yorumlayıcı adı koda değil ada göre çözüyor)
+codegraph query checker.NameBindings | contains: source.analyze | src: iç dil 3. tur, 2026-10-25 (adın başka dilde neye bağlanacağını hesaplayan yer; ad kuralı burada)
+codegraph query parser.NameRole | contains: 17.3 [spec] | src: iç dil 3. tur, 2026-10-25 (düğümü olmayan adların rolü: tip açıklaması, üye, bağlamsal sözcük)
