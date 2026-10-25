@@ -129,5 +129,6 @@ tr dizin kullananlar field:lib/katman.tr#GPT.ayar --tümü | contains: tools/gpu
 codegraph who-uses interp.Value.Inspect --all | group: implemented_by => egitim.Koşu.kurucu | group: implemented_by => hazir.hazır_model_kur | src: değer dili 3. tur, 2026-10-25
 codegraph who-uses hint.TypeTextComparisonError | group: calls => checker.Checker.checkTypeTextComparison | src: değer dili 3. tur, 2026-10-25
 codegraph who-uses H1105 | group: uses_message => hint.TypeTextComparisonError | src: değer dili 3. tur, 2026-10-25
-codegraph who-uses interp.FloatVal.Inspect --all | group: calls => jsonwrite.writer.number | group: calls => logging.formatNumber | group: calls => interp.floatToInt | src: değer dili 3. tur, 2026-10-25
+codegraph who-uses interp.NonFiniteText | group: calls => interp.FloatVal.Text | group: calls => ml.numberText | src: değer dili 3. tur ve adım 3, 2026-10-25 (sayı ve tensör tek ad)
+codegraph who-uses jsonwrite.nonFiniteData | group: calls => jsonwrite.writer.number | src: değer dili adım 3, 2026-10-25 (veri biçimi değer metninden ayrı)
 codegraph tests-for K400 | contains: cmd/tr/e2e/ | contains: messages.TestLanguageReadOnce | src: değer dili 3. tur, 2026-10-25
