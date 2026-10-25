@@ -77,6 +77,37 @@ func TestRunWritesRecordAndIndex(t *testing.T) {
 	}
 }
 
+// Kural: her koşu özet dosyasına (OZET.md) tek satır ekler; başlık bir kez yazılır. Satırda not
+// (yoksa komut), commit, çıkış kodu ve sıkıştırılmış ölçümler durur; nottaki '|' tabloyu bozmaz.
+func TestRunAppendsSummaryLine(t *testing.T) {
+	out := t.TempDir()
+	t.Setenv("TR_RECORD_HELPER", "1")
+	self, _ := os.Executable()
+	var stdout bytes.Buffer
+	if _, err := run(options{name: "deneme", out: out, note: "A/B | iki ikili"}, []string{self}, &stdout); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := run(options{name: "deneme", out: out}, []string{self}, &stdout); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(filepath.Join(out, summaryFile))
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimRight(string(b), "\n"), "\n")
+	if len(lines) != 4 || !strings.HasPrefix(lines[0], "| Time | Job | What, how |") {
+		t.Fatalf("summary has %d lines, want header, rule and 2 runs:\n%s", len(lines), b)
+	}
+	for _, want := range []string{`A/B \| iki ikili`, "| deneme |", "| 3 |", `"passed":false`} {
+		if !strings.Contains(lines[2], want) {
+			t.Errorf("first run line lacks %q: %s", want, lines[2])
+		}
+	}
+	if !strings.Contains(lines[3], self) {
+		t.Errorf("a run without a note shows its command: %s", lines[3])
+	}
+}
+
 func readIndex(t *testing.T, path string) []Record {
 	t.Helper()
 	f, err := os.Open(path)

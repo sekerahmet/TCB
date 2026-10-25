@@ -25,6 +25,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -64,19 +65,26 @@ type Record struct {
 	Commit   Commit          `json:"commit"`
 	Machine  Machine         `json:"machine"`
 	Metrics  json.RawMessage `json:"metrics,omitempty"`
+	// Note koşunun ne ölçtüğü ve nasıl (--note): özet satırının asıl sütunu.
+	Note string `json:"note,omitempty"`
 	// Files koşunun dosyaları, kayıt köküne (--out) göre yollar: kayıt, çıktı ve ekler.
 	Files []string `json:"files"`
 }
 
+// summaryFile kayıt kökündeki düz metin özet: koşu başına bir tablo satırı. JSON dizinin okunur
+// eşidir; Drive'da metin olarak açılır, "bu daha önce ölçüldü mü" tek dosyada aranır.
+const summaryFile = "OZET.md"
+
 // options komut satırı seçenekleri.
 type options struct {
-	name, out string
+	name, out, note string
 }
 
 func main() {
 	var o options
 	flag.StringVar(&o.name, "name", "", "job name: the folder of its runs (letters, digits, - and _)")
 	flag.StringVar(&o.out, "out", defaultOut(), "record root: job folders and index.jsonl")
+	flag.StringVar(&o.note, "note", "", "what the run measures and how, one line (the summary's main column)")
 	flag.Parse()
 	code, err := run(o, flag.Args(), os.Stdout)
 	if err != nil {
@@ -120,7 +128,7 @@ func run(o options, command []string, stdout io.Writer) (int, error) {
 	end := time.Now().In(turkey)
 	r := Record{Schema: schemaVersion, Name: o.name, Started: start, Ended: end,
 		Seconds: end.Sub(start).Round(time.Millisecond).Seconds(), Command: command, ExitCode: code,
-		Commit: commitInfo(), Machine: machineInfo()}
+		Commit: commitInfo(), Machine: machineInfo(), Note: o.note}
 	if m, err := os.ReadFile(filepath.Join(work, "metrics.json")); err == nil && json.Valid(m) {
 		r.Metrics = json.RawMessage(m)
 	}
@@ -132,7 +140,52 @@ func run(o options, command []string, stdout io.Writer) (int, error) {
 	for _, f := range attached {
 		r.Files = append(r.Files, o.name+"/"+f)
 	}
-	return code, write(r, filepath.Join(job, id+".json"), filepath.Join(o.out, "index.jsonl"))
+	if err := write(r, filepath.Join(job, id+".json"), filepath.Join(o.out, "index.jsonl")); err != nil {
+		return code, err
+	}
+	return code, appendSummary(r, filepath.Join(o.out, summaryFile))
+}
+
+// appendSummary özet dosyasına koşunun satırını ekler; dosya yoksa önce başlığı yazar.
+func appendSummary(r Record, path string) error {
+	_, err := os.Stat(path)
+	fresh := os.IsNotExist(err)
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if fresh {
+		if _, err := f.WriteString("| Time | Job | What, how | Commit | Exit | Seconds | Metrics |\n| :-- | :-- | :-- | :-- | --: | --: | :-- |\n"); err != nil {
+			return err
+		}
+	}
+	_, err = f.WriteString(summaryLine(r))
+	return err
+}
+
+// summaryLine koşunun tablo satırı. Not yoksa komut yazılır; ölçümler tek satıra sıkıştırılır ve
+// uzunsa kırpılır (tamamı kayıttadır).
+func summaryLine(r Record) string {
+	what := r.Note
+	if what == "" {
+		what = strings.Join(r.Command, " ")
+	}
+	commit := r.Commit.ID
+	if len(commit) > 8 {
+		commit = commit[:8]
+	}
+	if r.Commit.Branch != "" {
+		commit += " (" + r.Commit.Branch + ")"
+	}
+	var m bytes.Buffer
+	if len(r.Metrics) > 0 && json.Compact(&m, r.Metrics) == nil && m.Len() > 300 {
+		m.Truncate(300)
+		m.WriteString("...")
+	}
+	cell := func(s string) string { return strings.ReplaceAll(strings.ReplaceAll(s, "|", `\|`), "\n", " ") }
+	return fmt.Sprintf("| %s | %s | %s | %s | %d | %.1f | %s |\n", r.Started.Format("2006-01-02 15:04"),
+		cell(r.Name), cell(what), cell(commit), r.ExitCode, r.Seconds, cell(m.String()))
 }
 
 // execute komutu geçici klasörü ortamda bildirerek çalıştırır; çıktısını hem stdout'a hem

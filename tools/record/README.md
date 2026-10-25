@@ -1,6 +1,6 @@
 # record
 
-Ölçüm ve denetim koşularını kendiliğinden kaydeder. Komutu sarar: çalıştırır, çıktısını hem ekrana hem dosyaya yazar, koşu bitince kaydını JSON olarak yazar ve bütün koşuların dizinine bir satır ekler. Elle özet yazılmaz; zaman içindeki karşılaştırma dizinden yapılır.
+Ölçüm ve denetim koşularını kendiliğinden kaydeder. Komutu sarar: çalıştırır, çıktısını hem ekrana hem dosyaya yazar, koşu bitince kaydını JSON olarak yazar ve bütün koşuların dizinine bir satır ekler. Elle özet yazılmaz; zaman içindeki karşılaştırma dizinden yapılır. Aynı koşular `OZET.md`'de tek satırlık okunur tabloda da durur: bir deneyden önce "bu daha önce ölçüldü mü" sorusu oradan cevaplanır (Drive'da metin olarak açılır).
 
 ```sh
 go run ./tools/record --name tam-denetim -- bash tools/full_check.sh
@@ -8,6 +8,7 @@ go run ./tools/record --name zorlama --out /content/drive/MyDrive/TR_dili/olcuml
 ```
 
 - `--name`: işin adı ve klasörü (harf, rakam, `-`, `_`).
+- `--note`: koşunun ne ölçtüğü ve nasıl, tek satır (ör. `"A/B: QK-norm çıktı türü; SS d512, 150 adım, iki tur dönüşümlü"`). Özet satırının asıl sütunudur; verilmezse komut yazılır.
 - `--out`: kayıt kökü; varsayılanı ev klasöründe `tr-olcumler`. Depo dışındadır: tam denetim depoda iz bırakan bir komutu kalır sayar. Colab'da Drive'daki `TR_dili/olcumler` verilir.
 - Çıkış kodu komutunkidir; aracın kendi hatasında 2.
 
@@ -15,6 +16,7 @@ go run ./tools/record --name zorlama --out /content/drive/MyDrive/TR_dili/olcuml
 
 ```
 <out>/index.jsonl                       bütün işlerin koşuları, koşu başına bir satır (kayıt, tek satır)
+<out>/OZET.md                           aynı koşuların okunur özeti: zaman, iş, ne/nasıl, commit, çıkış, süre, ölçümler
 <out>/<name>/20261023143005.json        kayıt
 <out>/<name>/20261023143005.log         komutun çıktısı (standart çıktı ve hata)
 <out>/<name>/20261023143005_<dosya>     komutun bıraktığı dosyalar (alt klasör / yerine _)
@@ -34,10 +36,11 @@ Komut, koşu sürerken dosyalarını `TR_RECORD_DIR` ortam değişkeninin göste
 | `commit` | `id`, `branch`, `dirty` (izlenen dosyalarda gönderilmemiş değişiklik), `subject` |
 | `machine` | `host`, `os`, `arch`, `cpu` (işlemcinin adı), `cores`, `memory_gb` (Linux), `gpus` (`nvidia-smi`: ad, bellek, sürücü), `go` |
 | `metrics` | komutun `metrics.json`'ı (varsa) |
+| `note` | `--note` (varsa) |
 | `files` | koşunun dosyaları, kayıt köküne göre |
 
 Karşılaştırma ve karar: pytest-benchmark kaydına commit bilgisini (`id`, `time`, `author_time`, `dirty`, `project`, `branch`; `pytest_benchmark/utils.py` `get_commit_info`) koyar; MLflow 3 bir koşuyu parametreler, ölçümler, etiketler, dosyalar ve başlangıç/bitiş zamanı olarak kaydeder, git commit'ini kendiliğinden etiketler (`mlflow.source.git.commit`). TR ikisinin ortak çekirdeğini alır, ama sunucu ya da kitaplık istemez: kayıt düz JSON'dur, Drive'da durur, dizini satır satır okunur. Ölçümü üreten komut değişmez; yalnızca isterse `metrics.json` bırakır.
 
 ## Testler
 
-- `main_test.go`: komutun çalıştırılması, çıkış kodu, çıktının dosyaya yazılması, `metrics.json`'ın gömülmesi, dosyaların zaman önekiyle taşınması, dizine satır eklenmesi, geçersiz girdinin reddi, `nvidia-smi` çıktısının ayrıştırılması.
+- `main_test.go`: komutun çalıştırılması, çıkış kodu, çıktının dosyaya yazılması, `metrics.json`'ın gömülmesi, dosyaların zaman önekiyle taşınması, dizine ve özete satır eklenmesi, geçersiz girdinin reddi, `nvidia-smi` çıktısının ayrıştırılması.
