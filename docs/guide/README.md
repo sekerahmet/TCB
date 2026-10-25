@@ -1,11 +1,11 @@
-# 🇹🇷 TR (`.tr`) Programlama ve Yapay Zeka Dili — Kullanım Kılavuzu
+# TR (`.tr`) — Kullanım Kılavuzu
 
-Kılavuz dili kullanmayı anlatır; dilin kuralları [`docs/spec/`](../spec/README.md) altındadır, her adın imzası ve örneği [`docs/codes.md`](../codes.md)'dedir.
+TR, yapay zekâ için bir programlama dilidir; kod geliştiricinin kendi dilinde yazılır (ana yazım Türkçe, bugün İngilizce de; [dil tanımı 17](../spec/17_kodlar.md)). Kılavuz dili kullanmayı Türkçe yazımla anlatır; dilin kuralları [`docs/spec/`](../spec/README.md) altındadır, her adın imzası ve örneği [`docs/codes.md`](../codes.md)'dedir.
 
 ## Bölümler
 
 1. [Hızlı başlangıç komutları](01_baslangic.md)
-2. [Anahtar kelimeler (tek yazım: yalnızca Türkçe)](02_anahtar_kelimeler.md)
+2. [Anahtar kelimeler](02_anahtar_kelimeler.md)
 3. [Nokta (`.`) ile zincirleme metotlar](03_zincirleme_metotlar.md)
 4. [Yerleşik yapay zekâ ve veri bilimi komutları](04_yapay_zeka_ve_veri.md): [matris ve otomatik türev](04_yapay_zeka_ve_veri.md#a-düşük-seviye-matris-ve-otomatik-türev), istatistik ve veri biçimleri, [tensörler](04_yapay_zeka_ve_veri.md#c-tensörler-ve-otomatik-türev), [veri ve parçalayıcı](04_yapay_zeka_ve_veri.md#d-veri-ve-parçalayıcı), [dosya ve yol](04_yapay_zeka_ve_veri.md#e-dosya-ve-yol), [eğitimde ayarlar, günlük ve ilerleme](04_yapay_zeka_ve_veri.md#f-eğitimde-ayarlar-günlük-ve-ilerleme)
 5. [TR hata ayıklayıcı](05_hata_ayiklayici.md)

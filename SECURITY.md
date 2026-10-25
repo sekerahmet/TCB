@@ -12,7 +12,7 @@ Yalnızca ana dal (`main`) desteklenir. Ayrı sürüm dalı ya da eski sürümle
 
 ## Güvenilmeyen girdiler
 
-TR, bir yapay zekâ modeli geliştiricisinin başkasından aldığı dosyaları okur. Aşağıdaki girdiler **güvenilmeyen** sayılır: bozuk ya da kötü niyetli bir dosya programı çökertmemeli, sonsuz döngüye sokmamalı, sınırsız bellek ayırmamalı, okunması istenen yerin dışına yazmamalı; açık bir Türkçe hata vermeli (`dene/yakala` ile yakalanabilir). Bunlardan biri olmuyorsa bu bir güvenlik hatasıdır.
+TR, bir yapay zekâ modeli geliştiricisinin başkasından aldığı dosyaları okur. Aşağıdaki girdiler **güvenilmeyen** sayılır: bozuk ya da kötü niyetli bir dosya programı çökertmemeli, sonsuz döngüye sokmamalı, sınırsız bellek ayırmamalı, okunması istenen yerin dışına yazmamalı; kişinin dilinde açık bir hata vermeli (`dene/yakala` ile yakalanabilir). Bunlardan biri olmuyorsa bu bir güvenlik hatasıdır.
 
 | Girdi | Okuyan | Korumalar |
 | :-- | :-- | :-- |

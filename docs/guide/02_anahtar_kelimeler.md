@@ -1,4 +1,4 @@
-# 2. Anahtar Kelimeler (Tek Yazım: Yalnızca Türkçe)
+# 2. Anahtar Kelimeler
 
 - **Değişken & Sabit:** `değişken`, `:=`, `sabit`
 - **Çoklu Atama & Takas:** `değişken a, b = 10, 20`, `a, b = b, a`, `ad, soyad = ["Mustafa", "Kemal"]`
@@ -14,7 +14,7 @@
 - **Metinler:** `"çift"` ya da `'tek'` tırnak; kaçışlar `\n \t \r \" \' \\ \{ \}`, yerleştirme `"Merhaba {ad}"`. Bilinmeyen kaçış (`"\d"`, `"C:\veri"`) sözdizimi hatasıdır; düzenli ifade ve Windows yolu için **ham metin** yazın: `` `C:\veri\tokenizer.json` ``, `` `\d{4}` `` (ters tırnakta kaçış ve yerleştirme yoktur, çok satırlı olabilir). `"C:\tokenizer.json"` gibi geçerli bir kaçış (`\t` sekmedir) yola karışırsa yol alan yerleşikler dosyaya bakmadan hata verir ve ham metni önerir.
 - **Sayılar:** `42`, `1_000_000`, `3.14` ve bilimsel yazım `1e-5`, `3.2E+4`, `2e10` (bilimsel yazım her zaman `Ondalık` verir; `epsilon: 1e-5` gibi küçük değerler için kullanışlıdır).
 
-**Her işin tek yazımı vardır.** Dilin kelimeleri (anahtar kelimeler, yerleşik fonksiyonlar, metot ve özellikler, adlı argümanlar, tip adları) yalnızca Türkçe harfleriyle yazıldıkları biçimde geçerlidir. `degisken`, `sonuc`, `dogru`, `yazdir`, `dogrula`, `esit_mi` gibi Türkçe harfsiz yazımlar dilin kelimesi değil, sıradan adlardır; tanımsızken kullanıldıklarında hata mesajı asıl adı önerir:
+**Her işin tek yazımı vardır.** Bir yazım dilinde dilin her kelimesinin (anahtar kelime, yerleşik fonksiyon, metot ve özellik, adlı argüman, tip adı) tek adı vardır; bu kılavuz Türkçe yazımı anlatır (İngilizce yazım: `var`, `print`, `func`; [dil tanımı 17.7](../spec/17_kodlar.md)). Türkçe yazımda kelimeler yalnızca Türkçe harfleriyle yazıldıkları biçimde geçerlidir. `degisken`, `sonuc`, `dogru`, `yazdir`, `dogrula`, `esit_mi` gibi Türkçe harfsiz yazımlar dilin kelimesi değil, sıradan adlardır; tanımsızken kullanıldıklarında hata mesajı asıl adı önerir:
 
 ```text
 'degisken' TR'de anahtar kelime değil; 'değişken' yazmak mı istediniz?

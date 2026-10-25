@@ -12,7 +12,7 @@ Program dosyası her x86-64 işlemcide çalışır: matris çarpımı ve vektör
 
 | Komut | Açıklama |
 | :--- | :--- |
-| `./bin/tr.exe` | Etkileşimli Türkçe TR kabuğunu (REPL) başlatır (`/h` ile hata ayıklayıcı açılır) |
+| `./bin/tr.exe` | Etkileşimli TR kabuğunu (REPL) kişinin yazım dilinde başlatır (`/h` ile hata ayıklayıcı açılır) |
 | `./bin/tr.exe dosya.tr [argümanlar]` | `.tr` kaynak dosyasını derler ve anında çalıştırır (`./bin/tr.exe çalıştır dosya.tr` ile aynı). Dosya adından sonrakiler programa iletilir; program okumazsa çıkışta uyarı yazılır |
 | `./bin/tr.exe izle dosya.tr [argümanlar]` | Programı çalıştırır ve hızını canlı gösterir: ms/adım, en pahalı tensör işlemleri, en sıcak satırlar, GPU, bellek; bitince rapor (bkz. §11) |
 | `./bin/tr.exe profil [--json yol] dosya.tr [argümanlar]` | Programı çalıştırır, bitince hız raporu verir; `--json` ile JSON raporu (klasör verilirse içine `speed.json`) (bkz. §11) |
@@ -24,7 +24,7 @@ Program dosyası her x86-64 işlemcide çalışır: matris çarpımı ve vektör
 | `./bin/tr.exe biçimle --kontrol dosya.tr` | Dosyayı değiştirmeden biçimlenmesi gerekip gerekmediğini söyler; gerekiyorsa çıkış kodu 1'dir |
 | `./bin/tr.exe kodla dosya.tr` | Dosyayı yerinde **kodlu biçime** çevirir: dilin sözcükleri dilden bağımsız kodlarla (`A001`, `G100`) saklanır, gerisi bayt bayt aynı kalır; klasör verilirse içindeki tüm `.tr` dosyalarını çevirir, zaten kodlu dosyaya dokunmaz. Kodlu dosya çevrilmeden çalışır, test edilir ve aktarılır (bkz. `docs/spec/17_kodlar.md`, Kodlu saklama) |
 | `./bin/tr.exe çöz dosya.tr` | Kodlu dosyayı yerinde Türkçe yazıma geri çevirir (klasör de verilebilir) |
-| `./bin/tr.exe göster dosya.tr [--dil tr]` | Dosyayı bir yazım dilinde (bugün yalnızca `tr`) standart çıktıya basar; kodlu dosyanın hata mesajlarındaki satır ve sütunlar bu gösterime göredir |
+| `./bin/tr.exe göster dosya.tr [--dil tr]` | Dosyayı bir yazım dilinde (`tr`, `en`; verilmezse kişinin dili, `TR_DIL`) standart çıktıya basar; kodlu dosyanın hata mesajlarındaki satır ve sütunlar bu gösterime göredir |
 | `./bin/tr.exe göster -`, `./bin/tr.exe kodla -` | Metni standart girişten okur, gösterimini ya da kodlu biçimini standart çıktıya yazar (düzenleyiciler için; çıkış kodu 2: metin ayrıştırılamadı, çevrilmedi) |
 | `./bin/tr.exe dap` | VS Code hata ayıklama sunucusu; eklenti kendisi başlatır, elle çalıştırılmaz |
 | `./bin/tr.exe yardım` / `-h`, `./bin/tr.exe sürüm` / `-v` | Yardımı ve sürümü gösterir |
