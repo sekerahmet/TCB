@@ -38,7 +38,8 @@ Thumbs.db
 Desktop.ini
 .DS_Store
 
-# Claude oturum kopyaları (git worktree)
-.claude/
+# Claude oturum kopyaları (git worktree) ve yerel ayarlar; proje kancaları (settings.json) izlenir
+.claude/*
+!.claude/settings.json
 /.codegraph/
 .tr-dizin/

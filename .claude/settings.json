@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && go run ./tools/edithook",
+            "timeout": 180,
+            "statusMessage": "codegraph tests-for"
+          }
+        ]
+      }
+    ]
+  }
+}
