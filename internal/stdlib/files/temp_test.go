@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
 // tempBase işletim sisteminin geçici klasörünü test bitene kadar yeni, boş bir klasör yapar
@@ -25,7 +27,7 @@ func tempBase(t *testing.T) string {
 
 func baseContent(t *testing.T, base string) []string {
 	t.Helper()
-	inputs, err := os.ReadDir(base)
+	inputs, err := reporoot.ReadDir(base)
 	if err != nil {
 		t.Fatal(err)
 	}

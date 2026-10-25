@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/reporoot"
 	_ "github.com/sekerahmet/TCB/internal/stdlib"
 	"github.com/sekerahmet/TCB/internal/stdlib/logging"
 	"github.com/sekerahmet/TCB/internal/testkit"
@@ -264,7 +265,7 @@ func TestProfileStatusFile(t *testing.T) {
 	if len(d["tensör"].(map[string]any)["işlemler"].([]any)) != len(g.Tensor.Ops) {
 		t.Error("dosyadaki işlem listesi görüntüyle aynı değil")
 	}
-	inputs, _ := os.ReadDir(dir)
+	inputs, _ := reporoot.ReadDir(dir)
 	if len(inputs) != 1 {
 		t.Errorf("klasörde yalnızca profil.json kalmalı: %v", inputs)
 	}
@@ -295,7 +296,7 @@ func TestProfileReplaceFails(t *testing.T) {
 	if len(warnings) != 1 || !strings.Contains(warnings[0], "doğrudan yazılacak") {
 		t.Errorf("tek bir uyarı beklenirdi: %q", warnings)
 	}
-	inputs, _ := os.ReadDir(dir)
+	inputs, _ := reporoot.ReadDir(dir)
 	if len(inputs) != 1 {
 		t.Errorf("geçici dosya kaldı: %v", inputs)
 	}

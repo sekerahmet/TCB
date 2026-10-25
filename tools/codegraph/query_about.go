@@ -40,7 +40,7 @@ func (ix *index) aboutTests(n *Node, candidates []*Node) []aboutTest {
 			continue
 		}
 		seen[t.ID] = true
-		if reason := ix.aboutReason(t, names, msgs); reason != "" {
+		if reason := ix.aboutReason(t, n, names, msgs); reason != "" {
 			out = append(out, aboutTest{t, reason})
 		}
 	}
@@ -115,9 +115,19 @@ func (ix *index) producedOnlyBy(m *Node, own map[string]bool) bool {
 	return true
 }
 
-func (ix *index) aboutReason(t *Node, names []string, msgs []*Node) string {
+func (ix *index) aboutReason(t, target *Node, names []string, msgs []*Node) string {
 	title := testTitle(t)
+	own, qual := ownName(target)
 	for _, name := range names {
+		if name == own && qual != "" && ix.pkgOf(t.ID) != ix.pkgOf(target.ID) {
+			// Başka paketteki test bir Go işlevinin kısa adını ancak niteleyicisiyle anar (`TestTensorData`,
+			// `codes.Name`): kısa ad çoğu zaman yaygın bir sözcüktür (bağımsız denetim grup 7: `codes.Name` için
+			// checker'ın "Name" geçen 12 testi "about" sayılıyordu).
+			if containsWords(nameWords(title), append(nameWords(qual), nameWords(own)...)) || hasWord(t.Doc, qual+"."+own) {
+				return "names it"
+			}
+			continue
+		}
 		if hasWord(title, name) || hasWord(t.Doc, name) ||
 			strings.HasPrefix(t.ID, "go:") && containsWords(nameWords(title), nameWords(name)) {
 			return "names it"
@@ -156,6 +166,19 @@ func (ix *index) aboutReason(t *Node, names []string, msgs []*Node) string {
 		}
 	}
 	return best
+}
+
+// ownName bir Go işlevinin ya da metodunun kısa adı ve niteleyicisidir: işlevde paketin adı (`codes.Name` → Name,
+// codes), metotta tipin adı (`tensor.Tensor.Data` → Data, Tensor). Başka düğümlerde ikisi de boştur.
+func ownName(n *Node) (own, qual string) {
+	if n.Kind != kindFunc && n.Kind != kindMethod {
+		return "", ""
+	}
+	parts := strings.Split(n.Name, ".")
+	if len(parts) < 2 {
+		return "", ""
+	}
+	return parts[len(parts)-1], parts[len(parts)-2]
 }
 
 // testTitle testin adının hedefle karşılaştırılan kısmıdır: Go testinde paketsiz kısa ad (`TestTensorData`; paket adı

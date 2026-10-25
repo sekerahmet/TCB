@@ -56,10 +56,14 @@ func (x *goExtractor) testSkips() {
 	}
 	// Yardımcıların etiketleri birbirine dayanır: değişmeyene dek (en çok birkaç tur) yeniden yürünür.
 	labels := map[string]string{}
+	byID := map[string]skipDecl{}
+	for _, d := range decls {
+		byID[d.id] = d
+	}
 	for round := 0; round < 4; round++ {
 		changed := false
 		for _, d := range decls {
-			if l := skipLabel(d, labels, x.source); l != labels[d.id] {
+			if l := skipLabel(d, labels, byID, x.source); l != labels[d.id] {
 				labels[d.id], changed = l, true
 			}
 		}
@@ -82,8 +86,8 @@ func (x *goExtractor) testSkips() {
 }
 
 // skipLabel işlevin atlama koşuludur: atlamaya varan yolların koşulları `||` ile ("" atlamıyorsa).
-func skipLabel(d skipDecl, helpers map[string]string, source func(ast.Expr) string) string {
-	w := &skipWalk{info: d.info, helpers: helpers, source: source}
+func skipLabel(d skipDecl, helpers map[string]string, decls map[string]skipDecl, source func(ast.Expr) string) string {
+	w := &skipWalk{info: d.info, helpers: helpers, decls: decls, file: d.file, source: source}
 	w.block(d.decl.Body.List, nil)
 	return pathsLabel(w.found)
 }
@@ -122,6 +126,8 @@ func pathsLabel(paths [][]string) string {
 type skipWalk struct {
 	info    *types.Info
 	helpers map[string]string
+	decls   map[string]skipDecl // test dosyası işlevleri (yardımcının dosyası ve build kısıtı)
+	file    string              // yürünen işlevin dosyası
 	source  func(ast.Expr) string
 	found   [][]string // atlamaya varan yolların koşulları
 }
@@ -234,7 +240,19 @@ func (w *skipWalk) call(c *ast.CallExpr, abs []string) (ends bool) {
 	}
 	if id := nameIdent(c.Fun); id != nil {
 		if fn, ok := w.info.Uses[id].(*types.Func); ok {
-			switch l := w.helpers[funcRef(fn)]; l {
+			id := funcRef(fn)
+			l := w.helpers[id]
+			if h := w.decls[id]; l != "" && h.cons != "" && h.file != w.file {
+				// Yardımcı başka bir dosyada ve o dosya yalnız bir yapılandırmada derlenir (behavior_interrupt_windows_test.go):
+				// atlaması yalnız orada geçerlidir; öbür yapılandırmanın yardımcısı bu grafikte yoktur, çağıranın yolu
+				// sürer (bağımsız denetim grup 7: sendInterrupt'ı çağıran üç test "always" alıyordu).
+				if l == "always" {
+					l = ""
+				}
+				w.record(abs, joinAnd(builtFor(h.cons), l))
+				return false
+			}
+			switch l {
 			case "":
 			case "always":
 				w.record(abs, "")
@@ -392,6 +410,14 @@ func paren(c string) string {
 	return c
 }
 
+// builtFor build kısıtının kendisidir, etiket metni olarak (yardımcının dosyası o yapılandırmada derlenir).
+func builtFor(cons string) string {
+	if strings.ContainsAny(cons, " &|!") {
+		cons = "(" + cons + ")"
+	}
+	return cons + " (build constraint)"
+}
+
 // notBuilt build kısıtının değilidir, etiket metni olarak.
 func notBuilt(cons string) string {
 	if strings.ContainsAny(cons, " &|!") {
@@ -419,7 +445,7 @@ func fileConstraint(f *ast.File, rel string) string {
 	name := strings.TrimSuffix(strings.TrimSuffix(path.Base(rel), ".go"), "_test")
 	words := strings.Split(name, "_")
 	for i := max(1, len(words)-2); i < len(words); i++ {
-		if knownOS[words[i]] || knownArch[words[i]] {
+		if (knownOS[words[i]] || knownArch[words[i]]) && !slices.Contains(parts, words[i]) {
 			parts = append(parts, words[i])
 		}
 	}

@@ -24,6 +24,7 @@ type index struct {
 	in         map[string][]*Edge
 	note       func(*Node) string // verilirse edgeLine her düğümün altına bir not satırı ekler (test_notes.go)
 	trNames    []trName           // çıplak adla çözülen TR düğümleri (trNameTable; tembel)
+	folded     []foldedNode       // düğümlerin katlanmış adları (nodeFolds; tembel)
 }
 
 func newIndex(g *Graph) *index {
@@ -61,8 +62,14 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 			return tr // modül ya da ad kodu: takma ad basamağıdır, Go adlarından önce gelir
 		}
 	}
-	fq := codeindex.Fold(q)
-	foldTiers := 5 // basamak listesinde harfsiz basamakların başladığı yer
+	foldTiers := 5   // basamak listesinde harfsiz basamakların başladığı yer
+	var qf [2]string // sorgunun iki katlaması (folds sırasıyla)
+	for k, f := range folds {
+		qf[k] = f(q)
+	}
+	nf := ix.nodeFolds()
+	anyFold := func(match func(k int) bool) bool { return match(0) || match(1) }
+	var cur *foldedNode // basamak döngüsünün o anki düğümünün katlanmışları
 	tiers := []func(n *Node) bool{
 		// Takma ad: ad kodunun dildeki adı (zaman_ms, print) ya da bir .tr dosyasının modül adı
 		// (katman, tr/katman); düğümü, aynı adlı belge başlığından önce gelir.
@@ -73,24 +80,26 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 		func(n *Node) bool { return n.Name == q },
 		func(n *Node) bool { return strings.HasSuffix(n.Name, "."+q) || strings.HasSuffix(n.Name, "/"+q) },
 		func(n *Node) bool { return strings.HasSuffix(n.ID, "/"+q) }, // yolla nitelenmiş: internal/lang/messages.New
-		// Büyük-küçük harf yok sayılarak (Türkçe kuralıyla: I/ı, İ/i) tam ad, sonra ad sonu.
-		func(n *Node) bool { return codeindex.Fold(n.Name) == fq },
+		// Büyük-küçük harf yok sayılarak tam ad, sonra ad sonu (foldEqual: Türkçe ya da Go kuralı).
+		func(n *Node) bool { return anyFold(func(k int) bool { return cur.name[k] == qf[k] }) },
 		func(n *Node) bool {
-			f := codeindex.Fold(n.Name)
-			return strings.HasSuffix(f, "."+fq) || strings.HasSuffix(f, "/"+fq)
+			return anyFold(func(k int) bool {
+				return strings.HasSuffix(cur.name[k], "."+qf[k]) || strings.HasSuffix(cur.name[k], "/"+qf[k])
+			})
 		},
 	}
 	nameTiers := len(tiers)
 	// Metin aramaları: ad ya da (ileti, kural, başlık) açıklama metninin başı/alt dizesi.
 	if len([]rune(q)) >= minTextQuery {
-		lq := strings.ToLower(q)
 		tiers = append(tiers,
-			// Önce sözcüğün kendisi (Türkçe harf katlamasıyla, sözcük sınırında): "ölü" sorusu "bölüm"ü değil, "ölü kod"u bulur.
-			func(n *Node) bool { return hasWord(n.Name, q) },
-			func(n *Node) bool { return hasWord(n.Detail, q) || hasWord(n.Doc, q) },
-			func(n *Node) bool { return strings.HasPrefix(strings.ToLower(n.Name), lq) },
-			func(n *Node) bool { return strings.Contains(strings.ToLower(n.Name), lq) },
-			func(n *Node) bool { return strings.Contains(strings.ToLower(n.Detail), lq) },
+			// Önce sözcüğün kendisi (harf katlamasıyla, sözcük sınırında): "ölü" sorusu "bölüm"ü değil, "ölü kod"u bulur.
+			func(n *Node) bool { return anyFold(func(k int) bool { return hasWordFolded(cur.name[k], qf[k]) }) },
+			func(n *Node) bool {
+				return anyFold(func(k int) bool { return hasWordFolded(cur.detail[k], qf[k]) || hasWordFolded(cur.doc[k], qf[k]) })
+			},
+			func(n *Node) bool { return anyFold(func(k int) bool { return strings.HasPrefix(cur.name[k], qf[k]) }) },
+			func(n *Node) bool { return anyFold(func(k int) bool { return strings.Contains(cur.name[k], qf[k]) }) },
+			func(n *Node) bool { return anyFold(func(k int) bool { return strings.Contains(cur.detail[k], qf[k]) }) },
 		)
 	}
 	for ti, match := range tiers {
@@ -100,6 +109,7 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 		var found []*Node
 		for i := range ix.g.Nodes {
 			n := &ix.g.Nodes[i]
+			cur = &nf[i]
 			if bare && ti < nameTiers && isTRName(n) {
 				continue // çıplak TR adı trByName'in işidir
 			}
@@ -118,6 +128,60 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 		}
 	}
 	return tr
+}
+
+// folds harfsiz karşılaştırmanın iki katlamasıdır: Türkçe kural (TR adları ve Türkçe metin: `I` → `ı`) ve Go'nun
+// kuralı (Go adları, ASCII ile yazılmış sorgu: `I` → `i`). Biri tutunca eşleşir: `ifexpression` ast.IfExpression'ı,
+// `IKINCI` ikinci'yi bulur (bağımsız denetim grup 7; yalnızca Türkçe katlama Go adlarında `I` ile başlayanları
+// kaçırıyordu). Tam harfli basamaklar önce gelir: Go'da büyük-küçük harf anlamlıdır (dışa açık ad).
+var folds = [2]func(string) string{codeindex.Fold, strings.ToLower}
+
+// foldedNode bir düğümün adının, açıklamasının ve belge yorumunun iki katlamasıdır (folds sırasıyla).
+type foldedNode struct {
+	name, detail, doc [2]string
+}
+
+// nodeFolds bütün düğümlerin katlanmışlarıdır, ix.g.Nodes sırasıyla; ilk sorguda bir kez hesaplanır (her sorguda her
+// düğümü yeniden katlamak sınavı dört kat yavaşlatıyordu).
+func (ix *index) nodeFolds() []foldedNode {
+	if ix.folded == nil {
+		ix.folded = make([]foldedNode, len(ix.g.Nodes))
+		for i := range ix.g.Nodes {
+			n := &ix.g.Nodes[i]
+			for k, f := range folds {
+				ix.folded[i].name[k], ix.folded[i].detail[k], ix.folded[i].doc[k] = f(n.Name), f(n.Detail), f(n.Doc)
+			}
+		}
+	}
+	return ix.folded
+}
+
+// otherCase küçük harfli bir sorgu tam harfle tek düğüme çözüldüğünde yalnızca harfi farklı olan öbür eşleşmelerdir
+// (aynı ad ya da '.'/'/' sınırında biten ad, iki katlamadan biriyle). Go'da harf anlamlıdır, tam harfli eşleşme kazanır;
+// ama öbürü görünmezse cevap yanlış bir "yok" olur (bağımsız denetim grup 7: `query identifier` interp.identifier'ı
+// veriyor, ast.Identifier'ı hiç anmıyordu). Büyük harfli sorgu harfi seçmiştir, not yoktur.
+func (ix *index) otherCase(q string, chosen *Node, kinds []string) []string {
+	if q == "" || strings.ContainsFunc(q, unicode.IsUpper) {
+		return nil
+	}
+	nf := ix.nodeFolds()
+	var out []string
+	for i := range ix.g.Nodes {
+		n := &ix.g.Nodes[i]
+		if n == chosen || len(kinds) > 0 && !contains(kinds, n.Kind) || n.Name == q ||
+			strings.HasSuffix(n.Name, "."+q) || strings.HasSuffix(n.Name, "/"+q) {
+			continue // tam harfle uyanlar zaten cevaptır ya da belirsizlikte sayılmıştır
+		}
+		for k, f := range folds {
+			fq := f(q)
+			if name := nf[i].name[k]; name == fq || strings.HasSuffix(name, "."+fq) || strings.HasSuffix(name, "/"+fq) {
+				out = append(out, describe(n))
+				break
+			}
+		}
+	}
+	sort.Strings(out)
+	return out
 }
 
 // isTRName düğümün çıplak adı trByName ile mi çözülür: .tr dosyası, TR bildirimi ya da testi, ad kodu.
@@ -378,7 +442,11 @@ func (ix *index) printFields(w io.Writer, n *Node) []*Edge {
 // hasWord text, q'yu bütün bir sözcük olarak içeriyor mu: Türkçe harf katlamasıyla (İ/i, I/ı) karşılaştırılır, eşleşmenin iki
 // yanında harf, rakam ya da alt çizgi olmamalıdır.
 func hasWord(text, q string) bool {
-	ft, fq := codeindex.Fold(text), codeindex.Fold(q)
+	return hasWordFolded(folds[0](text), folds[0](q)) || hasWordFolded(folds[1](text), folds[1](q))
+}
+
+// hasWordFolded katlanmış metinde katlanmış sözcüğün sözcük sınırında geçip geçmediğidir.
+func hasWordFolded(ft, fq string) bool {
 	if fq == "" {
 		return false
 	}
@@ -458,6 +526,12 @@ func (ix *index) otherConfigMentions(n *Node) (config string, out []otherConfigM
 // printOtherConfigs sorulan adın derlenmeyen dosyalarda geçtiği yerleri bildirime göre tek satırda yazar (testler
 // işaretli); geçmiyorsa bir şey yazmaz.
 func (ix *index) printOtherConfigs(w io.Writer, n *Node, limit int) {
+	ix.printOtherConfigsExcept(w, n, limit, nil)
+}
+
+// printOtherConfigsExcept printOtherConfigs'tir; listed'deki testler (tests-for'un gruplarında yazılanlar) burada bir
+// kez daha yazılmaz (bağımsız denetim grup 7: derlenmeyen dosyadaki test iki grupta çıkıyordu).
+func (ix *index) printOtherConfigsExcept(w io.Writer, n *Node, limit int, listed []*Node) {
 	config, ms := ix.otherConfigMentions(n)
 	if len(ms) == 0 {
 		return
@@ -466,6 +540,9 @@ func (ix *index) printOtherConfigs(w io.Writer, n *Node, limit int) {
 	seen := map[string]bool{}
 	for _, m := range ms {
 		where := fmt.Sprintf("%s:%d", m.file, m.line)
+		if m.in != nil && slices.Contains(listed, m.in) {
+			continue
+		}
 		if m.in != nil {
 			if seen[m.in.ID+m.file] {
 				continue
@@ -477,6 +554,9 @@ func (ix *index) printOtherConfigs(w io.Writer, n *Node, limit int) {
 			}
 		}
 		lines = append(lines, where)
+	}
+	if len(lines) == 0 {
+		return
 	}
 	fmt.Fprintf(w, "  <- in other build configurations (%d; files not built for %s, read as text, not type-checked):\n", len(lines), config)
 	printLimited(w, lines, limit, "    ")

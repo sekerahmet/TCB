@@ -4,10 +4,11 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"path/filepath"
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
 // Bileşik türev kapsam denetimi: türevli tensör işlemlerinden ikisini ya da fazlasını (karışık
@@ -39,7 +40,7 @@ var compositeExempt = map[string]string{
 // çağıran fonksiyonların adlarıdır.
 func compositeFuncs(t *testing.T) []string {
 	t.Helper()
-	files, _ := filepath.Glob("*.go")
+	files, _ := reporoot.Glob("*.go")
 	fset := token.NewFileSet()
 	var out []string
 	for _, f := range files {
@@ -119,7 +120,7 @@ func TestCompositeGradCoverage(t *testing.T) {
 // fileHasFunc paketin test dışı kaynağında adı verilen fonksiyonun tanımlı olup olmadığını söyler.
 func fileHasFunc(t *testing.T, name string) bool {
 	t.Helper()
-	files, _ := filepath.Glob("*.go")
+	files, _ := reporoot.Glob("*.go")
 	fset := token.NewFileSet()
 	for _, f := range files {
 		if strings.HasSuffix(f, "_test.go") {

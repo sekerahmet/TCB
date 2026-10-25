@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -18,7 +17,7 @@ func tempEnv(t *testing.T) (string, []string) {
 
 func tempIsEmpty(t *testing.T, temp, ne string) {
 	t.Helper()
-	inputs, err := os.ReadDir(temp)
+	inputs, err := reporoot.ReadDir(temp)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +39,7 @@ func TestTestCommandLeavesNoTempDir(t *testing.T) {
 		testkit.Wait(t, s, 0, []string{"0 kaldı"}, nil)
 		tempIsEmpty(t, temp, file)
 	}
-	if old, _ := filepath.Glob(reporoot.Path("tests/gecici_*")); len(old) != 0 {
+	if old, _ := reporoot.GlobAll(reporoot.Path("tests/gecici_*")); len(old) != 0 {
 		t.Errorf("testler depoda geçici klasör bırakmamalı: %v", old)
 	}
 }

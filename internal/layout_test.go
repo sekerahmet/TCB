@@ -470,7 +470,7 @@ func hasSource(base string) bool {
 	if _, err := os.Stat(full + ".go"); err == nil {
 		return true
 	}
-	variants, _ := filepath.Glob(full + "_*.go")
+	variants, _ := reporoot.Glob(full + "_*.go")
 	for _, v := range variants {
 		if !strings.HasSuffix(v, "_test.go") {
 			return true

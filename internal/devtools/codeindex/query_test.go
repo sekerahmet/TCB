@@ -87,7 +87,8 @@ func TestTurkishCaseFolding(t *testing.T) {
 }
 
 // Kural: harf kuralı NameKeys'tir (iki aracın tek kuralı): küçük harfli sorgu harfe bakmaz, büyük harfli sorgu önce tam
-// eşleşir, tam eşleşen yoksa harfe bakılmaz (bağımsız denetim grup 6, R1).
+// eşleşir, tam eşleşen yoksa harfe bakılmaz; o geçişte ASCII küçültmesi de denenir; dilin bir sözcüğüyle birebir aynı
+// sorguda geçiş yoktur (bağımsız denetim grup 6 ve 7, R1).
 func TestCaseRuleExactFirstThenFolded(t *testing.T) {
 	r := buildSource(t, `yapı Kare {
     a
@@ -96,11 +97,19 @@ func TestCaseRuleExactFirstThenFolded(t *testing.T) {
 fonksiyon kare() {
     sonuç 1
 }
+
+fonksiyon gizli_işlev() {
+    sonuç metin(1)
+}
 `)
 	for q, want := range map[string]string{
-		"Kare": "struct:m.tr#Kare",
-		"kare": "function:m.tr#kare struct:m.tr#Kare",
-		"KARE": "function:m.tr#kare struct:m.tr#Kare",
+		"Kare":        "struct:m.tr#Kare",
+		"kare":        "function:m.tr#kare struct:m.tr#Kare",
+		"KARE":        "function:m.tr#kare struct:m.tr#Kare",
+		"GİZLİ_İŞLEV": "function:m.tr#gizli_işlev", // Türkçe büyük harf
+		"GIZLI_IŞLEV": "function:m.tr#gizli_işlev", // İngilizce klavye: I, Türkçede ı olurdu
+		"Metin":       "",                          // dilin tip adı: metin() yerleşiğine sessizce düşülmez
+		"metin":       "builtin:G212",
 	} {
 		var ids []string
 		for _, n := range r.Resolve(q, "") {

@@ -8,6 +8,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
 // Yerine koymanın geçici hatası (Windows'ta dosyayı o an okuyan varken) kısa yeniden
@@ -31,7 +33,7 @@ func TestReplaceTransientErrorRetried(t *testing.T) {
 	if y.faulty != 0 || y.direct {
 		t.Errorf("geçici hata kalıcı sayıldı: %d hata, doğrudan %v", y.faulty, y.direct)
 	}
-	if inputs, _ := os.ReadDir(dir); len(inputs) != 1 {
+	if inputs, _ := reporoot.ReadDir(dir); len(inputs) != 1 {
 		t.Errorf("geçici dosya kaldı: %v", inputs)
 	}
 }
@@ -117,7 +119,7 @@ func TestReplaceFailureSkipsInterval(t *testing.T) {
 	if s := read(); s != 1 {
 		t.Errorf("atlanan aralıkta dosya değişti: %v", s)
 	}
-	if inputs, _ := os.ReadDir(dir); len(inputs) != 1 {
+	if inputs, _ := reporoot.ReadDir(dir); len(inputs) != 1 {
 		t.Errorf("geçici dosya kaldı: %v", inputs)
 	}
 	y.warning = func(string) {} // son rapor doğrudan yazılır ve bir kez uyarılır

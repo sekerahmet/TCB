@@ -108,6 +108,9 @@ import (
 // WithLang yalnızca testlerden çağrılan ortak yardımcı.
 func WithLang(lang string) { cmd := exec.Command("x"); cmd.Env = append(os.Environ(), "TR_DIL="+lang); _ = cmd }
 
+// Var dilin ortam değişkeninin adıdır (başka paketten seçiciyle okunur).
+const Var = "TR_GPU_ESZAMANLI"
+
 // Serve üretim kodu: değişkeni kendi alt sürecine koyar, çağıran test onu sınamaz.
 func Serve() { cmd := exec.Command("x"); cmd.Env = []string{"TR_CPU_AVX2=0"}; _ = cmd }
 
@@ -120,6 +123,22 @@ import "testing"
 func TestWithLang(t *testing.T) { WithLang("en") }
 
 func TestServe(t *testing.T) { Serve() }
+`,
+	"other/other_test.go": `package other
+
+import (
+	"os"
+	"os/exec"
+	"testing"
+
+	"example.com/audit/kit"
+)
+
+func TestSelectorConst(t *testing.T) {
+	cmd := exec.Command("x")
+	cmd.Env = append(os.Environ(), kit.Var+"=1")
+	_ = cmd
+}
 `,
 	"app/app_test.go": `package app
 
@@ -149,6 +168,8 @@ func TestPrefixEnv(t *testing.T) {
 
 func TestReads(t *testing.T) { _ = os.Getenv("TR_DIL") }
 
+func TestMessageOnly(t *testing.T) { t.Log("TR_DIL=en ile koşulmalı") }
+
 func TestHome(t *testing.T) { t.Setenv("HOME", "/tmp") }
 
 func run(t *testing.T, env []string) { _ = env }
@@ -166,7 +187,7 @@ func TestTestsThatSetAnEnvironmentVariableTestItsCode(t *testing.T) {
 	}
 	for test, code := range map[string]string{
 		"app.TestSetenv": "K404", "app.TestChildEnv": "K400", "app.TestConstEnv": "K400", "app.TestPrefixEnv": "K402",
-		"kit.TestWithLang": "K400",
+		"kit.TestWithLang": "K400", "other.TestSelectorConst": "K402",
 	} {
 		mustEdge(t, g, "go:func:example.com/audit/"+test, "name:"+code, edgeTests, extracted)
 	}
@@ -174,7 +195,7 @@ func TestTestsThatSetAnEnvironmentVariableTestItsCode(t *testing.T) {
 		t.Errorf("Serve is production code (Main calls it); its child's variable is not TestServe's: %+v", e)
 	}
 	for _, e := range g.Edges {
-		if e.Kind == edgeTests && strings.HasPrefix(e.To, "name:") && (strings.HasSuffix(e.From, ".TestReads") || strings.HasSuffix(e.From, ".TestHome")) {
+		if e.Kind == edgeTests && strings.HasPrefix(e.To, "name:") && (strings.HasSuffix(e.From, ".TestReads") || strings.HasSuffix(e.From, ".TestHome") || strings.HasSuffix(e.From, ".TestMessageOnly")) {
 			t.Errorf("reading TR_DIL or setting HOME tests no name code: %+v", e)
 		}
 	}

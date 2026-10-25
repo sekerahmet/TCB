@@ -36,7 +36,7 @@ var (
 // languageSpec docs/spec/ altındaki bölüm dosyalarını (NN_ad.md) sırayla okur.
 func languageSpec(t *testing.T) map[string]string {
 	t.Helper()
-	files, err := filepath.Glob(reporoot.Path("docs/spec/*.md"))
+	files, err := reporoot.Glob(reporoot.Path("docs/spec/*.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +86,7 @@ func TestEveryRuleHasATest(t *testing.T) {
 		t.Fatalf("tanımda yalnızca %d kural bulundu; biçim değişmiş olabilir", len(rules))
 	}
 
-	files, _ := filepath.Glob(reporoot.Path("tests/*_test.tr"))
+	files, _ := reporoot.Glob(reporoot.Path("tests/*_test.tr"))
 	withTests := map[string]bool{}
 	for _, d := range files {
 		data, err := os.ReadFile(d)
@@ -122,12 +122,12 @@ func TestEveryRuleHasATest(t *testing.T) {
 // tests/negative/ altındaki bilerek hatalı modüller (yükleme hatası beklenen olumsuz
 // testler) bir teste bağlı olmalı: kullanılmayan bir fikstür hiçbir şeyi sınamaz.
 func TestNegativeFixturesUsed(t *testing.T) {
-	fixtures, _ := filepath.Glob(reporoot.Path("tests/negative/*.tr"))
+	fixtures, _ := reporoot.Glob(reporoot.Path("tests/negative/*.tr"))
 	if len(fixtures) == 0 {
 		t.Fatal("tests/negative/ altında fikstür bulunamadı")
 	}
 	var all []byte
-	files, _ := filepath.Glob(reporoot.Path("tests/*_test.tr"))
+	files, _ := reporoot.Glob(reporoot.Path("tests/*_test.tr"))
 	for _, d := range files {
 		data, err := os.ReadFile(d)
 		if err != nil {

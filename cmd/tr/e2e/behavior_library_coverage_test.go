@@ -79,7 +79,7 @@ var (
 // libraryNames kitaplık modüllerinin kullanıcıya açık adlarını anahtar biçimiyle verir.
 func libraryNames(t *testing.T) []string {
 	t.Helper()
-	files, err := filepath.Glob(reporoot.Path("lib", "*.tr"))
+	files, err := reporoot.Glob(reporoot.Path("lib", "*.tr"))
 	if err != nil || len(files) == 0 {
 		t.Fatalf("lib/*.tr bulunamadı: %v", err)
 	}

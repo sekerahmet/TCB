@@ -120,7 +120,7 @@ func TestCodedFilesGiveSameOutput(t *testing.T) {
 			t.Errorf("tr test %s: Türkçe ve kodlu kopyalar farklı (çıkış %d / %d)\n%s", dir, s1.Code, s2.Code, testkit.FirstLineDiff(s1.Stdout+s1.Stderr, s2.Stdout+s2.Stderr, "Türkçe", "kodlu"))
 		}
 	}
-	examples, _ := filepath.Glob(filepath.Join(tr1, "examples", "tr", "*.tr"))
+	examples, _ := reporoot.Glob(filepath.Join(tr1, "examples", "tr", "*.tr"))
 	if len(examples) < 5 {
 		t.Fatalf("yalnızca %d örnek bulundu", len(examples))
 	}

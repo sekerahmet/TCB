@@ -305,7 +305,7 @@ func TestExtensionJSTests(t *testing.T) {
 	if err != nil {
 		t.Skip("node bulunamadı; eklentinin JavaScript testleri atlandı")
 	}
-	tests, _ := filepath.Glob(reporoot.Path("editors/vscode/test/*_test.js"))
+	tests, _ := reporoot.Glob(reporoot.Path("editors/vscode/test/*_test.js"))
 	if len(tests) < 4 {
 		t.Fatalf("eklenti JS testleri bulunamadı: %v", tests)
 	}

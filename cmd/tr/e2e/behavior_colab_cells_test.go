@@ -92,7 +92,7 @@ func TestColabCellsPythonAndShellSyntax(t *testing.T) {
 
 func TestGPUScriptsCompileAndHelp(t *testing.T) {
 	python := pythonOrSkip(t)
-	betikler, err := filepath.Glob(reporoot.Path("tools/gpu/*.py"))
+	betikler, err := reporoot.Glob(reporoot.Path("tools/gpu/*.py"))
 	if err != nil || len(betikler) == 0 {
 		t.Fatalf("tools/gpu/*.py bulunamadı: %v", err)
 	}

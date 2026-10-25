@@ -181,11 +181,12 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	ix.printWalks(w, walks, limit)
 	ix.printValueTests(w, asValue, limit)
 	ix.printInferred(w, n, indirect, viaNames, limit)
-	ix.printAllSkipNote(w, about, allTests, walks, asValue, indirect, viaNames)
+	listed := ix.testsListed(about, allTests, walks, asValue, indirect, viaNames)
+	printAllSkipNote(w, listed)
 	ix.printSubprocessTests(w, subprocess)
 	ix.printMeasurements(w, measured, indirectMeasured, limit)
 	ix.printGuardedRules(w, allTests, allIndirect, limit)
-	ix.printOtherConfigs(w, n, limit)
+	ix.printOtherConfigsExcept(w, n, limit, listed)
 }
 
 // keepStrongest bir testi, en güçlü kanıtının grubundan başka gruplardan çıkarır (bağımsız denetim grup 6, S1:
@@ -435,9 +436,8 @@ func (ix *index) printGoFileTests(w io.Writer, file *Node, limit int) {
 	ix.printRulesGuardedBy(w, tests, limit)
 }
 
-// printAllSkipNote listelenen testlerin hepsi bir atlama koşuluna bağlıysa bunu tek satırla söyler: CI'da hiçbiri
-// koşmayabilir (deneme 9 H2: gpu.backend.ltMul'un testleri kitaplık yoksa atlanıyordu, okuyan CI'ın koruduğunu sanıyordu).
-func (ix *index) printAllSkipNote(w io.Writer, about []aboutTest, tests, walks []*Edge, asValue, indirect []indirectTest, viaNames []nameTest) {
+// testsListed test gruplarında yazılan testlerdir (atlama notu ve başka yapılandırma grubu bunlara bakar).
+func (ix *index) testsListed(about []aboutTest, tests, walks []*Edge, asValue, indirect []indirectTest, viaNames []nameTest) []*Node {
 	var all []*Node
 	for _, a := range about {
 		all = append(all, a.test)
@@ -451,6 +451,12 @@ func (ix *index) printAllSkipNote(w io.Writer, about []aboutTest, tests, walks [
 	for _, t := range viaNames {
 		all = append(all, t.test)
 	}
+	return all
+}
+
+// printAllSkipNote listelenen testlerin hepsi bir atlama koşuluna bağlıysa bunu tek satırla söyler: CI'da hiçbiri
+// koşmayabilir (deneme 9 H2: gpu.backend.ltMul'un testleri kitaplık yoksa atlanıyordu, okuyan CI'ın koruduğunu sanıyordu).
+func printAllSkipNote(w io.Writer, all []*Node) {
 	if len(all) == 0 || slices.ContainsFunc(all, func(t *Node) bool { return t == nil || t.Skip == "" || ciRunsIt(t.Skip) }) {
 		return // koşulsuz ya da yalnızca CI'ın bir kipinde zaten koşan (testing.Short(), raceEnabled) bir test var
 	}

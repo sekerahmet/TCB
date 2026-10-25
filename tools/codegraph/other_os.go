@@ -45,10 +45,16 @@ func extractOtherConfigs(m *module, b *builder) {
 		b.addNode(Node{ID: fileID(rel), Kind: kindFile, Name: rel, File: rel, Line: 1, Detail: otherConfigDetail + m.Config})
 		b.addEdge(pkgID(pkg), fileID(rel), edgeContains, extracted, rel, 0)
 		imports := packageImports(f)
+		skip := "" // derlenmeyen test dosyasındaki testin atlama etiketi: dosyanın kısıtı (test_skips.go)
+		if isTestFile(rel) {
+			if cons := fileConstraint(f, rel); cons != "" {
+				skip = notBuilt(cons)
+			}
+		}
 		for _, decl := range f.Decls {
 			owner := fileID(rel)
 			if d, ok := decl.(*ast.FuncDecl); ok {
-				owner = otherConfigFunc(b, fset, pkg, rel, d, m.Config)
+				owner = otherConfigFunc(b, fset, pkg, rel, d, m.Config, skip)
 			}
 			locals := declaredNames(decl)
 			ast.Inspect(decl, func(n ast.Node) bool {
@@ -68,7 +74,7 @@ func extractOtherConfigs(m *module, b *builder) {
 
 // otherConfigFunc derlenmeyen dosyadaki işlevin kimliğidir. Aynı ad bu yapılandırmada da tanımlıysa (Windows ve Linux
 // sürümü) o düğüm kalır, kullanım ona bağlanır; yalnızca burada tanımlıysa düğümü eklenir.
-func otherConfigFunc(b *builder, fset *token.FileSet, pkg, rel string, d *ast.FuncDecl, config string) string {
+func otherConfigFunc(b *builder, fset *token.FileSet, pkg, rel string, d *ast.FuncDecl, config, skip string) string {
 	recv, kind := "", kindFunc
 	if d.Recv != nil && len(d.Recv.List) == 1 {
 		recv, kind = goload.RecvExprName(d.Recv.List[0].Type), kindMethod
@@ -81,8 +87,11 @@ func otherConfigFunc(b *builder, fset *token.FileSet, pkg, rel string, d *ast.Fu
 	if recv != "" {
 		qual += "." + recv
 	}
+	if recv != "" || !isTestName(d.Name.Name) {
+		skip = ""
+	}
 	b.addNode(Node{ID: id, Kind: kind, Name: qual + "." + d.Name.Name, File: rel, Line: fset.Position(d.Pos()).Line,
-		End: fset.Position(d.End()).Line, Doc: docText(d.Doc), Detail: otherConfigDetail + config})
+		End: fset.Position(d.End()).Line, Doc: docText(d.Doc), Detail: otherConfigDetail + config, Skip: skip})
 	b.addEdge(fileID(rel), id, edgeContains, extracted, rel, fset.Position(d.Pos()).Line) // öbür sürümün yeri de görünür
 	return id
 }

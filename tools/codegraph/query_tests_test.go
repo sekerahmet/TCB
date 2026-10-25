@@ -244,3 +244,41 @@ func TestOnlyOwnMessagesMakeATestAboutTheTarget(t *testing.T) {
 		t.Errorf("messages of save = %v, want only H2 (H1 is load's too)", got)
 	}
 }
+
+// Kural: başka paketteki bir test Go işlevinin kısa adını ancak niteleyicisiyle anarsa (test adında `CodesName`,
+// belgede `codes.Name`) onu konu edinir; yalnızca yaygın kısa adı (Name) taşıyan test konu edinmez, aynı paketteki
+// test kısa adla da edinir (bağımsız denetim grup 7: codes.Name için 17 başka paket testi "about" sayılıyordu).
+func TestOtherPackageTestsNameATargetWithItsQualifier(t *testing.T) {
+	root := auditModule(t, map[string]string{
+		"codes/codes.go":      "package codes\n\nfunc Name() string { return \"x\" }\n",
+		"codes/codes_test.go": "package codes\n\nimport \"testing\"\n\nfunc TestNameIsSet(t *testing.T) { _ = Name() }\n",
+		"checker/checker_test.go": `package checker
+
+import (
+	"testing"
+
+	"example.com/audit/codes"
+)
+
+func TestNameStyle(t *testing.T) { _ = codes.Name() }
+
+func TestCodesNameReadsTheTable(t *testing.T) { _ = codes.Name() }
+
+// codes.Name tablodan okur.
+func TestTable(t *testing.T) { _ = codes.Name() }
+`,
+	})
+	if code, _, errOut := runCLI("build", "--root", root); code != exitOK {
+		t.Fatalf("build: %d %s", code, errOut)
+	}
+	_, out, _ := runCLI("tests-for", "codes.Name", "--root", root, "--no-rebuild")
+	about, _, _ := strings.Cut(out, "<- tests (")
+	for _, want := range []string{"codes.TestNameIsSet", "checker.TestCodesNameReadsTheTable", "checker.TestTable"} {
+		if !strings.Contains(about, want) {
+			t.Errorf("%s is about codes.Name:\n%s", want, out)
+		}
+	}
+	if strings.Contains(about, "TestNameStyle") {
+		t.Errorf("TestNameStyle only shares the common word Name:\n%s", out)
+	}
+}

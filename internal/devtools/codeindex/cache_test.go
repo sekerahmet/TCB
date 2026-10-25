@@ -9,6 +9,7 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"github.com/sekerahmet/TCB/internal/reporoot"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
@@ -367,7 +368,7 @@ func TestWriteFileAtomicReplacesWholeAndLeavesNoTemp(t *testing.T) {
 			t.Errorf("content = %q, want %q", got, content)
 		}
 	}
-	if entries, _ := os.ReadDir(dir); len(entries) != 1 {
+	if entries, _ := reporoot.ReadDir(dir); len(entries) != 1 {
 		t.Errorf("temporary file left behind: %v", entries)
 	}
 	if err := WriteFileAtomic(filepath.Join(dir, "none", "y.json"), []byte("x")); err == nil {

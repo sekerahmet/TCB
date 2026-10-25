@@ -79,28 +79,35 @@ func (x *goExtractor) envUse(fc *fileCtx, owner string, call *ast.CallExpr) {
 }
 
 // envStrings `"AD=değer"` biçimli ortam dizelerini (alt sürecin `cmd.Env`'i, `[]string{"TR_DIL=en"}`) ad koduna
-// bağlar: düz metin, sabit (`Ad + "=xx"`) ya da başı sabit olan toplama (`"TR_DIL=" + dil`). Owner'dan `uses_env`
-// kenarı çıkar ve owner değişkeni koymuş sayılır. Bir dize ifadesi bütün olarak okunur, parçalarına inilmez (aynı
-// ad bir kez sayılır).
+// bağlar: düz metin, sabit (`Ad + "=xx"`, `messages.LanguageEnvVar + "=en"`) ya da başı sabit olan toplama
+// (`"TR_DIL=" + dil`). Dize yalnızca bir ortam dilimine gidiyorsa sayılır: bir dilim ya da bileşik değişmezin öğesi
+// ya da append'in eklediği; günlük ya da ileti metnindeki `"TR_DIL=en ile koşulmalı"` koyma değildir (bağımsız
+// denetim grup 7). Owner'dan `uses_env` kenarı çıkar ve owner değişkeni koymuş sayılır.
 func (x *goExtractor) envStrings(fc *fileCtx, owner string, root ast.Node) {
 	if len(x.env) == 0 {
 		return
 	}
 	ast.Inspect(root, func(n ast.Node) bool {
-		e, ok := n.(ast.Expr)
-		if !ok {
-			return true
+		var items []ast.Expr // bir ortam dilimine giden ifadeler: dilim değişmezinin öğeleri, append'in eklenenleri
+		switch n := n.(type) {
+		case *ast.CompositeLit:
+			items = n.Elts
+		case *ast.CallExpr:
+			if id, ok := n.Fun.(*ast.Ident); ok && len(n.Args) > 1 {
+				if _, builtin := fc.u.Info.Uses[id].(*types.Builtin); builtin && id.Name == "append" {
+					items = n.Args[1:]
+				}
+			}
 		}
-		text, str, _ := envText(fc, e)
-		if !str {
-			return true
+		for _, e := range items {
+			text, str, _ := envText(fc, e)
+			if name, _, found := strings.Cut(text, "="); str && found && x.env[name] != "" {
+				code := x.env[name]
+				x.b.addEdge(owner, "name:"+code, edgeUsesEnv, extracted, fc.rel, x.line(e.Pos()))
+				x.idx.envSets[owner] = append(x.idx.envSets[owner], envSet{code, fc.rel, x.line(e.Pos())})
+			}
 		}
-		name, _, found := strings.Cut(text, "=")
-		if code := x.env[name]; found && code != "" {
-			x.b.addEdge(owner, "name:"+code, edgeUsesEnv, extracted, fc.rel, x.line(e.Pos()))
-			x.idx.envSets[owner] = append(x.idx.envSets[owner], envSet{code, fc.rel, x.line(e.Pos())})
-		}
-		return false
+		return true
 	})
 }
 
@@ -113,8 +120,8 @@ func envText(fc *fileCtx, e ast.Expr) (text string, str, full bool) {
 		if e.Kind == token.STRING {
 			return constString(fc, e), true, true
 		}
-	case *ast.Ident:
-		if c, ok := fc.u.Info.Uses[e].(*types.Const); ok && c.Val().Kind() == constant.String {
+	case *ast.Ident, *ast.SelectorExpr: // `langVar`, `messages.LanguageEnvVar`
+		if c, ok := fc.u.Info.Uses[nameIdent(e)].(*types.Const); ok && c.Val().Kind() == constant.String {
 			return constant.StringVal(c.Val()), true, true
 		}
 	case *ast.ParenExpr:

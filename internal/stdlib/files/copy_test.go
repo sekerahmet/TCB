@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
 func content(t *testing.T, fpath string) string {
@@ -52,7 +53,7 @@ func TestCopyFile(t *testing.T) {
 	// Dosya klasörün, klasör dosyanın yerine konmaz.
 	os.MkdirAll(filepath.Join(k, "h", "a.txt"), 0o755)
 	errHas(t, `kopyala("a.txt", "h", üzerine_yaz: doğru)`, messages.H7117)
-	if entries, _ := os.ReadDir(k); len(entries) != 4 {
+	if entries, _ := reporoot.ReadDir(k); len(entries) != 4 {
 		t.Errorf("geçici dosya kaldı: %v", entries)
 	}
 }
@@ -80,7 +81,7 @@ func TestCopyDir(t *testing.T) {
 	if exists(filepath.Join(k, "hedef", "v", "eski.txt")) || !exists(filepath.Join(k, "hedef", "v", "a.npy")) {
 		t.Fatal("klasör yerine konmadı")
 	}
-	if g, _ := filepath.Glob(filepath.Join(k, "hedef", ".*")); len(g) != 0 {
+	if g, _ := reporoot.Glob(filepath.Join(k, "hedef", ".*")); len(g) != 0 {
 		t.Errorf("geçici klasör kaldı: %v", g)
 	}
 	// Çalışma klasörünün yerine bir şey konmaz.
@@ -166,7 +167,7 @@ func TestOverwriteDirWithReadOnlyFile(t *testing.T) {
 	if content(t, locked) != "eski" || exists(filepath.Join(k, "hedef", "yeni", "a.txt")) {
 		t.Fatal("hedef değişti")
 	}
-	entries, _ := os.ReadDir(filepath.Join(k, "hedef"))
+	entries, _ := reporoot.ReadDir(filepath.Join(k, "hedef"))
 	for _, e := range entries {
 		if strings.Contains(e.Name(), ".eski") || strings.Contains(e.Name(), ".kopyalaniyor") {
 			t.Fatalf("artık klasör kaldı: %s", e.Name())

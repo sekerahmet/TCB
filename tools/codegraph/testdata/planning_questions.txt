@@ -132,3 +132,11 @@ codegraph who-uses H1105 | group: uses_message => hint.TypeTextComparisonError |
 codegraph who-uses interp.NonFiniteText | group: calls => interp.FloatVal.Text | group: calls => ml.numberText | src: değer dili 3. tur ve adım 3, 2026-10-25 (sayı ve tensör tek ad)
 codegraph who-uses jsonwrite.nonFiniteData | group: calls => jsonwrite.writer.number | src: değer dili adım 3, 2026-10-25 (veri biçimi değer metninden ayrı)
 codegraph tests-for K400 | contains: cmd/tr/e2e/ | contains: messages.TestLanguageReadOnce | src: değer dili 3. tur, 2026-10-25
+
+# Bağımsız denetim grup 7: Go adlarının harf kuralı, ASCII büyük harf, dilin sözcüğü (2026-10-25)
+codegraph query ifexpression | contains: ast.IfExpression [type] | not: is ambiguous | src: denetim grup 7 R1, 2026-10-25
+codegraph query value.inspect | contains: interp.Value.Inspect [method] | not: is ambiguous | src: denetim grup 7 R1, 2026-10-25
+codegraph query identifier | contains: interp.identifier [func] | contains: also matches in another case | contains: ast.Identifier [type] | src: denetim grup 7 R1 (Go: tam harfli eşleşme önce, öbür harf görünür), 2026-10-25
+codegraph query IKINCI | contains: V911 [name] | not: is ambiguous | src: denetim grup 7 R1 (ASCII büyük harf), 2026-10-25
+tr dizin tanım IKINCI | contains: V911 | src: denetim grup 7 R1 (ASCII büyük harf), 2026-10-25
+tr dizin tanım Metin | exit: 4 | not: birden çok düğüme | src: denetim grup 7 R1 (dilin sözcüğü, dizinde düğümü yok), 2026-10-25

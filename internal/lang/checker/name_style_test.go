@@ -2,7 +2,6 @@ package checker
 
 import (
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -86,8 +85,8 @@ döngü _ içinde [1] { yazdır(1) }`
 // ile bütünüyle uyarısızdır; kitaplıkta gölgeleme bilinçli olabilir: adlı parametreler girdi, taban
 // gibi yerleşik adları taşır).
 func TestLibraryFollowsNameStyle(t *testing.T) {
-	libs, _ := filepath.Glob(reporoot.Path("lib/*.tr"))
-	tools, _ := filepath.Glob(reporoot.Path("tools/gpu/*.tr"))
+	libs, _ := reporoot.Glob(reporoot.Path("lib/*.tr"))
+	tools, _ := reporoot.Glob(reporoot.Path("tools/gpu/*.tr"))
 	for _, file := range append(libs, tools...) {
 		data, err := os.ReadFile(file)
 		if err != nil {

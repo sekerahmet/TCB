@@ -130,7 +130,7 @@ func TestResumedSameAsUninterrupted(t *testing.T) {
 	}
 	sameResults(t, a, b, outputA, outputB)
 	// tut: 2 → en yeni iki nokta kalır.
-	inputs, _ := os.ReadDir(filepath.Join(b, "kontrol_noktalari"))
+	inputs, _ := reporoot.ReadDir(filepath.Join(b, "kontrol_noktalari"))
 	var ckpts []string
 	for _, g := range inputs {
 		ckpts = append(ckpts, g.Name())
@@ -202,7 +202,7 @@ yazdır("sonuçlar:", sonuçlar)
 // checkLeftovers noktalar klasöründe geçici ya da kenara alınmış klasör kalmadığını denetler.
 func checkLeftovers(t *testing.T, runDir string) {
 	t.Helper()
-	inputs, _ := os.ReadDir(filepath.Join(runDir, "kontrol_noktalari"))
+	inputs, _ := reporoot.ReadDir(filepath.Join(runDir, "kontrol_noktalari"))
 	for _, g := range inputs {
 		if strings.Contains(g.Name(), ".tmp-") || strings.Contains(g.Name(), ".eski-") {
 			t.Errorf("artık klasör kaldı: %s", g.Name())

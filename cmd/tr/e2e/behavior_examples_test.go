@@ -27,7 +27,7 @@ var exampleNumber = regexp.MustCompile(`^(\d\d)_[a-z0-9_]+\.tr$`)
 // exampleFiles bir yazım klasöründeki örnekleri numarasıyla verir ("01" → "01_hello.tr").
 func exampleFiles(t *testing.T, lang string) map[string]string {
 	t.Helper()
-	entries, err := os.ReadDir(reporoot.Path("examples", lang))
+	entries, err := reporoot.ReadDir(reporoot.Path("examples", lang))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,8 +100,8 @@ func TestExamplesPaired(t *testing.T) {
 			}
 		}
 	}
-	trHelpers, _ := filepath.Glob(reporoot.Path("examples", "tr", "helpers", "*.tr"))
-	enHelpers, _ := filepath.Glob(reporoot.Path("examples", "en", "helpers", "*.tr"))
+	trHelpers, _ := reporoot.Glob(reporoot.Path("examples", "tr", "helpers", "*.tr"))
+	enHelpers, _ := reporoot.Glob(reporoot.Path("examples", "en", "helpers", "*.tr"))
 	if len(trHelpers) != len(enHelpers) {
 		t.Errorf("helpers/ dosya sayıları farklı: tr %d, en %d", len(trHelpers), len(enHelpers))
 	}
@@ -241,10 +241,10 @@ func TestExamplesSameStructure(t *testing.T) {
 			t.Errorf("%s ile %s farklı program: %d. sözcük birimi (tr %v / en %v)", name, enName, i, around(a, i), around(b, i))
 		}
 	}
-	trHelpers, _ := filepath.Glob(reporoot.Path("examples", "tr", "helpers", "*.tr"))
+	trHelpers, _ := reporoot.Glob(reporoot.Path("examples", "tr", "helpers", "*.tr"))
 	for _, p := range trHelpers {
 		coded, _ := source.Encode(readExample(t, "tr", filepath.Join("helpers", filepath.Base(p))))
-		enHelpers, _ := filepath.Glob(reporoot.Path("examples", "en", "helpers", "*.tr"))
+		enHelpers, _ := reporoot.Glob(reporoot.Path("examples", "en", "helpers", "*.tr"))
 		found := false
 		for _, q := range enHelpers {
 			if firstDifference(structure(coded), structure(readExample(t, "en", filepath.Join("helpers", filepath.Base(q))))) < 0 {

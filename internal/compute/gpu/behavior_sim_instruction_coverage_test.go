@@ -4,11 +4,12 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
 // Çekirdeklere eklenen her PTX komutu benzeticiye de eklenir: gerçek kart varken sınamalar
@@ -44,7 +45,7 @@ func literalOp(e ast.Expr) string {
 // ikinci değer çözülemeyen (değişkenle verilen) çağrıların sayısıdır.
 func emittedOps(t *testing.T) (ops map[string][]string, unresolved int) {
 	t.Helper()
-	files, err := filepath.Glob("*.go")
+	files, err := reporoot.Glob("*.go")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -35,7 +35,7 @@ func belgeListesi(t *testing.T) []string {
 	list := []string{"README.md", "SECURITY.md", "CONTRIBUTING.md", "lib/README.md",
 		"editors/vscode/README.md", "tools/bench/README.md", ".github/ISSUE_TEMPLATE/name_request.md"}
 	for _, pattern := range []string{"docs/*.md", "docs/*/*.md"} {
-		d, err := filepath.Glob(reporoot.Path(pattern))
+		d, err := reporoot.Glob(reporoot.Path(pattern))
 		if err != nil {
 			t.Fatal(err)
 		}

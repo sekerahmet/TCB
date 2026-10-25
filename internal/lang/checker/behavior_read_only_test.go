@@ -3,10 +3,11 @@ package checker
 import (
 	"go/parser"
 	"go/token"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
 // Denetçi kod çalıştırmaz: yalnızca okur ve raporlar. Yorumlayıcıyı (ve ayrıştırıcıyı) içe
@@ -29,7 +30,7 @@ const langPrefix = "github.com/sekerahmet/TCB/internal/lang/"
 var langAllowed = map[string]bool{"ast": true, "codes": true, "hint": true, "lexer": true, "messages": true, "turkish": true}
 
 func TestCheckerOnlyReads(t *testing.T) {
-	files, err := filepath.Glob("*.go")
+	files, err := reporoot.Glob("*.go")
 	if err != nil {
 		t.Fatal(err)
 	}

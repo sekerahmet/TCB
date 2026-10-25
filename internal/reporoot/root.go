@@ -22,23 +22,30 @@ var (
 // kullanıldığı için bu, testin anlaşılır bir iletiyle düşmesi demektir).
 func Root() string {
 	rootOnce.Do(func() {
-		d, err := os.Getwd()
-		if err != nil {
-			panic("reporoot: cannot read the working directory: " + err.Error())
-		}
-		for {
-			if _, err := os.Stat(filepath.Join(d, "go.mod")); err == nil {
-				root = d
-				return
-			}
-			parent := filepath.Dir(d)
-			if parent == d {
-				panic("reporoot: no go.mod found above the working directory")
-			}
-			d = parent
+		var ok bool
+		if root, ok = findRoot(); !ok {
+			panic("reporoot: no go.mod found above the working directory")
 		}
 	})
 	return root
+}
+
+// findRoot çalışma klasöründen yukarı doğru go.mod'un bulunduğu ilk klasördür (bulunamazsa ok false).
+func findRoot() (string, bool) {
+	d, err := os.Getwd()
+	if err != nil {
+		return "", false
+	}
+	for {
+		if _, err := os.Stat(filepath.Join(d, "go.mod")); err == nil {
+			return d, true
+		}
+		parent := filepath.Dir(d)
+		if parent == d {
+			return "", false
+		}
+		d = parent
+	}
 }
 
 // Path depo köküne göre verilen yolu (bölü çizgisiyle yazılmış parçalar) mutlak yola çevirir:

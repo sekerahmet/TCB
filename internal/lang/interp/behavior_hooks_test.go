@@ -201,7 +201,7 @@ func hookSignature(ft *ast.FuncType) string {
 // parseDir klasördeki test dışı Go dosyalarını ayrıştırır (alt klasörlere inmez).
 func parseNonTestDir(t *testing.T, dir string) []*ast.File {
 	t.Helper()
-	entries, err := filepath.Glob(filepath.Join(dir, "*.go"))
+	entries, err := reporoot.Glob(filepath.Join(dir, "*.go"))
 	if err != nil {
 		t.Fatal(err)
 	}
