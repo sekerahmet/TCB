@@ -139,8 +139,7 @@ func addSecretItems(m *interp.VM, value string) {
 // isNumberOrBool değer (boşluklar atılınca) bir sayı ya da mantık değeri mi?
 func isNumberOrBool(s string) bool {
 	s = strings.TrimSpace(s)
-	switch strings.ToLower(s) {
-	case "true", "false", codes.Name(codes.A040), codes.Name(codes.A041):
+	if _, ok := boolName(strings.ToLower(s)); ok {
 		return true
 	}
 	if _, _, err := numberFormat(s); err == nil {

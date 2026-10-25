@@ -131,7 +131,7 @@ func floatBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 		n, err := strconv.ParseFloat(s, 64) // "inf", "nan" her dilde okunur
 		if err != nil {
 			var ok bool
-			if n, ok = parseNonFinite(s, y.textLanguage()); !ok {
+			if n, ok = ParseNonFinite(s, y.textLanguage()); !ok {
 				return nil, messages.New(messages.H2430, CallPrefix(codes.G211), val.Val)
 			}
 		}

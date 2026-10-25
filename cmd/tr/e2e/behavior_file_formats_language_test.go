@@ -215,6 +215,9 @@ func TestDisplayFollowsPersonsLanguage(t *testing.T) {
 	if strings.Contains(help.Stdout, "doğru") || strings.Contains(help.Stdout, "<Tam>") {
 		t.Errorf("TR_DIL=en yardımında Türkçe değer ya da tip adı:\n%s", help.Stdout)
 	}
+	// Yardımın gösterdiği yazım okunur (19.3, 17.8): TR_DIL=en'de "true,false" ve "inf".
+	testkit.WriteFile(t, dir, "v.tr", "değişken a = komut_satırı({liste: [doğru], büyük: 1.5})\nyazdır(a.liste, a.büyük)\n")
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "v.tr", "--liste", "true,false", "--büyük", "inf"), 0, []string{"[doğru, yanlış] sonsuz"}, nil)
 }
 
 // İletilerin içindeki değerler ve tip adları iletinin dilindedir (TR_DIL): aynı hata TR_DIL=en
