@@ -5,8 +5,14 @@
 // Kural CLAUDE.md'dedir ("Kesin kurallar": dokunmadan önce tests-for); kanca onu ajanın
 // dikkatine bırakmaz.
 //
-// Kanca girdisi standart girişten JSON gelir (session_id, tool_input.file_path ya da
-// notebook_path). Depo dışındaki, izlenmeyen (yeni ya da scratch) dosyalar ve oturumda daha önce
+// Kabuk araçlarında (Bash, PowerShell) ikinci kural: dakikalar süren denetimler (ön denetim ve
+// tam denetim `tools/full_check.sh`, `./...` desenli `go test`) ön planda çağrılınca durur ve
+// arka planda koşulması istenir; yazılı kural ve hafıza bunu tutmadı, kanca tutar. Ayar dosyası
+// `go run`'ı yalnızca komut bu adayları anıyorsa çağırır (her kabuk çağrısına derleme bedeli
+// binmez); asıl karar burada, tırnak ve heredoc metni sayılmadan verilir.
+//
+// Kanca girdisi standart girişten JSON gelir (session_id, tool_name, tool_input.file_path ya da
+// notebook_path; kabukta tool_input.command ve run_in_background). Depo dışındaki, izlenmeyen (yeni ya da scratch) dosyalar ve oturumda daha önce
 // gösterilmiş dosyalar sessizce geçer. İşaretler geçici klasörde oturum başınadır. Durdurma
 // çıkış koduyla değil Claude Code'un JSON kararıyla (permissionDecision "deny") yapılır: kanca
 // `go run` ile çalışır ve `go run` programın 2 çıkış kodunu 1'e çevirir. Kancanın kendisi
@@ -25,6 +31,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -34,9 +41,12 @@ const maxLines = 60
 
 type hookInput struct {
 	SessionID string `json:"session_id"`
+	ToolName  string `json:"tool_name"`
 	ToolInput struct {
-		FilePath     string `json:"file_path"`
-		NotebookPath string `json:"notebook_path"`
+		FilePath        string `json:"file_path"`
+		NotebookPath    string `json:"notebook_path"`
+		Command         string `json:"command"`
+		RunInBackground bool   `json:"run_in_background"`
 	} `json:"tool_input"`
 }
 
@@ -54,6 +64,13 @@ func run(in io.Reader, out, errOut io.Writer, stamps string, find func(string) (
 	if err := json.NewDecoder(in).Decode(&h); err != nil {
 		fmt.Fprintln(errOut, "edithook:", err)
 		return 1
+	}
+	if h.ToolName == "Bash" || h.ToolName == "PowerShell" {
+		if c := longCommand(h.ToolInput.Command); c != "" && !h.ToolInput.RunInBackground {
+			return deny(out, errOut, c+" takes minutes: run it with run_in_background: true and go on; "+
+				"the notification says when it ends (CLAUDE.md, hard rules: long checks run in the background).")
+		}
+		return 0
 	}
 	path := h.ToolInput.FilePath
 	if path == "" {
@@ -85,6 +102,106 @@ func run(in io.Reader, out, errOut io.Writer, stamps string, find func(string) (
 		"main session with the command, the expected and the actual answer (tools/codegraph/gaps.md)."+
 		"\n\n$ go run ./tools/codegraph tests-for %s\n%s", t.rel, t.rel, report)
 	return deny(out, errOut, reason)
+}
+
+// longCommand komut dakikalar süren bir denetimi çağırıyorsa onun adını verir, yoksa "".
+func longCommand(command string) string {
+	for _, words := range commands(command) {
+		for len(words) > 0 && (strings.Contains(words[0], "=") || slices.Contains([]string{"bash", "sh", "time", "nohup", "env"}, words[0])) {
+			words = words[1:] // ortam ataması (TR_DIL=en) ve sarmalayan komut
+		}
+		switch {
+		case len(words) == 0:
+		case strings.TrimPrefix(words[0], "./") == "tools/full_check.sh":
+			return "tools/full_check.sh"
+		case len(words) > 1 && words[0] == "go" && words[1] == "test" &&
+			slices.ContainsFunc(words[2:], func(a string) bool { return strings.HasSuffix(a, "...") }):
+			return "go test ./..."
+		}
+	}
+	return ""
+}
+
+// commands kabuk metnini komutlara ve sözcüklere böler: ayırıcılar &&, ||, ;, |, &, (, ) ve satır
+// sonudur. Tırnağın içi sözcüğün metnidir; heredoc gövdesi (<<EOF ... EOF) ve PowerShell
+// here-string'i (@' ... '@) metindir, komut sayılmaz. Ayırıcılar ASCII olduğundan bayt bayt gezmek
+// UTF-8 metni bozmaz.
+func commands(s string) [][]string {
+	var out [][]string
+	var words, heredocs []string
+	var word strings.Builder
+	inWord := false
+	endWord := func() {
+		if inWord {
+			words, inWord = append(words, word.String()), false
+			word.Reset()
+		}
+	}
+	endCommand := func() {
+		if endWord(); len(words) > 0 {
+			out, words = append(out, words), nil
+		}
+	}
+	for i := 0; i < len(s); i++ {
+		switch c := s[i]; {
+		case c == '@' && i+2 < len(s) && (s[i+1] == '\'' || s[i+1] == '"') && (s[i+2] == '\n' || s[i+2] == '\r'):
+			end := strings.Index(s[i+2:], "\n"+s[i+1:i+2]+"@")
+			if end < 0 {
+				i = len(s)
+				continue
+			}
+			i, inWord = i+2+end+2, true
+		case c == '\'' || c == '"':
+			j := i + 1
+			for j < len(s) && s[j] != c {
+				if c == '"' && s[j] == '\\' {
+					j++
+				}
+				j++
+			}
+			j = min(j, len(s))
+			word.WriteString(s[i+1 : j])
+			i, inWord = j, true
+		case c == '<' && i+1 < len(s) && s[i+1] == '<':
+			j := i + 2
+			for j < len(s) && (s[j] == '-' || s[j] == ' ') {
+				j++
+			}
+			k := j
+			for k < len(s) && !strings.ContainsRune(" \t\r\n;&|<>()", rune(s[k])) {
+				k++
+			}
+			if tag := strings.Trim(s[j:k], `'"`); tag != "" {
+				heredocs = append(heredocs, tag)
+			}
+			i = k - 1
+		case c == '\n':
+			endCommand()
+			for _, tag := range heredocs {
+				for i < len(s) {
+					start, end := i+1, len(s)
+					if n := strings.IndexByte(s[min(start, len(s)):], '\n'); n >= 0 {
+						end = start + n
+					}
+					line := strings.TrimSpace(s[min(start, len(s)):end])
+					i = end
+					if line == tag {
+						break
+					}
+				}
+			}
+			heredocs = nil
+		case strings.IndexByte(";&|()", c) >= 0:
+			endCommand()
+		case c == ' ' || c == '\t' || c == '\r':
+			endWord()
+		default:
+			word.WriteByte(c)
+			inWord = true
+		}
+	}
+	endCommand()
+	return out
 }
 
 // deny düzenlemeyi Claude Code'un PreToolUse kararıyla durdurur; gerekçe ajana gider.

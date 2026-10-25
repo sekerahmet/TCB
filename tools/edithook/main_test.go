@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"slices"
 	"strings"
 	"testing"
 
@@ -85,9 +84,66 @@ func TestUntrackedFilesAndBadInputPass(t *testing.T) {
 	}
 }
 
-// Kanca Claude Code'a projenin ayarıyla bağlanır (.claude/settings.json, izlenir): düzenleme
-// araçlarının hepsinde bu araç çalışır. Ayar bozulur ya da araç taşınırsa kural sessizce kalkardı.
-func TestSettingsRunTheHookOnEveryEditTool(t *testing.T) {
+// shell kancayı bir kabuk aracının (Bash, PowerShell) komutuyla koşar; dosya aranmaz.
+func shell(t *testing.T, tool, command string, background bool) string {
+	t.Helper()
+	in, err := json.Marshal(map[string]any{"session_id": "s", "tool_name": tool,
+		"tool_input": map[string]any{"command": command, "run_in_background": background}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out, errOut strings.Builder
+	never := func(string) (target, bool) { t.Fatal("dosya aranmamalı"); return target{}, false }
+	if code := run(strings.NewReader(string(in)), &out, &errOut, t.TempDir(), never, nil); code != 0 || errOut.Len() > 0 {
+		t.Fatalf("kanca çalışamadı: çıkış %d, %s", code, errOut.String())
+	}
+	return out.String()
+}
+
+// Kural (CLAUDE.md, Kesin kurallar): dakikalar süren denetimler (ön denetim ve tam denetim,
+// `./...` desenli go test) ön planda çağrılınca durur ve arka planda koşulması istenir; arka
+// planda koşan, saniyelik hedefli test ve komutu yalnızca anan metin (tırnak, heredoc,
+// PowerShell here-string, grep) geçer.
+func TestLongCommandsRunInTheBackground(t *testing.T) {
+	long := []string{
+		"bash tools/full_check.sh",
+		`cd "/c/Turkish Code Base" && bash tools/full_check.sh --kip=on 2>&1 | tail -8`,
+		"./tools/full_check.sh --kip=zorlama",
+		"go test ./... -count=1",
+		"go test -short ./internal/... ./cmd/...",
+		"git add x && go run ./tools/codegraph dups --changed main\nTR_DIL=en bash tools/full_check.sh",
+		"x=$(bash tools/full_check.sh --kip=on)",
+	}
+	text := []string{
+		"go test ./cmd/tr/e2e -run TestDocLinks -count=1",
+		"grep -n dups_check tools/full_check.sh",
+		`git commit -m "tools/full_check.sh; bash tools/full_check.sh runs"`,
+		"git commit -q -F - <<'EOF'\nbash tools/full_check.sh is slow\ngo test ./...\nEOF\ngit log -1",
+		"git commit -m @'\nbash tools/full_check.sh\n'@",
+		`echo 'go test ./...'`,
+	}
+	for _, tool := range []string{"Bash", "PowerShell"} {
+		for _, c := range long {
+			if reason, ok := held(t, shell(t, tool, c, false)); !ok || !strings.Contains(reason, "run_in_background") {
+				t.Errorf("%s: ön plandaki uzun komut durmalı, gerekçe arka planı söylemeli: %q -> %q", tool, c, reason)
+			}
+			if out := shell(t, tool, c, true); out != "" {
+				t.Errorf("%s: arka plandaki komut geçmeli: %q -> %q", tool, c, out)
+			}
+		}
+		for _, c := range text {
+			if out := shell(t, tool, c, false); out != "" {
+				t.Errorf("%s: komutu yalnızca anan metin geçmeli: %q -> %q", tool, c, out)
+			}
+		}
+	}
+}
+
+// Kanca Claude Code'a projenin ayarıyla bağlanır (.claude/settings.json, izlenir, yan oturumların
+// çalışma ağaçlarında da): düzenleme araçlarının ve kabuk araçlarının hepsinde bu araç çalışır,
+// kabuk araçlarında `go run`'ı yalnızca uzun komut adayları için çağıran ön süzgeçle. Ayar
+// bozulur ya da araç taşınırsa kural sessizce kalkardı.
+func TestSettingsRunTheHookOnEveryEditAndShellTool(t *testing.T) {
 	data, err := os.ReadFile(reporoot.Path(".claude/settings.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -103,20 +159,28 @@ func TestSettingsRunTheHookOnEveryEditTool(t *testing.T) {
 	if err := json.Unmarshal(data, &s); err != nil {
 		t.Fatalf("ayar JSON değil: %v", err)
 	}
+	commandOf := map[string]string{}
 	for _, e := range s.Hooks.PreToolUse {
 		for _, h := range e.Hooks {
-			if h.Type != "command" || !strings.Contains(h.Command, "go run ./tools/edithook") {
-				continue
-			}
-			for _, tool := range []string{"Edit", "Write", "MultiEdit", "NotebookEdit"} {
-				if !slices.Contains(strings.Split(e.Matcher, "|"), tool) {
-					t.Errorf("kanca %s aracında çalışmıyor: matcher %q", tool, e.Matcher)
+			if h.Type == "command" && strings.Contains(h.Command, "go run ./tools/edithook") {
+				for _, tool := range strings.Split(e.Matcher, "|") {
+					commandOf[tool] = h.Command
 				}
 			}
-			return
 		}
 	}
-	t.Fatal(".claude/settings.json'da PreToolUse kancası `go run ./tools/edithook` yok")
+	for _, tool := range []string{"Edit", "Write", "MultiEdit", "NotebookEdit", "Bash", "PowerShell"} {
+		if _, ok := commandOf[tool]; !ok {
+			t.Errorf("kanca %s aracında çalışmıyor (.claude/settings.json, PreToolUse, `go run ./tools/edithook`)", tool)
+		}
+	}
+	for _, tool := range []string{"Bash", "PowerShell"} {
+		for _, candidate := range []string{"full_check.sh", "go test"} {
+			if c := commandOf[tool]; c != "" && !strings.Contains(c, candidate) {
+				t.Errorf("%s kancasının ön süzgeci %q adayını kanca aracına geçirmiyor: %q", tool, candidate, c)
+			}
+		}
+	}
 }
 
 // locate yalnızca git'in izlediği dosyayı depo yoluyla verir; yeni dosya ve depo dışı geçer.
