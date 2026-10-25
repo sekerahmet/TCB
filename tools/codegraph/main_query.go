@@ -12,6 +12,7 @@ import (
 
 // queryOpts bir sorgu komutunun ayarları ve çıktı akışlarıdır.
 type queryOpts struct {
+	stdin          io.Reader // query -: grep çıktısı (query_lines.go)
 	stdout, stderr io.Writer
 	limit          int    // gruptaki en çok satır (0: sınırsız)
 	root, base     string // depo kökü; changed için karşılaştırılan dal
@@ -39,7 +40,7 @@ func runQueryOn(loaded *Graph, cmd string, args []string, stdout, stderr io.Writ
 	graphPath := fs.String("graph", "", "graph file (default <root>/.codegraph/graph.json)")
 	all := fs.Bool("all", false, "no line limit")
 	noRebuild := fs.Bool("no-rebuild", false, "use the graph as it is, even when the sources changed")
-	o := &queryOpts{stdout: stdout, stderr: stderr}
+	o := &queryOpts{stdin: os.Stdin, stdout: stdout, stderr: stderr}
 	fs.IntVar(&o.limit, "limit", 12, "lines per group")
 	fs.StringVar(&o.root, "root", "", "repository root (default: found from the current directory, see README)")
 	fs.StringVar(&o.base, "base", "main", "changed: the branch a branch name is compared with (git diff base...branch)")
@@ -111,6 +112,9 @@ func (ix *index) dispatch(cmd string, names []string, o *queryOpts) int {
 	if cmd == "changed" { // adı değil, git revizyonu alır
 		return ix.runChanged(changeOpts{root: o.root, base: o.base, limit: o.limit}, names[0], o.stdout, o.stderr)
 	}
+	if cmd == "query" && len(names) == 1 && names[0] == "-" { // grep çıktısı: her satıra içeren düğüm
+		return ix.printLocations(o.stdin, o.stdout)
+	}
 	kinds := map[string][]string{
 		"calls-into": {kindPackage}, "captures": {kindFunc, kindMethod, kindClosure}, "fields": {kindField, kindType},
 	}[cmd]
@@ -173,6 +177,12 @@ func (ix *index) answer(cmd string, nodes []*Node, o *queryOpts) int {
 // resolve bir adı tek düğüme çözer; belirsizse adayları stdout'a yazar (3), yoksa stderr'e
 // yakın adlarla birlikte bildirir (4). kinds doluysa yalnızca o türdeki düğümler sayılır.
 func (ix *index) resolve(q string, o *queryOpts, kinds ...string) (*Node, int) {
+	if loc, ok := ix.locate(q, true); ok && len(kinds) == 0 { // dosya:satır[:sütun] (query_lines.go)
+		if loc.note != "" {
+			fmt.Fprintf(o.stderr, "codegraph: %s: %s\n", q, loc.note)
+		}
+		return loc.node, exitOK
+	}
 	if n, isFile := ix.fileTarget(q); isFile && len(kinds) == 0 {
 		if n != nil {
 			return n, exitOK

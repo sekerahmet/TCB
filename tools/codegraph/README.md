@@ -14,7 +14,21 @@ go run ./tools/codegraph tests-for interp.VM.Run
 go run ./tools/codegraph history messages.New       # commits that touched it (computed from git)
 go run ./tools/codegraph changed claude/some-branch # graph nodes a branch touches, their tests, overlapping branches
 go run ./tools/codegraph deleted                  # message/name codes that existed once and are gone
+go run ./tools/codegraph tests-for internal/lang/codes/language.go:227   # the declaration that contains a line
+grep -rn "code list %s" internal | go run ./tools/codegraph query -       # each grep hit with its declaration
 ```
+
+**A location is a name.** `query`, `who-uses`, `tests-for` and `history` take `file:line` and `file:line:col`
+(gopls' and `tr dizin`'s form) for a tracked file and answer for the narrowest node whose lines contain it: the
+first to the last line of a declaration, a func literal counting as its function, a field inside its type, a doc
+comment (directly above, no blank line between) as the declaration it documents, a heading section in Markdown,
+a code line in a dictionary file. A line in no declaration (between declarations, imports) answers for the file
+and says so on stderr. In a `.tr` file a column resolves like `tr dizin` (codeindex `Reader.At`: the declaration
+the name under the cursor refers to). `query -` reads `path:line[:col]:text` lines (`grep -n`, `rg --vimgrep`)
+from stdin and writes under each the node that contains it; there is no text search in codegraph (grep and
+ripgrep exist). `TestEveryFunctionBoundaryLocatesItsFunction` compares the first, last, doc and func-literal lines
+of every function of two packages, and the blank line between declarations, with go/ast (DENETİM 2026-10-26:
+a grep hit could not be taken to the graph).
 
 Flags: `build --root DIR --out FILE --warnings`; queries take `--graph FILE`, `--limit N` (lines per
 group, default 12) and `--all`, before or after the names. Output is short plain text; edges tagged

@@ -22,7 +22,7 @@ import (
 // çıkarıcılar, Markdown ayrıştırıcısı, grafiğin kendisi) özete girer; yeni bir çıkarıcı dosyası
 // kendiliğinden kapsanır, yeni bir komut dosyası buraya yazılır.
 var notExtractor = map[string]bool{
-	"main.go": true, "main_query.go": true, "query.go": true, "query_path.go": true, "query_tests.go": true, "query_files.go": true, "query_about.go": true, "query_subprocess.go": true,
+	"main.go": true, "main_query.go": true, "query.go": true, "query_path.go": true, "query_tests.go": true, "query_files.go": true, "query_lines.go": true, "query_about.go": true, "query_subprocess.go": true,
 	"query_calls.go": true, "query_group.go": true, "query_names.go": true, "query_fields.go": true, "query_suggest.go": true, "history.go": true, "codehist.go": true, "changed.go": true,
 	"diffmap.go": true, "branchdecl.go": true, "deleted.go": true, "fresh.go": true, "root.go": true,
 	"dups_changed.go": true, "audit_common.go": true, "audit_methods.go": true, "audit_state.go": true, "audit_time.go": true, "audit_refs.go": true, "dups_corpus.go": true, "dups_exclude.go": true, "dups_siblings.go": true, "test_names.go": true, "test_notes.go": true, "dups_find.go": true, "dups_report.go": true, "dups_similar.go": true,
