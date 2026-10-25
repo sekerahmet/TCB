@@ -169,7 +169,7 @@ func printError(err error, source string) {
 }
 
 func printHelp() {
-	fmt.Println("🇹🇷 " + messages.Text(messages.H8610, Version))
+	fmt.Println(messages.Text(messages.H8610, Version))
 	fmt.Println(messages.Text(messages.H8611))
 	// Her satır tek iletidir: kullanım ve açıklama arasında sekme; komut ve seçenek adları
 	// koddan, etkin dilde gelir. Sütunu tabwriter hizalar (adların uzunluğu dile göre değişir).
@@ -235,7 +235,7 @@ func checkFile(path string) {
 
 func startREPL() {
 	defer stdlib.Close() // açık dosyalar kapanır, geçici klasörler silinir
-	fmt.Println("🇹🇷 " + messages.Text(messages.H8633, Version))
+	fmt.Println(messages.Text(messages.H8633, Version))
 	fmt.Println(messages.Text(messages.H8634, codes.DisplayName(codes.K200)))
 	machine := interp.New()
 	// Kabuğa yazılan satırlar kişinin yazım dilindedir (source.Options.Typed); değerler de o
