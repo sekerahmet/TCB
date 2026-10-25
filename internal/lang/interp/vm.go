@@ -403,7 +403,7 @@ func (v *VM) WaitAsync() {
 // suggestName kapsamdaki adlar arasında yazıma en yakın olanı "Bunu mu demek istediniz?" olarak önerir.
 // Öneri denetleyiciyle ortaktır (ipucu.AdOnerisi): tanımsız ad çalışmadan önce de aynı
 // mesajla bulunur.
-func suggestName(name string, env *Environment) string {
+func suggestName(name string, env *Environment) *messages.Error {
 	return hint.NameSuggestion(name, env.Names())
 }
 

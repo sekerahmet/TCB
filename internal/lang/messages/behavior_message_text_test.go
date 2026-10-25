@@ -20,10 +20,8 @@ import (
 //
 // textEditing, kuralın bugünkü ihlalleridir (dosya → kullanım sayısı) ve yalnızca küçülür.
 //
-//	interp/code_names.go: tipin kendi hata iletisi asıl adı zaten öneriyor mu diye iletinin metnine bakıyor.
 //	stdlib/dataset/sentinel.go: iletinin metninden ": " önekini kırpıyor.
 var textEditing = map[string]int{
-	"internal/lang/interp/code_names.go":  1,
 	"internal/stdlib/dataset/sentinel.go": 1,
 }
 

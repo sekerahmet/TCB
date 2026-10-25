@@ -129,7 +129,7 @@ func (kn *Checkpoint) GetProperty(kd codes.Code, prop string) (interp.Value, err
 			return kn.rollback(m, args)
 		}), nil
 	}
-	return nil, bind.MemberError(string(CheckpointType), prop, codes.Names(codes.Y010, codes.Y520, codes.Y521, codes.Y522))
+	return nil, bind.MemberError(CheckpointType, prop, []codes.Code{codes.Y010, codes.Y520, codes.Y521, codes.Y522})
 }
 
 // setup kontrol_noktası(koşu, nesneler, her_dakika:, tut:) yerleşiğidir.

@@ -100,7 +100,7 @@ func (c *Progress) GetProperty(kd codes.Code, prop string) (interp.Value, error)
 			return interp.BoolToVal(c.finish(clock())), nil
 		}}, nil
 	}
-	return nil, bind.MemberError(string(ProgressType), prop, codes.Names(codes.Y010, codes.Y011))
+	return nil, bind.MemberError(ProgressType, prop, []codes.Code{codes.Y010, codes.Y011})
 }
 
 // openProgress ilerleme(toplam, günlük: g) yerleşiğidir.

@@ -182,7 +182,7 @@ func (o *LineReader) GetProperty(kd codes.Code, prop string) (interp.Value, erro
 		b.NoNamedArgs = true
 		return b, nil
 	}
-	return nil, bind.MemberError(string(LineReaderType), prop, codes.Names(codes.Y602, codes.Y012))
+	return nil, bind.MemberError(LineReaderType, prop, []codes.Code{codes.Y602, codes.Y012})
 }
 
 // closeMethod x.kapat() metodudur: dosyayı bırakır; bu çağrı kapattıysa doğru, zaten kapalıysa

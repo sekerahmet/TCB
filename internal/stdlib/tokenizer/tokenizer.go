@@ -87,7 +87,7 @@ const (
 	memberTokenID   = codes.Y613
 )
 
-var members = codes.Names(memberEncode, memberDecode, memberVocabSize, memberTokenID)
+var members = []codes.Code{memberEncode, memberDecode, memberVocabSize, memberTokenID}
 
 func (n *Object) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	switch kd {
@@ -100,7 +100,7 @@ func (n *Object) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	case memberTokenID:
 		return bind.Method(codes.Name(memberTokenID), n.tokenID), nil
 	}
-	return nil, bind.MemberError(TypeName, prop, members)
+	return nil, bind.MemberError(interp.ValueType(TypeName), prop, members)
 }
 
 // ----------------------------------------------------------------------------

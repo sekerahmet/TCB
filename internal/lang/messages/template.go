@@ -413,7 +413,7 @@ func (c *Catalog) codedText(a any) (string, bool) {
 		return e.MessageText(c.Language), true
 	case *Error:
 		if e == nil {
-			return "", false
+			return "", true // yok olan ileti parçası (ör. öneri yoksa) boş yazılır
 		}
 		return c.render(e.Code, e.Args), true
 	case *PosError:

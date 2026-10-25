@@ -65,12 +65,11 @@ func CheckNamed(fn any, named map[string]interp.Value, names ...Named) error {
 		if known {
 			continue
 		}
-		var candidates, shown []string // eşleştirme kanonik adlarla, ileti yazım diliyle
-		display := map[string]string{}
+		var candidates []string // eşleştirme kanonik adlarla; iletide ad iletinin dilinde
+		byName := map[string]Named{}
 		for _, a := range names {
 			candidates = append(candidates, a.TR)
-			d := codes.DisplayName(a.Code)
-			shown, display[a.TR] = append(shown, d), d
+			byName[a.TR] = a
 		}
 		o := ""
 		if k, ok := codes.Suggest(codes.NamespaceParam, given, nil); ok && slices.Contains(candidates, codes.Name(k)) {
@@ -84,22 +83,49 @@ func CheckNamed(fn any, named map[string]interp.Value, names ...Named) error {
 		}
 		switch {
 		case o != "":
-			return messages.New(messages.H7900, fn, given, display[o])
+			return messages.New(messages.H7900, fn, given, byName[o])
 		case len(candidates) > 0:
-			return messages.New(messages.H7901, fn, given, strings.Join(shown, ", "))
+			codeList := make(nameList, len(names))
+			for i, a := range names {
+				codeList[i] = a.Code
+			}
+			return messages.New(messages.H7901, fn, given, codeList)
 		}
 		return messages.New(messages.H7902, fn, given)
 	}
 	return nil
 }
 
+// nameList kodların virgülle ayrılmış adlarıdır, ileti parametresi olarak (messages.Localized):
+// adlar iletinin dilinde.
+type nameList []codes.Code
+
+func (l nameList) MessageText(lang string) string {
+	parts := make([]string, len(l))
+	for i, k := range l {
+		parts[i] = codes.NameRef(k).MessageText(lang)
+	}
+	return strings.Join(parts, ", ")
+}
+
 // MemberError motor tiplerinde bulunamayan bir üye için hatadır: yazıma en yakın üyeyi, yakın
-// bir üye yoksa tipin üyelerini önerir. ne tipin (ya da nesnenin) kullanıcıya görünen adıdır.
-func MemberError(what, prop string, members []string) error {
-	if o := turkish.Closest(prop, members); o != "" {
+// bir üye yoksa tipin üyelerini önerir (adlar iletinin dilinde). what tipin (ya da nesnenin)
+// ileti parametresi olarak adıdır (interp.ValueType ya da kodlu ileti).
+func MemberError(what any, prop string, members []codes.Code) error {
+	if o, ok := ClosestMember(prop, members); ok {
 		return messages.New(messages.H7903, what, prop, o)
 	}
-	return messages.New(messages.H7904, what, prop, strings.Join(members, ", "))
+	return messages.New(messages.H7904, what, prop, nameList(members))
+}
+
+// ClosestMember yazıma (kanonik adlarıyla) en yakın üyedir, ileti parametresi olarak (codes.Ref:
+// öneri iletinin dilinde).
+func ClosestMember(prop string, members []codes.Code) (codes.Ref, bool) {
+	names := codes.Names(members...)
+	if o := turkish.Closest(prop, names); o != "" {
+		return codes.NameRef(members[slices.Index(names, o)]), true
+	}
+	return codes.Ref{}, false
 }
 
 // GetNamed adlı argümanı kabul edilen yazımlarıyla (önce adın kendisiyle) arar.

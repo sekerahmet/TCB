@@ -107,7 +107,7 @@ func checkStructArgs(def *StructDefVal, nargs int, named map[string]Value, line 
 	return nil
 }
 
-func suggestParam(name string, params []ast.Param) string {
+func suggestParam(name string, params []ast.Param) *messages.Error {
 	var names []string
 	for _, p := range params {
 		names = append(names, p.Name)

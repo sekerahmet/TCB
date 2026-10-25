@@ -68,7 +68,7 @@ func (g *Log) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 			return g.add(args)
 		}), nil
 	}
-	return nil, bind.MemberError(string(LogType), prop, codes.Names(codes.Y004))
+	return nil, bind.MemberError(LogType, prop, []codes.Code{codes.Y004})
 }
 
 // openLog günlük(yol) yerleşiğidir.

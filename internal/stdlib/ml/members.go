@@ -5,7 +5,6 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
-	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 	"math"
 	"slices"
@@ -33,8 +32,6 @@ const (
 
 // tensorMemberCodes öneri listesinin sırasıdır.
 var tensorMemberCodes = []codes.Code{memberShape, memberDevice, memberDType, memberGrad, memberValue, memberReshape, memberTranspose, memberPermute, memberSlice, memberToDevice, memberToDType, memberSplit}
-
-var tensorMembers = codes.Names(tensorMemberCodes...)
 
 func isTensorMember(k codes.Code) bool { return slices.Contains(tensorMemberCodes, k) }
 
@@ -79,12 +76,12 @@ func (d *TensorValue) GetProperty(kd codes.Code, prop string) (interp.Value, err
 		return d.namedMethod(memberSplit, d.split), nil
 	}
 	if k, _, ok := codes.FindForeign(codes.NamespaceMember, prop, isTensorMember); ok {
-		o := codes.Name(k)
+		o := codes.NameRef(k)
 		if k == memberTranspose {
-			o += "()" // metot
+			o = o.Called() // metot
 		}
 		return nil, messages.New(messages.H7903, interp.ValTensor, prop, o)
-	} else if o := turkish.Closest(prop, tensorMembers); o != "" {
+	} else if o, ok := bind.ClosestMember(prop, tensorMemberCodes); ok {
 		return nil, messages.New(messages.H7903, interp.ValTensor, prop, o)
 	}
 	return nil, messages.New(messages.H6721, interp.ValTensor, prop)

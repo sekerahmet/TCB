@@ -19,7 +19,7 @@ func (c *Checker) checkTypeTextComparison(e *ast.InfixExpression) {
 	if !ok || c.builtinCall(call, codes.G201) == nil {
 		return
 	}
-	c.addError(e.Line(), 0, hint.TypeTextComparisonError(e.Operator, text.Value, codes.DisplayName(codes.A200)))
+	c.addError(e.Line(), 0, hint.TypeTextComparisonError(e.Operator, text.Value, codes.NameRef(codes.A200)))
 }
 
 // Mantık değerinin metni dosyanın dilindedir (3): İngilizce dosyada metin(b) "true" ya da

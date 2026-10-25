@@ -10,7 +10,6 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
-	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
 
@@ -65,7 +64,7 @@ const (
 	memberLR       = codes.Y504
 )
 
-var optimizerMembers = codes.Names(memberStep, memberZeroGrad, memberState, memberLoadState, memberLR)
+var optimizerMembers = []codes.Code{memberStep, memberZeroGrad, memberState, memberLoadState, memberLR}
 
 // rateField iyileştiricinin öğrenme oranı alanıdır (AdamW ya da SGD); arka uç onu her adımda
 // okur, yeni oran sonraki adımda kullanılır.
@@ -125,7 +124,7 @@ func (o *Optimizer) GetProperty(kd codes.Code, prop string) (interp.Value, error
 	if v, ok, err := o.stateMember(kd); ok {
 		return v, err // durum, durumu_yükle (iyilestirici_durum.go)
 	}
-	if s := turkish.Closest(prop, optimizerMembers); s != "" {
+	if s, ok := bind.ClosestMember(prop, optimizerMembers); ok {
 		return nil, messages.New(messages.H6530, o.ad, prop, s)
 	}
 	return nil, messages.New(messages.H6529, o.ad, prop)

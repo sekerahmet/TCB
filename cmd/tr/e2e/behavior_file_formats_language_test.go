@@ -249,6 +249,38 @@ func TestBoolTextComparisonWarnsByFileLanguage(t *testing.T) {
 	}
 }
 
+// "Bunu mu demek istediniz" önerisi iletinin dilindedir (4E): İngilizce dosyanın yakaladığı
+// hatada (TR_DIL=tr) ve TR_DIL=en görüntüsünde İngilizcedir. Önceden öneri kanonik ya da TR_DIL'de
+// kurulmuş bir metindi (yakalanan hatada "devrik()", "türev_izle" kalıyordu).
+func TestMessageNamesFollowTheMessageLanguage(t *testing.T) {
+	coded, err := source.Encode("dene { tensör([1.0], türev_izle: 5) } yakala h { yazdır(h) }\n" +
+		"dene { yazdır(tensör([[1.0]]).T) } yakala h { yazdır(h) }\n" +
+		"dene { tensör([1.0], türev_izl: doğru) } yakala h { yazdır(h) }\n" +
+		"yazdır(tensör([[1.0]]).T)\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"Did you mean 'transpose()'?", "takes no parameter named 'türev_izl'. Did you mean 'requires_grad'?"}
+	dir := t.TempDir()
+	testkit.WriteFile(t, dir, "en.tr", inLanguage(coded, "en"))
+	testkit.WriteFile(t, dir, "tr.tr", coded)
+	caught := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=tr"}, "en.tr")
+	shown := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "tr.tr")
+	for i, w := range want {
+		if !strings.Contains(caught.Stdout, w) {
+			t.Errorf("İngilizce dosyanın yakaladığı hatada %q yok:\n%s", w, caught.Stdout)
+		}
+		if i == 0 && !strings.Contains(shown.Stderr, w) {
+			t.Errorf("TR_DIL=en görüntüsünde %q yok:\n%s", w, shown.Stderr)
+		}
+	}
+	for _, turkish := range []string{"devrik", "türev_izle"} {
+		if strings.Contains(caught.Stdout, turkish) {
+			t.Errorf("İngilizce dosyanın yakaladığı hatada Türkçe ad %q:\n%s", turkish, caught.Stdout)
+		}
+	}
+}
+
 // fileFormatShape klasördeki dosya adlarını ve her JSON dosyasının (satırının) anahtar
 // kümesini, değerleri atarak, sıralı bir özet olarak verir.
 func fileFormatShape(t *testing.T, dir string) string {

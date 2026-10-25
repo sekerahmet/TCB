@@ -124,7 +124,7 @@ const (
 	memberNext       = codes.Y602
 )
 
-var datasetMembers = codes.Names(memberSampler, memberSequential)
+var datasetMembers = []codes.Code{memberSampler, memberSequential}
 
 func (k *Dataset) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	switch kd {
@@ -133,7 +133,7 @@ func (k *Dataset) GetProperty(kd codes.Code, prop string) (interp.Value, error) 
 	case memberSequential:
 		return bind.Method(codes.Name(memberSequential), k.sequentialTR), nil
 	}
-	return nil, bind.MemberError(messages.Text(messages.H5502), prop, datasetMembers)
+	return nil, bind.MemberError(messages.New(messages.H5502), prop, datasetMembers)
 }
 
 // resolveCacheDir önbellek: adlı argümanının (verildiyse) çözülmüş klasör yoludur.
@@ -356,11 +356,11 @@ func (o *Reader) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	case memberSkip:
 		return bind.Method(codes.Name(memberSkip), o.skipTR), nil
 	}
-	what := SamplerType
+	var what any = interp.ValueType(SamplerType)
 	if o.sequential {
-		what = messages.Text(messages.H5526)
+		what = messages.New(messages.H5526)
 	}
-	return nil, bind.MemberError(what, prop, codes.Names(memberNext, memberSkip, memberState, memberLoadState))
+	return nil, bind.MemberError(what, prop, []codes.Code{memberNext, memberSkip, memberState, memberLoadState})
 }
 
 // readerArgs toplu, bağlam ve (örnekleyicide) tohum argümanlarını okur. Konumlu

@@ -109,7 +109,7 @@ func (y *Path) TaskMember(m *interp.VM, kd codes.Code, name string) (interp.Valu
 	case codes.Y318:
 		return y.size(m)
 	}
-	return nil, bind.MemberError(string(PathType), name, codes.Names(pathMemberCodes...))
+	return nil, bind.MemberError(PathType, name, pathMemberCodes)
 }
 
 // fileName son bileşendir; . ve kök için boştur.
