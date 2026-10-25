@@ -93,27 +93,7 @@ func incrementalBuild(root string, opts Options, prev *Index, changed []string) 
 			x.edges[edgeKey{e.From, e.To, e.Kind}] = &c
 		}
 	}
-	for _, o := range prev.Occurrences {
-		if !dirty[o.Pos.File] {
-			x.occ = append(x.occ, o)
-		}
-	}
-	for _, c := range prev.Constructs {
-		if !dirty[c.Pos.File] {
-			x.constructs = append(x.constructs, c)
-			x.constructSeen[c.In+"|"+c.Kind+"|"+c.Op+"|"+c.Operand] = true
-		}
-	}
-	for _, u := range prev.Unresolved {
-		if !dirty[u.Pos.File] {
-			x.unresolved = append(x.unresolved, u)
-		}
-	}
-	for _, s := range prev.Skipped {
-		if !dirty[s.File] {
-			x.skipped = append(x.skipped, s)
-		}
-	}
+	x.keepClean(prev, dirty)
 	for _, rel := range prev.Files {
 		if !dirty[rel] {
 			x.files[rel] = stubFile(rel, prev)
@@ -301,6 +281,37 @@ func pruneBuiltins(x *indexer) {
 	for id, n := range x.nodes {
 		if n.Kind == KindBuiltin && !used[id] {
 			delete(x.nodes, id)
+		}
+	}
+}
+
+// keepClean önceki dizinin, yeniden çözülmeyen dosyalardaki konumlu kayıtlarını alır: başvurular, üye tahminleri, dil
+// yapıları, çözülemeyen adlar ve atlanan dosyalar.
+func (x *indexer) keepClean(prev *Index, dirty map[string]bool) {
+	for _, o := range prev.Occurrences {
+		if !dirty[o.Pos.File] {
+			x.occ = append(x.occ, o)
+		}
+	}
+	for _, g := range prev.MemberGuesses {
+		if !dirty[g.Pos.File] {
+			x.guesses = append(x.guesses, g)
+		}
+	}
+	for _, c := range prev.Constructs {
+		if !dirty[c.Pos.File] {
+			x.constructs = append(x.constructs, c)
+			x.constructSeen[c.In+"|"+c.Kind+"|"+c.Op+"|"+c.Operand] = true
+		}
+	}
+	for _, u := range prev.Unresolved {
+		if !dirty[u.Pos.File] {
+			x.unresolved = append(x.unresolved, u)
+		}
+	}
+	for _, s := range prev.Skipped {
+		if !dirty[s.File] {
+			x.skipped = append(x.skipped, s)
 		}
 	}
 }

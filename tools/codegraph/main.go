@@ -40,7 +40,7 @@ const (
 const usage = `usage: codegraph <command> [flags] [args]
 
   build                      build the graph (flags: --root DIR, --out FILE, --warnings)
-  query <name>  (or explain)   a node and its neighbours
+  query <name>  (or explain)   a node and its neighbours; a name may be file:line[:col] (the declaration that contains it); query - reads grep -n output and writes each line's declaration
   path <from> <to> [--undirected|--through-hubs]   shortest directed path (calls, uses, dispatches ...); none is said plainly; --undirected also ignores direction but never goes through a type, package or file, --through-hubs allows those (marked)
   who-uses <name>            what uses a function, type, message code or name code
   tests-for <name>           tests that exercise a function, type or package

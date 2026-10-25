@@ -19,8 +19,8 @@ type changeOpts struct {
 // runChanged ref'in (dal ya da a..b / a...b aralığı) değişikliklerini grafiğin düğümlerine eşler:
 // değişen düğümler, onları sınayan testler ve aynı düğümlere dokunan öbür yerel claude/ dalları.
 //
-// Eşleme: grafik bugünkü çalışma ağacının grafiğidir. ref bugünkü HEAD ise yeni dosyadaki
-// satırlar eşlenir (yeni işlevler dahil); değilse hunk'ların eski tarafı (birleşme tabanındaki
+// Eşleme: grafik bugünkü çalışma ağacının grafiğidir. ref bugünkü HEAD ise fark çalışma ağacına kadardır
+// (changeHunks) ve yeni dosyadaki satırlar eşlenir (yeni işlevler, commit'lenmemiş düzenlemeler dahil); değilse hunk'ların eski tarafı (birleşme tabanındaki
 // satırlar) eşlenir, bu ana dal henüz kımıldamadıysa doğrudur. Yalnızca eklenen kod (eski
 // tarafta karşılığı yok) "mapped to no node" altında dosya olarak sayılır.
 func (ix *index) runChanged(o changeOpts, ref string, stdout, stderr io.Writer) int {
@@ -28,15 +28,15 @@ func (ix *index) runChanged(o changeOpts, ref string, stdout, stderr io.Writer) 
 	if _, b, ok := splitRange(ref); ok {
 		rng, right = ref, b
 	}
-	hs, err := diffHunks(o.root, rng)
+	hs, live, err := changeHunks(o.root, rng)
 	if err != nil {
 		fmt.Fprintln(stderr, "codegraph:", err)
 		return exitFail
 	}
 	oldSide := ix.touched(hs, false)
 	main, mapping := oldSide, "old-side lines (the merge base); the graph is of the checked-out tree, so this is exact only while it equals the merge base"
-	if sameCommit(o.root, right, "HEAD") {
-		main, mapping = ix.touched(hs, true), "new-side lines (the graph is of this very tree)"
+	if live {
+		main, mapping = ix.touched(hs, true), "new-side lines up to the working tree, uncommitted edits included (the graph is of this very tree)"
 	}
 	fmt.Fprintf(stdout, "changed %s: %d hunks in %d files\n  mapping: %s\n", rng, len(hs), len(main.files), mapping)
 	ix.printTouched(stdout, main, o.limit)
@@ -58,7 +58,36 @@ func splitRange(ref string) (a, b string, ok bool) {
 	return ref[:i], strings.TrimLeft(ref[i:], "."), true
 }
 
-// diffHunks `git diff` parçalarını verir (yollar root'a göre).
+// changeHunks `changed` ve `dups --changed`'in değişen satırlarının tek kaynağıdır. Aralığın sağ ucu çıkış yapılmış commit
+// ise fark çalışma ağacına kadar alınır (live): commit'lenmiş, sahnelenmiş ve sahnelenmemiş değişiklik, izlenen yeni dosyalar
+// dahil; `A...B` birleşme tabanından, `A..B` A'dan. Grafik ve tekrar derlemi çalışma ağacından kurulduğu için satırlar o
+// zaman onlarınkiyle aynıdır; commit'ten önce koşan denetim de commit'lenmemiş kopyayı görür. Sağ uç başka bir commit ise
+// fark o commit'e kadardır (live=false). Boş uç git'teki gibi HEAD'dir.
+func changeHunks(root, rng string) (hs []hunk, live bool, err error) {
+	a, b, _ := splitRange(rng)
+	if b == "" {
+		b = "HEAD"
+	}
+	if !sameCommit(root, b, "HEAD") {
+		hs, err = diffHunks(root, rng)
+		return hs, false, err
+	}
+	from := a
+	if from == "" {
+		from = "HEAD"
+	}
+	if strings.Contains(rng, "...") {
+		mb, err := gitOut(root, "merge-base", from, "HEAD")
+		if err != nil {
+			return nil, false, err
+		}
+		from = strings.TrimSpace(string(mb))
+	}
+	hs, err = diffHunks(root, from)
+	return hs, true, err
+}
+
+// diffHunks `git diff` parçalarını verir (yollar root'a göre); rng tek bir commit ise o commit'ten çalışma ağacına.
 func diffHunks(root, rng string) ([]hunk, error) {
 	out, err := gitOut(root, "diff", "-U0", "--no-color", "--no-ext-diff", "--no-renames", "--relative", rng)
 	if err != nil {

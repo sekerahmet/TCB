@@ -88,10 +88,10 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 				return strings.HasSuffix(cur.name[k], "."+qf[k]) || strings.HasSuffix(cur.name[k], "/"+qf[k])
 			})
 		},
+		func(n *Node) bool { return hasStringValue(n, q) }, // değeri sorguya eşit dize sabiti: `"%"` → lexer.TokPercent
 	}
 	nameTiers := len(tiers)
-	// Metin aramaları: ad ya da (ileti, kural, başlık) açıklama metninin başı/alt dizesi.
-	if len([]rune(q)) >= minTextQuery {
+	if len([]rune(q)) >= minTextQuery { // metin aramaları: ad ya da (ileti, kural, başlık) açıklama metninin başı/alt dizesi
 		tiers = append(tiers,
 			// Önce sözcüğün kendisi (harf katlamasıyla, sözcük sınırında): "ölü" sorusu "bölüm"ü değil, "ölü kod"u bulur.
 			func(n *Node) bool { return anyFold(func(k int) bool { return hasWordFolded(cur.name[k], qf[k]) }) },

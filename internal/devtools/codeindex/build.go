@@ -69,6 +69,8 @@ type indexer struct {
 	nodes         map[string]*Node
 	edges         map[edgeKey]*Edge
 	occ           []Occurrence
+	guesses       []MemberGuess      // alıcısı bilinmeyen üye erişimleri (bind.go: noteMemberGuess)
+	visible       map[string][]*file // dosya -> görünen dosyalar (visibleFiles; çözümleme boyunca dosya başına bir kez)
 	skipped       []Skipped
 	unresolved    []Unresolved
 	library       fs.FS
@@ -240,6 +242,14 @@ func (x *indexer) finish() *Index {
 			return a.Node < b.Node
 		}
 		return a.Role < b.Role
+	})
+	idx.MemberGuesses = append(idx.MemberGuesses, x.guesses...)
+	sort.SliceStable(idx.MemberGuesses, func(i, j int) bool {
+		a, b := idx.MemberGuesses[i], idx.MemberGuesses[j]
+		if c := comparePos(a.Pos, b.Pos); c != 0 {
+			return c < 0
+		}
+		return a.Member < b.Member
 	})
 	sort.SliceStable(idx.Unresolved, func(i, j int) bool {
 		a, b := idx.Unresolved[i], idx.Unresolved[j]

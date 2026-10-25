@@ -23,7 +23,7 @@ const Schema = "tr-codeindex/1"
 
 // IndexVersion dizinin kaynaktan türettiği içerik değişince artar (yeni düğüm türü, farklı
 // çözümleme). Başka sürümün önbelleği hiçbir zaman kullanılmaz.
-const IndexVersion = 16
+const IndexVersion = 17
 
 // Kind bir düğümün türüdür; değerler JSON'a yazılan değişmez tanımlayıcılardır.
 type Kind string
@@ -156,7 +156,8 @@ type Occurrence struct {
 	// Basis üye erişiminin neye dayanarak bağlandığıdır: boşsa ada göre çözüldü; BasisSelf `kendi.x`;
 	// BasisLocalType tek atamayla yapıcıdan kurulan yerel (`değişken d = Yapı()`); BasisNameMatch alıcı
 	// tipi bilinmeden adı tutan metot adayı (kenarı vardır); BasisNameOnly yalnızca adı tutan üye adayı
-	// (kenarı yoktur: yalnızca yeniden adlandırma etkisinde görünür, kullananlar listesinde değil).
+	// (kenarı yoktur: yalnızca yeniden adlandırma etkisinde görünür, kullananlar listesinde değil). BasisNameOnly
+	// başvurular dizinde yoktur: MemberGuesses'tan sorguda kurulur (Reader.Occurrences).
 	Basis Basis `json:"basis,omitempty"`
 }
 
@@ -189,6 +190,22 @@ type Index struct {
 	Occurrences []Occurrence `json:"occurrences"`
 	// Constructs bildirimlerin kullandığı dil yapılarıdır (constructs.go; kod grafiği Go uygulamasına bağlar).
 	Constructs []Construct `json:"constructs,omitempty"`
+	// MemberGuesses alıcısı bilinmeyen üye erişimleridir, kullanım yeri başına bir kez (MemberGuess).
+	MemberGuesses []MemberGuess `json:"member_guesses,omitempty"`
+}
+
+// MemberGuess alıcısı bilinmeyen bir üye erişimidir (`p.ileri()`, `p.ağırlık = 2`). Hangi üyelere "olası" diye
+// (BasisNameOnly) bağlandığı dizinde saklanmaz, sorguda çözülür: erişimin dosyasından görünen aynı adlı her alan ve,
+// aynı adlı görünen metot aday sınırını aştıysa (MethodsCapped), her metot. Her aday için ayrı başvuru yazmak
+// kitaplığın en yaygın kalıbında (her katmanda `ileri` ve `ağırlık`) dizini karesel büyütüyordu: n=400 modülde 240 570
+// ad-yalnız başvuru, ×15,9 (TestIndexSizeGrowsLinearlyWithSameNamedMembers).
+type MemberGuess struct {
+	Member        string `json:"member"`
+	Pos           Pos    `json:"pos"`
+	In            string `json:"in,omitempty"` // erişimi içeren bildirim
+	Called        bool   `json:"called,omitempty"`
+	Written       bool   `json:"written,omitempty"`
+	MethodsCapped bool   `json:"methods_capped,omitempty"` // aynı adlı görünen metot 4'ten çok: metotlar da adaydır
 }
 
 // Skipped okunamayan ya da ayrıştırılamayan bir dosyadır: modül düğümü vardır, bildirimleri yoktur.

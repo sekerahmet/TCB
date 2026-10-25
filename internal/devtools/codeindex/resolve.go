@@ -321,7 +321,7 @@ func (x *indexer) member(f *file, o owner, sc *scope, m *ast.MemberExpression) {
 	for _, mid := range candidates {
 		x.linkBasis(o, mid, EdgeCalls, Inferred, RoleCall, pos, BasisNameMatch)
 	}
-	x.nameOnlyMembers(f, o, sc, m, pos, len(candidates) == 0)
+	x.noteMemberGuess(o, sc, m, pos, len(candidates) == 0)
 	if k, ok := x.lang.Find(codes.NamespaceMember, m.Property); ok {
 		if code, ok := x.builtin(k); ok {
 			conf := Extracted
@@ -352,8 +352,16 @@ func (x *indexer) methodCandidates(f *file, name string) []string {
 	return ids
 }
 
-// visibleFiles f ve onun (takma adlı olanlar dahil) aktardığı dosyalardır.
+// visibleFiles f ve onun (takma adlı olanlar dahil) aktardığı dosyalardır; dosya başına bir kez hesaplanır (her üye
+// erişiminde yeniden gezmek ad-yalnız başvuru yokken de kurulumu doğrusalın üstüne çıkarıyordu: oran 5,6). Zincir
+// aktarımlı projede toplam iş yine Σ görünür(f)'dir (zaman; yer değil, liste dizine yazılmaz).
 func (x *indexer) visibleFiles(f *file) []*file {
+	if v, ok := x.visible[f.rel]; ok {
+		return v
+	}
+	if x.visible == nil {
+		x.visible = map[string][]*file{}
+	}
 	out := []*file{f}
 	seen := map[string]bool{f.rel: true}
 	for i := 0; i < len(out); i++ {
@@ -364,6 +372,7 @@ func (x *indexer) visibleFiles(f *file) []*file {
 			}
 		}
 	}
+	x.visible[f.rel] = out
 	return out
 }
 
