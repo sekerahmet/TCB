@@ -11,7 +11,11 @@ ajana verir; ajan cevabı okuyup
 düzenlemeyi yineleyince geçer. Aynı oturumda aynı dosya bir daha durmaz (işaret geçici klasörde,
 `tr-edithook/<oturum>/`). Geçenler: depo dışındaki ve izlenmeyen dosyalar (yeni dosya, `scratch/`),
 yolu olmayan girdi. Kancanın kendisi çalışamazsa (bozuk girdi, derleme hatası) çıkış 1'dir ve
-Claude Code düzenlemeyi durdurmaz: bozuk bir ağaçta iş kilitlenmez.
+Claude Code düzenlemeyi durdurmaz: bozuk bir ağaçta iş kilitlenmez. Denetim:
+`TestFirstEditIsHeldOnceThenPasses`, `TestUntrackedFilesAndBadInputPass`, `TestLocateTrackedFilesOnly`.
+
+Cevap yanlış, belirsiz ya da eksikse ajan bunu ana oturuma bildirir (komut, beklenen, gelen); ana
+oturum doğrulayıp [`tools/codegraph/gaps.md`](../codegraph/gaps.md)'ye yazar.
 
 Neden kanca: yazılı kural acele edilince atlanıyordu (hız analizinde nedenler ölçülmeden ve
 codegraph'a sorulmadan yazıldı, 2026-10-25). Kural ajanın dikkatine bırakılmaz; bedeli dosya başına

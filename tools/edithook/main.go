@@ -80,8 +80,10 @@ func run(in io.Reader, out, errOut io.Writer, stamps string, find func(string) (
 		return 1
 	}
 	reason := fmt.Sprintf("First edit of %s in this session: read the tests and rules that guard it "+
-		"(CLAUDE.md, \"dokunmadan önce tests-for\"), write the change by them, run the fast ones "+
-		"before committing, then repeat the edit.\n\n$ go run ./tools/codegraph tests-for %s\n%s", t.rel, t.rel, report)
+		"(CLAUDE.md, hard rules: codegraph), write the change by them, run the fast ones before "+
+		"committing, then repeat the edit. A wrong, ambiguous or missing answer is reported to the "+
+		"main session with the command, the expected and the actual answer (tools/codegraph/gaps.md)."+
+		"\n\n$ go run ./tools/codegraph tests-for %s\n%s", t.rel, t.rel, report)
 	return deny(out, errOut, reason)
 }
 
@@ -143,8 +145,8 @@ func testsFor(t target) string {
 	}
 	text := strings.Join(lines, "\n")
 	if err != nil {
-		text += fmt.Sprintf("\n(codegraph: %v; an ambiguous or missing answer is not evidence, check with grep: "+
-			"CLAUDE.md, \"Kod grafiğinin cevabı nasıl okunur\")", err)
+		text += fmt.Sprintf("\n(codegraph: %v; an ambiguous or missing answer is not evidence: check with grep, "+
+			"CLAUDE.md on reading codegraph answers)", err)
 	}
 	return text
 }
