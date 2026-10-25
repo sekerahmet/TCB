@@ -1,6 +1,10 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -78,6 +82,64 @@ func TestChangedAcceptsRangeAndRejectsUnknownRef(t *testing.T) {
 	}
 	if code, _, _ := commandIn("changed", root, graph, "claude/missing"); code != exitFail {
 		t.Errorf("unknown ref: exit %d", code)
+	}
+}
+
+// Kural: çıkış yapılmış dalda `changed` ve `dups --changed` değişen satırları ortak atadan çalışma ağacına kadar alır
+// (changeHunks): commit'lenmemiş düzenleme ve sahnelenmiş yeni dosya görünür, commit'lenmiş değişikliğin üstüne eklenen
+// satırlar onu kaydırmaz. Commit'ten önce koşan denetim (ön denetim, `dups --changed main`) aksi halde o anki kopyayı ve
+// testleri kaçırırdı (MEKANİK 2026-10-25, DENETİM 2026-10-26).
+func TestChangedSeesTheWorkingTree(t *testing.T) {
+	root := branchFixture(t)
+	gitMust(t, root, "checkout", "-q", "claude/a")
+	shape := filepath.Join(root, "shape", "shape.go")
+	// Commit'lenmiş değişikliklerin (Describe'daki yorum, yeni Added) üstüne 20 satır, Orphan'a commit'lenmemiş bir düzenleme.
+	replaceIn(t, shape, "package shape", "package shape"+strings.Repeat("\n// pad", 20))
+	replaceIn(t, shape, "func Orphan() {}", "func Orphan() { _ = Sides }")
+	graph := buildInto(t, root)
+	code, out, errOut := commandIn("changed", root, graph, "--all", "claude/a")
+	if code != exitOK {
+		t.Fatalf("exit %d: %s", code, errOut)
+	}
+	testkit.MustContain(t, out, "uncommitted edits included", "shape.Describe [func]", "shape.Added [func]", "shape.Orphan [func]",
+		"shape.TestDescribe [func]")
+	for _, wrong := range []string{"shape.Square.Area [method]", "shape.Twice [func]", "shape.Report [func]"} {
+		if strings.Contains(out, wrong) {
+			t.Errorf("lines shifted by the uncommitted edit map to %s:\n%s", wrong, out)
+		}
+	}
+
+	root = branchWithCopy(t)
+	testkit.WriteFile(t, root, "extra.go", strings.TrimPrefix(loopSource("d", "int"), "src:"))
+	gitMust(t, root, "add", "extra.go") // sahnelenmiş yeni dosya
+	data, err := os.ReadFile(filepath.Join(root, "old2.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	copyE := strings.TrimPrefix(loopSource("e", "int"), "src:package p\n")
+	testkit.WriteFile(t, root, "old2.go", string(data)+copyE) // commit'lenmiş dosyada sahnelenmemiş kopya
+	var so, se bytes.Buffer
+	if code := run([]string{"dups", "--root", root, "--min", "60", "--json", "--changed", "main"}, &so, &se); code != exitOK {
+		t.Fatalf("dups: exit %d: %s", code, se.String())
+	}
+	var res dupResult
+	if err := json.Unmarshal(so.Bytes(), &res); err != nil {
+		t.Fatal(err)
+	}
+	files := map[string]bool{}
+	oldEnd := strings.Count(string(data), "\n")
+	for _, c := range res.Clusters {
+		for _, l := range c.Locs {
+			if l.Changed {
+				files[l.File] = true
+				if l.File == "old2.go" && l.From <= oldEnd {
+					t.Errorf("old2.go:%d is committed code, only the appended copy (after line %d) changed", l.From, oldEnd)
+				}
+			}
+		}
+	}
+	if got := fmt.Sprint(files); got != "map[extra.go:true new.go:true old2.go:true]" {
+		t.Errorf("uncommitted copies: changed files %s, want extra.go (staged), new.go (committed) and old2.go (unstaged)", got)
 	}
 }
 

@@ -169,3 +169,6 @@ codegraph who-uses lexer.Token.Literal --all | contains: parser.Parser.parseStat
 codegraph who-uses ast.Identifier.Value --all | contains: interp.compiler.readName | src: iç dil 2. tur, 2026-10-25 (yorumlayıcı adı koda değil ada göre çözüyor)
 codegraph query checker.NameBindings | contains: source.analyze | src: iç dil 3. tur, 2026-10-25 (adın başka dilde neye bağlanacağını hesaplayan yer; ad kuralı burada)
 codegraph query parser.NameRole | contains: 17.3 [spec] | src: iç dil 3. tur, 2026-10-25 (düğümü olmayan adların rolü: tip açıklaması, üye, bağlamsal sözcük)
+
+# gaps partisi, 2026-10-26 (CODEGRAPH)
+codegraph changed HEAD..HEAD | contains: new-side lines up to the working tree, uncommitted edits included | src: gaps partisi kritik 2, 2026-10-26 (commit'ten önce koşan denetim commit'lenmemiş düzenlemeyi görür)

@@ -230,9 +230,12 @@ repository (a failing git is an error, exit 1).
   first `--limit`), and the other local `claude/` branches not yet merged into the base that touch the same nodes or
   files, with the result of a
   `git merge-tree --write-tree` trial merge (`clean` or the conflicting files). The graph is of
-  the checked-out tree: when the ref is the checked-out HEAD the new-side lines are mapped (new
-  functions included), otherwise the old-side lines, which is exact only while the tree equals the
-  merge base. Added code with no old-side counterpart is counted under "mapped to no node" (by file) and,
+  the checked-out tree: when the ref is the checked-out HEAD the diff runs from the merge base (from `a` for `a..b`) to
+  the working tree, committed, staged and unstaged edits and tracked new files included, and its new-side lines are
+  mapped (new functions included; the lines are the graph's own, so an uncommitted edit above a committed one does not
+  shift it); otherwise the old-side lines, which is exact only while the tree equals the merge base. `dups --changed`
+  takes its lines from the same function (`changeHunks`); an untracked file is in neither (DENETİM 2026-10-26:
+  the check run before a commit missed its edits; `TestChangedSeesTheWorkingTree`). Added code with no old-side counterpart is counted under "mapped to no node" (by file) and,
   for Go files, named from the branch's own copy of the file ("declarations on the branch that the
   graph does not have": new functions, new tests, new test files). A graph written by an older
   codegraph (`extractor` below the tool's) is rebuilt by the next query even when its stamp matches.
@@ -270,7 +273,9 @@ go run ./tools/codegraph dups --list-exclusions     # the deliberate exceptions 
   (also `main...HEAD`, `main..`) mean "what is new on the checked-out branch since it left main";
   the checked-out branch's own name means `--base...branch` (`--base` defaults to `main`); a range
   `A..B` needs B to be the checked-out commit (the line numbers are the working tree's), otherwise
-  it is refused. Pinned by `TestDupsChangedUsesTheMergeBaseNotTheTreeDiff`.
+  it is refused. The changed lines reach the working tree, uncommitted edits included, as in `changed`: a copy
+  written before the commit is a candidate. Pinned by `TestDupsChangedUsesTheMergeBaseNotTheTreeDiff` and
+  `TestChangedSeesTheWorkingTree`.
   Exit codes as elsewhere; JSON schema `codegraph-dups/1`.
 - **`similar <func> [--limit N] [--json]`.** Dice score (0..1) between the target and every other
   function over the sets of 4-grams of their node sequences; functions of fewer than 12 nodes and
