@@ -55,7 +55,7 @@ func deviceNames() []string {
 }
 
 // availableDevice adın çözülüp bu makinede kullanılabildiğini denetler.
-func availableDevice(fn string, v interp.Value) (tensor.Device, error) {
+func availableDevice(fn any, v interp.Value) (tensor.Device, error) {
 	s, ok := v.(*interp.StringVal)
 	if !ok {
 		return tensor.Device{}, messages.New(messages.H6801, fn, typeName(v))
@@ -75,7 +75,7 @@ func availableDevice(fn string, v interp.Value) (tensor.Device, error) {
 }
 
 func (d *TensorValue) toDevice(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(memberToDevice)
+	fn := codes.NameRef(memberToDevice)
 	if len(args) != 1 {
 		return nil, messages.New(messages.H6802, fn)
 	}
@@ -106,8 +106,8 @@ func (d *TensorValue) toDevice(_ *interp.VM, args []interp.Value, _ map[string]i
 // defaultDeviceBuiltin varsayılan_cihaz([ad]): argümanla cihazı seçer; her durumda
 // geçerli cihazın adını döndürür.
 func defaultDeviceBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.T720)
-	if err := bind.CheckNamed(fn+"()", named); err != nil {
+	fn := codes.NameRef(codes.T720)
+	if err := bind.CheckNamed(fn.Called(), named); err != nil {
 		return nil, err
 	}
 	if len(args) > 1 {
@@ -127,8 +127,8 @@ func defaultDeviceBuiltin(_ *interp.VM, args []interp.Value, named map[string]in
 
 // devicesBuiltin cihazlar(): kullanılabilir cihaz adları ("cpu" ilk).
 func devicesBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.T721)
-	if err := bind.CheckNamed(fn+"()", named); err != nil {
+	fn := codes.NameRef(codes.T721)
+	if err := bind.CheckNamed(fn.Called(), named); err != nil {
 		return nil, err
 	}
 	if len(args) != 0 {

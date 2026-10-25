@@ -459,7 +459,7 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, u memberInfo, safe bool, 
 // Başlangıç verilmezse ilk eleman başlangıçtır; boş listede başlangıç (verilmemişse yok)
 // döner.
 func listReduce(y *VM, elems []Value, args []Value, line int) (Value, error) {
-	name, fun := CallName(codes.Y207), codes.ReceiverName(codes.A208)
+	name, fun := CallName(codes.Y207), codes.ReceiverRef(codes.A208)
 	f := args[len(args)-1]
 	if !callable(f) {
 		if len(args) == 2 && callable(args[0]) {
@@ -468,7 +468,7 @@ func listReduce(y *VM, elems []Value, args []Value, line int) (Value, error) {
 		return nil, ArgTypeError(codes.Y207, len(args), f, codes.A208)
 	}
 	if fn, ok := f.(*FuncVal); ok && len(fn.Parameters) != 2 {
-		b := codes.Name(codes.A105)
+		b := codes.NameRef(codes.A105)
 		return nil, messages.New(messages.H2476, name, fun, b, len(fn.Parameters), codes.NameRef(codes.A104))
 	}
 	var acc Value

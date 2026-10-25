@@ -122,7 +122,7 @@ func (e *replayEntry) release() {
 }
 
 func replayBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.T313)
+	fn := codes.NameRef(codes.T313)
 	if len(named) > 0 {
 		return nil, interp.NoNamedArgsError(fn, named)
 	}
@@ -139,7 +139,7 @@ func replayBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 
 // call oynatılan fonksiyonu çalıştırır (bkz. dosya başı).
 func (r *replayFn) call(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.T313)
+	fn := codes.NameRef(codes.T313)
 	if tensor.GradEnabled() {
 		return nil, messages.New(messages.H6440, fn, codes.NameRef(codes.T301))
 	}
@@ -231,7 +231,7 @@ func recorderOf(inputs []*tensor.Tensor) tensor.Recorder {
 // capture kaydın girdi tensörlerini kurar (argümanların kopyaları; aynı tensörün tekrarı aynı
 // kopya) ve f'i kayıt altında çalıştırır. f'in hatası kaydı bırakıp olduğu gibi döner.
 func (e *replayEntry) capture(m *interp.VM, rec tensor.Recorder, f interp.Value, args []interp.Value, alias []int) (err error) {
-	fn := codes.DisplayName(codes.T313)
+	fn := codes.NameRef(codes.T313)
 	vals := make([]interp.Value, len(args))
 	var versions []uint64
 	for i, a := range args {
@@ -292,7 +292,7 @@ func (e *replayEntry) capture(m *interp.VM, rec tensor.Recorder, f interp.Value,
 // takeOutputs f'in sonucunu çıktılara ayırır ve her konum için bir sarıcıyı kayda alır: f'in
 // içinde oluşan başlığın kaçan değerinin sarıcısı zaten çağıranındır (ilk geçtiği konumda);
 // önceden var olan başlık (girdi, dışarıdaki bir tensör) ya da tekrarı için yeni sarıcı alınır.
-func takeOutputs(fn string, res interp.Value, start uint64) ([]*tensor.Tensor, []bool, bool, error) {
+func takeOutputs(fn any, res interp.Value, start uint64) ([]*tensor.Tensor, []bool, bool, error) {
 	outs, ints, single, err := replayOutputs(fn, res)
 	if err != nil {
 		return nil, nil, false, err
@@ -314,7 +314,7 @@ func takeOutputs(fn string, res interp.Value, start uint64) ([]*tensor.Tensor, [
 }
 
 // replayOutputs f'in sonucunu (tensör ya da tensör listesi) çıktılara ayırır.
-func replayOutputs(fn string, res interp.Value) (outs []*tensor.Tensor, ints []bool, single bool, err error) {
+func replayOutputs(fn any, res interp.Value) (outs []*tensor.Tensor, ints []bool, single bool, err error) {
 	switch x := res.(type) {
 	case *TensorValue:
 		return []*tensor.Tensor{x.t}, []bool{x.hasInts}, true, nil
@@ -356,11 +356,11 @@ var nameStart = bind.NamedArg(codes.T908)
 // okunur ve denetlenir; kayıt içinde tensörle verilen konum cihazdan okunur (her oynatmada),
 // sınır dışıysa kırpılır (lax.dynamic_update_slice gibi).
 func writeSliceBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.T122)
+	fn := codes.NameRef(codes.T122)
 	if len(args) != 2 {
 		return nil, interp.ArgCountError(codes.T122, "2", len(args))
 	}
-	if err := bind.CheckNamed(fn+"()", named, nameAxis, nameStart); err != nil {
+	if err := bind.CheckNamed(fn.Called(), named, nameAxis, nameStart); err != nil {
 		return nil, err
 	}
 	dst, ok := args[0].(*TensorValue)
@@ -428,7 +428,7 @@ func writeSliceBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 
 // writeSliceAxis yerine_yaz'ın eksenini çözer (varsayılan son eksen) ve kaynağın o eksendeki
 // dilime yazılabildiğini denetler (H3111).
-func writeSliceAxis(fn string, named map[string]interp.Value, dst, src *tensor.Tensor) (int, error) {
+func writeSliceAxis(fn any, named map[string]interp.Value, dst, src *tensor.Tensor) (int, error) {
 	axis := -1
 	if av, ok := bind.GetNamed(named, nameAxis); ok {
 		a, integer := intNumber(av)

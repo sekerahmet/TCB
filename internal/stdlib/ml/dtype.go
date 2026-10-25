@@ -42,7 +42,7 @@ var dtypeSuggestions = map[string]string{
 }
 
 // parseDTypeName dildeki tür adını çekirdek türüne çevirir; bilinmeyen adda en yakın adı önerir.
-func parseDTypeName(fn, ad string) (tensor.DType, error) {
+func parseDTypeName(fn any, ad string) (tensor.DType, error) {
 	switch ad {
 	case "float32":
 		return tensor.Float32, nil
@@ -74,7 +74,7 @@ func parseDTypeName(fn, ad string) (tensor.DType, error) {
 }
 
 // parseDTypeValue metin olması gereken tür argümanını çözer.
-func parseDTypeValue(fn string, v interp.Value) (tensor.DType, error) {
+func parseDTypeValue(fn any, v interp.Value) (tensor.DType, error) {
 	s, ok := v.(*interp.StringVal)
 	if !ok {
 		return 0, messages.New(messages.H6803, fn, typeName(v))
@@ -83,7 +83,7 @@ func parseDTypeValue(fn string, v interp.Value) (tensor.DType, error) {
 }
 
 // namedDType tür: adlı argümanını okur; verilmemişse varsayilan döner.
-func namedDType(fn string, named map[string]interp.Value, defaultVal tensor.DType) (tensor.DType, error) {
+func namedDType(fn any, named map[string]interp.Value, defaultVal tensor.DType) (tensor.DType, error) {
 	v, ok := bind.GetNamed(named, nameDType)
 	if !ok {
 		return defaultVal, nil
@@ -106,10 +106,10 @@ func (d *TensorValue) toDType(_ *interp.VM, args []interp.Value, named map[strin
 	if len(args) != 1 {
 		return nil, messages.New(messages.H6806, codes.NameRef(memberToDType), len(args))
 	}
-	if err := bind.CheckNamed(codes.DisplayName(memberToDType)+"()", named); err != nil {
+	if err := bind.CheckNamed(codes.NameRef(memberToDType).Called(), named); err != nil {
 		return nil, err
 	}
-	dt, err := parseDTypeValue(codes.DisplayName(memberToDType), args[0])
+	dt, err := parseDTypeValue(codes.NameRef(memberToDType), args[0])
 	if err != nil {
 		return nil, err
 	}
@@ -146,8 +146,8 @@ func mixedDType(m *interp.VM) tensor.DType {
 // türüyle çalıştırır ve bloğun son ifadesinin değerini döndürür. "float32" iç içe bir blokta
 // karışık hassasiyeti kapatır. Blok bitince (hata ile bitse de) önceki tür geri gelir.
 func mixedPrecision(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.T710)
-	if err := bind.CheckNamed(fn+"()", named); err != nil {
+	fn := codes.NameRef(codes.T710)
+	if err := bind.CheckNamed(fn.Called(), named); err != nil {
 		return nil, err
 	}
 	if len(args) != 2 {
@@ -184,8 +184,8 @@ func mixedPrecision(m *interp.VM, args []interp.Value, named map[string]interp.V
 // blok dışında "float32". PyTorch'ta torch.get_autocast_dtype, Flax'ta modülün dtype'ı: bir
 // sonucu doğrudan çarpımın okuyacağı türde yazmak için (normların tür: argümanı, 15.4).
 func computeDType(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.T711)
-	if err := bind.CheckNamed(fn+"()", named); err != nil {
+	fn := codes.NameRef(codes.T711)
+	if err := bind.CheckNamed(fn.Called(), named); err != nil {
 		return nil, err
 	}
 	if len(args) != 0 {

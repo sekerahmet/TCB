@@ -15,11 +15,11 @@ import (
 // backpropagation geri_yayılım(kayıp) yerleşiğidir: tek elemanlı kayıptan geri yayılım yapar;
 // yaprak tensörlerin gradyanları birikir.
 func backpropagation(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.T300)
+	fn := codes.NameRef(codes.T300)
 	if len(args) != 1 {
 		return nil, messages.New(messages.H6400, fn, len(args))
 	}
-	if err := bind.CheckNamed(fn+"()", named); err != nil {
+	if err := bind.CheckNamed(fn.Called(), named); err != nil {
 		return nil, err
 	}
 	d, ok := args[0].(*TensorValue)
@@ -43,11 +43,11 @@ func backpropagation(m *interp.VM, args []interp.Value, named map[string]interp.
 // noGrad iki biçimde çalışır: türevsiz { ... } bloğu türev izlemeden çalıştırır ve
 // bloğun değerini döndürür; türevsiz(x) tensörü hesap çizgesinden ayırır.
 func noGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.T301)
+	fn := codes.NameRef(codes.T301)
 	if len(args) != 1 {
 		return nil, messages.New(messages.H6403, fn, len(args))
 	}
-	if err := bind.CheckNamed(fn+"()", named); err != nil {
+	if err := bind.CheckNamed(fn.Called(), named); err != nil {
 		return nil, err
 	}
 	switch x := args[0].(type) {

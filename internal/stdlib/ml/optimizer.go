@@ -17,7 +17,7 @@ import (
 // İyileştirici'dir (A214). Metotları .adım() (parametreleri günceller) ve .sıfırla()
 // (gradyanları sıfırlar). ad oluşturucunun adıdır (AdamW, SGD; yazdırmada görünür).
 type Optimizer struct {
-	ad     string
+	ad     codes.Ref
 	opt    tensor.Optimizer
 	adamw  *tensor.AdamW
 	sgd    *tensor.SGD
@@ -131,7 +131,7 @@ func (o *Optimizer) GetProperty(kd codes.Code, prop string) (interp.Value, error
 }
 
 // parameters iyileştiriciye verilen tensör ya da tensör listesini denetler.
-func parameters(fn string, v interp.Value) ([]*tensor.Tensor, error) {
+func parameters(fn any, v interp.Value) ([]*tensor.Tensor, error) {
 	var list []interp.Value
 	switch x := v.(type) {
 	case *TensorValue:
@@ -168,7 +168,7 @@ func parameters(fn string, v interp.Value) ([]*tensor.Tensor, error) {
 }
 
 // namedRate adlı sayısal bir argümanı okur.
-func namedRate(fn string, named map[string]interp.Value, defaultVal float64, minVal float64, ad bind.Named) (float32, error) {
+func namedRate(fn any, named map[string]interp.Value, defaultVal float64, minVal float64, ad bind.Named) (float32, error) {
 	v, ok := bind.GetNamed(named, ad)
 	if !ok {
 		return float32(defaultVal), nil
@@ -193,11 +193,11 @@ func namedRate(fn string, named map[string]interp.Value, defaultVal float64, min
 // sonlu_değilse_hata: doğru normu kırpmadan önce okur (GPU'yu bekler) ve NaN ya da sonsuzsa
 // gradyanlara dokunmadan hata verir.
 func gradClip(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.T402)
+	fn := codes.NameRef(codes.T402)
 	if len(args) != 1 {
 		return nil, messages.New(messages.H6521, fn, nameMax, len(args))
 	}
-	if err := bind.CheckNamed(fn+"()", named, nameMax, nameErrNonfinite); err != nil {
+	if err := bind.CheckNamed(fn.Called(), named, nameMax, nameErrNonfinite); err != nil {
 		return nil, err
 	}
 	strict, err := bind.OptionalBool(fn, named, nameErrNonfinite, false)
@@ -235,7 +235,7 @@ func gradClip(_ *interp.VM, args []interp.Value, named map[string]interp.Value) 
 	return New(norm), nil
 }
 
-func optimizerParams(fn string, args []interp.Value) ([]*tensor.Tensor, error) {
+func optimizerParams(fn any, args []interp.Value) ([]*tensor.Tensor, error) {
 	if len(args) != 1 {
 		return nil, messages.New(messages.H6525, fn, nameLR, len(args))
 	}
@@ -243,7 +243,7 @@ func optimizerParams(fn string, args []interp.Value) ([]*tensor.Tensor, error) {
 }
 
 func setupAdamW(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.T400) // AdamW
+	fn := codes.NameRef(codes.T400) // AdamW
 	if err := bind.CheckNamed(fn, named, nameLR, nameWeightDecay, nameBeta1, nameBeta2, nameEpsilon, nameMasterCopy); err != nil {
 		return nil, err
 	}
@@ -293,7 +293,7 @@ func setupAdamW(_ *interp.VM, args []interp.Value, named map[string]interp.Value
 }
 
 func setupSGD(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.T401) // SGD
+	fn := codes.NameRef(codes.T401) // SGD
 	if err := bind.CheckNamed(fn, named, nameLR, nameMomentum, nameWeightDecay, nameMasterCopy); err != nil {
 		return nil, err
 	}

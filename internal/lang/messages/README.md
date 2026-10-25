@@ -17,7 +17,7 @@ kullanılmaz: silinenler `retired.json`'dadır (numara → commit ve gerekçe; i
 verilir; metin hata yazılırken etkin dilde kurulur. İleti ve içindeki dil adları tek dildedir:
 ad iletiye kodla verilir (`codes.NameRef`, `interp.CallName`, `bind.Named`; denetleyicide
 `typeText`), katalog onu iletinin dilinde yazar; `codes.Name`, `codes.DisplayName`,
-`codes.MemberName`, `codes.ReceiverName` ya da `.TR` ile kurulmuş ad doğrudan verilmez. Sabitler üretilir
+`codes.ReceiverName` ya da `.TR` ile kurulmuş ad ne doğrudan, ne bir değişkenle, ne de adı iletiye ileten bir fonksiyonun parametresiyle verilir (`TestNoFixedNamesInMessages`). Sabitler üretilir
 (`go run ./tools/gen/msgconsts`); katalogda olmayan kod derlemeyi düşürür. Denetim: `TestMessageUsage`, `TestGeneratedUpToDate` (tools/gen/msgconsts).
 
 **Dosyalar.** `definitions.json` dilden bağımsızdır: her kodun parametre adları

@@ -793,7 +793,7 @@
 "H6101": { "param": ["fn", "given"] },
 "H6102": { "param": ["operation", "leftDevice", "rightDevice", "toDeviceMethod"] },
 "H6103": { "param": ["fn", "given"] },
-"H6104": { "param": ["fn", "accept", "tensorFn", "suggestion"] },
+"H6104": { "param": ["fn", "accept", "tensorFn", "example"] },
 "H6105": { "param": ["fn"] },
 "H6106": { "param": ["fn", "value"] },
 "H6107": { "param": ["fn", "argName", "value"] },

@@ -97,7 +97,7 @@ func Register(v *interp.VM) {
 // dosya açılarak okunur (bkz. interp.ReadFileContent). CSV metninin kendisi csv_çöz ile
 // ayrıştırılır: dosya yoksa ve argüman virgül içeriyorsa hata csv_çöz'ü önerir.
 func csvInput(p csvPath) (string, error) {
-	fn := codes.DisplayName(codes.G602)
+	fn := codes.NameRef(codes.G602)
 	info, statErr := os.Stat(p.path)
 	if statErr != nil {
 		err := interp.ReadError(fn, p.arg, messages.H2100, statErr, p.tried)

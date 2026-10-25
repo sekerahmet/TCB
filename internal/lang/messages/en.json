@@ -793,7 +793,7 @@
 "H6101": "{fn}(x) expects 1 parameter, {given} given",
 "H6102": "{operation}: the tensors are on different devices ({leftDevice} and {rightDevice}); first move them to the same device with .{toDeviceMethod}(...)",
 "H6103": "{fn}: a number or a tensor is expected, {given} given",
-"H6104": "{fn} does not work on lists, only on {accept}; convert the list with {tensorFn}(...): {suggestion}",
+"H6104": "{fn} does not work on lists, only on {accept}; convert the list with {tensorFn}(...): {example}",
 "H6105": "{fn}: the axis was given both by position and by name",
 "H6106": "{fn}: the axis must be an integer, {value} given",
 "H6107": "{fn}: {argName} must be a number, {value} given",

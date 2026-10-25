@@ -229,13 +229,6 @@ func SafeBuiltin(name any, fn interp.BuiltinFunc) interp.BuiltinFunc {
 	}
 }
 
-// Method nesne yöntemi değeri kurar: fn Go paniğine karşı korunur (panik name adlı bir hataya döner).
-func Method(name string, fn interp.BuiltinFunc) *interp.BuiltinVal {
-	return &interp.BuiltinVal{Name: name, Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		return Safe(name, func() (interp.Value, error) { return fn(m, args, named) })
-	}}
-}
-
 // CodeMethod üye koduyla (kd) adlı yöntem değeri kurar: değerin adı kodun kanonik adıdır, panik
 // iletisindeki ad interp.CallName(kd)'dir. noNamedArgs doğruysa adlı argüman verilmesi hatadır.
 func CodeMethod(kd codes.Code, noNamedArgs bool, fn interp.BuiltinFunc) *interp.BuiltinVal {

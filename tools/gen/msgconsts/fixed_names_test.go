@@ -1,0 +1,285 @@
+package main
+
+import (
+	"encoding/json"
+	"go/ast"
+	"go/parser"
+	"go/token"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"sort"
+	"strconv"
+	"strings"
+	"testing"
+
+	"github.com/sekerahmet/TCB/internal/reporoot"
+)
+
+// İleti ve içindeki dil adları tek dildedir: ad iletiye kodla verilir (codes.NameRef,
+// interp.CallName, bind.Named), katalog onu iletinin dilinde yazar. Yazıldığı anda bir dilde
+// kurulmuş ad (codes.Name, codes.DisplayName, codes.ReceiverName, bind.Named'in
+// .TR'si) iletiye ne doğrudan, ne bir yerel değişkenle, ne de adı iletiye ileten bir fonksiyonun
+// parametresiyle (fn, ad ...) ulaşır: yakalanan hatada ileti yakalayan dosyanın dilindedir, böyle
+// bir ad öteki dilde kalırdı.
+//
+// Kapsam dışı: hesap katmanı (internal/compute) dil adlarını bilmez, ona verilen işlem etiketi
+// veridir; katalogda example adlı parametre örnek koddur (dile çevrilmesi ayrı tasarım, yol
+// haritası 10). Gerekçeli tek tek istisnalar probes'tadır.
+func TestNoFixedNamesInMessages(t *testing.T) {
+	for _, v := range fixedNameFlows(t, reporoot.Root()) {
+		t.Errorf("%s: iletiye %s ile yazılmış ad ulaşıyor; ileti ve içindeki adlar tek dildedir, kodu verin (codes.NameRef, interp.CallName, bind.Named)", v.pos, v.code)
+	}
+}
+
+// probes kurulmuş adı iletiye gitmeyen bir yoklamada kullanan çağrılardır (çağıran → çağrılan):
+// sonuç hatası atılır, kullanıcıya ulaşmaz.
+var probes = map[[2]string]string{
+	{"interp.memberSuggestionError", ".GetProperty"}: "önerilen üyeyi kanonik adıyla yoklar; hata atılır",
+}
+
+// exampleParams katalogda örnek kod taşıyan parametre adlarıdır.
+var exampleParams = map[string]bool{"example": true}
+
+// goFunc bir fonksiyon bildirimidir; key çağrıdaki adıyla eşleşir (paket.Ad; metotta .Ad).
+type goFunc struct {
+	key    string
+	params []string
+	decl   *ast.FuncDecl
+	file   *goFile
+}
+
+type goFile struct {
+	pkg     string
+	imports map[string]bool // dosyanın içe aktardığı paket adları
+}
+
+// fixedNameFlows kurulmuş adın iletiye ulaştığı yerleri bulur. Bir parametre "iletiye gider"
+// sayılır: iletinin (messages.New/Text/TextIn) değeri ise ya da iletiye giden bir parametreye
+// verilirse (sabit noktaya kadar; paketler arası, metotlar adıyla). Kaynak, kurulmuş adın kendisi
+// ya da ondan atanan yerel değişkendir; + ile birleştirme de taşır.
+func fixedNameFlows(t *testing.T, root string) []call {
+	t.Helper()
+	fset := token.NewFileSet()
+	var funcs []*goFunc
+	err := reporoot.WalkDir(root, func(path string, e fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		name := e.Name()
+		if e.IsDir() {
+			if path != root && (strings.HasPrefix(name, ".") || name == "scratch" || name == "testdata" || name == "node_modules") {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
+			return nil
+		}
+		rel, _ := filepath.Rel(root, filepath.Dir(path))
+		rel = filepath.ToSlash(rel)
+		if rel == "internal/lang/messages" || rel == "internal/lang/codes" || strings.HasPrefix(rel, "internal/compute/") {
+			return nil // adların ve iletilerin kendi paketleri; hesap katmanı
+		}
+		f, err := parser.ParseFile(fset, path, nil, 0)
+		if err != nil {
+			return err
+		}
+		gf := &goFile{pkg: f.Name.Name, imports: map[string]bool{}}
+		for _, im := range f.Imports {
+			p, _ := strconv.Unquote(im.Path.Value)
+			n := p[strings.LastIndex(p, "/")+1:]
+			if im.Name != nil {
+				n = im.Name.Name
+			}
+			gf.imports[n] = true
+		}
+		for _, d := range f.Decls {
+			fd, ok := d.(*ast.FuncDecl)
+			if !ok || fd.Body == nil {
+				continue
+			}
+			g := &goFunc{decl: fd, file: gf, key: gf.pkg + "." + fd.Name.Name}
+			if fd.Recv != nil {
+				g.key = "." + fd.Name.Name
+			}
+			for _, p := range fd.Type.Params.List {
+				if len(p.Names) == 0 {
+					g.params = append(g.params, "_")
+				}
+				for _, n := range p.Names {
+					g.params = append(g.params, n.Name)
+				}
+			}
+			funcs = append(funcs, g)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defs := definitions(t, root)
+	// bound[key][i]: fonksiyonun i. parametresi iletiye gider.
+	bound := map[string]map[int]bool{}
+	for changed := true; changed; {
+		changed = false
+		for _, g := range funcs {
+			index := map[string]int{}
+			for i, p := range g.params {
+				index[p] = i
+			}
+			eachSink(g, bound, defs, func(_ string, arg ast.Expr) {
+				for _, id := range carried(arg) {
+					if i, ok := index[id]; ok && !bound[g.key][i] {
+						if bound[g.key] == nil {
+							bound[g.key] = map[int]bool{}
+						}
+						bound[g.key][i], changed = true, true
+					}
+				}
+			})
+		}
+	}
+	var out []call
+	seen := map[string]bool{}
+	for _, g := range funcs {
+		tainted := map[string]string{} // yerel değişken → onu kuran çağrı
+		ast.Inspect(g.decl.Body, func(n ast.Node) bool {
+			a, ok := n.(*ast.AssignStmt)
+			if !ok || len(a.Lhs) != len(a.Rhs) {
+				return true
+			}
+			for i, l := range a.Lhs {
+				if id, ok := l.(*ast.Ident); ok {
+					if name := fixedName(a.Rhs[i]); name != "" {
+						tainted[id.Name] = name
+					}
+				}
+			}
+			return true
+		})
+		eachSink(g, bound, defs, func(to string, arg ast.Expr) {
+			if probes[[2]string{g.key, to}] != "" {
+				return
+			}
+			name := fixedName(arg)
+			if name == "" {
+				for _, id := range carried(arg) {
+					if name = tainted[id]; name != "" {
+						break
+					}
+				}
+			}
+			if pos := fset.Position(arg.Pos()).String(); name != "" && !seen[pos] {
+				seen[pos] = true
+				out = append(out, call{code: name, pos: pos})
+			}
+		})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].pos < out[j].pos })
+	return out
+}
+
+// eachSink g'nin gövdesinde iletiye giden her değeri, gittiği çağrının anahtarıyla verir:
+// messages.New/Text/TextIn'in değerleri (örnek kod parametreleri dışında) ve iletiye giden bir
+// parametreye verilen argümanlar.
+func eachSink(g *goFunc, bound map[string]map[int]bool, defs map[string][]string, sink func(to string, arg ast.Expr)) {
+	ast.Inspect(g.decl.Body, func(n ast.Node) bool {
+		c, ok := n.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		pkg, fn := callee(c)
+		if pkg == "messages" && (fn == "New" || fn == "Text" || fn == "TextIn") {
+			first := 1
+			if fn == "TextIn" {
+				first = 2
+			}
+			var params []string
+			if len(c.Args) >= first {
+				params = defs[codeArg(c.Args[first-1])]
+			}
+			for i, a := range c.Args {
+				if j := i - first; j >= 0 && j < len(params) && exampleParams[params[j]] {
+					continue
+				}
+				sink("messages."+fn, a)
+			}
+			return true
+		}
+		key := ""
+		switch {
+		case pkg == "" && fn != "":
+			key = g.file.pkg + "." + fn
+		case g.file.imports[pkg]:
+			key = pkg + "." + fn
+		default:
+			if s, ok := c.Fun.(*ast.SelectorExpr); ok {
+				key = "." + s.Sel.Name
+			}
+		}
+		for i := range bound[key] {
+			if i < len(c.Args) {
+				sink(key, c.Args[i])
+			}
+		}
+		return true
+	})
+}
+
+// definitions ileti kodlarının parametre adlarıdır (definitions.json).
+func definitions(t *testing.T, root string) map[string][]string {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join(root, "internal", "lang", "messages", "definitions.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var defs map[string]struct {
+		Param []string `json:"param"`
+	}
+	if err := json.Unmarshal(data, &defs); err != nil {
+		t.Fatal(err)
+	}
+	out := map[string][]string{}
+	for k, d := range defs {
+		out[k] = d.Param
+	}
+	return out
+}
+
+// carried değerin taşıdığı yalın adlardır: ad, parantez içi ya da + ile birleşen parçalar.
+func carried(e ast.Expr) []string {
+	switch x := e.(type) {
+	case *ast.Ident:
+		return []string{x.Name}
+	case *ast.ParenExpr:
+		return carried(x.X)
+	case *ast.BinaryExpr:
+		return append(carried(x.X), carried(x.Y)...)
+	}
+	return nil
+}
+
+// fixedName değer (ya da onun + ile birleşen parçası) yazıldığı anda bir dilde kurulmuş bir
+// adsa onu üreten çağrıdır: codes.Name, codes.DisplayName,
+// codes.ReceiverName ya da bind.Named'in .TR'si.
+func fixedName(e ast.Expr) string {
+	switch x := e.(type) {
+	case *ast.BinaryExpr:
+		if n := fixedName(x.X); n != "" {
+			return n
+		}
+		return fixedName(x.Y)
+	case *ast.ParenExpr:
+		return fixedName(x.X)
+	case *ast.SelectorExpr:
+		if x.Sel.Name == "TR" {
+			return ".TR"
+		}
+	case *ast.CallExpr:
+		if pkg, fn := callee(x); pkg == "codes" && (fn == "Name" || fn == "DisplayName" || fn == "ReceiverName") {
+			return pkg + "." + fn
+		}
+	}
+	return ""
+}

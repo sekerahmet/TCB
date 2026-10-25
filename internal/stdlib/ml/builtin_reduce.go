@@ -17,12 +17,12 @@ import (
 // boyutu_koru: doğru indirgenen ekseni (eksen verilmezse bütün eksenleri) 1 uzunlukta
 // korur: [B, T, D] → [B, T, 1].
 func reduction(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, axis int, whole, keep bool) *tensor.Tensor) {
-	ad := codes.DisplayName(kd)
+	ad := codes.NameRef(kd)
 	maxMin := kd == codes.G402 || kd == codes.G401 // maks, min
 	wrap(v, kd, func(old interp.BuiltinFunc) interp.BuiltinFunc {
 		return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 			if len(args) == 0 {
-				if err := bind.CheckNamed(ad+"()", named, nameAxis, nameKeepDim); err != nil {
+				if err := bind.CheckNamed(ad.Called(), named, nameAxis, nameKeepDim); err != nil {
 					return nil, err
 				}
 				return oldCall(ad, old, m, args, named)
@@ -38,7 +38,7 @@ func reduction(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, axis int, 
 			if len(args) > 2 {
 				return nil, messages.New(messages.H6206, ad, nameAxis, len(args))
 			}
-			if err := bind.CheckNamed(ad+"()", named, nameAxis, nameKeepDim); err != nil {
+			if err := bind.CheckNamed(ad.Called(), named, nameAxis, nameKeepDim); err != nil {
 				return nil, err
 			}
 			keep, err := bind.OptionalBool(ad, named, nameKeepDim, false)
@@ -109,14 +109,14 @@ func reduction(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, axis int, 
 // gömme(...) ve çapraz_entropi(...) indeksi olarak da verilebilir.
 // Eşitlikte ilk en büyük eleman seçilir.
 func argMax(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	ad := codes.DisplayName(codes.T230)
+	ad := codes.NameRef(codes.T230)
 	if len(args) != 1 {
 		if len(args) == 2 {
 			return nil, messages.New(messages.H6215, ad, nameAxis, interp.Shown(args[1]))
 		}
 		return nil, messages.New(messages.H6216, ad, nameAxis, len(args))
 	}
-	if err := bind.CheckNamed(ad+"()", named, nameAxis); err != nil {
+	if err := bind.CheckNamed(ad.Called(), named, nameAxis); err != nil {
 		return nil, err
 	}
 	d, ok := args[0].(*TensorValue)
@@ -160,8 +160,8 @@ func argMax(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (i
 // → 0) bu durumlar burada yakalanır: toplam/ortalama listedeki tensörleri hesap çizgesini
 // koruyarak katlar, diğer durumlar açık hata verir.
 func nonTensorReduce(kd codes.Code, old interp.BuiltinFunc, m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	ad := codes.DisplayName(kd)
-	if err := bind.CheckNamed(ad+"()", named, nameAxis, nameKeepDim); err != nil {
+	ad := codes.NameRef(kd)
+	if err := bind.CheckNamed(ad.Called(), named, nameAxis, nameKeepDim); err != nil {
 		return nil, err
 	}
 	if _, ok := bind.GetNamed(named, nameKeepDim); ok {
@@ -175,7 +175,7 @@ func nonTensorReduce(kd codes.Code, old interp.BuiltinFunc, m *interp.VM, args [
 		for _, el := range l.Elements {
 			switch el.(type) {
 			case *interp.ListVal:
-				t := codes.DisplayName(codes.T100)
+				t := codes.NameRef(codes.T100)
 				return nil, messages.New(messages.H6220, ad, t, nameAxis)
 			case *TensorValue:
 				hasTensor = true
@@ -201,7 +201,7 @@ func nonTensorReduce(kd codes.Code, old interp.BuiltinFunc, m *interp.VM, args [
 
 // sumTensorList sayı ve tensörlerden oluşan bir listeyi yayınlamalı toplamla katlar;
 // ortalama için eleman sayısına böler. Sonuç türev izlenen girdilere bağlı kalır.
-func sumTensorList(m *interp.VM, ad string, mean bool, el []interp.Value) (interp.Value, error) {
+func sumTensorList(m *interp.VM, ad any, mean bool, el []interp.Value) (interp.Value, error) {
 	var acc *tensor.Tensor
 	fixed := 0.0
 	for i, e := range el {

@@ -13,7 +13,7 @@ import (
 
 // toTensor sayı, iç içe liste ya da tensörü çekirdek tensörüne çevirir.
 // Tensör verilirse kendisi döner (kopyalanmaz, hesap çizgesi korunur).
-func toTensor(fn string, v interp.Value) (*tensor.Tensor, error) {
+func toTensor(fn any, v interp.Value) (*tensor.Tensor, error) {
 	switch x := v.(type) {
 	case *TensorValue:
 		return x.t, nil
@@ -37,7 +37,7 @@ func toTensor(fn string, v interp.Value) (*tensor.Tensor, error) {
 // toTensorOn toTensor gibidir; ancak sayı ve listeden oluşan tensör, işlemin
 // diğer tarafı olan tensörün cihazında kurulur (ör. GPU'daki t için t + [1, 2]). Tensör
 // verilirse kendisi döner; cihazı farklıysa işlem açık hata verir (15.40).
-func toTensorOn(fn string, v interp.Value, otherVal *tensor.Tensor) (*tensor.Tensor, error) {
+func toTensorOn(fn any, v interp.Value, otherVal *tensor.Tensor) (*tensor.Tensor, error) {
 	if x, ok := interp.ToFloat(v); ok {
 		// Sayı cihazda doldurulur (konaktan yüklenmez; tekrar_oynat kaydında da çalışır).
 		return safe(func() *tensor.Tensor { return tensor.FullOn(otherVal.Device(), float32(x)) })
@@ -57,7 +57,7 @@ func toTensorOn(fn string, v interp.Value, otherVal *tensor.Tensor) (*tensor.Ten
 }
 
 // listData iç içe listeyi düz veri ve şekle çevirir; düzensiz listeleri reddeder.
-func listData(fn string, l *interp.ListVal) ([]float32, []int, error) {
+func listData(fn any, l *interp.ListVal) ([]float32, []int, error) {
 	var data []float32
 	sh, err := walkList(fn, l, func(n int) { data = make([]float32, 0, n) }, func(v interp.Value) error {
 		f, ok := interp.ToFloat(v)
@@ -75,7 +75,7 @@ func listData(fn string, l *interp.ListVal) ([]float32, []int, error) {
 
 // listInts iç içe tam sayı listesini düz dizi ve şekle çevirir. Değerler doğrudan
 // tam sayı olarak okunur (float32'den geçirilmez; 2^24 üstü indeksler yuvarlanmaz).
-func listInts(fn string, l *interp.ListVal) ([]int, []int, error) {
+func listInts(fn any, l *interp.ListVal) ([]int, []int, error) {
 	var data []int
 	sh, err := walkList(fn, l, func(n int) { data = make([]int, 0, n) }, func(v interp.Value) error {
 		n, ok := intNumber(v)
@@ -96,7 +96,7 @@ func listInts(fn string, l *interp.ListVal) ([]int, []int, error) {
 
 // walkList iç içe listenin şeklini bulur (ilk elemanlar boyunca inilerek), düzensizliği
 // reddeder ve yaprakları sırayla yaprak'a verir; hazirla eleman sayısıyla bir kez çağrılır.
-func walkList(fn string, l *interp.ListVal, prepare func(n int), leaf func(v interp.Value) error) ([]int, error) {
+func walkList(fn any, l *interp.ListVal, prepare func(n int), leaf func(v interp.Value) error) ([]int, error) {
 	var sh []int
 	var cur interp.Value = l
 	var walker interp.ContainerWalker // kendini içeren liste ([a] içinde a) sonsuz şekil verirdi

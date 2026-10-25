@@ -249,9 +249,10 @@ func TestBoolTextComparisonWarnsByFileLanguage(t *testing.T) {
 	}
 }
 
-// "Bunu mu demek istediniz" önerisi iletinin dilindedir (4E): İngilizce dosyanın yakaladığı
-// hatada (TR_DIL=tr) ve TR_DIL=en görüntüsünde İngilizcedir. Önceden öneri kanonik ya da TR_DIL'de
-// kurulmuş bir metindi (yakalanan hatada "devrik()", "türev_izle" kalıyordu).
+// İletideki dil adları iletinin dilindedir (4E): kitaplık fonksiyonunun adı, adlı argümanın adı
+// ve "Bunu mu demek istediniz" önerisi İngilizce dosyanın yakaladığı hatada (TR_DIL=tr) ve
+// TR_DIL=en görüntüsünde İngilizcedir. Önceden ad TR_DIL'de kurulup iletiye metin olarak
+// veriliyordu (yakalanan hatada "tensör", "devrik()", "türev_izle" kalıyordu).
 func TestMessageNamesFollowTheMessageLanguage(t *testing.T) {
 	coded, err := source.Encode("dene { tensör([1.0], türev_izle: 5) } yakala h { yazdır(h) }\n" +
 		"dene { yazdır(tensör([[1.0]]).T) } yakala h { yazdır(h) }\n" +
@@ -260,7 +261,8 @@ func TestMessageNamesFollowTheMessageLanguage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"Did you mean 'transpose()'?", "takes no parameter named 'türev_izl'. Did you mean 'requires_grad'?"}
+	want := []string{"tensor: requires_grad must be true or false", "Did you mean 'transpose()'?",
+		"tensor() takes no parameter named 'türev_izl'. Did you mean 'requires_grad'?"}
 	dir := t.TempDir()
 	testkit.WriteFile(t, dir, "en.tr", inLanguage(coded, "en"))
 	testkit.WriteFile(t, dir, "tr.tr", coded)
@@ -270,11 +272,11 @@ func TestMessageNamesFollowTheMessageLanguage(t *testing.T) {
 		if !strings.Contains(caught.Stdout, w) {
 			t.Errorf("İngilizce dosyanın yakaladığı hatada %q yok:\n%s", w, caught.Stdout)
 		}
-		if i == 0 && !strings.Contains(shown.Stderr, w) {
+		if i == 1 && !strings.Contains(shown.Stderr, w) {
 			t.Errorf("TR_DIL=en görüntüsünde %q yok:\n%s", w, shown.Stderr)
 		}
 	}
-	for _, turkish := range []string{"devrik", "türev_izle"} {
+	for _, turkish := range []string{"tensör", "devrik", "türev_izle"} {
 		if strings.Contains(caught.Stdout, turkish) {
 			t.Errorf("İngilizce dosyanın yakaladığı hatada Türkçe ad %q:\n%s", turkish, caught.Stdout)
 		}

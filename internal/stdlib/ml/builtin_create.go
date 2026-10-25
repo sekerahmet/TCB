@@ -17,7 +17,7 @@ import (
 // ----------------------------------------------------------------------------
 
 // requiresGrad türev_izle adlı argümanını (ya da verilen konumlu değeri) okur.
-func requiresGrad(fn string, named map[string]interp.Value, positional interp.Value, defaultVal bool) (bool, error) {
+func requiresGrad(fn any, named map[string]interp.Value, positional interp.Value, defaultVal bool) (bool, error) {
 	// Mantık olmalı: dolu bir metin ("yanlış") doğru sayılıp türevi sessizce açardı.
 	if positional != nil {
 		b, err := bind.Bool(fn, nameRequiresGrad, positional)
@@ -33,14 +33,14 @@ func requiresGrad(fn string, named map[string]interp.Value, positional interp.Va
 // sayı (0 boyutlu tensör), iç içe sayı listesi ya da tensör olabilir. tür verilmezse
 // listeden float32, tensörden kaynağın türünde tensör oluşur.
 func tensorBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.T100)
+	fn := codes.NameRef(codes.T100)
 	if len(args) < 1 {
 		return nil, messages.New(messages.H6001, gradExample("veri"))
 	}
 	if len(args) > 2 {
 		return nil, messages.New(messages.H6002, gradExample("veri"), len(args))
 	}
-	if err := bind.CheckNamed(fn+"()", named, nameRequiresGrad, nameDType); err != nil {
+	if err := bind.CheckNamed(fn.Called(), named, nameRequiresGrad, nameDType); err != nil {
 		return nil, err
 	}
 	var positional interp.Value
@@ -91,7 +91,7 @@ func tensorBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 // Şeklin tek yazımı listedir: sıfırlar(2, 3) biçimi kaldırıldı, yazılınca liste biçimini
 // önerir.
 func shapedConstructor(kd codes.Code, create func(sh []int, named map[string]interp.Value) (*tensor.Tensor, error)) interp.BuiltinFunc {
-	ad := codes.DisplayName(kd)
+	ad := codes.NameRef(kd)
 	return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		if len(args) == 0 {
 			return nil, messages.New(messages.H6017, ad)
@@ -109,7 +109,7 @@ func shapedConstructor(kd codes.Code, create func(sh []int, named map[string]int
 		if len(args) != 1 {
 			return nil, messages.New(messages.H6023, ad, len(args))
 		}
-		if err := bind.CheckNamed(ad+"()", named, allowed...); err != nil {
+		if err := bind.CheckNamed(ad.Called(), named, allowed...); err != nil {
 			return nil, err
 		}
 		sh, err := shapeList(ad, args[0])

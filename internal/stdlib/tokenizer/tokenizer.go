@@ -92,13 +92,13 @@ var members = []codes.Code{memberEncode, memberDecode, memberVocabSize, memberTo
 func (n *Object) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	switch kd {
 	case memberEncode:
-		return bind.Method(codes.Name(memberEncode), n.encode), nil
+		return bind.CodeMethod(memberEncode, false, n.encode), nil
 	case memberDecode:
-		return bind.Method(codes.Name(memberDecode), n.decode), nil
+		return bind.CodeMethod(memberDecode, false, n.decode), nil
 	case memberVocabSize:
 		return interp.NewInt(int64(n.p.VocabSize())), nil
 	case memberTokenID:
-		return bind.Method(codes.Name(memberTokenID), n.tokenID), nil
+		return bind.CodeMethod(memberTokenID, false, n.tokenID), nil
 	}
 	return nil, bind.MemberError(interp.ValueType(TypeName), prop, members)
 }
@@ -109,15 +109,15 @@ func (n *Object) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 
 // Register parçalayıcı yerleşiklerini VM'ye kaydeder.
 func Register(v *interp.VM) {
-	v.RegisterBuiltinCode(codes.V200, bind.SafeBuiltin(codes.Name(codes.V200), load))
+	v.RegisterBuiltinCode(codes.V200, bind.SafeBuiltin(interp.CallPrefix(codes.V200), load))
 }
 
 // warned aynı dosyanın yükleme uyarılarının süreçte bir kez yazılmasını sağlar.
 var warned sync.Map
 
 func load(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.V200)
-	if err := bind.CheckNamed(fn+"()", named); err != nil {
+	fn := codes.NameRef(codes.V200)
+	if err := bind.CheckNamed(fn.Called(), named); err != nil {
 		return nil, err
 	}
 	if len(args) != 1 {
@@ -161,7 +161,7 @@ func isUnsupported(err error) bool {
 }
 
 func loadError(path string, err error, tried []string) error {
-	fn := codes.DisplayName(codes.V200)
+	fn := codes.NameRef(codes.V200)
 	if bind.IsNotExist(err) {
 		return turkish.FileError(fn, path, messages.H2107, err,
 			messages.Text(messages.H5612), interp.SearchedPlaces(tried))
@@ -221,7 +221,7 @@ var (
 // longText bu bayttan uzun tek metinler yorumlayıcı kilidi bırakılarak kodlanır.
 const longText = 1 << 16
 
-func stepError(fn string, err error) error {
+func stepError(fn any, err error) error {
 	var ah *tokenize.StepLimitError
 	if errors.As(err, &ah) && ah.Memory {
 		return messages.New(messages.H5622,
@@ -235,8 +235,8 @@ func stepError(fn string, err error) error {
 }
 
 func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(memberEncode)
-	if err := bind.CheckNamed(fn+"()", named, nameSpecial, nameSecond); err != nil {
+	fn := codes.NameRef(memberEncode)
+	if err := bind.CheckNamed(fn.Called(), named, nameSpecial, nameSecond); err != nil {
 		return nil, err
 	}
 	if len(args) != 1 {
@@ -322,7 +322,7 @@ func (n *Object) maybeRelease(m *interp.VM, size int, f func()) {
 	f()
 }
 
-func stringList(fn string, what any, l *interp.ListVal) ([]string, error) {
+func stringList(fn any, what any, l *interp.ListVal) ([]string, error) {
 	out := make([]string, len(l.Elements))
 	for i, e := range l.Elements {
 		s, ok := e.(*interp.StringVal)
@@ -339,8 +339,8 @@ func stringList(fn string, what any, l *interp.ListVal) ([]string, error) {
 // ----------------------------------------------------------------------------
 
 func (n *Object) decode(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(memberDecode)
-	if err := bind.CheckNamed(fn+"()", named, nameSpecial); err != nil {
+	fn := codes.NameRef(memberDecode)
+	if err := bind.CheckNamed(fn.Called(), named, nameSpecial); err != nil {
 		return nil, err
 	}
 	if len(args) != 1 {
@@ -386,7 +386,7 @@ func (n *Object) decode(m *interp.VM, args []interp.Value, named map[string]inte
 // idSeqs çöz'ün argümanını kimlik dizilerine çevirir. tek doğruysa argüman tek
 // bir dizidir (sonuç metin), değilse dizilerin listesidir (sonuç metin listesi).
 func idSeqs(v interp.Value) (seqs [][]int, single bool, err error) {
-	fn := codes.DisplayName(memberDecode)
+	fn := codes.NameRef(memberDecode)
 	switch x := v.(type) {
 	case *interp.ListVal:
 		if len(x.Elements) == 0 {
@@ -451,7 +451,7 @@ func intList(row int, elems []interp.Value) ([]int, error) {
 // ----------------------------------------------------------------------------
 
 func (n *Object) tokenID(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	if err := bind.CheckNamed(codes.Name(codes.Y613)+"()", named); err != nil {
+	if err := bind.CheckNamed(codes.NameRef(codes.Y613).Called(), named); err != nil {
 		return nil, err
 	}
 	if len(args) != 1 {

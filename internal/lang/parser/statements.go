@@ -283,7 +283,7 @@ func (p *Parser) parseImportStatement() *ast.ImportStatement {
 		if next.Type == lexer.TokIdent {
 			example = next.Literal
 		}
-		imp := codes.Name(codes.A070)
+		imp := codes.NameRef(codes.A070)
 		p.syntaxError(next, messages.H0143, imp, tokenDescription(next), example)
 		return nil
 	}

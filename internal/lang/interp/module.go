@@ -233,7 +233,7 @@ func (v *VM) imp(s *ast.ImportStatement, env *Environment, alias func(*Environme
 // Başka bir görev aynı modülü yüklüyorsa bitmesi beklenir; yükleyen görevin kendi aktarım
 // zinciri modülü içeriyorsa bu döngüsel bir aktarımdır.
 func (v *VM) loadModule(s *ast.ImportStatement, path string) (*DictVal, error) {
-	if err := CheckPath(codes.Name(codes.A070), path); err != nil {
+	if err := CheckPath(codes.NameRef(codes.A070), path); err != nil {
 		return nil, messages.At(s.Line(), 0, err)
 	}
 	dest, searched, err := v.moduleTarget(s, path)
@@ -336,7 +336,7 @@ func (v *VM) runModule(s *ast.ImportStatement, path string, dest *Source, keyStr
 	} else {
 		data, err := os.ReadFile(dest.Path)
 		if err != nil {
-			return nil, messages.At(s.Line(), 0, ReadError(codes.DisplayName(codes.A070), path, messages.H2112, err, searched))
+			return nil, messages.At(s.Line(), 0, ReadError(codes.NameRef(codes.A070), path, messages.H2112, err, searched))
 		}
 		dest.Code = string(data)
 	}

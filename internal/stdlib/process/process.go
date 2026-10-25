@@ -49,7 +49,7 @@ var (
 func Register(v *interp.VM) *State {
 	d := &State{}
 	v.RegisterNoNamed(codes.G800, envVar)
-	v.RegisterBuiltinCode(codes.G801, bind.SafeBuiltin(codes.Name(codes.G801), d.commandLine))
+	v.RegisterBuiltinCode(codes.G801, bind.SafeBuiltin(interp.CallPrefix(codes.G801), d.commandLine))
 	return d
 }
 

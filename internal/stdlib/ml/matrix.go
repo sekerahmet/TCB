@@ -15,7 +15,7 @@ import (
 
 // checkMatrixShape negatif / sıfır ya da aşırı büyük matris boyutlarını panik yerine
 // hata olarak bildirir.
-func checkMatrixShape(fn string, line, column int64) error {
+func checkMatrixShape(fn any, line, column int64) error {
 	if line <= 0 || column <= 0 {
 		return messages.New(messages.H6009, fn, line, column)
 	}
@@ -36,14 +36,14 @@ func intArg(args []interp.Value, i int, signature string) (int64, error) {
 
 // identity birim_matris(n) yerleşiğidir: n×n birim matris.
 func identity(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.T111)
+	fn := codes.NameRef(codes.T111)
 	if len(args) != 1 {
 		return nil, messages.New(messages.H6014, fn)
 	}
-	if err := bind.CheckNamed(fn+"()", named); err != nil {
+	if err := bind.CheckNamed(fn.Called(), named); err != nil {
 		return nil, err
 	}
-	n, err := intArg(args, 0, fn+"(n)")
+	n, err := intArg(args, 0, fn.String()+"(n)")
 	if err != nil {
 		return nil, err
 	}

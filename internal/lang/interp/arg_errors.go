@@ -17,7 +17,7 @@ import (
 //	aralık() 1 ya da 2 argüman bekler, 0 verildi (kullanım: aralık(bitiş) ya da aralık(başlangıç, bitiş))
 
 // CallName is the name of a code as written in error messages: the name itself for
-// builtins (aralık), with the receiver for members (liste.filtrele; see codes.MemberName).
+// builtins (aralık), with the receiver for members (liste.filtrele; see codes.CallNameRef).
 // It is a message parameter (codes.Ref): the catalog writes it in the message's language.
 func CallName(kd codes.Code) codes.Ref { return codes.CallNameRef(kd) }
 

@@ -73,7 +73,7 @@ var clock = time.Now
 // Register kontrol_noktası yerleşiğini VM'ye kaydeder. s programın süreç durumudur (komut
 // satırı ayarları noktaya yazılır); nil olabilir.
 func Register(v *interp.VM, s *process.State) {
-	v.RegisterBuiltinCode(codes.T702, bind.SafeBuiltin(codes.Name(codes.T702), func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	v.RegisterBuiltinCode(codes.T702, bind.SafeBuiltin(interp.CallPrefix(codes.T702), func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		return setup(m, s, args, named)
 	}))
 }

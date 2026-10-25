@@ -74,8 +74,8 @@ func IsOptimizer(v interp.Value) (*Optimizer, bool) {
 	return o, ok
 }
 
-// Name iyileştiricinin oluşturucusunun adıdır (AdamW, SGD).
-func (o *Optimizer) Name() string { return o.ad }
+// Name iyileştiricinin oluşturucusunun kanonik adıdır (AdamW, SGD; kontrol noktasında veri).
+func (o *Optimizer) Name() string { return codes.Name(o.ad.Code) }
 
 // ParamCount iyileştiricinin güncellediği parametre sayısıdır.
 func (o *Optimizer) ParamCount() int { return len(o.params) }

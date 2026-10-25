@@ -16,19 +16,19 @@ import (
 
 // axisTensor ilk konumlu argümanın tensör olduğunu, konumlu argüman sayısını (konumlu
 // sayısı n) ve eksen adlı argümanını denetleyip tensörü ve çözülmüş ekseni verir.
-func axisTensor(ad, usage string, args []interp.Value, n int, named map[string]interp.Value) (*TensorValue, int, error) {
+func axisTensor(ad codes.Ref, usage string, args []interp.Value, n int, named map[string]interp.Value) (*TensorValue, int, error) {
 	if len(args) != n {
 		if len(args) == n+1 {
 			return nil, 0, messages.New(messages.H6200, usage, nameAxis, interp.Shown(args[n]))
 		}
 		return nil, 0, messages.New(messages.H6202, usage, n, len(args))
 	}
-	if err := bind.CheckNamed(ad+"()", named, nameAxis); err != nil {
+	if err := bind.CheckNamed(ad.Called(), named, nameAxis); err != nil {
 		return nil, 0, err
 	}
 	d, ok := args[0].(*TensorValue)
 	if !ok {
-		if err := listError(ad, args[0], messages.Text(messages.H6132), ad+"("+codes.Name(codes.T100)+"(...))"); err != nil {
+		if err := listError(ad, args[0], messages.Text(messages.H6132), ad.String()+"("+codes.Name(codes.T100)+"(...))"); err != nil {
 			return nil, 0, err
 		}
 		return nil, 0, messages.New(messages.H6203, ad, typeName(args[0]))
@@ -50,7 +50,7 @@ func axisTensor(ad, usage string, args []interp.Value, n int, named map[string]i
 // cumSumBuiltin birikimli_toplam(t, eksen: -1): şekil korunur, türev izler; tam
 // sayılı tensörün sonucu da tam sayılıdır.
 func cumSumBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	ad := codes.DisplayName(codes.T231)
+	ad := codes.NameRef(codes.T231)
 	d, e, err := axisTensor(ad, fmt.Sprintf("%s(t, %s: -1)", ad, nameAxis.TR), args, 1, named)
 	if err != nil {
 		return nil, err
@@ -66,7 +66,7 @@ func cumSumBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 
 // topKBuiltin en_büyük_k(t, k, eksen: -1) → [değerler, indeksler].
 func topKBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	ad := codes.DisplayName(codes.T232)
+	ad := codes.NameRef(codes.T232)
 	d, e, err := axisTensor(ad, fmt.Sprintf("%s(t, k, %s: -1)", ad, nameAxis.TR), args, 2, named)
 	if err != nil {
 		return nil, err
@@ -90,7 +90,7 @@ func topKBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Valu
 
 // argsortBuiltin sıralama_indeksi(t, eksen: -1): kararlı, küçükten büyüğe.
 func argsortBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	ad := codes.DisplayName(codes.T233)
+	ad := codes.NameRef(codes.T233)
 	d, e, err := axisTensor(ad, fmt.Sprintf("%s(t, %s: -1)", ad, nameAxis.TR), args, 1, named)
 	if err != nil {
 		return nil, err

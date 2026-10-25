@@ -182,7 +182,7 @@ type VM struct {
 	asyncTask bool // 'eşzamanlı' bloğu içinde mi çalışıyor
 	// exclusive boş değilse görev kilidi başka göreve devretmez (bkz. Exclusive); değeri kipi
 	// isteyen yerleşiğin kullanıcıya görünen adıdır.
-	exclusive string
+	exclusive any
 
 	// source şu an çalışan kodun dosyasıdır (nil: ana program; bkz. Kaynak). Paylaşılan
 	// durumda değil görevde tutulur: bir modül yüklenirken kilidi bırakınca başka bir görev
@@ -294,7 +294,7 @@ func (v *VM) acquireGIL() {
 // okuma-yazma adımları ('s += 1') bu yüzden bölünmez. Sayaç denetimi tek görevli
 // programlarda yalnızca bir bellek okumasıdır.
 func (v *VM) handOff() {
-	if v.pending.Load() != 0 && v.holdsGIL && v.exclusive == "" {
+	if v.pending.Load() != 0 && v.holdsGIL && v.exclusive == nil {
 		v.handOffLock()
 	}
 }
@@ -317,7 +317,7 @@ func (v *VM) releaseGIL() {
 // long operations such as sleeping, network requests or external processes.
 // Inside Exclusive the lock is kept: fn runs while holding it.
 func (v *VM) Blocking(fn func()) {
-	if !v.holdsGIL || v.exclusive != "" {
+	if !v.holdsGIL || v.exclusive != nil {
 		fn()
 		return
 	}
@@ -335,7 +335,7 @@ func (v *VM) Blocking(fn func()) {
 // where another task's kernels would enter the recording). owner is the user-visible name of
 // the builtin asking for it; waiting for tasks (bekle_hepsi) inside it is an error, since
 // they could never run.
-func (v *VM) Exclusive(owner string, fn func()) {
+func (v *VM) Exclusive(owner any, fn func()) {
 	prev := v.exclusive
 	v.exclusive = owner
 	defer func() { v.exclusive = prev }()

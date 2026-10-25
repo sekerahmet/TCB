@@ -96,10 +96,6 @@ func TestMessageUsage(t *testing.T) {
 		t.Errorf("kullanılmayan ileti kodları (silin ya da numarayı boş bırakın): %v", unused)
 	}
 	for _, b := range banned {
-		if strings.HasPrefix(b.code, "codes.") || b.code == ".TR" {
-			t.Errorf("%s: iletiye %s ile yazılmış ad verilmiş; ileti ve içindeki adlar tek dildedir, kodu verin (codes.NameRef, interp.CallName, bind.Named)", b.pos, b.code)
-			continue
-		}
 		if strings.HasPrefix(b.code, "turkish.") {
 			t.Errorf("%s: %s ile ileti sözcüğü çekimleniyor; eki şablona yazın ({ad|dat}, {ad|gen} ...)", b.pos, b.code)
 			continue
@@ -166,13 +162,6 @@ func scan(t *testing.T, root string) (calls, banned []call, used map[string]bool
 					calls = append(calls, call{code: code, args: len(c.Args) - 1, pos: pos})
 				}
 			}
-			if pkg == "messages" && (fn == "New" || fn == "Text" || fn == "TextIn") {
-				for _, a := range c.Args {
-					if name := fixedName(a); name != "" {
-						banned = append(banned, call{code: name, pos: fset.Position(a.Pos()).String()})
-					}
-				}
-			}
 			return true
 		})
 		return nil
@@ -184,31 +173,6 @@ func scan(t *testing.T, root string) (calls, banned []call, used map[string]bool
 }
 
 func isSelector(e ast.Expr) bool { _, ok := e.(*ast.SelectorExpr); return ok }
-
-// fixedName ileti değeri (ya da onun + ile birleşen parçası) yazıldığı anda bir dilde kurulmuş
-// bir adsa onu üreten çağrıdır: codes.Name, codes.DisplayName, codes.MemberName,
-// codes.ReceiverName ya da bind.Named'in .TR'si. Böyle bir ad iletinin dilini izlemez (İngilizce
-// dosyanın yakaladığı hatada Türkçe kalır); iletiye kod verilir, katalog dile göre yazar.
-func fixedName(e ast.Expr) string {
-	switch x := e.(type) {
-	case *ast.BinaryExpr:
-		if n := fixedName(x.X); n != "" {
-			return n
-		}
-		return fixedName(x.Y)
-	case *ast.ParenExpr:
-		return fixedName(x.X)
-	case *ast.SelectorExpr:
-		if x.Sel.Name == "TR" {
-			return ".TR"
-		}
-	case *ast.CallExpr:
-		if pkg, fn := callee(x); pkg == "codes" && (fn == "Name" || fn == "DisplayName" || fn == "MemberName" || fn == "ReceiverName") {
-			return pkg + "." + fn
-		}
-	}
-	return ""
-}
 
 // callee çağrılan fonksiyonun paket seçicisini ve adını verir (pkg.Fn ya da Fn).
 func callee(c *ast.CallExpr) (pkg, fn string) {

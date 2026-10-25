@@ -26,7 +26,7 @@ type profileOptions struct {
 
 // profileArguments seçenekleri, program dosyasını ve programın argümanlarını ayırır.
 // allowed, komutun kabul ettiği seçeneklerdir. Hata varsa yazıp 1 ile çıkar.
-func profileArguments(command string, args []string, allowed ...codes.Code) (profileOptions, string, []string) {
+func profileArguments(command any, args []string, allowed ...codes.Code) (profileOptions, string, []string) {
 	var s profileOptions
 	target := map[codes.Code]*string{codes.K103: &s.json, codes.K104: &s.goProfile, codes.K105: &s.output}
 	for len(args) > 0 && strings.HasPrefix(args[0], "--") {
@@ -74,7 +74,7 @@ func startMeasuredProfile(machine *interp.VM, path, code string, prog *ast.Progr
 // programı satır örneklemesiyle çalıştırır, bitince (hata ya da kesmeyle bitse de) metin
 // raporu standart çıktıya, istenmişse JSON raporu dosyaya yazar.
 func profileCommand(args []string) {
-	s, path, arguments := profileArguments(codes.DisplayName(codes.K013), args, codes.K103, codes.K104)
+	s, path, arguments := profileArguments(codes.NameRef(codes.K013), args, codes.K103, codes.K104)
 	machine, prog, code := prepareProgram(path, arguments, runPreparation)
 	if s.goProfile != "" {
 		startGoProfile(s.goProfile)

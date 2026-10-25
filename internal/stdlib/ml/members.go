@@ -133,7 +133,7 @@ func (d *TensorValue) valueList() (interp.Value, error) {
 	if d.t.Numel() == 0 {
 		// Veri yokken liste sayısı veriden bağımsızdır: [10⁹, 0] 10⁹ boş liste isterdi.
 		// Dolu tensörde liste sayısı eleman sayısını aşmaz.
-		if err := checkShapeLimit(codes.Name(memberValue), d.t.Shape()); err != nil {
+		if err := checkShapeLimit(codes.NameRef(memberValue), d.t.Shape()); err != nil {
 			return nil, err
 		}
 	}
@@ -233,7 +233,7 @@ func (d *TensorValue) reshape(_ *interp.VM, args []interp.Value, _ map[string]in
 	if d.t.Numel() == 0 {
 		// Veri yokken eksenler serbesttir ([0] → [10¹², 0]); sınır sıfır eksenler 1 sayılarak
 		// uygulanır. Dolu tensörde eksenlerin çarpımı eleman sayısına eşit olmak zorundadır.
-		if err := checkShapeLimit(codes.Name(memberReshape), sh); err != nil {
+		if err := checkShapeLimit(codes.NameRef(memberReshape), sh); err != nil {
 			return nil, err
 		}
 	}
@@ -269,7 +269,7 @@ func transposed(d *TensorValue) (interp.Value, error) {
 
 func (d *TensorValue) permute(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 	list := unpackListOrVarargs(args)
-	fn := codes.DisplayName(memberPermute)
+	fn := codes.NameRef(memberPermute)
 	sh := d.t.Shape()
 	if len(list) != len(sh) {
 		return nil, messages.New(messages.H6713, fn, tensor.ShapeText(sh), len(sh), len(list))
@@ -299,7 +299,7 @@ func (d *TensorValue) permute(_ *interp.VM, args []interp.Value, _ map[string]in
 }
 
 func (d *TensorValue) slice(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(memberSlice)
+	fn := codes.NameRef(memberSlice)
 	if len(args) != 3 {
 		return nil, messages.New(messages.H6717, fn, len(args))
 	}

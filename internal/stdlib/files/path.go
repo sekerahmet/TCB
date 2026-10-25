@@ -158,7 +158,7 @@ func (y *Path) query(m *interp.VM, kd codes.Code) interp.Value {
 }
 
 func (y *Path) size(m *interp.VM) (interp.Value, error) {
-	fn := codes.MemberName(codes.Y318)
+	fn := codes.CallNameRef(codes.Y318)
 	c, tried := y.resolve(m)
 	b, err := os.Stat(c)
 	if err != nil {

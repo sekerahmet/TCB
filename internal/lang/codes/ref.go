@@ -25,7 +25,7 @@ const (
 	// RefName is the name itself: aralık, Tam, öğrenme_oranı.
 	RefName RefForm = iota
 	// RefCallName is a code as it is called: a builtin's name (aralık), a member with its
-	// receiver (liste.filtrele; MemberName).
+	// receiver (liste.filtrele): on a single type its name, otherwise x.
 	RefCallName
 	// RefCall is RefCallName with "()": aralık(), liste.filtrele().
 	RefCall
@@ -88,7 +88,7 @@ func nameIn(l *Language, k Code) string {
 	return active.Name(k)
 }
 
-// callNameIn kodun çağrı adıdır (MemberName'in dile göre olanı): üyede tek tipin alıcı adıyla.
+// callNameIn kodun çağrı adıdır: üyede tek tipin alıcı adıyla (birden çok tipte x).
 func callNameIn(l *Language, k, receiverType Code) string {
 	if k.Namespace() != NamespaceMember {
 		return nameIn(l, k)

@@ -79,14 +79,14 @@ func registerRounding(v *interp.VM, kd codes.Code, fn func(*tensor.Tensor) *tens
 // registerTensorWrap tek tensör argümanlı yerleşiği sarar: adlı argüman yok, listede yol gösteren
 // hata, tensör dışı girdide eski yerleşik; keepInts sonuca girdinin tam sayılı işaretini taşır.
 func registerTensorWrap(v *interp.VM, kd codes.Code, keepInts bool, fn func(*tensor.Tensor) *tensor.Tensor) {
-	ad := codes.DisplayName(kd)
+	ad := codes.NameRef(kd)
 	wrap(v, kd, func(old interp.BuiltinFunc) interp.BuiltinFunc {
 		return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-			if err := bind.CheckNamed(ad+"()", named); err != nil {
+			if err := bind.CheckNamed(ad.Called(), named); err != nil {
 				return nil, err
 			}
 			if len(args) == 1 {
-				if err := listError(ad, args[0], messages.Text(messages.H6131), ad+"("+codes.Name(codes.T100)+"(...))"); err != nil {
+				if err := listError(ad, args[0], messages.Text(messages.H6131), ad.String()+"("+codes.Name(codes.T100)+"(...))"); err != nil {
 					return nil, err
 				}
 			}
@@ -117,7 +117,7 @@ func singleTensor(args []interp.Value) (*TensorValue, bool) {
 }
 
 // limitCount sınırla'nın bir sınırını okur: sayı olmalı, NaN olamaz.
-func limitCount(ad string, isNamed bind.Named, v interp.Value) (float64, bool, error) {
+func limitCount(ad any, isNamed bind.Named, v interp.Value) (float64, bool, error) {
 	f, ok := interp.ToFloat(v)
 	if !ok || f != f {
 		return 0, false, messages.New(messages.H6107, ad, isNamed, interp.Shown(v))
@@ -128,12 +128,12 @@ func limitCount(ad string, isNamed bind.Named, v interp.Value) (float64, bool, e
 
 // clampBuiltin sınırla(x, en_az: ..., en_fazla: ...).
 func clampBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	ad := codes.DisplayName(codes.G409)
+	ad := codes.NameRef(codes.G409)
 	usage := fmt.Sprintf("%s(x, %s: ..., %s: ...)", ad, nameMin.TR, nameMax.TR)
 	if len(args) != 1 {
 		return nil, messages.New(messages.H6108, usage, len(args))
 	}
-	if err := bind.CheckNamed(ad+"()", named, nameMin, nameMax); err != nil {
+	if err := bind.CheckNamed(ad.Called(), named, nameMin, nameMax); err != nil {
 		return nil, err
 	}
 	lo, hi := math.Inf(-1), math.Inf(1)
@@ -186,7 +186,7 @@ func clampBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Val
 	case *interp.FloatVal:
 		return &interp.FloatVal{Val: clamp64(x.Val, lo, hi)}, nil
 	}
-	if err := listError(ad, args[0], messages.Text(messages.H6131), ad+"("+codes.Name(codes.T100)+"(...), "+nameMin.TR+": 0)"); err != nil {
+	if err := listError(ad, args[0], messages.Text(messages.H6131), ad.String()+"("+codes.Name(codes.T100)+"(...), "+nameMin.TR+": 0)"); err != nil {
 		return nil, err
 	}
 	return nil, messages.New(messages.H6103, ad, typeName(args[0]))
@@ -209,15 +209,15 @@ func clamp64(x, lo, hi float64) float64 {
 // atan2Builtin arktanjant2(y, x): iki sayıda Ondalık; biri tensörse yayınlamalı,
 // türevli tensör (sayı tensörün türüne çevrilir).
 func atan2Builtin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	ad := codes.DisplayName(codes.T228)
-	if err := bind.CheckNamed(ad+"()", named); err != nil {
+	ad := codes.NameRef(codes.T228)
+	if err := bind.CheckNamed(ad.Called(), named); err != nil {
 		return nil, err
 	}
 	if len(args) != 2 {
 		return nil, messages.New(messages.H6116, ad, len(args))
 	}
 	for _, a := range args {
-		if err := listError(ad, a, messages.Text(messages.H6131), ad+"("+codes.Name(codes.T100)+"(...), x)"); err != nil {
+		if err := listError(ad, a, messages.Text(messages.H6131), ad.String()+"("+codes.Name(codes.T100)+"(...), x)"); err != nil {
 			return nil, err
 		}
 	}
@@ -245,7 +245,7 @@ func atan2Builtin(m *interp.VM, args []interp.Value, named map[string]interp.Val
 
 // toTensors argümanlardan en az biri tensörken hepsini o tensörün cihazında tensöre
 // çevirir; sayılar o tensörün türünü alır (t * 2 gibi). Farklı cihazlardaki tensörler hatadır.
-func toTensors(ad string, args []interp.Value) ([]*tensor.Tensor, error) {
+func toTensors(ad any, args []interp.Value) ([]*tensor.Tensor, error) {
 	var first *tensor.Tensor
 	for _, a := range args {
 		if d, ok := a.(*TensorValue); ok {
