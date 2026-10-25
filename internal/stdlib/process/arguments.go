@@ -168,8 +168,15 @@ func unknownOption(given string, options []*option) error {
 	if i := strings.IndexByte(given, '='); i >= 0 {
 		given = given[:i] + "=…"
 	}
-	help := codes.DisplayName(codes.K106) // eşleştirme kişinin dilindeki yazımla
-	candidates := []string{help}
+	// Yardım seçeneği her yazım dilinin adıyla kabul edilir (--yardım, --help): hepsi adaydır.
+	helps := map[string]bool{}
+	var candidates []string
+	for _, lang := range codes.Languages() {
+		if l, err := codes.LoadLanguage(lang); err == nil && !helps[l.Name(codes.K106)] {
+			helps[l.Name(codes.K106)] = true
+			candidates = append(candidates, l.Name(codes.K106))
+		}
+	}
 	for _, s := range options {
 		candidates = append(candidates, s.name)
 	}
@@ -178,13 +185,14 @@ func unknownOption(given string, options []*option) error {
 		o = name // -adım → --adım
 	}
 	if o == "" && name == "h" {
-		o = help
+		o = codes.Name(codes.K106)
+		helps[o] = true
 	}
 	if o == "" {
 		return messages.New(messages.H7208, shorten(given))
 	}
 	var suggestion any = o // programın seçeneği yazıldığı gibi; yardım seçeneği iletinin dilinde
-	if o == help {
+	if helps[o] && find(options, o) == nil {
 		suggestion = codes.NameRef(codes.K106)
 	}
 	return messages.New(messages.H7209, shorten(given), suggestion)

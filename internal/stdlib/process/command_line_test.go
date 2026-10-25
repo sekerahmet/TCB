@@ -75,6 +75,8 @@ func TestCommandLineUsageErrors(t *testing.T) {
 		// Mantık seçeneğinin değeri ayrı argüman değildir (Go flag: -flag=false); öneri doğru biçimi verir (B17).
 		{[]string{"--hızlı", "yanlış"}, "--hızlı=yanlış"},
 		{[]string{"--hızlı", "true"}, "--hızlı=true"},
+		// Yardımın her kabul edilen yazımı öneri adayıdır (K1): --hel, --help'e yakındır.
+		{[]string{"--hel"}, "Bunu mu demek istediniz: '--yardım'?"},
 	} {
 		_, _, err := commandLine(t, code, d.arg...)
 		c, ok := interp.IsExitRequest(err)
