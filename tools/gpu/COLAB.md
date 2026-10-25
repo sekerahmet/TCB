@@ -1,59 +1,113 @@
-# GPU sınaması, mikro kıyaslar, model kıyası ve profil (Colab)
+# Colab: GPU sınaması, ölçüm, profil ve ağır CPU koşuları
 
-Kod GitHub'dan çekilir ve Colab'da derlenir; Drive yalnızca eğitim verisi ve sonuçlar
-içindir (`Drive'ım/TR_dili/`). Hücreler tek oturumda, bir GPU çalışma zamanında (ör. G4)
-sırayla çalıştırılır: sınamalar → mikro kıyaslar (TR ve PyTorch) → model kıyası → profil.
-Her hücrenin geri bildirilecek çıktısı kısadır ve tablo biçimindedir.
+Kod GitHub'dan çekilir ve Colab'da derlenir; Drive yalnızca eğitim verisi ve sonuçlar içindir
+(`Drive'ım/TR_dili/`). Ağır CPU koşuları (tam denetim, zorlama, CPU ölçümü) geliştiricinin makinesinde
+değil, Colab'ın CPU High-RAM çalışma zamanında yapılır ([`docs/development.md`](../../docs/development.md#ölçüm-disiplini)).
 
-## 0. CPU koşuları ve kayıt (tam denetim, zorlama, uzun testler)
+## Hücre standardı
 
-Ağır CPU koşuları geliştiricinin makinesinde değil, Colab'ın CPU çalışma zamanında (High-RAM) yapılır
-([`docs/development.md`](../../docs/development.md#ölçüm-disiplini)). Kod yan daldan çekilir; koşu
-kayıt aracıyla sarılır ve sonucu Drive'daki `TR_dili/olcumler/<iş>/<zaman>.json` olarak kalır (Türkiye saati, ör. `20261023114642`)
-([`tools/record`](../record/README.md)). Drive'ı bağlamak çalışma zamanı başına bir kez onay ister.
+Not defterinde yalnızca aşağıdaki **temel hücreler** kalıcıdır; ölçüm, deney ve denetimler **tek seferlik
+iş hücreleridir** (`İ1`, `İ2` ...) ve sonuçları Drive'a yazıldıktan sonra silinir.
+
+| No | Hücre | Ne zaman | Süre |
+| :-- | :-- | :-- | :-- |
+| `0` | ÇALIŞMA ZAMANI: kart, çekirdek, bellek | her oturumun başında | anında |
+| `1` | DRIVE'I BAĞLA | sonuç yazan her iş için (onay ister) | anında |
+| `2` | KUR: Go, kodu çek (DAL), derle, `is_baslat` yardımcısı | dal değişince | ~1 dk, arka planda |
+| `3` | NABIZ: bütün işlerin durumu ve son özet satırları | iş başlatıldıktan sonra, tahmini süre dolunca | anında |
+| `İn` | tek seferlik iş: ölçüm, deney, tam denetim | gerektiğinde | arka planda, kayıtlı |
+| `9` | KAPAT | GPU işi bitince ya da GPU boş bekleyecekse | anında |
+
+Kurallar:
+
+- **Başlık:** `# <no> · <NE YAPAR> · <GPU|CPU> · <anında | ~N dk, arka planda>`.
+- **Süre önceden tahmin edilir:** benzer koşuların süresi `TR_dili/olcumler/OZET.md`'de (`Seconds` sütunu).
+  Yalnızca anında bitenler (birkaç saniye) ön planda koşar; klonlama, derleme ve veri kopyası dahil gerisi arka planda.
+- **Arka plan kalıbı:** her iş `bash /content/is_baslat.sh <ad> "<ne, nasıl>" -- <komut>` ile başlar
+  (hücre 2 yazar). Yardımcı komutu `setsid nohup ... < /dev/null &` ile ayrı oturumda başlatır (hücreyi
+  kesmek koşuya ulaşmaz, hücre beklemez), `tools/record` ile sarar ve `/content/is/<ad>/` altına `log` ile
+  `bitti` (çıkış kodu) yazar. Durum yalnızca hücre 3'le, tahmini süre dolunca bir kez okunur; art arda sorgulanmaz.
+- **Kayıt:** her koşu `TR_dili/olcumler/<ad>/<zaman>.json` (Türkiye saati) ve `OZET.md`'ye tek satır
+  ([`tools/record`](../record/README.md)). Not (`--note`) ne ölçüldüğünü ve nasıl ölçüldüğünü söyler.
+  A/B betikleri `$TR_RECORD_DIR/metrics.json`'a iki commit kimliğini ve sayıları yazar.
+- **Deneyden önce:** `OZET.md`'de ve aşağıdaki tariflerde aynı deneyin yapılıp yapılmadığına bakılır.
+- **Çalışma zamanı:** CPU High-RAM ağır CPU işleri için; L4 ucuz GPU (CPU işi de olur); G4 (RTX PRO 6000)
+  yalnızca GPU işi ve onun hazırlığı (kurulum, derleme, veri kopyası).
+
+## Temel hücreler
+
+```bash
+%%bash
+# 0 · ÇALIŞMA ZAMANI: KART, ÇEKİRDEK, BELLEK · GPU|CPU · anında
+nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader 2>/dev/null || echo "GPU yok (CPU çalışma zamanı)"
+echo "çekirdek $(nproc) · bellek $(free -g | awk '/Mem:/{print $2}') GB · Drive: $([ -d /content/drive/MyDrive ] && echo bağlı || echo bağlı değil)"
+```
 
 ```python
-# A · DRIVE'I BAĞLA (ONAY İSTER) · CPU
+# 1 · DRIVE'I BAĞLA · CPU · anında (onay ister)
 from google.colab import drive
 drive.mount('/content/drive')
 ```
 
 ```bash
 %%bash
-# B · YAN DALI ÇEK, KOŞUYU KAYITLA BAŞLAT (ARKA PLANDA) · CPU
-# DAL ve İŞ değiştirilir; komut: tam denetim için bash tools/full_check.sh, zorlama için --kip=zorlama eklenir.
-DAL=zorlama-dogrulama; IS=tam-denetim
-[ -x /usr/local/go/bin/go ] || { wget -q https://go.dev/dl/go1.26.10.linux-amd64.tar.gz -O /tmp/go.tgz && tar -C /usr/local -xzf /tmp/go.tgz; }
-export PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=local
-rm -rf /content/TCB && git clone -q --depth 1 -b $DAL https://github.com/sekerahmet/TCB /content/TCB
-cd /content/TCB && git log -1 --format='commit: %h %s' | cut -c1-80 && rm -f /content/kosu_bitti
-setsid nohup bash -c "cd /content/TCB && export PATH=/usr/local/go/bin:\$PATH GOTOOLCHAIN=local && go run ./tools/record --name $IS --out /content/drive/MyDrive/TR_dili/olcumler -- bash tools/full_check.sh > /content/kosu.log 2>&1; echo \$? > /content/kosu_bitti" > /dev/null 2>&1 < /dev/null &
-echo "başladı (durum: hücre C)"
+# 2 · KUR: GO, KODU ÇEK (DAL), DERLE, is_baslat · CPU · ~1 dk, arka planda
+DAL=main
+cat > /content/is_baslat.sh <<'EOF'
+# Kullanım: bash /content/is_baslat.sh <ad> "<ne, nasıl>" -- <komut ...>   (depo kökünde koşar)
+AD=$1; NOT=$2; shift 3
+mkdir -p /content/is/$AD && rm -f /content/is/$AD/bitti
+setsid nohup bash -c 'cd /content/TCB && export PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=local && go run ./tools/record --name "$0" --note "$1" --out /content/drive/MyDrive/TR_dili/olcumler -- "${@:2}" > /content/is/$0/log 2>&1; echo $? > /content/is/$0/bitti' "$AD" "$NOT" "$@" > /dev/null 2>&1 < /dev/null &
+echo "$AD başladı (durum: hücre 3)"
+EOF
+mkdir -p /content/is/kur && rm -f /content/is/kur/bitti
+setsid nohup bash -c "( set -e
+  [ -x /usr/local/go/bin/go ] || { wget -q https://go.dev/dl/go1.26.10.linux-amd64.tar.gz -O /tmp/go.tgz && tar -C /usr/local -xzf /tmp/go.tgz; }
+  export PATH=/usr/local/go/bin:\$PATH GOTOOLCHAIN=local
+  rm -rf /content/TCB && git clone -q --depth 2 -b $DAL https://github.com/sekerahmet/TCB /content/TCB && cd /content/TCB
+  git log -1 --format='commit: %h %s' | cut -c1-80
+  mkdir -p /content/tr && CGO_ENABLED=0 go build -trimpath -o /content/tr/tr ./cmd/tr && echo 'tr derlendi' )
+  echo \$? > /content/is/kur/bitti" > /content/is/kur/log 2>&1 < /dev/null &
+echo "kurulum başladı: DAL=$DAL (durum: hücre 3)"
 ```
 
 ```bash
 %%bash
-# C · KOŞU DURUMU (ANINDA BİTER) · CPU
-echo "adım: $(grep -E '^== ' /content/kosu.log 2>/dev/null | tail -1)"
-grep -E '^(--- FAIL|FAIL|panic|!! KALDI)' /content/kosu.log 2>/dev/null | head -20
-[ -f /content/kosu_bitti ] && { echo "BİTTİ (çıkış $(cat /content/kosu_bitti))"; tail -3 /content/kosu.log; tail -1 /content/drive/MyDrive/TR_dili/olcumler/index.jsonl | cut -c1-300; } || echo "sürüyor"
+# 3 · NABIZ: İŞLERİN DURUMU VE SON ÖZET · CPU · anında
+for d in /content/is/*/; do
+  ad=$(basename $d)
+  if [ -f $d/bitti ]; then echo "■ $ad: BİTTİ (çıkış $(cat $d/bitti))"; else echo "▶ $ad: sürüyor"; fi
+  grep -E '^(--- FAIL|FAIL|panic|!! KALDI|❌|✅)' $d/log 2>/dev/null | tail -3
+  tail -c 300 $d/log 2>/dev/null | tail -2; echo
+done
+tail -3 /content/drive/MyDrive/TR_dili/olcumler/OZET.md 2>/dev/null
 ```
 
-CPU temel ölçümü ([`tools/bench/cpu_baseline.sh`](../bench/cpu_baseline.sh): karakter modeli TR ve PyTorch, dil
-kıyası, tensör kernelleri; ~11 dk). PyTorch PyPI'daki son sürümüyle ölçülür (Colab'ın hazır sürümü geride
-kalabilir); `TORCH` güncellenir. Durum hücre C ile izlenir.
+```python
+# 9 · KAPAT · GPU|CPU · anında (arka plan koşuları da biter)
+from google.colab import runtime
+runtime.unassign()
+```
+
+## İş tarifleri
+
+Aşağıdaki tarifler bir `İn` hücresine kopyalanır ve `is_baslat` ile başlatılır. Bölüm 1 ve sonrasındaki eski tarifler
+bu standarda kullanıldıkça geçirilir; kendi durum hücreleri yerine hücre 3 kullanılır.
 
 ```bash
 %%bash
-# F · CPU TEMEL ÖLÇÜMÜ, KAYITLI (ARKA PLANDA, ~11 DK) · CPU
-# DAL ve TORCH değiştirilir. Kayıt: Drive TR_dili/olcumler/cpu-temel/.
-DAL=main; TORCH=2.14.1
-export PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=local
+# İ1 · TAM DENETİM (KAYITLI) · CPU High-RAM · ~15 dk, arka planda
+cd /content/TCB && bash /content/is_baslat.sh tam-denetim "tam denetim: bash tools/full_check.sh (dagitim + go-esleri)" -- bash tools/full_check.sh
+```
+
+```bash
+%%bash
+# İ2 · CPU TEMEL ÖLÇÜMÜ (KAYITLI) · CPU High-RAM · ~11 dk, arka planda
+# tools/bench/cpu_baseline.sh: karakter modeli TR ve PyTorch, dil kıyası, tensör kernelleri. PyTorch PyPI'daki son
+# sürümüyle ölçülür (Colab'ın hazır sürümü geride kalabilir); TORCH güncellenir.
+TORCH=2.14.1
 python3 -c "import torch,sys; sys.exit(torch.__version__.split('+')[0] != '$TORCH')" || pip install -q torch==$TORCH --index-url https://download.pytorch.org/whl/cpu 2>&1 | tail -2
-rm -rf /content/TCB && git clone -q --depth 1 -b $DAL https://github.com/sekerahmet/TCB /content/TCB
-cd /content/TCB && git log -1 --format='commit: %h %s' | cut -c1-80 && rm -f /content/kosu_bitti
-setsid nohup bash -c "cd /content/TCB && export PATH=/usr/local/go/bin:\$PATH GOTOOLCHAIN=local && go run ./tools/record --name cpu-temel --out /content/drive/MyDrive/TR_dili/olcumler -- bash tools/bench/cpu_baseline.sh > /content/kosu.log 2>&1; echo \$? > /content/kosu_bitti" > /dev/null 2>&1 < /dev/null &
-echo "başladı (durum: hücre C)"
+cd /content/TCB && bash /content/is_baslat.sh cpu-temel "CPU temel ölçümü: karakter modeli TR/PyTorch $TORCH, dil kıyası, tensör kernelleri; 5 tekrar" -- bash tools/bench/cpu_baseline.sh
 ```
 
 ## 1. Kodu çek ve derle, GPU durumu
