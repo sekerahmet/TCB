@@ -25,7 +25,8 @@ belgelerdeki kod blokları bu denetimden geçmelidir. Denetim: `TestDecodeRefuse
 
 **Programın anlamı kanonik koda bağlıdır.** Programlar her zaman kanonik kodlarla (Türkçe adlarıyla)
 okunur ve çalışır (17.7; `codes.Active`): kodsuz dosya olduğu gibi, kodlu dosya Türkçe görünümüyle.
-Değerin metni ise dosyanın başlığındaki dildedir (`dil=`, 17.1; `interp.Source.Language`, dil tanımı 3);
+Değerin metni ise dosyanın başlığındaki dildedir (`dil=`, 17.1; `interp.Source.Language`, dil tanımı 3;
+denetleyici de dili `Prepare`'den alır, `Checker.SetFileLanguage`);
 kişinin yazım dili (`TR_DIL`, `codes.Display`) yalnızca görüntüdür. Başka bir dilde yazılmış metin dili açıkça
 verilerek okunur (`lexer.NewBodyIn`, `EncodeIn`, `Show`): `tr kodla - --dil en`, kişinin dilinde
 yazılmış kabuk satırı (`Options.Typed`). Denetim: `TestUncodedFileIsTurkishInEveryLanguage`,
