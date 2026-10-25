@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // Error 06 — Changing a constant.
 // Message code: H1002
 // What happens: The type checker catches, before the program runs, that a constant is assigned a second time.
@@ -8,6 +8,6 @@
 //     vat = 20 // use a variable, not a constant, if it has to change
 // Run (from the project root): tr examples/en/errors/06_changing_a_constant.tr   (exit code 1)
 
-A031 VAT = 18
+TR_kw_const VAT = 18
 VAT = 20
-G100(VAT)
+TR_fn_print(VAT)

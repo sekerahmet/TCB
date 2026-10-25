@@ -97,7 +97,7 @@ func TestConstructsRecordOperatorsWithOperandTypes(t *testing.T) {
 			}
 		}
 	}
-	if got["=="] != "type:A202" || got["@"] != "type:A212" || got["+"] != "" {
+	if got["=="] != "type:TR_type_String" || got["@"] != "type:TR_type_Tensor" || got["+"] != "" {
 		t.Errorf("operand types: %v", got)
 	}
 	if !kinds["CallExpression"] || !kinds["ListLiteral"] || !kinds["InfixExpression"] {

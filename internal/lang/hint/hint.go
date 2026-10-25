@@ -29,7 +29,7 @@ func NotInTRHint(name string, canonical any) *messages.Error {
 // (e.g. değişken sınıf = "9-A"); only when an error occurs is the real name suggested, since
 // they may have been written out of habit. The suggestion is always the real name.
 func KeywordSpellingHint(name string) *messages.Error {
-	k, ok := codes.Suggest(codes.NamespaceGlobal, name, func(k codes.Code) bool { return k.Letter() == 'A' })
+	k, ok := codes.Suggest(codes.NamespaceGlobal, name, func(k codes.Code) bool { return !k.IsBuiltin() })
 	if !ok {
 		return nil
 	}
@@ -37,8 +37,8 @@ func KeywordSpellingHint(name string) *messages.Error {
 }
 
 // BuiltinSpellingHint returns the hint to append to an error message when ad is the ASCII
-// form of a builtin (yazdir) or a foreign name of one (a "yabancı" name of a G/T/V code in
-// the dictionary); otherwise nil. These spellings are ordinary names (e.g.
+// form of a builtin (yazdir) or a foreign name of one (a "yabancı" name of a builtin in the
+// dictionary); otherwise nil. These spellings are ordinary names (e.g.
 // değişken boy = 180); only on an undefined-name error is the real name
 // suggested, since they may have been written out of habit.
 func BuiltinSpellingHint(name string) *messages.Error {

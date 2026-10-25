@@ -6,10 +6,12 @@ import (
 	"path"
 	"sort"
 	"strings"
+
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 )
 
-// Davranış testleri bir Go işlevini adıyla değil, uyguladığı dil adıyla sınar: TR kodundaki `kn.güncelle(1)` Y010'u
-// kullanır, Go'da `update` Y010'u uygular. Testin Go çağrı grafiğinde `update` görünmez; bağ ad kodundan geçer. Bu dosya
+// Davranış testleri bir Go işlevini adıyla değil, uyguladığı dil adıyla sınar: TR kodundaki `kn.güncelle(1)`
+// TR_mem_update'i kullanır, Go'da `update` TR_mem_update'i uygular. Testin Go çağrı grafiğinde `update` görünmez; bağ ad kodundan geçer. Bu dosya
 // bir işlevin (ve onu çağıran işlevlerin) uyguladığı yerleşik, üye ve adlı argüman kodlarının testlerini işlevin
 // testleri olarak gösterir: `tests-for checkpoint.Checkpoint.saveOnInterval`, `update` üzerinden `güncelle` testlerini bulur.
 
@@ -22,16 +24,14 @@ type nameTest struct {
 }
 
 // implementable bir ad kodunun test edilebilir bir dil öğesi olup olmadığı: global yerleşik, üye ya da adlı argüman
-// (G/T/V/W/Y harfli kodlar); tip adları, anahtar sözcükler ve komutlar her yerde geçtiği için sayılmaz.
+// (kimliğin sınıfı fn, const, mem ya da arg); tip adları, anahtar sözcükler ve komutlar her yerde geçtiği için sayılmaz.
 func implementable(n *Node) bool {
-	return n.Kind == kindName && len(n.Name) > 0 && containsByte("GTVWY", n.Name[0])
-}
-
-func containsByte(s string, b byte) bool {
-	for i := 0; i < len(s); i++ {
-		if s[i] == b {
-			return true
-		}
+	if n.Kind != kindName {
+		return false
+	}
+	switch codes.IdentityClass(n.Name) {
+	case codes.ClassFunction, codes.ClassConstant, codes.ClassMember, codes.ClassNamedArg:
+		return true
 	}
 	return false
 }

@@ -44,9 +44,9 @@ func TestResolveTiers(t *testing.T) {
 		"ÇEVRE_HESAPLA":          "function:lib/geo.tr#çevre_hesapla",
 		"ÇEVRE_HESAPLAMA":        "",
 		"geo.çevre_hesapla":      "function:lib/geo.tr#çevre_hesapla",
-		"yazdır":                 "builtin:G100", // TR adı
-		"print":                  "builtin:G100", // İngilizce adı
-		"G100":                   "builtin:G100",
+		"yazdır":                 "builtin:TR_fn_print", // TR adı
+		"print":                  "builtin:TR_fn_print", // İngilizce adı
+		"TR_fn_print":            "builtin:TR_fn_print",
 	}
 	for q, want := range cases {
 		got := r.Resolve(q, "")
@@ -109,7 +109,7 @@ fonksiyon gizli_işlev() {
 		"GİZLİ_İŞLEV": "function:m.tr#gizli_işlev", // Türkçe büyük harf
 		"GIZLI_IŞLEV": "function:m.tr#gizli_işlev", // İngilizce klavye: I, Türkçede ı olurdu
 		"Metin":       "",                          // dilin tip adı: metin() yerleşiğine sessizce düşülmez
-		"metin":       "builtin:G212",
+		"metin":       "builtin:TR_fn_str",
 	} {
 		var ids []string
 		for _, n := range r.Resolve(q, "") {
@@ -148,8 +148,8 @@ test "yalnız bir test" {
 	}
 	r := NewReader(idx)
 	for q, want := range map[string]string{
-		"metin":           "builtin:G212 module:metin.tr",
-		"ortalama":        "builtin:G410",
+		"metin":           "builtin:TR_fn_str module:metin.tr",
+		"ortalama":        "builtin:TR_fn_mean",
 		"yalnız bir test": "test_block:m_test.tr#5",
 	} {
 		var ids []string
@@ -205,7 +205,7 @@ func TestReferences(t *testing.T) {
 
 func TestBuiltinReferencesCarryDisplayNames(t *testing.T) {
 	res := fixtureReader(t).References("print", QueryOptions{})
-	if res.Status != StatusOK || res.Target.ID != "builtin:G100" || res.Target.Display != "yazdır" {
+	if res.Status != StatusOK || res.Target.ID != "builtin:TR_fn_print" || res.Target.Display != "yazdır" {
 		t.Fatalf("a built-in is found by its English name and shown in the reader's language: %+v", res.Target)
 	}
 	if res.Counts.Total < 3 {
@@ -326,7 +326,7 @@ func TestATestBlockTestsAFunctionBuiltinOnlyByCallingIt(t *testing.T) {
 	for _, u := range Snippet("değişken f = zaman_ms\nyazdır(sinüs(pi))\n") {
 		codes[u.Code] = true
 	}
-	if codes["G502"] || !codes["G414"] || len(codes) != 3 {
+	if codes["TR_fn_time_ms"] || !codes["TR_const_pi"] || len(codes) != 3 {
 		t.Errorf("Snippet: zaman_ms only named, sinüs and yazdır called, pi read: %v", codes)
 	}
 }

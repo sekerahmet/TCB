@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // Error 01 — Unclosed block.
 // Message code: H0156
 // What happens: The program does not run at all; the message says that no '}' was found to close the opened '{'.
@@ -9,5 +9,5 @@
 //     }
 // Run (from the project root): tr examples/en/errors/01_syntax_unclosed_block.tr   (exit code 1)
 
-A001 1 < 2 {
-    G100("left open")
+TR_kw_if 1 < 2 {
+    TR_fn_print("left open")

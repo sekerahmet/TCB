@@ -34,15 +34,14 @@ func main() {
 	genmain.RunMain("codesdoc", docPath, func(string) ([]byte, error) { return Generate() })
 }
 
-// section bir ailenin bir grubudur (ailenin harfini family taşır) (group < 0: bütün aile).
+// section bir bölümün kısmıdır: kimliklerinin sınıfı Class olan kodlar (TR_fn_... için fn).
 type section struct {
-	Group int    `json:"group"`
-	Title string `json:"title"`
+	Class codes.Class `json:"class"`
+	Title string      `json:"title"`
 }
 
-// family belgenin bir bölümüdür; aileler kod sırasındadır.
+// family belgenin bir bölümüdür; bölümler ve kısımlar kod listesinin sınıf sırasındadır.
 type family struct {
-	Letter   string    `json:"letter"`
 	Title    string    `json:"title"`
 	Sections []section `json:"sections"`
 }
@@ -157,7 +156,7 @@ func signatureLines(t codes.Definition) []string {
 	return nil
 }
 
-// codeLabel "G400 `toplam`" biçimidir.
+// codeLabel "TR_fn_sum `toplam`" biçimidir.
 func codeLabel(k codes.Code) string { return fmt.Sprintf("%s `%s`", k, codes.Name(k)) }
 
 // Generate belgenin içeriğini üretir.
@@ -208,7 +207,7 @@ func Generate() ([]byte, error) {
 		counts[t.Kind]++
 	}
 	fmt.Fprintf(&b, text.CountsFormat+"\n\n",
-		len(d.Codes()), counts[codes.KindKeyword], counts[codes.KindContextual], counts[codes.KindType], counts[codes.KindFunction],
+		len(d.Codes()), counts[codes.KindKeyword], counts[codes.KindContextual], counts[codes.KindValueName], counts[codes.KindType], counts[codes.KindFunction],
 		counts[codes.KindConstant], counts[codes.KindMethod], counts[codes.KindProperty], counts[codes.KindNamedArg])
 	b.WriteString("## " + text.Contents + "\n\n")
 	for _, a := range text.Families {
@@ -226,7 +225,7 @@ func Generate() ([]byte, error) {
 		for _, sec := range a.Sections {
 			var ks []codes.Code
 			for _, k := range allCodes {
-				if string(rune(k.Letter())) == a.Letter && k.Group() == sec.Group {
+				if k.Class() == sec.Class {
 					ks = append(ks, k)
 				}
 			}

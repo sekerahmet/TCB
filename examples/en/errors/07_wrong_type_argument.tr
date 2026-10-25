@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // Error 07 — Argument of the wrong type.
 // Message code: H1004
 // What happens: The type checker catches at the call that a value of another type was given to a parameter with a declared type.
@@ -7,7 +7,7 @@
 //     print(area(3.0))
 // Run (from the project root): tr examples/en/errors/07_wrong_type_argument.tr   (exit code 1)
 
-A020 area(side: A201) -> A201 {
-    A021 side * side
+TR_kw_func area(side: TR_type_Float) -> TR_type_Float {
+    TR_kw_return side * side
 }
-G100(area("three"))
+TR_fn_print(area("three"))

@@ -3,7 +3,7 @@ package main
 import "testing"
 
 var snippetFiles = map[string]string{
-	"internal/lang/codes/tr.json": "{\n  \"T702\": { \"ad\": \"kontrol_noktası\", \"aile\": \"x\" },\n  \"T984\": { \"ad\": \"her_dakika\", \"aile\": \"x\" },\n  \"Y010\": { \"ad\": \"güncelle\", \"aile\": \"x\" }\n}\n",
+	"internal/lang/codes/tr.json": "{\n  \"TR_fn_checkpoint\": { \"ad\": \"kontrol_noktası\", \"aile\": \"x\" },\n  \"TR_arg_every_minutes\": { \"ad\": \"her_dakika\", \"aile\": \"x\" },\n  \"TR_mem_update\": { \"ad\": \"güncelle\", \"aile\": \"x\" }\n}\n",
 	"internal/lang/lexer/lexer.go": `package lexer
 
 // New TR metnini okur.
@@ -65,17 +65,17 @@ func TestGoTestsLinkToTheNameCodesOfTheTRTheyRun(t *testing.T) {
 	}
 	const app = "go:func:example.com/audit/app."
 	for _, c := range []struct{ test, name string }{
-		{"TestFormatted", "T702"}, {"TestFormatted", "T984"}, {"TestFormatted", "Y010"},
-		{"TestWrapped", "T702"}, {"TestConcatenated", "T702"}, {"TestConcatenated", "T984"},
+		{"TestFormatted", "TR_fn_checkpoint"}, {"TestFormatted", "TR_arg_every_minutes"}, {"TestFormatted", "TR_mem_update"},
+		{"TestWrapped", "TR_fn_checkpoint"}, {"TestConcatenated", "TR_fn_checkpoint"}, {"TestConcatenated", "TR_arg_every_minutes"},
 	} {
 		mustEdge(t, g, app+c.test, "name:"+c.name, edgeTests, inferred)
 	}
-	if e := edge(g, app+"TestNotTRCode", "name:Y010", edgeTests); e != nil {
+	if e := edge(g, app+"TestNotTRCode", "name:TR_mem_update", edgeTests); e != nil {
 		t.Errorf("a string given to a helper that never reaches the TR reader is not TR: %+v", e)
 	}
 	// TR metni testten beş adım uzakta: bu bağ "doğrudan" test sayılır, bu yüzden zincir en çok yarı sınırdır (4 adım;
 	// daha uzunu tests-for'da zayıf kanıttır). Bağımsız denetim S3.
-	if e := edge(g, app+"TestFar", "name:T702", edgeTests); e != nil {
+	if e := edge(g, app+"TestFar", "name:TR_fn_checkpoint", edgeTests); e != nil {
 		t.Errorf("TR text five steps from the test is weak evidence, not a tests edge: %+v", e)
 	}
 }

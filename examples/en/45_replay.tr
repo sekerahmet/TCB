@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // 45 — Record and replay: record a small, often repeated GPU step once and replay it in one go.
 // What it teaches: replay(f) (a CUDA Graph on the GPU), write_slice(target, source, axis:, start:) to write
 // into a cache at a position, passing the changing values (position, id) as tensor arguments.
@@ -11,25 +11,25 @@
 // On the GPU: uncomment the line below; on the CPU replay calls f directly and the result is the same.
 // default_device("gpu")
 
-A030 table = T103([6, 4], T903: 1) // a 6-token vocabulary, 4-dimensional embeddings
-A030 cache = T101([5, 4]) // a "cache" of 5 positions
+TR_kw_var table = TR_fn_randn([6, 4], TR_arg_seed: 1) // a 6-token vocabulary, 4-dimensional embeddings
+TR_kw_var cache = TR_fn_zeros([5, 4]) // a "cache" of 5 positions
 
 // One step: picks the token's embedding, writes it at its position in the cache, returns the cache's sum.
 // Everything that changes is a tensor: it is not fixed in the recording, every replay reads it again.
-A020 step(id, position) {
-    A030 e = T500(table, id) // [1, 4]
-    T122(cache, e, T902: 0, T908: position)
-    A021 G400(cache, T902: 0)
+TR_kw_func step(id, position) {
+    TR_kw_var e = TR_fn_embedding(table, id) // [1, 4]
+    TR_fn_write_slice(cache, e, TR_arg_dim: 0, TR_arg_start: position)
+    TR_kw_return TR_fn_sum(cache, TR_arg_dim: 0)
 }
 
-A030 replayed = T313(step)
-T301 {
-    A010 position, id A011 [3, 1, 4, 1, 5] {
-        A030 s = replayed(T100([id * 1.0]), T100(position * 1.0))
-        G100("position {position}, token {id}: sum {G405(G400(s).Y404, 4)}")
+TR_kw_var replayed = TR_fn_replay(step)
+TR_fn_no_grad {
+    TR_kw_for position, id TR_kw_in [3, 1, 4, 1, 5] {
+        TR_kw_var s = replayed(TR_fn_tensor([id * 1.0]), TR_fn_tensor(position * 1.0))
+        TR_fn_print("position {position}, token {id}: sum {TR_fn_round(TR_fn_sum(s).TR_mem_tolist, 4)}")
     }
 }
-G100("cache:", cache.Y400)
+TR_fn_print("cache:", cache.TR_mem_shape)
 
 // --- Try it yourself ---
 // 1. Change the token ids in the list: which rows of the cache change?

@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // 19 — Files and JSON: writing data to disk and reading it back.
 // What it teaches: temp_dir, path, write_file/read_file, read_lines, .exists, json_string to turn a value
 // into text, json_parse to turn text into a value.
@@ -6,26 +6,26 @@
 // Run (from the project root): tr examples/en/19_files_and_json.tr
 // Files are written to a temporary folder (deleted when the program ends, no trace in the repo).
 
-A030 folder = G126()
+TR_kw_var folder = TR_fn_temp_dir()
 
 // Text file
-A030 note_path = G120(folder, "notes.txt")
-G111(note_path, "first line\nsecond line\nthird line\n")
-G100("exists: {note_path.Y315}")
-A030 line_count = 0
-A010 line A011 G112(note_path) {
-    G100("line: {line}")
+TR_kw_var note_path = TR_fn_path(folder, "notes.txt")
+TR_fn_write_file(note_path, "first line\nsecond line\nthird line\n")
+TR_fn_print("exists: {note_path.TR_mem_exists}")
+TR_kw_var line_count = 0
+TR_kw_for line TR_kw_in TR_fn_read_lines(note_path) {
+    TR_fn_print("line: {line}")
     line_count += 1
 }
-G100("line count: {line_count}")
+TR_fn_print("line count: {line_count}")
 
 // JSON: dict -> text -> file -> text -> dict
-A030 config = {"name": "trial", "steps": 100, "rates": [0.1, 0.01], "open": A040}
-A030 config_path = G120(folder, "config.json")
-G111(config_path, G601(config))
-A030 loaded = G600(G110(config_path))
-G100("steps: {loaded["steps"]}, rates: {loaded["rates"]}, open: {loaded["open"]}")
-G100("same: {loaded == config}")
+TR_kw_var config = {"name": "trial", "steps": 100, "rates": [0.1, 0.01], "open": TR_kw_true}
+TR_kw_var config_path = TR_fn_path(folder, "config.json")
+TR_fn_write_file(config_path, TR_fn_json_string(config))
+TR_kw_var loaded = TR_fn_json_parse(TR_fn_read_file(config_path))
+TR_fn_print("steps: {loaded["steps"]}, rates: {loaded["rates"]}, open: {loaded["open"]}")
+TR_fn_print("same: {loaded == config}")
 
 // --- Try it yourself ---
 // 1. Save your own config dict, change one value, write it again and read it.

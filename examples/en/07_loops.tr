@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // 07 — Loops: repeating work.
 // What it teaches: for ... in over a range (1..=5 includes the end, 1..5 excludes it), break, continue,
 // while, for condition { }, for { }, nested loops.
@@ -6,56 +6,56 @@
 // Run (from the project root): tr examples/en/07_loops.tr
 
 // for i in range: i takes every value of the range in turn.
-A010 i A011 1..=5 {
-    G100("round {i}")
+TR_kw_for i TR_kw_in 1..=5 {
+    TR_fn_print("round {i}")
 }
-G100("end excluded:")
-A010 i A011 1..5 {
-    G100(i)
+TR_fn_print("end excluded:")
+TR_kw_for i TR_kw_in 1..5 {
+    TR_fn_print(i)
 }
 
 // Accumulating: updating a variable while the loop runs.
-A030 running = 0
-A010 i A011 1..=100 {
+TR_kw_var running = 0
+TR_kw_for i TR_kw_in 1..=100 {
     running += i
 }
-G100("sum from 1 to 100: {running}")
+TR_fn_print("sum from 1 to 100: {running}")
 
 // continue skips this round, break ends the loop.
-A030 partial_sum = 0
-A010 i A011 1..=10 {
-    A001 i == 4 { A014 } // skip 4
-    A001 i > 8 { A013 } // stop after 8
+TR_kw_var partial_sum = 0
+TR_kw_for i TR_kw_in 1..=10 {
+    TR_kw_if i == 4 { TR_kw_continue } // skip 4
+    TR_kw_if i > 8 { TR_kw_break } // stop after 8
     partial_sum += i
 }
-G100("sum of 1..8 (without 4): {partial_sum}")
+TR_fn_print("sum of 1..8 (without 4): {partial_sum}")
 
 // while: goes on as long as the condition is true. Used when the number of rounds is not known up front.
-A030 n = 1
-A012 n < 100 {
+TR_kw_var n = 1
+TR_kw_while n < 100 {
     n = n * 3
 }
-G100("first power of 3 above 100: {n}")
+TR_fn_print("first power of 3 above 100: {n}")
 
 // Nested loop: for every round of the outer one the inner one runs completely.
-A010 row A011 1..=3 {
-    A010 col A011 1..=3 {
-        G100("{row} x {col} = {row * col}")
+TR_kw_for row TR_kw_in 1..=3 {
+    TR_kw_for col TR_kw_in 1..=3 {
+        TR_fn_print("{row} x {col} = {row * col}")
     }
 }
 
 // Two more spellings of the loop: for condition { } does the same job as while; for { } has no condition and ends with break.
-A030 m = 1
-A010 m < 50 {
+TR_kw_var m = 1
+TR_kw_for m < 50 {
     m = m * 2
 }
-G100("first power of 2 above 50: {m}")
-A030 turn = 0
-A010 {
+TR_fn_print("first power of 2 above 50: {m}")
+TR_kw_var turn = 0
+TR_kw_for {
     turn += 1
-    A001 turn * turn > 50 { A013 }
+    TR_kw_if turn * turn > 50 { TR_kw_break }
 }
-G100("first number whose square exceeds 50: {turn}")
+TR_fn_print("first number whose square exceeds 50: {turn}")
 
 // --- Try it yourself ---
 // 1. Find the sum of only the even numbers from 1 to 20.

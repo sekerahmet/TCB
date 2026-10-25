@@ -19,7 +19,7 @@ import (
 )
 
 // Header is the start of a coded file's first line (17.1, format version 2); the code of the
-// file's writing language follows it: "//! tr kodlu 2 dil=en". The language is the file's, not
+// file's writing language follows it: "//! tr kodlu 3 dil=en". The language is the file's, not
 // the person's: a value's text follows the language of the file the operation is written in
 // (3), and each person still sees and edits the file in their own writing language.
 const Header = lexer.CodedHeader

@@ -71,12 +71,12 @@ func TestEveryBuiltinNameHasADirectTestOrAReason(t *testing.T) {
 }
 
 var nameTestFiles = map[string]string{
-	"internal/lang/codes/tr.json": "{\n  \"Y010\": { \"ad\": \"güncelle\", \"aile\": \"x\" }\n}\n",
+	"internal/lang/codes/tr.json": "{\n  \"TR_mem_update\": { \"ad\": \"güncelle\", \"aile\": \"x\" }\n}\n",
 	"internal/lang/codes/codes.go": `package codes
 
 type Code int
 
-const MemUpdate Code = 1 // Y010: update
+const MemUpdate Code = 1 // TR_mem_update: update
 `,
 	"app/impl.go": `package app
 
@@ -111,7 +111,7 @@ func TestAGoFunctionIsTestedThroughTheNameCodesItsCallersImplement(t *testing.T)
 			t.Fatalf("tests-for %s: %d %s", fn, code, errb.String())
 		}
 		if !strings.Contains(out.String(), "tests through the name codes") || !strings.Contains(out.String(), "adım ilerlemesi bildirilir") {
-			t.Errorf("tests-for %s lacks the TR test block of Y010:\n%s", fn, out.String())
+			t.Errorf("tests-for %s lacks the TR test block of TR_mem_update:\n%s", fn, out.String())
 		}
 	}
 }
@@ -129,18 +129,18 @@ func TestNameCodeTestsMustLinkTheFunctionsPackage(t *testing.T) {
 		{ID: pkgID(m + "/core"), Kind: kindPackage},
 		{ID: "go:func:" + m + "/cmd/app.startsWithPrint", Kind: kindFunc, Name: "app.startsWithPrint", File: "cmd/app/main.go"},
 		{ID: "go:func:" + m + "/core.Print", Kind: kindFunc, Name: "core.Print", File: "core/print.go"},
-		{ID: "name:G100", Kind: kindName, Name: "G100"},
+		{ID: "name:TR_fn_print", Kind: kindName, Name: "TR_fn_print"},
 		{ID: "go:func:" + m + "/checker.TestPrintWarning", Kind: kindFunc, Name: "checker.TestPrintWarning", File: "checker/x_test.go"},
 		{ID: "go:func:" + m + "/cmd/app.TestShell", Kind: kindFunc, Name: "app.TestShell", File: "cmd/app/main_test.go"},
 		{ID: "tr:test:tests/a_test.tr:1", Kind: kindTRTest, Name: "a_test: yazdır", File: "tests/a_test.tr"},
 	}, Edges: []Edge{
 		{From: pkgID(m + "/checker"), To: pkgID(m + "/lib"), Kind: edgeImports},
 		{From: pkgID(m + "/lib"), To: pkgID(m + "/core"), Kind: edgeImports}, // checker → lib → core: dolaylı
-		{From: "go:func:" + m + "/cmd/app.startsWithPrint", To: "name:G100", Kind: edgeUsesName},
-		{From: "go:func:" + m + "/core.Print", To: "name:G100", Kind: edgeUsesName},
-		{From: "go:func:" + m + "/checker.TestPrintWarning", To: "name:G100", Kind: edgeTests},
-		{From: "go:func:" + m + "/cmd/app.TestShell", To: "name:G100", Kind: edgeTests},
-		{From: "tr:test:tests/a_test.tr:1", To: "name:G100", Kind: edgeTests},
+		{From: "go:func:" + m + "/cmd/app.startsWithPrint", To: "name:TR_fn_print", Kind: edgeUsesName},
+		{From: "go:func:" + m + "/core.Print", To: "name:TR_fn_print", Kind: edgeUsesName},
+		{From: "go:func:" + m + "/checker.TestPrintWarning", To: "name:TR_fn_print", Kind: edgeTests},
+		{From: "go:func:" + m + "/cmd/app.TestShell", To: "name:TR_fn_print", Kind: edgeTests},
+		{From: "tr:test:tests/a_test.tr:1", To: "name:TR_fn_print", Kind: edgeTests},
 	}}
 	ix := newIndex(g)
 	names := func(fn string) string {

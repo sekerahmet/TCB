@@ -12,7 +12,7 @@ Paket yalnızca `internal/lang` paketlerini (ve gömülü kitaplığı) içe akt
 
 **Konumlar 1 tabanlıdır, sütun Unicode kod noktasıdır, Türkçe gösterime göredir; satır dosyadaki gerçek satırdır.** Kodlu dosyada başlık satırı sayılır (dil iletileri 17.5 gereği gövde satırını sayar, dizin ise editörün ve `grep -n`'in gösterdiği satırı verir: kodlu dosyada dil iletisindeki satır bir eksiktir); sütunlar Türkçe gösterimin satırında sayılır. Denetim: `TestPosString`, `TestCodedFilePositionsAreFileLines`, `TestCodedEqualsPlain`.
 
-**JSON şeması sürümlüdür ve örnekle sabitlenir.** Her sonuç `schema` alanında sürümü (`tr-codeindex/1`) taşır. Alan eklemek uyumludur; alan çıkarmak ya da anlamını değiştirmek `SchemaVersion`'ı artırır. Örnek sonuçlar `testdata/schema/*.json` altındadır ve komut çıktısıyla birebir olmak zorundadır. Denetim: `TestSchemaGoldenFiles`, `TestResultRoundTrip`, `TestSchemaNameFollowsVersion`.
+**JSON şeması sürümlüdür ve örnekle sabitlenir.** Her sonuç `schema` alanında sürümü (`tr-codeindex/2`) taşır. Alan eklemek uyumludur; alan çıkarmak ya da anlamını değiştirmek `SchemaVersion`'ı artırır. Örnek sonuçlar `testdata/schema/*.json` altındadır ve komut çıktısıyla birebir olmak zorundadır. Denetim: `TestSchemaGoldenFiles`, `TestResultRoundTrip`, `TestSchemaNameFollowsVersion`.
 
 **Durum çıkış koduyla da bildirilir.** `ok` 0, belirsiz ad (`ambiguous`, adaylar listelenir) 3, bulunamayan ad (`not_found`, yakın adlar önerilir) 4; kullanım hatası 2, başka hata 1. Denetim: `TestExitCodes`.
 

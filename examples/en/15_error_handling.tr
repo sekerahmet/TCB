@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // 15 — Error handling: managing the program properly when something unexpected happens.
 // What it teaches: catching an error with try/catch, raising your own with throw,
 // deciding where an error is handled, the error variable in a catch without a name.
@@ -6,41 +6,41 @@
 // Run (from the project root): tr examples/en/15_error_handling.tr
 
 // When an error occurs the program stops. An error in the try block goes to catch and the program goes on.
-A060 {
-    A030 x = 10 / 0
-    G100("never reached")
-} A061 error {
-    G100("caught: {error}")
+TR_kw_try {
+    TR_kw_var x = 10 / 0
+    TR_fn_print("never reached")
+} TR_kw_catch error {
+    TR_fn_print("caught: {error}")
 }
 
 // throw: raise your own error. The function refuses input that breaks the rule.
-A020 check_age(age) {
-    A001 age < 0 { A062 "age cannot be negative" }
-    A021 age
+TR_kw_func check_age(age) {
+    TR_kw_if age < 0 { TR_kw_throw "age cannot be negative" }
+    TR_kw_return age
 }
-A060 { check_age(-3) } A061 e { G100("caught: {e}") }
-G100("valid age: {check_age(30)}")
+TR_kw_try { check_age(-3) } TR_kw_catch e { TR_fn_print("caught: {e}") }
+TR_fn_print("valid age: {check_age(30)}")
 
 // An error climbs up the call chain; the first catch deals with it.
-A020 to_number(word) {
-    A021 G210(word)
+TR_kw_func to_number(word) {
+    TR_kw_return TR_fn_int(word)
 }
-A020 safe_convert(word, fallback) {
-    A060 {
-        A021 to_number(word)
-    } A061 e {
-        G100("  '{word}' is not a number, using {fallback}")
-        A021 fallback
+TR_kw_func safe_convert(word, fallback) {
+    TR_kw_try {
+        TR_kw_return to_number(word)
+    } TR_kw_catch e {
+        TR_fn_print("  '{word}' is not a number, using {fallback}")
+        TR_kw_return fallback
     }
 }
-G100(safe_convert("42", 0))
-G100(safe_convert("abc", 0))
+TR_fn_print(safe_convert("42", 0))
+TR_fn_print(safe_convert("abc", 0))
 
 // If catch is given no name the error message comes in the variable named error.
-A060 {
-    A062 "it blew up"
-} A061 {
-    G100("caught: {A103}")
+TR_kw_try {
+    TR_kw_throw "it blew up"
+} TR_kw_catch {
+    TR_fn_print("caught: {TR_ctx_error}")
 }
 
 // --- Try it yourself ---

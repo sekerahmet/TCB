@@ -78,12 +78,11 @@ func names(codeList ...codes.Code) []string {
 	return out
 }
 
-// namesInGroup harf ailesinin grup numaralı grubundaki (grup < 0 ise bütün ailedeki) ve
-// uygun(kod) doğru olan sözlük kodlarının adlarıdır.
-func namesInGroup(letter byte, group int, pred func(codes.Code) bool) []string {
+// namesOf uygun(kod) doğru olan sözlük kodlarının adlarıdır.
+func namesOf(pred func(codes.Code) bool) []string {
 	var selected []codes.Code
 	for _, k := range codes.Codes() {
-		if k.Letter() == letter && (group < 0 || k.Group() == group) && (pred == nil || pred(k)) {
+		if pred(k) {
 			selected = append(selected, k)
 		}
 	}
@@ -172,9 +171,8 @@ func Generate() ([]byte, error) {
 
 	control := names(codes.KwIf, codes.KwElse, codes.KwMatch, codes.KwDefault, codes.KwFor, codes.KwIn, codes.KwWhile, codes.KwBreak, codes.KwContinue, codes.KwReturn, codes.KwTry, codes.KwCatch, codes.KwThrow, codes.KwAsync, codes.KwDefer)
 	declaration := names(codes.KwVar, codes.KwConst, codes.KwFunc, codes.KwStruct)
-	types := namesInGroup('A', 2, nil)
-	general := namesInGroup('G', -1, codes.Code.IsBuiltin)
-	ai := append(namesInGroup('T', -1, codes.Code.IsBuiltin), namesInGroup('V', -1, codes.Code.IsBuiltin)...)
+	types := namesOf(func(k codes.Code) bool { return k.Class() == codes.ClassType })
+	builtins := namesOf(codes.Code.IsBuiltin)
 
 	inner := func(option string) string { return option } // adlar düzenli ifade karakteri içermez
 
@@ -247,8 +245,7 @@ func Generate() ([]byte, error) {
 			}},
 			{"types", jsonObject{{"patterns", []jsonObject{rule("entity.name.type.tr", wordsPattern(types))}}}},
 			{"builtins", jsonObject{{"patterns", []jsonObject{
-				rule("support.function.builtin.tr", wordsPattern(general)),
-				rule("support.function.ai.tr", wordsPattern(ai)),
+				rule("support.function.builtin.tr", wordsPattern(builtins)),
 			}}}},
 			{"numbers", jsonObject{{"patterns", []jsonObject{
 				rule("constant.numeric.float.tr", `\b\d[\d_]*(?:\.\d[\d_]*)?[eE][+-]?\d+\b`),

@@ -112,37 +112,67 @@ func TestASCIINotAcceptedSuggestsTurkish(t *testing.T) {
 	if _, ok := Suggest(NamespaceGlobal, "yazdır", nil); ok {
 		t.Error("geçerli ad için öneri olmamalı")
 	}
-	if _, ok := Suggest(NamespaceGlobal, "yazdir", func(k Code) bool { return k.Letter() == 'A' }); ok {
+	if _, ok := Suggest(NamespaceGlobal, "yazdir", func(k Code) bool { return !k.IsBuiltin() }); ok {
 		t.Error("süzgeç yerleşik kodu dışlamalıydı")
 	}
 }
 
-func TestIsCodeForm(t *testing.T) {
+// Kural: kodun dosyadaki yazımı kimliğidir (TR_<sınıf>_<ad>); Parse kimliği kod listesinden çözer,
+// kod listesinde olmayan kimlik ve eski kod biçimi (A001) kod değildir. Ad alanı kimliğin
+// sınıfından gelir.
+func TestIdentities(t *testing.T) {
 	for _, c := range []struct {
-		k Code
-		s string
-	}{{A + 1, "A001"}, {G + 100, "G100"}, {Y + 400, "Y400"}, {W + 936, "W936"}} {
+		k  Code
+		s  string
+		ns Namespace
+	}{{KwIf, "TR_kw_if", NamespaceGlobal}, {FnPrint, "TR_fn_print", NamespaceGlobal}, {MemStep, "TR_mem_step", NamespaceMember},
+		{TypeTensor, "TR_type_Tensor", NamespaceType}, {ArgLr, "TR_arg_lr", NamespaceParam}, {ConstPi, "TR_const_pi", NamespaceGlobal},
+		{CmdIndex, "TR_cmd_index", NamespaceCommand}, {SubDefinition, "TR_sub_definition", NamespaceSubcommand},
+		{OptHelp, "TR_opt_help", NamespaceOption}, {ReplExit, "TR_repl_exit", NamespaceCommand},
+		{DbgStep, "TR_dbg_step", NamespaceDebugger}, {EnvLang, "TR_env_LANG", NamespaceEnvironment},
+		{ValNan, "TR_val_nan", NamespaceGlobal}} {
 		if c.k.String() != c.s {
 			t.Errorf("%d: %s, %s bekleniyordu", c.k, c.k, c.s)
 		}
 		if k, err := Parse(c.s); err != nil || k != c.k {
-			t.Errorf("Coz(%q) = %v, %v", c.s, k, err)
+			t.Errorf("Parse(%q) = %v, %v", c.s, k, err)
+		}
+		if c.k.Namespace() != c.ns {
+			t.Errorf("%s: ad alanı %s, %s bekleniyordu", c.k, c.k.Namespace(), c.ns)
 		}
 	}
-	for _, s := range []string{"", "A01", "A0001", "Z001", "A000", "a001", "A0x1"} {
+	for _, s := range []string{"", "A001", "G100", "TR_fn_yok", "TR_fn_", "tr_fn_print", "TR_kw_x_"} {
 		if _, err := Parse(s); err == nil {
-			t.Errorf("Coz(%q) hata vermeliydi", s)
+			t.Errorf("Parse(%q) hata vermeliydi", s)
 		}
 	}
-	if (A+13).Namespace() != NamespaceGlobal || (A+200).Namespace() != NamespaceType || (Y+1).Namespace() != NamespaceMember ||
-		(T+900).Namespace() != NamespaceParam || (G+100).Namespace() != NamespaceGlobal || (H+1).Namespace() != NamespaceNone {
-		t.Error("ad alanları yanlış")
+	if None.Namespace() != NamespaceNone || Code(len(identities)).Namespace() != NamespaceNone {
+		t.Error("geçersiz kodun ad alanı olmamalı")
 	}
-	// Ayrılmış ad biçimi (2.3a): bütün büyük harfler, aile harfi olmasa da
-	for s, want := range map[string]bool{"G100": true, "K001": true, "Z999": true, "A000": true,
-		"g100": false, "G10": false, "G1000": false, "G10x": false, "Ç100": false, "": false} {
-		if IsCodeForm(s) != want {
-			t.Errorf("KodBicimi(%q) = %v, %v bekleniyordu", s, !want, want)
+	if !KwIf.IsKeyword() || CtxAs.IsKeyword() || !FnSum.IsBuiltin() || !ConstPi.IsBuiltin() || ArgDim.IsBuiltin() ||
+		!SubRename.IsIndexSubcommand() || CmdIndex.IsIndexSubcommand() {
+		t.Error("sınıftan okunan türler yanlış")
+	}
+	// Ayrılmış adlar (2.3a): TR_ ile başlayan her ad, kimlik kod listesinde olmasa da; eski kod biçimi sıradan addır.
+	for s, want := range map[string]bool{"TR_fn_print": true, "TR_": true, "TR_kw_yeni": true,
+		"G100": false, "A001": false, "tr_fn_print": false, "Tr_x": false, "x_TR_": false, "": false} {
+		if IsReservedName(s) != want {
+			t.Errorf("IsReservedName(%q) = %v, %v bekleniyordu", s, !want, want)
+		}
+	}
+}
+
+// Kural: dil dosyalarında ve definitions.json'da her kimliğin sınıfı bilinen bir sınıftır ve kodlar
+// sınıf sırasıyla, sınıf içinde kimliğe göre dizilidir (checkSortedOnePerLine); kodun Go sabiti
+// kimliğinden türer ve benzersizdir (üreteç codeconsts aynı Go adını iki kimliğe vermez).
+func TestIdentityClassesKnown(t *testing.T) {
+	known := map[Class]bool{}
+	for _, c := range Classes {
+		known[c.Class] = true
+	}
+	for _, k := range Codes() {
+		if !known[k.Class()] {
+			t.Errorf("%s: sınıf %q bilinmiyor", k, k.Class())
 		}
 	}
 }
@@ -153,7 +183,7 @@ func TestFindForeign(t *testing.T) {
 	for _, c := range []struct {
 		name string
 		code Code
-	}{{"lr", T + 910}, {"axis", T + 902}} {
+	}{{"lr", ArgLr}, {"axis", ArgDim}} {
 		if _, ok := Find(NamespaceParam, c.name); ok {
 			t.Errorf("%q kabul edilmemeli", c.name)
 		}
@@ -165,7 +195,7 @@ func TestFindForeign(t *testing.T) {
 			t.Errorf("Suggest(%q) = %s %v; %s bekleniyordu", c.name, k, ok, c.code)
 		}
 	}
-	if _, _, ok := FindForeign(NamespaceParam, "lr", func(k Code) bool { return k == T+902 }); ok {
+	if _, _, ok := FindForeign(NamespaceParam, "lr", func(k Code) bool { return k == ArgDim }); ok {
 		t.Error("süzgeç öbür kodları dışlamalıydı")
 	}
 }
@@ -173,19 +203,19 @@ func TestFindForeign(t *testing.T) {
 // Yukle kod listesi hatalarını hangi kodların çakıştığını söyleyerek yakalar.
 func TestClashesCaught(t *testing.T) {
 	for _, c := range []struct{ json, want string }{
-		{`{"G100": {"ad": "a"}, "G100": {"ad": "b"}}`, "G100 is defined twice"},
-		{`{"G100": {"ad": "yazdır"}, "G101": {"ad": "yazdır"}}`, "G100 \"yazdır\" and G101"},
-		{`{"G100": {"ad": "yazdır"}, "G101": {"ad": "yazdir"}}`, "G100 \"yazdır\" and G101 \"yazdir\""},
-		{`{"A001": {"ad": "eğer"}, "G100": {"ad": "eger"}}`, "A001 \"eğer\" and G100"},
-		{`{"G100": {"ad": "yazdır"}, "G101": {"ad": "girdi", "yabancı": ["yazdir"]}}`, "the foreign name \"yazdir\" of G101 clashes with G100"},
-		{`{"G100": {"ad": "a", "yabancı": ["çık"]}, "G101": {"ad": "b", "yabancı": ["cik"]}}`, "\"cik\" is registered for both G100 and G101"},
-		{`{"G100": {"ad": "a", "yabancı": ["a"]}}`, "must not be the name itself"},
-		{`{"G100": {"ad": "a", "eski": ["b"]}}`, "unknown field \"eski\""},
-		{`{"G100": {"ad": "a b"}}`, "contain spaces"},
-		{`{"G100": {"ad": "yazdır", "es": ["yaz"]}}`, "unknown field \"es\""},
-		{`{"X100": {"ad": "a"}}`, "family letter"},
-		{`{"H100": {"ad": "a"}}`, "is not used yet"},
-		{`{"G100": {"ad": "a", "bilinmeyen": 1}}`, "bilinmeyen"},
+		{`{"TR_fn_print": {"ad": "a"}, "TR_fn_print": {"ad": "b"}}`, "TR_fn_print is defined twice"},
+		{`{"TR_fn_print": {"ad": "yazdır"}, "TR_fn_input": {"ad": "yazdır"}}`, "TR_fn_input \"yazdır\" and TR_fn_print"},
+		{`{"TR_fn_print": {"ad": "yazdır"}, "TR_fn_input": {"ad": "yazdir"}}`, "TR_fn_input \"yazdir\" and TR_fn_print \"yazdır\""},
+		{`{"TR_kw_if": {"ad": "eğer"}, "TR_fn_print": {"ad": "eger"}}`, "TR_kw_if \"eğer\" and TR_fn_print"},
+		{`{"TR_fn_print": {"ad": "yazdır"}, "TR_fn_input": {"ad": "girdi", "yabancı": ["yazdir"]}}`, "the foreign name \"yazdir\" of TR_fn_input clashes with TR_fn_print"},
+		{`{"TR_fn_print": {"ad": "a", "yabancı": ["çık"]}, "TR_fn_input": {"ad": "b", "yabancı": ["cik"]}}`, "\"cik\" is registered for both TR_fn_input and TR_fn_print"},
+		{`{"TR_fn_print": {"ad": "a", "yabancı": ["a"]}}`, "must not be the name itself"},
+		{`{"TR_fn_print": {"ad": "a", "eski": ["b"]}}`, "unknown field \"eski\""},
+		{`{"TR_fn_print": {"ad": "a b"}}`, "contain spaces"},
+		{`{"TR_fn_print": {"ad": "yazdır", "es": ["yaz"]}}`, "unknown field \"es\""},
+		{`{"X100": {"ad": "a"}}`, "not an identity"},
+		{`{"TR_fn_yok": {"ad": "a"}}`, "not an identity"},
+		{`{"TR_fn_print": {"ad": "a", "bilinmeyen": 1}}`, "bilinmeyen"},
 	} {
 		_, err := Load("deneme", []byte(c.json))
 		if err == nil || !strings.Contains(err.Error(), c.want) {
@@ -193,7 +223,7 @@ func TestClashesCaught(t *testing.T) {
 		}
 	}
 	// Farklı ad alanlarında aynı ad serbesttir.
-	if _, err := Load("deneme", []byte(`{"G303": {"ad": "sırala"}, "Y202": {"ad": "sırala"}, "W932": {"ad": "sırala"}}`)); err != nil {
+	if _, err := Load("deneme", []byte(`{"TR_fn_abs": {"ad": "mutlak"}, "TR_mem_absolute": {"ad": "mutlak"}, "TR_arg_log": {"ad": "günlük"}, "TR_fn_logger": {"ad": "günlük"}}`)); err != nil {
 		t.Errorf("farklı ad alanlarında aynı ad kabul edilmeliydi: %v", err)
 	}
 }
@@ -205,10 +235,10 @@ func TestSingleSpelling(t *testing.T) {
 			t.Errorf("%s tek yazımlı olmalı (%q): %v", k, Name(k), y)
 		}
 	}
-	if y := Spellings(G + 100); len(y) != 1 || y[0] != "yazdır" {
-		t.Errorf("G100 yalnızca Türkçe biçimiyle kabul edilmeli: %v", y)
+	if y := Spellings(FnPrint); len(y) != 1 || y[0] != "yazdır" {
+		t.Errorf("TR_fn_print yalnızca Türkçe biçimiyle kabul edilmeli: %v", y)
 	}
-	if y := Spellings(G + 400); len(y) != 1 {
+	if y := Spellings(FnSum); len(y) != 1 {
 		t.Errorf("ASCII ad tek yazımlı olmalı: %v", y)
 	}
 }
@@ -275,10 +305,10 @@ func TestCommandLineNamesInEveryLanguage(t *testing.T) {
 		name string
 		want Code
 	}{
-		{FindCommand, "çalıştır", K + 3}, {FindCommand, "run", K + 3}, {FindCommand, "kontrol", K + 4},
-		{FindOption, "kontrol", K + 101}, {FindOption, "check", K + 101}, {FindOption, "go_profile", K + 104},
-		{FindCommand, "izle", K + 12}, {FindDebuggerCommand, "izle", K + 307}, {FindDebuggerCommand, "continue", K + 303},
-		{FindCommand, "çıkış", K + 200}, {FindCommand, "exit", K + 200},
+		{FindCommand, "çalıştır", CmdRun}, {FindCommand, "run", CmdRun}, {FindCommand, "kontrol", CmdCheck},
+		{FindOption, "kontrol", OptCheck}, {FindOption, "check", OptCheck}, {FindOption, "go_profile", OptGoProfile},
+		{FindCommand, "izle", CmdWatch}, {FindDebuggerCommand, "izle", DbgWatch}, {FindDebuggerCommand, "continue", DbgContinue},
+		{FindCommand, "çıkış", ReplExit}, {FindCommand, "exit", ReplExit},
 	} {
 		if got, ok := d.find(d.name); !ok || got != d.want {
 			t.Errorf("%q: %v %v, %v bekleniyordu", d.name, got, ok, d.want)
@@ -304,14 +334,14 @@ func TestIndexSubcommandsAreNotCommands(t *testing.T) {
 	}
 	for _, name := range []string{"dizin", "index"} {
 		if k, ok := FindCommand(name); !ok || k != CmdIndex {
-			t.Errorf("%q is the index command K015, got %s %v", name, k, ok)
+			t.Errorf("%q is the index command TR_cmd_index, got %s %v", name, k, ok)
 		}
 		if _, ok := FindSubcommand(name); ok {
 			t.Errorf("%q is not a subcommand of itself", name)
 		}
 	}
 	if CmdIndex.IsIndexSubcommand() || CmdIndex.Namespace() != NamespaceCommand {
-		t.Error("K015 itself is a command")
+		t.Error("TR_cmd_index itself is a command")
 	}
 	for _, k := range []Code{SubDefinition, SubReferences, SubTestedBy, SubImpact, SubRename} {
 		if !k.IsIndexSubcommand() {

@@ -60,13 +60,13 @@ test "2.1a göründüğünden farklı okunan kaynak kabul edilmez" {
     eşit_mi(3, привет + αβγ)
 }
 
-test "2.3a kod biçimindeki adlar (büyük harf ve üç rakam) ayrılmıştır" {
+test "2.3a TR_ ile başlayan adlar ayrılmıştır" {
     değişken mesaj = ""
     dene { aktar "negative/kod_bicimli_ad" } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("Satır 2, Sütun 10: 'G100' kod biçiminde bir ad (büyük harf ve üç rakam); bu biçimdeki adlar dilin kodları için ayrılmıştır"), mesaj)
-    // Benzer ama ayrılmamış adlar sıradandır
-    değişken g100, G1000, G100_ = 1, 2, 3
-    eşit_mi(6, g100 + G1000 + G100_)
+    doğrula(mesaj.içerir("Satır 2, Sütun 10: 'TR_x' ayrılmış bir ad: 'TR_' ile başlayan adlar dilin ve kitaplığının kimlikleri içindir"), mesaj)
+    // Benzer ama ayrılmamış adlar sıradandır; eski kod biçimi (G100) de sıradan addır
+    değişken tr_x, TRx, G100 = 1, 2, 3
+    eşit_mi(6, tr_x + TRx + G100)
 }
 
 test "2.3b yazılış kuralına uymayan ad uyarıdır, hata değildir" {

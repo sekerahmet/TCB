@@ -1,5 +1,5 @@
-//! tr kodlu 2 dil=tr
-A020 kodlu_işlev(x) {
-    G100(x)
-    A021 x
+//! tr kodlu 3 dil=tr
+TR_kw_func kodlu_işlev(x) {
+    TR_fn_print(x)
+    TR_kw_return x
 }

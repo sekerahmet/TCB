@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // 27 — Custom gradients: writing your own differentiable operation and checking it.
 // What it teaches: building a new operation with custom_grad(forward:, backward:), comparing the gradient
 // with a numeric derivative using grad_check (tol:), computing element-wise operations in one pass with fuse.
@@ -9,24 +9,24 @@
 // custom_grad builds an operation whose forward calculation and backward (derivative) calculation you write.
 // forward: returns [output, saved values]; backward: func(saved, g) returns a gradient for every input.
 // Example: square(x) = x²; its derivative 2x is multiplied by the incoming g.
-A030 squared = T310(
-    T980: A020(x) { A021 [x * x, [x]] },
-    T981: A020(s, g) { A021 [g * 2 * s[0]] }
+TR_kw_var squared = TR_fn_custom_grad(
+    TR_arg_forward: TR_kw_func(x) { TR_kw_return [x * x, [x]] },
+    TR_arg_backward: TR_kw_func(s, g) { TR_kw_return [g * 2 * s[0]] }
 )
-A030 x = T100([3.0], T900: A040)
-G100("squared(3) =", squared(x).Y404)
-T300(G400(squared(x)))
-G100("d(squared)/dx =", x.Y403.Y404, "(expected 6.0)")
+TR_kw_var x = TR_fn_tensor([3.0], TR_arg_requires_grad: TR_kw_true)
+TR_fn_print("squared(3) =", squared(x).TR_mem_tolist)
+TR_fn_backward(TR_fn_sum(squared(x)))
+TR_fn_print("d(squared)/dx =", x.TR_mem_grad.TR_mem_tolist, "(expected 6.0)")
 
 // grad_check compares the gradient found by backward propagation with the numeric gradient found by a central
 // difference; it gives true if they agree. fd_step: is the size of the difference, tol: the allowed relative difference.
-G100(T311(A020(a) { A021 a * a }, [T100([0.5, -1.0], T900: A040)], T987: 0.001, T983: 0.01))
-G100(T311(A020(a) { A021 T220(a) }, [T100([0.3], T900: A040)], T983: 0.001))
+TR_fn_print(TR_fn_grad_check(TR_kw_func(a) { TR_kw_return a * a }, [TR_fn_tensor([0.5, -1.0], TR_arg_requires_grad: TR_kw_true)], TR_arg_fd_step: 0.001, TR_arg_tol: 0.01))
+TR_fn_print(TR_fn_grad_check(TR_kw_func(a) { TR_kw_return TR_fn_exp(a) }, [TR_fn_tensor([0.3], TR_arg_requires_grad: TR_kw_true)], TR_arg_tol: 0.001))
 
 // fuse turns a function made of element-wise operations into an equivalent that computes in one pass;
 // the result equals the unfused calculation (on a GPU the intermediate results are not written to memory).
-A030 f = T312((a, b) => a * b + a)
-G100(f(T100([1.0, 2.0]), T100([3.0, 4.0])).Y404)
+TR_kw_var f = TR_fn_fuse((a, b) => a * b + a)
+TR_fn_print(f(TR_fn_tensor([1.0, 2.0]), TR_fn_tensor([3.0, 4.0])).TR_mem_tolist)
 
 // --- Try it yourself ---
 // 1. Write a cube(x) = x³ operation with custom_grad (derivative 3x²) and check it with grad_check.

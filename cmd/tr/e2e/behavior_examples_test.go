@@ -10,6 +10,7 @@ import (
 	"testing"
 	"unicode"
 
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 	"github.com/sekerahmet/TCB/internal/testkit"
@@ -138,8 +139,6 @@ type scanner struct {
 
 func (s *scanner) emit(tok string) { *s.out = append(*s.out, tok) }
 
-var codeName = regexp.MustCompile(`^[A-Z]\d{3}$`)
-
 // code kodu tarar; inInterpolation ise eşleşmeyen '}' yerleştirmeyi bitirir.
 func (s *scanner) code(inInterpolation bool) {
 	depth := 0
@@ -185,7 +184,7 @@ func (s *scanner) word() {
 	for s.pos < len(s.src) && (unicode.IsLetter(s.src[s.pos]) || unicode.IsDigit(s.src[s.pos]) || s.src[s.pos] == '_') {
 		s.pos++
 	}
-	if w := string(s.src[start:s.pos]); codeName.MatchString(w) {
+	if w := string(s.src[start:s.pos]); codes.IsReservedName(w) { // kimlik (TR_fn_print): dilin sözcüğü
 		s.emit(w)
 	} else {
 		s.emit("ID")

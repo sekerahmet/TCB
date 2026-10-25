@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // 28 — The training loop: a model learning from data.
 // What it teaches: giving the weights fixed starting values, the AdamW optimizer, the loop
 // prediction → loss → backward → step, zero_grad, reading the learned values.
@@ -6,29 +6,29 @@
 // Run (from the project root): tr examples/en/28_training_loop.tr
 
 // Task: find the line y = 2x - 1 from points. Model: y_pred = x @ w + b.
-A030 X = T100([[0], [1], [2], [3]])
-A030 Y = T100([[-1], [1], [3], [5]])
-A030 w = T100([[0.0]], T900: A040) // the slope to be learned
-A030 b = T100([0.0], T900: A040) // the offset to be learned
+TR_kw_var X = TR_fn_tensor([[0], [1], [2], [3]])
+TR_kw_var Y = TR_fn_tensor([[-1], [1], [3], [5]])
+TR_kw_var w = TR_fn_tensor([[0.0]], TR_arg_requires_grad: TR_kw_true) // the slope to be learned
+TR_kw_var b = TR_fn_tensor([0.0], TR_arg_requires_grad: TR_kw_true) // the offset to be learned
 
 // The optimizer looks at the gradient and updates the weights in the direction that lowers the loss.
 // lr (learning rate) is the size of the step: too large and it diverges, too small and it learns slowly.
-A030 optimizer = T400([w, b], T910: 0.1, T911: 0)
+TR_kw_var optimizer = TR_fn_AdamW([w, b], TR_arg_lr: 0.1, TR_arg_weight_decay: 0)
 
-A010 step A011 0..300 {
-    optimizer.Y501() // 1) gradients accumulate, reset first
-    A030 diff = X @ w + b - Y // 2) prediction and error
-    A030 loss = G410(diff ** 2) // 3) loss: mean squared error
-    T300(loss) // 4) compute the gradients
-    optimizer.Y500() // 5) update the weights
-    A001 step % 50 == 0 {
-        G100("step {step}: loss = {G405(loss.Y404, 5)}")
+TR_kw_for step TR_kw_in 0..300 {
+    optimizer.TR_mem_zero_grad() // 1) gradients accumulate, reset first
+    TR_kw_var diff = X @ w + b - Y // 2) prediction and error
+    TR_kw_var loss = TR_fn_mean(diff ** 2) // 3) loss: mean squared error
+    TR_fn_backward(loss) // 4) compute the gradients
+    optimizer.TR_mem_step() // 5) update the weights
+    TR_kw_if step % 50 == 0 {
+        TR_fn_print("step {step}: loss = {TR_fn_round(loss.TR_mem_tolist, 5)}")
     }
 }
-G100("w = {G405(w.Y404[0][0], 3)}, b = {G405(b.Y404[0], 3)} (expected 2, -1)")
+TR_fn_print("w = {TR_fn_round(w.TR_mem_tolist[0][0], 3)}, b = {TR_fn_round(b.TR_mem_tolist[0], 3)} (expected 2, -1)")
 
 // A trained model is used without tracking.
-G100("prediction for x = 10: {G405(T301 { T100([[10]]) @ w + b }.Y404[0][0], 2)}")
+TR_fn_print("prediction for x = 10: {TR_fn_round(TR_fn_no_grad { TR_fn_tensor([[10]]) @ w + b }.TR_mem_tolist[0][0], 2)}")
 
 // --- Try it yourself ---
 // 1. Set lr to 0.001 and to 1.0: how does the loss change?

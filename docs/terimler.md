@@ -28,21 +28,21 @@ Dilin kendi içinde farklı işe aynı ad verilmez: tensörleri uç uca ekleyen 
 
 | Ad | Kodlar | Gerekçe |
 | :-- | :-- | :-- |
-| adım | K300, T982, Y500 | ayrı alan: K300 hata ayıklayıcıda bir adım ilerler; T982 (tamamlanan adım sayısı) ile Y500 (`op.adım()`, PyTorch `optimizer.step()`) aynı anlamda eğitim adımıdır |
-| devam | A014, K303 | aynı anlam: sürdürmek (döngünün sonraki turu; hata ayıklayıcıda programı sürdürmek) |
-| değiştir | K304, Y104 | ayrı alan: K304 hata ayıklayıcıda bir değişkenin değerini değiştirir; Y104 metinde parçayı değiştirir |
-| durum | K112, Y502 | ayrı alan: K112 `tr dizin`'in dizin durumu; Y502 iyileştiricinin sürdürme durumu |
-| günlük | G810, G912 | aynı anlam: G912 adlı argümanı G810'un açtığı günlüğü alır |
-| izle | K012, K307 | aynı anlam: izlemeye almak (`tr izle` bir koşuyu, hata ayıklayıcı bir ifadeyi) |
-| kodla | K009, Y610 | ayrı alan: K009 dosyayı kodlu biçime çevirir; Y610 parçalayıcıda metni parça kimliklerine çevirir |
-| çöz | K010, Y611 | ayrı alan: `kodla`'nın tersleri (K010 kodlu dosya, Y611 parça kimlikleri) |
-| kontrol | K004, K101 | aynı anlam: `tr kontrol` komutu ve `--kontrol` seçeneği aynı denetimi yapar |
-| mutlak | G403, Y314 | aynı anlam: göreli olmayan (mutlak değer, mutlak yol; Python `abs` ve `Path.absolute`) |
-| test | A101, K007 | aynı anlam: `test` bloğu ve onu koşan `tr test` |
-| tür | K110, T901, Y402 | ayrı alan: K110 `tr dizin`'de düğüm türü; T901 ile Y402 aynı anlamda tensörün veri türüdür |
-| yardım | K001, K106, K312 | aynı anlam: yardım metni (komut, seçenek, hata ayıklayıcı) |
-| çıkış | K200, K313 | aynı anlam: kabuktan ve hata ayıklayıcıdan çıkmak |
-| öğrenme_oranı | T910, Y504 | aynı anlam: iyileştiricinin öğrenme oranı (adlı argüman ve özellik) |
+| adım | TR_arg_step, TR_dbg_step, TR_mem_step | ayrı alan: TR_dbg_step hata ayıklayıcıda bir adım ilerler; TR_arg_step (tamamlanan adım sayısı) ile TR_mem_step (`op.adım()`, PyTorch `optimizer.step()`) aynı anlamda eğitim adımıdır |
+| devam | TR_dbg_continue, TR_kw_continue | aynı anlam: sürdürmek (döngünün sonraki turu; hata ayıklayıcıda programı sürdürmek) |
+| değiştir | TR_dbg_set, TR_mem_replace | ayrı alan: TR_dbg_set hata ayıklayıcıda bir değişkenin değerini değiştirir; TR_mem_replace metinde parçayı değiştirir |
+| durum | TR_mem_state, TR_opt_status | ayrı alan: TR_opt_status `tr dizin`'in dizin durumu; TR_mem_state iyileştiricinin sürdürme durumu |
+| günlük | TR_arg_log, TR_fn_logger | aynı anlam: TR_arg_log adlı argümanı TR_fn_logger'un açtığı günlüğü alır |
+| izle | TR_cmd_watch, TR_dbg_watch | aynı anlam: izlemeye almak (`tr izle` bir koşuyu, hata ayıklayıcı bir ifadeyi) |
+| kodla | TR_cmd_encode, TR_mem_encode | ayrı alan: TR_cmd_encode dosyayı kodlu biçime çevirir; TR_mem_encode parçalayıcıda metni parça kimliklerine çevirir |
+| çöz | TR_cmd_decode, TR_mem_decode | ayrı alan: `kodla`'nın tersleri (TR_cmd_decode kodlu dosya, TR_mem_decode parça kimlikleri) |
+| kontrol | TR_cmd_check, TR_opt_check | aynı anlam: `tr kontrol` komutu ve `--kontrol` seçeneği aynı denetimi yapar |
+| mutlak | TR_fn_abs, TR_mem_absolute | aynı anlam: göreli olmayan (mutlak değer, mutlak yol; Python `abs` ve `Path.absolute`) |
+| test | TR_cmd_test, TR_ctx_test | aynı anlam: `test` bloğu ve onu koşan `tr test` |
+| tür | TR_arg_dtype, TR_mem_dtype, TR_opt_kind | ayrı alan: TR_opt_kind `tr dizin`'de düğüm türü; TR_arg_dtype ile TR_mem_dtype aynı anlamda tensörün veri türüdür |
+| yardım | TR_cmd_help, TR_dbg_help, TR_opt_help | aynı anlam: yardım metni (komut, seçenek, hata ayıklayıcı) |
+| çıkış | TR_dbg_quit, TR_repl_exit | aynı anlam: kabuktan ve hata ayıklayıcıdan çıkmak |
+| öğrenme_oranı | TR_arg_lr, TR_mem_lr | aynı anlam: iyileştiricinin öğrenme oranı (adlı argüman ve özellik) |
 
 ## İleride karar verilecek
 

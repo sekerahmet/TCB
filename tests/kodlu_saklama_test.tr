@@ -6,10 +6,10 @@ aktar "yardimci_test_araclari"
 test "17.1 ilk satırı başlık olan dosya kodludur ve çevrilmeden çalışır" {
     aktar "coded/ornek_kodlu" olarak m
     eşit_mi([1, 4, 9], m.kareler([1, 2, 3]))
-    // Başka bir kodlu biçim sürümü (burada eski sürüm 1) Türkçe kaynak sanılmaz, hatadır.
+    // Başka bir kodlu biçim sürümü (burada eski sürüm 2) Türkçe kaynak sanılmaz, hatadır.
     değişken mesaj = ""
     dene { aktar "negative/kodlu_surum" } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("Satır 1, Sütun 1: '//! tr kodlu 1' okunamayan bir kodlu biçim başlığı: bu biçim sürümü okunamıyor"), mesaj)
+    doğrula(mesaj.içerir("Satır 1, Sütun 1: '//! tr kodlu 2 dil=tr' okunamayan bir kodlu biçim başlığı: bu biçim sürümü okunamıyor"), mesaj)
 }
 
 test "17.2 kodlu dosyada dilin sözcükleri kodla, kullanıcının adları adıyla yazılır" {
@@ -32,20 +32,20 @@ test "17.3 neyin kodlandığını kapsam belirler; üyeler tanımda ve kullanım
 
 test "17.4 metinler, ham metin ve yorumlar olduğu gibi kalır; yerleştirmedeki kodlar çalışır" {
     aktar "coded/ornek_kodlu" olarak m
-    eşit_mi("toplam: 6.0, eğer: 7, ham: " + `{G400}`, m.bilgi())
+    eşit_mi("toplam: 6.0, eğer: 7, ham: " + `{TR_fn_sum}`, m.bilgi())
 }
 
 test "17.5 kodlu dosyada konumlar Türkçe gösterime göredir" {
     değişken mesaj = ""
     dene { aktar "negative/kodlu_tanimsiz" } yakala h { mesaj = h }
-    // Gösterim: 'yazdır(a, tanımsız_ad)'; ad 11. sütunda (kodlu dosyada 'G100(a, ' 9 karakter).
+    // Gösterim: 'yazdır(a, tanımsız_ad)'; ad 11. sütunda (kodlu dosyada 'TR_fn_print(a, ' 16 karakter).
     doğrula(mesaj.içerir("Satır 3, Sütun 11: Tanımsız ad — 'tanımsız_ad'"), mesaj)
 }
 
-test "17.6 kod listesinde olmayan kod hatadır" {
+test "17.6 kod listesinde olmayan kimlik hatadır" {
     değişken mesaj = ""
     dene { aktar "negative/kodlu_bilinmeyen" } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("Satır 2, Sütun 1: 'G999' bilinen bir kod değil"), mesaj)
+    doğrula(mesaj.içerir("Satır 2, Sütun 1: 'TR_fn_yok' bilinen bir kimlik değil"), mesaj)
 }
 
 test "17.7 kodsuz dosya Türkçedir; başka yazım dillerinin sözcükleri burada kullanıcının adıdır" {

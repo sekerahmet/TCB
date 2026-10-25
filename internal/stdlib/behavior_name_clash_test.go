@@ -180,7 +180,7 @@ func clashWords(o, f *codes.Language) []clashWord {
 			names = append(names, name)
 		}
 		w.namespaces = append(w.namespaces, ns)
-		w.contextual = w.contextual || (k.Letter() == 'A' && k.Group() == 1)
+		w.contextual = w.contextual || k.Class() == codes.ClassContextual
 	}
 	var r []clashWord
 	for _, name := range names {

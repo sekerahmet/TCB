@@ -1,8 +1,8 @@
 {
-"H0001": "'{name}' bilinen bir kod değil; kodlu dosyada dilin sözcükleri kod listesindeki kodlarıyla (ör. {example}), kullanıcının adları adlarıyla yazılır",
+"H0001": "'{name}' bilinen bir kimlik değil; kodlu dosyada dilin sözcükleri kimlikleriyle (ör. {example}), kullanıcının adları adlarıyla yazılır",
 "H0002": "'$' kaçışı bir adın ya da sayının hemen ardından yazılamaz; önüne bir boşluk ya da işleç koyun",
 "H0003": "kaynakta NUL (U+0000) karakteri var; metin dosyalarında bulunmaz, dosya bozuk olabilir",
-"H0004": "'{name}' kod biçiminde bir ad (büyük harf ve üç rakam); bu biçimdeki adlar dilin kodları için ayrılmıştır, başka bir ad seçin (ör. {name}_ ya da {lower}). Kodlu dosyalar ilk satırdaki '{header}' başlığıyla başlar",
+"H0004": "'{name}' ayrılmış bir ad: 'TR_' ile başlayan adlar dilin ve kitaplığının kimlikleri içindir; başka bir ad seçin (ör. {lower}). Kodlu dosyalar ilk satırdaki '{header}' başlığıyla başlar",
 "H0005": "'#' TR'de yorum değil; yorum için '//' yazın",
 "H0006": "kapatılmamış yorum: '/*' ile başlayan yorum dosya sonuna kadar '*/' ile kapanmadı",
 "H0007": "kapatılmamış ham metin: ` ile başlayan metin dosya sonuna kadar kapanmadı",

@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // 20 — Paths and folders: managing the file system.
 // What it teaches: building a Path with path() and its properties (name, extension, stem, parent,
 // exists, is_file, is_dir, size), make_dir, list_dir, copy, move, remove, overwrite and recursive,
@@ -7,42 +7,42 @@
 // Run (from the project root): tr examples/en/20_paths_and_folders.tr
 // Everything happens in a temporary folder (deleted when the program ends, no trace in the repo).
 
-A030 base = G126()
+TR_kw_var base = TR_fn_temp_dir()
 
 // path(...) joins parts; a Path cannot be changed and is shown with /. Its properties ask the path questions.
-A030 p = G120(base, "data", "corpus.tar.gz")
-G100(G201(p) == A250, p.Y310, p.Y311, p.Y312, p.Y313.Y310)
+TR_kw_var p = TR_fn_path(base, "data", "corpus.tar.gz")
+TR_fn_print(TR_fn_type(p) == TR_type_Path, p.TR_mem_name, p.TR_mem_extension, p.TR_mem_stem, p.TR_mem_parent.TR_mem_name)
 
 // Creating folders and files; every built-in that takes a path accepts a Path instead of a String.
-G122(G120(base, "data", "sub"))
-G111(G120(base, "data", "a.txt"), "welcome")
-G111(G120(base, "data", "sub", "b.txt"), "world!")
-G100(G120(base, "data", "a.txt").Y316, G120(base, "data").Y317, G120(base, "missing").Y315)
+TR_fn_make_dir(TR_fn_path(base, "data", "sub"))
+TR_fn_write_file(TR_fn_path(base, "data", "a.txt"), "welcome")
+TR_fn_write_file(TR_fn_path(base, "data", "sub", "b.txt"), "world!")
+TR_fn_print(TR_fn_path(base, "data", "a.txt").TR_mem_is_file, TR_fn_path(base, "data").TR_mem_is_dir, TR_fn_path(base, "missing").TR_mem_exists)
 // absolute is the path written out in full (a relative path is resolved against the working folder).
-G100(G120(".").Y314.Y317, G120(base, "data").Y314 == G120(base, "data"))
-G100("size of a.txt:", G120(base, "data", "a.txt").Y318, "bytes")
+TR_fn_print(TR_fn_path(".").TR_mem_absolute.TR_mem_is_dir, TR_fn_path(base, "data").TR_mem_absolute == TR_fn_path(base, "data"))
+TR_fn_print("size of a.txt:", TR_fn_path(base, "data", "a.txt").TR_mem_size, "bytes")
 
 // list_dir gives the files and folders that fit the pattern as a sorted list of Paths (** goes into subfolders).
-G100(G121(G120(base, "data"), "**/*.txt").Y201 { A104.Y310 })
+TR_fn_print(TR_fn_list_dir(TR_fn_path(base, "data"), "**/*.txt").TR_mem_map { TR_ctx_it.TR_mem_name })
 
 // copy and move return the path of the target. If the target exists, overwrite: true is needed.
-G124(G120(base, "data", "a.txt"), G120(base, "data", "sub"))
-G111(G120(base, "fresh.txt"), "fresh content")
-G124(G120(base, "fresh.txt"), G120(base, "data", "a.txt"), G900: A040)
-G100(G110(G120(base, "data", "a.txt")))
-G125(G120(base, "fresh.txt"), G120(base, "moved.txt"))
-G100(G120(base, "fresh.txt").Y315, G120(base, "moved.txt").Y315)
+TR_fn_copy(TR_fn_path(base, "data", "a.txt"), TR_fn_path(base, "data", "sub"))
+TR_fn_write_file(TR_fn_path(base, "fresh.txt"), "fresh content")
+TR_fn_copy(TR_fn_path(base, "fresh.txt"), TR_fn_path(base, "data", "a.txt"), TR_arg_overwrite: TR_kw_true)
+TR_fn_print(TR_fn_read_file(TR_fn_path(base, "data", "a.txt")))
+TR_fn_move(TR_fn_path(base, "fresh.txt"), TR_fn_path(base, "moved.txt"))
+TR_fn_print(TR_fn_path(base, "fresh.txt").TR_mem_exists, TR_fn_path(base, "moved.txt").TR_mem_exists)
 
 // remove gives the number of removed files; a full folder needs recursive: true.
-G100(G123(G120(base, "moved.txt")))
-G100(G123(G120(base, "data"), G901: A040))
+TR_fn_print(TR_fn_remove(TR_fn_path(base, "moved.txt")))
+TR_fn_print(TR_fn_remove(TR_fn_path(base, "data"), TR_arg_recursive: TR_kw_true))
 
 // read_lines reads a file as a stream, line by line (a LineReader): memory does not depend on the file.
-G111(G120(base, "notes.txt"), "one\ntwo\nthree")
-A030 reader = G112(G120(base, "notes.txt"))
-G100(G201(reader) == A257, reader.Y602(), reader.Y602())
+TR_fn_write_file(TR_fn_path(base, "notes.txt"), "one\ntwo\nthree")
+TR_kw_var reader = TR_fn_read_lines(TR_fn_path(base, "notes.txt"))
+TR_fn_print(TR_fn_type(reader) == TR_type_LineReader, reader.TR_mem_next(), reader.TR_mem_next())
 // close lets go of the file without reading to the end: true on the first call, false afterwards.
-G100(reader.Y012(), reader.Y012())
+TR_fn_print(reader.TR_mem_close(), reader.TR_mem_close())
 
 // --- Try it yourself ---
 // 1. List only the names of the files with the .tr extension in a folder.

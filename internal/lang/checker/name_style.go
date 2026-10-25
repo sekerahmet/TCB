@@ -34,10 +34,10 @@ const mathSymbolLetters = 3
 // checkNameStyle adın yazılışını tanımlandığı yere göre denetler ve kurala uymuyorsa önerisiyle
 // bir uyarı ekler (PEP 8 düzeni, Rust'ın varsayılan uyarıları gibi hata değil): sabitler
 // BÜYÜK_YILAN, yapılar BüyükDeve, geri kalan adlar küçük_yılan. Baştaki _ (modüle özel ad) ve
-// $ (kaçış) yazılışa sayılmaz; kod biçimindeki adlar (2.3a) zaten hatadır.
+// $ (kaçış) yazılışa sayılmaz; TR_ ile başlayan adlar (2.3a) zaten hatadır.
 func (c *Checker) checkNameStyle(name string, kind nameKind, line int) {
 	bare := strings.TrimLeft(name, "$_")
-	if bare == "" || codes.IsCodeForm(bare) || !strings.ContainsFunc(bare, unicode.IsLetter) {
+	if bare == "" || codes.IsReservedName(bare) || !strings.ContainsFunc(bare, unicode.IsLetter) {
 		return
 	}
 	var warning error

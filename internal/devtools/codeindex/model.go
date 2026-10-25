@@ -16,14 +16,14 @@ import "strconv"
 
 // SchemaVersion JSON şemasının sürümüdür (Schema onun metin biçimi). Alan eklemek uyumludur;
 // alan çıkarmak ya da anlamını değiştirmek sürümü artırır.
-const SchemaVersion = 1
+const SchemaVersion = 2
 
 // Schema her JSON sonucuna yazılan şema adıdır.
-const Schema = "tr-codeindex/1"
+const Schema = "tr-codeindex/2"
 
 // IndexVersion dizinin kaynaktan türettiği içerik değişince artar (yeni düğüm türü, farklı
 // çözümleme). Başka sürümün önbelleği hiçbir zaman kullanılmaz.
-const IndexVersion = 16
+const IndexVersion = 17
 
 // Kind bir düğümün türüdür; değerler JSON'a yazılan değişmez tanımlayıcılardır.
 type Kind string

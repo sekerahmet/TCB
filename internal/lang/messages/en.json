@@ -1,8 +1,8 @@
 {
-"H0001": "'{name}' is not a known code; in a coded file the language's words are written with their codes from the code list (e.g. {example}) and the user's names with their own names",
+"H0001": "'{name}' is not a known identity; in a coded file the language's words are written with their identities (e.g. {example}) and the user's names with their own names",
 "H0002": "The '$' escape cannot directly follow a name or a number; put a space or an operator before it",
 "H0003": "the source contains a NUL (U+0000) character; text files do not contain it, the file may be corrupt",
-"H0004": "'{name}' is a name in code format (a capital letter and three digits); names in this format are reserved for the language's codes, choose another name (e.g. {name}_ or {lower}). Coded files start with the '{header}' header on the first line",
+"H0004": "'{name}' is a reserved name: names starting with 'TR_' are the identities of the language and its library; choose another name (e.g. {lower}). Coded files start with the '{header}' header on the first line",
 "H0005": "'#' is not a comment in TR; write '//' for a comment",
 "H0006": "unclosed comment: the comment that starts with '/*' was not closed with '*/' before the end of the file",
 "H0007": "unclosed raw string: the string that starts with ` was not closed before the end of the file",

@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // Error 09 — Unknown named argument.
 // Message code: H2410
 // What happens: If a call uses a parameter name the function does not take, an error is raised at run time.
@@ -7,7 +7,7 @@
 //     print(greet(who: "Ali"))
 // Run (from the project root): tr examples/en/errors/09_unknown_named_argument.tr   (exit code 1)
 
-A020 greet(who) {
-    A021 "Hi {who}"
+TR_kw_func greet(who) {
+    TR_kw_return "Hi {who}"
 }
-G100(greet(name: "Ali"))
+TR_fn_print(greet(name: "Ali"))

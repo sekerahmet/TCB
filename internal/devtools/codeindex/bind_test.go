@@ -126,8 +126,8 @@ func TestNameOnlyGuessesStayOutOfReferences(t *testing.T) {
 func TestOptionNameFollowsTheFilesLanguage(t *testing.T) {
 	dir := t.TempDir()
 	for name, text := range map[string]string{
-		"en.tr":  "//! tr kodlu 2 dil=en\nA030 config = G801({Y500: 100, run: \"trial\"}, G911: {Y500: \"steps\"})\n",
-		"en2.tr": "//! tr kodlu 2 dil=en\nA030 c = G801({adım: 1, Y500: 2, run: 3})\n",
+		"en.tr":  "//! tr kodlu 3 dil=en\nTR_kw_var config = TR_fn_command_line({TR_mem_step: 100, run: \"trial\"}, TR_arg_descriptions: {TR_mem_step: \"steps\"})\n",
+		"en2.tr": "//! tr kodlu 3 dil=en\nTR_kw_var c = TR_fn_command_line({adım: 1, TR_mem_step: 2, run: 3})\n",
 		"tr.tr":  "değişken ayar = komut_satırı({adım: 100, run: \"deneme\"})\n",
 	} {
 		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644); err != nil {

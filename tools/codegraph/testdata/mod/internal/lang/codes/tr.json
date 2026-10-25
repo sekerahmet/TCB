@@ -1,4 +1,4 @@
 {
-  "A001": { "ad": "eger", "aile": "keyword" },
-  "G100": { "ad": "yazdır", "aile": "output" }
+  "TR_kw_if": { "ad": "eger", "aile": "keyword" },
+  "TR_fn_print": { "ad": "yazdır", "aile": "output" }
 }

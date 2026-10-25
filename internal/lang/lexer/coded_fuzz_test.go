@@ -14,7 +14,7 @@ import (
 //	go test ./internal/lang/lexer -run '^$' -fuzz FuzzCodedLexer -fuzztime 5m
 func FuzzCodedLexer(f *testing.F) {
 	testkit.TRSeeds(f)
-	for _, s := range []string{"A030 x = 1\nG100(x)\n", `G100("{G100("{x}")}")`, "x.Y400", "T910: 1", "$A001", "A0", "Z999", "\"{", "G100(\"{\"{\"{\"{1}\"}\"}\"})"} {
+	for _, s := range []string{"TR_kw_var x = 1\nTR_fn_print(x)\n", `TR_fn_print("{TR_fn_print("{x}")}")`, "x.TR_mem_shape", "TR_arg_lr: 1", "$TR_kw_if", "A0", "Z999", "\"{", "TR_fn_print(\"{\"{\"{\"{1}\"}\"}\"})"} {
 		f.Add(s)
 	}
 	f.Fuzz(func(t *testing.T, source string) {

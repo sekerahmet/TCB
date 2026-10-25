@@ -28,10 +28,10 @@ func names(codeList ...codes.Code) []Named {
 func TestNamedArg(t *testing.T) {
 	a := NamedArg(codes.ArgLr)
 	if a.TR != codes.Name(codes.ArgLr) || !a.Accepts(a.TR) || a.Spellings()[0] != a.TR {
-		t.Fatalf("NamedArg(T910) = %+v", a)
+		t.Fatalf("NamedArg(TR_arg_lr) = %+v", a)
 	}
 	defer func() {
-		if r := recover(); r == nil || !strings.Contains(fmt.Sprint(r), "G100") {
+		if r := recover(); r == nil || !strings.Contains(fmt.Sprint(r), "TR_fn_print") {
 			t.Fatalf("adlı argüman olmayan kod paniklemeli: %v", r)
 		}
 	}()

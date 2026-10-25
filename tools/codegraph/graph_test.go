@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -53,7 +54,7 @@ func TestCodeNodesAndUses(t *testing.T) {
 		}
 	}
 	mustEdge(t, g, describeID, "msg:H0001", edgeUsesMessage, extracted)
-	mustEdge(t, g, describeID, "name:A001", edgeUsesName, extracted)
+	mustEdge(t, g, describeID, "name:TR_kw_if", edgeUsesName, extracted)
 	if edge(g, "go:pkg:example.com/mini/internal/lang/messages", "msg:H0001", edgeUsesMessage) != nil {
 		t.Error("the messages package's own definition must not count as a use")
 	}
@@ -213,8 +214,39 @@ func TestCodeConstantsDenoteCodes(t *testing.T) {
 	msgConst := "go:const:example.com/mini/internal/lang/messages.H0001"
 	nameConst := "go:const:example.com/mini/internal/lang/codes.KwIf"
 	mustEdge(t, g, msgConst, "msg:H0001", edgeDenotes, extracted)
-	mustEdge(t, g, nameConst, "name:A001", edgeDenotes, extracted)
+	mustEdge(t, g, nameConst, "name:TR_kw_if", edgeDenotes, extracted)
 	mustEdge(t, g, describeID, msgConst, edgeUses, extracted)
 	mustEdge(t, g, describeID, "msg:H0001", edgeUsesMessage, extracted)
 	mustEdge(t, g, describeID, nameConst, edgeUses, extracted)
+}
+
+// Kural: bu deponun grafiğinde her ad kimliğinin (dil dosyasındaki her anahtar) en az bir `uses_name` (ortam değişkeninde
+// `uses_env`) kenarı vardır: Go sabiti (codes.FnPrint, sabitin yorumundaki anahtarla bağlanır), kodlu .tr belirteci ya da ileti. Kodu tanıyan kural
+// değişip bağlar sessizce kaybolursa (kimliklere geçişte sabit adının biçimine bakan desen gibi) "kullanılmıyor" cevabı
+// yanlış olur; bu test düşer.
+func TestEveryNameCodeHasAUse(t *testing.T) {
+	_, _, g := repoGraph(t)
+	used := map[string]bool{}
+	for _, e := range g.Edges {
+		if e.Kind == edgeUsesName || e.Kind == edgeUsesEnv { // ortam değişkenini ad kodunu görmeyen hesap çekirdeği adıyla okur
+			used[e.To] = true
+		}
+	}
+	var unused []string
+	names := 0
+	for i := range g.Nodes {
+		if n := &g.Nodes[i]; n.Kind == kindName {
+			names++
+			if !used[n.ID] {
+				unused = append(unused, n.ID)
+			}
+		}
+	}
+	if names < 300 {
+		t.Fatalf("only %d name codes in the graph; the code files were not read", names)
+	}
+	if len(unused) > 0 {
+		sort.Strings(unused)
+		t.Errorf("%d name codes have no uses_name edge:\n  %s", len(unused), strings.Join(unused, "\n  "))
+	}
 }

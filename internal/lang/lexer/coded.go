@@ -174,22 +174,23 @@ func KeywordCode(t TokenType) codes.Code {
 }
 
 // nameToken okunan bir adın sözcük birimidir: Türkçe yazılmış kaynakta anahtar kelime ya da
-// ad (kod biçimli ad hatadır, 2.3a), kodlu kaynakta kodluSozcuk.
+// ad (TR_ ile başlayan ad hatadır, 2.3a), kodlu kaynakta codedToken.
 func (l *Lexer) nameToken(lit string, line, col int) Token {
 	if l.coded {
 		return l.codedToken(lit, line, col)
 	}
 	kind := l.root.lookupIdent(lit)
 	if kind == TokIdent {
-		l.checkCodeForm(lit, line, col)
+		l.checkReservedName(lit, line, col)
 	}
 	return Token{Type: kind, Literal: lit, Line: line, Column: col}
 }
 
-// codedToken kodlu kaynaktaki bir adı okur: kod biçimindeyse (G100) kodun çözümleyicinin
-// dilindeki (Language) adını ve (anahtar kelimeyse) türünü taşıyan sözcük birimi, değilse kullanıcı adıdır.
+// codedToken kodlu kaynaktaki bir adı okur: kimlikse (TR_fn_print) kodun çözümleyicinin
+// dilindeki (Language) adını ve (anahtar kelimeyse) türünü taşıyan sözcük birimi, değilse kullanıcı
+// adıdır. TR_ ile başlayıp kod listesinde olmayan ad bir kimlik değildir: sözdizimi hatası.
 func (l *Lexer) codedToken(lit string, line, col int) Token {
-	if !codes.IsCodeForm(lit) {
+	if !codes.IsReservedName(lit) {
 		return Token{Type: TokIdent, Literal: lit, Line: line, Column: col}
 	}
 	k, err := codes.Parse(lit)
@@ -207,7 +208,7 @@ func (l *Lexer) codedToken(lit string, line, col int) Token {
 // escapedName '$ad' kaçışını okur (2.11): '$' ardından gelen ad her zaman kullanıcının adıdır,
 // dilin bir sözcüğüyle aynı olsa bile (değişken $eğer = 1). Kaçış, bir dosya başka bir yazım
 // dilinde gösterilirken o dilin sözcükleriyle çakışan kullanıcı adları içindir; kodlama '$'ı
-// atar. Kod biçimli adlar kaçışla da ayrılmıştır (2.3a). '$' bir harfe, rakama ya da '_'ye
+// atar. TR_ ile başlayan adlar kaçışla da ayrılmıştır (2.3a). '$' bir harfe, rakama ya da '_'ye
 // bitişik yazılamaz: '$' atılınca iki sözcük birleşirdi (a$b → ab, 1$e5 → 1e5).
 func (l *Lexer) escapedName(line, col int) Token {
 	if l.position > 0 && (isLetter(l.input[l.position-1]) || isDigit(l.input[l.position-1])) {
@@ -215,7 +216,7 @@ func (l *Lexer) escapedName(line, col int) Token {
 	}
 	l.readChar() // '$'
 	lit := l.readIdentifier()
-	l.checkCodeForm(lit, line, col+1)
+	l.checkReservedName(lit, line, col+1)
 	return Token{Type: TokIdent, Literal: lit, Line: line, Column: col}
 }
 
@@ -228,17 +229,18 @@ func (l *Lexer) nulChar(line, col int) Token {
 	return Token{Type: TokIllegal, Literal: "\x00", Line: line, Column: col}
 }
 
-// checkCodeForm Türkçe yazılmış kaynakta kod biçimli bir adı (2.3a) hata olarak bildirir.
-// Kod biçimi ASCII'dir ([A-Z][0-9]{3}); küçük harfli öneri bu yüzden bilerek Türkçe kuralla
-// (turkish.Lower) değil strings.ToLower ile üretilir: I100 için ı100 değil i100 önerilir.
-func (l *Lexer) checkCodeForm(lit string, line, col int) {
-	if !codes.IsCodeForm(lit) {
+// checkReservedName Türkçe yazılmış kaynakta TR_ ile başlayan bir adı (2.3a) hata olarak bildirir.
+// Önek ASCII'dir; küçük harfli öneri bu yüzden bilerek Türkçe kuralla (turkish.Lower) değil
+// strings.ToLower ile üretilir: TR_ için ır_ değil tr_ önerilir.
+func (l *Lexer) checkReservedName(lit string, line, col int) {
+	if !codes.IsReservedName(lit) {
 		return
 	}
 	l.addError(line, col, messages.New(messages.H0004, lit, strings.ToLower(lit), CodedHeader+codes.SourceLanguage))
 }
 
-// CodedHeader is the start of a coded file's first line (format version 2): the code of the
-// file's writing language follows it ("//! tr kodlu 2 dil=en", 17.1). The header's rules live
-// in internal/lang/source; the text lives here so the lexer's hint can show it too.
-const CodedHeader = "//! tr kodlu 2 dil="
+// CodedHeader is the start of a coded file's first line (format version 3: the language's words
+// are written by their identities, TR_fn_print): the code of the file's writing language follows
+// it ("//! tr kodlu 3 dil=en", 17.1). The header's rules live in internal/lang/source; the text
+// lives here so the lexer's hint can show it too.
+const CodedHeader = "//! tr kodlu 3 dil="

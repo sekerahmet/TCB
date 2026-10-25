@@ -148,7 +148,7 @@ func TestEncodeDecodeShowCommands(t *testing.T) {
 	s := tr(t, k, "kodla", k)
 	testkit.Wait(t, s, 1, []string{"kodlandı: ", "2 dosya incelendi, 1 dosya kodlandı."}, []string{"bozuk.tr: sözdizimi hatası olan kaynak çevrilmez"})
 	data, _ := os.ReadFile(filePath)
-	if want := source.Header + "tr\r\nA030 x = 1\r\nG100(\"x: {x}\") // yorum\r\n"; string(data) != want {
+	if want := source.Header + "tr\r\nTR_kw_var x = 1\r\nTR_fn_print(\"x: {x}\") // yorum\r\n"; string(data) != want {
 		t.Errorf("kodlu dosya: %q, beklenen %q", data, want)
 	}
 	if v, _ := os.ReadFile(corrupt); string(v) != "eğer {\n" {
@@ -178,7 +178,7 @@ func TestEncodeDecodeShowCommands(t *testing.T) {
 // değer metinleri) değişir: komut bunu dosya dosya uyarır (17.1). dil=tr dosyada uyarı yok.
 func TestDecodeWarnsWhenTheFileLanguageChanges(t *testing.T) {
 	dir := t.TempDir()
-	coded := source.Header + "tr\nG100(A040)\n"
+	coded := source.Header + "tr\nTR_fn_print(TR_kw_true)\n"
 	testkit.WriteFile(t, dir, "en.tr", inLanguage(coded, "en"))
 	testkit.WriteFile(t, dir, "tr.tr", coded)
 	s := tr(t, dir, "çöz", "en.tr", "tr.tr")
@@ -198,7 +198,7 @@ func TestDecodeWarnsWhenTheFileLanguageChanges(t *testing.T) {
 func TestEncodeShowStandardInput(t *testing.T) {
 	turkish := "\xef\xbb\xbfdeğişken eğer_değil = 1\r\nyazdır(eğer_değil) // yorum\r\n"
 	encode := testkit.RunBinary(t, trBinary, "", turkish, nil, "kodla", "-", "--dil", "tr")
-	if want := "\xef\xbb\xbf" + source.Header + "tr\r\nA030 eğer_değil = 1\r\nG100(eğer_değil) // yorum\r\n"; encode.Code != 0 || encode.Stdout != want || encode.Stderr != "" {
+	if want := "\xef\xbb\xbf" + source.Header + "tr\r\nTR_kw_var eğer_değil = 1\r\nTR_fn_print(eğer_değil) // yorum\r\n"; encode.Code != 0 || encode.Stdout != want || encode.Stderr != "" {
 		t.Fatalf("tr kodla -: %q (çıkış %d, hata %q), beklenen %q", encode.Stdout, encode.Code, encode.Stderr, want)
 	}
 	if s := testkit.RunBinary(t, trBinary, "", encode.Stdout, nil, "göster", "-"); s.Code != 0 || s.Stdout != turkish {
@@ -216,8 +216,8 @@ func TestEncodeShowStandardInput(t *testing.T) {
 	if corrupt.Stdout != "" {
 		t.Errorf("ayrıştırılamayan metinde çıktı boş olmalı: %q", corrupt.Stdout)
 	}
-	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", source.Header+"tr\nA001 {\n", nil, "göster", "-"), 2, nil, []string{"Sözdizimi Hataları"})
-	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "//! tr kodlu 1\n", nil, "kodla", "-"), 1, nil, []string{"bu biçim sürümü okunamıyor"})
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", source.Header+"tr\nTR_kw_if {\n", nil, "göster", "-"), 2, nil, []string{"Sözdizimi Hataları"})
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "//! tr kodlu 2 dil=tr\nA030 x = 1\n", nil, "kodla", "-"), 1, nil, []string{"bu biçim sürümü okunamıyor"})
 	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "x\n", nil, "göster", "-", "--dil", "xx"), 1, nil, []string{"'xx' yazım dili yok"})
 	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "x\n", nil, "kodla", "-", "--dil", "xx"), 1, nil, []string{"'xx' yazım dili yok"})
 	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "x\n", nil, "kodla", "-", "a.tr"), 1, nil, []string{"fazladan argüman: a.tr"})
@@ -262,9 +262,9 @@ func TestEnglishWritingLanguage(t *testing.T) {
 	// metnin sözdizimi hatası TR_DIL=en ile İngilizce başlıkla, yoksa Türkçe bildirilir.
 	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "if {\n", []string{"TR_DIL=en"}, "kodla", "-", "--dil", "en"), 2, nil, []string{"Syntax Errors"})
 	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "if {\n", nil, "kodla", "-", "--dil", "en"), 2, nil, []string{"Sözdizimi"})
-	// Gösterim de o dilde yeniden kodlanabilmeli: G200'ün İngilizce adı yok, "G200(l)" diye bir
-	// gösterim geri okunamaz; komut onu vermez (dosyayla da standart girişle de).
-	lossy := source.Header + "tr\nA030 l = [1]\nG200(l)\n"
+	// Gösterim de o dilde yeniden kodlanabilmeli: kod listesinde olmayan bir kimliğin (TR_fn_yok)
+	// gösterimi yoktur; komut bir gösterim vermez (dosyayla da standart girişle de).
+	lossy := source.Header + "tr\nTR_kw_var l = [1]\nTR_fn_yok(l)\n"
 	if s := testkit.RunBinary(t, trBinary, "", lossy, nil, "göster", "-", "--dil", "en"); s.Code == 0 {
 		t.Errorf("geri okunamayan gösterim verildi: %q", s.Stdout)
 	}

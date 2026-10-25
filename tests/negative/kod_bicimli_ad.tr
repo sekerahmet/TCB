@@ -1,2 +1,2 @@
-// Bilerek hatalı: 2.3a — büyük harf ve üç rakamdan oluşan adlar dilin kodları için ayrılmıştır.
-değişken G100 = 1
+// Bilerek hatalı: 2.3a — TR_ ile başlayan adlar dilin ve kitaplığının kimlikleri için ayrılmıştır.
+değişken TR_x = 1

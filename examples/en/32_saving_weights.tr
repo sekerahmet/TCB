@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // 32 — Saving weights: writing a trained model to disk and loading it back.
 // What it teaches: save_tensors(path, dict), load_tensors(path), load_parameters, picking the most likely class with argmax.
 // Builds on: the training loop (28), the XOR network (30), dicts (11), files and JSON (19), paths (20).
@@ -6,32 +6,32 @@
 // The weights file is written to a temporary folder (deleted when the program ends, no trace in the repo).
 
 // A small classifier: from two features (like height, weight) it picks one of three classes.
-A030 W = T100([[1.0, -1.0, 0.0], [0.0, 1.0, -1.0]], T900: A040)
-A030 b = T100([0.1, 0.0, -0.1], T900: A040)
+TR_kw_var W = TR_fn_tensor([[1.0, -1.0, 0.0], [0.0, 1.0, -1.0]], TR_arg_requires_grad: TR_kw_true)
+TR_kw_var b = TR_fn_tensor([0.1, 0.0, -0.1], TR_arg_requires_grad: TR_kw_true)
 
 // The weights are written in a dict under their names; after loading they are read with the same names.
-A030 file = G120(G126(), "weights.trt")
-T700(file, {"W": W, "b": b})
-A030 loaded = T701(file)
-G100("names of the loaded ones: {loaded.Y300()}")
-G100("same W: {loaded["W"].Y404 == W.Y404}")
+TR_kw_var file = TR_fn_path(TR_fn_temp_dir(), "weights.trt")
+TR_fn_save_tensors(file, {"W": W, "b": b})
+TR_kw_var loaded = TR_fn_load_tensors(file)
+TR_fn_print("names of the loaded ones: {loaded.TR_mem_keys()}")
+TR_fn_print("same W: {loaded["W"].TR_mem_tolist == W.TR_mem_tolist}")
 
 // Prediction with the loaded weights: every row is an example, every column the score of a class.
-A030 samples = T100([[2.0, 0.5], [0.2, 1.8], [1.0, 1.0]])
-A030 scores = T301 { samples @ loaded["W"] + loaded["b"] }
-G100("scores =", scores)
+TR_kw_var samples = TR_fn_tensor([[2.0, 0.5], [0.2, 1.8], [1.0, 1.0]])
+TR_kw_var scores = TR_fn_no_grad { samples @ loaded["W"] + loaded["b"] }
+TR_fn_print("scores =", scores)
 
 // argmax gives the column of the largest score in every row: the chosen class.
-A030 classes = T230(scores, T902: -1)
-A030 labels = ["cat", "dog", "bird"]
-G100("class indices: {classes.Y404} → {[labels[i] A010 i A011 classes.Y404]}")
+TR_kw_var classes = TR_fn_argmax(scores, TR_arg_dim: -1)
+TR_kw_var labels = ["cat", "dog", "bird"]
+TR_fn_print("class indices: {classes.TR_mem_tolist} → {[labels[i] TR_kw_for i TR_kw_in classes.TR_mem_tolist]}")
 
 // load_parameters writes the result of load_tensors into the existing parameters of a model with the same names, in place,
 // and gives the number of written parameters (for resuming training where it stopped).
-A030 model = {w: T100([1.0, 2.0], T900: A040)}
-A030 model_file = G120(G126(), "model.trt")
-T700(model_file, {w: T100([5.0, 6.0])})
-G100(T703(model, T701(model_file)), model.w.Y404)
+TR_kw_var model = {w: TR_fn_tensor([1.0, 2.0], TR_arg_requires_grad: TR_kw_true)}
+TR_kw_var model_file = TR_fn_path(TR_fn_temp_dir(), "model.trt")
+TR_fn_save_tensors(model_file, {w: TR_fn_tensor([5.0, 6.0])})
+TR_fn_print(TR_fn_load_parameters(model, TR_fn_load_tensors(model_file)), model.w.TR_mem_tolist)
 
 // --- Try it yourself ---
 // 1. Train the w and b of example 21, save them here, then load them and predict.

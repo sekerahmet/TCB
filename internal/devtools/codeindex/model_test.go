@@ -11,7 +11,7 @@ func TestNodeID(t *testing.T) {
 		{KindFunction, "lib/katman.tr", "cevre", "function:lib/katman.tr#cevre"},
 		{KindMethod, "lib/katman.tr", "Doğrusal.ileri", "method:lib/katman.tr#Doğrusal.ileri"},
 		{KindModule, "lib/katman.tr", "", "module:lib/katman.tr"},
-		{KindBuiltin, "", "G502", "builtin:G502"},
+		{KindBuiltin, "", "TR_fn_time_ms", "builtin:TR_fn_time_ms"},
 	}
 	for _, c := range cases {
 		if got := NodeID(c.kind, c.file, c.name); got != c.want {

@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // 40 — Checkpoints: resuming a long training where you left off.
 // What it teaches: Checkpoint, keep: (how many checkpoints are kept), writing every training to a run folder; saving the whole state of the training with checkpoint
 // (model, optimizer, sampler, log, your own counters) at regular intervals; stopping with Ctrl+C and resuming with the same
@@ -13,59 +13,59 @@
 //   To start over delete the run folder or give another one: --run runs/trial2
 // In a cloud notebook keep the run folder on the local disk and copy it to Drive now and then (guide §9).
 
-A030 config = G801({Y500: 200, run: "runs/checkpoint_example", every_minutes: 5.0, Y504: 0.01},
-    G910: "Trains a small language model with checkpoints; if interrupted the same command resumes",
-    G911: {Y500: "total training steps", run: "run folder (settings, log, weights, checkpoints)",
+TR_kw_var config = TR_fn_command_line({TR_mem_step: 200, run: "runs/checkpoint_example", every_minutes: 5.0, TR_mem_lr: 0.01},
+    TR_arg_description: "Trains a small language model with checkpoints; if interrupted the same command resumes",
+    TR_arg_descriptions: {TR_mem_step: "total training steps", run: "run folder (settings, log, weights, checkpoints)",
         every_minutes: "checkpoint interval (minutes)"})
-A031 RUN = config.run
+TR_kw_const RUN = config.run
 
 // --- Data and model (the small model of examples/en/39_training_with_data.tr) ---
-A030 p = V200("../../tests/data/tokenizer.json")
-A030 V = p.Y612
-A030 sampler = V100("../../tests/data/text").Y600(V902: 8, V903: 32, T903: 1)
-A030 param_seed = 0
-A020 param(shape, scale) {
+TR_kw_var p = TR_fn_load_tokenizer("../../tests/data/tokenizer.json")
+TR_kw_var V = p.TR_mem_vocab_size
+TR_kw_var sampler = TR_fn_dataset("../../tests/data/text").TR_mem_sampler(TR_arg_batch_size: 8, TR_arg_context: 32, TR_arg_seed: 1)
+TR_kw_var param_seed = 0
+TR_kw_func param(shape, scale) {
     param_seed += 1
-    A021 T100(T301(T103(shape, T903: param_seed) * scale), T900: A040)
+    TR_kw_return TR_fn_tensor(TR_fn_no_grad(TR_fn_randn(shape, TR_arg_seed: param_seed) * scale), TR_arg_requires_grad: TR_kw_true)
 }
-A030 model = {E: param([V, 32], 0.1), W1: param([32, 64], 0.1), W2: param([64, V], 0.1)}
-A020 forward(tokens) {
-    A021 T203(T500(model.E, tokens) @ model.W1) @ model.W2
+TR_kw_var model = {E: param([V, 32], 0.1), W1: param([32, 64], 0.1), W2: param([64, V], 0.1)}
+TR_kw_func forward(tokens) {
+    TR_kw_return TR_fn_gelu(TR_fn_embedding(model.E, tokens) @ model.W1) @ model.W2
 }
-A030 opt = T400(T530(model), T910: config.Y504, T911: 0.0)
+TR_kw_var opt = TR_fn_AdamW(TR_fn_parameters(model), TR_arg_lr: config.TR_mem_lr, TR_arg_weight_decay: 0.0)
 
 // --- Run folder: settings, log and checkpoint ---
-G122(RUN)
-G111(G120(RUN, "config.json"), G601(config))
-A030 run_log = G810(G120(RUN, "metrics.jsonl"))
-A030 tracked = {best_loss: 99.0}
+TR_fn_make_dir(RUN)
+TR_fn_write_file(TR_fn_path(RUN, "config.json"), TR_fn_json_string(config))
+TR_kw_var run_log = TR_fn_logger(TR_fn_path(RUN, "metrics.jsonl"))
+TR_kw_var tracked = {best_loss: 99.0}
 // Everything in the dict is saved; if the folder holds a checkpoint it is loaded here.
-A030 ckpt = T702(RUN, {model: model, opt: opt, reader: sampler, run_log: run_log, tracked: tracked}, T984: config.every_minutes, T985: 3)
-G100(G201(ckpt) == A258)
+TR_kw_var ckpt = TR_fn_checkpoint(RUN, {model: model, opt: opt, reader: sampler, run_log: run_log, tracked: tracked}, TR_arg_every_minutes: config.every_minutes, TR_arg_keep: 3)
+TR_fn_print(TR_fn_type(ckpt) == TR_type_Checkpoint)
 
 // --- Training: the loop starts from the step where it stopped ---
-A001 ckpt.Y520 < config.Y500 {
-    A030 bar = G811(config.Y500, G912: run_log)
-    A010 step A011 ckpt.Y520..config.Y500 {
-        A030 tokens, target = sampler.Y602()
-        opt.Y501()
-        A030 loss = T510(forward(tokens), target)
-        T300(loss)
-        opt.Y500()
-        A001 loss.Y404 < tracked.best_loss { tracked.best_loss = loss.Y404 }
-        bar.Y010({loss: loss}, T982: step + 1)
-        ckpt.Y010(step + 1) // saves here when every_minutes is up and when Ctrl+C arrives
+TR_kw_if ckpt.TR_mem_resume_step < config.TR_mem_step {
+    TR_kw_var bar = TR_fn_progress(config.TR_mem_step, TR_arg_log: run_log)
+    TR_kw_for step TR_kw_in ckpt.TR_mem_resume_step..config.TR_mem_step {
+        TR_kw_var tokens, target = sampler.TR_mem_next()
+        opt.TR_mem_zero_grad()
+        TR_kw_var loss = TR_fn_cross_entropy(forward(tokens), target)
+        TR_fn_backward(loss)
+        opt.TR_mem_step()
+        TR_kw_if loss.TR_mem_tolist < tracked.best_loss { tracked.best_loss = loss.TR_mem_tolist }
+        bar.TR_mem_update({loss: loss}, TR_arg_step: step + 1)
+        ckpt.TR_mem_update(step + 1) // saves here when every_minutes is up and when Ctrl+C arrives
     }
-    G100("last checkpoint:", ckpt.Y521())
-} A002 {
-    G100("Training already finished at step {ckpt.Y520}; to lengthen it give a larger number with --step")
+    TR_fn_print("last checkpoint:", ckpt.TR_mem_save())
+} TR_kw_else {
+    TR_fn_print("Training already finished at step {ckpt.TR_mem_resume_step}; to lengthen it give a larger number with --step")
 }
 
 // --- Results into the run folder ---
-T700(G120(RUN, "model.trt"), T530(model, T970: A040))
-A030 last_step = A001 ckpt.Y520 < config.Y500 { config.Y500 } A002 { ckpt.Y520 }
-G111(G120(RUN, "results.json"), G601({Y500: last_step, best_loss: tracked.best_loss}))
-G100("best loss: {G405(tracked.best_loss, 3)}; run folder: {G120(RUN).Y314}")
+TR_fn_save_tensors(TR_fn_path(RUN, "model.trt"), TR_fn_parameters(model, TR_arg_named: TR_kw_true))
+TR_kw_var last_step = TR_kw_if ckpt.TR_mem_resume_step < config.TR_mem_step { config.TR_mem_step } TR_kw_else { ckpt.TR_mem_resume_step }
+TR_fn_write_file(TR_fn_path(RUN, "results.json"), TR_fn_json_string({TR_mem_step: last_step, best_loss: tracked.best_loss}))
+TR_fn_print("best loss: {TR_fn_round(tracked.best_loss, 3)}; run folder: {TR_fn_path(RUN).TR_mem_absolute}")
 
 // --- Try it yourself ---
 // 1. Run with --step 100, then run again with --step 200: does the training start from 100?

@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // Error 19 — File not found.
 // Message code: H2100
 // What happens: Reading a file that does not exist raises an error at run time; the message lists the places it looked.
@@ -9,4 +9,4 @@
 //     }
 // Run (from the project root): tr examples/en/errors/19_file_not_found.tr   (exit code 1)
 
-G100(G110("missing_file.txt"))
+TR_fn_print(TR_fn_read_file("missing_file.txt"))

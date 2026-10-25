@@ -22,16 +22,16 @@ import (
 //
 // File format (each entry is one line or a short block, codes in ascending order):
 //
-//	"G305": { "tür": "fonksiyon", "param": ["A200", "A200?"], "dönüş": "A205" },
-//	"G400": { "tür": "fonksiyon", "param": ["A205|A212"], "adlı": [["T902", "A200"], ["T906", "A203", false]], "dönüş": "A200|A201|A212" },
-//	"Y001": { "tür": "özellik", "tipler": ["A202", "A205", "A206"], "dönüş": "A200" },
-//	"Y103": { "tür": "metot", "imzalar": { "A202": { "param": ["A202?"], "dönüş": "A205" }, "A212": { ... } } },
+//	"TR_fn_range": { "tür": "fonksiyon", "param": ["TR_type_Int", "TR_type_Int?"], "dönüş": "TR_type_List" },
+//	"TR_fn_sum": { "tür": "fonksiyon", "param": ["TR_type_List|TR_type_Tensor"], "adlı": [["TR_arg_dim", "TR_type_Int"], ["TR_arg_keepdim", "TR_type_Bool", false]], "dönüş": "TR_type_Int|TR_type_Float|TR_type_Tensor" },
+//	"TR_mem_length": { "tür": "özellik", "tipler": ["TR_type_String", "TR_type_List", "TR_type_Dict"], "dönüş": "TR_type_Int" },
+//	"TR_mem_split": { "tür": "metot", "imzalar": { "TR_type_String": { "param": ["TR_type_String?"], "dönüş": "TR_type_List" }, "TR_type_Tensor": { ... } } },
 //
-// A type expression is a union of type codes joined with "|" (A200|A201: Tam or Ondalık). On
-// a positional parameter the suffix "?" means optional, "*" zero or more, "+" one or more.
-// Type codes are A2xx (the type of AdamW and SGD is a type code too: İyileştirici, A214). A
-// named argument is a [code, type, default] triple; the default is a JSON value (null: none)
-// and is omitted when there is no single default.
+// A type expression is a union of type codes joined with "|" (TR_type_Int|TR_type_Float: Tam or
+// Ondalık). On a positional parameter the suffix "?" means optional, "*" zero or more, "+" one
+// or more. Type codes are the type class (the type of AdamW and SGD is a type code too:
+// İyileştirici, TR_type_Optimizer). A named argument is a [code, type, default] triple; the
+// default is a JSON value (null: none) and is omitted when there is no single default.
 
 //go:embed definitions.json
 var definitionsJSON []byte
@@ -45,37 +45,44 @@ type Kind string
 const (
 	KindKeyword    Kind = "anahtar_kelime"
 	KindContextual Kind = "bağlamsal"
-	KindType       Kind = "tip"
-	KindFunction   Kind = "fonksiyon"
+	// KindValueName is the name of a value that is not a word of the source (inf, nan: written
+	// ondalık("sonsuz")); it is never coded in a file.
+	KindValueName Kind = "değer_adı"
+	KindType      Kind = "tip"
+	KindFunction  Kind = "fonksiyon"
 	// KindConstant is a builtin that has a value and is not called (pi); its signature is
 	// only a return type.
 	KindConstant Kind = "sabit"
 	KindMethod   Kind = "metot"
 	KindProperty Kind = "özellik"
 	KindNamedArg Kind = "adlı_argüman"
-	// KindCommand is a command or option of tr, the shell or the debugger (K); it is not a
-	// name in the language, so programs cannot use it.
+	// KindCommand is a command, option, shell or debugger command or environment variable; it is
+	// not a name in the language, so programs cannot use it.
 	KindCommand Kind = "komut"
 )
 
-// ExpectedKind is the kind implied by the code's family and group (for Y members it returns
+// ExpectedKind is the kind implied by the class of the code's identity (for members it returns
 // KindMethod since a member may be a method or a property; both are valid).
 func (k Code) ExpectedKind() Kind {
-	switch {
-	case k.Letter() == 'A' && k.Group() == 0:
+	switch k.Class() {
+	case ClassKeyword:
 		return KindKeyword
-	case k.Letter() == 'A' && k.Group() == 1:
+	case ClassContextual:
 		return KindContextual
-	case k.Letter() == 'A':
+	case ClassValueName:
+		return KindValueName
+	case ClassType:
 		return KindType
-	case k.Letter() == 'Y':
-		return KindMethod
-	case k.Namespace() == NamespaceParam:
+	case ClassFunction:
+		return KindFunction
+	case ClassConstant:
+		return KindConstant
+	case ClassNamedArg:
 		return KindNamedArg
-	case k.Letter() == 'K':
-		return KindCommand
+	case ClassMember:
+		return KindMethod
 	}
-	return KindFunction
+	return KindCommand
 }
 
 // TypeExpr is the type of a parameter or return value: one of Types (unspecified when
@@ -275,7 +282,7 @@ func ParseDefinitions(data []byte) (map[Code]Definition, []Code, error) {
 	return out, order, nil
 }
 
-// ParseType parses a type expression such as "A200|A201?"; suffixes are valid only on
+// ParseType parses a type expression such as "TR_type_Int|TR_type_Float?"; suffixes are valid only on
 // positional parameters (when parametre is true).
 func ParseType(s string, isParam bool) (TypeExpr, error) {
 	var t TypeExpr
@@ -339,8 +346,8 @@ func ReceiverName(typ Code) string {
 const SourceLanguage = "tr"
 
 // CheckDefinitions checks that the definitions agree with a language file: every code has a
-// definition, every defined code is in the language file, each kind fits the code's family,
-// type expressions consist of type codes (A2xx), named-argument codes are x9xx and related
+// definition, every defined code is in the language file, each kind fits the class of the
+// code's identity, type expressions consist of type codes, named-argument codes are of the arg class and related
 // codes exist.
 func CheckDefinitions(d *Language) []error {
 	var errs []error
@@ -356,7 +363,7 @@ func CheckDefinitions(d *Language) []error {
 	}
 	typeCode := func(k Code) bool {
 		_, ok := d.entries[k]
-		return ok && k.Letter() == 'A' && k.Group() >= 2
+		return ok && k.Class() == ClassType
 	}
 	checkType := func(k Code, pos string, t TypeExpr) {
 		for _, x := range t.Types {
@@ -374,7 +381,7 @@ func CheckDefinitions(d *Language) []error {
 		}
 		for _, a := range im.Named {
 			if a.Code.Namespace() != NamespaceParam || !live(a.Code) {
-				errorf("%s %snamed argument %s is not a named-argument code (x9xx)", k, pos, a.Code)
+				errorf("%s %snamed argument %s is not a named-argument code (arg class)", k, pos, a.Code)
 			}
 			checkType(k, pos+"named argument", a.Type)
 		}
@@ -392,10 +399,8 @@ func CheckDefinitions(d *Language) []error {
 		switch {
 		case exp == KindMethod && t.Kind != KindMethod && t.Kind != KindProperty:
 			errorf("%s: kind %q is not allowed; members (Y) are methods or properties", k, t.Kind)
-		case exp == KindFunction && t.Kind == KindConstant:
-			// Yerleşik bir sabit (G/T/V/W ailesinde fonksiyonun yerinde).
 		case exp != KindMethod && t.Kind != exp:
-			errorf("%s: kind %q, but the code's family requires %q", k, t.Kind, exp)
+			errorf("%s: kind %q, but the class of the code's identity requires %q", k, t.Kind, exp)
 		}
 		switch t.Kind {
 		case KindMethod, KindProperty:

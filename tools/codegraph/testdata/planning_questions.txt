@@ -18,29 +18,29 @@
 codegraph who-uses gpu.MemorySample | contains: profile_api.go | contains: gpu.MemorySamples | contains: gpu.pool.measurement | contains: profiler.gpuSnap | src: deneme 1, 2026-10-23
 codegraph who-uses gpu.MemorySamples | contains: profiler.takeGPUSnap | contains: profiler.Profile.BeforeClose | src: deneme 1, 2026-10-23
 codegraph query gpu.pool.peakLive | group: writes_field => gpu.pool.addLive | src: deneme 1, 2026-10-23
-codegraph query varsayılan_cihaz | first-item: T720 || internal/lang/codes | contains: T720 [name] | group: registered or used in Go => ml.defaultDeviceBuiltin | src: deneme 1, 2026-10-23
+codegraph query varsayılan_cihaz | first-item: TR_fn_default_device || internal/lang/codes | contains: TR_fn_default_device [name] | group: registered or used in Go => ml.defaultDeviceBuiltin | src: deneme 1, 2026-10-23
 codegraph path internal/stdlib/ml internal/compute/gpu | contains: (directed, 1 steps) | contains: -imports-> | src: deneme 1, 2026-10-23
 codegraph query bekle_gpu | contains: [tr_func] tools/gpu/gpt_training.tr | not: [name] internal/lang/codes/tr.json:1 | src: deneme 1, 2026-10-23
 codegraph similar ml.defaultDeviceBuiltin | top: similar function => 5 => devicesBuiltin | src: deneme 1, 2026-10-23
 codegraph tests-for internal/lang/codes/tr.json | group: tests that walk the whole list => e2e.TestExamplesCoverNames | src: deneme 1, 2026-10-23
-codegraph tests-for T720 | first-of: <- tests ( => tests/tensor_test.tr || behavior_device_ | before: <- tests ( => tests that walk the whole list | src: deneme 1, 2026-10-23
+codegraph tests-for TR_fn_default_device | first-of: <- tests ( => tests/tensor_test.tr || behavior_device_ | before: <- tests ( => tests that walk the whole list | src: deneme 1, 2026-10-23
 codegraph query "Yeni yerleşik" | contains: docs/recipes.md | src: deneme 1, 2026-10-23
 
 # Deneme 2: hata ayıklama, TR_DIL=en'de print(true) neden "doğru" yazıyor (2026-10-23)
-codegraph query doğru | contains: A040 | contains: interp.BoolVal.Text | src: deneme 2, 2026-10-23 (değer dili adım 1-3: değerin metni BoolVal.Text)
+codegraph query doğru | contains: TR_kw_true | contains: interp.BoolVal.Text | src: deneme 2, 2026-10-23 (değer dili adım 1-3: değerin metni BoolVal.Text)
 codegraph query codes.active | contains: her zaman Türkçe | group: inits_var => codes.active | src: deneme 2, 2026-10-23
 codegraph query codes.DisplayName | contains: display language | src: deneme 2, 2026-10-23
 
 # Deneme 3: kontrol_noktası'na her_adım eklemek (2026-10-23)
-codegraph query T984 | group: registered or used in Go => checkpoint.nameEveryMinutes | src: deneme 3, 2026-10-23
+codegraph query TR_arg_every_minutes | group: registered or used in Go => checkpoint.nameEveryMinutes | src: deneme 3, 2026-10-23
 codegraph query checkpoint.nameEveryMinutes | group: reads_var => checkpoint.options | group: reads_var => checkpoint.setup | src: deneme 3, 2026-10-23
 codegraph who-uses güncelle | contains: checkpoint.Checkpoint.update | src: deneme 3, 2026-10-23
 codegraph tests-for checkpoint.Checkpoint.saveOnInterval | first-item: checkpoint_test. | group: weak evidence => 8 steps | src: deneme 3, 2026-10-23
-tr dizin kullananlar T984 --tümü | contains: Koşu.kurucu | src: deneme 3, 2026-10-23
+tr dizin kullananlar TR_arg_every_minutes --tümü | contains: Koşu.kurucu | src: deneme 3, 2026-10-23
 tr dizin sınayanlar varsayılan_cihaz | contains: tests/tensor_test.tr | src: deneme 3, 2026-10-23
 
 # Deneme 4: CPU softmax'ı hızlandırmak (2026-10-23)
-codegraph query T210 | group: registered or used in Go => ml.registerSoftmax | src: deneme 4, 2026-10-23
+codegraph query TR_fn_softmax | group: registered or used in Go => ml.registerSoftmax | src: deneme 4, 2026-10-23
 codegraph callees tensor.Tensor.softmaxImpl | contains: tensor.Backend.Softmax | contains: dispatches to: | src: deneme 4, 2026-10-23
 codegraph query tensor.Backend.Softmax | group: dispatches_to => tensor.cpuBackend.Softmax | group: dispatches_to => gpu.backend.Softmax | src: deneme 4, 2026-10-23
 codegraph tests-for tensor.cpuBackend.Softmax | not: no tests found | src: deneme 4, 2026-10-23
@@ -53,8 +53,8 @@ codegraph query "tr kodlu" | contains: source.Header | contains: lexer.CodedHead
 codegraph query source.Header | contains: writing language follows it | src: deneme 5, 2026-10-23
 codegraph tests-for source.Split | not: no tests found | src: deneme 5, 2026-10-23
 codegraph query interp.Value.Inspect | contains: dispatches_to (23) | src: deneme 5, 2026-10-23
-codegraph query G100 | group: registered or used in Go => interp.printBuiltin | src: deneme 5, 2026-10-23
-codegraph query G212 | group: registered or used in Go => interp.stringBuiltin | src: deneme 5, 2026-10-23
+codegraph query TR_fn_print | group: registered or used in Go => interp.printBuiltin | src: deneme 5, 2026-10-23
+codegraph query TR_fn_str | group: registered or used in Go => interp.stringBuiltin | src: deneme 5, 2026-10-23
 codegraph query interp.VM.runModule | contains: interp.Source. | src: deneme 5, 2026-10-23
 codegraph query interp.compiler | group: fields ( => interp.compiler.root | group: fields ( => interp.compiler.source | group: fields ( => interp.compiler.blocks | src: deneme 5, 2026-10-23
 codegraph who-uses 17.7 --all | contains: internal/lang/codes/language.go | contains: lexer.NewBodyIn || internal/lang/lexer/coded.go | src: deneme 5, 2026-10-23
@@ -65,8 +65,8 @@ codegraph tests-for tools/gpu/gpt_training.tr | contains: TestGPTTrainingScriptS
 codegraph tests-for lib/egitim.tr | contains: TestExamplesCoverLibraryNames | contains: Kitaplık kapsamı | src: madde 7 / 2, 2026-10-23
 codegraph tests-for lib/README.md | contains: TestDocTRCodeBlocks | src: madde 7 / 2, 2026-10-23
 
-# Deneme 6: bir yerleşiği kaldırmayı planlamak (koşullu, T234) (2026-10-23)
-codegraph query koşullu | contains: T234 [name] | group: <- tests ( => 15.15 koşullu | group: uses_name => iyilestirici.SatırRMS.adım | group: registered or used in Go => ml.registerWideMath at | group: registered or used in Go => -> ml.whereBuiltin | contains: docs/codes.md | src: deneme 6, 2026-10-23
+# Deneme 6: bir yerleşiği kaldırmayı planlamak (koşullu, TR_fn_where) (2026-10-23)
+codegraph query koşullu | contains: TR_fn_where [name] | group: <- tests ( => 15.15 koşullu | group: uses_name => iyilestirici.SatırRMS.adım | group: registered or used in Go => ml.registerWideMath at | group: registered or used in Go => -> ml.whereBuiltin | contains: docs/codes.md | src: deneme 6, 2026-10-23
 codegraph callees ml.whereBuiltin | contains: tensor.Where [func] | src: deneme 6, 2026-10-23
 codegraph callees tensor.Where | contains: dispatches to: gpu.backend.Where, tensor.cpuBackend.Where | contains: dispatches to: gpu.backend.WhereGrad, tensor.cpuBackend.WhereGrad | src: deneme 6, 2026-10-23
 codegraph who-uses gpu.selectKernel | contains: gpu.backend.Where | src: deneme 6, 2026-10-23
@@ -104,9 +104,9 @@ codegraph query bakış_sayısı | contains: 7 candidates | contains: [tr_option
 tr dizin tanım bakış_sayısı | contains: 7 aday | src: deneme 7 R1, 2026-10-24
 
 # Deneme 8: çok kullanılan bir şeye ekleme (yazdır'a adlı ayırıcı argümanı) (2026-10-24)
-codegraph query Y203 | group: related => Y103 | src: deneme 8 S2, 2026-10-24
-codegraph query G100 | group: related => G101 | src: deneme 8 S2, 2026-10-24
-codegraph tests-for G100 | group: tests about it => 13.5 yerleşikler ve metotlar bilinmeyen adlı argümanı reddeder | before: tests about it => hatalar_ertele_test | src: deneme 8 S1 (tek sıralama), 2026-10-24
+codegraph query TR_mem_join | group: related => TR_mem_split | src: deneme 8 S2, 2026-10-24
+codegraph query TR_fn_print | group: related => TR_fn_input | src: deneme 8 S2, 2026-10-24
+codegraph tests-for TR_fn_print | group: tests about it => 13.5 yerleşikler ve metotlar bilinmeyen adlı argümanı reddeder | before: tests about it => hatalar_ertele_test | src: deneme 8 S1 (tek sıralama), 2026-10-24
 codegraph query katman.GPT.kurucu.bakış_sayısı | group: forwards => katman.TransformerBloğu.kurucu.bakış_sayısı | src: deneme 7 R2 (bağlı bildirim), 2026-10-24
 codegraph query katman.NedenselDikkat.kurucu.bakış_sayısı | group: forwards => katman.NedenselDikkat.bakış_sayısı | src: deneme 7 R2 (alana atanan), 2026-10-24
 
@@ -131,14 +131,14 @@ codegraph who-uses hint.TypeTextComparisonError | group: calls => checker.Checke
 codegraph who-uses H1105 | group: uses_message => hint.TypeTextComparisonError | src: değer dili 3. tur, 2026-10-25
 codegraph who-uses interp.NonFiniteText | group: calls => interp.FloatVal.Text | group: calls => ml.numberText | src: değer dili 3. tur ve adım 3, 2026-10-25 (sayı ve tensör tek ad)
 codegraph who-uses jsonwrite.nonFiniteData | group: calls => jsonwrite.writer.number | src: değer dili adım 3, 2026-10-25 (veri biçimi değer metninden ayrı)
-codegraph tests-for K400 | contains: cmd/tr/e2e/ | contains: messages.TestLanguageReadOnce | src: değer dili 3. tur, 2026-10-25
+codegraph tests-for TR_env_LANG | contains: cmd/tr/e2e/ | contains: messages.TestLanguageReadOnce | src: değer dili 3. tur, 2026-10-25
 
 # Bağımsız denetim grup 7: Go adlarının harf kuralı, ASCII büyük harf, dilin sözcüğü (2026-10-25)
 codegraph query ifexpression | contains: ast.IfExpression [type] | not: is ambiguous | src: denetim grup 7 R1, 2026-10-25
 codegraph query value.inspect | contains: interp.Value.Inspect [method] | not: is ambiguous | src: denetim grup 7 R1, 2026-10-25
 codegraph query identifier | contains: interp.identifier [func] | contains: also matches in another case | contains: ast.Identifier [type] | src: denetim grup 7 R1 (Go: tam harfli eşleşme önce, öbür harf görünür), 2026-10-25
-codegraph query IKINCI | contains: V911 [name] | not: is ambiguous | src: denetim grup 7 R1 (ASCII büyük harf), 2026-10-25
-tr dizin tanım IKINCI | contains: V911 | src: denetim grup 7 R1 (ASCII büyük harf), 2026-10-25
+codegraph query IKINCI | contains: TR_arg_pair [name] | not: is ambiguous | src: denetim grup 7 R1 (ASCII büyük harf), 2026-10-25
+tr dizin tanım IKINCI | contains: TR_arg_pair | src: denetim grup 7 R1 (ASCII büyük harf), 2026-10-25
 tr dizin tanım Metin | exit: 4 | not: birden çok düğüme | src: denetim grup 7 R1 (dilin sözcüğü, dizinde düğümü yok), 2026-10-25
 # TCB 2026-10-25: düzenleme kancası her ilk düzenlemede tests-for <dosya> sorar; kod dışı dosyalar
 codegraph tests-for tools/full_check.sh | not: is ambiguous | group: <- tests => internal.TestGoEquivalentPackagesListed | group: tests that cite it => testrunner.TestLanguageSpecTestsPass | src: TCB 2026-10-25, 1. madde
@@ -162,7 +162,7 @@ codegraph who-uses ast.Identifier.Value | contains: 100 read | src: iç dil 1. t
 codegraph who-uses codes.Spellings | contains: interp.VM.DefineBuiltin | src: iç dil 1. tur, 2026-10-25 (yerleşik genel kapsama Türkçe adıyla girer)
 codegraph who-uses codes.Name --all | contains: interp.ctorName | contains: checker.typeInt | contains: profiler.opName | src: iç dil 1. tur, 2026-10-25 (Türkçe adın kimlik olduğu yerler)
 codegraph query GetProperty | exit: 3 | contains: interp.PropertyGetter.GetProperty | src: iç dil 1. tur, 2026-10-25 (üye okuma kod ve ad birlikte alıyor)
-tr dizin tanım toplam | exit: 3 | contains: builtin:G400 | src: iç dil 1. tur, 2026-10-25 (yerleşik ile kullanıcı adı ayrı düğüm)
+tr dizin tanım toplam | exit: 3 | contains: builtin:TR_fn_sum | src: iç dil 1. tur, 2026-10-25 (yerleşik ile kullanıcı adı ayrı düğüm)
 codegraph query parser.contextWordsOf | contains: codes.Language.Name | src: iç dil 2. tur, 2026-10-25 (örtük adlar kendi, o, birikim, hata okuyucunun dilindeki adla ağaca giriyor)
 codegraph who-uses source.Prepare --by-package | contains: cmd/tr: 6 functions | contains: internal/devtools/debugger | src: iç dil 2. tur, 2026-10-25 (kaynak okuyan her araç source paketinden geçer)
 codegraph who-uses lexer.Token.Literal --all | contains: parser.Parser.parseStatement | src: iç dil 2. tur, 2026-10-25 (ayrıştırıcı sözcüğü metniyle tanıyor)

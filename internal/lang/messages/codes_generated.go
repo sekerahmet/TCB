@@ -4,10 +4,10 @@ package messages
 
 // Message codes (tr.json); each constant's comment is its Turkish text.
 const (
-	H0001 Code = 1    // '{name}' bilinen bir kod değil; kodlu dosyada dilin sözcükleri kod listesindeki kodlarıyla (ör. {example}), kullanıcının adları adlarıyla yazılır
+	H0001 Code = 1    // '{name}' bilinen bir kimlik değil; kodlu dosyada dilin sözcükleri kimlikleriyle (ör. {example}), kullanıcının adları adlarıyla yazılır
 	H0002 Code = 2    // '$' kaçışı bir adın ya da sayının hemen ardından yazılamaz; önüne bir boşluk ya da işleç koyun
 	H0003 Code = 3    // kaynakta NUL (U+0000) karakteri var; metin dosyalarında bulunmaz, dosya bozuk olabilir
-	H0004 Code = 4    // '{name}' kod biçiminde bir ad (büyük harf ve üç rakam); bu biçimdeki adlar dilin kodları için ayrılmıştır, başka bir ad seçin (ör. {name}_ ya da {lower}). Kodlu dosyalar ilk satırdaki '{header}' başlığıyla başlar
+	H0004 Code = 4    // '{name}' ayrılmış bir ad: 'TR_' ile başlayan adlar dilin ve kitaplığının kimlikleri içindir; başka bir ad seçin (ör. {lower}). Kodlu dosyalar ilk satırdaki '{header}' başlığıyla başlar
 	H0005 Code = 5    // '#' TR'de yorum değil; yorum için '//' yazın
 	H0006 Code = 6    // kapatılmamış yorum: '/*' ile başlayan yorum dosya sonuna kadar '*/' ile kapanmadı
 	H0007 Code = 7    // kapatılmamış ham metin: ` ile başlayan metin dosya sonuna kadar kapanmadı

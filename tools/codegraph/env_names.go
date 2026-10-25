@@ -19,10 +19,10 @@ import (
 // o ad kodunu sınar: `tests` kenarı (addTestEdges; değer dili 3. tur: `tests-for K400` TR_DIL'i koyan e2e
 // testlerini göstermiyordu).
 
-// envCodePrefix ortam değişkeni ad kodlarının ön ekidir (codes.NamespaceEnvironment: K4xx).
-const envCodePrefix = "K4"
+// envCodePrefix ortam değişkeni kimliklerinin ön ekidir (env sınıfı, codes.NamespaceEnvironment).
+const envCodePrefix = "TR_env_"
 
-// envCodes ad kodu dosyalarındaki (her yazım dili) K4xx adlarını koda eşler: `TR_GPU_SYNC` → K402.
+// envCodes ad kodu dosyalarındaki (her yazım dili) ortam değişkeni adlarını koda eşler: `TR_GPU_SYNC` → TR_env_GPU_SYNC.
 func envCodes(root string) map[string]string {
 	files, _ := filepath.Glob(filepath.Join(root, filepath.FromSlash(codesDir), "*.json"))
 	sort.Strings(files)

@@ -47,11 +47,11 @@ Bir ad yalnızca kendi ad alanında benzersiz olmalıdır: genel adlar (anahtar 
 Bir `.tr` dosyası diskte dilden bağımsız kodlarla saklanabilir; kişi dosyayı kendi yazım dilinde görür ve düzenler, kaydederken dosya yeniden kodlanır. Böylece farklı dillerde çalışan kişiler aynı dosya üzerinde birlikte çalışır. Çevirici `internal/lang/source`'tadır; komutları: `tr kodla <dosya|klasör>` (yerinde kodlu biçime çevirir; kodlu dosyaya dokunmaz), `tr çöz <dosya|klasör>` (kodlu dosyayı yerinde Türkçe yazıma geri çevirir), `tr göster <dosya> [--dil tr]` (dosyayı bir yazım dilinde standart çıktıya basar). `tr biçimle` kodlu dosyayı kodlu biçimde biçimler. Kodlu dosya çevrilmeden çalışır (`tr dosya.tr`, `tr test`, `tr kontrol`, `tr derle`, `aktar`, hata ayıklayıcı): kodlar sözcük çözümlemede kanonik (Türkçe) adlarına çevrilir, çalışma anına yük gelmez (17.7).
 
 ```tr
-//! tr kodlu 2 dil=tr
-A020 kareler(liste) {
-    A021 liste.Y201 { A104 * A104 }
+//! tr kodlu 3 dil=tr
+TR_kw_func kareler(liste) {
+    TR_kw_return liste.TR_mem_map { TR_ctx_it * TR_ctx_it }
 }
-G100(kareler([1, 2, 3]), G400([1, 2], T902: 0))
+TR_fn_print(kareler([1, 2, 3]), TR_fn_sum([1, 2], TR_arg_dim: 0))
 ```
 
 **17.1** Kodlu dosyanın uzantısı yine `.tr`'dir; (varsa BOM'dan sonraki) **ilk satırı tam olarak** `//! tr kodlu 2 dil=<dil>` olur (biçim sürümü 2; `<dil>` dosyanın yazım dilinin kodudur, `en` ya da `tr`; satır sonu LF ya da CRLF). Bu başlık yoksa dosya Türkçe yazılmış kaynaktır. İlk satır `//! tr kodlu` ile başlayıp böyle bir başlık değilse (eski `//! tr kodlu 1`, `//! tr kodlu 3 dil=en`, dilsiz başlık, sondaki boşluk) dosya hiç çalışmaz: `Satır 1, Sütun 1: '//! tr kodlu 1' okunamayan bir kodlu biçim başlığı: bu biçim sürümü okunamıyor; yalnızca '//! tr kodlu 2 dil=<dil>' okunur ...`; bilinmeyen dil de hatadır (`'fr' yazım dili yok; var olanlar: en, tr`), dili yazılmamış başlık (`//! tr kodlu 2`) dilin eksik olduğunu söyler. Başka bir biçim sessizce Türkçe kaynak sanılmaz. Dil dosyanındır, dosyayı düzenleyenin değil: `tr kodla` metni yazıldığı dille kodlar (`tr kodla - --dil en` → `dil=en`, Türkçe dosya → `dil=tr`); dosya başka bir yazım dilinde gösterilip düzenlense de kaydedilince `dil=` korunur (düzenleyici, aşağıda). Kodsuz dosya Türkçe olduğundan `tr çöz` dili Türkçe olmayan dosyayı Türkçeye geçirir ve bunu dosya dosya uyarır (değer metinleri değişir). Boru hattında (`tr göster - --dil tr | tr kodla - --dil tr`) dosyanın dilini `kodla`'nın `--dil`'i belirler. Her kişi dosyayı kendi yazım dilinde görür (17.7).

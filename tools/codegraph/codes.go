@@ -8,7 +8,8 @@ import (
 	"strings"
 )
 
-var codeKeyLine = regexp.MustCompile(`^\s*"([A-Z]\d{3,4})"\s*:`)
+// codeKeyLine bir JSON satırındaki kod anahtarıdır: ileti kodu (H2410) ya da ad kimliği (TR_fn_sum).
+var codeKeyLine = regexp.MustCompile(`^\s*"(H\d{4}|TR_[A-Za-z0-9_]+)"\s*:`)
 
 // jsonKeyLines bir JSON dosyasında her kodun anahtarının satır numarasını verir.
 func jsonKeyLines(file string) map[string]int {

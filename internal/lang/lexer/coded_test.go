@@ -20,7 +20,7 @@ func allOf(l *Lexer) []Token {
 
 // Kodlu gövdede kodlar etkin dilin adlarıyla, kod olmayan adlar kullanıcı adı olarak okunur (17.2).
 func TestCodedTokens(t *testing.T) {
-	l := NewBody("A030 eğer = G100\nx.Y004 A040", true)
+	l := NewBody("TR_kw_var eğer = TR_fn_print\nx.TR_mem_append TR_kw_true", true)
 	toks := allOf(l)
 	if len(l.Errors()) > 0 {
 		t.Fatal(l.Errors())
@@ -47,10 +47,10 @@ func TestCodedTokens(t *testing.T) {
 		t.Errorf("gösterim sütunları: '=' %d, 'yazdır' %d (beklenen 15, 17)", toks[2].Column, toks[3].Column)
 	}
 	// Bilinmeyen kod hatadır; Türkçe yazılmış gövdede kodlar kod biçimli addır (2.3a).
-	if l := NewBody("G999", true); len(allOf(l)) != 1 || !hasCode(l.Errs(), messages.H0001) {
+	if l := NewBody("TR_fn_yok", true); len(allOf(l)) != 1 || !hasCode(l.Errs(), messages.H0001) {
 		t.Errorf("bilinmeyen kod hatası yok: %v", l.Errors())
 	}
-	if l := NewBody("G100", false); allOf(l) == nil || !hasCode(l.Errs(), messages.H0004) {
+	if l := NewBody("TR_fn_print", false); allOf(l) == nil || !hasCode(l.Errs(), messages.H0004) {
 		t.Errorf("Türkçe gövdede kod biçimli ad hatası yok: %v", l.Errors())
 	}
 }
@@ -62,7 +62,7 @@ func TestEscapedName(t *testing.T) {
 	if len(l.Errors()) > 0 || len(toks) != 3 || toks[0].Type != TokIdent || toks[0].Literal != "eğer" || toks[2].Literal != "yazdır" {
 		t.Fatalf("kaçışlı adlar: %v %v", toks, l.Errors())
 	}
-	for _, k := range []string{"a$b", "1$x", "$G100"} {
+	for _, k := range []string{"a$b", "1$x", "$TR_fn_print"} {
 		if l := New(k); allOf(l) == nil || len(l.Errors()) == 0 {
 			t.Errorf("%q hata vermeli", k)
 		}
@@ -111,7 +111,7 @@ func TestInterpolationPositions(t *testing.T) {
 // düzey); yüklü bir makine tavanı aşıyordu.
 func TestCodedPreScanDepthLimited(t *testing.T) {
 	testkit.ScalesLinearly(t, "nested interpolations", 5000, func(n int) func() {
-		source := "A030 s = " + strings.Repeat(`"{`, n) + "1" + strings.Repeat(`}"`, n) + "\n"
+		source := "TR_kw_var s = " + strings.Repeat(`"{`, n) + "1" + strings.Repeat(`}"`, n) + "\n"
 		return func() {
 			l := NewBody(source, true)
 			for l.NextToken().Type != TokEOF {

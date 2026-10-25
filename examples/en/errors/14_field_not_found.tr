@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // Error 14 — A field that does not exist.
 // Message code: H2468
 // What happens: Reaching a field the struct does not define raises an error at run time.
@@ -11,8 +11,8 @@
 //     }
 // Run (from the project root): tr examples/en/errors/14_field_not_found.tr   (exit code 1)
 
-A050 Point {
+TR_kw_struct Point {
     x
     y
 }
-G100(Point(1, 2).z)
+TR_fn_print(Point(1, 2).z)

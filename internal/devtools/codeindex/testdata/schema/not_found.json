@@ -1,5 +1,5 @@
 {
-  "schema": "tr-codeindex/1",
+  "schema": "tr-codeindex/2",
   "command": "definition",
   "status": "not_found",
   "query": {
@@ -8,9 +8,9 @@
   },
   "did_you_mean": [
     {
-      "id": "builtin:G502",
+      "id": "builtin:TR_fn_time_ms",
       "kind": "builtin",
-      "name": "G502",
+      "name": "TR_fn_time_ms",
       "display": "zaman_ms"
     }
   ],

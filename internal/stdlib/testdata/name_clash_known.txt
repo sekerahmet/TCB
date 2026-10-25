@@ -1,6 +1,5 @@
 # Ad çakışması sınavının bugün kalan durumları (TestNameClashExam): F O yer sözcük.
 # Liste yalnızca küçülür; -update ile yeniden yazılır.
-en tr adlı_argüman NaN
 en tr adlı_argüman adlarıyla
 en tr adlı_argüman adım
 en tr adlı_argüman ana_kopya
@@ -34,7 +33,6 @@ en tr adlı_argüman olarak
 en tr adlı_argüman pencere
 en tr adlı_argüman sapma
 en tr adlı_argüman sonlu_değilse_hata
-en tr adlı_argüman sonsuz
 en tr adlı_argüman sıcaklık
 en tr adlı_argüman tohum
 en tr adlı_argüman tolerans
@@ -47,7 +45,6 @@ en tr adlı_argüman önbellek
 en tr adlı_argüman özel_parçalar
 en tr adlı_argüman öğrenme_oranı
 en tr adlı_argüman üzerine_yaz
-en tr alan NaN
 en tr alan adım
 en tr alan anahtarlar
 en tr alan atla
@@ -97,7 +94,6 @@ en tr alan olarak
 en tr alan parça_kimliği
 en tr alan son
 en tr alan sonraki
-en tr alan sonsuz
 en tr alan sıfırla
 en tr alan sırala
 en tr alan sıralı
@@ -725,7 +721,6 @@ en tr kullanıcı_adlı_argümanı örnekle
 en tr kullanıcı_adlı_argümanı özel_türev
 en tr kullanıcı_adlı_argümanı üstel
 en tr kullanıcı_adlı_argümanı üstel_eksi_bir
-en tr metot NaN
 en tr metot adım
 en tr metot anahtarlar
 en tr metot atla
@@ -775,7 +770,6 @@ en tr metot olarak
 en tr metot parça_kimliği
 en tr metot son
 en tr metot sonraki
-en tr metot sonsuz
 en tr metot sıfırla
 en tr metot sırala
 en tr metot sıralı
@@ -914,7 +908,6 @@ en tr modül_adı üstel
 en tr modül_adı üstel_eksi_bir
 en tr modül_adı İlerleme
 en tr modül_adı İyileştirici
-en tr modül_üyesi NaN
 en tr modül_üyesi adım
 en tr modül_üyesi anahtarlar
 en tr modül_üyesi atla
@@ -964,7 +957,6 @@ en tr modül_üyesi olarak
 en tr modül_üyesi parça_kimliği
 en tr modül_üyesi son
 en tr modül_üyesi sonraki
-en tr modül_üyesi sonsuz
 en tr modül_üyesi sıfırla
 en tr modül_üyesi sırala
 en tr modül_üyesi sıralı
@@ -1106,7 +1098,6 @@ en tr parametre örnekle
 en tr parametre özel_türev
 en tr parametre üstel
 en tr parametre üstel_eksi_bir
-en tr sözlük_anahtarı NaN
 en tr sözlük_anahtarı adım
 en tr sözlük_anahtarı anahtarlar
 en tr sözlük_anahtarı atla
@@ -1156,7 +1147,6 @@ en tr sözlük_anahtarı olarak
 en tr sözlük_anahtarı parça_kimliği
 en tr sözlük_anahtarı son
 en tr sözlük_anahtarı sonraki
-en tr sözlük_anahtarı sonsuz
 en tr sözlük_anahtarı sıfırla
 en tr sözlük_anahtarı sırala
 en tr sözlük_anahtarı sıralı
@@ -1306,7 +1296,6 @@ en tr tip_açıklaması KontrolNoktası
 en tr tip_açıklaması Liste
 en tr tip_açıklaması Mantık
 en tr tip_açıklaması Metin
-en tr tip_açıklaması NaN
 en tr tip_açıklaması Nesne
 en tr tip_açıklaması Ondalık
 en tr tip_açıklaması Parçalayıcı
@@ -1330,7 +1319,6 @@ en tr tip_açıklaması metin
 en tr tip_açıklaması o
 en tr tip_açıklaması olarak
 en tr tip_açıklaması ondalık
-en tr tip_açıklaması sonsuz
 en tr tip_açıklaması tam
 en tr tip_açıklaması tensör
 en tr tip_açıklaması tip
@@ -1603,7 +1591,6 @@ en tr yapı üstel
 en tr yapı üstel_eksi_bir
 en tr yapı İlerleme
 en tr yapı İyileştirici
-en tr üye NaN
 en tr üye adım
 en tr üye anahtarlar
 en tr üye atla
@@ -1653,7 +1640,6 @@ en tr üye olarak
 en tr üye parça_kimliği
 en tr üye son
 en tr üye sonraki
-en tr üye sonsuz
 en tr üye sıfırla
 en tr üye sırala
 en tr üye sıralı
@@ -1690,7 +1676,6 @@ tr en adlı_argüman error_if_nonfinite
 tr en adlı_argüman every_minutes
 tr en adlı_argüman fd_step
 tr en adlı_argüman forward
-tr en adlı_argüman inf
 tr en adlı_argüman init
 tr en adlı_argüman it
 tr en adlı_argüman keep
@@ -1700,7 +1685,6 @@ tr en adlı_argüman mask
 tr en adlı_argüman master_weights
 tr en adlı_argüman max
 tr en adlı_argüman named
-tr en adlı_argüman nan
 tr en adlı_argüman overwrite
 tr en adlı_argüman pair
 tr en adlı_argüman quota_gb
@@ -1734,7 +1718,6 @@ tr en alan filter
 tr en alan first
 tr en alan get
 tr en alan grad
-tr en alan inf
 tr en alan init
 tr en alan is_dir
 tr en alan is_file
@@ -1748,7 +1731,6 @@ tr en alan lower
 tr en alan lr
 tr en alan map
 tr en alan name
-tr en alan nan
 tr en alan next
 tr en alan parent
 tr en alan permute
@@ -2298,7 +2280,6 @@ tr en metot filter
 tr en metot first
 tr en metot get
 tr en metot grad
-tr en metot inf
 tr en metot init
 tr en metot is_dir
 tr en metot is_file
@@ -2312,7 +2293,6 @@ tr en metot lower
 tr en metot lr
 tr en metot map
 tr en metot name
-tr en metot nan
 tr en metot next
 tr en metot parent
 tr en metot permute
@@ -2487,7 +2467,6 @@ tr en modül_üyesi filter
 tr en modül_üyesi first
 tr en modül_üyesi get
 tr en modül_üyesi grad
-tr en modül_üyesi inf
 tr en modül_üyesi init
 tr en modül_üyesi is_dir
 tr en modül_üyesi is_file
@@ -2501,7 +2480,6 @@ tr en modül_üyesi lower
 tr en modül_üyesi lr
 tr en modül_üyesi map
 tr en modül_üyesi name
-tr en modül_üyesi nan
 tr en modül_üyesi next
 tr en modül_üyesi parent
 tr en modül_üyesi permute
@@ -2679,7 +2657,6 @@ tr en sözlük_anahtarı filter
 tr en sözlük_anahtarı first
 tr en sözlük_anahtarı get
 tr en sözlük_anahtarı grad
-tr en sözlük_anahtarı inf
 tr en sözlük_anahtarı init
 tr en sözlük_anahtarı is_dir
 tr en sözlük_anahtarı is_file
@@ -2693,7 +2670,6 @@ tr en sözlük_anahtarı lower
 tr en sözlük_anahtarı lr
 tr en sözlük_anahtarı map
 tr en sözlük_anahtarı name
-tr en sözlük_anahtarı nan
 tr en sözlük_anahtarı next
 tr en sözlük_anahtarı parent
 tr en sözlük_anahtarı permute
@@ -2875,12 +2851,10 @@ tr en tip_açıklaması acc
 tr en tip_açıklaması as
 tr en tip_açıklaması error
 tr en tip_açıklaması float
-tr en tip_açıklaması inf
 tr en tip_açıklaması init
 tr en tip_açıklaması int
 tr en tip_açıklaması it
 tr en tip_açıklaması map
-tr en tip_açıklaması nan
 tr en tip_açıklaması none
 tr en tip_açıklaması str
 tr en tip_açıklaması tensor
@@ -3164,7 +3138,6 @@ tr en üye filter
 tr en üye first
 tr en üye get
 tr en üye grad
-tr en üye inf
 tr en üye init
 tr en üye is_dir
 tr en üye is_file
@@ -3178,7 +3151,6 @@ tr en üye lower
 tr en üye lr
 tr en üye map
 tr en üye name
-tr en üye nan
 tr en üye next
 tr en üye parent
 tr en üye permute

@@ -1,6 +1,8 @@
 package interp
 
 import (
+	"slices"
+
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/hint"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -46,19 +48,21 @@ func (t *TypeVal) Equal(b Value) bool {
 	return false
 }
 
-// tipDegerleri canlı tip kodlarının (A2xx) paylaşılan tip değerleridir (kodun sayısına göre
-// dizi; çalışma anında ayırma ve ad araması yok). tipDegeriAdla motor tiplerinin değer
-// tipinden (ValueType: kodun adı) tip değerine eşlemesidir.
+// typeValues canlı tip kodlarının paylaşılan tip değerleridir (koda göre dizi; çalışma anında
+// ayırma ve ad araması yok). typeValueByName motor tiplerinin değer tipinden (ValueType: kodun
+// adı) tip değerine eşlemesidir.
 var (
-	typeValues      [300]*TypeVal
+	typeValues      []*TypeVal
 	typeValueByName = map[ValueType]*TypeVal{}
 )
 
 func init() {
-	for _, k := range codes.Codes() {
+	all := codes.Codes()
+	typeValues = make([]*TypeVal, int(slices.Max(all))+1)
+	for _, k := range all {
 		if k.Namespace() == codes.NamespaceType {
 			t := &TypeVal{Code: k}
-			typeValues[k.Number()] = t
+			typeValues[k] = t
 			typeValueByName[TypeName(k)] = t
 		}
 	}
@@ -68,26 +72,26 @@ func init() {
 func TypeOfValue(v Value) *TypeVal {
 	switch x := v.(type) {
 	case *IntVal:
-		return typeValues[codes.TypeInt.Number()]
+		return typeValues[codes.TypeInt]
 	case *FloatVal:
-		return typeValues[codes.TypeFloat.Number()]
+		return typeValues[codes.TypeFloat]
 	case *StringVal:
-		return typeValues[codes.TypeString.Number()]
+		return typeValues[codes.TypeString]
 	case *BoolVal:
-		return typeValues[codes.TypeBool.Number()]
+		return typeValues[codes.TypeBool]
 	case *NullVal:
-		return typeValues[codes.TypeNone.Number()]
+		return typeValues[codes.TypeNone]
 	case *ListVal:
-		return typeValues[codes.TypeList.Number()]
+		return typeValues[codes.TypeList]
 	case *DictVal:
-		return typeValues[codes.TypeDict.Number()]
+		return typeValues[codes.TypeDict]
 	case *StructInstanceVal:
 		return x.Def.typeValue()
 	}
 	if t := typeValueByName[v.Type()]; t != nil {
 		return t
 	}
-	return typeValues[codes.TypeAny.Number()] // Herhangi: tipi kod listesinde olmayan değer
+	return typeValues[codes.TypeAny] // Herhangi: tipi kod listesinde olmayan değer
 }
 
 // typeValue yapının nesnelerinin tip değeridir; ilk kullanımda kurulur (yorumlayıcı kilidi
@@ -104,7 +108,7 @@ func (v *VM) registerTypes() {
 	for _, k := range codes.Codes() {
 		if k.Namespace() == codes.NamespaceType {
 			for _, y := range codes.Spellings(k) {
-				v.GlobalEnv.Define(y, typeValues[k.Number()], true)
+				v.GlobalEnv.Define(y, typeValues[k], true)
 			}
 		}
 	}

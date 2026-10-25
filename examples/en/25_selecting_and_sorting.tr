@@ -1,33 +1,33 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // 25 — Selecting and sorting: choosing by condition in a tensor, finding the largest.
 // What it teaches: picking elements with where, argmax, topk, argsort, cumsum, clamp.
 // Builds on: tensor math (24), tensors (23), math (13).
 // Run (from the project root): tr examples/en/25_selecting_and_sorting.tr
 // Details: docs/spec/15_tensorler.md §15.
 
-A030 x = T100([-1.0, 2.0, -3.0, 4.0])
+TR_kw_var x = TR_fn_tensor([-1.0, 2.0, -3.0, 4.0])
 
 // where(condition, a, b): picks a where the condition is true and b elsewhere (a comparison gives a 0/1 mask).
-G100(T234(x > 0, x, 0).Y404) // zeroes the negatives (like relu)
-G100(T234(x > 0, 1, -1).Y404) // sign
+TR_fn_print(TR_fn_where(x > 0, x, 0).TR_mem_tolist) // zeroes the negatives (like relu)
+TR_fn_print(TR_fn_where(x > 0, 1, -1).TR_mem_tolist) // sign
 
 // clamp is element-wise on tensors too.
-G100(G409(x, T907: -2, T904: 3).Y404)
+TR_fn_print(TR_fn_clamp(x, TR_arg_min: -2, TR_arg_max: 3).TR_mem_tolist)
 
 // argmax gives the index of the largest element (dim: -1 for every row).
-A030 scores = T100([[0.1, 2.5, 0.3], [1.7, 0.2, 0.9]])
-G100(T230(scores, T902: -1).Y404)
+TR_kw_var scores = TR_fn_tensor([[0.1, 2.5, 0.3], [1.7, 0.2, 0.9]])
+TR_fn_print(TR_fn_argmax(scores, TR_arg_dim: -1).TR_mem_tolist)
 
 // topk gives the k largest elements from largest to smallest as [values, indices].
-A030 best = T232(T100([3.0, 1.0, 4.0, 1.5]), 2)
-G100("values:", best[0].Y404, "indices:", best[1].Y404)
+TR_kw_var best = TR_fn_topk(TR_fn_tensor([3.0, 1.0, 4.0, 1.5]), 2)
+TR_fn_print("values:", best[0].TR_mem_tolist, "indices:", best[1].TR_mem_tolist)
 
 // argsort gives the indices that sort the elements from small to large (on ties the smaller index comes first).
-G100(T233(T100([3.0, 1.0, 2.0])).Y404)
+TR_fn_print(TR_fn_argsort(TR_fn_tensor([3.0, 1.0, 2.0])).TR_mem_tolist)
 
 // cumsum gives the sum of the elements up to each position; the shape is kept.
-G100(T231(T100([1, 2, 3, 4])).Y404)
-G100(T231(T100([[1, 2], [3, 4]]), T902: 0).Y404)
+TR_fn_print(TR_fn_cumsum(TR_fn_tensor([1, 2, 3, 4])).TR_mem_tolist)
+TR_fn_print(TR_fn_cumsum(TR_fn_tensor([[1, 2], [3, 4]]), TR_arg_dim: 0).TR_mem_tolist)
 
 // --- Try it yourself ---
 // 1. Find the sum of only the positive elements of a tensor with where.

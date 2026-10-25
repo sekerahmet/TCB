@@ -4,52 +4,39 @@
 // in the binary). Renaming a name changes only its line in the language file; codes never
 // change. Other languages (en.json, pt.json ...) give their own names to the same codes.
 //
-// # Code scheme
+// # Identities
 //
-// A code is a letter and a three-digit number (A001, G100, Y400). The letter is the family;
-// the hundreds digit is the group inside the family. Gaps are left between groups for later
-// additions.
+// A code's identity is TR_<class>_<English name>, given once when the code is created and never
+// changed afterwards, even if a name (the English one included) changes: TR_kw_if, TR_fn_sum,
+// TR_type_Tensor, TR_arg_lr, TR_mem_step. The class says what the code is (Class, Classes):
 //
-//	A  language core
-//	   A0xx keywords (reserved in the lexer)
-//	        A00x conditions, A01x loops, A02x functions, A03x declarations, A04x values and
-//	        logic, A05x structures, A06x error handling, A07x modules, A08x concurrency,
-//	        A09x debugging
-//	   A1xx contextual words (meaningful only in one place: olarak, test)
-//	   A2xx type names (result of tip(), type annotations); A23x-A24x engine types
-//	G  general builtins
-//	   G1xx input, output and files; G2xx values, types and conversion; G3xx lists;
-//	   G4xx math and statistics; G5xx time and concurrency; G6xx data formats
-//	   (JSON, CSV); G7xx testing
-//	T  tensors and AI
-//	   T1xx tensor creation and views; T2xx activations and elementwise math;
-//	   T3xx autograd; T4xx optimizers; T5xx neural network layers, losses, model
-//	   parameters; T6xx language models (sampling); T7xx save, load, data types;
-//	   T9xx named arguments
-//	Y  members: methods and properties (x.name)
-//	   Y0xx shared by several types; Y1xx Metin; Y2xx Liste; Y3xx Sözlük; Y4xx Tensör;
-//	   Y5xx optimizer; Y6xx dataset, reader, tokenizer;
-//	   (Y7xx database, Y8xx web server, Y9xx GUI: removed)
-//	V  data and tokenizer
-//	   V1xx datasets; V2xx tokenizer; V9xx named arguments
-//	W  web, database, GUI (removed; the codes are never reused)
-//	   W1xx web client and server; W2xx database; W3xx GUI;
-//	   W9xx named arguments
-//	H  error messages (second stage; empty for now)
+//	kw    keywords (reserved in the lexer)       ctx   contextual words (olarak, test, kurucu, o)
+//	val   value names (inf, nan; never coded)    type  type names (tip(), type annotations)
+//	fn    builtin functions                      const builtin constants (pi)
+//	arg   named arguments                        mem   methods and properties (x.name)
+//	cmd   commands of tr                         sub   subcommands of 'tr dizin'
+//	opt   command-line options                   repl  shell commands
+//	dbg   debugger commands                      env   environment variables (TR_env_LANG for TR_LANG)
+//
+// When two different concepts would get the same identity, or identities that differ only in
+// letter case, the owner's name is added to the identity (TR_arg_G_muon). Message codes
+// (H2410, package messages) are not identities; they stay numbers. Inside the binary a code is
+// a small number (its place in the language files) that never leaves the binary.
 //
 // # Namespaces
 //
-// Within one language a name must be unique only in its own namespace (see Namespace):
-// global names (keywords, contextual words and G/T/V/W builtins), type names, members (Y)
-// and named arguments (x9xx). So G403 mutlak (absolute value, a builtin) and Y314 mutlak
-// (absolute path, a Yol method) are separate codes. Member names are unique regardless of type: the compiler
-// turns x.name into a code at compile time without looking at the type (for the mapping rule
-// at the definition site see docs/spec/17_kodlar.md, member names).
+// Within one language a name must be unique only in its own namespace (see Namespace, from the
+// class): global names (keywords, contextual words, value names and builtins), type names,
+// members and named arguments. So TR_fn_abs mutlak (absolute value, a builtin) and
+// TR_mem_absolute mutlak (absolute path, a Yol method) are separate codes. Member names are unique
+// regardless of type: the compiler turns x.name into a code at compile time without looking at
+// the type (for the mapping rule at the definition site see docs/spec/17_kodlar.md, member
+// names).
 //
 // # Language file fields
 //
-//	"G100": { "ad": "yazdır", "eski": ["yaz"], "aile": "giriş ve çıkış" }
-//	"T903": { "ad": "tohum", "yabancı": ["seed"], "aile": "adlı argüman: rastgelelik" }
+//	"TR_fn_print": { "ad": "yazdır", "eski": ["yaz"], "aile": "giriş ve çıkış" }
+//	"TR_arg_seed": { "ad": "tohum", "yabancı": ["seed"], "aile": "adlı argüman: rastgelelik" }
 //
 // ad is the code's name in this language. eski holds removed names: they are not accepted
 // and only make the error message suggest ad; when a name is changed or removed, the old name
@@ -57,7 +44,7 @@
 // axis): they were never part of the language, only give hints like eski, and are specific to
 // each language file (each file records its own readers' habits). Every operation has exactly
 // one name: a synonym or a second spelling is not accepted. aile is a short description for
-// people. Entries are sorted by code, one per line.
+// people. Entries are one per line, in the order of Classes and by identity inside a class.
 //
 // # ASCII form
 //

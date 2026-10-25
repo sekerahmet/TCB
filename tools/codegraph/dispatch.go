@@ -325,9 +325,9 @@ func operandRules(operand string, inInterp bool) bool {
 	switch operand {
 	case "":
 		return true
-	case "type:A212":
+	case "type:TR_type_Tensor":
 		return !inInterp
-	case "type:A200", "type:A201", "type:A202", "type:A203", "type:A205", "type:A206":
+	case "type:TR_type_Int", "type:TR_type_Float", "type:TR_type_String", "type:TR_type_Bool", "type:TR_type_List", "type:TR_type_Dict":
 		return inInterp
 	}
 	return true // yapı ya da başka tür: kancası da olabilir

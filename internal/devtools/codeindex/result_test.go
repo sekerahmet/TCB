@@ -40,7 +40,7 @@ func exampleAmbiguous() *Result {
 func exampleNotFound() *Result {
 	r := NewResult(CommandDefinition, Query{Text: "zaman_mz", Language: "tr"})
 	r.Status = StatusNotFound
-	r.DidYouMean = []Node{{ID: "builtin:G502", Kind: KindBuiltin, Name: "G502", Display: "zaman_ms"}}
+	r.DidYouMean = []Node{{ID: "builtin:TR_fn_time_ms", Kind: KindBuiltin, Name: "TR_fn_time_ms", Display: "zaman_ms"}}
 	return r
 }
 

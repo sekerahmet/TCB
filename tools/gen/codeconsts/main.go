@@ -1,10 +1,10 @@
 // codeconsts, sözlükteki her kod için Go'da adlı bir sabit üretir
 // (internal/lang/codes/codes_generated.go): codes.FnPrint, codes.KwIf, codes.MemStep ... Sabitin
-// adı kodun kimliğinden (TR_fn_print, docs/code_identities.md) MixedCaps ile türetilir (goName),
-// kullanıcıya görünen ad değildir; ad sonradan değişse de Go kodu değişmez. Go kodu kodları
-// yalnızca bu sabitlerle yazar (codes.G + 100 biçimi kullanılmaz); sözlükte olmayan bir kod
-// yazılırsa derleme düşer. Sabitin satır yorumunun ilk sözcüğü kodun dil dosyasındaki anahtarıdır
-// (codegraph sabiti koda bununla bağlar).
+// adı kodun kimliğinden (TR_fn_print) MixedCaps ile türetilir (goName), kullanıcıya görünen ad
+// değildir; ad sonradan değişse de Go kodu değişmez. Go kodu kodları yalnızca bu sabitlerle yazar;
+// sözlükte olmayan bir kod yazılırsa derleme düşer. Sabitin değeri kodun dil dosyasındaki sırasıdır
+// (1'den); kimlik tablosu (identities) kodu kimliğine bağlar. Sabitin satır yorumunun ilk sözcüğü
+// kodun kimliğidir (codegraph sabiti koda bununla bağlar).
 //
 // Üretici kod paketini içe aktarmaz: dil dosyasını (internal/lang/codes/tr.json) kendisi okur.
 // Böylece üretilen dosya eskimiş olsa da üretici çalışır.
@@ -24,14 +24,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/sekerahmet/TCB/tools/internal/genmain"
 	"go/format"
 	"os"
 	"path/filepath"
-	"regexp"
-	"sort"
-	"strconv"
 	"strings"
+
+	"github.com/sekerahmet/TCB/tools/internal/genmain"
 )
 
 // Depo köküne göre yollar.
@@ -39,15 +37,15 @@ var (
 	trPath     = filepath.Join("internal", "lang", "codes", "tr.json")
 	enPath     = filepath.Join("internal", "lang", "codes", "en.json")
 	outputPath = filepath.Join("internal", "lang", "codes", "codes_generated.go")
-	idsPath    = filepath.Join("docs", "code_identities.md")
 )
 
-// idRow eşleme belgesinin bir satırıdır: eski kod ve kimlik.
-var idRow = regexp.MustCompile("(?m)^\\| ([A-Z]\\d{3}) \\| `(TR_[A-Za-z0-9_]+)`")
+func main() {
+	genmain.RunMain("codeconsts", outputPath, Generate)
+}
 
-// goName kimliğin Go sabitinin adıdır: tür ve adın her parçası büyük harfle başlar (TR_fn_read_file
-// → FnReadFile, TR_type_BuiltinFunction → TypeBuiltinFunction); ortam değişkeninin büyük harfli
-// parçaları küçülür (TR_env_GPU_SYNC → EnvGpuSync).
+// goName kimliğin Go sabitinin adıdır: sınıf ve adın her parçası büyük harfle başlar
+// (TR_fn_read_file → FnReadFile, TR_type_BuiltinFunction → TypeBuiltinFunction); ortam
+// değişkeninin büyük harfli parçaları küçülür (TR_env_GPU_SYNC → EnvGpuSync).
 func goName(id string) string {
 	parts := strings.Split(strings.TrimPrefix(id, "TR_"), "_")
 	var b strings.Builder
@@ -63,106 +61,86 @@ func goName(id string) string {
 	return b.String()
 }
 
-func main() {
-	genmain.RunMain("codeconsts", outputPath, Generate)
-}
-
-// familyLetters internal/lang/codes'daki sırayla aynıdır (A=1000, G=2000, H=3000 ...).
-const familyLetters = "AGHKTVWY"
-
-type codeEntry struct {
-	letter byte
-	number int
-	text   string
-}
-
-func parseCode(s string) (codeEntry, error) {
-	if len(s) != 4 || bytes.IndexByte([]byte(familyLetters), s[0]) < 0 {
-		return codeEntry{}, fmt.Errorf("code %q is invalid", s)
-	}
-	n, err := strconv.Atoi(s[1:])
-	if err != nil || n <= 0 {
-		return codeEntry{}, fmt.Errorf("code %q is invalid", s)
-	}
-	return codeEntry{letter: s[0], number: n, text: s}, nil
-}
-
 // trEntry dil dosyasındaki bir satırın üreticinin kullandığı alanlarıdır.
 type trEntry struct {
 	Name string `json:"ad"`
 }
 
-// readJSON decodes the JSON file at kok/path into v. A missing file is an error only when
-// required is true; otherwise v is left as it is.
-func readJSON(root, path string, required bool, v any) error {
+// readJSON decodes the language file at root/path, keeping the keys' order. A missing file is
+// an error only when required is true.
+func readJSON(root, path string, required bool) (keys []string, names map[string]string, err error) {
 	data, err := os.ReadFile(filepath.Join(root, path))
 	if err != nil {
 		if !required && os.IsNotExist(err) {
-			return nil
+			return nil, map[string]string{}, nil
 		}
-		return err
+		return nil, nil, err
 	}
-	if err := json.Unmarshal(data, v); err != nil {
-		return fmt.Errorf("%s: %v", path, err)
+	dec := json.NewDecoder(bytes.NewReader(data))
+	if _, err := dec.Token(); err != nil {
+		return nil, nil, fmt.Errorf("%s: %v", path, err)
 	}
-	return nil
+	names = map[string]string{}
+	for dec.More() {
+		tok, err := dec.Token()
+		if err != nil {
+			return nil, nil, fmt.Errorf("%s: %v", path, err)
+		}
+		var e trEntry
+		if err := dec.Decode(&e); err != nil {
+			return nil, nil, fmt.Errorf("%s: %v", path, err)
+		}
+		key := tok.(string)
+		keys = append(keys, key)
+		names[key] = e.Name
+	}
+	return keys, names, nil
 }
 
 // Generate üretilen Go dosyasının içeriğini verir.
 func Generate(root string) ([]byte, error) {
-	var tr map[string]trEntry
-	if err := readJSON(root, trPath, true, &tr); err != nil {
+	keys, tr, err := readJSON(root, trPath, true)
+	if err != nil {
 		return nil, err
 	}
 	// English names go next to the Turkish ones in the constants' comments, so a reader of the
 	// (English) Go code knows what a code is without opening the language file.
-	var en map[string]trEntry
-	if err := readJSON(root, enPath, false, &en); err != nil {
-		return nil, err
-	}
-
-	ids := map[string]string{}
-	data, err := os.ReadFile(filepath.Join(root, idsPath))
+	_, en, err := readJSON(root, enPath, false)
 	if err != nil {
 		return nil, err
 	}
-	for _, m := range idRow.FindAllStringSubmatch(string(data), -1) {
-		ids[m[1]] = m[2]
+	seen := map[string]string{}
+	for _, id := range keys {
+		if !strings.HasPrefix(id, "TR_") || !strings.Contains(strings.TrimPrefix(id, "TR_"), "_") {
+			return nil, fmt.Errorf("%s: %q is not an identity (TR_<class>_<name>)", trPath, id)
+		}
+		if other, ok := seen[goName(id)]; ok {
+			return nil, fmt.Errorf("%s: %s and %s have the same Go name %s", trPath, other, id, goName(id))
+		}
+		seen[goName(id)] = id
 	}
-
-	var entries []codeEntry
-	for s := range tr {
-		k, err := parseCode(s)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %v", trPath, err)
-		}
-		if ids[s] == "" {
-			return nil, fmt.Errorf("%s: %s has no identity in %s", trPath, s, idsPath)
-		}
-		entries = append(entries, k)
-	}
-	sort.Slice(entries, func(i, j int) bool {
-		if entries[i].letter != entries[j].letter {
-			return bytes.IndexByte([]byte(familyLetters), entries[i].letter) < bytes.IndexByte([]byte(familyLetters), entries[j].letter)
-		}
-		return entries[i].number < entries[j].number
-	})
 
 	var b bytes.Buffer
 	b.WriteString("// Code generated by go run ./tools/gen/codeconsts; DO NOT EDIT.\n\n")
 	b.WriteString("package codes\n\n")
 	b.WriteString("// A named constant for every code in the dictionary (tr.json). The constant's name comes\n")
 	b.WriteString("// from the code's identity, not from the user-visible name: renaming a name never changes\n")
-	b.WriteString("// the constant. The comment starts with the code's key in the language files; the names\n")
-	b.WriteString("// after it only help the reader.\n")
+	b.WriteString("// the constant. The value is the code's place in the language files. The comment starts\n")
+	b.WriteString("// with the code's identity; the names after it only help the reader.\n")
 	b.WriteString("const (\n")
-	for _, k := range entries {
-		name := tr[k.text].Name
-		if e := en[k.text].Name; e != "" && e != name {
+	for i, id := range keys {
+		name := tr[id]
+		if e := en[id]; e != "" && e != name {
 			name = e + " · " + name
 		}
-		fmt.Fprintf(&b, "\t%s Code = %c + %d // %s: %s\n", goName(ids[k.text]), k.letter, k.number, k.text, name)
+		fmt.Fprintf(&b, "\t%s Code = %d // %s: %s\n", goName(id), i+1, id, name)
 	}
-	b.WriteString(")\n")
+	b.WriteString(")\n\n")
+	b.WriteString("// identities is every code's identity, indexed by the code.\n")
+	b.WriteString("var identities = [...]string{\n")
+	for _, id := range keys {
+		fmt.Fprintf(&b, "\t%s: %q,\n", goName(id), id)
+	}
+	b.WriteString("}\n")
 	return format.Source(b.Bytes())
 }
