@@ -62,7 +62,7 @@ func (d *TensorValue) GetProperty(kd codes.Code, prop string) (interp.Value, err
 	case memberTranspose:
 		return d.method(memberTranspose, func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 			if len(args) != 0 {
-				return nil, messages.New(messages.H6506, codes.NameRef(memberTranspose))
+				return nil, messages.New(messages.H6722, codes.NameRef(memberTranspose), codes.NameRef(memberPermute))
 			}
 			return transposed(d)
 		}), nil

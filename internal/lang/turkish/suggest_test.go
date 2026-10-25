@@ -45,26 +45,30 @@ func TestFoldASCIIFoldsTurkishLetters(t *testing.T) {
 // için burada durur.
 func oldDistance(a, b string) int {
 	x, y := []rune(a), []rune(b)
-	prev := make([]int, len(y)+1)
-	curr := make([]int, len(y)+1)
-	for j := range prev {
-		prev[j] = j
+	d := make([][]int, len(x)+1)
+	for i := range d {
+		d[i] = make([]int, len(y)+1)
+		d[i][0] = i
+	}
+	for j := range d[0] {
+		d[0][j] = j
 	}
 	for i := 1; i <= len(x); i++ {
-		curr[0] = i
 		for j := 1; j <= len(y); j++ {
 			cost := 1
 			if x[i-1] == y[j-1] {
 				cost = 0
 			}
-			curr[j] = min(prev[j]+1, curr[j-1]+1, prev[j-1]+cost)
+			d[i][j] = min(d[i-1][j]+1, d[i][j-1]+1, d[i-1][j-1]+cost)
+			if i > 1 && j > 1 && x[i-1] == y[j-2] && x[i-2] == y[j-1] {
+				d[i][j] = min(d[i][j], d[i-2][j-2]+1) // komşu yer değiştirme (OSA)
+			}
 		}
-		prev, curr = curr, prev
 	}
-	return prev[len(y)]
+	return d[len(x)][len(y)]
 }
 
-// Kural: Distance kod noktası olarak Levenshtein uzaklığıdır; sınır en az iki uzunluğun büyüğüyse gerçek uzaklık, sınır
+// Kural: Distance kod noktası olarak OSA uzaklığıdır (komşu yer değiştirme 1); sınır en az iki uzunluğun büyüğüyse gerçek uzaklık, sınır
 // aşılınca bound+1. Closest gerçek uzaklığı alır: dışa açılan sınırlı uygulama önerileri değiştirmez (sınırın üstünde
 // birden çok aday olan durum dahil). codeindex ve codegraph aynı uygulamayı çağırır (bağımsız denetim T2).
 func TestDistanceAndClosestUnchanged(t *testing.T) {
@@ -102,7 +106,7 @@ func TestDistanceAndClosestUnchanged(t *testing.T) {
 		}
 		return best
 	}
-	for _, q := range append(words, "toplm", "yazdr", "katmn", "zzzz", "ağırlk", "uzunlk", "bşlık", "q") {
+	for _, q := range append(words, "toplm", "yazdr", "katmn", "zzzz", "ağırlk", "uzunlk", "bşlık", "q", "tpolam", "yazdrı", "katamn") {
 		for n := 1; n <= len(words); n++ {
 			if got, want := Closest(q, words[:n]), oldClosest(q, words[:n]); got != want {
 				t.Errorf("Closest(%q, first %d) = %q, before %q", q, n, got, want)
@@ -112,6 +116,19 @@ func TestDistanceAndClosestUnchanged(t *testing.T) {
 					t.Errorf("Distance(%q, %q) = %d, unbounded %d", q, words[a], got, want)
 				}
 			}
+		}
+	}
+}
+
+// Kural (K1): iki komşu harfin yer değiştirmesi tek düzeltmedir (Damerau; Python pritn → print).
+// Önceden iki sayılıyordu: kısa adlarda öneri çıkmıyordu (--hepl → öneri yok).
+func TestTranspositionIsOneEdit(t *testing.T) {
+	if d := Distance("pritn", "print", 5); d != 1 {
+		t.Errorf("pritn ~ print uzaklığı %d, 1 olmalı", d)
+	}
+	for _, c := range []struct{ typed, want string }{{"hepl", "help"}, {"pritn", "print"}, {"yazdrı", "yazdır"}} {
+		if got := Closest(c.typed, []string{c.want, "hepsi"}); got != c.want {
+			t.Errorf("Closest(%q) = %q, %q bekleniyordu", c.typed, got, c.want)
 		}
 	}
 }

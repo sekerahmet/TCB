@@ -1,6 +1,7 @@
 package ml
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -34,5 +35,14 @@ func TestShapeLimitZeroAxis(t *testing.T) {
 	}
 	if out := mustRun(t, "yazdır(sıfırlar([0, 3]).şekil, sıfırlar([2, 0]).değer)"); out != "[0, 3] [[], []]\n" {
 		t.Fatalf("küçük sıfır eksenli şekiller: %q", out)
+	}
+}
+
+// Kural (B14): devrik() argüman almaz; argümanla çağrılınca ileti eksenlerin sırasını veren metodu
+// (eksenleri_sırala) söyler (PyTorch: t.T ile t.permute(...)).
+func TestTransposeWithArgumentsPointsToPermute(t *testing.T) {
+	_, err := run(t, "tensör([[1.0, 2.0]]).devrik(1, 0)")
+	if !messages.Has(err, messages.H6722) || !strings.Contains(err.Error(), "eksenleri_sırala(") {
+		t.Fatalf("devrik argümanla: %v", err)
 	}
 }

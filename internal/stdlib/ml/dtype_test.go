@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
@@ -79,23 +80,16 @@ yazdır(r.değer, (x @ y).değer)
 dene { karışık_hassasiyet("bf16") { fırlat "dur" } } yakala h { yazdır(h) }
 yazdır((x @ y).değer)
 yazdır(karışık_hassasiyet("bf16") { 5 }, karışık_hassasiyet("bf16") {})`)
-	want := "[[1.0]] bf16\n[[1.0009766]]\n[[1.001]]\n[1.0]\n[[3.0]] [[1.001]]\nSatır 11: dur\n[[1.001]]\n5 yok\n"
+	want := "[[1.0]] bf16\n[[1.0009766]]\n[[1.001]]\n[1.0]\n[[3.0]] [[1.001]]\ndur\n[[1.001]]\n5 yok\n" // yakalanan fırlat öneksiz (8.2)
 	if out != want {
 		t.Fatalf("karışık_hassasiyet:\n%q\nbeklenen:\n%q", out, want)
 	}
-	for _, d := range []struct {
-		code string
-		want messages.Code
-	}{
+	expectCodes(t, []codeCase{
 		{`karışık_hassasiyet("bf16")`, messages.H6807},
 		{`karışık_hassasiyet("bf17") { 1 }`, messages.H6811},
 		{`karışık_hassasiyet("bf16", 3)`, messages.H6809},
 		{`karışık_hassasiyet() { 1 }`, messages.H6808},
-	} {
-		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
-			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.want)
-		}
-	}
+	})
 }
 
 // Blok içindeki gradyanlar float32 gradyanlarına yakındır; ağırlıklar float32 kalır.
@@ -191,14 +185,15 @@ yazdır(y["b"].gradyan, y["b"])`)
 		t.Fatalf("bf16 tür kodu 2 olmalı, %d", data[14+4+1])
 	}
 
-	// Yalnızca sürüm 2 okunur; başka sürüm açık bir hatayla reddedilir.
+	// Yalnızca sürüm 2 okunur; başka sürüm açık bir hatayla reddedilir. Öğüt yapılabilir olandır
+	// (B18): eski dosya okunamadığı için tensör_kaydet ile yeniden yazılamaz, veri yeniden üretilir.
 	v1 := version1File(t, "w", []int{2}, []float32{0.5, -1.25}, 1)
 	v1Path := filepath.ToSlash(filepath.Join(dir, "eski.trt"))
 	if err := os.WriteFile(filepath.FromSlash(v1Path), v1, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := run(t, `tensör_yükle("`+v1Path+`")`); err == nil || !messages.Has(err, messages.H6611) {
-		t.Errorf("sürüm 1 dosyası reddedilmeli: %v", err)
+	if _, err := run(t, `tensör_yükle("`+v1Path+`")`); err == nil || !messages.Has(err, messages.H6611) || strings.Contains(err.Error(), "tensör_kaydet") || !strings.Contains(err.Error(), "yeniden üretin") {
+		t.Errorf("sürüm 1 dosyası reddedilmeli, öğüt veriyi yeniden üretmek: %v", err)
 	}
 	// Eksik 16 bitlik veri bayt sayısıyla bildirilir.
 	if _, err := run(t, `tensör_yükle("`+writeClipped(t, dir, data, 14+4+1+2+16+4)+`")`); err == nil || !messages.Has(err, messages.H6623) {

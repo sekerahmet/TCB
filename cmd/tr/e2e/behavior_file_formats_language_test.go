@@ -211,7 +211,7 @@ func TestDisplayFollowsPersonsLanguage(t *testing.T) {
 	dir := t.TempDir()
 	testkit.WriteFile(t, dir, "p.tr", "değişken ayar = komut_satırı({adım: 3, hızlı: doğru})\n")
 	help := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "p.tr", "--help")
-	testkit.Wait(t, help, 0, []string{"--adım <Int>", "(default: true)"}, nil)
+	testkit.Wait(t, help, 0, []string{"--adım <Int>", "(default: true; to turn it off --hızlı=false)"}, nil)
 	if strings.Contains(help.Stdout, "doğru") || strings.Contains(help.Stdout, "<Tam>") {
 		t.Errorf("TR_DIL=en yardımında Türkçe değer ya da tip adı:\n%s", help.Stdout)
 	}
@@ -312,6 +312,29 @@ func TestMessagePartsFollowTheMessageLanguage(t *testing.T) {
 		t.Errorf("İngilizce dosyanın yakaladığı hatada parça İngilizce olmalı:\n%s%s", s.Stdout, s.Stderr)
 	}
 	for _, turkish := range []string{"tensörde", "sayıda", "Mantık"} {
+		if strings.Contains(s.Stdout, turkish) {
+			t.Errorf("Türkçe parça %q:\n%s", turkish, s.Stdout)
+		}
+	}
+}
+
+// Veri kümesi hataları da iletinin dilindedir (B19): önbellek kotası yetmeyince İngilizce dosyanın
+// yakaladığı hata ayrıntısıyla İngilizcedir. Önceden ayrıntı TR_DIL'de metne çevrilip iletiye
+// metin olarak giriyordu ("the cache quota is insufficient: kota 107 bayt, ...").
+func TestDatasetErrorsFollowTheMessageLanguage(t *testing.T) {
+	data := filepath.ToSlash(reporoot.Path("tests/data/text"))
+	coded, err := source.Encode("dene {\n    değişken k = veri_kümesi(\"" + data + "\", önbellek: \"c2\", kota_gb: 0.0000001)\n" +
+		"    yazdır(k.örnekleyici(toplu: 1, bağlam: 4).sonraki())\n} yakala h { yazdır(h) }\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	testkit.WriteFile(t, dir, "en.tr", inLanguage(coded, "en"))
+	s := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=tr"}, "en.tr")
+	if !strings.Contains(s.Stdout, "the cache quota is insufficient") || !strings.Contains(s.Stdout, "bytes are needed") {
+		t.Errorf("İngilizce iletinin ayrıntısı İngilizce olmalı:\n%s%s", s.Stdout, s.Stderr)
+	}
+	for _, turkish := range []string{"kota", "bayt", "gerekli", "veri:"} {
 		if strings.Contains(s.Stdout, turkish) {
 			t.Errorf("Türkçe parça %q:\n%s", turkish, s.Stdout)
 		}

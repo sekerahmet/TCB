@@ -242,21 +242,14 @@ değişken cikti = s`)
 			t.Fatalf("sınıf %d: oran %.4f, beklenen %.4f", i, got, want)
 		}
 	}
-	for _, h := range []struct {
-		code string
-		want messages.Code
-	}{
+	expectCodes(t, []codeCase{
 		{"örnekle(tensör([1.0]), sıcaklık: -1)", messages.H6340},
 		{"örnekle(tensör([1.0]), en_iyi_k: -2)", messages.H6341},
 		{"örnekle(tensör(1.0))", messages.H6338},
 		{"örnekle([1.0, 2.0])", messages.H6337},
 		{"örnekle(tensör([1.0]), tohum: 1.5)", messages.H6342},
 		{"örnekle(tensör([1.0]), temperature: 1)", messages.H7901},
-	} {
-		if _, err := run(t, h.code); err == nil || !messages.Has(err, h.want) {
-			t.Errorf("%s:\n  hata    : %v\n  içermeli: %s", h.code, err, h.want)
-		}
-	}
+	})
 }
 
 func TestParameters(t *testing.T) {

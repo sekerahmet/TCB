@@ -25,7 +25,10 @@ var ctorName = codes.Name(codes.A102)
 // checkArity koddaki doğrudan çağrılarda (f(1, 2), x |> f) kullanıcı fonksiyonunun argüman
 // sayısını ve adlandırılmış argümanlarını denetler. Yerleşiklerin geri çağırdığı fonksiyonlar
 // (filtrele, haritala, indirge ...) bu denetime girmez; onlar fazladan argüman gönderebilir.
-func checkArity(fnVal Value, nargs int, named map[string]Value, line int) error {
+//
+// owner, metot ya da kurucu çağrısında yapının tanımıdır (bağlı metotta BoundSelf'ten okunur): ileti
+// öznesini o kurar (callLabel).
+func checkArity(fnVal Value, owner *StructDefVal, nargs int, named map[string]Value, line int) error {
 	fn, ok := fnVal.(*FuncVal)
 	if !ok {
 		return nil
@@ -35,10 +38,7 @@ func checkArity(fnVal Value, nargs int, named map[string]Value, line int) error 
 	if len(named) == 0 && nargs <= len(fn.Parameters) && defaultsSuffice(fn, nargs) {
 		return nil
 	}
-	name := messages.New(messages.H2408, fn.Name)
-	if fn.Name == "" {
-		name = messages.New(messages.H2409)
-	}
+	name := callLabel(fn, owner)
 	known := make(map[string]bool, len(fn.Parameters))
 	for _, p := range fn.Parameters {
 		known[p.Name] = true
@@ -78,6 +78,25 @@ func checkArity(fnVal Value, nargs int, named map[string]Value, line int) error 
 		return messages.At(line, 0, messages.New(messages.H2415, name, strings.Join(missing, ", "), len(missing)))
 	}
 	return nil
+}
+
+// callLabel argüman hatasının öznesidir: kurucuda yapının kendisi ('Nokta' yapısı; kurucuyu yapının
+// çağrısı çalıştırır), metotta Yapı.metot (Python: Point.go()), öbür fonksiyonda adı.
+func callLabel(fn *FuncVal, owner *StructDefVal) *messages.Error {
+	if owner == nil {
+		if si, ok := fn.BoundSelf.(*StructInstanceVal); ok {
+			owner = si.Def
+		}
+	}
+	switch {
+	case owner != nil && fn.Name == ctorName:
+		return messages.New(messages.H2524, owner.Name)
+	case owner != nil:
+		return messages.New(messages.H2408, owner.Name+"."+fn.Name)
+	case fn.Name == "":
+		return messages.New(messages.H2409)
+	}
+	return messages.New(messages.H2408, fn.Name)
 }
 
 // checkStructArgs kurucusu olmayan bir yapının oluşturulmasındaki argümanları alanlara
@@ -226,7 +245,7 @@ func (v *VM) apply(fnVal Value, args []Value, named map[string]Value, line int) 
 		}
 		if withCtor {
 			// kurucu varsa argümanlar onun imzasına göre denetlenir
-			if err := checkArity(initMethod, len(args), named, line); err != nil {
+			if err := checkArity(initMethod, fn, len(args), named, line); err != nil {
 				return nil, err
 			}
 			boundInit := &FuncVal{

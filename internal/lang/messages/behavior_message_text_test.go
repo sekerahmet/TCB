@@ -18,12 +18,9 @@ import (
 // (messages.As(err).Args). Test, depodaki test dışı Go kodunda bu doğrudan kullanımı arar
 // (metni önce bir değişkene alan dolaylı kullanımı görmez).
 //
-// textEditing, kuralın bugünkü ihlalleridir (dosya → kullanım sayısı) ve yalnızca küçülür.
-//
-//	stdlib/dataset/sentinel.go: iletinin metninden ": " önekini kırpıyor.
-var textEditing = map[string]int{
-	"internal/stdlib/dataset/sentinel.go": 1,
-}
+// textEditing, kuralın bugünkü ihlalleridir (dosya → kullanım sayısı) ve yalnızca küçülür; bugün
+// boştur.
+var textEditing = map[string]int{}
 
 // textFuncs ileti metnini bölen, kırpan ya da içinde arayan strings işlevleridir.
 var textFuncs = map[string]bool{

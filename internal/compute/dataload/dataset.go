@@ -120,7 +120,7 @@ func OpenDataset(dir string, s DatasetOptions) (*Dataset, error) {
 			}
 			info, err := g.Info()
 			if err != nil {
-				return nil, messages.New(messages.H5022, g.Name(), err)
+				return nil, messages.New(messages.H2000, g.Name(), err)
 			}
 			y := filepath.Join(dir, g.Name())
 			paths = append(paths, y)

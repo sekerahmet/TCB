@@ -136,3 +136,20 @@ func TestUndefinedNameModuleGlobalScope(t *testing.T) {
 		t.Fatal("takma adsız aktar adları belirsiz kılmalı")
 	}
 }
+
+// Kural (B11): denetleyicinin tanımsız ad önerisi de adın yazıldığı dosyanın dilini izler: İngilizce
+// dosyada prnt → 'print'.
+func TestUndefinedNameSuggestionFollowsTheFileLanguage(t *testing.T) {
+	p := parser.New(lexer.New("prnt(1)\n"))
+	prog := p.ParseProgram()
+	c := New()
+	c.SetFileLanguage("en")
+	c.CheckProgram(prog)
+	var text []string
+	for _, err := range c.Errs() {
+		text = append(text, messages.ErrorIn(err, "en"))
+	}
+	if got := strings.Join(text, "\n"); !strings.Contains(got, "Did you mean 'print'?") {
+		t.Errorf("İngilizce dosyada öneri: %s", got)
+	}
+}

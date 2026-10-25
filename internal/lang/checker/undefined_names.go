@@ -346,7 +346,7 @@ func (d *nameChecker) name(id *ast.Identifier, k *nameScope) {
 	}
 	d.decl[id.Value] = true
 	d.c.nameErrors = append(d.c.nameErrors, messages.At(id.Line(), id.Token.Column,
-		messages.New(messages.H1010, hint.UndefinedNameError(id.Value, k.visible()))))
+		messages.New(messages.H1010, hint.UndefinedNameError(id.Value, k.visible(), d.c.language()))))
 }
 
 // sortByLine hataları konumlarının satırına göre (eşitlikte ilk sırayı koruyarak) sıralar;

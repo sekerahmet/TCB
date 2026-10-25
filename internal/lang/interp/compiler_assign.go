@@ -91,7 +91,7 @@ func (v *VM) assignByName(env *Environment, t *ast.Identifier, codeVal uint8, ri
 	if codeVal != opAssign {
 		cur, ok := env.Get(t.Value)
 		if !ok {
-			return messages.At(line, t.Token.Column, messages.New(messages.H2437, t.Value, suggestName(t.Value, env)))
+			return messages.At(line, t.Token.Column, messages.New(messages.H2437, t.Value, v.suggestName(t.Value, env)))
 		}
 		var err error
 		finalVal, err = v.assignOp(codeVal, cur, rightVal, line)
@@ -102,7 +102,7 @@ func (v *VM) assignByName(env *Environment, t *ast.Identifier, codeVal uint8, ri
 	if err := env.Assign(t.Value, finalVal); err != nil {
 		var undefined *UndefinedVarError
 		if errors.As(err, &undefined) {
-			return messages.At(line, t.Token.Column, messages.New(messages.H2438, err, suggestName(t.Value, env)))
+			return messages.At(line, t.Token.Column, messages.New(messages.H2438, err, v.suggestName(t.Value, env)))
 		}
 		return messages.At(line, 0, err)
 	}

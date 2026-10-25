@@ -295,7 +295,7 @@ func (c *compiler) readName(k *compilerScope, e *ast.Identifier) exprCode {
 					return x, nil
 				}
 			}
-			return readByName(env, e)
+			return v.readByName(env, e)
 		}
 	case resolveLocal:
 		switch r.nestDepth {
@@ -306,7 +306,7 @@ func (c *compiler) readName(k *compilerScope, e *ast.Identifier) exprCode {
 						return x, nil
 					}
 				}
-				return readByName(env, e)
+				return v.readByName(env, e)
 			}
 		case 1:
 			return func(v *VM, env *Environment) (Value, error) {
@@ -316,7 +316,7 @@ func (c *compiler) readName(k *compilerScope, e *ast.Identifier) exprCode {
 						return x, nil
 					}
 				}
-				return readByName(env, e)
+				return v.readByName(env, e)
 			}
 		default:
 			d := r.nestDepth
@@ -330,19 +330,19 @@ func (c *compiler) readName(k *compilerScope, e *ast.Identifier) exprCode {
 						return x, nil
 					}
 				}
-				return readByName(env, e)
+				return v.readByName(env, e)
 			}
 		}
 	}
 	return func(v *VM, env *Environment) (Value, error) {
-		return readByName(env, e)
+		return v.readByName(env, e)
 	}
 }
 
-func readByName(env *Environment, e *ast.Identifier) (Value, error) {
+func (v *VM) readByName(env *Environment, e *ast.Identifier) (Value, error) {
 	val, ok := env.Get(e.Value)
 	if !ok {
-		return nil, messages.At(e.Line(), e.Token.Column, hint.UndefinedNameError(e.Value, env.Names()))
+		return nil, messages.At(e.Line(), e.Token.Column, hint.UndefinedNameError(e.Value, env.Names(), v.textLanguage()))
 	}
 	return val, nil
 }

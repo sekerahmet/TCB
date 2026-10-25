@@ -280,3 +280,12 @@ func TestNonExpressionInterpolationIsError(t *testing.T) {
 		}
 	}
 }
+
+// Kural (B2b): dilim '..' ile yazılır; Python alışkanlığıyla yazılan l[a:b] doğru biçimi söyleyen
+// ipucunu alır (H0170). Önceden "']' bekleniyordu, ancak ':' bulundu" diyordu.
+func TestColonSliceGetsRangeHint(t *testing.T) {
+	errs := parseErrs("değişken l = [1, 2, 3]\nyazdır(l[0:2])\n")
+	if !hasCode(errs, messages.H0170) {
+		t.Fatalf("l[a:b] ipucu bekleniyordu: %v", errs)
+	}
+}

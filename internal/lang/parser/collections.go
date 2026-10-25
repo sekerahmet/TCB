@@ -3,6 +3,7 @@ package parser
 import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 func (p *Parser) parseListLiteral() ast.Expression {
@@ -106,6 +107,11 @@ func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
 	exp := &ast.IndexExpression{Token: p.curToken(), Left: left}
 	p.nextToken()
 	exp.Index = p.parseExpression(precLowest)
+	if p.peekTokenIs(lexer.TokColon) {
+		// Python'un l[a:b]'si: dilim '..' ile yazılır (3.6); genel "']' bekleniyordu" yerine doğru biçim.
+		p.syntaxError(p.peekToken(), messages.H0170)
+		return nil
+	}
 	if !p.expectPeek(lexer.TokRBracket) {
 		return nil
 	}

@@ -449,6 +449,10 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, u memberInfo, safe bool, 
 	if safe {
 		return Null, nil
 	}
+	if prop == codes.Name(codes.Y413) {
+		// Liste ve Metin'de dilim köşeli parantezle alınır (dilim Tensör'ün metodudur).
+		return nil, messages.At(line, 0, messages.New(messages.H2526, obj.Type(), prop))
+	}
 	return nil, messages.At(line, 0, messages.New(messages.H2474, obj.Type(), prop, removedMemberHint(prop)))
 }
 

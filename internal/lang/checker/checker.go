@@ -285,6 +285,14 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 // a value's text is in it, so comparisons with another language's value names are warned about.
 func (c *Checker) SetFileLanguage(code string) { c.fileLanguage = code }
 
+// language denetlenen dosyanın yazım dilidir (nil: kanonik, Türkçe).
+func (c *Checker) language() *codes.Language {
+	if l, err := codes.LoadLanguage(c.fileLanguage); err == nil && c.fileLanguage != "" {
+		return l
+	}
+	return nil
+}
+
 // SetInteractive marks the checker as the shell's: an expression statement's value is shown
 // there, so it is not unused.
 func (c *Checker) SetInteractive() { c.interactive = true }

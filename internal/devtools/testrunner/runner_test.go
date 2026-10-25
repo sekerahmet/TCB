@@ -204,12 +204,13 @@ func TestDeferRunsAfterTasks(t *testing.T) {
 	}
 }
 
-// Kullanıcı iletisinde geçen "Satır " sözcüğü konum sayılmaz: konumsuz hataya testin satırı eklenir.
+// Kullanıcı iletisinde geçen "Satır " sözcüğü konum sayılmaz: konum yapıdan okunur (fırlat'ın
+// kendi satırı, 8.3) ve çerçevesi çizilir.
 func TestUserMessageWithSatirGetsLine(t *testing.T) {
 	f := testkit.WriteFile(t, t.TempDir(), "satır_test.tr", "test \"satır kelimesi\" {\n    fırlat \"Satır sayısı yanlış\"\n}\n")
 	var b bytes.Buffer
 	RunFile(f, &b)
-	if out := b.String(); !strings.Contains(out, "Satır 1: Satır sayısı yanlış") || !strings.Contains(out, `1 | test "satır kelimesi" {`) {
+	if out := b.String(); !strings.Contains(out, "Satır 2: Satır sayısı yanlış") || !strings.Contains(out, `2 |     fırlat "Satır sayısı yanlış"`) {
 		t.Fatalf("testin satırı eklenmeli ve çerçevesi çizilmeli:\n%s", out)
 	}
 }

@@ -21,7 +21,6 @@ import (
 	"io/fs"
 	"math"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -249,12 +248,8 @@ func dataError(fn any, path string, err error, extras ...*messages.Error) error 
 		}
 		return messages.New(messages.H5514,
 			fn, filepath.ToSlash(file), bh.Reason)
-	case errors.Is(err, dataload.ErrCacheInsufficient):
-		return messages.New(messages.H5515, fn, sentinelDetail(err))
 	case errors.Is(err, dataload.ErrClosed):
 		return messages.New(messages.H5516, fn)
-	case errors.Is(err, dataload.ErrCacheLocked):
-		return messages.New(messages.H2000, fn, sentinelDetail(err))
 	case bind.IsNotExist(err) && messages.Has(err, messages.H5019):
 		return turkish.FileError(fn, path, messages.H2103, err,
 			append([]*messages.Error{messages.New(messages.H5517)}, extras...)...)
@@ -264,15 +259,13 @@ func dataError(fn any, path string, err error, extras ...*messages.Error) error 
 		// İzin, kilitli dosya, disk hatası...: işletim sisteminin metni yerine Türkçe neden
 		return turkish.FileError(fn, filepath.ToSlash(pe.Path), messages.H2100, pe)
 	}
-	msg := clean(err.Error())
 	if messages.Has(err, messages.H5023) {
 		return messages.New(messages.H5518, fn, path)
 	}
-	return messages.New(messages.H2000, fn, msg)
+	// Çekirdeğin kodlu hatası (kota yetersiz, önbellek kilitli ...) iletiye kendisi olarak girer:
+	// ayrıntısıyla birlikte iletinin dilinde yazılır.
+	return messages.New(messages.H2000, fn, err)
 }
-
-// clean Go paketinin "veri: " öneklerini kaldırır.
-func clean(s string) string { return strings.ReplaceAll(s, "veri: ", "") }
 
 // ----------------------------------------------------------------------------
 // Okuyucular (örnekleyici ve sıralı)
@@ -463,9 +456,6 @@ func readerError(fn any, k *Dataset, t int, err error) error {
 			longest = max(longest, p.Token)
 		}
 		return messages.New(messages.H5533, fn, nameContext, t, t+1, longest)
-	}
-	if errors.Is(err, dataload.ErrCacheInsufficient) {
-		return messages.New(messages.H5515, fn, sentinelDetail(err))
 	}
 	return dataError(fn, k.path, err)
 }

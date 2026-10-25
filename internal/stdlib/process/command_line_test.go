@@ -72,6 +72,11 @@ func TestCommandLineUsageErrors(t *testing.T) {
 		{[]string{"--katmanlar", "1,x"}, `'--katmanlar' virgülle ayrılmış Tam listesi bekler; 2. öğe "x".`},
 		{[]string{"--hızlı=evet"}, `'--hızlı' Mantık bir seçenek; doğru ya da yanlış verin (yalnız --hızlı yazmak doğru demektir), "evet" verildi.`},
 		{[]string{"--adım"}, "'--adım' bir değer bekler (ör. --adım 5000 ya da --adım=5000)"},
+		// Mantık seçeneğinin değeri ayrı argüman değildir (Go flag: -flag=false); öneri doğru biçimi verir (B17).
+		{[]string{"--hızlı", "yanlış"}, "--hızlı=yanlış"},
+		{[]string{"--hızlı", "true"}, "--hızlı=true"},
+		// Yardımın her kabul edilen yazımı öneri adayıdır (K1): --hel, --help'e yakındır.
+		{[]string{"--hel"}, "Bunu mu demek istediniz: '--yardım'?"},
 	} {
 		_, _, err := commandLine(t, code, d.arg...)
 		c, ok := interp.IsExitRequest(err)
@@ -104,6 +109,15 @@ Seçenekler:
 		if !ok || c.Code != 0 || c.Message != want {
 			t.Errorf("%v: yardım bekleniyordu:\n%v", arg, err)
 		}
+	}
+}
+
+// Kural (B17): varsayılanı doğru olan Mantık seçeneğinin yardımı onu kapatma biçimini de gösterir.
+func TestCommandLineHelpShowsHowToTurnOff(t *testing.T) {
+	_, _, err := commandLine(t, `komut_satırı({hızlı: doğru})`, "--yardım")
+	c, ok := interp.IsExitRequest(err)
+	if !ok || !strings.Contains(c.Message, "--hızlı=yanlış") {
+		t.Errorf("yardım kapatma biçimini göstermeli: %v", err)
 	}
 }
 
