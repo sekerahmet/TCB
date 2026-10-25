@@ -367,7 +367,7 @@ func trTestSetMismatches(g *Graph, idx *codeindex.Index, reader *codeindex.Reade
 // yazıldığı gibi sorulunca lookup'ın kendisi) çıplak ad için aynı TR aday kümesini vermeli (deneme 7 R1: tanım 3,
 // yeniden_adlandır 7, query 4 aday veriyordu; bağımsız denetim grup 6 R1: büyük harfli sorgu, modül + yerleşik ve
 // yerleşik + test çakışması farklıydı). Adlar: her bildirimin kısa adı, modülün adı ve takma adları, testin açıklaması,
-// dizindeki her yerleşiğin bütün adları; her ad yazıldığı gibi, küçük harfle ve büyük harfle (Türkçe kuralı) sorulur.
+// dizindeki her yerleşiğin bütün adları; her ad yazıldığı gibi, küçük harfle, Türkçe ve ASCII büyük harfle (`GİZLİ_DURUM`, `GIZLI_DURUM`) sorulur.
 // Karşılaştırma tr dizin'in bildiği düğümlerdedir: grafiğin ad kodlarından yalnızca dizinde yerleşik düğümü olanlar
 // sayılır (anahtar sözcükler ve kullanılmayan yerleşikler yalnızca grafiktedir).
 func trNameSetMismatches(g *Graph, idx *codeindex.Index, reader *codeindex.Reader) (bad []string, checked int) {
@@ -397,7 +397,7 @@ func trNameSetMismatches(g *Graph, idx *codeindex.Index, reader *codeindex.Reade
 		}
 	}
 	for name := range names {
-		for vi, q := range []string{name, codeindex.Fold(name), strings.ToUpperSpecial(unicode.TurkishCase, name)} {
+		for vi, q := range []string{name, codeindex.Fold(name), strings.ToUpperSpecial(unicode.TurkishCase, name), strings.ToUpper(name)} {
 			if vi > 0 && q == name {
 				continue
 			}

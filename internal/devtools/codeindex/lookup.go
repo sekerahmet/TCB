@@ -2,9 +2,11 @@ package codeindex
 
 import (
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -33,6 +35,7 @@ func hasUpper(s string) bool {
 type NameKey struct {
 	Key    string
 	Folded bool
+	Alt    string // harfsiz geçişte ikinci anahtar: sorgunun ASCII küçültmesi (`IKINCI` → `ikinci`), Türkçe katlamadan farklıysa
 }
 
 // NameKeys sorgunun harf kuralıdır; iki aracın (tr dizin ve codegraph) tek kuralı (bağımsız denetim grup 6, R1: biri
@@ -40,19 +43,67 @@ type NameKey struct {
 // Türkçe kuralıyla yok sayılır (`ışık` = `Işık`, `isik` ≠ `Işık`); varsa önce tam eşleşme aranır (ripgrep 14
 // `--smart-case` kuralı; `go doc` da büyük harfi tam eşleştirir), hiçbir aday tam tutmazsa harf yok sayılarak bir kez
 // daha (`GÖMMEKATMANI` → `GömmeKatmanı`: bütün harfleri büyük yazılmış sorgu bir harf kararı değildir).
+//
+// İki ek (bağımsız denetim grup 7): bütün harfleri büyük yazılmış sorgu İngilizce klavyeyle de yazılmış olabilir
+// (`IKINCI`, `GIZLI_DURUM`: `I` Türkçede `ı` olur), harfsiz geçiş ASCII küçültmesiyle de denenir. Sorgu dilin bir
+// sözcüğüyle birebir aynıysa (`Metin` tip adı, `Tensör`) harfsiz geçiş yoktur: dizinde düğümü olmasa da o sözcük
+// kastedilmiştir, benzer harfli bir yerleşik (`metin()`) sessizce verilmez.
 func NameKeys(q string) []NameKey {
-	if hasUpper(q) {
-		return []NameKey{{Key: q}, {Key: Fold(q), Folded: true}}
+	if !hasUpper(q) {
+		return []NameKey{{Key: Fold(q), Folded: true}}
 	}
-	return []NameKey{{Key: Fold(q), Folded: true}}
+	keys := []NameKey{{Key: q}}
+	if languageWord(q) {
+		return keys
+	}
+	folded := NameKey{Key: Fold(q), Folded: true}
+	if ascii := strings.ToLower(q); ascii != folded.Key {
+		folded.Alt = ascii // iki katlama aynı geçişte: biri bir düğümde durup öbürünün adayını gizlemesin
+	}
+	return append(keys, folded)
+}
+
+// programNamespaces bir TR programında yazılan dil adlarının ad alanlarıdır.
+var programNamespaces = []codes.Namespace{codes.NamespaceGlobal, codes.NamespaceType, codes.NamespaceMember, codes.NamespaceParam}
+
+// writingLanguages gömülü yazım dilleridir (bir kez yüklenir).
+var writingLanguages = sync.OnceValue(func() []*codes.Language {
+	var out []*codes.Language
+	for _, code := range codes.Languages() {
+		if l, err := codes.LoadLanguage(code); err == nil {
+			out = append(out, l)
+		}
+	}
+	return out
+})
+
+// languageWord q herhangi bir yazım dilinde bir program adının (anahtar sözcük, tip, yerleşik, üye, adlı argüman)
+// yazımı mı.
+func languageWord(q string) bool {
+	for _, l := range writingLanguages() {
+		for _, ns := range programNamespaces {
+			if _, ok := l.Find(ns, q); ok {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // Match name (katlanmışı folded) bu geçişte uyuyor mu.
 func (k NameKey) Match(name, folded string) bool {
 	if k.Folded {
-		return folded == k.Key
+		return folded == k.Key || k.Alt != "" && folded == k.Alt
 	}
 	return name == k.Key
+}
+
+// HasSuffix name (katlanmışı folded) bu geçişte suffix'le bitiyor mu (suffix sorgu tarafındadır, ör. "." + anahtar).
+func (k NameKey) HasSuffix(name, folded, prefix string) bool {
+	if k.Folded {
+		return strings.HasSuffix(folded, prefix+k.Key) || k.Alt != "" && strings.HasSuffix(folded, prefix+k.Alt)
+	}
+	return strings.HasSuffix(name, prefix+k.Key)
 }
 
 // NameClass bir adayın çıplak ad çözümündeki sınıfıdır (PickByName).
@@ -162,15 +213,9 @@ func (r *Reader) Resolve(q, kind string) []*Node {
 		}); len(found) > 0 {
 			return at(found)
 		}
-		tail := NameKey{Key: "." + k.Key, Folded: k.Folded}
 		for _, match := range []func(i int) bool{
 			func(i int) bool { return k.Match(nodes[i].Qualified, r.folded[i].qualified) },
-			func(i int) bool {
-				if tail.Folded {
-					return strings.HasSuffix(r.folded[i].qualified, tail.Key)
-				}
-				return strings.HasSuffix(nodes[i].Qualified, tail.Key)
-			},
+			func(i int) bool { return k.HasSuffix(nodes[i].Qualified, r.folded[i].qualified, ".") },
 		} {
 			var found []int
 			for i := range nodes {
@@ -223,10 +268,13 @@ func (r *Reader) nameClass(i int, k NameKey, builtin map[string]bool) NameClass 
 
 // builtinIDs k'ye uyan yerleşik adların düğüm kimlikleridir.
 func (r *Reader) builtinIDs(k NameKey) []string {
-	if k.Folded {
+	if !k.Folded {
+		return r.builtins[k.Key]
+	}
+	if k.Alt == "" {
 		return r.builtinsFolded[k.Key]
 	}
-	return r.builtins[k.Key]
+	return append(slices.Clone(r.builtinsFolded[k.Key]), r.builtinsFolded[k.Alt]...)
 }
 
 // atQuery konum sorgusunu düğüme çevirir; sütun verilmediyse satırdaki ilk başvuru alınır.
