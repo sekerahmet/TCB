@@ -4,6 +4,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/hint"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Tip değeri metinle karşılaştırılmaz (docs/spec/03_tipler.md 3.11): tip(x) bir tip değeri
@@ -14,31 +15,89 @@ import (
 // checkTypeTextComparison e, yerleşik tip()'in sonucunu bir metin sabitiyle (== ya da !=)
 // karşılaştırıyorsa hata ekler.
 func (c *Checker) checkTypeTextComparison(e *ast.InfixExpression) {
-	if e.Operator != "==" && e.Operator != "!=" {
-		return
-	}
-	text, ok := e.Right.(*ast.StringLiteral)
-	call := e.Left
-	if !ok {
-		text, ok = e.Left.(*ast.StringLiteral)
-		call = e.Right
-	}
-	if !ok || !c.isTypeCall(call) {
+	text, call, ok := textComparison(e)
+	if !ok || c.builtinCall(call, codes.G201) == nil {
 		return
 	}
 	c.addError(e.Line(), 0, hint.TypeTextComparisonError(e.Operator, text.Value, codes.DisplayName(codes.A200)))
 }
 
-// isTypeCall ifade, kullanıcının gölgelemediği yerleşik tip()'in bir çağrısı mı?
-func (c *Checker) isTypeCall(expression ast.Expression) bool {
+// Mantık değerinin metni dosyanın dilindedir (3): İngilizce dosyada metin(b) "true" ya da
+// "false" verir. Aynı aileden ikinci kural: metin(Mantık) bir yazım dilinin doğru/yanlış adıyla
+// karşılaştırılıyor ama o ad dosyanın dilinin değilse (İngilizce dosyada metin(b) == "doğru"),
+// karşılaştırma hiç tutmaz; denetleyici uyarır (çalışmayı engellemez).
+
+// checkBoolTextComparison e, Mantık bir değerin metin()'ini dosyanın dilinde olmayan bir doğru/
+// yanlış adıyla karşılaştırıyorsa uyarı ekler.
+func (c *Checker) checkBoolTextComparison(e *ast.InfixExpression) {
+	text, call, ok := textComparison(e)
+	if !ok {
+		return
+	}
+	str := c.builtinCall(call, codes.G212)
+	if str == nil || len(str.Arguments) != 1 || !c.isBool(str.Arguments[0]) {
+		return
+	}
+	own := codes.Active()
+	if l, err := codes.LoadLanguage(c.fileLanguage); err == nil {
+		own = l
+	}
+	if text.Value == own.Name(codes.A040) || text.Value == own.Name(codes.A041) {
+		return
+	}
+	for _, code := range codes.Languages() {
+		if l, err := codes.LoadLanguage(code); err == nil && (text.Value == l.Name(codes.A040) || text.Value == l.Name(codes.A041)) {
+			c.warnings = append(c.warnings, messages.At(e.Line(), 0, messages.New(messages.H1016,
+				codes.DisplayName(codes.G212), own.Name(codes.A040), own.Name(codes.A041), own.Code, text.Value)))
+			return
+		}
+	}
+}
+
+// isBool ifadenin tipi Mantık mı (yan etkisiz: tip çıkarımı ifadeyi yeniden denetlemez, hataları
+// ikinci kez eklemez)? Mantık sabiti, tipi Mantık olan ad, karşılaştırma ve değil (!).
+func (c *Checker) isBool(e ast.Expression) bool {
+	switch x := e.(type) {
+	case *ast.BooleanLiteral:
+		return true
+	case *ast.Identifier:
+		info, ok := c.scope.Resolve(x.Value)
+		return ok && info.TypeName == typeBool
+	case *ast.PrefixExpression:
+		return x.Operator == "!"
+	case *ast.InfixExpression:
+		switch x.Operator {
+		case "==", "!=", "<", ">", "<=", ">=", "&&", "||":
+			return true
+		}
+	}
+	return false
+}
+
+// textComparison e bir metin sabitiyle == ya da != karşılaştırması mı; öyleyse sabit ve öbür taraf.
+func textComparison(e *ast.InfixExpression) (*ast.StringLiteral, ast.Expression, bool) {
+	if e.Operator != "==" && e.Operator != "!=" {
+		return nil, nil, false
+	}
+	if text, ok := e.Right.(*ast.StringLiteral); ok {
+		return text, e.Left, true
+	}
+	text, ok := e.Left.(*ast.StringLiteral)
+	return text, e.Right, ok
+}
+
+// builtinCall ifade, kullanıcının gölgelemediği yerleşik k'nın bir çağrısıysa o çağrıdır.
+func (c *Checker) builtinCall(expression ast.Expression, k codes.Code) *ast.CallExpression {
 	call, ok := expression.(*ast.CallExpression)
 	if !ok {
-		return false
+		return nil
 	}
 	name, ok := call.Function.(*ast.Identifier)
-	if !ok || name.Value != codes.Name(codes.G201) {
-		return false
+	if !ok || name.Value != codes.Name(k) {
+		return nil
 	}
-	_, shadowed := c.scope.Resolve(name.Value)
-	return !shadowed
+	if _, shadowed := c.scope.Resolve(name.Value); shadowed {
+		return nil
+	}
+	return call
 }

@@ -233,6 +233,22 @@ func TestMessageValuesFollowPersonsLanguage(t *testing.T) {
 	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=tr"}, "t.tr"), 1, nil, []string{"doğru (Mantık) verildi"})
 }
 
+// Denetleyici dosyanın dilini bilir (source.Prepare): İngilizce dosyada str(b) == "doğru"
+// hiç tutmaz, uyarı verir (H1016); aynı karşılaştırma Türkçe dosyada doğrudur, sessizdir.
+func TestBoolTextComparisonWarnsByFileLanguage(t *testing.T) {
+	coded, err := source.Encode("sabit b = doğru\nyazdır(metin(b) == \"doğru\")\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	testkit.WriteFile(t, dir, "en.tr", inLanguage(coded, "en"))
+	testkit.WriteFile(t, dir, "tr.tr", coded)
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "en.tr"), 0, []string{"false"}, []string{`"doğru" is the name in another writing language`})
+	if s := testkit.RunBinary(t, trBinary, dir, "", nil, "tr.tr"); s.Code != 0 || s.Stdout != "doğru\n" || strings.Contains(s.Stderr, "başka bir yazım dilinin") {
+		t.Errorf("Türkçe dosyada uyarı olmamalı: %q %q", s.Stdout, s.Stderr)
+	}
+}
+
 // fileFormatShape klasördeki dosya adlarını ve her JSON dosyasının (satırının) anahtar
 // kümesini, değerleri atarak, sıralı bir özet olarak verir.
 func fileFormatShape(t *testing.T, dir string) string {

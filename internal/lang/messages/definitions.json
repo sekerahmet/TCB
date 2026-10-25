@@ -68,6 +68,7 @@
 "H1013": { "param": ["name", "suggestion"] },
 "H1014": { "param": ["name", "suggestion"] },
 "H1015": { "param": ["name", "keyword", "suggestion"] },
+"H1016": { "param": ["fn", "true", "false", "language", "text"] },
 "H1101": { "param": ["name", "canonical"] },
 "H1103": { "param": ["name", "keyword"] },
 "H1104": { "param": ["closest"] },
