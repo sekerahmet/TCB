@@ -153,3 +153,13 @@ codegraph tests-for README.md | group: <- tests => e2e.TestExamplesListedInReadm
 codegraph tests-for tools/edithook/main.go | group: repository-wide checks that scan it => internal_test.TestNoTurkishLiterals | contains: internal_test.TestLayoutFileSize | contains: *.go under the repository, not *_test.go | src: TCB 2026-10-25, gaps.md (depo geneli kural testleri)
 codegraph tests-for lib/README.md | group: repository-wide checks that scan it => internal_test.TestRuleTestsExist | not: TestNoTurkishLiterals | src: TCB 2026-10-25, gaps.md (kalıp uzantıya göre: .go taraması .md'ye uymaz)
 codegraph tests-for lib/egitim.tr | group: repository-wide checks that scan it => tr.TestRepoTRFilesPassCheck | not: TestNoTurkishLiterals | src: TCB 2026-10-25, gaps.md
+
+# Deneme: içeride ara dil yok, asıl biçim kod (yol haritası 15, 1. tur, 2026-10-25)
+codegraph who-uses turkish.ErrorFrame | contains: tr.printError | contains: interp.ErrorItems | contains: testrunner.writeError | contains: debugger.dapServer.launch | src: iç dil 1. tur, 2026-10-25 (çerçeveye metin veren yerler)
+codegraph query lexer.NewBodyIn | contains: canonical language | src: iç dil 1. tur, 2026-10-25 (kodlar okunurken Türkçeye çevriliyor)
+codegraph who-uses lexer.Token.Code | contains: interp.compiler.dictKey | contains: checker.nameChecker.bind | src: iç dil 1. tur, 2026-10-25 (kodu taşıyan belirteci okuyan az yer)
+codegraph who-uses ast.Identifier.Value | contains: 100 read | src: iç dil 1. tur, 2026-10-25 (adı okuyan çok yer)
+codegraph who-uses codes.Spellings | contains: interp.VM.DefineBuiltin | src: iç dil 1. tur, 2026-10-25 (yerleşik genel kapsama Türkçe adıyla girer)
+codegraph who-uses codes.Name --all | contains: interp.ctorName | contains: checker.typeInt | contains: profiler.opName | src: iç dil 1. tur, 2026-10-25 (Türkçe adın kimlik olduğu yerler)
+codegraph query GetProperty | exit: 3 | contains: interp.PropertyGetter.GetProperty | src: iç dil 1. tur, 2026-10-25 (üye okuma kod ve ad birlikte alıyor)
+tr dizin tanım toplam | exit: 3 | contains: builtin:G400 | src: iç dil 1. tur, 2026-10-25 (yerleşik ile kullanıcı adı ayrı düğüm)
