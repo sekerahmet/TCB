@@ -2,10 +2,13 @@ package source
 
 import (
 	"errors"
+	"os"
+	"path"
 	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
 // wantPos hatanın konumunu metinden değil yapıdan (messages.Pos) okuyup bekleneniyle karşılaştırır.
@@ -83,3 +86,33 @@ func TestPrepareLimitsErrors(t *testing.T) {
 }
 
 func joinErrors(errs []error) string { return strings.Join(messages.Texts(errs), "\n") }
+
+// speedFiles hız tabanının metinleridir: büyük, orta ve küçük bir dosya (cmd/tr/e2e'deki
+// uçtan uca ölçüm de aynılarını kullanır).
+var speedFiles = []string{"lib/katman.tr", "examples/tr/35_transformer.tr", "examples/tr/08_fonksiyonlar.tr"}
+
+// BenchmarkPrepare aynı metnin kodsuz ve kodlu biçiminin tip denetimiyle hazırlanmasını ölçer;
+// kodlu biçimin ek işi (Türkçe görünüm ve ikinci çözümleme) farkta görünür. Madde 15'in
+// tabanıdır, ad kuralından ve görünümün kaldırılmasından sonra aynen koşar:
+// go test -run XXX -bench Prepare -count 10 ./internal/lang/source/
+func BenchmarkPrepare(b *testing.B) {
+	for _, file := range speedFiles {
+		data, err := os.ReadFile(reporoot.Path(file))
+		if err != nil {
+			b.Fatal(err)
+		}
+		coded, err := Encode(string(data))
+		if err != nil {
+			b.Fatal(err)
+		}
+		for _, form := range []struct{ name, text string }{{"plain", string(data)}, {"coded", coded}} {
+			b.Run(path.Base(file)+"/"+form.name, func(b *testing.B) {
+				for b.Loop() {
+					if r := Prepare(form.text, Options{TypeCheck: true}); r.Stage != "" {
+						b.Fatal(r.Errors)
+					}
+				}
+			})
+		}
+	}
+}
