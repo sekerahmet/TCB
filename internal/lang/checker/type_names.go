@@ -24,7 +24,10 @@ var (
 // typeNumber denetleyicinin iç tipidir: değer çalışma anında Tam da Ondalık da olabilir (ör.
 // Tam / Tam: 6 / 3 = 2, 7 / 2 = 3.5). Kullanıcı açıklamasında yazılamaz; yalnızca Ondalık
 // (Tam da Ondalığa atanabildiği için) ve tipsiz yerlere atanabilir.
-var typeNumber = typeInt + " ya da " + typeFloat
+//
+// Kimlik dilden bağımsızdır (iki tipin kanonik adı, kod listesindeki birleşim yazımıyla: A200|A201);
+// iletide typeText onu iletinin dilinde yazar ("Tam ya da Ondalık", "Int or Float").
+var typeNumber = typeInt + "|" + typeFloat
 
 // typeText denetleyicinin tip adıdır, ileti parametresi olarak (messages.Localized): tip adı
 // iletinin dilinde yazılır (Tam → Int); kullanıcının sınıf adı olduğu gibi kalır. Denetleyici
