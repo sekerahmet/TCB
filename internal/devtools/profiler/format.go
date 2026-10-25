@@ -74,7 +74,7 @@ func durationText(s float64) string {
 }
 
 // nBytes bayt sayısını okunur yazar (1,2 GB).
-func nBytes(n int64) string { return bind.FormatBytes(n) }
+func nBytes(n int64) string { return bind.FormatBytes(n).MessageText(codes.Display().Code) }
 
 // trim metni en çok n karaktere kırpar (sona … koyarak).
 func trim(s string, n int) string {

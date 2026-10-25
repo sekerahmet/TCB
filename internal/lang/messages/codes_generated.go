@@ -1287,6 +1287,11 @@ const (
 	H7903 Code = 7903 // {what} üzerinde {member|q} özelliği ya da metodu bulunamadı. Bunu mu demek istediniz: '{suggestion}'?
 	H7904 Code = 7904 // {what} üzerinde {member|q} özelliği ya da metodu bulunamadı (üyeler: {members})
 	H7905 Code = 7905 // {fn}: {name} doğru ya da yanlış olmalıdır, {given} verildi
+	H7906 Code = 7906 // {n|decimal} bin
+	H7907 Code = 7907 // {n|decimal} milyon
+	H7908 Code = 7908 // {n|decimal} milyar
+	H7909 Code = 7909 // {n|decimal} trilyon
+	H7910 Code = 7910 // {n|decimal} {unit}
 	H8000 Code = 8000 // F5:{continue} | F10:{next} | F11:{step} | Shift+F11:{out} | {set} | {jump} | {table} | {watch}
 	H8001 Code = 8001 // [TR Hata Ayıklayıcı] ({keys}) >
 	H8010 Code = 8010 // TR HATA AYIKLAYICI KOMUT REHBERİ:

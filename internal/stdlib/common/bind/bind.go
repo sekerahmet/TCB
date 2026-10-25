@@ -235,32 +235,46 @@ func ResolvePathTried(m *interp.VM, path string) (string, []string) {
 // IsNotExist hatanın "dosya ya da klasör yok" anlamına gelip gelmediğini söyler.
 func IsNotExist(err error) bool { return errors.Is(err, os.ErrNotExist) }
 
-// ShortNumber büyük sayıları Türkçe kısa biçimde yazar: 999 → "999", 12 345 → "12,3 bin",
-// 56 900 000 000 → "56,9 milyar".
-func ShortNumber(n int64) string {
-	return formatScaled(n, []scaleUnit{{1e12, "trilyon"}, {1e9, "milyar"}, {1e6, "milyon"}, {1e3, "bin"}}, "")
+// ShortNumber büyük sayıyı kısa biçimde yazar, ileti parametresi olarak (messages.Localized):
+// 999 → "999", 12 345 → "12,3 bin" (en: "12.3 thousand"), 56 900 000 000 → "56,9 milyar".
+func ShortNumber(n int64) messages.Localized {
+	return scaled{n, []scaleUnit{{1e12, messages.H7909, ""}, {1e9, messages.H7908, ""}, {1e6, messages.H7907, ""}, {1e3, messages.H7906, ""}}, 0}
 }
 
-// FormatBytes bayt sayısını okunur biçimde yazar (ör. "1,2 GB").
-func FormatBytes(n int64) string {
-	return formatScaled(n, []scaleUnit{{1 << 40, "TB"}, {1 << 30, "GB"}, {1 << 20, "MB"}, {1 << 10, "KB"}}, " bayt")
+// FormatBytes bayt sayısını okunur biçimde yazar, ileti parametresi olarak: "1,2 GB", "512 bayt"
+// (en: "1.2 GB", "512 bytes").
+func FormatBytes(n int64) messages.Localized {
+	return scaled{n, []scaleUnit{{1 << 40, messages.H7910, "TB"}, {1 << 30, messages.H7910, "GB"}, {1 << 20, messages.H7910, "MB"}, {1 << 10, messages.H7910, "KB"}}, messages.H4020}
 }
 
-// scaleUnit bir ölçek basamağıdır: n en az threshold ise "x,y ad" yazılır.
+// scaleUnit bir ölçek basamağıdır: n en az threshold ise text iletisiyle (sayı, birim simgesi)
+// yazılır.
 type scaleUnit struct {
 	threshold int64
-	name      string
+	text      messages.Code
+	symbol    string
 }
 
-// formatScaled n'yi en büyük uygun basamakta bir ondalıkla yazar (".0" atılır, ondalık ayracı
-// virgül); hiçbir basamağa ulaşmazsa sayının kendisi ve smallSuffix yazılır.
-func formatScaled(n int64, units []scaleUnit, smallSuffix string) string {
-	for _, b := range units {
-		if n >= b.threshold {
-			s := strconv.FormatFloat(float64(n)/float64(b.threshold), 'f', 1, 64)
-			s = strings.TrimSuffix(s, ".0")
-			return s + " " + b.name // ondalık ayırıcı iletide {ad|decimal}, görüntüde messages.Decimal
+// scaled n'yi en büyük uygun basamakta bir ondalıkla yazar (".0" atılır; sözcük ve ondalık ayırıcı
+// iletinin dilinde); hiçbir basamağa ulaşmazsa sayının kendisini small iletisiyle (yoksa yalın).
+type scaled struct {
+	n     int64
+	units []scaleUnit
+	small messages.Code
+}
+
+func (s scaled) MessageText(lang string) string {
+	for _, b := range s.units {
+		if s.n >= b.threshold {
+			v := strings.TrimSuffix(strconv.FormatFloat(float64(s.n)/float64(b.threshold), 'f', 1, 64), ".0")
+			if b.symbol != "" {
+				return messages.TextIn(lang, b.text, v, b.symbol)
+			}
+			return messages.TextIn(lang, b.text, v)
 		}
 	}
-	return strconv.FormatInt(n, 10) + smallSuffix
+	if s.small == 0 {
+		return strconv.FormatInt(s.n, 10)
+	}
+	return messages.TextIn(lang, s.small, s.n)
 }
