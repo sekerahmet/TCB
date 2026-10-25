@@ -61,15 +61,13 @@ type FloatVal struct {
 }
 
 func (f *FloatVal) Type() ValueType { return ValFloat }
-func (f *FloatVal) Inspect() string {
-	// Sonsuz ve tanımsız değerler tensör yazdırmasıyla aynı biçimde yazılır
-	switch {
-	case math.IsNaN(f.Val):
-		return "NaN"
-	case math.IsInf(f.Val, 1):
-		return "+Sonsuz"
-	case math.IsInf(f.Val, -1):
-		return "-Sonsuz"
+func (f *FloatVal) Inspect() string { return f.Text(codes.Active()) }
+
+// Text sayının lang dilindeki metnidir. Sonsuz ve tanımsız değerin adı dilin değer adıdır (A110,
+// A111; eksi sonsuz başına '-' alır); tensör yazdırması aynı adları kullanır (NonFiniteText).
+func (f *FloatVal) Text(lang *codes.Language) string {
+	if s, ok := NonFiniteText(f.Val, lang); ok {
+		return s
 	}
 	s := strconv.FormatFloat(f.Val, 'g', -1, 64)
 	if !strings.Contains(s, ".") && !strings.Contains(s, "e") {
@@ -78,6 +76,21 @@ func (f *FloatVal) Inspect() string {
 	return s
 }
 func (f *FloatVal) IsTruthy() bool { return f.Val != 0.0 }
+
+// NonFiniteText is the text of a non-finite number in lang (3.2): the value names A110 (sonsuz,
+// inf) and A111 (NaN, nan), minus infinity with a leading '-'; ok is false for a finite number.
+// Numbers and tensors write them the same way; data formats (JSON, logs) do not use it.
+func NonFiniteText(f float64, lang *codes.Language) (string, bool) {
+	switch {
+	case math.IsNaN(f):
+		return lang.Name(codes.A111), true
+	case math.IsInf(f, 1):
+		return lang.Name(codes.A110), true
+	case math.IsInf(f, -1):
+		return "-" + lang.Name(codes.A110), true
+	}
+	return "", false
+}
 
 type StringVal struct {
 	Val string
@@ -92,8 +105,8 @@ type BoolVal struct {
 }
 
 func (b *BoolVal) Type() ValueType { return ValBool }
-func (b *BoolVal) Inspect() string { return b.text(codes.Active()) }
-func (b *BoolVal) text(lang *codes.Language) string {
+func (b *BoolVal) Inspect() string { return b.Text(codes.Active()) }
+func (b *BoolVal) Text(lang *codes.Language) string {
 	if b.Val {
 		return lang.Name(codes.A040)
 	}
@@ -104,8 +117,8 @@ func (b *BoolVal) IsTruthy() bool { return b.Val }
 type NullVal struct{}
 
 func (n *NullVal) Type() ValueType                  { return ValNull }
-func (n *NullVal) Inspect() string                  { return n.text(codes.Active()) }
-func (n *NullVal) text(lang *codes.Language) string { return lang.Name(codes.A042) }
+func (n *NullVal) Inspect() string                  { return n.Text(codes.Active()) }
+func (n *NullVal) Text(lang *codes.Language) string { return lang.Name(codes.A042) }
 func (n *NullVal) IsTruthy() bool                   { return false }
 
 var (
@@ -359,7 +372,7 @@ func (f *FuncVal) Inspect() string {
 	}
 	return "<ok fonksiyonu>"
 }
-func (f *FuncVal) text(lang *codes.Language) string {
+func (f *FuncVal) Text(lang *codes.Language) string {
 	if f.Name != "" {
 		return messages.TextIn(lang.Code, messages.H2496, f.Name)
 	}
@@ -392,7 +405,7 @@ func (b *BuiltinVal) Inspect() string { return messages.Text(messages.H2497, b.N
 
 // text yerleşiğin lang dilindeki metnidir: adı (kanonik ad, bir yerleşik ya da üye kodu) da o
 // dildedir; koda bağlı olmayan ad olduğu gibi kalır.
-func (b *BuiltinVal) text(lang *codes.Language) string {
+func (b *BuiltinVal) Text(lang *codes.Language) string {
 	name := b.Name
 	for _, ns := range []codes.Namespace{codes.NamespaceGlobal, codes.NamespaceMember} {
 		if k, ok := codes.Find(ns, name); ok {
@@ -419,7 +432,7 @@ type StructDefVal struct {
 
 func (s *StructDefVal) Type() ValueType { return ValStruct }
 func (s *StructDefVal) Inspect() string { return messages.Text(messages.H2498, s.Name) }
-func (s *StructDefVal) text(lang *codes.Language) string {
+func (s *StructDefVal) Text(lang *codes.Language) string {
 	return messages.TextIn(lang.Code, messages.H2498, s.Name)
 }
 func (s *StructDefVal) IsTruthy() bool { return true }

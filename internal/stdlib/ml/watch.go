@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -89,7 +90,7 @@ func (d *TensorValue) WatchSummary() string {
 		if d.hasInts {
 			return strconv.FormatInt(int64(x), 10)
 		}
-		return numberText(x, scientific)
+		return numberText(x, scientific, codes.Display()) // İzleme Masası görüntüdür (TR_DIL)
 	}
 	ek := []string{string(interp.ValTensor)}
 	var sb strings.Builder

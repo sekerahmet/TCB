@@ -15,6 +15,7 @@ import (
 	"math"
 	"strconv"
 
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -32,8 +33,8 @@ func WriteIndent(val interp.Value, indent string) ([]byte, error) {
 type Options struct {
 	// Indent her seviyede eklenen girintidir; boşsa boşluksuz yazılır.
 	Indent string
-	// NonFiniteAsText Tanımsız (NaN) ve sonsuz sayıları hata yerine TR'deki yazımlarıyla metin
-	// olarak yazar ("NaN", "+Sonsuz", "-Sonsuz"); eğitim günlüğünde kayıpta beliren NaN
+	// NonFiniteAsText Tanımsız (NaN) ve sonsuz sayıları hata yerine veri biçiminin sabit
+	// metniyle yazar ("NaN", "Infinity", "-Infinity"; NonFiniteData); eğitim günlüğünde kayıpta beliren NaN
 	// gizlenmesin diye.
 	NonFiniteAsText bool
 	// TextFilter yazılan her metne (sözlük anahtarları dahil) uygulanır, ör. gizli değer süzgeci;
@@ -76,13 +77,41 @@ func (y *writer) text(s string) {
 	y.b = append(y.b, b...)
 }
 
+// NonFiniteData is the data-format text of a non-finite number: logs, state files and
+// checkpoints (19.5, 20). Data formats are a contract: the text is fixed, independent of the
+// language and of the value names (A110, A111). Python's json.dumps writes the same words
+// (NaN, Infinity, -Infinity) and float("Infinity") reads them back.
+func NonFiniteData(f float64) string {
+	switch {
+	case math.IsNaN(f):
+		return "NaN"
+	case math.IsInf(f, 1):
+		return "Infinity"
+	}
+	return "-Infinity"
+}
+
+// ParseNonFiniteData reads NonFiniteData's text back; ok is false for any other text (other
+// spellings of non-finite numbers are not part of the format).
+func ParseNonFiniteData(s string) (float64, bool) {
+	switch s {
+	case "NaN":
+		return math.NaN(), true
+	case "Infinity":
+		return math.Inf(1), true
+	case "-Infinity":
+		return math.Inf(-1), true
+	}
+	return 0, false
+}
+
 func (y *writer) number(f float64) error {
 	if math.IsNaN(f) || math.IsInf(f, 0) {
 		if y.nonFiniteAsText {
-			y.text((&interp.FloatVal{Val: f}).Inspect())
+			y.text(NonFiniteData(f))
 			return nil
 		}
-		return messages.New(messages.H7008, (&interp.FloatVal{Val: f}).Inspect())
+		return messages.New(messages.H7008, (&interp.FloatVal{Val: f}).Text(codes.Display()))
 	}
 	// encoding/json ile aynı biçim: küçük ve çok büyük sayılarda bilimsel yazım
 	format := byte('f')

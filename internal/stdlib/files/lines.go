@@ -144,7 +144,14 @@ func linesBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Val
 func (o *LineReader) Type() interp.ValueType { return LineReaderType }
 func (o *LineReader) IsTruthy() bool         { return true }
 
-func (o *LineReader) Inspect() string {
+// Inspect is the value's display text, in the person's writing language (TR_DIL).
+func (o *LineReader) Inspect() string { return o.Text(codes.Display()) }
+
+var _ interp.LanguageText = (*LineReader)(nil)
+
+// Text is the value's text in lang: str() and yazdır give it in the language of the file they
+// are written in (docs/spec/03_tipler.md).
+func (o *LineReader) Text(lang *codes.Language) string {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 	state := messages.H7130 // n satır okundu
@@ -154,7 +161,7 @@ func (o *LineReader) Inspect() string {
 	case o.done:
 		state = messages.H7132 // ..., bitti
 	}
-	return messages.Text(state, LineReaderType, o.fpath, o.counter)
+	return messages.TextIn(lang.Code, state, lang.Name(codes.A257), o.fpath, o.counter)
 }
 
 func (o *LineReader) GetProperty(kd codes.Code, prop string) (interp.Value, error) {

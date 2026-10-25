@@ -107,6 +107,18 @@
   "commit": "ab7f634",
   "reason": "deleted: messages: one code per meaning, coded reasons kept, safe generator comments"
  },
+ "H6815": {
+  "commit": "d2a1a753",
+  "reason": "deleted: interp, ml: special numbers are value names A110/A111, one name for numbers and tensors"
+ },
+ "H6816": {
+  "commit": "d2a1a753",
+  "reason": "deleted: interp, ml: special numbers are value names A110/A111, one name for numbers and tensors"
+ },
+ "H6817": {
+  "commit": "d2a1a753",
+  "reason": "deleted: interp, ml: special numbers are value names A110/A111, one name for numbers and tensors"
+ },
  "H7002": {
   "commit": "e5a76ed",
   "reason": "deleted: formats: csv_çöz parses CSV text, csv_oku reads only files"

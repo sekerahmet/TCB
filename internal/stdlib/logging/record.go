@@ -39,10 +39,18 @@ type Log struct {
 
 func (g *Log) Type() interp.ValueType { return LogType }
 func (g *Log) IsTruthy() bool         { return true }
-func (g *Log) Inspect() string {
+
+// Inspect is the value's display text, in the person's writing language (TR_DIL).
+func (g *Log) Inspect() string { return g.Text(codes.Display()) }
+
+var _ interp.LanguageText = (*Log)(nil)
+
+// Text is the value's text in lang: str() and yazdır give it in the language of the file they
+// are written in (docs/spec/03_tipler.md).
+func (g *Log) Text(lang *codes.Language) string {
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	return messages.Text(messages.H7318, LogType, g.path, g.records)
+	return messages.TextIn(lang.Code, messages.H7318, lang.Name(codes.A256), g.path, g.records)
 }
 
 // Path günlük dosyasının çözülmüş yoludur.

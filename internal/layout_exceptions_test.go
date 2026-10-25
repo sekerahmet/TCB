@@ -63,7 +63,7 @@ var longFuncs = map[string]exception{
 
 	// Motorlar
 	"internal/stdlib/ml/custom_grad.go:checkGrad":     {181, reasonBuiltin + " (sayısal türev denetimi)"},
-	"internal/stdlib/ml/print.go:TensorValue.Inspect": {120, "tensör yazdırma: boyut, kısaltma ve biçim tek özyinelemede"},
+	"internal/stdlib/ml/print.go:TensorValue.Text":    {120, "tensör yazdırma: boyut, kısaltma ve biçim tek özyinelemede"},
 	"internal/stdlib/ml/model_tools.go:sampleBuiltin": {118, reasonBuiltin},
 	"internal/stdlib/ml/builtin_reduce.go:reduction":  {85, reasonBuiltin},
 

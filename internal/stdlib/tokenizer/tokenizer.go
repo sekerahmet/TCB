@@ -43,8 +43,15 @@ func (n *Object) Tokenizer() *tokenize.Tokenizer { return n.p }
 func (n *Object) Type() interp.ValueType { return interp.ValueType(TypeName) }
 func (n *Object) IsTruthy() bool         { return true }
 
-func (n *Object) Inspect() string {
-	return messages.Text(messages.H5600, TypeName, n.p.VocabSize(), filepath.Base(n.path))
+// Inspect is the value's display text, in the person's writing language (TR_DIL).
+func (n *Object) Inspect() string { return n.Text(codes.Display()) }
+
+var _ interp.LanguageText = (*Object)(nil)
+
+// Text is the value's text in lang: str() and yazdır give it in the language of the file they
+// are written in (docs/spec/03_tipler.md).
+func (n *Object) Text(lang *codes.Language) string {
+	return messages.TextIn(lang.Code, messages.H5600, lang.Name(codes.A234), n.p.VocabSize(), filepath.Base(n.path))
 }
 
 // WatchKind İzleme Masası'nda ikon seçimi için türdür.

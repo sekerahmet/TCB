@@ -75,22 +75,34 @@ type Dataset struct {
 func (k *Dataset) Type() interp.ValueType { return interp.ValueType(DatasetType) }
 func (k *Dataset) IsTruthy() bool         { return true }
 
-func (k *Dataset) summary() string {
-	return messages.Text(messages.H5500, k.k.ShardCount(), bind.ShortNumber(k.k.TotalTokens()))
+func (k *Dataset) summary(lang *codes.Language) string {
+	return messages.TextIn(lang.Code, messages.H5500, k.k.ShardCount(), bind.ShortNumber(k.k.TotalTokens()))
 }
 
-func (k *Dataset) Inspect() string {
+// Inspect is the value's display text, in the person's writing language (TR_DIL).
+func (k *Dataset) Inspect() string { return k.Text(codes.Display()) }
+
+var (
+	_ interp.LanguageText = (*Dataset)(nil)
+	_ interp.LanguageText = (*Reader)(nil)
+)
+
+// Text is the value's text in lang: str() and yazdır give it in the language of the file they
+// are written in (docs/spec/03_tipler.md).
+func (k *Dataset) Text(lang *codes.Language) string {
 	if k.cache != nil {
-		return messages.Text(messages.H5501, DatasetType, k.summary(), bind.FormatBytes(k.cache.Quota()))
+		return messages.TextIn(lang.Code, messages.H5501, lang.Name(codes.A231), k.summary(lang), bind.FormatBytes(k.cache.Quota()))
 	}
-	return fmt.Sprintf("%s(%s)", DatasetType, k.summary())
+	return fmt.Sprintf("%s(%s)", lang.Name(codes.A231), k.summary(lang))
 }
 
 // WatchKind İzleme Masası'nda ikon seçimi için türdür.
 func (k *Dataset) WatchKind() string { return "diger" }
 
 // WatchLabel tip sütununda gösterilen özettir.
-func (k *Dataset) WatchLabel() string { return messages.Text(messages.H5503, k.summary()) }
+func (k *Dataset) WatchLabel() string {
+	return messages.Text(messages.H5503, k.summary(codes.Display()))
+}
 
 // TableData parçaları (ad, token, boyut) tablo olarak verir.
 func (k *Dataset) TableData() ([]string, [][]string, error) {
@@ -293,17 +305,23 @@ func (o *Reader) Type() interp.ValueType {
 
 func (o *Reader) IsTruthy() bool { return true }
 
-func (o *Reader) Inspect() string {
+// Inspect is the value's display text, in the person's writing language (TR_DIL).
+func (o *Reader) Inspect() string { return o.Text(codes.Display()) }
+
+// Text is the value's text in lang: str() and yazdır give it in the language of the file they
+// are written in (docs/spec/03_tipler.md).
+func (o *Reader) Text(lang *codes.Language) string {
 	o.mu.Lock()
 	defer o.mu.Unlock()
+	batch, context := lang.Name(nameBatch.Code), lang.Name(nameContext.Code)
 	if o.sequential {
-		state := messages.Text(messages.H5519, o.counter)
+		state := messages.TextIn(lang.Code, messages.H5519, o.counter)
 		if o.done {
-			state = messages.Text(messages.H5520, o.counter)
+			state = messages.TextIn(lang.Code, messages.H5520, o.counter)
 		}
-		return fmt.Sprintf("%s(%s: %d, %s: %d, %s)", SequentialType, nameBatch.TR, o.b, nameContext.TR, o.t, state)
+		return fmt.Sprintf("%s(%s: %d, %s: %d, %s)", lang.Name(codes.A233), batch, o.b, context, o.t, state)
 	}
-	return messages.Text(messages.H5521, SamplerType, nameBatch.TR, o.b, nameContext.TR, o.t, nameSeed.TR, o.seed, o.epoch, o.counter)
+	return messages.TextIn(lang.Code, messages.H5521, lang.Name(codes.A232), batch, o.b, context, o.t, lang.Name(nameSeed.Code), o.seed, o.epoch, o.counter)
 }
 
 // WatchKind İzleme Masası'nda ikon seçimi için türdür.

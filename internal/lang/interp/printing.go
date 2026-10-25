@@ -9,13 +9,27 @@ import (
 
 // Değerin metni (3, 17.1): metin(), yazdır ve metin yerleştirmesi bir değeri işlemin yazıldığı
 // dosyanın dilinde metne çevirir (valueText). Dile bağlı olan yalnızca dilin değerlerinin adlarıdır
-// (doğru, yanlış, yok ve tip adları; languageText), iç içe kapların içindekiler dahil. Inspect
+// (doğru, yanlış, yok ve tip adları; LanguageText), iç içe kapların içindekiler dahil. Inspect
 // kanonik (Türkçe) kalır: veri biçimleri (JSON, günlük) ve iletiler onu kullanır.
 
-// languageText adı dilin bir sözcüğü olan değerlerdir: metinleri bir yazım dilinde verilir.
-type languageText interface {
-	text(lang *codes.Language) string
+// LanguageText is a value whose text depends on a writing language: the language's value and
+// type names (doğru, yok, Tam, sonsuz), names of builtins, messages inside the text. Text(lang)
+// is its text in a file written in lang (3). The program's text of a value (valueText, textOf)
+// asks for it in the file's language; Inspect is the canonical (core values) or display (engine
+// values, functions) text. Engine values (tensor, Günlük ...) implement it too.
+type LanguageText interface {
+	Text(lang *codes.Language) string
 }
+
+var (
+	_ LanguageText = (*BoolVal)(nil)
+	_ LanguageText = (*NullVal)(nil)
+	_ LanguageText = (*FloatVal)(nil)
+	_ LanguageText = (*TypeVal)(nil)
+	_ LanguageText = (*FuncVal)(nil)
+	_ LanguageText = (*BuiltinVal)(nil)
+	_ LanguageText = (*StructDefVal)(nil)
+)
 
 // textOf val'ın şu an çalışan koddaki metnidir: program bir değeri işlemin yazıldığı dosyanın
 // dilinde metne çevirir (3, 17.1). Programın değerden metin yaptığı her yer bunu kullanır
@@ -24,8 +38,22 @@ type languageText interface {
 // kullanmaz: onlar Inspect'tedir.
 func (v *VM) textOf(val Value) string { return valueText(val, v.textLanguage()) }
 
+// DisplayText is v's display text, in the person's writing language (TR_DIL): the REPL's echo,
+// the debugger, the İzleme Masası and help text show it. The program's own text of a value
+// follows the language of its file instead (textOf); Inspect is canonical.
+func DisplayText(v Value) string { return valueText(v, codes.Display()) }
+
+// DisplayType is the name of v's type in the person's writing language (TR_DIL); for a struct
+// instance, the struct's name.
+func DisplayType(v Value) string {
+	if t := TypeOfValue(v); t != nil {
+		return t.Text(codes.Display())
+	}
+	return string(v.Type())
+}
+
 // valueText v'nin lang dilinde yazılmış bir dosyadaki metnidir; lang nil kanonik dildir. Dilin
-// sözcüğü olan değerler (languageText) her zaman bir dilde çevrilir: fonksiyon, yerleşik ve yapı
+// sözcüğü olan değerler (LanguageText) her zaman bir dilde çevrilir: fonksiyon, yerleşik ve yapı
 // değerlerinin Inspect'i görüntüdür (TR_DIL), program metni ondan alınmaz. Aynı dili birden çok değer için bir kez soran çağıranlar (yazdır, birleştir,
 // yerleştirme) bunu kullanır.
 func valueText(v Value, lang *codes.Language) string {
@@ -115,14 +143,19 @@ func writeItem(v Value, lang *codes.Language, filePath []Value) string {
 		if lang == nil {
 			return x.Inspect()
 		}
-		return x.text(lang)
+		return x.Text(lang)
+	case *FloatVal:
+		if lang == nil {
+			return x.Inspect()
+		}
+		return x.Text(lang)
 	case *ListVal, *DictVal, *StructInstanceVal:
 		return writeContainer(v, lang, filePath)
-	case languageText:
+	case LanguageText:
 		if lang == nil {
 			lang = codes.Active()
 		}
-		return x.text(lang)
+		return x.Text(lang)
 	}
 	return v.Inspect()
 }

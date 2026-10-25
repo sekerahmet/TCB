@@ -146,7 +146,7 @@ func (s *dapServer) refFor(val interp.Value, expr string) int {
 // display değişkenin yanında gösterilecek kısa metindir.
 func display(val interp.Value) string {
 	if val == nil {
-		return interp.Null.Inspect()
+		return interp.DisplayText(interp.Null)
 	}
 	if iz, ok := val.(WatchValue); ok {
 		// Çok satırlı yazdırma biçimi yerine kısa özet gösterilir.
@@ -159,7 +159,7 @@ func display(val interp.Value) string {
 	case *interp.DictVal:
 		prefix = fmt.Sprintf("{%d} ", len(v.Pairs))
 	}
-	text := prefix + val.Inspect()
+	text := prefix + interp.DisplayText(val)
 	if r := []rune(text); len(r) > 200 {
 		text = string(r[:200]) + "…"
 	}
