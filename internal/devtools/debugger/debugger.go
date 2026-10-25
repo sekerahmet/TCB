@@ -424,10 +424,10 @@ func isBareName(e ast.Expression) bool {
 func (d *Debugger) renderDebugScreen(v *interp.VM, currentLine int, env *interp.Environment) {
 	// Satırlar çalışan deyimin dosyasından gösterilir ('aktar' ile yüklenen modül de olabilir).
 	file := d.fileOf(v, v.CurrentSource())
-	fmt.Println("\n╔══════════════════════════════════════════════════════════════════════════════╗")
-	fmt.Println("║ 🛠️  " + messages.Text(messages.H8070, fmt.Sprintf("%-35s", file.path)) + " ║")
+	fmt.Println("\n╔" + strings.Repeat("═", boxInner) + "╗")
+	fmt.Println(boxRow("🛠️  " + messages.Text(messages.H8070, file.path)))
 	if d.PauseReason != "" {
-		fmt.Println("║ 📌 " + messages.Text(messages.H8071, fmt.Sprintf("%-66s", d.PauseReason)) + " ║")
+		fmt.Println(boxRow("📌 " + messages.Text(messages.H8071, d.PauseReason)))
 	}
 	fmt.Println("╠══════════════════════════════════════════════════════════════════════════════╣")
 

@@ -253,3 +253,26 @@ func TestCLIExpressionAndUndefinedAssign(t *testing.T) {
 		t.Error("tanımsız ad tanımlanmamalı")
 	}
 }
+
+// Kural (B9): başlık kutusunun her satırı kenarlıkla aynı genişliktedir (sağ kenar hizalı), iletinin
+// dili ve dosya yolunun uzunluğu ne olursa olsun. Önceden dolgu yalnız yola uygulanıyordu.
+func TestScreenBoxRowsAlign(t *testing.T) {
+	if displayWidth("🛠️") != 2 || displayWidth("📌") != 2 || displayWidth("şğü") != 3 {
+		t.Fatalf("görüntü genişliği: %d %d %d", displayWidth("🛠️"), displayWidth("📌"), displayWidth("şğü"))
+	}
+	for _, path := range []string{"t.tr", "çok/uzun/bir/klasör/yolu/içindeki/program_dosyası.tr", strings.Repeat("a", 100) + ".tr"} {
+		out, _ := runCLI(t, path, "değişken a = 1\n", "devam\n", nil)
+		want := -1
+		for _, line := range strings.Split(out, "\n") {
+			if !strings.HasPrefix(line, "╔") && !strings.HasPrefix(line, "║") && !strings.HasPrefix(line, "╠") {
+				continue
+			}
+			if want < 0 {
+				want = displayWidth(line)
+			}
+			if w := displayWidth(line); w != want {
+				t.Errorf("%s: satır genişliği %d, kenarlık %d: %q", path, w, want, line)
+			}
+		}
+	}
+}
