@@ -259,6 +259,25 @@ test('başka dilde düzenlenen kodlu dosya kaydedilince dil=\'si korunur', async
     assert.ok(encode(TURKISH_TEXT).startsWith(codedFormat.HEADER + 'tr\r\n'));
 });
 
+// Kural (17.1): kodlanamadığı için başlıksız kaydedilen (bekleyen) dosyanın dili de kalıcıdır;
+// VS Code yeniden açılıp dosya kodlanınca dil=en korunur. Neden: dil yalnız bellekteydi, yeniden
+// açılışta görünümün diliyle kodlanıyordu (dosyanın dili ve değer metinleri sessizce değişiyordu).
+test('bekleyen kodlu dosyanın dili VS Code yeniden açılınca da korunur', async () => {
+    const state = new FakeState();
+    const english = tr('kodla', '-', '--dil', 'en', 'var x = true\nprint(x)\n');
+    const o = makeEnv({ disk: english.output, settings: { yazimDili: 'tr' }, state });
+    const b = (await open(o, o.uri)).document;
+    b.edit(b.getText() + 'eğer x {\n');
+    assert.ok(await b.save());
+    assert.ok(!codedFormat.isCoded(fs.readFileSync(o.file)), 'bozuk metin başlıksız (bekleyen) kaydedilir');
+
+    const o2 = setup({ setting: TR, folder: o.folder, state, settings: { yazimDili: 'tr' } });
+    const b2 = (await open(o2, o.uri)).document;
+    b2.edit(b2.getText() + '}\n');
+    assert.ok(await b2.save());
+    assert.ok(fs.readFileSync(o.file, 'utf8').startsWith(codedFormat.HEADER + 'en\n'), fs.readFileSync(o.file, 'utf8'));
+});
+
 test('yazım dili değişince kirli olmayan açık görünüm yeni dille yenilenir', async () => {
     const settings = { yazimDili: 'tr' };
     const o = makeEnv({ settings });
