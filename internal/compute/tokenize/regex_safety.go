@@ -82,14 +82,20 @@ type StepLimitError struct {
 	Work messages.Code
 }
 
-func (e *StepLimitError) Error() string {
+func (e *StepLimitError) Error() string { return e.message().Error() }
+
+// MessageText hatanın lang dilindeki metnidir (messages.Localized).
+func (e *StepLimitError) MessageText(lang string) string { return messages.ErrorIn(e.message(), lang) }
+
+// message hatanın kodlu iletisidir.
+func (e *StepLimitError) message() *messages.Error {
 	if e.Work != 0 {
-		return messages.Text(e.Work, e.Budget)
+		return messages.New(e.Work, e.Budget)
 	}
 	if e.Memory {
-		return messages.Text(messages.H5269, reShorten(e.Pattern), e.Pos, CurrentRegexSettings().BacktrackLimit)
+		return messages.New(messages.H5269, reShorten(e.Pattern), e.Pos, CurrentRegexSettings().BacktrackLimit)
 	}
-	return messages.Text(messages.H5270, reShorten(e.Pattern), e.Pos, e.Budget)
+	return messages.New(messages.H5270, reShorten(e.Pattern), e.Pos, e.Budget)
 }
 
 // catchStepError f'yi çalıştırır; adım sınırı aşılırsa hatayı döndürür

@@ -162,6 +162,16 @@ func (h *deferError) Error() string {
 	return messages.Text(messages.H2519, h.mainSrc, codes.NameRef(codes.A081), strings.Join(pieces, "; "))
 }
 
+// MessageText hatanın lang dilindeki metnidir (messages.Localized): ilk hata da ertelenen işlerin
+// hataları da yakalayan dosyanın dilinde yazılır.
+func (h *deferError) MessageText(lang string) string {
+	pieces := make([]string, len(h.extras))
+	for i, e := range h.extras {
+		pieces[i] = messages.ErrorIn(e, lang)
+	}
+	return messages.TextIn(lang, messages.H2519, messages.ErrorIn(h.mainSrc, lang), codes.NameRef(codes.A081), strings.Join(pieces, "; "))
+}
+
 func (h *deferError) Unwrap() error { return h.mainSrc }
 
 // addDeferError ertelenen işin hatasını (ek) mevcut hataya ekler: mevcut hata yoksa ek

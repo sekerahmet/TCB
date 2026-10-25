@@ -60,21 +60,21 @@ func (v *VM) ResolvePath(filePath string) (resolved string, searched []string) {
 }
 
 // SearchedPlaces turns the places returned by ResolvePath into the error message suffix.
-func SearchedPlaces(searched []string) string {
+func SearchedPlaces(searched []string) *messages.Error {
 	switch len(searched) {
 	case 0:
-		return ""
+		return nil
 	case 1:
-		return messages.Text(messages.H2030, searched[0])
+		return messages.New(messages.H2030, searched[0])
 	}
-	return messages.Text(messages.H2031, strings.Join(searched, ", "))
+	return messages.New(messages.H2031, strings.Join(searched, ", "))
 }
 
 // ReadError explains a read error with turkish.FileError; when the file was not found it adds
 // the places ResolvePath tried. fn is the builtin reporting the error, yol the path the user
 // wrote, operation an outcome message code such as messages.H2100 ("okunamadı").
 func ReadError(fn any, filePath string, operation messages.Code, err error, searched []string) error {
-	extra := ""
+	var extra *messages.Error
 	if errors.Is(err, fs.ErrNotExist) {
 		extra = SearchedPlaces(searched)
 	}

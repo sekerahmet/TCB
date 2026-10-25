@@ -54,6 +54,11 @@ func (e *MeaningChangedError) Error() string {
 	return messages.Text(messages.H8400, e.Detail)
 }
 
+// MessageText hatanın lang dilindeki metnidir (messages.Localized).
+func (e *MeaningChangedError) MessageText(lang string) string {
+	return messages.TextIn(lang, messages.H8400, e.Detail)
+}
+
 // SyntaxError kaynak ayrıştırılamadığında döner; hatalı kod biçimlenmez.
 type SyntaxError struct {
 	Errors []error
@@ -61,6 +66,11 @@ type SyntaxError struct {
 
 func (e *SyntaxError) Error() string {
 	return messages.Text(messages.H8401, e.Errors[0])
+}
+
+// MessageText hatanın lang dilindeki metnidir (messages.Localized).
+func (e *SyntaxError) MessageText(lang string) string {
+	return messages.TextIn(lang, messages.H8401, e.Errors[0])
 }
 
 // Format kaynağı standart biçime getirir. Kaynak ayrıştırılamıyorsa *SyntaxError,

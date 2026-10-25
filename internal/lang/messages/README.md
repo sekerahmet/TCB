@@ -95,4 +95,5 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 
 - `behavior_message_text_test.go`: Go kodunun bir iletinin metnini düzenlemediği (`strings.Replace`, `TrimPrefix` ... doğrudan ileti metniyle çağrılmaz)
 - `behavior_message_fragments_test.go`: bir ileti çağrısına başka bir `messages.Text(...)` parça olarak verilmez (cümle tek şablondur)
+- `behavior_localized_errors_test.go`: `Error()` uygulayan her hata türü `MessageText(lang)` de uygular (messages.Localized); yakalanan hata bütünüyle yakalayan dosyanın dilinde yazılır, katalog hiçbir hatayı TR_DIL metnine düşürmez
 - `behavior_english_complete_test.go`: tr.json'daki her ileti kodunun en.json'da İngilizce metni vardır

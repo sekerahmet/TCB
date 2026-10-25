@@ -239,7 +239,7 @@ func largestShard(k *dataload.Dataset) int64 {
 
 // dataError Go veri paketinin hatasını yol gösterici bir TR hatasına çevirir; ekler
 // küme bulunamadığında mesaja eklenir (ör. bakılan yerler).
-func dataError(fn any, path string, err error, extras ...string) error {
+func dataError(fn any, path string, err error, extras ...*messages.Error) error {
 	var bh *dataload.FormatError
 	switch {
 	case errors.As(err, &bh):
@@ -257,7 +257,7 @@ func dataError(fn any, path string, err error, extras ...string) error {
 		return messages.New(messages.H2000, fn, sentinelDetail(err))
 	case bind.IsNotExist(err) && messages.Has(err, messages.H5019):
 		return turkish.FileError(fn, path, messages.H2103, err,
-			append([]string{messages.Text(messages.H5517)}, extras...)...)
+			append([]*messages.Error{messages.New(messages.H5517)}, extras...)...)
 	}
 	var pe *fs.PathError
 	if errors.As(err, &pe) {

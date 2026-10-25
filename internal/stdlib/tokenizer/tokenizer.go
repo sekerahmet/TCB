@@ -164,7 +164,7 @@ func loadError(path string, err error, tried []string) error {
 	fn := codes.NameRef(codes.V200)
 	if bind.IsNotExist(err) {
 		return turkish.FileError(fn, path, messages.H2107, err,
-			messages.Text(messages.H5612), interp.SearchedPlaces(tried))
+			messages.New(messages.H5612), interp.SearchedPlaces(tried))
 	}
 	switch {
 	case isUnsupported(err):

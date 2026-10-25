@@ -15,14 +15,23 @@ import (
 // os.ErrNotExist) gibi denetimler çalışmaya devam eder.
 type fileError struct {
 	message *messages.Error
-	extras  []string
+	extras  []*messages.Error
 	orig    error
 }
 
-func (h *fileError) Error() string {
-	s := h.message.Error()
+func (h *fileError) Error() string { return h.text((*messages.Error).Error) }
+
+// MessageText hatanın lang dilindeki metnidir (messages.Localized): ileti ve ekleri yakalayan
+// dosyanın dilinde yazılır.
+func (h *fileError) MessageText(lang string) string {
+	return h.text(func(m *messages.Error) string { return messages.ErrorIn(m, lang) })
+}
+
+// text iletiyi ve eklerini write ile yazar ("; " ile ayrılmış).
+func (h *fileError) text(write func(*messages.Error) string) string {
+	s := write(h.message)
 	for _, e := range h.extras {
-		s += "; " + e
+		s += "; " + write(e)
 	}
 	return s
 }
@@ -38,7 +47,10 @@ type Reason struct{ Message *messages.Error }
 func NewReason(c messages.Code, args ...any) Reason { return Reason{messages.New(c, args...)} }
 
 func (n Reason) Error() string { return n.Message.Error() }
-func (n Reason) Unwrap() error { return n.Message }
+
+// MessageText nedenin lang dilindeki metnidir (messages.Localized).
+func (n Reason) MessageText(lang string) string { return messages.ErrorIn(n.Message, lang) }
+func (n Reason) Unwrap() error                  { return n.Message }
 
 // FileError turns the error of a file operation into a message for the user in the active
 // language; the operating system's English text ("The system cannot find the file
@@ -49,7 +61,8 @@ func (n Reason) Unwrap() error { return n.Message }
 // fn is the builtin that failed (e.g. "dosya_oku()"; no prefix when empty), yol is the
 // path as the user wrote it, op is the outcome as a whole-sentence message code with the
 // parameters path and reason (messages.H2100 "{path} okunamadı: {reason}", messages.H2101 ...).
-// ekler are appended after the reason with "; " (e.g. "bakılan yerler: ..."). Known cases:
+// suffixes (message parts, nil skipped) are appended after the reason with "; " (e.g. "bakılan
+// yerler: ..."); like the message they are written in the language of the message. Known cases:
 // file or folder missing, permission denied, path is a folder, disk full, file in use,
 // invalid name, path too long, write-protected disk. Unknown cases get a Turkish lead
 // sentence followed by the operating system's error code and original text (so it can be
@@ -57,7 +70,7 @@ func (n Reason) Unwrap() error { return n.Message }
 //
 // Returns nil when err is nil. Standard library packages (tensör_kaydet/yükle,
 // parçalayıcı_yükle, veri_kümesi) must report file errors through it as well.
-func FileError(fn any, path string, op messages.Code, err error, suffixes ...string) error {
+func FileError(fn any, path string, op messages.Code, err error, suffixes ...*messages.Error) error {
 	if err == nil {
 		return nil
 	}
@@ -67,9 +80,9 @@ func FileError(fn any, path string, op messages.Code, err error, suffixes ...str
 	if fn != nil && fn != "" {
 		m = messages.New(messages.H2000, fn, m)
 	}
-	var extras []string
+	var extras []*messages.Error
 	for _, suffix := range suffixes {
-		if suffix != "" {
+		if suffix != nil {
 			extras = append(extras, suffix)
 		}
 	}

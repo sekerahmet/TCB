@@ -38,10 +38,14 @@ func TestFileErrorTurkishAndHelpful(t *testing.T) {
 		if d.err == nil {
 			t.Fatalf("%s: işletim sistemi hata vermedi", d.name)
 		}
-		e := FileError("dosya_oku()", "x.txt", d.op, d.err, "ek bilgi")
+		e := FileError("dosya_oku()", "x.txt", d.op, d.err, messages.New(messages.H2030, "y.txt"))
 		m := e.Error()
-		if !strings.HasPrefix(m, "dosya_oku(): ") || !strings.Contains(m, `"x.txt" `) || !messages.Has(e, d.op) || !strings.Contains(m, d.wantSub) || !strings.HasSuffix(m, "; ek bilgi") {
+		if !strings.HasPrefix(m, "dosya_oku(): ") || !strings.Contains(m, `"x.txt" `) || !messages.Has(e, d.op) || !strings.Contains(m, d.wantSub) || !strings.HasSuffix(m, "; "+messages.Text(messages.H2030, "y.txt")) {
 			t.Errorf("%s: beklenmeyen mesaj: %s", d.name, m)
+		}
+		// İleti de ekleri de iletinin dilinde (messages.Localized; 4D denetimi, bulgu 1).
+		if en := messages.ErrorIn(e, "en"); !strings.HasSuffix(en, "; "+messages.TextIn("en", messages.H2030, "y.txt")) || en == m {
+			t.Errorf("%s: İngilizce metin: %s", d.name, en)
 		}
 		if strings.Contains(m, "cannot") || strings.Contains(m, "system") || strings.Contains(m, "Incorrect") {
 			t.Errorf("%s: işletim sisteminin İngilizce metni sızdı: %s", d.name, m)

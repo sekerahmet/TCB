@@ -112,7 +112,10 @@ func readerMismatch(err error) bool {
 type corruptContent struct{ err error }
 
 func (c corruptContent) Error() string { return c.err.Error() }
-func (c corruptContent) Unwrap() error { return c.err }
+
+// MessageText hatanın lang dilindeki metnidir (messages.Localized).
+func (c corruptContent) MessageText(lang string) string { return messages.ErrorIn(c.err, lang) }
+func (c corruptContent) Unwrap() error                  { return c.err }
 
 // readStates tensör dosyasını girdi girdi okur ve yalnızca iyileştirici durumlarını nesneye
 // göre toplar; model parametrelerine dokunmaz. Çekirdek panikleri (bellek) hataya çevrilir.

@@ -134,6 +134,30 @@ try { k.taşır() } catch e { print(e) }
 	}
 }
 
+// Kodlu ileti olmayan hata türleri de (dosya hatası, ertele hatası; messages.Localized) yakalayan
+// dosyanın dilinde yazılır (DENETİM 4D, bulgu 1). Önceden katalog onları Error() metnine, yani
+// TR_DIL'e düşürüyordu: "dosya_oku(): "missing.txt" okunamadı". Her hata türünün Localized
+// olduğunu TestEveryErrorTypeIsLocalized (messages) korur.
+func TestCaughtErrorTypesFollowTheCatchingFile(t *testing.T) {
+	out := runEnglish(t, `try { read_file("missing.txt") } catch e { print(e) }
+func f() {
+	defer { [1][7] }
+	[1][5]
+}
+try { f() } catch e { print(e) }
+`, nil)
+	for _, want := range []string{`read_file(): "missing.txt" could not be read: no such file or folder`, "error in defer as well:"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("%q yok:\n%s", want, out)
+		}
+	}
+	for _, turkish := range []string{"okunamadı", "dosya_oku", "ertele", "Satır", "bakılan"} {
+		if strings.Contains(out, turkish) {
+			t.Errorf("İngilizce dosyanın yakaladığı hatada Türkçe %q:\n%s", turkish, out)
+		}
+	}
+}
+
 // Kod taşıyan çıplak sözlük anahtarı ({step: 1}, Y500) işlemin yazıldığı dosyanın dilindeki
 // adıdır; d.ad okuması ve yazması anahtarı kodun her yazım dilindeki adıyla arar (önce dosyanın
 // dilindeki), yoksa dosyanın dilindeki adla ekler: aynı kodun iki anahtarı oluşmaz (3.7, 17.3).
