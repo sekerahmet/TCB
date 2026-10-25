@@ -85,6 +85,37 @@ değişken girdi, hedef = ö.sonraki()                              // [8, 256] 
 
 `parçalayıcı_yükle` yaygın `tokenizer.json` biçimini okur; `veri_kümesi` büyük derlemleri belleğe almadan parça parça okur, sonraki toplu işleri arka planda hazırlar. Uçtan uca örnek: [`examples/tr/39_veri_ile_egitim.tr`](examples/tr/39_veri_ile_egitim.tr); ayrıntılar: [Kılavuz §4.D](docs/guide/04_yapay_zeka_ve_veri.md#d-veri-ve-parçalayıcı).
 
+## Başka dillerden aldıklarımız
+
+TR'nin hedeflerinden biri başka dillerin güçlü yanlarını bir araya getirmek, bilinen hatalarını tekrarlamamaktır: bir tasarım kararından önce başka dillerin çözümü karşılaştırılır. Aşağıdaki her satır bugünkü `tr` ile denenmiştir. "Kural" sütunu TR'deki davranışın yazılı olduğu maddedir; karşılaştırması ve gerekçesi yazılı olan maddelerde (2.3b, 2.8, 3.6, 11.7, 15. bölüm, 17.7, 17.8, 19.5) ayrıntı oradadır.
+
+| TR'de | Nereden | Kural |
+| :-- | :-- | :-- |
+| Satır sonu deyimi bitirir; satır başındaki `-` önceki satıra bağlanmaz | Go, Python, Kotlin, Swift (JavaScript'in bu tuzağı alınmadı) | [2.8](docs/spec/02_sozcuk_yapisi.md) |
+| Ad yazımı kuralı (sabit `BÜYÜK_HARF`, yapı `BüyükDeve`) hata değil uyarıdır | Rust'ın ad uyarıları, Python PEP 8 | [2.3b](docs/spec/02_sozcuk_yapisi.md) |
+| `a..b` uç hariç, `a..=b` uç dahil | Rust | [3.8](docs/spec/03_tipler.md) |
+| Sınır dışı okuma hatadır; olmayabilecek öğe `varsa_al(i) ?? varsayılan` ile istenir | Python, Go, Rust ve Kotlin'de hata; Kotlin `getOrNull`, Rust `get` | [3.6](docs/spec/03_tipler.md), [15.49](docs/spec/15_tensorler.md) |
+| `a ?? b` ve `a?.b` | Swift, C# | [4.7, 4.8](docs/spec/04_operatorler.md) |
+| `x \|> f(a)` ≡ `f(x, a)` (değer ilk argüman olur) | Elixir | [4.9](docs/spec/04_operatorler.md) |
+| Liste üreteci `[x * x döngü x içinde 1..=5 eğer x % 2 == 1]` | Python | [5.11](docs/spec/05_deyimler.md) |
+| `eşle konu { 1 => ..., _ => ... }` (desen değerle karşılaştırılır) | Rust'ın `match` yazımı | [5.6](docs/spec/05_deyimler.md) |
+| Sondaki blok: `l.filtrele { o > 2 }`, tek parametre `o` | Kotlin'in sondaki lambdası ve `it`'i | [6.7](docs/spec/06_fonksiyonlar.md) |
+| `ertele`: fonksiyon bitince, ters sırayla çalışır | Go `defer` | [9.1](docs/spec/09_ertele.md) |
+| `eşzamanlı` görev ve yorumlayıcı kilidi | Go'nun `go` deyimi; kilit Python'unki gibi | [10.1, 10.2](docs/spec/10_eszamanlilik.md) |
+| Başı `_` olan ad modüle özeldir ve dışarıdan erişilemez | Python'un yazımı; Python'da yalnızca gelenek, TR'de kural | [11.7](docs/spec/11_moduller.md) |
+| `test "ad" { ... }` programla aynı dosyada; normal çalıştırmada atlanır | Zig | [12.1](docs/spec/12_testler.md) |
+| Tensör kuralları: yayınlama, tür yükseltme, indeks, dilim | PyTorch ve NumPy, satır satır karşılaştırıldı | [15.49](docs/spec/15_tensorler.md) |
+| Özel değerler (±0, ±∞, NaN) CPU'da ve GPU'da aynı | PyTorch 2.14 ve NumPy 2.1 ile ölçüldü; farklar gerekçeli | [15.50](docs/spec/15_tensorler.md) |
+| `gelu(yaklaşık: doğru)`: seçenek Mantık bayraktır | JAX ve TensorFlow (PyTorch'un `"tanh"` metni yazım hatasına açık) | [15.17](docs/spec/15_tensorler.md) |
+| Dikkatin tensör düzeni `(toplu, uzunluk, bakış, boyut)` | JAX ve FlashAttention (çevirme kopyası olmaz) | [15.24](docs/spec/15_tensorler.md) |
+| Bellek: ara sonuçlar işlemden hemen sonra, depolama son sahibi gidince bırakılır | Mojo, PyTorch, TensorFlow.js `tidy` | [15.43](docs/spec/15_tensorler.md) |
+| `kaynaştır`: dışarıdan okunan sayılar ilk çağrıda sabitlenir | JAX `jit` | [15.44](docs/spec/15_tensorler.md) |
+| `tekrar_oynat`: GPU adımını bir kez kaydedip oynatır, girdileri kendisi kopyalar | CUDA Graphs (PyTorch bu işi kullanıcıya bırakır) | [15.45](docs/spec/15_tensorler.md) |
+| safetensors okumasının denetimleri | safetensors'un kendi okuyucusu (yinelenen anahtar ayrıca reddedilir) | [15.47](docs/spec/15_tensorler.md) |
+| Günlükte NaN ve sonsuz `"NaN"`, `"Infinity"` olarak yazılır | Python `json.dumps` (`float()` geri okur) | [19.5](docs/spec/19_surec_ve_kayit.md) |
+
+**TR'ye özgü:** kod geliştiricinin kendi dilinde yazılır ve okunur, dosya dilden bağımsız kodlarla saklanır. Karşılaştırılan dillerin hiçbiri (Python, Java, Swift, Go) değerin metnini yerelleştirmez; dosyanın dili Rust'ın `edition`'ı ve Python'un PEP 263 başlığı gibi dosyanın başında bildirilir ([17.7](docs/spec/17_kodlar.md)). `tr` komutları da her yazım dilinin adıyla çalışır; Go, git ve cargo komut adlarını tek (İngilizce) yazımda tutar ([17.8](docs/spec/17_kodlar.md)).
+
 ## VS Code eklentisi ve hata ayıklama
 
 [`editors/vscode/`](editors/vscode/README.md) `.tr` dosyalarına renklendirme, kod şablonları (`tensör` yazıp `Tab`: küçük bir eğitim döngüsü), çalıştırma (▶) ve hata ayıklama getirir. **F5** ile hata ayıklarken **İzleme Masası** paneli tüm değişkenleri tek tabloda gösterir; listeler, tensörler ve veri kümeleri tablo olarak açılır, değerler çalışma anında değiştirilebilir. Terminalde hata ayıklamak için: `tr hata_ayıkla dosya.tr`.

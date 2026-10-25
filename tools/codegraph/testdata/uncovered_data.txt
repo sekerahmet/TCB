@@ -27,3 +27,4 @@ tools/codegraph/README.md	aracın kullanım belgesi; `Denetim:` satırlı kural�
 tools/edithook/README.md	aracın kullanım belgesi; `Denetim:` satırlı kuralı yok
 tools/hf/README.md	aracın kullanım belgesi; `Denetim:` satırlı kuralı yok
 tools/record/README.md	aracın kullanım belgesi; `Denetim:` satırlı kuralı yok
+tools/codegraph/gaps.md	codegraph eksiklerinin çalışma listesi (düzyazı); yalnız ana oturum günceller (CLAUDE.md), dosyanın kendisini okuyan test yoktur
