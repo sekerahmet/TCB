@@ -280,7 +280,7 @@ func (o *LineReader) read() (line string, last bool, err error) {
 		if errors.Is(err, bufio.ErrBufferFull) {
 			if len(long)+len(part) > lineLimit {
 				o.close()
-				return "", false, turkish.NewReason(messages.H7105, o.counter+1, codes.DisplayName(codes.G110))
+				return "", false, turkish.NewReason(messages.H7105, o.counter+1, codes.NameRef(codes.G110))
 			}
 			long = append(long, part...)
 			continue

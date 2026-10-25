@@ -283,6 +283,18 @@ func TestMessageNamesFollowTheMessageLanguage(t *testing.T) {
 	}
 }
 
+// Sözdizimi ipucundaki dil adı kişinin dilindedir (DENETİM 4D, bulgu 2): Türkçe dosyada döngü
+// dışındaki 'çık', TR_DIL=en ile "to leave the function write 'return'" der. Önceden ad kanonikti
+// ('sonuç').
+func TestSyntaxHintNamesFollowPersonsLanguage(t *testing.T) {
+	dir := t.TempDir()
+	testkit.WriteFile(t, dir, "p.tr", "fonksiyon f() {\n    çık\n}\n")
+	s := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "p.tr")
+	if s.Code == 0 || !strings.Contains(s.Stderr, "to leave the function write 'return'") {
+		t.Errorf("TR_DIL=en sözdizimi ipucu: çıkış %d\n%s", s.Code, s.Stderr)
+	}
+}
+
 // fileFormatShape klasördeki dosya adlarını ve her JSON dosyasının (satırının) anahtar
 // kümesini, değerleri atarak, sıralı bir özet olarak verir.
 func fileFormatShape(t *testing.T, dir string) string {
