@@ -8,6 +8,8 @@
 package hint
 
 import (
+	"slices"
+
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
@@ -49,15 +51,42 @@ func BuiltinSpellingHint(name string) *messages.Error {
 
 // NameSuggestion returns the suggestion to append to the error message for an undefined name:
 // the real name for an ASCII-written keyword or builtin, otherwise the visible name
-// closest to the spelling ("Bunu mu demek istediniz?"); nil when there is none.
-func NameSuggestion(name string, visible []string) *messages.Error {
+// closest to the spelling ("Bunu mu demek istediniz?"); nil when there is none. lang is the
+// language the name was written in (the file's; nil: canonical): see closestVisible.
+func NameSuggestion(name string, visible []string, lang *codes.Language) *messages.Error {
 	if i := KeywordSpellingHint(name); i != nil {
 		return i
 	}
 	if i := BuiltinSpellingHint(name); i != nil {
 		return i
 	}
-	return ClosestSuggestion(name, visible)
+	return closestVisible(name, visible, lang)
+}
+
+// closestVisible is ClosestSuggestion for visible names (canonical identities): a name of the
+// language is matched by its spelling in lang and suggested as its code, written in the message's
+// language (prnt → print in an English file); a user's name is matched and suggested as written.
+func closestVisible(name string, visible []string, lang *codes.Language) *messages.Error {
+	spellings := make([]string, len(visible))
+	suggested := make([]any, len(visible))
+	for i, v := range visible {
+		spellings[i], suggested[i] = v, v
+		k, ok := codes.Find(codes.NamespaceGlobal, v)
+		if !ok {
+			k, ok = codes.Find(codes.NamespaceType, v)
+		}
+		if ok {
+			suggested[i] = codes.NameRef(k)
+			if lang != nil {
+				spellings[i] = lang.Name(k)
+			}
+		}
+	}
+	o := turkish.Closest(name, spellings)
+	if o == "" {
+		return nil
+	}
+	return messages.New(messages.H1104, suggested[slices.Index(spellings, o)])
 }
 
 // ClosestSuggestion returns the "Bunu mu demek istediniz?" suggestion (H1104) for the
@@ -85,6 +114,6 @@ func TypeTextComparisonError(op, text string, example any) *messages.Error {
 
 // UndefinedNameError is the same message for an undefined name at run time and in the checker
 // (without the position prefix; H1106).
-func UndefinedNameError(name string, visible []string) *messages.Error {
-	return messages.New(messages.H1106, name, NameSuggestion(name, visible))
+func UndefinedNameError(name string, visible []string, lang *codes.Language) *messages.Error {
+	return messages.New(messages.H1106, name, NameSuggestion(name, visible, lang))
 }

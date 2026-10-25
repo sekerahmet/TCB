@@ -35,7 +35,7 @@ func TestAsciiSpellingSuggestsRealName(t *testing.T) {
 		if got != want {
 			t.Errorf("%s (%s): ipucu %q, beklenen %q", k, ascii, got, want)
 		}
-		if s := NameSuggestion(ascii, nil).Error(); s != want {
+		if s := NameSuggestion(ascii, nil, nil).Error(); s != want {
 			t.Errorf("%s: NameSuggestion(%q) = %q, beklenen %q", k, ascii, s, want)
 		}
 		if !strings.Contains(got, "'"+name+"'") {
@@ -52,11 +52,11 @@ func TestValidNamesHaveNoHintAndTyposGetClosest(t *testing.T) {
 	if h := BuiltinSpellingHint(codes.Name(codes.G100)); h != nil {
 		t.Errorf("geçerli ad için ipucu olmamalı: %q", h)
 	}
-	got := UndefinedNameError("öğrenci_sayis", []string{"öğrenci_sayısı", "toplam"}).Error()
+	got := UndefinedNameError("öğrenci_sayis", []string{"öğrenci_sayısı", "toplam"}, nil).Error()
 	if !strings.Contains(got, "'öğrenci_sayis'") || !strings.Contains(got, "'öğrenci_sayısı'") {
 		t.Errorf("tanımsız ad iletisi yazılan adı ve en yakın adı söylemeli: %q", got)
 	}
-	if got := NameSuggestion("zzzzzz", []string{"toplam"}); got != nil {
+	if got := NameSuggestion("zzzzzz", []string{"toplam"}, nil); got != nil {
 		t.Errorf("benzer ad yokken öneri olmamalı: %q", got)
 	}
 }

@@ -242,3 +242,18 @@ try { Point(1).go() } catch e { print(e) }
 		t.Errorf("kurucunun adı geçmemeli:\n%s", out)
 	}
 }
+
+// Kural (B11): tanımsız ada öneri, dilin adlarını adın yazıldığı dosyanın dilindeki yazımıyla
+// karşılaştırır ve iletinin dilinde önerir (Python: prnt → 'print'); kullanıcının adı olduğu gibi.
+// Önceden adaylar kanonik (Türkçe) adlardı: İngilizce dosyada prnt öneri almıyordu.
+func TestUndefinedNameSuggestionFollowsTheFile(t *testing.T) {
+	out := runEnglish(t, `var counter = 1
+try { prnt(1) } catch e { print(e) }
+try { print(countr) } catch e { print(e) }
+`, nil)
+	for _, want := range []string{"Did you mean 'print'?", "Did you mean 'counter'?"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("%q yok:\n%s", want, out)
+		}
+	}
+}
