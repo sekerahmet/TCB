@@ -93,7 +93,7 @@ func appendTo(t *testing.T, file, text string) {
 
 // Kural: grafiğin bir düğüme kaynak yaptığı her dosya türü imzaya girer; yoksa o dosyadaki değişiklik grafiği eskitmez
 // ve sorgu eski cevabı verir. Bağımsız kaynak çıkarıcının kendi çıktısıdır: fikstür grafiğindeki her düğümün dosyası
-// (Go, sözlük, belge, TR) stamped olmalı.
+// (Go, sözlük, belge, TR) ve her kenarın görüldüğü dosya (JavaScript yüklemesi, test yorumundaki anma) stamped olmalı.
 func TestStampCoversEverySourceTheGraphReads(t *testing.T) {
 	root := t.TempDir()
 	testkit.CopyDir(t, filepath.Join("testdata", "mod"), root) // testdata altında go list paket görmez
@@ -111,10 +111,57 @@ func TestStampCoversEverySourceTheGraphReads(t *testing.T) {
 			t.Errorf("%s [%s] comes from %s, whose changes do not change the stamp (fresh.go stampExts)", n.Name, n.Kind, n.File)
 		}
 	}
-	for _, ext := range []string{".go", ".json", ".md", ".tr"} {
+	for _, e := range g.Edges {
+		if e.File == "" {
+			continue
+		}
+		kinds[filepath.Ext(e.File)] = true
+		if !stamped(e.File) {
+			t.Errorf("%s %s -> %s was read from %s, whose changes do not change the stamp (fresh.go stampExts)", e.Kind, e.From, e.To, e.File)
+		}
+	}
+	for _, ext := range []string{".go", ".json", ".md", ".tr", ".js"} {
 		if !kinds[ext] {
 			t.Errorf("the fixture has no node from a %s file; the rule is not exercised", ext)
 		}
+	}
+}
+
+// Kural: imza içeriğe bağlıdır, HEAD'e değil: aynı içerikle commit ya da dal değişimi grafiği eskitmez (her ilk
+// düzenlemede tests-for soran kanca commit'ten sonra aynı ağaç için yeniden kurduruyordu; TCB 2026-10-25, 5. madde).
+// Kaynak olmayan izlenen dosyanın içeriği girmez, varlığı girer (dosya düğümü); izlenmeyen dosyalardan yalnızca Go
+// kaynağı girer (grafik öbürlerini okumaz).
+func TestStampFollowsContentNotCommits(t *testing.T) {
+	root := gitFixture(t)
+	testkit.WriteFile(t, root, "tools/check.sh", "#!/bin/sh\n")
+	gitMust(t, root, "add", "-A")
+	gitMust(t, root, "commit", "-q", "-m", "script")
+	stamp := func() string {
+		t.Helper()
+		s, err := sourceStamp(root)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	appendTo(t, filepath.Join(root, "shape", "shape.go"), "\n// sonra eklendi\n")
+	edited := stamp()
+	gitMust(t, root, "commit", "-q", "-am", "edit")
+	if after := stamp(); after != edited {
+		t.Errorf("committing the same content changed the stamp: %s -> %s", edited, after)
+	}
+	gitMust(t, root, "checkout", "-q", "-b", "other")
+	if after := stamp(); after != edited {
+		t.Errorf("a branch with the same content changed the stamp: %s -> %s", edited, after)
+	}
+	testkit.WriteFile(t, root, "notes/draft.md", "# taslak\n")
+	appendTo(t, filepath.Join(root, "tools", "check.sh"), "echo x\n")
+	if after := stamp(); after != edited {
+		t.Errorf("an untracked doc or a tracked script's content must not change the stamp: %s -> %s", edited, after)
+	}
+	gitMust(t, root, "add", "notes/draft.md")
+	if after := stamp(); after == edited {
+		t.Error("a newly tracked file (a new file node) must change the stamp")
 	}
 }
 

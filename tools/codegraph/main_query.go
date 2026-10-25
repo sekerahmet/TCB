@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 )
@@ -172,6 +173,13 @@ func (ix *index) answer(cmd string, nodes []*Node, o *queryOpts) int {
 // resolve bir adı tek düğüme çözer; belirsizse adayları stdout'a yazar (3), yoksa stderr'e
 // yakın adlarla birlikte bildirir (4). kinds doluysa yalnızca o türdeki düğümler sayılır.
 func (ix *index) resolve(q string, o *queryOpts, kinds ...string) (*Node, int) {
+	if n, isFile := ix.fileTarget(q); isFile && len(kinds) == 0 {
+		if n != nil {
+			return n, exitOK
+		}
+		fmt.Fprintf(o.stderr, "codegraph: %q is a file git does not track: the graph reads tracked files only, nothing was searched for it (search with grep)\n", q)
+		return nil, exitNotFound
+	}
 	found := ix.lookup(q, kinds...)
 	switch len(found) {
 	case 1:
@@ -187,6 +195,24 @@ func (ix *index) resolve(q string, o *queryOpts, kinds ...string) (*Node, int) {
 	}
 	ix.printCandidates(o.stdout, q, found, o.limit)
 	return nil, exitAmbiguous
+}
+
+// fileTarget q depoda bir dosyanın yoluysa (`tools/full_check.sh`, `./.gitignore`, ters bölüyle de) o dosyanın düğümüdür;
+// isFile yol diskte bir dosyaya çıkıyorsa doğrudur. Dosyanın yolu ad aramasına düşmez: düşünce yolu metninde anan
+// bildirimleri "belirsiz" diye veriyordu (TCB 2026-10-25, 1. madde). İzlenen her dosya düğümdür (extractDataFiles);
+// düğümü olmayan dosya izlenmeyendir ve n nil döner, çağıran bunu "aranmadı" diye söyler.
+func (ix *index) fileTarget(q string) (n *Node, isFile bool) {
+	rel := path.Clean(filepath.ToSlash(q))
+	for i := range ix.g.Nodes {
+		if c := &ix.g.Nodes[i]; (c.Kind == kindFile || c.Kind == kindDoc) && c.File == rel && c.Detail != "dir" {
+			return c, true
+		}
+	}
+	if ix.root == "" || filepath.IsAbs(q) || strings.HasPrefix(rel, "../") {
+		return nil, false
+	}
+	st, err := os.Stat(filepath.Join(ix.root, filepath.FromSlash(rel)))
+	return nil, err == nil && !st.IsDir()
 }
 
 // reorderFlags bayrakları adların önüne alır (flag paketi ilk addan sonrasını bayrak saymaz):

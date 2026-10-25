@@ -22,9 +22,10 @@ type index struct {
 	byID       map[string]*Node
 	out        map[string][]*Edge
 	in         map[string][]*Edge
-	note       func(*Node) string // verilirse edgeLine her düğümün altına bir not satırı ekler (test_notes.go)
-	trNames    []trName           // çıplak adla çözülen TR düğümleri (trNameTable; tembel)
-	folded     []foldedNode       // düğümlerin katlanmış adları (nodeFolds; tembel)
+	note       func(*Node) string         // verilirse edgeLine her düğümün altına bir not satırı ekler (test_notes.go)
+	trNames    []trName                   // çıplak adla çözülen TR düğümleri (trNameTable; tembel)
+	folded     []foldedNode               // düğümlerin katlanmış adları (nodeFolds; tembel)
+	linked     map[string]map[string]bool // paket -> ikilisine giren paketler (inTestBinary; tembel)
 }
 
 func newIndex(g *Graph) *index {

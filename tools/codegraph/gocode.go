@@ -38,6 +38,9 @@ type goExtractor struct {
 	fieldUses []rawFieldUse     // çözülmeyi bekleyen alan erişimleri
 	env       map[string]string // ortam değişkeni adı -> K4xx ad kodu (env_names.go)
 	consumed  map[*ast.BasicLit]bool
+	// rangeVals dize sabiti listesi üzerinde dönen döngü değişkenleri ve alabildikleri değerlerdir
+	// (`for _, p := range []string{"docs/*.md", ...}`; test_paths.go: pathCall).
+	rangeVals map[types.Object][]string
 }
 
 func pkgID(p string) string    { return "go:pkg:" + p }
@@ -86,7 +89,7 @@ func extractGo(m *module, b *builder) *goIndex {
 	x := &goExtractor{m: m, b: b, idx: &goIndex{
 		pkgSyms: map[string]map[string]string{}, inTestFile: map[string]bool{}, snip: newSnippetState(),
 		byName: map[string][]*testFunc{}, dirFiles: map[string]bool{}, envSets: map[string][]envSet{},
-	}, fieldAt: map[string]string{}, env: envCodes(m.Root), consumed: map[*ast.BasicLit]bool{}}
+	}, fieldAt: map[string]string{}, env: envCodes(m.Root), consumed: map[*ast.BasicLit]bool{}, rangeVals: map[types.Object][]string{}}
 	for _, u := range m.Units {
 		x.unit(u)
 	}
@@ -133,6 +136,9 @@ func (x *goExtractor) file(u *unit, base string, f *ast.File) {
 		case *ast.GenDecl:
 			x.genDecl(fc, d)
 		}
+	}
+	if isTest {
+		x.citeRefs(fc, f)
 	}
 }
 

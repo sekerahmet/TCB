@@ -49,6 +49,7 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 			x.use(fc, owner, n, callee[n], writes, enclosingClosure(stack, closures))
 		case *ast.RangeStmt:
 			x.rangeUse(fc, owner, n)
+			x.noteRangeStrings(fc, n)
 		case *ast.BasicLit:
 			x.pathLit(fc, owner, n)
 		case *ast.FuncLit:
@@ -57,6 +58,7 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 			x.fieldAccess(fc, owner, n, modes[n], enclosingClosure(stack, closures))
 		case *ast.CompositeLit:
 			x.literalFields(fc, owner, n, enclosingClosure(stack, closures))
+			x.pathList(fc, owner, n)
 		}
 		return true
 	})

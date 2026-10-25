@@ -14,20 +14,27 @@ import (
 	"time"
 )
 
-// stampExts imzaya giren değişmiş dosya uzantılarıdır: grafiğin ayrıştırdığı kaynak türleri (Go, ad ve ileti sözlükleri,
-// belgeler, TR kaynakları). go.mod da girer: modül yolu düğüm kimliklerinin parçasıdır. Kural:
-// TestStampCoversEverySourceTheGraphReads (grafikteki her düğümün dosyası imzaya girer).
-var stampExts = map[string]bool{".go": true, ".json": true, ".md": true, ".tr": true}
+// stampExts içeriği imzaya giren dosya uzantılarıdır: grafiğin içini okuduğu kaynak türleri (Go, ad ve ileti sözlükleri,
+// belgeler, TR kaynakları, yüklemeleri okunan JavaScript). go.mod da girer: modül yolu düğüm kimliklerinin parçasıdır.
+// Öbür izlenen dosyaların yalnızca varlığı girer (dosya düğümü). Kural: TestStampCoversEverySourceTheGraphReads
+// (grafikteki her düğümün ve kenarın okunduğu dosya imzaya girer).
+var stampExts = map[string]bool{".go": true, ".json": true, ".md": true, ".tr": true, ".js": true, ".mjs": true, ".cjs": true}
 
-// stamped dosyanın değişikliği imzaya girer mi.
+// stamped dosyanın içeriği imzaya girer mi.
 func stamped(p string) bool {
 	return stampExts[strings.ToLower(filepath.Ext(p))] || filepath.Base(p) == "go.mod"
 }
 
 // gitOut root'ta git çalıştırır.
 func gitOut(root string, args ...string) ([]byte, error) {
+	return gitIn(root, nil, args...)
+}
+
+// gitIn gitOut'tur, stdin verilebilir.
+func gitIn(root string, stdin io.Reader, args ...string) ([]byte, error) {
 	cmd := exec.Command("git", args...)
 	cmd.Dir = root
+	cmd.Stdin = stdin
 	var out, errb bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &errb
 	if err := cmd.Run(); err != nil {
@@ -36,15 +43,20 @@ func gitOut(root string, args ...string) ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-// sourceStamp ağacın bugünkü durumunu tek metne indirir: `git rev-parse HEAD` ve izlenen ya da
-// izlenmeyen, değişmiş kaynak dosyalarının (stamped) (git status --porcelain) yol, durum ve
-// içerik özeti. Aynı metin aynı kaynak demektir; git yoksa ya da başarısızsa hata döner.
+// sourceStamp grafiğin okuduğu ağacın içeriğini tek metne indirir: izlenen her dosyanın yolu (dosya düğümü), kaynak
+// dosyalarının (stamped) git nesne özeti; değişmiş kaynakta özet çalışma ağacındaki içerikten (`git hash-object`, git'in
+// satır sonu süzgeciyle), silinmişte "absent". İzlenmeyen dosyalardan yalnızca Go kaynağı ve go.mod girer (Go yükleyicisi
+// klasörün bütün .go dosyalarını okur; öbürlerini grafik okumaz). İmza HEAD'e değil içeriğe bağlıdır: aynı içerikle
+// commit, birleştirme ya da dal değişimi grafiği eskitmez (TCB 2026-10-25, 5. madde: her ilk düzenlemede soran kanca bir
+// commit'ten sonra aynı ağaç için yeniden kurduruyordu). Aynı metin aynı kaynak demektir; git yoksa ya da başarısızsa hata
+// döner.
 func sourceStamp(root string) (string, error) {
-	head, err := gitOut(root, "rev-parse", "HEAD")
+	top, err := gitOut(root, "rev-parse", "--show-toplevel")
 	if err != nil {
 		return "", err
 	}
-	top, err := gitOut(root, "rev-parse", "--show-toplevel")
+	topDir := strings.TrimSpace(string(top))
+	index, err := gitOut(root, "ls-files", "-s", "-z", "--full-name", "--", ".")
 	if err != nil {
 		return "", err
 	}
@@ -53,18 +65,56 @@ func sourceStamp(root string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	topDir := strings.TrimSpace(string(top))
-	h := sha256.New()
-	for _, e := range changedEntries(status) {
-		fmt.Fprintf(h, "%s\x00%s\x00", e.status, e.path)
-		if data, err := os.ReadFile(filepath.Join(topDir, filepath.FromSlash(e.path))); err == nil {
-			sum := sha256.Sum256(data)
-			h.Write(sum[:])
-		} else {
-			io.WriteString(h, "absent")
+	content := map[string]string{} // yol -> içerik özeti (kaynak) ya da "" (yalnızca varlığı)
+	for _, rec := range strings.Split(string(index), "\x00") {
+		meta, path, ok := strings.Cut(rec, "\t")
+		if !ok {
+			continue
+		}
+		content[path] = ""
+		if f := strings.Fields(meta); stamped(path) && len(f) >= 2 {
+			content[path] = f[1]
 		}
 	}
-	return strings.TrimSpace(string(head)) + "+" + hex.EncodeToString(h.Sum(nil))[:16], nil
+	var dirty []string
+	for _, e := range changedEntries(status) {
+		if e.status == "old" || e.status == "??" && !untrackedSource(e.path) {
+			continue // yeniden adlandırmanın eski yolu index'te yoktur; grafiğin okumadığı izlenmeyen dosya
+		}
+		if _, err := os.Stat(filepath.Join(topDir, filepath.FromSlash(e.path))); err != nil {
+			if _, inIndex := content[e.path]; inIndex {
+				content[e.path] = "absent" // izlenen ama silinmiş: düğümü hâlâ var (git ls-files)
+			}
+			continue
+		}
+		dirty = append(dirty, e.path)
+	}
+	if len(dirty) > 0 {
+		out, err := gitIn(topDir, strings.NewReader(strings.Join(dirty, "\n")+"\n"), "hash-object", "--stdin-paths")
+		if err != nil {
+			return "", err
+		}
+		for i, sum := range strings.Fields(string(out)) {
+			if i < len(dirty) {
+				content[dirty[i]] = sum
+			}
+		}
+	}
+	paths := make([]string, 0, len(content))
+	for p := range content {
+		paths = append(paths, p)
+	}
+	sort.Strings(paths)
+	h := sha256.New()
+	for _, p := range paths {
+		fmt.Fprintf(h, "%s\x00%s\x00", p, content[p])
+	}
+	return "content:" + hex.EncodeToString(h.Sum(nil))[:24], nil
+}
+
+// untrackedSource izlenmeyen dosyanın grafiğe girip girmediğidir: Go yükleyicisi klasörün bütün .go dosyalarını okur.
+func untrackedSource(p string) bool {
+	return strings.EqualFold(filepath.Ext(p), ".go") || filepath.Base(p) == "go.mod"
 }
 
 type changedEntry struct{ status, path string }

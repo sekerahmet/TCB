@@ -22,10 +22,15 @@ group, default 12) and `--all`, before or after the names. Output is short plain
 
 ## Staying fresh
 
-Nobody has to remember `build`. `build` writes a `stamp` into `graph.json`: `git rev-parse HEAD`
-plus a digest of the changed files (`git status --porcelain -uall`, tracked or untracked, only
-the sources the graph parses, `.go`, `.json`, `.md`, `.tr` and `go.mod`, with their contents; `.codegraph/` itself is
-ignored; `TestStampCoversEverySourceTheGraphReads` fails when a node comes from a file type the stamp misses). Every query
+Nobody has to remember `build`. `build` writes a `stamp` into `graph.json`: a digest of the tree's content, not of
+`HEAD`. It holds the path of every tracked file (`git ls-files -s`: each is a file node) and, for the sources the
+graph parses (`.go`, `.json`, `.md`, `.tr`, `.js` and `go.mod`), the git object id of their content; a changed source
+counts with its working-tree content (`git status --porcelain -uall`, then `git hash-object --stdin-paths`, which
+applies git's line-ending filter), a deleted one as absent. Of the untracked files only Go sources count (the Go
+loader reads every `.go` file of a folder; nothing reads the others). So committing, merging or switching to a branch
+with the same content keeps the graph fresh: a hook that asks `tests-for` before every first edit no longer rebuilds
+after a commit (TCB 2026-10-25, item 5; `TestStampFollowsContentNotCommits`). `.codegraph/` itself is ignored;
+`TestStampCoversEverySourceTheGraphReads` fails when a node or an edge comes from a file type the stamp misses. Every query
 (`query`, `explain`, `path`, `who-uses`, `tests-for`) computes the stamp again first. If it differs,
 the query rebuilds the graph, rewrites `graph.json` (through a temporary file, so two parallel
 queries never read half a file) and prints one line on stderr: `graph rebuilt (N s)`.
@@ -41,9 +46,10 @@ queries never read half a file) and prints one line on stderr: `graph rebuilt (N
 - The rebuild fails (a half-edited file does not type-check): the old graph is used with
   `warning: rebuild failed (...)`; the next query tries again.
 
-Cost when the graph is fresh (this repository, Windows, the two git calls): a query takes about
-0.21 s instead of 0.14 s with `--no-rebuild`, so about 80 ms. A stale graph costs one `build`
-(about 3 s with a warm Go build cache).
+Cost when the graph is fresh (this repository, Windows, 2026-10-25, built binary): `tests-for` takes about 0.95 s,
+0.84 s with `--no-rebuild` (reading the 59 MB `graph.json`), so the stamp's git calls cost about 0.1 s; `go run` adds
+about 1.1 s to either. A stale graph costs one `build` (7-13 s with a warm Go build cache); a real edit makes the graph
+stale, there is no incremental rebuild.
 
 Exit codes: `0` answered, `1` failure (no graph, load error), `2` usage, `3` ambiguous name (the
 candidates are listed on stdout; repeat with an id or a longer name), `4` not found (similar names
@@ -105,6 +111,8 @@ Functions of a package that a test builds and runs as a binary get the "covered 
 | `links_to` | heading → heading, doc, Go file, package or any file; Markdown links | EXTRACTED; link whose `#anchor` is missing: INFERRED (to the file) |
 | `implemented_by` | TR declaration → Go function that runs a language construct it uses: an operator (`@`, `+`, `==` ...) or a construct (call, index, member access, string interpolation, loop ...) | INFERRED. Read from the interpreter, not a hand list (`dispatch.go`): the compiler's `case *ast.CallExpression:` branches and the operator switches of the interpreter and its hooks (`switch op { case "@": ... }`, or the text-to-constant switch and the constant switches); a branch without calls is the switch's own function; a branch that calls a compile helper (a method of the interpreter's compiler, `c.interpolation(...)`) also gets what the helper calls, closures included, along a chain of helpers up to 8 steps, so moving a branch's body into a helper keeps the link (value language steps 1-2: interpolation → `valueText`, `Value.Inspect`); a general compile method with its own AST type switch (`compiler.expression`) is not followed through a helper, it dispatches every construct. codeindex records each declaration's constructs with the left operand's inferred type; a known type keeps only its implementations (Tensör → hooks, numbers and text → interpreter). The chain of `tests-for` follows it only from `tools/bench` programs, so `tests-for interp.VM.callPrepared` lists `tools/bench/tr/fib.tr` under measurements, and TR tests do not all become tests of the interpreter (trial 9 H1, trial 10) |
 | `related` | name code → name code its definition lists as related (`"ilişkili"` in `internal/lang/codes/definitions.json`: yazdır → girdi, birleştir → böl) | EXTRACTED. `query G100` shows the related names, the first place to look when designing a new name |
+| `cites` | test → repository file or doc whose path its comments or its strings name (`// Kod düzeni standardı (docs/development.md)`, `t.Errorf("...; docs/development.md")`), when it does not read it | INFERRED. The owner is the declaration holding the comment or string (a test, or the tests that reach a helper, a table or a type through the chain rule); a comment outside every declaration (the rule block after the imports) belongs to every test of its file. A part with `/` is resolved from the root and from the file's folder; a bare file name (`README.md`, `layout_test.go`) only in a comment and only from the file's folder; a part that names no tracked file is dropped. `tests-for` lists these tests apart, under "tests that cite it", after the tests that read it (a test that also reads the file is listed once, as a reader); `changed` does not run them (TCB 2026-10-25, item 2: `tests-for docs/development.md` said "no tests found") |
+| `loads` | JavaScript file → repository file it loads by a relative path: `require('./x')`, `require.resolve('../x')`, `import ... from './x'`, `import('./x')`, and `path.join(__dirname, '..', 'media', 'x.js')` (or `path.resolve`) when every part is a string; Node's order `x`, `x.js`, `x/index.js` | EXTRACTED. A package name (`vscode`, `fs`) is not a repository file; a path built from a variable is not seen. `tests-for` follows it backwards to the files a Go test runs, among the indirect tests: `e2e.TestExtensionJSTests  2 steps via editors/vscode/test/coded_view_test.js` for `editors/vscode/coded_view.js` (the test runs `test/*_test.js`, the test file loads the module); `changed` uses the same chain (TCB 2026-10-25, item 4) |
 | `builds` | function in a test file → module package it compiles with `exec.Command("go", "build", ..., pkg)` (a module path, or `.` / `./x` from the test file's folder) | EXTRACTED. The tests that run the binary cannot be traced per function, so `tests-for` counts them on one line for every function of that package, "covered by subprocess tests (N; ...): cmd/tr (2), cmd/tr/e2e (86)": all tests of the package when the builder is `TestMain`, else the tests that reach the builder (chain rule); `changed` prints the same line. A package the built one imports (transitively) gets, when nothing else tests it, "weak evidence: linked into the binary of cmd/tr (88 tests run it); a subprocess test may reach this code, which one is not traced" instead of "no tests found" |
 
 Every edge has `confidence`, and `file`/`line` of the first place it was seen and `count`.
@@ -452,7 +460,11 @@ things close that:
 - **A Go function is tested through the name it implements**: `tests-for checkpoint.Checkpoint.saveOnInterval`
   walks up its callers (`update` implements `güncelle`, Y010) and lists the tests of the builtin, member and
   named-argument codes they use (`tests through the name codes it implements`, tests of the same package first).
-  Type names, keywords and messages do not count: every test uses them.
+  Type names, keywords and messages do not count: every test uses them. A Go test counts only when it can run the
+  function: the function's package is the test's own or one the test's package imports (transitively, test files'
+  imports included). A test of `yazdır` in `checker` cannot run `tr.startsWithPrint` of `package main`, which nobody
+  imports; it used to head `tests-for cmd/tr/main.go` with 168 such tests (TCB 2026-10-25, item 3;
+  `TestNameCodeTestsMustLinkTheFunctionsPackage`). A TR test runs in the `tr` binary, which links every package.
 
 A test that can skip carries the condition in its `skip` field, shown as `[skips when: g.lt == nil]` next to it; the condition is not evaluated. The body is walked statement by statement (control flow; closures and `t.Run` subtests are not entered, there is no statement limit): every path that reaches `t.Skip` adds its condition, made of the `if` branches taken (`(err := f(); err != nil)` with its init, `else` as the negation) and of the earlier silent returns it passed (`no earlier return (err := os.Symlink(...); err == nil)`: the skip after a helper's early return happens only when the link failed; a helper that skips after a loop of returns gets `no earlier return (...)`, not `always`); a branch ending in `t.Fatal` adds nothing (a failure, not an environment). A helper's label passes to its caller at the point of the call, also from inside an expression (`exec.Command(python(t), ...)`) and through helpers of helpers. A file build constraint (`//go:build unix`, `_amd64_test.go`) is part of it: `not amd64 (build constraint)`; a helper in another file that only one configuration builds passes its label under that constraint (`windows (build constraint) && (...)`: the helper of the other configuration is not in this graph, so the caller's path goes on), and a test in a file this configuration does not build (read without types) is labelled with the file's constraint and is not repeated under "in other build configurations" (audit group 7). When every listed test depends on its environment, `tests-for` adds a note that CI may run none of them; `testing.Short()` and `raceEnabled` alone do not count (CI runs them in its long and plain modes). The repository check `TestEveryRepositoryTestThatSkipsIsLabelled` finds every test that calls `t.Skip` (directly or through a test-file helper) and requires a label (the old leading-statement reader missed 22); `TestNoTestMainSkipsItsPackage` guards that no `TestMain` returns or exits 0 before `m.Run`, which labels do not read (trial 9 H2, audit group 6 H2). `tests-for` puts **the tests about it** first: a test whose name or doc comment names the target (a name code's names, a function's short name and the name codes it implements; a Go test by the words of its short name without the package, `TestTensorData` names `Data` but `dataset_test.TestReaderState` does not; a test in another package names a Go function's own short name only with its qualifier, the package for a function and the type for a method (`TestCodesName...`, `codes.Name` in the doc), since short names are often common words (audit group 7: checker's tests with "Name" were about `codes.Name`); a TR test by its description without the module) or that expects a message only the target produces (a Go test using the message code, and no function outside the target and what it calls produces that message: the wrapper `{fn}: {error}` made by twelve functions is nobody's own; a TR test line holding both the fixed text of a message that names a function and, in the `{fn}` slot, the target's name, as `yazdır() 'ayraç' adında bir parametre almaz` for H2427, while a line expecting `böl()`'s message does not expect `metin`). Each test is listed once, in the group of its strongest evidence: about it, then the tests that walk the whole list, then direct, then the chains below (a test in both inferred groups stays in its shorter one), weak evidence last; the planning exam checks this for every TR function, every name code with tests and every `internal/stdlib` function (trial 8 S1, audit group 6 S1). `tests-for` orders what it infers by **strength of evidence**: direct tests first, then the inferred groups (through calls, through the name codes a function implements) with the group holding the shortest, same-package chain first; tests found only through a chain longer than half the limit (more than 4 of 8 steps) go last under "weak evidence" (an 8-step chain usually passes through shared machinery: the interpreter, a registry). `tests-for` keeps **measurements** apart: `Benchmark*` functions and anything under `tools/bench` are listed under "measurements, not tests" (they time the code, they do not check it; the "measure first" rule wants them, a test count does not), direct and indirect alike. `tests-for` prints direct tests (a test that uses the name or file) before the tests that walk the whole list.
 `name_tests_test.go` (`test_names_test.go`) keeps this from decaying: every builtin, member and named-argument code
@@ -480,8 +492,17 @@ Pinned by `TestQueryShowsGoDocComments`.
 
 ## Data files and `tests-for` (`embeds`, `reads_file`, `walks`)
 
-A data file (`tr.json`, `en.json`, `messages/*.json`, `definitions.json`, anything `//go:embed`ded) is a graph
-node, so `tests-for internal/lang/codes/tr.json` is no longer "not found". Three things tie it to tests:
+Every file git tracks is a graph node: a data file (`tr.json`, `en.json`, `messages/*.json`, `definitions.json`,
+anything `//go:embed`ded), and also a script, `.gitignore`, JavaScript, YAML or a `testdata` fixture (a `file` node
+that only records the path, unless another extractor reads it). So a tracked path always resolves to its own file:
+`tests-for tools/full_check.sh` is the script, not "ambiguous" between the declarations whose text mentions it
+(`TestEveryTrackedFileIsANode` asks every tracked path; no exception list). A path to a file git does not track
+answers "is a file git does not track: the graph reads tracked files only, nothing was searched for it" (exit 4), so
+"not searched" and "searched, nothing found" differ: a tracked file or doc with no link says `no tests found
+(searched: path constants, globs and go:embed in Go code, and the comments and messages of Go tests)`. For a doc,
+`tests-for` also lists **the tests that guard the rules it states** (each `Denetim:` rule of a README with its tests:
+the rule's text and its test change together), and the tests that cite it (`cites`, above). Three things tie a file
+to tests that read it:
 
 - **Where the file is read**: the `//go:embed` variable (`embeds`) and any non-test function that passes the
   file's path to `reporoot.Path`, `filepath.Join` or `Glob` (`reads_file`). Tests that call the loader, or a
@@ -497,10 +518,16 @@ node, so `tests-for internal/lang/codes/tr.json` is no longer "not found". Three
   files: the question "which tests look at this new built-in" has an answer before the first edit.
 
 `data_coverage_test.go` keeps the answer from going empty: every tracked `.json`, `.tr` and `.md` file (not
-`testdata`) is tied to a test (a `tests`/`walks` edge, or for a README one of its rules has a `Denetim:` test) or
+`testdata`) is tied to a test (a `tests`/`walks`/`cites` edge, or for a README one of its rules has a `Denetim:` test) or
 is listed with a reason in `testdata/uncovered_data.txt` (a data file, not a Go string: a path-looking string in
 test code would itself count as the file being tested). A stale exception also fails. Where a path is built from
-a variable (`reporoot.Path("examples", lang, "*.tr")`) the variable part becomes `*`.
+a variable (`reporoot.Path("examples", lang, "*.tr")`) the variable part becomes `*`; a variable that ranges over a
+list of string constants takes each of them (`for _, p := range []string{"docs/*.md"} { reporoot.Glob(reporoot.Path(p))
+}`). A bare file name (no `/`) counts only as a root-relative path, and only where it is one: the single part given to
+`reporoot.Path` (`reporoot.Path("README.md")`), or an element of a string list that also holds a path with `/`
+(`[]string{"README.md", "SECURITY.md", "lib/README.md"}`); a list of bare names is a fixture, and a folder's own file
+of the same name is not linked (`TestRootRelativePathsLinkFromTheRootOnly`; TCB 2026-10-25: the doc tests'
+`belgeListesi` reads the root README and `docs/*.md`, `tests-for README.md` said "no tests found").
 
 ## Planning exam (`testdata/planning_questions.txt`)
 
@@ -576,6 +603,9 @@ full check (`tools/full_check.sh`) runs Go tests with `-short`; the skipped ones
   missing graph, `build`.
 - `fresh_test.go`, `root_test.go`, `history_test.go`, `changed_test.go`, `deleted_test.go`: the
   stamp and automatic rebuild, finding the repository root, and the three git commands.
+- `test_paths_test.go`, `js_loads_test.go`, `data_coverage_test.go`: a file's answer in `tests-for` (readers, citing
+  tests, the guards of a doc's rules, JavaScript loads, an untracked file not searched) and, on this repository, every
+  tracked path resolving to its own file (`TestEveryTrackedFileIsANode`).
 - `dups_test.go`: the known duplicates from the Gemini duplicate audits (Parti 3 and 4: `teeWriter`,
   the `resign` closures, `registerIsFinite`/`registerRounding`; excerpts of the code at main
   `04c83dc0` in `testdata/dups`) are found by `dups`, the near-miss ones (`ShortNumber`/`FormatBytes`,

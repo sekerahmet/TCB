@@ -3,6 +3,8 @@ package main
 import (
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 var testPathFiles = map[string]string{
@@ -213,5 +215,169 @@ func TestEmbeddedDataFilesLinkToTheTestsThatWalkThem(t *testing.T) {
 	if !strings.Contains(walks, "tests that walk the whole list (1") || !strings.Contains(walks, "TestWalksEveryEntry") ||
 		!strings.Contains(walks, "Kural: her girdi gezilir.") || strings.Contains(walks, "TestLooksOneUp") {
 		t.Errorf("tests-for A001 must list only the walking test, with its rule line first:\n%s", out.String())
+	}
+}
+
+var fileTestFiles = map[string]string{
+	"docs/rules.md":  "# Rules\n",
+	"tools/check.sh": "#!/bin/sh\n",
+	"README.md":      "# mini\n\n**Kural metni.** Kural metni burada. Denetim: `TestCites`.\n",
+	"app/app.go":     "package app\n",
+	"app/app_test.go": `package app
+
+import (
+	"path/filepath"
+	"testing"
+)
+
+func TestReads(t *testing.T) { _ = filepath.Join("tools", "check.sh") }
+
+// TestCites docs/rules.md'deki kuralı sınar; app.go'yu adıyla anar.
+func TestCites(t *testing.T) { t.Error("kural için bkz. tools/check.sh") }
+
+func TestQuiet(t *testing.T) { _ = "docs/missing.md" }
+`,
+	"app/header_test.go": `package app
+
+import "testing"
+
+// Bu dosyanın kuralları: docs/rules.md.
+
+func TestHeader(t *testing.T) {}
+`,
+}
+
+// Kural: depoda izlenen her dosyanın yolu tests-for'da o dosyaya çözülür ve cevap okuyanları, anan testleri ve (belgede)
+// kurallarını koruyan testleri ayrı gruplarda verir: yolu bir sabitle kuran test (`filepath.Join("tools", "check.sh")`)
+// "tests" grubunda; yolu yorumunda ya da iletisinde anan test "cite" grubunda (aynı test okuyorsa bir kez, okuyan olarak);
+// dosyanın başındaki kural yorumu dosyanın bütün testlerinindir; yorumdaki çıplak dosya adı yalnızca yorumun klasöründen
+// çözülür; README'nin `Denetim:` kuralının testi belgenin cevabındadır. Hiçbir şeyin bağlanmadığı belgede cevap neye
+// bakıldığını söyler (TCB 2026-10-25, 1. ve 2. madde: tam denetim betiğinin yolu belirsizdi, geliştirici
+// belgesini anan testler görünmüyordu).
+func TestTestsForAFileListsItsReadersCitersAndRuleGuards(t *testing.T) {
+	root := auditModule(t, fileTestFiles)
+	g, err := buildGraph(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const app = "go:func:example.com/audit/app."
+	mustEdge(t, g, app+"TestReads", "file:tools/check.sh", edgeTests, inferred)
+	mustEdge(t, g, app+"TestCites", "doc:docs/rules.md", edgeCites, inferred)
+	mustEdge(t, g, app+"TestCites", "file:tools/check.sh", edgeCites, inferred)
+	mustEdge(t, g, app+"TestCites", "go:file:app/app.go", edgeCites, inferred)
+	mustEdge(t, g, app+"TestHeader", "doc:docs/rules.md", edgeCites, inferred)
+	if e := edge(g, app+"TestReads", "doc:docs/rules.md", edgeCites); e != nil {
+		t.Errorf("a file comment cites for the tests of its own file only: %+v", e)
+	}
+	ix := newIndex(g)
+	ix.root = root
+	answer := func(q string) string {
+		t.Helper()
+		var out, errb strings.Builder
+		n, code := ix.resolve(q, &queryOpts{stdout: &out, stderr: &errb})
+		if code != exitOK {
+			t.Fatalf("resolve %s: exit %d: %s%s", q, code, out.String(), errb.String())
+		}
+		ix.printTestsFor(&out, n, 0)
+		return out.String()
+	}
+	check := answer("tools/check.sh")
+	readers, cited, _ := strings.Cut(check, "tests that cite it")
+	if !strings.Contains(readers, "app.TestReads") || !strings.Contains(cited, "app.TestCites") || strings.Contains(cited, "TestReads") {
+		t.Errorf("tests-for tools/check.sh: the reader under tests, the citing test apart:\n%s", check)
+	}
+	rules := answer("docs/rules.md")
+	if !strings.Contains(rules, "no tests read it") || !strings.Contains(rules, "app.TestCites") || !strings.Contains(rules, "app.TestHeader") {
+		t.Errorf("tests-for docs/rules.md: the citing tests, and that none reads it:\n%s", rules)
+	}
+	readme := answer("README.md")
+	if !strings.Contains(readme, "guard the rules it states") || !strings.Contains(readme, "Kural metni") || !strings.Contains(readme, "app.TestCites") {
+		t.Errorf("tests-for README.md: its rule and the test that guards it:\n%s", readme)
+	}
+	if got := answer("./app/app.go"); !strings.HasPrefix(got, "app/app.go [file]") {
+		t.Errorf("a ./ path resolves to its file:\n%s", got)
+	}
+	testkit.WriteFile(t, root, "docs/empty.md", "# Empty\n")
+	g2, err := buildGraph(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ix = newIndex(g2)
+	ix.root = root
+	if got := answer("docs/empty.md"); !strings.Contains(got, "no tests found (searched:") {
+		t.Errorf("an unlinked doc says what was searched:\n%s", got)
+	}
+}
+
+// Kural: git'in izlemediği bir dosyanın yolu ad aramasına düşmez (yolu metninde anan bildirimler "belirsiz" diye
+// gelmez); cevap grafiğin ona hiç bakmadığını söyler ve "bulunamadı" çıkış koduyla biter.
+func TestTestsForAnUntrackedFileSaysNothingWasSearched(t *testing.T) {
+	root := gitFixture(t)
+	graph := buildInto(t, root)
+	testkit.WriteFile(t, root, "notes/draft.sh", "echo shape.Describe\n")
+	code, out, errOut := commandIn("tests-for", root, graph, "--no-rebuild", "notes/draft.sh")
+	if code != exitNotFound || out != "" || !strings.Contains(errOut, "git does not track") {
+		t.Errorf("exit %d\nstdout: %s\nstderr: %s", code, out, errOut)
+	}
+}
+
+var rootPathFiles = map[string]string{
+	"README.md":     "# mini\n",
+	"SECURITY.md":   "# Security\n",
+	"docs/a.md":     "# A\n",
+	"docs/b.md":     "# B\n",
+	"app/README.md": "# app\n",
+	"app/app.go":    "package app\n",
+	"app/doc_test.go": `package app
+
+import (
+	"testing"
+
+	"example.com/audit/internal/reporoot"
+)
+
+func docs() []string {
+	list := []string{"README.md", "docs/a.md"}
+	_ = []string{"add", "docs/b.md", "SECURITY.md"}
+	_ = []string{"SECURITY.md", "lib/missing.md"}
+	for _, p := range []string{"docs/*.md"} {
+		_ = reporoot.Path(p)
+	}
+	return list
+}
+
+func TestDocs(t *testing.T) { _ = docs() }
+
+func TestSecurity(t *testing.T) { _ = reporoot.Path("SECURITY.md") }
+
+func TestFixture(t *testing.T) { _ = []string{"README.md", "a.tr"} }
+`,
+	"internal/reporoot/root.go": "package reporoot\n\nfunc Path(parts ...string) string { return \"\" }\n",
+}
+
+// Kural: depo kökünden göreli yollar çıplak adla da bağlanır, ama yalnızca kökten: reporoot'un yol işlevine verilen tek
+// parça (fikstürde TestSecurity), depoda bulunan "/" içeren bir yolun yanındaki liste öğesi (docs içindeki liste); yol
+// olmayan öğe taşıyan ya da yolları depoda olmayan liste bağlanmaz; dize listesi üzerinde dönen değişkenle kurulan yol
+// listenin her değeridir (`range []string{"docs/*.md"}`). Yalnızca adlardan oluşan liste fikstürdür (TestFixture),
+// klasördeki aynı adlı belge bağlanmaz (TCB 2026-10-25, 2. madde: belge testlerinin listesi kök belgesini ve docs
+// belgelerini okuyordu, tests-for "no tests found" diyordu).
+func TestRootRelativePathsLinkFromTheRootOnly(t *testing.T) {
+	g, err := buildGraph(auditModule(t, rootPathFiles))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const app = "go:func:example.com/audit/app."
+	mustEdge(t, g, app+"TestDocs", "doc:README.md", edgeTests, inferred)
+	mustEdge(t, g, app+"TestDocs", "doc:docs/a.md", edgeTests, inferred)
+	mustEdge(t, g, app+"TestDocs", "doc:docs/b.md", edgeTests, inferred)
+	mustEdge(t, g, app+"TestSecurity", "doc:SECURITY.md", edgeTests, inferred)
+	for _, e := range g.Edges {
+		if e.Kind != edgeTests {
+			continue
+		}
+		if e.To == "doc:app/README.md" || e.From == app+"TestFixture" && strings.HasPrefix(e.To, "doc:") ||
+			e.From == app+"TestDocs" && e.To == "doc:SECURITY.md" {
+			t.Errorf("a bare name links from the root, and a list of bare names is a fixture: %+v", e)
+		}
 	}
 }
