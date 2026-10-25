@@ -287,6 +287,7 @@
 "H2522": { "param": ["fn", "owner"] },
 "H2523": { "param": ["line", "header", "languages"] },
 "H2524": { "param": ["struct"] },
+"H2525": { "param": ["type", "loop", "in", "next"] },
 "H3001": { "param": ["dev"] },
 "H3002": { "param": ["mask", "q"] },
 "H3003": { "param": ["q", "k", "v"] },

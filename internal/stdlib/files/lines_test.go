@@ -167,3 +167,12 @@ bırak()`); got != `1` {
 		time.Sleep(10 * time.Millisecond)
 	}
 }
+
+// Kural (B5): sırayla okunan bir değer (SatırOkuyucu) indekslenince ileti nasıl okunacağını
+// söyler: döngüyle ya da .sonraki() ile. Önceden yalnız "SatırOkuyucu tipi indekslenemez" diyordu.
+func TestLineReaderIndexSaysHowToRead(t *testing.T) {
+	k := tmpWork(t)
+	write(t, filepath.Join(k, "a.txt"), "x\ny\n")
+	errHas(t, `dosya_satırları("a.txt")[1]`, messages.H2525)
+	errContains(t, `dosya_satırları("a.txt")[1]`, "döngü", ".sonraki()")
+}

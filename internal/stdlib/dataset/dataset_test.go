@@ -365,3 +365,13 @@ değişken s = k.sıralı(toplu: 2, bağlam: 8)
 	}
 	dataset.CloseAll(time.Second)
 }
+
+// Kural (B5): veri okuyucusu sırayla okunur; indekslenince ileti .sonraki()'yi söyler.
+func TestReaderIndexSaysHowToRead(t *testing.T) {
+	d := buildDataset(t)
+	_, _, err := run(t, `veri_kümesi("`+trPath(d)+`").örnekleyici(toplu: 2, bağlam: 8)[0]`)
+	if !messages.Has(err, messages.H2525) || !strings.Contains(err.Error(), ".sonraki()") {
+		t.Fatalf("okuyucu indekslenince: %v", err)
+	}
+	dataset.CloseAll(time.Second)
+}

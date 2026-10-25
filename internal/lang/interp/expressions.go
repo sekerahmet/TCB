@@ -139,6 +139,10 @@ func (v *VM) indexValue(left Value, idx Value, line int) (Value, error) {
 		return val, lineSuffix(line, err)
 	}
 
+	if _, ok := left.(Stream); ok {
+		// Sırayla okunan değer (satır okuyucu, veri okuyucusu) indekslenmez; nasıl okunacağı söylenir.
+		return nil, messages.At(line, 0, messages.New(messages.H2525, left.Type(), codes.NameRef(codes.A010), codes.NameRef(codes.A011), codes.NameRef(codes.Y602)))
+	}
 	return nil, messages.At(line, 0, messages.New(messages.H2465, left.Type()))
 }
 

@@ -292,6 +292,7 @@ const (
 	H2522 Code = 2522 // {fn} {owner} içinde çağrılamaz: orada kilit başka göreve geçmez, görevler ilerleyemez
 	H2523 Code = 2523 // '{line}' kodlu biçim başlığında dosyanın dili eksik: '{header}<dil>' yazın, <dil> dosyanın yazım dilinin kodudur ({languages})
 	H2524 Code = 2524 // '{struct}' yapısı
+	H2525 Code = 2525 // {type} tipi sırayla okunur, indekslenemez: öğelerini '{loop} x {in} ...' döngüsüyle ya da .{next}() ile okuyun
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

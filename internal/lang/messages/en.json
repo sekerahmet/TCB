@@ -287,6 +287,7 @@
 "H2522": "{fn} cannot be called inside {owner}: the lock does not pass to other tasks there, so they cannot make progress",
 "H2523": "'{line}': the coded-format header does not give the file's language: write '{header}<language>', where <language> is the code of the file's writing language ({languages})",
 "H2524": "the struct '{struct}'",
+"H2525": "a {type} is read in order and cannot be indexed: read its items with a '{loop} x {in} ...' loop or with .{next}()",
 "H3001": "the attention block sizes of the {dev} backend cannot be set",
 "H3002": "Attention mask is on a different device ({mask}, {q})",
 "H3003": "Attention q, k, v need the same number of axes (at least 2): {q}, {k}, {v}",
