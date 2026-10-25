@@ -41,6 +41,10 @@ const PENDING_KEY = 'tr.kodlanmayiBekleyenDosyalar';
 // PLAIN_PENDING_KEY Türkçeye çevrilmeyi bekleyen (kişinin dilinde yazılmış ama ayrıştırılamadığı
 // için çevrilemeden kaydedilmiş) kodsuz dosyaların kalıcı listesinin anahtarıdır.
 const PLAIN_PENDING_KEY = 'tr.turkceyeCevrilmeyiBekleyenDosyalar';
+// PENDING_LANGUAGE_KEY kodlanmayı bekleyen dosyaların dillerinin (başlığın dil='si, 17.1)
+// kalıcı kaydıdır (dosya → dil kodu): bekleyen dosyanın diskteki metninde başlık yoktur; VS Code
+// yeniden açılınca da dosya kendi diliyle kodlanır, dili sessizce değişmez.
+const PENDING_LANGUAGE_KEY = 'tr.kodlanmayiBekleyenDosyalarinDili';
 // SOURCE_LANGUAGE kodsuz dosyaların yazıldığı dildir (17.7).
 const SOURCE_LANGUAGE = 'tr';
 const CASE_INSENSITIVE = process.platform === 'win32' || process.platform === 'darwin';
@@ -294,18 +298,26 @@ function create(vscode, g) {
         const y = interpreter(filePath);
         const lang = resolvedLanguage.get(key(filePath)) || g.writingLanguage();
         const s = y.error ? { code: -1, error: y.error } : await g.translate(y.filePath, 'kodla', lang, content);
-        // Dosyanın dili korunur (diskteki başlıktan, bekleyen dosyada açılıştakinden); yeni
-        // dosya yazıldığı dilde kodlanır.
-        const kept = (disk && codedFormat.fileLanguage(disk)) || fileLanguages.get(key(filePath));
+        // Dosyanın dili korunur (diskteki başlıktan, bekleyen dosyada açılıştakinden ya da
+        // kalıcı kayıttan); yeni dosya yazıldığı dilde kodlanır.
+        const languages = Object.assign({}, g.state.get(PENDING_LANGUAGE_KEY, {}));
+        const kept = (disk && codedFormat.fileLanguage(disk)) || fileLanguages.get(key(filePath)) || languages[key(filePath)];
         if (s.code === 0 && kept) {
             s.output = codedFormat.withLanguage(s.output, kept);
         }
-        return settleSave(filePath, content, s, undefined, {
+        const saved = await settleSave(filePath, content, s, undefined, {
             syntax: (name, reason) => `${name}: kodda sözdizimi hatası var (${reason}). Yazdıklarınız kaybolmadı: dosya şimdilik Türkçe yazımıyla kaydedildi; ` +
                 'sözdizimi hatası düzelince ilk kayıtta yeniden kodlu yazılacak.',
             failure: (name, reason) => `${name} kodlu biçimde kaydedilemedi: ${reason} Yazdıklarınız kaybolmadı: dosya Türkçe yazımıyla kaydedildi; ` +
                 'sorun giderilince ilk kayıtta yeniden kodlu yazılacak.',
         });
+        if (kept && isPending(filePath)) {
+            languages[key(filePath)] = kept;
+        } else {
+            delete languages[key(filePath)];
+        }
+        await g.state.update(PENDING_LANGUAGE_KEY, languages);
+        return saved;
     }
 
     // ---------------------------------------------------------------------------

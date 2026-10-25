@@ -66,6 +66,9 @@ type Checker struct {
 	// adHatalari son CheckProgram çağrısının tanımsız ad hatalarıdır (undefined_names.go).
 	globalNames *nameScope
 	nameErrors  []error
+	// fileLanguage denetlenen dosyanın yazım dilinin kodudur ("": Türkçe); değer metni o
+	// dildedir (3), metin karşılaştırması uyarısı ona bakar (type_comparison.go).
+	fileLanguage string
 }
 
 // New returns a checker with an empty global scope.
@@ -278,6 +281,10 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 	}
 }
 
+// SetFileLanguage sets the writing language of the file being checked (source.Parts.Language):
+// a value's text is in it, so comparisons with another language's value names are warned about.
+func (c *Checker) SetFileLanguage(code string) { c.fileLanguage = code }
+
 // SetInteractive marks the checker as the shell's: an expression statement's value is shown
 // there, so it is not unused.
 func (c *Checker) SetInteractive() { c.interactive = true }
@@ -326,6 +333,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		left := c.inferExpression(e.Left)
 		right := c.inferExpression(e.Right)
 		c.checkTypeTextComparison(e)
+		c.checkBoolTextComparison(e)
 		switch e.Operator {
 		case "==", "!=", "<", ">", "<=", ">=", "&&", "||":
 			return typeBool

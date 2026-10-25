@@ -68,6 +68,7 @@
 "H1013": "Name spelling — constants are written in uppercase with words separated by underscores: {suggestion|q} instead of {name|q} (see 2.3b)",
 "H1014": "Name spelling — struct names start with an uppercase letter, with words joined without underscores and each capitalized: {suggestion|q} instead of {name|q} (see 2.3b)",
 "H1015": "Name spelling — {name|q} is a variable written in uppercase; if its value does not change declare it with {keyword|q}, if it does change write {suggestion|q} (see 2.3b)",
+"H1016": "{fn}(x) gives {true|q} or {false|q} in this file (the file's language: {language}); {text|q} is the name in another writing language, so the comparison never holds",
 "H1101": " ('{name}' does not exist in TR; did you mean '{canonical}'?)",
 "H1103": " ('{name}' is not a keyword in TR; did you mean '{keyword}'?)",
 "H1104": ". Did you mean '{closest}'?",

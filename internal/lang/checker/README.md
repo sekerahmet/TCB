@@ -2,7 +2,9 @@
 
 Programı çalıştırmadan önce okuyup hataları bulan denetçi. Bulduğu şeyler: tip uyuşmazlıkları
 (tanım, atama, dönüş değeri, çağrı argümanı), sabite atama, tanımsız adlar, yerleşik adların
-gölgelenmesi, ad yazılışı ve tip değerinin metinle karşılaştırılması (`tip(x) == "Tam"`).
+gölgelenmesi, ad yazılışı, tip değerinin metinle karşılaştırılması (`tip(x) == "Tam"`) ve Mantık
+değerinin metninin başka bir yazım dilinin adıyla karşılaştırılması (İngilizce dosyada `str(b) ==
+"doğru"`, uyarı; dosyanın dili `SetFileLanguage` ile gelir).
 
 `tr kontrol` komutunda, her program çalışmadan önce ve her modül yüklenmeden önce çalışır.
 Kodlu biçime çevirici de bir sözcüğün dilin mi kullanıcının mı olduğunu buradan öğrenir.

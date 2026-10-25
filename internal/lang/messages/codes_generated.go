@@ -73,6 +73,7 @@ const (
 	H1013 Code = 1013 // Ad yazılışı — sabitler büyük harfle, sözcükleri alt çizgiyle ayrılarak yazılır: {name|q} yerine {suggestion|q} (bkz. 2.3b)
 	H1014 Code = 1014 // Ad yazılışı — yapı adları büyük harfle başlar, sözcükler alt çizgisiz ve her biri büyük harfle yazılır: {name|q} yerine {suggestion|q} (bkz. 2.3b)
 	H1015 Code = 1015 // Ad yazılışı — {name|q} büyük harfle yazılmış bir değişken; değeri değişmiyorsa {keyword|q} ile tanımlayın, değişiyorsa {suggestion|q} yazın (bkz. 2.3b)
+	H1016 Code = 1016 // {fn}(x) bu dosyada {true|q} ya da {false|q} verir (dosyanın dili: {language}); {text|q} başka bir yazım dilinin adı, karşılaştırma hiç tutmaz
 	H1101 Code = 1101 //  ('{name}' TR'de yok; '{canonical}' yazmak mı istediniz?)
 	H1103 Code = 1103 //  ('{name}' TR'de anahtar kelime değil; '{keyword}' yazmak mı istediniz?)
 	H1104 Code = 1104 // . Bunu mu demek istediniz: '{closest}'?

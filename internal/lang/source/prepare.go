@@ -100,6 +100,7 @@ func Prepare(text string, s Options) *Result {
 	if s.InGlobalScope {
 		chk.SetGlobalScope(s.GlobalNames, s.GlobalDynamic)
 	}
+	chk.SetFileLanguage(coded.Language) // değer metni dosyanın dilinde (kabuk satırı: kişinin dili)
 	chk.CheckProgram(r.Program)
 	r.Warnings = limitErrors(chk.Warnings())
 	if errs := chk.Errs(); len(errs) > 0 {
