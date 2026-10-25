@@ -304,7 +304,7 @@ func startREPL() {
 		machine.WaitAsync()
 		if val != nil && val.Type() != interp.ValNull {
 			if !startsWithPrint(line) {
-				fmt.Println("=>", val.Inspect())
+				fmt.Println("=>", interp.DisplayText(val)) // kabuğun yankısı görüntüdür (TR_DIL)
 			}
 		}
 	}

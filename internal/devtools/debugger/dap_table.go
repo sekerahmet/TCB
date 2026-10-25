@@ -213,7 +213,7 @@ func plainText(val interp.Value) string {
 	if s, ok := val.(*interp.StringVal); ok {
 		return s.Val
 	}
-	return val.Inspect()
+	return interp.DisplayText(val)
 }
 
 // trStringLiteral bir metni TR kaynak kodunda güvenle kullanılabilecek değişmeze çevirir.

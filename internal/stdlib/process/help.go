@@ -56,10 +56,10 @@ func helpText(command, description string, options []*option) string {
 // typeText seçeneğin yardımdaki tipidir: <Tam>, <Metin>, <Tam,Tam,...>.
 func typeText(s *option) string {
 	if s.optKind == kindList {
-		t := codes.Name(s.itemKind.typeCode())
+		t := codes.DisplayName(s.itemKind.typeCode())
 		return t + "," + t + ",..."
 	}
-	return codes.Name(s.optKind.typeCode())
+	return codes.DisplayName(s.optKind.typeCode())
 }
 
 // defaultText varsayılan değerin komut satırında yazılacağı biçimidir.
@@ -80,5 +80,5 @@ func defaultText(v interp.Value) string {
 		}
 		return strings.Join(parts, ",")
 	}
-	return v.Inspect()
+	return interp.DisplayText(v) // yardım görüntüdür (TR_DIL)
 }
