@@ -89,7 +89,7 @@ f(tensör([1.0]))`)
 		t.Fatalf("türevsiz dışında H6440 bekleniyordu: %v", err)
 	}
 	// Bloğun adı metne gömülü değildir, ad kodundan gelir (yazım diline göre değişir).
-	if e, _ := messages.As(err); e.Args[1] != codes.DisplayName(codes.T301) {
+	if e, _ := messages.As(err); e.Args[1] != codes.NameRef(codes.T301) {
 		t.Errorf("H6440 bloğun adını ad kodundan almalı: %v", e.Args)
 	}
 	out, err := run(t, `varsayılan_cihaz("gpu")

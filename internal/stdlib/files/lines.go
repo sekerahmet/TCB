@@ -81,15 +81,15 @@ func closeEntry(c io.Closer) {
 // openFileError yolun kendisi ya da altındaki bir dosya bu programda bir satır okuyucusuyla
 // açıksa yol gösteren hatayı verir (Windows'ta açık dosya silinemez ve taşınamaz; işlem yarıda
 // kalırdı).
-func openFileError(fn, raw, real string) error {
+func openFileError(fn any, raw string, real string) error {
 	open := openReaderInside(real)
 	if open == "" {
 		return nil
 	}
 	if samePath(open, real) {
-		return messages.New(messages.H7125, fn, raw, LineReaderType, codes.DisplayName(codes.Y012))
+		return messages.New(messages.H7125, fn, raw, LineReaderType, codes.NameRef(codes.Y012))
 	}
-	return messages.New(messages.H7154, fn, raw, filepath.ToSlash(open), LineReaderType, codes.DisplayName(codes.Y012))
+	return messages.New(messages.H7154, fn, raw, filepath.ToSlash(open), LineReaderType, codes.NameRef(codes.Y012))
 }
 
 // CloseAll açık kalmış satır okuyucularının dosyalarını kapatır, ardından geçici_klasör()
@@ -171,7 +171,7 @@ func (o *LineReader) GetProperty(kd codes.Code, prop string) (interp.Value, erro
 	if kd == codes.Y602 {
 		b := &interp.BuiltinVal{Name: codes.Name(codes.Y602), Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 			if len(args) != 0 {
-				return nil, messages.New(messages.H2014, codes.DisplayName(codes.Y602), len(args))
+				return nil, messages.New(messages.H2014, codes.NameRef(codes.Y602), len(args))
 			}
 			d, cont, err := o.Next(m)
 			if err != nil || !cont {
@@ -191,7 +191,7 @@ func (o *LineReader) GetProperty(kd codes.Code, prop string) (interp.Value, erro
 func (o *LineReader) closeMethod() *interp.BuiltinVal {
 	b := &interp.BuiltinVal{Name: codes.Name(codes.Y012), Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		if len(args) != 0 {
-			return nil, messages.New(messages.H2014, codes.DisplayName(codes.Y012), len(args))
+			return nil, messages.New(messages.H2014, codes.NameRef(codes.Y012), len(args))
 		}
 		var didClose bool
 		m.Blocking(func() {
@@ -209,7 +209,7 @@ func (o *LineReader) closeMethod() *interp.BuiltinVal {
 
 // closedError kapatılmış okuyucudan satır istenince verilen hatadır.
 func (o *LineReader) closedError() error {
-	return messages.New(messages.H7134, LineReaderType, o.fpath, codes.DisplayName(codes.Y012), codes.DisplayName(codes.G112))
+	return messages.New(messages.H7134, LineReaderType, o.fpath, codes.NameRef(codes.Y012), codes.NameRef(codes.G112))
 }
 
 // Next sıradaki satırı verir; dosya bitince devam=false. Satır tamponda hazırsa yorumlayıcı

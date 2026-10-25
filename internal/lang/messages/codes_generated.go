@@ -283,7 +283,7 @@ const (
 	H2512 Code = 2512 // '{line}' okunamayan bir kodlu biçim başlığı: bu biçim sürümü okunamıyor; yalnızca '{header}<dil>' okunur, <dil> dosyanın yazım dilinin kodudur ({languages}). '{prefix}' ile başlayan ilk satır kodlu biçim için ayrılmıştır
 	H2513 Code = 2513 // … ve {count} hata daha (ilk {max} hata gösterildi)
 	H2514 Code = 2514 // sözdizimi hatası olan kaynak çevrilmez: {error}
-	H2515 Code = 2515 // {container} indeksi sınır dışı: {index} (uzunluk {length}); öğe olmayabilirse {get}({index}) ?? varsayılan yazın
+	H2515 Code = 2515 // {container} indeksi sınır dışı: {index} (uzunluk {length}); öğe olmayabilirse .{get}({index}) ?? varsayılan yazın
 	H2516 Code = 2516 // eşzamanlı görev hatası (satır {line|loc} başlatılan): {error}
 	H2517 Code = 2517 // eşitlik başarısız: {message} — beklenen {expected}, gerçek {actual}
 	H2519 Code = 2519 // {error}; {defer} içinde de hata: {deferred}
@@ -1099,14 +1099,14 @@ const (
 	H7112 Code = 7112 // {fn}: hedef klasör {path|q} yok; önce {mkdir}({dir|q}) ile oluşturun
 	H7113 Code = 7113 // {fn}: kaynak ile hedef aynı ({path|q})
 	H7114 Code = 7114 // {fn}: {src|q} klasörü kendi içine ({target|q}) konamaz
-	H7115 Code = 7115 // {fn}: hedef {path|q} zaten var; yerine koymak için {option} doğru verin
+	H7115 Code = 7115 // {fn}: hedef {path|q} zaten var; yerine koymak için {option}: doğru verin
 	H7116 Code = 7116 // {fn}: hedef {path|q} bir bağlantı; TR bağlantıların yerine yazmaz (önce {delete}(...) ile kaldırın)
 	H7117 Code = 7117 // {fn}: hedef {path|q} bir klasör, kaynak bir dosya; dosya bir klasörün yerine konmaz
 	H7118 Code = 7118 // {fn}: hedef {path|q} bir dosya, kaynak bir klasör; klasör bir dosyanın yerine konmaz
 	H7119 Code = 7119 // {fn}: hedef {path|q} kaynağı içeriyor; yerine konamaz
 	H7120 Code = 7120 // {fn}: hedef {path|q} ({real}) {reason}; TR onun yerine bir şey koymaz
 	H7121 Code = 7121 // {fn}: {path|q} ({real}) {reason}; TR bunu silmez
-	H7122 Code = 7122 // {fn}: {path|q} klasörü boş değil; içindekilerle birlikte silmek için {option} doğru verin
+	H7122 Code = 7122 // {fn}: {path|q} klasörü boş değil; içindekilerle birlikte silmek için {option}: doğru verin
 	H7123 Code = 7123 // {fn}: {path|q} oluşturulamadı: aynı adda bir dosya var
 	H7124 Code = 7124 // {fn}: yol boş olamaz
 	H7125 Code = 7125 // {fn}: {path|q} bu programda bir {type} ile okunuyor; önce okuyucuyu kapatın (x.{close}()) ya da dosyayı sonuna kadar okuyun

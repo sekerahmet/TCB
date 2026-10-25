@@ -27,7 +27,7 @@ func KeywordSpellingHint(name string) string {
 	if !ok {
 		return ""
 	}
-	return messages.Text(messages.H1103, name, codes.DisplayName(k))
+	return messages.Text(messages.H1103, name, codes.NameRef(k))
 }
 
 // BuiltinSpellingHint returns the hint to append to an error message when ad is the ASCII

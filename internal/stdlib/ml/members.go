@@ -51,7 +51,7 @@ func (d *TensorValue) GetProperty(kd codes.Code, prop string) (interp.Value, err
 		return d.namedMethod(memberToDType, d.toDType), nil
 	case memberGrad:
 		if d.intermediate {
-			return nil, messages.New(messages.H6700, tensor.ShapeText(t.Shape()), nameRequiresGrad.TR, codes.DisplayName(codes.A040), codes.DisplayName(codes.T400), codes.DisplayName(codes.T401), codes.DisplayName(codes.T301), gradExample("..."))
+			return nil, messages.New(messages.H6700, tensor.ShapeText(t.Shape()), nameRequiresGrad, codes.NameRef(codes.A040), codes.NameRef(codes.T400), codes.NameRef(codes.T401), codes.NameRef(codes.T301), gradExample("..."))
 		}
 		g := t.Grad()
 		if g == nil {
@@ -65,7 +65,7 @@ func (d *TensorValue) GetProperty(kd codes.Code, prop string) (interp.Value, err
 	case memberTranspose:
 		return d.method(memberTranspose, func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 			if len(args) != 0 {
-				return nil, messages.New(messages.H6506, codes.DisplayName(memberTranspose))
+				return nil, messages.New(messages.H6506, codes.NameRef(memberTranspose))
 			}
 			return transposed(d)
 		}), nil
@@ -215,7 +215,7 @@ func (d *TensorValue) reshape(_ *interp.VM, args []interp.Value, _ map[string]in
 		list, _ = args[0].(*interp.ListVal)
 	}
 	if list == nil {
-		return nil, messages.New(messages.H6705, codes.DisplayName(memberReshape))
+		return nil, messages.New(messages.H6705, codes.NameRef(memberReshape))
 	}
 	target := list.Elements
 	sh := make([]int, len(target))
@@ -223,7 +223,7 @@ func (d *TensorValue) reshape(_ *interp.VM, args []interp.Value, _ map[string]in
 	for i, v := range target {
 		n, ok := intNumber(v)
 		if !ok || n < -1 {
-			return nil, messages.New(messages.H6706, codes.DisplayName(memberReshape), i+1, interp.Shown(v))
+			return nil, messages.New(messages.H6706, codes.NameRef(memberReshape), i+1, interp.Shown(v))
 		}
 		if n == -1 {
 			unknown++
@@ -231,7 +231,7 @@ func (d *TensorValue) reshape(_ *interp.VM, args []interp.Value, _ map[string]in
 		sh[i] = n
 	}
 	if unknown > 1 {
-		return nil, messages.New(messages.H6708, codes.DisplayName(memberReshape), tensor.ShapeText(sh))
+		return nil, messages.New(messages.H6708, codes.NameRef(memberReshape), tensor.ShapeText(sh))
 	}
 	if d.t.Numel() == 0 {
 		// Veri yokken eksenler serbesttir ([0] → [10¹², 0]); sınır sıfır eksenler 1 sayılarak
@@ -261,7 +261,7 @@ func transposed(d *TensorValue) (interp.Value, error) {
 	t := d.t
 	sh := t.Shape()
 	if len(sh) < 2 {
-		return nil, messages.New(messages.H6712, codes.DisplayName(memberTranspose), tensor.ShapeText(sh))
+		return nil, messages.New(messages.H6712, codes.NameRef(memberTranspose), tensor.ShapeText(sh))
 	}
 	r, err := safe(func() *tensor.Tensor { return t.T() })
 	if err != nil {

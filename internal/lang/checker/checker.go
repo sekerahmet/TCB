@@ -148,7 +148,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		inferred := c.inferExpression(s.Value)
 		if s.TypeName != "" && !typesCompatible(declared, inferred) {
 			c.addError(s.Line(), 0, messages.New(messages.H1001,
-				s.Name.Value, declared, inferred, numberHint(declared, inferred)))
+				s.Name.Value, typeText(declared), typeText(inferred), numberHint(declared, inferred)))
 		}
 		// Dil dinamiktir: açıklamasız bir değişkenin ilk değerden çıkarılan tipi kalıcı bir
 		// bildirim değildir (değişken sonra başka tipte değer alabilir), bu yüzden tipsiz
@@ -239,7 +239,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 				continue
 			}
 			if info, found := c.scope.Resolve(ident.Value); found && info.IsConst {
-				c.addError(s.Line(), 0, messages.New(messages.H1002, ident.Value, codes.DisplayName(codes.A031)))
+				c.addError(s.Line(), 0, messages.New(messages.H1002, ident.Value, codes.NameRef(codes.A031)))
 			}
 		}
 
@@ -255,7 +255,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		valType := c.inferExpression(s.ReturnValue)
 		if c.returnType != "" && !typesCompatible(c.returnType, valType) {
 			c.addError(s.Line(), 0, messages.New(messages.H1003,
-				c.returnType, valType, numberHint(c.returnType, valType)))
+				typeText(c.returnType), typeText(valType), numberHint(c.returnType, valType)))
 		}
 
 	case *ast.ThrowStatement:
@@ -375,7 +375,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 			argType := c.inferExpression(arg)
 			if found && i < len(info.ParamTypes) && !typesCompatible(info.ParamTypes[i], argType) {
 				c.addError(e.Line(), 0, messages.New(messages.H1004,
-					ident.Value, i+1, info.ParamTypes[i], argType))
+					ident.Value, i+1, typeText(info.ParamTypes[i]), typeText(argType)))
 			}
 		}
 		for _, na := range e.NamedArgs {
@@ -425,11 +425,11 @@ func (c *Checker) checkAssign(s *ast.AssignStatement) {
 				valType = arithmeticType(op, info.TypeName, valType, false)
 			}
 			if info.IsConst {
-				c.addError(s.Line(), 0, messages.New(messages.H1002, ident.Value, codes.DisplayName(codes.A031)))
+				c.addError(s.Line(), 0, messages.New(messages.H1002, ident.Value, codes.NameRef(codes.A031)))
 			}
 			if info.TypeName != typeAny && info.TypeName != typeNull && !typesCompatible(info.TypeName, valType) {
 				c.addError(s.Line(), 0, messages.New(messages.H1005,
-					ident.Value, info.TypeName, valType, numberHint(info.TypeName, valType)))
+					ident.Value, typeText(info.TypeName), typeText(valType), numberHint(info.TypeName, valType)))
 			}
 		}
 	} else {

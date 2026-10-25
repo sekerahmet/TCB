@@ -17,8 +17,8 @@ import (
 
 // keyGuide komut isteminde gösterilen kısa tuş listesidir.
 func keyGuide() string {
-	return messages.Text(messages.H8000, codes.DisplayName(codes.K303), codes.DisplayName(codes.K301), codes.DisplayName(codes.K300),
-		codes.DisplayName(codes.K302), codes.DisplayName(codes.K304), codes.DisplayName(codes.K305), codes.DisplayName(codes.K308), codes.DisplayName(codes.K307))
+	return messages.Text(messages.H8000, codes.NameRef(codes.K303), codes.NameRef(codes.K301), codes.NameRef(codes.K300),
+		codes.NameRef(codes.K302), codes.NameRef(codes.K304), codes.NameRef(codes.K305), codes.NameRef(codes.K308), codes.NameRef(codes.K307))
 }
 
 // keyCommands F tuşlarının komutlarıdır (düzenleyicinin hata ayıklama tuşlarıyla aynı anlam).
@@ -70,18 +70,18 @@ func (d *Debugger) printDebugHelp() {
 	// (komut adlarının uzunluğu dile göre değişir).
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
 	for _, row := range []string{
-		messages.Text(messages.H8012, codes.DisplayName(codes.K300)),
-		messages.Text(messages.H8013, codes.DisplayName(codes.K301)),
-		messages.Text(messages.H8014, codes.DisplayName(codes.K302)),
-		messages.Text(messages.H8015, codes.DisplayName(codes.K303)),
-		messages.Text(messages.H8016, codes.DisplayName(codes.K304)),
-		messages.Text(messages.H8017, codes.DisplayName(codes.K305)),
-		messages.Text(messages.H8018, codes.DisplayName(codes.K307)),
-		messages.Text(messages.H8019, codes.DisplayName(codes.K306)),
-		messages.Text(messages.H8020, codes.DisplayName(codes.K308), interp.ValList, interp.ValTensor, interp.ValDict),
-		messages.Text(messages.H8021, codes.DisplayName(codes.K309)),
-		messages.Text(messages.H8022, codes.DisplayName(codes.K310)),
-		messages.Text(messages.H8023, codes.DisplayName(codes.K313)),
+		messages.Text(messages.H8012, codes.NameRef(codes.K300)),
+		messages.Text(messages.H8013, codes.NameRef(codes.K301)),
+		messages.Text(messages.H8014, codes.NameRef(codes.K302)),
+		messages.Text(messages.H8015, codes.NameRef(codes.K303)),
+		messages.Text(messages.H8016, codes.NameRef(codes.K304)),
+		messages.Text(messages.H8017, codes.NameRef(codes.K305)),
+		messages.Text(messages.H8018, codes.NameRef(codes.K307)),
+		messages.Text(messages.H8019, codes.NameRef(codes.K306)),
+		messages.Text(messages.H8020, codes.NameRef(codes.K308), interp.ValList, interp.ValTensor, interp.ValDict),
+		messages.Text(messages.H8021, codes.NameRef(codes.K309)),
+		messages.Text(messages.H8022, codes.NameRef(codes.K310)),
+		messages.Text(messages.H8023, codes.NameRef(codes.K313)),
 	} {
 		fmt.Fprintln(w, "  • "+row)
 	}

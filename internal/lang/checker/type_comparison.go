@@ -48,7 +48,7 @@ func (c *Checker) checkBoolTextComparison(e *ast.InfixExpression) {
 	for _, code := range codes.Languages() {
 		if l, err := codes.LoadLanguage(code); err == nil && (text.Value == l.Name(codes.A040) || text.Value == l.Name(codes.A041)) {
 			c.warnings = append(c.warnings, messages.At(e.Line(), 0, messages.New(messages.H1016,
-				codes.DisplayName(codes.G212), own.Name(codes.A040), own.Name(codes.A041), own.Code, text.Value)))
+				codes.NameRef(codes.G212), own.Name(codes.A040), own.Name(codes.A041), own.Code, text.Value)))
 			return
 		}
 	}

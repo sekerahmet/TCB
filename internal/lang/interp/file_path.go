@@ -73,7 +73,7 @@ func SearchedPlaces(searched []string) string {
 // ReadError explains a read error with turkish.FileError; when the file was not found it adds
 // the places ResolvePath tried. fn is the builtin reporting the error, yol the path the user
 // wrote, operation an outcome message code such as messages.H2100 ("okunamadı").
-func ReadError(fn, filePath string, operation messages.Code, err error, searched []string) error {
+func ReadError(fn any, filePath string, operation messages.Code, err error, searched []string) error {
 	extra := ""
 	if errors.Is(err, fs.ErrNotExist) {
 		extra = SearchedPlaces(searched)

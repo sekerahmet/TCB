@@ -32,16 +32,16 @@ func reduction(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, axis int, 
 			}
 			if maxMin && len(args) >= 2 {
 				// maks(x, 0) eksen mi, eleman bazlı sınır mı belirsiz; sessizce eksen saymak yerine yol göster.
-				limit := map[bool]string{true: nameMin.TR, false: nameMax.TR}[kd == codes.G402]
-				return nil, messages.New(messages.H6205, ad, interp.Shown(args[1]), nameAxis.TR, codes.DisplayName(codes.G409), limit)
+				limit := map[bool]bind.Named{true: nameMin, false: nameMax}[kd == codes.G402]
+				return nil, messages.New(messages.H6205, ad, interp.Shown(args[1]), nameAxis, codes.NameRef(codes.G409), limit)
 			}
 			if len(args) > 2 {
-				return nil, messages.New(messages.H6206, ad, nameAxis.TR, len(args))
+				return nil, messages.New(messages.H6206, ad, nameAxis, len(args))
 			}
 			if err := bind.CheckNamed(ad+"()", named, nameAxis, nameKeepDim); err != nil {
 				return nil, err
 			}
-			keep, err := bind.OptionalBool(ad, nameKeepDim.TR, named, nameKeepDim, false)
+			keep, err := bind.OptionalBool(ad, named, nameKeepDim, false)
 			if err != nil {
 				return nil, err
 			}
@@ -112,16 +112,16 @@ func argMax(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (i
 	ad := codes.DisplayName(codes.T230)
 	if len(args) != 1 {
 		if len(args) == 2 {
-			return nil, messages.New(messages.H6215, ad, nameAxis.TR, interp.Shown(args[1]))
+			return nil, messages.New(messages.H6215, ad, nameAxis, interp.Shown(args[1]))
 		}
-		return nil, messages.New(messages.H6216, ad, nameAxis.TR, len(args))
+		return nil, messages.New(messages.H6216, ad, nameAxis, len(args))
 	}
 	if err := bind.CheckNamed(ad+"()", named, nameAxis); err != nil {
 		return nil, err
 	}
 	d, ok := args[0].(*TensorValue)
 	if !ok {
-		return nil, messages.New(messages.H6217, ad, typeName(args[0]), codes.DisplayName(codes.T100))
+		return nil, messages.New(messages.H6217, ad, typeName(args[0]), codes.NameRef(codes.T100))
 	}
 	t := d.t
 	e, given, err := axisArg(ad, args, named)
@@ -165,10 +165,10 @@ func nonTensorReduce(kd codes.Code, old interp.BuiltinFunc, m *interp.VM, args [
 		return nil, err
 	}
 	if _, ok := bind.GetNamed(named, nameKeepDim); ok {
-		return nil, messages.New(messages.H6218, ad, nameKeepDim.TR, typeName(args[0]), codes.DisplayName(codes.T100), nameAxis.TR, codes.DisplayName(codes.A040))
+		return nil, messages.New(messages.H6218, ad, nameKeepDim, typeName(args[0]), codes.NameRef(codes.T100), nameAxis, codes.NameRef(codes.A040))
 	}
 	if _, ok := bind.GetNamed(named, nameAxis); ok {
-		return nil, messages.New(messages.H6219, ad, nameAxis.TR, typeName(args[0]), codes.DisplayName(codes.T100))
+		return nil, messages.New(messages.H6219, ad, nameAxis, typeName(args[0]), codes.NameRef(codes.T100))
 	}
 	if l, ok := args[0].(*interp.ListVal); ok && len(args) == 1 {
 		var hasTensor bool
@@ -176,7 +176,7 @@ func nonTensorReduce(kd codes.Code, old interp.BuiltinFunc, m *interp.VM, args [
 			switch el.(type) {
 			case *interp.ListVal:
 				t := codes.DisplayName(codes.T100)
-				return nil, messages.New(messages.H6220, ad, t, nameAxis.TR)
+				return nil, messages.New(messages.H6220, ad, t, nameAxis)
 			case *TensorValue:
 				hasTensor = true
 			}
@@ -184,16 +184,16 @@ func nonTensorReduce(kd codes.Code, old interp.BuiltinFunc, m *interp.VM, args [
 		if hasTensor {
 			if kd != codes.G400 && kd != codes.G410 { // toplam, ortalama
 				if kd == codes.G402 {
-					return nil, messages.New(messages.H6224, ad, nameAxis.TR)
+					return nil, messages.New(messages.H6224, ad, nameAxis)
 				}
-				return nil, messages.New(messages.H6225, ad, nameAxis.TR)
+				return nil, messages.New(messages.H6225, ad, nameAxis)
 			}
 			return sumTensorList(m, ad, kd == codes.G410, l.Elements)
 		}
 	}
 	for _, a := range args[1:] {
 		if _, ok := a.(*TensorValue); ok {
-			return nil, messages.New(messages.H6221, ad, nameAxis.TR, typeName(args[0]))
+			return nil, messages.New(messages.H6221, ad, nameAxis, typeName(args[0]))
 		}
 	}
 	return oldCall(ad, old, m, args, named)

@@ -93,25 +93,25 @@ func customGrad(_ *interp.VM, args []interp.Value, named map[string]interp.Value
 		return nil, err
 	}
 	if len(args) != 0 {
-		return nil, messages.New(messages.H6405, fn, nameForward.TR, nameBackward.TR, len(args), customGradExample)
+		return nil, messages.New(messages.H6405, fn, nameForward, nameBackward, len(args), customGradExample)
 	}
 	forward, ok1 := bind.GetNamed(named, nameForward)
 	backward, ok2 := bind.GetNamed(named, nameBackward)
 	if !ok1 || !ok2 {
 		if !ok1 && !ok2 {
-			return nil, messages.New(messages.H6431, fn, nameForward.TR, nameBackward.TR, customGradExample)
+			return nil, messages.New(messages.H6431, fn, nameForward, nameBackward, customGradExample)
 		}
-		missing := nameForward.TR
+		missing := nameForward
 		if ok1 {
-			missing = nameBackward.TR
+			missing = nameBackward
 		}
 		return nil, messages.New(messages.H6430, fn, missing, customGradExample)
 	}
 	if !isCallable(forward) {
-		return nil, messages.New(messages.H6406, fn, nameForward.TR, typeName(forward))
+		return nil, messages.New(messages.H6406, fn, nameForward, typeName(forward))
 	}
 	if !isCallable(backward) {
-		return nil, messages.New(messages.H6406, fn, nameBackward.TR, typeName(backward))
+		return nil, messages.New(messages.H6406, fn, nameBackward, typeName(backward))
 	}
 	if f, ok := backward.(*interp.FuncVal); ok {
 		required := 0
@@ -121,7 +121,7 @@ func customGrad(_ *interp.VM, args []interp.Value, named map[string]interp.Value
 			}
 		}
 		if len(f.Parameters) < 2 || required > 2 {
-			return nil, messages.New(messages.H6408, fn, nameBackward.TR, codes.DisplayName(codes.A020), len(f.Parameters))
+			return nil, messages.New(messages.H6408, fn, nameBackward, codes.NameRef(codes.A020), len(f.Parameters))
 		}
 	}
 	o := &customOp{forward: forward, backward: backward}
@@ -174,11 +174,11 @@ func packTensorValues(ts []*tensor.Tensor, single bool) interp.Value {
 
 // forwardResult ileri'nin [çıktı, saklananlar] dönüşünü çözer.
 func forwardResult(v interp.Value) (outputs []*tensor.Tensor, many bool, savedVals *interp.ListVal, err error) {
-	fn, result := codes.DisplayName(codes.T310), codes.DisplayName(codes.A021)
-	forwards := nameForward.TR
+	fn, result := codes.NameRef(codes.T310), codes.NameRef(codes.A021)
+	forwards := nameForward
 	l, ok := v.(*interp.ListVal)
 	if !ok || len(l.Elements) != 2 {
-		return nil, false, nil, messages.New(messages.H6409, fn, nameForward.TR, result, interp.TypeAndSummary(v))
+		return nil, false, nil, messages.New(messages.H6409, fn, nameForward, result, interp.TypeAndSummary(v))
 	}
 	savedVals, ok = l.Elements[1].(*interp.ListVal)
 	if !ok {
@@ -254,10 +254,10 @@ func (o *customOp) backwardFn(forwardVM *interp.VM, args []interp.Value, savedVa
 // öğe; tensör girdilerde girdiyle aynı şekilde bir tensör ya da yok, tensör olmayan
 // girdilerde yok.
 func backwardResult(v interp.Value, args []interp.Value) ([]*tensor.Tensor, error) {
-	fn, backward, none := codes.DisplayName(codes.T310), nameBackward.TR, codes.DisplayName(codes.A042)
+	fn, backward, none := codes.NameRef(codes.T310), nameBackward, codes.NameRef(codes.A042)
 	l, ok := v.(*interp.ListVal)
 	if !ok {
-		return nil, messages.New(messages.H6414, fn, backward, none, codes.DisplayName(codes.A021), interp.TypeAndSummary(v))
+		return nil, messages.New(messages.H6414, fn, backward, none, codes.NameRef(codes.A021), interp.TypeAndSummary(v))
 	}
 	if len(l.Elements) != len(args) {
 		return nil, messages.New(messages.H6415, fn, backward, len(l.Elements), len(args), none)
@@ -299,7 +299,7 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 		return nil, err
 	}
 	if len(args) != 2 {
-		return nil, messages.New(messages.H6419, fn, nameStep.TR, nameTolerance.TR, len(args))
+		return nil, messages.New(messages.H6419, fn, nameStep, nameTolerance, len(args))
 	}
 	f := args[0]
 	if !isCallable(f) {
@@ -307,7 +307,7 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 	}
 	list, ok := args[1].(*interp.ListVal)
 	if !ok {
-		return nil, messages.New(messages.H6421, fn, codes.DisplayName(codes.T100), codes.DisplayName(codes.T900), codes.DisplayName(codes.A040), typeName(args[1]))
+		return nil, messages.New(messages.H6421, fn, codes.NameRef(codes.T100), codes.NameRef(codes.T900), codes.NameRef(codes.A040), typeName(args[1]))
 	}
 	step, err := positiveFloat(fn, named, nameStep, 1e-3)
 	if err != nil {
@@ -318,7 +318,7 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 		return nil, err
 	}
 	if !tensor.GradEnabled() {
-		return nil, messages.New(messages.H6422, fn, codes.DisplayName(codes.T301))
+		return nil, messages.New(messages.H6422, fn, codes.NameRef(codes.T301))
 	}
 
 	// Türev izleyen girdilerin float32 yaprak kopyaları.
@@ -335,7 +335,7 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 		}
 	}
 	if checked == 0 {
-		return nil, messages.New(messages.H6423, fn, codes.DisplayName(codes.T100), codes.DisplayName(codes.T900), codes.DisplayName(codes.A040))
+		return nil, messages.New(messages.H6423, fn, codes.NameRef(codes.T100), codes.NameRef(codes.T900), codes.NameRef(codes.A040))
 	}
 
 	// Analitik gradyan: L = Σ_k <v_k, y_k> üzerinden geri yayılım.
@@ -441,7 +441,7 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 			if xp == xm {
 				// fark_adımı bu elemanda float32'de etkisiz (alt taşma ya da x'e göre çok küçük):
 				// sonlu fark 0/0 olurdu ve geri hesabını suçlayan sahte bir uyuşmazlık çıkardı.
-				return nil, messages.New(messages.H6445, fn, nameStep.TR, i+1, tensor.ShapeText(append([]int(nil), idx...)))
+				return nil, messages.New(messages.H6445, fn, nameStep, i+1, tensor.ShapeText(append([]int(nil), idx...)))
 			}
 			if err := setSafe(c, xp, idx); err != nil {
 				return nil, err
@@ -510,7 +510,7 @@ func positiveFloat(fn string, named map[string]interp.Value, ad bind.Named, defa
 	}
 	f, ok := interp.ToFloat(v)
 	if !ok || !(f > 0) || math.IsInf(f, 0) {
-		return 0, messages.New(messages.H6429, fn, ad.TR, interp.Shown(v))
+		return 0, messages.New(messages.H6429, fn, ad, interp.Shown(v))
 	}
 	return f, nil
 }

@@ -94,7 +94,7 @@ func (d *State) commandLine(m *interp.VM, args []interp.Value, named map[string]
 }
 
 // buildOptions sözlüğün anahtarlarını ve varsayılanlarını seçeneklere çevirir.
-func buildOptions(m *interp.VM, fn string, dict *interp.DictVal) ([]*option, error) {
+func buildOptions(m *interp.VM, fn any, dict *interp.DictVal) ([]*option, error) {
 	var out []*option
 	for _, k := range dict.Order {
 		value, ok := dict.Pairs[k]
@@ -103,7 +103,7 @@ func buildOptions(m *interp.VM, fn string, dict *interp.DictVal) ([]*option, err
 		}
 		if key := dict.KeyValue(k); key != nil {
 			if _, text := key.(*interp.StringVal); !text {
-				return nil, messages.New(messages.H7219, fn, codes.DisplayName(codes.A202), interp.TypeAndSummary(key))
+				return nil, messages.New(messages.H7219, fn, codes.NameRef(codes.A202), interp.TypeAndSummary(key))
 			}
 		}
 		if err := checkOptionName(fn, k); err != nil {
@@ -125,7 +125,7 @@ func buildOptions(m *interp.VM, fn string, dict *interp.DictVal) ([]*option, err
 // checkOptionName seçenek adının komut satırında yazılabilir ve sonuç sözlüğünde
 // okunabilir olduğunu denetler. Sözlüğün üye adları (uzunluk, anahtarlar ...) seçenek adı
 // olamaz: ayar.uzunluk anahtarı değil eleman sayısını verirdi.
-func checkOptionName(fn, name string) error {
+func checkOptionName(fn any, name string) error {
 	if name == "" || strings.HasPrefix(name, "-") || strings.ContainsFunc(name, func(r rune) bool { return r == '=' || unicode.IsSpace(r) }) {
 		return messages.New(messages.H7220, fn, name)
 	}
@@ -134,14 +134,14 @@ func checkOptionName(fn, name string) error {
 	}
 	if k, ok := codes.Find(codes.NamespaceMember, name); ok {
 		if tn, ok := codes.DefinitionOf(k); ok && slices.Contains(tn.Types(), codes.A206) {
-			return messages.New(messages.H7222, fn, name, codes.DisplayName(codes.A206))
+			return messages.New(messages.H7222, fn, name, codes.NameRef(codes.A206))
 		}
 	}
 	return nil
 }
 
 // defaultKind varsayılan değerden seçeneğin tipini çıkarır.
-func defaultKind(fn, name string, v interp.Value) (optKind, optKind, error) {
+func defaultKind(fn any, name string, v interp.Value) (optKind, optKind, error) {
 	if t, ok := plainKind(v); ok {
 		return t, kindText, nil
 	}
@@ -169,7 +169,7 @@ func defaultKind(fn, name string, v interp.Value) (optKind, optKind, error) {
 		return kindList, item, nil
 	}
 	return 0, 0, messages.New(messages.H7225,
-		fn, name, interp.TypeNames(codes.A200, codes.A201, codes.A202, codes.A203), codes.DisplayName(codes.A205), codes.DisplayName(codes.A042), interp.TypeAndSummary(v))
+		fn, name, interp.TypeNames(codes.A200, codes.A201, codes.A202, codes.A203), codes.NameRef(codes.A205), codes.NameRef(codes.A042), interp.TypeAndSummary(v))
 }
 
 // plainKind Tam, Ondalık, Metin ya da Mantık değerin tipidir.
@@ -189,12 +189,12 @@ func plainKind(v interp.Value) (optKind, bool) {
 
 // readDescriptions açıklama: ve açıklamalar: adlı argümanlarını okur; açıklamalar
 // seçeneklere yazılır, programın açıklaması döner.
-func readDescriptions(fn string, named map[string]interp.Value, options []*option) (string, error) {
+func readDescriptions(fn any, named map[string]interp.Value, options []*option) (string, error) {
 	description := ""
 	if v, ok := bind.GetNamed(named, nameDesc); ok {
 		s, ok := v.(*interp.StringVal)
 		if !ok {
-			return "", messages.New(messages.H7226, fn, nameDesc.TR, codes.DisplayName(codes.A202), interp.TypeAndSummary(v))
+			return "", messages.New(messages.H7226, fn, nameDesc, codes.NameRef(codes.A202), interp.TypeAndSummary(v))
 		}
 		description = s.Val
 	}
@@ -204,7 +204,7 @@ func readDescriptions(fn string, named map[string]interp.Value, options []*optio
 	}
 	dict, ok := v.(*interp.DictVal)
 	if !ok {
-		return "", messages.New(messages.H7227, fn, nameDescs.TR, codes.DisplayName(codes.A206), interp.TypeAndSummary(v))
+		return "", messages.New(messages.H7227, fn, nameDescs, codes.NameRef(codes.A206), interp.TypeAndSummary(v))
 	}
 	names := make([]string, len(options))
 	for i, s := range options {
@@ -218,13 +218,13 @@ func readDescriptions(fn string, named map[string]interp.Value, options []*optio
 		i := slices.Index(names, k)
 		if i < 0 {
 			if o := turkish.Closest(k, names); o != "" {
-				return "", messages.New(messages.H7229, fn, nameDescs.TR, dict.DisplayKey(k), o)
+				return "", messages.New(messages.H7229, fn, nameDescs, dict.DisplayKey(k), o)
 			}
-			return "", messages.New(messages.H7228, fn, nameDescs.TR, dict.DisplayKey(k))
+			return "", messages.New(messages.H7228, fn, nameDescs, dict.DisplayKey(k))
 		}
 		s, ok := value.(*interp.StringVal)
 		if !ok {
-			return "", messages.New(messages.H7230, fn, nameDescs.TR, k, codes.DisplayName(codes.A202), interp.TypeAndSummary(value))
+			return "", messages.New(messages.H7230, fn, nameDescs, k, codes.NameRef(codes.A202), interp.TypeAndSummary(value))
 		}
 		options[i].description = s.Val
 	}

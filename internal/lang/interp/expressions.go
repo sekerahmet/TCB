@@ -160,7 +160,7 @@ func (v *VM) memberValue(obj Value, e *ast.MemberExpression, u memberInfo) (Valu
 		if e.Safe {
 			return Null, nil
 		}
-		return nil, messages.At(e.Line(), 0, messages.New(messages.H2466, codes.DisplayName(codes.A042), e.Property))
+		return nil, messages.At(e.Line(), 0, messages.New(messages.H2466, codes.NameRef(codes.A042), e.Property))
 	}
 
 	// Tensör, iyileştirici, veri kümesi ve parçalayıcı özellikleri
@@ -252,5 +252,5 @@ func rangeCount(first, last, step int64) int64 {
 // indexRangeError köşeli parantezle sınır dışı okumanın hatasıdır (3.6): sessizce yok vermek
 // program yanlışını saklardı. Öğenin olmayabileceği bilinçli durum için varsa_al'ı önerir.
 func indexRangeError(line int, container ValueType, index int64, length int) error {
-	return messages.At(line, 0, messages.New(messages.H2515, container, index, length, "."+codes.DisplayName(codes.Y013)))
+	return messages.At(line, 0, messages.New(messages.H2515, container, index, length, codes.NameRef(codes.Y013)))
 }

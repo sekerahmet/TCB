@@ -126,8 +126,8 @@ func (y *plainWriter) write(v interp.Value, fpath string, depth int) error {
 		b.WriteString("]}")
 	default:
 		return messages.New(messages.H7457,
-			pathName(fpath), interp.TypeAndSummary(v), codes.DisplayName(codes.A200), codes.DisplayName(codes.A201), codes.DisplayName(codes.A202), codes.DisplayName(codes.A203), codes.DisplayName(codes.A042),
-			codes.DisplayName(codes.A205), codes.DisplayName(codes.A206), codes.Name(codes.Y404))
+			pathName(fpath), interp.TypeAndSummary(v), codes.NameRef(codes.A200), codes.NameRef(codes.A201), codes.NameRef(codes.A202), codes.NameRef(codes.A203), codes.NameRef(codes.A042),
+			codes.NameRef(codes.A205), codes.NameRef(codes.A206), codes.NameRef(codes.Y404))
 	}
 	return nil
 }
@@ -263,13 +263,13 @@ func refreshInPlace(name string, target, record interp.Value) error {
 	case *interp.DictVal:
 		k, ok := record.(*interp.DictVal)
 		if !ok {
-			return messages.New(messages.H7467, name, interp.TypeAndSummary(record), codes.DisplayName(codes.A206))
+			return messages.New(messages.H7467, name, interp.TypeAndSummary(record), codes.NameRef(codes.A206))
 		}
 		r.dict(h, k)
 	case *interp.ListVal:
 		k, ok := record.(*interp.ListVal)
 		if !ok {
-			return messages.New(messages.H7467, name, interp.TypeAndSummary(record), codes.DisplayName(codes.A205))
+			return messages.New(messages.H7467, name, interp.TypeAndSummary(record), codes.NameRef(codes.A205))
 		}
 		r.list(h, k)
 	default:

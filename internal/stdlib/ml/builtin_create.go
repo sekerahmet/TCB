@@ -20,13 +20,13 @@ import (
 func requiresGrad(fn string, named map[string]interp.Value, positional interp.Value, defaultVal bool) (bool, error) {
 	// Mantık olmalı: dolu bir metin ("yanlış") doğru sayılıp türevi sessizce açardı.
 	if positional != nil {
-		b, err := bind.Bool(fn, nameRequiresGrad.TR, positional)
+		b, err := bind.Bool(fn, nameRequiresGrad, positional)
 		if err != nil {
 			return false, err
 		}
 		defaultVal = b
 	}
-	return bind.OptionalBool(fn, nameRequiresGrad.TR, named, nameRequiresGrad, defaultVal)
+	return bind.OptionalBool(fn, named, nameRequiresGrad, defaultVal)
 }
 
 // tensorBuiltin tensör(veri, türev_izle: yanlış, tür: "float32") yerleşiğidir. Veri tek
@@ -56,7 +56,7 @@ func tensorBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 		// Türü değiştirmenin tek yazımı t.türe(...)'dir; tür: yalnızca listeden ya da
 		// sayıdan oluştururken verilir (karar 14).
 		if _, given := bind.GetNamed(named, nameDType); given {
-			return nil, messages.New(messages.H6008, fn, codes.DisplayName(codes.Y415), nameDType.TR)
+			return nil, messages.New(messages.H6008, fn, codes.NameRef(codes.Y415), nameDType)
 		}
 		// Var olan tensörden çizgeden bağımsız, kendi verisine sahip yeni bir yaprak (aynı tür).
 		dt := d.t.DType()
@@ -168,7 +168,7 @@ func randomNormal(sh []int, named map[string]interp.Value) (*tensor.Tensor, erro
 	if s, ok := bind.GetNamed(named, nameSeed); ok {
 		seed, ok := s.(*interp.IntVal)
 		if !ok {
-			return nil, messages.New(messages.H6031, codes.DisplayName(codes.T103), nameSeed.TR, typeName(s))
+			return nil, messages.New(messages.H6031, codes.NameRef(codes.T103), nameSeed, typeName(s))
 		}
 		return tensor.Randn(rand.New(rand.NewSource(seed.Val)), sh...), nil
 	}

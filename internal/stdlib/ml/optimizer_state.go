@@ -46,7 +46,7 @@ func (o *Optimizer) stateMember(kd codes.Code) (interp.Value, bool, error) {
 // loadStateTR op.durumu_yükle(sözlük) metodudur.
 func (o *Optimizer) loadStateTR(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 	fn := interp.CallPrefix(memberLoadState)
-	s, err := bind.SingleDictArg(memberLoadState, args, messages.Text(messages.H2326, codes.DisplayName(memberState)))
+	s, err := bind.SingleDictArg(memberLoadState, args, messages.Text(messages.H2326, codes.NameRef(memberState)))
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func (o *Optimizer) loadStateTR(_ *interp.VM, args []interp.Value, _ map[string]
 		}
 		d, ok := v.(*TensorValue)
 		if _, text := s.KeyValue(k).(*interp.StringVal); !text || !ok {
-			return nil, messages.New(messages.H6501, fn, codes.DisplayName(memberState), codes.DisplayName(codes.A202), codes.DisplayName(codes.A212), s.DisplayKey(k), interp.TypeAndSummary(v))
+			return nil, messages.New(messages.H6501, fn, codes.NameRef(memberState), codes.NameRef(codes.A202), codes.NameRef(codes.A212), s.DisplayKey(k), interp.TypeAndSummary(v))
 		}
 		st[k] = d.t
 	}
@@ -115,7 +115,7 @@ func (o *Optimizer) stateTensors(dup bool) ([]string, []*tensor.Tensor) {
 // şekil uyuşmazlığı fn ile başlayan bir hatadır ve iyileştiriciyi değiştirmez (önce
 // denetlenir). Kontrol noktasında parametreler bundan ÖNCE yüklenmelidir: ana kopyalar
 // parametrenin o anki sürümüne bağlanır.
-func (o *Optimizer) LoadState(fn string, st map[string]*tensor.Tensor) error {
+func (o *Optimizer) LoadState(fn any, st map[string]*tensor.Tensor) error {
 	if err := o.CheckLoad(fn, st); err != nil {
 		return err
 	}
@@ -138,7 +138,7 @@ func (o *Optimizer) LoadState(fn string, st map[string]*tensor.Tensor) error {
 // CheckLoad durumu yüklemeden, LoadState'in bütün kurallarıyla denetler: anahtarlar ve
 // şekiller (CheckState) ile adım sayaçları ve moment çiftleri. Kontrol noktası hiçbir nesneyi
 // yazmadan önce bununla sınar (dil tanımı 20.7).
-func (o *Optimizer) CheckLoad(fn string, st map[string]*tensor.Tensor) error {
+func (o *Optimizer) CheckLoad(fn any, st map[string]*tensor.Tensor) error {
 	for ad, t := range st {
 		if err := o.checkStateEntry(fn, ad, t.Shape()); err != nil {
 			return err
@@ -154,7 +154,7 @@ func (o *Optimizer) CheckLoad(fn string, st map[string]*tensor.Tensor) error {
 }
 
 // recoverStateOp durum işlemini çalıştırır; tensör katmanının paniğini H6507 hatasına çevirir.
-func (o *Optimizer) recoverStateOp(fn string, op func()) error {
+func (o *Optimizer) recoverStateOp(fn any, op func()) error {
 	_, err := bind.Recover(func() bool {
 		op()
 		return true
@@ -190,7 +190,7 @@ func (o *Optimizer) CheckState(fn string, names []string, shapes [][]int) error 
 
 // checkStateEntry bir durum girdisinin anahtarını ve şeklini iyileştiriciyle
 // karşılaştırır (yükleme yarıda kalmasın diye önceden).
-func (o *Optimizer) checkStateEntry(fn, ad string, shape []int) error {
+func (o *Optimizer) checkStateEntry(fn any, ad string, shape []int) error {
 	prefix, _, _ := strings.Cut(ad, ".")
 	valid := []string{"hiz", "ana"}
 	if o.adamw != nil {
@@ -201,7 +201,7 @@ func (o *Optimizer) checkStateEntry(fn, ad string, shape []int) error {
 	case ad == "adim" && o.adamw != nil:
 		k = -1
 	case !sorted || !slices.Contains(valid, prefix):
-		return messages.New(messages.H6516, fn, ad, o.ad, len(o.params), codes.DisplayName(memberState))
+		return messages.New(messages.H6516, fn, ad, o.ad, len(o.params), codes.NameRef(memberState))
 	}
 	expected := []int{2} // adım sayaçları
 	if k >= 0 && prefix != "adim" {

@@ -45,7 +45,7 @@ type object struct {
 
 // splitObjects kontrol_noktası'na verilen sözlüğü nesnelere ayırır ve her birinin
 // kaydedilebilir olduğunu denetler.
-func splitObjects(fn string, s *interp.DictVal) ([]*object, error) {
+func splitObjects(fn any, s *interp.DictVal) ([]*object, error) {
 	var out []*object
 	for _, k := range s.Order {
 		v, ok := s.Pairs[k]
@@ -53,7 +53,7 @@ func splitObjects(fn string, s *interp.DictVal) ([]*object, error) {
 			continue
 		}
 		if _, text := s.KeyValue(k).(*interp.StringVal); !text {
-			return nil, messages.New(messages.H7434, fn, codes.DisplayName(codes.A202), s.DisplayKey(k))
+			return nil, messages.New(messages.H7434, fn, codes.NameRef(codes.A202), s.DisplayKey(k))
 		}
 		if err := checkObjectName(k); err != nil {
 			return nil, messages.New(messages.H2000, fn, err)
@@ -66,13 +66,13 @@ func splitObjects(fn string, s *interp.DictVal) ([]*object, error) {
 	}
 	if len(out) == 0 || len(out) > maxObjects {
 		return nil, messages.New(messages.H7435,
-			fn, maxObjects, codes.Name(codes.T702))
+			fn, maxObjects, codes.NameRef(codes.T702))
 	}
 	return out, nil
 }
 
 // newObject bir değerin türünü belirler.
-func newObject(fn, name string, v interp.Value) (*object, error) {
+func newObject(fn any, name string, v interp.Value) (*object, error) {
 	n := &object{name: name, value: v}
 	if g, ok := logging.IsLog(v); ok {
 		n.kind, n.log = kindLog, g
@@ -107,7 +107,7 @@ func newObject(fn, name string, v interp.Value) (*object, error) {
 		return nil, messages.New(messages.H7436,
 			fn, name, x.Type(), name)
 	case *ml.TensorValue:
-		return nil, messages.New(messages.H7437, fn, name, interp.TypeAndSummary(v), codes.DisplayName(codes.T301))
+		return nil, messages.New(messages.H7437, fn, name, interp.TypeAndSummary(v), codes.NameRef(codes.T301))
 	}
 	return nil, messages.New(messages.H7438,
 		fn, name, interp.TypeAndSummary(v))
@@ -171,7 +171,7 @@ type pending struct {
 
 // checkMatch kaydın şimdiki nesneye uyduğunu, hiçbir şey yüklemeden denetler. surum
 // noktanın biçim sürümüdür (modellerin kaydı sürüme bağlıdır, bkz. modelMatch).
-func (n *object) checkMatch(fn string, y *pending, version int) error {
+func (n *object) checkMatch(fn any, y *pending, version int) error {
 	if y.record.Kind != n.kind.String() {
 		return messages.New(messages.H7440, fn, n.name, y.record.Kind, n.kind)
 	}

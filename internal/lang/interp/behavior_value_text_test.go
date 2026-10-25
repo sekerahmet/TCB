@@ -124,7 +124,7 @@ func TestCaughtErrorTextFollowsTheCatchingFile(t *testing.T) {
 try { [1].join(true) } catch e { print(e) }
 try { k.taşır() } catch e { print(e) }
 `, nil)
-	for _, want := range []string{"Line 2:", "expects String as argument 1, Bool (true) given", "List index out of range: 5 (length 1)"} {
+	for _, want := range []string{"Line 2:", "list.join() expects String as argument 1, Bool (true) given", "List index out of range: 5 (length 1)"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("%q yok:\n%s", want, out)
 		}

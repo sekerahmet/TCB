@@ -257,26 +257,30 @@ func TestMethodWrappersTurnPanicsIntoNamedErrors(t *testing.T) {
 	if c.Name != codes.Name(codes.Y010) || !c.NoNamedArgs {
 		t.Fatalf("CodeMethod: %+v", c)
 	}
-	if _, err := c.Fn(nil, nil, nil); !messages.Has(err, messages.H2000) || !strings.Contains(err.Error(), interp.CallName(codes.Y010)) {
+	if _, err := c.Fn(nil, nil, nil); !messages.Has(err, messages.H2000) || !strings.Contains(err.Error(), interp.CallName(codes.Y010).String()) {
 		t.Fatalf("CodeMethod panik hatası: %v", err)
 	}
 }
 
 // Kural: OptionalBool verilmemiş adlı Mantık argümanında varsayılanı verir, verilmişte değeri okur,
-// Mantık olmayan değerde etiketli hata verir (iki ileti biçimi etiketle korunur).
+// Mantık olmayan değerde argümanı adıyla anan hata verir; ad iletinin dilindedir (4D).
 func TestOptionalBool(t *testing.T) {
 	a := NamedArg(codes.T902)
 	for _, def := range []bool{false, true} {
-		if b, err := OptionalBool("f", "x", map[string]interp.Value{}, a, def); err != nil || b != def {
+		if b, err := OptionalBool("f", map[string]interp.Value{}, a, def); err != nil || b != def {
 			t.Errorf("verilmemiş (varsayılan %v) = %v, %v", def, b, err)
 		}
 	}
-	if b, err := OptionalBool("f", "x", map[string]interp.Value{a.TR: &interp.BoolVal{Val: true}}, a, false); err != nil || !b {
+	if b, err := OptionalBool("f", map[string]interp.Value{a.TR: &interp.BoolVal{Val: true}}, a, false); err != nil || !b {
 		t.Errorf("doğru = %v, %v", b, err)
 	}
-	_, err := OptionalBool("f", "etiket:", map[string]interp.Value{a.TR: &interp.IntVal{Val: 1}}, a, false)
-	if err == nil || !strings.Contains(err.Error(), "f: etiket:") {
-		t.Errorf("Mantık olmayan değer etiketli hata vermeli: %v", err)
+	_, err := OptionalBool("f", map[string]interp.Value{a.TR: &interp.IntVal{Val: 1}}, a, false)
+	if err == nil || !strings.Contains(err.Error(), "f: "+a.TR+" ") {
+		t.Errorf("Mantık olmayan değer adıyla hata vermeli: %v", err)
+	}
+	en := codes.NameRef(codes.T902).MessageText("en")
+	if got := messages.ErrorIn(err, "en"); en == a.TR || !strings.Contains(got, "f: "+en+" must be") {
+		t.Errorf("İngilizce iletide ad İngilizce olmalı (%s): %s", en, got)
 	}
 }
 

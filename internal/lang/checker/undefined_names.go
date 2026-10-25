@@ -285,7 +285,7 @@ func (d *nameChecker) target(e ast.Expression, k *nameScope) {
 		if !k.isKnown(id.Value) && !d.decl[id.Value] {
 			d.decl[id.Value] = true
 			d.c.nameErrors = append(d.c.nameErrors, messages.At(id.Line(), id.Token.Column,
-				messages.New(messages.H1010, messages.New(messages.H2448, id.Value, codes.DisplayName(codes.A030)))))
+				messages.New(messages.H1010, messages.New(messages.H2448, id.Value, codes.NameRef(codes.A030)))))
 		}
 		return
 	}

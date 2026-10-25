@@ -58,7 +58,7 @@ func checkBroadcast(m *interp.VM, op string, a, b *tensor.Tensor) error {
 
 func checkDevice(operation string, a, b *tensor.Tensor) error {
 	if a.Device() != b.Device() {
-		return messages.New(messages.H6102, operation, a.Device(), b.Device(), codes.DisplayName(memberToDevice))
+		return messages.New(messages.H6102, operation, a.Device(), b.Device(), codes.NameRef(memberToDevice))
 	}
 	return nil
 }

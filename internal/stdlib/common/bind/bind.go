@@ -42,6 +42,10 @@ func NamedArg(k codes.Code) Named {
 // değiştirilmemelidir.
 func (a Named) Spellings() []string { return a.spellings }
 
+// MessageText adlı argümanın iletinin dilindeki adıdır (messages.Localized): iletiye a verilir,
+// a.TR değil.
+func (a Named) MessageText(lang string) string { return codes.NameRef(a.Code).MessageText(lang) }
+
 // Accepts verilen yazım bu adlı argümanın kabul edilen bir yazımı mı?
 func (a Named) Accepts(spelling string) bool { return slices.Contains(a.spellings, spelling) }
 
@@ -49,7 +53,7 @@ func (a Named) Accepts(spelling string) bool { return slices.Contains(a.spelling
 // hatasında (ya da Türkçe karaktersiz yazılmış, kaldırılmış ya da başka dillerden alışılmış
 // bir adda: ogrenme_orani, nerede, lr, axis...) en yakın TR adını önerir. Kaldırılmış ve
 // alışılmış adlar kod listesindedir (tr.json'da "eski" ve "yabancı").
-func CheckNamed(fn string, named map[string]interp.Value, names ...Named) error {
+func CheckNamed(fn any, named map[string]interp.Value, names ...Named) error {
 	for given := range named {
 		known := false
 		for _, a := range names {
@@ -122,7 +126,7 @@ func Int(v interp.Value) (int64, bool) {
 }
 
 // Bool bir TR değerinin doğru/yanlış olmasını bekler.
-func Bool(fn, name string, v interp.Value) (bool, error) {
+func Bool(fn any, name any, v interp.Value) (bool, error) {
 	b, ok := v.(*interp.BoolVal)
 	if !ok {
 		return false, messages.New(messages.H7905, fn, name, v.Type())
@@ -130,14 +134,14 @@ func Bool(fn, name string, v interp.Value) (bool, error) {
 	return b.Val, nil
 }
 
-// OptionalBool adlı bir Mantık argümanını okur; verilmemişse defaultVal döner. label hata iletisinde
-// argümanı anar (ör. "ad" ya da "ad:"; çağıranın ileti biçimi korunur).
-func OptionalBool(fn, label string, named map[string]interp.Value, a Named, defaultVal bool) (bool, error) {
+// OptionalBool adlı bir Mantık argümanını okur; verilmemişse defaultVal döner. Hata iletisi
+// argümanı adıyla (iletinin dilinde) anar.
+func OptionalBool(fn any, named map[string]interp.Value, a Named, defaultVal bool) (bool, error) {
 	v, ok := GetNamed(named, a)
 	if !ok {
 		return defaultVal, nil
 	}
-	return Bool(fn, label, v)
+	return Bool(fn, a, v)
 }
 
 // Recover fn'i çalıştırır; fn panik yaparsa programı çökertmek yerine paniği cevir ile
@@ -157,7 +161,7 @@ func Recover[T any](fn func() T, convert func(r any) error) (result T, err error
 
 // Safe f'yi çalıştırır; Go paniğini iç hata olarak (messages.Internal: "lütfen bildirin")
 // bildirir.
-func Safe(fn string, f func() (interp.Value, error)) (interp.Value, error) {
+func Safe(fn any, f func() (interp.Value, error)) (interp.Value, error) {
 	var ferr error
 	result, err := Recover(func() interp.Value {
 		v, e := f()
@@ -193,7 +197,7 @@ func SingleDictArg(kd codes.Code, args []interp.Value, example string) (*interp.
 }
 
 // SafeBuiltin fn yerleşiğini Go paniğine karşı korur: panik name adlı bir iç hataya döner (Safe).
-func SafeBuiltin(name string, fn interp.BuiltinFunc) interp.BuiltinFunc {
+func SafeBuiltin(name any, fn interp.BuiltinFunc) interp.BuiltinFunc {
 	return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		return Safe(name, func() (interp.Value, error) { return fn(m, args, named) })
 	}
@@ -209,9 +213,10 @@ func Method(name string, fn interp.BuiltinFunc) *interp.BuiltinVal {
 // CodeMethod üye koduyla (kd) adlı yöntem değeri kurar: değerin adı kodun kanonik adıdır, panik
 // iletisindeki ad interp.CallName(kd)'dir. noNamedArgs doğruysa adlı argüman verilmesi hatadır.
 func CodeMethod(kd codes.Code, noNamedArgs bool, fn interp.BuiltinFunc) *interp.BuiltinVal {
-	b := Method(interp.CallName(kd), fn)
-	b.Name, b.NoNamedArgs = codes.Name(kd), noNamedArgs
-	return b
+	name := interp.CallName(kd) // iletide iletinin dilinde (codes.Ref)
+	return &interp.BuiltinVal{Name: codes.Name(kd), NoNamedArgs: noNamedArgs, Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+		return Safe(name, func() (interp.Value, error) { return fn(m, args, named) })
+	}}
 }
 
 // ResolvePath göreli bir yolu TR'nin tek yol kuralıyla çözer (bkz. interp.(*VM).ResolvePath: önce

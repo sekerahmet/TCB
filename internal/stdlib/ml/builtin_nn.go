@@ -209,7 +209,7 @@ func isZeroOne(x []int) bool {
 }
 
 // normParam ağırlık/sapma argümanını okur (yok verilebilir) ve şeklini denetler.
-func normParam(fn, ad string, v interp.Value, D int, x *tensor.Tensor) (*tensor.Tensor, error) {
+func normParam(fn string, ad any, v interp.Value, D int, x *tensor.Tensor) (*tensor.Tensor, error) {
 	if v == nil || v == interp.Null {
 		return nil, nil
 	}
@@ -248,7 +248,7 @@ func normArgs(fn string, args []interp.Value, named map[string]interp.Value, nam
 		}
 		if v, ok := bind.GetNamed(named, a); ok {
 			if values[i] != nil {
-				return nil, nil, 0, 0, messages.New(messages.H5528, fn, a.TR)
+				return nil, nil, 0, 0, messages.New(messages.H5528, fn, a)
 			}
 			values[i] = v
 		}
@@ -259,7 +259,7 @@ func normArgs(fn string, args []interp.Value, named map[string]interp.Value, nam
 		// float32'de 0'a düşen değer çıktıyı NaN yapardı.
 		f, ok := interp.ToFloat(v)
 		if e := float32(f); !ok || !(e > 0) || math.IsInf(float64(e), 0) {
-			return nil, nil, 0, 0, messages.New(messages.H6325, fn, nameEpsilon.TR, interp.Shown(v))
+			return nil, nil, 0, 0, messages.New(messages.H6325, fn, nameEpsilon, interp.Shown(v))
 		}
 		eps = float32(f)
 	}
@@ -283,11 +283,11 @@ func layerNorm(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 	// (dil tanımı 15.4). Ağırlık ve sapma float32 kalır.
 	sh := x.Shape()
 	D := sh[len(sh)-1]
-	w, err := normParam(fn, nameWeight.TR, p[0], D, x)
+	w, err := normParam(fn, nameWeight, p[0], D, x)
 	if err != nil {
 		return nil, err
 	}
-	b, err := normParam(fn, nameBias.TR, p[1], D, x)
+	b, err := normParam(fn, nameBias, p[1], D, x)
 	if err != nil {
 		return nil, err
 	}
@@ -311,7 +311,7 @@ func rmsNorm(m *interp.VM, args []interp.Value, named map[string]interp.Value) (
 		return nil, err
 	}
 	sh := x.Shape()
-	w, err := normParam(fn, nameWeight.TR, p[0], sh[len(sh)-1], x)
+	w, err := normParam(fn, nameWeight, p[0], sh[len(sh)-1], x)
 	if err != nil {
 		return nil, err
 	}
