@@ -55,9 +55,17 @@
   "commit": "0d6949c",
   "reason": "deleted: messages: whole-sentence templates instead of message fragments"
  },
+ "H5022": {
+  "commit": "b6ea88e",
+  "reason": "deleted: dataset, dataload: dataset errors go into messages as errors, not flattened text"
+ },
  "H5273": {
   "commit": "07013c1",
   "reason": "deleted: all: remove functions nothing calls (deadcode -test)"
+ },
+ "H5515": {
+  "commit": "b6ea88e",
+  "reason": "deleted: dataset, dataload: dataset errors go into messages as errors, not flattened text"
  },
  "H5534": {
   "commit": "ab7f634",
