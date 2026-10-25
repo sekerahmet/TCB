@@ -80,7 +80,8 @@ for d in /content/is/*/; do
   grep -E '^(--- FAIL|FAIL|panic|!! KALDI|❌|✅)' $d/log 2>/dev/null | tail -3
   tail -c 300 $d/log 2>/dev/null | tail -2; echo
 done
-tail -3 /content/drive/MyDrive/TR_dili/olcumler/OZET.md 2>/dev/null
+tail -3 /content/drive/MyDrive/TR_dili/olcumler/OZET.md 2>/dev/null || echo "(OZET.md henüz yok)"
+exit 0  # %%bash sıfır dışı çıkışı hücre hatası sayar; nabız hiçbir zaman hata vermez
 ```
 
 ```python
