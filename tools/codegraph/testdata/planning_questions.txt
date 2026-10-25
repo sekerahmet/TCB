@@ -163,3 +163,7 @@ codegraph who-uses codes.Spellings | contains: interp.VM.DefineBuiltin | src: i�
 codegraph who-uses codes.Name --all | contains: interp.ctorName | contains: checker.typeInt | contains: profiler.opName | src: iç dil 1. tur, 2026-10-25 (Türkçe adın kimlik olduğu yerler)
 codegraph query GetProperty | exit: 3 | contains: interp.PropertyGetter.GetProperty | src: iç dil 1. tur, 2026-10-25 (üye okuma kod ve ad birlikte alıyor)
 tr dizin tanım toplam | exit: 3 | contains: builtin:G400 | src: iç dil 1. tur, 2026-10-25 (yerleşik ile kullanıcı adı ayrı düğüm)
+codegraph query parser.contextWordsOf | contains: codes.Language.Name | src: iç dil 2. tur, 2026-10-25 (örtük adlar kendi, o, birikim, hata okuyucunun dilindeki adla ağaca giriyor)
+codegraph who-uses source.Prepare --by-package | contains: cmd/tr: 6 functions | contains: internal/devtools/debugger | src: iç dil 2. tur, 2026-10-25 (kaynak okuyan her araç source paketinden geçer)
+codegraph who-uses lexer.Token.Literal --all | contains: parser.Parser.parseStatement | src: iç dil 2. tur, 2026-10-25 (ayrıştırıcı sözcüğü metniyle tanıyor)
+codegraph who-uses ast.Identifier.Value --all | contains: interp.compiler.readName | src: iç dil 2. tur, 2026-10-25 (yorumlayıcı adı koda değil ada göre çözüyor)
