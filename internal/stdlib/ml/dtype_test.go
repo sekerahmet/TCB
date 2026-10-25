@@ -83,19 +83,12 @@ yazdır(karışık_hassasiyet("bf16") { 5 }, karışık_hassasiyet("bf16") {})`)
 	if out != want {
 		t.Fatalf("karışık_hassasiyet:\n%q\nbeklenen:\n%q", out, want)
 	}
-	for _, d := range []struct {
-		code string
-		want messages.Code
-	}{
+	expectCodes(t, []codeCase{
 		{`karışık_hassasiyet("bf16")`, messages.H6807},
 		{`karışık_hassasiyet("bf17") { 1 }`, messages.H6811},
 		{`karışık_hassasiyet("bf16", 3)`, messages.H6809},
 		{`karışık_hassasiyet() { 1 }`, messages.H6808},
-	} {
-		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
-			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.want)
-		}
-	}
+	})
 }
 
 // Blok içindeki gradyanlar float32 gradyanlarına yakındır; ağırlıklar float32 kalır.

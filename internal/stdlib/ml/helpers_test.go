@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/testkit/trrun"
 )
 
@@ -27,6 +28,22 @@ func run(t *testing.T, code string) (string, error) {
 func mustRun(t *testing.T, code string) string {
 	t.Helper()
 	return trrun.MustExecChecked(t, code).Out
+}
+
+// codeCase bir program ve onun durması beklenen kodlu hatadır.
+type codeCase struct {
+	code string
+	want messages.Code
+}
+
+// expectCodes her programın beklenen ileti koduyla durduğunu denetler.
+func expectCodes(t *testing.T, cases []codeCase) {
+	t.Helper()
+	for _, c := range cases {
+		if _, err := run(t, c.code); err == nil || !messages.Has(err, c.want) {
+			t.Errorf("%s:\n  hata    : %v\n  içermeli: %s", c.code, err, c.want)
+		}
+	}
 }
 
 // value kodu çalıştırır ve son satırdaki 'cikti' değişkeninin değerini döndürür.
