@@ -36,7 +36,7 @@ TR, yapay zekâ modeli geliştirmek ve eğitmek için bir programlama dilidir (G
 7. **En küçük çözüm.** Aynı sonucu daha az kodla veren yol seçilir; genelleştirme ikinci gerçek kullanım gelince yapılır.
 8. **Gerekçe bir cümle.** "Neden gerekli, mevcut olan neden yetmedi" commit mesajında tek cümleyle yazılamıyorsa eklenmez.
 9. **Boyut sinyaldir.** Değişiklik beklenenden büyüyorsa durulur, tasarım yeniden düşünülür.
-10. **Kopya kalmaz.** `codegraph dups --changed main` her commit'ten ve birleştirmeden önce çalışır; çıkan aday aynı işte giderilir ya da gerekçesi yazılır. Belgede aday numarasıyla değil kimliğiyle (`dir/file:Func~dir/file:Func`) anılır.
+10. **Kopya kalmaz.** `codegraph dups --changed main` her commit'ten ve birleştirmeden önce çalışır; çıkan aday aynı işte giderilir ya da `tools/codegraph/dups_exclude.go`'ya gerekçesiyle yazılır (ön denetim ve tam denetim yeni adayda kalır). Belgede aday numarasıyla değil kimliğiyle (`dir/file:Func~dir/file:Func`) anılır.
 
 ### Kod grafiğinin cevabı nasıl okunur
 
@@ -48,6 +48,7 @@ TR, yapay zekâ modeli geliştirmek ve eğitmek için bir programlama dilidir (G
 
 ## Kesin kurallar
 
+- **Codegraph zorunludur.** Bir dosyaya dokunmadan önce `go run ./tools/codegraph tests-for <dosya>` okunur: kanca (`tools/edithook`, `.claude/settings.json`) her oturumda izlenen bir dosyanın ilk düzenlemesini bir kez durdurup cevabı gösterir. Tasarım ve "nerede, kim kullanıyor, ne etkilenir" soruları dosya okumadan önce codegraph'a ve `tr dizin`'e sorulur. Commit'ten önce `codegraph dups --changed main` çalışır; ön denetim ve tam denetim yeni adayda kalır, bilerek kalan kopya `tools/codegraph/dups_exclude.go`'ya gerekçesiyle yazılır. "Yok" ya da "belirsiz" cevap kanıt değildir, ikinci yoldan doğrulanır.
 - Kullanıcıyla iletişim **Türkçe** ve kısadır.
 - Go adları, dosya ve klasör adları **İngilizce**; Go yorumları **Türkçe**.
 - Kullanıcıya görünen her ad bir **ad kodudur** (`internal/lang/codes`): kodun numarası ailesinin ve grubunun kuralıyla verilir (grubun sıradaki boş numarası, [`docs/codes.md`](docs/codes.md)); kullanıcıya görünen adı (Türkçe ve İngilizce karşılığı) baş geliştirici onaylar. Her ileti bir **ileti kodudur** (`internal/lang/messages`). Go metnine kullanıcıya görünen Türkçe ad ya da ileti yazılmaz.
