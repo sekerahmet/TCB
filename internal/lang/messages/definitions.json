@@ -1473,6 +1473,7 @@
 "H8290": { "param": ["forward", "backward", "after", "source"] },
 "H8291": { "param": [] },
 "H8292": { "param": [] },
+"H8293": { "param": ["n"] },
 "H8400": { "param": ["detail"] },
 "H8401": { "param": ["error"] },
 "H8402": { "param": [] },

@@ -1473,6 +1473,7 @@
 "H8290": "Step phases (per step, on the host): forward {forward} ms · backward {backward} ms · after {after} ms (optimizer, clipping, logging){source, select, optimizer { · step boundary: the optimizer step} other {}}",
 "H8291": "GPU time by operation (device time of the kernels, by the tensor operation that launched them):",
 "H8292": "GPU time by line (backward kernels are on the forward line that made the node):",
+"H8293": "{n|decimal}%",
 "H8400": "formatting would have changed the meaning of the program, the file was not touched ({detail})",
 "H8401": "code with a syntax error is not formatted: {error}",
 "H8402": "the form of the file (coded or spelling language) changed",

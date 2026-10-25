@@ -15,16 +15,20 @@ import (
 
 // Raporların ortak yazım yardımcıları (Türkçe sayı yazımı: ondalık virgül, binlik boşluk).
 
-// percent payı yüzde olarak yazar: %41, %3,5 (10'un altında bir ondalık).
-func percent(f float64) string {
+// percent payı yüzde olarak kişinin dilinde yazar (H8293; işaretin yeri ve ondalık ayırıcı
+// dilindir): tr %41, %3,5; en 41%, 3.5%.
+func percent(f float64) string { return messages.Text(messages.H8293, percentNumber(f)) }
+
+// percentNumber yüzdenin sayısıdır (Go noktasıyla): 10'un altında bir ondalık, 0,05'in altı 0.
+func percentNumber(f float64) string {
 	y := f * 100
 	if y < 0.05 {
-		return "%0"
+		return "0"
 	}
 	if y >= 9.95 {
-		return "%" + strconv.Itoa(int(math.Round(y)))
+		return strconv.Itoa(int(math.Round(y)))
 	}
-	return "%" + messages.Decimal(strconv.FormatFloat(y, 'f', 1, 64))
+	return strconv.FormatFloat(y, 'f', 1, 64)
 }
 
 // count bir ölçüyü 3 anlamlı basamakla yazar (çubukla aynı kural).
