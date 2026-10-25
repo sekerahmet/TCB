@@ -129,7 +129,7 @@ func (k *fileReader) header() (uint32, error) {
 		return 0, k.missing(messages.New(messages.H6630))
 	}
 	if version != fileVersion {
-		return 0, messages.New(messages.H6611, version, fileVersion, codes.NameRef(codes.T700))
+		return 0, messages.New(messages.H6611, version, fileVersion)
 	}
 	number := binary.LittleEndian.Uint32(k.read(4))
 	if k.failure != nil {

@@ -984,7 +984,7 @@
 "H6608": { "param": ["fn", "key", "given"] },
 "H6609": { "param": ["fn", "key", "maxDims", "shape"] },
 "H6610": { "param": ["fileMagic", "saveTensorsFn"] },
-"H6611": { "param": ["version", "fileVersion", "saveTensorsFn"] },
+"H6611": { "param": ["version", "fileVersion"] },
 "H6612": { "param": ["count", "remaining"] },
 "H6613": { "param": ["entry", "length"] },
 "H6614": { "param": ["entry"] },

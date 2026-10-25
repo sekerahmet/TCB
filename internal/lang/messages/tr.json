@@ -984,7 +984,7 @@
 "H6608": "{fn}: {key|q} değeri bir tensör olmalıdır, {given} verildi",
 "H6609": "{fn}: {key|q} en fazla {maxDims} eksenli olabilir, {shape} verildi",
 "H6610": "tanınan bir tensör dosyası değil: TR tensör dosyası ({fileMagic|q} ile başlar, {saveTensorsFn} yazar) ya da safetensors dosyası (8 baytlık başlık boyundan sonra {{ ile başlayan JSON başlık) bekleniyordu",
-"H6611": "dosya biçimi sürümü {version}; bu TR sürümü yalnızca sürüm {fileVersion} okur (dosyayı {saveTensorsFn} ile yeniden yazın)",
+"H6611": "dosya biçimi sürümü {version}; bu TR sürümü yalnızca sürüm {fileVersion} okur; eski sürüm okunamaz, veriyi bu TR sürümüyle yeniden üretin",
 "H6612": "dosya bozuk: {count} girdi bildiriliyor ama dosyada yalnızca {remaining} bayt kaldı",
 "H6613": "dosya bozuk: {entry} adının uzunluğu {length} geçersiz",
 "H6614": "dosya bozuk: {entry} adı geçerli UTF-8 değil",

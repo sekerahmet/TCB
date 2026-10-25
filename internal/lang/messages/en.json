@@ -984,7 +984,7 @@
 "H6608": "{fn}: the value of {key|q} must be a tensor, {given} given",
 "H6609": "{fn}: {key|q} can have at most {maxDims} axes, {shape} given",
 "H6610": "not a recognized tensor file: a TR tensor file (starts with {fileMagic|q}, written by {saveTensorsFn}) or a safetensors file (a JSON header starting with {{ after an 8-byte header length) was expected",
-"H6611": "the file format version is {version}; this TR version only reads version {fileVersion} (rewrite the file with {saveTensorsFn})",
+"H6611": "the file format version is {version}; this TR version only reads version {fileVersion}; an older version cannot be read, produce the data again with this TR version",
 "H6612": "the file is corrupt: {count} entries are declared but only {remaining} bytes remain in the file",
 "H6613": "the file is corrupt: the name length {length} of {entry} is invalid",
 "H6614": "the file is corrupt: the name of {entry} is not valid UTF-8",
