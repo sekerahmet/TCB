@@ -352,7 +352,7 @@ func (g *backend) freshLimit() uint64 { return max(g.sr.totalMemory()/32, 256<<2
 func (g *backend) checkAllocResult(s result, requested uint64) {
 	if s == errNoMemory {
 		empty, total, _ := g.sr.freeMemory()
-		panic(messages.New(messages.H4014, tensor.BytesText(float64(requested)), tensor.BytesText(float64(empty)), tensor.BytesText(float64(total)), g.sr.errName(s)))
+		panic(messages.New(messages.H4014, tensor.ByteSize(requested), tensor.ByteSize(empty), tensor.ByteSize(total), g.sr.errName(s)))
 	}
 	g.try_("cuMemAlloc", s)
 }

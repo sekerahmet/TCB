@@ -91,7 +91,7 @@ var (
 // are written in (docs/spec/03_tipler.md).
 func (k *Dataset) Text(lang *codes.Language) string {
 	if k.cache != nil {
-		return messages.TextIn(lang.Code, messages.H5501, lang.Name(codes.A231), k.summary(lang), bind.FormatBytes(k.cache.Quota()))
+		return messages.TextIn(lang.Code, messages.H5501, lang.Name(codes.A231), k.summary(lang), tensor.ByteSize(k.cache.Quota()))
 	}
 	return fmt.Sprintf("%s(%s)", lang.Name(codes.A231), k.summary(lang))
 }
@@ -112,7 +112,7 @@ func (k *Dataset) TableData() ([]string, [][]string, error) {
 		if i >= limit {
 			break
 		}
-		lines = append(lines, []string{p.Name, fmt.Sprint(p.Token), bind.FormatBytes(p.Bytes).MessageText(codes.Display().Code)})
+		lines = append(lines, []string{p.Name, fmt.Sprint(p.Token), tensor.ByteSize(p.Bytes).MessageText(codes.Display().Code)})
 	}
 	return []string{messages.Text(messages.H5504), messages.Text(messages.H5505), messages.Text(messages.H5506)}, lines, nil
 }
@@ -220,7 +220,7 @@ func openDataset(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 	if cacheDir != "" && !hasQuota {
 		needed := largestShard(k) * int64(dataload.DefaultGroupSize+dataload.DefaultLookahead)
 		return nil, messages.New(messages.H5513,
-			fn, nameCache, nameQuota, dataload.DefaultGroupSize+dataload.DefaultLookahead, bind.FormatBytes(largestShard(k)), int64(math.Ceil(float64(needed)/(1<<30))))
+			fn, nameCache, nameQuota, dataload.DefaultGroupSize+dataload.DefaultLookahead, tensor.ByteSize(largestShard(k)), int64(math.Ceil(float64(needed)/(1<<30))))
 	}
 	tk := &Dataset{k: k, path: raw, cache: cache}
 	if cache != nil {

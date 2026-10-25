@@ -7,9 +7,9 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
-	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 	"github.com/sekerahmet/TCB/internal/stdlib/logging"
 )
 
@@ -78,7 +78,7 @@ func durationText(s float64) string {
 }
 
 // nBytes bayt sayısını okunur yazar (1,2 GB).
-func nBytes(n int64) string { return bind.FormatBytes(n).MessageText(codes.Display().Code) }
+func nBytes(n int64) string { return tensor.ByteSize(n).MessageText(codes.Display().Code) }
 
 // trim metni en çok n karaktere kırpar (sona … koyarak).
 func trim(s string, n int) string {

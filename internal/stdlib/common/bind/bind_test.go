@@ -222,9 +222,9 @@ func TestResolvePath(t *testing.T) {
 	}
 }
 
-// Kural (4D): kısa sayı ve bayt metni ileti parametresidir; basamak sözcüğü (bin, thousand),
-// bayt sözcüğü ve ondalık ayırıcı iletinin dilindedir, birim simgesi (KB, GB) dilden bağımsızdır.
-func TestShortNumberAndFormatBytes(t *testing.T) {
+// Kural (4D): kısa sayı ileti parametresidir; basamak sözcüğü (bin, thousand) ve ondalık ayırıcı
+// iletinin dilindedir. Bayt miktarının kuralı tek yerdedir: tensor.ByteSize (gpu_test).
+func TestShortNumber(t *testing.T) {
 	for n, b := range map[int64][2]string{
 		0: {"0", "0"}, 999: {"999", "999"}, 1000: {"1 bin", "1 thousand"}, 12_345: {"12,3 bin", "12.3 thousand"},
 		2_500_000: {"2,5 milyon", "2.5 million"}, 56_900_000_000: {"56,9 milyar", "56.9 billion"},
@@ -232,14 +232,6 @@ func TestShortNumberAndFormatBytes(t *testing.T) {
 	} {
 		if tr, en := ShortNumber(n).MessageText("tr"), ShortNumber(n).MessageText("en"); tr != b[0] || en != b[1] {
 			t.Errorf("ShortNumber(%d) = %q / %q; %q / %q olmalı", n, tr, en, b[0], b[1])
-		}
-	}
-	for n, b := range map[int64][2]string{
-		0: {"0 bayt", "0 bytes"}, 1: {"1 bayt", "1 byte"}, 1023: {"1023 bayt", "1023 bytes"}, 1024: {"1 KB", "1 KB"},
-		1536: {"1,5 KB", "1.5 KB"}, 5 << 20: {"5 MB", "5 MB"}, 1288490189: {"1,2 GB", "1.2 GB"}, 2 << 40: {"2 TB", "2 TB"},
-	} {
-		if tr, en := FormatBytes(n).MessageText("tr"), FormatBytes(n).MessageText("en"); tr != b[0] || en != b[1] {
-			t.Errorf("FormatBytes(%d) = %q / %q; %q / %q olmalı", n, tr, en, b[0], b[1])
 		}
 	}
 }

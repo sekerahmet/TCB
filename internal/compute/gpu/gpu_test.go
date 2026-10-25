@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
-	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
@@ -252,14 +251,16 @@ func TestMemoryTextIsTheTensorRule(t *testing.T) {
 		}
 		_ = hold
 	})
-	for _, want := range []string{messages.Decimal(tensor.BytesText(256 << 10)), messages.Decimal(tensor.BytesText(1 << 20))} {
+	for _, want := range []string{tensor.ByteSize(256 << 10).MessageText("tr"), tensor.ByteSize(1 << 20).MessageText("tr")} {
 		if err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("GPU bellek iletisi miktarı tensör iletileriyle aynı yazmalı (%q): %v", want, err)
 		}
 	}
-	for b, want := range map[float64]string{0: "0 bayt", 1023: "1023 bayt", 1536: "1.5 KB", 1 << 30: "1.0 GB"} {
-		if got := tensor.BytesText(b); got != want {
-			t.Errorf("BytesText(%v) = %q, beklenen %q", b, got, want)
+	// Tek kural (4E): sözcük ve ondalık ayırıcı iletinin dilinde, birim simgesi dilden bağımsız.
+	for b, want := range map[float64][2]string{0: {"0 bayt", "0 bytes"}, 1: {"1 bayt", "1 byte"}, 1023: {"1023 bayt", "1023 bytes"},
+		1536: {"1,5 KB", "1.5 KB"}, 1 << 30: {"1,0 GB", "1.0 GB"}, 1288490189: {"1,2 GB", "1.2 GB"}, 2 << 40: {"2,0 TB", "2.0 TB"}} {
+		if tr, en := tensor.ByteSize(b).MessageText("tr"), tensor.ByteSize(b).MessageText("en"); tr != want[0] || en != want[1] {
+			t.Errorf("ByteSize(%v) = %q / %q, beklenen %q / %q", b, tr, en, want[0], want[1])
 		}
 	}
 }

@@ -34,6 +34,9 @@ func expectedPanic(t *testing.T, ad string, fn func(), code messages.Code, want 
 	for _, w := range want {
 		found := false
 		for _, a := range m.Args {
+			if l, ok := a.(messages.Localized); ok {
+				a = l.MessageText("tr") // bayt miktarı (ByteSize) iletinin dilinde yazılır
+			}
 			found = found || fmt.Sprint(a) == fmt.Sprint(w)
 		}
 		if !found {
@@ -67,7 +70,7 @@ func TestBroadcastLimit(t *testing.T) {
 	}
 	a, b := Zeros(185000, 1, 1), Zeros(4, 46000)
 	expectedPanic(t, "toplama", func() { Add(a, b) }, messages.H3085,
-		isAdd, "[185000, 4, 46000]", "126.8 GB", PlaceHost, "16.0 GB", "broadcast")
+		isAdd, "[185000, 4, 46000]", "126,8 GB", PlaceHost, "16,0 GB", "broadcast")
 	expectedPanic(t, "çarpma", func() { Mul(b, a) }, messages.H3085, isMul, "[185000, 4, 46000]")
 	// Yayınlamasız işlemlerin hatasında yayınlama ipucu boştur.
 	m, _ := messages.As(testkit.PanicError(func() { MatMul(Zeros(100000, 1), Zeros(1, 100000)) }))
@@ -101,7 +104,7 @@ func TestBothSidesOfLimit(t *testing.T) {
 	if Zeros(1024).Numel() != 1024 || ZerosOf(BFloat16, 2048).Numel() != 2048 || Full(2, 32, 32).Numel() != 1024 {
 		t.Fatal("sınırdaki tensörler oluşturulmalı")
 	}
-	expectedPanic(t, "float32 üstü", func() { Zeros(1025) }, messages.H3084, "[1025]", "4.0 KB", PlaceHost)
+	expectedPanic(t, "float32 üstü", func() { Zeros(1025) }, messages.H3084, "[1025]", "4,0 KB", PlaceHost)
 	expectedPanic(t, "bf16 üstü", func() { ZerosOf(BFloat16, 2049) }, messages.H3084, "[2049]")
 	expectedPanic(t, "birler", func() { Ones(33, 32) }, messages.H3084, "[33, 32]")
 	expectedPanic(t, "rastgele", func() { Randn(nil, 1025) }, messages.H3084, "[1025]")

@@ -256,44 +256,23 @@ func IsNotExist(err error) bool { return errors.Is(err, os.ErrNotExist) }
 
 // ShortNumber büyük sayıyı kısa biçimde yazar, ileti parametresi olarak (messages.Localized):
 // 999 → "999", 12 345 → "12,3 bin" (en: "12.3 thousand"), 56 900 000 000 → "56,9 milyar".
-func ShortNumber(n int64) messages.Localized {
-	return scaled{n, []scaleUnit{{1e12, messages.H7909, ""}, {1e9, messages.H7908, ""}, {1e6, messages.H7907, ""}, {1e3, messages.H7906, ""}}, 0}
-}
+func ShortNumber(n int64) messages.Localized { return shortNumber(n) }
 
-// FormatBytes bayt sayısını okunur biçimde yazar, ileti parametresi olarak: "1,2 GB", "512 bayt"
-// (en: "1.2 GB", "512 bytes").
-func FormatBytes(n int64) messages.Localized {
-	return scaled{n, []scaleUnit{{1 << 40, messages.H7910, "TB"}, {1 << 30, messages.H7910, "GB"}, {1 << 20, messages.H7910, "MB"}, {1 << 10, messages.H7910, "KB"}}, messages.H4020}
-}
+// shortNumber n'yi en büyük uygun basamakta (bin, milyon, milyar, trilyon) bir ondalıkla yazar
+// (".0" atılır; sözcük ve ondalık ayırıcı iletinin dilinde); bine ulaşmazsa sayının kendisini.
+type shortNumber int64
 
-// scaleUnit bir ölçek basamağıdır: n en az threshold ise text iletisiyle (sayı, birim simgesi)
-// yazılır.
-type scaleUnit struct {
+// scales kısa sayının basamaklarıdır (büyükten küçüğe) ve iletileri.
+var scales = []struct {
 	threshold int64
 	text      messages.Code
-	symbol    string
-}
+}{{1e12, messages.H7909}, {1e9, messages.H7908}, {1e6, messages.H7907}, {1e3, messages.H7906}}
 
-// scaled n'yi en büyük uygun basamakta bir ondalıkla yazar (".0" atılır; sözcük ve ondalık ayırıcı
-// iletinin dilinde); hiçbir basamağa ulaşmazsa sayının kendisini small iletisiyle (yoksa yalın).
-type scaled struct {
-	n     int64
-	units []scaleUnit
-	small messages.Code
-}
-
-func (s scaled) MessageText(lang string) string {
-	for _, b := range s.units {
-		if s.n >= b.threshold {
-			v := strings.TrimSuffix(strconv.FormatFloat(float64(s.n)/float64(b.threshold), 'f', 1, 64), ".0")
-			if b.symbol != "" {
-				return messages.TextIn(lang, b.text, v, b.symbol)
-			}
-			return messages.TextIn(lang, b.text, v)
+func (n shortNumber) MessageText(lang string) string {
+	for _, s := range scales {
+		if int64(n) >= s.threshold {
+			return messages.TextIn(lang, s.text, strings.TrimSuffix(strconv.FormatFloat(float64(n)/float64(s.threshold), 'f', 1, 64), ".0"))
 		}
 	}
-	if s.small == 0 {
-		return strconv.FormatInt(s.n, 10)
-	}
-	return messages.TextIn(lang, s.small, s.n)
+	return strconv.FormatInt(int64(n), 10)
 }
