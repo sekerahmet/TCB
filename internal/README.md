@@ -206,6 +206,7 @@ Denetim: `TestTestFileMatchesSource` (birim testinin kaynağı var, her davranı
 | Test dosyası düzeni | `internal/layout_test.go` (`TestTestFileMatchesSource`) |
 | README'lerdeki `Denetim:` ve `Kural`/`Test` tablosu satırlarının andığı test işlevleri ve dosyaları depoda var | `internal/rule_tests_test.go` (`TestRuleTestsExist`) |
 | Kullanıcıya görünen adlar koddan | `tools/gen/codeconsts` (`TestNoBareNames`) |
+| Kodlar kimlikle anılır, eski numaralı biçim kalmaz (eşleme `docs/code_identities.md`) | `internal/old_codes_test.go` (`TestNoOldCodeForm`) |
 | İleti kodları | `tools/gen/msgconsts` (`TestMessageUsage`) |
 | Üretilmiş dosyalar güncel | `tools/gen/*` `-check` (tam denetim) |
 | staticcheck bulgusu yok, çağrılmayan fonksiyon yok | `tools/full_check.sh` (staticcheck, deadcode) |
