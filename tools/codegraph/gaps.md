@@ -25,7 +25,9 @@ Açık madde yok.
 
 ## İnce ayar
 
-Açık madde yok.
+- **Test dosyasının kendi testleri sayılmıyor.** 2026-10-25, MEKANİK bildirdi, ana oturum main f60cdcc6'da yeniden üretti.
+  - Komut: `go run ./tools/codegraph tests-for internal/lang/checker/type_names_test.go` → `tests: none found for the declarations in this file` (dosyada bir test bildirimi var).
+  - Beklenen: test dosyasının bildirdiği testler "this file's tests" olarak listelenir; "none found" yanlış "yok"tur. Risk düşük (düzenleyen kişi testi zaten görüyor), bu yüzden ince ayar.
 
 ## Kalan işler (eksik değil, yeni yetenek)
 
