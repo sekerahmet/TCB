@@ -23,8 +23,9 @@ her durumu kapatan genel çözüm ve sınıfı koruyan bir testtir.
 
 - **Yanlış "test yok": belgeyi kuralın kaynağı olarak anan testler görünmüyor.** CODEGRAPH'ta (2026-10-25).
   - Komut: `go run ./tools/codegraph tests-for docs/development.md`
-  - Gelen: `no tests found`. Beklenen: `internal/layout_test.go` ve `internal/layout_exceptions_test.go` (yorumda ve hata iletisinde kuralın kaynağı olarak `docs/development.md`). Doğrulama: `grep -rln development.md --include=*_test.go`.
-  - `tests-for CLAUDE.md` da `no tests found` diyor ve orada doğru; cevap "aranıp bulunmadı" ile "bakılamadı"yı ayırmalı.
+  - Gelen: `no tests found`. Beklenen: `internal/layout_test.go` ve `internal/layout_exceptions_test.go` (yorumda ve hata iletisinde kuralın kaynağı olarak `docs/development.md`). Ayrıca `cmd/tr/e2e` `TestDocTRCodeBlocks` ve `TestDocLinks` belgeyi `docs/*.md` kalıbıyla okur (`belgeListesi`). Doğrulama: `grep -rln development.md --include=*_test.go` ve `belgeListesi`'nin kaynağı.
+  - Aynı sınıf, 2026-10-25, ana oturum (kancanın cevabı): `tests-for README.md` → `no tests found`; oysa `cmd/tr/e2e` `TestExamplesListedInReadme` README'yi okur, `TestDocTRCodeBlocks` ve `TestDocLinks` onu `belgeListesi`'nde adıyla listeleyip okur (`go test ./cmd/tr/e2e -run 'Doc|Readme' -v` üçünü koşturur). Beklenen: testin okuduğu yol dizesi ya da kalıbı (`"README.md"`, `"docs/*.md"`) o belgeye bağlanır.
+  - `tests-for CLAUDE.md` `no tests found` diyor ve doğru: belge testlerinin listesinde CLAUDE.md yok. Cevap "aranıp bulunmadı" ile "bakılamadı"yı ayırmalı.
 - **Kod dışı izlenen dosyanın yolu belirsiz çıkıyor.** CODEGRAPH'ta (2026-10-25).
   - Komut: `tests-for tools/full_check.sh` → `ambiguous: 2 candidates`; `tests-for .gitignore` → `ambiguous: 6 candidates`.
   - Beklenen: izlenen bir dosyanın yolu her zaman o dosyaya çözülür (`.sh`, `.gitignore`, `.json`, `.js`, `.yml`) ve onu okuyan ya da anan testler listelenir. Doğrulama: `full_check.sh`'yi anan testler `internal/go_equivalents_test.go`, `internal/devtools/testrunner/behavior_language_spec_test.go`, `internal/lang/interp/scope_analysis_test.go`.
