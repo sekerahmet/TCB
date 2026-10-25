@@ -23,6 +23,7 @@ type goIndex struct {
 	snip       *snippetState       // Go test dizelerindeki TR metinleri (tr_snippets.go)
 	ranges     []rangeRef          // koleksiyon döndüren işlev/değişken üzerinde dönen range deyimleri (walks.go)
 	envSets    map[string][]envSet // işlev -> koyduğu ortam değişkenleri (env_names.go)
+	scans      *scanState          // depo genelini tarayan test çağrıları (scans.go)
 }
 
 // testFunc bir test işlevidir.
@@ -89,11 +90,13 @@ func extractGo(m *module, b *builder) *goIndex {
 	x := &goExtractor{m: m, b: b, idx: &goIndex{
 		pkgSyms: map[string]map[string]string{}, inTestFile: map[string]bool{}, snip: newSnippetState(),
 		byName: map[string][]*testFunc{}, dirFiles: map[string]bool{}, envSets: map[string][]envSet{},
+		scans: newScanState(),
 	}, fieldAt: map[string]string{}, env: envCodes(m.Root), consumed: map[*ast.BasicLit]bool{}, rangeVals: map[types.Object][]string{}}
 	for _, u := range m.Units {
 		x.unit(u)
 	}
 	x.resolveFieldUses()
+	x.resolveScans()
 	x.implements()
 	x.testSkips()
 	return x.idx
@@ -139,6 +142,7 @@ func (x *goExtractor) file(u *unit, base string, f *ast.File) {
 	}
 	if isTest {
 		x.citeRefs(fc, f)
+		x.collectScans(fc, f)
 	}
 }
 
