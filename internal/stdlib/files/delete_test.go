@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -158,5 +159,24 @@ func TestDeleteOpenReader(t *testing.T) {
 	CloseAll()
 	if !exists(filepath.Join(k, "k", "s.txt")) {
 		t.Fatal("açık dosyalı klasör silindi")
+	}
+}
+
+// Kural: "yerine koymak için ... verin" ipuçları adlı argümanı yazılacağı gibi gösterir: ad, iki
+// nokta ve değer (üzerine_yaz: doğru), iki dilde de (4D denetimi, bulgu 5: noktalama şablondadır,
+// silinince bu test kalır).
+func TestReplaceHintsShowTheNamedArgument(t *testing.T) {
+	k := tmpWork(t)
+	write(t, filepath.Join(k, "a.txt"), "a")
+	write(t, filepath.Join(k, "b.txt"), "b")
+	write(t, filepath.Join(k, "d", "c.txt"), "c")
+	for _, c := range []struct{ code, tr, en string }{
+		{`taşı("a.txt", "b.txt")`, "üzerine_yaz: doğru", "overwrite: true"},
+		{`sil("d")`, "içindekilerle: doğru", "recursive: true"},
+	} {
+		s := runTR(t, "", c.code)
+		if tr, en := messages.ErrorIn(s.failure, "tr"), messages.ErrorIn(s.failure, "en"); !strings.Contains(tr, c.tr) || !strings.Contains(en, c.en) {
+			t.Errorf("%s:\n  tr %q (%q bekleniyordu)\n  en %q (%q bekleniyordu)", c.code, tr, c.tr, en, c.en)
+		}
 	}
 }

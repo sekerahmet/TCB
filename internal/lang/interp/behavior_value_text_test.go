@@ -8,6 +8,7 @@ import (
 	"testing/fstest"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
@@ -203,5 +204,15 @@ input(true)
 	want := "xtrue none! true,none,Int ayanlış,yanlış/yok\n[false]\ntrue"
 	if out != want {
 		t.Errorf("değerin metni işlemin yazıldığı dosyanın dilinde olmalı:\n%q\nbeklenen:\n%q", out, want)
+	}
+}
+
+// Kural: sınır dışı indeksin ipucu öğeyi okuyan metodu çağrı olarak yazar: nokta, metodun adı
+// iletinin dilinde ve indeks (.varsa_al(5), .get(5)) (4D denetimi, bulgu 5: nokta şablondadır,
+// silinince bu test kalır).
+func TestIndexErrorHintWritesTheGetCall(t *testing.T) {
+	_, err := New().Run(mustParseProgram(t, "[1][5]\n"))
+	if tr, en := messages.ErrorIn(err, "tr"), messages.ErrorIn(err, "en"); !strings.Contains(tr, ".varsa_al(5) ?? ") || !strings.Contains(en, ".get(5) ?? ") {
+		t.Errorf("tr %q, en %q", tr, en)
 	}
 }
