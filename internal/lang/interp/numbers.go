@@ -24,10 +24,11 @@ func floatToInt(name string, f float64) (int64, error) {
 	return int64(f), nil
 }
 
-// parseNonFinite metni lang dilinin sonsuz ya da tanımsız sayı adı olarak okur (A110, A111;
-// '+' ya da '-' işaretli sonsuz da); lang nil kanonik dildir. Ondalık metnin dosyanın dilindeki
-// yazımı böylece geri okunur: Türkçe dosyada ondalık("sonsuz").
-func parseNonFinite(s string, lang *codes.Language) (float64, bool) {
+// ParseNonFinite reads s as lang's name of an infinite or undefined number (A110, A111; an
+// infinity may carry '+' or '-'); nil lang is the canonical language. It reads back a number's
+// text in a file's language (ondalık("sonsuz") in a Turkish file) and, over every language, a
+// command-line value (17.8).
+func ParseNonFinite(s string, lang *codes.Language) (float64, bool) {
 	if lang == nil {
 		lang = codes.Active()
 	}
@@ -154,7 +155,7 @@ func sumNumbers(name string, elems []Value) (Value, error) {
 }
 
 // ListElementError reports that element i (0-based) of a list has the wrong type.
-func ListElementError(name string, i int, expected string, given Value) error {
+func ListElementError(name string, i int, expected any, given Value) error {
 	return messages.New(messages.H2486, name, i+1, expected, TypeAndSummary(given))
 }
 

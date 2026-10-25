@@ -184,11 +184,8 @@ func parseValue(s *option, value string, valued bool) (interp.Value, error) {
 		if !valued {
 			return interp.True, nil
 		}
-		switch value {
-		case codes.Name(codes.A040):
-			return interp.True, nil
-		case codes.Name(codes.A041):
-			return interp.False, nil
+		if b, ok := boolName(value); ok {
+			return interp.BoolToVal(b), nil
 		}
 		return nil, messages.New(messages.H7210, s.name, codes.DisplayName(codes.A203), codes.DisplayName(codes.A040), codes.DisplayName(codes.A041), shorten(value))
 	}
@@ -230,15 +227,43 @@ func parsePlainValue(t optKind, s string) (interp.Value, error) {
 		}
 		return &interp.FloatVal{Val: f}, nil
 	case kindBool:
-		switch s {
-		case codes.Name(codes.A040):
-			return interp.True, nil
-		case codes.Name(codes.A041):
-			return interp.False, nil
+		if b, ok := boolName(s); ok {
+			return interp.BoolToVal(b), nil
 		}
 		return nil, messages.New(messages.H7213, codes.DisplayName(codes.A040), codes.DisplayName(codes.A041))
 	}
 	return &interp.StringVal{Val: s}, nil
+}
+
+// Komut satırı kişinin girdisidir: değer adları her gömülü yazım dilinde kabul edilir (17.8;
+// komutlar ve seçenek adları gibi). Yardım varsayılanı kişinin dilinde gösterir (TR_DIL), betik
+// kendi dilinde yazılmıştır; ikisinin yazımı da okunur.
+
+// boolName s bir gömülü yazım dilinde doğru ya da yanlışın adı mı (A040, A041)?
+func boolName(s string) (value, ok bool) {
+	for _, code := range codes.Languages() {
+		if l, err := codes.LoadLanguage(code); err == nil {
+			switch s {
+			case l.Name(codes.A040):
+				return true, true
+			case l.Name(codes.A041):
+				return false, true
+			}
+		}
+	}
+	return false, false
+}
+
+// nonFiniteName s bir gömülü yazım dilinde sonsuz ya da tanımsız sayının adı mı (A110, A111)?
+func nonFiniteName(s string) (float64, bool) {
+	for _, code := range codes.Languages() {
+		if l, err := codes.LoadLanguage(code); err == nil {
+			if f, ok := interp.ParseNonFinite(s, l); ok {
+				return f, true
+			}
+		}
+	}
+	return 0, false
 }
 
 // exampleValue hata mesajlarında seçeneğe uygun örnek bir değerdir.
@@ -257,7 +282,7 @@ func plainExample(t optKind) string {
 	case kindFloat:
 		return "0.001"
 	case kindBool:
-		return codes.Name(codes.A040)
+		return codes.DisplayName(codes.A040) // iletide örnek: kişinin dilinde
 	}
 	return messages.Text(messages.H7214) // değer
 }

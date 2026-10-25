@@ -115,6 +115,25 @@ try { float("sonsuz") } catch e { print("not read") }
 	}
 }
 
+// Yakalanan çalışma anı hatası programın Metin değeridir: ileti onu yakalayan dosyanın dilinde
+// kurulur, içindeki tip ve değerlerle (DENETİM 3. adım, karar 4). Sınama süreci Türkçedir
+// (TR_DIL=tr); İngilizce dosyanın yakaladığı hata yine İngilizcedir, Türkçe kitaplıkta oluşsa da.
+func TestCaughtErrorTextFollowsTheCatchingFile(t *testing.T) {
+	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte("fonksiyon taşır() { sonuç [1][5] }\n")}})
+	out := runEnglish(t, `import "tr/kitap" as k
+try { [1].join(true) } catch e { print(e) }
+try { k.taşır() } catch e { print(e) }
+`, nil)
+	for _, want := range []string{"Line 2:", "expects String as argument 1, Bool (true) given", "List index out of range: 5 (length 1)"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("%q yok:\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, "Satır") || strings.Contains(out, "Mantık") {
+		t.Errorf("İngilizce dosyanın yakaladığı hata Türkçe:\n%s", out)
+	}
+}
+
 // Kod taşıyan çıplak sözlük anahtarı ({step: 1}, Y500) işlemin yazıldığı dosyanın dilindeki
 // adıdır; d.ad okuması ve yazması anahtarı kodun her yazım dilindeki adıyla arar (önce dosyanın
 // dilindeki), yoksa dosyanın dilindeki adla ekler: aynı kodun iki anahtarı oluşmaz (3.7, 17.3).

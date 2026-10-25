@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 func dict(pairs ...interface{}) *interp.DictVal {
@@ -139,5 +140,18 @@ func TestNonFiniteAsTextOnlyWhenAsked(t *testing.T) {
 	}
 	if _, err := WriteOptions(d, Options{}); err == nil {
 		t.Fatal("seçenek verilmeyince NaN ve sonsuz hata olmalı")
+	}
+}
+
+// Veri olmayan değer (fonksiyon, yerleşik, aralık, yapı nesnesi) JSON'a yazılmaz, tipini söyleyen
+// hata verir (H7010; Python'un json.dumps'ı TypeError verir). Eskiden görüntü metniyle yazılıyor,
+// JSON baytları çalıştıranın diline (TR_DIL) bağlı oluyordu.
+func TestNonDataValueIsAnError(t *testing.T) {
+	for _, v := range []interp.Value{&interp.FuncVal{Name: "f"}, &interp.BuiltinVal{Name: "yazdır"}, &interp.RangeVal{Start: 0, End: 3}} {
+		d := interp.NewDictVal()
+		d.Set("a", v)
+		if _, err := Write(d); !messages.Has(err, messages.H7010) {
+			t.Errorf("%s: H7010 bekleniyordu: %v", v.Type(), err)
+		}
 	}
 }

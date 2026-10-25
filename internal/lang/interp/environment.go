@@ -227,6 +227,11 @@ type UndefinedVarError struct{ Name string }
 
 func (e *UndefinedVarError) Error() string { return e.Unwrap().Error() }
 
+// MessageText is the error's text in lang (messages.Localized; see ModuleError.MessageText).
+func (e *UndefinedVarError) MessageText(lang string) string {
+	return messages.ErrorIn(e.Unwrap(), lang)
+}
+
 // Unwrap returns the coded message, so messages.Has finds it in the chain.
 func (e *UndefinedVarError) Unwrap() error {
 	return messages.New(messages.H2448, e.Name, codes.DisplayName(codes.A030))

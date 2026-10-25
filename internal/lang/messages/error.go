@@ -45,6 +45,23 @@ func TextIn(lang string, c Code, args ...any) string {
 func (e *Error) Error() string { return Text(e.Code, e.Args...) }
 
 // errorText hatanın metnidir (nil için boş).
+// ErrorIn is err's text in the given language instead of the process's: a coded error (Error,
+// PosError, an error that is Localized) is written whole by that language's catalog (the
+// source language when it lacks a text), so the error and the values inside it are in one
+// language. Other errors keep their Error(). A caught error becomes the program's value in the
+// language of the file that catches it (docs/spec/08_hata_yonetimi.md).
+func ErrorIn(err error, lang string) string {
+	load()
+	cat, ok := catalogs[lang]
+	if !ok || !cat.translatesValue(err) {
+		cat = catalogs["tr"]
+	}
+	if text, ok := cat.codedText(err); ok {
+		return text
+	}
+	return err.Error()
+}
+
 func errorText(err error) string {
 	if err == nil {
 		return ""

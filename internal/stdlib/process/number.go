@@ -97,6 +97,9 @@ func parseInt(s string) (int64, error) {
 
 // parseFloat bir Ondalık değer okur (tam sayı yazımı da kabul edilir: 3 → 3.0).
 func parseFloat(s string) (float64, error) {
+	if f, ok := nonFiniteName(s); ok {
+		return f, nil // yardımın gösterdiği sonsuz ve tanımsız sayı adları (sonsuz, inf, NaN, nan)
+	}
 	clean, _, err := numberFormat(s)
 	if err != nil {
 		return 0, err

@@ -1071,6 +1071,8 @@ const (
 	H6818 Code = 6818 // Değer
 	H6819 Code = 6819 // Sütun {n}
 	H6820 Code = 6820 // {name}(parametre: {count}, {settings})
+	H6821 Code = 6821 // {type}{shape, select, empty { (skaler)} other { [{shape}]}}{dtype, select, empty {} other { {dtype}}}
+	H6822 Code = 6822 // {value} ({type}, {shape, select, empty {skaler} other {{shape}}}{dtype, select, empty {} other {, {dtype}}})
 	H7000 Code = 7000 // {fn}: JSON metni ({text}) bekler, {given} verildi
 	H7001 Code = 7001 // JSON çözümleme hatası: {error}
 	H7003 Code = 7003 // {fn}: {path|q} bir klasör; CSV dosyasının yolunu verin
@@ -1080,6 +1082,7 @@ const (
 	H7007 Code = 7007 // {error} (CSV metninin kendisi {parse} ile ayrıştırılır)
 	H7008 Code = 7008 // {value} sayısı JSON'a yazılamaz (JSON'da Tanımsız ya da sonsuz sayı yoktur)
 	H7009 Code = 7009 // sözlükte görünüşü aynı iki anahtar var ({key|q}); JSON'da anahtarlar metindir, ikisi aynı anahtar olurdu
+	H7010 Code = 7010 // {type} değeri JSON'a yazılamaz: JSON yalnızca veri tutar ({types})
 	H7100 Code = 7100 // kopyanın boyutu kaynağınkiyle aynı değil; kaynak silinmedi ({path|q})
 	H7101 Code = 7101 // kaynakta {count} bağlantı ya da özel dosya var; başka bir diske taşınamaz (önce kopyalayıp bağlantıları elle kurun)
 	H7102 Code = 7102 // kopya kaynakla aynı değil (dosya sayısı ya da toplam boyut tutmuyor); kaynak silinmedi
