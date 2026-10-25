@@ -183,11 +183,11 @@ func openDataset(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 		}
 		gb, ok := interp.ToFloat(quotaV)
 		if !ok || gb <= 0 || math.IsInf(gb, 0) || math.IsNaN(gb) {
-			return nil, messages.New(messages.H5511, fn, nameQuota.TR, quotaV.Inspect())
+			return nil, messages.New(messages.H5511, fn, nameQuota.TR, interp.Shown(quotaV))
 		}
 		// int64 bayt sayısına sığmayan kota (≈ 8,6 milyar GB) taşıp negatif olmasın.
 		if gb >= float64(math.MaxInt64)/(1<<30) {
-			return nil, messages.New(messages.H5512, fn, nameQuota.TR, quotaV.Inspect(), int64(math.MaxInt64>>30))
+			return nil, messages.New(messages.H5512, fn, nameQuota.TR, interp.Shown(quotaV), int64(math.MaxInt64>>30))
 		}
 		quota = max(int64(gb*(1<<30)), 1)
 	}
@@ -399,7 +399,7 @@ func readerArgs(fn string, args []interp.Value, named map[string]interp.Value, s
 		}
 		n, ok := bind.Int(v)
 		if !ok || n <= 0 || n > 1<<24 {
-			return 0, messages.New(messages.H5530, fn, name, v.Inspect())
+			return 0, messages.New(messages.H5530, fn, name, interp.Shown(v))
 		}
 		return int(n), nil
 	}
@@ -416,7 +416,7 @@ func readerArgs(fn string, args []interp.Value, named map[string]interp.Value, s
 	if seeded && values[2] != nil {
 		n, ok := bind.Int(values[2])
 		if !ok || n < 0 {
-			err = messages.New(messages.H5532, fn, nameSeed.TR, values[2].Inspect())
+			err = messages.New(messages.H5532, fn, nameSeed.TR, interp.Shown(values[2]))
 			return
 		}
 		seed = uint64(n)

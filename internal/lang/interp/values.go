@@ -46,6 +46,20 @@ func (t ValueType) MessageText(lang string) string {
 	return l.Name(k)
 }
 
+// Shown is v as a message parameter: its text follows the message's language (TR_DIL), like
+// the display (DisplayText); Inspect, the canonical text, is for data, not for messages.
+func Shown(v Value) messages.Localized { return shown{v} }
+
+type shown struct{ v Value }
+
+func (s shown) MessageText(lang string) string {
+	l, err := codes.LoadLanguage(lang)
+	if err != nil {
+		return s.v.Inspect()
+	}
+	return valueText(s.v, l)
+}
+
 // TypeName is the ValueType of a type-name code from the dictionary (A2xx); engines get the
 // names of their own types with it.
 func TypeName(k codes.Code) ValueType {

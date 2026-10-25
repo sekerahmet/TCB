@@ -38,7 +38,7 @@ func (v *VM) registerTestBuiltins() {
 			return True, nil
 		}
 		if len(args) == 3 {
-			return nil, messages.New(messages.H2517, args[2].Inspect(), testShow(args[0]), testShow(args[1]))
+			return nil, messages.New(messages.H2517, y.textOf(args[2]), testShow(args[0]), testShow(args[1]))
 		}
 		return nil, messages.New(messages.H2458, testShow(args[0]), testShow(args[1]))
 	})
@@ -50,7 +50,7 @@ func testShow(d Value) string {
 	if s, ok := d.(*StringVal); ok {
 		return messages.Text(messages.H2459, s.Val, ValString)
 	}
-	return messages.Text(messages.H2424, d.Inspect(), d.Type())
+	return messages.Text(messages.H2424, Shown(d), d.Type())
 }
 
 // RunTest runs a single test block in a new scope opened over the file's top-level definitions

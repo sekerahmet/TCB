@@ -110,7 +110,7 @@ func (d *TensorValue) split(_ *interp.VM, args []interp.Value, named map[string]
 	}
 	n, ok := intNumber(args[0])
 	if !ok || n <= 0 {
-		return nil, messages.New(messages.H6317, fn, args[0].Inspect())
+		return nil, messages.New(messages.H6317, fn, interp.Shown(args[0]))
 	}
 	e, given, err := axisArg(fn, args, named)
 	if err != nil {
@@ -170,7 +170,7 @@ func attentionBuiltin(m *interp.VM, args []interp.Value, named map[string]interp
 	if pv, ok := bind.GetNamed(named, nameWindow); ok {
 		w, integer := intNumber(pv)
 		if !integer || w < 0 {
-			return nil, messages.New(messages.H6326, fn, pv.Inspect())
+			return nil, messages.New(messages.H6326, fn, interp.Shown(pv))
 		}
 		opt.Window = w
 	}
@@ -298,7 +298,7 @@ func sampleBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 	if sv, ok := bind.GetNamed(named, nameTemperature); ok {
 		f, number := interp.ToFloat(sv)
 		if !number || f < 0 || math.IsNaN(f) {
-			return nil, messages.New(messages.H6340, fn, nameTemperature.TR, sv.Inspect())
+			return nil, messages.New(messages.H6340, fn, nameTemperature.TR, interp.Shown(sv))
 		}
 		temperature = f
 	}
@@ -306,7 +306,7 @@ func sampleBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 	if kv, ok := bind.GetNamed(named, nameTopK); ok {
 		n, integer := intNumber(kv)
 		if !integer || n < 0 {
-			return nil, messages.New(messages.H6341, fn, nameTopK.TR, kv.Inspect())
+			return nil, messages.New(messages.H6341, fn, nameTopK.TR, interp.Shown(kv))
 		}
 		k = n
 	}

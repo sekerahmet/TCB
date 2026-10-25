@@ -439,7 +439,7 @@ func intList(row int, elems []interp.Value) ([]int, error) {
 	for i, e := range elems {
 		n, ok := bind.Int(e)
 		if !ok {
-			return nil, messages.New(messages.H5639, codes.DisplayName(memberDecode), row, i+1, e.Inspect())
+			return nil, messages.New(messages.H5639, codes.DisplayName(memberDecode), row, i+1, interp.Shown(e))
 		}
 		out[i] = int(n)
 	}

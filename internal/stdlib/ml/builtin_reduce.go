@@ -33,7 +33,7 @@ func reduction(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, axis int, 
 			if maxMin && len(args) >= 2 {
 				// maks(x, 0) eksen mi, eleman bazlı sınır mı belirsiz; sessizce eksen saymak yerine yol göster.
 				limit := map[bool]string{true: nameMin.TR, false: nameMax.TR}[kd == codes.G402]
-				return nil, messages.New(messages.H6205, ad, args[1].Inspect(), nameAxis.TR, codes.DisplayName(codes.G409), limit)
+				return nil, messages.New(messages.H6205, ad, interp.Shown(args[1]), nameAxis.TR, codes.DisplayName(codes.G409), limit)
 			}
 			if len(args) > 2 {
 				return nil, messages.New(messages.H6206, ad, nameAxis.TR, len(args))
@@ -112,7 +112,7 @@ func argMax(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (i
 	ad := codes.DisplayName(codes.T230)
 	if len(args) != 1 {
 		if len(args) == 2 {
-			return nil, messages.New(messages.H6215, ad, nameAxis.TR, args[1].Inspect())
+			return nil, messages.New(messages.H6215, ad, nameAxis.TR, interp.Shown(args[1]))
 		}
 		return nil, messages.New(messages.H6216, ad, nameAxis.TR, len(args))
 	}

@@ -223,7 +223,7 @@ func (d *TensorValue) reshape(_ *interp.VM, args []interp.Value, _ map[string]in
 	for i, v := range target {
 		n, ok := intNumber(v)
 		if !ok || n < -1 {
-			return nil, messages.New(messages.H6706, codes.DisplayName(memberReshape), i+1, v.Inspect())
+			return nil, messages.New(messages.H6706, codes.DisplayName(memberReshape), i+1, interp.Shown(v))
 		}
 		if n == -1 {
 			unknown++
@@ -282,7 +282,7 @@ func (d *TensorValue) permute(_ *interp.VM, args []interp.Value, _ map[string]in
 	for i, v := range list {
 		n, ok := intNumber(v)
 		if !ok {
-			return nil, messages.New(messages.H6714, fn, v.Inspect())
+			return nil, messages.New(messages.H6714, fn, interp.Shown(v))
 		}
 		e, err := parseAxis(fn, n, sh)
 		if err != nil {
@@ -310,7 +310,7 @@ func (d *TensorValue) slice(_ *interp.VM, args []interp.Value, _ map[string]inte
 	for i, a := range args {
 		x, ok := intNumber(a)
 		if !ok {
-			return nil, messages.New(messages.H6718, fn, a.Inspect())
+			return nil, messages.New(messages.H6718, fn, interp.Shown(a))
 		}
 		n[i] = x
 	}

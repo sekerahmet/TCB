@@ -19,7 +19,7 @@ import (
 func axisTensor(ad, usage string, args []interp.Value, n int, named map[string]interp.Value) (*TensorValue, int, error) {
 	if len(args) != n {
 		if len(args) == n+1 {
-			return nil, 0, messages.New(messages.H6200, usage, nameAxis.TR, args[n].Inspect())
+			return nil, 0, messages.New(messages.H6200, usage, nameAxis.TR, interp.Shown(args[n]))
 		}
 		return nil, 0, messages.New(messages.H6202, usage, n, len(args))
 	}
@@ -37,7 +37,7 @@ func axisTensor(ad, usage string, args []interp.Value, n int, named map[string]i
 	if v, ok := bind.GetNamed(named, nameAxis); ok {
 		var integer bool
 		if e, integer = intNumber(v); !integer {
-			return nil, 0, messages.New(messages.H6106, ad, v.Inspect())
+			return nil, 0, messages.New(messages.H6106, ad, interp.Shown(v))
 		}
 	}
 	e, err := parseAxis(ad, e, d.t.Shape())

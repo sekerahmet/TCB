@@ -102,7 +102,7 @@ func parseAxis(fn string, axis int, sh []int) (int, error) {
 }
 
 // typeName hata mesajlarında değerin tipini adlandırır.
-func typeName(v interp.Value) string { return string(v.Type()) }
+func typeName(v interp.Value) interp.ValueType { return v.Type() } // iletide dile göre (messages.Localized)
 
 // argText argümanları virgülle ayrılmış biçimde yazar.
 func argText(args []interp.Value) string {
@@ -123,7 +123,7 @@ func shapeList(fn string, v interp.Value) ([]int, error) {
 	for i, el := range l.Elements {
 		d, ok := intNumber(el)
 		if !ok || d < 0 {
-			return nil, messages.New(messages.H6024, fn, i+1, el.Inspect())
+			return nil, messages.New(messages.H6024, fn, i+1, interp.Shown(el))
 		}
 		sh[i] = d
 	}

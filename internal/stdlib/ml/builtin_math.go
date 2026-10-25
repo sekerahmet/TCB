@@ -120,7 +120,7 @@ func singleTensor(args []interp.Value) (*TensorValue, bool) {
 func limitCount(ad string, isNamed bind.Named, v interp.Value) (float64, bool, error) {
 	f, ok := interp.ToFloat(v)
 	if !ok || f != f {
-		return 0, false, messages.New(messages.H6107, ad, isNamed.TR, v.Inspect())
+		return 0, false, messages.New(messages.H6107, ad, isNamed.TR, interp.Shown(v))
 	}
 	_, integer := v.(*interp.IntVal)
 	return f, integer, nil

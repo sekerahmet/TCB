@@ -89,7 +89,7 @@ func (o *Optimizer) SetMember(kd codes.Code, ad string, value interp.Value) erro
 	// 0 geçerlidir (kurucudaki gibi): oran planları eğitimin sonunda orana 0'a iner. Sıfır olmayan
 	// ama 32 bitte 0'a yuvarlanan değer reddedilir (sessizce dondurmasın).
 	if !(f >= 0) || math.IsInf(float64(float32(f)), 0) || (f != 0 && float32(f) == 0) {
-		return messages.New(messages.H6504, o.ad, codes.DisplayName(memberLR), value.Inspect())
+		return messages.New(messages.H6504, o.ad, codes.DisplayName(memberLR), interp.Shown(value))
 	}
 	*o.rateField() = float32(f)
 	return nil
@@ -181,7 +181,7 @@ func namedRate(fn string, named map[string]interp.Value, defaultVal float64, min
 	// NaN ve sonsuz (float32'ye sığmayan) değerler reddedilir: tek adımda bütün
 	// parametreleri NaN yapardı (f < minVal denetimi NaN için yanlıştır).
 	if math.IsNaN(f) || math.IsInf(float64(float32(f)), 0) {
-		return 0, messages.New(messages.H6519, fn, ad.TR, v.Inspect())
+		return 0, messages.New(messages.H6519, fn, ad.TR, interp.Shown(v))
 	}
 	if f < minVal {
 		return 0, messages.New(messages.H6528, fn, ad.TR, fmt.Sprintf("%g", minVal), fmt.Sprintf("%g", f))
@@ -278,7 +278,7 @@ func setupAdamW(_ *interp.VM, args []interp.Value, named map[string]interp.Value
 	if eps <= 0 {
 		// Sıfır gradyanlı ilk adımda 0 / (√0 + 0) = NaN olurdu (float32'de 0'a düşen değer de).
 		v, _ := bind.GetNamed(named, nameEpsilon)
-		return nil, messages.New(messages.H6527, fn, nameEpsilon.TR, v.Inspect())
+		return nil, messages.New(messages.H6527, fn, nameEpsilon.TR, interp.Shown(v))
 	}
 	masterCopy, err := bind.OptionalBool(fn, nameMasterCopy.TR, named, nameMasterCopy, true)
 	if err != nil {
