@@ -113,25 +113,23 @@ func key(t target) string {
 }
 
 // locate dosyanın git deposunu bulur; dosya depoda izlenmiyorsa (yeni, scratch, depo dışı) false.
+// Depodaki yolu git'in kendisi verir (ls-files --full-name): kökle dosyanın yolunu burada
+// karşılaştırmak Windows'un kısa adlarında (RUNNER~1) ya da sembolik bağda yanılır.
 func locate(path string) (target, bool) {
 	abs, err := filepath.Abs(path)
 	if err != nil {
 		return target{}, false
 	}
-	top, err := exec.Command("git", "-C", filepath.Dir(abs), "rev-parse", "--show-toplevel").Output()
+	dir, name := filepath.Split(abs)
+	top, err := exec.Command("git", "-C", dir, "rev-parse", "--show-toplevel").Output()
 	if err != nil {
 		return target{}, false
 	}
-	root := filepath.Clean(strings.TrimSpace(string(top)))
-	rel, err := filepath.Rel(root, abs)
-	if err != nil || strings.HasPrefix(rel, "..") {
+	rel, err := exec.Command("git", "--literal-pathspecs", "-C", dir, "ls-files", "--full-name", "--error-unmatch", "--", name).Output()
+	if err != nil {
 		return target{}, false
 	}
-	rel = filepath.ToSlash(rel)
-	if exec.Command("git", "-C", root, "ls-files", "--error-unmatch", "--", rel).Run() != nil {
-		return target{}, false
-	}
-	return target{root, rel}, true
+	return target{filepath.Clean(strings.TrimSpace(string(top))), strings.TrimSpace(string(rel))}, true
 }
 
 // testsFor codegraph'a dosyayı koruyan testleri ve kuralları sorar; cevabın ilk maxLines satırı.
