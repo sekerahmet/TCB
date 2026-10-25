@@ -79,6 +79,7 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 			x.envUse(fc, owner, n)
 			x.pathCall(fc, owner, n)
 			x.buildCall(fc, owner, n)
+			x.stdlibCall(fc, owner, n)
 		case *ast.Ident:
 			x.use(fc, owner, n, callee[n], writes, enclosingClosure(stack, closures))
 		case *ast.RangeStmt:
@@ -93,6 +94,9 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 		case *ast.CompositeLit:
 			x.literalFields(fc, owner, n, enclosingClosure(stack, closures))
 			x.pathList(fc, owner, n)
+			x.noteTextCompare(fc, owner, n)
+		case *ast.CaseClause, *ast.BinaryExpr:
+			x.noteTextCompare(fc, owner, n)
 		}
 		return true
 	})

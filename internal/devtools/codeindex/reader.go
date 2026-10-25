@@ -95,12 +95,72 @@ func (r *Reader) At(file string, line, col int) (*Occurrence, *Node) {
 	return nil, nil
 }
 
-// Occurrences bir düğüme yapılan bütün başvurulardır (tanım dahil), dosya ve satır sırasıyla.
+// Occurrences bir düğüme yapılan bütün başvurulardır (tanım dahil), dosya ve satır sırasıyla. Alan ve metotta alıcısı
+// bilinmeyen aynı adlı erişimler (MemberGuess) burada "olası" başvuruya (BasisNameOnly) çevrilir.
 func (r *Reader) Occurrences(id string) []Occurrence {
 	var out []Occurrence
 	for _, o := range r.Index.Occurrences {
 		if o.Node == id {
 			out = append(out, o)
+		}
+	}
+	if guesses := r.memberGuesses(id); len(guesses) > 0 {
+		out = append(out, guesses...)
+		sort.SliceStable(out, func(i, j int) bool { return comparePos(out[i].Pos, out[j].Pos) < 0 })
+	}
+	return out
+}
+
+// memberGuesses alanın ya da metodun ad-yalnız başvurularıdır: aynı adlı, alanın (metodun) dosyasını gören dosyadaki
+// alıcısı bilinmeyen erişimler; metot için yalnız aday sınırının aşıldığı erişimler (sınır içindekilerin kenarı ve
+// BasisNameMatch başvurusu dizindedir). Görünürlük tanımın dosyasından ters aktarma bağlarında tek gezintiyle bulunur
+// (sorgu başına O(dosya + aktarma)); dizine dosya başına görünürlük listesi yazılmaz.
+func (r *Reader) memberGuesses(id string) []Occurrence {
+	n := r.byID[id]
+	if n == nil || n.Pos == nil || n.Kind != KindField && n.Kind != KindMethod {
+		return nil
+	}
+	name := shortName(n)
+	var seers map[string]bool
+	var out []Occurrence
+	for _, g := range r.Index.MemberGuesses {
+		if g.Member != name || n.Kind == KindMethod && !g.MethodsCapped {
+			continue
+		}
+		if seers == nil {
+			seers = r.seers(n.Pos.File)
+		}
+		if !seers[g.Pos.File] {
+			continue
+		}
+		role := RoleRead
+		switch {
+		case n.Kind == KindMethod && g.Called:
+			role = RoleCall
+		case g.Written:
+			role = RoleWrite
+		}
+		out = append(out, Occurrence{Node: id, Role: role, Confidence: Inferred, Pos: g.Pos, In: g.In, Basis: BasisNameOnly})
+	}
+	return out
+}
+
+// seers file'ı gören dosyalardır: kendisi ve onu (dolaylı da) aktaranlar.
+func (r *Reader) seers(file string) map[string]bool {
+	out := map[string]bool{file: true}
+	queue := []string{NodeID(KindModule, file, "")}
+	seen := map[string]bool{queue[0]: true}
+	for len(queue) > 0 {
+		mod := queue[0]
+		queue = queue[1:]
+		for _, from := range r.importers[mod] {
+			if !seen[from] {
+				seen[from] = true
+				queue = append(queue, from)
+				if m := r.byID[from]; m != nil && m.Pos != nil {
+					out[m.Pos.File] = true
+				}
+			}
 		}
 	}
 	return out

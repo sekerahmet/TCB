@@ -21,22 +21,28 @@ her durumu kapatan genel çözüm ve sınıfı koruyan bir testtir.
 
 ## Kritik
 
-- **İşleç simgesiyle sorgu "bulunamadı" diyor.** 2026-10-25, ana oturum (tam bölme ve `%` tasarımında).
-  - Komut: `go run ./tools/codegraph query "%"` ve `query "@"` → `not found` (öneriler ilgisiz: dil tanımı maddeleri, kapanışlar).
-  - Beklenen: işlecin Go uygulaması ve testleri (`%` için `interp.intOp`, hızlı yol `interp.intFastFunc`, `interp.floatOp`; test `TestIntOpErrorsAndFastPathAgree`). Doğrulama: `query opMod` ve `who-uses interp.opMod` bunları veriyor. Yanlış "yok": işlecin davranışını değiştirecek bir tasarım etkiyi göremez.
-
-- **`dups --changed` commit'lenmemiş değişikliği görmüyor; kural onu commit'ten önce koşturuyor.** 2026-10-25, MEKANİK bildirdi (d7bfae3d'nin ön denetimi 0, aynı commit'te doğrudan koşu 1 aday), ana oturum main 493afbf0'da yeniden üretti.
-  - Komut: geçici çalışma ağacında `internal/lang/turkish/frame.go`'ya `codeFrameAt`'in birebir kopyası (`codeFrameAtCopy`) eklendi; commit'lenmemişken `go run ./tools/codegraph dups --changed origin/main` → `0 duplicate candidate(s)`; aynı değişiklik commit'lenince → `1 duplicate candidate(s)`, `#1 turkish/frame.go:codeFrameAt~turkish/frame.go:codeFrameAtCopy`.
-  - Kök [kanıtlı: `tools/codegraph/dups_changed.go:22,36`]: değişen satırlar `ad...HEAD` farkından alınıyor (yalnız commit'lenmiş); grafik ise çalışma ağacından kuruluyor. CLAUDE.md "her commit'ten önce" ve ön denetim (`full_check.sh --kip=on`) tam da commit'ten önce koşuyor: yeni kopya o anda görünmüyor, ancak bir sonraki commit'in ön denetimi ya da tam denetim yakalıyor. Yanlış "yok".
-  - Beklenen: değişen satırlar ortak atadan çalışma ağacına kadar sayılır (commit'lenmiş, sahnelenmiş ve sahnelenmemiş değişiklikler; izlenen yeni dosyalar dahil). Sınıfı koruyan test: commit'lenmemiş bir kopyanın aday olarak çıktığı.
+Şu an yok: 2026-10-26 partisinin dört kritik maddesi d4de3803 ile kapandı (ana oturum aynı komutlarla doğruladı).
 
 ## İnce ayar
 
-- **Test dosyasının kendi testleri sayılmıyor.** 2026-10-25, MEKANİK bildirdi (iki kez), ana oturum main f60cdcc6'da yeniden üretti.
-  - Komut: `go run ./tools/codegraph tests-for internal/lang/checker/type_names_test.go` → `tests: none found for the declarations in this file` (dosyada bir test bildirimi var). İkinci örnek (MEKANİK, düzeltmeler-1): `tests-for internal/devtools/testrunner/runner_test.go` → yalnız `TestRunFile` (dosyada 11 Test).
+- **Test dosyasının kendi testleri sayılmıyor.** 2026-10-25, MEKANİK bildirdi (iki kez), ana oturum main f60cdcc6'da yeniden üretti; DENETİM 2026-10-26'da yeniden üretti ve sınıfı buldu.
+  - Komut: `go run ./tools/codegraph tests-for internal/lang/checker/type_names_test.go` → `tests: none found for the declarations in this file` (dosyada bir test bildirimi var). İkinci örnek: `tests-for internal/devtools/testrunner/runner_test.go` → 10 testten 1'i.
+  - Sınıf (DENETİM): yalnız dosyadaki bir yardımcıyı çağıran testler listeleniyor; MEKANİK'in `prepare_test.go` ve `testkit_test.go`'da görmemesinin nedeni bu.
   - Beklenen: test dosyasının bildirdiği testler "this file's tests" olarak listelenir; "none found" yanlış "yok"tur. Risk düşük (düzenleyen kişi testi zaten görüyor), bu yüzden ince ayar.
+
+- **`tests-for` komut fonksiyonlarının testlerini dolaylı gösteriyor.** 2026-10-26, CODEGRAPH bildirdi (gaps-parti-devir.md), ana oturum main d4de3803'te yeniden üretti.
+  - Komut: `go run ./tools/codegraph tests-for tools/codegraph/query_fields.go` → ilk satır `TestPlanningQuestionsAreAnswered 5 steps [INFERRED]`; doğrudan test yok.
+  - Beklenen: komutu adıyla çalıştıran testler (`run([]string{"who-uses", ...})`) doğrudan. İkinci yol: `grep -ln '"who-uses"' tools/codegraph/*_test.go` → `fields_test.go` ve 5 dosya daha.
+  - Kök (CODEGRAPH): komut adı metinle `answer`'ın `switch cmd`'ine gidiyor. Test listede var, uzaklığı yanlış: ince ayar.
+
+- **`compares_value` noktalama gürültüsü.** 2026-10-26, CODEGRAPH bildirdi, ana oturum main d4de3803'te yeniden üretti.
+  - Komut: `go run ./tools/codegraph who-uses lexer.TokDot` → `compares_value (17)`, çoğu dosya yolu ve bayrak kodu (`other_os.go:42`, `docs.go:127`, `rules.go:113` ...); `"."`, `"-"`, `"+"`, `"/"` için aynı.
+  - Beklenen: yalnız işleci kastedenler. Öneri (CODEGRAPH): karşılaştırılan ifadenin kaynağına (ast/lexer tipli alan) bakmak. Fazla tahmin, yanlış "yok" değil: ince ayar.
 
 ## Kalan işler (eksik değil, yeni yetenek)
 
 - `.tr` kodunda tekrar bulma (`dups`'ın `.tr` karşılığı; `tr dizin kopya` bugün yok, 2026-10-25'te denendi).
-- `dead-methods` ve `package-state`'in ilk koşusunun bulgularının ayıklanması (sayılar 2026-10-24'ün; iş açılmadan önce yeniden koşulur): 60 yalnızca arayüzle ya da yalnızca testte yaşayan metot, 116 paket değişkeni; korumasız görünenler: `tensor.backends`, `tokenize` kayıt haritaları, `codes.defs`, `messages.catalogs`, `interp.engines`, `logging` açık çubuklar ve günlükler, `cmd/tr.exitCode`.
+- **Kullanım yerinin rolü (istek, 2026-10-26, madde 15 tasarımı):** `who-uses` bir adın her kullanımını aynı listede veriyor; kullanımın ne işe yaradığını ayırmıyor. İç dil tasarımında `codes.Name`'in ~90 kullanımından hangisinin kimlik (karşılaştırma, harita anahtarı, `switch`, kayıt: `Define`/`Register`), hangisinin görüntü (ileti ya da `fmt` argümanı) olduğu kaynak okunarak ayrıldı. İstek: her kullanım yerine bir rol etiketi (görüntü / kimlik / kayıt), `who-uses --role` gibi süzme. Görüntü ve dosya biçimi rolleri d4de3803 ile kenar türü oldu (`formats`, `encodes`, `stdlib_calls`); kimlik ve kayıt rolleri ve süzme kalıyor (`compares_value` kimliğin metin tarafı).
+- **Arayüz kullanımlarının kalan iki yolu (CODEGRAPH bildirdi, 2026-10-26; ana oturum henüz yeniden üretmedi, sınıfı üretilince verilir):** `...any`'yi `fmt`'ye geçen modül işlevleri (vet'in printf sarmalayıcı kuralı) bugün yalnız `messages` paketi için biçimleme sayılıyor; `error` olarak döndürülüp başka yerde biçimlenen değerin `Error()`'ı çağıransız.
+- **Not, CODEGRAPH'a iş değil:** madde 15 adım 0'da kodlar okunur kimliğe geçiyor (`A001` → `TR_kw_if`); codegraph'ın kodu tanıyan üç düzenli ifadesi (`gocode_scan.go:18`, `codes.go:11`, `codehist.go:10`) MEKANİK'in yönergesinde, kapsam testiyle (her kimliğin en az bir `uses_name` kenarı). Aynı iş iki kez yapılmasın.
+- `dead-methods` ve `package-state`'in ilk koşusunun bulgularının ayıklanması (sayılar 2026-10-26, DENETİM: 56 yalnızca arayüzle ya da yalnızca testte yaşayan metot, 120 paket değişkeni; iş açılmadan önce yeniden koşulur); korumasız görünenler: `tensor.backends`, `tokenize` kayıt haritaları, `codes.defs`, `messages.catalogs`, `interp.engines`, `logging` açık çubuklar ve günlükler, `cmd/tr.exitCode`.

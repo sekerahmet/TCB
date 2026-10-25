@@ -36,15 +36,23 @@ type deadMethod struct {
 }
 
 // externalContract yaygın standart kitaplık arayüzlerinin metot adlarıdır: çağıranları başka
-// paketlerdedir (fmt, sort, io, encoding/json ...) ve burada görülmez.
-var externalContract = map[string]bool{
-	"String": true, "Error": true, "Unwrap": true, "Is": true, "As": true, "Format": true, "GoString": true,
-	"Write": true, "WriteString": true, "WriteByte": true, "WriteRune": true, "WriteTo": true,
-	"Read": true, "ReadFrom": true, "ReadByte": true, "ReadRune": true, "Close": true, "Seek": true, "Flush": true,
-	"Len": true, "Less": true, "Swap": true, "Push": true, "Pop": true,
-	"MarshalJSON": true, "UnmarshalJSON": true, "MarshalText": true, "UnmarshalText": true,
-	"Set": true, "Type": true, "Lock": true, "Unlock": true, "Next": true, "Done": true, "Err": true,
-	"Deadline": true, "Value": true, "Import": true, "Scan": true, "Run": true, "Visit": true, "Handle": true, "ServeHTTP": true,
+// paketlerdedir (fmt, sort, io, encoding/json ...) ve burada görülmez. Biçimleme ve JSON metotları who-uses'ın
+// `formats`/`encodes` kenarlarıyla aynı tablodan gelir (stdlib_dispatch.go).
+var externalContract = contractNames(append(append([]string{
+	"Unwrap", "Is", "As",
+	"Write", "WriteString", "WriteByte", "WriteRune", "WriteTo",
+	"Read", "ReadFrom", "ReadByte", "ReadRune", "Close", "Seek", "Flush",
+	"Len", "Less", "Swap", "Push", "Pop",
+	"Set", "Type", "Lock", "Unlock", "Next", "Done", "Err",
+	"Deadline", "Value", "Import", "Scan", "Run", "Visit", "Handle", "ServeHTTP",
+}, formatMethods...), encodeMethods...))
+
+func contractNames(names []string) map[string]bool {
+	m := map[string]bool{}
+	for _, n := range names {
+		m[n] = true
+	}
+	return m
 }
 
 // Not: goload her paketi iki kez denetler (testsiz ve testli) ve içe aktaran paketler testsiz olanı

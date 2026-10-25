@@ -62,8 +62,21 @@ func (ix *index) printFieldUses(n *Node, o *queryOpts) {
 		counts[a.site.Mode]++
 		funcs[a.owner.ID] = true
 	}
+	// Erişimden başka kullanımlar (JSON'un yansımayla okuması: encodes) erişimlerin ardından gruplanır; yalnız onlarla
+	// kullanılan alan "hiç okunmuyor" görünmez (profiler.Snapshot.Start yalnız speed.json'a yazılıyor).
+	var other []*Edge
+	for _, e := range ix.in[n.ID] {
+		if e.Kind != edgeReadsField && e.Kind != edgeWritesField && e.Kind != edgeContains {
+			other = append(other, e)
+		}
+	}
+	defer ix.printGroups(w, "  <-", other, fromOf, o.limit, true)
 	if len(all) == 0 {
-		fmt.Fprintln(w, "  never read or written outside its declaration")
+		if len(other) == 0 {
+			fmt.Fprintln(w, "  never read or written outside its declaration")
+		} else {
+			fmt.Fprintln(w, "  no direct read or write outside its declaration")
+		}
 		return
 	}
 	fmt.Fprintf(w, "  %d accesses in %d functions: %s\n", len(all), len(funcs), modeSummary(counts))

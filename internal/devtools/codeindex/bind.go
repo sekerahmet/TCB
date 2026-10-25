@@ -121,39 +121,12 @@ func (x *indexer) bindMember(f *file, o owner, sc *scope, m *ast.MemberExpressio
 	return true
 }
 
-// nameOnlyMembers alıcısı bilinmeyen `a.b` erişimi için adı tutan alanları (ve, aday sayısı kenar
-// sınırını aşan metotları) yalnızca başvuru olarak ekler: kenar yoktur, "kullananlar" göstermez,
-// yeniden adlandırma etkisi "olası" diye listeler.
-func (x *indexer) nameOnlyMembers(f *file, o owner, sc *scope, m *ast.MemberExpression, pos Pos, methodsCapped bool) {
-	seen := map[string]bool{}
-	var ids []string
-	for _, g := range x.visibleFiles(f) {
-		for _, id := range g.fields[m.Property] {
-			if !seen[id] {
-				seen[id] = true
-				ids = append(ids, id)
-			}
-		}
-		if methodsCapped {
-			for _, id := range g.methods[m.Property] {
-				if !seen[id] {
-					seen[id] = true
-					ids = append(ids, id)
-				}
-			}
-		}
-	}
-	sort.Strings(ids)
-	for _, id := range ids {
-		role := RoleRead
-		switch {
-		case x.nodes[id] != nil && x.nodes[id].Kind == KindMethod && sc.calledMember[m]:
-			role = RoleCall
-		case sc.writeMember[m]:
-			role = RoleWrite
-		}
-		x.occurrenceBasis(id, role, Inferred, pos, o.id, BasisNameOnly)
-	}
+// noteMemberGuess alıcısı bilinmeyen `a.b` erişimini adıyla bir kez kaydeder (MemberGuess): aynı adlı alanlara ve, aday
+// sayısı kenar sınırını aşan metotlara "olası" bağı sorguda kurulur (Reader.Occurrences). Kenar yoktur, "kullananlar"
+// göstermez, yeniden adlandırma etkisi "olası" diye listeler.
+func (x *indexer) noteMemberGuess(o owner, sc *scope, m *ast.MemberExpression, pos Pos, methodsCapped bool) {
+	x.guesses = append(x.guesses, MemberGuess{Member: m.Property, Pos: pos, In: o.id, Called: sc.calledMember[m],
+		Written: sc.writeMember[m], MethodsCapped: methodsCapped})
 }
 
 // identParam sahibin parametresine başvuruyu parametre düğümüne bağlar; başka bir yerde yeniden

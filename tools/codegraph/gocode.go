@@ -43,6 +43,12 @@ type goExtractor struct {
 	// rangeVals dize sabiti listesi üzerinde dönen döngü değişkenleri ve alabildikleri değerlerdir
 	// (`for _, p := range []string{"docs/*.md", ...}`; test_paths.go: pathCall).
 	rangeVals map[types.Object][]string
+	// strConsts dışa açık dize sabitlerinin değerden kimliğe tablosu, textCompares değerin metinle anıldığı yerler
+	// (value_compares.go).
+	strConsts    map[string][]string
+	strConstPkg  map[string]string // sabitin kimliği -> paketinin yolu
+	textCompares []textCompare
+	stdlibUses   []stdlibUse // standart kitaplığın arayüz ve yansımayla kullandığı değerler (stdlib_dispatch.go)
 }
 
 func pkgID(p string) string    { return "go:pkg:" + p }
@@ -92,11 +98,14 @@ func extractGo(m *module, b *builder) *goIndex {
 		pkgSyms: map[string]map[string]string{}, inTestFile: map[string]bool{}, snip: newSnippetState(),
 		byName: map[string][]*testFunc{}, dirFiles: map[string]bool{}, envSets: map[string][]envSet{},
 		scans: newScanState(),
-	}, fieldAt: map[string]string{}, env: envCodes(m.Root), codeKeys: codeConstKeys(m.Root), consumed: map[*ast.BasicLit]bool{}, rangeVals: map[types.Object][]string{}}
+	}, fieldAt: map[string]string{}, env: envCodes(m.Root), codeKeys: codeConstKeys(m.Root), consumed: map[*ast.BasicLit]bool{}, rangeVals: map[types.Object][]string{},
+		strConsts: map[string][]string{}, strConstPkg: map[string]string{}}
 	for _, u := range m.Units {
 		x.unit(u)
 	}
 	x.resolveFieldUses()
+	x.resolveTextCompares()
+	x.resolveStdlibUses()
 	x.resolveScans()
 	x.implements()
 	x.testSkips()
@@ -295,6 +304,7 @@ func (x *goExtractor) valueDecl(fc *fileCtx, d *ast.GenDecl) {
 			detail := types.ObjectString(obj, func(p *types.Package) string { return p.Name() })
 			if c, isConst := obj.(*types.Const); isConst {
 				detail += " = " + truncate(c.Val().String(), 60)
+				x.noteStringConst(fc, id, c)
 			}
 			line := x.line(name.Pos())
 			x.b.addNode(Node{ID: id, Kind: kind, Name: path.Base(pkg) + "." + name.Name, File: fc.rel,

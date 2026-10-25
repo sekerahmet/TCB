@@ -7,9 +7,9 @@ import (
 
 // Bu dosya `dups --changed`: yalnızca bir dalın eklediği ya da değiştirdiği satırlara dokunan tekrar
 // adaylarını bırakır. Asıl soru "bu dalda yazılan kod, depoda zaten var olan koda benziyor mu"dur:
-// kümenin bir konumu değişen satırlarda, öbürleri nerede olursa olsun. `changed` komutunun hunk
-// eşlemesi kullanılır (git diff -U0); dal çıkış yapılmış (HEAD) olmalıdır, çünkü satır numaraları
-// çalışma ağacındaki dosyalarındır.
+// kümenin bir konumu değişen satırlarda, öbürleri nerede olursa olsun. Değişen satırlar `changed`
+// komutununkiyle aynı yerden gelir (changeHunks): dal çıkış yapılmış (HEAD) olmalıdır ve fark çalışma
+// ağacına kadardır, commit'lenmemiş değişiklik dahil; satır numaraları çalışma ağacınındır.
 
 // changedLines dosya başına değişen (eklenen ya da değişen) satır aralıklarıdır.
 type changedLines map[string][][2]int
@@ -36,16 +36,16 @@ func changedRange(root, base, ref string) (rng, right string) {
 	return ref + "...HEAD", "HEAD"
 }
 
-// changedGoLines --changed değerinin Go dosyalarında yeni taraftaki değişen satırlarını verir (aralığın
-// sağ ucu çıkış yapılmış olmalıdır: satır numaraları çalışma ağacınındır).
+// changedGoLines --changed değerinin Go dosyalarında çalışma ağacındaki değişen satırlarını verir (aralığın
+// sağ ucu çıkış yapılmış olmalıdır).
 func changedGoLines(root, base, ref string) (changedLines, error) {
 	rng, right := changedRange(root, base, ref)
-	if !sameCommit(root, right, "HEAD") {
-		return nil, fmt.Errorf("--changed %s: %s is not the checked-out commit; check the branch out first (the line numbers are those of the working tree)", ref, right)
-	}
-	hs, err := diffHunks(root, rng)
+	hs, live, err := changeHunks(root, rng)
 	if err != nil {
 		return nil, err
+	}
+	if !live {
+		return nil, fmt.Errorf("--changed %s: %s is not the checked-out commit; check the branch out first (the line numbers are those of the working tree)", ref, right)
 	}
 	out := changedLines{}
 	for _, h := range hs {
