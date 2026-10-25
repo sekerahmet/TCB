@@ -152,3 +152,64 @@ func TestOptionNameFollowsTheFilesLanguage(t *testing.T) {
 	wantUses(t, r, "option:en2.tr#step", "option_key@2:38/EXTRACTED")
 	wantUses(t, r, "option:en.tr#step", "option_key@2:33/EXTRACTED", "option_key@2:73/EXTRACTED")
 }
+
+// memberGuessFiles alıcısı bilinmeyen üye erişimleri için bir proje: katman.tr'de aynı adlı beş metot (`ileri`: aday
+// sınırı 4 aşılır) ve beş alan (`ağırlık`), iki metot (`geri`: sınır içi); kullan.tr katmanı aktarır, başka.tr aktarmaz.
+var memberGuessFiles = map[string]string{
+	"katman.tr": func() string {
+		var b strings.Builder
+		for i := 1; i <= 5; i++ {
+			fmt.Fprintf(&b, "yapı Katman%d {\n    ağırlık = %d\n    fonksiyon ileri() {\n        sonuç kendi.ağırlık\n    }\n", i, i)
+			if i <= 2 {
+				b.WriteString("    fonksiyon geri() {\n        sonuç 0\n    }\n")
+			}
+			b.WriteString("}\n")
+		}
+		return b.String()
+	}(),
+	"kullan.tr": "aktar \"katman\"\n\nfonksiyon çalış(p) {\n    yazdır(p.ileri())\n    p.ağırlık = 2\n    yazdır(p.geri())\n}\n",
+	"başka.tr":  "fonksiyon başka(p) {\n    yazdır(p.ileri())\n    yazdır(p.ağırlık)\n}\n",
+}
+
+// Kural: alıcısı bilinmeyen üye erişimi (`p.ileri()`, `p.ağırlık = 2`) aynı adlı ve erişimin dosyasından görünen her
+// alana, ve aynı adlı görünen metot 4'ten çoksa her metoda "olası" başvurudur: kullananlar göstermez, yeniden adlandırma
+// "olası"da rolüyle (çağrı, yazma, okuma) listeler; metodun dosyasını görmeyen dosyadaki aynı adlı erişim hiç sayılmaz.
+// Sınır içindeki metotlar (`geri`, 2) ada göre eşleşen adaydır (kenarı vardır). Bu davranış, tahminin kullanım yeri
+// başına bir kez saklanıp sorguda çözülmesiyle değişmez (TestIndexSizeGrowsLinearlyWithSameNamedMembers).
+func TestMemberGuessesAreLikelyOnlyWhereTheMemberIsVisible(t *testing.T) {
+	dir := t.TempDir()
+	for name, text := range memberGuessFiles {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	idx, err := Build(dir, Options{})
+	if err != nil || len(idx.Skipped) > 0 {
+		t.Fatal(err, idx.Skipped)
+	}
+	r := NewReader(idx)
+	likely := func(q string) []string {
+		var out []string
+		for _, c := range r.RenameImpact(q, "yeni", RenameOptions{NoText: true}).Likely {
+			out = append(out, fmt.Sprintf("%s:%d %s %s", c.Pos.File, c.Pos.Line, c.Role, c.Basis))
+		}
+		sort.Strings(out)
+		return out
+	}
+	for q, want := range map[string]string{
+		"Katman3.ileri":   "kullan.tr:4 call name_only",
+		"Katman3.ağırlık": "kullan.tr:5 write name_only",
+		"Katman1.geri":    "kullan.tr:6 call name_match",
+	} {
+		if got := strings.Join(likely(q), "; "); got != want {
+			t.Errorf("rename %s: likely %q, want %q (başka.tr does not import katman.tr)", q, got, want)
+		}
+	}
+	for _, q := range []string{"Katman3.ileri", "Katman3.ağırlık"} {
+		for _, u := range r.References(q, QueryOptions{}).Users {
+			if u.Pos.File != "katman.tr" {
+				t.Errorf("references %s: a name-only guess is not a reference: %+v", q, u)
+			}
+		}
+	}
+}

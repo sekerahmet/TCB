@@ -261,7 +261,10 @@ func firstDiff(a, b string) string {
 	return "incremental: " + cut(a) + "\n---\nfresh: " + cut(b)
 }
 
-// benchProject sentetik, ama gerçekçi bir proje yazar: n modül, her biri üç işlev, bir yapı, bir metot.
+// benchProject sentetik, ama gerçekçi bir proje yazar: n modül, her biri üç işlev, bir yapı, bir metot. Her modül
+// önceki üçünü aktarır (zincir: i. modül öncekilerin hepsini görür) ve yapay zekâ kitaplığının kalıbını taşır: her
+// yapıda aynı adlı metot (`ileri`) ve alan (`ağırlık`), işlevlerde alıcısı bilinmeyen `p.ileri()` ve `p.ağırlık`. Adlar
+// kod biçiminde (`C100`, 2.3a) ya da `TR_` önekli olmaz: öyle bir ad dosyayı Skipped'a düşürür ve ölçülen iş küçülür.
 func benchProject(tb testing.TB, n int) string {
 	tb.Helper()
 	dir := tb.TempDir()
@@ -270,13 +273,13 @@ func benchProject(tb testing.TB, n int) string {
 		for k := 0; k < i && k < 3; k++ {
 			fmt.Fprintf(&b, "aktar \"m%d\"\n", i-1-k)
 		}
-		fmt.Fprintf(&b, "sabit C%d = %d\nyapı S%d {\n    x = 1\n    fonksiyon ileri() {\n        sonuç kendi.x\n    }\n}\n", i, i, i)
+		fmt.Fprintf(&b, "sabit c_%d = %d\nyapı S_%d {\n    x = 1\n    ağırlık = 1\n    fonksiyon ileri() {\n        sonuç kendi.x\n    }\n}\n", i, i, i)
 		for j := 0; j < 3; j++ {
 			fmt.Fprintf(&b, "fonksiyon f%d_%d(p) {\n", i, j)
 			if i > 0 {
 				fmt.Fprintf(&b, "    değişken v = f%d_%d(p)\n", i-1, j)
 			}
-			b.WriteString("    yazdır(p.ileri())\n    sonuç p\n}\n")
+			b.WriteString("    yazdır(p.ileri())\n    yazdır(p.ağırlık)\n    sonuç p\n}\n")
 		}
 		if err := os.WriteFile(filepath.Join(dir, fmt.Sprintf("m%d.tr", i)), []byte(b.String()), 0o644); err != nil {
 			tb.Fatal(err)
@@ -327,32 +330,66 @@ func BenchmarkBuild(b *testing.B) {
 // modülün düzenlenmesinden sonra yenileme). Mutlak süre sınanmaz: bütün takım paralel koşarken
 // 62 ms'lik kurulum 5,8 sn sürdü ve eski 5 sn'lik tavanı aştı (testkit.ScalesLinearly). Önbelleğin
 // işini yaptığı (isabette ayrıştırma yok, düzenlemede yalnızca değişen ve içe aktaranlar) sayılarak
-// sınanır: TestCacheHitSkipsParsing, TestIncrementalReparsesOnlyChangedAndImporters.
+// sınanır: TestCacheHitSkipsParsing, TestIncrementalReparsesOnlyChangedAndImporters. Ölçülen kurulum hatasız ve tam
+// olmalıdır (checkedBuild): kod biçimli adlar 400 modülün 300'ünü Skipped'a düşürüyor, iki boyda aynı iş ölçülüyordu.
 func TestBuildScalesLinearly(t *testing.T) {
 	if testing.Short() {
 		t.Skip("zaman ölçümü")
 	}
 	testkit.ScalesLinearly(t, "sıfırdan kurulum", 100, func(n int) func() {
 		dir := benchProject(t, n)
-		return func() { Build(dir, Options{}) }
+		return func() { checkedBuild(t, dir, n, false) }
 	})
 	testkit.ScalesLinearly(t, "önbellekten okuma", 100, func(n int) func() {
 		dir := benchProject(t, n)
-		BuildCached(dir, Options{})
-		return func() { BuildCached(dir, Options{}) }
+		checkedBuild(t, dir, n, true)
+		return func() { checkedBuild(t, dir, n, true) }
 	})
 	testkit.ScalesLinearly(t, "bir modülün düzenlenmesinden sonra yenileme", 100, func(n int) func() {
 		dir := benchProject(t, n)
-		BuildCached(dir, Options{})
+		checkedBuild(t, dir, n, true)
 		p := filepath.Join(dir, "m0.tr")
 		orig, _ := os.ReadFile(p)
 		edits := 0
 		return func() {
 			edits++
 			os.WriteFile(p, append(append([]byte(nil), orig...), fmt.Sprintf("// düzenleme %d", edits)...), 0o644)
-			BuildCached(dir, Options{})
+			checkedBuild(t, dir, n, true)
 		}
 	})
+}
+
+// checkedBuild dizini kurar (cached: önbellekle) ve n dosyanın hepsinin hatasız okunduğunu denetler.
+func checkedBuild(tb testing.TB, dir string, n int, cached bool) *Index {
+	tb.Helper()
+	var idx *Index
+	var err error
+	if cached {
+		idx, _, err = BuildCached(dir, Options{})
+	} else {
+		idx, err = Build(dir, Options{})
+	}
+	if err != nil || len(idx.Skipped) > 0 || len(idx.Files) != n {
+		tb.Fatalf("the measured build is incomplete: err %v, %d skipped (%v), %d of %d files", err, len(idx.Skipped), idx.Skipped[:min(len(idx.Skipped), 2)], len(idx.Files), n)
+	}
+	return idx
+}
+
+// Kural: dizinin boyu modül sayısıyla doğrusal büyür; aynı adlı üyeler (her katmanda `ileri` metodu ve `ağırlık` alanı)
+// karesel büyütmez. Zamandan bağımsız, sayıyla: 100 ve 400 modülde dizinin başvuru ve kenar sayısının oranı ≤ 4,5.
+// Alıcısı bilinmeyen `p.ileri()` ve `p.ağırlık` kullanım yeri başına bir kez adıyla saklanır (MemberGuesses), hangi
+// üyelere "olası" diye bağlandığı sorguda çözülür (eksikler listesi: n=400'de 252 188 başvurunun 240 570'i ad-yalnızdı,
+// ×15,9; DENETİM 2026-10-26).
+func TestIndexSizeGrowsLinearlyWithSameNamedMembers(t *testing.T) {
+	small := checkedBuild(t, benchProject(t, 100), 100, false)
+	large := checkedBuild(t, benchProject(t, 400), 400, false)
+	size := func(idx *Index) int { return len(idx.Occurrences) + len(idx.Edges) + len(idx.MemberGuesses) }
+	t.Logf("occurrences %d -> %d, edges %d -> %d, member guesses %d -> %d", len(small.Occurrences), len(large.Occurrences),
+		len(small.Edges), len(large.Edges), len(small.MemberGuesses), len(large.MemberGuesses))
+	if ratio := float64(size(large)) / float64(size(small)); ratio > 4.5 {
+		t.Errorf("400 modules hold %.1f× the index of 100 (%d / %d occurrences, %d / %d edges, %d / %d member guesses); linear is 4",
+			ratio, len(large.Occurrences), len(small.Occurrences), len(large.Edges), len(small.Edges), len(large.MemberGuesses), len(small.MemberGuesses))
+	}
 }
 
 // Kural: WriteFileAtomic dosyayı bütün olarak yerine koyar (eski içerik tam değişir), geçici dosya bırakmaz ve klasör yoksa
