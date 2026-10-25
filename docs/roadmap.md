@@ -277,7 +277,7 @@ Maddeler kolaydan zora sıralıdır (2026-10-23 kararı); iş bu sırayla alın�
 
 **Açık bulgular** (maddelere bağlanmamış; 2026-10-24'te çalışma notlarından aktarıldı; 2026-10-23'ten eski olanlar bugünkü kodda doğrulanmadı, iş açmadan önce yeniden üretilir):
 
-- **Bekleyen dil kararları** (2026-10-25'te bugünkü kodda yeniden üretildi; `csv_çöz` yapılmış, G603, listeden çıktı): `"12" + 1` ve sözlükte olmayan anahtar madde 14'e geçti, günlük anahtarlarının dili 19.5'te yazılı (sistemin anahtarları sabit, kullanıcınınki yazıldığı gibi); `Liste.kopya()` yok (eksik); `codes`'un `init`'te `os.Exit` çağırması, kullanıcı metnindeki terminal kaçış dizileri, `VAL_INT`/`TOKEN_EQ` adları, kum havuzu notu.
+- **Bekleyen dil kararları** (2026-10-25'te bugünkü kodda yeniden üretildi; `csv_çöz` yapılmış, G603, listeden çıktı): `"12" + 1` ve sözlükte olmayan anahtar madde 14'e geçti, günlük anahtarlarının dili 19.5'te yazılı (sistemin anahtarları sabit, kullanıcınınki yazıldığı gibi); `codes`'un `init`'te `os.Exit` çağırması, kullanıcı metnindeki terminal kaçış dizileri, `VAL_INT`/`TOKEN_EQ` adları, kum havuzu notu.
 - **Hatalar (doğrulanmadı):** `tr dap` kesme noktasında sonraki deyimde duruyor; hata ayıklayıcıda `girdi()` yok; `checker.TopLevelNames` kısmi sözdizimi ağacında nil çöküşü (`tr derle` bozuk dosyada); kaçışlı kullanıcı adı (`$print`) yerleşiği gölgeliyor; değer veren `eğer` bloğunda H1011 yanlış alarmı; kodlu dosyada uyarı satırı başlık kadar kayık; `turkish.Upper` her yazım dilinde Türkçe kuralı uyguluyor.
 - **Kararsız testler:** `testkit`'te bir kez düşen, ayrıntısı yakalanamayan test (2026-10-23; 150 koşuda yeniden üretilmedi); profiler `TestStatusFileReaderSeesNoPartialFile` yüklü Windows'ta; CI Windows'ta tensör testlerinde bir kez `0xc0000005` (2026-10-21). Görülürse ayrıntı yakalanır, kökü bulunur.
 - **Geliştirici deneyimi (2026-10-25, kullanıcı gibi yazılan programlar):** `yazdır(model)` hazır bir modelin bütün ağırlıklarını döker (en küçük test modelinde yüzlerce satır); PyTorch `print(model)` yalnızca katman yapısını ve şekilleri verir. Yapı nesnesinin metni bugün bütün alanlarıdır (değer metni kuralı); model ve katmanlar için bir özet görünümü tasarlanmalı.
@@ -307,6 +307,7 @@ Modeli kullanan geliştiricinin ilk sorusu: "Hugging Face'teki modeli yükleyip 
 1. **Tensör dili tamamlanır.**
    - Genel indeksleme: çok eksenli `t[:, 0]`, bool maskeyle seçme, topla/dağıt (gather/scatter).
    - Yığ (stack), doldur (pad), tekrarla (repeat).
+   - `yuvarla` tensörde (`taban`, `tavan`, `işaret` tensörde çalışıyor): gerçek bir kullanım çıkınca; yuvarlama kuralı (bugün sayıda yarımlar sıfırdan uzağa; NumPy/PyTorch ve IEEE 754 varsayılanı çifte yuvarlama) ve sayıdaki kuralın değişip değişmeyeceği birlikte karar verilir (2026-10-25 tasarım görüşmesi).
    - Kullanıcıya açık tam sayı ve bool tensör türleri: token kimlikleri ve maskeler tensörle taşınır.
    - Kayıplar: BCE, KL (damıtma ve tercih eğitimi için), etiket yumuşatma (MSE var).
    - Ağırlık başlatma şemaları (Xavier, Kaiming), EMA ağırlıkları.
