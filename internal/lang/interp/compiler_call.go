@@ -88,7 +88,7 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 		if err != nil {
 			return nil, err
 		}
-		if err := checkArity(fnVal, len(args), named, line); err != nil {
+		if err := checkArity(fnVal, nil, len(args), named, line); err != nil {
 			return nil, err
 		}
 		return v.applyCompiled(fnVal, args, named, line)
@@ -180,7 +180,11 @@ func (v *VM) callMethod(meth *FuncVal, inst Value, argCode []exprCode, env *Envi
 	if err != nil {
 		return nil, err
 	}
-	if err := checkArity(meth, len(args), nil, line); err != nil {
+	var owner *StructDefVal
+	if si, ok := inst.(*StructInstanceVal); ok {
+		owner = si.Def
+	}
+	if err := checkArity(meth, owner, len(args), nil, line); err != nil {
 		return nil, err
 	}
 	return v.callPrepared(meth, fk, fk.getEnv(meth.Env), inst, args, len(args), nil, line)
@@ -237,7 +241,7 @@ func (v *VM) callAt(fnVal Value, argCode []exprCode, env *Environment, line int)
 	if err != nil {
 		return nil, err
 	}
-	if err := checkArity(fnVal, len(args), nil, line); err != nil {
+	if err := checkArity(fnVal, nil, len(args), nil, line); err != nil {
 		return nil, err
 	}
 	return v.applyCompiled(fnVal, args, nil, line)

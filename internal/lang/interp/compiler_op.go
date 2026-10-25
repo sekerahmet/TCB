@@ -283,7 +283,7 @@ func (c *compiler) pipe(k *compilerScope, left ast.Expression, right ast.Express
 			if err != nil {
 				return nil, err
 			}
-			if err := checkArity(fnVal, len(args), named, line); err != nil {
+			if err := checkArity(fnVal, nil, len(args), named, line); err != nil {
 				return nil, err
 			}
 			return v.applyCompiled(fnVal, args, named, line)
@@ -302,7 +302,7 @@ func (c *compiler) pipe(k *compilerScope, left ast.Expression, right ast.Express
 		if err != nil {
 			return nil, err
 		}
-		if err := checkArity(fnVal, 1, nil, line); err != nil {
+		if err := checkArity(fnVal, nil, 1, nil, line); err != nil {
 			return nil, err
 		}
 		return v.applyCompiled(fnVal, []Value{leftVal}, nil, line)

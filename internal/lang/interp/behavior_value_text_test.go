@@ -216,3 +216,29 @@ func TestIndexErrorHintWritesTheGetCall(t *testing.T) {
 		t.Errorf("tr %q, en %q", tr, en)
 	}
 }
+
+// Kural (B1): kurucusu olan yapının oluşturulmasındaki argüman hatası yapının adını, metodun
+// argüman hatası Yapı.metot'u söyler (Python: Point.__init__(), Point.go()); İngilizce dosyada da.
+// Önceden ileti yalnız 'kurucu' (kanonik) ya da metodun adını yazıyordu.
+func TestStructCallErrorsNameTheStruct(t *testing.T) {
+	out := runEnglish(t, `struct Point {
+	x
+	func init(a, b = 2) { self.x = a + b }
+	func go(n) { self.x = n }
+}
+try { Point(1, 2, 3) } catch e { print(e) }
+try { Point(1, z: 2) } catch e { print(e) }
+try { Point(1).go(1, 2) } catch e { print(e) }
+try { Point(1).go() } catch e { print(e) }
+`, nil)
+	for _, want := range []string{"the struct 'Point' takes at most 2 arguments, 3 given",
+		"the struct 'Point' takes no parameter named 'z'", "the function 'Point.go' takes at most 1 argument, 2 given",
+		"the function 'Point.go'"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("%q yok:\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, "'init'") || strings.Contains(out, "kurucu") {
+		t.Errorf("kurucunun adı geçmemeli:\n%s", out)
+	}
+}
