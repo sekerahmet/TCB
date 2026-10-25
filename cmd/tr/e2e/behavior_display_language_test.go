@@ -19,8 +19,8 @@ import (
 
 // Görüntü sınavı (madde 15, görüntü kuralı): kişiye görünen her yüzey okuyanın dilindedir.
 // İngilizce ve Türkçe kodlu küçük programlar TR_DIL=en ve TR_DIL=tr ile çalışır; çıktıda okuyanın
-// dili dışındaki bir dilin sözcüğü geçmez (iki dilde aynı yazılanlar, kullanıcı adları ve
-// programdaki metinler hariç), hata çerçevesinin satırı okuyanın görünümündeki satırdır,
+// dili dışındaki bir dilin sözcüğü ve hiçbir kodun kimliği (TR_fn_print) geçmez (iki dilde aynı
+// yazılanlar, kullanıcı adları ve programdaki metinler hariç), hata çerçevesinin satırı okuyanın görünümündeki satırdır,
 // çerçevedeki '^' ve iletideki sütun işaretlenen adın o görünümdeki yeridir. Okuyan, görüntüde
 // TR_DIL'dir; değerin metninde ve yakalanan hatada dosyanın dilidir (17.7, 8.3).
 //
@@ -177,7 +177,7 @@ func TestDisplayExam(t *testing.T) {
 }
 
 // displayCase yüzeyi F'de yazılmış dosyalarla TR_DIL=R'de çalıştırır ve kalan durumları verir:
-// "sızıntı <sözcük>", "çerçeve <satır>", "çerçeve_yok", "işaret", "sütun", "konum".
+// "sızıntı <sözcük>", "kimlik <kimlik>", "çerçeve <satır>", "çerçeve_yok", "işaret", "sütun", "konum".
 func displayCase(t *testing.T, s displaySurface, f, r *codes.Language) []string {
 	t.Helper()
 	dir := t.TempDir()
@@ -231,6 +231,11 @@ func displayCase(t *testing.T, s displaySurface, f, r *codes.Language) []string 
 		for _, w := range wordPattern.FindAllString(line, -1) {
 			if leaks[w] {
 				entries = append(entries, "sızıntı "+w)
+			}
+			// Kimlik (TR_fn_print) kişiye görünmez: kod metne her zaman bir dildeki adıyla girer
+			// (fmt'nin dolaylı String() çağrısı codegraph'ta görünmediği için burada sınanır).
+			if _, err := codes.Parse(w); err == nil {
+				entries = append(entries, "kimlik "+w)
 			}
 		}
 	}
