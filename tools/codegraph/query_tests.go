@@ -200,8 +200,12 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	listed := ix.testsListed(about, allTests, walks, asValue, indirect, viaNames)
 	cites := ix.citingTests(n, listed)
 	rules := ix.docRules(n)
+	var scans []scanHit
+	if n.Kind == kindFile || n.Kind == kindDoc {
+		scans = ix.scansCovering(n.File)
+	}
 	found := len(about) + len(tests) + len(walks) + len(asValue) + len(indirect) + len(viaNames)
-	if found == 0 && len(measured) == 0 && len(indirectMeasured) == 0 && len(subprocess) == 0 && len(cites)+len(rules) == 0 {
+	if found == 0 && len(measured) == 0 && len(indirectMeasured) == 0 && len(subprocess) == 0 && len(cites)+len(rules)+len(scans) == 0 {
 		if !ix.printLinkedBinaries(w, n) {
 			fmt.Fprintln(w, "  no tests found"+searchedFor(n))
 		}
@@ -211,8 +215,8 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	switch {
 	case found == 0 && len(subprocess) > 0:
 		fmt.Fprintln(w, "  no tests traced to it (only subprocess tests, below)")
-	case found == 0 && len(cites)+len(rules) > 0 && len(measured)+len(indirectMeasured) == 0:
-		fmt.Fprintln(w, "  no tests read it (tests that guard its rules or cite it, below)")
+	case found == 0 && len(cites)+len(rules)+len(scans) > 0 && len(measured)+len(indirectMeasured) == 0:
+		fmt.Fprintln(w, "  no tests read it by name (tests that guard its rules, cite it or scan its pattern, below)")
 	case found == 0:
 		fmt.Fprintln(w, "  no tests found (only measurements, below)")
 	}
@@ -223,6 +227,9 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	ix.printInferred(w, n, indirect, viaNames, limit)
 	ix.printDocRules(w, rules, limit)
 	ix.printCites(w, cites, limit)
+	if len(scans) > 0 {
+		ix.printScans(w, n.File, limit)
+	}
 	printAllSkipNote(w, listed)
 	ix.printSubprocessTests(w, subprocess)
 	ix.printMeasurements(w, measured, indirectMeasured, limit)
@@ -468,10 +475,16 @@ func (ix *index) printGoFileTests(w io.Writer, file *Node, limit int) {
 	}
 	fmt.Fprintf(w, "  declarations in this file: %d\n", len(ts.nodes))
 	ix.printTestsToRun(w, ts, limit, "the declarations in this file")
+	ix.printScans(w, file.File, limit)
 	tests := map[string]bool{}
 	for _, d := range ts.nodes {
 		for id := range ix.testDistances(d) {
 			tests[id] = true
+		}
+	}
+	for _, h := range ix.scansCovering(file.File) {
+		for _, t := range h.tests {
+			tests[t.ID] = true
 		}
 	}
 	ix.printRulesGuardedBy(w, tests, limit)

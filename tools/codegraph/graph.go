@@ -22,7 +22,7 @@ const schemaVersion = 1
 // 7: .tr kaynakları etkin yazım dilinden bağımsız okunur (TR_DIL=en grafiği eksik bırakıyordu).
 // 8: sabit, değişken ve alan düğümlerinin bitiş satırı kendi değeriyle biter (öncekiler sonraki bloğun sonuna uzanıyordu).
 // 9: aynı modül hem takma adsız hem takma adla aktarılınca takma ad tanınır (yutuluyordu).
-const extractorRevision = 47
+const extractorRevision = 48
 
 // Düğüm türleri.
 const (
@@ -40,6 +40,7 @@ const (
 	kindRule    = "rule"
 	kindDoc     = "doc"
 	kindHeading = "heading"
+	kindScan    = "scan" // depo genelini tarayan bir test çağrısı ve kalıbı (scans.go)
 )
 
 // Kenar türleri.
@@ -70,6 +71,7 @@ const (
 	edgeImplementedBy = "implemented_by" // TR bildirimi -> kullandığı dil yapısını çalıştıran Go işlevi (dispatch.go)
 	edgeCites         = "cites"          // test -> yorumunda ya da iletisinde andığı depo dosyası (test_paths.go: citeRefs)
 	edgeLoads         = "loads"          // JavaScript dosyası -> yüklediği depo dosyası (js_loads.go)
+	edgeScans         = "scans"          // test -> taradığı kalıbın scan düğümü (scans.go)
 )
 
 // Güven etiketleri: EXTRACTED kaynaktan ya da tip bilgisinden kesin okunan, INFERRED addan ya da
