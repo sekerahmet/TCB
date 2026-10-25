@@ -3,7 +3,6 @@ package interp
 import (
 	"fmt"
 	"slices"
-	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -83,7 +82,7 @@ func addMethod(typ int, kd codes.Code, im signature, f methodBody) {
 	bodyBlock := f
 	f = func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		if len(args) < im.minN || (im.maxN >= 0 && len(args) > im.maxN) {
-			expected := strconv.Itoa(im.minN)
+			var expected any = im.minN
 			switch {
 			case im.maxN < 0:
 				expected = AtLeast(im.minN)

@@ -127,7 +127,7 @@ func replayBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 		return nil, interp.NoNamedArgsError(fn, named)
 	}
 	if len(args) != 1 {
-		return nil, interp.ArgCountError(codes.T313, "1", len(args))
+		return nil, interp.ArgCountError(codes.T313, 1, len(args))
 	}
 	if !isCallable(args[0]) {
 		return nil, messages.New(messages.H6437, fn, typeName(args[0]))
@@ -358,7 +358,7 @@ var nameStart = bind.NamedArg(codes.T908)
 func writeSliceBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.NameRef(codes.T122)
 	if len(args) != 2 {
-		return nil, interp.ArgCountError(codes.T122, "2", len(args))
+		return nil, interp.ArgCountError(codes.T122, 2, len(args))
 	}
 	if err := bind.CheckNamed(fn.Called(), named, nameAxis, nameStart); err != nil {
 		return nil, err

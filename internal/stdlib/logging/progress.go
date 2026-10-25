@@ -95,7 +95,7 @@ func (c *Progress) GetProperty(kd codes.Code, prop string) (interp.Value, error)
 	case codes.Y011:
 		return &interp.BuiltinVal{Name: codes.Name(codes.Y011), NoNamedArgs: true, Fn: func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 			if len(args) != 0 {
-				return nil, interp.ArgCountError(codes.Y011, "0", len(args))
+				return nil, interp.ArgCountError(codes.Y011, 0, len(args))
 			}
 			return interp.BoolToVal(c.finish(clock())), nil
 		}}, nil

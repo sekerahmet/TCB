@@ -120,7 +120,7 @@ func closeReaders() {
 func linesBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := interp.CallPrefix(codes.G112)
 	if len(args) != 1 {
-		return nil, interp.ArgCountError(codes.G112, "1", len(args), messages.Text(messages.H2307))
+		return nil, interp.ArgCountError(codes.G112, 1, len(args), messages.Text(messages.H2307))
 	}
 	raw, err := readPath(codes.G112, 1, args[0])
 	if err != nil {

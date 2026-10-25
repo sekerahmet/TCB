@@ -213,7 +213,7 @@ func IntList[T ~int | ~int32 | ~int64](xs []T) *interp.ListVal {
 // yanlışsa interp.ArgCountError/ArgTypeError verir. example sayı hatasında kullanım ipucu olarak anılır.
 func SingleDictArg(kd codes.Code, args []interp.Value, example string) (*interp.DictVal, error) {
 	if len(args) != 1 {
-		return nil, interp.ArgCountError(kd, "1", len(args), example)
+		return nil, interp.ArgCountError(kd, 1, len(args), example)
 	}
 	d, ok := args[0].(*interp.DictVal)
 	if !ok {

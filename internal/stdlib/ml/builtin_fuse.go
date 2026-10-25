@@ -35,7 +35,7 @@ func fuseBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Valu
 		return nil, interp.NoNamedArgsError(fn, named)
 	}
 	if len(args) != 1 {
-		return nil, interp.ArgCountError(codes.T312, "1", len(args))
+		return nil, interp.ArgCountError(codes.T312, 1, len(args))
 	}
 	if !isCallable(args[0]) {
 		return nil, messages.New(messages.H6433, fn, typeName(args[0]))
@@ -67,7 +67,7 @@ func (f *fusedFn) call(m *interp.VM, args []interp.Value, _ map[string]interp.Va
 	}
 	if len(inputs) == 0 {
 		if len(args) == 0 {
-			return nil, interp.ArgCountError(codes.T312, "1+", 0)
+			return nil, interp.ArgCountError(codes.T312, interp.AtLeast(1), 0)
 		}
 		return nil, messages.New(messages.H6434, fn, 1, typeName(args[0]))
 	}

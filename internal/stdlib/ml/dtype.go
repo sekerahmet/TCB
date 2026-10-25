@@ -189,7 +189,7 @@ func computeDType(m *interp.VM, args []interp.Value, named map[string]interp.Val
 		return nil, err
 	}
 	if len(args) != 0 {
-		return nil, interp.ArgCountError(codes.T711, "0", len(args))
+		return nil, interp.ArgCountError(codes.T711, 0, len(args))
 	}
 	return &interp.StringVal{Val: mixedDType(m).Name()}, nil
 }

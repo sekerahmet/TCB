@@ -86,7 +86,7 @@
 "H2012": "{fn}() takes {expected} {expected, plural, one {argument} other {arguments}}, {given} given",
 "H2013": "no value",
 "H2014": "{fn}() takes no parameters, {given} given",
-"H2016": "at least {n}",
+"H2016": "{n} or more",
 "H2020": "the value contains itself (a circular list or dictionary); it cannot be written to JSON",
 "H2021": "the value is nested too deeply (at most {limit} levels)",
 "H2030": "searched: {place}",

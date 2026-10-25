@@ -266,7 +266,7 @@ func (o *Reader) skipTR(m *interp.VM, args []interp.Value, named map[string]inte
 		return nil, err
 	}
 	if len(args) != 1 {
-		return nil, interp.ArgCountError(memberSkip, "1", len(args))
+		return nil, interp.ArgCountError(memberSkip, 1, len(args))
 	}
 	n, ok := args[0].(*interp.IntVal)
 	if !ok {
