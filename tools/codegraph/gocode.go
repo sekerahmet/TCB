@@ -47,6 +47,7 @@ type goExtractor struct {
 	strConsts    map[string][]string
 	strConstPkg  map[string]string // sabitin kimliği -> paketinin yolu
 	textCompares []textCompare
+	stdlibUses   []stdlibUse // standart kitaplığın arayüz ve yansımayla kullandığı değerler (stdlib_dispatch.go)
 }
 
 func pkgID(p string) string    { return "go:pkg:" + p }
@@ -103,6 +104,7 @@ func extractGo(m *module, b *builder) *goIndex {
 	}
 	x.resolveFieldUses()
 	x.resolveTextCompares()
+	x.resolveStdlibUses()
 	x.resolveScans()
 	x.implements()
 	x.testSkips()

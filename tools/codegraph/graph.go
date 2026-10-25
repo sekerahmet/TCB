@@ -22,7 +22,7 @@ const schemaVersion = 1
 // 7: .tr kaynakları etkin yazım dilinden bağımsız okunur (TR_DIL=en grafiği eksik bırakıyordu).
 // 8: sabit, değişken ve alan düğümlerinin bitiş satırı kendi değeriyle biter (öncekiler sonraki bloğun sonuna uzanıyordu).
 // 9: aynı modül hem takma adsız hem takma adla aktarılınca takma ad tanınır (yutuluyordu).
-const extractorRevision = 49
+const extractorRevision = 50
 
 // Düğüm türleri.
 const (
@@ -73,6 +73,10 @@ const (
 	edgeLoads         = "loads"          // JavaScript dosyası -> yüklediği depo dosyası (js_loads.go)
 	edgeScans         = "scans"          // test -> taradığı kalıbın scan düğümü (scans.go)
 	edgeComparesValue = "compares_value" // bildirim -> değerini metinle karşılaştırdığı dize sabiti (value_compares.go)
+	// Standart kitaplığın arayüz ve yansımayla çağırdıkları (stdlib_dispatch.go): bildirim -> metot ya da alan.
+	edgeFormats     = "formats"      // fmt/log/testing/ileti biçimleyicisi String, Error ... çağırır
+	edgeEncodes     = "encodes"      // encoding/json alanları ve MarshalJSON ... kullanır
+	edgeStdlibCalls = "stdlib_calls" // boş olmayan bir standart kitaplık arayüzü (io.Writer, sort.Interface) metodu
 )
 
 // Güven etiketleri: EXTRACTED kaynaktan ya da tip bilgisinden kesin okunan, INFERRED addan ya da

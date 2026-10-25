@@ -174,3 +174,5 @@ codegraph query parser.NameRole | contains: 17.3 [spec] | src: iç dil 3. tur, 2
 codegraph changed HEAD..HEAD | contains: new-side lines up to the working tree, uncommitted edits included | src: gaps partisi kritik 2, 2026-10-26 (commit'ten önce koşan denetim commit'lenmemiş düzenlemeyi görür)
 codegraph who-uses lexer.TokPercent | group: compares_value => interp.opCode | group: compares_value => checker.Checker.inferExpression | src: gaps partisi kritik 1, 2026-10-26 (işleci metinle anan yorumlayıcı ve denetleyici)
 codegraph query "%" | contains: lexer.TokPercent [const] | src: gaps partisi kritik 1, 2026-10-26 (değerle sorgu)
+codegraph who-uses codes.Code.String --all | group: formats => codes.Language.Name | src: gaps partisi kritik 3, 2026-10-26 (fmt ile dolaylı String çağrısı; adım 0'da çıktısı değişiyor)
+codegraph who-uses profiler.Snapshot.Start | group: encodes => profiler.statusWriter.put | not: never read or written | src: gaps partisi kritik 3, 2026-10-26 (alan yalnız JSON ile speed.json'a yazılıyor)
