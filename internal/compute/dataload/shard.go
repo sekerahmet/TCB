@@ -75,7 +75,7 @@ func buildShard(path string, f *os.File, s ShardOptions) (*Shard, error) {
 	}
 	st, err := f.Stat()
 	if err != nil {
-		return nil, messages.New(messages.H5022, path, err)
+		return nil, messages.New(messages.H2000, path, err)
 	}
 	needed := bs.DataOffset + bs.DataSize()
 	if st.Size() < needed {

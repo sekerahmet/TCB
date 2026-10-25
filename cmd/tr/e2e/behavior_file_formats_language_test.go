@@ -318,6 +318,29 @@ func TestMessagePartsFollowTheMessageLanguage(t *testing.T) {
 	}
 }
 
+// Veri kümesi hataları da iletinin dilindedir (B19): önbellek kotası yetmeyince İngilizce dosyanın
+// yakaladığı hata ayrıntısıyla İngilizcedir. Önceden ayrıntı TR_DIL'de metne çevrilip iletiye
+// metin olarak giriyordu ("the cache quota is insufficient: kota 107 bayt, ...").
+func TestDatasetErrorsFollowTheMessageLanguage(t *testing.T) {
+	data := filepath.ToSlash(reporoot.Path("tests/data/text"))
+	coded, err := source.Encode("dene {\n    değişken k = veri_kümesi(\"" + data + "\", önbellek: \"c2\", kota_gb: 0.0000001)\n" +
+		"    yazdır(k.örnekleyici(toplu: 1, bağlam: 4).sonraki())\n} yakala h { yazdır(h) }\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	testkit.WriteFile(t, dir, "en.tr", inLanguage(coded, "en"))
+	s := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=tr"}, "en.tr")
+	if !strings.Contains(s.Stdout, "the cache quota is insufficient") || !strings.Contains(s.Stdout, "bytes are needed") {
+		t.Errorf("İngilizce iletinin ayrıntısı İngilizce olmalı:\n%s%s", s.Stdout, s.Stderr)
+	}
+	for _, turkish := range []string{"kota", "bayt", "gerekli", "veri:"} {
+		if strings.Contains(s.Stdout, turkish) {
+			t.Errorf("Türkçe parça %q:\n%s", turkish, s.Stdout)
+		}
+	}
+}
+
 // fileFormatShape klasördeki dosya adlarını ve her JSON dosyasının (satırının) anahtar
 // kümesini, değerleri atarak, sıralı bir özet olarak verir.
 func fileFormatShape(t *testing.T, dir string) string {

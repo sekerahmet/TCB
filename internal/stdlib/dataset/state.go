@@ -156,7 +156,7 @@ func (o *Reader) PrepareState(m *interp.VM, s *interp.DictVal) (commit, discard 
 		}
 	})
 	if err != nil {
-		return nil, nil, messages.New(messages.H5540, fn, o.ds.path, clean(err.Error()))
+		return nil, nil, messages.New(messages.H5540, fn, o.ds.path, err)
 	}
 	commit = func() { o.seekTo(m, goSource, pos, counter, done) }
 	discard = func() {

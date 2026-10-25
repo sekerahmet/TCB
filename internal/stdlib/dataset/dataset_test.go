@@ -279,7 +279,7 @@ yazdır(x[0].şekil)
 		t.Fatalf("çıktı %q", out)
 	}
 	_, _, err := run(t, `veri_kümesi("`+trPath(d)+`", önbellek: "`+trPath(cache)+`", kota_gb: 0.000000001).örnekleyici(toplu: 2, bağlam: 8)`)
-	if !messages.Has(err, messages.H5515) {
+	if !messages.Has(err, messages.H5002) {
 		t.Fatalf("kota hatası bekleniyordu: %v", err)
 	}
 	dataset.CloseAll(time.Second)

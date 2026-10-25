@@ -90,7 +90,7 @@ yazdır("bitti")
 	if n := dirSize(cache); n > 6000 {
 		t.Fatalf("paylaşılan önbellek kotayı aştı: %d > 6000 bayt", n)
 	}
-	if !messages.Has(err, messages.H5515) || !strings.Contains(err.Error(), "paylaşan") {
+	if !messages.Has(err, messages.H5002) || !strings.Contains(err.Error(), "paylaşan") {
 		t.Fatalf("paylaşılan kota hatası bekleniyordu: %v", err)
 	}
 	dataset.CloseAll(time.Second)
