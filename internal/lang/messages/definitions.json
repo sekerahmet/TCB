@@ -1049,6 +1049,7 @@
 "H6719": { "param": ["target", "given"] },
 "H6720": { "param": ["fn", "axis", "length", "shape", "start", "end"] },
 "H6721": { "param": ["what", "member"] },
+"H6722": { "param": ["method", "permute"] },
 "H6800": { "param": ["name"] },
 "H6801": { "param": ["fn", "given"] },
 "H6802": { "param": ["fn"] },

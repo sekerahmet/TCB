@@ -1054,6 +1054,7 @@ const (
 	H6719 Code = 6719 // tensör ataması: {target} şeklindeki yere {given} şeklinde veri atanamaz (şekiller aynı olmalı)
 	H6720 Code = 6720 // {fn}: {axis}. eksenin uzunluğu {length} ({shape}); [{start}, {end}) aralığı geçersiz (0 ≤ baş ≤ son ≤ {length} olmalı)
 	H6721 Code = 6721 // {what} üzerinde {member|q} özelliği ya da metodu bulunamadı
+	H6722 Code = 6722 // {method}() argüman almaz; eksenlerin sırasını vermek için {permute}(...) kullanın
 	H6800 Code = 6800 // bilinmeyen cihaz {name|q}; "cpu", "gpu" ya da "gpu:1" gibi bir ad verin
 	H6801 Code = 6801 // {fn}() cihaz adını metin olarak bekler ("cpu" ya da "gpu"), {given} verildi
 	H6802 Code = 6802 // {fn}("cpu") 1 parametre bekler

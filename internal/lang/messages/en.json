@@ -1049,6 +1049,7 @@
 "H6719": "tensor assignment: data of shape {given} cannot be assigned to the target of shape {target} (the shapes must be the same)",
 "H6720": "{fn}: the length of axis {axis} is {length} ({shape}); the range [{start}, {end}) is invalid (0 ≤ start ≤ end ≤ {length} is required)",
 "H6721": "the property or method {member|q} was not found on {what}",
+"H6722": "{method}() takes no arguments; to give the order of the axes use {permute}(...)",
 "H6800": "unknown device {name|q}; give a name such as \"cpu\", \"gpu\" or \"gpu:1\"",
 "H6801": "{fn}() expects the device name as a string (\"cpu\" or \"gpu\"), {given} given",
 "H6802": "{fn}(\"cpu\") expects 1 parameter",
