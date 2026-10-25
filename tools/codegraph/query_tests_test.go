@@ -250,7 +250,7 @@ func TestOnlyOwnMessagesMakeATestAboutTheTarget(t *testing.T) {
 // test kısa adla da edinir (bağımsız denetim grup 7: codes.Name için 17 başka paket testi "about" sayılıyordu).
 func TestOtherPackageTestsNameATargetWithItsQualifier(t *testing.T) {
 	root := auditModule(t, map[string]string{
-		"codes/codes.go": "package codes\n\nfunc Name() string { return \"x\" }\n",
+		"codes/codes.go":      "package codes\n\nfunc Name() string { return \"x\" }\n",
 		"codes/codes_test.go": "package codes\n\nimport \"testing\"\n\nfunc TestNameIsSet(t *testing.T) { _ = Name() }\n",
 		"checker/checker_test.go": `package checker
 
