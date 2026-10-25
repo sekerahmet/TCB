@@ -118,8 +118,8 @@ func TestAGoFunctionIsTestedThroughTheNameCodesItsCallersImplement(t *testing.T)
 
 // Kural: ad kodu bağı bir Go testini ancak işlevin paketi o testin ikilisine giriyorsa (aynı paket ya da testin paketi onu
 // dolaylı içe aktarıyor) işlevin testi sayar. `package main`'deki bir işlevi başka paketin testi hiç çalıştıramaz;
-// kodun TR testi (tr ikilisinde koşar) sayılmaya devam eder (TCB 2026-10-25, 3. madde: tests-for cmd/tr/main.go'nun
-// başında checker testleri vardı).
+// kodun TR testi (tr ikilisinde koşar) sayılmaya devam eder (TCB 2026-10-25, 3. madde: tr komutunun ana dosyasının
+// tests-for cevabının başında checker testleri vardı).
 func TestNameCodeTestsMustLinkTheFunctionsPackage(t *testing.T) {
 	const m = "example.com/m"
 	g := &Graph{Module: m, Nodes: []Node{

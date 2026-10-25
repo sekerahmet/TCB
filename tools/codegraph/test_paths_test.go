@@ -252,8 +252,8 @@ func TestHeader(t *testing.T) {}
 // "tests" grubunda; yolu yorumunda ya da iletisinde anan test "cite" grubunda (aynı test okuyorsa bir kez, okuyan olarak);
 // dosyanın başındaki kural yorumu dosyanın bütün testlerinindir; yorumdaki çıplak dosya adı yalnızca yorumun klasöründen
 // çözülür; README'nin `Denetim:` kuralının testi belgenin cevabındadır. Hiçbir şeyin bağlanmadığı belgede cevap neye
-// bakıldığını söyler (TCB 2026-10-25, 1. ve 2. madde: `tests-for tools/full_check.sh` belirsizdi, `tests-for
-// docs/development.md` anan testleri görmüyordu).
+// bakıldığını söyler (TCB 2026-10-25, 1. ve 2. madde: tam denetim betiğinin yolu belirsizdi, geliştirici
+// belgesini anan testler görünmüyordu).
 func TestTestsForAFileListsItsReadersCitersAndRuleGuards(t *testing.T) {
 	root := auditModule(t, fileTestFiles)
 	g, err := buildGraph(root)
@@ -318,5 +318,66 @@ func TestTestsForAnUntrackedFileSaysNothingWasSearched(t *testing.T) {
 	code, out, errOut := commandIn("tests-for", root, graph, "--no-rebuild", "notes/draft.sh")
 	if code != exitNotFound || out != "" || !strings.Contains(errOut, "git does not track") {
 		t.Errorf("exit %d\nstdout: %s\nstderr: %s", code, out, errOut)
+	}
+}
+
+var rootPathFiles = map[string]string{
+	"README.md":     "# mini\n",
+	"SECURITY.md":   "# Security\n",
+	"docs/a.md":     "# A\n",
+	"docs/b.md":     "# B\n",
+	"app/README.md": "# app\n",
+	"app/app.go":    "package app\n",
+	"app/doc_test.go": `package app
+
+import (
+	"testing"
+
+	"example.com/audit/internal/reporoot"
+)
+
+func docs() []string {
+	list := []string{"README.md", "docs/a.md"}
+	_ = []string{"add", "docs/b.md", "SECURITY.md"}
+	_ = []string{"SECURITY.md", "lib/missing.md"}
+	for _, p := range []string{"docs/*.md"} {
+		_ = reporoot.Path(p)
+	}
+	return list
+}
+
+func TestDocs(t *testing.T) { _ = docs() }
+
+func TestSecurity(t *testing.T) { _ = reporoot.Path("SECURITY.md") }
+
+func TestFixture(t *testing.T) { _ = []string{"README.md", "a.tr"} }
+`,
+	"internal/reporoot/root.go": "package reporoot\n\nfunc Path(parts ...string) string { return \"\" }\n",
+}
+
+// Kural: depo kökünden göreli yollar çıplak adla da bağlanır, ama yalnızca kökten: reporoot'un yol işlevine verilen tek
+// parça (fikstürde TestSecurity), depoda bulunan "/" içeren bir yolun yanındaki liste öğesi (docs içindeki liste); yol
+// olmayan öğe taşıyan ya da yolları depoda olmayan liste bağlanmaz; dize listesi üzerinde dönen değişkenle kurulan yol
+// listenin her değeridir (`range []string{"docs/*.md"}`). Yalnızca adlardan oluşan liste fikstürdür (TestFixture),
+// klasördeki aynı adlı belge bağlanmaz (TCB 2026-10-25, 2. madde: belge testlerinin listesi kök belgesini ve docs
+// belgelerini okuyordu, tests-for "no tests found" diyordu).
+func TestRootRelativePathsLinkFromTheRootOnly(t *testing.T) {
+	g, err := buildGraph(auditModule(t, rootPathFiles))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const app = "go:func:example.com/audit/app."
+	mustEdge(t, g, app+"TestDocs", "doc:README.md", edgeTests, inferred)
+	mustEdge(t, g, app+"TestDocs", "doc:docs/a.md", edgeTests, inferred)
+	mustEdge(t, g, app+"TestDocs", "doc:docs/b.md", edgeTests, inferred)
+	mustEdge(t, g, app+"TestSecurity", "doc:SECURITY.md", edgeTests, inferred)
+	for _, e := range g.Edges {
+		if e.Kind != edgeTests {
+			continue
+		}
+		if e.To == "doc:app/README.md" || e.From == app+"TestFixture" && strings.HasPrefix(e.To, "doc:") ||
+			e.From == app+"TestDocs" && e.To == "doc:SECURITY.md" {
+			t.Errorf("a bare name links from the root, and a list of bare names is a fixture: %+v", e)
+		}
 	}
 }

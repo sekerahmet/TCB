@@ -28,7 +28,7 @@ func TestRunsJS(t *testing.T) { _ = filepath.Join("ui", "test", "view_test.js") 
 // bütün parçaları metin olan `path.join(__dirname, ...)`) `loads` kenarı alır; paket adı (`vscode`, `fs`) almaz.
 // tests-for bir dosyayı yükleyen test dosyasını koşan Go testini, yükleme zinciriyle verir: TestRunsJS view_test.js'yi
 // koşar, o view.js'yi, view.js helper.js'yi yükler; "via" testin koştuğu dosyadır (TCB 2026-10-25, 4. madde:
-// `tests-for editors/vscode/coded_view.js` eklentinin testlerini görmüyordu).
+// eklentinin kodlu görünüm modülü için tests-for eklentinin testlerini görmüyordu).
 func TestTestsForAJavaScriptFileFollowsTheFilesThatLoadIt(t *testing.T) {
 	root := auditModule(t, jsLoadFiles)
 	g, err := buildGraph(root)

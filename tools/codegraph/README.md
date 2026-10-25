@@ -521,7 +521,13 @@ to tests that read it:
 `testdata`) is tied to a test (a `tests`/`walks`/`cites` edge, or for a README one of its rules has a `Denetim:` test) or
 is listed with a reason in `testdata/uncovered_data.txt` (a data file, not a Go string: a path-looking string in
 test code would itself count as the file being tested). A stale exception also fails. Where a path is built from
-a variable (`reporoot.Path("examples", lang, "*.tr")`) the variable part becomes `*`.
+a variable (`reporoot.Path("examples", lang, "*.tr")`) the variable part becomes `*`; a variable that ranges over a
+list of string constants takes each of them (`for _, p := range []string{"docs/*.md"} { reporoot.Glob(reporoot.Path(p))
+}`). A bare file name (no `/`) counts only as a root-relative path, and only where it is one: the single part given to
+`reporoot.Path` (`reporoot.Path("README.md")`), or an element of a string list that also holds a path with `/`
+(`[]string{"README.md", "SECURITY.md", "lib/README.md"}`); a list of bare names is a fixture, and a folder's own file
+of the same name is not linked (`TestRootRelativePathsLinkFromTheRootOnly`; TCB 2026-10-25: the doc tests'
+`belgeListesi` reads the root README and `docs/*.md`, `tests-for README.md` said "no tests found").
 
 ## Planning exam (`testdata/planning_questions.txt`)
 

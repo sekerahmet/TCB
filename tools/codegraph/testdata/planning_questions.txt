@@ -148,3 +148,4 @@ codegraph tests-for internal/README.md | group: guard the rules it states => int
 codegraph tests-for CLAUDE.md | contains: no tests found (searched: | src: TCB 2026-10-25, 2. madde (gerçekten yok, neye bakıldığı yazılı)
 codegraph tests-for cmd/tr/main.go | not: checker.TestBoolTextComparisonWarning | contains: covered by subprocess tests | src: TCB 2026-10-25, 3. madde
 codegraph tests-for editors/vscode/coded_view.js | group: tests, indirect => e2e.TestExtensionJSTests | contains: via editors/vscode/test/coded_view_test.js | src: TCB 2026-10-25, 4. madde
+codegraph tests-for README.md | group: <- tests => e2e.TestExamplesListedInReadme | group: <- tests => e2e.TestDocLinks | not: no tests found | src: TCB 2026-10-25, 2. madde (gaps.md: belgeListesi kök README ve docs/*.md)

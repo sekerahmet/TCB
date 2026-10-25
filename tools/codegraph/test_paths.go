@@ -6,6 +6,7 @@ import (
 	"go/types"
 	"path"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -24,10 +25,12 @@ type pathRef struct {
 	dir   string // test dosyasının klasörü (kökten göreli): "./x" yolları için
 	file  string
 	line  int
-	text  string // yol ya da glob kalıbı
-	prod  bool   // sabit test olmayan kodda: sahibinden dosyaya reads_file/embeds kenarı da çekilir
-	embed bool   // //go:embed kalıbı: paketin klasörüne göredir, "/" aranmaz
-	cite  bool   // test dosyasının yorumunda ya da bir dizenin içinde anılan yol: `cites` kenarı (okuma değil)
+	text  string   // yol ya da glob kalıbı
+	prod  bool     // sabit test olmayan kodda: sahibinden dosyaya reads_file/embeds kenarı da çekilir
+	embed bool     // //go:embed kalıbı: paketin klasörüne göredir, "/" aranmaz
+	cite  bool     // test dosyasının yorumunda ya da bir dizenin içinde anılan yol: `cites` kenarı (okuma değil)
+	root  bool     // yalnızca depo kökünden çözülür; "/" aranmaz (`reporoot.Path("README.md")`, yol listesindeki kök adı)
+	with  []string // root ve dolu: listedeki "/" içeren yollar; biri kökten çözülmezse çıplak ad bağlanmaz (pathList)
 }
 
 // pathCallNames yol kuran çağrılardır (reporoot.Path, filepath.Join, path.Join).
@@ -56,7 +59,13 @@ func (x *goExtractor) pathCall(fc *fileCtx, owner string, call *ast.CallExpr) {
 	}
 	// Sondaki dize sabiti dizisi yolun kendisidir; öndeki sabit olmayan bağımsız değişkenler (bir kök ya da geçici
 	// klasör, `filepath.Join(root, "examples", "tr", "*.tr")`) atılır: kök depo kökü ya da onun kopyasıdır.
-	// Tek parçalı ve "/" içermeyen kuyruk ("a.json") yol sayılmaz.
+	// Tek parçalı ve "/" içermeyen kuyruk ("a.json") yol sayılmaz; reporoot'un yolu kökten göreli olduğu için orada
+	// sayılır (`reporoot.Path("README.md")`). Dize listesi üzerinde dönen değişken listenin her değeri olur
+	// (`for _, p := range []string{"docs/*.md"} { reporoot.Glob(reporoot.Path(p)) }`; TCB 2026-10-25, 2. madde:
+	// belge testlerinin `belgeListesi`'i README.md'yi ve docs/*.md'yi okuyordu, tests-for görmüyordu).
+	if x.rangePathCall(fc, owner, call) {
+		return
+	}
 	if _, ok := call.Args[0].(*ast.BasicLit); ok && len(call.Args) > 1 {
 		// Kök sabitse ama ortada sabit olmayan parça varsa (reporoot.Path("examples", lang, "*.tr")) o parça "*" olur:
 		// kalıp kökten göreli bir yoldur, eşleşmesi var olan dosyalarla sınanır.
@@ -88,10 +97,108 @@ func (x *goExtractor) pathCall(fc *fileCtx, owner string, call *ast.CallExpr) {
 		parts = append(parts, s)
 		x.consumed[lit] = true
 	}
+	if len(parts) == 1 && !strings.Contains(parts[0], "/") && x.rootPathCall(fc, call) {
+		x.addRootRef(fc, owner, call.Pos(), parts[0], nil)
+		return
+	}
 	if len(parts) == 0 || (len(parts) == 1 && !strings.Contains(parts[0], "/")) {
 		return
 	}
 	x.addPathRef(fc, owner, call.Pos(), path.Join(parts...))
+}
+
+// rootPathCall çağrı reporoot'un yol işlevi mi: bağımsız değişkenleri depo kökünden göreli yoldur.
+func (x *goExtractor) rootPathCall(fc *fileCtx, call *ast.CallExpr) bool {
+	fn, ok := fc.u.Info.Uses[nameIdent(call.Fun)].(*types.Func)
+	return ok && fn.Pkg() != nil && strings.HasSuffix(fn.Pkg().Path(), "internal/reporoot")
+}
+
+// noteRangeStrings dize sabiti listesi üzerinde dönen döngünün değer değişkenine listenin değerlerini bağlar.
+func (x *goExtractor) noteRangeStrings(fc *fileCtx, rs *ast.RangeStmt) {
+	id, ok := rs.Value.(*ast.Ident)
+	lit, isLit := rs.X.(*ast.CompositeLit)
+	if !ok || !isLit || fc.u.Info.Defs[id] == nil {
+		return
+	}
+	var vals []string
+	for _, e := range lit.Elts {
+		b, ok := e.(*ast.BasicLit)
+		if !ok {
+			return
+		}
+		s, ok := stringLit(b)
+		if !ok {
+			return
+		}
+		vals = append(vals, s)
+	}
+	x.rangeVals[fc.u.Info.Defs[id]] = vals
+}
+
+// rangePathCall yol çağrısının tek bağımsız değişkeni bir dize listesi üzerinde dönen değişkense her değeri ayrı yol
+// (ya da kalıp) olarak kaydeder.
+func (x *goExtractor) rangePathCall(fc *fileCtx, owner string, call *ast.CallExpr) bool {
+	if len(call.Args) != 1 {
+		return false
+	}
+	id, ok := call.Args[0].(*ast.Ident)
+	if !ok {
+		return false
+	}
+	vals, ok := x.rangeVals[fc.u.Info.Uses[id]]
+	if !ok {
+		return false
+	}
+	for _, v := range vals {
+		if !strings.Contains(v, "/") && x.rootPathCall(fc, call) {
+			x.addRootRef(fc, owner, call.Pos(), v, nil)
+		} else {
+			x.addPathRef(fc, owner, call.Pos(), v)
+		}
+	}
+	return true
+}
+
+// pathList yol listesindeki kök dosya adlarını kaydeder: listenin her öğesi bir yolsa ve "/" içeren öğelerinden biri depo
+// kökünden bir dosyaya çözülüyorsa ("lib/README.md") "/" içermeyen dosya adları da kökteki dosyalardır (`[]string{
+// "README.md", "SECURITY.md", "lib/README.md"}`). Yalnızca adlardan oluşan liste (geçici klasöre yazılan "README.md"),
+// yol olmayan öğe taşıyan liste (`{"add", "lib/a.tr", ".gitignore"}`: geçici depoda git komutu) ve yolları depoda
+// olmayan liste fikstürdür, sayılmaz.
+func (x *goExtractor) pathList(fc *fileCtx, owner string, lit *ast.CompositeLit) {
+	var bare []*ast.BasicLit
+	var paths []string
+	for _, e := range lit.Elts {
+		b, ok := e.(*ast.BasicLit)
+		if !ok {
+			return
+		}
+		s, ok := stringLit(b)
+		switch {
+		case !ok || strings.ContainsAny(s, " *?[{}$%\\"):
+			return
+		case strings.Contains(s, "/"):
+			paths = append(paths, s)
+		case strings.Contains(s, "."):
+			bare = append(bare, b)
+		default:
+			return
+		}
+	}
+	if len(paths) == 0 {
+		return
+	}
+	for _, b := range bare {
+		s, _ := stringLit(b)
+		x.addRootRef(fc, owner, b.Pos(), s, paths)
+	}
+}
+
+// addRootRef depo kökünden göreli bir yolu kaydeder ("/" içermesi gerekmez); with listedeki yollardır (pathList).
+func (x *goExtractor) addRootRef(fc *fileCtx, owner string, pos token.Pos, text string, with []string) {
+	if len(text) < 3 || len(text) > 200 || strings.ContainsAny(text, " \t\n\r{}$%") {
+		return
+	}
+	x.idx.pathRefs = append(x.idx.pathRefs, pathRef{owner: owner, dir: path.Dir(fc.rel), file: fc.rel, line: x.line(pos), text: text, prod: !fc.isTest, root: true, with: with})
 }
 
 // pathLit tek başına bir dize sabitini, yola benziyorsa kaydeder.
@@ -231,9 +338,15 @@ func linkTestPaths(b *builder, idx *goIndex, reach *testReach) {
 	}
 	sort.Slice(targets, func(i, j int) bool { return targets[i].ID < targets[j].ID })
 	for _, r := range idx.pathRefs {
+		if r.root && len(r.with) > 0 && !slices.ContainsFunc(r.with, func(p string) bool { return len(byFile[path.Clean(p)]) > 0 }) {
+			continue // listenin yolları depoda yok: fikstür
+		}
 		tests := reach.testsReaching(r.owner)
 		pats := []string{path.Join(r.dir, r.text)}
-		if !r.embed && (!r.cite || strings.Contains(r.text, "/")) { // gömme kalıbı ve çıplak ad yalnızca klasörden
+		switch {
+		case r.root:
+			pats = []string{path.Clean(r.text)}
+		case !r.embed && (!r.cite || strings.Contains(r.text, "/")): // gömme kalıbı ve çıplak ad yalnızca klasörden
 			pats = append([]string{path.Clean(r.text)}, pats...)
 		}
 		for _, pat := range pats {

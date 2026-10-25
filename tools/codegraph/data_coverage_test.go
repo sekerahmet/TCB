@@ -19,7 +19,7 @@ import (
 // artık işe yaramıyorsa (dosya bağlandı ya da hiç yok) test düşer.
 
 // maxUncoveredData istisna listesinin bugünkü satır sayısıdır (onlyShrinks).
-const maxUncoveredData = 29
+const maxUncoveredData = 11
 
 // onlyShrinks bir istisna listesinin yalnızca küçülmesini sağlar (bağımsız denetim S4: kural yalnızca yorumdaydı). Satır
 // sayısı testte sabittir: artarsa test düşer, yeni boşluk listeye değil teste gider; bilerek eklemek sabiti de
@@ -163,8 +163,8 @@ func underAnyName(file, name string) bool {
 
 // Kural: depoda izlenen her dosyanın yolu (betik, .gitignore, JS, YAML, testdata fikstürü dahil) tests-for'da o dosyanın
 // düğümüne çözülür; ad aramasına düşüp belirsiz ya da başka bir düğüm olmaz. Kanca her ajanın her ilk düzenlemesinde
-// tests-for <dosya> sorar; belirsiz cevap yanlış bir "yok" demektir (TCB 2026-10-25, 1. madde: `tests-for
-// tools/full_check.sh` ve `.gitignore` belirsizdi). İstisna listesi yoktur.
+// tests-for <dosya> sorar; belirsiz cevap yanlış bir "yok" demektir (TCB 2026-10-25, 1. madde: tam denetim
+// betiği ve `.gitignore` için tests-for belirsizdi). İstisna listesi yoktur.
 func TestEveryTrackedFileIsANode(t *testing.T) {
 	root, _, g := repoGraph(t)
 	files, ok := codeindex.GitTracked(root)
