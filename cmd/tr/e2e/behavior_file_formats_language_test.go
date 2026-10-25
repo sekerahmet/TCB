@@ -295,6 +295,29 @@ func TestSyntaxHintNamesFollowPersonsLanguage(t *testing.T) {
 	}
 }
 
+// İletiye değer olarak giden hazır metin de iletinin dilindedir (DENETİM 4D, bulgu 3): listede
+// çalışmayan tensör işlevinin "yalnızca ..." parçası İngilizce dosyanın yakaladığı hatada
+// İngilizcedir. Önceden parça messages.Text ile TR_DIL'de kurulup iletiye metin olarak giriyordu
+// ("only on tensörde").
+func TestMessagePartsFollowTheMessageLanguage(t *testing.T) {
+	coded, err := source.Encode("dene { softmax([1.0, 2.0]) } yakala h { yazdır(h) }\n" +
+		"dene { koşullu([1, 2], 1, 2) } yakala h { yazdır(h) }\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	testkit.WriteFile(t, dir, "en.tr", inLanguage(coded, "en"))
+	s := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=tr"}, "en.tr")
+	if strings.Count(s.Stdout, "does not work on lists, only on tensors") != 2 {
+		t.Errorf("İngilizce dosyanın yakaladığı hatada parça İngilizce olmalı:\n%s%s", s.Stdout, s.Stderr)
+	}
+	for _, turkish := range []string{"tensörde", "sayıda", "Mantık"} {
+		if strings.Contains(s.Stdout, turkish) {
+			t.Errorf("Türkçe parça %q:\n%s", turkish, s.Stdout)
+		}
+	}
+}
+
 // fileFormatShape klasördeki dosya adlarını ve her JSON dosyasının (satırının) anahtar
 // kümesini, değerleri atarak, sıralı bir özet olarak verir.
 func fileFormatShape(t *testing.T, dir string) string {

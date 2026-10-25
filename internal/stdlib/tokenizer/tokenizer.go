@@ -273,7 +273,7 @@ func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]inte
 		}
 		return bind.IntList(ids), nil
 	case *interp.ListVal:
-		texts, err := stringList(fn, messages.Text(messages.H5626), x)
+		texts, err := stringList(fn, messages.New(messages.H5626), x)
 		if err != nil {
 			return nil, err
 		}
@@ -301,7 +301,7 @@ func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]inte
 		})
 		for i, h := range errs {
 			if h != nil {
-				return nil, stepError(messages.Text(messages.H5629, fn, i+1), h)
+				return nil, stepError(messages.New(messages.H5629, fn, i+1), h)
 			}
 		}
 		elems := make([]interp.Value, len(result))
@@ -370,7 +370,7 @@ func (n *Object) decode(m *interp.VM, args []interp.Value, named map[string]inte
 			if single {
 				return nil, stepError(fn, h)
 			}
-			return nil, stepError(messages.Text(messages.H5633, fn, i+1), h)
+			return nil, stepError(messages.New(messages.H5633, fn, i+1), h)
 		}
 	}
 	if single {

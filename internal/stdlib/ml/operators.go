@@ -203,7 +203,7 @@ func matmulDType(a, b *tensor.Tensor, mixed tensor.DType) (*tensor.Tensor, error
 	if len(as) == 0 || len(bs) == 0 {
 		return nil, messages.New(messages.H6114, tensor.ShapeText(as), tensor.ShapeText(bs))
 	}
-	if err := checkDevice(messages.Text(messages.H6124), a, b); err != nil {
+	if err := checkDevice(messages.New(messages.H6124), a, b); err != nil {
 		return nil, err
 	}
 	K := as[len(as)-1]

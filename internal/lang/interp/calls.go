@@ -35,9 +35,9 @@ func checkArity(fnVal Value, nargs int, named map[string]Value, line int) error 
 	if len(named) == 0 && nargs <= len(fn.Parameters) && defaultsSuffice(fn, nargs) {
 		return nil
 	}
-	name := messages.Text(messages.H2408, fn.Name)
+	name := messages.New(messages.H2408, fn.Name)
 	if fn.Name == "" {
-		name = messages.Text(messages.H2409)
+		name = messages.New(messages.H2409)
 	}
 	known := make(map[string]bool, len(fn.Parameters))
 	for _, p := range fn.Parameters {

@@ -28,7 +28,7 @@ func (kn *Checkpoint) apply(m *interp.VM, fn any, o *loadedCkpt) error {
 	}
 	for _, n := range kn.objects {
 		if n.kind == kindOptimizer {
-			if err := n.op.CheckLoad(messages.Text(messages.H7441, fn, n.name), states[n.name]); err != nil {
+			if err := n.op.CheckLoad(messages.New(messages.H7441, fn, n.name), states[n.name]); err != nil {
 				return corruptContent{err}
 			}
 		}
@@ -69,7 +69,7 @@ func (kn *Checkpoint) apply(m *interp.VM, fn any, o *loadedCkpt) error {
 	for _, n := range kn.objects {
 		switch n.kind {
 		case kindOptimizer:
-			if err := n.op.LoadState(messages.Text(messages.H7441, fn, n.name), states[n.name]); err != nil {
+			if err := n.op.LoadState(messages.New(messages.H7441, fn, n.name), states[n.name]); err != nil {
 				return err
 			}
 		case kindPlain:

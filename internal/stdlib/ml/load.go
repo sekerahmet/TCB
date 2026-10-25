@@ -56,7 +56,7 @@ func (k *fileReader) integer(p []byte) bool {
 }
 
 // missing ne okunurken oluşan okuma hatasını anlatır.
-func (k *fileReader) missing(ne string) error {
+func (k *fileReader) missing(ne any) error {
 	if k.failure != nil && !errors.Is(k.failure, io.EOF) && !errors.Is(k.failure, io.ErrUnexpectedEOF) {
 		return messages.New(messages.H6600, ne, k.failure)
 	}
@@ -126,14 +126,14 @@ func (k *fileReader) header() (uint32, error) {
 	}
 	version := binary.LittleEndian.Uint16(k.read(2))
 	if k.failure != nil {
-		return 0, k.missing(messages.Text(messages.H6630))
+		return 0, k.missing(messages.New(messages.H6630))
 	}
 	if version != fileVersion {
 		return 0, messages.New(messages.H6611, version, fileVersion, codes.NameRef(codes.T700))
 	}
 	number := binary.LittleEndian.Uint32(k.read(4))
 	if k.failure != nil {
-		return 0, k.missing(messages.Text(messages.H6631))
+		return 0, k.missing(messages.New(messages.H6631))
 	}
 	// Her girdi en az 4+1+1 bayt tutar; bozuk sayının dev ayırmaya yol açmasını önler.
 	if int64(number)*6 > k.remaining {
@@ -144,17 +144,17 @@ func (k *fileReader) header() (uint32, error) {
 
 // input gi. girdiyi (ad, tür, şekil, veri) okur; adlar aynı adın iki kez geçmesini yakalar.
 func (k *fileReader) input(gi int, names map[string]bool) (fileEntry, error) {
-	order := messages.Text(messages.H6636, gi+1)
+	order := messages.New(messages.H6636, gi+1)
 	nameLen := binary.LittleEndian.Uint32(k.read(4))
 	if k.failure != nil {
-		return fileEntry{}, k.missing(messages.Text(messages.H6632, order))
+		return fileEntry{}, k.missing(messages.New(messages.H6632, order))
 	}
 	if nameLen > maxNameLen || int64(nameLen) > k.remaining {
 		return fileEntry{}, messages.New(messages.H6613, order, nameLen)
 	}
 	nameB := make([]byte, nameLen)
 	if !k.integer(nameB) {
-		return fileEntry{}, k.missing(messages.Text(messages.H6632, order))
+		return fileEntry{}, k.missing(messages.New(messages.H6632, order))
 	}
 	ad := string(nameB)
 	if !utf8.ValidString(ad) {
@@ -164,10 +164,10 @@ func (k *fileReader) input(gi int, names map[string]bool) (fileEntry, error) {
 		return fileEntry{}, messages.New(messages.H6615, ad)
 	}
 	names[ad] = true
-	order = messages.Text(messages.H6637, gi+1, ad)
+	order = messages.New(messages.H6637, gi+1, ad)
 	tb := k.read(2)
 	if k.failure != nil {
-		return fileEntry{}, k.missing(messages.Text(messages.H6633, order))
+		return fileEntry{}, k.missing(messages.New(messages.H6633, order))
 	}
 	code, dim := tb[0], int(tb[1])
 	dtype, known := dtypeFromCode(code)
@@ -193,14 +193,14 @@ func (k *fileReader) input(gi int, names map[string]bool) (fileEntry, error) {
 // işlemlerin çıktı şeklini belirler (ör. [4, 0] @ [0, N] → [4, N]). Sınır yalnızca gerçek
 // eleman sayısına uygulansaydı yüz baytlık bir dosya dev eksenler bildirip ilk işlemde
 // belleği tüketebilirdi (güvenlik denetimi 2026-10-18).
-func (k *fileReader) shape(order string, dim int) ([]int, int64, error) {
+func (k *fileReader) shape(order any, dim int) ([]int, int64, error) {
 	shape := make([]int, dim)
 	dims := make([]uint64, 0, dim)
 	n := int64(1)
 	for range shape {
 		d := binary.LittleEndian.Uint64(k.read(8))
 		if k.failure != nil {
-			return nil, 0, k.missing(messages.Text(messages.H6634, order))
+			return nil, 0, k.missing(messages.New(messages.H6634, order))
 		}
 		dims = append(dims, d)
 	}
@@ -216,14 +216,14 @@ func (k *fileReader) shape(order string, dim int) ([]int, int64, error) {
 }
 
 // data n elemanlık veriyi okur ve float32'ye açar.
-func (k *fileReader) data(order string, dtype tensor.DType, shape []int, n int64) ([]float32, error) {
+func (k *fileReader) data(order any, dtype tensor.DType, shape []int, n int64) ([]float32, error) {
 	size := int64(dtype.Bits() / 8) // eleman başına bayt
 	if n*size > k.remaining-4 {
 		return nil, messages.New(messages.H6623, order, tensor.ShapeText(shape), n*size, max(k.remaining-4, 0))
 	}
 	data, ok := decodeValues(int(n), dtype, k.integer)
 	if !ok {
-		return nil, k.missing(messages.Text(messages.H6635, order))
+		return nil, k.missing(messages.New(messages.H6635, order))
 	}
 	return data, nil
 }

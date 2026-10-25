@@ -134,7 +134,7 @@ func collectLeaves(fn any, model interp.Value, all bool) (names []string, found 
 // ad → şekil eşlemesiyle karşılaştırır: her parametre kaynakta aynı şekilde bulunmalı,
 // kaynakta modelde olmayan bir ad olmamalıdır. srcName mesajda kaynağı anar ("sözlükte",
 // "kayıtta"). İlk uyumsuzluk yol gösterici bir hatadır; hiçbir şey yazılmaz.
-func CheckParamShapes(fn any, names []string, found []*TensorValue, src map[string][]int, srcName string) error {
+func CheckParamShapes(fn any, names []string, found []*TensorValue, src map[string][]int, srcName any) error {
 	for i, ad := range names {
 		sk, ok := src[ad]
 		if !ok {
@@ -210,7 +210,7 @@ func loadParamsBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 		}
 		src[k], shapes[k] = d.t, d.t.Shape()
 	}
-	if err := CheckParamShapes(fn, names, found, shapes, messages.Text(messages.H6533)); err != nil {
+	if err := CheckParamShapes(fn, names, found, shapes, messages.New(messages.H6533)); err != nil {
 		return nil, err
 	}
 	if _, err := safe(func() bool {

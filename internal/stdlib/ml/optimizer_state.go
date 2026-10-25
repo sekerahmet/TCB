@@ -179,7 +179,7 @@ func (o *Optimizer) paramOrder(ad string) (int, bool) {
 
 // CheckState durum girdilerinin (adlar ve şekiller) bu iyileştiriciye uyduğunu, hiçbir
 // şey yüklemeden denetler; kontrol noktası bütün nesneleri yüklemeden önce bununla sınar.
-func (o *Optimizer) CheckState(fn string, names []string, shapes [][]int) error {
+func (o *Optimizer) CheckState(fn any, names []string, shapes [][]int) error {
 	for i, ad := range names {
 		if err := o.checkStateEntry(fn, ad, shapes[i]); err != nil {
 			return err

@@ -86,7 +86,7 @@ func registerTensorWrap(v *interp.VM, kd codes.Code, keepInts bool, fn func(*ten
 				return nil, err
 			}
 			if len(args) == 1 {
-				if err := listError(ad, args[0], messages.Text(messages.H6131), ad.String()+"("+codes.Name(codes.T100)+"(...))"); err != nil {
+				if err := listError(ad, args[0], messages.New(messages.H6131), ad.String()+"("+codes.Name(codes.T100)+"(...))"); err != nil {
 					return nil, err
 				}
 			}
@@ -186,7 +186,7 @@ func clampBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Val
 	case *interp.FloatVal:
 		return &interp.FloatVal{Val: clamp64(x.Val, lo, hi)}, nil
 	}
-	if err := listError(ad, args[0], messages.Text(messages.H6131), ad.String()+"("+codes.Name(codes.T100)+"(...), "+nameMin.TR+": 0)"); err != nil {
+	if err := listError(ad, args[0], messages.New(messages.H6131), ad.String()+"("+codes.Name(codes.T100)+"(...), "+nameMin.TR+": 0)"); err != nil {
 		return nil, err
 	}
 	return nil, messages.New(messages.H6103, ad, typeName(args[0]))
@@ -217,7 +217,7 @@ func atan2Builtin(m *interp.VM, args []interp.Value, named map[string]interp.Val
 		return nil, messages.New(messages.H6116, ad, len(args))
 	}
 	for _, a := range args {
-		if err := listError(ad, a, messages.Text(messages.H6131), ad.String()+"("+codes.Name(codes.T100)+"(...), x)"); err != nil {
+		if err := listError(ad, a, messages.New(messages.H6131), ad.String()+"("+codes.Name(codes.T100)+"(...), x)"); err != nil {
 			return nil, err
 		}
 	}
