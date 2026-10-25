@@ -5,8 +5,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
 // hook kancayı verilen oturum ve dosya için bir kez koşar; find her dosyayı depoda izlenen sayar.
@@ -80,6 +83,40 @@ func TestUntrackedFilesAndBadInputPass(t *testing.T) {
 	if code := run(strings.NewReader(`{`), &out, &errOut, t.TempDir(), locate, never); code != 1 || out.Len() > 0 {
 		t.Fatalf("bozuk girdi: çıkış %d, %q", code, out.String())
 	}
+}
+
+// Kanca Claude Code'a projenin ayarıyla bağlanır (.claude/settings.json, izlenir): düzenleme
+// araçlarının hepsinde bu araç çalışır. Ayar bozulur ya da araç taşınırsa kural sessizce kalkardı.
+func TestSettingsRunTheHookOnEveryEditTool(t *testing.T) {
+	data, err := os.ReadFile(reporoot.Path(".claude/settings.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var s struct {
+		Hooks struct {
+			PreToolUse []struct {
+				Matcher string
+				Hooks   []struct{ Type, Command string }
+			}
+		}
+	}
+	if err := json.Unmarshal(data, &s); err != nil {
+		t.Fatalf("ayar JSON değil: %v", err)
+	}
+	for _, e := range s.Hooks.PreToolUse {
+		for _, h := range e.Hooks {
+			if h.Type != "command" || !strings.Contains(h.Command, "go run ./tools/edithook") {
+				continue
+			}
+			for _, tool := range []string{"Edit", "Write", "MultiEdit", "NotebookEdit"} {
+				if !slices.Contains(strings.Split(e.Matcher, "|"), tool) {
+					t.Errorf("kanca %s aracında çalışmıyor: matcher %q", tool, e.Matcher)
+				}
+			}
+			return
+		}
+	}
+	t.Fatal(".claude/settings.json'da PreToolUse kancası `go run ./tools/edithook` yok")
 }
 
 // locate yalnızca git'in izlediği dosyayı depo yoluyla verir; yeni dosya ve depo dışı geçer.

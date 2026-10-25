@@ -12,7 +12,8 @@ düzenlemeyi yineleyince geçer. Aynı oturumda aynı dosya bir daha durmaz (iş
 `tr-edithook/<oturum>/`). Geçenler: depo dışındaki ve izlenmeyen dosyalar (yeni dosya, `scratch/`),
 yolu olmayan girdi. Kancanın kendisi çalışamazsa (bozuk girdi, derleme hatası) çıkış 1'dir ve
 Claude Code düzenlemeyi durdurmaz: bozuk bir ağaçta iş kilitlenmez. Denetim:
-`TestFirstEditIsHeldOnceThenPasses`, `TestUntrackedFilesAndBadInputPass`, `TestLocateTrackedFilesOnly`.
+`TestFirstEditIsHeldOnceThenPasses`, `TestUntrackedFilesAndBadInputPass`, `TestLocateTrackedFilesOnly`;
+ayar dosyasının kancayı her düzenleme aracında çalıştırdığını `TestSettingsRunTheHookOnEveryEditTool` denetler.
 
 Cevap yanlış, belirsiz ya da eksikse ajan bunu ana oturuma bildirir (komut, beklenen, gelen); ana
 oturum doğrulayıp [`tools/codegraph/gaps.md`](../codegraph/gaps.md)'ye yazar.

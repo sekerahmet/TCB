@@ -19,7 +19,7 @@ import (
 // artık işe yaramıyorsa (dosya bağlandı ya da hiç yok) test düşer.
 
 // maxUncoveredData istisna listesinin bugünkü satır sayısıdır (onlyShrinks).
-const maxUncoveredData = 11
+const maxUncoveredData = 10
 
 // onlyShrinks bir istisna listesinin yalnızca küçülmesini sağlar (bağımsız denetim S4: kural yalnızca yorumdaydı). Satır
 // sayısı testte sabittir: artarsa test düşer, yeni boşluk listeye değil teste gider; bilerek eklemek sabiti de
