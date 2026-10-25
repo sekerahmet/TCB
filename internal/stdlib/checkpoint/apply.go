@@ -21,7 +21,7 @@ import (
 // 16 bitlik parametrelerin ana kopyaları parametrenin yüklemeden sonraki sürümüne bağlanır.
 // Noktanın içeriği bozuksa (ör. geçersiz adım sayacı) hata corruptContent'tir: çağıran bir önceki
 // geçerli noktayı önerir.
-func (kn *Checkpoint) apply(m *interp.VM, fn string, o *loadedCkpt) error {
+func (kn *Checkpoint) apply(m *interp.VM, fn any, o *loadedCkpt) error {
 	states, err := kn.readStates(o)
 	if err != nil {
 		return messages.New(messages.H5620, fn, kn.shown+"/"+o.name, err)
@@ -169,7 +169,7 @@ func (kn *Checkpoint) walk(o *loadedCkpt, f func(objectName, tensorName string, 
 
 // writeLogResume günlüğe devam kaydını yazar; günlük kayıttakinden kısaysa (silinmiş ya da
 // kesilmiş) uyarır.
-func (kn *Checkpoint) writeLogResume(m *interp.VM, fn string, n *object, o *loadedCkpt) {
+func (kn *Checkpoint) writeLogResume(m *interp.VM, fn any, n *object, o *loadedCkpt) {
 	if u, err := n.log.Len(); err == nil && u < o.objects[n.name].record.Length {
 		m.WriteOutput(m.Err, messages.Text(messages.H7403,
 			fn, n.name, u, o.objects[n.name].record.Length)+"\n")
@@ -217,5 +217,5 @@ func (kn *Checkpoint) compareSettings(m *interp.VM, d *stateRecord) {
 	}
 	slices.Sort(diffs)
 	m.WriteOutput(m.Err, messages.Text(messages.H7405,
-		codes.Name(codes.T702), strings.Join(diffs, ", "))+"\n")
+		codes.NameRef(codes.T702), strings.Join(diffs, ", "))+"\n")
 }

@@ -20,7 +20,7 @@ func (d *TensorValue) WatchKind() string { return "tensor" }
 // WatchLabel tip sütununda gösterilen özettir (ör. "Tensör [2×3]"; float32 dışındaki
 // türlerde tür de eklenir: "Tensör [2×3] bf16").
 func (d *TensorValue) WatchLabel() string {
-	return messages.Text(messages.H6821, codes.DisplayName(codes.A212), d.watchShape(), d.watchDType())
+	return messages.Text(messages.H6821, codes.NameRef(codes.A212), d.watchShape(), d.watchDType())
 }
 
 // watchShape İzleme Masası metinlerinin şekil parçasıdır; skalerde boş (şablon "skaler" yazar).
@@ -123,5 +123,5 @@ func (d *TensorValue) WatchSummary() string {
 		write(0)
 	}
 	// İzleme Masası görüntüdür (TR_DIL).
-	return messages.Text(messages.H6822, sb.String(), codes.DisplayName(codes.A212), d.watchShape(), d.watchDType())
+	return messages.Text(messages.H6822, sb.String(), codes.NameRef(codes.A212), d.watchShape(), d.watchDType())
 }

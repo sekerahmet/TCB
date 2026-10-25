@@ -185,7 +185,7 @@ func (g *Log) add(args []interp.Value) (interp.Value, error) {
 // addMetrics kullanıcının sözlüğündeki ölçüleri kayda ekler: anahtarlar Metin olmalı,
 // ayrılmış anahtarlar hata verir, tek elemanlı tensörler sayı olur. Kullanıcı "zaman"
 // verirse kaydın zamanı onunla değişir.
-func addMetrics(fn string, record, dict *interp.DictVal, reserved ...string) error {
+func addMetrics(fn any, record *interp.DictVal, dict *interp.DictVal, reserved ...string) error {
 	for _, k := range dict.Order {
 		v, ok := dict.Pairs[k]
 		if !ok {
@@ -193,7 +193,7 @@ func addMetrics(fn string, record, dict *interp.DictVal, reserved ...string) err
 		}
 		if a := dict.KeyValue(k); a != nil {
 			if _, text := a.(*interp.StringVal); !text {
-				return messages.New(messages.H7320, fn, codes.DisplayName(codes.A202), interp.TypeAndSummary(a))
+				return messages.New(messages.H7320, fn, codes.NameRef(codes.A202), interp.TypeAndSummary(a))
 			}
 		}
 		for _, r := range reserved {

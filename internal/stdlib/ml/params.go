@@ -25,12 +25,12 @@ import (
 func paramsBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.DisplayName(codes.T530)
 	if len(args) != 1 {
-		return nil, messages.New(messages.H6500, fn, nameWithNames.TR, codes.DisplayName(codes.A041), len(args))
+		return nil, messages.New(messages.H6500, fn, nameWithNames, codes.NameRef(codes.A041), len(args))
 	}
 	if err := bind.CheckNamed(fn+"()", named, nameWithNames); err != nil {
 		return nil, err
 	}
-	withNames, err := bind.OptionalBool(fn, nameWithNames.TR, named, nameWithNames, false)
+	withNames, err := bind.OptionalBool(fn, named, nameWithNames, false)
 	if err != nil {
 		return nil, err
 	}
@@ -64,12 +64,12 @@ func CollectParams(fn string, model interp.Value) (names []string, found []*Tens
 // iyileştirici momentleri, sabit tablolar) aynı gezinti sırasıyla ve yol adlarıyla verir.
 // Ara sonuçlar (türev izleyen işlem sonuçları) yine atlanır. Kontrol noktası nesnenin bütün
 // tensörlerini bununla toplar.
-func CollectTensors(fn string, model interp.Value) (names []string, found []*TensorValue, failure error) {
+func CollectTensors(fn any, model interp.Value) (names []string, found []*TensorValue, failure error) {
 	return collectLeaves(fn, model, true)
 }
 
 // collectLeaves modeli gezer; hepsi yanlışsa yalnızca türev izleyen yaprakları toplar.
-func collectLeaves(fn string, model interp.Value, all bool) (names []string, found []*TensorValue, failure error) {
+func collectLeaves(fn any, model interp.Value, all bool) (names []string, found []*TensorValue, failure error) {
 	seen := map[*tensor.Tensor]bool{}
 	walked := map[any]bool{}
 	nameOwner := map[string]*tensor.Tensor{}
@@ -202,11 +202,11 @@ func loadParamsBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 			continue
 		}
 		if _, text := s.KeyValue(k).(*interp.StringVal); !text {
-			return nil, messages.New(messages.H6522, fn, codes.DisplayName(codes.A202), s.DisplayKey(k))
+			return nil, messages.New(messages.H6522, fn, codes.NameRef(codes.A202), s.DisplayKey(k))
 		}
 		d, ok := v.(*TensorValue)
 		if !ok {
-			return nil, messages.New(messages.H6524, fn, k, codes.DisplayName(codes.A212), typeName(v))
+			return nil, messages.New(messages.H6524, fn, k, codes.NameRef(codes.A212), typeName(v))
 		}
 		src[k], shapes[k] = d.t, d.t.Shape()
 	}

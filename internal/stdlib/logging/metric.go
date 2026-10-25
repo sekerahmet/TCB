@@ -15,7 +15,7 @@ import (
 // metricValue bir ölçü değerini günlüğe yazılacak düz değere çevirir: sayı, metin, mantık,
 // yok, liste ve sözlük olduğu gibi kalır; tek elemanlı tensör (kayıp) sayı, daha büyük tensör
 // iç içe liste olur. Değer hemen çevrilir: tensörün türev çizgesi sonraki adıma taşınmaz.
-func metricValue(fn, name string, v interp.Value) (interp.Value, error) {
+func metricValue(fn any, name string, v interp.Value) (interp.Value, error) {
 	switch x := v.(type) {
 	case *interp.IntVal, *interp.FloatVal, *interp.StringVal, *interp.BoolVal, *interp.NullVal, *interp.ListVal, *interp.DictVal:
 		return v, nil
@@ -26,7 +26,7 @@ func metricValue(fn, name string, v interp.Value) (interp.Value, error) {
 		return x.PlainValue(), nil
 	}
 	return nil, messages.New(messages.H7300,
-		fn, name, interp.TypeNames(codes.A200, codes.A201, codes.A202, codes.A203), codes.DisplayName(codes.A212), interp.TypeAndSummary(v))
+		fn, name, interp.TypeNames(codes.A200, codes.A201, codes.A202, codes.A203), codes.NameRef(codes.A212), interp.TypeAndSummary(v))
 }
 
 // shortDecimal float32'yi en kısa yazımıyla float64'e çevirir (0.1 → 0.1, 0.10000000149 değil).

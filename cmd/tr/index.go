@@ -46,7 +46,7 @@ func indexCommand(args []string) {
 	if len(args) > 0 && !strings.HasPrefix(args[0], "--") {
 		k, ok := codes.FindSubcommand(args[0])
 		if !ok {
-			exitWithError(messages.Text(messages.H8821, codes.DisplayName(codes.K015), args[0], subcommandNames()))
+			exitWithError(messages.Text(messages.H8821, codes.NameRef(codes.K015), args[0], subcommandNames()))
 		}
 		sub, args = k, args[1:]
 	}
@@ -123,9 +123,9 @@ func parseIndexArguments(sub codes.Code, args []string) (indexOptions, []string)
 	}
 	switch {
 	case sub == codes.K020 && len(names) != 2:
-		exitWithError(messages.Text(messages.H8864, command, codes.DisplayName(sub), "head view"))
+		exitWithError(messages.Text(messages.H8864, command, codes.NameRef(sub), "head view"))
 	case sub != codes.None && sub != codes.K020 && len(names) != 1:
-		exitWithError(messages.Text(messages.H8820, command, codes.DisplayName(sub), "Muon"))
+		exitWithError(messages.Text(messages.H8820, command, codes.NameRef(sub), "Muon"))
 	}
 	return o, names
 }

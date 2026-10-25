@@ -39,7 +39,7 @@ func registerGelu(v *interp.VM) {
 			if len(args) != 1 {
 				return nil, messages.New(messages.H6101, ad, len(args))
 			}
-			approximate, err := bind.OptionalBool(ad, nameApproximate.TR, named, nameApproximate, true)
+			approximate, err := bind.OptionalBool(ad, named, nameApproximate, true)
 			if err != nil {
 				return nil, err
 			}
@@ -129,7 +129,7 @@ func listError(ad string, v interp.Value, accept, suggestion string) error {
 	if _, ok := v.(*interp.ListVal); !ok {
 		return nil
 	}
-	return messages.New(messages.H6104, ad, accept, codes.DisplayName(codes.T100), suggestion)
+	return messages.New(messages.H6104, ad, accept, codes.NameRef(codes.T100), suggestion)
 }
 
 // axisArg eksen adlı argümanını ya da konumlu ikinci argümanı okur.
@@ -162,7 +162,7 @@ func registerSoftmax(v *interp.VM, kd codes.Code, logMode bool) {
 		return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 			if len(args) == 0 || !isTensor(args[:1]) {
 				if len(args) == 0 {
-					return nil, messages.New(messages.H6109, ad, nameAxis.TR)
+					return nil, messages.New(messages.H6109, ad, nameAxis)
 				}
 				if err := listError(ad, args[0], messages.Text(messages.H6132), ad+"("+codes.Name(codes.T100)+"(...), "+nameAxis.TR+": -1)"); err != nil {
 					return nil, err
@@ -170,7 +170,7 @@ func registerSoftmax(v *interp.VM, kd codes.Code, logMode bool) {
 				return nil, messages.New(messages.H6110, ad, typeName(args[0]))
 			}
 			if len(args) > 2 {
-				return nil, messages.New(messages.H6111, ad, nameAxis.TR, len(args))
+				return nil, messages.New(messages.H6111, ad, nameAxis, len(args))
 			}
 			if err := bind.CheckNamed(ad+"()", named, nameAxis); err != nil {
 				return nil, err

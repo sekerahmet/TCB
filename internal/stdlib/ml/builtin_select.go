@@ -22,7 +22,7 @@ func whereBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Val
 		return nil, messages.New(messages.H6201, ad, len(args))
 	}
 	for _, a := range args {
-		if err := listError(ad, a, messages.Text(messages.H6133, codes.DisplayName(codes.A203)), ad+"("+codes.Name(codes.T100)+"(...), a, b)"); err != nil {
+		if err := listError(ad, a, messages.Text(messages.H6133, codes.NameRef(codes.A203)), ad+"("+codes.Name(codes.T100)+"(...), a, b)"); err != nil {
 			return nil, err
 		}
 	}
@@ -65,7 +65,7 @@ func condValue(ad string, v interp.Value) (bool, error) {
 	if f, ok := interp.ToFloat(v); ok {
 		return f != 0, nil
 	}
-	return false, messages.New(messages.H6207, ad, codes.DisplayName(codes.A203), typeName(v))
+	return false, messages.New(messages.H6207, ad, codes.NameRef(codes.A203), typeName(v))
 }
 
 // isIntValued değer tam sayılı bir tensör ya da Tam mı (sonucun tam sayılı kalması için).
@@ -90,7 +90,7 @@ func condTensors(ad string, args []interp.Value) ([]*tensor.Tensor, error) {
 		}
 	} else if _, ok := cond.(*TensorValue); !ok {
 		if _, number := interp.ToFloat(cond); !number {
-			return nil, messages.New(messages.H6207, ad, codes.DisplayName(codes.A203), typeName(cond))
+			return nil, messages.New(messages.H6207, ad, codes.NameRef(codes.A203), typeName(cond))
 		}
 	}
 	for _, a := range args[1:] {

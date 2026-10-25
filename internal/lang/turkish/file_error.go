@@ -57,14 +57,14 @@ func (n Reason) Unwrap() error { return n.Message }
 //
 // Returns nil when err is nil. Standard library packages (tensör_kaydet/yükle,
 // parçalayıcı_yükle, veri_kümesi) must report file errors through it as well.
-func FileError(fn, path string, op messages.Code, err error, suffixes ...string) error {
+func FileError(fn any, path string, op messages.Code, err error, suffixes ...string) error {
 	if err == nil {
 		return nil
 	}
 	// İşlem kodu kendi tam cümlesidir ({path}, {reason}); fn varsa ortak "{fn}: {error}" iletisi
 	// (H2000) onu sarar. İki kod da zincirde bulunur (messages.Has).
 	var m *messages.Error = messages.New(op, path, fileErrorReason(path, err))
-	if fn != "" {
+	if fn != nil && fn != "" {
 		m = messages.New(messages.H2000, fn, m)
 	}
 	var extras []string

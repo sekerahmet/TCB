@@ -204,7 +204,7 @@ func showCommand(args []string) {
 	languageCode, file := parseLanguageArgs(args, true, messages.Text(messages.H8708, codes.OptionFlag(codes.K100), showName),
 		func(arg string) string { return messages.Text(messages.H8709, showName, arg) })
 	if file == "" {
-		exitWithError(messages.Text(messages.H8710, codes.DisplayName(codes.K011), codes.OptionFlag(codes.K100)))
+		exitWithError(messages.Text(messages.H8710, codes.NameRef(codes.K011), codes.OptionFlag(codes.K100)))
 	}
 	language := mustLoadLanguage(languageCode)
 	content, err := os.ReadFile(file)

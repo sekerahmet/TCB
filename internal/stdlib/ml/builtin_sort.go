@@ -19,7 +19,7 @@ import (
 func axisTensor(ad, usage string, args []interp.Value, n int, named map[string]interp.Value) (*TensorValue, int, error) {
 	if len(args) != n {
 		if len(args) == n+1 {
-			return nil, 0, messages.New(messages.H6200, usage, nameAxis.TR, interp.Shown(args[n]))
+			return nil, 0, messages.New(messages.H6200, usage, nameAxis, interp.Shown(args[n]))
 		}
 		return nil, 0, messages.New(messages.H6202, usage, n, len(args))
 	}
@@ -74,7 +74,7 @@ func topKBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Valu
 	k, ok := args[1].(*interp.IntVal)
 	L := d.t.Shape()[e]
 	if !ok {
-		return nil, messages.New(messages.H6208, ad, codes.DisplayName(codes.A200), typeName(args[1]))
+		return nil, messages.New(messages.H6208, ad, codes.NameRef(codes.A200), typeName(args[1]))
 	}
 	if k.Val < 0 || k.Val > int64(L) {
 		return nil, messages.New(messages.H6210, ad, k.Val, tensor.ShapeText(d.t.Shape()), e, L)

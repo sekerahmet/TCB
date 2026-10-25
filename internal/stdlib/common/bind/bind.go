@@ -42,6 +42,10 @@ func NamedArg(k codes.Code) Named {
 // değiştirilmemelidir.
 func (a Named) Spellings() []string { return a.spellings }
 
+// MessageText adlı argümanın iletinin dilindeki adıdır (messages.Localized): iletiye a verilir,
+// a.TR değil.
+func (a Named) MessageText(lang string) string { return codes.NameRef(a.Code).MessageText(lang) }
+
 // Accepts verilen yazım bu adlı argümanın kabul edilen bir yazımı mı?
 func (a Named) Accepts(spelling string) bool { return slices.Contains(a.spellings, spelling) }
 
@@ -49,7 +53,7 @@ func (a Named) Accepts(spelling string) bool { return slices.Contains(a.spelling
 // hatasında (ya da Türkçe karaktersiz yazılmış, kaldırılmış ya da başka dillerden alışılmış
 // bir adda: ogrenme_orani, nerede, lr, axis...) en yakın TR adını önerir. Kaldırılmış ve
 // alışılmış adlar kod listesindedir (tr.json'da "eski" ve "yabancı").
-func CheckNamed(fn string, named map[string]interp.Value, names ...Named) error {
+func CheckNamed(fn any, named map[string]interp.Value, names ...Named) error {
 	for given := range named {
 		known := false
 		for _, a := range names {
@@ -122,7 +126,7 @@ func Int(v interp.Value) (int64, bool) {
 }
 
 // Bool bir TR değerinin doğru/yanlış olmasını bekler.
-func Bool(fn, name string, v interp.Value) (bool, error) {
+func Bool(fn any, name any, v interp.Value) (bool, error) {
 	b, ok := v.(*interp.BoolVal)
 	if !ok {
 		return false, messages.New(messages.H7905, fn, name, v.Type())
@@ -130,14 +134,14 @@ func Bool(fn, name string, v interp.Value) (bool, error) {
 	return b.Val, nil
 }
 
-// OptionalBool adlı bir Mantık argümanını okur; verilmemişse defaultVal döner. label hata iletisinde
-// argümanı anar (ör. "ad" ya da "ad:"; çağıranın ileti biçimi korunur).
-func OptionalBool(fn, label string, named map[string]interp.Value, a Named, defaultVal bool) (bool, error) {
+// OptionalBool adlı bir Mantık argümanını okur; verilmemişse defaultVal döner. Hata iletisi
+// argümanı adıyla (iletinin dilinde) anar.
+func OptionalBool(fn any, named map[string]interp.Value, a Named, defaultVal bool) (bool, error) {
 	v, ok := GetNamed(named, a)
 	if !ok {
 		return defaultVal, nil
 	}
-	return Bool(fn, label, v)
+	return Bool(fn, a, v)
 }
 
 // Recover fn'i çalıştırır; fn panik yaparsa programı çökertmek yerine paniği cevir ile
@@ -157,7 +161,7 @@ func Recover[T any](fn func() T, convert func(r any) error) (result T, err error
 
 // Safe f'yi çalıştırır; Go paniğini iç hata olarak (messages.Internal: "lütfen bildirin")
 // bildirir.
-func Safe(fn string, f func() (interp.Value, error)) (interp.Value, error) {
+func Safe(fn any, f func() (interp.Value, error)) (interp.Value, error) {
 	var ferr error
 	result, err := Recover(func() interp.Value {
 		v, e := f()
@@ -193,7 +197,7 @@ func SingleDictArg(kd codes.Code, args []interp.Value, example string) (*interp.
 }
 
 // SafeBuiltin fn yerleşiğini Go paniğine karşı korur: panik name adlı bir iç hataya döner (Safe).
-func SafeBuiltin(name string, fn interp.BuiltinFunc) interp.BuiltinFunc {
+func SafeBuiltin(name any, fn interp.BuiltinFunc) interp.BuiltinFunc {
 	return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		return Safe(name, func() (interp.Value, error) { return fn(m, args, named) })
 	}
@@ -209,9 +213,10 @@ func Method(name string, fn interp.BuiltinFunc) *interp.BuiltinVal {
 // CodeMethod üye koduyla (kd) adlı yöntem değeri kurar: değerin adı kodun kanonik adıdır, panik
 // iletisindeki ad interp.CallName(kd)'dir. noNamedArgs doğruysa adlı argüman verilmesi hatadır.
 func CodeMethod(kd codes.Code, noNamedArgs bool, fn interp.BuiltinFunc) *interp.BuiltinVal {
-	b := Method(interp.CallName(kd), fn)
-	b.Name, b.NoNamedArgs = codes.Name(kd), noNamedArgs
-	return b
+	name := interp.CallName(kd) // iletide iletinin dilinde (codes.Ref)
+	return &interp.BuiltinVal{Name: codes.Name(kd), NoNamedArgs: noNamedArgs, Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+		return Safe(name, func() (interp.Value, error) { return fn(m, args, named) })
+	}}
 }
 
 // ResolvePath göreli bir yolu TR'nin tek yol kuralıyla çözer (bkz. interp.(*VM).ResolvePath: önce
@@ -230,32 +235,46 @@ func ResolvePathTried(m *interp.VM, path string) (string, []string) {
 // IsNotExist hatanın "dosya ya da klasör yok" anlamına gelip gelmediğini söyler.
 func IsNotExist(err error) bool { return errors.Is(err, os.ErrNotExist) }
 
-// ShortNumber büyük sayıları Türkçe kısa biçimde yazar: 999 → "999", 12 345 → "12,3 bin",
-// 56 900 000 000 → "56,9 milyar".
-func ShortNumber(n int64) string {
-	return formatScaled(n, []scaleUnit{{1e12, "trilyon"}, {1e9, "milyar"}, {1e6, "milyon"}, {1e3, "bin"}}, "")
+// ShortNumber büyük sayıyı kısa biçimde yazar, ileti parametresi olarak (messages.Localized):
+// 999 → "999", 12 345 → "12,3 bin" (en: "12.3 thousand"), 56 900 000 000 → "56,9 milyar".
+func ShortNumber(n int64) messages.Localized {
+	return scaled{n, []scaleUnit{{1e12, messages.H7909, ""}, {1e9, messages.H7908, ""}, {1e6, messages.H7907, ""}, {1e3, messages.H7906, ""}}, 0}
 }
 
-// FormatBytes bayt sayısını okunur biçimde yazar (ör. "1,2 GB").
-func FormatBytes(n int64) string {
-	return formatScaled(n, []scaleUnit{{1 << 40, "TB"}, {1 << 30, "GB"}, {1 << 20, "MB"}, {1 << 10, "KB"}}, " bayt")
+// FormatBytes bayt sayısını okunur biçimde yazar, ileti parametresi olarak: "1,2 GB", "512 bayt"
+// (en: "1.2 GB", "512 bytes").
+func FormatBytes(n int64) messages.Localized {
+	return scaled{n, []scaleUnit{{1 << 40, messages.H7910, "TB"}, {1 << 30, messages.H7910, "GB"}, {1 << 20, messages.H7910, "MB"}, {1 << 10, messages.H7910, "KB"}}, messages.H4020}
 }
 
-// scaleUnit bir ölçek basamağıdır: n en az threshold ise "x,y ad" yazılır.
+// scaleUnit bir ölçek basamağıdır: n en az threshold ise text iletisiyle (sayı, birim simgesi)
+// yazılır.
 type scaleUnit struct {
 	threshold int64
-	name      string
+	text      messages.Code
+	symbol    string
 }
 
-// formatScaled n'yi en büyük uygun basamakta bir ondalıkla yazar (".0" atılır, ondalık ayracı
-// virgül); hiçbir basamağa ulaşmazsa sayının kendisi ve smallSuffix yazılır.
-func formatScaled(n int64, units []scaleUnit, smallSuffix string) string {
-	for _, b := range units {
-		if n >= b.threshold {
-			s := strconv.FormatFloat(float64(n)/float64(b.threshold), 'f', 1, 64)
-			s = strings.TrimSuffix(s, ".0")
-			return s + " " + b.name // ondalık ayırıcı iletide {ad|decimal}, görüntüde messages.Decimal
+// scaled n'yi en büyük uygun basamakta bir ondalıkla yazar (".0" atılır; sözcük ve ondalık ayırıcı
+// iletinin dilinde); hiçbir basamağa ulaşmazsa sayının kendisini small iletisiyle (yoksa yalın).
+type scaled struct {
+	n     int64
+	units []scaleUnit
+	small messages.Code
+}
+
+func (s scaled) MessageText(lang string) string {
+	for _, b := range s.units {
+		if s.n >= b.threshold {
+			v := strings.TrimSuffix(strconv.FormatFloat(float64(s.n)/float64(b.threshold), 'f', 1, 64), ".0")
+			if b.symbol != "" {
+				return messages.TextIn(lang, b.text, v, b.symbol)
+			}
+			return messages.TextIn(lang, b.text, v)
 		}
 	}
-	return strconv.FormatInt(n, 10) + smallSuffix
+	if s.small == 0 {
+		return strconv.FormatInt(s.n, 10)
+	}
+	return messages.TextIn(lang, s.small, s.n)
 }

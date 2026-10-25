@@ -222,21 +222,24 @@ func TestResolvePath(t *testing.T) {
 	}
 }
 
+// Kural (4D): kısa sayı ve bayt metni ileti parametresidir; basamak sözcüğü (bin, thousand),
+// bayt sözcüğü ve ondalık ayırıcı iletinin dilindedir, birim simgesi (KB, GB) dilden bağımsızdır.
 func TestShortNumberAndFormatBytes(t *testing.T) {
-	for n, b := range map[int64]string{
-		0: "0", 999: "999", 1000: "1 bin", 12_345: "12.3 bin", 2_500_000: "2.5 milyon",
-		56_900_000_000: "56.9 milyar", 3_000_000_000_000: "3 trilyon",
+	for n, b := range map[int64][2]string{
+		0: {"0", "0"}, 999: {"999", "999"}, 1000: {"1 bin", "1 thousand"}, 12_345: {"12,3 bin", "12.3 thousand"},
+		2_500_000: {"2,5 milyon", "2.5 million"}, 56_900_000_000: {"56,9 milyar", "56.9 billion"},
+		3_000_000_000_000: {"3 trilyon", "3 trillion"},
 	} {
-		if g := ShortNumber(n); g != b {
-			t.Errorf("KisaSayi(%d) = %q; %q olmalı", n, g, b)
+		if tr, en := ShortNumber(n).MessageText("tr"), ShortNumber(n).MessageText("en"); tr != b[0] || en != b[1] {
+			t.Errorf("ShortNumber(%d) = %q / %q; %q / %q olmalı", n, tr, en, b[0], b[1])
 		}
 	}
-	for n, b := range map[int64]string{
-		0: "0 bayt", 1023: "1023 bayt", 1024: "1 KB", 1536: "1.5 KB",
-		5 << 20: "5 MB", 1288490189: "1.2 GB", 2 << 40: "2 TB",
+	for n, b := range map[int64][2]string{
+		0: {"0 bayt", "0 bytes"}, 1: {"1 bayt", "1 byte"}, 1023: {"1023 bayt", "1023 bytes"}, 1024: {"1 KB", "1 KB"},
+		1536: {"1,5 KB", "1.5 KB"}, 5 << 20: {"5 MB", "5 MB"}, 1288490189: {"1,2 GB", "1.2 GB"}, 2 << 40: {"2 TB", "2 TB"},
 	} {
-		if g := FormatBytes(n); g != b {
-			t.Errorf("BaytMetni(%d) = %q; %q olmalı", n, g, b)
+		if tr, en := FormatBytes(n).MessageText("tr"), FormatBytes(n).MessageText("en"); tr != b[0] || en != b[1] {
+			t.Errorf("FormatBytes(%d) = %q / %q; %q / %q olmalı", n, tr, en, b[0], b[1])
 		}
 	}
 }
@@ -257,26 +260,30 @@ func TestMethodWrappersTurnPanicsIntoNamedErrors(t *testing.T) {
 	if c.Name != codes.Name(codes.Y010) || !c.NoNamedArgs {
 		t.Fatalf("CodeMethod: %+v", c)
 	}
-	if _, err := c.Fn(nil, nil, nil); !messages.Has(err, messages.H2000) || !strings.Contains(err.Error(), interp.CallName(codes.Y010)) {
+	if _, err := c.Fn(nil, nil, nil); !messages.Has(err, messages.H2000) || !strings.Contains(err.Error(), interp.CallName(codes.Y010).String()) {
 		t.Fatalf("CodeMethod panik hatası: %v", err)
 	}
 }
 
 // Kural: OptionalBool verilmemiş adlı Mantık argümanında varsayılanı verir, verilmişte değeri okur,
-// Mantık olmayan değerde etiketli hata verir (iki ileti biçimi etiketle korunur).
+// Mantık olmayan değerde argümanı adıyla anan hata verir; ad iletinin dilindedir (4D).
 func TestOptionalBool(t *testing.T) {
 	a := NamedArg(codes.T902)
 	for _, def := range []bool{false, true} {
-		if b, err := OptionalBool("f", "x", map[string]interp.Value{}, a, def); err != nil || b != def {
+		if b, err := OptionalBool("f", map[string]interp.Value{}, a, def); err != nil || b != def {
 			t.Errorf("verilmemiş (varsayılan %v) = %v, %v", def, b, err)
 		}
 	}
-	if b, err := OptionalBool("f", "x", map[string]interp.Value{a.TR: &interp.BoolVal{Val: true}}, a, false); err != nil || !b {
+	if b, err := OptionalBool("f", map[string]interp.Value{a.TR: &interp.BoolVal{Val: true}}, a, false); err != nil || !b {
 		t.Errorf("doğru = %v, %v", b, err)
 	}
-	_, err := OptionalBool("f", "etiket:", map[string]interp.Value{a.TR: &interp.IntVal{Val: 1}}, a, false)
-	if err == nil || !strings.Contains(err.Error(), "f: etiket:") {
-		t.Errorf("Mantık olmayan değer etiketli hata vermeli: %v", err)
+	_, err := OptionalBool("f", map[string]interp.Value{a.TR: &interp.IntVal{Val: 1}}, a, false)
+	if err == nil || !strings.Contains(err.Error(), "f: "+a.TR+" ") {
+		t.Errorf("Mantık olmayan değer adıyla hata vermeli: %v", err)
+	}
+	en := codes.NameRef(codes.T902).MessageText("en")
+	if got := messages.ErrorIn(err, "en"); en == a.TR || !strings.Contains(got, "f: "+en+" must be") {
+		t.Errorf("İngilizce iletide ad İngilizce olmalı (%s): %s", en, got)
 	}
 }
 

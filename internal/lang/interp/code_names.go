@@ -31,7 +31,7 @@ func (v *VM) RegisterNoNamed(kd codes.Code, fn BuiltinFunc) *BuiltinVal {
 
 // NoNamedArgsError reports that named arguments were given to a builtin or method that takes
 // none; the format matches the unknown-name error of builtins that do take named arguments.
-func NoNamedArgsError(name string, named map[string]Value) error {
+func NoNamedArgsError(name any, named map[string]Value) error {
 	nameList := make([]string, 0, len(named))
 	for a := range named {
 		nameList = append(nameList, a)

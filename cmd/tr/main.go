@@ -85,12 +85,12 @@ func main() {
 		fmt.Println(messages.Text(messages.H8603, Version))
 	case codes.K004:
 		if len(args) < 2 {
-			exitWithError(messages.Text(messages.H8605, codes.DisplayName(codes.K004), "ornek.tr"))
+			exitWithError(messages.Text(messages.H8605, codes.NameRef(codes.K004), "ornek.tr"))
 		}
 		checkFile(args[1])
 	case codes.K005:
 		if len(args) < 2 {
-			exitWithError(messages.Text(messages.H8606, codes.DisplayName(codes.K005)))
+			exitWithError(messages.Text(messages.H8606, codes.NameRef(codes.K005)))
 		}
 		outPath := ""
 		if len(args) >= 3 {
@@ -108,7 +108,7 @@ func main() {
 		}
 	case codes.K003:
 		if len(args) < 2 {
-			exitWithError(messages.Text(messages.H8605, codes.DisplayName(codes.K003), "ornek.tr"))
+			exitWithError(messages.Text(messages.H8605, codes.NameRef(codes.K003), "ornek.tr"))
 		}
 		runFile(args[1], args[2:])
 	default:
@@ -178,24 +178,24 @@ func printHelp() {
 	for _, row := range []string{
 		messages.Text(messages.H8612),
 		messages.Text(messages.H8613),
-		messages.Text(messages.H8614, codes.DisplayName(codes.K003)),
-		messages.Text(messages.H8615, codes.DisplayName(codes.K006)),
-		messages.Text(messages.H8616, codes.DisplayName(codes.K004)),
-		messages.Text(messages.H8617, codes.DisplayName(codes.K005)),
-		messages.Text(messages.H8618, codes.DisplayName(codes.K007)),
-		messages.Text(messages.H8619, codes.DisplayName(codes.K008), codes.OptionFlag(codes.K101)),
-		messages.Text(messages.H8620, codes.DisplayName(codes.K009)),
-		messages.Text(messages.H8621, codes.DisplayName(codes.K010)),
-		messages.Text(messages.H8622, codes.DisplayName(codes.K011), lang),
-		messages.Text(messages.H8623, codes.DisplayName(codes.K011), lang),
-		messages.Text(messages.H8624, codes.DisplayName(codes.K009), lang),
-		messages.Text(messages.H8625, codes.DisplayName(codes.K012)),
-		messages.Text(messages.H8626, codes.DisplayName(codes.K013), codes.OptionFlag(codes.K103)),
-		messages.Text(messages.H8627, codes.DisplayName(codes.K014)),
-		messages.Text(messages.H8830, codes.DisplayName(codes.K015), codes.DisplayName(codes.K016), codes.DisplayName(codes.K017), codes.DisplayName(codes.K018), codes.DisplayName(codes.K019)),
-		messages.Text(messages.H8863, codes.DisplayName(codes.K015), codes.DisplayName(codes.K020)),
-		messages.Text(messages.H8628, codes.DisplayName(codes.K001)),
-		messages.Text(messages.H8629, codes.DisplayName(codes.K002)),
+		messages.Text(messages.H8614, codes.NameRef(codes.K003)),
+		messages.Text(messages.H8615, codes.NameRef(codes.K006)),
+		messages.Text(messages.H8616, codes.NameRef(codes.K004)),
+		messages.Text(messages.H8617, codes.NameRef(codes.K005)),
+		messages.Text(messages.H8618, codes.NameRef(codes.K007)),
+		messages.Text(messages.H8619, codes.NameRef(codes.K008), codes.OptionFlag(codes.K101)),
+		messages.Text(messages.H8620, codes.NameRef(codes.K009)),
+		messages.Text(messages.H8621, codes.NameRef(codes.K010)),
+		messages.Text(messages.H8622, codes.NameRef(codes.K011), lang),
+		messages.Text(messages.H8623, codes.NameRef(codes.K011), lang),
+		messages.Text(messages.H8624, codes.NameRef(codes.K009), lang),
+		messages.Text(messages.H8625, codes.NameRef(codes.K012)),
+		messages.Text(messages.H8626, codes.NameRef(codes.K013), codes.OptionFlag(codes.K103)),
+		messages.Text(messages.H8627, codes.NameRef(codes.K014)),
+		messages.Text(messages.H8830, codes.NameRef(codes.K015), codes.NameRef(codes.K016), codes.NameRef(codes.K017), codes.NameRef(codes.K018), codes.NameRef(codes.K019)),
+		messages.Text(messages.H8863, codes.NameRef(codes.K015), codes.NameRef(codes.K020)),
+		messages.Text(messages.H8628, codes.NameRef(codes.K001)),
+		messages.Text(messages.H8629, codes.NameRef(codes.K002)),
 	} {
 		fmt.Fprintln(w, "  "+row)
 	}
@@ -215,7 +215,7 @@ func runFile(path string, arguments []string) {
 // programındır.
 func debugCommand(args []string) {
 	if len(args) < 1 {
-		exitWithError(messages.Text(messages.H8608, codes.DisplayName(codes.K006)))
+		exitWithError(messages.Text(messages.H8608, codes.NameRef(codes.K006)))
 	}
 	debugFile(args[0], args[1:])
 }
@@ -236,7 +236,7 @@ func checkFile(path string) {
 func startREPL() {
 	defer stdlib.Close() // açık dosyalar kapanır, geçici klasörler silinir
 	fmt.Println(messages.Text(messages.H8633, Version))
-	fmt.Println(messages.Text(messages.H8634, codes.DisplayName(codes.K200)))
+	fmt.Println(messages.Text(messages.H8634, codes.NameRef(codes.K200)))
 	machine := interp.New()
 	// Kabuğa yazılan satırlar kişinin yazım dilindedir (source.Options.Typed); değerler de o
 	// dilde metne çevrilir (3).
@@ -263,7 +263,7 @@ func startREPL() {
 			break
 		}
 		if exitHint(line) {
-			fmt.Fprintln(os.Stderr, messages.Text(messages.H8636, line, codes.DisplayName(codes.K200)))
+			fmt.Fprintln(os.Stderr, messages.Text(messages.H8636, line, codes.NameRef(codes.K200)))
 			continue
 		}
 		if line == "/h" || line == "/H" {

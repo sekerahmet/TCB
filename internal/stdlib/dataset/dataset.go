@@ -112,7 +112,7 @@ func (k *Dataset) TableData() ([]string, [][]string, error) {
 		if i >= limit {
 			break
 		}
-		lines = append(lines, []string{p.Name, fmt.Sprint(p.Token), messages.Decimal(bind.FormatBytes(p.Bytes))})
+		lines = append(lines, []string{p.Name, fmt.Sprint(p.Token), bind.FormatBytes(p.Bytes).MessageText(codes.Display().Code)})
 	}
 	return []string{messages.Text(messages.H5504), messages.Text(messages.H5505), messages.Text(messages.H5506)}, lines, nil
 }
@@ -144,7 +144,7 @@ func resolveCacheDir(m *interp.VM, fn string, named map[string]interp.Value) (st
 	}
 	d, ok, err := interp.PathArg(fn, v)
 	if !ok || d == "" {
-		return "", messages.New(messages.H5507, fn, nameCache.TR)
+		return "", messages.New(messages.H5507, fn, nameCache)
 	}
 	if err != nil {
 		return "", err
@@ -179,15 +179,15 @@ func openDataset(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 	quotaV, hasQuota := bind.GetNamed(named, nameQuota)
 	if hasQuota {
 		if cacheDir == "" {
-			return nil, messages.New(messages.H5510, fn, nameQuota.TR, nameCache.TR)
+			return nil, messages.New(messages.H5510, fn, nameQuota, nameCache)
 		}
 		gb, ok := interp.ToFloat(quotaV)
 		if !ok || gb <= 0 || math.IsInf(gb, 0) || math.IsNaN(gb) {
-			return nil, messages.New(messages.H5511, fn, nameQuota.TR, interp.Shown(quotaV))
+			return nil, messages.New(messages.H5511, fn, nameQuota, interp.Shown(quotaV))
 		}
 		// int64 bayt sayısına sığmayan kota (≈ 8,6 milyar GB) taşıp negatif olmasın.
 		if gb >= float64(math.MaxInt64)/(1<<30) {
-			return nil, messages.New(messages.H5512, fn, nameQuota.TR, interp.Shown(quotaV), int64(math.MaxInt64>>30))
+			return nil, messages.New(messages.H5512, fn, nameQuota, interp.Shown(quotaV), int64(math.MaxInt64>>30))
 		}
 		quota = max(int64(gb*(1<<30)), 1)
 	}
@@ -220,7 +220,7 @@ func openDataset(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 	if cacheDir != "" && !hasQuota {
 		needed := largestShard(k) * int64(dataload.DefaultGroupSize+dataload.DefaultLookahead)
 		return nil, messages.New(messages.H5513,
-			fn, nameCache.TR, nameQuota.TR, dataload.DefaultGroupSize+dataload.DefaultLookahead, bind.FormatBytes(largestShard(k)), int64(math.Ceil(float64(needed)/(1<<30))))
+			fn, nameCache, nameQuota, dataload.DefaultGroupSize+dataload.DefaultLookahead, bind.FormatBytes(largestShard(k)), int64(math.Ceil(float64(needed)/(1<<30))))
 	}
 	tk := &Dataset{k: k, path: raw, cache: cache}
 	if cache != nil {
@@ -337,12 +337,12 @@ func (o *Reader) WatchLabel() string {
 		}
 		return messages.Text(messages.H5523, o.b, o.t, o.counter)
 	}
-	return messages.Text(messages.H5524, codes.DisplayName(codes.A232), o.b, o.t, o.epoch, o.counter)
+	return messages.Text(messages.H5524, codes.NameRef(codes.A232), o.b, o.t, o.epoch, o.counter)
 }
 
 // TableData okuyucuyu tablo olarak açmaz; toplu işler .sonraki() ile alınır.
 func (o *Reader) TableData() ([]string, [][]string, error) {
-	return nil, nil, messages.New(messages.H5525, codes.DisplayName(memberNext))
+	return nil, nil, messages.New(messages.H5525, codes.NameRef(memberNext))
 }
 
 func (o *Reader) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
@@ -382,7 +382,7 @@ func readerArgs(fn string, args []interp.Value, named map[string]interp.Value, s
 		v, given := bind.GetNamed(named, a)
 		if i < len(args) {
 			if given {
-				err = messages.New(messages.H5528, fn, a.TR)
+				err = messages.New(messages.H5528, fn, a)
 				return
 			}
 			v = args[i]
@@ -393,7 +393,7 @@ func readerArgs(fn string, args []interp.Value, named map[string]interp.Value, s
 	if seeded {
 		sample = fmt.Sprintf("%s(%s: 32, %s: 1024, %s: 1)", fn, nameBatch.TR, nameContext.TR, nameSeed.TR)
 	}
-	positive := func(name string, v interp.Value) (int, error) {
+	positive := func(name bind.Named, v interp.Value) (int, error) {
 		if v == nil {
 			return 0, messages.New(messages.H5529, fn, name, sample)
 		}
@@ -403,20 +403,20 @@ func readerArgs(fn string, args []interp.Value, named map[string]interp.Value, s
 		}
 		return int(n), nil
 	}
-	if b, err = positive(nameBatch.TR, values[0]); err != nil {
+	if b, err = positive(nameBatch, values[0]); err != nil {
 		return
 	}
-	if t, err = positive(nameContext.TR, values[1]); err != nil {
+	if t, err = positive(nameContext, values[1]); err != nil {
 		return
 	}
 	if int64(b)*int64(t+1) > int64(interp.MaxCollectionSize) {
-		err = messages.New(messages.H5531, fn, nameBatch.TR, nameContext.TR, b, t, interp.MaxCollectionSize)
+		err = messages.New(messages.H5531, fn, nameBatch, nameContext, b, t, interp.MaxCollectionSize)
 		return
 	}
 	if seeded && values[2] != nil {
 		n, ok := bind.Int(values[2])
 		if !ok || n < 0 {
-			err = messages.New(messages.H5532, fn, nameSeed.TR, interp.Shown(values[2]))
+			err = messages.New(messages.H5532, fn, nameSeed, interp.Shown(values[2]))
 			return
 		}
 		seed = uint64(n)
@@ -462,7 +462,7 @@ func readerError(fn string, k *Dataset, t int, err error) error {
 		for _, p := range k.k.Shards() {
 			longest = max(longest, p.Token)
 		}
-		return messages.New(messages.H5533, fn, nameContext.TR, t, t+1, longest)
+		return messages.New(messages.H5533, fn, nameContext, t, t+1, longest)
 	}
 	if errors.Is(err, dataload.ErrCacheInsufficient) {
 		return messages.New(messages.H5515, fn, sentinelDetail(err))
@@ -554,7 +554,7 @@ var _ interp.Stream = (*Reader)(nil)
 // Örnekleyici sonsuz ürettiği için döngüyle gezilmez.
 func (o *Reader) Next(m *interp.VM) (interp.Value, bool, error) {
 	if !o.sequential {
-		return nil, false, messages.New(messages.H5535, codes.DisplayName(memberNext), codes.DisplayName(memberSequential))
+		return nil, false, messages.New(messages.H5535, codes.NameRef(memberNext), codes.NameRef(memberSequential))
 	}
 	d, err := o.nextTR(m, nil, nil)
 	if err != nil || d == interp.Null {

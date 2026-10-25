@@ -59,7 +59,7 @@ func (n *Object) WatchKind() string { return "diger" }
 
 // WatchLabel tip sütununda gösterilen özettir.
 func (n *Object) WatchLabel() string {
-	return messages.Text(messages.H5601, codes.DisplayName(codes.A234), n.p.VocabSize())
+	return messages.Text(messages.H5601, codes.NameRef(codes.A234), n.p.VocabSize())
 }
 
 // TableData dağarcığa eklenmiş parçaları (özel parçalar dahil) tablo olarak verir.
@@ -243,7 +243,7 @@ func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]inte
 		return nil, messages.New(messages.H5624, fn, len(args))
 	}
 	var pick tokenize.Options
-	special, err := bind.OptionalBool(fn, codes.Name(codes.V910), named, nameSpecial, true)
+	special, err := bind.OptionalBool(fn, named, nameSpecial, true)
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +255,7 @@ func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]inte
 		if hasSecond {
 			ik, ok := secondV.(*interp.StringVal)
 			if !ok {
-				return nil, messages.New(messages.H5625, fn, nameSecond.TR, secondV.Type())
+				return nil, messages.New(messages.H5625, fn, nameSecond, secondV.Type())
 			}
 			var k *tokenize.Encoding
 			var err error
@@ -281,13 +281,13 @@ func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]inte
 		if hasSecond {
 			il, ok := secondV.(*interp.ListVal)
 			if !ok {
-				return nil, messages.New(messages.H5627, fn, nameSecond.TR, secondV.Type())
+				return nil, messages.New(messages.H5627, fn, nameSecond, secondV.Type())
 			}
-			if seconds, err = stringList(fn, nameSecond.TR, il); err != nil {
+			if seconds, err = stringList(fn, nameSecond, il); err != nil {
 				return nil, err
 			}
 			if len(seconds) != len(texts) {
-				return nil, messages.New(messages.H5628, fn, nameSecond.TR, len(seconds), len(texts))
+				return nil, messages.New(messages.H5628, fn, nameSecond, len(seconds), len(texts))
 			}
 		}
 		var result [][]int
@@ -322,7 +322,7 @@ func (n *Object) maybeRelease(m *interp.VM, size int, f func()) {
 	f()
 }
 
-func stringList(fn, what string, l *interp.ListVal) ([]string, error) {
+func stringList(fn string, what any, l *interp.ListVal) ([]string, error) {
 	out := make([]string, len(l.Elements))
 	for i, e := range l.Elements {
 		s, ok := e.(*interp.StringVal)
@@ -348,7 +348,7 @@ func (n *Object) decode(m *interp.VM, args []interp.Value, named map[string]inte
 	}
 	// Varsayılan, başvuru kütüphanesininki gibi özel parçaları ATLAMAKTIR;
 	// özel_parçalar: doğru onları da çıktıya yazar.
-	special, err := bind.OptionalBool(fn, codes.Name(codes.V910), named, nameSpecial, false)
+	special, err := bind.OptionalBool(fn, named, nameSpecial, false)
 	if err != nil {
 		return nil, err
 	}
@@ -439,7 +439,7 @@ func intList(row int, elems []interp.Value) ([]int, error) {
 	for i, e := range elems {
 		n, ok := bind.Int(e)
 		if !ok {
-			return nil, messages.New(messages.H5639, codes.DisplayName(memberDecode), row, i+1, interp.Shown(e))
+			return nil, messages.New(messages.H5639, codes.NameRef(memberDecode), row, i+1, interp.Shown(e))
 		}
 		out[i] = int(n)
 	}
@@ -455,11 +455,11 @@ func (n *Object) tokenID(_ *interp.VM, args []interp.Value, named map[string]int
 		return nil, err
 	}
 	if len(args) != 1 {
-		return nil, messages.New(messages.H5640, codes.DisplayName(codes.Y613), len(args))
+		return nil, messages.New(messages.H5640, codes.NameRef(codes.Y613), len(args))
 	}
 	s, ok := args[0].(*interp.StringVal)
 	if !ok {
-		return nil, messages.New(messages.H5641, codes.DisplayName(codes.Y613), args[0].Type())
+		return nil, messages.New(messages.H5641, codes.NameRef(codes.Y613), args[0].Type())
 	}
 	id, ok := n.p.TokenToID(s.Val)
 	if !ok {

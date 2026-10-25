@@ -92,7 +92,7 @@ func (o *Reader) loadStateTR(m *interp.VM, args []interp.Value, named map[string
 	if len(named) > 0 {
 		return nil, messages.New(messages.H5537, interp.CallPrefix(memberLoadState))
 	}
-	s, err := bind.SingleDictArg(memberLoadState, args, messages.Text(messages.H2315, codes.DisplayName(memberState)))
+	s, err := bind.SingleDictArg(memberLoadState, args, messages.Text(messages.H2315, codes.NameRef(memberState)))
 	if err != nil {
 		return nil, err
 	}
@@ -129,10 +129,10 @@ func (o *Reader) PrepareState(m *interp.VM, s *interp.DictVal) (commit, discard 
 	if d.failure == nil && kind != o.kindName() {
 		d.failure = messages.New(messages.H5538, fn, kind, o.kindName())
 	}
-	d.same(sBatch, nameBatch.TR, int64(o.b), true)
-	d.same(sContext, nameContext.TR, int64(o.t), true)
+	d.same(sBatch, nameBatch, int64(o.b), true)
+	d.same(sContext, nameContext, int64(o.t), true)
 	if !o.sequential {
-		d.same(sSeed, nameSeed.TR, int64(o.seed), false) // tohum 0 olabilir
+		d.same(sSeed, nameSeed, int64(o.seed), false) // tohum 0 olabilir
 	}
 	if k := d.text(sDataset); d.failure == nil && k != datasetDigest(o.ds.k) {
 		d.failure = messages.New(messages.H5539, fn, o.ds.path)
@@ -190,7 +190,7 @@ func (o *Reader) seekTo(m *interp.VM, goSource dataload.Source, pos dataload.Sta
 
 // stateReader durum sözlüğünden alan okur; ilk hatayı tutar (sonraki okumalar boş döner).
 type stateReader struct {
-	fn      string
+	fn      any // iletilerdeki ad (codes.Ref)
 	s       *interp.DictVal
 	failure error
 }
@@ -201,7 +201,7 @@ func (d *stateReader) get(name string) (interp.Value, bool) {
 	}
 	v, ok := d.s.Pairs[name]
 	if !ok {
-		d.failure = messages.New(messages.H5541, d.fn, name, codes.DisplayName(memberState))
+		d.failure = messages.New(messages.H5541, d.fn, name, codes.NameRef(memberState))
 	}
 	return v, ok
 }
@@ -213,7 +213,7 @@ func (d *stateReader) text(name string) string {
 	}
 	m, ok := v.(*interp.StringVal)
 	if !ok {
-		d.failure = messages.New(messages.H5542, d.fn, name, codes.DisplayName(codes.A202), interp.TypeAndSummary(v))
+		d.failure = messages.New(messages.H5542, d.fn, name, codes.NameRef(codes.A202), interp.TypeAndSummary(v))
 		return ""
 	}
 	return m.Val
@@ -226,7 +226,7 @@ func (d *stateReader) integer(name string) int64 {
 	}
 	n, ok := v.(*interp.IntVal)
 	if !ok || n.Val < 0 {
-		d.failure = messages.New(messages.H5543, d.fn, name, codes.DisplayName(codes.A200), interp.TypeAndSummary(v))
+		d.failure = messages.New(messages.H5543, d.fn, name, codes.NameRef(codes.A200), interp.TypeAndSummary(v))
 		return 0
 	}
 	return n.Val
@@ -239,7 +239,7 @@ func (d *stateReader) boolean(name string) bool {
 	}
 	b, ok := v.(*interp.BoolVal)
 	if !ok {
-		d.failure = messages.New(messages.H5542, d.fn, name, codes.DisplayName(codes.A203), interp.TypeAndSummary(v))
+		d.failure = messages.New(messages.H5542, d.fn, name, codes.NameRef(codes.A203), interp.TypeAndSummary(v))
 		return false
 	}
 	return b.Val
@@ -247,10 +247,10 @@ func (d *stateReader) boolean(name string) bool {
 
 // same durumdaki bir ayarın okuyucununkiyle aynı olmasını ister. positive ise (toplu, bağlam)
 // pozitif olmayan değeri hiçbir okuyucu yazmaz: bu uyumsuzluk değil bozukluktur.
-func (d *stateReader) same(name, shown string, now int64, positive bool) {
+func (d *stateReader) same(name string, shown any, now int64, positive bool) {
 	n := d.integer(name)
 	if d.failure == nil && positive && n < 1 {
-		d.failure = messages.New(messages.H5547, d.fn, name, codes.DisplayName(codes.A200), n)
+		d.failure = messages.New(messages.H5547, d.fn, name, codes.NameRef(codes.A200), n)
 	}
 	if d.failure == nil && n != now {
 		d.failure = messages.New(messages.H5544, d.fn, shown, n, now)

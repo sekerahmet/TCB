@@ -15,16 +15,20 @@ import (
 
 // Raporların ortak yazım yardımcıları (Türkçe sayı yazımı: ondalık virgül, binlik boşluk).
 
-// percent payı yüzde olarak yazar: %41, %3,5 (10'un altında bir ondalık).
-func percent(f float64) string {
+// percent payı yüzde olarak kişinin dilinde yazar (H8293; işaretin yeri ve ondalık ayırıcı
+// dilindir): tr %41, %3,5; en 41%, 3.5%.
+func percent(f float64) string { return messages.Text(messages.H8293, percentNumber(f)) }
+
+// percentNumber yüzdenin sayısıdır (Go noktasıyla): 10'un altında bir ondalık, 0,05'in altı 0.
+func percentNumber(f float64) string {
 	y := f * 100
 	if y < 0.05 {
-		return "%0"
+		return "0"
 	}
 	if y >= 9.95 {
-		return "%" + strconv.Itoa(int(math.Round(y)))
+		return strconv.Itoa(int(math.Round(y)))
 	}
-	return "%" + messages.Decimal(strconv.FormatFloat(y, 'f', 1, 64))
+	return strconv.FormatFloat(y, 'f', 1, 64)
 }
 
 // count bir ölçüyü 3 anlamlı basamakla yazar (çubukla aynı kural).
@@ -74,7 +78,7 @@ func durationText(s float64) string {
 }
 
 // nBytes bayt sayısını okunur yazar (1,2 GB).
-func nBytes(n int64) string { return bind.FormatBytes(n) }
+func nBytes(n int64) string { return bind.FormatBytes(n).MessageText(codes.Display().Code) }
 
 // trim metni en çok n karaktere kırpar (sona … koyarak).
 func trim(s string, n int) string {
@@ -101,7 +105,7 @@ func right(s string, n int) string {
 
 // noStep program adım bildirmiyorsa gösterilen nottur (adlar kod listesinden).
 func noStep() string {
-	return messages.Text(messages.H8200, codes.DisplayName(codes.G811), codes.DisplayName(codes.Y010))
+	return messages.Text(messages.H8200, codes.NameRef(codes.G811), codes.NameRef(codes.Y010))
 }
 
 // linePos bir satırın "dosya:satır" yazımıdır ('aktar' ile yüklenen modülde modülün dosyası);

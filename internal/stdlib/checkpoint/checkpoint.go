@@ -176,12 +176,12 @@ func setup(m *interp.VM, s *process.State, args []interp.Value, named map[string
 }
 
 // options her_dakika: ve tut: adlı argümanlarını okur.
-func options(fn string, named map[string]interp.Value) (time.Duration, int, error) {
+func options(fn any, named map[string]interp.Value) (time.Duration, int, error) {
 	minutes := float64(defaultMinutes)
 	if v, ok := bind.GetNamed(named, nameEveryMinutes); ok {
 		f, number := interp.ToFloat(v)
 		if !number || math.IsNaN(f) || f < 0 || f > maxMinutes {
-			return 0, 0, messages.New(messages.H7408, fn, nameEveryMinutes.TR, float64(maxMinutes), interp.TypeAndSummary(v))
+			return 0, 0, messages.New(messages.H7408, fn, nameEveryMinutes, float64(maxMinutes), interp.TypeAndSummary(v))
 		}
 		minutes = f
 	}
@@ -189,7 +189,7 @@ func options(fn string, named map[string]interp.Value) (time.Duration, int, erro
 	if v, ok := bind.GetNamed(named, nameKeep); ok {
 		n, integer := v.(*interp.IntVal)
 		if !integer || n.Val < 1 || n.Val > 1000 {
-			return 0, 0, messages.New(messages.H7409, fn, nameKeep.TR, codes.DisplayName(codes.A200), interp.TypeAndSummary(v))
+			return 0, 0, messages.New(messages.H7409, fn, nameKeep, codes.NameRef(codes.A200), interp.TypeAndSummary(v))
 		}
 		keep = int(n.Val)
 	}
@@ -203,7 +203,7 @@ func setupUnseededWarning(m *interp.VM) {
 	ml.SetUnseededHook(func() {
 		one.Do(func() {
 			m.WriteOutput(m.Err, messages.Text(messages.H7410,
-				codes.Name(codes.T702), codes.Name(codes.T103), codes.Name(codes.T611), nameSeed.TR)+"\n")
+				codes.NameRef(codes.T702), codes.NameRef(codes.T103), codes.NameRef(codes.T611), nameSeed)+"\n")
 		})
 	})
 }
@@ -215,7 +215,7 @@ func stepArg(kd codes.Code, args []interp.Value) (int64, error) {
 	}
 	n, ok := args[0].(*interp.IntVal)
 	if !ok || n.Val < 0 {
-		return 0, messages.New(messages.H7411, interp.CallPrefix(kd), codes.DisplayName(codes.A200), interp.TypeAndSummary(args[0]))
+		return 0, messages.New(messages.H7411, interp.CallPrefix(kd), codes.NameRef(codes.A200), interp.TypeAndSummary(args[0]))
 	}
 	return n.Val, nil
 }
@@ -255,7 +255,7 @@ func (kn *Checkpoint) saveOnInterval(m *interp.VM) (interp.Value, error) {
 	}
 	// Süreli kayıtta yeniden deneme bir süre sonradır, yoksa sonraki kaydet çağrısında: iki
 	// ayrı cümle, iki kod.
-	warning := messages.Text(messages.H7485, err, kn.failures, maxFailures, codes.DisplayName(codes.Y010), kn.lastValidText())
+	warning := messages.Text(messages.H7485, err, kn.failures, maxFailures, codes.NameRef(codes.Y010), kn.lastValidText())
 	if kn.interval > 0 {
 		warning = messages.Text(messages.H7413, err, kn.failures, maxFailures, durationText(kn.interval), kn.lastValidText())
 	}
@@ -292,7 +292,7 @@ func (kn *Checkpoint) rollback(m *interp.VM, args []interp.Value) (interp.Value,
 		return nil, err
 	}
 	if o == nil {
-		return nil, messages.New(messages.H7486, fn, kn.shown, codes.DisplayName(codes.Y521), codes.DisplayName(codes.Y010))
+		return nil, messages.New(messages.H7486, fn, kn.shown, codes.NameRef(codes.Y521), codes.NameRef(codes.Y010))
 	}
 	m.WriteOutput(m.Err, messages.Text(messages.H7487, o.step, kn.shown, o.name)+"\n")
 	return interp.NewInt(o.step), nil

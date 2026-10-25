@@ -19,7 +19,7 @@ type PathValuer interface {
 // contains a tab or a newline it returns an explanatory error: these almost never occur in file
 // names and usually mean '\t' was taken as an escape in a Windows path like
 // "C:\tokenizer.json".
-func PathArg(fn string, d Value) (filePath string, ok bool, err error) {
+func PathArg(fn any, d Value) (filePath string, ok bool, err error) {
 	switch x := d.(type) {
 	case *StringVal:
 		filePath = x.Val
@@ -33,7 +33,7 @@ func PathArg(fn string, d Value) (filePath string, ok bool, err error) {
 
 // CheckPath looks for control characters (tab, newline) in a path that may have come from an
 // escape sequence; if it finds one it returns an error suggesting a raw string.
-func CheckPath(fn, filePath string) error {
+func CheckPath(fn any, filePath string) error {
 	if !strings.ContainsAny(filePath, "\t\n\r") {
 		return nil
 	}

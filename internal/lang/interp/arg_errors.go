@@ -18,28 +18,34 @@ import (
 
 // CallName is the name of a code as written in error messages: the name itself for
 // builtins (aralık), with the receiver for members (liste.filtrele; see codes.MemberName).
-func CallName(kd codes.Code) string {
-	if kd.Namespace() == codes.NamespaceMember {
-		return codes.MemberName(kd)
-	}
-	return codes.Name(kd)
-}
+// It is a message parameter (codes.Ref): the catalog writes it in the message's language.
+func CallName(kd codes.Code) codes.Ref { return codes.CallNameRef(kd) }
 
-// CallPrefix is the error-message prefix of a code: "aralık()", "liste.filtrele()".
-func CallPrefix(kd codes.Code) string { return CallName(kd) + "()" }
+// CallPrefix is the error-message prefix of a code: "aralık()", "liste.filtrele()" (codes.Ref).
+func CallPrefix(kd codes.Code) codes.Ref { return codes.CallRef(kd) }
 
 // Usage writes the valid call forms of a code; each form is a parameter list:
 // Usage(codes.G305, "bitiş", "başlangıç, bitiş") → "aralık(bitiş) ya da aralık(başlangıç, bitiş)".
-func Usage(kd codes.Code, forms ...string) string {
+func Usage(kd codes.Code, forms ...string) messages.Localized {
 	return usageByName(CallName(kd), forms)
 }
 
-func usageByName(name string, forms []string) string {
-	pieces := make([]string, len(forms))
-	for i, b := range forms {
+func usageByName(name codes.Ref, forms []string) messages.Localized { return usage{name, forms} }
+
+// usage geçerli çağrı biçimleridir, ileti parametresi olarak: iletinin dilinde yazılır
+// ("aralık(bitiş) ya da aralık(başlangıç, bitiş)").
+type usage struct {
+	name  codes.Ref
+	forms []string
+}
+
+func (u usage) MessageText(lang string) string {
+	name := u.name.MessageText(lang)
+	pieces := make([]string, len(u.forms))
+	for i, b := range u.forms {
 		pieces[i] = name + "(" + b + ")"
 	}
-	return messages.OrList(pieces...)
+	return messages.OrListIn(lang, pieces...)
 }
 
 // TypeNames is the names of type codes as a list of alternatives, as a message parameter: it is
@@ -72,7 +78,7 @@ func ArgTypeError(kd codes.Code, order int, given Value, expected ...codes.Code)
 	return argTypeErrorByName(CallName(kd), order, TypeNames(expected...), given)
 }
 
-func argTypeErrorByName(name string, order int, expected any, given Value) error {
+func argTypeErrorByName(name any, order int, expected any, given Value) error {
 	return messages.New(messages.H2423, name, order, expected, TypeAndSummary(given))
 }
 
@@ -81,17 +87,13 @@ func argTypeErrorByName(name string, order int, expected any, given Value) error
 // is given, the valid call forms (parameter lists, see Usage) are appended.
 func ArgCountError(kd codes.Code, expected string, given int, usage ...string) error {
 	name := CallName(kd)
-	k := ""
 	if len(usage) > 0 {
-		k = usageByName(name, usage)
+		return messages.New(messages.H2011, name, expected, given, usageByName(name, usage))
 	}
-	return argCountErrorByName(name, expected, given, k)
+	return argCountErrorByName(name, expected, given)
 }
 
-func argCountErrorByName(name, expected string, given int, usage string) error {
-	if usage != "" {
-		return messages.New(messages.H2011, name, expected, given, usage)
-	}
+func argCountErrorByName(name any, expected string, given int) error {
 	return messages.New(messages.H2012, name, expected, given)
 }
 

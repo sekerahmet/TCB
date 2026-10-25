@@ -21,7 +21,7 @@ func TestArgErrorsFormat(t *testing.T) {
 	if got := ArgCountError(codes.Y200, "1", 0).Error(); got != "liste.filtrele() 1 argüman bekler, 0 verildi" {
 		t.Errorf("üye sayı hatası: %s", got)
 	}
-	if got := Usage(codes.G101, "", "istem"); got != "girdi() ya da girdi(istem)" {
+	if got := Usage(codes.G101, "", "istem").MessageText(codes.SourceLanguage); got != "girdi() ya da girdi(istem)" {
 		t.Errorf("kullanım: %s", got)
 	}
 	// Büyük değerler özetlenir: hata mesajı binlerce elemanı yazdırmaz

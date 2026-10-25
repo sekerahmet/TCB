@@ -35,7 +35,7 @@ type loadedCkpt struct {
 }
 
 // load klasörde nokta varsa en yenisini yükler; yoksa bir şey yapmaz (yeni koşu).
-func (kn *Checkpoint) load(m *interp.VM, fn string) error {
+func (kn *Checkpoint) load(m *interp.VM, fn any) error {
 	o, err := kn.loadNewest(m, fn)
 	if err != nil || o == nil {
 		return err
@@ -47,7 +47,7 @@ func (kn *Checkpoint) load(m *interp.VM, fn string) error {
 
 // loadNewest en yeni noktayı doğrular, nesnelerin uyumunu denetler ve yerinde yükler; nokta
 // yoksa nil döner. Kurulum (load) ve geri dönme (rollback, 20.14) aynı yoldan yükler.
-func (kn *Checkpoint) loadNewest(m *interp.VM, fn string) (*loadedCkpt, error) {
+func (kn *Checkpoint) loadNewest(m *interp.VM, fn any) (*loadedCkpt, error) {
 	if _, err := os.Stat(kn.dir); errors.Is(err, fs.ErrNotExist) {
 		return nil, nil
 	}
@@ -84,7 +84,7 @@ func (kn *Checkpoint) loadNewest(m *interp.VM, fn string) (*loadedCkpt, error) {
 
 // brokenCheckpointError en yeni nokta bozuksa açık hatadır; bir önceki geçerli nokta varsa onu
 // önerir (bozuk nokta kendiliğinden atlanmaz: kullanıcı neyi kaybettiğini bilerek seçer).
-func (kn *Checkpoint) brokenCheckpointError(fn string, ckpts []ckptEntry, reason error) error {
+func (kn *Checkpoint) brokenCheckpointError(fn any, ckpts []ckptEntry, reason error) error {
 	broken := kn.shown + "/" + ckpts[0].name
 	hint := messages.Text(messages.H7470, kn.shown)
 	for _, n := range ckpts[1:] {
@@ -215,7 +215,7 @@ func readReason(name string, err error) error {
 
 // checkMatch şimdiki nesnelerin kayıttakilerle aynı olduğunu ve her birinin kaydına
 // uyduğunu, hiçbir şey yüklemeden denetler.
-func (kn *Checkpoint) checkMatch(fn string, o *loadedCkpt) error {
+func (kn *Checkpoint) checkMatch(fn any, o *loadedCkpt) error {
 	for _, n := range kn.objects {
 		y, ok := o.objects[n.name]
 		if !ok {

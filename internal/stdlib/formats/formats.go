@@ -31,7 +31,7 @@ func Register(v *interp.VM) {
 		}
 		s, ok := args[0].(*interp.StringVal)
 		if !ok {
-			return nil, messages.New(messages.H7000, codes.DisplayName(codes.G600), codes.DisplayName(codes.A202), args[0].Type())
+			return nil, messages.New(messages.H7000, codes.NameRef(codes.G600), codes.NameRef(codes.A202), args[0].Type())
 		}
 		val, err := interp.JSONToTR([]byte(stripBOM(s.Val)))
 		if err != nil {
@@ -46,7 +46,7 @@ func Register(v *interp.VM) {
 		}
 		b, err := jsonwrite.Write(args[0])
 		if err != nil {
-			return nil, messages.New(messages.H2000, codes.DisplayName(codes.G601), err)
+			return nil, messages.New(messages.H2000, codes.NameRef(codes.G601), err)
 		}
 		return &interp.StringVal{Val: string(b)}, nil
 	})
@@ -161,7 +161,7 @@ func parseCSV(kd codes.Code, input string) ([][]string, error) {
 			return nil, messages.New(messages.H7004, err)
 		}
 		if cells += len(rec); cells > interp.MaxCollectionSize {
-			return nil, messages.New(messages.H7005, codes.DisplayName(kd), interp.MaxCollectionSize)
+			return nil, messages.New(messages.H7005, codes.NameRef(kd), interp.MaxCollectionSize)
 		}
 		records = append(records, rec)
 	}

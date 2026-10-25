@@ -104,7 +104,7 @@ func castTo(t *tensor.Tensor, dt tensor.DType) (*tensor.Tensor, error) {
 // gradyan kaynak tensöre (kendi türünde) geri akar. Tür zaten aynıysa tensörün kendisi döner.
 func (d *TensorValue) toDType(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	if len(args) != 1 {
-		return nil, messages.New(messages.H6806, codes.DisplayName(memberToDType), len(args))
+		return nil, messages.New(messages.H6806, codes.NameRef(memberToDType), len(args))
 	}
 	if err := bind.CheckNamed(codes.DisplayName(memberToDType)+"()", named); err != nil {
 		return nil, err

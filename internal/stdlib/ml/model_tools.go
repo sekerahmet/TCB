@@ -41,7 +41,7 @@ const memberSplit = codes.Y103
 func concatBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.DisplayName(codes.T121)
 	if len(args) < 1 || len(args) > 2 {
-		return nil, messages.New(messages.H6304, fn, nameAxis.TR, len(args))
+		return nil, messages.New(messages.H6304, fn, nameAxis, len(args))
 	}
 	if err := bind.CheckNamed(fn+"()", named, nameAxis); err != nil {
 		return nil, err
@@ -103,7 +103,7 @@ func concatBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 func (d *TensorValue) split(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.DisplayName(codes.Y103)
 	if len(args) < 1 || len(args) > 2 {
-		return nil, messages.New(messages.H6315, fn, nameAxis.TR, len(args))
+		return nil, messages.New(messages.H6315, fn, nameAxis, len(args))
 	}
 	if err := bind.CheckNamed(fn+"()", named, nameAxis); err != nil {
 		return nil, err
@@ -148,7 +148,7 @@ func (d *TensorValue) split(_ *interp.VM, args []interp.Value, named map[string]
 func attentionBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.DisplayName(codes.T503)
 	if len(args) != 3 {
-		return nil, messages.New(messages.H6321, fn, nameCausal.TR, codes.DisplayName(codes.A040), nameWindow.TR, nameMask.TR, codes.DisplayName(codes.A042), len(args))
+		return nil, messages.New(messages.H6321, fn, nameCausal, codes.NameRef(codes.A040), nameWindow, nameMask, codes.NameRef(codes.A042), len(args))
 	}
 	if err := bind.CheckNamed(fn+"()", named, nameCausal, nameWindow, nameMask); err != nil {
 		return nil, err
@@ -164,7 +164,7 @@ func attentionBuiltin(m *interp.VM, args []interp.Value, named map[string]interp
 	q, k, v := qkv[0], qkv[1], qkv[2]
 	opt := tensor.AttentionOptions{Causal: true}
 	var err error
-	if opt.Causal, err = bind.OptionalBool(fn, nameCausal.TR, named, nameCausal, true); err != nil {
+	if opt.Causal, err = bind.OptionalBool(fn, named, nameCausal, true); err != nil {
 		return nil, err
 	}
 	if pv, ok := bind.GetNamed(named, nameWindow); ok {
@@ -277,14 +277,14 @@ func checkMask(fn string, mt, q, k *tensor.Tensor) error {
 func sampleBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.DisplayName(codes.T611)
 	if len(args) != 1 {
-		return nil, messages.New(messages.H6336, fn, nameTemperature.TR, nameTopK.TR, nameSeed.TR, codes.DisplayName(codes.A042), len(args))
+		return nil, messages.New(messages.H6336, fn, nameTemperature, nameTopK, nameSeed, codes.NameRef(codes.A042), len(args))
 	}
 	if err := bind.CheckNamed(fn+"()", named, nameTemperature, nameTopK, nameSeed); err != nil {
 		return nil, err
 	}
 	d, ok := args[0].(*TensorValue)
 	if !ok {
-		return nil, messages.New(messages.H6337, fn, typeName(args[0]), codes.DisplayName(codes.T100))
+		return nil, messages.New(messages.H6337, fn, typeName(args[0]), codes.NameRef(codes.T100))
 	}
 	sh := d.t.Shape()
 	if len(sh) == 0 {
@@ -298,7 +298,7 @@ func sampleBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 	if sv, ok := bind.GetNamed(named, nameTemperature); ok {
 		f, number := interp.ToFloat(sv)
 		if !number || f < 0 || math.IsNaN(f) {
-			return nil, messages.New(messages.H6340, fn, nameTemperature.TR, interp.Shown(sv))
+			return nil, messages.New(messages.H6340, fn, nameTemperature, interp.Shown(sv))
 		}
 		temperature = f
 	}
@@ -306,7 +306,7 @@ func sampleBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 	if kv, ok := bind.GetNamed(named, nameTopK); ok {
 		n, integer := intNumber(kv)
 		if !integer || n < 0 {
-			return nil, messages.New(messages.H6341, fn, nameTopK.TR, interp.Shown(kv))
+			return nil, messages.New(messages.H6341, fn, nameTopK, interp.Shown(kv))
 		}
 		k = n
 	}

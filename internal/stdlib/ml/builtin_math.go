@@ -120,7 +120,7 @@ func singleTensor(args []interp.Value) (*TensorValue, bool) {
 func limitCount(ad string, isNamed bind.Named, v interp.Value) (float64, bool, error) {
 	f, ok := interp.ToFloat(v)
 	if !ok || f != f {
-		return 0, false, messages.New(messages.H6107, ad, isNamed.TR, interp.Shown(v))
+		return 0, false, messages.New(messages.H6107, ad, isNamed, interp.Shown(v))
 	}
 	_, integer := v.(*interp.IntVal)
 	return f, integer, nil
@@ -161,13 +161,13 @@ func clampBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Val
 		}
 	}
 	if !given {
-		return nil, messages.New(messages.H6112, ad, nameMin.TR, nameMax.TR, usage)
+		return nil, messages.New(messages.H6112, ad, nameMin, nameMax, usage)
 	}
 	if intLimit && ilo > ihi {
-		return nil, messages.New(messages.H6113, ad, nameMin.TR, ilo, nameMax.TR, ihi)
+		return nil, messages.New(messages.H6113, ad, nameMin, ilo, nameMax, ihi)
 	}
 	if lo > hi {
-		return nil, messages.New(messages.H6113, ad, nameMin.TR, lo, nameMax.TR, hi)
+		return nil, messages.New(messages.H6113, ad, nameMin, lo, nameMax, hi)
 	}
 	switch x := args[0].(type) {
 	case *TensorValue:

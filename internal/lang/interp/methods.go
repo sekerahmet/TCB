@@ -22,8 +22,8 @@ import (
 type methodBody func(y *VM, inst Value, args []Value, line int) (Value, error)
 
 type builtinMethod struct {
-	name     string // bağlı yerleşiğin adı (kod listesindeki ad)
-	fullName string // hata mesajlarındaki tipli adı (metin.içerir)
+	name     string    // bağlı yerleşiğin adı (kod listesindeki ad)
+	fullName codes.Ref // hata mesajlarındaki tipli adı (metin.içerir; iletinin dilinde)
 	f        methodBody
 }
 
@@ -79,7 +79,7 @@ func addMethod(typ int, kd codes.Code, im signature, f methodBody) {
 		cm = &coreMethod{}
 		coreMethods[kd] = cm
 	}
-	fullName := codes.ReceiverName(typeCodes[typ]) + "." + codes.Name(kd)
+	fullName := codes.MemberRef(typeCodes[typ], kd)
 	bodyBlock := f
 	f = func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		if len(args) < im.minN || (im.maxN >= 0 && len(args) > im.maxN) {
@@ -90,7 +90,7 @@ func addMethod(typ int, kd codes.Code, im signature, f methodBody) {
 			case im.maxN != im.minN:
 				expected = Counts(im.minN, im.maxN)
 			}
-			return nil, argCountErrorByName(fullName, expected, len(args), fullName+"("+im.parameters+")")
+			return nil, messages.New(messages.H2011, fullName, expected, len(args), usageByName(fullName, []string{im.parameters}))
 		}
 		for i, a := range args {
 			if i < len(im.typesOf) && im.typesOf[i] != nil && !im.typesOf[i].warn(a) {
@@ -369,7 +369,7 @@ func setupListMethods() {
 		l.Elements = append(l.Elements, args...)
 		return l, nil
 	})
-	addMethod(typeList, codes.Y207, signature{1, 2, messages.Text(messages.H2333, codes.ReceiverName(codes.A208)), nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+	addMethod(typeList, codes.Y207, signature{1, 2, messages.Text(messages.H2333, codes.ReceiverRef(codes.A208)), nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return listReduce(y, inst.(*ListVal).Elements, args, line)
 	})
 }
@@ -469,7 +469,7 @@ func listReduce(y *VM, elems []Value, args []Value, line int) (Value, error) {
 	}
 	if fn, ok := f.(*FuncVal); ok && len(fn.Parameters) != 2 {
 		b := codes.Name(codes.A105)
-		return nil, messages.New(messages.H2476, name, fun, b, len(fn.Parameters), codes.DisplayName(codes.A104))
+		return nil, messages.New(messages.H2476, name, fun, b, len(fn.Parameters), codes.NameRef(codes.A104))
 	}
 	var acc Value
 	begin := 0
@@ -493,7 +493,7 @@ func listReduce(y *VM, elems []Value, args []Value, line int) (Value, error) {
 
 // NumberMean returns the arithmetic mean of numbers as Ondalık; empty input and non-number
 // elements are errors (used by the ortalama(liste) builtin).
-func NumberMean(name string, elems []Value) (Value, error) {
+func NumberMean(name any, elems []Value) (Value, error) {
 	if len(elems) == 0 {
 		return nil, messages.New(messages.H2477, name)
 	}

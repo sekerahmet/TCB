@@ -16,7 +16,7 @@ const intLimit = 9223372036854775808.0
 
 // floatToInt bir Ondalık değeri (kesirli kısmı atılmış) Tam'a çevirir; NaN, sonsuz ya
 // da int64 aralığı dışındaki değerde hata verir.
-func floatToInt(name string, f float64) (int64, error) {
+func floatToInt(name any, f float64) (int64, error) {
 	if math.IsNaN(f) || math.IsInf(f, 0) || f >= intLimit || f < -intLimit {
 		t := codes.DisplayName(codes.A200)
 		return 0, messages.New(messages.H2484, name, (&FloatVal{Val: f}).Text(codes.Display()), t)
@@ -122,7 +122,7 @@ func isNumber(v Value) bool {
 // sumNumbers bir listenin elemanlarını işleçlerle aynı kuralla toplar: hepsi Tam ise sonuç
 // Tam'dır ve taşma hata verir; bir Ondalık varsa sonuç Ondalık'tır. Sayı olmayan eleman
 // hatadır. ad hata mesajındaki yerleşiğin adıdır.
-func sumNumbers(name string, elems []Value) (Value, error) {
+func sumNumbers(name any, elems []Value) (Value, error) {
 	var intNum int64
 	var float float64
 	hasFloat := false
@@ -135,7 +135,7 @@ func sumNumbers(name string, elems []Value) (Value, error) {
 			}
 			s := intNum + x.Val
 			if (s > intNum) != (x.Val > 0) {
-				return nil, messages.New(messages.H2485, name, codes.DisplayName(codes.A200), intNum, x.Val, i+1, codes.DisplayName(codes.G211))
+				return nil, messages.New(messages.H2485, name, codes.NameRef(codes.A200), intNum, x.Val, i+1, codes.NameRef(codes.G211))
 			}
 			intNum = s
 		case *FloatVal:
@@ -155,7 +155,7 @@ func sumNumbers(name string, elems []Value) (Value, error) {
 }
 
 // ListElementError reports that element i (0-based) of a list has the wrong type.
-func ListElementError(name string, i int, expected any, given Value) error {
+func ListElementError(name any, i int, expected any, given Value) error {
 	return messages.New(messages.H2486, name, i+1, expected, TypeAndSummary(given))
 }
 

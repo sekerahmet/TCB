@@ -187,12 +187,12 @@ func parseValue(s *option, value string, valued bool) (interp.Value, error) {
 		if b, ok := boolName(value); ok {
 			return interp.BoolToVal(b), nil
 		}
-		return nil, messages.New(messages.H7210, s.name, codes.DisplayName(codes.A203), codes.DisplayName(codes.A040), codes.DisplayName(codes.A041), shorten(value))
+		return nil, messages.New(messages.H7210, s.name, codes.NameRef(codes.A203), codes.NameRef(codes.A040), codes.NameRef(codes.A041), shorten(value))
 	}
 	if s.optKind != kindList {
 		v, err := parsePlainValue(s.optKind, value)
 		if err != nil {
-			return nil, messages.New(messages.H7211, s.name, codes.DisplayName(s.optKind.typeCode()), shorten(value), err)
+			return nil, messages.New(messages.H7211, s.name, codes.NameRef(s.optKind.typeCode()), shorten(value), err)
 		}
 		return v, nil
 	}
@@ -203,7 +203,7 @@ func parseValue(s *option, value string, valued bool) (interp.Value, error) {
 	for i, p := range strings.Split(value, ",") {
 		v, err := parsePlainValue(s.itemKind, strings.TrimSpace(p))
 		if err != nil {
-			return nil, messages.New(messages.H7212, s.name, codes.DisplayName(s.itemKind.typeCode()), i+1, shorten(p), err)
+			return nil, messages.New(messages.H7212, s.name, codes.NameRef(s.itemKind.typeCode()), i+1, shorten(p), err)
 		}
 		list.Elements = append(list.Elements, v)
 	}
@@ -230,7 +230,7 @@ func parsePlainValue(t optKind, s string) (interp.Value, error) {
 		if b, ok := boolName(s); ok {
 			return interp.BoolToVal(b), nil
 		}
-		return nil, messages.New(messages.H7213, codes.DisplayName(codes.A040), codes.DisplayName(codes.A041))
+		return nil, messages.New(messages.H7213, codes.NameRef(codes.A040), codes.NameRef(codes.A041))
 	}
 	return &interp.StringVal{Val: s}, nil
 }

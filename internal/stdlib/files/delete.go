@@ -28,7 +28,7 @@ func deleteBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Va
 	if err != nil {
 		return nil, err
 	}
-	withContents, err := bind.OptionalBool(interp.CallPrefix(codes.G123), nameWithContents.TR+":", named, nameWithContents, false)
+	withContents, err := bind.OptionalBool(interp.CallPrefix(codes.G123), named, nameWithContents, false)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func deleteBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Va
 			return nil, turkish.FileError(fn, raw, messages.H2104, err)
 		}
 		if !empty {
-			return nil, messages.New(messages.H7122, fn, raw, nameWithContents.TR+":")
+			return nil, messages.New(messages.H7122, fn, raw, nameWithContents)
 		}
 	}
 	var number int

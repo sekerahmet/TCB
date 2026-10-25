@@ -26,6 +26,21 @@ var (
 // (Tam da Ondalığa atanabildiği için) ve tipsiz yerlere atanabilir.
 var typeNumber = typeInt + " ya da " + typeFloat
 
+// typeText denetleyicinin tip adıdır, ileti parametresi olarak (messages.Localized): tip adı
+// iletinin dilinde yazılır (Tam → Int); kullanıcının sınıf adı olduğu gibi kalır. Denetleyici
+// tipleri kanonik adla taşır (karşılaştırma için); ad yalnız iletide dile çevrilir.
+type typeText string
+
+func (t typeText) MessageText(lang string) string {
+	if string(t) == typeNumber {
+		return messages.OrListIn(lang, codes.NameRef(codes.A200).MessageText(lang), codes.NameRef(codes.A201).MessageText(lang))
+	}
+	if k, ok := codes.Find(codes.NamespaceType, string(t)); ok {
+		return codes.NameRef(k).MessageText(lang)
+	}
+	return string(t)
+}
+
 // annotationTypes tip açıklamasında (değişken x: Tam) kullanılabilen tiplerin kodlarıdır:
 // 3.11'deki çekirdek tip adları.
 var annotationTypes = []codes.Code{codes.A200, codes.A201, codes.A202, codes.A203,
@@ -104,7 +119,7 @@ func resolveTypeAnnotation(name string) (canonical string, code messages.Code) {
 func (c *Checker) checkedTypeName(name string, line int) string {
 	canonical, code := resolveTypeAnnotation(name)
 	if code != 0 {
-		c.addError(line, 0, messages.New(code, name, canonical))
+		c.addError(line, 0, messages.New(code, name, typeText(canonical)))
 	}
 	return canonical
 }
@@ -128,10 +143,11 @@ func typesCompatible(expected, actual string) bool {
 	return exp == act
 }
 
-// numberHint Tam beklenen yere Tam ya da Ondalık olabilen bir değer verildiğinde yol gösterir.
-func numberHint(expected, given string) string {
+// numberHint Tam beklenen yere Tam ya da Ondalık olabilen bir değer verildiğinde yol gösterir:
+// iletinin bir parçası olarak (dıştaki iletinin dilinde yazılır); yol yoksa boş metin.
+func numberHint(expected, given string) any {
 	if normalizeTypeName(expected) == typeInt && given == typeNumber {
-		return messages.Text(messages.H1008, typeFloat, typeInt, codes.DisplayName(codes.G210))
+		return messages.New(messages.H1008, typeText(typeFloat), typeText(typeInt), codes.NameRef(codes.G210))
 	}
 	return ""
 }

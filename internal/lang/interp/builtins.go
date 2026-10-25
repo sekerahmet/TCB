@@ -207,7 +207,7 @@ func absBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if iv, ok := args[0].(*IntVal); ok {
 		if iv.Val == math.MinInt64 {
 			m, o := codes.Name(codes.G403), codes.Name(codes.G211)
-			return nil, messages.New(messages.H2431, m, codes.DisplayName(codes.A200), iv.Val, o)
+			return nil, messages.New(messages.H2431, m, codes.NameRef(codes.A200), iv.Val, o)
 		}
 		if iv.Val < 0 {
 			return NewInt(-iv.Val), nil
@@ -273,7 +273,7 @@ func roundBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 func waitAllBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	// Görev kendini de beklediği için sonsuza dek kilitlenirdi (deadlock)
 	if y.asyncTask {
-		return nil, messages.New(messages.H2432, CallPrefix(codes.G501), codes.DisplayName(codes.A080))
+		return nil, messages.New(messages.H2432, CallPrefix(codes.G501), codes.NameRef(codes.A080))
 	}
 	if y.exclusive != "" {
 		// Kilit devredilmediğinden görevler hiç ilerlemez: beklemek kilitlenirdi.

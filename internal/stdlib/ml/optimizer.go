@@ -80,16 +80,16 @@ func (o *Optimizer) rateField() *float32 {
 // ve 32 bite sığan bir Tam ya da Ondalık kabul edilir.
 func (o *Optimizer) SetMember(kd codes.Code, ad string, value interp.Value) error {
 	if kd != memberLR {
-		return messages.New(messages.H6502, o.ad, ad, codes.DisplayName(memberLR))
+		return messages.New(messages.H6502, o.ad, ad, codes.NameRef(memberLR))
 	}
 	f, ok := interp.ToFloat(value)
 	if !ok {
-		return messages.New(messages.H6503, o.ad, codes.DisplayName(memberLR), codes.DisplayName(codes.A200), codes.DisplayName(codes.A201), typeName(value))
+		return messages.New(messages.H6503, o.ad, codes.NameRef(memberLR), codes.NameRef(codes.A200), codes.NameRef(codes.A201), typeName(value))
 	}
 	// 0 geçerlidir (kurucudaki gibi): oran planları eğitimin sonunda orana 0'a iner. Sıfır olmayan
 	// ama 32 bitte 0'a yuvarlanan değer reddedilir (sessizce dondurmasın).
 	if !(f >= 0) || math.IsInf(float64(float32(f)), 0) || (f != 0 && float32(f) == 0) {
-		return messages.New(messages.H6504, o.ad, codes.DisplayName(memberLR), interp.Shown(value))
+		return messages.New(messages.H6504, o.ad, codes.NameRef(memberLR), interp.Shown(value))
 	}
 	*o.rateField() = float32(f)
 	return nil
@@ -103,7 +103,7 @@ func (o *Optimizer) GetProperty(kd codes.Code, prop string) (interp.Value, error
 	case memberStep:
 		return &interp.BuiltinVal{Name: codes.Name(memberStep), NoNamedArgs: true, Fn: func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 			if len(args) != 0 {
-				return nil, messages.New(messages.H6506, codes.DisplayName(memberStep))
+				return nil, messages.New(messages.H6506, codes.NameRef(memberStep))
 			}
 			if _, err := safe(func() bool { o.opt.Step(); return true }); err != nil {
 				return nil, err
@@ -113,7 +113,7 @@ func (o *Optimizer) GetProperty(kd codes.Code, prop string) (interp.Value, error
 	case memberZeroGrad:
 		return &interp.BuiltinVal{Name: codes.Name(memberZeroGrad), NoNamedArgs: true, Fn: func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 			if len(args) != 0 {
-				return nil, messages.New(messages.H6506, codes.DisplayName(memberZeroGrad))
+				return nil, messages.New(messages.H6506, codes.NameRef(memberZeroGrad))
 			}
 			o.opt.ZeroGrad()
 			return interp.Null, nil
@@ -176,15 +176,15 @@ func namedRate(fn string, named map[string]interp.Value, defaultVal float64, min
 	}
 	f, ok := interp.ToFloat(v)
 	if !ok {
-		return 0, messages.New(messages.H6517, fn, ad.TR, typeName(v))
+		return 0, messages.New(messages.H6517, fn, ad, typeName(v))
 	}
 	// NaN ve sonsuz (float32'ye sığmayan) değerler reddedilir: tek adımda bütün
 	// parametreleri NaN yapardı (f < minVal denetimi NaN için yanlıştır).
 	if math.IsNaN(f) || math.IsInf(float64(float32(f)), 0) {
-		return 0, messages.New(messages.H6519, fn, ad.TR, interp.Shown(v))
+		return 0, messages.New(messages.H6519, fn, ad, interp.Shown(v))
 	}
 	if f < minVal {
-		return 0, messages.New(messages.H6528, fn, ad.TR, fmt.Sprintf("%g", minVal), fmt.Sprintf("%g", f))
+		return 0, messages.New(messages.H6528, fn, ad, fmt.Sprintf("%g", minVal), fmt.Sprintf("%g", f))
 	}
 	return float32(f), nil
 }
@@ -196,12 +196,12 @@ func namedRate(fn string, named map[string]interp.Value, defaultVal float64, min
 func gradClip(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.DisplayName(codes.T402)
 	if len(args) != 1 {
-		return nil, messages.New(messages.H6521, fn, nameMax.TR, len(args))
+		return nil, messages.New(messages.H6521, fn, nameMax, len(args))
 	}
 	if err := bind.CheckNamed(fn+"()", named, nameMax, nameErrNonfinite); err != nil {
 		return nil, err
 	}
-	strict, err := bind.OptionalBool(fn, nameErrNonfinite.TR, named, nameErrNonfinite, false)
+	strict, err := bind.OptionalBool(fn, named, nameErrNonfinite, false)
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +226,7 @@ func gradClip(_ *interp.VM, args []interp.Value, named map[string]interp.Value) 
 		n := float64(probe.Data()[0])
 		probe.Drop()
 		if math.IsNaN(n) || math.IsInf(n, 0) {
-			return nil, messages.New(messages.H6534, fn, n, codes.DisplayName(codes.G415))
+			return nil, messages.New(messages.H6534, fn, n, codes.NameRef(codes.G415))
 		}
 	}
 	norm, err := safe(func() *tensor.Tensor { return tensor.ClipGradNormTensor(params, maxVal) })
@@ -238,7 +238,7 @@ func gradClip(_ *interp.VM, args []interp.Value, named map[string]interp.Value) 
 
 func optimizerParams(fn string, args []interp.Value) ([]*tensor.Tensor, error) {
 	if len(args) != 1 {
-		return nil, messages.New(messages.H6525, fn, nameLR.TR, len(args))
+		return nil, messages.New(messages.H6525, fn, nameLR, len(args))
 	}
 	return parameters(fn, args[0])
 }
@@ -278,9 +278,9 @@ func setupAdamW(_ *interp.VM, args []interp.Value, named map[string]interp.Value
 	if eps <= 0 {
 		// Sıfır gradyanlı ilk adımda 0 / (√0 + 0) = NaN olurdu (float32'de 0'a düşen değer de).
 		v, _ := bind.GetNamed(named, nameEpsilon)
-		return nil, messages.New(messages.H6527, fn, nameEpsilon.TR, interp.Shown(v))
+		return nil, messages.New(messages.H6527, fn, nameEpsilon, interp.Shown(v))
 	}
-	masterCopy, err := bind.OptionalBool(fn, nameMasterCopy.TR, named, nameMasterCopy, true)
+	masterCopy, err := bind.OptionalBool(fn, named, nameMasterCopy, true)
 	if err != nil {
 		return nil, err
 	}
@@ -314,7 +314,7 @@ func setupSGD(_ *interp.VM, args []interp.Value, named map[string]interp.Value) 
 	if err != nil {
 		return nil, err
 	}
-	masterCopy, err := bind.OptionalBool(fn, nameMasterCopy.TR, named, nameMasterCopy, true)
+	masterCopy, err := bind.OptionalBool(fn, named, nameMasterCopy, true)
 	if err != nil {
 		return nil, err
 	}
