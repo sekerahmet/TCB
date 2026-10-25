@@ -358,3 +358,21 @@ func TestSuggestionsSayHowManyMore(t *testing.T) {
 		t.Errorf("--all lists every suggestion:\n%s", all.String())
 	}
 }
+
+// Kural: küçük harfli sorgu tam harfle bir düğüme çözülünce yalnızca harfi farklı eşleşmeler de söylenir (cevap
+// değişmez, belirsizlik çıkmaz); büyük harfli sorgu harfi seçmiştir (bağımsız denetim grup 7: `query identifier`
+// ast.Identifier'ı hiç anmıyordu, yanlış bir "yok").
+func TestOtherCaseMatchesAreMentioned(t *testing.T) {
+	ix := newIndex(&Graph{Nodes: []Node{
+		{ID: "go:func:m/interp.identifier", Kind: kindFunc, Name: "interp.identifier"},
+		{ID: "go:type:m/ast.Identifier", Kind: kindType, Name: "ast.Identifier"},
+		{ID: "go:func:m/ast.identifierList", Kind: kindFunc, Name: "ast.identifierList"},
+	}})
+	chosen := ix.byID["go:func:m/interp.identifier"]
+	if got := ix.otherCase("identifier", chosen, nil); len(got) != 1 || !strings.Contains(got[0], "ast.Identifier [type]") {
+		t.Errorf("other case of identifier: %v", got)
+	}
+	if got := ix.otherCase("Identifier", ix.byID["go:type:m/ast.Identifier"], nil); got != nil {
+		t.Errorf("a capitalised query chose its case: %v", got)
+	}
+}

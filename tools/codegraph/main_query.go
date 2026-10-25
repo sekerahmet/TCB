@@ -175,6 +175,10 @@ func (ix *index) resolve(q string, o *queryOpts, kinds ...string) (*Node, int) {
 	found := ix.lookup(q, kinds...)
 	switch len(found) {
 	case 1:
+		if other := ix.otherCase(q, found[0], kinds); len(other) > 0 {
+			fmt.Fprintf(o.stderr, "codegraph: %q also matches in another case (ask with its exact name):\n", q)
+			printLimited(o.stderr, other, 5, "  ")
+		}
 		return found[0], exitOK
 	case 0:
 		fmt.Fprintf(o.stderr, "%q not found\n", q)

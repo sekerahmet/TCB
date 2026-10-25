@@ -156,6 +156,34 @@ func (ix *index) nodeFolds() []foldedNode {
 	return ix.folded
 }
 
+// otherCase küçük harfli bir sorgu tam harfle tek düğüme çözüldüğünde yalnızca harfi farklı olan öbür eşleşmelerdir
+// (aynı ad ya da '.'/'/' sınırında biten ad, iki katlamadan biriyle). Go'da harf anlamlıdır, tam harfli eşleşme kazanır;
+// ama öbürü görünmezse cevap yanlış bir "yok" olur (bağımsız denetim grup 7: `query identifier` interp.identifier'ı
+// veriyor, ast.Identifier'ı hiç anmıyordu). Büyük harfli sorgu harfi seçmiştir, not yoktur.
+func (ix *index) otherCase(q string, chosen *Node, kinds []string) []string {
+	if q == "" || strings.ContainsFunc(q, unicode.IsUpper) {
+		return nil
+	}
+	nf := ix.nodeFolds()
+	var out []string
+	for i := range ix.g.Nodes {
+		n := &ix.g.Nodes[i]
+		if n == chosen || len(kinds) > 0 && !contains(kinds, n.Kind) || n.Name == q ||
+			strings.HasSuffix(n.Name, "."+q) || strings.HasSuffix(n.Name, "/"+q) {
+			continue // tam harfle uyanlar zaten cevaptır ya da belirsizlikte sayılmıştır
+		}
+		for k, f := range folds {
+			fq := f(q)
+			if name := nf[i].name[k]; name == fq || strings.HasSuffix(name, "."+fq) || strings.HasSuffix(name, "/"+fq) {
+				out = append(out, describe(n))
+				break
+			}
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
 // isTRName düğümün çıplak adı trByName ile mi çözülür: .tr dosyası, TR bildirimi ya da testi, ad kodu.
 func isTRName(n *Node) bool {
 	return strings.HasPrefix(n.ID, "tr:") || strings.HasPrefix(n.ID, "name:")
