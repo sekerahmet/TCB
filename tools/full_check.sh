@@ -27,7 +27,8 @@
 #   --kip=on          ön denetim (~1 dk): üretilmiş dosyalar, gofmt, vet, go.mod, staticcheck,
 #                     ölü kod, düzen kuralları (dosya adı, satır sınırı, Türkçe metin, çıplak ad,
 #                     ileti kullanımı), .tr dosyalarının biçimi, değişen
-#                     paketlerin kısa testleri ve yeni tekrar adayları (codegraph dups --changed).
+#                     paketlerin kısa testleri ve yeni tekrar adayları (codegraph dups --changed;
+#                     yeni aday denetimi düşürür, tam denetimde de).
 #                     Yan oturumlar devir notundan, ana oturum GPU yan dalına göndermeden önce
 #                     koşar; tam denetimin yerini tutmaz.
 #
@@ -217,8 +218,36 @@ quick_static_checks() {
 	[ -z "$dead" ] || fail "hiçbir yerden çağrılmayan fonksiyonlar (silin): $dead"
 }
 
+# dups_check ana dala göre eklenen ya da değişen satırlara dokunan tekrar adaylarını arar; yeni bir
+# aday denetimi düşürür (CLAUDE.md, Sadelik 10): aynı işte giderilir ya da bilerek kalan kopya
+# tools/codegraph/dups_exclude.go'ya gerekçesiyle yazılır. Taban changed_packages'takiyle aynıdır
+# (önce origin/main: ana dalda henüz gönderilmemiş commit'ler de sayılır); ortak ata yoksa (sığ
+# klon) adım atlanır.
+dups_check() {
+	local base=main out n
+	if git rev-parse --verify -q origin/main >/dev/null; then base=origin/main; fi
+	step "Tekrar adayları (codegraph dups --changed $base)"
+	if ! git merge-base "$base" HEAD >/dev/null 2>&1; then
+		echo "$base ile ortak ata yok (sığ klon): atlandı"
+		return
+	fi
+	out=$(go run ./tools/codegraph dups --changed "$base" 2>&1) || {
+		printf '%s\n' "$out" | head -40
+		fail "codegraph dups çalışmadı"
+		return
+	}
+	printf '%s\n' "$out" | head -40
+	n=$(printf '%s\n' "$out" | sed -n 's/^\([0-9][0-9]*\) duplicate candidate.*/\1/p' | head -1)
+	if [ -z "$n" ]; then
+		fail "codegraph dups çıktısında aday sayısı yok"
+	elif [ "$n" -gt 0 ]; then
+		fail "$n yeni tekrar adayı: aynı işte giderin ya da tools/codegraph/dups_exclude.go'ya gerekçesiyle yazın"
+	fi
+}
+
 static_checks() {
 	quick_static_checks
+	dups_check
 
 	step "ARM (arm64) derlemesi ve vet"
 	for os in linux darwin windows; do
@@ -468,12 +497,7 @@ for mode in $modes; do
 			go test "${p_flag[@]}" -short "${changed[@]}" 2>&1 | grep -v '^ok\|no test files'
 			[ "${PIPESTATUS[0]}" -eq 0 ] || fail "değişen paketlerin testleri"
 		fi
-		# Taban changed_packages'takiyle aynıdır: ana dalda henüz gönderilmemiş commit'ler de
-		# sayılsın diye önce origin/main.
-		dups_base=main
-		if git rev-parse --verify -q origin/main >/dev/null; then dups_base=origin/main; fi
-		step "Tekrar adayları (codegraph dups --changed $dups_base)"
-		go run ./tools/codegraph dups --changed "$dups_base" 2>&1 | head -40
+		dups_check
 		;;
 	esac
 done
