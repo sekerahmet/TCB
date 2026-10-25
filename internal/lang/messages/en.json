@@ -1075,6 +1075,7 @@
 "H7007": "{error} (parse CSV text itself with {parse})",
 "H7008": "{value} cannot be written to JSON (JSON has no NaN or infinity)",
 "H7009": "the dictionary has two keys that display the same ({key|q}); JSON keys are text, so both would become the same key",
+"H7010": "a {type} value cannot be written to JSON: JSON holds only data ({types})",
 "H7100": "the size of the copy differs from the source's; the source was not deleted ({path|q})",
 "H7101": "the source has {count} links or special files; it cannot be moved to another disk (first copy it and make the links by hand)",
 "H7102": "the copy differs from the source (the file count or total size does not match); the source was not deleted",

@@ -1075,6 +1075,7 @@
 "H7007": { "param": ["error", "parse"] },
 "H7008": { "param": ["value"] },
 "H7009": { "param": ["key"] },
+"H7010": { "param": ["type", "types"] },
 "H7100": { "param": ["path"] },
 "H7101": { "param": ["count"] },
 "H7102": { "param": [] },

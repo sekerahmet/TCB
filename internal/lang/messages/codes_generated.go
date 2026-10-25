@@ -1080,6 +1080,7 @@ const (
 	H7007 Code = 7007 // {error} (CSV metninin kendisi {parse} ile ayrıştırılır)
 	H7008 Code = 7008 // {value} sayısı JSON'a yazılamaz (JSON'da Tanımsız ya da sonsuz sayı yoktur)
 	H7009 Code = 7009 // sözlükte görünüşü aynı iki anahtar var ({key|q}); JSON'da anahtarlar metindir, ikisi aynı anahtar olurdu
+	H7010 Code = 7010 // {type} değeri JSON'a yazılamaz: JSON yalnızca veri tutar ({types})
 	H7100 Code = 7100 // kopyanın boyutu kaynağınkiyle aynı değil; kaynak silinmedi ({path|q})
 	H7101 Code = 7101 // kaynakta {count} bağlantı ya da özel dosya var; başka bir diske taşınamaz (önce kopyalayıp bağlantıları elle kurun)
 	H7102 Code = 7102 // kopya kaynakla aynı değil (dosya sayısı ya da toplam boyut tutmuyor); kaynak silinmedi
