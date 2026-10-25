@@ -23,9 +23,10 @@ diline çevrilmesinde gösterim o dilde geri okunur ve aynı kodlu biçimi verme
 UTF-8 ya da kayıp durumunda hata döner ve dosya yazılmaz. Depodaki bütün `.tr` dosyaları ve
 belgelerdeki kod blokları bu denetimden geçmelidir. Denetim: `TestDecodeRefusesLossyView`, `TestEscapeInOtherLanguage`, `TestRepoTRFilesEncodeLossless`, `TestDocCodeBlocksEncodeLossless`.
 
-**Program kanonik biçimiyle çalışır.** Programlar her zaman Türkçe (kanonik) okunur ve çalışır
-(17.7; `codes.Active`): kodsuz dosya olduğu gibi, kodlu dosya Türkçe görünümüyle. Kişinin yazım
-dili (`TR_DIL`, `codes.Display`) yalnızca gösterimdir. Başka bir dilde yazılmış metin dili açıkça
+**Programın anlamı kanonik koda bağlıdır.** Programlar her zaman kanonik kodlarla (Türkçe adlarıyla)
+okunur ve çalışır (17.7; `codes.Active`): kodsuz dosya olduğu gibi, kodlu dosya Türkçe görünümüyle.
+Değerin metni ise dosyanın başlığındaki dildedir (`dil=`, 17.1; `interp.Source.Language`, dil tanımı 3);
+kişinin yazım dili (`TR_DIL`, `codes.Display`) yalnızca görüntüdür. Başka bir dilde yazılmış metin dili açıkça
 verilerek okunur (`lexer.NewBodyIn`, `EncodeIn`, `Show`): `tr kodla - --dil en`, kişinin dilinde
 yazılmış kabuk satırı (`Options.Typed`). Denetim: `TestUncodedFileIsTurkishInEveryLanguage`,
 `TestAuditUncodedTurkishNamesCollideWithActiveLanguageWords`, `TestAuditDictMemberKeysChangeWithWritingLanguage`

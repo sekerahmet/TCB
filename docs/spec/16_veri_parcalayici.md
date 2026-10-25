@@ -14,8 +14,8 @@ Model eğitimi için `tokenizer.json` parçalayıcıları ve `.npy` veri dosyala
 
 **16.6** `.sıralı(toplu:, bağlam:)` bir `SıralıOkuyucu` döndürür: pencereler veri dosyası sırasıyla ve `bağlam` adımla ardışıktır; son toplu iş daha az satırlı olabilir; veri bitince `.sonraki()` `yok` döner. Sıralı okuyucu `döngü` ile de gezilir (5.7): `döngü iş içinde okuyucu { değişken girdi, hedef = iş ... }` her turda `.sonraki()`'nin verdiği `[girdi, hedef]` listesini verir ve veri bitince biter; döngü okuyucuyu baştan almaz, kaldığı yerden tüketir. Örnekleyici sonsuz olduğundan döngüyle gezilmez (hata adım sayısıyla döngü kurmayı önerir).
 
-**16.7** Hatalar (dosya yok, `.npy` değil, eksik ya da hatalı adlı argüman, bağlam veri dosyalarından uzun, düzenli ifade adım sınırı...) Türkçe bir mesajla bildirilir ve `dene/yakala` ile yakalanabilir.
+**16.7** Hatalar (dosya yok, `.npy` değil, eksik ya da hatalı adlı argüman, bağlam veri dosyalarından uzun, düzenli ifade adım sınırı...) kişinin dilinde bir iletiyle bildirilir ve `dene/yakala` ile yakalanabilir.
 
-**16.8** Bu yerleşiklerde göreli yollar `dosya_oku`/`dosya_yaz` ile aynı tek kuralla (bkz. **13.1**) çözülür: önce çalışma klasörü, orada yoksa programın bulunduğu klasör.
+**16.8** Bu yerleşiklerde göreli yollar `dosya_oku`/`dosya_yaz` ile aynı tek kuralla (bkz. **13.1**) çözülür: önce çalışma klasörü, sonra kodun modülünün klasörü (11.5), sonra programın bulunduğu klasör.
 
 Önden yükleme her zaman açıktır ve yorumlayıcı kilidini tutmaz; `.sonraki()` beklerken kilit bırakılır (10.3). Açık bir kapatma adı yoktur: sıralı okuyucu bitince, kullanılmayan nesneler çöp toplanınca ve program bitince dosyalar kapatılır.

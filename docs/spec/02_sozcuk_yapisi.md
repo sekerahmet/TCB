@@ -48,7 +48,7 @@ değişken t = 1 +
     2                    // t = 3
 ```
 
-**2.9** Dilin kelimelerinin yalnızca Türkçe yazımı geçerlidir. Anahtar kelimeler şunlardır:
+**2.9** Kodsuz (Türkçe) dosyada dilin kelimelerinin yalnızca Türkçe yazımı geçerlidir; başka bir yazım dilinde (bugün İngilizce) yazılan kod o dilin adlarıyla okunur ve kodlanarak saklanır (17.1, 17.7). Anahtar kelimeler şunlardır:
 
 | Görev | Anahtar kelimeler |
 | :-- | :-- |
@@ -68,7 +68,7 @@ Bu kural anahtar kelimelerle sınırlı değildir: yerleşik fonksiyonlar, metot
 - yerleşik fonksiyon ya da metot: `'yazdir' TR'de yok; 'yazdır' yazmak mı istediniz?`, `'buyuk_harf' TR'de yok; 'büyük_harf' yazmak mı istediniz?`
 - adlı argüman: `AdamW 'ogrenme_orani' adında bir parametre almaz. Bunu mu demek istediniz: 'öğrenme_oranı'?`
 
-**2.9a** Her işin tek yazımı vardır: her anahtar kelimenin, yerleşik fonksiyonun (bkz. 13), metodun, özelliğin, adlı argümanın ve tip adının yalnızca bir adı vardır; eş anlamlı ya da başka yazımlı ikinci bir ad kabul edilmez, öyle bir ad sıradan bir addır (`değişken sınıf = "9-A"`, `değişken boy = 180`). Başka dillerden alışılmış adlar (`int`, `str`, `dict`, `lr`, `axis`, `.T` ...) da dilin adı değildir; bir hatada (tanımsız ad, bilinmeyen metot ya da adlı argüman, tip açıklaması) hata mesajı asıl adı önerir: `'int' TR'de bir tip adı değil; 'Tam' yazmak mı istediniz?`, `AdamW 'lr' adında bir parametre almaz. Bunu mu demek istediniz: 'öğrenme_oranı'?`. Bu adlar kod listesinde kodun `yabancı` alanındadır (17). Yorum `#` ile değil `//` ile yazılır (2.2). Dil taslak aşamasındadır: bir ad değişince ya da kaldırılınca eski adı için ipucu tutulmaz, kullanımlar yeni ada çevrilir (17.6).
+**2.9a** Her işin tek yazımı vardır: her anahtar kelimenin, yerleşik fonksiyonun (bkz. 13), metodun, özelliğin, adlı argümanın ve tip adının yalnızca bir adı vardır; eş anlamlı ya da başka yazımlı ikinci bir ad kabul edilmez, öyle bir ad sıradan bir addır (`değişken sınıf = "9-A"`, `değişken boy = 180`). Başka dillerden alışılmış adlar (`int`, `str`, `dict`, `lr`, `axis`, `.T` ...) da Türkçe yazımda dilin adı değildir (İngilizce yazımda `Int`, `lr` gibi adlar o dilin adlarıdır, 17.7); bir hatada (tanımsız ad, bilinmeyen metot ya da adlı argüman, tip açıklaması) hata mesajı asıl adı önerir: `'int' TR'de bir tip adı değil; 'Tam' yazmak mı istediniz?`, `AdamW 'lr' adında bir parametre almaz. Bunu mu demek istediniz: 'öğrenme_oranı'?`. Bu adlar kod listesinde kodun `yabancı` alanındadır (17). Yorum `#` ile değil `//` ile yazılır (2.2). Dil taslak aşamasındadır: bir ad değişince ya da kaldırılınca eski adı için ipucu tutulmaz, kullanımlar yeni ada çevrilir (17.6).
 
 **2.10** İfadeler ve bloklar en fazla 1000 düzey iç içe yazılabilir (`((((1))))` dört düzeydir); sınır aşılırsa program çalışmaz, `ifade ya da blok çok derin iç içe (en fazla 1000 düzey)` sözdizimi hatası verilir. Metin içindeki yerleştirmenin ifadesi (2.7) de bulunduğu yerin düzeyinden sayılır. (Sınırsız iç içelik yorumlayıcıyı yakalanamaz biçimde çökertirdi.)
 
