@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -12,7 +13,7 @@ import (
 )
 
 // Kural: depodaki her izlenen veri dosyası (.json, .tr, .md; testdata hariç) ya bir teste bağlıdır (grafikte kendisine
-// gelen `tests`/`walks` kenarı ya da, bir belgeyse, içindeki bir kuralın `Denetim:` testi) ya da gerekçeli bir
+// gelen `tests`/`walks`/`cites` kenarı ya da, bir belgeyse, içindeki bir kuralın `Denetim:` testi) ya da gerekçeli bir
 // istisna listesindedir (testdata/uncovered_data.txt). Yeni bir dosya sessizce kör kalmaz: `tests-for <dosya>`
 // boş dönecek dosya ya testle bağlanır ya da gerekçesiyle o dosyaya yazılır. Liste yalnızca küçülür: bir istisna
 // artık işe yaramıyorsa (dosya bağlandı ya da hiç yok) test düşer.
@@ -76,7 +77,7 @@ func TestEveryTrackedDataFileHasATestOrAReason(t *testing.T) {
 	guardedDocs := map[string]bool{} // kuralı bir teste bağlı belgeler
 	for _, e := range g.Edges {
 		switch e.Kind {
-		case edgeTests, edgeWalks:
+		case edgeTests, edgeWalks, edgeCites: // anan test de tests-for'da görünür (cites grubu)
 			hit[e.To] = true
 		case edgeGuardedBy:
 			guardedDocs[ix.byID[e.From].File] = true
@@ -158,4 +159,34 @@ func underAnyName(file, name string) bool {
 		}
 	}
 	return false
+}
+
+// Kural: depoda izlenen her dosyanın yolu (betik, .gitignore, JS, YAML, testdata fikstürü dahil) tests-for'da o dosyanın
+// düğümüne çözülür; ad aramasına düşüp belirsiz ya da başka bir düğüm olmaz. Kanca her ajanın her ilk düzenlemesinde
+// tests-for <dosya> sorar; belirsiz cevap yanlış bir "yok" demektir (TCB 2026-10-25, 1. madde: `tests-for
+// tools/full_check.sh` ve `.gitignore` belirsizdi). İstisna listesi yoktur.
+func TestEveryTrackedFileIsANode(t *testing.T) {
+	root, _, g := repoGraph(t)
+	files, ok := codeindex.GitTracked(root)
+	if !ok {
+		t.Skip("needs a git checkout")
+	}
+	ix := newIndex(g)
+	ix.root = root
+	var wrong []string
+	for _, f := range files {
+		var out, errb strings.Builder
+		n, code := ix.resolve(f, &queryOpts{stdout: &out, stderr: &errb})
+		if code != exitOK || n.File != f {
+			wrong = append(wrong, fmt.Sprintf("%s: exit %d %s%s", f, code, firstLineOf(out.String()), firstLineOf(errb.String())))
+		}
+	}
+	if len(wrong) > 0 {
+		t.Errorf("%d tracked file path(s) do not resolve to their file:\n  %s", len(wrong), strings.Join(wrong, "\n  "))
+	}
+}
+
+func firstLineOf(s string) string {
+	line, _, _ := strings.Cut(s, "\n")
+	return line
 }

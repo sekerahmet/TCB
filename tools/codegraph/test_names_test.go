@@ -115,3 +115,46 @@ func TestAGoFunctionIsTestedThroughTheNameCodesItsCallersImplement(t *testing.T)
 		}
 	}
 }
+
+// Kural: ad kodu bağı bir Go testini ancak işlevin paketi o testin ikilisine giriyorsa (aynı paket ya da testin paketi onu
+// dolaylı içe aktarıyor) işlevin testi sayar. `package main`'deki bir işlevi başka paketin testi hiç çalıştıramaz;
+// kodun TR testi (tr ikilisinde koşar) sayılmaya devam eder (TCB 2026-10-25, 3. madde: tests-for cmd/tr/main.go'nun
+// başında checker testleri vardı).
+func TestNameCodeTestsMustLinkTheFunctionsPackage(t *testing.T) {
+	const m = "example.com/m"
+	g := &Graph{Module: m, Nodes: []Node{
+		{ID: pkgID(m + "/cmd/app"), Kind: kindPackage},
+		{ID: pkgID(m + "/checker"), Kind: kindPackage},
+		{ID: pkgID(m + "/lib"), Kind: kindPackage},
+		{ID: pkgID(m + "/core"), Kind: kindPackage},
+		{ID: "go:func:" + m + "/cmd/app.startsWithPrint", Kind: kindFunc, Name: "app.startsWithPrint", File: "cmd/app/main.go"},
+		{ID: "go:func:" + m + "/core.Print", Kind: kindFunc, Name: "core.Print", File: "core/print.go"},
+		{ID: "name:G100", Kind: kindName, Name: "G100"},
+		{ID: "go:func:" + m + "/checker.TestPrintWarning", Kind: kindFunc, Name: "checker.TestPrintWarning", File: "checker/x_test.go"},
+		{ID: "go:func:" + m + "/cmd/app.TestShell", Kind: kindFunc, Name: "app.TestShell", File: "cmd/app/main_test.go"},
+		{ID: "tr:test:tests/a_test.tr:1", Kind: kindTRTest, Name: "a_test: yazdır", File: "tests/a_test.tr"},
+	}, Edges: []Edge{
+		{From: pkgID(m + "/checker"), To: pkgID(m + "/lib"), Kind: edgeImports},
+		{From: pkgID(m + "/lib"), To: pkgID(m + "/core"), Kind: edgeImports}, // checker → lib → core: dolaylı
+		{From: "go:func:" + m + "/cmd/app.startsWithPrint", To: "name:G100", Kind: edgeUsesName},
+		{From: "go:func:" + m + "/core.Print", To: "name:G100", Kind: edgeUsesName},
+		{From: "go:func:" + m + "/checker.TestPrintWarning", To: "name:G100", Kind: edgeTests},
+		{From: "go:func:" + m + "/cmd/app.TestShell", To: "name:G100", Kind: edgeTests},
+		{From: "tr:test:tests/a_test.tr:1", To: "name:G100", Kind: edgeTests},
+	}}
+	ix := newIndex(g)
+	names := func(fn string) string {
+		var out []string
+		for _, nt := range ix.testsThroughNames(ix.byID["go:func:"+m+"/"+fn]) {
+			out = append(out, nt.test.Name)
+		}
+		sort.Strings(out)
+		return strings.Join(out, ", ")
+	}
+	if got, want := names("cmd/app.startsWithPrint"), "a_test: yazdır, app.TestShell"; got != want {
+		t.Errorf("main package function: got %q, want %q (another package's test cannot run it)", got, want)
+	}
+	if got, want := names("core.Print"), "a_test: yazdır, checker.TestPrintWarning"; got != want {
+		t.Errorf("imported (transitively) package: got %q, want %q", got, want)
+	}
+}

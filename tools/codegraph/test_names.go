@@ -5,6 +5,7 @@ import (
 	"io"
 	"path"
 	"sort"
+	"strings"
 )
 
 // Davranış testleri bir Go işlevini adıyla değil, uyguladığı dil adıyla sınar: TR kodundaki `kn.güncelle(1)` Y010'u
@@ -50,7 +51,7 @@ func (ix *index) testsThroughNames(n *Node) []nameTest {
 				continue
 			}
 			for _, t := range ix.in[name.ID] {
-				if t.Kind != edgeTests || seenTest[t.From] {
+				if t.Kind != edgeTests || seenTest[t.From] || !ix.inTestBinary(ix.byID[t.From], n) {
 					continue
 				}
 				seenTest[t.From] = true
@@ -78,6 +79,49 @@ func (ix *index) testsThroughNames(n *Node) []nameTest {
 		return a.test.Name < b.test.Name
 	})
 	return out
+}
+
+// inTestBinary bir Go testi fn'yi çalıştırabilir mi: fn'nin paketi testin ikilisine girer, yani testin paketi odur ya
+// da (test dosyalarının içe aktarmaları dahil) onu dolaylı içe aktarır. Ad kodu bağı yalnızca bu koşulla geçer:
+// checker'ın `yazdır` geçen testleri `package main`'deki tr.startsWithPrint'i hiç çalıştıramaz, ama ad kodu üzerinden
+// onun testi sayılıyordu (TCB 2026-10-25, 3. madde: tests-for cmd/tr/main.go 175 test, başta checker testleri). TR testi
+// (tr: düğümü) tr ikilisinde koşar, her paket ona girer.
+func (ix *index) inTestBinary(t, fn *Node) bool {
+	if t == nil || fn == nil || !strings.HasPrefix(t.ID, "go:") || !strings.HasPrefix(fn.ID, "go:") {
+		return true
+	}
+	from, to := ix.dirPackage(t.File), ix.dirPackage(fn.File)
+	if from == to {
+		return true
+	}
+	if ix.linked == nil {
+		ix.linked = map[string]map[string]bool{}
+	}
+	deps, ok := ix.linked[from]
+	if !ok {
+		deps = map[string]bool{}
+		queue := []string{from}
+		for len(queue) > 0 {
+			cur := queue[0]
+			queue = queue[1:]
+			for _, e := range ix.out[cur] {
+				if e.Kind == edgeImports && !deps[e.To] {
+					deps[e.To] = true
+					queue = append(queue, e.To)
+				}
+			}
+		}
+		ix.linked[from] = deps
+	}
+	return deps[to]
+}
+
+// dirPackage bir Go dosyasının paketinin düğüm kimliğidir (dış test paketi `x_test` de klasörün paketidir).
+func (ix *index) dirPackage(file string) string {
+	if dir := path.Dir(file); dir != "." {
+		return pkgID(ix.g.Module + "/" + dir)
+	}
+	return pkgID(ix.g.Module)
 }
 
 func (ix *index) printViaNames(w io.Writer, list []nameTest, limit int) {

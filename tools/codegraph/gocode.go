@@ -134,6 +134,9 @@ func (x *goExtractor) file(u *unit, base string, f *ast.File) {
 			x.genDecl(fc, d)
 		}
 	}
+	if isTest {
+		x.citeRefs(fc, f)
+	}
 }
 
 // fileCtx üzerinde çalışılan dosyanın bağlamıdır.

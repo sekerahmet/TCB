@@ -1,7 +1,6 @@
 # Bir teste bağlanamayan izlenen veri dosyaları: kalıp <TAB> gerekçe. Liste yalnızca küçülür: satır sayısı data_coverage_test.go'da sabitlenir (maxUncoveredData), geniş kalıp (docs/**) yazılmaz, her dosya adıyla.
 examples/en/**	yazım klasörleri os.ReadDir ile listelenir (yazım dili değişken); hiçbir dize yolu adlandırmaz. Kapsamı exampleFiles(t, lang) üstünden behavior_examples_test.go'dadır
 docs/README.md	geliştirici düzyazısı (süreç, tarif, dizin); içindeki kurallar README'lerdeki `Denetim:` testlerine bağlıdır, dosyanın kendisini okuyan test yoktur
-docs/development.md	geliştirici düzyazısı (süreç, tarif, dizin); içindeki kurallar README'lerdeki `Denetim:` testlerine bağlıdır, dosyanın kendisini okuyan test yoktur
 docs/recipes.md	geliştirici düzyazısı (süreç, tarif, dizin); içindeki kurallar README'lerdeki `Denetim:` testlerine bağlıdır, dosyanın kendisini okuyan test yoktur
 docs/guide/README.md	kullanıcı kılavuzu düzyazısı; örnek kodları examples/ ve tests/ altındaki karşılıklarıyla sınanır, dosyanın kendisini okuyan test yoktur
 docs/guide/01_baslangic.md	kullanıcı kılavuzu düzyazısı; örnek kodları examples/ ve tests/ altındaki karşılıklarıyla sınanır, dosyanın kendisini okuyan test yoktur
@@ -20,10 +19,11 @@ CONTRIBUTING.md	kök belgesi: düzyazı; kuralları ilgili paket README'lerinde 
 README.md	kök belgesi: düzyazı; kuralları ilgili paket README'lerinde ve testlerindedir
 SECURITY.md	kök belgesi: düzyazı; kuralları ilgili paket README'lerinde ve testlerindedir
 .vscode/**	VS Code çalışma alanı ayarı; Go testi okumaz
+.claude/settings.json	Claude Code'un proje kancası ayarı (tools/edithook); Claude Code okur, Go testi okumaz
 editors/vscode/*.json	VS Code eklentisinin bildirim dosyaları; eklenti kendi kod akışında (JS) yüklenir, Go testi okumaz
 tests/data/**	örnek veri kümesini kuran testin (internal/stdlib/dataset/behavior_sample_data_test.go) çıktısıdır; izlenen kopya örnekler tarafından okunur, yol dize olarak geçmez
 tools/gpu/phase3_config.json	Colab 3. aşama koşusunun ayarı; yalnızca Colab betikleri okur
-cmd/tr/e2e/README.md	testlerin kendi açıklaması; `Denetim:` satırlı kuralı yok
 tools/codegraph/README.md	aracın kullanım belgesi; `Denetim:` satırlı kuralı yok (testleri README'nin Tests bölümünde anlatılır)
+tools/edithook/README.md	aracın kullanım belgesi; `Denetim:` satırlı kuralı yok
 tools/hf/README.md	aracın kullanım belgesi; `Denetim:` satırlı kuralı yok
 tools/record/README.md	aracın kullanım belgesi; `Denetim:` satırlı kuralı yok
