@@ -255,8 +255,9 @@ func ShapeText(shape []int) string {
 	return "[" + strings.Join(p, ", ") + "]"
 }
 
-// BytesText bayt sayısını insan okunur birimle (1024 tabanlı, ondalık virgülle) yazar; 1 KB altı
-// bayt sayısı iletinin dilindedir (H4020). GPU arka ucunun bellek iletileri de bunu kullanır
+// BytesText bayt sayısını insan okunur birimle (1024 tabanlı) yazar; 1 KB altı bayt sayısı
+// iletinin dilindedir (H4020). Ondalık nokta Go'nundur: iletinin şablonu {ad|decimal} ile onu
+// iletinin dilinin ayırıcısına çevirir (tr "1,5 GB", en "1.5 GB"). GPU arka ucunun bellek iletileri de bunu kullanır
 // (dil tanımı 15.41, 15.42).
 func BytesText(b float64) string {
 	units := [...]string{"", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"}
@@ -271,15 +272,16 @@ func BytesText(b float64) string {
 	if b >= 1e6 {
 		return numberText(b) + " " + units[i]
 	}
-	return strings.Replace(strconv.FormatFloat(b, 'f', 1, 64), ".", ",", 1) + " " + units[i]
+	return strconv.FormatFloat(b, 'f', 1, 64) + " " + units[i]
 }
 
-// numberText büyük bir sayıyı yaklaşık yazar: küçükse tam, büyükse "1,2 × 10^24".
+// numberText büyük bir sayıyı yaklaşık yazar: küçükse tam, büyükse "1.2 × 10^24" (ayırıcı
+// iletide {ad|decimal}).
 func numberText(x float64) string {
 	if x < 1e15 {
 		return strconv.FormatFloat(x, 'f', 0, 64)
 	}
 	us := math.Floor(math.Log10(x))
 	m := x / math.Pow(10, us)
-	return strings.Replace(strconv.FormatFloat(m, 'f', 1, 64), ".", ",", 1) + " × 10^" + strconv.Itoa(int(us))
+	return strconv.FormatFloat(m, 'f', 1, 64) + " × 10^" + strconv.Itoa(int(us))
 }

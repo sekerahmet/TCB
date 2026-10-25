@@ -282,6 +282,8 @@ var (
 
 // numberBag bir çıktının sayılarını sıralı verir: metinler dile göre değişir, sayılar aynı
 // programda aynıdır (ilerleme çubuğu satırları, kök klasörü ve örnek yolları çıkarılır).
+// Görüntüdeki ondalık ayırıcı kişinin dilindedir (TR_DIL: "2,31" / "2.31"); karşılaştırma için
+// noktaya çevrilir.
 func numberBag(out, root string) []string {
 	out = strings.ReplaceAll(strings.ReplaceAll(out, filepath.ToSlash(root), ""), root, "")
 	out = progressLine.ReplaceAllString(out, "")
@@ -289,6 +291,9 @@ func numberBag(out, root string) []string {
 	out = exampleRunPath.ReplaceAllString(out, "")
 	out = exampleRunDir.ReplaceAllString(out, "")
 	bag := exampleNumbers.FindAllString(out, -1)
+	for i, n := range bag {
+		bag[i] = strings.Replace(n, ",", ".", 1)
+	}
 	sort.Strings(bag)
 	return bag
 }

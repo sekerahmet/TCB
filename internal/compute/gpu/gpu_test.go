@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
@@ -251,12 +252,12 @@ func TestMemoryTextIsTheTensorRule(t *testing.T) {
 		}
 		_ = hold
 	})
-	for _, want := range []string{tensor.BytesText(256 << 10), tensor.BytesText(1 << 20)} {
+	for _, want := range []string{messages.Decimal(tensor.BytesText(256 << 10)), messages.Decimal(tensor.BytesText(1 << 20))} {
 		if err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("GPU bellek iletisi miktarı tensör iletileriyle aynı yazmalı (%q): %v", want, err)
 		}
 	}
-	for b, want := range map[float64]string{0: "0 bayt", 1023: "1023 bayt", 1536: "1,5 KB", 1 << 30: "1,0 GB"} {
+	for b, want := range map[float64]string{0: "0 bayt", 1023: "1023 bayt", 1536: "1.5 KB", 1 << 30: "1.0 GB"} {
 		if got := tensor.BytesText(b); got != want {
 			t.Errorf("BytesText(%v) = %q, beklenen %q", b, got, want)
 		}

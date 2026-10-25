@@ -35,7 +35,6 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -321,9 +320,9 @@ func (kn *Checkpoint) lastValidText() string {
 // durationText bir aralığı kısaca yazar: 15 dk, 30 sn.
 func durationText(d time.Duration) string {
 	if d >= time.Minute {
-		return messages.Text(messages.H7302, strings.Replace(strconv.FormatFloat(d.Minutes(), 'g', 3, 64), ".", ",", 1))
+		return messages.Text(messages.H7302, strconv.FormatFloat(d.Minutes(), 'g', 3, 64))
 	}
-	return messages.Text(messages.H7301, strings.Replace(strconv.FormatFloat(d.Seconds(), 'g', 3, 64), ".", ",", 1))
+	return messages.Text(messages.H7301, strconv.FormatFloat(d.Seconds(), 'g', 3, 64))
 }
 
 // Compile-time checks: the interpreter finds these hooks with type assertions, so a

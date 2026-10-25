@@ -76,7 +76,7 @@ func formatNumber(f float64) string {
 		if strings.Contains(s, ".") {
 			s = strings.TrimRight(strings.TrimRight(s, "0"), ".")
 		}
-		return strings.Replace(s, ".", ",", 1)
+		return messages.Decimal(s)
 	}
 	s := strconv.FormatFloat(f, 'e', 2, 64) // 3.12e-04
 	body, exp, _ := strings.Cut(s, "e")
@@ -84,7 +84,7 @@ func formatNumber(f float64) string {
 		body = strings.TrimRight(strings.TrimRight(body, "0"), ".")
 	}
 	n, _ := strconv.Atoi(exp)
-	return strings.Replace(body, ".", ",", 1) + "e" + strconv.Itoa(n)
+	return messages.Decimal(body) + "e" + strconv.Itoa(n)
 }
 
 // formatDuration geçen süreyi yazar: "45 sn", "3 dk 2 sn", "61 dk 3 sn", "2 sa 5 dk".

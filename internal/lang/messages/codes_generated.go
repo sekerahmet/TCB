@@ -372,11 +372,11 @@ const (
 	H3080 Code = 3080 // Permute eksenleri yinelenmiş {dims}
 	H3081 Code = 3081 // T en az 2 boyut ister
 	H3082 Code = 3082 // Slice adımı pozitif olmalıdır
-	H3083 Code = 3083 // arka uç: {count} elemanlık {dtype} tampon {size} bellek ister; {place, select, gpu {bu GPU'da {limit} var} other {bu makinede {limit} var}}
-	H3084 Code = 3084 // {op}: istenen tensör {shape} şeklinde, {size} bellek ister; {place, select, gpu {bu GPU'da {limit} var} other {bu makinede {limit} var}}. Şekilleri denetleyin{hint, select, broadcast { (yayınlama beklenmedik bir boyut üretmiş olabilir)} other {}}.
-	H3085 Code = 3085 // {op}: sonuç tensörü {shape} şeklinde, {size} bellek ister; {place, select, gpu {bu GPU'da {limit} var} other {bu makinede {limit} var}}. Şekilleri denetleyin{hint, select, broadcast { (yayınlama beklenmedik bir boyut üretmiş olabilir)} other {}}.
-	H3086 Code = 3086 // {op}: istenen tensör {shape} şeklinde; eleman sayısı (yaklaşık {count}) tam sayı sınırını aşıyor, {size} bellek ister; {place, select, gpu {bu GPU'da {limit} var} other {bu makinede {limit} var}}. Şekilleri denetleyin{hint, select, broadcast { (yayınlama beklenmedik bir boyut üretmiş olabilir)} other {}}.
-	H3087 Code = 3087 // {op}: sonuç tensörü {shape} şeklinde; eleman sayısı (yaklaşık {count}) tam sayı sınırını aşıyor, {size} bellek ister; {place, select, gpu {bu GPU'da {limit} var} other {bu makinede {limit} var}}. Şekilleri denetleyin{hint, select, broadcast { (yayınlama beklenmedik bir boyut üretmiş olabilir)} other {}}.
+	H3083 Code = 3083 // arka uç: {count|decimal} elemanlık {dtype} tampon {size|decimal} bellek ister; {place, select, gpu {bu GPU'da {limit|decimal} var} other {bu makinede {limit|decimal} var}}
+	H3084 Code = 3084 // {op}: istenen tensör {shape} şeklinde, {size|decimal} bellek ister; {place, select, gpu {bu GPU'da {limit|decimal} var} other {bu makinede {limit|decimal} var}}. Şekilleri denetleyin{hint, select, broadcast { (yayınlama beklenmedik bir boyut üretmiş olabilir)} other {}}.
+	H3085 Code = 3085 // {op}: sonuç tensörü {shape} şeklinde, {size|decimal} bellek ister; {place, select, gpu {bu GPU'da {limit|decimal} var} other {bu makinede {limit|decimal} var}}. Şekilleri denetleyin{hint, select, broadcast { (yayınlama beklenmedik bir boyut üretmiş olabilir)} other {}}.
+	H3086 Code = 3086 // {op}: istenen tensör {shape} şeklinde; eleman sayısı (yaklaşık {count|decimal}) tam sayı sınırını aşıyor, {size|decimal} bellek ister; {place, select, gpu {bu GPU'da {limit|decimal} var} other {bu makinede {limit|decimal} var}}. Şekilleri denetleyin{hint, select, broadcast { (yayınlama beklenmedik bir boyut üretmiş olabilir)} other {}}.
+	H3087 Code = 3087 // {op}: sonuç tensörü {shape} şeklinde; eleman sayısı (yaklaşık {count|decimal}) tam sayı sınırını aşıyor, {size|decimal} bellek ister; {place, select, gpu {bu GPU'da {limit|decimal} var} other {bu makinede {limit|decimal} var}}. Şekilleri denetleyin{hint, select, broadcast { (yayınlama beklenmedik bir boyut üretmiş olabilir)} other {}}.
 	H3088 Code = 3088 // {fn}: indeksi cihazdan okuyan işlem {device} cihazında yok
 	H3089 Code = 3089 // tensör oluşturma
 	H3090 Code = 3090 // eleman bazlı işlem
@@ -413,7 +413,7 @@ const (
 	H4011 Code = 4011 // {kernel} çekirdeği derlenemedi: {name} ({status})
 	H4012 Code = 4012 // {error}\nPTX derleyici günlüğü:\n{log}
 	H4013 Code = 4013 // {error}\nPTX metni: {path}
-	H4014 Code = 4014 // GPU belleği yetmedi: {requested} istendi; GPU'da {free} boş, {total} toplam ({name}). Toplu iş boyutunu, bağlam uzunluğunu ya da modeli küçültün
+	H4014 Code = 4014 // GPU belleği yetmedi: {requested|decimal} istendi; GPU'da {free|decimal} boş, {total|decimal} toplam ({name}). Toplu iş boyutunu, bağlam uzunluğunu ya da modeli küçültün
 	H4015 Code = 4015 // {backend} arka ucuna {device} cihazından depolama verildi; işlemden önce tensörleri aynı cihaza taşıyın
 	H4016 Code = 4016 // tek işlemde {count} eleman var; bu sürümde GPU işlemleri en çok 2^31 eleman işler
 	H4017 Code = 4017 // program sonunda dış profilleyici için GPU kapatıldı; GPU artık kullanılamaz
@@ -423,7 +423,7 @@ const (
 	H4021 Code = 4021 // GPU yok: {error}
 	H4022 Code = 4022 // GPU yok: sürücü cihaz bulamadı
 	H4023 Code = 4023 // {count} GPU görünüyor ama arka uç kurulamadı: {error}
-	H4024 Code = 4024 // {count} GPU; gpu: {card}, {memory} bellek; matris çarpımı: {path}
+	H4024 Code = 4024 // {count} GPU; gpu: {card}, {memory|decimal} bellek; matris çarpımı: {path}
 	H4025 Code = 4025 // {name} (sm_{cc_major}{cc_minor}, {sm_count} SM, sürücü CUDA {cuda_major}.{cuda_minor})
 	H4026 Code = 4026 // TR_GPU_CUBLASLT tam yol olmalı: {path|q}
 	H4027 Code = 4027 // TR_GPU_CUBLASLT ({path}) açılamadı: {error}
@@ -445,7 +445,7 @@ const (
 	H4044 Code = 4044 // ort µs
 	H4045 Code = 4045 // aile
 	H4046 Code = 4046 // kernel (ilk 25)
-	H4047 Code = 4047 // bellek: ayrılmış {reserved} · havuzda {pooled} · canlı {live} · tepe canlı {peak_live} · tepe ayrılmış {peak_reserved} · sürücü ayırma {driver_allocs} · çöp toplama {collections}
+	H4047 Code = 4047 // bellek: ayrılmış {reserved|decimal} · havuzda {pooled|decimal} · canlı {live|decimal} · tepe canlı {peak_live|decimal} · tepe ayrılmış {peak_reserved|decimal} · sürücü ayırma {driver_allocs} · çöp toplama {collections}
 	H4050 Code = 4050 // bu işlem GPU'da henüz yok: {dtype} türünde depolama
 	H4051 Code = 4051 // bu işlem GPU'da henüz yok: {kept} korunan, {reduced} indirgenen eksenli indirgeme (en çok {max})
 	H4052 Code = 4052 // bu işlem GPU'da henüz yok: {axes} eksenli yayınlamalı ikili işlem (en çok {max})
@@ -677,8 +677,8 @@ const (
 	H5288 Code = 5288 // iç içe sınırsız niceleyici (ör. "(a+)+" ya da "(\w+\s*)*") üstel geri izlemeye yol açabilir
 	H5289 Code = 5289 // çıktı uzunluğu adım sınırını ({budget}) aştı: normalleştirici, ön bölücü ya da çözücü zinciri çıktıyı girdiyle orantısız büyütüyor; işlem durduruldu
 	H5290 Code = 5290 // model arama adımları (WordPiece, Unigram) adım sınırını ({budget}) aştı: parçalayıcı modeli girdiyle orantısız iş yapıyor; işlem durduruldu
-	H5500 Code = 5500 // {shards} veri dosyası, {tokens} parça
-	H5501 Code = 5501 // {type}({summary}, önbellek {quota})
+	H5500 Code = 5500 // {shards} veri dosyası, {tokens|decimal} parça
+	H5501 Code = 5501 // {type}({summary}, önbellek {quota|decimal})
 	H5502 Code = 5502 // Veri kümesi
 	H5503 Code = 5503 // Veri kümesi ({summary})
 	H5504 Code = 5504 // Veri dosyası
@@ -690,7 +690,7 @@ const (
 	H5510 Code = 5510 // {fn}: {name} yalnızca {cache}: ile birlikte kullanılır (önbellek klasörünün en çok kaç GB kullanacağı)
 	H5511 Code = 5511 // {fn}: {name} pozitif bir sayı olmalıdır (ör. {name}: 20), {given} verildi
 	H5512 Code = 5512 // {fn}: {name} çok büyük ({given}); en çok {max} GB verilebilir
-	H5513 Code = 5513 // {fn}: {cache}: verildiğinde {quota}: de verilmelidir (önbellek klasörünün kullanabileceği en çok disk alanı, GB). Bu kümenin örnekleyicisi aynı anda {count} veri dosyasını yerelde tutar; en büyük veri dosyası {largest} olduğundan en az {quota}: {needed} gerekir
+	H5513 Code = 5513 // {fn}: {cache}: verildiğinde {quota}: de verilmelidir (önbellek klasörünün kullanabileceği en çok disk alanı, GB). Bu kümenin örnekleyicisi aynı anda {count} veri dosyasını yerelde tutar; en büyük veri dosyası {largest|decimal} olduğundan en az {quota}: {needed} gerekir
 	H5514 Code = 5514 // {fn}: {path|q} geçerli bir .npy veri dosyası değil: {reason}. Veri dosyaları standart .npy biçiminde tek boyutlu, küçük uçlu uint16, uint32 ya da int32 dizileri olmalıdır
 	H5515 Code = 5515 // {fn}: önbellek kotası yetersiz: {detail}
 	H5516 Code = 5516 // {fn}: okuyucu kapatılmış (program sonlanıyor); yeni bir okuyucu oluşturun
@@ -1170,8 +1170,8 @@ const (
 	H7235 Code = 7235 // bu yardımı gösterir
 	H7236 Code = 7236 // boş liste
 	H7300 Code = 7300 // {fn}: '{name}' ölçüsünün değeri {types} ya da {null} olmalı; {given} verildi
-	H7301 Code = 7301 // {sec} sn
-	H7302 Code = 7302 // {min} dk
+	H7301 Code = 7301 // {sec|decimal} sn
+	H7302 Code = 7302 // {min|decimal} dk
 	H7303 Code = 7303 // {min} dk {sec} sn
 	H7304 Code = 7304 // {hour} sa {min} dk
 	H7305 Code = 7305 // {seconds} sn/adım

@@ -42,12 +42,32 @@ type segment struct {
 	kind     segKind
 	text     string               // segText
 	arg      int                  // parametrenin sırası
-	mod      string               // segArg: "", "q" ya da hâl adı
+	mod      string               // segArg: "", "q", "decimal" ya da hâl adı
 	branches map[string][]segment // segPlural, segSelect: dal anahtarı → dal
 }
 
 // caseMods şablonda geçerli hâl biçimleridir.
 var caseMods = map[string]bool{"acc": true, "dat": true, "loc": true, "abl": true, "gen": true}
+
+// decimalSeparators dillerin ondalık ayırıcısıdır (CLDR "decimal" sembolü: tr ",", en "."). Go
+// sayıları noktayla yazar; {ad|decimal} süzgeci ve Decimal metindeki noktayı iletinin ya da
+// görüntünün diline çevirir (ICU'nun {n, number}'ı gibi, ama yalnız ayırıcı: binlik ayırıcı yok).
+var decimalSeparators = map[string]string{"tr": ",", "en": "."}
+
+// localDecimal metindeki ondalık noktalarını lang dilinin ayırıcısıyla yazar.
+func localDecimal(text, lang string) string {
+	sep, ok := decimalSeparators[lang]
+	if !ok || sep == "." {
+		return text
+	}
+	return strings.ReplaceAll(text, ".", sep)
+}
+
+// Decimal writes the decimal points of a number's text (Go's "1.5", "2.3 GB") with the person's
+// writing language's separator (TR_DIL: "1,5" in Turkish), for display that is not a message (a
+// progress line, a profile table). In a message the template's {name|decimal} does the same in
+// the message's language.
+func Decimal(text string) string { return localDecimal(text, activeCatalog().Language) }
 
 // pluralCategories CLDR çoğul kategorileridir.
 var pluralCategories = map[string]bool{"zero": true, "one": true, "two": true, "few": true, "many": true, "other": true}
@@ -229,8 +249,8 @@ func (p *parser) placeholder(inPlural bool) (segment, error) {
 		if err != nil {
 			return segment{}, err
 		}
-		if mod != "" && mod != "q" && !caseMods[mod] {
-			return segment{}, fmt.Errorf("{%s|%s}: unknown format (q, acc, dat, loc, abl, gen)", name, mod)
+		if mod != "" && mod != "q" && mod != "decimal" && !caseMods[mod] {
+			return segment{}, fmt.Errorf("{%s|%s}: unknown format (q, decimal, acc, dat, loc, abl, gen)", name, mod)
 		}
 		return segment{kind: segArg, arg: n, mod: mod}, nil
 	}
@@ -361,6 +381,8 @@ func (c *Catalog) write(b *strings.Builder, code Code, segs []segment, args []an
 				fmt.Fprintf(b, "%q", text)
 			case s.mod == "q":
 				fmt.Fprintf(b, "%q", a)
+			case s.mod == "decimal":
+				b.WriteString(localDecimal(text, c.Language))
 			case s.mod != "":
 				b.WriteString(inflect(c.Language, text, s.mod))
 			default:

@@ -112,7 +112,7 @@ func (k *Dataset) TableData() ([]string, [][]string, error) {
 		if i >= limit {
 			break
 		}
-		lines = append(lines, []string{p.Name, fmt.Sprint(p.Token), bind.FormatBytes(p.Bytes)})
+		lines = append(lines, []string{p.Name, fmt.Sprint(p.Token), messages.Decimal(bind.FormatBytes(p.Bytes))})
 	}
 	return []string{messages.Text(messages.H5504), messages.Text(messages.H5505), messages.Text(messages.H5506)}, lines, nil
 }

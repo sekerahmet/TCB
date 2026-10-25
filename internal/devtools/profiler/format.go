@@ -24,7 +24,7 @@ func percent(f float64) string {
 	if y >= 9.95 {
 		return "%" + strconv.Itoa(int(math.Round(y)))
 	}
-	return "%" + strings.Replace(strconv.FormatFloat(y, 'f', 1, 64), ".", ",", 1)
+	return "%" + messages.Decimal(strconv.FormatFloat(y, 'f', 1, 64))
 }
 
 // count bir ölçüyü 3 anlamlı basamakla yazar (çubukla aynı kural).
@@ -41,7 +41,7 @@ func msText(ms float64) string {
 	case ms >= 1:
 		digits = 2
 	}
-	return strings.Replace(strconv.FormatFloat(ms, 'f', digits, 64), ".", ",", 1)
+	return messages.Decimal(strconv.FormatFloat(ms, 'f', digits, 64))
 }
 
 // full bir tam sayıyı binlik boşluklarla yazar: 15 000.

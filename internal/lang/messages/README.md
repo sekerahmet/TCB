@@ -29,6 +29,7 @@ Her kod bir satırdır, kodlar artan sıradadır. Denetim: `TestEmbeddedCatalogV
 | :-- | :-- |
 | `{ad}` | değer olduğu gibi |
 | `{ad\|q}` | Go tırnağıyla, denetim karakterleri kaçırılarak (kullanıcı verisi için) |
+| `{ad\|decimal}` | sayının ondalık ayırıcısı iletinin dilinde (Go noktayla yazar; tr `1,5`, en `1.5`). İleti dışı görüntüde `messages.Decimal` |
 | `{ad\|acc}`, `{ad\|dat}`, `{ad\|loc}`, `{ad\|abl}`, `{ad\|gen}` | hâl eki: dilin çekimcisi ekler (`Satır {line\|dat}` → "Satır 12'ye"); çekimcisi olmayan dilde ad olduğu gibi kalır |
 | `{n, plural, one {..} other {..}}` | sayıya göre biçim, dilin CLDR çoğul kuralıyla; dalda (içindeki `select` dallarında da) `#` sayıdır, `=0` gibi tam eşleşme önce gelir (N sayının tek yazımı: `=0.0` reddedilir); `other` zorunlu |
 | `{x, select, a {..} other {..}}` | metin değerine göre dal; boş değer `empty` dalını seçer |

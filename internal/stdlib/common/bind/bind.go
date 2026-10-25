@@ -254,7 +254,7 @@ func formatScaled(n int64, units []scaleUnit, smallSuffix string) string {
 		if n >= b.threshold {
 			s := strconv.FormatFloat(float64(n)/float64(b.threshold), 'f', 1, 64)
 			s = strings.TrimSuffix(s, ".0")
-			return strings.Replace(s, ".", ",", 1) + " " + b.name
+			return s + " " + b.name // ondalık ayırıcı iletide {ad|decimal}, görüntüde messages.Decimal
 		}
 	}
 	return strconv.FormatInt(n, 10) + smallSuffix
