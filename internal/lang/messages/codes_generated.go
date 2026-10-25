@@ -214,6 +214,7 @@ const (
 	H2439 Code = 2439 // {range} ('..') uçları {number} sayı olmalıdır
 	H2440 Code = 2440 // '{name}' parametresi henüz tanımlanmadı; varsayılan değer yalnızca kendisinden önceki parametreleri görür
 	H2441 Code = 2441 // {text}
+	H2442 Code = 2442 // <ok fonksiyonu>
 	H2443 Code = 2443 // {type} tipi üzerinde döngü kurulamaz
 	H2444 Code = 2444 // {type} sayı taşması (-({value})); ondalık sonuç için örn. -({value}.0) yazın
 	H2445 Code = 2445 // '-' operatörü {type} tipine uygulanamaz

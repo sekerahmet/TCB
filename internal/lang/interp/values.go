@@ -370,13 +370,13 @@ func (f *FuncVal) Inspect() string {
 	if f.Name != "" {
 		return messages.Text(messages.H2496, f.Name)
 	}
-	return "<ok fonksiyonu>"
+	return messages.Text(messages.H2442)
 }
 func (f *FuncVal) Text(lang *codes.Language) string {
 	if f.Name != "" {
 		return messages.TextIn(lang.Code, messages.H2496, f.Name)
 	}
-	return f.Inspect()
+	return messages.TextIn(lang.Code, messages.H2442)
 }
 func (f *FuncVal) IsTruthy() bool { return true }
 

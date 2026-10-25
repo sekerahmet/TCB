@@ -209,6 +209,7 @@
 "H2439": "the ends of the range {range} ('..') must be of type {number}",
 "H2440": "the parameter '{name}' is not defined yet; a default value only sees the parameters before it",
 "H2441": "{text}",
+"H2442": "<lambda>",
 "H2443": "a loop cannot be run over type {type}",
 "H2444": "{type} overflow (-({value})); for a decimal result write e.g. -({value}.0)",
 "H2445": "the '-' operator cannot be applied to type {type}",

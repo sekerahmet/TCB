@@ -209,6 +209,7 @@
 "H2439": { "param": ["range", "number"] },
 "H2440": { "param": ["name"] },
 "H2441": { "param": ["text"] },
+"H2442": { "param": [] },
 "H2443": { "param": ["type"] },
 "H2444": { "param": ["type", "value"] },
 "H2445": { "param": ["type"] },

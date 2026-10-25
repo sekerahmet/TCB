@@ -146,10 +146,10 @@ func TestDictKeysFollowFileLanguage(t *testing.T) {
 // (TR_DIL) bağlı değildir (3): aynı program her makinede aynı metni verir.
 func TestFunctionTextFollowsFileLanguage(t *testing.T) {
 	program := "fonksiyon f() { sonuç 1 }\nyapı P { a }\ndeğişken l = [1]\n" +
-		"yazdır(metin(f), metin(P), metin(yazdır), metin(l.ekle), \"{f}\")\n"
+		"yazdır(metin(f), metin(P), metin(yazdır), metin(l.ekle), \"{f}\", metin(x => x))\n"
 	sameOutputInEveryLanguage(t, program, map[string]string{
-		"tr": "<fonksiyon f> <yapı P> <yerleşik yazdır> <yerleşik ekle> <fonksiyon f>\n",
-		"en": "<function f> <struct P> <built-in print> <built-in append> <function f>\n",
+		"tr": "<fonksiyon f> <yapı P> <yerleşik yazdır> <yerleşik ekle> <fonksiyon f> <ok fonksiyonu>\n",
+		"en": "<function f> <struct P> <built-in print> <built-in append> <function f> <lambda>\n",
 	})
 }
 
