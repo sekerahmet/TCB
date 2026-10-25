@@ -26,7 +26,7 @@
 #   --hizli           --kip=dagitim ile aynı (iş sırasında; birleştirmeden önce bayraksız koşulur)
 #   --kip=on          ön denetim (~1 dk): üretilmiş dosyalar, gofmt, vet, go.mod, staticcheck,
 #                     ölü kod, düzen kuralları (dosya adı, satır sınırı, Türkçe metin, çıplak ad,
-#                     ileti kullanımı), değişen
+#                     ileti kullanımı), .tr dosyalarının biçimi, değişen
 #                     paketlerin kısa testleri ve yeni tekrar adayları (codegraph dups --changed).
 #                     Yan oturumlar devir notundan, ana oturum GPU yan dalına göndermeden önce
 #                     koşar; tam denetimin yerini tutmaz.
@@ -323,6 +323,16 @@ build_tr() {
 	mkdir -p bin && go build -o "$TR" ./cmd/tr
 }
 
+# format_checks .tr dosyalarının standart biçimde olduğunu denetler; tam denetim ve ön denetim aynı
+# listeyi kullanır (yan oturumların ön denetimi biçimsiz bir test dosyasını kaçırmıştı).
+format_checks() {
+	# Örnekler öğrenme yoludur: standart biçimde olmalı (iki yazım da; kodlu dosya kodlu biçimlenir).
+	# Hata örnekleri (hatalar/, errors/) bilerek bozuktur ve biçimlenmez; yalnızca numaralı örnekler ve yardımcılar.
+	summarize "tr biçimle --kontrol examples" "$TR" biçimle --kontrol examples/tr/[0-9]*.tr examples/tr/helpers examples/en/[0-9]*.tr examples/en/helpers
+	# Kitaplık, testler ve araç betikleri de standart biçimde olmalı; tests/negative bilerek bozuktur.
+	summarize "tr biçimle --kontrol lib tests tools" "$TR" biçimle --kontrol lib tests/*.tr tests/sub tests/tr tests/coded tools/gpu tools/bench/tr
+}
+
 # extension_tests VS Code eklentisinin davranış testlerini (editors/vscode/test/*_test.js) derlenen
 # yorumlayıcıyla koşar. Yorumlayıcı mutlak yolla verilir; bir test "atlandı" derse denetim kalır
 # (koşulmayan test hiçbir şeyi korumaz).
@@ -405,11 +415,7 @@ for mode in $modes; do
 		if build_tr; then
 			summarize "tr test tests" "$TR" test tests
 			summarize "tr test lib" "$TR" test lib
-			# Örnekler öğrenme yoludur: standart biçimde olmalı (iki yazım da; kodlu dosya kodlu biçimlenir).
-			# Hata örnekleri (hatalar/, errors/) bilerek bozuktur ve biçimlenmez; yalnızca numaralı örnekler ve yardımcılar.
-			summarize "tr biçimle --kontrol examples" "$TR" biçimle --kontrol examples/tr/[0-9]*.tr examples/tr/helpers examples/en/[0-9]*.tr examples/en/helpers
-			# Kitaplık, testler ve araç betikleri de standart biçimde olmalı; tests/negative bilerek bozuktur.
-			summarize "tr biçimle --kontrol lib tests tools" "$TR" biçimle --kontrol lib tests/*.tr tests/sub tests/tr tests/coded tools/gpu tools/bench/tr
+			format_checks
 			run_examples
 			[ "$mode" = v3 ] || extension_tests
 		else
@@ -454,6 +460,8 @@ for mode in $modes; do
 		step "Düzen kuralları (dosya adı, boy sınırı, Türkçe metin, çıplak ad, ileti kullanımı)"
 		go test "${p_flag[@]}" -short ./internal/ ./internal/reporoot ./tools/gen/... 2>&1 | grep -v '^ok\|no test files'
 		[ "${PIPESTATUS[0]}" -eq 0 ] || fail "düzen kuralları"
+		step "TR dosyalarının biçimi (tr biçimle --kontrol)"
+		if build_tr; then format_checks; else fail "tr derlenemedi"; fi
 		mapfile -t changed < <(changed_packages)
 		if [ ${#changed[@]} -gt 0 ]; then
 			step "Değişen paketlerin kısa testleri (${#changed[@]} paket)"
