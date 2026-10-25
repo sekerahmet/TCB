@@ -22,7 +22,7 @@ const schemaVersion = 1
 // 7: .tr kaynakları etkin yazım dilinden bağımsız okunur (TR_DIL=en grafiği eksik bırakıyordu).
 // 8: sabit, değişken ve alan düğümlerinin bitiş satırı kendi değeriyle biter (öncekiler sonraki bloğun sonuna uzanıyordu).
 // 9: aynı modül hem takma adsız hem takma adla aktarılınca takma ad tanınır (yutuluyordu).
-const extractorRevision = 48
+const extractorRevision = 49
 
 // Düğüm türleri.
 const (
@@ -72,6 +72,7 @@ const (
 	edgeCites         = "cites"          // test -> yorumunda ya da iletisinde andığı depo dosyası (test_paths.go: citeRefs)
 	edgeLoads         = "loads"          // JavaScript dosyası -> yüklediği depo dosyası (js_loads.go)
 	edgeScans         = "scans"          // test -> taradığı kalıbın scan düğümü (scans.go)
+	edgeComparesValue = "compares_value" // bildirim -> değerini metinle karşılaştırdığı dize sabiti (value_compares.go)
 )
 
 // Güven etiketleri: EXTRACTED kaynaktan ya da tip bilgisinden kesin okunan, INFERRED addan ya da

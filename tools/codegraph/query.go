@@ -88,6 +88,8 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 				return strings.HasSuffix(cur.name[k], "."+qf[k]) || strings.HasSuffix(cur.name[k], "/"+qf[k])
 			})
 		},
+		// Değer: değeri sorguya eşit dize sabiti (`"%"` → lexer.TokPercent; işleç, belirteç, biçim adı).
+		func(n *Node) bool { return hasStringValue(n, q) },
 	}
 	nameTiers := len(tiers)
 	// Metin aramaları: ad ya da (ileti, kural, başlık) açıklama metninin başı/alt dizesi.

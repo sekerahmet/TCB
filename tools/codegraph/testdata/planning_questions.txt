@@ -172,3 +172,5 @@ codegraph query parser.NameRole | contains: 17.3 [spec] | src: iç dil 3. tur, 2
 
 # gaps partisi, 2026-10-26 (CODEGRAPH)
 codegraph changed HEAD..HEAD | contains: new-side lines up to the working tree, uncommitted edits included | src: gaps partisi kritik 2, 2026-10-26 (commit'ten önce koşan denetim commit'lenmemiş düzenlemeyi görür)
+codegraph who-uses lexer.TokPercent | group: compares_value => interp.opCode | group: compares_value => checker.Checker.inferExpression | src: gaps partisi kritik 1, 2026-10-26 (işleci metinle anan yorumlayıcı ve denetleyici)
+codegraph query "%" | contains: lexer.TokPercent [const] | src: gaps partisi kritik 1, 2026-10-26 (değerle sorgu)
