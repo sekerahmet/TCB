@@ -303,17 +303,17 @@ func TestIndexSubcommandsAreNotCommands(t *testing.T) {
 		}
 	}
 	for _, name := range []string{"dizin", "index"} {
-		if k, ok := FindCommand(name); !ok || k != K015 {
+		if k, ok := FindCommand(name); !ok || k != CmdIndex {
 			t.Errorf("%q is the index command K015, got %s %v", name, k, ok)
 		}
 		if _, ok := FindSubcommand(name); ok {
 			t.Errorf("%q is not a subcommand of itself", name)
 		}
 	}
-	if K015.IsIndexSubcommand() || K015.Namespace() != NamespaceCommand {
+	if CmdIndex.IsIndexSubcommand() || CmdIndex.Namespace() != NamespaceCommand {
 		t.Error("K015 itself is a command")
 	}
-	for _, k := range []Code{K016, K017, K018, K019, K020} {
+	for _, k := range []Code{SubDefinition, SubReferences, SubTestedBy, SubImpact, SubRename} {
 		if !k.IsIndexSubcommand() {
 			t.Errorf("%s should be an index subcommand", k)
 		}
@@ -323,7 +323,7 @@ func TestIndexSubcommandsAreNotCommands(t *testing.T) {
 // Kural: OptionFlag seçenek kodunu komut satırı bayrağına çevirir: "--" ve alt çizgi yerine tire.
 // Neden: cmd/tr ve codeindex aynı çevirmeyi ayrı ayrı yazıyordu.
 func TestOptionFlagHyphenatesDisplayName(t *testing.T) {
-	for _, k := range []Code{K100, K106} {
+	for _, k := range []Code{OptLang, OptHelp} {
 		want := "--" + strings.ReplaceAll(DisplayName(k), "_", "-")
 		if got := OptionFlag(k); got != want || strings.Contains(got, "_") {
 			t.Errorf("OptionFlag(%s) = %q, beklenen %q", k, got, want)

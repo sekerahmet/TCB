@@ -122,7 +122,7 @@ func WalkTensorFile(r io.Reader, dim int64, each func(TensorEntry) error) error 
 // header sihirli baytları ve sürümü denetler, girdi sayısını verir.
 func (k *fileReader) header() (uint32, error) {
 	if string(k.read(8)) != fileMagic || k.failure != nil {
-		return 0, messages.New(messages.H6610, fileMagic, codes.NameRef(codes.T700))
+		return 0, messages.New(messages.H6610, fileMagic, codes.NameRef(codes.FnSaveTensors))
 	}
 	version := binary.LittleEndian.Uint16(k.read(2))
 	if k.failure != nil {

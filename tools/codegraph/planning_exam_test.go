@@ -143,13 +143,13 @@ func (x *examRunner) trIndex(t *testing.T, r examRecord) (string, int) {
 	}
 	var res *codeindex.Result
 	switch sub {
-	case codes.K016:
+	case codes.SubDefinition:
 		res = x.reader.Definition(r.args[1], o)
-	case codes.K017:
+	case codes.SubReferences:
 		res = x.reader.References(r.args[1], o)
-	case codes.K018:
+	case codes.SubTestedBy:
 		res = x.reader.TestedBy(r.args[1], o)
-	case codes.K019:
+	case codes.SubImpact:
 		res = x.reader.Impact(r.args[1], o)
 	default:
 		t.Fatalf("planning_questions.txt:%d: tr dizin %s is not a query", r.line, r.args[0])

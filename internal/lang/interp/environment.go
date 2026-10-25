@@ -159,7 +159,7 @@ func (h *deferError) Error() string {
 	for i, e := range h.extras {
 		pieces[i] = e.Error()
 	}
-	return messages.Text(messages.H2519, h.mainSrc, codes.NameRef(codes.A081), strings.Join(pieces, "; "))
+	return messages.Text(messages.H2519, h.mainSrc, codes.NameRef(codes.KwDefer), strings.Join(pieces, "; "))
 }
 
 // MessageText hatanın lang dilindeki metnidir (messages.Localized): ilk hata da ertelenen işlerin
@@ -169,7 +169,7 @@ func (h *deferError) MessageText(lang string) string {
 	for i, e := range h.extras {
 		pieces[i] = messages.ErrorIn(e, lang)
 	}
-	return messages.TextIn(lang, messages.H2519, messages.ErrorIn(h.mainSrc, lang), codes.NameRef(codes.A081), strings.Join(pieces, "; "))
+	return messages.TextIn(lang, messages.H2519, messages.ErrorIn(h.mainSrc, lang), codes.NameRef(codes.KwDefer), strings.Join(pieces, "; "))
 }
 
 func (h *deferError) Unwrap() error { return h.mainSrc }
@@ -220,7 +220,7 @@ func (e *Environment) Assign(name string, val Value) error {
 	for cur := e; cur != nil; cur = cur.outer {
 		if i, old := cur.local(name); old != nil {
 			if cur.isConstant(i) {
-				return messages.New(messages.H2447, name, codes.NameRef(codes.A031))
+				return messages.New(messages.H2447, name, codes.NameRef(codes.KwConst))
 			}
 			cur.store(i, val)
 			return nil
@@ -244,7 +244,7 @@ func (e *UndefinedVarError) MessageText(lang string) string {
 
 // Unwrap returns the coded message, so messages.Has finds it in the chain.
 func (e *UndefinedVarError) Unwrap() error {
-	return messages.New(messages.H2448, e.Name, codes.NameRef(codes.A030))
+	return messages.New(messages.H2448, e.Name, codes.NameRef(codes.KwVar))
 }
 
 // Names returns every name visible from this scope and the outer scopes (for suggestions).

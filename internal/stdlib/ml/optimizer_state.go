@@ -20,8 +20,8 @@ import (
 // "adim"; k parametrenin listedeki sırasıdır. Kontrol noktası aynı Go yöntemlerini kullanır.
 
 const (
-	memberState     = codes.Y502
-	memberLoadState = codes.Y503
+	memberState     = codes.MemState
+	memberLoadState = codes.MemLoadState
 )
 
 // stateMember durum ve durumu_yükle üyelerini verir; başka bir üyeyse ok yanlış.
@@ -58,7 +58,7 @@ func (o *Optimizer) loadStateTR(_ *interp.VM, args []interp.Value, _ map[string]
 		}
 		d, ok := v.(*TensorValue)
 		if _, text := s.KeyValue(k).(*interp.StringVal); !text || !ok {
-			return nil, messages.New(messages.H6501, fn, codes.NameRef(memberState), codes.NameRef(codes.A202), codes.NameRef(codes.A212), s.DisplayKey(k), interp.TypeAndSummary(v))
+			return nil, messages.New(messages.H6501, fn, codes.NameRef(memberState), codes.NameRef(codes.TypeString), codes.NameRef(codes.TypeTensor), s.DisplayKey(k), interp.TypeAndSummary(v))
 		}
 		st[k] = d.t
 	}

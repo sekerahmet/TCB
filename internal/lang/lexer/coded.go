@@ -195,7 +195,7 @@ func (l *Lexer) codedToken(lit string, line, col int) Token {
 	k, err := codes.Parse(lit)
 	g, var_ := l.Language().Entry(k)
 	if err != nil || !var_ {
-		l.addError(line, col, messages.New(messages.H0001, lit, codes.G100))
+		l.addError(line, col, messages.New(messages.H0001, lit, codes.FnPrint))
 		return Token{Type: TokIdent, Literal: lit, Line: line, Column: col}
 	}
 	if t, ok := codeTypes[k]; ok {

@@ -134,7 +134,7 @@ func (s *dapServer) handlePaused(msg *dapMessage) (jump int, resume bool) {
 
 // jumpOutsideBlock zıplanamayan satırın iletisidir (terminalde ve düzenleyicide aynı).
 func jumpOutsideBlock(line int) string {
-	return messages.Text(messages.H8132, line, codes.NameRef(codes.A020), codes.NameRef(codes.A010), codes.NameRef(codes.A001))
+	return messages.Text(messages.H8132, line, codes.NameRef(codes.KwFunc), codes.NameRef(codes.KwFor), codes.NameRef(codes.KwIf))
 }
 
 // sourceOf çağrı yığınındaki bir dosyanın kaynak bilgisidir; nil hata ayıklanan programdır.

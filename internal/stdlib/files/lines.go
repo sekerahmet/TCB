@@ -19,7 +19,7 @@ import (
 )
 
 // LineReaderType dosya_satırları'nın verdiği okuyucunun tip adıdır (kod listesinde A257).
-var LineReaderType = interp.TypeName(codes.A257)
+var LineReaderType = interp.TypeName(codes.TypeLineReader)
 
 // lineLimit bir satırın en çok bayt sayısıdır (64 MB); daha uzun bir "satır" çoğunlukla
 // satırlara bölünmemiş bir dosyadır ve belleği tüketirdi.
@@ -87,9 +87,9 @@ func openFileError(fn any, raw string, real string) error {
 		return nil
 	}
 	if samePath(open, real) {
-		return messages.New(messages.H7125, fn, raw, LineReaderType, codes.NameRef(codes.Y012))
+		return messages.New(messages.H7125, fn, raw, LineReaderType, codes.NameRef(codes.MemClose))
 	}
-	return messages.New(messages.H7154, fn, raw, filepath.ToSlash(open), LineReaderType, codes.NameRef(codes.Y012))
+	return messages.New(messages.H7154, fn, raw, filepath.ToSlash(open), LineReaderType, codes.NameRef(codes.MemClose))
 }
 
 // CloseAll açık kalmış satır okuyucularının dosyalarını kapatır, ardından geçici_klasör()
@@ -118,11 +118,11 @@ func closeReaders() {
 
 // linesBuiltin dosya_satırları(yol) yerleşiğidir: dosyayı açar (hata hemen verilir).
 func linesBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := interp.CallPrefix(codes.G112)
+	fn := interp.CallPrefix(codes.FnReadLines)
 	if len(args) != 1 {
-		return nil, interp.ArgCountError(codes.G112, 1, len(args), messages.Text(messages.H2307))
+		return nil, interp.ArgCountError(codes.FnReadLines, 1, len(args), messages.Text(messages.H2307))
 	}
-	raw, err := readPath(codes.G112, 1, args[0])
+	raw, err := readPath(codes.FnReadLines, 1, args[0])
 	if err != nil {
 		return nil, err
 	}
@@ -161,17 +161,17 @@ func (o *LineReader) Text(lang *codes.Language) string {
 	case o.done:
 		state = messages.H7132 // ..., bitti
 	}
-	return messages.TextIn(lang.Code, state, lang.Name(codes.A257), o.fpath, o.counter)
+	return messages.TextIn(lang.Code, state, lang.Name(codes.TypeLineReader), o.fpath, o.counter)
 }
 
 func (o *LineReader) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
-	if kd == codes.Y012 {
+	if kd == codes.MemClose {
 		return o.closeMethod(), nil
 	}
-	if kd == codes.Y602 {
-		b := &interp.BuiltinVal{Name: codes.Name(codes.Y602), Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	if kd == codes.MemNext {
+		b := &interp.BuiltinVal{Name: codes.Name(codes.MemNext), Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 			if len(args) != 0 {
-				return nil, messages.New(messages.H2014, codes.NameRef(codes.Y602), len(args))
+				return nil, messages.New(messages.H2014, codes.NameRef(codes.MemNext), len(args))
 			}
 			d, cont, err := o.Next(m)
 			if err != nil || !cont {
@@ -182,16 +182,16 @@ func (o *LineReader) GetProperty(kd codes.Code, prop string) (interp.Value, erro
 		b.NoNamedArgs = true
 		return b, nil
 	}
-	return nil, bind.MemberError(LineReaderType, prop, []codes.Code{codes.Y602, codes.Y012})
+	return nil, bind.MemberError(LineReaderType, prop, []codes.Code{codes.MemNext, codes.MemClose})
 }
 
 // closeMethod x.kapat() metodudur: dosyayı bırakır; bu çağrı kapattıysa doğru, zaten kapalıysa
 // yanlış verir. Kapatma (dosya sistemi çağrısı) yorumlayıcı kilidi bırakılarak yapılır; başka
 // bir görev o sırada diskten okuyorsa okuması bitince kapanır.
 func (o *LineReader) closeMethod() *interp.BuiltinVal {
-	b := &interp.BuiltinVal{Name: codes.Name(codes.Y012), Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	b := &interp.BuiltinVal{Name: codes.Name(codes.MemClose), Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		if len(args) != 0 {
-			return nil, messages.New(messages.H2014, codes.NameRef(codes.Y012), len(args))
+			return nil, messages.New(messages.H2014, codes.NameRef(codes.MemClose), len(args))
 		}
 		var didClose bool
 		m.Blocking(func() {
@@ -209,7 +209,7 @@ func (o *LineReader) closeMethod() *interp.BuiltinVal {
 
 // closedError kapatılmış okuyucudan satır istenince verilen hatadır.
 func (o *LineReader) closedError() error {
-	return messages.New(messages.H7134, LineReaderType, o.fpath, codes.NameRef(codes.Y012), codes.NameRef(codes.G112))
+	return messages.New(messages.H7134, LineReaderType, o.fpath, codes.NameRef(codes.MemClose), codes.NameRef(codes.FnReadLines))
 }
 
 // Next sıradaki satırı verir; dosya bitince devam=false. Satır tamponda hazırsa yorumlayıcı
@@ -244,7 +244,7 @@ func (o *LineReader) Next(m *interp.VM) (interp.Value, bool, error) {
 		return nil, false, o.closedError()
 	}
 	if err != nil {
-		return nil, false, turkish.FileError(interp.CallPrefix(codes.G112), o.fpath, messages.H2100, err)
+		return nil, false, turkish.FileError(interp.CallPrefix(codes.FnReadLines), o.fpath, messages.H2100, err)
 	}
 	if last {
 		return nil, false, nil
@@ -280,7 +280,7 @@ func (o *LineReader) read() (line string, last bool, err error) {
 		if errors.Is(err, bufio.ErrBufferFull) {
 			if len(long)+len(part) > lineLimit {
 				o.close()
-				return "", false, turkish.NewReason(messages.H7105, o.counter+1, codes.NameRef(codes.G110))
+				return "", false, turkish.NewReason(messages.H7105, o.counter+1, codes.NameRef(codes.FnReadFile))
 			}
 			long = append(long, part...)
 			continue

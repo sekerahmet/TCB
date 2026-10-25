@@ -76,7 +76,7 @@ var nameTestFiles = map[string]string{
 
 type Code int
 
-const Y010 Code = 1
+const MemUpdate Code = 1 // Y010: update
 `,
 	"app/impl.go": `package app
 
@@ -89,7 +89,7 @@ func Save() {}
 
 // Update güncelle metodudur.
 func Update() {
-	record(codes.Y010)
+	record(codes.MemUpdate)
 	Save()
 }
 `,

@@ -18,12 +18,12 @@ import (
 
 // copyBuiltin kopyala(kaynak, hedef, üzerine_yaz: yanlış) yerleşiğidir.
 func copyBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	return doMove(m, codes.G124, args, named, false)
+	return doMove(m, codes.FnCopy, args, named, false)
 }
 
 // moveBuiltin taşı(kaynak, hedef, üzerine_yaz: yanlış) yerleşiğidir.
 func moveBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	return doMove(m, codes.G125, args, named, true)
+	return doMove(m, codes.FnMove, args, named, true)
 }
 
 // moveJob bir kopyalama ya da taşımanın denetlenmiş hâlidir; Blocking içinde yapılır.
@@ -135,13 +135,13 @@ func (job *moveJob) findTarget(m *interp.VM, targetRaw string, wantDir bool) err
 		job.last, job.lastRaw = filepath.Join(target, name), path.Join(clean(targetRaw), name)
 		return nil
 	case err == nil && isLink(b.Mode()):
-		return messages.New(messages.H7110, job.fn, targetRaw, codes.NameRef(codes.G123))
+		return messages.New(messages.H7110, job.fn, targetRaw, codes.NameRef(codes.FnRemove))
 	case err == nil && wantDir:
 		return messages.New(messages.H7111, job.fn, targetRaw)
 	case err != nil && !bind.IsNotExist(err):
 		return turkish.FileError(job.fn, targetRaw, messages.H2103, err)
 	case err != nil && wantDir:
-		return messages.New(messages.H7112, job.fn, targetRaw, codes.NameRef(codes.G122), strings.TrimRight(targetRaw, `/\`))
+		return messages.New(messages.H7112, job.fn, targetRaw, codes.NameRef(codes.FnMakeDir), strings.TrimRight(targetRaw, `/\`))
 	}
 	if _, err := os.Stat(filepath.Dir(target)); err != nil {
 		var pe *fs.PathError
@@ -175,7 +175,7 @@ func (job *moveJob) checkConflict(m *interp.VM, overwrite bool) error {
 	case !overwrite:
 		return messages.New(messages.H7115, job.fn, job.lastRaw, nameOverwrite)
 	case isLink(v.Mode()):
-		return messages.New(messages.H7116, job.fn, job.lastRaw, codes.NameRef(codes.G123))
+		return messages.New(messages.H7116, job.fn, job.lastRaw, codes.NameRef(codes.FnRemove))
 	case v.IsDir() && !job.srcInfo.IsDir():
 		return messages.New(messages.H7117, job.fn, job.lastRaw)
 	case !v.IsDir() && job.srcInfo.IsDir():

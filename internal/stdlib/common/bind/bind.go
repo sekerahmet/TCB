@@ -217,7 +217,7 @@ func SingleDictArg(kd codes.Code, args []interp.Value, example string) (*interp.
 	}
 	d, ok := args[0].(*interp.DictVal)
 	if !ok {
-		return nil, interp.ArgTypeError(kd, 1, args[0], codes.A206)
+		return nil, interp.ArgTypeError(kd, 1, args[0], codes.TypeDict)
 	}
 	return d, nil
 }

@@ -21,46 +21,46 @@ type Keyword struct {
 // keywordTable sözcük çözümleyicide ayrılmış bütün anahtar kelimelerdir.
 var keywordTable = []Keyword{
 	// Koşul ve eşleştirme
-	{codes.A001, TokIf},
-	{codes.A002, TokElse},
-	{codes.A003, TokMatch},
-	{codes.A004, TokDefault},
+	{codes.KwIf, TokIf},
+	{codes.KwElse, TokElse},
+	{codes.KwMatch, TokMatch},
+	{codes.KwDefault, TokDefault},
 
 	// Döngüler ve akış kontrolü
-	{codes.A010, TokFor},
-	{codes.A011, TokIn},
-	{codes.A012, TokWhile},
-	{codes.A013, TokBreak},
-	{codes.A014, TokContinue},
+	{codes.KwFor, TokFor},
+	{codes.KwIn, TokIn},
+	{codes.KwWhile, TokWhile},
+	{codes.KwBreak, TokBreak},
+	{codes.KwContinue, TokContinue},
 
 	// Fonksiyon ve dönüş
-	{codes.A020, TokFunction},
-	{codes.A021, TokReturn},
+	{codes.KwFunc, TokFunction},
+	{codes.KwReturn, TokReturn},
 
 	// Değişken ve sabit
-	{codes.A030, TokVar},
-	{codes.A031, TokConst},
+	{codes.KwVar, TokVar},
+	{codes.KwConst, TokConst},
 
 	// Mantıksal ve boş değerler
-	{codes.A040, TokTrue},
-	{codes.A041, TokFalse},
-	{codes.A042, TokNil},
-	{codes.A043, TokKwAnd},
-	{codes.A044, TokKwOr},
-	{codes.A045, TokKwNot},
+	{codes.KwTrue, TokTrue},
+	{codes.KwFalse, TokFalse},
+	{codes.KwNone, TokNil},
+	{codes.KwAnd, TokKwAnd},
+	{codes.KwOr, TokKwOr},
+	{codes.KwNot, TokKwNot},
 
 	// Yapı ve kendi
-	{codes.A050, TokStruct},
-	{codes.A051, TokSelf},
+	{codes.KwStruct, TokStruct},
+	{codes.KwSelf, TokSelf},
 
 	// Hata yönetimi, modül, eşzamanlılık, ertele, kesme noktası
-	{codes.A060, TokTry},
-	{codes.A061, TokCatch},
-	{codes.A062, TokThrow},
-	{codes.A070, TokImport},
-	{codes.A080, TokConcurrent},
-	{codes.A081, TokDefer},
-	{codes.A090, TokBreakpoint},
+	{codes.KwTry, TokTry},
+	{codes.KwCatch, TokCatch},
+	{codes.KwThrow, TokThrow},
+	{codes.KwImport, TokImport},
+	{codes.KwAsync, TokConcurrent},
+	{codes.KwDefer, TokDefer},
+	{codes.KwBreakpoint, TokBreakpoint},
 }
 
 // keywords kanonik dilde (Türkçe) yazım → token türü, typeCodes token türü → sözlük kodu haritasıdır.

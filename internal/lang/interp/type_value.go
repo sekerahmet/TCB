@@ -13,7 +13,7 @@ import (
 // program hangi dilde gösterilirse gösterilsin aynı sonucu verir.
 
 // ValType is the type of type values (A215 Tip).
-var ValType = TypeName(codes.A215)
+var ValType = TypeName(codes.TypeType)
 
 // TypeVal is a type value.
 type TypeVal struct {
@@ -68,26 +68,26 @@ func init() {
 func TypeOfValue(v Value) *TypeVal {
 	switch x := v.(type) {
 	case *IntVal:
-		return typeValues[codes.A200.Number()]
+		return typeValues[codes.TypeInt.Number()]
 	case *FloatVal:
-		return typeValues[codes.A201.Number()]
+		return typeValues[codes.TypeFloat.Number()]
 	case *StringVal:
-		return typeValues[codes.A202.Number()]
+		return typeValues[codes.TypeString.Number()]
 	case *BoolVal:
-		return typeValues[codes.A203.Number()]
+		return typeValues[codes.TypeBool.Number()]
 	case *NullVal:
-		return typeValues[codes.A204.Number()]
+		return typeValues[codes.TypeNone.Number()]
 	case *ListVal:
-		return typeValues[codes.A205.Number()]
+		return typeValues[codes.TypeList.Number()]
 	case *DictVal:
-		return typeValues[codes.A206.Number()]
+		return typeValues[codes.TypeDict.Number()]
 	case *StructInstanceVal:
 		return x.Def.typeValue()
 	}
 	if t := typeValueByName[v.Type()]; t != nil {
 		return t
 	}
-	return typeValues[codes.A213.Number()] // Herhangi: tipi kod listesinde olmayan değer
+	return typeValues[codes.TypeAny.Number()] // Herhangi: tipi kod listesinde olmayan değer
 }
 
 // typeValue yapının nesnelerinin tip değeridir; ilk kullanımda kurulur (yorumlayıcı kilidi

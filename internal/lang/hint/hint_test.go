@@ -49,7 +49,7 @@ func TestAsciiSpellingSuggestsRealName(t *testing.T) {
 
 // Geçerli bir ad için ipucu yoktur; yazım hatası için en yakın görünen ad önerilir.
 func TestValidNamesHaveNoHintAndTyposGetClosest(t *testing.T) {
-	if h := BuiltinSpellingHint(codes.Name(codes.G100)); h != nil {
+	if h := BuiltinSpellingHint(codes.Name(codes.FnPrint)); h != nil {
 		t.Errorf("geçerli ad için ipucu olmamalı: %q", h)
 	}
 	got := UndefinedNameError("öğrenci_sayis", []string{"öğrenci_sayısı", "toplam"}, nil).Error()

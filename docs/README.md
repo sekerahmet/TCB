@@ -5,6 +5,7 @@
 | [`guide/`](guide/README.md) | Dili kullanan herkes | Komutlar, anahtar kelimeler, tensörler ve yapay zekâ, veri ve parçalayıcı, hata ayıklayıcı, testler, biçimlendirme (bölüm başına bir dosya) |
 | [`spec/`](spec/README.md) | Dili geliştirenler, kesin kuralı arayanlar | Dilin numaralı kuralları; her kuralın `tests/` altında bir testi vardır (bölüm başına bir dosya: **4.2** → `spec/04_operatorler.md`) |
 | [`codes.md`](codes.md) | Herkes | Her anahtar kelimenin, tipin, yerleşiğin, metodun ve adlı argümanın ne işe yaradığı, imzası ve örneği. Kod listesinden üretilir, elle düzenlenmez: `go run ./tools/gen/codesdoc` |
+| [`code_identities.md`](code_identities.md) | Eski commit'leri ve notları okuyanlar | Eski kodların (`A001`) kimliklere (`TR_kw_if`) ve Go sabitlerine eşlemesi; geçişte bir kez üretildi, değişmez |
 | [`recipes.md`](recipes.md) | Geliştirici | Ekleme tarifleri: yeni fonksiyon, yerleşik, metot, ileti, paket, dil kuralı; dokunulacak dosyalar ve testler |
 | [`roadmap.md`](roadmap.md) | Herkes | İlkeler ve evreler: sağlam temel, gerçek model, geliştirici deneyimi, yaygınlaşma |
 | [`architecture.md`](architecture.md) | Depoda çalışanlar | Katmanlar, kim kimi içe aktarabilir, her paketin görevi, klasör haritası, sahiplik |

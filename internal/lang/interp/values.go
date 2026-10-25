@@ -16,19 +16,19 @@ import (
 type ValueType string
 
 var (
-	ValInt      = TypeName(codes.A200) // Tam
-	ValFloat    = TypeName(codes.A201) // Ondalık
-	ValString   = TypeName(codes.A202) // Metin
-	ValBool     = TypeName(codes.A203) // Mantık
-	ValNull     = TypeName(codes.A204) // Yok
-	ValList     = TypeName(codes.A205) // Liste
-	ValDict     = TypeName(codes.A206) // Sözlük
-	ValRange    = TypeName(codes.A207) // Aralık
-	ValFunc     = TypeName(codes.A208) // Fonksiyon
-	ValBuiltin  = TypeName(codes.A209) // YerleşikFonksiyon
-	ValStruct   = TypeName(codes.A210) // YapıTanımı
-	ValInstance = TypeName(codes.A211) // Nesne
-	ValTensor   = TypeName(codes.A212) // Tensör
+	ValInt      = TypeName(codes.TypeInt)             // Tam
+	ValFloat    = TypeName(codes.TypeFloat)           // Ondalık
+	ValString   = TypeName(codes.TypeString)          // Metin
+	ValBool     = TypeName(codes.TypeBool)            // Mantık
+	ValNull     = TypeName(codes.TypeNone)            // Yok
+	ValList     = TypeName(codes.TypeList)            // Liste
+	ValDict     = TypeName(codes.TypeDict)            // Sözlük
+	ValRange    = TypeName(codes.TypeRange)           // Aralık
+	ValFunc     = TypeName(codes.TypeFunction)        // Fonksiyon
+	ValBuiltin  = TypeName(codes.TypeBuiltinFunction) // YerleşikFonksiyon
+	ValStruct   = TypeName(codes.TypeStructType)      // YapıTanımı
+	ValInstance = TypeName(codes.TypeObject)          // Nesne
+	ValTensor   = TypeName(codes.TypeTensor)          // Tensör
 )
 
 // MessageText is the type's name in a message written in lang (messages.Localized): the type
@@ -112,11 +112,11 @@ func (f *FloatVal) IsTruthy() bool { return f.Val != 0.0 }
 func NonFiniteText(f float64, lang *codes.Language) (string, bool) {
 	switch {
 	case math.IsNaN(f):
-		return lang.Name(codes.A111), true
+		return lang.Name(codes.ValNan), true
 	case math.IsInf(f, 1):
-		return lang.Name(codes.A110), true
+		return lang.Name(codes.ValInf), true
 	case math.IsInf(f, -1):
-		return "-" + lang.Name(codes.A110), true
+		return "-" + lang.Name(codes.ValInf), true
 	}
 	return "", false
 }
@@ -137,9 +137,9 @@ func (b *BoolVal) Type() ValueType { return ValBool }
 func (b *BoolVal) Inspect() string { return b.Text(codes.Active()) }
 func (b *BoolVal) Text(lang *codes.Language) string {
 	if b.Val {
-		return lang.Name(codes.A040)
+		return lang.Name(codes.KwTrue)
 	}
-	return lang.Name(codes.A041)
+	return lang.Name(codes.KwFalse)
 }
 func (b *BoolVal) IsTruthy() bool { return b.Val }
 
@@ -147,7 +147,7 @@ type NullVal struct{}
 
 func (n *NullVal) Type() ValueType                  { return ValNull }
 func (n *NullVal) Inspect() string                  { return n.Text(codes.Active()) }
-func (n *NullVal) Text(lang *codes.Language) string { return lang.Name(codes.A042) }
+func (n *NullVal) Text(lang *codes.Language) string { return lang.Name(codes.KwNone) }
 func (n *NullVal) IsTruthy() bool                   { return false }
 
 var (

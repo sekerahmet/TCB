@@ -55,7 +55,7 @@ func (c *Checker) checkNameStyle(name string, kind nameKind, line int) {
 			return
 		}
 		if kind == kindVariable && !strings.ContainsFunc(bare, unicode.IsLower) {
-			warning = messages.New(messages.H1015, name, codes.NameRef(codes.A031), keepPrefix(name, snake(bare)))
+			warning = messages.New(messages.H1015, name, codes.NameRef(codes.KwConst), keepPrefix(name, snake(bare)))
 		} else {
 			warning = messages.New(messages.H1012, name, keepPrefix(name, snake(bare)))
 		}

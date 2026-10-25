@@ -25,7 +25,7 @@ const usageErrorCode = 2
 // --help de), yardımda ve iletilerde etkin dilin adı yazılır; -h simgedir.
 
 // helpOption yardım seçeneğinin etkin dildeki yazımıdır (--yardım).
-func helpOption() string { return codes.OptionFlag(codes.K106) }
+func helpOption() string { return codes.OptionFlag(codes.OptHelp) }
 
 // isHelpArgument argümanın yardımı istediğidir: -h ya da herhangi bir dilde --yardım.
 func isHelpArgument(a string) bool {
@@ -39,7 +39,7 @@ func isHelpArgument(a string) bool {
 // isHelpName adın (tiresiz) yardım seçeneğinin bir dildeki adı olduğudur.
 func isHelpName(name string) bool {
 	k, ok := codes.FindOption(name)
-	return ok && k == codes.K106
+	return ok && k == codes.OptHelp
 }
 
 // applyArguments programın argümanlarını okur (okunmuş sayılırlar) ve seçeneklerin
@@ -172,9 +172,9 @@ func unknownOption(given string, options []*option) error {
 	helps := map[string]bool{}
 	var candidates []string
 	for _, lang := range codes.Languages() {
-		if l, err := codes.LoadLanguage(lang); err == nil && !helps[l.Name(codes.K106)] {
-			helps[l.Name(codes.K106)] = true
-			candidates = append(candidates, l.Name(codes.K106))
+		if l, err := codes.LoadLanguage(lang); err == nil && !helps[l.Name(codes.OptHelp)] {
+			helps[l.Name(codes.OptHelp)] = true
+			candidates = append(candidates, l.Name(codes.OptHelp))
 		}
 	}
 	for _, s := range options {
@@ -185,7 +185,7 @@ func unknownOption(given string, options []*option) error {
 		o = name // -adım → --adım
 	}
 	if o == "" && name == "h" {
-		o = codes.Name(codes.K106)
+		o = codes.Name(codes.OptHelp)
 		helps[o] = true
 	}
 	if o == "" {
@@ -193,7 +193,7 @@ func unknownOption(given string, options []*option) error {
 	}
 	var suggestion any = o // programın seçeneği yazıldığı gibi; yardım seçeneği iletinin dilinde
 	if helps[o] && find(options, o) == nil {
-		suggestion = codes.NameRef(codes.K106)
+		suggestion = codes.NameRef(codes.OptHelp)
 	}
 	return messages.New(messages.H7209, shorten(given), suggestion)
 }
@@ -207,7 +207,7 @@ func parseValue(s *option, value string, valued bool) (interp.Value, error) {
 		if b, ok := boolName(value); ok {
 			return interp.BoolToVal(b), nil
 		}
-		return nil, messages.New(messages.H7210, s.name, codes.NameRef(codes.A203), codes.NameRef(codes.A040), codes.NameRef(codes.A041), shorten(value))
+		return nil, messages.New(messages.H7210, s.name, codes.NameRef(codes.TypeBool), codes.NameRef(codes.KwTrue), codes.NameRef(codes.KwFalse), shorten(value))
 	}
 	if s.optKind != kindList {
 		v, err := parsePlainValue(s.optKind, value)
@@ -250,7 +250,7 @@ func parsePlainValue(t optKind, s string) (interp.Value, error) {
 		if b, ok := boolName(s); ok {
 			return interp.BoolToVal(b), nil
 		}
-		return nil, messages.New(messages.H7213, codes.NameRef(codes.A040), codes.NameRef(codes.A041))
+		return nil, messages.New(messages.H7213, codes.NameRef(codes.KwTrue), codes.NameRef(codes.KwFalse))
 	}
 	return &interp.StringVal{Val: s}, nil
 }
@@ -264,9 +264,9 @@ func boolName(s string) (value, ok bool) {
 	for _, code := range codes.Languages() {
 		if l, err := codes.LoadLanguage(code); err == nil {
 			switch s {
-			case l.Name(codes.A040):
+			case l.Name(codes.KwTrue):
 				return true, true
-			case l.Name(codes.A041):
+			case l.Name(codes.KwFalse):
 				return false, true
 			}
 		}
@@ -302,7 +302,7 @@ func plainExample(t optKind) string {
 	case kindFloat:
 		return "0.001"
 	case kindBool:
-		return codes.DisplayName(codes.A040) // iletide örnek: kişinin dilinde
+		return codes.DisplayName(codes.KwTrue) // iletide örnek: kişinin dilinde
 	}
 	return messages.Text(messages.H7214) // değer
 }

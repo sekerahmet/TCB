@@ -49,13 +49,13 @@ import (
 )
 
 // CheckpointType KontrolNoktası değerlerinin tip adıdır.
-var CheckpointType = interp.TypeName(codes.A258)
+var CheckpointType = interp.TypeName(codes.TypeCheckpoint)
 
 // Adlı argümanlar; adları kod listesindedir (internal/lang/codes).
 var (
-	nameEveryMinutes = bind.NamedArg(codes.T984)
-	nameKeep         = bind.NamedArg(codes.T985)
-	nameSeed         = bind.NamedArg(codes.T903)
+	nameEveryMinutes = bind.NamedArg(codes.ArgEveryMinutes)
+	nameKeep         = bind.NamedArg(codes.ArgKeep)
+	nameSeed         = bind.NamedArg(codes.ArgSeed)
 )
 
 // Varsayılanlar ve sınırlar.
@@ -73,7 +73,7 @@ var clock = time.Now
 // Register kontrol_noktası yerleşiğini VM'ye kaydeder. s programın süreç durumudur (komut
 // satırı ayarları noktaya yazılır); nil olabilir.
 func Register(v *interp.VM, s *process.State) {
-	v.RegisterBuiltinCode(codes.T702, bind.SafeBuiltin(interp.CallPrefix(codes.T702), func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	v.RegisterBuiltinCode(codes.FnCheckpoint, bind.SafeBuiltin(interp.CallPrefix(codes.FnCheckpoint), func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		return setup(m, s, args, named)
 	}))
 }
@@ -106,7 +106,7 @@ var _ interp.LanguageText = (*Checkpoint)(nil)
 // Text is the value's text in lang: str() and yazdır give it in the language of the file they
 // are written in (docs/spec/03_tipler.md).
 func (kn *Checkpoint) Text(lang *codes.Language) string {
-	return messages.TextIn(lang.Code, messages.H7406, lang.Name(codes.A258), kn.shown, kn.step, len(kn.objects))
+	return messages.TextIn(lang.Code, messages.H7406, lang.Name(codes.TypeCheckpoint), kn.shown, kn.step, len(kn.objects))
 }
 
 // Dir noktaların çözülmüş klasörüdür (<koşu>/kontrol_noktalari).
@@ -114,43 +114,43 @@ func (kn *Checkpoint) Dir() string { return kn.dir }
 
 func (kn *Checkpoint) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	switch kd {
-	case codes.Y520:
+	case codes.MemResumeStep:
 		return interp.NewInt(kn.resumed), nil
-	case codes.Y010:
-		return bind.CodeMethod(codes.Y010, true, func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+	case codes.MemUpdate:
+		return bind.CodeMethod(codes.MemUpdate, true, func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 			return kn.update(m, args)
 		}), nil
-	case codes.Y521:
-		return bind.CodeMethod(codes.Y521, true, func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+	case codes.MemSave:
+		return bind.CodeMethod(codes.MemSave, true, func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 			return kn.saveTR(m, args)
 		}), nil
-	case codes.Y522:
-		return bind.CodeMethod(codes.Y522, true, func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+	case codes.MemRollback:
+		return bind.CodeMethod(codes.MemRollback, true, func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 			return kn.rollback(m, args)
 		}), nil
 	}
-	return nil, bind.MemberError(CheckpointType, prop, []codes.Code{codes.Y010, codes.Y520, codes.Y521, codes.Y522})
+	return nil, bind.MemberError(CheckpointType, prop, []codes.Code{codes.MemUpdate, codes.MemResumeStep, codes.MemSave, codes.MemRollback})
 }
 
 // setup kontrol_noktası(koşu, nesneler, her_dakika:, tut:) yerleşiğidir.
 func setup(m *interp.VM, s *process.State, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := interp.CallPrefix(codes.T702)
+	fn := interp.CallPrefix(codes.FnCheckpoint)
 	if err := bind.CheckNamed(fn, named, nameEveryMinutes, nameKeep); err != nil {
 		return nil, err
 	}
 	if len(args) != 2 {
-		return nil, interp.ArgCountError(codes.T702, 2, len(args), messages.Text(messages.H2313))
+		return nil, interp.ArgCountError(codes.FnCheckpoint, 2, len(args), messages.Text(messages.H2313))
 	}
 	fpath, ok, err := interp.PathArg(fn, args[0])
 	if err != nil {
 		return nil, err
 	}
 	if !ok || fpath == "" {
-		return nil, interp.ArgTypeError(codes.T702, 1, args[0], codes.A202, codes.A250)
+		return nil, interp.ArgTypeError(codes.FnCheckpoint, 1, args[0], codes.TypeString, codes.TypePath)
 	}
 	dict, ok := args[1].(*interp.DictVal)
 	if !ok {
-		return nil, interp.ArgTypeError(codes.T702, 2, args[1], codes.A206)
+		return nil, interp.ArgTypeError(codes.FnCheckpoint, 2, args[1], codes.TypeDict)
 	}
 	interval, keep, err := options(fn, named)
 	if err != nil {
@@ -189,7 +189,7 @@ func options(fn any, named map[string]interp.Value) (time.Duration, int, error) 
 	if v, ok := bind.GetNamed(named, nameKeep); ok {
 		n, integer := v.(*interp.IntVal)
 		if !integer || n.Val < 1 || n.Val > 1000 {
-			return 0, 0, messages.New(messages.H7409, fn, nameKeep, codes.NameRef(codes.A200), interp.TypeAndSummary(v))
+			return 0, 0, messages.New(messages.H7409, fn, nameKeep, codes.NameRef(codes.TypeInt), interp.TypeAndSummary(v))
 		}
 		keep = int(n.Val)
 	}
@@ -203,7 +203,7 @@ func setupUnseededWarning(m *interp.VM) {
 	ml.SetUnseededHook(func() {
 		one.Do(func() {
 			m.WriteOutput(m.Err, messages.Text(messages.H7410,
-				codes.NameRef(codes.T702), codes.NameRef(codes.T103), codes.NameRef(codes.T611), nameSeed)+"\n")
+				codes.NameRef(codes.FnCheckpoint), codes.NameRef(codes.FnRandn), codes.NameRef(codes.FnSample), nameSeed)+"\n")
 		})
 	})
 }
@@ -215,7 +215,7 @@ func stepArg(kd codes.Code, args []interp.Value) (int64, error) {
 	}
 	n, ok := args[0].(*interp.IntVal)
 	if !ok || n.Val < 0 {
-		return 0, messages.New(messages.H7411, interp.CallPrefix(kd), codes.NameRef(codes.A200), interp.TypeAndSummary(args[0]))
+		return 0, messages.New(messages.H7411, interp.CallPrefix(kd), codes.NameRef(codes.TypeInt), interp.TypeAndSummary(args[0]))
 	}
 	return n.Val, nil
 }
@@ -223,7 +223,7 @@ func stepArg(kd codes.Code, args []interp.Value) (int64, error) {
 // update kn.güncelle(adım) metodudur: adım sınırı. Durdurma istendiyse kaydeder ve
 // programı durdurur; her_dakika süresi dolduysa kaydeder (kaydettiyse doğru).
 func (kn *Checkpoint) update(m *interp.VM, args []interp.Value) (interp.Value, error) {
-	n, err := stepArg(codes.Y010, args)
+	n, err := stepArg(codes.MemUpdate, args)
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +255,7 @@ func (kn *Checkpoint) saveOnInterval(m *interp.VM) (interp.Value, error) {
 	}
 	// Süreli kayıtta yeniden deneme bir süre sonradır, yoksa sonraki kaydet çağrısında: iki
 	// ayrı cümle, iki kod.
-	warning := messages.Text(messages.H7485, err, kn.failures, maxFailures, codes.NameRef(codes.Y010), kn.lastValidText())
+	warning := messages.Text(messages.H7485, err, kn.failures, maxFailures, codes.NameRef(codes.MemUpdate), kn.lastValidText())
 	if kn.interval > 0 {
 		warning = messages.Text(messages.H7413, err, kn.failures, maxFailures, durationText(kn.interval), kn.lastValidText())
 	}
@@ -266,7 +266,7 @@ func (kn *Checkpoint) saveOnInterval(m *interp.VM) (interp.Value, error) {
 // saveTR kn.kaydet() metodudur: hemen kaydeder; hata açık hatadır.
 func (kn *Checkpoint) saveTR(m *interp.VM, args []interp.Value) (interp.Value, error) {
 	if len(args) != 0 {
-		return nil, interp.ArgCountError(codes.Y521, 0, len(args))
+		return nil, interp.ArgCountError(codes.MemSave, 0, len(args))
 	}
 	fpath, err := kn.save(m)
 	kn.lastSave = clock()
@@ -284,15 +284,15 @@ func (kn *Checkpoint) saveTR(m *interp.VM, args []interp.Value) (interp.Value, e
 // yükler ve adımını verir; nokta yoksa açık hatadır. kaldığı_adım değişmez (kurulumun adımıdır).
 func (kn *Checkpoint) rollback(m *interp.VM, args []interp.Value) (interp.Value, error) {
 	if len(args) != 0 {
-		return nil, interp.ArgCountError(codes.Y522, 0, len(args))
+		return nil, interp.ArgCountError(codes.MemRollback, 0, len(args))
 	}
-	fn := interp.CallName(codes.Y522)
+	fn := interp.CallName(codes.MemRollback)
 	o, err := kn.loadNewest(m, fn)
 	if err != nil {
 		return nil, err
 	}
 	if o == nil {
-		return nil, messages.New(messages.H7486, fn, kn.shown, codes.NameRef(codes.Y521), codes.NameRef(codes.Y010))
+		return nil, messages.New(messages.H7486, fn, kn.shown, codes.NameRef(codes.MemSave), codes.NameRef(codes.MemUpdate))
 	}
 	m.WriteOutput(m.Err, messages.Text(messages.H7487, o.step, kn.shown, o.name)+"\n")
 	return interp.NewInt(o.step), nil

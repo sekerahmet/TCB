@@ -34,8 +34,8 @@ func contextWordsOf(lang *codes.Language) *contextWords {
 		return w.(*contextWords)
 	}
 	w := &contextWords{
-		test: lang.Spellings(codes.A101), as: lang.Spellings(codes.A100), reduce: lang.Spellings(codes.Y207),
-		self: lang.Name(codes.A051), err: lang.Name(codes.A103), it: lang.Name(codes.A104), acc: lang.Name(codes.A105),
+		test: lang.Spellings(codes.CtxTest), as: lang.Spellings(codes.CtxAs), reduce: lang.Spellings(codes.MemReduce),
+		self: lang.Name(codes.KwSelf), err: lang.Name(codes.CtxError), it: lang.Name(codes.CtxIt), acc: lang.Name(codes.CtxAcc),
 	}
 	v, _ := contextWordsByLanguage.LoadOrStore(lang.Code, w)
 	return v.(*contextWords)

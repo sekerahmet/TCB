@@ -29,16 +29,16 @@ func (c *analysis) langElement(r lexer.Record) codes.Code {
 	case parser.RoleType:
 		return c.find(codes.NamespaceType, name)
 	case parser.RoleMember, parser.RoleStructField, parser.RoleStructMethod:
-		if name == c.lang.Name(codes.A102) {
-			return codes.A102
+		if name == c.lang.Name(codes.CtxInit) {
+			return codes.CtxInit
 		}
 		return c.find(codes.NamespaceMember, name)
 	case parser.RoleDictKey:
 		return c.find(codes.NamespaceMember, name)
 	case parser.RoleTest:
-		return c.contextual(codes.A101, name)
+		return c.contextual(codes.CtxTest, name)
 	case parser.RoleAs:
-		return c.contextual(codes.A100, name)
+		return c.contextual(codes.CtxAs, name)
 	}
 	if bg, ok := c.bindings[pos]; ok && bg.Token.Literal == name {
 		switch bg.Kind {

@@ -18,7 +18,7 @@ import (
 func TestWrappedBuiltinPanicIsCatchable(t *testing.T) {
 	runWith := func(code string) (string, error) {
 		m := interp.New()
-		wrap(m, codes.T101, newBuiltin(func(*interp.VM, []interp.Value, map[string]interp.Value) (interp.Value, error) {
+		wrap(m, codes.FnZeros, newBuiltin(func(*interp.VM, []interp.Value, map[string]interp.Value) (interp.Value, error) {
 			panic(messages.New(messages.H4014, "1 MB", "0 bayt", "1 GB", "CUDA_ERROR_OUT_OF_MEMORY"))
 		}))
 		var out bytes.Buffer

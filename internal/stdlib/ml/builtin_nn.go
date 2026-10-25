@@ -34,7 +34,7 @@ func intIndices(fn any, v interp.Value) ([]int, []int, error) {
 }
 
 func embedding(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.T500)
+	fn := codes.NameRef(codes.FnEmbedding)
 	if len(args) != 2 {
 		return nil, messages.New(messages.H6301, fn, len(args))
 	}
@@ -89,7 +89,7 @@ func embedding(_ *interp.VM, args []interp.Value, named map[string]interp.Value)
 }
 
 func crossEntropy(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.T510)
+	fn := codes.NameRef(codes.FnCrossEntropy)
 	if len(args) != 2 {
 		return nil, messages.New(messages.H6308, fn, len(args))
 	}
@@ -159,7 +159,7 @@ func lossTargets(fn any, sh []int, v interp.Value) ([]int, error) {
 // hedef) ile aynı kayıp ve gradyanlar, ama bütün logitler hiç tutulmaz (tensor.LinearCrossEntropy,
 // dil tanımı 15.25). Karışık hassasiyet bloğunda x ve ağırlık `@` gibi blok türüne çevrilir.
 func linearCrossEntropy(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.T512)
+	fn := codes.NameRef(codes.FnLinearCrossEntropy)
 	if len(args) != 3 {
 		return nil, messages.New(messages.H6345, fn, len(args))
 	}
@@ -274,7 +274,7 @@ func normArgs(fn codes.Ref, args []interp.Value, named map[string]interp.Value, 
 }
 
 func layerNorm(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.T501)
+	fn := codes.NameRef(codes.FnLayerNorm)
 	x, p, eps, dt, err := normArgs(fn, args, named, []bind.Named{nameWeight, nameBias})
 	if err != nil {
 		return nil, err
@@ -305,7 +305,7 @@ func layerNorm(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 }
 
 func rmsNorm(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.T502)
+	fn := codes.NameRef(codes.FnRmsNorm)
 	x, p, eps, dt, err := normArgs(fn, args, named, []bind.Named{nameWeight})
 	if err != nil {
 		return nil, err

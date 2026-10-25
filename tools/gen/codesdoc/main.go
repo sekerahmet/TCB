@@ -89,12 +89,12 @@ func typeName(t codes.TypeExpr) string {
 func defaultValue(v any) string {
 	switch x := v.(type) {
 	case nil:
-		return codes.Name(codes.A042) // yok
+		return codes.Name(codes.KwNone) // yok
 	case bool:
 		if x {
-			return codes.Name(codes.A040)
+			return codes.Name(codes.KwTrue)
 		}
-		return codes.Name(codes.A041)
+		return codes.Name(codes.KwFalse)
 	case float64:
 		return strconv.FormatFloat(x, 'g', -1, 64)
 	case string:

@@ -11,11 +11,11 @@ import (
 // kaydeder. Tensör yolu internal/stdlib/ml'dadır; o, bu yerleşikleri sarar (karekök
 // gibi). Tam girdide sonuç Tam, Ondalık girdide Ondalık'tır.
 func (v *VM) registerMath() {
-	v.RegisterNoNamed(codes.G406, roundingBuiltin(codes.G406, math.Floor))
-	v.RegisterNoNamed(codes.G407, roundingBuiltin(codes.G407, math.Ceil))
-	v.RegisterNoNamed(codes.G408, signBuiltin)
-	v.RegisterNoNamed(codes.G415, isFiniteBuiltin)
-	v.DefineConstant(codes.G414, &FloatVal{Val: math.Pi})
+	v.RegisterNoNamed(codes.FnFloor, roundingBuiltin(codes.FnFloor, math.Floor))
+	v.RegisterNoNamed(codes.FnCeil, roundingBuiltin(codes.FnCeil, math.Ceil))
+	v.RegisterNoNamed(codes.FnSign, signBuiltin)
+	v.RegisterNoNamed(codes.FnIsFinite, isFiniteBuiltin)
+	v.DefineConstant(codes.ConstPi, &FloatVal{Val: math.Pi})
 }
 
 // roundingBuiltin taban ve tavan: Tam olduğu gibi, Ondalık f ile yuvarlanmış Ondalık döner
@@ -39,7 +39,7 @@ func roundingBuiltin(kd codes.Code, f func(float64) float64) BuiltinFunc {
 // girdide Ondalık (NaN ve işaretli sıfır korunur).
 func signBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, ArgCountError(codes.G408, 1, len(args), messages.Text(messages.H2305))
+		return nil, ArgCountError(codes.FnSign, 1, len(args), messages.Text(messages.H2305))
 	}
 	switch a := args[0].(type) {
 	case *IntVal:
@@ -59,13 +59,13 @@ func signBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 		}
 		return a, nil
 	}
-	return nil, ArgTypeError(codes.G408, 1, args[0], numberTypes...)
+	return nil, ArgTypeError(codes.FnSign, 1, args[0], numberTypes...)
 }
 
 // isFiniteBuiltin sonlu_mu(): Ondalık NaN ve ±sonsuzda yanlış, öbür sayılarda (her Tam) doğru.
 func isFiniteBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, ArgCountError(codes.G415, 1, len(args), messages.Text(messages.H2305))
+		return nil, ArgCountError(codes.FnIsFinite, 1, len(args), messages.Text(messages.H2305))
 	}
 	switch a := args[0].(type) {
 	case *IntVal:
@@ -73,5 +73,5 @@ func isFiniteBuiltin(y *VM, args []Value, named map[string]Value) (Value, error)
 	case *FloatVal:
 		return BoolToVal(!math.IsNaN(a.Val) && !math.IsInf(a.Val, 0)), nil
 	}
-	return nil, ArgTypeError(codes.G415, 1, args[0], numberTypes...)
+	return nil, ArgTypeError(codes.FnIsFinite, 1, args[0], numberTypes...)
 }

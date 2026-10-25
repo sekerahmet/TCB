@@ -66,12 +66,12 @@ var displaySurfaces = []displaySurface{
 	{name: "denetim_hatası", files: map[string]string{"p.tr": "değişken ad_1 = 1\nyazdır(ad_1 + ad_9)\n"},
 		args: func(*codes.Language) []string { return []string{"p.tr"} }, frameFile: "p.tr", mark: "ad_9"},
 	{name: "kontrol", files: map[string]string{"p.tr": "değişken ad_1 = 1\nyazdır(ad_1 + ad_9)\n"},
-		args: cmd(codes.K004), frameFile: "p.tr", mark: "ad_9"},
+		args: cmd(codes.CmdCheck), frameFile: "p.tr", mark: "ad_9"},
 	{name: "uyarı", files: map[string]string{"p.tr": "değişken ad_1 = 1\n- mutlak(ad_1)\nyazdır(ad_1)\n"},
 		args: func(*codes.Language) []string { return []string{"p.tr"} }, frameFile: "p.tr"},
 	{name: "test_raporu", files: map[string]string{"p_test.tr": "fonksiyon ad_1() {\n    sonuç 2\n}\ntest \"t\" {\n    eşit_mi(5, 2 + ad_1())\n}\n"},
-		args: func(r *codes.Language) []string { return []string{r.Name(codes.K007), "p_test.tr"} }, frameFile: "p_test.tr"},
-	{name: "kabuk", typed: true, input: func(r *codes.Language) string { return r.Name(codes.G100) + "(ad_9 + 1)\n" },
+		args: func(r *codes.Language) []string { return []string{r.Name(codes.CmdTest), "p_test.tr"} }, frameFile: "p_test.tr"},
+	{name: "kabuk", typed: true, input: func(r *codes.Language) string { return r.Name(codes.FnPrint) + "(ad_9 + 1)\n" },
 		args: func(*codes.Language) []string { return nil }, frameFile: "<input>", mark: "ad_9"},
 	{name: "modül_hatası", files: map[string]string{"p.tr": "aktar \"m\"\nyazdır(ad_2)\n", "m.tr": "değişken ad_2 = 1\nyazdır(ad_2 + ad_9)\n"},
 		args: func(*codes.Language) []string { return []string{"p.tr"} }, frameFile: "p.tr", mark: "ad_9", markFile: "m.tr"},
@@ -80,25 +80,27 @@ var displaySurfaces = []displaySurface{
 	{name: "yapı_değeri", readerIsFile: true, files: map[string]string{"p.tr": "yapı P {\n    uzunluk\n}\nyazdır(P(uzunluk: 2))\n"},
 		args: func(*codes.Language) []string { return []string{"p.tr"} }},
 	{name: "dizin", files: map[string]string{"p.tr": "fonksiyon ad_1(x) {\n    sonuç x\n}\nyazdır(ad_1(1))\n"},
-		args: func(r *codes.Language) []string { return []string{r.Name(codes.K015), r.Name(codes.K016), "ad_1"} }, mark: "ad_1"},
+		args: func(r *codes.Language) []string {
+			return []string{r.Name(codes.CmdIndex), r.Name(codes.SubDefinition), "ad_1"}
+		}, mark: "ad_1"},
 	{name: "dizin_json", json: true, files: map[string]string{"p.tr": "fonksiyon ad_1(x) {\n    sonuç x\n}\nyazdır(ad_1(1))\n"},
 		args: func(r *codes.Language) []string {
-			return []string{r.Name(codes.K015), r.Name(codes.K016), "ad_1", "--" + r.Name(codes.K103)}
+			return []string{r.Name(codes.CmdIndex), r.Name(codes.SubDefinition), "ad_1", "--" + r.Name(codes.OptJson)}
 		}, mark: "ad_1"},
-	{name: "kodla", typed: true, input: func(r *codes.Language) string { return r.Name(codes.G100) + "(ad_1 +)\n" },
+	{name: "kodla", typed: true, input: func(r *codes.Language) string { return r.Name(codes.FnPrint) + "(ad_1 +)\n" },
 		args: func(r *codes.Language) []string {
-			return []string{r.Name(codes.K009), "-", "--" + r.Name(codes.K100), r.Code}
+			return []string{r.Name(codes.CmdEncode), "-", "--" + r.Name(codes.OptLang), r.Code}
 		},
 		frameFile: "<input>"},
 	{name: "göster", typed: true, rawFrame: true,
 		raw: func(*codes.Language) map[string]string {
-			return map[string]string{"p.tr": turkishLanguage.Name(codes.G100) + "(ad_1 +)\n"}
+			return map[string]string{"p.tr": turkishLanguage.Name(codes.FnPrint) + "(ad_1 +)\n"}
 		},
-		args: cmd(codes.K011)},
+		args: cmd(codes.CmdShow)},
 	{name: "derle", build: true, files: map[string]string{"p.tr": "değişken ad_1 = [1]\nyazdır(ad_1.ad_9)\n"}, frameFile: "p.tr"},
 	{name: "hata_ayıklayıcı", files: map[string]string{"p.tr": "değişken ad_1 = [1]\nyazdır(ad_1.ad_9)\n"},
-		args:  cmd(codes.K006),
-		input: func(r *codes.Language) string { return strings.Repeat(r.Name(codes.K303)+"\n", 3) }, frameFile: "p.tr"},
+		args:  cmd(codes.CmdDebug),
+		input: func(r *codes.Language) string { return strings.Repeat(r.Name(codes.DbgContinue)+"\n", 3) }, frameFile: "p.tr"},
 }
 
 var turkishLanguage = mustLanguage("tr")
@@ -203,7 +205,7 @@ func displayCase(t *testing.T, s displaySurface, f, r *codes.Language) []string 
 	var res testkit.Result
 	if s.build {
 		app := filepath.Join(dir, "app.exe")
-		if b := testkit.RunBinary(t, trBinary, dir, "", env, r.Name(codes.K005), "p.tr", app); b.Code != 0 {
+		if b := testkit.RunBinary(t, trBinary, dir, "", env, r.Name(codes.CmdBuild), "p.tr", app); b.Code != 0 {
 			t.Fatalf("%s: derlenemedi: %s%s", s.name, b.Stdout, b.Stderr)
 		}
 		res = testkit.RunBinary(t, app, dir, input, env)

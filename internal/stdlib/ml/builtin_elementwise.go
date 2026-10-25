@@ -30,8 +30,8 @@ func geluExact64(x float64) float64 {
 // tanh yaklaşımlı, yanlış tam (erf tabanlı) GELU'dur. Öteki eleman bazlı fonksiyonlar gibi
 // tensörde türev izleyen tensör, sayıda Ondalık verir, listede yol gösteren hata verir.
 func registerGelu(v *interp.VM) {
-	ad := codes.NameRef(codes.T203)
-	wrap(v, codes.T203, func(interp.BuiltinFunc) interp.BuiltinFunc {
+	ad := codes.NameRef(codes.FnGelu)
+	wrap(v, codes.FnGelu, func(interp.BuiltinFunc) interp.BuiltinFunc {
 		return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 			if err := bind.CheckNamed(ad.Called(), named, nameApproximate); err != nil {
 				return nil, err
@@ -117,7 +117,7 @@ func applyToNumber(ad codes.Ref, v interp.Value, f func(float64) float64) (inter
 	if s, ok := interp.ToFloat(v); ok {
 		return &interp.FloatVal{Val: f(s)}, nil
 	}
-	if err := listError(ad, v, messages.New(messages.H6131), ad.String()+"("+codes.Name(codes.T100)+"(...))"); err != nil {
+	if err := listError(ad, v, messages.New(messages.H6131), ad.String()+"("+codes.Name(codes.FnTensor)+"(...))"); err != nil {
 		return nil, err
 	}
 	return nil, messages.New(messages.H6103, ad, typeName(v))
@@ -129,7 +129,7 @@ func listError(ad any, v interp.Value, accept any, example string) error {
 	if _, ok := v.(*interp.ListVal); !ok {
 		return nil
 	}
-	return messages.New(messages.H6104, ad, accept, codes.NameRef(codes.T100), example)
+	return messages.New(messages.H6104, ad, accept, codes.NameRef(codes.FnTensor), example)
 }
 
 // axisArg eksen adlı argümanını ya da konumlu ikinci argümanı okur.
@@ -164,7 +164,7 @@ func registerSoftmax(v *interp.VM, kd codes.Code, logMode bool) {
 				if len(args) == 0 {
 					return nil, messages.New(messages.H6109, ad, nameAxis)
 				}
-				if err := listError(ad, args[0], messages.New(messages.H6132), ad.String()+"("+codes.Name(codes.T100)+"(...), "+nameAxis.TR+": -1)"); err != nil {
+				if err := listError(ad, args[0], messages.New(messages.H6132), ad.String()+"("+codes.Name(codes.FnTensor)+"(...), "+nameAxis.TR+": -1)"); err != nil {
 					return nil, err
 				}
 				return nil, messages.New(messages.H6110, ad, typeName(args[0]))

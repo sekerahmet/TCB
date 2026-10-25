@@ -71,7 +71,7 @@
 // # Codes in Go
 //
 // Go code writes codes with named constants generated from the language file
-// (codes_generated.go): codes.G100, codes.A001, codes.Y400. A constant's name is the code
+// (codes_generated.go): codes.FnPrint, codes.KwIf, codes.MemShape. A constant's name is the code
 // itself, not the user-visible name; renaming a name never changes the constant. Writing a
 // code that is not in the dictionary (or has moved) breaks the build. The constants work in
 // switch statements. When a code is added, removed or moved in the language file, regenerate:

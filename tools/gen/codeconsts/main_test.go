@@ -57,7 +57,7 @@ func TestNoBareCodes(t *testing.T) {
 		}
 		for i, line := range strings.Split(string(data), "\n") {
 			if pattern.MatchString(line) && !strings.Contains(line, "desen") && !strings.HasPrefix(strings.TrimSpace(line), "//") {
-				t.Errorf("%s:%d: kod adlı sabitle yazılmalı (codes.G100): %s", path, i+1, strings.TrimSpace(line))
+				t.Errorf("%s:%d: kod adlı sabitle yazılmalı (codes.FnPrint): %s", path, i+1, strings.TrimSpace(line))
 			}
 		}
 		return nil

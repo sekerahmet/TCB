@@ -56,7 +56,7 @@ func (ix *index) printNameChain(w io.Writer, n *Node, limit int) {
 }
 
 // implementationsAt kodun kullanıldığı satırda aynı sahibin başvurduğu işlevleri verir (kayıt
-// tablosunda {codes.G502, timeMsBuiltin} satırının timeMsBuiltin'i).
+// tablosunda {codes.FnTimeMs, timeMsBuiltin} satırının timeMsBuiltin'i).
 func (ix *index) implementationsAt(owner *Node, use *Edge) []string {
 	var out []string
 	for _, e := range ix.out[owner.ID] {

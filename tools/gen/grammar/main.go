@@ -170,8 +170,8 @@ func Generate() ([]byte, error) {
 	// ad kodun bütün dillerdeki adlarının düzenli ifade seçeneğidir (değişken|var).
 	name := func(k codes.Code) string { return strings.Join(namesInAllLanguages(k), "|") }
 
-	control := names(codes.A001, codes.A002, codes.A003, codes.A004, codes.A010, codes.A011, codes.A012, codes.A013, codes.A014, codes.A021, codes.A060, codes.A061, codes.A062, codes.A080, codes.A081)
-	declaration := names(codes.A030, codes.A031, codes.A020, codes.A050)
+	control := names(codes.KwIf, codes.KwElse, codes.KwMatch, codes.KwDefault, codes.KwFor, codes.KwIn, codes.KwWhile, codes.KwBreak, codes.KwContinue, codes.KwReturn, codes.KwTry, codes.KwCatch, codes.KwThrow, codes.KwAsync, codes.KwDefer)
+	declaration := names(codes.KwVar, codes.KwConst, codes.KwFunc, codes.KwStruct)
 	types := namesInGroup('A', 2, nil)
 	general := namesInGroup('G', -1, codes.Code.IsBuiltin)
 	ai := append(namesInGroup('T', -1, codes.Code.IsBuiltin), namesInGroup('V', -1, codes.Code.IsBuiltin)...)
@@ -224,22 +224,22 @@ func Generate() ([]byte, error) {
 				{"patterns", includes("#nested-braces", "$self")},
 			}},
 			{"import", jsonObject{{"patterns", []jsonObject{
-				{{"match", `\b(` + inner(name(codes.A070)) + `)\b\s*("[^"]*"|'[^']*'|[^\W\d][\w.]*)\s+(` + inner(name(codes.A100)) + `)\b\s*([^\W\d]\w*)?`},
+				{{"match", `\b(` + inner(name(codes.KwImport)) + `)\b\s*("[^"]*"|'[^']*'|[^\W\d][\w.]*)\s+(` + inner(name(codes.CtxAs)) + `)\b\s*([^\W\d]\w*)?`},
 					{"captures", captures("keyword.control.import.tr", "string.other.module.tr", "keyword.control.import.as.tr", "entity.name.namespace.tr")}},
-				rule("keyword.control.import.tr", wordsPattern(names(codes.A070))),
+				rule("keyword.control.import.tr", wordsPattern(names(codes.KwImport))),
 			}}}},
 			{"declarations", jsonObject{{"patterns", []jsonObject{
-				{{"match", `\b(` + inner(name(codes.A020)) + `)\s+([^\W\d]\w*)`}, {"captures", captures("storage.type.function.tr", "entity.name.function.tr")}},
-				{{"match", `\b(` + inner(name(codes.A050)) + `)\s+([^\W\d]\w*)`}, {"captures", captures("storage.type.struct.tr", "entity.name.type.tr")}},
+				{{"match", `\b(` + inner(name(codes.KwFunc)) + `)\s+([^\W\d]\w*)`}, {"captures", captures("storage.type.function.tr", "entity.name.function.tr")}},
+				{{"match", `\b(` + inner(name(codes.KwStruct)) + `)\s+([^\W\d]\w*)`}, {"captures", captures("storage.type.struct.tr", "entity.name.type.tr")}},
 			}}}},
 			{"keywords", jsonObject{{"patterns", []jsonObject{
 				rule("keyword.control.tr", wordsPattern(control)),
-				rule("keyword.other.debugger.tr", wordsPattern(names(codes.A090))),
+				rule("keyword.other.debugger.tr", wordsPattern(names(codes.KwBreakpoint))),
 				rule("storage.type.tr", wordsPattern(declaration)),
-				rule("variable.language.self.tr", wordsPattern(names(codes.A051))),
-				rule("constant.language.boolean.tr", wordsPattern(names(codes.A040, codes.A041))),
-				rule("constant.language.null.tr", wordsPattern(names(codes.A042))),
-				rule("keyword.operator.logical.tr", wordsPattern(names(codes.A043, codes.A044, codes.A045))),
+				rule("variable.language.self.tr", wordsPattern(names(codes.KwSelf))),
+				rule("constant.language.boolean.tr", wordsPattern(names(codes.KwTrue, codes.KwFalse))),
+				rule("constant.language.null.tr", wordsPattern(names(codes.KwNone))),
+				rule("keyword.operator.logical.tr", wordsPattern(names(codes.KwAnd, codes.KwOr, codes.KwNot))),
 			}}}},
 			{"pronoun", jsonObject{
 				{"comment", "Trailing-block (o-lambda) parameter: liste.filtrele { o > 2 }"},

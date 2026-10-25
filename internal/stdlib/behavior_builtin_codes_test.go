@@ -93,7 +93,7 @@ func TestMembersMatchDictionary(t *testing.T) {
 	}
 	examples := []string{"u_metin", "u_liste", "u_sozluk", "u_tensor", "u_iyilestirici", "u_parcalayici", "u_yol", "u_ilerleme"}
 	for _, k := range codes.Codes() {
-		if k.Namespace() != codes.NamespaceMember || (k >= codes.Y600 && k <= codes.Y602) {
+		if k.Namespace() != codes.NamespaceMember || (k >= codes.MemSampler && k <= codes.MemNext) {
 			continue
 		}
 		for _, y := range codes.Spellings(k) {

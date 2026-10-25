@@ -36,7 +36,7 @@ func intArg(args []interp.Value, i int, signature string) (int64, error) {
 
 // identity birim_matris(n) yerleşiğidir: n×n birim matris.
 func identity(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.T111)
+	fn := codes.NameRef(codes.FnEye)
 	if len(args) != 1 {
 		return nil, messages.New(messages.H6014, fn)
 	}

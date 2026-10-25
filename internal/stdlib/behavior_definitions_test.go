@@ -251,19 +251,19 @@ func TestMemberTypesMatchDefinitions(t *testing.T) {
 		typ   codes.Code
 		setup string
 	}{
-		{codes.A200, `5`}, {codes.A201, `2.5`}, {codes.A202, `"abc"`}, {codes.A203, `doğru`},
-		{codes.A205, `[1, 2]`}, {codes.A206, `{}`}, {codes.A207, `1..3`}, {codes.A208, `(x) => x`},
-		{codes.A209, `yazdır`}, {codes.A212, `tensör([[1.0, 2.0]], türev_izle: doğru)`},
-		{codes.A214, `AdamW([tensör([1.0], türev_izle: doğru)])`}, {codes.A214, `SGD([tensör([1.0], türev_izle: doğru)])`},
-		{codes.A231, `veri_kümesi("tests/data/numbers")`},
-		{codes.A232, `veri_kümesi("tests/data/numbers").örnekleyici(toplu: 1, bağlam: 2)`},
-		{codes.A233, `veri_kümesi("tests/data/numbers").sıralı(toplu: 1, bağlam: 2)`},
-		{codes.A234, `parçalayıcı_yükle("tests/data/tokenizer.json")`},
-		{codes.A250, `yol("tests/yerlesikler_test.tr")`},
-		{codes.A257, `dosya_satırları("tests/data/tokenizer.json")`},
-		{codes.A255, `ilerleme(3)`},
-		{codes.A256, `günlük("` + filepath.ToSlash(filepath.Join(t.TempDir(), "u.jsonl")) + `")`},
-		{codes.A258, `kontrol_noktası("` + filepath.ToSlash(t.TempDir()) + `", {w: tensör([1.0], türev_izle: doğru)})`},
+		{codes.TypeInt, `5`}, {codes.TypeFloat, `2.5`}, {codes.TypeString, `"abc"`}, {codes.TypeBool, `doğru`},
+		{codes.TypeList, `[1, 2]`}, {codes.TypeDict, `{}`}, {codes.TypeRange, `1..3`}, {codes.TypeFunction, `(x) => x`},
+		{codes.TypeBuiltinFunction, `yazdır`}, {codes.TypeTensor, `tensör([[1.0, 2.0]], türev_izle: doğru)`},
+		{codes.TypeOptimizer, `AdamW([tensör([1.0], türev_izle: doğru)])`}, {codes.TypeOptimizer, `SGD([tensör([1.0], türev_izle: doğru)])`},
+		{codes.TypeDataset, `veri_kümesi("tests/data/numbers")`},
+		{codes.TypeSampler, `veri_kümesi("tests/data/numbers").örnekleyici(toplu: 1, bağlam: 2)`},
+		{codes.TypeSequentialReader, `veri_kümesi("tests/data/numbers").sıralı(toplu: 1, bağlam: 2)`},
+		{codes.TypeTokenizer, `parçalayıcı_yükle("tests/data/tokenizer.json")`},
+		{codes.TypePath, `yol("tests/yerlesikler_test.tr")`},
+		{codes.TypeLineReader, `dosya_satırları("tests/data/tokenizer.json")`},
+		{codes.TypeProgress, `ilerleme(3)`},
+		{codes.TypeLogger, `günlük("` + filepath.ToSlash(filepath.Join(t.TempDir(), "u.jsonl")) + `")`},
+		{codes.TypeCheckpoint, `kontrol_noktası("` + filepath.ToSlash(t.TempDir()) + `", {w: tensör([1.0], türev_izle: doğru)})`},
 	}
 	t.Cleanup(logging.CloseAll)
 	var setup []string
@@ -281,7 +281,7 @@ func TestMemberTypesMatchDefinitions(t *testing.T) {
 		var real []codes.Code
 		for i, o := range examples {
 			v, err := runSame(t, m, "u_"+string(rune('a'+i))+"."+codes.Name(k))
-			if err == nil && !(o.typ == codes.A206 && v == interp.Null) {
+			if err == nil && !(o.typ == codes.TypeDict && v == interp.Null) {
 				real = append(real, o.typ)
 			}
 		}

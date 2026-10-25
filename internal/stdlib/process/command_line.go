@@ -45,28 +45,28 @@ type option struct {
 func (t optKind) typeCode() codes.Code {
 	switch t {
 	case kindInt:
-		return codes.A200
+		return codes.TypeInt
 	case kindFloat:
-		return codes.A201
+		return codes.TypeFloat
 	case kindBool:
-		return codes.A203
+		return codes.TypeBool
 	case kindList:
-		return codes.A205
+		return codes.TypeList
 	}
-	return codes.A202
+	return codes.TypeString
 }
 
 func (d *State) commandLine(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := interp.CallPrefix(codes.G801)
+	fn := interp.CallPrefix(codes.FnCommandLine)
 	if err := bind.CheckNamed(fn, named, nameDesc, nameDescs); err != nil {
 		return nil, err
 	}
 	if len(args) != 1 {
-		return nil, interp.ArgCountError(codes.G801, 1, len(args), messages.Text(messages.H2329))
+		return nil, interp.ArgCountError(codes.FnCommandLine, 1, len(args), messages.Text(messages.H2329))
 	}
 	dict, ok := args[0].(*interp.DictVal)
 	if !ok {
-		return nil, interp.ArgTypeError(codes.G801, 1, args[0], codes.A206)
+		return nil, interp.ArgTypeError(codes.FnCommandLine, 1, args[0], codes.TypeDict)
 	}
 	// Kurulum önce denetlenir: tanımdaki hata, ikinci çağrıda da adıyla bildirilir.
 	options, err := buildOptions(m, fn, dict)
@@ -103,7 +103,7 @@ func buildOptions(m *interp.VM, fn any, dict *interp.DictVal) ([]*option, error)
 		}
 		if key := dict.KeyValue(k); key != nil {
 			if _, text := key.(*interp.StringVal); !text {
-				return nil, messages.New(messages.H7219, fn, codes.NameRef(codes.A202), interp.TypeAndSummary(key))
+				return nil, messages.New(messages.H7219, fn, codes.NameRef(codes.TypeString), interp.TypeAndSummary(key))
 			}
 		}
 		if err := checkOptionName(fn, k); err != nil {
@@ -133,8 +133,8 @@ func checkOptionName(fn any, name string) error {
 		return messages.New(messages.H7221, fn, name, helpOption())
 	}
 	if k, ok := codes.Find(codes.NamespaceMember, name); ok {
-		if tn, ok := codes.DefinitionOf(k); ok && slices.Contains(tn.Types(), codes.A206) {
-			return messages.New(messages.H7222, fn, name, codes.NameRef(codes.A206))
+		if tn, ok := codes.DefinitionOf(k); ok && slices.Contains(tn.Types(), codes.TypeDict) {
+			return messages.New(messages.H7222, fn, name, codes.NameRef(codes.TypeDict))
 		}
 	}
 	return nil
@@ -154,7 +154,7 @@ func defaultKind(fn any, name string, v interp.Value) (optKind, optKind, error) 
 			t, ok := plainKind(e)
 			if !ok {
 				return 0, 0, messages.New(messages.H7223,
-					fn, name, interp.TypeNames(codes.A200, codes.A201, codes.A202, codes.A203), i+1, interp.TypeAndSummary(e))
+					fn, name, interp.TypeNames(codes.TypeInt, codes.TypeFloat, codes.TypeString, codes.TypeBool), i+1, interp.TypeAndSummary(e))
 			}
 			switch {
 			case i == 0:
@@ -169,7 +169,7 @@ func defaultKind(fn any, name string, v interp.Value) (optKind, optKind, error) 
 		return kindList, item, nil
 	}
 	return 0, 0, messages.New(messages.H7225,
-		fn, name, interp.TypeNames(codes.A200, codes.A201, codes.A202, codes.A203), codes.NameRef(codes.A205), codes.NameRef(codes.A042), interp.TypeAndSummary(v))
+		fn, name, interp.TypeNames(codes.TypeInt, codes.TypeFloat, codes.TypeString, codes.TypeBool), codes.NameRef(codes.TypeList), codes.NameRef(codes.KwNone), interp.TypeAndSummary(v))
 }
 
 // plainKind Tam, Ondalık, Metin ya da Mantık değerin tipidir.
@@ -194,7 +194,7 @@ func readDescriptions(fn any, named map[string]interp.Value, options []*option) 
 	if v, ok := bind.GetNamed(named, nameDesc); ok {
 		s, ok := v.(*interp.StringVal)
 		if !ok {
-			return "", messages.New(messages.H7226, fn, nameDesc, codes.NameRef(codes.A202), interp.TypeAndSummary(v))
+			return "", messages.New(messages.H7226, fn, nameDesc, codes.NameRef(codes.TypeString), interp.TypeAndSummary(v))
 		}
 		description = s.Val
 	}
@@ -204,7 +204,7 @@ func readDescriptions(fn any, named map[string]interp.Value, options []*option) 
 	}
 	dict, ok := v.(*interp.DictVal)
 	if !ok {
-		return "", messages.New(messages.H7227, fn, nameDescs, codes.NameRef(codes.A206), interp.TypeAndSummary(v))
+		return "", messages.New(messages.H7227, fn, nameDescs, codes.NameRef(codes.TypeDict), interp.TypeAndSummary(v))
 	}
 	names := make([]string, len(options))
 	for i, s := range options {
@@ -224,7 +224,7 @@ func readDescriptions(fn any, named map[string]interp.Value, options []*option) 
 		}
 		s, ok := value.(*interp.StringVal)
 		if !ok {
-			return "", messages.New(messages.H7230, fn, nameDescs, k, codes.NameRef(codes.A202), interp.TypeAndSummary(value))
+			return "", messages.New(messages.H7230, fn, nameDescs, k, codes.NameRef(codes.TypeString), interp.TypeAndSummary(value))
 		}
 		options[i].description = s.Val
 	}

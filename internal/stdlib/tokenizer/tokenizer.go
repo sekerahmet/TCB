@@ -28,7 +28,7 @@ import (
 )
 
 // TypeName parçalayıcı nesnesinin TR'deki tip adıdır (kod listesinde A234).
-var TypeName = string(interp.TypeName(codes.A234))
+var TypeName = string(interp.TypeName(codes.TypeTokenizer))
 
 // Object TR'de yüklenmiş bir parçalayıcıdır. Salt okunurdur; dosya tutamağı ya da
 // başka bir kaynak tutmaz (dosya yüklemede tümüyle okunup kapatılır).
@@ -51,7 +51,7 @@ var _ interp.LanguageText = (*Object)(nil)
 // Text is the value's text in lang: str() and yazdır give it in the language of the file they
 // are written in (docs/spec/03_tipler.md).
 func (n *Object) Text(lang *codes.Language) string {
-	return messages.TextIn(lang.Code, messages.H5600, lang.Name(codes.A234), n.p.VocabSize(), filepath.Base(n.path))
+	return messages.TextIn(lang.Code, messages.H5600, lang.Name(codes.TypeTokenizer), n.p.VocabSize(), filepath.Base(n.path))
 }
 
 // WatchKind İzleme Masası'nda ikon seçimi için türdür.
@@ -59,7 +59,7 @@ func (n *Object) WatchKind() string { return "diger" }
 
 // WatchLabel tip sütununda gösterilen özettir.
 func (n *Object) WatchLabel() string {
-	return messages.Text(messages.H5601, codes.NameRef(codes.A234), n.p.VocabSize())
+	return messages.Text(messages.H5601, codes.NameRef(codes.TypeTokenizer), n.p.VocabSize())
 }
 
 // TableData dağarcığa eklenmiş parçaları (özel parçalar dahil) tablo olarak verir.
@@ -81,10 +81,10 @@ func (n *Object) TableData() ([]string, [][]string, error) {
 
 // Parçalayıcı üyeleri (adları kod listesinde, internal/lang/codes Y61x).
 const (
-	memberEncode    = codes.Y610
-	memberDecode    = codes.Y611
-	memberVocabSize = codes.Y612
-	memberTokenID   = codes.Y613
+	memberEncode    = codes.MemEncode
+	memberDecode    = codes.MemDecode
+	memberVocabSize = codes.MemVocabSize
+	memberTokenID   = codes.MemTokenId
 )
 
 var members = []codes.Code{memberEncode, memberDecode, memberVocabSize, memberTokenID}
@@ -109,14 +109,14 @@ func (n *Object) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 
 // Register parçalayıcı yerleşiklerini VM'ye kaydeder.
 func Register(v *interp.VM) {
-	v.RegisterBuiltinCode(codes.V200, bind.SafeBuiltin(interp.CallPrefix(codes.V200), load))
+	v.RegisterBuiltinCode(codes.FnLoadTokenizer, bind.SafeBuiltin(interp.CallPrefix(codes.FnLoadTokenizer), load))
 }
 
 // warned aynı dosyanın yükleme uyarılarının süreçte bir kez yazılmasını sağlar.
 var warned sync.Map
 
 func load(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.V200)
+	fn := codes.NameRef(codes.FnLoadTokenizer)
 	if err := bind.CheckNamed(fn.Called(), named); err != nil {
 		return nil, err
 	}
@@ -161,7 +161,7 @@ func isUnsupported(err error) bool {
 }
 
 func loadError(path string, err error, tried []string) error {
-	fn := codes.NameRef(codes.V200)
+	fn := codes.NameRef(codes.FnLoadTokenizer)
 	if bind.IsNotExist(err) {
 		return turkish.FileError(fn, path, messages.H2107, err,
 			messages.New(messages.H5612), interp.SearchedPlaces(tried))
@@ -214,8 +214,8 @@ func writeWarnings(path string, p *tokenize.Tokenizer) {
 // ----------------------------------------------------------------------------
 
 var (
-	nameSpecial = bind.NamedArg(codes.V910)
-	nameSecond  = bind.NamedArg(codes.V911)
+	nameSpecial = bind.NamedArg(codes.ArgSpecialTokens)
+	nameSecond  = bind.NamedArg(codes.ArgPair)
 )
 
 // longText bu bayttan uzun tek metinler yorumlayıcı kilidi bırakılarak kodlanır.
@@ -451,15 +451,15 @@ func intList(row int, elems []interp.Value) ([]int, error) {
 // ----------------------------------------------------------------------------
 
 func (n *Object) tokenID(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	if err := bind.CheckNamed(codes.NameRef(codes.Y613).Called(), named); err != nil {
+	if err := bind.CheckNamed(codes.NameRef(codes.MemTokenId).Called(), named); err != nil {
 		return nil, err
 	}
 	if len(args) != 1 {
-		return nil, messages.New(messages.H5640, codes.NameRef(codes.Y613), len(args))
+		return nil, messages.New(messages.H5640, codes.NameRef(codes.MemTokenId), len(args))
 	}
 	s, ok := args[0].(*interp.StringVal)
 	if !ok {
-		return nil, messages.New(messages.H5641, codes.NameRef(codes.Y613), args[0].Type())
+		return nil, messages.New(messages.H5641, codes.NameRef(codes.MemTokenId), args[0].Type())
 	}
 	id, ok := n.p.TokenToID(s.Val)
 	if !ok {

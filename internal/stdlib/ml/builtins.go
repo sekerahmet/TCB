@@ -23,92 +23,92 @@ func Register(v *interp.VM) {
 	registerWideMath(v) // yerlesik_matematik.go
 
 	// --- Sinir ağı ---
-	wrap(v, codes.T500, newBuiltin(embedding))
-	wrap(v, codes.T510, newBuiltin(crossEntropy))
-	wrap(v, codes.T512, newBuiltin(linearCrossEntropy))
-	wrap(v, codes.T501, newBuiltin(layerNorm))
-	wrap(v, codes.T502, newBuiltin(rmsNorm))
-	wrap(v, codes.T503, newBuiltin(attentionBuiltin)) // model_araclari.go
-	wrap(v, codes.T530, newBuiltin(paramsBuiltin))
-	wrap(v, codes.T611, newBuiltin(sampleBuiltin))
+	wrap(v, codes.FnEmbedding, newBuiltin(embedding))
+	wrap(v, codes.FnCrossEntropy, newBuiltin(crossEntropy))
+	wrap(v, codes.FnLinearCrossEntropy, newBuiltin(linearCrossEntropy))
+	wrap(v, codes.FnLayerNorm, newBuiltin(layerNorm))
+	wrap(v, codes.FnRmsNorm, newBuiltin(rmsNorm))
+	wrap(v, codes.FnAttention, newBuiltin(attentionBuiltin)) // model_araclari.go
+	wrap(v, codes.FnParameters, newBuiltin(paramsBuiltin))
+	wrap(v, codes.FnSample, newBuiltin(sampleBuiltin))
 
 	// --- Türev ---
-	wrap(v, codes.T300, newBuiltin(backpropagation))
-	wrap(v, codes.T301, newBuiltin(noGrad))
+	wrap(v, codes.FnBackward, newBuiltin(backpropagation))
+	wrap(v, codes.FnNoGrad, newBuiltin(noGrad))
 	registerCustomGrad(v) // özel_türev, türev_denetle (ozel_turev.go)
 	registerFuse(v)       // kaynaştır (builtin_fuse.go)
 	registerReplay(v)     // tekrar_oynat, yerine_yaz (builtin_replay.go)
 
 	// --- Veri türleri (veri_turu.go) ---
-	wrap(v, codes.T710, newBuiltin(mixedPrecision))
-	wrap(v, codes.T711, newBuiltin(computeDType))
+	wrap(v, codes.FnMixedPrecision, newBuiltin(mixedPrecision))
+	wrap(v, codes.FnComputeDtype, newBuiltin(computeDType))
 
 	// --- Cihazlar (cihaz.go) ---
-	wrap(v, codes.T720, newBuiltin(defaultDeviceBuiltin))
-	wrap(v, codes.T721, newBuiltin(devicesBuiltin))
+	wrap(v, codes.FnDefaultDevice, newBuiltin(defaultDeviceBuiltin))
+	wrap(v, codes.FnDevices, newBuiltin(devicesBuiltin))
 
 	// --- İyileştiriciler ---
-	wrap(v, codes.T400, newBuiltin(setupAdamW))
-	wrap(v, codes.T401, newBuiltin(setupSGD))
-	wrap(v, codes.T402, newBuiltin(gradClip))
+	wrap(v, codes.FnAdamW, newBuiltin(setupAdamW))
+	wrap(v, codes.FnSGD, newBuiltin(setupSGD))
+	wrap(v, codes.FnClipGrad, newBuiltin(gradClip))
 
 	// --- İndeks, kaydetme ve yükleme ---
-	wrap(v, codes.T230, newBuiltin(argMax))
-	wrap(v, codes.T700, newBuiltin(tensorSave))
-	wrap(v, codes.T701, newBuiltin(tensorLoad))
-	wrap(v, codes.T703, newBuiltin(loadParamsBuiltin)) // parametreler.go
+	wrap(v, codes.FnArgmax, newBuiltin(argMax))
+	wrap(v, codes.FnSaveTensors, newBuiltin(tensorSave))
+	wrap(v, codes.FnLoadTensors, newBuiltin(tensorLoad))
+	wrap(v, codes.FnLoadParameters, newBuiltin(loadParamsBuiltin)) // parametreler.go
 }
 
 // registerConstructors tensör oluşturucularını (matris ve görünüm dahil) kaydeder.
 func registerConstructors(v *interp.VM) {
 	// --- Oluşturucular ---
-	wrap(v, codes.T100, newBuiltin(tensorBuiltin))
-	wrap(v, codes.T101, newBuiltin(shapedConstructor(codes.T101, func(sh []int, _ map[string]interp.Value) (*tensor.Tensor, error) {
+	wrap(v, codes.FnTensor, newBuiltin(tensorBuiltin))
+	wrap(v, codes.FnZeros, newBuiltin(shapedConstructor(codes.FnZeros, func(sh []int, _ map[string]interp.Value) (*tensor.Tensor, error) {
 		return tensor.Zeros(sh...), nil
 	})))
-	wrap(v, codes.T102, newBuiltin(shapedConstructor(codes.T102, func(sh []int, _ map[string]interp.Value) (*tensor.Tensor, error) {
+	wrap(v, codes.FnOnes, newBuiltin(shapedConstructor(codes.FnOnes, func(sh []int, _ map[string]interp.Value) (*tensor.Tensor, error) {
 		return tensor.Ones(sh...), nil
 	})))
-	wrap(v, codes.T103, newBuiltin(shapedConstructor(codes.T103, randomNormal)))
+	wrap(v, codes.FnRandn, newBuiltin(shapedConstructor(codes.FnRandn, randomNormal)))
 
 	// --- Matris (2 boyutlu tensör) oluşturucusu (matris.go) ---
-	wrap(v, codes.T111, newBuiltin(identity))
+	wrap(v, codes.FnEye, newBuiltin(identity))
 
 	// --- Görünüm ---
-	wrap(v, codes.T121, newBuiltin(concatBuiltin)) // model_araclari.go
+	wrap(v, codes.FnConcat, newBuiltin(concatBuiltin)) // model_araclari.go
 }
 
 // registerMath eleman bazlı fonksiyonları, softmax'ı ve indirgemeleri kaydeder.
 func registerMath(v *interp.VM) {
 	// --- Eleman bazlı matematik ---
-	unit(v, codes.T200, (*tensor.Tensor).Relu, relu64)
-	unit(v, codes.T201, (*tensor.Tensor).Sigmoid, sigmoid64)
-	unit(v, codes.T202, (*tensor.Tensor).Tanh, math.Tanh)
+	unit(v, codes.FnRelu, (*tensor.Tensor).Relu, relu64)
+	unit(v, codes.FnSigmoid, (*tensor.Tensor).Sigmoid, sigmoid64)
+	unit(v, codes.FnTanh, (*tensor.Tensor).Tanh, math.Tanh)
 	registerGelu(v)
-	unit(v, codes.G404, (*tensor.Tensor).Sqrt, nil) // karekök
-	unit(v, codes.T220, (*tensor.Tensor).Exp, math.Exp)
-	unit(v, codes.T221, (*tensor.Tensor).Log, math.Log)
-	unit(v, codes.T222, (*tensor.Tensor).Sin, math.Sin)
-	unit(v, codes.T223, (*tensor.Tensor).Cos, math.Cos)
+	unit(v, codes.FnSqrt, (*tensor.Tensor).Sqrt, nil) // karekök
+	unit(v, codes.FnExp, (*tensor.Tensor).Exp, math.Exp)
+	unit(v, codes.FnLog, (*tensor.Tensor).Log, math.Log)
+	unit(v, codes.FnSin, (*tensor.Tensor).Sin, math.Sin)
+	unit(v, codes.FnCos, (*tensor.Tensor).Cos, math.Cos)
 
 	// --- Softmax ---
-	registerSoftmax(v, codes.T210, false)
-	registerSoftmax(v, codes.T211, true)
+	registerSoftmax(v, codes.FnSoftmax, false)
+	registerSoftmax(v, codes.FnLogSoftmax, true)
 
 	// --- İndirgemeler (toplam, ortalama, maks, min) ---
-	reduction(v, codes.G400, func(t *tensor.Tensor, e int, whole, keep bool) *tensor.Tensor {
+	reduction(v, codes.FnSum, func(t *tensor.Tensor, e int, whole, keep bool) *tensor.Tensor {
 		if whole {
 			return t.SumAll()
 		}
 		return t.Sum(e, keep)
 	})
-	reduction(v, codes.G410, func(t *tensor.Tensor, e int, whole, keep bool) *tensor.Tensor {
+	reduction(v, codes.FnMean, func(t *tensor.Tensor, e int, whole, keep bool) *tensor.Tensor {
 		if whole {
 			return t.MeanAll()
 		}
 		return t.Mean(e, keep)
 	})
-	reduction(v, codes.G402, func(t *tensor.Tensor, e int, whole, keep bool) *tensor.Tensor {
+	reduction(v, codes.FnMax, func(t *tensor.Tensor, e int, whole, keep bool) *tensor.Tensor {
 		if whole {
 			flat := t.Reshape(-1)
 			r := flat.Max(0, false)
@@ -117,7 +117,7 @@ func registerMath(v *interp.VM) {
 		}
 		return t.Max(e, keep)
 	})
-	reduction(v, codes.G401, func(t *tensor.Tensor, e int, whole, keep bool) *tensor.Tensor {
+	reduction(v, codes.FnMin, func(t *tensor.Tensor, e int, whole, keep bool) *tensor.Tensor {
 		if whole {
 			return minAll(t)
 		}
@@ -177,15 +177,15 @@ func wrap(v *interp.VM, kd codes.Code, setup func(old interp.BuiltinFunc) interp
 // çağrıları yapan yerleşiklerdir; argümanları kaçar. Diğer tensör yerleşikleri saftır:
 // argümanlarını saklamaz, sonucunda döndürmez (interp.BuiltinVal.Pure).
 var retaining = map[codes.Code]bool{
-	codes.T300: true, // geri_yayılım: özel türevlerin geri çağrıları
-	codes.T301: true, // türevsiz
-	codes.T310: true, // özel_türev: ileri ve geri fonksiyonlarını saklar
-	codes.T311: true, // türev_denetle
-	codes.T312: true, // kaynaştır: fonksiyonu saklar
-	codes.T313: true, // tekrar_oynat: fonksiyonu saklar, TR geri çağrısı yapar
-	codes.T400: true, // AdamW: parametre listesini saklar
-	codes.T401: true, // SGD
-	codes.T710: true, // karışık_hassasiyet: blok
+	codes.FnBackward:       true, // geri_yayılım: özel türevlerin geri çağrıları
+	codes.FnNoGrad:         true, // türevsiz
+	codes.FnCustomGrad:     true, // özel_türev: ileri ve geri fonksiyonlarını saklar
+	codes.FnGradCheck:      true, // türev_denetle
+	codes.FnFuse:           true, // kaynaştır: fonksiyonu saklar
+	codes.FnReplay:         true, // tekrar_oynat: fonksiyonu saklar, TR geri çağrısı yapar
+	codes.FnAdamW:          true, // AdamW: parametre listesini saklar
+	codes.FnSGD:            true, // SGD
+	codes.FnMixedPrecision: true, // karışık_hassasiyet: blok
 }
 
 // guarded fn'i safe içinde çağırır: çekirdeğin paniği (ör. GPU belleği yetmedi) dene/yakala ile

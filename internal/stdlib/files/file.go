@@ -27,20 +27,20 @@ import (
 
 // Adlı argümanlar; adları kod listesindedir (internal/lang/codes).
 var (
-	nameOverwrite    = bind.NamedArg(codes.G900)
-	nameWithContents = bind.NamedArg(codes.G901)
+	nameOverwrite    = bind.NamedArg(codes.ArgOverwrite)
+	nameWithContents = bind.NamedArg(codes.ArgRecursive)
 )
 
 // Register dosya ve yol yerleşiklerini VM'ye kaydeder.
 func Register(v *interp.VM) {
-	v.RegisterNoNamed(codes.G112, safe(codes.G112, linesBuiltin))
-	v.RegisterNoNamed(codes.G120, safe(codes.G120, pathBuiltin))
-	v.RegisterNoNamed(codes.G121, safe(codes.G121, listBuiltin))
-	v.RegisterNoNamed(codes.G122, safe(codes.G122, makeDirBuiltin))
-	v.RegisterBuiltinCode(codes.G123, safe(codes.G123, deleteBuiltin))
-	v.RegisterBuiltinCode(codes.G124, safe(codes.G124, copyBuiltin))
-	v.RegisterBuiltinCode(codes.G125, safe(codes.G125, moveBuiltin))
-	v.RegisterNoNamed(codes.G126, safe(codes.G126, tempDirBuiltin))
+	v.RegisterNoNamed(codes.FnReadLines, safe(codes.FnReadLines, linesBuiltin))
+	v.RegisterNoNamed(codes.FnPath, safe(codes.FnPath, pathBuiltin))
+	v.RegisterNoNamed(codes.FnListDir, safe(codes.FnListDir, listBuiltin))
+	v.RegisterNoNamed(codes.FnMakeDir, safe(codes.FnMakeDir, makeDirBuiltin))
+	v.RegisterBuiltinCode(codes.FnRemove, safe(codes.FnRemove, deleteBuiltin))
+	v.RegisterBuiltinCode(codes.FnCopy, safe(codes.FnCopy, copyBuiltin))
+	v.RegisterBuiltinCode(codes.FnMove, safe(codes.FnMove, moveBuiltin))
+	v.RegisterNoNamed(codes.FnTempDir, safe(codes.FnTempDir, tempDirBuiltin))
 }
 
 // safe yerleşiği Go paniğine karşı korur (panik dene/yakala ile yakalanan bir hataya döner).
@@ -53,7 +53,7 @@ func safe(kd codes.Code, fn interp.BuiltinFunc) interp.BuiltinFunc {
 func readPath(kd codes.Code, order int, d interp.Value) (string, error) {
 	raw, ok, err := interp.PathArg(interp.CallPrefix(kd), d)
 	if !ok {
-		return "", interp.ArgTypeError(kd, order, d, codes.A202, codes.A250)
+		return "", interp.ArgTypeError(kd, order, d, codes.TypeString, codes.TypePath)
 	}
 	if err != nil {
 		return "", err

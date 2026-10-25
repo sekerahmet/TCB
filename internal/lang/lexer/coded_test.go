@@ -30,9 +30,9 @@ func TestCodedTokens(t *testing.T) {
 		lit  string
 		kd   codes.Code
 	}{
-		{TokVar, "değişken", codes.A030}, {TokIdent, "eğer", codes.None}, {TokAssign, "=", codes.None},
-		{TokIdent, "yazdır", codes.G100}, {TokIdent, "x", codes.None}, {TokDot, ".", codes.None},
-		{TokIdent, "ekle", codes.Y004}, {TokTrue, "doğru", codes.A040},
+		{TokVar, "değişken", codes.KwVar}, {TokIdent, "eğer", codes.None}, {TokAssign, "=", codes.None},
+		{TokIdent, "yazdır", codes.FnPrint}, {TokIdent, "x", codes.None}, {TokDot, ".", codes.None},
+		{TokIdent, "ekle", codes.MemAppend}, {TokTrue, "doğru", codes.KwTrue},
 	}
 	if len(toks) != len(expected) {
 		t.Fatalf("%d sözcük, beklenen %d: %v", len(toks), len(expected), toks)

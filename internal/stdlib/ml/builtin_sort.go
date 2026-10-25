@@ -28,7 +28,7 @@ func axisTensor(ad codes.Ref, usage string, args []interp.Value, n int, named ma
 	}
 	d, ok := args[0].(*TensorValue)
 	if !ok {
-		if err := listError(ad, args[0], messages.New(messages.H6132), ad.String()+"("+codes.Name(codes.T100)+"(...))"); err != nil {
+		if err := listError(ad, args[0], messages.New(messages.H6132), ad.String()+"("+codes.Name(codes.FnTensor)+"(...))"); err != nil {
 			return nil, 0, err
 		}
 		return nil, 0, messages.New(messages.H6203, ad, typeName(args[0]))
@@ -50,7 +50,7 @@ func axisTensor(ad codes.Ref, usage string, args []interp.Value, n int, named ma
 // cumSumBuiltin birikimli_toplam(t, eksen: -1): şekil korunur, türev izler; tam
 // sayılı tensörün sonucu da tam sayılıdır.
 func cumSumBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	ad := codes.NameRef(codes.T231)
+	ad := codes.NameRef(codes.FnCumsum)
 	d, e, err := axisTensor(ad, fmt.Sprintf("%s(t, %s: -1)", ad, nameAxis.TR), args, 1, named)
 	if err != nil {
 		return nil, err
@@ -66,7 +66,7 @@ func cumSumBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 
 // topKBuiltin en_büyük_k(t, k, eksen: -1) → [değerler, indeksler].
 func topKBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	ad := codes.NameRef(codes.T232)
+	ad := codes.NameRef(codes.FnTopk)
 	d, e, err := axisTensor(ad, fmt.Sprintf("%s(t, k, %s: -1)", ad, nameAxis.TR), args, 2, named)
 	if err != nil {
 		return nil, err
@@ -74,7 +74,7 @@ func topKBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Valu
 	k, ok := args[1].(*interp.IntVal)
 	L := d.t.Shape()[e]
 	if !ok {
-		return nil, messages.New(messages.H6208, ad, codes.NameRef(codes.A200), typeName(args[1]))
+		return nil, messages.New(messages.H6208, ad, codes.NameRef(codes.TypeInt), typeName(args[1]))
 	}
 	if k.Val < 0 || k.Val > int64(L) {
 		return nil, messages.New(messages.H6210, ad, k.Val, tensor.ShapeText(d.t.Shape()), e, L)
@@ -90,7 +90,7 @@ func topKBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Valu
 
 // argsortBuiltin sıralama_indeksi(t, eksen: -1): kararlı, küçükten büyüğe.
 func argsortBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	ad := codes.NameRef(codes.T233)
+	ad := codes.NameRef(codes.FnArgsort)
 	d, e, err := axisTensor(ad, fmt.Sprintf("%s(t, %s: -1)", ad, nameAxis.TR), args, 1, named)
 	if err != nil {
 		return nil, err

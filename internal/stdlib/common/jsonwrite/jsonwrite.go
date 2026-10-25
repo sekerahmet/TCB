@@ -215,6 +215,6 @@ func (y *writer) value(val interp.Value, depth int) error {
 // JSON'a yazılmaz, çünkü metni görüntü ya da dosyanın diline bağlıdır, veri biçimi dilden
 // bağımsızdır. Python'un json.dumps'ı da TypeError verir.
 func notData(val interp.Value) error {
-	return messages.New(messages.H7010, val.Type(), interp.TypeNames(codes.A200, codes.A201, codes.A202, codes.A203,
-		codes.A204, codes.A205, codes.A206, codes.A212, codes.A250))
+	return messages.New(messages.H7010, val.Type(), interp.TypeNames(codes.TypeInt, codes.TypeFloat, codes.TypeString, codes.TypeBool,
+		codes.TypeNone, codes.TypeList, codes.TypeDict, codes.TypeTensor, codes.TypePath))
 }

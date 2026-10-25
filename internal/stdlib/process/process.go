@@ -41,15 +41,15 @@ func (d *State) Settings() *interp.DictVal {
 
 // Adlı argümanlar; adları kod listesindedir (internal/lang/codes).
 var (
-	nameDesc  = bind.NamedArg(codes.G910)
-	nameDescs = bind.NamedArg(codes.G911)
+	nameDesc  = bind.NamedArg(codes.ArgDescription)
+	nameDescs = bind.NamedArg(codes.ArgDescriptions)
 )
 
 // Register süreç yerleşiklerini VM'ye kaydeder ve programın süreç durumunu döndürür.
 func Register(v *interp.VM) *State {
 	d := &State{}
-	v.RegisterNoNamed(codes.G800, envVar)
-	v.RegisterBuiltinCode(codes.G801, bind.SafeBuiltin(interp.CallPrefix(codes.G801), d.commandLine))
+	v.RegisterNoNamed(codes.FnEnv, envVar)
+	v.RegisterBuiltinCode(codes.FnCommandLine, bind.SafeBuiltin(interp.CallPrefix(codes.FnCommandLine), d.commandLine))
 	return d
 }
 

@@ -206,12 +206,12 @@ func TestConstAndVarNodes(t *testing.T) {
 	}
 }
 
-// Kod sabiti (messages.H0001, codes.A001) kodun düğümüne bağlanır; kullanımları hem
+// Kod sabiti (messages.H0001, codes.KwIf) kodun düğümüne bağlanır; kullanımları hem
 // uses_message/uses_name hem uses kenarıdır.
 func TestCodeConstantsDenoteCodes(t *testing.T) {
 	g := fixture(t)
 	msgConst := "go:const:example.com/mini/internal/lang/messages.H0001"
-	nameConst := "go:const:example.com/mini/internal/lang/codes.A001"
+	nameConst := "go:const:example.com/mini/internal/lang/codes.KwIf"
 	mustEdge(t, g, msgConst, "msg:H0001", edgeDenotes, extracted)
 	mustEdge(t, g, nameConst, "name:A001", edgeDenotes, extracted)
 	mustEdge(t, g, describeID, msgConst, edgeUses, extracted)

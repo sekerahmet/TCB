@@ -108,7 +108,7 @@ func TypeTextComparisonError(op, text string, example any) *messages.Error {
 	} else if k, ok := codes.Suggest(codes.NamespaceType, text, nil); ok {
 		example = codes.NameRef(k)
 	}
-	g := codes.NameRef(codes.G201)
+	g := codes.NameRef(codes.FnType)
 	return messages.New(messages.H1105, g, op, text, example)
 }
 

@@ -34,9 +34,9 @@ import (
 
 // Tip adları.
 var (
-	DatasetType    = string(interp.TypeName(codes.A231)) // VeriKümesi
-	SamplerType    = string(interp.TypeName(codes.A232)) // Örnekleyici
-	SequentialType = string(interp.TypeName(codes.A233)) // SıralıOkuyucu
+	DatasetType    = string(interp.TypeName(codes.TypeDataset))          // VeriKümesi
+	SamplerType    = string(interp.TypeName(codes.TypeSampler))          // Örnekleyici
+	SequentialType = string(interp.TypeName(codes.TypeSequentialReader)) // SıralıOkuyucu
 )
 
 // prefetchDepth arka planda hazır tutulan toplu iş sayısıdır.
@@ -47,16 +47,16 @@ const maxExactFloat32 = 1 << 24
 
 // Adlı argümanlar; adları kod listesindedir (internal/lang/codes).
 var (
-	nameCache   = bind.NamedArg(codes.V900)
-	nameQuota   = bind.NamedArg(codes.V901)
-	nameBatch   = bind.NamedArg(codes.V902)
-	nameContext = bind.NamedArg(codes.V903)
-	nameSeed    = bind.NamedArg(codes.T903)
+	nameCache   = bind.NamedArg(codes.ArgCache)
+	nameQuota   = bind.NamedArg(codes.ArgQuotaGb)
+	nameBatch   = bind.NamedArg(codes.ArgBatchSize)
+	nameContext = bind.NamedArg(codes.ArgContext)
+	nameSeed    = bind.NamedArg(codes.ArgSeed)
 )
 
 // Register veri yerleşiklerini VM'ye kaydeder.
 func Register(v *interp.VM) {
-	v.RegisterBuiltinCode(codes.V100, bind.SafeBuiltin(interp.CallPrefix(codes.V100), openDataset))
+	v.RegisterBuiltinCode(codes.FnDataset, bind.SafeBuiltin(interp.CallPrefix(codes.FnDataset), openDataset))
 }
 
 // ----------------------------------------------------------------------------
@@ -90,9 +90,9 @@ var (
 // are written in (docs/spec/03_tipler.md).
 func (k *Dataset) Text(lang *codes.Language) string {
 	if k.cache != nil {
-		return messages.TextIn(lang.Code, messages.H5501, lang.Name(codes.A231), k.summary(lang), tensor.ByteSize(k.cache.Quota()))
+		return messages.TextIn(lang.Code, messages.H5501, lang.Name(codes.TypeDataset), k.summary(lang), tensor.ByteSize(k.cache.Quota()))
 	}
-	return fmt.Sprintf("%s(%s)", lang.Name(codes.A231), k.summary(lang))
+	return fmt.Sprintf("%s(%s)", lang.Name(codes.TypeDataset), k.summary(lang))
 }
 
 // WatchKind İzleme Masası'nda ikon seçimi için türdür.
@@ -118,9 +118,9 @@ func (k *Dataset) TableData() ([]string, [][]string, error) {
 
 // Veri kümesi ve okuyucu üyeleri (adları kod listesinde, internal/lang/codes Y60x).
 const (
-	memberSampler    = codes.Y600
-	memberSequential = codes.Y601
-	memberNext       = codes.Y602
+	memberSampler    = codes.MemSampler
+	memberSequential = codes.MemSequential
+	memberNext       = codes.MemNext
 )
 
 var datasetMembers = []codes.Code{memberSampler, memberSequential}
@@ -154,7 +154,7 @@ func resolveCacheDir(m *interp.VM, fn any, named map[string]interp.Value) (strin
 }
 
 func openDataset(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.V100)
+	fn := codes.NameRef(codes.FnDataset)
 	if err := bind.CheckNamed(fn.Called(), named, nameCache, nameQuota); err != nil {
 		return nil, err
 	}
@@ -312,9 +312,9 @@ func (o *Reader) Text(lang *codes.Language) string {
 		if o.done {
 			state = messages.TextIn(lang.Code, messages.H5520, o.counter)
 		}
-		return fmt.Sprintf("%s(%s: %d, %s: %d, %s)", lang.Name(codes.A233), batch, o.b, context, o.t, state)
+		return fmt.Sprintf("%s(%s: %d, %s: %d, %s)", lang.Name(codes.TypeSequentialReader), batch, o.b, context, o.t, state)
 	}
-	return messages.TextIn(lang.Code, messages.H5521, lang.Name(codes.A232), batch, o.b, context, o.t, lang.Name(nameSeed.Code), o.seed, o.epoch, o.counter)
+	return messages.TextIn(lang.Code, messages.H5521, lang.Name(codes.TypeSampler), batch, o.b, context, o.t, lang.Name(nameSeed.Code), o.seed, o.epoch, o.counter)
 }
 
 // WatchKind İzleme Masası'nda ikon seçimi için türdür.
@@ -330,7 +330,7 @@ func (o *Reader) WatchLabel() string {
 		}
 		return messages.Text(messages.H5523, o.b, o.t, o.counter)
 	}
-	return messages.Text(messages.H5524, codes.NameRef(codes.A232), o.b, o.t, o.epoch, o.counter)
+	return messages.Text(messages.H5524, codes.NameRef(codes.TypeSampler), o.b, o.t, o.epoch, o.counter)
 }
 
 // TableData okuyucuyu tablo olarak açmaz; toplu işler .sonraki() ile alınır.

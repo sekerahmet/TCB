@@ -125,7 +125,7 @@ func (d *nameChecker) namedArgBindings(c *ast.CallExpression, k *nameScope) {
 		kind, _, structDef := d.tokenResolution(f.Token, f.Value, k)
 		switch {
 		case kind == BindBuiltin:
-		case structDef != nil && structDef.Methods[d.treeLang.Name(codes.A102)] == nil:
+		case structDef != nil && structDef.Methods[d.treeLang.Name(codes.CtxInit)] == nil:
 			field = codes.NamespaceMember
 		default:
 			return
@@ -154,10 +154,10 @@ func trailingBlockImplicits(f *ast.FunctionLiteral, lang *codes.Language) [2]cod
 			break
 		}
 		switch p.Name {
-		case lang.Name(codes.A104):
-			o[i] = codes.A104
-		case lang.Name(codes.A105):
-			o[i] = codes.A105
+		case lang.Name(codes.CtxIt):
+			o[i] = codes.CtxIt
+		case lang.Name(codes.CtxAcc):
+			o[i] = codes.CtxAcc
 		}
 	}
 	return o

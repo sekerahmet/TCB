@@ -2,9 +2,12 @@ package main
 
 import (
 	"go/ast"
+	"go/parser"
 	"go/token"
 	"go/types"
+	"path/filepath"
 	"regexp"
+	"strings"
 )
 
 // Kod kayıtlarının paketleri (modül köküne göre) ve sabit adlarının kalıpları.
@@ -13,10 +16,41 @@ const (
 	codesDir    = "internal/lang/codes"
 )
 
-var (
-	messageConst = regexp.MustCompile(`^H\d{4}$`)
-	nameConst    = regexp.MustCompile(`^[A-Z]\d{3}$`)
-)
+var messageConst = regexp.MustCompile(`^H\d{4}$`)
+
+// codeConstKeys modülün ad kodu paketindeki her sabitin dil dosyasındaki anahtarıdır (sabit adı → anahtar).
+// Sabitin adı kimlikten türer, anahtarla aynı değildir (codes.FnPrint); üreteç (tools/gen/codeconsts) anahtarı
+// sabitin satır yorumunun ilk sözcüğü olarak yazar (`FnPrint Code = ... // G100: print · yazdır`). Yorumu böyle
+// başlamayan sabit (aile tabanları, None) ad kodu değildir.
+func codeConstKeys(root string) map[string]string {
+	files, _ := filepath.Glob(filepath.Join(root, filepath.FromSlash(codesDir), "*.go"))
+	keys := map[string]string{}
+	for _, file := range files {
+		if isTestFile(file) {
+			continue
+		}
+		f, err := parser.ParseFile(token.NewFileSet(), file, nil, parser.ParseComments|parser.SkipObjectResolution)
+		if err != nil {
+			continue
+		}
+		for _, d := range f.Decls {
+			g, ok := d.(*ast.GenDecl)
+			if !ok || g.Tok != token.CONST {
+				continue
+			}
+			for _, spec := range g.Specs {
+				vs := spec.(*ast.ValueSpec)
+				if vs.Comment == nil || len(vs.Names) != 1 {
+					continue
+				}
+				if key, _, ok := strings.Cut(vs.Comment.Text(), ":"); ok && key != "" && !strings.ContainsAny(key, " \t\n") {
+					keys[vs.Names[0].Name] = key
+				}
+			}
+		}
+	}
+	return keys
+}
 
 // scan root altındaki her tanımlayıcıyı çözer: işlev kullanımı `calls`, ileti kodu sabiti
 // `uses_message`, ad kodu sabiti `uses_name` kenarı olur. Kenar owner'dan çıkar.
@@ -182,8 +216,8 @@ func (x *goExtractor) use(fc *fileCtx, owner string, id *ast.Ident, isCall bool,
 		case samePkg:
 		case c.Pkg().Path() == x.m.Path+"/"+messagesDir && messageConst.MatchString(c.Name()):
 			x.b.addEdge(owner, "msg:"+c.Name(), edgeUsesMessage, extracted, fc.rel, line)
-		case c.Pkg().Path() == x.m.Path+"/"+codesDir && nameConst.MatchString(c.Name()):
-			x.b.addEdge(owner, "name:"+c.Name(), edgeUsesName, extracted, fc.rel, line)
+		case c.Pkg().Path() == x.m.Path+"/"+codesDir && x.codeKeys[c.Name()] != "":
+			x.b.addEdge(owner, "name:"+x.codeKeys[c.Name()], edgeUsesName, extracted, fc.rel, line)
 		}
 	}
 	if ref != owner { // bir türün kendi adına başvurusu (özyineli alan) kullanım değildir

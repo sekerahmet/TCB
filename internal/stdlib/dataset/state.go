@@ -23,9 +23,9 @@ import (
 // (internal/stdlib/checkpoint) okuyucuyu bu iki Go yöntemiyle kaydeder (StateDict, LoadState).
 
 const (
-	memberState     = codes.Y502
-	memberLoadState = codes.Y503
-	memberSkip      = codes.Y603
+	memberState     = codes.MemState
+	memberLoadState = codes.MemLoadState
+	memberSkip      = codes.MemSkip
 )
 
 // Durum sözlüğünün anahtarları ve okuyucu türleri dosya biçiminin (kontrol noktasının
@@ -213,7 +213,7 @@ func (d *stateReader) text(name string) string {
 	}
 	m, ok := v.(*interp.StringVal)
 	if !ok {
-		d.failure = messages.New(messages.H5542, d.fn, name, codes.NameRef(codes.A202), interp.TypeAndSummary(v))
+		d.failure = messages.New(messages.H5542, d.fn, name, codes.NameRef(codes.TypeString), interp.TypeAndSummary(v))
 		return ""
 	}
 	return m.Val
@@ -226,7 +226,7 @@ func (d *stateReader) integer(name string) int64 {
 	}
 	n, ok := v.(*interp.IntVal)
 	if !ok || n.Val < 0 {
-		d.failure = messages.New(messages.H5543, d.fn, name, codes.NameRef(codes.A200), interp.TypeAndSummary(v))
+		d.failure = messages.New(messages.H5543, d.fn, name, codes.NameRef(codes.TypeInt), interp.TypeAndSummary(v))
 		return 0
 	}
 	return n.Val
@@ -239,7 +239,7 @@ func (d *stateReader) boolean(name string) bool {
 	}
 	b, ok := v.(*interp.BoolVal)
 	if !ok {
-		d.failure = messages.New(messages.H5542, d.fn, name, codes.NameRef(codes.A203), interp.TypeAndSummary(v))
+		d.failure = messages.New(messages.H5542, d.fn, name, codes.NameRef(codes.TypeBool), interp.TypeAndSummary(v))
 		return false
 	}
 	return b.Val
@@ -250,7 +250,7 @@ func (d *stateReader) boolean(name string) bool {
 func (d *stateReader) same(name string, shown any, now int64, positive bool) {
 	n := d.integer(name)
 	if d.failure == nil && positive && n < 1 {
-		d.failure = messages.New(messages.H5547, d.fn, name, codes.NameRef(codes.A200), n)
+		d.failure = messages.New(messages.H5547, d.fn, name, codes.NameRef(codes.TypeInt), n)
 	}
 	if d.failure == nil && n != now {
 		d.failure = messages.New(messages.H5544, d.fn, shown, n, now)
@@ -270,7 +270,7 @@ func (o *Reader) skipTR(m *interp.VM, args []interp.Value, named map[string]inte
 	}
 	n, ok := args[0].(*interp.IntVal)
 	if !ok {
-		return nil, interp.ArgTypeError(memberSkip, 1, args[0], codes.A200)
+		return nil, interp.ArgTypeError(memberSkip, 1, args[0], codes.TypeInt)
 	}
 	if n.Val < 0 {
 		return nil, messages.New(messages.H5545, fn, n.Val)

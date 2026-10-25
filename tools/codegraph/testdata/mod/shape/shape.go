@@ -22,7 +22,7 @@ func Describe(s Shape) error {
 	if s.Area() == 0 {
 		return messages.New(messages.H0001)
 	}
-	_ = codes.A001
+	_ = codes.KwIf
 	return nil
 }
 
@@ -63,7 +63,7 @@ var table = []struct {
 	code codes.Code
 	fn   func()
 }{
-	{codes.A001, runIf},
+	{codes.KwIf, runIf},
 }
 
 func runIf() {}

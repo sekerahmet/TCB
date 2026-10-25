@@ -18,7 +18,7 @@ const intLimit = 9223372036854775808.0
 // da int64 aralığı dışındaki değerde hata verir.
 func floatToInt(name any, f float64) (int64, error) {
 	if math.IsNaN(f) || math.IsInf(f, 0) || f >= intLimit || f < -intLimit {
-		t := codes.NameRef(codes.A200)
+		t := codes.NameRef(codes.TypeInt)
 		return 0, messages.New(messages.H2484, name, (&FloatVal{Val: f}).Text(codes.Display()), t)
 	}
 	return int64(f), nil
@@ -32,13 +32,13 @@ func ParseNonFinite(s string, lang *codes.Language) (float64, bool) {
 	if lang == nil {
 		lang = codes.Active()
 	}
-	inf := lang.Name(codes.A110)
+	inf := lang.Name(codes.ValInf)
 	switch s {
 	case inf, "+" + inf:
 		return math.Inf(1), true
 	case "-" + inf:
 		return math.Inf(-1), true
-	case lang.Name(codes.A111):
+	case lang.Name(codes.ValNan):
 		return math.NaN(), true
 	}
 	return 0, false
@@ -135,7 +135,7 @@ func sumNumbers(name any, elems []Value) (Value, error) {
 			}
 			s := intNum + x.Val
 			if (s > intNum) != (x.Val > 0) {
-				return nil, messages.New(messages.H2485, name, codes.NameRef(codes.A200), intNum, x.Val, i+1, codes.NameRef(codes.G211))
+				return nil, messages.New(messages.H2485, name, codes.NameRef(codes.TypeInt), intNum, x.Val, i+1, codes.NameRef(codes.FnFloat))
 			}
 			intNum = s
 		case *FloatVal:

@@ -87,7 +87,7 @@ func checkSortedOnePerLine(t *testing.T, data []byte, requiredField string) {
 // Tip ifadeleri çözülür; geçersiz bir tanım satırı hatayla bildirilir.
 func TestParseDefinitions(t *testing.T) {
 	ti, err := ParseType("A200|A201?", true)
-	if err != nil || !ti.Optional || len(ti.Types) != 2 || ti.Types[1] != A201 {
+	if err != nil || !ti.Optional || len(ti.Types) != 2 || ti.Types[1] != TypeFloat {
 		t.Fatalf("TipCoz: %+v %v", ti, err)
 	}
 	if _, err := ParseType("A200?", false); err == nil {

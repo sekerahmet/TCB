@@ -22,7 +22,7 @@ import (
 // jobDir arka plan işinin klasörüdür (ortam değişkeni K401, her yazım dilinin adıyla:
 // TR_IS_KLASORU, TR_JOB_DIR); iş değilse boş.
 func jobDir() string {
-	k, _ := codes.EnvValue(codes.K401)
+	k, _ := codes.EnvValue(codes.EnvJobDir)
 	return k
 }
 

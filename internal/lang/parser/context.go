@@ -67,7 +67,7 @@ func (p *Parser) checkSignal(tok lexer.Token) {
 	}
 	var exit any = "" // boşsa iletide öneri yer almaz
 	if p.ctx.funcs > 0 {
-		exit = codes.NameRef(codes.A021)
+		exit = codes.NameRef(codes.KwReturn)
 	}
 	p.syntaxError(tok, messages.H0151, tok.Literal, exit)
 }
@@ -79,7 +79,7 @@ func (p *Parser) checkReturn(tok lexer.Token) {
 	}
 	switch {
 	case p.ctx.test:
-		p.syntaxError(tok, messages.H0153, tok.Literal, codes.NameRef(codes.A001))
+		p.syntaxError(tok, messages.H0153, tok.Literal, codes.NameRef(codes.KwIf))
 	case p.module:
 		p.syntaxError(tok, messages.H0154, tok.Literal)
 	}

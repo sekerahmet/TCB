@@ -54,9 +54,9 @@ func (d *TensorValue) Text(lang *codes.Language) string {
 		if len(ek) > 0 {
 			s += ", " + strings.Join(ek, ", ")
 		}
-		return lang.Name(codes.A212) + "(" + s + ")" + dtypeSuffix
+		return lang.Name(codes.TypeTensor) + "(" + s + ")" + dtypeSuffix
 	}
-	header := lang.Name(codes.A212) + "[" + shapeProduct(sh) + "]" + dtypeSuffix
+	header := lang.Name(codes.TypeTensor) + "[" + shapeProduct(sh) + "]" + dtypeSuffix
 	if len(ek) > 0 {
 		header += " (" + strings.Join(ek, ", ") + ")"
 	}

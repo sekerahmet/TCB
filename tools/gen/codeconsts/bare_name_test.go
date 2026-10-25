@@ -17,7 +17,7 @@ import (
 
 // "Çıplak ad yok": dilin kullanıcıya görünen adları (anahtar kelimeler, tip adları,
 // yerleşikler, metot ve özellikler, adlı argümanlar) Go metin sabitlerine yazılmaz;
-// mesajlar adı koddan üretir (kod.Ad(kod.G100)). Böylece bir ad tr.json'da değişince ya da
+// mesajlar adı koddan üretir (kod.Ad(kod.FnPrint)). Böylece bir ad tr.json'da değişince ya da
 // başka bir dil dosyası yüklenince mesajlar da değişir.
 //
 // Test, dilin adlarını üreten katmanların (internal/lang, internal/stdlib, internal/devtools,

@@ -146,7 +146,7 @@ func mixedDType(m *interp.VM) tensor.DType {
 // türüyle çalıştırır ve bloğun son ifadesinin değerini döndürür. "float32" iç içe bir blokta
 // karışık hassasiyeti kapatır. Blok bitince (hata ile bitse de) önceki tür geri gelir.
 func mixedPrecision(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.T710)
+	fn := codes.NameRef(codes.FnMixedPrecision)
 	if err := bind.CheckNamed(fn.Called(), named); err != nil {
 		return nil, err
 	}
@@ -184,12 +184,12 @@ func mixedPrecision(m *interp.VM, args []interp.Value, named map[string]interp.V
 // blok dışında "float32". PyTorch'ta torch.get_autocast_dtype, Flax'ta modülün dtype'ı: bir
 // sonucu doğrudan çarpımın okuyacağı türde yazmak için (normların tür: argümanı, 15.4).
 func computeDType(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.T711)
+	fn := codes.NameRef(codes.FnComputeDtype)
 	if err := bind.CheckNamed(fn.Called(), named); err != nil {
 		return nil, err
 	}
 	if len(args) != 0 {
-		return nil, interp.ArgCountError(codes.T711, 0, len(args))
+		return nil, interp.ArgCountError(codes.FnComputeDtype, 0, len(args))
 	}
 	return &interp.StringVal{Val: mixedDType(m).Name()}, nil
 }
