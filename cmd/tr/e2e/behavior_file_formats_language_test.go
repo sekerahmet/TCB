@@ -217,6 +217,15 @@ func TestDisplayFollowsPersonsLanguage(t *testing.T) {
 	}
 }
 
+// İletilerin içindeki değerler ve tip adları iletinin dilindedir (TR_DIL): aynı hata TR_DIL=en
+// ile "Bool (true)", Türkçede "Mantık (doğru)" der; ileti ile içindeki değer bir dildedir.
+func TestMessageValuesFollowPersonsLanguage(t *testing.T) {
+	dir := t.TempDir()
+	testkit.WriteFile(t, dir, "p.tr", "yazdır([1].birleştir(doğru))\n")
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "p.tr"), 1, nil, []string{"Bool (true) given"})
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=tr"}, "p.tr"), 1, nil, []string{"Mantık (doğru) verildi"})
+}
+
 // fileFormatShape klasördeki dosya adlarını ve her JSON dosyasının (satırının) anahtar
 // kümesini, değerleri atarak, sıralı bir özet olarak verir.
 func fileFormatShape(t *testing.T, dir string) string {

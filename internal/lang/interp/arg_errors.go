@@ -102,12 +102,13 @@ func TypeAndSummary(v Value) string {
 const summaryLimit = 40
 
 // ValueSummary writes a value short enough for an error message: strings in quotes, long
-// values cut with "…". Large lists are never printed in full.
+// values cut with "…". Large lists are never printed in full. Messages are display text, so
+// the value is in the person's writing language (TR_DIL; DisplayText).
 func ValueSummary(v Value) string {
 	var s string
 	switch x := v.(type) {
 	case nil:
-		return codes.Name(codes.A042)
+		return codes.DisplayName(codes.A042)
 	case *StringVal:
 		return strconv.Quote(shorten(x.Val, summaryLimit))
 	case *ListVal:
@@ -118,14 +119,14 @@ func ValueSummary(v Value) string {
 			}
 			return messages.Text(messages.H2425, shorten("["+strings.Join(pieces, ", ")+", …]", summaryLimit), len(x.Elements))
 		}
-		s = x.Inspect()
+		s = DisplayText(x)
 	case *DictVal:
 		if len(x.Pairs) > 5 {
 			return messages.Text(messages.H2426, len(x.Pairs))
 		}
-		s = x.Inspect()
+		s = DisplayText(x)
 	default:
-		s = v.Inspect()
+		s = DisplayText(v)
 	}
 	return shorten(s, summaryLimit)
 }

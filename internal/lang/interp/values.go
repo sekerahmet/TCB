@@ -31,6 +31,21 @@ var (
 	ValTensor   = TypeName(codes.A212) // Tensör
 )
 
+// MessageText is the type's name in a message written in lang (messages.Localized): the type
+// names in messages follow the message's language (TR_DIL). A name that is not a type code's
+// (a struct's own name) stays as it is.
+func (t ValueType) MessageText(lang string) string {
+	k, ok := codes.Find(codes.NamespaceType, string(t))
+	if !ok {
+		return string(t)
+	}
+	l, err := codes.LoadLanguage(lang)
+	if err != nil {
+		return string(t)
+	}
+	return l.Name(k)
+}
+
 // TypeName is the ValueType of a type-name code from the dictionary (A2xx); engines get the
 // names of their own types with it.
 func TypeName(k codes.Code) ValueType {

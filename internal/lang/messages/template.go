@@ -383,9 +383,12 @@ func (c *Catalog) write(b *strings.Builder, code Code, segs []segment, args []an
 }
 
 // codedText değer bir kodlu hataysa onun bu katalogdaki metnidir: iç ileti dıştakiyle aynı
-// dilde yazılır (catalogFor ikisinin de bu dilde metni olduğunu denetlemiştir).
+// dilde yazılır (catalogFor ikisinin de bu dilde metni olduğunu denetlemiştir). Dile bağlı
+// değer (Localized) de bu katalogun dilinde yazılır.
 func (c *Catalog) codedText(a any) (string, bool) {
 	switch e := a.(type) {
+	case Localized:
+		return e.MessageText(c.Language), true
 	case *Error:
 		if e == nil {
 			return "", false

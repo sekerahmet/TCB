@@ -141,3 +141,23 @@ func TestTextIn(t *testing.T) {
 		t.Errorf("bilinmeyen dil kaynak dile düşmeli: %q", got)
 	}
 }
+
+// localizedValue her dilde ayrı metni olan bir değerdir (sınama için).
+type localizedValue map[string]string
+
+func (v localizedValue) MessageText(lang string) string { return v[lang] }
+
+// Dile bağlı değer (Localized) iletinin kurulduğu dilde yazılır: ileti hangi dildeyse içindeki
+// değer de o dilde (Fluent'in FluentType.toString(scope) gibi).
+func TestLocalizedArgument(t *testing.T) {
+	v := localizedValue{"tr": "doğru", "en": "true"}
+	if got := TextIn("en", H2441, v); got != "true" {
+		t.Errorf("en: %q", got)
+	}
+	if got := TextIn("tr", H2441, v); got != "doğru" {
+		t.Errorf("tr: %q", got)
+	}
+	if got := TextIn("en", H2424, v, v); got != "true (true)" {
+		t.Errorf("iç içe: %q", got)
+	}
+}
