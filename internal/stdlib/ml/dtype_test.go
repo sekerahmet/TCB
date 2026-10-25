@@ -79,7 +79,7 @@ yazdır(r.değer, (x @ y).değer)
 dene { karışık_hassasiyet("bf16") { fırlat "dur" } } yakala h { yazdır(h) }
 yazdır((x @ y).değer)
 yazdır(karışık_hassasiyet("bf16") { 5 }, karışık_hassasiyet("bf16") {})`)
-	want := "[[1.0]] bf16\n[[1.0009766]]\n[[1.001]]\n[1.0]\n[[3.0]] [[1.001]]\nSatır 11: dur\n[[1.001]]\n5 yok\n"
+	want := "[[1.0]] bf16\n[[1.0009766]]\n[[1.001]]\n[1.0]\n[[3.0]] [[1.001]]\ndur\n[[1.001]]\n5 yok\n" // yakalanan fırlat öneksiz (8.2)
 	if out != want {
 		t.Fatalf("karışık_hassasiyet:\n%q\nbeklenen:\n%q", out, want)
 	}

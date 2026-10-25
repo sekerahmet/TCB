@@ -232,23 +232,66 @@ func (c *compiler) tryCatchStatement(k *compilerScope, s *ast.TryCatchStatement)
 				return nil, signalNone, err // kesilme (Ctrl+C) ve program çıkışı isteği yakalanmaz
 			}
 			catchEnv := newEnv(env, info)
-			catchEnv.define(errSlot, &StringVal{Val: messages.ErrorIn(err, lang)}, false)
+			catchEnv.define(errSlot, &StringVal{Val: messages.ErrorIn(caughtError(err), lang)}, false)
 			return catchClause.run(v, catchEnv)
 		}
 		return val, sig, nil
 	}
 }
 
-// throwStatement 'fırlat' deyimini derler.
+// throwStatement 'fırlat' deyimini derler. Hata fırlatıldığı satırı taşır: yakalanmazsa program
+// konum ve kod çerçevesiyle durur, görev raporu satırı söyler (8.3); yakalanırsa metni
+// programın değeridir, öneksiz (8.2, caughtError).
 func (c *compiler) throwStatement(k *compilerScope, s *ast.ThrowStatement) statementCode {
 	value := c.expression(k, s.Value)
+	line := s.Line()
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
 		val, err := value(v, env)
 		if err != nil {
 			return nil, signalNone, err
 		}
-		return nil, signalNone, messages.New(messages.H2441, v.textOf(val)) // programa geri döner: dosyanın dilinde (3)
+		// Değerin metni programa geri döner: dosyanın dilinde (3).
+		return nil, signalNone, messages.At(line, 0, &thrownError{messages.New(messages.H2441, v.textOf(val))})
 	}
+}
+
+// thrownError 'fırlat' ile başlatılan hatadır; metni fırlatılan değerin metnidir.
+type thrownError struct{ value *messages.Error }
+
+func (e *thrownError) Error() string { return e.value.Error() }
+
+// MessageText hatanın lang dilindeki metnidir (messages.Localized).
+func (e *thrownError) MessageText(lang string) string { return messages.ErrorIn(e.value, lang) }
+
+func (e *thrownError) Unwrap() error { return e.value }
+
+// caughtError yakalanan hatanın metne çevrilecek hâlidir: 'fırlat'ın hatası konum sarmaları
+// (satır, başka bir dosyanın adı) olmadan (yakalanan metin programın değeridir, 8.2); ertele
+// hatasında (9.4) parçaları da öyle; öbür hatalar olduğu gibi (Satır N: ..., 8.3).
+func caughtError(err error) error {
+	inner := err
+	for {
+		if p, ok := inner.(*messages.PosError); ok {
+			inner = p.Err
+			continue
+		}
+		if m, ok := inner.(*ModuleError); ok && len(m.Errors) == 0 {
+			inner = m.Err
+			continue
+		}
+		break
+	}
+	switch e := inner.(type) {
+	case *thrownError:
+		return e
+	case *deferError:
+		extras := make([]error, len(e.extras))
+		for i, x := range e.extras {
+			extras[i] = caughtError(x)
+		}
+		return &deferError{mainSrc: caughtError(e.mainSrc), extras: extras}
+	}
+	return err
 }
 
 // importStatement 'aktar' deyimini derler.
