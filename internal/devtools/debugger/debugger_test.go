@@ -236,3 +236,20 @@ func TestCommandsSingleSpelling(t *testing.T) {
 		}
 	}
 }
+
+// Kural (B8): komut olmayan ama ifade olarak ayrışan girdi 'hesapla' gibi değerlendirilir (pdb gibi);
+// tanımsız bir ada 'değiştir' yeni değişken açmaz, hata verir. Önceden ifade "Bilinmeyen komut"
+// alıyor, tanımsız ada değiştir sessizce değişken tanımlıyordu.
+func TestCLIExpressionAndUndefinedAssign(t *testing.T) {
+	code := "değişken a = 2\nyazdır(a)\n"
+	out, machine := runCLI(t, "t.tr", code, "adım\na * 3\ndeğiştir yok_boyle = 5\ndevam\n", nil)
+	if !strings.Contains(out, "Sonuç (Tam): 6") {
+		t.Errorf("ifade değerlendirilmeli:\n%s", out)
+	}
+	if strings.Contains(out, "CANLI DEĞİŞTİRİLDİ") || !strings.Contains(out, "'yok_boyle'") {
+		t.Errorf("tanımsız ada değiştir hata vermeli:\n%s", out)
+	}
+	if _, ok := machine.GlobalEnv.Get("yok_boyle"); ok {
+		t.Error("tanımsız ad tanımlanmamalı")
+	}
+}

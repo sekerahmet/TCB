@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/hint"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"os"
@@ -239,7 +240,7 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 		cmd := strings.ToLower(parts[0])
 
 		command := commandCode(cmd)
-		if command == codes.None {
+		if command == codes.None && len(parts) == 1 { // 'a * 3' gibi girdi bir ifadedir (aşağıda)
 			if actual, ok := oldCommand(cmd); ok {
 				fmt.Println("  ⚠️ " + messages.Text(messages.H8041, cmd, codes.NameRef(actual)))
 				continue
@@ -286,11 +287,12 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 					fmt.Println("  ❌ " + messages.Text(messages.H8044, err))
 					continue
 				}
-				if _, exists := env.Get(varName); exists {
-					_ = env.Assign(varName, newVal)
-				} else {
-					env.Define(varName, newVal, false)
+				if _, exists := env.Get(varName); !exists {
+					// değiştir var olan bir değişkeni değiştirir; tanımsız ad yeni değişken açmaz.
+					fmt.Println("  ❌ " + messages.Text(messages.H8060, hint.UndefinedNameError(varName, env.Names(), nil)))
+					continue
 				}
+				_ = env.Assign(varName, newVal)
 				fmt.Println("  ✏️ " + messages.Text(messages.H8045, varName, v.Mask(interp.DisplayText(newVal)), interp.DisplayType(newVal)))
 			}
 
@@ -376,12 +378,7 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 			}
 			exprStr := strings.TrimSpace(cmdLine[len(parts[0]):])
 			if e, status := parseFirstExpression(exprStr); status == exprParsed {
-				val, err := d.evalQuiet(v, env, e)
-				if err != nil {
-					fmt.Println("  ❌ " + messages.Text(messages.H8060, err))
-				} else {
-					fmt.Println("  💡 " + messages.Text(messages.H8061, interp.DisplayType(val), v.Mask(interp.DisplayText(val))))
-				}
+				d.printEvaluation(v, env, e)
 			}
 
 		case codes.K311:
@@ -395,14 +392,33 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 			os.Exit(0)
 
 		default:
-			// Eğer doğrudan bir değişken adı yazıldıysa değerini göster
+			// Doğrudan bir değişken adı yazıldıysa değeri; ifade olarak ayrışan girdi 'hesapla' gibi
+			// değerlendirilir (pdb gibi). Tanımsız tek ad bir komutun yanlış yazımı olabilir.
 			if val, ok := env.Get(cmdLine); ok {
 				fmt.Printf("  🔍 %s (%s) = %s\n", cmdLine, interp.DisplayType(val), v.Mask(interp.DisplayText(val)))
+			} else if e, status := parseFirstExpression(cmdLine); status == exprParsed && !isBareName(e) {
+				d.printEvaluation(v, env, e)
 			} else {
 				fmt.Println("  ❓ " + messages.Text(messages.H8063, codes.NameRef(codes.K312)))
 			}
 		}
 	}
+}
+
+// printEvaluation ifadenin değerini (ya da hatasını) yazar: 'hesapla' ve ifade olarak yazılan girdi.
+func (d *Debugger) printEvaluation(v *interp.VM, env *interp.Environment, e ast.Expression) {
+	val, err := d.evalQuiet(v, env, e)
+	if err != nil {
+		fmt.Println("  ❌ " + messages.Text(messages.H8060, err))
+		return
+	}
+	fmt.Println("  💡 " + messages.Text(messages.H8061, interp.DisplayType(val), v.Mask(interp.DisplayText(val))))
+}
+
+// isBareName ifade tek bir ad mı (değerlendirilmez: tanımsızsa komutun yanlış yazımı sayılır).
+func isBareName(e ast.Expression) bool {
+	_, ok := e.(*ast.Identifier)
+	return ok
 }
 
 func (d *Debugger) renderDebugScreen(v *interp.VM, currentLine int, env *interp.Environment) {
