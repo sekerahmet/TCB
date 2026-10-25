@@ -36,6 +36,12 @@ her durumu kapatan genel çözüm ve sınıfı koruyan bir testtir.
   - Neden kritik: `String()`'in çıktısı değişince (adım 0: `A001` → `TR_kw_if`) etkilenen yerlerin bir kısmı görünmüyor; liste eksiksiz sanılıyor. Aynı sınıf `Error()` için de geçerli.
   - İstenen genel çözüm: `fmt.Stringer` ya da `error` uygulayan bir tipin değeri `fmt`, `log`, `errors` gibi biçimleyicilere (ve ileti argümanlarına) verildiğinde çıkarımsal (`[INFERRED]`) bir "biçimlenir" kenarı; go/types ile sayılan bu tür kullanımların hepsinin kenarı olduğunu denetleyen bir kapsam testi.
 
+- **Dosya ve satır sorulamıyor: grep'ten grafiğe köprü yok.** 2026-10-26, ana oturum main 465f71b3'te üretti (Ahmet'in "grep gibi bir şey eklemek mantıklıysa ekleyelim" sorusu üzerine).
+  - Komut: `go run ./tools/codegraph query internal/lang/codes/language.go:227` ve `tests-for internal/lang/codes/language.go:227` → `not found` (yalnız dosya düğümünü öneriyor).
+  - Beklenen: satırı içeren en içteki düğüm (Go fonksiyonu, metodu, testi; `.tr` bildirimi; `.md`'de başlık bölümü) ve onun komşuları ya da testleri, sanki adıyla sorulmuş gibi.
+  - Neden kritik: CLAUDE.md'nin yolu "metnin içeriği grep ile aranır, sonra bulunan yer grafiğe sorulur"; bulunan yer `dosya:satır`, araç ise gerçek bir yere "bulunamadı" diyor (yanlış "yok"), içeren fonksiyon elle aranıyor.
+  - İstenen genel çözüm: `query`, `who-uses`, `tests-for`, `history`'nin `dosya:satır` (ve `dosya:satır:sütun`) kabul etmesi; birden çok konum için (grep çıktısı) her satıra içeren düğümü ekleyen bir kip. Codegraph'a ayrı bir metin araması eklenmez (grep/ripgrep var; Sadelik 2). Test: her izlenen Go dosyasından rastgele satırlar, go/ast'nin içeren bildirimiyle karşılaştırılır.
+
 ## İnce ayar
 
 - **Test dosyasının kendi testleri sayılmıyor.** 2026-10-25, MEKANİK bildirdi (iki kez), ana oturum main f60cdcc6'da yeniden üretti.
