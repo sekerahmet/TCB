@@ -88,9 +88,9 @@ type state struct {
 func Register(v *interp.VM, s *process.State) {
 	d := &state{process: s}
 	v.RegisterNoNamed(codes.G810, func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-		return bind.Safe(codes.Name(codes.G810), func() (interp.Value, error) { return d.openLog(m, args) })
+		return bind.Safe(interp.CallPrefix(codes.G810), func() (interp.Value, error) { return d.openLog(m, args) })
 	})
-	v.RegisterBuiltinCode(codes.G811, bind.SafeBuiltin(codes.Name(codes.G811), d.openProgress))
+	v.RegisterBuiltinCode(codes.G811, bind.SafeBuiltin(interp.CallPrefix(codes.G811), d.openProgress))
 }
 
 // Açık günlükler ve bitmemiş çubuklar: program bitince CloseAll hepsini kapatır.

@@ -30,10 +30,10 @@ func geluExact64(x float64) float64 {
 // tanh yaklaşımlı, yanlış tam (erf tabanlı) GELU'dur. Öteki eleman bazlı fonksiyonlar gibi
 // tensörde türev izleyen tensör, sayıda Ondalık verir, listede yol gösteren hata verir.
 func registerGelu(v *interp.VM) {
-	ad := codes.DisplayName(codes.T203)
+	ad := codes.NameRef(codes.T203)
 	wrap(v, codes.T203, func(interp.BuiltinFunc) interp.BuiltinFunc {
 		return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-			if err := bind.CheckNamed(ad+"()", named, nameApproximate); err != nil {
+			if err := bind.CheckNamed(ad.Called(), named, nameApproximate); err != nil {
 				return nil, err
 			}
 			if len(args) != 1 {
@@ -80,11 +80,11 @@ func sigmoid64(x float64) float64 { return 1.0 / (1.0 + math.Exp(-x)) }
 // o çağrılır; yoksa sayı Ondalık verir (sayi64 ile). Liste kabul edilmez (karar 15): yol
 // gösteren hata tensör(...) ile çevirmeyi önerir.
 func unit(v *interp.VM, kd codes.Code, fn func(*tensor.Tensor) *tensor.Tensor, number64 func(float64) float64) {
-	ad := codes.DisplayName(kd)
+	ad := codes.NameRef(kd)
 	wrap(v, kd, func(old interp.BuiltinFunc) interp.BuiltinFunc {
 		return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 			if len(args) != 1 || !isTensor(args) {
-				if err := bind.CheckNamed(ad+"()", named); err != nil {
+				if err := bind.CheckNamed(ad.Called(), named); err != nil {
 					return nil, err
 				}
 				if old != nil {
@@ -95,7 +95,7 @@ func unit(v *interp.VM, kd codes.Code, fn func(*tensor.Tensor) *tensor.Tensor, n
 				}
 				return applyToNumber(ad, args[0], number64)
 			}
-			if err := bind.CheckNamed(ad+"()", named); err != nil {
+			if err := bind.CheckNamed(ad.Called(), named); err != nil {
 				return nil, err
 			}
 			t, err := toTensor(ad, args[0])
@@ -113,11 +113,11 @@ func unit(v *interp.VM, kd codes.Code, fn func(*tensor.Tensor) *tensor.Tensor, n
 
 // applyToNumber eleman bazlı fonksiyonu tensör olmayan bir değere uygular: sayı Ondalık
 // verir (float64 ile); liste ve başka değerler yol gösteren hatadır.
-func applyToNumber(ad string, v interp.Value, f func(float64) float64) (interp.Value, error) {
+func applyToNumber(ad codes.Ref, v interp.Value, f func(float64) float64) (interp.Value, error) {
 	if s, ok := interp.ToFloat(v); ok {
 		return &interp.FloatVal{Val: f(s)}, nil
 	}
-	if err := listError(ad, v, messages.Text(messages.H6131), ad+"("+codes.Name(codes.T100)+"(...))"); err != nil {
+	if err := listError(ad, v, messages.New(messages.H6131), ad.String()+"("+codes.Name(codes.T100)+"(...))"); err != nil {
 		return nil, err
 	}
 	return nil, messages.New(messages.H6103, ad, typeName(v))
@@ -125,15 +125,15 @@ func applyToNumber(ad string, v interp.Value, f func(float64) float64) (interp.V
 
 // listError değer bir liste ise eleman bazlı fonksiyonların listede çalışmadığını söyleyen,
 // tensöre çevirmeyi öneren hatayı verir (karar 15); liste değilse nil.
-func listError(ad string, v interp.Value, accept, suggestion string) error {
+func listError(ad any, v interp.Value, accept any, example string) error {
 	if _, ok := v.(*interp.ListVal); !ok {
 		return nil
 	}
-	return messages.New(messages.H6104, ad, accept, codes.NameRef(codes.T100), suggestion)
+	return messages.New(messages.H6104, ad, accept, codes.NameRef(codes.T100), example)
 }
 
 // axisArg eksen adlı argümanını ya da konumlu ikinci argümanı okur.
-func axisArg(fn string, args []interp.Value, named map[string]interp.Value) (int, bool, error) {
+func axisArg(fn any, args []interp.Value, named map[string]interp.Value) (int, bool, error) {
 	var ev interp.Value
 	if len(args) >= 2 {
 		ev = args[1]
@@ -157,14 +157,14 @@ func axisArg(fn string, args []interp.Value, named map[string]interp.Value) (int
 // registerSoftmax softmax/log_softmax'ı kaydeder: tensörde (matris dahil) verilen eksende
 // (varsayılan son eksen) çalışır; liste ve başka değerler yol gösteren hatadır.
 func registerSoftmax(v *interp.VM, kd codes.Code, logMode bool) {
-	ad := codes.DisplayName(kd)
+	ad := codes.NameRef(kd)
 	wrap(v, kd, func(interp.BuiltinFunc) interp.BuiltinFunc {
 		return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 			if len(args) == 0 || !isTensor(args[:1]) {
 				if len(args) == 0 {
 					return nil, messages.New(messages.H6109, ad, nameAxis)
 				}
-				if err := listError(ad, args[0], messages.Text(messages.H6132), ad+"("+codes.Name(codes.T100)+"(...), "+nameAxis.TR+": -1)"); err != nil {
+				if err := listError(ad, args[0], messages.New(messages.H6132), ad.String()+"("+codes.Name(codes.T100)+"(...), "+nameAxis.TR+": -1)"); err != nil {
 					return nil, err
 				}
 				return nil, messages.New(messages.H6110, ad, typeName(args[0]))
@@ -172,7 +172,7 @@ func registerSoftmax(v *interp.VM, kd codes.Code, logMode bool) {
 			if len(args) > 2 {
 				return nil, messages.New(messages.H6111, ad, nameAxis, len(args))
 			}
-			if err := bind.CheckNamed(ad+"()", named, nameAxis); err != nil {
+			if err := bind.CheckNamed(ad.Called(), named, nameAxis); err != nil {
 				return nil, err
 			}
 			t, err := toTensor(ad, args[0])

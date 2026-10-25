@@ -161,7 +161,8 @@ func unknownOption(given string, options []*option) error {
 	if i := strings.IndexByte(given, '='); i >= 0 {
 		given = given[:i] + "=…"
 	}
-	candidates := []string{codes.DisplayName(codes.K106)}
+	help := codes.DisplayName(codes.K106) // eşleştirme kişinin dilindeki yazımla
+	candidates := []string{help}
 	for _, s := range options {
 		candidates = append(candidates, s.name)
 	}
@@ -170,12 +171,16 @@ func unknownOption(given string, options []*option) error {
 		o = name // -adım → --adım
 	}
 	if o == "" && name == "h" {
-		o = codes.DisplayName(codes.K106)
+		o = help
 	}
 	if o == "" {
 		return messages.New(messages.H7208, shorten(given))
 	}
-	return messages.New(messages.H7209, shorten(given), o)
+	var suggestion any = o // programın seçeneği yazıldığı gibi; yardım seçeneği iletinin dilinde
+	if o == help {
+		suggestion = codes.NameRef(codes.K106)
+	}
+	return messages.New(messages.H7209, shorten(given), suggestion)
 }
 
 // parseValue bir argüman değerini seçeneğin tipine çevirir.

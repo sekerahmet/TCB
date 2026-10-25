@@ -261,12 +261,12 @@ func (d *stateReader) same(name string, shown any, now int64, positive bool) {
 // kurmadan bırakır, durumu .sonraki()'deki gibi ilerletir ve atlanan sayıyı verir; sıralı
 // okuyucu biterse kalan kadar atlar.
 func (o *Reader) skipTR(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(memberSkip)
-	if err := bind.CheckNamed(fn+"()", named); err != nil {
+	fn := codes.NameRef(memberSkip)
+	if err := bind.CheckNamed(fn.Called(), named); err != nil {
 		return nil, err
 	}
 	if len(args) != 1 {
-		return nil, interp.ArgCountError(memberSkip, "1", len(args))
+		return nil, interp.ArgCountError(memberSkip, 1, len(args))
 	}
 	n, ok := args[0].(*interp.IntVal)
 	if !ok {

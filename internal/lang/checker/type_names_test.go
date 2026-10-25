@@ -28,3 +28,14 @@ func TestTypeNamesFollowTheMessageLanguage(t *testing.T) {
 		}
 	}
 }
+
+// Kural (4E): denetleyicinin iç tip kimliği Go'da yazılmış sözcük taşımaz ("Tam ya da Ondalık"
+// değil); okunur ad yalnız iletide, iletinin dilinde kurulur.
+func TestTypeNumberIdentityHasNoWords(t *testing.T) {
+	if strings.ContainsAny(typeNumber, " \t") {
+		t.Errorf("typeNumber iç kimliği sözcük taşıyor: %q", typeNumber)
+	}
+	if tr, en := typeText(typeNumber).MessageText("tr"), typeText(typeNumber).MessageText("en"); tr != "Tam ya da Ondalık" || en != "Int or Float" {
+		t.Errorf("iletide %q / %q, beklenen \"Tam ya da Ondalık\" / \"Int or Float\"", tr, en)
+	}
+}

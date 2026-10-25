@@ -27,7 +27,7 @@ import (
 func Register(v *interp.VM) {
 	v.RegisterNoNamed(codes.G600, func(vm *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		if len(args) != 1 {
-			return nil, interp.ArgCountError(codes.G600, "1", len(args), codes.ReceiverName(codes.A202))
+			return nil, interp.ArgCountError(codes.G600, 1, len(args), codes.ReceiverName(codes.A202))
 		}
 		s, ok := args[0].(*interp.StringVal)
 		if !ok {
@@ -42,7 +42,7 @@ func Register(v *interp.VM) {
 
 	v.RegisterNoNamed(codes.G601, func(vm *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		if len(args) != 1 {
-			return nil, interp.ArgCountError(codes.G601, "1", len(args), messages.Text(messages.H2301))
+			return nil, interp.ArgCountError(codes.G601, 1, len(args), messages.Text(messages.H2301))
 		}
 		b, err := jsonwrite.Write(args[0])
 		if err != nil {
@@ -53,7 +53,7 @@ func Register(v *interp.VM) {
 
 	v.RegisterNoNamed(codes.G602, func(vm *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		if len(args) != 1 {
-			return nil, interp.ArgCountError(codes.G602, "1", len(args), messages.Text(messages.H2307))
+			return nil, interp.ArgCountError(codes.G602, 1, len(args), messages.Text(messages.H2307))
 		}
 		resolved, err := resolveCSVPath(vm, args[0])
 		if err != nil {
@@ -76,7 +76,7 @@ func Register(v *interp.VM) {
 
 	v.RegisterNoNamed(codes.G603, func(vm *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		if len(args) != 1 {
-			return nil, interp.ArgCountError(codes.G603, "1", len(args), codes.ReceiverName(codes.A202))
+			return nil, interp.ArgCountError(codes.G603, 1, len(args), codes.ReceiverName(codes.A202))
 		}
 		s, ok := args[0].(*interp.StringVal)
 		if !ok {
@@ -97,7 +97,7 @@ func Register(v *interp.VM) {
 // dosya açılarak okunur (bkz. interp.ReadFileContent). CSV metninin kendisi csv_çöz ile
 // ayrıştırılır: dosya yoksa ve argüman virgül içeriyorsa hata csv_çöz'ü önerir.
 func csvInput(p csvPath) (string, error) {
-	fn := codes.DisplayName(codes.G602)
+	fn := codes.NameRef(codes.G602)
 	info, statErr := os.Stat(p.path)
 	if statErr != nil {
 		err := interp.ReadError(fn, p.arg, messages.H2100, statErr, p.tried)

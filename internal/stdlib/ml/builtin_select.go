@@ -14,15 +14,15 @@ import (
 // olmalıdır ve a ya da b olduğu gibi döner. Değilse sayılar ve Mantık tensöre çevrilir
 // (a ile b'deki sayılar ilk tensör işlenenin türünü alır), üç şekil yayınlanır.
 func whereBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	ad := codes.DisplayName(codes.T234)
-	if err := bind.CheckNamed(ad+"()", named); err != nil {
+	ad := codes.NameRef(codes.T234)
+	if err := bind.CheckNamed(ad.Called(), named); err != nil {
 		return nil, err
 	}
 	if len(args) != 3 {
 		return nil, messages.New(messages.H6201, ad, len(args))
 	}
 	for _, a := range args {
-		if err := listError(ad, a, messages.Text(messages.H6133, codes.NameRef(codes.A203)), ad+"("+codes.Name(codes.T100)+"(...), a, b)"); err != nil {
+		if err := listError(ad, a, messages.New(messages.H6133, codes.NameRef(codes.A203)), ad.String()+"("+codes.Name(codes.T100)+"(...), a, b)"); err != nil {
 			return nil, err
 		}
 	}
@@ -58,7 +58,7 @@ func whereBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Val
 }
 
 // condValue tensör olmayan koşulun doğruluğu: Mantık ya da sayı (0 dışı doğru).
-func condValue(ad string, v interp.Value) (bool, error) {
+func condValue(ad any, v interp.Value) (bool, error) {
 	if b, ok := v.(*interp.BoolVal); ok {
 		return b.Val, nil
 	}
@@ -81,7 +81,7 @@ func isIntValued(v interp.Value) bool {
 
 // condTensors koşul, a ve b'yi aynı cihazda tensöre çevirir. Mantık koşul 1 ya da 0
 // olur; a ve b'deki sayılar ilk tensör işlenenin (yoksa float32) türünü alır.
-func condTensors(ad string, args []interp.Value) ([]*tensor.Tensor, error) {
+func condTensors(ad any, args []interp.Value) ([]*tensor.Tensor, error) {
 	cond := args[0]
 	if b, ok := cond.(*interp.BoolVal); ok {
 		cond = interp.NewInt(0)
@@ -123,7 +123,7 @@ func condTensors(ad string, args []interp.Value) ([]*tensor.Tensor, error) {
 }
 
 // checkBroadcast3 koşul, a ve b şekillerinin birlikte yayınlanabilirliğini denetler.
-func checkBroadcast3(m *interp.VM, ad string, ts []*tensor.Tensor) error {
+func checkBroadcast3(m *interp.VM, ad any, ts []*tensor.Tensor) error {
 	nd := 0
 	for _, t := range ts {
 		nd = max(nd, t.Dim())

@@ -220,7 +220,7 @@ const (
 // hatalarıyla aynı biçimdedir.
 func SizeError(n int, dt DType, limit int64, place string) *messages.Error {
 	return messages.New(messages.H3083,
-		numberText(float64(n)), dt, BytesText(float64(n)*float64(max(dt.Bits(), 1))/8), place, BytesText(float64(limit)))
+		numberText(float64(n)), dt, ByteSize(float64(n)*float64(max(dt.Bits(), 1))/8), place, ByteSize(float64(limit)))
 }
 
 // limitErrorAt sınırı aşan ayırmanın hatasını, sınır ve yer (PlaceHost, PlaceGPU) verilerek
@@ -237,13 +237,13 @@ func limitErrorAt(is opKind, shape []int, dt DType, overflow bool, limit int64, 
 	}
 	switch {
 	case overflow && is == isCreate:
-		return messages.New(messages.H3086, is, ShapeText(shape), numberText(elemFn), BytesText(byteN), place, BytesText(float64(limit)), hint)
+		return messages.New(messages.H3086, is, ShapeText(shape), numberText(elemFn), ByteSize(byteN), place, ByteSize(float64(limit)), hint)
 	case overflow:
-		return messages.New(messages.H3087, is, ShapeText(shape), numberText(elemFn), BytesText(byteN), place, BytesText(float64(limit)), hint)
+		return messages.New(messages.H3087, is, ShapeText(shape), numberText(elemFn), ByteSize(byteN), place, ByteSize(float64(limit)), hint)
 	case is == isCreate:
-		return messages.New(messages.H3084, is, ShapeText(shape), BytesText(byteN), place, BytesText(float64(limit)), hint)
+		return messages.New(messages.H3084, is, ShapeText(shape), ByteSize(byteN), place, ByteSize(float64(limit)), hint)
 	}
-	return messages.New(messages.H3085, is, ShapeText(shape), BytesText(byteN), place, BytesText(float64(limit)), hint)
+	return messages.New(messages.H3085, is, ShapeText(shape), ByteSize(byteN), place, ByteSize(float64(limit)), hint)
 }
 
 // ShapeText bir şekli "[2, 3]" biçiminde yazar; ml ve kontrol noktası iletileri de bunu kullanır.
@@ -255,24 +255,27 @@ func ShapeText(shape []int) string {
 	return "[" + strings.Join(p, ", ") + "]"
 }
 
-// BytesText bayt sayısını insan okunur birimle (1024 tabanlı) yazar; 1 KB altı bayt sayısı
-// iletinin dilindedir (H4020). Ondalık nokta Go'nundur: iletinin şablonu {ad|decimal} ile onu
-// iletinin dilinin ayırıcısına çevirir (tr "1,5 GB", en "1.5 GB"). GPU arka ucunun bellek iletileri de bunu kullanır
-// (dil tanımı 15.41, 15.42).
-func BytesText(b float64) string {
+// ByteSize bir bayt sayısıdır, ileti parametresi olarak (messages.Localized): insan okunur birimle
+// (1024 tabanlı, bir ondalıkla: "1,5 GB", "96,0 GB") yazılır; 1 KB altı bayt sayısı (H4020), bayt
+// sözcüğü ve ondalık ayırıcı iletinin dilindedir, birim simgesi dilden bağımsızdır (H7910). Dilin
+// bütün bayt miktarları bunu kullanır: tensör ve GPU bellek iletileri (dil tanımı 15.41, 15.42),
+// veri kümesi, profil.
+type ByteSize float64
+
+func (b ByteSize) MessageText(lang string) string {
 	units := [...]string{"", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"}
-	i := 0
-	for b >= 1024 && i < len(units)-1 {
-		b /= 1024
+	x, i := float64(b), 0
+	for x >= 1024 && i < len(units)-1 {
+		x /= 1024
 		i++
 	}
 	if i == 0 {
-		return messages.Text(messages.H4020, int64(b))
+		return messages.TextIn(lang, messages.H4020, int64(x))
 	}
-	if b >= 1e6 {
-		return numberText(b) + " " + units[i]
+	if x >= 1e6 {
+		return messages.TextIn(lang, messages.H7910, numberText(x), units[i])
 	}
-	return strconv.FormatFloat(b, 'f', 1, 64) + " " + units[i]
+	return messages.TextIn(lang, messages.H7910, strconv.FormatFloat(x, 'f', 1, 64), units[i])
 }
 
 // numberText büyük bir sayıyı yaklaşık yazar: küçükse tam, büyükse "1.2 × 10^24" (ayırıcı

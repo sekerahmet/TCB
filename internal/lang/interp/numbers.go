@@ -18,7 +18,7 @@ const intLimit = 9223372036854775808.0
 // da int64 aralığı dışındaki değerde hata verir.
 func floatToInt(name any, f float64) (int64, error) {
 	if math.IsNaN(f) || math.IsInf(f, 0) || f >= intLimit || f < -intLimit {
-		t := codes.DisplayName(codes.A200)
+		t := codes.NameRef(codes.A200)
 		return 0, messages.New(messages.H2484, name, (&FloatVal{Val: f}).Text(codes.Display()), t)
 	}
 	return int64(f), nil

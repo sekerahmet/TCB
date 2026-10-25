@@ -798,7 +798,7 @@ const (
 	H6101 Code = 6101 // {fn}(x) 1 parametre bekler, {given} verildi
 	H6102 Code = 6102 // {operation}: tensörler farklı cihazlarda ({leftDevice} ve {rightDevice}); önce .{toDeviceMethod}(...) ile aynı cihaza taşıyın
 	H6103 Code = 6103 // {fn}: sayı ya da tensör bekleniyor, {given} verildi
-	H6104 Code = 6104 // {fn} listede çalışmaz, yalnızca {accept}; listeyi {tensorFn}(...) ile çevirin: {suggestion}
+	H6104 Code = 6104 // {fn} listede çalışmaz, yalnızca {accept}; listeyi {tensorFn}(...) ile çevirin: {example}
 	H6105 Code = 6105 // {fn}: eksen hem konumlu hem adlı verildi
 	H6106 Code = 6106 // {fn}: eksen tam sayı olmalıdır, {value} verildi
 	H6107 Code = 6107 // {fn}: {argName} bir sayı olmalıdır, {value} verildi

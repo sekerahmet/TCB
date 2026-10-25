@@ -88,8 +88,8 @@ type customOp struct {
 
 // customGrad özel_türev(ileri:, geri:) yerleşiğidir.
 func customGrad(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.T310)
-	if err := bind.CheckNamed(fn+"()", named, nameForward, nameBackward); err != nil {
+	fn := codes.NameRef(codes.T310)
+	if err := bind.CheckNamed(fn.Called(), named, nameForward, nameBackward); err != nil {
 		return nil, err
 	}
 	if len(args) != 0 {
@@ -294,8 +294,8 @@ func backwardResult(v interp.Value, args []interp.Value) ([]*tensor.Tensor, erro
 // yön vektörüyle iç çarpımla skalere indirgenir; kayıp ve farklar float64'te hesaplanır.
 // Eleman başına koşul |analitik - sayısal| ≤ tolerans · max(1, |analitik|, |sayısal|).
 func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.T311)
-	if err := bind.CheckNamed(fn+"()", named, nameStep, nameTolerance); err != nil {
+	fn := codes.NameRef(codes.T311)
+	if err := bind.CheckNamed(fn.Called(), named, nameStep, nameTolerance); err != nil {
 		return nil, err
 	}
 	if len(args) != 2 {
@@ -481,7 +481,7 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 }
 
 // checkOutputs f'nin dönüşünü tensör listesine çevirir (tek tensör ya da tensör listesi).
-func checkOutputs(fn string, v interp.Value) ([]*tensor.Tensor, error) {
+func checkOutputs(fn any, v interp.Value) ([]*tensor.Tensor, error) {
 	switch x := v.(type) {
 	case *TensorValue:
 		return []*tensor.Tensor{x.t}, nil
@@ -503,7 +503,7 @@ func checkOutputs(fn string, v interp.Value) ([]*tensor.Tensor, error) {
 }
 
 // positiveFloat adlı pozitif sayısal argümanı okur.
-func positiveFloat(fn string, named map[string]interp.Value, ad bind.Named, defaultVal float64) (float64, error) {
+func positiveFloat(fn any, named map[string]interp.Value, ad bind.Named, defaultVal float64) (float64, error) {
 	v, ok := bind.GetNamed(named, ad)
 	if !ok {
 		return defaultVal, nil

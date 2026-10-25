@@ -213,7 +213,7 @@ func guarded(fn interp.BuiltinFunc) interp.BuiltinFunc {
 }
 
 // oldCall eski yerleşiği çağırır; yoksa argümanın tensör olmadığını bildirir.
-func oldCall(ad string, old interp.BuiltinFunc, m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+func oldCall(ad any, old interp.BuiltinFunc, m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	if old != nil {
 		return old(m, args, named)
 	}

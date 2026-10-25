@@ -35,7 +35,7 @@ func TestScreenLines(t *testing.T) {
 		"matris çarpımı (@)", "ms/adım", "çağrı/adım",
 		"kerneller %75 meşgul · 30,0 ms/adım · carpim %60 · dikkat %30",
 		"egit.tr:12", "geri_yayılım(kayıp)",
-		"Go yığını 200 MB", "CPU tensör ayırması 1 MB/adım", "GPU canlı 3 GB (ayrılmış 4 GB, tepe 3 GB)",
+		"Go yığını 200,0 MB", "CPU tensör ayırması 1,0 MB/adım", "GPU canlı 3,0 GB (ayrılmış 4,0 GB, tepe 3,0 GB)",
 		"Programın çıktısı (tamamı: c.txt)", "│ adım 300",
 	} {
 		if !strings.Contains(text, p) {

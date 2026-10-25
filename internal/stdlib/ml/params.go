@@ -23,11 +23,11 @@ import (
 // sırası) toplar. Aynı tensör bir kez yer alır. adlarıyla: doğru yol adı → tensör sözlüğü
 // verir ("bloklar.0.dikkat.Wq"); bu sözlük tensör_kaydet ile kaydedilebilir.
 func paramsBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.T530)
+	fn := codes.NameRef(codes.T530)
 	if len(args) != 1 {
 		return nil, messages.New(messages.H6500, fn, nameWithNames, codes.NameRef(codes.A041), len(args))
 	}
-	if err := bind.CheckNamed(fn+"()", named, nameWithNames); err != nil {
+	if err := bind.CheckNamed(fn.Called(), named, nameWithNames); err != nil {
 		return nil, err
 	}
 	withNames, err := bind.OptionalBool(fn, named, nameWithNames, false)
@@ -56,7 +56,7 @@ func paramsBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 // da tek bir tensör) türev izleyen yaprak tensörlerini parametreler(model, adlarıyla: doğru)
 // ile aynı sırayla ve yol adlarıyla verir; aynı tensör bir kez yer alır, model tek bir
 // tensörse adı "0"dır. fn hata mesajının başıdır. Model hiç parametre içermeyebilir.
-func CollectParams(fn string, model interp.Value) (names []string, found []*TensorValue, failure error) {
+func CollectParams(fn any, model interp.Value) (names []string, found []*TensorValue, failure error) {
 	return collectLeaves(fn, model, false)
 }
 
@@ -134,7 +134,7 @@ func collectLeaves(fn any, model interp.Value, all bool) (names []string, found 
 // ad → şekil eşlemesiyle karşılaştırır: her parametre kaynakta aynı şekilde bulunmalı,
 // kaynakta modelde olmayan bir ad olmamalıdır. srcName mesajda kaynağı anar ("sözlükte",
 // "kayıtta"). İlk uyumsuzluk yol gösterici bir hatadır; hiçbir şey yazılmaz.
-func CheckParamShapes(fn string, names []string, found []*TensorValue, src map[string][]int, srcName string) error {
+func CheckParamShapes(fn any, names []string, found []*TensorValue, src map[string][]int, srcName any) error {
 	for i, ad := range names {
 		sk, ok := src[ad]
 		if !ok {
@@ -176,11 +176,11 @@ func CopyInto(p, src *tensor.Tensor) {
 // sözlüğünü (tensör_yükle sonucu) modelin var olan parametrelerine yerinde yazar ve yazılan
 // parametre sayısını verir.
 func loadParamsBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.T703)
+	fn := codes.NameRef(codes.T703)
 	if len(args) != 2 {
-		return nil, interp.ArgCountError(codes.T703, "2", len(args), messages.Text(messages.H2327), messages.Text(messages.H2328))
+		return nil, interp.ArgCountError(codes.T703, 2, len(args), messages.Text(messages.H2327), messages.Text(messages.H2328))
 	}
-	if err := bind.CheckNamed(fn+"()", named); err != nil {
+	if err := bind.CheckNamed(fn.Called(), named); err != nil {
 		return nil, err
 	}
 	names, found, err := CollectParams(fn, args[0])
@@ -210,7 +210,7 @@ func loadParamsBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 		}
 		src[k], shapes[k] = d.t, d.t.Shape()
 	}
-	if err := CheckParamShapes(fn, names, found, shapes, messages.Text(messages.H6533)); err != nil {
+	if err := CheckParamShapes(fn, names, found, shapes, messages.New(messages.H6533)); err != nil {
 		return nil, err
 	}
 	if _, err := safe(func() bool {

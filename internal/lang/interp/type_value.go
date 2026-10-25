@@ -122,7 +122,7 @@ func typeTextError(op string, a, b Value) error {
 			return nil
 		}
 	}
-	return messages.New(messages.H2441, hint.TypeTextComparison(op, m.Val, DisplayText(t)))
+	return messages.New(messages.H2441, hint.TypeTextComparisonError(op, m.Val, t))
 }
 
 // Compile-time check: the interpreter finds Equaler by type assertion, so a renamed or changed

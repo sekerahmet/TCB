@@ -8,6 +8,7 @@ import (
 	"testing/fstest"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
@@ -134,6 +135,30 @@ try { k.taşır() } catch e { print(e) }
 	}
 }
 
+// Kodlu ileti olmayan hata türleri de (dosya hatası, ertele hatası; messages.Localized) yakalayan
+// dosyanın dilinde yazılır (DENETİM 4D, bulgu 1). Önceden katalog onları Error() metnine, yani
+// TR_DIL'e düşürüyordu: "dosya_oku(): "missing.txt" okunamadı". Her hata türünün Localized
+// olduğunu TestEveryErrorTypeIsLocalized (messages) korur.
+func TestCaughtErrorTypesFollowTheCatchingFile(t *testing.T) {
+	out := runEnglish(t, `try { read_file("missing.txt") } catch e { print(e) }
+func f() {
+	defer { [1][7] }
+	[1][5]
+}
+try { f() } catch e { print(e) }
+`, nil)
+	for _, want := range []string{`read_file(): "missing.txt" could not be read: no such file or folder`, "error in defer as well:"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("%q yok:\n%s", want, out)
+		}
+	}
+	for _, turkish := range []string{"okunamadı", "dosya_oku", "ertele", "Satır", "bakılan"} {
+		if strings.Contains(out, turkish) {
+			t.Errorf("İngilizce dosyanın yakaladığı hatada Türkçe %q:\n%s", turkish, out)
+		}
+	}
+}
+
 // Kod taşıyan çıplak sözlük anahtarı ({step: 1}, Y500) işlemin yazıldığı dosyanın dilindeki
 // adıdır; d.ad okuması ve yazması anahtarı kodun her yazım dilindeki adıyla arar (önce dosyanın
 // dilindeki), yoksa dosyanın dilindeki adla ekler: aynı kodun iki anahtarı oluşmaz (3.7, 17.3).
@@ -179,5 +204,15 @@ input(true)
 	want := "xtrue none! true,none,Int ayanlış,yanlış/yok\n[false]\ntrue"
 	if out != want {
 		t.Errorf("değerin metni işlemin yazıldığı dosyanın dilinde olmalı:\n%q\nbeklenen:\n%q", out, want)
+	}
+}
+
+// Kural: sınır dışı indeksin ipucu öğeyi okuyan metodu çağrı olarak yazar: nokta, metodun adı
+// iletinin dilinde ve indeks (.varsa_al(5), .get(5)) (4D denetimi, bulgu 5: nokta şablondadır,
+// silinince bu test kalır).
+func TestIndexErrorHintWritesTheGetCall(t *testing.T) {
+	_, err := New().Run(mustParseProgram(t, "[1][5]\n"))
+	if tr, en := messages.ErrorIn(err, "tr"), messages.ErrorIn(err, "en"); !strings.Contains(tr, ".varsa_al(5) ?? ") || !strings.Contains(en, ".get(5) ?? ") {
+		t.Errorf("tr %q, en %q", tr, en)
 	}
 }

@@ -39,11 +39,11 @@ const memberSplit = codes.Y103
 // concatBuiltin bitiştir([a, b, ...], eksen: -1) yerleşiğidir: tensörleri bir eksen
 // boyunca birleştirir. Birleşen eksen dışındaki eksenler eşit olmalıdır. Türevlenebilir.
 func concatBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.T121)
+	fn := codes.NameRef(codes.T121)
 	if len(args) < 1 || len(args) > 2 {
 		return nil, messages.New(messages.H6304, fn, nameAxis, len(args))
 	}
-	if err := bind.CheckNamed(fn+"()", named, nameAxis); err != nil {
+	if err := bind.CheckNamed(fn.Called(), named, nameAxis); err != nil {
 		return nil, err
 	}
 	l, ok := args[0].(*interp.ListVal)
@@ -56,7 +56,7 @@ func concatBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 	ts := make([]*tensor.Tensor, len(l.Elements))
 	ints := true // hepsi tam sayılı tensörse (ör. token kimlikleri) sonuç da tam sayılıdır
 	for i, el := range l.Elements {
-		t, err := toTensor(messages.Text(messages.H6344, fn, i+1), el)
+		t, err := toTensor(messages.New(messages.H6344, fn, i+1), el)
 		if err != nil {
 			return nil, err
 		}
@@ -101,11 +101,11 @@ func concatBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 // split .böl(parça_sayısı, eksen: -1) metodudur: tensörü verilen eksende eşit parçalara
 // böler; parçalar veriyi paylaşan, türev izleyen görünümlerdir.
 func (d *TensorValue) split(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.Y103)
+	fn := codes.NameRef(codes.Y103)
 	if len(args) < 1 || len(args) > 2 {
 		return nil, messages.New(messages.H6315, fn, nameAxis, len(args))
 	}
-	if err := bind.CheckNamed(fn+"()", named, nameAxis); err != nil {
+	if err := bind.CheckNamed(fn.Called(), named, nameAxis); err != nil {
 		return nil, err
 	}
 	n, ok := intNumber(args[0])
@@ -146,11 +146,11 @@ func (d *TensorValue) split(_ *interp.VM, args []interp.Value, named map[string]
 // attentionBuiltin dikkat(q, k, v, nedensel: doğru, pencere: 0, maske: yok) yerleşiğidir:
 // birleşik ölçekli nokta çarpımı dikkati (bkz. tensor.Attention). Ölçek 1/√dh'dir.
 func attentionBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.T503)
+	fn := codes.NameRef(codes.T503)
 	if len(args) != 3 {
 		return nil, messages.New(messages.H6321, fn, nameCausal, codes.NameRef(codes.A040), nameWindow, nameMask, codes.NameRef(codes.A042), len(args))
 	}
-	if err := bind.CheckNamed(fn+"()", named, nameCausal, nameWindow, nameMask); err != nil {
+	if err := bind.CheckNamed(fn.Called(), named, nameCausal, nameWindow, nameMask); err != nil {
 		return nil, err
 	}
 	var qkv [3]*tensor.Tensor
@@ -178,7 +178,7 @@ func attentionBuiltin(m *interp.VM, args []interp.Value, named map[string]interp
 		return nil, err
 	}
 	if mv, ok := bind.GetNamed(named, nameMask); ok && mv != interp.Null {
-		mt, err := toTensorOn(fn+": maske", mv, q) // liste, q'nun cihazında tensöre çevrilir (15.38)
+		mt, err := toTensorOn(messages.New(messages.H2000, fn, nameMask), mv, q) // liste, q'nun cihazında tensöre çevrilir (15.38)
 		if err != nil {
 			return nil, err
 		}
@@ -212,7 +212,7 @@ func attentionBuiltin(m *interp.VM, args []interp.Value, named map[string]interp
 
 // checkAttentionShapes q [..., H, Tq, dh], k [..., Hkv, Tk, dh], v [..., Hkv, Tk, dv]
 // şekillerini denetler ve yol gösteren bir hata verir.
-func checkAttentionShapes(fn string, q, k, v *tensor.Tensor) error {
+func checkAttentionShapes(fn any, q, k, v *tensor.Tensor) error {
 	qs, ks, vs := q.Shape(), k.Shape(), v.Shape()
 	n := len(qs)
 	if n < 2 {
@@ -247,7 +247,7 @@ func checkAttentionShapes(fn string, q, k, v *tensor.Tensor) error {
 
 // checkMask maskenin puan şekline ([..., H, Tq, Tk]; girdiler [..., T, H, dh]) yayınlanabildiğini
 // denetler.
-func checkMask(fn string, mt, q, k *tensor.Tensor) error {
+func checkMask(fn any, mt, q, k *tensor.Tensor) error {
 	qs, ks, ms := q.Shape(), k.Shape(), mt.Shape()
 	n := len(qs)
 	target := []int{qs[0], ks[0]}
@@ -275,11 +275,11 @@ func checkMask(fn string, mt, q, k *tensor.Tensor) error {
 // (maks_indeks ile aynı). Sonuç son ekseni düşürülmüş, tam sayılı işaretli ve türev
 // izlemeyen bir tensördür.
 func sampleBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.T611)
+	fn := codes.NameRef(codes.T611)
 	if len(args) != 1 {
 		return nil, messages.New(messages.H6336, fn, nameTemperature, nameTopK, nameSeed, codes.NameRef(codes.A042), len(args))
 	}
-	if err := bind.CheckNamed(fn+"()", named, nameTemperature, nameTopK, nameSeed); err != nil {
+	if err := bind.CheckNamed(fn.Called(), named, nameTemperature, nameTopK, nameSeed); err != nil {
 		return nil, err
 	}
 	d, ok := args[0].(*TensorValue)

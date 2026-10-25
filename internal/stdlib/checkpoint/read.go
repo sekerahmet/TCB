@@ -86,10 +86,10 @@ func (kn *Checkpoint) loadNewest(m *interp.VM, fn any) (*loadedCkpt, error) {
 // önerir (bozuk nokta kendiliğinden atlanmaz: kullanıcı neyi kaybettiğini bilerek seçer).
 func (kn *Checkpoint) brokenCheckpointError(fn any, ckpts []ckptEntry, reason error) error {
 	broken := kn.shown + "/" + ckpts[0].name
-	hint := messages.Text(messages.H7470, kn.shown)
+	hint := messages.New(messages.H7470, kn.shown)
 	for _, n := range ckpts[1:] {
 		if _, err := verifyCkpt(kn.dir, n); err == nil {
-			hint = messages.Text(messages.H7471, n.name, n.step)
+			hint = messages.New(messages.H7471, n.name, n.step)
 			break
 		}
 	}

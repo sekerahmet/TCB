@@ -16,16 +16,19 @@ import (
 // opName dört işlemin hata iletilerindeki adıdır (toplama, çıkarma, çarpma, bölme).
 var opName = map[string]messages.Code{"+": messages.H6119, "-": messages.H6120, "*": messages.H6121, "/": messages.H6122}
 
-// operationName işlecin adını verir; adı olmayan işleç olduğu gibi yazılır.
-func operationName(op string) string {
-	if c, ok := opName[op]; ok {
-		return messages.Text(c)
+// operationName işlecin adını verir (iletinin dilinde); adı olmayan işleç ya da yerleşiğin adı
+// (codes.Ref) olduğu gibi yazılır.
+func operationName(op any) any {
+	if s, ok := op.(string); ok {
+		if c, ok := opName[s]; ok {
+			return messages.New(c)
+		}
 	}
 	return op
 }
 
 // tensorOperation hata iletilerinde tensör işlemini adlandırır ("tensör toplama").
-func tensorOperation(op string) string { return messages.Text(messages.H6123, operationName(op)) }
+func tensorOperation(op string) any { return messages.New(messages.H6123, operationName(op)) }
 
 // axisFromEnd tensörün sondan i. (1'den başlayarak) ekseninin uzunluğunu verir; o eksen
 // yoksa yayınlama kuralı gereği 1 sayılır. Şekil kopyalanmaz.
@@ -41,7 +44,7 @@ func axisFromEnd(t *tensor.Tensor, i int) int {
 // yapmaz; şekil metni yalnızca hata durumunda üretilir. op bir işleçse (+ - * /) işlemin
 // adı, değilse (ör. bir yerleşiğin adı) olduğu gibi yazılır. İki taraf birden genişliyorsa (m nil
 // değilse) programa bir kez uyarı yazar (15.49): her yayınlayan yol bu denetimi kullanır.
-func checkBroadcast(m *interp.VM, op string, a, b *tensor.Tensor) error {
+func checkBroadcast(m *interp.VM, op any, a, b *tensor.Tensor) error {
 	nd := max(a.Dim(), b.Dim())
 	for i := 1; i <= nd; i++ {
 		da, db := axisFromEnd(a, i), axisFromEnd(b, i)
@@ -56,7 +59,7 @@ func checkBroadcast(m *interp.VM, op string, a, b *tensor.Tensor) error {
 	return nil
 }
 
-func checkDevice(operation string, a, b *tensor.Tensor) error {
+func checkDevice(operation any, a, b *tensor.Tensor) error {
 	if a.Device() != b.Device() {
 		return messages.New(messages.H6102, operation, a.Device(), b.Device(), codes.NameRef(memberToDevice))
 	}
@@ -108,9 +111,9 @@ const maxBroadcastWarnings = 100
 // broadcastWarning iki tarafın da genişletildiği yayınlamayı programın hata akışına (m.Err) bir
 // kez yazar. İşleçler satır bilgisini almadığından (yorumlayıcı işleç çağrısına satır
 // geçirmez) tekrar, işlem ve şekil çiftine göre önlenir.
-func broadcastWarning(m *interp.VM, op string, a, b *tensor.Tensor) {
+func broadcastWarning(m *interp.VM, op any, a, b *tensor.Tensor) {
 	as, bs := tensor.ShapeText(a.Shape()), tensor.ShapeText(b.Shape())
-	key := op + as + bs
+	key := fmt.Sprint(op) + as + bs
 	w := warningsOf(m)
 	w.mu.Lock()
 	defer w.mu.Unlock()
@@ -200,7 +203,7 @@ func matmulDType(a, b *tensor.Tensor, mixed tensor.DType) (*tensor.Tensor, error
 	if len(as) == 0 || len(bs) == 0 {
 		return nil, messages.New(messages.H6114, tensor.ShapeText(as), tensor.ShapeText(bs))
 	}
-	if err := checkDevice(messages.Text(messages.H6124), a, b); err != nil {
+	if err := checkDevice(messages.New(messages.H6124), a, b); err != nil {
 		return nil, err
 	}
 	K := as[len(as)-1]

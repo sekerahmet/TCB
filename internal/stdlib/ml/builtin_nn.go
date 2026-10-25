@@ -15,7 +15,7 @@ import (
 
 // intIndices indeks verisini (tam sayı, iç içe liste ya da tensör) düz tam sayı
 // dizisine ve şekline çevirir.
-func intIndices(fn string, v interp.Value) ([]int, []int, error) {
+func intIndices(fn any, v interp.Value) ([]int, []int, error) {
 	if n, ok := intNumber(v); ok {
 		return []int{n}, nil, nil
 	}
@@ -34,11 +34,11 @@ func intIndices(fn string, v interp.Value) ([]int, []int, error) {
 }
 
 func embedding(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.T500)
+	fn := codes.NameRef(codes.T500)
 	if len(args) != 2 {
 		return nil, messages.New(messages.H6301, fn, len(args))
 	}
-	if err := bind.CheckNamed(fn+"()", named); err != nil {
+	if err := bind.CheckNamed(fn.Called(), named); err != nil {
 		return nil, err
 	}
 	table, ok := args[0].(*TensorValue)
@@ -89,11 +89,11 @@ func embedding(_ *interp.VM, args []interp.Value, named map[string]interp.Value)
 }
 
 func crossEntropy(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.T510)
+	fn := codes.NameRef(codes.T510)
 	if len(args) != 2 {
 		return nil, messages.New(messages.H6308, fn, len(args))
 	}
-	if err := bind.CheckNamed(fn+"()", named); err != nil {
+	if err := bind.CheckNamed(fn.Called(), named); err != nil {
 		return nil, err
 	}
 	output, err := toTensor(fn, args[0])
@@ -120,7 +120,7 @@ func crossEntropy(m *interp.VM, args []interp.Value, named map[string]interp.Val
 // lossTargets çapraz entropinin hedeflerini okur ve sh şekilli logitlere göre denetler: satır
 // başına bir sınıf indeksi (one-hot değil), sınıf sayısının altında, en az biri geçerli
 // (negatifler yok sayılır).
-func lossTargets(fn string, sh []int, v interp.Value) ([]int, error) {
+func lossTargets(fn any, sh []int, v interp.Value) ([]int, error) {
 	target, _, err := intIndices(fn, v)
 	if err != nil {
 		return nil, err
@@ -159,11 +159,11 @@ func lossTargets(fn string, sh []int, v interp.Value) ([]int, error) {
 // hedef) ile aynı kayıp ve gradyanlar, ama bütün logitler hiç tutulmaz (tensor.LinearCrossEntropy,
 // dil tanımı 15.25). Karışık hassasiyet bloğunda x ve ağırlık `@` gibi blok türüne çevrilir.
 func linearCrossEntropy(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.T512)
+	fn := codes.NameRef(codes.T512)
 	if len(args) != 3 {
 		return nil, messages.New(messages.H6345, fn, len(args))
 	}
-	if err := bind.CheckNamed(fn+"()", named); err != nil {
+	if err := bind.CheckNamed(fn.Called(), named); err != nil {
 		return nil, err
 	}
 	x, err := toTensor(fn, args[0])
@@ -209,7 +209,7 @@ func isZeroOne(x []int) bool {
 }
 
 // normParam ağırlık/sapma argümanını okur (yok verilebilir) ve şeklini denetler.
-func normParam(fn string, ad any, v interp.Value, D int, x *tensor.Tensor) (*tensor.Tensor, error) {
+func normParam(fn any, ad any, v interp.Value, D int, x *tensor.Tensor) (*tensor.Tensor, error) {
 	if v == nil || v == interp.Null {
 		return nil, nil
 	}
@@ -227,8 +227,8 @@ func normParam(fn string, ad any, v interp.Value, D int, x *tensor.Tensor) (*ten
 }
 
 // normArgs x, ağırlık, sapma ve epsilon argümanlarını konumlu ya da adlı olarak okur.
-func normArgs(fn string, args []interp.Value, named map[string]interp.Value, names []bind.Named) (*tensor.Tensor, []interp.Value, float32, tensor.DType, error) {
-	if err := bind.CheckNamed(fn+"()", named, append([]bind.Named{nameEpsilon, nameDType}, names...)...); err != nil {
+func normArgs(fn codes.Ref, args []interp.Value, named map[string]interp.Value, names []bind.Named) (*tensor.Tensor, []interp.Value, float32, tensor.DType, error) {
+	if err := bind.CheckNamed(fn.Called(), named, append([]bind.Named{nameEpsilon, nameDType}, names...)...); err != nil {
 		return nil, nil, 0, 0, err
 	}
 	if len(args) < 1 || len(args) > 1+len(names) {
@@ -274,7 +274,7 @@ func normArgs(fn string, args []interp.Value, named map[string]interp.Value, nam
 }
 
 func layerNorm(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.T501)
+	fn := codes.NameRef(codes.T501)
 	x, p, eps, dt, err := normArgs(fn, args, named, []bind.Named{nameWeight, nameBias})
 	if err != nil {
 		return nil, err
@@ -305,7 +305,7 @@ func layerNorm(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 }
 
 func rmsNorm(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.T502)
+	fn := codes.NameRef(codes.T502)
 	x, p, eps, dt, err := normArgs(fn, args, named, []bind.Named{nameWeight})
 	if err != nil {
 		return nil, err

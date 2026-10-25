@@ -12,7 +12,7 @@ import (
 func TestRemovedBuiltinsNotRegistered(t *testing.T) {
 	m := interp.New()
 	for _, name := range m.GlobalEnv.Names() {
-		if msg := hint.BuiltinSpellingHint(name); msg != "" {
+		if msg := hint.BuiltinSpellingHint(name).Error(); msg != "" {
 			t.Errorf("%q kayıtlı olmamalı:%s", name, msg)
 		}
 	}

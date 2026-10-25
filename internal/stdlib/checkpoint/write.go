@@ -44,11 +44,19 @@ type panicValue struct{ v any }
 
 func (p panicValue) Error() string { return fmt.Sprint(p.v) }
 
+// MessageText paniğin lang dilindeki metnidir (messages.Localized): kodlu bir hataysa o dilde.
+func (p panicValue) MessageText(lang string) string {
+	if err, ok := p.v.(error); ok {
+		return messages.ErrorIn(err, lang)
+	}
+	return fmt.Sprint(p.v)
+}
+
 func panicError(r any) error { return panicValue{r} }
 
 // save noktayı kn.adim adımıyla yazar ve kullanıcıya gösterilecek yolunu verir.
 func (kn *Checkpoint) save(m *interp.VM) (string, error) {
-	fn := codes.DisplayName(codes.T702)
+	fn := codes.NameRef(codes.T702)
 	state, plan, err := kn.collect(m)
 	if err != nil {
 		return "", collectError{messages.New(messages.H2000, fn, err)}
@@ -63,10 +71,10 @@ func (kn *Checkpoint) save(m *interp.VM) (string, error) {
 		err = writeErr
 	}
 	if err != nil {
-		var extras []string
+		var extras []*messages.Error
 		var le *os.LinkError
 		if errors.As(err, &le) {
-			extras = append(extras, messages.Text(messages.H7480))
+			extras = append(extras, messages.New(messages.H7480))
 		}
 		return "", turkish.FileError(fn, shown, messages.H2102, err, extras...)
 	}

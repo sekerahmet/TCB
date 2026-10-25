@@ -65,12 +65,11 @@ func CheckNamed(fn any, named map[string]interp.Value, names ...Named) error {
 		if known {
 			continue
 		}
-		var candidates, shown []string // eşleştirme kanonik adlarla, ileti yazım diliyle
-		display := map[string]string{}
+		var candidates []string // eşleştirme kanonik adlarla; iletide ad iletinin dilinde
+		byName := map[string]Named{}
 		for _, a := range names {
 			candidates = append(candidates, a.TR)
-			d := codes.DisplayName(a.Code)
-			shown, display[a.TR] = append(shown, d), d
+			byName[a.TR] = a
 		}
 		o := ""
 		if k, ok := codes.Suggest(codes.NamespaceParam, given, nil); ok && slices.Contains(candidates, codes.Name(k)) {
@@ -84,22 +83,49 @@ func CheckNamed(fn any, named map[string]interp.Value, names ...Named) error {
 		}
 		switch {
 		case o != "":
-			return messages.New(messages.H7900, fn, given, display[o])
+			return messages.New(messages.H7900, fn, given, byName[o])
 		case len(candidates) > 0:
-			return messages.New(messages.H7901, fn, given, strings.Join(shown, ", "))
+			codeList := make(nameList, len(names))
+			for i, a := range names {
+				codeList[i] = a.Code
+			}
+			return messages.New(messages.H7901, fn, given, codeList)
 		}
 		return messages.New(messages.H7902, fn, given)
 	}
 	return nil
 }
 
+// nameList kodların virgülle ayrılmış adlarıdır, ileti parametresi olarak (messages.Localized):
+// adlar iletinin dilinde.
+type nameList []codes.Code
+
+func (l nameList) MessageText(lang string) string {
+	parts := make([]string, len(l))
+	for i, k := range l {
+		parts[i] = codes.NameRef(k).MessageText(lang)
+	}
+	return strings.Join(parts, ", ")
+}
+
 // MemberError motor tiplerinde bulunamayan bir üye için hatadır: yazıma en yakın üyeyi, yakın
-// bir üye yoksa tipin üyelerini önerir. ne tipin (ya da nesnenin) kullanıcıya görünen adıdır.
-func MemberError(what, prop string, members []string) error {
-	if o := turkish.Closest(prop, members); o != "" {
+// bir üye yoksa tipin üyelerini önerir (adlar iletinin dilinde). what tipin (ya da nesnenin)
+// ileti parametresi olarak adıdır (interp.ValueType ya da kodlu ileti).
+func MemberError(what any, prop string, members []codes.Code) error {
+	if o, ok := ClosestMember(prop, members); ok {
 		return messages.New(messages.H7903, what, prop, o)
 	}
-	return messages.New(messages.H7904, what, prop, strings.Join(members, ", "))
+	return messages.New(messages.H7904, what, prop, nameList(members))
+}
+
+// ClosestMember yazıma (kanonik adlarıyla) en yakın üyedir, ileti parametresi olarak (codes.Ref:
+// öneri iletinin dilinde).
+func ClosestMember(prop string, members []codes.Code) (codes.Ref, bool) {
+	names := codes.Names(members...)
+	if o := turkish.Closest(prop, names); o != "" {
+		return codes.NameRef(members[slices.Index(names, o)]), true
+	}
+	return codes.Ref{}, false
 }
 
 // GetNamed adlı argümanı kabul edilen yazımlarıyla (önce adın kendisiyle) arar.
@@ -187,7 +213,7 @@ func IntList[T ~int | ~int32 | ~int64](xs []T) *interp.ListVal {
 // yanlışsa interp.ArgCountError/ArgTypeError verir. example sayı hatasında kullanım ipucu olarak anılır.
 func SingleDictArg(kd codes.Code, args []interp.Value, example string) (*interp.DictVal, error) {
 	if len(args) != 1 {
-		return nil, interp.ArgCountError(kd, "1", len(args), example)
+		return nil, interp.ArgCountError(kd, 1, len(args), example)
 	}
 	d, ok := args[0].(*interp.DictVal)
 	if !ok {
@@ -201,13 +227,6 @@ func SafeBuiltin(name any, fn interp.BuiltinFunc) interp.BuiltinFunc {
 	return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		return Safe(name, func() (interp.Value, error) { return fn(m, args, named) })
 	}
-}
-
-// Method nesne yöntemi değeri kurar: fn Go paniğine karşı korunur (panik name adlı bir hataya döner).
-func Method(name string, fn interp.BuiltinFunc) *interp.BuiltinVal {
-	return &interp.BuiltinVal{Name: name, Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		return Safe(name, func() (interp.Value, error) { return fn(m, args, named) })
-	}}
 }
 
 // CodeMethod üye koduyla (kd) adlı yöntem değeri kurar: değerin adı kodun kanonik adıdır, panik
@@ -237,44 +256,23 @@ func IsNotExist(err error) bool { return errors.Is(err, os.ErrNotExist) }
 
 // ShortNumber büyük sayıyı kısa biçimde yazar, ileti parametresi olarak (messages.Localized):
 // 999 → "999", 12 345 → "12,3 bin" (en: "12.3 thousand"), 56 900 000 000 → "56,9 milyar".
-func ShortNumber(n int64) messages.Localized {
-	return scaled{n, []scaleUnit{{1e12, messages.H7909, ""}, {1e9, messages.H7908, ""}, {1e6, messages.H7907, ""}, {1e3, messages.H7906, ""}}, 0}
-}
+func ShortNumber(n int64) messages.Localized { return shortNumber(n) }
 
-// FormatBytes bayt sayısını okunur biçimde yazar, ileti parametresi olarak: "1,2 GB", "512 bayt"
-// (en: "1.2 GB", "512 bytes").
-func FormatBytes(n int64) messages.Localized {
-	return scaled{n, []scaleUnit{{1 << 40, messages.H7910, "TB"}, {1 << 30, messages.H7910, "GB"}, {1 << 20, messages.H7910, "MB"}, {1 << 10, messages.H7910, "KB"}}, messages.H4020}
-}
+// shortNumber n'yi en büyük uygun basamakta (bin, milyon, milyar, trilyon) bir ondalıkla yazar
+// (".0" atılır; sözcük ve ondalık ayırıcı iletinin dilinde); bine ulaşmazsa sayının kendisini.
+type shortNumber int64
 
-// scaleUnit bir ölçek basamağıdır: n en az threshold ise text iletisiyle (sayı, birim simgesi)
-// yazılır.
-type scaleUnit struct {
+// scales kısa sayının basamaklarıdır (büyükten küçüğe) ve iletileri.
+var scales = []struct {
 	threshold int64
 	text      messages.Code
-	symbol    string
-}
+}{{1e12, messages.H7909}, {1e9, messages.H7908}, {1e6, messages.H7907}, {1e3, messages.H7906}}
 
-// scaled n'yi en büyük uygun basamakta bir ondalıkla yazar (".0" atılır; sözcük ve ondalık ayırıcı
-// iletinin dilinde); hiçbir basamağa ulaşmazsa sayının kendisini small iletisiyle (yoksa yalın).
-type scaled struct {
-	n     int64
-	units []scaleUnit
-	small messages.Code
-}
-
-func (s scaled) MessageText(lang string) string {
-	for _, b := range s.units {
-		if s.n >= b.threshold {
-			v := strings.TrimSuffix(strconv.FormatFloat(float64(s.n)/float64(b.threshold), 'f', 1, 64), ".0")
-			if b.symbol != "" {
-				return messages.TextIn(lang, b.text, v, b.symbol)
-			}
-			return messages.TextIn(lang, b.text, v)
+func (n shortNumber) MessageText(lang string) string {
+	for _, s := range scales {
+		if int64(n) >= s.threshold {
+			return messages.TextIn(lang, s.text, strings.TrimSuffix(strconv.FormatFloat(float64(n)/float64(s.threshold), 'f', 1, 64), ".0"))
 		}
 	}
-	if s.small == 0 {
-		return strconv.FormatInt(s.n, 10)
-	}
-	return messages.TextIn(lang, s.small, s.n)
+	return strconv.FormatInt(int64(n), 10)
 }

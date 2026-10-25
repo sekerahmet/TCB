@@ -25,12 +25,14 @@ const (
 	// RefName is the name itself: aralık, Tam, öğrenme_oranı.
 	RefName RefForm = iota
 	// RefCallName is a code as it is called: a builtin's name (aralık), a member with its
-	// receiver (liste.filtrele; MemberName).
+	// receiver (liste.filtrele): on a single type its name, otherwise x.
 	RefCallName
 	// RefCall is RefCallName with "()": aralık(), liste.filtrele().
 	RefCall
 	// RefReceiver is a type's name as a member's receiver (liste; ReceiverName).
 	RefReceiver
+	// RefNameCall is RefName with "()": devrik() (a member without its receiver).
+	RefNameCall
 )
 
 // NameRef, CallNameRef and CallRef are k as a message parameter in the three forms.
@@ -43,6 +45,17 @@ func ReceiverRef(typ Code) Ref { return Ref{Code: typ, Form: RefReceiver} }
 
 // MemberRef is member y on receiver type typ in its call-name form (liste.içerir).
 func MemberRef(typ, y Code) Ref { return Ref{Code: y, Form: RefCallName, Receiver: typ} }
+
+// Called is r with "()": a name as devrik(), a call name as liste.filtrele().
+func (r Ref) Called() Ref {
+	switch r.Form {
+	case RefName:
+		r.Form = RefNameCall
+	case RefCallName:
+		r.Form = RefCall
+	}
+	return r
+}
 
 // MessageText writes the element in lang (messages.Localized); a language that does not name
 // the code writes the canonical name.
@@ -58,6 +71,8 @@ func (r Ref) MessageText(lang string) string {
 		return callNameIn(l, r.Code, r.Receiver) + "()"
 	case RefReceiver:
 		return lowerIn(l.Code, nameIn(l, r.Code))
+	case RefNameCall:
+		return nameIn(l, r.Code) + "()"
 	}
 	return nameIn(l, r.Code)
 }
@@ -73,7 +88,7 @@ func nameIn(l *Language, k Code) string {
 	return active.Name(k)
 }
 
-// callNameIn kodun çağrı adıdır (MemberName'in dile göre olanı): üyede tek tipin alıcı adıyla.
+// callNameIn kodun çağrı adıdır: üyede tek tipin alıcı adıyla (birden çok tipte x).
 func callNameIn(l *Language, k, receiverType Code) string {
 	if k.Namespace() != NamespaceMember {
 		return nameIn(l, k)

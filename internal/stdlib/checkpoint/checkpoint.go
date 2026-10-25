@@ -73,7 +73,7 @@ var clock = time.Now
 // Register kontrol_noktası yerleşiğini VM'ye kaydeder. s programın süreç durumudur (komut
 // satırı ayarları noktaya yazılır); nil olabilir.
 func Register(v *interp.VM, s *process.State) {
-	v.RegisterBuiltinCode(codes.T702, bind.SafeBuiltin(codes.Name(codes.T702), func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	v.RegisterBuiltinCode(codes.T702, bind.SafeBuiltin(interp.CallPrefix(codes.T702), func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		return setup(m, s, args, named)
 	}))
 }
@@ -129,7 +129,7 @@ func (kn *Checkpoint) GetProperty(kd codes.Code, prop string) (interp.Value, err
 			return kn.rollback(m, args)
 		}), nil
 	}
-	return nil, bind.MemberError(string(CheckpointType), prop, codes.Names(codes.Y010, codes.Y520, codes.Y521, codes.Y522))
+	return nil, bind.MemberError(CheckpointType, prop, []codes.Code{codes.Y010, codes.Y520, codes.Y521, codes.Y522})
 }
 
 // setup kontrol_noktası(koşu, nesneler, her_dakika:, tut:) yerleşiğidir.
@@ -139,7 +139,7 @@ func setup(m *interp.VM, s *process.State, args []interp.Value, named map[string
 		return nil, err
 	}
 	if len(args) != 2 {
-		return nil, interp.ArgCountError(codes.T702, "2", len(args), messages.Text(messages.H2313))
+		return nil, interp.ArgCountError(codes.T702, 2, len(args), messages.Text(messages.H2313))
 	}
 	fpath, ok, err := interp.PathArg(fn, args[0])
 	if err != nil {
@@ -211,7 +211,7 @@ func setupUnseededWarning(m *interp.VM) {
 // stepArg güncelle'nin tamamlanan adım argümanını okur.
 func stepArg(kd codes.Code, args []interp.Value) (int64, error) {
 	if len(args) != 1 {
-		return 0, interp.ArgCountError(kd, "1", len(args), messages.Text(messages.H2314))
+		return 0, interp.ArgCountError(kd, 1, len(args), messages.Text(messages.H2314))
 	}
 	n, ok := args[0].(*interp.IntVal)
 	if !ok || n.Val < 0 {
@@ -266,7 +266,7 @@ func (kn *Checkpoint) saveOnInterval(m *interp.VM) (interp.Value, error) {
 // saveTR kn.kaydet() metodudur: hemen kaydeder; hata açık hatadır.
 func (kn *Checkpoint) saveTR(m *interp.VM, args []interp.Value) (interp.Value, error) {
 	if len(args) != 0 {
-		return nil, interp.ArgCountError(codes.Y521, "0", len(args))
+		return nil, interp.ArgCountError(codes.Y521, 0, len(args))
 	}
 	fpath, err := kn.save(m)
 	kn.lastSave = clock()
@@ -284,7 +284,7 @@ func (kn *Checkpoint) saveTR(m *interp.VM, args []interp.Value) (interp.Value, e
 // yükler ve adımını verir; nokta yoksa açık hatadır. kaldığı_adım değişmez (kurulumun adımıdır).
 func (kn *Checkpoint) rollback(m *interp.VM, args []interp.Value) (interp.Value, error) {
 	if len(args) != 0 {
-		return nil, interp.ArgCountError(codes.Y522, "0", len(args))
+		return nil, interp.ArgCountError(codes.Y522, 0, len(args))
 	}
 	fn := interp.CallName(codes.Y522)
 	o, err := kn.loadNewest(m, fn)

@@ -86,7 +86,7 @@ func joinInts(sh []int, sep string) string {
 }
 
 // parseAxis negatif ekseni (sondan sayma) pozitife çevirir ve sınırı denetler.
-func parseAxis(fn string, axis int, sh []int) (int, error) {
+func parseAxis(fn any, axis int, sh []int) (int, error) {
 	nd := len(sh)
 	if nd == 0 {
 		return 0, messages.New(messages.H6015, fn)
@@ -114,7 +114,7 @@ func argText(args []interp.Value) string {
 }
 
 // shapeList [2, 3] gibi bir TR listesini şekle çevirir.
-func shapeList(fn string, v interp.Value) ([]int, error) {
+func shapeList(fn any, v interp.Value) ([]int, error) {
 	l, ok := v.(*interp.ListVal)
 	if !ok {
 		return nil, messages.New(messages.H6021, fn, typeName(v))
@@ -135,7 +135,7 @@ func shapeList(fn string, v interp.Value) ([]int, error) {
 
 // checkShapeLimit şeklin eleman sınırını aşmadığını denetler (tensorLimit; tensör_yükle ile
 // aynı kural). Çarpım taşmadan denetlenir; -1 (çıkarsanacak eksen) atlanır.
-func checkShapeLimit(fn string, sh []int) error {
+func checkShapeLimit(fn any, sh []int) error {
 	dims := make([]uint64, 0, len(sh))
 	for _, d := range sh {
 		dims = append(dims, uint64(max(d, 1)))

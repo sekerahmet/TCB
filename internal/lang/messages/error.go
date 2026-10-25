@@ -42,7 +42,12 @@ func TextIn(lang string, c Code, args ...any) string {
 	return cat.render(c, args)
 }
 
-func (e *Error) Error() string { return Text(e.Code, e.Args...) }
+func (e *Error) Error() string {
+	if e == nil {
+		return "" // yok olan ileti parçası (ör. öneri yoksa) boş yazılır
+	}
+	return Text(e.Code, e.Args...)
+}
 
 // errorText hatanın metnidir (nil için boş).
 // ErrorIn is err's text in the given language instead of the process's: a coded error (Error,
@@ -72,8 +77,14 @@ func errorText(err error) string {
 // Unwrap returns the errors among the parameter values, so errors.Is and errors.As see the
 // wrapped cause as they did with fmt.Errorf's %w.
 func (e *Error) Unwrap() []error {
+	if e == nil {
+		return nil
+	}
 	var out []error
 	for _, a := range e.Args {
+		if part, ok := a.(*Error); ok && part == nil {
+			continue // yok olan ileti parçası sarılmış bir hata değildir
+		}
 		if err, ok := a.(error); ok {
 			out = append(out, err)
 		}

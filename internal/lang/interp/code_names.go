@@ -3,7 +3,6 @@ package interp
 import (
 	"fmt"
 	"slices"
-	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/hint"
@@ -84,12 +83,34 @@ func (v *VM) Builtin(kd codes.Code) *BuiltinVal {
 
 // removedMemberHint Metin, Liste ve Sözlük üyelerinden birinin ASCII biçimi ya da
 // yabancı adı için ipucunu döndürür.
-func removedMemberHint(name string) string {
+func removedMemberHint(name string) *messages.Error {
 	k, ok := codes.Suggest(codes.NamespaceMember, name, coreMember)
 	if !ok {
-		return ""
+		return nil
 	}
-	return hint.NotInTRHint(name, codes.DisplayName(k))
+	return hint.NotInTRHint(name, codes.NameRef(k))
+}
+
+// suggests err'in (ya da içindeki kodlu bir iletinin) değerlerinde k'nin adı (codes.Ref) var mı:
+// tipin kendi iletisi o adı zaten öneriyor. İletinin metnine bakılmaz; değerlere bakılır.
+func suggests(err error, k codes.Code) bool {
+	m, ok := messages.As(err)
+	if !ok {
+		return false
+	}
+	for _, a := range m.Args {
+		switch v := a.(type) {
+		case codes.Ref:
+			if v.Code == k {
+				return true
+			}
+		case error:
+			if suggests(v, k) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // memberSuggestionError motor tiplerinde (Tensör, Parçalayıcı, VeriKümesi ...) bulunamayan bir üye
@@ -102,11 +123,11 @@ func memberSuggestionError(pg PropertyGetter, obj Value, prop string, err error)
 	if !ok {
 		return err
 	}
-	if strings.Contains(err.Error(), "'"+codes.Name(k)) {
+	if suggests(err, k) {
 		return err // tipin kendi hata mesajı asıl adı zaten öneriyor (ör. 'devrik()')
 	}
 	if _, e := pg.GetProperty(k, codes.Name(k)); e != nil {
 		return err
 	}
-	return messages.New(messages.H2428, obj.Type(), prop, hint.NotInTRHint(prop, codes.DisplayName(k)))
+	return messages.New(messages.H2428, obj.Type(), prop, hint.NotInTRHint(prop, codes.NameRef(k)))
 }

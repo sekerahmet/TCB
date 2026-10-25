@@ -30,12 +30,12 @@ type fusedFn struct {
 
 // fuseBuiltin kaynaştır(f) yerleşiğidir.
 func fuseBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.T312)
+	fn := codes.NameRef(codes.T312)
 	if len(named) > 0 {
 		return nil, interp.NoNamedArgsError(fn, named)
 	}
 	if len(args) != 1 {
-		return nil, interp.ArgCountError(codes.T312, "1", len(args))
+		return nil, interp.ArgCountError(codes.T312, 1, len(args))
 	}
 	if !isCallable(args[0]) {
 		return nil, messages.New(messages.H6433, fn, typeName(args[0]))
@@ -47,7 +47,7 @@ func fuseBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Valu
 // call kaynaşmış fonksiyonu çalıştırır. Argümanlar tensör ya da sayıdır; sayılar programa
 // sabit olarak girer (önbellek anahtarının parçasıdır), tensörler programın girdileridir.
 func (f *fusedFn) call(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.T312)
+	fn := codes.NameRef(codes.T312)
 	var inputs []*tensor.Tensor
 	var info []tensor.FuseInputInfo
 	var key strings.Builder
@@ -67,7 +67,7 @@ func (f *fusedFn) call(m *interp.VM, args []interp.Value, _ map[string]interp.Va
 	}
 	if len(inputs) == 0 {
 		if len(args) == 0 {
-			return nil, interp.ArgCountError(codes.T312, "1+", 0)
+			return nil, interp.ArgCountError(codes.T312, interp.AtLeast(1), 0)
 		}
 		return nil, messages.New(messages.H6434, fn, 1, typeName(args[0]))
 	}
@@ -79,13 +79,13 @@ func (f *fusedFn) call(m *interp.VM, args []interp.Value, _ map[string]interp.Va
 		}
 		f.cache[key.String()] = p
 	}
-	outs := p.Run(fn, inputs)
+	outs := p.Run(fn.String(), inputs) // hesap katmanı adı görüntü metni olarak alır
 	return packTensorValues(outs, len(outs) == 1 && p.Single), nil
 }
 
 // trace f'i iz tensörleriyle çalıştırıp programını kurar. f'in hatası olduğu gibi döner.
 func (f *fusedFn) trace(m *interp.VM, be tensor.Backend, info []tensor.FuseInputInfo, args []interp.Value) (*tensor.FuseProgram, error) {
-	fn := codes.DisplayName(codes.T312)
+	fn := codes.NameRef(codes.T312)
 	var callErr error
 	single := false
 	p := tensor.TraceFused(be, info, func(syms []*tensor.Tensor) []*tensor.Tensor {

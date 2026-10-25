@@ -56,9 +56,9 @@ func ReadLibrary(name string) ([]byte, error) {
 	}
 	modules := LibraryModules()
 	wanted := LibraryPrefix + strings.TrimSuffix(name, ".tr")
-	suggestion := ""
+	var suggestion *messages.Error
 	if closest := turkish.Closest(wanted, modules); closest != "" {
-		suggestion = messages.Text(messages.H2479, closest)
+		suggestion = messages.New(messages.H2479, closest)
 	}
 	return nil, messages.New(messages.H2478, wanted, strings.Join(modules, ", "), suggestion)
 }

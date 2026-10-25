@@ -105,7 +105,7 @@ func parseIndexArguments(sub codes.Code, args []string) (indexOptions, []string)
 	case codes.K020:
 		allowed = []codes.Code{codes.K103, codes.K107, codes.K108, codes.K109, codes.K111, codes.K114, codes.K115}
 	}
-	command := codes.DisplayName(codes.K015)
+	command := codes.NameRef(codes.K015)
 	for len(args) > 0 {
 		arg := args[0]
 		args = args[1:]

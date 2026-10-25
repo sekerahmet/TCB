@@ -120,7 +120,7 @@ func closeReaders() {
 func linesBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := interp.CallPrefix(codes.G112)
 	if len(args) != 1 {
-		return nil, interp.ArgCountError(codes.G112, "1", len(args), messages.Text(messages.H2307))
+		return nil, interp.ArgCountError(codes.G112, 1, len(args), messages.Text(messages.H2307))
 	}
 	raw, err := readPath(codes.G112, 1, args[0])
 	if err != nil {
@@ -182,7 +182,7 @@ func (o *LineReader) GetProperty(kd codes.Code, prop string) (interp.Value, erro
 		b.NoNamedArgs = true
 		return b, nil
 	}
-	return nil, bind.MemberError(string(LineReaderType), prop, codes.Names(codes.Y602, codes.Y012))
+	return nil, bind.MemberError(LineReaderType, prop, []codes.Code{codes.Y602, codes.Y012})
 }
 
 // closeMethod x.kapat() metodudur: dosyayı bırakır; bu çağrı kapattıysa doğru, zaten kapalıysa
@@ -280,7 +280,7 @@ func (o *LineReader) read() (line string, last bool, err error) {
 		if errors.Is(err, bufio.ErrBufferFull) {
 			if len(long)+len(part) > lineLimit {
 				o.close()
-				return "", false, turkish.NewReason(messages.H7105, o.counter+1, codes.DisplayName(codes.G110))
+				return "", false, turkish.NewReason(messages.H7105, o.counter+1, codes.NameRef(codes.G110))
 			}
 			long = append(long, part...)
 			continue

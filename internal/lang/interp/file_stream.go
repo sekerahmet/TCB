@@ -109,7 +109,7 @@ func ReadFileContent(filePath string) ([]byte, error) {
 		return nil, err
 	}
 	if len(payload) > gzipContentLimit {
-		return nil, turkish.NewReason(messages.H2045, codes.DisplayName(codes.G112))
+		return nil, turkish.NewReason(messages.H2045, codes.NameRef(codes.G112))
 	}
 	return payload, nil
 }

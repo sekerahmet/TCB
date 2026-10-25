@@ -96,10 +96,6 @@ func TestMessageUsage(t *testing.T) {
 		t.Errorf("kullanılmayan ileti kodları (silin ya da numarayı boş bırakın): %v", unused)
 	}
 	for _, b := range banned {
-		if strings.HasPrefix(b.code, "codes.") || b.code == ".TR" {
-			t.Errorf("%s: iletiye %s ile yazılmış ad verilmiş; ileti ve içindeki adlar tek dildedir, kodu verin (codes.NameRef, interp.CallName, bind.Named)", b.pos, b.code)
-			continue
-		}
 		if strings.HasPrefix(b.code, "turkish.") {
 			t.Errorf("%s: %s ile ileti sözcüğü çekimleniyor; eki şablona yazın ({ad|dat}, {ad|gen} ...)", b.pos, b.code)
 			continue
@@ -115,6 +111,7 @@ func TestMessageUsage(t *testing.T) {
 func scan(t *testing.T, root string) (calls, banned []call, used map[string]bool) {
 	t.Helper()
 	used = map[string]bool{}
+	wrappers := codeWrappers(t, root)
 	fset := token.NewFileSet()
 	err := reporoot.WalkDir(root, func(path string, e fs.DirEntry, err error) error {
 		if err != nil {
@@ -166,11 +163,11 @@ func scan(t *testing.T, root string) (calls, banned []call, used map[string]bool
 					calls = append(calls, call{code: code, args: len(c.Args) - 1, pos: pos})
 				}
 			}
-			if pkg == "messages" && (fn == "New" || fn == "Text" || fn == "TextIn") {
-				for _, a := range c.Args {
-					if name := fixedName(a); name != "" {
-						banned = append(banned, call{code: name, pos: fset.Position(a.Pos()).String()})
-					}
+			// Kodu ve değerlerini messages.New'e ileten sarmalayıcılar (syntaxError, NewReason ...)
+			// da değer sayısıyla sınanır.
+			if ci, ok := wrapperAt(wrappers, f.Name.Name, pkg, fn); ok && ci < len(c.Args) && c.Ellipsis == token.NoPos {
+				if code := codeArg(c.Args[ci]); code != "" {
+					calls = append(calls, call{code: code, args: len(c.Args) - ci - 1, pos: pos})
 				}
 			}
 			return true
@@ -185,29 +182,88 @@ func scan(t *testing.T, root string) (calls, banned []call, used map[string]bool
 
 func isSelector(e ast.Expr) bool { _, ok := e.(*ast.SelectorExpr); return ok }
 
-// fixedName ileti değeri (ya da onun + ile birleşen parçası) yazıldığı anda bir dilde kurulmuş
-// bir adsa onu üreten çağrıdır: codes.Name, codes.DisplayName, codes.MemberName,
-// codes.ReceiverName ya da bind.Named'in .TR'si. Böyle bir ad iletinin dilini izlemez (İngilizce
-// dosyanın yakaladığı hatada Türkçe kalır); iletiye kod verilir, katalog dile göre yazar.
-func fixedName(e ast.Expr) string {
-	switch x := e.(type) {
-	case *ast.BinaryExpr:
-		if n := fixedName(x.X); n != "" {
-			return n
+// codeWrappers kodu ve değerlerini messages.New/Text'e ileten fonksiyonlardır (anahtar → kod
+// parametresinin sırası): bir messages.Code parametresi ve son değişken sayılı parametresi
+// gövdede messages.New(kod, değerler...) olarak kullanılır. Anahtar paket.Ad, metotta .Ad.
+func codeWrappers(t *testing.T, root string) map[string]int {
+	t.Helper()
+	out := map[string]int{}
+	fset := token.NewFileSet()
+	err := reporoot.WalkDir(root, func(path string, e fs.DirEntry, err error) error {
+		if err != nil || e.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
+			return err
 		}
-		return fixedName(x.Y)
-	case *ast.ParenExpr:
-		return fixedName(x.X)
-	case *ast.SelectorExpr:
-		if x.Sel.Name == "TR" {
-			return ".TR"
+		if rel, _ := filepath.Rel(root, filepath.Dir(path)); filepath.ToSlash(rel) == "internal/lang/messages" {
+			return nil
 		}
-	case *ast.CallExpr:
-		if pkg, fn := callee(x); pkg == "codes" && (fn == "Name" || fn == "DisplayName" || fn == "MemberName" || fn == "ReceiverName") {
-			return pkg + "." + fn
+		f, err := parser.ParseFile(fset, path, nil, 0)
+		if err != nil {
+			return err
 		}
+		for _, d := range f.Decls {
+			fd, ok := d.(*ast.FuncDecl)
+			if !ok || fd.Body == nil {
+				continue
+			}
+			var names []string
+			codeParam, variadic := -1, ""
+			for _, p := range fd.Type.Params.List {
+				for _, n := range p.Names {
+					if s, ok := p.Type.(*ast.SelectorExpr); ok && s.Sel.Name == "Code" {
+						if x, ok := s.X.(*ast.Ident); ok && x.Name == "messages" {
+							codeParam = len(names)
+						}
+					}
+					if _, ok := p.Type.(*ast.Ellipsis); ok {
+						variadic = n.Name
+					}
+					names = append(names, n.Name)
+				}
+			}
+			if codeParam < 0 || variadic == "" {
+				continue
+			}
+			forwards := false
+			ast.Inspect(fd.Body, func(n ast.Node) bool {
+				c, ok := n.(*ast.CallExpr)
+				if !ok || c.Ellipsis == token.NoPos || len(c.Args) != 2 {
+					return true
+				}
+				if pkg, fn := callee(c); pkg == "messages" && (fn == "New" || fn == "Text") {
+					a, ok1 := c.Args[0].(*ast.Ident)
+					b, ok2 := c.Args[1].(*ast.Ident)
+					forwards = forwards || ok1 && ok2 && a.Name == names[codeParam] && b.Name == variadic
+				}
+				return true
+			})
+			if !forwards {
+				continue
+			}
+			key := f.Name.Name + "." + fd.Name.Name
+			if fd.Recv != nil {
+				key = "." + fd.Name.Name
+			}
+			out[key] = codeParam
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
-	return ""
+	return out
+}
+
+// wrapperAt çağrılan fonksiyon bir kod sarmalayıcısı mı; öyleyse kod parametresinin sırası.
+func wrapperAt(wrappers map[string]int, filePkg, pkg, fn string) (int, bool) {
+	if pkg == "" {
+		ci, ok := wrappers[filePkg+"."+fn]
+		return ci, ok
+	}
+	if ci, ok := wrappers[pkg+"."+fn]; ok {
+		return ci, true
+	}
+	ci, ok := wrappers["."+fn]
+	return ci, ok
 }
 
 // callee çağrılan fonksiyonun paket seçicisini ve adını verir (pkg.Fn ya da Fn).

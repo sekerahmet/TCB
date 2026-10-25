@@ -17,7 +17,7 @@ import (
 //	aralık() 1 ya da 2 argüman bekler, 0 verildi (kullanım: aralık(bitiş) ya da aralık(başlangıç, bitiş))
 
 // CallName is the name of a code as written in error messages: the name itself for
-// builtins (aralık), with the receiver for members (liste.filtrele; see codes.MemberName).
+// builtins (aralık), with the receiver for members (liste.filtrele; see codes.CallNameRef).
 // It is a message parameter (codes.Ref): the catalog writes it in the message's language.
 func CallName(kd codes.Code) codes.Ref { return codes.CallNameRef(kd) }
 
@@ -83,9 +83,10 @@ func argTypeErrorByName(name any, order int, expected any, given Value) error {
 }
 
 // ArgCountError reports that builtin kd (or its member) was called with the wrong number of
-// arguments. beklenen is a count phrase such as "1", "en az 2", "1 ya da 2"; when kullanim
-// is given, the valid call forms (parameter lists, see Usage) are appended.
-func ArgCountError(kd codes.Code, expected string, given int, usage ...string) error {
+// arguments. expected is the count as a number (1; the plural follows it: "takes 1 argument") or
+// a count phrase written in the message's language (Counts(1, 2), AtLeast(2)); when usage is
+// given, the valid call forms (parameter lists, see Usage) are appended.
+func ArgCountError(kd codes.Code, expected any, given int, usage ...string) error {
 	name := CallName(kd)
 	if len(usage) > 0 {
 		return messages.New(messages.H2011, name, expected, given, usageByName(name, usage))
@@ -93,22 +94,26 @@ func ArgCountError(kd codes.Code, expected string, given int, usage ...string) e
 	return argCountErrorByName(name, expected, given)
 }
 
-func argCountErrorByName(name any, expected string, given int) error {
+func argCountErrorByName(name any, expected any, given int) error {
 	return messages.New(messages.H2012, name, expected, given)
 }
 
-// Counts writes the accepted argument counts for ArgCountError in the active language:
-// Counts(1, 2) → "1 ya da 2", Counts(0, 1, 2) → "0, 1 ya da 2".
-func Counts(ns ...int) string {
-	parts := make([]string, len(ns))
-	for i, n := range ns {
+// Counts are the accepted argument counts for ArgCountError, a message part written in the
+// message's language: Counts(1, 2) → "1 ya da 2" (en "1 or 2"), Counts(0, 1, 2) → "0, 1 ya da 2".
+func Counts(ns ...int) messages.Localized { return counts(ns) }
+
+type counts []int
+
+func (c counts) MessageText(lang string) string {
+	parts := make([]string, len(c))
+	for i, n := range c {
 		parts[i] = strconv.Itoa(n)
 	}
-	return messages.OrList(parts...)
+	return messages.OrListIn(lang, parts...)
 }
 
-// AtLeast writes "en az n" for ArgCountError in the active language.
-func AtLeast(n int) string { return messages.Text(messages.H2016, n) }
+// AtLeast is "en az n" (en "n or more") for ArgCountError, a message part.
+func AtLeast(n int) *messages.Error { return messages.New(messages.H2016, n) }
 
 // TypeAndSummary is a value for an error message, "Metin ("a")": a message parameter written in
 // the language of the message it goes into (the error's display, or the language of the file

@@ -23,7 +23,7 @@ func (v *VM) registerMath() {
 func roundingBuiltin(kd codes.Code, f func(float64) float64) BuiltinFunc {
 	return func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
-			return nil, ArgCountError(kd, "1", len(args), messages.Text(messages.H2305))
+			return nil, ArgCountError(kd, 1, len(args), messages.Text(messages.H2305))
 		}
 		switch a := args[0].(type) {
 		case *IntVal:
@@ -39,7 +39,7 @@ func roundingBuiltin(kd codes.Code, f func(float64) float64) BuiltinFunc {
 // girdide Ondalık (NaN ve işaretli sıfır korunur).
 func signBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, ArgCountError(codes.G408, "1", len(args), messages.Text(messages.H2305))
+		return nil, ArgCountError(codes.G408, 1, len(args), messages.Text(messages.H2305))
 	}
 	switch a := args[0].(type) {
 	case *IntVal:
@@ -65,7 +65,7 @@ func signBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 // isFiniteBuiltin sonlu_mu(): Ondalık NaN ve ±sonsuzda yanlış, öbür sayılarda (her Tam) doğru.
 func isFiniteBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, ArgCountError(codes.G415, "1", len(args), messages.Text(messages.H2305))
+		return nil, ArgCountError(codes.G415, 1, len(args), messages.Text(messages.H2305))
 	}
 	switch a := args[0].(type) {
 	case *IntVal:

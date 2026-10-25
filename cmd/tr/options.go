@@ -33,7 +33,7 @@ func isOption(arg string, k codes.Code) bool {
 // bilinmeyen seçenek H8674 ile, değer gereken seçenekte eksik değer H8675 ile çıkışa götürür.
 // rest, seçenekten sonraki argümanlardır; değer ayrı bir argümansa ondan alınır. valued, seçeneğin
 // değer alıp almadığını söyler (almayan seçenekte değer boş döner). Kalan argümanları döndürür.
-func parseLongOption(command, arg string, rest []string, allowed []codes.Code, valued func(codes.Code) bool) (k codes.Code, value string, remaining []string) {
+func parseLongOption(command any, arg string, rest []string, allowed []codes.Code, valued func(codes.Code) bool) (k codes.Code, value string, remaining []string) {
 	name, value, hasValue := strings.Cut(arg, "=")
 	k, ok := optionCode(name)
 	if !ok || !slices.Contains(allowed, k) {

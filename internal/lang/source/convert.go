@@ -33,6 +33,9 @@ func (e *SyntaxError) Unwrap() error { return messages.New(messages.H2514, e.Err
 
 func (e *SyntaxError) Error() string { return e.Unwrap().Error() }
 
+// MessageText hatanın lang dilindeki metnidir (messages.Localized).
+func (e *SyntaxError) MessageText(lang string) string { return messages.ErrorIn(e.Unwrap(), lang) }
+
 // ErrUTF8 is returned when the body to convert is not valid UTF-8.
 var ErrUTF8 error = messages.New(messages.H2510)
 

@@ -93,7 +93,7 @@ func (d *TensorValue) taskOperator(m *interp.VM, op string, otherVal interp.Valu
 
 // matmulOp '@' işlecidir: işlenen tensöre çevrilir, matris çarpımı dt türünde yapılır.
 func (d *TensorValue) matmulOp(otherVal interp.Value, onRight bool, dt tensor.DType) (interp.Value, bool, error) {
-	o, err := toTensorOn(messages.Text(messages.H6124), otherVal, d.t)
+	o, err := toTensorOn(messages.New(messages.H6124), otherVal, d.t)
 	if err != nil {
 		return nil, true, err
 	}
@@ -192,7 +192,7 @@ func (d *TensorValue) compare(m *interp.VM, op string, otherVal interp.Value, on
 		}
 		return New(r), nil
 	}
-	ad := messages.Text(messages.H6129, op)
+	ad := messages.New(messages.H6129, op)
 	o, err := toTensorOn(ad, otherVal, d.t)
 	if err != nil {
 		return nil, err
@@ -338,10 +338,10 @@ func (d *TensorValue) SetIndex(idx, value interp.Value) error {
 	} else {
 		// Liste hedefin cihazında tensöre çevrilir (15.38); başka cihazdaki tensör sessizce
 		// kopyalanmaz, açık hatadır (15.40).
-		if src, err = toTensorOn(messages.Text(messages.H6130), value, target); err != nil {
+		if src, err = toTensorOn(messages.New(messages.H6130), value, target); err != nil {
 			return err
 		}
-		if err = checkDevice(messages.Text(messages.H6130), src, target); err != nil {
+		if err = checkDevice(messages.New(messages.H6130), src, target); err != nil {
 			return err
 		}
 		if ks := src.Shape(); tensor.ShapeText(ks) != tensor.ShapeText(sh) {

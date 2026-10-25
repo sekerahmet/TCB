@@ -17,7 +17,7 @@ kullanılmaz: silinenler `retired.json`'dadır (numara → commit ve gerekçe; i
 verilir; metin hata yazılırken etkin dilde kurulur. İleti ve içindeki dil adları tek dildedir:
 ad iletiye kodla verilir (`codes.NameRef`, `interp.CallName`, `bind.Named`; denetleyicide
 `typeText`), katalog onu iletinin dilinde yazar; `codes.Name`, `codes.DisplayName`,
-`codes.MemberName`, `codes.ReceiverName` ya da `.TR` ile kurulmuş ad doğrudan verilmez. Sabitler üretilir
+`codes.ReceiverName` ya da `.TR` ile kurulmuş ad ne doğrudan, ne bir değişkenle, ne de adı iletiye ileten bir fonksiyonun parametresiyle verilir (`TestNoFixedNamesInMessages`). Sabitler üretilir
 (`go run ./tools/gen/msgconsts`); katalogda olmayan kod derlemeyi düşürür. Denetim: `TestMessageUsage`, `TestGeneratedUpToDate` (tools/gen/msgconsts).
 
 **Dosyalar.** `definitions.json` dilden bağımsızdır: her kodun parametre adları
@@ -95,4 +95,5 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 
 - `behavior_message_text_test.go`: Go kodunun bir iletinin metnini düzenlemediği (`strings.Replace`, `TrimPrefix` ... doğrudan ileti metniyle çağrılmaz)
 - `behavior_message_fragments_test.go`: bir ileti çağrısına başka bir `messages.Text(...)` parça olarak verilmez (cümle tek şablondur)
+- `behavior_localized_errors_test.go`: `Error()` uygulayan her hata türü `MessageText(lang)` de uygular (messages.Localized); yakalanan hata bütünüyle yakalayan dosyanın dilinde yazılır, katalog hiçbir hatayı TR_DIL metnine düşürmez
 - `behavior_english_complete_test.go`: tr.json'daki her ileti kodunun en.json'da İngilizce metni vardır

@@ -138,7 +138,7 @@ func Status() string {
 		return messages.Text(messages.H4023, n, readSetupError())
 	}
 	be := tensor.BackendFor(tensor.GPU(0)).(*backend)
-	return messages.Text(messages.H4024, n, be.sr.cardName(), tensor.BytesText(float64(be.sr.totalMemory())), be.gemmPath())
+	return messages.Text(messages.H4024, n, be.sr.cardName(), tensor.ByteSize(be.sr.totalMemory()), be.gemmPath())
 }
 
 func newBackend(dev tensor.Device, sr driver) *backend {

@@ -80,7 +80,7 @@ func inputBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 // Tip Sorgulama: tip(x)
 func typeBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, ArgCountError(codes.G201, "1", len(args), messages.Text(messages.H2301))
+		return nil, ArgCountError(codes.G201, 1, len(args), messages.Text(messages.H2301))
 	}
 	return TypeOfValue(args[0]), nil
 }
@@ -89,7 +89,7 @@ func typeBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 // Tip Dönüşümleri: tam(x), ondalık(x), metin(x)
 func intBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, ArgCountError(codes.G210, "1", len(args), messages.Text(messages.H2301))
+		return nil, ArgCountError(codes.G210, 1, len(args), messages.Text(messages.H2301))
 	}
 	switch val := args[0].(type) {
 	case *IntVal:
@@ -119,7 +119,7 @@ func intBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 // floatBuiltin ondalık() yerleşiğidir.
 func floatBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, ArgCountError(codes.G211, "1", len(args), messages.Text(messages.H2301))
+		return nil, ArgCountError(codes.G211, 1, len(args), messages.Text(messages.H2301))
 	}
 	switch val := args[0].(type) {
 	case *FloatVal:
@@ -144,7 +144,7 @@ func floatBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 // stringBuiltin metin() yerleşiğidir.
 func stringBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, ArgCountError(codes.G212, "1", len(args), messages.Text(messages.H2301))
+		return nil, ArgCountError(codes.G212, 1, len(args), messages.Text(messages.H2301))
 	}
 	return singleChar(y, args[0])
 }
@@ -179,7 +179,7 @@ func rangeBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 // Temel Matematik Fonksiyonları
 func sumBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, ArgCountError(codes.G400, "1", len(args), messages.Text(messages.H2304))
+		return nil, ArgCountError(codes.G400, 1, len(args), messages.Text(messages.H2304))
 	}
 	list, ok := args[0].(*ListVal)
 	if !ok {
@@ -202,11 +202,11 @@ func maxBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 // absBuiltin mutlak() yerleşiğidir.
 func absBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, ArgCountError(codes.G403, "1", len(args), messages.Text(messages.H2305))
+		return nil, ArgCountError(codes.G403, 1, len(args), messages.Text(messages.H2305))
 	}
 	if iv, ok := args[0].(*IntVal); ok {
 		if iv.Val == math.MinInt64 {
-			m, o := codes.Name(codes.G403), codes.Name(codes.G211)
+			m, o := codes.NameRef(codes.G403), codes.NameRef(codes.G211)
 			return nil, messages.New(messages.H2431, m, codes.NameRef(codes.A200), iv.Val, o)
 		}
 		if iv.Val < 0 {
@@ -223,7 +223,7 @@ func absBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 // sqrtBuiltin karekök() yerleşiğidir.
 func sqrtBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, ArgCountError(codes.G404, "1", len(args), messages.Text(messages.H2305))
+		return nil, ArgCountError(codes.G404, 1, len(args), messages.Text(messages.H2305))
 	}
 	if fv, ok := ToFloat(args[0]); ok {
 		return &FloatVal{Val: math.Sqrt(fv)}, nil
@@ -275,7 +275,7 @@ func waitAllBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) 
 	if y.asyncTask {
 		return nil, messages.New(messages.H2432, CallPrefix(codes.G501), codes.NameRef(codes.A080))
 	}
-	if y.exclusive != "" {
+	if y.exclusive != nil {
 		// Kilit devredilmediğinden görevler hiç ilerlemez: beklemek kilitlenirdi.
 		return nil, messages.New(messages.H2522, CallPrefix(codes.G501), y.exclusive)
 	}
@@ -291,7 +291,7 @@ func timeMsBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 // readFileBuiltin dosya_oku() yerleşiğidir.
 func readFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, ArgCountError(codes.G110, "1", len(args), messages.Text(messages.H2307))
+		return nil, ArgCountError(codes.G110, 1, len(args), messages.Text(messages.H2307))
 	}
 	filePath, ok, err := PathArg(CallPrefix(codes.G110), args[0])
 	if !ok {
@@ -312,7 +312,7 @@ func readFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error)
 // writeFileBuiltin dosya_yaz() yerleşiğidir. Yazma atomiktir (bkz. AtomikYaz).
 func writeFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 2 {
-		return nil, ArgCountError(codes.G111, "2", len(args), messages.Text(messages.H2308))
+		return nil, ArgCountError(codes.G111, 2, len(args), messages.Text(messages.H2308))
 	}
 	filePath, ok, err := PathArg(CallPrefix(codes.G111), args[0])
 	if !ok {
@@ -336,7 +336,7 @@ const maxSleepSeconds = float64(math.MaxInt64) / float64(time.Second)
 
 func sleepBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, ArgCountError(codes.G500, "1", len(args), messages.Text(messages.H2309))
+		return nil, ArgCountError(codes.G500, 1, len(args), messages.Text(messages.H2309))
 	}
 	pick, ok := ToFloat(args[0])
 	if !ok {

@@ -76,6 +76,9 @@ func (e *HeaderError) Error() string {
 	return e.Unwrap().Error()
 }
 
+// MessageText hatanın lang dilindeki metnidir (messages.Localized).
+func (e *HeaderError) MessageText(lang string) string { return messages.ErrorIn(e.Unwrap(), lang) }
+
 // Split splits text into its parts. If the first line (after the BOM) is exactly Header and the
 // code of an embedded writing language the file is coded; otherwise it is source written in
 // Turkish. If the first line starts with the header prefix but is not such a header (an older

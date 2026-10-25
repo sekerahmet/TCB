@@ -98,11 +98,17 @@ type FormatError struct {
 	Reason error  // ileti kodlu neden
 }
 
-func (h *FormatError) Error() string {
+func (h *FormatError) Error() string { return h.message().Error() }
+
+// MessageText hatanın lang dilindeki metnidir (messages.Localized).
+func (h *FormatError) MessageText(lang string) string { return messages.ErrorIn(h.message(), lang) }
+
+// message hatanın kodlu iletisidir.
+func (h *FormatError) message() *messages.Error {
 	if h.Path != "" {
-		return messages.Text(messages.H5090, h.Path, h.Reason)
+		return messages.New(messages.H5090, h.Path, h.Reason)
 	}
-	return messages.Text(messages.H5091, h.Reason)
+	return messages.New(messages.H5091, h.Reason)
 }
 
 // Unwrap nedeni verir; böylece nedenin ileti kodu hata zincirinde aranabilir.

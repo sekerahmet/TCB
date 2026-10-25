@@ -278,6 +278,11 @@ func (e *moduleCheckError) Error() string {
 	return messages.Text(messages.H8758, e.filePath, e.kind, e.diags[0])
 }
 
+// MessageText hatanın lang dilindeki metnidir (messages.Localized).
+func (e *moduleCheckError) MessageText(lang string) string {
+	return messages.TextIn(lang, messages.H8758, e.filePath, e.kind, e.diags[0])
+}
+
 // preparePackage ana programı ve aktardığı tüm modülleri içeren paketi kurar.
 func preparePackage(srcPath, code string) (*pkg, error) {
 	t := &moduleCollector{index: map[string]int{}, mainFile: srcPath}

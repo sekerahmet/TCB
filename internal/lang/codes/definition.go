@@ -335,17 +335,6 @@ func ReceiverName(typ Code) string {
 	return turkish.Lower(Name(typ))
 }
 
-// MemberName is a member's name written with its receiver: liste.filtrele, x.uzunluk. If the
-// member is on a single type the receiver is that type's name (ReceiverName), otherwise x.
-func MemberName(y Code) string {
-	t, _ := DefinitionOf(y)
-	a := "x"
-	if len(t.Members) == 1 {
-		a = ReceiverName(t.Members[0].Type)
-	}
-	return a + "." + Name(y)
-}
-
 // SourceLanguage is the code of the source language file (Turkish, the canonical language).
 const SourceLanguage = "tr"
 

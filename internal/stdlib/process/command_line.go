@@ -62,7 +62,7 @@ func (d *State) commandLine(m *interp.VM, args []interp.Value, named map[string]
 		return nil, err
 	}
 	if len(args) != 1 {
-		return nil, interp.ArgCountError(codes.G801, "1", len(args), messages.Text(messages.H2329))
+		return nil, interp.ArgCountError(codes.G801, 1, len(args), messages.Text(messages.H2329))
 	}
 	dict, ok := args[0].(*interp.DictVal)
 	if !ok {

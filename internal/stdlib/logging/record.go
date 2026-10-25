@@ -68,14 +68,14 @@ func (g *Log) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 			return g.add(args)
 		}), nil
 	}
-	return nil, bind.MemberError(string(LogType), prop, codes.Names(codes.Y004))
+	return nil, bind.MemberError(LogType, prop, []codes.Code{codes.Y004})
 }
 
 // openLog günlük(yol) yerleşiğidir.
 func (d *state) openLog(m *interp.VM, args []interp.Value) (interp.Value, error) {
 	fn := interp.CallPrefix(codes.G810)
 	if len(args) != 1 {
-		return nil, interp.ArgCountError(codes.G810, "1", len(args), messages.Text(messages.H2307))
+		return nil, interp.ArgCountError(codes.G810, 1, len(args), messages.Text(messages.H2307))
 	}
 	path, ok, err := interp.PathArg(fn, args[0])
 	if err != nil {
@@ -162,7 +162,7 @@ func (g *Log) close() {
 func (g *Log) add(args []interp.Value) (interp.Value, error) {
 	fn := interp.CallPrefix(codes.Y004)
 	if len(args) != 1 {
-		return nil, interp.ArgCountError(codes.Y004, "1", len(args), messages.Text(messages.H2324), messages.Text(messages.H2325))
+		return nil, interp.ArgCountError(codes.Y004, 1, len(args), messages.Text(messages.H2324), messages.Text(messages.H2325))
 	}
 	record := interp.NewDictVal()
 	record.Set(keyTime, timeValue(clock()))

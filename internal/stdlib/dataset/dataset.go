@@ -57,7 +57,7 @@ var (
 
 // Register veri yerleşiklerini VM'ye kaydeder.
 func Register(v *interp.VM) {
-	v.RegisterBuiltinCode(codes.V100, bind.SafeBuiltin(codes.Name(codes.V100), openDataset))
+	v.RegisterBuiltinCode(codes.V100, bind.SafeBuiltin(interp.CallPrefix(codes.V100), openDataset))
 }
 
 // ----------------------------------------------------------------------------
@@ -91,7 +91,7 @@ var (
 // are written in (docs/spec/03_tipler.md).
 func (k *Dataset) Text(lang *codes.Language) string {
 	if k.cache != nil {
-		return messages.TextIn(lang.Code, messages.H5501, lang.Name(codes.A231), k.summary(lang), bind.FormatBytes(k.cache.Quota()))
+		return messages.TextIn(lang.Code, messages.H5501, lang.Name(codes.A231), k.summary(lang), tensor.ByteSize(k.cache.Quota()))
 	}
 	return fmt.Sprintf("%s(%s)", lang.Name(codes.A231), k.summary(lang))
 }
@@ -112,7 +112,7 @@ func (k *Dataset) TableData() ([]string, [][]string, error) {
 		if i >= limit {
 			break
 		}
-		lines = append(lines, []string{p.Name, fmt.Sprint(p.Token), bind.FormatBytes(p.Bytes).MessageText(codes.Display().Code)})
+		lines = append(lines, []string{p.Name, fmt.Sprint(p.Token), tensor.ByteSize(p.Bytes).MessageText(codes.Display().Code)})
 	}
 	return []string{messages.Text(messages.H5504), messages.Text(messages.H5505), messages.Text(messages.H5506)}, lines, nil
 }
@@ -124,20 +124,20 @@ const (
 	memberNext       = codes.Y602
 )
 
-var datasetMembers = codes.Names(memberSampler, memberSequential)
+var datasetMembers = []codes.Code{memberSampler, memberSequential}
 
 func (k *Dataset) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	switch kd {
 	case memberSampler:
-		return bind.Method(codes.Name(memberSampler), k.sampler), nil
+		return bind.CodeMethod(memberSampler, false, k.sampler), nil
 	case memberSequential:
-		return bind.Method(codes.Name(memberSequential), k.sequentialTR), nil
+		return bind.CodeMethod(memberSequential, false, k.sequentialTR), nil
 	}
-	return nil, bind.MemberError(messages.Text(messages.H5502), prop, datasetMembers)
+	return nil, bind.MemberError(messages.New(messages.H5502), prop, datasetMembers)
 }
 
 // resolveCacheDir önbellek: adlı argümanının (verildiyse) çözülmüş klasör yoludur.
-func resolveCacheDir(m *interp.VM, fn string, named map[string]interp.Value) (string, error) {
+func resolveCacheDir(m *interp.VM, fn any, named map[string]interp.Value) (string, error) {
 	v, ok := bind.GetNamed(named, nameCache)
 	if !ok {
 		return "", nil
@@ -155,8 +155,8 @@ func resolveCacheDir(m *interp.VM, fn string, named map[string]interp.Value) (st
 }
 
 func openDataset(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(codes.V100)
-	if err := bind.CheckNamed(fn+"()", named, nameCache, nameQuota); err != nil {
+	fn := codes.NameRef(codes.V100)
+	if err := bind.CheckNamed(fn.Called(), named, nameCache, nameQuota); err != nil {
 		return nil, err
 	}
 	if len(args) != 1 {
@@ -220,7 +220,7 @@ func openDataset(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 	if cacheDir != "" && !hasQuota {
 		needed := largestShard(k) * int64(dataload.DefaultGroupSize+dataload.DefaultLookahead)
 		return nil, messages.New(messages.H5513,
-			fn, nameCache, nameQuota, dataload.DefaultGroupSize+dataload.DefaultLookahead, bind.FormatBytes(largestShard(k)), int64(math.Ceil(float64(needed)/(1<<30))))
+			fn, nameCache, nameQuota, dataload.DefaultGroupSize+dataload.DefaultLookahead, tensor.ByteSize(largestShard(k)), int64(math.Ceil(float64(needed)/(1<<30))))
 	}
 	tk := &Dataset{k: k, path: raw, cache: cache}
 	if cache != nil {
@@ -239,7 +239,7 @@ func largestShard(k *dataload.Dataset) int64 {
 
 // dataError Go veri paketinin hatasını yol gösterici bir TR hatasına çevirir; ekler
 // küme bulunamadığında mesaja eklenir (ör. bakılan yerler).
-func dataError(fn, path string, err error, extras ...string) error {
+func dataError(fn any, path string, err error, extras ...*messages.Error) error {
 	var bh *dataload.FormatError
 	switch {
 	case errors.As(err, &bh):
@@ -257,7 +257,7 @@ func dataError(fn, path string, err error, extras ...string) error {
 		return messages.New(messages.H2000, fn, sentinelDetail(err))
 	case bind.IsNotExist(err) && messages.Has(err, messages.H5019):
 		return turkish.FileError(fn, path, messages.H2103, err,
-			append([]string{messages.Text(messages.H5517)}, extras...)...)
+			append([]*messages.Error{messages.New(messages.H5517)}, extras...)...)
 	}
 	var pe *fs.PathError
 	if errors.As(err, &pe) {
@@ -348,29 +348,29 @@ func (o *Reader) TableData() ([]string, [][]string, error) {
 func (o *Reader) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	switch kd {
 	case memberNext:
-		return bind.Method(codes.Name(memberNext), o.nextTR), nil
+		return bind.CodeMethod(memberNext, false, o.nextTR), nil
 	case memberState:
 		return o.StateDict(nil)
 	case memberLoadState:
-		return bind.Method(codes.Name(memberLoadState), o.loadStateTR), nil
+		return bind.CodeMethod(memberLoadState, false, o.loadStateTR), nil
 	case memberSkip:
-		return bind.Method(codes.Name(memberSkip), o.skipTR), nil
+		return bind.CodeMethod(memberSkip, false, o.skipTR), nil
 	}
-	what := SamplerType
+	var what any = interp.ValueType(SamplerType)
 	if o.sequential {
-		what = messages.Text(messages.H5526)
+		what = messages.New(messages.H5526)
 	}
-	return nil, bind.MemberError(what, prop, codes.Names(memberNext, memberSkip, memberState, memberLoadState))
+	return nil, bind.MemberError(what, prop, []codes.Code{memberNext, memberSkip, memberState, memberLoadState})
 }
 
 // readerArgs toplu, bağlam ve (örnekleyicide) tohum argümanlarını okur. Konumlu
 // olarak da aynı sırayla verilebilirler.
-func readerArgs(fn string, args []interp.Value, named map[string]interp.Value, seeded bool) (b, t int, seed uint64, err error) {
+func readerArgs(fn codes.Ref, args []interp.Value, named map[string]interp.Value, seeded bool) (b, t int, seed uint64, err error) {
 	names := []bind.Named{nameBatch, nameContext}
 	if seeded {
 		names = append(names, nameSeed)
 	}
-	if err = bind.CheckNamed(fn+"()", named, names...); err != nil {
+	if err = bind.CheckNamed(fn.Called(), named, names...); err != nil {
 		return
 	}
 	if len(args) > len(names) {
@@ -425,7 +425,7 @@ func readerArgs(fn string, args []interp.Value, named map[string]interp.Value, s
 }
 
 func (k *Dataset) sampler(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(memberSampler)
+	fn := codes.NameRef(memberSampler)
 	b, t, seed, err := readerArgs(fn, args, named, true)
 	if err != nil {
 		return nil, err
@@ -441,7 +441,7 @@ func (k *Dataset) sampler(m *interp.VM, args []interp.Value, named map[string]in
 }
 
 func (k *Dataset) sequentialTR(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(memberSequential)
+	fn := codes.NameRef(memberSequential)
 	b, t, _, err := readerArgs(fn, args, named, false)
 	if err != nil {
 		return nil, err
@@ -456,7 +456,7 @@ func (k *Dataset) sequentialTR(m *interp.VM, args []interp.Value, named map[stri
 	return k.newReader(true, b, t, 0, so), nil
 }
 
-func readerError(fn string, k *Dataset, t int, err error) error {
+func readerError(fn any, k *Dataset, t int, err error) error {
 	if messages.Has(err, messages.H5076) {
 		var longest int64
 		for _, p := range k.k.Shards() {
@@ -508,8 +508,8 @@ func (o *Reader) takeOne() (eof bool, err error) {
 
 // nextTR bir sonraki toplu işi [girdi, hedef] olarak verir; sıralı okuyucu bitince yok.
 func (o *Reader) nextTR(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.DisplayName(memberNext)
-	if err := bind.CheckNamed(fn+"()", named); err != nil {
+	fn := codes.NameRef(memberNext)
+	if err := bind.CheckNamed(fn.Called(), named); err != nil {
 		return nil, err
 	}
 	if len(args) != 0 {

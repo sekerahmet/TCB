@@ -249,6 +249,75 @@ func TestBoolTextComparisonWarnsByFileLanguage(t *testing.T) {
 	}
 }
 
+// İletideki dil adları iletinin dilindedir (4E): kitaplık fonksiyonunun adı, adlı argümanın adı
+// ve "Bunu mu demek istediniz" önerisi İngilizce dosyanın yakaladığı hatada (TR_DIL=tr) ve
+// TR_DIL=en görüntüsünde İngilizcedir. Önceden ad TR_DIL'de kurulup iletiye metin olarak
+// veriliyordu (yakalanan hatada "tensör", "devrik()", "türev_izle" kalıyordu).
+func TestMessageNamesFollowTheMessageLanguage(t *testing.T) {
+	coded, err := source.Encode("dene { tensör([1.0], türev_izle: 5) } yakala h { yazdır(h) }\n" +
+		"dene { yazdır(tensör([[1.0]]).T) } yakala h { yazdır(h) }\n" +
+		"dene { tensör([1.0], türev_izl: doğru) } yakala h { yazdır(h) }\n" +
+		"yazdır(tensör([[1.0]]).T)\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"tensor: requires_grad must be true or false", "Did you mean 'transpose()'?",
+		"tensor() takes no parameter named 'türev_izl'. Did you mean 'requires_grad'?"}
+	dir := t.TempDir()
+	testkit.WriteFile(t, dir, "en.tr", inLanguage(coded, "en"))
+	testkit.WriteFile(t, dir, "tr.tr", coded)
+	caught := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=tr"}, "en.tr")
+	shown := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "tr.tr")
+	for i, w := range want {
+		if !strings.Contains(caught.Stdout, w) {
+			t.Errorf("İngilizce dosyanın yakaladığı hatada %q yok:\n%s", w, caught.Stdout)
+		}
+		if i == 1 && !strings.Contains(shown.Stderr, w) {
+			t.Errorf("TR_DIL=en görüntüsünde %q yok:\n%s", w, shown.Stderr)
+		}
+	}
+	for _, turkish := range []string{"tensör", "devrik", "türev_izle"} {
+		if strings.Contains(caught.Stdout, turkish) {
+			t.Errorf("İngilizce dosyanın yakaladığı hatada Türkçe ad %q:\n%s", turkish, caught.Stdout)
+		}
+	}
+}
+
+// Sözdizimi ipucundaki dil adı kişinin dilindedir (DENETİM 4D, bulgu 2): Türkçe dosyada döngü
+// dışındaki 'çık', TR_DIL=en ile "to leave the function write 'return'" der. Önceden ad kanonikti
+// ('sonuç').
+func TestSyntaxHintNamesFollowPersonsLanguage(t *testing.T) {
+	dir := t.TempDir()
+	testkit.WriteFile(t, dir, "p.tr", "fonksiyon f() {\n    çık\n}\n")
+	s := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "p.tr")
+	if s.Code == 0 || !strings.Contains(s.Stderr, "to leave the function write 'return'") {
+		t.Errorf("TR_DIL=en sözdizimi ipucu: çıkış %d\n%s", s.Code, s.Stderr)
+	}
+}
+
+// İletiye değer olarak giden hazır metin de iletinin dilindedir (DENETİM 4D, bulgu 3): listede
+// çalışmayan tensör işlevinin "yalnızca ..." parçası İngilizce dosyanın yakaladığı hatada
+// İngilizcedir. Önceden parça messages.Text ile TR_DIL'de kurulup iletiye metin olarak giriyordu
+// ("only on tensörde").
+func TestMessagePartsFollowTheMessageLanguage(t *testing.T) {
+	coded, err := source.Encode("dene { softmax([1.0, 2.0]) } yakala h { yazdır(h) }\n" +
+		"dene { koşullu([1, 2], 1, 2) } yakala h { yazdır(h) }\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	testkit.WriteFile(t, dir, "en.tr", inLanguage(coded, "en"))
+	s := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=tr"}, "en.tr")
+	if strings.Count(s.Stdout, "does not work on lists, only on tensors") != 2 {
+		t.Errorf("İngilizce dosyanın yakaladığı hatada parça İngilizce olmalı:\n%s%s", s.Stdout, s.Stderr)
+	}
+	for _, turkish := range []string{"tensörde", "sayıda", "Mantık"} {
+		if strings.Contains(s.Stdout, turkish) {
+			t.Errorf("Türkçe parça %q:\n%s", turkish, s.Stdout)
+		}
+	}
+}
+
 // fileFormatShape klasördeki dosya adlarını ve her JSON dosyasının (satırının) anahtar
 // kümesini, değerleri atarak, sıralı bir özet olarak verir.
 func fileFormatShape(t *testing.T, dir string) string {

@@ -46,19 +46,10 @@ import (
 // Boş olabilen parça ise Go'da metin kurulmadan şablonda `{x, select, empty {} other {..}}`
 // ile yazılır.
 //
-// nounPhraseUses kuralın bugünkü istisnalarıdır (kayıt → kullanım sayısı) ve yalnızca küçülür.
-//
-// Her kayıt gerekçesini yazar:
-//   - calls.go H2408/H2409: "'f' fonksiyonu" / "İsimsiz fonksiyon" H2410-H2415'in öznesidir;
-//     yalın halde, ek almadan cümlenin başında durur (adlandırılan şeyin etiketi).
-//   - ml/load.go H6636/H6637: "3. girdi" / `3. girdi ("w")` dosya hatalarının konusunu
-//     adlandıran etikettir; kendisi ek almaz, "{entry} adı" gibi iletilerde yalın ad öbeği olarak durur.
-var nounPhraseUses = map[string]int{
-	"internal/lang/interp/calls.go H2408": 5,
-	"internal/lang/interp/calls.go H2409": 5,
-	"internal/stdlib/ml/load.go H6636":    7,
-	"internal/stdlib/ml/load.go H6637":    7,
-}
+// nounPhraseUses kuralın bugünkü istisnalarıdır (kayıt → kullanım sayısı) ve yalnızca küçülür;
+// her kayıt gerekçesini yazar. Bugün boştur: eski etiketler (H2408/H2409, H6636/H6637) ileti
+// parçası (messages.New) olarak verilir.
+var nounPhraseUses = map[string]int{}
 
 // messageBuilders ileti kuran işlevlerdir; argümanları iletinin parametreleridir.
 var messageBuilders = map[string]bool{

@@ -177,7 +177,7 @@ func (n *object) checkMatch(fn any, y *pending, version int) error {
 	}
 	switch n.kind {
 	case kindModel:
-		return n.modelMatch(messages.Text(messages.H7441, fn, n.name), y, version)
+		return n.modelMatch(messages.New(messages.H7441, fn, n.name), y, version)
 	case kindOptimizer:
 		if y.record.Optimizer != n.op.Name() || y.record.ParamCount != n.op.ParamCount() {
 			return messages.New(messages.H7442,
@@ -187,7 +187,7 @@ func (n *object) checkMatch(fn any, y *pending, version int) error {
 		for i, name := range y.order {
 			shapes[i] = y.shapes[name]
 		}
-		err := n.op.CheckState(messages.Text(messages.H7441, fn, n.name), y.order, shapes)
+		err := n.op.CheckState(messages.New(messages.H7441, fn, n.name), y.order, shapes)
 		if err != nil && (badCounter(y) || messages.Has(err, messages.H6516)) {
 			// Sayaçların şekli sabittir; tür ve parametre sayısı tuttuğu halde bilinmeyen bir
 			// durum anahtarı da iyileştiricinin değiştiğini değil, kaydın bozuk olduğunu söyler.
@@ -219,7 +219,7 @@ func (n *object) checkMatch(fn any, y *pending, version int) error {
 // yalnızca türev izleyen tensörler kaydedilmişti: orada kayıtta olmayan türev izlemeyen
 // tensörler (ör. sabit tablolar) olduğu gibi kalır, kayıttaki tensörler modelde türev izlesin
 // izlemesin yerlerine yazılır.
-func (n *object) modelMatch(fn string, y *pending, version int) error {
+func (n *object) modelMatch(fn any, y *pending, version int) error {
 	found := 0
 	for i, name := range n.names {
 		t := n.params[i].Tensor()
