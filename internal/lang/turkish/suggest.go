@@ -32,14 +32,17 @@ func HasTurkishLetter(s string) bool {
 	return strings.ContainsAny(s, "ıİşŞğĞüÜöÖçÇ")
 }
 
-// Distance iki metnin düzenleme (Levenshtein) uzaklığıdır, kod noktası olarak; uzaklığın bound'u aşacağı belli olunca
-// bound+1 verir (aday taramasında erken çıkış). Gerçek uzaklık için bound en az max(len(a), len(b)) olmalıdır. Dilin
-// önerileri (Closest), codeindex'in ve codegraph'ın yakın ad önerileri bu tek uygulamayı kullanır.
+// Distance iki metnin düzenleme uzaklığıdır, kod noktası olarak: silme, ekleme, değiştirme ve iki komşu harfin yer
+// değiştirmesi birer düzeltmedir (OSA, sınırlı Damerau-Levenshtein: pritn ~ print 1; Python'un önerisi gibi).
+// Uzaklığın bound'u aşacağı belli olunca bound+1 verir (aday taramasında erken çıkış; bir satırın en küçüğü sınırı
+// aşınca sonraki satırlar da aşar). Gerçek uzaklık için bound en az max(len(a), len(b)) olmalıdır. Dilin önerileri
+// (Closest), codeindex'in ve codegraph'ın yakın ad önerileri bu tek uygulamayı kullanır.
 func Distance(a, b string, bound int) int {
 	ra, rb := []rune(a), []rune(b)
 	if d := len(ra) - len(rb); d > bound || -d > bound {
 		return bound + 1
 	}
+	before := make([]int, len(rb)+1) // i-2. satır (yer değiştirme için)
 	prev := make([]int, len(rb)+1)
 	cur := make([]int, len(rb)+1)
 	for j := range prev {
@@ -54,12 +57,15 @@ func Distance(a, b string, bound int) int {
 				cost = 0
 			}
 			cur[j] = min(prev[j]+1, cur[j-1]+1, prev[j-1]+cost)
+			if i > 1 && j > 1 && ra[i-1] == rb[j-2] && ra[i-2] == rb[j-1] {
+				cur[j] = min(cur[j], before[j-2]+1)
+			}
 			rowMin = min(rowMin, cur[j])
 		}
 		if rowMin > bound {
 			return bound + 1
 		}
-		prev, cur = cur, prev
+		before, prev, cur = prev, cur, before
 	}
 	return prev[len(rb)]
 }
