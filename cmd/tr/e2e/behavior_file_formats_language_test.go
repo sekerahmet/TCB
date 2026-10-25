@@ -211,7 +211,7 @@ func TestDisplayFollowsPersonsLanguage(t *testing.T) {
 	dir := t.TempDir()
 	testkit.WriteFile(t, dir, "p.tr", "değişken ayar = komut_satırı({adım: 3, hızlı: doğru})\n")
 	help := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "p.tr", "--help")
-	testkit.Wait(t, help, 0, []string{"--adım <Int>", "(default: true)"}, nil)
+	testkit.Wait(t, help, 0, []string{"--adım <Int>", "(default: true; to turn it off --hızlı=false)"}, nil)
 	if strings.Contains(help.Stdout, "doğru") || strings.Contains(help.Stdout, "<Tam>") {
 		t.Errorf("TR_DIL=en yardımında Türkçe değer ya da tip adı:\n%s", help.Stdout)
 	}

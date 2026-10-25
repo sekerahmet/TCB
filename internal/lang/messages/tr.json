@@ -1168,6 +1168,8 @@
 "H7234": "(varsayılan: {value})",
 "H7235": "bu yardımı gösterir",
 "H7236": "boş liste",
+"H7237": "(varsayılan: {value}; kapatmak için --{name}={false})",
+"H7238": "'--{name}' Mantık bir seçenek; değeri ayrı argüman olarak değil = ile verilir: --{name}={value}",
 "H7300": "{fn}: '{name}' ölçüsünün değeri {types} ya da {null} olmalı; {given} verildi",
 "H7301": "{sec|decimal} sn",
 "H7302": "{min|decimal} dk",

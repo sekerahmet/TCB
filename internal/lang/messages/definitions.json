@@ -1168,6 +1168,8 @@
 "H7234": { "param": ["value"] },
 "H7235": { "param": [] },
 "H7236": { "param": [] },
+"H7237": { "param": ["value", "name", "false"] },
+"H7238": { "param": ["name", "value"] },
 "H7300": { "param": ["fn", "name", "types", "null", "given"] },
 "H7301": { "param": ["sec"] },
 "H7302": { "param": ["min"] },

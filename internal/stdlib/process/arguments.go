@@ -112,6 +112,13 @@ func parse(m *interp.VM, argv []string, options []*option) (map[string]interp.Va
 				addSecretItems(m, value)
 			}
 		}
+		// Mantık seçeneğinin değeri ayrı argüman değildir: '--hızlı yanlış' yazılmışsa doğru biçim
+		// söylenir (Go flag: -flag=false; yalnız --hızlı doğru demektir).
+		if !valued && s.optKind == kindBool && i+1 < len(argv) {
+			if _, isBool := boolName(argv[i+1]); isBool {
+				return nil, messages.New(messages.H7238, s.name, shorten(argv[i+1]))
+			}
+		}
 		v, err := parseValue(s, value, valued)
 		if err != nil {
 			return nil, err

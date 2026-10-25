@@ -1168,6 +1168,8 @@
 "H7234": "(default: {value})",
 "H7235": "shows this help",
 "H7236": "empty list",
+"H7237": "(default: {value}; to turn it off --{name}={false})",
+"H7238": "'--{name}' is a Bool option; its value is given with =, not as a separate argument: --{name}={value}",
 "H7300": "{fn}: the value of the metric '{name}' must be {types} or {null}; {given} given",
 "H7301": "{sec|decimal} s",
 "H7302": "{min|decimal} min",

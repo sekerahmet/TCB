@@ -1173,6 +1173,8 @@ const (
 	H7234 Code = 7234 // (varsayılan: {value})
 	H7235 Code = 7235 // bu yardımı gösterir
 	H7236 Code = 7236 // boş liste
+	H7237 Code = 7237 // (varsayılan: {value}; kapatmak için --{name}={false})
+	H7238 Code = 7238 // '--{name}' Mantık bir seçenek; değeri ayrı argüman olarak değil = ile verilir: --{name}={value}
 	H7300 Code = 7300 // {fn}: '{name}' ölçüsünün değeri {types} ya da {null} olmalı; {given} verildi
 	H7301 Code = 7301 // {sec|decimal} sn
 	H7302 Code = 7302 // {min|decimal} dk
