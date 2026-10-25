@@ -169,7 +169,7 @@ func defaultKind(fn, name string, v interp.Value) (optKind, optKind, error) {
 		return kindList, item, nil
 	}
 	return 0, 0, messages.New(messages.H7225,
-		fn, name, interp.TypeNames(codes.A200, codes.A201, codes.A202, codes.A203), codes.Name(codes.A205), codes.Name(codes.A042), interp.TypeAndSummary(v))
+		fn, name, interp.TypeNames(codes.A200, codes.A201, codes.A202, codes.A203), codes.DisplayName(codes.A205), codes.DisplayName(codes.A042), interp.TypeAndSummary(v))
 }
 
 // plainKind Tam, Ondalık, Metin ya da Mantık değerin tipidir.

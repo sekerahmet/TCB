@@ -345,10 +345,10 @@ func sleepBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	// A negative, NaN or huge duration used to return at once without an error (the
 	// conversion to time.Duration overflows).
 	if math.IsNaN(pick) || pick < 0 {
-		return nil, messages.New(messages.H2433, CallPrefix(codes.G500), args[0].Inspect())
+		return nil, messages.New(messages.H2433, CallPrefix(codes.G500), Shown(args[0]))
 	}
 	if pick > maxSleepSeconds {
-		return nil, messages.New(messages.H2434, CallPrefix(codes.G500), args[0].Inspect(), strconv.FormatFloat(maxSleepSeconds, 'f', 0, 64))
+		return nil, messages.New(messages.H2434, CallPrefix(codes.G500), Shown(args[0]), strconv.FormatFloat(maxSleepSeconds, 'f', 0, 64))
 	}
 	// Kesme istenirse (Ctrl+C) bekleme hemen biter; program sonraki güvenli noktada durur.
 	y.Blocking(func() { y.interruptibleSleep(time.Duration(pick * float64(time.Second))) })

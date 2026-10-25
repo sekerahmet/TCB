@@ -42,10 +42,15 @@ func usageByName(name string, forms []string) string {
 	return messages.OrList(pieces...)
 }
 
-// TypeNames writes the names of type codes as a list of alternatives:
-// TypeNames(codes.A200, codes.A201, codes.A202) → "Tam, Ondalık ya da Metin".
+// TypeNames writes the names of type codes as a list of alternatives, for a message: in the
+// person's writing language (TR_DIL), TypeNames(codes.A200, codes.A201, codes.A202) → "Tam,
+// Ondalık ya da Metin" / "Int, Float or String".
 func TypeNames(typesOf ...codes.Code) string {
-	return messages.OrList(codes.Names(typesOf...)...)
+	names := make([]string, len(typesOf))
+	for i, k := range typesOf {
+		names[i] = codes.DisplayName(k)
+	}
+	return messages.OrList(names...)
 }
 
 // ArgTypeError reports that argument number sira of builtin kd (or its member) is not one of
@@ -102,12 +107,13 @@ func TypeAndSummary(v Value) string {
 const summaryLimit = 40
 
 // ValueSummary writes a value short enough for an error message: strings in quotes, long
-// values cut with "…". Large lists are never printed in full.
+// values cut with "…". Large lists are never printed in full. Messages are display text, so
+// the value is in the person's writing language (TR_DIL; DisplayText).
 func ValueSummary(v Value) string {
 	var s string
 	switch x := v.(type) {
 	case nil:
-		return codes.Name(codes.A042)
+		return codes.DisplayName(codes.A042)
 	case *StringVal:
 		return strconv.Quote(shorten(x.Val, summaryLimit))
 	case *ListVal:
@@ -118,14 +124,14 @@ func ValueSummary(v Value) string {
 			}
 			return messages.Text(messages.H2425, shorten("["+strings.Join(pieces, ", ")+", …]", summaryLimit), len(x.Elements))
 		}
-		s = x.Inspect()
+		s = DisplayText(x)
 	case *DictVal:
 		if len(x.Pairs) > 5 {
 			return messages.Text(messages.H2426, len(x.Pairs))
 		}
-		s = x.Inspect()
+		s = DisplayText(x)
 	default:
-		s = v.Inspect()
+		s = DisplayText(v)
 	}
 	return shorten(s, summaryLimit)
 }

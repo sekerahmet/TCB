@@ -106,7 +106,6 @@ var sameTextAllowed = map[string]string{
 	"H2301 H7214 H7484": "kullanım tarifindeki parametre adı, komut satırı tipi ve kontrol noktası türü",
 	"H2006 H2010":       "seçenek listesinin son ve ikili kalıbı (İngilizcede 'a, b, or c' ve 'a or b' ayrıdır)",
 	"H6123 H8247":       "ml hata bağlamındaki tensör etiketi ve profil raporu satırı",
-	"H7301 H8218":       "ilerleme çubuğundaki süre ve profil raporundaki süre sütunu",
 	"H7310 H8280":       "ilerleme çubuğu etiketi ve profil raporu satırı",
 }
 

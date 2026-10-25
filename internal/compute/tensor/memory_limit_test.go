@@ -61,9 +61,13 @@ func TestPhysicalMemoryRead(t *testing.T) {
 // ayırmaya çalışmasın).
 func TestBroadcastLimit(t *testing.T) {
 	setLimit(t, 16<<30)
+	// Parametre Go'nun noktalı sayısıdır; ileti onu kendi dilinin ayırıcısıyla yazar ({size|decimal}).
+	if m := messages.Text(messages.H3085, isAdd, "[2]", "126.8 GB", PlaceHost, "16.0 GB", ""); !strings.Contains(m, "126,8 GB") || !strings.Contains(m, "16,0 GB") {
+		t.Errorf("Türkçe iletide ondalık virgül olmalı: %s", m)
+	}
 	a, b := Zeros(185000, 1, 1), Zeros(4, 46000)
 	expectedPanic(t, "toplama", func() { Add(a, b) }, messages.H3085,
-		isAdd, "[185000, 4, 46000]", "126,8 GB", PlaceHost, "16,0 GB", "broadcast")
+		isAdd, "[185000, 4, 46000]", "126.8 GB", PlaceHost, "16.0 GB", "broadcast")
 	expectedPanic(t, "çarpma", func() { Mul(b, a) }, messages.H3085, isMul, "[185000, 4, 46000]")
 	// Yayınlamasız işlemlerin hatasında yayınlama ipucu boştur.
 	m, _ := messages.As(testkit.PanicError(func() { MatMul(Zeros(100000, 1), Zeros(1, 100000)) }))
@@ -75,7 +79,7 @@ func TestBroadcastLimit(t *testing.T) {
 // Taşan şekil sessizce küçük bir sayıya dönmez: [2^40, 2^40] 2^80 eleman ister.
 func TestOverflowingShape(t *testing.T) {
 	expectedPanic(t, "sıfırlar", func() { Zeros(1<<40, 1<<40) }, messages.H3086,
-		isCreate, "[1099511627776, 1099511627776]", "1,2 × 10^24")
+		isCreate, "[1099511627776, 1099511627776]", "1.2 × 10^24")
 	expectedPanic(t, "rastgele", func() { Randn(nil, 1<<40, 1<<40) }, messages.H3086)
 	expectedPanic(t, "aralık", func() { Arange(-1) }, messages.H3053)
 	// Sıfır uzunluklu eksenler veri tutmaz; öbür eksenler dev olsa da tensör geçerlidir.
@@ -97,7 +101,7 @@ func TestBothSidesOfLimit(t *testing.T) {
 	if Zeros(1024).Numel() != 1024 || ZerosOf(BFloat16, 2048).Numel() != 2048 || Full(2, 32, 32).Numel() != 1024 {
 		t.Fatal("sınırdaki tensörler oluşturulmalı")
 	}
-	expectedPanic(t, "float32 üstü", func() { Zeros(1025) }, messages.H3084, "[1025]", "4,0 KB", PlaceHost)
+	expectedPanic(t, "float32 üstü", func() { Zeros(1025) }, messages.H3084, "[1025]", "4.0 KB", PlaceHost)
 	expectedPanic(t, "bf16 üstü", func() { ZerosOf(BFloat16, 2049) }, messages.H3084, "[2049]")
 	expectedPanic(t, "birler", func() { Ones(33, 32) }, messages.H3084, "[33, 32]")
 	expectedPanic(t, "rastgele", func() { Randn(nil, 1025) }, messages.H3084, "[1025]")

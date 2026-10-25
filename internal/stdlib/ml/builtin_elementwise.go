@@ -149,7 +149,7 @@ func axisArg(fn string, args []interp.Value, named map[string]interp.Value) (int
 	}
 	e, ok := intNumber(ev)
 	if !ok {
-		return 0, false, messages.New(messages.H6106, fn, ev.Inspect())
+		return 0, false, messages.New(messages.H6106, fn, interp.Shown(ev))
 	}
 	return e, true, nil
 }

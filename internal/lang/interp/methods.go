@@ -94,7 +94,7 @@ func addMethod(typ int, kd codes.Code, im signature, f methodBody) {
 		}
 		for i, a := range args {
 			if i < len(im.typesOf) && im.typesOf[i] != nil && !im.typesOf[i].warn(a) {
-				return nil, argTypeErrorByName(fullName, i+1, codes.Name(im.typesOf[i].typ), a)
+				return nil, argTypeErrorByName(fullName, i+1, codes.DisplayName(im.typesOf[i].typ), a)
 			}
 		}
 		return bodyBlock(y, inst, args, line)

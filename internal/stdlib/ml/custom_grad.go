@@ -510,7 +510,7 @@ func positiveFloat(fn string, named map[string]interp.Value, ad bind.Named, defa
 	}
 	f, ok := interp.ToFloat(v)
 	if !ok || !(f > 0) || math.IsInf(f, 0) {
-		return 0, messages.New(messages.H6429, fn, ad.TR, v.Inspect())
+		return 0, messages.New(messages.H6429, fn, ad.TR, interp.Shown(v))
 	}
 	return f, nil
 }

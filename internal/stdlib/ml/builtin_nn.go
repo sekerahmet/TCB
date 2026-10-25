@@ -259,7 +259,7 @@ func normArgs(fn string, args []interp.Value, named map[string]interp.Value, nam
 		// float32'de 0'a düşen değer çıktıyı NaN yapardı.
 		f, ok := interp.ToFloat(v)
 		if e := float32(f); !ok || !(e > 0) || math.IsInf(float64(e), 0) {
-			return nil, nil, 0, 0, messages.New(messages.H6325, fn, nameEpsilon.TR, v.Inspect())
+			return nil, nil, 0, 0, messages.New(messages.H6325, fn, nameEpsilon.TR, interp.Shown(v))
 		}
 		eps = float32(f)
 	}

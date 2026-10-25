@@ -12,6 +12,15 @@ type Error struct {
 	Args []any
 }
 
+// Localized is a parameter value whose text depends on the language of the message it is put
+// in: a TR value, a type name. The catalog asks for it in the language it writes the message
+// in (TR_DIL, or the source language when the message falls back), so a message and the values
+// inside it are always in one language. Like Fluent's FluentType.toString(scope); messages does
+// not know the values (interp implements it).
+type Localized interface {
+	MessageText(lang string) string
+}
+
 // New returns the message code with its parameter values as an error.
 func New(c Code, args ...any) *Error { return &Error{Code: c, Args: args} }
 

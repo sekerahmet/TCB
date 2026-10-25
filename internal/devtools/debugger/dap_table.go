@@ -91,13 +91,13 @@ func typeLabel(val interp.Value) string {
 			cols, rows, _ := TableData(v)
 			return messages.Text(messages.H8140, len(rows), len(cols))
 		}
-		return fmt.Sprintf("%s [%d]", interp.ValList, len(v.Elements))
+		return fmt.Sprintf("%s [%d]", interp.DisplayType(v), len(v.Elements))
 	case *interp.DictVal:
-		return fmt.Sprintf("%s [%d]", interp.ValDict, len(v.Pairs))
+		return fmt.Sprintf("%s [%d]", interp.DisplayType(v), len(v.Pairs))
 	case *interp.StructInstanceVal:
 		return messages.Text(messages.H8141, v.Def.Name)
 	}
-	return string(val.Type())
+	return interp.DisplayType(val)
 }
 
 // ---------------------------------------------------------------------------
@@ -127,7 +127,7 @@ func (s *dapServer) table(msg *dapMessage) {
 		s.respondErr(msg, err.Error())
 		return
 	}
-	s.respond(msg, map[string]interface{}{"baslik": a.Expression, "sutunlar": cols, "satirlar": rows, "tip": string(val.Type())})
+	s.respond(msg, map[string]interface{}{"baslik": a.Expression, "sutunlar": cols, "satirlar": rows, "tip": interp.DisplayType(val)})
 }
 
 // TableData bir değeri tabloya (sütunlar + satırlar) dönüştürür:

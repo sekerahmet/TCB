@@ -393,7 +393,7 @@ func writeSliceBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 	st, isTensor := sv.(*TensorValue)
 	if isTensor {
 		if st.t.Dim() != 0 {
-			return nil, messages.New(messages.H6441, fn, sv.Inspect())
+			return nil, messages.New(messages.H6441, fn, interp.Shown(sv))
 		}
 		if err := checkDevice(fn, dst.t, st.t); err != nil {
 			return nil, err
@@ -412,7 +412,7 @@ func writeSliceBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 			start, integer = intNumber(sv)
 		}
 		if !integer {
-			panic(messages.New(messages.H6441, fn, sv.Inspect()))
+			panic(messages.New(messages.H6441, fn, interp.Shown(sv)))
 		}
 		if start < 0 || start+n > sh[axis] {
 			panic(messages.New(messages.H6442, fn, start, n, sh[axis]))
@@ -433,7 +433,7 @@ func writeSliceAxis(fn string, named map[string]interp.Value, dst, src *tensor.T
 	if av, ok := bind.GetNamed(named, nameAxis); ok {
 		a, integer := intNumber(av)
 		if !integer {
-			return 0, messages.New(messages.H6016, fn, av.Inspect(), tensor.ShapeText(dst.Shape()), dst.Dim(), -dst.Dim(), dst.Dim()-1)
+			return 0, messages.New(messages.H6016, fn, interp.Shown(av), tensor.ShapeText(dst.Shape()), dst.Dim(), -dst.Dim(), dst.Dim()-1)
 		}
 		axis = a
 	}

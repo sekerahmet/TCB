@@ -224,16 +224,16 @@ func TestResolvePath(t *testing.T) {
 
 func TestShortNumberAndFormatBytes(t *testing.T) {
 	for n, b := range map[int64]string{
-		0: "0", 999: "999", 1000: "1 bin", 12_345: "12,3 bin", 2_500_000: "2,5 milyon",
-		56_900_000_000: "56,9 milyar", 3_000_000_000_000: "3 trilyon",
+		0: "0", 999: "999", 1000: "1 bin", 12_345: "12.3 bin", 2_500_000: "2.5 milyon",
+		56_900_000_000: "56.9 milyar", 3_000_000_000_000: "3 trilyon",
 	} {
 		if g := ShortNumber(n); g != b {
 			t.Errorf("KisaSayi(%d) = %q; %q olmalı", n, g, b)
 		}
 	}
 	for n, b := range map[int64]string{
-		0: "0 bayt", 1023: "1023 bayt", 1024: "1 KB", 1536: "1,5 KB",
-		5 << 20: "5 MB", 1288490189: "1,2 GB", 2 << 40: "2 TB",
+		0: "0 bayt", 1023: "1023 bayt", 1024: "1 KB", 1536: "1.5 KB",
+		5 << 20: "5 MB", 1288490189: "1.2 GB", 2 << 40: "2 TB",
 	} {
 		if g := FormatBytes(n); g != b {
 			t.Errorf("BaytMetni(%d) = %q; %q olmalı", n, g, b)

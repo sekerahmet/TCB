@@ -167,7 +167,7 @@ func display(val interp.Value) string {
 }
 func (s *dapServer) variableEntry(name, expr string, val interp.Value) map[string]interface{} {
 	return map[string]interface{}{
-		"name": name, "value": display(val), "type": string(val.Type()),
+		"name": name, "value": display(val), "type": interp.DisplayType(val),
 		"evaluateName": expr, "variablesReference": s.refFor(val, expr),
 	}
 }
@@ -258,6 +258,6 @@ func (s *dapServer) setVariable(msg *dapMessage) {
 		}
 	}
 	s.respond(msg, map[string]interface{}{
-		"value": display(val), "type": string(val.Type()), "variablesReference": s.refFor(val, expr),
+		"value": display(val), "type": interp.DisplayType(val), "variablesReference": s.refFor(val, expr),
 	})
 }

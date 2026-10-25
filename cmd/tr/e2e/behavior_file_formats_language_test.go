@@ -146,10 +146,10 @@ func TestDictKeysFollowFileLanguage(t *testing.T) {
 // (TR_DIL) bağlı değildir (3): aynı program her makinede aynı metni verir.
 func TestFunctionTextFollowsFileLanguage(t *testing.T) {
 	program := "fonksiyon f() { sonuç 1 }\nyapı P { a }\ndeğişken l = [1]\n" +
-		"yazdır(metin(f), metin(P), metin(yazdır), metin(l.ekle), \"{f}\")\n"
+		"yazdır(metin(f), metin(P), metin(yazdır), metin(l.ekle), \"{f}\", metin(x => x))\n"
 	sameOutputInEveryLanguage(t, program, map[string]string{
-		"tr": "<fonksiyon f> <yapı P> <yerleşik yazdır> <yerleşik ekle> <fonksiyon f>\n",
-		"en": "<function f> <struct P> <built-in print> <built-in append> <function f>\n",
+		"tr": "<fonksiyon f> <yapı P> <yerleşik yazdır> <yerleşik ekle> <fonksiyon f> <ok fonksiyonu>\n",
+		"en": "<function f> <struct P> <built-in print> <built-in append> <function f> <lambda>\n",
 	})
 }
 
@@ -215,6 +215,19 @@ func TestDisplayFollowsPersonsLanguage(t *testing.T) {
 	if strings.Contains(help.Stdout, "doğru") || strings.Contains(help.Stdout, "<Tam>") {
 		t.Errorf("TR_DIL=en yardımında Türkçe değer ya da tip adı:\n%s", help.Stdout)
 	}
+}
+
+// İletilerin içindeki değerler ve tip adları iletinin dilindedir (TR_DIL): aynı hata TR_DIL=en
+// ile "Bool (true)", Türkçede "Mantık (doğru)" der; ileti ile içindeki değer bir dildedir.
+func TestMessageValuesFollowPersonsLanguage(t *testing.T) {
+	dir := t.TempDir()
+	testkit.WriteFile(t, dir, "p.tr", "yazdır([1].birleştir(doğru))\n")
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "p.tr"), 1, nil, []string{"expects String as argument 1, Bool (true) given"})
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=tr"}, "p.tr"), 1, nil, []string{"Mantık (doğru) verildi"})
+	// Motorların iletileri de (değer interp.Shown, tip adı ValueType ile).
+	testkit.WriteFile(t, dir, "t.tr", "yazdır(tensör([1.0, doğru]))\n")
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "t.tr"), 1, nil, []string{"true (Bool) given"})
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=tr"}, "t.tr"), 1, nil, []string{"doğru (Mantık) verildi"})
 }
 
 // fileFormatShape klasördeki dosya adlarını ve her JSON dosyasının (satırının) anahtar

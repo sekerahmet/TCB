@@ -62,7 +62,7 @@ func listData(fn string, l *interp.ListVal) ([]float32, []int, error) {
 	sh, err := walkList(fn, l, func(n int) { data = make([]float32, 0, n) }, func(v interp.Value) error {
 		f, ok := interp.ToFloat(v)
 		if !ok {
-			return messages.New(messages.H6007, fn, v.Inspect(), typeName(v))
+			return messages.New(messages.H6007, fn, interp.Shown(v), typeName(v))
 		}
 		data = append(data, float32(f))
 		return nil
@@ -81,9 +81,9 @@ func listInts(fn string, l *interp.ListVal) ([]int, []int, error) {
 		n, ok := intNumber(v)
 		if !ok {
 			if _, number := interp.ToFloat(v); number {
-				return messages.New(messages.H6012, fn, v.Inspect())
+				return messages.New(messages.H6012, fn, interp.Shown(v))
 			}
-			return messages.New(messages.H6013, fn, v.Inspect(), typeName(v))
+			return messages.New(messages.H6013, fn, interp.Shown(v), typeName(v))
 		}
 		data = append(data, n)
 		return nil
@@ -135,7 +135,7 @@ func walkList(fn string, l *interp.ListVal, prepare func(n int), leaf func(v int
 		}
 		ll, ok := v.(*interp.ListVal)
 		if !ok {
-			return messages.New(messages.H6026, fn, axis+1, v.Inspect(), tensor.ShapeText(sh))
+			return messages.New(messages.H6026, fn, axis+1, interp.Shown(v), tensor.ShapeText(sh))
 		}
 		if len(ll.Elements) != sh[axis] {
 			return messages.New(messages.H6027, fn, axis+1, sh[axis], len(ll.Elements))

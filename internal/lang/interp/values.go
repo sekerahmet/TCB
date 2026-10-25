@@ -31,6 +31,35 @@ var (
 	ValTensor   = TypeName(codes.A212) // Tensör
 )
 
+// MessageText is the type's name in a message written in lang (messages.Localized): the type
+// names in messages follow the message's language (TR_DIL). A name that is not a type code's
+// (a struct's own name) stays as it is.
+func (t ValueType) MessageText(lang string) string {
+	k, ok := codes.Find(codes.NamespaceType, string(t))
+	if !ok {
+		return string(t)
+	}
+	l, err := codes.LoadLanguage(lang)
+	if err != nil {
+		return string(t)
+	}
+	return l.Name(k)
+}
+
+// Shown is v as a message parameter: its text follows the message's language (TR_DIL), like
+// the display (DisplayText); Inspect, the canonical text, is for data, not for messages.
+func Shown(v Value) messages.Localized { return shown{v} }
+
+type shown struct{ v Value }
+
+func (s shown) MessageText(lang string) string {
+	l, err := codes.LoadLanguage(lang)
+	if err != nil {
+		return s.v.Inspect()
+	}
+	return valueText(s.v, l)
+}
+
 // TypeName is the ValueType of a type-name code from the dictionary (A2xx); engines get the
 // names of their own types with it.
 func TypeName(k codes.Code) ValueType {
@@ -370,13 +399,13 @@ func (f *FuncVal) Inspect() string {
 	if f.Name != "" {
 		return messages.Text(messages.H2496, f.Name)
 	}
-	return "<ok fonksiyonu>"
+	return messages.Text(messages.H2442)
 }
 func (f *FuncVal) Text(lang *codes.Language) string {
 	if f.Name != "" {
 		return messages.TextIn(lang.Code, messages.H2496, f.Name)
 	}
-	return f.Inspect()
+	return messages.TextIn(lang.Code, messages.H2442)
 }
 func (f *FuncVal) IsTruthy() bool { return true }
 

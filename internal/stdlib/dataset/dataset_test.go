@@ -360,7 +360,7 @@ değişken s = k.sıralı(toplu: 2, bağlam: 8)
 	if err != nil || len(cols) != 3 || len(rows) != 2 || rows[1][0] != "p1.npy" || rows[1][1] != "500" {
 		t.Fatalf("tablo: %v %v %v", cols, rows, err)
 	}
-	if s := bind.ShortNumber(56_900_000_000); s != "56,9 milyar" {
+	if s := bind.ShortNumber(56_900_000_000); s != "56.9 milyar" { // ayırıcı iletide ({tokens|decimal})
 		t.Fatalf("KisaSayi: %q", s)
 	}
 	dataset.CloseAll(time.Second)
