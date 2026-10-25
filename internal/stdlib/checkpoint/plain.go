@@ -13,6 +13,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/stdlib/common/jsonwrite"
 )
 
 // Düz değerlerin (sayaçlar, en iyi kayıp, okuyucu durumu) kayıpsız JSON yazımı. json_metin
@@ -20,7 +21,8 @@ import (
 // döner. Bu yazımda değer tipiyle birlikte saklanır:
 //
 //	yok → null · Mantık → true/false · Metin → "..." · Tam → 123 (her zaman tam sayı)
-//	Ondalık → {"ondalık":"0.1"} (en kısa kayıpsız yazım; "NaN", "+Inf", "-Inf")
+//	Ondalık → {"ondalık":"0.1"} (en kısa kayıpsız yazım; sonlu olmayan sayı veri biçiminin
+//	sabitiyle: "NaN", "Infinity", "-Infinity", jsonwrite.NonFiniteData)
 //	Liste → [...] · Sözlük → {"sözlük":[[anahtar, değer], ...]} (sıra korunur)
 //
 // Nesne biçimleri yalnızca bu iki etiketlidir; başka her şey hatadır.
@@ -137,15 +139,11 @@ func pathName(fpath string) string {
 	return strings.TrimPrefix(fpath, ".")
 }
 
-// floatText kayıpsız en kısa yazımdır (strconv.ParseFloat geri okur).
+// floatText kayıpsız en kısa yazımdır (floatValue geri okur); sonlu olmayan sayı veri
+// biçiminin sabitidir (günlükle aynı, jsonwrite.NonFiniteData).
 func floatText(f float64) string {
-	switch {
-	case math.IsNaN(f):
-		return "NaN"
-	case math.IsInf(f, 1):
-		return "+Inf"
-	case math.IsInf(f, -1):
-		return "-Inf"
+	if math.IsNaN(f) || math.IsInf(f, 0) {
+		return jsonwrite.NonFiniteData(f)
 	}
 	return strconv.FormatFloat(f, 'g', -1, 64)
 }
@@ -197,6 +195,19 @@ func toPlain(raw any, depth int) (interp.Value, error) {
 	return nil, messages.New(messages.H7460, raw)
 }
 
+// floatValue floatText'in yazımını geri okur: sonlu olmayan sayı yalnızca veri biçiminin
+// sabitiyle ("Infinity"; "+Inf", "inf" gibi başka yazımlar biçimin parçası değildir).
+func floatValue(m string) (float64, bool) {
+	if f, ok := jsonwrite.ParseNonFiniteData(m); ok {
+		return f, true
+	}
+	f, err := strconv.ParseFloat(m, 64)
+	if errors.Is(err, strconv.ErrRange) {
+		return f, true // sınırı aşan sonlu yazım en yakın değere (±sonsuz ya da 0)
+	}
+	return f, err == nil && !math.IsNaN(f) && !math.IsInf(f, 0)
+}
+
 // toTagged {"ondalık": ...} ve {"sözlük": ...} biçimlerini çevirir.
 func toTagged(x map[string]any, depth int) (interp.Value, error) {
 	if len(x) != 1 {
@@ -207,8 +218,8 @@ func toTagged(x map[string]any, depth int) (interp.Value, error) {
 		if !ok {
 			return nil, messages.New(messages.H7462, tagFloat)
 		}
-		f, err := strconv.ParseFloat(m, 64)
-		if err != nil && !errors.Is(err, strconv.ErrRange) {
+		f, ok := floatValue(m)
+		if !ok {
 			return nil, messages.New(messages.H7463, m)
 		}
 		return &interp.FloatVal{Val: f}, nil

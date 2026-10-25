@@ -34,7 +34,7 @@ type Options struct {
 	// Indent her seviyede eklenen girintidir; boşsa boşluksuz yazılır.
 	Indent string
 	// NonFiniteAsText Tanımsız (NaN) ve sonsuz sayıları hata yerine veri biçiminin sabit
-	// metniyle yazar ("NaN", "Infinity", "-Infinity"; nonFiniteData); eğitim günlüğünde kayıpta beliren NaN
+	// metniyle yazar ("NaN", "Infinity", "-Infinity"; NonFiniteData); eğitim günlüğünde kayıpta beliren NaN
 	// gizlenmesin diye.
 	NonFiniteAsText bool
 	// TextFilter yazılan her metne (sözlük anahtarları dahil) uygulanır, ör. gizli değer süzgeci;
@@ -77,11 +77,11 @@ func (y *writer) text(s string) {
 	y.b = append(y.b, b...)
 }
 
-// nonFiniteData sonlu olmayan sayının veri biçimindeki metnidir (NonFiniteAsText: günlük,
-// durum dosyası; 19.5). Veri biçimi sözleşmedir: dilden ve değer adlarından (A110, A111)
-// bağımsız, sabit metin. Python'un json.dumps'ı aynı sözcükleri yazar (NaN, Infinity,
-// -Infinity) ve float("Infinity") onları geri okur: günlük Python araçlarıyla okunabilir.
-func nonFiniteData(f float64) string {
+// NonFiniteData is the data-format text of a non-finite number: logs, state files and
+// checkpoints (19.5, 20). Data formats are a contract: the text is fixed, independent of the
+// language and of the value names (A110, A111). Python's json.dumps writes the same words
+// (NaN, Infinity, -Infinity) and float("Infinity") reads them back.
+func NonFiniteData(f float64) string {
 	switch {
 	case math.IsNaN(f):
 		return "NaN"
@@ -91,10 +91,24 @@ func nonFiniteData(f float64) string {
 	return "-Infinity"
 }
 
+// ParseNonFiniteData reads NonFiniteData's text back; ok is false for any other text (other
+// spellings of non-finite numbers are not part of the format).
+func ParseNonFiniteData(s string) (float64, bool) {
+	switch s {
+	case "NaN":
+		return math.NaN(), true
+	case "Infinity":
+		return math.Inf(1), true
+	case "-Infinity":
+		return math.Inf(-1), true
+	}
+	return 0, false
+}
+
 func (y *writer) number(f float64) error {
 	if math.IsNaN(f) || math.IsInf(f, 0) {
 		if y.nonFiniteAsText {
-			y.text(nonFiniteData(f))
+			y.text(NonFiniteData(f))
 			return nil
 		}
 		return messages.New(messages.H7008, (&interp.FloatVal{Val: f}).Text(codes.Display()))

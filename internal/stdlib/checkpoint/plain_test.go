@@ -1,6 +1,7 @@
 package checkpoint
 
 import (
+	"math"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
@@ -30,5 +31,25 @@ func TestPlainCyclesAndSharedLists(t *testing.T) {
 	s := &interp.ListVal{Elements: []interp.Value{interp.NewInt(2)}}
 	if b, err := writePlain(&interp.ListVal{Elements: []interp.Value{s, s}}); err != nil || string(b) != "[[2],[2]]" {
 		t.Fatalf("paylaşılan alt liste: %s, %v", b, err)
+	}
+}
+
+// Kontrol noktasında sonlu olmayan sayı veri biçiminin sabitiyle yazılır (günlükle aynı: "NaN",
+// "Infinity", "-Infinity"; 20) ve yalnızca o yazımla geri okunur: "+Inf", "inf" gibi başka
+// yazımlar biçimin parçası değildir.
+func TestPlainNonFiniteNumbers(t *testing.T) {
+	l := &interp.ListVal{Elements: []interp.Value{&interp.FloatVal{Val: math.NaN()}, &interp.FloatVal{Val: math.Inf(1)}, &interp.FloatVal{Val: math.Inf(-1)}, &interp.FloatVal{Val: 0.1}}}
+	b, err := writePlain(l)
+	if want := `[{"ondalık":"NaN"},{"ondalık":"Infinity"},{"ondalık":"-Infinity"},{"ondalık":"0.1"}]`; err != nil || string(b) != want {
+		t.Fatalf("yazım %s (%v), beklenen %s", b, err, want)
+	}
+	back, err := readPlain(b)
+	if err != nil || back.Inspect() != "[NaN, sonsuz, -sonsuz, 0.1]" {
+		t.Fatalf("geri okuma %v (%v)", back, err)
+	}
+	for _, old := range []string{"+Inf", "-Inf", "inf", "+Sonsuz"} {
+		if _, err := readPlain([]byte(`{"ondalık":"` + old + `"}`)); !messages.Has(err, messages.H7463) {
+			t.Errorf("%q okunmamalı (H7463): %v", old, err)
+		}
 	}
 }
