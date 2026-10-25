@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"path/filepath"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
 // smallBPE bulanıklaştırma tohumlarında bileşenlerin yanına konan küçük bir BPE modelidir.
@@ -39,7 +40,7 @@ func FuzzTokenizer(f *testing.F) {
 		}
 	}
 	// Gerçek biçimdeki küçük parçalayıcılar.
-	if paths, err := filepath.Glob("testdata/tokenizer_*.json"); err == nil {
+	if paths, err := reporoot.Glob("testdata/tokenizer_*.json"); err == nil {
 		for _, y := range paths {
 			if data, err := os.ReadFile(y); err == nil {
 				f.Add(data, text)

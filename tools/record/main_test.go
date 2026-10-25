@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
 // TestMain alt süreç kipini taşır: sınama ikilisi TR_RECORD_HELPER ile çağrılınca kaydedilen
@@ -67,7 +69,7 @@ func TestRunWritesRecordAndIndex(t *testing.T) {
 	if b, _ := os.ReadFile(filepath.Join(out, "deneme", id+".log")); !strings.Contains(string(b), "helper output") {
 		t.Errorf("log: %q", b)
 	}
-	entries, _ := os.ReadDir(filepath.Join(out, "deneme"))
+	entries, _ := reporoot.ReadDir(filepath.Join(out, "deneme"))
 	for _, e := range entries {
 		if e.IsDir() {
 			t.Errorf("temporary folder left: %s", e.Name())
@@ -103,7 +105,7 @@ func TestRunRejectsBadInput(t *testing.T) {
 	if _, err := run(options{name: "a", out: out}, nil, &bytes.Buffer{}); err == nil {
 		t.Error("missing command accepted")
 	}
-	if entries, _ := os.ReadDir(out); len(entries) != 0 {
+	if entries, _ := reporoot.ReadDir(out); len(entries) != 0 {
 		t.Errorf("rejected runs left %d entries", len(entries))
 	}
 }

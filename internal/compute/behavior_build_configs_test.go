@@ -164,7 +164,7 @@ var allowedBuildTags = func() map[string]bool {
 func TestBuildTagsNeverSelectCPUFeatures(t *testing.T) {
 	seen := 0
 	for _, dir := range computeDirs(t) {
-		entries, err := os.ReadDir(dir)
+		entries, err := reporoot.ReadDir(dir)
 		if err != nil {
 			t.Fatal(err)
 		}

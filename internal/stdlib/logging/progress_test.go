@@ -11,6 +11,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/reporoot"
 	"github.com/sekerahmet/TCB/internal/stdlib/logging"
 )
 
@@ -184,7 +185,7 @@ func TestJobStatus(t *testing.T) {
 	if strings.Contains(w.String(), "\r") {
 		t.Errorf("iş kipinde canlı satır olmamalı: %q", w.String())
 	}
-	if remaining, _ := filepath.Glob(filepath.Join(job, ".ilerleme.json.*")); len(remaining) > 0 {
+	if remaining, _ := reporoot.Glob(filepath.Join(job, ".ilerleme.json.*")); len(remaining) > 0 {
 		t.Errorf("geçici dosya kalmamalı: %v", remaining)
 	}
 	_ = os.Remove(filepath.Join(job, "ilerleme.json"))

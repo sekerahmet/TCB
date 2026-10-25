@@ -25,7 +25,7 @@ var messageCodeLine = regexp.MustCompile(`(?m)^// (?:İleti kodu|Message code): 
 // errorExamples dil klasöründeki hata örneklerini numarasıyla verir.
 func errorExamples(t *testing.T, lang, dir string) map[string]string {
 	t.Helper()
-	files, err := filepath.Glob(reporoot.Path("examples", lang, dir, "*.tr"))
+	files, err := reporoot.Glob(reporoot.Path("examples", lang, dir, "*.tr"))
 	if err != nil || len(files) == 0 {
 		t.Fatalf("examples/%s/%s boş: %v", lang, dir, err)
 	}

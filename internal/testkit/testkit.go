@@ -65,7 +65,7 @@ func MustContain(t testing.TB, out string, parts ...string) {
 // ekler.
 func TRSeeds(f *testing.F) {
 	for _, dir := range []string{"tests", "examples", "lib"} {
-		_ = filepath.WalkDir(filepath.Join(reporoot.Root(), dir), func(path string, d fs.DirEntry, err error) error {
+		_ = reporoot.WalkDir(filepath.Join(reporoot.Root(), dir), func(path string, d fs.DirEntry, err error) error {
 			if err == nil && !d.IsDir() && strings.HasSuffix(path, ".tr") {
 				if data, err := os.ReadFile(path); err == nil {
 					f.Add(string(data))
@@ -82,7 +82,7 @@ func GlobFiles(tb testing.TB, patterns ...string) []string {
 	tb.Helper()
 	var all []string
 	for _, pattern := range patterns {
-		files, err := filepath.Glob(reporoot.Path(pattern))
+		files, err := reporoot.Glob(reporoot.Path(pattern))
 		if err != nil {
 			tb.Fatal(err)
 		}
@@ -95,7 +95,7 @@ func GlobFiles(tb testing.TB, patterns ...string) []string {
 // Dosyalar 0644, klasörler 0755 izniyle yazılır. Hata testi düşürür.
 func CopyDir(t testing.TB, srcDir, dstDir string) {
 	t.Helper()
-	err := filepath.WalkDir(srcDir, func(path string, d fs.DirEntry, err error) error {
+	err := reporoot.WalkDir(srcDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}

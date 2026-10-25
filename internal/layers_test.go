@@ -222,7 +222,7 @@ func TestLangOrder(t *testing.T) {
 	for i, p := range langOrder {
 		order[p] = i
 	}
-	entries, err := filepath.Glob(filepath.Join(root, "internal", "lang", "*"))
+	entries, err := reporoot.Glob(filepath.Join(root, "internal", "lang", "*"))
 	if err != nil {
 		t.Fatal(err)
 	}

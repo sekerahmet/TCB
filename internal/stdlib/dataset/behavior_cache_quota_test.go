@@ -13,6 +13,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
+	"github.com/sekerahmet/TCB/internal/reporoot"
 	"github.com/sekerahmet/TCB/internal/stdlib/dataset"
 )
 
@@ -48,7 +49,7 @@ func TestCachePathFromProgramDir(t *testing.T) {
 		_ = os.RemoveAll("onb_16_8")
 		t.Fatal("önbellek çalışma klasörüne açıldı")
 	}
-	inputs, err := os.ReadDir(filepath.Join(program, "onb_16_8", "kume"))
+	inputs, err := reporoot.ReadDir(filepath.Join(program, "onb_16_8", "kume"))
 	if err != nil || len(inputs) == 0 {
 		t.Fatalf("önbellek programın klasöründe açılmadı: %v %d", err, len(inputs))
 	}
@@ -75,7 +76,7 @@ yazdır("bitti")
 	}
 	dirSize := func(cache string) int64 {
 		var n int64
-		inputs, _ := os.ReadDir(cache)
+		inputs, _ := reporoot.ReadDir(cache)
 		for _, g := range inputs {
 			if info, err := g.Info(); err == nil && strings.Contains(g.Name(), ".onb") {
 				n += info.Size()

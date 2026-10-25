@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/compute/dataload"
+	"github.com/sekerahmet/TCB/internal/reporoot"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
@@ -138,7 +139,7 @@ func (k *trainingRun) report() string {
 		lines := strings.Split(strings.TrimRight(string(g), "\n"), "\n")
 		fmt.Fprintf(&b, "--- günlük (%d satır, son 12):\n%s\n", len(lines), strings.Join(lines[max(0, len(lines)-12):], "\n"))
 	}
-	if g, err := os.ReadDir(filepath.Join(k.run, "kontrol_noktalari")); err == nil {
+	if g, err := reporoot.ReadDir(filepath.Join(k.run, "kontrol_noktalari")); err == nil {
 		var names []string
 		for _, e := range g {
 			names = append(names, e.Name())
@@ -272,7 +273,7 @@ func copyDir(t *testing.T, source, target string, half int64) {
 	if err := os.Mkdir(target, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	inputs, err := os.ReadDir(source)
+	inputs, err := reporoot.ReadDir(source)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -342,7 +343,7 @@ func TestCheckpointResumeBitExact(t *testing.T) {
 		if a := resumeSteps(t, filepath.Join(k.run, "metrics.jsonl")); !slices.Equal(a, []int64{20}) {
 			t.Errorf("günlükte adım 20'de bir devam kaydı bekleniyordu, %v var\n%s", a, d.report())
 		}
-		inputs, _ := os.ReadDir(filepath.Join(k.run, "kontrol_noktalari"))
+		inputs, _ := reporoot.ReadDir(filepath.Join(k.run, "kontrol_noktalari"))
 		for _, g := range inputs {
 			if strings.Contains(g.Name(), ".tmp-") || strings.Contains(g.Name(), ".eski-") {
 				t.Errorf("yarım kaydın artığı kaldı: %s\n%s", g.Name(), d.report())

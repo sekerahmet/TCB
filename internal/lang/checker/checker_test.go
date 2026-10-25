@@ -517,7 +517,7 @@ func TestKnownLimitations(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestExamplesCheckWithoutErrors(t *testing.T) {
-	files, _ := filepath.Glob(reporoot.Path("examples/tr/*.tr"))
+	files, _ := reporoot.Glob(reporoot.Path("examples/tr/*.tr"))
 	if len(files) == 0 {
 		t.Fatal("examples/tr/*.tr bulunamadı")
 	}

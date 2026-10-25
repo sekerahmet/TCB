@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/reporoot"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
@@ -274,7 +275,7 @@ func TestBuildEmbedsModules(t *testing.T) {
 	if strings.Contains(s.Stdout, "SAHTE") {
 		t.Error("bulunulan klasördeki dosya gömülü modülün yerine geçti")
 	}
-	if inputs, _ := os.ReadDir(temp); len(inputs) != 0 {
+	if inputs, _ := reporoot.ReadDir(temp); len(inputs) != 0 {
 		t.Errorf("gömülü modüllerin geçici klasörü silinmedi: %v", inputs)
 	}
 }
@@ -290,7 +291,7 @@ func TestBuildCleansUpOnRunError(t *testing.T) {
 	env := []string{"TMP=" + temp, "TEMP=" + temp, "TMPDIR=" + temp}
 	s := testkit.RunBinary(t, exit, t.TempDir(), "", env)
 	testkit.Wait(t, s, 1, nil, []string{"❌ Çalışma Zamanı Hatası:", "Sıfıra bölme hatası"})
-	if inputs, _ := os.ReadDir(temp); len(inputs) != 0 {
+	if inputs, _ := reporoot.ReadDir(temp); len(inputs) != 0 {
 		t.Errorf("hata ile çıkışta geçici klasör silinmedi: %v", inputs)
 	}
 }

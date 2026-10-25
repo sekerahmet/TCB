@@ -45,7 +45,7 @@ func TestStepHookCostsOneAtomicRead(t *testing.T) {
 	}
 	// Kullanımlar tüm paketin üretim dosyalarında: dışarıdan yalnızca Load.
 	pkgDir := reporoot.Path("internal", "stdlib", "logging")
-	names, err := filepath.Glob(filepath.Join(pkgDir, "*.go"))
+	names, err := reporoot.Glob(filepath.Join(pkgDir, "*.go"))
 	if err != nil {
 		t.Fatal(err)
 	}

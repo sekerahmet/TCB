@@ -4,10 +4,10 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"os"
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/reporoot"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
@@ -15,7 +15,7 @@ import (
 // adının değişmesi protokolü sessizce bozmasın diye, en az bir alanı json etiketli her
 // yapının bütün dışa açık alanları açık bir json adı taşır.
 func TestDAPWireFieldsHaveExplicitNames(t *testing.T) {
-	files, err := os.ReadDir(".")
+	files, err := reporoot.ReadDir(".")
 	if err != nil {
 		t.Fatal(err)
 	}

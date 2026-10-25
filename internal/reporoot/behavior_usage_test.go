@@ -76,17 +76,27 @@ func TestTestsUseRepoRootNotRelativePaths(t *testing.T) {
 	}
 }
 
-// Testler klasör gezmeyi WalkDir ile yapar (filepath.Walk, filepath.WalkDir ya da os.DirFS üzerinde fs.WalkDir değil):
-// depo içindeki yolda yalnızca git'in izlediği dosyalar gezilir, depo testleri geliştiricinin izlenmeyen ve yok
-// sayılan dosyalarına bağlı olmaz (bağımsız denetim grup 6: TestNoTurkishLiterals scratch/'taki bir denemeyle,
-// TestRepoTRFilesPassCheck izlenmeyen bir .tr ile düşüyordu). Depo dışındaki yolda (t.TempDir) WalkDir
-// filepath.WalkDir'in kendisidir; istisna listesi yoktur.
-func TestTestsWalkThroughWalkDir(t *testing.T) {
+// listingCalls dosya listeleyen ve reporoot'ta izlenen-dosya eşi olan çağrılardır.
+var listingCalls = map[string]string{
+	"filepath.Walk": "WalkDir", "filepath.WalkDir": "WalkDir", "filepath.Glob": "Glob", "os.ReadDir": "ReadDir",
+}
+
+// Testler (ve ortak test yardımcıları, internal/testkit) dosya listelemeyi reporoot ile yapar: WalkDir, Glob, ReadDir
+// (filepath.Walk, filepath.WalkDir, filepath.Glob, os.ReadDir ya da os.DirFS üzerinde fs.WalkDir değil). Depo içindeki
+// yolda yalnızca git'in izlediği dosyalar görünür, depo testleri geliştiricinin izlenmeyen ve yok sayılan dosyalarına
+// bağlı olmaz (bağımsız denetim grup 6: WalkDir; grup 7: Glob ve ReadDir ile okuyan formatter TestRepoFiles ve e2e
+// TestExamplesCoverLibraryNames izlenmeyen dosyayla düşüyordu). Depo dışındaki yolda (t.TempDir) bunlar standart
+// kitaplığın kendisidir. Geride dosya bırakılmadığını arayan test reporoot.GlobAll'u adıyla çağırır; istisna listesi
+// yoktur.
+func TestTestsListFilesThroughReporoot(t *testing.T) {
 	root := Root()
 	scanned := 0
 	for _, top := range []string{"cmd", "internal", "lib", "tools"} {
 		err := WalkDir(filepath.Join(root, top), func(path string, d fs.DirEntry, err error) error {
-			if err != nil || d.IsDir() || !strings.HasSuffix(path, "_test.go") {
+			rel, _ := filepath.Rel(root, path)
+			rel = filepath.ToSlash(rel)
+			helper := strings.HasPrefix(rel, "internal/testkit/") && strings.HasSuffix(rel, ".go")
+			if err != nil || d.IsDir() || !strings.HasSuffix(path, "_test.go") && !helper {
 				return err
 			}
 			f, err := parser.ParseFile(token.NewFileSet(), path, nil, 0)
@@ -94,17 +104,16 @@ func TestTestsWalkThroughWalkDir(t *testing.T) {
 				return err
 			}
 			scanned++
-			rel, _ := filepath.Rel(root, path)
 			ast.Inspect(f, func(n ast.Node) bool {
 				call, ok := n.(*ast.CallExpr)
 				if !ok {
 					return true
 				}
 				switch name := selectorName(call.Fun); {
-				case name == "filepath.Walk" || name == "filepath.WalkDir":
-					t.Errorf("%s: %s; klasörü reporoot.WalkDir ile gezin", filepath.ToSlash(rel), name)
+				case listingCalls[name] != "":
+					t.Errorf("%s: %s; reporoot.%s kullanın", rel, name, listingCalls[name])
 				case name == "fs.WalkDir" && len(call.Args) > 0 && selectorName(callFun(call.Args[0])) == "os.DirFS":
-					t.Errorf("%s: fs.WalkDir(os.DirFS(...)); klasörü reporoot.WalkDir ile gezin", filepath.ToSlash(rel))
+					t.Errorf("%s: fs.WalkDir(os.DirFS(...)); klasörü reporoot.WalkDir ile gezin", rel)
 				}
 				return true
 			})

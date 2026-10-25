@@ -4,12 +4,12 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/devtools/goload"
+	"github.com/sekerahmet/TCB/internal/reporoot"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
@@ -20,7 +20,7 @@ import (
 func TestJSONFieldsHaveExplicitNames(t *testing.T) {
 	checked := 0
 	for _, dir := range computeDirs(t) {
-		entries, err := os.ReadDir(dir)
+		entries, err := reporoot.ReadDir(dir)
 		if err != nil {
 			t.Fatal(err)
 		}

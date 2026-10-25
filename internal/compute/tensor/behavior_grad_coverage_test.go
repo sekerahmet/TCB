@@ -4,11 +4,12 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
 // Gradyan kapısının kapsam denetimi: türev kaydeden her işlemin float64 sonlu fark ve bf16
@@ -52,7 +53,7 @@ func enumOpNames(t *testing.T) []string {
 func trackOpNames(t *testing.T) (literal map[string]bool, dynamic map[string]int) {
 	t.Helper()
 	literal, dynamic = map[string]bool{}, map[string]int{}
-	files, _ := filepath.Glob("*.go")
+	files, _ := reporoot.Glob("*.go")
 	fset := token.NewFileSet()
 	for _, f := range files {
 		if strings.HasSuffix(f, "_test.go") {
@@ -92,7 +93,7 @@ func trackOpNames(t *testing.T) (literal map[string]bool, dynamic map[string]int
 func gradGroupsRun(t *testing.T) map[string]bool {
 	t.Helper()
 	run := map[string]bool{}
-	files, _ := filepath.Glob("*_test.go")
+	files, _ := reporoot.Glob("*_test.go")
 	fset := token.NewFileSet()
 	for _, f := range files {
 		tree, err := parser.ParseFile(fset, f, nil, 0)

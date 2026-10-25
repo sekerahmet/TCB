@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
 // notExtractor graph.json'ın içeriğini belirlemeyen, paketin test dışı dosyalarıdır: komut satırı,
@@ -29,7 +31,7 @@ var notExtractor = map[string]bool{
 // extractorFiles paketin test dışı .go dosyalarından notExtractor dışındakilerdir (sıralı).
 func extractorFiles(t *testing.T) []string {
 	t.Helper()
-	entries, err := os.ReadDir(".")
+	entries, err := reporoot.ReadDir(".")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -3,7 +3,6 @@ package formatter
 import (
 	"errors"
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -176,7 +175,7 @@ func TestRepoFiles(t *testing.T) {
 	var files []string
 	// scratch/ kullanıcının kişisel deneme klasörüdür (depoda değil); denetlenmez.
 	for _, pattern := range []string{"examples/tr/*.tr", "examples/tr/helpers/*.tr", "tests/*.tr"} {
-		d, _ := filepath.Glob(reporoot.Path(pattern))
+		d, _ := reporoot.Glob(reporoot.Path(pattern))
 		files = append(files, d...)
 	}
 	if len(files) == 0 {
