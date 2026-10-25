@@ -31,4 +31,5 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 - `behavior_library_test.go`: kitaplık modüllerinin yüklenmesi ve GPT eğitim betiğinin duman testi
 - `behavior_process_logging_test.go`: komut satırı seçenekleri, gizli değerlerin çıktıda maskelenmesi ve ilerleme çıktısı
 - `behavior_profile_watch_test.go`: profil ve izle komutları, profil dosyası ve GPU raporu
+- `behavior_speed_test.go`: hız tabanı (madde 15): aynı dosyanın kodsuz ve kodlu kopyasında `tr kontrol` ve çalıştırmanın süresi (`BenchmarkCheckAndRun`)
 - `behavior_temp_dir_test.go`: komutların geçici klasör bırakmaması
