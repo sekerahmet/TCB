@@ -42,10 +42,15 @@ func usageByName(name string, forms []string) string {
 	return messages.OrList(pieces...)
 }
 
-// TypeNames writes the names of type codes as a list of alternatives:
-// TypeNames(codes.A200, codes.A201, codes.A202) → "Tam, Ondalık ya da Metin".
+// TypeNames writes the names of type codes as a list of alternatives, for a message: in the
+// person's writing language (TR_DIL), TypeNames(codes.A200, codes.A201, codes.A202) → "Tam,
+// Ondalık ya da Metin" / "Int, Float or String".
 func TypeNames(typesOf ...codes.Code) string {
-	return messages.OrList(codes.Names(typesOf...)...)
+	names := make([]string, len(typesOf))
+	for i, k := range typesOf {
+		names[i] = codes.DisplayName(k)
+	}
+	return messages.OrList(names...)
 }
 
 // ArgTypeError reports that argument number sira of builtin kd (or its member) is not one of

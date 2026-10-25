@@ -222,7 +222,7 @@ func TestDisplayFollowsPersonsLanguage(t *testing.T) {
 func TestMessageValuesFollowPersonsLanguage(t *testing.T) {
 	dir := t.TempDir()
 	testkit.WriteFile(t, dir, "p.tr", "yazdır([1].birleştir(doğru))\n")
-	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "p.tr"), 1, nil, []string{"Bool (true) given"})
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "p.tr"), 1, nil, []string{"expects String as argument 1, Bool (true) given"})
 	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=tr"}, "p.tr"), 1, nil, []string{"Mantık (doğru) verildi"})
 	// Motorların iletileri de (değer interp.Shown, tip adı ValueType ile).
 	testkit.WriteFile(t, dir, "t.tr", "yazdır(tensör([1.0, doğru]))\n")

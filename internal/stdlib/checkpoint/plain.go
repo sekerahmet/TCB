@@ -126,8 +126,8 @@ func (y *plainWriter) write(v interp.Value, fpath string, depth int) error {
 		b.WriteString("]}")
 	default:
 		return messages.New(messages.H7457,
-			pathName(fpath), interp.TypeAndSummary(v), codes.Name(codes.A200), codes.Name(codes.A201), codes.Name(codes.A202), codes.Name(codes.A203), codes.Name(codes.A042),
-			codes.Name(codes.A205), codes.Name(codes.A206), codes.Name(codes.Y404))
+			pathName(fpath), interp.TypeAndSummary(v), codes.DisplayName(codes.A200), codes.DisplayName(codes.A201), codes.DisplayName(codes.A202), codes.DisplayName(codes.A203), codes.DisplayName(codes.A042),
+			codes.DisplayName(codes.A205), codes.DisplayName(codes.A206), codes.Name(codes.Y404))
 	}
 	return nil
 }
