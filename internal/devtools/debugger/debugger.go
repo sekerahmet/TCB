@@ -44,7 +44,7 @@ type Watchpoint struct {
 // observe değişkenin şimdiki değerini kaydeder; önceki değerden farklıysa (yazılışı ya da
 // tipi: Tam 123 ile Metin "123" farklıdır) önceki yazılışı ve doğru döner.
 func (wp *Watchpoint) observe(val interp.Value) (old string, changed bool) {
-	cur, typ := val.Inspect(), val.Type()
+	cur, typ := interp.DisplayText(val), val.Type()
 	old, changed = wp.LastVal, wp.seen && (cur != wp.LastVal || typ != wp.lastType)
 	wp.LastVal, wp.lastType, wp.seen = cur, typ, true
 	return old, changed
@@ -291,7 +291,7 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 				} else {
 					env.Define(varName, newVal, false)
 				}
-				fmt.Println("  ✏️ " + messages.Text(messages.H8045, varName, v.Mask(newVal.Inspect()), newVal.Type()))
+				fmt.Println("  ✏️ " + messages.Text(messages.H8045, varName, v.Mask(interp.DisplayText(newVal)), interp.DisplayType(newVal)))
 			}
 
 		case codes.K305:
@@ -380,7 +380,7 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 				if err != nil {
 					fmt.Println("  ❌ " + messages.Text(messages.H8060, err))
 				} else {
-					fmt.Println("  💡 " + messages.Text(messages.H8061, val.Type(), v.Mask(val.Inspect())))
+					fmt.Println("  💡 " + messages.Text(messages.H8061, interp.DisplayType(val), v.Mask(interp.DisplayText(val))))
 				}
 			}
 
@@ -397,7 +397,7 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 		default:
 			// Eğer doğrudan bir değişken adı yazıldıysa değerini göster
 			if val, ok := env.Get(cmdLine); ok {
-				fmt.Printf("  🔍 %s (%s) = %s\n", cmdLine, val.Type(), v.Mask(val.Inspect()))
+				fmt.Printf("  🔍 %s (%s) = %s\n", cmdLine, interp.DisplayType(val), v.Mask(interp.DisplayText(val)))
 			} else {
 				fmt.Println("  ❓ " + messages.Text(messages.H8063, codes.DisplayName(codes.K312)))
 			}
@@ -447,14 +447,14 @@ func (d *Debugger) renderDebugScreen(v *interp.VM, currentLine int, env *interp.
 	} else {
 		fmt.Println("  📦 " + messages.Text(messages.H8074, codes.DisplayName(codes.K304)))
 		for _, kv := range vars {
-			valPreview := v.Mask(kv.Val.Inspect())
+			valPreview := v.Mask(interp.DisplayText(kv.Val))
 			if _, engine := kv.Val.(WatchValue); engine && strings.Contains(valPreview, "\n") {
 				valPreview = singleLine(valPreview)
 			}
 			if r := []rune(valPreview); len(r) > 52 {
 				valPreview = string(r[:52]) + "..."
 			}
-			fmt.Printf("     • %-16s : %-10s = %s\n", kv.Name, "("+string(kv.Val.Type())+")", valPreview)
+			fmt.Printf("     • %-16s : %-10s = %s\n", kv.Name, "("+interp.DisplayType(kv.Val)+")", valPreview)
 		}
 	}
 	fmt.Println("╚══════════════════════════════════════════════════════════════════════════════╝")
@@ -478,7 +478,7 @@ func (d *Debugger) inspectTable(v *interp.VM, name string, env *interp.Environme
 		fmt.Println("  ❌ " + messages.Text(messages.H8075, name))
 		return
 	}
-	fmt.Println("\n  📋 " + messages.Text(messages.H8076, name, val.Type()))
+	fmt.Println("\n  📋 " + messages.Text(messages.H8076, name, interp.DisplayType(val)))
 	fmt.Println("  " + strings.Repeat("─", 56))
 	switch t := val.(type) {
 	case *interp.ListVal:
@@ -486,13 +486,13 @@ func (d *Debugger) inspectTable(v *interp.VM, name string, env *interp.Environme
 		fmt.Printf("  %-8s | %-12s | %s\n", messages.Text(messages.H8078), messages.Text(messages.H8079), messages.Text(messages.H8080))
 		fmt.Println("  " + strings.Repeat("─", 56))
 		for i, el := range t.Elements {
-			fmt.Printf("  [%-6d] | %-12s | %s\n", i, el.Type(), v.Mask(el.Inspect()))
+			fmt.Printf("  [%-6d] | %-12s | %s\n", i, interp.DisplayType(el), v.Mask(interp.DisplayText(el)))
 		}
 	case WatchValue:
 		// Motor değerleri (ör. tensör): tablo verisi satır satır yazılır.
 		cols, rows, err := t.TableData()
 		if err != nil {
-			fmt.Printf("  %s\n  %s\n", t.WatchLabel(), messages.Text(messages.H8081, v.Mask(val.Inspect())))
+			fmt.Printf("  %s\n  %s\n", t.WatchLabel(), messages.Text(messages.H8081, v.Mask(interp.DisplayText(val))))
 			break
 		}
 		fmt.Printf("  %s\n", t.WatchLabel())
@@ -506,15 +506,15 @@ func (d *Debugger) inspectTable(v *interp.VM, name string, env *interp.Environme
 		fmt.Println("  " + strings.Repeat("─", 56))
 		for _, k := range t.Order {
 			e := t.Pairs[k]
-			fmt.Printf("  %-18s | %-12s | %s\n", t.DisplayKey(k), e.Type(), v.Mask(e.Inspect()))
+			fmt.Printf("  %-18s | %-12s | %s\n", t.DisplayKey(k), interp.DisplayType(e), v.Mask(interp.DisplayText(e)))
 		}
 	case *interp.StructInstanceVal:
 		fmt.Println("  " + messages.Text(messages.H8085, t.Def.Name))
 		for k, e := range t.Fields {
-			fmt.Printf("  • %-16s (%s) = %s\n", k, e.Type(), v.Mask(e.Inspect()))
+			fmt.Printf("  • %-16s (%s) = %s\n", k, interp.DisplayType(e), v.Mask(interp.DisplayText(e)))
 		}
 	default:
-		fmt.Println("  " + messages.Text(messages.H8081, v.Mask(val.Inspect())))
+		fmt.Println("  " + messages.Text(messages.H8081, v.Mask(interp.DisplayText(val))))
 	}
 }
 

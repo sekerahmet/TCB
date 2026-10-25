@@ -203,6 +203,20 @@ func TestEngineValueTextFollowsFileLanguage(t *testing.T) {
 	}
 }
 
+// Görüntüler kişinin dilindedir (TR_DIL), dosyanın dilinde değil: kabuğun yankısı ve programın
+// --yardım'ı (tip adları, varsayılan değerler) TR_DIL=en ile İngilizce, Türkçe dosyada da.
+func TestDisplayFollowsPersonsLanguage(t *testing.T) {
+	repl := testkit.RunBinary(t, trBinary, "", "true\ntype(1)\nexit\n", []string{"TR_DIL=en"})
+	testkit.Wait(t, repl, 0, []string{"=> true", "=> Int"}, nil)
+	dir := t.TempDir()
+	testkit.WriteFile(t, dir, "p.tr", "değişken ayar = komut_satırı({adım: 3, hızlı: doğru})\n")
+	help := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "p.tr", "--help")
+	testkit.Wait(t, help, 0, []string{"--adım <Int>", "(default: true)"}, nil)
+	if strings.Contains(help.Stdout, "doğru") || strings.Contains(help.Stdout, "<Tam>") {
+		t.Errorf("TR_DIL=en yardımında Türkçe değer ya da tip adı:\n%s", help.Stdout)
+	}
+}
+
 // fileFormatShape klasördeki dosya adlarını ve her JSON dosyasının (satırının) anahtar
 // kümesini, değerleri atarak, sıralı bir özet olarak verir.
 func fileFormatShape(t *testing.T, dir string) string {
