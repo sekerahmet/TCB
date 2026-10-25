@@ -58,6 +58,7 @@ const (
 	H0167 Code = 167  // satır başındaki {op} önceki satırı sürdürmez; ifadeyi bölmek için işleci önceki satırın sonuna yazın ya da ifadeyi parantez içine alın
 	H0168 Code = 168  // '\' ve satır sonu
 	H0169 Code = 169  // '\' ve sekme
+	H0170 Code = 170  // dilimin uçları ':' ile değil '..' ile ayrılır: x[a..b]
 	H1001 Code = 1001 // Tip uyuşmazlığı — {name|q} değişkeni {declared|q} tipinde tanımlandı ancak {given|q} tipinde değer atandı{hint}
 	H1002 Code = 1002 // Sabit hatası — {name|q} bir sabittir ('{keyword}') ve değeri değiştirilemez
 	H1003 Code = 1003 // Dönüş tipi uyuşmazlığı — fonksiyon {expected|q} döndürmeli ancak {given|q} tipinde değer döndürülüyor{hint}
@@ -293,6 +294,7 @@ const (
 	H2523 Code = 2523 // '{line}' kodlu biçim başlığında dosyanın dili eksik: '{header}<dil>' yazın, <dil> dosyanın yazım dilinin kodudur ({languages})
 	H2524 Code = 2524 // '{struct}' yapısı
 	H2525 Code = 2525 // {type} tipi sırayla okunur, indekslenemez: öğelerini '{loop} x {in} ...' döngüsüyle ya da .{next}() ile okuyun
+	H2526 Code = 2526 // {type} tipinde {prop|q} metodu yok; dilim köşeli parantezle alınır: x[a..b]
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}
