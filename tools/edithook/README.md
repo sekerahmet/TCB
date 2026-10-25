@@ -26,8 +26,9 @@ kip; `./...` desenli `go test`) ön planda çağrılınca durur, gerekçe "arka 
 `run_in_background` ile çağrılan, saniyelik hedefli test (`go test ./paket -run X`) ve komutu
 yalnızca anan metin (tırnak, heredoc gövdesi, PowerShell here-string'i, `grep ... tools/full_check.sh`)
 geçer. Ayar dosyasındaki ön süzgeç `go run`'ı yalnızca girdi bu adayları anıyorsa çağırır: sıradan
-bir kabuk komutuna eklenen süre ~0,1 sn. Ayar izlendiği için kanca yan oturumların çalışma
-ağaçlarında da çalışır (dalları ana dalı içerdiğinde). Denetim: `TestLongCommandsRunInTheBackground`.
+bir kabuk komutuna eklenen süre ~0,1 sn. Kanca yan oturumlarda da çalışır: 2026-10-25'te beş yan
+oturumun beşinde, dalları kancayı içermediği hâlde, ön plandaki çağrıyı durdurdu (ayar ve kod
+ana çalışma ağacından okunuyor). Denetim: `TestLongCommandsRunInTheBackground`.
 
 Neden kanca: kural hafızaya ve belgeye defalarca yazıldı, yine ön planda koşuldu (Ahmet,
 2026-10-25: "61. kez hafızaya aldın").
