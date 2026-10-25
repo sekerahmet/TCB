@@ -337,7 +337,7 @@ func (o *Reader) WatchLabel() string {
 		}
 		return messages.Text(messages.H5523, o.b, o.t, o.counter)
 	}
-	return messages.Text(messages.H5524, SamplerType, o.b, o.t, o.epoch, o.counter)
+	return messages.Text(messages.H5524, codes.DisplayName(codes.A232), o.b, o.t, o.epoch, o.counter)
 }
 
 // TableData okuyucuyu tablo olarak açmaz; toplu işler .sonraki() ile alınır.

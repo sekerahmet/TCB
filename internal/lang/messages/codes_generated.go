@@ -1071,6 +1071,8 @@ const (
 	H6818 Code = 6818 // Değer
 	H6819 Code = 6819 // Sütun {n}
 	H6820 Code = 6820 // {name}(parametre: {count}, {settings})
+	H6821 Code = 6821 // {type}{shape, select, empty { (skaler)} other { [{shape}]}}{dtype, select, empty {} other { {dtype}}}
+	H6822 Code = 6822 // {value} ({type}, {shape, select, empty {skaler} other {{shape}}}{dtype, select, empty {} other {, {dtype}}})
 	H7000 Code = 7000 // {fn}: JSON metni ({text}) bekler, {given} verildi
 	H7001 Code = 7001 // JSON çözümleme hatası: {error}
 	H7003 Code = 7003 // {fn}: {path|q} bir klasör; CSV dosyasının yolunu verin

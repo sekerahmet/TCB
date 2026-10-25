@@ -59,7 +59,7 @@ func (n *Object) WatchKind() string { return "diger" }
 
 // WatchLabel tip sütununda gösterilen özettir.
 func (n *Object) WatchLabel() string {
-	return messages.Text(messages.H5601, TypeName, n.p.VocabSize())
+	return messages.Text(messages.H5601, codes.DisplayName(codes.A234), n.p.VocabSize())
 }
 
 // TableData dağarcığa eklenmiş parçaları (özel parçalar dahil) tablo olarak verir.

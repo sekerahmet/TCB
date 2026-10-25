@@ -7,7 +7,6 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
-	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -21,15 +20,23 @@ func (d *TensorValue) WatchKind() string { return "tensor" }
 // WatchLabel tip sütununda gösterilen özettir (ör. "Tensör [2×3]"; float32 dışındaki
 // türlerde tür de eklenir: "Tensör [2×3] bf16").
 func (d *TensorValue) WatchLabel() string {
-	sh := d.t.Shape()
-	dtypeSuffix := ""
+	return messages.Text(messages.H6821, codes.DisplayName(codes.A212), d.watchShape(), d.watchDType())
+}
+
+// watchShape İzleme Masası metinlerinin şekil parçasıdır; skalerde boş (şablon "skaler" yazar).
+func (d *TensorValue) watchShape() string {
+	if sh := d.t.Shape(); len(sh) > 0 {
+		return shapeProduct(sh)
+	}
+	return ""
+}
+
+// watchDType float32 dışındaki türün adıdır; float32'de boş.
+func (d *TensorValue) watchDType() string {
 	if dt := d.t.DType(); dt != tensor.Float32 {
-		dtypeSuffix = " " + dt.Name()
+		return dt.Name()
 	}
-	if len(sh) == 0 {
-		return string(interp.ValTensor) + " (skaler)" + dtypeSuffix
-	}
-	return string(interp.ValTensor) + " [" + shapeProduct(sh) + "]" + dtypeSuffix
+	return ""
 }
 
 // TableData 1-2 boyutlu tensörü tabloya (sütunlar + satırlar) çevirir.
@@ -92,11 +99,9 @@ func (d *TensorValue) WatchSummary() string {
 		}
 		return numberText(x, scientific, codes.Display()) // İzleme Masası görüntüdür (TR_DIL)
 	}
-	ek := []string{string(interp.ValTensor)}
 	var sb strings.Builder
 	if len(sh) == 0 {
 		sb.WriteString(number(data[0]))
-		ek = append(ek, "skaler")
 	} else {
 		order := 0
 		var write func(axis int)
@@ -116,10 +121,7 @@ func (d *TensorValue) WatchSummary() string {
 			sb.WriteByte(']')
 		}
 		write(0)
-		ek = append(ek, shapeProduct(sh))
 	}
-	if dt := t.DType(); dt != tensor.Float32 {
-		ek = append(ek, dt.Name())
-	}
-	return sb.String() + " (" + strings.Join(ek, ", ") + ")"
+	// İzleme Masası görüntüdür (TR_DIL).
+	return messages.Text(messages.H6822, sb.String(), codes.DisplayName(codes.A212), d.watchShape(), d.watchDType())
 }
