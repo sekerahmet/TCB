@@ -30,6 +30,12 @@ her durumu kapatan genel çözüm ve sınıfı koruyan bir testtir.
   - Kök [kanıtlı: `tools/codegraph/dups_changed.go:22,36`]: değişen satırlar `ad...HEAD` farkından alınıyor (yalnız commit'lenmiş); grafik ise çalışma ağacından kuruluyor. CLAUDE.md "her commit'ten önce" ve ön denetim (`full_check.sh --kip=on`) tam da commit'ten önce koşuyor: yeni kopya o anda görünmüyor, ancak bir sonraki commit'in ön denetimi ya da tam denetim yakalıyor. Yanlış "yok".
   - Beklenen: değişen satırlar ortak atadan çalışma ağacına kadar sayılır (commit'lenmiş, sahnelenmiş ve sahnelenmemiş değişiklikler; izlenen yeni dosyalar dahil). Sınıfı koruyan test: commit'lenmemiş bir kopyanın aday olarak çıktığı.
 
+- **`fmt` üzerinden dolaylı çağrılar kullanıcı listesinde yok.** 2026-10-26, DENETİM bildirdi (madde 15 adım 0 incelemesi), ana oturum main 46a095cc'de yeniden üretti.
+  - Komut: `go run ./tools/codegraph who-uses codes.Code.String` → 10 açık çağıran (codeindex, `source.codedBody`, `source.langName`, testler).
+  - Beklenen: değeri `%s`/`%v` ile biçimlenen yerler de; ör. `internal/lang/codes/language.go:227` ve `:236` `fmt.Sprintf("code list %s: code %s is not in the language file", d.Code, k)` (`k` bir `codes.Code`; `String()` dolaylı çağrılıyor). Doğrulama: grep.
+  - Neden kritik: `String()`'in çıktısı değişince (adım 0: `A001` → `TR_kw_if`) etkilenen yerlerin bir kısmı görünmüyor; liste eksiksiz sanılıyor. Aynı sınıf `Error()` için de geçerli.
+  - İstenen genel çözüm: `fmt.Stringer` ya da `error` uygulayan bir tipin değeri `fmt`, `log`, `errors` gibi biçimleyicilere (ve ileti argümanlarına) verildiğinde çıkarımsal (`[INFERRED]`) bir "biçimlenir" kenarı; go/types ile sayılan bu tür kullanımların hepsinin kenarı olduğunu denetleyen bir kapsam testi.
+
 ## İnce ayar
 
 - **Test dosyasının kendi testleri sayılmıyor.** 2026-10-25, MEKANİK bildirdi (iki kez), ana oturum main f60cdcc6'da yeniden üretti.
@@ -39,4 +45,6 @@ her durumu kapatan genel çözüm ve sınıfı koruyan bir testtir.
 ## Kalan işler (eksik değil, yeni yetenek)
 
 - `.tr` kodunda tekrar bulma (`dups`'ın `.tr` karşılığı; `tr dizin kopya` bugün yok, 2026-10-25'te denendi).
+- **Kullanım yerinin rolü (istek, 2026-10-26, madde 15 tasarımı):** `who-uses` bir adın her kullanımını aynı listede veriyor; kullanımın ne işe yaradığını ayırmıyor. İç dil tasarımında `codes.Name`'in ~90 kullanımından hangisinin kimlik (karşılaştırma, harita anahtarı, `switch`, kayıt: `Define`/`Register`), hangisinin görüntü (ileti ya da `fmt` argümanı) olduğu kaynak okunarak ayrıldı. İstek: her kullanım yerine bir rol etiketi (görüntü / kimlik / kayıt), `who-uses --role` gibi süzme.
+- **Not, CODEGRAPH'a iş değil:** madde 15 adım 0'da kodlar okunur kimliğe geçiyor (`A001` → `TR_kw_if`); codegraph'ın kodu tanıyan üç düzenli ifadesi (`gocode_scan.go:18`, `codes.go:11`, `codehist.go:10`) MEKANİK'in yönergesinde, kapsam testiyle (her kimliğin en az bir `uses_name` kenarı). Aynı iş iki kez yapılmasın.
 - `dead-methods` ve `package-state`'in ilk koşusunun bulgularının ayıklanması (sayılar 2026-10-24'ün; iş açılmadan önce yeniden koşulur): 60 yalnızca arayüzle ya da yalnızca testte yaşayan metot, 116 paket değişkeni; korumasız görünenler: `tensor.backends`, `tokenize` kayıt haritaları, `codes.defs`, `messages.catalogs`, `interp.engines`, `logging` açık çubuklar ve günlükler, `cmd/tr.exitCode`.
