@@ -33,38 +33,38 @@ func encodeDecode(t *testing.T, tr string) string {
 // Kenar durumlar (17.3, 17.4): beklenen kodlu gövde başlıktan sonraki metindir.
 func TestEncodeEdgeCases(t *testing.T) {
 	cases := []struct{ name, tr, coded string }{
-		{"anahtar kelime ve yerleşik", "değişken x = 1\nyazdır(x)\n", "A030 x = 1\nG100(x)\n"},
+		{"anahtar kelime ve yerleşik", "değişken x = 1\nyazdır(x)\n", "TR_kw_var x = 1\nTR_fn_print(x)\n"},
 		{"gölgelenen yerleşik kullanıcının adıdır",
 			"fonksiyon f() {\n    değişken toplam = 1\n    sonuç toplam\n}\nyazdır(toplam([1, 2]))\n",
-			"A020 f() {\n    A030 toplam = 1\n    A021 toplam\n}\nG100(G400([1, 2]))\n"},
+			"TR_kw_func f() {\n    TR_kw_var toplam = 1\n    TR_kw_return toplam\n}\nTR_fn_print(TR_fn_sum([1, 2]))\n"},
 		{"yorum ve ham metin çevrilmez",
 			"// eğer yazdır\n/* değişken */ değişken y = `yazdır {eğer}`\n",
-			"// eğer yazdır\n/* değişken */ A030 y = `yazdır {eğer}`\n"},
+			"// eğer yazdır\n/* değişken */ TR_kw_var y = `yazdır {eğer}`\n"},
 		{"metin içi yerleştirme ve iç içe yerleştirme",
 			"yazdır(\"a\\n{toplam([1])} \\{x\\} {\"iç {uzunluk_x(1)} {yazdır}\"}\")\nfonksiyon uzunluk_x(a) { sonuç a }\n",
-			"G100(\"a\\n{G400([1])} \\{x\\} {\"iç {uzunluk_x(1)} {G100}\"}\")\nA020 uzunluk_x(a) { A021 a }\n"},
+			"TR_fn_print(\"a\\n{TR_fn_sum([1])} \\{x\\} {\"iç {uzunluk_x(1)} {TR_fn_print}\"}\")\nTR_kw_func uzunluk_x(a) { TR_kw_return a }\n"},
 		{"üyeler tanımda ve kullanımda aynı kodla (Y5)",
 			"yapı Sepet {\n    uzunluk = 0\n    fonksiyon ekle(x) { kendi.uzunluk += 1 }\n}\ndeğişken s = Sepet(uzunluk: 2)\ns.ekle(1)\n[1].ekle(2)\n",
-			"A050 Sepet {\n    Y001 = 0\n    A020 Y004(x) { A051.Y001 += 1 }\n}\nA030 s = Sepet(Y001: 2)\ns.Y004(1)\n[1].Y004(2)\n"},
+			"TR_kw_struct Sepet {\n    TR_mem_length = 0\n    TR_kw_func TR_mem_append(x) { TR_kw_self.TR_mem_length += 1 }\n}\nTR_kw_var s = Sepet(TR_mem_length: 2)\ns.TR_mem_append(1)\n[1].TR_mem_append(2)\n"},
 		{"kurucu bağlamsal sözcüktür",
 			"yapı N {\n    a\n    fonksiyon kurucu(a) { kendi.a = a }\n}\n",
-			"A050 N {\n    a\n    A020 A102(a) { A051.a = a }\n}\n"},
+			"TR_kw_struct N {\n    a\n    TR_kw_func TR_ctx_init(a) { TR_kw_self.a = a }\n}\n"},
 		{"adlı argüman yalnızca dilin öğesinde",
 			"fonksiyon f(eksen = 0) { sonuç eksen }\nyazdır(toplam([1], eksen: 0), f(eksen: 1))\n",
-			"A020 f(eksen = 0) { A021 eksen }\nG100(G400([1], T902: 0), f(eksen: 1))\n"},
+			"TR_kw_func f(eksen = 0) { TR_kw_return eksen }\nTR_fn_print(TR_fn_sum([1], TR_arg_dim: 0), f(eksen: 1))\n"},
 		{"örtük adlar yalnızca kendi bloklarında",
 			"değişken o = 1\nyazdır([1].haritala { o * 2 }, [1].indirge(0) { birikim + o }, (o) => o)\ndene { fırlat \"x\" } yakala { yazdır(hata) }\ndene { fırlat \"y\" } yakala hata { yazdır(hata) }\n",
-			"A030 o = 1\nG100([1].Y201 { A104 * 2 }, [1].Y207(0) { A105 + A104 }, (o) => o)\nA060 { A062 \"x\" } A061 { G100(A103) }\nA060 { A062 \"y\" } A061 hata { G100(hata) }\n"},
+			"TR_kw_var o = 1\nTR_fn_print([1].TR_mem_map { TR_ctx_it * 2 }, [1].TR_mem_reduce(0) { TR_ctx_acc + TR_ctx_it }, (o) => o)\nTR_kw_try { TR_kw_throw \"x\" } TR_kw_catch { TR_fn_print(TR_ctx_error) }\nTR_kw_try { TR_kw_throw \"y\" } TR_kw_catch hata { TR_fn_print(hata) }\n"},
 		{"test ve olarak",
 			"aktar \"m\" olarak m\ntest \"t\" { doğrula(doğru) }\ndeğişken test = 1\n",
-			"A070 \"m\" A100 m\nA101 \"t\" { G700(A040) }\nA030 test = 1\n"},
+			"TR_kw_import \"m\" TR_ctx_as m\nTR_ctx_test \"t\" { TR_fn_assert(TR_kw_true) }\nTR_kw_var test = 1\n"},
 		{"tip açıklaması; kabul edilmeyen harf yazımı (3.14) olduğu gibi kalır",
 			"değişken a: Tam = 1\ndeğişken b: tam = 2\nyazdır(tip(a) == Tam)\n",
-			"A030 a: A200 = 1\nA030 b: tam = 2\nG100(G201(a) == A200)\n"},
-		{"Türkçe harfler ve kod biçimine benzeyen adlar",
+			"TR_kw_var a: TR_type_Int = 1\nTR_kw_var b: tam = 2\nTR_fn_print(TR_fn_type(a) == TR_type_Int)\n"},
+		{"Türkçe harfler ve eski kod biçimine benzeyen adlar",
 			"değişken İSİM_ı = \"Iİ\"\ndeğişken g100 = 1\nyazdır(İSİM_ı, g100)\n",
-			"A030 İSİM_ı = \"Iİ\"\nA030 g100 = 1\nG100(İSİM_ı, g100)\n"},
-		{"kaçış '$' atılır", "değişken $eğer = 3\nyazdır($eğer)\n", "A030 eğer = 3\nG100(eğer)\n"},
+			"TR_kw_var İSİM_ı = \"Iİ\"\nTR_kw_var g100 = 1\nTR_fn_print(İSİM_ı, g100)\n"},
+		{"kaçış '$' atılır", "değişken $eğer = 3\nyazdır($eğer)\n", "TR_kw_var eğer = 3\nTR_fn_print(eğer)\n"},
 	}
 	for _, d := range cases {
 		t.Run(d.name, func(t *testing.T) {
@@ -84,7 +84,7 @@ func TestEncodeEdgeCases(t *testing.T) {
 func TestEncodeBOMAndCRLF(t *testing.T) {
 	tr := "\xef\xbb\xbfdeğişken x = 1\r\nyazdır(\"a\r\nb\")\r\n"
 	coded := encodeDecode(t, tr)
-	if want := "\xef\xbb\xbf" + Header + "tr\r\nA030 x = 1\r\nG100(\"a\r\nb\")\r\n"; coded != want {
+	if want := "\xef\xbb\xbf" + Header + "tr\r\nTR_kw_var x = 1\r\nTR_fn_print(\"a\r\nb\")\r\n"; coded != want {
 		t.Errorf("kodlu: %q, beklenen %q", coded, want)
 	}
 	// Zaten kodlu dosyaya dokunulmaz.
@@ -103,11 +103,11 @@ func fakeLanguage(t *testing.T) *codes.Language {
 	t.Helper()
 	data := string(codes.TRData())
 	for old, fresh := range map[string]string{
-		`"A030": { "ad": "değişken"`: `"A030": { "ad": "tanım"`,
-		`"G100": { "ad": "yazdır"`:   `"G100": { "ad": "sayaç"`,
-		`"A001": { "ad": "eğer"`:     `"A001": { "ad": "kutu"`,
-		`"Y004": { "ad": "ekle"`:     `"Y004": { "ad": "koy"`,
-		`"A104": { "ad": "o"`:        `"A104": { "ad": "bu"`,
+		`"TR_kw_var": { "ad": "değişken"`: `"TR_kw_var": { "ad": "tanım"`,
+		`"TR_fn_print": { "ad": "yazdır"`: `"TR_fn_print": { "ad": "sayaç"`,
+		`"TR_kw_if": { "ad": "eğer"`:      `"TR_kw_if": { "ad": "kutu"`,
+		`"TR_mem_append": { "ad": "ekle"`: `"TR_mem_append": { "ad": "koy"`,
+		`"TR_ctx_it": { "ad": "o"`:        `"TR_ctx_it": { "ad": "bu"`,
 	} {
 		if !strings.Contains(data, old) {
 			t.Fatalf("dil dosyasında %q bulunamadı", old)
@@ -280,7 +280,7 @@ func TestDocCodeBlocksEncodeLossless(t *testing.T) {
 // global name): its view would not read back as the same program, so Decode must refuse it
 // instead of showing it.
 func TestDecodeRefusesLossyView(t *testing.T) {
-	coded := Header + "tr\nA030 l = Y001\n"
+	coded := Header + "tr\nTR_kw_var l = TR_mem_length\n"
 	if out, err := Decode(coded, codes.Active()); !errors.Is(err, ErrLossy) {
 		t.Fatalf("Decode gave %q, %v; ErrLossy expected", out, err)
 	}
@@ -308,11 +308,11 @@ func TestEncodeKeepsLineStructure(t *testing.T) {
 
 // Başka bir yazım dilinde yazılıp kodlanmış bir dosyada, etkin dilin bir yerleşiğiyle
 // aynı adlı bir kullanıcı değişkeni ve o yerleşiğin çağrısı aynı kapsamda bulunduğunda
-// (ör. İngilizcede 'var yazdır = 2; print(yazdır)' → 'A030 yazdır = 2; G100(yazdır)'),
+// (ör. İngilizcede 'var yazdır = 2; print(yazdır)' → 'TR_kw_var yazdır = 2; TR_fn_print(yazdır)'),
 // etkin dilde Decode(coded, codes.Active()) '$yazdır' kaçışını geri kodlayamadığı için
 // ErrLossy ile başarısız olmamalıdır.
 func TestDecodeKeepsEscapedUserNameApartFromBuiltin(t *testing.T) {
-	coded := Header + "tr\nA030 yazdır = 2\nG100(yazdır)\n"
+	coded := Header + "tr\nTR_kw_var yazdır = 2\nTR_fn_print(yazdır)\n"
 	got, err := Decode(coded, codes.Active())
 	if err != nil {
 		t.Fatalf("etkin dilde çakışan kullanıcı değişkenli kodlu kaynak çözülemedi: %v", err)
@@ -324,7 +324,7 @@ func TestDecodeKeepsEscapedUserNameApartFromBuiltin(t *testing.T) {
 }
 
 // Kural: adı yazılmamış 'yakala' bloğunda kullanıcının 'değişken hata' tanımı örtük 'hata'yı
-// gölgeler; okuma örtük A103 koduyla değil kullanıcı adıyla kodlanır. Neden: yoksa başka
+// gölgeler; okuma örtük TR_ctx_error koduyla değil kullanıcı adıyla kodlanır. Neden: yoksa başka
 // yazım dilinde program yanlış değişkeni okur.
 func TestEncodeKeepsUserErrorVarApartFromImplicitCatchName(t *testing.T) {
 	tr := "dene {\n    fırlat \"x\"\n} yakala {\n    değişken hata = 10\n    yazdır(hata)\n}\n"
@@ -332,7 +332,7 @@ func TestEncodeKeepsUserErrorVarApartFromImplicitCatchName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("kodlanamadı: %v", err)
 	}
-	if strings.Contains(coded, "A103") {
-		t.Fatalf("gölgelenmiş 'hata' değişkeni örtük A103 koduyla kodlandı:\n%s", coded)
+	if strings.Contains(coded, "TR_ctx_error") {
+		t.Fatalf("gölgelenmiş 'hata' değişkeni örtük TR_ctx_error koduyla kodlandı:\n%s", coded)
 	}
 }

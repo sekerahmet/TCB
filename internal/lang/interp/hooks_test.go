@@ -159,7 +159,7 @@ func TestInternalErrorLineOnce(t *testing.T) {
 	}
 }
 
-// Sonsuz ve tanımsız Ondalık değerler dilin değer adlarıyla (A110, A111; tensörle aynı) yazılır;
+// Sonsuz ve tanımsız Ondalık değerler dilin değer adlarıyla (TR_val_inf, TR_val_nan; tensörle aynı) yazılır;
 // bilimsel yazım ayrıştırılır.
 func TestFloatPrintingAndScientific(t *testing.T) {
 	for f, want := range map[float64]string{math.Inf(1): "sonsuz", math.Inf(-1): "-sonsuz", math.NaN(): "NaN", 1e21: "1e+21", 2: "2.0", 0.5: "0.5"} {

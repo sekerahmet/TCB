@@ -8,7 +8,7 @@ Buradaki kod onları bilmez; onlar dile kancalarla bağlanır.
 
 **Adlar.** Buradaki Go kodu İngilizcedir. Kullanıcının gördüğü bir ad (anahtar kelime,
 yerleşik, tip, üye, adlı argüman) hiçbir zaman Go metnine yazılmaz: kendi koduyla yazılır
-(`codes.G100`), ad dil dosyasından gelir. Kullanıcıya görünen bir adı değiştirmek yalnızca o
+(`codes.FnPrint`), ad dil dosyasından gelir. Kullanıcıya görünen bir adı değiştirmek yalnızca o
 dosyayı değiştirir. Denetim: `TestNoBareCodes` (tools/gen/codeconsts).
 
 **Kullanıcı mesajları.** Kullanıcıya giden mesajlar kullanıcının dilindedir, satırla başlar

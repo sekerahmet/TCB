@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // 37 — Settings from the command line: adjusting a program without touching its code.
 // What it teaches: defining settings with defaults using command_line({...}), description and descriptions for the
 // help text, changing a setting with --name value, --help.
@@ -9,18 +9,18 @@
 
 // command_line takes a dict: the keys are the setting names, the values their defaults. If --name value is not
 // given on the command line the default is used; if it is given the value is converted to the type of the default.
-A030 config = G801({Y500: 100, Y504: 0.01, run: "trial", log_file: A042},
-    G910: "An example program that takes its settings from the command line",
-    G911: {Y500: "number of training steps", Y504: "size of the step", run: "name of the run",
+TR_kw_var config = TR_fn_command_line({TR_mem_step: 100, TR_mem_lr: 0.01, run: "trial", log_file: TR_kw_none},
+    TR_arg_description: "An example program that takes its settings from the command line",
+    TR_arg_descriptions: {TR_mem_step: "number of training steps", TR_mem_lr: "size of the step", run: "name of the run",
         log_file: "file the records are written to (nothing is written if none)"})
 
 // The result is an object: a setting is read by its name.
-G100("step:", config.Y500, "| learning rate:", config.Y504, "| run:", config.run)
-G100("log file given:", config.log_file != A042)
+TR_fn_print("step:", config.TR_mem_step, "| learning rate:", config.TR_mem_lr, "| run:", config.run)
+TR_fn_print("log file given:", config.log_file != TR_kw_none)
 
 // Settings are used in the code like ordinary variables.
-A030 total_steps = config.Y500 * 2
-G100("double the steps:", total_steps)
+TR_kw_var total_steps = config.TR_mem_step * 2
+TR_fn_print("double the steps:", total_steps)
 
 // --- Try it yourself ---
 // 1. Run the program with --step 7 and see the output change.

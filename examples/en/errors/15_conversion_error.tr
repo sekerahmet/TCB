@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // Error 15 — Conversion error.
 // Message code: H2429
 // What happens: If a text that cannot become a number is converted with int(), an error is raised at run time.
@@ -11,4 +11,4 @@
 //     }
 // Run (from the project root): tr examples/en/errors/15_conversion_error.tr   (exit code 1)
 
-G100(G210("abc"))
+TR_fn_print(TR_fn_int("abc"))

@@ -19,10 +19,10 @@ import (
 //
 // Dosya geçici bir dosyaya yazılıp yerine konur: okuyan hiçbir zaman yarım dosya görmez.
 
-// jobDir arka plan işinin klasörüdür (ortam değişkeni K401, her yazım dilinin adıyla:
+// jobDir arka plan işinin klasörüdür (ortam değişkeni TR_env_JOB_DIR, her yazım dilinin adıyla:
 // TR_IS_KLASORU, TR_JOB_DIR); iş değilse boş.
 func jobDir() string {
-	k, _ := codes.EnvValue(codes.K401)
+	k, _ := codes.EnvValue(codes.EnvJobDir)
 	return k
 }
 

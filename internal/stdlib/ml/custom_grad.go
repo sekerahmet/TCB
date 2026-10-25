@@ -32,21 +32,21 @@ import (
 // görev, çekirdeğe BackwardCtx ile bağlam olarak verilir.
 
 var (
-	nameForward   = bind.NamedArg(codes.T980)
-	nameBackward  = bind.NamedArg(codes.T981)
-	nameStep      = bind.NamedArg(codes.T987)
-	nameTolerance = bind.NamedArg(codes.T983)
+	nameForward   = bind.NamedArg(codes.ArgForward)
+	nameBackward  = bind.NamedArg(codes.ArgBackward)
+	nameStep      = bind.NamedArg(codes.ArgFdStep)
+	nameTolerance = bind.NamedArg(codes.ArgTol)
 )
 
 // registerCustomGrad özel_türev ve türev_denetle yerleşiklerini kaydeder (bkz. Kaydet).
 func registerCustomGrad(v *interp.VM) {
-	wrap(v, codes.T310, newBuiltin(customGrad))
-	wrap(v, codes.T311, newBuiltin(checkGrad))
+	wrap(v, codes.FnCustomGrad, newBuiltin(customGrad))
+	wrap(v, codes.FnGradCheck, newBuiltin(checkGrad))
 }
 
 // customGradExample hata mesajlarındaki kullanım örneğidir; adlar koddan kurulur.
 var customGradExample = fmt.Sprintf("%s(%s: %s(x) { %s [x * x, [x]] }, %s: %s(saklananlar, g) { %s [g * 2 * saklananlar[0]] })",
-	codes.Name(codes.T310), nameForward.TR, codes.Name(codes.A020), codes.Name(codes.A021), nameBackward.TR, codes.Name(codes.A020), codes.Name(codes.A021))
+	codes.Name(codes.FnCustomGrad), nameForward.TR, codes.Name(codes.KwFunc), codes.Name(codes.KwReturn), nameBackward.TR, codes.Name(codes.KwFunc), codes.Name(codes.KwReturn))
 
 // backwardError, geri yayılım sırasında (çekirdeğin içinden) kullanıcının geri hesabında
 // oluşan hatayı taşır; backprop paniği yakalayıp hatayı olduğu gibi döndürür.
@@ -88,7 +88,7 @@ type customOp struct {
 
 // customGrad özel_türev(ileri:, geri:) yerleşiğidir.
 func customGrad(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.T310)
+	fn := codes.NameRef(codes.FnCustomGrad)
 	if err := bind.CheckNamed(fn.Called(), named, nameForward, nameBackward); err != nil {
 		return nil, err
 	}
@@ -121,11 +121,11 @@ func customGrad(_ *interp.VM, args []interp.Value, named map[string]interp.Value
 			}
 		}
 		if len(f.Parameters) < 2 || required > 2 {
-			return nil, messages.New(messages.H6408, fn, nameBackward, codes.NameRef(codes.A020), len(f.Parameters))
+			return nil, messages.New(messages.H6408, fn, nameBackward, codes.NameRef(codes.KwFunc), len(f.Parameters))
 		}
 	}
 	o := &customOp{forward: forward, backward: backward}
-	return &interp.BuiltinVal{Name: codes.Name(codes.T310), Fn: o.call}, nil
+	return &interp.BuiltinVal{Name: codes.Name(codes.FnCustomGrad), Fn: o.call}, nil
 }
 
 // call özel işlemi çalıştırır: ileri türevsiz çalışır, sonuç tek dış düğümle çizgeye
@@ -151,7 +151,7 @@ func (o *customOp) call(m *interp.VM, args []interp.Value, named map[string]inte
 	var saved []*tensor.Tensor
 	sumTensors(savedVals, &saved, 0)
 	outs, err := safe(func() []*tensor.Tensor {
-		return tensor.CustomOp(codes.Name(codes.T310), inputs, outputs, saved, o.backwardFn(m, args, savedVals, many))
+		return tensor.CustomOp(codes.Name(codes.FnCustomGrad), inputs, outputs, saved, o.backwardFn(m, args, savedVals, many))
 	})
 	if err != nil {
 		return nil, err
@@ -174,7 +174,7 @@ func packTensorValues(ts []*tensor.Tensor, single bool) interp.Value {
 
 // forwardResult ileri'nin [çıktı, saklananlar] dönüşünü çözer.
 func forwardResult(v interp.Value) (outputs []*tensor.Tensor, many bool, savedVals *interp.ListVal, err error) {
-	fn, result := codes.NameRef(codes.T310), codes.NameRef(codes.A021)
+	fn, result := codes.NameRef(codes.FnCustomGrad), codes.NameRef(codes.KwReturn)
 	forwards := nameForward
 	l, ok := v.(*interp.ListVal)
 	if !ok || len(l.Elements) != 2 {
@@ -254,10 +254,10 @@ func (o *customOp) backwardFn(forwardVM *interp.VM, args []interp.Value, savedVa
 // öğe; tensör girdilerde girdiyle aynı şekilde bir tensör ya da yok, tensör olmayan
 // girdilerde yok.
 func backwardResult(v interp.Value, args []interp.Value) ([]*tensor.Tensor, error) {
-	fn, backward, none := codes.NameRef(codes.T310), nameBackward, codes.NameRef(codes.A042)
+	fn, backward, none := codes.NameRef(codes.FnCustomGrad), nameBackward, codes.NameRef(codes.KwNone)
 	l, ok := v.(*interp.ListVal)
 	if !ok {
-		return nil, messages.New(messages.H6414, fn, backward, none, codes.NameRef(codes.A021), interp.TypeAndSummary(v))
+		return nil, messages.New(messages.H6414, fn, backward, none, codes.NameRef(codes.KwReturn), interp.TypeAndSummary(v))
 	}
 	if len(l.Elements) != len(args) {
 		return nil, messages.New(messages.H6415, fn, backward, len(l.Elements), len(args), none)
@@ -294,7 +294,7 @@ func backwardResult(v interp.Value, args []interp.Value) ([]*tensor.Tensor, erro
 // yön vektörüyle iç çarpımla skalere indirgenir; kayıp ve farklar float64'te hesaplanır.
 // Eleman başına koşul |analitik - sayısal| ≤ tolerans · max(1, |analitik|, |sayısal|).
 func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.T311)
+	fn := codes.NameRef(codes.FnGradCheck)
 	if err := bind.CheckNamed(fn.Called(), named, nameStep, nameTolerance); err != nil {
 		return nil, err
 	}
@@ -307,7 +307,7 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 	}
 	list, ok := args[1].(*interp.ListVal)
 	if !ok {
-		return nil, messages.New(messages.H6421, fn, codes.NameRef(codes.T100), codes.NameRef(codes.T900), codes.NameRef(codes.A040), typeName(args[1]))
+		return nil, messages.New(messages.H6421, fn, codes.NameRef(codes.FnTensor), codes.NameRef(codes.ArgRequiresGrad), codes.NameRef(codes.KwTrue), typeName(args[1]))
 	}
 	step, err := positiveFloat(fn, named, nameStep, 1e-3)
 	if err != nil {
@@ -318,7 +318,7 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 		return nil, err
 	}
 	if !tensor.GradEnabled() {
-		return nil, messages.New(messages.H6422, fn, codes.NameRef(codes.T301))
+		return nil, messages.New(messages.H6422, fn, codes.NameRef(codes.FnNoGrad))
 	}
 
 	// Türev izleyen girdilerin float32 yaprak kopyaları.
@@ -335,7 +335,7 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 		}
 	}
 	if checked == 0 {
-		return nil, messages.New(messages.H6423, fn, codes.NameRef(codes.T100), codes.NameRef(codes.T900), codes.NameRef(codes.A040))
+		return nil, messages.New(messages.H6423, fn, codes.NameRef(codes.FnTensor), codes.NameRef(codes.ArgRequiresGrad), codes.NameRef(codes.KwTrue))
 	}
 
 	// Analitik gradyan: L = Σ_k <v_k, y_k> üzerinden geri yayılım.

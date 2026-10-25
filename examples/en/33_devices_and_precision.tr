@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // 33 — Devices and precision: where tensors live and with which number type.
 // What it teaches: devices(), default_device(), .device and .to_device(), dtype: / .dtype / .to_dtype(), mixed_precision, compute_dtype(),
 // master_weights for 16-bit parameters.
@@ -7,34 +7,34 @@
 // This example runs on the CPU of every machine; if a GPU exists the "gpu" device can be chosen too.
 
 // devices() gives the device names on this machine; the first element is always "cpu".
-G100("first device:", T721()[0], "| gpu present:", T721().Y002("gpu"))
+TR_fn_print("first device:", TR_fn_devices()[0], "| gpu present:", TR_fn_devices().TR_mem_contains("gpu"))
 
 // default_device() tells the current device; with an argument ("cpu", "gpu", "gpu:1") it chooses the device of all
 // tensors built from then on. For training on a GPU it is called before the model is built.
-G100(T720())
-T720("cpu")
-A030 t = T100([1.0, 2.0])
-G100(t.Y401, t.Y414("cpu").Y401) // to_device moves the tensor to another device
+TR_fn_print(TR_fn_default_device())
+TR_fn_default_device("cpu")
+TR_kw_var t = TR_fn_tensor([1.0, 2.0])
+TR_fn_print(t.TR_mem_device, t.TR_mem_to_device("cpu").TR_mem_device) // to_device moves the tensor to another device
 
 // Number type: "float32" (default), "bf16" or "fp16". It is chosen with dtype: when building, read with .dtype,
 // converted with .to_dtype(...) (the gradient flows to the source tensor).
-G100(t.Y402, T101([2, 2], T901: "fp16").Y402, t.Y415("bf16").Y402)
+TR_fn_print(t.TR_mem_dtype, TR_fn_zeros([2, 2], TR_arg_dtype: "fp16").TR_mem_dtype, t.TR_mem_to_dtype("bf16").TR_mem_dtype)
 
 // mixed_precision(type) { ... }: in the block the @ inputs are converted to this type, the calculation is faster and cheaper in
 // memory; the type of the weights does not change. The last expression of the block is the result.
-A030 y = T710("bf16") { T100([[1.0, 2.0]]) @ T100([[3.0], [4.0]]) }
-G100(y.Y404)
+TR_kw_var y = TR_fn_mixed_precision("bf16") { TR_fn_tensor([[1.0, 2.0]]) @ TR_fn_tensor([[3.0], [4.0]]) }
+TR_fn_print(y.TR_mem_tolist)
 // compute_dtype() gives the active block's compute type ("float32" outside a block). To write a norm
 // whose output only matmuls read straight in that type: rms_norm(x, w, dtype: compute_dtype()).
-G100(T711(), T710("bf16") { T711() })
+TR_fn_print(TR_fn_compute_dtype(), TR_fn_mixed_precision("bf16") { TR_fn_compute_dtype() })
 
 // When training a 16-bit parameter with AdamW, master_weights: true (default) keeps a float32 master copy;
 // the update is done there and rounded into the parameter, so small steps do not get lost.
-A030 w = T100([1.0], T900: A040, T901: "bf16")
-A030 op = T400([w], T915: A040)
-T300(G400(w * w))
-op.Y500()
-G100(w.Y402, G405(w.Y404[0], 2))
+TR_kw_var w = TR_fn_tensor([1.0], TR_arg_requires_grad: TR_kw_true, TR_arg_dtype: "bf16")
+TR_kw_var op = TR_fn_AdamW([w], TR_arg_master_weights: TR_kw_true)
+TR_fn_backward(TR_fn_sum(w * w))
+op.TR_mem_step()
+TR_fn_print(w.TR_mem_dtype, TR_fn_round(w.TR_mem_tolist[0], 2))
 
 // --- Try it yourself ---
 // 1. Convert a tensor to "fp16" and back to float32: what is lost in the values?

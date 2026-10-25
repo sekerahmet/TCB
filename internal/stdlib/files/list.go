@@ -16,13 +16,13 @@ import (
 // listBuiltin klasörü_listele([klasör = "."], [kalıp = "*"]) yerleşiğidir: kalıba uyan
 // dosya ve klasörleri sıralı bir Yol listesi olarak verir.
 func listBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := interp.CallPrefix(codes.G121)
+	fn := interp.CallPrefix(codes.FnListDir)
 	if len(args) > 2 {
-		return nil, interp.ArgCountError(codes.G121, interp.Counts(0, 1, 2), len(args), "", messages.Text(messages.H2318), messages.Text(messages.H2319))
+		return nil, interp.ArgCountError(codes.FnListDir, interp.Counts(0, 1, 2), len(args), "", messages.Text(messages.H2318), messages.Text(messages.H2319))
 	}
 	base, glob := ".", "*"
 	if len(args) > 0 {
-		t, err := readPath(codes.G121, 1, args[0])
+		t, err := readPath(codes.FnListDir, 1, args[0])
 		if err != nil {
 			return nil, err
 		}
@@ -31,7 +31,7 @@ func listBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 	if len(args) > 1 {
 		s, ok := args[1].(*interp.StringVal)
 		if !ok {
-			return nil, interp.ArgTypeError(codes.G121, 2, args[1], codes.A202)
+			return nil, interp.ArgTypeError(codes.FnListDir, 2, args[1], codes.TypeString)
 		}
 		glob = s.Val
 	}

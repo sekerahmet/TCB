@@ -17,7 +17,7 @@ type Construct struct {
 	In      string `json:"in"`
 	Kind    string `json:"kind"`              // AST türünün adı: "InfixExpression", "CallExpression", ...
 	Op      string `json:"op,omitempty"`      // işlecin metni ("@", "+", "==")
-	Operand string `json:"operand,omitempty"` // sol işlenenin türü: yapı kimliği ya da "type:A212"; bilinmezse boş
+	Operand string `json:"operand,omitempty"` // sol işlenenin türü: yapı kimliği ya da "type:TR_type_Tensor"; bilinmezse boş
 	Pos     Pos    `json:"pos"`
 }
 
@@ -37,17 +37,17 @@ func typeCode(k codes.Code) string { return "type:" + k.String() }
 func (x *indexer) literalType(sc *scope, e ast.Expression) string {
 	switch e := e.(type) {
 	case *ast.IntegerLiteral:
-		return typeCode(codes.A200)
+		return typeCode(codes.TypeInt)
 	case *ast.FloatLiteral:
-		return typeCode(codes.A201)
+		return typeCode(codes.TypeFloat)
 	case *ast.StringLiteral, *ast.InterpolatedString:
-		return typeCode(codes.A202)
+		return typeCode(codes.TypeString)
 	case *ast.BooleanLiteral:
-		return typeCode(codes.A203)
+		return typeCode(codes.TypeBool)
 	case *ast.ListLiteral:
-		return typeCode(codes.A205)
+		return typeCode(codes.TypeList)
 	case *ast.DictLiteral:
-		return typeCode(codes.A206)
+		return typeCode(codes.TypeDict)
 	case *ast.CallExpression:
 		fn, ok := e.Function.(*ast.Identifier)
 		if !ok || sc.locals[fn.Value] {

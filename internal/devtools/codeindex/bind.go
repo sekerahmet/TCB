@@ -67,7 +67,7 @@ func (x *indexer) receiver(f *file, o owner, sc *scope, obj ast.Expression) (str
 	if !ok {
 		return "", "", ""
 	}
-	if id.Value == x.lang.Name(codes.A051) && o.kind == KindMethod {
+	if id.Value == x.lang.Name(codes.KwSelf) && o.kind == KindMethod {
 		name := ownerName(o.id)
 		return NodeID(KindStruct, f.rel, name[:strings.LastIndex(name, ".")]), Extracted, BasisSelf
 	}
@@ -194,7 +194,7 @@ func (x *indexer) calleeParam(def, arg string) string {
 	case KindFunction, KindMethod:
 		return x.paramOf(def, arg)
 	case KindStruct:
-		if ctor, kind := x.structMember(def, x.lang.Name(codes.A102)); kind == KindMethod {
+		if ctor, kind := x.structMember(def, x.lang.Name(codes.CtxInit)); kind == KindMethod {
 			return x.paramOf(ctor, arg)
 		}
 		if fid, kind := x.structMember(def, arg); kind == KindField {
@@ -212,7 +212,7 @@ func (x *indexer) calleeParamAt(def string, i int) string {
 		return ""
 	}
 	if n.Kind == KindStruct {
-		ctor, kind := x.structMember(def, x.lang.Name(codes.A102))
+		ctor, kind := x.structMember(def, x.lang.Name(codes.CtxInit))
 		if kind != KindMethod {
 			return "" // kurucusuz yapıda konumlu argümanın alanı bilinmez
 		}
@@ -271,7 +271,7 @@ func (x *indexer) paramOf(fnID, arg string) string {
 }
 
 // optionName seçeneğin komut satırındaki adıdır. Kod taşıyan (kodlu dosyada bir üye kodu olan) çıplak anahtar çalışma
-// anında derlenen dosyanın dilinde yazılır (K3, compiler.dictKey `s.Token.Code`: İngilizce betikte `{Y500: 100}` →
+// anında derlenen dosyanın dilinde yazılır (K3, compiler.dictKey `s.Token.Code`: İngilizce betikte `{TR_mem_step: 100}` →
 // `--step`); dizin dosyayı Türkçe okuduğu için anahtar `adım` görünür, ad dosyanın dilinden alınır. Kodsuz anahtar
 // olduğu gibi kalır: Türkçe gösterimde dilin bir sözcüğüne denk gelen kodsuz ad `$adım` diye kaçışla yazılır (Decode,
 // 2.11), kaçışsız bir üye adı bu yüzden yalnızca koddan gelebilir; İngilizce betikte düz yazılmış `adım` anahtarı
@@ -315,7 +315,7 @@ func (x *indexer) optionKeys(f *file, o owner, sc *scope, c *ast.CallExpression)
 	if !ok || sc.locals[fn.Value] || f.visible[fn.Value] != "" {
 		return
 	}
-	if k, ok := x.lang.Find(codes.NamespaceGlobal, fn.Value); !ok || k != codes.G801 {
+	if k, ok := x.lang.Find(codes.NamespaceGlobal, fn.Value); !ok || k != codes.FnCommandLine {
 		return
 	}
 	var dicts []*ast.DictLiteral
@@ -325,7 +325,7 @@ func (x *indexer) optionKeys(f *file, o owner, sc *scope, c *ast.CallExpression)
 		}
 	}
 	for _, a := range c.NamedArgs {
-		if k, ok := x.lang.Find(codes.NamespaceParam, a.Name); ok && k == codes.G911 {
+		if k, ok := x.lang.Find(codes.NamespaceParam, a.Name); ok && k == codes.ArgDescriptions {
 			if d, ok := a.Value.(*ast.DictLiteral); ok {
 				dicts = append(dicts, d)
 			}

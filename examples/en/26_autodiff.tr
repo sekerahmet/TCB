@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // 26 — Automatic differentiation: having the computer compute the gradient.
 // What it teaches: tracking a tensor with requires_grad: true, backward(result), .grad,
 // gradients accumulating (and needing to be reset), no_grad { ... } for computing without tracking.
@@ -10,28 +10,28 @@
 // TR tracks the chain of operations and computes all derivatives at once with backward.
 
 // y = x² + 2x + 1  →  dy/dx = 2x + 2; 8 for x = 3.
-A030 x = T100(3.0, T900: A040) // requires_grad: the gradient of this tensor is wanted
-A030 y = x * x + 2 * x + 1
-T300(y)
-G100("y = {y.Y404}, dy/dx = {x.Y403.Y404} (expected 8.0)")
+TR_kw_var x = TR_fn_tensor(3.0, TR_arg_requires_grad: TR_kw_true) // requires_grad: the gradient of this tensor is wanted
+TR_kw_var y = x * x + 2 * x + 1
+TR_fn_backward(y)
+TR_fn_print("y = {y.TR_mem_tolist}, dy/dx = {x.TR_mem_grad.TR_mem_tolist} (expected 8.0)")
 
 // Several inputs: each gets its own gradient. f(a, b) = a * b + b²
-A030 a = T100(2.0, T900: A040)
-A030 b = T100(5.0, T900: A040)
-A030 f = a * b + b * b
-T300(f)
-G100("df/da = {a.Y403.Y404} (expected 5.0), df/db = {b.Y403.Y404} (expected 12.0)")
+TR_kw_var a = TR_fn_tensor(2.0, TR_arg_requires_grad: TR_kw_true)
+TR_kw_var b = TR_fn_tensor(5.0, TR_arg_requires_grad: TR_kw_true)
+TR_kw_var f = a * b + b * b
+TR_fn_backward(f)
+TR_fn_print("df/da = {a.TR_mem_grad.TR_mem_tolist} (expected 5.0), df/db = {b.TR_mem_grad.TR_mem_tolist} (expected 12.0)")
 
 // Gradients accumulate: every backward call adds to the gradient. That is why in training the gradients
 // are reset before each step (the optimizer's .zero_grad() method in the next example).
-A030 c = T100(1.0, T900: A040)
-T300(c * 3)
-T300(c * 3)
-G100("after two calls dc = {c.Y403.Y404} (3 + 3)")
+TR_kw_var c = TR_fn_tensor(1.0, TR_arg_requires_grad: TR_kw_true)
+TR_fn_backward(c * 3)
+TR_fn_backward(c * 3)
+TR_fn_print("after two calls dc = {c.TR_mem_grad.TR_mem_tolist} (3 + 3)")
 
 // no_grad { ... } computes without tracking the operations: saves memory and time while predicting.
-A030 z = T301 { x * 10 }
-G100("no_grad result: {z.Y404}")
+TR_kw_var z = TR_fn_no_grad { x * 10 }
+TR_fn_print("no_grad result: {z.TR_mem_tolist}")
 
 // --- Try it yourself ---
 // 1. Have the derivative of y = x³ at x = 2 computed and compare it with your own result (3x² = 12).

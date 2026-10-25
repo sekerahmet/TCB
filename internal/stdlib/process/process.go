@@ -1,6 +1,6 @@
 // Package process, programın içinde çalıştığı süreçle ilgili TR yerleşiklerini içerir:
-// ortam değişkenini okuyan ortam_değişkeni (G800) ve betiğin komut satırı seçeneklerini
-// tanımlayıp dolduran komut_satırı (G801). Adı (Türkçe kuralla) gizli bir sözcük içeren
+// ortam değişkenini okuyan ortam_değişkeni (TR_fn_env) ve betiğin komut satırı seçeneklerini
+// tanımlayıp dolduran komut_satırı (TR_fn_command_line). Adı (Türkçe kuralla) gizli bir sözcük içeren
 // ortam değişkenlerinin ve seçeneklerin değerleri yorumlayıcının gizli değer süzgecine
 // verilir (interp.VM.AddSecret): insanın göreceği çıktılarda *** olarak görünürler.
 //
@@ -41,15 +41,15 @@ func (d *State) Settings() *interp.DictVal {
 
 // Adlı argümanlar; adları kod listesindedir (internal/lang/codes).
 var (
-	nameDesc  = bind.NamedArg(codes.G910)
-	nameDescs = bind.NamedArg(codes.G911)
+	nameDesc  = bind.NamedArg(codes.ArgDescription)
+	nameDescs = bind.NamedArg(codes.ArgDescriptions)
 )
 
 // Register süreç yerleşiklerini VM'ye kaydeder ve programın süreç durumunu döndürür.
 func Register(v *interp.VM) *State {
 	d := &State{}
-	v.RegisterNoNamed(codes.G800, envVar)
-	v.RegisterBuiltinCode(codes.G801, bind.SafeBuiltin(interp.CallPrefix(codes.G801), d.commandLine))
+	v.RegisterNoNamed(codes.FnEnv, envVar)
+	v.RegisterBuiltinCode(codes.FnCommandLine, bind.SafeBuiltin(interp.CallPrefix(codes.FnCommandLine), d.commandLine))
 	return d
 }
 

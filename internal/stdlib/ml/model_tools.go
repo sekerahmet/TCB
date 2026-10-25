@@ -16,21 +16,21 @@ import (
 // bölme, birleşik dikkat ve token örnekleme. Bir modelin parametrelerini toplama ve yükleme:
 // parametreler.go.
 
-// Adlı argümanlar (adları kod listesinde, internal/lang/codes T9xx).
+// Adlı argümanlar (adları kod listesinde, internal/lang/codes arg).
 var (
-	nameKeepDim     = bind.NamedArg(codes.T906)
-	nameCausal      = bind.NamedArg(codes.T950)
-	nameWindow      = bind.NamedArg(codes.T951)
-	nameMask        = bind.NamedArg(codes.T952)
-	nameTemperature = bind.NamedArg(codes.T960)
-	nameTopK        = bind.NamedArg(codes.T961)
-	nameWithNames   = bind.NamedArg(codes.T970)
-	nameApproximate = bind.NamedArg(codes.T990)
+	nameKeepDim     = bind.NamedArg(codes.ArgKeepdim)
+	nameCausal      = bind.NamedArg(codes.ArgCausal)
+	nameWindow      = bind.NamedArg(codes.ArgWindow)
+	nameMask        = bind.NamedArg(codes.ArgMask)
+	nameTemperature = bind.NamedArg(codes.ArgTemperature)
+	nameTopK        = bind.NamedArg(codes.ArgTopK)
+	nameWithNames   = bind.NamedArg(codes.ArgNamed)
+	nameApproximate = bind.NamedArg(codes.ArgApproximate)
 )
 
 // memberSplit tensörün .böl(parça_sayısı, eksen: -1) metodudur. Üye adları tipten bağımsız
-// benzersiz olduğundan Metin'in .böl'üyle aynı koddur (Y103).
-const memberSplit = codes.Y103
+// benzersiz olduğundan Metin'in .böl'üyle aynı koddur (TR_mem_split).
+const memberSplit = codes.MemSplit
 
 // ----------------------------------------------------------------------------
 // bitiştir ve .böl
@@ -39,7 +39,7 @@ const memberSplit = codes.Y103
 // concatBuiltin bitiştir([a, b, ...], eksen: -1) yerleşiğidir: tensörleri bir eksen
 // boyunca birleştirir. Birleşen eksen dışındaki eksenler eşit olmalıdır. Türevlenebilir.
 func concatBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.T121)
+	fn := codes.NameRef(codes.FnConcat)
 	if len(args) < 1 || len(args) > 2 {
 		return nil, messages.New(messages.H6304, fn, nameAxis, len(args))
 	}
@@ -101,7 +101,7 @@ func concatBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 // split .böl(parça_sayısı, eksen: -1) metodudur: tensörü verilen eksende eşit parçalara
 // böler; parçalar veriyi paylaşan, türev izleyen görünümlerdir.
 func (d *TensorValue) split(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.Y103)
+	fn := codes.NameRef(codes.MemSplit)
 	if len(args) < 1 || len(args) > 2 {
 		return nil, messages.New(messages.H6315, fn, nameAxis, len(args))
 	}
@@ -146,9 +146,9 @@ func (d *TensorValue) split(_ *interp.VM, args []interp.Value, named map[string]
 // attentionBuiltin dikkat(q, k, v, nedensel: doğru, pencere: 0, maske: yok) yerleşiğidir:
 // birleşik ölçekli nokta çarpımı dikkati (bkz. tensor.Attention). Ölçek 1/√dh'dir.
 func attentionBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.T503)
+	fn := codes.NameRef(codes.FnAttention)
 	if len(args) != 3 {
-		return nil, messages.New(messages.H6321, fn, nameCausal, codes.NameRef(codes.A040), nameWindow, nameMask, codes.NameRef(codes.A042), len(args))
+		return nil, messages.New(messages.H6321, fn, nameCausal, codes.NameRef(codes.KwTrue), nameWindow, nameMask, codes.NameRef(codes.KwNone), len(args))
 	}
 	if err := bind.CheckNamed(fn.Called(), named, nameCausal, nameWindow, nameMask); err != nil {
 		return nil, err
@@ -275,16 +275,16 @@ func checkMask(fn any, mt, q, k *tensor.Tensor) error {
 // (maks_indeks ile aynı). Sonuç son ekseni düşürülmüş, tam sayılı işaretli ve türev
 // izlemeyen bir tensördür.
 func sampleBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.T611)
+	fn := codes.NameRef(codes.FnSample)
 	if len(args) != 1 {
-		return nil, messages.New(messages.H6336, fn, nameTemperature, nameTopK, nameSeed, codes.NameRef(codes.A042), len(args))
+		return nil, messages.New(messages.H6336, fn, nameTemperature, nameTopK, nameSeed, codes.NameRef(codes.KwNone), len(args))
 	}
 	if err := bind.CheckNamed(fn.Called(), named, nameTemperature, nameTopK, nameSeed); err != nil {
 		return nil, err
 	}
 	d, ok := args[0].(*TensorValue)
 	if !ok {
-		return nil, messages.New(messages.H6337, fn, typeName(args[0]), codes.NameRef(codes.T100))
+		return nil, messages.New(messages.H6337, fn, typeName(args[0]), codes.NameRef(codes.FnTensor))
 	}
 	sh := d.t.Shape()
 	if len(sh) == 0 {

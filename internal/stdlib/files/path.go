@@ -12,8 +12,8 @@ import (
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
 
-// PathType Yol değerlerinin tip adıdır (kod listesinde A250).
-var PathType = interp.TypeName(codes.A250)
+// PathType Yol değerlerinin tip adıdır (kod listesinde TR_type_Path).
+var PathType = interp.TypeName(codes.TypePath)
 
 // Path temizlenmiş bir dosya ya da klasör yoludur. Değiştirilemez; ayırıcıyı her platformda
 // / ile saklar ve gösterir (Windows'ta \ de kabul edilir, işletim sistemine giderken
@@ -57,14 +57,14 @@ func isAbsPart(p string) bool {
 // pathBuiltin yol(...) yerleşiğidir: parçaları birleştirip temizler.
 func pathBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	if len(args) == 0 {
-		return nil, interp.ArgCountError(codes.G120, interp.AtLeast(1), 0, messages.Text(messages.H2320))
+		return nil, interp.ArgCountError(codes.FnPath, interp.AtLeast(1), 0, messages.Text(messages.H2320))
 	}
-	fn := interp.CallPrefix(codes.G120)
+	fn := interp.CallPrefix(codes.FnPath)
 	parts := make([]string, len(args))
 	for i, a := range args {
 		p, ok, err := interp.PathArg(fn, a)
 		if !ok {
-			return nil, interp.ArgTypeError(codes.G120, i+1, a, codes.A202, codes.A250)
+			return nil, interp.ArgTypeError(codes.FnPath, i+1, a, codes.TypeString, codes.TypePath)
 		}
 		if err != nil {
 			return nil, err
@@ -80,8 +80,8 @@ func pathBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 	return NewPath(filepath.Join(parts...)), nil
 }
 
-// Yol üyeleri (adları kod listesinde, internal/lang/codes Y31x).
-var pathMemberCodes = []codes.Code{codes.Y310, codes.Y311, codes.Y312, codes.Y313, codes.Y314, codes.Y315, codes.Y316, codes.Y317, codes.Y318}
+// Yol üyeleri (adları kod listesinde, internal/lang/codes mem).
+var pathMemberCodes = []codes.Code{codes.MemName, codes.MemExtension, codes.MemStem, codes.MemParent, codes.MemAbsolute, codes.MemExists, codes.MemIsFile, codes.MemIsDir, codes.MemSize}
 
 // GetProperty üyeyi görevsiz okur (göreli yol yalnızca çalışma klasörüne göre çözülür); nokta
 // erişimi GorevliUye'yi kullanır.
@@ -93,20 +93,20 @@ func (y *Path) GetProperty(kd codes.Code, name string) (interp.Value, error) {
 // klasörlerine göre çözer.
 func (y *Path) TaskMember(m *interp.VM, kd codes.Code, name string) (interp.Value, error) {
 	switch kd {
-	case codes.Y310:
+	case codes.MemName:
 		return &interp.StringVal{Val: y.fileName()}, nil
-	case codes.Y311:
+	case codes.MemExtension:
 		return &interp.StringVal{Val: ext(y.fileName())}, nil
-	case codes.Y312:
+	case codes.MemStem:
 		a := y.fileName()
 		return &interp.StringVal{Val: a[:len(a)-len(ext(a))]}, nil
-	case codes.Y313:
+	case codes.MemParent:
 		return &Path{fpath: filepath.ToSlash(filepath.Dir(filepath.FromSlash(y.fpath)))}, nil
-	case codes.Y314:
+	case codes.MemAbsolute:
 		return y.abs(m), nil
-	case codes.Y315, codes.Y316, codes.Y317:
+	case codes.MemExists, codes.MemIsFile, codes.MemIsDir:
 		return y.query(m, kd), nil
-	case codes.Y318:
+	case codes.MemSize:
 		return y.size(m)
 	}
 	return nil, bind.MemberError(PathType, name, pathMemberCodes)
@@ -149,23 +149,23 @@ func (y *Path) query(m *interp.VM, kd codes.Code) interp.Value {
 	switch {
 	case err != nil:
 		return interp.False
-	case kd == codes.Y316:
+	case kd == codes.MemIsFile:
 		return interp.BoolToVal(b.Mode().IsRegular())
-	case kd == codes.Y317:
+	case kd == codes.MemIsDir:
 		return interp.BoolToVal(b.IsDir())
 	}
 	return interp.True
 }
 
 func (y *Path) size(m *interp.VM) (interp.Value, error) {
-	fn := codes.CallNameRef(codes.Y318)
+	fn := codes.CallNameRef(codes.MemSize)
 	c, tried := y.resolve(m)
 	b, err := os.Stat(c)
 	if err != nil {
 		return nil, interp.ReadError(fn, y.fpath, messages.H2100, err, tried)
 	}
 	if b.IsDir() {
-		return nil, messages.New(messages.H7140, fn, y.fpath, codes.NameRef(codes.G121))
+		return nil, messages.New(messages.H7140, fn, y.fpath, codes.NameRef(codes.FnListDir))
 	}
 	return interp.NewInt(b.Size()), nil
 }

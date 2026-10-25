@@ -197,7 +197,7 @@ func TestTerminalKeysMatchVSCode(t *testing.T) {
 		"":          StepInto,
 		"shift+f11": StepOut,
 		"dön":       StepOut,
-		// Komutlar ad kodudur (K3xx): her yazım dilinin adı kabul edilir.
+		// Komutlar ad kodudur (dbg): her yazım dilinin adı kabul edilir.
 		"continue": StepContinue,
 		"next":     StepOver,
 		"step":     StepInto,

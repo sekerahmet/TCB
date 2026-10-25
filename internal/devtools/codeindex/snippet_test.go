@@ -32,19 +32,19 @@ func builtinUseReader(t *testing.T) *Reader {
 	return NewReader(idx)
 }
 
-// Kural: üye (Y) ve adlı argüman (x9xx) kodları da yerleşik düğümdür; test bloğunun kullandığı her yerleşik, üye ve
-// adlı argüman o ad koduna `tests` bağıdır (`sınayanlar` boş dönmez). Ad koduyla da sorulabilir (`T984`).
+// Kural: üye (mem) ve adlı argüman (arg) kodları da yerleşik düğümdür; test bloğunun kullandığı her yerleşik, üye ve
+// adlı argüman o ad koduna `tests` bağıdır (`sınayanlar` boş dönmez). Ad koduyla da sorulabilir (`TR_arg_every_minutes`).
 func TestMembersAndNamedArgumentsAreBuiltinsTestedByTestBlocks(t *testing.T) {
 	r := builtinUseReader(t)
-	for _, q := range []string{"T984", "her_dakika", "Y010", "güncelle"} {
+	for _, q := range []string{"TR_arg_every_minutes", "her_dakika", "TR_mem_update", "güncelle"} {
 		res := r.TestedBy(q, QueryOptions{})
 		if res.Status != StatusOK || len(res.Tests) != 1 || !strings.Contains(res.Tests[0].In.Name, "kontrol noktası adımı bildirir") {
 			t.Errorf("sınayanlar %s: %+v", q, res)
 		}
 	}
-	users := r.References("T984", QueryOptions{})
+	users := r.References("TR_arg_every_minutes", QueryOptions{})
 	if users.Status != StatusOK || users.Counts == nil || users.Counts.Total < 2 {
-		t.Errorf("kullananlar T984 sees the program and the test block: %+v", users)
+		t.Errorf("kullananlar TR_arg_every_minutes sees the program and the test block: %+v", users)
 	}
 }
 
@@ -83,8 +83,8 @@ func TestSnippetListsTheCodesAProgramTextUses(t *testing.T) {
 	for _, u := range got {
 		codes = append(codes, u.Code)
 	}
-	if !strings.Contains(strings.Join(codes, ","), "T702") || !strings.Contains(strings.Join(codes, ","), "T984") ||
-		!strings.Contains(strings.Join(codes, ","), "Y010") {
+	if !strings.Contains(strings.Join(codes, ","), "TR_fn_checkpoint") || !strings.Contains(strings.Join(codes, ","), "TR_arg_every_minutes") ||
+		!strings.Contains(strings.Join(codes, ","), "TR_mem_update") {
 		t.Errorf("codes = %v", codes)
 	}
 	if Snippet("bu bir ((( program değil") != nil {

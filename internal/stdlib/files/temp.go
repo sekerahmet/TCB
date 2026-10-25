@@ -31,9 +31,9 @@ type tempDir struct {
 // altında bu süreç için yeni, boş ve yalnızca kullanıcıya açık (0700) bir klasör oluşturur ve
 // Yol olarak döndürür.
 func tempDirBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := interp.CallPrefix(codes.G126)
+	fn := interp.CallPrefix(codes.FnTempDir)
 	if len(args) != 0 {
-		return nil, interp.ArgCountError(codes.G126, 0, len(args))
+		return nil, interp.ArgCountError(codes.FnTempDir, 0, len(args))
 	}
 	parent := os.TempDir()
 	fpath, err := os.MkdirTemp(parent, fmt.Sprintf("tr_%d_*", os.Getpid()))
@@ -59,7 +59,7 @@ func deleteTempDirs() []error {
 	tempDirs.l = nil
 	tempDirs.Unlock()
 	var errs []error
-	fn := interp.CallPrefix(codes.G126)
+	fn := interp.CallPrefix(codes.FnTempDir)
 	for _, g := range list {
 		info, err := os.Lstat(g.fpath)
 		if errors.Is(err, fs.ErrNotExist) {

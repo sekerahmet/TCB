@@ -81,45 +81,45 @@ func (c *Progress) Text(lang *codes.Language) string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.stopped {
-		return messages.TextIn(lang.Code, messages.H7312, lang.Name(codes.A255), c.stepText(lang))
+		return messages.TextIn(lang.Code, messages.H7312, lang.Name(codes.TypeProgress), c.stepText(lang))
 	}
-	return fmt.Sprintf("%s(%s)", lang.Name(codes.A255), c.stepText(lang))
+	return fmt.Sprintf("%s(%s)", lang.Name(codes.TypeProgress), c.stepText(lang))
 }
 
 func (c *Progress) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	switch kd {
-	case codes.Y010:
-		return bind.CodeMethod(codes.Y010, false, func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	case codes.MemUpdate:
+		return bind.CodeMethod(codes.MemUpdate, false, func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 			return c.update(m, args, named)
 		}), nil
-	case codes.Y011:
-		return &interp.BuiltinVal{Name: codes.Name(codes.Y011), NoNamedArgs: true, Fn: func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+	case codes.MemStop:
+		return &interp.BuiltinVal{Name: codes.Name(codes.MemStop), NoNamedArgs: true, Fn: func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 			if len(args) != 0 {
-				return nil, interp.ArgCountError(codes.Y011, 0, len(args))
+				return nil, interp.ArgCountError(codes.MemStop, 0, len(args))
 			}
 			return interp.BoolToVal(c.finish(clock())), nil
 		}}, nil
 	}
-	return nil, bind.MemberError(ProgressType, prop, []codes.Code{codes.Y010, codes.Y011})
+	return nil, bind.MemberError(ProgressType, prop, []codes.Code{codes.MemUpdate, codes.MemStop})
 }
 
 // openProgress ilerleme(toplam, günlük: g) yerleşiğidir.
 func (d *state) openProgress(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := interp.CallPrefix(codes.G811)
+	fn := interp.CallPrefix(codes.FnProgress)
 	if err := bind.CheckNamed(fn, named, nameLog); err != nil {
 		return nil, err
 	}
 	if len(args) > 1 {
-		return nil, interp.ArgCountError(codes.G811, interp.Counts(0, 1), len(args), "", messages.Text(messages.H2322))
+		return nil, interp.ArgCountError(codes.FnProgress, interp.Counts(0, 1), len(args), "", messages.Text(messages.H2322))
 	}
 	var total int64
 	if len(args) == 1 && args[0] != interp.Null {
 		n, ok := bind.Int(args[0])
 		if !ok {
-			return nil, interp.ArgTypeError(codes.G811, 1, args[0], codes.A200, codes.A204)
+			return nil, interp.ArgTypeError(codes.FnProgress, 1, args[0], codes.TypeInt, codes.TypeNone)
 		}
 		if n <= 0 {
-			return nil, messages.New(messages.H7313, fn, n, codes.NameRef(codes.A042))
+			return nil, messages.New(messages.H7313, fn, n, codes.NameRef(codes.KwNone))
 		}
 		total = n
 	}
@@ -127,7 +127,7 @@ func (d *state) openProgress(m *interp.VM, args []interp.Value, named map[string
 	if v, ok := bind.GetNamed(named, nameLog); ok && v != interp.Null {
 		g, ok := v.(*Log)
 		if !ok {
-			return nil, messages.New(messages.H7314, fn, nameLog, LogType, codes.NameRef(codes.G810), interp.TypeAndSummary(v))
+			return nil, messages.New(messages.H7314, fn, nameLog, LogType, codes.NameRef(codes.FnLogger), interp.TypeAndSummary(v))
 		}
 		c.log = g
 		g.setTotal(total)
@@ -168,18 +168,18 @@ var terminalChoice = func(w io.Writer) (bool, int) {
 
 // update İlerleme.güncelle([ölçüler], adım: n) metodudur.
 func (c *Progress) update(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := interp.CallPrefix(codes.Y010)
+	fn := interp.CallPrefix(codes.MemUpdate)
 	if err := bind.CheckNamed(fn, named, nameStep); err != nil {
 		return nil, err
 	}
 	if len(args) > 1 {
-		return nil, interp.ArgCountError(codes.Y010, interp.Counts(0, 1), len(args), "", messages.Text(messages.H2323))
+		return nil, interp.ArgCountError(codes.MemUpdate, interp.Counts(0, 1), len(args), "", messages.Text(messages.H2323))
 	}
 	var metrics []metric
 	if len(args) == 1 && args[0] != interp.Null {
 		s, ok := args[0].(*interp.DictVal)
 		if !ok {
-			return nil, interp.ArgTypeError(codes.Y010, 1, args[0], codes.A206)
+			return nil, interp.ArgTypeError(codes.MemUpdate, 1, args[0], codes.TypeDict)
 		}
 		record := interp.NewDictVal()
 		if err := addMetrics(fn, record, s, keyKind, keyTime, keyStep, keyRate); err != nil {
@@ -193,7 +193,7 @@ func (c *Progress) update(m *interp.VM, args []interp.Value, named map[string]in
 	if v, ok := bind.GetNamed(named, nameStep); ok {
 		n, ok := bind.Int(v)
 		if !ok || n < 0 {
-			return nil, messages.New(messages.H7315, fn, nameStep, codes.NameRef(codes.A200), interp.TypeAndSummary(v))
+			return nil, messages.New(messages.H7315, fn, nameStep, codes.NameRef(codes.TypeInt), interp.TypeAndSummary(v))
 		}
 		newStep = n
 	}
@@ -218,7 +218,7 @@ func (c *Progress) advance(fn any, now time.Time, newStep int64, metrics []metri
 	if c.stopped {
 		text := c.stepText(codes.Display())
 		c.mu.Unlock()
-		return false, messages.New(messages.H7316, fn, text, codes.NameRef(codes.G811))
+		return false, messages.New(messages.H7316, fn, text, codes.NameRef(codes.FnProgress))
 	}
 	measure := true
 	switch {

@@ -1,49 +1,49 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // 05 — Conditions: the program making decisions.
 // What it teaches: if / else if / else, combining conditions with and/or/not, nested conditions, match.
 // Builds on: comparison and Bool values (03), interpolation (04).
 // Run (from the project root): tr examples/en/05_conditions.tr
 
-A030 temperature = 31
+TR_kw_var temperature = 31
 
 // If the condition is true the braced block runs; they are tried in order, the first true one wins.
-A001 temperature > 30 {
-    G100("hot")
-} A002 A001 temperature > 15 {
-    G100("mild")
-} A002 {
-    G100("cold")
+TR_kw_if temperature > 30 {
+    TR_fn_print("hot")
+} TR_kw_else TR_kw_if temperature > 15 {
+    TR_fn_print("mild")
+} TR_kw_else {
+    TR_fn_print("cold")
 }
 
 // Combined condition: and needs both, or needs one, not reverses.
-A030 age = 20
-A030 has_license = A040
-A001 age >= 18 A043 has_license {
-    G100("can drive")
+TR_kw_var age = 20
+TR_kw_var has_license = TR_kw_true
+TR_kw_if age >= 18 TR_kw_and has_license {
+    TR_fn_print("can drive")
 }
-A001 age < 18 A044 A045 has_license {
-    G100("cannot drive")
+TR_kw_if age < 18 TR_kw_or TR_kw_not has_license {
+    TR_fn_print("cannot drive")
 }
 
 // Conditions can be nested.
-A001 age >= 18 {
-    A001 age >= 65 {
-        G100("{age}: retired")
-    } A002 {
-        G100("{age}: adult")
+TR_kw_if age >= 18 {
+    TR_kw_if age >= 65 {
+        TR_fn_print("{age}: retired")
+    } TR_kw_else {
+        TR_fn_print("{age}: adult")
     }
 }
 
 // match: compares a value with patterns in order and runs the first arm that fits.
 // default runs if none fits. match also produces a value.
-A030 day = 3
-A030 day_name = A003 day {
+TR_kw_var day = 3
+TR_kw_var day_name = TR_kw_match day {
     1 => "Monday"
     2 => "Tuesday"
     3 => "Wednesday"
-    A004 => "some other day"
+    TR_kw_default => "some other day"
 }
-G100("day {day}: {day_name}")
+TR_fn_print("day {day}: {day_name}")
 
 // --- Try it yourself ---
 // 1. Keep a grade (0-100) in a variable; print "fail" below 50, "pass" for 50-84 and "excellent" for 85 and above.

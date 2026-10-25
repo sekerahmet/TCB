@@ -15,17 +15,17 @@ import (
 
 // Kapsam: dilin her adı examples/tr altındaki bir örnekte
 // geçer. Ad kontrolü metin aramasıyla değil kodlarladır: örnek `source.Encode` ile kodlanır ve
-// iskeletindeki kodlar (A001, G100, .Y004, T910: ...) sayılır. K ailesi (komut satırı:
+// iskeletindeki kodlar (TR_kw_if, TR_fn_print, .TR_mem_append, TR_arg_lr: ...) sayılır. Komut satırı adları (cmd, opt, repl, dbg, env:
 // `tr test`, `tr biçimle`, --dil ...) .tr dosyasında geçmez; örneklerin yorum satırlarında ve
 // examples/README.md'de aranır.
 
 // uncoveredNames bilerek ya da henüz örneği yazılmamış adlardır ve gerekçesiyle durur. Liste
 // yalnızca küçülür: örneği olan bir ad listede kalırsa test düşer.
 var uncoveredNames = map[string]string{
-	// Değer adları (A11x) kaynakta sözcük olarak yazılmaz, yalnızca programın metninde görünür
+	// Değer adları (val) kaynakta sözcük olarak yazılmaz, yalnızca programın metninde görünür
 	// (3.2: yazdır(ondalık("sonsuz"))); kodlu iskelette geçemezler.
-	"A110": "değer adı (sonsuz), kaynakta sözcük değil",
-	"A111": "değer adı (NaN), kaynakta sözcük değil",
+	"TR_val_inf": "değer adı (sonsuz), kaynakta sözcük değil",
+	"TR_val_nan": "değer adı (NaN), kaynakta sözcük değil",
 }
 
 // exampleTexts bütün örnek .tr dosyalarını (examples/tr, alt klasörleriyle) verir.
@@ -65,7 +65,7 @@ func usedCodes(t *testing.T) map[string]bool {
 			t.Fatalf("examples/tr/%s kodlanamadı: %v", name, err)
 		}
 		for _, tok := range structure(coded) {
-			if codeName.MatchString(tok) {
+			if codes.IsReservedName(tok) {
 				used[tok] = true
 			}
 		}
@@ -73,7 +73,7 @@ func usedCodes(t *testing.T) map[string]bool {
 	return used
 }
 
-// commandLineSection K ailesinin adlarının aranacağı metindir: examples/README.md'nin "Komut satırı" bölümü
+// commandLineSection komut satırı adlarının aranacağı metindir: examples/README.md'nin "Komut satırı" bölümü
 // (bir sonraki "## " başlığına kadar).
 func commandLineSection(t *testing.T) string {
 	t.Helper()
@@ -99,7 +99,7 @@ func TestExamplesCoverNames(t *testing.T) {
 	var missing, staleExceptions []string
 	for _, k := range codes.Codes() {
 		id := k.String()
-		if id[0] == 'K' {
+		if k.ExpectedKind() == codes.KindCommand {
 			continue
 		}
 		live[id] = true
@@ -126,13 +126,13 @@ func TestExamplesCoverNames(t *testing.T) {
 	}
 }
 
-// K ailesi: komut, seçenek, kabuk ve hata ayıklayıcı adları examples/README.md'nin "Komut satırı"
+// Komut satırı adları (komut, seçenek, kabuk, hata ayıklayıcı, ortam değişkeni) examples/README.md'nin "Komut satırı"
 // bölümünde tam sözcük olarak geçer (seçenek adlarının sözcükleri tireyle de yazılabilir).
 func TestExamplesCoverCommandLine(t *testing.T) {
 	text := commandLineSection(t)
 	var missing []string
 	for _, k := range codes.Codes() {
-		if k.String()[0] != 'K' {
+		if k.ExpectedKind() != codes.KindCommand {
 			continue
 		}
 		found := false

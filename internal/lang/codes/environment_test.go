@@ -30,15 +30,15 @@ func unsetEnv(t *testing.T, name string) {
 func TestEnvValueReadsEveryLanguagesName(t *testing.T) {
 	unsetEnv(t, "TR_GPU_ESZAMANLI")
 	unsetEnv(t, "TR_GPU_SYNC")
-	if _, ok := EnvValue(K402); ok {
+	if _, ok := EnvValue(EnvGpuSync); ok {
 		t.Fatal("unset variable reported as set")
 	}
 	t.Setenv("TR_GPU_SYNC", "1")
-	if v, ok := EnvValue(K402); !ok || v != "1" {
+	if v, ok := EnvValue(EnvGpuSync); !ok || v != "1" {
 		t.Errorf("TR_GPU_SYNC=1 not read: %q %v", v, ok)
 	}
 	t.Setenv("TR_GPU_ESZAMANLI", "0")
-	if v, _ := EnvValue(K402); v != "0" {
+	if v, _ := EnvValue(EnvGpuSync); v != "0" {
 		t.Errorf("source-language name should win, got %q", v)
 	}
 }
@@ -59,21 +59,21 @@ func TestExportEnvironmentGivesTheSourceName(t *testing.T) {
 	}
 }
 
-// messages yazım dilini dil listelerinden önce okuduğu için K400'ün adlarını kendisi tutar; liste
-// K400'ün bütün gömülü dillerdeki adlarıyla aynı olmalı (yeni dil eklenince burada yakalanır).
+// messages yazım dilini dil listelerinden önce okuduğu için TR_env_LANG'ün adlarını kendisi tutar; liste
+// TR_env_LANG'ün bütün gömülü dillerdeki adlarıyla aynı olmalı (yeni dil eklenince burada yakalanır).
 func TestLanguageEnvVarsAreK400(t *testing.T) {
-	if got, want := messages.LanguageEnvVars, envNames(K400); !slices.Equal(got, want) {
-		t.Errorf("messages.LanguageEnvVars = %v, K400 names = %v", got, want)
+	if got, want := messages.LanguageEnvVars, envNames(EnvLang); !slices.Equal(got, want) {
+		t.Errorf("messages.LanguageEnvVars = %v, TR_env_LANG names = %v", got, want)
 	}
-	if messages.LanguageEnvVar != active.Name(K400) {
-		t.Errorf("messages.LanguageEnvVar = %q, K400 = %q", messages.LanguageEnvVar, active.Name(K400))
+	if messages.LanguageEnvVar != active.Name(EnvLang) {
+		t.Errorf("messages.LanguageEnvVar = %q, TR_env_LANG = %q", messages.LanguageEnvVar, active.Name(EnvLang))
 	}
 }
 
 // Hesap çekirdeğinin iletileri ortam adını ad kodundan alamaz (katman kuralı): ad her dilin
 // şablonunda o dilin adıyla yazılır. Şablon ile ad kodu ayrışırsa burada yakalanır.
 func TestComputeMessagesNameTheirLanguagesVariable(t *testing.T) {
-	uses := map[string]Code{"H4009": K402, "H4026": K405, "H4027": K405}
+	uses := map[string]Code{"H4009": EnvGpuSync, "H4026": EnvGpuCublaslt, "H4027": EnvGpuCublaslt}
 	for _, lc := range Languages() {
 		l, err := LoadLanguage(lc)
 		if err != nil {

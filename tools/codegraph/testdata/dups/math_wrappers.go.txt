@@ -1,14 +1,14 @@
 package fixture
 
 func registerIsFinite(v *interp.VM) {
-	ad := codes.DisplayName(codes.G415)
-	wrap(v, codes.G415, func(old interp.BuiltinFunc) interp.BuiltinFunc {
+	ad := codes.DisplayName(codes.FnIsFinite)
+	wrap(v, codes.FnIsFinite, func(old interp.BuiltinFunc) interp.BuiltinFunc {
 		return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 			if err := bind.CheckNamed(ad+"()", named); err != nil {
 				return nil, err
 			}
 			if len(args) == 1 {
-				if err := listError(ad, args[0], messages.Text(messages.H6131), ad+"("+codes.Name(codes.T100)+"(...))"); err != nil {
+				if err := listError(ad, args[0], messages.Text(messages.H6131), ad+"("+codes.Name(codes.FnTensor)+"(...))"); err != nil {
 					return nil, err
 				}
 			}
@@ -33,7 +33,7 @@ func registerRounding(v *interp.VM, kd codes.Code, fn func(*tensor.Tensor) *tens
 				return nil, err
 			}
 			if len(args) == 1 {
-				if err := listError(ad, args[0], messages.Text(messages.H6131), ad+"("+codes.Name(codes.T100)+"(...))"); err != nil {
+				if err := listError(ad, args[0], messages.Text(messages.H6131), ad+"("+codes.Name(codes.FnTensor)+"(...))"); err != nil {
 					return nil, err
 				}
 			}

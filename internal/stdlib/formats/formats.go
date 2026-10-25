@@ -25,13 +25,13 @@ import (
 
 // Register JSON ve CSV yerleşiklerini VM'ye kaydeder.
 func Register(v *interp.VM) {
-	v.RegisterNoNamed(codes.G600, func(vm *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	v.RegisterNoNamed(codes.FnJsonParse, func(vm *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		if len(args) != 1 {
-			return nil, interp.ArgCountError(codes.G600, 1, len(args), codes.ReceiverName(codes.A202))
+			return nil, interp.ArgCountError(codes.FnJsonParse, 1, len(args), codes.ReceiverName(codes.TypeString))
 		}
 		s, ok := args[0].(*interp.StringVal)
 		if !ok {
-			return nil, messages.New(messages.H7000, codes.NameRef(codes.G600), codes.NameRef(codes.A202), args[0].Type())
+			return nil, messages.New(messages.H7000, codes.NameRef(codes.FnJsonParse), codes.NameRef(codes.TypeString), args[0].Type())
 		}
 		val, err := interp.JSONToTR([]byte(stripBOM(s.Val)))
 		if err != nil {
@@ -40,20 +40,20 @@ func Register(v *interp.VM) {
 		return val, nil
 	})
 
-	v.RegisterNoNamed(codes.G601, func(vm *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	v.RegisterNoNamed(codes.FnJsonString, func(vm *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		if len(args) != 1 {
-			return nil, interp.ArgCountError(codes.G601, 1, len(args), messages.Text(messages.H2301))
+			return nil, interp.ArgCountError(codes.FnJsonString, 1, len(args), messages.Text(messages.H2301))
 		}
 		b, err := jsonwrite.Write(args[0])
 		if err != nil {
-			return nil, messages.New(messages.H2000, codes.NameRef(codes.G601), err)
+			return nil, messages.New(messages.H2000, codes.NameRef(codes.FnJsonString), err)
 		}
 		return &interp.StringVal{Val: string(b)}, nil
 	})
 
-	v.RegisterNoNamed(codes.G602, func(vm *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	v.RegisterNoNamed(codes.FnReadCsv, func(vm *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		if len(args) != 1 {
-			return nil, interp.ArgCountError(codes.G602, 1, len(args), messages.Text(messages.H2307))
+			return nil, interp.ArgCountError(codes.FnReadCsv, 1, len(args), messages.Text(messages.H2307))
 		}
 		resolved, err := resolveCSVPath(vm, args[0])
 		if err != nil {
@@ -65,7 +65,7 @@ func Register(v *interp.VM) {
 		vm.Blocking(func() {
 			var input string
 			if input, err = csvInput(resolved); err == nil {
-				records, err = parseCSV(codes.G602, input)
+				records, err = parseCSV(codes.FnReadCsv, input)
 			}
 		})
 		if err != nil {
@@ -74,17 +74,17 @@ func Register(v *interp.VM) {
 		return csvValues(records)
 	})
 
-	v.RegisterNoNamed(codes.G603, func(vm *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	v.RegisterNoNamed(codes.FnParseCsv, func(vm *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		if len(args) != 1 {
-			return nil, interp.ArgCountError(codes.G603, 1, len(args), codes.ReceiverName(codes.A202))
+			return nil, interp.ArgCountError(codes.FnParseCsv, 1, len(args), codes.ReceiverName(codes.TypeString))
 		}
 		s, ok := args[0].(*interp.StringVal)
 		if !ok {
-			return nil, interp.ArgTypeError(codes.G603, 1, args[0], codes.A202)
+			return nil, interp.ArgTypeError(codes.FnParseCsv, 1, args[0], codes.TypeString)
 		}
 		var records [][]string
 		var err error
-		vm.Blocking(func() { records, err = parseCSV(codes.G603, s.Val) })
+		vm.Blocking(func() { records, err = parseCSV(codes.FnParseCsv, s.Val) })
 		if err != nil {
 			return nil, err
 		}
@@ -97,12 +97,12 @@ func Register(v *interp.VM) {
 // dosya açılarak okunur (bkz. interp.ReadFileContent). CSV metninin kendisi csv_çöz ile
 // ayrıştırılır: dosya yoksa ve argüman virgül içeriyorsa hata csv_çöz'ü önerir.
 func csvInput(p csvPath) (string, error) {
-	fn := codes.NameRef(codes.G602)
+	fn := codes.NameRef(codes.FnReadCsv)
 	info, statErr := os.Stat(p.path)
 	if statErr != nil {
 		err := interp.ReadError(fn, p.arg, messages.H2100, statErr, p.tried)
 		if !p.isPath && strings.Contains(p.arg, ",") {
-			return "", messages.New(messages.H7007, err, interp.CallPrefix(codes.G603))
+			return "", messages.New(messages.H7007, err, interp.CallPrefix(codes.FnParseCsv))
 		}
 		return "", err
 	}
@@ -127,11 +127,11 @@ type csvPath struct {
 // Satır sonu içeren metin bir yol değil CSV metnidir: sekme denetiminden önce csv_çöz önerilir.
 func resolveCSVPath(vm *interp.VM, d interp.Value) (csvPath, error) {
 	if s, ok := d.(*interp.StringVal); ok && strings.ContainsAny(s.Val, "\r\n") {
-		return csvPath{}, messages.New(messages.H7006, interp.CallPrefix(codes.G602), interp.CallPrefix(codes.G603))
+		return csvPath{}, messages.New(messages.H7006, interp.CallPrefix(codes.FnReadCsv), interp.CallPrefix(codes.FnParseCsv))
 	}
-	arg, ok, err := interp.PathArg(interp.CallPrefix(codes.G602), d)
+	arg, ok, err := interp.PathArg(interp.CallPrefix(codes.FnReadCsv), d)
 	if !ok {
-		return csvPath{}, interp.ArgTypeError(codes.G602, 1, d, codes.A202, codes.A250)
+		return csvPath{}, interp.ArgTypeError(codes.FnReadCsv, 1, d, codes.TypeString, codes.TypePath)
 	}
 	if err != nil {
 		return csvPath{}, err
@@ -183,7 +183,7 @@ func csvValues(records [][]string) (interp.Value, error) {
 
 // decodeCSV CSV metnini satır listelerine çevirir (parseCSV + csvValues).
 func decodeCSV(input string) (interp.Value, error) {
-	records, err := parseCSV(codes.G603, input)
+	records, err := parseCSV(codes.FnParseCsv, input)
 	if err != nil {
 		return nil, err
 	}

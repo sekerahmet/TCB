@@ -16,11 +16,11 @@ import (
 const maxCallDepth = 10000
 
 // selfName yapı metotlarında nesneyi gösteren 'kendi' anahtar kelimesinin sözlükteki
-// adıdır (A051).
-var selfName = codes.Name(codes.A051)
+// adıdır (TR_kw_self).
+var selfName = codes.Name(codes.KwSelf)
 
-// ctorName nesne oluşturulurken çağrılan metodun adıdır (7.4; sözlükte A102).
-var ctorName = codes.Name(codes.A102)
+// ctorName nesne oluşturulurken çağrılan metodun adıdır (7.4; sözlükte TR_ctx_init).
+var ctorName = codes.Name(codes.CtxInit)
 
 // checkArity koddaki doğrudan çağrılarda (f(1, 2), x |> f) kullanıcı fonksiyonunun argüman
 // sayısını ve adlandırılmış argümanlarını denetler. Yerleşiklerin geri çağırdığı fonksiyonlar

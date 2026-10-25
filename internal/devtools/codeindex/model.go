@@ -16,10 +16,10 @@ import "strconv"
 
 // SchemaVersion JSON şemasının sürümüdür (Schema onun metin biçimi). Alan eklemek uyumludur;
 // alan çıkarmak ya da anlamını değiştirmek sürümü artırır.
-const SchemaVersion = 1
+const SchemaVersion = 2
 
 // Schema her JSON sonucuna yazılan şema adıdır.
-const Schema = "tr-codeindex/1"
+const Schema = "tr-codeindex/2"
 
 // IndexVersion dizinin kaynaktan türettiği içerik değişince artar (yeni düğüm türü, farklı
 // çözümleme). Başka sürümün önbelleği hiçbir zaman kullanılmaz.
@@ -100,7 +100,7 @@ func (p Pos) String() string {
 }
 
 // Node bir bildirim, modül ya da yerleşik addır. Name kanonik addır: kullanıcı adlarında yazıldığı
-// gibi, yerleşikte kodu (G502). Display yerleşiğin okuyanın dilindeki adıdır, kullanıcı adlarında
+// gibi, yerleşikte kodu (TR_fn_time_ms). Display yerleşiğin okuyanın dilindeki adıdır, kullanıcı adlarında
 // boştur.
 type Node struct {
 	ID        string `json:"id"`
@@ -222,7 +222,7 @@ type Unresolved struct {
 }
 
 // NodeID bir bildirimin kimliğini kurar: tür, dosya ve ad "function:lib/katman.tr#cevre"
-// biçiminde birleşir; yerleşiğin dosyası yoktur ("builtin:G502"), modülün adı yoktur.
+// biçiminde birleşir; yerleşiğin dosyası yoktur ("builtin:TR_fn_time_ms"), modülün adı yoktur.
 func NodeID(kind Kind, file, name string) string {
 	switch kind {
 	case KindBuiltin:

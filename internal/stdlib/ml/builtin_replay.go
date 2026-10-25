@@ -32,8 +32,8 @@ import (
 
 // registerReplay tekrar_oynat ve yerine_yaz yerleşiklerini kaydeder.
 func registerReplay(v *interp.VM) {
-	wrap(v, codes.T313, newBuiltin(replayBuiltin))
-	wrap(v, codes.T122, newBuiltin(writeSliceBuiltin))
+	wrap(v, codes.FnReplay, newBuiltin(replayBuiltin))
+	wrap(v, codes.FnWriteSlice, newBuiltin(writeSliceBuiltin))
 }
 
 // replayFn tekrar_oynat'ın döndürdüğü fonksiyonun durumu.
@@ -122,26 +122,26 @@ func (e *replayEntry) release() {
 }
 
 func replayBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.T313)
+	fn := codes.NameRef(codes.FnReplay)
 	if len(named) > 0 {
 		return nil, interp.NoNamedArgsError(fn, named)
 	}
 	if len(args) != 1 {
-		return nil, interp.ArgCountError(codes.T313, 1, len(args))
+		return nil, interp.ArgCountError(codes.FnReplay, 1, len(args))
 	}
 	if !isCallable(args[0]) {
 		return nil, messages.New(messages.H6437, fn, typeName(args[0]))
 	}
 	r := &replayFn{f: args[0], cache: map[string]*replayEntry{}}
 	runtime.AddCleanup(r, queueRelease, r.cache)
-	return &interp.BuiltinVal{Name: codes.Name(codes.T313), Fn: guarded(r.call), NoNamedArgs: true}, nil
+	return &interp.BuiltinVal{Name: codes.Name(codes.FnReplay), Fn: guarded(r.call), NoNamedArgs: true}, nil
 }
 
 // call oynatılan fonksiyonu çalıştırır (bkz. dosya başı).
 func (r *replayFn) call(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.T313)
+	fn := codes.NameRef(codes.FnReplay)
 	if tensor.GradEnabled() {
-		return nil, messages.New(messages.H6440, fn, codes.NameRef(codes.T301))
+		return nil, messages.New(messages.H6440, fn, codes.NameRef(codes.FnNoGrad))
 	}
 	var inputs []*tensor.Tensor
 	var alias []int
@@ -231,7 +231,7 @@ func recorderOf(inputs []*tensor.Tensor) tensor.Recorder {
 // capture kaydın girdi tensörlerini kurar (argümanların kopyaları; aynı tensörün tekrarı aynı
 // kopya) ve f'i kayıt altında çalıştırır. f'in hatası kaydı bırakıp olduğu gibi döner.
 func (e *replayEntry) capture(m *interp.VM, rec tensor.Recorder, f interp.Value, args []interp.Value, alias []int) (err error) {
-	fn := codes.NameRef(codes.T313)
+	fn := codes.NameRef(codes.FnReplay)
 	vals := make([]interp.Value, len(args))
 	var versions []uint64
 	for i, a := range args {
@@ -347,7 +347,7 @@ func (e *replayEntry) result() interp.Value {
 	return &interp.ListVal{Elements: el}
 }
 
-var nameStart = bind.NamedArg(codes.T908)
+var nameStart = bind.NamedArg(codes.ArgStart)
 
 // writeSliceBuiltin yerine_yaz(hedef, kaynak, eksen:, başlangıç:): kaynağı hedefin eksenindeki
 // dilime başlangıçtan itibaren yerinde yazar. Başlangıç sayı ya da 0 boyutlu tam sayı tensörüdür.
@@ -356,9 +356,9 @@ var nameStart = bind.NamedArg(codes.T908)
 // okunur ve denetlenir; kayıt içinde tensörle verilen konum cihazdan okunur (her oynatmada),
 // sınır dışıysa kırpılır (lax.dynamic_update_slice gibi).
 func writeSliceBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.T122)
+	fn := codes.NameRef(codes.FnWriteSlice)
 	if len(args) != 2 {
-		return nil, interp.ArgCountError(codes.T122, 2, len(args))
+		return nil, interp.ArgCountError(codes.FnWriteSlice, 2, len(args))
 	}
 	if err := bind.CheckNamed(fn.Called(), named, nameAxis, nameStart); err != nil {
 		return nil, err
@@ -375,7 +375,7 @@ func writeSliceBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 		return nil, err
 	}
 	if dst.t.RequiresGrad() && tensor.GradEnabled() {
-		return nil, messages.New(messages.H6716, codes.NameRef(codes.T301))
+		return nil, messages.New(messages.H6716, codes.NameRef(codes.FnNoGrad))
 	}
 	if !dst.t.IsContiguous() {
 		return nil, messages.New(messages.H6443, fn)

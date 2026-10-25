@@ -1,3 +1,3 @@
-//! tr kodlu 2 dil=tr
-// Bilerek hatalı kodlu modül (17.6): kod listesinde olmayan bir kod (G999) sözdizimi hatasıdır.
-G999(1)
+//! tr kodlu 3 dil=tr
+// Bilerek hatalı kodlu modül (17.6): kod listesinde olmayan bir kimlik (TR_fn_yok) sözdizimi hatasıdır.
+TR_fn_yok(1)

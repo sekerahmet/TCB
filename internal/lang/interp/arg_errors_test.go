@@ -10,16 +10,16 @@ import (
 
 // Hata yardımcıları dilin adlarını koddan alır: yerleşik ve tip adları Go metninde yazılmaz.
 func TestArgErrorsFormat(t *testing.T) {
-	if got := ArgTypeError(codes.T101, 1, &StringVal{Val: "a"}, codes.A200).Error(); got != `sıfırlar() 1. argüman olarak Tam bekler, Metin ("a") verildi` {
+	if got := ArgTypeError(codes.FnZeros, 1, &StringVal{Val: "a"}, codes.TypeInt).Error(); got != `sıfırlar() 1. argüman olarak Tam bekler, Metin ("a") verildi` {
 		t.Errorf("tip hatası: %s", got)
 	}
-	if got := ArgTypeError(codes.G210, 1, Null, codes.A200, codes.A201, codes.A202).Error(); got != `tam() 1. argüman olarak Tam, Ondalık ya da Metin bekler, Yok (yok) verildi` {
+	if got := ArgTypeError(codes.FnInt, 1, Null, codes.TypeInt, codes.TypeFloat, codes.TypeString).Error(); got != `tam() 1. argüman olarak Tam, Ondalık ya da Metin bekler, Yok (yok) verildi` {
 		t.Errorf("çok tipli tip hatası: %s", got)
 	}
-	if got := ArgCountError(codes.G305, Counts(1, 2), 3, "bitiş", "başlangıç, bitiş").Error(); got != "aralık() 1 ya da 2 argüman bekler, 3 verildi (kullanım: aralık(bitiş) ya da aralık(başlangıç, bitiş))" {
+	if got := ArgCountError(codes.FnRange, Counts(1, 2), 3, "bitiş", "başlangıç, bitiş").Error(); got != "aralık() 1 ya da 2 argüman bekler, 3 verildi (kullanım: aralık(bitiş) ya da aralık(başlangıç, bitiş))" {
 		t.Errorf("sayı hatası: %s", got)
 	}
-	if got := ArgCountError(codes.Y200, 1, 0).Error(); got != "liste.filtrele() 1 argüman bekler, 0 verildi" {
+	if got := ArgCountError(codes.MemFilter, 1, 0).Error(); got != "liste.filtrele() 1 argüman bekler, 0 verildi" {
 		t.Errorf("üye sayı hatası: %s", got)
 	}
 	// Kural (4D denetimi, ayrı not): beklenen sayı iletiye sayı olarak gider, çoğul ona göre seçilir
@@ -28,16 +28,16 @@ func TestArgErrorsFormat(t *testing.T) {
 		err error
 		en  string
 	}{
-		{ArgCountError(codes.G403, 1, 2), "abs() takes 1 argument, 2 given"},
-		{ArgCountError(codes.G403, 2, 1), "abs() takes 2 arguments, 1 given"},
-		{ArgCountError(codes.G305, Counts(1, 2), 3), "range() takes 1 or 2 arguments, 3 given"},
-		{ArgCountError(codes.G120, AtLeast(1), 0), "takes 1 or more arguments, 0 given"},
+		{ArgCountError(codes.FnAbs, 1, 2), "abs() takes 1 argument, 2 given"},
+		{ArgCountError(codes.FnAbs, 2, 1), "abs() takes 2 arguments, 1 given"},
+		{ArgCountError(codes.FnRange, Counts(1, 2), 3), "range() takes 1 or 2 arguments, 3 given"},
+		{ArgCountError(codes.FnPath, AtLeast(1), 0), "takes 1 or more arguments, 0 given"},
 	} {
 		if got := messages.ErrorIn(c.err, "en"); !strings.Contains(got, c.en) {
 			t.Errorf("İngilizce sayı hatası %q, %q bekleniyordu", got, c.en)
 		}
 	}
-	if got := Usage(codes.G101, "", "istem").MessageText(codes.SourceLanguage); got != "girdi() ya da girdi(istem)" {
+	if got := Usage(codes.FnInput, "", "istem").MessageText(codes.SourceLanguage); got != "girdi() ya da girdi(istem)" {
 		t.Errorf("kullanım: %s", got)
 	}
 	// Büyük değerler özetlenir: hata mesajı binlerce elemanı yazdırmaz

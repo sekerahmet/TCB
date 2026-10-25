@@ -6,116 +6,154 @@ package codes
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// Code is the language-independent, unchanging identity of a name. Its value is
-// family*1000 + number: A001 = A+1, Y400 = Y+400.
+// Code is a name's place in the code list inside the binary. Files, messages and tools write
+// a code by its identity (TR_fn_sum, String); the number is only an index and an order (the
+// language files' order) and never leaves the binary. Go code writes codes with the generated
+// named constants (codes.FnSum).
 type Code uint16
-
-// Family bases. Go code writes codes with the generated named constants (G100, A001), not
-// with these; the family + number form is used only inside this package, in the generated
-// file. The numeric values exist only inside the binary; the language file stores codes as
-// text (G100).
-const (
-	A Code = 1000 * (iota + 1) // dilin çekirdeği: anahtar kelimeler, tip adları
-	G                          // genel yerleşikler
-	H                          // hata mesajları (ikinci aşama)
-	K                          // komutlar: tr alt komutları, seçenekler, kabuk ve hata ayıklayıcı
-	T                          // tensör ve yapay zekâ
-	V                          // veri ve parçalayıcı
-	W                          // web, veritabanı, arayüz (kaldırıldı)
-	Y                          // yöntemler: metot ve özellikler
-)
-
-// familyLetters alfabe sırasındadır; böylece kodların sayısal sırası dil dosyasındaki
-// (harf, sayı) sırasıyla aynıdır.
-const familyLetters = "AGHKTVWY"
 
 // None is the zero value returned for a name that has no code.
 const None Code = 0
 
-// Letter is the code's family letter ('A', 'G' ...); 0 for an invalid code.
-func (k Code) Letter() byte {
-	i := int(k)/1000 - 1
-	if i < 0 || i >= len(familyLetters) {
-		return 0
-	}
-	return familyLetters[i]
+// IdentityPrefix starts every identity: TR_<class>_<English name> (TR_kw_if, TR_fn_sum,
+// TR_env_LANG). Names starting with it are reserved (IsReservedName).
+const IdentityPrefix = "TR_"
+
+// Class is the class part of a code's identity (TR_fn_sum → fn). It is written in the
+// identity once and never changes; the code's namespace and kind follow from it.
+type Class string
+
+const (
+	ClassKeyword     Class = "kw"    // keywords, reserved in the lexer
+	ClassContextual  Class = "ctx"   // contextual words (olarak, test, kurucu, o ...)
+	ClassValueName   Class = "val"   // names of values that are not words of the source (inf, nan)
+	ClassType        Class = "type"  // type names
+	ClassFunction    Class = "fn"    // builtin functions
+	ClassConstant    Class = "const" // builtin constants (pi)
+	ClassNamedArg    Class = "arg"   // named arguments
+	ClassMember      Class = "mem"   // methods and properties
+	ClassCommand     Class = "cmd"   // commands of tr
+	ClassSubcommand  Class = "sub"   // subcommands of 'tr dizin'
+	ClassOption      Class = "opt"   // command-line options
+	ClassShell       Class = "repl"  // shell commands
+	ClassDebugger    Class = "dbg"   // terminal debugger commands
+	ClassEnvironment Class = "env"   // environment variables (the identity drops the TR_ of the name)
+)
+
+// Classes lists the classes in the order the language files list their codes (inside a class,
+// codes are sorted by identity), with the namespace each class's names live in.
+var Classes = []struct {
+	Class     Class
+	Namespace Namespace
+}{
+	{ClassKeyword, NamespaceGlobal},
+	{ClassContextual, NamespaceGlobal},
+	{ClassValueName, NamespaceGlobal},
+	{ClassType, NamespaceType},
+	{ClassFunction, NamespaceGlobal},
+	{ClassConstant, NamespaceGlobal},
+	{ClassNamedArg, NamespaceParam},
+	{ClassMember, NamespaceMember},
+	{ClassCommand, NamespaceCommand},
+	{ClassSubcommand, NamespaceSubcommand},
+	{ClassOption, NamespaceOption},
+	{ClassShell, NamespaceCommand},
+	{ClassDebugger, NamespaceDebugger},
+	{ClassEnvironment, NamespaceEnvironment},
 }
 
-// Number is the code's number inside its family (0-999).
-func (k Code) Number() int { return int(k) % 1000 }
+// tables kod listesinden (codes_generated.go'daki identities) bir kez kurulur: kodun sınıfı ve ad
+// alanı, kimlikten koda eşleme. Paket değişkenidir (init değil): dil listeleri de paket
+// değişkeniyle kurulur ve Parse'a başvurur; Go başlatma sırasını başvurulardan çıkarır.
+var tables = buildTables()
 
-// Group is the code's hundreds digit (A013 → 0, T402 → 4).
-func (k Code) Group() int { return k.Number() / 100 }
+type codeTables struct {
+	class      []Class
+	namespace  []Namespace
+	byIdentity map[string]Code
+}
 
-// String writes the code as in the language file (A001, Y400).
+func buildTables() codeTables {
+	ns := map[Class]Namespace{}
+	for _, c := range Classes {
+		ns[c.Class] = c.Namespace
+	}
+	t := codeTables{class: make([]Class, len(identities)), namespace: make([]Namespace, len(identities)),
+		byIdentity: make(map[string]Code, len(identities))}
+	for k, id := range identities {
+		if id == "" {
+			continue
+		}
+		c := IdentityClass(id)
+		t.class[k], t.namespace[k] = c, ns[c]
+		t.byIdentity[id] = Code(k)
+	}
+	return t
+}
+
+// IdentityClass is the class part of an identity (TR_fn_sum → fn); empty when s does not have
+// the identity form.
+func IdentityClass(s string) Class {
+	rest, ok := strings.CutPrefix(s, IdentityPrefix)
+	if !ok {
+		return ""
+	}
+	c, name, ok := strings.Cut(rest, "_")
+	if !ok || name == "" {
+		return ""
+	}
+	return Class(c)
+}
+
+// String writes the code's identity (TR_kw_if, TR_mem_step).
 func (k Code) String() string {
-	if k.Letter() == 0 {
+	if int(k) <= 0 || int(k) >= len(identities) {
 		return fmt.Sprintf("Kod(%d)", uint16(k))
 	}
-	return fmt.Sprintf("%c%03d", k.Letter(), k.Number())
+	return identities[k]
 }
 
-// Parse converts text such as "A001" to a code.
+// Parse returns the code of an identity (TR_fn_sum).
 func Parse(s string) (Code, error) {
-	if len(s) != 4 {
-		return None, messages.Internalf("invalid code %q: want one letter and three digits (e.g. G100)", s)
+	if k, ok := tables.byIdentity[s]; ok {
+		return k, nil
 	}
-	family := -1
-	for i := 0; i < len(familyLetters); i++ {
-		if s[0] == familyLetters[i] {
-			family = i
-		}
-	}
-	if family < 0 {
-		return None, messages.Internalf("invalid code %q: family letter must be one of %s", s, familyLetters)
-	}
-	n := 0
-	for _, c := range s[1:] {
-		if c < '0' || c > '9' {
-			return None, messages.Internalf("invalid code %q: three digits must follow the letter", s)
-		}
-		n = n*10 + int(c-'0')
-	}
-	if n == 0 {
-		return None, messages.Internalf("invalid code %q: 000 is not used", s)
-	}
-	return Code(1000*(family+1) + n), nil
+	return None, messages.Internalf("invalid code %q: not an identity in the code list (e.g. TR_fn_print)", s)
 }
 
-// IsCodeForm reports whether s has the form of a code: an upper-case letter and three digits
-// (G100, A001, K001). Names of this form are reserved (files are stored with codes; see
-// docs/spec/02_sozcuk_yapisi.md 2.3a) and cannot be user names. The family letter may be one
-// not used yet (for future families).
-func IsCodeForm(s string) bool {
-	if len(s) != 4 || s[0] < 'A' || s[0] > 'Z' {
-		return false
+// IsReservedName reports whether s starts with IdentityPrefix: such names are reserved for the
+// identities of the language and its library (files are stored with identities; see
+// docs/spec/02_sozcuk_yapisi.md 2.3a) and cannot be user names, whether or not the identity
+// exists yet.
+func IsReservedName(s string) bool { return strings.HasPrefix(s, IdentityPrefix) }
+
+// Class is the class part of the code's identity; empty for an invalid code.
+func (k Code) Class() Class {
+	if int(k) >= len(tables.class) {
+		return ""
 	}
-	for i := 1; i < 4; i++ {
-		if s[i] < '0' || s[i] > '9' {
-			return false
-		}
-	}
-	return true
+	return tables.class[k]
 }
 
 // Namespace is the scope in which a name must be unique.
 type Namespace uint8
 
 const (
-	NamespaceNone        Namespace = iota // a code with no namespace (H: error messages)
-	NamespaceGlobal                       // keywords, contextual words, G/T/V/W builtins
-	NamespaceType                         // type names (A2xx)
-	NamespaceMember                       // methods and properties (Y)
-	NamespaceParam                        // named arguments (the x9xx groups in G/T/V/W)
-	NamespaceCommand                      // commands of tr and the shell (K0xx, K2xx)
-	NamespaceOption                       // command-line options, written --name (K1xx): 'kontrol' there is not 'tr kontrol'
-	NamespaceDebugger                     // terminal debugger commands (K3xx): its 'izle' is not 'tr izle'
-	NamespaceSubcommand                   // subcommands of 'tr dizin' (K016-K020): 'tr tanım' is not a command
-	NamespaceEnvironment                  // environment variables (K4xx): TR_DIL, TR_GPU_ESZAMANLI ...
+	NamespaceNone        Namespace = iota // a code with no namespace (an invalid code)
+	NamespaceGlobal                       // keywords, contextual words, value names, builtins
+	NamespaceType                         // type names
+	NamespaceMember                       // methods and properties
+	NamespaceParam                        // named arguments
+	NamespaceCommand                      // commands of tr and the shell
+	NamespaceOption                       // command-line options, written --name: 'kontrol' there is not 'tr kontrol'
+	NamespaceDebugger                     // terminal debugger commands: its 'izle' is not 'tr izle'
+	NamespaceSubcommand                   // subcommands of 'tr dizin': 'tr tanım' is not a command
+	NamespaceEnvironment                  // environment variables: TR_DIL, TR_GPU_ESZAMANLI ...
 	namespaceCount
 )
 
@@ -143,54 +181,25 @@ func (a Namespace) String() string {
 	return "no namespace"
 }
 
-// Namespace is the code's namespace.
+// Namespace is the code's namespace, from its class.
 func (k Code) Namespace() Namespace {
-	switch k.Letter() {
-	case 'A':
-		if k.Group() >= 2 {
-			return NamespaceType
-		}
-		return NamespaceGlobal
-	case 'G', 'T', 'V', 'W':
-		if k.Group() == 9 {
-			return NamespaceParam
-		}
-		return NamespaceGlobal
-	case 'Y':
-		return NamespaceMember
-	case 'K':
-		switch k.Group() {
-		case 1:
-			return NamespaceOption
-		case 3:
-			return NamespaceDebugger
-		case 4:
-			return NamespaceEnvironment
-		}
-		if k.IsIndexSubcommand() {
-			return NamespaceSubcommand
-		}
-		return NamespaceCommand
+	if int(k) >= len(tables.namespace) {
+		return NamespaceNone
 	}
-	return NamespaceNone
+	return tables.namespace[k]
 }
 
-// IsIndexSubcommand reports whether the code is a subcommand of 'tr dizin' (K015): K016 to K020.
-// They live in the command numbering but in their own namespace, so a program or shell script
-// cannot call them as top-level commands ('tr tanım' is an error, 'tr dizin tanım' works).
-func (k Code) IsIndexSubcommand() bool {
-	return k.Letter() == 'K' && k.Group() == 0 && k.Number() >= 16 && k.Number() <= 20
-}
+// IsIndexSubcommand reports whether the code is a subcommand of 'tr dizin' (TR_cmd_index). They
+// live in their own namespace, so a program or shell script cannot call them as top-level
+// commands ('tr tanım' is an error, 'tr dizin tanım' works).
+func (k Code) IsIndexSubcommand() bool { return k.Class() == ClassSubcommand }
 
-// IsKeyword reports whether the code is a keyword reserved in the lexer (A0xx).
-func (k Code) IsKeyword() bool { return k.Letter() == 'A' && k.Group() == 0 }
+// IsKeyword reports whether the code is a keyword reserved in the lexer.
+func (k Code) IsKeyword() bool { return k.Class() == ClassKeyword }
 
-// IsBuiltin reports whether the code is a builtin function registered in the global scope
-// (G/T/V/W, except x9xx).
+// IsBuiltin reports whether the code is a builtin registered in the global scope (a function
+// or a constant).
 func (k Code) IsBuiltin() bool {
-	switch k.Letter() {
-	case 'G', 'T', 'V', 'W':
-		return k.Group() != 9
-	}
-	return false
+	c := k.Class()
+	return c == ClassFunction || c == ClassConstant
 }

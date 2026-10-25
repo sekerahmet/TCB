@@ -6,7 +6,7 @@
   "İmzalarda parametrelerin yalnızca tipleri yazılır: `[Tip]` isteğe bağlı, `[Tip...]` sıfır ya da çok, `Tip...` bir ya da çok argümandır; `ad: Tip = varsayılan` adlı argümandır, `→` dönüş tipidir. Metot ve özellikler `Tip.ad` biçiminde, geçerli oldukları her tip için ayrı satırda yazılır.",
   "**Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`)."
  ],
- "countsFormat": "Toplam %d kod: %d anahtar kelime, %d bağlamsal sözcük, %d tip, %d fonksiyon, %d sabit, %d metot, %d özellik, %d adlı argüman.",
+ "countsFormat": "Toplam %d kod: %d anahtar kelime, %d bağlamsal sözcük, %d değer adı, %d tip, %d fonksiyon, %d sabit, %d metot, %d özellik, %d adlı argüman.",
  "contents": "İçindekiler",
  "pipelineTitle": "Boru hattıyla kullanılabilen fonksiyonlar",
  "pipelineIntro": [
@@ -20,178 +20,74 @@
  },
  "families": [
   {
-   "letter": "A",
-   "title": "A — Dilin çekirdeği",
+   "title": "Dilin çekirdeği",
    "sections": [
     {
-     "group": 0,
-     "title": "Anahtar kelimeler (A0xx)"
+     "class": "kw",
+     "title": "Anahtar kelimeler"
     },
     {
-     "group": 1,
-     "title": "Bağlamsal sözcükler (A1xx)"
+     "class": "ctx",
+     "title": "Bağlamsal sözcükler"
     },
     {
-     "group": 2,
-     "title": "Tip adları (A2xx)"
+     "class": "val",
+     "title": "Değer adları"
+    },
+    {
+     "class": "type",
+     "title": "Tip adları"
     }
    ]
   },
   {
-   "letter": "G",
-   "title": "G — Genel yerleşikler",
+   "title": "Yerleşikler",
    "sections": [
     {
-     "group": 1,
-     "title": "Giriş, çıkış ve dosya (G1xx)"
+     "class": "fn",
+     "title": "Yerleşik fonksiyonlar"
     },
     {
-     "group": 2,
-     "title": "Değer, tip ve dönüşüm (G2xx)"
+     "class": "const",
+     "title": "Yerleşik sabitler"
     },
     {
-     "group": 3,
-     "title": "Liste (G3xx)"
-    },
-    {
-     "group": 4,
-     "title": "Matematik ve istatistik (G4xx)"
-    },
-    {
-     "group": 5,
-     "title": "Zaman ve eşzamanlılık (G5xx)"
-    },
-    {
-     "group": 6,
-     "title": "Veri biçimleri (G6xx)"
-    },
-    {
-     "group": 7,
-     "title": "Test (G7xx)"
+     "class": "arg",
+     "title": "Adlı argümanlar"
     }
    ]
   },
   {
-   "letter": "K",
-   "title": "K — Komutlar (tr, kabuk, hata ayıklayıcı)",
+   "title": "Metot ve özellikler (x.ad)",
    "sections": [
     {
-     "group": 0,
-     "title": "tr alt komutları (K0xx)"
-    },
-    {
-     "group": 1,
-     "title": "Komut satırı seçenekleri (K1xx)"
-    },
-    {
-     "group": 2,
-     "title": "Kabuk komutları (K2xx)"
-    },
-    {
-     "group": 3,
-     "title": "Hata ayıklayıcı komutları (K3xx)"
+     "class": "mem",
+     "title": "Metot ve özellikler"
     }
    ]
   },
   {
-   "letter": "T",
-   "title": "T — Tensör ve yapay zekâ",
+   "title": "Komutlar (tr, kabuk, hata ayıklayıcı)",
    "sections": [
     {
-     "group": 1,
-     "title": "Tensör oluşturma ve görünüm (T1xx)"
+     "class": "cmd",
+     "title": "tr komutları"
     },
     {
-     "group": 2,
-     "title": "Etkinleştirme ve eleman bazlı matematik (T2xx)"
+     "class": "sub",
+     "title": "tr dizin alt komutları"
     },
     {
-     "group": 3,
-     "title": "Türev (T3xx)"
+     "class": "opt",
+     "title": "Komut satırı seçenekleri"
     },
     {
-     "group": 4,
-     "title": "İyileştiriciler (T4xx)"
+     "class": "repl",
+     "title": "Kabuk komutları"
     },
     {
-     "group": 5,
-     "title": "Katmanlar, kayıplar, hazır model (T5xx)"
-    },
-    {
-     "group": 6,
-     "title": "Vektör yardımcıları ve dil modeli (T6xx)"
-    },
-    {
-     "group": 7,
-     "title": "Kaydetme, yükleme, veri türleri (T7xx)"
-    },
-    {
-     "group": 9,
-     "title": "Adlı argümanlar (T9xx)"
-    }
-   ]
-  },
-  {
-   "letter": "V",
-   "title": "V — Veri ve parçalayıcı",
-   "sections": [
-    {
-     "group": 1,
-     "title": "Veri kümesi (V1xx)"
-    },
-    {
-     "group": 2,
-     "title": "Parçalayıcı (V2xx)"
-    },
-    {
-     "group": 9,
-     "title": "Adlı argümanlar (V9xx)"
-    }
-   ]
-  },
-  {
-   "letter": "Y",
-   "title": "Y — Metot ve özellikler (x.ad)",
-   "sections": [
-    {
-     "group": 0,
-     "title": "Birden çok tipte ortak (Y0xx)"
-    },
-    {
-     "group": 1,
-     "title": "Metin (Y1xx)"
-    },
-    {
-     "group": 2,
-     "title": "Liste (Y2xx)"
-    },
-    {
-     "group": 3,
-     "title": "Sözlük (Y3xx)"
-    },
-    {
-     "group": 4,
-     "title": "Tensör (Y4xx)"
-    },
-    {
-     "group": 5,
-     "title": "İyileştirici (Y5xx)"
-    },
-    {
-     "group": 6,
-     "title": "Veri kümesi, okuyucu, parçalayıcı (Y6xx)"
-    },
-    {
-     "group": 7,
-     "title": "Veritabanı (Y7xx)"
-    },
-    {
-     "group": 8,
-     "title": "Web sunucusu (Y8xx)"
-    },
-    {
-     "group": 9,
-     "title": "Görsel arayüz (Y9xx)"
+     "class": "dbg",
+     "title": "Hata ayıklayıcı komutları"
     }
    ]
   }

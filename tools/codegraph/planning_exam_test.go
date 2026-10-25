@@ -131,7 +131,7 @@ func (x *examRunner) answer(t *testing.T, r examRecord) (string, int) {
 }
 
 // trIndex `tr dizin <alt komut> <ad> [--tümü]` sorusunu, komutun kendi kodu gibi codeindex'e sorar: alt komut adı
-// kodundan çözülür (K016 tanım, K017 kullananlar, K018 sınayanlar, K019 etki), metin codeindex.Text'tir.
+// kodundan çözülür (TR_sub_definition tanım, TR_sub_references kullananlar, TR_sub_tested_by sınayanlar, TR_sub_impact etki), metin codeindex.Text'tir.
 func (x *examRunner) trIndex(t *testing.T, r examRecord) (string, int) {
 	sub, ok := codes.Find(codes.NamespaceSubcommand, r.args[0])
 	if !ok || len(r.args) < 2 {
@@ -143,13 +143,13 @@ func (x *examRunner) trIndex(t *testing.T, r examRecord) (string, int) {
 	}
 	var res *codeindex.Result
 	switch sub {
-	case codes.K016:
+	case codes.SubDefinition:
 		res = x.reader.Definition(r.args[1], o)
-	case codes.K017:
+	case codes.SubReferences:
 		res = x.reader.References(r.args[1], o)
-	case codes.K018:
+	case codes.SubTestedBy:
 		res = x.reader.TestedBy(r.args[1], o)
-	case codes.K019:
+	case codes.SubImpact:
 		res = x.reader.Impact(r.args[1], o)
 	default:
 		t.Fatalf("planning_questions.txt:%d: tr dizin %s is not a query", r.line, r.args[0])

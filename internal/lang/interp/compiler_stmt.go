@@ -332,7 +332,7 @@ func (c *compiler) breakpointStatement(k *compilerScope, s *ast.BreakpointStatem
 			if s.Condition != nil {
 				v.Debugger.Breakpoint(messages.Text(messages.H2446, s.Line()))
 			} else {
-				v.Debugger.Breakpoint(messages.Text(messages.H2520, codes.NameRef(codes.A090)))
+				v.Debugger.Breakpoint(messages.Text(messages.H2520, codes.NameRef(codes.KwBreakpoint)))
 			}
 		}
 		return Null, signalNone, nil

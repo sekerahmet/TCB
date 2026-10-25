@@ -175,7 +175,7 @@ func writeUses(b *strings.Builder, heading messages.Code, uses []Use, counts *Co
 		b.WriteString(line + "\n")
 	}
 	if truncated {
-		fmt.Fprintf(b, "    ... %s\n", messages.Text(messages.H8791, codes.OptionFlag(codes.K107), codes.OptionFlag(codes.K108)))
+		fmt.Fprintf(b, "    ... %s\n", messages.Text(messages.H8791, codes.OptionFlag(codes.OptLimit), codes.OptionFlag(codes.OptAll)))
 	}
 }
 
@@ -254,7 +254,7 @@ func writeLikely(b *strings.Builder, r *Result) {
 		fmt.Fprintln(b, messages.Text(messages.H8840, r.SkippedWords))
 	}
 	if r.Truncated {
-		fmt.Fprintf(b, "... %s\n", messages.Text(messages.H8791, codes.OptionFlag(codes.K107), codes.OptionFlag(codes.K108)))
+		fmt.Fprintf(b, "... %s\n", messages.Text(messages.H8791, codes.OptionFlag(codes.OptLimit), codes.OptionFlag(codes.OptAll)))
 	}
 }
 

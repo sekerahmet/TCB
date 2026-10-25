@@ -75,7 +75,7 @@ func TestInferredTypesBindMemberAccess(t *testing.T) {
 }
 
 // Kural: her bildirimin kullandığı dil yapıları kaydedilir; işlecin sol işleneninin türü yerleşik dönüşünden
-// (`metin(x)` → Metin, A202; `tensör(...)` → Tensör, A212) ya da değişmez değerden gelir, bilinmezse boştur. Kod
+// (`metin(x)` → Metin, TR_type_String; `tensör(...)` → Tensör, TR_type_Tensor) ya da değişmez değerden gelir, bilinmezse boştur. Kod
 // grafiği bu türle işleci doğru uygulamaya bağlar (deneme 9 H1; değer dili tasarımı 3. tur).
 func TestConstructsRecordOperatorsWithOperandTypes(t *testing.T) {
 	dir := t.TempDir()
@@ -97,7 +97,7 @@ func TestConstructsRecordOperatorsWithOperandTypes(t *testing.T) {
 			}
 		}
 	}
-	if got["=="] != "type:A202" || got["@"] != "type:A212" || got["+"] != "" {
+	if got["=="] != "type:TR_type_String" || got["@"] != "type:TR_type_Tensor" || got["+"] != "" {
 		t.Errorf("operand types: %v", got)
 	}
 	if !kinds["CallExpression"] || !kinds["ListLiteral"] || !kinds["InfixExpression"] {

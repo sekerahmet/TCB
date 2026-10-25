@@ -109,7 +109,7 @@ func (c *Checker) defineName(name string, kind nameKind, line int, info TypeInfo
 	c.scope.Define(name, info)
 }
 
-// checkShadowing ad bir yerleşik fonksiyonun adıysa (sözlükte G/T/V/W yerleşik kodu) uyarı
+// checkShadowing ad bir yerleşik fonksiyonun adıysa (sözlükte fn yerleşik kodu) uyarı
 // ekler: kullanıcı tanımı o kapsamda yerleşiği gölgeler; yerleşik orada artık çağrılamaz.
 func (c *Checker) checkShadowing(name string, line int) {
 	if k, ok := codes.Find(codes.NamespaceGlobal, name); ok && k.IsBuiltin() {
@@ -239,7 +239,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 				continue
 			}
 			if info, found := c.scope.Resolve(ident.Value); found && info.IsConst {
-				c.addError(s.Line(), 0, messages.New(messages.H1002, ident.Value, codes.NameRef(codes.A031)))
+				c.addError(s.Line(), 0, messages.New(messages.H1002, ident.Value, codes.NameRef(codes.KwConst)))
 			}
 		}
 
@@ -433,7 +433,7 @@ func (c *Checker) checkAssign(s *ast.AssignStatement) {
 				valType = arithmeticType(op, info.TypeName, valType, false)
 			}
 			if info.IsConst {
-				c.addError(s.Line(), 0, messages.New(messages.H1002, ident.Value, codes.NameRef(codes.A031)))
+				c.addError(s.Line(), 0, messages.New(messages.H1002, ident.Value, codes.NameRef(codes.KwConst)))
 			}
 			if info.TypeName != typeAny && info.TypeName != typeNull && !typesCompatible(info.TypeName, valType) {
 				c.addError(s.Line(), 0, messages.New(messages.H1005,

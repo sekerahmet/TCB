@@ -8,4 +8,3 @@ tools/gpu/phase3_config.json	Colab 3. aşama koşusunun ayarı; yalnızca Colab 
 tools/codegraph/README.md	aracın kullanım belgesi; `Denetim:` satırlı kuralı yok (testleri README'nin Tests bölümünde anlatılır)
 tools/hf/README.md	aracın kullanım belgesi; `Denetim:` satırlı kuralı yok
 tools/record/README.md	aracın kullanım belgesi; `Denetim:` satırlı kuralı yok
-tools/codegraph/gaps.md	codegraph eksiklerinin çalışma listesi (düzyazı); yalnız ana oturum günceller (CLAUDE.md), dosyanın kendisini okuyan test yoktur

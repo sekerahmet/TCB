@@ -229,8 +229,11 @@ func TestLayoutGeneratedHeader(t *testing.T) {
 // yazılamaz ya da kodlamaya göre bozulur; sözcükler Türkçe harfsiz yazılır (TR_GPU_OWN_GEMM).
 var envVarName = regexp.MustCompile(`^TR_[A-Z0-9_]+$`)
 
+// identityName bir kimliktir (TR_fn_print: sınıfı küçük harfli); ortam değişkeni adı değildir.
+var identityName = regexp.MustCompile(`^TR_[a-z]+_`)
+
 // Go kodundaki her "TR_..." metin sabiti (ortam değişkeni adı; "TR_X=değer" biçiminde de) ASCII
-// biçimindedir.
+// biçimindedir. Kimlikler (TR_fn_print) ortam değişkeni adı değildir.
 func TestLayoutEnvVarNames(t *testing.T) {
 	count := 0
 	for _, d := range goFiles(t) {
@@ -244,6 +247,9 @@ func TestLayoutEnvVarNames(t *testing.T) {
 				return true // ad değil, düz metin
 			}
 			name, _, _ = strings.Cut(name, "=")
+			if identityName.MatchString(name) {
+				return true
+			}
 			count++
 			if !envVarName.MatchString(name) {
 				t.Errorf("%s:%d: %q ortam değişkeni adı TR_[A-Z0-9_]+ biçiminde olmalı (Türkçe harf yok)",

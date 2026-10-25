@@ -230,7 +230,7 @@ func (d *nameChecker) statement(st ast.Statement, k *nameScope) {
 		ck := newNameScope(k)
 		ck.define(s.ErrorVar)
 		if s.ImplicitErrorVar {
-			ck.implicit[0] = codes.A103
+			ck.implicit[0] = codes.CtxError
 		}
 		// Örtük ad üst kapsamda kalır; gövdenin kendi 'hata' tanımı onu gölgeler.
 		d.blockInScope(s.CatchBody, newNameScope(ck))
@@ -239,7 +239,7 @@ func (d *nameChecker) statement(st ast.Statement, k *nameScope) {
 			d.expression(f.DefaultValue, k)
 		}
 		for _, name := range sortedMethodNames(s) {
-			d.function(s.Methods[name], k, d.treeLang.Name(codes.A051))
+			d.function(s.Methods[name], k, d.treeLang.Name(codes.KwSelf))
 		}
 	case *ast.DeferStatement:
 		d.block(s.Body, k)
@@ -285,7 +285,7 @@ func (d *nameChecker) target(e ast.Expression, k *nameScope) {
 		if !k.isKnown(id.Value) && !d.decl[id.Value] {
 			d.decl[id.Value] = true
 			d.c.nameErrors = append(d.c.nameErrors, messages.At(id.Line(), id.Token.Column,
-				messages.New(messages.H1010, messages.New(messages.H2448, id.Value, codes.NameRef(codes.A030)))))
+				messages.New(messages.H1010, messages.New(messages.H2448, id.Value, codes.NameRef(codes.KwVar)))))
 		}
 		return
 	}

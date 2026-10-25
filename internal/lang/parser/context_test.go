@@ -34,7 +34,7 @@ func TestBreakContinueOutsideLoopIsError(t *testing.T) {
 		}
 	}
 	// Fonksiyonda 'çık' yazılırsa hata çıkış için 'sonuç'u önerir (H0152, ad koddan).
-	if h := parseErrors("fonksiyon f() { çık }"); len(h) == 0 || !strings.Contains(h[0], codes.Name(codes.A021)) {
+	if h := parseErrors("fonksiyon f() { çık }"); len(h) == 0 || !strings.Contains(h[0], codes.Name(codes.KwReturn)) {
 		t.Errorf("'sonuç' önerisi (H0152) bekleniyordu, alınan: %v", h)
 	}
 	valid := []string{

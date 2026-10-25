@@ -24,18 +24,18 @@ func names(codeList ...codes.Code) []Named {
 	return a
 }
 
-// NamedArg yalnızca adlı argüman kodlarını (x9xx) kabul eder; yanlış kod başlangıçta panikler.
+// NamedArg yalnızca adlı argüman kodlarını (arg) kabul eder; yanlış kod başlangıçta panikler.
 func TestNamedArg(t *testing.T) {
-	a := NamedArg(codes.T910)
-	if a.TR != codes.Name(codes.T910) || !a.Accepts(a.TR) || a.Spellings()[0] != a.TR {
-		t.Fatalf("NamedArg(T910) = %+v", a)
+	a := NamedArg(codes.ArgLr)
+	if a.TR != codes.Name(codes.ArgLr) || !a.Accepts(a.TR) || a.Spellings()[0] != a.TR {
+		t.Fatalf("NamedArg(TR_arg_lr) = %+v", a)
 	}
 	defer func() {
-		if r := recover(); r == nil || !strings.Contains(fmt.Sprint(r), "G100") {
+		if r := recover(); r == nil || !strings.Contains(fmt.Sprint(r), "TR_fn_print") {
 			t.Fatalf("adlı argüman olmayan kod paniklemeli: %v", r)
 		}
 	}()
-	NamedArg(codes.G100)
+	NamedArg(codes.FnPrint)
 }
 
 // CheckNamed bilinmeyen adda öneriyi şu sırayla arar: (1) kod listesindeki öneri (ASCII
@@ -43,7 +43,7 @@ func TestNamedArg(t *testing.T) {
 // (büyük-küçük harf duyarsız), yine yalnızca bu fonksiyonun adlarındansa; (3) yazım
 // yakınlığı. Öneri yoksa geçerli adlar listelenir; fonksiyon adlı argüman almıyorsa söylenir.
 func TestCheckNamedSuggestionOrder(t *testing.T) {
-	lrName, axisName, epsilon := codes.Name(codes.T910), codes.Name(codes.T902), codes.Name(codes.T905)
+	lrName, axisName, epsilon := codes.Name(codes.ArgLr), codes.Name(codes.ArgDim), codes.Name(codes.ArgEps)
 	cases := []struct {
 		name       string
 		given      string
@@ -52,13 +52,13 @@ func TestCheckNamedSuggestionOrder(t *testing.T) {
 		contains   []string // mesajda geçmesi gerekenler (öneri yoksa)
 		excludes   []string
 	}{
-		{name: "bilinen ad", given: lrName, names: names(codes.T910, codes.T911)},
-		{name: "ASCII yazım", given: "ogrenme_orani", names: names(codes.T910, codes.T911), suggestion: lrName},
-		{name: "yabancı ad", given: "lr", names: names(codes.T910, codes.T911), suggestion: lrName},
-		{name: "yabancı ad büyük harfle", given: "LR", names: names(codes.T910), suggestion: lrName},
-		{name: "yabancı ad yazım yakınlığından önce", given: "eps", names: names(codes.T905, codes.T902), suggestion: epsilon},
-		{name: "yazım hatası", given: "egsen", names: names(codes.T902, codes.T903), suggestion: axisName},
-		{name: "yabancı adın karşılığı bu fonksiyonda yok", given: "lr", names: names(codes.T902),
+		{name: "bilinen ad", given: lrName, names: names(codes.ArgLr, codes.ArgWeightDecay)},
+		{name: "ASCII yazım", given: "ogrenme_orani", names: names(codes.ArgLr, codes.ArgWeightDecay), suggestion: lrName},
+		{name: "yabancı ad", given: "lr", names: names(codes.ArgLr, codes.ArgWeightDecay), suggestion: lrName},
+		{name: "yabancı ad büyük harfle", given: "LR", names: names(codes.ArgLr), suggestion: lrName},
+		{name: "yabancı ad yazım yakınlığından önce", given: "eps", names: names(codes.ArgEps, codes.ArgDim), suggestion: epsilon},
+		{name: "yazım hatası", given: "egsen", names: names(codes.ArgDim, codes.ArgSeed), suggestion: axisName},
+		{name: "yabancı adın karşılığı bu fonksiyonda yok", given: "lr", names: names(codes.ArgDim),
 			contains: []string{axisName}, excludes: []string{lrName}},
 		{name: "adlı argüman almayan fonksiyon", given: "eksen", names: nil, contains: []string{"almaz"}},
 	}
@@ -100,7 +100,7 @@ func TestCheckNamedSuggestionOrder(t *testing.T) {
 }
 
 func TestGetNamed(t *testing.T) {
-	a := NamedArg(codes.T902)
+	a := NamedArg(codes.ArgDim)
 	v := &interp.IntVal{Val: 3}
 	if g, ok := GetNamed(map[string]interp.Value{a.TR: v}, a); !ok || g != v {
 		t.Fatalf("GetNamed = %v, %v", g, ok)
@@ -241,11 +241,11 @@ func TestShortNumber(t *testing.T) {
 // noNamedArgs bayrağını değere yazar.
 func TestMethodWrappersTurnPanicsIntoNamedErrors(t *testing.T) {
 	boom := func(*interp.VM, []interp.Value, map[string]interp.Value) (interp.Value, error) { panic("patladı") }
-	c := CodeMethod(codes.Y010, true, boom)
-	if c.Name != codes.Name(codes.Y010) || !c.NoNamedArgs {
+	c := CodeMethod(codes.MemUpdate, true, boom)
+	if c.Name != codes.Name(codes.MemUpdate) || !c.NoNamedArgs {
 		t.Fatalf("CodeMethod: %+v", c)
 	}
-	if _, err := c.Fn(nil, nil, nil); !messages.Has(err, messages.H2000) || !strings.Contains(err.Error(), interp.CallName(codes.Y010).String()) {
+	if _, err := c.Fn(nil, nil, nil); !messages.Has(err, messages.H2000) || !strings.Contains(err.Error(), interp.CallName(codes.MemUpdate).String()) {
 		t.Fatalf("CodeMethod panik hatası: %v", err)
 	}
 }
@@ -253,7 +253,7 @@ func TestMethodWrappersTurnPanicsIntoNamedErrors(t *testing.T) {
 // Kural: OptionalBool verilmemiş adlı Mantık argümanında varsayılanı verir, verilmişte değeri okur,
 // Mantık olmayan değerde argümanı adıyla anan hata verir; ad iletinin dilindedir (4D).
 func TestOptionalBool(t *testing.T) {
-	a := NamedArg(codes.T902)
+	a := NamedArg(codes.ArgDim)
 	for _, def := range []bool{false, true} {
 		if b, err := OptionalBool("f", map[string]interp.Value{}, a, def); err != nil || b != def {
 			t.Errorf("verilmemiş (varsayılan %v) = %v, %v", def, b, err)
@@ -266,7 +266,7 @@ func TestOptionalBool(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "f: "+a.TR+" ") {
 		t.Errorf("Mantık olmayan değer adıyla hata vermeli: %v", err)
 	}
-	en := codes.NameRef(codes.T902).MessageText("en")
+	en := codes.NameRef(codes.ArgDim).MessageText("en")
 	if got := messages.ErrorIn(err, "en"); en == a.TR || !strings.Contains(got, "f: "+en+" must be") {
 		t.Errorf("İngilizce iletide ad İngilizce olmalı (%s): %s", en, got)
 	}
@@ -295,13 +295,13 @@ func TestSafeBuiltin(t *testing.T) {
 // ArgCountError/ArgTypeError verir.
 func TestSingleDictArg(t *testing.T) {
 	d := interp.NewDictVal()
-	if got, err := SingleDictArg(codes.Y503, []interp.Value{d}, "örnek"); err != nil || got != d {
+	if got, err := SingleDictArg(codes.MemLoadState, []interp.Value{d}, "örnek"); err != nil || got != d {
 		t.Errorf("sözlük = %v, %v", got, err)
 	}
-	if _, err := SingleDictArg(codes.Y503, nil, "örnek"); err == nil || !strings.Contains(err.Error(), "örnek") {
+	if _, err := SingleDictArg(codes.MemLoadState, nil, "örnek"); err == nil || !strings.Contains(err.Error(), "örnek") {
 		t.Errorf("argümansız çağrı sayı hatası vermeli (örnek anılmalı): %v", err)
 	}
-	if _, err := SingleDictArg(codes.Y503, []interp.Value{&interp.IntVal{Val: 1}}, "örnek"); err == nil {
+	if _, err := SingleDictArg(codes.MemLoadState, []interp.Value{&interp.IntVal{Val: 1}}, "örnek"); err == nil {
 		t.Error("sözlük olmayan argüman hata vermeli")
 	}
 }

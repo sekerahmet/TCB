@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // Error 05 — Type mismatch.
 // Message code: H1001
 // What happens: The type checker catches, before the program runs, that a value of another type was assigned to a variable with a declared type.
@@ -7,5 +7,5 @@
 //     var age: Int = 30
 // Run (from the project root): tr examples/en/errors/05_type_mismatch.tr   (exit code 1)
 
-A030 age: A200 = "thirty"
-G100(age)
+TR_kw_var age: TR_type_Int = "thirty"
+TR_fn_print(age)

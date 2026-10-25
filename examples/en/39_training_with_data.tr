@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // 39 — Training with data: a small language model end to end with a tokenizer and a data loader.
 // What it teaches: loading tokenizer.json and encoding/decoding text (Tokenizer, token_id, special_tokens, pair), taking random batches from .npy data files with a
 // sampler, validating with a sequential reader, cache.
@@ -19,103 +19,103 @@
 //     tr examples/en/39_training_with_data.tr --step 500 --log-file logs/training.jsonl
 //     tr examples/en/39_training_with_data.tr --help
 
-A031 TOKENIZER_PATH = "../../tests/data/tokenizer.json"
-A031 DATA_PATH = "../../tests/data/text"
-A031 VALIDATION_PATH = "../../tests/data/text"
+TR_kw_const TOKENIZER_PATH = "../../tests/data/tokenizer.json"
+TR_kw_const DATA_PATH = "../../tests/data/text"
+TR_kw_const VALIDATION_PATH = "../../tests/data/text"
 
-A030 config = G801({Y500: 150, batch: 8, context: 32, Y504: 0.01, log_file: A042},
-    G910: "Trains a small language model on synthetic text data",
-    G911: {Y500: "number of training steps", batch: "rows per batch", context: "tokens per row",
+TR_kw_var config = TR_fn_command_line({TR_mem_step: 150, batch: 8, context: 32, TR_mem_lr: 0.01, log_file: TR_kw_none},
+    TR_arg_description: "Trains a small language model on synthetic text data",
+    TR_arg_descriptions: {TR_mem_step: "number of training steps", batch: "rows per batch", context: "tokens per row",
         log_file: ".jsonl file the loss of every step is written to"})
-A031 STEPS = config.Y500
-A031 BATCH = config.batch
-A031 CONTEXT = config.context
-A030 D = 32 // embedding size
-A031 HIDDEN = 64 // size of the middle layer
+TR_kw_const STEPS = config.TR_mem_step
+TR_kw_const BATCH = config.batch
+TR_kw_const CONTEXT = config.context
+TR_kw_var D = 32 // embedding size
+TR_kw_const HIDDEN = 64 // size of the middle layer
 
 // --- Tokenizer ---
-A030 p = V200(TOKENIZER_PATH)
-G100(p)
-A030 sentence = "Bugün hava çok güzel."
-A030 ids = p.Y610(sentence)
-G100("\"{sentence}\" → {ids.Y001} tokens: {ids}")
-G100("decoded back: {p.Y611(ids)}")
+TR_kw_var p = TR_fn_load_tokenizer(TOKENIZER_PATH)
+TR_fn_print(p)
+TR_kw_var sentence = "Bugün hava çok güzel."
+TR_kw_var ids = p.TR_mem_encode(sentence)
+TR_fn_print("\"{sentence}\" → {ids.TR_mem_length} tokens: {ids}")
+TR_fn_print("decoded back: {p.TR_mem_decode(ids)}")
 // token_id gives the id of a token in the vocabulary (none if it is not there). special_tokens: false leaves the
 // special tokens out of the encoding; pair: encodes two texts together (like a question and an answer).
-G100(G201(p) == A234, p.Y613("<|endoftext|>"))
-G100(p.Y610(sentence, V910: A041), p.Y610("soru", V911: "cevap"))
-A030 V = p.Y612
+TR_fn_print(TR_fn_type(p) == TR_type_Tokenizer, p.TR_mem_token_id("<|endoftext|>"))
+TR_fn_print(p.TR_mem_encode(sentence, TR_arg_special_tokens: TR_kw_false), p.TR_mem_encode("soru", TR_arg_pair: "cevap"))
+TR_kw_var V = p.TR_mem_vocab_size
 
 // --- Data ---
-A030 corpus = V100(DATA_PATH)
-G100(corpus)
+TR_kw_var corpus = TR_fn_dataset(DATA_PATH)
+TR_fn_print(corpus)
 // cache: if the data is on a slow drive it is copied to a local folder; quota_gb: is the most GB that folder may use
 // (the two are given together).
-A030 cached = V100(DATA_PATH, V900: G120(G126(), "cache"), V901: 1)
-G100(G201(corpus) == A231, G201(cached) == A231)
-A030 sampler = corpus.Y600(V902: BATCH, V903: CONTEXT, T903: 1)
-G100(G201(sampler) == A232)
+TR_kw_var cached = TR_fn_dataset(DATA_PATH, TR_arg_cache: TR_fn_path(TR_fn_temp_dir(), "cache"), TR_arg_quota_gb: 1)
+TR_fn_print(TR_fn_type(corpus) == TR_type_Dataset, TR_fn_type(cached) == TR_type_Dataset)
+TR_kw_var sampler = corpus.TR_mem_sampler(TR_arg_batch_size: BATCH, TR_arg_context: CONTEXT, TR_arg_seed: 1)
+TR_fn_print(TR_fn_type(sampler) == TR_type_Sampler)
 
 // --- Model: embedding → middle layer → distribution over the vocabulary (the next token is
 // predicted from the current token only; for a model with attention see examples/en/35_transformer.tr) ---
-A030 weights = []
-A030 param_seed = 0
-A020 param(shape, scale) {
+TR_kw_var weights = []
+TR_kw_var param_seed = 0
+TR_kw_func param(shape, scale) {
     param_seed += 1
-    A030 w = T100(T301(T103(shape, T903: param_seed) * scale), T900: A040)
-    weights.Y004(w)
-    A021 w
+    TR_kw_var w = TR_fn_tensor(TR_fn_no_grad(TR_fn_randn(shape, TR_arg_seed: param_seed) * scale), TR_arg_requires_grad: TR_kw_true)
+    weights.TR_mem_append(w)
+    TR_kw_return w
 }
-A030 E = param([V, D], 0.1)
-A030 W1 = param([D, HIDDEN], 0.1)
-A030 W2 = param([HIDDEN, V], 0.1)
+TR_kw_var E = param([V, D], 0.1)
+TR_kw_var W1 = param([D, HIDDEN], 0.1)
+TR_kw_var W2 = param([HIDDEN, V], 0.1)
 
-A020 forward(tokens) {
-    A021 T203(T500(E, tokens) @ W1) @ W2
+TR_kw_func forward(tokens) {
+    TR_kw_return TR_fn_gelu(TR_fn_embedding(E, tokens) @ W1) @ W2
 }
 
 // --- Training ---
-A030 optimizer = T400(weights, T910: config.Y504, T911: 0.0)
+TR_kw_var optimizer = TR_fn_AdamW(weights, TR_arg_lr: config.TR_mem_lr, TR_arg_weight_decay: 0.0)
 // Progress bar (to standard error): step, loss, step speed and remaining time. If a log file
 // is given the loss of every step is written there too.
-A030 run_log = A001 config.log_file != A042 { G810(config.log_file) } A002 { A042 }
-A030 bar = G811(STEPS, G912: run_log)
-A030 last_loss = 0.0
-A010 step A011 0..STEPS {
-    A030 tokens, target = sampler.Y602()
-    optimizer.Y501()
-    A030 loss = T510(forward(tokens), target)
-    T300(loss)
-    optimizer.Y500()
-    bar.Y010({loss: loss})
-    last_loss = loss.Y404
+TR_kw_var run_log = TR_kw_if config.log_file != TR_kw_none { TR_fn_logger(config.log_file) } TR_kw_else { TR_kw_none }
+TR_kw_var bar = TR_fn_progress(STEPS, TR_arg_log: run_log)
+TR_kw_var last_loss = 0.0
+TR_kw_for step TR_kw_in 0..STEPS {
+    TR_kw_var tokens, target = sampler.TR_mem_next()
+    optimizer.TR_mem_zero_grad()
+    TR_kw_var loss = TR_fn_cross_entropy(forward(tokens), target)
+    TR_fn_backward(loss)
+    optimizer.TR_mem_step()
+    bar.TR_mem_update({loss: loss})
+    last_loss = loss.TR_mem_tolist
 }
-G100("training finished: last loss = {G405(last_loss, 3)}")
-G100(sampler)
+TR_fn_print("training finished: last loss = {TR_fn_round(last_loss, 3)}")
+TR_fn_print(sampler)
 
 // --- Validation: all the validation data in order, once ---
-A030 validation = V100(VALIDATION_PATH).Y601(V902: BATCH, V903: CONTEXT)
-G100(G201(validation) == A233)
-A030 total_loss = 0.0
-A030 batch_count = 0
-T301 {
-    A010 {
-        A030 job = validation.Y602()
-        A001 job == A042 { A013 }
-        total_loss += T510(forward(job[0]), job[1]).Y404
+TR_kw_var validation = TR_fn_dataset(VALIDATION_PATH).TR_mem_sequential(TR_arg_batch_size: BATCH, TR_arg_context: CONTEXT)
+TR_fn_print(TR_fn_type(validation) == TR_type_SequentialReader)
+TR_kw_var total_loss = 0.0
+TR_kw_var batch_count = 0
+TR_fn_no_grad {
+    TR_kw_for {
+        TR_kw_var job = validation.TR_mem_next()
+        TR_kw_if job == TR_kw_none { TR_kw_break }
+        total_loss += TR_fn_cross_entropy(forward(job[0]), job[1]).TR_mem_tolist
         batch_count += 1
     }
 }
-G100("validation: {batch_count} batches, mean loss = {G405(total_loss / batch_count, 3)}")
+TR_fn_print("validation: {batch_count} batches, mean loss = {TR_fn_round(total_loss / batch_count, 3)}")
 
 // --- Text generation: the most likely token at every step ---
-A030 generated = p.Y610("Bugün")
-T301 {
-    A010 n A011 0..12 {
-        generated.Y004(T230(forward([generated]), T902: -1).Y404[0].Y211)
+TR_kw_var generated = p.TR_mem_encode("Bugün")
+TR_fn_no_grad {
+    TR_kw_for n TR_kw_in 0..12 {
+        generated.TR_mem_append(TR_fn_argmax(forward([generated]), TR_arg_dim: -1).TR_mem_tolist[0].TR_mem_last)
     }
 }
-G100("the model wrote: {p.Y611(generated)}")
+TR_fn_print("the model wrote: {p.TR_mem_decode(generated)}")
 
 // --- Try it yourself ---
 // 1. Run with --step 400 and look at the gap between the validation loss and the training loss.

@@ -2,14 +2,14 @@ package codes
 
 import "os"
 
-// Ortam değişkenleri (K4xx) komutlar gibi ad kodudur (dil tanımı 17.8): her gömülü yazım dilinin
+// Ortam değişkenleri (env sınıfı) komutlar gibi ad kodudur (dil tanımı 17.8): her gömülü yazım dilinin
 // adıyla okunur (TR_GPU_ESZAMANLI ile TR_GPU_SYNC aynı değişkendir), iletiler ve belgeler kişinin
 // dilindeki adı yazar. Karşılaştırma: Go (GODEBUG, GOMAXPROCS) ve PyTorch (CUDA_LAUNCH_BLOCKING,
 // PYTORCH_*) ortam adlarını yalnızca İngilizce tutar; TR'de komut satırı adları her dilde kabul
 // edildiği için ortam adları da aynı kuralı izler, betik hangi dilde yazılırsa yazılsın çalışır.
-// Yazım dilini seçen K400'ü dil listeleri kurulmadan önce messages okur (messages.LanguageEnvVars).
+// Yazım dilini seçen TR_env_LANG'ı dil listeleri kurulmadan önce messages okur (messages.LanguageEnvVars).
 
-// EnvValue returns the value of the environment variable k (K4xx) and whether it is set, reading
+// EnvValue returns the value of the environment variable k (env class) and whether it is set, reading
 // it under its name in every embedded writing language; the source-language name comes first, so
 // it wins when both are set.
 func EnvValue(k Code) (string, bool) {
@@ -21,7 +21,7 @@ func EnvValue(k Code) (string, bool) {
 	return "", false
 }
 
-// ExportEnvironment gives every K4xx variable set only under another language's name its
+// ExportEnvironment gives every environment variable set only under another language's name its
 // source-language name too, so the packages that read the source name and cannot see name codes
 // (compute: TR_GPU_ESZAMANLI, TR_CPU_AVX2 ...) see it. The tr command calls it before anything
 // else runs.

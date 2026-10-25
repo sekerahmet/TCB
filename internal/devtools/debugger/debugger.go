@@ -248,29 +248,29 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 		}
 
 		switch command {
-		case codes.K300:
+		case codes.DbgStep:
 			d.Mode = StepInto
 			return 0
 
-		case codes.K301:
+		case codes.DbgNext:
 			d.Mode = StepOver
 			d.TargetDepth = v.StackDepth()
 			return 0
 
-		case codes.K302:
+		case codes.DbgOut:
 			d.Mode = StepOut
 			d.TargetDepth = v.StackDepth()
 			return 0
 
-		case codes.K303:
+		case codes.DbgContinue:
 			d.Mode = StepContinue
 			return 0
 
-		case codes.K304:
+		case codes.DbgSet:
 			// değiştir bakiye = 5000
 			rest := strings.TrimSpace(cmdLine[len(parts[0]):])
 			if !strings.Contains(rest, "=") {
-				fmt.Println("  ⚠️ " + messages.Text(messages.H8042, codes.NameRef(codes.K304)))
+				fmt.Println("  ⚠️ " + messages.Text(messages.H8042, codes.NameRef(codes.DbgSet)))
 				continue
 			}
 			eqParts := strings.SplitN(rest, "=", 2)
@@ -296,9 +296,9 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 				fmt.Println("  ✏️ " + messages.Text(messages.H8045, varName, v.Mask(interp.DisplayText(newVal)), interp.DisplayType(newVal)))
 			}
 
-		case codes.K305:
+		case codes.DbgJump:
 			if len(parts) < 2 {
-				fmt.Println("  ⚠️ " + messages.Text(messages.H8046, codes.NameRef(codes.K305)))
+				fmt.Println("  ⚠️ " + messages.Text(messages.H8046, codes.NameRef(codes.DbgJump)))
 				continue
 			}
 			targetLine, err := strconv.Atoi(parts[1])
@@ -319,9 +319,9 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 			d.PauseReason = messages.Text(messages.H8049, targetLine)
 			return targetLine
 
-		case codes.K306:
+		case codes.DbgBreak:
 			if len(parts) < 2 {
-				fmt.Println("  ⚠️ " + messages.Text(messages.H8050, codes.NameRef(codes.K306)))
+				fmt.Println("  ⚠️ " + messages.Text(messages.H8050, codes.NameRef(codes.DbgBreak)))
 				continue
 			}
 			bpLine, err := strconv.Atoi(parts[1])
@@ -335,9 +335,9 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 				fmt.Println("  🔴 " + messages.Text(messages.H8052, bpLine))
 			}
 
-		case codes.K307:
+		case codes.DbgWatch:
 			if len(parts) < 2 {
-				fmt.Println("  ⚠️ " + messages.Text(messages.H8053, codes.NameRef(codes.K307)))
+				fmt.Println("  ⚠️ " + messages.Text(messages.H8053, codes.NameRef(codes.DbgWatch)))
 				continue
 			}
 			expr := strings.TrimSpace(cmdLine[len(parts[0]):])
@@ -355,14 +355,14 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 			d.Watchpoints = append(d.Watchpoints, wp)
 			fmt.Println("  👁️ " + messages.Text(messages.H8054, wp.ID, expr))
 
-		case codes.K308:
+		case codes.DbgTable:
 			if len(parts) < 2 {
-				fmt.Println("  ⚠️ " + messages.Text(messages.H8055, codes.NameRef(codes.K308)))
+				fmt.Println("  ⚠️ " + messages.Text(messages.H8055, codes.NameRef(codes.DbgTable)))
 				continue
 			}
 			d.inspectTable(v, parts[1], env)
 
-		case codes.K309:
+		case codes.DbgStack:
 			fmt.Println("  📚 " + messages.Text(messages.H8056))
 			fmt.Println("    " + messages.Text(messages.H8057, line))
 			stack := v.StackSnapshot()
@@ -371,9 +371,9 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 				fmt.Println("    " + messages.Text(messages.H8058, len(stack)-i, f.FuncName, f.Line))
 			}
 
-		case codes.K310:
+		case codes.DbgEval:
 			if len(parts) < 2 {
-				fmt.Println("  ⚠️ " + messages.Text(messages.H8059, codes.NameRef(codes.K310)))
+				fmt.Println("  ⚠️ " + messages.Text(messages.H8059, codes.NameRef(codes.DbgEval)))
 				continue
 			}
 			exprStr := strings.TrimSpace(cmdLine[len(parts[0]):])
@@ -381,13 +381,13 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 				d.printEvaluation(v, env, e)
 			}
 
-		case codes.K311:
+		case codes.DbgScreen:
 			d.renderDebugScreen(v, line, env)
 
-		case codes.K312:
+		case codes.DbgHelp:
 			d.printDebugHelp()
 
-		case codes.K313:
+		case codes.DbgQuit:
 			fmt.Println(messages.Text(messages.H8062))
 			os.Exit(0)
 
@@ -399,7 +399,7 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 			} else if e, status := parseFirstExpression(cmdLine); status == exprParsed && !isBareName(e) {
 				d.printEvaluation(v, env, e)
 			} else {
-				fmt.Println("  ❓ " + messages.Text(messages.H8063, codes.NameRef(codes.K312)))
+				fmt.Println("  ❓ " + messages.Text(messages.H8063, codes.NameRef(codes.DbgHelp)))
 			}
 		}
 	}
@@ -461,7 +461,7 @@ func (d *Debugger) renderDebugScreen(v *interp.VM, currentLine int, env *interp.
 	if len(vars) == 0 {
 		fmt.Println("  📦 " + messages.Text(messages.H8073))
 	} else {
-		fmt.Println("  📦 " + messages.Text(messages.H8074, codes.NameRef(codes.K304)))
+		fmt.Println("  📦 " + messages.Text(messages.H8074, codes.NameRef(codes.DbgSet)))
 		for _, kv := range vars {
 			valPreview := v.Mask(interp.DisplayText(kv.Val))
 			if _, engine := kv.Val.(WatchValue); engine && strings.Contains(valPreview, "\n") {

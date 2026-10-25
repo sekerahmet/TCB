@@ -26,7 +26,7 @@ func (ix *index) printNameChain(w io.Writer, n *Node, limit int) {
 		}
 		owner := ix.byID[e.From]
 		// Yalnızca Go kodu: .tr dosyalarının ve iletilerin kullanımı uses_name ile gelir ama kayıt yeri değildir; yüzlerce
-		// TR kullanıcısı arasında yerleşiğin Go'daki kaydı (G100 → interp.printBuiltin) kayboluyordu.
+		// TR kullanıcısı arasında yerleşiğin Go'daki kaydı (TR_fn_print → interp.printBuiltin) kayboluyordu.
 		if inTestFile(owner) || !strings.HasSuffix(e.File, ".go") || strings.HasSuffix(e.File, "_test.go") {
 			continue
 		}
@@ -56,7 +56,7 @@ func (ix *index) printNameChain(w io.Writer, n *Node, limit int) {
 }
 
 // implementationsAt kodun kullanıldığı satırda aynı sahibin başvurduğu işlevleri verir (kayıt
-// tablosunda {codes.G502, timeMsBuiltin} satırının timeMsBuiltin'i).
+// tablosunda {codes.FnTimeMs, timeMsBuiltin} satırının timeMsBuiltin'i).
 func (ix *index) implementationsAt(owner *Node, use *Edge) []string {
 	var out []string
 	for _, e := range ix.out[owner.ID] {

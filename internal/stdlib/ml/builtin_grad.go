@@ -15,7 +15,7 @@ import (
 // backpropagation geri_yayılım(kayıp) yerleşiğidir: tek elemanlı kayıptan geri yayılım yapar;
 // yaprak tensörlerin gradyanları birikir.
 func backpropagation(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.T300)
+	fn := codes.NameRef(codes.FnBackward)
 	if len(args) != 1 {
 		return nil, messages.New(messages.H6400, fn, len(args))
 	}
@@ -28,10 +28,10 @@ func backpropagation(m *interp.VM, args []interp.Value, named map[string]interp.
 	}
 	t := d.t
 	if t.Numel() != 1 {
-		return nil, messages.New(messages.H6401, fn, tensor.ShapeText(t.Shape()), codes.NameRef(codes.G400), codes.NameRef(codes.G410))
+		return nil, messages.New(messages.H6401, fn, tensor.ShapeText(t.Shape()), codes.NameRef(codes.FnSum), codes.NameRef(codes.FnMean))
 	}
 	if !t.RequiresGrad() {
-		return nil, messages.New(messages.H6402, fn, gradExample("..."), codes.NameRef(codes.T301))
+		return nil, messages.New(messages.H6402, fn, gradExample("..."), codes.NameRef(codes.FnNoGrad))
 	}
 	// Dış düğümlerin (özel_türev) geri hesapları bu görevle çalışır.
 	if err := backprop(m, t, nil); err != nil {
@@ -43,7 +43,7 @@ func backpropagation(m *interp.VM, args []interp.Value, named map[string]interp.
 // noGrad iki biçimde çalışır: türevsiz { ... } bloğu türev izlemeden çalıştırır ve
 // bloğun değerini döndürür; türevsiz(x) tensörü hesap çizgesinden ayırır.
 func noGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.T301)
+	fn := codes.NameRef(codes.FnNoGrad)
 	if len(args) != 1 {
 		return nil, messages.New(messages.H6403, fn, len(args))
 	}

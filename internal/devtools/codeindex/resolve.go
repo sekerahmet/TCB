@@ -282,7 +282,7 @@ func (x *indexer) useDef(o owner, def string, called, write bool, pos Pos) {
 // bu çağrının zincirindedir (bağımsız denetim Y12: ağırlık_başlat'ı yalnızca Doğrusal'ın kurucusu çağırıyordu ve iki
 // araç da "sınayan yok" diyordu). Başvuru eklenmez: kurucunun adı çağrı yerinde yazılı değildir.
 func (x *indexer) ctorCall(o owner, structID string, pos Pos) {
-	ctor, kind := x.structMember(structID, x.lang.Name(codes.A102))
+	ctor, kind := x.structMember(structID, x.lang.Name(codes.CtxInit))
 	if kind != KindMethod {
 		return
 	}
@@ -377,7 +377,7 @@ func (x *indexer) visibleFiles(f *file) []*file {
 }
 
 // builtin bir ad kodunun yerleşik düğümünü (gerekirse ekleyerek) verir: global yerleşik, üye (Y) ve adlı argüman
-// (x9xx). Kullanıcının yazdığı kodun kullandığı adlar bunlardır; anahtar sözcük, ileti ve komut sayılmaz.
+// (arg). Kullanıcının yazdığı kodun kullandığı adlar bunlardır; anahtar sözcük, ileti ve komut sayılmaz.
 func (x *indexer) builtin(k codes.Code) (string, bool) {
 	if k == codes.None || !(k.IsBuiltin() || k.Namespace() == codes.NamespaceMember || k.Namespace() == codes.NamespaceParam) {
 		return "", false

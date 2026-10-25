@@ -6,8 +6,10 @@ import (
 	"strings"
 )
 
-// codeKey bir JSON satırındaki kod anahtarıdır (+/- önekiyle): ileti H0000, ad A000.
-var codeKeyDiff = regexp.MustCompile(`^([+-])\s*"([A-Z]\d{3,4})"\s*:`)
+// codeKeyDiff bir JSON satırındaki kod anahtarıdır (+/- önekiyle): ileti H0000, ad kimliği TR_fn_sum.
+// Geçmiş okunduğu için madde 15'in 0. adımından önceki commit'lerin ad kodları da (A001) tanınır;
+// eskiyi yeniye eşleme docs/code_identities.md'dedir.
+var codeKeyDiff = regexp.MustCompile(`^([+-])\s*"(H\d{4}|TR_[A-Za-z0-9_]+|[A-Z]\d{3})"\s*:`)
 
 // Kod sözlüğü dosyaları (modül köküne göre): ileti kodları ve ad kodları.
 var (

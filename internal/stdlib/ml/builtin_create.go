@@ -33,7 +33,7 @@ func requiresGrad(fn any, named map[string]interp.Value, positional interp.Value
 // sayı (0 boyutlu tensör), iç içe sayı listesi ya da tensör olabilir. tür verilmezse
 // listeden float32, tensörden kaynağın türünde tensör oluşur.
 func tensorBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.T100)
+	fn := codes.NameRef(codes.FnTensor)
 	if len(args) < 1 {
 		return nil, messages.New(messages.H6001, gradExample("veri"))
 	}
@@ -56,7 +56,7 @@ func tensorBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 		// Türü değiştirmenin tek yazımı t.türe(...)'dir; tür: yalnızca listeden ya da
 		// sayıdan oluştururken verilir (karar 14).
 		if _, given := bind.GetNamed(named, nameDType); given {
-			return nil, messages.New(messages.H6008, fn, codes.NameRef(codes.Y415), nameDType)
+			return nil, messages.New(messages.H6008, fn, codes.NameRef(codes.MemToDtype), nameDType)
 		}
 		// Var olan tensörden çizgeden bağımsız, kendi verisine sahip yeni bir yaprak (aynı tür).
 		dt := d.t.DType()
@@ -97,7 +97,7 @@ func shapedConstructor(kd codes.Code, create func(sh []int, named map[string]int
 			return nil, messages.New(messages.H6017, ad)
 		}
 		allowed := []bind.Named{nameRequiresGrad, nameDType}
-		if kd == codes.T103 { // rastgele_normal
+		if kd == codes.FnRandn { // rastgele_normal
 			allowed = append(allowed, nameSeed)
 		}
 		if _, list := args[0].(*interp.ListVal); !list {
@@ -168,7 +168,7 @@ func randomNormal(sh []int, named map[string]interp.Value) (*tensor.Tensor, erro
 	if s, ok := bind.GetNamed(named, nameSeed); ok {
 		seed, ok := s.(*interp.IntVal)
 		if !ok {
-			return nil, messages.New(messages.H6031, codes.NameRef(codes.T103), nameSeed, typeName(s))
+			return nil, messages.New(messages.H6031, codes.NameRef(codes.FnRandn), nameSeed, typeName(s))
 		}
 		return tensor.Randn(rand.New(rand.NewSource(seed.Val)), sh...), nil
 	}

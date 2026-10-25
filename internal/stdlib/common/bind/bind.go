@@ -1,7 +1,7 @@
 // Package bind, Go paketlerini TR diline bağlayan motor paketlerinin (tensör,
 // parçalayıcı, veri) ortak yardımcılarıdır: adlı argüman denetimi, göreli yol çözme,
 // paniği hataya çevirme ve sayıların Türkçe kısa yazımı. Kullanıcıya görünen hiçbir ad
-// tanımlamaz: adlı argümanların adları kod listesindedir (internal/lang/codes, x9xx kodları).
+// tanımlamaz: adlı argümanların adları kod listesindedir (internal/lang/codes, arg kodları).
 //
 // Layer: standard library (internal/stdlib); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
 package bind
@@ -20,7 +20,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
-// Named bir adlı argümandır: sözlükteki kodu (x9xx), adı ve kabul edilen yazımları. Adlar
+// Named bir adlı argümandır: sözlükteki kodu (arg), adı ve kabul edilen yazımları. Adlar
 // kod listesinden gelir (internal/lang/codes); Go kodu yalnızca kodu bilir.
 type Named struct {
 	Code codes.Code
@@ -33,7 +33,7 @@ type Named struct {
 // kez çağrılır; kod bir adlı argüman kodu değilse panikler.
 func NamedArg(k codes.Code) Named {
 	if k.Namespace() != codes.NamespaceParam {
-		panic(messages.Internal(fmt.Sprintf("bind.NamedArg: %s is not a named-argument code (x9xx)", k)))
+		panic(messages.Internal(fmt.Sprintf("bind.NamedArg: %s is not a named-argument code (arg)", k)))
 	}
 	return Named{Code: k, TR: codes.Name(k), spellings: codes.Spellings(k)}
 }
@@ -217,7 +217,7 @@ func SingleDictArg(kd codes.Code, args []interp.Value, example string) (*interp.
 	}
 	d, ok := args[0].(*interp.DictVal)
 	if !ok {
-		return nil, interp.ArgTypeError(kd, 1, args[0], codes.A206)
+		return nil, interp.ArgTypeError(kd, 1, args[0], codes.TypeDict)
 	}
 	return d, nil
 }

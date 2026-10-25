@@ -1,6 +1,6 @@
 // Package logging, model eğitimini izlemenin iki TR yerleşiğini içerir: JSON satırlarıyla
-// eğitim günlüğü (günlük, G810; tip Günlük, A256) ve ilerleme çubuğu (ilerleme, G811; tip
-// İlerleme, A255).
+// eğitim günlüğü (günlük, TR_fn_logger; tip Günlük, TR_type_Logger) ve ilerleme çubuğu (ilerleme, TR_fn_progress; tip
+// İlerleme, TR_type_Progress).
 //
 // Günlük dosyası biçimi (sürüm 1): her satır tek bir JSON nesnesidir ve tek bir yazma
 // çağrısıyla dosyanın sonuna eklenir; süreç çökse de en çok son satır yarım kalır.
@@ -44,14 +44,14 @@ import (
 
 // Tip adları.
 var (
-	LogType      = interp.TypeName(codes.A256) // Günlük
-	ProgressType = interp.TypeName(codes.A255) // İlerleme
+	LogType      = interp.TypeName(codes.TypeLogger)   // Günlük
+	ProgressType = interp.TypeName(codes.TypeProgress) // İlerleme
 )
 
 // Adlı argümanlar; adları kod listesindedir (internal/lang/codes).
 var (
-	nameLog  = bind.NamedArg(codes.G912)
-	nameStep = bind.NamedArg(codes.T982)
+	nameLog  = bind.NamedArg(codes.ArgLog)
+	nameStep = bind.NamedArg(codes.ArgStep)
 )
 
 // Dosya biçiminin (sürüm 1) anahtarları ve kayıt türleri; bkz. paket belgesi. Dilin adları
@@ -87,10 +87,10 @@ type state struct {
 // (komut satırı ayarları başlangıç kaydına yazılır); nil olabilir.
 func Register(v *interp.VM, s *process.State) {
 	d := &state{process: s}
-	v.RegisterNoNamed(codes.G810, func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-		return bind.Safe(interp.CallPrefix(codes.G810), func() (interp.Value, error) { return d.openLog(m, args) })
+	v.RegisterNoNamed(codes.FnLogger, func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+		return bind.Safe(interp.CallPrefix(codes.FnLogger), func() (interp.Value, error) { return d.openLog(m, args) })
 	})
-	v.RegisterBuiltinCode(codes.G811, bind.SafeBuiltin(interp.CallPrefix(codes.G811), d.openProgress))
+	v.RegisterBuiltinCode(codes.FnProgress, bind.SafeBuiltin(interp.CallPrefix(codes.FnProgress), d.openProgress))
 }
 
 // Açık günlükler ve bitmemiş çubuklar: program bitince CloseAll hepsini kapatır.

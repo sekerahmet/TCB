@@ -37,7 +37,8 @@ type goExtractor struct {
 	idx       *goIndex
 	fieldAt   map[string]string // alanın bildirim konumu -> alan düğümünün kimliği
 	fieldUses []rawFieldUse     // çözülmeyi bekleyen alan erişimleri
-	env       map[string]string // ortam değişkeni adı -> K4xx ad kodu (env_names.go)
+	env       map[string]string // ortam değişkeni adı -> ortam değişkeninin ad kodu (env_names.go)
+	codeKeys  map[string]string // ad kodu sabitinin adı -> dil dosyasındaki anahtarı (codeConstKeys)
 	consumed  map[*ast.BasicLit]bool
 	// rangeVals dize sabiti listesi üzerinde dönen döngü değişkenleri ve alabildikleri değerlerdir
 	// (`for _, p := range []string{"docs/*.md", ...}`; test_paths.go: pathCall).
@@ -97,7 +98,7 @@ func extractGo(m *module, b *builder) *goIndex {
 		pkgSyms: map[string]map[string]string{}, inTestFile: map[string]bool{}, snip: newSnippetState(),
 		byName: map[string][]*testFunc{}, dirFiles: map[string]bool{}, envSets: map[string][]envSet{},
 		scans: newScanState(),
-	}, fieldAt: map[string]string{}, env: envCodes(m.Root), consumed: map[*ast.BasicLit]bool{}, rangeVals: map[types.Object][]string{},
+	}, fieldAt: map[string]string{}, env: envCodes(m.Root), codeKeys: codeConstKeys(m.Root), consumed: map[*ast.BasicLit]bool{}, rangeVals: map[types.Object][]string{},
 		strConsts: map[string][]string{}, strConstPkg: map[string]string{}}
 	for _, u := range m.Units {
 		x.unit(u)
@@ -282,7 +283,7 @@ func (x *goExtractor) typeSpec(fc *fileCtx, gen *ast.GenDecl, ts *ast.TypeSpec, 
 func valueID(kind, pkg, name string) string { return "go:" + kind + ":" + pkg + "." + name }
 
 // valueDecl paket düzeyindeki const ve var bildirimlerini düğüm yapar. İleti kodu (messages.H2100)
-// ve ad kodu (codes.K003) sabitleri, kodun düğümüne `denotes` kenarıyla bağlanır.
+// ve ad kodu (codes.CmdRun) sabitleri, kodun düğümüne `denotes` kenarıyla bağlanır.
 func (x *goExtractor) valueDecl(fc *fileCtx, d *ast.GenDecl) {
 	kind := kindConst
 	if d.Tok == token.VAR {
@@ -320,13 +321,13 @@ func (x *goExtractor) denotes(fc *fileCtx, id, pkg, name string, line int) {
 	case fc.isTest:
 	case pkg == x.m.Path+"/"+messagesDir && messageConst.MatchString(name):
 		x.b.addEdge(id, "msg:"+name, edgeDenotes, extracted, fc.rel, line)
-	case pkg == x.m.Path+"/"+codesDir && nameConst.MatchString(name):
-		x.b.addEdge(id, "name:"+name, edgeDenotes, extracted, fc.rel, line)
+	case pkg == x.m.Path+"/"+codesDir && x.codeKeys[name] != "":
+		x.b.addEdge(id, "name:"+x.codeKeys[name], edgeDenotes, extracted, fc.rel, line)
 	}
 }
 
 // scanValueSpecs paket düzeyindeki const/var bildirimlerinin kullanımlarını bildirimin kendi düğümünden çıkarır
-// (`var ValInt = TypeName(codes.A200)`: ValInt TypeName'i ve A200'ü kullanır). Hepsini paket düğümüne yazmak aynı
+// (`var ValInt = TypeName(codes.TypeInt)`: ValInt TypeName'i ve TR_type_Int'ü kullanır). Hepsini paket düğümüne yazmak aynı
 // hedefe giden farklı dosyalardaki kullanımları tek kenara indirirdi. Adı olmayan (`var _ = ...`) ya da çözülemeyen
 // belirtim dosya düğümüne yazılır (dosyalar arasında aynı hedefe giden kullanımlar tek kenara inmesin).
 func (x *goExtractor) scanValueSpecs(fc *fileCtx, d *ast.GenDecl) {

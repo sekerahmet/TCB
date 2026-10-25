@@ -6,26 +6,26 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
-// Denetleyicinin kullandığı tip adları kod listesindedir (internal/lang/codes, A2xx).
+// Denetleyicinin kullandığı tip adları kod listesindedir (internal/lang/codes, type).
 var (
-	typeInt      = codes.Name(codes.A200)
-	typeFloat    = codes.Name(codes.A201)
-	typeString   = codes.Name(codes.A202)
-	typeBool     = codes.Name(codes.A203)
-	typeNull     = codes.Name(codes.A204)
-	typeList     = codes.Name(codes.A205)
-	typeDict     = codes.Name(codes.A206)
-	typeRange    = codes.Name(codes.A207)
-	typeFunction = codes.Name(codes.A208)
-	typeTensor   = codes.Name(codes.A212)
-	typeAny      = codes.Name(codes.A213)
+	typeInt      = codes.Name(codes.TypeInt)
+	typeFloat    = codes.Name(codes.TypeFloat)
+	typeString   = codes.Name(codes.TypeString)
+	typeBool     = codes.Name(codes.TypeBool)
+	typeNull     = codes.Name(codes.TypeNone)
+	typeList     = codes.Name(codes.TypeList)
+	typeDict     = codes.Name(codes.TypeDict)
+	typeRange    = codes.Name(codes.TypeRange)
+	typeFunction = codes.Name(codes.TypeFunction)
+	typeTensor   = codes.Name(codes.TypeTensor)
+	typeAny      = codes.Name(codes.TypeAny)
 )
 
 // typeNumber denetleyicinin iç tipidir: değer çalışma anında Tam da Ondalık da olabilir (ör.
 // Tam / Tam: 6 / 3 = 2, 7 / 2 = 3.5). Kullanıcı açıklamasında yazılamaz; yalnızca Ondalık
 // (Tam da Ondalığa atanabildiği için) ve tipsiz yerlere atanabilir.
 //
-// Kimlik dilden bağımsızdır (iki tipin kanonik adı, kod listesindeki birleşim yazımıyla: A200|A201);
+// Kimlik dilden bağımsızdır (iki tipin kanonik adı, kod listesindeki birleşim yazımıyla: TR_type_Int|TR_type_Float);
 // iletide typeText onu iletinin dilinde yazar ("Tam ya da Ondalık", "Int or Float").
 var typeNumber = typeInt + "|" + typeFloat
 
@@ -36,7 +36,7 @@ type typeText string
 
 func (t typeText) MessageText(lang string) string {
 	if string(t) == typeNumber {
-		return messages.OrListIn(lang, codes.NameRef(codes.A200).MessageText(lang), codes.NameRef(codes.A201).MessageText(lang))
+		return messages.OrListIn(lang, codes.NameRef(codes.TypeInt).MessageText(lang), codes.NameRef(codes.TypeFloat).MessageText(lang))
 	}
 	if k, ok := codes.Find(codes.NamespaceType, string(t)); ok {
 		return codes.NameRef(k).MessageText(lang)
@@ -46,8 +46,8 @@ func (t typeText) MessageText(lang string) string {
 
 // annotationTypes tip açıklamasında (değişken x: Tam) kullanılabilen tiplerin kodlarıdır:
 // 3.11'deki çekirdek tip adları.
-var annotationTypes = []codes.Code{codes.A200, codes.A201, codes.A202, codes.A203,
-	codes.A205, codes.A206, codes.A207, codes.A208, codes.A209, codes.A212, codes.A204, codes.A215}
+var annotationTypes = []codes.Code{codes.TypeInt, codes.TypeFloat, codes.TypeString, codes.TypeBool,
+	codes.TypeList, codes.TypeDict, codes.TypeRange, codes.TypeFunction, codes.TypeBuiltinFunction, codes.TypeTensor, codes.TypeNone, codes.TypeType}
 
 // typeSpellings tip açıklamasında kabul edilen yazımlar → tip adıdır. Yazımlar sözlükten
 // gelir ve tektir (3.14): yalnızca tip adının tam yazımı (Tam, Ondalık); büyük/küçük harfi
@@ -150,7 +150,7 @@ func typesCompatible(expected, actual string) bool {
 // iletinin bir parçası olarak (dıştaki iletinin dilinde yazılır); yol yoksa boş metin.
 func numberHint(expected, given string) any {
 	if normalizeTypeName(expected) == typeInt && given == typeNumber {
-		return messages.New(messages.H1008, typeText(typeFloat), typeText(typeInt), codes.NameRef(codes.G210))
+		return messages.New(messages.H1008, typeText(typeFloat), typeText(typeInt), codes.NameRef(codes.FnInt))
 	}
 	return ""
 }

@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // 36 — Character model: a small language model trained on real text (~100 thousand parameters).
 // What it teaches: building a character vocabulary from text, a deep (2-layer) model with a list of layers, counting
 // parameters, greedy text generation with argmax. The same model in another language for a speed comparison: tools/bench/README.md.
@@ -6,9 +6,9 @@
 // Data: TR's own Turkish documents. The model learns to predict the next character.
 // Run (from the project root): tr examples/en/36_char_model.tr
 
-A031 STEPS = 300
+TR_kw_const STEPS = 300
 // Training text: the sections of the user guide and the language definition, in order.
-A031 DOCUMENTS = [
+TR_kw_const DOCUMENTS = [
     "docs/guide/01_baslangic.md", "docs/guide/02_anahtar_kelimeler.md",
     "docs/guide/03_zincirleme_metotlar.md", "docs/guide/04_yapay_zeka_ve_veri.md",
     "docs/guide/05_hata_ayiklayici.md", "docs/guide/06_vscode_kisayollari.md",
@@ -20,131 +20,131 @@ A031 DOCUMENTS = [
     "docs/spec/13_yerlesikler.md", "docs/spec/14_sinirlamalar.md", "docs/spec/15_tensorler.md",
     "docs/spec/16_veri_parcalayici.md", "docs/spec/17_kodlar.md"
 ]
-A030 text_data = ""
-A010 document_path A011 DOCUMENTS {
-    text_data += G110("../../" + document_path)
+TR_kw_var text_data = ""
+TR_kw_for document_path TR_kw_in DOCUMENTS {
+    text_data += TR_fn_read_file("../../" + document_path)
 }
 
 // --- Character vocabulary ---
-A030 chars = []
-A030 char_id = {}
-A030 data = []
-A010 c A011 text_data {
-    A001 char_id[c] == A042 {
-        char_id[c] = chars.Y001
-        chars.Y004(c)
+TR_kw_var chars = []
+TR_kw_var char_id = {}
+TR_kw_var data = []
+TR_kw_for c TR_kw_in text_data {
+    TR_kw_if char_id[c] == TR_kw_none {
+        char_id[c] = chars.TR_mem_length
+        chars.TR_mem_append(c)
     }
-    data.Y004(char_id[c])
+    data.TR_mem_append(char_id[c])
 }
 
-A030 V = chars.Y001 // vocabulary size
-A030 T = 64 // context length
-A030 D = 64 // hidden size
-A030 H = 4 // attention heads
-A030 Dh = 16 // head size
-A030 B = 16 // batch size
-A031 LAYERS = 2
+TR_kw_var V = chars.TR_mem_length // vocabulary size
+TR_kw_var T = 64 // context length
+TR_kw_var D = 64 // hidden size
+TR_kw_var H = 4 // attention heads
+TR_kw_var Dh = 16 // head size
+TR_kw_var B = 16 // batch size
+TR_kw_const LAYERS = 2
 
 // --- Parameters ---
-A030 param_seed = 1
-A030 weights = []
-A020 param(shape, scale) {
+TR_kw_var param_seed = 1
+TR_kw_var weights = []
+TR_kw_func param(shape, scale) {
     param_seed += 1
-    A030 p = T100(T301(T103(shape, T903: param_seed) * scale), T900: A040)
-    weights.Y004(p)
-    A021 p
+    TR_kw_var p = TR_fn_tensor(TR_fn_no_grad(TR_fn_randn(shape, TR_arg_seed: param_seed) * scale), TR_arg_requires_grad: TR_kw_true)
+    weights.TR_mem_append(p)
+    TR_kw_return p
 }
-A020 constant_param(shape, value) {
-    A030 p = T100(T102(shape) * value, T900: A040)
-    weights.Y004(p)
-    A021 p
+TR_kw_func constant_param(shape, value) {
+    TR_kw_var p = TR_fn_tensor(TR_fn_ones(shape) * value, TR_arg_requires_grad: TR_kw_true)
+    weights.TR_mem_append(p)
+    TR_kw_return p
 }
 
-A030 E = param([V, D], 0.1)
-A030 P = param([T, D], 0.1)
-A030 layers = []
-A010 k A011 0..LAYERS {
-    layers.Y004({
+TR_kw_var E = param([V, D], 0.1)
+TR_kw_var P = param([T, D], 0.1)
+TR_kw_var layers = []
+TR_kw_for k TR_kw_in 0..LAYERS {
+    layers.TR_mem_append({
         "Wq": param([D, D], 0.1), "Wk": param([D, D], 0.1), "Wv": param([D, D], 0.1),
         "Wo": param([D, D], 0.1), "W1": param([D, 4 * D], 0.1), "W2": param([4 * D, D], 0.05),
         "g1": constant_param([D], 1.0), "s1": constant_param([D], 0.0),
         "g2": constant_param([D], 1.0), "s2": constant_param([D], 0.0)
     })
 }
-A030 gs = constant_param([D], 1.0)
-A030 ss = constant_param([D], 0.0)
-A030 Wu = param([D, V], 0.1)
+TR_kw_var gs = constant_param([D], 1.0)
+TR_kw_var ss = constant_param([D], 0.0)
+TR_kw_var Wu = param([D, V], 0.1)
 
-A030 total_params = 0
-A010 p A011 weights { total_params += p.Y400.Y207(1) { A105 * A104 } } // product of the shape's dimensions
-G100("data: {data.Y001} characters, vocabulary: {V} characters, parameters: {total_params}")
+TR_kw_var total_params = 0
+TR_kw_for p TR_kw_in weights { total_params += p.TR_mem_shape.TR_mem_reduce(1) { TR_ctx_acc * TR_ctx_it } } // product of the shape's dimensions
+TR_fn_print("data: {data.TR_mem_length} characters, vocabulary: {V} characters, parameters: {total_params}")
 
 // --- Model ---
-A030 positions = G305(T)
+TR_kw_var positions = TR_fn_range(T)
 
-A020 forward(inputs, b) {
-    A030 x = T500(E, inputs) + T500(P, positions)
-    A010 L A011 layers {
+TR_kw_func forward(inputs, b) {
+    TR_kw_var x = TR_fn_embedding(E, inputs) + TR_fn_embedding(P, positions)
+    TR_kw_for L TR_kw_in layers {
         // Pre-normalization block: attention, then feed-forward
-        A030 a = T501(x, L["g1"], L["s1"])
-        A030 q = (a @ L["Wq"]).Y410([b, T, H, Dh])
-        A030 k = (a @ L["Wk"]).Y410([b, T, H, Dh])
-        A030 v = (a @ L["Wv"]).Y410([b, T, H, Dh])
+        TR_kw_var a = TR_fn_layer_norm(x, L["g1"], L["s1"])
+        TR_kw_var q = (a @ L["Wq"]).TR_mem_reshape([b, T, H, Dh])
+        TR_kw_var k = (a @ L["Wk"]).TR_mem_reshape([b, T, H, Dh])
+        TR_kw_var v = (a @ L["Wv"]).TR_mem_reshape([b, T, H, Dh])
         // Causal attention, scale 1/√Dh = 0.25 (same as softmax(q·kᵀ·0.25 + causal mask) · v)
-        A030 y = T503(q, k, v).Y410([b, T, D])
+        TR_kw_var y = TR_fn_attention(q, k, v).TR_mem_reshape([b, T, D])
         x = x + y @ L["Wo"]
-        A030 m = T501(x, L["g2"], L["s2"])
-        x = x + T203(m @ L["W1"]) @ L["W2"]
+        TR_kw_var m = TR_fn_layer_norm(x, L["g2"], L["s2"])
+        x = x + TR_fn_gelu(m @ L["W1"]) @ L["W2"]
     }
-    A021 T501(x, gs, ss) @ Wu
+    TR_kw_return TR_fn_layer_norm(x, gs, ss) @ Wu
 }
 
 // --- Data sampling (reproducible) ---
-A030 seed = 12345
-A020 random_int(n) {
+TR_kw_var seed = 12345
+TR_kw_func random_int(n) {
     seed = (seed * 1103515245 + 12345) % 2147483648
-    A021 seed % n
+    TR_kw_return seed % n
 }
-A020 make_batch() {
-    A030 inputs = []
-    A030 targets = []
-    A010 b A011 0..B {
-        A030 start = random_int(data.Y001 - T - 1)
-        A030 row = []
-        A010 t A011 0..T {
-            row.Y004(data[start + t])
-            targets.Y004(data[start + t + 1])
+TR_kw_func make_batch() {
+    TR_kw_var inputs = []
+    TR_kw_var targets = []
+    TR_kw_for b TR_kw_in 0..B {
+        TR_kw_var start = random_int(data.TR_mem_length - T - 1)
+        TR_kw_var row = []
+        TR_kw_for t TR_kw_in 0..T {
+            row.TR_mem_append(data[start + t])
+            targets.TR_mem_append(data[start + t + 1])
         }
-        inputs.Y004(row)
+        inputs.TR_mem_append(row)
     }
-    A021 [inputs, targets]
+    TR_kw_return [inputs, targets]
 }
 
 // --- Training ---
-A030 optimizer = T400(weights, T910: 0.003, T911: 0.0)
-A010 step A011 0..STEPS {
-    A030 batch = make_batch()
-    optimizer.Y501()
-    A030 loss = T510(forward(batch[0], B), batch[1])
-    T300(loss)
-    optimizer.Y500()
-    A001 step % 50 == 0 A044 step == STEPS - 1 {
-        G100("step {step}: loss = {G405(loss.Y404, 4)}")
+TR_kw_var optimizer = TR_fn_AdamW(weights, TR_arg_lr: 0.003, TR_arg_weight_decay: 0.0)
+TR_kw_for step TR_kw_in 0..STEPS {
+    TR_kw_var batch = make_batch()
+    optimizer.TR_mem_zero_grad()
+    TR_kw_var loss = TR_fn_cross_entropy(forward(batch[0], B), batch[1])
+    TR_fn_backward(loss)
+    optimizer.TR_mem_step()
+    TR_kw_if step % 50 == 0 TR_kw_or step == STEPS - 1 {
+        TR_fn_print("step {step}: loss = {TR_fn_round(loss.TR_mem_tolist, 4)}")
     }
 }
 
 // --- Text generation (the most likely character at every step) ---
-A030 context = []
-A010 t A011 0..T { context.Y004(data[t]) }
-A030 generated = ""
-T301 {
-    A010 n A011 0..120 {
-        A030 best = T230(forward([context], 1), T902: -1).Y404[0][T - 1]
+TR_kw_var context = []
+TR_kw_for t TR_kw_in 0..T { context.TR_mem_append(data[t]) }
+TR_kw_var generated = ""
+TR_fn_no_grad {
+    TR_kw_for n TR_kw_in 0..120 {
+        TR_kw_var best = TR_fn_argmax(forward([context], 1), TR_arg_dim: -1).TR_mem_tolist[0][T - 1]
         generated = generated + chars[best]
         context = context[1..T] + [best] // shift the window by one
     }
 }
-G100("the model wrote: {generated}")
+TR_fn_print("the model wrote: {generated}")
 
 // --- Try it yourself ---
 // 1. Raise STEPS from 300 to 600: how does the generated text change?

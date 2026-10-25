@@ -15,19 +15,19 @@ import (
 // Özellikler ve metotlar
 // ----------------------------------------------------------------------------
 
-// Tensör üyeleri (adları kod listesinde, internal/lang/codes Y4xx).
+// Tensör üyeleri (adları kod listesinde, internal/lang/codes mem).
 const (
-	memberShape     = codes.Y400
-	memberDevice    = codes.Y401
-	memberDType     = codes.Y402
-	memberGrad      = codes.Y403
-	memberValue     = codes.Y404
-	memberReshape   = codes.Y410
-	memberTranspose = codes.Y411
-	memberPermute   = codes.Y412
-	memberSlice     = codes.Y413
-	memberToDevice  = codes.Y414
-	memberToDType   = codes.Y415
+	memberShape     = codes.MemShape
+	memberDevice    = codes.MemDevice
+	memberDType     = codes.MemDtype
+	memberGrad      = codes.MemGrad
+	memberValue     = codes.MemTolist
+	memberReshape   = codes.MemReshape
+	memberTranspose = codes.MemTranspose
+	memberPermute   = codes.MemPermute
+	memberSlice     = codes.MemSlice
+	memberToDevice  = codes.MemToDevice
+	memberToDType   = codes.MemToDtype
 )
 
 // tensorMemberCodes öneri listesinin sırasıdır.
@@ -48,7 +48,7 @@ func (d *TensorValue) GetProperty(kd codes.Code, prop string) (interp.Value, err
 		return d.namedMethod(memberToDType, d.toDType), nil
 	case memberGrad:
 		if d.intermediate {
-			return nil, messages.New(messages.H6700, tensor.ShapeText(t.Shape()), nameRequiresGrad, codes.NameRef(codes.A040), codes.NameRef(codes.T400), codes.NameRef(codes.T401), codes.NameRef(codes.T301), gradExample("..."))
+			return nil, messages.New(messages.H6700, tensor.ShapeText(t.Shape()), nameRequiresGrad, codes.NameRef(codes.KwTrue), codes.NameRef(codes.FnAdamW), codes.NameRef(codes.FnSGD), codes.NameRef(codes.FnNoGrad), gradExample("..."))
 		}
 		g := t.Grad()
 		if g == nil {

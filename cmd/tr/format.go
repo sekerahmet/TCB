@@ -19,14 +19,14 @@ func formatCommand(args []string) {
 	check := false
 	var targets []string
 	for _, a := range args {
-		if a == "-k" || isOption(a, codes.K101) {
+		if a == "-k" || isOption(a, codes.OptCheck) {
 			check = true
 		} else {
 			targets = append(targets, a)
 		}
 	}
 	if len(targets) == 0 {
-		exitWithError(messages.Text(messages.H8691, codes.NameRef(codes.K008), codes.OptionFlag(codes.K101)))
+		exitWithError(messages.Text(messages.H8691, codes.NameRef(codes.CmdFormat), codes.OptionFlag(codes.OptCheck)))
 	}
 
 	files, err := collectTrFiles(targets)
@@ -71,7 +71,7 @@ func formatCommand(args []string) {
 
 	switch {
 	case check && changed > 0:
-		fmt.Println(messages.Text(messages.H8695, len(files), changed, codes.NameRef(codes.K008)))
+		fmt.Println(messages.Text(messages.H8695, len(files), changed, codes.NameRef(codes.CmdFormat)))
 	case faulty > 0:
 		fmt.Println(messages.Text(messages.H8696, len(files), faulty))
 	case check:

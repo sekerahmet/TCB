@@ -25,12 +25,12 @@ func branchFixture(t *testing.T) string {
 		gitMust(t, root, "checkout", "-q", "main")
 	}
 	edit("claude/a", func() {
-		replaceIn(t, shape, "_ = codes.A001", "_ = codes.A001 // from a")
+		replaceIn(t, shape, "_ = codes.KwIf", "_ = codes.KwIf // from a")
 		replaceIn(t, shape, "func Orphan() {}", "func Orphan() {}\n\n// Added makes a new function.\nfunc Added() {}")
 		replaceIn(t, filepath.Join(root, "internal", "lang", "messages", "tr.json"),
 			"\"H0002\": \"second message\"", "\"H0002\": \"second message\",\n\"H0003\": \"third\"")
 	})
-	edit("claude/b", func() { replaceIn(t, shape, "_ = codes.A001", "_ = codes.A001 // from b") })
+	edit("claude/b", func() { replaceIn(t, shape, "_ = codes.KwIf", "_ = codes.KwIf // from b") })
 	edit("claude/c", func() { replaceIn(t, filepath.Join(root, "docs", "guide.md"), "Second heading", "Another heading") })
 	return root
 }

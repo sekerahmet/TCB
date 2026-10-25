@@ -146,7 +146,7 @@ func TestTestsForShowsTheRuleLineOfEachGoTest(t *testing.T) {
 }
 
 var embedFiles = map[string]string{
-	"internal/lang/codes/tr.json": "{\n  \"A001\": { \"ad\": \"eger\", \"aile\": \"keyword\" }\n}\n",
+	"internal/lang/codes/tr.json": "{\n  \"TR_kw_if\": { \"ad\": \"eger\", \"aile\": \"keyword\" }\n}\n",
 	"internal/lang/codes/codes.go": `package codes
 
 import _ "embed"
@@ -202,19 +202,19 @@ func TestEmbeddedDataFilesLinkToTheTestsThatWalkThem(t *testing.T) {
 	if edge(g, app+"TestLooksOneUp", file, edgeWalks) != nil {
 		t.Error("a test that looks one entry up does not walk the list")
 	}
-	mustEdge(t, g, file, "name:A001", edgeContains, extracted)
+	mustEdge(t, g, file, "name:TR_kw_if", edgeContains, extracted)
 	var out, errb strings.Builder
 	if code := run([]string{"build", "--root", root}, &out, &errb); code != exitOK {
 		t.Fatalf("build: %d %s", code, errb.String())
 	}
 	out.Reset()
-	if code := run([]string{"tests-for", "A001", "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
+	if code := run([]string{"tests-for", "TR_kw_if", "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
 		t.Fatalf("tests-for: %d %s", code, errb.String())
 	}
 	walks, _, _ := strings.Cut(out.String(), "<- tests (")
 	if !strings.Contains(walks, "tests that walk the whole list (1") || !strings.Contains(walks, "TestWalksEveryEntry") ||
 		!strings.Contains(walks, "Kural: her girdi gezilir.") || strings.Contains(walks, "TestLooksOneUp") {
-		t.Errorf("tests-for A001 must list only the walking test, with its rule line first:\n%s", out.String())
+		t.Errorf("tests-for TR_kw_if must list only the walking test, with its rule line first:\n%s", out.String())
 	}
 }
 

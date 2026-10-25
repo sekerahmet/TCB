@@ -23,10 +23,10 @@ const (
 	// language (Code). Under an 'aktar' with no alias it also counts as builtin (the module's
 	// names arrive at run time; whether a module shadows a builtin is known only then).
 	BindBuiltin
-	// BindImplicit: the name is a contextual implicit name (Code: A103 hata, A104 o, A105
+	// BindImplicit: the name is a contextual implicit name (Code: TR_ctx_error hata, TR_ctx_it o, TR_ctx_acc
 	// birikim).
 	BindImplicit
-	// BindNamed: a named argument's name is a name of the language (Code: the x9xx parameter
+	// BindNamed: a named argument's name is a name of the language (Code: the arg parameter
 	// code, or the member code of a field name in a struct constructor).
 	BindNamed
 	// BindUndefined: the name belongs neither to the user nor to the language.
@@ -46,7 +46,7 @@ type NameBinding struct {
 // result is what the token would bind to had it been written in that language (this is how
 // a coded file shown in another writing language finds out whether a '$name' escape is
 // needed). cakisanlar holds the user names that, where they appear, would capture dil's name
-// of a value name written as a code in coded source (G100) with their own definition (a user
+// of a value name written as a code in coded source (TR_fn_print) with their own definition (a user
 // variable named 'yazdır' in dil would shadow the builtin 'yazdır'); these names are written
 // with an escape everywhere in the view. genelAdlar and dinamik are as in SetGlobalScope
 // (modules). treeLang is the language the tree's names are written in (the parser's implicit
@@ -125,7 +125,7 @@ func (d *nameChecker) namedArgBindings(c *ast.CallExpression, k *nameScope) {
 		kind, _, structDef := d.tokenResolution(f.Token, f.Value, k)
 		switch {
 		case kind == BindBuiltin:
-		case structDef != nil && structDef.Methods[d.treeLang.Name(codes.A102)] == nil:
+		case structDef != nil && structDef.Methods[d.treeLang.Name(codes.CtxInit)] == nil:
 			field = codes.NamespaceMember
 		default:
 			return
@@ -145,7 +145,7 @@ func (d *nameChecker) namedArgBindings(c *ast.CallExpression, k *nameScope) {
 }
 
 // trailingBlockImplicits sondaki bloğun (liste.filtrele { o > 2 }) örtük parametrelerinin
-// bağlamsal kodlarıdır: 'o' (A104) ve indirge bloğunda 'birikim' (A105). Adlar ağacın
+// bağlamsal kodlarıdır: 'o' (TR_ctx_it) ve indirge bloğunda 'birikim' (TR_ctx_acc). Adlar ağacın
 // yazıldığı dildedir (treeLang).
 func trailingBlockImplicits(f *ast.FunctionLiteral, lang *codes.Language) [2]codes.Code {
 	var o [2]codes.Code
@@ -154,10 +154,10 @@ func trailingBlockImplicits(f *ast.FunctionLiteral, lang *codes.Language) [2]cod
 			break
 		}
 		switch p.Name {
-		case lang.Name(codes.A104):
-			o[i] = codes.A104
-		case lang.Name(codes.A105):
-			o[i] = codes.A105
+		case lang.Name(codes.CtxIt):
+			o[i] = codes.CtxIt
+		case lang.Name(codes.CtxAcc):
+			o[i] = codes.CtxAcc
 		}
 	}
 	return o

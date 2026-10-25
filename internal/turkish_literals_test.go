@@ -35,6 +35,7 @@ var turkishLiteralAllowed = map[string]string{
 	"tools/internal/specref/scan.go:\\b(PyTorch|NumPy|JAX|Go|go|CUDA|cuDNN|cuBLAS|cuBLASLt|Python|Rust|Swift|Kotlin|LSP|CommonMark|Unicode|IEEE|Triton|TensorFlow|Hugging Face|sürüm|sürümü|version)\\b[^.!?]*$": "belgedeki sürüm numarasını tanıyan desen; Türkçe belge sözcüğü, ad ya da ileti değil",
 	// Kod listesi dosyalarının (internal/lang/codes) biçim anahtarları.
 	"internal/lang/codes/definition.go:bağlamsal":    "definitions.json'daki \"tür\" alanının değeri (dosya biçimi)",
+	"internal/lang/codes/definition.go:değer_adı":    "definitions.json'daki \"tür\" alanının değeri (dosya biçimi)",
 	"internal/lang/codes/definition.go:özellik":      "definitions.json'daki \"tür\" alanının değeri (dosya biçimi)",
 	"internal/lang/codes/definition.go:adlı_argüman": "definitions.json'daki \"tür\" alanının değeri (dosya biçimi)",
 	"internal/lang/codes/definition.go:%s adlı: %v":  "definitions.json'un alan adı (dosya biçimi); geliştirici hatasında anılır",

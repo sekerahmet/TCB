@@ -18,31 +18,31 @@ import (
 // "Satır N:" ekler. Adlı argüman denetimi ve paniği yakalama internal/stdlib/common/bind'nın
 // ortak yardımcılarıyla yapılır.
 
-// Adlı argümanlar. Adları kod listesindedir (internal/lang/codes, T9xx). Başka dillerden alışılmış
+// Adlı argümanlar. Adları kod listesindedir (internal/lang/codes, arg). Başka dillerden alışılmış
 // adlar (lr, axis...) kabul edilmez; bind.CheckNamed hata mesajında Türkçesini önerir.
 var (
-	nameRequiresGrad = bind.NamedArg(codes.T900)
-	nameAxis         = bind.NamedArg(codes.T902)
-	nameSeed         = bind.NamedArg(codes.T903)
-	nameMax          = bind.NamedArg(codes.T904)
-	nameErrNonfinite = bind.NamedArg(codes.T986)
-	nameMin          = bind.NamedArg(codes.T907)
-	nameEpsilon      = bind.NamedArg(codes.T905)
-	nameLR           = bind.NamedArg(codes.T910)
-	nameWeightDecay  = bind.NamedArg(codes.T911)
-	nameBeta1        = bind.NamedArg(codes.T912)
-	nameBeta2        = bind.NamedArg(codes.T913)
-	nameMomentum     = bind.NamedArg(codes.T914)
-	nameWeight       = bind.NamedArg(codes.T920)
-	nameBias         = bind.NamedArg(codes.T921)
-	nameDType        = bind.NamedArg(codes.T901)
-	nameMasterCopy   = bind.NamedArg(codes.T915)
+	nameRequiresGrad = bind.NamedArg(codes.ArgRequiresGrad)
+	nameAxis         = bind.NamedArg(codes.ArgDim)
+	nameSeed         = bind.NamedArg(codes.ArgSeed)
+	nameMax          = bind.NamedArg(codes.ArgMax)
+	nameErrNonfinite = bind.NamedArg(codes.ArgErrorIfNonfinite)
+	nameMin          = bind.NamedArg(codes.ArgMin)
+	nameEpsilon      = bind.NamedArg(codes.ArgEps)
+	nameLR           = bind.NamedArg(codes.ArgLr)
+	nameWeightDecay  = bind.NamedArg(codes.ArgWeightDecay)
+	nameBeta1        = bind.NamedArg(codes.ArgBeta1)
+	nameBeta2        = bind.NamedArg(codes.ArgBeta2)
+	nameMomentum     = bind.NamedArg(codes.ArgMomentum)
+	nameWeight       = bind.NamedArg(codes.ArgWeight)
+	nameBias         = bind.NamedArg(codes.ArgBias)
+	nameDType        = bind.NamedArg(codes.ArgDtype)
+	nameMasterCopy   = bind.NamedArg(codes.ArgMasterWeights)
 )
 
 // gradExample hata mesajlarındaki türev izleyen tensör örneğidir:
 // gradExample("...") → "tensör(..., türev_izle: doğru)"; adlar koddan kurulur.
 func gradExample(data string) string {
-	return codes.Name(codes.T100) + "(" + data + ", " + nameRequiresGrad.TR + ": " + codes.Name(codes.A040) + ")"
+	return codes.Name(codes.FnTensor) + "(" + data + ", " + nameRequiresGrad.TR + ": " + codes.Name(codes.KwTrue) + ")"
 }
 
 // safe fn'i çalıştırır; çekirdekten gelen paniği Türkçe bir hataya dönüştürür.

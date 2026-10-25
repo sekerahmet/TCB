@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // 08 — Functions: naming work and reusing it.
 // What it teaches: func and return, type annotations, default values, named arguments, a function
 // that calls itself (recursion).
@@ -6,46 +6,46 @@
 // Run (from the project root): tr examples/en/08_functions.tr
 
 // func name(parameters) { ... return value }: return hands the value back to the caller.
-A020 add(a, b) {
-    A021 a + b
+TR_kw_func add(a, b) {
+    TR_kw_return a + b
 }
-G100(add(2, 3))
-G100(add(add(1, 2), 4)) // a result can be the input of another call
+TR_fn_print(add(2, 3))
+TR_fn_print(add(add(1, 2), 4)) // a result can be the input of another call
 
 // Parameters and the result can carry types; a value of the wrong type is an error.
-A020 area(width: A201, depth: A201) -> A201 {
-    A021 width * depth
+TR_kw_func area(width: TR_type_Float, depth: TR_type_Float) -> TR_type_Float {
+    TR_kw_return width * depth
 }
-G100(area(2.5, 4.0))
+TR_fn_print(area(2.5, 4.0))
 
 // Default value: used when the argument is not given.
 // Named argument: given with the parameter name, the order does not matter.
-A020 greet(who, suffix = "!") {
-    A021 "Hi {who}{suffix}"
+TR_kw_func greet(who, suffix = "!") {
+    TR_kw_return "Hi {who}{suffix}"
 }
-G100(greet("Ayse"))
-G100(greet("Ali", "?"))
-G100(greet(suffix: "...", who: "Veli"))
+TR_fn_print(greet("Ayse"))
+TR_fn_print(greet("Ali", "?"))
+TR_fn_print(greet(suffix: "...", who: "Veli"))
 
 // return ends the function at once; together with a condition it gives an early exit.
-A020 absolute(x) {
-    A001 x < 0 { A021 -x }
-    A021 x
+TR_kw_func absolute(x) {
+    TR_kw_if x < 0 { TR_kw_return -x }
+    TR_kw_return x
 }
-G100(absolute(-7), absolute(7))
+TR_fn_print(absolute(-7), absolute(7))
 
 // A function can call itself (recursion); it must have a condition that stops it.
-A020 factorial(n) {
-    A001 n <= 1 { A021 1 }
-    A021 n * factorial(n - 1)
+TR_kw_func factorial(n) {
+    TR_kw_if n <= 1 { TR_kw_return 1 }
+    TR_kw_return n * factorial(n - 1)
 }
-G100("5! = {factorial(5)}, 10! = {factorial(10)}")
+TR_fn_print("5! = {factorial(5)}, 10! = {factorial(10)}")
 
 // Variables inside a function are not visible outside.
-A020 count_and_print(limit) {
-    A030 running = 0
-    A010 i A011 1..=limit { running += i }
-    G100("sum of 1..{limit} is {running}")
+TR_kw_func count_and_print(limit) {
+    TR_kw_var running = 0
+    TR_kw_for i TR_kw_in 1..=limit { running += i }
+    TR_fn_print("sum of 1..{limit} is {running}")
 }
 count_and_print(10)
 

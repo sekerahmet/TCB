@@ -15,7 +15,7 @@ const (
 	geoYaz   = "tr:func:" + geo + ":yaz_alan"
 	test1    = "tr:test:lib/geo_test.tr:3"
 	test2    = "tr:test:lib/geo_test.tr:8"
-	printG   = "name:G100"
+	printG   = "name:TR_fn_print"
 )
 
 func TestTRNodes(t *testing.T) {
@@ -121,7 +121,7 @@ func TestTRCodedFile(t *testing.T) {
 	if !found {
 		t.Errorf("coded function node missing or wrong")
 	}
-	mustEdge(t, g, fn, printG, edgeUsesName, extracted) // G100 olarak yazılmış çağrı
+	mustEdge(t, g, fn, printG, edgeUsesName, extracted) // TR_fn_print olarak yazılmış çağrı
 }
 
 // Parametreler grafikte düğümdür (tr_param): sahibinden `contains`, varsayılan değer metniyle; adlı

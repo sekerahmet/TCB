@@ -4,7 +4,7 @@ edge tr:file:examples/ana.tr contains tr:var:examples/ana.tr:k2 EXTRACTED @examp
 edge tr:file:examples/ana.tr imports tr:file:lib/geo.tr EXTRACTED @examples/ana.tr:0 x1
 edge tr:file:examples/ana.tr uses tr:const:lib/geo.tr:PI2 EXTRACTED @examples/ana.tr:5 x1
 edge tr:file:examples/ana.tr uses tr:var:examples/ana.tr:k EXTRACTED @examples/ana.tr:4 x1
-edge tr:file:examples/ana.tr uses_name name:G100 EXTRACTED @examples/ana.tr:4 x2
+edge tr:file:examples/ana.tr uses_name name:TR_fn_print EXTRACTED @examples/ana.tr:4 x2
 edge tr:file:examples/coded.tr contains tr:func:examples/coded.tr:kodlu_işlev EXTRACTED @examples/coded.tr:2 x1
 edge tr:file:lib/geo.tr contains tr:const:lib/geo.tr:PI2 EXTRACTED @lib/geo.tr:2 x1
 edge tr:file:lib/geo.tr contains tr:func:lib/geo.tr:yaz_alan EXTRACTED @lib/geo.tr:19 x1
@@ -15,11 +15,11 @@ edge tr:file:lib/geo_test.tr contains tr:test:lib/geo_test.tr:3 EXTRACTED @lib/g
 edge tr:file:lib/geo_test.tr contains tr:test:lib/geo_test.tr:8 EXTRACTED @lib/geo_test.tr:8 x1
 edge tr:file:lib/geo_test.tr imports tr:file:lib/geo.tr EXTRACTED @lib/geo_test.tr:0 x1
 edge tr:func:examples/coded.tr:kodlu_işlev contains tr:param:examples/coded.tr:kodlu_işlev.x EXTRACTED @examples/coded.tr:2 x1
-edge tr:func:examples/coded.tr:kodlu_işlev uses_name name:G100 EXTRACTED @examples/coded.tr:3 x1
+edge tr:func:examples/coded.tr:kodlu_işlev uses_name name:TR_fn_print EXTRACTED @examples/coded.tr:3 x1
 edge tr:func:lib/geo.tr:yaz_alan calls tr:func:lib/geo.tr:çevre_hesapla EXTRACTED @lib/geo.tr:21 x1
 edge tr:func:lib/geo.tr:yaz_alan calls tr:method:lib/geo.tr:Kare.alan INFERRED @lib/geo.tr:20 x1
 edge tr:func:lib/geo.tr:yaz_alan contains tr:param:lib/geo.tr:yaz_alan.k EXTRACTED @lib/geo.tr:19 x1
-edge tr:func:lib/geo.tr:yaz_alan uses_name name:G100 EXTRACTED @lib/geo.tr:20 x1
+edge tr:func:lib/geo.tr:yaz_alan uses_name name:TR_fn_print EXTRACTED @lib/geo.tr:20 x1
 edge tr:func:lib/geo.tr:çevre_hesapla contains tr:param:lib/geo.tr:çevre_hesapla.k EXTRACTED @lib/geo.tr:15 x1
 edge tr:method:lib/geo.tr:Kare.alan uses tr:field:lib/geo.tr:Kare.kenar EXTRACTED @lib/geo.tr:11 x2
 edge tr:method:lib/geo.tr:Kare.kurucu contains tr:param:lib/geo.tr:Kare.kurucu.kenar EXTRACTED @lib/geo.tr:7 x1

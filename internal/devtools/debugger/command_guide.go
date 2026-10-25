@@ -10,19 +10,19 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// Terminal hata ayıklayıcısının komut tabloları ve yardım metni. Komutlar ad kodudur (K3xx):
+// Terminal hata ayıklayıcısının komut tabloları ve yardım metni. Komutlar ad kodudur (dbg):
 // tr komutları gibi her yazım dilinin adı kabul edilir (devam da continue da), yardım ve
 // iletiler etkin dildedir. F tuşları simgedir, kod almaz. Kısaltmalar ve Türkçe harfsiz
 // biçimler çalışmaz, yalnızca asıl komutu söyler.
 
 // keyGuide komut isteminde gösterilen kısa tuş listesidir.
 func keyGuide() string {
-	return messages.Text(messages.H8000, codes.NameRef(codes.K303), codes.NameRef(codes.K301), codes.NameRef(codes.K300),
-		codes.NameRef(codes.K302), codes.NameRef(codes.K304), codes.NameRef(codes.K305), codes.NameRef(codes.K308), codes.NameRef(codes.K307))
+	return messages.Text(messages.H8000, codes.NameRef(codes.DbgContinue), codes.NameRef(codes.DbgNext), codes.NameRef(codes.DbgStep),
+		codes.NameRef(codes.DbgOut), codes.NameRef(codes.DbgSet), codes.NameRef(codes.DbgJump), codes.NameRef(codes.DbgTable), codes.NameRef(codes.DbgWatch))
 }
 
 // keyCommands F tuşlarının komutlarıdır (düzenleyicinin hata ayıklama tuşlarıyla aynı anlam).
-var keyCommands = map[string]codes.Code{"f11": codes.K300, "f10": codes.K301, "shift+f11": codes.K302, "f5": codes.K303}
+var keyCommands = map[string]codes.Code{"f11": codes.DbgStep, "f10": codes.DbgNext, "shift+f11": codes.DbgOut, "f5": codes.DbgContinue}
 
 // commandCode komut satırının ilk sözcüğünün komut kodudur: F tuşu ya da herhangi bir yazım
 // dilinde komut adı. Komut değilse codes.None.
@@ -48,19 +48,19 @@ func oldCommand(word string) (codes.Code, bool) {
 // oldCommands başka hata ayıklayıcılardan gelen kısaltmalardır (gdb'nin n, c, bt). Bunlar
 // çalışmaz, asıl komutu söyler; Türkçe harfsiz biçimleri (adim) kod listesi önerir.
 var oldCommands = map[string]codes.Code{
-	"a": codes.K300, "s": codes.K300,
-	"g": codes.K301, "n": codes.K301,
-	"o": codes.K302,
-	"d": codes.K303, "c": codes.K303,
-	"goto": codes.K305, "j": codes.K305,
-	"k": codes.K306, "b": codes.K306,
-	"w":  codes.K307,
-	"t":  codes.K308,
-	"bt": codes.K309,
-	"p":  codes.K310, "?": codes.K310,
-	"l": codes.K311,
-	"h": codes.K312,
-	"q": codes.K313,
+	"a": codes.DbgStep, "s": codes.DbgStep,
+	"g": codes.DbgNext, "n": codes.DbgNext,
+	"o": codes.DbgOut,
+	"d": codes.DbgContinue, "c": codes.DbgContinue,
+	"goto": codes.DbgJump, "j": codes.DbgJump,
+	"k": codes.DbgBreak, "b": codes.DbgBreak,
+	"w":  codes.DbgWatch,
+	"t":  codes.DbgTable,
+	"bt": codes.DbgStack,
+	"p":  codes.DbgEval, "?": codes.DbgEval,
+	"l": codes.DbgScreen,
+	"h": codes.DbgHelp,
+	"q": codes.DbgQuit,
 }
 
 func (d *Debugger) printDebugHelp() {
@@ -70,18 +70,18 @@ func (d *Debugger) printDebugHelp() {
 	// (komut adlarının uzunluğu dile göre değişir).
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
 	for _, row := range []string{
-		messages.Text(messages.H8012, codes.NameRef(codes.K300)),
-		messages.Text(messages.H8013, codes.NameRef(codes.K301)),
-		messages.Text(messages.H8014, codes.NameRef(codes.K302)),
-		messages.Text(messages.H8015, codes.NameRef(codes.K303)),
-		messages.Text(messages.H8016, codes.NameRef(codes.K304)),
-		messages.Text(messages.H8017, codes.NameRef(codes.K305)),
-		messages.Text(messages.H8018, codes.NameRef(codes.K307)),
-		messages.Text(messages.H8019, codes.NameRef(codes.K306)),
-		messages.Text(messages.H8020, codes.NameRef(codes.K308), interp.ValList, interp.ValTensor, interp.ValDict),
-		messages.Text(messages.H8021, codes.NameRef(codes.K309)),
-		messages.Text(messages.H8022, codes.NameRef(codes.K310)),
-		messages.Text(messages.H8023, codes.NameRef(codes.K313)),
+		messages.Text(messages.H8012, codes.NameRef(codes.DbgStep)),
+		messages.Text(messages.H8013, codes.NameRef(codes.DbgNext)),
+		messages.Text(messages.H8014, codes.NameRef(codes.DbgOut)),
+		messages.Text(messages.H8015, codes.NameRef(codes.DbgContinue)),
+		messages.Text(messages.H8016, codes.NameRef(codes.DbgSet)),
+		messages.Text(messages.H8017, codes.NameRef(codes.DbgJump)),
+		messages.Text(messages.H8018, codes.NameRef(codes.DbgWatch)),
+		messages.Text(messages.H8019, codes.NameRef(codes.DbgBreak)),
+		messages.Text(messages.H8020, codes.NameRef(codes.DbgTable), interp.ValList, interp.ValTensor, interp.ValDict),
+		messages.Text(messages.H8021, codes.NameRef(codes.DbgStack)),
+		messages.Text(messages.H8022, codes.NameRef(codes.DbgEval)),
+		messages.Text(messages.H8023, codes.NameRef(codes.DbgQuit)),
 	} {
 		fmt.Fprintln(w, "  • "+row)
 	}

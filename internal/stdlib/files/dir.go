@@ -13,11 +13,11 @@ import (
 // makeDirBuiltin klasör_oluştur(yol) yerleşiğidir: klasörü üst klasörleriyle oluşturur
 // (varsa sorun değildir) ve Yol olarak döndürür.
 func makeDirBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := interp.CallPrefix(codes.G122)
+	fn := interp.CallPrefix(codes.FnMakeDir)
 	if len(args) != 1 {
-		return nil, interp.ArgCountError(codes.G122, 1, len(args), messages.Text(messages.H2318))
+		return nil, interp.ArgCountError(codes.FnMakeDir, 1, len(args), messages.Text(messages.H2318))
 	}
-	raw, err := readPath(codes.G122, 1, args[0])
+	raw, err := readPath(codes.FnMakeDir, 1, args[0])
 	if err != nil {
 		return nil, err
 	}

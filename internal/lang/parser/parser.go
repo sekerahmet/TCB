@@ -18,8 +18,8 @@ import (
 
 // contextWords bağlamsal sözcüklerin (test, olarak, yakala'nın varsayılan hata adı, sondaki
 // bloğun parametresi, indirge bloğunun birikimi) yazımları ve 'kendi'nin adıdır; kod
-// listesinden, sözcük çözümleyicinin okuduğu dilde gelir (internal/lang/codes: A101, A100,
-// A103, A104, A105, A051, Y207). Programlar kanonik dilde (Türkçe) okunur; başka bir yazım
+// listesinden, sözcük çözümleyicinin okuduğu dilde gelir (internal/lang/codes: TR_ctx_test, TR_ctx_as,
+// TR_ctx_error, TR_ctx_it, TR_ctx_acc, TR_kw_self, TR_mem_reduce). Programlar kanonik dilde (Türkçe) okunur; başka bir yazım
 // dilindeki metin kendi dilinde okunur (lexer.NewBodyIn).
 type contextWords struct {
 	test, as, reduce   []string
@@ -34,8 +34,8 @@ func contextWordsOf(lang *codes.Language) *contextWords {
 		return w.(*contextWords)
 	}
 	w := &contextWords{
-		test: lang.Spellings(codes.A101), as: lang.Spellings(codes.A100), reduce: lang.Spellings(codes.Y207),
-		self: lang.Name(codes.A051), err: lang.Name(codes.A103), it: lang.Name(codes.A104), acc: lang.Name(codes.A105),
+		test: lang.Spellings(codes.CtxTest), as: lang.Spellings(codes.CtxAs), reduce: lang.Spellings(codes.MemReduce),
+		self: lang.Name(codes.KwSelf), err: lang.Name(codes.CtxError), it: lang.Name(codes.CtxIt), acc: lang.Name(codes.CtxAcc),
 	}
 	v, _ := contextWordsByLanguage.LoadOrStore(lang.Code, w)
 	return v.(*contextWords)

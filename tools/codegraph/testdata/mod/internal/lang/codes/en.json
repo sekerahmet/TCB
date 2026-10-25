@@ -1,4 +1,4 @@
 {
-  "A001": { "ad": "if", "aile": "keyword" },
-  "G100": { "ad": "print", "aile": "output" }
+  "TR_kw_if": { "ad": "if", "aile": "keyword" },
+  "TR_fn_print": { "ad": "print", "aile": "output" }
 }

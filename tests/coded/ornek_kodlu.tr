@@ -1,35 +1,35 @@
-//! tr kodlu 2 dil=tr
+//! tr kodlu 3 dil=tr
 // Kodlu biçimde saklanmış bir modül (docs/spec/17_kodlar.md, 17.1-17.4): dilin sözcükleri
 // kodlarla yazılır, kullanıcının adları, metinler, sayılar ve yorumlar olduğu gibi kalır.
 // Türkçe gösterimi: tr göster tests/coded/ornek_kodlu.tr
-A020 kareler(liste) {
-    A021 liste.Y201 { A104 * A104 }
+TR_kw_func kareler(liste) {
+    TR_kw_return liste.TR_mem_map { TR_ctx_it * TR_ctx_it }
 }
 
-A050 Sayac {
-    Y001 = 0
-    A020 Y004(x) {
-        A051.Y001 += x
+TR_kw_struct Sayac {
+    TR_mem_length = 0
+    TR_kw_func TR_mem_append(x) {
+        TR_kw_self.TR_mem_length += x
     }
 }
 
 // Gölgelenen yerleşik kullanıcının adıdır: bu kapsamdaki 'toplam' kod değil.
-A020 golge() {
-    A030 toplam = 5
-    A021 toplam
+TR_kw_func golge() {
+    TR_kw_var toplam = 5
+    TR_kw_return toplam
 }
 
 // Kod olmayan her ad kullanıcının adıdır, Türkçenin bir anahtar kelimesiyle aynı olsa bile.
-A030 eğer = 7
+TR_kw_var eğer = 7
 
-A020 bilgi() {
-    A021 "toplam: {G400(T100([1, 2, 3]), T902: 0).Y404}, eğer: {eğer}, ham: " + `{G400}`
+TR_kw_func bilgi() {
+    TR_kw_return "toplam: {TR_fn_sum(TR_fn_tensor([1, 2, 3]), TR_arg_dim: 0).TR_mem_tolist}, eğer: {eğer}, ham: " + `{TR_fn_sum}`
 }
 
-A020 yakalanan() {
-    A060 {
-        A062 "x"
-    } A061 {
-        A021 A103
+TR_kw_func yakalanan() {
+    TR_kw_try {
+        TR_kw_throw "x"
+    } TR_kw_catch {
+        TR_kw_return TR_ctx_error
     }
 }

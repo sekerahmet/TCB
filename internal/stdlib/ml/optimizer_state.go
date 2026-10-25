@@ -13,15 +13,15 @@ import (
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
 
-// İyileştirici durumu: op.durum (Y502) momentleri, adım sayaçlarını ve ana kopyaları ad →
-// tensör sözlüğü olarak verir; op.durumu_yükle(sözlük) (Y503) aynı parametre listesiyle
+// İyileştirici durumu: op.durum (TR_mem_state) momentleri, adım sayaçlarını ve ana kopyaları ad →
+// tensör sözlüğü olarak verir; op.durumu_yükle(sözlük) (TR_mem_load_state) aynı parametre listesiyle
 // kurulmuş bir iyileştiriciye geri yükler. Anahtarlar çekirdeğin anahtarlarıdır
 // (internal/compute/tensor, iyileştirici durumu): "m.k", "v.k", "hiz.k", "ana.k", "adim.k",
 // "adim"; k parametrenin listedeki sırasıdır. Kontrol noktası aynı Go yöntemlerini kullanır.
 
 const (
-	memberState     = codes.Y502
-	memberLoadState = codes.Y503
+	memberState     = codes.MemState
+	memberLoadState = codes.MemLoadState
 )
 
 // stateMember durum ve durumu_yükle üyelerini verir; başka bir üyeyse ok yanlış.
@@ -58,7 +58,7 @@ func (o *Optimizer) loadStateTR(_ *interp.VM, args []interp.Value, _ map[string]
 		}
 		d, ok := v.(*TensorValue)
 		if _, text := s.KeyValue(k).(*interp.StringVal); !text || !ok {
-			return nil, messages.New(messages.H6501, fn, codes.NameRef(memberState), codes.NameRef(codes.A202), codes.NameRef(codes.A212), s.DisplayKey(k), interp.TypeAndSummary(v))
+			return nil, messages.New(messages.H6501, fn, codes.NameRef(memberState), codes.NameRef(codes.TypeString), codes.NameRef(codes.TypeTensor), s.DisplayKey(k), interp.TypeAndSummary(v))
 		}
 		st[k] = d.t
 	}

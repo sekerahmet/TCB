@@ -13,17 +13,17 @@ import (
 // de aynı kuralla girdi alır (13.1): tek bir liste ya da birden çok sayı; boş girdi ve sayı
 // olmayan eleman hatadır (toplam gibi).
 func (v *VM) registerStats() {
-	v.RegisterNoNamed(codes.G410, func(y *VM, args []Value, named map[string]Value) (Value, error) {
-		elems, _, err := statsInput(codes.G410, args)
+	v.RegisterNoNamed(codes.FnMean, func(y *VM, args []Value, named map[string]Value) (Value, error) {
+		elems, _, err := statsInput(codes.FnMean, args)
 		if err != nil {
 			return nil, err
 		}
-		return NumberMean(CallPrefix(codes.G410), elems)
+		return NumberMean(CallPrefix(codes.FnMean), elems)
 	})
 
 	// standart_sapma: sayıların popülasyon standart sapması (n'ye bölerek).
-	v.RegisterNoNamed(codes.G411, func(y *VM, args []Value, named map[string]Value) (Value, error) {
-		nums, err := statsNumbers(codes.G411, messages.H2505, args)
+	v.RegisterNoNamed(codes.FnStd, func(y *VM, args []Value, named map[string]Value) (Value, error) {
+		nums, err := statsNumbers(codes.FnStd, messages.H2505, args)
 		if err != nil {
 			return nil, err
 		}
@@ -42,8 +42,8 @@ func (v *VM) registerStats() {
 	})
 
 	// ortanca: çift sayıda elemanda ortadaki ikisinin ortalaması.
-	v.RegisterNoNamed(codes.G412, func(y *VM, args []Value, named map[string]Value) (Value, error) {
-		sorted, err := statsNumbers(codes.G412, messages.H2506, args)
+	v.RegisterNoNamed(codes.FnMedian, func(y *VM, args []Value, named map[string]Value) (Value, error) {
+		sorted, err := statsNumbers(codes.FnMedian, messages.H2506, args)
 		if err != nil {
 			return nil, err
 		}

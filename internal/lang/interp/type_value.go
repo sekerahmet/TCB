@@ -1,23 +1,25 @@
 package interp
 
 import (
+	"slices"
+
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/hint"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Tip değerleri (3.11): tip(x) değerin tipini bir tip değeri olarak verir; tip adları (Tam,
-// Liste, Tensör ...) ifadede bu değerlerdir. Değer dilden bağımsızdır: tip kodunu (A2xx) ya da
+// Liste, Tensör ...) ifadede bu değerlerdir. Değer dilden bağımsızdır: tip kodunu (type) ya da
 // yapı nesnelerinde yapının tanımını taşır. Yazdırılınca adı çalıştırma dilinde görünür;
 // karşılaştırma değerle yapılır (tip(x) == Tam, tip(p) == Nokta). Böylece kodlu saklanan bir
 // program hangi dilde gösterilirse gösterilsin aynı sonucu verir.
 
-// ValType is the type of type values (A215 Tip).
-var ValType = TypeName(codes.A215)
+// ValType is the type of type values (TR_type_Type Tip).
+var ValType = TypeName(codes.TypeType)
 
 // TypeVal is a type value.
 type TypeVal struct {
-	// Code is the code of builtin and engine types (A2xx); codes.None for the type of struct
+	// Code is the code of builtin and engine types (type); codes.None for the type of struct
 	// instances.
 	Code codes.Code
 	// Struct is the type of struct instances (tip(p) → Nokta); nil for other types.
@@ -46,19 +48,21 @@ func (t *TypeVal) Equal(b Value) bool {
 	return false
 }
 
-// tipDegerleri canlı tip kodlarının (A2xx) paylaşılan tip değerleridir (kodun sayısına göre
-// dizi; çalışma anında ayırma ve ad araması yok). tipDegeriAdla motor tiplerinin değer
-// tipinden (ValueType: kodun adı) tip değerine eşlemesidir.
+// typeValues canlı tip kodlarının paylaşılan tip değerleridir (koda göre dizi; çalışma anında
+// ayırma ve ad araması yok). typeValueByName motor tiplerinin değer tipinden (ValueType: kodun
+// adı) tip değerine eşlemesidir.
 var (
-	typeValues      [300]*TypeVal
+	typeValues      []*TypeVal
 	typeValueByName = map[ValueType]*TypeVal{}
 )
 
 func init() {
-	for _, k := range codes.Codes() {
+	all := codes.Codes()
+	typeValues = make([]*TypeVal, int(slices.Max(all))+1)
+	for _, k := range all {
 		if k.Namespace() == codes.NamespaceType {
 			t := &TypeVal{Code: k}
-			typeValues[k.Number()] = t
+			typeValues[k] = t
 			typeValueByName[TypeName(k)] = t
 		}
 	}
@@ -68,26 +72,26 @@ func init() {
 func TypeOfValue(v Value) *TypeVal {
 	switch x := v.(type) {
 	case *IntVal:
-		return typeValues[codes.A200.Number()]
+		return typeValues[codes.TypeInt]
 	case *FloatVal:
-		return typeValues[codes.A201.Number()]
+		return typeValues[codes.TypeFloat]
 	case *StringVal:
-		return typeValues[codes.A202.Number()]
+		return typeValues[codes.TypeString]
 	case *BoolVal:
-		return typeValues[codes.A203.Number()]
+		return typeValues[codes.TypeBool]
 	case *NullVal:
-		return typeValues[codes.A204.Number()]
+		return typeValues[codes.TypeNone]
 	case *ListVal:
-		return typeValues[codes.A205.Number()]
+		return typeValues[codes.TypeList]
 	case *DictVal:
-		return typeValues[codes.A206.Number()]
+		return typeValues[codes.TypeDict]
 	case *StructInstanceVal:
 		return x.Def.typeValue()
 	}
 	if t := typeValueByName[v.Type()]; t != nil {
 		return t
 	}
-	return typeValues[codes.A213.Number()] // Herhangi: tipi kod listesinde olmayan değer
+	return typeValues[codes.TypeAny] // Herhangi: tipi kod listesinde olmayan değer
 }
 
 // typeValue yapının nesnelerinin tip değeridir; ilk kullanımda kurulur (yorumlayıcı kilidi
@@ -104,7 +108,7 @@ func (v *VM) registerTypes() {
 	for _, k := range codes.Codes() {
 		if k.Namespace() == codes.NamespaceType {
 			for _, y := range codes.Spellings(k) {
-				v.GlobalEnv.Define(y, typeValues[k.Number()], true)
+				v.GlobalEnv.Define(y, typeValues[k], true)
 			}
 		}
 	}

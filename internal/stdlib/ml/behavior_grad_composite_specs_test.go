@@ -176,18 +176,18 @@ func compositeSpecs() []compositeSpec {
 	}
 	return []compositeSpec{
 		{name: "softmax", funcs: []string{"registerSoftmax"}, shapes: [][]int{{3, 4}}, bf16Tol: 0.004,
-			run: withAxis(codes.T210),
+			run: withAxis(codes.FnSoftmax),
 			ref: func(in [][]float64) []float64 { return rows64(in[0], 4, softmax64) }},
 		{name: "log_softmax", funcs: []string{"registerSoftmax"}, shapes: [][]int{{3, 4}}, bf16Tol: 0.004,
-			run: withAxis(codes.T211),
+			run: withAxis(codes.FnLogSoftmax),
 			ref: func(in [][]float64) []float64 { return rows64(in[0], 4, logSoftmax64) }},
 		{name: "layer_norm", funcs: []string{"layerNorm"}, shapes: [][]int{{3, 5}, {5}, {5}}, bf16Tol: 0.004,
-			run: call(codes.T501), ref: layerNorm64},
+			run: call(codes.FnLayerNorm), ref: layerNorm64},
 		{name: "rms_norm", funcs: []string{"rmsNorm"}, shapes: [][]int{{3, 5}, {5}}, bf16Tol: 0.004,
-			run: call(codes.T502), ref: rmsNorm64},
+			run: call(codes.FnRmsNorm), ref: rmsNorm64},
 		{name: "cross_entropy", funcs: []string{"crossEntropy"}, shapes: [][]int{{2, 3, 4}}, bf16Tol: 0.004,
 			run: func(m *interp.VM, xs []*tensor.Tensor) (*tensor.Tensor, error) {
-				return callBuiltin(m, codes.T510, tv(xs[0]), tv(indexTensor(ceTargets, 2, 3)))
+				return callBuiltin(m, codes.FnCrossEntropy, tv(xs[0]), tv(indexTensor(ceTargets, 2, 3)))
 			},
 			ref: func(in [][]float64) []float64 {
 				var loss float64
@@ -205,7 +205,7 @@ func compositeSpecs() []compositeSpec {
 			}},
 		{name: "embedding", funcs: []string{"embedding"}, shapes: [][]int{{4, 3}}, bf16Tol: 0.004,
 			run: func(m *interp.VM, xs []*tensor.Tensor) (*tensor.Tensor, error) {
-				return callBuiltin(m, codes.T500, tv(xs[0]), tv(indexTensor([]int{1, 3, 1, 0}, 2, 2)))
+				return callBuiltin(m, codes.FnEmbedding, tv(xs[0]), tv(indexTensor([]int{1, 3, 1, 0}, 2, 2)))
 			},
 			ref: func(in [][]float64) []float64 {
 				var out []float64
@@ -215,7 +215,7 @@ func compositeSpecs() []compositeSpec {
 				return out
 			}},
 		{name: "attention", funcs: []string{"attentionBuiltin"}, shapes: [][]int{{3, 2, 4}, {3, 2, 4}, {3, 2, 4}}, bf16Tol: 0.038,
-			run: call(codes.T503), ref: attention64},
+			run: call(codes.FnAttention), ref: attention64},
 		{name: "matmul", funcs: []string{"matmulDType"}, shapes: [][]int{{3, 4}, {4, 2}}, bf16Tol: 0.008,
 			run: func(m *interp.VM, xs []*tensor.Tensor) (*tensor.Tensor, error) {
 				return matmulDType(xs[0], xs[1], mixedDType(m))
@@ -227,10 +227,10 @@ func compositeSpecs() []compositeSpec {
 			run: func(m *interp.VM, xs []*tensor.Tensor) (*tensor.Tensor, error) { return listSum("mean", true, xs) },
 			ref: listRef(3)},
 		{name: "sum_axis", funcs: []string{"reduction"}, shapes: [][]int{{3, 4}}, bf16Tol: 0.004,
-			run: withAxis(codes.G400),
+			run: withAxis(codes.FnSum),
 			ref: func(in [][]float64) []float64 { return rows64Sum(in[0], 4) }},
 		{name: "mean_axis", funcs: []string{"reduction"}, shapes: [][]int{{3, 4}}, bf16Tol: 0.004,
-			run: withAxis(codes.G410),
+			run: withAxis(codes.FnMean),
 			ref: func(in [][]float64) []float64 {
 				s := rows64Sum(in[0], 4)
 				for i := range s {
@@ -239,12 +239,12 @@ func compositeSpecs() []compositeSpec {
 				return s
 			}},
 		{name: "min_all", funcs: []string{"minAll"}, shapes: [][]int{{3, 4}}, bf16Tol: 0.004,
-			run: call(codes.G401),
+			run: call(codes.FnMin),
 			ref: func(in [][]float64) []float64 {
 				return []float64{extreme64(in[0], func(a, b float64) bool { return a < b })}
 			}},
 		{name: "max_all", funcs: []string{"reduction"}, shapes: [][]int{{3, 4}}, bf16Tol: 0.004,
-			run: call(codes.G402),
+			run: call(codes.FnMax),
 			ref: func(in [][]float64) []float64 {
 				return []float64{extreme64(in[0], func(a, b float64) bool { return a > b })}
 			}},

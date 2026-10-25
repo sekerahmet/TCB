@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // 48 — Training run: leaving the bookkeeping to the library, a trial before a long run.
 // What it teaches: Koşu with import "tr/egitim": the run folder, config.json, metrics.jsonl, the progress bar and the
 // checkpoint in one line; run.adım_bitti(step, measures), run.değerlendirildi(step, measures), run.bitir(model)
@@ -9,65 +9,65 @@
 //
 // Run (from the project root): tr examples/en/48_training_run.tr
 
-A070 "tr/egitim"
+TR_kw_import "tr/egitim"
 
 // The run folder is deleted on every run: the example always starts from scratch.
-A031 RUN = G120("runs/run_example")
-A001 RUN.Y315 { G123(RUN, G901: A040) }
-A030 config = {Y500: 60, Y504: 0.01}
+TR_kw_const RUN = TR_fn_path("runs/run_example")
+TR_kw_if RUN.TR_mem_exists { TR_fn_remove(RUN, TR_arg_recursive: TR_kw_true) }
+TR_kw_var config = {TR_mem_step: 60, TR_mem_lr: 0.01}
 
 // --- Data and model (the small model of example 40) ---
-A030 tok = V200("../../tests/data/tokenizer.json")
-A030 V = tok.Y612
-A030 val_inputs, val_targets = V100("../../tests/data/text").Y600(V902: 8, V903: 32, T903: 2).Y602()
+TR_kw_var tok = TR_fn_load_tokenizer("../../tests/data/tokenizer.json")
+TR_kw_var V = tok.TR_mem_vocab_size
+TR_kw_var val_inputs, val_targets = TR_fn_dataset("../../tests/data/text").TR_mem_sampler(TR_arg_batch_size: 8, TR_arg_context: 32, TR_arg_seed: 2).TR_mem_next()
 
 // train runs one training from start to end; with trial true the same training is a short test.
-A020 train(trial) {
-    A030 batches = V100("../../tests/data/text").Y600(V902: 8, V903: 32, T903: 1)
-    A030 param_seed = 0
-    A020 param(shape, scale) {
+TR_kw_func train(trial) {
+    TR_kw_var batches = TR_fn_dataset("../../tests/data/text").TR_mem_sampler(TR_arg_batch_size: 8, TR_arg_context: 32, TR_arg_seed: 1)
+    TR_kw_var param_seed = 0
+    TR_kw_func param(shape, scale) {
         param_seed += 1
-        A021 T100(T301(T103(shape, T903: param_seed) * scale), T900: A040)
+        TR_kw_return TR_fn_tensor(TR_fn_no_grad(TR_fn_randn(shape, TR_arg_seed: param_seed) * scale), TR_arg_requires_grad: TR_kw_true)
     }
-    A030 model = {E: param([V, 32], 0.1), W1: param([32, 64], 0.1), W2: param([64, V], 0.1)}
-    A020 forward(inputs) {
-        A021 T203(T500(model.E, inputs) @ model.W1) @ model.W2
+    TR_kw_var model = {E: param([V, 32], 0.1), W1: param([32, 64], 0.1), W2: param([64, V], 0.1)}
+    TR_kw_func forward(inputs) {
+        TR_kw_return TR_fn_gelu(TR_fn_embedding(model.E, inputs) @ model.W1) @ model.W2
     }
-    A030 opt = T400(T530(model), T910: config.Y504, T911: 0.0)
+    TR_kw_var opt = TR_fn_AdamW(TR_fn_parameters(model), TR_arg_lr: config.TR_mem_lr, TR_arg_weight_decay: 0.0)
     // Everything in the dictionary goes into the checkpoint; if the folder holds one, it is loaded here.
-    A030 run = Koşu(RUN, config, {model: model, opt: opt, batches: batches}, adım_sayısı: config.Y500, prova: trial)
-    A010 i A011 run.Y520..run.son_adım {
-        A030 inputs, targets = batches.Y602()
-        opt.Y501()
-        A030 loss = T510(forward(inputs), targets)
-        T300(loss)
-        opt.Y500()
+    TR_kw_var run = Koşu(RUN, config, {model: model, opt: opt, batches: batches}, adım_sayısı: config.TR_mem_step, prova: trial)
+    TR_kw_for i TR_kw_in run.TR_mem_resume_step..run.son_adım {
+        TR_kw_var inputs, targets = batches.TR_mem_next()
+        opt.TR_mem_zero_grad()
+        TR_kw_var loss = TR_fn_cross_entropy(forward(inputs), targets)
+        TR_fn_backward(loss)
+        opt.TR_mem_step()
         // Reading the loss (on a GPU) means waiting: measures are given every 10 steps, not every step.
-        run.adım_bitti(i + 1, A001 (i + 1) % 10 == 0 { {loss: loss.Y404} } A002 { A042 })
-        A001 (i + 1) % 30 == 0 {
-            A030 vl = T510(forward(val_inputs), val_targets).Y404
+        run.adım_bitti(i + 1, TR_kw_if (i + 1) % 10 == 0 { {loss: loss.TR_mem_tolist} } TR_kw_else { TR_kw_none })
+        TR_kw_if (i + 1) % 30 == 0 {
+            TR_kw_var vl = TR_fn_cross_entropy(forward(val_inputs), val_targets).TR_mem_tolist
             run.değerlendirildi(i + 1, {val_loss: vl})
-            G100("step {i + 1}: validation loss {G405(vl, 3)}")
+            TR_fn_print("step {i + 1}: validation loss {TR_fn_round(vl, 3)}")
         }
     }
     run.bitir(model)
-    A021 run
+    TR_kw_return run
 }
 
 // --- First the trial: PROVA_ADIMI steps in a temporary folder; it does not touch the run folder ---
-G100("the trial takes {PROVA_ADIMI} steps")
-train(A040)
-G100("did the trial open the run folder:", RUN.Y315)
+TR_fn_print("the trial takes {PROVA_ADIMI} steps")
+train(TR_kw_true)
+TR_fn_print("did the trial open the run folder:", RUN.TR_mem_exists)
 
 // --- The real run ---
-A030 run = train(A041)
-A010 name A011 ["config.json", "metrics.jsonl", "model.trt"] {
-    G100(name, G120(RUN, name).Y315)
+TR_kw_var run = train(TR_kw_false)
+TR_kw_for name TR_kw_in ["config.json", "metrics.jsonl", "model.trt"] {
+    TR_fn_print(name, TR_fn_path(RUN, name).TR_mem_exists)
 }
-G100("weights:", T701(G120(RUN, "model.trt"))["W2"].Y400)
+TR_fn_print("weights:", TR_fn_load_tensors(TR_fn_path(RUN, "model.trt"))["W2"].TR_mem_shape)
 
 // --- The same run again: a finished training resumes at its last step (the end), the loop does nothing ---
-G100("resume step:", train(A041).Y520)
+TR_fn_print("resume step:", train(TR_kw_false).TR_mem_resume_step)
 
 // --- Try it yourself ---
 // 1. Set config.step to 1: how many steps does the trial take?

@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // Error 23 — continue outside a loop.
 // Message code: H0100
 // What happens: The program does not run at all; the message says continue can only be used inside a loop.
@@ -10,5 +10,5 @@
 //     }
 // Run (from the project root): tr examples/en/errors/23_continue_outside_loop.tr   (exit code 1)
 
-G100("first")
-A014
+TR_fn_print("first")
+TR_kw_continue

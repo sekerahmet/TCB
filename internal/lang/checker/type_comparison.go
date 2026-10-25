@@ -16,10 +16,10 @@ import (
 // karşılaştırıyorsa hata ekler.
 func (c *Checker) checkTypeTextComparison(e *ast.InfixExpression) {
 	text, call, ok := textComparison(e)
-	if !ok || c.builtinCall(call, codes.G201) == nil {
+	if !ok || c.builtinCall(call, codes.FnType) == nil {
 		return
 	}
-	c.addError(e.Line(), 0, hint.TypeTextComparisonError(e.Operator, text.Value, codes.NameRef(codes.A200)))
+	c.addError(e.Line(), 0, hint.TypeTextComparisonError(e.Operator, text.Value, codes.NameRef(codes.TypeInt)))
 }
 
 // Mantık değerinin metni dosyanın dilindedir (3): İngilizce dosyada metin(b) "true" ya da
@@ -34,7 +34,7 @@ func (c *Checker) checkBoolTextComparison(e *ast.InfixExpression) {
 	if !ok {
 		return
 	}
-	str := c.builtinCall(call, codes.G212)
+	str := c.builtinCall(call, codes.FnStr)
 	if str == nil || len(str.Arguments) != 1 || !c.isBool(str.Arguments[0]) {
 		return
 	}
@@ -42,13 +42,13 @@ func (c *Checker) checkBoolTextComparison(e *ast.InfixExpression) {
 	if l, err := codes.LoadLanguage(c.fileLanguage); err == nil {
 		own = l
 	}
-	if text.Value == own.Name(codes.A040) || text.Value == own.Name(codes.A041) {
+	if text.Value == own.Name(codes.KwTrue) || text.Value == own.Name(codes.KwFalse) {
 		return
 	}
 	for _, code := range codes.Languages() {
-		if l, err := codes.LoadLanguage(code); err == nil && (text.Value == l.Name(codes.A040) || text.Value == l.Name(codes.A041)) {
+		if l, err := codes.LoadLanguage(code); err == nil && (text.Value == l.Name(codes.KwTrue) || text.Value == l.Name(codes.KwFalse)) {
 			c.warnings = append(c.warnings, messages.At(e.Line(), 0, messages.New(messages.H1016,
-				codes.NameRef(codes.G212), own.Name(codes.A040), own.Name(codes.A041), own.Code, text.Value)))
+				codes.NameRef(codes.FnStr), own.Name(codes.KwTrue), own.Name(codes.KwFalse), own.Code, text.Value)))
 			return
 		}
 	}

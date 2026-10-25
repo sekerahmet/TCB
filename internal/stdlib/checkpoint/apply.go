@@ -203,7 +203,7 @@ func (kn *Checkpoint) compareSettings(m *interp.VM, d *stateRecord) {
 	for _, k := range fresh.Order {
 		e, var_ := old.Pairs[k]
 		if !var_ || e.Inspect() != fresh.Pairs[k].Inspect() {
-			oldText := codes.Name(codes.A042)
+			oldText := codes.Name(codes.KwNone)
 			if var_ {
 				oldText = e.Inspect()
 			}
@@ -212,7 +212,7 @@ func (kn *Checkpoint) compareSettings(m *interp.VM, d *stateRecord) {
 	}
 	for _, k := range old.Order {
 		if _, ok := fresh.Pairs[k]; !ok {
-			diffs = append(diffs, fmt.Sprintf("%s: %s → %s", k, old.Pairs[k].Inspect(), codes.Name(codes.A042)))
+			diffs = append(diffs, fmt.Sprintf("%s: %s → %s", k, old.Pairs[k].Inspect(), codes.Name(codes.KwNone)))
 		}
 	}
 	if len(diffs) == 0 {
@@ -220,5 +220,5 @@ func (kn *Checkpoint) compareSettings(m *interp.VM, d *stateRecord) {
 	}
 	slices.Sort(diffs)
 	m.WriteOutput(m.Err, messages.Text(messages.H7405,
-		codes.NameRef(codes.T702), strings.Join(diffs, ", "))+"\n")
+		codes.NameRef(codes.FnCheckpoint), strings.Join(diffs, ", "))+"\n")
 }

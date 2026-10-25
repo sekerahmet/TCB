@@ -26,28 +26,28 @@ func silu64(x float64) float64 {
 
 // registerWideMath genişletilmiş matematik yerleşiklerini kaydeder.
 func registerWideMath(v *interp.VM) {
-	unit(v, codes.T204, (*tensor.Tensor).Silu, silu64)
-	unit(v, codes.T224, (*tensor.Tensor).Tan, math.Tan)
-	unit(v, codes.T225, (*tensor.Tensor).Asin, math.Asin)
-	unit(v, codes.T226, (*tensor.Tensor).Acos, math.Acos)
-	unit(v, codes.T227, (*tensor.Tensor).Atan, math.Atan)
-	unit(v, codes.T240, (*tensor.Tensor).Sinh, math.Sinh)
-	unit(v, codes.T241, (*tensor.Tensor).Cosh, math.Cosh)
-	unit(v, codes.T242, (*tensor.Tensor).Log1p, math.Log1p)
-	unit(v, codes.T243, (*tensor.Tensor).Log2, math.Log2)
-	unit(v, codes.T244, (*tensor.Tensor).Log10, math.Log10)
-	unit(v, codes.T245, (*tensor.Tensor).Expm1, math.Expm1)
-	registerRounding(v, codes.G406, (*tensor.Tensor).Floor)
-	registerRounding(v, codes.G407, (*tensor.Tensor).Ceil)
-	registerRounding(v, codes.G408, (*tensor.Tensor).Sign)
-	registerRounding(v, codes.G403, (*tensor.Tensor).Abs) // mutlak: türevli (işaret(x), 0'da 0)
+	unit(v, codes.FnSilu, (*tensor.Tensor).Silu, silu64)
+	unit(v, codes.FnTan, (*tensor.Tensor).Tan, math.Tan)
+	unit(v, codes.FnAsin, (*tensor.Tensor).Asin, math.Asin)
+	unit(v, codes.FnAcos, (*tensor.Tensor).Acos, math.Acos)
+	unit(v, codes.FnAtan, (*tensor.Tensor).Atan, math.Atan)
+	unit(v, codes.FnSinh, (*tensor.Tensor).Sinh, math.Sinh)
+	unit(v, codes.FnCosh, (*tensor.Tensor).Cosh, math.Cosh)
+	unit(v, codes.FnLog1p, (*tensor.Tensor).Log1p, math.Log1p)
+	unit(v, codes.FnLog2, (*tensor.Tensor).Log2, math.Log2)
+	unit(v, codes.FnLog10, (*tensor.Tensor).Log10, math.Log10)
+	unit(v, codes.FnExpm1, (*tensor.Tensor).Expm1, math.Expm1)
+	registerRounding(v, codes.FnFloor, (*tensor.Tensor).Floor)
+	registerRounding(v, codes.FnCeil, (*tensor.Tensor).Ceil)
+	registerRounding(v, codes.FnSign, (*tensor.Tensor).Sign)
+	registerRounding(v, codes.FnAbs, (*tensor.Tensor).Abs) // mutlak: türevli (işaret(x), 0'da 0)
 	registerIsFinite(v)
-	wrap(v, codes.G409, newBuiltin(clampBuiltin))
-	wrap(v, codes.T228, newBuiltin(atan2Builtin))
-	wrap(v, codes.T234, newBuiltin(whereBuiltin))  // yerlesik_secim.go
-	wrap(v, codes.T231, newBuiltin(cumSumBuiltin)) // yerlesik_siralama.go
-	wrap(v, codes.T232, newBuiltin(topKBuiltin))
-	wrap(v, codes.T233, newBuiltin(argsortBuiltin))
+	wrap(v, codes.FnClamp, newBuiltin(clampBuiltin))
+	wrap(v, codes.FnAtan2, newBuiltin(atan2Builtin))
+	wrap(v, codes.FnWhere, newBuiltin(whereBuiltin))   // yerlesik_secim.go
+	wrap(v, codes.FnCumsum, newBuiltin(cumSumBuiltin)) // yerlesik_siralama.go
+	wrap(v, codes.FnTopk, newBuiltin(topKBuiltin))
+	wrap(v, codes.FnArgsort, newBuiltin(argsortBuiltin))
 }
 
 // isFinite sonlu_mu'nun tensör yoludur (15.36): x − x sonlu elemanda 0, NaN ve ±∞'da NaN'dır;
@@ -66,7 +66,7 @@ func isFinite(t *tensor.Tensor) *tensor.Tensor {
 // registerIsFinite sonlu_mu'nun tensör yolunu bağlar: sonuç karşılaştırmalar gibi her zaman
 // Ondalık 0/1'dir (15.36), tam sayılı işaretli girdide de (kaynaştır'daki sonuçla aynı).
 func registerIsFinite(v *interp.VM) {
-	registerTensorWrap(v, codes.G415, false, isFinite)
+	registerTensorWrap(v, codes.FnIsFinite, false, isFinite)
 }
 
 // registerRounding taban, tavan, işaret ve mutlak'ı sarar: tensörde eleman bazlı (türevi tensör
@@ -86,7 +86,7 @@ func registerTensorWrap(v *interp.VM, kd codes.Code, keepInts bool, fn func(*ten
 				return nil, err
 			}
 			if len(args) == 1 {
-				if err := listError(ad, args[0], messages.New(messages.H6131), ad.String()+"("+codes.Name(codes.T100)+"(...))"); err != nil {
+				if err := listError(ad, args[0], messages.New(messages.H6131), ad.String()+"("+codes.Name(codes.FnTensor)+"(...))"); err != nil {
 					return nil, err
 				}
 			}
@@ -128,7 +128,7 @@ func limitCount(ad any, isNamed bind.Named, v interp.Value) (float64, bool, erro
 
 // clampBuiltin sınırla(x, en_az: ..., en_fazla: ...).
 func clampBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	ad := codes.NameRef(codes.G409)
+	ad := codes.NameRef(codes.FnClamp)
 	usage := fmt.Sprintf("%s(x, %s: ..., %s: ...)", ad, nameMin.TR, nameMax.TR)
 	if len(args) != 1 {
 		return nil, messages.New(messages.H6108, usage, len(args))
@@ -186,7 +186,7 @@ func clampBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Val
 	case *interp.FloatVal:
 		return &interp.FloatVal{Val: clamp64(x.Val, lo, hi)}, nil
 	}
-	if err := listError(ad, args[0], messages.New(messages.H6131), ad.String()+"("+codes.Name(codes.T100)+"(...), "+nameMin.TR+": 0)"); err != nil {
+	if err := listError(ad, args[0], messages.New(messages.H6131), ad.String()+"("+codes.Name(codes.FnTensor)+"(...), "+nameMin.TR+": 0)"); err != nil {
 		return nil, err
 	}
 	return nil, messages.New(messages.H6103, ad, typeName(args[0]))
@@ -209,7 +209,7 @@ func clamp64(x, lo, hi float64) float64 {
 // atan2Builtin arktanjant2(y, x): iki sayıda Ondalık; biri tensörse yayınlamalı,
 // türevli tensör (sayı tensörün türüne çevrilir).
 func atan2Builtin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	ad := codes.NameRef(codes.T228)
+	ad := codes.NameRef(codes.FnAtan2)
 	if err := bind.CheckNamed(ad.Called(), named); err != nil {
 		return nil, err
 	}
@@ -217,7 +217,7 @@ func atan2Builtin(m *interp.VM, args []interp.Value, named map[string]interp.Val
 		return nil, messages.New(messages.H6116, ad, len(args))
 	}
 	for _, a := range args {
-		if err := listError(ad, a, messages.New(messages.H6131), ad.String()+"("+codes.Name(codes.T100)+"(...), x)"); err != nil {
+		if err := listError(ad, a, messages.New(messages.H6131), ad.String()+"("+codes.Name(codes.FnTensor)+"(...), x)"); err != nil {
 			return nil, err
 		}
 	}

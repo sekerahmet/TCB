@@ -8,7 +8,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// Komut satırı seçenekleri ad kodlarıdır (K1xx): komutlar gibi her yazım dilinin adı kabul
+// Komut satırı seçenekleri ad kodlarıdır (opt): komutlar gibi her yazım dilinin adı kabul
 // edilir (--dil de --lang da; betikler TR_DIL'den bağımsız çalışır), çıktı etkin dildedir.
 // Seçenek iki tireyle, sözcükleri tireyle ayrılarak yazılır: kodun adındaki alt çizgi komut
 // satırında tiredir (go_profili → --go-profili; GNU ve Go araçlarının yazımı). Kısa bayraklar

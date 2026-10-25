@@ -1,37 +1,37 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // 04 — Text: putting values into text and working with it.
 // What it teaches: interpolating expressions with {...}, the \" escape, length, upper/lower,
 // strip, contains, starts_with, ends_with, replace, split.
 // Builds on: variables and types (02, 03).
 // Run (from the project root): tr examples/en/04_text.tr
 
-A030 person = "Ayse"
-A030 age = 30
+TR_kw_var person = "Ayse"
+TR_kw_var age = 30
 
 // {...} inside text is an expression: its value is computed and written into the text.
-G100("{person} is {age} years old; next year {age + 1}.")
-G100("2 times 3 = {2 * 3}")
+TR_fn_print("{person} is {age} years old; next year {age + 1}.")
+TR_fn_print("2 times 3 = {2 * 3}")
 
 // Two texts join with +. A double quote goes into text as \".
-G100("Hello, " + person + "! We told her \"welcome\".")
+TR_fn_print("Hello, " + person + "! We told her \"welcome\".")
 
 // Methods of text: called as value.method().
-A030 sentence = "  hello, world!  "
-G100("length:", sentence.Y001)
-G100("stripped: [{sentence.Y102()}]") // removes spaces at the start and the end
-G100(sentence.Y102().Y100())
-G100(sentence.Y102().Y101())
-G100(sentence.Y002("world"), sentence.Y102().Y105("hel"))
-G100(sentence.Y102().Y104("world", "TR"))
+TR_kw_var sentence = "  hello, world!  "
+TR_fn_print("length:", sentence.TR_mem_length)
+TR_fn_print("stripped: [{sentence.TR_mem_strip()}]") // removes spaces at the start and the end
+TR_fn_print(sentence.TR_mem_strip().TR_mem_upper())
+TR_fn_print(sentence.TR_mem_strip().TR_mem_lower())
+TR_fn_print(sentence.TR_mem_contains("world"), sentence.TR_mem_strip().TR_mem_starts_with("hel"))
+TR_fn_print(sentence.TR_mem_strip().TR_mem_replace("world", "TR"))
 
 // Methods can be chained: they apply from left to right.
-G100("  tr lang  ".Y102().Y100().Y001)
+TR_fn_print("  tr lang  ".TR_mem_strip().TR_mem_upper().TR_mem_length)
 
 // starts_with, ends_with and contains ask about the start, the end and the inside of a text.
-G100("report.tr".Y105("rep"), "report.tr".Y106(".tr"), "report.tr".Y002("por"))
+TR_fn_print("report.tr".TR_mem_starts_with("rep"), "report.tr".TR_mem_ends_with(".tr"), "report.tr".TR_mem_contains("por"))
 
 // split cuts a text at the separator; the result is a list (we will learn lists in 09).
-G100("apple,pear,cherry".Y103(","))
+TR_fn_print("apple,pear,cherry".TR_mem_split(","))
 
 // --- Try it yourself ---
 // 1. Keep a name and a birth year in two variables and build "{name} was born in {year}, now ... years old".

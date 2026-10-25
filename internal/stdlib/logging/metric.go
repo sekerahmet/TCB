@@ -26,7 +26,7 @@ func metricValue(fn any, name string, v interp.Value) (interp.Value, error) {
 		return x.PlainValue(), nil
 	}
 	return nil, messages.New(messages.H7300,
-		fn, name, interp.TypeNames(codes.A200, codes.A201, codes.A202, codes.A203), codes.NameRef(codes.A212), interp.TypeAndSummary(v))
+		fn, name, interp.TypeNames(codes.TypeInt, codes.TypeFloat, codes.TypeString, codes.TypeBool), codes.NameRef(codes.TypeTensor), interp.TypeAndSummary(v))
 }
 
 // shortDecimal float32'yi en kısa yazımıyla float64'e çevirir (0.1 → 0.1, 0.10000000149 değil).

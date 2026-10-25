@@ -50,7 +50,7 @@ var _ interp.LanguageText = (*Log)(nil)
 func (g *Log) Text(lang *codes.Language) string {
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	return messages.TextIn(lang.Code, messages.H7318, lang.Name(codes.A256), g.path, g.records)
+	return messages.TextIn(lang.Code, messages.H7318, lang.Name(codes.TypeLogger), g.path, g.records)
 }
 
 // Path günlük dosyasının çözülmüş yoludur.
@@ -63,26 +63,26 @@ func IsLog(v interp.Value) (*Log, bool) {
 }
 
 func (g *Log) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
-	if kd == codes.Y004 {
-		return bind.CodeMethod(codes.Y004, true, func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+	if kd == codes.MemAppend {
+		return bind.CodeMethod(codes.MemAppend, true, func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 			return g.add(args)
 		}), nil
 	}
-	return nil, bind.MemberError(LogType, prop, []codes.Code{codes.Y004})
+	return nil, bind.MemberError(LogType, prop, []codes.Code{codes.MemAppend})
 }
 
 // openLog günlük(yol) yerleşiğidir.
 func (d *state) openLog(m *interp.VM, args []interp.Value) (interp.Value, error) {
-	fn := interp.CallPrefix(codes.G810)
+	fn := interp.CallPrefix(codes.FnLogger)
 	if len(args) != 1 {
-		return nil, interp.ArgCountError(codes.G810, 1, len(args), messages.Text(messages.H2307))
+		return nil, interp.ArgCountError(codes.FnLogger, 1, len(args), messages.Text(messages.H2307))
 	}
 	path, ok, err := interp.PathArg(fn, args[0])
 	if err != nil {
 		return nil, err
 	}
 	if !ok {
-		return nil, interp.ArgTypeError(codes.G810, 1, args[0], codes.A202)
+		return nil, interp.ArgTypeError(codes.FnLogger, 1, args[0], codes.TypeString)
 	}
 	if !strings.EqualFold(filepath.Ext(path), logExt) {
 		return nil, messages.New(messages.H7319,
@@ -160,9 +160,9 @@ func (g *Log) close() {
 
 // add Günlük.ekle(kayıt) metodudur: Sözlük bir kayıttır, Metin {"mesaj": ...} olur.
 func (g *Log) add(args []interp.Value) (interp.Value, error) {
-	fn := interp.CallPrefix(codes.Y004)
+	fn := interp.CallPrefix(codes.MemAppend)
 	if len(args) != 1 {
-		return nil, interp.ArgCountError(codes.Y004, 1, len(args), messages.Text(messages.H2324), messages.Text(messages.H2325))
+		return nil, interp.ArgCountError(codes.MemAppend, 1, len(args), messages.Text(messages.H2324), messages.Text(messages.H2325))
 	}
 	record := interp.NewDictVal()
 	record.Set(keyTime, timeValue(clock()))
@@ -174,7 +174,7 @@ func (g *Log) add(args []interp.Value) (interp.Value, error) {
 			return nil, err
 		}
 	default:
-		return nil, interp.ArgTypeError(codes.Y004, 1, args[0], codes.A206, codes.A202)
+		return nil, interp.ArgTypeError(codes.MemAppend, 1, args[0], codes.TypeDict, codes.TypeString)
 	}
 	if err := g.write(record); err != nil {
 		return nil, err
@@ -193,7 +193,7 @@ func addMetrics(fn any, record *interp.DictVal, dict *interp.DictVal, reserved .
 		}
 		if a := dict.KeyValue(k); a != nil {
 			if _, text := a.(*interp.StringVal); !text {
-				return messages.New(messages.H7320, fn, codes.NameRef(codes.A202), interp.TypeAndSummary(a))
+				return messages.New(messages.H7320, fn, codes.NameRef(codes.TypeString), interp.TypeAndSummary(a))
 			}
 		}
 		for _, r := range reserved {
@@ -240,11 +240,11 @@ func (g *Log) write(record *interp.DictVal) error {
 	}
 	if g.file == nil {
 		if err := g.open(); err != nil {
-			return turkish.FileError(interp.CallPrefix(codes.G810), g.path, messages.H2103, err)
+			return turkish.FileError(interp.CallPrefix(codes.FnLogger), g.path, messages.H2103, err)
 		}
 	}
 	if _, err := g.file.Write(line); err != nil {
-		return turkish.FileError(interp.CallPrefix(codes.G810), g.path, messages.H2101, err)
+		return turkish.FileError(interp.CallPrefix(codes.FnLogger), g.path, messages.H2101, err)
 	}
 	g.start = true
 	g.records++
@@ -255,7 +255,7 @@ func (g *Log) write(record *interp.DictVal) error {
 func (g *Log) line(record *interp.DictVal) ([]byte, error) {
 	b, err := jsonwrite.WriteOptions(record, jsonwrite.Options{NonFiniteAsText: true, TextFilter: g.m.Mask})
 	if err != nil {
-		return nil, messages.New(messages.H7326, interp.CallPrefix(codes.Y004), err)
+		return nil, messages.New(messages.H7326, interp.CallPrefix(codes.MemAppend), err)
 	}
 	return append(b, '\n'), nil
 }

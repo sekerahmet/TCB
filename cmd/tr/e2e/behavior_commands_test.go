@@ -44,7 +44,7 @@ func TestCommandsHaveOneName(t *testing.T) {
 			t.Errorf("%s: program çalışmamalıydı", ad)
 		}
 	}
-	// Seçenekler de ad kodudur (K1xx): her dilin adı kabul edilir, sözcükleri tireyle yazılır.
+	// Seçenekler de ad kodudur (opt): her dilin adı kabul edilir, sözcükleri tireyle yazılır.
 	testkit.Wait(t, tr(t, dir, "biçimle", "--check", "a.tr"), 0, nil, nil)
 	testkit.Wait(t, tr(t, dir, "format", "--kontrol", "a.tr"), 0, nil, nil)
 	testkit.Wait(t, tr(t, dir, "profil", "--go_profili", "x.prof", "a.tr"), 1, nil, []string{"bilinmeyen seçenek \"--go_profili\"", "--go-profili"})
@@ -194,7 +194,7 @@ func TestREPL(t *testing.T) {
 	if n := strings.Count(s.Stderr, "Tip uyuşmazlığı"); n != 1 {
 		t.Errorf("tip hatası %d kez yazıldı, beklenen 1:\n%s", n, s.Stderr)
 	}
-	// Kabuğun çıkış komutu bir ad kodudur (K200): her yazım dilinin adı kabul edilir.
+	// Kabuğun çıkış komutu bir ad kodudur (TR_repl_exit): her yazım dilinin adı kabul edilir.
 	s = testkit.RunBinary(t, trBinary, "", "exit\nyazdır(\"sürdü\")\n", nil)
 	testkit.Wait(t, s, 0, []string{"Görüşmek üzere!"}, nil)
 	if strings.Contains(s.Stdout, "sürdü") {

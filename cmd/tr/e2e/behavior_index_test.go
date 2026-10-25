@@ -48,7 +48,7 @@ func TestIndexExitCodesAndJSON(t *testing.T) {
 	testkit.Wait(t, tr(t, dir, "dizin", "tanım", "ileri"), 3, []string{"A.ileri", "B.ileri"}, nil)
 	testkit.Wait(t, tr(t, dir, "dizin", "tanım", "yok_boyle_bir_ad"), 4, nil, nil)
 	s := tr(t, dir, "dizin", "kullananlar", "çevre", "--json")
-	testkit.Wait(t, s, 0, []string{`"schema": "tr-codeindex/1"`}, nil)
+	testkit.Wait(t, s, 0, []string{`"schema": "tr-codeindex/2"`}, nil)
 	var res struct {
 		Schema, Command, Status string
 		Counts                  struct{ Total int }

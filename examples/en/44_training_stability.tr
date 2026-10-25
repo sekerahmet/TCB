@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // 44 — Training stability: catching NaN and loss spikes, rolling back to the last checkpoint.
 // What it teaches: is_finite (on numbers and tensors), clip_grad(..., error_if_nonfinite:), ckpt.rollback(),
 // batches.skip(n) and the library's spike watcher (import "tr/egitim": SıçramaBekçisi, TAMAM, SONLU_DEĞİL, SIÇRAMA).
@@ -9,72 +9,72 @@
 //
 // Run (from the project root): tr examples/en/44_training_stability.tr
 
-A070 "tr/egitim"
+TR_kw_import "tr/egitim"
 
 // --- is_finite: NaN and infinity are "not finite" ---
-G100(G415(2.5), G415(G211("nan")), G415(G211("inf")))
-G100(G415(T100([1.0, G211("nan"), -G211("inf")])).Y404) // element-wise: [1.0, 0.0, 0.0]
+TR_fn_print(TR_fn_is_finite(2.5), TR_fn_is_finite(TR_fn_float("nan")), TR_fn_is_finite(TR_fn_float("inf")))
+TR_fn_print(TR_fn_is_finite(TR_fn_tensor([1.0, TR_fn_float("nan"), -TR_fn_float("inf")])).TR_mem_tolist) // element-wise: [1.0, 0.0, 0.0]
 
 // --- A small model and data (the model of example 40) ---
-A030 tok = V200("../../tests/data/tokenizer.json")
-A030 V = tok.Y612
-A030 batches = V100("../../tests/data/text").Y600(V902: 8, V903: 32, T903: 1)
-A030 param_seed = 0
-A020 param(shape, scale) {
+TR_kw_var tok = TR_fn_load_tokenizer("../../tests/data/tokenizer.json")
+TR_kw_var V = tok.TR_mem_vocab_size
+TR_kw_var batches = TR_fn_dataset("../../tests/data/text").TR_mem_sampler(TR_arg_batch_size: 8, TR_arg_context: 32, TR_arg_seed: 1)
+TR_kw_var param_seed = 0
+TR_kw_func param(shape, scale) {
     param_seed += 1
-    A021 T100(T301(T103(shape, T903: param_seed) * scale), T900: A040)
+    TR_kw_return TR_fn_tensor(TR_fn_no_grad(TR_fn_randn(shape, TR_arg_seed: param_seed) * scale), TR_arg_requires_grad: TR_kw_true)
 }
-A030 model = {E: param([V, 32], 0.1), W1: param([32, 64], 0.1), W2: param([64, V], 0.1)}
-A020 forward(inputs) {
-    A021 T203(T500(model.E, inputs) @ model.W1) @ model.W2
+TR_kw_var model = {E: param([V, 32], 0.1), W1: param([32, 64], 0.1), W2: param([64, V], 0.1)}
+TR_kw_func forward(inputs) {
+    TR_kw_return TR_fn_gelu(TR_fn_embedding(model.E, inputs) @ model.W1) @ model.W2
 }
-A030 opt = T400(T530(model), T910: 0.01, T911: 0.0)
+TR_kw_var opt = TR_fn_AdamW(TR_fn_parameters(model), TR_arg_lr: 0.01, TR_arg_weight_decay: 0.0)
 
 // --- clip_grad: always returns the norm; with error_if_nonfinite it can also fail on a broken gradient ---
-A030 first_inputs, first_targets = batches.Y602()
-T300(T510(forward(first_inputs), first_targets) * G211("nan"))
-A060 {
-    T402(T530(model), T904: 1.0, T986: A040)
-} A061 e {
-    G100("broken gradient, no step taken")
+TR_kw_var first_inputs, first_targets = batches.TR_mem_next()
+TR_fn_backward(TR_fn_cross_entropy(forward(first_inputs), first_targets) * TR_fn_float("nan"))
+TR_kw_try {
+    TR_fn_clip_grad(TR_fn_parameters(model), TR_arg_max: 1.0, TR_arg_error_if_nonfinite: TR_kw_true)
+} TR_kw_catch e {
+    TR_fn_print("broken gradient, no step taken")
 }
-opt.Y501() // the broken gradients are cleared, the model did not change
+opt.TR_mem_zero_grad() // the broken gradients are cleared, the model did not change
 
 // --- Training: a checkpoint every 10 steps, the watcher looks at every step ---
 // The run folder is deleted on every run: the example always starts from scratch.
-A031 RUN = G120("runs/stability_example")
-A001 RUN.Y315 { G123(RUN, G901: A040) }
-A030 ckpt = T702(RUN, {model: model, opt: opt, batches: batches}, T984: 0)
-A030 watcher = SıçramaBekçisi(pencere: 20, eşik: 6.0)
-A031 TOTAL = 60
-A030 broken_step = 35 // the loss turns NaN once, on purpose, at this step
-A030 step = 0
-A010 step < TOTAL {
-    A030 inputs, targets = batches.Y602()
-    opt.Y501()
-    A030 loss = T510(forward(inputs), targets)
-    A001 step == broken_step {
-        loss = loss * G211("nan")
+TR_kw_const RUN = TR_fn_path("runs/stability_example")
+TR_kw_if RUN.TR_mem_exists { TR_fn_remove(RUN, TR_arg_recursive: TR_kw_true) }
+TR_kw_var ckpt = TR_fn_checkpoint(RUN, {model: model, opt: opt, batches: batches}, TR_arg_every_minutes: 0)
+TR_kw_var watcher = SıçramaBekçisi(pencere: 20, eşik: 6.0)
+TR_kw_const TOTAL = 60
+TR_kw_var broken_step = 35 // the loss turns NaN once, on purpose, at this step
+TR_kw_var step = 0
+TR_kw_for step < TOTAL {
+    TR_kw_var inputs, targets = batches.TR_mem_next()
+    opt.TR_mem_zero_grad()
+    TR_kw_var loss = TR_fn_cross_entropy(forward(inputs), targets)
+    TR_kw_if step == broken_step {
+        loss = loss * TR_fn_float("nan")
         broken_step = -1
     }
-    T300(loss)
-    A030 norm = T402(T530(model), T904: 1.0)
-    A030 verdict = watcher.gözle(loss.Y404, norm.Y404)
-    A001 verdict != TAMAM {
+    TR_fn_backward(loss)
+    TR_kw_var norm = TR_fn_clip_grad(TR_fn_parameters(model), TR_arg_max: 1.0)
+    TR_kw_var verdict = watcher.gözle(loss.TR_mem_tolist, norm.TR_mem_tolist)
+    TR_kw_if verdict != TAMAM {
         // A broken or spiking step is not applied: back to the last sound checkpoint, the troublesome batches are skipped.
-        G100("step {step + 1}: {verdict}")
-        step = ckpt.Y522()
-        G100("  rolled back to step {step}, skipped {batches.Y603(3)} batches")
-        A014
+        TR_fn_print("step {step + 1}: {verdict}")
+        step = ckpt.TR_mem_rollback()
+        TR_fn_print("  rolled back to step {step}, skipped {batches.TR_mem_skip(3)} batches")
+        TR_kw_continue
     }
-    opt.Y500()
+    opt.TR_mem_step()
     step += 1
-    A001 step % 10 == 0 {
-        ckpt.Y010(step)
-        G100("step {step}: loss {G405(loss.Y404, 3)}")
+    TR_kw_if step % 10 == 0 {
+        ckpt.TR_mem_update(step)
+        TR_fn_print("step {step}: loss {TR_fn_round(loss.TR_mem_tolist, 3)}")
     }
 }
-G100("model sound:", G415(G400(model.W2).Y404), "| spikes:", watcher.sıçrama_sayısı)
+TR_fn_print("model sound:", TR_fn_is_finite(TR_fn_sum(model.W2).TR_mem_tolist), "| spikes:", watcher.sıçrama_sayısı)
 
 // --- Try it yourself ---
 // 1. Set broken_step to 5: what does rollback say while there is no checkpoint yet?

@@ -141,7 +141,7 @@ func (v *VM) indexValue(left Value, idx Value, line int) (Value, error) {
 
 	if _, ok := left.(Stream); ok {
 		// Sırayla okunan değer (satır okuyucu, veri okuyucusu) indekslenmez; nasıl okunacağı söylenir.
-		return nil, messages.At(line, 0, messages.New(messages.H2525, left.Type(), codes.NameRef(codes.A010), codes.NameRef(codes.A011), codes.NameRef(codes.Y602)))
+		return nil, messages.At(line, 0, messages.New(messages.H2525, left.Type(), codes.NameRef(codes.KwFor), codes.NameRef(codes.KwIn), codes.NameRef(codes.MemNext)))
 	}
 	return nil, messages.At(line, 0, messages.New(messages.H2465, left.Type()))
 }
@@ -164,7 +164,7 @@ func (v *VM) memberValue(obj Value, e *ast.MemberExpression, u memberInfo) (Valu
 		if e.Safe {
 			return Null, nil
 		}
-		return nil, messages.At(e.Line(), 0, messages.New(messages.H2466, codes.NameRef(codes.A042), e.Property))
+		return nil, messages.At(e.Line(), 0, messages.New(messages.H2466, codes.NameRef(codes.KwNone), e.Property))
 	}
 
 	// Tensör, iyileştirici, veri kümesi ve parçalayıcı özellikleri
@@ -256,5 +256,5 @@ func rangeCount(first, last, step int64) int64 {
 // indexRangeError köşeli parantezle sınır dışı okumanın hatasıdır (3.6): sessizce yok vermek
 // program yanlışını saklardı. Öğenin olmayabileceği bilinçli durum için varsa_al'ı önerir.
 func indexRangeError(line int, container ValueType, index int64, length int) error {
-	return messages.At(line, 0, messages.New(messages.H2515, container, index, length, codes.NameRef(codes.Y013)))
+	return messages.At(line, 0, messages.New(messages.H2515, container, index, length, codes.NameRef(codes.MemGet)))
 }

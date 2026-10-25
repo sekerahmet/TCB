@@ -23,22 +23,22 @@ const defaultIndexLimit = 12
 
 // indexOptions komutun seçenekleridir.
 type indexOptions struct {
-	json    bool   // K103 (--json)
-	limit   int    // K107 (--sınır)
-	all     bool   // K108 (--tümü)
-	root    string // K109 (--kök)
-	kind    string // K110 (--tür)
-	noIndex bool   // K111 (--dizin-yok)
-	status  bool   // K112 (--durum)
-	clear   bool   // K113 (--temizle)
-	noText  bool   // K114 (--metin-yok)
-	term    bool   // K115 (--terim)
+	json    bool   // TR_opt_json (--json)
+	limit   int    // TR_opt_limit (--sınır)
+	all     bool   // TR_opt_all (--tümü)
+	root    string // TR_opt_root (--kök)
+	kind    string // TR_opt_kind (--tür)
+	noIndex bool   // TR_opt_no_index (--dizin-yok)
+	status  bool   // TR_opt_status (--durum)
+	clear   bool   // TR_opt_clear (--temizle)
+	noText  bool   // TR_opt_no_text (--metin-yok)
+	term    bool   // TR_opt_term (--terim)
 
 	limitSet bool // --sınır açıkça verildi
 }
 
 // indexValueOptions değer isteyen seçeneklerdir.
-var indexValueOptions = []codes.Code{codes.K107, codes.K109, codes.K110}
+var indexValueOptions = []codes.Code{codes.OptLimit, codes.OptRoot, codes.OptKind}
 
 // indexCommand 'tr dizin [alt komut] [ad] [seçenekler]' komutudur.
 func indexCommand(args []string) {
@@ -46,7 +46,7 @@ func indexCommand(args []string) {
 	if len(args) > 0 && !strings.HasPrefix(args[0], "--") {
 		k, ok := codes.FindSubcommand(args[0])
 		if !ok {
-			exitWithError(messages.Text(messages.H8821, codes.NameRef(codes.K015), args[0], subcommandNames()))
+			exitWithError(messages.Text(messages.H8821, codes.NameRef(codes.CmdIndex), args[0], subcommandNames()))
 		}
 		sub, args = k, args[1:]
 	}
@@ -88,7 +88,7 @@ func loadIndex(root string, o indexOptions) (*codeindex.Index, codeindex.Stats) 
 // subcommandNames etkin dildeki alt komut adlarıdır (hata iletisi için).
 func subcommandNames() string {
 	var names []string
-	for _, k := range []codes.Code{codes.K016, codes.K017, codes.K018, codes.K019, codes.K020} {
+	for _, k := range []codes.Code{codes.SubDefinition, codes.SubReferences, codes.SubTestedBy, codes.SubImpact, codes.SubRename} {
 		names = append(names, codes.DisplayName(k))
 	}
 	return strings.Join(names, ", ")
@@ -98,14 +98,14 @@ func subcommandNames() string {
 func parseIndexArguments(sub codes.Code, args []string) (indexOptions, []string) {
 	o := indexOptions{limit: defaultIndexLimit}
 	var names []string
-	allowed := []codes.Code{codes.K103, codes.K107, codes.K108, codes.K109, codes.K110, codes.K111}
+	allowed := []codes.Code{codes.OptJson, codes.OptLimit, codes.OptAll, codes.OptRoot, codes.OptKind, codes.OptNoIndex}
 	switch sub {
 	case codes.None:
-		allowed = []codes.Code{codes.K109, codes.K112, codes.K113}
-	case codes.K020:
-		allowed = []codes.Code{codes.K103, codes.K107, codes.K108, codes.K109, codes.K111, codes.K114, codes.K115}
+		allowed = []codes.Code{codes.OptRoot, codes.OptStatus, codes.OptClear}
+	case codes.SubRename:
+		allowed = []codes.Code{codes.OptJson, codes.OptLimit, codes.OptAll, codes.OptRoot, codes.OptNoIndex, codes.OptNoText, codes.OptTerm}
 	}
-	command := codes.NameRef(codes.K015)
+	command := codes.NameRef(codes.CmdIndex)
 	for len(args) > 0 {
 		arg := args[0]
 		args = args[1:]
@@ -122,9 +122,9 @@ func parseIndexArguments(sub codes.Code, args []string) (indexOptions, []string)
 		o.limit = 0
 	}
 	switch {
-	case sub == codes.K020 && len(names) != 2:
+	case sub == codes.SubRename && len(names) != 2:
 		exitWithError(messages.Text(messages.H8864, command, codes.NameRef(sub), "head view"))
-	case sub != codes.None && sub != codes.K020 && len(names) != 1:
+	case sub != codes.None && sub != codes.SubRename && len(names) != 1:
 		exitWithError(messages.Text(messages.H8820, command, codes.NameRef(sub), "Muon"))
 	}
 	return o, names
@@ -132,29 +132,29 @@ func parseIndexArguments(sub codes.Code, args []string) (indexOptions, []string)
 
 func applyIndexOption(o *indexOptions, k codes.Code, value string) {
 	switch k {
-	case codes.K103:
+	case codes.OptJson:
 		o.json = true
-	case codes.K107:
+	case codes.OptLimit:
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {
 			exitWithError(messages.Text(messages.H8822, codes.OptionFlag(k), value))
 		}
 		o.limit, o.limitSet = n, true
-	case codes.K108:
+	case codes.OptAll:
 		o.all = true
-	case codes.K109:
+	case codes.OptRoot:
 		o.root = value
-	case codes.K110:
+	case codes.OptKind:
 		o.kind = value
-	case codes.K111:
+	case codes.OptNoIndex:
 		o.noIndex = true
-	case codes.K112:
+	case codes.OptStatus:
 		o.status = true
-	case codes.K113:
+	case codes.OptClear:
 		o.clear = true
-	case codes.K114:
+	case codes.OptNoText:
 		o.noText = true
-	case codes.K115:
+	case codes.OptTerm:
 		o.term = true
 	}
 }
@@ -220,15 +220,15 @@ func runIndexQuery(r *codeindex.Reader, sub codes.Code, names []string, root str
 	qo := codeindex.QueryOptions{Limit: o.limit, Kind: o.kind}
 	var res *codeindex.Result
 	switch sub {
-	case codes.K016:
+	case codes.SubDefinition:
 		res = r.Definition(query, qo)
-	case codes.K017:
+	case codes.SubReferences:
 		res = r.References(query, qo)
-	case codes.K018:
+	case codes.SubTestedBy:
 		res = r.TestedBy(query, qo)
-	case codes.K019:
+	case codes.SubImpact:
 		res = r.Impact(query, qo)
-	case codes.K020:
+	case codes.SubRename:
 		ro := codeindex.RenameOptions{Root: root, NoText: o.noText, Term: o.term}
 		if o.limitSet {
 			ro.Limit = o.limit

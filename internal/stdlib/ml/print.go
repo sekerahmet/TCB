@@ -28,7 +28,7 @@ var _ interp.LanguageText = (*TensorValue)(nil)
 func (d *TensorValue) Inspect() string { return d.Text(codes.Display()) }
 
 // Text is the tensor's text in lang (docs/spec/03_tipler.md): the type name, the non-finite
-// numbers (the same names as Ondalık's, A110 and A111) and the notes are lang's; str(t) and
+// numbers (the same names as Ondalık's, TR_val_inf and TR_val_nan) and the notes are lang's; str(t) and
 // yazdır(t) give it in the language of the file they are written in.
 func (d *TensorValue) Text(lang *codes.Language) string {
 	t := d.t
@@ -54,9 +54,9 @@ func (d *TensorValue) Text(lang *codes.Language) string {
 		if len(ek) > 0 {
 			s += ", " + strings.Join(ek, ", ")
 		}
-		return lang.Name(codes.A212) + "(" + s + ")" + dtypeSuffix
+		return lang.Name(codes.TypeTensor) + "(" + s + ")" + dtypeSuffix
 	}
-	header := lang.Name(codes.A212) + "[" + shapeProduct(sh) + "]" + dtypeSuffix
+	header := lang.Name(codes.TypeTensor) + "[" + shapeProduct(sh) + "]" + dtypeSuffix
 	if len(ek) > 0 {
 		header += " (" + strings.Join(ek, ", ") + ")"
 	}

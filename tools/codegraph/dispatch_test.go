@@ -37,8 +37,8 @@ func TestDispatchTableIsReadFromTheInterpreter(t *testing.T) {
 		}
 	}
 	// İşlenen türü bilinince yalnız o türün uygulaması: Tensör kancaya, sayı yorumlayıcıya; bilinmez ikisine.
-	if operandRules("type:A212", true) || !operandRules("type:A212", false) || operandRules("type:A200", false) ||
-		!operandRules("type:A200", true) || !operandRules("", true) || !operandRules("", false) {
+	if operandRules("type:TR_type_Tensor", true) || !operandRules("type:TR_type_Tensor", false) || operandRules("type:TR_type_Int", false) ||
+		!operandRules("type:TR_type_Int", true) || !operandRules("", true) || !operandRules("", false) {
 		t.Error("operand rules: Tensör → hooks, numbers → interpreter, unknown → both")
 	}
 }

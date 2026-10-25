@@ -32,7 +32,7 @@ type Lexer struct {
 	errors       []error
 	tokenStart   int // son okunan sözcük biriminin başladığı karakter (rune) indeksi
 
-	// coded, kaynağın kodlu biçimde (17.10) yazıldığını söyler: kodlar (A001, G100) dilin
+	// coded, kaynağın kodlu biçimde (17.10) yazıldığını söyler: kodlar (TR_kw_if, TR_fn_print) dilin
 	// sözcükleri, kod olmayan her ad kullanıcının adıdır (coded.go).
 	coded bool
 	// root dosyanın çözümleyicisidir (kökte kendisi). Metin içi yerleştirmelerin alt

@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // 01 — Hello: the first TR program.
 // What it teaches: writing to the screen with print, string literals, several values, line breaks and comments.
 // Builds on: — (the first example).
@@ -7,15 +7,15 @@
 // (scratch/ stays out of the repository).
 
 // A line that starts with two slashes is a comment: the program skips it, it is a note to the reader.
-G100("Hello, world!")
-G100("This is the second line.")
+TR_fn_print("Hello, world!")
+TR_fn_print("This is the second line.")
 
 // Values separated by commas are written on the same line, with a space between them.
-G100("Three", "values", "side by side")
-G100(2026) // a number can be printed too; quotes are only for text
+TR_fn_print("Three", "values", "side by side")
+TR_fn_print(2026) // a number can be printed too; quotes are only for text
 
 // \n inside a string means a line break.
-G100("First line\nSecond line")
+TR_fn_print("First line\nSecond line")
 
 // --- Try it yourself ---
 // 1. Print a greeting with your own name.

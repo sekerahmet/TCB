@@ -79,7 +79,7 @@ func (y *writer) text(s string) {
 
 // NonFiniteData is the data-format text of a non-finite number: logs, state files and
 // checkpoints (19.5, 20). Data formats are a contract: the text is fixed, independent of the
-// language and of the value names (A110, A111). Python's json.dumps writes the same words
+// language and of the value names (TR_val_inf, TR_val_nan). Python's json.dumps writes the same words
 // (NaN, Infinity, -Infinity) and float("Infinity") reads them back.
 func NonFiniteData(f float64) string {
 	switch {
@@ -215,6 +215,6 @@ func (y *writer) value(val interp.Value, depth int) error {
 // JSON'a yazılmaz, çünkü metni görüntü ya da dosyanın diline bağlıdır, veri biçimi dilden
 // bağımsızdır. Python'un json.dumps'ı da TypeError verir.
 func notData(val interp.Value) error {
-	return messages.New(messages.H7010, val.Type(), interp.TypeNames(codes.A200, codes.A201, codes.A202, codes.A203,
-		codes.A204, codes.A205, codes.A206, codes.A212, codes.A250))
+	return messages.New(messages.H7010, val.Type(), interp.TypeNames(codes.TypeInt, codes.TypeFloat, codes.TypeString, codes.TypeBool,
+		codes.TypeNone, codes.TypeList, codes.TypeDict, codes.TypeTensor, codes.TypePath))
 }

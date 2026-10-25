@@ -1,5 +1,5 @@
 {
-  "schema": "tr-codeindex/1",
+  "schema": "tr-codeindex/2",
   "command": "references",
   "status": "ok",
   "query": {
@@ -7,9 +7,9 @@
     "language": "tr"
   },
   "target": {
-    "id": "builtin:G100",
+    "id": "builtin:TR_fn_print",
     "kind": "builtin",
-    "name": "G100",
+    "name": "TR_fn_print",
     "display": "yazdır"
   },
   "users": [

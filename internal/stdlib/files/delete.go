@@ -17,18 +17,18 @@ import (
 // deleteBuiltin sil(yol, içindekilerle: yanlış) yerleşiğidir: dosyayı, bağlantıyı ya da boş
 // klasörü (içindekilerle: doğru ile dolu klasörü) siler, silinen dosya sayısını verir.
 func deleteBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := interp.CallPrefix(codes.G123)
+	fn := interp.CallPrefix(codes.FnRemove)
 	if err := bind.CheckNamed(fn, named, nameWithContents); err != nil {
 		return nil, err
 	}
 	if len(args) != 1 {
-		return nil, interp.ArgCountError(codes.G123, 1, len(args), messages.Text(messages.H2317))
+		return nil, interp.ArgCountError(codes.FnRemove, 1, len(args), messages.Text(messages.H2317))
 	}
-	raw, err := readPath(codes.G123, 1, args[0])
+	raw, err := readPath(codes.FnRemove, 1, args[0])
 	if err != nil {
 		return nil, err
 	}
-	withContents, err := bind.OptionalBool(interp.CallPrefix(codes.G123), named, nameWithContents, false)
+	withContents, err := bind.OptionalBool(interp.CallPrefix(codes.FnRemove), named, nameWithContents, false)
 	if err != nil {
 		return nil, err
 	}

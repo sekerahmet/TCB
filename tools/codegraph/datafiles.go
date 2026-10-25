@@ -12,7 +12,7 @@ import (
 // tanım tabloları) kodun parçası gibi sınanır: bütün listeyi gezen testler her girdiyi korur. Dosyanın düğümü
 // olmazsa `tests-for tr.json` "not found" der; düğüm olunca gömen değişkenden (`embeds`), okuyan işlevden
 // (`reads_file`) ve onları çağıran testlerden (`tests`) gelen kenarlar ona bağlanır (test_paths.go). Dil
-// dosyalarındaki her ad ve ileti kodu dosyasının düğümünden `contains` kenarı alır; böylece `tests-for T720`
+// dosyalarındaki her ad ve ileti kodu dosyasının düğümünden `contains` kenarı alır; böylece `tests-for TR_fn_default_device`
 // kodun tanımlandığı dosyayı geçen testleri de gösterir.
 
 // extractDataFiles git'in izlediği ve başka bir çıkarıcının düğüm yapmadığı her dosyayı (betik, .gitignore, JS, YAML,

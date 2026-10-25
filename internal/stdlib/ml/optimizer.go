@@ -14,7 +14,7 @@ import (
 )
 
 // Optimizer AdamW ve SGD iyileştiricilerinin TR değeridir; ikisinin de tipi
-// İyileştirici'dir (A214). Metotları .adım() (parametreleri günceller) ve .sıfırla()
+// İyileştirici'dir (TR_type_Optimizer). Metotları .adım() (parametreleri günceller) ve .sıfırla()
 // (gradyanları sıfırlar). ad oluşturucunun adıdır (AdamW, SGD; yazdırmada görünür).
 type Optimizer struct {
 	ad     codes.Ref
@@ -40,7 +40,7 @@ func (o *Optimizer) Text(lang *codes.Language) string {
 	var settings []string
 	set := func(k codes.Code, value string) { settings = append(settings, lang.Name(k)+": "+value) }
 	if a := o.adamw; a != nil {
-		name = codes.T400
+		name = codes.FnAdamW
 		set(nameLR.Code, f(a.LR))
 		set(nameWeightDecay.Code, f(a.WeightDecay))
 		set(nameBeta1.Code, f(a.Beta1))
@@ -49,7 +49,7 @@ func (o *Optimizer) Text(lang *codes.Language) string {
 		set(memberStep, strconv.Itoa(a.StepCount()))
 	} else {
 		s := o.sgd
-		name = codes.T401
+		name = codes.FnSGD
 		set(nameLR.Code, f(s.LR))
 		set(nameMomentum.Code, f(s.Momentum))
 		set(nameWeightDecay.Code, f(s.WeightDecay))
@@ -57,11 +57,11 @@ func (o *Optimizer) Text(lang *codes.Language) string {
 	return messages.TextIn(lang.Code, messages.H6820, lang.Name(name), len(o.params), strings.Join(settings, ", "))
 }
 
-// İyileştirici üyeleri (adları kod listesinde, internal/lang/codes Y50x).
+// İyileştirici üyeleri (adları kod listesinde, internal/lang/codes mem).
 const (
-	memberStep     = codes.Y500
-	memberZeroGrad = codes.Y501
-	memberLR       = codes.Y504
+	memberStep     = codes.MemStep
+	memberZeroGrad = codes.MemZeroGrad
+	memberLR       = codes.MemLr
 )
 
 var optimizerMembers = []codes.Code{memberStep, memberZeroGrad, memberState, memberLoadState, memberLR}
@@ -83,7 +83,7 @@ func (o *Optimizer) SetMember(kd codes.Code, ad string, value interp.Value) erro
 	}
 	f, ok := interp.ToFloat(value)
 	if !ok {
-		return messages.New(messages.H6503, o.ad, codes.NameRef(memberLR), codes.NameRef(codes.A200), codes.NameRef(codes.A201), typeName(value))
+		return messages.New(messages.H6503, o.ad, codes.NameRef(memberLR), codes.NameRef(codes.TypeInt), codes.NameRef(codes.TypeFloat), typeName(value))
 	}
 	// 0 geçerlidir (kurucudaki gibi): oran planları eğitimin sonunda orana 0'a iner. Sıfır olmayan
 	// ama 32 bitte 0'a yuvarlanan değer reddedilir (sessizce dondurmasın).
@@ -95,7 +95,7 @@ func (o *Optimizer) SetMember(kd codes.Code, ad string, value interp.Value) erro
 }
 
 // optimizerType AdamW ve SGD değerlerinin tip adıdır (tip(op) → "İyileştirici").
-var optimizerType = interp.ValueType(interp.TypeName(codes.A214))
+var optimizerType = interp.ValueType(interp.TypeName(codes.TypeOptimizer))
 
 func (o *Optimizer) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	switch kd {
@@ -193,7 +193,7 @@ func namedRate(fn any, named map[string]interp.Value, defaultVal float64, minVal
 // sonlu_değilse_hata: doğru normu kırpmadan önce okur (GPU'yu bekler) ve NaN ya da sonsuzsa
 // gradyanlara dokunmadan hata verir.
 func gradClip(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.T402)
+	fn := codes.NameRef(codes.FnClipGrad)
 	if len(args) != 1 {
 		return nil, messages.New(messages.H6521, fn, nameMax, len(args))
 	}
@@ -225,7 +225,7 @@ func gradClip(_ *interp.VM, args []interp.Value, named map[string]interp.Value) 
 		n := float64(probe.Data()[0])
 		probe.Drop()
 		if math.IsNaN(n) || math.IsInf(n, 0) {
-			return nil, messages.New(messages.H6534, fn, n, codes.NameRef(codes.G415))
+			return nil, messages.New(messages.H6534, fn, n, codes.NameRef(codes.FnIsFinite))
 		}
 	}
 	norm, err := safe(func() *tensor.Tensor { return tensor.ClipGradNormTensor(params, maxVal) })
@@ -243,7 +243,7 @@ func optimizerParams(fn any, args []interp.Value) ([]*tensor.Tensor, error) {
 }
 
 func setupAdamW(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.T400) // AdamW
+	fn := codes.NameRef(codes.FnAdamW) // AdamW
 	if err := bind.CheckNamed(fn, named, nameLR, nameWeightDecay, nameBeta1, nameBeta2, nameEpsilon, nameMasterCopy); err != nil {
 		return nil, err
 	}
@@ -293,7 +293,7 @@ func setupAdamW(_ *interp.VM, args []interp.Value, named map[string]interp.Value
 }
 
 func setupSGD(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.T401) // SGD
+	fn := codes.NameRef(codes.FnSGD) // SGD
 	if err := bind.CheckNamed(fn, named, nameLR, nameMomentum, nameWeightDecay, nameMasterCopy); err != nil {
 		return nil, err
 	}

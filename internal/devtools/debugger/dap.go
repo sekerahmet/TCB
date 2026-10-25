@@ -283,7 +283,7 @@ func (o dapOutput) Write(p []byte) (int, error) {
 type dapNoStdin struct{}
 
 func (dapNoStdin) Read([]byte) (int, error) {
-	return 0, messages.New(messages.H8102, interp.CallPrefix(codes.G101))
+	return 0, messages.New(messages.H8102, interp.CallPrefix(codes.FnInput))
 }
 
 // ---------------------------------------------------------------------------

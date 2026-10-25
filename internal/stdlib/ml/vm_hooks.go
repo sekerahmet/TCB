@@ -161,7 +161,7 @@ func (d *TensorValue) operator(m *interp.VM, op string, otherVal interp.Value, o
 	case "**":
 		s, ok := interp.ToFloat(otherVal)
 		if onRight || !ok {
-			return nil, true, messages.New(messages.H6702, codes.NameRef(codes.T220), codes.NameRef(codes.T221))
+			return nil, true, messages.New(messages.H6702, codes.NameRef(codes.FnExp), codes.NameRef(codes.FnLog))
 		}
 		f := float32(s)
 		r, err := safe(func() *tensor.Tensor { return d.t.Pow(f) })
@@ -307,7 +307,7 @@ func (d *TensorValue) IterItem(i int) (interp.Value, error) {
 // tensöre yalnızca türevsiz { ... } içinde atanabilir.
 func (d *TensorValue) SetIndex(idx, value interp.Value) error {
 	if d.t.RequiresGrad() && tensor.GradEnabled() {
-		return messages.New(messages.H6716, codes.NameRef(codes.T301))
+		return messages.New(messages.H6716, codes.NameRef(codes.FnNoGrad))
 	}
 	var target *tensor.Tensor
 	var view *TensorValue

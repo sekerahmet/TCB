@@ -25,7 +25,7 @@ func CallName(kd codes.Code) codes.Ref { return codes.CallNameRef(kd) }
 func CallPrefix(kd codes.Code) codes.Ref { return codes.CallRef(kd) }
 
 // Usage writes the valid call forms of a code; each form is a parameter list:
-// Usage(codes.G305, "bitiş", "başlangıç, bitiş") → "aralık(bitiş) ya da aralık(başlangıç, bitiş)".
+// Usage(codes.FnRange, "bitiş", "başlangıç, bitiş") → "aralık(bitiş) ya da aralık(başlangıç, bitiş)".
 func Usage(kd codes.Code, forms ...string) messages.Localized {
 	return usageByName(CallName(kd), forms)
 }
@@ -49,8 +49,8 @@ func (u usage) MessageText(lang string) string {
 }
 
 // TypeNames is the names of type codes as a list of alternatives, as a message parameter: it is
-// written in the language of its message (messages.Localized), TypeNames(codes.A200,
-// codes.A201, codes.A202) → "Tam, Ondalık ya da Metin" / "Int, Float or String".
+// written in the language of its message (messages.Localized), TypeNames(codes.TypeInt,
+// codes.TypeFloat, codes.TypeString) → "Tam, Ondalık ya da Metin" / "Int, Float or String".
 func TypeNames(typesOf ...codes.Code) messages.Localized { return typeNames(typesOf) }
 
 type typeNames []codes.Code
@@ -73,7 +73,7 @@ func languageNamed(lang string) *codes.Language {
 }
 
 // ArgTypeError reports that argument number sira of builtin kd (or its member) is not one of
-// the expected types; the expected values are type codes (A2xx).
+// the expected types; the expected values are type codes (type).
 func ArgTypeError(kd codes.Code, order int, given Value, expected ...codes.Code) error {
 	return argTypeErrorByName(CallName(kd), order, TypeNames(expected...), given)
 }
@@ -139,7 +139,7 @@ func summaryIn(v Value, l *codes.Language) string {
 	var s string
 	switch x := v.(type) {
 	case nil:
-		return l.Name(codes.A042)
+		return l.Name(codes.KwNone)
 	case *StringVal:
 		return strconv.Quote(shorten(x.Val, summaryLimit))
 	case *ListVal:

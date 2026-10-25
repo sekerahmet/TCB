@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // 24 — Tensor math: applying operations to every element of a tensor.
 // What it teaches: math functions like exp, log, sin working element by element on tensors,
 // silu and log_softmax, reducing along an axis with sum/mean and keepdim.
@@ -8,28 +8,28 @@
 
 // The functions we applied to numbers in 13 are applied to every element of a tensor separately.
 // The result is a new tensor; .tolist turns it into a TR list.
-A030 x = T100([0.0, 1.0, 2.0])
-G100("exp:", T220(x).Y404)
-G100("log:", T221(x + 1).Y404)
-G100("sin:", T222(x).Y404, "cos:", T223(x).Y404)
-G100("tan:", T224(T100([0.0, 1.0])).Y404)
-G100("asin:", T225(T100([0.0, 0.5])).Y404, "acos:", T226(T100([1.0, -1.0])).Y404)
-G100("atan:", T227(T100([0.0, 1.0])).Y404)
-G100("atan2:", T228(T100([1.0, -1.0]), T100([0.0])).Y404) // broadcasting: (y, x) pairs
-G100("sinh/cosh:", T240(T100([0.0, 1.0])).Y404, T241(T100([0.0, 1.0])).Y404)
-G100("log2/log10:", T243(T100([1.0, 1024.0])).Y404, T244(T100([1.0, 100.0])).Y404)
-G100("small-number log and exp:", T242(T100([0.0, 1.0])).Y404, T245(T100([0.0, 1.0])).Y404)
+TR_kw_var x = TR_fn_tensor([0.0, 1.0, 2.0])
+TR_fn_print("exp:", TR_fn_exp(x).TR_mem_tolist)
+TR_fn_print("log:", TR_fn_log(x + 1).TR_mem_tolist)
+TR_fn_print("sin:", TR_fn_sin(x).TR_mem_tolist, "cos:", TR_fn_cos(x).TR_mem_tolist)
+TR_fn_print("tan:", TR_fn_tan(TR_fn_tensor([0.0, 1.0])).TR_mem_tolist)
+TR_fn_print("asin:", TR_fn_asin(TR_fn_tensor([0.0, 0.5])).TR_mem_tolist, "acos:", TR_fn_acos(TR_fn_tensor([1.0, -1.0])).TR_mem_tolist)
+TR_fn_print("atan:", TR_fn_atan(TR_fn_tensor([0.0, 1.0])).TR_mem_tolist)
+TR_fn_print("atan2:", TR_fn_atan2(TR_fn_tensor([1.0, -1.0]), TR_fn_tensor([0.0])).TR_mem_tolist) // broadcasting: (y, x) pairs
+TR_fn_print("sinh/cosh:", TR_fn_sinh(TR_fn_tensor([0.0, 1.0])).TR_mem_tolist, TR_fn_cosh(TR_fn_tensor([0.0, 1.0])).TR_mem_tolist)
+TR_fn_print("log2/log10:", TR_fn_log2(TR_fn_tensor([1.0, 1024.0])).TR_mem_tolist, TR_fn_log10(TR_fn_tensor([1.0, 100.0])).TR_mem_tolist)
+TR_fn_print("small-number log and exp:", TR_fn_log1p(TR_fn_tensor([0.0, 1.0])).TR_mem_tolist, TR_fn_expm1(TR_fn_tensor([0.0, 1.0])).TR_mem_tolist)
 
 // Activation functions: silu computes x · sigmoid(x); log_softmax gives the logarithm of softmax
 // in a numerically stable way.
-G100("silu:", T204(T100([-1.0, 0.0, 2.0])).Y404)
-G100("log_softmax:", T211(T100([1.0, 2.0, 3.0])).Y404)
+TR_fn_print("silu:", TR_fn_silu(TR_fn_tensor([-1.0, 0.0, 2.0])).TR_mem_tolist)
+TR_fn_print("log_softmax:", TR_fn_log_softmax(TR_fn_tensor([1.0, 2.0, 3.0])).TR_mem_tolist)
 
 // Reducing along an axis: dim: -1 means the last axis.
 // keepdim: true keeps the reduced axis with length 1; the result can be broadcast against the input.
-A030 m = T100([[1, 2], [3, 4]])
-G100(G400(m, T902: -1).Y400, G400(m, T902: -1, T906: A040).Y400)
-G100(G400(m, T902: 0).Y404, G410(m, T902: -1).Y404)
+TR_kw_var m = TR_fn_tensor([[1, 2], [3, 4]])
+TR_fn_print(TR_fn_sum(m, TR_arg_dim: -1).TR_mem_shape, TR_fn_sum(m, TR_arg_dim: -1, TR_arg_keepdim: TR_kw_true).TR_mem_shape)
+TR_fn_print(TR_fn_sum(m, TR_arg_dim: 0).TR_mem_tolist, TR_fn_mean(m, TR_arg_dim: -1).TR_mem_tolist)
 
 // --- Try it yourself ---
 // 1. Compute softmax along the rows of tensor([[1.0, 2.0], [3.0, 4.0]]) and show that every row sums to 1.

@@ -17,7 +17,7 @@ import (
 
 // Stateful, durumu kontrol noktasına yazılıp geri yüklenebilen motor değerleridir: bugün
 // dataset.Reader (TR'de Örnekleyici ve SıralıOkuyucu tipleri), ileride rastgele üreteç. TR'de
-// x.durum (Y502) ve x.durumu_yükle(sözlük) (Y503) üyelerinin Go yüzüdür; bir motor yeni bir
+// x.durum (TR_mem_state) ve x.durumu_yükle(sözlük) (TR_mem_load_state) üyelerinin Go yüzüdür; bir motor yeni bir
 // tipi kontrol noktasına bu iki yöntemi yazarak katar (bu paketi içe aktarmasına gerek yoktur).
 type Stateful interface {
 	interp.Value
@@ -53,7 +53,7 @@ func splitObjects(fn any, s *interp.DictVal) ([]*object, error) {
 			continue
 		}
 		if _, text := s.KeyValue(k).(*interp.StringVal); !text {
-			return nil, messages.New(messages.H7434, fn, codes.NameRef(codes.A202), s.DisplayKey(k))
+			return nil, messages.New(messages.H7434, fn, codes.NameRef(codes.TypeString), s.DisplayKey(k))
 		}
 		if err := checkObjectName(k); err != nil {
 			return nil, messages.New(messages.H2000, fn, err)
@@ -66,7 +66,7 @@ func splitObjects(fn any, s *interp.DictVal) ([]*object, error) {
 	}
 	if len(out) == 0 || len(out) > maxObjects {
 		return nil, messages.New(messages.H7435,
-			fn, maxObjects, codes.NameRef(codes.T702))
+			fn, maxObjects, codes.NameRef(codes.FnCheckpoint))
 	}
 	return out, nil
 }
@@ -107,7 +107,7 @@ func newObject(fn any, name string, v interp.Value) (*object, error) {
 		return nil, messages.New(messages.H7436,
 			fn, name, x.Type(), name)
 	case *ml.TensorValue:
-		return nil, messages.New(messages.H7437, fn, name, interp.TypeAndSummary(v), codes.NameRef(codes.T301))
+		return nil, messages.New(messages.H7437, fn, name, interp.TypeAndSummary(v), codes.NameRef(codes.FnNoGrad))
 	}
 	return nil, messages.New(messages.H7438,
 		fn, name, interp.TypeAndSummary(v))

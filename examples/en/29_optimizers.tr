@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // 29 — Optimizers: ways of updating the weights.
 // What it teaches: AdamW and SGD, the beta1/beta2 and momentum settings, limiting an exploding gradient with
 // clip_grad, taking the state of an optimizer and putting it back with load_state.
@@ -7,32 +7,32 @@
 
 // SGD (stochastic gradient descent) is the plainest optimizer: w = w - lr · gradient.
 // momentum keeps the direction of earlier steps going.
-A030 w = T100([1.0], T900: A040)
-A030 sgd = T401([w], T910: 0.1, T914: 0.9)
-T300(G400(w * w)) // d(w²)/dw = 2w = 2
-sgd.Y500()
-G100("w after one SGD step =", G405(w.Y404[0], 4))
+TR_kw_var w = TR_fn_tensor([1.0], TR_arg_requires_grad: TR_kw_true)
+TR_kw_var sgd = TR_fn_SGD([w], TR_arg_lr: 0.1, TR_arg_momentum: 0.9)
+TR_fn_backward(TR_fn_sum(w * w)) // d(w²)/dw = 2w = 2
+sgd.TR_mem_step()
+TR_fn_print("w after one SGD step =", TR_fn_round(w.TR_mem_tolist[0], 4))
 
 // AdamW adapts a separate step size for every weight. beta1 is the exponential decay rate of the gradient
 // average, beta2 of the average of the squared gradients (in the range [0, 1)).
-A030 v = T100([1.0], T900: A040)
-A030 adamw = T400([v], T910: 0.1, T912: 0.8, T913: 0.99)
-T300(G400(v * v))
-adamw.Y500()
-G100("v after one AdamW step =", G405(v.Y404[0], 4))
-G100(G201(sgd) == A214, G201(adamw) == A214)
+TR_kw_var v = TR_fn_tensor([1.0], TR_arg_requires_grad: TR_kw_true)
+TR_kw_var adamw = TR_fn_AdamW([v], TR_arg_lr: 0.1, TR_arg_beta1: 0.8, TR_arg_beta2: 0.99)
+TR_fn_backward(TR_fn_sum(v * v))
+adamw.TR_mem_step()
+TR_fn_print("v after one AdamW step =", TR_fn_round(v.TR_mem_tolist[0], 4))
+TR_fn_print(TR_fn_type(sgd) == TR_type_Optimizer, TR_fn_type(adamw) == TR_type_Optimizer)
 
 // clip_grad shrinks the gradients by the same ratio if the total gradient norm exceeds max;
 // it gives the norm before clipping. It keeps training stable on steps with large gradients.
-A030 u = T100([3.0, 4.0], T900: A040)
-T300(G400(u * u)) // gradient [6, 8], norm 10
-G100("norm:", T402([u], T904: 1.0))
-G100("clipped gradient:", u.Y403.Y404)
+TR_kw_var u = TR_fn_tensor([3.0, 4.0], TR_arg_requires_grad: TR_kw_true)
+TR_fn_backward(TR_fn_sum(u * u)) // gradient [6, 8], norm 10
+TR_fn_print("norm:", TR_fn_clip_grad([u], TR_arg_max: 1.0))
+TR_fn_print("clipped gradient:", u.TR_mem_grad.TR_mem_tolist)
 
 // state gives the inner state (the moments) of the optimizer as a dict; load_state puts it back into
 // another optimizer built with the same settings (checkpoints work like this).
-A030 fresh = T400([v], T910: 0.1, T912: 0.8, T913: 0.99)
-G100("state loaded:", fresh.Y503(adamw.Y502))
+TR_kw_var fresh = TR_fn_AdamW([v], TR_arg_lr: 0.1, TR_arg_beta1: 0.8, TR_arg_beta2: 0.99)
+TR_fn_print("state loaded:", fresh.TR_mem_load_state(adamw.TR_mem_state))
 
 // --- Try it yourself ---
 // 1. Set the momentum of SGD to 0: does w come out different on the same step?

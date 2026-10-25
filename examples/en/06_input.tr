@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // 06 — Input: reading data from the user.
 // What it teaches: reading a line with input("question"), turning the text into a number with int(),
 // falling back to a default when the input is empty.
@@ -10,19 +10,19 @@
 
 // input(question) writes the question and gives the line the user typed as a String.
 // If nothing is typed an empty string ("") comes back.
-A030 person = G101("What is your name? ")
-A001 person == "" {
+TR_kw_var person = TR_fn_input("What is your name? ")
+TR_kw_if person == "" {
     person = "Guest"
 }
-G100("Hello, {person}!")
+TR_fn_print("Hello, {person}!")
 
 // input always gives a String; when a number is needed it is converted with int() or float().
-A030 age_text = G101("How old are you? ")
-A030 age = 20
-A001 age_text != "" {
-    age = G210(age_text)
+TR_kw_var age_text = TR_fn_input("How old are you? ")
+TR_kw_var age = 20
+TR_kw_if age_text != "" {
+    age = TR_fn_int(age_text)
 }
-G100("Next year you will be {age + 1}.")
+TR_fn_print("Next year you will be {age + 1}.")
 
 // --- Try it yourself ---
 // 1. Ask for two numbers and print their sum.

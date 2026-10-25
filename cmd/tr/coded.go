@@ -47,7 +47,7 @@ func encodeCommand(args []string) {
 // languageArgument standart giriş kipinin '--dil <kod>' argümanını okur (yoksa kişinin yazım
 // dili, codes.Display) ve yazım dilini doğrular; başka bir argüman ya da bilinmeyen dil hatadır.
 func languageArgument(args []string, command any) *codes.Language {
-	languageCode, _ := parseLanguageArgs(args, false, messages.Text(messages.H8700, codes.OptionFlag(codes.K100), command),
+	languageCode, _ := parseLanguageArgs(args, false, messages.Text(messages.H8700, codes.OptionFlag(codes.OptLang), command),
 		func(arg string) string { return messages.Text(messages.H8701, command, arg) })
 	return mustLoadLanguage(languageCode)
 }
@@ -59,10 +59,10 @@ func parseLanguageArgs(args []string, allowFile bool, missingValue string, unexp
 	languageCode = codes.Display().Code
 	for i := 0; i < len(args); i++ {
 		switch {
-		case isOption(args[i], codes.K100) && i+1 < len(args):
+		case isOption(args[i], codes.OptLang) && i+1 < len(args):
 			languageCode = args[i+1]
 			i++
-		case isOption(args[i], codes.K100):
+		case isOption(args[i], codes.OptLang):
 			exitWithError(missingValue)
 		case allowFile && file == "":
 			file = args[i]
@@ -113,7 +113,7 @@ func convertFromInput(language *codes.Language, convert func(string) (string, er
 // decodeCommand 'tr çöz' komutudur; Türkçe yazılmış dosyalara dokunulmaz. Kodsuz dosya Türkçedir
 // (17.7): dili Türkçe olmayan kodlu dosya çözülünce dili değişir, bu yüzden uyarılır (17.1).
 func decodeCommand(args []string) {
-	convertCommand(args, codes.NameRef(codes.K010), messages.Text(messages.H8705), func(filePath, text string) (string, error) {
+	convertCommand(args, codes.NameRef(codes.CmdDecode), messages.Text(messages.H8705), func(filePath, text string) (string, error) {
 		out, err := source.Decode(text, source.Turkish())
 		if b, _ := source.Split(text); err == nil && b.Coded && b.Language != codes.SourceLanguage {
 			fmt.Fprintln(os.Stderr, "⚠️ "+messages.Text(messages.H8711, filePath, b.Language))
@@ -196,15 +196,15 @@ func writeInPlace(filePath, text string) error {
 // (düzenleyiciler için; çıkış kodları yukarıda).
 func showCommand(args []string) {
 	if len(args) > 0 && args[0] == "-" {
-		language := languageArgument(args[1:], codes.NameRef(codes.K011))
+		language := languageArgument(args[1:], codes.NameRef(codes.CmdShow))
 		convertFromInput(source.Turkish(), func(text string) (string, error) { return source.Show(text, language) })
 		return
 	}
-	showName := codes.NameRef(codes.K011)
-	languageCode, file := parseLanguageArgs(args, true, messages.Text(messages.H8708, codes.OptionFlag(codes.K100), showName),
+	showName := codes.NameRef(codes.CmdShow)
+	languageCode, file := parseLanguageArgs(args, true, messages.Text(messages.H8708, codes.OptionFlag(codes.OptLang), showName),
 		func(arg string) string { return messages.Text(messages.H8709, showName, arg) })
 	if file == "" {
-		exitWithError(messages.Text(messages.H8710, codes.NameRef(codes.K011), codes.OptionFlag(codes.K100)))
+		exitWithError(messages.Text(messages.H8710, codes.NameRef(codes.CmdShow), codes.OptionFlag(codes.OptLang)))
 	}
 	language := mustLoadLanguage(languageCode)
 	content, err := os.ReadFile(file)

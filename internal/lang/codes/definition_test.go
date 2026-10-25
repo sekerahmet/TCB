@@ -47,27 +47,33 @@ func TestDefinitionsSortedOnePerLine(t *testing.T) {
 }
 
 // checkSortedOnePerLine kod sözlüğü dosyalarının (definitions.json, tr.json) biçimini sınar:
-// kodlar artan sırada, her girdi iki boşluk girintili tek satır ve satırda requiredField bir kez.
+// kodlar sınıf sırasıyla (Classes), sınıf içinde kimliğe göre, her girdi iki boşluk girintili tek
+// satır ve satırda requiredField bir kez.
 func checkSortedOnePerLine(t *testing.T, data []byte, requiredField string) {
 	t.Helper()
 	dec := json.NewDecoder(bytes.NewReader(data))
 	if _, err := dec.Token(); err != nil {
 		t.Fatal(err)
 	}
-	var prev Code
+	order := map[Class]int{}
+	for i, c := range Classes {
+		order[c.Class] = i
+	}
+	prevClass, prevID := -1, ""
 	for dec.More() {
 		tk, err := dec.Token()
 		if err != nil {
 			t.Fatal(err)
 		}
-		k, err := Parse(tk.(string))
-		if err != nil {
-			t.Fatal(err)
+		id := tk.(string)
+		cls, ok := order[IdentityClass(id)]
+		if !ok {
+			t.Fatalf("%q bir kimlik değil (TR_<sınıf>_<ad>)", id)
 		}
-		if k <= prev {
-			t.Errorf("%s, %s'den sonra geliyor; kodlar artan sırada olmalı", k, prev)
+		if cls < prevClass || cls == prevClass && id <= prevID {
+			t.Errorf("%s, %s'den sonra geliyor; kodlar sınıf sırasıyla, sınıf içinde kimliğe göre dizilir", id, prevID)
 		}
-		prev = k
+		prevClass, prevID = cls, id
 		var g json.RawMessage
 		if err := dec.Decode(&g); err != nil {
 			t.Fatal(err)
@@ -86,18 +92,18 @@ func checkSortedOnePerLine(t *testing.T, data []byte, requiredField string) {
 
 // Tip ifadeleri çözülür; geçersiz bir tanım satırı hatayla bildirilir.
 func TestParseDefinitions(t *testing.T) {
-	ti, err := ParseType("A200|A201?", true)
-	if err != nil || !ti.Optional || len(ti.Types) != 2 || ti.Types[1] != A201 {
+	ti, err := ParseType("TR_type_Int|TR_type_Float?", true)
+	if err != nil || !ti.Optional || len(ti.Types) != 2 || ti.Types[1] != TypeFloat {
 		t.Fatalf("TipCoz: %+v %v", ti, err)
 	}
-	if _, err := ParseType("A200?", false); err == nil {
+	if _, err := ParseType("TR_type_Int?", false); err == nil {
 		t.Error("dönüş tipinde sonek hata olmalı")
 	}
-	_, _, err = ParseDefinitions([]byte(`{"G100": {"tür": "fonksiyon", "bilinmeyen": 1}}`))
+	_, _, err = ParseDefinitions([]byte(`{"TR_fn_print": {"tür": "fonksiyon", "bilinmeyen": 1}}`))
 	if err == nil || !strings.Contains(err.Error(), "bilinmeyen") {
 		t.Errorf("bilinmeyen alan hata vermeli: %v", err)
 	}
-	_, _, err = ParseDefinitions([]byte(`{"G100": {"tür": "fonksiyon", "adlı": [["T902"]]}}`))
+	_, _, err = ParseDefinitions([]byte(`{"TR_fn_print": {"tür": "fonksiyon", "adlı": [["TR_arg_dim"]]}}`))
 	if err == nil {
 		t.Error("eksik adlı argüman hata vermeli")
 	}

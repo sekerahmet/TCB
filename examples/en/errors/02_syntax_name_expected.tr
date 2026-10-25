@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // Error 02 — A name was expected.
 // Message code: H0100
 // What happens: The program does not run at all; the message says that something else was found where a name was expected.
@@ -7,4 +7,4 @@
 //     var number = 5
 // Run (from the project root): tr examples/en/errors/02_syntax_name_expected.tr   (exit code 1)
 
-A030 = 5
+TR_kw_var = 5

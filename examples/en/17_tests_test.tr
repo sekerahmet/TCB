@@ -1,4 +1,4 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // 17 — Tests: writing tests next to the code.
 // What it teaches: `test "name" { ... }` blocks, checking with assert(condition, [message]) and assert_equal(expected, actual),
 // testing that an error is thrown.
@@ -10,53 +10,53 @@
 // If a test fails `tr test` exits with 1; it can be used as a gate in CI.
 
 // --- Code under test ---
-A020 add(a, b) {
-    A021 a + b
+TR_kw_func add(a, b) {
+    TR_kw_return a + b
 }
 
-A020 average_of(items) {
-    A001 items.Y001 == 0 { A062 "cannot take the average of an empty list" }
-    A021 G400(items) / items.Y001
+TR_kw_func average_of(items) {
+    TR_kw_if items.TR_mem_length == 0 { TR_kw_throw "cannot take the average of an empty list" }
+    TR_kw_return TR_fn_sum(items) / items.TR_mem_length
 }
 
-A050 Cart {
+TR_kw_struct Cart {
     products = []
 
-    A020 Y004(name, price) {
-        A051.products.Y004({"name": name, "price": price})
+    TR_kw_func TR_mem_append(name, price) {
+        TR_kw_self.products.TR_mem_append({"name": name, "price": price})
     }
 
-    A020 total() {
-        A021 G400(A051.products.Y201 { A104["price"] })
+    TR_kw_func total() {
+        TR_kw_return TR_fn_sum(TR_kw_self.products.TR_mem_map { TR_ctx_it["price"] })
     }
 }
 
 // This line runs in both modes: the file itself runs before the tests.
-G100("Test blocks only run with this command: tr test examples/en/17_tests_test.tr")
+TR_fn_print("Test blocks only run with this command: tr test examples/en/17_tests_test.tr")
 
 // --- Tests ---
-A101 "addition" {
-    G701(4, add(2, 2))
-    G701(0, add(-1, 1))
+TR_ctx_test "addition" {
+    TR_fn_assert_equal(4, add(2, 2))
+    TR_fn_assert_equal(0, add(-1, 1))
 }
 
-A101 "average" {
-    G701(2.5, average_of([1, 2, 3, 4]))
-    G700(average_of([10]) == 10, "the average of one element is itself")
+TR_ctx_test "average" {
+    TR_fn_assert_equal(2.5, average_of([1, 2, 3, 4]))
+    TR_fn_assert(average_of([10]) == 10, "the average of one element is itself")
 }
 
-A101 "an error is thrown for an empty list" {
-    A030 message = ""
-    A060 { average_of([]) } A061 e { message = e }
-    G700(message.Y002("empty list"), "the expected error did not come: {message}")
+TR_ctx_test "an error is thrown for an empty list" {
+    TR_kw_var message = ""
+    TR_kw_try { average_of([]) } TR_kw_catch e { message = e }
+    TR_fn_assert(message.TR_mem_contains("empty list"), "the expected error did not come: {message}")
 }
 
-A101 "cart total" {
-    A030 c = Cart() // every test runs in a new scope
-    c.Y004("pencil", 15)
-    c.Y004("notebook", 40)
-    G701(2, c.products.Y001)
-    G701(55, c.total())
+TR_ctx_test "cart total" {
+    TR_kw_var c = Cart() // every test runs in a new scope
+    c.TR_mem_append("pencil", 15)
+    c.TR_mem_append("notebook", 40)
+    TR_fn_assert_equal(2, c.products.TR_mem_length)
+    TR_fn_assert_equal(55, c.total())
 }
 
 // --- Try it yourself ---

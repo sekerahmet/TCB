@@ -15,15 +15,15 @@ import (
 // değişkenin değeri gizli değer süzgecine kaydedilir.
 func envVar(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 	if len(args) != 1 {
-		return nil, interp.ArgCountError(codes.G800, 1, len(args), messages.Text(messages.H2330))
+		return nil, interp.ArgCountError(codes.FnEnv, 1, len(args), messages.Text(messages.H2330))
 	}
 	s, ok := args[0].(*interp.StringVal)
 	if !ok {
-		return nil, interp.ArgTypeError(codes.G800, 1, args[0], codes.A202)
+		return nil, interp.ArgTypeError(codes.FnEnv, 1, args[0], codes.TypeString)
 	}
 	name := s.Val
 	if name == "" || strings.ContainsAny(name, "=\x00") {
-		return nil, messages.New(messages.H7231, interp.CallPrefix(codes.G800), name)
+		return nil, messages.New(messages.H7231, interp.CallPrefix(codes.FnEnv), name)
 	}
 	value, found := os.LookupEnv(name)
 	if !found {

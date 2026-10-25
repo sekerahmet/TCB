@@ -1,33 +1,33 @@
-//! tr kodlu 2 dil=en
+//! tr kodlu 3 dil=en
 // 02 — Variables: naming a value and keeping it.
 // What it teaches: defining with var, assigning again, +=, -=, *=, const.
 // Builds on: print and comments (01).
 // Run (from the project root): tr examples/en/02_variables.tr
 
 // var label = value: the value is stored under a label and used by that label afterwards.
-A030 age = 30
-G100("age:", age)
+TR_kw_var age = 30
+TR_fn_print("age:", age)
 
 // The value of a variable can change later.
 age = 31
-G100("age:", age)
+TR_fn_print("age:", age)
 
 // In a calculation variables stand in for their values; the result is stored in a new variable.
-A030 monthly = 1500
-A030 yearly = monthly * 12
-G100("yearly:", yearly)
+TR_kw_var monthly = 1500
+TR_kw_var yearly = monthly * 12
+TR_fn_print("yearly:", yearly)
 
 // += -= *= compute from the variable's own value and update it.
 age += 1 // age = age + 1
-G100("age:", age)
+TR_fn_print("age:", age)
 yearly -= 1000
-G100("yearly:", yearly)
+TR_fn_print("yearly:", yearly)
 monthly *= 2
-G100("monthly:", monthly)
+TR_fn_print("monthly:", monthly)
 
 // const is assigned once and never changes: for values that must not change.
-A031 VAT_RATE = 18
-G100("VAT:", VAT_RATE)
+TR_kw_const VAT_RATE = 18
+TR_fn_print("VAT:", VAT_RATE)
 
 // --- Try it yourself ---
 // 1. Keep your height and weight in two variables and print their sum.

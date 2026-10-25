@@ -7,7 +7,7 @@ import (
 )
 
 // tensorOps tablo başlığıdır ("Tensör işlemleri"; tip adı kod listesinden).
-func tensorOps() string { return messages.Text(messages.H8206, codes.NameRef(codes.A212)) }
+func tensorOps() string { return messages.Text(messages.H8206, codes.NameRef(codes.TypeTensor)) }
 
 // opName tensör işleminin raporda görünen adıdır. Dildeki bir yerleşiğe ya da metoda
 // karşılık gelen işlemler o adla (kod listesinden) yazılır: kullanıcı kendi kodunda gördüğü
@@ -19,13 +19,13 @@ func opName(is tensor.OpKind) string {
 	}
 	switch is {
 	case tensor.OpKindToDevice:
-		return "." + codes.Name(codes.Y414)
+		return "." + codes.Name(codes.MemToDevice)
 	case tensor.OpKindCast:
-		return "." + codes.Name(codes.Y415)
+		return "." + codes.Name(codes.MemToDtype)
 	case tensor.OpKindAdamW:
-		return codes.Name(codes.T400) + "." + codes.Name(codes.Y500)
+		return codes.Name(codes.FnAdamW) + "." + codes.Name(codes.MemStep)
 	case tensor.OpKindSGD:
-		return codes.Name(codes.T401) + "." + codes.Name(codes.Y500)
+		return codes.Name(codes.FnSGD) + "." + codes.Name(codes.MemStep)
 	}
 	if c, ok := opLabel[is]; ok {
 		return messages.Text(c)
@@ -73,52 +73,52 @@ func implicitName(k tensor.ImplicitKind) string {
 
 // opCode dildeki bir yerleşiğe birebir karşılık gelen işlemlerdir.
 var opCode = map[tensor.OpKind]codes.Code{
-	tensor.OpKindExp:          codes.T220,
-	tensor.OpKindLog:          codes.T221,
-	tensor.OpKindSqrt:         codes.G404,
-	tensor.OpKindTanh:         codes.T202,
-	tensor.OpKindRelu:         codes.T200,
-	tensor.OpKindGelu:         codes.T203,
-	tensor.OpKindGeluExact:    codes.T203,
-	tensor.OpKindSigmoid:      codes.T201,
-	tensor.OpKindSin:          codes.T222,
-	tensor.OpKindCos:          codes.T223,
-	tensor.OpKindSum:          codes.G400,
-	tensor.OpKindMean:         codes.G410,
-	tensor.OpKindMax:          codes.G402,
-	tensor.OpKindArgMax:       codes.T230,
-	tensor.OpKindSoftmax:      codes.T210,
-	tensor.OpKindLogSoftmax:   codes.T211,
-	tensor.OpKindEmbedding:    codes.T500,
-	tensor.OpKindCrossEntropy: codes.T510,
-	tensor.OpKindLayerNorm:    codes.T501,
-	tensor.OpKindRMSNorm:      codes.T502,
-	tensor.OpKindAttention:    codes.T503,
-	tensor.OpKindConcat:       codes.T121,
-	tensor.OpKindClipGrad:     codes.T402,
-	tensor.OpKindCustom:       codes.T310,
-	tensor.OpKindFused:        codes.T312,
-	tensor.OpKindSilu:         codes.T204,
-	tensor.OpKindTan:          codes.T224,
-	tensor.OpKindAsin:         codes.T225,
-	tensor.OpKindAcos:         codes.T226,
-	tensor.OpKindAtan:         codes.T227,
-	tensor.OpKindAtan2:        codes.T228,
-	tensor.OpKindCumSum:       codes.T231,
-	tensor.OpKindTopK:         codes.T232,
-	tensor.OpKindArgSort:      codes.T233,
-	tensor.OpKindWhere:        codes.T234,
-	tensor.OpKindSinh:         codes.T240,
-	tensor.OpKindCosh:         codes.T241,
-	tensor.OpKindLog1p:        codes.T242,
-	tensor.OpKindLog2:         codes.T243,
-	tensor.OpKindLog10:        codes.T244,
-	tensor.OpKindExpm1:        codes.T245,
-	tensor.OpKindAbs:          codes.G403,
-	tensor.OpKindFloor:        codes.G406,
-	tensor.OpKindCeil:         codes.G407,
-	tensor.OpKindSign:         codes.G408,
-	tensor.OpKindClamp:        codes.G409,
+	tensor.OpKindExp:          codes.FnExp,
+	tensor.OpKindLog:          codes.FnLog,
+	tensor.OpKindSqrt:         codes.FnSqrt,
+	tensor.OpKindTanh:         codes.FnTanh,
+	tensor.OpKindRelu:         codes.FnRelu,
+	tensor.OpKindGelu:         codes.FnGelu,
+	tensor.OpKindGeluExact:    codes.FnGelu,
+	tensor.OpKindSigmoid:      codes.FnSigmoid,
+	tensor.OpKindSin:          codes.FnSin,
+	tensor.OpKindCos:          codes.FnCos,
+	tensor.OpKindSum:          codes.FnSum,
+	tensor.OpKindMean:         codes.FnMean,
+	tensor.OpKindMax:          codes.FnMax,
+	tensor.OpKindArgMax:       codes.FnArgmax,
+	tensor.OpKindSoftmax:      codes.FnSoftmax,
+	tensor.OpKindLogSoftmax:   codes.FnLogSoftmax,
+	tensor.OpKindEmbedding:    codes.FnEmbedding,
+	tensor.OpKindCrossEntropy: codes.FnCrossEntropy,
+	tensor.OpKindLayerNorm:    codes.FnLayerNorm,
+	tensor.OpKindRMSNorm:      codes.FnRmsNorm,
+	tensor.OpKindAttention:    codes.FnAttention,
+	tensor.OpKindConcat:       codes.FnConcat,
+	tensor.OpKindClipGrad:     codes.FnClipGrad,
+	tensor.OpKindCustom:       codes.FnCustomGrad,
+	tensor.OpKindFused:        codes.FnFuse,
+	tensor.OpKindSilu:         codes.FnSilu,
+	tensor.OpKindTan:          codes.FnTan,
+	tensor.OpKindAsin:         codes.FnAsin,
+	tensor.OpKindAcos:         codes.FnAcos,
+	tensor.OpKindAtan:         codes.FnAtan,
+	tensor.OpKindAtan2:        codes.FnAtan2,
+	tensor.OpKindCumSum:       codes.FnCumsum,
+	tensor.OpKindTopK:         codes.FnTopk,
+	tensor.OpKindArgSort:      codes.FnArgsort,
+	tensor.OpKindWhere:        codes.FnWhere,
+	tensor.OpKindSinh:         codes.FnSinh,
+	tensor.OpKindCosh:         codes.FnCosh,
+	tensor.OpKindLog1p:        codes.FnLog1p,
+	tensor.OpKindLog2:         codes.FnLog2,
+	tensor.OpKindLog10:        codes.FnLog10,
+	tensor.OpKindExpm1:        codes.FnExpm1,
+	tensor.OpKindAbs:          codes.FnAbs,
+	tensor.OpKindFloor:        codes.FnFloor,
+	tensor.OpKindCeil:         codes.FnCeil,
+	tensor.OpKindSign:         codes.FnSign,
+	tensor.OpKindClamp:        codes.FnClamp,
 }
 
 // fullName yönüyle birlikte görünen addır: geri yayılım "geri · " önekiyle. Çağrısız "diğer"

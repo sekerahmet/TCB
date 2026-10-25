@@ -47,7 +47,7 @@ func decodeTensorFile(f io.Reader, size int64) ([]fileEntry, error) {
 	case len(p) == 9 && p[8] == '{':
 		return decodeSafetensors(br, size)
 	}
-	return nil, messages.New(messages.H6610, fileMagic, codes.NameRef(codes.T700))
+	return nil, messages.New(messages.H6610, fileMagic, codes.NameRef(codes.FnSaveTensors))
 }
 
 // safetensorsEntry başlıktaki bir tensörün kaydıdır.
@@ -64,7 +64,7 @@ type safetensorsEntry struct {
 func decodeSafetensors(r io.Reader, size int64) ([]fileEntry, error) {
 	var nb [8]byte
 	if _, err := io.ReadFull(r, nb[:]); err != nil {
-		return nil, messages.New(messages.H6610, fileMagic, codes.NameRef(codes.T700))
+		return nil, messages.New(messages.H6610, fileMagic, codes.NameRef(codes.FnSaveTensors))
 	}
 	n := binary.LittleEndian.Uint64(nb[:])
 	if n > maxSafetensorsHeader || n > uint64(size-8) {

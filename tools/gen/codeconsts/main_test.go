@@ -9,22 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
-
-// Üretecin aile harfleri kod listesindekiyle aynı sıradadır: yeni bir aile (ör. K) eklenince bu
-// kopya da güncellenmezse üreteç o ailenin kodlarını geçersiz sayardı.
-func TestFamilyLettersMatch(t *testing.T) {
-	for i := 0; i < len(familyLetters); i++ {
-		if got := codes.Code(1000 * (i + 1)).Letter(); got != familyLetters[i] {
-			t.Errorf("%d. aile: üreteçte %c, kod listesinde %c", i+1, familyLetters[i], got)
-		}
-	}
-	if codes.Code(1000*(len(familyLetters)+1)).Letter() != 0 {
-		t.Error("kod listesinde üretecin bilmediği bir aile var")
-	}
-}
 
 // Üretilen sabit dosyası kod listesinden üretilenle aynı olmalı: bir kod eklendiğinde,
 // silindiğinde ya da adı değiştiğinde `go run ./tools/gen/codeconsts` çalıştırılmadıysa
@@ -33,11 +19,12 @@ func TestConstantsUpToDate(t *testing.T) {
 	genmain.AssertUpToDate(t, reporoot.Root(), "codeconsts", outputPath, Generate)
 }
 
-// Go kaynaklarında (internal/lang/codes dışında) kodlar yalnızca adlı sabitlerle yazılır: aile + sayı
-// biçimi (codes.G + 100) kalmamalı. Sözlükte olmayan bir sabit yazılırsa derleme zaten düşer.
+// Go kaynaklarında (internal/lang/codes dışında) kodlar yalnızca adlı sabitlerle yazılır: kodun
+// sayısı (codes.Code(57)) dil dosyasındaki sırasıdır, bir kod eklenince kayar. Sözlükte olmayan bir
+// sabit yazılırsa derleme zaten düşer.
 func TestNoBareCodes(t *testing.T) {
 	root := reporoot.Root()
-	pattern := regexp.MustCompile(`\bcodes\.[AGTYVWH] *\+`)
+	pattern := regexp.MustCompile(`\bcodes\.Code\(\s*\d`)
 	err := reporoot.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -57,7 +44,7 @@ func TestNoBareCodes(t *testing.T) {
 		}
 		for i, line := range strings.Split(string(data), "\n") {
 			if pattern.MatchString(line) && !strings.Contains(line, "desen") && !strings.HasPrefix(strings.TrimSpace(line), "//") {
-				t.Errorf("%s:%d: kod adlı sabitle yazılmalı (codes.G100): %s", path, i+1, strings.TrimSpace(line))
+				t.Errorf("%s:%d: kod adlı sabitle yazılmalı (codes.FnPrint): %s", path, i+1, strings.TrimSpace(line))
 			}
 		}
 		return nil

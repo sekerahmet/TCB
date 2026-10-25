@@ -23,9 +23,9 @@ import (
 // sırası) toplar. Aynı tensör bir kez yer alır. adlarıyla: doğru yol adı → tensör sözlüğü
 // verir ("bloklar.0.dikkat.Wq"); bu sözlük tensör_kaydet ile kaydedilebilir.
 func paramsBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.T530)
+	fn := codes.NameRef(codes.FnParameters)
 	if len(args) != 1 {
-		return nil, messages.New(messages.H6500, fn, nameWithNames, codes.NameRef(codes.A041), len(args))
+		return nil, messages.New(messages.H6500, fn, nameWithNames, codes.NameRef(codes.KwFalse), len(args))
 	}
 	if err := bind.CheckNamed(fn.Called(), named, nameWithNames); err != nil {
 		return nil, err
@@ -176,9 +176,9 @@ func CopyInto(p, src *tensor.Tensor) {
 // sözlüğünü (tensör_yükle sonucu) modelin var olan parametrelerine yerinde yazar ve yazılan
 // parametre sayısını verir.
 func loadParamsBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.T703)
+	fn := codes.NameRef(codes.FnLoadParameters)
 	if len(args) != 2 {
-		return nil, interp.ArgCountError(codes.T703, 2, len(args), messages.Text(messages.H2327), messages.Text(messages.H2328))
+		return nil, interp.ArgCountError(codes.FnLoadParameters, 2, len(args), messages.Text(messages.H2327), messages.Text(messages.H2328))
 	}
 	if err := bind.CheckNamed(fn.Called(), named); err != nil {
 		return nil, err
@@ -192,7 +192,7 @@ func loadParamsBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 	}
 	s, ok := args[1].(*interp.DictVal)
 	if !ok {
-		return nil, interp.ArgTypeError(codes.T703, 2, args[1], codes.A206)
+		return nil, interp.ArgTypeError(codes.FnLoadParameters, 2, args[1], codes.TypeDict)
 	}
 	src := make(map[string]*tensor.Tensor, len(s.Order))
 	shapes := make(map[string][]int, len(s.Order))
@@ -202,11 +202,11 @@ func loadParamsBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 			continue
 		}
 		if _, text := s.KeyValue(k).(*interp.StringVal); !text {
-			return nil, messages.New(messages.H6522, fn, codes.NameRef(codes.A202), s.DisplayKey(k))
+			return nil, messages.New(messages.H6522, fn, codes.NameRef(codes.TypeString), s.DisplayKey(k))
 		}
 		d, ok := v.(*TensorValue)
 		if !ok {
-			return nil, messages.New(messages.H6524, fn, k, codes.NameRef(codes.A212), typeName(v))
+			return nil, messages.New(messages.H6524, fn, k, codes.NameRef(codes.TypeTensor), typeName(v))
 		}
 		src[k], shapes[k] = d.t, d.t.Shape()
 	}

@@ -154,7 +154,7 @@ type TryCatchStatement struct {
 	TryBody  *BlockStatement
 	ErrorVar string
 	// ImplicitErrorVar reports that the error variable's name was not written, so it is the
-	// contextual word 'hata' (A103); in coded form its uses in the body are coded (17.3).
+	// contextual word 'hata' (TR_ctx_error); in coded form its uses in the body are coded (17.3).
 	ImplicitErrorVar bool
 	CatchBody        *BlockStatement
 }

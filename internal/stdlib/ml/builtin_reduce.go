@@ -18,7 +18,7 @@ import (
 // korur: [B, T, D] → [B, T, 1].
 func reduction(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, axis int, whole, keep bool) *tensor.Tensor) {
 	ad := codes.NameRef(kd)
-	maxMin := kd == codes.G402 || kd == codes.G401 // maks, min
+	maxMin := kd == codes.FnMax || kd == codes.FnMin // maks, min
 	wrap(v, kd, func(old interp.BuiltinFunc) interp.BuiltinFunc {
 		return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 			if len(args) == 0 {
@@ -32,8 +32,8 @@ func reduction(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, axis int, 
 			}
 			if maxMin && len(args) >= 2 {
 				// maks(x, 0) eksen mi, eleman bazlı sınır mı belirsiz; sessizce eksen saymak yerine yol göster.
-				limit := map[bool]bind.Named{true: nameMin, false: nameMax}[kd == codes.G402]
-				return nil, messages.New(messages.H6205, ad, interp.Shown(args[1]), nameAxis, codes.NameRef(codes.G409), limit)
+				limit := map[bool]bind.Named{true: nameMin, false: nameMax}[kd == codes.FnMax]
+				return nil, messages.New(messages.H6205, ad, interp.Shown(args[1]), nameAxis, codes.NameRef(codes.FnClamp), limit)
 			}
 			if len(args) > 2 {
 				return nil, messages.New(messages.H6206, ad, nameAxis, len(args))
@@ -67,7 +67,7 @@ func reduction(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, axis int, 
 			} else if maxMin && t.Numel() == 0 {
 				return nil, messages.New(messages.H6211, ad, tensor.ShapeText(sh))
 			}
-			if kd == codes.G410 { // ortalama: boş kümenin ortalaması tanımsızdır
+			if kd == codes.FnMean { // ortalama: boş kümenin ortalaması tanımsızdır
 				if !given && t.Numel() == 0 {
 					return nil, messages.New(messages.H6212, ad, tensor.ShapeText(sh))
 				}
@@ -109,7 +109,7 @@ func reduction(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, axis int, 
 // gömme(...) ve çapraz_entropi(...) indeksi olarak da verilebilir.
 // Eşitlikte ilk en büyük eleman seçilir.
 func argMax(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	ad := codes.NameRef(codes.T230)
+	ad := codes.NameRef(codes.FnArgmax)
 	if len(args) != 1 {
 		if len(args) == 2 {
 			return nil, messages.New(messages.H6215, ad, nameAxis, interp.Shown(args[1]))
@@ -121,7 +121,7 @@ func argMax(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (i
 	}
 	d, ok := args[0].(*TensorValue)
 	if !ok {
-		return nil, messages.New(messages.H6217, ad, typeName(args[0]), codes.NameRef(codes.T100))
+		return nil, messages.New(messages.H6217, ad, typeName(args[0]), codes.NameRef(codes.FnTensor))
 	}
 	t := d.t
 	e, given, err := axisArg(ad, args, named)
@@ -165,30 +165,30 @@ func nonTensorReduce(kd codes.Code, old interp.BuiltinFunc, m *interp.VM, args [
 		return nil, err
 	}
 	if _, ok := bind.GetNamed(named, nameKeepDim); ok {
-		return nil, messages.New(messages.H6218, ad, nameKeepDim, typeName(args[0]), codes.NameRef(codes.T100), nameAxis, codes.NameRef(codes.A040))
+		return nil, messages.New(messages.H6218, ad, nameKeepDim, typeName(args[0]), codes.NameRef(codes.FnTensor), nameAxis, codes.NameRef(codes.KwTrue))
 	}
 	if _, ok := bind.GetNamed(named, nameAxis); ok {
-		return nil, messages.New(messages.H6219, ad, nameAxis, typeName(args[0]), codes.NameRef(codes.T100))
+		return nil, messages.New(messages.H6219, ad, nameAxis, typeName(args[0]), codes.NameRef(codes.FnTensor))
 	}
 	if l, ok := args[0].(*interp.ListVal); ok && len(args) == 1 {
 		var hasTensor bool
 		for _, el := range l.Elements {
 			switch el.(type) {
 			case *interp.ListVal:
-				t := codes.NameRef(codes.T100)
+				t := codes.NameRef(codes.FnTensor)
 				return nil, messages.New(messages.H6220, ad, t, nameAxis)
 			case *TensorValue:
 				hasTensor = true
 			}
 		}
 		if hasTensor {
-			if kd != codes.G400 && kd != codes.G410 { // toplam, ortalama
-				if kd == codes.G402 {
+			if kd != codes.FnSum && kd != codes.FnMean { // toplam, ortalama
+				if kd == codes.FnMax {
 					return nil, messages.New(messages.H6224, ad, nameAxis)
 				}
 				return nil, messages.New(messages.H6225, ad, nameAxis)
 			}
-			return sumTensorList(m, ad, kd == codes.G410, l.Elements)
+			return sumTensorList(m, ad, kd == codes.FnMean, l.Elements)
 		}
 	}
 	for _, a := range args[1:] {

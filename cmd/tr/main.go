@@ -79,25 +79,25 @@ func main() {
 		return
 	}
 	switch command {
-	case codes.K001:
+	case codes.CmdHelp:
 		printHelp()
-	case codes.K002:
+	case codes.CmdVersion:
 		fmt.Println(messages.Text(messages.H8603, Version))
-	case codes.K004:
+	case codes.CmdCheck:
 		if len(args) < 2 {
-			exitWithError(messages.Text(messages.H8605, codes.NameRef(codes.K004), "ornek.tr"))
+			exitWithError(messages.Text(messages.H8605, codes.NameRef(codes.CmdCheck), "ornek.tr"))
 		}
 		checkFile(args[1])
-	case codes.K005:
+	case codes.CmdBuild:
 		if len(args) < 2 {
-			exitWithError(messages.Text(messages.H8606, codes.NameRef(codes.K005)))
+			exitWithError(messages.Text(messages.H8606, codes.NameRef(codes.CmdBuild)))
 		}
 		outPath := ""
 		if len(args) >= 3 {
 			outPath = args[2]
 		}
 		compileToExe(args[1], outPath)
-	case codes.K014:
+	case codes.CmdDap:
 		// Düzenleyicinin hata ayıklama oturumu: iletiler standart giriş/çıkış üzerinden gelir.
 		// Oturum bitince motorların açık kaynakları kapanır, geçici klasörler silinir.
 		err := debugger.ServeDAP(os.Stdin, os.Stdout)
@@ -106,9 +106,9 @@ func main() {
 			fmt.Fprintln(os.Stderr, "❌ "+messages.Text(messages.H8607, err))
 			os.Exit(1)
 		}
-	case codes.K003:
+	case codes.CmdRun:
 		if len(args) < 2 {
-			exitWithError(messages.Text(messages.H8605, codes.NameRef(codes.K003), "ornek.tr"))
+			exitWithError(messages.Text(messages.H8605, codes.NameRef(codes.CmdRun), "ornek.tr"))
 		}
 		runFile(args[1], args[2:])
 	default:
@@ -122,9 +122,9 @@ func main() {
 func commandCode(arg string) codes.Code {
 	switch arg {
 	case "-h":
-		return codes.K001
+		return codes.CmdHelp
 	case "-v":
-		return codes.K002
+		return codes.CmdVersion
 	}
 	if k, ok := codes.FindCommand(arg); ok {
 		return k
@@ -137,9 +137,9 @@ func commandCode(arg string) codes.Code {
 func oldCommand(arg string) (string, bool) {
 	switch arg {
 	case "--help":
-		return codes.DisplayName(codes.K001), true
+		return codes.DisplayName(codes.CmdHelp), true
 	case "--version":
-		return codes.DisplayName(codes.K002), true
+		return codes.DisplayName(codes.CmdVersion), true
 	}
 	if k, ok := codes.Display().Suggest(codes.NamespaceCommand, arg, nil); ok {
 		return codes.DisplayName(k), true
@@ -150,9 +150,9 @@ func oldCommand(arg string) (string, bool) {
 // commandsWithArguments argümanlarını kendisi ayrıştıran alt komutlardır (komut adından
 // sonrakiler verilir).
 var commandsWithArguments = map[codes.Code]func([]string){
-	codes.K006: debugCommand, codes.K007: testCommand, codes.K008: formatCommand, codes.K009: encodeCommand,
-	codes.K010: decodeCommand, codes.K011: showCommand, codes.K012: watchCommand, codes.K013: profileCommand,
-	codes.K015: indexCommand,
+	codes.CmdDebug: debugCommand, codes.CmdTest: testCommand, codes.CmdFormat: formatCommand, codes.CmdEncode: encodeCommand,
+	codes.CmdDecode: decodeCommand, codes.CmdShow: showCommand, codes.CmdWatch: watchCommand, codes.CmdProfile: profileCommand,
+	codes.CmdIndex: indexCommand,
 }
 
 // exitWithError iletiyi "Hata: ..." olarak standart hataya yazar ve 1 koduyla çıkar.
@@ -173,29 +173,29 @@ func printHelp() {
 	fmt.Println(messages.Text(messages.H8611))
 	// Her satır tek iletidir: kullanım ve açıklama arasında sekme; komut ve seçenek adları
 	// koddan, etkin dilde gelir. Sütunu tabwriter hizalar (adların uzunluğu dile göre değişir).
-	lang := codes.OptionFlag(codes.K100)
+	lang := codes.OptionFlag(codes.OptLang)
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	for _, row := range []string{
 		messages.Text(messages.H8612),
 		messages.Text(messages.H8613),
-		messages.Text(messages.H8614, codes.NameRef(codes.K003)),
-		messages.Text(messages.H8615, codes.NameRef(codes.K006)),
-		messages.Text(messages.H8616, codes.NameRef(codes.K004)),
-		messages.Text(messages.H8617, codes.NameRef(codes.K005)),
-		messages.Text(messages.H8618, codes.NameRef(codes.K007)),
-		messages.Text(messages.H8619, codes.NameRef(codes.K008), codes.OptionFlag(codes.K101)),
-		messages.Text(messages.H8620, codes.NameRef(codes.K009)),
-		messages.Text(messages.H8621, codes.NameRef(codes.K010)),
-		messages.Text(messages.H8622, codes.NameRef(codes.K011), lang),
-		messages.Text(messages.H8623, codes.NameRef(codes.K011), lang),
-		messages.Text(messages.H8624, codes.NameRef(codes.K009), lang),
-		messages.Text(messages.H8625, codes.NameRef(codes.K012)),
-		messages.Text(messages.H8626, codes.NameRef(codes.K013), codes.OptionFlag(codes.K103)),
-		messages.Text(messages.H8627, codes.NameRef(codes.K014)),
-		messages.Text(messages.H8830, codes.NameRef(codes.K015), codes.NameRef(codes.K016), codes.NameRef(codes.K017), codes.NameRef(codes.K018), codes.NameRef(codes.K019)),
-		messages.Text(messages.H8863, codes.NameRef(codes.K015), codes.NameRef(codes.K020)),
-		messages.Text(messages.H8628, codes.NameRef(codes.K001)),
-		messages.Text(messages.H8629, codes.NameRef(codes.K002)),
+		messages.Text(messages.H8614, codes.NameRef(codes.CmdRun)),
+		messages.Text(messages.H8615, codes.NameRef(codes.CmdDebug)),
+		messages.Text(messages.H8616, codes.NameRef(codes.CmdCheck)),
+		messages.Text(messages.H8617, codes.NameRef(codes.CmdBuild)),
+		messages.Text(messages.H8618, codes.NameRef(codes.CmdTest)),
+		messages.Text(messages.H8619, codes.NameRef(codes.CmdFormat), codes.OptionFlag(codes.OptCheck)),
+		messages.Text(messages.H8620, codes.NameRef(codes.CmdEncode)),
+		messages.Text(messages.H8621, codes.NameRef(codes.CmdDecode)),
+		messages.Text(messages.H8622, codes.NameRef(codes.CmdShow), lang),
+		messages.Text(messages.H8623, codes.NameRef(codes.CmdShow), lang),
+		messages.Text(messages.H8624, codes.NameRef(codes.CmdEncode), lang),
+		messages.Text(messages.H8625, codes.NameRef(codes.CmdWatch)),
+		messages.Text(messages.H8626, codes.NameRef(codes.CmdProfile), codes.OptionFlag(codes.OptJson)),
+		messages.Text(messages.H8627, codes.NameRef(codes.CmdDap)),
+		messages.Text(messages.H8830, codes.NameRef(codes.CmdIndex), codes.NameRef(codes.SubDefinition), codes.NameRef(codes.SubReferences), codes.NameRef(codes.SubTestedBy), codes.NameRef(codes.SubImpact)),
+		messages.Text(messages.H8863, codes.NameRef(codes.CmdIndex), codes.NameRef(codes.SubRename)),
+		messages.Text(messages.H8628, codes.NameRef(codes.CmdHelp)),
+		messages.Text(messages.H8629, codes.NameRef(codes.CmdVersion)),
 	} {
 		fmt.Fprintln(w, "  "+row)
 	}
@@ -215,7 +215,7 @@ func runFile(path string, arguments []string) {
 // programındır.
 func debugCommand(args []string) {
 	if len(args) < 1 {
-		exitWithError(messages.Text(messages.H8608, codes.NameRef(codes.K006)))
+		exitWithError(messages.Text(messages.H8608, codes.NameRef(codes.CmdDebug)))
 	}
 	debugFile(args[0], args[1:])
 }
@@ -236,7 +236,7 @@ func checkFile(path string) {
 func startREPL() {
 	defer stdlib.Close() // açık dosyalar kapanır, geçici klasörler silinir
 	fmt.Println(messages.Text(messages.H8633, Version))
-	fmt.Println(messages.Text(messages.H8634, codes.NameRef(codes.K200)))
+	fmt.Println(messages.Text(messages.H8634, codes.NameRef(codes.ReplExit)))
 	machine := interp.New()
 	// Kabuğa yazılan satırlar kişinin yazım dilindedir (source.Options.Typed); değerler de o
 	// dilde metne çevrilir (3).
@@ -258,12 +258,12 @@ func startREPL() {
 		if line == "" {
 			continue
 		}
-		if k, ok := codes.FindCommand(line); ok && k == codes.K200 {
+		if k, ok := codes.FindCommand(line); ok && k == codes.ReplExit {
 			fmt.Println(messages.Text(messages.H8635))
 			break
 		}
 		if exitHint(line) {
-			fmt.Fprintln(os.Stderr, messages.Text(messages.H8636, line, codes.NameRef(codes.K200)))
+			fmt.Fprintln(os.Stderr, messages.Text(messages.H8636, line, codes.NameRef(codes.ReplExit)))
 			continue
 		}
 		if line == "/h" || line == "/H" {
@@ -310,10 +310,10 @@ func startREPL() {
 	}
 }
 
-// startsWithPrint satır yazdır yerleşiğinin (G100) kanonik ya da kişinin yazım dilindeki bir
+// startsWithPrint satır yazdır yerleşiğinin (TR_fn_print) kanonik ya da kişinin yazım dilindeki bir
 // yazımıyla mı başlıyor (kabuk satırı kişinin dilinde yazılır)?
 func startsWithPrint(ln string) bool {
-	for _, y := range append(codes.Spellings(codes.G100), codes.Display().Spellings(codes.G100)...) {
+	for _, y := range append(codes.Spellings(codes.FnPrint), codes.Display().Spellings(codes.FnPrint)...) {
 		if strings.HasPrefix(ln, y) {
 			return true
 		}
@@ -321,13 +321,13 @@ func startsWithPrint(ln string) bool {
 	return false
 }
 
-// exitHint kabukta çıkmak isteyen ama kabuğun çıkış komutunu (K200) yazmayan bir satırı tanır:
-// adın Türkçe harfsiz biçimi (cikis) ya da hata ayıklayıcının çıkış komutu (K313, quit).
+// exitHint kabukta çıkmak isteyen ama kabuğun çıkış komutunu (TR_repl_exit) yazmayan bir satırı tanır:
+// adın Türkçe harfsiz biçimi (cikis) ya da hata ayıklayıcının çıkış komutu (TR_dbg_quit, quit).
 // Böyle bir satır program sanılıp çalıştırılmaz; asıl komut önerilir.
 func exitHint(line string) bool {
-	if k, ok := codes.Display().Suggest(codes.NamespaceCommand, line, nil); ok && k == codes.K200 {
+	if k, ok := codes.Display().Suggest(codes.NamespaceCommand, line, nil); ok && k == codes.ReplExit {
 		return true
 	}
 	k, ok := codes.FindDebuggerCommand(line)
-	return ok && k == codes.K313
+	return ok && k == codes.DbgQuit
 }

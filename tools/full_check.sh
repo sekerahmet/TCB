@@ -317,11 +317,12 @@ slowest_packages() {
 }
 
 # changed_packages ana dala göre (birleşme tabanından, çalışma ağacındaki ve izlenmeyen dosyalar
-# dahil) değişen Go paketlerini ./yol olarak verir.
+# dahil) değişen Go paketlerini ./yol olarak verir. testdata klasörleri paket değildir (Go'nun kuralı,
+# ./... de onları atlar): içlerindeki Go dosyaları başka bir modülün ya da sınavın girdisidir.
 changed_packages() {
 	local base
 	base=$(git merge-base origin/main HEAD 2>/dev/null || git merge-base main HEAD 2>/dev/null) || return 0
-	{ git diff --name-only "$base"; git ls-files -o --exclude-standard; } | grep '\.go$' | grep -v '^\.claude/' |
+	{ git diff --name-only "$base"; git ls-files -o --exclude-standard; } | grep '\.go$' | grep -v -e '^\.claude/' -e '\(^\|/\)testdata/' |
 		xargs -r -n1 dirname | sort -u | while IFS= read -r d; do
 		if ls "$d"/*.go >/dev/null 2>&1; then printf './%s\n' "$d"; fi
 	done

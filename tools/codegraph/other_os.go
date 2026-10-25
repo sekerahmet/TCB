@@ -18,7 +18,7 @@ import (
 // race_on.go ...) tiplerle okunamaz. Bütün yapılandırmaları ayrı ayrı denetleyip birleştirmek (staticcheck -matrix gibi)
 // her `build`'i katlar ve aynı adlı iki bildirimi (Windows ve Linux sürümü) tek kimlikte çakıştırır. Onun yerine bu
 // dosyalar tipsiz ayrıştırılır: dosya düğümü ("not built for windows/amd64"), yalnızca orada olan işlevlerin düğümü ve
-// ileti ile ad kodu kullanımları (`messages.H2154`, `codes.T720`: paket seçicisi sözdiziminden çözülür) INFERRED
+// ileti ile ad kodu kullanımları (`messages.H2154`, `codes.FnDefaultDevice`: paket seçicisi sözdiziminden çözülür) INFERRED
 // kenarla girer. Çağrılar ve tür kullanımları girmez; sorgu, cevabı boş kalan pakette bunu not eder (bağımsız
 // denetim Y4).
 
@@ -33,6 +33,7 @@ func extractOtherConfigs(m *module, b *builder) {
 	b.warn(fmt.Sprintf("types come from %s only; %d Go files are not built for it and are read without types (message and name codes, declarations): %s",
 		m.Config, len(m.Ignored), strings.Join(m.Ignored, ", ")))
 	fset := token.NewFileSet()
+	keys := codeConstKeys(m.Root)
 	for _, rel := range m.Ignored {
 		f, err := parser.ParseFile(fset, filepath.Join(m.Root, filepath.FromSlash(rel)), nil, parser.SkipObjectResolution)
 		if err != nil {
@@ -60,7 +61,7 @@ func extractOtherConfigs(m *module, b *builder) {
 			ast.Inspect(decl, func(n ast.Node) bool {
 				switch n := n.(type) {
 				case *ast.SelectorExpr:
-					codeUse(b, m.Path, imports, n, owner, rel, fset.Position(n.Pos()).Line)
+					codeUse(b, m.Path, imports, keys, n, owner, rel, fset.Position(n.Pos()).Line)
 				case *ast.CallExpr:
 					if to := callTarget(b, m.Path, pkg, imports, locals, n); to != "" && to != owner {
 						b.addEdge(owner, to, edgeCalls, extracted, rel, fset.Position(n.Pos()).Line)
@@ -113,8 +114,9 @@ func packageImports(f *ast.File) map[string]string {
 	return out
 }
 
-// codeUse `messages.H2154` ya da `codes.T720` seçicisini ileti ya da ad kodu kullanımı olarak bağlar.
-func codeUse(b *builder, mod string, imports map[string]string, sel *ast.SelectorExpr, owner, rel string, line int) {
+// codeUse `messages.H2154` ya da `codes.FnDefaultDevice` seçicisini ileti ya da ad kodu kullanımı olarak bağlar; ad
+// kodu sabitinin anahtarı keys'ten (codeConstKeys).
+func codeUse(b *builder, mod string, imports, keys map[string]string, sel *ast.SelectorExpr, owner, rel string, line int) {
 	x, ok := sel.X.(*ast.Ident)
 	if !ok {
 		return
@@ -125,8 +127,8 @@ func codeUse(b *builder, mod string, imports map[string]string, sel *ast.Selecto
 			b.addEdge(owner, "msg:"+sel.Sel.Name, edgeUsesMessage, inferred, rel, line)
 		}
 	case mod + "/" + codesDir:
-		if nameConst.MatchString(sel.Sel.Name) {
-			b.addEdge(owner, "name:"+sel.Sel.Name, edgeUsesName, inferred, rel, line)
+		if key := keys[sel.Sel.Name]; key != "" {
+			b.addEdge(owner, "name:"+key, edgeUsesName, inferred, rel, line)
 		}
 	}
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 )
 
-// Sözlükteki her anahtar kelime kodu (A0xx) tabloda tam bir kez bir token türüne bağlı
+// Sözlükteki her anahtar kelime kodu (kw) tabloda tam bir kez bir token türüne bağlı
 // olmalı; tablodaki her kodun sözlükte adı olmalı.
 func TestKeywordDictionaryValid(t *testing.T) {
 	inTable := map[codes.Code]bool{}
@@ -38,5 +38,5 @@ func TestKeywordMapCatchesClash(t *testing.T) {
 			t.Fatal("çakışan tablo için panik bekleniyordu")
 		}
 	}()
-	keywordMap([]Keyword{{codes.A001, TokIf}, {codes.A002, TokIf}}, codes.Spellings)
+	keywordMap([]Keyword{{codes.KwIf, TokIf}, {codes.KwElse, TokIf}}, codes.Spellings)
 }

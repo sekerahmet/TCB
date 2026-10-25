@@ -117,7 +117,7 @@ func isWordRune(r rune) bool { return unicode.IsLetter(r) || unicode.IsDigit(r) 
 
 // Kural (docs/terimler.md "Eş adlar", dil tanımı 17): aynı adı taşıyan her canlı kod grubu eş
 // adlar tablosunda gerekçesiyle yazılıdır; tablo güncel kalır (eksik ya da fazla kod yok) ve
-// "ayrı alan" gerekçesi gerçekten bir komut satırı koduyla (K) bir dil kodunu ayırır.
+// "ayrı alan" gerekçesi gerçekten bir komut satırı koduyla (komut, seçenek, kabuk, hata ayıklayıcı) bir dil kodunu ayırır.
 // Neden: dilin içinde farklı işler aynı adı sessizce taşımasın (eski tensör birleştir'i ile
 // liste .birleştir'i gibi).
 func TestSharedNamesListed(t *testing.T) {
@@ -143,7 +143,7 @@ func TestSharedNamesListed(t *testing.T) {
 			t.Errorf("%q: tablodaki kodlar %s, kod listesindekiler %s", name, got, want)
 		}
 		if strings.HasPrefix(row.reason, "ayrı alan") && !mixesCommandLine(ks) {
-			t.Errorf("%q: \"ayrı alan\" gerekçesi komut satırı (K) koduyla dil kodunu ayırmalı: %v", name, ks)
+			t.Errorf("%q: \"ayrı alan\" gerekçesi komut satırı koduyla dil kodunu ayırmalı: %v", name, ks)
 		}
 	}
 	for name := range listed {
@@ -199,7 +199,7 @@ func codeList(ks []codes.Code) string {
 func mixesCommandLine(ks []codes.Code) bool {
 	var cmd, lang bool
 	for _, k := range ks {
-		if strings.HasPrefix(k.String(), "K") {
+		if k.ExpectedKind() == codes.KindCommand {
 			cmd = true
 		} else {
 			lang = true

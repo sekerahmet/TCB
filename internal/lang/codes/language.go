@@ -69,8 +69,8 @@ type Language struct {
 	Code string
 
 	entries map[Code]*Entry
-	// nameArr aile başına sayı → addır; Ad çalışma anında da harita araması yapmasın diye dizi.
-	nameArr      [len(familyLetters)][]string
+	// nameArr kod → addır; Name çalışma anında harita araması yapmasın diye dizi.
+	nameArr      []string
 	codeList     []Code // artan sırada
 	spellings    map[Code][]string
 	names        [namespaceCount]map[string]Code
@@ -87,12 +87,11 @@ func Load(langCode string, data []byte) (*Language, error) {
 
 	raw, err := parseFile(data)
 	if err != nil {
-		return nil, messages.Internalf("language list %s: the file could not be read (it must be a JSON object { \"G100\": { \"ad\": ... }, ... }): %v", langCode, err)
+		return nil, messages.Internalf("language list %s: the file could not be read (it must be a JSON object { \"TR_fn_print\": { \"ad\": ... }, ... }): %v", langCode, err)
 	}
 
 	d := &Language{Code: langCode, entries: make(map[Code]*Entry, len(raw)), spellings: make(map[Code][]string, len(raw))}
 	var nsCount [namespaceCount]int // ad alanı başına yazım sayısı (haritaların boyu için)
-	var largest [len(familyLetters)]int
 	for _, g := range raw {
 		k, err := Parse(g.key)
 		if err != nil {
@@ -104,7 +103,7 @@ func Load(langCode string, data []byte) (*Language, error) {
 			continue
 		}
 		if k.Namespace() == NamespaceNone {
-			errorf("%s: family %c is not used yet", k, k.Letter())
+			errorf("%s: class %q is not known", k, k.Class())
 			continue
 		}
 		if g.name == "" || strings.IndexFunc(g.name, unicode.IsSpace) >= 0 {
@@ -122,21 +121,16 @@ func Load(langCode string, data []byte) (*Language, error) {
 			}
 		}
 		d.entries[k] = gr
-		largest[int(k)/1000-1] = max(largest[int(k)/1000-1], k.Number())
-		if IsCodeForm(g.name) {
-			// Kod biçimli adlar ayrılmıştır (2.3a).
-			errorf("%s: the name %q has the code form (a capital letter and three digits); this form is reserved", k, g.name)
+		if IsReservedName(g.name) && k.Namespace() != NamespaceEnvironment {
+			// TR_ ile başlayan adlar kimliklere ayrılmıştır (2.3a); ortam değişkenleri programın adı değildir.
+			errorf("%s: the name %q starts with %s; such names are reserved for identities", k, g.name, IdentityPrefix)
 			continue
 		}
 		d.codeList = append(d.codeList, k)
 		nsCount[k.Namespace()] += 2
 	}
 	sort.Slice(d.codeList, func(i, j int) bool { return d.codeList[i] < d.codeList[j] })
-	for i, n := range largest {
-		if n > 0 {
-			d.nameArr[i] = make([]string, n+1)
-		}
-	}
+	d.nameArr = make([]string, len(identities))
 
 	// Ad alanı tabloları. Kod sırasıyla kurulur ki hata mesajları kararlı olsun.
 	for i := range d.names {
@@ -169,7 +163,7 @@ func Load(langCode string, data []byte) (*Language, error) {
 		}
 		d.canonical[ns][name], d.canonical[ns][ascii] = name, name
 		d.spellings[k] = write
-		d.nameArr[int(k)/1000-1][k.Number()] = g.Name
+		d.nameArr[k] = g.Name
 		for _, y := range write {
 			d.names[ns][y] = k
 		}
@@ -219,10 +213,8 @@ func (d *Language) Entry(k Code) (Entry, bool) {
 // from the language file is a developer error and panics (codes are constants in Go; if a
 // line was deleted from the file the program stops at startup).
 func (d *Language) Name(k Code) string {
-	if f, n := int(k)/1000-1, k.Number(); f >= 0 && f < len(d.nameArr) && n < len(d.nameArr[f]) {
-		if a := d.nameArr[f][n]; a != "" {
-			return a
-		}
+	if int(k) < len(d.nameArr) && d.nameArr[k] != "" {
+		return d.nameArr[k]
 	}
 	panic(fmt.Sprintf("code list %s: code %s is not in the language file", d.Code, k))
 }
@@ -399,21 +391,21 @@ func buildLanguage(langCode string) (*Language, error) {
 	return Load(langCode, data)
 }
 
-// FindCommand finds a tr command or a shell command (K0xx, K2xx) by its name in any embedded
+// FindCommand finds a tr command or a shell command (cmd, repl) by its name in any embedded
 // writing language: the active language first, then the others. Command lines and scripts then
 // work on every machine whatever TR_DIL is (unlike the language's source, a command line has no
 // coded form).
 func FindCommand(name string) (Code, bool) { return findInLanguages(NamespaceCommand, name) }
 
-// FindSubcommand finds a subcommand of 'tr dizin' (K016-K020) by its name in any embedded writing
+// FindSubcommand finds a subcommand of 'tr dizin' (sub) by its name in any embedded writing
 // language, as FindCommand does. The names are valid only after 'tr dizin'.
 func FindSubcommand(name string) (Code, bool) { return findInLanguages(NamespaceSubcommand, name) }
 
-// FindOption finds a command-line option (K1xx) by its name without the leading "--", in any
+// FindOption finds a command-line option (opt) by its name without the leading "--", in any
 // embedded writing language, as FindCommand does.
 func FindOption(name string) (Code, bool) { return findInLanguages(NamespaceOption, name) }
 
-// FindDebuggerCommand finds a debugger command (K3xx) by its name in any embedded writing
+// FindDebuggerCommand finds a debugger command (dbg) by its name in any embedded writing
 // language, as FindCommand does.
 func FindDebuggerCommand(name string) (Code, bool) {
 	return findInLanguages(NamespaceDebugger, name)

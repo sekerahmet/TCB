@@ -50,7 +50,7 @@ Tuşlar terminal hata ayıklayıcısında da (`tr hata_ayıkla`) aynı anlamdad�
 
 ## Kodlu dosyalar
 
-TR dosyaları diskte dilden bağımsız kodlarla saklanabilir (`tr kodla`; ilk satır `//! tr kodlu 2 dil=<dil>`, dilin sözcükleri `A001`, `G100` gibi kodlar). Böyle bir dosyayı açtığınızda (dosya gezgininden, bir hata bağlantısından, hata ayıklayıcıdan) eklenti onu **Türkçe yazımıyla** gösterir:
+TR dosyaları diskte dilden bağımsız kodlarla saklanabilir (`tr kodla`; ilk satır `//! tr kodlu 2 dil=<dil>`, dilin sözcükleri `TR_kw_if`, `TR_fn_print` gibi kodlar). Böyle bir dosyayı açtığınızda (dosya gezgininden, bir hata bağlantısından, hata ayıklayıcıdan) eklenti onu **Türkçe yazımıyla** gösterir:
 
 - **Açma:** Sekme Türkçe görünümle değişir. Başlık satırı görünmez; görünümün satır numaraları hata mesajlarındaki ve hata ayıklayıcıdaki satırlarla birebir aynıdır (bir hata bağlantısı `dosya.tr:12:5` aynı yeri açar). Görünümün adresi dosyanın kendi yoludur (şeması `tr-kodlu:`); sekmenin üzerine gelince görülür.
 - **Düzenleme ve kayıt:** Her zamanki gibi yazın; geri al/yinele, kaydedilmemiş değişiklik işareti, hepsini kaydet, otomatik kaydetme ve "dosya diskte değişti" uyarısı VS Code'un kendisindedir. Kaydedince dosya diske yine **kodlu** yazılır (`tr kodla -`); görünüm `tr göster -` ile üretilir. Eklentide ikinci bir çevirici yoktur, çeviriyi `tr` yapar.

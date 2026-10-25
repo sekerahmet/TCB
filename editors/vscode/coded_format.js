@@ -8,8 +8,8 @@
 const { spawn } = require('child_process');
 
 // HEADER kodlu bir dosyanın (varsa BOM'dan sonraki) ilk satırının başıdır; ardından dosyanın
-// yazım dilinin kodu gelir: '//! tr kodlu 2 dil=en' (17.1, biçim sürümü 2).
-const HEADER = '//! tr kodlu 2 dil=';
+// yazım dilinin kodu gelir: '//! tr kodlu 3 dil=en' (17.1, biçim sürümü 3).
+const HEADER = '//! tr kodlu 3 dil=';
 const HEADER_BYTES = Buffer.from(HEADER, 'utf8');
 
 // LANGUAGE_CODE başlıktaki dil kodunun biçimidir (en, tr). Hangi dillerin gömülü olduğunu

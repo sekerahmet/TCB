@@ -102,7 +102,7 @@ Seçenekler:
   --etiket <Metin>            (varsayılan: yok)
   --hf_token <Metin>          (varsayılan: "")
   --yardım, -h                bu yardımı gösterir`
-	// --yardım bir ad kodudur (K106): her yazım dilinin adı (--help) da yardımı verir.
+	// --yardım bir ad kodudur (TR_opt_help): her yazım dilinin adı (--help) da yardımı verir.
 	for _, arg := range [][]string{{"--yardım"}, {"-h"}, {"--adım", "x", "-h"}, {"--help"}} {
 		_, _, err := commandLine(t, code, arg...)
 		c, ok := interp.IsExitRequest(err)

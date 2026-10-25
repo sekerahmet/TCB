@@ -77,8 +77,8 @@ Birim testleri sınadıkları dosyanın adını taşır. Birden çok dosyayı ke
 - **Kullanıcıya görünen adlar Go metnine yazılmaz.** Anahtar kelime, yerleşik, tip, üye ve adlı argüman adları sabit kodlara bağlıdır (`lang/codes`, `tr.json`). Go kodu kodu yazar, ad dil dosyasından gelir:
 
   ```go
-  fn := codes.Name(codes.G602)                  // "csv_oku"
-  return interp.ArgCountError(codes.G602, "1", len(args))
+  fn := codes.Name(codes.FnReadCsv)                  // "csv_oku"
+  return interp.ArgCountError(codes.FnReadCsv, "1", len(args))
   ```
 
   Adı değiştirmek yalnızca dil dosyasının satırını değiştirir. Yeni bir ad (yeni kod) gerekiyorsa kendiniz eklemeyin: [`docs/development.md`](../docs/development.md#yeni-kod-ad-isteği). Denetim: `tools/gen/codeconsts` (`TestNoBareNames`: Go metnindeki çıplak ad).
@@ -206,6 +206,7 @@ Denetim: `TestTestFileMatchesSource` (birim testinin kaynağı var, her davranı
 | Test dosyası düzeni | `internal/layout_test.go` (`TestTestFileMatchesSource`) |
 | README'lerdeki `Denetim:` ve `Kural`/`Test` tablosu satırlarının andığı test işlevleri ve dosyaları depoda var | `internal/rule_tests_test.go` (`TestRuleTestsExist`) |
 | Kullanıcıya görünen adlar koddan | `tools/gen/codeconsts` (`TestNoBareNames`) |
+| Kodlar kimlikle anılır, eski numaralı biçim kalmaz (eşleme `docs/code_identities.md`) | `internal/old_codes_test.go` (`TestNoOldCodeForm`) |
 | İleti kodları | `tools/gen/msgconsts` (`TestMessageUsage`) |
 | Üretilmiş dosyalar güncel | `tools/gen/*` `-check` (tam denetim) |
 | staticcheck bulgusu yok, çağrılmayan fonksiyon yok | `tools/full_check.sh` (staticcheck, deadcode) |
