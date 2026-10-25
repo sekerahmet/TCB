@@ -29,14 +29,14 @@ func TestArgErrorsFormat(t *testing.T) {
 	for i := 0; i < 10000; i++ {
 		upper.Elements = append(upper.Elements, NewInt(int64(i)))
 	}
-	if got := ValueSummary(upper); got != "[0, 1, 2, …], 10000 eleman" {
+	if got := summaryIn(upper, codes.Active()); got != "[0, 1, 2, …], 10000 eleman" {
 		t.Errorf("liste özeti: %s", got)
 	}
-	long := ValueSummary(&StringVal{Val: strings.Repeat("ğ", 100)})
+	long := summaryIn(&StringVal{Val: strings.Repeat("ğ", 100)}, codes.Active())
 	if !strings.HasSuffix(long, `…"`) || len([]rune(long)) != summaryLimit+2 {
 		t.Errorf("metin özeti: %s", long)
 	}
-	if got := TypeAndSummary(nil); got != "hiçbir değer" {
+	if got := TypeAndSummary(nil).Error(); got != "hiçbir değer" {
 		t.Errorf("nil: %s", got)
 	}
 }

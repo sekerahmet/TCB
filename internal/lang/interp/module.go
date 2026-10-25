@@ -103,6 +103,22 @@ func (e *ModuleError) Error() string {
 
 func (e *ModuleError) Unwrap() error { return e.Err }
 
+// MessageText is the error's text in lang (messages.Localized): a module's error caught in a
+// file is written in that file's language (messages.ErrorIn).
+func (e *ModuleError) MessageText(lang string) string {
+	if len(e.Errors) == 0 {
+		return e.Source.Name + ", " + messages.ErrorIn(e.Err, lang)
+	}
+	pieces := make([]string, len(e.Errors))
+	for i, h := range e.Errors {
+		pieces[i] = e.Source.Name + ", " + messages.ErrorIn(h, lang)
+	}
+	if e.Importer != nil {
+		return messages.TextIn(lang, messages.H2002, e.Importer.Name, e.ImportLine, e.ModulePath, e.Kind) + ": " + strings.Join(pieces, "; ")
+	}
+	return messages.TextIn(lang, messages.H2003, e.ImportLine, e.ModulePath, e.Kind) + ": " + strings.Join(pieces, "; ")
+}
+
 // header denetim hatasının 'aktar' satırını gösteren ilk bölümüdür.
 func (e *ModuleError) header() string {
 	if e.Importer != nil {

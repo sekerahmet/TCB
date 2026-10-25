@@ -155,7 +155,7 @@ func sumNumbers(name string, elems []Value) (Value, error) {
 }
 
 // ListElementError reports that element i (0-based) of a list has the wrong type.
-func ListElementError(name string, i int, expected string, given Value) error {
+func ListElementError(name string, i int, expected any, given Value) error {
 	return messages.New(messages.H2486, name, i+1, expected, TypeAndSummary(given))
 }
 

@@ -219,6 +219,12 @@ func (c *compiler) tryCatchStatement(k *compilerScope, s *ast.TryCatchStatement)
 	sub.predefine(catchStatements)
 	catchClause := c.statements(sub, catchStatements)
 	info := sub.info
+	// Yakalanan hata programın Metin değeri olur: metni onu yakalayan dosyanın dilinde kurulur
+	// (değer metni kuralı, 3); yakalanmayan hata ekranda TR_DIL'dedir (görüntü).
+	lang := codes.SourceLanguage
+	if c.textLang != nil {
+		lang = c.textLang.Code
+	}
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
 		val, sig, err := tryBlock(v, env)
 		if err != nil {
@@ -226,7 +232,7 @@ func (c *compiler) tryCatchStatement(k *compilerScope, s *ast.TryCatchStatement)
 				return nil, signalNone, err // kesilme (Ctrl+C) ve program çıkışı isteği yakalanmaz
 			}
 			catchEnv := newEnv(env, info)
-			catchEnv.define(errSlot, &StringVal{Val: err.Error()}, false)
+			catchEnv.define(errSlot, &StringVal{Val: messages.ErrorIn(err, lang)}, false)
 			return catchClause.run(v, catchEnv)
 		}
 		return val, sig, nil

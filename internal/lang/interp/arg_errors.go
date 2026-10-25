@@ -42,15 +42,28 @@ func usageByName(name string, forms []string) string {
 	return messages.OrList(pieces...)
 }
 
-// TypeNames writes the names of type codes as a list of alternatives, for a message: in the
-// person's writing language (TR_DIL), TypeNames(codes.A200, codes.A201, codes.A202) → "Tam,
-// Ondalık ya da Metin" / "Int, Float or String".
-func TypeNames(typesOf ...codes.Code) string {
-	names := make([]string, len(typesOf))
-	for i, k := range typesOf {
-		names[i] = codes.DisplayName(k)
+// TypeNames is the names of type codes as a list of alternatives, as a message parameter: it is
+// written in the language of its message (messages.Localized), TypeNames(codes.A200,
+// codes.A201, codes.A202) → "Tam, Ondalık ya da Metin" / "Int, Float or String".
+func TypeNames(typesOf ...codes.Code) messages.Localized { return typeNames(typesOf) }
+
+type typeNames []codes.Code
+
+func (t typeNames) MessageText(lang string) string {
+	l := languageNamed(lang)
+	names := make([]string, len(t))
+	for i, k := range t {
+		names[i] = l.Name(k)
 	}
-	return messages.OrList(names...)
+	return messages.OrListIn(l.Code, names...)
+}
+
+// languageNamed iletinin dilinin kod listesidir; bilinmeyen dilde kanonik dil.
+func languageNamed(lang string) *codes.Language {
+	if l, err := codes.LoadLanguage(lang); err == nil {
+		return l
+	}
+	return codes.Active()
 }
 
 // ArgTypeError reports that argument number sira of builtin kd (or its member) is not one of
@@ -59,7 +72,7 @@ func ArgTypeError(kd codes.Code, order int, given Value, expected ...codes.Code)
 	return argTypeErrorByName(CallName(kd), order, TypeNames(expected...), given)
 }
 
-func argTypeErrorByName(name string, order int, expected string, given Value) error {
+func argTypeErrorByName(name string, order int, expected any, given Value) error {
 	return messages.New(messages.H2423, name, order, expected, TypeAndSummary(given))
 }
 
@@ -95,43 +108,49 @@ func Counts(ns ...int) string {
 // AtLeast writes "en az n" for ArgCountError in the active language.
 func AtLeast(n int) string { return messages.Text(messages.H2016, n) }
 
-// TypeAndSummary writes a value for an error message as "Metin ("a")".
-func TypeAndSummary(v Value) string {
+// TypeAndSummary is a value for an error message, "Metin ("a")": a message parameter written in
+// the language of the message it goes into (the error's display, or the language of the file
+// that catches it).
+func TypeAndSummary(v Value) *messages.Error {
 	if v == nil {
-		return messages.Text(messages.H2013)
+		return messages.New(messages.H2013)
 	}
-	return messages.Text(messages.H2424, v.Type(), ValueSummary(v))
+	return messages.New(messages.H2424, v.Type(), valueSummary{v})
 }
+
+// valueSummary bir değerin ileti için özetidir; iletinin dilinde yazılır (messages.Localized).
+type valueSummary struct{ v Value }
+
+func (s valueSummary) MessageText(lang string) string { return summaryIn(s.v, languageNamed(lang)) }
 
 // summaryLimit hata mesajlarındaki değer özetinin en fazla karakter sayısıdır.
 const summaryLimit = 40
 
-// ValueSummary writes a value short enough for an error message: strings in quotes, long
-// values cut with "…". Large lists are never printed in full. Messages are display text, so
-// the value is in the person's writing language (TR_DIL; DisplayText).
-func ValueSummary(v Value) string {
+// summaryIn writes a value short enough for an error message, in l: strings in quotes, long
+// values cut with "…". Large lists are never printed in full.
+func summaryIn(v Value, l *codes.Language) string {
 	var s string
 	switch x := v.(type) {
 	case nil:
-		return codes.DisplayName(codes.A042)
+		return l.Name(codes.A042)
 	case *StringVal:
 		return strconv.Quote(shorten(x.Val, summaryLimit))
 	case *ListVal:
 		if len(x.Elements) > 5 {
 			pieces := make([]string, 0, 4)
 			for _, e := range x.Elements[:3] {
-				pieces = append(pieces, ValueSummary(e))
+				pieces = append(pieces, summaryIn(e, l))
 			}
-			return messages.Text(messages.H2425, shorten("["+strings.Join(pieces, ", ")+", …]", summaryLimit), len(x.Elements))
+			return messages.TextIn(l.Code, messages.H2425, shorten("["+strings.Join(pieces, ", ")+", …]", summaryLimit), len(x.Elements))
 		}
-		s = DisplayText(x)
+		s = valueText(x, l)
 	case *DictVal:
 		if len(x.Pairs) > 5 {
-			return messages.Text(messages.H2426, len(x.Pairs))
+			return messages.TextIn(l.Code, messages.H2426, len(x.Pairs))
 		}
-		s = DisplayText(x)
+		s = valueText(x, l)
 	default:
-		s = DisplayText(v)
+		s = valueText(v, l)
 	}
 	return shorten(s, summaryLimit)
 }
