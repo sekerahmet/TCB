@@ -218,7 +218,7 @@ func (s *dapServer) evaluate(msg *dapMessage) {
 		val = interp.Null
 	}
 	s.respond(msg, map[string]interface{}{
-		"result": display(val), "type": string(val.Type()), "variablesReference": s.refFor(val, a.Expression),
+		"result": display(val), "type": interp.DisplayType(val), "variablesReference": s.refFor(val, a.Expression),
 	})
 }
 func singleExpression(prog *ast.Program) (*ast.ExpressionStatement, bool) {
