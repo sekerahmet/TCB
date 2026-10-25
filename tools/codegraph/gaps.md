@@ -21,9 +21,7 @@ her durumu kapatan genel çözüm ve sınıfı koruyan bir testtir.
 
 ## Kritik
 
-- **Depo geneli kural testleri `tests-for`'da görünmüyor.** CODEGRAPH'ta (2026-10-25).
-  - Komut: `go run ./tools/codegraph tests-for tools/edithook/main.go` → yalnızca paketin testleri.
-  - Beklenen: o dosyaya uygulanan depo geneli kurallar da: `internal.TestNoTurkishLiterals` (Go metninde Türkçe sabit), düzen testleri (`internal/layout_test.go`: dosya ve fonksiyon boyu, test dosyası adı), `codegraph.TestEveryTrackedDataFileHasATestOrAReason` (izlenen veri dosyası). Doğrulama: aynı gün tam denetim `TestNoTurkishLiterals` ile `tools/edithook/main.go`'da kaldı; cevap bu kuralı göstermemişti.
+Açık madde yok.
 
 ## İnce ayar
 
