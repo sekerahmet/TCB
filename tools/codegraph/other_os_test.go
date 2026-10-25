@@ -48,6 +48,12 @@ func TestElsewhere(t *testing.T) { _ = OnlyElsewhere(); _ = Describe(nil) }
 	// Derlenmeyen testteki düz çağrı zincire girer: başka işletim sisteminin testi bu yapılandırmadaki işlevi sınar.
 	_, out, _ = commandIn("tests-for", root, graph, "--no-rebuild", "shape.Describe")
 	testkit.MustContain(t, out, "shape.TestElsewhere")
+	// O test derlenmediği yapılandırmanın kısıtıyla etiketlidir ve "başka yapılandırma" grubunda bir kez daha yazılmaz
+	// (bağımsız denetim grup 7).
+	testkit.MustContain(t, out, "[skips when: not plan9 (build constraint)]")
+	if strings.Count(out, "shape.TestElsewhere [func]") != 1 {
+		t.Errorf("the test is listed once:\n%s", out)
+	}
 	// Ad derlenmeyen dosyada geçiyorsa cevap o yerleri bildirime göre söyler (testler işaretli); geçmiyorsa söz yok
 	// (DENETİM doğrulaması Y4: not ilgisiz boş cevaplara da düşüyordu).
 	_, out, _ = commandIn("who-uses", root, graph, "--no-rebuild", "shape.OnlyElsewhere")

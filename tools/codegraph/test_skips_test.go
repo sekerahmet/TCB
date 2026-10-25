@@ -113,6 +113,27 @@ package p
 import "testing"
 
 func TestBuilt(t *testing.T) { _ = Plain() }
+
+func onlyHere(t *testing.T) { t.Skip("not on this platform") }
+
+func maybeHere(t *testing.T, n int) {
+	if n > 3 {
+		t.Skip("too many")
+	}
+}
+`,
+	"p/r_test.go": `package p
+
+import "testing"
+
+func TestHelperInConstrainedFile(t *testing.T) {
+	onlyHere(t)
+	_ = Plain()
+}
+
+func TestConditionInConstrainedFile(t *testing.T) {
+	maybeHere(t, Plain())
+}
 `,
 }
 
@@ -132,15 +153,17 @@ func TestTestsForMarksTestsThatSkipUnderACondition(t *testing.T) {
 		}
 	}
 	want := map[string]string{
-		"p.TestLibDirect":            "g.lt == nil",
-		"p.TestLibHelper":            `runtime.GOOS != "linux"`,
-		"p.TestAfterLoop":            "no earlier return (name == runtime.GOOS)",
-		"p.TestAfterEarlyReturn":     `no earlier return (err := link(); err == nil) && runtime.GOOS != "windows"`,
-		"p.TestInitAndElse":          "(n := Lib(); n <= 5) && n == 0",
-		"p.TestLate":                 "a+b+c+d == 0",
-		"p.TestShortOnly":            "testing.Short()",
-		"p.TestFatalIsNotACondition": "testing.Short()",
-		"p.TestBuilt":                "not go1.20 (build constraint)",
+		"p.TestLibDirect":                  "g.lt == nil",
+		"p.TestLibHelper":                  `runtime.GOOS != "linux"`,
+		"p.TestAfterLoop":                  "no earlier return (name == runtime.GOOS)",
+		"p.TestAfterEarlyReturn":           `no earlier return (err := link(); err == nil) && runtime.GOOS != "windows"`,
+		"p.TestInitAndElse":                "(n := Lib(); n <= 5) && n == 0",
+		"p.TestLate":                       "a+b+c+d == 0",
+		"p.TestShortOnly":                  "testing.Short()",
+		"p.TestFatalIsNotACondition":       "testing.Short()",
+		"p.TestBuilt":                      "not go1.20 (build constraint)",
+		"p.TestHelperInConstrainedFile":    "go1.20 (build constraint)",
+		"p.TestConditionInConstrainedFile": "go1.20 (build constraint) && n > 3",
 	}
 	for name, cond := range want {
 		if skips[name] != cond {

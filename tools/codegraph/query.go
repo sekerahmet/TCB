@@ -498,6 +498,12 @@ func (ix *index) otherConfigMentions(n *Node) (config string, out []otherConfigM
 // printOtherConfigs sorulan adın derlenmeyen dosyalarda geçtiği yerleri bildirime göre tek satırda yazar (testler
 // işaretli); geçmiyorsa bir şey yazmaz.
 func (ix *index) printOtherConfigs(w io.Writer, n *Node, limit int) {
+	ix.printOtherConfigsExcept(w, n, limit, nil)
+}
+
+// printOtherConfigsExcept printOtherConfigs'tir; listed'deki testler (tests-for'un gruplarında yazılanlar) burada bir
+// kez daha yazılmaz (bağımsız denetim grup 7: derlenmeyen dosyadaki test iki grupta çıkıyordu).
+func (ix *index) printOtherConfigsExcept(w io.Writer, n *Node, limit int, listed []*Node) {
 	config, ms := ix.otherConfigMentions(n)
 	if len(ms) == 0 {
 		return
@@ -506,6 +512,9 @@ func (ix *index) printOtherConfigs(w io.Writer, n *Node, limit int) {
 	seen := map[string]bool{}
 	for _, m := range ms {
 		where := fmt.Sprintf("%s:%d", m.file, m.line)
+		if m.in != nil && slices.Contains(listed, m.in) {
+			continue
+		}
 		if m.in != nil {
 			if seen[m.in.ID+m.file] {
 				continue
@@ -517,6 +526,9 @@ func (ix *index) printOtherConfigs(w io.Writer, n *Node, limit int) {
 			}
 		}
 		lines = append(lines, where)
+	}
+	if len(lines) == 0 {
+		return
 	}
 	fmt.Fprintf(w, "  <- in other build configurations (%d; files not built for %s, read as text, not type-checked):\n", len(lines), config)
 	printLimited(w, lines, limit, "    ")
