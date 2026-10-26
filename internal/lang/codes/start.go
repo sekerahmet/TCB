@@ -81,7 +81,8 @@ func complete(d *Language) error {
 }
 
 // identityPattern iletinin parametresinin tamamı olan bir kimliktir (TR_mem_keys, TR_fn_print(),
-// liste.TR_mem_append); başka metnin içindeki kimlik (tr dizin'in builtin:TR_fn_sum'ı) çevrilmez.
+// liste.TR_mem_append); başka metnin içindeki kimlik (tr dizin'in builtin:TR_fn_sum'ı) ve öneki de
+// bir kimlik olan yol (ağırlık anahtarı TR_mem_embedding.TR_mem_table, bir değer) çevrilmez.
 var identityPattern = regexp.MustCompile(`^([\p{L}_][\p{L}\p{N}_]*\.)?(` + IdentityPrefix + `[a-z]+_[A-Za-z0-9_]+)(\(\))?$`)
 
 func init() {
@@ -98,8 +99,8 @@ func init() {
 			l = Source()
 		}
 		m := identityPattern.FindStringSubmatch(text)
-		if m == nil {
-			return text
+		if m == nil || strings.HasPrefix(m[1], IdentityPrefix) {
+			return text // kimliklerden kurulmuş yol (TR_mem_embedding.TR_mem_table) bir değerdir
 		}
 		if k, err := Parse(m[2]); err == nil {
 			if e, ok := l.Entry(k); ok {

@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
@@ -64,5 +65,22 @@ func TestProgramRunsOnIdentities(t *testing.T) {
 	}
 	if Source().Code != SourceLanguage || Source().Name(FnPrint) == FnPrint.String() {
 		t.Fatalf("Türkçe bir yazım dili olarak yüklenmeli: %s, %q", Source().Code, Source().Name(FnPrint))
+	}
+}
+
+// Kural: iletiye giren bir kimlik (TR_mem_append, liste.TR_mem_append) iletinin dilinde yazılır;
+// kimliklerden kurulmuş bir yol (ağırlık anahtarı "TR_mem_embedding.TR_mem_table") ise bir
+// değerdir ve olduğu gibi kalır: Python'un ve Swift'in değer gösterimi gibi veri çevrilmez,
+// yarım çeviri ("TR_mem_embedding.tablo") ne kod ne ad olurdu.
+func TestIdentityNamesLeaveAnIdentityPathAsItIs(t *testing.T) {
+	for text, want := range map[string]string{
+		"TR_mem_append":                 "append",
+		"liste.TR_mem_append":           "liste.append",
+		"TR_mem_append()":               "append()",
+		"TR_mem_embedding.TR_mem_table": "TR_mem_embedding.TR_mem_table",
+	} {
+		if got := messages.IdentityNames(text, "en"); got != want {
+			t.Errorf("IdentityNames(%q) = %q, beklenen %q", text, got, want)
+		}
 	}
 }
