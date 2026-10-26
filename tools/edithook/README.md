@@ -38,6 +38,13 @@ bir kabuk komutuna eklenen süre ~0,1 sn. Kanca yan oturumlarda da çalışır: 
 oturumun beşinde, dalları kancayı içermediği hâlde, ön plandaki çağrıyı durdurdu (ayar ve kod
 ana çalışma ağacından okunuyor). Denetim: `TestLongCommandsRunInTheBackground`.
 
+Yan oturumda tam denetim ve `...` desenli `go test` arka planda da durur, gerekçe "ana oturumun işi"
+der: yan oturum yalnız dokunduğu paketlerin testlerini koşar, bütün takımı birleştirmede ana oturum
+koşar. Yan oturum, dökümü bir çalışma ağacının klasörüne (`C--Turkish-Code-Base--claude-worktrees-<ad>`)
+yazılan oturumdur; o anki klasör ölçüt değildir, çünkü ana oturum tam denetimi bir çalışma ağacında
+da koşar. Neden: 2026-10-26'da iki yan oturum bütün takımı arka planda koştu, makine %99'da kaldı ve
+ana oturumun tam denetimi süre sınırına takıldı. Denetim: `TestSideSessionsRunOnlyTheirPackagesTests`.
+
 Neden kanca: kural hafızaya ve belgeye defalarca yazıldı, yine ön planda koşuldu (Ahmet,
 2026-10-25: "61. kez hafızaya aldın").
 

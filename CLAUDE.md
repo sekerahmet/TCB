@@ -63,5 +63,5 @@ TR, yapay zekâ modeli geliştirmek ve eğitmek için bir programlama dilidir (G
 ## Yan oturumlar ve ajanlar
 
 - Her yan oturum kendi çalışma ağacında (worktree) çalışır; aynı klasörü paylaşan iki oturum birbirinin denetimini bozar.
-- Yan oturum push etmez ve tam denetim çalıştırmaz; birleştirme ve gönderim ana oturumdadır.
+- Yan oturum push etmez; tam denetimi ve bütün ağacın testini (`...` desenli `go test`) çalıştırmaz, yalnız dokunduğu paketlerin testlerini koşar (kanca arka planda da durdurur). Birleştirme, tam denetim ve gönderim ana oturumdadır.
 - İşin sonunda yönergedeki devir notunu yazar (durum, birleştirmede dikkat, kararlar, bulgular, öneriler, kalan) ve ana oturuma bulguları bildirir. Durum bölümünde iki denetimin çıktısı yer alır: değiştirdiği her dosya için dokunmadan önce koşulan `codegraph tests-for <dosya>` sonucunun özeti (koruyan testler ve kurallar; "test yok" çıktıysa ikinci yoldan doğrulaması) ve `codegraph dups --changed main` sonucu.

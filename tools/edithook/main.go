@@ -43,9 +43,10 @@ import (
 const maxLines = 60
 
 type hookInput struct {
-	SessionID string `json:"session_id"`
-	ToolName  string `json:"tool_name"`
-	ToolInput struct {
+	SessionID      string `json:"session_id"`
+	TranscriptPath string `json:"transcript_path"`
+	ToolName       string `json:"tool_name"`
+	ToolInput      struct {
 		FilePath        string `json:"file_path"`
 		NotebookPath    string `json:"notebook_path"`
 		Command         string `json:"command"`
@@ -72,7 +73,13 @@ func run(in io.Reader, out, errOut io.Writer, stamps string, find func(string) (
 		return 1
 	}
 	if h.ToolName == "Bash" || h.ToolName == "PowerShell" {
-		if c := longCommand(h.ToolInput.Command); c != "" && !h.ToolInput.RunInBackground {
+		switch c := longCommand(h.ToolInput.Command); {
+		case c == "":
+		case sideSession(h.TranscriptPath):
+			return deny(out, errOut, c+" is the main session's job: a side session runs only the tests of the packages "+
+				"it touched (go test ./internal/x -run TestY, the tests-for answer), in the background; the main session "+
+				"runs the full check when it merges (CLAUDE.md, side sessions).")
+		case !h.ToolInput.RunInBackground:
 			return deny(out, errOut, c+" takes minutes: run it with run_in_background: true and go on; "+
 				"the notification says when it ends (CLAUDE.md, hard rules: long checks run in the background).")
 		}
@@ -108,6 +115,14 @@ func run(in io.Reader, out, errOut io.Writer, stamps string, find func(string) (
 		"main session with the command, the expected and the actual answer (tools/codegraph/gaps.md)."+
 		"\n\n$ go run ./tools/codegraph tests-for %s\n%s", t.rel, t.rel, report)
 	return deny(out, errOut, reason)
+}
+
+// sideSession oturum bir yan çalışma ağacında mı başladı: Claude Code dökümü oturumun başladığı
+// klasörün adından kurulan klasöre yazar (C--Turkish-Code-Base--claude-worktrees-<ad>); ana
+// oturumun ve ajanlarının dökümü depo kökünün klasöründedir. Oturumun o anki klasörü (cwd) ölçüt
+// değildir: ana oturum birleştirmede bir çalışma ağacına geçip tam denetimi orada koşar.
+func sideSession(transcript string) bool {
+	return strings.Contains(transcript, "-claude-worktrees-")
 }
 
 // longCommand komut dakikalar süren bir denetimi çağırıyorsa onun adını verir, yoksa "".

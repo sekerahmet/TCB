@@ -84,10 +84,16 @@ func TestUntrackedFilesAndBadInputPass(t *testing.T) {
 	}
 }
 
-// shell kancayı bir kabuk aracının (Bash, PowerShell) komutuyla koşar; dosya aranmaz.
+// shell kancayı bir kabuk aracının (Bash, PowerShell) komutuyla ana oturumda koşar; dosya aranmaz.
 func shell(t *testing.T, tool, command string, background bool) string {
 	t.Helper()
-	in, err := json.Marshal(map[string]any{"session_id": "s", "tool_name": tool,
+	return shellIn(t, `C:\Users\u\.claude\projects\C--Turkish-Code-Base\s.jsonl`, tool, command, background)
+}
+
+// shellIn shell'dir, dökümü transcript'e yazılan oturumda.
+func shellIn(t *testing.T, transcript, tool, command string, background bool) string {
+	t.Helper()
+	in, err := json.Marshal(map[string]any{"session_id": "s", "transcript_path": transcript, "tool_name": tool,
 		"tool_input": map[string]any{"command": command, "run_in_background": background}})
 	if err != nil {
 		t.Fatal(err)
@@ -135,6 +141,32 @@ func TestLongCommandsRunInTheBackground(t *testing.T) {
 			if out := shell(t, tool, c, false); out != "" {
 				t.Errorf("%s: komutu yalnızca anan metin geçmeli: %q -> %q", tool, c, out)
 			}
+		}
+	}
+}
+
+// Kural (CLAUDE.md, Yan oturumlar ve ajanlar): yan oturum tam denetimi ve bütün ağacın testini
+// (`...` desenli go test) arka planda da koşmaz; yalnız dokunduğu paketlerin testlerini koşar, tam
+// denetim birleştirmede ana oturumdadır. Yan oturum, dökümü bir çalışma ağacının klasörüne yazılan
+// oturumdur.
+func TestSideSessionsRunOnlyTheirPackagesTests(t *testing.T) {
+	side := `C:\Users\u\.claude\projects\C--Turkish-Code-Base--claude-worktrees-ceviri-c395b3\s.jsonl`
+	wide := []string{
+		"bash tools/full_check.sh",
+		"go test ./internal/... ./tools/... ./cmd/...",
+		"go test ./internal/lang/... -count=1",
+	}
+	for _, tool := range []string{"Bash", "PowerShell"} {
+		for _, c := range wide {
+			for _, background := range []bool{false, true} {
+				if reason, ok := held(t, shellIn(t, side, tool, c, background)); !ok || !strings.Contains(reason, "main session") {
+					t.Errorf("%s: yan oturumda geniş koşu (arka plan %v) durmalı, gerekçe ana oturumu söylemeli: %q -> %q",
+						tool, background, c, reason)
+				}
+			}
+		}
+		if out := shellIn(t, side, tool, "go test ./internal/lang/hint ./internal/lang/interp -run TestSuggest -count=1", true); out != "" {
+			t.Errorf("%s: yan oturumda dokunulan paketlerin testi geçmeli: %q", tool, out)
 		}
 	}
 }
