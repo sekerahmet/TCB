@@ -47,7 +47,30 @@ Son kapananlar (ana oturum 2026-10-26 aynı komutlarla doğruladı, main ed69e06
   - Geçici: dosya `testdata/uncovered_data.txt`'e yazıldı, `maxUncoveredData` 9 → 10 ("yalnızca küçülür" kuralına aykırı). `editors/vscode/*.json` satırı aynı sınıftan.
   - Beklenen: eklentinin JS testinin okuduğu dosya (`readJSON(...)`, `path.join(ROOT, ...)`), o testi koşan Go testine (`TestExtensionJSTests`) bağlanır; iki istisna satırı silinir, sınır 8'e iner.
 
+- **Ortak çağrılan işlevin iletisi hedefin kendi iletisi sayılıyor; ilgisiz testler "tests about it" grubunda.** 2026-10-26, ana oturum gerçek kullanım denemesinde yaşadı (2. tur, main e723eb54).
+  - Komut: `go run ./tools/codegraph tests-for TR_fn_sum` → "tests about it": `ml.TestGradClip`, `ml.TestDTypeChoice` `[expects H7901]`, `ml.TestConcatAndSplit` `[expects H7900]`.
+  - İkinci yol: `H7900` ve `H7901`'i yalnız `bind.CheckNamed` üretiyor (`internal/stdlib/common/bind/bind.go:86, 92`); onu adlı argüman alan her yerleşik çağırıyor. Bu testler `toplam`'la ilgili değil.
+  - Neden kritik: en güçlü kanıt grubunda yanlış test (kesin grupta yanlış yer); okuyucu `toplam`'ın asıl testlerini bunlarla karıştırır.
+  - Beklenen: README'deki "ortak sarmalayıcının iletisi kimsenin değildir" kuralı ortak çağrılan işleve de uygulanır: iletiyi üreten işlevi birden çok hedef çağırıyorsa ileti hiçbirinin "kendi" iletisi sayılmaz. Test: "expects Hxxxx" ile gruplanan her testin iletisini hedef ve yalnız onun çağırdıkları üretir.
+
+- **TR testinin metniyle beklediği ileti, ileti koduna bağlanmıyor.** 2026-10-26, ana oturum gerçek kullanım denemesinde yaşadı (2. tur).
+  - Komut: `go run ./tools/codegraph tests-for H2418` → yalnız kataloğu gezen üç test (`TestEmbeddedCatalogValid` ...).
+  - İkinci yol: `tests/yapilar_test.tr:47` iletinin metnini bekliyor (`"'Nokta' yapısının 'yy' adında bir alanı yok"`); iletinin asıl davranış testi bu.
+  - Neden kritik: iletiyi değiştiren, onu sınayan testi görmüyor (yanlış "yok").
+  - Beklenen: TR test satırındaki metin bir iletinin sabit parçalarını taşıyorsa test o ileti koduna bağlanır (README'nin `{fn}` yuvalı kuralının genel hâli). Test: her ileti kodu için, metnini bekleyen TR testi `tests-for` cevabında. Not (ayrı iş, codegraph değil): TR testleri ileti metnini değil kodunu sınamalı (`hata_kodu`, ÇEVİRİ K4).
+
+- **DAP isteğiyle sürülen testler isteğin işleyicisine bağlanmıyor.** 2026-10-26, ana oturum gerçek kullanım denemesinde yaşadı (2. tur).
+  - Komut: `go run ./tools/codegraph tests-for internal/devtools/debugger/dap_table.go` → 6 test (`TestTableData`, `TestWatchValueInterface` ...); `TestDAPSecretMasked` yok.
+  - İkinci yol: `internal/devtools/debugger/behavior_dap_secrets_test.go:41` `c.request("trTable", ...)` gönderip tablo cevabını sınıyor; istek `dap_pause.go:125` `case "trTable": s.table(msg)` ile işleyiciye gidiyor. Aynı biçimde `behavior_dap_scope_test.go`, `behavior_dap_tensor_variables_test.go`, `dap_fuzz_test.go`.
+  - Kök: test isteği bağlantıya yazıyor, sunucu başka goroutine'de okuyup metin `switch`'iyle dağıtıyor; statik zincir kopuyor (test dizesindeki TR kodu ile aynı sınıf: veriyle sürülen dağıtım).
+  - Neden kritik: işleyiciyi değiştiren onun davranış testlerini görmüyor.
+  - Beklenen: testin gönderdiği istek adı (metin sabiti) ile o adı `case` eden işleyici arasında test bağı. Aynı köprünün öbür ucu: eklentinin `customRequest('trTable', ...)` çağıran JS kodu ve testleri (`editors/vscode/test/table_common_test.js`, `watch_panel_test.js`) Go işleyicisine bağlanmıyor; protokol anahtarı değişince (V3, 2026-10-26) iki taraf elle bulundu.
+
 ## İnce ayar
+
+- **`tr dizin etki`'de kısaltılmış grup bunu söylemiyor.** 2026-10-26, ana oturum gerçek kullanım denemesinde yaşadı (2. tur).
+  - Komut: `tr dizin etki TR_type_GPT` → "bunu aktaran modüller (13):" altında 12 satır; "daha fazlası var" notu yok (ikinci grupta var). On üçüncü (`tools/gpu/training_model.tr`) yalnız `--tümü` ile görünüyor.
+  - Beklenen: her kısaltılmış grup kaç satırın gizlendiğini yazar (codegraph'ın `... N more` kuralı gibi). Sayı başlıkta olduğu için yanlış karar zor: ince ayar.
 
 - **Kodun Go'daki uygulaması sorulunca harita satırındaki bütün işlevler veriliyor.** 2026-10-26, ana oturum gerçek kullanım denemesinde yaşadı (main ed69e06a).
   - Komut: `go run ./tools/codegraph query TR_cmd_encode` → "registered or used in Go: tr.commands at cmd/tr/main.go:125 -> tr.debugCommand, tr.encodeCommand, tr.formatCommand, tr.testCommand".
