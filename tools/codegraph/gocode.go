@@ -45,8 +45,8 @@ type goExtractor struct {
 	// codeAliases bir ad kodu sabitine eşitlenmiş sabitlerdir (`memberSkip = codes.MemSkip`): paket yolu.ad -> kodun
 	// anahtarı (codeAliasKeys).
 	codeAliases map[string]string
-	consumed  map[*ast.BasicLit]bool
-	nameReads map[*ast.Ident]bool // codes paketine argüman olarak verilen ad kodu sabitleri (noteNameReads)
+	consumed    map[*ast.BasicLit]bool
+	nameReads   map[*ast.Ident]bool // codes paketine argüman olarak verilen ad kodu sabitleri (noteNameReads)
 	// rangeVals dize sabiti listesi üzerinde dönen döngü değişkenleri ve alabildikleri değerlerdir
 	// (`for _, p := range []string{"docs/*.md", ...}`; test_paths.go: pathCall).
 	rangeVals map[types.Object][]string

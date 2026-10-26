@@ -1,8 +1,7 @@
 # Bir teste bağlanamayan izlenen veri dosyaları: kalıp <TAB> gerekçe. Liste yalnızca küçülür: satır sayısı data_coverage_test.go'da sabitlenir (maxUncoveredData), geniş kalıp (docs/**) yazılmaz, her dosya adıyla.
 CLAUDE.md	kök belgesi: düzyazı; kuralları ilgili paket README'lerinde ve testlerindedir
 .vscode/**	VS Code çalışma alanı ayarı; Go testi okumaz
-editors/vscode/*.json	VS Code eklentisinin bildirim dosyaları; eklenti kendi kod akışında (JS) yüklenir, Go testi okumaz
-editors/vscode/l10n/bundle.l10n.tr.json	eklentinin Türkçe arayüz metinleri; VS Code (vscode.l10n) ve JS testi (test/l10n_test.js, TestExtensionJSTests koşar) okur, Go testi okumaz; codegraph JS okumasını görmüyor (gaps.md, 2026-10-26)
+editors/vscode/*.json	language-configuration.json'ı yalnız VS Code okur (package.json'daki "configuration"); package.nls.json'ı e2e testinin yardımcısı `"editors/vscode/" + ad` ile okur, codegraph parametreyle birleşen yolu izlemiyor (package.json ve package.nls.tr.json bağlı)
 tests/data/**	örnek veri kümesini kuran testin (internal/stdlib/dataset/behavior_sample_data_test.go) çıktısıdır; izlenen kopya örnekler tarafından okunur, yol dize olarak geçmez
 tools/gpu/phase3_config.json	Colab 3. aşama koşusunun ayarı; yalnızca Colab betikleri okur
 tools/codegraph/gaps.md	ana oturumun codegraph eksikleri listesi: düzyazı, kendi kuralı yok (README.md ve CLAUDE.md gibi); tek bağı eski kod örneğiydi, 73488779'da örnekle birlikte kalktı
