@@ -4,12 +4,6 @@
 TR_kw_import "tr/katman"
 TR_kw_import "tr/iyilestirici" // gradyanları_sıfırla
 
-// hata_metni: f çalışırken oluşan hatanın mesajını döndürür (hata yoksa boş metin).
-TR_kw_func hata_metni(f) {
-    TR_kw_try { f() } TR_kw_catch h { TR_kw_return h }
-    TR_kw_return ""
-}
-
 TR_kw_func rastgele_girdi(şekil, tohum) {
     TR_kw_return TR_fn_tensor(TR_fn_randn(şekil, TR_arg_seed: tohum), TR_arg_requires_grad: TR_kw_true)
 }
@@ -147,8 +141,7 @@ TR_ctx_test "NedenselDikkat: bir konum sonraki konumlardan etkilenmez" {
 }
 
 TR_ctx_test "NedenselDikkat: boyut bakış sayısına bölünmeli" {
-    TR_kw_var mesaj = hata_metni(() => TR_type_CausalAttention(10, 4))
-    TR_fn_assert(mesaj.TR_mem_contains("boyut (10) bakış sayısına (4) bölünmeli"), mesaj)
+    TR_fn_assert_equal(H6900, TR_fn_error_code(() => TR_type_CausalAttention(10, 4)))
 }
 
 TR_ctx_test "SwiGLU: ara boyut, şekil ve türev" {
@@ -269,10 +262,8 @@ TR_ctx_test "KVÖnbellek: kırp son parçaları geri alır; aynı parçalar yeni
             TR_fn_assert(en_büyük_mutlak_fark(a, b) < 0.000001, "{çeşit}: kırpmadan sonra aynı logit")
         }
         TR_kw_var ö = m.TR_mem_build_cache(TR_arg_kind: "sabit", TR_arg_capacity: 2)
-        TR_kw_var mesaj = hata_metni(() => m.TR_mem_forward([[1, 2, 3]], TR_arg_cache: ö))
-        TR_fn_assert(mesaj.TR_mem_contains("sabit önbellek dolu"), mesaj)
-        mesaj = hata_metni(() => TR_type_KVCache(2, TR_arg_kind: "kocaman"))
-        TR_fn_assert(mesaj.TR_mem_contains("önbellek çeşidi"), mesaj)
+        TR_fn_assert_equal(H6909, TR_fn_error_code(() => m.TR_mem_forward([[1, 2, 3]], TR_arg_cache: ö)))
+        TR_fn_assert_equal(H6906, TR_fn_error_code(() => TR_type_KVCache(2, TR_arg_kind: "kocaman")))
     }
 }
 
@@ -372,8 +363,7 @@ TR_ctx_test "NedenselDikkat: pencere yalnızca son w konuma bakar" {
     // pencere uzunluğa eşit ya da büyükse tam nedensel dikkatle aynıdır
     TR_kw_var geniş = TR_type_CausalAttention(8, 2, TR_arg_seed: 4, TR_arg_window: 6)
     TR_fn_assert(en_büyük_mutlak_fark(geniş.TR_mem_forward(x, tablolar[0], tablolar[1]), t1) < 0.0000001, "pencere ≥ T tam dikkattir")
-    TR_kw_var mesaj = hata_metni(() => TR_type_CausalAttention(8, 2, TR_arg_window: -1))
-    TR_fn_assert(mesaj.TR_mem_contains("pencere negatif olamaz"), mesaj)
+    TR_fn_assert_equal(H6903, TR_fn_error_code(() => TR_type_CausalAttention(8, 2, TR_arg_window: -1)))
 }
 
 TR_ctx_test "NedenselDikkat: qk_normu q ve k'yı bakış boyutunda normlar (sorgu ölçeğinden bağımsız), türevlidir" {
@@ -505,15 +495,13 @@ TR_ctx_test "TransformerBloğu: PLE'siz varsayılan değişmez; PLE, epsilon, pe
         TR_kw_return b.TR_mem_forward(x, tablolar[0], tablolar[1], [[1, 2, 3, 4]], bağlam)
     }
     TR_fn_assert(TR_fn_grad_check(f, [rastgele_girdi([1, 4, 8], 2), rastgele_girdi([8, 4], 3), rastgele_girdi([10, 4], 4), rastgele_girdi([1, 4, 4], 5)]))
-    TR_kw_var mesaj = hata_metni(() => TR_type_TransformerBlock(8, 2, TR_arg_ple_dim: 4))
-    TR_fn_assert(mesaj.TR_mem_contains("ple_boyutu için dağarcık da verilmeli"), mesaj)
+    TR_fn_assert_equal(H6904, TR_fn_error_code(() => TR_type_TransformerBlock(8, 2, TR_arg_ple_dim: 4)))
 }
 
 TR_ctx_test "katman_pencereleri: G katmanı 0, Y katmanları pencereleri sırayla alır" {
     TR_fn_assert_equal([32, 64, 0, 32, 0, 64, 32, 0], TR_fn_layer_windows("YYGYGYYG", [32, 64]))
     TR_fn_assert_equal([0, 0], TR_fn_layer_windows("GG", [8]))
-    TR_kw_var mesaj = hata_metni(() => TR_fn_layer_windows("YXG", [8]))
-    TR_fn_assert(mesaj.TR_mem_contains("yalnızca Y ve G"), mesaj)
+    TR_fn_assert_equal(H6905, TR_fn_error_code(() => TR_fn_layer_windows("YXG", [8])))
 }
 
 TR_ctx_test "GPT: yeni seçenekler varsayılanda modeli değiştirmez; PLE'li yerel/genel model kurulur" {
@@ -537,8 +525,7 @@ TR_ctx_test "GPT: yeni seçenekler varsayılanda modeli değiştirmez; PLE'li ye
     TR_kw_var l2 = m.TR_mem_forward([[1, 2, 3, 4, 6]])
     TR_fn_assert(en_büyük_mutlak_fark(l1[0][0..4], l2[0][0..4]) < 0.000001, "PLE ve pencere nedenselliği bozmamalı")
     TR_fn_assert(en_büyük_mutlak_fark(l1[0][4], l2[0][4]) > 0.000001, "son konum değişmeli")
-    TR_kw_var mesaj = hata_metni(() => TR_type_GPT(12, TR_arg_num_layers: 2, TR_arg_windows: [1, 2, 3]))
-    TR_fn_assert(mesaj.TR_mem_contains("katman sayısına (2) eşit olmalı"), mesaj)
+    TR_fn_assert_equal(H6911, TR_fn_error_code(() => TR_type_GPT(12, TR_arg_num_layers: 2, TR_arg_windows: [1, 2, 3])))
     TR_fn_assert(m.TR_mem_loss([[1, 2, 3]], [[2, 3, 4]]).TR_mem_tolist > 0)
 }
 
@@ -567,8 +554,7 @@ TR_ctx_test "NedenselDikkat: bakış_boyutu gizli boyuttan bağımsızdır (Hugg
     TR_fn_assert_equal(4, TR_type_CausalAttention(8, 2).TR_mem_head_dim)
     // bakış_boyutu verilince boyut bakış sayısına bölünmek zorunda değildir.
     TR_fn_assert_equal([6, 8], TR_type_CausalAttention(6, 4, TR_arg_head_dim: 2).TR_mem_q_proj.TR_mem_weight.TR_mem_shape)
-    TR_kw_var mesaj = hata_metni(() => TR_type_CausalAttention(8, 2, TR_arg_head_dim: 3))
-    TR_fn_assert(mesaj.TR_mem_contains("çift"), mesaj)
+    TR_fn_assert_equal(H6901, TR_fn_error_code(() => TR_type_CausalAttention(8, 2, TR_arg_head_dim: 3)))
 }
 
 TR_ctx_test "GPT: bakış_boyutu bloklara ve döner konum tablosuna iletilir; varsayılan model değişmez" {
@@ -597,4 +583,11 @@ TR_ctx_test "GPT: ağırlık_türü PLE tablolarına ve katmanlarına da iletili
         m.TR_mem_blocks[0].TR_mem_ple.TR_mem_gate_proj.TR_mem_weight.TR_mem_dtype,
         m.TR_mem_blocks[0].TR_mem_ple.TR_mem_proj.TR_mem_weight.TR_mem_dtype
     ])
+}
+
+TR_ctx_test "NedenselDikkat ve KVÖnbellek: kv bakış sayısı, kapasite, cihaz adımı ve kısaltma sınırları ileti koduyla bildirilir" {
+    TR_fn_assert_equal(H6902, TR_fn_error_code(() => TR_type_CausalAttention(8, 4, TR_arg_num_kv_heads: 3)))
+    TR_fn_assert_equal(H6907, TR_fn_error_code(() => TR_type_KVCache(2, TR_arg_kind: "sabit", TR_arg_capacity: 0)))
+    TR_fn_assert_equal(H6908, TR_fn_error_code(() => TR_type_KVCache(2, TR_arg_kind: "büyüyen").TR_mem_device_step(1)))
+    TR_fn_assert_equal(H6910, TR_fn_error_code(() => TR_type_KVCache(2, TR_arg_kind: "sabit", TR_arg_capacity: 4).TR_mem_truncate(1)))
 }

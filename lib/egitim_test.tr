@@ -3,12 +3,6 @@
 // değer, z-skoru eşiği), sıçramanın geçmişe girmemesi ve kayan pencere. Koşturma: tr test lib
 TR_kw_import "tr/egitim"
 
-// hata_metni: f çalışırken oluşan hatanın mesajını döndürür (hata yoksa boş metin).
-TR_kw_func hata_metni(f) {
-    TR_kw_try { f() } TR_kw_catch h { TR_kw_return h }
-    TR_kw_return ""
-}
-
 // Hafif gürültülü, sabit bir kayıp ve norm dizisi (her biri 1,0 ± 0,01).
 TR_kw_func besle(b, n) {
     TR_kw_for i TR_kw_in 0..n {
@@ -54,8 +48,8 @@ TR_ctx_test "SıçramaBekçisi: değişmeyen dizide (σ = 0) eşik yerine en kü
 }
 
 TR_ctx_test "SıçramaBekçisi: geçersiz ayar hatadır" {
-    TR_fn_assert(hata_metni(() => TR_type_SpikeGuard(TR_arg_history_limit: 1)) != "")
-    TR_fn_assert(hata_metni(() => TR_type_SpikeGuard(TR_arg_threshold: 0)) != "")
+    TR_fn_assert_equal(H6930, TR_fn_error_code(() => TR_type_SpikeGuard(TR_arg_history_limit: 1)))
+    TR_fn_assert_equal(H6931, TR_fn_error_code(() => TR_type_SpikeGuard(TR_arg_threshold: 0)))
 }
 
 TR_ctx_test "SıçramaBekçisi: ölçekten bağımsızdır; çok büyük sonlu değerlerde taşmaz" {
@@ -76,8 +70,8 @@ TR_ctx_test "SıçramaBekçisi: geçmiş tamamen sıfırsa karar vermez, kilitle
 }
 
 TR_ctx_test "SıçramaBekçisi: kesirli pencere ve sonsuz eşik reddedilir" {
-    TR_fn_assert(hata_metni(() => TR_type_SpikeGuard(TR_arg_history_limit: 2.5)) != "")
-    TR_fn_assert(hata_metni(() => TR_type_SpikeGuard(TR_arg_threshold: TR_fn_float("inf"))) != "")
+    TR_fn_assert_equal(H6930, TR_fn_error_code(() => TR_type_SpikeGuard(TR_arg_history_limit: 2.5)))
+    TR_fn_assert_equal(H6931, TR_fn_error_code(() => TR_type_SpikeGuard(TR_arg_threshold: TR_fn_float("inf"))))
 }
 
 // Küçük bir koşu: iki parametreli model, adım_sayısı adım, her adımda ölçü, sonda değerlendirme.
@@ -113,5 +107,5 @@ TR_ctx_test "Koşu: prova geçici klasörde en çok PROVA_ADIMI adım sürer ve 
 }
 
 TR_ctx_test "Koşu: adım_sayısı pozitif bir Tam olmalıdır" {
-    TR_fn_assert(hata_metni(() => TR_type_Run(TR_fn_temp_dir(), {}, {}, TR_arg_num_steps: 0)).TR_mem_contains("en az 1"), "0 reddedilmeli")
+    TR_fn_assert_equal(H6932, TR_fn_error_code(() => TR_type_Run(TR_fn_temp_dir(), {}, {}, TR_arg_num_steps: 0)))
 }

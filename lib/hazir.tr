@@ -50,19 +50,19 @@ TR_kw_func TR_fn_pretrained_model(TR_arg_folder, TR_arg_weight_dtype = "float32"
 TR_kw_func TR_fn_build_pretrained_model(TR_arg_config, TR_arg_weight_dtype = "float32") {
     TR_kw_var mimari = TR_fn_config_value(TR_arg_config, "model_type", "")
     TR_kw_if TR_kw_not TR_const_SUPPORTED_ARCHITECTURES.TR_mem_contains(mimari) {
-        TR_kw_throw "hazır_model: {mimari} mimarisi desteklenmiyor (desteklenenler: {TR_const_SUPPORTED_ARCHITECTURES})"
+        TR_kw_throw TR_fn_message(H6940, mimari, TR_const_SUPPORTED_ARCHITECTURES)
     }
     TR_kw_if TR_fn_config_value(TR_arg_config, "attention_bias", TR_kw_false) TR_kw_or TR_fn_config_value(TR_arg_config, "mlp_bias", TR_kw_false) {
-        TR_kw_throw "hazır_model: sapmalı dikkat ya da MLP katmanları desteklenmiyor"
+        TR_kw_throw TR_fn_message(H6941)
     }
     TR_kw_if TR_fn_config_value(TR_arg_config, "hidden_act", "silu") != "silu" {
-        TR_kw_throw "hazır_model: {TR_fn_config_value(TR_arg_config, \"hidden_act\", \"\")} etkinleştirmesi desteklenmiyor (silu bekleniyordu)"
+        TR_kw_throw TR_fn_message(H6942, TR_fn_config_value(TR_arg_config, "hidden_act", ""))
     }
     TR_kw_if TR_fn_has_rope_scaling(TR_arg_config) {
-        TR_kw_throw "hazır_model: RoPE ölçekleme (rope_scaling) desteklenmiyor"
+        TR_kw_throw TR_fn_message(H6943)
     }
     TR_kw_if TR_fn_config_value(TR_arg_config, "use_sliding_window", TR_kw_false) {
-        TR_kw_throw "hazır_model: kayan pencereli dikkat (use_sliding_window) henüz desteklenmiyor"
+        TR_kw_throw TR_fn_message(H6944)
     }
     TR_kw_var boyut = TR_arg_config["hidden_size"]
     TR_kw_var bakış = TR_arg_config["num_attention_heads"]
@@ -124,7 +124,7 @@ TR_kw_func TR_fn_map_hugging_face(TR_arg_weights, TR_arg_config) {
         } TR_kw_else TR_kw_if ad.TR_mem_starts_with("model.layers.") {
             TR_kw_var parçalar = ad.TR_mem_split(".")
             TR_kw_var iç = parçalar[3..parçalar.TR_mem_length].TR_mem_join(".")
-            TR_kw_if TR_kw_not TR_const_BLOCK_NAMES.TR_mem_contains(iç) { TR_kw_throw "hazır_model: tanınmayan ağırlık {ad}" }
+            TR_kw_if TR_kw_not TR_const_BLOCK_NAMES.TR_mem_contains(iç) { TR_kw_throw TR_fn_message(H6945, ad) }
             TR_kw_var hedef = TR_const_BLOCK_NAMES[iç]
             TR_kw_var tr_ad = "TR_mem_blocks.{parçalar[2]}.{hedef[0]}"
             TR_kw_var w = t
@@ -136,11 +136,11 @@ TR_kw_func TR_fn_map_hugging_face(TR_arg_weights, TR_arg_config) {
                 parçalı[tr_ad][hedef[2]] = w
             }
         } TR_kw_else {
-            TR_kw_throw "hazır_model: tanınmayan ağırlık {ad}"
+            TR_kw_throw TR_fn_message(H6945, ad)
         }
     }
     TR_kw_for tr_ad, p TR_kw_in parçalı {
-        TR_kw_if p[0] == TR_kw_none TR_kw_or p[1] == TR_kw_none { TR_kw_throw "hazır_model: {tr_ad} için iki parçadan biri eksik" }
+        TR_kw_if p[0] == TR_kw_none TR_kw_or p[1] == TR_kw_none { TR_kw_throw TR_fn_message(H6946, tr_ad) }
         sonuç_sözlük[tr_ad] = TR_fn_concat(p, TR_arg_dim: -1)
     }
     TR_kw_return sonuç_sözlük

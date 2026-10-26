@@ -5,12 +5,6 @@
 TR_kw_import "tr/katman"
 TR_kw_import "tr/iyilestirici"
 
-// hata_metni: f çalışırken oluşan hatanın mesajını döndürür (hata yoksa boş metin).
-TR_kw_func hata_metni(f) {
-    TR_kw_try { f() } TR_kw_catch h { TR_kw_return h }
-    TR_kw_return ""
-}
-
 // sapma_rms ‖XᵀX − I‖'nın eleman başına kök ortalama karesidir (dik matriste 0).
 TR_kw_func sapma_rms(X) {
     TR_kw_var n = X.TR_mem_shape[1]
@@ -54,10 +48,8 @@ TR_ctx_test "Muon: güncelleme dikleştirilmiş momentumdur; ölçek √max(1, �
 }
 
 TR_ctx_test "Muon ve NorMuon yalnızca 2 boyutlu ağırlık alır" {
-    TR_kw_var mesaj = hata_metni(() => TR_type_Muon([TR_fn_tensor(TR_fn_ones([4]), TR_arg_requires_grad: TR_kw_true)]))
-    TR_fn_assert(mesaj.TR_mem_contains("Muon yalnızca 2 boyutlu ağırlıklar içindir; 0. ağırlığın şekli [4]"), mesaj)
-    mesaj = hata_metni(() => TR_type_NorMuon([TR_fn_tensor(TR_fn_ones([2, 2, 2]), TR_arg_requires_grad: TR_kw_true)]))
-    TR_fn_assert(mesaj.TR_mem_contains("NorMuon yalnızca 2 boyutlu ağırlıklar içindir"), mesaj)
+    TR_fn_assert_equal(H6920, TR_fn_error_code(() => TR_type_Muon([TR_fn_tensor(TR_fn_ones([4]), TR_arg_requires_grad: TR_kw_true)])))
+    TR_fn_assert_equal(H6920, TR_fn_error_code(() => TR_type_NorMuon([TR_fn_tensor(TR_fn_ones([2, 2, 2]), TR_arg_requires_grad: TR_kw_true)])))
 }
 
 TR_ctx_test "NorMuon: nöron başına normalleştirilmiş güncellemenin RMS'i 0.2·η'dır" {
@@ -126,8 +118,7 @@ TR_ctx_test "MuonVeAdamW: oran çarpanı iki grubun öğrenme oranını ölçekl
     TR_kw_var c = kur()
     TR_kw_var op_c = TR_type_MuonAndAdamW(c, TR_arg_normuon: TR_kw_true)
     TR_fn_assert_equal(TR_type_NorMuon, TR_fn_type(op_c.TR_mem_muon))
-    TR_kw_var mesaj = hata_metni(() => op_c.TR_mem_set_multiplier(0.0))
-    TR_fn_assert(mesaj.TR_mem_contains("oran çarpanı pozitif olmalı"), mesaj)
+    TR_fn_assert_equal(H6922, TR_fn_error_code(() => op_c.TR_mem_set_multiplier(0.0)))
     TR_fn_assert_equal(1.0, op_c.TR_mem_lr_multiplier)
 }
 
@@ -255,8 +246,7 @@ TR_ctx_test "Muon: ölçek \"rms\" güncellemeyi 0.2·√max(giriş, çıkış) 
     TR_kw_var beklenen = önce - 0.1 * 0.2 * TR_fn_sqrt(8.0) * TR_fn_orthogonalize(G)
     TR_fn_assert(en_büyük_mutlak_fark(W, beklenen) < 0.00001, "rms ölçeği: {en_büyük_mutlak_fark(W, beklenen)}")
     TR_fn_assert_equal([TR_fn_sqrt(2.0)], TR_type_Muon([W]).TR_mem_scales) // varsayılan "oran": √max(1, 8/4)
-    TR_kw_var mesaj = hata_metni(() => TR_type_Muon([W], TR_arg_scale: "x"))
-    TR_fn_assert(mesaj.TR_mem_contains("ölçek \"oran\" ya da \"rms\" olmalı"), mesaj)
+    TR_fn_assert_equal(H6921, TR_fn_error_code(() => TR_type_Muon([W], TR_arg_scale: "x")))
 }
 
 // bir_adım: model parametrelerine sabit gradyan basıp op.adım() çalıştırır (kayıp = Σ p · G).
@@ -325,8 +315,7 @@ TR_ctx_test "SatırRMS: yalnızca gradyanı sıfırdan farklı satırlar değiş
     TR_kw_var U = TR_fn_tensor(TR_fn_ones([2, 2]), TR_arg_requires_grad: TR_kw_true)
     TR_type_RowRMS([U]).TR_mem_step()
     TR_fn_assert_equal(TR_fn_ones([2, 2]), TR_fn_no_grad(U))
-    TR_kw_var mesaj = hata_metni(() => TR_type_RowRMS([TR_fn_tensor(TR_fn_ones([4]), TR_arg_requires_grad: TR_kw_true)]))
-    TR_fn_assert(mesaj.TR_mem_contains("SatırRMS yalnızca 2 boyutlu ağırlıklar içindir"), mesaj)
+    TR_fn_assert_equal(H6920, TR_fn_error_code(() => TR_type_RowRMS([TR_fn_tensor(TR_fn_ones([4]), TR_arg_requires_grad: TR_kw_true)])))
 }
 
 TR_ctx_test "MuonVeAdamW: seyrek desen PLE tablolarını SatırRMS'e verir; geçmeyen kelimelerin satırı değişmez" {

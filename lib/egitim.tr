@@ -36,8 +36,8 @@ TR_kw_struct TR_type_SpikeGuard {
     TR_mem_norms
     TR_mem_spike_count = 0
     TR_kw_func TR_ctx_init(TR_arg_history_limit = 128, TR_arg_threshold = 6.0) {
-        TR_kw_if TR_fn_type(TR_arg_history_limit) != TR_type_Int TR_kw_or TR_arg_history_limit < 2 { TR_kw_throw "SıçramaBekçisi: pencere en az 2 olan bir Tam olmalıdır, {TR_arg_history_limit} verildi" }
-        TR_kw_if TR_kw_not TR_fn_is_finite(TR_arg_threshold) TR_kw_or TR_kw_not (TR_arg_threshold > 0) { TR_kw_throw "SıçramaBekçisi: eşik sonlu ve pozitif olmalıdır, {TR_arg_threshold} verildi" }
+        TR_kw_if TR_fn_type(TR_arg_history_limit) != TR_type_Int TR_kw_or TR_arg_history_limit < 2 { TR_kw_throw TR_fn_message(H6930, TR_arg_history_limit) }
+        TR_kw_if TR_kw_not TR_fn_is_finite(TR_arg_threshold) TR_kw_or TR_kw_not (TR_arg_threshold > 0) { TR_kw_throw TR_fn_message(H6931, TR_arg_threshold) }
         TR_kw_self.TR_mem_history_limit = TR_arg_history_limit
         TR_kw_self.TR_mem_threshold = TR_arg_threshold
         TR_kw_self.TR_mem_losses = []
@@ -112,7 +112,7 @@ TR_kw_struct TR_type_Run {
     TR_mem_resume_step
     TR_mem_last_step
     TR_kw_func TR_ctx_init(TR_arg_folder, TR_arg_config, TR_arg_objects, TR_arg_num_steps, TR_arg_every_minutes = 15.0, TR_arg_dry_run = TR_kw_false) {
-        TR_kw_if TR_fn_type(TR_arg_num_steps) != TR_type_Int TR_kw_or TR_arg_num_steps < 1 { TR_kw_throw "Koşu: adım_sayısı en az 1 olan bir Tam olmalıdır, {TR_arg_num_steps} verildi" }
+        TR_kw_if TR_fn_type(TR_arg_num_steps) != TR_type_Int TR_kw_or TR_arg_num_steps < 1 { TR_kw_throw TR_fn_message(H6932, TR_arg_num_steps) }
         TR_kw_self.TR_mem_dry_run = TR_arg_dry_run
         TR_kw_self.TR_mem_last_step = TR_kw_if TR_arg_dry_run { TR_fn_min(TR_arg_num_steps, TR_const_DRY_RUN_STEPS) } TR_kw_else { TR_arg_num_steps }
         TR_kw_self.TR_mem_folder = TR_kw_if TR_arg_dry_run { TR_fn_path(TR_fn_temp_dir(), "prova") } TR_kw_else { TR_fn_path(TR_arg_folder) }
@@ -157,7 +157,7 @@ TR_kw_struct TR_type_Run {
         TR_kw_self.TR_mem_checkpoint.TR_mem_save()
         TR_kw_if TR_kw_self.TR_mem_dry_run {
             TR_kw_for ad TR_kw_in ["config.json", "metrics.jsonl", "model.trt", "kontrol_noktalari"] {
-                TR_kw_if TR_kw_not TR_fn_path(TR_kw_self.TR_mem_folder, ad).TR_mem_exists { TR_kw_throw "Koşu provası: {ad} yazılmadı ({TR_kw_self.TR_mem_folder.TR_mem_absolute})" }
+                TR_kw_if TR_kw_not TR_fn_path(TR_kw_self.TR_mem_folder, ad).TR_mem_exists { TR_kw_throw TR_fn_message(H6933, ad, TR_kw_self.TR_mem_folder.TR_mem_absolute) }
             }
             TR_fn_print("Prova geçti: {TR_kw_self.TR_mem_last_step} adım, bütün dosyalar yazıldı")
         }

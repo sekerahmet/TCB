@@ -116,7 +116,7 @@ TR_kw_func TR_fn_zero_grads(TR_arg_parameters) {
 // yalnızca_2b ağırlıkların hepsinin 2 boyutlu olduğunu denetler.
 TR_kw_func TR_fn_only_2d(TR_arg_name, TR_arg_parameters) {
     TR_kw_for i, p TR_kw_in TR_arg_parameters {
-        TR_fn_assert(p.TR_mem_shape.TR_mem_length == 2, "{TR_arg_name} yalnızca 2 boyutlu ağırlıklar içindir; {i}. ağırlığın şekli {p.TR_mem_shape} (gömme, çıkış, norm ve sapma ağırlıklarını AdamW'ye verin: parametre_grupları)")
+        TR_fn_assert(p.TR_mem_shape.TR_mem_length == 2, TR_fn_message(H6920, TR_arg_name, i, p.TR_mem_shape))
     }
 }
 
@@ -145,8 +145,8 @@ TR_kw_struct TR_type_Muon {
     TR_mem_groups
     TR_mem_state
     TR_kw_func TR_ctx_init(TR_arg_parameters, TR_arg_lr = 0.02, TR_arg_momentum = 0.95, TR_arg_nesterov = TR_kw_true, TR_arg_weight_decay = 0.0, TR_arg_ns_iterations = 5, TR_arg_scale = "oran", TR_arg_ns_dtype = "float32") {
-        TR_fn_only_2d("Muon", TR_arg_parameters)
-        TR_fn_assert(TR_arg_scale == "oran" TR_kw_or TR_arg_scale == "rms", "Muon: ölçek \"oran\" ya da \"rms\" olmalı, {TR_arg_scale} verildi")
+        TR_fn_only_2d(TR_type_Muon, TR_arg_parameters)
+        TR_fn_assert(TR_arg_scale == "oran" TR_kw_or TR_arg_scale == "rms", TR_fn_message(H6921, TR_arg_scale))
         TR_kw_self.TR_mem_parameters = TR_arg_parameters
         TR_kw_self.TR_mem_lr = TR_arg_lr
         TR_kw_self.TR_mem_momentum = TR_arg_momentum
@@ -199,7 +199,7 @@ TR_kw_struct TR_type_NorMuon {
     TR_mem_groups
     TR_mem_state
     TR_kw_func TR_ctx_init(TR_arg_parameters, TR_arg_lr = 0.003, TR_arg_beta1 = 0.95, TR_arg_beta2 = 0.95, TR_arg_eps = 0.00000001, TR_arg_weight_decay = 0.0, TR_arg_ns_iterations = 5, TR_arg_ns_dtype = "float32") {
-        TR_fn_only_2d("NorMuon", TR_arg_parameters)
+        TR_fn_only_2d(TR_type_NorMuon, TR_arg_parameters)
         TR_kw_self.TR_mem_parameters = TR_arg_parameters
         TR_kw_self.TR_mem_lr = TR_arg_lr
         TR_kw_self.TR_mem_beta1 = TR_arg_beta1
@@ -318,7 +318,7 @@ TR_kw_struct TR_type_RowRMS {
     TR_mem_eps = 0.00000001
     TR_mem_state
     TR_kw_func TR_ctx_init(TR_arg_parameters, TR_arg_lr = 0.003, TR_arg_beta2 = 0.95, TR_arg_eps = 0.00000001) {
-        TR_fn_only_2d("SatırRMS", TR_arg_parameters)
+        TR_fn_only_2d(TR_type_RowRMS, TR_arg_parameters)
         TR_kw_self.TR_mem_parameters = TR_arg_parameters
         TR_kw_self.TR_mem_lr = TR_arg_lr
         TR_kw_self.TR_mem_beta2 = TR_arg_beta2
@@ -393,7 +393,7 @@ TR_kw_struct TR_type_MuonAndAdamW {
         TR_kw_self.TR_mem_row_rms = TR_kw_if gruplar.seyrek.TR_mem_length > 0 { TR_type_RowRMS(gruplar.seyrek, TR_arg_lr: TR_arg_sparse_lr, TR_arg_beta2: TR_arg_beta2) } TR_kw_else { TR_kw_none }
     }
     TR_kw_func TR_mem_set_multiplier(TR_arg_multiplier) {
-        TR_fn_assert(TR_arg_multiplier > 0, "MuonVeAdamW: oran çarpanı pozitif olmalı, {TR_arg_multiplier} verildi")
+        TR_fn_assert(TR_arg_multiplier > 0, TR_fn_message(H6922, TR_arg_multiplier))
         TR_kw_self.TR_mem_lr_multiplier = TR_arg_multiplier
     }
     TR_kw_func TR_mem_step() {

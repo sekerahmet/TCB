@@ -11,11 +11,6 @@ TR_kw_func qwen3_ayarı() {
         hidden_act: "silu", attention_bias: TR_kw_false, use_sliding_window: TR_kw_false, sliding_window: TR_kw_none}
 }
 
-TR_kw_func hata_metni(f) {
-    TR_kw_try { f() } TR_kw_catch h { TR_kw_return h }
-    TR_kw_return ""
-}
-
 TR_ctx_test "hazır_model_kur: config.json alanları GPT'ye eşlenir; bakış boyutu ve RoPE tabanı Hugging Face kuralıyla" {
     TR_kw_var m = TR_fn_build_pretrained_model(qwen3_ayarı())
     TR_fn_assert_equal([8, 16], m.TR_mem_blocks[0].TR_mem_attention.TR_mem_q_proj.TR_mem_weight.TR_mem_shape) // 2 bakış × 8
@@ -35,19 +30,19 @@ TR_ctx_test "hazır_model_kur: config.json alanları GPT'ye eşlenir; bakış bo
 TR_ctx_test "hazır_model_kur: desteklenmeyen mimari ve ayarlar açık hatadır" {
     TR_kw_var a = qwen3_ayarı()
     a.model_type = "gpt2"
-    TR_fn_assert(hata_metni(() => TR_fn_build_pretrained_model(a)).TR_mem_contains("gpt2 mimarisi desteklenmiyor"))
+    TR_fn_assert_equal(H6940, TR_fn_error_code(() => TR_fn_build_pretrained_model(a)))
     TR_kw_var b = qwen3_ayarı()
     b.attention_bias = TR_kw_true
-    TR_fn_assert(hata_metni(() => TR_fn_build_pretrained_model(b)).TR_mem_contains("sapmalı"))
+    TR_fn_assert_equal(H6941, TR_fn_error_code(() => TR_fn_build_pretrained_model(b)))
     TR_kw_var c = qwen3_ayarı()
     c.rope_parameters = {rope_type: "yarn", rope_theta: 10000.0}
-    TR_fn_assert(hata_metni(() => TR_fn_build_pretrained_model(c)).TR_mem_contains("RoPE ölçekleme"))
+    TR_fn_assert_equal(H6943, TR_fn_error_code(() => TR_fn_build_pretrained_model(c)))
     TR_kw_var d = qwen3_ayarı()
     d.use_sliding_window = TR_kw_true
-    TR_fn_assert(hata_metni(() => TR_fn_build_pretrained_model(d)).TR_mem_contains("kayan pencereli"))
+    TR_fn_assert_equal(H6944, TR_fn_error_code(() => TR_fn_build_pretrained_model(d)))
     TR_kw_var e = qwen3_ayarı()
     e.hidden_act = "gelu"
-    TR_fn_assert(hata_metni(() => TR_fn_build_pretrained_model(e)).TR_mem_contains("gelu"))
+    TR_fn_assert_equal(H6942, TR_fn_error_code(() => TR_fn_build_pretrained_model(e)))
 }
 
 TR_ctx_test "hugging_face_eşle: adlar TR parametrelerine, doğrusal katmanlar devrilerek; tanınmayan ad hatadır" {
@@ -61,7 +56,7 @@ TR_ctx_test "hugging_face_eşle: adlar TR parametrelerine, doğrusal katmanlar d
     // k ve v (gate ve up) devrilip son eksende tek katmana bitiştirilir: [K | V], [G | U].
     TR_kw_var b = TR_fn_map_hugging_face({"model.layers.1.self_attn.v_proj.weight": w * 10, "model.layers.1.self_attn.k_proj.weight": w}, {})
     TR_fn_assert_equal([[1.0, 4.0, 10.0, 40.0], [2.0, 5.0, 20.0, 50.0], [3.0, 6.0, 30.0, 60.0]], b["TR_mem_blocks.1.TR_mem_attention.TR_mem_kv_proj.TR_mem_weight"].TR_mem_tolist)
-    TR_fn_assert(hata_metni(() => TR_fn_map_hugging_face({"model.layers.0.mlp.up_proj.weight": w}, {})).TR_mem_contains("eksik"))
-    TR_fn_assert(hata_metni(() => TR_fn_map_hugging_face({"model.layers.0.mlp.gate_proj.bias": w}, {})).TR_mem_contains("tanınmayan ağırlık"))
-    TR_fn_assert(hata_metni(() => TR_fn_map_hugging_face({"vision.x": w}, {})).TR_mem_contains("tanınmayan ağırlık"))
+    TR_fn_assert_equal(H6946, TR_fn_error_code(() => TR_fn_map_hugging_face({"model.layers.0.mlp.up_proj.weight": w}, {})))
+    TR_fn_assert_equal(H6945, TR_fn_error_code(() => TR_fn_map_hugging_face({"model.layers.0.mlp.gate_proj.bias": w}, {})))
+    TR_fn_assert_equal(H6945, TR_fn_error_code(() => TR_fn_map_hugging_face({"vision.x": w}, {})))
 }

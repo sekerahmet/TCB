@@ -135,12 +135,12 @@ TR_kw_struct TR_type_CausalAttention {
     TR_kw_func TR_ctx_init(TR_arg_embed_dim, TR_arg_num_heads, TR_arg_num_kv_heads = TR_kw_none, TR_arg_use_bias = TR_kw_false, TR_arg_init_std = 0.02, TR_arg_output_init_std = 0.02, TR_arg_seed = 1, TR_arg_window = 0, TR_arg_qk_norm = TR_kw_false, TR_arg_merged_kv = TR_kw_false, TR_arg_eps = 0.00001, TR_arg_head_dim = TR_kw_none, TR_arg_weight_dtype = "float32") {
         TR_kw_if TR_arg_num_kv_heads == TR_kw_none { TR_arg_num_kv_heads = TR_arg_num_heads }
         TR_kw_if TR_arg_head_dim == TR_kw_none {
-            TR_fn_assert(TR_arg_embed_dim % TR_arg_num_heads == 0, "boyut ({TR_arg_embed_dim}) bakış sayısına ({TR_arg_num_heads}) bölünmeli")
+            TR_fn_assert(TR_arg_embed_dim % TR_arg_num_heads == 0, TR_fn_message(H6900, TR_arg_embed_dim, TR_arg_num_heads))
             TR_arg_head_dim = TR_arg_embed_dim / TR_arg_num_heads
         }
-        TR_fn_assert(TR_arg_head_dim > 0 TR_kw_and TR_arg_head_dim % 2 == 0, "bakış_boyutu ({TR_arg_head_dim}) pozitif ve çift olmalı (döner konum başı iki yarıya böler)")
-        TR_fn_assert(TR_arg_num_heads % TR_arg_num_kv_heads == 0, "bakış sayısı ({TR_arg_num_heads}) kv_bakış_sayısı ({TR_arg_num_kv_heads}) ile bölünmeli")
-        TR_fn_assert(TR_arg_window >= 0, "pencere negatif olamaz, {TR_arg_window} verildi")
+        TR_fn_assert(TR_arg_head_dim > 0 TR_kw_and TR_arg_head_dim % 2 == 0, TR_fn_message(H6901, TR_arg_head_dim))
+        TR_fn_assert(TR_arg_num_heads % TR_arg_num_kv_heads == 0, TR_fn_message(H6902, TR_arg_num_heads, TR_arg_num_kv_heads))
+        TR_fn_assert(TR_arg_window >= 0, TR_fn_message(H6903, TR_arg_window))
         TR_kw_self.TR_mem_num_heads = TR_arg_num_heads
         TR_kw_self.TR_mem_num_kv_heads = TR_arg_num_kv_heads
         TR_kw_self.TR_mem_head_dim = TR_arg_head_dim
@@ -334,7 +334,7 @@ TR_kw_struct TR_type_TransformerBlock {
         TR_kw_self.TR_mem_post_attention_norm = TR_type_RMSNorm(TR_arg_embed_dim, TR_arg_eps: TR_arg_eps)
         TR_kw_self.TR_mem_feed_forward = TR_type_SwiGLU(TR_arg_embed_dim, TR_arg_intermediate_dim: TR_arg_intermediate_dim, TR_arg_use_bias: TR_arg_ff_use_bias, TR_arg_init_std: TR_arg_init_std, TR_arg_output_init_std: TR_arg_output_init_std, TR_arg_seed: TR_arg_seed + 10, TR_arg_merged: TR_arg_merged_gate, TR_arg_weight_dtype: TR_arg_weight_dtype)
         TR_kw_if TR_arg_ple_dim != TR_kw_none {
-            TR_fn_assert(TR_arg_vocab_size != TR_kw_none, "TransformerBloğu: ple_boyutu için dağarcık da verilmeli")
+            TR_fn_assert(TR_arg_vocab_size != TR_kw_none, TR_fn_message(H6904))
             TR_kw_self.TR_mem_ple = TR_type_PLEBlock(TR_arg_embed_dim, TR_arg_vocab_size, TR_arg_ple_dim, TR_arg_eps: TR_arg_eps, TR_arg_init_std: TR_arg_init_std, TR_arg_output_init_std: TR_arg_output_init_std, TR_arg_seed: TR_arg_seed + 20, TR_arg_weight_dtype: TR_arg_weight_dtype)
         } TR_kw_else {
             TR_kw_self.TR_mem_ple = TR_kw_none
@@ -356,7 +356,7 @@ TR_kw_func TR_fn_layer_windows(TR_arg_layout, TR_arg_windows) {
     TR_kw_var liste = []
     TR_kw_var y = 0
     TR_kw_for harf TR_kw_in TR_arg_layout {
-        TR_fn_assert(harf == "Y" TR_kw_or harf == "G", "katman düzeni yalnızca Y ve G içerir, {harf} bulundu")
+        TR_fn_assert(harf == "Y" TR_kw_or harf == "G", TR_fn_message(H6905, harf))
         TR_kw_if harf == "G" {
             liste.TR_mem_append(0)
         } TR_kw_else {
@@ -393,8 +393,8 @@ TR_kw_struct TR_type_KVCache {
     TR_mem_positions
     TR_mem_masks
     TR_kw_func TR_ctx_init(TR_arg_num_layers, TR_arg_kind = "sabit", TR_arg_capacity = 0) {
-        TR_fn_assert(TR_arg_kind == "sabit" TR_kw_or TR_arg_kind == "büyüyen", "önbellek çeşidi \"sabit\" ya da \"büyüyen\" olmalı, {TR_arg_kind} verildi")
-        TR_fn_assert(TR_arg_kind != "sabit" TR_kw_or TR_arg_capacity > 0, "sabit önbellek en_çok > 0 ister")
+        TR_fn_assert(TR_arg_kind == "sabit" TR_kw_or TR_arg_kind == "büyüyen", TR_fn_message(H6906, TR_arg_kind))
+        TR_fn_assert(TR_arg_kind != "sabit" TR_kw_or TR_arg_capacity > 0, TR_fn_message(H6907, TR_arg_capacity))
         TR_kw_self.TR_mem_kind = TR_arg_kind
         TR_kw_self.TR_mem_capacity = TR_arg_capacity
         TR_kw_self.TR_mem_position = 0
@@ -406,7 +406,7 @@ TR_kw_struct TR_type_KVCache {
     }
     // cihaz_adımı: sonraki ekle'ler konumu (cihazdaki [1] tensörü; yok: konak konumu) kullanır.
     TR_kw_func TR_mem_device_step(TR_arg_position) {
-        TR_fn_assert(TR_arg_position == TR_kw_none TR_kw_or TR_kw_self.TR_mem_kind == "sabit", "cihaz adımı yalnızca sabit önbellekte")
+        TR_fn_assert(TR_arg_position == TR_kw_none TR_kw_or TR_kw_self.TR_mem_kind == "sabit", TR_fn_message(H6908))
         TR_kw_self.TR_mem_step_position = TR_arg_position
         TR_kw_self.TR_mem_masks = {}
     }
@@ -426,7 +426,7 @@ TR_kw_struct TR_type_KVCache {
     TR_kw_func TR_mem_append(TR_arg_layer_idx, TR_arg_k, TR_arg_v) {
         TR_kw_var son = TR_kw_self.TR_mem_position + TR_arg_k.TR_mem_shape[1]
         TR_kw_if TR_kw_self.TR_mem_kind == "sabit" TR_kw_and TR_kw_self.TR_mem_step_position == TR_kw_none {
-            TR_fn_assert(son <= TR_kw_self.TR_mem_capacity, "sabit önbellek dolu: {son} konum, en çok {TR_kw_self.TR_mem_capacity}")
+            TR_kw_if son > TR_kw_self.TR_mem_capacity { TR_kw_throw TR_fn_message(H6909, son, TR_kw_self.TR_mem_capacity) }
             TR_kw_if TR_kw_self.TR_mem_k_buffers[TR_arg_layer_idx] == TR_kw_none TR_kw_and TR_kw_self.TR_mem_positions == TR_kw_none {
                 TR_kw_self.TR_mem_positions = TR_fn_tensor([i * 1.0 TR_kw_for i TR_kw_in 0..TR_kw_self.TR_mem_capacity]).TR_mem_to_device(TR_arg_k.TR_mem_device)
             }
@@ -459,7 +459,7 @@ TR_kw_struct TR_type_KVCache {
     TR_kw_func TR_mem_advance(TR_arg_T) { TR_kw_self.TR_mem_position = TR_kw_self.TR_mem_position + TR_arg_T }
     // kırp: önbelleği ilk n parçaya indirir (n ≤ konum).
     TR_kw_func TR_mem_truncate(TR_arg_n) {
-        TR_fn_assert(TR_arg_n >= 0 TR_kw_and TR_arg_n <= TR_kw_self.TR_mem_position, "kırp: 0 ile {TR_kw_self.TR_mem_position} arasında olmalı, {TR_arg_n} verildi")
+        TR_fn_assert(TR_arg_n >= 0 TR_kw_and TR_arg_n <= TR_kw_self.TR_mem_position, TR_fn_message(H6910, TR_kw_self.TR_mem_position, TR_arg_n))
         TR_kw_self.TR_mem_position = TR_arg_n
     }
 }
@@ -502,7 +502,7 @@ TR_kw_struct TR_type_GPT {
             pencereler: TR_arg_windows, qk_normu: TR_arg_qk_norm, birleşik_kv: TR_arg_merged_kv, birleşik_kapı: TR_arg_merged_gate,
             ileri_sapmalı: TR_arg_ff_use_bias, TR_mem_eps: TR_arg_eps, TR_mem_ple_dim: TR_arg_ple_dim, rope_tabanı: TR_arg_rope_theta, ağırlık_türü: TR_arg_weight_dtype}
         TR_kw_if TR_arg_windows != TR_kw_none {
-            TR_fn_assert(TR_arg_windows.TR_mem_length == TR_arg_num_layers, "pencereler ({TR_arg_windows.TR_mem_length} eleman) katman sayısına ({TR_arg_num_layers}) eşit olmalı")
+            TR_fn_assert(TR_arg_windows.TR_mem_length == TR_arg_num_layers, TR_fn_message(H6911, TR_arg_windows.TR_mem_length, TR_arg_num_layers))
         }
         TR_kw_var std = 0.02
         TR_kw_var çıkış_std = std / TR_fn_sqrt(2 * TR_arg_num_layers)
@@ -546,7 +546,7 @@ TR_kw_struct TR_type_GPT {
         TR_kw_var T = x.TR_mem_shape[1]
         TR_kw_if TR_arg_cache != TR_kw_none {
             TR_kw_var baş = TR_arg_cache.TR_mem_position
-            TR_fn_assert(baş + T <= TR_kw_self.TR_mem_config.bağlam, "önbellekli ileri: {baş + T} konum bağlamı ({TR_kw_self.TR_mem_config.bağlam}) aşıyor")
+            TR_fn_assert(baş + T <= TR_kw_self.TR_mem_config.bağlam, TR_fn_message(H6912, baş + T, TR_kw_self.TR_mem_config.bağlam))
             cos_tablosu = cos_tablosu.TR_mem_slice(0, baş, baş + T)
             sin_tablosu = sin_tablosu.TR_mem_slice(0, baş, baş + T)
         }
