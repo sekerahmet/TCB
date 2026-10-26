@@ -168,6 +168,11 @@ func (ix *index) callersOf(id string) []string {
 			out = append(out, e.From)
 		}
 	}
+	for _, e := range ix.out[id] {
+		if v, ok := initReader(e.Kind, e.From, e.To); ok {
+			out = append(out, v)
+		}
+	}
 	sort.Strings(out)
 	return out
 }
@@ -522,6 +527,12 @@ func (ix *index) testDistances(n *Node) map[string]int {
 func (ix *index) printGoFileTests(w io.Writer, file *Node, limit int) {
 	ts := ix.fileDecls(file)
 	fmt.Fprintf(w, "  declarations in this file: %d\n", len(ts.nodes))
+	if sibling := ix.byID[fileID(strings.TrimSuffix(file.File, ".go")+"_test.go")]; !isTestFile(file.File) && sibling != nil {
+		// Adaş test dosyasının (aynı ya da dış `_test` paketteki x_test.go) testleri dosyanın testleridir: ilk grupta.
+		for _, t := range ownTests(ix.fileDecls(sibling)) {
+			ts.nodes[t.ID] = t
+		}
+	}
 	ix.printTestsToRun(w, ts, limit, "the declarations in this file", "this file's tests")
 	ix.printScans(w, file.File, limit)
 	tests := map[string]bool{}

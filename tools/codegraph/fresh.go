@@ -15,10 +15,10 @@ import (
 )
 
 // stampExts içeriği imzaya giren dosya uzantılarıdır: grafiğin içini okuduğu kaynak türleri (Go, ad ve ileti sözlükleri,
-// belgeler, TR kaynakları, yüklemeleri okunan JavaScript). go.mod da girer: modül yolu düğüm kimliklerinin parçasıdır.
+// belgeler, TR kaynakları, yüklemeleri okunan JavaScript, ortam değişkenleri okunan betikler). go.mod da girer: modül yolu düğüm kimliklerinin parçasıdır.
 // Öbür izlenen dosyaların yalnızca varlığı girer (dosya düğümü). Kural: TestStampCoversEverySourceTheGraphReads
 // (grafikteki her düğümün ve kenarın okunduğu dosya imzaya girer).
-var stampExts = map[string]bool{".go": true, ".json": true, ".md": true, ".tr": true, ".js": true, ".mjs": true, ".cjs": true}
+var stampExts = map[string]bool{".go": true, ".json": true, ".md": true, ".tr": true, ".js": true, ".mjs": true, ".cjs": true, ".sh": true, ".py": true}
 
 // stamped dosyanın içeriği imzaya girer mi.
 func stamped(p string) bool {

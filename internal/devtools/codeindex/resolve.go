@@ -7,6 +7,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 )
 
 // owner bir başvurunun çıkış düğümüdür (başvuruyu içeren bildirim, test ya da modül).
@@ -189,9 +190,23 @@ func (x *indexer) scan(f *file, o owner, root any) {
 			x.member(f, o, sc, n)
 		case *ast.Identifier:
 			x.ident(f, o, sc, n)
+		case *ast.StringLiteral:
+			if n.Token.Type == lexer.TokMessageCode {
+				x.message(f, o, n)
+			}
 		}
 		return true
 	})
+}
+
+// message kaynakta yazılan ileti kodunun (`ileti(H6932, x)`, `hata_kodu(h) == H6932`) düğümüne bir kullanım bağı
+// ekler. Düğüm kodun kendisidir, dosyası yoktur; metni ileti kataloğundadır.
+func (x *indexer) message(f *file, o owner, s *ast.StringLiteral) {
+	id := NodeID(KindMessage, "", s.Value)
+	if x.nodes[id] == nil {
+		x.nodes[id] = &Node{ID: id, Kind: KindMessage, Name: s.Value}
+	}
+	x.link(o, id, EdgeUses, Extracted, RoleRead, tokenPos(f, s.Token.Line, s.Token.Column, s.Value))
 }
 
 func (x *indexer) call(f *file, o owner, sc *scope, c *ast.CallExpression) {
@@ -226,7 +241,7 @@ func (x *indexer) ident(f *file, o owner, sc *scope, id *ast.Identifier) {
 	if sc.bindings[id] || sc.handled[id] || sc.locals[id.Value] {
 		return
 	}
-	if def, ok := f.visible[id.Value]; ok {
+	if def, ok := x.lookupVisible(f, id.Value); ok {
 		x.useDef(o, def, sc.called[id], sc.writes[id], pos)
 		return
 	}
@@ -333,47 +348,42 @@ func (x *indexer) member(f *file, o owner, sc *scope, m *ast.MemberExpression) {
 	}
 }
 
-// methodCandidates aynı adlı, dosyada görünen TR metotlarıdır (en çok 4: fazlası tahmin değildir).
+// methodCandidates aynı adlı, dosyada görünen TR metotlarıdır (en çok 4: fazlası tahmin değildir). Görünen dosyalar
+// f'den başlayıp aktarmaları (takma adlı ve iç olanlar dahil) genişlikçe gezilerek bulunur; beşinci aday görülünce ya da
+// projede o adda metot yoksa gezinti durur: zincir aktarımlı projede her erişim bütün kapanışı geziyordu.
 func (x *indexer) methodCandidates(f *file, name string) []string {
+	if x.methodNames == nil {
+		x.methodNames = map[string]bool{}
+		for _, g := range x.files {
+			for n := range g.methods {
+				x.methodNames[n] = true
+			}
+		}
+	}
+	if !x.methodNames[name] {
+		return nil
+	}
 	var ids []string
 	seen := map[string]bool{}
-	for _, g := range x.visibleFiles(f) {
-		for _, id := range g.methods[name] {
+	queue, visited := []*file{f}, map[string]bool{f.rel: true}
+	for i := 0; i < len(queue); i++ {
+		for _, id := range queue[i].methods[name] {
 			if !seen[id] {
 				seen[id] = true
-				ids = append(ids, id)
+				if ids = append(ids, id); len(ids) > 4 {
+					return nil
+				}
+			}
+		}
+		for _, imp := range queue[i].imports {
+			if g := x.files[imp.file]; g != nil && !visited[imp.file] {
+				visited[imp.file] = true
+				queue = append(queue, g)
 			}
 		}
 	}
 	sort.Strings(ids)
-	if len(ids) > 4 {
-		return nil
-	}
 	return ids
-}
-
-// visibleFiles f ve onun (takma adlı olanlar dahil) aktardığı dosyalardır; dosya başına bir kez hesaplanır (her üye
-// erişiminde yeniden gezmek ad-yalnız başvuru yokken de kurulumu doğrusalın üstüne çıkarıyordu: oran 5,6). Zincir
-// aktarımlı projede toplam iş yine Σ görünür(f)'dir (zaman; yer değil, liste dizine yazılmaz).
-func (x *indexer) visibleFiles(f *file) []*file {
-	if v, ok := x.visible[f.rel]; ok {
-		return v
-	}
-	if x.visible == nil {
-		x.visible = map[string][]*file{}
-	}
-	out := []*file{f}
-	seen := map[string]bool{f.rel: true}
-	for i := 0; i < len(out); i++ {
-		for _, imp := range out[i].imports {
-			if g := x.files[imp.file]; g != nil && !seen[imp.file] {
-				seen[imp.file] = true
-				out = append(out, g)
-			}
-		}
-	}
-	x.visible[f.rel] = out
-	return out
 }
 
 // builtin bir ad kodunun yerleşik düğümünü (gerekirse ekleyerek) verir: global yerleşik, üye (Y) ve adlı argüman

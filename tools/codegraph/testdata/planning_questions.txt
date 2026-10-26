@@ -202,7 +202,7 @@ codegraph tests-for tools/edithook/codegraph.go | contains: edithook.TestABroken
 codegraph who-uses edithook.codegraph | contains: edithook.testsFor | contains: edithook.runCodegraph | src: K2 partisi D, 2026-10-26 (kanca ve ön denetim codegraph'ı aynı yoldan koşar)
 codegraph tests-for lib/hazir.tr | contains: e2e.TestReadyModelMatchesTransformers | first-item: e2e.TestReadyModelMatchesTransformers | contains: hazir_test: | src: K2 partisi K, 2026-10-26 (kitaplığı test dizesindeki aktarmayla koşan test; gömülü kitaplığı okuyanlar sonda)
 codegraph tests-for --all lib/katman.tr | contains: e2e.TestGPTTrainingScriptSmoke | contains: e2e.TestLibraryModuleCheckAndBuild | contains: e2e.TestReadyModelMatchesTransformers | contains: katman_test: | src: K2 partisi K, 2026-10-26 (aktarma test erişiminde bağımlılık: betik, aktaran modül, test dosyası)
-codegraph tests-for internal/lang/interp/stats.go | contains: interp.TestStatsNameTheBadValueByItsPlace [func] @{internal/lang/interp/stats_test.go#func TestStatsNameTheBadValueByItsPlace(}  direct | src: K2 partisi A, 2026-10-26 (aynı paketin testi dosyanın uyguladığı yerleşiği tablodaki TR koduyla koşuyor; eskiden 40. sırada 2 adım)
+codegraph tests-for internal/lang/interp/stats.go | group: this file's tests => interp.TestStatsNameTheBadValueByItsPlace [func] @{internal/lang/interp/stats_test.go#func TestStatsNameTheBadValueByItsPlace(} | src: K2 partisi A, 2026-10-26 (aynı paketin testi dosyanın uyguladığı yerleşiği tablodaki TR koduyla koşuyor; eskiden 40. sırada 2 adım); gaps2 2026-10-27 (adaş test dosyasının testleri ilk grupta)
 codegraph tests-for cmd/tr/main.go | not: tipler_test: | not: yerlesikler_test: | not: tensor_test: | src: K2 partisi C, 2026-10-26 (yazdır'ın yazımlarını okuyan startsWithPrint yazdır'ı uygulamaz; TR testleri main.go'nun testi değil)
 codegraph who-uses --all TR_fn_print | group: reads_name => tr.startsWithPrint | src: K2 partisi C, 2026-10-26 (adını okuyan, uygulayandan ayrı)
 codegraph who-uses interp.memberKeys | before: <- calls => <- implemented_by | contains: via MemberExpression | not: [tr_func] | src: K2 partisi B, 2026-10-26 (yapı köprüsü yapının adıyla tek satır; Go çağıranı önde)
@@ -219,3 +219,7 @@ codegraph query Linear | contains: katman.TR_type_Linear | src: kitaplık partis
 codegraph query Doğrusal | contains: katman.TR_type_Linear [tr_struct] | src: kimlik okuması, 2026-10-26 (Türkçe adla sorulan kitaplık bildirimi)
 codegraph query katman.Linear.forward | contains: katman.TR_type_Linear.TR_mem_forward [tr_method] | src: kimlik okuması, 2026-10-26 (nitelenmiş adın İngilizce yazımı takma addır)
 tr dizin tanım katman.TR_type_Linear.TR_mem_forward | contains: katman.Doğrusal.ileri | src: kimlik okuması, 2026-10-26 (kimlikle sorulan, okuyanın dilinde yazılır)
+
+# Gerçek kullanım denemesi bulguları (2026-10-26)
+codegraph tests-for tools/gen/snippets/data.json | group: <- tests ( => snippets.TestSnippetsUpToDate | group: <- tests ( => snippets.TestSnippetsParseInEveryLanguage | src: gerçek kullanım denemesi, 2026-10-26 (init()'in doldurduğu değişkeni okuyan testler)
+codegraph query TR_cmd_encode | group: registered or used in Go => -> tr.encodeCommand [ | not: tr.debugCommand | src: gerçek kullanım denemesi, 2026-10-26 (anahtar-değer çiftinin değeri, satırdaki öbürleri değil)

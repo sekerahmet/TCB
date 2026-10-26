@@ -95,6 +95,7 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 			x.fieldAccess(fc, owner, n, modes[n], enclosingClosure(stack, closures))
 		case *ast.CompositeLit:
 			x.literalFields(fc, owner, n, enclosingClosure(stack, closures))
+			x.keyedImplementations(fc, owner, n)
 			x.pathList(fc, owner, n)
 			x.noteTextCompare(fc, owner, n)
 		case *ast.CaseClause:
@@ -144,6 +145,31 @@ func (x *goExtractor) literalFields(fc *fileCtx, owner string, lit *ast.Composit
 		if v, ok := fc.u.Info.Uses[key].(*types.Var); ok && v.IsField() {
 			x.fieldUses = append(x.fieldUses, rawFieldUse{posKey: x.posKey(v.Pos()), owner: owner,
 				site: Site{File: fc.rel, Line: x.line(key.Pos()), Mode: modeLiteral, Closure: closure}})
+		}
+	}
+}
+
+// keyedImplementations bileşik değerde ad kodunu anahtar, işlevi değer alan çiftin (`codes.CmdEncode: encodeCommand`)
+// işleve giden kenarına kodu yazar (Edge.Via): kodun uygulaması o çiftin değeridir, aynı satırdaki öbür çiftlerinki değil
+// (implementationsAt). Kenar işlevin değer olarak kullanımıdır (calls, INFERRED; use ile aynı kenar).
+func (x *goExtractor) keyedImplementations(fc *fileCtx, owner string, lit *ast.CompositeLit) {
+	for _, e := range lit.Elts {
+		kv, ok := e.(*ast.KeyValueExpr)
+		if !ok {
+			continue
+		}
+		key, value := nameIdent(kv.Key), nameIdent(kv.Value)
+		if key == nil || value == nil {
+			continue
+		}
+		c, isConst := fc.u.Info.Uses[key].(*types.Const)
+		fn, isFunc := fc.u.Info.Uses[value].(*types.Func)
+		if !isConst || !isFunc || c.Pkg() == nil || c.Pkg().Path() != x.m.Path+"/"+codesDir || x.codeKeys[c.Name()] == "" {
+			continue
+		}
+		if ref := x.objectID(fn); ref != "" {
+			x.b.addEdge(owner, ref, edgeCalls, inferred, fc.rel, x.line(value.Pos()))
+			x.b.edges[edgeKey{owner, ref, edgeCalls}].Via = "name:" + x.codeKeys[c.Name()]
 		}
 	}
 }
@@ -216,6 +242,49 @@ func (x *goExtractor) noteNameReads(fc *fileCtx, c *ast.CallExpr) {
 	}
 }
 
+// nameUse bir ad kodunun kullanımıdır: codes paketinin bir işlevine argümansa adını okur (`reads_name`), değilse kodu
+// kullanır (`uses_name`).
+func (x *goExtractor) nameUse(owner, key string, id *ast.Ident, file string, line int) {
+	kind := edgeUsesName
+	if x.nameReads[id] {
+		kind = edgeReadsName
+	}
+	x.b.addEdge(owner, "name:"+key, kind, extracted, file, line)
+}
+
+// codeAliasKeys modülde bir ad kodu sabitine eşitlenmiş sabitleri bulur: değeri yalnızca `codes.X` olan sabit bildirimi.
+func (x *goExtractor) codeAliasKeys() map[string]string {
+	out := map[string]string{}
+	codesPkg := x.m.Path + "/" + codesDir
+	for _, u := range x.m.Units {
+		if u.PkgPath == codesPkg {
+			continue
+		}
+		for _, f := range u.Files {
+			for _, d := range f.Decls {
+				gd, ok := d.(*ast.GenDecl)
+				if !ok || gd.Tok != token.CONST {
+					continue
+				}
+				for _, spec := range gd.Specs {
+					vs := spec.(*ast.ValueSpec)
+					for i, name := range vs.Names {
+						if i >= len(vs.Values) {
+							break
+						}
+						if sel, ok := vs.Values[i].(*ast.SelectorExpr); ok {
+							if c, ok := u.Info.Uses[sel.Sel].(*types.Const); ok && c.Pkg().Path() == codesPkg && x.codeKeys[c.Name()] != "" {
+								out[strings.TrimSuffix(u.PkgPath, "_test")+"."+name.Name] = x.codeKeys[c.Name()]
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return out
+}
+
 func (x *goExtractor) use(fc *fileCtx, owner string, id *ast.Ident, isCall bool, writes map[*ast.Ident]writeTarget, closure string) {
 	obj := fc.u.Info.Uses[id]
 	ref := x.objectID(obj)
@@ -236,18 +305,18 @@ func (x *goExtractor) use(fc *fileCtx, owner string, id *ast.Ident, isCall bool,
 		return
 	}
 	if c, isConst := obj.(*types.Const); isConst {
-		// Kodun kendi paketindeki (test dışı) kullanım tanım tablolarıdır; kullanım sayılmaz.
-		samePkg := c.Pkg().Path() == fc.base && !fc.isTest
+		alias := x.codeAliases[c.Pkg().Path()+"."+c.Name()]
+		// Ad kodunun kendi paketindeki (test dışı) kullanım tanım tablolarıdır; kullanım sayılmaz. İleti paketi sabitleri
+		// yalnız üretilen dosyada tanımlar; paketin içindeki kullanım (konumlu hata H2004, iç hata H9000) iletiyi üretir.
+		samePkg := c.Pkg().Path() == fc.base && !fc.isTest && fc.base != x.m.Path+"/"+messagesDir
 		switch {
+		case alias != "": // takma sabit kodun kendisidir, tanımlandığı pakette de
+			x.nameUse(owner, alias, id, fc.rel, line)
 		case samePkg:
 		case c.Pkg().Path() == x.m.Path+"/"+messagesDir && messageConst.MatchString(c.Name()):
 			x.b.addEdge(owner, "msg:"+c.Name(), edgeUsesMessage, extracted, fc.rel, line)
 		case c.Pkg().Path() == x.m.Path+"/"+codesDir && x.codeKeys[c.Name()] != "":
-			kind := edgeUsesName
-			if x.nameReads[id] {
-				kind = edgeReadsName
-			}
-			x.b.addEdge(owner, "name:"+x.codeKeys[c.Name()], kind, extracted, fc.rel, line)
+			x.nameUse(owner, x.codeKeys[c.Name()], id, fc.rel, line)
 		}
 	}
 	if ref != owner { // bir türün kendi adına başvurusu (özyineli alan) kullanım değildir

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"go/ast"
+	"go/types"
 	"strings"
 	"testing"
 
@@ -379,5 +381,85 @@ func TestRootRelativePathsLinkFromTheRootOnly(t *testing.T) {
 			e.From == app+"TestDocs" && e.To == "doc:SECURITY.md" {
 			t.Errorf("a bare name links from the root, and a list of bare names is a fixture: %+v", e)
 		}
+	}
+}
+
+// Kural: init() gömülü bir dosyayı okuyup bir paket değişkenine yazıyorsa (tools/gen/snippets: data.json → templates), o
+// değişkeni kullanan her test o dosyanın testidir (inits_var zincire ters yönde girer, initReader). Değişkenler ve onları
+// kullanan testler go/types'tan bulunur, grafiğe bakılmadan; grafikte her birinden dosyaya bir tests kenarı olmalı.
+func TestEveryVariableAnInitFillsFromAnEmbeddedFileLinksItsReaders(t *testing.T) {
+	_, m, g := repoGraph(t)
+	embedded := map[string][]string{} // gömülü değişken -> dosya düğümleri
+	for _, e := range g.Edges {
+		if e.Kind == edgeEmbeds {
+			embedded[e.From] = append(embedded[e.From], e.To)
+		}
+	}
+	varID := func(o types.Object) string {
+		if v, ok := o.(*types.Var); ok && v.Pkg() != nil && v.Parent() == v.Pkg().Scope() {
+			return valueID(kindVar, v.Pkg().Path(), v.Name())
+		}
+		return ""
+	}
+	filled := map[string][]string{} // init'in yazdığı değişken -> okuduğu gömülü değişkenlerin dosyaları
+	for _, u := range m.Units {
+		for _, f := range u.Files {
+			for _, d := range f.Decls {
+				fd, ok := d.(*ast.FuncDecl)
+				if !ok || fd.Name.Name != "init" || fd.Recv != nil || fd.Body == nil {
+					continue
+				}
+				var files, written []string
+				ast.Inspect(fd.Body, func(n ast.Node) bool {
+					switch n := n.(type) {
+					case *ast.Ident:
+						files = append(files, embedded[varID(u.Info.Uses[n])]...)
+					case *ast.AssignStmt:
+						for _, l := range n.Lhs {
+							if ix, ok := l.(*ast.IndexExpr); ok {
+								l = ix.X
+							}
+							if id, ok := l.(*ast.Ident); ok {
+								if v := varID(u.Info.Uses[id]); v != "" {
+									written = append(written, v)
+								}
+							}
+						}
+					}
+					return true
+				})
+				for _, w := range written {
+					if _, isEmbed := embedded[w]; !isEmbed && len(files) > 0 {
+						filled[w] = append(filled[w], files...)
+					}
+				}
+			}
+		}
+	}
+	checked := 0
+	for _, u := range m.Units {
+		for _, f := range u.Files {
+			for _, d := range f.Decls {
+				fd, ok := d.(*ast.FuncDecl)
+				if !ok || fd.Recv != nil || !strings.HasPrefix(fd.Name.Name, "Test") || fd.Body == nil {
+					continue
+				}
+				test := memberID(u.Info.Defs[fd.Name].Pkg().Path(), "", fd.Name.Name)
+				ast.Inspect(fd.Body, func(n ast.Node) bool {
+					if id, ok := n.(*ast.Ident); ok {
+						for _, file := range filled[varID(u.Info.Uses[id])] {
+							checked++
+							if edge(g, test, file, edgeTests) == nil {
+								t.Errorf("%s reads %s, which an init() fills from %s, but is not that file's test", test, id.Name, file)
+							}
+						}
+					}
+					return true
+				})
+			}
+		}
+	}
+	if checked == 0 {
+		t.Fatal("no test reads a variable an init() fills from an embedded file: the scan no longer sees them")
 	}
 }

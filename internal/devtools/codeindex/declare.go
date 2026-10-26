@@ -232,6 +232,46 @@ func (f *file) importPos(s *ast.ImportStatement) Pos {
 	return pos
 }
 
+// lookupVisible bir adın dosyada görünen bildirimidir: önce dosyanın kendi tanımları, sonra takma adsız aktarılan
+// modüllerinki, dolaylı olanlar dahil; aktarma sırasıyla, derinlik önce (bir modülün tanımları onun aktardıklarından
+// önce gelir), ilk bulunan kazanır; iç aktarma (blokta, takma adsız) adları görünür kılmaz. Projede hiçbir dosyanın
+// bildirmediği ad (yerleşikler, yerel adlar) aranmadan düşer; böylece arama bulunan ada kadar sürer.
+func (x *indexer) lookupVisible(f *file, name string) (string, bool) {
+	if id, ok := f.defs[name]; ok {
+		return id, true
+	}
+	if x.declared == nil {
+		x.declared = map[string]bool{}
+		for _, g := range x.files {
+			for n := range g.defs {
+				x.declared[n] = true
+			}
+		}
+	}
+	if !x.declared[name] {
+		return "", false
+	}
+	seen := map[string]bool{f.rel: true}
+	var walk func(g *file) (string, bool)
+	walk = func(g *file) (string, bool) {
+		for _, imp := range g.imports {
+			target := x.files[imp.file]
+			if target == nil || imp.alias != "" || imp.nested || seen[imp.file] {
+				continue
+			}
+			seen[imp.file] = true
+			if id, ok := target.defs[name]; ok {
+				return id, true
+			}
+			if id, ok := walk(target); ok {
+				return id, true
+			}
+		}
+		return "", false
+	}
+	return walk(f)
+}
+
 // importTarget bir `aktar` yolunu dosyaya çevirir: "tr/ad" → lib/ad.tr, öbürleri içe aktaran
 // dosyanın klasörüne göre (".tr" uzantısı isteğe bağlıdır). Bulunamazsa "".
 func (x *indexer) importTarget(f *file, p string) string {
@@ -250,44 +290,16 @@ func (x *indexer) importTarget(f *file, p string) string {
 	return ""
 }
 
-// resolveImports bir dosyada görünen adları kurar: kendi tanımları, takma adsız aktarılan
-// modüllerin (dolaylı olanlar dahil) tanımları ve `olarak` ile verilen takma adlar.
+// resolveImports dosyanın `olarak` ile verilen takma adlarını kurar ve aktarma kenarlarını çeker. Görünen adlar dosya
+// başına kopyalanmaz, sorulunca aranır (lookupVisible): zincir aktarımlı projede her dosya öncekilerin hepsini görür ve
+// kopya toplamda modül sayısının karesiyle büyüyordu (TestBuildScalesLinearly, CI'da oran 9-10).
 func (x *indexer) resolveImports(f *file) {
-	f.visible = map[string]string{}
-	for name, id := range f.defs {
-		f.visible[name] = id
-	}
-	seen := map[string]bool{f.rel: true}
-	var merge func(g *file)
-	merge = func(g *file) {
-		for _, imp := range g.imports {
-			target := x.files[imp.file]
-			if target == nil {
-				continue
-			}
-			// Takma adlı aktarma, aynı dosya takma adsız da aktarılmış olsa tanınır.
-			if imp.nested && imp.alias == "" {
-				continue // iç aktarma adları görünür kılmaz
-			}
-			if imp.alias != "" {
-				if g == f {
-					f.aliases[imp.alias] = target
-				}
-				continue
-			}
-			if seen[imp.file] {
-				continue
-			}
-			seen[imp.file] = true
-			for name, id := range target.defs {
-				if _, taken := f.visible[name]; !taken {
-					f.visible[name] = id
-				}
-			}
-			merge(target)
+	for _, imp := range f.imports {
+		// Takma adlı aktarma, aynı dosya takma adsız da aktarılmış olsa tanınır.
+		if target := x.files[imp.file]; target != nil && imp.alias != "" {
+			f.aliases[imp.alias] = target
 		}
 	}
-	merge(f)
 	mod := NodeID(KindModule, f.rel, "")
 	for _, imp := range f.imports {
 		if imp.file == "" {

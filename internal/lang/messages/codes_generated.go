@@ -1641,7 +1641,7 @@ const (
 	H8788 Code = 8788 // modül dışındaki kullananlar ({count}{roles}):
 	H8789 Code = 8789 // etkilenen testler ({count}):
 	H8790 Code = 8790 // ({steps} adım)
-	H8791 Code = 8791 // daha fazlası var ({limit} ya da {all} ile artırın)
+	H8791 Code = 8791 // {count} satır daha var ({limit} ya da {all} ile artırın)
 	H8792 Code = 8792 // kullanan yok
 	H8793 Code = 8793 // sınayan yok
 	H8800 Code = 8800 // işlev
@@ -1707,5 +1707,10 @@ const (
 	H8867 Code = 8867 // bağlı bildirimler ({count}; aynı adla iletilen ya da aynı adlı alana atanan; birlikte değiştirilmesi önerilir):
 	H8868 Code = 8868 // sözlük anahtarı
 	H8869 Code = 8869 // veri biçimi; kendiliğinden değişmez
+	H8870 Code = 8870 // (yok sayılan klasör)
+	H8871 Code = 8871 // {code} bir koddur: adı dil dosyasında değişir, kodlu dosyalar kimliği taşır ve olduğu gibi kalır; yeni ad baş geliştiricinin onayıyla eklenir
+	H8872 Code = 8872 // dil dosyasındaki ad
+	H8873 Code = 8873 // ileti kodu
+	H8874 Code = 8874 // yeniden adlandırılamaz: ileti kodu (kod değişmez, metni ileti kataloğundadır)
 	H9000 Code = 9000 // TR'de bir iç hata oluştu (bu sizin programınızın değil, TR'nin hatası); lütfen bildirin: {detail}
 )

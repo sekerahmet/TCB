@@ -23,7 +23,7 @@ const Schema = "tr-codeindex/2"
 
 // IndexVersion dizinin kaynaktan türettiği içerik değişince artar (yeni düğüm türü, farklı
 // çözümleme). Başka sürümün önbelleği hiçbir zaman kullanılmaz.
-const IndexVersion = 21
+const IndexVersion = 22
 
 // Kind bir düğümün türüdür; değerler JSON'a yazılan değişmez tanımlayıcılardır.
 type Kind string
@@ -40,6 +40,7 @@ const (
 	KindBuiltin   Kind = "builtin"    // yerleşik ad (ad kodu: global işlev, üye ya da adlı argüman)
 	KindParameter Kind = "parameter"  // işlev ya da metot parametresi
 	KindOption    Kind = "option"     // komut_satırı sözlüğünün anahtarı (komut satırı seçeneği)
+	KindMessage   Kind = "message"    // ileti kodu (H6932): kaynakta yazılan kod, metni ileti kataloğunda
 )
 
 // EdgeKind iki düğüm arasındaki bağın türüdür.
@@ -120,6 +121,9 @@ type Node struct {
 	Imports []Import `json:"imports,omitempty"`
 	// Doc bildirimin üstündeki yorum satırlarıdır.
 	Doc string `json:"doc,omitempty"`
+	// Ignored düğüm git'in yok saydığı bir dosyadadır (Index.Ignored): yalnız sonuçta (Reader.display), cevap onu
+	// depodakilerden sonra verir ve işaretler.
+	Ignored bool `json:"ignored,omitempty"`
 	// InferredType çıkarılan yapı türüdür (yapı düğümünün kimliği; infer.go): işlev ve metotta dönüş türü, üst düzey
 	// değişken ve sabitte değerin türü. Bilinmezse boş.
 	InferredType string `json:"inferred_type,omitempty"`
@@ -193,6 +197,9 @@ type Index struct {
 	Constructs []Construct `json:"constructs,omitempty"`
 	// MemberGuesses alıcısı bilinmeyen üye erişimleridir, kullanım yeri başına bir kez (MemberGuess).
 	MemberGuesses []MemberGuess `json:"member_guesses,omitempty"`
+	// Ignored dizine girmiş ama git'in yok saydığı dosyalardır (.gitignore'daki scratch/): kişinin denemeleri dizindedir,
+	// cevapta depodakilerden sonra gelir ve işaretlenir (Reader). Her kurulumda git'e sorulur (markIgnored).
+	Ignored []string `json:"ignored,omitempty"`
 }
 
 // MemberGuess alıcısı bilinmeyen bir üye erişimidir (`p.ileri()`, `p.ağırlık = 2`). Hangi üyelere "olası" diye
@@ -226,7 +233,7 @@ type Unresolved struct {
 // biçiminde birleşir; yerleşiğin dosyası yoktur ("builtin:TR_fn_time_ms"), modülün adı yoktur.
 func NodeID(kind Kind, file, name string) string {
 	switch kind {
-	case KindBuiltin:
+	case KindBuiltin, KindMessage:
 		return string(kind) + ":" + name
 	case KindModule:
 		return string(kind) + ":" + file

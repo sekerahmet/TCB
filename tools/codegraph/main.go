@@ -155,6 +155,7 @@ func buildGraphFrom(root string, m *module) *Graph {
 	extractMarkdown(root, b, idx)
 	extractSpecRefs(root, b)
 	extractDataFiles(root, b)
+	extractScriptEnv(root, b)
 	extractJSLoads(root, b)
 	reach := newTestReach(b, idx)
 	linkTestPaths(b, idx, reach)

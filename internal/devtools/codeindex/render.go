@@ -13,7 +13,7 @@ import (
 var kindLabels = map[Kind]messages.Code{
 	KindFunction: messages.H8800, KindStruct: messages.H8801, KindMethod: messages.H8802, KindField: messages.H8803,
 	KindConstant: messages.H8804, KindVariable: messages.H8805, KindModule: messages.H8806, KindTest: messages.H8807,
-	KindBuiltin: messages.H8808, KindParameter: messages.H8860, KindOption: messages.H8861,
+	KindBuiltin: messages.H8808, KindParameter: messages.H8860, KindOption: messages.H8861, KindMessage: messages.H8873,
 }
 
 var roleLabels = map[Role]messages.Code{
@@ -53,6 +53,9 @@ func Short(n Node) string {
 	s := KindLabel(n.Kind) + " " + name
 	if n.Pos != nil {
 		s += "  " + n.Pos.String()
+	}
+	if n.Ignored {
+		s += "  " + messages.Text(messages.H8870)
 	}
 	return strings.TrimSpace(s)
 }
@@ -98,9 +101,9 @@ func Text(r *Result) string {
 	}
 	switch r.Command {
 	case CommandReferences:
-		writeUses(&b, messages.H8785, r.Users, r.Counts, r.Truncated, messages.H8792)
+		writeUses(&b, messages.H8785, r.Users, r.Counts, messages.H8792)
 	case CommandTestedBy:
-		writeUses(&b, messages.H8786, r.Tests, r.Counts, r.Truncated, messages.H8793)
+		writeUses(&b, messages.H8786, r.Tests, r.Counts, messages.H8793)
 	case CommandImpact:
 		writeImpact(&b, r)
 	}
@@ -113,17 +116,28 @@ func writeImpact(b *strings.Builder, r *Result) {
 		return
 	}
 	if len(a.Modules) > 0 {
-		fmt.Fprintf(b, "  %s\n", messages.Text(messages.H8787, total(r.Counts, func(c *Counts) int { return c.Modules }, len(a.Modules))))
+		all := total(r.Counts, func(c *Counts) int { return c.Modules }, len(a.Modules))
+		fmt.Fprintf(b, "  %s\n", messages.Text(messages.H8787, all))
 		for _, n := range a.Modules {
 			fmt.Fprintf(b, "    %s\n", Short(n))
 		}
+		writeHidden(b, all-len(a.Modules))
 	}
-	writeUses(b, messages.H8788, a.Users, r.Counts, r.Truncated, messages.H8792)
+	writeUses(b, messages.H8788, a.Users, r.Counts, messages.H8792)
 	if len(a.Tests) > 0 {
-		fmt.Fprintf(b, "  %s\n", messages.Text(messages.H8789, total(r.Counts, func(c *Counts) int { return c.Tests }, len(a.Tests))))
+		all := total(r.Counts, func(c *Counts) int { return c.Tests }, len(a.Tests))
+		fmt.Fprintf(b, "  %s\n", messages.Text(messages.H8789, all))
 		for _, n := range a.Tests {
 			fmt.Fprintf(b, "    %s\n", Short(n))
 		}
+		writeHidden(b, all-len(a.Tests))
+	}
+}
+
+// writeHidden kesilen bir grubun altına kaç satırın gizlendiğini ve sınırın nasıl artırılacağını yazar (hidden > 0 ise).
+func writeHidden(b *strings.Builder, hidden int) {
+	if hidden > 0 {
+		fmt.Fprintf(b, "    ... %s\n", messages.Text(messages.H8791, hidden, codes.OptionFlag(codes.OptLimit), codes.OptionFlag(codes.OptAll)))
 	}
 }
 
@@ -137,8 +151,8 @@ func total(c *Counts, field func(*Counts) int, shown int) int {
 }
 
 // writeUses başvuru satırlarını yazar; başlıkta toplam ve rollere göre dağılım bulunur, liste
-// boşsa none iletisi yazılır.
-func writeUses(b *strings.Builder, heading messages.Code, uses []Use, counts *Counts, truncated bool, none messages.Code) {
+// boşsa none iletisi yazılır, kesildiyse gizlenen satır sayısı.
+func writeUses(b *strings.Builder, heading messages.Code, uses []Use, counts *Counts, none messages.Code) {
 	if len(uses) == 0 {
 		fmt.Fprintf(b, "  %s\n", messages.Text(none))
 		return
@@ -166,6 +180,9 @@ func writeUses(b *strings.Builder, heading messages.Code, uses []Use, counts *Co
 			}
 		}
 		line := fmt.Sprintf("    %-10s %s  %s", RoleLabel(u.Role), u.Pos, who)
+		if u.In.isIgnoredUse() {
+			line += "  " + messages.Text(messages.H8870)
+		}
 		if u.Steps > 0 {
 			line += "  " + messages.Text(messages.H8790, u.Steps)
 		}
@@ -174,20 +191,19 @@ func writeUses(b *strings.Builder, heading messages.Code, uses []Use, counts *Co
 		}
 		b.WriteString(line + "\n")
 	}
-	if truncated {
-		fmt.Fprintf(b, "    ... %s\n", messages.Text(messages.H8791, codes.OptionFlag(codes.OptLimit), codes.OptionFlag(codes.OptAll)))
-	}
+	writeHidden(b, total-len(uses))
 }
 
 // reasonMessages reddetme nedenlerinin iletileridir.
 var reasonMessages = map[string]messages.Code{
-	ReasonBuiltin: messages.H8841, ReasonModule: messages.H8842, ReasonNoSymbol: messages.H8843,
+	ReasonBuiltin: messages.H8841, ReasonMessage: messages.H8874, ReasonModule: messages.H8842, ReasonNoSymbol: messages.H8843,
 }
 
 // matchLabels olası yerlerin eşleşme biçimlerinin iletileridir; whereLabels bulundukları yerin.
 var matchLabels = map[string]messages.Code{
 	MatchMemberGuess: messages.H8847, MatchShadowed: messages.H8848, MatchExact: messages.H8849,
 	MatchSuffixed: messages.H8850, MatchCompound: messages.H8851, MatchDerived: messages.H8865, MatchDataFormat: messages.H8869,
+	MatchLanguageFile: messages.H8872,
 }
 
 var whereLabels = map[string]messages.Code{
@@ -223,6 +239,9 @@ func RenameText(r *Result) string {
 		writeLikely(&b, r)
 		return b.String()
 	}
+	if r.Mode == ModeLanguage && len(r.Targets) > 0 {
+		fmt.Fprintln(&b, messages.Text(messages.H8871, r.Targets[0].Code))
+	}
 	fmt.Fprintln(&b, messages.Text(messages.H8836, len(r.Targets)))
 	for _, n := range r.Targets {
 		fmt.Fprintf(&b, "  %s\n", Short(n))
@@ -230,10 +249,12 @@ func RenameText(r *Result) string {
 	for _, c := range r.Conflicts {
 		fmt.Fprintln(&b, messages.Text(messages.H8839, r.NewName, Short(c.With)))
 	}
-	fmt.Fprintln(&b, messages.Text(messages.H8837, total(r.Counts, func(c *Counts) int { return c.Certain }, len(r.Certain))))
+	certain := total(r.Counts, func(c *Counts) int { return c.Certain }, len(r.Certain))
+	fmt.Fprintln(&b, messages.Text(messages.H8837, certain))
 	for _, c := range r.Certain {
 		writeChange(&b, c)
 	}
+	writeHidden(&b, certain-len(r.Certain))
 	if len(r.Linked) > 0 {
 		fmt.Fprintln(&b, messages.Text(messages.H8867, len(r.Linked)))
 		for _, n := range r.Linked {
@@ -244,17 +265,16 @@ func RenameText(r *Result) string {
 	return b.String()
 }
 
-// writeLikely olası yerleri, atlanan başka sözcük sayısını ve kesilmişse sınır notunu yazar.
+// writeLikely olası yerleri, kesilmişse gizlenen satır sayısını ve atlanan başka sözcük sayısını yazar.
 func writeLikely(b *strings.Builder, r *Result) {
-	fmt.Fprintln(b, messages.Text(messages.H8838, total(r.Counts, func(c *Counts) int { return c.Likely }, len(r.Likely))))
+	likely := total(r.Counts, func(c *Counts) int { return c.Likely }, len(r.Likely))
+	fmt.Fprintln(b, messages.Text(messages.H8838, likely))
 	for _, c := range r.Likely {
 		writeChange(b, c)
 	}
+	writeHidden(b, likely-len(r.Likely))
 	if r.SkippedWords > 0 {
 		fmt.Fprintln(b, messages.Text(messages.H8840, r.SkippedWords))
-	}
-	if r.Truncated {
-		fmt.Fprintf(b, "... %s\n", messages.Text(messages.H8791, codes.OptionFlag(codes.OptLimit), codes.OptionFlag(codes.OptAll)))
 	}
 }
 

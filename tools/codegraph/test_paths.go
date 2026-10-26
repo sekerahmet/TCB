@@ -471,6 +471,9 @@ func newTestReach(b *builder, idx *goIndex) *testReach {
 		if reachEdge(k.kind, e.Confidence, k.from, k.to) {
 			r.callers[k.to] = append(r.callers[k.to], k.from)
 		}
+		if v, ok := initReader(k.kind, k.from, k.to); ok {
+			r.callers[k.from] = append(r.callers[k.from], v)
+		}
 	}
 	for _, list := range r.callers {
 		sort.Strings(list)

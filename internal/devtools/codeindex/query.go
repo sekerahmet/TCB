@@ -35,7 +35,12 @@ func (r *Reader) prepare(command, q string, o QueryOptions) (*Result, *Node) {
 	}
 	res.Status = StatusAmbiguous
 	sorted := append([]*Node(nil), found...)
-	sort.Slice(sorted, func(i, j int) bool { return sorted[i].ID < sorted[j].ID })
+	sort.Slice(sorted, func(i, j int) bool { // depodaki aday önce, yok sayılan dosyanınki sonra (Index.Ignored)
+		if a, b := r.isIgnored(sorted[i]), r.isIgnored(sorted[j]); a != b {
+			return b
+		}
+		return sorted[i].ID < sorted[j].ID
+	})
 	for _, n := range sorted {
 		res.Candidates = append(res.Candidates, r.display(*n))
 	}
@@ -58,8 +63,21 @@ func (r *Reader) display(n Node) Node {
 		n.Qualified, n.Signature = r.qualifiedIn(&n, lang.Name), signatureIn(&n, lang)
 		n.Name = r.pathIn(&n, lang.Name)
 	}
+	n.Ignored = r.isIgnored(&n)
 	return n
 }
+
+// isIgnored düğüm git'in yok saydığı bir dosyada mı (Index.Ignored).
+func (r *Reader) isIgnored(n *Node) bool { return n.Pos != nil && r.ignored[n.Pos.File] }
+
+// ignoredLast listeyi depodakiler önce, yok sayılan dosyadakiler sonra gelecek biçimde böler; iki grubun içindeki sıra
+// korunur.
+func ignoredLast(uses []Use) {
+	sort.SliceStable(uses, func(i, j int) bool { return !uses[i].In.isIgnoredUse() && uses[j].In.isIgnoredUse() })
+}
+
+// isIgnoredUse başvurunun sahibi yok sayılan bir dosyada mı.
+func (n *Node) isIgnoredUse() bool { return n != nil && n.Ignored }
 
 // Definition bir adın tanımını verir: düğüm, belge yorumu ve (yapı ya da modülse) üyeleri.
 func (r *Reader) Definition(q string, o QueryOptions) *Result {
@@ -108,6 +126,7 @@ func (r *Reader) usesOf(ids []string, withDefinition bool, outside string) []Use
 		uses = append(uses, u)
 	}
 	sort.SliceStable(uses, func(i, j int) bool { return posLess(&uses[i].Pos, &uses[j].Pos) })
+	ignoredLast(uses)
 	return uses
 }
 
@@ -203,6 +222,7 @@ func (r *Reader) testsOf(ids []string) []Use {
 		}
 		return posLess(&out[i].Pos, &out[j].Pos)
 	})
+	ignoredLast(out)
 	return out
 }
 

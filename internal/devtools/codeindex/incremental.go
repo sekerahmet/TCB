@@ -269,15 +269,15 @@ func sameLibrary(prev *Index, x *indexer) bool {
 	return true
 }
 
-// pruneBuiltins artık hiçbir bağın hedefi olmayan yerleşik düğümleri atar (sıfırdan kurulumda
-// yerleşik düğümü yalnızca başvuru varsa vardır).
+// pruneBuiltins artık hiçbir bağın hedefi olmayan yerleşik ve ileti düğümlerini atar (sıfırdan kurulumda
+// ikisi de yalnızca başvuru varsa vardır).
 func pruneBuiltins(x *indexer) {
 	used := map[string]bool{}
 	for k := range x.edges {
 		used[k.to] = true
 	}
 	for id, n := range x.nodes {
-		if n.Kind == KindBuiltin && !used[id] {
+		if (n.Kind == KindBuiltin || n.Kind == KindMessage) && !used[id] {
 			delete(x.nodes, id)
 		}
 	}

@@ -1636,7 +1636,7 @@
 "H8788": "used outside the module ({count}{roles}):",
 "H8789": "affected tests ({count}):",
 "H8790": "({steps} steps)",
-"H8791": "there is more (raise with {limit} or {all})",
+"H8791": "{count} more lines (raise with {limit} or {all})",
 "H8792": "no users",
 "H8793": "no tests",
 "H8800": "function",
@@ -1702,5 +1702,10 @@
 "H8867": "linked declarations ({count}; passed on under the same name or stored in a field of the same name; renaming them too is recommended):",
 "H8868": "dictionary key",
 "H8869": "data format; never changed automatically",
+"H8870": "(ignored folder)",
+"H8871": "{code} is a code: its name changes in the language file, coded files carry the identity and stay as they are; a new name comes with the lead developer's approval",
+"H8872": "name in the language file",
+"H8873": "message code",
+"H8874": "cannot be renamed: a message code (the code does not change, its text is in the message catalog)",
 "H9000": "an internal error occurred in TR (not an error in your program); please report it: {detail}"
 }

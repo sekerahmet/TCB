@@ -26,10 +26,11 @@ const (
 
 // Eşleşme biçimi (TextHit.Match).
 const (
-	MatchExact    = "exact"    // sözcüğün kendisi
-	MatchSuffixed = "suffixed" // Türkçe ekli biçim (başı, başları, başında)
-	MatchCompound = "compound" // alt çizgiyle ayrılmış ad parçası (kv_baş, baş_boyutu)
-	MatchDerived  = "derived"  // türemiş sıfat (başlı, başsız)
+	MatchExact        = "exact"         // sözcüğün kendisi
+	MatchLanguageFile = "language_file" // kodlu adın dil dosyasındaki satırı (renameCode)
+	MatchSuffixed     = "suffixed"      // Türkçe ekli biçim (başı, başları, başında)
+	MatchCompound     = "compound"      // alt çizgiyle ayrılmış ad parçası (kv_baş, baş_boyutu)
+	MatchDerived      = "derived"       // türemiş sıfat (başlı, başsız)
 )
 
 // TextHit bir metin eşleşmesidir.
@@ -363,11 +364,14 @@ func underAnyDir(rel string, dirs []string) bool {
 }
 
 // GitTracked `.git` varsa ve git çalışıyorsa izlenen dosyalardır (git ls-files); aksi halde ok=false.
-func GitTracked(root string) ([]string, bool) {
+func GitTracked(root string) ([]string, bool) { return gitFiles(root) }
+
+// gitFiles `.git` varsa ve git çalışıyorsa `git ls-files args...`'ın listelediği dosyalardır; aksi halde ok=false.
+func gitFiles(root string, args ...string) ([]string, bool) {
 	if _, err := os.Stat(filepath.Join(root, ".git")); err != nil {
 		return nil, false
 	}
-	out, err := exec.Command("git", "-C", root, "ls-files", "-z").Output()
+	out, err := exec.Command("git", append([]string{"-C", root, "ls-files", "-z"}, args...)...).Output()
 	if err != nil {
 		return nil, false
 	}
@@ -378,4 +382,27 @@ func GitTracked(root string) ([]string, bool) {
 		}
 	}
 	return rels, true
+}
+
+// markIgnored dizindeki dosyalardan git'in yok saydıklarını Index.Ignored'a yazar (kullanıcı aracında: AllFiles; depo
+// aracı yalnız izlenenleri okur, yok sayılanı yoktur). Kurulumdan ve önbellekten okumadan sonra sorulur: .gitignore
+// değişince dizin kendiliğinden doğru kalır.
+func markIgnored(root string, idx *Index, opts Options) {
+	idx.Ignored = nil
+	if opts.Tracked {
+		return
+	}
+	ignored, ok := gitFiles(root, "--others", "--ignored", "--exclude-standard")
+	if !ok {
+		return
+	}
+	set := map[string]bool{}
+	for _, rel := range ignored {
+		set[rel] = true
+	}
+	for _, rel := range idx.Files {
+		if set[rel] {
+			idx.Ignored = append(idx.Ignored, rel)
+		}
+	}
 }

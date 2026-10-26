@@ -349,6 +349,57 @@ func TestEveryTestFileListsEveryTestItDeclares(t *testing.T) {
 	}
 }
 
+// Kural: bir Go dosyasının (x.go) adaş test dosyasının (x_test.go) testleri, dosya aynı pakette de dış (`_test`) pakette
+// de olsa, tests-for x.go'nun ilk grubu "this file's tests"tedir (ölçümler hariç). Bildirimler go/parser ile bağımsız
+// okunur (eksikler listesi, ana oturum 2026-10-26: `tests-for internal/stdlib/dataset/state.go` dış paketteki
+// state_test.go'nun testlerini bu grupta vermiyordu; aynı paketteki stats.go'nun testleri de yalnız "direct" idi).
+func TestASourceFileListsItsTestFilesTestsFirst(t *testing.T) {
+	root, _, g := repoGraph(t)
+	ix := newIndex(g)
+	checked, external := 0, 0
+	for i := range g.Nodes {
+		file := &g.Nodes[i]
+		if file.Kind != kindFile || !strings.HasSuffix(file.File, ".go") || strings.HasSuffix(file.File, "_test.go") || strings.Contains(file.File, "/testdata/") {
+			continue
+		}
+		sibling := strings.TrimSuffix(file.File, ".go") + "_test.go"
+		f, err := parser.ParseFile(token.NewFileSet(), filepath.Join(root, filepath.FromSlash(sibling)), nil, parser.SkipObjectResolution)
+		if err != nil {
+			continue // adaş test dosyası yok
+		}
+		var want []string
+		for _, d := range f.Decls {
+			if fd, ok := d.(*ast.FuncDecl); ok && fd.Recv == nil && declaresTest(fd.Name.Name) && !strings.HasPrefix(fd.Name.Name, "Benchmark") {
+				want = append(want, fd.Name.Name)
+			}
+		}
+		if len(want) == 0 {
+			continue
+		}
+		if strings.HasSuffix(f.Name.Name, "_test") {
+			external++
+		}
+		var out strings.Builder
+		ix.printTestsFor(&out, file, 0)
+		items, ok := groupItems(strings.Split(out.String(), "\n"), "  this file's tests (")
+		var got []string
+		for _, it := range items {
+			if name := strings.Fields(it)[0]; strings.Contains(name, ".") {
+				got = append(got, name[strings.LastIndex(name, ".")+1:])
+			}
+		}
+		slices.Sort(want)
+		slices.Sort(got)
+		if !ok || !slices.Equal(got, want) {
+			t.Errorf("%s: this file's tests %v, %s declares %v", file.File, got, sibling, want)
+		}
+		checked++
+	}
+	if checked < 200 || external < 10 {
+		t.Fatalf("only %d source files with a test file checked (%d external)", checked, external)
+	}
+}
+
 // declaresTest go test'in koştuğu bir Test, Fuzz ya da Example adı mı (ad önekten sonra küçük harfle sürmez; ölçümler hariç).
 func declaresTest(name string) bool {
 	for _, prefix := range []string{"Test", "Fuzz", "Example"} {

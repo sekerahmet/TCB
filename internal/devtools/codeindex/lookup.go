@@ -272,6 +272,10 @@ func (r *Reader) nameClass(i int, k NameKey, builtin map[string]bool) NameClass 
 		if builtin[n.ID] {
 			return ClassBuiltin
 		}
+	case KindMessage:
+		if !k.Folded && n.Name == k.Key {
+			return ClassBuiltin // ileti kodu bir kimliktir: yalnız yazıldığı gibi (H6932; h6932 değil)
+		}
 	case KindTest:
 		if k.Match(n.Name, f.short) {
 			return ClassTest
@@ -380,6 +384,9 @@ func (r *Reader) Suggest(q string, limit int) []*Node {
 	}
 	sort.SliceStable(found, func(i, j int) bool {
 		a, b := found[i], found[j]
+		if x, y := r.isIgnored(a.n), r.isIgnored(b.n); x != y {
+			return y // depodaki öneri önce
+		}
 		if a.score != b.score {
 			return a.score < b.score
 		}

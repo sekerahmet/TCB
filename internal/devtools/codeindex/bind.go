@@ -45,7 +45,7 @@ func (x *indexer) calleeStruct(f *file, sc *scope, fn ast.Expression) (string, s
 		if sc.locals[fn.Value] {
 			return "", ""
 		}
-		if id := f.visible[fn.Value]; id != "" && x.nodes[id] != nil && x.nodes[id].Kind == KindStruct {
+		if id, _ := x.lookupVisible(f, fn.Value); id != "" && x.nodes[id] != nil && x.nodes[id].Kind == KindStruct {
 			return id, fn.Value
 		}
 	case *ast.MemberExpression:
@@ -166,7 +166,8 @@ func (x *indexer) callee(f *file, o owner, sc *scope, c *ast.CallExpression) (st
 		if sc.locals[fn.Value] {
 			return "", "", ""
 		}
-		return f.visible[fn.Value], Extracted, ""
+		id, _ := x.lookupVisible(f, fn.Value)
+		return id, Extracted, ""
 	case *ast.MemberExpression:
 		if obj, ok := fn.Object.(*ast.Identifier); ok && !sc.locals[obj.Value] {
 			if target := f.aliases[obj.Value]; target != nil {
@@ -285,7 +286,10 @@ func (x *indexer) optionName(f *file, key *ast.StringLiteral) string {
 // anahtarlarını) seçenek düğümlerine bağlar: anahtar komut satırında `--ad` olur.
 func (x *indexer) optionKeys(f *file, o owner, sc *scope, c *ast.CallExpression) {
 	fn, ok := c.Function.(*ast.Identifier)
-	if !ok || sc.locals[fn.Value] || f.visible[fn.Value] != "" {
+	if !ok || sc.locals[fn.Value] {
+		return
+	}
+	if _, visible := x.lookupVisible(f, fn.Value); visible {
 		return
 	}
 	if k, ok := x.lang.Find(codes.NamespaceGlobal, fn.Value); !ok || k != codes.FnCommandLine {

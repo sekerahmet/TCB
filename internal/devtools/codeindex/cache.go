@@ -210,6 +210,7 @@ func BuildCached(root string, opts Options) (*Index, Stats, error) {
 	}
 	if prev != nil {
 		if idx, stats, ok := refresh(abs, opts, prev, cur); ok {
+			markIgnored(abs, idx, opts)
 			return idx, stats, nil
 		}
 	}

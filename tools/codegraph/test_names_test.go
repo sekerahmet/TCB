@@ -4,7 +4,10 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -190,7 +193,8 @@ func TestATestOfTheNameCodesAFileImplementsIsDirect(t *testing.T) {
 					ix.printTestsFor(&out, ix.byID[fileID(decl.File)], 0)
 					answers[decl.File] = out.String()
 				}
-				if !strings.Contains(answers[decl.File], describe(test)+"  direct") {
+				own, _ := groupItems(strings.Split(answers[decl.File], "\n"), "  this file's tests (") // adaş test dosyasının testleri
+				if !strings.Contains(answers[decl.File], describe(test)+"  direct") && !slices.ContainsFunc(own, func(l string) bool { return strings.TrimSpace(l) == describe(test) }) {
 					t.Errorf("tests-for %s: %s runs %s, which %s implements, but is not direct", decl.File, test.Name, name.Name, decl.Name)
 				}
 			}
@@ -198,5 +202,39 @@ func TestATestOfTheNameCodesAFileImplementsIsDirect(t *testing.T) {
 	}
 	if checked < 20 {
 		t.Errorf("only %d same-package name-code tests found", checked)
+	}
+}
+
+// Kural: tests-for'un zincir sınırı bir: "up to 8 steps" diyen cevap 8 adımdan uzun zincir göstermez. Ad kodu üzerinden
+// gelen testte koddan teste geçiş de bir adımdır (eksikler listesi, ince ayar, DENETİM 2026-10-26: 17_testler_test,
+// deyimler_test 5.10-5.12 ve TestReaderStateResumesSameBatches 9 adımla listeleniyordu). Planlama sınavının hedef kümesinde
+// (her TR işlevi, kullanılan her ad kodu, internal/stdlib'in her işlevi) ve her Go dosyasında her "N steps" ≤ testMaxSteps.
+func TestNoChainIsLongerThanTheStepLimit(t *testing.T) {
+	_, _, g := repoGraph(t)
+	ix := newIndex(g)
+	steps := regexp.MustCompile(`(\d+) steps`)
+	checked, bad := 0, 0
+	for i := range g.Nodes {
+		n := &g.Nodes[i]
+		switch {
+		case n.Kind == kindTRFunc || n.Kind == kindTRMethod:
+		case n.Kind == kindName && len(ix.in[n.ID]) > 0:
+		case n.Kind == kindFunc && strings.HasPrefix(n.File, "internal/stdlib/") && !inTestFile(n):
+		case n.Kind == kindFile && strings.HasSuffix(n.File, ".go") && strings.HasPrefix(n.ID, "go:"):
+		default:
+			continue
+		}
+		var out strings.Builder
+		ix.printTestsFor(&out, n, 0)
+		for _, m := range steps.FindAllStringSubmatch(out.String(), -1) {
+			checked++
+			if s, _ := strconv.Atoi(m[1]); s > testMaxSteps && bad < 10 {
+				bad++
+				t.Errorf("tests-for %s lists a %d-step chain; the limit is %d", n.Name, s, testMaxSteps)
+			}
+		}
+	}
+	if checked < 1000 {
+		t.Errorf("only %d chains checked", checked)
 	}
 }

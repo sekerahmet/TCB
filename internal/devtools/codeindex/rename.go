@@ -21,6 +21,7 @@ import (
 const (
 	ReasonBuiltin      = "builtin"            // yerleşik ad
 	ReasonModule       = "module"             // modül adı (ilk sürümde yok)
+	ReasonMessage      = "message_code"       // ileti kodu: kod değişmez, metni ileti kataloğundadır
 	ReasonNoSymbol     = "no_symbol"          // konumda ad yok
 	ReasonInvalidName  = "invalid_identifier" // yeni ad geçerli bir tanımlayıcı değil
 	ReasonLanguageWord = "language_word"      // yeni ad dilin sözcüğü
@@ -68,7 +69,7 @@ var identifierPattern = regexp.MustCompile(`^[\p{L}_][\p{L}\p{N}_]*$`)
 
 // renamable adı değiştirilebilen bir düğüm mü.
 func renamable(n *Node) bool {
-	return n.Kind != KindBuiltin && n.Kind != KindModule && n.Kind != KindTest
+	return n.Kind != KindBuiltin && n.Kind != KindModule && n.Kind != KindTest && n.Kind != KindMessage
 }
 
 // shortName düğümün kendi adıdır ("Yapı.metot.ad" -> "ad").
@@ -89,6 +90,8 @@ func (r *Reader) renameTargets(q string) (targets []*Node, rejected string) {
 			targets = append(targets, n)
 		case n.Kind == KindBuiltin:
 			rejected = ReasonBuiltin
+		case n.Kind == KindMessage:
+			rejected = ReasonMessage
 		case n.Kind == KindModule:
 			rejected = ReasonModule
 		}
@@ -150,10 +153,16 @@ func (r *Reader) RenameImpact(q, newName string, o RenameOptions) *Result {
 		words[Fold(shortName(n))] = shortName(n)
 	}
 	for _, w := range words {
+		if libraryDecl(targets[0]) {
+			break // kitaplık adının eski adı dil dosyasındadır (renameCode)
+		}
 		if reason := validateNewName(w, newName); reason != "" {
 			res.Status, res.Reason = StatusRejected, reason
 			return res
 		}
+	}
+	if libraryDecl(targets[0]) {
+		return r.renameCode(res, targets[0], newName, o) // kitaplığın kodlu adı: dil dosyasında
 	}
 	for _, n := range targets {
 		res.Targets = append(res.Targets, r.display(*n))
@@ -179,8 +188,14 @@ func (r *Reader) RenameImpact(q, newName string, o RenameOptions) *Result {
 			}
 		}
 	}
+	return finishRename(res, sortedValues(words), newName, o, skip, lines)
+}
+
+// finishRename sözcüklerin metin taramasını olası yerlere ekler (kök verilmiş ve metin kapalı değilse), iki listeyi
+// sıralar, sayar ve sınırla keser.
+func finishRename(res *Result, words []string, newName string, o RenameOptions, skip map[string]bool, lines *lineSource) *Result {
 	if o.Root != "" && !o.NoText {
-		for _, w := range sortedValues(words) {
+		for _, w := range words {
 			hits, other := ScanText(o.Root, w, newName, skip)
 			res.SkippedWords += other
 			for _, h := range hits {
@@ -265,6 +280,8 @@ func (r *Reader) PrepareRename(file string, line, col int) (*PrepareResult, stri
 		return nil, ReasonNoSymbol
 	case n.Kind == KindBuiltin:
 		return nil, ReasonBuiltin
+	case n.Kind == KindMessage:
+		return nil, ReasonMessage
 	case !renamable(n):
 		return nil, ReasonModule
 	}
