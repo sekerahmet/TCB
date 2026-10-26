@@ -93,8 +93,8 @@ func TestExamplesPaired(t *testing.T) {
 		for n, name := range files {
 			first := strings.SplitN(readExample(t, lang, name), "\n", 3)
 			title := first[0]
-			if lang == "en" {
-				title = first[1] // ilk satır kodlu başlık
+			if strings.HasPrefix(title, "//! tr kodlu") {
+				title = first[1] // ilk satır kodlu başlık (iki dilde de dosya kodlu saklanır)
 			}
 			if !strings.HasPrefix(title, "// "+n+" —") {
 				t.Errorf("examples/%s/%s: ilk yorum satırı %q ile başlamalı", lang, name, "// "+n+" —")
@@ -106,8 +106,9 @@ func TestExamplesPaired(t *testing.T) {
 	if len(trHelpers) != len(enHelpers) {
 		t.Errorf("helpers/ dosya sayıları farklı: tr %d, en %d", len(trHelpers), len(enHelpers))
 	}
-	if strings.HasPrefix(readExample(t, "tr", turkish["01"]), source.Header) {
-		t.Errorf("Türkçe örnekler kodsuz Türkçe yazılır")
+	// Türkçe örnekler de Türkçe yazılmış kodlu dosyalardır (17.1: dil=tr); disk her dilde kodludur.
+	if header := source.Header + "tr\n"; !strings.HasPrefix(readExample(t, "tr", turkish["01"]), header) {
+		t.Errorf("Türkçe örnekler %q başlığıyla kodlu saklanır", header)
 	}
 	for n, name := range english {
 		// İngilizce örnekler İngilizce yazılmış kodlu dosyalardır (17.1: dil=en).

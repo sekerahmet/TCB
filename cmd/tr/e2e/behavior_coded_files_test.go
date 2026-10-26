@@ -25,9 +25,9 @@ import (
 // da Türkçe kalırlar (tests/dosya_ve_yol_test.tr, 18.11: BOM'lu dosyanın ilk satırı).
 var trFilesWithData = map[string]bool{"bom_ornegi.tr": true}
 
-// codedCopy klasörün altındaki bütün .tr dosyalarını yerinde kodlar; ayrıştırılamayan
-// (bilerek hatalı) dosyalar Türkçe kalır. Kodlanan dosya sayısını verir.
-func codedCopy(t *testing.T, dir string) int {
+// plainCopy klasörün altındaki kodlu .tr dosyalarını yerinde Türkçe düz metne çözer (depo kodlu
+// saklanır; karşılaştırmanın öbür kopyası düz metindir). Çözülen dosya sayısını verir.
+func plainCopy(t *testing.T, dir string) int {
 	t.Helper()
 	n := 0
 	err := reporoot.WalkDir(dir, func(filePath string, g fs.DirEntry, err error) error {
@@ -38,20 +38,21 @@ func codedCopy(t *testing.T, dir string) int {
 		if err != nil {
 			return err
 		}
-		coded, err := source.Encode(string(data))
+		if b, _ := source.Split(string(data)); !b.Coded {
+			return nil
+		}
+		plain, err := source.Decode(string(data), source.Turkish())
 		var sh *source.SyntaxError
 		var bh *source.HeaderError
 		if errors.As(err, &sh) || errors.As(err, &bh) {
-			return nil
+			return nil // bilerek hatalı kodlu dosya olduğu gibi kalır
 		}
 		if err != nil {
-			t.Errorf("%s kodlanamadı: %v", filePath, err)
+			t.Errorf("%s çözülemedi: %v", filePath, err)
 			return nil
 		}
-		if coded != string(data) {
-			n++
-		}
-		return os.WriteFile(filePath, []byte(coded), 0o644)
+		n++
+		return os.WriteFile(filePath, []byte(plain), 0o644)
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -79,14 +80,16 @@ func TestCodedFilesGiveSameOutput(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !strings.Contains(string(data), "sabit ADIM = 300") {
+		// Dosya kodlu saklanır (TR_kw_const); düz metin kopyası Türkçe yazımla gelir.
+		short := strings.NewReplacer("sabit ADIM = 300", "sabit ADIM = 10", "TR_kw_const ADIM = 300", "TR_kw_const ADIM = 10")
+		if !strings.Contains(string(data), "sabit ADIM = 300") && !strings.Contains(string(data), "TR_kw_const ADIM = 300") {
 			t.Fatal("36_karakter_modeli.tr: 'sabit ADIM = 300' yok; kısaltma eğitimi kısaltmıyor")
 		}
-		os.WriteFile(filePath, []byte(strings.Replace(string(data), "sabit ADIM = 300", "sabit ADIM = 10", 1)), 0o644)
+		os.WriteFile(filePath, []byte(short.Replace(string(data))), 0o644)
 	}
-	n := codedCopy(t, tr2)
+	n := plainCopy(t, tr1)
 	if n < 35 {
-		t.Fatalf("yalnızca %d dosya kodlandı", n)
+		t.Fatalf("yalnızca %d dosya çözüldü", n)
 	}
 
 	// Çıktıda geçen kopya klasörlerinin yolları (ör. kontrol noktasının "Kaldığı yerden

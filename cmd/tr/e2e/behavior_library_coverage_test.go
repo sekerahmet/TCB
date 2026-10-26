@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"github.com/sekerahmet/TCB/internal/lang/source"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -93,7 +94,11 @@ func libraryNames(t *testing.T) []string {
 			t.Fatal(err)
 		}
 		module := strings.TrimSuffix(filepath.Base(f), ".tr")
-		text := lineComment.ReplaceAllString(string(data), "")
+		view, err := source.Show(string(data), source.Turkish()) // kodlu kitaplık Türkçe görünümüyle okunur
+		if err != nil {
+			t.Fatal(err)
+		}
+		text := lineComment.ReplaceAllString(view, "")
 		for _, m := range libTopLevel.FindAllStringSubmatch(text, -1) {
 			if !strings.HasPrefix(m[1], "_") {
 				names = append(names, module+"."+m[1])

@@ -6,6 +6,8 @@ TR, yapay zekâ modeli geliştirmek ve eğitmek için bir programlama dilidir (G
 
 | Soru | Belge |
 | :-- | :-- |
+| Dilin asıl biçimi: kod, kimlikler (`TR_fn_sum`), gösterim dilleri | [`docs/spec/17_kodlar.md`](docs/spec/17_kodlar.md); kod tabloları [`internal/lang/codes/`](internal/lang/codes/README.md) (`definitions.json`, dil başına `tr.json`, `en.json`) |
+| Kodlu bir `.tr` dosyasını okumak ve yazmak | `tr göster <dosya> [--dil en]` dosyayı kişinin dilinde gösterir; `tr kodla <dosya> [--dil en]` o dilde yazılmış metni koda çevirir. Kodlu dosya düz metin olarak düzenlenmez: göster → düzenle → kodla |
 | Go kodu hangi kurallarla yazılır, her kuralı hangi test korur | [`internal/README.md`](internal/README.md) |
 | Yeni fonksiyon, yerleşik, metot, ileti, paket, dil kuralı nasıl eklenir | [`docs/recipes.md`](docs/recipes.md) |
 | Süreç: yeni ad isteği, tam denetim, ölçüm | [`docs/development.md`](docs/development.md) |
@@ -13,7 +15,7 @@ TR, yapay zekâ modeli geliştirmek ve eğitmek için bir programlama dilidir (G
 | Dilin davranışı | [`docs/spec/`](docs/spec/README.md) |
 | Bir paketin kendi standartları ve davranış testleri | o paketin `README.md`'si |
 | Bir şeyi bulmak: çağıranlar, kullanım yerleri, ileti/ad kodları, kuralı koruyan test, bir fonksiyonun testleri | önce `go run ./tools/codegraph build`, sonra `query <ad>`, `who-uses H2100`, `tests-for <fonksiyon>`, `path A B` ([`tools/codegraph/README.md`](tools/codegraph/README.md)); dosya okumadan önce buna sor |
-| TR kodunda (`.tr`: `lib/`, `examples/`, `tests/`, `tools/`) bir adın tanımı, kullananları, testleri, etkisi | `tr dizin tanım <ad>`, `tr dizin kullananlar <ad>`, `tr dizin sınayanlar <ad>`, `tr dizin etki <ad>` (`--json` ile makine okunur; [`internal/devtools/codeindex/README.md`](internal/devtools/codeindex/README.md)) |
+| TR kodunda (`.tr`: `lib/`, `examples/`, `tests/`, `tools/`) bir adın tanımı, kullananları, testleri, etkisi | `tr dizin tanım <ad>`, `tr dizin kullananlar <ad>`, `tr dizin sınayanlar <ad>`, `tr dizin etki <ad>`; komutlar da koddur, İngilizcesi `tr index definition`, `references`, `tested_by`, `impact` (`TR_cmd_index`, `TR_sub_definition` ...). Ad kimliğiyle de sorulur (`tr dizin tanım TR_fn_sum`). `--json` ile makine okunur; [`internal/devtools/codeindex/README.md`](internal/devtools/codeindex/README.md) |
 
 ## İlkeler
 

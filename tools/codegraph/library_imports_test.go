@@ -110,7 +110,7 @@ func TestALibraryModuleIsTestedByTheTestsThatImportIt(t *testing.T) {
 func TestEveryLibraryImportOfARepositoryTestReachesTheLibraryFile(t *testing.T) {
 	root, _, g := repoGraph(t)
 	ix := newIndex(g)
-	imp := regexp.MustCompile(`(?:` + regexp.QuoteMeta(codes.Active().Name(codes.KwImport)) + `|TR_kw_import)\s+"((?:tr/)?[^"]+)"`)
+	imp := regexp.MustCompile(`(?:` + regexp.QuoteMeta(codes.Source().Name(codes.KwImport)) + `|TR_kw_import)\s+"((?:tr/)?[^"]+)"`)
 	reached := map[string]map[string]int{}
 	testsOf := func(lib string) map[string]int {
 		if reached[lib] == nil {

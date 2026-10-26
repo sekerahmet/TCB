@@ -30,7 +30,6 @@ var oldCodeAllowed = map[string]map[string]string{
 		"G400": "madde 15: eski kodun kimliğe geçişinin örneği", "T910": "madde 15: eski kodun kimliğe geçişinin örneği"},
 	"docs/README.md":                       {"A001": "eski kod biçiminin örneği (eşleme belgesinin tanıtımı)"},
 	"docs/spec/02_sozcuk_yapisi.md":        {"A001": "2.3a: eski biçim artık sıradan addır", "G100": "2.3a: eski biçim artık sıradan addır"},
-	"docs/spec/17_kodlar.md":               {"A001": "eski numaralı kodun örneği", "A030": "17.1: okunmayan eski biçim sürümünün örneği"},
 	"internal/lang/codes/README.md":        {"A001": "eski kodların eşleme belgesine yönlendirme"},
 	"internal/lang/codes/language_test.go": {"A001": "eski biçim kimlik değildir ve ayrılmış değildir", "G100": "eski biçim kimlik değildir ve ayrılmış değildir"},
 	"tests/negative/kodlu_surum.tr":        {"A030": "eski kodlu biçim sürümü (2) okunmaz"},

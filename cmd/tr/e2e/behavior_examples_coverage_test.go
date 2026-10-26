@@ -42,7 +42,11 @@ func exampleTexts(t *testing.T) map[string]string {
 			return rerr
 		}
 		rel, _ := filepath.Rel(root, p)
-		out[filepath.ToSlash(rel)] = string(data)
+		text := string(data)
+		if view, verr := source.Show(text, source.Turkish()); verr == nil {
+			text = view // kodlu örnek Türkçe görünümüyle okunur
+		}
+		out[filepath.ToSlash(rel)] = text
 		return nil
 	})
 	if err != nil {
