@@ -1,5 +1,13 @@
 # Görüntü sınavının bugün kalan durumları (TestDisplayExam): yüzey F R tür ayrıntı.
 # Liste yalnızca küçülür; -update ile yeniden yazılır.
+adlı_argüman_önerisi en en sızıntı tensör
+adlı_argüman_önerisi en en sızıntı toplam
+adlı_argüman_önerisi en en sızıntı yazdır
+adlı_argüman_önerisi en en çerçeve 1
+adlı_argüman_önerisi tr en sızıntı tensör
+adlı_argüman_önerisi tr en sızıntı toplam
+adlı_argüman_önerisi tr en sızıntı yazdır
+adlı_argüman_önerisi tr en çerçeve 1
 denetim_hatası en en işaret
 denetim_hatası en en sütun
 denetim_hatası en en sızıntı yazdır
@@ -44,6 +52,24 @@ kontrol tr en işaret
 kontrol tr en sütun
 kontrol tr en sızıntı yazdır
 kontrol tr en çerçeve 2
+kullanım en en sızıntı ortanca
+kullanım en en sızıntı yazdır
+kullanım en en çerçeve 1
+kullanım tr en sızıntı ortanca
+kullanım tr en sızıntı yazdır
+kullanım tr en çerçeve 1
+kurucu en en eksik 'init'
+kurucu en en sızıntı fonksiyon
+kurucu en en sızıntı kurucu
+kurucu tr en eksik 'init'
+kurucu tr en sızıntı fonksiyon
+kurucu tr en sızıntı kurucu
+metot_kullanımı en en sızıntı ekle
+metot_kullanımı en en sızıntı yazdır
+metot_kullanımı en en çerçeve 1
+metot_kullanımı tr en sızıntı ekle
+metot_kullanımı tr en sızıntı yazdır
+metot_kullanımı tr en çerçeve 1
 modül_hatası en en işaret
 modül_hatası en en sütun
 modül_hatası en en sızıntı aktar
@@ -70,3 +96,17 @@ yapı_değeri en tr sızıntı uzunluk
 çalışma_hatası en en çerçeve 2
 çalışma_hatası tr en sızıntı yazdır
 çalışma_hatası tr en çerçeve 2
+öneri en en sızıntı yazdır
+öneri en en çerçeve 1
+öneri tr en sızıntı yazdır
+öneri tr en çerçeve 1
+örnek_kod en en sızıntı eğer
+örnek_kod en en sızıntı tip
+örnek_kod en en çerçeve 2
+örnek_kod tr en sızıntı eğer
+örnek_kod tr en sızıntı tip
+örnek_kod tr en çerçeve 2
+üye_önerisi en en sızıntı yazdır
+üye_önerisi en en çerçeve 2
+üye_önerisi tr en sızıntı yazdır
+üye_önerisi tr en çerçeve 2
