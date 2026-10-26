@@ -36,9 +36,6 @@ func main() {
 	genmain.RunMain("snippets", snippetsPath, func(string) ([]byte, error) { return Generate() })
 }
 
-// fallbackLanguage, sözcük, ad ve açıklama tablosunda satırı olmayan dillerin kullandığı dildir.
-const fallbackLanguage = "en"
-
 // holeRe şablon kodundaki yer tutucu adıdır (ph_ad).
 var holeRe = regexp.MustCompile(`ph_[A-Za-z0-9_]+`)
 
@@ -53,19 +50,11 @@ type entry struct {
 	Body        []string `json:"body"`
 }
 
-// langText dil için metinlerdir; dilin dosyası yoksa yedek dilinki kullanılır.
-func langText(lang string) languageText {
-	if v, ok := texts[lang]; ok {
-		return v
-	}
-	return texts[fallbackLanguage]
-}
-
 // fill bir deliğin metnindeki %sözcük% yazımlarını dilin sözcükleriyle doldurur.
 func fill(hole, lang string) (string, error) {
 	var missing string
 	out := wordRe.ReplaceAllStringFunc(hole, func(m string) string {
-		w, ok := langText(lang).Words[strings.Trim(m, "%")]
+		w, ok := texts[lang].Words[strings.Trim(m, "%")]
 		if !ok {
 			missing = m
 		}
@@ -122,7 +111,7 @@ func build(t template, language *codes.Language) (entry, error) {
 			prefix = append(prefix, "."+name)
 		}
 	}
-	about := langText(lang).Templates[t.ID]
+	about := texts[lang].Templates[t.ID]
 	return entry{Label: about.Label, Description: about.Description, Prefix: prefix, Body: body}, nil
 }
 

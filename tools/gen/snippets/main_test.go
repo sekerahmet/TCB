@@ -31,11 +31,14 @@ func generated(t *testing.T) map[string][]entry {
 	return result
 }
 
-// Her gömülü yazım dilinin, her şablonun bir hâli vardır ve hiçbirinde çözülmemiş yer tutucu (ph_ ya da
-// %sözcük%) kalmaz.
+// Her gömülü yazım dilinin kendi metin dosyası (text/<dil>.json) vardır, yedek dil yoktur; her şablonun her
+// dilde bir hâli vardır ve hiçbirinde çözülmemiş yer tutucu (ph_ ya da %sözcük%) kalmaz.
 func TestSnippetsEveryLanguageEveryTemplate(t *testing.T) {
 	result := generated(t)
 	for _, lang := range codes.Languages() {
+		if _, err := textFiles.ReadFile("text/" + lang + ".json"); err != nil {
+			t.Errorf("%s: text/%s.json yok: %v", lang, lang, err)
+		}
 		entries := result[lang]
 		if len(entries) != len(templates) {
 			t.Errorf("%s: %d şablon üretildi; %d bekleniyordu", lang, len(entries), len(templates))
