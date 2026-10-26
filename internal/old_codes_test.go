@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
@@ -29,19 +30,24 @@ var oldCodeAllowed = map[string]map[string]string{
 		"G400": "madde 15: eski kodun kimliğe geçişinin örneği", "T910": "madde 15: eski kodun kimliğe geçişinin örneği"},
 	"tools/codegraph/gaps.md": {"A001": "eski kodun kimliğe geçişinin örneği (ana oturumun dosyası)",
 		"G400": "eski anahtarın geçmişi ve sorgusu (deleted/history maddesi)"},
-	"docs/README.md":                       {"A001": "eski kod biçiminin örneği (eşleme belgesinin tanıtımı)"},
-	"docs/spec/02_sozcuk_yapisi.md":        {"A001": "2.3a: eski biçim artık sıradan addır", "G100": "2.3a: eski biçim artık sıradan addır"},
-	"docs/spec/17_kodlar.md":               {"A001": "eski numaralı kodun örneği", "A030": "17.1: okunmayan eski biçim sürümünün örneği"},
-	"internal/lang/codes/README.md":        {"A001": "eski kodların eşleme belgesine yönlendirme"},
-	"internal/lang/codes/language_test.go": {"A001": "eski biçim kimlik değildir ve ayrılmış değildir", "G100": "eski biçim kimlik değildir ve ayrılmış değildir"},
-	"tests/negative/kodlu_surum.tr":        {"A030": "eski kodlu biçim sürümü (2) okunmaz"},
-	"tests/sozcuk_yapisi_test.tr":          {"G100": "2.3a: eski kod biçimi sıradan addır"},
-	"tools/codegraph/codehist.go":          {"A001": "geçmişteki eski anahtarlar da okunur"},
+	"docs/README.md":                                  {"A001": "eski kod biçiminin örneği (eşleme belgesinin tanıtımı)"},
+	"docs/spec/02_sozcuk_yapisi.md":                   {"A001": "2.3a: eski biçim artık sıradan addır", "G100": "2.3a: eski biçim artık sıradan addır"},
+	"docs/spec/17_kodlar.md":                          {"A001": "eski numaralı kodun örneği", "A030": "17.1: okunmayan eski biçim sürümünün örneği"},
+	"internal/lang/codes/README.md":                   {"A001": "eski kodların eşleme belgesine yönlendirme"},
+	"internal/lang/codes/language_test.go":            {"A001": "eski biçim kimlik değildir ve ayrılmış değildir", "G100": "eski biçim kimlik değildir ve ayrılmış değildir"},
+	"tests/negative/kodlu_surum.tr":                   {"A030": "eski kodlu biçim sürümü (2) okunmaz"},
+	"tests/sozcuk_yapisi_test.tr":                     {"G100": "2.3a: eski kod biçimi sıradan addır"},
+	"tools/codegraph/codehist.go":                     {"A001": "geçmişteki eski anahtarlar da okunur"},
+	"tools/codegraph/testdata/planning_questions.txt": {"K102": "silinmiş kodun geçmişi (codegraph deleted sorusu)"},
 }
 
-// Kural (dil tanımı 17, madde 15 adım 0): kodlar kimlikleriyle anılır (TR_fn_print); izlenen .md, .go, .tr ve
-// .json dosyalarında eski numaralı kod biçimi (G100) kalmaz. Neden: eşleme belgesi dışında kalan eski anılış,
-// okuyanı (ve hafızası olmayan bir oturumu) artık var olmayan bir kod düzenine götürür.
+// oldCodeBinary metin olmayan izlenen dosyalardır (uzantı ya da ad): ret listesi. UTF-8 olmayan dosya da atlanır.
+var oldCodeBinary = map[string]bool{".npy": true, ".safetensors": true, ".trt": true, "go.sum": true}
+
+// Kural (dil tanımı 17, madde 15 adım 0): kodlar kimlikleriyle anılır (TR_fn_print); izlenen metin dosyalarında
+// (uzantısı ne olursa olsun; ikili biçimler ve UTF-8 olmayanlar hariç) eski numaralı kod biçimi (G100) kalmaz. Neden:
+// eşleme belgesi dışında kalan eski anılış, okuyanı (ve hafızası olmayan bir oturumu) artık var olmayan bir kod
+// düzenine götürür.
 func TestNoOldCodeForm(t *testing.T) {
 	root := reporoot.Root()
 	var bad []string
@@ -51,9 +57,7 @@ func TestNoOldCodeForm(t *testing.T) {
 		if err != nil || d.IsDir() {
 			return err
 		}
-		switch filepath.Ext(path) {
-		case ".md", ".go", ".tr", ".json":
-		default:
+		if oldCodeBinary[filepath.Ext(path)] || oldCodeBinary[d.Name()] {
 			return nil
 		}
 		rel := filepath.ToSlash(strings.TrimPrefix(path, root+string(filepath.Separator)))
@@ -63,6 +67,9 @@ func TestNoOldCodeForm(t *testing.T) {
 		data, err := os.ReadFile(path)
 		if err != nil {
 			return err
+		}
+		if !utf8.Valid(data) {
+			return nil // ikili dosya
 		}
 		files++
 		allowed := oldCodeAllowed[rel]
