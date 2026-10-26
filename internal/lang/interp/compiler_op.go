@@ -120,10 +120,10 @@ func intFastFunc(codeVal uint8) intFast {
 	return nil
 }
 func (c *compiler) binary(k *compilerScope, e *ast.InfixExpression) exprCode {
-	codeVal := opCode(e.Operator)
+	codeVal := opCode(string(e.Operator))
 	leftFn := c.expression(k, e.Left)
 	rightFn := c.expression(k, e.Right)
-	op := e.Operator
+	op := string(e.Operator)
 	line := e.Line()
 
 	// Kısa devre ve özel operatörler (&&, ||, ??, |>)

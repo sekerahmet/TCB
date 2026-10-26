@@ -88,7 +88,7 @@ func (p *Parser) parseFloatLiteral() ast.Expression {
 
 func (p *Parser) parsePrefixExpression() ast.Expression {
 	tok := p.curToken()
-	op := tok.Literal
+	op := lexer.TokenType(tok.Literal)
 	if tok.Type == lexer.TokKwNot {
 		op = "!"
 	}
@@ -104,7 +104,7 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 }
 func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	tok := p.curToken()
-	op := tok.Literal
+	op := lexer.TokenType(tok.Literal)
 	if tok.Type == lexer.TokKwAnd {
 		op = "&&"
 	} else if tok.Type == lexer.TokKwOr {

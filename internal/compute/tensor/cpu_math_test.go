@@ -233,7 +233,7 @@ func TestExpPositionIndependent(t *testing.T) {
 	e := Full(-48.528, 9).Exp().Data()
 	for i := range e {
 		if e[i] != e[0] {
-			t.Fatalf("üstel(t)[%d] = %v, [0] = %v", i, e[i], e[0])
+			t.Fatalf("exp(t)[%d] = %v, [0] = %v", i, e[i], e[0])
 		}
 	}
 	// Softmax son eksende ve diğer eksende aynı değerleri verir.

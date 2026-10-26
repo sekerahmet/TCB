@@ -13,6 +13,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
@@ -21,7 +22,8 @@ import (
 // İngilizce ve Türkçe kodlu küçük programlar TR_DIL=en ve TR_DIL=tr ile çalışır; çıktıda okuyanın
 // dili dışındaki bir dilin sözcüğü ve hiçbir kodun kimliği (TR_fn_print) geçmez (iki dilde aynı
 // yazılanlar, kullanıcı adları ve programdaki metinler hariç), hata çerçevesinin satırı okuyanın görünümündeki satırdır,
-// çerçevedeki '^' ve iletideki sütun işaretlenen adın o görünümdeki yeridir. Okuyan, görüntüde
+// çerçevedeki '^' ve iletideki sütun işaretlenen adın o görünümdeki yeridir. İletinin içindeki dil
+// adları (öneri, örnek kod, kullanım satırı, kurucu) okuyanın adıyla geçer (want). Okuyan, görüntüde
 // TR_DIL'dir; değerin metninde ve yakalanan hatada dosyanın dilidir (17.7, 8.3).
 //
 // Bugün kalan durumlar testdata/display_known.txt'dedir ("yüzey F R tür ayrıntı"); liste
@@ -55,6 +57,10 @@ type displaySurface struct {
 	// rawFrame: çerçeve dosyayı yazıldığı gibi gösterir, sızıntı denetimine girmez.
 	rawFrame bool
 	json     bool
+	// want iletinin içinde okuyanın dilinde geçmesi gereken metinlerdir (öneri, örnek kod,
+	// kullanım satırı): sözcük araması okuyanın dilinde de aynı yazılan bir sözcüğü sızıntı
+	// sayamaz, burada adın okuyanın adı olduğu sınanır.
+	want func(r *codes.Language) []string
 }
 
 func cmd(k codes.Code) func(r *codes.Language) []string {
@@ -102,7 +108,35 @@ var displaySurfaces = []displaySurface{
 	{name: "hata_ayıklayıcı", files: map[string]string{"p.tr": "değişken ad_1 = [1]\nyazdır(ad_1.ad_9)\n"},
 		args:  cmd(codes.CmdDebug),
 		input: func(r *codes.Language) string { return strings.Repeat(r.Name(codes.DbgContinue)+"\n", 3) }, frameFile: "p.tr"},
+	// İletinin içindeki dil adları (S4): öneri, örnek kod, kullanım satırı, kurucu.
+	{name: "öneri", files: map[string]string{"p.tr": "yazdır(tensr([1.0]))\n"}, args: run, frameFile: "p.tr",
+		want: func(r *codes.Language) []string { return []string{"'" + r.Name(codes.TypeTensor) + "'"} }},
+	{name: "üye_önerisi", files: map[string]string{"p.tr": "değişken ad_1 = tensör([1.0])\nyazdır(ad_1.şekl)\n"}, args: run, frameFile: "p.tr",
+		want: func(r *codes.Language) []string { return []string{"'" + r.Name(codes.MemShape) + "'"} }},
+	{name: "adlı_argüman_önerisi", files: map[string]string{"p.tr": "yazdır(toplam(tensör([1.0]), eksn: 0))\n"}, args: run, frameFile: "p.tr",
+		want: func(r *codes.Language) []string {
+			return []string{r.Name(codes.FnSum) + "()", "'" + r.Name(codes.ArgDim) + "'"}
+		}},
+	{name: "örnek_kod", files: map[string]string{"p.tr": "değişken ad_1 = 1\neğer tip(ad_1) == \"Tamsayı\" {\n    yazdır(1)\n}\n"}, args: run, frameFile: "p.tr",
+		want: func(r *codes.Language) []string {
+			return []string{r.Name(codes.FnType) + "(x) == " + r.Name(codes.TypeInt)} // iletinin örneği x'le yazılır
+		}},
+	{name: "kullanım", files: map[string]string{"p.tr": "yazdır(ortanca())\n"}, args: run, frameFile: "p.tr",
+		want: func(r *codes.Language) []string { return []string{r.Name(codes.FnMedian) + "("} }},
+	{name: "metot_kullanımı", files: map[string]string{"p.tr": "yazdır([1, 2].ekle())\n"}, args: run, frameFile: "p.tr",
+		want: func(r *codes.Language) []string { return []string{"." + r.Name(codes.MemAppend) + "("} }},
+	// Sözdizimi hatalı program görünüme çevrilemez: kodlu biçimiyle (kimlikler dilden bağımsız) yazılır.
+	{name: "kurucu", args: run,
+		raw: func(*codes.Language) map[string]string {
+			return map[string]string{"p.tr": lexer.CodedHeader + "tr\nTR_kw_struct P {\n    ad_1\n" +
+				"    TR_kw_func TR_ctx_init(ad_2) {\n        TR_kw_self.ad_1 = ad_2\n    }\n" +
+				"    TR_kw_func TR_ctx_init(ad_3) {\n        TR_kw_self.ad_1 = ad_3\n    }\n}\nTR_fn_print(P(1))\n"}
+		},
+		want: func(r *codes.Language) []string { return []string{"'" + r.Name(codes.CtxInit) + "'"} }},
 }
+
+// run dosyayı çalıştıran argümanlardır (tr p.tr).
+func run(*codes.Language) []string { return []string{"p.tr"} }
 
 var turkishLanguage = mustLanguage("tr")
 
@@ -237,6 +271,13 @@ func displayCase(t *testing.T, s displaySurface, f, r *codes.Language) []string 
 			// (fmt'nin dolaylı String() çağrısı codegraph'ta görünmediği için burada sınanır).
 			if _, err := codes.Parse(w); err == nil {
 				entries = append(entries, "kimlik "+w)
+			}
+		}
+	}
+	if s.want != nil {
+		for _, w := range s.want(reader) {
+			if !strings.Contains(out, w) {
+				entries = append(entries, "eksik "+strings.ReplaceAll(w, " ", "_"))
 			}
 		}
 	}

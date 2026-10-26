@@ -240,7 +240,7 @@ func (p *Parser) parseExpressionOrAssignmentStatement() ast.Statement {
 		return &ast.AssignStatement{
 			Token:    opTok,
 			Target:   expr,
-			Operator: opTok.Literal,
+			Operator: lexer.TokenType(opTok.Literal),
 			Value:    val,
 		}
 	}
