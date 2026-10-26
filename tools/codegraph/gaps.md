@@ -23,11 +23,10 @@ her durumu kapatan genel çözüm ve sınıfı koruyan bir testtir.
 
 Son kapananlar (ana oturum 2026-10-26 aynı komutlarla doğruladı, main ed69e06a): kitaplık dosyasını `aktar "tr/..."` ile koşan testlerin bağlanması (`tests-for lib/katman.tr` → `TestLibraryModuleCheckAndBuild`, `lib/hazir.tr` → `TestReadyModelMatchesTransformers`); ince ayardan `stats.go`'nun testinin uzak sırası (artık 5. ve `direct`), `main.go`'ya `.tr` testlerinden kuşkulu bağ, yapı köprüsünün `implemented_by` gürültüsü, derlenmeyen dil paketinde cevapsızlık (son derlenen ikili, 98fcbb19), README sayıları (be65d001), sınav sorularının satır ve sayıya bağlılığı (aa0b2a14).
 
-- **`tr dizin` git'in yok saydığı `.tr` dosyalarını dizinliyor.** 2026-10-26, ana oturum gerçek kullanım denemesinde yaşadı (main ed69e06a). CODEGRAPH'ta (2026-10-26). Go tarafı kapandı (5ce7ac39: yok sayılan klasördeki paket grafiğe girmiyor); `.tr` dizini açık.
-  - Komut: `tr dizin tanım GPT` → 3 aday; biri `scratch/gpt30m/gpt30m.tr:81` (kimlik `struct:scratch/gpt30m/gpt30m.tr#TR_type_GPT`). İngilizcede de (`TR_DIL=en tr index definition GPT`).
-  - İkinci yol: `git check-ignore -v scratch/gpt30m/gpt30m.tr` → `.gitignore:25:scratch/`.
-  - Neden kritik: yerel cevap temiz kopyanınkinden farklı; ad sorusu yok sayılan dosyayla belirsizleşiyor, kişinin kendi denemesi kitaplığın bildirimiyle aynı sırada çıkıyor.
-  - Beklenen: codeindex yalnız git'in izlediği ya da yok saymadığı `.tr` dosyalarını okur (Go tarafıyla aynı kural, tek yerde). Test: yok sayılan klasördeki `.tr` dizine girmez.
+- **`tr dizin` yok sayılan klasördeki `.tr` dosyasını depodakilerle aynı sırada ve işaretsiz veriyor.** 2026-10-26, ana oturum gerçek kullanım denemesinde yaşadı (main ed69e06a). CODEGRAPH'ta (2026-10-26). Go tarafı (codegraph, depo aracı) kapandı: 5ce7ac39, yok sayılan klasördeki paket grafiğe girmiyor.
+  - Komut: `tr dizin tanım GPT` → 3 aday; `lib/katman.tr:490` ile `scratch/gpt30m/gpt30m.tr:81` aynı sırada, ayrımsız.
+  - Tasarım (codeindex README, 60997f54): `tr dizin` kullanıcının aracıdır, `.gitignore`'a bakmaz; kişinin `scratch/`'te yazdığı denemeler de dizine girer. **Karar (Ahmet, 2026-10-26): böyle kalır, ama yok sayılan dosya ayrı işaretli ve depodakilerden sonra gelir.** CODEGRAPH'ın dışlayan değişikliği (6e2b2a73) alınmadı.
+  - Beklenen: aday ve kullanım listelerinde git'in yok saydığı dosyadan gelen satır izlenen (ve izlenmeyip yok sayılmayan) dosyalardan sonra sıralanır, "yok sayılan klasör" diye işaretlenir; tek aday o değilse belirsizlik çözülürken depodaki önce gelir. Test: aynı ad hem `lib/`'de hem yok sayılan klasörde tanımlıyken `tanım` cevabında `lib/` önce, öbürü işaretli.
 
 - **`init()`'in okuduğu gömülü dosya, `init()`'in doldurduğu değişkeni kullanan testlere bağlanmıyor.** 2026-10-26, ana oturum yaşadı (tam denetim ve gerçek kullanım denemesi).
   - Komut: `go run ./tools/codegraph tests-for tools/gen/snippets/data.json` → yalnız `TestSnippetDataIsLanguageNeutral` (gömülü değişkeni doğrudan okuyan test).
