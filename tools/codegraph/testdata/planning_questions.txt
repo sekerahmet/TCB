@@ -22,7 +22,7 @@ codegraph query varsayılan_cihaz | first-item: TR_fn_default_device || internal
 codegraph path internal/stdlib/ml internal/compute/gpu | contains: (directed, 1 steps) | contains: -imports-> | src: deneme 1, 2026-10-23
 codegraph query bekle_gpu | contains: [tr_func] tools/gpu/gpt_training.tr | not: [name] internal/lang/codes/tr.json:1 | src: deneme 1, 2026-10-23
 codegraph similar ml.defaultDeviceBuiltin | top: similar function => 5 => devicesBuiltin | src: deneme 1, 2026-10-23
-codegraph tests-for internal/lang/codes/tr.json | group: tests that walk the whole list => e2e.TestExamplesCoverNames | src: deneme 1, 2026-10-23
+codegraph tests-for internal/lang/codes/tr.json --all | group: tests that walk the whole list => e2e.TestExamplesCoverNames | src: deneme 1, 2026-10-23
 codegraph tests-for TR_fn_default_device | first-of: <- tests ( => tests/tensor_test.tr || behavior_device_ | before: <- tests ( => tests that walk the whole list | src: deneme 1, 2026-10-23
 codegraph query "Yeni yerleşik" | contains: docs/recipes.md | src: deneme 1, 2026-10-23
 
