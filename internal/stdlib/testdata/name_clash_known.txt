@@ -111,7 +111,6 @@ en tr alan öğrenme_oranı
 en tr alan üst_klasör
 en tr alan şekil
 en tr alan şekillendir
-en tr blok_parametresi NaN
 en tr blok_parametresi aktar
 en tr blok_parametresi aralık
 en tr blok_parametresi arkkosinüs
@@ -196,7 +195,6 @@ en tr blok_parametresi sabit
 en tr blok_parametresi sil
 en tr blok_parametresi sinüs
 en tr blok_parametresi sonlu_mu
-en tr blok_parametresi sonsuz
 en tr blok_parametresi sonuç
 en tr blok_parametresi standart_sapma
 en tr blok_parametresi sıfırlar
@@ -349,7 +347,6 @@ en tr değer üstel
 en tr değer üstel_eksi_bir
 en tr değer İlerleme
 en tr değer İyileştirici
-en tr değişken NaN
 en tr değişken aktar
 en tr değişken aralık
 en tr değişken arkkosinüs
@@ -434,7 +431,6 @@ en tr değişken sabit
 en tr değişken sil
 en tr değişken sinüs
 en tr değişken sonlu_mu
-en tr değişken sonsuz
 en tr değişken sonuç
 en tr değişken standart_sapma
 en tr değişken sıfırlar
@@ -473,7 +469,6 @@ en tr değişken örnekle
 en tr değişken özel_türev
 en tr değişken üstel
 en tr değişken üstel_eksi_bir
-en tr fonksiyon NaN
 en tr fonksiyon aktar
 en tr fonksiyon aralık
 en tr fonksiyon arkkosinüs
@@ -558,7 +553,6 @@ en tr fonksiyon sabit
 en tr fonksiyon sil
 en tr fonksiyon sinüs
 en tr fonksiyon sonlu_mu
-en tr fonksiyon sonsuz
 en tr fonksiyon sonuç
 en tr fonksiyon standart_sapma
 en tr fonksiyon sıfırlar
@@ -597,7 +591,6 @@ en tr fonksiyon örnekle
 en tr fonksiyon özel_türev
 en tr fonksiyon üstel
 en tr fonksiyon üstel_eksi_bir
-en tr kullanıcı_adlı_argümanı NaN
 en tr kullanıcı_adlı_argümanı aktar
 en tr kullanıcı_adlı_argümanı aralık
 en tr kullanıcı_adlı_argümanı arkkosinüs
@@ -682,7 +675,6 @@ en tr kullanıcı_adlı_argümanı sabit
 en tr kullanıcı_adlı_argümanı sil
 en tr kullanıcı_adlı_argümanı sinüs
 en tr kullanıcı_adlı_argümanı sonlu_mu
-en tr kullanıcı_adlı_argümanı sonsuz
 en tr kullanıcı_adlı_argümanı sonuç
 en tr kullanıcı_adlı_argümanı standart_sapma
 en tr kullanıcı_adlı_argümanı sıfırlar
@@ -795,7 +787,6 @@ en tr modül_adı KontrolNoktası
 en tr modül_adı Liste
 en tr modül_adı Mantık
 en tr modül_adı Metin
-en tr modül_adı NaN
 en tr modül_adı Nesne
 en tr modül_adı Ondalık
 en tr modül_adı Parçalayıcı
@@ -875,7 +866,6 @@ en tr modül_adı rms_normu
 en tr modül_adı sil
 en tr modül_adı sinüs
 en tr modül_adı sonlu_mu
-en tr modül_adı sonsuz
 en tr modül_adı standart_sapma
 en tr modül_adı sıfırlar
 en tr modül_adı sınırla
@@ -974,7 +964,6 @@ en tr modül_üyesi öğrenme_oranı
 en tr modül_üyesi üst_klasör
 en tr modül_üyesi şekil
 en tr modül_üyesi şekillendir
-en tr parametre NaN
 en tr parametre aktar
 en tr parametre aralık
 en tr parametre arkkosinüs
@@ -1059,7 +1048,6 @@ en tr parametre sabit
 en tr parametre sil
 en tr parametre sinüs
 en tr parametre sonlu_mu
-en tr parametre sonsuz
 en tr parametre sonuç
 en tr parametre standart_sapma
 en tr parametre sıfırlar
@@ -1164,7 +1152,6 @@ en tr sözlük_anahtarı öğrenme_oranı
 en tr sözlük_anahtarı üst_klasör
 en tr sözlük_anahtarı şekil
 en tr sözlük_anahtarı şekillendir
-en tr takma_ad NaN
 en tr takma_ad aktar
 en tr takma_ad aralık
 en tr takma_ad arkkosinüs
@@ -1249,7 +1236,6 @@ en tr takma_ad sabit
 en tr takma_ad sil
 en tr takma_ad sinüs
 en tr takma_ad sonlu_mu
-en tr takma_ad sonsuz
 en tr takma_ad sonuç
 en tr takma_ad standart_sapma
 en tr takma_ad sıfırlar
@@ -1326,7 +1312,6 @@ en tr tip_açıklaması yok
 en tr tip_açıklaması Örnekleyici
 en tr tip_açıklaması İlerleme
 en tr tip_açıklaması İyileştirici
-en tr yakala_adı NaN
 en tr yakala_adı aktar
 en tr yakala_adı aralık
 en tr yakala_adı arkkosinüs
@@ -1411,7 +1396,6 @@ en tr yakala_adı sabit
 en tr yakala_adı sil
 en tr yakala_adı sinüs
 en tr yakala_adı sonlu_mu
-en tr yakala_adı sonsuz
 en tr yakala_adı sonuç
 en tr yakala_adı standart_sapma
 en tr yakala_adı sıfırlar
@@ -1458,7 +1442,6 @@ en tr yapı KontrolNoktası
 en tr yapı Liste
 en tr yapı Mantık
 en tr yapı Metin
-en tr yapı NaN
 en tr yapı Nesne
 en tr yapı Ondalık
 en tr yapı Parçalayıcı
@@ -1553,7 +1536,6 @@ en tr yapı sabit
 en tr yapı sil
 en tr yapı sinüs
 en tr yapı sonlu_mu
-en tr yapı sonsuz
 en tr yapı sonuç
 en tr yapı standart_sapma
 en tr yapı sıfırlar
@@ -1820,7 +1802,6 @@ tr en blok_parametresi grad_check
 tr en blok_parametresi if
 tr en blok_parametresi import
 tr en blok_parametresi in
-tr en blok_parametresi inf
 tr en blok_parametresi init
 tr en blok_parametresi input
 tr en blok_parametresi int
@@ -1842,7 +1823,6 @@ tr en blok_parametresi mean
 tr en blok_parametresi median
 tr en blok_parametresi mixed_precision
 tr en blok_parametresi move
-tr en blok_parametresi nan
 tr en blok_parametresi no_grad
 tr en blok_parametresi none
 tr en blok_parametresi not
@@ -1944,7 +1924,6 @@ tr en değişken grad_check
 tr en değişken if
 tr en değişken import
 tr en değişken in
-tr en değişken inf
 tr en değişken init
 tr en değişken input
 tr en değişken int
@@ -1966,7 +1945,6 @@ tr en değişken mean
 tr en değişken median
 tr en değişken mixed_precision
 tr en değişken move
-tr en değişken nan
 tr en değişken no_grad
 tr en değişken none
 tr en değişken not
@@ -2068,7 +2046,6 @@ tr en fonksiyon grad_check
 tr en fonksiyon if
 tr en fonksiyon import
 tr en fonksiyon in
-tr en fonksiyon inf
 tr en fonksiyon init
 tr en fonksiyon input
 tr en fonksiyon int
@@ -2090,7 +2067,6 @@ tr en fonksiyon mean
 tr en fonksiyon median
 tr en fonksiyon mixed_precision
 tr en fonksiyon move
-tr en fonksiyon nan
 tr en fonksiyon no_grad
 tr en fonksiyon none
 tr en fonksiyon not
@@ -2192,7 +2168,6 @@ tr en kullanıcı_adlı_argümanı grad_check
 tr en kullanıcı_adlı_argümanı if
 tr en kullanıcı_adlı_argümanı import
 tr en kullanıcı_adlı_argümanı in
-tr en kullanıcı_adlı_argümanı inf
 tr en kullanıcı_adlı_argümanı init
 tr en kullanıcı_adlı_argümanı input
 tr en kullanıcı_adlı_argümanı int
@@ -2214,7 +2189,6 @@ tr en kullanıcı_adlı_argümanı mean
 tr en kullanıcı_adlı_argümanı median
 tr en kullanıcı_adlı_argümanı mixed_precision
 tr en kullanıcı_adlı_argümanı move
-tr en kullanıcı_adlı_argümanı nan
 tr en kullanıcı_adlı_argümanı no_grad
 tr en kullanıcı_adlı_argümanı none
 tr en kullanıcı_adlı_argümanı not
@@ -2391,7 +2365,6 @@ tr en modül_adı float
 tr en modül_adı floor
 tr en modül_adı fuse
 tr en modül_adı grad_check
-tr en modül_adı inf
 tr en modül_adı init
 tr en modül_adı input
 tr en modül_adı int
@@ -2412,7 +2385,6 @@ tr en modül_adı mean
 tr en modül_adı median
 tr en modül_adı mixed_precision
 tr en modül_adı move
-tr en modül_adı nan
 tr en modül_adı no_grad
 tr en modül_adı ones
 tr en modül_adı parameters
@@ -2569,7 +2541,6 @@ tr en parametre grad_check
 tr en parametre if
 tr en parametre import
 tr en parametre in
-tr en parametre inf
 tr en parametre init
 tr en parametre input
 tr en parametre int
@@ -2591,7 +2562,6 @@ tr en parametre mean
 tr en parametre median
 tr en parametre mixed_precision
 tr en parametre move
-tr en parametre nan
 tr en parametre no_grad
 tr en parametre none
 tr en parametre not
@@ -2759,7 +2729,6 @@ tr en takma_ad grad_check
 tr en takma_ad if
 tr en takma_ad import
 tr en takma_ad in
-tr en takma_ad inf
 tr en takma_ad init
 tr en takma_ad input
 tr en takma_ad int
@@ -2781,7 +2750,6 @@ tr en takma_ad mean
 tr en takma_ad median
 tr en takma_ad mixed_precision
 tr en takma_ad move
-tr en takma_ad nan
 tr en takma_ad no_grad
 tr en takma_ad none
 tr en takma_ad not
@@ -2912,7 +2880,6 @@ tr en yakala_adı grad_check
 tr en yakala_adı if
 tr en yakala_adı import
 tr en yakala_adı in
-tr en yakala_adı inf
 tr en yakala_adı init
 tr en yakala_adı input
 tr en yakala_adı int
@@ -2934,7 +2901,6 @@ tr en yakala_adı mean
 tr en yakala_adı median
 tr en yakala_adı mixed_precision
 tr en yakala_adı move
-tr en yakala_adı nan
 tr en yakala_adı no_grad
 tr en yakala_adı none
 tr en yakala_adı not
@@ -3053,7 +3019,6 @@ tr en yapı grad_check
 tr en yapı if
 tr en yapı import
 tr en yapı in
-tr en yapı inf
 tr en yapı init
 tr en yapı input
 tr en yapı is_finite
@@ -3075,7 +3040,6 @@ tr en yapı mean
 tr en yapı median
 tr en yapı mixed_precision
 tr en yapı move
-tr en yapı nan
 tr en yapı no_grad
 tr en yapı not
 tr en yapı ones

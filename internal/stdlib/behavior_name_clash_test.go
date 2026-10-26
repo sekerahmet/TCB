@@ -22,8 +22,9 @@ import (
 // gömülü dilin (O) sözcüğü kullanıcının adı olarak geçince ya ad kuralı hatası verilir (sözcük
 // bulunduğu yerin ad alanında O'nun bir sözcüğüyse; O'nun bağlamsal sözcükleri her yerde) ya da
 // program, adı nötr bir adla değiştirilmiş hâliyle aynı sonucu verir. O'nun her sözcüğü dil
-// dosyasından ad alanıyla okunur, F'de aynı yazılanlar sınava girmez; programlar Türkçe görünümle
-// yazılıp kodlu biçim üzerinden F'nin görünümüne çevrilir (kodların biçimini bilmez).
+// dosyasından ad alanıyla okunur (değer adları program adı değildir; dil tanımı 17'nin tablosu),
+// F'de aynı yazılanlar sınava girmez; programlar Türkçe görünümle yazılıp kodlu biçim üzerinden
+// F'nin görünümüne çevrilir (kodların biçimini bilmez).
 //
 // Bugün kalan durumlar testdata/name_clash_known.txt'dedir ("F O yer sözcük"); liste yalnızca
 // küçülür: listede olmayan durum kalırsa ya da listedeki durum geçerse test düşer. Artık geçen
@@ -170,7 +171,9 @@ func clashWords(o, f *codes.Language) []clashWord {
 	var names []string
 	for _, k := range o.Codes() {
 		ns := k.Namespace()
-		if !slices.Contains(programNamespaces, ns) {
+		// Değer adları (inf, nan) genel ad alanında olsa da program adı değildir: kaynakta sözcük
+		// olarak okunmaz, yalnız metinden okunur (dil tanımı 17'nin sınıf tablosu).
+		if !slices.Contains(programNamespaces, ns) || k.Class() == codes.ClassValueName {
 			continue
 		}
 		name := o.Name(k)

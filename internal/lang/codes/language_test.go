@@ -130,6 +130,9 @@ func TestIdentities(t *testing.T) {
 		{CmdIndex, "TR_cmd_index", NamespaceCommand}, {SubDefinition, "TR_sub_definition", NamespaceSubcommand},
 		{OptHelp, "TR_opt_help", NamespaceOption}, {ReplExit, "TR_repl_exit", NamespaceCommand},
 		{DbgStep, "TR_dbg_step", NamespaceDebugger}, {EnvLang, "TR_env_LANG", NamespaceEnvironment},
+		// Değer adları genel ad alanındadır ama program adı değildir (dil tanımı 17'nin tablosu):
+		// ad çakışması sınavı onları atlar; ad alanı, aynı dilde aynı yazılan bir yerleşikle
+		// çakışmayı yükleyicide yakalar.
 		{ValNan, "TR_val_nan", NamespaceGlobal}} {
 		if c.k.String() != c.s {
 			t.Errorf("%d: %s, %s bekleniyordu", c.k, c.k, c.s)
