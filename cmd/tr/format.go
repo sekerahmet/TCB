@@ -17,19 +17,15 @@ import (
 // tüm .tr dosyaları işlenir.
 func formatCommand(args []string) {
 	check := false
-	var targets []string
-	for _, a := range args {
-		if a == "-k" || isOption(a, codes.OptCheck) {
-			check = true
-		} else {
-			targets = append(targets, a)
-		}
-	}
+	targets := fileArguments(codes.NameRef(codes.CmdFormat), args, []codes.Code{codes.OptCheck}, func(a string) bool {
+		check = check || a == "-k" || isOption(a, codes.OptCheck)
+		return a == "-k" || isOption(a, codes.OptCheck)
+	})
 	if len(targets) == 0 {
 		exitWithError(messages.Text(messages.H8691, codes.NameRef(codes.CmdFormat), codes.OptionFlag(codes.OptCheck)))
 	}
 
-	files, err := collectTrFiles(targets)
+	files, err := collectTrFiles(targets, messages.H2108)
 	if err != nil {
 		exitWithError(err)
 	}
@@ -85,10 +81,11 @@ func formatCommand(args []string) {
 }
 
 // trFiles hedef bir dosyaysa onu, klasörse altındaki tüm .tr dosyalarını (gizli
-// klasörler hariç) sıralı olarak döndürür.
-func trFiles(target string) ([]string, error) {
+// klasörler hariç) sıralı olarak döndürür; açılamayan hedef komutun failed iletisiyle (H2108
+// biçimlenemedi, H2115 kodlanamadı, H2116 çözülemedi) bildirilir.
+func trFiles(target string, failed messages.Code) ([]string, error) {
 	return source.WalkFiles(target, ".tr", func(target string, err error) error {
-		return turkish.FileError("", target, messages.H2108, err)
+		return turkish.FileError("", target, failed, err)
 	}, func(path string, err error) error {
 		return turkish.FileError("", path, messages.H2109, err)
 	})

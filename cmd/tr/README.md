@@ -10,4 +10,6 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 
 ## Standartlar
 
+**Bilinmeyen seçenek dosya adı sanılmaz.** `-` ile başlayan ve komutun seçeneği olmayan argüman (tek başına `-` standart giriştir) her komutta bilinmeyen seçenektir: ileti komutun seçeneklerini sayar ve yazımı en yakın olanı önerir (`tr biçimle --kontrl` → `--kontrol`); `tr --yardım` asıl komutu önerir. Adı `-` ile başlayan dosya `--`'dan sonra verilir (`tr -- -a.tr`). Python argparse ve Go `flag` de böyle reddeder. Denetim: `TestUnknownOptionIsNotAFile` (komutları `commands` tablosundan gezer).
+
 **`tr dizin` alt komutları yalnızca dizinin altındadır.** `tr dizin tanım|kullananlar|sınayanlar|etki ad` ve `tr dizin yeniden_adlandır ad yeni` (listeler, hiçbir dosyayı değiştirmez) çalışır; `tr tanım` bir komut değildir (dosya adı sanılır). Çıkış kodu sonucun durumudur: 0 tamam, 3 belirsiz ad (adaylar listelenir), 4 bulunamayan ad (yakın adlar önerilir), 1 kullanım hatası. Çıktı biçimleri ve şema: [`internal/devtools/codeindex`](../../internal/devtools/codeindex/README.md). Denetim: `TestIndexCommandAndSubcommands`, `TestIndexSubcommandsInEveryLanguage`, `TestIndexExitCodesAndJSON`, `TestIndexUsageErrors`, `TestIndexRootDiscovery`, `TestIndexRename` (cmd/tr/e2e).

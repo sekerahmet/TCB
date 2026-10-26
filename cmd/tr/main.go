@@ -69,14 +69,22 @@ func main() {
 		return
 	}
 	command := commandCode(args[0])
-	if command == codes.None {
-		if replacement, ok := oldCommand(args[0]); ok {
-			exitWithError(messages.Text(messages.H8602, args[0], replacement))
-		}
-	}
 	if run, ok := commands[command]; ok {
 		run(args[1:])
 		return
+	}
+	if replacement, ok := oldCommand(args[0]); ok {
+		exitWithError(messages.Text(messages.H8602, args[0], replacement))
+	}
+	if looksLikeOption(args[0]) {
+		unknownTopLevelOption(args[0])
+	}
+	if args[0] == "--" {
+		args = args[1:] // adı '-' ile başlayan dosya: tr -- -x.tr
+		if len(args) == 0 {
+			startREPL()
+			return
+		}
 	}
 	runFile(args[0], args[1:])
 }
@@ -97,15 +105,10 @@ func commandCode(arg string) codes.Code {
 	return codes.None
 }
 
-// oldCommand bir komutun eski yazımını (Türkçe harfsiz biçim, --help ve --version) tanır ve
-// asıl adını verir. Eski yazım KABUL EDİLMEZ: dosya adı sanılıp çalıştırılmaya çalışılmaz.
+// oldCommand bir komutun eski yazımını (Türkçe harfsiz biçim) tanır ve asıl adını verir. Eski
+// yazım KABUL EDİLMEZ: dosya adı sanılıp çalıştırılmaya çalışılmaz. Komut adının seçenek
+// biçimi (--help, --yardım) unknownTopLevelOption'dadır.
 func oldCommand(arg string) (string, bool) {
-	switch arg {
-	case "--help":
-		return codes.DisplayName(codes.CmdHelp), true
-	case "--version":
-		return codes.DisplayName(codes.CmdVersion), true
-	}
 	if k, ok := codes.Display().Suggest(codes.NamespaceCommand, arg, nil); ok {
 		return codes.DisplayName(k), true
 	}
@@ -114,36 +117,51 @@ func oldCommand(arg string) (string, bool) {
 
 // commands tr'nin bütün alt komutlarıdır; her biri komut adından sonraki argümanları alır.
 var commands = map[codes.Code]func([]string){
-	codes.CmdHelp: func([]string) { printHelp() }, codes.CmdVersion: func([]string) { fmt.Println(messages.Text(messages.H8603, Version)) },
+	codes.CmdHelp: helpCommand, codes.CmdVersion: versionCommand,
 	codes.CmdCheck: checkCommand, codes.CmdBuild: buildCommand, codes.CmdDap: dapCommand, codes.CmdRun: runCommand,
 	codes.CmdDebug: debugCommand, codes.CmdTest: testCommand, codes.CmdFormat: formatCommand, codes.CmdEncode: encodeCommand,
 	codes.CmdDecode: decodeCommand, codes.CmdShow: showCommand, codes.CmdWatch: watchCommand, codes.CmdProfile: profileCommand,
 	codes.CmdIndex: indexCommand,
 }
 
+// helpCommand 'tr yardım' komutudur.
+func helpCommand(args []string) {
+	noOptions(codes.CmdHelp, args)
+	printHelp()
+}
+
+// versionCommand 'tr sürüm' komutudur.
+func versionCommand(args []string) {
+	noOptions(codes.CmdVersion, args)
+	fmt.Println(messages.Text(messages.H8603, Version))
+}
+
 // checkCommand 'tr kontrol dosya.tr' komutudur.
 func checkCommand(args []string) {
-	if len(args) < 1 {
+	file, _, ok := programFile(codes.NameRef(codes.CmdCheck), args)
+	if !ok {
 		exitWithError(messages.Text(messages.H8605, codes.NameRef(codes.CmdCheck), "ornek.tr"))
 	}
-	checkFile(args[0])
+	checkFile(file)
 }
 
 // buildCommand 'tr derle dosya.tr [çıktı]' komutudur.
 func buildCommand(args []string) {
-	if len(args) < 1 {
+	files := fileArguments(codes.NameRef(codes.CmdBuild), args, nil, nil)
+	if len(files) < 1 {
 		exitWithError(messages.Text(messages.H8606, codes.NameRef(codes.CmdBuild)))
 	}
 	outPath := ""
-	if len(args) >= 2 {
-		outPath = args[1]
+	if len(files) >= 2 {
+		outPath = files[1]
 	}
-	compileToExe(args[0], outPath)
+	compileToExe(files[0], outPath)
 }
 
 // dapCommand düzenleyicinin hata ayıklama oturumudur: iletiler standart giriş/çıkış üzerinden
 // gelir. Oturum bitince motorların açık kaynakları kapanır, geçici klasörler silinir.
-func dapCommand([]string) {
+func dapCommand(args []string) {
+	noOptions(codes.CmdDap, args)
 	err := debugger.ServeDAP(os.Stdin, os.Stdout)
 	stdlib.Close()
 	if err != nil {
@@ -154,10 +172,11 @@ func dapCommand([]string) {
 
 // runCommand 'tr çalıştır dosya.tr [argümanlar]' komutudur.
 func runCommand(args []string) {
-	if len(args) < 1 {
+	file, rest, ok := programFile(codes.NameRef(codes.CmdRun), args)
+	if !ok {
 		exitWithError(messages.Text(messages.H8605, codes.NameRef(codes.CmdRun), "ornek.tr"))
 	}
-	runFile(args[0], args[1:])
+	runFile(file, rest)
 }
 
 // exitWithError iletiyi "Hata: ..." olarak standart hataya yazar ve 1 koduyla çıkar.
@@ -219,10 +238,11 @@ func runFile(path string, arguments []string) {
 // debugCommand 'tr hata_ayıkla dosya.tr [argümanlar]' komutudur; dosyadan sonraki argümanlar
 // programındır.
 func debugCommand(args []string) {
-	if len(args) < 1 {
+	file, rest, ok := programFile(codes.NameRef(codes.CmdDebug), args)
+	if !ok {
 		exitWithError(messages.Text(messages.H8608, codes.NameRef(codes.CmdDebug)))
 	}
-	debugFile(args[0], args[1:])
+	debugFile(file, rest)
 }
 
 func debugFile(path string, arguments []string) {
