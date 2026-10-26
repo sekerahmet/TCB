@@ -5,7 +5,9 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -32,10 +34,18 @@ type Catalog struct {
 }
 
 // Definitions is the language-independent part: the parameter names of every code, in the
-// order New takes their values.
+// order New takes their values, and its name slots (slot name → identity of a library name).
 type Definitions struct {
 	Params map[Code][]string
+	Slots  map[Code]map[string]string
 	Codes  []Code // artan sırada
+}
+
+// Slots returns the name slots of every code that has any: slot name → identity (TR_arg_kind).
+// Packages that know the names check that every identity is a name of the language.
+func Slots() map[Code]map[string]string {
+	load()
+	return definitions.Slots
 }
 
 var (
@@ -131,7 +141,8 @@ func (c *Catalog) translatesValue(a any) bool {
 // in ascending order, parameter names unique and non-empty.
 func ParseDefinitions(data []byte) (*Definitions, error) {
 	var raw map[string]struct {
-		Param []string `json:"param"`
+		Param []string          `json:"param"`
+		Slots map[string]string `json:"slots"`
 	}
 	if err := strictUnmarshal(data, &raw); err != nil {
 		return nil, err
@@ -140,7 +151,7 @@ func ParseDefinitions(data []byte) (*Definitions, error) {
 	if err != nil {
 		return nil, err
 	}
-	d := &Definitions{Params: make(map[Code][]string, len(raw))}
+	d := &Definitions{Params: make(map[Code][]string, len(raw)), Slots: map[Code]map[string]string{}}
 	for _, k := range keys {
 		c, err := Parse(k)
 		if err != nil {
@@ -152,6 +163,14 @@ func ParseDefinitions(data []byte) (*Definitions, error) {
 				return nil, fmt.Errorf("%s: parameter name %q is empty, repeated or invalid", k, p)
 			}
 			seen[p] = true
+		}
+		for slot, identity := range raw[k].Slots {
+			if slot == "" || strings.ContainsAny(slot, "{}|@ ") || identity == "" {
+				return nil, fmt.Errorf("%s: name slot %q or its identity %q is empty or invalid", k, slot, identity)
+			}
+		}
+		if len(raw[k].Slots) > 0 {
+			d.Slots[c] = raw[k].Slots
 		}
 		d.Params[c] = raw[k].Param
 		d.Codes = append(d.Codes, c)
@@ -181,7 +200,8 @@ func ParseCatalog(lang string, data []byte, d *Definitions) (*Catalog, error) {
 		if !ok {
 			return nil, fmt.Errorf("%s: not defined in definitions.json", k)
 		}
-		segs, used, err := compile(raw[k], params)
+		slots := d.Slots[code]
+		segs, used, slotsUsed, err := compile(raw[k], params, slots)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %v", k, err)
 		}
@@ -190,6 +210,11 @@ func ParseCatalog(lang string, data []byte, d *Definitions) (*Catalog, error) {
 		for i, p := range params {
 			if !used[i] {
 				return nil, fmt.Errorf("%s: parameter %q is not used in the text", k, p)
+			}
+		}
+		for _, slot := range slices.Sorted(maps.Keys(slots)) {
+			if !slotsUsed[slot] {
+				return nil, fmt.Errorf("%s: name slot %q is not used in the text", k, slot)
 			}
 		}
 		c.templates[code] = segs

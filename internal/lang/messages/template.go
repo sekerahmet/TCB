@@ -2,8 +2,10 @@ package messages
 
 import (
 	"fmt"
+	"maps"
 	"math"
 	"math/big"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -15,6 +17,9 @@ import (
 //	{ad|q}                       Go'nun %q biçimiyle tırnaklı (denetim karakterleri kaçırılır)
 //	{ad|acc} {ad|dat} {ad|loc}   hâl eki: dilin çekimcisi ekler (tr: 'f'yi, 'f'ye, 'f'de ...);
 //	{ad|abl} {ad|gen}            çekimcisi olmayan dilde ad olduğu gibi kalır
+//	{ad|list}                    liste değeri, dilin "ya da" kalıbıyla (OrList): a, b ya da c
+//	{@ad} {@ad|dat}              ad yuvası: tanımın "slots" tablosundaki kitaplık adı (kimlik),
+//	                             iletinin dilindeki adıyla; TR kaynağı adı geçirmez, katalog anar
 //	{ad, plural, one {..} other {..}}  sayıya göre biçim (CLDR çoğul kuralı); dalda (içindeki
 //	                                   seçim dallarında da) # sayıdır, "=N" tam eşleşme (N
 //	                                   sayının tek yazımı: =0, =1.5) kategoriden önce gelir
@@ -35,6 +40,7 @@ const (
 	segPlural                // {ad, plural, ...}
 	segSelect                // {ad, select, ...}
 	segNumber                // çoğul dalındaki #
+	segSlot                  // {@ad}: kimliği iletinin dilindeki adıyla yazar
 )
 
 // segment bir ileti şablonunun parçasıdır.
@@ -42,7 +48,7 @@ type segment struct {
 	kind     segKind
 	text     string               // segText
 	arg      int                  // parametrenin sırası
-	mod      string               // segArg: "", "q", "decimal" ya da hâl adı
+	mod      string               // segArg, segSlot: "", "q", "decimal", "list" ya da hâl adı
 	branches map[string][]segment // segPlural, segSelect: dal anahtarı → dal
 }
 
@@ -128,22 +134,23 @@ func inflect(lang, word, grammarCase string) string {
 	return f(word, grammarCase)
 }
 
-// compile şablonu parçalara ayırır ve her parametrenin kullanılıp kullanılmadığını verir.
-func compile(text string, params []string) ([]segment, []bool, error) {
-	p := &parser{text: text, params: params, used: make([]bool, len(params))}
+// compile şablonu parçalara ayırır ve her parametrenin ve ad yuvasının kullanılıp kullanılmadığını
+// verir.
+func compile(text string, params []string, slots map[string]string) ([]segment, []bool, map[string]bool, error) {
+	p := &parser{text: text, params: params, slots: slots, used: make([]bool, len(params)), slotsUsed: map[string]bool{}}
 	segs, err := p.sequence(false, false)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	if p.i < len(p.text) {
-		return nil, nil, fmt.Errorf("unmatched '}' (write }} for a literal brace)")
+		return nil, nil, nil, fmt.Errorf("unmatched '}' (write }} for a literal brace)")
 	}
 	for i, name := range params {
 		if p.used[i] && !covers(segs, i) {
-			return nil, nil, fmt.Errorf("{%s} is missing from some branches (use it in every branch or outside them)", name)
+			return nil, nil, nil, fmt.Errorf("{%s} is missing from some branches (use it in every branch or outside them)", name)
 		}
 	}
-	return segs, p.used, nil
+	return segs, p.used, p.slotsUsed, nil
 }
 
 // covers parametrenin seçilebilecek her dal yolunda görünüp görünmediğidir: dal dışında bir
@@ -181,6 +188,9 @@ type parser struct {
 	i      int
 	params []string
 	used   []bool
+	slots  map[string]string // ad yuvası → kimlik
+	// slotsUsed şablonda geçen ad yuvalarıdır.
+	slotsUsed map[string]bool
 }
 
 // sequence bir şablonu ya da (inBranch ise) bir dalın içini '}'ye kadar okur.
@@ -244,17 +254,34 @@ func (p *parser) placeholder(inPlural bool) (segment, error) {
 	p.i += end
 	if p.text[p.i] == '}' {
 		p.i++
+		if strings.HasPrefix(head, "@") {
+			return p.slot(head[1:])
+		}
 		name, mod, _ := strings.Cut(head, "|")
 		n, err := p.param(name)
 		if err != nil {
 			return segment{}, err
 		}
-		if mod != "" && mod != "q" && mod != "decimal" && !caseMods[mod] {
-			return segment{}, fmt.Errorf("{%s|%s}: unknown format (q, decimal, acc, dat, loc, abl, gen)", name, mod)
+		if mod != "" && mod != "q" && mod != "decimal" && mod != "list" && !caseMods[mod] {
+			return segment{}, fmt.Errorf("{%s|%s}: unknown format (q, decimal, list, acc, dat, loc, abl, gen)", name, mod)
 		}
 		return segment{kind: segArg, arg: n, mod: mod}, nil
 	}
 	return p.choice(strings.TrimSpace(head), inPlural)
+}
+
+// slot "{@ad}" ve "{@ad|dat}" biçimini (süslü parantezler okunmuş) çözer.
+func (p *parser) slot(head string) (segment, error) {
+	name, mod, _ := strings.Cut(head, "|")
+	identity, ok := p.slots[name]
+	if !ok {
+		return segment{}, fmt.Errorf("{@%s}: no such name slot in the definition (slots: %v)", name, slices.Sorted(maps.Keys(p.slots)))
+	}
+	if mod != "" && !caseMods[mod] {
+		return segment{}, fmt.Errorf("{@%s|%s}: unknown format (acc, dat, loc, abl, gen)", name, mod)
+	}
+	p.slotsUsed[name] = true
+	return segment{kind: segSlot, text: identity, mod: mod}, nil
 }
 
 // choice "{ad, plural|select, anahtar {dal} ...}" biçimini virgülden sonrasından okur. Bir
@@ -361,6 +388,10 @@ func (c *Catalog) render(code Code, args []any) string {
 // write parçaları b'ye yazar; number çoğul dalındaki # yerine geçen sayıdır.
 func (c *Catalog) write(b *strings.Builder, code Code, segs []segment, args []any, number any) {
 	for _, s := range segs {
+		if s.kind == segSlot {
+			c.writeSlot(b, s)
+			continue
+		}
 		if s.kind != segText && s.kind != segNumber && s.arg >= len(args) {
 			fmt.Fprintf(b, "{%s?}", c.params[code][s.arg])
 			continue
@@ -383,6 +414,8 @@ func (c *Catalog) write(b *strings.Builder, code Code, segs []segment, args []an
 				fmt.Fprintf(b, "%q", a)
 			case s.mod == "decimal":
 				b.WriteString(localDecimal(text, c.Language))
+			case s.mod == "list":
+				b.WriteString(c.listText(a, text))
 			case s.mod != "":
 				b.WriteString(inflect(c.Language, text, s.mod))
 			default:
@@ -402,6 +435,33 @@ func (c *Catalog) write(b *strings.Builder, code Code, segs []segment, args []an
 			c.write(b, code, branch, args, number)
 		}
 	}
+}
+
+// writeSlot ad yuvasını iletinin dilindeki adıyla yazar (kimlik çözücüsü yoksa kimliğin kendisi).
+func (c *Catalog) writeSlot(b *strings.Builder, s segment) {
+	name := s.text
+	if IdentityNames != nil {
+		name = IdentityNames(name, c.Language)
+	}
+	if s.mod != "" {
+		name = inflect(c.Language, name, s.mod)
+	}
+	b.WriteString(name)
+}
+
+// Listed is a parameter value that is a list of alternatives ({name|list}): the catalog writes
+// the items with the message language's "or" list pattern (OrListIn). A value that is not Listed
+// is written as it is.
+type Listed interface {
+	Items(lang string) []string
+}
+
+// listText {ad|list} için değerin listesidir; liste olmayan değer olduğu gibi yazılır.
+func (c *Catalog) listText(a any, text string) string {
+	if l, ok := a.(Listed); ok {
+		return OrListIn(c.Language, l.Items(c.Language)...)
+	}
+	return text
 }
 
 // IdentityNames metindeki kimlikleri lang'deki adlarıyla değiştirir; codes paketi kurar (DENEME).

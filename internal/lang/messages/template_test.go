@@ -176,3 +176,86 @@ func TestPluralOperands(t *testing.T) {
 		}
 	}
 }
+
+// slotCatalog tek kodlu (H0001) bir tanım ve katalog kurar; tanımda bir parametre ve iki ad yuvası vardır.
+func slotCatalog(t *testing.T, lang, text string) (*Catalog, error) {
+	t.Helper()
+	d, err := ParseDefinitions([]byte(`{"H0001": { "param": ["n"], "slots": {"heads": "TR_arg_heads", "fn": "TR_fn_run"} }}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ParseCatalog(lang, []byte(`{"H0001": `+quoteJSON(text)+`}`), d)
+}
+
+// Ad yuvası ({@ad}) kitaplığın bir adını iletinin dilindeki adıyla yazar; adı TR kaynağı geçirmez,
+// katalog anar. Hâl eki yuvaya da gelir.
+func TestNameSlot(t *testing.T) {
+	IdentityNames = func(id, lang string) string { return lang + ":" + id }
+	defer func() { IdentityNames = nil }()
+	RegisterInflector("tr", func(word, grammarCase string) string { return word + "<" + grammarCase + ">" })
+	defer RegisterInflector("tr", nil)
+	tr, err := slotCatalog(t, "tr", "{@fn}: {@heads|dat} bölünmeli ({n})")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := tr.render(1, []any{4}); got != "tr:TR_fn_run: tr:TR_arg_heads<dat> bölünmeli (4)" {
+		t.Errorf("tr: %q", got)
+	}
+	en, err := slotCatalog(t, "en", "{@fn}: {@heads} must divide ({n})")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := en.render(1, []any{4}); got != "en:TR_fn_run: en:TR_arg_heads must divide (4)" {
+		t.Errorf("en: %q", got)
+	}
+}
+
+// Yuva hataları dil dosyası yüklenirken yakalanır; her dil tanımdaki bütün yuvaları kullanır.
+func TestNameSlotErrors(t *testing.T) {
+	for _, c := range []struct{ text, want string }{
+		{"{@fn} {@x} {n}", "no such name slot"},
+		{"{@fn} {@heads|q} {n}", "unknown format"},
+		{"{@fn} {n}", `name slot "heads" is not used`},
+		{"{@fn {@heads} {n}", "no such name slot"},
+	} {
+		if _, err := slotCatalog(t, "tr", c.text); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%q: %q içeren hata beklenirdi: %v", c.text, c.want, err)
+		}
+	}
+	for _, bad := range []string{
+		`{"H0001": { "param": [], "slots": {"": "TR_fn_run"} }}`,
+		`{"H0001": { "param": [], "slots": {"a b": "TR_fn_run"} }}`,
+		`{"H0001": { "param": [], "slots": {"a": ""} }}`,
+	} {
+		if _, err := ParseDefinitions([]byte(bad)); err == nil {
+			t.Errorf("geçersiz yuva kabul edildi: %s", bad)
+		}
+	}
+}
+
+type fakeList []string
+
+func (l fakeList) Items(string) []string { return l }
+
+// {ad|list} liste değerini dilin "ya da" kalıbıyla yazar (OrList); liste olmayan değer olduğu
+// gibi yazılır.
+func TestListFormat(t *testing.T) {
+	load()
+	tr := mustCatalog(t, "tr", `"items"`, "desteklenenler: {items|list}")
+	en := mustCatalog(t, "en", `"items"`, "supported: {items|list}")
+	for _, d := range []struct {
+		c    *Catalog
+		v    any
+		want string
+	}{
+		{tr, fakeList{"a", "b", "c"}, "desteklenenler: a, b ya da c"},
+		{en, fakeList{"a", "b", "c"}, "supported: a, b, or c"},
+		{en, fakeList{"a", "b"}, "supported: a or b"},
+		{en, fakeList{"a"}, "supported: a"},
+		{en, "x", "supported: x"},
+	} {
+		if got := d.c.render(1, []any{d.v}); got != d.want {
+			t.Errorf("%s %v: %q, %q bekleniyordu", d.c.Language, d.v, got, d.want)
+		}
+	}
+}
