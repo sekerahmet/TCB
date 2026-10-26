@@ -249,6 +249,8 @@ type analysis struct {
 	conflicts map[string]bool
 	// escapedNames metinde kaçışla ($ad) yazılmış kullanıcı adlarıdır (bkz. langElement).
 	escapedNames map[string]bool
+	// declarations kitaplık bildirimlerinin ad sözcükleridir (libraryDeclarations).
+	declarations map[[2]int]codes.Code
 	prog         *ast.Program
 }
 
@@ -272,6 +274,7 @@ func analyze(b Parts, lang *codes.Language, globalNames []string, dynamic bool) 
 		c.bindings[[2]int{bg.Token.Line, bg.Token.Column}] = bg
 	}
 	c.conflicts = conflicts
+	c.declarations = c.libraryDeclarations()
 	c.escapedNames = map[string]bool{}
 	for _, r := range c.records {
 		if r.Type == lexer.TokIdent && c.escaped(r) {

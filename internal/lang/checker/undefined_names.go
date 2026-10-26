@@ -36,10 +36,21 @@ type nameScope struct {
 	// (bindings.go).
 	structs  map[string]*ast.StructStatement
 	implicit [2]codes.Code
+	// coded, kapsamda kodla tanımlanan adlardır: kitaplığın bildirimleri ve kitaplık
+	// fonksiyonlarının parametreleri (ad bağları, bindings.go).
+	coded map[string]codes.Code
 }
 
 func newNameScope(parent *nameScope) *nameScope {
 	return &nameScope{parent: parent, names: map[string]bool{}}
+}
+
+// code adı kapsamda kodla tanımlı sayar (ad bağları).
+func (k *nameScope) code(name string, code codes.Code) {
+	if k.coded == nil {
+		k.coded = map[string]codes.Code{}
+	}
+	k.coded[name] = code
 }
 
 func (k *nameScope) define(name string) {
@@ -88,6 +99,9 @@ type nameChecker struct {
 	// conflicts kodla yazılmış bir sözcüğün dil'deki adını kendi yerinde yakalayan kullanıcı
 	// adlarıdır (AdBaglari).
 	conflicts map[string]bool
+	// libraryFuncs, parametreleri kodlanan kitaplık fonksiyonlarıdır: kitaplık yapısının metotları
+	// ve kitaplığın fonksiyon değişkenleri (adlı fonksiyon adından tanınır; codeParameters).
+	libraryFuncs map[*ast.FunctionLiteral]bool
 }
 
 // SetGlobalScope is for checking modules: a module runs under the global scope of the
@@ -184,6 +198,9 @@ func (d *nameChecker) blockInScope(b *ast.BlockStatement, k *nameScope) {
 // statements deyim listesini k kapsamında önce bildirir (ileri başvurular için), sonra gezer.
 func (d *nameChecker) statements(stmts []ast.Statement, k *nameScope) {
 	declare(stmts, k)
+	if d.bindings != nil {
+		d.codeDeclarations(stmts, k)
+	}
 	for _, st := range stmts {
 		d.statement(st, k)
 	}
@@ -266,6 +283,9 @@ func (d *nameChecker) function(f *ast.FunctionLiteral, k *nameScope, extra ...st
 	pk := newNameScope(k)
 	for _, a := range names {
 		pk.define(a)
+	}
+	if d.bindings != nil {
+		d.codeParameters(f, pk)
 	}
 	if f.Token.Type == lexer.TokLBrace {
 		pk.implicit = trailingBlockImplicits(f, d.treeLang)

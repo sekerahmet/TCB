@@ -53,7 +53,8 @@ type NameBinding struct {
 // names, 'kendi', the constructor's name): the active language for a coded body, Turkish for
 // a file written in Turkish (lexer.Lexer.Language).
 func NameBindings(prog *ast.Program, treeLang, lang *codes.Language, globalNames []string, dynamic bool) (bindings []NameBinding, conflicts map[string]bool) {
-	d := &nameChecker{bindings: &bindings, treeLang: treeLang, lang: lang, conflicts: map[string]bool{}}
+	d := &nameChecker{bindings: &bindings, treeLang: treeLang, lang: lang, conflicts: map[string]bool{},
+		libraryFuncs: map[*ast.FunctionLiteral]bool{}}
 	d.statements(prog.Statements, newGlobalNameScope(globalNames, dynamic))
 	return bindings, d.conflicts
 }
@@ -68,11 +69,14 @@ func (d *nameChecker) resolve(name string, k *nameScope) (BindingKind, codes.Cod
 			}
 		}
 		if c.names[name] {
+			if code, ok := c.coded[name]; ok {
+				return BindBuiltin, code, c.structs[name]
+			}
 			return BindUser, codes.None, c.structs[name]
 		}
 		ambiguous = ambiguous || c.dynamic
 	}
-	if k, ok := d.lang.Find(codes.NamespaceGlobal, name); ok && k.IsBuiltin() {
+	if k, ok := d.lang.Find(codes.NamespaceGlobal, name); ok && (k.IsBuiltin() || k.IsLibrary()) {
 		return BindBuiltin, k, nil
 	}
 	if k, ok := d.lang.Find(codes.NamespaceType, name); ok {
@@ -90,7 +94,7 @@ func (d *nameChecker) tokenResolution(tok lexer.Token, name string, k *nameScope
 	switch code := tok.Code; {
 	case code == codes.None:
 		return d.resolve(name, k)
-	case code.Namespace() == codes.NamespaceGlobal && !code.IsBuiltin():
+	case code.Namespace() == codes.NamespaceGlobal && !code.IsBuiltin() && !code.IsLibrary():
 		return BindImplicit, code, nil
 	default:
 		return BindBuiltin, code, nil
@@ -101,7 +105,7 @@ func (d *nameChecker) tokenResolution(tok lexer.Token, name string, k *nameScope
 func (d *nameChecker) bind(id *ast.Identifier, k *nameScope) {
 	kind, code, _ := d.tokenResolution(id.Token, id.Value, k)
 	*d.bindings = append(*d.bindings, NameBinding{Token: id.Token, Kind: kind, Code: code})
-	if code := id.Token.Code; code.IsBuiltin() || code.Namespace() == codes.NamespaceType {
+	if code := id.Token.Code; code.IsBuiltin() || code.IsLibrary() || code.Namespace() == codes.NamespaceType {
 		if g, ok := d.lang.Entry(code); ok {
 			if t, _, _ := d.resolve(g.Name, k); t == BindUser {
 				d.conflicts[g.Name] = true
@@ -124,14 +128,15 @@ func (d *nameChecker) namedArgBindings(c *ast.CallExpression, k *nameScope) {
 	case *ast.Identifier:
 		kind, _, structDef := d.tokenResolution(f.Token, f.Value, k)
 		switch {
-		case kind == BindBuiltin:
 		case structDef != nil && structDef.Methods[d.treeLang.Name(codes.CtxInit)] == nil:
 			field = codes.NamespaceMember
+		case kind == BindBuiltin:
 		default:
 			return
 		}
 	case *ast.MemberExpression:
-		if _, ok := d.lang.Find(codes.NamespaceMember, f.Property); !ok && f.NameToken.Code == codes.None {
+		// Üye metodu ya da takma adlı modülün kitaplık adı (k.GPT(...)).
+		if _, ok := d.lang.Find(codes.NamespaceMember, f.Property); !ok && f.NameToken.Code == codes.None && LibraryCode(d.lang, f.Property) == codes.None {
 			return
 		}
 	default:
@@ -140,6 +145,56 @@ func (d *nameChecker) namedArgBindings(c *ast.CallExpression, k *nameScope) {
 	for _, na := range c.NamedArgs {
 		if code, ok := d.lang.Find(field, na.Name); ok {
 			*d.bindings = append(*d.bindings, NameBinding{Token: na.Token, Kind: BindNamed, Code: code})
+		}
+	}
+}
+
+// LibraryCode returns the code of name when it is a top-level name of the standard library (a
+// struct, function or constant; definitions.json "modül") in lang, otherwise codes.None. The
+// library has no language: its names are words of the language, coded wherever they are written,
+// declaration included (17.3).
+func LibraryCode(lang *codes.Language, name string) codes.Code {
+	for _, ns := range []codes.Namespace{codes.NamespaceGlobal, codes.NamespaceType} {
+		if k, ok := lang.Find(ns, name); ok && k.IsLibrary() {
+			return k
+		}
+	}
+	return codes.None
+}
+
+// codeDeclarations kapsama tanımlanan kitaplık adlarını kodlarıyla işaretler: kitaplık dosyasının
+// kendi bildirimleri ve onlara giden her kullanım kodlanır.
+func (d *nameChecker) codeDeclarations(stmts []ast.Statement, k *nameScope) {
+	for _, st := range stmts {
+		ast.StatementDefinedNames(st, func(name string) {
+			if code := LibraryCode(d.lang, name); code != codes.None {
+				k.code(name, code)
+			}
+		})
+		switch s := st.(type) {
+		case *ast.StructStatement:
+			if LibraryCode(d.lang, s.Name) != codes.None {
+				for _, m := range s.Methods {
+					d.libraryFuncs[m] = true
+				}
+			}
+		case *ast.VarStatement:
+			if fl, ok := s.Value.(*ast.FunctionLiteral); ok && LibraryCode(d.lang, s.Name.Value) != codes.None {
+				d.libraryFuncs[fl] = true
+			}
+		}
+	}
+}
+
+// codeParameters kitaplık fonksiyonunun (kitaplığın fonksiyonu, fonksiyon değişkeni ya da
+// yapısının metodu) parametrelerini adlı argüman kodlarıyla işaretler (17.3).
+func (d *nameChecker) codeParameters(f *ast.FunctionLiteral, k *nameScope) {
+	if !d.libraryFuncs[f] && (f.Name == "" || LibraryCode(d.lang, f.Name) == codes.None) {
+		return
+	}
+	for _, p := range f.Parameters {
+		if code, ok := d.lang.Find(codes.NamespaceParam, p.Name); ok {
+			k.code(p.Name, code)
 		}
 	}
 }
