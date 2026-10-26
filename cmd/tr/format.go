@@ -82,7 +82,7 @@ func formatCommand(args []string) {
 
 // trFiles hedef bir dosyaysa onu, klasörse altındaki tüm .tr dosyalarını (gizli
 // klasörler hariç) sıralı olarak döndürür; açılamayan hedef komutun failed iletisiyle (H2108
-// biçimlenemedi, H2115 kodlanamadı, H2116 çözülemedi) bildirilir.
+// biçimlenemedi, H2115 kodlanamadı) bildirilir.
 func trFiles(target string, failed messages.Code) ([]string, error) {
 	return source.WalkFiles(target, ".tr", func(target string, err error) error {
 		return turkish.FileError("", target, failed, err)

@@ -522,7 +522,6 @@
   "TR_cmd_check": { "name": "kontrol", "family": "tr komutu", "description": "Programı çalıştırmadan ayrıştırır ve tip denetiminden geçirir.", "example": "tr kontrol eğit.tr" },
   "TR_cmd_dap": { "family": "tr komutu", "description": "Düzenleyicinin hata ayıklama protokolü (DAP) sunucusunu başlatır; düzenleyiciler kullanır.", "example": "tr dap" },
   "TR_cmd_debug": { "name": "hata_ayıkla", "family": "tr komutu", "description": "Programı terminal hata ayıklayıcısında başlatır.", "example": "tr hata_ayıkla eğit.tr" },
-  "TR_cmd_decode": { "name": "çöz", "family": "tr komutu", "description": "Kodlu dosyayı etkin yazım dilindeki biçime geri çevirir.", "example": "tr çöz eğit.tr" },
   "TR_cmd_encode": { "name": "kodla", "family": "tr komutu", "description": "Dosyayı dilden bağımsız kodlu biçime çevirir.", "example": "tr kodla eğit.tr" },
   "TR_cmd_format": { "name": "biçimle", "family": "tr komutu", "description": "TR dosyalarını standart biçime getirir.", "example": "tr biçimle eğit.tr" },
   "TR_cmd_help": { "name": "yardım", "family": "tr komutu", "description": "Komutların ve seçeneklerin kısa yardımını yazar.", "example": "tr yardım" },

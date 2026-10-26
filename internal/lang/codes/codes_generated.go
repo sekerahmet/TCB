@@ -530,58 +530,57 @@ const (
 	CmdCheck                    Code = 521 // TR_cmd_check: check · kontrol
 	CmdDap                      Code = 522 // TR_cmd_dap: dap
 	CmdDebug                    Code = 523 // TR_cmd_debug: debug · hata_ayıkla
-	CmdDecode                   Code = 524 // TR_cmd_decode: decode · çöz
-	CmdEncode                   Code = 525 // TR_cmd_encode: encode · kodla
-	CmdFormat                   Code = 526 // TR_cmd_format: format · biçimle
-	CmdHelp                     Code = 527 // TR_cmd_help: help · yardım
-	CmdIndex                    Code = 528 // TR_cmd_index: index · dizin
-	CmdProfile                  Code = 529 // TR_cmd_profile: profile · profil
-	CmdRun                      Code = 530 // TR_cmd_run: run · çalıştır
-	CmdShow                     Code = 531 // TR_cmd_show: show · göster
-	CmdTest                     Code = 532 // TR_cmd_test: test
-	CmdVersion                  Code = 533 // TR_cmd_version: version · sürüm
-	CmdWatch                    Code = 534 // TR_cmd_watch: watch · izle
-	SubDefinition               Code = 535 // TR_sub_definition: definition · tanım
-	SubImpact                   Code = 536 // TR_sub_impact: impact · etki
-	SubReferences               Code = 537 // TR_sub_references: references · kullananlar
-	SubRename                   Code = 538 // TR_sub_rename: rename · yeniden_adlandır
-	SubTestedBy                 Code = 539 // TR_sub_tested_by: tested_by · sınayanlar
-	OptAll                      Code = 540 // TR_opt_all: all · tümü
-	OptCheck                    Code = 541 // TR_opt_check: check · kontrol
-	OptClear                    Code = 542 // TR_opt_clear: clear · temizle
-	OptGoProfile                Code = 543 // TR_opt_go_profile: go_profile · go_profili
-	OptHelp                     Code = 544 // TR_opt_help: help · yardım
-	OptJson                     Code = 545 // TR_opt_json: json
-	OptKind                     Code = 546 // TR_opt_kind: kind · tür
-	OptLang                     Code = 547 // TR_opt_lang: lang · dil
-	OptLimit                    Code = 548 // TR_opt_limit: limit · sınır
-	OptNoIndex                  Code = 549 // TR_opt_no_index: no_index · dizin_yok
-	OptNoText                   Code = 550 // TR_opt_no_text: no_text · metin_yok
-	OptOutput                   Code = 551 // TR_opt_output: output · çıktı
-	OptRoot                     Code = 552 // TR_opt_root: root · kök
-	OptStatus                   Code = 553 // TR_opt_status: status · durum
-	OptTerm                     Code = 554 // TR_opt_term: term · terim
-	ReplExit                    Code = 555 // TR_repl_exit: exit · çıkış
-	DbgBreak                    Code = 556 // TR_dbg_break: break · kesme
-	DbgContinue                 Code = 557 // TR_dbg_continue: continue · devam
-	DbgEval                     Code = 558 // TR_dbg_eval: eval · hesapla
-	DbgHelp                     Code = 559 // TR_dbg_help: help · yardım
-	DbgJump                     Code = 560 // TR_dbg_jump: jump · zıpla
-	DbgNext                     Code = 561 // TR_dbg_next: next · geç
-	DbgOut                      Code = 562 // TR_dbg_out: out · dön
-	DbgQuit                     Code = 563 // TR_dbg_quit: quit · çıkış
-	DbgScreen                   Code = 564 // TR_dbg_screen: screen · ekran
-	DbgSet                      Code = 565 // TR_dbg_set: set · değiştir
-	DbgStack                    Code = 566 // TR_dbg_stack: stack · yığın
-	DbgStep                     Code = 567 // TR_dbg_step: step · adım
-	DbgTable                    Code = 568 // TR_dbg_table: table · tablo
-	DbgWatch                    Code = 569 // TR_dbg_watch: watch · izle
-	EnvCpuAvx2                  Code = 570 // TR_env_CPU_AVX2: TR_CPU_AVX2
-	EnvGpuCublaslt              Code = 571 // TR_env_GPU_CUBLASLT: TR_GPU_CUBLASLT
-	EnvGpuProfile               Code = 572 // TR_env_GPU_PROFILE: TR_GPU_PROFILE · TR_GPU_PROFIL
-	EnvGpuSync                  Code = 573 // TR_env_GPU_SYNC: TR_GPU_SYNC · TR_GPU_ESZAMANLI
-	EnvJobDir                   Code = 574 // TR_env_JOB_DIR: TR_JOB_DIR · TR_IS_KLASORU
-	EnvLang                     Code = 575 // TR_env_LANG: TR_LANG · TR_DIL
+	CmdEncode                   Code = 524 // TR_cmd_encode: encode · kodla
+	CmdFormat                   Code = 525 // TR_cmd_format: format · biçimle
+	CmdHelp                     Code = 526 // TR_cmd_help: help · yardım
+	CmdIndex                    Code = 527 // TR_cmd_index: index · dizin
+	CmdProfile                  Code = 528 // TR_cmd_profile: profile · profil
+	CmdRun                      Code = 529 // TR_cmd_run: run · çalıştır
+	CmdShow                     Code = 530 // TR_cmd_show: show · göster
+	CmdTest                     Code = 531 // TR_cmd_test: test
+	CmdVersion                  Code = 532 // TR_cmd_version: version · sürüm
+	CmdWatch                    Code = 533 // TR_cmd_watch: watch · izle
+	SubDefinition               Code = 534 // TR_sub_definition: definition · tanım
+	SubImpact                   Code = 535 // TR_sub_impact: impact · etki
+	SubReferences               Code = 536 // TR_sub_references: references · kullananlar
+	SubRename                   Code = 537 // TR_sub_rename: rename · yeniden_adlandır
+	SubTestedBy                 Code = 538 // TR_sub_tested_by: tested_by · sınayanlar
+	OptAll                      Code = 539 // TR_opt_all: all · tümü
+	OptCheck                    Code = 540 // TR_opt_check: check · kontrol
+	OptClear                    Code = 541 // TR_opt_clear: clear · temizle
+	OptGoProfile                Code = 542 // TR_opt_go_profile: go_profile · go_profili
+	OptHelp                     Code = 543 // TR_opt_help: help · yardım
+	OptJson                     Code = 544 // TR_opt_json: json
+	OptKind                     Code = 545 // TR_opt_kind: kind · tür
+	OptLang                     Code = 546 // TR_opt_lang: lang · dil
+	OptLimit                    Code = 547 // TR_opt_limit: limit · sınır
+	OptNoIndex                  Code = 548 // TR_opt_no_index: no_index · dizin_yok
+	OptNoText                   Code = 549 // TR_opt_no_text: no_text · metin_yok
+	OptOutput                   Code = 550 // TR_opt_output: output · çıktı
+	OptRoot                     Code = 551 // TR_opt_root: root · kök
+	OptStatus                   Code = 552 // TR_opt_status: status · durum
+	OptTerm                     Code = 553 // TR_opt_term: term · terim
+	ReplExit                    Code = 554 // TR_repl_exit: exit · çıkış
+	DbgBreak                    Code = 555 // TR_dbg_break: break · kesme
+	DbgContinue                 Code = 556 // TR_dbg_continue: continue · devam
+	DbgEval                     Code = 557 // TR_dbg_eval: eval · hesapla
+	DbgHelp                     Code = 558 // TR_dbg_help: help · yardım
+	DbgJump                     Code = 559 // TR_dbg_jump: jump · zıpla
+	DbgNext                     Code = 560 // TR_dbg_next: next · geç
+	DbgOut                      Code = 561 // TR_dbg_out: out · dön
+	DbgQuit                     Code = 562 // TR_dbg_quit: quit · çıkış
+	DbgScreen                   Code = 563 // TR_dbg_screen: screen · ekran
+	DbgSet                      Code = 564 // TR_dbg_set: set · değiştir
+	DbgStack                    Code = 565 // TR_dbg_stack: stack · yığın
+	DbgStep                     Code = 566 // TR_dbg_step: step · adım
+	DbgTable                    Code = 567 // TR_dbg_table: table · tablo
+	DbgWatch                    Code = 568 // TR_dbg_watch: watch · izle
+	EnvCpuAvx2                  Code = 569 // TR_env_CPU_AVX2: TR_CPU_AVX2
+	EnvGpuCublaslt              Code = 570 // TR_env_GPU_CUBLASLT: TR_GPU_CUBLASLT
+	EnvGpuProfile               Code = 571 // TR_env_GPU_PROFILE: TR_GPU_PROFILE · TR_GPU_PROFIL
+	EnvGpuSync                  Code = 572 // TR_env_GPU_SYNC: TR_GPU_SYNC · TR_GPU_ESZAMANLI
+	EnvJobDir                   Code = 573 // TR_env_JOB_DIR: TR_JOB_DIR · TR_IS_KLASORU
+	EnvLang                     Code = 574 // TR_env_LANG: TR_LANG · TR_DIL
 )
 
 // identities is every code's identity, indexed by the code.
@@ -1109,7 +1108,6 @@ var identities = [...]string{
 	CmdCheck:                    "TR_cmd_check",
 	CmdDap:                      "TR_cmd_dap",
 	CmdDebug:                    "TR_cmd_debug",
-	CmdDecode:                   "TR_cmd_decode",
 	CmdEncode:                   "TR_cmd_encode",
 	CmdFormat:                   "TR_cmd_format",
 	CmdHelp:                     "TR_cmd_help",

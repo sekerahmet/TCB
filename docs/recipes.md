@@ -165,7 +165,7 @@ Testler: `tests/<bölüm>_test.tr` (her test madde numarasıyla başlar; olumsuz
 | :-- | :-- |
 | Kullanımları kodla | Ad değişecekse (bugünkü adlar dillerde farklıysa) veriden **önce**: kodsuz `.tr` dosyaları `tr kodla <dosyalar>`, belgelerin ```tr blokları ve satır içi kodu `tr kodla -` ile eski adlarla kodlanır (çağrı ve başvuru kimliğe döner, yorum ve düzyazı bayt bayt kalır). Sözcükle arayıp değiştirme yapılmaz. |
 | Veri | Tek betikle: `definitions.json` satırına `"common_name": "sin"`; `tr.json` satırından `"name"` düşer (`description`, `example`, `family` kalır); `en.json`'da yalnız ad taşıyan satır silinir; ortak adla aynı `foreign` girdisi silinir. |
-| Geri yaz | `tr çöz <dosyalar>`, `tr göster - --dil tr`; `git diff --word-diff` yalnız ad çiftlerini göstermeli. Elle: Go test dizgilerindeki TR kodu, fonksiyonu anan yorumlar, `tr.json`'un açıklamaları, `.tr` testlerinin beklediği ileti metinleri. |
+| Denetle | Kodlu dosyalar geri yazılmaz, kimlikleri değişmez; görünüm `tr göster <dosya> --dil tr` ve `tr göster - --dil tr` ile denetlenir, yalnız ad çiftleri değişmiş olmalı. Elle: Go test dizgilerindeki TR kodu, fonksiyonu anan yorumlar, `tr.json`'un açıklamaları, `.tr` testlerinin beklediği ileti metinleri. |
 | Gölgeleme | Yeni adı yerel ad ya da parametre olarak kullanan yer yerleşiği gölgeler (2.9a): depodaki her kodsuz `.tr` dosyası `tr kontrol` ile koşulur, uyarı aranır. |
 | Üret, sına | `go generate ./internal/lang/codes`; ad çakışması sınavı `-update` ile yalnız satır siler (yeni satır çıkarsa elle, nedeniyle). |
 

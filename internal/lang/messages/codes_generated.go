@@ -120,7 +120,6 @@ const (
 	H2113 Code = 2113 // {path|q} bulunamadı: {reason}
 	H2114 Code = 2114 // {path|q} listelenemedi: {reason}
 	H2115 Code = 2115 // {path|q} kodlanamadı: {reason}
-	H2116 Code = 2116 // {path|q} çözülemedi: {reason}
 	H2130 Code = 2130 // bu bir klasör, dosya değil (klasörün içindeki bir dosyanın yolunu verin)
 	H2131 Code = 2131 // {dir|q} klasörü yok
 	H2132 Code = 2132 // böyle bir dosya ya da klasör yok (yolun yazımını denetleyin)
@@ -1550,7 +1549,6 @@ const (
 	H8618 Code = 8618 // tr {command} [dosya.tr|klasör]	Test bloklarını çalıştırır (klasörde tüm *_test.tr dosyaları)
 	H8619 Code = 8619 // tr {command} [{check}] <dosya.tr|klasör>	Kodu standart biçime getirir ({check}: yalnızca denetler)
 	H8620 Code = 8620 // tr {command} <dosya.tr|klasör>	Dosyaları yerinde kodlu biçime çevirir (dilin sözcükleri kodlarla saklanır)
-	H8621 Code = 8621 // tr {command} <dosya.tr|klasör>	Kodlu dosyaları yerinde Türkçe yazıma geri çevirir
 	H8622 Code = 8622 // tr {command} <dosya.tr> [{lang} tr]	Dosyayı bir yazım dilinde gösterir (kodlu dosya da)
 	H8623 Code = 8623 // tr {command} - [{lang} tr]	Metni standart girişten okur, gösterimini çıkışa yazar (düzenleyiciler için)
 	H8624 Code = 8624 // tr {command} - [{lang} tr]	Metni standart girişten okur, kodlu biçimini çıkışa yazar (düzenleyiciler için)
@@ -1603,13 +1601,11 @@ const (
 	H8702 Code = 8702 // standart giriş okunamadı: {error}
 	H8703 Code = 8703 // Lütfen bir .tr dosyası ya da klasör belirtin. Örn: tr {command} ornek.tr veya tr {command} .
 	H8704 Code = 8704 // kodlandı
-	H8705 Code = 8705 // çözüldü
 	H8706 Code = 8706 // {total} dosya incelendi, {count} dosya {verb}.
 	H8707 Code = 8707 // {count} dosya çevrilemedi (yukarıdaki hatalara bakın).
 	H8708 Code = 8708 // '{option}' bir yazım dili bekler. Örn: tr {command} ornek.tr {option} tr
 	H8709 Code = 8709 // 'tr {command}' tek bir dosya alır; fazladan argüman: {arg}
 	H8710 Code = 8710 // Lütfen gösterilecek .tr dosyasını belirtin. Örn: tr {command} ornek.tr {option} tr
-	H8711 Code = 8711 // {file}: dosyanın dili {language}; Türkçe yazıma çözülünce dosyanın dili Türkçeye geçer ve programın değerlerden yaptığı metinler (Mantık değerleri, yok, tip adları) Türkçe çıkar
 	H8750 Code = 8750 // gömülü paketin uzunluk alanı bozuk
 	H8751 Code = 8751 // gömülü paket sürümü {version} desteklenmiyor (bu yorumlayıcı yalnız {max} sürümünü okur; uygulamayı bu 'tr' ile yeniden derleyin)
 	H8752 Code = 8752 // gömülü paket çözülemedi: {error}

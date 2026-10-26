@@ -16,7 +16,6 @@ import (
 // Kodlu saklama komutları (docs/spec/17_kodlar.md, 17.1-17.6 ve "Düzenleyicide"):
 //
 //	tr kodla <dosya.tr | klasör>...       Türkçe yazılmış dosyaları yerinde kodlu biçime çevirir
-//	tr çöz <dosya.tr | klasör>...         kodlu dosyaları yerinde Türkçe yazıma geri çevirir
 //	tr göster <dosya.tr> [--dil tr]       dosyayı bir yazım dilinde standart çıktıya basar
 //	tr göster - [--dil tr]                metni standart girişten okur, gösterimini çıkışa yazar
 //	tr kodla - [--dil tr]                 metni standart girişten okur, kodlu biçimini çıkışa yazar
@@ -114,18 +113,6 @@ func convertFromInput(language *codes.Language, convert func(string) (string, er
 		os.Exit(1)
 	}
 	fmt.Print(text)
-}
-
-// decodeCommand 'tr çöz' komutudur; Türkçe yazılmış dosyalara dokunulmaz. Kodsuz dosya Türkçedir
-// (17.7): dili Türkçe olmayan kodlu dosya çözülünce dili değişir, bu yüzden uyarılır (17.1).
-func decodeCommand(args []string) {
-	convertCommand(args, codes.NameRef(codes.CmdDecode), messages.Text(messages.H8705), messages.H2116, func(filePath, text string) (string, error) {
-		out, err := source.Decode(text, source.Turkish())
-		if b, _ := source.Split(text); err == nil && b.Coded && b.Language != codes.SourceLanguage {
-			fmt.Fprintln(os.Stderr, "⚠️ "+messages.Text(messages.H8711, filePath, b.Language))
-		}
-		return out, err
-	})
 }
 
 // convertCommand hedeflerdeki (klasörlerde alt klasörler dahil) bütün .tr dosyalarını cevir ile

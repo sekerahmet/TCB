@@ -522,7 +522,6 @@
   "TR_cmd_check": { "kind": "command" },
   "TR_cmd_dap": { "kind": "command", "common_name": "dap" },
   "TR_cmd_debug": { "kind": "command" },
-  "TR_cmd_decode": { "kind": "command" },
   "TR_cmd_encode": { "kind": "command" },
   "TR_cmd_format": { "kind": "command" },
   "TR_cmd_help": { "kind": "command" },

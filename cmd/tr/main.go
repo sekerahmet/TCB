@@ -123,7 +123,7 @@ var commands = map[codes.Code]func([]string){
 	codes.CmdHelp: helpCommand, codes.CmdVersion: versionCommand,
 	codes.CmdCheck: checkCommand, codes.CmdBuild: buildCommand, codes.CmdDap: dapCommand, codes.CmdRun: runCommand,
 	codes.CmdDebug: debugCommand, codes.CmdTest: testCommand, codes.CmdFormat: formatCommand, codes.CmdEncode: encodeCommand,
-	codes.CmdDecode: decodeCommand, codes.CmdShow: showCommand, codes.CmdWatch: watchCommand, codes.CmdProfile: profileCommand,
+	codes.CmdShow: showCommand, codes.CmdWatch: watchCommand, codes.CmdProfile: profileCommand,
 	codes.CmdIndex: indexCommand,
 }
 
@@ -212,7 +212,6 @@ func printHelp() {
 		messages.Text(messages.H8618, codes.NameRef(codes.CmdTest)),
 		messages.Text(messages.H8619, codes.NameRef(codes.CmdFormat), codes.OptionFlag(codes.OptCheck)),
 		messages.Text(messages.H8620, codes.NameRef(codes.CmdEncode)),
-		messages.Text(messages.H8621, codes.NameRef(codes.CmdDecode)),
 		messages.Text(messages.H8622, codes.NameRef(codes.CmdShow), lang),
 		messages.Text(messages.H8623, codes.NameRef(codes.CmdShow), lang),
 		messages.Text(messages.H8624, codes.NameRef(codes.CmdEncode), lang),

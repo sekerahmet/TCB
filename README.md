@@ -49,7 +49,7 @@ test "toplama" {
 - `tr test` bulunulan klasördeki (alt klasörler dahil) tüm `*_test.tr` dosyalarını, `tr test dosya.tr` yalnızca o dosyayı çalıştırır. Bir test kalırsa çıkış kodu 1'dir.
 - `tr biçimle dosya.tr` (ya da klasör) kodu standart biçime getirir; `tr biçimle --kontrol .` yalnızca denetler ve biçimlenmesi gereken dosya varsa 1 ile çıkar.
 - `tr izle egit.tr` programı çalıştırırken hızını canlı gösterir (ms/adım, en pahalı tensör işlemleri, en sıcak satırlar, GPU ve bellek); `tr profil egit.tr` bitince hız raporu verir (`--json koşu_klasörü/` ile `speed.json`). Ayrıntılar: [`docs/guide/11_hizi_izlemek.md`](docs/guide/11_hizi_izlemek.md).
-- `tr kodla dosya.tr` (ya da klasör) dosyayı dilden bağımsız kodlu biçime çevirir (`yazdır` → `TR_fn_print`); `tr çöz` Türkçe yazıma geri çevirir, `tr göster dosya.tr` dosyayı değiştirmeden kişinin dilinde basar (`--dil en` ile istenen dilde). Kodlu dosya çevrilmeden de çalışır; adlarınız, metinler ve yorumlar değişmez. VS Code'da kodlu dosya kişinin yazım dilinde (ayar `tr.writingLanguage`) görünür ve düzenlenir, kaydedince yine kodlu yazılır; satırlar hata mesajları ve hata ayıklayıcıyla aynıdır ([eklenti belgesi](editors/vscode/README.md#kodlu-dosyalar)). Kurallar: [`docs/spec/17_kodlar.md`](docs/spec/17_kodlar.md).
+- `tr kodla dosya.tr` (ya da klasör) dosyayı dilden bağımsız kodlu biçime çevirir (`yazdır` → `TR_fn_print`); `tr göster dosya.tr` dosyayı değiştirmeden kişinin dilinde basar (`--dil en` ile istenen dilde). Kodlu dosya çevrilmeden de çalışır; adlarınız, metinler ve yorumlar değişmez. VS Code'da kodlu dosya kişinin yazım dilinde (ayar `tr.writingLanguage`) görünür ve düzenlenir, kaydedince yine kodlu yazılır; satırlar hata mesajları ve hata ayıklayıcıyla aynıdır ([eklenti belgesi](editors/vscode/README.md#kodlu-dosyalar)). Kurallar: [`docs/spec/17_kodlar.md`](docs/spec/17_kodlar.md).
 
 ## Tensörler ve otomatik türev
 
@@ -224,7 +224,7 @@ Kendi denemeleriniz için kökte bir `scratch/` klasörü açıp örnekleri oray
 
 | Klasör | İçerik |
 | :-- | :-- |
-| `cmd/tr` | `tr` komutu: kabuk, `çalıştır`, `kontrol`, `derle`, `test`, `biçimle`, `kodla`, `çöz`, `göster`, `izle`, `profil`, `hata_ayıkla`, `dizin`, `yardım`, `sürüm`, `dap` (VS Code için); komut adları her yazım dilinde kabul edilir |
+| `cmd/tr` | `tr` komutu: kabuk, `çalıştır`, `kontrol`, `derle`, `test`, `biçimle`, `kodla`, `göster`, `izle`, `profil`, `hata_ayıkla`, `dizin`, `yardım`, `sürüm`, `dap` (VS Code için); komut adları her yazım dilinde kabul edilir |
 | `internal/lang` | Dil çekirdeği: iletiler (`messages`), Türkçe ekler ve dosya hataları (`turkish`), kod listesi (`codes`, [`docs/codes.md`](docs/codes.md)), ad ipuçları (`hint`), sözcük çözümleyici (`lexer`), sözdizimi ağacı (`ast`), ayrıştırıcı (`parser`), tip denetimi (`checker`), kaynak ve kodlu biçim (`source`), yorumlayıcı (`interp`) |
 | `internal/stdlib` | Standart kitaplık: tensör ve öğrenme (`ml`), veri (`dataset`), parçalayıcı (`tokenizer`), dosyalar (`files`), JSON/CSV (`formats`), komut satırı (`process`), günlük ve ilerleme (`logging`), kontrol noktası (`checkpoint`), motorların ortak yardımcıları ve JSON yazımı (`common/bind`, `common/jsonwrite`), GPU'da dil düzeyinde eğitimin sınamaları (`gpuprobe`) |
 | `internal/compute` | Dili bilmeyen hesap çekirdekleri: tensör, otomatik türev ve CPU kernelleri (`tensor`), GPU arka ucu (`gpu`), parçalayıcı (`tokenize`), veri yükleyici (`dataload`) |

@@ -49,7 +49,6 @@ Dilin asıl biçimi koddur. Kullanıcıya görünen her ad (anahtar kelime, bağ
 Her `.tr` dosyası diskte kodlu saklanır. Kişi dosyayı kendi dilinde görür ve düzenler; yazdığı metin o dilden koda çevrilir. Çevirici `internal/lang/source`'tadır:
 - `tr kodla <dosya|klasör> [--dil <kod>]`: o dilde yazılmış metni yerinde kodlar; kodlu dosyaya dokunmaz.
 - `tr göster <dosya> [--dil <kod>]`: dosyayı bir dilde standart çıktıya basar.
-- `tr çöz <dosya|klasör>`: kodlu dosyayı Türkçe yazıma çevirir (geçici, kaldırılacak).
 - `tr biçimle` kodlu dosyayı kodlu biçimde biçimler.
 
 Kodlu dosya çevrilmeden çalışır (`tr dosya.tr`, `tr test`, `tr kontrol`, `tr derle`, `aktar`, hata ayıklayıcı).

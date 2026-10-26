@@ -140,9 +140,9 @@ func TestCodedFilesGiveSameOutput(t *testing.T) {
 	}
 }
 
-// tr kodla, tr çöz ve tr göster komutları (17): yerinde çeviri, gösterim, hatalı dosyaya
-// dokunmama ve komut adlarının tek yazımı.
-func TestEncodeDecodeShowCommands(t *testing.T) {
+// tr kodla ve tr göster komutları (17): yerinde çeviri, gösterim, hatalı dosyaya dokunmama ve
+// komut adlarının tek yazımı. Diske Türkçe yazan bir komut yoktur: dosya hep kodlu kalır.
+func TestEncodeShowCommands(t *testing.T) {
 	k := t.TempDir()
 	tr1 := "değişken x = 1\r\nyazdır(\"x: {x}\") // yorum\r\n"
 	filePath := testkit.WriteFile(t, k, "a.tr", tr1)
@@ -169,28 +169,13 @@ func TestEncodeDecodeShowCommands(t *testing.T) {
 	}
 	testkit.Wait(t, tr(t, k, "göster", "a.tr", "--dil", "xx"), 1, nil, []string{"'xx' yazım dili yok; var olanlar: en, tr"})
 	testkit.Wait(t, tr(t, k, "göster", "a.tr", "--dil"), 1, nil, []string{"'--dil' bir yazım dili bekler"})
-	testkit.Wait(t, tr(t, k, "çöz", "a.tr"), 0, []string{"çözüldü: a.tr"}, nil)
-	if v, _ := os.ReadFile(filePath); string(v) != tr1 {
-		t.Errorf("çözülen dosya özgün değil: %q", v)
-	}
-	testkit.Wait(t, tr(t, k, "coz", "a.tr"), 1, nil, []string{"'tr çöz' yazmak mı istediniz?"})
-	testkit.Wait(t, tr(t, k, "yardım"), 0, []string{"tr kodla <dosya.tr|klasör>", "tr çöz <dosya.tr|klasör>", "tr göster <dosya.tr> [--dil tr]"}, nil)
-}
-
-// 'tr çöz' dili Türkçe olmayan kodlu dosyayı kodsuz Türkçeye çevirince dosyanın dili (ve
-// değer metinleri) değişir: komut bunu dosya dosya uyarır (17.1). dil=tr dosyada uyarı yok.
-func TestDecodeWarnsWhenTheFileLanguageChanges(t *testing.T) {
-	dir := t.TempDir()
-	coded := source.Header + "tr\nTR_fn_print(TR_kw_true)\n"
-	testkit.WriteFile(t, dir, "en.tr", inLanguage(coded, "en"))
-	testkit.WriteFile(t, dir, "tr.tr", coded)
-	s := tr(t, dir, "çöz", "en.tr", "tr.tr")
-	testkit.Wait(t, s, 0, []string{"çözüldü: en.tr", "çözüldü: tr.tr"}, []string{"en.tr: dosyanın dili en; Türkçe yazıma çözülünce"})
-	if strings.Contains(s.Stderr, "tr.tr: dosyanın dili") {
-		t.Errorf("dil=tr dosya uyarı vermemeli:\n%s", s.Stderr)
-	}
-	if got := readFile(t, filepath.Join(dir, "en.tr")); got != "yazdır(doğru)\n" {
-		t.Errorf("çözülen dosya %q", got)
+	testkit.Wait(t, tr(t, k, "goster", "a.tr"), 1, nil, []string{"'tr göster' yazmak mı istediniz?"})
+	// tr çöz yoktur: ad bir komut değil, okunamayan bir dosya adıdır; yardımda da geçmez.
+	testkit.Wait(t, tr(t, k, "çöz", "a.tr"), 1, nil, []string{"\"çöz\" okunamadı"})
+	help := tr(t, k, "yardım")
+	testkit.Wait(t, help, 0, []string{"tr kodla <dosya.tr|klasör>", "tr göster <dosya.tr> [--dil tr]"}, nil)
+	if strings.Contains(help.Stdout, "çöz") {
+		t.Errorf("yardımda tr çöz geçiyor:\n%s", help.Stdout)
 	}
 }
 
@@ -371,10 +356,6 @@ func TestUncodedFileIsTurkishInEveryLanguage(t *testing.T) {
 	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "kodla", "ana.tr"), 0, nil, nil)
 	if got := readFile(t, filepath.Join(dir, "ana.tr")); !strings.HasPrefix(got, source.Header) {
 		t.Fatalf("TR_DIL=en ile 'tr kodla' Türkçe dosyayı kodlamadı:\n%s", got)
-	}
-	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "çöz", "ana.tr"), 0, nil, nil)
-	if got := readFile(t, filepath.Join(dir, "ana.tr")); got != program {
-		t.Errorf("TR_DIL=en ile 'tr çöz' Türkçe yazmadı:\n%s", got)
 	}
 	// Kabuğa yazılan satır kişinin yazım dilindedir; kanonik biçime çevrilip çalışır. Değerler
 	// satırın yazıldığı dilde metne çevrilir (3, 17.1): tip() adı İngilizcedir.

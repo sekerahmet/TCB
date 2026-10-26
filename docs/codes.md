@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 575 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 2 değer adı, 42 tip, 136 fonksiyon, 11 sabit, 61 metot, 97 özellik, 136 adlı argüman.
+Toplam 574 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 2 değer adı, 42 tip, 136 fonksiyon, 11 sabit, 61 metot, 97 özellik, 136 adlı argüman.
 
 ## İçindekiler
 
@@ -4204,14 +4204,6 @@ Programı terminal hata ayıklayıcısında başlatır.
 
 ```tr
 tr hata_ayıkla eğit.tr
-```
-
-#### TR_cmd_decode `çöz`
-
-Kodlu dosyayı etkin yazım dilindeki biçime geri çevirir.
-
-```tr
-tr çöz eğit.tr
 ```
 
 #### TR_cmd_encode `kodla`
