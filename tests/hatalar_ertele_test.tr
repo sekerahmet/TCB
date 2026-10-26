@@ -122,3 +122,15 @@ TR_ctx_test "8.4 yakalanan hata metni değişmez; denetim karakterleri yalnızca
     TR_fn_assert(m.TR_mem_contains("\r"), "yakalanan metin kaçırılmamalı")
     TR_fn_assert_equal("kötü\rveri", m)
 }
+
+TR_ctx_test "8.5 ileti fırlatılınca hata kendi koduyla çıkar; doğrula iletiyi olduğu gibi fırlatır; hata_kodu kodu verir" {
+    TR_fn_assert_equal("H6903", TR_fn_error_code(() => { TR_kw_throw TR_fn_message(H6903, -1) }))
+    TR_fn_assert_equal("H6900", TR_fn_error_code(() => { TR_fn_assert(TR_kw_false, TR_fn_message(H6900, 10, 4)) }))
+    TR_fn_assert_equal("H2441", TR_fn_error_code(() => { TR_kw_throw "düz metin" }))
+    TR_fn_assert_equal(TR_kw_none, TR_fn_error_code(() => { 1 + 1 }))
+    TR_kw_var yakalanan = ""
+    TR_kw_try { TR_kw_throw TR_fn_message(H6903, -1) } TR_kw_catch h { yakalanan = h }
+    TR_fn_assert(yakalanan.TR_mem_contains("-1"), yakalanan)
+    TR_kw_try { TR_fn_message(H6903) } TR_kw_catch h { yakalanan = h }
+    TR_fn_assert(yakalanan.TR_mem_contains("H6903"), yakalanan)
+}

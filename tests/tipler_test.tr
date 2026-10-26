@@ -292,3 +292,9 @@ TR_ctx_test "3.14 tip adının tek yazımı vardır" {
     // Değer olarak okunan küçük harfli ad dönüşüm fonksiyonudur (3.12)
     TR_fn_assert_equal(adet, TR_fn_int("3"))
 }
+
+TR_ctx_test "3.15 İleti: kodu ve değerleriyle kurulur, metni gösterilirken katalogdan yazılır" {
+    TR_kw_var i = TR_fn_message(H6903, -1)
+    TR_fn_assert_equal(TR_type_Message, TR_fn_type(i))
+    TR_fn_assert("{i}".TR_mem_contains("-1"))
+}

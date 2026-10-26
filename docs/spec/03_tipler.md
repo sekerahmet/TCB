@@ -62,3 +62,5 @@ değişken ad: Tam = "Ali"   // denetim hatası: Tip uyuşmazlığı
 ```tr hata
 değişken adet: tam = 3   // denetim hatası: 'tam' TR'de bir tip adı değil; ... 'Tam' yazın
 ```
+
+**3.15** `İleti`: `ileti(H6903, ...)` ile kurulan katalog iletisi (8.5). Kodu ve değerlerinden oluşur, kendi metni yoktur: metin gösterilirken kataloğun metninden, gösterildiği dilde kurulur (programın metni dosyanın dilinde, `TR_DIL` görüntüsü kişinin dilinde). `fırlat` ve `doğrula` bir iletiyi kendi koduyla fırlatır; `hata_kodu` o kodu geri verir.

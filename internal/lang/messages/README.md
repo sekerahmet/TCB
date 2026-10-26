@@ -67,6 +67,8 @@ adla anıldığı için serbesttir. Denetim: `TestRender`, `TestPlural`, `TestSe
 
 İngilizce: `en.json` her kodun metnini taşır (1648/1648); `TR_DIL=en` ile gösterilir. `en.json`'da olmayan kod hatadır; yeni kod `tr.json`'la birlikte `en.json`'a da yazılır. Denetim: `TestEnglishCoversEveryCode`.
 
+**TR kodu da ileti kurar.** `lib/*.tr` hata metni yazmaz: `fırlat ileti(H6903, pencere)` kodu ve değerleri taşır, metin hata gösterilirken bu katalogdan kurulur (dil tanımı 8.5). `ParamCount` `ileti` çağrısını tanımla denetler (tanımsız kod H2528, yanlış değer sayısı H2529). Kitaplığın kendi adları ad yuvasıdır (`{@ad}`, yukarıda). Denetim: `TestParamCount`, `TestMessageUsage` (tools/gen/msgconsts: `.tr` çağrıları), `TestMessageSlotsAreNames` (internal/lang/codes).
+
 **Testler metni değil kodu denetler.** `messages.Has(err, messages.H7003)` hata zincirinde kodu
 arar; metin değişince test kırılmaz.
 

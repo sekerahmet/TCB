@@ -174,3 +174,10 @@ TR_ctx_test "2.10 iç içelik sınırı aşılınca sözdizimi hatası verilir" 
     TR_kw_try { TR_kw_import "negative/cok_derin" } TR_kw_catch h { mesaj = h }
     TR_fn_assert(mesaj.TR_mem_contains("çok derin iç içe (en fazla 1000 düzey)"), mesaj)
 }
+
+TR_ctx_test "2.12 ileti kodu (H ve dört rakam) kodun metnidir; daha uzun yazım sıradan bir addır" {
+    TR_fn_assert_equal("H6903", TR_fn_error_code(() => { TR_kw_throw TR_fn_message(H6903, -1) }))
+    TR_fn_assert_equal(TR_fn_error_code(() => { TR_kw_throw TR_fn_message(H6903, -1) }), TR_fn_error_code(() => { TR_kw_throw TR_fn_message("H6903", -1) }))
+    TR_kw_var H69030 = 5
+    TR_fn_assert_equal(5, H69030)
+}

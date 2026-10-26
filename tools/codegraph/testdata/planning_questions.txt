@@ -52,7 +52,7 @@ codegraph tests-for tensor.Tensor.Softmax --all | group: measurements, not tests
 codegraph query "tr kodlu" | contains: source.Header | contains: lexer.CodedHeader | src: deneme 5, 2026-10-23
 codegraph query source.Header | contains: writing language follows it | src: deneme 5, 2026-10-23
 codegraph tests-for source.Split | not: no tests found | src: deneme 5, 2026-10-23
-codegraph query interp.Value.Inspect | contains: dispatches_to (23) | src: deneme 5, 2026-10-23
+codegraph query interp.Value.Inspect | contains: dispatches_to (24) | src: deneme 5, 2026-10-23
 codegraph query TR_fn_print | group: registered or used in Go => interp.printBuiltin | src: deneme 5, 2026-10-23
 codegraph query TR_fn_str | group: registered or used in Go => interp.stringBuiltin | src: deneme 5, 2026-10-23
 codegraph query interp.VM.runModule | contains: interp.Source. | src: deneme 5, 2026-10-23
@@ -123,10 +123,10 @@ codegraph who-uses interp.valueText | contains: <- implemented_by | group: calls
 codegraph query katman.Doğrusal.ileri --all | group: implemented_by => interp.compiler.call | group: implemented_by => interp.VM.memberValue | src: deneme 9 H1 (yapı → uygulama), 2026-10-24
 codegraph query katman.Doğrusal.ileri --all | group: implemented_by => ml.TensorValue.matmulOp | group: implemented_by => tensor.Add | src: deneme 9 H1 (işleç → uygulama), 2026-10-24
 codegraph path katman.Doğrusal.ileri tensor.MatMul | contains: (directed | contains: -implemented_by-> | src: deneme 9 H1, 2026-10-24
-tr dizin kullananlar field:lib/katman.tr#GPT.ayar --tümü | contains: tools/gpu/gpt_training.tr:74 | contains: lib/hazir_test.tr:23 | contains: lib/hazir_test.tr:28 | src: deneme 7 R4 (tür çıkarımı), 2026-10-24
+tr dizin kullananlar field:lib/katman.tr#GPT.ayar --tümü | contains: tools/gpu/gpt_training.tr:74 | contains: lib/hazir_test.tr:18 | contains: lib/hazir_test.tr:23 | src: deneme 7 R4 (tür çıkarımı), 2026-10-24
 
 # Değer dili 3. tur: Inspect ve tip-metin karşılaştırması, ortam değişkenini koyan testler (2026-10-25)
-codegraph who-uses interp.Value.Inspect --all | group: implemented_by => egitim.Koşu.kurucu | group: implemented_by => hazir.hazır_model_kur | src: değer dili 3. tur, 2026-10-25
+codegraph who-uses interp.Value.Inspect --all | group: implemented_by => egitim.Koşu.bitir | group: implemented_by => hazir.hugging_face_eşle | src: değer dili 3. tur, 2026-10-25
 codegraph who-uses hint.TypeTextComparisonError | group: calls => checker.Checker.checkTypeTextComparison | src: değer dili 3. tur, 2026-10-25
 codegraph who-uses H1105 | group: uses_message => hint.TypeTextComparisonError | src: değer dili 3. tur, 2026-10-25
 codegraph who-uses interp.NonFiniteText | group: calls => interp.FloatVal.Text | group: calls => ml.numberText | src: değer dili 3. tur ve adım 3, 2026-10-25 (sayı ve tensör tek ad)
