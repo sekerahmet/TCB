@@ -123,7 +123,7 @@ codegraph who-uses interp.valueText | contains: <- implemented_by | group: calls
 codegraph query katman.Doğrusal.ileri --all | group: implemented_by => interp.compiler.call | group: implemented_by => interp.VM.memberValue | src: deneme 9 H1 (yapı → uygulama), 2026-10-24
 codegraph query katman.Doğrusal.ileri --all | group: implemented_by => ml.TensorValue.matmulOp | group: implemented_by => tensor.Add | src: deneme 9 H1 (işleç → uygulama), 2026-10-24
 codegraph path katman.Doğrusal.ileri tensor.MatMul | contains: (directed | contains: -implemented_by-> | src: deneme 9 H1, 2026-10-24
-tr dizin kullananlar field:lib/katman.tr#GPT.ayar --tümü | contains: tools/gpu/gpt_training.tr:74 | contains: lib/hazir_test.tr:23 | contains: lib/hazir_test.tr:28 | contains: examples/en/46_ready_model_and_generation.tr:24 | src: deneme 7 R4 (tür çıkarımı), 2026-10-24
+tr dizin kullananlar field:lib/katman.tr#GPT.ayar --tümü | contains: tools/gpu/gpt_training.tr:74 | contains: lib/hazir_test.tr:23 | contains: lib/hazir_test.tr:28 | src: deneme 7 R4 (tür çıkarımı), 2026-10-24
 
 # Değer dili 3. tur: Inspect ve tip-metin karşılaştırması, ortam değişkenini koyan testler (2026-10-25)
 codegraph who-uses interp.Value.Inspect --all | group: implemented_by => egitim.Koşu.kurucu | group: implemented_by => hazir.hazır_model_kur | src: değer dili 3. tur, 2026-10-25

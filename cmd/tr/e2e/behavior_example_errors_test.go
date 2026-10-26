@@ -16,9 +16,9 @@ import (
 	_ "github.com/sekerahmet/TCB/lib"
 )
 
-// Hata örnekleri: examples/tr/hatalar ve examples/en/errors. Her dosya bir hatayı bilerek yapar; ilk
-// yorum satırlarından biri beklenen ileti kodunu söyler ("İleti kodu: H1010" / "Message code: H1010").
-// Testler ileti metnine değil koda ve çıkış koduna bakar (iletiler dile göre değişir).
+// Hata örnekleri: examples/tr/hatalar. Her dosya bir hatayı bilerek yapar; ilk yorum satırlarından biri
+// beklenen ileti kodunu söyler ("İleti kodu: H1010"). Testler ileti metnine değil koda ve çıkış koduna
+// bakar (iletiler gösterim diline göre değişir).
 
 var messageCodeLine = regexp.MustCompile(`(?m)^// (?:İleti kodu|Message code): (H\d{4})$`)
 
@@ -79,61 +79,30 @@ func producedErrors(t *testing.T, path string) []error {
 	return nil
 }
 
-// Her hata örneğinin Türkçe ve İngilizce eşi vardır, aynı ileti kodunu söyler ve süreç içinde gerçekten
-// o kodlu iletiyi üretir; ikili 1 koduyla çıkar ve hatayı standart hataya yazar.
+// Her hata örneği süreç içinde söylediği ileti kodunu gerçekten üretir; ikili her gösterim dilinde 1
+// koduyla çıkar ve hatayı standart hataya yazar.
 func TestExampleErrors(t *testing.T) {
-	turkish, english := errorExamples(t, "tr", "hatalar"), errorExamples(t, "en", "errors")
-	if len(turkish) < 20 {
-		t.Fatalf("yalnızca %d hata örneği var", len(turkish))
+	examples := errorExamples(t, "tr", "hatalar")
+	if len(examples) < 20 {
+		t.Fatalf("yalnızca %d hata örneği var", len(examples))
 	}
-	for n, trPath := range turkish {
-		enPath, ok := english[n]
-		if !ok {
-			t.Errorf("%s'in examples/en/errors'da eşi yok", filepath.Base(trPath))
-			continue
-		}
+	for n, p := range examples {
 		t.Run(n, func(t *testing.T) {
-			want := expectedCode(t, trPath)
-			if got := expectedCode(t, enPath); got != want {
-				t.Errorf("%s ile %s farklı ileti kodu söylüyor: %s / %s", filepath.Base(trPath), filepath.Base(enPath), want, got)
+			want := expectedCode(t, p)
+			found := false
+			for _, e := range producedErrors(t, p) {
+				found = found || messages.Has(e, want)
 			}
-			for _, p := range []string{trPath, enPath} {
-				found := false
-				for _, e := range producedErrors(t, p) {
-					found = found || messages.Has(e, want)
-				}
-				if !found {
-					t.Errorf("%s: %s kodlu bir ileti üretmedi", filepath.Base(p), want)
-				}
+			if !found {
+				t.Errorf("%s: %s kodlu bir ileti üretmedi", filepath.Base(p), want)
 			}
-			for lang, p := range map[string]string{"tr": trPath, "en": enPath} {
-				rel, _ := filepath.Rel(reporoot.Path(), p)
-				s := testkit.RunBinary(t, trBinary, reporoot.Path(), "", []string{"TR_DIL=" + lang}, filepath.ToSlash(rel))
+			rel, _ := filepath.Rel(reporoot.Path(), p)
+			for _, display := range []string{"tr", "en"} {
+				s := testkit.RunBinary(t, trBinary, reporoot.Path(), "", []string{"TR_DIL=" + display}, filepath.ToSlash(rel))
 				if s.Code != 1 || !strings.Contains(s.Stderr, "❌") {
-					t.Errorf("%s: çıkış kodu %d (beklenen 1), hata çıktısı:\n%s", rel, s.Code, s.Stderr)
+					t.Errorf("%s (TR_DIL=%s): çıkış kodu %d (beklenen 1), hata çıktısı:\n%s", rel, display, s.Code, s.Stderr)
 				}
 			}
 		})
-	}
-	for n, enPath := range english {
-		if _, ok := turkish[n]; !ok {
-			t.Errorf("%s'in examples/tr/hatalar'da eşi yok", filepath.Base(enPath))
-		}
-	}
-}
-
-// Kodlanabilen (sözdizimi hatası olmayan) hata örneklerinin iki yazımı aynı programdır.
-func TestExampleErrorsSameStructure(t *testing.T) {
-	turkish, english := errorExamples(t, "tr", "hatalar"), errorExamples(t, "en", "errors")
-	for n, trPath := range turkish {
-		data, _ := os.ReadFile(trPath)
-		coded, err := source.Encode(string(data))
-		if err != nil {
-			continue // sözdizimi hatası olan dosya kodlanamaz
-		}
-		enData, _ := os.ReadFile(english[n])
-		if i := firstDifference(structure(coded), structure(string(enData))); i >= 0 {
-			t.Errorf("%s ile %s farklı program (%d. sözcük birimi)", filepath.Base(trPath), filepath.Base(english[n]), i)
-		}
 	}
 }

@@ -297,7 +297,7 @@ func TestRepoFilesEnglishLossless(t *testing.T) {
 	var files []string
 	for _, k := range []string{"tests", "examples", "lib", "tools"} {
 		reporoot.WalkDir(reporoot.Path(k), func(filePath string, g fs.DirEntry, err error) error {
-			if err == nil && g.IsDir() && (g.Name() == "negative" || g.Name() == errorsDir["tr"] || g.Name() == errorsDir["en"]) {
+			if err == nil && g.IsDir() && (g.Name() == "negative" || g.Name() == errorsDir["tr"]) {
 				return filepath.SkipDir // bilerek hatalı dosyalar (ölü kodlar, bozuk başlıklar, hata örnekleri)
 			}
 			if err == nil && !g.IsDir() && strings.HasSuffix(filePath, ".tr") && !trFilesWithData[g.Name()] {

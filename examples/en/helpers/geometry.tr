@@ -1,9 +1,0 @@
-//! tr kodlu 3 dil=en
-// The small module imported by 09_modules.tr (not an example to run on its own).
-// Every name defined at the top level is available in the file that imports the module.
-
-TR_kw_const PI = 3.14159
-
-TR_kw_func circle_area(r) {
-    TR_kw_return PI * r * r
-}

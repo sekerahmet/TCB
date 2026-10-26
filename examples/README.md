@@ -1,12 +1,12 @@
 # Örnekler
 
-Numaralı örnekler basitten zora bir öğrenme yoludur: her biri az sayıda yeni ad getirir ve öncekilerde öğretilmemiş hiçbir şeyi kullanmaz. Her örnek iki yazımla bulunur: [`tr/`](tr/) Türkçe, [`en/`](en/) İngilizce (aynı numara aynı program; İngilizce dosyalar kodlu saklanır, `tr göster --dil en` ile okunur). Yol, dilin bütün adlarını kapsar; kapsamı `go test ./cmd/tr/e2e -run TestExamplesCover` denetler. Tam liste ve ne öğrettikleri: [kök README](../README.md#örnekler); örneklerin hangi adları getirdiğini sırayla görmek için başlıklara bakın.
+Numaralı örnekler basitten zora bir öğrenme yoludur: her biri az sayıda yeni ad getirir ve öncekilerde öğretilmemiş hiçbir şeyi kullanmaz. Örnekler [`tr/`](tr/) klasöründedir ve kodlu saklanır: aynı dosya her gösterim dilinde okunur (`tr göster tr/01_merhaba.tr --dil en` İngilizce gösterir). Yol, dilin bütün adlarını kapsar; kapsamı `go test ./cmd/tr/e2e -run TestExamplesCover` denetler. Tam liste ve ne öğrettikleri: [kök README](../README.md#örnekler); örneklerin hangi adları getirdiğini sırayla görmek için başlıklara bakın.
 
 Her örnek tek başına çalışır:
 
 ```sh
 tr examples/tr/01_merhaba.tr        # ya da: tr çalıştır examples/tr/01_merhaba.tr
-tr examples/en/01_hello.tr          # aynı program, İngilizce yazım
+TR_DIL=en tr examples/tr/01_merhaba.tr   # aynı program, iletiler İngilizce
 ```
 
 ## Komut satırı
@@ -24,7 +24,7 @@ tr examples/en/01_hello.tr          # aynı program, İngilizce yazım
 | `biçimle` | Dosyaları standart biçime getirir | `tr biçimle examples/tr/09_listeler.tr` |
 | `kodla` | Dosyayı dilden bağımsız kodlu biçime çevirir | `tr kodla scratch/deneme.tr` |
 | `çöz` | Kodlu dosyayı etkin yazım dilindeki biçime geri çevirir | `tr çöz scratch/deneme.tr` |
-| `göster` | Kodlu dosyayı değiştirmeden bir yazım dilinde yazar | `tr göster examples/en/01_hello.tr --dil tr` |
+| `göster` | Kodlu dosyayı değiştirmeden bir yazım dilinde yazar | `tr göster examples/tr/01_merhaba.tr --dil en` |
 | `hata_ayıkla` | Programı terminal hata ayıklayıcısında başlatır | `tr hata_ayıkla examples/tr/42_hata_ayiklama.tr` |
 | `izle` | Çalışan bir eğitimin canlı profil tablosunu gösterir | `tr izle examples/tr/40_kontrol_noktasi.tr` |
 | `profil` | Biten ya da süren bir eğitimin profil raporunu yazar | `tr profil examples/tr/28_egitim_dongusu.tr` |
@@ -45,7 +45,7 @@ Seçenekler (komutlardan sonra, iki tireyle; adın sözcükleri tireyle ayrılı
 
 | Seçenek | Ne yapar | Örnek |
 | :-- | :-- | :-- |
-| `--dil` | Yazım dilini seçer (`tr`, `en`) | `tr göster examples/en/05_conditions.tr --dil tr` |
+| `--dil` | Yazım dilini seçer (`tr`, `en`) | `tr göster examples/tr/05_kosullar.tr --dil en` |
 | `--kontrol` | `biçimle` ile dosyayı değiştirmeden standart biçimde olup olmadığını denetler | `tr biçimle --kontrol examples` |
 | `--json` | `profil` raporunu JSON olarak yazar | `tr profil --json rapor.json examples/tr/28_egitim_dongusu.tr` |
 | `--go-profili` | `profil` ile yorumlayıcının kendi Go profilini de yazar | `tr profil --go-profili examples/tr/28_egitim_dongusu.tr` |

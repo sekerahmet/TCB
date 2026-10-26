@@ -1,5 +1,4 @@
 # Bir teste bağlanamayan izlenen veri dosyaları: kalıp <TAB> gerekçe. Liste yalnızca küçülür: satır sayısı data_coverage_test.go'da sabitlenir (maxUncoveredData), geniş kalıp (docs/**) yazılmaz, her dosya adıyla.
-examples/en/**	yazım klasörleri os.ReadDir ile listelenir (yazım dili değişken); hiçbir dize yolu adlandırmaz. Kapsamı exampleFiles(t, lang) üstünden behavior_examples_test.go'dadır
 CLAUDE.md	kök belgesi: düzyazı; kuralları ilgili paket README'lerinde ve testlerindedir
 .vscode/**	VS Code çalışma alanı ayarı; Go testi okumaz
 editors/vscode/*.json	VS Code eklentisinin bildirim dosyaları; eklenti kendi kod akışında (JS) yüklenir, Go testi okumaz

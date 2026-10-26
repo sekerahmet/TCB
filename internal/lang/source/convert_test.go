@@ -246,7 +246,7 @@ func TestRepoTRFilesEncodeLossless(t *testing.T) {
 	for _, d := range skipped {
 		// Bilerek hatalı dosyalar: dilin olumsuz testleri, araçların testdata fikstürleri ve hata örnekleri.
 		if !strings.HasPrefix(d, "tests/negative/") && !strings.Contains(d, "/testdata/") &&
-			!strings.HasPrefix(d, "examples/tr/hatalar/") && !strings.HasPrefix(d, "examples/en/errors/") {
+			!strings.HasPrefix(d, "examples/tr/hatalar/") {
 			t.Errorf("%s ayrıştırılamadı; yalnızca bilerek hatalı olumsuz test dosyaları atlanabilir", d)
 		}
 	}

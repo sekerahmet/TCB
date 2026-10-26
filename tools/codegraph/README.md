@@ -365,8 +365,7 @@ the items of a `const (...)` block, back-to-back registration calls `wrap(v, cod
 a kernel's `x := k.pointer("x")` parameter declarations, consecutive one-statement test
 functions. The order of such a list is information, each unit says something else, and a real copy
 of a list is a copy of a table, not of logic; 40 nodes is the size of `func TestX(t) { expectOut(t,
-`...`, `...`) }`, so a unit with a branch or a loop is never a sibling); `examples/tr` against `examples/en` are
-`.tr` files, which this command does not read. To add an exception write one entry in
+`...`, `...`) }`, so a unit with a branch or a loop is never a sibling); `.tr` files are not read by this command. To add an exception write one entry in
 `dups_exclude.go` with a reason.
 
 **Limits.** Exact-shape clones only (type 1 and 2 in the clone literature): a copy with an extra
@@ -377,8 +376,7 @@ although they are rarely worth merging: judge each candidate. On this repository
 
 **For `.tr` code** the same idea belongs in `tr dizin` (the TR code index already has the syntax
 trees and a language-independent reader): a `tr dizin kopya` subcommand over the `codeindex`
-parser output with the same node sequence, which would see the parallel `examples/tr` and
-`examples/en` as one family; see the hand-over note for the proposal.
+parser output with the same node sequence; see the hand-over note for the proposal.
 
 ## Audits (`dead-methods`, `package-state`, `time-ceilings`, `spec-refs`)
 

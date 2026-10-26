@@ -397,9 +397,9 @@ build_tr() {
 # format_checks .tr dosyalarının standart biçimde olduğunu denetler; tam denetim ve ön denetim aynı
 # listeyi kullanır (yan oturumların ön denetimi biçimsiz bir test dosyasını kaçırmıştı).
 format_checks() {
-	# Örnekler öğrenme yoludur: standart biçimde olmalı (iki yazım da; kodlu dosya kodlu biçimlenir).
-	# Hata örnekleri (hatalar/, errors/) bilerek bozuktur ve biçimlenmez; yalnızca numaralı örnekler ve yardımcılar.
-	summarize "tr biçimle --kontrol examples" "$TR" biçimle --kontrol examples/tr/[0-9]*.tr examples/tr/helpers examples/en/[0-9]*.tr examples/en/helpers
+	# Örnekler öğrenme yoludur: standart biçimde olmalı (kodlu dosya kodlu biçimlenir).
+	# Hata örnekleri (hatalar/) bilerek bozuktur ve biçimlenmez; yalnızca numaralı örnekler ve yardımcılar.
+	summarize "tr biçimle --kontrol examples" "$TR" biçimle --kontrol examples/tr/[0-9]*.tr examples/tr/helpers
 	# Kitaplık, testler ve araç betikleri de standart biçimde olmalı; tests/negative bilerek bozuktur.
 	summarize "tr biçimle --kontrol lib tests tools" "$TR" biçimle --kontrol lib tests/*.tr tests/sub tests/tr tests/coded tools/gpu tools/bench/tr
 }
@@ -441,8 +441,8 @@ run_examples() {
 			echo "$output"
 			echo "!! KALDI: tr test examples"
 		fi
-		# Her örnek iki yazımıyla koşar: examples/tr (Türkçe) ve examples/en (İngilizce, kodlu saklanır).
-		for f in examples/tr/*.tr examples/en/*.tr; do
+		# Her örnek koşar (kodlu saklanır; gösterim dilinden bağımsızlığını e2e TestExamplesSameOutputInEveryDisplayLanguage sınar).
+		for f in examples/tr/*.tr; do
 			name=${f#examples/}
 			case " ${ATLANACAK_ORNEKLER:-} " in *" $name "* | *" $(basename "$f") "*)
 				echo "↷ $name atlandı"
