@@ -25,9 +25,10 @@ import (
 // TR_DIL'dir; değerin metninde ve yakalanan hatada dosyanın dilidir (17.7, 8.3).
 //
 // Bugün kalan durumlar testdata/display_known.txt'dedir ("yüzey F R tür ayrıntı"); liste
-// yalnızca küçülür. Yeniden yazmak için: go test ./cmd/tr/e2e -run TestDisplayExam -update
+// yalnızca küçülür. Artık geçen satırları silmek için: go test ./cmd/tr/e2e -run TestDisplayExam
+// -update (yeni kalan durum elle, nedeniyle eklenir).
 
-var updateDisplayKnown = flag.Bool("update", false, "testdata/display_known.txt'i bugünkü sonuçla yeniden yaz")
+var updateDisplayKnown = flag.Bool("update", false, "testdata/display_known.txt'ten artık geçen satırları sil")
 
 // displaySurface sınavın bir yüzeyidir. Programlar Türkçe görünümle yazılır, dosyanın diline (F)
 // çevrilip kodlanır; ad_N kullanıcı adlarıdır.

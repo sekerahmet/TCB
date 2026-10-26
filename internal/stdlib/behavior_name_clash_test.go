@@ -26,10 +26,11 @@ import (
 // yazılıp kodlu biçim üzerinden F'nin görünümüne çevrilir (kodların biçimini bilmez).
 //
 // Bugün kalan durumlar testdata/name_clash_known.txt'dedir ("F O yer sözcük"); liste yalnızca
-// küçülür: listede olmayan durum kalırsa ya da listedeki durum geçerse test düşer. Liste
-// yeniden yazmak için: go test ./internal/stdlib -run TestNameClashExam -update
+// küçülür: listede olmayan durum kalırsa ya da listedeki durum geçerse test düşer. Artık geçen
+// satırları silmek için: go test ./internal/stdlib -run TestNameClashExam -update (yeni kalan
+// durum elle, nedeniyle eklenir).
 
-var updateKnown = flag.Bool("update", false, "testdata/name_clash_known.txt'i bugünkü sonuçla yeniden yaz")
+var updateKnown = flag.Bool("update", false, "testdata/name_clash_known.txt'ten artık geçen satırları sil")
 
 // clashSlot şablonlarda sınanan adın yeridir; nötr program bu adla koşar.
 const clashSlot = "ad_1"
