@@ -41,6 +41,14 @@ type Definitions struct {
 	Codes  []Code // artan sırada
 }
 
+// ParamCount is the number of values the message code takes; ok is false for a code that is
+// not defined. TR code builds a message with ileti(H6903, ...) and is checked against it.
+func ParamCount(c Code) (n int, ok bool) {
+	load()
+	p, ok := definitions.Params[c]
+	return len(p), ok
+}
+
 // Slots returns the name slots of every code that has any: slot name → identity (TR_arg_kind).
 // Packages that know the names check that every identity is a name of the language.
 func Slots() map[Code]map[string]string {

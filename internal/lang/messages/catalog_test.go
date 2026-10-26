@@ -183,3 +183,14 @@ func TestDefinitionParamsAreASCIIIdentifiers(t *testing.T) {
 		}
 	}
 }
+
+// ParamCount TR kodunun ileti(H…, değerler) çağrısını denetlemek içindir: tanımlı kodun değer sayısı,
+// tanımsız kod için ok yanlış.
+func TestParamCount(t *testing.T) {
+	if n, ok := ParamCount(H2529); !ok || n != 4 {
+		t.Errorf("H2529: %d, %v; 4 değer bekleniyordu", n, ok)
+	}
+	if _, ok := ParamCount(Code(9998)); ok {
+		t.Error("tanımsız kod ok olmamalı")
+	}
+}

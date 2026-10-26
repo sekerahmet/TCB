@@ -294,6 +294,8 @@
 "H2525": "{type} tipi sırayla okunur, indekslenemez: öğelerini '{loop} x {in} ...' döngüsüyle ya da .{next}() ile okuyun",
 "H2526": "{type} tipinde {prop|q} metodu yok; dilim köşeli parantezle alınır: x[a..b]",
 "H2527": "{name}={value|q} ile {other}={other_value|q} aynı ortam değişkenidir ama değerleri farklı: birini kaldırın ya da ikisine aynı değeri verin",
+"H2528": "{fn}: {code|q} tanımlı bir ileti kodu değil",
+"H2529": "{fn}: {code} iletisi {expected} değer alır, {given} verildi",
 "H3001": "{dev} arka ucunun dikkat blok boyutları ayarlanamaz",
 "H3002": "Attention maskesi farklı cihazda ({mask}, {q})",
 "H3003": "Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}",
