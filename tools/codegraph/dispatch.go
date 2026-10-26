@@ -314,6 +314,12 @@ func linkConstructs(b *builder, t *dispatchTable, idx *codeindex.Index, ids map[
 		for _, to := range targets {
 			if operandRules(c.Operand, t.pkg[to] == interpPkg) {
 				b.addEdge(from, to, edgeImplementedBy, inferred, c.Pos.File, c.Pos.Line)
+				if e := b.edges[edgeKey{from, to, edgeImplementedBy}]; e.Via == "" {
+					e.Via = c.Kind
+					if c.Op != "" {
+						e.Via = "operator " + c.Op
+					}
+				}
 			}
 		}
 	}

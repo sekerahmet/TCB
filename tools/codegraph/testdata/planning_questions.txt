@@ -203,3 +203,4 @@ codegraph tests-for --all lib/katman.tr | contains: e2e.TestGPTTrainingScriptSmo
 codegraph tests-for internal/lang/interp/stats.go | contains: interp.TestStatsNameTheBadValueByItsPlace [func] internal/lang/interp/stats_test.go:14  direct | src: K2 partisi A, 2026-10-26 (aynı paketin testi dosyanın uyguladığı yerleşiği tablodaki TR koduyla koşuyor; eskiden 40. sırada 2 adım)
 codegraph tests-for cmd/tr/main.go | not: tipler_test: | not: yerlesikler_test: | not: tensor_test: | src: K2 partisi C, 2026-10-26 (yazdır'ın yazımlarını okuyan startsWithPrint yazdır'ı uygulamaz; TR testleri main.go'nun testi değil)
 codegraph who-uses --all TR_fn_print | group: reads_name => tr.startsWithPrint | src: K2 partisi C, 2026-10-26 (adını okuyan, uygulayandan ayrı)
+codegraph who-uses interp.memberKeys | before: <- calls => <- implemented_by | contains: via MemberExpression | not: [tr_func] | src: K2 partisi B, 2026-10-26 (yapı köprüsü yapının adıyla tek satır; Go çağıranı önde)
