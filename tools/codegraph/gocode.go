@@ -43,6 +43,7 @@ type goExtractor struct {
 	env       map[string]string // ortam değişkeni adı -> ortam değişkeninin ad kodu (env_names.go)
 	codeKeys  map[string]string // ad kodu sabitinin adı -> dil dosyasındaki anahtarı (codeConstKeys)
 	consumed  map[*ast.BasicLit]bool
+	nameReads map[*ast.Ident]bool // codes paketine argüman olarak verilen ad kodu sabitleri (noteNameReads)
 	// rangeVals dize sabiti listesi üzerinde dönen döngü değişkenleri ve alabildikleri değerlerdir
 	// (`for _, p := range []string{"docs/*.md", ...}`; test_paths.go: pathCall).
 	rangeVals map[types.Object][]string
@@ -101,7 +102,7 @@ func extractGo(m *module, b *builder) *goIndex {
 		pkgSyms: map[string]map[string]string{}, inTestFile: map[string]bool{}, snip: newSnippetState(),
 		byName: map[string][]*testFunc{}, dirFiles: map[string]bool{}, envSets: map[string][]envSet{},
 		scans: newScanState(),
-	}, fieldAt: map[string]string{}, env: envCodes(m.Root), codeKeys: codeConstKeys(m.Root), consumed: map[*ast.BasicLit]bool{}, rangeVals: map[types.Object][]string{},
+	}, fieldAt: map[string]string{}, env: envCodes(m.Root), codeKeys: codeConstKeys(m.Root), consumed: map[*ast.BasicLit]bool{}, nameReads: map[*ast.Ident]bool{}, rangeVals: map[types.Object][]string{},
 		strConsts: map[string][]string{}, strConstPkg: map[string]string{}}
 	for _, u := range m.Units {
 		x.unit(u)

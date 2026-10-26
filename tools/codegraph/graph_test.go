@@ -228,7 +228,8 @@ func TestEveryNameCodeHasAUse(t *testing.T) {
 	_, _, g := repoGraph(t)
 	used := map[string]bool{}
 	for _, e := range g.Edges {
-		if e.Kind == edgeUsesName || e.Kind == edgeUsesEnv { // ortam değişkenini ad kodunu görmeyen hesap çekirdeği adıyla okur
+		// ortam değişkenini ad kodunu görmeyen hesap çekirdeği adıyla okur; codes paketine verilen kod da kullanımdır (reads_name)
+		if e.Kind == edgeUsesName || e.Kind == edgeUsesEnv || e.Kind == edgeReadsName {
 			used[e.To] = true
 		}
 	}
@@ -247,6 +248,6 @@ func TestEveryNameCodeHasAUse(t *testing.T) {
 	}
 	if len(unused) > 0 {
 		sort.Strings(unused)
-		t.Errorf("%d name codes have no uses_name edge:\n  %s", len(unused), strings.Join(unused, "\n  "))
+		t.Errorf("%d name codes have no uses_name or reads_name edge:\n  %s", len(unused), strings.Join(unused, "\n  "))
 	}
 }
