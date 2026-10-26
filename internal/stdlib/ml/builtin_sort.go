@@ -28,7 +28,7 @@ func axisTensor(ad codes.Ref, usage string, args []interp.Value, n int, named ma
 	}
 	d, ok := args[0].(*TensorValue)
 	if !ok {
-		if err := listError(ad, args[0], messages.New(messages.H6132), ad.String()+"("+codes.Source().Name(codes.FnTensor)+"(...))"); err != nil {
+		if err := listError(ad, args[0], messages.New(messages.H6132), tensorCallExample(ad, "")); err != nil {
 			return nil, 0, err
 		}
 		return nil, 0, messages.New(messages.H6203, ad, typeName(args[0]))

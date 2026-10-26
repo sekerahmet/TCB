@@ -39,11 +39,35 @@ var (
 	nameMasterCopy   = bind.NamedArg(codes.ArgMasterWeights)
 )
 
-// gradExample hata mesajlarındaki türev izleyen tensör örneğidir:
-// gradExample("...") → "tensör(..., türev_izle: doğru)"; adlar koddan kurulur.
-func gradExample(data string) string {
-	return codes.Source().Name(codes.FnTensor) + "(" + data + ", " + codes.Source().Name(nameRequiresGrad.Code) + ": " + codes.Source().Name(codes.KwTrue) + ")"
+// codeExample iletideki bir kod örneğidir (ileti parametresi, messages.Localized): format'taki her
+// %s yerine bir parça gelir; dilin adları (kod başvurusu, adlı argüman) iletinin dilinde, başka
+// parçalar olduğu gibi yazılır. Örnekteki kullanıcı adları dilden bağımsızdır (x, g, s).
+type codeExample struct {
+	format string
+	parts  []any
 }
+
+func example(format string, parts ...any) codeExample { return codeExample{format, parts} }
+
+func (e codeExample) MessageText(lang string) string {
+	texts := make([]any, len(e.parts))
+	for i, p := range e.parts {
+		if l, ok := p.(messages.Localized); ok {
+			p = l.MessageText(lang)
+		}
+		texts[i] = p
+	}
+	return fmt.Sprintf(e.format, texts...)
+}
+
+// tensorCallExample listeyi tensöre çevirerek yazılmış çağrı örneğidir: fn(tensör(...)<rest>);
+// rest'in biçimi ve parçaları example'daki gibidir (", %s: -1", nameAxis).
+func tensorCallExample(fn codes.Ref, rest string, parts ...any) codeExample {
+	return example("%s(%s(...)"+rest+")", append([]any{fn, codes.NameRef(codes.FnTensor)}, parts...)...)
+}
+
+// gradExample hata mesajlarındaki türev izleyen tensör örneğidir: tensör(..., türev_izle: doğru).
+var gradExample = example("%s(..., %s: %s)", codes.NameRef(codes.FnTensor), nameRequiresGrad, codes.NameRef(codes.KwTrue))
 
 // safe fn'i çalıştırır; çekirdekten gelen paniği Türkçe bir hataya dönüştürür.
 func safe[T any](fn func() T) (T, error) { return bind.Recover(fn, panicError) }

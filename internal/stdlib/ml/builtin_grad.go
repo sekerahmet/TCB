@@ -31,7 +31,7 @@ func backpropagation(m *interp.VM, args []interp.Value, named map[string]interp.
 		return nil, messages.New(messages.H6401, fn, tensor.ShapeText(t.Shape()), codes.NameRef(codes.FnSum), codes.NameRef(codes.FnMean))
 	}
 	if !t.RequiresGrad() {
-		return nil, messages.New(messages.H6402, fn, gradExample("..."), codes.NameRef(codes.FnNoGrad))
+		return nil, messages.New(messages.H6402, fn, gradExample, codes.NameRef(codes.FnNoGrad))
 	}
 	// Dış düğümlerin (özel_türev) geri hesapları bu görevle çalışır.
 	if err := backprop(m, t, nil); err != nil {

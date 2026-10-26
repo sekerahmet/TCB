@@ -8,6 +8,25 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
+// Kural: iletideki kod örneği (listeyi tensöre çevir, türev izleyen tensör, özel_türev kullanımı)
+// iletinin dilinde yazılır: aynı hata İngilizce iletide İngilizce örnek verir, Türkçe sözcük taşımaz.
+func TestCodeExamplesFollowTheMessageLanguage(t *testing.T) {
+	for code, want := range map[string]string{
+		"exp([1.0, 2.0])":               "exp(tensor(...))",
+		"softmax([1.0, 2.0])":           "softmax(tensor(...), dim: -1)",
+		"geri_yayılım(tensör(3.0) * 2)": "tensor(..., requires_grad: true)",
+		"özel_türev(1)":                 "custom_grad(forward: func(x) { return [x * x, [x]] }, backward: func(s, g) { return [g * 2 * s[0]] })",
+	} {
+		_, err := run(t, code)
+		if err == nil {
+			t.Fatalf("%s: hata bekleniyordu", code)
+		}
+		if en := messages.ErrorIn(err, "en"); !strings.Contains(en, want) || strings.ContainsAny(en, "çğıöşüÇĞİÖŞÜ") {
+			t.Errorf("%s: İngilizce iletide %q yok ya da Türkçe harf var:\n%s", code, want, en)
+		}
+	}
+}
+
 func TestMessageConsistency(t *testing.T) {
 	cases := []struct {
 		code string

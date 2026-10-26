@@ -48,7 +48,7 @@ func (d *TensorValue) GetProperty(kd codes.Code, prop string) (interp.Value, err
 		return d.namedMethod(memberToDType, d.toDType), nil
 	case memberGrad:
 		if d.intermediate {
-			return nil, messages.New(messages.H6700, tensor.ShapeText(t.Shape()), nameRequiresGrad, codes.NameRef(codes.KwTrue), codes.NameRef(codes.FnAdamW), codes.NameRef(codes.FnSGD), codes.NameRef(codes.FnNoGrad), gradExample("..."))
+			return nil, messages.New(messages.H6700, tensor.ShapeText(t.Shape()), nameRequiresGrad, codes.NameRef(codes.KwTrue), codes.NameRef(codes.FnAdamW), codes.NameRef(codes.FnSGD), codes.NameRef(codes.FnNoGrad), gradExample)
 		}
 		g := t.Grad()
 		if g == nil {

@@ -188,7 +188,7 @@ func loadParamsBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 		return nil, err
 	}
 	if len(names) == 0 {
-		return nil, messages.New(messages.H6520, fn, interp.TypeAndSummary(args[0]), gradExample("..."))
+		return nil, messages.New(messages.H6520, fn, interp.TypeAndSummary(args[0]), gradExample)
 	}
 	s, ok := args[1].(*interp.DictVal)
 	if !ok {

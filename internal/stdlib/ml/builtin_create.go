@@ -35,10 +35,10 @@ func requiresGrad(fn any, named map[string]interp.Value, positional interp.Value
 func tensorBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.NameRef(codes.FnTensor)
 	if len(args) < 1 {
-		return nil, messages.New(messages.H6001, gradExample("veri"))
+		return nil, messages.New(messages.H6001, gradExample)
 	}
 	if len(args) > 2 {
-		return nil, messages.New(messages.H6002, gradExample("veri"), len(args))
+		return nil, messages.New(messages.H6002, gradExample, len(args))
 	}
 	if err := bind.CheckNamed(fn.Called(), named, nameRequiresGrad, nameDType); err != nil {
 		return nil, err
