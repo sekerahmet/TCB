@@ -163,7 +163,7 @@ Testler: `tests/<bölüm>_test.tr` (her test madde numarasıyla başlar; olumsuz
 
 | Adım | Ne yapılır |
 | :-- | :-- |
-| Kullanımları kodla | Ad değişecekse (bugünkü adlar dillerde farklıysa) veriden **önce**: kodsuz `.tr` dosyaları `tr kodla <dosyalar>`, belgelerin ```tr blokları ve satır içi kodu `tr kodla -` ile eski adlarla kodlanır (çağrı ve başvuru kimliğe döner, yorum ve düzyazı bayt bayt kalır). Sözcükle arayıp değiştirme yapılmaz. |
+| Kullanımları kodla | Ad değişecekse (bugünkü adlar dillerde farklıysa) veriden **önce**: kodsuz `.tr` dosyaları `tr kodla <dosyalar> --dil tr`, belgelerin ```tr blokları ve satır içi kodu `tr kodla - --dil tr` ile eski adlarla kodlanır (dil verilmezse metin kişinin yazım dilinde, `TR_DIL`, okunur) (çağrı ve başvuru kimliğe döner, yorum ve düzyazı bayt bayt kalır). Sözcükle arayıp değiştirme yapılmaz. |
 | Veri | Tek betikle: `definitions.json` satırına `"common_name": "sin"`; `tr.json` satırından `"name"` düşer (`description`, `example`, `family` kalır); `en.json`'da yalnız ad taşıyan satır silinir; ortak adla aynı `foreign` girdisi silinir. |
 | Denetle | Kodlu dosyalar geri yazılmaz, kimlikleri değişmez; görünüm `tr göster <dosya> --dil tr` ve `tr göster - --dil tr` ile denetlenir, yalnız ad çiftleri değişmiş olmalı. Elle: Go test dizgilerindeki TR kodu, fonksiyonu anan yorumlar, `tr.json`'un açıklamaları, `.tr` testlerinin beklediği ileti metinleri. |
 | Gölgeleme | Yeni adı yerel ad ya da parametre olarak kullanan yer yerleşiği gölgeler (2.9a): depodaki her kodsuz `.tr` dosyası `tr kontrol` ile koşulur, uyarı aranır. |
