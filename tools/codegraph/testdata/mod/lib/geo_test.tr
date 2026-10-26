@@ -1,13 +1,12 @@
-//! tr kodlu 3 dil=tr
-TR_kw_import "tr/geo"
+aktar "tr/geo"
 
-TR_ctx_test "kare alanı yazılır" {
-    TR_kw_var k = Kare(3)
+test "kare alanı yazılır" {
+    değişken k = Kare(3)
     yaz_alan(k)
 }
 
-TR_ctx_test "çevre" {
-    TR_kw_var yazdır = TR_kw_func(x) { TR_kw_return x }
+test "çevre" {
+    değişken yazdır = fonksiyon(x) { sonuç x }
     yazdır(2)
     çevre_hesapla(Kare(2))
 }

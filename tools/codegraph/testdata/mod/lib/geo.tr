@@ -1,23 +1,22 @@
-//! tr kodlu 3 dil=tr
 // geo: a fixture module for the TR extractor.
-TR_kw_const PI2 = 6.28
-TR_kw_var sayaç = 0
+sabit PI2 = 6.28
+değişken sayaç = 0
 
-TR_kw_struct Kare {
+yapı Kare {
     kenar = 1
-    TR_kw_func TR_ctx_init(kenar = 1) {
-        TR_kw_self.kenar = kenar
+    fonksiyon kurucu(kenar = 1) {
+        kendi.kenar = kenar
     }
-    TR_kw_func alan() {
-        TR_kw_return TR_kw_self.kenar * TR_kw_self.kenar
+    fonksiyon alan() {
+        sonuç kendi.kenar * kendi.kenar
     }
 }
 
-TR_kw_func çevre_hesapla(k) {
-    TR_kw_return 4 * k.kenar
+fonksiyon çevre_hesapla(k) {
+    sonuç 4 * k.kenar
 }
 
-TR_kw_func yaz_alan(k) {
-    TR_fn_print(k.alan())
-    TR_kw_return çevre_hesapla(k)
+fonksiyon yaz_alan(k) {
+    yazdır(k.alan())
+    sonuç çevre_hesapla(k)
 }
