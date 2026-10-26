@@ -95,6 +95,7 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 			x.fieldAccess(fc, owner, n, modes[n], enclosingClosure(stack, closures))
 		case *ast.CompositeLit:
 			x.literalFields(fc, owner, n, enclosingClosure(stack, closures))
+			x.keyedImplementations(fc, owner, n)
 			x.pathList(fc, owner, n)
 			x.noteTextCompare(fc, owner, n)
 		case *ast.CaseClause:
@@ -144,6 +145,31 @@ func (x *goExtractor) literalFields(fc *fileCtx, owner string, lit *ast.Composit
 		if v, ok := fc.u.Info.Uses[key].(*types.Var); ok && v.IsField() {
 			x.fieldUses = append(x.fieldUses, rawFieldUse{posKey: x.posKey(v.Pos()), owner: owner,
 				site: Site{File: fc.rel, Line: x.line(key.Pos()), Mode: modeLiteral, Closure: closure}})
+		}
+	}
+}
+
+// keyedImplementations bileşik değerde ad kodunu anahtar, işlevi değer alan çiftin (`codes.CmdEncode: encodeCommand`)
+// işleve giden kenarına kodu yazar (Edge.Via): kodun uygulaması o çiftin değeridir, aynı satırdaki öbür çiftlerinki değil
+// (implementationsAt). Kenar işlevin değer olarak kullanımıdır (calls, INFERRED; use ile aynı kenar).
+func (x *goExtractor) keyedImplementations(fc *fileCtx, owner string, lit *ast.CompositeLit) {
+	for _, e := range lit.Elts {
+		kv, ok := e.(*ast.KeyValueExpr)
+		if !ok {
+			continue
+		}
+		key, value := nameIdent(kv.Key), nameIdent(kv.Value)
+		if key == nil || value == nil {
+			continue
+		}
+		c, isConst := fc.u.Info.Uses[key].(*types.Const)
+		fn, isFunc := fc.u.Info.Uses[value].(*types.Func)
+		if !isConst || !isFunc || c.Pkg() == nil || c.Pkg().Path() != x.m.Path+"/"+codesDir || x.codeKeys[c.Name()] == "" {
+			continue
+		}
+		if ref := x.objectID(fn); ref != "" {
+			x.b.addEdge(owner, ref, edgeCalls, inferred, fc.rel, x.line(value.Pos()))
+			x.b.edges[edgeKey{owner, ref, edgeCalls}].Via = "name:" + x.codeKeys[c.Name()]
 		}
 	}
 }

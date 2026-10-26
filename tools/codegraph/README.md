@@ -237,7 +237,8 @@ stays the tool for Go code, messages and codes, docs and history.
   distance of it, also checked against the part after the last `.` or `/`).
 - A built-in's name in either language resolves to its name code: `query zaman_ms` (or `time_ms`)
   prints the code, its Go constant, where the code is used or registered with the implementation
-  named on the same line (`{codes.FnTimeMs, timeMsBuiltin}`), and the heading in `docs/codes.md`.
+  named on the same line (`{codes.FnTimeMs, timeMsBuiltin}`; when the code keys a pair, `codes.CmdEncode: encodeCommand`,
+  only that pair's value, even with several pairs on one line), and the heading in `docs/codes.md`.
   Name-code nodes carry both language names in `aliases`.
 
 ## History commands (from git, never stored)

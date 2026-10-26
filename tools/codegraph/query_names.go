@@ -56,16 +56,24 @@ func (ix *index) printNameChain(w io.Writer, n *Node, limit int) {
 }
 
 // implementationsAt kodun kullanıldığı satırda aynı sahibin başvurduğu işlevleri verir (kayıt
-// tablosunda {codes.FnTimeMs, timeMsBuiltin} satırının timeMsBuiltin'i).
+// tablosunda {codes.FnTimeMs, timeMsBuiltin} satırının timeMsBuiltin'i). Satırda ad koduyla anahtarlanmış çiftler varsa
+// (`codes.CmdDebug: debugCommand, codes.CmdEncode: encodeCommand`) uygulama sorulan kodun çiftinin değeridir (Edge.Via).
 func (ix *index) implementationsAt(owner *Node, use *Edge) []string {
-	var out []string
+	var all, keyed []string
 	for _, e := range ix.out[owner.ID] {
 		if e.Kind == edgeCalls && e.File == use.File && e.Line == use.Line {
 			if t := ix.byID[e.To]; isFuncNode(t) {
-				out = append(out, fmt.Sprintf("%s [%s]", t.Name, where(t.File, t.Line)))
+				name := fmt.Sprintf("%s [%s]", t.Name, where(t.File, t.Line))
+				all = append(all, name)
+				if e.Via == use.To {
+					keyed = append(keyed, name)
+				}
 			}
 		}
 	}
-	sort.Strings(out)
-	return out
+	if len(keyed) > 0 {
+		all = keyed
+	}
+	sort.Strings(all)
+	return all
 }

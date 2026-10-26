@@ -219,3 +219,7 @@ codegraph query Linear | contains: katman.TR_type_Linear | src: kitaplık partis
 codegraph query Doğrusal | contains: katman.TR_type_Linear [tr_struct] | src: kimlik okuması, 2026-10-26 (Türkçe adla sorulan kitaplık bildirimi)
 codegraph query katman.Linear.forward | contains: katman.TR_type_Linear.TR_mem_forward [tr_method] | src: kimlik okuması, 2026-10-26 (nitelenmiş adın İngilizce yazımı takma addır)
 tr dizin tanım katman.TR_type_Linear.TR_mem_forward | contains: katman.Doğrusal.ileri | src: kimlik okuması, 2026-10-26 (kimlikle sorulan, okuyanın dilinde yazılır)
+
+# Gerçek kullanım denemesi bulguları (2026-10-26)
+codegraph tests-for tools/gen/snippets/data.json | group: <- tests ( => snippets.TestSnippetsUpToDate | group: <- tests ( => snippets.TestSnippetsParseInEveryLanguage | src: gerçek kullanım denemesi, 2026-10-26 (init()'in doldurduğu değişkeni okuyan testler)
+codegraph query TR_cmd_encode | group: registered or used in Go => -> tr.encodeCommand [ | not: tr.debugCommand | src: gerçek kullanım denemesi, 2026-10-26 (anahtar-değer çiftinin değeri, satırdaki öbürleri değil)
