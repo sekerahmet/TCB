@@ -244,10 +244,10 @@ Profil saniyede bir anlık görüntü alır (`snapshot.go`), son 5 saniyenin far
     "ms_adım": 16.7, "adım_sn": 59.7,    // son çubuğun, tüm_adım bütün çubukların (epoch'lar) adımı
     "kaynak": "ilerleme_cubugu", "ileri_ms": 5.1, "geri_ms": 9.8, "sonra_ms": 1.8},  // kaynak: ilerleme_cubugu | iyilestirici
   "tensör": {"süre_sn": 11.4, "pay": 0.95, "çağrı": 772761, "bayt": 7642211100,
-    "işlemler": [{"kod": "matris_carpimi", "ad": "matris çarpımı (@)", "yön": "ileri",
+    "işlemler": [{"kod": "matmul", "ad": "matris çarpımı (@)", "yön": "ileri",
       "cihaz": "cpu", "çağrı": 160966, "ölçüm": 160529, "süre_sn": 4.99, "pay": 0.44,
       "bayt": 2044092928, "ms_adım": 6.99}],               // süreye göre sıralı, en çok 30
-    "örtük": [{"kod": "adimli_kopya", "üst_kod": "matris_carpimi", "ad": "adımlı kopya",
+    "örtük": [{"kod": "strided_copy", "üst_kod": "matmul", "ad": "adımlı kopya",
       "üst_ad": "matris çarpımı (@)", "yön": "ileri", "cihaz": "cpu", "çağrı": 45,
       "eleman": 17940480, "ölçüm": 45, "süre_sn": 0.022}]}, // elemana göre sıralı, en çok 30
   "gpu": {"kullanıldı": true, "ölçüm": true, "not": "", "süre_sn": 0.088,

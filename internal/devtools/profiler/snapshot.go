@@ -78,8 +78,8 @@ type TensorInfo struct {
 // ImplicitInfo bir (örtük tür, üst işlem, yön, cihaz) dörtlüsüdür; elemana göre büyükten
 // küçüğe sıralıdır (GPU'da süre yoktur, eleman iki cihazda da kesindir).
 type ImplicitInfo struct {
-	Code       string  `json:"kod"`     // örtük türün değişmez anahtarı (ör. "adimli_kopya")
-	Parent     string  `json:"üst_kod"` // üst işlemin değişmez anahtarı (ör. "matris_carpimi")
+	Code       string  `json:"kod"`     // örtük türün değişmez anahtarı (ör. "strided_copy")
+	Parent     string  `json:"üst_kod"` // üst işlemin değişmez anahtarı (ör. "matmul")
 	Name       string  `json:"ad"`      // örtük türün insana gösterilen adı (ör. "adımlı kopya")
 	ParentName string  `json:"üst_ad"`  // üst işlemin insana gösterilen adı (ör. "geri · @")
 	Direction  string  `json:"yön"`     // üst işlemin yönü: "ileri" ya da "geri"

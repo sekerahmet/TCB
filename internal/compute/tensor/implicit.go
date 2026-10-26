@@ -30,7 +30,7 @@ const (
 )
 
 // implicitCodes dosya biçimindeki değişmez anahtarlardır (insana gösterilen ad profiler'dadır).
-var implicitCodes = [ImplicitKindCount]string{"kopya", "adimli_kopya", "tur_donusumu", "ekleme"}
+var implicitCodes = [ImplicitKindCount]string{"copy", "strided_copy", "cast", "accumulate"}
 
 // Code türün dosya biçimindeki değişmez anahtarıdır.
 func (k ImplicitKind) Code() string {

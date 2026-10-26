@@ -46,7 +46,7 @@ func TestStatusFileReaderSeesNoPartialFile(t *testing.T) {
 	// Büyük bir görüntü: tek yazmada bitmesin.
 	g := &Snapshot{Format: FormatName, Version: FormatVersion}
 	for i := 0; i < 400; i++ {
-		g.Tensor.Ops = append(g.Tensor.Ops, OpInfo{Code: "matris_carpimi", Name: strings.Repeat("ç", 40), Calls: int64(i)})
+		g.Tensor.Ops = append(g.Tensor.Ops, OpInfo{Code: "matmul", Name: strings.Repeat("ç", 40), Calls: int64(i)})
 	}
 	if err := y.write(g); err != nil {
 		t.Fatal(err)

@@ -94,7 +94,7 @@ func TestProfileCommand(t *testing.T) {
 	for _, x := range []struct {
 		code, direction string
 		n               float64
-	}{{"matris_carpimi", "ileri", 60}, {"matris_carpimi", "geri", 60}, {"adamw", "ileri", 60}} {
+	}{{"matmul", "ileri", 60}, {"matmul", "geri", 60}, {"adamw", "ileri", 60}} {
 		if n := processCall(d, x.code, x.direction); n != x.n {
 			t.Errorf("%s (%s) %v çağrı, beklenen %v", x.code, x.direction, n, x.n)
 		}
@@ -158,7 +158,7 @@ func TestJobProfileFile(t *testing.T) {
 	if d["bitti"] != true || d["örnekleme"] != nil {
 		t.Errorf("profil.json: bitti %v, örnekleme %v (iş profilinde örnekleme kapalı)", d["bitti"], d["örnekleme"])
 	}
-	if n := processCall(d, "matris_carpimi", "ileri"); n != 60 {
+	if n := processCall(d, "matmul", "ileri"); n != 60 {
 		t.Errorf("iş profilinde matris çarpımı %v çağrı, beklenen 60", n)
 	}
 }

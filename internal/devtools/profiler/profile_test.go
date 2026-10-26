@@ -84,8 +84,8 @@ func TestProfileKnownOpCount(t *testing.T) {
 		code, direction string
 		n               int64
 	}{
-		{"matris_carpimi", "ileri", 200}, {"matris_carpimi", "geri", 200}, {"relu", "ileri", 200},
-		{"relu", "geri", 200}, {"adamw", "ileri", 200}, {"toplam", "ileri", 200},
+		{"matmul", "ileri", 200}, {"matmul", "geri", 200}, {"relu", "ileri", 200},
+		{"relu", "geri", 200}, {"adamw", "ileri", 200}, {"sum", "ileri", 200},
 	} {
 		b := findOp(g, d.code, d.direction)
 		if b == nil || b.Calls != d.n {
@@ -103,7 +103,7 @@ func TestProfileKnownOpCount(t *testing.T) {
 	if g.Seconds >= 0.05 && (g.Tensor.Share <= 0 || g.Tensor.Share > 1.05) {
 		t.Errorf("tensör süresi %v sn, programın %v sn'si içinde payı %v", g.Tensor.Seconds, g.Seconds, g.Tensor.Share)
 	}
-	if b := findOp(g, "matris_carpimi", "ileri"); b.MsPerStep == nil {
+	if b := findOp(g, "matmul", "ileri"); b.MsPerStep == nil {
 		t.Error("adım varken işlemin adım başına süresi yok")
 	}
 }
@@ -393,7 +393,7 @@ func TestProfileModuleLines(t *testing.T) {
 // adım sayısına bölünür (GPU raporundaki gibi), adım sınırları arasındaki aralık sayısına değil.
 func TestProfileOpMsPerStepUsesAllSteps(t *testing.T) {
 	g, _ := run(t, shortTraining, Options{})
-	b := findOp(g, "matris_carpimi", "ileri")
+	b := findOp(g, "matmul", "ileri")
 	if b == nil || b.MsPerStep == nil {
 		t.Fatalf("işlem ya da adım başına süresi yok: %+v", b)
 	}
@@ -420,7 +420,7 @@ func TestProfileStepsAcrossProgressBars(t *testing.T) {
 	if g.Step == nil || g.Step.All != 200 || g.Step.Count != 100 {
 		t.Fatalf("iki çubukta toplam 200 adım, son çubukta 100 bekleniyordu: %+v", g.Step)
 	}
-	b := findOp(g, "matris_carpimi", "ileri")
+	b := findOp(g, "matmul", "ileri")
 	if b == nil || b.MsPerStep == nil {
 		t.Fatalf("işlemin adım başına süresi yok: %+v", b)
 	}

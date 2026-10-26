@@ -64,11 +64,11 @@ func TestProfileGPUKernelsAndMemory(t *testing.T) {
 		t.Errorf("arka ucun raporu alınmadı: %q", gp.summary)
 	}
 	// GPU işlemlerinin her çağrısı ölçülür (örnekleme yok): eşzamanlama beklemesi kaçmaz.
-	b := findOp(g, "konaga_okuma", "ileri")
+	b := findOp(g, "to_host", "ileri")
 	if b == nil || b.Device != "gpu" || b.Measured != b.Calls {
 		t.Errorf("GPU'da konağa okuma: %+v; her çağrı ölçülmeli", b)
 	}
-	m := findOp(g, "matris_carpimi", "ileri")
+	m := findOp(g, "matmul", "ileri")
 	if m == nil || m.Device != "gpu" || m.Calls != 6 {
 		t.Errorf("GPU'da matris çarpımı: %+v; 6 çağrı beklenirdi", m)
 	}
@@ -187,7 +187,7 @@ func TestProfileGPUTimeByOperationAndLine(t *testing.T) {
 	gp := g.GPU
 	var fwd, back bool
 	for _, o := range gp.Ops {
-		if o.Code == "matris_carpimi" {
+		if o.Code == "matmul" {
 			fwd = fwd || o.Direction == "ileri"
 			back = back || o.Direction == "geri"
 		}

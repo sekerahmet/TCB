@@ -123,22 +123,24 @@ const (
 )
 
 // opCodes dosya biçimlerinde (profil.json) kullanılan, yazım dilinden bağımsız
-// değişmez anahtarlardır. İnsana gösterilen ad profiler paketindedir (opName): tensör paketi
-// kullanıcıya görünen işlem adı tutmaz.
+// değişmez anahtarlardır: Go adları gibi İngilizce tanımlayıcı, OpKind sabitinin adı küçük harfle
+// ve alt çizgiyle (OpKindLessEq → less_eq); PyTorch'un işlem adı tek sözcükse onun yazımı
+// (matmul, argmax, cumsum, topk, argsort). İnsana gösterilen ad profiler paketindedir (opName):
+// tensör paketi kullanıcıya görünen işlem adı tutmaz.
 var opCodes = [OpKindCount]string{
-	"diger", "toplama", "cikarma", "carpma", "bolme", "atan2", "kucuk", "buyuk", "kucuk_esit",
-	"buyuk_esit", "ustel", "log", "karekok", "us", "tanh", "relu", "gelu", "sigmoid",
-	"skaler_toplama", "skaler_carpma", "skalerden_cikarma", "skaler_bolme", "sinus", "kosinus",
-	"silu", "tanjant", "arksinus", "arkkosinus", "arktanjant", "sinh", "cosh", "log1p", "log2",
-	"log10", "ustel_eksi_bir", "taban", "tavan", "isaret", "mutlak", "gelu_tam", "matris_carpimi", "toplam",
-	"ortalama", "en_buyuk", "en_buyuk_indeks", "softmax", "log_softmax", "gomme", "capraz_entropi",
-	"katman_normu", "rms_normu", "dikkat", "sinirlama", "kosullu_secim", "birikimli_toplam",
-	"en_buyuk_k", "siralama_indeksi", "birlestirme", "gorunum", "kopya", "tur_donusumu",
-	"cihaza_tasima", "konaga_okuma", "olusturma", "gradyan_sifirlama", "sgd", "adamw",
-	"gradyan_kirpma", "ozel", "kaynasik", "yerinde_yazma",
+	"other", "add", "sub", "mul", "div", "atan2", "less", "greater", "less_eq",
+	"greater_eq", "exp", "log", "sqrt", "pow", "tanh", "relu", "gelu", "sigmoid",
+	"add_scalar", "mul_scalar", "rsub_scalar", "div_scalar", "sin", "cos",
+	"silu", "tan", "asin", "acos", "atan", "sinh", "cosh", "log1p", "log2",
+	"log10", "expm1", "floor", "ceil", "sign", "abs", "gelu_exact", "matmul", "sum",
+	"mean", "max", "argmax", "softmax", "log_softmax", "embedding", "cross_entropy",
+	"layer_norm", "rms_norm", "attention", "clamp", "where", "cumsum",
+	"topk", "argsort", "concat", "view", "copy", "cast",
+	"to_device", "to_host", "create", "zero_grad", "sgd", "adamw",
+	"clip_grad", "custom", "fused", "assign",
 }
 
-// Code işlemin dosya biçimlerindeki değişmez anahtarıdır (ör. "matris_carpimi").
+// Code işlemin dosya biçimlerindeki değişmez anahtarıdır (ör. "matmul").
 func (i OpKind) Code() string {
 	if i < OpKindCount {
 		return opCodes[i]

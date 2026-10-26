@@ -1,6 +1,7 @@
 package tensor
 
 import (
+	"regexp"
 	"testing"
 	"time"
 )
@@ -148,11 +149,22 @@ func TestCounterActiveOpClearedOnNext(t *testing.T) {
 	}
 }
 
+// Kural: işlem ve örtük iş anahtarları (profil dosyasının sabit anahtarları) Go adları gibi
+// İngilizce tanımlayıcıdır (küçük ASCII harf, rakam, alt çizgi); kişiye görünen ad profiler'dadır.
 func TestCounterOpNames(t *testing.T) {
+	ident := regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
+	for k := ImplicitKind(0); k < ImplicitKindCount; k++ {
+		if !ident.MatchString(k.Code()) {
+			t.Errorf("örtük iş anahtarı %q İngilizce tanımlayıcı değil", k.Code())
+		}
+	}
 	seen := map[string]bool{}
 	for i := OpKind(0); i < OpKindCount; i++ {
 		if i.Code() == "" || i.String() == "" {
 			t.Errorf("%d. işlemin adı eksik", i)
+		}
+		if !ident.MatchString(i.Code()) {
+			t.Errorf("%q İngilizce tanımlayıcı değil", i.Code())
 		}
 		if seen[i.Code()] {
 			t.Errorf("%q kodu iki kez", i.Code())
