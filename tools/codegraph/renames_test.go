@@ -42,7 +42,7 @@ func TestARenamedCodeIsNotDeletedAndKeepsItsHistory(t *testing.T) {
 	slowFixture(t)
 	root := gitFixture(t)
 	renameIn(t, root, "TR_fn_print", "TR_fn_write", "")
-	renameIn(t, root, "TR_fn_write", "TR_fn_output", "\n  \"TR_kw_if\": { \"ad\": \"eger\", \"aile\": \"keyword\" },")
+	renameIn(t, root, "TR_fn_write", "TR_fn_output", "\n  \"TR_kw_if\": { \"name\": \"eger\", \"family\": \"keyword\" },")
 
 	_, out, _ := runDeletedIn(root)
 	testkit.MustContain(t, out, "names: 1 deleted codes", "TR_kw_if  removed ")

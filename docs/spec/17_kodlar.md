@@ -20,15 +20,15 @@ Dilin asıl biçimi koddur. Kullanıcıya görünen her ad (anahtar kelime, bağ
 
 İletiler kimlik değil `H` ve dört basamaklı numaradır (`internal/lang/messages`): `H0` sözdizimi · `H1` tip denetimi · `H2` yorumlayıcı · `H3` tensör · `H4` GPU · `H5` veri ve parçalayıcı · `H6` ml · `H7` standart kitaplık · `H8` araçlar · `H9` iç hatalar. Parametreler adlıdır (`{fn}: {path\|q} bir klasör`); ileti ve içindeki değerler kişinin dilinde (`TR_DIL`) yazılır.
 
-**Dil dosyası.** Her kod bir satırdır, sınıf sırasıyla ve sınıf içinde kimliğe göre dizilir:
+**Dil dosyası.** Her kod bir satırdır, sınıf sırasıyla ve sınıf içinde kimliğe göre dizilir. Dil dosyasının ve tanım dosyasının alan adları ile türleri dosya biçiminin anahtarlarıdır: Go adları gibi İngilizce tanımlayıcıdır, bir insan dili yalnız değerlerde görünür:
 
 ```json
-"TR_fn_print": { "ad": "yazdır", "aile": "giriş ve çıkış", "açıklama": "Değerleri ... yazar ...", "örnek": "yazdır(\"Toplam:\", 2 + 3)" },
+"TR_fn_print": { "name": "yazdır", "family": "giriş ve çıkış", "description": "Değerleri ... yazar ...", "example": "yazdır(\"Toplam:\", 2 + 3)" },
 ```
 
-- `ad` kodun o dildeki tek yazımıdır (2.9). ASCII biçimi (`yazdir`) kabul edilmez, yalnız ipucunda doğru adı önermek için kullanılır (`codes.AcceptASCII` kapalı).
-- `yabancı` başka dillerden alışılmış adlardır (`"TR_arg_seed": { "ad": "tohum", "yabancı": ["seed"] }`): kabul edilmez, hata iletisi doğru adı önerir (`AdamW 'lr' adında bir parametre almaz. Bunu mu demek istediniz: 'öğrenme_oranı'?`). Her dil kendi okurunun alışkanlıklarını yazar.
-- `aile` kısa bir grup adı, `açıklama` bir-iki cümle, `örnek` tek satırlık çalışan TR kodudur. Her kodun açıklaması, her canlı kodun örneği vardır (`go test ./internal/lang/codes ./internal/stdlib`).
+- `name` kodun o dildeki tek yazımıdır (2.9). ASCII biçimi (`yazdir`) kabul edilmez, yalnız ipucunda doğru adı önermek için kullanılır (`codes.AcceptASCII` kapalı).
+- `foreign` başka dillerden alışılmış adlardır (`"TR_arg_seed": { "name": "tohum", "foreign": ["seed"] }`): kabul edilmez, hata iletisi doğru adı önerir (`AdamW 'lr' adında bir parametre almaz. Bunu mu demek istediniz: 'öğrenme_oranı'?`). Her dil kendi okurunun alışkanlıklarını yazar.
+- `family` kısa bir grup adı, `description` bir-iki cümle, `example` tek satırlık çalışan TR kodudur. Her kodun açıklaması, her canlı kodun örneği vardır (`go test ./internal/lang/codes ./internal/stdlib`).
 
 **Tanımlar** (`definitions.json`, dilden bağımsız): kodun türü (`kind`: `keyword`, `contextual`, `value_name`, `type`, `function`, `constant`, `method`, `property`, `named_argument`, `command`), metot ve özelliklerin geçerli olduğu tipler, imza, ilişkili kodlar ve varsa ortak ad:
 

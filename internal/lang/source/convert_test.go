@@ -103,11 +103,11 @@ func fakeLanguage(t *testing.T) *codes.Language {
 	t.Helper()
 	data := string(codes.TRData())
 	for old, fresh := range map[string]string{
-		`"TR_kw_var": { "ad": "değişken"`: `"TR_kw_var": { "ad": "tanım"`,
-		`"TR_fn_print": { "ad": "yazdır"`: `"TR_fn_print": { "ad": "sayaç"`,
-		`"TR_kw_if": { "ad": "eğer"`:      `"TR_kw_if": { "ad": "kutu"`,
-		`"TR_mem_append": { "ad": "ekle"`: `"TR_mem_append": { "ad": "koy"`,
-		`"TR_ctx_it": { "ad": "o"`:        `"TR_ctx_it": { "ad": "bu"`,
+		`"TR_kw_var": { "name": "değişken"`: `"TR_kw_var": { "name": "tanım"`,
+		`"TR_fn_print": { "name": "yazdır"`: `"TR_fn_print": { "name": "sayaç"`,
+		`"TR_kw_if": { "name": "eğer"`:      `"TR_kw_if": { "name": "kutu"`,
+		`"TR_mem_append": { "name": "ekle"`: `"TR_mem_append": { "name": "koy"`,
+		`"TR_ctx_it": { "name": "o"`:        `"TR_ctx_it": { "name": "bu"`,
 	} {
 		if !strings.Contains(data, old) {
 			t.Fatalf("dil dosyasında %q bulunamadı", old)

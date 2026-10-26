@@ -1,4 +1,4 @@
 {
-  "TR_kw_if": { "ad": "if", "aile": "keyword" },
-  "TR_fn_print": { "ad": "print", "aile": "output" }
+  "TR_kw_if": { "name": "if", "family": "keyword" },
+  "TR_fn_print": { "name": "print", "family": "output" }
 }

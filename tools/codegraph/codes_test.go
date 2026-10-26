@@ -21,13 +21,13 @@ var commonNameFiles = map[string]string{
 }
 `,
 	"internal/lang/codes/tr.json": `{
-  "TR_fn_sin": { "aile": "matematik" },
-  "TR_fn_print": { "ad": "yazdır", "aile": "çıktı" }
+  "TR_fn_sin": { "family": "matematik" },
+  "TR_fn_print": { "name": "yazdır", "family": "çıktı" }
 }
 `,
 	"internal/lang/codes/en.json": `{
-  "TR_fn_sin": { "aile": "math" },
-  "TR_fn_print": { "ad": "print", "aile": "output" }
+  "TR_fn_sin": { "family": "math" },
+  "TR_fn_print": { "name": "print", "family": "output" }
 }
 `,
 }

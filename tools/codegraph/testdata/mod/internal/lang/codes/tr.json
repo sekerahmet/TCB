@@ -1,4 +1,4 @@
 {
-  "TR_kw_if": { "ad": "eger", "aile": "keyword" },
-  "TR_fn_print": { "ad": "yazdır", "aile": "output" }
+  "TR_kw_if": { "name": "eger", "family": "keyword" },
+  "TR_fn_print": { "name": "yazdır", "family": "output" }
 }

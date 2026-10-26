@@ -28,7 +28,7 @@ func TestLibraryModulesGenerated(t *testing.T) {
 		t.Fatal(err)
 	}
 	for path, data := range map[string]string{
-		trPath:   `{"TR_fn_print": {"ad": "yazdır"}, "TR_fn_sin": {"ad": "sin"}}`,
+		trPath:   `{"TR_fn_print": {"name": "yazdır"}, "TR_fn_sin": {"name": "sin"}}`,
 		defsPath: `{"TR_fn_print": {"kind": "function"}, "TR_fn_sin": {"kind": "function", "module": "tr/deneme"}}`,
 	} {
 		if err := os.WriteFile(filepath.Join(root, path), []byte(data), 0o644); err != nil {

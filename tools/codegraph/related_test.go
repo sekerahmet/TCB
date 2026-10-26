@@ -10,7 +10,7 @@ import (
 // `query <ad>` akraba adları gösterir (deneme 8 S2: yazdır ↔ girdi, birleştir ↔ böl grafikte yoktu).
 func TestRelatedNamesAreLinked(t *testing.T) {
 	root := auditModule(t, map[string]string{
-		"internal/lang/codes/tr.json":          "{\n  \"TR_mem_split\": { \"ad\": \"böl\", \"aile\": \"x\" },\n  \"TR_mem_join\": { \"ad\": \"birleştir\", \"aile\": \"x\" }\n}\n",
+		"internal/lang/codes/tr.json":          "{\n  \"TR_mem_split\": { \"name\": \"böl\", \"family\": \"x\" },\n  \"TR_mem_join\": { \"name\": \"birleştir\", \"family\": \"x\" }\n}\n",
 		"internal/lang/codes/definitions.json": "{\n  \"TR_mem_split\": { \"kind\": \"method\" },\n  \"TR_mem_join\": { \"kind\": \"method\", \"related\": [\"TR_mem_split\"] }\n}\n",
 		"internal/lang/codes/codes.go":         "package codes\n\ntype Code int\n",
 	})

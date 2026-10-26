@@ -7,13 +7,13 @@ import (
 
 var envFiles = map[string]string{
 	"internal/lang/codes/tr.json": `{
-  "TR_kw_if": { "ad": "eger", "aile": "keyword" },
-  "TR_env_GPU_SYNC": { "ad": "TR_GPU_ESZAMANLI", "aile": "ortam değişkeni" },
-  "TR_env_CPU_AVX2": { "ad": "TR_CPU_AVX2", "aile": "ortam değişkeni" }
+  "TR_kw_if": { "name": "eger", "family": "keyword" },
+  "TR_env_GPU_SYNC": { "name": "TR_GPU_ESZAMANLI", "family": "ortam değişkeni" },
+  "TR_env_CPU_AVX2": { "name": "TR_CPU_AVX2", "family": "ortam değişkeni" }
 }
 `,
 	"internal/lang/codes/en.json": `{
-  "TR_env_GPU_SYNC": { "ad": "TR_GPU_SYNC" }
+  "TR_env_GPU_SYNC": { "name": "TR_GPU_SYNC" }
 }
 `,
 	"internal/lang/messages/tr.json": `{
@@ -95,9 +95,9 @@ func TestEnvironmentNamesLinkToTheirCodes(t *testing.T) {
 // test dosyasındaki bir yardımcı üzerinden; okuyan test ve HOME koyan test sınamaz.
 var envSetFiles = map[string]string{
 	"internal/lang/codes/tr.json": `{
-  "TR_env_LANG": { "ad": "TR_DIL", "aile": "ortam değişkeni" },
-  "TR_env_GPU_SYNC": { "ad": "TR_GPU_ESZAMANLI", "aile": "ortam değişkeni" },
-  "TR_env_CPU_AVX2": { "ad": "TR_CPU_AVX2", "aile": "ortam değişkeni" }
+  "TR_env_LANG": { "name": "TR_DIL", "family": "ortam değişkeni" },
+  "TR_env_GPU_SYNC": { "name": "TR_GPU_ESZAMANLI", "family": "ortam değişkeni" },
+  "TR_env_CPU_AVX2": { "name": "TR_CPU_AVX2", "family": "ortam değişkeni" }
 }
 `,
 	"app/app.go": "package app\n\nfunc Run() {}\n",

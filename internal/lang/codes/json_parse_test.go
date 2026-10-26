@@ -14,9 +14,9 @@ func TestParserMatchesJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	type entry struct {
-		Ad      string   `json:"ad"`
-		Yabanci []string `json:"yabancı"`
-		Aile    string   `json:"aile"`
+		Name    string   `json:"name"`
+		Foreign []string `json:"foreign"`
+		Family  string   `json:"family"`
 	}
 	var std map[string]entry
 	if err := json.Unmarshal(trJSON, &std); err != nil {
@@ -27,18 +27,18 @@ func TestParserMatchesJSON(t *testing.T) {
 	}
 	for _, g := range raw {
 		s := std[g.key]
-		if g.name != s.Ad || g.family != s.Aile ||
-			strings.Join(g.foreign, "|") != strings.Join(s.Yabanci, "|") {
+		if g.name != s.Name || g.family != s.Family ||
+			strings.Join(g.foreign, "|") != strings.Join(s.Foreign, "|") {
 			t.Errorf("%s farklı okundu: %+v / %+v", g.key, g, s)
 		}
 	}
-	g, err := parseFile([]byte("\xef\xbb\xbf{ \"TR_fn_print\" : {\"ad\": \"a\\u00e7\\\"\", \"yabancı\": [\"print\"]} }"))
+	g, err := parseFile([]byte("\xef\xbb\xbf{ \"TR_fn_print\" : {\"name\": \"a\\u00e7\\\"\", \"foreign\": [\"print\"]} }"))
 	if err != nil || len(g) != 1 || g[0].name != "aç\"" || len(g[0].foreign) != 1 || g[0].foreign[0] != "print" {
 		t.Errorf("kaçışlı metin ya da BOM okunamadı: %+v %v", g, err)
 	}
-	for _, broken := range []string{``, `[]`, `{"TR_fn_print": {"ad": "a"}`, `{"TR_fn_print": {"ad": "a"},}`, `{"TR_fn_print": {"ad": 1}}`,
-		`{"TR_fn_print": {"ad": "a", "ad": "b"}}`, `{"TR_fn_print": {"ad": "a"}} x`, `{"TR_fn_print": {"ascii": false}}`, `{"TR_fn_print": {"yabancı": "a"}}`, `{"TR_fn_print": {"ad": "a", "es": ["b"]}}`, `{"TR_fn_print": {"ad": "a", "eski": ["b"]}}`,
-		"{\"TR_fn_print\": {\"ad\": \"a\nb\"}}", `{"TR_fn_print": {"ad": "a"`} {
+	for _, broken := range []string{``, `[]`, `{"TR_fn_print": {"name": "a"}`, `{"TR_fn_print": {"name": "a"},}`, `{"TR_fn_print": {"name": 1}}`,
+		`{"TR_fn_print": {"name": "a", "name": "b"}}`, `{"TR_fn_print": {"name": "a"}} x`, `{"TR_fn_print": {"ascii": false}}`, `{"TR_fn_print": {"foreign": "a"}}`, `{"TR_fn_print": {"name": "a", "es": ["b"]}}`, `{"TR_fn_print": {"name": "a", "eski": ["b"]}}`,
+		"{\"TR_fn_print\": {\"name\": \"a\nb\"}}", `{"TR_fn_print": {"name": "a"`} {
 		if _, err := parseFile([]byte(broken)); err == nil {
 			t.Errorf("%q reddedilmeliydi", broken)
 		}

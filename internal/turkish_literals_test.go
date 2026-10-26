@@ -27,17 +27,12 @@ import (
 const turkishLetters = "çğıöşüâîûÇĞİÖŞÜÂÎÛ"
 
 // turkishLiteralAllowed "dosya:metin" anahtarlı kalıcı izinlerdir → gerekçe: veri biçiminin
-// anahtarları (kod listesi, kontrol noktası, günlük, veri kümesi durumu, profil dosyası) ve Türkçe
+// anahtarları (kontrol noktası, günlük, veri kümesi durumu, profil dosyası) ve Türkçe
 // belge üreten aracın içeriği. Yeni kayıt gerekçesiz eklenmez; liste yalnızca küçülür. Bulguları
 // kayıt biçiminde yazdırmak için: TRLIT_LIST=1 go test -run TestNoTurkishLiterals ./internal
 var turkishLiteralAllowed = map[string]string{
 	// Dil tanımı atıf tarayıcısı Türkçe belgeleri okur: "PyTorch 2.14", "sürümü 2.1" gibi sürüm numaraları madde atfı sayılmaz.
 	"tools/internal/specref/scan.go:\\b(PyTorch|NumPy|JAX|Go|go|CUDA|cuDNN|cuBLAS|cuBLASLt|Python|Rust|Swift|Kotlin|LSP|CommonMark|Unicode|IEEE|Triton|TensorFlow|Hugging Face|sürüm|sürümü|version)\\b[^.!?]*$": "belgedeki sürüm numarasını tanıyan desen; Türkçe belge sözcüğü, ad ya da ileti değil",
-	// Kod listesi dosyalarının (internal/lang/codes) biçim anahtarları.
-	"internal/lang/codes/json_parse.go:yabancı":  "dil dosyasının (tr.json) alan adı (dosya biçimi)",
-	"internal/lang/codes/json_parse.go:açıklama": "dil dosyasının (tr.json) alan adı (dosya biçimi)",
-	"internal/lang/codes/json_parse.go:örnek":    "dil dosyasının (tr.json) alan adı (dosya biçimi)",
-	"internal/lang/codes/json_parse.go:%s entry has unknown field %q (valid fields: ad, yabancı, aile, açıklama, örnek)": "dil dosyasının (tr.json) alan adı (dosya biçimi)",
 	"internal/devtools/profiler/setup.go:canlı":                                                                      "profil görüntüsü dosyasının 'tür' alanı değeri (dosya biçimi; değiştirmek eski dosyaları okunmaz yapardı)",
 	"internal/stdlib/checkpoint/format.go:parametreler iyileştirici durumlu günlük değerler":                         "kontrol noktası dosyasındaki kayıt türü adları (dosya biçimi; değiştirmek eski kontrol noktalarını okunmaz yapardı)",
 	"internal/stdlib/checkpoint/plain.go:ondalık sözlük":                                                             "kontrol noktasındaki düz değer etiketleri (dosya biçimi; eski dosyalar okunmaz olurdu)",

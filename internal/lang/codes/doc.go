@@ -38,16 +38,16 @@
 //
 // # Language file fields
 //
-//	"TR_fn_print": { "ad": "yazdır", "eski": ["yaz"], "aile": "giriş ve çıkış" }
-//	"TR_arg_seed": { "ad": "tohum", "yabancı": ["seed"], "aile": "adlı argüman: rastgelelik" }
+//	"TR_fn_print": { "name": "yazdır", "family": "giriş ve çıkış", "description": "...", "example": "..." }
+//	"TR_arg_seed": { "name": "tohum", "foreign": ["seed"], "family": "adlı argüman: rastgelelik", ... }
 //
-// ad is the code's name in this language. eski holds removed names: they are not accepted
-// and only make the error message suggest ad; when a name is changed or removed, the old name
-// is added here. yabancı holds names familiar from other languages or libraries (lr, seed,
-// axis): they were never part of the language, only give hints like eski, and are specific to
+// The field names are English identifiers like the Go names; only the values are in the
+// file's language. name is the code's name in this language. foreign holds names familiar from
+// other languages or libraries (lr, seed, axis): they are not accepted, only make the error
+// message suggest name, and are specific to
 // each language file (each file records its own readers' habits). Every operation has exactly
-// one name: a synonym or a second spelling is not accepted. aile is a short description for
-// people. Entries are one per line, in the order of Classes and by identity inside a class.
+// one name: a synonym or a second spelling is not accepted. family is a short group name, description one or two
+// sentences and example one line of working TR code, for people. Entries are one per line, in the order of Classes and by identity inside a class.
 //
 // # ASCII form
 //

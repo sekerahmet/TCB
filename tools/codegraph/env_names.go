@@ -33,14 +33,14 @@ func envCodes(root string) map[string]string {
 			continue
 		}
 		var names map[string]struct {
-			Ad string `json:"ad"`
+			Name string `json:"name"`
 		}
 		if !readJSON(f, &names) {
 			continue
 		}
 		for code, n := range names {
-			if strings.HasPrefix(code, envCodePrefix) && n.Ad != "" {
-				out[n.Ad] = code
+			if strings.HasPrefix(code, envCodePrefix) && n.Name != "" {
+				out[n.Name] = code
 				out[code] = code // hesap çekirdeği kimlik adını okur (codes.ExportEnvironment)
 			}
 		}

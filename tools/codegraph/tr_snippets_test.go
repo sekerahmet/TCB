@@ -3,7 +3,7 @@ package main
 import "testing"
 
 var snippetFiles = map[string]string{
-	"internal/lang/codes/tr.json": "{\n  \"TR_fn_checkpoint\": { \"ad\": \"kontrol_noktası\", \"aile\": \"x\" },\n  \"TR_arg_every_minutes\": { \"ad\": \"her_dakika\", \"aile\": \"x\" },\n  \"TR_mem_update\": { \"ad\": \"güncelle\", \"aile\": \"x\" }\n}\n",
+	"internal/lang/codes/tr.json": "{\n  \"TR_fn_checkpoint\": { \"name\": \"kontrol_noktası\", \"family\": \"x\" },\n  \"TR_arg_every_minutes\": { \"name\": \"her_dakika\", \"family\": \"x\" },\n  \"TR_mem_update\": { \"name\": \"güncelle\", \"family\": \"x\" }\n}\n",
 	"internal/lang/lexer/lexer.go": `package lexer
 
 // New TR metnini okur.

@@ -77,8 +77,8 @@ func extractCodes(root string, b *builder) {
 		}
 	}
 	type nameEntry struct {
-		Ad   string `json:"ad"`
-		Aile string `json:"aile"`
+		Name   string `json:"name"`
+		Family string `json:"family"`
 	}
 	names := map[string]nameEntry{}
 	english := map[string]nameEntry{}
@@ -89,10 +89,10 @@ func extractCodes(root string, b *builder) {
 		lines := jsonKeyLines(filepath.Join(cdir, "tr.json"))
 		common := commonNames(root)
 		for code, n := range names {
-			tr := orCommon(n.Ad, code, common)
+			tr := orCommon(n.Name, code, common)
 			b.addNode(Node{ID: "name:" + code, Kind: kindName, Name: code, File: rel,
-				Line: lines[code], End: lines[code], Detail: tr + " (" + n.Aile + ")",
-				Aliases: nameAliases(tr, orCommon(english[code].Ad, code, common))})
+				Line: lines[code], End: lines[code], Detail: tr + " (" + n.Family + ")",
+				Aliases: nameAliases(tr, orCommon(english[code].Name, code, common))})
 		}
 	}
 	relatedNames(cdir, b)

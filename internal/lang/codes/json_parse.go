@@ -133,7 +133,7 @@ func (c *jsonParser) strList() ([]string, error) {
 	}
 }
 
-// entry { "ad": ..., "yabancı": [...], "aile": ..., "açıklama": ..., "örnek": ... }
+// entry { "name": ..., "foreign": [...], "family": ..., "description": ..., "example": ... }
 // nesnesini okur.
 func (c *jsonParser) entry(g *rawEntry) error {
 	if err := c.expect('{'); err != nil {
@@ -157,18 +157,18 @@ func (c *jsonParser) entry(g *rawEntry) error {
 			return err
 		}
 		switch field {
-		case "ad":
+		case "name":
 			g.name, err = c.str()
-		case "aile":
+		case "family":
 			g.family, err = c.str()
-		case "yabancı":
+		case "foreign":
 			g.foreign, err = c.strList()
-		case "açıklama":
+		case "description":
 			g.description, err = c.str()
-		case "örnek":
+		case "example":
 			g.example, err = c.str()
 		default:
-			return c.errorf("%s entry has unknown field %q (valid fields: ad, yabancı, aile, açıklama, örnek)", g.key, field)
+			return c.errorf("%s entry has unknown field %q (valid fields: name, foreign, family, description, example)", g.key, field)
 		}
 		if err != nil {
 			return err

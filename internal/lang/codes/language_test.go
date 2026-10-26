@@ -24,7 +24,7 @@ func TestTRLoads(t *testing.T) {
 // Dosya insanlar tarafından düzenlenir: kodlar artan sırada ve her girdi kendi satırında
 // olmalı. Her satırın tek alanı açıklamadır (ortak adlı kodun satırında ad yoktur).
 func TestTRSortedOnePerLine(t *testing.T) {
-	checkSortedOnePerLine(t, trJSON, "açıklama")
+	checkSortedOnePerLine(t, trJSON, "description")
 }
 
 // Farklı iki ad, ad alanları farklı olsa bile aynı ASCII biçime
@@ -241,19 +241,19 @@ func TestFindForeign(t *testing.T) {
 func TestClashesCaught(t *testing.T) {
 	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	for _, c := range []struct{ json, want string }{
-		{`{"TR_fn_print": {"ad": "a"}, "TR_fn_print": {"ad": "b"}}`, "TR_fn_print is defined twice"},
-		{`{"TR_fn_print": {"ad": "yazdır"}, "TR_fn_input": {"ad": "yazdır"}}`, "TR_fn_input \"yazdır\" and TR_fn_print"},
-		{`{"TR_fn_print": {"ad": "yazdır"}, "TR_fn_input": {"ad": "yazdir"}}`, "TR_fn_input \"yazdir\" and TR_fn_print \"yazdır\""},
-		{`{"TR_kw_if": {"ad": "eğer"}, "TR_fn_print": {"ad": "eger"}}`, "TR_kw_if \"eğer\" and TR_fn_print"},
-		{`{"TR_fn_print": {"ad": "yazdır"}, "TR_fn_input": {"ad": "girdi", "yabancı": ["yazdir"]}}`, "the foreign name \"yazdir\" of TR_fn_input clashes with TR_fn_print"},
-		{`{"TR_fn_print": {"ad": "a", "yabancı": ["çık"]}, "TR_fn_input": {"ad": "b", "yabancı": ["cik"]}}`, "\"cik\" is registered for both TR_fn_input and TR_fn_print"},
-		{`{"TR_fn_print": {"ad": "a", "yabancı": ["a"]}}`, "must not be the name itself"},
-		{`{"TR_fn_print": {"ad": "a", "eski": ["b"]}}`, "unknown field \"eski\""},
-		{`{"TR_fn_print": {"ad": "a b"}}`, "contain spaces"},
-		{`{"TR_fn_print": {"ad": "yazdır", "es": ["yaz"]}}`, "unknown field \"es\""},
-		{`{"X100": {"ad": "a"}}`, "not an identity"},
-		{`{"TR_fn_yok": {"ad": "a"}}`, "not an identity"},
-		{`{"TR_fn_print": {"ad": "a", "bilinmeyen": 1}}`, "bilinmeyen"},
+		{`{"TR_fn_print": {"name": "a"}, "TR_fn_print": {"name": "b"}}`, "TR_fn_print is defined twice"},
+		{`{"TR_fn_print": {"name": "yazdır"}, "TR_fn_input": {"name": "yazdır"}}`, "TR_fn_input \"yazdır\" and TR_fn_print"},
+		{`{"TR_fn_print": {"name": "yazdır"}, "TR_fn_input": {"name": "yazdir"}}`, "TR_fn_input \"yazdir\" and TR_fn_print \"yazdır\""},
+		{`{"TR_kw_if": {"name": "eğer"}, "TR_fn_print": {"name": "eger"}}`, "TR_kw_if \"eğer\" and TR_fn_print"},
+		{`{"TR_fn_print": {"name": "yazdır"}, "TR_fn_input": {"name": "girdi", "foreign": ["yazdir"]}}`, "the foreign name \"yazdir\" of TR_fn_input clashes with TR_fn_print"},
+		{`{"TR_fn_print": {"name": "a", "foreign": ["çık"]}, "TR_fn_input": {"name": "b", "foreign": ["cik"]}}`, "\"cik\" is registered for both TR_fn_input and TR_fn_print"},
+		{`{"TR_fn_print": {"name": "a", "foreign": ["a"]}}`, "must not be the name itself"},
+		{`{"TR_fn_print": {"name": "a", "eski": ["b"]}}`, "unknown field \"eski\""},
+		{`{"TR_fn_print": {"name": "a b"}}`, "contain spaces"},
+		{`{"TR_fn_print": {"name": "yazdır", "es": ["yaz"]}}`, "unknown field \"es\""},
+		{`{"X100": {"name": "a"}}`, "not an identity"},
+		{`{"TR_fn_yok": {"name": "a"}}`, "not an identity"},
+		{`{"TR_fn_print": {"name": "a", "bilinmeyen": 1}}`, "bilinmeyen"},
 	} {
 		_, err := Load("deneme", []byte(c.json))
 		if err == nil || !strings.Contains(err.Error(), c.want) {
@@ -261,7 +261,7 @@ func TestClashesCaught(t *testing.T) {
 		}
 	}
 	// Farklı ad alanlarında aynı ad serbesttir.
-	if _, err := Load("deneme", []byte(`{"TR_fn_abs": {"ad": "mutlak"}, "TR_mem_absolute": {"ad": "mutlak"}, "TR_arg_log": {"ad": "günlük"}, "TR_fn_logger": {"ad": "günlük"}}`)); err != nil {
+	if _, err := Load("deneme", []byte(`{"TR_fn_abs": {"name": "mutlak"}, "TR_mem_absolute": {"name": "mutlak"}, "TR_arg_log": {"name": "günlük"}, "TR_fn_logger": {"name": "günlük"}}`)); err != nil {
 		t.Errorf("farklı ad alanlarında aynı ad kabul edilmeliydi: %v", err)
 	}
 }
@@ -273,16 +273,16 @@ func TestCommonNamesGoThroughTheChecks(t *testing.T) {
 	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	common := map[Code]string{FnSin: "sin", EnvCpuAvx2: "TR_CPU_AVX2"}
 	for _, c := range []struct{ json, want string }{
-		{`{"TR_fn_sin": {"ad": "x"}}`, "TR_fn_sin has the common name \"sin\""},
-		{`{"TR_fn_print": {"ad": "sin"}}`, "clash in the same namespace"},
-		{`{"TR_fn_print": {"ad": "a", "yabancı": ["sin"]}}`, "the foreign name \"sin\" of TR_fn_print clashes with TR_fn_sin"},
+		{`{"TR_fn_sin": {"name": "x"}}`, "TR_fn_sin has the common name \"sin\""},
+		{`{"TR_fn_print": {"name": "sin"}}`, "clash in the same namespace"},
+		{`{"TR_fn_print": {"name": "a", "foreign": ["sin"]}}`, "the foreign name \"sin\" of TR_fn_print clashes with TR_fn_sin"},
 	} {
 		_, err := load("deneme", []byte(c.json), common)
 		if err == nil || !strings.Contains(err.Error(), c.want) {
 			t.Errorf("%s: %q içeren hata bekleniyordu, alınan: %v", c.json, c.want, err)
 		}
 	}
-	d, err := load("deneme", []byte(`{"TR_fn_sin": {"aile": "matematik"}}`), common)
+	d, err := load("deneme", []byte(`{"TR_fn_sin": {"family": "matematik"}}`), common)
 	if err != nil {
 		t.Fatal(err)
 	}

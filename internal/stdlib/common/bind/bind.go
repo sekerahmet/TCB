@@ -51,8 +51,8 @@ func (a Named) Accepts(spelling string) bool { return slices.Contains(a.spelling
 
 // CheckNamed verilen adlı argümanların bilinen adlardan olduğunu denetler; yazım
 // hatasında (ya da Türkçe karaktersiz yazılmış, kaldırılmış ya da başka dillerden alışılmış
-// bir adda: ogrenme_orani, nerede, lr, axis...) en yakın TR adını önerir. Kaldırılmış ve
-// alışılmış adlar kod listesindedir (tr.json'da "eski" ve "yabancı").
+// bir adda: ogrenme_orani, nerede, lr, axis...) en yakın TR adını önerir. Alışılmış adlar
+// kod listesindedir (dil dosyasının "foreign" alanı).
 func CheckNamed(fn any, named map[string]interp.Value, names ...Named) error {
 	for given := range named {
 		known := false

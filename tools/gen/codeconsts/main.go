@@ -67,7 +67,7 @@ func goName(id string) string {
 
 // trEntry dil dosyasındaki bir satırın üreticinin kullandığı alanlarıdır.
 type trEntry struct {
-	Name string `json:"ad"`
+	Name string `json:"name"`
 }
 
 // readJSON decodes the language file at root/path, keeping the keys' order. A missing file is

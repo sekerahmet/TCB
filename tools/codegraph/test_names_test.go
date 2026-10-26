@@ -72,7 +72,7 @@ func TestEveryBuiltinNameHasADirectTestOrAReason(t *testing.T) {
 }
 
 var nameTestFiles = map[string]string{
-	"internal/lang/codes/tr.json": "{\n  \"TR_mem_update\": { \"ad\": \"güncelle\", \"aile\": \"x\" }\n}\n",
+	"internal/lang/codes/tr.json": "{\n  \"TR_mem_update\": { \"name\": \"güncelle\", \"family\": \"x\" }\n}\n",
 	"internal/lang/codes/codes.go": `package codes
 
 type Code int

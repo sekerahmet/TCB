@@ -94,7 +94,7 @@ func load(langCode string, data []byte, common map[Code]string) (*Language, erro
 
 	raw, err := parseFile(data)
 	if err != nil {
-		return nil, messages.Internalf("language list %s: the file could not be read (it must be a JSON object { \"TR_fn_print\": { \"ad\": ... }, ... }): %v", langCode, err)
+		return nil, messages.Internalf("language list %s: the file could not be read (it must be a JSON object { \"TR_fn_print\": { \"name\": ... }, ... }): %v", langCode, err)
 	}
 	raw = withCommonNames(raw, common, errorf)
 

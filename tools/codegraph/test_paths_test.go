@@ -146,7 +146,7 @@ func TestTestsForShowsTheRuleLineOfEachGoTest(t *testing.T) {
 }
 
 var embedFiles = map[string]string{
-	"internal/lang/codes/tr.json": "{\n  \"TR_kw_if\": { \"ad\": \"eger\", \"aile\": \"keyword\" }\n}\n",
+	"internal/lang/codes/tr.json": "{\n  \"TR_kw_if\": { \"name\": \"eger\", \"family\": \"keyword\" }\n}\n",
 	"internal/lang/codes/codes.go": `package codes
 
 import _ "embed"

@@ -19,7 +19,7 @@ TR'ye yeni bir şey eklerken hangi dosyalara, hangi sırayla dokunulduğu ve "bi
 
 | Adım | Dosya | Ne eklenir |
 | :-- | :-- | :-- |
-| Ad | `internal/lang/codes/tr.json` | `"TR_fn_silu": { "aile": ..., "açıklama": ..., "örnek": "yazdır(silu(tensör([-1.0, 0.0, 2.0])).değer)" }` (ad yok: `silu` ortak addır; ortak adı olmayan kodda `"ad": ...` ilk alandır, `en.json`'a da `{ "ad": ... }` satırı girer) |
+| Ad | `internal/lang/codes/tr.json` | `"TR_fn_silu": { "family": ..., "description": ..., "example": "yazdır(silu(tensör([-1.0, 0.0, 2.0])).değer)" }` (ad yok: `silu` ortak addır; ortak adı olmayan kodda `"name": ...` ilk alandır, `en.json`'a da `{ "ad": ... }` satırı girer) |
 | İmza | `internal/lang/codes/definitions.json` | `"TR_fn_silu": { "kind": "function", "common_name": "silu", "params": ["TR_type_Tensor\|TR_type_Int\|TR_type_Float"], "returns": "TR_type_Tensor\|TR_type_Float" }` |
 | Üret | — | `go generate ./internal/lang/codes`: Go sabitleri, `docs/codes.md`, düzenleyici renklendirmesi |
 | İşlem | `internal/compute/tensor/device.go` | `UnOp` listesinin sonuna, `numUnOps` sayacının **önüne** `OpSilu` (sayaç her zaman son kalır; kapsam testi işlemleri onunla sayar) |
@@ -163,7 +163,7 @@ Testler: `tests/<bölüm>_test.tr` (her test madde numarasıyla başlar; olumsuz
 | Adım | Ne yapılır |
 | :-- | :-- |
 | Kullanımları kodla | Ad değişecekse (bugünkü adlar dillerde farklıysa) veriden **önce**: kodsuz `.tr` dosyaları `tr kodla <dosyalar>`, belgelerin ```tr blokları ve satır içi kodu `tr kodla -` ile eski adlarla kodlanır (çağrı ve başvuru kimliğe döner, yorum ve düzyazı bayt bayt kalır). Sözcükle arayıp değiştirme yapılmaz. |
-| Veri | Tek betikle: `definitions.json` satırına `"common_name": "sin"`; `tr.json` satırından `"ad"` düşer (açıklama, örnek, aile kalır); `en.json`'da yalnız ad taşıyan satır silinir; ortak adla aynı `yabancı` girdisi silinir. |
+| Veri | Tek betikle: `definitions.json` satırına `"common_name": "sin"`; `tr.json` satırından `"name"` düşer (`description`, `example`, `family` kalır); `en.json`'da yalnız ad taşıyan satır silinir; ortak adla aynı `foreign` girdisi silinir. |
 | Geri yaz | `tr çöz <dosyalar>`, `tr göster - --dil tr`; `git diff --word-diff` yalnız ad çiftlerini göstermeli. Elle: Go test dizgilerindeki TR kodu, fonksiyonu anan yorumlar, `tr.json`'un açıklamaları, `.tr` testlerinin beklediği ileti metinleri. |
 | Gölgeleme | Yeni adı yerel ad ya da parametre olarak kullanan yer yerleşiği gölgeler (2.9a): depodaki her kodsuz `.tr` dosyası `tr kontrol` ile koşulur, uyarı aranır. |
 | Üret, sına | `go generate ./internal/lang/codes`; ad çakışması sınavı `-update` ile yalnız satır siler (yeni satır çıkarsa elle, nedeniyle). |

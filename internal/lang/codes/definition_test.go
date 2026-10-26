@@ -3,6 +3,7 @@ package codes
 import (
 	"bytes"
 	"encoding/json"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -12,6 +13,41 @@ import (
 func TestDefinitionsConsistent(t *testing.T) {
 	for _, err := range CheckDefinitions(Source()) {
 		t.Error(err)
+	}
+}
+
+// Kural (17, dosya biçimi): tanım ve dil dosyalarının alan adları ve "kind" değerleri Go adları
+// gibi İngilizce tanımlayıcıdır (küçük ASCII harf, rakam, alt çizgi); bir insan dili yalnız
+// değerlerde (adlar, açıklamalar, örnekler) görünür. Kimlik olan anahtarlar (TR_…) veridir.
+func TestFileFieldNamesAreEnglishIdentifiers(t *testing.T) {
+	ident := regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
+	var walk func(file string, v any)
+	walk = func(file string, v any) {
+		switch x := v.(type) {
+		case map[string]any:
+			for k, e := range x {
+				if !strings.HasPrefix(k, "TR_") && !ident.MatchString(k) {
+					t.Errorf("%s: alan adı %q İngilizce tanımlayıcı değil", file, k)
+				}
+				walk(file, e)
+			}
+		case []any:
+			for _, e := range x {
+				walk(file, e)
+			}
+		}
+	}
+	for file, data := range map[string][]byte{"definitions.json": definitionsJSON, "tr.json": trJSON, "en.json": enJSON} {
+		var v map[string]any
+		if err := json.Unmarshal(data, &v); err != nil {
+			t.Fatal(file, err)
+		}
+		walk(file, v)
+	}
+	for _, k := range DefinitionCodes() {
+		if d, _ := DefinitionOf(k); !ident.MatchString(string(d.Kind)) {
+			t.Errorf("%s: kind %q İngilizce tanımlayıcı değil", k, d.Kind)
+		}
 	}
 }
 
