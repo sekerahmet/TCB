@@ -21,7 +21,14 @@ her durumu kapatan genel çözüm ve sınıfı koruyan bir testtir.
 
 ## Kritik
 
-Bugün açık kritik madde yok (son kapanan: kimliğe yeniden adlandırılan kodların "silinmiş" sayılması, 5d5fa022). İnce ayardan son kapananlar: test dosyasının kendi testleri ve komut testlerinin uzaklığı (372ac2ed birleşmesi; ana oturum aynı komutlarla doğruladı).
+Son kapanan kritik madde: kimliğe yeniden adlandırılan kodların "silinmiş" sayılması (5d5fa022). İnce ayardan son kapananlar: test dosyasının kendi testleri ve komut testlerinin uzaklığı (372ac2ed birleşmesi; ana oturum aynı komutlarla doğruladı).
+
+- **Kitaplık dosyasını test dizesindeki `aktar "tr/..."` ile koşan testler o dosyaya bağlanmıyor.** 2026-10-26, ana oturumun alt ajanı bildirdi (madde 15 adım 3a ölçümü), ana oturum main e2312bf3'te yeniden üretti.
+  - Komut: `go run ./tools/codegraph tests-for --all lib/hazir.tr` → `e2e.TestReadyModelMatchesTransformers` yok. Gelenler `TestExamplesCoverLibraryNames` ve `TestRepoFilesEnglishLossless` gibi dosyaları gezen testler.
+  - İkinci yol: `cmd/tr/e2e/behavior_ready_model_test.go:16` test dizesi `aktar "tr/hazir"` ile başlıyor; test `lib/hazir.tr`'nin asıl davranış testi (transformers'la logit karşılaştırması).
+  - Aynı sınıf (alt ajan): `lib/egitim.tr` ve `lib/katman.tr` için `TestGPTTrainingScriptSmoke` ve `TestLibraryModuleCheckAndBuild` görünmüyor. `tr` ikilisini ya da `tr/` önekli aktarımı koşan testler kitaplık dosyasına bağlanmıyor.
+  - Neden kritik: kanca `lib/*.tr`'nin ilk düzenlemesinde bu cevabı gösteriyor; adım 3a kitaplığın her dosyasına dokunacak ve asıl testi koşmadan commit'leyebilir (yanlış "yok").
+  - Beklenen: test dizesindeki (ve testin `tr` ikilisine verdiği betikteki) `aktar "tr/X"` kitaplığın `lib/X.tr` dosyasına test bağı kurar. Sınıfı koruyan test: `lib/` altındaki her dosyanın en az bir davranış testi `tests-for` cevabında. İnce ayardaki "test dizesindeki TR kodu" maddesiyle aynı kök.
 
 ## İnce ayar
 
@@ -54,6 +61,12 @@ Bugün açık kritik madde yok (son kapanan: kimliğe yeniden adlandırılan kod
     - Sorular satır yerine bir metin kalıbına bağlanır, satır test anında kalıptan hesaplanır (DENETİM, adim2-dogrulama-sonuc.md), ya da bir bildirimin içindeki yeri sorar; sayı yerine özelliği sınar (grup var, belli bir test grupta).
     - Ön denetimin kapsamı ayrı iş (`scratch/mekanik_bekleyenler.md` C15: testleri `tests-for`/`changed` cevabından seçmek); bu madde yalnız soruların biçimi.
   - Yanlış "kaldı"ya ve gecikmiş kırılmaya götürüyor, yanlış cevaba değil: ince ayar.
+
+- **`who-uses`'ta yapı köprüsünün `implemented_by` kenarları çağıranları boğuyor ve hangi yapıdan geldiklerini söylemiyor.** 2026-10-26, DENETİM bildirdi (adim3-kararlar-sonuc.md), ana oturum main e2312bf3'te yeniden üretti.
+  - Komut: `go run ./tools/codegraph who-uses interp.memberKeys` → `calls (1)` (`compiler.member`), ardından `implemented_by (1175)` `[INFERRED]`: `06_girdi.ad`, `08_fonksiyonlar.faktöriyel` ...
+  - DENETİM bunu yanlış kenar sandı. Ana oturumun bulgusu: kenarlar `dispatch.go`'nun kuralıyla doğru. `memberKeys`'i `compiler.member` çağırıyor; onu `*ast.MemberExpression` dalları (`compiler_expr.go:209`, `compiler_assign.go:71`, `compiler_call.go:19`) çağırıyor. Üye erişimi kullanan her TR bildirimi bu yüzden ona bağlanıyor. `who-uses interp.compiler.member` aynı 1175'i veriyor.
+  - Sorun gösterim: dikkatli bir okuyucu bile doğru kenarı yanlış sandı. Kenar hangi dil yapısından geldiğini (`MemberExpression`) yazmıyor. 1175 TR bildirimi Go çağıranlarıyla aynı ağırlıkta sıralanıyor.
+  - Beklenen: `implemented_by` grubu yapının adıyla tek satır özet olur (`via MemberExpression: 1175 TR declarations`), liste `--all` ile açılır. Yanlış değişikliğe götürmüyor: ince ayar.
 
 ## Kalan işler (eksik değil, yeni yetenek)
 
