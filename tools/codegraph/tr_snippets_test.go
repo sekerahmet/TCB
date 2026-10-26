@@ -3,7 +3,8 @@ package main
 import "testing"
 
 var snippetFiles = map[string]string{
-	"internal/lang/codes/tr.json": "{\n  \"TR_fn_checkpoint\": { \"name\": \"kontrol_noktası\", \"family\": \"x\" },\n  \"TR_arg_every_minutes\": { \"name\": \"her_dakika\", \"family\": \"x\" },\n  \"TR_mem_update\": { \"name\": \"güncelle\", \"family\": \"x\" }\n}\n",
+	"internal/lang/codes/tr.json": "{\n  \"TR_fn_checkpoint\": { \"name\": \"kontrol_noktası\", \"family\": \"x\" },\n  \"TR_arg_every_minutes\": { \"name\": \"her_dakika\", \"family\": \"x\" },\n  \"TR_mem_update\": { \"name\": \"güncelle\", \"family\": \"x\" },\n  \"TR_fn_pretrained_model\": { \"name\": \"hazır_model\", \"family\": \"x\" }\n}\n",
+	"lib/hazirx.tr":               "fonksiyon hazır_model(klasör) {\n    sonuç klasör\n}\n",
 	"internal/lang/lexer/lexer.go": `package lexer
 
 // New TR metnini okur.
@@ -69,6 +70,53 @@ func far1(t *testing.T) int { return far2(t) }
 
 func TestFar(t *testing.T) { far1(t) }
 `,
+	"app/file_test.go": `package app
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// writeProgram TR kodunu bir .tr dosyasına yazar; dosyayı tr ikilisi koşar (debugger'ın yardımcısı gibi).
+func writeProgram(t *testing.T, code string) string {
+	path := filepath.Join(t.TempDir(), "program.tr")
+	os.WriteFile(path, []byte(code), 0o644)
+	return path
+}
+
+// writeFile klasöre adıyla bir dosya yazar (testkit.WriteFile gibi).
+func writeFile(t *testing.T, dir, name, content string) {
+	os.WriteFile(filepath.Join(dir, filepath.FromSlash(name)), []byte(content), 0o644)
+}
+
+func TestWrittenByHelper(t *testing.T) { writeProgram(t, "kontrol_noktası(1, {})") }
+
+func TestWrittenDirectly(t *testing.T) {
+	os.WriteFile(filepath.Join(t.TempDir(), "a.tr"), []byte("kn.güncelle(1)"), 0o644)
+}
+
+func TestWrittenByName(t *testing.T) {
+	writeFile(t, t.TempDir(), "sub/b.tr", "kontrol_noktası(2, {}, her_dakika: 1)")
+}
+
+func TestWrittenFromAMap(t *testing.T) {
+	for name, text := range map[string]string{"c.tr": "kn.güncelle(2)", "veri.json": "{}"} {
+		writeFile(t, t.TempDir(), name, text)
+	}
+}
+
+func TestWrittenLines(t *testing.T) {
+	writeFile(t, t.TempDir(), "d.tr", strings.Join([]string{"değişken kn = kontrol_noktası(1, {})", "kn.güncelle(1)"}, "\n"))
+}
+
+func TestWrittenLibraryUse(t *testing.T) {
+	writeProgram(t, "aktar \"tr/hazirx\"\nyazdır(hazır_model(\"k\"))\n")
+}
+
+func TestNotATRFile(t *testing.T) { writeFile(t, t.TempDir(), "notlar.txt", "kn.güncelle(1)") }
+`,
 }
 
 // Kural: Go test dosyasında TR çalıştıran bir dize, dilin okuyucusuna varan bir işlevin dize parametresine giderse (yardımcı
@@ -86,6 +134,19 @@ func TestGoTestsLinkToTheNameCodesOfTheTRTheyRun(t *testing.T) {
 		{"TestTable", "TR_fn_checkpoint"}, {"TestTable", "TR_mem_update"}, {"TestNamedTable", "TR_arg_every_minutes"},
 	} {
 		mustEdge(t, g, app+c.test, "name:"+c.name, edgeTests, inferred)
+	}
+	// Dosyaya yazılıp tr ikilisine verilen TR metni de: yolu .tr ile biten dosyaya os.WriteFile'la (ya da içeriğini ve
+	// yolunu ona ileten bir yardımcıyla) yazılan içerik; yol filepath.Join'le, ad sözlük tablosundan, içerik satırlardan
+	// kurulabilir. Kitaplıktan aktarılan adın kodu da gelir. .tr olmayan dosyaya yazılan metin TR değildir.
+	for _, c := range []struct{ test, name string }{
+		{"TestWrittenByHelper", "TR_fn_checkpoint"}, {"TestWrittenDirectly", "TR_mem_update"}, {"TestWrittenByName", "TR_arg_every_minutes"},
+		{"TestWrittenFromAMap", "TR_mem_update"}, {"TestWrittenLines", "TR_fn_checkpoint"}, {"TestWrittenLines", "TR_mem_update"},
+		{"TestWrittenLibraryUse", "TR_fn_pretrained_model"},
+	} {
+		mustEdge(t, g, app+c.test, "name:"+c.name, edgeTests, inferred)
+	}
+	if e := edge(g, app+"TestNotATRFile", "name:TR_mem_update", edgeTests); e != nil {
+		t.Errorf("text written to a file that is not .tr is not TR: %+v", e)
 	}
 	if e := edge(g, app+"TestNotTRCode", "name:TR_mem_update", edgeTests); e != nil {
 		t.Errorf("a string given to a helper that never reaches the TR reader is not TR: %+v", e)

@@ -5,6 +5,7 @@ import (
 	"go/constant"
 	"go/token"
 	"go/types"
+	"io/fs"
 	"regexp"
 	"slices"
 	"strings"
@@ -20,6 +21,7 @@ import (
 // parametreye test dosyasında verilen her dize (sabit, Sprintf kalıbı, sabit adı, başka işlevin döndürdüğü metin,
 // yerel değişken) bir TR programı sayılır, codeindex.Snippet onun kullandığı ad kodlarını verir ve çağrıyı içeren
 // işlevi çağıran testlerden o ad koduna `tests` kenarı çekilir (dosya yolu sabitiyle aynı zincir kuralı).
+// Dosyaya yazılıp `tr` ikilisine verilen TR metni de aynı yoldan bağlanır (tr_file_writes.go).
 
 // trSinks TR metnini okuyan dil giriş noktalarıdır (paket yolu modül köküne göre → işlev adları); dize tipli
 // parametreleri TR metni sayılır.
@@ -58,6 +60,8 @@ type snippetFlow struct {
 	owner  string
 	file   string
 	line   int
+	site   int  // çağrının sırası: aynı çağrının argümanları (dosyanın içeriği ve yolu) birlikte okunur
+	trFile bool // yolu .tr ile biten dosyaya yazılan içerik (linkSnippets)
 }
 
 // snippetState çıkarıcının TR metni takibinin durumudur.
@@ -71,6 +75,7 @@ type snippetState struct {
 	// değişkene atanan tablo, fieldTexts döngü değişkeninin alanının (bildirim konumu + "." + alan) tablodaki metinleri.
 	tables     map[string]*ast.CompositeLit
 	fieldTexts map[string][]textSrc
+	sites      int // görülen çağrı sayısı (snippetFlow.site)
 }
 
 func newSnippetState() *snippetState {
@@ -133,23 +138,12 @@ func (x *goExtractor) textSources(fc *fileCtx, e ast.Expr) []textSrc {
 			if len(l) == 0 && len(r) == 0 {
 				return nil
 			}
-			if len(l) == 0 {
-				l = []textSrc{placeholder}
-			}
-			if len(r) == 0 {
-				r = []textSrc{placeholder}
-			}
-			var out []textSrc // her olası metin (tablonun her satırı: `c.code + "\n"`), en çok maxJoined
-			for _, a := range l {
-				for _, b := range r {
-					if len(out) < maxJoined {
-						out = append(out, textSrc{parts: []textSrc{a, b}})
-					}
-				}
-			}
-			return out
+			return joinTexts([][]textSrc{l, r}, "")
 		}
 	case *ast.CallExpr:
+		if len(v.Args) == 1 && isConversion(fc, v) {
+			return x.textSources(fc, v.Args[0])
+		}
 		return x.callTexts(fc, v)
 	case *ast.SelectorExpr:
 		if id, ok := v.X.(*ast.Ident); ok {
@@ -159,6 +153,44 @@ func (x *goExtractor) textSources(fc *fileCtx, e ast.Expr) []textSrc {
 		}
 	}
 	return nil
+}
+
+// joinTexts parçaların metinlerini sep ile birleştirir: her olası metin (tablonun her satırı: `c.code + "\n"`), en çok
+// maxJoined; metni bilinmeyen parça yer tutucu olur.
+func joinTexts(lists [][]textSrc, sep string) []textSrc {
+	out := []textSrc{{}}
+	for i, l := range lists {
+		if len(l) == 0 {
+			l = []textSrc{placeholder}
+		}
+		var next []textSrc
+		for _, a := range out {
+			for _, b := range l {
+				if len(next) < maxJoined {
+					parts := append([]textSrc(nil), a.parts...)
+					if i > 0 && sep != "" {
+						parts = append(parts, textSrc{lit: sep})
+					}
+					next = append(next, textSrc{parts: append(parts, b)})
+				}
+			}
+		}
+		out = next
+	}
+	return out
+}
+
+// isConversion çağrı bir tip dönüşümü mü (`[]byte(metin)`, `string(b)`).
+func isConversion(fc *fileCtx, c *ast.CallExpr) bool {
+	if _, ok := c.Fun.(*ast.ArrayType); ok {
+		return true
+	}
+	id, ok := c.Fun.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	_, ok = fc.u.Info.Uses[id].(*types.TypeName)
+	return ok
 }
 
 // structFields tablo öğesinin yapı tipinin alan adlarıdır, sırasıyla: yazılı yapı tipinden (`[]struct{ code string }`)
@@ -189,15 +221,19 @@ func (x *goExtractor) structFields(fc *fileCtx, t ast.Expr) []string {
 // yazılır ya da yerel bir değişkene atanmıştır (`cases := []struct{...}{...}`); öğenin alanı adla ya da sırayla
 // verilir. Testlerin çoğu TR kodunu böyle tablodan koşar (stats_test.go: `New().Run(mustParseProgram(t, c.code))`).
 func (x *goExtractor) noteRangeTable(fc *fileCtx, rs *ast.RangeStmt) {
-	val, ok := rs.Value.(*ast.Ident)
-	if !ok || fc.u.Info.Defs[val] == nil {
-		return
-	}
 	lit, _ := rs.X.(*ast.CompositeLit)
 	if id, ok := rs.X.(*ast.Ident); ok && fc.u.Info.Uses[id] != nil {
 		lit = x.idx.snip.tables[x.posKey(fc.u.Info.Uses[id].Pos())]
 	}
 	if lit == nil {
+		return
+	}
+	if _, ok := lit.Type.(*ast.MapType); ok {
+		x.noteRangeMap(fc, rs, lit)
+		return
+	}
+	val, ok := rs.Value.(*ast.Ident)
+	if !ok || fc.u.Info.Defs[val] == nil {
 		return
 	}
 	arr, ok := lit.Type.(*ast.ArrayType)
@@ -227,6 +263,23 @@ func (x *goExtractor) noteRangeTable(fc *fileCtx, rs *ast.RangeStmt) {
 	}
 }
 
+// noteRangeMap sözlük üzerinde dönen döngünün anahtar ve değer değişkenlerine sözlükteki metinleri bağlar: testler
+// dosyaları `for ad, metin := range map[string]string{"lib/katman.tr": "..."}` ile yazar.
+func (x *goExtractor) noteRangeMap(fc *fileCtx, rs *ast.RangeStmt, lit *ast.CompositeLit) {
+	for i, v := range []ast.Expr{rs.Key, rs.Value} {
+		id, ok := v.(*ast.Ident)
+		if !ok || fc.u.Info.Defs[id] == nil {
+			continue
+		}
+		key := x.posKey(fc.u.Info.Defs[id].Pos())
+		for _, e := range lit.Elts {
+			if kv, ok := e.(*ast.KeyValueExpr); ok {
+				x.idx.snip.varTexts[key] = append(x.idx.snip.varTexts[key], x.textSources(fc, []ast.Expr{kv.Key, kv.Value}[i])...)
+			}
+		}
+	}
+}
+
 // callTexts çağrının metni: fmt.Sprintf'in kalıbı ya da dize döndüren bir modül işlevinin döndürdüğü metinler.
 func (x *goExtractor) callTexts(fc *fileCtx, c *ast.CallExpr) []textSrc {
 	id := nameIdent(c.Fun)
@@ -244,6 +297,9 @@ func (x *goExtractor) callTexts(fc *fileCtx, c *ast.CallExpr) []textSrc {
 			out = append(out, t)
 		}
 		return out
+	}
+	if texts, ok := x.pathTexts(fc, fn, c); ok {
+		return texts
 	}
 	if ref := funcRef(fn.Origin()); ref != "" {
 		if sig := fn.Type().(*types.Signature); sig.Results().Len() == 1 && isStringType(sig.Results().At(0).Type()) {
@@ -321,13 +377,14 @@ func (x *goExtractor) noteFlows(fc *fileCtx, owner string, c *ast.CallExpr) {
 		return
 	}
 	st := x.idx.snip
+	st.sites++
 	for k, arg := range c.Args {
 		idx := min(k, sig.Params().Len()-1)
-		if !isStringType(sig.Params().At(idx).Type()) {
+		if !isTextType(sig.Params().At(idx).Type()) {
 			continue
 		}
-		fl := snippetFlow{callee: paramKey{ref, idx}, owner: owner, file: fc.rel, line: x.line(arg.Pos())}
-		if pid, ok := arg.(*ast.Ident); ok {
+		fl := snippetFlow{callee: paramKey{ref, idx}, owner: owner, file: fc.rel, line: x.line(arg.Pos()), site: st.sites}
+		if pid, ok := paramArg(fc, arg).(*ast.Ident); ok {
 			if v, ok := fc.u.Info.Uses[pid].(*types.Var); ok {
 				if from, isParam := st.curParams[v]; isParam {
 					fl.from = from
@@ -383,9 +440,11 @@ func (st *snippetState) expandTexts(texts []textSrc, depth int) []string {
 }
 
 // linkSnippets TR metni alan parametreleri sabit noktaya kadar genişletir, metinlerden ad kodlarını çıkarır ve metni
-// çalıştıran işlevi çağıran testlerden ad koduna `tests` kenarı çeker.
-func linkSnippets(b *builder, idx *goIndex, reach *testReach) {
+// çalıştıran işlevi çağıran testlerden ad koduna `tests` kenarı çeker. library depodaki kitaplıktır (lib/): metnin
+// aktardığı modülün adları kitaplık kodlarıyla gelir.
+func linkSnippets(b *builder, idx *goIndex, reach *testReach, library fs.FS) {
 	st := idx.snip
+	st.linkFileWrites()
 	for changed := true; changed; {
 		changed = false
 		for _, f := range st.flows {
@@ -397,7 +456,7 @@ func linkSnippets(b *builder, idx *goIndex, reach *testReach) {
 	}
 	cache := map[string][]codeindex.SnippetUse{}
 	for _, f := range st.flows {
-		if f.from.fn != "" || !st.sinks[f.callee] {
+		if f.from.fn != "" || !st.sinks[f.callee] && !f.trFile {
 			continue
 		}
 		tests := reach.testsWithin(f.owner, testMaxSteps/2) // "doğrudan" test bağı: zincir en çok yarı sınır (S3)
@@ -407,7 +466,7 @@ func linkSnippets(b *builder, idx *goIndex, reach *testReach) {
 		for _, text := range st.expandTexts(f.texts, 0) {
 			uses, seen := cache[text]
 			if !seen {
-				uses, _ = codeindex.Snippet(text, nil)
+				uses, _ = codeindex.Snippet(text, library)
 				cache[text] = uses
 			}
 			for _, u := range uses {

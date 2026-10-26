@@ -160,7 +160,7 @@ func buildGraphFrom(root string, m *module) *Graph {
 	linkTestPaths(b, idx, reach)
 	linkCaseTests(b, idx, reach)
 	linkScans(b, idx, reach)
-	linkSnippets(b, idx, reach)
+	linkSnippets(b, idx, reach, os.DirFS(filepath.Join(root, "lib")))
 	return b.graph()
 }
 

@@ -498,6 +498,14 @@ things close that:
   helper that never reaches the reader (`notTR(t, "kn.güncelle(1)")`) links nothing. Same chain rule as path
   constants (one package boundary) but at most four steps (half the limit): this edge is listed as a direct test, and
   a longer chain is weak evidence. The codes counted are the ones the text exercises (same rule as a test block).
+- **TR written to a file the test hands to `tr`** (`tr_file_writes.go`): a `.tr` file is a TR program, so the content
+  written to a path whose text ends in `.tr` is a TR text, linked the same way (`TestReadyModelMatchesTransformers` writes
+  `hazır_model(...)` to `karsilastir.tr` and runs the binary on it). The file sink is `os.WriteFile`; a function that
+  passes its own content and path parameters to a file sink is one too (`testkit.WritePath`, `testkit.WriteFile`, a test
+  helper), until nothing changes. The path is read through `filepath.Join`, `FromSlash`, `[]byte(...)` and a map the
+  test ranges over (`for name, text := range map[string]string{"a.tr": ...}`); a program built with `strings.Join` of
+  written lines is read too. `Snippet` gets the repository's `lib/`, so a library name the text calls comes with its
+  library code (`TR_fn_pretrained_model`). Text written to a file that is not `.tr` is not TR.
 - **A Go function is tested through the name it implements**: `tests-for checkpoint.Checkpoint.saveOnInterval`
   walks up its callers (`update` implements `güncelle`, TR_mem_update) and lists the tests of the builtin, member and
   named-argument codes they use (`tests through the name codes it implements`, tests of the same package first).
@@ -653,6 +661,10 @@ full check (`tools/full_check.sh`) runs Go tests with `-short`; the skipped ones
   the script a Go test runs, an importing `.tr` test file; `changed --go-tests` the same); on this repository, every
   library import of a test string and of a script run by `reporoot.Path` reaches `tests-for lib/X.tr` (read from the
   plain text, second path), and every library file starts with a behaviour test.
+- `tr_snippets_test.go`, `tr_file_writes_test.go`: TR text in a Go test string, or written to a `.tr` file the test
+  runs, links the test to its name codes (helpers, tables, maps, joins, library codes); on this repository every
+  script an e2e test writes to a `.tr` file links its test to each code it uses (found from the plain syntax tree,
+  second path).
 - `dups_test.go`: the known duplicates from the Gemini duplicate audits (Parti 3 and 4: `teeWriter`,
   the `resign` closures, `registerIsFinite`/`registerRounding`; excerpts of the code at main
   `04c83dc0` in `testdata/dups`) are found by `dups`, the near-miss ones (`ShortNumber`/`FormatBytes`,

@@ -122,3 +122,30 @@ func TestSnippetListsTheLibraryModulesItImports(t *testing.T) {
 		t.Errorf("without a library no import resolves: %v", imports)
 	}
 }
+
+// Kural: kitaplık verilince Snippet metnin sınadığı kitaplık adlarını kodlarıyla verir (yerleşikle aynı kural: işlev ve
+// metot çağrılınca, yapı okununca); yalnız anılan işlev sayılmaz, kitaplığın çekirdekle ortak kodlu parametresi
+// (adım: TR_arg_step) de sayılmaz. Go testi bir TR betiğini dosyaya yazıp tr ikilisiyle koşunca codegraph testi bu
+// kodlara bağlar (TestReadyModelMatchesTransformers → TR_fn_pretrained_model).
+func TestSnippetListsTheLibraryCodesItExercises(t *testing.T) {
+	library := fstest.MapFS{"hazirx.tr": {Data: []byte("yapı GPT {\n    fonksiyon ileri(x) {\n        sonuç x\n    }\n}\n\n" +
+		"fonksiyon hazır_model(klasör, adım = 0) {\n    sonuç GPT()\n}\n\nfonksiyon öğrenme_oranı_planı(adım) {\n    sonuç adım\n}\n")}}
+	got := func(src string) string {
+		uses, _ := Snippet(src, library)
+		var out []string
+		for _, u := range uses {
+			out = append(out, u.Code)
+		}
+		return strings.Join(out, " ")
+	}
+	if s := got("aktar \"tr/hazirx\"\ndeğişken m = hazır_model(\"k\", adım: 1)\nyazdır(GPT)\n"); !strings.Contains(s, "TR_fn_pretrained_model") ||
+		!strings.Contains(s, "TR_type_GPT") || strings.Contains(s, "TR_arg_step") {
+		t.Errorf("uses = %s, want the called library function and the read struct, not the shared parameter code", s)
+	}
+	if s := got("aktar \"tr/hazirx\"\ndeğişken f = öğrenme_oranı_planı\n"); strings.Contains(s, "TR_fn_lr_schedule") {
+		t.Errorf("uses = %s: a library function only named, not called, is not exercised", s)
+	}
+	if s := got("değişken m = hazır_model(\"k\")\n"); strings.Contains(s, "TR_fn_pretrained_model") {
+		t.Errorf("uses = %s: without its import the library name is not the library's", s)
+	}
+}

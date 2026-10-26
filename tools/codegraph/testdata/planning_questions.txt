@@ -206,3 +206,11 @@ codegraph tests-for internal/lang/interp/stats.go | contains: interp.TestStatsNa
 codegraph tests-for cmd/tr/main.go | not: tipler_test: | not: yerlesikler_test: | not: tensor_test: | src: K2 partisi C, 2026-10-26 (yazdır'ın yazımlarını okuyan startsWithPrint yazdır'ı uygulamaz; TR testleri main.go'nun testi değil)
 codegraph who-uses --all TR_fn_print | group: reads_name => tr.startsWithPrint | src: K2 partisi C, 2026-10-26 (adını okuyan, uygulayandan ayrı)
 codegraph who-uses interp.memberKeys | before: <- calls => <- implemented_by | contains: via MemberExpression | not: [tr_func] | src: K2 partisi B, 2026-10-26 (yapı köprüsü yapının adıyla tek satır; Go çağıranı önde)
+
+# Kitaplık partisi: kitaplık kodları ve alt süreçteki TR metni (2026-10-26)
+tr dizin tanım TR_type_Linear | contains: katman.Doğrusal | not: bulunamadı | src: kitaplık partisi, 2026-10-26 (kitaplık kodu bildirimine çözülür)
+tr dizin tanım Linear | contains: katman.Doğrusal | not: bulunamadı | src: kitaplık partisi, 2026-10-26 (İngilizce adla da)
+tr dizin tanım katman.Linear.forward | contains: katman.Doğrusal.ileri | src: kitaplık partisi, 2026-10-26 (nitelenmiş adın İngilizce yazımı)
+tr dizin kullananlar TR_type_GPT | contains: examples/tr/41_gpt.tr | src: kitaplık partisi, 2026-10-26 (kodlu örnekteki kullanım bildirime bağlı)
+codegraph tests-for TR_fn_pretrained_model | group: <- tests ( => e2e.TestReadyModelMatchesTransformers | src: kitaplık partisi, 2026-10-26 (tr ikilisine dosyayla verilen betik; eskiden untested_names'teydi)
+codegraph query Linear | contains: katman.Doğrusal | src: kitaplık partisi, 2026-10-26 (iki aracın çıplak ad kuralı tek)
