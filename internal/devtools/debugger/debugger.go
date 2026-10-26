@@ -276,7 +276,7 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 			eqParts := strings.SplitN(rest, "=", 2)
 			varName := strings.TrimSpace(eqParts[0])
 			exprStr := strings.TrimSpace(eqParts[1])
-			e, status := parseFirstExpression(exprStr)
+			e, status := parseFirstExpression(exprStr, env)
 			if status == exprSyntaxError {
 				fmt.Println("  ❌ " + messages.Text(messages.H8043))
 				continue
@@ -377,7 +377,7 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 				continue
 			}
 			exprStr := strings.TrimSpace(cmdLine[len(parts[0]):])
-			if e, status := parseFirstExpression(exprStr); status == exprParsed {
+			if e, status := parseFirstExpression(exprStr, env); status == exprParsed {
 				d.printEvaluation(v, env, e)
 			}
 
@@ -396,7 +396,7 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 			// değerlendirilir (pdb gibi). Tanımsız tek ad bir komutun yanlış yazımı olabilir.
 			if val, ok := env.Get(cmdLine); ok {
 				fmt.Printf("  🔍 %s (%s) = %s\n", cmdLine, interp.DisplayType(val), v.Mask(interp.DisplayText(val)))
-			} else if e, status := parseFirstExpression(cmdLine); status == exprParsed && !isBareName(e) {
+			} else if e, status := parseFirstExpression(cmdLine, env); status == exprParsed && !isBareName(e) {
 				d.printEvaluation(v, env, e)
 			} else {
 				fmt.Println("  ❓ " + messages.Text(messages.H8063, codes.NameRef(codes.DbgHelp)))

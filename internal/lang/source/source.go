@@ -138,9 +138,14 @@ func Turkish() *codes.Language { return codes.Source() }
 // TextLexer is the lexer of a text written in Turkish without the coded header (an expression
 // typed in the debugger): the text is converted to coded form first, so the program reads codes
 // (DENEME); a text that cannot be converted is read as it is.
-func TextLexer(text string) *lexer.Lexer {
+func TextLexer(text string) *lexer.Lexer { return TextLexerWithNames(text, nil) }
+
+// TextLexerWithNames is TextLexer for a text read inside a running program's scope (the
+// debugger's expression, condition and watch): a name in names is the program's own and is not
+// encoded as a language element (the user's toplam variable stays a variable).
+func TextLexerWithNames(text string, names []string) *lexer.Lexer {
 	b := Parts{Language: codes.SourceLanguage, Body: text}
-	if coded, err := toCoded(b, Turkish()); err == nil {
+	if coded, err := toCoded(b, Turkish(), names, false); err == nil {
 		_, l := view(coded)
 		return l
 	}

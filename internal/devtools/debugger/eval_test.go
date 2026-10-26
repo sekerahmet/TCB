@@ -17,7 +17,7 @@ func TestParseFirstExpressionSeparatesOutcomes(t *testing.T) {
 		{"", exprSyntaxError},
 		{"değişken a = 1", exprNotExpression},
 	} {
-		if _, got := parseFirstExpression(c.text); got != c.want {
+		if _, got := parseFirstExpression(c.text, nil); got != c.want {
 			t.Errorf("parseFirstExpression(%q) = %d, beklenen %d", c.text, got, c.want)
 		}
 	}

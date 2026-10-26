@@ -193,7 +193,7 @@ func (s *dapServer) evaluate(msg *dapMessage) {
 		Context    string `json:"context"`
 	}
 	_ = json.Unmarshal(msg.Arguments, &a)
-	p := parser.New(source.TextLexer(a.Expression))
+	p := parser.New(source.TextLexerWithNames(a.Expression, s.curEnv.Names()))
 	prog := p.ParseProgram()
 	if errs := p.Errs(); len(errs) > 0 {
 		s.respondErr(msg, errs[0].Error())

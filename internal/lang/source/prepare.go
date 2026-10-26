@@ -28,6 +28,8 @@ type Options struct {
 	Checker *checker.Checker
 	// InGlobalScope says the source runs under an importer's global scope (11.1):
 	// GlobalNames are that scope's names, GlobalDynamic says they are not fully known.
+	// Text without the coded header is encoded knowing GlobalNames (also a REPL line: the
+	// earlier lines' names), so a user's name is not read as a language element.
 	InGlobalScope bool
 	GlobalNames   []string
 	GlobalDynamic bool
@@ -71,7 +73,7 @@ func Prepare(text string, s Options) *Result {
 		// Kabuğa yazılan satır kişinin yazım dilindedir: kodlu biçime, oradan kanonik
 		// görünümüne çevrilir (kodlu dosya gibi). Ayrıştırılamayan satır o dilde okunur;
 		// sözdizimi hataları satırın kendi metnine göredir.
-		if coded, err = toCoded(b, lang); err != nil {
+		if coded, err = toCoded(b, lang, s.GlobalNames, s.GlobalDynamic); err != nil {
 			coded, err = b, nil
 			lex = func() *lexer.Lexer { return lexer.NewBodyIn(b.Body, false, lang) }
 		}

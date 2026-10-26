@@ -56,7 +56,7 @@ func EncodeIn(text string, lang *codes.Language) (string, error) {
 	if err != nil || b.Coded {
 		return text, err
 	}
-	c, err := analyze(b, lang)
+	c, err := analyze(b, lang, nil, false)
 	if err != nil {
 		return "", err
 	}
@@ -73,9 +73,11 @@ func EncodeIn(text string, lang *codes.Language) (string, error) {
 
 // toCoded lang'de yazılmış kodsuz gövdeyi denetimsiz kodlu biçime çevirir (Encode'un
 // doğrulaması olmadan; gösterim ve kabuk satırı için); gövde ayrıştırılamıyorsa b ve hatayı
-// döner.
-func toCoded(b Parts, lang *codes.Language) (Parts, error) {
-	c, err := analyze(b, lang)
+// döner. globalNames metnin içinde okunduğu dış kapsamın adlarıdır (kabukta önceki satırlar,
+// modülde aktaran, 11.1): onlardan biriyle aynı yazılan ad kullanıcının adıdır, dilin öğesi
+// sayılıp kodlanmaz; dynamic, dış kapsamın adlarının tam bilinmediğini söyler.
+func toCoded(b Parts, lang *codes.Language, globalNames []string, dynamic bool) (Parts, error) {
+	c, err := analyze(b, lang, globalNames, dynamic)
 	if err != nil {
 		return b, err
 	}
@@ -97,7 +99,7 @@ func Show(text string, lang *codes.Language) (string, error) {
 	if err != nil || b.Coded || lang.Code == codes.SourceLanguage {
 		return Decode(text, lang)
 	}
-	coded, err := toCoded(b, Turkish())
+	coded, err := toCoded(b, Turkish(), nil, false)
 	if err != nil {
 		return "", err
 	}
@@ -110,7 +112,7 @@ func reencodes(decoded, coded string, lang *codes.Language) bool {
 	if err != nil || b.Coded {
 		return false
 	}
-	fresh, err := toCoded(b, lang)
+	fresh, err := toCoded(b, lang, nil, false)
 	return err == nil && fresh.Join() == coded
 }
 
@@ -136,7 +138,7 @@ func Decode(text string, lang *codes.Language) (string, error) {
 	if err != nil || !b.Coded {
 		return text, err
 	}
-	c, err := analyze(b, lang)
+	c, err := analyze(b, lang, nil, false)
 	if err != nil {
 		return "", err
 	}
@@ -152,7 +154,7 @@ func Decode(text string, lang *codes.Language) (string, error) {
 // reencodesBody reports whether the view body, read in lang and encoded again, gives the coded
 // body back.
 func reencodesBody(view, codedBody string, lang *codes.Language) bool {
-	c, err := analyze(Parts{Body: view}, lang)
+	c, err := analyze(Parts{Body: view}, lang, nil, false)
 	return err == nil && c.codedBody() == codedBody
 }
 
@@ -179,7 +181,7 @@ func (c *analysis) viewChanges() []change {
 // adlarına çevrilir (yerleştirmelerdekiler kod kalır). İkinci değer gösterimin sütunlarını
 // veren sözcük çözümleyicidir: konumlar tam bu metne göredir, '$ad' kaçışları dahil.
 func view(b Parts) (string, *lexer.Lexer) {
-	if c, err := analyze(b, codes.Source()); err == nil {
+	if c, err := analyze(b, codes.Source(), nil, false); err == nil {
 		d := uniqueChanges(c.viewChanges())
 		return apply(c.input, d), lexer.NewBodyView(b.Body, viewEdits(d))
 	}
@@ -250,7 +252,8 @@ type analysis struct {
 	prog         *ast.Program
 }
 
-func analyze(b Parts, lang *codes.Language) (*analysis, error) {
+// analyze b'yi lang'de okur; globalNames ve dynamic metnin dış kapsamıdır (toCoded).
+func analyze(b Parts, lang *codes.Language, globalNames []string, dynamic bool) (*analysis, error) {
 	if !utf8.ValidString(b.Body) {
 		return nil, ErrUTF8
 	}
@@ -264,7 +267,7 @@ func analyze(b Parts, lang *codes.Language) (*analysis, error) {
 	}
 	c := &analysis{lang: lang, input: l.Input(), records: l.Records(), roles: p.Roles(),
 		bindings: map[[2]int]checker.NameBinding{}, prog: prog}
-	bindings, conflicts := checker.NameBindings(prog, l.Language(), lang, nil, false)
+	bindings, conflicts := checker.NameBindings(prog, l.Language(), lang, globalNames, dynamic)
 	for _, bg := range bindings {
 		c.bindings[[2]int{bg.Token.Line, bg.Token.Column}] = bg
 	}

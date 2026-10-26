@@ -202,6 +202,21 @@ func TestREPL(t *testing.T) {
 	}
 }
 
+// Kabuk satırı önceki satırların adlarını bilerek kodlanır: kullanıcının önceki satırda tanımladığı ad
+// (toplam, sum) dilin öğesiyle aynı yazılsa da kullanıcının adıdır, yerleşiğe dönmez. Her yazım dilinde.
+func TestREPLKeepsTheEarlierLinesNames(t *testing.T) {
+	for _, c := range []struct{ lang, input string }{
+		{"tr", "değişken toplam = 5\nyazdır(toplam + 1)\nçıkış\n"},
+		{"en", "var sum = 5\nprint(sum + 1)\nexit\n"},
+	} {
+		s := testkit.RunBinary(t, trBinary, "", c.input, []string{"TR_DIL=" + c.lang})
+		testkit.Wait(t, s, 0, []string{"6\n"}, nil)
+		if strings.Contains(s.Stderr, "❌") {
+			t.Errorf("%s: kabuk hata verdi:\n%s", c.lang, s.Stderr)
+		}
+	}
+}
+
 // input() boru ile gelen satırları sırayla okur; kabuk da aynı okuyucuyu kullandığı için
 // kabukta girdi() bir sonraki satırı alır, kabuk satırları yutulmaz.
 func TestInputPipeAndShell(t *testing.T) {

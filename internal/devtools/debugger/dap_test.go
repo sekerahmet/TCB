@@ -188,7 +188,6 @@ yazdır("toplam: {toplam}")
 // Düzenleyicinin tipik bir hata ayıklama oturumu: koşullu kesme noktası, çağrı yığını,
 // değişkenler, değer değiştirme, adımlama, tablo görünümü ve programın bitişi.
 func TestDAPDebugSession(t *testing.T) {
-	t.Skip("BİLİNEN HATA (iç biçim kod, 2026-10-26): hata ayıklayıcıya yazılan ifade programın adlarını bilmeden kodlanıyor; kullanıcının toplam değişkeni yerleşik toplam oluyor")
 	c := startDAP(t)
 	path := writeProgram(t, dapProgram)
 	c.launch(path, false, map[string]interface{}{"line": 7, "condition": "i == 1"})
