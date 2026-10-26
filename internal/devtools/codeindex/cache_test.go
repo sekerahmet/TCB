@@ -331,37 +331,46 @@ func BenchmarkBuild(b *testing.B) {
 // 62 ms'lik kurulum 5,8 sn sürdü ve eski 5 sn'lik tavanı aştı (testkit.ScalesLinearly). Önbelleğin
 // işini yaptığı (isabette ayrıştırma yok, düzenlemede yalnızca değişen ve içe aktaranlar) sayılarak
 // sınanır: TestCacheHitSkipsParsing, TestIncrementalReparsesOnlyChangedAndImporters. Ölçülen kurulum hatasız ve tam
-// olmalıdır (checkedBuild): kod biçimli adlar 400 modülün 300'ünü Skipped'a düşürüyor, iki boyda aynı iş ölçülüyordu.
+// olmalıdır: birim okunan dosyadır, atlanan dosya hatadır (buildFiles; ScalesLinearly iki boyun birimlerini karşılaştırır).
+// Kod biçimli adlar 400 modülün 300'ünü Skipped'a düşürüyor, iki boyda aynı iş ölçülüyordu.
 func TestBuildScalesLinearly(t *testing.T) {
 	if testing.Short() {
 		t.Skip("zaman ölçümü")
 	}
-	testkit.ScalesLinearly(t, "sıfırdan kurulum", 100, func(n int) func() {
+	testkit.ScalesLinearly(t, "sıfırdan kurulum", 100, func(n int) func() (int, error) {
 		dir := benchProject(t, n)
-		return func() { checkedBuild(t, dir, n, false) }
+		return func() (int, error) { return buildFiles(dir, false) }
 	})
-	testkit.ScalesLinearly(t, "önbellekten okuma", 100, func(n int) func() {
+	testkit.ScalesLinearly(t, "önbellekten okuma", 100, func(n int) func() (int, error) {
 		dir := benchProject(t, n)
-		checkedBuild(t, dir, n, true)
-		return func() { checkedBuild(t, dir, n, true) }
+		buildFiles(dir, true)
+		return func() (int, error) { return buildFiles(dir, true) }
 	})
-	testkit.ScalesLinearly(t, "bir modülün düzenlenmesinden sonra yenileme", 100, func(n int) func() {
+	testkit.ScalesLinearly(t, "bir modülün düzenlenmesinden sonra yenileme", 100, func(n int) func() (int, error) {
 		dir := benchProject(t, n)
-		checkedBuild(t, dir, n, true)
+		buildFiles(dir, true)
 		p := filepath.Join(dir, "m0.tr")
 		orig, _ := os.ReadFile(p)
 		edits := 0
-		return func() {
+		return func() (int, error) {
 			edits++
 			os.WriteFile(p, append(append([]byte(nil), orig...), fmt.Sprintf("// düzenleme %d", edits)...), 0o644)
-			checkedBuild(t, dir, n, true)
+			return buildFiles(dir, true)
 		}
 	})
 }
 
-// checkedBuild dizini kurar (cached: önbellekle) ve n dosyanın hepsinin hatasız okunduğunu denetler.
-func checkedBuild(tb testing.TB, dir string, n int, cached bool) *Index {
-	tb.Helper()
+// buildFiles dizini kurar (cached: önbellekle) ve okunan dosya sayısını verir; kurulum hatası ya da atlanan dosya hatadır.
+func buildFiles(dir string, cached bool) (int, error) {
+	idx, err := buildIndex(dir, cached)
+	if err != nil {
+		return 0, err
+	}
+	return len(idx.Files), nil
+}
+
+// buildIndex dizini kurar (cached: önbellekle); atlanan dosya hatadır.
+func buildIndex(dir string, cached bool) (*Index, error) {
 	var idx *Index
 	var err error
 	if cached {
@@ -369,10 +378,10 @@ func checkedBuild(tb testing.TB, dir string, n int, cached bool) *Index {
 	} else {
 		idx, err = Build(dir, Options{})
 	}
-	if err != nil || len(idx.Skipped) > 0 || len(idx.Files) != n {
-		tb.Fatalf("the measured build is incomplete: err %v, %d skipped (%v), %d of %d files", err, len(idx.Skipped), idx.Skipped[:min(len(idx.Skipped), 2)], len(idx.Files), n)
+	if err == nil && len(idx.Skipped) > 0 {
+		err = fmt.Errorf("%d files skipped (%v)", len(idx.Skipped), idx.Skipped[:min(len(idx.Skipped), 2)])
 	}
-	return idx
+	return idx, err
 }
 
 // Kural: dizinin boyu modül sayısıyla doğrusal büyür; aynı adlı üyeler (her katmanda `ileri` metodu ve `ağırlık` alanı)
@@ -381,8 +390,14 @@ func checkedBuild(tb testing.TB, dir string, n int, cached bool) *Index {
 // üyelere "olası" diye bağlandığı sorguda çözülür (eksikler listesi: n=400'de 252 188 başvurunun 240 570'i ad-yalnızdı,
 // ×15,9; DENETİM 2026-10-26).
 func TestIndexSizeGrowsLinearlyWithSameNamedMembers(t *testing.T) {
-	small := checkedBuild(t, benchProject(t, 100), 100, false)
-	large := checkedBuild(t, benchProject(t, 400), 400, false)
+	small, err := buildIndex(benchProject(t, 100), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	large, err := buildIndex(benchProject(t, 400), false)
+	if err != nil || len(large.Files) != 4*len(small.Files) {
+		t.Fatalf("the measured builds are incomplete: %v, %d and %d files", err, len(small.Files), len(large.Files))
+	}
 	size := func(idx *Index) int { return len(idx.Occurrences) + len(idx.Edges) + len(idx.MemberGuesses) }
 	t.Logf("occurrences %d -> %d, edges %d -> %d, member guesses %d -> %d", len(small.Occurrences), len(large.Occurrences),
 		len(small.Edges), len(large.Edges), len(small.MemberGuesses), len(large.MemberGuesses))
