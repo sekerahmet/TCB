@@ -8,7 +8,6 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
-	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
 // Metin, Liste ve Sözlük üzerinde nokta (.) ile çağrılan yerleşik metotlar. Metot gövdeleri
@@ -227,10 +226,10 @@ func init() {
 // setupStringMethods Metin tipinin metotlarını kaydeder.
 func setupStringMethods() {
 	addMethod(typeString, codes.MemUpper, signature{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
-		return &StringVal{Val: turkish.Upper(inst.(*StringVal).Val)}, nil
+		return &StringVal{Val: strings.ToUpper(inst.(*StringVal).Val)}, nil // Unicode kuralı, dilden bağımsız (13.2)
 	})
 	addMethod(typeString, codes.MemLower, signature{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
-		return &StringVal{Val: turkish.Lower(inst.(*StringVal).Val)}, nil
+		return &StringVal{Val: strings.ToLower(inst.(*StringVal).Val)}, nil
 	})
 	addMethod(typeString, codes.MemStrip, signature{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return &StringVal{Val: strings.TrimSpace(inst.(*StringVal).Val)}, nil

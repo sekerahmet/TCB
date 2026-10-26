@@ -80,8 +80,8 @@ TR_ctx_test "13.1a yolda sekme ya da satır sonu varsa yol alan yerleşikler ham
 }
 
 TR_ctx_test "13.2 metin metotları" {
-    TR_fn_assert_equal("İSTANBUL", "istanbul".TR_mem_upper())
-    TR_fn_assert_equal("ılık", "ILIK".TR_mem_lower())
+    TR_fn_assert_equal("ISTANBUL", "istanbul".TR_mem_upper())
+    TR_fn_assert_equal("ilik", "ILIK".TR_mem_lower())
     TR_fn_assert_equal("a", "  a ".TR_mem_strip())
     TR_fn_assert_equal(["a", "b"], "a,b".TR_mem_split(","))
     TR_fn_assert_equal("axc", "abc".TR_mem_replace("b", "x"))

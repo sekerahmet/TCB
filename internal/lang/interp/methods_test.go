@@ -16,3 +16,19 @@ func TestSliceMethodOnListGetsRangeHint(t *testing.T) {
 		}
 	}
 }
+
+// Kural (13.2): büyük_harf ve küçük_harf herkes için Unicode'un varsayılan harf dönüşümüdür
+// (Python str.upper, Swift uppercased(), Go strings.ToUpper gibi); dosyanın dili sonucu değiştirmez:
+// İngilizce ve Türkçe yazılmış aynı program aynı metni verir ("title" → "TITLE", "istanbul" →
+// "ISTANBUL", "LIST" → "list").
+func TestCaseConversionIsTheSameInEveryLanguage(t *testing.T) {
+	want := "TITLE ISTANBUL list\n"
+	for lang, text := range map[string]string{
+		"en": `print("title".upper(), "istanbul".upper(), "LIST".lower())` + "\n",
+		"tr": `yazdır("title".büyük_harf(), "istanbul".büyük_harf(), "LIST".küçük_harf())` + "\n",
+	} {
+		if got := runCoded(t, text, lang, nil); got != want {
+			t.Errorf("%s: %q, beklenen %q", lang, got, want)
+		}
+	}
+}

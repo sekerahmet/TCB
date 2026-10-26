@@ -3492,10 +3492,10 @@ değişken w = tensör([1.0], türev_izle: doğru); değişken op = AdamW([w]); 
 
     Metin.küçük_harf() → Metin
 
-Metni Türkçe kurallarla küçük harfe çevirir (İ → i, I → ı). Yeni bir metin verir.
+Metni Unicode'un varsayılan kuralıyla küçük harfe çevirir; sonuç programın dilinden bağımsızdır (I → i). Yeni bir metin verir.
 
 ```tr
-yazdır("IŞIK".küçük_harf())
+yazdır("MERHABA".küçük_harf())
 ```
 
 İlişkili: TR_mem_upper `büyük_harf`
@@ -4072,10 +4072,10 @@ değişken ç = ilerleme(10); ç.güncelle({kayıp: 0.5}, adım: 5); yazdır(ç)
 
     Metin.büyük_harf() → Metin
 
-Metni Türkçe kurallarla büyük harfe çevirir (i → İ, ı → I). Yeni bir metin verir.
+Metni Unicode'un varsayılan kuralıyla büyük harfe çevirir; sonuç programın dilinden bağımsızdır (i → I). Yeni bir metin verir.
 
 ```tr
-yazdır("istanbul".büyük_harf())
+yazdır("merhaba".büyük_harf())
 ```
 
 İlişkili: TR_mem_lower `küçük_harf`
