@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // Hata 18 — Sonsuz özyineleme.
 // İleti kodu: H2422
 // Ne olur: Kendini durmadan çağıran fonksiyon iç içe çağrı sınırını aşar ve program durur.
@@ -9,7 +10,7 @@
 //     }
 // Çalıştırma (proje kökünden): tr examples/tr/hatalar/18_sonsuz_ozyineleme.tr   (çıkış kodu 1)
 
-fonksiyon say(n) {
-    sonuç say(n + 1)
+TR_kw_func say(n) {
+    TR_kw_return say(n + 1)
 }
-yazdır(say(0))
+TR_fn_print(say(0))

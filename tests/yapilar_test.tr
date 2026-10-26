@@ -1,115 +1,116 @@
+//! tr kodlu 3 dil=tr
 // docs/spec/07_yapilar.md §7 — Yapılar
 
-yapı Nokta {
-    x: Tam = 0
+TR_kw_struct Nokta {
+    x: TR_type_Int = 0
     y = 0
-    fonksiyon uzaklık_kare() {
-        sonuç kendi.x ** 2 + kendi.y ** 2
+    TR_kw_func uzaklık_kare() {
+        TR_kw_return TR_kw_self.x ** 2 + TR_kw_self.y ** 2
     }
-    fonksiyon taşı(dx, dy) {
-        kendi.x += dx
-        kendi.y += dy
+    TR_kw_func taşı(dx, dy) {
+        TR_kw_self.x += dx
+        TR_kw_self.y += dy
     }
 }
 
-test "7.1 yapı alanları ve varsayılan değerleri" {
-    değişken p = Nokta()
-    eşit_mi(0, p.x)
-    eşit_mi(0, p.y)
-    yapı Satır { a, b: Tam = 2; c }
-    eşit_mi(`Satır{a: yok, b: 2, c: yok}`, metin(Satır()))
+TR_ctx_test "7.1 yapı alanları ve varsayılan değerleri" {
+    TR_kw_var p = Nokta()
+    TR_fn_assert_equal(0, p.x)
+    TR_fn_assert_equal(0, p.y)
+    TR_kw_struct Satır { a, b: TR_type_Int = 2; c }
+    TR_fn_assert_equal(`Satır{a: yok, b: 2, c: yok}`, TR_fn_str(Satır()))
 }
 
-test "7.1 yapı gövdesinde geçersiz içerik ve yinelenen ad sözdizimi hatasıdır" {
-    değişken hatalar = []
-    dene { aktar "negative/yapi_govdesi" } yakala h { hatalar.ekle(h) }
-    dene { aktar "negative/yapi_yinelenen_alan" } yakala h { hatalar.ekle(h) }
-    dene { aktar "negative/yapi_yinelenen_metot" } yakala h { hatalar.ekle(h) }
-    eşit_mi(3, hatalar.uzunluk, metin(hatalar))
-    doğrula(hatalar[0].içerir("Satır 4, Sütun 5: Sözdizimi hatası — yapı gövdesinde yalnızca alanlar"), hatalar[0])
-    doğrula(hatalar[1].içerir("Satır 4, Sütun 5: Sözdizimi hatası — 'x' alanı 'A' yapısında iki kez tanımlandı"), hatalar[1])
-    doğrula(hatalar[2].içerir("'f' metodu 'A' yapısında iki kez tanımlandı"), hatalar[2])
+TR_ctx_test "7.1 yapı gövdesinde geçersiz içerik ve yinelenen ad sözdizimi hatasıdır" {
+    TR_kw_var hatalar = []
+    TR_kw_try { TR_kw_import "negative/yapi_govdesi" } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { TR_kw_import "negative/yapi_yinelenen_alan" } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { TR_kw_import "negative/yapi_yinelenen_metot" } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_fn_assert_equal(3, hatalar.TR_mem_length, TR_fn_str(hatalar))
+    TR_fn_assert(hatalar[0].TR_mem_contains("Satır 4, Sütun 5: Sözdizimi hatası — yapı gövdesinde yalnızca alanlar"), hatalar[0])
+    TR_fn_assert(hatalar[1].TR_mem_contains("Satır 4, Sütun 5: Sözdizimi hatası — 'x' alanı 'A' yapısında iki kez tanımlandı"), hatalar[1])
+    TR_fn_assert(hatalar[2].TR_mem_contains("'f' metodu 'A' yapısında iki kez tanımlandı"), hatalar[2])
 }
 
-test "7.2 oluşturma: konumlu ve adlı argümanlarla" {
-    eşit_mi(3, Nokta(3, 4).x)
-    eşit_mi(4, Nokta(y: 4).y)
-    eşit_mi(0, Nokta(y: 4).x)
+TR_ctx_test "7.2 oluşturma: konumlu ve adlı argümanlarla" {
+    TR_fn_assert_equal(3, Nokta(3, 4).x)
+    TR_fn_assert_equal(4, Nokta(y: 4).y)
+    TR_fn_assert_equal(0, Nokta(y: 4).x)
 }
 
-test "7.2 fazla konumlu ya da bilinmeyen adlı argüman hatadır" {
-    değişken hatalar = []
-    dene { Nokta(1, 2, 3) } yakala h { hatalar.ekle(h) }
-    dene { Nokta(yy: 9) } yakala h { hatalar.ekle(h) }
-    eşit_mi(2, hatalar.uzunluk, metin(hatalar))
-    doğrula(hatalar[0].içerir("'Nokta' yapısı en fazla 2 argüman alır (alanlar: x, y), 3 verildi"), hatalar[0])
-    doğrula(hatalar[1].içerir("'Nokta' yapısının 'yy' adında bir alanı yok. Bunu mu demek istediniz: 'y'?"), hatalar[1])
+TR_ctx_test "7.2 fazla konumlu ya da bilinmeyen adlı argüman hatadır" {
+    TR_kw_var hatalar = []
+    TR_kw_try { Nokta(1, 2, 3) } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { Nokta(yy: 9) } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_fn_assert_equal(2, hatalar.TR_mem_length, TR_fn_str(hatalar))
+    TR_fn_assert(hatalar[0].TR_mem_contains("'Nokta' yapısı en fazla 2 argüman alır (alanlar: x, y), 3 verildi"), hatalar[0])
+    TR_fn_assert(hatalar[1].TR_mem_contains("'Nokta' yapısının 'yy' adında bir alanı yok. Bunu mu demek istediniz: 'y'?"), hatalar[1])
     // kurucu varsa argümanlar kurucunun imzasına göre denetlenir
-    yapı Hesap {
+    TR_kw_struct Hesap {
         bakiye
-        fonksiyon kurucu(b, kat = 2) { kendi.bakiye = b * kat }
+        TR_kw_func TR_ctx_init(b, kat = 2) { TR_kw_self.bakiye = b * kat }
     }
-    eşit_mi(15, Hesap(5, 3).bakiye)
-    değişken m = ""
-    dene { Hesap(1, 2, 3) } yakala h { m = h }
-    doğrula(m.içerir("'Hesap' yapısı en fazla 2 argüman alır, 3 verildi"), m)
+    TR_fn_assert_equal(15, Hesap(5, 3).bakiye)
+    TR_kw_var m = ""
+    TR_kw_try { Hesap(1, 2, 3) } TR_kw_catch h { m = h }
+    TR_fn_assert(m.TR_mem_contains("'Hesap' yapısı en fazla 2 argüman alır, 3 verildi"), m)
 }
 
-test "7.2 bir alan hem sırayla hem adıyla verilemez" {
-    değişken m = ""
-    dene { Nokta(1, x: 2) } yakala h { m = h }
-    doğrula(m.içerir("'Nokta' yapısının 'x' alanı hem sırayla (1. argüman) hem adıyla verildi"), m)
-    eşit_mi(2, Nokta(1, y: 2).y)
-    yapı Hesap {
+TR_ctx_test "7.2 bir alan hem sırayla hem adıyla verilemez" {
+    TR_kw_var m = ""
+    TR_kw_try { Nokta(1, x: 2) } TR_kw_catch h { m = h }
+    TR_fn_assert(m.TR_mem_contains("'Nokta' yapısının 'x' alanı hem sırayla (1. argüman) hem adıyla verildi"), m)
+    TR_fn_assert_equal(2, Nokta(1, y: 2).y)
+    TR_kw_struct Hesap {
         bakiye
-        fonksiyon kurucu(b, kat = 2) { kendi.bakiye = b * kat }
+        TR_kw_func TR_ctx_init(b, kat = 2) { TR_kw_self.bakiye = b * kat }
     }
-    dene { Hesap(1, b: 2) } yakala h { m = h }
-    doğrula(m.içerir("'Hesap' yapısı 'b' parametresi hem sırayla (1. argüman) hem adıyla verildi"), m)
+    TR_kw_try { Hesap(1, b: 2) } TR_kw_catch h { m = h }
+    TR_fn_assert(m.TR_mem_contains("'Hesap' yapısı 'b' parametresi hem sırayla (1. argüman) hem adıyla verildi"), m)
 }
 
-test "7.3 metotlar kendi ile nesneye erişir" {
-    değişken p = Nokta(3, 4)
-    eşit_mi(25, p.uzaklık_kare())
+TR_ctx_test "7.3 metotlar kendi ile nesneye erişir" {
+    TR_kw_var p = Nokta(3, 4)
+    TR_fn_assert_equal(25, p.uzaklık_kare())
     p.taşı(1, 1)
-    eşit_mi(41, p.uzaklık_kare())
+    TR_fn_assert_equal(41, p.uzaklık_kare())
 }
 
-test "7.4 kurucu metodu oluşturmada çağrılır" {
-    yapı Hesap {
+TR_ctx_test "7.4 kurucu metodu oluşturmada çağrılır" {
+    TR_kw_struct Hesap {
         bakiye
-        fonksiyon kurucu(b) { kendi.bakiye = b * 2 }
+        TR_kw_func TR_ctx_init(b) { TR_kw_self.bakiye = b * 2 }
     }
-    eşit_mi(10, Hesap(5).bakiye)
+    TR_fn_assert_equal(10, Hesap(5).bakiye)
 }
 
-test "7.5 alanlar atanabilir; olmayan alan hata verir" {
-    değişken p = Nokta()
+TR_ctx_test "7.5 alanlar atanabilir; olmayan alan hata verir" {
+    TR_kw_var p = Nokta()
     p.x = 7
-    eşit_mi(7, p.x)
-    değişken mesaj = ""
-    dene { p.z } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("bulunamadı"), mesaj)
-    eşit_mi(yok, p?.z)
+    TR_fn_assert_equal(7, p.x)
+    TR_kw_var mesaj = ""
+    TR_kw_try { p.z } TR_kw_catch h { mesaj = h }
+    TR_fn_assert(mesaj.TR_mem_contains("bulunamadı"), mesaj)
+    TR_fn_assert_equal(TR_kw_none, p?.z)
 }
 
-test "7.5 tanımda olmayan alana atama hatadır; nesnenin alanları her zaman tanımdakilerdir" {
-    değişken p = Nokta(1, 2)
-    değişken hatalar = []
-    dene { p.z = 5 } yakala h { hatalar.ekle(h) }
-    dene { p.taşı = 5 } yakala h { hatalar.ekle(h) }
-    eşit_mi(2, hatalar.uzunluk, metin(hatalar))
-    doğrula(hatalar[0].içerir("Nokta yapısında 'z' alanı yok; yapı tanımına 'z' alanını ekleyin"), hatalar[0])
-    doğrula(hatalar[1].içerir("'taşı' Nokta yapısının bir metodu; metoda değer atanamaz"), hatalar[1])
-    eşit_mi(`Nokta{x: 1, y: 2}`, metin(p))
-    doğrula(p == Nokta(1, 2))
+TR_ctx_test "7.5 tanımda olmayan alana atama hatadır; nesnenin alanları her zaman tanımdakilerdir" {
+    TR_kw_var p = Nokta(1, 2)
+    TR_kw_var hatalar = []
+    TR_kw_try { p.z = 5 } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { p.taşı = 5 } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_fn_assert_equal(2, hatalar.TR_mem_length, TR_fn_str(hatalar))
+    TR_fn_assert(hatalar[0].TR_mem_contains("Nokta yapısında 'z' alanı yok; yapı tanımına 'z' alanını ekleyin"), hatalar[0])
+    TR_fn_assert(hatalar[1].TR_mem_contains("'taşı' Nokta yapısının bir metodu; metoda değer atanamaz"), hatalar[1])
+    TR_fn_assert_equal(`Nokta{x: 1, y: 2}`, TR_fn_str(p))
+    TR_fn_assert(p == Nokta(1, 2))
 }
 
-test "7.6 nesneler içerikle karşılaştırılır; tip() yapının kendisini verir" {
-    doğrula(Nokta(1, 2) == Nokta(1, 2))
-    eşit_mi(`Nokta{x: 1, y: 2}`, metin(Nokta(1, 2)))
-    eşit_mi(Nokta, tip(Nokta()))
-    doğrula(tip(Nokta()) == Nokta)
-    eşit_mi("Nokta", metin(tip(Nokta())))
-    eşit_mi(YapıTanımı, tip(Nokta))
+TR_ctx_test "7.6 nesneler içerikle karşılaştırılır; tip() yapının kendisini verir" {
+    TR_fn_assert(Nokta(1, 2) == Nokta(1, 2))
+    TR_fn_assert_equal(`Nokta{x: 1, y: 2}`, TR_fn_str(Nokta(1, 2)))
+    TR_fn_assert_equal(Nokta, TR_fn_type(Nokta()))
+    TR_fn_assert(TR_fn_type(Nokta()) == Nokta)
+    TR_fn_assert_equal("Nokta", TR_fn_str(TR_fn_type(Nokta())))
+    TR_fn_assert_equal(TR_type_StructType, TR_fn_type(Nokta))
 }

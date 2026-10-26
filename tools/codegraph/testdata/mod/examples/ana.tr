@@ -1,7 +1,8 @@
-aktar "tr/geo" olarak g
+//! tr kodlu 3 dil=tr
+TR_kw_import "tr/geo" TR_ctx_as g
 
-değişken k = g.Kare(2)
-yazdır(g.çevre_hesapla(k))
-yazdır(g.PI2)
+TR_kw_var k = g.Kare(2)
+TR_fn_print(g.çevre_hesapla(k))
+TR_fn_print(g.PI2)
 
-değişken k2 = g.Kare(kenar: 3)
+TR_kw_var k2 = g.Kare(kenar: 3)

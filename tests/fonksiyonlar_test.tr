@@ -1,185 +1,186 @@
+//! tr kodlu 3 dil=tr
 // docs/spec/06_fonksiyonlar.md §6 — Fonksiyonlar
 
-fonksiyon topla(a, b) {
-    sonuç a + b
+TR_kw_func topla(a, b) {
+    TR_kw_return a + b
 }
 
-test "6.1 isimli fonksiyon tanımı" {
-    eşit_mi(4, topla(2, 2))
-    fonksiyon çarp(a, b) { sonuç a * b }
-    eşit_mi(6, çarp(2, 3))
+TR_ctx_test "6.1 isimli fonksiyon tanımı" {
+    TR_fn_assert_equal(4, topla(2, 2))
+    TR_kw_func çarp(a, b) { TR_kw_return a * b }
+    TR_fn_assert_equal(6, çarp(2, 3))
 }
 
-test "6.1 fonksiyonlar tanımlandıkları noktadan sonra kullanılabilir" {
-    değişken bulundu = doğru
-    dene { sonra_tanımlı() } yakala { bulundu = yanlış }
-    doğrula(değil bulundu)
-    fonksiyon sonra_tanımlı() { sonuç 1 }
-    eşit_mi(1, sonra_tanımlı())
+TR_ctx_test "6.1 fonksiyonlar tanımlandıkları noktadan sonra kullanılabilir" {
+    TR_kw_var bulundu = TR_kw_true
+    TR_kw_try { sonra_tanımlı() } TR_kw_catch { bulundu = TR_kw_false }
+    TR_fn_assert(TR_kw_not bulundu)
+    TR_kw_func sonra_tanımlı() { TR_kw_return 1 }
+    TR_fn_assert_equal(1, sonra_tanımlı())
 }
 
-test "6.2 sonuç değer döndürür; yoksa son deyimin değeri döner" {
-    fonksiyon erken(x) {
-        eğer x > 0 { sonuç "pozitif" }
-        sonuç "değil"
+TR_ctx_test "6.2 sonuç değer döndürür; yoksa son deyimin değeri döner" {
+    TR_kw_func erken(x) {
+        TR_kw_if x > 0 { TR_kw_return "pozitif" }
+        TR_kw_return "değil"
     }
-    eşit_mi("pozitif", erken(1))
-    eşit_mi("değil", erken(-1))
-    fonksiyon örtük() { 5 }
-    eşit_mi(5, örtük())
-    fonksiyon boş_dönüş() { sonuç }
-    eşit_mi(yok, boş_dönüş())
+    TR_fn_assert_equal("pozitif", erken(1))
+    TR_fn_assert_equal("değil", erken(-1))
+    TR_kw_func örtük() { 5 }
+    TR_fn_assert_equal(5, örtük())
+    TR_kw_func boş_dönüş() { TR_kw_return }
+    TR_fn_assert_equal(TR_kw_none, boş_dönüş())
 }
 
-test "6.3 varsayılan parametreler; eksik ya da fazla argüman hata verir" {
-    fonksiyon selam(ad, ek = "!") { sonuç "Selam " + ad + ek }
-    eşit_mi("Selam Ali!", selam("Ali"))
-    eşit_mi("Selam Ali?", selam("Ali", "?"))
-    fonksiyon ikinci(a, b) { sonuç b }
-    değişken eksik = ""
-    dene { ikinci(1) } yakala hata { eksik = hata }
-    doğrula(eksik.içerir("2 argüman bekler, 1 verildi (eksik: 'b')"), eksik)
-    değişken fazla = ""
-    dene { ikinci(1, 2, 3) } yakala hata { fazla = hata }
-    doğrula(fazla.içerir("en fazla 2 argüman alır, 3 verildi"), fazla)
+TR_ctx_test "6.3 varsayılan parametreler; eksik ya da fazla argüman hata verir" {
+    TR_kw_func selam(ad, ek = "!") { TR_kw_return "Selam " + ad + ek }
+    TR_fn_assert_equal("Selam Ali!", selam("Ali"))
+    TR_fn_assert_equal("Selam Ali?", selam("Ali", "?"))
+    TR_kw_func ikinci(a, b) { TR_kw_return b }
+    TR_kw_var eksik = ""
+    TR_kw_try { ikinci(1) } TR_kw_catch hata { eksik = hata }
+    TR_fn_assert(eksik.TR_mem_contains("2 argüman bekler, 1 verildi (eksik: 'b')"), eksik)
+    TR_kw_var fazla = ""
+    TR_kw_try { ikinci(1, 2, 3) } TR_kw_catch hata { fazla = hata }
+    TR_fn_assert(fazla.TR_mem_contains("en fazla 2 argüman alır, 3 verildi"), fazla)
 }
 
-test "6.3 varsayılan değer önceki parametreleri görür" {
-    değişken a = 100
-    fonksiyon f(a, b = a * 2) { sonuç b }
-    eşit_mi(2, f(1))
-    fonksiyon g(x, y = x + 1, z = x + y) { sonuç [x, y, z] }
-    eşit_mi([1, 2, 3], g(1))
-    eşit_mi([1, 5, 6], g(1, 5))
-    eşit_mi([1, 2, 9], g(1, z: 9))
+TR_ctx_test "6.3 varsayılan değer önceki parametreleri görür" {
+    TR_kw_var a = 100
+    TR_kw_func f(a, b = a * 2) { TR_kw_return b }
+    TR_fn_assert_equal(2, f(1))
+    TR_kw_func g(x, y = x + 1, z = x + y) { TR_kw_return [x, y, z] }
+    TR_fn_assert_equal([1, 2, 3], g(1))
+    TR_fn_assert_equal([1, 5, 6], g(1, 5))
+    TR_fn_assert_equal([1, 2, 9], g(1, z: 9))
     // Sonraki parametre (ve parametrenin kendisi) henüz tanımlı değildir; dıştaki aynı adlı değişken kullanılmaz
-    değişken b = 7
-    fonksiyon h(a = b, b = 1) { sonuç a }
-    değişken mesaj = ""
-    dene { h() } yakala hata { mesaj = hata }
-    doğrula(mesaj.içerir("'b' parametresi henüz tanımlanmadı"), mesaj)
+    TR_kw_var b = 7
+    TR_kw_func h(a = b, b = 1) { TR_kw_return a }
+    TR_kw_var mesaj = ""
+    TR_kw_try { h() } TR_kw_catch hata { mesaj = hata }
+    TR_fn_assert(mesaj.TR_mem_contains("'b' parametresi henüz tanımlanmadı"), mesaj)
     // Varsayılan her çağrıda yeniden hesaplanır
-    fonksiyon liste_al(l = []) { l.ekle(1); sonuç l }
-    eşit_mi([1], liste_al())
-    eşit_mi([1], liste_al())
+    TR_kw_func liste_al(l = []) { l.TR_mem_append(1); TR_kw_return l }
+    TR_fn_assert_equal([1], liste_al())
+    TR_fn_assert_equal([1], liste_al())
 }
 
-test "6.3a özyineleme derinliği sınırı yakalanabilir hata verir" {
-    fonksiyon sonsuz(n) { sonuç sonsuz(n + 1) }
-    değişken mesaj = ""
-    dene { sonsuz(0) } yakala hata { mesaj = hata }
-    doğrula(mesaj.içerir("Özyineleme derinliği sınırı aşıldı"), mesaj)
+TR_ctx_test "6.3a özyineleme derinliği sınırı yakalanabilir hata verir" {
+    TR_kw_func sonsuz(n) { TR_kw_return sonsuz(n + 1) }
+    TR_kw_var mesaj = ""
+    TR_kw_try { sonsuz(0) } TR_kw_catch hata { mesaj = hata }
+    TR_fn_assert(mesaj.TR_mem_contains("Özyineleme derinliği sınırı aşıldı"), mesaj)
 }
 
-test "6.4 adlı argümanlar" {
-    fonksiyon böl(bölünen, bölen = 1) { sonuç bölünen / bölen }
-    eşit_mi(5, böl(bölen: 2, bölünen: 10))
-    eşit_mi(10, böl(10))
+TR_ctx_test "6.4 adlı argümanlar" {
+    TR_kw_func böl(bölünen, bölen = 1) { TR_kw_return bölünen / bölen }
+    TR_fn_assert_equal(5, böl(bölen: 2, bölünen: 10))
+    TR_fn_assert_equal(10, böl(10))
 }
 
-test "6.4 aynı parametre hem sırayla hem adıyla verilemez" {
-    fonksiyon f(a, b = 10) { sonuç [a, b] }
-    eşit_mi([1, 20], f(1, b: 20))
-    değişken iki_kez = ""
-    dene { f(1, a: 2) } yakala hata { iki_kez = hata }
-    doğrula(iki_kez.içerir("'f' fonksiyonu 'a' parametresi hem sırayla (1. argüman) hem adıyla verildi"), iki_kez)
+TR_ctx_test "6.4 aynı parametre hem sırayla hem adıyla verilemez" {
+    TR_kw_func f(a, b = 10) { TR_kw_return [a, b] }
+    TR_fn_assert_equal([1, 20], f(1, b: 20))
+    TR_kw_var iki_kez = ""
+    TR_kw_try { f(1, a: 2) } TR_kw_catch hata { iki_kez = hata }
+    TR_fn_assert(iki_kez.TR_mem_contains("'f' fonksiyonu 'a' parametresi hem sırayla (1. argüman) hem adıyla verildi"), iki_kez)
     // adlı argümanlar varken eksik zorunlu parametre adıyla söylenir (6.3)
-    değişken eksik = ""
-    dene { f(b: 20) } yakala hata { eksik = hata }
-    doğrula(eksik.içerir("'f' fonksiyonu için zorunlu 'a' argümanı verilmedi"), eksik)
+    TR_kw_var eksik = ""
+    TR_kw_try { f(b: 20) } TR_kw_catch hata { eksik = hata }
+    TR_fn_assert(eksik.TR_mem_contains("'f' fonksiyonu için zorunlu 'a' argümanı verilmedi"), eksik)
 }
 
-test "6.5 kapanışlar tanımlandıkları ortamı yakalar" {
-    fonksiyon sayaç_yap() {
-        değişken n = 0
-        sonuç fonksiyon() {
+TR_ctx_test "6.5 kapanışlar tanımlandıkları ortamı yakalar" {
+    TR_kw_func sayaç_yap() {
+        TR_kw_var n = 0
+        TR_kw_return TR_kw_func() {
             n += 1
-            sonuç n
+            TR_kw_return n
         }
     }
-    değişken s = sayaç_yap()
+    TR_kw_var s = sayaç_yap()
     s()
-    eşit_mi(2, s())
-    eşit_mi(1, sayaç_yap()())
+    TR_fn_assert_equal(2, s())
+    TR_fn_assert_equal(1, sayaç_yap()())
 }
 
-test "6.5 özyineleme" {
-    fonksiyon fakt(n) {
-        eğer n <= 1 { sonuç 1 }
-        sonuç n * fakt(n - 1)
+TR_ctx_test "6.5 özyineleme" {
+    TR_kw_func fakt(n) {
+        TR_kw_if n <= 1 { TR_kw_return 1 }
+        TR_kw_return n * fakt(n - 1)
     }
-    eşit_mi(3628800, fakt(10))
+    TR_fn_assert_equal(3628800, fakt(10))
 }
 
-test "6.6 ok fonksiyonları (lambda)" {
-    değişken iki_kat = x => x * 2
-    değişken topla2 = (a, b) => a + b
-    değişken blok = (x) => {
-        değişken y = x + 1
-        sonuç y * 2
+TR_ctx_test "6.6 ok fonksiyonları (lambda)" {
+    TR_kw_var iki_kat = x => x * 2
+    TR_kw_var topla2 = (a, b) => a + b
+    TR_kw_var blok = (x) => {
+        TR_kw_var y = x + 1
+        TR_kw_return y * 2
     }
-    eşit_mi(6, iki_kat(3))
-    eşit_mi(5, topla2(2, 3))
-    eşit_mi(8, blok(3))
+    TR_fn_assert_equal(6, iki_kat(3))
+    TR_fn_assert_equal(5, topla2(2, 3))
+    TR_fn_assert_equal(8, blok(3))
 }
 
-test "6.7 sondaki blok: tek parametresi o olan fonksiyon" {
-    değişken sayılar = [1, 2, 3, 4]
-    eşit_mi([3, 4], sayılar.filtrele { o > 2 })
-    eşit_mi([9, 16], sayılar.filtrele { o > 2 }.haritala { o * o })
-    eşit_mi([[10, 20]], [[1, 2]].haritala { o.haritala { o * 10 } })
-    fonksiyon uygula(x, f) { sonuç f(x) }
-    eşit_mi(10, uygula(5) { o * 2 })
+TR_ctx_test "6.7 sondaki blok: tek parametresi o olan fonksiyon" {
+    TR_kw_var sayılar = [1, 2, 3, 4]
+    TR_fn_assert_equal([3, 4], sayılar.TR_mem_filter { TR_ctx_it > 2 })
+    TR_fn_assert_equal([9, 16], sayılar.TR_mem_filter { TR_ctx_it > 2 }.TR_mem_map { TR_ctx_it * TR_ctx_it })
+    TR_fn_assert_equal([[10, 20]], [[1, 2]].TR_mem_map { TR_ctx_it.TR_mem_map { TR_ctx_it * 10 } })
+    TR_kw_func uygula(x, f) { TR_kw_return f(x) }
+    TR_fn_assert_equal(10, uygula(5) { TR_ctx_it * 2 })
 }
 
-test "6.7 indirge'nin sondaki bloğunda birikim önceki sonuç, o elemandır" {
-    eşit_mi(10, [1, 2, 3, 4].indirge(0) { birikim + o })
-    eşit_mi(24, [1, 2, 3, 4].indirge { birikim * o })
-    eşit_mi([3, 2, 1], [1, 2, 3].indirge([]) { [o] + birikim })
+TR_ctx_test "6.7 indirge'nin sondaki bloğunda birikim önceki sonuç, o elemandır" {
+    TR_fn_assert_equal(10, [1, 2, 3, 4].TR_mem_reduce(0) { TR_ctx_acc + TR_ctx_it })
+    TR_fn_assert_equal(24, [1, 2, 3, 4].TR_mem_reduce { TR_ctx_acc * TR_ctx_it })
+    TR_fn_assert_equal([3, 2, 1], [1, 2, 3].TR_mem_reduce([]) { [TR_ctx_it] + TR_ctx_acc })
     // Elemanlar liste olsa da o elemandır
-    eşit_mi(10, [[1, 2], [3, 4]].indirge(0) { birikim + o[0] + o[1] })
+    TR_fn_assert_equal(10, [[1, 2], [3, 4]].TR_mem_reduce(0) { TR_ctx_acc + TR_ctx_it[0] + TR_ctx_it[1] })
     // birikim başka her yerde sıradan bir addır
-    değişken birikim = 5
-    eşit_mi(5, birikim)
-    eşit_mi(2, [1, 2].indirge(birikim) { birikim - o })
-    değişken mesaj = ""
-    dene { [1, 2].indirge(0, (x) => x) } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("liste.indirge(): fonksiyon iki parametre almalı (birikim, eleman), 1 parametreli verildi"), mesaj)
+    TR_kw_var birikim = 5
+    TR_fn_assert_equal(5, birikim)
+    TR_fn_assert_equal(2, [1, 2].TR_mem_reduce(birikim) { TR_ctx_acc - TR_ctx_it })
+    TR_kw_var mesaj = ""
+    TR_kw_try { [1, 2].TR_mem_reduce(0, (x) => x) } TR_kw_catch h { mesaj = h }
+    TR_fn_assert(mesaj.TR_mem_contains("liste.indirge(): fonksiyon iki parametre almalı (birikim, eleman), 1 parametreli verildi"), mesaj)
 }
 
-test "6.7 kontrol yapısı başlığında \{ gövdeyi başlatır" {
-    değişken l = [1, 5]
-    değişken sonuç_ = ""
-    eğer (l.filtrele { o > 2 }).uzunluk > 0 { sonuç_ = "var" }
-    eşit_mi("var", sonuç_)
+TR_ctx_test "6.7 kontrol yapısı başlığında \{ gövdeyi başlatır" {
+    TR_kw_var l = [1, 5]
+    TR_kw_var sonuç_ = ""
+    TR_kw_if (l.TR_mem_filter { TR_ctx_it > 2 }).TR_mem_length > 0 { sonuç_ = "var" }
+    TR_fn_assert_equal("var", sonuç_)
 }
 
-test "6.8 dönüş tipi : Tip ya da -> Tip ile bildirilir" {
-    fonksiyon a(x: Tam): Tam { sonuç x }
-    fonksiyon b(x: Tam) -> Metin { sonuç metin(x) }
-    eşit_mi("3", b(a(3)))
+TR_ctx_test "6.8 dönüş tipi : Tip ya da -> Tip ile bildirilir" {
+    TR_kw_func a(x: TR_type_Int): TR_type_Int { TR_kw_return x }
+    TR_kw_func b(x: TR_type_Int) -> TR_type_String { TR_kw_return TR_fn_str(x) }
+    TR_fn_assert_equal("3", b(a(3)))
     // Bildirilen tiple uyuşmayan sonuç değeri programı çalıştırmadan reddeder
-    değişken mesaj = ""
-    dene { aktar "negative/donus_tipi" } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("donus_tipi.tr, Satır 2: Dönüş tipi uyuşmazlığı — fonksiyon \"Tam\" döndürmeli ancak \"Metin\""), mesaj)
-    doğrula(mesaj.içerir("donus_tipi.tr, Satır 4: Dönüş tipi uyuşmazlığı — fonksiyon \"Tam\" döndürmeli ancak \"Tam ya da Ondalık\""), mesaj)
+    TR_kw_var mesaj = ""
+    TR_kw_try { TR_kw_import "negative/donus_tipi" } TR_kw_catch h { mesaj = h }
+    TR_fn_assert(mesaj.TR_mem_contains("donus_tipi.tr, Satır 2: Dönüş tipi uyuşmazlığı — fonksiyon \"Tam\" döndürmeli ancak \"Metin\""), mesaj)
+    TR_fn_assert(mesaj.TR_mem_contains("donus_tipi.tr, Satır 4: Dönüş tipi uyuşmazlığı — fonksiyon \"Tam\" döndürmeli ancak \"Tam ya da Ondalık\""), mesaj)
 }
 
-test "6.7 değilse eğer başlığında da süslü parantez gövdeyi başlatır, sondaki blok olmaz" {
-    değişken l = [1, 2, 3]
-    fonksiyon sınıf(x) {
-        sonuç eğer l.içerir(x * 10) { "a" } değilse eğer l.içerir(x) { "b" } değilse { "c" }
+TR_ctx_test "6.7 değilse eğer başlığında da süslü parantez gövdeyi başlatır, sondaki blok olmaz" {
+    TR_kw_var l = [1, 2, 3]
+    TR_kw_func sınıf(x) {
+        TR_kw_return TR_kw_if l.TR_mem_contains(x * 10) { "a" } TR_kw_else TR_kw_if l.TR_mem_contains(x) { "b" } TR_kw_else { "c" }
     }
-    eşit_mi("b", sınıf(2))
-    eşit_mi("c", sınıf(9))
-    değişken ad = "model.layers.0"
-    değişken sonuç_ = ""
-    eğer ad == "x" {
+    TR_fn_assert_equal("b", sınıf(2))
+    TR_fn_assert_equal("c", sınıf(9))
+    TR_kw_var ad = "model.layers.0"
+    TR_kw_var sonuç_ = ""
+    TR_kw_if ad == "x" {
         sonuç_ = "x"
-    } değilse eğer ad.başlar("model.layers.") {
+    } TR_kw_else TR_kw_if ad.TR_mem_starts_with("model.layers.") {
         sonuç_ = "katman"
-    } değilse {
+    } TR_kw_else {
         sonuç_ = "başka"
     }
-    eşit_mi("katman", sonuç_)
+    TR_fn_assert_equal("katman", sonuç_)
 }

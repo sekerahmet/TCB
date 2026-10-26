@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // Hata 13 — yok değerin özelliği.
 // İleti kodu: H2466
 // Ne olur: Değeri yok olan bir şeyin özelliğine ya da metoduna erişilirse çalışma anında hata alınır.
@@ -6,5 +7,5 @@
 //     yazdır((kişi["soyad"] ?? "bilinmiyor").büyük_harf()) // ya da güvenli erişim: kişi["soyad"]?.büyük_harf()
 // Çalıştırma (proje kökünden): tr examples/tr/hatalar/13_yok_uzerinde_ozellik.tr   (çıkış kodu 1)
 
-değişken kişi = {"ad": "Ali"}
-yazdır(kişi["soyad"].büyük_harf())
+TR_kw_var kişi = {"ad": "Ali"}
+TR_fn_print(kişi["soyad"].TR_mem_upper())

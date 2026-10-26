@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // tr/hazir — Hugging Face biçiminde kaydedilmiş hazır modelleri (config.json + model.safetensors)
 // TR'nin GPT'sine (tr/katman) yükler.
 //
@@ -20,14 +21,14 @@
 // üretim adımında katman başına iki çarpım (iki kernel) eksilir; vLLM de Llama'yı böyle yükler
 // (QKVParallelLinear, MergedColumnParallelLinear).
 
-aktar "tr/katman"
+TR_kw_import "tr/katman"
 
-sabit DESTEKLENEN_MİMARİLER = ["llama", "qwen3"]
+TR_kw_const DESTEKLENEN_MİMARİLER = ["llama", "qwen3"]
 
 // ayar_değeri sözlükte anahtar varsa ve değeri yok (JSON null) değilse onu, yoksa öntanımlıyı verir.
-fonksiyon ayar_değeri(ayar, anahtar, öntanımlı) {
-    eğer ayar.içerir(anahtar) ve ayar[anahtar] != yok { sonuç ayar[anahtar] }
-    sonuç öntanımlı
+TR_kw_func ayar_değeri(ayar, anahtar, öntanımlı) {
+    TR_kw_if ayar.TR_mem_contains(anahtar) TR_kw_and ayar[anahtar] != TR_kw_none { TR_kw_return ayar[anahtar] }
+    TR_kw_return öntanımlı
 }
 
 // hazır_model klasördeki config.json'dan modeli kurar ve model.safetensors'ı yükler. ağırlık_türü
@@ -36,111 +37,111 @@ fonksiyon ayar_değeri(ayar, anahtar, öntanımlı) {
 // olduğu gibi tutar (sonuç float32 ağırlıkla aynı matematiktir), GPU'da okunan bayt yarıya iner.
 // Dosyada F32 saklanan ağırlıklar "bf16" ile bf16'ya yuvarlanır (sonuç float32 yüklemeden biraz
 // ayrılır); dosyanın türünü korumak için config.json'daki torch_dtype'a uyan tür seçilir.
-fonksiyon hazır_model(klasör, ağırlık_türü = "float32") {
-    değişken k = yol(klasör)
-    değişken ayar = json_çöz(dosya_oku(yol(k, "config.json")))
-    değişken model = hazır_model_kur(ayar, ağırlık_türü: ağırlık_türü)
-    değişken ağırlıklar = tensör_yükle(yol(k, "model.safetensors"))
-    parametreleri_yükle(model, hugging_face_eşle(ağırlıklar, ayar))
-    sonuç model
+TR_kw_func hazır_model(klasör, ağırlık_türü = "float32") {
+    TR_kw_var k = TR_fn_path(klasör)
+    TR_kw_var ayar = TR_fn_json_parse(TR_fn_read_file(TR_fn_path(k, "config.json")))
+    TR_kw_var model = hazır_model_kur(ayar, ağırlık_türü: ağırlık_türü)
+    TR_kw_var ağırlıklar = TR_fn_load_tensors(TR_fn_path(k, "model.safetensors"))
+    TR_fn_load_parameters(model, hugging_face_eşle(ağırlıklar, ayar))
+    TR_kw_return model
 }
 
 // hazır_model_kur config.json sözlüğünden (ağırlıklar yüklenmeden) GPT'yi kurar.
-fonksiyon hazır_model_kur(ayar, ağırlık_türü = "float32") {
-    değişken mimari = ayar_değeri(ayar, "model_type", "")
-    eğer değil DESTEKLENEN_MİMARİLER.içerir(mimari) {
-        fırlat "hazır_model: {mimari} mimarisi desteklenmiyor (desteklenenler: {DESTEKLENEN_MİMARİLER})"
+TR_kw_func hazır_model_kur(ayar, ağırlık_türü = "float32") {
+    TR_kw_var mimari = ayar_değeri(ayar, "model_type", "")
+    TR_kw_if TR_kw_not DESTEKLENEN_MİMARİLER.TR_mem_contains(mimari) {
+        TR_kw_throw "hazır_model: {mimari} mimarisi desteklenmiyor (desteklenenler: {DESTEKLENEN_MİMARİLER})"
     }
-    eğer ayar_değeri(ayar, "attention_bias", yanlış) veya ayar_değeri(ayar, "mlp_bias", yanlış) {
-        fırlat "hazır_model: sapmalı dikkat ya da MLP katmanları desteklenmiyor"
+    TR_kw_if ayar_değeri(ayar, "attention_bias", TR_kw_false) TR_kw_or ayar_değeri(ayar, "mlp_bias", TR_kw_false) {
+        TR_kw_throw "hazır_model: sapmalı dikkat ya da MLP katmanları desteklenmiyor"
     }
-    eğer ayar_değeri(ayar, "hidden_act", "silu") != "silu" {
-        fırlat "hazır_model: {ayar_değeri(ayar, \"hidden_act\", \"\")} etkinleştirmesi desteklenmiyor (silu bekleniyordu)"
+    TR_kw_if ayar_değeri(ayar, "hidden_act", "silu") != "silu" {
+        TR_kw_throw "hazır_model: {ayar_değeri(ayar, \"hidden_act\", \"\")} etkinleştirmesi desteklenmiyor (silu bekleniyordu)"
     }
-    eğer rope_ölçekleme_var_mı(ayar) {
-        fırlat "hazır_model: RoPE ölçekleme (rope_scaling) desteklenmiyor"
+    TR_kw_if rope_ölçekleme_var_mı(ayar) {
+        TR_kw_throw "hazır_model: RoPE ölçekleme (rope_scaling) desteklenmiyor"
     }
-    eğer ayar_değeri(ayar, "use_sliding_window", yanlış) {
-        fırlat "hazır_model: kayan pencereli dikkat (use_sliding_window) henüz desteklenmiyor"
+    TR_kw_if ayar_değeri(ayar, "use_sliding_window", TR_kw_false) {
+        TR_kw_throw "hazır_model: kayan pencereli dikkat (use_sliding_window) henüz desteklenmiyor"
     }
-    değişken boyut = ayar["hidden_size"]
-    değişken bakış = ayar["num_attention_heads"]
-    sonuç GPT(ayar["vocab_size"], bağlam: ayar_değeri(ayar, "max_position_embeddings", 2048), boyut: boyut,
+    TR_kw_var boyut = ayar["hidden_size"]
+    TR_kw_var bakış = ayar["num_attention_heads"]
+    TR_kw_return GPT(ayar["vocab_size"], bağlam: ayar_değeri(ayar, "max_position_embeddings", 2048), boyut: boyut,
         katman: ayar["num_hidden_layers"], bakış_sayısı: bakış,
         kv_bakış_sayısı: ayar_değeri(ayar, "num_key_value_heads", bakış), ara_boyut: ayar["intermediate_size"],
-        paylaşımlı: ayar_değeri(ayar, "tie_word_embeddings", yanlış), epsilon: ayar_değeri(ayar, "rms_norm_eps", 0.000001),
-        qk_normu: mimari == "qwen3", bakış_boyutu: ayar_değeri(ayar, "head_dim", tam(boyut / bakış)),
-        rope_tabanı: rope_tabanı(ayar), birleşik_kv: doğru, birleşik_kapı: doğru, ağırlık_türü: ağırlık_türü)
+        paylaşımlı: ayar_değeri(ayar, "tie_word_embeddings", TR_kw_false), epsilon: ayar_değeri(ayar, "rms_norm_eps", 0.000001),
+        qk_normu: mimari == "qwen3", bakış_boyutu: ayar_değeri(ayar, "head_dim", TR_fn_int(boyut / bakış)),
+        rope_tabanı: rope_tabanı(ayar), birleşik_kv: TR_kw_true, birleşik_kapı: TR_kw_true, ağırlık_türü: ağırlık_türü)
 }
 
 // rope_tabanı: üst düzeyde rope_theta (eski transformers) ya da rope_parameters.rope_theta (5.x);
 // ikisi de yoksa Llama'nın varsayılanı 10000.
-fonksiyon rope_tabanı(ayar) {
-    eğer ayar.içerir("rope_theta") { sonuç ondalık(ayar["rope_theta"]) }
-    değişken p = ayar_değeri(ayar, "rope_parameters", yok)
-    eğer p != yok ve p.içerir("rope_theta") { sonuç ondalık(p["rope_theta"]) }
-    sonuç 10000.0
+TR_kw_func rope_tabanı(ayar) {
+    TR_kw_if ayar.TR_mem_contains("rope_theta") { TR_kw_return TR_fn_float(ayar["rope_theta"]) }
+    TR_kw_var p = ayar_değeri(ayar, "rope_parameters", TR_kw_none)
+    TR_kw_if p != TR_kw_none TR_kw_and p.TR_mem_contains("rope_theta") { TR_kw_return TR_fn_float(p["rope_theta"]) }
+    TR_kw_return 10000.0
 }
 
-fonksiyon rope_ölçekleme_var_mı(ayar) {
-    değişken ölçek = ayar_değeri(ayar, "rope_scaling", yok)
-    eğer ölçek != yok { sonuç doğru }
-    değişken p = ayar_değeri(ayar, "rope_parameters", yok)
-    sonuç p != yok ve ayar_değeri(p, "rope_type", "default") != "default"
+TR_kw_func rope_ölçekleme_var_mı(ayar) {
+    TR_kw_var ölçek = ayar_değeri(ayar, "rope_scaling", TR_kw_none)
+    TR_kw_if ölçek != TR_kw_none { TR_kw_return TR_kw_true }
+    TR_kw_var p = ayar_değeri(ayar, "rope_parameters", TR_kw_none)
+    TR_kw_return p != TR_kw_none TR_kw_and ayar_değeri(p, "rope_type", "default") != "default"
 }
 
 // Blok içi Hugging Face adı → [TR adı, devrik mi, birleşik katmandaki parça (-1: tek başına)].
 // Parçalı ağırlıklar (devrildikten sonra) son eksende sırayla bitiştirilir: [K | V], [G | U].
-sabit BLOK_ADLARI = {
-    "self_attn.q_proj.weight": ["dikkat.sorgu_katmanı.ağırlık", doğru, -1],
-    "self_attn.k_proj.weight": ["dikkat.kv_katmanı.ağırlık", doğru, 0],
-    "self_attn.v_proj.weight": ["dikkat.kv_katmanı.ağırlık", doğru, 1],
-    "self_attn.o_proj.weight": ["dikkat.çıkış_katmanı.ağırlık", doğru, -1],
-    "self_attn.q_norm.weight": ["dikkat.q_norm.ağırlık", yanlış, -1],
-    "self_attn.k_norm.weight": ["dikkat.k_norm.ağırlık", yanlış, -1],
-    "mlp.gate_proj.weight": ["ileri_besleme.kapı_yukarı.ağırlık", doğru, 0],
-    "mlp.up_proj.weight": ["ileri_besleme.kapı_yukarı.ağırlık", doğru, 1],
-    "mlp.down_proj.weight": ["ileri_besleme.aşağı.ağırlık", doğru, -1],
-    "input_layernorm.weight": ["norm1.ağırlık", yanlış, -1],
-    "post_attention_layernorm.weight": ["norm2.ağırlık", yanlış, -1]
+TR_kw_const BLOK_ADLARI = {
+    "self_attn.q_proj.weight": ["dikkat.sorgu_katmanı.ağırlık", TR_kw_true, -1],
+    "self_attn.k_proj.weight": ["dikkat.kv_katmanı.ağırlık", TR_kw_true, 0],
+    "self_attn.v_proj.weight": ["dikkat.kv_katmanı.ağırlık", TR_kw_true, 1],
+    "self_attn.o_proj.weight": ["dikkat.çıkış_katmanı.ağırlık", TR_kw_true, -1],
+    "self_attn.q_norm.weight": ["dikkat.q_norm.ağırlık", TR_kw_false, -1],
+    "self_attn.k_norm.weight": ["dikkat.k_norm.ağırlık", TR_kw_false, -1],
+    "mlp.gate_proj.weight": ["ileri_besleme.kapı_yukarı.ağırlık", TR_kw_true, 0],
+    "mlp.up_proj.weight": ["ileri_besleme.kapı_yukarı.ağırlık", TR_kw_true, 1],
+    "mlp.down_proj.weight": ["ileri_besleme.aşağı.ağırlık", TR_kw_true, -1],
+    "input_layernorm.weight": ["norm1.ağırlık", TR_kw_false, -1],
+    "post_attention_layernorm.weight": ["norm2.ağırlık", TR_kw_false, -1]
 }
 
 // hugging_face_eşle Hugging Face adlı ağırlık sözlüğünü TR parametre adlarına çevirir. Paylaşımlı
 // gömmede lm_head.weight varsa gömmeyle aynı olmalıdır ve atlanır; dönüş tabloları
 // (rotary_emb.inv_freq) hesaplanır, atlanır. Tanınmayan ad hatadır.
-fonksiyon hugging_face_eşle(ağırlıklar, ayar) {
-    değişken paylaşımlı = ayar_değeri(ayar, "tie_word_embeddings", yanlış)
-    değişken sonuç_sözlük = {}
-    değişken parçalı = {} // TR adı → [ilk parça, ikinci parça]
-    döngü ad, t içinde ağırlıklar {
-        eğer ad.biter("rotary_emb.inv_freq") { devam }
-        eğer ad == "model.embed_tokens.weight" {
+TR_kw_func hugging_face_eşle(ağırlıklar, ayar) {
+    TR_kw_var paylaşımlı = ayar_değeri(ayar, "tie_word_embeddings", TR_kw_false)
+    TR_kw_var sonuç_sözlük = {}
+    TR_kw_var parçalı = {} // TR adı → [ilk parça, ikinci parça]
+    TR_kw_for ad, t TR_kw_in ağırlıklar {
+        TR_kw_if ad.TR_mem_ends_with("rotary_emb.inv_freq") { TR_kw_continue }
+        TR_kw_if ad == "model.embed_tokens.weight" {
             sonuç_sözlük["gömme.tablo"] = t
-        } değilse eğer ad == "model.norm.weight" {
+        } TR_kw_else TR_kw_if ad == "model.norm.weight" {
             sonuç_sözlük["son_norm.ağırlık"] = t
-        } değilse eğer ad == "lm_head.weight" {
-            eğer değil paylaşımlı { sonuç_sözlük["çıkış.ağırlık"] = t.devrik() }
-        } değilse eğer ad.başlar("model.layers.") {
-            değişken parçalar = ad.böl(".")
-            değişken iç = parçalar[3..parçalar.uzunluk].birleştir(".")
-            eğer değil BLOK_ADLARI.içerir(iç) { fırlat "hazır_model: tanınmayan ağırlık {ad}" }
-            değişken hedef = BLOK_ADLARI[iç]
-            değişken tr_ad = "bloklar.{parçalar[2]}.{hedef[0]}"
-            değişken w = t
-            eğer hedef[1] { w = t.devrik() }
-            eğer hedef[2] < 0 {
+        } TR_kw_else TR_kw_if ad == "lm_head.weight" {
+            TR_kw_if TR_kw_not paylaşımlı { sonuç_sözlük["çıkış.ağırlık"] = t.TR_mem_transpose() }
+        } TR_kw_else TR_kw_if ad.TR_mem_starts_with("model.layers.") {
+            TR_kw_var parçalar = ad.TR_mem_split(".")
+            TR_kw_var iç = parçalar[3..parçalar.TR_mem_length].TR_mem_join(".")
+            TR_kw_if TR_kw_not BLOK_ADLARI.TR_mem_contains(iç) { TR_kw_throw "hazır_model: tanınmayan ağırlık {ad}" }
+            TR_kw_var hedef = BLOK_ADLARI[iç]
+            TR_kw_var tr_ad = "bloklar.{parçalar[2]}.{hedef[0]}"
+            TR_kw_var w = t
+            TR_kw_if hedef[1] { w = t.TR_mem_transpose() }
+            TR_kw_if hedef[2] < 0 {
                 sonuç_sözlük[tr_ad] = w
-            } değilse {
-                eğer değil parçalı.içerir(tr_ad) { parçalı[tr_ad] = [yok, yok] }
+            } TR_kw_else {
+                TR_kw_if TR_kw_not parçalı.TR_mem_contains(tr_ad) { parçalı[tr_ad] = [TR_kw_none, TR_kw_none] }
                 parçalı[tr_ad][hedef[2]] = w
             }
-        } değilse {
-            fırlat "hazır_model: tanınmayan ağırlık {ad}"
+        } TR_kw_else {
+            TR_kw_throw "hazır_model: tanınmayan ağırlık {ad}"
         }
     }
-    döngü tr_ad, p içinde parçalı {
-        eğer p[0] == yok veya p[1] == yok { fırlat "hazır_model: {tr_ad} için iki parçadan biri eksik" }
-        sonuç_sözlük[tr_ad] = bitiştir(p, eksen: -1)
+    TR_kw_for tr_ad, p TR_kw_in parçalı {
+        TR_kw_if p[0] == TR_kw_none TR_kw_or p[1] == TR_kw_none { TR_kw_throw "hazır_model: {tr_ad} için iki parçadan biri eksik" }
+        sonuç_sözlük[tr_ad] = TR_fn_concat(p, TR_arg_dim: -1)
     }
-    sonuç sonuç_sözlük
+    TR_kw_return sonuç_sözlük
 }

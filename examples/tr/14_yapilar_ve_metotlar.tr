@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // 14 — Yapılar ve metotlar: ilişkili verileri ve onlara bağlı işleri bir arada tutmak.
 // Ne öğretir: yapı tanımı, alanlar ve varsayılan değerler, metot, kendi, nesne oluşturma
 // (konumlu ve adlı), alan güncellemek, kurucu, YapıTanımı ve Nesne.
@@ -5,53 +6,53 @@
 // Çalıştırma (proje kökünden): tr examples/tr/14_yapilar_ve_metotlar.tr
 
 // yapı, kendi alanları olan yeni bir tip tanımlar. Sözlükten farkı: alanları ve tipleri baştan bellidir.
-yapı Geliştirici {
-    ad: Metin
-    deneyim: Tam = 1 // varsayılan değer
+TR_kw_struct Geliştirici {
+    ad: TR_type_String
+    deneyim: TR_type_Int = 1 // varsayılan değer
 
     // Yapının içindeki fonksiyon metottur; kendi, üzerinde çalışılan nesnedir.
-    fonksiyon tanıt() {
-        sonuç "{kendi.ad} ({kendi.deneyim} yıl)"
+    TR_kw_func tanıt() {
+        TR_kw_return "{TR_kw_self.ad} ({TR_kw_self.deneyim} yıl)"
     }
 
-    fonksiyon deneyim_ekle(yıl) {
-        kendi.deneyim += yıl
+    TR_kw_func deneyim_ekle(yıl) {
+        TR_kw_self.deneyim += yıl
     }
 }
 
-değişken dev = Geliştirici("Ahmet", 5) // alanlar tanım sırasıyla verilir
+TR_kw_var dev = Geliştirici("Ahmet", 5) // alanlar tanım sırasıyla verilir
 dev.deneyim += 1 // alan doğrudan güncellenir
-yazdır(dev.tanıt())
-yazdır(Geliştirici(ad: "Zeynep").tanıt()) // adlı argüman; deneyim varsayılan kalır
+TR_fn_print(dev.tanıt())
+TR_fn_print(Geliştirici(ad: "Zeynep").tanıt()) // adlı argüman; deneyim varsayılan kalır
 dev.deneyim_ekle(4)
-yazdır(dev.tanıt())
+TR_fn_print(dev.tanıt())
 
 // Yapılar listede de tutulur.
-yapı Nokta {
-    x: Ondalık
-    y: Ondalık
+TR_kw_struct Nokta {
+    x: TR_type_Float
+    y: TR_type_Float
 
-    fonksiyon uzaklık() {
-        sonuç karekök(kendi.x ** 2 + kendi.y ** 2)
+    TR_kw_func uzaklık() {
+        TR_kw_return TR_fn_sqrt(TR_kw_self.x ** 2 + TR_kw_self.y ** 2)
     }
 }
-değişken noktalar = [Nokta(3.0, 4.0), Nokta(6.0, 8.0)]
-yazdır(noktalar.haritala { o.uzaklık() })
+TR_kw_var noktalar = [Nokta(3.0, 4.0), Nokta(6.0, 8.0)]
+TR_fn_print(noktalar.TR_mem_map { TR_ctx_it.uzaklık() })
 
 // kurucu adlı metot nesne oluşturulurken çağrılır; alanları hesaplayarak başlatabilir.
-yapı Hesap {
+TR_kw_struct Hesap {
     bakiye
 
-    fonksiyon kurucu(ilk) {
-        kendi.bakiye = ilk * 2
+    TR_kw_func TR_ctx_init(ilk) {
+        TR_kw_self.bakiye = ilk * 2
     }
 }
-yazdır(Hesap(5).bakiye)
+TR_fn_print(Hesap(5).bakiye)
 
 // Yapının kendisi YapıTanımı tipindedir; nesnenin tipi yapının kendisidir.
 // Nesne, yapıdan oluşan her değerin genel adıdır (tip bildirimlerinde kullanılır).
-değişken hesap: Nesne = Hesap(1)
-yazdır(tip(Hesap) == YapıTanımı, tip(hesap) == Hesap)
+TR_kw_var hesap: TR_type_Object = Hesap(1)
+TR_fn_print(TR_fn_type(Hesap) == TR_type_StructType, TR_fn_type(hesap) == Hesap)
 
 // --- Kendin dene ---
 // 1. Dikdörtgen yapısı yaz (en, boy) ve alan() ile çevre() metotlarını ekle.

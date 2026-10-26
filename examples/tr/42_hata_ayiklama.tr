@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // 42 — Hata ayıklama: koddaki kesme noktasıyla bir hesap hatasını çalışırken bulup düzeltmek.
 // ETKİLEŞİMLİDİR: `kesme_noktası eğer ...` satırında program durur ve hata ayıklayıcı
 // komut bekler (değişkenleri gösterir; standart giriş boşsa ya da kapalıysa devam eder).
@@ -10,38 +11,38 @@
 //   değiştir vergi_orani = 0.20 → hatalı oranı çalışırken düzeltir
 //   devam                       → programı sürdürür (sonuç 102600.0 TL olur)
 
-yazdır("=== Sipariş ve vergi hesabı ===")
+TR_fn_print("=== Sipariş ve vergi hesabı ===")
 
-değişken siparisler = [
+TR_kw_var siparisler = [
     {"belge_no": "100001", "musteri": "Anadolu Teknoloji", "tutar": 15000.0, "durum": "AÇIK"},
     {"belge_no": "100002", "musteri": "Karadeniz Lojistik", "tutar": 28500.0, "durum": "ONAYLI"},
     {"belge_no": "100003", "musteri": "Ege Enerji A.Ş.", "tutar": 42000.0, "durum": "BEKLEMEDE"}
 ]
 
 // Tensörler de hata ayıklayıcıda tablo olarak açılır
-değişken risk_matrisi = tensör([
+TR_kw_var risk_matrisi = TR_fn_tensor([
     [0.12, 0.85, 0.03],
     [0.45, 0.40, 0.15]
 ])
 
-fonksiyon net_tutar_hesapla(brut_toplam: Ondalık) -> Ondalık {
+TR_kw_func net_tutar_hesapla(brut_toplam: TR_type_Float) -> TR_type_Float {
     // HATA: vergi oranı %20 yerine yanlışlıkla %80 girilmiş.
-    değişken vergi_orani = 0.80
+    TR_kw_var vergi_orani = 0.80
 
     // Koşullu kesme noktası: yalnızca büyük tutarlarda durur
-    kesme_noktası eğer brut_toplam > 50000
+    TR_kw_breakpoint TR_kw_if brut_toplam > 50000
 
-    değişken vergi = brut_toplam * vergi_orani
-    sonuç brut_toplam + vergi
+    TR_kw_var vergi = brut_toplam * vergi_orani
+    TR_kw_return brut_toplam + vergi
 }
 
-değişken ara_toplam = 0.0
-döngü s içinde siparisler {
+TR_kw_var ara_toplam = 0.0
+TR_kw_for s TR_kw_in siparisler {
     ara_toplam += s["tutar"]
 }
 
-yazdır("Sipariş ara toplamı : {ara_toplam} TL")
-yazdır("Vergi dahil ödenecek: {net_tutar_hesapla(ara_toplam)} TL")
+TR_fn_print("Sipariş ara toplamı : {ara_toplam} TL")
+TR_fn_print("Vergi dahil ödenecek: {net_tutar_hesapla(ara_toplam)} TL")
 
 // --- Kendin dene ---
 // 1. Durunca `değişkenler` yerine `tablo risk_matrisi` yaz ve tensörün tablo görünümüne bak.

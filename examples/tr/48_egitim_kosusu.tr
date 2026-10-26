@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // 48 — Eğitim koşusu: kayıt işlerini kitaplığa bırakmak, uzun koşudan önce prova yapmak.
 // Ne öğretir: aktar "tr/egitim" ile Koşu: koşu klasörü, config.json, metrics.jsonl, ilerleme çubuğu ve kontrol
 // noktası tek satırda; koşu.adım_bitti(adım, ölçüler), koşu.değerlendirildi(adım, ölçüler), koşu.bitir(model)
@@ -8,65 +9,65 @@
 //
 // Çalıştırma (proje kökünden): tr examples/tr/48_egitim_kosusu.tr
 
-aktar "tr/egitim"
+TR_kw_import "tr/egitim"
 
 // Koşu klasörü her çalıştırmada silinir: örnek her seferinde baştan başlar.
-sabit KOŞU = yol("runs/kosu_ornegi")
-eğer KOŞU.var_mı { sil(KOŞU, içindekilerle: doğru) }
-değişken ayar = {adım: 60, öğrenme_oranı: 0.01}
+TR_kw_const KOŞU = TR_fn_path("runs/kosu_ornegi")
+TR_kw_if KOŞU.TR_mem_exists { TR_fn_remove(KOŞU, TR_arg_recursive: TR_kw_true) }
+TR_kw_var ayar = {TR_mem_step: 60, TR_mem_lr: 0.01}
 
 // --- Veri ve model (40. örnekteki küçük model) ---
-değişken p = parçalayıcı_yükle("../../tests/data/tokenizer.json")
-değişken V = p.dağarcık_boyutu
-değişken doğrulama_girişi, doğrulama_hedefi = veri_kümesi("../../tests/data/text").örnekleyici(toplu: 8, bağlam: 32, tohum: 2).sonraki()
+TR_kw_var p = TR_fn_load_tokenizer("../../tests/data/tokenizer.json")
+TR_kw_var V = p.TR_mem_vocab_size
+TR_kw_var doğrulama_girişi, doğrulama_hedefi = TR_fn_dataset("../../tests/data/text").TR_mem_sampler(TR_arg_batch_size: 8, TR_arg_context: 32, TR_arg_seed: 2).TR_mem_next()
 
 // eğit bir koşuyu baştan sona sürer; prova doğruysa aynı eğitim kısa bir denemedir.
-fonksiyon eğit(prova) {
-    değişken ö = veri_kümesi("../../tests/data/text").örnekleyici(toplu: 8, bağlam: 32, tohum: 1)
-    değişken parametre_tohumu = 0
-    fonksiyon parametre(şekil, ölçek) {
+TR_kw_func eğit(prova) {
+    TR_kw_var ö = TR_fn_dataset("../../tests/data/text").TR_mem_sampler(TR_arg_batch_size: 8, TR_arg_context: 32, TR_arg_seed: 1)
+    TR_kw_var parametre_tohumu = 0
+    TR_kw_func parametre(şekil, ölçek) {
         parametre_tohumu += 1
-        sonuç tensör(türevsiz(rastgele_normal(şekil, tohum: parametre_tohumu) * ölçek), türev_izle: doğru)
+        TR_kw_return TR_fn_tensor(TR_fn_no_grad(TR_fn_randn(şekil, TR_arg_seed: parametre_tohumu) * ölçek), TR_arg_requires_grad: TR_kw_true)
     }
-    değişken model = {E: parametre([V, 32], 0.1), W1: parametre([32, 64], 0.1), W2: parametre([64, V], 0.1)}
-    fonksiyon ileri(giriş) {
-        sonuç gelu(gömme(model.E, giriş) @ model.W1) @ model.W2
+    TR_kw_var model = {E: parametre([V, 32], 0.1), W1: parametre([32, 64], 0.1), W2: parametre([64, V], 0.1)}
+    TR_kw_func ileri(giriş) {
+        TR_kw_return TR_fn_gelu(TR_fn_embedding(model.E, giriş) @ model.W1) @ model.W2
     }
-    değişken op = AdamW(parametreler(model), öğrenme_oranı: ayar.öğrenme_oranı, ağırlık_çürümesi: 0.0)
+    TR_kw_var op = TR_fn_AdamW(TR_fn_parameters(model), TR_arg_lr: ayar.TR_mem_lr, TR_arg_weight_decay: 0.0)
     // Sözlükteki her şey kontrol noktasına girer; klasörde bir nokta varsa burada yüklenir.
-    değişken koşu = Koşu(KOŞU, ayar, {model: model, op: op, ö: ö}, adım_sayısı: ayar.adım, prova: prova)
-    döngü adım içinde koşu.kaldığı_adım..koşu.son_adım {
-        değişken giriş, hedef = ö.sonraki()
-        op.sıfırla()
-        değişken kayıp = çapraz_entropi(ileri(giriş), hedef)
-        geri_yayılım(kayıp)
-        op.adım()
+    TR_kw_var koşu = Koşu(KOŞU, ayar, {model: model, op: op, ö: ö}, adım_sayısı: ayar.TR_mem_step, prova: prova)
+    TR_kw_for adım TR_kw_in koşu.TR_mem_resume_step..koşu.son_adım {
+        TR_kw_var giriş, hedef = ö.TR_mem_next()
+        op.TR_mem_zero_grad()
+        TR_kw_var kayıp = TR_fn_cross_entropy(ileri(giriş), hedef)
+        TR_fn_backward(kayıp)
+        op.TR_mem_step()
         // Kaybı okumak (GPU'da) beklemek demektir: ölçüler her adımda değil, 10 adımda bir verilir.
-        koşu.adım_bitti(adım + 1, eğer (adım + 1) % 10 == 0 { {kayıp: kayıp.değer} } değilse { yok })
-        eğer (adım + 1) % 30 == 0 {
-            değişken dk = çapraz_entropi(ileri(doğrulama_girişi), doğrulama_hedefi).değer
+        koşu.adım_bitti(adım + 1, TR_kw_if (adım + 1) % 10 == 0 { {kayıp: kayıp.TR_mem_tolist} } TR_kw_else { TR_kw_none })
+        TR_kw_if (adım + 1) % 30 == 0 {
+            TR_kw_var dk = TR_fn_cross_entropy(ileri(doğrulama_girişi), doğrulama_hedefi).TR_mem_tolist
             koşu.değerlendirildi(adım + 1, {doğrulama_kaybı: dk})
-            yazdır("adım {adım + 1}: doğrulama kaybı {yuvarla(dk, 3)}")
+            TR_fn_print("adım {adım + 1}: doğrulama kaybı {TR_fn_round(dk, 3)}")
         }
     }
     koşu.bitir(model)
-    sonuç koşu
+    TR_kw_return koşu
 }
 
 // --- Önce prova: geçici bir klasörde PROVA_ADIMI adım; koşu klasörüne dokunmaz ---
-yazdır("prova {PROVA_ADIMI} adım sürer")
-eğit(doğru)
-yazdır("prova koşu klasörünü açtı mı:", KOŞU.var_mı)
+TR_fn_print("prova {PROVA_ADIMI} adım sürer")
+eğit(TR_kw_true)
+TR_fn_print("prova koşu klasörünü açtı mı:", KOŞU.TR_mem_exists)
 
 // --- Asıl koşu ---
-değişken koşu = eğit(yanlış)
-döngü ad içinde ["config.json", "metrics.jsonl", "model.trt"] {
-    yazdır(ad, yol(KOŞU, ad).var_mı)
+TR_kw_var koşu = eğit(TR_kw_false)
+TR_kw_for ad TR_kw_in ["config.json", "metrics.jsonl", "model.trt"] {
+    TR_fn_print(ad, TR_fn_path(KOŞU, ad).TR_mem_exists)
 }
-yazdır("ağırlıklar:", tensör_yükle(yol(KOŞU, "model.trt"))["W2"].şekil)
+TR_fn_print("ağırlıklar:", TR_fn_load_tensors(TR_fn_path(KOŞU, "model.trt"))["W2"].TR_mem_shape)
 
 // --- Aynı koşu yeniden: bitmiş eğitim kaldığı adımdan (sondan) sürer, döngü bir şey yapmaz ---
-yazdır("kaldığı adım:", eğit(yanlış).kaldığı_adım)
+TR_fn_print("kaldığı adım:", eğit(TR_kw_false).TR_mem_resume_step)
 
 // --- Kendin dene ---
 // 1. ayar.adım'ı 1 yap: prova kaç adım sürer?

@@ -1,7 +1,8 @@
-fonksiyon fib(n) {
-    eğer n < 2 { sonuç n }
-    sonuç fib(n - 1) + fib(n - 2)
+//! tr kodlu 3 dil=tr
+TR_kw_func fib(n) {
+    TR_kw_if n < 2 { TR_kw_return n }
+    TR_kw_return fib(n - 1) + fib(n - 2)
 }
-değişken bas = zaman_ms()
-değişken s = fib(27)
-yazdır("fib {s} {zaman_ms() - bas}")
+TR_kw_var bas = TR_fn_time_ms()
+TR_kw_var s = fib(27)
+TR_fn_print("fib {s} {TR_fn_time_ms() - bas}")

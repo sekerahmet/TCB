@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // 15 — Hata yönetimi: beklenmedik durumda programı düzgün yönetmek.
 // Ne öğretir: dene/yakala ile hatayı yakalamak, fırlat ile kendi hatanı üretmek,
 // hatanın nerede ele alınacağına karar vermek, ad verilmeyen yakala'da hata değişkeni.
@@ -5,41 +6,41 @@
 // Çalıştırma (proje kökünden): tr examples/tr/15_hata_yonetimi.tr
 
 // Hata oluşunca program durur. dene bloğundaki hata yakala bloğuna gider, program sürer.
-dene {
-    değişken x = 10 / 0
-    yazdır("buraya gelinmez")
-} yakala hata {
-    yazdır("yakalandı: {hata}")
+TR_kw_try {
+    TR_kw_var x = 10 / 0
+    TR_fn_print("buraya gelinmez")
+} TR_kw_catch hata {
+    TR_fn_print("yakalandı: {hata}")
 }
 
 // fırlat: kendi hatanı üret. Fonksiyon kuralı bozan girdiyi kabul etmez.
-fonksiyon yaş_denetle(yaş) {
-    eğer yaş < 0 { fırlat "yaş negatif olamaz" }
-    sonuç yaş
+TR_kw_func yaş_denetle(yaş) {
+    TR_kw_if yaş < 0 { TR_kw_throw "yaş negatif olamaz" }
+    TR_kw_return yaş
 }
-dene { yaş_denetle(-3) } yakala h { yazdır("yakalandı: {h}") }
-yazdır("geçerli yaş: {yaş_denetle(30)}")
+TR_kw_try { yaş_denetle(-3) } TR_kw_catch h { TR_fn_print("yakalandı: {h}") }
+TR_fn_print("geçerli yaş: {yaş_denetle(30)}")
 
 // Hata, çağrı zincirinde yukarı çıkar; ilk yakala onu ele alır.
-fonksiyon sayıya_çevir(yazı) {
-    sonuç tam(yazı)
+TR_kw_func sayıya_çevir(yazı) {
+    TR_kw_return TR_fn_int(yazı)
 }
-fonksiyon güvenli_çevir(yazı, varsayılan_değer) {
-    dene {
-        sonuç sayıya_çevir(yazı)
-    } yakala h {
-        yazdır("  '{yazı}' sayı değil, {varsayılan_değer} kullanılıyor")
-        sonuç varsayılan_değer
+TR_kw_func güvenli_çevir(yazı, varsayılan_değer) {
+    TR_kw_try {
+        TR_kw_return sayıya_çevir(yazı)
+    } TR_kw_catch h {
+        TR_fn_print("  '{yazı}' sayı değil, {varsayılan_değer} kullanılıyor")
+        TR_kw_return varsayılan_değer
     }
 }
-yazdır(güvenli_çevir("42", 0))
-yazdır(güvenli_çevir("abc", 0))
+TR_fn_print(güvenli_çevir("42", 0))
+TR_fn_print(güvenli_çevir("abc", 0))
 
 // yakala'ya ad verilmezse hata iletisi hata adlı değişkende gelir.
-dene {
-    fırlat "patladı"
-} yakala {
-    yazdır("yakalandı: {hata}")
+TR_kw_try {
+    TR_kw_throw "patladı"
+} TR_kw_catch {
+    TR_fn_print("yakalandı: {TR_ctx_error}")
 }
 
 // --- Kendin dene ---

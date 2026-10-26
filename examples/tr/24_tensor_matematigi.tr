@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // 24 — Tensör matematiği: işlemleri bir tensörün her elemanına uygulamak.
 // Ne öğretir: exp, log, sin gibi matematik fonksiyonlarının tensörde eleman bazlı çalışması,
 // silu ve log_softmax, toplam/ortalama ile eksen boyunca indirgeme ve boyutu_koru.
@@ -7,28 +8,28 @@
 
 // 13'te sayılara uyguladığımız fonksiyonlar tensörde her elemana ayrı ayrı uygulanır.
 // Sonuç yeni bir tensördür; .değer onu TR listesine çevirir.
-değişken x = tensör([0.0, 1.0, 2.0])
-yazdır("exp:", exp(x).değer)
-yazdır("log:", log(x + 1).değer)
-yazdır("sin:", sin(x).değer, "cos:", cos(x).değer)
-yazdır("tan:", tan(tensör([0.0, 1.0])).değer)
-yazdır("asin:", asin(tensör([0.0, 0.5])).değer, "acos:", acos(tensör([1.0, -1.0])).değer)
-yazdır("atan:", atan(tensör([0.0, 1.0])).değer)
-yazdır("atan2:", atan2(tensör([1.0, -1.0]), tensör([0.0])).değer) // yayınlama: (y, x) çiftleri
-yazdır("sinh/cosh:", sinh(tensör([0.0, 1.0])).değer, cosh(tensör([0.0, 1.0])).değer)
-yazdır("log2/log10:", log2(tensör([1.0, 1024.0])).değer, log10(tensör([1.0, 100.0])).değer)
-yazdır("küçük sayıda hassas log ve üstel:", log1p(tensör([0.0, 1.0])).değer, expm1(tensör([0.0, 1.0])).değer)
+TR_kw_var x = TR_fn_tensor([0.0, 1.0, 2.0])
+TR_fn_print("exp:", TR_fn_exp(x).TR_mem_tolist)
+TR_fn_print("log:", TR_fn_log(x + 1).TR_mem_tolist)
+TR_fn_print("sin:", TR_fn_sin(x).TR_mem_tolist, "cos:", TR_fn_cos(x).TR_mem_tolist)
+TR_fn_print("tan:", TR_fn_tan(TR_fn_tensor([0.0, 1.0])).TR_mem_tolist)
+TR_fn_print("asin:", TR_fn_asin(TR_fn_tensor([0.0, 0.5])).TR_mem_tolist, "acos:", TR_fn_acos(TR_fn_tensor([1.0, -1.0])).TR_mem_tolist)
+TR_fn_print("atan:", TR_fn_atan(TR_fn_tensor([0.0, 1.0])).TR_mem_tolist)
+TR_fn_print("atan2:", TR_fn_atan2(TR_fn_tensor([1.0, -1.0]), TR_fn_tensor([0.0])).TR_mem_tolist) // yayınlama: (y, x) çiftleri
+TR_fn_print("sinh/cosh:", TR_fn_sinh(TR_fn_tensor([0.0, 1.0])).TR_mem_tolist, TR_fn_cosh(TR_fn_tensor([0.0, 1.0])).TR_mem_tolist)
+TR_fn_print("log2/log10:", TR_fn_log2(TR_fn_tensor([1.0, 1024.0])).TR_mem_tolist, TR_fn_log10(TR_fn_tensor([1.0, 100.0])).TR_mem_tolist)
+TR_fn_print("küçük sayıda hassas log ve üstel:", TR_fn_log1p(TR_fn_tensor([0.0, 1.0])).TR_mem_tolist, TR_fn_expm1(TR_fn_tensor([0.0, 1.0])).TR_mem_tolist)
 
 // Etkinleştirme fonksiyonları: silu x · sigmoid(x) hesaplar; log_softmax softmax'ın logaritmasını
 // sayısal olarak kararlı biçimde verir.
-yazdır("silu:", silu(tensör([-1.0, 0.0, 2.0])).değer)
-yazdır("log_softmax:", log_softmax(tensör([1.0, 2.0, 3.0])).değer)
+TR_fn_print("silu:", TR_fn_silu(TR_fn_tensor([-1.0, 0.0, 2.0])).TR_mem_tolist)
+TR_fn_print("log_softmax:", TR_fn_log_softmax(TR_fn_tensor([1.0, 2.0, 3.0])).TR_mem_tolist)
 
 // Eksen boyunca indirgeme: eksen: -1 son eksen demektir.
 // boyutu_koru: doğru indirgenen ekseni 1 uzunlukta tutar; sonuç girdiye yayınlanabilir.
-değişken m = tensör([[1, 2], [3, 4]])
-yazdır(toplam(m, eksen: -1).şekil, toplam(m, eksen: -1, boyutu_koru: doğru).şekil)
-yazdır(toplam(m, eksen: 0).değer, ortalama(m, eksen: -1).değer)
+TR_kw_var m = TR_fn_tensor([[1, 2], [3, 4]])
+TR_fn_print(TR_fn_sum(m, TR_arg_dim: -1).TR_mem_shape, TR_fn_sum(m, TR_arg_dim: -1, TR_arg_keepdim: TR_kw_true).TR_mem_shape)
+TR_fn_print(TR_fn_sum(m, TR_arg_dim: 0).TR_mem_tolist, TR_fn_mean(m, TR_arg_dim: -1).TR_mem_tolist)
 
 // --- Kendin dene ---
 // 1. tensör([[1.0, 2.0], [3.0, 4.0]]) için softmax'ı satır boyunca hesapla ve her satırın toplamının 1 olduğunu göster.

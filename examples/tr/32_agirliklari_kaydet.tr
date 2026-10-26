@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // 32 — Ağırlıkları kaydetmek: eğitilmiş modeli diske yazıp geri yüklemek.
 // Ne öğretir: tensör_kaydet(yol, sözlük), tensör_yükle(yol), parametreleri_yükle, argmax ile en olası sınıfı seçmek.
 // Önceki örnekten: eğitim döngüsü (28), XOR ağı (30), sözlükler (11), dosya ve JSON (19), yollar (20).
@@ -5,32 +6,32 @@
 // Ağırlık dosyası geçici klasöre yazılır (program bitince silinir, depoda iz kalmaz).
 
 // Küçük bir sınıflandırıcı: iki özellikten (boy, kilo gibi) üç sınıftan birini seçer.
-değişken W = tensör([[1.0, -1.0, 0.0], [0.0, 1.0, -1.0]], türev_izle: doğru)
-değişken b = tensör([0.1, 0.0, -0.1], türev_izle: doğru)
+TR_kw_var W = TR_fn_tensor([[1.0, -1.0, 0.0], [0.0, 1.0, -1.0]], TR_arg_requires_grad: TR_kw_true)
+TR_kw_var b = TR_fn_tensor([0.1, 0.0, -0.1], TR_arg_requires_grad: TR_kw_true)
 
 // Ağırlıklar bir sözlükte adlarıyla yazılır; geri yüklenince aynı adlarla okunur.
-değişken dosya = yol(geçici_klasör(), "agirliklar.trt")
-tensör_kaydet(dosya, {"W": W, "b": b})
-değişken yüklenen = tensör_yükle(dosya)
-yazdır("yüklenenlerin adları: {yüklenen.anahtarlar()}")
-yazdır("W aynı mı: {yüklenen["W"].değer == W.değer}")
+TR_kw_var dosya = TR_fn_path(TR_fn_temp_dir(), "agirliklar.trt")
+TR_fn_save_tensors(dosya, {"W": W, "b": b})
+TR_kw_var yüklenen = TR_fn_load_tensors(dosya)
+TR_fn_print("yüklenenlerin adları: {yüklenen.TR_mem_keys()}")
+TR_fn_print("W aynı mı: {yüklenen["W"].TR_mem_tolist == W.TR_mem_tolist}")
 
 // Yüklenen ağırlıklarla tahmin: her satır bir örnek, her sütun bir sınıfın puanı.
-değişken örnekler = tensör([[2.0, 0.5], [0.2, 1.8], [1.0, 1.0]])
-değişken puanlar = türevsiz { örnekler @ yüklenen["W"] + yüklenen["b"] }
-yazdır("puanlar =", puanlar)
+TR_kw_var örnekler = TR_fn_tensor([[2.0, 0.5], [0.2, 1.8], [1.0, 1.0]])
+TR_kw_var puanlar = TR_fn_no_grad { örnekler @ yüklenen["W"] + yüklenen["b"] }
+TR_fn_print("puanlar =", puanlar)
 
 // argmax her satırdaki en büyük puanın sütununu verir: seçilen sınıf.
-değişken sınıflar = argmax(puanlar, eksen: -1)
-değişken adlar = ["kedi", "köpek", "kuş"]
-yazdır("sınıf indeksleri: {sınıflar.değer} → {[adlar[i] döngü i içinde sınıflar.değer]}")
+TR_kw_var sınıflar = TR_fn_argmax(puanlar, TR_arg_dim: -1)
+TR_kw_var adlar = ["kedi", "köpek", "kuş"]
+TR_fn_print("sınıf indeksleri: {sınıflar.TR_mem_tolist} → {[adlar[i] TR_kw_for i TR_kw_in sınıflar.TR_mem_tolist]}")
 
 // parametreleri_yükle, tensör_yükle sonucunu modelin var olan parametrelerine aynı adlarla yerinde yazar
 // ve yazılan parametre sayısını verir (eğitime kaldığı yerden devam etmek için).
-değişken model = {w: tensör([1.0, 2.0], türev_izle: doğru)}
-değişken model_dosyası = yol(geçici_klasör(), "model.trt")
-tensör_kaydet(model_dosyası, {w: tensör([5.0, 6.0])})
-yazdır(parametreleri_yükle(model, tensör_yükle(model_dosyası)), model.w.değer)
+TR_kw_var model = {w: TR_fn_tensor([1.0, 2.0], TR_arg_requires_grad: TR_kw_true)}
+TR_kw_var model_dosyası = TR_fn_path(TR_fn_temp_dir(), "model.trt")
+TR_fn_save_tensors(model_dosyası, {w: TR_fn_tensor([5.0, 6.0])})
+TR_fn_print(TR_fn_load_parameters(model, TR_fn_load_tensors(model_dosyası)), model.w.TR_mem_tolist)
 
 // --- Kendin dene ---
 // 1. 21. örnekteki w ve b'yi eğitip burada kaydet, sonra yükleyip tahmin yap.

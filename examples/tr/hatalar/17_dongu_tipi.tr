@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // Hata 17 — Gezilemeyen değer.
 // İleti kodu: H2443
 // Ne olur: Gezilemeyen bir değer üzerinde döngü kurulursa çalışma anında hata alınır.
@@ -8,6 +9,6 @@
 //     }
 // Çalıştırma (proje kökünden): tr examples/tr/hatalar/17_dongu_tipi.tr   (çıkış kodu 1)
 
-döngü x içinde 5 {
-    yazdır(x)
+TR_kw_for x TR_kw_in 5 {
+    TR_fn_print(x)
 }

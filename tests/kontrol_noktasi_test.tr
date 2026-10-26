@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // docs/spec/20_kontrol_noktasi.md §20 — Kontrol noktası ve kaldığı yerden devam
 // Koşu klasörleri ve günlük dosyaları sistemin geçici klasöründe kurulur (geçici_klasör(), 18.14):
 // depoya hiçbir şey yazılmaz, böylece depoyu gezen testlerle (internal düzen testleri) yarışmaz. Ctrl+C ile
@@ -5,409 +6,409 @@
 // (yeniden adlandırma hatası) benzetimi ve GPU yolu Go testleriyle sınanır (internal/stdlib/checkpoint,
 // cmd/tr/e2e, internal/stdlib/gpuprobe).
 
-sabit TABAN = geçici_klasör()
+TR_kw_const TABAN = TR_fn_temp_dir()
 // Günlük dosyaları bu koşunun geçici klasöründe (18.14); program bitince silinir.
-sabit GÜNLÜKLER = geçici_klasör()
+TR_kw_const GÜNLÜKLER = TR_fn_temp_dir()
 
-aktar "yardimci_test_araclari"
+TR_kw_import "yardimci_test_araclari"
 
 // koşu: testin kendi boş koşu klasörünün yolu (önceki bir koşudan kalmışsa silinir).
-fonksiyon koşu(ad) {
-    değişken k = yol(TABAN, ad)
-    eğer k.var_mı {
-        sil(k, içindekilerle: doğru)
+TR_kw_func koşu(ad) {
+    TR_kw_var k = TR_fn_path(TABAN, ad)
+    TR_kw_if k.TR_mem_exists {
+        TR_fn_remove(k, TR_arg_recursive: TR_kw_true)
     }
-    sonuç k
+    TR_kw_return k
 }
 
-fonksiyon temizle() {
-    eğer TABAN.var_mı {
-        sil(TABAN, içindekilerle: doğru)
+TR_kw_func temizle() {
+    TR_kw_if TABAN.TR_mem_exists {
+        TR_fn_remove(TABAN, TR_arg_recursive: TR_kw_true)
     }
 }
 
-fonksiyon param(şekil, tohum) {
-    sonuç tensör(türevsiz(rastgele_normal(şekil, tohum: tohum) * 0.1), türev_izle: doğru)
+TR_kw_func param(şekil, tohum) {
+    TR_kw_return TR_fn_tensor(TR_fn_no_grad(TR_fn_randn(şekil, TR_arg_seed: tohum) * 0.1), TR_arg_requires_grad: TR_kw_true)
 }
 
-test "20.1 kontrol_noktası yeni bir koşuda boş başlar; klasör ilk kayıtta oluşur" {
-    ertele { temizle() }
-    değişken k = koşu("kurulum")
-    değişken w = param([2], 1)
-    değişken kn = kontrol_noktası(k, {w: w})
-    eşit_mi(KontrolNoktası, tip(kn))
-    eşit_mi(0, kn.kaldığı_adım)
-    eşit_mi(yanlış, k.var_mı)
-    doğrula(metin(kn).içerir("kontrol_noktalari, adım 0, 1 nesne"), metin(kn))
-    değişken kn2 = kontrol_noktası(metin(k), {w: w}, her_dakika: 0.5, tut: 3)
-    eşit_mi(0, kn2.kaldığı_adım)
+TR_ctx_test "20.1 kontrol_noktası yeni bir koşuda boş başlar; klasör ilk kayıtta oluşur" {
+    TR_kw_defer { temizle() }
+    TR_kw_var k = koşu("kurulum")
+    TR_kw_var w = param([2], 1)
+    TR_kw_var kn = TR_fn_checkpoint(k, {w: w})
+    TR_fn_assert_equal(TR_type_Checkpoint, TR_fn_type(kn))
+    TR_fn_assert_equal(0, kn.TR_mem_resume_step)
+    TR_fn_assert_equal(TR_kw_false, k.TR_mem_exists)
+    TR_fn_assert(TR_fn_str(kn).TR_mem_contains("kontrol_noktalari, adım 0, 1 nesne"), TR_fn_str(kn))
+    TR_kw_var kn2 = TR_fn_checkpoint(TR_fn_str(k), {w: w}, TR_arg_every_minutes: 0.5, TR_arg_keep: 3)
+    TR_fn_assert_equal(0, kn2.TR_mem_resume_step)
 }
 
-test "20.1 kurulum hataları" {
-    ertele { temizle() }
-    değişken w = param([2], 1)
-    doğrula(hata_metni(() => kontrol_noktası(koşu("h"))).içerir("2 argüman"))
-    doğrula(hata_metni(() => kontrol_noktası(5, {w: w})).içerir("Metin ya da Yol"))
-    doğrula(hata_metni(() => kontrol_noktası(koşu("h"), [w])).içerir("Sözlük"))
-    doğrula(hata_metni(() => kontrol_noktası(koşu("h"), {w: w}, her_dakka: 1)).içerir("Bunu mu demek istediniz: 'her_dakika'?"))
-    doğrula(hata_metni(() => kontrol_noktası(koşu("h"), {w: w}, her_dakika: -1)).içerir("0 ile"))
-    doğrula(hata_metni(() => kontrol_noktası(koşu("h"), {w: w}, tut: 0)).içerir("1 ile 1000 arasında"))
-    klasör_oluştur(TABAN)
-    dosya_yaz(yol(TABAN, "dosya"), "x")
-    doğrula(hata_metni(() => kontrol_noktası(yol(TABAN, "dosya"), {w: w})).içerir("bir dosya; koşu klasörü olmalı"))
+TR_ctx_test "20.1 kurulum hataları" {
+    TR_kw_defer { temizle() }
+    TR_kw_var w = param([2], 1)
+    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(koşu("h"))).TR_mem_contains("2 argüman"))
+    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(5, {w: w})).TR_mem_contains("Metin ya da Yol"))
+    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(koşu("h"), [w])).TR_mem_contains("Sözlük"))
+    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(koşu("h"), {w: w}, her_dakka: 1)).TR_mem_contains("Bunu mu demek istediniz: 'her_dakika'?"))
+    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(koşu("h"), {w: w}, TR_arg_every_minutes: -1)).TR_mem_contains("0 ile"))
+    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(koşu("h"), {w: w}, TR_arg_keep: 0)).TR_mem_contains("1 ile 1000 arasında"))
+    TR_fn_make_dir(TABAN)
+    TR_fn_write_file(TR_fn_path(TABAN, "dosya"), "x")
+    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(TR_fn_path(TABAN, "dosya"), {w: w})).TR_mem_contains("bir dosya; koşu klasörü olmalı"))
 }
 
-test "20.2 kaydedilebilen nesneler ve hatalar" {
-    ertele { temizle() }
-    değişken w = param([2], 1)
-    değişken op = AdamW([w])
-    değişken ö = veri_kümesi("data/text").örnekleyici(toplu: 2, bağlam: 4, tohum: 1)
-    değişken g = günlük("{GÜNLÜKLER}/nesneler.jsonl")
-    değişken kn = kontrol_noktası(koşu("nesneler"), {model: {katman: [w]}, op: op, ö: ö, g: g, sayaçlar: {adım: 0}, liste: [1, 2.5, "a", yok]})
-    eşit_mi(0, kn.kaldığı_adım)
-    değişken k = koşu("nesneler_h")
-    doğrula(hata_metni(() => kontrol_noktası(k, {})).içerir("1 ile 1000 arası nesne"))
-    doğrula(hata_metni(() => kontrol_noktası(k, {en_iyi: 99.0})).içerir("düz bir değer doğrudan verilemez"))
-    doğrula(hata_metni(() => kontrol_noktası(k, {t: w * 2})).içerir("ara tensör"))
-    doğrula(hata_metni(() => kontrol_noktası(k, {f: (x) => x})).içerir("kaydedilemez"))
-    doğrula(hata_metni(() => kontrol_noktası(k, {izlenen: {sayı: 1, f: (x) => x}})).içerir("izlenen"))
-    doğrula(hata_metni(() => kontrol_noktası(k, {"a/b": w})).içerir("'/' ya da denetim karakteri içeremez"))
-    doğrula(hata_metni(() => kontrol_noktası(k, {1: w})).içerir("nesne adları (Metin)"))
+TR_ctx_test "20.2 kaydedilebilen nesneler ve hatalar" {
+    TR_kw_defer { temizle() }
+    TR_kw_var w = param([2], 1)
+    TR_kw_var op = TR_fn_AdamW([w])
+    TR_kw_var ö = TR_fn_dataset("data/text").TR_mem_sampler(TR_arg_batch_size: 2, TR_arg_context: 4, TR_arg_seed: 1)
+    TR_kw_var g = TR_fn_logger("{GÜNLÜKLER}/nesneler.jsonl")
+    TR_kw_var kn = TR_fn_checkpoint(koşu("nesneler"), {model: {katman: [w]}, op: op, ö: ö, g: g, sayaçlar: {TR_mem_step: 0}, liste: [1, 2.5, "a", TR_kw_none]})
+    TR_fn_assert_equal(0, kn.TR_mem_resume_step)
+    TR_kw_var k = koşu("nesneler_h")
+    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {})).TR_mem_contains("1 ile 1000 arası nesne"))
+    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {en_iyi: 99.0})).TR_mem_contains("düz bir değer doğrudan verilemez"))
+    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {t: w * 2})).TR_mem_contains("ara tensör"))
+    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {f: (x) => x})).TR_mem_contains("kaydedilemez"))
+    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {izlenen: {sayı: 1, f: (x) => x}})).TR_mem_contains("izlenen"))
+    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {"a/b": w})).TR_mem_contains("'/' ya da denetim karakteri içeremez"))
+    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {1: w})).TR_mem_contains("nesne adları (Metin)"))
 }
 
-test "20.2 türev izlemeyen tensörler (durum) de saklanır ve yerinde geri yazılır" {
-    ertele { temizle() }
-    değişken k = koşu("durum_tensörleri")
-    değişken w = param([2], 1)
-    değişken kn = kontrol_noktası(k, {model: {w: w, kos: tensör([1.0, 0.5])}, opt: {m: tensör([0.5, -1.5]), sayaç: tensör(4.0)}})
-    kn.güncelle(3)
-    kn.kaydet()
-    değişken w2 = param([2], 7)
-    değişken m2 = tensör([0.0, 0.0])
-    değişken durum2 = {m: m2, sayaç: tensör(0.0)}
-    değişken model2 = {w: w2, kos: tensör([0.0, 0.0])}
-    değişken kn2 = kontrol_noktası(k, {model: model2, opt: durum2})
-    eşit_mi(3, kn2.kaldığı_adım)
-    eşit_mi(w.değer, w2.değer)
-    eşit_mi([1.0, 0.5], model2.kos.değer)
-    eşit_mi([0.5, -1.5], m2.değer) // aynı tensöre yazıldı
-    eşit_mi(4.0, durum2.sayaç.değer)
+TR_ctx_test "20.2 türev izlemeyen tensörler (durum) de saklanır ve yerinde geri yazılır" {
+    TR_kw_defer { temizle() }
+    TR_kw_var k = koşu("durum_tensörleri")
+    TR_kw_var w = param([2], 1)
+    TR_kw_var kn = TR_fn_checkpoint(k, {model: {w: w, kos: TR_fn_tensor([1.0, 0.5])}, opt: {m: TR_fn_tensor([0.5, -1.5]), sayaç: TR_fn_tensor(4.0)}})
+    kn.TR_mem_update(3)
+    kn.TR_mem_save()
+    TR_kw_var w2 = param([2], 7)
+    TR_kw_var m2 = TR_fn_tensor([0.0, 0.0])
+    TR_kw_var durum2 = {m: m2, sayaç: TR_fn_tensor(0.0)}
+    TR_kw_var model2 = {w: w2, kos: TR_fn_tensor([0.0, 0.0])}
+    TR_kw_var kn2 = TR_fn_checkpoint(k, {model: model2, opt: durum2})
+    TR_fn_assert_equal(3, kn2.TR_mem_resume_step)
+    TR_fn_assert_equal(w.TR_mem_tolist, w2.TR_mem_tolist)
+    TR_fn_assert_equal([1.0, 0.5], model2.kos.TR_mem_tolist)
+    TR_fn_assert_equal([0.5, -1.5], m2.TR_mem_tolist) // aynı tensöre yazıldı
+    TR_fn_assert_equal(4.0, durum2.sayaç.TR_mem_tolist)
     // Durum parametre değildir: parametreler yalnızca türev izleyenleri verir.
-    eşit_mi(0, parametreler(durum2).uzunluk)
-    eşit_mi(1, parametreler(model2).uzunluk)
+    TR_fn_assert_equal(0, TR_fn_parameters(durum2).TR_mem_length)
+    TR_fn_assert_equal(1, TR_fn_parameters(model2).TR_mem_length)
     // Kayıtta olan bir durum tensörü eksikse açık hata.
-    doğrula(hata_metni(() => kontrol_noktası(k, {model: model2, opt: {m: m2}})).içerir("\"sayaç\" tensörü modelde yok"))
+    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {model: model2, opt: {m: m2}})).TR_mem_contains("\"sayaç\" tensörü modelde yok"))
 }
 
-test "20.3 güncelle tamamlanan adımı bildirir; her_dakika dolunca kaydeder" {
-    ertele { temizle() }
-    değişken w = param([2], 1)
-    değişken k = koşu("güncelle")
-    değişken kn = kontrol_noktası(k, {w: w}, her_dakika: 0)
-    eşit_mi(doğru, kn.güncelle(1))
-    eşit_mi(doğru, yol(k, "kontrol_noktalari", "adim_0000000001").klasör_mü)
-    değişken kn2 = kontrol_noktası(koşu("güncelle2"), {w: w})
-    eşit_mi(yanlış, kn2.güncelle(1))
-    doğrula(hata_metni(() => kn2.güncelle(-1)).içerir("0 ya da pozitif bir Tam"))
-    doğrula(hata_metni(() => kn2.güncelle(1.5)).içerir("0 ya da pozitif bir Tam"))
-    doğrula(hata_metni(() => kn2.güncelle()).içerir("1 argüman"))
+TR_ctx_test "20.3 güncelle tamamlanan adımı bildirir; her_dakika dolunca kaydeder" {
+    TR_kw_defer { temizle() }
+    TR_kw_var w = param([2], 1)
+    TR_kw_var k = koşu("güncelle")
+    TR_kw_var kn = TR_fn_checkpoint(k, {w: w}, TR_arg_every_minutes: 0)
+    TR_fn_assert_equal(TR_kw_true, kn.TR_mem_update(1))
+    TR_fn_assert_equal(TR_kw_true, TR_fn_path(k, "kontrol_noktalari", "adim_0000000001").TR_mem_is_dir)
+    TR_kw_var kn2 = TR_fn_checkpoint(koşu("güncelle2"), {w: w})
+    TR_fn_assert_equal(TR_kw_false, kn2.TR_mem_update(1))
+    TR_fn_assert(hata_metni(() => kn2.TR_mem_update(-1)).TR_mem_contains("0 ya da pozitif bir Tam"))
+    TR_fn_assert(hata_metni(() => kn2.TR_mem_update(1.5)).TR_mem_contains("0 ya da pozitif bir Tam"))
+    TR_fn_assert(hata_metni(() => kn2.TR_mem_update()).TR_mem_contains("1 argüman"))
 }
 
-test "20.4 kaydet hemen kaydeder ve noktanın klasörünü verir" {
-    ertele { temizle() }
-    değişken w = param([2], 1)
-    değişken k = koşu("kaydet")
-    değişken kn = kontrol_noktası(k, {w: w})
-    değişken y = kn.kaydet()
-    eşit_mi(Yol, tip(y))
-    eşit_mi("adim_0000000000", y.dosya_adı)
-    kn.güncelle(1500)
-    eşit_mi("adim_0000001500", kn.kaydet().dosya_adı)
+TR_ctx_test "20.4 kaydet hemen kaydeder ve noktanın klasörünü verir" {
+    TR_kw_defer { temizle() }
+    TR_kw_var w = param([2], 1)
+    TR_kw_var k = koşu("kaydet")
+    TR_kw_var kn = TR_fn_checkpoint(k, {w: w})
+    TR_kw_var y = kn.TR_mem_save()
+    TR_fn_assert_equal(TR_type_Path, TR_fn_type(y))
+    TR_fn_assert_equal("adim_0000000000", y.TR_mem_name)
+    kn.TR_mem_update(1500)
+    TR_fn_assert_equal("adim_0000001500", kn.TR_mem_save().TR_mem_name)
     // Aynı adımın noktası yeniden kaydedilince yenisi yerine konur.
-    eşit_mi("adim_0000001500", kn.kaydet().dosya_adı)
-    eşit_mi(["adim_0000000000", "adim_0000001500"], klasörü_listele(yol(k, "kontrol_noktalari"), "adim_*").haritala { o.dosya_adı })
-    doğrula(hata_metni(() => kn.kaydet(1)).içerir("0 argüman"))
+    TR_fn_assert_equal("adim_0000001500", kn.TR_mem_save().TR_mem_name)
+    TR_fn_assert_equal(["adim_0000000000", "adim_0000001500"], TR_fn_list_dir(TR_fn_path(k, "kontrol_noktalari"), "adim_*").TR_mem_map { TR_ctx_it.TR_mem_name })
+    TR_fn_assert(hata_metni(() => kn.TR_mem_save(1)).TR_mem_contains("0 argüman"))
 }
 
-test "20.5 nokta klasörü tensör dosyası, durum ve özet içerir; son.json en son noktayı gösterir" {
-    ertele { temizle() }
-    değişken w = param([2], 1)
-    değişken k = koşu("düzen")
-    değişken kn = kontrol_noktası(k, {w: w, op: SGD([w])})
-    kn.güncelle(7)
-    değişken n = kn.kaydet()
-    eşit_mi(["durum.json", "ozet.json", "tensorler.trt"], klasörü_listele(n).haritala { o.dosya_adı })
-    değişken son = json_çöz(dosya_oku(yol(k, "kontrol_noktalari", "son.json")))
-    eşit_mi(7, son["adım"])
-    eşit_mi("adim_0000000007", son["klasör"])
-    eşit_mi(2, son["sürüm"])
-    değişken durum = json_çöz(dosya_oku(yol(n, "durum.json")))
-    eşit_mi(7, durum["adım"])
-    eşit_mi(["w", "op"], durum["nesneler"].haritala { o["ad"] })
-    eşit_mi(["w/0"], tensör_yükle(yol(n, "tensorler.trt")).anahtarlar())
+TR_ctx_test "20.5 nokta klasörü tensör dosyası, durum ve özet içerir; son.json en son noktayı gösterir" {
+    TR_kw_defer { temizle() }
+    TR_kw_var w = param([2], 1)
+    TR_kw_var k = koşu("düzen")
+    TR_kw_var kn = TR_fn_checkpoint(k, {w: w, op: TR_fn_SGD([w])})
+    kn.TR_mem_update(7)
+    TR_kw_var n = kn.TR_mem_save()
+    TR_fn_assert_equal(["durum.json", "ozet.json", "tensorler.trt"], TR_fn_list_dir(n).TR_mem_map { TR_ctx_it.TR_mem_name })
+    TR_kw_var son = TR_fn_json_parse(TR_fn_read_file(TR_fn_path(k, "kontrol_noktalari", "son.json")))
+    TR_fn_assert_equal(7, son["adım"])
+    TR_fn_assert_equal("adim_0000000007", son["klasör"])
+    TR_fn_assert_equal(2, son["sürüm"])
+    TR_kw_var durum = TR_fn_json_parse(TR_fn_read_file(TR_fn_path(n, "durum.json")))
+    TR_fn_assert_equal(7, durum["adım"])
+    TR_fn_assert_equal(["w", "op"], durum["nesneler"].TR_mem_map { TR_ctx_it["ad"] })
+    TR_fn_assert_equal(["w/0"], TR_fn_load_tensors(TR_fn_path(n, "tensorler.trt")).TR_mem_keys())
 }
 
 // eğit: aynı tohumlarla kurulan küçük bir modeli koşu klasöründe kontrol noktasıyla son adıma
 // kadar eğitir; kesilip yeniden çağrılınca kaldığı adımdan sürer.
-fonksiyon eğit(k, son, günlük_adı) {
-    değişken E = param([4096, 4], 1)
-    değişken w = param([4, 3], 2)
-    değişken model = {E: E, w: w}
-    değişken op = AdamW(parametreler(model), öğrenme_oranı: 0.05)
-    değişken ö = veri_kümesi("data/text").örnekleyici(toplu: 2, bağlam: 8, tohum: 4)
-    değişken g = günlük("{GÜNLÜKLER}/{günlük_adı}.jsonl")
-    değişken izlenen = {en_iyi: 99.0, adımlar: [], oranlar: {1: 0.5}}
-    değişken kn = kontrol_noktası(k, {model: model, op: op, ö: ö, g: g, izlenen: izlenen}, her_dakika: 0)
-    döngü adım içinde kn.kaldığı_adım..son {
-        değişken giriş, hedef = ö.sonraki()
-        op.sıfırla()
-        değişken kayıp = ortalama((gömme(E, giriş) @ w) * (gömme(E, hedef) @ w))
-        geri_yayılım(kayıp)
-        op.adım()
-        eğer kayıp.değer < izlenen.en_iyi { izlenen.en_iyi = kayıp.değer }
-        izlenen.adımlar.ekle(adım)
-        g.ekle({adım_no: adım + 1, kayıp: kayıp})
-        kn.güncelle(adım + 1)
+TR_kw_func eğit(k, son, günlük_adı) {
+    TR_kw_var E = param([4096, 4], 1)
+    TR_kw_var w = param([4, 3], 2)
+    TR_kw_var model = {E: E, w: w}
+    TR_kw_var op = TR_fn_AdamW(TR_fn_parameters(model), TR_arg_lr: 0.05)
+    TR_kw_var ö = TR_fn_dataset("data/text").TR_mem_sampler(TR_arg_batch_size: 2, TR_arg_context: 8, TR_arg_seed: 4)
+    TR_kw_var g = TR_fn_logger("{GÜNLÜKLER}/{günlük_adı}.jsonl")
+    TR_kw_var izlenen = {en_iyi: 99.0, adımlar: [], oranlar: {1: 0.5}}
+    TR_kw_var kn = TR_fn_checkpoint(k, {model: model, op: op, ö: ö, g: g, izlenen: izlenen}, TR_arg_every_minutes: 0)
+    TR_kw_for adım TR_kw_in kn.TR_mem_resume_step..son {
+        TR_kw_var giriş, hedef = ö.TR_mem_next()
+        op.TR_mem_zero_grad()
+        TR_kw_var kayıp = TR_fn_mean((TR_fn_embedding(E, giriş) @ w) * (TR_fn_embedding(E, hedef) @ w))
+        TR_fn_backward(kayıp)
+        op.TR_mem_step()
+        TR_kw_if kayıp.TR_mem_tolist < izlenen.en_iyi { izlenen.en_iyi = kayıp.TR_mem_tolist }
+        izlenen.adımlar.TR_mem_append(adım)
+        g.TR_mem_append({adım_no: adım + 1, kayıp: kayıp})
+        kn.TR_mem_update(adım + 1)
     }
-    sonuç {model: model, op: op, ö: ö, izlenen: izlenen, kn: kn, g: g}
+    TR_kw_return {model: model, op: op, ö: ö, izlenen: izlenen, kn: kn, g: g}
 }
 
-test "20.6 yeniden kurulan kontrol noktası kaldığı yerden kesintisizle aynı sürer" {
-    ertele { temizle() }
-    değişken a = eğit(koşu("kesintisiz"), 6, "kesintisiz")
-    değişken kb = koşu("kesilen")
-    değişken ilk = eğit(kb, 3, "kesilen")
-    değişken takma = ilk.izlenen
-    değişken b = eğit(kb, 6, "kesilen")
-    eşit_mi(3, b.kn.kaldığı_adım)
-    eşit_mi(a.model.E.değer, b.model.E.değer)
-    eşit_mi(a.model.w.değer, b.model.w.değer)
-    eşit_mi(a.op.durum.anahtarlar(), b.op.durum.anahtarlar())
-    döngü ad içinde a.op.durum.anahtarlar() {
-        eşit_mi(a.op.durum[ad].değer, b.op.durum[ad].değer)
+TR_ctx_test "20.6 yeniden kurulan kontrol noktası kaldığı yerden kesintisizle aynı sürer" {
+    TR_kw_defer { temizle() }
+    TR_kw_var a = eğit(koşu("kesintisiz"), 6, "kesintisiz")
+    TR_kw_var kb = koşu("kesilen")
+    TR_kw_var ilk = eğit(kb, 3, "kesilen")
+    TR_kw_var takma = ilk.izlenen
+    TR_kw_var b = eğit(kb, 6, "kesilen")
+    TR_fn_assert_equal(3, b.kn.TR_mem_resume_step)
+    TR_fn_assert_equal(a.model.E.TR_mem_tolist, b.model.E.TR_mem_tolist)
+    TR_fn_assert_equal(a.model.w.TR_mem_tolist, b.model.w.TR_mem_tolist)
+    TR_fn_assert_equal(a.op.TR_mem_state.TR_mem_keys(), b.op.TR_mem_state.TR_mem_keys())
+    TR_kw_for ad TR_kw_in a.op.TR_mem_state.TR_mem_keys() {
+        TR_fn_assert_equal(a.op.TR_mem_state[ad].TR_mem_tolist, b.op.TR_mem_state[ad].TR_mem_tolist)
     }
-    eşit_mi(a.ö.durum, b.ö.durum)
-    eşit_mi(a.ö.sonraki()[0].değer, b.ö.sonraki()[0].değer)
-    eşit_mi(a.izlenen, b.izlenen)
-    eşit_mi([0, 1, 2, 3, 4, 5], b.izlenen.adımlar)
-    eşit_mi(Ondalık, tip(b.izlenen.en_iyi))
-    eşit_mi(0.5, b.izlenen.oranlar[1])
+    TR_fn_assert_equal(a.ö.TR_mem_state, b.ö.TR_mem_state)
+    TR_fn_assert_equal(a.ö.TR_mem_next()[0].TR_mem_tolist, b.ö.TR_mem_next()[0].TR_mem_tolist)
+    TR_fn_assert_equal(a.izlenen, b.izlenen)
+    TR_fn_assert_equal([0, 1, 2, 3, 4, 5], b.izlenen.adımlar)
+    TR_fn_assert_equal(TR_type_Float, TR_fn_type(b.izlenen.en_iyi))
+    TR_fn_assert_equal(0.5, b.izlenen.oranlar[1])
     // İlk koşunun düz değerleri yerinde yüklenmedi; yeni koşunun sözlüğü yerinde yenilendi.
-    eşit_mi([0, 1, 2], takma.adımlar)
+    TR_fn_assert_equal([0, 1, 2], takma.adımlar)
 }
 
-test "20.6 sürdürülen eğitimin günlüğüne devam kaydı yazılır" {
-    ertele { temizle() }
-    değişken k = koşu("devam_günlük")
+TR_ctx_test "20.6 sürdürülen eğitimin günlüğüne devam kaydı yazılır" {
+    TR_kw_defer { temizle() }
+    TR_kw_var k = koşu("devam_günlük")
     eğit(k, 2, "devam_günlük")
     eğit(k, 4, "devam_günlük")
-    değişken kayıtlar = dosya_oku("{GÜNLÜKLER}/devam_günlük.jsonl").kırp().böl("\n").haritala { json_çöz(o) }
-    değişken devamlar = kayıtlar.filtrele { o["tür"] == "devam" }
-    eşit_mi(1, devamlar.uzunluk)
-    eşit_mi(2, devamlar[0]["adım"])
+    TR_kw_var kayıtlar = TR_fn_read_file("{GÜNLÜKLER}/devam_günlük.jsonl").TR_mem_strip().TR_mem_split("\n").TR_mem_map { TR_fn_json_parse(TR_ctx_it) }
+    TR_kw_var devamlar = kayıtlar.TR_mem_filter { TR_ctx_it["tür"] == "devam" }
+    TR_fn_assert_equal(1, devamlar.TR_mem_length)
+    TR_fn_assert_equal(2, devamlar[0]["adım"])
 }
 
-test "20.7 uyumsuz nesneler hata verir ve hiçbir şeyi değiştirmez" {
-    ertele { temizle() }
-    değişken k = koşu("uyum")
-    değişken w = param([2], 1)
-    değişken ö = veri_kümesi("data/text").örnekleyici(toplu: 2, bağlam: 4, tohum: 1)
-    değişken kn = kontrol_noktası(k, {w: w, op: AdamW([w]), ö: ö})
-    kn.güncelle(5)
-    kn.kaydet()
-    değişken yeni = param([2], 9)
-    değişken önce = yeni.değer
-    doğrula(hata_metni(() => kontrol_noktası(k, {w: yeni, op: AdamW([yeni])})).içerir("kayıttaki \"ö\" (durumlu) verilmedi"))
-    doğrula(hata_metni(() => kontrol_noktası(k, {w: yeni, op: AdamW([yeni]), ö: ö, x: {a: 1}})).içerir("\"x\" kayıtta yok"))
-    doğrula(hata_metni(() => kontrol_noktası(k, {w: param([3], 1), op: AdamW([yeni]), ö: ö})).içerir("şekli modelde [3], kayıtta [2]"))
-    doğrula(hata_metni(() => kontrol_noktası(k, {w: yeni, op: SGD([yeni]), ö: ö})).içerir("1 parametreli bir AdamW, şimdi 1 parametreli bir SGD"))
-    değişken ö2 = veri_kümesi("data/text").örnekleyici(toplu: 3, bağlam: 4, tohum: 1)
-    doğrula(hata_metni(() => kontrol_noktası(k, {w: yeni, op: AdamW([yeni]), ö: ö2})).içerir("toplu değeri 2, bu okuyucununki 3"))
-    doğrula(hata_metni(() => kontrol_noktası(k, {w: yeni, op: AdamW([yeni]), ö: {a: 1}})).içerir("kayıtta bir durumlu, şimdi bir değerler"))
-    eşit_mi(önce, yeni.değer)
-    değişken kn2 = kontrol_noktası(k, {w: yeni, op: AdamW([yeni]), ö: ö})
-    eşit_mi(5, kn2.kaldığı_adım)
-    eşit_mi(w.değer, yeni.değer)
+TR_ctx_test "20.7 uyumsuz nesneler hata verir ve hiçbir şeyi değiştirmez" {
+    TR_kw_defer { temizle() }
+    TR_kw_var k = koşu("uyum")
+    TR_kw_var w = param([2], 1)
+    TR_kw_var ö = TR_fn_dataset("data/text").TR_mem_sampler(TR_arg_batch_size: 2, TR_arg_context: 4, TR_arg_seed: 1)
+    TR_kw_var kn = TR_fn_checkpoint(k, {w: w, op: TR_fn_AdamW([w]), ö: ö})
+    kn.TR_mem_update(5)
+    kn.TR_mem_save()
+    TR_kw_var yeni = param([2], 9)
+    TR_kw_var önce = yeni.TR_mem_tolist
+    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {w: yeni, op: TR_fn_AdamW([yeni])})).TR_mem_contains("kayıttaki \"ö\" (durumlu) verilmedi"))
+    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {w: yeni, op: TR_fn_AdamW([yeni]), ö: ö, x: {a: 1}})).TR_mem_contains("\"x\" kayıtta yok"))
+    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {w: param([3], 1), op: TR_fn_AdamW([yeni]), ö: ö})).TR_mem_contains("şekli modelde [3], kayıtta [2]"))
+    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {w: yeni, op: TR_fn_SGD([yeni]), ö: ö})).TR_mem_contains("1 parametreli bir AdamW, şimdi 1 parametreli bir SGD"))
+    TR_kw_var ö2 = TR_fn_dataset("data/text").TR_mem_sampler(TR_arg_batch_size: 3, TR_arg_context: 4, TR_arg_seed: 1)
+    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {w: yeni, op: TR_fn_AdamW([yeni]), ö: ö2})).TR_mem_contains("toplu değeri 2, bu okuyucununki 3"))
+    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {w: yeni, op: TR_fn_AdamW([yeni]), ö: {a: 1}})).TR_mem_contains("kayıtta bir durumlu, şimdi bir değerler"))
+    TR_fn_assert_equal(önce, yeni.TR_mem_tolist)
+    TR_kw_var kn2 = TR_fn_checkpoint(k, {w: yeni, op: TR_fn_AdamW([yeni]), ö: ö})
+    TR_fn_assert_equal(5, kn2.TR_mem_resume_step)
+    TR_fn_assert_equal(w.TR_mem_tolist, yeni.TR_mem_tolist)
 }
 
-test "20.8 tut en yeni noktaları bırakır" {
-    ertele { temizle() }
-    değişken k = koşu("tut")
-    değişken w = param([2], 1)
-    değişken kn = kontrol_noktası(k, {w: w}, tut: 2)
-    döngü i içinde 1..5 {
-        kn.güncelle(i * 10)
-        kn.kaydet()
+TR_ctx_test "20.8 tut en yeni noktaları bırakır" {
+    TR_kw_defer { temizle() }
+    TR_kw_var k = koşu("tut")
+    TR_kw_var w = param([2], 1)
+    TR_kw_var kn = TR_fn_checkpoint(k, {w: w}, TR_arg_keep: 2)
+    TR_kw_for i TR_kw_in 1..5 {
+        kn.TR_mem_update(i * 10)
+        kn.TR_mem_save()
     }
-    eşit_mi(["adim_0000000030", "adim_0000000040"], klasörü_listele(yol(k, "kontrol_noktalari"), "adim_*").haritala { o.dosya_adı })
+    TR_fn_assert_equal(["adim_0000000030", "adim_0000000040"], TR_fn_list_dir(TR_fn_path(k, "kontrol_noktalari"), "adim_*").TR_mem_map { TR_ctx_it.TR_mem_name })
 }
 
-test "20.9 bozuk nokta açık hata verir ve bir önceki geçerli noktayı önerir" {
-    ertele { temizle() }
-    değişken k = koşu("bozuk")
-    değişken w = param([2], 1)
-    değişken kn = kontrol_noktası(k, {w: w}, tut: 3)
-    kn.güncelle(1)
-    kn.kaydet()
-    kn.güncelle(2)
-    değişken n = kn.kaydet()
-    değişken d = yol(n, "durum.json")
-    dosya_yaz(d, dosya_oku(d).değiştir("\"işçi\"", "\"işçi\" "))
-    değişken m = hata_metni(() => kontrol_noktası(k, {w: w}))
-    doğrula(m.içerir("adim_0000000002\" bozuk: durum.json özeti tutmuyor"), m)
-    doğrula(m.içerir("Bir önceki geçerli nokta: adim_0000000001 (adım 1)"), m)
-    sil(yol(k, "kontrol_noktalari", "adim_0000000001"), içindekilerle: doğru)
-    m = hata_metni(() => kontrol_noktası(k, {w: w}))
-    doğrula(m.içerir("Başka geçerli nokta yok"), m)
-    sil(n, içindekilerle: doğru)
-    eşit_mi(0, kontrol_noktası(k, {w: w}).kaldığı_adım)
+TR_ctx_test "20.9 bozuk nokta açık hata verir ve bir önceki geçerli noktayı önerir" {
+    TR_kw_defer { temizle() }
+    TR_kw_var k = koşu("bozuk")
+    TR_kw_var w = param([2], 1)
+    TR_kw_var kn = TR_fn_checkpoint(k, {w: w}, TR_arg_keep: 3)
+    kn.TR_mem_update(1)
+    kn.TR_mem_save()
+    kn.TR_mem_update(2)
+    TR_kw_var n = kn.TR_mem_save()
+    TR_kw_var d = TR_fn_path(n, "durum.json")
+    TR_fn_write_file(d, TR_fn_read_file(d).TR_mem_replace("\"işçi\"", "\"işçi\" "))
+    TR_kw_var m = hata_metni(() => TR_fn_checkpoint(k, {w: w}))
+    TR_fn_assert(m.TR_mem_contains("adim_0000000002\" bozuk: durum.json özeti tutmuyor"), m)
+    TR_fn_assert(m.TR_mem_contains("Bir önceki geçerli nokta: adim_0000000001 (adım 1)"), m)
+    TR_fn_remove(TR_fn_path(k, "kontrol_noktalari", "adim_0000000001"), TR_arg_recursive: TR_kw_true)
+    m = hata_metni(() => TR_fn_checkpoint(k, {w: w}))
+    TR_fn_assert(m.TR_mem_contains("Başka geçerli nokta yok"), m)
+    TR_fn_remove(n, TR_arg_recursive: TR_kw_true)
+    TR_fn_assert_equal(0, TR_fn_checkpoint(k, {w: w}).TR_mem_resume_step)
     // Yarıda kalmış bir kaydın geçici klasörü sessizce temizlenir.
-    klasör_oluştur(yol(k, "kontrol_noktalari", "adim_0000000009.tmp-1"))
-    eşit_mi(0, kontrol_noktası(k, {w: w}).kaldığı_adım)
-    eşit_mi(yanlış, yol(k, "kontrol_noktalari", "adim_0000000009.tmp-1").var_mı)
+    TR_fn_make_dir(TR_fn_path(k, "kontrol_noktalari", "adim_0000000009.tmp-1"))
+    TR_fn_assert_equal(0, TR_fn_checkpoint(k, {w: w}).TR_mem_resume_step)
+    TR_fn_assert_equal(TR_kw_false, TR_fn_path(k, "kontrol_noktalari", "adim_0000000009.tmp-1").TR_mem_exists)
 }
 
-test "20.10 aralıklı kayıtta yazma hatası eğitimi durdurmaz; art arda üçüncüsü hatadır" {
-    ertele { temizle() }
-    değişken k = koşu("yazma_hatası")
-    değişken w = param([2], 1)
-    değişken kn = kontrol_noktası(k, {w: w}, her_dakika: 0)
+TR_ctx_test "20.10 aralıklı kayıtta yazma hatası eğitimi durdurmaz; art arda üçüncüsü hatadır" {
+    TR_kw_defer { temizle() }
+    TR_kw_var k = koşu("yazma_hatası")
+    TR_kw_var w = param([2], 1)
+    TR_kw_var kn = TR_fn_checkpoint(k, {w: w}, TR_arg_every_minutes: 0)
     // Noktaların klasörünün yerinde bir dosya: her kayıt yazma hatası verir.
-    klasör_oluştur(k)
-    dosya_yaz(yol(k, "kontrol_noktalari"), "engel")
-    eşit_mi(yanlış, kn.güncelle(1))
-    eşit_mi(yanlış, kn.güncelle(2))
-    değişken m = hata_metni(() => kn.güncelle(3))
-    doğrula(m.içerir("art arda 3 kez kaydedilemedi, eğitim durduruldu"), m)
-    doğrula(m.içerir("Henüz geçerli bir kontrol noktası yok"), m)
-    doğrula(hata_metni(() => kn.kaydet()).içerir("kaydedilemedi"))
+    TR_fn_make_dir(k)
+    TR_fn_write_file(TR_fn_path(k, "kontrol_noktalari"), "engel")
+    TR_fn_assert_equal(TR_kw_false, kn.TR_mem_update(1))
+    TR_fn_assert_equal(TR_kw_false, kn.TR_mem_update(2))
+    TR_kw_var m = hata_metni(() => kn.TR_mem_update(3))
+    TR_fn_assert(m.TR_mem_contains("art arda 3 kez kaydedilemedi, eğitim durduruldu"), m)
+    TR_fn_assert(m.TR_mem_contains("Henüz geçerli bir kontrol noktası yok"), m)
+    TR_fn_assert(hata_metni(() => kn.TR_mem_save()).TR_mem_contains("kaydedilemedi"))
 }
 
-test "20.11 parametreleri_yükle var olan parametrelere yerinde yazar" {
-    ertele { temizle() }
-    klasör_oluştur(TABAN)
-    değişken model = {katman: {w: param([2, 3], 1), b: param([3], 2)}}
-    değişken op = SGD(parametreler(model), öğrenme_oranı: 0.1)
-    değişken dosya = yol(TABAN, "agirlik.trt")
-    tensör_kaydet(dosya, {"katman.w": tensör([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]), "katman.b": tensör([0.5, 0.5, 0.5])})
-    değişken eski_w = model.katman.w
-    eşit_mi(2, parametreleri_yükle(model, tensör_yükle(dosya)))
-    doğrula(eski_w == model.katman.w)
-    eşit_mi([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], model.katman.w.değer)
-    geri_yayılım(toplam(model.katman.b))
-    op.adım()
-    eşit_mi([0.4, 0.4, 0.4], model.katman.b.değer.haritala { yuvarla(o, 4) })
-    doğrula(hata_metni(() => parametreleri_yükle(model, {"katman.w": tensör([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])})).içerir("\"katman.b\" parametresi sözlükte yok"))
-    doğrula(hata_metni(() => parametreleri_yükle(model, {"katman.w": tensör([1.0]), "katman.b": tensör([1.0, 1.0, 1.0])})).içerir("şekli modelde [2, 3], sözlükte [1]"))
-    doğrula(hata_metni(() => parametreleri_yükle(model, {"katman.w": tensör([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]), "katman.b": tensör([1.0, 1.0, 1.0]), "katman.c": tensör([1.0])})).içerir("ilki \"katman.c\" modelde bir parametre değil"))
-    doğrula(hata_metni(() => parametreleri_yükle({a: 1}, {})).içerir("modelde türev izleyen parametre yok"))
-    doğrula(hata_metni(() => parametreleri_yükle(model, [1])).içerir("Sözlük"))
+TR_ctx_test "20.11 parametreleri_yükle var olan parametrelere yerinde yazar" {
+    TR_kw_defer { temizle() }
+    TR_fn_make_dir(TABAN)
+    TR_kw_var model = {katman: {w: param([2, 3], 1), b: param([3], 2)}}
+    TR_kw_var op = TR_fn_SGD(TR_fn_parameters(model), TR_arg_lr: 0.1)
+    TR_kw_var dosya = TR_fn_path(TABAN, "agirlik.trt")
+    TR_fn_save_tensors(dosya, {"katman.w": TR_fn_tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]), "katman.b": TR_fn_tensor([0.5, 0.5, 0.5])})
+    TR_kw_var eski_w = model.katman.w
+    TR_fn_assert_equal(2, TR_fn_load_parameters(model, TR_fn_load_tensors(dosya)))
+    TR_fn_assert(eski_w == model.katman.w)
+    TR_fn_assert_equal([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], model.katman.w.TR_mem_tolist)
+    TR_fn_backward(TR_fn_sum(model.katman.b))
+    op.TR_mem_step()
+    TR_fn_assert_equal([0.4, 0.4, 0.4], model.katman.b.TR_mem_tolist.TR_mem_map { TR_fn_round(TR_ctx_it, 4) })
+    TR_fn_assert(hata_metni(() => TR_fn_load_parameters(model, {"katman.w": TR_fn_tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])})).TR_mem_contains("\"katman.b\" parametresi sözlükte yok"))
+    TR_fn_assert(hata_metni(() => TR_fn_load_parameters(model, {"katman.w": TR_fn_tensor([1.0]), "katman.b": TR_fn_tensor([1.0, 1.0, 1.0])})).TR_mem_contains("şekli modelde [2, 3], sözlükte [1]"))
+    TR_fn_assert(hata_metni(() => TR_fn_load_parameters(model, {"katman.w": TR_fn_tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]), "katman.b": TR_fn_tensor([1.0, 1.0, 1.0]), "katman.c": TR_fn_tensor([1.0])})).TR_mem_contains("ilki \"katman.c\" modelde bir parametre değil"))
+    TR_fn_assert(hata_metni(() => TR_fn_load_parameters({a: 1}, {})).TR_mem_contains("modelde türev izleyen parametre yok"))
+    TR_fn_assert(hata_metni(() => TR_fn_load_parameters(model, [1])).TR_mem_contains("Sözlük"))
 }
 
-test "20.12 iyileştiricinin durumu alınıp aynı parametrelerle kurulmuş iyileştiriciye yüklenir" {
-    değişken w = param([3], 1)
-    değişken op = AdamW([w], öğrenme_oranı: 0.1)
-    geri_yayılım(toplam(w * w))
-    op.adım()
-    eşit_mi(["adim", "adim.0", "m.0", "v.0"], op.durum.anahtarlar())
+TR_ctx_test "20.12 iyileştiricinin durumu alınıp aynı parametrelerle kurulmuş iyileştiriciye yüklenir" {
+    TR_kw_var w = param([3], 1)
+    TR_kw_var op = TR_fn_AdamW([w], TR_arg_lr: 0.1)
+    TR_fn_backward(TR_fn_sum(w * w))
+    op.TR_mem_step()
+    TR_fn_assert_equal(["adim", "adim.0", "m.0", "v.0"], op.TR_mem_state.TR_mem_keys())
     // Aynı değerli ikinci bir parametrenin iyileştiricisine durum yüklenince ikisi aynı adımı
     // atar (yüklenmeseydi ilk adımın sapma düzeltmesiyle başka bir sonuç verirdi).
-    değişken w2 = tensör(w, türev_izle: doğru)
-    değişken yeni = AdamW([w2], öğrenme_oranı: 0.1)
-    eşit_mi(doğru, yeni.durumu_yükle(op.durum))
-    op.sıfırla()
-    geri_yayılım(toplam(w * w))
-    op.adım()
-    geri_yayılım(toplam(w2 * w2))
-    yeni.adım()
-    eşit_mi(w.değer, w2.değer)
-    doğrula(hata_metni(() => yeni.durumu_yükle({"m.0": tensör([1.0])})).içerir("\"m.0\" girdisinin şekli [1], beklenen [3]"))
-    doğrula(hata_metni(() => SGD([w]).durumu_yükle(op.durum)).içerir("bu iyileştiricinin (SGD, 1 parametre) durum anahtarı değil"))
-    doğrula(hata_metni(() => yeni.durumu_yükle({"m.0": 1})).içerir("anahtarları Metin, değerleri Tensör"))
-    eşit_mi(Sözlük, tip(SGD([w]).durum))
+    TR_kw_var w2 = TR_fn_tensor(w, TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var yeni = TR_fn_AdamW([w2], TR_arg_lr: 0.1)
+    TR_fn_assert_equal(TR_kw_true, yeni.TR_mem_load_state(op.TR_mem_state))
+    op.TR_mem_zero_grad()
+    TR_fn_backward(TR_fn_sum(w * w))
+    op.TR_mem_step()
+    TR_fn_backward(TR_fn_sum(w2 * w2))
+    yeni.TR_mem_step()
+    TR_fn_assert_equal(w.TR_mem_tolist, w2.TR_mem_tolist)
+    TR_fn_assert(hata_metni(() => yeni.TR_mem_load_state({"m.0": TR_fn_tensor([1.0])})).TR_mem_contains("\"m.0\" girdisinin şekli [1], beklenen [3]"))
+    TR_fn_assert(hata_metni(() => TR_fn_SGD([w]).TR_mem_load_state(op.TR_mem_state)).TR_mem_contains("bu iyileştiricinin (SGD, 1 parametre) durum anahtarı değil"))
+    TR_fn_assert(hata_metni(() => yeni.TR_mem_load_state({"m.0": 1})).TR_mem_contains("anahtarları Metin, değerleri Tensör"))
+    TR_fn_assert_equal(TR_type_Dict, TR_fn_type(TR_fn_SGD([w]).TR_mem_state))
 }
 
-test "20.13 okuyucunun durumu alınıp aynı ayarla kurulmuş okuyucuya yüklenir" {
-    değişken küme = veri_kümesi("data/text")
-    değişken ö = küme.örnekleyici(toplu: 2, bağlam: 4, tohum: 7)
-    ö.sonraki()
-    ö.sonraki()
-    değişken d = ö.durum
-    eşit_mi(["tür", "toplu", "bağlam", "tohum", "küme", "dönem", "sıra", "pencere", "sayaç"], d.anahtarlar())
-    eşit_mi(2, d["sayaç"])
-    değişken beklenen = ö.sonraki()[0].değer
-    değişken yeni = küme.örnekleyici(toplu: 2, bağlam: 4, tohum: 7)
-    eşit_mi(doğru, yeni.durumu_yükle(d))
-    eşit_mi(beklenen, yeni.sonraki()[0].değer)
-    doğrula(hata_metni(() => küme.örnekleyici(toplu: 2, bağlam: 4, tohum: 8).durumu_yükle(d)).içerir("tohum değeri 7, bu okuyucununki 8"))
-    doğrula(hata_metni(() => küme.sıralı(toplu: 2, bağlam: 4).durumu_yükle(d)).içerir("kayıt bir örnekleyici okuyucusunun durumu, bu okuyucu sıralı"))
-    değişken s = küme.sıralı(toplu: 2, bağlam: 4)
-    s.sonraki()
-    değişken sd = s.durum
-    eşit_mi(yanlış, sd["bitti"])
-    değişken sb = s.sonraki()[0].değer
-    değişken s2 = küme.sıralı(toplu: 2, bağlam: 4)
-    s2.durumu_yükle(sd)
-    eşit_mi(sb, s2.sonraki()[0].değer)
-    doğrula(hata_metni(() => s2.durumu_yükle({tür: "sıralı"})).içerir("durumda \"toplu\" alanı yok"))
+TR_ctx_test "20.13 okuyucunun durumu alınıp aynı ayarla kurulmuş okuyucuya yüklenir" {
+    TR_kw_var küme = TR_fn_dataset("data/text")
+    TR_kw_var ö = küme.TR_mem_sampler(TR_arg_batch_size: 2, TR_arg_context: 4, TR_arg_seed: 7)
+    ö.TR_mem_next()
+    ö.TR_mem_next()
+    TR_kw_var d = ö.TR_mem_state
+    TR_fn_assert_equal(["tür", "toplu", "bağlam", "tohum", "küme", "dönem", "sıra", "pencere", "sayaç"], d.TR_mem_keys())
+    TR_fn_assert_equal(2, d["sayaç"])
+    TR_kw_var beklenen = ö.TR_mem_next()[0].TR_mem_tolist
+    TR_kw_var yeni = küme.TR_mem_sampler(TR_arg_batch_size: 2, TR_arg_context: 4, TR_arg_seed: 7)
+    TR_fn_assert_equal(TR_kw_true, yeni.TR_mem_load_state(d))
+    TR_fn_assert_equal(beklenen, yeni.TR_mem_next()[0].TR_mem_tolist)
+    TR_fn_assert(hata_metni(() => küme.TR_mem_sampler(TR_arg_batch_size: 2, TR_arg_context: 4, TR_arg_seed: 8).TR_mem_load_state(d)).TR_mem_contains("tohum değeri 7, bu okuyucununki 8"))
+    TR_fn_assert(hata_metni(() => küme.TR_mem_sequential(TR_arg_batch_size: 2, TR_arg_context: 4).TR_mem_load_state(d)).TR_mem_contains("kayıt bir örnekleyici okuyucusunun durumu, bu okuyucu sıralı"))
+    TR_kw_var s = küme.TR_mem_sequential(TR_arg_batch_size: 2, TR_arg_context: 4)
+    s.TR_mem_next()
+    TR_kw_var sd = s.TR_mem_state
+    TR_fn_assert_equal(TR_kw_false, sd["bitti"])
+    TR_kw_var sb = s.TR_mem_next()[0].TR_mem_tolist
+    TR_kw_var s2 = küme.TR_mem_sequential(TR_arg_batch_size: 2, TR_arg_context: 4)
+    s2.TR_mem_load_state(sd)
+    TR_fn_assert_equal(sb, s2.TR_mem_next()[0].TR_mem_tolist)
+    TR_fn_assert(hata_metni(() => s2.TR_mem_load_state({TR_mem_dtype: "sıralı"})).TR_mem_contains("durumda \"toplu\" alanı yok"))
 }
 
-test "20.14 geri_dön en yeni noktayı yerinde yükler ve adımını verir; nokta yoksa hatadır" {
-    ertele { temizle() }
-    değişken w = param([3], 2)
-    değişken op = AdamW([w], öğrenme_oranı: 0.1)
-    değişken izlenen = {sayaç: 0}
-    değişken kn = kontrol_noktası(koşu("geri"), {w: w, op: op, izlenen: izlenen})
-    doğrula(hata_metni(() => kn.geri_dön()).içerir("dönülecek bir kontrol noktası yok"))
-    geri_yayılım(toplam(w * w))
-    op.adım()
-    op.sıfırla()
+TR_ctx_test "20.14 geri_dön en yeni noktayı yerinde yükler ve adımını verir; nokta yoksa hatadır" {
+    TR_kw_defer { temizle() }
+    TR_kw_var w = param([3], 2)
+    TR_kw_var op = TR_fn_AdamW([w], TR_arg_lr: 0.1)
+    TR_kw_var izlenen = {sayaç: 0}
+    TR_kw_var kn = TR_fn_checkpoint(koşu("geri"), {w: w, op: op, izlenen: izlenen})
+    TR_fn_assert(hata_metni(() => kn.TR_mem_rollback()).TR_mem_contains("dönülecek bir kontrol noktası yok"))
+    TR_fn_backward(TR_fn_sum(w * w))
+    op.TR_mem_step()
+    op.TR_mem_zero_grad()
     izlenen.sayaç = 1
-    kn.güncelle(1)
-    kn.kaydet()
-    değişken kayıtlı = w.değer
-    değişken kayıtlı_durum = op.durum["m.0"].değer
-    geri_yayılım(toplam(w * ondalık("nan")))
-    op.adım()
-    op.sıfırla()
+    kn.TR_mem_update(1)
+    kn.TR_mem_save()
+    TR_kw_var kayıtlı = w.TR_mem_tolist
+    TR_kw_var kayıtlı_durum = op.TR_mem_state["m.0"].TR_mem_tolist
+    TR_fn_backward(TR_fn_sum(w * TR_fn_float("nan")))
+    op.TR_mem_step()
+    op.TR_mem_zero_grad()
     izlenen.sayaç = 2
-    doğrula(değil sonlu_mu(toplam(w).değer))
-    eşit_mi(1, kn.geri_dön())
-    eşit_mi(kayıtlı, w.değer)
-    eşit_mi(kayıtlı_durum, op.durum["m.0"].değer)
-    eşit_mi(1, izlenen.sayaç)
-    eşit_mi(0, kn.kaldığı_adım)
-    doğrula(hata_metni(() => kn.geri_dön(1)).içerir("0 argüman"))
+    TR_fn_assert(TR_kw_not TR_fn_is_finite(TR_fn_sum(w).TR_mem_tolist))
+    TR_fn_assert_equal(1, kn.TR_mem_rollback())
+    TR_fn_assert_equal(kayıtlı, w.TR_mem_tolist)
+    TR_fn_assert_equal(kayıtlı_durum, op.TR_mem_state["m.0"].TR_mem_tolist)
+    TR_fn_assert_equal(1, izlenen.sayaç)
+    TR_fn_assert_equal(0, kn.TR_mem_resume_step)
+    TR_fn_assert(hata_metni(() => kn.TR_mem_rollback(1)).TR_mem_contains("0 argüman"))
 }
 
-test "20.15 atla sıradaki toplu işleri tensör kurmadan atlar" {
-    değişken küme = veri_kümesi("data/text")
-    değişken a = küme.örnekleyici(toplu: 2, bağlam: 4, tohum: 7)
-    döngü i içinde 0..3 { a.sonraki() }
-    değişken beklenen = a.sonraki()[0].değer
-    değişken b = küme.örnekleyici(toplu: 2, bağlam: 4, tohum: 7)
-    eşit_mi(0, b.atla(0))
-    eşit_mi(3, b.atla(3))
-    eşit_mi(3, b.durum["sayaç"])
-    eşit_mi(beklenen, b.sonraki()[0].değer)
-    doğrula(hata_metni(() => b.atla(-1)).içerir("negatif olamaz"))
+TR_ctx_test "20.15 atla sıradaki toplu işleri tensör kurmadan atlar" {
+    TR_kw_var küme = TR_fn_dataset("data/text")
+    TR_kw_var a = küme.TR_mem_sampler(TR_arg_batch_size: 2, TR_arg_context: 4, TR_arg_seed: 7)
+    TR_kw_for i TR_kw_in 0..3 { a.TR_mem_next() }
+    TR_kw_var beklenen = a.TR_mem_next()[0].TR_mem_tolist
+    TR_kw_var b = küme.TR_mem_sampler(TR_arg_batch_size: 2, TR_arg_context: 4, TR_arg_seed: 7)
+    TR_fn_assert_equal(0, b.TR_mem_skip(0))
+    TR_fn_assert_equal(3, b.TR_mem_skip(3))
+    TR_fn_assert_equal(3, b.TR_mem_state["sayaç"])
+    TR_fn_assert_equal(beklenen, b.TR_mem_next()[0].TR_mem_tolist)
+    TR_fn_assert(hata_metni(() => b.TR_mem_skip(-1)).TR_mem_contains("negatif olamaz"))
 }
 
-test "20.2 düz değerler iç içe yerinde yenilenir; iç kaplara tutulan bağlar kopmaz" {
-    ertele { temizle() }
-    değişken w = param([2], 5)
-    değişken kayıt = [1, 2]
-    değişken iç = {n: 1}
-    değişken izlenen = {kayıt: kayıt, iç: iç, ad: "a"}
-    değişken kn = kontrol_noktası(koşu("ic_ice"), {w: w, izlenen: izlenen})
-    kn.güncelle(1)
-    kn.kaydet()
-    kayıt.ekle(3)
+TR_ctx_test "20.2 düz değerler iç içe yerinde yenilenir; iç kaplara tutulan bağlar kopmaz" {
+    TR_kw_defer { temizle() }
+    TR_kw_var w = param([2], 5)
+    TR_kw_var kayıt = [1, 2]
+    TR_kw_var iç = {n: 1}
+    TR_kw_var izlenen = {kayıt: kayıt, iç: iç, ad: "a"}
+    TR_kw_var kn = TR_fn_checkpoint(koşu("ic_ice"), {w: w, izlenen: izlenen})
+    kn.TR_mem_update(1)
+    kn.TR_mem_save()
+    kayıt.TR_mem_append(3)
     iç.n = 2
     izlenen.ad = "b"
-    eşit_mi(1, kn.geri_dön())
-    eşit_mi([1, 2], kayıt)
-    eşit_mi(1, iç.n)
-    eşit_mi("a", izlenen.ad)
-    doğrula(izlenen.kayıt == kayıt)
+    TR_fn_assert_equal(1, kn.TR_mem_rollback())
+    TR_fn_assert_equal([1, 2], kayıt)
+    TR_fn_assert_equal(1, iç.n)
+    TR_fn_assert_equal("a", izlenen.ad)
+    TR_fn_assert(izlenen.kayıt == kayıt)
 }

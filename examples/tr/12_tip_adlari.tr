@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // 12 — Tip adları: değerlerin tipini sormak ve bildirmek.
 // Ne öğretir: tip() ve tip adlarının (Mantık, Yok, Liste, Sözlük, Aralık, Fonksiyon,
 // YerleşikFonksiyon, Herhangi, Tip) ifadede değer olması, ad: Tip ile tip bildirmek.
@@ -5,35 +6,35 @@
 // Çalıştırma (proje kökünden): tr examples/tr/12_tip_adlari.tr
 
 // tip(değer) tipi verir; tip adları da ifadede değerdir, == ile karşılaştırılır.
-değişken liste = [1, "iki", 3.0]
-yazdır(tip(liste) == Liste, tip(liste))
-değişken sözlük = {"ad": "Ali"}
-yazdır(tip(sözlük) == Sözlük, sözlük["ad"])
-yazdır(tip(doğru) == Mantık, tip(yok) == Yok)
+TR_kw_var liste = [1, "iki", 3.0]
+TR_fn_print(TR_fn_type(liste) == TR_type_List, TR_fn_type(liste))
+TR_kw_var sözlük = {"ad": "Ali"}
+TR_fn_print(TR_fn_type(sözlük) == TR_type_Dict, sözlük["ad"])
+TR_fn_print(TR_fn_type(TR_kw_true) == TR_type_Bool, TR_fn_type(TR_kw_none) == TR_type_None)
 
 // Aralık a..b (b hariç) ya da a..=b (b dahil) yazımının tipidir; aralık(n) ise bir Liste verir.
-yazdır(tip(1..5) == Aralık, tip(aralık(5)) == Liste, aralık(5))
+TR_fn_print(TR_fn_type(1..5) == TR_type_Range, TR_fn_type(TR_fn_range(5)) == TR_type_List, TR_fn_range(5))
 
 // Fonksiyonlar birinci sınıf değerdir: ok fonksiyonu ve fonksiyon Fonksiyon,
 // dilin kendi fonksiyonları YerleşikFonksiyon tipindedir.
-değişken kare = x => x * x
-yazdır(tip(kare) == Fonksiyon, tip(yazdır) == YerleşikFonksiyon, kare(7))
+TR_kw_var kare = x => x * x
+TR_fn_print(TR_fn_type(kare) == TR_type_Function, TR_fn_type(TR_fn_print) == TR_type_BuiltinFunction, kare(7))
 
 // Tip bildirimi: ad: Tip. Tip denetleyicisi yanlış atamayı program çalışmadan yakalar.
-değişken hazır: Mantık = doğru
-değişken boş: Yok = yok
-değişken sayılar: Liste = [1, 2, 3]
-yazdır(hazır, boş, sayılar)
+TR_kw_var hazır: TR_type_Bool = TR_kw_true
+TR_kw_var boş: TR_type_None = TR_kw_none
+TR_kw_var sayılar: TR_type_List = [1, 2, 3]
+TR_fn_print(hazır, boş, sayılar)
 
 // Herhangi: her değer verilebilir, tipi bilinmeyen değerler için kullanılır.
-fonksiyon kimlik(x: Herhangi) {
-    sonuç x
+TR_kw_func kimlik(x: TR_type_Any) {
+    TR_kw_return x
 }
-yazdır(kimlik(5), kimlik("beş"), kimlik([1, 2]))
+TR_fn_print(kimlik(5), kimlik("beş"), kimlik([1, 2]))
 
 // tip() sonucunun kendi tipi de Tip'tir ve bir değişkende saklanabilir.
-değişken t: Tip = tip(42)
-yazdır(t == Tam, t, tip(t))
+TR_kw_var t: TR_type_Type = TR_fn_type(42)
+TR_fn_print(t == TR_type_Int, t, TR_fn_type(t))
 
 // --- Kendin dene ---
 // 1. tip(tip(1)) == Tip değerini yazdır.

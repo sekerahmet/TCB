@@ -1,144 +1,145 @@
+//! tr kodlu 3 dil=tr
 // docs/spec/19_surec_ve_kayit.md §19 — Süreç ve kayıt
 // tr test argümansız çalışır: komut_satırı varsayılanları döndürür. Komut satırı yazımı,
 // --yardım, çıkış kodları ve terminaldeki çubuk Go testleriyle sınanır
 // (internal/stdlib/process, internal/stdlib/logging, cmd/tr/e2e).
 
-aktar "yardimci_test_araclari"
+TR_kw_import "yardimci_test_araclari"
 
 // Günlük dosyaları depo dışında, bu koşunun geçici klasöründe (18.14); program bitince silinir.
-sabit KOŞU = geçici_klasör()
+TR_kw_const KOŞU = TR_fn_temp_dir()
 
 // satırlar: günlük dosyasının JSON satırlarını sözlük listesi olarak verir.
-fonksiyon satırlar(dosya_yolu) {
-    sonuç dosya_oku(dosya_yolu).kırp().böl("\n").haritala { json_çöz(o) }
+TR_kw_func satırlar(dosya_yolu) {
+    TR_kw_return TR_fn_read_file(dosya_yolu).TR_mem_strip().TR_mem_split("\n").TR_mem_map { TR_fn_json_parse(TR_ctx_it) }
 }
 
 // Programın tek komut_satırı çağrısı (19.2, 19.4 bunu kullanır).
-sabit AYAR = komut_satırı({adım: 100, oran: 0.5, veri: "veri/train", katmanlar: [64, 32], hızlı: yanlış, etiket: yok, api_anahtarı: "anahtar-varsayılan-1"},
-    açıklama: "Deneme", açıklamalar: {adım: "eğitim adımı"})
+TR_kw_const AYAR = TR_fn_command_line({TR_mem_step: 100, oran: 0.5, veri: "veri/train", katmanlar: [64, 32], hızlı: TR_kw_false, etiket: TR_kw_none, api_anahtarı: "anahtar-varsayılan-1"},
+    TR_arg_description: "Deneme", TR_arg_descriptions: {TR_mem_step: "eğitim adımı"})
 
-test "19.1 ortam_değişkeni değeri Metin olarak, tanımsızsa yok verir" {
-    eşit_mi(yok, ortam_değişkeni("TR_BOYLE_BIR_DEGISKEN_YOK_19"))
-    eşit_mi("varsayılan", ortam_değişkeni("TR_BOYLE_BIR_DEGISKEN_YOK_19") ?? "varsayılan")
-    eşit_mi(Metin, tip(ortam_değişkeni("PATH")))
-    doğrula(hata_metni(() => ortam_değişkeni(5)).içerir("1. argüman olarak Metin bekler"))
-    doğrula(hata_metni(() => ortam_değişkeni("")).içerir("geçerli bir ortam değişkeni adı değil"))
+TR_ctx_test "19.1 ortam_değişkeni değeri Metin olarak, tanımsızsa yok verir" {
+    TR_fn_assert_equal(TR_kw_none, TR_fn_env("TR_BOYLE_BIR_DEGISKEN_YOK_19"))
+    TR_fn_assert_equal("varsayılan", TR_fn_env("TR_BOYLE_BIR_DEGISKEN_YOK_19") ?? "varsayılan")
+    TR_fn_assert_equal(TR_type_String, TR_fn_type(TR_fn_env("PATH")))
+    TR_fn_assert(hata_metni(() => TR_fn_env(5)).TR_mem_contains("1. argüman olarak Metin bekler"))
+    TR_fn_assert(hata_metni(() => TR_fn_env("")).TR_mem_contains("geçerli bir ortam değişkeni adı değil"))
 }
 
-test "19.2 komut_satırı argümansızken varsayılanları yeni bir sözlükte verir" {
-    eşit_mi(Sözlük, tip(AYAR))
-    eşit_mi(["adım", "oran", "veri", "katmanlar", "hızlı", "etiket", "api_anahtarı"], AYAR.anahtarlar())
-    eşit_mi(100, AYAR.adım)
-    eşit_mi(0.5, AYAR.oran)
-    eşit_mi([64, 32], AYAR.katmanlar)
-    eşit_mi(yanlış, AYAR.hızlı)
-    eşit_mi(yok, AYAR.etiket)
+TR_ctx_test "19.2 komut_satırı argümansızken varsayılanları yeni bir sözlükte verir" {
+    TR_fn_assert_equal(TR_type_Dict, TR_fn_type(AYAR))
+    TR_fn_assert_equal(["adım", "oran", "veri", "katmanlar", "hızlı", "etiket", "api_anahtarı"], AYAR.TR_mem_keys())
+    TR_fn_assert_equal(100, AYAR.TR_mem_step)
+    TR_fn_assert_equal(0.5, AYAR.oran)
+    TR_fn_assert_equal([64, 32], AYAR.katmanlar)
+    TR_fn_assert_equal(TR_kw_false, AYAR.hızlı)
+    TR_fn_assert_equal(TR_kw_none, AYAR.etiket)
 }
 
-test "19.2 komut_satırı programda bir kez çağrılır" {
-    doğrula(hata_metni(() => komut_satırı({adım: 1})).içerir("programda bir kez çağrılır"))
+TR_ctx_test "19.2 komut_satırı programda bir kez çağrılır" {
+    TR_fn_assert(hata_metni(() => TR_fn_command_line({TR_mem_step: 1})).TR_mem_contains("programda bir kez çağrılır"))
 }
 
-test "19.3 seçenek tipleri ve adları kurulumda denetlenir" {
-    doğrula(hata_metni(() => komut_satırı({uzunluk: 3})).içerir("\"uzunluk\" seçenek adı olamaz: Sözlük tipinin bir üyesidir"))
-    doğrula(hata_metni(() => komut_satırı({içerir: "x"})).içerir("seçenek adı olamaz"))
-    doğrula(hata_metni(() => komut_satırı({yardım: doğru})).içerir("--yardım ve -h seçenekleri listeler"))
-    doğrula(hata_metni(() => komut_satırı({a: {b: 1}})).içerir("'a' seçeneğinin varsayılanı"))
-    doğrula(hata_metni(() => komut_satırı({a: [1, "x"]})).içerir("öğeler aynı tipte olmalı"))
-    doğrula(hata_metni(() => komut_satırı({adım: 1}, açıklamalar: {adim: "x"})).içerir("Bunu mu demek istediniz: 'adım'?"))
-    doğrula(hata_metni(() => komut_satırı({a: 1}, açklama: "x")).içerir("Bunu mu demek istediniz: 'açıklama'?"))
+TR_ctx_test "19.3 seçenek tipleri ve adları kurulumda denetlenir" {
+    TR_fn_assert(hata_metni(() => TR_fn_command_line({TR_mem_length: 3})).TR_mem_contains("\"uzunluk\" seçenek adı olamaz: Sözlük tipinin bir üyesidir"))
+    TR_fn_assert(hata_metni(() => TR_fn_command_line({TR_mem_contains: "x"})).TR_mem_contains("seçenek adı olamaz"))
+    TR_fn_assert(hata_metni(() => TR_fn_command_line({yardım: TR_kw_true})).TR_mem_contains("--yardım ve -h seçenekleri listeler"))
+    TR_fn_assert(hata_metni(() => TR_fn_command_line({a: {b: 1}})).TR_mem_contains("'a' seçeneğinin varsayılanı"))
+    TR_fn_assert(hata_metni(() => TR_fn_command_line({a: [1, "x"]})).TR_mem_contains("öğeler aynı tipte olmalı"))
+    TR_fn_assert(hata_metni(() => TR_fn_command_line({TR_mem_step: 1}, TR_arg_descriptions: {adim: "x"})).TR_mem_contains("Bunu mu demek istediniz: 'adım'?"))
+    TR_fn_assert(hata_metni(() => TR_fn_command_line({a: 1}, açklama: "x")).TR_mem_contains("Bunu mu demek istediniz: 'açıklama'?"))
 }
 
-test "19.4 gizli adlı seçeneğin değeri insanın göreceği çıktıda maskelenir, veride değişmez" {
+TR_ctx_test "19.4 gizli adlı seçeneğin değeri insanın göreceği çıktıda maskelenir, veride değişmez" {
     // Değerin kendisi programda değişmez (yazdır'ın döndürdüğü metin de veridir).
-    eşit_mi("anahtar-varsayılan-1", AYAR.api_anahtarı)
-    değişken dosya_yolu = "{KOŞU}/gizli.jsonl"
-    günlük(dosya_yolu).ekle({anahtar: AYAR.api_anahtarı})
-    değişken içerik = dosya_oku(dosya_yolu)
-    doğrula(içerik.içerir("\"anahtar\":\"***\""), içerik)
-    doğrula(değil içerik.içerir("anahtar-varsayılan-1"))
+    TR_fn_assert_equal("anahtar-varsayılan-1", AYAR.api_anahtarı)
+    TR_kw_var dosya_yolu = "{KOŞU}/gizli.jsonl"
+    TR_fn_logger(dosya_yolu).TR_mem_append({anahtar: AYAR.api_anahtarı})
+    TR_kw_var içerik = TR_fn_read_file(dosya_yolu)
+    TR_fn_assert(içerik.TR_mem_contains("\"anahtar\":\"***\""), içerik)
+    TR_fn_assert(TR_kw_not içerik.TR_mem_contains("anahtar-varsayılan-1"))
 }
 
-test "19.5 günlük .jsonl dosyasına başlangıç kaydı ve kayıtlar ekler" {
-    değişken dosya_yolu = "{KOŞU}/kayit/egitim.jsonl"
-    değişken g = günlük(dosya_yolu)
-    eşit_mi(Günlük, tip(g))
-    eşit_mi(doğru, g.ekle({kayıp: 2.5, adım: 3, nan: ondalık("NaN"), kayıp_t: tensör([0.25])}))
-    g.ekle("ilk dönem bitti")
-    değişken s = satırlar(dosya_yolu)
-    eşit_mi(3, s.uzunluk)
-    eşit_mi("başlangıç", s[0].tür)
-    eşit_mi(1, s[0].sürüm)
-    eşit_mi("surec_ve_kayit_test.tr", s[0].program)
-    eşit_mi(100, s[0].ayarlar.adım)
-    eşit_mi(2.5, s[1].kayıp)
-    eşit_mi(3, s[1].adım)
-    eşit_mi("NaN", s[1].nan)
-    eşit_mi(0.25, s[1].kayıp_t)
-    eşit_mi(Metin, tip(s[1].zaman))
-    eşit_mi("ilk dönem bitti", s[2].mesaj)
+TR_ctx_test "19.5 günlük .jsonl dosyasına başlangıç kaydı ve kayıtlar ekler" {
+    TR_kw_var dosya_yolu = "{KOŞU}/kayit/egitim.jsonl"
+    TR_kw_var g = TR_fn_logger(dosya_yolu)
+    TR_fn_assert_equal(TR_type_Logger, TR_fn_type(g))
+    TR_fn_assert_equal(TR_kw_true, g.TR_mem_append({kayıp: 2.5, TR_mem_step: 3, nan: TR_fn_float("NaN"), kayıp_t: TR_fn_tensor([0.25])}))
+    g.TR_mem_append("ilk dönem bitti")
+    TR_kw_var s = satırlar(dosya_yolu)
+    TR_fn_assert_equal(3, s.TR_mem_length)
+    TR_fn_assert_equal("başlangıç", s[0].TR_mem_dtype)
+    TR_fn_assert_equal(1, s[0].sürüm)
+    TR_fn_assert_equal("surec_ve_kayit_test.tr", s[0].program)
+    TR_fn_assert_equal(100, s[0].ayarlar.TR_mem_step)
+    TR_fn_assert_equal(2.5, s[1].kayıp)
+    TR_fn_assert_equal(3, s[1].TR_mem_step)
+    TR_fn_assert_equal("NaN", s[1].nan)
+    TR_fn_assert_equal(0.25, s[1].kayıp_t)
+    TR_fn_assert_equal(TR_type_String, TR_fn_type(s[1].zaman))
+    TR_fn_assert_equal("ilk dönem bitti", s[2].mesaj)
     // Yeniden açılan günlük sonuna ekler, yeni bir başlangıç kaydıyla.
-    günlük(dosya_yolu).ekle({kayıp: 1.0})
-    değişken s2 = satırlar(dosya_yolu)
-    eşit_mi(5, s2.uzunluk)
-    eşit_mi("başlangıç", s2[3].tür)
+    TR_fn_logger(dosya_yolu).TR_mem_append({kayıp: 1.0})
+    TR_kw_var s2 = satırlar(dosya_yolu)
+    TR_fn_assert_equal(5, s2.TR_mem_length)
+    TR_fn_assert_equal("başlangıç", s2[3].TR_mem_dtype)
 }
 
-test "19.6 günlük hataları" {
-    doğrula(hata_metni(() => günlük("{KOŞU}/a.csv")).içerir("uzantılı olmalı"))
-    değişken g = günlük("{KOŞU}/h.jsonl")
-    doğrula(hata_metni(() => g.ekle({tür: "x"})).içerir("'tür' adı günlük biçimine ayrılmış"))
-    doğrula(hata_metni(() => g.ekle({f: yazdır})).içerir("ölçüsünün değeri"))
-    doğrula(hata_metni(() => g.ekle(5)).içerir("Sözlük ya da Metin bekler"))
-    doğrula(hata_metni(() => g.eklee({})).içerir("Bunu mu demek istediniz: 'ekle'?"))
+TR_ctx_test "19.6 günlük hataları" {
+    TR_fn_assert(hata_metni(() => TR_fn_logger("{KOŞU}/a.csv")).TR_mem_contains("uzantılı olmalı"))
+    TR_kw_var g = TR_fn_logger("{KOŞU}/h.jsonl")
+    TR_fn_assert(hata_metni(() => g.TR_mem_append({TR_mem_dtype: "x"})).TR_mem_contains("'tür' adı günlük biçimine ayrılmış"))
+    TR_fn_assert(hata_metni(() => g.TR_mem_append({f: TR_fn_print})).TR_mem_contains("ölçüsünün değeri"))
+    TR_fn_assert(hata_metni(() => g.TR_mem_append(5)).TR_mem_contains("Sözlük ya da Metin bekler"))
+    TR_fn_assert(hata_metni(() => g.eklee({})).TR_mem_contains("Bunu mu demek istediniz: 'ekle'?"))
 }
 
-test "19.7 ilerleme adım sayar, toplama ulaşınca biter" {
-    değişken ç = ilerleme(3)
-    eşit_mi(İlerleme, tip(ç))
-    eşit_mi(doğru, ç.güncelle({kayıp: 0.5}))
-    eşit_mi("İlerleme(adım 1/3)", metin(ç))
-    ç.güncelle()
-    ç.güncelle()
-    eşit_mi("İlerleme(adım 3/3, bitti)", metin(ç))
-    doğrula(hata_metni(() => ç.güncelle()).içerir("çubuk bitti (adım 3/3)"))
-    eşit_mi(yanlış, ç.durdur())
+TR_ctx_test "19.7 ilerleme adım sayar, toplama ulaşınca biter" {
+    TR_kw_var ç = TR_fn_progress(3)
+    TR_fn_assert_equal(TR_type_Progress, TR_fn_type(ç))
+    TR_fn_assert_equal(TR_kw_true, ç.TR_mem_update({kayıp: 0.5}))
+    TR_fn_assert_equal("İlerleme(adım 1/3)", TR_fn_str(ç))
+    ç.TR_mem_update()
+    ç.TR_mem_update()
+    TR_fn_assert_equal("İlerleme(adım 3/3, bitti)", TR_fn_str(ç))
+    TR_fn_assert(hata_metni(() => ç.TR_mem_update()).TR_mem_contains("çubuk bitti (adım 3/3)"))
+    TR_fn_assert_equal(TR_kw_false, ç.TR_mem_stop())
     // adım: kaldığı yerden sürdürür; toplamsız sayaç; elle durdurma
-    değişken d = ilerleme(1000)
-    d.güncelle(adım: 500)
-    d.güncelle()
-    eşit_mi("İlerleme(adım 501/1000)", metin(d))
-    eşit_mi(doğru, d.durdur())
-    değişken s = ilerleme()
-    s.güncelle()
-    eşit_mi("İlerleme(adım 1)", metin(s))
-    s.durdur()
+    TR_kw_var d = TR_fn_progress(1000)
+    d.TR_mem_update(TR_arg_step: 500)
+    d.TR_mem_update()
+    TR_fn_assert_equal("İlerleme(adım 501/1000)", TR_fn_str(d))
+    TR_fn_assert_equal(TR_kw_true, d.TR_mem_stop())
+    TR_kw_var s = TR_fn_progress()
+    s.TR_mem_update()
+    TR_fn_assert_equal("İlerleme(adım 1)", TR_fn_str(s))
+    s.TR_mem_stop()
 }
 
-test "19.8 ilerleme hataları" {
-    doğrula(hata_metni(() => ilerleme(0)).içerir("pozitif olmalı"))
-    doğrula(hata_metni(() => ilerleme("çok")).içerir("Tam ya da Yok bekler"))
-    doğrula(hata_metni(() => ilerleme(5, günlük: "a.jsonl")).içerir("bir Günlük olmalı"))
-    değişken ç = ilerleme(5)
-    doğrula(hata_metni(() => ç.güncelle(adım: 9)).içerir("toplam adım sayısından (5) büyük olamaz"))
-    doğrula(hata_metni(() => ç.güncelle({adım: 1})).içerir("'adım' adı günlük biçimine ayrılmış"))
-    doğrula(hata_metni(() => ç.güncelle(adim: 1)).içerir("Bunu mu demek istediniz: 'adım'?"))
-    ç.durdur()
+TR_ctx_test "19.8 ilerleme hataları" {
+    TR_fn_assert(hata_metni(() => TR_fn_progress(0)).TR_mem_contains("pozitif olmalı"))
+    TR_fn_assert(hata_metni(() => TR_fn_progress("çok")).TR_mem_contains("Tam ya da Yok bekler"))
+    TR_fn_assert(hata_metni(() => TR_fn_progress(5, TR_arg_log: "a.jsonl")).TR_mem_contains("bir Günlük olmalı"))
+    TR_kw_var ç = TR_fn_progress(5)
+    TR_fn_assert(hata_metni(() => ç.TR_mem_update(TR_arg_step: 9)).TR_mem_contains("toplam adım sayısından (5) büyük olamaz"))
+    TR_fn_assert(hata_metni(() => ç.TR_mem_update({TR_mem_step: 1})).TR_mem_contains("'adım' adı günlük biçimine ayrılmış"))
+    TR_fn_assert(hata_metni(() => ç.TR_mem_update(adim: 1)).TR_mem_contains("Bunu mu demek istediniz: 'adım'?"))
+    ç.TR_mem_stop()
 }
 
-test "19.9 günlüğe bağlı çubuk her güncellemeyi ve bitişi yazar" {
-    değişken dosya_yolu = "{KOŞU}/cubuk.jsonl"
-    değişken g = günlük(dosya_yolu)
-    değişken ç = ilerleme(2, günlük: g)
-    ç.güncelle({kayıp: 0.9})
-    ç.güncelle({kayıp: 0.7})
-    değişken s = satırlar(dosya_yolu)
-    eşit_mi(4, s.uzunluk)
-    eşit_mi(2, s[0].toplam)
-    eşit_mi(1, s[1].adım)
-    eşit_mi(0.9, s[1].kayıp)
-    eşit_mi(0.7, s[2].kayıp)
-    eşit_mi("bitiş", s[3].tür)
-    eşit_mi(2, s[3].adım)
-    doğrula(s[3].süre_sn >= 0)
+TR_ctx_test "19.9 günlüğe bağlı çubuk her güncellemeyi ve bitişi yazar" {
+    TR_kw_var dosya_yolu = "{KOŞU}/cubuk.jsonl"
+    TR_kw_var g = TR_fn_logger(dosya_yolu)
+    TR_kw_var ç = TR_fn_progress(2, TR_arg_log: g)
+    ç.TR_mem_update({kayıp: 0.9})
+    ç.TR_mem_update({kayıp: 0.7})
+    TR_kw_var s = satırlar(dosya_yolu)
+    TR_fn_assert_equal(4, s.TR_mem_length)
+    TR_fn_assert_equal(2, s[0].toplam)
+    TR_fn_assert_equal(1, s[1].TR_mem_step)
+    TR_fn_assert_equal(0.9, s[1].kayıp)
+    TR_fn_assert_equal(0.7, s[2].kayıp)
+    TR_fn_assert_equal("bitiş", s[3].TR_mem_dtype)
+    TR_fn_assert_equal(2, s[3].TR_mem_step)
+    TR_fn_assert(s[3].süre_sn >= 0)
 }

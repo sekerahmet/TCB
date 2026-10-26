@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // 23 — Tensörler: yapay zekânın sayı dizileri.
 // Ne öğretir: tensör oluşturmak, Tensör tipi, şekil, devrik, dilim, bitiştir, @ (matris çarpımı), yayınlama, relu/softmax, .değer ile okumak.
 // Önceki örnekten: listeler (09) ve işlev çağrıları (08); tensör, iç içe listelerden kurulur.
@@ -5,43 +6,43 @@
 // Ayrıntılar: docs/guide/04_yapay_zeka_ve_veri.md §4.C, docs/spec/15_tensorler.md §15.
 
 // Tensör, n boyutlu bir sayı dizisidir: tek boyutlu (vektör), iki boyutlu (matris) ...
-değişken v = tensör([1.0, 2.0, 3.0])
-değişken A = tensör([[1.0, 2.0], [3.0, 4.0]])
-değişken W = tensör([[0.5, -0.5], [1.0, 2.0]]) // matris: 2 boyutlu tensör
-yazdır("v.şekil = {v.şekil}, A.şekil = {A.şekil}")
-yazdır("A.değer = {A.değer}") // .değer tensörü düz TR listesine çevirir
+TR_kw_var v = TR_fn_tensor([1.0, 2.0, 3.0])
+TR_kw_var A = TR_fn_tensor([[1.0, 2.0], [3.0, 4.0]])
+TR_kw_var W = TR_fn_tensor([[0.5, -0.5], [1.0, 2.0]]) // matris: 2 boyutlu tensör
+TR_fn_print("v.şekil = {v.TR_mem_shape}, A.şekil = {A.TR_mem_shape}")
+TR_fn_print("A.değer = {A.TR_mem_tolist}") // .değer tensörü düz TR listesine çevirir
 
 // Hazır tensör üreticileri.
-yazdır(sıfırlar([2, 3]))
-yazdır(birler([3]))
-yazdır(birim_matris(3))
+TR_fn_print(TR_fn_zeros([2, 3]))
+TR_fn_print(TR_fn_ones([3]))
+TR_fn_print(TR_fn_eye(3))
 
 // Eleman bazlı işlemler aynı şekilli tensörlerde elemanları tek tek işler.
-yazdır("A + A =", A + A)
-yazdır("A * W =", A * W)
+TR_fn_print("A + A =", A + A)
+TR_fn_print("A * W =", A * W)
 
 // @ matris çarpımıdır (satır × sütun).
-yazdır("A @ W =", A @ W)
+TR_fn_print("A @ W =", A @ W)
 
 // Yayınlama: küçük tensör büyüğün şekline kendiliğinden yayılır.
-yazdır("A + [10, 20] (her satıra eklenir) =", A + tensör([10.0, 20.0]))
-yazdır("A * 2 =", A * 2)
+TR_fn_print("A + [10, 20] (her satıra eklenir) =", A + TR_fn_tensor([10.0, 20.0]))
+TR_fn_print("A * 2 =", A * 2)
 
 // Etkinleştirme işlevleri: relu negatifleri sıfırlar, softmax toplamı 1 olan olasılık verir.
-yazdır("relu(A @ W - 4) =", relu(A @ W - 4))
-yazdır("softmax([2, 1, 0.1]) =", softmax(tensör([2.0, 1.0, 0.1])))
-yazdır("toplam:", toplam(A), "ortalama:", ortalama(A))
+TR_fn_print("relu(A @ W - 4) =", TR_fn_relu(A @ W - 4))
+TR_fn_print("softmax([2, 1, 0.1]) =", TR_fn_softmax(TR_fn_tensor([2.0, 1.0, 0.1])))
+TR_fn_print("toplam:", TR_fn_sum(A), "ortalama:", TR_fn_mean(A))
 
 // Tip bildirimi: Tensör. Şekil tensörün bir özelliğidir (sayı türü ve cihaz 33'te).
-değişken t: Tensör = tensör([[1, 2, 3], [4, 5, 6]])
-yazdır(tip(t) == Tensör, t.şekil)
+TR_kw_var t: TR_type_Tensor = TR_fn_tensor([[1, 2, 3], [4, 5, 6]])
+TR_fn_print(TR_fn_type(t) == TR_type_Tensor, t.TR_mem_shape)
 
 // devrik son iki ekseni yer değiştirir; eksenleri_sırala eksenleri verilen sıraya dizer;
 // dilim(eksen, baş, son) bir aralığı keser; bitiştir tensör listesini bir eksen boyunca uç uca ekler.
-yazdır(t.devrik().değer)
-yazdır(sıfırlar([2, 3, 4]).eksenleri_sırala([2, 0, 1]).şekil)
-yazdır(t.dilim(1, 0, 2).değer)
-yazdır(bitiştir([birler([2, 1]), sıfırlar([2, 2])], eksen: -1).şekil)
+TR_fn_print(t.TR_mem_transpose().TR_mem_tolist)
+TR_fn_print(TR_fn_zeros([2, 3, 4]).TR_mem_permute([2, 0, 1]).TR_mem_shape)
+TR_fn_print(t.TR_mem_slice(1, 0, 2).TR_mem_tolist)
+TR_fn_print(TR_fn_concat([TR_fn_ones([2, 1]), TR_fn_zeros([2, 2])], TR_arg_dim: -1).TR_mem_shape)
 
 // --- Kendin dene ---
 // 1. 3x3 bir matris kur ve onu birim_matris(3) ile çarp: sonuç ne?

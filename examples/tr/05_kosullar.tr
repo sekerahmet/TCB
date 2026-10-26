@@ -1,48 +1,49 @@
+//! tr kodlu 3 dil=tr
 // 05 — Koşullar: programın karar vermesi.
 // Ne öğretir: eğer / değilse eğer / değilse, ve/veya/değil ile birleşik koşul, iç içe koşul, eşle.
 // Önceki örnekten: karşılaştırma ve Mantık değerleri (03), metne değer yerleştirme (04).
 // Çalıştırma (proje kökünden): tr examples/tr/05_kosullar.tr
 
-değişken sıcaklık = 31
+TR_kw_var sıcaklık = 31
 
 // Koşul doğruysa süslü parantezli blok çalışır; sırayla denenir, ilk doğru olan seçilir.
-eğer sıcaklık > 30 {
-    yazdır("sıcak")
-} değilse eğer sıcaklık > 15 {
-    yazdır("ılık")
-} değilse {
-    yazdır("soğuk")
+TR_kw_if sıcaklık > 30 {
+    TR_fn_print("sıcak")
+} TR_kw_else TR_kw_if sıcaklık > 15 {
+    TR_fn_print("ılık")
+} TR_kw_else {
+    TR_fn_print("soğuk")
 }
 
 // Birleşik koşul: ve ikisi de doğruysa, veya biri doğruysa, değil tersi.
-değişken yaş = 20
-değişken ehliyet_var = doğru
-eğer yaş >= 18 ve ehliyet_var {
-    yazdır("araç kullanabilir")
+TR_kw_var yaş = 20
+TR_kw_var ehliyet_var = TR_kw_true
+TR_kw_if yaş >= 18 TR_kw_and ehliyet_var {
+    TR_fn_print("araç kullanabilir")
 }
-eğer yaş < 18 veya değil ehliyet_var {
-    yazdır("araç kullanamaz")
+TR_kw_if yaş < 18 TR_kw_or TR_kw_not ehliyet_var {
+    TR_fn_print("araç kullanamaz")
 }
 
 // Koşullar iç içe yazılabilir.
-eğer yaş >= 18 {
-    eğer yaş >= 65 {
-        yazdır("{yaş}: emekli")
-    } değilse {
-        yazdır("{yaş}: yetişkin")
+TR_kw_if yaş >= 18 {
+    TR_kw_if yaş >= 65 {
+        TR_fn_print("{yaş}: emekli")
+    } TR_kw_else {
+        TR_fn_print("{yaş}: yetişkin")
     }
 }
 
 // eşle: bir değeri sırayla kalıplarla karşılaştırır, ilk uyan kolu çalıştırır.
 // varsayılan hiçbiri uymazsa çalışır. eşle değer de üretir.
-değişken gün = 3
-değişken gün_adı = eşle gün {
+TR_kw_var gün = 3
+TR_kw_var gün_adı = TR_kw_match gün {
     1 => "pazartesi"
     2 => "salı"
     3 => "çarşamba"
-    varsayılan => "başka bir gün"
+    TR_kw_default => "başka bir gün"
 }
-yazdır("{gün}. gün: {gün_adı}")
+TR_fn_print("{gün}. gün: {gün_adı}")
 
 // --- Kendin dene ---
 // 1. Bir notu (0-100) değişkene yaz; 50'nin altına "kaldı", 50-84'e "geçti", 85 ve üstüne "pekiyi" yazdır.

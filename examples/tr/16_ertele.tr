@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // 16 — Ertele: temizliği her durumda yapmak.
 // Ne öğretir: ertele ile bir işi fonksiyondan çıkarken (hata olsa da olmasa da) ters sırayla çalıştırmak.
 // Önceki örnekten: fonksiyonlar (08), hata yönetimi (15).
@@ -5,27 +6,27 @@
 
 // ertele ifadesi hemen çalışmaz; fonksiyon bitince çalışır. Birden çoksa sonuncu önce çalışır.
 // Açılan her şeyin (dosya, bağlantı) kapatılması bu sayede unutulmaz.
-fonksiyon dosya_işlemi() {
-    ertele yazdır("  [ertele 1] bağlantı kapatıldı")
-    ertele yazdır("  [ertele 2] önbellek temizlendi") // önce bu çalışır
-    yazdır("  [işlem] veri işleniyor...")
-    sonuç "başarılı"
+TR_kw_func dosya_işlemi() {
+    TR_kw_defer TR_fn_print("  [ertele 1] bağlantı kapatıldı")
+    TR_kw_defer TR_fn_print("  [ertele 2] önbellek temizlendi") // önce bu çalışır
+    TR_fn_print("  [işlem] veri işleniyor...")
+    TR_kw_return "başarılı"
 }
-yazdır("dönüş: {dosya_işlemi()}")
+TR_fn_print("dönüş: {dosya_işlemi()}")
 
 // Hata çıksa da ertelenen işler çalışır.
-fonksiyon başarısız_işlem() {
-    ertele yazdır("  [ertele] hata olsa da temizlik yapıldı")
-    fırlat "işlem başarısız"
+TR_kw_func başarısız_işlem() {
+    TR_kw_defer TR_fn_print("  [ertele] hata olsa da temizlik yapıldı")
+    TR_kw_throw "işlem başarısız"
 }
-dene { başarısız_işlem() } yakala h { yazdır("yakalandı: {h}") }
+TR_kw_try { başarısız_işlem() } TR_kw_catch h { TR_fn_print("yakalandı: {h}") }
 
 // Döngü içinde fonksiyon çağrısıyla her tur için ertele çalıştırılabilir.
-fonksiyon tur(n) {
-    ertele yazdır("  tur {n} bitti")
-    yazdır("tur {n} başladı")
+TR_kw_func tur(n) {
+    TR_kw_defer TR_fn_print("  tur {n} bitti")
+    TR_fn_print("tur {n} başladı")
 }
-döngü n içinde 1..=3 { tur(n) }
+TR_kw_for n TR_kw_in 1..=3 { tur(n) }
 
 // --- Kendin dene ---
 // 1. Üç ertele yaz ve hangi sırayla çalıştıklarını gözle.

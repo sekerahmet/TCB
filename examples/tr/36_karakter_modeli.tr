@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // 36 — Karakter modeli: gerçek metinle eğitilen küçük bir dil modeli (~100 bin parametre).
 // Ne öğretir: metinden karakter sözlüğü kurmak, katman listesiyle derin (2 katmanlı) model, parametre
 // sayımı, argmax ile açgözlü metin üretimi. Aynı modelin başka dildeki hız kıyası: tools/bench/README.md.
@@ -5,9 +6,9 @@
 // Veri: TR'nin kendi Türkçe belgeleri. Model bir sonraki karakteri tahmin etmeyi öğrenir.
 // Çalıştırma (proje kökünden): tr examples/tr/36_karakter_modeli.tr
 
-sabit ADIM = 300
+TR_kw_const ADIM = 300
 // Eğitim metni: kullanım kılavuzunun ve dil tanımının bölümleri, sırasıyla.
-sabit BELGELER = [
+TR_kw_const BELGELER = [
     "docs/guide/01_baslangic.md", "docs/guide/02_anahtar_kelimeler.md",
     "docs/guide/03_zincirleme_metotlar.md", "docs/guide/04_yapay_zeka_ve_veri.md",
     "docs/guide/05_hata_ayiklayici.md", "docs/guide/06_vscode_kisayollari.md",
@@ -19,131 +20,131 @@ sabit BELGELER = [
     "docs/spec/13_yerlesikler.md", "docs/spec/14_sinirlamalar.md", "docs/spec/15_tensorler.md",
     "docs/spec/16_veri_parcalayici.md", "docs/spec/17_kodlar.md"
 ]
-değişken metin_verisi = ""
-döngü belge_yolu içinde BELGELER {
-    metin_verisi += dosya_oku("../../" + belge_yolu)
+TR_kw_var metin_verisi = ""
+TR_kw_for belge_yolu TR_kw_in BELGELER {
+    metin_verisi += TR_fn_read_file("../../" + belge_yolu)
 }
 
 // --- Karakter sözlüğü ---
-değişken harfler = []
-değişken harf_no = {}
-değişken veri = []
-döngü h içinde metin_verisi {
-    eğer harf_no[h] == yok {
-        harf_no[h] = harfler.uzunluk
-        harfler.ekle(h)
+TR_kw_var harfler = []
+TR_kw_var harf_no = {}
+TR_kw_var veri = []
+TR_kw_for h TR_kw_in metin_verisi {
+    TR_kw_if harf_no[h] == TR_kw_none {
+        harf_no[h] = harfler.TR_mem_length
+        harfler.TR_mem_append(h)
     }
-    veri.ekle(harf_no[h])
+    veri.TR_mem_append(harf_no[h])
 }
 
-değişken V = harfler.uzunluk // sözlük boyutu
-değişken T = 64 // bağlam uzunluğu
-değişken D = 64 // gizli boyut
-değişken H = 4 // dikkat bakışı
-değişken Dh = 16 // bakış boyutu
-değişken B = 16 // toplu iş boyutu
-sabit KATMAN = 2
+TR_kw_var V = harfler.TR_mem_length // sözlük boyutu
+TR_kw_var T = 64 // bağlam uzunluğu
+TR_kw_var D = 64 // gizli boyut
+TR_kw_var H = 4 // dikkat bakışı
+TR_kw_var Dh = 16 // bakış boyutu
+TR_kw_var B = 16 // toplu iş boyutu
+TR_kw_const KATMAN = 2
 
 // --- Parametreler ---
-değişken parametre_tohumu = 1
-değişken ağırlıklar = []
-fonksiyon parametre(şekil, ölçek) {
+TR_kw_var parametre_tohumu = 1
+TR_kw_var ağırlıklar = []
+TR_kw_func parametre(şekil, ölçek) {
     parametre_tohumu += 1
-    değişken p = tensör(türevsiz(rastgele_normal(şekil, tohum: parametre_tohumu) * ölçek), türev_izle: doğru)
-    ağırlıklar.ekle(p)
-    sonuç p
+    TR_kw_var p = TR_fn_tensor(TR_fn_no_grad(TR_fn_randn(şekil, TR_arg_seed: parametre_tohumu) * ölçek), TR_arg_requires_grad: TR_kw_true)
+    ağırlıklar.TR_mem_append(p)
+    TR_kw_return p
 }
-fonksiyon sabit_parametre(şekil, değer) {
-    değişken p = tensör(birler(şekil) * değer, türev_izle: doğru)
-    ağırlıklar.ekle(p)
-    sonuç p
+TR_kw_func sabit_parametre(şekil, değer) {
+    TR_kw_var p = TR_fn_tensor(TR_fn_ones(şekil) * değer, TR_arg_requires_grad: TR_kw_true)
+    ağırlıklar.TR_mem_append(p)
+    TR_kw_return p
 }
 
-değişken E = parametre([V, D], 0.1)
-değişken P = parametre([T, D], 0.1)
-değişken katmanlar = []
-döngü k içinde 0..KATMAN {
-    katmanlar.ekle({
+TR_kw_var E = parametre([V, D], 0.1)
+TR_kw_var P = parametre([T, D], 0.1)
+TR_kw_var katmanlar = []
+TR_kw_for k TR_kw_in 0..KATMAN {
+    katmanlar.TR_mem_append({
         "Wq": parametre([D, D], 0.1), "Wk": parametre([D, D], 0.1), "Wv": parametre([D, D], 0.1),
         "Wo": parametre([D, D], 0.1), "W1": parametre([D, 4 * D], 0.1), "W2": parametre([4 * D, D], 0.05),
         "g1": sabit_parametre([D], 1.0), "s1": sabit_parametre([D], 0.0),
         "g2": sabit_parametre([D], 1.0), "s2": sabit_parametre([D], 0.0)
     })
 }
-değişken gs = sabit_parametre([D], 1.0)
-değişken ss = sabit_parametre([D], 0.0)
-değişken Wu = parametre([D, V], 0.1)
+TR_kw_var gs = sabit_parametre([D], 1.0)
+TR_kw_var ss = sabit_parametre([D], 0.0)
+TR_kw_var Wu = parametre([D, V], 0.1)
 
-değişken toplam_parametre = 0
-döngü p içinde ağırlıklar { toplam_parametre += p.şekil.indirge(1) { birikim * o } } // şeklin boyutlarının çarpımı
-yazdır("veri: {veri.uzunluk} karakter, sözlük: {V} karakter, parametre: {toplam_parametre}")
+TR_kw_var toplam_parametre = 0
+TR_kw_for p TR_kw_in ağırlıklar { toplam_parametre += p.TR_mem_shape.TR_mem_reduce(1) { TR_ctx_acc * TR_ctx_it } } // şeklin boyutlarının çarpımı
+TR_fn_print("veri: {veri.TR_mem_length} karakter, sözlük: {V} karakter, parametre: {toplam_parametre}")
 
 // --- Model ---
-değişken konumlar = aralık(T)
+TR_kw_var konumlar = TR_fn_range(T)
 
-fonksiyon ileri(girdiler, b) {
-    değişken x = gömme(E, girdiler) + gömme(P, konumlar)
-    döngü L içinde katmanlar {
+TR_kw_func ileri(girdiler, b) {
+    TR_kw_var x = TR_fn_embedding(E, girdiler) + TR_fn_embedding(P, konumlar)
+    TR_kw_for L TR_kw_in katmanlar {
         // Ön normalizasyonlu blok: dikkat, ardından ileri besleme
-        değişken a = katman_normu(x, L["g1"], L["s1"])
-        değişken q = (a @ L["Wq"]).şekillendir([b, T, H, Dh])
-        değişken k = (a @ L["Wk"]).şekillendir([b, T, H, Dh])
-        değişken v = (a @ L["Wv"]).şekillendir([b, T, H, Dh])
+        TR_kw_var a = TR_fn_layer_norm(x, L["g1"], L["s1"])
+        TR_kw_var q = (a @ L["Wq"]).TR_mem_reshape([b, T, H, Dh])
+        TR_kw_var k = (a @ L["Wk"]).TR_mem_reshape([b, T, H, Dh])
+        TR_kw_var v = (a @ L["Wv"]).TR_mem_reshape([b, T, H, Dh])
         // Nedensel dikkat, ölçek 1/√Dh = 0.25 (softmax(q·kᵀ·0.25 + nedensel maske) · v ile aynı)
-        değişken y = dikkat(q, k, v).şekillendir([b, T, D])
+        TR_kw_var y = TR_fn_attention(q, k, v).TR_mem_reshape([b, T, D])
         x = x + y @ L["Wo"]
-        değişken m = katman_normu(x, L["g2"], L["s2"])
-        x = x + gelu(m @ L["W1"]) @ L["W2"]
+        TR_kw_var m = TR_fn_layer_norm(x, L["g2"], L["s2"])
+        x = x + TR_fn_gelu(m @ L["W1"]) @ L["W2"]
     }
-    sonuç katman_normu(x, gs, ss) @ Wu
+    TR_kw_return TR_fn_layer_norm(x, gs, ss) @ Wu
 }
 
 // --- Veri örnekleme (tekrar üretilebilir) ---
-değişken tohum = 12345
-fonksiyon rastgele_tam(n) {
+TR_kw_var tohum = 12345
+TR_kw_func rastgele_tam(n) {
     tohum = (tohum * 1103515245 + 12345) % 2147483648
-    sonuç tohum % n
+    TR_kw_return tohum % n
 }
-fonksiyon toplu_iş() {
-    değişken girdiler = []
-    değişken hedefler = []
-    döngü b içinde 0..B {
-        değişken baş = rastgele_tam(veri.uzunluk - T - 1)
-        değişken satır = []
-        döngü t içinde 0..T {
-            satır.ekle(veri[baş + t])
-            hedefler.ekle(veri[baş + t + 1])
+TR_kw_func toplu_iş() {
+    TR_kw_var girdiler = []
+    TR_kw_var hedefler = []
+    TR_kw_for b TR_kw_in 0..B {
+        TR_kw_var baş = rastgele_tam(veri.TR_mem_length - T - 1)
+        TR_kw_var satır = []
+        TR_kw_for t TR_kw_in 0..T {
+            satır.TR_mem_append(veri[baş + t])
+            hedefler.TR_mem_append(veri[baş + t + 1])
         }
-        girdiler.ekle(satır)
+        girdiler.TR_mem_append(satır)
     }
-    sonuç [girdiler, hedefler]
+    TR_kw_return [girdiler, hedefler]
 }
 
 // --- Eğitim ---
-değişken iyileştirici = AdamW(ağırlıklar, öğrenme_oranı: 0.003, ağırlık_çürümesi: 0.0)
-döngü adım içinde 0..ADIM {
-    değişken tb = toplu_iş()
-    iyileştirici.sıfırla()
-    değişken kayıp = çapraz_entropi(ileri(tb[0], B), tb[1])
-    geri_yayılım(kayıp)
-    iyileştirici.adım()
-    eğer adım % 50 == 0 veya adım == ADIM - 1 {
-        yazdır("adım {adım}: kayıp = {yuvarla(kayıp.değer, 4)}")
+TR_kw_var iyileştirici = TR_fn_AdamW(ağırlıklar, TR_arg_lr: 0.003, TR_arg_weight_decay: 0.0)
+TR_kw_for adım TR_kw_in 0..ADIM {
+    TR_kw_var tb = toplu_iş()
+    iyileştirici.TR_mem_zero_grad()
+    TR_kw_var kayıp = TR_fn_cross_entropy(ileri(tb[0], B), tb[1])
+    TR_fn_backward(kayıp)
+    iyileştirici.TR_mem_step()
+    TR_kw_if adım % 50 == 0 TR_kw_or adım == ADIM - 1 {
+        TR_fn_print("adım {adım}: kayıp = {TR_fn_round(kayıp.TR_mem_tolist, 4)}")
     }
 }
 
 // --- Metin üretimi (her adımda en olası karakter) ---
-değişken bağlam = []
-döngü t içinde 0..T { bağlam.ekle(veri[t]) }
-değişken üretilen = ""
-türevsiz {
-    döngü n içinde 0..120 {
-        değişken en_iyi = argmax(ileri([bağlam], 1), eksen: -1).değer[0][T - 1]
+TR_kw_var bağlam = []
+TR_kw_for t TR_kw_in 0..T { bağlam.TR_mem_append(veri[t]) }
+TR_kw_var üretilen = ""
+TR_fn_no_grad {
+    TR_kw_for n TR_kw_in 0..120 {
+        TR_kw_var en_iyi = TR_fn_argmax(ileri([bağlam], 1), TR_arg_dim: -1).TR_mem_tolist[0][T - 1]
         üretilen = üretilen + harfler[en_iyi]
         bağlam = bağlam[1..T] + [en_iyi] // pencereyi bir kaydır
     }
 }
-yazdır("model şunu yazdı: {üretilen}")
+TR_fn_print("model şunu yazdı: {üretilen}")
 
 // --- Kendin dene ---
 // 1. ADIM'ı 300'den 600'e çıkar: üretilen metin nasıl değişiyor?

@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // Hata 10 — Sınır dışı indeks.
 // İleti kodu: H2515
 // Ne olur: Listenin olmayan bir konumu okunursa çalışma anında hata alınır; ileti uzunluğu ve çözümü söyler.
@@ -6,5 +7,5 @@
 //     yazdır(l.varsa_al(5) ?? 0) // öğe olmayabilirse; ya da uzunluğa bakın: eğer 5 < l.uzunluk { ... }
 // Çalıştırma (proje kökünden): tr examples/tr/hatalar/10_sinir_disi_indeks.tr   (çıkış kodu 1)
 
-değişken l = [10, 20, 30]
-yazdır(l[5])
+TR_kw_var l = [10, 20, 30]
+TR_fn_print(l[5])

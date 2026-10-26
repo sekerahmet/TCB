@@ -1,293 +1,294 @@
+//! tr kodlu 3 dil=tr
 // docs/spec/03_tipler.md §3 — Tipler ve değerler
 
-test "3.1 Tam: 64 bit, taşma hata verir" {
-    eşit_mi(9223372036854775807, 9223372036854775806 + 1)
-    değişken mesaj = ""
-    dene { değişken z = 9223372036854775807 + 1 } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("taşma"), mesaj)
+TR_ctx_test "3.1 Tam: 64 bit, taşma hata verir" {
+    TR_fn_assert_equal(9223372036854775807, 9223372036854775806 + 1)
+    TR_kw_var mesaj = ""
+    TR_kw_try { TR_kw_var z = 9223372036854775807 + 1 } TR_kw_catch h { mesaj = h }
+    TR_fn_assert(mesaj.TR_mem_contains("taşma"), mesaj)
 }
 
-test "3.1 yerleşikler de taşmada sarmak yerine hata verir" {
-    değişken büyük = 9223372036854775807
-    değişken hatalar = []
-    dene { toplam([büyük, 1]) } yakala h { hatalar.ekle(h) }
-    dene { toplam([büyük, 1]) } yakala h { hatalar.ekle(h) }
-    dene { mutlak(-büyük - 1) } yakala h { hatalar.ekle(h) }
-    dene { tam(1e30) } yakala h { hatalar.ekle(h) }
-    dene { tam(-1e30) } yakala h { hatalar.ekle(h) }
-    dene { yuvarla(1e30) } yakala h { hatalar.ekle(h) }
-    eşit_mi(6, hatalar.uzunluk, metin(hatalar))
-    döngü h içinde hatalar { doğrula(h.içerir("Tam sayı taşması"), h) }
-    eşit_mi(büyük, toplam([büyük - 1, 1]))
-    eşit_mi(-büyük - 1, tam(ondalık(-büyük - 1)))
+TR_ctx_test "3.1 yerleşikler de taşmada sarmak yerine hata verir" {
+    TR_kw_var büyük = 9223372036854775807
+    TR_kw_var hatalar = []
+    TR_kw_try { TR_fn_sum([büyük, 1]) } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { TR_fn_sum([büyük, 1]) } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { TR_fn_abs(-büyük - 1) } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { TR_fn_int(1e30) } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { TR_fn_int(-1e30) } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { TR_fn_round(1e30) } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_fn_assert_equal(6, hatalar.TR_mem_length, TR_fn_str(hatalar))
+    TR_kw_for h TR_kw_in hatalar { TR_fn_assert(h.TR_mem_contains("Tam sayı taşması"), h) }
+    TR_fn_assert_equal(büyük, TR_fn_sum([büyük - 1, 1]))
+    TR_fn_assert_equal(-büyük - 1, TR_fn_int(TR_fn_float(-büyük - 1)))
 }
 
-test "3.2 Ondalık: 64 bit kayan noktalı" {
-    eşit_mi(0.75, 3 / 4)
-    eşit_mi("1.0", metin(1.0))
-    eşit_mi("123456.0", metin(123456.0))
+TR_ctx_test "3.2 Ondalık: 64 bit kayan noktalı" {
+    TR_fn_assert_equal(0.75, 3 / 4)
+    TR_fn_assert_equal("1.0", TR_fn_str(1.0))
+    TR_fn_assert_equal("123456.0", TR_fn_str(123456.0))
     // Büyüklüğü 1e6 ve üstü ya da 1e-4'ten küçük olanlar bilimsel gösterimle yazılır
-    eşit_mi("1e+06", metin(1e6))
-    eşit_mi("1.6777216e+07", metin(16777216.0))
-    eşit_mi("0.0001", metin(0.0001))
-    eşit_mi("1e-05", metin(0.00001))
+    TR_fn_assert_equal("1e+06", TR_fn_str(1e6))
+    TR_fn_assert_equal("1.6777216e+07", TR_fn_str(16777216.0))
+    TR_fn_assert_equal("0.0001", TR_fn_str(0.0001))
+    TR_fn_assert_equal("1e-05", TR_fn_str(0.00001))
 }
 
-test "3.3 Metin: karakter (rune) bazında uzunluk ve indeks" {
-    eşit_mi(5, "şeker".uzunluk)
-    eşit_mi("ş", "şeker"[0])
-    eşit_mi("r", "şeker"[-1])
-    eşit_mi("ek", "şeker"[1..3])
+TR_ctx_test "3.3 Metin: karakter (rune) bazında uzunluk ve indeks" {
+    TR_fn_assert_equal(5, "şeker".TR_mem_length)
+    TR_fn_assert_equal("ş", "şeker"[0])
+    TR_fn_assert_equal("r", "şeker"[-1])
+    TR_fn_assert_equal("ek", "şeker"[1..3])
     // Sınır dışı okuma hatadır; öğenin olmayabileceği bilinçli durum varsa_al ile yazılır
-    değişken m = ""
-    dene { "abc"[10] } yakala h { m = h }
-    doğrula(m.içerir("sınır dışı") ve m.içerir("varsa_al"), m)
-    eşit_mi(yok, "abc".varsa_al(10))
-    eşit_mi("c", "abc".varsa_al(-1))
+    TR_kw_var m = ""
+    TR_kw_try { "abc"[10] } TR_kw_catch h { m = h }
+    TR_fn_assert(m.TR_mem_contains("sınır dışı") TR_kw_and m.TR_mem_contains("varsa_al"), m)
+    TR_fn_assert_equal(TR_kw_none, "abc".TR_mem_get(10))
+    TR_fn_assert_equal("c", "abc".TR_mem_get(-1))
 }
 
-test "3.3 dilimde negatif uç indeksteki gibi sondan sayar" {
-    eşit_mi("ker", "şeker"[-3..5])
-    eşit_mi("eke", "şeker"[1..-1])
-    eşit_mi("eker", "şeker"[1..=-1])
-    eşit_mi("şeker", "şeker"[-10..10])
-    eşit_mi("", "şeker"[3..1])
+TR_ctx_test "3.3 dilimde negatif uç indeksteki gibi sondan sayar" {
+    TR_fn_assert_equal("ker", "şeker"[-3..5])
+    TR_fn_assert_equal("eke", "şeker"[1..-1])
+    TR_fn_assert_equal("eker", "şeker"[1..=-1])
+    TR_fn_assert_equal("şeker", "şeker"[-10..10])
+    TR_fn_assert_equal("", "şeker"[3..1])
 }
 
-test "3.4 Mantık: doğru ve yanlış" {
-    eşit_mi(Mantık, tip(doğru))
-    doğrula(doğru != yanlış)
+TR_ctx_test "3.4 Mantık: doğru ve yanlış" {
+    TR_fn_assert_equal(TR_type_Bool, TR_fn_type(TR_kw_true))
+    TR_fn_assert(TR_kw_true != TR_kw_false)
 }
 
-test "3.5 yok: boş değer" {
-    eşit_mi(Yok, tip(yok))
-    fonksiyon hicbir_sey() {}
-    eşit_mi(yok, hicbir_sey())
+TR_ctx_test "3.5 yok: boş değer" {
+    TR_fn_assert_equal(TR_type_None, TR_fn_type(TR_kw_none))
+    TR_kw_func hicbir_sey() {}
+    TR_fn_assert_equal(TR_kw_none, hicbir_sey())
 }
 
-test "3.6 Liste: sıralı, karışık tipli; sınır dışı okuma hatadır, varsa_al yok verir" {
-    değişken l = [1, "iki", 3.0]
-    eşit_mi(3, l.uzunluk)
-    eşit_mi(1, l[0])
-    eşit_mi(3.0, l[-1])
-    değişken m = ""
-    dene { l[5] } yakala h { m = h }
-    doğrula(m.içerir("sınır dışı: 5 (uzunluk 3)"), m)
+TR_ctx_test "3.6 Liste: sıralı, karışık tipli; sınır dışı okuma hatadır, varsa_al yok verir" {
+    TR_kw_var l = [1, "iki", 3.0]
+    TR_fn_assert_equal(3, l.TR_mem_length)
+    TR_fn_assert_equal(1, l[0])
+    TR_fn_assert_equal(3.0, l[-1])
+    TR_kw_var m = ""
+    TR_kw_try { l[5] } TR_kw_catch h { m = h }
+    TR_fn_assert(m.TR_mem_contains("sınır dışı: 5 (uzunluk 3)"), m)
     m = ""
-    dene { l[-4] } yakala h { m = h }
-    doğrula(m.içerir("sınır dışı: -4"), m)
-    eşit_mi(yok, l.varsa_al(5))
-    eşit_mi(0, l.varsa_al(5) ?? 0)
-    eşit_mi(3.0, l.varsa_al(-1))
-    eşit_mi([1, "iki"], l[0..2])
+    TR_kw_try { l[-4] } TR_kw_catch h { m = h }
+    TR_fn_assert(m.TR_mem_contains("sınır dışı: -4"), m)
+    TR_fn_assert_equal(TR_kw_none, l.TR_mem_get(5))
+    TR_fn_assert_equal(0, l.TR_mem_get(5) ?? 0)
+    TR_fn_assert_equal(3.0, l.TR_mem_get(-1))
+    TR_fn_assert_equal([1, "iki"], l[0..2])
     // Dilimde negatif uç sondan sayar; uçlar listenin sınırına kırpılır
-    eşit_mi([3, 4], [1, 2, 3, 4][-2..4])
-    eşit_mi([2, 3], [1, 2, 3, 4][1..=-2])
-    eşit_mi([1, 2, 3], [1, 2, 3][0..=9223372036854775807])
+    TR_fn_assert_equal([3, 4], [1, 2, 3, 4][-2..4])
+    TR_fn_assert_equal([2, 3], [1, 2, 3, 4][1..=-2])
+    TR_fn_assert_equal([1, 2, 3], [1, 2, 3][0..=9223372036854775807])
 }
 
-test "3.6 Liste: değerler başvuruyla paylaşılır" {
-    değişken a = [1]
-    değişken b = a
-    b.ekle(2)
-    eşit_mi([1, 2], a)
+TR_ctx_test "3.6 Liste: değerler başvuruyla paylaşılır" {
+    TR_kw_var a = [1]
+    TR_kw_var b = a
+    b.TR_mem_append(2)
+    TR_fn_assert_equal([1, 2], a)
 }
 
-test "3.7 Sözlük: eklenme sırasını korur, çıplak ad anahtarı metindir" {
-    değişken d = {ad: "Ali", "yaş": 30, 1: "bir"}
-    eşit_mi(["ad", "yaş", 1], d.anahtarlar())
-    eşit_mi("Ali", d["ad"])
-    eşit_mi("Ali", d.ad)
-    eşit_mi("bir", d[1])
-    eşit_mi(yok, d["yok_olan"])
-    d["yeni"] = doğru
-    eşit_mi(4, d.uzunluk)
+TR_ctx_test "3.7 Sözlük: eklenme sırasını korur, çıplak ad anahtarı metindir" {
+    TR_kw_var d = {ad: "Ali", "yaş": 30, 1: "bir"}
+    TR_fn_assert_equal(["ad", "yaş", 1], d.TR_mem_keys())
+    TR_fn_assert_equal("Ali", d["ad"])
+    TR_fn_assert_equal("Ali", d.ad)
+    TR_fn_assert_equal("bir", d[1])
+    TR_fn_assert_equal(TR_kw_none, d["yok_olan"])
+    d["yeni"] = TR_kw_true
+    TR_fn_assert_equal(4, d.TR_mem_length)
 }
 
-test "3.7 sayı anahtarları sayı eşitliğiyle bulunur: d[1] ile d[1.0] aynı anahtardır" {
-    değişken d = {1: "bir"}
-    eşit_mi("bir", d[1.0])
+TR_ctx_test "3.7 sayı anahtarları sayı eşitliğiyle bulunur: d[1] ile d[1.0] aynı anahtardır" {
+    TR_kw_var d = {1: "bir"}
+    TR_fn_assert_equal("bir", d[1.0])
     d[2.0] = "iki"
-    eşit_mi("iki", d[2])
-    eşit_mi([1, 2.0], d.anahtarlar())
+    TR_fn_assert_equal("iki", d[2])
+    TR_fn_assert_equal([1, 2.0], d.TR_mem_keys())
     d[1.0] = "BİR"
-    eşit_mi(2, d.uzunluk)
-    eşit_mi("BİR", d[1])
-    doğrula(d.içerir(1.0))
-    eşit_mi("yarım", {0.5: "yarım"}[0.5])
-    eşit_mi(yok, {1: "bir"}["1"])
+    TR_fn_assert_equal(2, d.TR_mem_length)
+    TR_fn_assert_equal("BİR", d[1])
+    TR_fn_assert(d.TR_mem_contains(1.0))
+    TR_fn_assert_equal("yarım", {0.5: "yarım"}[0.5])
+    TR_fn_assert_equal(TR_kw_none, {1: "bir"}["1"])
 }
 
-test "3.7 anahtarlar eşitliğe uyar: metinler başka anahtarlarla çakışmaz, fonksiyonlar kimlikle anahtardır" {
+TR_ctx_test "3.7 anahtarlar eşitliğe uyar: metinler başka anahtarlarla çakışmaz, fonksiyonlar kimlikle anahtardır" {
     // NUL ile başlayan bir metin anahtar (JSON'dan gelebilir) 1 sayısının anahtarıyla çakışmaz
-    değişken d = json_çöz(`{"\u0000Tam:1": "metin"}`)
+    TR_kw_var d = TR_fn_json_parse(`{"\u0000Tam:1": "metin"}`)
     d[1] = "sayı"
-    eşit_mi(2, d.uzunluk)
-    eşit_mi("sayı", d[1])
-    eşit_mi("metin", d[d.anahtarlar()[0]])
+    TR_fn_assert_equal(2, d.TR_mem_length)
+    TR_fn_assert_equal("sayı", d[1])
+    TR_fn_assert_equal("metin", d[d.TR_mem_keys()[0]])
     // görünüşü aynı iki fonksiyon iki ayrı anahtardır (4.5: kimlikle karşılaştırılır)
-    değişken f = x => x
-    değişken g = x => x
-    değişken e = {}
+    TR_kw_var f = x => x
+    TR_kw_var g = x => x
+    TR_kw_var e = {}
     e[f] = 1
     e[g] = 2
-    eşit_mi(2, e.uzunluk)
-    eşit_mi(1, e[f])
+    TR_fn_assert_equal(2, e.TR_mem_length)
+    TR_fn_assert_equal(1, e[f])
 }
 
-test "3.7 içeriği değişebilen değerler (liste, sözlük, yapı nesnesi) anahtar olamaz" {
-    değişken hatalar = []
-    dene { değişken a = {[1]: 1} } yakala h { hatalar.ekle(h) }
-    değişken d = {}
-    dene { d[[1]] = 1 } yakala h { hatalar.ekle(h) }
-    dene { değişken b = d[{}] } yakala h { hatalar.ekle(h) }
-    dene { değişken c = d.içerir([1]) } yakala h { hatalar.ekle(h) }
-    eşit_mi(4, hatalar.uzunluk)
-    döngü h içinde hatalar {
-        doğrula(h.içerir("sözlük anahtarı olamaz"), h)
+TR_ctx_test "3.7 içeriği değişebilen değerler (liste, sözlük, yapı nesnesi) anahtar olamaz" {
+    TR_kw_var hatalar = []
+    TR_kw_try { TR_kw_var a = {[1]: 1} } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_var d = {}
+    TR_kw_try { d[[1]] = 1 } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { TR_kw_var b = d[{}] } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { TR_kw_var c = d.TR_mem_contains([1]) } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_fn_assert_equal(4, hatalar.TR_mem_length)
+    TR_kw_for h TR_kw_in hatalar {
+        TR_fn_assert(h.TR_mem_contains("sözlük anahtarı olamaz"), h)
     }
 }
 
-test "3.7 sözlük üyeleri: metot adları anahtarı gölgeler, .uzunluk eleman sayısıdır" {
-    değişken d = {"anahtarlar": 5, "a": 1}
-    eşit_mi(5, d["anahtarlar"])
-    eşit_mi(["anahtarlar", "a"], d.anahtarlar())
-    eşit_mi(2, d.uzunluk)
-    eşit_mi(2, {"x": 1, "y": 2}.uzunluk)
-    eşit_mi(1, d.a)
+TR_ctx_test "3.7 sözlük üyeleri: metot adları anahtarı gölgeler, .uzunluk eleman sayısıdır" {
+    TR_kw_var d = {"anahtarlar": 5, "a": 1}
+    TR_fn_assert_equal(5, d["anahtarlar"])
+    TR_fn_assert_equal(["anahtarlar", "a"], d.TR_mem_keys())
+    TR_fn_assert_equal(2, d.TR_mem_length)
+    TR_fn_assert_equal(2, {"x": 1, "y": 2}.TR_mem_length)
+    TR_fn_assert_equal(1, d.a)
     d.b = 3
-    eşit_mi(3, d["b"])
-    değişken m = ""
-    dene { d.anahtarlar = 7 } yakala h { m = h }
-    doğrula(m.içerir("'anahtarlar' sözlüğün bir üyesi; anahtar için d[\"anahtarlar\"] yazın"), m)
+    TR_fn_assert_equal(3, d["b"])
+    TR_kw_var m = ""
+    TR_kw_try { d.TR_mem_keys = 7 } TR_kw_catch h { m = h }
+    TR_fn_assert(m.TR_mem_contains("'anahtarlar' sözlüğün bir üyesi; anahtar için d[\"anahtarlar\"] yazın"), m)
 }
 
-test "3.8 Aralık: a..b (b hariç), a..=b (b dahil)" {
-    eşit_mi(Aralık, tip(1..3))
-    değişken t = 0
-    döngü i içinde 1..4 { t += i }
-    eşit_mi(6, t)
+TR_ctx_test "3.8 Aralık: a..b (b hariç), a..=b (b dahil)" {
+    TR_fn_assert_equal(TR_type_Range, TR_fn_type(1..3))
+    TR_kw_var t = 0
+    TR_kw_for i TR_kw_in 1..4 { t += i }
+    TR_fn_assert_equal(6, t)
     t = 0
-    döngü i içinde 1..=4 { t += i }
-    eşit_mi(10, t)
+    TR_kw_for i TR_kw_in 1..=4 { t += i }
+    TR_fn_assert_equal(10, t)
 }
 
-test "3.8 Aralık: Tam sınırındaki uçlar taşmadan gezilir" {
-    değişken üst = 9223372036854775807
-    değişken sayaç = 0
-    döngü i içinde (üst - 1)..=üst { sayaç += 1 }
-    eşit_mi(2, sayaç)
-    eşit_mi([üst - 1, üst], [x döngü x içinde (üst - 1)..=üst])
-    değişken alt = -üst - 1
-    eşit_mi([alt + 1, alt], [x döngü x içinde (alt + 1)..=alt])
-    eşit_mi([3, 2, 1], [x döngü x içinde 3..0])
-    eşit_mi([], [x döngü x içinde 2..2])
-    eşit_mi([2], [x döngü x içinde 2..=2])
+TR_ctx_test "3.8 Aralık: Tam sınırındaki uçlar taşmadan gezilir" {
+    TR_kw_var üst = 9223372036854775807
+    TR_kw_var sayaç = 0
+    TR_kw_for i TR_kw_in (üst - 1)..=üst { sayaç += 1 }
+    TR_fn_assert_equal(2, sayaç)
+    TR_fn_assert_equal([üst - 1, üst], [x TR_kw_for x TR_kw_in (üst - 1)..=üst])
+    TR_kw_var alt = -üst - 1
+    TR_fn_assert_equal([alt + 1, alt], [x TR_kw_for x TR_kw_in (alt + 1)..=alt])
+    TR_fn_assert_equal([3, 2, 1], [x TR_kw_for x TR_kw_in 3..0])
+    TR_fn_assert_equal([], [x TR_kw_for x TR_kw_in 2..2])
+    TR_fn_assert_equal([2], [x TR_kw_for x TR_kw_in 2..=2])
 }
 
-test "3.9 fonksiyonlar birinci sınıf değerlerdir" {
-    değişken f = fonksiyon(x) { sonuç x + 1 }
-    değişken l = [f]
-    eşit_mi(2, l[0](1))
-    eşit_mi(Fonksiyon, tip(f))
+TR_ctx_test "3.9 fonksiyonlar birinci sınıf değerlerdir" {
+    TR_kw_var f = TR_kw_func(x) { TR_kw_return x + 1 }
+    TR_kw_var l = [f]
+    TR_fn_assert_equal(2, l[0](1))
+    TR_fn_assert_equal(TR_type_Function, TR_fn_type(f))
 }
 
-test "3.10 doğruluk: yanlış, yok, 0, 0.0, boş metin/liste/sözlük yanlış sayılır" {
-    değişken yanlislar = [yanlış, yok, 0, 0.0, "", [], {}]
-    döngü d içinde yanlislar { doğrula(değil d, "yanlış sayılmalıydı: {d}") }
-    değişken dogrular = [doğru, 1, -1, 0.1, "a", [0], {"a": 0}, 1..2]
-    döngü d içinde dogrular { doğrula(d, "doğru sayılmalıydı: {d}") }
+TR_ctx_test "3.10 doğruluk: yanlış, yok, 0, 0.0, boş metin/liste/sözlük yanlış sayılır" {
+    TR_kw_var yanlislar = [TR_kw_false, TR_kw_none, 0, 0.0, "", [], {}]
+    TR_kw_for d TR_kw_in yanlislar { TR_fn_assert(TR_kw_not d, "yanlış sayılmalıydı: {d}") }
+    TR_kw_var dogrular = [TR_kw_true, 1, -1, 0.1, "a", [0], {"a": 0}, 1..2]
+    TR_kw_for d TR_kw_in dogrular { TR_fn_assert(d, "doğru sayılmalıydı: {d}") }
 }
 
-test "3.11 tip(x) değerin tipini bir tip değeri olarak verir; tip adlarıyla karşılaştırılır" {
-    eşit_mi([Tam, Ondalık, Metin, Mantık, Yok, Liste, Sözlük],
-        [tip(1), tip(1.5), tip("a"), tip(doğru), tip(yok), tip([]), tip({})])
+TR_ctx_test "3.11 tip(x) değerin tipini bir tip değeri olarak verir; tip adlarıyla karşılaştırılır" {
+    TR_fn_assert_equal([TR_type_Int, TR_type_Float, TR_type_String, TR_type_Bool, TR_type_None, TR_type_List, TR_type_Dict],
+        [TR_fn_type(1), TR_fn_type(1.5), TR_fn_type("a"), TR_fn_type(TR_kw_true), TR_fn_type(TR_kw_none), TR_fn_type([]), TR_fn_type({})])
     // Ayrı bir matris tipi yoktur: matris 2 boyutlu tensördür.
-    eşit_mi([Tensör, Tensör], [tip(tensör([1])), tip(tensör([[1, 2]]))])
-    doğrula(tip(42) == Tam)
-    doğrula(tip(42) != Ondalık)
+    TR_fn_assert_equal([TR_type_Tensor, TR_type_Tensor], [TR_fn_type(TR_fn_tensor([1])), TR_fn_type(TR_fn_tensor([[1, 2]]))])
+    TR_fn_assert(TR_fn_type(42) == TR_type_Int)
+    TR_fn_assert(TR_fn_type(42) != TR_type_Float)
     // Tip değerinin kendisinin tipi Tip'tir; yazdırılınca ve metne çevrilince adı görünür.
-    eşit_mi(Tip, tip(Tam))
-    eşit_mi("Tam", metin(tip(42)))
-    eşit_mi("tip: Liste", "tip: " + tip([1]))
-    değişken t: Tip = tip(1.5)
-    eşit_mi(Ondalık, t)
+    TR_fn_assert_equal(TR_type_Type, TR_fn_type(TR_type_Int))
+    TR_fn_assert_equal("Tam", TR_fn_str(TR_fn_type(42)))
+    TR_fn_assert_equal("tip: Liste", "tip: " + TR_fn_type([1]))
+    TR_kw_var t: TR_type_Type = TR_fn_type(1.5)
+    TR_fn_assert_equal(TR_type_Float, t)
     // Tip değeri eşle desenlerinde de kullanılır.
-    eşit_mi("sayı", eşle tip(3) { Tam, Ondalık => "sayı"; varsayılan => "başka" })
+    TR_fn_assert_equal("sayı", TR_kw_match TR_fn_type(3) { TR_type_Int, TR_type_Float => "sayı"; TR_kw_default => "başka" })
 }
 
-test "3.11 tip değeri metinle karşılaştırılamaz: tip(x) == Tam yazılır" {
-    değişken mesaj = ""
-    değişken ad = "Tam"
-    dene { yazdır(tip(5) == ad) } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("tip değeri metinle karşılaştırılamaz: tip(x) == \"Tam\" yerine tip(x) == Tam yazın"), mesaj)
+TR_ctx_test "3.11 tip değeri metinle karşılaştırılamaz: tip(x) == Tam yazılır" {
+    TR_kw_var mesaj = ""
+    TR_kw_var ad = "Tam"
+    TR_kw_try { TR_fn_print(TR_fn_type(5) == ad) } TR_kw_catch h { mesaj = h }
+    TR_fn_assert(mesaj.TR_mem_contains("tip değeri metinle karşılaştırılamaz: tip(x) == \"Tam\" yerine tip(x) == Tam yazın"), mesaj)
     mesaj = ""
-    dene { eşit_mi(ad, tip(5)) } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("tip(x) == Tam yazın"), mesaj)
+    TR_kw_try { TR_fn_assert_equal(ad, TR_fn_type(5)) } TR_kw_catch h { mesaj = h }
+    TR_fn_assert(mesaj.TR_mem_contains("tip(x) == Tam yazın"), mesaj)
     // Denetleyici tip(...) ile bir metin sabitinin karşılaştırılmasını çalıştırmadan önce bulur.
     mesaj = ""
-    dene { aktar "negative/tip_metin" } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("Satır 2: tip değeri metinle karşılaştırılamaz: tip(x) == \"Tam\" yerine tip(x) == Tam yazın"), mesaj)
-    doğrula(mesaj.içerir("Satır 3: tip değeri metinle karşılaştırılamaz: tip(x) != \"Liste\" yerine tip(x) != Liste yazın"), mesaj)
+    TR_kw_try { TR_kw_import "negative/tip_metin" } TR_kw_catch h { mesaj = h }
+    TR_fn_assert(mesaj.TR_mem_contains("Satır 2: tip değeri metinle karşılaştırılamaz: tip(x) == \"Tam\" yerine tip(x) == Tam yazın"), mesaj)
+    TR_fn_assert(mesaj.TR_mem_contains("Satır 3: tip değeri metinle karşılaştırılamaz: tip(x) != \"Liste\" yerine tip(x) != Liste yazın"), mesaj)
 }
 
-test "3.12 dönüşümler: tam, ondalık, metin" {
-    eşit_mi(43, tam("42") + 1)
-    eşit_mi(3, tam(3.9))
-    eşit_mi(1.5, ondalık("1.5"))
-    eşit_mi("12a", metin(12) + "a")
-    değişken mesaj = ""
-    dene { tam("abc") } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("çevrilemedi"), mesaj)
+TR_ctx_test "3.12 dönüşümler: tam, ondalık, metin" {
+    TR_fn_assert_equal(43, TR_fn_int("42") + 1)
+    TR_fn_assert_equal(3, TR_fn_int(3.9))
+    TR_fn_assert_equal(1.5, TR_fn_float("1.5"))
+    TR_fn_assert_equal("12a", TR_fn_str(12) + "a")
+    TR_kw_var mesaj = ""
+    TR_kw_try { TR_fn_int("abc") } TR_kw_catch h { mesaj = h }
+    TR_fn_assert(mesaj.TR_mem_contains("çevrilemedi"), mesaj)
 }
 
-test "3.13 tip açıklamaları tip denetleyicisince denetlenir" {
-    değişken yaş: Tam = 25
-    fonksiyon iki_kat(x: Tam): Tam { sonuç x * 2 }
-    eşit_mi(50, iki_kat(yaş))
-    değişken r: Aralık = 0..3
-    eşit_mi(Aralık, tip(r))
-    değişken f: Fonksiyon = x => x
-    eşit_mi(2, f(2))
+TR_ctx_test "3.13 tip açıklamaları tip denetleyicisince denetlenir" {
+    TR_kw_var yaş: TR_type_Int = 25
+    TR_kw_func iki_kat(x: TR_type_Int): TR_type_Int { TR_kw_return x * 2 }
+    TR_fn_assert_equal(50, iki_kat(yaş))
+    TR_kw_var r: TR_type_Range = 0..3
+    TR_fn_assert_equal(TR_type_Range, TR_fn_type(r))
+    TR_kw_var f: TR_type_Function = x => x
+    TR_fn_assert_equal(2, f(2))
     // Uyuşmazlık programı çalıştırmadan reddeder (modül de aynı denetimden geçer)
-    değişken mesaj = ""
-    dene { aktar "negative/tip_aciklamasi" } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("Satır 3: Tip uyuşmazlığı — \"ad\" değişkeni \"Tam\" tipinde tanımlandı ancak \"Metin\" tipinde değer atandı"), mesaj)
-    doğrula(mesaj.içerir("Satır 4: Tip uyuşmazlığı — \"r\" değişkeni \"Liste\" tipinde tanımlandı ancak \"Aralık\" tipinde değer atandı"), mesaj)
+    TR_kw_var mesaj = ""
+    TR_kw_try { TR_kw_import "negative/tip_aciklamasi" } TR_kw_catch h { mesaj = h }
+    TR_fn_assert(mesaj.TR_mem_contains("Satır 3: Tip uyuşmazlığı — \"ad\" değişkeni \"Tam\" tipinde tanımlandı ancak \"Metin\" tipinde değer atandı"), mesaj)
+    TR_fn_assert(mesaj.TR_mem_contains("Satır 4: Tip uyuşmazlığı — \"r\" değişkeni \"Liste\" tipinde tanımlandı ancak \"Aralık\" tipinde değer atandı"), mesaj)
 }
 
-test "3.13 denetim her ifadenin içine iner" {
+TR_ctx_test "3.13 denetim her ifadenin içine iner" {
     // liste, sözlük, aralık, metin içi ifade, liste üreteci, indeks, üye, atama hedefi,
     // yapı alan varsayılanı ve metot gövdesi, eşle deseni, parametre varsayılanı
-    değişken mesaj = ""
-    dene { aktar "negative/ic_ifade_tipleri" } yakala h { mesaj = h }
-    döngü satır içinde [3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 15, 16] {
-        doğrula(mesaj.içerir("Satır {satır}: Fonksiyon çağrısı tip hatası — \"kare\" fonksiyonunun 1. parametresi \"Tam\" bekliyor ancak \"Metin\" verildi"), "{satır}: {mesaj}")
+    TR_kw_var mesaj = ""
+    TR_kw_try { TR_kw_import "negative/ic_ifade_tipleri" } TR_kw_catch h { mesaj = h }
+    TR_kw_for satır TR_kw_in [3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 15, 16] {
+        TR_fn_assert(mesaj.TR_mem_contains("Satır {satır}: Fonksiyon çağrısı tip hatası — \"kare\" fonksiyonunun 1. parametresi \"Tam\" bekliyor ancak \"Metin\" verildi"), "{satır}: {mesaj}")
     }
 }
 
-test "3.13 açıklamasız değişkenin tipi kalıcı değildir" {
-    değişken kayıp = 0
-    döngü i içinde 1..=4 { kayıp += 0.5 }
-    eşit_mi(2.0, kayıp)
-    değişken x = 5
+TR_ctx_test "3.13 açıklamasız değişkenin tipi kalıcı değildir" {
+    TR_kw_var kayıp = 0
+    TR_kw_for i TR_kw_in 1..=4 { kayıp += 0.5 }
+    TR_fn_assert_equal(2.0, kayıp)
+    TR_kw_var x = 5
     x = "beş"
-    eşit_mi(Metin, tip(x))
+    TR_fn_assert_equal(TR_type_String, TR_fn_type(x))
     // '/' Tam / Tam'da tam bölünmezse Ondalık verir; denetleyici de böyle bilir
-    değişken oran: Ondalık = 7 / 2
-    eşit_mi(3.5, oran)
+    TR_kw_var oran: TR_type_Float = 7 / 2
+    TR_fn_assert_equal(3.5, oran)
 }
 
-test "3.14 tip adının tek yazımı vardır" {
-    değişken adet: Tam = 3
-    fonksiyon kare(x: Ondalık): Ondalık { sonuç x * x }
-    eşit_mi(2.25, kare(1.5))
+TR_ctx_test "3.14 tip adının tek yazımı vardır" {
+    TR_kw_var adet: TR_type_Int = 3
+    TR_kw_func kare(x: TR_type_Float): TR_type_Float { TR_kw_return x * x }
+    TR_fn_assert_equal(2.25, kare(1.5))
     // Büyük/küçük harfi farklı yazım tip adı değildir; program çalıştırılmadan reddedilir
-    değişken mesaj = ""
-    dene { aktar "negative/tip_adi_yazimi" } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("Satır 2: 'tam' TR'de bir tip adı değil; tip adının tek yazımı vardır: 'Tam' yazın"), mesaj)
-    doğrula(mesaj.içerir("Satır 3: 'ONDALIK' TR'de bir tip adı değil; tip adının tek yazımı vardır: 'Ondalık' yazın"), mesaj)
-    doğrula(mesaj.içerir("Satır 3: 'ondalık' TR'de bir tip adı değil; tip adının tek yazımı vardır: 'Ondalık' yazın"), mesaj)
+    TR_kw_var mesaj = ""
+    TR_kw_try { TR_kw_import "negative/tip_adi_yazimi" } TR_kw_catch h { mesaj = h }
+    TR_fn_assert(mesaj.TR_mem_contains("Satır 2: 'tam' TR'de bir tip adı değil; tip adının tek yazımı vardır: 'Tam' yazın"), mesaj)
+    TR_fn_assert(mesaj.TR_mem_contains("Satır 3: 'ONDALIK' TR'de bir tip adı değil; tip adının tek yazımı vardır: 'Ondalık' yazın"), mesaj)
+    TR_fn_assert(mesaj.TR_mem_contains("Satır 3: 'ondalık' TR'de bir tip adı değil; tip adının tek yazımı vardır: 'Ondalık' yazın"), mesaj)
     // Değer olarak okunan küçük harfli ad dönüşüm fonksiyonudur (3.12)
-    eşit_mi(adet, tam("3"))
+    TR_fn_assert_equal(adet, TR_fn_int("3"))
 }

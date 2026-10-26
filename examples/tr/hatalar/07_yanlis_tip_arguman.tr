@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // Hata 07 — Yanlış tipte argüman.
 // İleti kodu: H1004
 // Ne olur: Tipi bildirilmiş parametreye başka tipte değer verildiğini tip denetimi çağrı yerinde yakalar.
@@ -6,7 +7,7 @@
 //     yazdır(alan(3.0))
 // Çalıştırma (proje kökünden): tr examples/tr/hatalar/07_yanlis_tip_arguman.tr   (çıkış kodu 1)
 
-fonksiyon alan(kenar: Ondalık) -> Ondalık {
-    sonuç kenar * kenar
+TR_kw_func alan(kenar: TR_type_Float) -> TR_type_Float {
+    TR_kw_return kenar * kenar
 }
-yazdır(alan("üç"))
+TR_fn_print(alan("üç"))

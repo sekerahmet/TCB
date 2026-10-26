@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // 13 — Matematik: sayılarla hesap yapan yerleşikler.
 // Ne öğretir: min/max/mutlak/işaret, yuvarlama (taban, tavan, sınırla), istatistik (ortanca,
 // standart_sapma), pi ve trigonometri, üstel ve logaritma fonksiyonları.
@@ -5,29 +6,29 @@
 // Çalıştırma (proje kökünden): tr examples/tr/13_matematik.tr
 
 // En küçük, en büyük, mutlak değer ve işaret. min/max bir liste ya da birden çok sayı alır.
-yazdır(min([3, 1, 2]), max([3, 1, 2]), min(4, 2.5), max(4, 2.5))
-yazdır(mutlak(-5), mutlak(-2.5), işaret(-4), işaret(0.0), işaret(9))
+TR_fn_print(TR_fn_min([3, 1, 2]), TR_fn_max([3, 1, 2]), TR_fn_min(4, 2.5), TR_fn_max(4, 2.5))
+TR_fn_print(TR_fn_abs(-5), TR_fn_abs(-2.5), TR_fn_sign(-4), TR_fn_sign(0.0), TR_fn_sign(9))
 
 // taban aşağı, tavan yukarı yuvarlar; sınırla değeri iki sınır arasında tutar (adlı argümanlar).
-yazdır(taban(3.7), tavan(3.2), taban(-2.5), tavan(-2.5))
-yazdır(sınırla(15, en_fazla: 10), sınırla(-3.5, en_az: 0.0), sınırla(5, en_az: 0, en_fazla: 3))
+TR_fn_print(TR_fn_floor(3.7), TR_fn_ceil(3.2), TR_fn_floor(-2.5), TR_fn_ceil(-2.5))
+TR_fn_print(TR_fn_clamp(15, TR_arg_max: 10), TR_fn_clamp(-3.5, TR_arg_min: 0.0), TR_fn_clamp(5, TR_arg_min: 0, TR_arg_max: 3))
 
 // İstatistik: ortalama, ortanca ve (popülasyon) standart sapma.
-değişken notlar = [2, 4, 4, 4, 5, 5, 7, 9]
-yazdır(ortalama(notlar), ortanca(notlar), standart_sapma(notlar))
-yazdır(ortanca([3, 1, 4, 2]), karekök(16))
+TR_kw_var notlar = [2, 4, 4, 4, 5, 5, 7, 9]
+TR_fn_print(TR_fn_mean(notlar), TR_fn_median(notlar), TR_fn_std(notlar))
+TR_fn_print(TR_fn_median([3, 1, 4, 2]), TR_fn_sqrt(16))
 
 // pi bir sabittir (çağrılmaz). Trigonometri radyanla çalışır: 180 derece pi radyandır.
-yazdır(yuvarla(pi, 4), yuvarla(sin(pi / 2), 4), yuvarla(cos(pi), 4), yuvarla(tan(pi / 4), 4))
-yazdır(yuvarla(asin(1.0), 4), yuvarla(acos(0.0), 4), yuvarla(atan(1.0), 4))
-yazdır(yuvarla(atan2(1.0, -1.0), 4)) // (x, y) = (-1, 1) noktasının açısı
+TR_fn_print(TR_fn_round(TR_const_pi, 4), TR_fn_round(TR_fn_sin(TR_const_pi / 2), 4), TR_fn_round(TR_fn_cos(TR_const_pi), 4), TR_fn_round(TR_fn_tan(TR_const_pi / 4), 4))
+TR_fn_print(TR_fn_round(TR_fn_asin(1.0), 4), TR_fn_round(TR_fn_acos(0.0), 4), TR_fn_round(TR_fn_atan(1.0), 4))
+TR_fn_print(TR_fn_round(TR_fn_atan2(1.0, -1.0), 4)) // (x, y) = (-1, 1) noktasının açısı
 
 // Üstel ve logaritma: exp e^x, log doğal logaritma; log2 ve log10 öbür tabanlar.
-yazdır(yuvarla(exp(1.0), 4), log(1.0), log2(8), log10(1000))
+TR_fn_print(TR_fn_round(TR_fn_exp(1.0), 4), TR_fn_log(1.0), TR_fn_log2(8), TR_fn_log10(1000))
 // log1p ve expm1 küçük sayılarda hassastır: log(1 + x), e^x - 1.
-yazdır(log1p(0.000001), expm1(0.000001))
+TR_fn_print(TR_fn_log1p(0.000001), TR_fn_expm1(0.000001))
 // Hiperbolik sinüs ve kosinüs.
-yazdır(yuvarla(sinh(1.0), 4), cosh(0.0))
+TR_fn_print(TR_fn_round(TR_fn_sinh(1.0), 4), TR_fn_cosh(0.0))
 
 // --- Kendin dene ---
 // 1. Bir listenin ortalamasını, ortancasını ve standart sapmasını karşılaştır: hangisi uç değerden en az etkilenir?

@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // 21 — CSV, ortam değişkenleri ve zaman: dış dünyadan veri almak.
 // Ne öğretir: csv_çöz ve csv_oku ile tablo okumak, ortam_değişkeni ile ortamdan ayar almak,
 // zaman_ms ile süre ölçmek.
@@ -7,28 +8,28 @@
 
 // csv_çöz CSV metnini satır listelerine çevirir (dosya okumaz). Katı sayı biçimindeki hücre sayı olur;
 // "007" gibi baştaki sıfırlı hücre Metin kalır.
-değişken tablo = csv_çöz("ad,yaş,numara\nAli,30,007\nAyşe,25,008")
-yazdır(tablo[0], tablo[1])
-yazdır(tablo[1][1] + 1, tip(tablo[1][1]), tip(tablo[1][2]))
+TR_kw_var tablo = TR_fn_parse_csv("ad,yaş,numara\nAli,30,007\nAyşe,25,008")
+TR_fn_print(tablo[0], tablo[1])
+TR_fn_print(tablo[1][1] + 1, TR_fn_type(tablo[1][1]), TR_fn_type(tablo[1][2]))
 
 // csv_oku aynı işi dosya için yapar.
-değişken dosya = yol(geçici_klasör(), "tablo.csv")
-dosya_yaz(dosya, "ürün,adet\nelma,3\nmuz,5")
-değişken satırlar = csv_oku(dosya)
-yazdır("satır sayısı:", satırlar.uzunluk)
-döngü satır içinde satırlar {
-    yazdır(satır)
+TR_kw_var dosya = TR_fn_path(TR_fn_temp_dir(), "tablo.csv")
+TR_fn_write_file(dosya, "ürün,adet\nelma,3\nmuz,5")
+TR_kw_var satırlar = TR_fn_read_csv(dosya)
+TR_fn_print("satır sayısı:", satırlar.TR_mem_length)
+TR_kw_for satır TR_kw_in satırlar {
+    TR_fn_print(satır)
 }
 // Başlık satırında adet bir Metin, veri satırlarında bir Tam: yalnızca sayıları toplarız.
-yazdır("toplam adet:", toplam([satır[1] döngü satır içinde satırlar eğer tip(satır[1]) == Tam]))
+TR_fn_print("toplam adet:", TR_fn_sum([satır[1] TR_kw_for satır TR_kw_in satırlar TR_kw_if TR_fn_type(satır[1]) == TR_type_Int]))
 
 // ortam_değişkeni tanımsızsa yok verir; varsayılan için ?? yazılır.
-yazdır(ortam_değişkeni("TR_ORNEK_OLMAYAN_DEGISKEN") ?? "varsayılan değer")
+TR_fn_print(TR_fn_env("TR_ORNEK_OLMAYAN_DEGISKEN") ?? "varsayılan değer")
 
 // zaman_ms 1970'ten beri geçen milisaniyedir; iki ölçümün farkı süredir.
-değişken baş = zaman_ms()
-bekle(0.05)
-yazdır("en az 50 ms geçti mi:", zaman_ms() - baş >= 50)
+TR_kw_var baş = TR_fn_time_ms()
+TR_fn_sleep(0.05)
+TR_fn_print("en az 50 ms geçti mi:", TR_fn_time_ms() - baş >= 50)
 
 // --- Kendin dene ---
 // 1. Kendi CSV metnini çöz ve yaş sütununun ortalamasını hesapla.

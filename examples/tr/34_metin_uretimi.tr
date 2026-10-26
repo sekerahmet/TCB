@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // 34 — Metin üretimi: modelin çıktısından örnek seçmek.
 // Ne öğretir: örnekle ile logit dağılımından bir indeks seçmek, sıcaklık: ve en_iyi_k: ile rastgeleliği ayarlamak,
 // tohum: ile sonucu tekrar üretilebilir yapmak.
@@ -6,26 +7,26 @@
 
 // Bir dil modeli her adımda bütün sözcükler için puan (logit) üretir. En olasıyı almak (argmax) hep aynı
 // metni verir; örnekle, puanlardan olasılıkla bir indeks seçer.
-değişken logit = tensör([1.0, 3.0, 0.5])
-yazdır("olasılıklar:", softmax(logit).değer)
+TR_kw_var logit = TR_fn_tensor([1.0, 3.0, 0.5])
+TR_fn_print("olasılıklar:", TR_fn_softmax(logit).TR_mem_tolist)
 
 // sıcaklık: logitleri böler. 0 her zaman en olasıyı seçer; küçük değer en olasıya yaklaştırır, büyük değer dağıtır.
-yazdır("sıcaklık 0 ->", örnekle(logit, sıcaklık: 0).değer)
+TR_fn_print("sıcaklık 0 ->", TR_fn_sample(logit, TR_arg_temperature: 0).TR_mem_tolist)
 
 // tohum: aynı tohum aynı sonucu verir (tekrar üretilebilirlik).
-yazdır(örnekle(logit, tohum: 7).değer, örnekle(logit, tohum: 7).değer)
+TR_fn_print(TR_fn_sample(logit, TR_arg_seed: 7).TR_mem_tolist, TR_fn_sample(logit, TR_arg_seed: 7).TR_mem_tolist)
 
 // en_iyi_k: seçimi en olası k sınıfla sınırlar; 1 yalnızca en olasıyı bırakır.
-yazdır("en_iyi_k 1 ->", örnekle(logit, en_iyi_k: 1).değer)
-yazdır(örnekle(logit, sıcaklık: 0.8, en_iyi_k: 2, tohum: 7).değer)
+TR_fn_print("en_iyi_k 1 ->", TR_fn_sample(logit, TR_arg_top_k: 1).TR_mem_tolist)
+TR_fn_print(TR_fn_sample(logit, TR_arg_temperature: 0.8, TR_arg_top_k: 2, TR_arg_seed: 7).TR_mem_tolist)
 
 // Bir toplu üretim: tohumu değiştirerek 8 örnek alıp hangi sınıfın kaç kez geldiğini sayalım.
-değişken sayım = [0, 0, 0]
-döngü tohum içinde 1..=8 { // yüksek sıcaklıkta dağılım yayılır
-    değişken seçilen = örnekle(logit, sıcaklık: 3.0, tohum: tohum).değer
+TR_kw_var sayım = [0, 0, 0]
+TR_kw_for tohum TR_kw_in 1..=8 { // yüksek sıcaklıkta dağılım yayılır
+    TR_kw_var seçilen = TR_fn_sample(logit, TR_arg_temperature: 3.0, TR_arg_seed: tohum).TR_mem_tolist
     sayım[seçilen] += 1
 }
-yazdır("8 örnekte (sıcaklık 3) sınıf sayıları:", sayım)
+TR_fn_print("8 örnekte (sıcaklık 3) sınıf sayıları:", sayım)
 
 // --- Kendin dene ---
 // 1. sıcaklık: 5.0 ile 8 örnek al: dağılım nasıl değişir?

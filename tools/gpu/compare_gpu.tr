@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // GPU kıyası: CPU kıyasının (tools/bench) modeli GPU'da. Aynı model ve ayarlar
 // compare_gpu.py'de. Ayarlar aynı klasördeki compare_config.json'dan okunur:
 //   {"boyut": "kucuk" | "buyuk" | "buyuk_kisa" | "gpt" | "gpt_kisa" | "deneme", "veri": "/content/veri" ya da "", "cihaz": "gpu",
@@ -7,10 +8,10 @@
 // "veri" boşsa sabit sentetik toplu işler kullanılır (kayıp anlamsız, süre geçerli).
 // Çıktı: ısınma hariç ms/adım ve son kayıp.
 
-değişken ayar = json_çöz(dosya_oku("compare_config.json"))
-değişken hassasiyet = "float32"
-eğer ayar.içerir("hassasiyet") { hassasiyet = ayar["hassasiyet"] }
-değişken boyutlar = {
+TR_kw_var ayar = TR_fn_json_parse(TR_fn_read_file("compare_config.json"))
+TR_kw_var hassasiyet = "float32"
+TR_kw_if ayar.TR_mem_contains("hassasiyet") { hassasiyet = ayar["hassasiyet"] }
+TR_kw_var boyutlar = {
     "kucuk": {"B": 8, "T": 64, "D": 128, "H": 4, "FF": 256, "KATMAN": 2, "ADIM": 220, "ISINMA": 20},
     "buyuk": {"B": 32, "T": 256, "D": 512, "H": 8, "FF": 2048, "KATMAN": 6, "ADIM": 220, "ISINMA": 20},
     "buyuk_kisa": {"B": 32, "T": 256, "D": 512, "H": 8, "FF": 2048, "KATMAN": 6, "ADIM": 40, "ISINMA": 10},
@@ -18,64 +19,64 @@ değişken boyutlar = {
     "gpt_kisa": {"B": 16, "T": 1024, "D": 768, "H": 12, "FF": 2048, "KATMAN": 12, "ADIM": 20, "ISINMA": 5},
     "deneme": {"B": 2, "T": 8, "D": 16, "H": 2, "FF": 32, "KATMAN": 1, "ADIM": 4, "ISINMA": 1}
 }
-değişken b = boyutlar[ayar["boyut"]]
-değişken B = b["B"]
-değişken T = b["T"]
-değişken D = b["D"]
-değişken H = b["H"]
-değişken Dh = D / H
-değişken FF = b["FF"]
-sabit KATMAN = b["KATMAN"]
-sabit ADIM = b["ADIM"]
-sabit ISINMA = b["ISINMA"]
-değişken V = 40000
-eğer ayar["boyut"] == "deneme" { V = 200 }
+TR_kw_var b = boyutlar[ayar["boyut"]]
+TR_kw_var B = b["B"]
+TR_kw_var T = b["T"]
+TR_kw_var D = b["D"]
+TR_kw_var H = b["H"]
+TR_kw_var Dh = D / H
+TR_kw_var FF = b["FF"]
+TR_kw_const KATMAN = b["KATMAN"]
+TR_kw_const ADIM = b["ADIM"]
+TR_kw_const ISINMA = b["ISINMA"]
+TR_kw_var V = 40000
+TR_kw_if ayar["boyut"] == "deneme" { V = 200 }
 
-yazdır("cihaz: {varsayılan_cihaz(ayar["cihaz"])} · cihazlar: {cihazlar()}")
-yazdır("ayar: {ayar["boyut"]} B={B} T={T} D={D} H={H} FF={FF} katman={KATMAN} V={V}")
+TR_fn_print("cihaz: {TR_fn_default_device(ayar["cihaz"])} · cihazlar: {TR_fn_devices()}")
+TR_fn_print("ayar: {ayar["boyut"]} B={B} T={T} D={D} H={H} FF={FF} katman={KATMAN} V={V}")
 
 // Toplu işler: veri kümesinden (varsayılan cihazda) ya da sabit sentetik.
-değişken ö = yok
-değişken sentetik = []
-eğer ayar["veri"] != "" {
-    ö = veri_kümesi(ayar["veri"]).örnekleyici(toplu: B, bağlam: T, tohum: 1)
-} değilse {
-    döngü s içinde aralık(8) {
-        değişken satırlar = [[(s * 7919 + i * 104729 + t * 31) % V döngü t içinde aralık(T + 1)] döngü i içinde aralık(B)]
-        değişken tümü = tensör(satırlar)
-        sentetik.ekle([tümü.dilim(1, 0, T), tümü.dilim(1, 1, T + 1)])
+TR_kw_var ö = TR_kw_none
+TR_kw_var sentetik = []
+TR_kw_if ayar["veri"] != "" {
+    ö = TR_fn_dataset(ayar["veri"]).TR_mem_sampler(TR_arg_batch_size: B, TR_arg_context: T, TR_arg_seed: 1)
+} TR_kw_else {
+    TR_kw_for s TR_kw_in TR_fn_range(8) {
+        TR_kw_var satırlar = [[(s * 7919 + i * 104729 + t * 31) % V TR_kw_for t TR_kw_in TR_fn_range(T + 1)] TR_kw_for i TR_kw_in TR_fn_range(B)]
+        TR_kw_var tümü = TR_fn_tensor(satırlar)
+        sentetik.TR_mem_append([tümü.TR_mem_slice(1, 0, T), tümü.TR_mem_slice(1, 1, T + 1)])
     }
 }
-fonksiyon toplu_iş(adım) {
-    eğer ö != yok { sonuç ö.sonraki() }
-    sonuç sentetik[adım % 8]
+TR_kw_func toplu_iş(adım) {
+    TR_kw_if ö != TR_kw_none { TR_kw_return ö.TR_mem_next() }
+    TR_kw_return sentetik[adım % 8]
 }
 
-aktar "measurement_model"
+TR_kw_import "measurement_model"
 
-değişken model = Model()
-değişken ağırlıklar = parametreler(model)
-değişken sayı = 0
-döngü w içinde ağırlıklar { sayı += toplam(birler(w.şekil)).değer }
-yazdır("parametre: {yuvarla(sayı / 1000000, 2)} M · ağırlıkların cihazı: {model.E.cihaz}")
-değişken iyileştirici = AdamW(ağırlıklar, öğrenme_oranı: 0.003, ağırlık_çürümesi: 0.0)
+TR_kw_var model = Model()
+TR_kw_var ağırlıklar = TR_fn_parameters(model)
+TR_kw_var sayı = 0
+TR_kw_for w TR_kw_in ağırlıklar { sayı += TR_fn_sum(TR_fn_ones(w.TR_mem_shape)).TR_mem_tolist }
+TR_fn_print("parametre: {TR_fn_round(sayı / 1000000, 2)} M · ağırlıkların cihazı: {model.E.TR_mem_device}")
+TR_kw_var iyileştirici = TR_fn_AdamW(ağırlıklar, TR_arg_lr: 0.003, TR_arg_weight_decay: 0.0)
 
-değişken başlangıç = 0
-değişken kayıp = yok
-döngü adım içinde 0..ADIM {
-    eğer adım == ISINMA {
-        eğer kayıp != yok { değişken bekle_ = kayıp.değer } // ısınmanın bitmesini bekle
-        başlangıç = zaman_ms()
+TR_kw_var başlangıç = 0
+TR_kw_var kayıp = TR_kw_none
+TR_kw_for adım TR_kw_in 0..ADIM {
+    TR_kw_if adım == ISINMA {
+        TR_kw_if kayıp != TR_kw_none { TR_kw_var bekle_ = kayıp.TR_mem_tolist } // ısınmanın bitmesini bekle
+        başlangıç = TR_fn_time_ms()
     }
-    değişken xy = toplu_iş(adım)
-    iyileştirici.sıfırla()
-    karışık_hassasiyet(hassasiyet) {
-        kayıp = çapraz_entropi(model.ileri(xy[0]), xy[1])
+    TR_kw_var xy = toplu_iş(adım)
+    iyileştirici.TR_mem_zero_grad()
+    TR_fn_mixed_precision(hassasiyet) {
+        kayıp = TR_fn_cross_entropy(model.ileri(xy[0]), xy[1])
     }
-    geri_yayılım(kayıp)
-    gradyan_kırp(ağırlıklar, en_fazla: 1.0)
-    iyileştirici.adım()
+    TR_fn_backward(kayıp)
+    TR_fn_clip_grad(ağırlıklar, TR_arg_max: 1.0)
+    iyileştirici.TR_mem_step()
 }
-değişken son = kayıp.değer // GPU'daki son adımın bitmesini bekler
-değişken süre = zaman_ms() - başlangıç
-yazdır("TR ({varsayılan_cihaz()}, {hassasiyet}): {yuvarla(süre / (ADIM - ISINMA), 2)} ms/adım · son kayıp {yuvarla(son, 4)}")
+TR_kw_var son = kayıp.TR_mem_tolist // GPU'daki son adımın bitmesini bekler
+TR_kw_var süre = TR_fn_time_ms() - başlangıç
+TR_fn_print("TR ({TR_fn_default_device()}, {hassasiyet}): {TR_fn_round(süre / (ADIM - ISINMA), 2)} ms/adım · son kayıp {TR_fn_round(son, 4)}")

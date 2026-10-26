@@ -1,11 +1,12 @@
-değişken bas = zaman_ms()
-değişken x = 42
-değişken l = []
-değişken i = 0
-iken i < 300000 {
+//! tr kodlu 3 dil=tr
+TR_kw_var bas = TR_fn_time_ms()
+TR_kw_var x = 42
+TR_kw_var l = []
+TR_kw_var i = 0
+TR_kw_while i < 300000 {
     x = (x * 1103515245 + 12345) % 2147483648
-    l.ekle(x)
+    l.TR_mem_append(x)
     i += 1
 }
-değişken s = l.sırala()
-yazdır("sirala {s[0] + s[150000] + s[299999]} {zaman_ms() - bas}")
+TR_kw_var s = l.TR_mem_sort()
+TR_fn_print("sirala {s[0] + s[150000] + s[299999]} {TR_fn_time_ms() - bas}")

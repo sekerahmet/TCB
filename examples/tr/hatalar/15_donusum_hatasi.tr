@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // Hata 15 — Dönüşüm hatası.
 // İleti kodu: H2429
 // Ne olur: Sayıya çevrilemeyen bir metin tam() ile çevrilmek istenirse çalışma anında hata alınır.
@@ -10,4 +11,4 @@
 //     }
 // Çalıştırma (proje kökünden): tr examples/tr/hatalar/15_donusum_hatasi.tr   (çıkış kodu 1)
 
-yazdır(tam("abc"))
+TR_fn_print(TR_fn_int("abc"))

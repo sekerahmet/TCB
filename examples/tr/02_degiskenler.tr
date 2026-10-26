@@ -1,32 +1,33 @@
+//! tr kodlu 3 dil=tr
 // 02 — Değişkenler: bir değeri adlandırıp saklamak.
 // Ne öğretir: değişken ile tanımlamak, yeniden atamak, +=, -=, *=, sabit.
 // Önceki örnekten: yazdır ve yorum (01).
 // Çalıştırma (proje kökünden): tr examples/tr/02_degiskenler.tr
 
 // değişken ad = değer: değer bir adla saklanır, sonra adıyla kullanılır.
-değişken yaş = 30
-yazdır("yaş:", yaş)
+TR_kw_var yaş = 30
+TR_fn_print("yaş:", yaş)
 
 // Değişkenin değeri sonradan değişebilir.
 yaş = 31
-yazdır("yaş:", yaş)
+TR_fn_print("yaş:", yaş)
 
 // Hesapta değişkenler değer yerine geçer; sonuç yeni bir değişkende saklanır.
-değişken aylık = 1500
-değişken yıllık = aylık * 12
-yazdır("yıllık:", yıllık)
+TR_kw_var aylık = 1500
+TR_kw_var yıllık = aylık * 12
+TR_fn_print("yıllık:", yıllık)
 
 // += -= *= değişkeni kendi değerinden hesaplayıp günceller.
 yaş += 1 // yaş = yaş + 1
-yazdır("yaş:", yaş)
+TR_fn_print("yaş:", yaş)
 yıllık -= 1000
-yazdır("yıllık:", yıllık)
+TR_fn_print("yıllık:", yıllık)
 aylık *= 2
-yazdır("aylık:", aylık)
+TR_fn_print("aylık:", aylık)
 
 // sabit bir kez atanır, sonra değişmez: değişmemesi gereken değerler için.
-sabit KDV_ORANI = 18
-yazdır("KDV:", KDV_ORANI)
+TR_kw_const KDV_ORANI = 18
+TR_fn_print("KDV:", KDV_ORANI)
 
 // --- Kendin dene ---
 // 1. Boyunu ve kilonu iki değişkende sakla, ikisinin toplamını yazdır.

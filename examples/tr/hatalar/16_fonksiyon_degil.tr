@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // Hata 16 — Fonksiyon olmayanı çağırmak.
 // İleti kodu: H2421
 // Ne olur: Fonksiyon olmayan bir değer çağrılırsa çalışma anında hata alınır.
@@ -9,5 +10,5 @@
 //     yazdır(x())
 // Çalıştırma (proje kökünden): tr examples/tr/hatalar/16_fonksiyon_degil.tr   (çıkış kodu 1)
 
-değişken x = 5
+TR_kw_var x = 5
 x()

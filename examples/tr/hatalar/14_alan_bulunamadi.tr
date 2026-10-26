@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // Hata 14 — Olmayan alan.
 // İleti kodu: H2468
 // Ne olur: Yapıda tanımlı olmayan bir alana erişilirse çalışma anında hata alınır.
@@ -10,8 +11,8 @@
 //     }
 // Çalıştırma (proje kökünden): tr examples/tr/hatalar/14_alan_bulunamadi.tr   (çıkış kodu 1)
 
-yapı Nokta {
+TR_kw_struct Nokta {
     x
     y
 }
-yazdır(Nokta(1, 2).z)
+TR_fn_print(Nokta(1, 2).z)

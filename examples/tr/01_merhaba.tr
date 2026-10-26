@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // 01 — Merhaba: ilk TR programı.
 // Ne öğretir: yazdır ile ekrana yazmak, metin sabiti, birden çok değer, satır sonu ve yorum.
 // Önceki örnekten: — (ilk örnek).
@@ -6,15 +7,15 @@
 // (scratch/ depoya girmez).
 
 // İki eğik çizgiyle başlayan satır yorumdur: program onu çalıştırmaz, okuyana not düşer.
-yazdır("Merhaba, dünya!")
-yazdır("Bu ikinci satır.")
+TR_fn_print("Merhaba, dünya!")
+TR_fn_print("Bu ikinci satır.")
 
 // Virgülle ayrılan değerler aynı satıra, aralarına birer boşluk konarak yazılır.
-yazdır("Üç", "değer", "yan yana")
-yazdır(2026) // sayı da yazdırılır; tırnak yalnızca metin içindir
+TR_fn_print("Üç", "değer", "yan yana")
+TR_fn_print(2026) // sayı da yazdırılır; tırnak yalnızca metin içindir
 
 // Metnin içindeki \n satır sonu demektir.
-yazdır("Birinci satır\nİkinci satır")
+TR_fn_print("Birinci satır\nİkinci satır")
 
 // --- Kendin dene ---
 // 1. Kendi adınla bir selamlama yazdır.

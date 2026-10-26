@@ -1,16 +1,17 @@
+//! tr kodlu 3 dil=tr
 // Bilerek hatalı: 3.13 — denetim her ifadenin içine iner; her satırda bir çağrı tip hatası.
-fonksiyon kare(x: Tam): Tam { sonuç x * x }
-değişken l = [kare("a")]
-değişken s = {"k": kare("b")}
-değişken a = 0..kare("c")
-değişken m = "değer: {kare(1) + kare("d")}"
-değişken ü = [kare("e") döngü x içinde 1..3]
-değişken i = l[kare("f")]
-değişken u = kare("g").x
+TR_kw_func kare(x: TR_type_Int): TR_type_Int { TR_kw_return x * x }
+TR_kw_var l = [kare("a")]
+TR_kw_var s = {"k": kare("b")}
+TR_kw_var a = 0..kare("c")
+TR_kw_var m = "değer: {kare(1) + kare("d")}"
+TR_kw_var ü = [kare("e") TR_kw_for x TR_kw_in 1..3]
+TR_kw_var i = l[kare("f")]
+TR_kw_var u = kare("g").x
 l[kare("h")] = 1
-yapı A {
+TR_kw_struct A {
     alan = kare("i")
-    fonksiyon m() { sonuç kare("j") }
+    TR_kw_func m() { TR_kw_return kare("j") }
 }
-değişken e = eşle 1 { kare("k") => 1 }
-fonksiyon g(p = kare("l")) { }
+TR_kw_var e = TR_kw_match 1 { kare("k") => 1 }
+TR_kw_func g(p = kare("l")) { }

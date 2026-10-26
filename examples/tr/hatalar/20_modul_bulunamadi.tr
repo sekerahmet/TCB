@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // Hata 20 — Modül bulunamadı.
 // İleti kodu: H2112
 // Ne olur: aktar ile olmayan bir dosya içe alınırsa çalışma anında hata alınır.
@@ -6,4 +7,4 @@
 //     aktar "helpers/geometri" // modül dosyası bu yolda gerçekten var
 // Çalıştırma (proje kökünden): tr examples/tr/hatalar/20_modul_bulunamadi.tr   (çıkış kodu 1)
 
-aktar "olmayan_modul"
+TR_kw_import "olmayan_modul"

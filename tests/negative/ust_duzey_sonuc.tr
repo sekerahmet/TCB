@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // Bilerek hatalı: 11.4 — modülün üst düzeyinde sonuç kullanılamaz.
-değişken önce = 1
-sonuç önce
+TR_kw_var önce = 1
+TR_kw_return önce

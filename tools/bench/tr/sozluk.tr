@@ -1,14 +1,15 @@
-değişken bas = zaman_ms()
-değişken d = {}
-değişken i = 0
-iken i < 200000 {
-    d["k" + metin(i)] = i
+//! tr kodlu 3 dil=tr
+TR_kw_var bas = TR_fn_time_ms()
+TR_kw_var d = {}
+TR_kw_var i = 0
+TR_kw_while i < 200000 {
+    d["k" + TR_fn_str(i)] = i
     i += 1
 }
-değişken birikim = 0
+TR_kw_var birikim = 0
 i = 0
-iken i < 200000 {
-    birikim += d["k" + metin(i)]
+TR_kw_while i < 200000 {
+    birikim += d["k" + TR_fn_str(i)]
     i += 1
 }
-yazdır("sozluk {birikim} {zaman_ms() - bas}")
+TR_fn_print("sozluk {birikim} {TR_fn_time_ms() - bas}")

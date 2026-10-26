@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // Evre 3 ölçümü, TR tarafı: phase3_torch.py ile aynı model, veri ve iyileştirici.
 // Ayarlar aynı klasördeki phase3_config.json'dan (iki taraf aynı dosyayı okur); cihaz ve çıktı
 // komut satırından. Her adım sonunda kayıp okunur (GPU eşzamanlanır): PyTorch tarafı da öyle.
@@ -5,74 +6,74 @@
 // Tepe bellek bu dosyadan değil, `tr profil --json` raporundan (gpu.bellek[].tepe_canlı_bayt) okunur.
 // Çıktı (JSON, anahtarlar İngilizce: phase3_torch.py ile aynı): ilk adım, ısınma adımları, ölçülen adımların medyan ve p90 süresi, kayıp eğrisi.
 
-değişken arg = komut_satırı({cihaz: "gpu", ayar: "phase3_config.json", çıktı: ""},
-    açıklama: "Evre 3 ölçümü, TR tarafı (PyTorch karşılığı: phase3_torch.py)")
-varsayılan_cihaz(arg.cihaz)
-değişken c = json_çöz(dosya_oku(arg.ayar))
-değişken B = c["B"]
-değişken T = c["T"]
-değişken D = c["D"]
-değişken H = c["H"]
-değişken Dh = D / H
-değişken FF = c["FF"]
-sabit KATMAN = c["LAYERS"]
-değişken V = c["V"]
-sabit HASSASIYET = c["precision"]
-sabit ISINMA = c["warmup"]
-sabit ÖLÇÜLEN = c["measured"]
-sabit KAYIP_ADIM = c["loss_steps"]
+TR_kw_var arg = TR_fn_command_line({TR_mem_device: "gpu", ayar: "phase3_config.json", çıktı: ""},
+    TR_arg_description: "Evre 3 ölçümü, TR tarafı (PyTorch karşılığı: phase3_torch.py)")
+TR_fn_default_device(arg.TR_mem_device)
+TR_kw_var c = TR_fn_json_parse(TR_fn_read_file(arg.ayar))
+TR_kw_var B = c["B"]
+TR_kw_var T = c["T"]
+TR_kw_var D = c["D"]
+TR_kw_var H = c["H"]
+TR_kw_var Dh = D / H
+TR_kw_var FF = c["FF"]
+TR_kw_const KATMAN = c["LAYERS"]
+TR_kw_var V = c["V"]
+TR_kw_const HASSASIYET = c["precision"]
+TR_kw_const ISINMA = c["warmup"]
+TR_kw_const ÖLÇÜLEN = c["measured"]
+TR_kw_const KAYIP_ADIM = c["loss_steps"]
 
 // Sabit sentetik toplu işler (phase3_torch.py ile aynı formül).
-değişken sentetik = []
-döngü s içinde aralık(8) {
-    değişken satırlar = [[(s * 7919 + i * 104729 + t * 31) % V döngü t içinde aralık(T + 1)] döngü i içinde aralık(B)]
-    değişken tümü = tensör(satırlar)
-    sentetik.ekle([tümü.dilim(1, 0, T), tümü.dilim(1, 1, T + 1)])
+TR_kw_var sentetik = []
+TR_kw_for s TR_kw_in TR_fn_range(8) {
+    TR_kw_var satırlar = [[(s * 7919 + i * 104729 + t * 31) % V TR_kw_for t TR_kw_in TR_fn_range(T + 1)] TR_kw_for i TR_kw_in TR_fn_range(B)]
+    TR_kw_var tümü = TR_fn_tensor(satırlar)
+    sentetik.TR_mem_append([tümü.TR_mem_slice(1, 0, T), tümü.TR_mem_slice(1, 1, T + 1)])
 }
 
-aktar "measurement_model"
+TR_kw_import "measurement_model"
 
-değişken model = Model()
-değişken ağırlıklar = parametreler(model)
-değişken iyileştirici = AdamW(ağırlıklar, öğrenme_oranı: c["lr"], ağırlık_çürümesi: 0.0)
+TR_kw_var model = Model()
+TR_kw_var ağırlıklar = TR_fn_parameters(model)
+TR_kw_var iyileştirici = TR_fn_AdamW(ağırlıklar, TR_arg_lr: c["lr"], TR_arg_weight_decay: 0.0)
 
 // adım_at: bir eğitim adımı; kaybın değerini döndürür (okumak GPU'yu bekler).
-fonksiyon adım_at(adım) {
-    değişken xy = sentetik[adım % 8]
-    iyileştirici.sıfırla()
-    değişken kayıp = yok
-    karışık_hassasiyet(HASSASIYET) {
-        kayıp = çapraz_entropi(model.ileri(xy[0]), xy[1])
+TR_kw_func adım_at(adım) {
+    TR_kw_var xy = sentetik[adım % 8]
+    iyileştirici.TR_mem_zero_grad()
+    TR_kw_var kayıp = TR_kw_none
+    TR_fn_mixed_precision(HASSASIYET) {
+        kayıp = TR_fn_cross_entropy(model.ileri(xy[0]), xy[1])
     }
-    geri_yayılım(kayıp)
-    gradyan_kırp(ağırlıklar, en_fazla: 1.0)
-    iyileştirici.adım()
-    sonuç kayıp.değer
+    TR_fn_backward(kayıp)
+    TR_fn_clip_grad(ağırlıklar, TR_arg_max: 1.0)
+    iyileştirici.TR_mem_step()
+    TR_kw_return kayıp.TR_mem_tolist
 }
 
 // yüzdelik: p. yüzdelik (en yakın sıra yöntemi).
-fonksiyon yüzdelik(değerler, p) {
-    değişken s = değerler.sırala()
-    sonuç s[max(0, tam(tavan(p / 100 * s.uzunluk)) - 1)]
+TR_kw_func yüzdelik(değerler, p) {
+    TR_kw_var s = değerler.TR_mem_sort()
+    TR_kw_return s[TR_fn_max(0, TR_fn_int(TR_fn_ceil(p / 100 * s.TR_mem_length)) - 1)]
 }
 
-değişken kayıplar = []
-değişken ısınma_ms = []
-değişken ölçülen_ms = []
-döngü adım içinde 0.. (ISINMA + ÖLÇÜLEN) {
-    değişken t0 = zaman_ms()
-    değişken v = adım_at(adım)
-    değişken ms = zaman_ms() - t0
-    eğer adım < ISINMA { ısınma_ms.ekle(ms) } değilse { ölçülen_ms.ekle(ms) }
-    eğer adım < KAYIP_ADIM { kayıplar.ekle(v) }
+TR_kw_var kayıplar = []
+TR_kw_var ısınma_ms = []
+TR_kw_var ölçülen_ms = []
+TR_kw_for adım TR_kw_in 0.. (ISINMA + ÖLÇÜLEN) {
+    TR_kw_var t0 = TR_fn_time_ms()
+    TR_kw_var v = adım_at(adım)
+    TR_kw_var ms = TR_fn_time_ms() - t0
+    TR_kw_if adım < ISINMA { ısınma_ms.TR_mem_append(ms) } TR_kw_else { ölçülen_ms.TR_mem_append(ms) }
+    TR_kw_if adım < KAYIP_ADIM { kayıplar.TR_mem_append(v) }
 }
 
-değişken sonuç_ = {tool: "tr", mode: "tr", precision: HASSASIYET, device: varsayılan_cihaz(),
+TR_kw_var sonuç_ = {tool: "tr", mode: "tr", precision: HASSASIYET, device: TR_fn_default_device(),
     config: {B: B, T: T, D: D, H: H, FF: FF, LAYERS: KATMAN, V: V},
     first_step_ms: ısınma_ms[0], warmup_ms: ısınma_ms,
-    measured: {median_ms: ortanca(ölçülen_ms), p90_ms: yüzdelik(ölçülen_ms, 90), mean_ms: ortalama(ölçülen_ms),
-        min_ms: min(ölçülen_ms), max_ms: max(ölçülen_ms)},
+    measured: {median_ms: TR_fn_median(ölçülen_ms), p90_ms: yüzdelik(ölçülen_ms, 90), mean_ms: TR_fn_mean(ölçülen_ms),
+        min_ms: TR_fn_min(ölçülen_ms), max_ms: TR_fn_max(ölçülen_ms)},
     loss_curve: kayıplar}
-değişken çıktı_metni = json_metin(sonuç_)
-eğer arg.çıktı != "" { dosya_yaz(arg.çıktı, çıktı_metni) }
-yazdır(çıktı_metni)
+TR_kw_var çıktı_metni = TR_fn_json_string(sonuç_)
+TR_kw_if arg.çıktı != "" { TR_fn_write_file(arg.çıktı, çıktı_metni) }
+TR_fn_print(çıktı_metni)

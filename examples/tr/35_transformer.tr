@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // 35 — Transformer: elle yazılmış küçük bir transformer.
 // Ne öğretir: gömme ve konum gömmesi, çok bakışlı nedensel dikkat (şekillendir ve
 // birleşik dikkat(...)), katman normu, gelu ile ileri besleme, çapraz_entropi kaybı.
@@ -5,108 +6,108 @@
 // Görev: 0..V-1 arasında döngüsel ilerleyen dizilerde bir sonraki parçayı tahmin etmek.
 // Çalıştırma (proje kökünden): tr examples/tr/35_transformer.tr
 
-değişken V = 8 // sözlük boyutu
-değişken T = 8 // bağlam uzunluğu
-değişken D = 16 // gizli boyut
-değişken H = 2 // dikkat bakışı (İngilizce head)
-değişken Dh = 8 // bakış boyutu (D / H)
-değişken B = 4 // toplu iş boyutu
+TR_kw_var V = 8 // sözlük boyutu
+TR_kw_var T = 8 // bağlam uzunluğu
+TR_kw_var D = 16 // gizli boyut
+TR_kw_var H = 2 // dikkat bakışı (İngilizce head)
+TR_kw_var Dh = 8 // bakış boyutu (D / H)
+TR_kw_var B = 4 // toplu iş boyutu
 
 // Öğrenilen parametre: küçük rastgele değerlerle başlar, gradyanı izlenir.
-değişken parametre_tohumu = 1
-fonksiyon parametre(şekil, ölçek) {
+TR_kw_var parametre_tohumu = 1
+TR_kw_func parametre(şekil, ölçek) {
     parametre_tohumu += 1 // her parametreye farklı ama sabit bir tohum: sonuç tekrar üretilebilir
-    sonuç tensör(türevsiz(rastgele_normal(şekil, tohum: parametre_tohumu) * ölçek), türev_izle: doğru)
+    TR_kw_return TR_fn_tensor(TR_fn_no_grad(TR_fn_randn(şekil, TR_arg_seed: parametre_tohumu) * ölçek), TR_arg_requires_grad: TR_kw_true)
 }
 
-değişken E = parametre([V, D], 0.1) // parça gömme tablosu
-değişken P = parametre([T, D], 0.1) // konum gömme tablosu
-değişken Wq = parametre([D, D], 0.2)
-değişken Wk = parametre([D, D], 0.2)
-değişken Wv = parametre([D, D], 0.2)
-değişken Wo = parametre([D, D], 0.2)
-değişken W1 = parametre([D, 4 * D], 0.2)
-değişken W2 = parametre([4 * D, D], 0.1)
-değişken g1 = tensör(birler([D]), türev_izle: doğru)
-değişken s1 = tensör(sıfırlar([D]), türev_izle: doğru)
-değişken g2 = tensör(birler([D]), türev_izle: doğru)
-değişken s2 = tensör(sıfırlar([D]), türev_izle: doğru)
-değişken Wu = parametre([D, V], 0.2)
+TR_kw_var E = parametre([V, D], 0.1) // parça gömme tablosu
+TR_kw_var P = parametre([T, D], 0.1) // konum gömme tablosu
+TR_kw_var Wq = parametre([D, D], 0.2)
+TR_kw_var Wk = parametre([D, D], 0.2)
+TR_kw_var Wv = parametre([D, D], 0.2)
+TR_kw_var Wo = parametre([D, D], 0.2)
+TR_kw_var W1 = parametre([D, 4 * D], 0.2)
+TR_kw_var W2 = parametre([4 * D, D], 0.1)
+TR_kw_var g1 = TR_fn_tensor(TR_fn_ones([D]), TR_arg_requires_grad: TR_kw_true)
+TR_kw_var s1 = TR_fn_tensor(TR_fn_zeros([D]), TR_arg_requires_grad: TR_kw_true)
+TR_kw_var g2 = TR_fn_tensor(TR_fn_ones([D]), TR_arg_requires_grad: TR_kw_true)
+TR_kw_var s2 = TR_fn_tensor(TR_fn_zeros([D]), TR_arg_requires_grad: TR_kw_true)
+TR_kw_var Wu = parametre([D, V], 0.2)
 
-değişken konumlar = aralık(T)
+TR_kw_var konumlar = TR_fn_range(T)
 
-fonksiyon başlara_ayır(x) {
+TR_kw_func başlara_ayır(x) {
     // [B, T, D] -> [B, T, H, Dh]: dikkat bu düzeni okur, eksen sıralamaya gerek yok
-    sonuç x.şekillendir([B, T, H, Dh])
+    TR_kw_return x.TR_mem_reshape([B, T, H, Dh])
 }
 
-fonksiyon ileri(girdiler) {
-    değişken x = gömme(E, girdiler) + gömme(P, konumlar) // [B, T, D]
-    değişken q = başlara_ayır(x @ Wq)
-    değişken k = başlara_ayır(x @ Wk)
-    değişken v = başlara_ayır(x @ Wv)
+TR_kw_func ileri(girdiler) {
+    TR_kw_var x = TR_fn_embedding(E, girdiler) + TR_fn_embedding(P, konumlar) // [B, T, D]
+    TR_kw_var q = başlara_ayır(x @ Wq)
+    TR_kw_var k = başlara_ayır(x @ Wk)
+    TR_kw_var v = başlara_ayır(x @ Wv)
     // Nedensel dikkat: her konum yalnızca kendisine ve öncekilere bakar. Elle yazılmış
     // karşılığı softmax((q @ k.devrik()) / karekök(Dh) + maske, eksen: -1) @ v'dir (maske
     // gelecekteki konumlarda çok büyük bir eksi sayı); dikkat(...) aynı sonucu T×T puan
     // matrisini tutmadan, tek adımda hesaplar.
-    değişken y = dikkat(q, k, v, nedensel: doğru).şekillendir([B, T, D])
-    değişken h = katman_normu(x + y @ Wo, g1, s1)
-    değişken m = gelu(h @ W1) @ W2
-    değişken çıkış = katman_normu(h + m, g2, s2)
-    sonuç çıkış @ Wu // [B, T, V]
+    TR_kw_var y = TR_fn_attention(q, k, v, TR_arg_causal: TR_kw_true).TR_mem_reshape([B, T, D])
+    TR_kw_var h = TR_fn_layer_norm(x + y @ Wo, g1, s1)
+    TR_kw_var m = TR_fn_gelu(h @ W1) @ W2
+    TR_kw_var çıkış = TR_fn_layer_norm(h + m, g2, s2)
+    TR_kw_return çıkış @ Wu // [B, T, V]
 }
 
 // Basit, tekrar üretilebilir sözde rastgele sayılar
-değişken tohum = 12345
-fonksiyon rastgele_tam(n) {
+TR_kw_var tohum = 12345
+TR_kw_func rastgele_tam(n) {
     tohum = (tohum * 1103515245 + 12345) % 2147483648
-    sonuç tohum % n
+    TR_kw_return tohum % n
 }
 
-fonksiyon toplu_iş_üret() {
-    değişken girdiler = []
-    değişken hedefler = []
-    döngü b içinde 0..B {
-        değişken baş = rastgele_tam(V)
-        değişken g = []
-        döngü t içinde 0..T {
-            g.ekle((baş + t) % V)
-            hedefler.ekle((baş + t + 1) % V)
+TR_kw_func toplu_iş_üret() {
+    TR_kw_var girdiler = []
+    TR_kw_var hedefler = []
+    TR_kw_for b TR_kw_in 0..B {
+        TR_kw_var baş = rastgele_tam(V)
+        TR_kw_var g = []
+        TR_kw_for t TR_kw_in 0..T {
+            g.TR_mem_append((baş + t) % V)
+            hedefler.TR_mem_append((baş + t + 1) % V)
         }
-        girdiler.ekle(g)
+        girdiler.TR_mem_append(g)
     }
-    sonuç [girdiler, hedefler]
+    TR_kw_return [girdiler, hedefler]
 }
 
-değişken ağırlıklar = [E, P, Wq, Wk, Wv, Wo, W1, W2, g1, s1, g2, s2, Wu]
-değişken iyileştirici = AdamW(ağırlıklar, öğrenme_oranı: 0.01, ağırlık_çürümesi: 0.0)
+TR_kw_var ağırlıklar = [E, P, Wq, Wk, Wv, Wo, W1, W2, g1, s1, g2, s2, Wu]
+TR_kw_var iyileştirici = TR_fn_AdamW(ağırlıklar, TR_arg_lr: 0.01, TR_arg_weight_decay: 0.0)
 
-döngü adım içinde 0..300 {
-    değişken veri = toplu_iş_üret()
-    iyileştirici.sıfırla()
-    değişken kayıp = çapraz_entropi(ileri(veri[0]), veri[1])
-    geri_yayılım(kayıp)
-    iyileştirici.adım()
-    eğer adım % 50 == 0 {
-        yazdır("adım {adım}: kayıp = {yuvarla(kayıp.değer, 4)}")
+TR_kw_for adım TR_kw_in 0..300 {
+    TR_kw_var veri = toplu_iş_üret()
+    iyileştirici.TR_mem_zero_grad()
+    TR_kw_var kayıp = TR_fn_cross_entropy(ileri(veri[0]), veri[1])
+    TR_fn_backward(kayıp)
+    iyileştirici.TR_mem_step()
+    TR_kw_if adım % 50 == 0 {
+        TR_fn_print("adım {adım}: kayıp = {TR_fn_round(kayıp.TR_mem_tolist, 4)}")
     }
 }
 
 // Öğrendi mi? Bir diziyi verip tahminleri yazdır.
-değişken deneme = toplu_iş_üret()
-değişken tahmin = türevsiz { ileri(deneme[0]) }
-değişken olasılıklar = tahmin[0] // ilk dizinin [T, V] çıktısı
-değişken tahminler = argmax(olasılıklar, eksen: -1).değer // her konumda en büyük olasılığın indeksi
-yazdır("girdi  : {deneme[0][0]}")
-yazdır("tahmin : {tahminler}")
+TR_kw_var deneme = toplu_iş_üret()
+TR_kw_var tahmin = TR_fn_no_grad { ileri(deneme[0]) }
+TR_kw_var olasılıklar = tahmin[0] // ilk dizinin [T, V] çıktısı
+TR_kw_var tahminler = TR_fn_argmax(olasılıklar, TR_arg_dim: -1).TR_mem_tolist // her konumda en büyük olasılığın indeksi
+TR_fn_print("girdi  : {deneme[0][0]}")
+TR_fn_print("tahmin : {tahminler}")
 
 // dikkat'in iki ek ayarı: pencere: her sorguyu son w konumla sınırlar (yerel dikkat);
 // maske: 0/1 tensörüyle hangi konumlara bakılacağını siz seçersiniz (nedensel: yanlış ile birlikte).
-değişken sorgu = rastgele_normal([6, 4], tohum: 2)
-yazdır("pencere:", dikkat(sorgu, sorgu, sorgu, pencere: 2).şekil)
-değişken sorgu2 = rastgele_normal([3, 4], tohum: 1)
-değişken bakılacaklar = tensör([[1, 1, 0], [1, 1, 0], [1, 1, 1]])
-yazdır("maske:", dikkat(sorgu2, sorgu2, sorgu2, nedensel: yanlış, maske: bakılacaklar).şekil)
+TR_kw_var sorgu = TR_fn_randn([6, 4], TR_arg_seed: 2)
+TR_fn_print("pencere:", TR_fn_attention(sorgu, sorgu, sorgu, TR_arg_window: 2).TR_mem_shape)
+TR_kw_var sorgu2 = TR_fn_randn([3, 4], TR_arg_seed: 1)
+TR_kw_var bakılacaklar = TR_fn_tensor([[1, 1, 0], [1, 1, 0], [1, 1, 1]])
+TR_fn_print("maske:", TR_fn_attention(sorgu2, sorgu2, sorgu2, TR_arg_causal: TR_kw_false, TR_arg_mask: bakılacaklar).TR_mem_shape)
 
 // --- Kendin dene ---
 // 1. D'yi 16'dan 32'ye çıkar (Dh'yi de güncelle): kayıp daha hızlı mı düşüyor?

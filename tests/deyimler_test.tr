@@ -1,220 +1,221 @@
+//! tr kodlu 3 dil=tr
 // docs/spec/05_deyimler.md §5 — Deyimler ve kontrol yapıları
 
-test "5.1 değişken ve := tanımı" {
-    değişken a = 1
+TR_ctx_test "5.1 değişken ve := tanımı" {
+    TR_kw_var a = 1
     b := 2
-    değişken c
-    eşit_mi(3, a + b)
-    eşit_mi(yok, c)
+    TR_kw_var c
+    TR_fn_assert_equal(3, a + b)
+    TR_fn_assert_equal(TR_kw_none, c)
 }
 
-test "5.2 sabit: tanımlandıktan sonra değiştirilemez" {
-    sabit PI = 3.14
-    eşit_mi(3.14, PI)
+TR_ctx_test "5.2 sabit: tanımlandıktan sonra değiştirilemez" {
+    TR_kw_const PI = 3.14
+    TR_fn_assert_equal(3.14, PI)
     // Yeniden atama denetleyicide yakalanır: dosyanın hiçbir satırı çalışmaz
-    değişken mesaj = ""
-    dene { aktar "negative/sabit_yeniden" } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("sabit_yeniden.tr, Satır 4: Sabit hatası — \"PI\" bir sabittir"), mesaj)
+    TR_kw_var mesaj = ""
+    TR_kw_try { TR_kw_import "negative/sabit_yeniden" } TR_kw_catch h { mesaj = h }
+    TR_fn_assert(mesaj.TR_mem_contains("sabit_yeniden.tr, Satır 4: Sabit hatası — \"PI\" bir sabittir"), mesaj)
 }
 
-test "5.3 çoklu tanım, takas ve listeden açma" {
-    değişken a, b = 1, 2
+TR_ctx_test "5.3 çoklu tanım, takas ve listeden açma" {
+    TR_kw_var a, b = 1, 2
     a, b = b, a
-    eşit_mi([2, 1], [a, b])
-    değişken ad, soyad = ["Mustafa", "Kemal"]
-    eşit_mi("Kemal", soyad)
+    TR_fn_assert_equal([2, 1], [a, b])
+    TR_kw_var ad, soyad = ["Mustafa", "Kemal"]
+    TR_fn_assert_equal("Kemal", soyad)
 }
 
-test "5.4 atama ve bileşik atama" {
-    değişken x = 5
+TR_ctx_test "5.4 atama ve bileşik atama" {
+    TR_kw_var x = 5
     x += 3
     x -= 1
     x *= 2
     x /= 7
-    eşit_mi(2, x)
-    değişken l = [1, 2]
+    TR_fn_assert_equal(2, x)
+    TR_kw_var l = [1, 2]
     l[0] = 9
-    eşit_mi([9, 2], l)
+    TR_fn_assert_equal([9, 2], l)
 }
 
-test "5.4 tanımsız bir ada atama hatadır" {
+TR_ctx_test "5.4 tanımsız bir ada atama hatadır" {
     // Hata çalışmadan önce bulunur (5.14): modülün hiçbir satırı çalışmaz.
-    değişken mesaj = ""
-    dene { aktar "negative/tanimsiz_adlar" } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("tanimsiz_adlar.tr, Satır 5, Sütun 1: Tanımsız ad — tanımsız değişken: 'tanımsız_değişken' (önce 'değişken' ile tanımlayın)"), mesaj)
+    TR_kw_var mesaj = ""
+    TR_kw_try { TR_kw_import "negative/tanimsiz_adlar" } TR_kw_catch h { mesaj = h }
+    TR_fn_assert(mesaj.TR_mem_contains("tanimsiz_adlar.tr, Satır 5, Sütun 1: Tanımsız ad — tanımsız değişken: 'tanımsız_değişken' (önce 'değişken' ile tanımlayın)"), mesaj)
 }
 
-test "5.5 eğer / değilse eğer / değilse bir ifadedir" {
-    fonksiyon sınıflandır(n) {
-        sonuç eğer n < 0 { "negatif" } değilse eğer n == 0 { "sıfır" } değilse { "pozitif" }
+TR_ctx_test "5.5 eğer / değilse eğer / değilse bir ifadedir" {
+    TR_kw_func sınıflandır(n) {
+        TR_kw_return TR_kw_if n < 0 { "negatif" } TR_kw_else TR_kw_if n == 0 { "sıfır" } TR_kw_else { "pozitif" }
     }
-    eşit_mi("negatif", sınıflandır(-5))
-    eşit_mi("sıfır", sınıflandır(0))
-    eşit_mi("pozitif", sınıflandır(7))
-    eşit_mi(yok, eğer yanlış { 1 })
+    TR_fn_assert_equal("negatif", sınıflandır(-5))
+    TR_fn_assert_equal("sıfır", sınıflandır(0))
+    TR_fn_assert_equal("pozitif", sınıflandır(7))
+    TR_fn_assert_equal(TR_kw_none, TR_kw_if TR_kw_false { 1 })
 }
 
-test "5.6 eşle: değer, çoklu desen, aralık ve varsayılan" {
-    fonksiyon not_adı(n) {
-        sonuç eşle n {
+TR_ctx_test "5.6 eşle: değer, çoklu desen, aralık ve varsayılan" {
+    TR_kw_func not_adı(n) {
+        TR_kw_return TR_kw_match n {
             100 => "tam puan"
             90..100 => "pekiyi"
             50, 60, 70 => "yuvarlak"
-            varsayılan => "diğer"
+            TR_kw_default => "diğer"
         }
     }
-    eşit_mi("tam puan", not_adı(100))
-    eşit_mi("pekiyi", not_adı(95))
-    eşit_mi("yuvarlak", not_adı(60))
-    eşit_mi("diğer", not_adı(3))
-    eşit_mi("x", eşle 1 { _ => "x" })
-    eşit_mi(yok, eşle 9 { 1 => "bir" })
+    TR_fn_assert_equal("tam puan", not_adı(100))
+    TR_fn_assert_equal("pekiyi", not_adı(95))
+    TR_fn_assert_equal("yuvarlak", not_adı(60))
+    TR_fn_assert_equal("diğer", not_adı(3))
+    TR_fn_assert_equal("x", TR_kw_match 1 { _ => "x" })
+    TR_fn_assert_equal(TR_kw_none, TR_kw_match 9 { 1 => "bir" })
 }
 
-test "5.6 eşle: ad ve parantezli desen değeriyle karşılaştırılır (ok fonksiyonu değildir)" {
-    değişken sınır = 10
-    değişken kırmızı = "#f00"
-    fonksiyon tür(x) {
-        sonuç eşle x {
+TR_ctx_test "5.6 eşle: ad ve parantezli desen değeriyle karşılaştırılır (ok fonksiyonu değildir)" {
+    TR_kw_var sınır = 10
+    TR_kw_var kırmızı = "#f00"
+    TR_kw_func tür(x) {
+        TR_kw_return TR_kw_match x {
             sınır => "sınırda"
             (sınır * 2) => "iki katı"
             kırmızı, "#ff0000" => "kırmızı"
-            varsayılan => "başka"
+            TR_kw_default => "başka"
         }
     }
-    eşit_mi("sınırda", tür(10))
-    eşit_mi("iki katı", tür(20))
-    eşit_mi("kırmızı", tür("#f00"))
-    eşit_mi("kırmızı", tür("#ff0000"))
-    eşit_mi("başka", tür(3))
+    TR_fn_assert_equal("sınırda", tür(10))
+    TR_fn_assert_equal("iki katı", tür(20))
+    TR_fn_assert_equal("kırmızı", tür("#f00"))
+    TR_fn_assert_equal("kırmızı", tür("#ff0000"))
+    TR_fn_assert_equal("başka", tür(3))
     // Kolun sonucu bir ok fonksiyonu olabilir
-    değişken f = eşle 1 { 1 => (y) => y + 1 }
-    eşit_mi(5, f(4))
+    TR_kw_var f = TR_kw_match 1 { 1 => (y) => y + 1 }
+    TR_fn_assert_equal(5, f(4))
 }
 
-test "5.7 döngü ... içinde: liste, aralık, sözlük, metin" {
-    değişken birikim = 0
-    döngü x içinde [1, 2, 3] { birikim += x }
-    eşit_mi(6, birikim)
-    değişken çiftler = []
-    döngü i, x içinde ["a", "b"] { çiftler.ekle("{i}{x}") }
-    eşit_mi(["0a", "1b"], çiftler)
-    değişken anahtarlar = []
-    döngü k, v içinde {"a": 1, "b": 2} { anahtarlar.ekle(k + metin(v)) }
-    eşit_mi(["a1", "b2"], anahtarlar)
-    değişken harfler = []
-    döngü h içinde "çay" { harfler.ekle(h) }
-    eşit_mi(["ç", "a", "y"], harfler)
-    değişken geri = []
-    döngü i içinde 3..0 { geri.ekle(i) }
-    eşit_mi([3, 2, 1], geri)
+TR_ctx_test "5.7 döngü ... içinde: liste, aralık, sözlük, metin" {
+    TR_kw_var birikim = 0
+    TR_kw_for x TR_kw_in [1, 2, 3] { birikim += x }
+    TR_fn_assert_equal(6, birikim)
+    TR_kw_var çiftler = []
+    TR_kw_for i, x TR_kw_in ["a", "b"] { çiftler.TR_mem_append("{i}{x}") }
+    TR_fn_assert_equal(["0a", "1b"], çiftler)
+    TR_kw_var anahtarlar = []
+    TR_kw_for k, v TR_kw_in {"a": 1, "b": 2} { anahtarlar.TR_mem_append(k + TR_fn_str(v)) }
+    TR_fn_assert_equal(["a1", "b2"], anahtarlar)
+    TR_kw_var harfler = []
+    TR_kw_for h TR_kw_in "çay" { harfler.TR_mem_append(h) }
+    TR_fn_assert_equal(["ç", "a", "y"], harfler)
+    TR_kw_var geri = []
+    TR_kw_for i TR_kw_in 3..0 { geri.TR_mem_append(i) }
+    TR_fn_assert_equal([3, 2, 1], geri)
 }
 
-test "5.8 koşullu döngü ve iken" {
-    değişken i = 0
-    iken i < 3 { i += 1 }
-    eşit_mi(3, i)
-    döngü i < 5 { i += 1 }
-    eşit_mi(5, i)
+TR_ctx_test "5.8 koşullu döngü ve iken" {
+    TR_kw_var i = 0
+    TR_kw_while i < 3 { i += 1 }
+    TR_fn_assert_equal(3, i)
+    TR_kw_for i < 5 { i += 1 }
+    TR_fn_assert_equal(5, i)
 }
 
-test "5.9 sonsuz döngü ve çık" {
-    değişken i = 0
-    döngü {
+TR_ctx_test "5.9 sonsuz döngü ve çık" {
+    TR_kw_var i = 0
+    TR_kw_for {
         i += 1
-        eğer i == 4 { çık }
+        TR_kw_if i == 4 { TR_kw_break }
     }
-    eşit_mi(4, i)
-    döngü x içinde 1..100 { eğer x == 2 { çık } }
+    TR_fn_assert_equal(4, i)
+    TR_kw_for x TR_kw_in 1..100 { TR_kw_if x == 2 { TR_kw_break } }
 }
 
-test "5.10 devam sonraki turdan sürdürür" {
-    değişken tekler = []
-    döngü i içinde 1..6 {
-        eğer i % 2 == 0 { devam }
-        tekler.ekle(i)
+TR_ctx_test "5.10 devam sonraki turdan sürdürür" {
+    TR_kw_var tekler = []
+    TR_kw_for i TR_kw_in 1..6 {
+        TR_kw_if i % 2 == 0 { TR_kw_continue }
+        tekler.TR_mem_append(i)
     }
-    eşit_mi([1, 3, 5], tekler)
+    TR_fn_assert_equal([1, 3, 5], tekler)
 }
 
-test "5.11 liste üreteci" {
-    eşit_mi([1, 9, 25], [x * x döngü x içinde 1..=5 eğer x % 2 == 1])
-    eşit_mi([2, 4], [x * 2 döngü x içinde [1, 2]])
+TR_ctx_test "5.11 liste üreteci" {
+    TR_fn_assert_equal([1, 9, 25], [x * x TR_kw_for x TR_kw_in 1..=5 TR_kw_if x % 2 == 1])
+    TR_fn_assert_equal([2, 4], [x * 2 TR_kw_for x TR_kw_in [1, 2]])
 }
 
-test "5.11 liste üreteci aralıkta da eleman sınırına uyar (bellek tükenmez)" {
-    değişken mesaj = ""
-    dene { değişken l = [x döngü x içinde 0..9000000000000000000] } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("çok büyük"), mesaj)
+TR_ctx_test "5.11 liste üreteci aralıkta da eleman sınırına uyar (bellek tükenmez)" {
+    TR_kw_var mesaj = ""
+    TR_kw_try { TR_kw_var l = [x TR_kw_for x TR_kw_in 0..9000000000000000000] } TR_kw_catch h { mesaj = h }
+    TR_fn_assert(mesaj.TR_mem_contains("çok büyük"), mesaj)
 }
 
-test "5.12 bloklar kapsam açar; dış değişkenler atanabilir" {
-    değişken dış = 0
-    eğer doğru {
-        değişken iç = 1
+TR_ctx_test "5.12 bloklar kapsam açar; dış değişkenler atanabilir" {
+    TR_kw_var dış = 0
+    TR_kw_if TR_kw_true {
+        TR_kw_var iç = 1
         dış = 5
     }
-    eşit_mi(5, dış)
+    TR_fn_assert_equal(5, dış)
     // Blokta tanımlanan ad dışarıda tanımsızdır; denetim bunu çalışmadan önce bulur (5.14).
-    değişken mesaj = ""
-    dene { aktar "negative/tanimsiz_adlar" } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("Satır 9, Sütun 8: Tanımsız ad — 'iç' adında bir değişken ya da fonksiyon yok"), mesaj)
+    TR_kw_var mesaj = ""
+    TR_kw_try { TR_kw_import "negative/tanimsiz_adlar" } TR_kw_catch h { mesaj = h }
+    TR_fn_assert(mesaj.TR_mem_contains("Satır 9, Sütun 8: Tanımsız ad — 'iç' adında bir değişken ya da fonksiyon yok"), mesaj)
 }
 
-test "5.12 eşle kolu kendi kapsamını açar: kolda tanımlanan adlı fonksiyon dış adı ezmez" {
-    fonksiyon f() { sonuç 1 }
-    değişken r = eşle 1 { 1 => (fonksiyon f() { sonuç 7 })() _ => 0 }
-    eşit_mi(7, r)
-    eşit_mi(1, f())
+TR_ctx_test "5.12 eşle kolu kendi kapsamını açar: kolda tanımlanan adlı fonksiyon dış adı ezmez" {
+    TR_kw_func f() { TR_kw_return 1 }
+    TR_kw_var r = TR_kw_match 1 { 1 => (TR_kw_func f() { TR_kw_return 7 })() _ => 0 }
+    TR_fn_assert_equal(7, r)
+    TR_fn_assert_equal(1, f())
     // Süslü parantezli kol ve değer veren eğer de aynı: ad blokta kalır.
-    değişken s = eşle 1 { 1 => { (fonksiyon f() { sonuç 8 })() } _ => 0 }
-    değişken t = eğer doğru { (fonksiyon f() { sonuç 9 })() } değilse { 0 }
-    eşit_mi([8, 9, 1], [s, t, f()])
+    TR_kw_var s = TR_kw_match 1 { 1 => { (TR_kw_func f() { TR_kw_return 8 })() } _ => 0 }
+    TR_kw_var t = TR_kw_if TR_kw_true { (TR_kw_func f() { TR_kw_return 9 })() } TR_kw_else { 0 }
+    TR_fn_assert_equal([8, 9, 1], [s, t, f()])
 }
 
-test "5.12 koşul, konu ve desen blok değildir: adlı fonksiyon bulunulan kapsama girer" {
-    eğer (fonksiyon koşul_işi() { sonuç 9 })() == 9 {}
-    eşit_mi(9, koşul_işi())
-    eşle (fonksiyon konu_işi() { sonuç 3 })() { 3 => {} _ => {} }
-    eşit_mi(3, konu_işi())
+TR_ctx_test "5.12 koşul, konu ve desen blok değildir: adlı fonksiyon bulunulan kapsama girer" {
+    TR_kw_if (TR_kw_func koşul_işi() { TR_kw_return 9 })() == 9 {}
+    TR_fn_assert_equal(9, koşul_işi())
+    TR_kw_match (TR_kw_func konu_işi() { TR_kw_return 3 })() { 3 => {} _ => {} }
+    TR_fn_assert_equal(3, konu_işi())
 }
 
-test "5.13 çık ve devam yalnızca döngü içinde geçerlidir" {
-    değişken l = []
-    döngü i içinde 0..5 {
-        eşle i {
-            1 => { devam }
-            3 => { çık }
+TR_ctx_test "5.13 çık ve devam yalnızca döngü içinde geçerlidir" {
+    TR_kw_var l = []
+    TR_kw_for i TR_kw_in 0..5 {
+        TR_kw_match i {
+            1 => { TR_kw_continue }
+            3 => { TR_kw_break }
         }
-        l.ekle(i)
+        l.TR_mem_append(i)
     }
-    eşit_mi([0, 2], l)
+    TR_fn_assert_equal([0, 2], l)
     // Döngü dışındaki çık/devam (fonksiyon, sondaki blok içinde de) derleme hatasıdır
-    değişken h1 = ""
-    dene { aktar "negative/dongu_disi_cik" } yakala h { h1 = h }
-    doğrula(h1.içerir("'çık' yalnızca bir döngünün içinde kullanılabilir; fonksiyondan çıkmak için 'sonuç' yazın"), h1)
-    değişken h2 = ""
-    dene { aktar "negative/dongu_disi_devam" } yakala h { h2 = h }
-    doğrula(h2.içerir("'devam' yalnızca bir döngünün içinde kullanılabilir"), h2)
+    TR_kw_var h1 = ""
+    TR_kw_try { TR_kw_import "negative/dongu_disi_cik" } TR_kw_catch h { h1 = h }
+    TR_fn_assert(h1.TR_mem_contains("'çık' yalnızca bir döngünün içinde kullanılabilir; fonksiyondan çıkmak için 'sonuç' yazın"), h1)
+    TR_kw_var h2 = ""
+    TR_kw_try { TR_kw_import "negative/dongu_disi_devam" } TR_kw_catch h { h2 = h }
+    TR_fn_assert(h2.TR_mem_contains("'devam' yalnızca bir döngünün içinde kullanılabilir"), h2)
 }
 
-test "5.14 tanımsız ad çalışmadan önce bulunur; dinamik adlar yanlış alarm vermez" {
-    değişken mesaj = ""
-    dene { aktar "negative/tanimsiz_adlar" } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("modülü tip denetimi hataları nedeniyle yüklenemedi"), mesaj)
-    doğrula(mesaj.içerir("Satır 4, Sütun 1: Tanımsız ad — 'yazdir' adında bir değişken ya da fonksiyon yok ('yazdir' TR'de yok; 'yazdır' yazmak mı istediniz?)"), mesaj)
-    doğrula(mesaj.içerir("Satır 11, Sütun 11: Tanımsız ad — 'bilinmeyen_ad'"), mesaj)
+TR_ctx_test "5.14 tanımsız ad çalışmadan önce bulunur; dinamik adlar yanlış alarm vermez" {
+    TR_kw_var mesaj = ""
+    TR_kw_try { TR_kw_import "negative/tanimsiz_adlar" } TR_kw_catch h { mesaj = h }
+    TR_fn_assert(mesaj.TR_mem_contains("modülü tip denetimi hataları nedeniyle yüklenemedi"), mesaj)
+    TR_fn_assert(mesaj.TR_mem_contains("Satır 4, Sütun 1: Tanımsız ad — 'yazdir' adında bir değişken ya da fonksiyon yok ('yazdir' TR'de yok; 'yazdır' yazmak mı istediniz?)"), mesaj)
+    TR_fn_assert(mesaj.TR_mem_contains("Satır 11, Sütun 11: Tanımsız ad — 'bilinmeyen_ad'"), mesaj)
     // Bunlar tanımlıdır; denetim yanlış alarm vermez.
-    fonksiyon önce() { sonuç sonra() + 1 }
-    fonksiyon sonra() { sonuç 1 }
-    eşit_mi(2, önce())
-    eşit_mi([2, 3], [1, 2].haritala { o + 1 })
-    değişken yakalanan = ""
-    dene { fırlat "x" } yakala { yakalanan = hata }
-    eşit_mi("x", yakalanan)
-    eşit_mi([0, 2], [k * 2 döngü k içinde 0..2])
-    yapı Sayaç { n = 0; fonksiyon artır() { kendi.n += 1 } }
-    değişken s = Sayaç()
+    TR_kw_func önce() { TR_kw_return sonra() + 1 }
+    TR_kw_func sonra() { TR_kw_return 1 }
+    TR_fn_assert_equal(2, önce())
+    TR_fn_assert_equal([2, 3], [1, 2].TR_mem_map { TR_ctx_it + 1 })
+    TR_kw_var yakalanan = ""
+    TR_kw_try { TR_kw_throw "x" } TR_kw_catch { yakalanan = TR_ctx_error }
+    TR_fn_assert_equal("x", yakalanan)
+    TR_fn_assert_equal([0, 2], [k * 2 TR_kw_for k TR_kw_in 0..2])
+    TR_kw_struct Sayaç { n = 0; TR_kw_func artır() { TR_kw_self.n += 1 } }
+    TR_kw_var s = Sayaç()
     s.artır()
-    eşit_mi(1, s.n)
+    TR_fn_assert_equal(1, s.n)
 }

@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // 27 — Özel türev: kendi türevlenebilir işlemini yazmak ve doğrulamak.
 // Ne öğretir: özel_türev(ileri:, geri:) ile yeni işlem kurmak, türev_denetle (tolerans:) ile gradyanı
 // sayısal türevle karşılaştırmak, kaynaştır ile eleman bazlı işlemleri tek geçişte hesaplamak.
@@ -8,24 +9,24 @@
 // özel_türev, ileri hesabı ve geri (türev) hesabı sizin yazdığınız bir işlem kurar.
 // ileri: [çıktı, saklananlar] döndürür; geri: fonksiyon(saklananlar, g) her girdi için bir gradyan döndürür.
 // Örnek: kare(x) = x²; türevi 2x, gelen g ile çarpılır.
-değişken kare = özel_türev(
-    ileri: fonksiyon(x) { sonuç [x * x, [x]] },
-    geri: fonksiyon(s, g) { sonuç [g * 2 * s[0]] }
+TR_kw_var kare = TR_fn_custom_grad(
+    TR_arg_forward: TR_kw_func(x) { TR_kw_return [x * x, [x]] },
+    TR_arg_backward: TR_kw_func(s, g) { TR_kw_return [g * 2 * s[0]] }
 )
-değişken x = tensör([3.0], türev_izle: doğru)
-yazdır("kare(3) =", kare(x).değer)
-geri_yayılım(toplam(kare(x)))
-yazdır("d(kare)/dx =", x.gradyan.değer, "(beklenen 6.0)")
+TR_kw_var x = TR_fn_tensor([3.0], TR_arg_requires_grad: TR_kw_true)
+TR_fn_print("kare(3) =", kare(x).TR_mem_tolist)
+TR_fn_backward(TR_fn_sum(kare(x)))
+TR_fn_print("d(kare)/dx =", x.TR_mem_grad.TR_mem_tolist, "(beklenen 6.0)")
 
 // türev_denetle, geri yayılımla bulunan gradyanı merkezi farkla bulunan sayısal gradyanla karşılaştırır;
 // uyuşursa doğru verir. fark_adımı: farkın büyüklüğü, tolerans: izin verilen göreli farktır.
-yazdır(türev_denetle(fonksiyon(a) { sonuç a * a }, [tensör([0.5, -1.0], türev_izle: doğru)], fark_adımı: 0.001, tolerans: 0.01))
-yazdır(türev_denetle(fonksiyon(a) { sonuç exp(a) }, [tensör([0.3], türev_izle: doğru)], tolerans: 0.001))
+TR_fn_print(TR_fn_grad_check(TR_kw_func(a) { TR_kw_return a * a }, [TR_fn_tensor([0.5, -1.0], TR_arg_requires_grad: TR_kw_true)], TR_arg_fd_step: 0.001, TR_arg_tol: 0.01))
+TR_fn_print(TR_fn_grad_check(TR_kw_func(a) { TR_kw_return TR_fn_exp(a) }, [TR_fn_tensor([0.3], TR_arg_requires_grad: TR_kw_true)], TR_arg_tol: 0.001))
 
 // kaynaştır, eleman bazlı işlemlerden oluşan bir fonksiyonu tek geçişte hesaplayan eşdeğerine çevirir;
 // sonuç kaynaşmamış hesapla aynıdır (GPU'da ara sonuçlar belleğe yazılmaz).
-değişken f = kaynaştır((a, b) => a * b + a)
-yazdır(f(tensör([1.0, 2.0]), tensör([3.0, 4.0])).değer)
+TR_kw_var f = TR_fn_fuse((a, b) => a * b + a)
+TR_fn_print(f(TR_fn_tensor([1.0, 2.0]), TR_fn_tensor([3.0, 4.0])).TR_mem_tolist)
 
 // --- Kendin dene ---
 // 1. küp(x) = x³ işlemini özel_türev ile yaz (türevi 3x²) ve türev_denetle ile doğrula.

@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // 08 — Fonksiyonlar: işi adlandırıp yeniden kullanmak.
 // Ne öğretir: fonksiyon ve sonuç, tip bildirimi, varsayılan değer, adlı argüman, kendini
 // çağıran (özyinelemeli) fonksiyon.
@@ -5,46 +6,46 @@
 // Çalıştırma (proje kökünden): tr examples/tr/08_fonksiyonlar.tr
 
 // fonksiyon ad(parametreler) { ... sonuç değer }: sonuç değeri çağırana geri verir.
-fonksiyon topla(a, b) {
-    sonuç a + b
+TR_kw_func topla(a, b) {
+    TR_kw_return a + b
 }
-yazdır(topla(2, 3))
-yazdır(topla(topla(1, 2), 4)) // sonuç başka bir çağrıya girdi olabilir
+TR_fn_print(topla(2, 3))
+TR_fn_print(topla(topla(1, 2), 4)) // sonuç başka bir çağrıya girdi olabilir
 
 // Parametrelere ve sonuca tip yazılabilir; yanlış tipte değer verilirse hata alınır.
-fonksiyon alan(en: Ondalık, boy: Ondalık) -> Ondalık {
-    sonuç en * boy
+TR_kw_func alan(en: TR_type_Float, boy: TR_type_Float) -> TR_type_Float {
+    TR_kw_return en * boy
 }
-yazdır(alan(2.5, 4.0))
+TR_fn_print(alan(2.5, 4.0))
 
 // Varsayılan değer: argüman verilmezse o kullanılır.
 // Adlı argüman: parametre adıyla verilir, sıra önemsizdir.
-fonksiyon selam(ad, ek = "!") {
-    sonuç "Selam {ad}{ek}"
+TR_kw_func selam(ad, ek = "!") {
+    TR_kw_return "Selam {ad}{ek}"
 }
-yazdır(selam("Ayşe"))
-yazdır(selam("Ali", "?"))
-yazdır(selam(ek: "...", ad: "Veli"))
+TR_fn_print(selam("Ayşe"))
+TR_fn_print(selam("Ali", "?"))
+TR_fn_print(selam(ek: "...", ad: "Veli"))
 
 // sonuç fonksiyonu hemen bitirir; koşulla birlikte erken çıkış yapılabilir.
-fonksiyon mutlak_değer(x) {
-    eğer x < 0 { sonuç -x }
-    sonuç x
+TR_kw_func mutlak_değer(x) {
+    TR_kw_if x < 0 { TR_kw_return -x }
+    TR_kw_return x
 }
-yazdır(mutlak_değer(-7), mutlak_değer(7))
+TR_fn_print(mutlak_değer(-7), mutlak_değer(7))
 
 // Fonksiyon kendini çağırabilir (özyineleme); mutlaka duran bir koşulu olmalıdır.
-fonksiyon faktöriyel(n) {
-    eğer n <= 1 { sonuç 1 }
-    sonuç n * faktöriyel(n - 1)
+TR_kw_func faktöriyel(n) {
+    TR_kw_if n <= 1 { TR_kw_return 1 }
+    TR_kw_return n * faktöriyel(n - 1)
 }
-yazdır("5! = {faktöriyel(5)}, 10! = {faktöriyel(10)}")
+TR_fn_print("5! = {faktöriyel(5)}, 10! = {faktöriyel(10)}")
 
 // Fonksiyonun içindeki değişkenler dışarıdan görünmez.
-fonksiyon say_ve_yaz(sınır) {
-    değişken birikmiş = 0
-    döngü i içinde 1..=sınır { birikmiş += i }
-    yazdır("1..{sınır} toplamı {birikmiş}")
+TR_kw_func say_ve_yaz(sınır) {
+    TR_kw_var birikmiş = 0
+    TR_kw_for i TR_kw_in 1..=sınır { birikmiş += i }
+    TR_fn_print("1..{sınır} toplamı {birikmiş}")
 }
 say_ve_yaz(10)
 

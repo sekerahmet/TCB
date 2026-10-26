@@ -1,6 +1,7 @@
+//! tr kodlu 3 dil=tr
 // moduller_test.tr (11.5): alt klasördeki modül; kodu kendi dosyasının bağlamında çalışır.
-fonksiyon alt_veri() { sonuç dosya_oku("sub_data.txt").kırp() }
-fonksiyon sıfıra_böl(x) {
-    sonuç x / 0
+TR_kw_func alt_veri() { TR_kw_return TR_fn_read_file("sub_data.txt").TR_mem_strip() }
+TR_kw_func sıfıra_böl(x) {
+    TR_kw_return x / 0
 }
-fonksiyon özel_fırlat() { fırlat "özel hata" }
+TR_kw_func özel_fırlat() { TR_kw_throw "özel hata" }

@@ -1,4 +1,5 @@
+//! tr kodlu 3 dil=tr
 // moduller_test.tr tarafından aktarılan yardımcı modül: başı _ olan adlar modüle özeldir (11.7).
-sabit _ÇARPAN = 3
-fonksiyon _iç_hesap(x) { sonuç x * _ÇARPAN }
-fonksiyon dış_hesap(x) { sonuç _iç_hesap(x) + 1 }
+TR_kw_const _ÇARPAN = 3
+TR_kw_func _iç_hesap(x) { TR_kw_return x * _ÇARPAN }
+TR_kw_func dış_hesap(x) { TR_kw_return _iç_hesap(x) + 1 }

@@ -1,2 +1,3 @@
+//! tr kodlu 3 dil=tr
 // 11.6 testinin fikstürü: tr/ öneki bu dosyayı değil dilin kitaplığını yükler; ./tr/katman bunu yükler.
-değişken disk_katmanı = doğru
+TR_kw_var disk_katmanı = TR_kw_true

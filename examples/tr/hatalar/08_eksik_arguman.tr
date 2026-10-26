@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // Hata 08 — Eksik argüman.
 // İleti kodu: H2414
 // Ne olur: Program çalışırken fonksiyon çağrısında eksik argümanı söyleyen bir hata alınır.
@@ -6,7 +7,7 @@
 //     yazdır(topla(1, 2)) // ya da: fonksiyon topla(a, b = 0)
 // Çalıştırma (proje kökünden): tr examples/tr/hatalar/08_eksik_arguman.tr   (çıkış kodu 1)
 
-fonksiyon topla(a, b) {
-    sonuç a + b
+TR_kw_func topla(a, b) {
+    TR_kw_return a + b
 }
-yazdır(topla(1))
+TR_fn_print(topla(1))

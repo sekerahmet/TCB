@@ -1,12 +1,13 @@
+//! tr kodlu 3 dil=tr
 // Bilerek hatalı modül (5.4, 5.12, 5.14): tanımsız adlar çalışmadan önce bulunur; modülün
 // hiçbir satırı çalışmaz. Satır numaraları testlerde geçer: satır eklerken testleri güncelleyin.
-değişken çalıştı = doğru
+TR_kw_var çalıştı = TR_kw_true
 yazdir("merhaba")
 tanımsız_değişken = 3
-eğer doğru {
-    değişken iç = 1
+TR_kw_if TR_kw_true {
+    TR_kw_var iç = 1
 }
-yazdır(iç)
-fonksiyon f() {
-    sonuç bilinmeyen_ad + 1
+TR_fn_print(iç)
+TR_kw_func f() {
+    TR_kw_return bilinmeyen_ad + 1
 }

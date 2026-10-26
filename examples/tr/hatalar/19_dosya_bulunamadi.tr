@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // Hata 19 — Dosya bulunamadı.
 // İleti kodu: H2100
 // Ne olur: Olmayan bir dosya okunursa çalışma anında hata alınır; ileti bakılan yerleri sayar.
@@ -8,4 +9,4 @@
 //     }
 // Çalıştırma (proje kökünden): tr examples/tr/hatalar/19_dosya_bulunamadi.tr   (çıkış kodu 1)
 
-yazdır(dosya_oku("olmayan_dosya.txt"))
+TR_fn_print(TR_fn_read_file("olmayan_dosya.txt"))

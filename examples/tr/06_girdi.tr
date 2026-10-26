@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // 06 — Girdi: kullanıcıdan veri okumak.
 // Ne öğretir: girdi("soru") ile satır okumak, okunan metni tam() ile sayıya çevirmek,
 // girdi boşken varsayılana düşmek.
@@ -9,19 +10,19 @@
 
 // girdi(soru) soruyu yazar ve kullanıcının yazdığı satırı Metin olarak verir.
 // Hiçbir şey yazılmazsa boş metin ("") gelir.
-değişken ad = girdi("Adın nedir? ")
-eğer ad == "" {
+TR_kw_var ad = TR_fn_input("Adın nedir? ")
+TR_kw_if ad == "" {
     ad = "Misafir"
 }
-yazdır("Merhaba, {ad}!")
+TR_fn_print("Merhaba, {ad}!")
 
 // girdi her zaman Metin verir; sayı gerekiyorsa tam() ya da ondalık() ile çevrilir.
-değişken yaş_metni = girdi("Yaşın kaç? ")
-değişken yaş = 20
-eğer yaş_metni != "" {
-    yaş = tam(yaş_metni)
+TR_kw_var yaş_metni = TR_fn_input("Yaşın kaç? ")
+TR_kw_var yaş = 20
+TR_kw_if yaş_metni != "" {
+    yaş = TR_fn_int(yaş_metni)
 }
-yazdır("Gelecek yıl {yaş + 1} yaşında olacaksın.")
+TR_fn_print("Gelecek yıl {yaş + 1} yaşında olacaksın.")
 
 // --- Kendin dene ---
 // 1. İki sayı sor ve toplamlarını yazdır.

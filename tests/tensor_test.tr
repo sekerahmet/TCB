@@ -1,1210 +1,1211 @@
+//! tr kodlu 3 dil=tr
 // docs/spec/15_tensorler.md §15 — Tensörler ve otomatik türev
 
-aktar "yardimci_test_araclari"
+TR_kw_import "yardimci_test_araclari"
 
-test "15.1 oluşturma: tensör, sıfırlar, birler, rastgele_normal" {
-    değişken a = tensör([[1, 2, 3], [4, 5, 6]])
-    eşit_mi(Tensör, tip(a))
-    eşit_mi([2, 3], a.şekil)
-    eşit_mi([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], a.değer)
-    eşit_mi([2, 3], tensör(tensör([[1, 2, 3], [4, 5, 6]])).şekil)
-    eşit_mi([[0.0, 0.0]], sıfırlar([1, 2]).değer)
-    eşit_mi([1.0, 1.0, 1.0], birler([3]).değer)
-    eşit_mi([4, 5], rastgele_normal([4, 5]).şekil)
-    eşit_mi(rastgele_normal([3], tohum: 7).değer, rastgele_normal([3], tohum: 7).değer)
+TR_ctx_test "15.1 oluşturma: tensör, sıfırlar, birler, rastgele_normal" {
+    TR_kw_var a = TR_fn_tensor([[1, 2, 3], [4, 5, 6]])
+    TR_fn_assert_equal(TR_type_Tensor, TR_fn_type(a))
+    TR_fn_assert_equal([2, 3], a.TR_mem_shape)
+    TR_fn_assert_equal([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], a.TR_mem_tolist)
+    TR_fn_assert_equal([2, 3], TR_fn_tensor(TR_fn_tensor([[1, 2, 3], [4, 5, 6]])).TR_mem_shape)
+    TR_fn_assert_equal([[0.0, 0.0]], TR_fn_zeros([1, 2]).TR_mem_tolist)
+    TR_fn_assert_equal([1.0, 1.0, 1.0], TR_fn_ones([3]).TR_mem_tolist)
+    TR_fn_assert_equal([4, 5], TR_fn_randn([4, 5]).TR_mem_shape)
+    TR_fn_assert_equal(TR_fn_randn([3], TR_arg_seed: 7).TR_mem_tolist, TR_fn_randn([3], TR_arg_seed: 7).TR_mem_tolist)
     // Şeklin tek yazımı listedir; tam sayılarla yazım (sıfırlar(2, 3)) liste biçimini önerir.
-    doğrula(hata_metni(() => sıfırlar(2, 3)).içerir("şekil liste olarak verilir; sıfırlar([2, 3]) yazın"))
-    değişken x = tensör(3.0, türev_izle: doğru)
-    eşit_mi(3.0, x.değer)
+    TR_fn_assert(hata_metni(() => TR_fn_zeros(2, 3)).TR_mem_contains("şekil liste olarak verilir; sıfırlar([2, 3]) yazın"))
+    TR_kw_var x = TR_fn_tensor(3.0, TR_arg_requires_grad: TR_kw_true)
+    TR_fn_assert_equal(3.0, x.TR_mem_tolist)
     // Tek sayı 0 boyutlu tensördür; türev_izle varsayılanı burada da yanlıştır.
-    değişken s = tensör(3.0)
-    eşit_mi([], s.şekil)
-    eşit_mi(yok, s.gradyan)
-    eşit_mi([Tensör, Tensör], [tip(tensör([[1]])), tip(birim_matris(2))])
-    değişken m = tensör([[1, 2], [3, 4]])
-    eşit_mi([2, 2, 2], [m.şekil[0], m.şekil[1], m.şekil.uzunluk])
-    eşit_mi([10.0, 2.5], [toplam(m).değer, ortalama(m).değer])
+    TR_kw_var s = TR_fn_tensor(3.0)
+    TR_fn_assert_equal([], s.TR_mem_shape)
+    TR_fn_assert_equal(TR_kw_none, s.TR_mem_grad)
+    TR_fn_assert_equal([TR_type_Tensor, TR_type_Tensor], [TR_fn_type(TR_fn_tensor([[1]])), TR_fn_type(TR_fn_eye(2))])
+    TR_kw_var m = TR_fn_tensor([[1, 2], [3, 4]])
+    TR_fn_assert_equal([2, 2, 2], [m.TR_mem_shape[0], m.TR_mem_shape[1], m.TR_mem_shape.TR_mem_length])
+    TR_fn_assert_equal([10.0, 2.5], [TR_fn_sum(m).TR_mem_tolist, TR_fn_mean(m).TR_mem_tolist])
     // Hesaplar float32 ile yapılır.
-    eşit_mi(0.33333334, (tensör([1.0]) / 3).değer[0])
-    doğrula((tensör([1.0]) / 3).değer[0] != 1 / 3)
-    eşit_mi(16777216.0, tensör([16777217.0]).değer[0])
+    TR_fn_assert_equal(0.33333334, (TR_fn_tensor([1.0]) / 3).TR_mem_tolist[0])
+    TR_fn_assert((TR_fn_tensor([1.0]) / 3).TR_mem_tolist[0] != 1 / 3)
+    TR_fn_assert_equal(16777216.0, TR_fn_tensor([16777217.0]).TR_mem_tolist[0])
 }
 
-test "15.2 özellikler ve görünüm metotları" {
-    değişken a = tensör([[1, 2, 3], [4, 5, 6]])
-    eşit_mi([3, 2], a.şekillendir([3, 2]).şekil)
-    eşit_mi([6], a.şekillendir([-1]).şekil)
+TR_ctx_test "15.2 özellikler ve görünüm metotları" {
+    TR_kw_var a = TR_fn_tensor([[1, 2, 3], [4, 5, 6]])
+    TR_fn_assert_equal([3, 2], a.TR_mem_reshape([3, 2]).TR_mem_shape)
+    TR_fn_assert_equal([6], a.TR_mem_reshape([-1]).TR_mem_shape)
     // .gradyan: türev izlemeyen işlemin sonucu yapraktır (yok); türev izleyenin sonucunda hata.
-    eşit_mi(yok, (tensör([1.0]) + tensör([2.0])).gradyan)
-    değişken izlenen = tensör([1.0], türev_izle: doğru) * 2.0
-    doğrula(hata_metni(() => izlenen.gradyan) != "")
+    TR_fn_assert_equal(TR_kw_none, (TR_fn_tensor([1.0]) + TR_fn_tensor([2.0])).TR_mem_grad)
+    TR_kw_var izlenen = TR_fn_tensor([1.0], TR_arg_requires_grad: TR_kw_true) * 2.0
+    TR_fn_assert(hata_metni(() => izlenen.TR_mem_grad) != "")
     // Tek liste argümanı zorunludur ([] 0 boyutlu şekil); sayı argümanları şekil sayılmaz.
-    eşit_mi([], tensör([3.0]).şekillendir([]).şekil)
-    eşit_mi(3.0, tensör([3.0]).şekillendir([]).değer)
-    doğrula(hata_metni(() => sıfırlar([6]).şekillendir(2, 3)).içerir("liste olarak bekler"))
-    doğrula(hata_metni(() => sıfırlar([6]).şekillendir(6)).içerir("liste olarak bekler"))
-    eşit_mi([[1.0, 4.0], [2.0, 5.0], [3.0, 6.0]], a.devrik().değer)
-    eşit_mi([[2.0, 3.0], [5.0, 6.0]], a.dilim(1, 1, 3).değer)
-    eşit_mi([[4.0, 5.0, 6.0]], a.dilim(0, -1, 2).değer)
-    değişken üç = tensör([[[1, 2], [3, 4]]])
-    eşit_mi([[[1.0, 3.0], [2.0, 4.0]]], üç.eksenleri_sırala([0, 2, 1]).değer)
-    doğrula(tensör([0.1]).değer[0] == 0.1)
-    doğrula(!tensör([0.0]) ve tensör([3.0]))
-    eşit_mi("cpu", a.cihaz)
-    eşit_mi("cpu", a.cihaza("cpu").cihaz)
-    doğrula(hata_metni(() => a.cihaza("gpu:9")).içerir("gpu:9 cihazı kullanılamıyor"))
+    TR_fn_assert_equal([], TR_fn_tensor([3.0]).TR_mem_reshape([]).TR_mem_shape)
+    TR_fn_assert_equal(3.0, TR_fn_tensor([3.0]).TR_mem_reshape([]).TR_mem_tolist)
+    TR_fn_assert(hata_metni(() => TR_fn_zeros([6]).TR_mem_reshape(2, 3)).TR_mem_contains("liste olarak bekler"))
+    TR_fn_assert(hata_metni(() => TR_fn_zeros([6]).TR_mem_reshape(6)).TR_mem_contains("liste olarak bekler"))
+    TR_fn_assert_equal([[1.0, 4.0], [2.0, 5.0], [3.0, 6.0]], a.TR_mem_transpose().TR_mem_tolist)
+    TR_fn_assert_equal([[2.0, 3.0], [5.0, 6.0]], a.TR_mem_slice(1, 1, 3).TR_mem_tolist)
+    TR_fn_assert_equal([[4.0, 5.0, 6.0]], a.TR_mem_slice(0, -1, 2).TR_mem_tolist)
+    TR_kw_var üç = TR_fn_tensor([[[1, 2], [3, 4]]])
+    TR_fn_assert_equal([[[1.0, 3.0], [2.0, 4.0]]], üç.TR_mem_permute([0, 2, 1]).TR_mem_tolist)
+    TR_fn_assert(TR_fn_tensor([0.1]).TR_mem_tolist[0] == 0.1)
+    TR_fn_assert(!TR_fn_tensor([0.0]) TR_kw_and TR_fn_tensor([3.0]))
+    TR_fn_assert_equal("cpu", a.TR_mem_device)
+    TR_fn_assert_equal("cpu", a.TR_mem_to_device("cpu").TR_mem_device)
+    TR_fn_assert(hata_metni(() => a.TR_mem_to_device("gpu:9")).TR_mem_contains("gpu:9 cihazı kullanılamıyor"))
 }
 
-test "15.6 işleçler ve yayınlama" {
-    değişken a = tensör([[1, 2, 3], [4, 5, 6]])
-    değişken b = tensör([[1, 0], [0, 1], [1, 1]])
-    eşit_mi([[4.0, 5.0], [10.0, 11.0]], (a @ b).değer)
-    eşit_mi([[11.0, 22.0, 33.0], [14.0, 25.0, 36.0]], (a + [10, 20, 30]).değer)
-    eşit_mi([[2.0, 4.0, 6.0], [12.0, 15.0, 18.0]], (a * tensör([[2], [3]])).değer)
-    eşit_mi([[1.0, 3.0, 5.0], [7.0, 9.0, 11.0]], (2 * a - 1).değer)
-    eşit_mi([[0.5, 1.0, 1.5], [2.0, 2.5, 3.0]], (a / 2).değer)
-    eşit_mi(6.0, (tensör([1, 2, 3]) @ tensör([1, 1, 1])).değer)
+TR_ctx_test "15.6 işleçler ve yayınlama" {
+    TR_kw_var a = TR_fn_tensor([[1, 2, 3], [4, 5, 6]])
+    TR_kw_var b = TR_fn_tensor([[1, 0], [0, 1], [1, 1]])
+    TR_fn_assert_equal([[4.0, 5.0], [10.0, 11.0]], (a @ b).TR_mem_tolist)
+    TR_fn_assert_equal([[11.0, 22.0, 33.0], [14.0, 25.0, 36.0]], (a + [10, 20, 30]).TR_mem_tolist)
+    TR_fn_assert_equal([[2.0, 4.0, 6.0], [12.0, 15.0, 18.0]], (a * TR_fn_tensor([[2], [3]])).TR_mem_tolist)
+    TR_fn_assert_equal([[1.0, 3.0, 5.0], [7.0, 9.0, 11.0]], (2 * a - 1).TR_mem_tolist)
+    TR_fn_assert_equal([[0.5, 1.0, 1.5], [2.0, 2.5, 3.0]], (a / 2).TR_mem_tolist)
+    TR_fn_assert_equal(6.0, (TR_fn_tensor([1, 2, 3]) @ TR_fn_tensor([1, 1, 1])).TR_mem_tolist)
     // İndeksle atama veriyi yerinde değiştirir.
-    değişken t = sıfırlar([2, 3])
+    TR_kw_var t = TR_fn_zeros([2, 3])
     t[0] = 1
     t[1][2] = 5
     t[1][0] += 2
-    eşit_mi([[1.0, 1.0, 1.0], [2.0, 0.0, 5.0]], t.değer)
+    TR_fn_assert_equal([[1.0, 1.0, 1.0], [2.0, 0.0, 5.0]], t.TR_mem_tolist)
     t[0..1] = [[7, 8, 9]]
-    eşit_mi([7.0, 8.0, 9.0], t[0].değer)
-    doğrula(hata_metni(() => { t[0] = [1, 2] }).içerir("[3] şeklindeki yere [2] şeklinde veri atanamaz"))
-    değişken w = tensör([1.0, 2.0], türev_izle: doğru)
-    doğrula(hata_metni(() => { w[0] = 5 }).içerir("türevsiz \{ ... \} içinde"))
-    türevsiz {
+    TR_fn_assert_equal([7.0, 8.0, 9.0], t[0].TR_mem_tolist)
+    TR_fn_assert(hata_metni(() => { t[0] = [1, 2] }).TR_mem_contains("[3] şeklindeki yere [2] şeklinde veri atanamaz"))
+    TR_kw_var w = TR_fn_tensor([1.0, 2.0], TR_arg_requires_grad: TR_kw_true)
+    TR_fn_assert(hata_metni(() => { w[0] = 5 }).TR_mem_contains("türevsiz \{ ... \} içinde"))
+    TR_fn_no_grad {
         w[0] = 5
     }
-    eşit_mi([5.0, 2.0], w.değer)
+    TR_fn_assert_equal([5.0, 2.0], w.TR_mem_tolist)
 }
 
-test "15.6 bitişik olmayan tensörde t[i], döngü öğesi ve şekillendir görünümdür" {
-    değişken t = tensör([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
-    değişken d = t.devrik()
+TR_ctx_test "15.6 bitişik olmayan tensörde t[i], döngü öğesi ve şekillendir görünümdür" {
+    TR_kw_var t = TR_fn_tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+    TR_kw_var d = t.TR_mem_transpose()
     d[0] = 9 // d'nin 0. satırı t'nin 0. sütunudur
-    eşit_mi([[9.0, 2.0, 3.0], [9.0, 5.0, 6.0]], t.değer)
-    döngü satır içinde t.devrik() { satır[1] = 0 }
-    eşit_mi([[9.0, 2.0, 3.0], [0.0, 0.0, 0.0]], t.değer)
-    değişken u = tensör([[1.0, 2.0], [3.0, 4.0]])
-    u.eksenleri_sırala([1, 0])[0][1] = 100
-    eşit_mi([[1.0, 2.0], [100.0, 4.0]], u.değer)
+    TR_fn_assert_equal([[9.0, 2.0, 3.0], [9.0, 5.0, 6.0]], t.TR_mem_tolist)
+    TR_kw_for satır TR_kw_in t.TR_mem_transpose() { satır[1] = 0 }
+    TR_fn_assert_equal([[9.0, 2.0, 3.0], [0.0, 0.0, 0.0]], t.TR_mem_tolist)
+    TR_kw_var u = TR_fn_tensor([[1.0, 2.0], [3.0, 4.0]])
+    u.TR_mem_permute([1, 0])[0][1] = 100
+    TR_fn_assert_equal([[1.0, 2.0], [100.0, 4.0]], u.TR_mem_tolist)
     // Boyutu 1 eksen ekleyen şekillendir de görünümdür.
-    değişken s = u.devrik().şekillendir([2, 1, 2])
+    TR_kw_var s = u.TR_mem_transpose().TR_mem_reshape([2, 1, 2])
     s[1][0][0] = 7
-    eşit_mi([[1.0, 7.0], [100.0, 4.0]], u.değer)
+    TR_fn_assert_equal([[1.0, 7.0], [100.0, 4.0]], u.TR_mem_tolist)
 }
 
-test "15.17 gelu: varsayılan tanh yaklaşımı, yaklaşık: yanlış tam (erf) biçimi" {
+TR_ctx_test "15.17 gelu: varsayılan tanh yaklaşımı, yaklaşık: yanlış tam (erf) biçimi" {
     // Tam GELU: x · Φ(x); gelu(1) = 0.8413447, tanh yaklaşımı 0.8411920.
-    eşit_mi(0.841192, yuvarla(gelu(1.0), 6))
-    eşit_mi(0.841192, yuvarla(gelu(1.0, yaklaşık: doğru), 6))
-    eşit_mi(0.841345, yuvarla(gelu(1.0, yaklaşık: yanlış), 6))
-    eşit_mi(-0.158655, yuvarla(gelu(-1.0, yaklaşık: yanlış), 6))
-    değişken t = tensör([-1.0, 0.0, 1.0])
-    eşit_mi([-0.158655, 0.0, 0.841345], gelu(t, yaklaşık: yanlış).değer.haritala((x) => yuvarla(x, 6)))
-    eşit_mi([-0.158808, 0.0, 0.841192], gelu(t).değer.haritala((x) => yuvarla(x, 6)))
+    TR_fn_assert_equal(0.841192, TR_fn_round(TR_fn_gelu(1.0), 6))
+    TR_fn_assert_equal(0.841192, TR_fn_round(TR_fn_gelu(1.0, TR_arg_approximate: TR_kw_true), 6))
+    TR_fn_assert_equal(0.841345, TR_fn_round(TR_fn_gelu(1.0, TR_arg_approximate: TR_kw_false), 6))
+    TR_fn_assert_equal(-0.158655, TR_fn_round(TR_fn_gelu(-1.0, TR_arg_approximate: TR_kw_false), 6))
+    TR_kw_var t = TR_fn_tensor([-1.0, 0.0, 1.0])
+    TR_fn_assert_equal([-0.158655, 0.0, 0.841345], TR_fn_gelu(t, TR_arg_approximate: TR_kw_false).TR_mem_tolist.TR_mem_map((x) => TR_fn_round(x, 6)))
+    TR_fn_assert_equal([-0.158808, 0.0, 0.841192], TR_fn_gelu(t).TR_mem_tolist.TR_mem_map((x) => TR_fn_round(x, 6)))
     // Türev: Φ(x) + x · φ(x); gelu(0)' = 0.5.
-    değişken x = tensör([0.0, 1.0], türev_izle: doğru)
-    geri_yayılım(toplam(gelu(x, yaklaşık: yanlış)))
-    eşit_mi([0.5, 1.08332], x.gradyan.değer.haritala((d) => yuvarla(d, 5)))
+    TR_kw_var x = TR_fn_tensor([0.0, 1.0], TR_arg_requires_grad: TR_kw_true)
+    TR_fn_backward(TR_fn_sum(TR_fn_gelu(x, TR_arg_approximate: TR_kw_false)))
+    TR_fn_assert_equal([0.5, 1.08332], x.TR_mem_grad.TR_mem_tolist.TR_mem_map((d) => TR_fn_round(d, 5)))
     // Uçlar: gelu(-sonsuz) = 0, gelu(sonsuz) = sonsuz.
-    değişken sn = 1e308 * 10
-    eşit_mi(0.0, gelu(-sn, yaklaşık: yanlış))
-    doğrula(gelu(sn, yaklaşık: yanlış) > 1e308, "gelu(sonsuz) sonsuz")
+    TR_kw_var sn = 1e308 * 10
+    TR_fn_assert_equal(0.0, TR_fn_gelu(-sn, TR_arg_approximate: TR_kw_false))
+    TR_fn_assert(TR_fn_gelu(sn, TR_arg_approximate: TR_kw_false) > 1e308, "gelu(sonsuz) sonsuz")
     // Mantık olmayan değer ve bilinmeyen ad hatadır.
-    doğrula(hata_metni(() => gelu(t, yaklaşık: "yanlış")).içerir("yaklaşık"))
-    doğrula(hata_metni(() => gelu(t, yaklasik: yanlış)).içerir("yaklaşık"))
+    TR_fn_assert(hata_metni(() => TR_fn_gelu(t, TR_arg_approximate: "yanlış")).TR_mem_contains("yaklaşık"))
+    TR_fn_assert(hata_metni(() => TR_fn_gelu(t, yaklasik: TR_kw_false)).TR_mem_contains("yaklaşık"))
 }
 
 // 15.43: bırakma görünmezdir; ara sonuçlar, yereller ve kaydedilenler bırakılsa da dönen,
 // görünümü alınan, kaçan ve geri yayılımın okuyacağı değerler doğru kalır.
-yapı ÖnbellekSınaması {
+TR_kw_struct ÖnbellekSınaması {
     t
 }
-fonksiyon döndür15_44(x) {
-    değişken a, b = x.böl(2, eksen: -1)
-    değişken geçici = a * 3.0
-    sonuç bitiştir([a * 2.0 - b, a + b * 2.0], eksen: -1)
+TR_kw_func döndür15_44(x) {
+    TR_kw_var a, b = x.TR_mem_split(2, TR_arg_dim: -1)
+    TR_kw_var geçici = a * 3.0
+    TR_kw_return TR_fn_concat([a * 2.0 - b, a + b * 2.0], TR_arg_dim: -1)
 }
-fonksiyon görünüm15_44() {
-    değişken yerel = tensör([[1.0, 2.0], [3.0, 4.0]])
-    sonuç yerel.devrik()
+TR_kw_func görünüm15_44() {
+    TR_kw_var yerel = TR_fn_tensor([[1.0, 2.0], [3.0, 4.0]])
+    TR_kw_return yerel.TR_mem_transpose()
 }
-fonksiyon kapanış15_44() {
-    değişken gizli = tensör([5.0, 6.0])
-    sonuç () => toplam(gizli).değer
+TR_kw_func kapanış15_44() {
+    TR_kw_var gizli = TR_fn_tensor([5.0, 6.0])
+    TR_kw_return () => TR_fn_sum(gizli).TR_mem_tolist
 }
-test "15.43 tensör belleğinin ömrü: bırakılan ara sonuçlar sonucu değiştirmez" {
-    değişken x = tensör([[1.0, 2.0, 3.0, 4.0]], türev_izle: doğru)
-    değişken y = döndür15_44(x)
-    eşit_mi([[-1.0, 0.0, 7.0, 10.0]], y.değer)
-    geri_yayılım(toplam(y * y))
+TR_ctx_test "15.43 tensör belleğinin ömrü: bırakılan ara sonuçlar sonucu değiştirmez" {
+    TR_kw_var x = TR_fn_tensor([[1.0, 2.0, 3.0, 4.0]], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var y = döndür15_44(x)
+    TR_fn_assert_equal([[-1.0, 0.0, 7.0, 10.0]], y.TR_mem_tolist)
+    TR_fn_backward(TR_fn_sum(y * y))
     // a = x[:2], b = x[2:]; y = [2a - b, a + 2b]; d(Σy²)/da = 4·y₁ + 2·y₂, d/db = -2·y₁ + 4·y₂
-    eşit_mi([[10.0, 20.0, 30.0, 40.0]], x.gradyan.değer)
-    eşit_mi([[1.0, 3.0], [2.0, 4.0]], görünüm15_44().değer)
-    eşit_mi(11.0, kapanış15_44()())
-    değişken ö = ÖnbellekSınaması(yok)
-    döngü i içinde 0..3 { ö.t = tensör([i * 1.0]) * 2.0 }
-    eşit_mi([4.0], ö.t.değer)
-    değişken l = [tensör([1.0]) + 1.0, tensör([2.0]) + 1.0]
-    eşit_mi([3.0], l[1].değer)
+    TR_fn_assert_equal([[10.0, 20.0, 30.0, 40.0]], x.TR_mem_grad.TR_mem_tolist)
+    TR_fn_assert_equal([[1.0, 3.0], [2.0, 4.0]], görünüm15_44().TR_mem_tolist)
+    TR_fn_assert_equal(11.0, kapanış15_44()())
+    TR_kw_var ö = ÖnbellekSınaması(TR_kw_none)
+    TR_kw_for i TR_kw_in 0..3 { ö.t = TR_fn_tensor([i * 1.0]) * 2.0 }
+    TR_fn_assert_equal([4.0], ö.t.TR_mem_tolist)
+    TR_kw_var l = [TR_fn_tensor([1.0]) + 1.0, TR_fn_tensor([2.0]) + 1.0]
+    TR_fn_assert_equal([3.0], l[1].TR_mem_tolist)
 }
 
-test "15.44 kaynaştır: zincir tek geçişte, sonuç ve gradyan kaynaşmamışla aynı" {
-    fonksiyon döner(x, cos_tablosu, sin_tablosu, ölçek) {
-        değişken a, b = x.böl(2, eksen: -1)
-        sonuç bitiştir([a * cos_tablosu - b * sin_tablosu, (a * sin_tablosu + b * cos_tablosu) * ölçek], eksen: -1)
+TR_ctx_test "15.44 kaynaştır: zincir tek geçişte, sonuç ve gradyan kaynaşmamışla aynı" {
+    TR_kw_func döner(x, cos_tablosu, sin_tablosu, ölçek) {
+        TR_kw_var a, b = x.TR_mem_split(2, TR_arg_dim: -1)
+        TR_kw_return TR_fn_concat([a * cos_tablosu - b * sin_tablosu, (a * sin_tablosu + b * cos_tablosu) * ölçek], TR_arg_dim: -1)
     }
-    değişken k = kaynaştır(döner)
-    değişken x1 = tensör(rastgele_normal([3, 4], tohum: 1), türev_izle: doğru)
-    değişken x2 = tensör(x1, türev_izle: doğru)
-    değişken cos_tablosu = rastgele_normal([3, 2], tohum: 2)
-    değişken sin_tablosu = rastgele_normal([3, 2], tohum: 3)
-    değişken y1 = k(x1, cos_tablosu, sin_tablosu, 2.0)
-    değişken y2 = döner(x2, cos_tablosu, sin_tablosu, 2.0)
-    eşit_mi(y2.değer, y1.değer)
-    geri_yayılım(toplam(y1 * y1))
-    geri_yayılım(toplam(y2 * y2))
-    doğrula(max(mutlak(x1.gradyan - x2.gradyan)).değer < 0.00001, "gradyan farklı")
+    TR_kw_var k = TR_fn_fuse(döner)
+    TR_kw_var x1 = TR_fn_tensor(TR_fn_randn([3, 4], TR_arg_seed: 1), TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var x2 = TR_fn_tensor(x1, TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var cos_tablosu = TR_fn_randn([3, 2], TR_arg_seed: 2)
+    TR_kw_var sin_tablosu = TR_fn_randn([3, 2], TR_arg_seed: 3)
+    TR_kw_var y1 = k(x1, cos_tablosu, sin_tablosu, 2.0)
+    TR_kw_var y2 = döner(x2, cos_tablosu, sin_tablosu, 2.0)
+    TR_fn_assert_equal(y2.TR_mem_tolist, y1.TR_mem_tolist)
+    TR_fn_backward(TR_fn_sum(y1 * y1))
+    TR_fn_backward(TR_fn_sum(y2 * y2))
+    TR_fn_assert(TR_fn_max(TR_fn_abs(x1.TR_mem_grad - x2.TR_mem_grad)).TR_mem_tolist < 0.00001, "gradyan farklı")
     // Sabit önbellek anahtarının parçasıdır; liste döndüren fonksiyon liste verir.
-    eşit_mi([3.0], kaynaştır((a, s) => a * s)(tensör([1.0]), 3.0).değer)
-    eşit_mi(2, kaynaştır((a) => [a + 1.0, a * 2.0])(tensör([1.0])).uzunluk)
+    TR_fn_assert_equal([3.0], TR_fn_fuse((a, s) => a * s)(TR_fn_tensor([1.0]), 3.0).TR_mem_tolist)
+    TR_fn_assert_equal(2, TR_fn_fuse((a) => [a + 1.0, a * 2.0])(TR_fn_tensor([1.0])).TR_mem_length)
     // Dışarıdan okunan sayı kayıtta sabitlenir; argüman olarak verilen değişir.
-    değişken ölçek2 = 2.0
-    değişken gömülü = kaynaştır((a) => a * ölçek2)
-    değişken verilen = kaynaştır((a, s) => a * s)
-    eşit_mi([2.0], gömülü(tensör([1.0])).değer)
+    TR_kw_var ölçek2 = 2.0
+    TR_kw_var gömülü = TR_fn_fuse((a) => a * ölçek2)
+    TR_kw_var verilen = TR_fn_fuse((a, s) => a * s)
+    TR_fn_assert_equal([2.0], gömülü(TR_fn_tensor([1.0])).TR_mem_tolist)
     ölçek2 = 3.0
-    eşit_mi([2.0], gömülü(tensör([1.0])).değer)
-    eşit_mi([3.0], verilen(tensör([1.0]), ölçek2).değer)
+    TR_fn_assert_equal([2.0], gömülü(TR_fn_tensor([1.0])).TR_mem_tolist)
+    TR_fn_assert_equal([3.0], verilen(TR_fn_tensor([1.0]), ölçek2).TR_mem_tolist)
     // Kaynaştırılamayan işlem ve dış tensör hata verir.
-    değişken dış = tensör([1.0])
-    doğrula(hata_metni(() => kaynaştır((a) => toplam(a))(tensör([1.0]))).içerir("kaynaştırılamayan"))
-    doğrula(hata_metni(() => kaynaştır((a) => a + dış)(tensör([1.0]))).içerir("dışarıdan"))
-    doğrula(hata_metni(() => kaynaştır(3)).içerir("fonksiyon"))
+    TR_kw_var dış = TR_fn_tensor([1.0])
+    TR_fn_assert(hata_metni(() => TR_fn_fuse((a) => TR_fn_sum(a))(TR_fn_tensor([1.0]))).TR_mem_contains("kaynaştırılamayan"))
+    TR_fn_assert(hata_metni(() => TR_fn_fuse((a) => a + dış)(TR_fn_tensor([1.0]))).TR_mem_contains("dışarıdan"))
+    TR_fn_assert(hata_metni(() => TR_fn_fuse(3)).TR_mem_contains("fonksiyon"))
 }
 
-test "15.25 doğrusal_çapraz_entropi: çapraz_entropi(girdi @ ağırlık) ile aynı kayıp ve gradyanlar" {
-    değişken x = tensör(rastgele_normal([6, 4], tohum: 1), türev_izle: doğru)
-    değişken w = tensör(rastgele_normal([4, 5], tohum: 2), türev_izle: doğru)
-    değişken hedef = [0, 4, -1, 2, 2, 1]
-    değişken k1 = doğrusal_çapraz_entropi(x, w, hedef)
-    geri_yayılım(k1 / 2)
-    değişken x2 = tensör(x, türev_izle: doğru)
-    değişken w2 = tensör(w, türev_izle: doğru)
-    değişken k2 = çapraz_entropi(x2 @ w2, hedef)
-    geri_yayılım(k2 / 2)
-    doğrula(mutlak(k1.değer - k2.değer) < 0.00001, "kayıp {k1.değer} / {k2.değer}")
-    doğrula(max(mutlak(x.gradyan - x2.gradyan)).değer < 0.00001, "girdi gradyanı farklı")
-    doğrula(max(mutlak(w.gradyan - w2.gradyan)).değer < 0.00001, "ağırlık gradyanı farklı")
+TR_ctx_test "15.25 doğrusal_çapraz_entropi: çapraz_entropi(girdi @ ağırlık) ile aynı kayıp ve gradyanlar" {
+    TR_kw_var x = TR_fn_tensor(TR_fn_randn([6, 4], TR_arg_seed: 1), TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var w = TR_fn_tensor(TR_fn_randn([4, 5], TR_arg_seed: 2), TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var hedef = [0, 4, -1, 2, 2, 1]
+    TR_kw_var k1 = TR_fn_linear_cross_entropy(x, w, hedef)
+    TR_fn_backward(k1 / 2)
+    TR_kw_var x2 = TR_fn_tensor(x, TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var w2 = TR_fn_tensor(w, TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var k2 = TR_fn_cross_entropy(x2 @ w2, hedef)
+    TR_fn_backward(k2 / 2)
+    TR_fn_assert(TR_fn_abs(k1.TR_mem_tolist - k2.TR_mem_tolist) < 0.00001, "kayıp {k1.TR_mem_tolist} / {k2.TR_mem_tolist}")
+    TR_fn_assert(TR_fn_max(TR_fn_abs(x.TR_mem_grad - x2.TR_mem_grad)).TR_mem_tolist < 0.00001, "girdi gradyanı farklı")
+    TR_fn_assert(TR_fn_max(TR_fn_abs(w.TR_mem_grad - w2.TR_mem_grad)).TR_mem_tolist < 0.00001, "ağırlık gradyanı farklı")
     // Paylaşımlı gömme düzeni: ağırlık tablonun devriği (görünüm).
-    değişken tablo = rastgele_normal([5, 4], tohum: 3)
-    doğrula(mutlak(doğrusal_çapraz_entropi(x, tablo.devrik(), hedef).değer - çapraz_entropi(x @ tablo.devrik(), hedef).değer) < 0.00001)
+    TR_kw_var tablo = TR_fn_randn([5, 4], TR_arg_seed: 3)
+    TR_fn_assert(TR_fn_abs(TR_fn_linear_cross_entropy(x, tablo.TR_mem_transpose(), hedef).TR_mem_tolist - TR_fn_cross_entropy(x @ tablo.TR_mem_transpose(), hedef).TR_mem_tolist) < 0.00001)
     // Karışık hassasiyette logitler blok türünde, kayıp float32.
-    değişken kb = yok
-    karışık_hassasiyet("bf16") { kb = doğrusal_çapraz_entropi(x, w, hedef) }
-    eşit_mi("float32", kb.tür)
-    doğrula(mutlak(kb.değer - k2.değer) < 0.05, "bf16 kayıp {kb.değer}")
+    TR_kw_var kb = TR_kw_none
+    TR_fn_mixed_precision("bf16") { kb = TR_fn_linear_cross_entropy(x, w, hedef) }
+    TR_fn_assert_equal("float32", kb.TR_mem_dtype)
+    TR_fn_assert(TR_fn_abs(kb.TR_mem_tolist - k2.TR_mem_tolist) < 0.05, "bf16 kayıp {kb.TR_mem_tolist}")
     // Hatalar çapraz_entropi'ninkilerdir; ağırlığın şekli uyumsuzsa şekiller söylenir.
-    doğrula(hata_metni(() => doğrusal_çapraz_entropi(x, tensör(birler([3, 5])), hedef)).içerir("[6, 4]"))
-    doğrula(hata_metni(() => doğrusal_çapraz_entropi(x, w, [-1, -1, -1, -1, -1, -1])).içerir("yok sayıldı"))
-    doğrula(hata_metni(() => doğrusal_çapraz_entropi(x, w, [0, 9, 0, 0, 0, 0])).içerir("9"))
+    TR_fn_assert(hata_metni(() => TR_fn_linear_cross_entropy(x, TR_fn_tensor(TR_fn_ones([3, 5])), hedef)).TR_mem_contains("[6, 4]"))
+    TR_fn_assert(hata_metni(() => TR_fn_linear_cross_entropy(x, w, [-1, -1, -1, -1, -1, -1])).TR_mem_contains("yok sayıldı"))
+    TR_fn_assert(hata_metni(() => TR_fn_linear_cross_entropy(x, w, [0, 9, 0, 0, 0, 0])).TR_mem_contains("9"))
 }
 
-test "15.9 matematik fonksiyonları ve indirgemeler" {
-    değişken a = tensör([[1, 2, 3], [4, 5, 6]])
-    eşit_mi([[0.0, 0.0, 0.0], [1.0, 2.0, 3.0]], relu(a - 3).değer)
-    eşit_mi([2.0, 3.0], karekök(tensör([4, 9])).değer)
-    eşit_mi([1.0], exp(tensör([0])).değer)
-    eşit_mi([0.0], log(tensör([1])).değer)
-    eşit_mi(0.5, sigmoid(sıfırlar([1])).değer[0])
-    eşit_mi(0.0, tanh(sıfırlar([1])).değer[0])
-    eşit_mi(0.0, gelu(sıfırlar([1])).değer[0])
+TR_ctx_test "15.9 matematik fonksiyonları ve indirgemeler" {
+    TR_kw_var a = TR_fn_tensor([[1, 2, 3], [4, 5, 6]])
+    TR_fn_assert_equal([[0.0, 0.0, 0.0], [1.0, 2.0, 3.0]], TR_fn_relu(a - 3).TR_mem_tolist)
+    TR_fn_assert_equal([2.0, 3.0], TR_fn_sqrt(TR_fn_tensor([4, 9])).TR_mem_tolist)
+    TR_fn_assert_equal([1.0], TR_fn_exp(TR_fn_tensor([0])).TR_mem_tolist)
+    TR_fn_assert_equal([0.0], TR_fn_log(TR_fn_tensor([1])).TR_mem_tolist)
+    TR_fn_assert_equal(0.5, TR_fn_sigmoid(TR_fn_zeros([1])).TR_mem_tolist[0])
+    TR_fn_assert_equal(0.0, TR_fn_tanh(TR_fn_zeros([1])).TR_mem_tolist[0])
+    TR_fn_assert_equal(0.0, TR_fn_gelu(TR_fn_zeros([1])).TR_mem_tolist[0])
     // Eleman bazlı fonksiyonlar sayıda Ondalık verir, listede çalışmaz (tensör(...) ile çevrilir).
-    eşit_mi(1.0, exp(0))
-    eşit_mi(0.0, relu(-2))
-    doğrula(hata_metni(() => relu([1, -2])).içerir("relu listede çalışmaz, yalnızca tensörde ve sayıda; listeyi tensör(...) ile çevirin: relu(tensör(...))"))
-    doğrula(hata_metni(() => log_softmax([1, 2])).içerir("log_softmax listede çalışmaz, yalnızca tensörde; listeyi tensör(...) ile çevirin: log_softmax(tensör(...), eksen: -1)"))
-    doğrula(hata_metni(() => softmax(2.0)).içerir("softmax: tensör bekleniyor, Ondalık verildi"))
-    değişken s = softmax(a, eksen: -1)
-    eşit_mi(1.0, yuvarla(toplam(s, eksen: 1).değer[0], 5))
-    eşit_mi(1.0, yuvarla(toplam(exp(log_softmax(a))).değer / 2, 5))
-    eşit_mi(21.0, toplam(a).değer)
-    eşit_mi([6.0, 15.0], toplam(a, eksen: 1).değer)
-    eşit_mi([2.5, 3.5, 4.5], ortalama(a, eksen: 0).değer)
-    eşit_mi(6.0, max(a).değer)
-    eşit_mi([1.0, 4.0], min(a, eksen: -1).değer)
-    eşit_mi([5.0, 7.0, 9.0], toplam(a, 0).değer)
+    TR_fn_assert_equal(1.0, TR_fn_exp(0))
+    TR_fn_assert_equal(0.0, TR_fn_relu(-2))
+    TR_fn_assert(hata_metni(() => TR_fn_relu([1, -2])).TR_mem_contains("relu listede çalışmaz, yalnızca tensörde ve sayıda; listeyi tensör(...) ile çevirin: relu(tensör(...))"))
+    TR_fn_assert(hata_metni(() => TR_fn_log_softmax([1, 2])).TR_mem_contains("log_softmax listede çalışmaz, yalnızca tensörde; listeyi tensör(...) ile çevirin: log_softmax(tensör(...), eksen: -1)"))
+    TR_fn_assert(hata_metni(() => TR_fn_softmax(2.0)).TR_mem_contains("softmax: tensör bekleniyor, Ondalık verildi"))
+    TR_kw_var s = TR_fn_softmax(a, TR_arg_dim: -1)
+    TR_fn_assert_equal(1.0, TR_fn_round(TR_fn_sum(s, TR_arg_dim: 1).TR_mem_tolist[0], 5))
+    TR_fn_assert_equal(1.0, TR_fn_round(TR_fn_sum(TR_fn_exp(TR_fn_log_softmax(a))).TR_mem_tolist / 2, 5))
+    TR_fn_assert_equal(21.0, TR_fn_sum(a).TR_mem_tolist)
+    TR_fn_assert_equal([6.0, 15.0], TR_fn_sum(a, TR_arg_dim: 1).TR_mem_tolist)
+    TR_fn_assert_equal([2.5, 3.5, 4.5], TR_fn_mean(a, TR_arg_dim: 0).TR_mem_tolist)
+    TR_fn_assert_equal(6.0, TR_fn_max(a).TR_mem_tolist)
+    TR_fn_assert_equal([1.0, 4.0], TR_fn_min(a, TR_arg_dim: -1).TR_mem_tolist)
+    TR_fn_assert_equal([5.0, 7.0, 9.0], TR_fn_sum(a, 0).TR_mem_tolist)
     // Eski liste davranışı korunur; listedeki tensörler katlanır, iç içe liste hatadır.
-    eşit_mi(6, toplam([1, 2, 3]))
-    eşit_mi(2.0, ortalama([1, 2, 3]))
-    eşit_mi([4.0, 6.0], toplam([tensör([1, 2]), tensör([3, 4])]).değer)
-    doğrula(hata_metni(() => toplam([[1, 2], [3, 4]])).içerir("iç içe liste indirgenemez"))
-    doğrula(hata_metni(() => max(a, 0)).içerir("max(x, eksen: 0) yazın"))
-    doğrula(hata_metni(() => sıfırlar(2, 3, türev_izle: doğru)).içerir("sıfırlar([2, 3]) yazın"))
-    doğrula(hata_metni(() => AdamW([tensör([1.0], türev_izle: doğru)], lr: 0.1)).içerir("'öğrenme_oranı'"))
+    TR_fn_assert_equal(6, TR_fn_sum([1, 2, 3]))
+    TR_fn_assert_equal(2.0, TR_fn_mean([1, 2, 3]))
+    TR_fn_assert_equal([4.0, 6.0], TR_fn_sum([TR_fn_tensor([1, 2]), TR_fn_tensor([3, 4])]).TR_mem_tolist)
+    TR_fn_assert(hata_metni(() => TR_fn_sum([[1, 2], [3, 4]])).TR_mem_contains("iç içe liste indirgenemez"))
+    TR_fn_assert(hata_metni(() => TR_fn_max(a, 0)).TR_mem_contains("max(x, eksen: 0) yazın"))
+    TR_fn_assert(hata_metni(() => TR_fn_zeros(2, 3, TR_arg_requires_grad: TR_kw_true)).TR_mem_contains("sıfırlar([2, 3]) yazın"))
+    TR_fn_assert(hata_metni(() => TR_fn_AdamW([TR_fn_tensor([1.0], TR_arg_requires_grad: TR_kw_true)], lr: 0.1)).TR_mem_contains("'öğrenme_oranı'"))
     // Eleman bazlı sonuç elemanın konumuna bağlı değildir (aynı girdi, aynı çıktı).
-    değişken e = exp(birler([9]) * -48.528).değer
-    eşit_mi(e[0], e[8])
+    TR_kw_var e = TR_fn_exp(TR_fn_ones([9]) * -48.528).TR_mem_tolist
+    TR_fn_assert_equal(e[0], e[8])
 }
 
-test "15.9 sayı olmayan değer (NaN) yayılır; türevli ve türevsiz yol aynı" {
-    değişken nan_mı = (x) => x != x
-    değişken y = tensör([1.0, 0.0, 3.0]) / tensör([1.0, 0.0, 1.0]) // [1, NaN, 3]
-    değişken yg = tensör(y, türev_izle: doğru)
-    doğrula(nan_mı(max(y).değer) ve nan_mı(min(y).değer))
-    doğrula(nan_mı(max(yg).değer) ve nan_mı(min(yg).değer))
-    değişken m = tensör([[1.0, 2.0], [3.0, 4.0]]) * tensör([[1.0, 0.0], [1.0, 1.0]]) / tensör([[1.0, 0.0], [1.0, 1.0]])
-    değişken me = max(m, eksen: 1).değer // [NaN, 4]
-    doğrula(nan_mı(me[0]) ve me[1] == 4.0)
-    doğrula(nan_mı(min(m, eksen: 1).değer[0]))
-    eşit_mi([1, 1], argmax(m, eksen: 1).değer) // ilk NaN'ın yeri
-    değişken r = relu(y).değer
-    doğrula(r[0] == 1.0 ve nan_mı(r[1]) ve r[2] == 3.0)
+TR_ctx_test "15.9 sayı olmayan değer (NaN) yayılır; türevli ve türevsiz yol aynı" {
+    TR_kw_var nan_mı = (x) => x != x
+    TR_kw_var y = TR_fn_tensor([1.0, 0.0, 3.0]) / TR_fn_tensor([1.0, 0.0, 1.0]) // [1, NaN, 3]
+    TR_kw_var yg = TR_fn_tensor(y, TR_arg_requires_grad: TR_kw_true)
+    TR_fn_assert(nan_mı(TR_fn_max(y).TR_mem_tolist) TR_kw_and nan_mı(TR_fn_min(y).TR_mem_tolist))
+    TR_fn_assert(nan_mı(TR_fn_max(yg).TR_mem_tolist) TR_kw_and nan_mı(TR_fn_min(yg).TR_mem_tolist))
+    TR_kw_var m = TR_fn_tensor([[1.0, 2.0], [3.0, 4.0]]) * TR_fn_tensor([[1.0, 0.0], [1.0, 1.0]]) / TR_fn_tensor([[1.0, 0.0], [1.0, 1.0]])
+    TR_kw_var me = TR_fn_max(m, TR_arg_dim: 1).TR_mem_tolist // [NaN, 4]
+    TR_fn_assert(nan_mı(me[0]) TR_kw_and me[1] == 4.0)
+    TR_fn_assert(nan_mı(TR_fn_min(m, TR_arg_dim: 1).TR_mem_tolist[0]))
+    TR_fn_assert_equal([1, 1], TR_fn_argmax(m, TR_arg_dim: 1).TR_mem_tolist) // ilk NaN'ın yeri
+    TR_kw_var r = TR_fn_relu(y).TR_mem_tolist
+    TR_fn_assert(r[0] == 1.0 TR_kw_and nan_mı(r[1]) TR_kw_and r[2] == 3.0)
 }
 
-test "15.9 tamamen maskeli softmax satırı 0, log_softmax -sonsuz; gradyanı 0" {
-    değişken m = log(tensör([[0.0, 0.0, 0.0], [1.0, 0.0, 1.0]])) // satır 0: hepsi -sonsuz
-    eşit_mi([[0.0, 0.0, 0.0], [0.5, 0.0, 0.5]], softmax(m).değer)
-    eşit_mi([0.0, 0.0, 0.0], softmax(m.devrik(), eksen: 0).devrik().değer[0])
-    değişken l = log_softmax(m).değer
-    doğrula(l[0][0] < -1e30 ve l[0][2] < -1e30 ve l[1][0] > -1)
-    değişken x = tensör([[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]], türev_izle: doğru)
-    değişken k = toplam(softmax(x + m) * tensör([[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]]))
-    geri_yayılım(k)
-    eşit_mi(2.7616, yuvarla(k.değer, 4)) // dolgu satırı kaybı NaN yapmaz
-    eşit_mi([0.0, 0.0, 0.0], x.gradyan.değer[0])
+TR_ctx_test "15.9 tamamen maskeli softmax satırı 0, log_softmax -sonsuz; gradyanı 0" {
+    TR_kw_var m = TR_fn_log(TR_fn_tensor([[0.0, 0.0, 0.0], [1.0, 0.0, 1.0]])) // satır 0: hepsi -sonsuz
+    TR_fn_assert_equal([[0.0, 0.0, 0.0], [0.5, 0.0, 0.5]], TR_fn_softmax(m).TR_mem_tolist)
+    TR_fn_assert_equal([0.0, 0.0, 0.0], TR_fn_softmax(m.TR_mem_transpose(), TR_arg_dim: 0).TR_mem_transpose().TR_mem_tolist[0])
+    TR_kw_var l = TR_fn_log_softmax(m).TR_mem_tolist
+    TR_fn_assert(l[0][0] < -1e30 TR_kw_and l[0][2] < -1e30 TR_kw_and l[1][0] > -1)
+    TR_kw_var x = TR_fn_tensor([[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var k = TR_fn_sum(TR_fn_softmax(x + m) * TR_fn_tensor([[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]]))
+    TR_fn_backward(k)
+    TR_fn_assert_equal(2.7616, TR_fn_round(k.TR_mem_tolist, 4)) // dolgu satırı kaybı NaN yapmaz
+    TR_fn_assert_equal([0.0, 0.0, 0.0], x.TR_mem_grad.TR_mem_tolist[0])
 }
 
-test "15.23 tanımsız sonuçlar hata verir: boş ortalama, hedefsiz çapraz entropi" {
-    doğrula(hata_metni(() => ortalama(tensör([]))).içerir("boş tensörün ortalaması tanımsız"))
-    doğrula(hata_metni(() => ortalama(sıfırlar([2, 0]), eksen: 1)).içerir("ortalaması tanımsız"))
-    eşit_mi(0.0, toplam(tensör([])).değer)
-    değişken z = tensör([[1.0, 2.0], [3.0, 4.0]], türev_izle: doğru)
-    doğrula(hata_metni(() => çapraz_entropi(z, [-1, -1])).içerir("bütün hedefler yok sayıldı"))
-    eşit_mi(0.3133, yuvarla(çapraz_entropi(z, [-1, 1]).değer, 4))
+TR_ctx_test "15.23 tanımsız sonuçlar hata verir: boş ortalama, hedefsiz çapraz entropi" {
+    TR_fn_assert(hata_metni(() => TR_fn_mean(TR_fn_tensor([]))).TR_mem_contains("boş tensörün ortalaması tanımsız"))
+    TR_fn_assert(hata_metni(() => TR_fn_mean(TR_fn_zeros([2, 0]), TR_arg_dim: 1)).TR_mem_contains("ortalaması tanımsız"))
+    TR_fn_assert_equal(0.0, TR_fn_sum(TR_fn_tensor([])).TR_mem_tolist)
+    TR_kw_var z = TR_fn_tensor([[1.0, 2.0], [3.0, 4.0]], TR_arg_requires_grad: TR_kw_true)
+    TR_fn_assert(hata_metni(() => TR_fn_cross_entropy(z, [-1, -1])).TR_mem_contains("bütün hedefler yok sayıldı"))
+    TR_fn_assert_equal(0.3133, TR_fn_round(TR_fn_cross_entropy(z, [-1, 1]).TR_mem_tolist, 4))
     // Liste indeksleri tam sayı olarak okunur (float32'den geçmez: 2^24 üstü yuvarlanmaz).
-    doğrula(hata_metni(() => gömme(sıfırlar([3, 2]), [16777217])).içerir("indeks 16777217"))
-    doğrula(hata_metni(() => çapraz_entropi(z, [0, 16777217])).içerir("hedef sınıf 16777217"))
-    doğrula(hata_metni(() => gömme(sıfırlar([3, 2]), [1.5])).içerir("tam sayı olmalıdır"))
+    TR_fn_assert(hata_metni(() => TR_fn_embedding(TR_fn_zeros([3, 2]), [16777217])).TR_mem_contains("indeks 16777217"))
+    TR_fn_assert(hata_metni(() => TR_fn_cross_entropy(z, [0, 16777217])).TR_mem_contains("hedef sınıf 16777217"))
+    TR_fn_assert(hata_metni(() => TR_fn_embedding(TR_fn_zeros([3, 2]), [1.5])).TR_mem_contains("tam sayı olmalıdır"))
 }
 
-test "15.23 sinir ağı fonksiyonları" {
-    değişken tablo = tensör([[1, 1], [2, 2], [3, 3]])
-    eşit_mi([[3.0, 3.0], [1.0, 1.0]], gömme(tablo, [2, 0]).değer)
-    eşit_mi([2, 2, 2], gömme(tablo, [[0, 1], [2, 2]]).şekil)
-    eşit_mi(0.417, yuvarla(çapraz_entropi(tensör([[2.0, 1.0, 0.1]]), [0]).değer, 3))
-    değişken n = katman_normu(tensör([[1, 2, 3]]), birler([3]), sıfırlar([3]))
-    eşit_mi([-1.2247, 0.0, 1.2247], n.değer[0].haritala((x) => yuvarla(x, 4)))
-    değişken r = rms_normu(tensör([[3, 4]]), birler([2]))
-    eşit_mi([0.8485, 1.1314], r.değer[0].haritala((x) => yuvarla(x, 4)))
+TR_ctx_test "15.23 sinir ağı fonksiyonları" {
+    TR_kw_var tablo = TR_fn_tensor([[1, 1], [2, 2], [3, 3]])
+    TR_fn_assert_equal([[3.0, 3.0], [1.0, 1.0]], TR_fn_embedding(tablo, [2, 0]).TR_mem_tolist)
+    TR_fn_assert_equal([2, 2, 2], TR_fn_embedding(tablo, [[0, 1], [2, 2]]).TR_mem_shape)
+    TR_fn_assert_equal(0.417, TR_fn_round(TR_fn_cross_entropy(TR_fn_tensor([[2.0, 1.0, 0.1]]), [0]).TR_mem_tolist, 3))
+    TR_kw_var n = TR_fn_layer_norm(TR_fn_tensor([[1, 2, 3]]), TR_fn_ones([3]), TR_fn_zeros([3]))
+    TR_fn_assert_equal([-1.2247, 0.0, 1.2247], n.TR_mem_tolist[0].TR_mem_map((x) => TR_fn_round(x, 4)))
+    TR_kw_var r = TR_fn_rms_norm(TR_fn_tensor([[3, 4]]), TR_fn_ones([2]))
+    TR_fn_assert_equal([0.8485, 1.1314], r.TR_mem_tolist[0].TR_mem_map((x) => TR_fn_round(x, 4)))
 }
 
-test "15.27 geri yayılım, gradyan ve türevsiz" {
-    değişken w = tensör([[0.5], [-0.5]], türev_izle: doğru)
-    değişken x = tensör([[1, 2], [3, 4]])
-    değişken y = x @ w
-    geri_yayılım(ortalama(y * y))
-    eşit_mi([[-2.0], [-3.0]], w.gradyan.değer)
+TR_ctx_test "15.27 geri yayılım, gradyan ve türevsiz" {
+    TR_kw_var w = TR_fn_tensor([[0.5], [-0.5]], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var x = TR_fn_tensor([[1, 2], [3, 4]])
+    TR_kw_var y = x @ w
+    TR_fn_backward(TR_fn_mean(y * y))
+    TR_fn_assert_equal([[-2.0], [-3.0]], w.TR_mem_grad.TR_mem_tolist)
     // Gradyanlar birikir.
-    değişken v = tensör([1.0, 2.0], türev_izle: doğru)
-    geri_yayılım(toplam(v * 3))
-    geri_yayılım(toplam(v * 3))
-    eşit_mi([6.0, 6.0], v.gradyan.değer)
+    TR_kw_var v = TR_fn_tensor([1.0, 2.0], TR_arg_requires_grad: TR_kw_true)
+    TR_fn_backward(TR_fn_sum(v * 3))
+    TR_fn_backward(TR_fn_sum(v * 3))
+    TR_fn_assert_equal([6.0, 6.0], v.TR_mem_grad.TR_mem_tolist)
     // türevsiz bloğu ve türevsiz(x) hesap çizgesine bağlanmaz.
-    değişken a = türevsiz { sonuç v * 2 }
-    değişken b = türevsiz(v * 2)
-    eşit_mi([2.0, 4.0], a.değer)
-    doğrula(hata_metni(() => geri_yayılım(toplam(a))).içerir("türev izlenen hiçbir tensöre bağlı değil"))
-    doğrula(hata_metni(() => geri_yayılım(toplam(b))).içerir("türev izlenen hiçbir tensöre bağlı değil"))
-    doğrula(hata_metni(() => geri_yayılım(v * 2)).içerir("tek elemanlı (skaler) bir kayıp ister, [2] şeklinde"))
+    TR_kw_var a = TR_fn_no_grad { TR_kw_return v * 2 }
+    TR_kw_var b = TR_fn_no_grad(v * 2)
+    TR_fn_assert_equal([2.0, 4.0], a.TR_mem_tolist)
+    TR_fn_assert(hata_metni(() => TR_fn_backward(TR_fn_sum(a))).TR_mem_contains("türev izlenen hiçbir tensöre bağlı değil"))
+    TR_fn_assert(hata_metni(() => TR_fn_backward(TR_fn_sum(b))).TR_mem_contains("türev izlenen hiçbir tensöre bağlı değil"))
+    TR_fn_assert(hata_metni(() => TR_fn_backward(v * 2)).TR_mem_contains("tek elemanlı (skaler) bir kayıp ister, [2] şeklinde"))
     // Ara (işlem sonucu) tensörün gradyanı tutulmaz; 'yok' yerine açıklayıcı hata verir.
-    değişken ara = v * 2
-    doğrula(hata_metni(() => ara.gradyan).içerir("bir işlemin sonucu"))
+    TR_kw_var ara = v * 2
+    TR_fn_assert(hata_metni(() => ara.TR_mem_grad).TR_mem_contains("bir işlemin sonucu"))
 }
 
-test "15.27 türevsiz(x) veriyi paylaşan görünümdür, tensör(x) bağımsız kopyadır" {
-    değişken x = tensör([1.0, 2.0])
-    değişken g = türevsiz(x)
-    değişken k = tensör(x)
+TR_ctx_test "15.27 türevsiz(x) veriyi paylaşan görünümdür, tensör(x) bağımsız kopyadır" {
+    TR_kw_var x = TR_fn_tensor([1.0, 2.0])
+    TR_kw_var g = TR_fn_no_grad(x)
+    TR_kw_var k = TR_fn_tensor(x)
     x[0] = 9.0
-    eşit_mi([9.0, 2.0], g.değer)
-    eşit_mi([1.0, 2.0], k.değer)
+    TR_fn_assert_equal([9.0, 2.0], g.TR_mem_tolist)
+    TR_fn_assert_equal([1.0, 2.0], k.TR_mem_tolist)
 }
 
-test "15.27 türevsiz göreve bağlıdır; eşzamanlı görevlere sızmaz" {
-    değişken w = tensör([1.0, 2.0], türev_izle: doğru)
-    değişken izli = (t) => hata_metni(() => geri_yayılım(toplam(t))) == ""
-    değişken d = {"başladı": yanlış, "devam": yanlış}
-    değişken bekle_koşul = (k) => {
-        döngü i içinde 0..1000 {
-            eğer k() { sonuç doğru }
-            bekle(0.01)
+TR_ctx_test "15.27 türevsiz göreve bağlıdır; eşzamanlı görevlere sızmaz" {
+    TR_kw_var w = TR_fn_tensor([1.0, 2.0], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var izli = (t) => hata_metni(() => TR_fn_backward(TR_fn_sum(t))) == ""
+    TR_kw_var d = {"başladı": TR_kw_false, "devam": TR_kw_false}
+    TR_kw_var bekle_koşul = (k) => {
+        TR_kw_for i TR_kw_in 0..1000 {
+            TR_kw_if k() { TR_kw_return TR_kw_true }
+            TR_fn_sleep(0.01)
         }
-        sonuç yanlış
+        TR_kw_return TR_kw_false
     }
-    değişken a = []
-    eşzamanlı {
-        türevsiz {
-            d["başladı"] = doğru
+    TR_kw_var a = []
+    TR_kw_async {
+        TR_fn_no_grad {
+            d["başladı"] = TR_kw_true
             bekle_koşul(() => d["devam"]) // kilidi bırakır
-            a.ekle(izli(w * 2)) // blok kendi türevsiz durumunu görür
+            a.TR_mem_append(izli(w * 2)) // blok kendi türevsiz durumunu görür
         }
     }
     bekle_koşul(() => d["başladı"])
     // Diğer görevin türevsiz bloğu sürerken bu görev türev izler ve atama reddedilir.
-    doğrula(izli(w * 3))
-    doğrula(hata_metni(() => { w[0] = 5 }).içerir("türevsiz \{ ... \} içinde"))
-    d["devam"] = doğru
-    bekle_hepsi()
-    eşit_mi([yanlış], a)
-    eşit_mi([1.0, 2.0], w.değer)
+    TR_fn_assert(izli(w * 3))
+    TR_fn_assert(hata_metni(() => { w[0] = 5 }).TR_mem_contains("türevsiz \{ ... \} içinde"))
+    d["devam"] = TR_kw_true
+    TR_fn_wait_all()
+    TR_fn_assert_equal([TR_kw_false], a)
+    TR_fn_assert_equal([1.0, 2.0], w.TR_mem_tolist)
 }
 
-test "15.27 .gradyan canlı takma addır; değişince onu kullanan hesap hata verir" {
-    değişken x = tensör([1.0, 2.0], türev_izle: doğru)
-    değişken w = tensör([1.0, 1.0], türev_izle: doğru)
-    geri_yayılım(toplam(x * 3))
-    değişken g = x.gradyan
-    değişken kopya = tensör(x.gradyan)
-    değişken k = toplam(g * w)
-    geri_yayılım(toplam(x * 5)) // x.gradyan (ve g) yerinde birikir
-    eşit_mi([8.0, 8.0], g.değer)
-    eşit_mi([3.0, 3.0], kopya.değer)
-    doğrula(hata_metni(() => geri_yayılım(k)).içerir("yerinde değiştirildi"))
+TR_ctx_test "15.27 .gradyan canlı takma addır; değişince onu kullanan hesap hata verir" {
+    TR_kw_var x = TR_fn_tensor([1.0, 2.0], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var w = TR_fn_tensor([1.0, 1.0], TR_arg_requires_grad: TR_kw_true)
+    TR_fn_backward(TR_fn_sum(x * 3))
+    TR_kw_var g = x.TR_mem_grad
+    TR_kw_var kopya = TR_fn_tensor(x.TR_mem_grad)
+    TR_kw_var k = TR_fn_sum(g * w)
+    TR_fn_backward(TR_fn_sum(x * 5)) // x.gradyan (ve g) yerinde birikir
+    TR_fn_assert_equal([8.0, 8.0], g.TR_mem_tolist)
+    TR_fn_assert_equal([3.0, 3.0], kopya.TR_mem_tolist)
+    TR_fn_assert(hata_metni(() => TR_fn_backward(k)).TR_mem_contains("yerinde değiştirildi"))
     // Sıfırlama ve kırpma da gradyanı yerinde değiştirir.
-    değişken k2 = toplam(x.gradyan * w)
-    SGD([x], öğrenme_oranı: 0.1).sıfırla()
-    eşit_mi([0.0, 0.0], g.değer)
-    doğrula(hata_metni(() => geri_yayılım(k2)).içerir("yerinde değiştirildi"))
-    geri_yayılım(toplam(x * 3))
-    değişken k3 = toplam(x.gradyan * w)
-    gradyan_kırp([x], en_fazla: 0.1)
-    doğrula(hata_metni(() => geri_yayılım(k3)).içerir("yerinde değiştirildi"))
+    TR_kw_var k2 = TR_fn_sum(x.TR_mem_grad * w)
+    TR_fn_SGD([x], TR_arg_lr: 0.1).TR_mem_zero_grad()
+    TR_fn_assert_equal([0.0, 0.0], g.TR_mem_tolist)
+    TR_fn_assert(hata_metni(() => TR_fn_backward(k2)).TR_mem_contains("yerinde değiştirildi"))
+    TR_fn_backward(TR_fn_sum(x * 3))
+    TR_kw_var k3 = TR_fn_sum(x.TR_mem_grad * w)
+    TR_fn_clip_grad([x], TR_arg_max: 0.1)
+    TR_fn_assert(hata_metni(() => TR_fn_backward(k3)).TR_mem_contains("yerinde değiştirildi"))
     // Kopyayla kurulan hesap etkilenmez.
-    geri_yayılım(toplam(kopya * w))
-    eşit_mi([3.0, 3.0], w.gradyan.değer)
+    TR_fn_backward(TR_fn_sum(kopya * w))
+    TR_fn_assert_equal([3.0, 3.0], w.TR_mem_grad.TR_mem_tolist)
 }
 
-test "15.34 AdamW ve SGD'nin tipi İyileştirici'dir" {
-    değişken w = tensör([1.0], türev_izle: doğru)
-    eşit_mi(İyileştirici, tip(AdamW([w])))
-    eşit_mi(İyileştirici, tip(SGD([w], öğrenme_oranı: 0.1)))
+TR_ctx_test "15.34 AdamW ve SGD'nin tipi İyileştirici'dir" {
+    TR_kw_var w = TR_fn_tensor([1.0], TR_arg_requires_grad: TR_kw_true)
+    TR_fn_assert_equal(TR_type_Optimizer, TR_fn_type(TR_fn_AdamW([w])))
+    TR_fn_assert_equal(TR_type_Optimizer, TR_fn_type(TR_fn_SGD([w], TR_arg_lr: 0.1)))
     // Yazdırma hangi iyileştirici olduğunu gösterir
-    doğrula(metin(SGD([w])).başlar("SGD("))
+    TR_fn_assert(TR_fn_str(TR_fn_SGD([w])).TR_mem_starts_with("SGD("))
 }
 
-test "15.34 kendi iyileştiricisi: parametre türevsiz blokta indeksle atamayla yerinde güncellenir" {
+TR_ctx_test "15.34 kendi iyileştiricisi: parametre türevsiz blokta indeksle atamayla yerinde güncellenir" {
     // TR'de yazılan bir iyileştiricinin (ör. tr/iyilestirici'deki Muon) tek yapı taşı:
     // gradyanla hesaplanan yeni değer parametrenin kendisine, kopyasız yazılır.
-    değişken w = tensör([[1.0, 2.0], [3.0, 4.0]], türev_izle: doğru)
-    değişken b = tensör([1.0, -1.0], türev_izle: doğru)
-    değişken aynı_w = w
-    geri_yayılım(toplam(w * w) + toplam(b))
-    türevsiz {
-        w[0..w.şekil[0]] -= 0.25 * w.gradyan
-        b[0..b.şekil[0]] = b - 0.5 * b.gradyan
-        değişken g = w.gradyan
-        g[0..g.şekil[0]] = 0.0 // gradyanı yerinde sıfırlama
+    TR_kw_var w = TR_fn_tensor([[1.0, 2.0], [3.0, 4.0]], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var b = TR_fn_tensor([1.0, -1.0], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var aynı_w = w
+    TR_fn_backward(TR_fn_sum(w * w) + TR_fn_sum(b))
+    TR_fn_no_grad {
+        w[0..w.TR_mem_shape[0]] -= 0.25 * w.TR_mem_grad
+        b[0..b.TR_mem_shape[0]] = b - 0.5 * b.TR_mem_grad
+        TR_kw_var g = w.TR_mem_grad
+        g[0..g.TR_mem_shape[0]] = 0.0 // gradyanı yerinde sıfırlama
     }
-    eşit_mi([[0.5, 1.0], [1.5, 2.0]], w.değer)
-    eşit_mi([0.5, -1.5], b.değer)
-    eşit_mi([[0.0, 0.0], [0.0, 0.0]], w.gradyan.değer)
-    doğrula(aynı_w.değer == w.değer, "aynı tensör güncellenir (yeni tensör kurulmaz)")
-    eşit_mi(doğru, w.gradyan != yok)
+    TR_fn_assert_equal([[0.5, 1.0], [1.5, 2.0]], w.TR_mem_tolist)
+    TR_fn_assert_equal([0.5, -1.5], b.TR_mem_tolist)
+    TR_fn_assert_equal([[0.0, 0.0], [0.0, 0.0]], w.TR_mem_grad.TR_mem_tolist)
+    TR_fn_assert(aynı_w.TR_mem_tolist == w.TR_mem_tolist, "aynı tensör güncellenir (yeni tensör kurulmaz)")
+    TR_fn_assert_equal(TR_kw_true, w.TR_mem_grad != TR_kw_none)
     // Türevsiz blok dışında atama reddedilir.
-    değişken mesaj = ""
-    dene { w[0..2] = 0.0 } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("türev izlenen tensöre indeksle atama yapılamaz"), mesaj)
+    TR_kw_var mesaj = ""
+    TR_kw_try { w[0..2] = 0.0 } TR_kw_catch h { mesaj = h }
+    TR_fn_assert(mesaj.TR_mem_contains("türev izlenen tensöre indeksle atama yapılamaz"), mesaj)
 }
 
-test "15.34 iyileştiriciler: küçük doğrusal regresyon" {
+TR_ctx_test "15.34 iyileştiriciler: küçük doğrusal regresyon" {
     // y = 2·x1 - 3·x2 + 0.5
-    değişken X = tensör([[0, 0], [1, 0], [0, 1], [1, 1], [2, 1], [1, 2]])
-    değişken Y = tensör([[0.5], [2.5], [-2.5], [-0.5], [1.5], [-3.5]])
-    değişken w = tensör([[0.0], [0.0]], türev_izle: doğru)
-    değişken b = tensör([0.0], türev_izle: doğru)
-    değişken op = AdamW([w, b], öğrenme_oranı: 0.05, ağırlık_çürümesi: 0)
-    döngü i içinde 0..1500 {
-        op.sıfırla()
-        değişken fark = X @ w + b - Y
-        geri_yayılım(ortalama(fark * fark))
-        op.adım()
+    TR_kw_var X = TR_fn_tensor([[0, 0], [1, 0], [0, 1], [1, 1], [2, 1], [1, 2]])
+    TR_kw_var Y = TR_fn_tensor([[0.5], [2.5], [-2.5], [-0.5], [1.5], [-3.5]])
+    TR_kw_var w = TR_fn_tensor([[0.0], [0.0]], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var b = TR_fn_tensor([0.0], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var op = TR_fn_AdamW([w, b], TR_arg_lr: 0.05, TR_arg_weight_decay: 0)
+    TR_kw_for i TR_kw_in 0..1500 {
+        op.TR_mem_zero_grad()
+        TR_kw_var fark = X @ w + b - Y
+        TR_fn_backward(TR_fn_mean(fark * fark))
+        op.TR_mem_step()
     }
-    eşit_mi(2.0, yuvarla(w.değer[0][0], 2))
-    eşit_mi(-3.0, yuvarla(w.değer[1][0], 2))
-    eşit_mi(0.5, yuvarla(b.değer[0], 2))
+    TR_fn_assert_equal(2.0, TR_fn_round(w.TR_mem_tolist[0][0], 2))
+    TR_fn_assert_equal(-3.0, TR_fn_round(w.TR_mem_tolist[1][0], 2))
+    TR_fn_assert_equal(0.5, TR_fn_round(b.TR_mem_tolist[0], 2))
     // SGD: p ← p - öğrenme_oranı · gradyan
-    değişken p = tensör([1.0, 2.0], türev_izle: doğru)
-    değişken sgd = SGD([p], öğrenme_oranı: 0.5)
-    geri_yayılım(toplam(p * p))
-    sgd.adım()
-    eşit_mi([0.0, 0.0], p.değer)
-    sgd.sıfırla()
-    eşit_mi([0.0, 0.0], p.gradyan.değer)
-    doğrula(hata_metni(() => AdamW([sıfırlar([2])])).içerir("türev izlemiyor"))
+    TR_kw_var p = TR_fn_tensor([1.0, 2.0], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var sgd = TR_fn_SGD([p], TR_arg_lr: 0.5)
+    TR_fn_backward(TR_fn_sum(p * p))
+    sgd.TR_mem_step()
+    TR_fn_assert_equal([0.0, 0.0], p.TR_mem_tolist)
+    sgd.TR_mem_zero_grad()
+    TR_fn_assert_equal([0.0, 0.0], p.TR_mem_grad.TR_mem_tolist)
+    TR_fn_assert(hata_metni(() => TR_fn_AdamW([TR_fn_zeros([2])])).TR_mem_contains("türev izlemiyor"))
     // Sayı olmayan ya da sonsuz oranlar reddedilir (tek adımda bütün parametreler NaN olurdu).
-    doğrula(hata_metni(() => AdamW([p], öğrenme_oranı: log(-1.0))).içerir("sonlu bir sayı olmalıdır"))
-    doğrula(hata_metni(() => SGD([p], öğrenme_oranı: exp(1000.0))).içerir("sonlu bir sayı olmalıdır"))
-    doğrula(hata_metni(() => SGD([p], momentum: log(-1.0))).içerir("sonlu bir sayı olmalıdır"))
-    doğrula(hata_metni(() => AdamW([p], öğrenme_oranı: 1e300)).içerir("sonlu bir sayı olmalıdır"))
+    TR_fn_assert(hata_metni(() => TR_fn_AdamW([p], TR_arg_lr: TR_fn_log(-1.0))).TR_mem_contains("sonlu bir sayı olmalıdır"))
+    TR_fn_assert(hata_metni(() => TR_fn_SGD([p], TR_arg_lr: TR_fn_exp(1000.0))).TR_mem_contains("sonlu bir sayı olmalıdır"))
+    TR_fn_assert(hata_metni(() => TR_fn_SGD([p], TR_arg_momentum: TR_fn_log(-1.0))).TR_mem_contains("sonlu bir sayı olmalıdır"))
+    TR_fn_assert(hata_metni(() => TR_fn_AdamW([p], TR_arg_lr: 1e300)).TR_mem_contains("sonlu bir sayı olmalıdır"))
 }
 
-test "15.35 öğrenme_oranı okunur ve atanabilir; yeni oran sonraki adımda kullanılır" {
-    değişken w = tensör([1.0], türev_izle: doğru)
-    eşit_mi(0.001, AdamW([w]).öğrenme_oranı)
-    eşit_mi(0.01, SGD([w]).öğrenme_oranı)
-    değişken op = SGD([w], öğrenme_oranı: 0.5)
-    eşit_mi(0.5, op.öğrenme_oranı)
-    op.öğrenme_oranı = 0.25
-    geri_yayılım(toplam(w * w)) // gradyan 2
-    op.adım()
-    eşit_mi([0.5], w.değer)
+TR_ctx_test "15.35 öğrenme_oranı okunur ve atanabilir; yeni oran sonraki adımda kullanılır" {
+    TR_kw_var w = TR_fn_tensor([1.0], TR_arg_requires_grad: TR_kw_true)
+    TR_fn_assert_equal(0.001, TR_fn_AdamW([w]).TR_mem_lr)
+    TR_fn_assert_equal(0.01, TR_fn_SGD([w]).TR_mem_lr)
+    TR_kw_var op = TR_fn_SGD([w], TR_arg_lr: 0.5)
+    TR_fn_assert_equal(0.5, op.TR_mem_lr)
+    op.TR_mem_lr = 0.25
+    TR_fn_backward(TR_fn_sum(w * w)) // gradyan 2
+    op.TR_mem_step()
+    TR_fn_assert_equal([0.5], w.TR_mem_tolist)
     // Bileşik atama ve Tam değer; oran Ondalık okunur.
-    op.öğrenme_oranı *= 0.5
-    eşit_mi(0.125, op.öğrenme_oranı)
-    op.öğrenme_oranı = 2
-    eşit_mi(2.0, op.öğrenme_oranı)
-    eşit_mi(Ondalık, tip(op.öğrenme_oranı))
+    op.TR_mem_lr *= 0.5
+    TR_fn_assert_equal(0.125, op.TR_mem_lr)
+    op.TR_mem_lr = 2
+    TR_fn_assert_equal(2.0, op.TR_mem_lr)
+    TR_fn_assert_equal(TR_type_Float, TR_fn_type(op.TR_mem_lr))
     // AdamW: kurulumda verilen oranla, sonradan atanan oran aynı adımı verir; oran değiştikçe
     // momentler korunur (yalnızca adımın boyu değişir).
-    değişken a = tensör([1.0, -2.0], türev_izle: doğru)
-    değişken b = tensör([1.0, -2.0], türev_izle: doğru)
-    değişken opa = AdamW([a], öğrenme_oranı: 0.002, ağırlık_çürümesi: 0.1)
-    değişken opb = AdamW([b], öğrenme_oranı: 0.1, ağırlık_çürümesi: 0.1)
-    döngü adım içinde 0..3 {
-        opa.öğrenme_oranı = [0.002, 0.03, 0.0005][adım]
-        opb.öğrenme_oranı = [0.002, 0.03, 0.0005][adım]
-        opa.sıfırla()
-        opb.sıfırla()
-        geri_yayılım(toplam(a * a * a))
-        geri_yayılım(toplam(b * b * b))
-        opa.adım()
-        opb.adım()
+    TR_kw_var a = TR_fn_tensor([1.0, -2.0], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var b = TR_fn_tensor([1.0, -2.0], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var opa = TR_fn_AdamW([a], TR_arg_lr: 0.002, TR_arg_weight_decay: 0.1)
+    TR_kw_var opb = TR_fn_AdamW([b], TR_arg_lr: 0.1, TR_arg_weight_decay: 0.1)
+    TR_kw_for adım TR_kw_in 0..3 {
+        opa.TR_mem_lr = [0.002, 0.03, 0.0005][adım]
+        opb.TR_mem_lr = [0.002, 0.03, 0.0005][adım]
+        opa.TR_mem_zero_grad()
+        opb.TR_mem_zero_grad()
+        TR_fn_backward(TR_fn_sum(a * a * a))
+        TR_fn_backward(TR_fn_sum(b * b * b))
+        opa.TR_mem_step()
+        opb.TR_mem_step()
     }
-    eşit_mi(a.değer, b.değer)
-    doğrula(a.değer != [1.0, -2.0])
+    TR_fn_assert_equal(a.TR_mem_tolist, b.TR_mem_tolist)
+    TR_fn_assert(a.TR_mem_tolist != [1.0, -2.0])
     // Oran ayardır: duruma girmez.
-    eşit_mi(yanlış, opa.durum.anahtarlar().içerir("öğrenme_oranı"))
+    TR_fn_assert_equal(TR_kw_false, opa.TR_mem_state.TR_mem_keys().TR_mem_contains("öğrenme_oranı"))
     // Yalnızca sonlu, negatif olmayan Tam ya da Ondalık atanabilir; hatada oran değişmez.
     // 0 geçerlidir: oran planları eğitimin sonunda 0'a iner.
-    değişken önceki_oran = op.öğrenme_oranı
-    op.öğrenme_oranı = 0
-    eşit_mi(0.0, op.öğrenme_oranı)
-    op.öğrenme_oranı = önceki_oran
-    doğrula(hata_metni(() => { op.öğrenme_oranı = -0.1 }).içerir("sonlu ve negatif olmayan"))
-    doğrula(hata_metni(() => { op.öğrenme_oranı = log(-1.0) }).içerir("sonlu ve negatif olmayan"))
-    doğrula(hata_metni(() => { op.öğrenme_oranı = 1e300 }).içerir("sonlu ve negatif olmayan"))
-    doğrula(hata_metni(() => { op.öğrenme_oranı = 1e-300 }).içerir("sonlu ve negatif olmayan"))
-    doğrula(hata_metni(() => { op.öğrenme_oranı = "0.1" }).içerir("Tam ya da Ondalık olmalıdır"))
-    doğrula(hata_metni(() => { op.öğrenme_oranı = doğru }).içerir("Tam ya da Ondalık olmalıdır"))
-    eşit_mi(2.0, op.öğrenme_oranı)
+    TR_kw_var önceki_oran = op.TR_mem_lr
+    op.TR_mem_lr = 0
+    TR_fn_assert_equal(0.0, op.TR_mem_lr)
+    op.TR_mem_lr = önceki_oran
+    TR_fn_assert(hata_metni(() => { op.TR_mem_lr = -0.1 }).TR_mem_contains("sonlu ve negatif olmayan"))
+    TR_fn_assert(hata_metni(() => { op.TR_mem_lr = TR_fn_log(-1.0) }).TR_mem_contains("sonlu ve negatif olmayan"))
+    TR_fn_assert(hata_metni(() => { op.TR_mem_lr = 1e300 }).TR_mem_contains("sonlu ve negatif olmayan"))
+    TR_fn_assert(hata_metni(() => { op.TR_mem_lr = 1e-300 }).TR_mem_contains("sonlu ve negatif olmayan"))
+    TR_fn_assert(hata_metni(() => { op.TR_mem_lr = "0.1" }).TR_mem_contains("Tam ya da Ondalık olmalıdır"))
+    TR_fn_assert(hata_metni(() => { op.TR_mem_lr = TR_kw_true }).TR_mem_contains("Tam ya da Ondalık olmalıdır"))
+    TR_fn_assert_equal(2.0, op.TR_mem_lr)
     // Başka üyeye atama yapılamaz.
-    doğrula(hata_metni(() => { op.adım = 1 }).içerir("atama yapılamaz"))
-    doğrula(hata_metni(() => { op.durum = {} }).içerir("atama yapılamaz"))
+    TR_fn_assert(hata_metni(() => { op.TR_mem_step = 1 }).TR_mem_contains("atama yapılamaz"))
+    TR_fn_assert(hata_metni(() => { op.TR_mem_state = {} }).TR_mem_contains("atama yapılamaz"))
 }
 
-test "15.19 argmax" {
-    değişken x = tensör([[1, 9, 3], [7, 2, 7]])
-    eşit_mi([1, 0], argmax(x).değer)
-    eşit_mi([1, 0, 1], argmax(x, eksen: 0).değer)
-    eşit_mi(1, argmax(tensör([4, 8, 1])).değer)
+TR_ctx_test "15.19 argmax" {
+    TR_kw_var x = TR_fn_tensor([[1, 9, 3], [7, 2, 7]])
+    TR_fn_assert_equal([1, 0], TR_fn_argmax(x).TR_mem_tolist)
+    TR_fn_assert_equal([1, 0, 1], TR_fn_argmax(x, TR_arg_dim: 0).TR_mem_tolist)
+    TR_fn_assert_equal(1, TR_fn_argmax(TR_fn_tensor([4, 8, 1])).TR_mem_tolist)
     // .değer Tam verir; liste indeksi olarak doğrudan kullanılabilir.
-    değişken harfler = ["a", "b", "c"]
-    eşit_mi("b", harfler[argmax(x).değer[0]])
+    TR_kw_var harfler = ["a", "b", "c"]
+    TR_fn_assert_equal("b", harfler[TR_fn_argmax(x).TR_mem_tolist[0]])
 }
 
-test "15.36 gradyan_kırp normu aşan gradyanları küçültür, kırpma öncesi normu tensör olarak verir" {
-    değişken w = tensör([1.0, 1.0], türev_izle: doğru)
-    geri_yayılım(toplam(w * tensör([3.0, 4.0])))
+TR_ctx_test "15.36 gradyan_kırp normu aşan gradyanları küçültür, kırpma öncesi normu tensör olarak verir" {
+    TR_kw_var w = TR_fn_tensor([1.0, 1.0], TR_arg_requires_grad: TR_kw_true)
+    TR_fn_backward(TR_fn_sum(w * TR_fn_tensor([3.0, 4.0])))
     // Kırpma öncesi norm 0 boyutlu tensördür (kayıp gibi; GPU'da program okununca bekler).
-    değişken norm = gradyan_kırp([w], en_fazla: 1.0)
-    eşit_mi(Tensör, tip(norm))
-    eşit_mi([], norm.şekil)
-    eşit_mi(5.0, norm.değer)
-    eşit_mi([0.6, 0.8], w.gradyan.değer)
+    TR_kw_var norm = TR_fn_clip_grad([w], TR_arg_max: 1.0)
+    TR_fn_assert_equal(TR_type_Tensor, TR_fn_type(norm))
+    TR_fn_assert_equal([], norm.TR_mem_shape)
+    TR_fn_assert_equal(5.0, norm.TR_mem_tolist)
+    TR_fn_assert_equal([0.6, 0.8], w.TR_mem_grad.TR_mem_tolist)
 }
 
-test "15.46 tensör_kaydet ve tensör_yükle hataları" {
+TR_ctx_test "15.46 tensör_kaydet ve tensör_yükle hataları" {
     // Gidiş-dönüş Go testlerinde (geçici klasörde) denetlenir; burada dosya oluşturmayan hatalar.
-    doğrula(hata_metni(() => tensör_yükle("bu_dosya_yok_12345.trt")).içerir("yüklenemedi: böyle bir dosya ya da klasör yok"))
-    doğrula(hata_metni(() => tensör_yükle(".")).içerir("bir klasör, tensör dosyası değil"))
-    doğrula(hata_metni(() => tensör_kaydet("x.trt", [1])).içerir("adları tensör olan bir sözlük olmalıdır"))
-    doğrula(hata_metni(() => tensör_kaydet("x.trt", {"a": 1})).içerir("değeri bir tensör olmalıdır"))
+    TR_fn_assert(hata_metni(() => TR_fn_load_tensors("bu_dosya_yok_12345.trt")).TR_mem_contains("yüklenemedi: böyle bir dosya ya da klasör yok"))
+    TR_fn_assert(hata_metni(() => TR_fn_load_tensors(".")).TR_mem_contains("bir klasör, tensör dosyası değil"))
+    TR_fn_assert(hata_metni(() => TR_fn_save_tensors("x.trt", [1])).TR_mem_contains("adları tensör olan bir sözlük olmalıdır"))
+    TR_fn_assert(hata_metni(() => TR_fn_save_tensors("x.trt", {"a": 1})).TR_mem_contains("değeri bir tensör olmalıdır"))
 }
 
-test "15.46 tensör dosyası sürüm 2 türü korur; eski sürüm 1 dosyaları reddedilir" {
+TR_ctx_test "15.46 tensör dosyası sürüm 2 türü korur; eski sürüm 1 dosyaları reddedilir" {
     // Fikstürler tests/data altındadır; yazma gidiş-dönüşü Go testlerinde denetlenir.
     // tensor_version2.trt: bf16, fp16 ve float32 girdili sürüm 2 dosyası.
-    değişken y = tensör_yükle("data/tensor_version2.trt")
-    eşit_mi(["a", "b", "c"], y.anahtarlar())
-    eşit_mi(["bf16", "fp16", "float32"], [y["a"].tür, y["b"].tür, y["c"].tür])
-    doğrula(y["a"] == tensör([[1.5, -2.25], [3.0, 0.1]], tür: "bf16"))
-    doğrula(y["b"] == tensör([0.1, 65504.0], tür: "fp16"))
-    eşit_mi([0.1], y["c"].değer)
+    TR_kw_var y = TR_fn_load_tensors("data/tensor_version2.trt")
+    TR_fn_assert_equal(["a", "b", "c"], y.TR_mem_keys())
+    TR_fn_assert_equal(["bf16", "fp16", "float32"], [y["a"].TR_mem_dtype, y["b"].TR_mem_dtype, y["c"].TR_mem_dtype])
+    TR_fn_assert(y["a"] == TR_fn_tensor([[1.5, -2.25], [3.0, 0.1]], TR_arg_dtype: "bf16"))
+    TR_fn_assert(y["b"] == TR_fn_tensor([0.1, 65504.0], TR_arg_dtype: "fp16"))
+    TR_fn_assert_equal([0.1], y["c"].TR_mem_tolist)
     // tensor_version1.trt: eski TR'nin yazdığı sürüm 1 dosyası artık okunmaz.
-    değişken h = hata_metni(() => tensör_yükle("data/tensor_version1.trt"))
-    doğrula(h.içerir("dosya biçimi sürümü 1; bu TR sürümü yalnızca sürüm 2 okur"), h)
+    TR_kw_var h = hata_metni(() => TR_fn_load_tensors("data/tensor_version1.trt"))
+    TR_fn_assert(h.TR_mem_contains("dosya biçimi sürümü 1; bu TR sürümü yalnızca sürüm 2 okur"), h)
 }
 
-test "15.46 tensör dosyası eleman sınırını sıfır uzunluklu eksenlerle aşamaz" {
+TR_ctx_test "15.46 tensör dosyası eleman sınırını sıfır uzunluklu eksenlerle aşamaz" {
     // tensor_zero_axis.trt (74 bayt): [2, 0] ve [1048576, 0, 8192] şekilli, verisiz iki
     // tensör. Sıfır eksen 1 sayılınca ikincisi 8,6 milyar eleman eder; kabul edilseydi
     // [4, 2] @ W1 @ W2 gibi bir ileri geçiş belleği tüketip süreci çökertirdi.
-    değişken h = hata_metni(() => tensör_yükle("data/tensor_zero_axis.trt"))
-    doğrula(h.içerir("tensör çok büyük") && h.içerir("sıfır uzunluklu eksenler 1 sayılır"), h)
+    TR_kw_var h = hata_metni(() => TR_fn_load_tensors("data/tensor_zero_axis.trt"))
+    TR_fn_assert(h.TR_mem_contains("tensör çok büyük") && h.TR_mem_contains("sıfır uzunluklu eksenler 1 sayılır"), h)
     // Sınır içindeki boş tensörler kaydedilip yüklenebilir (Go testlerinde gidiş-dönüş).
-    eşit_mi([0, 3], sıfırlar([0, 3]).şekil)
+    TR_fn_assert_equal([0, 3], TR_fn_zeros([0, 3]).TR_mem_shape)
 }
 
-test "15.5 tensör üzerinde döngü ve liste üreteci" {
-    değişken t = tensör([[1, 2], [3, 4], [5, 6]])
-    değişken satırlar = []
-    döngü s içinde t {
-        satırlar.ekle(s.değer)
+TR_ctx_test "15.5 tensör üzerinde döngü ve liste üreteci" {
+    TR_kw_var t = TR_fn_tensor([[1, 2], [3, 4], [5, 6]])
+    TR_kw_var satırlar = []
+    TR_kw_for s TR_kw_in t {
+        satırlar.TR_mem_append(s.TR_mem_tolist)
     }
-    eşit_mi([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]], satırlar)
-    değişken indeksler = []
-    döngü i, s içinde t {
-        indeksler.ekle(i)
-        eşit_mi(Tensör, tip(s))
-        eşit_mi([2], s.şekil)
+    TR_fn_assert_equal([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]], satırlar)
+    TR_kw_var indeksler = []
+    TR_kw_for i, s TR_kw_in t {
+        indeksler.TR_mem_append(i)
+        TR_fn_assert_equal(TR_type_Tensor, TR_fn_type(s))
+        TR_fn_assert_equal([2], s.TR_mem_shape)
     }
-    eşit_mi([0, 1, 2], indeksler)
+    TR_fn_assert_equal([0, 1, 2], indeksler)
     // 1 boyutlu tensörün öğeleri sayıdır (tam sayılı tensörde Tam).
-    eşit_mi([3.0, 5.0], [x * 2 döngü x içinde tensör([1.5, 2.5])])
-    eşit_mi([3.0, 7.0, 11.0], [toplam(s).değer döngü s içinde t])
-    eşit_mi([2.5], [x döngü x içinde tensör([0.5, 2.5]) eğer x > 1])
-    eşit_mi([Tam, Tam], [tip(x) döngü x içinde argmax(tensör([[1, 5], [7, 0]]), eksen: -1)])
+    TR_fn_assert_equal([3.0, 5.0], [x * 2 TR_kw_for x TR_kw_in TR_fn_tensor([1.5, 2.5])])
+    TR_fn_assert_equal([3.0, 7.0, 11.0], [TR_fn_sum(s).TR_mem_tolist TR_kw_for s TR_kw_in t])
+    TR_fn_assert_equal([2.5], [x TR_kw_for x TR_kw_in TR_fn_tensor([0.5, 2.5]) TR_kw_if x > 1])
+    TR_fn_assert_equal([TR_type_Int, TR_type_Int], [TR_fn_type(x) TR_kw_for x TR_kw_in TR_fn_argmax(TR_fn_tensor([[1, 5], [7, 0]]), TR_arg_dim: -1)])
     // Görünümler veriyi paylaşır: satıra atama tensörü değiştirir.
-    değişken z = sıfırlar([2, 2])
-    döngü satır içinde z {
+    TR_kw_var z = TR_fn_zeros([2, 2])
+    TR_kw_for satır TR_kw_in z {
         satır[0] = 9
     }
-    eşit_mi([[9.0, 0.0], [9.0, 0.0]], z.değer)
-    doğrula(hata_metni(() => [x döngü x içinde tensör(3.0)]).içerir("0 boyutlu) tensör üzerinde döngü kurulamaz"))
+    TR_fn_assert_equal([[9.0, 0.0], [9.0, 0.0]], z.TR_mem_tolist)
+    TR_fn_assert(hata_metni(() => [x TR_kw_for x TR_kw_in TR_fn_tensor(3.0)]).TR_mem_contains("0 boyutlu) tensör üzerinde döngü kurulamaz"))
 }
 
-test "15.48 hatalar şekli gösterir ve yakalanabilir" {
-    doğrula(hata_metni(() => sıfırlar([32, 1024]) @ sıfırlar([512, 10])).içerir("[32, 1024] ile [512, 10] matris çarpımı yapılamaz; 1024 ≠ 512"))
-    doğrula(hata_metni(() => sıfırlar([2, 3]) + sıfırlar([4])).içerir("[2, 3] ile [4] şekilleri toplama için yayınlanamaz"))
-    doğrula(hata_metni(() => toplam(sıfırlar([2, 3]), eksen: 2)).içerir("eksen 2, [2, 3] şeklindeki 2 boyutlu tensör için geçersiz"))
-    doğrula(hata_metni(() => sıfırlar([2, 3]).şekillendir([4, 2])).içerir("[2, 3] şeklindeki tensör (6 eleman) [4, 2] şekline sokulamaz"))
-    doğrula(hata_metni(() => tensör([[1, 2], [3]])).içerir("iç içe liste düzensiz"))
-    doğrula(hata_metni(() => gömme(sıfırlar([3, 2]), [5])).içerir("tablonun dışında"))
-    doğrula(hata_metni(() => çapraz_entropi(sıfırlar([2, 3]), [[0, 1, 0], [1, 0, 0]])).içerir("one-hot verdiniz gibi görünüyor"))
-    doğrula(hata_metni(() => AdamW([tensör(3.0)])).içerir("1. parametre ([]) türev izlemiyor"))
+TR_ctx_test "15.48 hatalar şekli gösterir ve yakalanabilir" {
+    TR_fn_assert(hata_metni(() => TR_fn_zeros([32, 1024]) @ TR_fn_zeros([512, 10])).TR_mem_contains("[32, 1024] ile [512, 10] matris çarpımı yapılamaz; 1024 ≠ 512"))
+    TR_fn_assert(hata_metni(() => TR_fn_zeros([2, 3]) + TR_fn_zeros([4])).TR_mem_contains("[2, 3] ile [4] şekilleri toplama için yayınlanamaz"))
+    TR_fn_assert(hata_metni(() => TR_fn_sum(TR_fn_zeros([2, 3]), TR_arg_dim: 2)).TR_mem_contains("eksen 2, [2, 3] şeklindeki 2 boyutlu tensör için geçersiz"))
+    TR_fn_assert(hata_metni(() => TR_fn_zeros([2, 3]).TR_mem_reshape([4, 2])).TR_mem_contains("[2, 3] şeklindeki tensör (6 eleman) [4, 2] şekline sokulamaz"))
+    TR_fn_assert(hata_metni(() => TR_fn_tensor([[1, 2], [3]])).TR_mem_contains("iç içe liste düzensiz"))
+    TR_fn_assert(hata_metni(() => TR_fn_embedding(TR_fn_zeros([3, 2]), [5])).TR_mem_contains("tablonun dışında"))
+    TR_fn_assert(hata_metni(() => TR_fn_cross_entropy(TR_fn_zeros([2, 3]), [[0, 1, 0], [1, 0, 0]])).TR_mem_contains("one-hot verdiniz gibi görünüyor"))
+    TR_fn_assert(hata_metni(() => TR_fn_AdamW([TR_fn_tensor(3.0)])).TR_mem_contains("1. parametre ([]) türev izlemiyor"))
 }
 
-test "15.3 veri türleri: tür seçimi, .tür ve .türe" {
-    değişken a = tensör([[1.001, 2.0], [3.0, 4.0]], tür: "bf16")
-    eşit_mi("bf16", a.tür)
-    eşit_mi("float32", tensör([1.0]).tür)
+TR_ctx_test "15.3 veri türleri: tür seçimi, .tür ve .türe" {
+    TR_kw_var a = TR_fn_tensor([[1.001, 2.0], [3.0, 4.0]], TR_arg_dtype: "bf16")
+    TR_fn_assert_equal("bf16", a.TR_mem_dtype)
+    TR_fn_assert_equal("float32", TR_fn_tensor([1.0]).TR_mem_dtype)
     // bf16'nın anlamlı kısmı 8 bittir: 1.001 en yakın bf16 değerine (1.0) yuvarlanır.
-    eşit_mi([[1.0, 2.0], [3.0, 4.0]], a.değer)
-    eşit_mi(["bf16", "fp16", "bf16"], [sıfırlar([2], tür: "bf16").tür, birler([2], tür: "fp16").tür, rastgele_normal([2], tür: "bf16", tohum: 1).tür])
-    eşit_mi([1.0, 1.0], birler([2], tür: "fp16").değer)
+    TR_fn_assert_equal([[1.0, 2.0], [3.0, 4.0]], a.TR_mem_tolist)
+    TR_fn_assert_equal(["bf16", "fp16", "bf16"], [TR_fn_zeros([2], TR_arg_dtype: "bf16").TR_mem_dtype, TR_fn_ones([2], TR_arg_dtype: "fp16").TR_mem_dtype, TR_fn_randn([2], TR_arg_dtype: "bf16", TR_arg_seed: 1).TR_mem_dtype])
+    TR_fn_assert_equal([1.0, 1.0], TR_fn_ones([2], TR_arg_dtype: "fp16").TR_mem_tolist)
     // Tensörden oluşturmada kaynağın türü korunur; türü değiştirmenin tek yazımı .türe'dir.
-    eşit_mi("bf16", tensör(a).tür)
-    eşit_mi("float32", a.türe("float32").tür)
-    doğrula(hata_metni(() => tensör(a, tür: "float32")).içerir("tensör: girdi zaten bir tensör; türünü değiştirmek için t.türe(...) yazın"))
-    eşit_mi("fp16", tensör(2.5, tür: "fp16").tür)
+    TR_fn_assert_equal("bf16", TR_fn_tensor(a).TR_mem_dtype)
+    TR_fn_assert_equal("float32", a.TR_mem_to_dtype("float32").TR_mem_dtype)
+    TR_fn_assert(hata_metni(() => TR_fn_tensor(a, TR_arg_dtype: "float32")).TR_mem_contains("tensör: girdi zaten bir tensör; türünü değiştirmek için t.türe(...) yazın"))
+    TR_fn_assert_equal("fp16", TR_fn_tensor(2.5, TR_arg_dtype: "fp16").TR_mem_dtype)
     // Aynı türlü işlenenlerin sonucu o türde, farklı türlerinki float32'dir.
-    eşit_mi("bf16", (a @ a).tür)
-    eşit_mi("float32", (a + tensör([1.0, 1.0])).tür)
+    TR_fn_assert_equal("bf16", (a @ a).TR_mem_dtype)
+    TR_fn_assert_equal("float32", (a + TR_fn_tensor([1.0, 1.0])).TR_mem_dtype)
     // Sayıyla işlemler tensörün türünü korur (bölme dahil); bölme gerçek bölmedir.
-    eşit_mi(["bf16", "bf16", "bf16", "bf16", "bf16"], [(a * 2).tür, (a + 2).tür, (a - 2).tür, (a / 2).tür, (2 / a).tür])
-    eşit_mi([1.5, 0.5], (tensör([3.0, 1.0], tür: "fp16") / 2).değer)
+    TR_fn_assert_equal(["bf16", "bf16", "bf16", "bf16", "bf16"], [(a * 2).TR_mem_dtype, (a + 2).TR_mem_dtype, (a - 2).TR_mem_dtype, (a / 2).TR_mem_dtype, (2 / a).TR_mem_dtype])
+    TR_fn_assert_equal([1.5, 0.5], (TR_fn_tensor([3.0, 1.0], TR_arg_dtype: "fp16") / 2).TR_mem_tolist)
     // .türe türevlenebilir: gradyan kaynak tensöre (kendi türünde) akar.
-    değişken w = tensör([[1.0, 2.0]], türev_izle: doğru)
-    değişken y = w.türe("fp16")
-    eşit_mi("fp16", y.tür)
-    geri_yayılım(toplam(y * 3))
-    eşit_mi([[3.0, 3.0]], w.gradyan.değer)
-    eşit_mi("float32", w.gradyan.tür)
-    doğrula(w.türe("float32") == w)
+    TR_kw_var w = TR_fn_tensor([[1.0, 2.0]], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var y = w.TR_mem_to_dtype("fp16")
+    TR_fn_assert_equal("fp16", y.TR_mem_dtype)
+    TR_fn_backward(TR_fn_sum(y * 3))
+    TR_fn_assert_equal([[3.0, 3.0]], w.TR_mem_grad.TR_mem_tolist)
+    TR_fn_assert_equal("float32", w.TR_mem_grad.TR_mem_dtype)
+    TR_fn_assert(w.TR_mem_to_dtype("float32") == w)
     // Yazdırma türü yalnızca float32 dışındaki türlerde gösterir.
-    doğrula(metin(a).içerir("Tensör[2×2] bf16"))
-    doğrula(!metin(tensör([1.0])).içerir("float32"))
+    TR_fn_assert(TR_fn_str(a).TR_mem_contains("Tensör[2×2] bf16"))
+    TR_fn_assert(!TR_fn_str(TR_fn_tensor([1.0])).TR_mem_contains("float32"))
 }
 
-test "15.3 bilinmeyen tür yol gösteren bir hata verir" {
-    doğrula(hata_metni(() => tensör([1], tür: "bfloat16")).içerir("bilinmeyen veri türü \"bfloat16\"; geçerli türler: \"float32\", \"bf16\", \"fp16\". Bunu mu demek istediniz: \"bf16\"?"))
-    doğrula(hata_metni(() => sıfırlar([2], tür: "float16")).içerir("Bunu mu demek istediniz: \"fp16\"?"))
-    doğrula(hata_metni(() => tensör([1.0]).türe("float64")).içerir("Bunu mu demek istediniz: \"float32\"?"))
-    doğrula(hata_metni(() => tensör([1], tür: 16)).içerir("tür metin olmalıdır"))
-    doğrula(hata_metni(() => tensör([1], dtype: "bf16")).içerir("'dtype' adında bir parametre almaz"))
-    doğrula(hata_metni(() => karışık_hassasiyet("bf16")).içerir("bir blok bekler"))
-    doğrula(hata_metni(() => karışık_hassasiyet("int8") { 1 }).içerir("bilinmeyen veri türü \"int8\""))
+TR_ctx_test "15.3 bilinmeyen tür yol gösteren bir hata verir" {
+    TR_fn_assert(hata_metni(() => TR_fn_tensor([1], TR_arg_dtype: "bfloat16")).TR_mem_contains("bilinmeyen veri türü \"bfloat16\"; geçerli türler: \"float32\", \"bf16\", \"fp16\". Bunu mu demek istediniz: \"bf16\"?"))
+    TR_fn_assert(hata_metni(() => TR_fn_zeros([2], TR_arg_dtype: "float16")).TR_mem_contains("Bunu mu demek istediniz: \"fp16\"?"))
+    TR_fn_assert(hata_metni(() => TR_fn_tensor([1.0]).TR_mem_to_dtype("float64")).TR_mem_contains("Bunu mu demek istediniz: \"float32\"?"))
+    TR_fn_assert(hata_metni(() => TR_fn_tensor([1], TR_arg_dtype: 16)).TR_mem_contains("tür metin olmalıdır"))
+    TR_fn_assert(hata_metni(() => TR_fn_tensor([1], dtype: "bf16")).TR_mem_contains("'dtype' adında bir parametre almaz"))
+    TR_fn_assert(hata_metni(() => TR_fn_mixed_precision("bf16")).TR_mem_contains("bir blok bekler"))
+    TR_fn_assert(hata_metni(() => TR_fn_mixed_precision("int8") { 1 }).TR_mem_contains("bilinmeyen veri türü \"int8\""))
 }
 
 // küçük_eğitim: küçük bir iki katmanlı ağı (float32 ağırlıklarla) eğitir; karışık doğruysa
 // her adım karışık_hassasiyet("bf16") bloğunda çalışır. Son kaybı döndürür.
-fonksiyon küçük_eğitim(karışık) {
-    değişken x = rastgele_normal([32, 8], tohum: 3)
-    değişken hedef = x @ rastgele_normal([8, 1], tohum: 4)
-    değişken w1 = tensör(rastgele_normal([8, 16], tohum: 5) * 0.3, türev_izle: doğru)
-    değişken w2 = tensör(rastgele_normal([16, 1], tohum: 6) * 0.3, türev_izle: doğru)
-    değişken opt = AdamW([w1, w2], öğrenme_oranı: 0.01, ağırlık_çürümesi: 0.0)
-    fonksiyon adım() {
-        opt.sıfırla()
-        değişken k = ortalama((gelu(x @ w1) @ w2 - hedef) ** 2)
-        geri_yayılım(k)
-        opt.adım()
-        sonuç k
+TR_kw_func küçük_eğitim(karışık) {
+    TR_kw_var x = TR_fn_randn([32, 8], TR_arg_seed: 3)
+    TR_kw_var hedef = x @ TR_fn_randn([8, 1], TR_arg_seed: 4)
+    TR_kw_var w1 = TR_fn_tensor(TR_fn_randn([8, 16], TR_arg_seed: 5) * 0.3, TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var w2 = TR_fn_tensor(TR_fn_randn([16, 1], TR_arg_seed: 6) * 0.3, TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var opt = TR_fn_AdamW([w1, w2], TR_arg_lr: 0.01, TR_arg_weight_decay: 0.0)
+    TR_kw_func adım() {
+        opt.TR_mem_zero_grad()
+        TR_kw_var k = TR_fn_mean((TR_fn_gelu(x @ w1) @ w2 - hedef) ** 2)
+        TR_fn_backward(k)
+        opt.TR_mem_step()
+        TR_kw_return k
     }
-    değişken kayıp = yok
-    döngü i içinde 0..80 {
-        eğer karışık {
-            kayıp = karışık_hassasiyet("bf16") { adım() }
-        } değilse {
+    TR_kw_var kayıp = TR_kw_none
+    TR_kw_for i TR_kw_in 0..80 {
+        TR_kw_if karışık {
+            kayıp = TR_fn_mixed_precision("bf16") { adım() }
+        } TR_kw_else {
             kayıp = adım()
         }
     }
     // Ağırlıkların kendisi float32 kalır.
-    eşit_mi(["float32", "float32"], [w1.tür, w2.tür])
-    sonuç kayıp.değer
+    TR_fn_assert_equal(["float32", "float32"], [w1.TR_mem_dtype, w2.TR_mem_dtype])
+    TR_kw_return kayıp.TR_mem_tolist
 }
 
-fonksiyon küçük_eğitim_başlangıç() {
-    değişken x = rastgele_normal([32, 8], tohum: 3)
-    değişken hedef = x @ rastgele_normal([8, 1], tohum: 4)
-    değişken w1 = rastgele_normal([8, 16], tohum: 5) * 0.3
-    değişken w2 = rastgele_normal([16, 1], tohum: 6) * 0.3
-    sonuç ortalama((gelu(x @ w1) @ w2 - hedef) ** 2).değer
+TR_kw_func küçük_eğitim_başlangıç() {
+    TR_kw_var x = TR_fn_randn([32, 8], TR_arg_seed: 3)
+    TR_kw_var hedef = x @ TR_fn_randn([8, 1], TR_arg_seed: 4)
+    TR_kw_var w1 = TR_fn_randn([8, 16], TR_arg_seed: 5) * 0.3
+    TR_kw_var w2 = TR_fn_randn([16, 1], TR_arg_seed: 6) * 0.3
+    TR_kw_return TR_fn_mean((TR_fn_gelu(x @ w1) @ w2 - hedef) ** 2).TR_mem_tolist
 }
 
-test "15.4 karışık_hassasiyet: blok değeri, iç içe bloklar, eğitim" {
-    değişken x = tensör([[1.001]])
-    değişken y = tensör([[1.0]])
-    eşit_mi([[1.001]], (x @ y).değer)
-    değişken blok_değeri = karışık_hassasiyet("bf16") {
+TR_ctx_test "15.4 karışık_hassasiyet: blok değeri, iç içe bloklar, eğitim" {
+    TR_kw_var x = TR_fn_tensor([[1.001]])
+    TR_kw_var y = TR_fn_tensor([[1.0]])
+    TR_fn_assert_equal([[1.001]], (x @ y).TR_mem_tolist)
+    TR_kw_var blok_değeri = TR_fn_mixed_precision("bf16") {
         // Girdiler bf16'ya çevrilir, çarpım float32 biriktirmeyle bf16 sonuç verir.
-        değişken r = x @ y
-        eşit_mi("bf16", r.tür)
-        eşit_mi([[1.0]], r.değer)
-        karışık_hassasiyet("fp16") { eşit_mi([[1.0009766]], (x @ y).değer) }
-        karışık_hassasiyet("float32") { eşit_mi([[1.001]], (x @ y).değer) }
+        TR_kw_var r = x @ y
+        TR_fn_assert_equal("bf16", r.TR_mem_dtype)
+        TR_fn_assert_equal([[1.0]], r.TR_mem_tolist)
+        TR_fn_mixed_precision("fp16") { TR_fn_assert_equal([[1.0009766]], (x @ y).TR_mem_tolist) }
+        TR_fn_mixed_precision("float32") { TR_fn_assert_equal([[1.001]], (x @ y).TR_mem_tolist) }
         // İç blok bitince dıştaki tür geri gelir.
-        eşit_mi([[1.0]], (x @ y).değer)
+        TR_fn_assert_equal([[1.0]], (x @ y).TR_mem_tolist)
         r * 2
     }
-    eşit_mi([[2.0]], blok_değeri.değer)
-    eşit_mi([[1.001]], (x @ y).değer)
+    TR_fn_assert_equal([[2.0]], blok_değeri.TR_mem_tolist)
+    TR_fn_assert_equal([[1.001]], (x @ y).TR_mem_tolist)
     // Bloktan hatayla çıkılınca da önceki tür geri gelir.
-    dene {
-        karışık_hassasiyet("bf16") { fırlat "dur" }
-    } yakala h {
-        doğrula(h.içerir("dur"))
+    TR_kw_try {
+        TR_fn_mixed_precision("bf16") { TR_kw_throw "dur" }
+    } TR_kw_catch h {
+        TR_fn_assert(h.TR_mem_contains("dur"))
     }
-    eşit_mi([[1.001]], (x @ y).değer)
+    TR_fn_assert_equal([[1.001]], (x @ y).TR_mem_tolist)
     // Softmax, kayıp ve indirgemeler 16 bitlik girdiyi float32'de hesaplayıp float32 verir;
     // normlar float32'de hesaplayıp sonucu girdinin türünde verir (sonraki çarpım zaten o
     // türde okur; değer float32 normun yuvarlanmışıdır).
-    karışık_hassasiyet("bf16") {
-        değişken b = tensör([[1.0, 2.0, 3.0]], tür: "bf16")
-        eşit_mi(["float32", "float32", "float32"], [softmax(b).tür, toplam(b).tür, çapraz_entropi(b, [2]).tür])
-        eşit_mi(["bf16", "bf16"], [katman_normu(b).tür, rms_normu(b).tür])
-        değişken n32 = rms_normu(b.türe("float32"))
-        eşit_mi(n32.türe("bf16").değer, rms_normu(b).değer)
+    TR_fn_mixed_precision("bf16") {
+        TR_kw_var b = TR_fn_tensor([[1.0, 2.0, 3.0]], TR_arg_dtype: "bf16")
+        TR_fn_assert_equal(["float32", "float32", "float32"], [TR_fn_softmax(b).TR_mem_dtype, TR_fn_sum(b).TR_mem_dtype, TR_fn_cross_entropy(b, [2]).TR_mem_dtype])
+        TR_fn_assert_equal(["bf16", "bf16"], [TR_fn_layer_norm(b).TR_mem_dtype, TR_fn_rms_norm(b).TR_mem_dtype])
+        TR_kw_var n32 = TR_fn_rms_norm(b.TR_mem_to_dtype("float32"))
+        TR_fn_assert_equal(n32.TR_mem_to_dtype("bf16").TR_mem_tolist, TR_fn_rms_norm(b).TR_mem_tolist)
     }
     // Küçük bir eğitim bf16 blokta float32'ye yakın kayıp verir.
-    değişken k0 = küçük_eğitim_başlangıç()
-    değişken k32 = küçük_eğitim(yanlış)
-    değişken kbf = küçük_eğitim(doğru)
-    doğrula(kbf < 0.2 * k0, "karışık hassasiyetle kayıp yeterince düşmedi: {k0} → {kbf}")
-    doğrula(mutlak(kbf - k32) <= 0.1 * k32 + 0.01, "float32 kaybı {k32}, bf16 kaybı {kbf}")
+    TR_kw_var k0 = küçük_eğitim_başlangıç()
+    TR_kw_var k32 = küçük_eğitim(TR_kw_false)
+    TR_kw_var kbf = küçük_eğitim(TR_kw_true)
+    TR_fn_assert(kbf < 0.2 * k0, "karışık hassasiyetle kayıp yeterince düşmedi: {k0} → {kbf}")
+    TR_fn_assert(TR_fn_abs(kbf - k32) <= 0.1 * k32 + 0.01, "float32 kaybı {k32}, bf16 kaybı {kbf}")
 }
 
-test "15.4 normun çıktı türü (tür:) ve hesap_türü()" {
-    eşit_mi("float32", hesap_türü())
-    eşit_mi(["bf16", "fp16", "float32"], [karışık_hassasiyet("bf16") { hesap_türü() }, karışık_hassasiyet("fp16") { hesap_türü() },
-        karışık_hassasiyet("bf16") { karışık_hassasiyet("float32") { hesap_türü() } }])
+TR_ctx_test "15.4 normun çıktı türü (tür:) ve hesap_türü()" {
+    TR_fn_assert_equal("float32", TR_fn_compute_dtype())
+    TR_fn_assert_equal(["bf16", "fp16", "float32"], [TR_fn_mixed_precision("bf16") { TR_fn_compute_dtype() }, TR_fn_mixed_precision("fp16") { TR_fn_compute_dtype() },
+        TR_fn_mixed_precision("bf16") { TR_fn_mixed_precision("float32") { TR_fn_compute_dtype() } }])
     // tür: yalnızca çıktının türüdür: değer float32 normun o türe bir kez yuvarlanmışıdır
     // (çarpımın kendi dönüşümüyle aynı); gradyan girdiye kendi türünde akar.
-    değişken x = tensör([[1.0, -2.0, 3.0, 0.5], [0.1, 0.2, -0.3, 4.0]], türev_izle: doğru)
-    değişken w = tensör([1.0, 0.5, 2.0, 1.5], türev_izle: doğru)
-    değişken a = rms_normu(x, w, tür: "bf16")
-    değişken b = rms_normu(x, w)
-    eşit_mi(["bf16", "float32"], [a.tür, b.tür])
-    eşit_mi(b.türe("bf16").değer, a.değer)
-    geri_yayılım(toplam(a.türe("float32")))
-    eşit_mi("float32", x.gradyan.tür)
-    eşit_mi("fp16", katman_normu(x, tür: "fp16").tür)
-    karışık_hassasiyet("bf16") {
-        eşit_mi("bf16", rms_normu(x, w, tür: hesap_türü()).tür)
-        eşit_mi("float32", rms_normu(x, w).tür)
+    TR_kw_var x = TR_fn_tensor([[1.0, -2.0, 3.0, 0.5], [0.1, 0.2, -0.3, 4.0]], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var w = TR_fn_tensor([1.0, 0.5, 2.0, 1.5], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var a = TR_fn_rms_norm(x, w, TR_arg_dtype: "bf16")
+    TR_kw_var b = TR_fn_rms_norm(x, w)
+    TR_fn_assert_equal(["bf16", "float32"], [a.TR_mem_dtype, b.TR_mem_dtype])
+    TR_fn_assert_equal(b.TR_mem_to_dtype("bf16").TR_mem_tolist, a.TR_mem_tolist)
+    TR_fn_backward(TR_fn_sum(a.TR_mem_to_dtype("float32")))
+    TR_fn_assert_equal("float32", x.TR_mem_grad.TR_mem_dtype)
+    TR_fn_assert_equal("fp16", TR_fn_layer_norm(x, TR_arg_dtype: "fp16").TR_mem_dtype)
+    TR_fn_mixed_precision("bf16") {
+        TR_fn_assert_equal("bf16", TR_fn_rms_norm(x, w, TR_arg_dtype: TR_fn_compute_dtype()).TR_mem_dtype)
+        TR_fn_assert_equal("float32", TR_fn_rms_norm(x, w).TR_mem_dtype)
     }
-    dene { rms_normu(x, tür: "int3") } yakala h { doğrula(h.içerir("int3")) }
+    TR_kw_try { TR_fn_rms_norm(x, TR_arg_dtype: "int3") } TR_kw_catch h { TR_fn_assert(h.TR_mem_contains("int3")) }
 }
 
-test "15.4 karışık_hassasiyet göreve bağlıdır; eşzamanlı görevlere sızmaz" {
-    değişken x = tensör([[1.001]])
-    değişken y = tensör([[1.0]])
-    değişken görev = []
-    değişken ana_hesapladı = yanlış
-    eşzamanlı {
-        karışık_hassasiyet("bf16") {
-            görev.ekle((x @ y).değer[0][0])
+TR_ctx_test "15.4 karışık_hassasiyet göreve bağlıdır; eşzamanlı görevlere sızmaz" {
+    TR_kw_var x = TR_fn_tensor([[1.001]])
+    TR_kw_var y = TR_fn_tensor([[1.0]])
+    TR_kw_var görev = []
+    TR_kw_var ana_hesapladı = TR_kw_false
+    TR_kw_async {
+        TR_fn_mixed_precision("bf16") {
+            görev.TR_mem_append((x @ y).TR_mem_tolist[0][0])
             // Ana görev hesabını bitirene kadar blokta kal (bekle kilidi bırakır). Süreye değil
             // bayrağa bakılır: yüklü bir makinede de sıra aynıdır.
-            değişken t = 0
-            döngü değil ana_hesapladı ve t < 20000 {
-                bekle(0.001)
+            TR_kw_var t = 0
+            TR_kw_for TR_kw_not ana_hesapladı TR_kw_and t < 20000 {
+                TR_fn_sleep(0.001)
                 t += 1
             }
-            görev.ekle((x @ y).değer[0][0])
+            görev.TR_mem_append((x @ y).TR_mem_tolist[0][0])
         }
     }
     // Görev bloğa girip ilk sonucu yazana kadar bekle.
-    değişken tur = 0
-    döngü görev.uzunluk == 0 ve tur < 20000 {
-        bekle(0.001)
+    TR_kw_var tur = 0
+    TR_kw_for görev.TR_mem_length == 0 TR_kw_and tur < 20000 {
+        TR_fn_sleep(0.001)
         tur += 1
     }
-    eşit_mi(1, görev.uzunluk)
+    TR_fn_assert_equal(1, görev.TR_mem_length)
     // Görev bf16 bloğundayken ana görev float32 ile ve kendi fp16 bloğuyla hesaplar.
-    eşit_mi(1.001, (x @ y).değer[0][0])
-    eşit_mi(1.0009766, karışık_hassasiyet("fp16") { (x @ y).değer[0][0] })
-    ana_hesapladı = doğru
-    bekle_hepsi()
+    TR_fn_assert_equal(1.001, (x @ y).TR_mem_tolist[0][0])
+    TR_fn_assert_equal(1.0009766, TR_fn_mixed_precision("fp16") { (x @ y).TR_mem_tolist[0][0] })
+    ana_hesapladı = TR_kw_true
+    TR_fn_wait_all()
     // Görev, beklemeden sonra da kendi (bf16) türünü görür.
-    eşit_mi([1.0, 1.0], görev)
+    TR_fn_assert_equal([1.0, 1.0], görev)
 }
 
-test "15.34 iyileştirici ana_kopya: 16 bitlik parametrelerde küçük adımlar kaybolmaz" {
-    fonksiyon eğit(ana) {
-        değişken p = tensör([1.0], tür: "bf16", türev_izle: doğru)
-        değişken opt = SGD([p], öğrenme_oranı: 0.001, ana_kopya: ana)
-        döngü i içinde 0..20 {
-            opt.sıfırla()
-            geri_yayılım(toplam(p))
-            opt.adım()
+TR_ctx_test "15.34 iyileştirici ana_kopya: 16 bitlik parametrelerde küçük adımlar kaybolmaz" {
+    TR_kw_func eğit(ana) {
+        TR_kw_var p = TR_fn_tensor([1.0], TR_arg_dtype: "bf16", TR_arg_requires_grad: TR_kw_true)
+        TR_kw_var opt = TR_fn_SGD([p], TR_arg_lr: 0.001, TR_arg_master_weights: ana)
+        TR_kw_for i TR_kw_in 0..20 {
+            opt.TR_mem_zero_grad()
+            TR_fn_backward(TR_fn_sum(p))
+            opt.TR_mem_step()
         }
-        sonuç p.değer[0]
+        TR_kw_return p.TR_mem_tolist[0]
     }
     // 0.001'lik adım 1.0 yakınındaki bf16 aralığından (0.0039) küçüktür: ana kopya olmadan
     // her adım yuvarlamada kaybolur; ana kopyayla 20 adım 0.98'e yakın bir değere ulaşır.
-    eşit_mi(1.0, eğit(yanlış))
-    değişken ana_ile = eğit(doğru)
-    doğrula(mutlak(ana_ile - 0.98) < 0.004, "ana kopyayla değer: {ana_ile}")
+    TR_fn_assert_equal(1.0, eğit(TR_kw_false))
+    TR_kw_var ana_ile = eğit(TR_kw_true)
+    TR_fn_assert(TR_fn_abs(ana_ile - 0.98) < 0.004, "ana kopyayla değer: {ana_ile}")
     // Varsayılan açıktır.
-    değişken q = tensör([1.0], tür: "bf16", türev_izle: doğru)
-    değişken o = AdamW([q], öğrenme_oranı: 0.001)
-    döngü i içinde 0..20 {
-        o.sıfırla()
-        geri_yayılım(toplam(q))
-        o.adım()
+    TR_kw_var q = TR_fn_tensor([1.0], TR_arg_dtype: "bf16", TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var o = TR_fn_AdamW([q], TR_arg_lr: 0.001)
+    TR_kw_for i TR_kw_in 0..20 {
+        o.TR_mem_zero_grad()
+        TR_fn_backward(TR_fn_sum(q))
+        o.TR_mem_step()
     }
-    doğrula(q.değer[0] < 0.99, "varsayılan ana kopyayla değer: {q.değer[0]}")
-    doğrula(hata_metni(() => SGD([q], ana_kopya: 1)).içerir("ana_kopya doğru ya da yanlış olmalıdır"))
+    TR_fn_assert(q.TR_mem_tolist[0] < 0.99, "varsayılan ana kopyayla değer: {q.TR_mem_tolist[0]}")
+    TR_fn_assert(hata_metni(() => TR_fn_SGD([q], TR_arg_master_weights: 1)).TR_mem_contains("ana_kopya doğru ya da yanlış olmalıdır"))
 }
 
-test "15.10 sin ve cos: sayıda ve tensörde, listede değil; türevli" {
-    eşit_mi(0.0, sin(0))
-    eşit_mi(1.0, cos(0.0))
-    doğrula(hata_metni(() => cos([0, 1])).içerir("cos listede çalışmaz"))
-    değişken x = tensör([0.0, 1.0, 3.0], türev_izle: doğru)
-    değişken y = sin(x)
-    eşit_mi(Tensör, tip(y))
-    doğrula(mutlak(y.değer[2] - sin(3.0)) < 0.0000001)
-    geri_yayılım(toplam(y) + toplam(cos(x)))
+TR_ctx_test "15.10 sin ve cos: sayıda ve tensörde, listede değil; türevli" {
+    TR_fn_assert_equal(0.0, TR_fn_sin(0))
+    TR_fn_assert_equal(1.0, TR_fn_cos(0.0))
+    TR_fn_assert(hata_metni(() => TR_fn_cos([0, 1])).TR_mem_contains("cos listede çalışmaz"))
+    TR_kw_var x = TR_fn_tensor([0.0, 1.0, 3.0], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var y = TR_fn_sin(x)
+    TR_fn_assert_equal(TR_type_Tensor, TR_fn_type(y))
+    TR_fn_assert(TR_fn_abs(y.TR_mem_tolist[2] - TR_fn_sin(3.0)) < 0.0000001)
+    TR_fn_backward(TR_fn_sum(y) + TR_fn_sum(TR_fn_cos(x)))
     // d/dx (sin x + cos x) = cos x - sin x
-    doğrula(mutlak(x.gradyan.değer[1] - (cos(1.0) - sin(1.0))) < 0.000001)
+    TR_fn_assert(TR_fn_abs(x.TR_mem_grad.TR_mem_tolist[1] - (TR_fn_cos(1.0) - TR_fn_sin(1.0))) < 0.000001)
 }
 
-test "15.7 bitiştir ve .böl" {
-    değişken a = tensör([[1, 2], [3, 4]], türev_izle: doğru)
-    değişken b = tensör([[5], [6]], türev_izle: doğru)
-    değişken c = bitiştir([a, b], eksen: -1)
-    eşit_mi([[1.0, 2.0, 5.0], [3.0, 4.0, 6.0]], c.değer)
-    eşit_mi([[1.0, 2.0], [3.0, 4.0], [1.0, 2.0], [3.0, 4.0]], bitiştir([a, a], eksen: 0).değer)
-    geri_yayılım(toplam(c * tensör([1, 2, 3])))
-    eşit_mi([[3.0], [3.0]], b.gradyan.değer)
-    doğrula(hata_metni(() => bitiştir([a, tensör([[1, 2, 3]])], eksen: 0)).içerir("0. eksen dışındaki eksenler eşit olmalı"))
-    doğrula(hata_metni(() => bitiştir([])).içerir("liste boş"))
+TR_ctx_test "15.7 bitiştir ve .böl" {
+    TR_kw_var a = TR_fn_tensor([[1, 2], [3, 4]], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var b = TR_fn_tensor([[5], [6]], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var c = TR_fn_concat([a, b], TR_arg_dim: -1)
+    TR_fn_assert_equal([[1.0, 2.0, 5.0], [3.0, 4.0, 6.0]], c.TR_mem_tolist)
+    TR_fn_assert_equal([[1.0, 2.0], [3.0, 4.0], [1.0, 2.0], [3.0, 4.0]], TR_fn_concat([a, a], TR_arg_dim: 0).TR_mem_tolist)
+    TR_fn_backward(TR_fn_sum(c * TR_fn_tensor([1, 2, 3])))
+    TR_fn_assert_equal([[3.0], [3.0]], b.TR_mem_grad.TR_mem_tolist)
+    TR_fn_assert(hata_metni(() => TR_fn_concat([a, TR_fn_tensor([[1, 2, 3]])], TR_arg_dim: 0)).TR_mem_contains("0. eksen dışındaki eksenler eşit olmalı"))
+    TR_fn_assert(hata_metni(() => TR_fn_concat([])).TR_mem_contains("liste boş"))
     // .böl eşit parçalar verir; parçalar türev izleyen görünümlerdir.
-    değişken t = tensör([[1, 2, 3, 4, 5, 6]], türev_izle: doğru)
-    değişken parçalar = t.böl(3)
-    eşit_mi(3, parçalar.uzunluk)
-    eşit_mi([[5.0, 6.0]], parçalar[2].değer)
-    eşit_mi([[3.0, 4.0]], tensör([[1, 2], [3, 4]]).böl(2, eksen: 0)[1].değer)
-    geri_yayılım(toplam(parçalar[1]))
-    eşit_mi([[0.0, 0.0, 1.0, 1.0, 0.0, 0.0]], t.gradyan.değer)
-    doğrula(hata_metni(() => tensör([1, 2, 3]).böl(2)).içerir("2 eşit parçaya bölünemez"))
+    TR_kw_var t = TR_fn_tensor([[1, 2, 3, 4, 5, 6]], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var parçalar = t.TR_mem_split(3)
+    TR_fn_assert_equal(3, parçalar.TR_mem_length)
+    TR_fn_assert_equal([[5.0, 6.0]], parçalar[2].TR_mem_tolist)
+    TR_fn_assert_equal([[3.0, 4.0]], TR_fn_tensor([[1, 2], [3, 4]]).TR_mem_split(2, TR_arg_dim: 0)[1].TR_mem_tolist)
+    TR_fn_backward(TR_fn_sum(parçalar[1]))
+    TR_fn_assert_equal([[0.0, 0.0, 1.0, 1.0, 0.0, 0.0]], t.TR_mem_grad.TR_mem_tolist)
+    TR_fn_assert(hata_metni(() => TR_fn_tensor([1, 2, 3]).TR_mem_split(2)).TR_mem_contains("2 eşit parçaya bölünemez"))
     // Metin'in .böl'ü aynı addır ve değişmez.
-    eşit_mi(["a", "b"], "a b".böl(" "))
+    TR_fn_assert_equal(["a", "b"], "a b".TR_mem_split(" "))
     // Boş yaprak girdinin gradyanı da boş tensördür (yok değil), tek başına toplamdaki gibi.
-    değişken boş = tensör([], türev_izle: doğru)
-    değişken dolu = tensör([1.0, 2.0], türev_izle: doğru)
-    geri_yayılım(toplam(bitiştir([boş, dolu])))
-    doğrula(boş.gradyan != yok, "boş yaprak tensörün gradyanı yok kaldı")
-    eşit_mi([0], boş.gradyan.şekil)
-    eşit_mi([1.0, 1.0], dolu.gradyan.değer)
+    TR_kw_var boş = TR_fn_tensor([], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var dolu = TR_fn_tensor([1.0, 2.0], TR_arg_requires_grad: TR_kw_true)
+    TR_fn_backward(TR_fn_sum(TR_fn_concat([boş, dolu])))
+    TR_fn_assert(boş.TR_mem_grad != TR_kw_none, "boş yaprak tensörün gradyanı yok kaldı")
+    TR_fn_assert_equal([0], boş.TR_mem_grad.TR_mem_shape)
+    TR_fn_assert_equal([1.0, 1.0], dolu.TR_mem_grad.TR_mem_tolist)
 }
 
-test "15.18 indirgemelerde boyutu_koru" {
-    değişken x = tensör([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
-    eşit_mi([2, 2, 1], toplam(x, eksen: -1, boyutu_koru: doğru).şekil)
-    eşit_mi([[[2.0], [4.0]], [[6.0], [8.0]]], max(x, eksen: -1, boyutu_koru: doğru).değer)
-    eşit_mi([2, 1, 2], ortalama(x, eksen: 1, boyutu_koru: doğru).şekil)
-    eşit_mi([1, 2, 2], min(x, eksen: 0, boyutu_koru: doğru).şekil)
-    eşit_mi([1, 1, 1], toplam(x, boyutu_koru: doğru).şekil)
-    eşit_mi([2, 2], toplam(x, eksen: -1).şekil)
+TR_ctx_test "15.18 indirgemelerde boyutu_koru" {
+    TR_kw_var x = TR_fn_tensor([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
+    TR_fn_assert_equal([2, 2, 1], TR_fn_sum(x, TR_arg_dim: -1, TR_arg_keepdim: TR_kw_true).TR_mem_shape)
+    TR_fn_assert_equal([[[2.0], [4.0]], [[6.0], [8.0]]], TR_fn_max(x, TR_arg_dim: -1, TR_arg_keepdim: TR_kw_true).TR_mem_tolist)
+    TR_fn_assert_equal([2, 1, 2], TR_fn_mean(x, TR_arg_dim: 1, TR_arg_keepdim: TR_kw_true).TR_mem_shape)
+    TR_fn_assert_equal([1, 2, 2], TR_fn_min(x, TR_arg_dim: 0, TR_arg_keepdim: TR_kw_true).TR_mem_shape)
+    TR_fn_assert_equal([1, 1, 1], TR_fn_sum(x, TR_arg_keepdim: TR_kw_true).TR_mem_shape)
+    TR_fn_assert_equal([2, 2], TR_fn_sum(x, TR_arg_dim: -1).TR_mem_shape)
     // Korunan eksen yayınlamayla geri bölünebilir.
-    eşit_mi([[0.25, 0.75]], (tensör([[1.0, 3.0]]) / toplam(tensör([[1.0, 3.0]]), eksen: -1, boyutu_koru: doğru)).değer)
-    doğrula(hata_metni(() => toplam([1, 2], boyutu_koru: doğru)).içerir("yalnızca tensörlerde"))
+    TR_fn_assert_equal([[0.25, 0.75]], (TR_fn_tensor([[1.0, 3.0]]) / TR_fn_sum(TR_fn_tensor([[1.0, 3.0]]), TR_arg_dim: -1, TR_arg_keepdim: TR_kw_true)).TR_mem_tolist)
+    TR_fn_assert(hata_metni(() => TR_fn_sum([1, 2], TR_arg_keepdim: TR_kw_true)).TR_mem_contains("yalnızca tensörlerde"))
 }
 
-test "15.24 dikkat: NaN satırı bakmadığı anahtarlara NaN sızdırmaz (pencere, nedensellik, maske)" {
-    değişken nan = ondalık("nan")
-    değişken k_satırı = (k) => sonlu_mu(k.gradyan).değer
+TR_ctx_test "15.24 dikkat: NaN satırı bakmadığı anahtarlara NaN sızdırmaz (pencere, nedensellik, maske)" {
+    TR_kw_var nan = TR_fn_float("nan")
+    TR_kw_var k_satırı = (k) => TR_fn_is_finite(k.TR_mem_grad).TR_mem_tolist
     // pencere: 1 ve nedensel: 1. sorgu (NaN) yalnızca 1. anahtara bakar; 0. anahtara yalnızca sonlu 0. sorgu bakar.
-    değişken q = tensör([[1.0, 0.0], [nan, 0.0]], türev_izle: doğru)
-    değişken k = tensör([[1.0, 0.0], [0.0, 1.0]], türev_izle: doğru)
-    değişken v = tensör([[1.0, 2.0], [3.0, 4.0]], türev_izle: doğru)
-    geri_yayılım(toplam(dikkat(q, k, v, nedensel: doğru, pencere: 1)))
-    eşit_mi([1.0, 1.0], k_satırı(k)[0])
-    eşit_mi([0.0, 0.0], k_satırı(k)[1])
+    TR_kw_var q = TR_fn_tensor([[1.0, 0.0], [nan, 0.0]], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var k = TR_fn_tensor([[1.0, 0.0], [0.0, 1.0]], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var v = TR_fn_tensor([[1.0, 2.0], [3.0, 4.0]], TR_arg_requires_grad: TR_kw_true)
+    TR_fn_backward(TR_fn_sum(TR_fn_attention(q, k, v, TR_arg_causal: TR_kw_true, TR_arg_window: 1)))
+    TR_fn_assert_equal([1.0, 1.0], k_satırı(k)[0])
+    TR_fn_assert_equal([0.0, 0.0], k_satırı(k)[1])
     // Yalnızca nedensellik: NaN 0. sorgu yalnızca 0. anahtara bakar; 1. anahtarın gradyanı 1. sorgudan gelir (sonlu).
-    değişken q2 = tensör([[nan, 0.0], [1.0, 0.0]], türev_izle: doğru)
-    değişken k2 = tensör([[1.0, 0.0], [0.0, 1.0]], türev_izle: doğru)
-    değişken v2 = tensör([[1.0, 2.0], [3.0, 4.0]], türev_izle: doğru)
-    geri_yayılım(toplam(dikkat(q2, k2, v2, nedensel: doğru)))
-    eşit_mi([0.0, 0.0], k_satırı(k2)[0])
-    eşit_mi([1.0, 1.0], k_satırı(k2)[1])
+    TR_kw_var q2 = TR_fn_tensor([[nan, 0.0], [1.0, 0.0]], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var k2 = TR_fn_tensor([[1.0, 0.0], [0.0, 1.0]], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var v2 = TR_fn_tensor([[1.0, 2.0], [3.0, 4.0]], TR_arg_requires_grad: TR_kw_true)
+    TR_fn_backward(TR_fn_sum(TR_fn_attention(q2, k2, v2, TR_arg_causal: TR_kw_true)))
+    TR_fn_assert_equal([0.0, 0.0], k_satırı(k2)[0])
+    TR_fn_assert_equal([1.0, 1.0], k_satırı(k2)[1])
     // Maske: NaN sorgunun maskelediği anahtara NaN gitmez.
-    değişken q3 = tensör([[nan, 0.0], [1.0, 0.0]], türev_izle: doğru)
-    değişken k3 = tensör([[1.0, 0.0], [0.0, 1.0]], türev_izle: doğru)
-    değişken v3 = tensör([[1.0, 2.0], [3.0, 4.0]], türev_izle: doğru)
-    değişken maske = tensör([[1.0, 0.0], [1.0, 1.0]])
-    geri_yayılım(toplam(dikkat(q3, k3, v3, nedensel: yanlış, maske: maske)))
-    eşit_mi([0.0, 0.0], k_satırı(k3)[0])
+    TR_kw_var q3 = TR_fn_tensor([[nan, 0.0], [1.0, 0.0]], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var k3 = TR_fn_tensor([[1.0, 0.0], [0.0, 1.0]], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var v3 = TR_fn_tensor([[1.0, 2.0], [3.0, 4.0]], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var maske = TR_fn_tensor([[1.0, 0.0], [1.0, 1.0]])
+    TR_fn_backward(TR_fn_sum(TR_fn_attention(q3, k3, v3, TR_arg_causal: TR_kw_false, TR_arg_mask: maske)))
+    TR_fn_assert_equal([0.0, 0.0], k_satırı(k3)[0])
 }
 
-test "15.24 dikkat: bileşik sürümle aynı; GQA, pencere, maske, önbellekli üretim" {
+TR_ctx_test "15.24 dikkat: bileşik sürümle aynı; GQA, pencere, maske, önbellekli üretim" {
     // Düzen [B, T, bakış, dh]; bileşik sürüm bakış önde ([B, bakış, T, dh]) hesaplanır (bd çevirir).
-    değişken q = tensör(rastgele_normal([2, 6, 4, 8], tohum: 1), türev_izle: doğru)
-    değişken k = tensör(rastgele_normal([2, 6, 2, 8], tohum: 2), türev_izle: doğru)
-    değişken v = tensör(rastgele_normal([2, 6, 2, 8], tohum: 3), türev_izle: doğru)
-    fonksiyon bd(x) { sonuç x.eksenleri_sırala([0, 2, 1, 3]) }
+    TR_kw_var q = TR_fn_tensor(TR_fn_randn([2, 6, 4, 8], TR_arg_seed: 1), TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var k = TR_fn_tensor(TR_fn_randn([2, 6, 2, 8], TR_arg_seed: 2), TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var v = TR_fn_tensor(TR_fn_randn([2, 6, 2, 8], TR_arg_seed: 3), TR_arg_requires_grad: TR_kw_true)
+    TR_kw_func bd(x) { TR_kw_return x.TR_mem_permute([0, 2, 1, 3]) }
     // Bileşik sürüm: k ve v bakışları gruplara kopyalanır, maske toplamsaldır.
-    değişken satırlar = []
-    döngü i içinde 0..6 {
-        değişken s = []
-        döngü j içinde 0..6 { eğer j <= i { s.ekle(0.0) } değilse { s.ekle(-1000000000.0) } }
-        satırlar.ekle(s)
+    TR_kw_var satırlar = []
+    TR_kw_for i TR_kw_in 0..6 {
+        TR_kw_var s = []
+        TR_kw_for j TR_kw_in 0..6 { TR_kw_if j <= i { s.TR_mem_append(0.0) } TR_kw_else { s.TR_mem_append(-1000000000.0) } }
+        satırlar.TR_mem_append(s)
     }
-    değişken ek = tensör(satırlar)
-    fonksiyon çoğalt(t) {
-        değişken b = t.böl(2, eksen: 1)
-        sonuç bitiştir([b[0], b[0], b[1], b[1]], eksen: 1)
+    TR_kw_var ek = TR_fn_tensor(satırlar)
+    TR_kw_func çoğalt(t) {
+        TR_kw_var b = t.TR_mem_split(2, TR_arg_dim: 1)
+        TR_kw_return TR_fn_concat([b[0], b[0], b[1], b[1]], TR_arg_dim: 1)
     }
-    değişken beklenen = bd(softmax((bd(q) @ çoğalt(bd(k)).devrik()) * (1.0 / karekök(8)) + ek, eksen: -1) @ çoğalt(bd(v)))
-    değişken o = dikkat(q, k, v)
-    eşit_mi([2, 6, 4, 8], o.şekil)
-    doğrula(en_büyük_kare_fark(o, beklenen) < 0.0000000001)
+    TR_kw_var beklenen = bd(TR_fn_softmax((bd(q) @ çoğalt(bd(k)).TR_mem_transpose()) * (1.0 / TR_fn_sqrt(8)) + ek, TR_arg_dim: -1) @ çoğalt(bd(v)))
+    TR_kw_var o = TR_fn_attention(q, k, v)
+    TR_fn_assert_equal([2, 6, 4, 8], o.TR_mem_shape)
+    TR_fn_assert(en_büyük_kare_fark(o, beklenen) < 0.0000000001)
     // Gradyanlar da aynıdır.
-    geri_yayılım(toplam(beklenen * beklenen))
-    değişken gq = tensör(q.gradyan)
-    değişken gk = tensör(k.gradyan)
-    değişken q2 = tensör(q, türev_izle: doğru)
-    değişken k2 = tensör(k, türev_izle: doğru)
-    değişken o2 = dikkat(q2, k2, v)
-    geri_yayılım(toplam(o2 * o2))
-    doğrula(en_büyük_kare_fark(q2.gradyan, gq) < 0.0000000001)
-    doğrula(en_büyük_kare_fark(k2.gradyan, gk) < 0.0000000001)
+    TR_fn_backward(TR_fn_sum(beklenen * beklenen))
+    TR_kw_var gq = TR_fn_tensor(q.TR_mem_grad)
+    TR_kw_var gk = TR_fn_tensor(k.TR_mem_grad)
+    TR_kw_var q2 = TR_fn_tensor(q, TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var k2 = TR_fn_tensor(k, TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var o2 = TR_fn_attention(q2, k2, v)
+    TR_fn_backward(TR_fn_sum(o2 * o2))
+    TR_fn_assert(en_büyük_kare_fark(q2.TR_mem_grad, gq) < 0.0000000001)
+    TR_fn_assert(en_büyük_kare_fark(k2.TR_mem_grad, gk) < 0.0000000001)
     // pencere: 1 yalnızca kendi konumuna bakar: çıktı kendi değeridir.
-    doğrula(en_büyük_kare_fark(dikkat(q, k, v, pencere: 1)[0][3][1], v[0][3][0]) < 0.0000000001)
+    TR_fn_assert(en_büyük_kare_fark(TR_fn_attention(q, k, v, TR_arg_window: 1)[0][3][1], v[0][3][0]) < 0.0000000001)
     // Tq < Tk (önbellekli üretim): son sorgu bütün anahtarları görür, nedensellik sondan hizalıdır.
-    değişken son = dikkat(q.dilim(1, 5, 6), k, v)
-    doğrula(en_büyük_kare_fark(son[0][0][0], o[0][5][0]) < 0.0000000001)
+    TR_kw_var son = TR_fn_attention(q.TR_mem_slice(1, 5, 6), k, v)
+    TR_fn_assert(en_büyük_kare_fark(son[0][0][0], o[0][5][0]) < 0.0000000001)
     // Ek maske: 1 bakılır, 0 bakılmaz; yayınlanır.
-    değişken m = birler([6, 6])
+    TR_kw_var m = TR_fn_ones([6, 6])
     m[3] = 0
     m[3][1] = 1
-    doğrula(en_büyük_kare_fark(dikkat(q, k, v, nedensel: yanlış, maske: m)[1][3][2], v[1][1][1]) < 0.0000000001)
-    doğrula(hata_metni(() => dikkat(q, rastgele_normal([2, 6, 3, 8]), rastgele_normal([2, 6, 3, 8]))).içerir("katı olmalıdır"))
-    doğrula(hata_metni(() => dikkat(q, k, v, ölçek: 1)).içerir("'ölçek' adında bir parametre almaz"))
+    TR_fn_assert(en_büyük_kare_fark(TR_fn_attention(q, k, v, TR_arg_causal: TR_kw_false, TR_arg_mask: m)[1][3][2], v[1][1][1]) < 0.0000000001)
+    TR_fn_assert(hata_metni(() => TR_fn_attention(q, TR_fn_randn([2, 6, 3, 8]), TR_fn_randn([2, 6, 3, 8]))).TR_mem_contains("katı olmalıdır"))
+    TR_fn_assert(hata_metni(() => TR_fn_attention(q, k, v, ölçek: 1)).TR_mem_contains("'ölçek' adında bir parametre almaz"))
     // Karışık hassasiyet: girdiler bf16'ya çevrilir, biriktirme float32, sonuç bf16 ('@' gibi).
-    eşit_mi("bf16", karışık_hassasiyet("bf16") { dikkat(q, k, v) }.tür)
+    TR_fn_assert_equal("bf16", TR_fn_mixed_precision("bf16") { TR_fn_attention(q, k, v) }.TR_mem_dtype)
 }
 
-test "15.26 örnekle: sıcaklık, en_iyi_k, tohum" {
-    değişken l = tensör([[0.0, 3.0, 1.0], [2.0, 0.0, 0.5]])
-    değişken e = örnekle(l, sıcaklık: 0)
-    eşit_mi([1, 0], e.değer)
-    eşit_mi(argmax(l).değer, e.değer)
-    eşit_mi(Tam, tip(örnekle(tensör([1.0, 2.0])).değer))
-    eşit_mi([], örnekle(tensör([1.0, 2.0])).şekil)
-    eşit_mi(örnekle(l, tohum: 4).değer, örnekle(l, tohum: 4).değer)
-    eşit_mi([1, 0], örnekle(l, en_iyi_k: 1).değer)
-    değişken düz = birler([64, 50])
-    doğrula(örnekle(düz).değer != örnekle(düz).değer, "tohumsuz çağrılar farklı olmalı")
+TR_ctx_test "15.26 örnekle: sıcaklık, en_iyi_k, tohum" {
+    TR_kw_var l = TR_fn_tensor([[0.0, 3.0, 1.0], [2.0, 0.0, 0.5]])
+    TR_kw_var e = TR_fn_sample(l, TR_arg_temperature: 0)
+    TR_fn_assert_equal([1, 0], e.TR_mem_tolist)
+    TR_fn_assert_equal(TR_fn_argmax(l).TR_mem_tolist, e.TR_mem_tolist)
+    TR_fn_assert_equal(TR_type_Int, TR_fn_type(TR_fn_sample(TR_fn_tensor([1.0, 2.0])).TR_mem_tolist))
+    TR_fn_assert_equal([], TR_fn_sample(TR_fn_tensor([1.0, 2.0])).TR_mem_shape)
+    TR_fn_assert_equal(TR_fn_sample(l, TR_arg_seed: 4).TR_mem_tolist, TR_fn_sample(l, TR_arg_seed: 4).TR_mem_tolist)
+    TR_fn_assert_equal([1, 0], TR_fn_sample(l, TR_arg_top_k: 1).TR_mem_tolist)
+    TR_kw_var düz = TR_fn_ones([64, 50])
+    TR_fn_assert(TR_fn_sample(düz).TR_mem_tolist != TR_fn_sample(düz).TR_mem_tolist, "tohumsuz çağrılar farklı olmalı")
     // en_iyi_k: 2 en olası ikisi dışında kalanı hiç seçmez.
-    değişken seçilen = örnekle(birler([500, 3]) * tensör([1.0, 1.1, 1.2]), en_iyi_k: 2, tohum: 1).değer
-    doğrula(!seçilen.içerir(0))
-    doğrula(seçilen.içerir(1) ve seçilen.içerir(2))
-    doğrula(hata_metni(() => örnekle(l, sıcaklık: -1)).içerir("sıcaklık negatif olmayan"))
+    TR_kw_var seçilen = TR_fn_sample(TR_fn_ones([500, 3]) * TR_fn_tensor([1.0, 1.1, 1.2]), TR_arg_top_k: 2, TR_arg_seed: 1).TR_mem_tolist
+    TR_fn_assert(!seçilen.TR_mem_contains(0))
+    TR_fn_assert(seçilen.TR_mem_contains(1) TR_kw_and seçilen.TR_mem_contains(2))
+    TR_fn_assert(hata_metni(() => TR_fn_sample(l, TR_arg_temperature: -1)).TR_mem_contains("sıcaklık negatif olmayan"))
 }
 
-test "15.26 örnekle: dağılım kurulamayan satır her yolda hatadır (sıcaklık: 0 ve en_iyi_k dahil)" {
-    değişken eksi_sonsuz = ondalık("-inf")
-    değişken nan = ondalık("nan")
+TR_ctx_test "15.26 örnekle: dağılım kurulamayan satır her yolda hatadır (sıcaklık: 0 ve en_iyi_k dahil)" {
+    TR_kw_var eksi_sonsuz = TR_fn_float("-inf")
+    TR_kw_var nan = TR_fn_float("nan")
     // Hepsi -∞ ve NaN içeren satır: sıcaklık: 0 da, en_iyi_k da sessizce bir indeks seçmez.
-    doğrula(hata_metni(() => örnekle(tensör([eksi_sonsuz, eksi_sonsuz]), sıcaklık: 0)).içerir("dağılım kurulamıyor"))
-    doğrula(hata_metni(() => örnekle(tensör([nan, 1.0]), sıcaklık: 0)).içerir("dağılım kurulamıyor"))
-    doğrula(hata_metni(() => örnekle(tensör([1.0, 2.0, nan]), sıcaklık: 1.0, en_iyi_k: 1, tohum: 1)).içerir("dağılım kurulamıyor"))
-    doğrula(hata_metni(() => örnekle(tensör([1.0, nan]), sıcaklık: 1.0, en_iyi_k: 1, tohum: 1)).içerir("dağılım kurulamıyor"))
+    TR_fn_assert(hata_metni(() => TR_fn_sample(TR_fn_tensor([eksi_sonsuz, eksi_sonsuz]), TR_arg_temperature: 0)).TR_mem_contains("dağılım kurulamıyor"))
+    TR_fn_assert(hata_metni(() => TR_fn_sample(TR_fn_tensor([nan, 1.0]), TR_arg_temperature: 0)).TR_mem_contains("dağılım kurulamıyor"))
+    TR_fn_assert(hata_metni(() => TR_fn_sample(TR_fn_tensor([1.0, 2.0, nan]), TR_arg_temperature: 1.0, TR_arg_top_k: 1, TR_arg_seed: 1)).TR_mem_contains("dağılım kurulamıyor"))
+    TR_fn_assert(hata_metni(() => TR_fn_sample(TR_fn_tensor([1.0, nan]), TR_arg_temperature: 1.0, TR_arg_top_k: 1, TR_arg_seed: 1)).TR_mem_contains("dağılım kurulamıyor"))
     // Geçerli satır (bazı -∞ değerlerle) hata vermez.
-    eşit_mi(1, örnekle(tensör([eksi_sonsuz, 3.0]), sıcaklık: 0).değer)
-    eşit_mi(1, örnekle(tensör([eksi_sonsuz, 3.0]), en_iyi_k: 1, tohum: 1).değer)
+    TR_fn_assert_equal(1, TR_fn_sample(TR_fn_tensor([eksi_sonsuz, 3.0]), TR_arg_temperature: 0).TR_mem_tolist)
+    TR_fn_assert_equal(1, TR_fn_sample(TR_fn_tensor([eksi_sonsuz, 3.0]), TR_arg_top_k: 1, TR_arg_seed: 1).TR_mem_tolist)
 }
 
-test "15.4 max ve min 16 bitlik tensörde girdinin türünde kalır (eksensiz min dahil)" {
-    döngü tür içinde ["bf16", "fp16"] {
-        değişken x = tensör([3.0, 1.0, 2.0], tür: tür)
-        eşit_mi(tür, max(x).tür)
-        eşit_mi(tür, min(x, eksen: 0).tür)
-        eşit_mi(tür, min(x).tür)
-        eşit_mi(1.0, min(x).değer)
+TR_ctx_test "15.4 max ve min 16 bitlik tensörde girdinin türünde kalır (eksensiz min dahil)" {
+    TR_kw_for tür TR_kw_in ["bf16", "fp16"] {
+        TR_kw_var x = TR_fn_tensor([3.0, 1.0, 2.0], TR_arg_dtype: tür)
+        TR_fn_assert_equal(tür, TR_fn_max(x).TR_mem_dtype)
+        TR_fn_assert_equal(tür, TR_fn_min(x, TR_arg_dim: 0).TR_mem_dtype)
+        TR_fn_assert_equal(tür, TR_fn_min(x).TR_mem_dtype)
+        TR_fn_assert_equal(1.0, TR_fn_min(x).TR_mem_tolist)
     }
 }
 
-test "15.44 kaynaştır: büyük tensör yazdırma ve tensörde döngü iç hata değil açık hata verir" {
+TR_ctx_test "15.44 kaynaştır: büyük tensör yazdırma ve tensörde döngü iç hata değil açık hata verir" {
     // 1000'den çok elemanlı tensörü yazdırmak ve üzerinde dönmek veri okumak demektir (.değer gibi).
-    değişken yaz = kaynaştır((x) => {
-        yazdır(x)
-        sonuç x + 1
+    TR_kw_var yaz = TR_fn_fuse((x) => {
+        TR_fn_print(x)
+        TR_kw_return x + 1
     })
-    değişken e1 = hata_metni(() => yaz(sıfırlar([1001])))
-    doğrula(e1.içerir("kaynaştır") ve değil e1.içerir("nil") ve değil e1.içerir("runtime error"), e1)
-    değişken don = kaynaştır((x) => {
-        döngü e içinde x { yazdır(e) }
-        sonuç x + 1
+    TR_kw_var e1 = hata_metni(() => yaz(TR_fn_zeros([1001])))
+    TR_fn_assert(e1.TR_mem_contains("kaynaştır") TR_kw_and TR_kw_not e1.TR_mem_contains("nil") TR_kw_and TR_kw_not e1.TR_mem_contains("runtime error"), e1)
+    TR_kw_var don = TR_fn_fuse((x) => {
+        TR_kw_for e TR_kw_in x { TR_fn_print(e) }
+        TR_kw_return x + 1
     })
-    değişken e2 = hata_metni(() => don(sıfırlar([1001])))
-    doğrula(e2.içerir("kaynaştır") ve değil e2.içerir("nil") ve değil e2.içerir("runtime error"), e2)
+    TR_kw_var e2 = hata_metni(() => don(TR_fn_zeros([1001])))
+    TR_fn_assert(e2.TR_mem_contains("kaynaştır") TR_kw_and TR_kw_not e2.TR_mem_contains("nil") TR_kw_and TR_kw_not e2.TR_mem_contains("runtime error"), e2)
 }
 
-test "15.33 parametreler: sabit sıra, tekillik, yol adları" {
-    fonksiyon p(x) { sonuç tensör([x], türev_izle: doğru) }
-    yapı Dikkat { Wq, Wk }
-    yapı Blok { dikkat, mlp }
-    yapı Model { gömme, bloklar, son }
-    değişken ortak = p(9)
-    değişken m = Model(p(1), [Blok(Dikkat(p(2), ortak), [p(3)]), Blok(Dikkat(p(4), p(5)), {"W1": p(6), "sabit": tensör([0.0])})], ortak)
-    değişken l = parametreler(m)
-    eşit_mi([1.0, 2.0, 9.0, 3.0, 4.0, 5.0, 6.0], [x.değer[0] döngü x içinde l])
-    doğrula(l[0] == m.gömme)
-    değişken adlar = parametreler(m, adlarıyla: doğru)
-    eşit_mi(["gömme", "bloklar.0.dikkat.Wq", "bloklar.0.dikkat.Wk", "bloklar.0.mlp.0", "bloklar.1.dikkat.Wq", "bloklar.1.dikkat.Wk", "bloklar.1.mlp.W1"], adlar.anahtarlar())
-    eşit_mi([4.0], adlar["bloklar.1.dikkat.Wq"].değer)
+TR_ctx_test "15.33 parametreler: sabit sıra, tekillik, yol adları" {
+    TR_kw_func p(x) { TR_kw_return TR_fn_tensor([x], TR_arg_requires_grad: TR_kw_true) }
+    TR_kw_struct Dikkat { Wq, Wk }
+    TR_kw_struct Blok { dikkat, mlp }
+    TR_kw_struct Model { gömme, bloklar, TR_mem_last }
+    TR_kw_var ortak = p(9)
+    TR_kw_var m = Model(p(1), [Blok(Dikkat(p(2), ortak), [p(3)]), Blok(Dikkat(p(4), p(5)), {"W1": p(6), "sabit": TR_fn_tensor([0.0])})], ortak)
+    TR_kw_var l = TR_fn_parameters(m)
+    TR_fn_assert_equal([1.0, 2.0, 9.0, 3.0, 4.0, 5.0, 6.0], [x.TR_mem_tolist[0] TR_kw_for x TR_kw_in l])
+    TR_fn_assert(l[0] == m.gömme)
+    TR_kw_var adlar = TR_fn_parameters(m, TR_arg_named: TR_kw_true)
+    TR_fn_assert_equal(["gömme", "bloklar.0.dikkat.Wq", "bloklar.0.dikkat.Wk", "bloklar.0.mlp.0", "bloklar.1.dikkat.Wq", "bloklar.1.dikkat.Wk", "bloklar.1.mlp.W1"], adlar.TR_mem_keys())
+    TR_fn_assert_equal([4.0], adlar["bloklar.1.dikkat.Wq"].TR_mem_tolist)
     // Ara sonuçlar ve türev izlemeyen tensörler parametre değildir.
-    eşit_mi(0, parametreler([p(1) * 2, tensör([1.0])]).uzunluk)
+    TR_fn_assert_equal(0, TR_fn_parameters([p(1) * 2, TR_fn_tensor([1.0])]).TR_mem_length)
     // Sonuç doğrudan iyileştiriciye verilebilir.
-    değişken op = SGD(parametreler(m), öğrenme_oranı: 1.0)
-    geri_yayılım(toplam(m.gömme * 2))
-    op.adım()
-    eşit_mi([-1.0], m.gömme.değer)
+    TR_kw_var op = TR_fn_SGD(TR_fn_parameters(m), TR_arg_lr: 1.0)
+    TR_fn_backward(TR_fn_sum(m.gömme * 2))
+    op.TR_mem_step()
+    TR_fn_assert_equal([-1.0], m.gömme.TR_mem_tolist)
 }
 
-test "15.42 bellek sınırı: dev sonuç tensörü ayrılmadan yakalanabilir bir hata verir" {
+TR_ctx_test "15.42 bellek sınırı: dev sonuç tensörü ayrılmadan yakalanabilir bir hata verir" {
     // İki küçük tensörün yayınlanması [2000000, 2000000] (yaklaşık 14,6 TB) isterdi.
-    değişken m = hata_metni(() => sıfırlar([2000000, 1]) + sıfırlar([2000000]))
-    doğrula(m.içerir("toplama: sonuç tensörü [2000000, 2000000] şeklinde"))
-    doğrula(m.içerir("TB bellek ister; bu makinede"))
-    doğrula(m.içerir("yayınlama beklenmedik bir boyut üretmiş olabilir"))
+    TR_kw_var m = hata_metni(() => TR_fn_zeros([2000000, 1]) + TR_fn_zeros([2000000]))
+    TR_fn_assert(m.TR_mem_contains("toplama: sonuç tensörü [2000000, 2000000] şeklinde"))
+    TR_fn_assert(m.TR_mem_contains("TB bellek ister; bu makinede"))
+    TR_fn_assert(m.TR_mem_contains("yayınlama beklenmedik bir boyut üretmiş olabilir"))
     // Verisiz (sıfır eksenli) tensörlerin çarpımı da denetlenir.
-    doğrula(hata_metni(() => sıfırlar([46000000, 0]) @ sıfırlar([0, 46000000])).içerir("matris çarpımı: sonuç tensörü [46000000, 46000000]"))
+    TR_fn_assert(hata_metni(() => TR_fn_zeros([46000000, 0]) @ TR_fn_zeros([0, 46000000])).TR_mem_contains("matris çarpımı: sonuç tensörü [46000000, 46000000]"))
     // Hatadan sonra program sürer; sınır içindeki işlemler etkilenmez.
-    eşit_mi([3, 4], (sıfırlar([3, 4]) + sıfırlar([4])).şekil)
+    TR_fn_assert_equal([3, 4], (TR_fn_zeros([3, 4]) + TR_fn_zeros([4])).TR_mem_shape)
 }
 
-test "15.37 cihazlar: ilk eleman cpu, adlar metin, bilinmeyen ad hata" {
-    değişken c = cihazlar()
-    eşit_mi("cpu", c[0])
-    döngü ad içinde c { doğrula(tip(ad) == Metin) }
-    eşit_mi("cpu", tensör([1.0]).cihaza(" CPU ").cihaz)
-    doğrula(hata_metni(() => tensör([1.0]).cihaza("tpu")).içerir("bilinmeyen cihaz \"tpu\""))
+TR_ctx_test "15.37 cihazlar: ilk eleman cpu, adlar metin, bilinmeyen ad hata" {
+    TR_kw_var c = TR_fn_devices()
+    TR_fn_assert_equal("cpu", c[0])
+    TR_kw_for ad TR_kw_in c { TR_fn_assert(TR_fn_type(ad) == TR_type_String) }
+    TR_fn_assert_equal("cpu", TR_fn_tensor([1.0]).TR_mem_to_device(" CPU ").TR_mem_device)
+    TR_fn_assert(hata_metni(() => TR_fn_tensor([1.0]).TR_mem_to_device("tpu")).TR_mem_contains("bilinmeyen cihaz \"tpu\""))
     // Sayıdan sonra çöp ya da işaret olan ad da bilinmeyen cihazdır (gpu:0abc, gpu:+1, gpu:-1, gpu:).
-    döngü kötü içinde ["gpu:0abc", "gpu:+1", "gpu:-1", "gpu:", "gpu: 1"] {
-        doğrula(hata_metni(() => tensör([1.0]).cihaza(kötü)).içerir("bilinmeyen cihaz"), kötü)
+    TR_kw_for kötü TR_kw_in ["gpu:0abc", "gpu:+1", "gpu:-1", "gpu:", "gpu: 1"] {
+        TR_fn_assert(hata_metni(() => TR_fn_tensor([1.0]).TR_mem_to_device(kötü)).TR_mem_contains("bilinmeyen cihaz"), kötü)
     }
-    doğrula(hata_metni(() => cihazlar(1)).içerir("parametre almaz"))
-    eğer c.içerir("gpu") {
-        eşit_mi("gpu", tensör([1.0]).cihaza("gpu:0").cihaz)
-    }
-}
-
-test "15.38 varsayılan_cihaz: oluşturucuların cihazı; olmayan cihaz hata, cihaz değişmez" {
-    eşit_mi("cpu", varsayılan_cihaz())
-    eşit_mi("cpu", varsayılan_cihaz("cpu"))
-    eşit_mi("cpu", sıfırlar([2]).cihaz)
-    değişken m = hata_metni(() => varsayılan_cihaz("gpu:9"))
-    doğrula(m.içerir("gpu:9 cihazı kullanılamıyor; bu makinede kullanılabilir cihazlar: cpu"))
-    eşit_mi("cpu", varsayılan_cihaz())
-    eğer cihazlar().içerir("gpu") {
-        varsayılan_cihaz("gpu")
-        değişken t = tensör([[1.0, 2.0]])
-        değişken r = rastgele_normal([2, 2], tohum: 1)
-        değişken l = t + [10, 20]
-        varsayılan_cihaz("cpu")
-        eşit_mi(["gpu", "gpu", "gpu"], [t.cihaz, r.cihaz, l.cihaz])
-        eşit_mi([[11.0, 22.0]], l.değer)
-        eşit_mi("cpu", tensör([1.0]).cihaz)
+    TR_fn_assert(hata_metni(() => TR_fn_devices(1)).TR_mem_contains("parametre almaz"))
+    TR_kw_if c.TR_mem_contains("gpu") {
+        TR_fn_assert_equal("gpu", TR_fn_tensor([1.0]).TR_mem_to_device("gpu:0").TR_mem_device)
     }
 }
 
-test "15.39 cihaza: aynı cihazda kendisi; taşınan yaprak yeni yaprak, ara tensörde türev geri akar" {
-    değişken w = tensör([1.0, 2.0], türev_izle: doğru)
-    değişken w2 = w.cihaza("cpu")
-    geri_yayılım(toplam(w2 * 3))
-    eşit_mi([3.0, 3.0], w.gradyan.değer)
-    eğer cihazlar().içerir("gpu") {
-        değişken g = w.cihaza("gpu")
-        geri_yayılım(toplam(g * g))
-        eşit_mi([2.0, 4.0], g.gradyan.değer)
-        eşit_mi([3.0, 3.0], w.gradyan.değer)
-        değişken ara = (w * 2).cihaza("gpu")
-        geri_yayılım(toplam(ara))
-        eşit_mi([5.0, 5.0], w.gradyan.değer)
-        eşit_mi("cpu", (ara.cihaza("cpu") + w).cihaz)
+TR_ctx_test "15.38 varsayılan_cihaz: oluşturucuların cihazı; olmayan cihaz hata, cihaz değişmez" {
+    TR_fn_assert_equal("cpu", TR_fn_default_device())
+    TR_fn_assert_equal("cpu", TR_fn_default_device("cpu"))
+    TR_fn_assert_equal("cpu", TR_fn_zeros([2]).TR_mem_device)
+    TR_kw_var m = hata_metni(() => TR_fn_default_device("gpu:9"))
+    TR_fn_assert(m.TR_mem_contains("gpu:9 cihazı kullanılamıyor; bu makinede kullanılabilir cihazlar: cpu"))
+    TR_fn_assert_equal("cpu", TR_fn_default_device())
+    TR_kw_if TR_fn_devices().TR_mem_contains("gpu") {
+        TR_fn_default_device("gpu")
+        TR_kw_var t = TR_fn_tensor([[1.0, 2.0]])
+        TR_kw_var r = TR_fn_randn([2, 2], TR_arg_seed: 1)
+        TR_kw_var l = t + [10, 20]
+        TR_fn_default_device("cpu")
+        TR_fn_assert_equal(["gpu", "gpu", "gpu"], [t.TR_mem_device, r.TR_mem_device, l.TR_mem_device])
+        TR_fn_assert_equal([[11.0, 22.0]], l.TR_mem_tolist)
+        TR_fn_assert_equal("cpu", TR_fn_tensor([1.0]).TR_mem_device)
     }
 }
 
-test "15.40 farklı cihazlardaki tensörlerle işlem hata" {
-    eğer cihazlar().içerir("gpu") {
-        değişken a = tensör([1.0])
-        değişken b = a.cihaza("gpu")
-        doğrula(hata_metni(() => a + b).içerir("tensörler farklı cihazlarda (cpu ve gpu); önce .cihaza(...)"))
-        doğrula(hata_metni(() => sıfırlar([1, 1]) @ b.şekillendir([1, 1])).içerir("farklı cihazlarda"))
+TR_ctx_test "15.39 cihaza: aynı cihazda kendisi; taşınan yaprak yeni yaprak, ara tensörde türev geri akar" {
+    TR_kw_var w = TR_fn_tensor([1.0, 2.0], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var w2 = w.TR_mem_to_device("cpu")
+    TR_fn_backward(TR_fn_sum(w2 * 3))
+    TR_fn_assert_equal([3.0, 3.0], w.TR_mem_grad.TR_mem_tolist)
+    TR_kw_if TR_fn_devices().TR_mem_contains("gpu") {
+        TR_kw_var g = w.TR_mem_to_device("gpu")
+        TR_fn_backward(TR_fn_sum(g * g))
+        TR_fn_assert_equal([2.0, 4.0], g.TR_mem_grad.TR_mem_tolist)
+        TR_fn_assert_equal([3.0, 3.0], w.TR_mem_grad.TR_mem_tolist)
+        TR_kw_var ara = (w * 2).TR_mem_to_device("gpu")
+        TR_fn_backward(TR_fn_sum(ara))
+        TR_fn_assert_equal([5.0, 5.0], w.TR_mem_grad.TR_mem_tolist)
+        TR_fn_assert_equal("cpu", (ara.TR_mem_to_device("cpu") + w).TR_mem_device)
     }
 }
 
-test "15.41 GPU'da hesap: CPU ile aynı sonuç, belirlenimci, GPU belleği sınırı" {
-    eğer cihazlar().içerir("gpu") {
-        değişken x = rastgele_normal([4, 6], tohum: 3)
-        değişken w = rastgele_normal([6, 5], tohum: 4)
-        fonksiyon hesap(c) {
-            değişken xc = tensör(x.cihaza(c), türev_izle: doğru)
-            değişken k = çapraz_entropi(rms_normu(xc, yok) @ w.cihaza(c), [0, 1, 2, 3])
-            geri_yayılım(k)
-            sonuç [k.değer, xc.gradyan.değer]
+TR_ctx_test "15.40 farklı cihazlardaki tensörlerle işlem hata" {
+    TR_kw_if TR_fn_devices().TR_mem_contains("gpu") {
+        TR_kw_var a = TR_fn_tensor([1.0])
+        TR_kw_var b = a.TR_mem_to_device("gpu")
+        TR_fn_assert(hata_metni(() => a + b).TR_mem_contains("tensörler farklı cihazlarda (cpu ve gpu); önce .cihaza(...)"))
+        TR_fn_assert(hata_metni(() => TR_fn_zeros([1, 1]) @ b.TR_mem_reshape([1, 1])).TR_mem_contains("farklı cihazlarda"))
+    }
+}
+
+TR_ctx_test "15.41 GPU'da hesap: CPU ile aynı sonuç, belirlenimci, GPU belleği sınırı" {
+    TR_kw_if TR_fn_devices().TR_mem_contains("gpu") {
+        TR_kw_var x = TR_fn_randn([4, 6], TR_arg_seed: 3)
+        TR_kw_var w = TR_fn_randn([6, 5], TR_arg_seed: 4)
+        TR_kw_func hesap(c) {
+            TR_kw_var xc = TR_fn_tensor(x.TR_mem_to_device(c), TR_arg_requires_grad: TR_kw_true)
+            TR_kw_var k = TR_fn_cross_entropy(TR_fn_rms_norm(xc, TR_kw_none) @ w.TR_mem_to_device(c), [0, 1, 2, 3])
+            TR_fn_backward(k)
+            TR_kw_return [k.TR_mem_tolist, xc.TR_mem_grad.TR_mem_tolist]
         }
-        değişken c = hesap("cpu")
-        değişken g1 = hesap("gpu")
-        değişken g2 = hesap("gpu")
-        doğrula(mutlak(c[0] - g1[0]) < 0.0001)
-        eşit_mi(g1, g2)
-        varsayılan_cihaz("gpu")
-        değişken m = hata_metni(() => sıfırlar([200000, 1]) + sıfırlar([200000]))
-        varsayılan_cihaz("cpu")
-        doğrula(m.içerir("bellek ister"))
+        TR_kw_var c = hesap("cpu")
+        TR_kw_var g1 = hesap("gpu")
+        TR_kw_var g2 = hesap("gpu")
+        TR_fn_assert(TR_fn_abs(c[0] - g1[0]) < 0.0001)
+        TR_fn_assert_equal(g1, g2)
+        TR_fn_default_device("gpu")
+        TR_kw_var m = hata_metni(() => TR_fn_zeros([200000, 1]) + TR_fn_zeros([200000]))
+        TR_fn_default_device("cpu")
+        TR_fn_assert(m.TR_mem_contains("bellek ister"))
     }
 }
 
-test "15.49 yayınlama: sağdan hizalanır, uymayan eksen hatadır" {
-    değişken t = tensör([1.0, 2.0, 3.0, 4.0, 5.0])
-    eşit_mi([2, 5], (t + tensör([[1.0], [2.0]])).şekil)
-    eşit_mi([2, 5], (tensör([[1.0], [2.0]]) * t).şekil)
-    değişken m = hata_metni(() => t + tensör([1.0, 2.0]))
-    doğrula(m.içerir("yayınlanamaz") ve m.içerir("5 ≠ 2"), m)
+TR_ctx_test "15.49 yayınlama: sağdan hizalanır, uymayan eksen hatadır" {
+    TR_kw_var t = TR_fn_tensor([1.0, 2.0, 3.0, 4.0, 5.0])
+    TR_fn_assert_equal([2, 5], (t + TR_fn_tensor([[1.0], [2.0]])).TR_mem_shape)
+    TR_fn_assert_equal([2, 5], (TR_fn_tensor([[1.0], [2.0]]) * t).TR_mem_shape)
+    TR_kw_var m = hata_metni(() => t + TR_fn_tensor([1.0, 2.0]))
+    TR_fn_assert(m.TR_mem_contains("yayınlanamaz") TR_kw_and m.TR_mem_contains("5 ≠ 2"), m)
 }
 
-test "15.49 tür yükseltme: aynı tür korunur, farklı türler float32, sayı türü korur, maske float32" {
-    değişken a = tensör([1.0, 2.0]).türe("bf16")
-    değişken b = tensör([1.0, 2.0]).türe("fp16")
-    eşit_mi("bf16", (a + a).tür)
-    eşit_mi("float32", (a + b).tür)
-    eşit_mi("float32", (a + tensör([1.0, 2.0])).tür)
-    eşit_mi("bf16", (a * 2.5).tür)
-    eşit_mi("bf16", (2 - a).tür)
-    eşit_mi("float32", (a > 1).tür)
-    eşit_mi([0.0, 1.0], (tensör([1.0, 2.0]) > 1).değer)
+TR_ctx_test "15.49 tür yükseltme: aynı tür korunur, farklı türler float32, sayı türü korur, maske float32" {
+    TR_kw_var a = TR_fn_tensor([1.0, 2.0]).TR_mem_to_dtype("bf16")
+    TR_kw_var b = TR_fn_tensor([1.0, 2.0]).TR_mem_to_dtype("fp16")
+    TR_fn_assert_equal("bf16", (a + a).TR_mem_dtype)
+    TR_fn_assert_equal("float32", (a + b).TR_mem_dtype)
+    TR_fn_assert_equal("float32", (a + TR_fn_tensor([1.0, 2.0])).TR_mem_dtype)
+    TR_fn_assert_equal("bf16", (a * 2.5).TR_mem_dtype)
+    TR_fn_assert_equal("bf16", (2 - a).TR_mem_dtype)
+    TR_fn_assert_equal("float32", (a > 1).TR_mem_dtype)
+    TR_fn_assert_equal([0.0, 1.0], (TR_fn_tensor([1.0, 2.0]) > 1).TR_mem_tolist)
 }
 
-test "15.49 tensör indeksi hata verir, dilim kırpar, .dilim hata verir" {
-    değişken t = tensör([1.0, 2.0, 3.0, 4.0, 5.0])
-    eşit_mi(5.0, t[-1].değer)
-    doğrula(hata_metni(() => t[5]).içerir("sınır dışı"))
-    doğrula(hata_metni(() => t[-6]).içerir("sınır dışı"))
-    doğrula(hata_metni(() => t[1.5]).içerir("Tam"))
-    eşit_mi([2.0, 3.0, 4.0, 5.0], t[1..10].değer)
-    eşit_mi([0], t[10..20].şekil)
-    eşit_mi([0], t[3..1].şekil)
-    doğrula(hata_metni(() => t.dilim(0, 1, 10)).içerir("geçersiz"))
+TR_ctx_test "15.49 tensör indeksi hata verir, dilim kırpar, .dilim hata verir" {
+    TR_kw_var t = TR_fn_tensor([1.0, 2.0, 3.0, 4.0, 5.0])
+    TR_fn_assert_equal(5.0, t[-1].TR_mem_tolist)
+    TR_fn_assert(hata_metni(() => t[5]).TR_mem_contains("sınır dışı"))
+    TR_fn_assert(hata_metni(() => t[-6]).TR_mem_contains("sınır dışı"))
+    TR_fn_assert(hata_metni(() => t[1.5]).TR_mem_contains("Tam"))
+    TR_fn_assert_equal([2.0, 3.0, 4.0, 5.0], t[1..10].TR_mem_tolist)
+    TR_fn_assert_equal([0], t[10..20].TR_mem_shape)
+    TR_fn_assert_equal([0], t[3..1].TR_mem_shape)
+    TR_fn_assert(hata_metni(() => t.TR_mem_slice(0, 1, 10)).TR_mem_contains("geçersiz"))
 }
 
-test "15.49 sayı olmayan işlenen tensörle işleme girmez" {
-    değişken t = tensör([1.0, 2.0])
-    doğrula(hata_metni(() => t + "a").içerir("Metin"))
-    doğrula(hata_metni(() => t + doğru).içerir("Mantık"))
+TR_ctx_test "15.49 sayı olmayan işlenen tensörle işleme girmez" {
+    TR_kw_var t = TR_fn_tensor([1.0, 2.0])
+    TR_fn_assert(hata_metni(() => t + "a").TR_mem_contains("Metin"))
+    TR_fn_assert(hata_metni(() => t + TR_kw_true).TR_mem_contains("Mantık"))
 }
 
-test "15.47 tensör_yükle safetensors dosyasını da okur; biçim içerikten anlaşılır" {
+TR_ctx_test "15.47 tensör_yükle safetensors dosyasını da okur; biçim içerikten anlaşılır" {
     // small.safetensors: safetensors.torch.save_file ile yazılmış (F32, BF16, F16, boş tensör, __metadata__).
-    değişken y = tensör_yükle("data/small.safetensors")
-    eşit_mi(["e", "w", "b", "h"], y.anahtarlar())
-    eşit_mi([[1.0, 2.0], [3.0, 4.0]], y["w"].değer)
-    eşit_mi("bf16", y["b"].tür)
-    eşit_mi([1.5, -2.0], y["b"].değer)
-    eşit_mi("fp16", y["h"].tür)
-    eşit_mi(3.0, y["h"].değer)
-    eşit_mi([0, 2], y["e"].şekil)
+    TR_kw_var y = TR_fn_load_tensors("data/small.safetensors")
+    TR_fn_assert_equal(["e", "w", "b", "h"], y.TR_mem_keys())
+    TR_fn_assert_equal([[1.0, 2.0], [3.0, 4.0]], y["w"].TR_mem_tolist)
+    TR_fn_assert_equal("bf16", y["b"].TR_mem_dtype)
+    TR_fn_assert_equal([1.5, -2.0], y["b"].TR_mem_tolist)
+    TR_fn_assert_equal("fp16", y["h"].TR_mem_dtype)
+    TR_fn_assert_equal(3.0, y["h"].TR_mem_tolist)
+    TR_fn_assert_equal([0, 2], y["e"].TR_mem_shape)
 }
 
-test "15.45 tekrar_oynat: sonuç doğrudan çağrıyla aynı, yalnızca türevsiz içinde" {
-    fonksiyon f(x, s) { sonuç x * s + 1.0 }
-    değişken oy = tekrar_oynat(f)
-    türevsiz {
-        döngü i içinde 0..4 {
-            değişken x = tensör([i * 1.0, 2.0])
-            eşit_mi(f(x, 3.0).değer, oy(x, 3.0).değer)
+TR_ctx_test "15.45 tekrar_oynat: sonuç doğrudan çağrıyla aynı, yalnızca türevsiz içinde" {
+    TR_kw_func f(x, s) { TR_kw_return x * s + 1.0 }
+    TR_kw_var oy = TR_fn_replay(f)
+    TR_fn_no_grad {
+        TR_kw_for i TR_kw_in 0..4 {
+            TR_kw_var x = TR_fn_tensor([i * 1.0, 2.0])
+            TR_fn_assert_equal(f(x, 3.0).TR_mem_tolist, oy(x, 3.0).TR_mem_tolist)
         }
         // Liste döndüren fonksiyon liste verir.
-        eşit_mi(2, tekrar_oynat((a) => [a + 1.0, a * 2.0])(tensör([1.0])).uzunluk)
+        TR_fn_assert_equal(2, TR_fn_replay((a) => [a + 1.0, a * 2.0])(TR_fn_tensor([1.0])).TR_mem_length)
     }
-    doğrula(hata_metni(() => oy(tensör([1.0]), 2.0)).içerir("türevsiz"))
-    doğrula(hata_metni(() => tekrar_oynat(3)).içerir("fonksiyon"))
+    TR_fn_assert(hata_metni(() => oy(TR_fn_tensor([1.0]), 2.0)).TR_mem_contains("türevsiz"))
+    TR_fn_assert(hata_metni(() => TR_fn_replay(3)).TR_mem_contains("fonksiyon"))
 }
 
-test "15.8 yerine_yaz: kaynağı eksendeki dilime başlangıçtan yerinde yazar" {
-    değişken t = sıfırlar([2, 4])
-    yerine_yaz(t, birler([2, 2]), eksen: 1, başlangıç: 1)
-    eşit_mi([[0.0, 1.0, 1.0, 0.0], [0.0, 1.0, 1.0, 0.0]], t.değer)
-    yerine_yaz(t, birler([2, 1]) * 5, eksen: 1, başlangıç: tensör(3.0))
-    eşit_mi([[0.0, 1.0, 1.0, 5.0], [0.0, 1.0, 1.0, 5.0]], t.değer)
-    doğrula(hata_metni(() => yerine_yaz(t, birler([2, 2]), eksen: 1, başlangıç: 3)).içerir("sığmıyor"))
+TR_ctx_test "15.8 yerine_yaz: kaynağı eksendeki dilime başlangıçtan yerinde yazar" {
+    TR_kw_var t = TR_fn_zeros([2, 4])
+    TR_fn_write_slice(t, TR_fn_ones([2, 2]), TR_arg_dim: 1, TR_arg_start: 1)
+    TR_fn_assert_equal([[0.0, 1.0, 1.0, 0.0], [0.0, 1.0, 1.0, 0.0]], t.TR_mem_tolist)
+    TR_fn_write_slice(t, TR_fn_ones([2, 1]) * 5, TR_arg_dim: 1, TR_arg_start: TR_fn_tensor(3.0))
+    TR_fn_assert_equal([[0.0, 1.0, 1.0, 5.0], [0.0, 1.0, 1.0, 5.0]], t.TR_mem_tolist)
+    TR_fn_assert(hata_metni(() => TR_fn_write_slice(t, TR_fn_ones([2, 2]), TR_arg_dim: 1, TR_arg_start: 3)).TR_mem_contains("sığmıyor"))
 }
 
-test "15.50 özel değerler: −0, sonsuz ve NaN tablodaki gibi" {
-    değişken sn = 1e308 * 10
-    değişken nan_mı = (x) => x != x
-    değişken ez = tensör([0.0]) * -1 // [−0]
-    değişken eksi = (t) => (1 / t).değer[0] < 0 // sıfırın işareti: 1 / −0 = −sonsuz
+TR_ctx_test "15.50 özel değerler: −0, sonsuz ve NaN tablodaki gibi" {
+    TR_kw_var sn = 1e308 * 10
+    TR_kw_var nan_mı = (x) => x != x
+    TR_kw_var ez = TR_fn_tensor([0.0]) * -1 // [−0]
+    TR_kw_var eksi = (t) => (1 / t).TR_mem_tolist[0] < 0 // sıfırın işareti: 1 / −0 = −sonsuz
     // Tek işlevler sıfırın işaretini korur; üs tek tam sayıda da.
-    doğrula(eksi(sin(ez)) ve eksi(tanh(ez)) ve eksi(expm1(ez)) ve eksi(ez ** 3))
+    TR_fn_assert(eksi(TR_fn_sin(ez)) TR_kw_and eksi(TR_fn_tanh(ez)) TR_kw_and eksi(TR_fn_expm1(ez)) TR_kw_and eksi(ez ** 3))
     // Yalnızca −0'lardan oluşan toplam +0'dır (PyTorch ve NumPy gibi).
-    doğrula((1 / toplam(tensör([0.0, 0.0]) * -1)).değer > 0)
+    TR_fn_assert((1 / TR_fn_sum(TR_fn_tensor([0.0, 0.0]) * -1)).TR_mem_tolist > 0)
     // Tensör listesinin toplamı ve ortalaması da (Python sum gibi): tek ve iki elemanlı listede +0.
-    değişken eksi_sıfır = tensör([0.0]) * -1
-    doğrula((1 / toplam([eksi_sıfır, eksi_sıfır])).değer[0] > 0)
-    doğrula((1 / toplam([eksi_sıfır])).değer[0] > 0)
-    doğrula((1 / ortalama([eksi_sıfır, eksi_sıfır])).değer[0] > 0)
+    TR_kw_var eksi_sıfır = TR_fn_tensor([0.0]) * -1
+    TR_fn_assert((1 / TR_fn_sum([eksi_sıfır, eksi_sıfır])).TR_mem_tolist[0] > 0)
+    TR_fn_assert((1 / TR_fn_sum([eksi_sıfır])).TR_mem_tolist[0] > 0)
+    TR_fn_assert((1 / TR_fn_mean([eksi_sıfır, eksi_sıfır])).TR_mem_tolist[0] > 0)
     // Üs C99 Ek F'deki gibidir: (±1)^sonsuz = 1, (−sonsuz)^0,5 = sonsuz, (−0)^−1 = −sonsuz.
-    eşit_mi([1.0, 1.0, 0.0], (tensör([1.0, -1.0, 0.5]) ** sn).değer)
-    doğrula((tensör([-sn]) ** 0.5).değer[0] > 1e308 ve (ez ** -1).değer[0] < -1e308)
+    TR_fn_assert_equal([1.0, 1.0, 0.0], (TR_fn_tensor([1.0, -1.0, 0.5]) ** sn).TR_mem_tolist)
+    TR_fn_assert((TR_fn_tensor([-sn]) ** 0.5).TR_mem_tolist[0] > 1e308 TR_kw_and (ez ** -1).TR_mem_tolist[0] < -1e308)
     // Doyma: tanh(±sonsuz) = ±1; limit: silu ve gelu −sonsuzda 0.
-    eşit_mi([1.0, -1.0, 1.0], tanh(tensör([sn, -sn, 10.0])).değer)
-    eşit_mi([0.0, 0.0, 0.0], [silu(tensör([-sn])).değer[0], gelu(tensör([-sn])).değer[0], gelu(tensör([-sn]), yaklaşık: yanlış).değer[0]])
+    TR_fn_assert_equal([1.0, -1.0, 1.0], TR_fn_tanh(TR_fn_tensor([sn, -sn, 10.0])).TR_mem_tolist)
+    TR_fn_assert_equal([0.0, 0.0, 0.0], [TR_fn_silu(TR_fn_tensor([-sn])).TR_mem_tolist[0], TR_fn_gelu(TR_fn_tensor([-sn])).TR_mem_tolist[0], TR_fn_gelu(TR_fn_tensor([-sn]), TR_arg_approximate: TR_kw_false).TR_mem_tolist[0]])
     // işaret(NaN) NaN, işaret(−0) −0.
-    doğrula(nan_mı(işaret(tensör([0.0]) / 0).değer[0]) ve eksi(işaret(ez)))
+    TR_fn_assert(nan_mı(TR_fn_sign(TR_fn_tensor([0.0]) / 0).TR_mem_tolist[0]) TR_kw_and eksi(TR_fn_sign(ez)))
     // atan2'nin türevi bir girdi sonsuzken 0'dır (limit).
-    değişken a = tensör([1.0], türev_izle: doğru)
-    geri_yayılım(toplam(atan2(a, tensör([sn]))))
-    eşit_mi([0.0], a.gradyan.değer)
+    TR_kw_var a = TR_fn_tensor([1.0], TR_arg_requires_grad: TR_kw_true)
+    TR_fn_backward(TR_fn_sum(TR_fn_atan2(a, TR_fn_tensor([sn]))))
+    TR_fn_assert_equal([0.0], a.TR_mem_grad.TR_mem_tolist)
 }

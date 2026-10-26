@@ -1,269 +1,270 @@
+//! tr kodlu 3 dil=tr
 // Matematik genişletmesi: sayı matematiği (13.7), tensör karşılaştırmaları (15.6) ve
 // genişletilmiş eleman bazlı fonksiyonlar, sınırlama, koşullu seçim, birikim ve sıralama
 // (15.11–15.15, 15.20–15.22).
 
-aktar "yardimci_test_araclari"
+TR_kw_import "yardimci_test_araclari"
 
 // yakın_mı: iki sayının farkı tolerans içinde mi?
-fonksiyon yakın_mı(a, b, tol = 0.000001) {
-    sonuç mutlak(a - b) <= tol * (1 + mutlak(b))
+TR_kw_func yakın_mı(a, b, tol = 0.000001) {
+    TR_kw_return TR_fn_abs(a - b) <= tol * (1 + TR_fn_abs(b))
 }
 
-test "13.7 taban, tavan, işaret: Tam'da Tam, Ondalık'ta Ondalık; pi sabittir" {
-    eşit_mi(3.0, taban(3.7))
-    eşit_mi(-4.0, taban(-3.2))
-    eşit_mi(-2, taban(-2))
-    eşit_mi(Tam, tip(tavan(7)))
-    eşit_mi(4.0, tavan(3.2))
-    eşit_mi(-1, işaret(-4))
-    eşit_mi(1.0, işaret(2.5))
-    eşit_mi(0, işaret(0))
-    eşit_mi(10, sınırla(15, en_fazla: 10))
-    eşit_mi(Tam, tip(sınırla(-3, en_az: 0)))
-    eşit_mi(5.0, sınırla(5, en_az: 0.5))
-    eşit_mi(Ondalık, tip(pi))
-    doğrula(pi > 3.14159 && pi < 3.1416)
-    doğrula(yakın_mı(sin(pi / 2), 1.0))
-    doğrula(hata_metni(() => pi()).içerir("çağrılamaz"))
-    doğrula(hata_metni(() => taban([1.5])).içerir("taban listede çalışmaz"))
-    doğrula(hata_metni(() => taban("a")).içerir("taban() 1. argüman olarak"))
+TR_ctx_test "13.7 taban, tavan, işaret: Tam'da Tam, Ondalık'ta Ondalık; pi sabittir" {
+    TR_fn_assert_equal(3.0, TR_fn_floor(3.7))
+    TR_fn_assert_equal(-4.0, TR_fn_floor(-3.2))
+    TR_fn_assert_equal(-2, TR_fn_floor(-2))
+    TR_fn_assert_equal(TR_type_Int, TR_fn_type(TR_fn_ceil(7)))
+    TR_fn_assert_equal(4.0, TR_fn_ceil(3.2))
+    TR_fn_assert_equal(-1, TR_fn_sign(-4))
+    TR_fn_assert_equal(1.0, TR_fn_sign(2.5))
+    TR_fn_assert_equal(0, TR_fn_sign(0))
+    TR_fn_assert_equal(10, TR_fn_clamp(15, TR_arg_max: 10))
+    TR_fn_assert_equal(TR_type_Int, TR_fn_type(TR_fn_clamp(-3, TR_arg_min: 0)))
+    TR_fn_assert_equal(5.0, TR_fn_clamp(5, TR_arg_min: 0.5))
+    TR_fn_assert_equal(TR_type_Float, TR_fn_type(TR_const_pi))
+    TR_fn_assert(TR_const_pi > 3.14159 && TR_const_pi < 3.1416)
+    TR_fn_assert(yakın_mı(TR_fn_sin(TR_const_pi / 2), 1.0))
+    TR_fn_assert(hata_metni(() => TR_const_pi()).TR_mem_contains("çağrılamaz"))
+    TR_fn_assert(hata_metni(() => TR_fn_floor([1.5])).TR_mem_contains("taban listede çalışmaz"))
+    TR_fn_assert(hata_metni(() => TR_fn_floor("a")).TR_mem_contains("taban() 1. argüman olarak"))
 }
 
-test "15.6 tensör karşılaştırmaları yayınlamalıdır; NaN 0 verir; == tamamını karşılaştırır" {
-    değişken a = tensör([1, 2, 3])
-    eşit_mi([0.0, 1.0, 1.0], (a > 1).değer)
-    eşit_mi([1.0, 0.0, 0.0], (2 > a).değer)
-    eşit_mi([[0.0, 1.0, 1.0], [1.0, 1.0, 1.0]], (a >= tensör([[2], [1]])).değer)
-    eşit_mi([1.0, 1.0, 0.0], (a <= [3, 2, 1]).değer)
-    eşit_mi([0.0], (tensör([0.0]) / 0 < 1).değer)
-    doğrula(a == tensör([1, 2, 3]))
-    doğrula(a != tensör([1, 2, 4]))
-    değişken x = tensör([-1.0, 2.0], türev_izle: doğru)
-    doğrula(hata_metni(() => geri_yayılım(toplam(x > 0))).içerir("türev izlenen hiçbir tensöre bağlı değil"))
-    doğrula(hata_metni(() => a < tensör([1, 2])).içerir("şekilleri tensör karşılaştırması (<) için yayınlanamaz"))
+TR_ctx_test "15.6 tensör karşılaştırmaları yayınlamalıdır; NaN 0 verir; == tamamını karşılaştırır" {
+    TR_kw_var a = TR_fn_tensor([1, 2, 3])
+    TR_fn_assert_equal([0.0, 1.0, 1.0], (a > 1).TR_mem_tolist)
+    TR_fn_assert_equal([1.0, 0.0, 0.0], (2 > a).TR_mem_tolist)
+    TR_fn_assert_equal([[0.0, 1.0, 1.0], [1.0, 1.0, 1.0]], (a >= TR_fn_tensor([[2], [1]])).TR_mem_tolist)
+    TR_fn_assert_equal([1.0, 1.0, 0.0], (a <= [3, 2, 1]).TR_mem_tolist)
+    TR_fn_assert_equal([0.0], (TR_fn_tensor([0.0]) / 0 < 1).TR_mem_tolist)
+    TR_fn_assert(a == TR_fn_tensor([1, 2, 3]))
+    TR_fn_assert(a != TR_fn_tensor([1, 2, 4]))
+    TR_kw_var x = TR_fn_tensor([-1.0, 2.0], TR_arg_requires_grad: TR_kw_true)
+    TR_fn_assert(hata_metni(() => TR_fn_backward(TR_fn_sum(x > 0))).TR_mem_contains("türev izlenen hiçbir tensöre bağlı değil"))
+    TR_fn_assert(hata_metni(() => a < TR_fn_tensor([1, 2])).TR_mem_contains("şekilleri tensör karşılaştırması (<) için yayınlanamaz"))
 }
 
-test "15.11 genişletilmiş eleman bazlı fonksiyonlar: sayıda Ondalık, tensörde türevli; listede değil" {
-    doğrula(yakın_mı(silu(1.0), 1.0 / (1 + exp(-1.0))))
-    doğrula(yakın_mı(tan(0.5), sin(0.5) / cos(0.5)))
-    doğrula(yakın_mı(asin(1.0), pi / 2))
-    doğrula(yakın_mı(acos(-1.0), pi))
-    doğrula(yakın_mı(atan(1.0), pi / 4))
-    doğrula(yakın_mı(sinh(1.0), (exp(1.0) - exp(-1.0)) / 2))
-    doğrula(yakın_mı(cosh(1.0), (exp(1.0) + exp(-1.0)) / 2))
-    eşit_mi(3.0, log2(8))
-    eşit_mi(3.0, log10(1000))
+TR_ctx_test "15.11 genişletilmiş eleman bazlı fonksiyonlar: sayıda Ondalık, tensörde türevli; listede değil" {
+    TR_fn_assert(yakın_mı(TR_fn_silu(1.0), 1.0 / (1 + TR_fn_exp(-1.0))))
+    TR_fn_assert(yakın_mı(TR_fn_tan(0.5), TR_fn_sin(0.5) / TR_fn_cos(0.5)))
+    TR_fn_assert(yakın_mı(TR_fn_asin(1.0), TR_const_pi / 2))
+    TR_fn_assert(yakın_mı(TR_fn_acos(-1.0), TR_const_pi))
+    TR_fn_assert(yakın_mı(TR_fn_atan(1.0), TR_const_pi / 4))
+    TR_fn_assert(yakın_mı(TR_fn_sinh(1.0), (TR_fn_exp(1.0) - TR_fn_exp(-1.0)) / 2))
+    TR_fn_assert(yakın_mı(TR_fn_cosh(1.0), (TR_fn_exp(1.0) + TR_fn_exp(-1.0)) / 2))
+    TR_fn_assert_equal(3.0, TR_fn_log2(8))
+    TR_fn_assert_equal(3.0, TR_fn_log10(1000))
     // Küçük x'te kararlılık: log(1 + x) ve exp(x) - 1 burada 0 verirdi.
-    doğrula(yakın_mı(log1p(1e-17), 1e-17))
-    doğrula(yakın_mı(expm1(1e-17), 1e-17))
-    değişken t = tensör([1e-10, 0.5])
-    doğrula(yakın_mı(log1p(t).değer[0], 1e-10))
-    doğrula(yakın_mı(expm1(t).değer[0], 1e-10))
-    eşit_mi(0.0, log(1 + t).değer[0])
+    TR_fn_assert(yakın_mı(TR_fn_log1p(1e-17), 1e-17))
+    TR_fn_assert(yakın_mı(TR_fn_expm1(1e-17), 1e-17))
+    TR_kw_var t = TR_fn_tensor([1e-10, 0.5])
+    TR_fn_assert(yakın_mı(TR_fn_log1p(t).TR_mem_tolist[0], 1e-10))
+    TR_fn_assert(yakın_mı(TR_fn_expm1(t).TR_mem_tolist[0], 1e-10))
+    TR_fn_assert_equal(0.0, TR_fn_log(1 + t).TR_mem_tolist[0])
     // Tanım dışı ve kenar değerler.
-    doğrula(asin(tensör([2.0])).değer[0] != asin(tensör([2.0])).değer[0])
-    eşit_mi(-1, işaret(log1p(tensör([-1.0])).değer[0]))
-    eşit_mi(0.0, silu(tensör([-1.0]) / 0).değer[0])
-    eşit_mi(Tensör, tip(tan(tensör([0.5]))))
-    doğrula(hata_metni(() => silu([1, 2])).içerir("silu listede çalışmaz, yalnızca tensörde ve sayıda"))
-    doğrula(hata_metni(() => log10([1])).içerir("tensör(...) ile çevirin"))
+    TR_fn_assert(TR_fn_asin(TR_fn_tensor([2.0])).TR_mem_tolist[0] != TR_fn_asin(TR_fn_tensor([2.0])).TR_mem_tolist[0])
+    TR_fn_assert_equal(-1, TR_fn_sign(TR_fn_log1p(TR_fn_tensor([-1.0])).TR_mem_tolist[0]))
+    TR_fn_assert_equal(0.0, TR_fn_silu(TR_fn_tensor([-1.0]) / 0).TR_mem_tolist[0])
+    TR_fn_assert_equal(TR_type_Tensor, TR_fn_type(TR_fn_tan(TR_fn_tensor([0.5]))))
+    TR_fn_assert(hata_metni(() => TR_fn_silu([1, 2])).TR_mem_contains("silu listede çalışmaz, yalnızca tensörde ve sayıda"))
+    TR_fn_assert(hata_metni(() => TR_fn_log10([1])).TR_mem_contains("tensör(...) ile çevirin"))
 }
 
-test "15.11 genişletilmiş fonksiyonların türevleri sayısal türevle uyuşur" {
-    değişken x = tensör([[-1.3, -0.4, 0.2], [0.7, 1.1, 1.9]], türev_izle: doğru)
-    değişken p = tensör([[0.3, 0.9, 1.7], [2.5, 4.0, 6.5]], türev_izle: doğru)
-    değişken a = tensör([[-0.8, -0.3, 0.1], [0.4, 0.6, 0.85]], türev_izle: doğru)
-    doğrula(türev_denetle(silu, [x]))
-    doğrula(türev_denetle(tan, [a]))
-    doğrula(türev_denetle(asin, [a]))
-    doğrula(türev_denetle(acos, [a]))
-    doğrula(türev_denetle(atan, [x]))
-    doğrula(türev_denetle(sinh, [x]))
-    doğrula(türev_denetle(cosh, [x]))
-    doğrula(türev_denetle(log1p, [p]))
-    doğrula(türev_denetle(log2, [p]))
-    doğrula(türev_denetle(log10, [p]))
-    doğrula(türev_denetle(expm1, [x]))
+TR_ctx_test "15.11 genişletilmiş fonksiyonların türevleri sayısal türevle uyuşur" {
+    TR_kw_var x = TR_fn_tensor([[-1.3, -0.4, 0.2], [0.7, 1.1, 1.9]], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var p = TR_fn_tensor([[0.3, 0.9, 1.7], [2.5, 4.0, 6.5]], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var a = TR_fn_tensor([[-0.8, -0.3, 0.1], [0.4, 0.6, 0.85]], TR_arg_requires_grad: TR_kw_true)
+    TR_fn_assert(TR_fn_grad_check(TR_fn_silu, [x]))
+    TR_fn_assert(TR_fn_grad_check(TR_fn_tan, [a]))
+    TR_fn_assert(TR_fn_grad_check(TR_fn_asin, [a]))
+    TR_fn_assert(TR_fn_grad_check(TR_fn_acos, [a]))
+    TR_fn_assert(TR_fn_grad_check(TR_fn_atan, [x]))
+    TR_fn_assert(TR_fn_grad_check(TR_fn_sinh, [x]))
+    TR_fn_assert(TR_fn_grad_check(TR_fn_cosh, [x]))
+    TR_fn_assert(TR_fn_grad_check(TR_fn_log1p, [p]))
+    TR_fn_assert(TR_fn_grad_check(TR_fn_log2, [p]))
+    TR_fn_assert(TR_fn_grad_check(TR_fn_log10, [p]))
+    TR_fn_assert(TR_fn_grad_check(TR_fn_expm1, [x]))
 }
 
-test "15.12 taban, tavan, işaret tensörde: tam sayılı tensör tam sayılı kalır, türev 0" {
-    eşit_mi([-2.0, 2.0], taban(tensör([-1.5, 2.5])).değer)
-    eşit_mi([-1.0, 3.0], tavan(tensör([-1.5, 2.5])).değer)
-    eşit_mi([-1.0, 0.0, 1.0], işaret(tensör([-2.0, 0.0, 3.0])).değer)
-    değişken i = argmax(tensör([[1, 5], [7, 2]]))
-    eşit_mi(Tam, tip(taban(i).değer[0]))
-    değişken x = tensör([-1.5, 0.0, 2.5], türev_izle: doğru)
-    geri_yayılım(toplam(taban(x) + tavan(x) * 2 + işaret(x) * 3))
-    eşit_mi([0.0, 0.0, 0.0], x.gradyan.değer)
+TR_ctx_test "15.12 taban, tavan, işaret tensörde: tam sayılı tensör tam sayılı kalır, türev 0" {
+    TR_fn_assert_equal([-2.0, 2.0], TR_fn_floor(TR_fn_tensor([-1.5, 2.5])).TR_mem_tolist)
+    TR_fn_assert_equal([-1.0, 3.0], TR_fn_ceil(TR_fn_tensor([-1.5, 2.5])).TR_mem_tolist)
+    TR_fn_assert_equal([-1.0, 0.0, 1.0], TR_fn_sign(TR_fn_tensor([-2.0, 0.0, 3.0])).TR_mem_tolist)
+    TR_kw_var i = TR_fn_argmax(TR_fn_tensor([[1, 5], [7, 2]]))
+    TR_fn_assert_equal(TR_type_Int, TR_fn_type(TR_fn_floor(i).TR_mem_tolist[0]))
+    TR_kw_var x = TR_fn_tensor([-1.5, 0.0, 2.5], TR_arg_requires_grad: TR_kw_true)
+    TR_fn_backward(TR_fn_sum(TR_fn_floor(x) + TR_fn_ceil(x) * 2 + TR_fn_sign(x) * 3))
+    TR_fn_assert_equal([0.0, 0.0, 0.0], x.TR_mem_grad.TR_mem_tolist)
 }
 
-test "15.16 mutlak tensörde: eleman bazlı, türevi işaret(x) (0'da 0), 16 bit ve tam sayılı tür korunur" {
-    eşit_mi([2.0, 0.0, 3.5], mutlak(tensör([-2.0, 0.0, 3.5])).değer)
+TR_ctx_test "15.16 mutlak tensörde: eleman bazlı, türevi işaret(x) (0'da 0), 16 bit ve tam sayılı tür korunur" {
+    TR_fn_assert_equal([2.0, 0.0, 3.5], TR_fn_abs(TR_fn_tensor([-2.0, 0.0, 3.5])).TR_mem_tolist)
     // −0'ın mutlağı +0'dır: 1 / +0 pozitif sonsuz verir.
-    değişken eksi_sıfır = tensör([0.0]) * -1
-    doğrula((1 / eksi_sıfır).değer[0] < 0)
-    doğrula((1 / mutlak(eksi_sıfır)).değer[0] > 0)
-    değişken n = mutlak(tensör([0.0]) / 0).değer[0]
-    doğrula(n != n, "NaN korunur")
-    doğrula((mutlak(tensör([-1.0]) / 0)).değer[0] > 1e308, "sonsuzun mutlağı sonsuz")
+    TR_kw_var eksi_sıfır = TR_fn_tensor([0.0]) * -1
+    TR_fn_assert((1 / eksi_sıfır).TR_mem_tolist[0] < 0)
+    TR_fn_assert((1 / TR_fn_abs(eksi_sıfır)).TR_mem_tolist[0] > 0)
+    TR_kw_var n = TR_fn_abs(TR_fn_tensor([0.0]) / 0).TR_mem_tolist[0]
+    TR_fn_assert(n != n, "NaN korunur")
+    TR_fn_assert((TR_fn_abs(TR_fn_tensor([-1.0]) / 0)).TR_mem_tolist[0] > 1e308, "sonsuzun mutlağı sonsuz")
     // Türev işaret(x): pozitifte 1, negatifte -1, 0'da 0.
-    değişken x = tensör([-1.5, 0.0, 2.5], türev_izle: doğru)
-    geri_yayılım(toplam(mutlak(x) * tensör([1.0, 2.0, 3.0])))
-    eşit_mi([-1.0, 0.0, 3.0], x.gradyan.değer)
-    eşit_mi(doğru, türev_denetle((t) => mutlak(t), [tensör([-0.7, 0.4, 1.3], türev_izle: doğru)]))
+    TR_kw_var x = TR_fn_tensor([-1.5, 0.0, 2.5], TR_arg_requires_grad: TR_kw_true)
+    TR_fn_backward(TR_fn_sum(TR_fn_abs(x) * TR_fn_tensor([1.0, 2.0, 3.0])))
+    TR_fn_assert_equal([-1.0, 0.0, 3.0], x.TR_mem_grad.TR_mem_tolist)
+    TR_fn_assert_equal(TR_kw_true, TR_fn_grad_check((t) => TR_fn_abs(t), [TR_fn_tensor([-0.7, 0.4, 1.3], TR_arg_requires_grad: TR_kw_true)]))
     // 16 bitlik tensör kendi türünde döner; tam sayılı işaretli tensör tam sayılı kalır.
-    değişken h = mutlak(tensör([-1.5, 2.0], tür: "bf16"))
-    eşit_mi("bf16", h.tür)
-    eşit_mi([1.5, 2.0], h.değer)
-    eşit_mi(Tam, tip(mutlak(argmax(tensör([1, 3]))).değer))
+    TR_kw_var h = TR_fn_abs(TR_fn_tensor([-1.5, 2.0], TR_arg_dtype: "bf16"))
+    TR_fn_assert_equal("bf16", h.TR_mem_dtype)
+    TR_fn_assert_equal([1.5, 2.0], h.TR_mem_tolist)
+    TR_fn_assert_equal(TR_type_Int, TR_fn_type(TR_fn_abs(TR_fn_argmax(TR_fn_tensor([1, 3]))).TR_mem_tolist))
     // Sayıda kural değişmez; listede çalışmaz.
-    eşit_mi(5, mutlak(-5))
-    eşit_mi(2.5, mutlak(-2.5))
-    doğrula(hata_metni(() => mutlak([-1, 2])).içerir("tensör("))
+    TR_fn_assert_equal(5, TR_fn_abs(-5))
+    TR_fn_assert_equal(2.5, TR_fn_abs(-2.5))
+    TR_fn_assert(hata_metni(() => TR_fn_abs([-1, 2])).TR_mem_contains("tensör("))
 }
 
-test "15.13 sınırla: aralık, tek sınır, NaN korunur, türev aralık içinde 1; hatalar" {
-    eşit_mi([0.0, 0.5, 1.0], sınırla(tensör([-2.0, 0.5, 3.0]), en_az: 0, en_fazla: 1).değer)
-    eşit_mi([0.0, 3.0], sınırla(tensör([-2.0, 3.0]), en_az: 0).değer)
-    eşit_mi([-2.0, 1.0], sınırla(tensör([-2.0, 3.0]), en_fazla: 1).değer)
-    değişken n = sınırla(tensör([0.0]) / 0, en_az: 0, en_fazla: 1).değer[0]
-    doğrula(n != n)
-    değişken x = tensör([-2.0, -1.0, 0.5, 1.0, 3.0], türev_izle: doğru)
-    geri_yayılım(toplam(sınırla(x, en_az: -1, en_fazla: 1)))
-    eşit_mi([0.0, 1.0, 1.0, 1.0, 0.0], x.gradyan.değer)
-    eşit_mi(Tam, tip(sınırla(argmax(tensör([1, 3])), en_fazla: 0).değer))
-    doğrula(hata_metni(() => sınırla(3)).içerir("en_az ya da en_fazla verilmelidir"))
-    doğrula(hata_metni(() => sınırla(3, en_az: 2, en_fazla: 1)).içerir("en_az (2) en_fazla'dan (1) büyük olamaz"))
-    doğrula(hata_metni(() => sınırla(3, min: 0)).içerir("Bunu mu demek istediniz: 'en_az'?"))
-    doğrula(hata_metni(() => sınırla(3, en_az: yok)).içerir("en_az bir sayı olmalıdır"))
-    doğrula(hata_metni(() => max(tensör([1, 2]), 0)).içerir("sınırla(x, en_az: 0)"))
+TR_ctx_test "15.13 sınırla: aralık, tek sınır, NaN korunur, türev aralık içinde 1; hatalar" {
+    TR_fn_assert_equal([0.0, 0.5, 1.0], TR_fn_clamp(TR_fn_tensor([-2.0, 0.5, 3.0]), TR_arg_min: 0, TR_arg_max: 1).TR_mem_tolist)
+    TR_fn_assert_equal([0.0, 3.0], TR_fn_clamp(TR_fn_tensor([-2.0, 3.0]), TR_arg_min: 0).TR_mem_tolist)
+    TR_fn_assert_equal([-2.0, 1.0], TR_fn_clamp(TR_fn_tensor([-2.0, 3.0]), TR_arg_max: 1).TR_mem_tolist)
+    TR_kw_var n = TR_fn_clamp(TR_fn_tensor([0.0]) / 0, TR_arg_min: 0, TR_arg_max: 1).TR_mem_tolist[0]
+    TR_fn_assert(n != n)
+    TR_kw_var x = TR_fn_tensor([-2.0, -1.0, 0.5, 1.0, 3.0], TR_arg_requires_grad: TR_kw_true)
+    TR_fn_backward(TR_fn_sum(TR_fn_clamp(x, TR_arg_min: -1, TR_arg_max: 1)))
+    TR_fn_assert_equal([0.0, 1.0, 1.0, 1.0, 0.0], x.TR_mem_grad.TR_mem_tolist)
+    TR_fn_assert_equal(TR_type_Int, TR_fn_type(TR_fn_clamp(TR_fn_argmax(TR_fn_tensor([1, 3])), TR_arg_max: 0).TR_mem_tolist))
+    TR_fn_assert(hata_metni(() => TR_fn_clamp(3)).TR_mem_contains("en_az ya da en_fazla verilmelidir"))
+    TR_fn_assert(hata_metni(() => TR_fn_clamp(3, TR_arg_min: 2, TR_arg_max: 1)).TR_mem_contains("en_az (2) en_fazla'dan (1) büyük olamaz"))
+    TR_fn_assert(hata_metni(() => TR_fn_clamp(3, min: 0)).TR_mem_contains("Bunu mu demek istediniz: 'en_az'?"))
+    TR_fn_assert(hata_metni(() => TR_fn_clamp(3, TR_arg_min: TR_kw_none)).TR_mem_contains("en_az bir sayı olmalıdır"))
+    TR_fn_assert(hata_metni(() => TR_fn_max(TR_fn_tensor([1, 2]), 0)).TR_mem_contains("sınırla(x, en_az: 0)"))
 }
 
-test "15.14 atan2: dört bölge, (0, 0), işaretli sıfır, yayınlama, türev" {
-    doğrula(yakın_mı(atan2(1, -1), 3 * pi / 4))
-    doğrula(yakın_mı(atan2(-1, -1), -3 * pi / 4))
-    doğrula(yakın_mı(atan2(-1, 1), -pi / 4))
-    eşit_mi(0.0, atan2(0, 0))
-    doğrula(yakın_mı(atan2(0.0, -1), pi))
-    doğrula(yakın_mı(atan2(-0.0, -1), -pi))
-    değişken y = tensör([[1.0], [-1.0]], türev_izle: doğru)
-    değişken x = tensör([1.0, -1.0, 0.0], türev_izle: doğru)
-    değişken a = atan2(y, x)
-    eşit_mi([2, 3], a.şekil)
-    doğrula(yakın_mı(a.değer[1][1], -3 * pi / 4, 0.000001))
-    doğrula(türev_denetle(atan2, [y, x]))
-    değişken z = tensör([0.0], türev_izle: doğru)
-    değişken w = tensör([0.0], türev_izle: doğru)
-    geri_yayılım(toplam(atan2(z, w)))
-    eşit_mi([0.0], z.gradyan.değer)
-    eşit_mi([0.0], w.gradyan.değer)
-    eşit_mi("bf16", atan2(tensör([1.0], tür: "bf16"), 1).tür)
-    doğrula(hata_metni(() => atan2(tensör([1, 2]), tensör([1, 2, 3]))).içerir("atan2 için yayınlanamaz"))
+TR_ctx_test "15.14 atan2: dört bölge, (0, 0), işaretli sıfır, yayınlama, türev" {
+    TR_fn_assert(yakın_mı(TR_fn_atan2(1, -1), 3 * TR_const_pi / 4))
+    TR_fn_assert(yakın_mı(TR_fn_atan2(-1, -1), -3 * TR_const_pi / 4))
+    TR_fn_assert(yakın_mı(TR_fn_atan2(-1, 1), -TR_const_pi / 4))
+    TR_fn_assert_equal(0.0, TR_fn_atan2(0, 0))
+    TR_fn_assert(yakın_mı(TR_fn_atan2(0.0, -1), TR_const_pi))
+    TR_fn_assert(yakın_mı(TR_fn_atan2(-0.0, -1), -TR_const_pi))
+    TR_kw_var y = TR_fn_tensor([[1.0], [-1.0]], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var x = TR_fn_tensor([1.0, -1.0, 0.0], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var a = TR_fn_atan2(y, x)
+    TR_fn_assert_equal([2, 3], a.TR_mem_shape)
+    TR_fn_assert(yakın_mı(a.TR_mem_tolist[1][1], -3 * TR_const_pi / 4, 0.000001))
+    TR_fn_assert(TR_fn_grad_check(TR_fn_atan2, [y, x]))
+    TR_kw_var z = TR_fn_tensor([0.0], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var w = TR_fn_tensor([0.0], TR_arg_requires_grad: TR_kw_true)
+    TR_fn_backward(TR_fn_sum(TR_fn_atan2(z, w)))
+    TR_fn_assert_equal([0.0], z.TR_mem_grad.TR_mem_tolist)
+    TR_fn_assert_equal([0.0], w.TR_mem_grad.TR_mem_tolist)
+    TR_fn_assert_equal("bf16", TR_fn_atan2(TR_fn_tensor([1.0], TR_arg_dtype: "bf16"), 1).TR_mem_dtype)
+    TR_fn_assert(hata_metni(() => TR_fn_atan2(TR_fn_tensor([1, 2]), TR_fn_tensor([1, 2, 3]))).TR_mem_contains("atan2 için yayınlanamaz"))
 }
 
-test "15.15 koşullu: yayınlamalı seçim; gradyan seçilen dala akar, NaN sızmaz" {
-    değişken x = tensör([-1.0, 2.0, -3.0], türev_izle: doğru)
-    eşit_mi([0.0, 2.0, 0.0], koşullu(x > 0, x, 0).değer)
-    eşit_mi([[1.0, 2.0], [-1.0, -1.0]], koşullu(tensör([[1.0], [0.0]]), tensör([1.0, 2.0]), -1).değer)
-    eşit_mi([7.0], koşullu(yanlış, tensör([1.0]), 7).değer)
-    eşit_mi(2, koşullu(doğru, 2, 3))
-    eşit_mi(3, koşullu(0, 2, 3))
+TR_ctx_test "15.15 koşullu: yayınlamalı seçim; gradyan seçilen dala akar, NaN sızmaz" {
+    TR_kw_var x = TR_fn_tensor([-1.0, 2.0, -3.0], TR_arg_requires_grad: TR_kw_true)
+    TR_fn_assert_equal([0.0, 2.0, 0.0], TR_fn_where(x > 0, x, 0).TR_mem_tolist)
+    TR_fn_assert_equal([[1.0, 2.0], [-1.0, -1.0]], TR_fn_where(TR_fn_tensor([[1.0], [0.0]]), TR_fn_tensor([1.0, 2.0]), -1).TR_mem_tolist)
+    TR_fn_assert_equal([7.0], TR_fn_where(TR_kw_false, TR_fn_tensor([1.0]), 7).TR_mem_tolist)
+    TR_fn_assert_equal(2, TR_fn_where(TR_kw_true, 2, 3))
+    TR_fn_assert_equal(3, TR_fn_where(0, 2, 3))
     // Seçilmeyen dalın NaN'ı gradyana sızmaz: log(x) negatifte NaN'dır ama seçilmez.
-    değişken p = tensör([-1.0, 4.0], türev_izle: doğru)
-    geri_yayılım(toplam(koşullu(p > 0, karekök(sınırla(p, en_az: 0.0001)), 0)))
-    doğrula(p.gradyan.değer[0] == 0.0)
-    doğrula(yakın_mı(p.gradyan.değer[1], 0.25))
-    değişken a = tensör([1.0, 2.0], türev_izle: doğru)
-    değişken b = tensör([3.0, 4.0], türev_izle: doğru)
-    geri_yayılım(toplam(koşullu(tensör([1, 0]), a, b) * tensör([10, 20])))
-    eşit_mi([10.0, 0.0], a.gradyan.değer)
-    eşit_mi([0.0, 20.0], b.gradyan.değer)
-    eşit_mi(Tam, tip(koşullu(tensör([1, 0]), argmax(tensör([[1, 2], [3, 1]])), 0).değer[0]))
-    doğrula(hata_metni(() => koşullu(tensör([1, 0]), tensör([1, 2, 3]), 0)).içerir("şekilleri yayınlanamaz"))
-    doğrula(hata_metni(() => koşullu("a", 1, 2)).içerir("koşul Mantık, sayı ya da tensör olmalıdır"))
-    doğrula(hata_metni(() => koşullu([1], 1, 2)).içerir("koşullu listede çalışmaz"))
+    TR_kw_var p = TR_fn_tensor([-1.0, 4.0], TR_arg_requires_grad: TR_kw_true)
+    TR_fn_backward(TR_fn_sum(TR_fn_where(p > 0, TR_fn_sqrt(TR_fn_clamp(p, TR_arg_min: 0.0001)), 0)))
+    TR_fn_assert(p.TR_mem_grad.TR_mem_tolist[0] == 0.0)
+    TR_fn_assert(yakın_mı(p.TR_mem_grad.TR_mem_tolist[1], 0.25))
+    TR_kw_var a = TR_fn_tensor([1.0, 2.0], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var b = TR_fn_tensor([3.0, 4.0], TR_arg_requires_grad: TR_kw_true)
+    TR_fn_backward(TR_fn_sum(TR_fn_where(TR_fn_tensor([1, 0]), a, b) * TR_fn_tensor([10, 20])))
+    TR_fn_assert_equal([10.0, 0.0], a.TR_mem_grad.TR_mem_tolist)
+    TR_fn_assert_equal([0.0, 20.0], b.TR_mem_grad.TR_mem_tolist)
+    TR_fn_assert_equal(TR_type_Int, TR_fn_type(TR_fn_where(TR_fn_tensor([1, 0]), TR_fn_argmax(TR_fn_tensor([[1, 2], [3, 1]])), 0).TR_mem_tolist[0]))
+    TR_fn_assert(hata_metni(() => TR_fn_where(TR_fn_tensor([1, 0]), TR_fn_tensor([1, 2, 3]), 0)).TR_mem_contains("şekilleri yayınlanamaz"))
+    TR_fn_assert(hata_metni(() => TR_fn_where("a", 1, 2)).TR_mem_contains("koşul Mantık, sayı ya da tensör olmalıdır"))
+    TR_fn_assert(hata_metni(() => TR_fn_where([1], 1, 2)).TR_mem_contains("koşullu listede çalışmaz"))
 }
 
-test "15.20 birikimli_toplam: eksen, şekil, türev; eksen adlı" {
-    eşit_mi([1.0, 3.0, 6.0, 10.0], birikimli_toplam(tensör([1, 2, 3, 4])).değer)
-    eşit_mi([[1.0, 2.0], [4.0, 6.0]], birikimli_toplam(tensör([[1, 2], [3, 4]]), eksen: 0).değer)
-    eşit_mi([[1.0, 3.0], [3.0, 7.0]], birikimli_toplam(tensör([[1, 2], [3, 4]])).değer)
-    değişken v = tensör([1.0, 2.0, 3.0, 4.0], türev_izle: doğru)
-    geri_yayılım(toplam(birikimli_toplam(v)))
-    eşit_mi([4.0, 3.0, 2.0, 1.0], v.gradyan.değer)
-    doğrula(türev_denetle(fonksiyon(t) { sonuç birikimli_toplam(t, eksen: 0) }, [tensör([[0.5, -1.0], [2.0, 0.3]], türev_izle: doğru)]))
-    eşit_mi(Tam, tip(birikimli_toplam(argmax(tensör([[1, 2], [3, 1]]))).değer[0]))
-    doğrula(hata_metni(() => birikimli_toplam(tensör([1, 2]), 0)).içerir("eksen adlı verilir"))
-    doğrula(hata_metni(() => birikimli_toplam([1, 2])).içerir("birikimli_toplam listede çalışmaz"))
-    doğrula(hata_metni(() => birikimli_toplam(tensör(2.0))).içerir("skaler (0 boyutlu) tensörde eksen seçilemez"))
+TR_ctx_test "15.20 birikimli_toplam: eksen, şekil, türev; eksen adlı" {
+    TR_fn_assert_equal([1.0, 3.0, 6.0, 10.0], TR_fn_cumsum(TR_fn_tensor([1, 2, 3, 4])).TR_mem_tolist)
+    TR_fn_assert_equal([[1.0, 2.0], [4.0, 6.0]], TR_fn_cumsum(TR_fn_tensor([[1, 2], [3, 4]]), TR_arg_dim: 0).TR_mem_tolist)
+    TR_fn_assert_equal([[1.0, 3.0], [3.0, 7.0]], TR_fn_cumsum(TR_fn_tensor([[1, 2], [3, 4]])).TR_mem_tolist)
+    TR_kw_var v = TR_fn_tensor([1.0, 2.0, 3.0, 4.0], TR_arg_requires_grad: TR_kw_true)
+    TR_fn_backward(TR_fn_sum(TR_fn_cumsum(v)))
+    TR_fn_assert_equal([4.0, 3.0, 2.0, 1.0], v.TR_mem_grad.TR_mem_tolist)
+    TR_fn_assert(TR_fn_grad_check(TR_kw_func(t) { TR_kw_return TR_fn_cumsum(t, TR_arg_dim: 0) }, [TR_fn_tensor([[0.5, -1.0], [2.0, 0.3]], TR_arg_requires_grad: TR_kw_true)]))
+    TR_fn_assert_equal(TR_type_Int, TR_fn_type(TR_fn_cumsum(TR_fn_argmax(TR_fn_tensor([[1, 2], [3, 1]]))).TR_mem_tolist[0]))
+    TR_fn_assert(hata_metni(() => TR_fn_cumsum(TR_fn_tensor([1, 2]), 0)).TR_mem_contains("eksen adlı verilir"))
+    TR_fn_assert(hata_metni(() => TR_fn_cumsum([1, 2])).TR_mem_contains("birikimli_toplam listede çalışmaz"))
+    TR_fn_assert(hata_metni(() => TR_fn_cumsum(TR_fn_tensor(2.0))).TR_mem_contains("skaler (0 boyutlu) tensörde eksen seçilemez"))
 }
 
-test "15.21 en_büyük_k: değerler ve indeksler; eşitlikte küçük indeks; türev seçilenlere" {
-    değişken s = en_büyük_k(tensör([3.0, 1.0, 4.0, 1.5]), 2)
-    eşit_mi([4.0, 3.0], s[0].değer)
-    eşit_mi([2, 0], s[1].değer)
-    eşit_mi(Tam, tip(s[1].değer[0]))
-    değişken e = en_büyük_k(tensör([[3, 1, 3], [0, 2, 1]]), 2)
-    eşit_mi([[0, 2], [1, 2]], e[1].değer)
-    eşit_mi([[0, 1, 0]], en_büyük_k(tensör([[3, 1, 3], [0, 2, 1]]), 1, eksen: 0)[1].değer)
-    değişken n = en_büyük_k(tensör([1.0, 2.0]) / tensör([1.0, 0.0]) * 0, 1)
-    eşit_mi([1], n[1].değer)
-    değişken x = tensör([1.0, 5.0, 3.0], türev_izle: doğru)
-    değişken t = en_büyük_k(x, 2)
-    geri_yayılım(toplam(t[0] * tensör([10, 20])))
-    eşit_mi([0.0, 10.0, 20.0], x.gradyan.değer)
-    eşit_mi([0], en_büyük_k(tensör([1, 2]), 0)[1].şekil)
-    doğrula(hata_metni(() => en_büyük_k(tensör([1, 2]), 3)).içerir("k 0 ile 2 arasında olmalı"))
-    doğrula(hata_metni(() => en_büyük_k(tensör([1, 2]), 1.5)).içerir("k bir Tam olmalıdır"))
+TR_ctx_test "15.21 en_büyük_k: değerler ve indeksler; eşitlikte küçük indeks; türev seçilenlere" {
+    TR_kw_var s = TR_fn_topk(TR_fn_tensor([3.0, 1.0, 4.0, 1.5]), 2)
+    TR_fn_assert_equal([4.0, 3.0], s[0].TR_mem_tolist)
+    TR_fn_assert_equal([2, 0], s[1].TR_mem_tolist)
+    TR_fn_assert_equal(TR_type_Int, TR_fn_type(s[1].TR_mem_tolist[0]))
+    TR_kw_var e = TR_fn_topk(TR_fn_tensor([[3, 1, 3], [0, 2, 1]]), 2)
+    TR_fn_assert_equal([[0, 2], [1, 2]], e[1].TR_mem_tolist)
+    TR_fn_assert_equal([[0, 1, 0]], TR_fn_topk(TR_fn_tensor([[3, 1, 3], [0, 2, 1]]), 1, TR_arg_dim: 0)[1].TR_mem_tolist)
+    TR_kw_var n = TR_fn_topk(TR_fn_tensor([1.0, 2.0]) / TR_fn_tensor([1.0, 0.0]) * 0, 1)
+    TR_fn_assert_equal([1], n[1].TR_mem_tolist)
+    TR_kw_var x = TR_fn_tensor([1.0, 5.0, 3.0], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var t = TR_fn_topk(x, 2)
+    TR_fn_backward(TR_fn_sum(t[0] * TR_fn_tensor([10, 20])))
+    TR_fn_assert_equal([0.0, 10.0, 20.0], x.TR_mem_grad.TR_mem_tolist)
+    TR_fn_assert_equal([0], TR_fn_topk(TR_fn_tensor([1, 2]), 0)[1].TR_mem_shape)
+    TR_fn_assert(hata_metni(() => TR_fn_topk(TR_fn_tensor([1, 2]), 3)).TR_mem_contains("k 0 ile 2 arasında olmalı"))
+    TR_fn_assert(hata_metni(() => TR_fn_topk(TR_fn_tensor([1, 2]), 1.5)).TR_mem_contains("k bir Tam olmalıdır"))
 }
 
-test "15.22 sıralama_indeksi: kararlı, NaN sonda; türevsiz" {
-    eşit_mi([1, 2, 0], sıralama_indeksi(tensör([3.0, 1.0, 2.0])).değer)
-    eşit_mi([3, 1, 0, 2], sıralama_indeksi(tensör([2, 1, 2, 0])).değer)
-    eşit_mi([[1, 0], [0, 1]], sıralama_indeksi(tensör([[3, 1], [0, 2]]), eksen: 0).değer)
-    eşit_mi([1, 2, 0], sıralama_indeksi(tensör([0.0, -1.0, 1.0]) / tensör([0.0, 1.0, 1.0])).değer)
-    değişken x = tensör([2.0, 1.0], türev_izle: doğru)
-    değişken i = sıralama_indeksi(x)
-    doğrula(hata_metni(() => geri_yayılım(toplam(i))).içerir("türev izlenen hiçbir tensöre bağlı değil"))
-    doğrula(hata_metni(() => sıralama_indeksi([3, 1])).içerir("sıralama_indeksi listede çalışmaz"))
+TR_ctx_test "15.22 sıralama_indeksi: kararlı, NaN sonda; türevsiz" {
+    TR_fn_assert_equal([1, 2, 0], TR_fn_argsort(TR_fn_tensor([3.0, 1.0, 2.0])).TR_mem_tolist)
+    TR_fn_assert_equal([3, 1, 0, 2], TR_fn_argsort(TR_fn_tensor([2, 1, 2, 0])).TR_mem_tolist)
+    TR_fn_assert_equal([[1, 0], [0, 1]], TR_fn_argsort(TR_fn_tensor([[3, 1], [0, 2]]), TR_arg_dim: 0).TR_mem_tolist)
+    TR_fn_assert_equal([1, 2, 0], TR_fn_argsort(TR_fn_tensor([0.0, -1.0, 1.0]) / TR_fn_tensor([0.0, 1.0, 1.0])).TR_mem_tolist)
+    TR_kw_var x = TR_fn_tensor([2.0, 1.0], TR_arg_requires_grad: TR_kw_true)
+    TR_kw_var i = TR_fn_argsort(x)
+    TR_fn_assert(hata_metni(() => TR_fn_backward(TR_fn_sum(i))).TR_mem_contains("türev izlenen hiçbir tensöre bağlı değil"))
+    TR_fn_assert(hata_metni(() => TR_fn_argsort([3, 1])).TR_mem_contains("sıralama_indeksi listede çalışmaz"))
 }
 
-test "15.41 genişletilmiş matematik GPU'da CPU ile aynı sonucu verir" {
-    eğer cihazlar().içerir("gpu") {
-        değişken v = rastgele_normal([4, 7], tohum: 5)
-        fonksiyon hesap(c) {
-            değişken x = tensör(v.cihaza(c), türev_izle: doğru)
-            değişken y = silu(x) + atan2(x, 1.5) + sınırla(x, en_az: -0.5, en_fazla: 0.5) + birikimli_toplam(x, eksen: 0)
-            değişken k = en_büyük_k(x, 3)
-            geri_yayılım(toplam(y) + toplam(k[0]) + toplam(koşullu(x > 0, x, 0)))
-            sonuç [y.değer, k[1].değer, sıralama_indeksi(x).değer, x.gradyan.değer]
+TR_ctx_test "15.41 genişletilmiş matematik GPU'da CPU ile aynı sonucu verir" {
+    TR_kw_if TR_fn_devices().TR_mem_contains("gpu") {
+        TR_kw_var v = TR_fn_randn([4, 7], TR_arg_seed: 5)
+        TR_kw_func hesap(c) {
+            TR_kw_var x = TR_fn_tensor(v.TR_mem_to_device(c), TR_arg_requires_grad: TR_kw_true)
+            TR_kw_var y = TR_fn_silu(x) + TR_fn_atan2(x, 1.5) + TR_fn_clamp(x, TR_arg_min: -0.5, TR_arg_max: 0.5) + TR_fn_cumsum(x, TR_arg_dim: 0)
+            TR_kw_var k = TR_fn_topk(x, 3)
+            TR_fn_backward(TR_fn_sum(y) + TR_fn_sum(k[0]) + TR_fn_sum(TR_fn_where(x > 0, x, 0)))
+            TR_kw_return [y.TR_mem_tolist, k[1].TR_mem_tolist, TR_fn_argsort(x).TR_mem_tolist, x.TR_mem_grad.TR_mem_tolist]
         }
-        değişken c = hesap("cpu")
-        değişken g = hesap("gpu")
-        eşit_mi(c[1], g[1])
-        eşit_mi(c[2], g[2])
-        doğrula(en_büyük_kare_fark(tensör(c[0]), tensör(g[0])) < 0.00001)
-        doğrula(en_büyük_kare_fark(tensör(c[3]), tensör(g[3])) < 0.00001)
+        TR_kw_var c = hesap("cpu")
+        TR_kw_var g = hesap("gpu")
+        TR_fn_assert_equal(c[1], g[1])
+        TR_fn_assert_equal(c[2], g[2])
+        TR_fn_assert(en_büyük_kare_fark(TR_fn_tensor(c[0]), TR_fn_tensor(g[0])) < 0.00001)
+        TR_fn_assert(en_büyük_kare_fark(TR_fn_tensor(c[3]), TR_fn_tensor(g[3])) < 0.00001)
     }
 }
 
-test "13.7 sonlu_mu: NaN ve sonsuzda yanlış, öbür sayılarda doğru" {
-    doğrula(sonlu_mu(7))
-    doğrula(sonlu_mu(-2.5))
-    doğrula(değil sonlu_mu(ondalık("nan")))
-    doğrula(değil sonlu_mu(ondalık("inf")))
-    doğrula(değil sonlu_mu(-ondalık("inf")))
+TR_ctx_test "13.7 sonlu_mu: NaN ve sonsuzda yanlış, öbür sayılarda doğru" {
+    TR_fn_assert(TR_fn_is_finite(7))
+    TR_fn_assert(TR_fn_is_finite(-2.5))
+    TR_fn_assert(TR_kw_not TR_fn_is_finite(TR_fn_float("nan")))
+    TR_fn_assert(TR_kw_not TR_fn_is_finite(TR_fn_float("inf")))
+    TR_fn_assert(TR_kw_not TR_fn_is_finite(-TR_fn_float("inf")))
 }
 
-test "15.36 sonlu_mu tensörde eleman bazlıdır; gradyan_kırp sonlu olmayan normda isteğe bağlı hata verir" {
-    değişken x = tensör([1.0, ondalık("nan"), ondalık("inf"), 0.0])
-    eşit_mi([1.0, 0.0, 0.0, 1.0], sonlu_mu(x).değer)
-    eşit_mi([1.0, 0.0, 0.0, 1.0], sonlu_mu(x.türe("bf16")).değer)
-    değişken w = tensör([1.0, 2.0], türev_izle: doğru)
-    geri_yayılım(toplam(w * ondalık("nan")))
-    değişken norm = gradyan_kırp([w])
-    doğrula(değil sonlu_mu(norm.değer))
-    değişken hata_verdi = yanlış
-    dene { gradyan_kırp([w], sonlu_değilse_hata: doğru) } yakala h { hata_verdi = doğru }
-    doğrula(hata_verdi)
+TR_ctx_test "15.36 sonlu_mu tensörde eleman bazlıdır; gradyan_kırp sonlu olmayan normda isteğe bağlı hata verir" {
+    TR_kw_var x = TR_fn_tensor([1.0, TR_fn_float("nan"), TR_fn_float("inf"), 0.0])
+    TR_fn_assert_equal([1.0, 0.0, 0.0, 1.0], TR_fn_is_finite(x).TR_mem_tolist)
+    TR_fn_assert_equal([1.0, 0.0, 0.0, 1.0], TR_fn_is_finite(x.TR_mem_to_dtype("bf16")).TR_mem_tolist)
+    TR_kw_var w = TR_fn_tensor([1.0, 2.0], TR_arg_requires_grad: TR_kw_true)
+    TR_fn_backward(TR_fn_sum(w * TR_fn_float("nan")))
+    TR_kw_var norm = TR_fn_clip_grad([w])
+    TR_fn_assert(TR_kw_not TR_fn_is_finite(norm.TR_mem_tolist))
+    TR_kw_var hata_verdi = TR_kw_false
+    TR_kw_try { TR_fn_clip_grad([w], TR_arg_error_if_nonfinite: TR_kw_true) } TR_kw_catch h { hata_verdi = TR_kw_true }
+    TR_fn_assert(hata_verdi)
 }

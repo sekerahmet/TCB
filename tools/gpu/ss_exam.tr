@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // SimpleStories sınavı: gpt_training.tr ile eğitilmiş bir modeli, PyTorch kıyas koşularının
 // (araştırma deposu rgn/train/evaluate.py: evaluate, probes, samples) ölçüsüyle değerlendirir.
 //
@@ -17,104 +18,104 @@
 // bayt_parça varsayılanı PyTorch koşusunun (ss_d512_transformer) kendi kayıp ve bpb'sinden çıkan orandır
 // (1,5196237 / ln 2 / 0,5073415); aynı doğrulama verisi için iki taraf aynı paydayla ölçülür.
 
-aktar "training_model"
+TR_kw_import "training_model"
 
-değişken ayar = komut_satırı({koşu: "", veri: "", cihaz: "gpu", hassasiyet: "bf16", toplu: 16,
+TR_kw_var ayar = TR_fn_command_line({koşu: "", veri: "", TR_mem_device: "gpu", hassasiyet: "bf16", toplu: 16,
     bayt_parça: 4.32125793698609, sonda_uzunluğu: 48, örnek_uzunluğu: 64, eos: 50256},
-    açıklama: "gpt_training.tr ile eğitilmiş modeli SimpleStories sınavıyla değerlendirir",
-    açıklamalar: {koşu: "koşu klasörü (config.json, model.trt)", veri: "tokenizer.json ve valid.npy klasörü",
+    TR_arg_description: "gpt_training.tr ile eğitilmiş modeli SimpleStories sınavıyla değerlendirir",
+    TR_arg_descriptions: {koşu: "koşu klasörü (config.json, model.trt)", veri: "tokenizer.json ve valid.npy klasörü",
         bayt_parça: "doğrulama verisinin UTF-8 bayt / parça oranı (bpb paydası)",
         eos: "hikâye sonu parçası (GPT-2: 50256); üretimde görülünce durulur"})
 
-eğer ayar.koşu == "" veya ayar.veri == "" {
-    fırlat ("koşu ve veri klasörü verilmeli: --koşu <koşu klasörü> --veri <veri klasörü>")
+TR_kw_if ayar.koşu == "" TR_kw_or ayar.veri == "" {
+    TR_kw_throw ("koşu ve veri klasörü verilmeli: --koşu <koşu klasörü> --veri <veri klasörü>")
 }
-varsayılan_cihaz(ayar.cihaz)
-değişken yapılandırma = json_çöz(dosya_oku(yol(ayar.koşu, "config.json")))
-değişken eğitim = yapılandırma.ayar
-değişken p = parçalayıcı_yükle(yol(ayar.veri, "tokenizer.json"))
-değişken model = eğitim_modeli(eğitim, p.dağarcık_boyutu)
-parametreleri_yükle(model, tensör_yükle(yol(ayar.koşu, "model.trt")))
-değişken T = eğitim.bağlam
+TR_fn_default_device(ayar.TR_mem_device)
+TR_kw_var yapılandırma = TR_fn_json_parse(TR_fn_read_file(TR_fn_path(ayar.koşu, "config.json")))
+TR_kw_var eğitim = yapılandırma.ayar
+TR_kw_var p = TR_fn_load_tokenizer(TR_fn_path(ayar.veri, "tokenizer.json"))
+TR_kw_var model = eğitim_modeli(eğitim, p.TR_mem_vocab_size)
+TR_fn_load_parameters(model, TR_fn_load_tensors(TR_fn_path(ayar.koşu, "model.trt")))
+TR_kw_var T = eğitim.bağlam
 
 // --- Kayıp, doğruluk ve bantlar ---
-değişken toplam_kayıp = 0.0
-değişken parça = 0
-değişken doğru_konum = [] // pencere içi konum başına doğru tahmin sayısı
-döngü i içinde 0..T { doğru_konum.ekle(0) }
-değişken başla = zaman_ms()
-değişken okuyucu = veri_kümesi(yol(ayar.veri, "valid.npy")).sıralı(toplu: ayar.toplu, bağlam: T)
-türevsiz {
-    döngü iş içinde okuyucu {
-        değişken h = yok
-        karışık_hassasiyet(ayar.hassasiyet) { h = model.gizli_durum(iş[0]) }
+TR_kw_var toplam_kayıp = 0.0
+TR_kw_var parça = 0
+TR_kw_var doğru_konum = [] // pencere içi konum başına doğru tahmin sayısı
+TR_kw_for i TR_kw_in 0..T { doğru_konum.TR_mem_append(0) }
+TR_kw_var başla = TR_fn_time_ms()
+TR_kw_var okuyucu = TR_fn_dataset(TR_fn_path(ayar.veri, "valid.npy")).TR_mem_sequential(TR_arg_batch_size: ayar.toplu, TR_arg_context: T)
+TR_fn_no_grad {
+    TR_kw_for iş TR_kw_in okuyucu {
+        TR_kw_var h = TR_kw_none
+        TR_fn_mixed_precision(ayar.hassasiyet) { h = model.gizli_durum(iş[0]) }
         // Logitler float32: gizli durum ve çıkış ağırlığı float32'ye çevrilip çarpılır (evaluate.py ile aynı).
-        değişken w = eğer model.çıkış == yok { model.gömme.tablo } değilse { model.çıkış.ağırlık.devrik() }
-        değişken logit = h.türe("float32") @ w.türe("float32").devrik()
-        değişken n = iş[0].şekil[0] * T
-        toplam_kayıp += çapraz_entropi(logit, iş[1]).değer * n
+        TR_kw_var w = TR_kw_if model.çıkış == TR_kw_none { model.gömme.tablo } TR_kw_else { model.çıkış.ağırlık.TR_mem_transpose() }
+        TR_kw_var logit = h.TR_mem_to_dtype("float32") @ w.TR_mem_to_dtype("float32").TR_mem_transpose()
+        TR_kw_var n = iş[0].TR_mem_shape[0] * T
+        toplam_kayıp += TR_fn_cross_entropy(logit, iş[1]).TR_mem_tolist * n
         parça += n
-        değişken isabet = mutlak(argmax(logit, eksen: -1) - iş[1]) < 0.5
-        değişken konum = toplam(isabet, 0).değer
-        döngü i içinde 0..T { doğru_konum[i] += konum[i] }
+        TR_kw_var isabet = TR_fn_abs(TR_fn_argmax(logit, TR_arg_dim: -1) - iş[1]) < 0.5
+        TR_kw_var konum = TR_fn_sum(isabet, 0).TR_mem_tolist
+        TR_kw_for i TR_kw_in 0..T { doğru_konum[i] += konum[i] }
     }
 }
-değişken kayıp = toplam_kayıp / max(parça, 1)
-değişken pencere = parça / T
-değişken bant_sınırları = [[0, 64], [64, 256], [256, 512]]
-değişken bantlar = {}
-döngü b içinde bant_sınırları {
-    eğer b[0] < T {
-        değişken son = min(b[1], T)
-        değişken d = 0.0
-        döngü i içinde b[0]..son { d += doğru_konum[i] }
-        bantlar["{b[0]}-{son}"] = d / max(pencere * (son - b[0]), 1)
+TR_kw_var kayıp = toplam_kayıp / TR_fn_max(parça, 1)
+TR_kw_var pencere = parça / T
+TR_kw_var bant_sınırları = [[0, 64], [64, 256], [256, 512]]
+TR_kw_var bantlar = {}
+TR_kw_for b TR_kw_in bant_sınırları {
+    TR_kw_if b[0] < T {
+        TR_kw_var son = TR_fn_min(b[1], T)
+        TR_kw_var d = 0.0
+        TR_kw_for i TR_kw_in b[0]..son { d += doğru_konum[i] }
+        bantlar["{b[0]}-{son}"] = d / TR_fn_max(pencere * (son - b[0]), 1)
     }
 }
-değişken toplam_doğru = 0.0
-döngü i içinde 0..T { toplam_doğru += doğru_konum[i] }
+TR_kw_var toplam_doğru = 0.0
+TR_kw_for i TR_kw_in 0..T { toplam_doğru += doğru_konum[i] }
 
 // --- Sondalar ve örnekler (açgözlü) ---
 // farklı_4: üretilen parçalarda farklı 4'lü oranı; döngüde: bir 4'lü en az 3 kez (evaluate.py distinct4).
-fonksiyon farklı_4(kimlikler) {
-    eğer kimlikler.uzunluk < 4 { sonuç [1.0, yanlış] }
-    değişken sayım = {}
-    döngü i içinde 0..kimlikler.uzunluk - 3 {
-        değişken anahtar = "{kimlikler[i]},{kimlikler[i + 1]},{kimlikler[i + 2]},{kimlikler[i + 3]}"
-        sayım[anahtar] = eğer sayım.içerir(anahtar) { sayım[anahtar] + 1 } değilse { 1 }
+TR_kw_func farklı_4(kimlikler) {
+    TR_kw_if kimlikler.TR_mem_length < 4 { TR_kw_return [1.0, TR_kw_false] }
+    TR_kw_var sayım = {}
+    TR_kw_for i TR_kw_in 0..kimlikler.TR_mem_length - 3 {
+        TR_kw_var anahtar = "{kimlikler[i]},{kimlikler[i + 1]},{kimlikler[i + 2]},{kimlikler[i + 3]}"
+        sayım[anahtar] = TR_kw_if sayım.TR_mem_contains(anahtar) { sayım[anahtar] + 1 } TR_kw_else { 1 }
     }
-    değişken en_çok = 0
-    döngü a, s içinde sayım { en_çok = max(en_çok, s) }
-    sonuç [sayım.uzunluk / (kimlikler.uzunluk - 3), en_çok >= 3]
+    TR_kw_var en_çok = 0
+    TR_kw_for a, s TR_kw_in sayım { en_çok = TR_fn_max(en_çok, s) }
+    TR_kw_return [sayım.TR_mem_length / (kimlikler.TR_mem_length - 3), en_çok >= 3]
 }
-değişken istemler = ["Once upon a time", "The little dog", "One day, a girl named", "In a small village,"]
-fonksiyon açgözlü(istem, adet) {
-    değişken başlangıç = p.kodla(istem)
-    değişken kimlikler = yok
-    karışık_hassasiyet(ayar.hassasiyet) { kimlikler = model.üret(başlangıç, adet, sıcaklık: 0, eos: ayar.eos) }
-    değişken yeni = kimlikler[başlangıç.uzunluk..kimlikler.uzunluk]
-    eğer yeni.uzunluk > 0 ve yeni.son == ayar.eos { yeni = yeni[0..yeni.uzunluk - 1] }
-    sonuç [yeni, istem + p.çöz(yeni)]
+TR_kw_var istemler = ["Once upon a time", "The little dog", "One day, a girl named", "In a small village,"]
+TR_kw_func açgözlü(istem, adet) {
+    TR_kw_var başlangıç = p.TR_mem_encode(istem)
+    TR_kw_var kimlikler = TR_kw_none
+    TR_fn_mixed_precision(ayar.hassasiyet) { kimlikler = model.üret(başlangıç, adet, sıcaklık: 0, eos: ayar.eos) }
+    TR_kw_var yeni = kimlikler[başlangıç.TR_mem_length..kimlikler.TR_mem_length]
+    TR_kw_if yeni.TR_mem_length > 0 TR_kw_and yeni.TR_mem_last == ayar.eos { yeni = yeni[0..yeni.TR_mem_length - 1] }
+    TR_kw_return [yeni, istem + p.TR_mem_decode(yeni)]
 }
-değişken sondalar = []
-döngü istem içinde istemler[0..2] {
-    değişken g = açgözlü(istem, ayar.sonda_uzunluğu)
-    değişken f = farklı_4(g[0])
-    sondalar.ekle({istem: istem, metin: g[1], farklı_4: f[0], döngüde: f[1]})
+TR_kw_var sondalar = []
+TR_kw_for istem TR_kw_in istemler[0..2] {
+    TR_kw_var g = açgözlü(istem, ayar.sonda_uzunluğu)
+    TR_kw_var f = farklı_4(g[0])
+    sondalar.TR_mem_append({istem: istem, metin: g[1], farklı_4: f[0], döngüde: f[1]})
 }
-değişken örnekler = []
-döngü istem içinde istemler { örnekler.ekle({istem: istem, metin: açgözlü(istem, ayar.örnek_uzunluğu)[1]}) }
+TR_kw_var örnekler = []
+TR_kw_for istem TR_kw_in istemler { örnekler.TR_mem_append({istem: istem, metin: açgözlü(istem, ayar.örnek_uzunluğu)[1]}) }
 
-değişken sınav = {kayıp: kayıp, ppl: exp(min(kayıp, 50.0)), bpb: kayıp / log(2.0) / ayar.bayt_parça,
-    doğruluk: toplam_doğru / max(parça, 1), bantlar: bantlar, parça: parça, pencere: pencere,
-    sondalar: sondalar, süre_sn: (zaman_ms() - başla) / 1000.0, hassasiyet: ayar.hassasiyet}
-değişken hız_yolu = yol(ayar.koşu, "speed.json")
-değişken sonuç_ = {ad: yol(ayar.koşu).dosya_adı, parametre_sayısı: yapılandırma.parametre_sayısı, adım: eğitim.adım,
-    eğitim_parçası: eğitim.adım * eğitim.toplu * eğitim.birikim * eğitim.bağlam, son: sınav,
-    hız: eğer hız_yolu.var_mı { json_çöz(dosya_oku(hız_yolu)) } değilse { yok }, örnekler: örnekler,
-    cihaz: varsayılan_cihaz(), ayar: eğitim}
-dosya_yaz(yol(ayar.koşu, "results.json"), json_metin(sonuç_))
-yazdır("sınav: kayıp {yuvarla(kayıp, 4)} · ppl {yuvarla(sınav.ppl, 3)} · bpb {yuvarla(sınav.bpb, 4)} · doğruluk {yuvarla(sınav.doğruluk, 4)} · {parça} parça ({pencere} pencere)")
-döngü ad, v içinde bantlar { yazdır("  bant {ad}: {yuvarla(v, 4)}") }
-döngü s içinde sondalar { yazdır("  sonda: farklı_4 {yuvarla(s.farklı_4, 3)} · döngüde {s.döngüde} · {s.metin}") }
-döngü ö içinde örnekler { yazdır("  örnek: {ö.metin}") }
+TR_kw_var sınav = {kayıp: kayıp, ppl: TR_fn_exp(TR_fn_min(kayıp, 50.0)), bpb: kayıp / TR_fn_log(2.0) / ayar.bayt_parça,
+    doğruluk: toplam_doğru / TR_fn_max(parça, 1), bantlar: bantlar, parça: parça, pencere: pencere,
+    sondalar: sondalar, süre_sn: (TR_fn_time_ms() - başla) / 1000.0, hassasiyet: ayar.hassasiyet}
+TR_kw_var hız_yolu = TR_fn_path(ayar.koşu, "speed.json")
+TR_kw_var sonuç_ = {ad: TR_fn_path(ayar.koşu).TR_mem_name, parametre_sayısı: yapılandırma.parametre_sayısı, TR_mem_step: eğitim.TR_mem_step,
+    eğitim_parçası: eğitim.TR_mem_step * eğitim.toplu * eğitim.birikim * eğitim.bağlam, TR_mem_last: sınav,
+    hız: TR_kw_if hız_yolu.TR_mem_exists { TR_fn_json_parse(TR_fn_read_file(hız_yolu)) } TR_kw_else { TR_kw_none }, örnekler: örnekler,
+    TR_mem_device: TR_fn_default_device(), ayar: eğitim}
+TR_fn_write_file(TR_fn_path(ayar.koşu, "results.json"), TR_fn_json_string(sonuç_))
+TR_fn_print("sınav: kayıp {TR_fn_round(kayıp, 4)} · ppl {TR_fn_round(sınav.ppl, 3)} · bpb {TR_fn_round(sınav.bpb, 4)} · doğruluk {TR_fn_round(sınav.doğruluk, 4)} · {parça} parça ({pencere} pencere)")
+TR_kw_for ad, v TR_kw_in bantlar { TR_fn_print("  bant {ad}: {TR_fn_round(v, 4)}") }
+TR_kw_for s TR_kw_in sondalar { TR_fn_print("  sonda: farklı_4 {TR_fn_round(s.farklı_4, 3)} · döngüde {s.döngüde} · {s.metin}") }
+TR_kw_for ö TR_kw_in örnekler { TR_fn_print("  örnek: {ö.metin}") }

@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // Hata 21 — Tensör şekil uyuşmazlığı.
 // İleti kodu: H6126
 // Ne olur: Şekilleri uymayan iki tensör matris çarpımına girerse çalışma anında hata alınır; ileti şekilleri gösterir.
@@ -6,5 +7,5 @@
 //     yazdır(a @ a.devrik()) // [1, 2] @ [2, 1] geçerlidir
 // Çalıştırma (proje kökünden): tr examples/tr/hatalar/21_tensor_sekil.tr   (çıkış kodu 1)
 
-değişken a = tensör([[1.0, 2.0]])
-yazdır(a @ a)
+TR_kw_var a = TR_fn_tensor([[1.0, 2.0]])
+TR_fn_print(a @ a)

@@ -1,10 +1,11 @@
+//! tr kodlu 3 dil=tr
 // testler_test.tr (12.1) tarafından aktarılan yardımcı modül: içindeki test bloğu normal
 // çalıştırmada atlanmalıdır.
-değişken testli_sayaç = 0
+TR_kw_var testli_sayaç = 0
 
-test "çalıştırılmamalı" {
+TR_ctx_test "çalıştırılmamalı" {
     testli_sayaç = 99
-    fırlat "normal çalıştırmada test blokları atlanır"
+    TR_kw_throw "normal çalıştırmada test blokları atlanır"
 }
 
-değişken testli_bitti = doğru
+TR_kw_var testli_bitti = TR_kw_true

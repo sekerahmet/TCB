@@ -1,7 +1,8 @@
+//! tr kodlu 3 dil=tr
 // moduller_test.tr tarafından aktarılan yardımcı modül (kendisi test dosyası değildir)
-değişken PI = 3
-değişken kayıt = []
+TR_kw_var PI = 3
+TR_kw_var kayıt = []
 
-fonksiyon kare(x) {
-    sonuç x * x
+TR_kw_func kare(x) {
+    TR_kw_return x * x
 }

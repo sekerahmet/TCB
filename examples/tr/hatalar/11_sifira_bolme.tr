@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // Hata 11 — Sıfıra bölme.
 // İleti kodu: H2470
 // Ne olur: Çalışma anında bölen sıfırsa hata alınır.
@@ -6,5 +7,5 @@
 //     eğer adet != 0 { yazdır(100 / adet) } // ya da hatayı dene/yakala ile yönetin
 // Çalıştırma (proje kökünden): tr examples/tr/hatalar/11_sifira_bolme.tr   (çıkış kodu 1)
 
-değişken adet = 0
-yazdır(100 / adet)
+TR_kw_var adet = 0
+TR_fn_print(100 / adet)

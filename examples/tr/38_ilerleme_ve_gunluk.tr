@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // 38 — İlerleme çubuğu ve günlük: uzun işi izlemek ve kaydını tutmak.
 // Ne öğretir: ilerleme(toplam) ile çubuk açmak, güncelle ile ilerletmek, durdur; günlük(yol) ile her adımın
 // kaydını bir JSON satırı olarak yazmak ve ilerleme(günlük:) ile bağlamak; İlerleme ve Günlük tipleri.
@@ -6,30 +7,30 @@
 // Günlük dosyası geçici klasöre yazılır (program bitince silinir).
 
 // günlük(yol) bir günlük dosyası açar; ekle(sözlük) her çağrıda dosyaya bir JSON satırı ekler.
-değişken dosya = yol(geçici_klasör(), "günlük.jsonl")
-değişken kayıt_defteri = günlük(dosya)
-yazdır(tip(kayıt_defteri) == Günlük)
-kayıt_defteri.ekle({adım: 0, kayıp: 9.5})
+TR_kw_var dosya = TR_fn_path(TR_fn_temp_dir(), "günlük.jsonl")
+TR_kw_var kayıt_defteri = TR_fn_logger(dosya)
+TR_fn_print(TR_fn_type(kayıt_defteri) == TR_type_Logger)
+kayıt_defteri.TR_mem_append({TR_mem_step: 0, kayıp: 9.5})
 
 // ilerleme(toplam) bir ilerleme çubuğu açar (standart hataya yazar: adım, kayıp, hız, kalan süre).
 // günlük: verilirse çubuğun her güncellemesi aynı zamanda günlüğe yazılır.
-değişken çubuk = ilerleme(5, günlük: kayıt_defteri)
-yazdır(tip(çubuk) == İlerleme)
-döngü i içinde 1..=5 {
-    bekle(0.01) // asıl işin yerini tutar
-    çubuk.güncelle({kayıp: 10.0 / (i + 1)}, adım: i)
+TR_kw_var çubuk = TR_fn_progress(5, TR_arg_log: kayıt_defteri)
+TR_fn_print(TR_fn_type(çubuk) == TR_type_Progress)
+TR_kw_for i TR_kw_in 1..=5 {
+    TR_fn_sleep(0.01) // asıl işin yerini tutar
+    çubuk.TR_mem_update({kayıp: 10.0 / (i + 1)}, TR_arg_step: i)
 }
 
 // Çubuk toplama ulaşınca kendiliğinden biter; durdur() onu elle bitirir (ilk çağrıda doğru,
 // çubuk zaten bittiyse yanlış verir).
-yazdır("çubuk zaten bitmişti:", çubuk.durdur())
+TR_fn_print("çubuk zaten bitmişti:", çubuk.TR_mem_stop())
 
 // Günlük dosyası: her satır bir JSON kaydı.
-değişken kayıt_sayısı = 0
-döngü satır içinde dosya_satırları(dosya) {
+TR_kw_var kayıt_sayısı = 0
+TR_kw_for satır TR_kw_in TR_fn_read_lines(dosya) {
     kayıt_sayısı += 1
 }
-yazdır("günlükteki kayıt sayısı:", kayıt_sayısı)
+TR_fn_print("günlükteki kayıt sayısı:", kayıt_sayısı)
 
 // --- Kendin dene ---
 // 1. Günlükteki son satırı json_çöz ile oku ve kayıp değerini yazdır.

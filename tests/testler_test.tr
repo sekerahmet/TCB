@@ -1,56 +1,57 @@
+//! tr kodlu 3 dil=tr
 // docs/spec/12_testler.md §12 — Testler
 
-değişken test = "test sıradan bir ad olarak da kullanılabilir"
-değişken genel_değer = 42
+TR_kw_var test = "test sıradan bir ad olarak da kullanılabilir"
+TR_kw_var genel_değer = 42
 
-test "12.1 test bloğu adıyla birlikte tanımlanır; normal çalıştırmada atlanır" {
+TR_ctx_test "12.1 test bloğu adıyla birlikte tanımlanır; normal çalıştırmada atlanır" {
     // Modül normal biçimde çalıştırılır: içindeki test bloğu atlanır (çalışsaydı sayaç değişir
     // ve hata fırlatırdı), sonraki satırlar çalışır.
-    aktar "yardimci_testli"
-    eşit_mi(0, testli_sayaç)
-    doğrula(testli_bitti)
+    TR_kw_import "yardimci_testli"
+    TR_fn_assert_equal(0, testli_sayaç)
+    TR_fn_assert(testli_bitti)
 }
 
-test "12.2 test yalnızca deyim başında ve ardından metin gelince anahtar kelimedir" {
-    eşit_mi(Metin, tip(test))
-    fonksiyon test_et(test) { sonuç test + 1 }
-    eşit_mi(2, test_et(1))
+TR_ctx_test "12.2 test yalnızca deyim başında ve ardından metin gelince anahtar kelimedir" {
+    TR_fn_assert_equal(TR_type_String, TR_fn_type(test))
+    TR_kw_func test_et(test) { TR_kw_return test + 1 }
+    TR_fn_assert_equal(2, test_et(1))
 }
 
-test "12.3 doğrula(koşul, [mesaj])" {
-    doğrula(1 < 2)
-    doğrula(doğru, "mesajlı biçim")
-    değişken mesaj = ""
-    dene { doğrula(yanlış, "özel mesaj") } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("doğrulama başarısız: özel mesaj"), mesaj)
+TR_ctx_test "12.3 doğrula(koşul, [mesaj])" {
+    TR_fn_assert(1 < 2)
+    TR_fn_assert(TR_kw_true, "mesajlı biçim")
+    TR_kw_var mesaj = ""
+    TR_kw_try { TR_fn_assert(TR_kw_false, "özel mesaj") } TR_kw_catch h { mesaj = h }
+    TR_fn_assert(mesaj.TR_mem_contains("doğrulama başarısız: özel mesaj"), mesaj)
 }
 
-test "12.4 eşit_mi(beklenen, gerçek) iki değeri de gösterir" {
-    eşit_mi([1, 2], [1, 2])
-    eşit_mi("a", "a")
-    değişken mesaj = ""
-    dene { eşit_mi("5", 5) } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("beklenen \"5\" (Metin), gerçek 5 (Tam)"), mesaj)
+TR_ctx_test "12.4 eşit_mi(beklenen, gerçek) iki değeri de gösterir" {
+    TR_fn_assert_equal([1, 2], [1, 2])
+    TR_fn_assert_equal("a", "a")
+    TR_kw_var mesaj = ""
+    TR_kw_try { TR_fn_assert_equal("5", 5) } TR_kw_catch h { mesaj = h }
+    TR_fn_assert(mesaj.TR_mem_contains("beklenen \"5\" (Metin), gerçek 5 (Tam)"), mesaj)
 }
 
-test "12.5 her test yeni bir kapsamda çalışır; üst düzey tanımlar görünür" {
-    değişken yerel = 1
-    eşit_mi(1, yerel)
-    eşit_mi(42, genel_değer)
+TR_ctx_test "12.5 her test yeni bir kapsamda çalışır; üst düzey tanımlar görünür" {
+    TR_kw_var yerel = 1
+    TR_fn_assert_equal(1, yerel)
+    TR_fn_assert_equal(42, genel_değer)
 }
 
-test "12.5 bir testin yerel adı ötekine sızmaz" {
+TR_ctx_test "12.5 bir testin yerel adı ötekine sızmaz" {
     // Başka bir testin tanımladığı ad (yerel) bu testte tanımsızdır; testlerin sırasından
     // bağımsız olarak doğrudur.
-    değişken mesaj = ""
-    dene { aktar "negative/test_yerel_adi" } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("Satır 8, Sütun 12: Tanımsız ad — 'yerel' adında bir değişken ya da fonksiyon yok"), mesaj)
+    TR_kw_var mesaj = ""
+    TR_kw_try { TR_kw_import "negative/test_yerel_adi" } TR_kw_catch h { mesaj = h }
+    TR_fn_assert(mesaj.TR_mem_contains("Satır 8, Sütun 12: Tanımsız ad — 'yerel' adında bir değişken ya da fonksiyon yok"), mesaj)
 }
 
-test "12.6 test gövdesinde sonuç derleme hatasıdır" {
-    fonksiyon iç() { sonuç 7 }
-    eşit_mi(7, iç())
-    değişken mesaj = ""
-    dene { aktar "negative/test_govdesi_sonuc" } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("'sonuç' test gövdesinde kullanılamaz"), mesaj)
+TR_ctx_test "12.6 test gövdesinde sonuç derleme hatasıdır" {
+    TR_kw_func iç() { TR_kw_return 7 }
+    TR_fn_assert_equal(7, iç())
+    TR_kw_var mesaj = ""
+    TR_kw_try { TR_kw_import "negative/test_govdesi_sonuc" } TR_kw_catch h { mesaj = h }
+    TR_fn_assert(mesaj.TR_mem_contains("'sonuç' test gövdesinde kullanılamaz"), mesaj)
 }

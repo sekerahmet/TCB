@@ -1,235 +1,236 @@
+//! tr kodlu 3 dil=tr
 // docs/spec/13_yerlesikler.md §13 — Yerleşik fonksiyonlar ve metotlar (seçki)
 
-test "13.1 genel yerleşikler" {
-    eşit_mi(3, [1, 2, 3].uzunluk)
-    eşit_mi(6, toplam([1, 2, 3]))
-    eşit_mi(1, min([3, 1, 2]))
-    eşit_mi(3, max([3, 1, 2]))
-    eşit_mi(5, mutlak(-5))
-    eşit_mi(3.0, karekök(9))
-    eşit_mi([0, 1, 2], aralık(0, 3))
+TR_ctx_test "13.1 genel yerleşikler" {
+    TR_fn_assert_equal(3, [1, 2, 3].TR_mem_length)
+    TR_fn_assert_equal(6, TR_fn_sum([1, 2, 3]))
+    TR_fn_assert_equal(1, TR_fn_min([3, 1, 2]))
+    TR_fn_assert_equal(3, TR_fn_max([3, 1, 2]))
+    TR_fn_assert_equal(5, TR_fn_abs(-5))
+    TR_fn_assert_equal(3.0, TR_fn_sqrt(9))
+    TR_fn_assert_equal([0, 1, 2], TR_fn_range(0, 3))
 }
 
-test "13.1 min ve max türü korur, Tam'ları tam karşılaştırır, sayı olmayanda hata verir" {
-    eşit_mi(2.0, max([2.0, 1.5]))
-    eşit_mi(Ondalık, tip(max([2.0, 1.5])))
-    eşit_mi(Tam, tip(min([1, 2.5])))
-    eşit_mi(9007199254740993, max([9007199254740993, 1]))
-    doğrula(max([9007199254740993, 9007199254740992]) != 9007199254740992)
-    eşit_mi(Tam, tip(max(9223372036854775807, 1)))
-    eşit_mi(-7, min(3, -7, 0.5))
-    eşit_mi(yok, max([]))
-    değişken hatalar = []
-    dene { max([1, "a", 5]) } yakala h { hatalar.ekle(h) }
-    dene { min("abc") } yakala h { hatalar.ekle(h) }
-    dene { toplam([1, "a", 2]) } yakala h { hatalar.ekle(h) }
-    eşit_mi(3, hatalar.uzunluk, metin(hatalar))
-    doğrula(hatalar[0].içerir("max(): listenin 2. elemanı Tam ya da Ondalık olmalıdır, Metin (\"a\") verildi"), hatalar[0])
-    doğrula(hatalar[1].içerir("min() 1. argüman olarak Tam ya da Ondalık bekler"), hatalar[1])
+TR_ctx_test "13.1 min ve max türü korur, Tam'ları tam karşılaştırır, sayı olmayanda hata verir" {
+    TR_fn_assert_equal(2.0, TR_fn_max([2.0, 1.5]))
+    TR_fn_assert_equal(TR_type_Float, TR_fn_type(TR_fn_max([2.0, 1.5])))
+    TR_fn_assert_equal(TR_type_Int, TR_fn_type(TR_fn_min([1, 2.5])))
+    TR_fn_assert_equal(9007199254740993, TR_fn_max([9007199254740993, 1]))
+    TR_fn_assert(TR_fn_max([9007199254740993, 9007199254740992]) != 9007199254740992)
+    TR_fn_assert_equal(TR_type_Int, TR_fn_type(TR_fn_max(9223372036854775807, 1)))
+    TR_fn_assert_equal(-7, TR_fn_min(3, -7, 0.5))
+    TR_fn_assert_equal(TR_kw_none, TR_fn_max([]))
+    TR_kw_var hatalar = []
+    TR_kw_try { TR_fn_max([1, "a", 5]) } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { TR_fn_min("abc") } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { TR_fn_sum([1, "a", 2]) } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_fn_assert_equal(3, hatalar.TR_mem_length, TR_fn_str(hatalar))
+    TR_fn_assert(hatalar[0].TR_mem_contains("max(): listenin 2. elemanı Tam ya da Ondalık olmalıdır, Metin (\"a\") verildi"), hatalar[0])
+    TR_fn_assert(hatalar[1].TR_mem_contains("min() 1. argüman olarak Tam ya da Ondalık bekler"), hatalar[1])
     // Negatif basamak onlar, yüzler basamağına yuvarlar
-    eşit_mi(1200, yuvarla(1234, -2))
-    eşit_mi(1240, yuvarla(1235.0, -1))
-    eşit_mi(4, yuvarla(3.6))
+    TR_fn_assert_equal(1200, TR_fn_round(1234, -2))
+    TR_fn_assert_equal(1240, TR_fn_round(1235.0, -1))
+    TR_fn_assert_equal(4, TR_fn_round(3.6))
 }
 
-test "13.1 yerleşiklerin argüman hataları tek biçimdedir" {
-    değişken m = ""
-    dene { aralık("a") } yakala h { m = h }
-    doğrula(m.biter("aralık() 1. argüman olarak Tam bekler, Metin (\"a\") verildi"), m)
-    dene { aralık(1, 2.5) } yakala h { m = h }
-    doğrula(m.biter("aralık() 2. argüman olarak Tam bekler, Ondalık (2.5) verildi"), m)
-    dene { [1].filtrele(3) } yakala h { m = h }
-    doğrula(m.biter("liste.filtrele() 1. argüman olarak Fonksiyon bekler, Tam (3) verildi"), m)
-    dene { toplam() } yakala h { m = h }
-    doğrula(m.biter("toplam() 1 argüman bekler, 0 verildi (kullanım: toplam(liste))"), m)
-    dene { yuvarla(1.25, "x") } yakala h { m = h }
-    doğrula(m.biter("yuvarla() 2. argüman olarak Tam bekler, Metin (\"x\") verildi"), m)
+TR_ctx_test "13.1 yerleşiklerin argüman hataları tek biçimdedir" {
+    TR_kw_var m = ""
+    TR_kw_try { TR_fn_range("a") } TR_kw_catch h { m = h }
+    TR_fn_assert(m.TR_mem_ends_with("aralık() 1. argüman olarak Tam bekler, Metin (\"a\") verildi"), m)
+    TR_kw_try { TR_fn_range(1, 2.5) } TR_kw_catch h { m = h }
+    TR_fn_assert(m.TR_mem_ends_with("aralık() 2. argüman olarak Tam bekler, Ondalık (2.5) verildi"), m)
+    TR_kw_try { [1].TR_mem_filter(3) } TR_kw_catch h { m = h }
+    TR_fn_assert(m.TR_mem_ends_with("liste.filtrele() 1. argüman olarak Fonksiyon bekler, Tam (3) verildi"), m)
+    TR_kw_try { TR_fn_sum() } TR_kw_catch h { m = h }
+    TR_fn_assert(m.TR_mem_ends_with("toplam() 1 argüman bekler, 0 verildi (kullanım: toplam(liste))"), m)
+    TR_kw_try { TR_fn_round(1.25, "x") } TR_kw_catch h { m = h }
+    TR_fn_assert(m.TR_mem_ends_with("yuvarla() 2. argüman olarak Tam bekler, Metin (\"x\") verildi"), m)
 }
 
-test "13.1 dosya_oku ve dosya_yaz hataları Türkçedir; göreli yol önce çalışma klasöründe, sonra programın klasöründe aranır" {
+TR_ctx_test "13.1 dosya_oku ve dosya_yaz hataları Türkçedir; göreli yol önce çalışma klasöründe, sonra programın klasöründe aranır" {
     // Programın klasöründeki dosya, program başka bir klasörden çalıştırılsa da bulunur
-    doğrula(dosya_oku("data/tokenizer.json").içerir("model"))
-    değişken m = ""
-    dene { dosya_oku("data/olmayan_dosya.txt") } yakala h { m = h }
-    doğrula(m.içerir("dosya_oku(): \"data/olmayan_dosya.txt\" okunamadı: böyle bir dosya ya da klasör yok"), m)
-    doğrula(m.içerir("bakılan yerler: "), m)
-    doğrula(değil m.içerir("system cannot"), m)
-    dene { dosya_oku("data") } yakala h { m = h }
-    doğrula(m.içerir("bu bir klasör, dosya değil"), m)
-    dene { dosya_yaz("olmayan_klasör_tr/a.txt", "x") } yakala h { m = h }
-    doğrula(m.biter("dosya_yaz(): \"olmayan_klasör_tr/a.txt\" yazılamadı: \"olmayan_klasör_tr\" klasörü yok"), m)
-    dene { dosya_oku(5) } yakala h { m = h }
-    doğrula(m.biter("dosya_oku() 1. argüman olarak Metin ya da Yol bekler, Tam (5) verildi"), m)
+    TR_fn_assert(TR_fn_read_file("data/tokenizer.json").TR_mem_contains("model"))
+    TR_kw_var m = ""
+    TR_kw_try { TR_fn_read_file("data/olmayan_dosya.txt") } TR_kw_catch h { m = h }
+    TR_fn_assert(m.TR_mem_contains("dosya_oku(): \"data/olmayan_dosya.txt\" okunamadı: böyle bir dosya ya da klasör yok"), m)
+    TR_fn_assert(m.TR_mem_contains("bakılan yerler: "), m)
+    TR_fn_assert(TR_kw_not m.TR_mem_contains("system cannot"), m)
+    TR_kw_try { TR_fn_read_file("data") } TR_kw_catch h { m = h }
+    TR_fn_assert(m.TR_mem_contains("bu bir klasör, dosya değil"), m)
+    TR_kw_try { TR_fn_write_file("olmayan_klasör_tr/a.txt", "x") } TR_kw_catch h { m = h }
+    TR_fn_assert(m.TR_mem_ends_with("dosya_yaz(): \"olmayan_klasör_tr/a.txt\" yazılamadı: \"olmayan_klasör_tr\" klasörü yok"), m)
+    TR_kw_try { TR_fn_read_file(5) } TR_kw_catch h { m = h }
+    TR_fn_assert(m.TR_mem_ends_with("dosya_oku() 1. argüman olarak Metin ya da Yol bekler, Tam (5) verildi"), m)
 }
 
-test "13.1a yolda sekme ya da satır sonu varsa yol alan yerleşikler ham metni önerir" {
-    değişken m = ""
-    dene { dosya_oku("C:\tokenizer.json") } yakala h { m = h }
-    doğrula(m.içerir("dosya_oku(): dosya yolunda sekme karakteri var"), m)
-    doğrula(m.içerir("ham metin kullanın: `C:\\tokenizer.json`"), m)
-    dene { dosya_yaz("D:\new\rapor.txt", "x") } yakala h { m = h }
-    doğrula(m.içerir("dosya_yaz(): dosya yolunda satır sonu karakteri var"), m)
-    doğrula(m.içerir(`D:\new\rapor.txt`), m)
-    dene { tensör_yükle("a\tb.trt") } yakala h { m = h }
-    doğrula(m.içerir("tensör_yükle: dosya yolunda sekme"), m)
-    dene { parçalayıcı_yükle("a\tb.json") } yakala h { m = h }
-    doğrula(m.içerir("parçalayıcı_yükle: dosya yolunda sekme"), m)
-    dene { veri_kümesi("veri\tsayilar") } yakala h { m = h }
-    doğrula(m.içerir("veri_kümesi: dosya yolunda sekme"), m)
+TR_ctx_test "13.1a yolda sekme ya da satır sonu varsa yol alan yerleşikler ham metni önerir" {
+    TR_kw_var m = ""
+    TR_kw_try { TR_fn_read_file("C:\tokenizer.json") } TR_kw_catch h { m = h }
+    TR_fn_assert(m.TR_mem_contains("dosya_oku(): dosya yolunda sekme karakteri var"), m)
+    TR_fn_assert(m.TR_mem_contains("ham metin kullanın: `C:\\tokenizer.json`"), m)
+    TR_kw_try { TR_fn_write_file("D:\new\rapor.txt", "x") } TR_kw_catch h { m = h }
+    TR_fn_assert(m.TR_mem_contains("dosya_yaz(): dosya yolunda satır sonu karakteri var"), m)
+    TR_fn_assert(m.TR_mem_contains(`D:\new\rapor.txt`), m)
+    TR_kw_try { TR_fn_load_tensors("a\tb.trt") } TR_kw_catch h { m = h }
+    TR_fn_assert(m.TR_mem_contains("tensör_yükle: dosya yolunda sekme"), m)
+    TR_kw_try { TR_fn_load_tokenizer("a\tb.json") } TR_kw_catch h { m = h }
+    TR_fn_assert(m.TR_mem_contains("parçalayıcı_yükle: dosya yolunda sekme"), m)
+    TR_kw_try { TR_fn_dataset("veri\tsayilar") } TR_kw_catch h { m = h }
+    TR_fn_assert(m.TR_mem_contains("veri_kümesi: dosya yolunda sekme"), m)
 }
 
-test "13.2 metin metotları" {
-    eşit_mi("İSTANBUL", "istanbul".büyük_harf())
-    eşit_mi("ılık", "ILIK".küçük_harf())
-    eşit_mi("a", "  a ".kırp())
-    eşit_mi(["a", "b"], "a,b".böl(","))
-    eşit_mi("axc", "abc".değiştir("b", "x"))
-    doğrula("abc".içerir("b") ve "abc".başlar("a") ve "abc".biter("c"))
-    eşit_mi("cba", "abc".ters_çevir())
+TR_ctx_test "13.2 metin metotları" {
+    TR_fn_assert_equal("İSTANBUL", "istanbul".TR_mem_upper())
+    TR_fn_assert_equal("ılık", "ILIK".TR_mem_lower())
+    TR_fn_assert_equal("a", "  a ".TR_mem_strip())
+    TR_fn_assert_equal(["a", "b"], "a,b".TR_mem_split(","))
+    TR_fn_assert_equal("axc", "abc".TR_mem_replace("b", "x"))
+    TR_fn_assert("abc".TR_mem_contains("b") TR_kw_and "abc".TR_mem_starts_with("a") TR_kw_and "abc".TR_mem_ends_with("c"))
+    TR_fn_assert_equal("cba", "abc".TR_mem_reverse())
 }
 
-test "13.3 liste metotları" {
-    değişken l = [3, 1, 2, 2]
-    eşit_mi([1, 2, 2, 3], l.sırala())
-    eşit_mi([3, 1, 2], l.benzersiz())
-    eşit_mi("3-1-2-2", l.birleştir("-"))
-    eşit_mi(3, l.ilk)
-    eşit_mi(2, l.son)
-    eşit_mi(2.0, ortalama(l))
-    doğrula(l.içerir(1))
+TR_ctx_test "13.3 liste metotları" {
+    TR_kw_var l = [3, 1, 2, 2]
+    TR_fn_assert_equal([1, 2, 2, 3], l.TR_mem_sort())
+    TR_fn_assert_equal([3, 1, 2], l.TR_mem_unique())
+    TR_fn_assert_equal("3-1-2-2", l.TR_mem_join("-"))
+    TR_fn_assert_equal(3, l.TR_mem_first)
+    TR_fn_assert_equal(2, l.TR_mem_last)
+    TR_fn_assert_equal(2.0, TR_fn_mean(l))
+    TR_fn_assert(l.TR_mem_contains(1))
 }
 
-test "13.3 sırala sayıları tam, metinleri karakter sırasıyla dizer; karışık tip hatadır" {
-    eşit_mi([9007199254740992, 9007199254740993], [9007199254740993, 9007199254740992].sırala())
-    eşit_mi([-1, 0.5, 2, 2.5], [2.5, 2, -1, 0.5].sırala())
-    eşit_mi(["a", "b", "ç"], ["ç", "b", "a"].sırala())
-    değişken hatalar = []
-    dene { [2, "10", 10].sırala() } yakala h { hatalar.ekle(h) }
-    dene { [10, 2, "10"].sırala() } yakala h { hatalar.ekle(h) }
-    dene { [doğru, yanlış].sırala() } yakala h { hatalar.ekle(h) }
-    eşit_mi(3, hatalar.uzunluk, metin(hatalar))
-    döngü h içinde hatalar { doğrula(h.içerir("yalnızca sayılardan ya da yalnızca metinlerden"), h) }
+TR_ctx_test "13.3 sırala sayıları tam, metinleri karakter sırasıyla dizer; karışık tip hatadır" {
+    TR_fn_assert_equal([9007199254740992, 9007199254740993], [9007199254740993, 9007199254740992].TR_mem_sort())
+    TR_fn_assert_equal([-1, 0.5, 2, 2.5], [2.5, 2, -1, 0.5].TR_mem_sort())
+    TR_fn_assert_equal(["a", "b", "ç"], ["ç", "b", "a"].TR_mem_sort())
+    TR_kw_var hatalar = []
+    TR_kw_try { [2, "10", 10].TR_mem_sort() } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { [10, 2, "10"].TR_mem_sort() } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { [TR_kw_true, TR_kw_false].TR_mem_sort() } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_fn_assert_equal(3, hatalar.TR_mem_length, TR_fn_str(hatalar))
+    TR_kw_for h TR_kw_in hatalar { TR_fn_assert(h.TR_mem_contains("yalnızca sayılardan ya da yalnızca metinlerden"), h) }
 }
 
-test "13.2 metotlar argüman sayısını ve tipini denetler" {
-    değişken hatalar = []
-    dene { "abc".içerir() } yakala h { hatalar.ekle(h) }
-    dene { "a1".içerir(1) } yakala h { hatalar.ekle(h) }
-    dene { "abc".büyük_harf(1) } yakala h { hatalar.ekle(h) }
-    dene { "a,b".böl(1) } yakala h { hatalar.ekle(h) }
-    dene { "abc".değiştir("a") } yakala h { hatalar.ekle(h) }
-    dene { [1, 2].filtrele(3) } yakala h { hatalar.ekle(h) }
-    dene { [1].ekle() } yakala h { hatalar.ekle(h) }
-    dene { {"a": 1}.anahtarlar(1) } yakala h { hatalar.ekle(h) }
-    eşit_mi(8, hatalar.uzunluk, metin(hatalar))
-    doğrula(hatalar[0].içerir("metin.içerir() 1 argüman bekler, 0 verildi (kullanım: metin.içerir(alt))"), hatalar[0])
-    doğrula(hatalar[1].içerir("metin.içerir() 1. argüman olarak Metin bekler, Tam (1) verildi"), hatalar[1])
-    doğrula(hatalar[2].içerir("metin.büyük_harf() 0 argüman bekler, 1 verildi"), hatalar[2])
-    doğrula(hatalar[5].içerir("liste.filtrele() 1. argüman olarak Fonksiyon bekler"), hatalar[5])
+TR_ctx_test "13.2 metotlar argüman sayısını ve tipini denetler" {
+    TR_kw_var hatalar = []
+    TR_kw_try { "abc".TR_mem_contains() } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { "a1".TR_mem_contains(1) } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { "abc".TR_mem_upper(1) } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { "a,b".TR_mem_split(1) } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { "abc".TR_mem_replace("a") } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { [1, 2].TR_mem_filter(3) } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { [1].TR_mem_append() } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { {"a": 1}.TR_mem_keys(1) } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_fn_assert_equal(8, hatalar.TR_mem_length, TR_fn_str(hatalar))
+    TR_fn_assert(hatalar[0].TR_mem_contains("metin.içerir() 1 argüman bekler, 0 verildi (kullanım: metin.içerir(alt))"), hatalar[0])
+    TR_fn_assert(hatalar[1].TR_mem_contains("metin.içerir() 1. argüman olarak Metin bekler, Tam (1) verildi"), hatalar[1])
+    TR_fn_assert(hatalar[2].TR_mem_contains("metin.büyük_harf() 0 argüman bekler, 1 verildi"), hatalar[2])
+    TR_fn_assert(hatalar[5].TR_mem_contains("liste.filtrele() 1. argüman olarak Fonksiyon bekler"), hatalar[5])
     // Liste ve sözlük içerir her tipte değer arar
-    doğrula(değil [1, 2].içerir("1"))
-    doğrula([1, 2].içerir(1.0))
+    TR_fn_assert(TR_kw_not [1, 2].TR_mem_contains("1"))
+    TR_fn_assert([1, 2].TR_mem_contains(1.0))
 }
 
-test "13.3 boş ya da sayı olmayan listenin ortalaması hatadır" {
-    eşit_mi(2.0, ortalama([1, 2, 3]))
-    değişken hatalar = []
-    dene { ortalama([]) } yakala h { hatalar.ekle(h) }
-    dene { ortalama([1, "x", 3]) } yakala h { hatalar.ekle(h) }
-    eşit_mi(2, hatalar.uzunluk, metin(hatalar))
-    doğrula(hatalar[0].içerir("boş listenin ortalaması yoktur"), hatalar[0])
-    doğrula(hatalar[1].içerir("listenin 2. elemanı Tam ya da Ondalık olmalıdır"), hatalar[1])
+TR_ctx_test "13.3 boş ya da sayı olmayan listenin ortalaması hatadır" {
+    TR_fn_assert_equal(2.0, TR_fn_mean([1, 2, 3]))
+    TR_kw_var hatalar = []
+    TR_kw_try { TR_fn_mean([]) } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { TR_fn_mean([1, "x", 3]) } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_fn_assert_equal(2, hatalar.TR_mem_length, TR_fn_str(hatalar))
+    TR_fn_assert(hatalar[0].TR_mem_contains("boş listenin ortalaması yoktur"), hatalar[0])
+    TR_fn_assert(hatalar[1].TR_mem_contains("listenin 2. elemanı Tam ya da Ondalık olmalıdır"), hatalar[1])
 }
 
-test "13.1 standart_sapma ve ortanca ortalama kadar sıkıdır: boş ve sayı olmayanda hata" {
-    eşit_mi(2.0, standart_sapma([2, 4, 4, 4, 5, 5, 7, 9]))
-    eşit_mi(0.5, standart_sapma(1, 2))
-    eşit_mi(2.5, ortanca([3, 1, 2, 4]))
-    eşit_mi(2.0, ortanca(3, 1, 2))
-    değişken hatalar = []
-    dene { standart_sapma([]) } yakala h { hatalar.ekle(h) }
-    dene { ortanca([]) } yakala h { hatalar.ekle(h) }
-    dene { standart_sapma([1, "x"]) } yakala h { hatalar.ekle(h) }
-    dene { ortanca([1, yok, 3]) } yakala h { hatalar.ekle(h) }
-    dene { ortanca() } yakala h { hatalar.ekle(h) }
-    eşit_mi(5, hatalar.uzunluk, metin(hatalar))
-    doğrula(hatalar[0].içerir("standart_sapma(): boş listenin standart sapması yoktur"), hatalar[0])
-    doğrula(hatalar[1].içerir("ortanca(): boş listenin ortancası yoktur"), hatalar[1])
-    doğrula(hatalar[2].içerir("standart_sapma(): listenin 2. elemanı Tam ya da Ondalık olmalıdır, Metin (\"x\") verildi"), hatalar[2])
-    doğrula(hatalar[3].içerir("ortanca(): listenin 2. elemanı Tam ya da Ondalık olmalıdır"), hatalar[3])
-    doğrula(hatalar[4].içerir("ortanca() en az 1 argüman bekler"), hatalar[4])
+TR_ctx_test "13.1 standart_sapma ve ortanca ortalama kadar sıkıdır: boş ve sayı olmayanda hata" {
+    TR_fn_assert_equal(2.0, TR_fn_std([2, 4, 4, 4, 5, 5, 7, 9]))
+    TR_fn_assert_equal(0.5, TR_fn_std(1, 2))
+    TR_fn_assert_equal(2.5, TR_fn_median([3, 1, 2, 4]))
+    TR_fn_assert_equal(2.0, TR_fn_median(3, 1, 2))
+    TR_kw_var hatalar = []
+    TR_kw_try { TR_fn_std([]) } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { TR_fn_median([]) } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { TR_fn_std([1, "x"]) } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { TR_fn_median([1, TR_kw_none, 3]) } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { TR_fn_median() } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_fn_assert_equal(5, hatalar.TR_mem_length, TR_fn_str(hatalar))
+    TR_fn_assert(hatalar[0].TR_mem_contains("standart_sapma(): boş listenin standart sapması yoktur"), hatalar[0])
+    TR_fn_assert(hatalar[1].TR_mem_contains("ortanca(): boş listenin ortancası yoktur"), hatalar[1])
+    TR_fn_assert(hatalar[2].TR_mem_contains("standart_sapma(): listenin 2. elemanı Tam ya da Ondalık olmalıdır, Metin (\"x\") verildi"), hatalar[2])
+    TR_fn_assert(hatalar[3].TR_mem_contains("ortanca(): listenin 2. elemanı Tam ya da Ondalık olmalıdır"), hatalar[3])
+    TR_fn_assert(hatalar[4].TR_mem_contains("ortanca() en az 1 argüman bekler"), hatalar[4])
 }
 
-test "13.5 yerleşikler ve metotlar bilinmeyen adlı argümanı reddeder" {
-    değişken hatalar = []
-    dene { yazdır("a", ayraç: "-") } yakala h { hatalar.ekle(h) }
-    dene { "a b".böl(eksen: 1) } yakala h { hatalar.ekle(h) }
-    dene { toplam([1, 2], eksn: 0) } yakala h { hatalar.ekle(h) }
-    dene { AdamW([tensör([1.0], türev_izle: doğru)], lr: 0.1) } yakala h { hatalar.ekle(h) }
-    dene { örnekle(tensör([1.0, 2.0]), tohm: 1) } yakala h { hatalar.ekle(h) }
-    eşit_mi(5, hatalar.uzunluk, metin(hatalar))
-    doğrula(hatalar[0].içerir("yazdır() 'ayraç' adında bir parametre almaz (adlı argüman almaz)"), hatalar[0])
-    doğrula(hatalar[1].içerir("metin.böl() 'eksen' adında bir parametre almaz (adlı argüman almaz)"), hatalar[1])
-    doğrula(hatalar[2].içerir("toplam() 'eksn' adında bir parametre almaz. Bunu mu demek istediniz: 'eksen'?"), hatalar[2])
-    doğrula(hatalar[3].içerir("AdamW 'lr' adında bir parametre almaz. Bunu mu demek istediniz: 'öğrenme_oranı'?"), hatalar[3])
-    doğrula(hatalar[4].içerir("örnekle() 'tohm' adında bir parametre almaz. Bunu mu demek istediniz: 'tohum'?"), hatalar[4])
+TR_ctx_test "13.5 yerleşikler ve metotlar bilinmeyen adlı argümanı reddeder" {
+    TR_kw_var hatalar = []
+    TR_kw_try { TR_fn_print("a", ayraç: "-") } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { "a b".TR_mem_split(TR_arg_dim: 1) } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { TR_fn_sum([1, 2], eksn: 0) } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { TR_fn_AdamW([TR_fn_tensor([1.0], TR_arg_requires_grad: TR_kw_true)], lr: 0.1) } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { TR_fn_sample(TR_fn_tensor([1.0, 2.0]), tohm: 1) } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_fn_assert_equal(5, hatalar.TR_mem_length, TR_fn_str(hatalar))
+    TR_fn_assert(hatalar[0].TR_mem_contains("yazdır() 'ayraç' adında bir parametre almaz (adlı argüman almaz)"), hatalar[0])
+    TR_fn_assert(hatalar[1].TR_mem_contains("metin.böl() 'eksen' adında bir parametre almaz (adlı argüman almaz)"), hatalar[1])
+    TR_fn_assert(hatalar[2].TR_mem_contains("toplam() 'eksn' adında bir parametre almaz. Bunu mu demek istediniz: 'eksen'?"), hatalar[2])
+    TR_fn_assert(hatalar[3].TR_mem_contains("AdamW 'lr' adında bir parametre almaz. Bunu mu demek istediniz: 'öğrenme_oranı'?"), hatalar[3])
+    TR_fn_assert(hatalar[4].TR_mem_contains("örnekle() 'tohm' adında bir parametre almaz. Bunu mu demek istediniz: 'tohum'?"), hatalar[4])
 }
 
-test "13.6 hedef tipin adını taşıyan dönüştürücüler kurucudur ve tip() genel sorudur: ikisi de fonksiyondur" {
-    eşit_mi(5, tam("5"))
-    eşit_mi(2.5, ondalık("2.5"))
-    eşit_mi("[1, 2]", metin([1, 2]))
-    eşit_mi(Liste, tip([1]))
+TR_ctx_test "13.6 hedef tipin adını taşıyan dönüştürücüler kurucudur ve tip() genel sorudur: ikisi de fonksiyondur" {
+    TR_fn_assert_equal(5, TR_fn_int("5"))
+    TR_fn_assert_equal(2.5, TR_fn_float("2.5"))
+    TR_fn_assert_equal("[1, 2]", TR_fn_str([1, 2]))
+    TR_fn_assert_equal(TR_type_List, TR_fn_type([1]))
     // Yapının 'tip' alanı yerleşik tip() ile çakışmaz
-    yapı Ürün { ad, tip }
-    değişken ü = Ürün("kalem", "kırtasiye")
-    eşit_mi("kırtasiye", ü.tip)
-    eşit_mi(Ürün, tip(ü))
+    TR_kw_struct Ürün { ad, tip }
+    TR_kw_var ü = Ürün("kalem", "kırtasiye")
+    TR_fn_assert_equal("kırtasiye", ü.tip)
+    TR_fn_assert_equal(Ürün, TR_fn_type(ü))
 }
 
-test "13.6 değeri dönüştüren ya da soran iş metot, matematik ve tensör işi fonksiyondur" {
-    değişken l = [3, 1, 2]
-    eşit_mi(3, l.uzunluk)
-    eşit_mi([1, 2, 3], l.sırala())
-    eşit_mi(6, toplam(l))
-    eşit_mi(2.0, ortalama(l))
-    eşit_mi(6, l.indirge(0, (a, x) => a + x))
-    eşit_mi(6, l.indirge((a, x) => a * x))
-    eşit_mi(4, l.indirge(10) { birikim - o })
-    eşit_mi(yok, [].indirge((a, x) => a + x))
-    eşit_mi(7, [].indirge(7, (a, x) => a + x))
-    eşit_mi([[1, 2]], tensör([[1], [2]]).devrik().değer)
+TR_ctx_test "13.6 değeri dönüştüren ya da soran iş metot, matematik ve tensör işi fonksiyondur" {
+    TR_kw_var l = [3, 1, 2]
+    TR_fn_assert_equal(3, l.TR_mem_length)
+    TR_fn_assert_equal([1, 2, 3], l.TR_mem_sort())
+    TR_fn_assert_equal(6, TR_fn_sum(l))
+    TR_fn_assert_equal(2.0, TR_fn_mean(l))
+    TR_fn_assert_equal(6, l.TR_mem_reduce(0, (a, x) => a + x))
+    TR_fn_assert_equal(6, l.TR_mem_reduce((a, x) => a * x))
+    TR_fn_assert_equal(4, l.TR_mem_reduce(10) { TR_ctx_acc - TR_ctx_it })
+    TR_fn_assert_equal(TR_kw_none, [].TR_mem_reduce((a, x) => a + x))
+    TR_fn_assert_equal(7, [].TR_mem_reduce(7, (a, x) => a + x))
+    TR_fn_assert_equal([[1, 2]], TR_fn_tensor([[1], [2]]).TR_mem_transpose().TR_mem_tolist)
     // Öbür biçim yoktur: liste.toplam() ve tensör.toplam bir üye değildir.
-    değişken hatalar = []
-    dene { l.toplam() } yakala h { hatalar.ekle(h) }
-    dene { tensör([1.0]).toplam } yakala h { hatalar.ekle(h) }
-    dene { l.indirge((a, x) => a + x, 0) } yakala h { hatalar.ekle(h) }
-    eşit_mi(3, hatalar.uzunluk, metin(hatalar))
-    doğrula(hatalar[0].içerir("\"toplam\""), hatalar[0])
-    doğrula(hatalar[2].içerir("liste.indirge(): fonksiyon son argüman olmalı"), hatalar[2])
+    TR_kw_var hatalar = []
+    TR_kw_try { l.toplam() } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { TR_fn_tensor([1.0]).toplam } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_kw_try { l.TR_mem_reduce((a, x) => a + x, 0) } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_fn_assert_equal(3, hatalar.TR_mem_length, TR_fn_str(hatalar))
+    TR_fn_assert(hatalar[0].TR_mem_contains("\"toplam\""), hatalar[0])
+    TR_fn_assert(hatalar[2].TR_mem_contains("liste.indirge(): fonksiyon son argüman olmalı"), hatalar[2])
     // Metot adları genel kapsamda sıradan adlardır
-    değişken uzunluk = 5
-    fonksiyon sırala(x) { sonuç x }
-    eşit_mi([5, 3], [uzunluk, sırala(3)])
+    TR_kw_var uzunluk = 5
+    TR_kw_func sırala(x) { TR_kw_return x }
+    TR_fn_assert_equal([5, 3], [uzunluk, sırala(3)])
 }
 
-test "13.4 sözlük metotları" {
-    değişken d = {"a": 1, "b": 2}
-    eşit_mi(["a", "b"], d.anahtarlar())
-    eşit_mi([1, 2], d.değerler())
-    doğrula(d.içerir("a"))
+TR_ctx_test "13.4 sözlük metotları" {
+    TR_kw_var d = {"a": 1, "b": 2}
+    TR_fn_assert_equal(["a", "b"], d.TR_mem_keys())
+    TR_fn_assert_equal([1, 2], d.TR_mem_values())
+    TR_fn_assert(d.TR_mem_contains("a"))
 }
 
-test "13.8 csv_oku dosya okur, csv_çöz metni ayrıştırır" {
-    değişken k = geçici_klasör()
-    dosya_yaz(yol(k, "t.csv"), "ad,yaş\nAli,30")
-    eşit_mi([["ad", "yaş"], ["Ali", 30]], csv_oku(yol(k, "t.csv")))
-    eşit_mi([["ad", "yaş"], ["Ali", 30]], csv_çöz("ad,yaş\nAli,30"))
-    eşit_mi([["007", 7]], csv_çöz("007,7"))
-    değişken m = ""
-    dene { csv_oku("ad,yaş\nAli,30") } yakala h { m = h }
-    doğrula(m.içerir("csv_çöz()"), m)
+TR_ctx_test "13.8 csv_oku dosya okur, csv_çöz metni ayrıştırır" {
+    TR_kw_var k = TR_fn_temp_dir()
+    TR_fn_write_file(TR_fn_path(k, "t.csv"), "ad,yaş\nAli,30")
+    TR_fn_assert_equal([["ad", "yaş"], ["Ali", 30]], TR_fn_read_csv(TR_fn_path(k, "t.csv")))
+    TR_fn_assert_equal([["ad", "yaş"], ["Ali", 30]], TR_fn_parse_csv("ad,yaş\nAli,30"))
+    TR_fn_assert_equal([["007", 7]], TR_fn_parse_csv("007,7"))
+    TR_kw_var m = ""
+    TR_kw_try { TR_fn_read_csv("ad,yaş\nAli,30") } TR_kw_catch h { m = h }
+    TR_fn_assert(m.TR_mem_contains("csv_çöz()"), m)
     m = ""
-    dene { csv_çöz(5) } yakala h { m = h }
-    doğrula(m.içerir("csv_çöz() 1. argüman olarak Metin bekler"), m)
+    TR_kw_try { TR_fn_parse_csv(5) } TR_kw_catch h { m = h }
+    TR_fn_assert(m.TR_mem_contains("csv_çöz() 1. argüman olarak Metin bekler"), m)
 }

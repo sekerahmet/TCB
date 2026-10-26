@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // 28 — Eğitim döngüsü: bir modelin veriden öğrenmesi.
 // Ne öğretir: ağırlıkları rastgele başlatmak yerine sabit vermek, AdamW iyileştirici, tahmin → kayıp →
 // geri_yayılım → adım döngüsü, sıfırla, öğrenilen değerleri okumak.
@@ -5,29 +6,29 @@
 // Çalıştırma (proje kökünden): tr examples/tr/28_egitim_dongusu.tr
 
 // Görev: noktalardan y = 2x - 1 doğrusunu bulmak. Model: y_tahmin = x @ w + b.
-değişken X = tensör([[0], [1], [2], [3]])
-değişken Y = tensör([[-1], [1], [3], [5]])
-değişken w = tensör([[0.0]], türev_izle: doğru) // öğrenilecek eğim
-değişken b = tensör([0.0], türev_izle: doğru) // öğrenilecek kayma
+TR_kw_var X = TR_fn_tensor([[0], [1], [2], [3]])
+TR_kw_var Y = TR_fn_tensor([[-1], [1], [3], [5]])
+TR_kw_var w = TR_fn_tensor([[0.0]], TR_arg_requires_grad: TR_kw_true) // öğrenilecek eğim
+TR_kw_var b = TR_fn_tensor([0.0], TR_arg_requires_grad: TR_kw_true) // öğrenilecek kayma
 
 // İyileştirici gradyana bakıp ağırlıkları kayıp azalacak yönde günceller.
 // öğrenme_oranı adımın büyüklüğüdür: çok büyükse sapar, çok küçükse yavaş öğrenir.
-değişken iyileştirici = AdamW([w, b], öğrenme_oranı: 0.1, ağırlık_çürümesi: 0)
+TR_kw_var iyileştirici = TR_fn_AdamW([w, b], TR_arg_lr: 0.1, TR_arg_weight_decay: 0)
 
-döngü adım içinde 0..300 {
-    iyileştirici.sıfırla() // 1) gradyanlar birikir, önce sıfırla
-    değişken fark = X @ w + b - Y // 2) tahmin ve hata
-    değişken kayıp = ortalama(fark ** 2) // 3) kayıp: ortalama kare hata
-    geri_yayılım(kayıp) // 4) gradyanları hesapla
-    iyileştirici.adım() // 5) ağırlıkları güncelle
-    eğer adım % 50 == 0 {
-        yazdır("adım {adım}: kayıp = {yuvarla(kayıp.değer, 5)}")
+TR_kw_for adım TR_kw_in 0..300 {
+    iyileştirici.TR_mem_zero_grad() // 1) gradyanlar birikir, önce sıfırla
+    TR_kw_var fark = X @ w + b - Y // 2) tahmin ve hata
+    TR_kw_var kayıp = TR_fn_mean(fark ** 2) // 3) kayıp: ortalama kare hata
+    TR_fn_backward(kayıp) // 4) gradyanları hesapla
+    iyileştirici.TR_mem_step() // 5) ağırlıkları güncelle
+    TR_kw_if adım % 50 == 0 {
+        TR_fn_print("adım {adım}: kayıp = {TR_fn_round(kayıp.TR_mem_tolist, 5)}")
     }
 }
-yazdır("w = {yuvarla(w.değer[0][0], 3)}, b = {yuvarla(b.değer[0], 3)} (beklenen 2, -1)")
+TR_fn_print("w = {TR_fn_round(w.TR_mem_tolist[0][0], 3)}, b = {TR_fn_round(b.TR_mem_tolist[0], 3)} (beklenen 2, -1)")
 
 // Eğitilen model türevsiz kullanılır.
-yazdır("x = 10 için tahmin: {yuvarla(türevsiz { tensör([[10]]) @ w + b }.değer[0][0], 2)}")
+TR_fn_print("x = 10 için tahmin: {TR_fn_round(TR_fn_no_grad { TR_fn_tensor([[10]]) @ w + b }.TR_mem_tolist[0][0], 2)}")
 
 // --- Kendin dene ---
 // 1. öğrenme_oranı'nı 0.001 ve 1.0 yap: kayıp nasıl değişir?

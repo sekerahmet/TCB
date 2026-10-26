@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // 47 — Kendi üretim döngün: model.üret'in yaptığını elle yazmak.
 // Ne öğretir: model.önbellek_kur(), model.ileri(kimlikler, önbellek:) ile önbellekli ileri geçiş, son konumun
 // logitinden bir parça seçmek, önbellek.kırp(n) ile ilk n parçaya geri sarmak; elle yazılan döngünün model.üret ile aynı
@@ -7,65 +8,65 @@
 // Ayrıntılar: docs/guide/10_hazir_katmanlarla_gpt.md, docs/spec/15_tensorler.md §15.45, §15.8, lib/README.md (Üretim).
 // Model: 46'daki rastgele ağırlıklı küçük model (tests/data/hf_tiny); yazdırılan şey parça kimlikleridir.
 
-aktar "tr/hazir"
+TR_kw_import "tr/hazir"
 
-değişken model = hazır_model("../../tests/data/hf_tiny")
-değişken p = parçalayıcı_yükle("../../tests/data/tokenizer.json")
-değişken başlangıç = p.kodla("Bugün hava")
-sabit ADET = 6
+TR_kw_var model = hazır_model("../../tests/data/hf_tiny")
+TR_kw_var p = TR_fn_load_tokenizer("../../tests/data/tokenizer.json")
+TR_kw_var başlangıç = p.TR_mem_encode("Bugün hava")
+TR_kw_const ADET = 6
 
 // Hazır yol: model.üret.
-değişken hazır = model.üret(başlangıç, ADET, sıcaklık: 0)
-yazdır("üret:  ", hazır)
+TR_kw_var hazır = model.üret(başlangıç, ADET, sıcaklık: 0)
+TR_fn_print("üret:  ", hazır)
 
 // Elle yazılan döngü. önbellek_kur() boş bir KV önbelleği verir: katman başına anahtar ve değerler orada
 // tutulur, ileri çağrısı yeni parçaları ona ekler ve konumu ilerletir. Başlangıç bir kez işlenir; sonra
 // her adım yalnızca son parçayı verir. ileri, her konum için bir logit [dağarcık] verir: bir sonraki
 // parçayı son konumun logiti belirler.
-değişken ö = model.önbellek_kur()
-değişken çıktı = [k döngü k içinde başlangıç]
-türevsiz {
-    değişken mantık = model.ileri([başlangıç], önbellek: ö)
-    döngü i içinde 0..ADET {
-        değişken son = mantık.şekil[1] - 1
-        değişken seçilen = argmax(mantık, eksen: -1).değer[0][son] // açgözlü seçim
-        çıktı.ekle(seçilen)
+TR_kw_var ö = model.önbellek_kur()
+TR_kw_var çıktı = [k TR_kw_for k TR_kw_in başlangıç]
+TR_fn_no_grad {
+    TR_kw_var mantık = model.ileri([başlangıç], önbellek: ö)
+    TR_kw_for i TR_kw_in 0..ADET {
+        TR_kw_var son = mantık.TR_mem_shape[1] - 1
+        TR_kw_var seçilen = TR_fn_argmax(mantık, TR_arg_dim: -1).TR_mem_tolist[0][son] // açgözlü seçim
+        çıktı.TR_mem_append(seçilen)
         mantık = model.ileri([[seçilen]], önbellek: ö) // yalnızca yeni parçayı işler
     }
 }
-yazdır("elle:  ", çıktı)
-yazdır("aynı mı:", çıktı == hazır)
+TR_fn_print("elle:  ", çıktı)
+TR_fn_print("aynı mı:", çıktı == hazır)
 
 // kırp(n) önbelleği ilk n parçaya indirir: sonrakiler geri alınır (ör. reddedilen bir taslak parçalar).
 // Konum n olur; kalan parçalar yeniden işlenince aynı sonuç çıkar.
-yazdır("önbellekte konum:", ö.konum)
-ö.kırp(başlangıç.uzunluk + 3)
-yazdır("kırpınca konum:", ö.konum)
-türevsiz {
+TR_fn_print("önbellekte konum:", ö.konum)
+ö.TR_mem_strip(başlangıç.TR_mem_length + 3)
+TR_fn_print("kırpınca konum:", ö.konum)
+TR_fn_no_grad {
     // Bir parça daha geri al (konum başlangıç + 2) ve o parçayı yeniden işle: ondan sonra seçilen parça aynı olmalı.
-    ö.kırp(başlangıç.uzunluk + 2)
-    değişken yeniden = model.ileri([[çıktı[başlangıç.uzunluk + 2]]], önbellek: ö)
-    yazdır("yeniden işlenince seçilen aynı:", argmax(yeniden, eksen: -1).değer[0][0] == çıktı[başlangıç.uzunluk + 3])
+    ö.TR_mem_strip(başlangıç.TR_mem_length + 2)
+    TR_kw_var yeniden = model.ileri([[çıktı[başlangıç.TR_mem_length + 2]]], önbellek: ö)
+    TR_fn_print("yeniden işlenince seçilen aynı:", TR_fn_argmax(yeniden, TR_arg_dim: -1).TR_mem_tolist[0][0] == çıktı[başlangıç.TR_mem_length + 3])
 }
 
 // Sabit önbellek ve kayıtlı adım (üret'in GPU'da kullandığı yol; 45. örnekteki mekanizma): önbellek bir kez
 // ayrılır, başlangıç gizli_durum ile işlenir, sonra her parça tek_adım(kimlik, konum, önbellek) ile gelir.
 // kimlik [1, 1], konum [1] tensörüdür; konum sayacını çağıran ilerletir (ilerle). CPU'da tekrar_oynat
 // tek_adım'ı doğrudan çağırır, sonuç aynıdır.
-değişken sabit_önbellek = model.önbellek_kur(çeşit: "sabit", en_çok: başlangıç.uzunluk + ADET)
-değişken sabit_çıktı = [k döngü k içinde başlangıç]
-türevsiz {
-    değişken x = model.gizli_durum([başlangıç], önbellek: sabit_önbellek)
-    değişken son_logit = model.logit(x.dilim(1, başlangıç.uzunluk - 1, başlangıç.uzunluk))[0][0]
-    değişken adım = tekrar_oynat((kimlik, konum) => model.tek_adım(kimlik, konum, sabit_önbellek))
-    döngü i içinde 0..ADET {
-        değişken seçilen = argmax(son_logit, eksen: -1).değer
-        sabit_çıktı.ekle(seçilen)
-        son_logit = adım(tensör([[seçilen * 1.0]]), tensör([sabit_önbellek.konum * 1.0]))
+TR_kw_var sabit_önbellek = model.önbellek_kur(çeşit: "sabit", en_çok: başlangıç.TR_mem_length + ADET)
+TR_kw_var sabit_çıktı = [k TR_kw_for k TR_kw_in başlangıç]
+TR_fn_no_grad {
+    TR_kw_var x = model.gizli_durum([başlangıç], önbellek: sabit_önbellek)
+    TR_kw_var son_logit = model.logit(x.TR_mem_slice(1, başlangıç.TR_mem_length - 1, başlangıç.TR_mem_length))[0][0]
+    TR_kw_var adım = TR_fn_replay((kimlik, konum) => model.tek_adım(kimlik, konum, sabit_önbellek))
+    TR_kw_for i TR_kw_in 0..ADET {
+        TR_kw_var seçilen = TR_fn_argmax(son_logit, TR_arg_dim: -1).TR_mem_tolist
+        sabit_çıktı.TR_mem_append(seçilen)
+        son_logit = adım(TR_fn_tensor([[seçilen * 1.0]]), TR_fn_tensor([sabit_önbellek.konum * 1.0]))
         sabit_önbellek.ilerle(1)
     }
 }
-yazdır("tek_adım:", sabit_çıktı, "| aynı mı:", sabit_çıktı == hazır)
+TR_fn_print("tek_adım:", sabit_çıktı, "| aynı mı:", sabit_çıktı == hazır)
 
 // --- Kendin dene ---
 // 1. Açgözlü seçimi örnekle(logit, sıcaklık: 0.8, en_iyi_k: 5, tohum: i) ile değiştir ve sonuçları karşılaştır.

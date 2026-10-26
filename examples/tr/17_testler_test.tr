@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // 17 — Testler: kodun yanına test yazmak.
 // Ne öğretir: `test "ad" { ... }` blokları, doğrula(koşul, [mesaj]) ve eşit_mi(beklenen, gerçek)
 // ile denetim, hatanın fırlatıldığını sınamak.
@@ -9,53 +10,53 @@
 // Bir test kalırsa `tr test` 1 ile çıkar; CI'da kapı olarak kullanılabilir.
 
 // --- Sınanacak kod ---
-fonksiyon topla(a, b) {
-    sonuç a + b
+TR_kw_func topla(a, b) {
+    TR_kw_return a + b
 }
 
-fonksiyon ortalama_al(liste) {
-    eğer liste.uzunluk == 0 { fırlat "boş listenin ortalaması alınamaz" }
-    sonuç toplam(liste) / liste.uzunluk
+TR_kw_func ortalama_al(liste) {
+    TR_kw_if liste.TR_mem_length == 0 { TR_kw_throw "boş listenin ortalaması alınamaz" }
+    TR_kw_return TR_fn_sum(liste) / liste.TR_mem_length
 }
 
-yapı Sepet {
+TR_kw_struct Sepet {
     ürünler = []
 
-    fonksiyon ekle(ad, fiyat) {
-        kendi.ürünler.ekle({"ad": ad, "fiyat": fiyat})
+    TR_kw_func TR_mem_append(ad, fiyat) {
+        TR_kw_self.ürünler.TR_mem_append({"ad": ad, "fiyat": fiyat})
     }
 
-    fonksiyon tutar() {
-        sonuç toplam(kendi.ürünler.haritala { o["fiyat"] })
+    TR_kw_func tutar() {
+        TR_kw_return TR_fn_sum(TR_kw_self.ürünler.TR_mem_map { TR_ctx_it["fiyat"] })
     }
 }
 
 // Bu satır her iki kipte de çalışır: testlerden önce dosyanın kendisi çalışır.
-yazdır("Test blokları yalnızca şu komutla çalışır: tr test examples/tr/17_testler_test.tr")
+TR_fn_print("Test blokları yalnızca şu komutla çalışır: tr test examples/tr/17_testler_test.tr")
 
 // --- Testler ---
-test "toplama" {
-    eşit_mi(4, topla(2, 2))
-    eşit_mi(0, topla(-1, 1))
+TR_ctx_test "toplama" {
+    TR_fn_assert_equal(4, topla(2, 2))
+    TR_fn_assert_equal(0, topla(-1, 1))
 }
 
-test "ortalama" {
-    eşit_mi(2.5, ortalama_al([1, 2, 3, 4]))
-    doğrula(ortalama_al([10]) == 10, "tek elemanın ortalaması kendisidir")
+TR_ctx_test "ortalama" {
+    TR_fn_assert_equal(2.5, ortalama_al([1, 2, 3, 4]))
+    TR_fn_assert(ortalama_al([10]) == 10, "tek elemanın ortalaması kendisidir")
 }
 
-test "boş listede hata fırlatılır" {
-    değişken mesaj = ""
-    dene { ortalama_al([]) } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("boş liste"), "beklenen hata gelmedi: {mesaj}")
+TR_ctx_test "boş listede hata fırlatılır" {
+    TR_kw_var mesaj = ""
+    TR_kw_try { ortalama_al([]) } TR_kw_catch h { mesaj = h }
+    TR_fn_assert(mesaj.TR_mem_contains("boş liste"), "beklenen hata gelmedi: {mesaj}")
 }
 
-test "sepet tutarı" {
-    değişken s = Sepet() // her test yeni bir kapsamda çalışır
-    s.ekle("kalem", 15)
-    s.ekle("defter", 40)
-    eşit_mi(2, s.ürünler.uzunluk)
-    eşit_mi(55, s.tutar())
+TR_ctx_test "sepet tutarı" {
+    TR_kw_var s = Sepet() // her test yeni bir kapsamda çalışır
+    s.TR_mem_append("kalem", 15)
+    s.TR_mem_append("defter", 40)
+    TR_fn_assert_equal(2, s.ürünler.TR_mem_length)
+    TR_fn_assert_equal(55, s.tutar())
 }
 
 // --- Kendin dene ---

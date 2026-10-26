@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // 26 — Otomatik türev: gradyanı bilgisayara hesaplatmak.
 // Ne öğretir: türev_izle: doğru ile tensörü izletmek, geri_yayılım(sonuç), .gradyan,
 // gradyanın biriktiği (sıfırlanması gerektiği), türevsiz { ... } ile türev izlemeden hesap.
@@ -9,28 +10,28 @@
 // TR işlem zincirini izler ve geri_yayılım ile bütün türevleri tek seferde hesaplar.
 
 // y = x² + 2x + 1  →  dy/dx = 2x + 2; x = 3 için 8.
-değişken x = tensör(3.0, türev_izle: doğru) // türev_izle: bu tensörün gradyanı istenir
-değişken y = x * x + 2 * x + 1
-geri_yayılım(y)
-yazdır("y = {y.değer}, dy/dx = {x.gradyan.değer} (beklenen 8.0)")
+TR_kw_var x = TR_fn_tensor(3.0, TR_arg_requires_grad: TR_kw_true) // türev_izle: bu tensörün gradyanı istenir
+TR_kw_var y = x * x + 2 * x + 1
+TR_fn_backward(y)
+TR_fn_print("y = {y.TR_mem_tolist}, dy/dx = {x.TR_mem_grad.TR_mem_tolist} (beklenen 8.0)")
 
 // Birden çok girdi: her biri kendi gradyanını alır. f(a, b) = a * b + b²
-değişken a = tensör(2.0, türev_izle: doğru)
-değişken b = tensör(5.0, türev_izle: doğru)
-değişken f = a * b + b * b
-geri_yayılım(f)
-yazdır("df/da = {a.gradyan.değer} (beklenen 5.0), df/db = {b.gradyan.değer} (beklenen 12.0)")
+TR_kw_var a = TR_fn_tensor(2.0, TR_arg_requires_grad: TR_kw_true)
+TR_kw_var b = TR_fn_tensor(5.0, TR_arg_requires_grad: TR_kw_true)
+TR_kw_var f = a * b + b * b
+TR_fn_backward(f)
+TR_fn_print("df/da = {a.TR_mem_grad.TR_mem_tolist} (beklenen 5.0), df/db = {b.TR_mem_grad.TR_mem_tolist} (beklenen 12.0)")
 
 // Gradyanlar birikir: geri_yayılım her çağrıda gradyana ekler. Bu yüzden eğitimde her
 // adımdan önce gradyanlar sıfırlanır (bir sonraki örnekte iyileştiricinin .sıfırla() yöntemi).
-değişken c = tensör(1.0, türev_izle: doğru)
-geri_yayılım(c * 3)
-geri_yayılım(c * 3)
-yazdır("iki çağrıdan sonra dc = {c.gradyan.değer} (3 + 3)")
+TR_kw_var c = TR_fn_tensor(1.0, TR_arg_requires_grad: TR_kw_true)
+TR_fn_backward(c * 3)
+TR_fn_backward(c * 3)
+TR_fn_print("iki çağrıdan sonra dc = {c.TR_mem_grad.TR_mem_tolist} (3 + 3)")
 
 // türevsiz { ... } işlemleri izlemeden hesaplar: tahmin yaparken belleği ve zamanı korur.
-değişken z = türevsiz { x * 10 }
-yazdır("türevsiz sonuç: {z.değer}")
+TR_kw_var z = TR_fn_no_grad { x * 10 }
+TR_fn_print("türevsiz sonuç: {z.TR_mem_tolist}")
 
 // --- Kendin dene ---
 // 1. y = x³ için x = 2'deki türevi hesaplat ve elle bulduğunla (3x² = 12) karşılaştır.

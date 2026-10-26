@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // tr/egitim — uzun eğitimin güvencesi: koşu düzeni (Koşu) ve kayıp ile gradyan normu sıçrama
 // bekçisi (SıçramaBekçisi).
 //
@@ -21,57 +22,57 @@
 // hesaplanır: ölçekten bağımsızdır ve çok büyük sonlu değerlerde (1e155) taşmaz.
 // Pencere dolmadan yalnızca sonlu olmayan değer yakalanır (eğitimin başı hızlı düşer).
 
-sabit TAMAM = "tamam"
-sabit SONLU_DEĞİL = "sonlu_değil"
-sabit SIÇRAMA = "sıçrama"
+TR_kw_const TAMAM = "tamam"
+TR_kw_const SONLU_DEĞİL = "sonlu_değil"
+TR_kw_const SIÇRAMA = "sıçrama"
 
 // Değişmeyen dizide sapmanın ortalamaya göre en küçük oranı.
-sabit EN_KÜÇÜK_GÖRELİ_SAPMA = 0.01
+TR_kw_const EN_KÜÇÜK_GÖRELİ_SAPMA = 0.01
 
-yapı SıçramaBekçisi {
+TR_kw_struct SıçramaBekçisi {
     pencere
     eşik
     kayıplar
     normlar
     sıçrama_sayısı = 0
-    fonksiyon kurucu(pencere = 128, eşik = 6.0) {
-        eğer tip(pencere) != Tam veya pencere < 2 { fırlat "SıçramaBekçisi: pencere en az 2 olan bir Tam olmalıdır, {pencere} verildi" }
-        eğer değil sonlu_mu(eşik) veya değil (eşik > 0) { fırlat "SıçramaBekçisi: eşik sonlu ve pozitif olmalıdır, {eşik} verildi" }
-        kendi.pencere = pencere
-        kendi.eşik = eşik
-        kendi.kayıplar = []
-        kendi.normlar = []
+    TR_kw_func TR_ctx_init(pencere = 128, eşik = 6.0) {
+        TR_kw_if TR_fn_type(pencere) != TR_type_Int TR_kw_or pencere < 2 { TR_kw_throw "SıçramaBekçisi: pencere en az 2 olan bir Tam olmalıdır, {pencere} verildi" }
+        TR_kw_if TR_kw_not TR_fn_is_finite(eşik) TR_kw_or TR_kw_not (eşik > 0) { TR_kw_throw "SıçramaBekçisi: eşik sonlu ve pozitif olmalıdır, {eşik} verildi" }
+        TR_kw_self.pencere = pencere
+        TR_kw_self.eşik = eşik
+        TR_kw_self.kayıplar = []
+        TR_kw_self.normlar = []
     }
     // gözle bir adımın kaybını ve gradyan normunu (sayı) değerlendirir; TAMAM, SONLU_DEĞİL ya da
     // SIÇRAMA verir. Yalnızca TAMAM olan değerler geçmişe girer.
-    fonksiyon gözle(kayıp, norm) {
-        eğer değil sonlu_mu(kayıp) veya değil sonlu_mu(norm) { sonuç SONLU_DEĞİL }
-        eğer kendi.kayıplar.uzunluk >= kendi.pencere {
-            eğer kendi.aşıyor(kendi.kayıplar, kayıp) veya kendi.aşıyor(kendi.normlar, norm) {
-                kendi.sıçrama_sayısı += 1
-                sonuç SIÇRAMA
+    TR_kw_func gözle(kayıp, norm) {
+        TR_kw_if TR_kw_not TR_fn_is_finite(kayıp) TR_kw_or TR_kw_not TR_fn_is_finite(norm) { TR_kw_return SONLU_DEĞİL }
+        TR_kw_if TR_kw_self.kayıplar.TR_mem_length >= TR_kw_self.pencere {
+            TR_kw_if TR_kw_self.aşıyor(TR_kw_self.kayıplar, kayıp) TR_kw_or TR_kw_self.aşıyor(TR_kw_self.normlar, norm) {
+                TR_kw_self.sıçrama_sayısı += 1
+                TR_kw_return SIÇRAMA
             }
         }
-        kendi.kayıplar = kendi.ekle(kendi.kayıplar, kayıp)
-        kendi.normlar = kendi.ekle(kendi.normlar, norm)
-        sonuç TAMAM
+        TR_kw_self.kayıplar = TR_kw_self.TR_mem_append(TR_kw_self.kayıplar, kayıp)
+        TR_kw_self.normlar = TR_kw_self.TR_mem_append(TR_kw_self.normlar, norm)
+        TR_kw_return TAMAM
     }
     // geçmiş_uzunluğu geçmişteki sağlam adım sayısıdır (en çok pencere).
-    fonksiyon geçmiş_uzunluğu() { sonuç kendi.kayıplar.uzunluk }
-    fonksiyon aşıyor(geçmiş, değer) {
-        değişken m = mutlak(değer)
-        döngü x içinde geçmiş { m = max(m, mutlak(x)) }
-        eğer m == 0 { sonuç yanlış }
-        değişken g = [x / m döngü x içinde geçmiş]
-        değişken o = ortalama(g)
-        değişken s = max(standart_sapma(g), EN_KÜÇÜK_GÖRELİ_SAPMA * mutlak(o))
-        eğer s == 0 { sonuç yanlış } // geçmiş tamamen sıfır: karar yok
-        sonuç değer / m > o + kendi.eşik * s
+    TR_kw_func geçmiş_uzunluğu() { TR_kw_return TR_kw_self.kayıplar.TR_mem_length }
+    TR_kw_func aşıyor(geçmiş, değer) {
+        TR_kw_var m = TR_fn_abs(değer)
+        TR_kw_for x TR_kw_in geçmiş { m = TR_fn_max(m, TR_fn_abs(x)) }
+        TR_kw_if m == 0 { TR_kw_return TR_kw_false }
+        TR_kw_var g = [x / m TR_kw_for x TR_kw_in geçmiş]
+        TR_kw_var o = TR_fn_mean(g)
+        TR_kw_var s = TR_fn_max(TR_fn_std(g), EN_KÜÇÜK_GÖRELİ_SAPMA * TR_fn_abs(o))
+        TR_kw_if s == 0 { TR_kw_return TR_kw_false } // geçmiş tamamen sıfır: karar yok
+        TR_kw_return değer / m > o + TR_kw_self.eşik * s
     }
-    fonksiyon ekle(geçmiş, değer) {
-        geçmiş.ekle(değer)
-        eğer geçmiş.uzunluk > kendi.pencere { sonuç geçmiş[1..geçmiş.uzunluk] }
-        sonuç geçmiş
+    TR_kw_func TR_mem_append(geçmiş, değer) {
+        geçmiş.TR_mem_append(değer)
+        TR_kw_if geçmiş.TR_mem_length > TR_kw_self.pencere { TR_kw_return geçmiş[1..geçmiş.TR_mem_length] }
+        TR_kw_return geçmiş
     }
 }
 
@@ -100,65 +101,65 @@ yapı SıçramaBekçisi {
 // dosyalarının hepsinin yazıldığını denetler. Böylece uzun koşunun sonunda düşecek bir satır
 // (ör. yalnızca son adımda çalışan bir değerlendirme ya da kayıt) önceden görülür.
 
-sabit PROVA_ADIMI = 2
+TR_kw_const PROVA_ADIMI = 2
 
-yapı Koşu {
+TR_kw_struct Koşu {
     klasör
     prova
     günlük
     çubuk
     nokta
-    kaldığı_adım
+    TR_mem_resume_step
     son_adım
-    fonksiyon kurucu(klasör, ayar, nesneler, adım_sayısı, her_dakika = 15.0, prova = yanlış) {
-        eğer tip(adım_sayısı) != Tam veya adım_sayısı < 1 { fırlat "Koşu: adım_sayısı en az 1 olan bir Tam olmalıdır, {adım_sayısı} verildi" }
-        kendi.prova = prova
-        kendi.son_adım = eğer prova { min(adım_sayısı, PROVA_ADIMI) } değilse { adım_sayısı }
-        kendi.klasör = eğer prova { yol(geçici_klasör(), "prova") } değilse { yol(klasör) }
-        klasör_oluştur(kendi.klasör)
-        değişken sayı = 0
-        eğer nesneler.içerir("model") {
-            döngü w içinde parametreler(nesneler["model"]) { sayı += w.şekil.indirge(1) { birikim * o } }
+    TR_kw_func TR_ctx_init(klasör, ayar, nesneler, adım_sayısı, her_dakika = 15.0, prova = TR_kw_false) {
+        TR_kw_if TR_fn_type(adım_sayısı) != TR_type_Int TR_kw_or adım_sayısı < 1 { TR_kw_throw "Koşu: adım_sayısı en az 1 olan bir Tam olmalıdır, {adım_sayısı} verildi" }
+        TR_kw_self.prova = prova
+        TR_kw_self.son_adım = TR_kw_if prova { TR_fn_min(adım_sayısı, PROVA_ADIMI) } TR_kw_else { adım_sayısı }
+        TR_kw_self.klasör = TR_kw_if prova { TR_fn_path(TR_fn_temp_dir(), "prova") } TR_kw_else { TR_fn_path(klasör) }
+        TR_fn_make_dir(TR_kw_self.klasör)
+        TR_kw_var sayı = 0
+        TR_kw_if nesneler.TR_mem_contains("model") {
+            TR_kw_for w TR_kw_in TR_fn_parameters(nesneler["model"]) { sayı += w.TR_mem_shape.TR_mem_reduce(1) { TR_ctx_acc * TR_ctx_it } }
         }
-        dosya_yaz(yol(kendi.klasör, "config.json"), json_metin({ayar: ayar, parametre_sayısı: sayı, cihaz: varsayılan_cihaz()}))
-        kendi.günlük = günlük(yol(kendi.klasör, "metrics.jsonl"))
-        değişken kayıtlılar = {}
-        döngü ad, d içinde nesneler { kayıtlılar[ad] = d }
-        kayıtlılar["günlük"] = kendi.günlük
-        kendi.nokta = kontrol_noktası(kendi.klasör, kayıtlılar, her_dakika: eğer prova { 0 } değilse { her_dakika })
-        kendi.kaldığı_adım = kendi.nokta.kaldığı_adım
-        kendi.çubuk = ilerleme(kendi.son_adım, günlük: kendi.günlük)
-        eğer kendi.kaldığı_adım > 0 { kendi.çubuk.güncelle(adım: kendi.kaldığı_adım) }
+        TR_fn_write_file(TR_fn_path(TR_kw_self.klasör, "config.json"), TR_fn_json_string({ayar: ayar, parametre_sayısı: sayı, TR_mem_device: TR_fn_default_device()}))
+        TR_kw_self.günlük = TR_fn_logger(TR_fn_path(TR_kw_self.klasör, "metrics.jsonl"))
+        TR_kw_var kayıtlılar = {}
+        TR_kw_for ad, d TR_kw_in nesneler { kayıtlılar[ad] = d }
+        kayıtlılar["günlük"] = TR_kw_self.günlük
+        TR_kw_self.nokta = TR_fn_checkpoint(TR_kw_self.klasör, kayıtlılar, TR_arg_every_minutes: TR_kw_if prova { 0 } TR_kw_else { her_dakika })
+        TR_kw_self.TR_mem_resume_step = TR_kw_self.nokta.TR_mem_resume_step
+        TR_kw_self.çubuk = TR_fn_progress(TR_kw_self.son_adım, TR_arg_log: TR_kw_self.günlük)
+        TR_kw_if TR_kw_self.TR_mem_resume_step > 0 { TR_kw_self.çubuk.TR_mem_update(TR_arg_step: TR_kw_self.TR_mem_resume_step) }
     }
     // adım_bitti eğitimin adım sınırıdır: ölçüler verilirse (sözlük; okumak GPU'yu bekletir, bu yüzden
     // her adımda değil) çubuk ve günlük güncellenir; son adımda ölçü verilmese de çubuk kapanır.
     // Kontrol noktası zamanı geldiyse kaydedilir; kayıt yapıldıysa doğru verir.
-    fonksiyon adım_bitti(adım, ölçüler = yok) {
-        eğer ölçüler != yok {
-            kendi.çubuk.güncelle(ölçüler, adım: adım)
-        } değilse eğer adım == kendi.son_adım {
-            kendi.çubuk.güncelle(adım: adım)
+    TR_kw_func adım_bitti(adım, ölçüler = TR_kw_none) {
+        TR_kw_if ölçüler != TR_kw_none {
+            TR_kw_self.çubuk.TR_mem_update(ölçüler, TR_arg_step: adım)
+        } TR_kw_else TR_kw_if adım == TR_kw_self.son_adım {
+            TR_kw_self.çubuk.TR_mem_update(TR_arg_step: adım)
         }
-        sonuç kendi.nokta.güncelle(adım)
+        TR_kw_return TR_kw_self.nokta.TR_mem_update(adım)
     }
     // değerlendirildi bir değerlendirmenin ölçülerini (sözlük) adımıyla günlüğe yazar.
-    fonksiyon değerlendirildi(adım, ölçüler) {
-        değişken kayıt = {adım: adım}
-        döngü ad, d içinde ölçüler { kayıt[ad] = d }
-        kendi.günlük.ekle(kayıt)
+    TR_kw_func değerlendirildi(adım, ölçüler) {
+        TR_kw_var kayıt = {TR_mem_step: adım}
+        TR_kw_for ad, d TR_kw_in ölçüler { kayıt[ad] = d }
+        TR_kw_self.günlük.TR_mem_append(kayıt)
     }
     // geri_dön son kontrol noktasına döner ve onun adımını verir (sıçrama bekçisinin kararıyla).
-    fonksiyon geri_dön() { sonuç kendi.nokta.geri_dön() }
+    TR_kw_func TR_mem_rollback() { TR_kw_return TR_kw_self.nokta.TR_mem_rollback() }
     // bitir önce modelin ağırlıklarını (model.trt) yazar, sonra son kontrol noktasını; provada koşunun
     // dosyalarının hepsinin yazıldığını denetler ve sonucu yazar.
-    fonksiyon bitir(model) {
-        tensör_kaydet(yol(kendi.klasör, "model.trt"), parametreler(model, adlarıyla: doğru))
-        kendi.nokta.kaydet()
-        eğer kendi.prova {
-            döngü ad içinde ["config.json", "metrics.jsonl", "model.trt", "kontrol_noktalari"] {
-                eğer değil yol(kendi.klasör, ad).var_mı { fırlat "Koşu provası: {ad} yazılmadı ({kendi.klasör.mutlak})" }
+    TR_kw_func bitir(model) {
+        TR_fn_save_tensors(TR_fn_path(TR_kw_self.klasör, "model.trt"), TR_fn_parameters(model, TR_arg_named: TR_kw_true))
+        TR_kw_self.nokta.TR_mem_save()
+        TR_kw_if TR_kw_self.prova {
+            TR_kw_for ad TR_kw_in ["config.json", "metrics.jsonl", "model.trt", "kontrol_noktalari"] {
+                TR_kw_if TR_kw_not TR_fn_path(TR_kw_self.klasör, ad).TR_mem_exists { TR_kw_throw "Koşu provası: {ad} yazılmadı ({TR_kw_self.klasör.TR_mem_absolute})" }
             }
-            yazdır("Prova geçti: {kendi.son_adım} adım, bütün dosyalar yazıldı")
+            TR_fn_print("Prova geçti: {TR_kw_self.son_adım} adım, bütün dosyalar yazıldı")
         }
     }
 }

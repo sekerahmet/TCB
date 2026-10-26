@@ -1,29 +1,30 @@
+//! tr kodlu 3 dil=tr
 // 03 — Tipler: her değerin bir tipi vardır.
 // Ne öğretir: Tam, Ondalık, Metin, Mantık, yok; tip(); tam()/ondalık()/metin() dönüşümleri;
 // işleçler ve karşılaştırma; yok olabilen değer için ??.
 // Önceki örnekten: değişken, sabit ve atama (02).
 // Çalıştırma (proje kökünden): tr examples/tr/03_tipler.tr
 
-değişken yaş = 30 // Tam: ondalık noktası olmayan sayı
-değişken boy = 1.75 // Ondalık: noktalı sayı
-değişken ad = "Ayşe" // Metin
-değişken öğrenci_mi = doğru // Mantık: doğru ya da yanlış
-yazdır(tip(yaş), tip(boy), tip(ad), tip(öğrenci_mi))
+TR_kw_var yaş = 30 // Tam: ondalık noktası olmayan sayı
+TR_kw_var boy = 1.75 // Ondalık: noktalı sayı
+TR_kw_var ad = "Ayşe" // Metin
+TR_kw_var öğrenci_mi = TR_kw_true // Mantık: doğru ya da yanlış
+TR_fn_print(TR_fn_type(yaş), TR_fn_type(boy), TR_fn_type(ad), TR_fn_type(öğrenci_mi))
 
 // Dönüşümler: metin sayıya, sayı metne, ondalık tama çevrilir.
-yazdır(tam("42") + 1, ondalık("2.5") * 2, metin(7) + "8")
-yazdır(tam(3.9), yuvarla(3.14159, 2)) // tam() noktadan sonrasını atar
+TR_fn_print(TR_fn_int("42") + 1, TR_fn_float("2.5") * 2, TR_fn_str(7) + "8")
+TR_fn_print(TR_fn_int(3.9), TR_fn_round(3.14159, 2)) // tam() noktadan sonrasını atar
 
 // Hesap işleçleri. / her zaman ondalık verir; % kalandır; ** kuvvettir.
-yazdır(7 + 2, 7 - 2, 7 * 2, 7 / 2, 7 % 2, 2 ** 10)
+TR_fn_print(7 + 2, 7 - 2, 7 * 2, 7 / 2, 7 % 2, 2 ** 10)
 
 // Karşılaştırma Mantık verir; ve, veya, değil mantıkları birleştirir.
-yazdır(yaş >= 18, yaş == 30, yaş != 30)
-yazdır(yaş >= 18 ve öğrenci_mi, değil öğrenci_mi, yaş < 18 veya boy > 1.7)
+TR_fn_print(yaş >= 18, yaş == 30, yaş != 30)
+TR_fn_print(yaş >= 18 TR_kw_and öğrenci_mi, TR_kw_not öğrenci_mi, yaş < 18 TR_kw_or boy > 1.7)
 
 // yok "değer yok" demektir (kendi tipi Yok). ?? soldaki yoksa sağdakini alır.
-değişken kullanıcı = yok
-yazdır(tip(kullanıcı), kullanıcı ?? "Misafir")
+TR_kw_var kullanıcı = TR_kw_none
+TR_fn_print(TR_fn_type(kullanıcı), kullanıcı ?? "Misafir")
 
 // --- Kendin dene ---
 // 1. tip(2 ** 10) ve tip(2 ** 0.5) ne yazar? Önce tahmin et, sonra çalıştır.

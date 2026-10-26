@@ -1,23 +1,24 @@
+//! tr kodlu 3 dil=tr
 // Üretim hızı yarışının TR tarafı (tools/gpu/generation_race.sh çağırır; COLAB.md §12).
 // Hazır modeli yükler, 5 parçayla ısınır, 100 parçalık açgözlü üretimi üç kez ölçer ve ortancayı
 // "model | cihaz | yol | parça/sn" satırı olarak yazar. GPU'da ayrıca kayıtlı (çizge) ve kayıtsız
 // üretimin aynı parçaları verdiğini denetler.
-aktar "tr/hazir"
+TR_kw_import "tr/hazir"
 
-değişken arg = komut_satırı({klasör: "", adet: 100, cihaz: "cpu", ad: "", ağırlık_türü: "float32"})
-varsayılan_cihaz(arg.cihaz)
-değişken p = parçalayıcı_yükle(yol(arg.klasör, "tokenizer.json"))
-değişken model = hazır_model(arg.klasör, ağırlık_türü: arg.ağırlık_türü)
-değişken ids = p.kodla("The capital of France is")
+TR_kw_var arg = TR_fn_command_line({klasör: "", adet: 100, TR_mem_device: "cpu", ad: "", ağırlık_türü: "float32"})
+TR_fn_default_device(arg.TR_mem_device)
+TR_kw_var p = TR_fn_load_tokenizer(TR_fn_path(arg.klasör, "tokenizer.json"))
+TR_kw_var model = hazır_model(arg.klasör, ağırlık_türü: arg.ağırlık_türü)
+TR_kw_var ids = p.TR_mem_encode("The capital of France is")
 model.üret(ids, 5, sıcaklık: 0)
-değişken hızlar = []
-değişken son = yok
-döngü tur içinde 0..3 {
-    değişken başla = zaman_ms()
+TR_kw_var hızlar = []
+TR_kw_var son = TR_kw_none
+TR_kw_for tur TR_kw_in 0..3 {
+    TR_kw_var başla = TR_fn_time_ms()
     son = model.üret(ids, arg.adet, sıcaklık: 0)
-    hızlar.ekle(arg.adet * 1000.0 / (zaman_ms() - başla))
+    hızlar.TR_mem_append(arg.adet * 1000.0 / (TR_fn_time_ms() - başla))
 }
-eğer arg.cihaz != "cpu" {
-    doğrula(son == model.üret(ids, arg.adet, sıcaklık: 0, çizge: yanlış), "kayıtlı ve kayıtsız üretim farklı")
+TR_kw_if arg.TR_mem_device != "cpu" {
+    TR_fn_assert(son == model.üret(ids, arg.adet, sıcaklık: 0, çizge: TR_kw_false), "kayıtlı ve kayıtsız üretim farklı")
 }
-yazdır("{arg.ad} | {arg.cihaz} | TR {arg.ağırlık_türü} | {yuvarla(hızlar.sırala()[1], 1)}")
+TR_fn_print("{arg.ad} | {arg.TR_mem_device} | TR {arg.ağırlık_türü} | {TR_fn_round(hızlar.TR_mem_sort()[1], 1)}")

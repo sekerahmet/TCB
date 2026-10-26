@@ -1,116 +1,117 @@
+//! tr kodlu 3 dil=tr
 // tr/egitim testleri: sıçrama bekçisinin kararları (pencere dolmadan karar yok, sonlu olmayan
 // değer, z-skoru eşiği), sıçramanın geçmişe girmemesi ve kayan pencere. Koşturma: tr test lib
-aktar "tr/egitim"
+TR_kw_import "tr/egitim"
 
 // hata_metni: f çalışırken oluşan hatanın mesajını döndürür (hata yoksa boş metin).
-fonksiyon hata_metni(f) {
-    dene { f() } yakala h { sonuç h }
-    sonuç ""
+TR_kw_func hata_metni(f) {
+    TR_kw_try { f() } TR_kw_catch h { TR_kw_return h }
+    TR_kw_return ""
 }
 
 // Hafif gürültülü, sabit bir kayıp ve norm dizisi (her biri 1,0 ± 0,01).
-fonksiyon besle(b, n) {
-    döngü i içinde 0..n {
-        değişken g = eğer i % 2 == 0 { 0.01 } değilse { -0.01 }
-        eşit_mi(TAMAM, b.gözle(1.0 + g, 1.0 - g))
+TR_kw_func besle(b, n) {
+    TR_kw_for i TR_kw_in 0..n {
+        TR_kw_var g = TR_kw_if i % 2 == 0 { 0.01 } TR_kw_else { -0.01 }
+        TR_fn_assert_equal(TAMAM, b.gözle(1.0 + g, 1.0 - g))
     }
 }
 
-test "SıçramaBekçisi: pencere dolana kadar yalnızca sonlu olmayanı yakalar" {
-    değişken b = SıçramaBekçisi(pencere: 8, eşik: 6.0)
-    eşit_mi(TAMAM, b.gözle(1.0, 1.0))
-    eşit_mi(TAMAM, b.gözle(100.0, 1.0)) // pencere dolmadı: karar yok
-    eşit_mi(SONLU_DEĞİL, b.gözle(ondalık("nan"), 1.0))
-    eşit_mi(SONLU_DEĞİL, b.gözle(1.0, ondalık("inf")))
-    eşit_mi(2, b.geçmiş_uzunluğu())
+TR_ctx_test "SıçramaBekçisi: pencere dolana kadar yalnızca sonlu olmayanı yakalar" {
+    TR_kw_var b = SıçramaBekçisi(pencere: 8, eşik: 6.0)
+    TR_fn_assert_equal(TAMAM, b.gözle(1.0, 1.0))
+    TR_fn_assert_equal(TAMAM, b.gözle(100.0, 1.0)) // pencere dolmadı: karar yok
+    TR_fn_assert_equal(SONLU_DEĞİL, b.gözle(TR_fn_float("nan"), 1.0))
+    TR_fn_assert_equal(SONLU_DEĞİL, b.gözle(1.0, TR_fn_float("inf")))
+    TR_fn_assert_equal(2, b.geçmiş_uzunluğu())
 }
 
-test "SıçramaBekçisi: kayıp ya da norm eşik kadar standart sapma yukarıdaysa sıçramadır" {
-    değişken b = SıçramaBekçisi(pencere: 16, eşik: 6.0)
+TR_ctx_test "SıçramaBekçisi: kayıp ya da norm eşik kadar standart sapma yukarıdaysa sıçramadır" {
+    TR_kw_var b = SıçramaBekçisi(pencere: 16, eşik: 6.0)
     besle(b, 16)
-    eşit_mi(TAMAM, b.gözle(1.05, 1.0)) // 5σ: eşiğin altında
-    eşit_mi(SIÇRAMA, b.gözle(1.2, 1.0)) // kayıp 20σ
-    eşit_mi(SIÇRAMA, b.gözle(1.0, 1.5)) // norm 50σ
-    eşit_mi(TAMAM, b.gözle(0.5, 1.0)) // aşağı yönde düşüş sıçrama değildir
-    eşit_mi(2, b.sıçrama_sayısı)
+    TR_fn_assert_equal(TAMAM, b.gözle(1.05, 1.0)) // 5σ: eşiğin altında
+    TR_fn_assert_equal(SIÇRAMA, b.gözle(1.2, 1.0)) // kayıp 20σ
+    TR_fn_assert_equal(SIÇRAMA, b.gözle(1.0, 1.5)) // norm 50σ
+    TR_fn_assert_equal(TAMAM, b.gözle(0.5, 1.0)) // aşağı yönde düşüş sıçrama değildir
+    TR_fn_assert_equal(2, b.sıçrama_sayısı)
 }
 
-test "SıçramaBekçisi: sıçrama ve sonlu olmayan değer geçmişe girmez; pencere kayar" {
-    değişken b = SıçramaBekçisi(pencere: 4, eşik: 6.0)
+TR_ctx_test "SıçramaBekçisi: sıçrama ve sonlu olmayan değer geçmişe girmez; pencere kayar" {
+    TR_kw_var b = SıçramaBekçisi(pencere: 4, eşik: 6.0)
     besle(b, 4)
-    eşit_mi(SIÇRAMA, b.gözle(9.0, 1.0))
-    eşit_mi(SONLU_DEĞİL, b.gözle(ondalık("nan"), 1.0))
-    eşit_mi(4, b.geçmiş_uzunluğu())
+    TR_fn_assert_equal(SIÇRAMA, b.gözle(9.0, 1.0))
+    TR_fn_assert_equal(SONLU_DEĞİL, b.gözle(TR_fn_float("nan"), 1.0))
+    TR_fn_assert_equal(4, b.geçmiş_uzunluğu())
     besle(b, 10)
-    eşit_mi(4, b.geçmiş_uzunluğu())
+    TR_fn_assert_equal(4, b.geçmiş_uzunluğu())
 }
 
-test "SıçramaBekçisi: değişmeyen dizide (σ = 0) eşik yerine en küçük sapma kullanılır" {
-    değişken b = SıçramaBekçisi(pencere: 4, eşik: 6.0)
-    döngü i içinde 0..4 { b.gözle(2.0, 1.0) }
-    eşit_mi(TAMAM, b.gözle(2.0, 1.0))
-    eşit_mi(SIÇRAMA, b.gözle(3.0, 1.0))
+TR_ctx_test "SıçramaBekçisi: değişmeyen dizide (σ = 0) eşik yerine en küçük sapma kullanılır" {
+    TR_kw_var b = SıçramaBekçisi(pencere: 4, eşik: 6.0)
+    TR_kw_for i TR_kw_in 0..4 { b.gözle(2.0, 1.0) }
+    TR_fn_assert_equal(TAMAM, b.gözle(2.0, 1.0))
+    TR_fn_assert_equal(SIÇRAMA, b.gözle(3.0, 1.0))
 }
 
-test "SıçramaBekçisi: geçersiz ayar hatadır" {
-    doğrula(hata_metni(() => SıçramaBekçisi(pencere: 1)) != "")
-    doğrula(hata_metni(() => SıçramaBekçisi(eşik: 0)) != "")
+TR_ctx_test "SıçramaBekçisi: geçersiz ayar hatadır" {
+    TR_fn_assert(hata_metni(() => SıçramaBekçisi(pencere: 1)) != "")
+    TR_fn_assert(hata_metni(() => SıçramaBekçisi(eşik: 0)) != "")
 }
 
-test "SıçramaBekçisi: ölçekten bağımsızdır; çok büyük sonlu değerlerde taşmaz" {
-    değişken b = SıçramaBekçisi(pencere: 2, eşik: 6.0)
+TR_ctx_test "SıçramaBekçisi: ölçekten bağımsızdır; çok büyük sonlu değerlerde taşmaz" {
+    TR_kw_var b = SıçramaBekçisi(pencere: 2, eşik: 6.0)
     b.gözle(1e155, 1.0)
     b.gözle(2e155, 1.0)
-    eşit_mi(SIÇRAMA, b.gözle(1e308, 1.0))
-    değişken k = SıçramaBekçisi(pencere: 4, eşik: 6.0)
-    döngü i içinde 0..4 { k.gözle(2e-30, 1.0) }
-    eşit_mi(SIÇRAMA, k.gözle(3e-30, 1.0))
+    TR_fn_assert_equal(SIÇRAMA, b.gözle(1e308, 1.0))
+    TR_kw_var k = SıçramaBekçisi(pencere: 4, eşik: 6.0)
+    TR_kw_for i TR_kw_in 0..4 { k.gözle(2e-30, 1.0) }
+    TR_fn_assert_equal(SIÇRAMA, k.gözle(3e-30, 1.0))
 }
 
-test "SıçramaBekçisi: geçmiş tamamen sıfırsa karar vermez, kilitlenmez" {
-    değişken b = SıçramaBekçisi(pencere: 3, eşik: 6.0)
-    döngü i içinde 0..3 { b.gözle(0.0, 0.0) }
-    eşit_mi(TAMAM, b.gözle(0.000000000001, 0.0))
-    eşit_mi(3, b.geçmiş_uzunluğu())
+TR_ctx_test "SıçramaBekçisi: geçmiş tamamen sıfırsa karar vermez, kilitlenmez" {
+    TR_kw_var b = SıçramaBekçisi(pencere: 3, eşik: 6.0)
+    TR_kw_for i TR_kw_in 0..3 { b.gözle(0.0, 0.0) }
+    TR_fn_assert_equal(TAMAM, b.gözle(0.000000000001, 0.0))
+    TR_fn_assert_equal(3, b.geçmiş_uzunluğu())
 }
 
-test "SıçramaBekçisi: kesirli pencere ve sonsuz eşik reddedilir" {
-    doğrula(hata_metni(() => SıçramaBekçisi(pencere: 2.5)) != "")
-    doğrula(hata_metni(() => SıçramaBekçisi(eşik: ondalık("inf"))) != "")
+TR_ctx_test "SıçramaBekçisi: kesirli pencere ve sonsuz eşik reddedilir" {
+    TR_fn_assert(hata_metni(() => SıçramaBekçisi(pencere: 2.5)) != "")
+    TR_fn_assert(hata_metni(() => SıçramaBekçisi(eşik: TR_fn_float("inf"))) != "")
 }
 
 // Küçük bir koşu: iki parametreli model, adım_sayısı adım, her adımda ölçü, sonda değerlendirme.
-fonksiyon koş(klasör, model, adım_sayısı, prova = yanlış) {
-    değişken koşu = Koşu(klasör, {deneme: 1}, {model: model}, adım_sayısı: adım_sayısı, prova: prova)
-    döngü adım içinde koşu.kaldığı_adım..koşu.son_adım {
+TR_kw_func koş(klasör, model, adım_sayısı, prova = TR_kw_false) {
+    TR_kw_var koşu = Koşu(klasör, {deneme: 1}, {model: model}, adım_sayısı: adım_sayısı, prova: prova)
+    TR_kw_for adım TR_kw_in koşu.TR_mem_resume_step..koşu.son_adım {
         koşu.adım_bitti(adım + 1, {kayıp: 1.0 / (adım + 1)})
     }
     koşu.değerlendirildi(koşu.son_adım, {doğrulama_kaybı: 0.5})
     koşu.bitir(model)
-    sonuç koşu
+    TR_kw_return koşu
 }
 
-test "Koşu: klasöre ayarları, günlüğü, kontrol noktasını ve ağırlıkları yazar; aynı klasör kaldığı adımdan sürer" {
-    değişken k = geçici_klasör()
-    değişken model = {w: tensör([1.0, 2.0], türev_izle: doğru)}
-    değişken koşu = koş(k, model, 3)
-    eşit_mi(0, koşu.kaldığı_adım)
-    eşit_mi(2, json_çöz(dosya_oku(yol(k, "config.json"))).parametre_sayısı)
-    değişken günlük_metni = dosya_oku(yol(k, "metrics.jsonl"))
-    doğrula(günlük_metni.içerir("doğrulama_kaybı") ve günlük_metni.içerir("kayıp"), "günlük ölçüleri taşımalı: {günlük_metni}")
-    eşit_mi([1.0, 2.0], tensör_yükle(yol(k, "model.trt"))["w"].değer)
-    eşit_mi(3, Koşu(k, {deneme: 1}, {model: model}, adım_sayısı: 3).kaldığı_adım)
+TR_ctx_test "Koşu: klasöre ayarları, günlüğü, kontrol noktasını ve ağırlıkları yazar; aynı klasör kaldığı adımdan sürer" {
+    TR_kw_var k = TR_fn_temp_dir()
+    TR_kw_var model = {w: TR_fn_tensor([1.0, 2.0], TR_arg_requires_grad: TR_kw_true)}
+    TR_kw_var koşu = koş(k, model, 3)
+    TR_fn_assert_equal(0, koşu.TR_mem_resume_step)
+    TR_fn_assert_equal(2, TR_fn_json_parse(TR_fn_read_file(TR_fn_path(k, "config.json"))).parametre_sayısı)
+    TR_kw_var günlük_metni = TR_fn_read_file(TR_fn_path(k, "metrics.jsonl"))
+    TR_fn_assert(günlük_metni.TR_mem_contains("doğrulama_kaybı") TR_kw_and günlük_metni.TR_mem_contains("kayıp"), "günlük ölçüleri taşımalı: {günlük_metni}")
+    TR_fn_assert_equal([1.0, 2.0], TR_fn_load_tensors(TR_fn_path(k, "model.trt"))["w"].TR_mem_tolist)
+    TR_fn_assert_equal(3, Koşu(k, {deneme: 1}, {model: model}, adım_sayısı: 3).TR_mem_resume_step)
 }
 
-test "Koşu: prova geçici klasörde en çok PROVA_ADIMI adım sürer ve dosyaları denetler" {
-    değişken k = geçici_klasör()
-    değişken koşu = koş(k, {w: tensör([1.0], türev_izle: doğru)}, 100, prova: doğru)
-    eşit_mi(PROVA_ADIMI, koşu.son_adım)
-    doğrula(koşu.klasör.mutlak != yol(k).mutlak, "prova verilen klasöre yazmamalı")
-    doğrula(yol(koşu.klasör, "model.trt").var_mı, "provada ağırlıklar yazılmalı")
-    doğrula(değil yol(k, "config.json").var_mı, "prova asıl klasörü kirletmemeli")
+TR_ctx_test "Koşu: prova geçici klasörde en çok PROVA_ADIMI adım sürer ve dosyaları denetler" {
+    TR_kw_var k = TR_fn_temp_dir()
+    TR_kw_var koşu = koş(k, {w: TR_fn_tensor([1.0], TR_arg_requires_grad: TR_kw_true)}, 100, prova: TR_kw_true)
+    TR_fn_assert_equal(PROVA_ADIMI, koşu.son_adım)
+    TR_fn_assert(koşu.klasör.TR_mem_absolute != TR_fn_path(k).TR_mem_absolute, "prova verilen klasöre yazmamalı")
+    TR_fn_assert(TR_fn_path(koşu.klasör, "model.trt").TR_mem_exists, "provada ağırlıklar yazılmalı")
+    TR_fn_assert(TR_kw_not TR_fn_path(k, "config.json").TR_mem_exists, "prova asıl klasörü kirletmemeli")
 }
 
-test "Koşu: adım_sayısı pozitif bir Tam olmalıdır" {
-    doğrula(hata_metni(() => Koşu(geçici_klasör(), {}, {}, adım_sayısı: 0)).içerir("en az 1"), "0 reddedilmeli")
+TR_ctx_test "Koşu: adım_sayısı pozitif bir Tam olmalıdır" {
+    TR_fn_assert(hata_metni(() => Koşu(TR_fn_temp_dir(), {}, {}, adım_sayısı: 0)).TR_mem_contains("en az 1"), "0 reddedilmeli")
 }

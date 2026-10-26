@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // 29 — İyileştiriciler: ağırlıkları güncellemenin yolları.
 // Ne öğretir: AdamW ve SGD, beta1/beta2 ve momentum ayarları, gradyan_kırp ile patlayan gradyanı sınırlamak,
 // iyileştiricinin durumunu alıp durumu_yükle ile geri yüklemek.
@@ -6,32 +7,32 @@
 
 // SGD (olasılıksal gradyan inişi) en yalın iyileştiricidir: w = w - öğrenme_oranı · gradyan.
 // momentum önceki adımların yönünü sürdürür.
-değişken w = tensör([1.0], türev_izle: doğru)
-değişken sgd = SGD([w], öğrenme_oranı: 0.1, momentum: 0.9)
-geri_yayılım(toplam(w * w)) // d(w²)/dw = 2w = 2
-sgd.adım()
-yazdır("SGD bir adım sonra w =", yuvarla(w.değer[0], 4))
+TR_kw_var w = TR_fn_tensor([1.0], TR_arg_requires_grad: TR_kw_true)
+TR_kw_var sgd = TR_fn_SGD([w], TR_arg_lr: 0.1, TR_arg_momentum: 0.9)
+TR_fn_backward(TR_fn_sum(w * w)) // d(w²)/dw = 2w = 2
+sgd.TR_mem_step()
+TR_fn_print("SGD bir adım sonra w =", TR_fn_round(w.TR_mem_tolist[0], 4))
 
 // AdamW her ağırlık için ayrı bir adım büyüklüğü uyarlar. beta1 gradyan ortalamasının,
 // beta2 gradyan karelerinin üstel azalma katsayısıdır ([0, 1) aralığında).
-değişken v = tensör([1.0], türev_izle: doğru)
-değişken adamw = AdamW([v], öğrenme_oranı: 0.1, beta1: 0.8, beta2: 0.99)
-geri_yayılım(toplam(v * v))
-adamw.adım()
-yazdır("AdamW bir adım sonra v =", yuvarla(v.değer[0], 4))
-yazdır(tip(sgd) == İyileştirici, tip(adamw) == İyileştirici)
+TR_kw_var v = TR_fn_tensor([1.0], TR_arg_requires_grad: TR_kw_true)
+TR_kw_var adamw = TR_fn_AdamW([v], TR_arg_lr: 0.1, TR_arg_beta1: 0.8, TR_arg_beta2: 0.99)
+TR_fn_backward(TR_fn_sum(v * v))
+adamw.TR_mem_step()
+TR_fn_print("AdamW bir adım sonra v =", TR_fn_round(v.TR_mem_tolist[0], 4))
+TR_fn_print(TR_fn_type(sgd) == TR_type_Optimizer, TR_fn_type(adamw) == TR_type_Optimizer)
 
 // gradyan_kırp, toplam gradyan normu en_fazla'yı aşıyorsa gradyanları aynı oranda küçültür;
 // kırpmadan önceki normu verir. Büyük gradyanlı adımlarda eğitimi kararlı tutar.
-değişken u = tensör([3.0, 4.0], türev_izle: doğru)
-geri_yayılım(toplam(u * u)) // gradyan [6, 8], norm 10
-yazdır("norm:", gradyan_kırp([u], en_fazla: 1.0))
-yazdır("kırpılmış gradyan:", u.gradyan.değer)
+TR_kw_var u = TR_fn_tensor([3.0, 4.0], TR_arg_requires_grad: TR_kw_true)
+TR_fn_backward(TR_fn_sum(u * u)) // gradyan [6, 8], norm 10
+TR_fn_print("norm:", TR_fn_clip_grad([u], TR_arg_max: 1.0))
+TR_fn_print("kırpılmış gradyan:", u.TR_mem_grad.TR_mem_tolist)
 
 // durum iyileştiricinin iç durumunu (momentler) bir sözlük olarak verir; durumu_yükle aynı ayarla
 // kurulmuş başka bir iyileştiriciye geri yükler (kontrol noktaları böyle çalışır).
-değişken yeni = AdamW([v], öğrenme_oranı: 0.1, beta1: 0.8, beta2: 0.99)
-yazdır("durum yüklendi:", yeni.durumu_yükle(adamw.durum))
+TR_kw_var yeni = TR_fn_AdamW([v], TR_arg_lr: 0.1, TR_arg_beta1: 0.8, TR_arg_beta2: 0.99)
+TR_fn_print("durum yüklendi:", yeni.TR_mem_load_state(adamw.TR_mem_state))
 
 // --- Kendin dene ---
 // 1. SGD'nin momentum değerini 0 yap: aynı adımda w farklı çıkar mı?

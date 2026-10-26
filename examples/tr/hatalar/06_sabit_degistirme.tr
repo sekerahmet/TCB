@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // Hata 06 — Sabiti değiştirmek.
 // İleti kodu: H1002
 // Ne olur: Tip denetimi, bir sabite ikinci kez değer atandığını program çalışmadan yakalar.
@@ -7,6 +8,6 @@
 //     kdv = 20 // değişecekse sabit değil değişken kullanın
 // Çalıştırma (proje kökünden): tr examples/tr/hatalar/06_sabit_degistirme.tr   (çıkış kodu 1)
 
-sabit KDV = 18
+TR_kw_const KDV = 18
 KDV = 20
-yazdır(KDV)
+TR_fn_print(KDV)

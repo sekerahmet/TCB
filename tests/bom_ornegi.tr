@@ -1,2 +1,3 @@
-﻿// BOM ile başlayan dosya da okunur (2.1)
-değişken bom_okundu = doğru
+﻿//! tr kodlu 3 dil=tr
+// BOM ile başlayan dosya da okunur (2.1)
+TR_kw_var bom_okundu = TR_kw_true

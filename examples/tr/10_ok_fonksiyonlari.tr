@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // 10 — Ok fonksiyonları ve zincirleme: fonksiyonu değer olarak kullanmak.
 // Ne öğretir: (x) => ifade ok fonksiyonu, fonksiyonu parametre olarak geçirmek, sondaki blok ve o,
 // filtrele/haritala/indirge, boru hattı (|>).
@@ -5,36 +6,36 @@
 // Çalıştırma (proje kökünden): tr examples/tr/10_ok_fonksiyonlari.tr
 
 // Ok fonksiyonu adsız, tek ifadelik bir fonksiyondur; bir değişkende saklanabilir.
-değişken iki_katı = (x) => x * 2
-yazdır(iki_katı(21))
+TR_kw_var iki_katı = (x) => x * 2
+TR_fn_print(iki_katı(21))
 
 // Fonksiyon bir değerdir: başka fonksiyona parametre olarak verilir.
-fonksiyon uygula(f, değer) {
-    sonuç f(değer)
+TR_kw_func uygula(f, değer) {
+    TR_kw_return f(değer)
 }
-yazdır(uygula(iki_katı, 8))
-yazdır(uygula((x) => x + 1, 8))
+TR_fn_print(uygula(iki_katı, 8))
+TR_fn_print(uygula((x) => x + 1, 8))
 
 // Listelerin metotları fonksiyon alır: haritala her elemanı dönüştürür,
 // filtrele koşulu sağlayanları bırakır, indirge hepsini tek değere toplar.
-değişken sayılar = [1, 2, 3, 4, 5, 6]
-yazdır(sayılar.haritala((x) => x * x))
-yazdır(sayılar.filtrele((x) => x % 2 == 0))
-yazdır(sayılar.indirge(0, (t, x) => t + x))
+TR_kw_var sayılar = [1, 2, 3, 4, 5, 6]
+TR_fn_print(sayılar.TR_mem_map((x) => x * x))
+TR_fn_print(sayılar.TR_mem_filter((x) => x % 2 == 0))
+TR_fn_print(sayılar.TR_mem_reduce(0, (t, x) => t + x))
 
 // Son parametre fonksiyonsa süslü parantezle yazılabilir (sondaki blok).
 // Blokta sıradaki eleman o adıyla gelir; indirge'de önceki sonuç birikim'dir.
-yazdır(sayılar.haritala { o * 10 })
-yazdır(sayılar.filtrele { o > 3 })
-yazdır(sayılar.indirge(1) { birikim * o })
+TR_fn_print(sayılar.TR_mem_map { TR_ctx_it * 10 })
+TR_fn_print(sayılar.TR_mem_filter { TR_ctx_it > 3 })
+TR_fn_print(sayılar.TR_mem_reduce(1) { TR_ctx_acc * TR_ctx_it })
 
 // Metotlar zincirlenir: her adımın sonucu bir sonrakinin girdisi olur.
-değişken ham = [5, 2, 8, 2, 1, 9, 5, 4]
-yazdır(ham.benzersiz().filtrele { o > 2 }.sırala().ters_çevir())
+TR_kw_var ham = [5, 2, 8, 2, 1, 9, 5, 4]
+TR_fn_print(ham.TR_mem_unique().TR_mem_filter { TR_ctx_it > 2 }.TR_mem_sort().TR_mem_reverse())
 
 // Boru hattı |>: soldaki değeri sağdaki fonksiyona verir.
-değişken çift_kareler = ham.filtrele { o % 2 == 0 }.haritala { o * o }
-yazdır("çift kareler: {çift_kareler}, toplamı {çift_kareler |> toplam}")
+TR_kw_var çift_kareler = ham.TR_mem_filter { TR_ctx_it % 2 == 0 }.TR_mem_map { TR_ctx_it * TR_ctx_it }
+TR_fn_print("çift kareler: {çift_kareler}, toplamı {çift_kareler |> TR_fn_sum}")
 
 // --- Kendin dene ---
 // 1. Bir kelime listesinden yalnızca 4 harften uzun olanları büyük harfe çevir.

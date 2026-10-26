@@ -1,3 +1,4 @@
+//! tr kodlu 3 dil=tr
 // 11.1 testinin fikstürü: göreli aktar önce bu dosyanın klasörüne göre çözülür.
-aktar "sira_ortak" olarak o
-değişken sıra_kaynağı = o.kimden
+TR_kw_import "sira_ortak" TR_ctx_as o
+TR_kw_var sıra_kaynağı = o.kimden

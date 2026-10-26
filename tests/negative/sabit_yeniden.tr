@@ -1,4 +1,5 @@
+//! tr kodlu 3 dil=tr
 // Bilerek hatalı: 5.2 — sabit yeniden atanamaz; denetleyici çalıştırmadan önce yakalar.
-yazdır("bu satır hiç çalışmamalı")
-sabit PI = 3.14
+TR_fn_print("bu satır hiç çalışmamalı")
+TR_kw_const PI = 3.14
 PI = 3

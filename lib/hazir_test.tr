@@ -1,66 +1,67 @@
+//! tr kodlu 3 dil=tr
 // tr/hazir testleri: config.json'dan GPT kuruluşu (bağımsız bakış boyutu, RoPE tabanının iki
 // yazımı, paylaşımlı gömme), desteklenmeyen ayarların açık hatası ve ağırlık adı eşlemesi.
 // Gerçek bir Hugging Face modeliyle logit eşitliği cmd/tr/e2e'de (transformers kuruluysa).
-aktar "tr/hazir"
+TR_kw_import "tr/hazir"
 
-fonksiyon qwen3_ayarı() {
-    sonuç {model_type: "qwen3", vocab_size: 16, hidden_size: 8, intermediate_size: 12, num_hidden_layers: 1,
+TR_kw_func qwen3_ayarı() {
+    TR_kw_return {model_type: "qwen3", vocab_size: 16, hidden_size: 8, intermediate_size: 12, num_hidden_layers: 1,
         num_attention_heads: 2, num_key_value_heads: 1, head_dim: 8, max_position_embeddings: 6,
-        rms_norm_eps: 0.000001, tie_word_embeddings: yanlış, rope_parameters: {rope_theta: 1000000.0, rope_type: "default"},
-        hidden_act: "silu", attention_bias: yanlış, use_sliding_window: yanlış, sliding_window: yok}
+        rms_norm_eps: 0.000001, tie_word_embeddings: TR_kw_false, rope_parameters: {rope_theta: 1000000.0, rope_type: "default"},
+        hidden_act: "silu", attention_bias: TR_kw_false, use_sliding_window: TR_kw_false, sliding_window: TR_kw_none}
 }
 
-fonksiyon hata_metni(f) {
-    dene { f() } yakala h { sonuç h }
-    sonuç ""
+TR_kw_func hata_metni(f) {
+    TR_kw_try { f() } TR_kw_catch h { TR_kw_return h }
+    TR_kw_return ""
 }
 
-test "hazır_model_kur: config.json alanları GPT'ye eşlenir; bakış boyutu ve RoPE tabanı Hugging Face kuralıyla" {
-    değişken m = hazır_model_kur(qwen3_ayarı())
-    eşit_mi([8, 16], m.bloklar[0].dikkat.sorgu_katmanı.ağırlık.şekil) // 2 bakış × 8
-    eşit_mi([8], m.bloklar[0].dikkat.q_norm.ağırlık.şekil) // bakış boyutu
-    eşit_mi(1000000.0, m.ayar.rope_tabanı)
-    eşit_mi([8, 16], m.çıkış.ağırlık.şekil)
-    değişken l = {model_type: "llama", vocab_size: 16, hidden_size: 8, intermediate_size: 12, num_hidden_layers: 1,
-        num_attention_heads: 2, rope_theta: 100000.0, tie_word_embeddings: doğru}
-    değişken ll = hazır_model_kur(l)
-    eşit_mi(100000.0, ll.ayar.rope_tabanı)
-    eşit_mi(yok, ll.çıkış)
-    eşit_mi(yok, ll.bloklar[0].dikkat.q_norm)
-    eşit_mi([8, 16], ll.bloklar[0].dikkat.kv_katmanı.ağırlık.şekil) // [K | V]; kv verilmezse bakış sayısı
-    eşit_mi([8, 24], ll.bloklar[0].ileri_besleme.kapı_yukarı.ağırlık.şekil) // [G | U]
+TR_ctx_test "hazır_model_kur: config.json alanları GPT'ye eşlenir; bakış boyutu ve RoPE tabanı Hugging Face kuralıyla" {
+    TR_kw_var m = hazır_model_kur(qwen3_ayarı())
+    TR_fn_assert_equal([8, 16], m.bloklar[0].dikkat.sorgu_katmanı.ağırlık.TR_mem_shape) // 2 bakış × 8
+    TR_fn_assert_equal([8], m.bloklar[0].dikkat.q_norm.ağırlık.TR_mem_shape) // bakış boyutu
+    TR_fn_assert_equal(1000000.0, m.ayar.rope_tabanı)
+    TR_fn_assert_equal([8, 16], m.çıkış.ağırlık.TR_mem_shape)
+    TR_kw_var l = {model_type: "llama", vocab_size: 16, hidden_size: 8, intermediate_size: 12, num_hidden_layers: 1,
+        num_attention_heads: 2, rope_theta: 100000.0, tie_word_embeddings: TR_kw_true}
+    TR_kw_var ll = hazır_model_kur(l)
+    TR_fn_assert_equal(100000.0, ll.ayar.rope_tabanı)
+    TR_fn_assert_equal(TR_kw_none, ll.çıkış)
+    TR_fn_assert_equal(TR_kw_none, ll.bloklar[0].dikkat.q_norm)
+    TR_fn_assert_equal([8, 16], ll.bloklar[0].dikkat.kv_katmanı.ağırlık.TR_mem_shape) // [K | V]; kv verilmezse bakış sayısı
+    TR_fn_assert_equal([8, 24], ll.bloklar[0].ileri_besleme.kapı_yukarı.ağırlık.TR_mem_shape) // [G | U]
 }
 
-test "hazır_model_kur: desteklenmeyen mimari ve ayarlar açık hatadır" {
-    değişken a = qwen3_ayarı()
+TR_ctx_test "hazır_model_kur: desteklenmeyen mimari ve ayarlar açık hatadır" {
+    TR_kw_var a = qwen3_ayarı()
     a.model_type = "gpt2"
-    doğrula(hata_metni(() => hazır_model_kur(a)).içerir("gpt2 mimarisi desteklenmiyor"))
-    değişken b = qwen3_ayarı()
-    b.attention_bias = doğru
-    doğrula(hata_metni(() => hazır_model_kur(b)).içerir("sapmalı"))
-    değişken c = qwen3_ayarı()
+    TR_fn_assert(hata_metni(() => hazır_model_kur(a)).TR_mem_contains("gpt2 mimarisi desteklenmiyor"))
+    TR_kw_var b = qwen3_ayarı()
+    b.attention_bias = TR_kw_true
+    TR_fn_assert(hata_metni(() => hazır_model_kur(b)).TR_mem_contains("sapmalı"))
+    TR_kw_var c = qwen3_ayarı()
     c.rope_parameters = {rope_type: "yarn", rope_theta: 10000.0}
-    doğrula(hata_metni(() => hazır_model_kur(c)).içerir("RoPE ölçekleme"))
-    değişken d = qwen3_ayarı()
-    d.use_sliding_window = doğru
-    doğrula(hata_metni(() => hazır_model_kur(d)).içerir("kayan pencereli"))
-    değişken e = qwen3_ayarı()
+    TR_fn_assert(hata_metni(() => hazır_model_kur(c)).TR_mem_contains("RoPE ölçekleme"))
+    TR_kw_var d = qwen3_ayarı()
+    d.use_sliding_window = TR_kw_true
+    TR_fn_assert(hata_metni(() => hazır_model_kur(d)).TR_mem_contains("kayan pencereli"))
+    TR_kw_var e = qwen3_ayarı()
     e.hidden_act = "gelu"
-    doğrula(hata_metni(() => hazır_model_kur(e)).içerir("gelu"))
+    TR_fn_assert(hata_metni(() => hazır_model_kur(e)).TR_mem_contains("gelu"))
 }
 
-test "hugging_face_eşle: adlar TR parametrelerine, doğrusal katmanlar devrilerek; tanınmayan ad hatadır" {
-    değişken w = tensör([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]) // HF [çıkış 2, giriş 3]
-    değişken e = hugging_face_eşle({"model.layers.0.self_attn.q_proj.weight": w,
-        "model.layers.0.input_layernorm.weight": tensör([1.0]), "model.layers.0.self_attn.rotary_emb.inv_freq": tensör([1.0]),
-        "lm_head.weight": w}, {tie_word_embeddings: doğru})
-    eşit_mi(["bloklar.0.dikkat.sorgu_katmanı.ağırlık", "bloklar.0.norm1.ağırlık"], e.anahtarlar())
-    eşit_mi([3, 2], e["bloklar.0.dikkat.sorgu_katmanı.ağırlık"].şekil)
-    eşit_mi([[1.0, 4.0], [2.0, 5.0], [3.0, 6.0]], e["bloklar.0.dikkat.sorgu_katmanı.ağırlık"].değer)
+TR_ctx_test "hugging_face_eşle: adlar TR parametrelerine, doğrusal katmanlar devrilerek; tanınmayan ad hatadır" {
+    TR_kw_var w = TR_fn_tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]) // HF [çıkış 2, giriş 3]
+    TR_kw_var e = hugging_face_eşle({"model.layers.0.self_attn.q_proj.weight": w,
+        "model.layers.0.input_layernorm.weight": TR_fn_tensor([1.0]), "model.layers.0.self_attn.rotary_emb.inv_freq": TR_fn_tensor([1.0]),
+        "lm_head.weight": w}, {tie_word_embeddings: TR_kw_true})
+    TR_fn_assert_equal(["bloklar.0.dikkat.sorgu_katmanı.ağırlık", "bloklar.0.norm1.ağırlık"], e.TR_mem_keys())
+    TR_fn_assert_equal([3, 2], e["bloklar.0.dikkat.sorgu_katmanı.ağırlık"].TR_mem_shape)
+    TR_fn_assert_equal([[1.0, 4.0], [2.0, 5.0], [3.0, 6.0]], e["bloklar.0.dikkat.sorgu_katmanı.ağırlık"].TR_mem_tolist)
     // k ve v (gate ve up) devrilip son eksende tek katmana bitiştirilir: [K | V], [G | U].
-    değişken b = hugging_face_eşle({"model.layers.1.self_attn.v_proj.weight": w * 10, "model.layers.1.self_attn.k_proj.weight": w}, {})
-    eşit_mi([[1.0, 4.0, 10.0, 40.0], [2.0, 5.0, 20.0, 50.0], [3.0, 6.0, 30.0, 60.0]], b["bloklar.1.dikkat.kv_katmanı.ağırlık"].değer)
-    doğrula(hata_metni(() => hugging_face_eşle({"model.layers.0.mlp.up_proj.weight": w}, {})).içerir("eksik"))
-    doğrula(hata_metni(() => hugging_face_eşle({"model.layers.0.mlp.gate_proj.bias": w}, {})).içerir("tanınmayan ağırlık"))
-    doğrula(hata_metni(() => hugging_face_eşle({"vision.x": w}, {})).içerir("tanınmayan ağırlık"))
+    TR_kw_var b = hugging_face_eşle({"model.layers.1.self_attn.v_proj.weight": w * 10, "model.layers.1.self_attn.k_proj.weight": w}, {})
+    TR_fn_assert_equal([[1.0, 4.0, 10.0, 40.0], [2.0, 5.0, 20.0, 50.0], [3.0, 6.0, 30.0, 60.0]], b["bloklar.1.dikkat.kv_katmanı.ağırlık"].TR_mem_tolist)
+    TR_fn_assert(hata_metni(() => hugging_face_eşle({"model.layers.0.mlp.up_proj.weight": w}, {})).TR_mem_contains("eksik"))
+    TR_fn_assert(hata_metni(() => hugging_face_eşle({"model.layers.0.mlp.gate_proj.bias": w}, {})).TR_mem_contains("tanınmayan ağırlık"))
+    TR_fn_assert(hata_metni(() => hugging_face_eşle({"vision.x": w}, {})).TR_mem_contains("tanınmayan ağırlık"))
 }

@@ -1,5 +1,6 @@
+//! tr kodlu 3 dil=tr
 // Bilerek hatalı: 6.8 — dönüş değerleri bildirilen dönüş tipine göre denetlenir.
-fonksiyon ad(): Tam { sonuç "Ali" }
-fonksiyon ort(a: Tam, b: Tam): Tam {
-    sonuç a / b
+TR_kw_func ad(): TR_type_Int { TR_kw_return "Ali" }
+TR_kw_func ort(a: TR_type_Int, b: TR_type_Int): TR_type_Int {
+    TR_kw_return a / b
 }

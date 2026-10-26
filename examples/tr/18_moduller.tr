@@ -1,15 +1,16 @@
+//! tr kodlu 3 dil=tr
 // 18 — Modüller: kodu dosyalara bölüp aktarmak.
 // Ne öğretir: aktar ile başka bir .tr dosyasındaki adları kullanmak, olarak ile takma ad vermek
 // (ad çakışmasını önler). Aktarılan dosya: helpers/geometri.tr.
 // Önceki örnekten: fonksiyonlar (08) ve testler (17); modül, fonksiyon ve sabitlerin bulunduğu bir dosyadır.
 // Çalıştırma (proje kökünden): tr examples/tr/18_moduller.tr
 
-aktar "helpers/geometri" // .tr uzantısı isteğe bağlı; adlar doğrudan kullanılır
-yazdır("r = 2 dairenin alanı: {yuvarla(daire_alanı(2), 3)}")
+TR_kw_import "helpers/geometri" // .tr uzantısı isteğe bağlı; adlar doğrudan kullanılır
+TR_fn_print("r = 2 dairenin alanı: {TR_fn_round(daire_alanı(2), 3)}")
 
-aktar "helpers/geometri" olarak geo // takma adla: geo.ad
-yazdır("geo.PI = {geo.PI}")
-yazdır("r = 1 dairenin alanı: {yuvarla(geo.daire_alanı(1), 3)}")
+TR_kw_import "helpers/geometri" TR_ctx_as geo // takma adla: geo.ad
+TR_fn_print("geo.PI = {geo.PI}")
+TR_fn_print("r = 1 dairenin alanı: {TR_fn_round(geo.daire_alanı(1), 3)}")
 
 // --- Kendin dene ---
 // 1. helpers/geometri.tr'ye dikdörtgen_alanı(en, boy) fonksiyonu ekle ve buradan çağır.
