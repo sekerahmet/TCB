@@ -36,6 +36,12 @@ Son kapanan kritik madde: kimliğe yeniden adlandırılan kodların "silinmiş" 
   - Kör nokta ön denetime de geçiyor (MEKANİK bildirdi, düzeltmeler-4): ön denetim değişen dosyanın testlerini `codegraph changed --go-tests` ile seçiyor (ef1c8792). `lib/` değişince bu üç test seçilmiyor.
   - Beklenen: test dizesindeki (ve testin `tr` ikilisine verdiği betikteki) `aktar "tr/X"` kitaplığın `lib/X.tr` dosyasına test bağı kurar. Sınıfı koruyan test: `lib/` altındaki her dosyanın en az bir davranış testi `tests-for` cevabında. İnce ayardaki "test dizesindeki TR kodu" maddesiyle aynı kök.
 
+- **VS Code eklentisinin JS testlerinin okuduğu veri dosyaları bir teste bağlanmıyor.** 2026-10-26, ana oturum yaşadı (tam denetim, `TestEveryTrackedDataFileHasATestOrAReason`).
+  - Komut: `go run ./tools/codegraph tests-for editors/vscode/l10n/bundle.l10n.tr.json` → test yok.
+  - İkinci yol: `editors/vscode/test/l10n_test.js:39` dosyayı okuyor; onu `cmd/tr/e2e` `TestExtensionJSTests` koşuyor.
+  - Geçici: dosya `testdata/uncovered_data.txt`'e yazıldı, `maxUncoveredData` 9 → 10 ("yalnızca küçülür" kuralına aykırı). `editors/vscode/*.json` satırı aynı sınıftan.
+  - Beklenen: eklentinin JS testinin okuduğu dosya (`readJSON(...)`, `path.join(ROOT, ...)`), o testi koşan Go testine (`TestExtensionJSTests`) bağlanır; iki istisna satırı silinir, sınır 8'e iner.
+
 ## İnce ayar
 
 - **Birim testi uzak sırada: test dizesindeki TR kodu.** 2026-10-26, MEKANİK bildirdi, ana oturum main a2e94151'de yeniden üretti.
