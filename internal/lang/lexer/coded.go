@@ -176,6 +176,9 @@ func KeywordCode(t TokenType) codes.Code {
 // nameToken okunan bir adın sözcük birimidir: Türkçe yazılmış kaynakta anahtar kelime ya da
 // ad (TR_ ile başlayan ad hatadır, 2.3a), kodlu kaynakta codedToken.
 func (l *Lexer) nameToken(lit string, line, col int) Token {
+	if isMessageCode(lit) {
+		return Token{Type: TokMessageCode, Literal: lit, Line: line, Column: col}
+	}
 	if l.coded {
 		return l.codedToken(lit, line, col)
 	}
@@ -249,3 +252,16 @@ func (l *Lexer) checkReservedName(lit string, line, col int) {
 // it ("//! tr kodlu 3 dil=en", 17.1). The header's rules live in internal/lang/source; the text
 // lives here so the lexer's hint can show it too.
 const CodedHeader = "//! tr kodlu 3 dil="
+
+// isMessageCode sözcüğün bir ileti kodu olduğudur: H ve tam dört rakam (H6903).
+func isMessageCode(word string) bool {
+	if len(word) != 5 || word[0] != 'H' {
+		return false
+	}
+	for i := 1; i < 5; i++ {
+		if word[i] < '0' || word[i] > '9' {
+			return false
+		}
+	}
+	return true
+}

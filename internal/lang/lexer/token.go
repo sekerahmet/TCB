@@ -40,6 +40,9 @@ const (
 	TokInt    = "INT"
 	TokFloat  = "FLOAT"
 	TokString = "STRING"
+	// TokMessageCode is a message code written in the source: H and four digits as a whole word
+	// (H6903). The parser reads it as the string of the code.
+	TokMessageCode = "MESSAGE_CODE"
 
 	// Operators
 	TokAssign      = "="

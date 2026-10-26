@@ -164,6 +164,24 @@ func TestNonKeywords(t *testing.T) {
 	}
 }
 
+// İleti kodu (H ve dört rakam, tam sözcük) bir ad değil sözcük birimidir: ileti(H6903, x).
+// Daha uzun, kısa ya da küçük harfli yazım sıradan bir addır.
+func TestMessageCodeToken(t *testing.T) {
+	toks := tokensNoErrors(t, "H6903")
+	if len(toks) != 2 || toks[0].Type != TokMessageCode || toks[0].Literal != "H6903" {
+		t.Errorf("H6903: tek bir ILETI_KODU bekleniyordu, gelen: %v", toks)
+	}
+	for _, s := range []string{"H690", "H69030", "h6903", "H6903x", "xH6903", "H_6903", "HH6903"} {
+		toks := tokensNoErrors(t, s)
+		if len(toks) != 2 || toks[0].Type != TokIdent || toks[0].Literal != s {
+			t.Errorf("%q: tek bir TANIMLAYICI bekleniyordu, gelen: %v", s, toks)
+		}
+	}
+	checkTokens(t, "ileti(H6903, x)", []expected{
+		{TokIdent, "ileti"}, {TokLParen, "("}, {TokMessageCode, "H6903"}, {TokComma, ","}, {TokIdent, "x"}, {TokRParen, ")"}, {TokEOF, ""},
+	})
+}
+
 // ---------------------------------------------------------------------------
 // Tanımlayıcılar
 // ---------------------------------------------------------------------------

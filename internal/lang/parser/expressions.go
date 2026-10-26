@@ -30,6 +30,9 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		}
 	case lexer.TokSelf:
 		leftExp = &ast.Identifier{Token: p.curToken(), Value: p.words.self}
+	case lexer.TokMessageCode:
+		// ileti(H6903, x): kod, katalogdaki ileti kodunun metnidir
+		leftExp = &ast.StringLiteral{Token: p.curToken(), Value: p.curToken().Literal}
 	case lexer.TokInt:
 		leftExp = p.parseIntegerLiteral()
 	case lexer.TokFloat:

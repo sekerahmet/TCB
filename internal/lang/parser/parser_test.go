@@ -298,3 +298,17 @@ func TestColonSliceGetsRangeHint(t *testing.T) {
 		t.Fatalf("l[a:b] ipucu bekleniyordu: %v", errs)
 	}
 }
+
+// Bir ileti kodu (H6903) ifadede kodun metnidir: ileti(H6903, x) ile ileti("H6903", x) aynıdır.
+func TestMessageCodeIsItsString(t *testing.T) {
+	p := New(lexer.New("f(H6903, 1)\n"))
+	prog := p.ParseProgram()
+	if len(p.Errors()) != 0 {
+		t.Fatalf("hata: %v", p.Errors())
+	}
+	call := prog.Statements[0].(*ast.ExpressionStatement).Expression.(*ast.CallExpression)
+	lit, ok := call.Arguments[0].(*ast.StringLiteral)
+	if !ok || lit.Value != "H6903" {
+		t.Errorf("ilk argüman \"H6903\" metni olmalı: %#v", call.Arguments[0])
+	}
+}

@@ -318,7 +318,7 @@ func isUnary(prev *item) bool {
 	switch {
 	case t == lexer.TokRParen || t == lexer.TokRBracket || t == lexer.TokRBrace:
 		return false
-	case t == lexer.TokIdent || t == lexer.TokInt || t == lexer.TokFloat || t == lexer.TokString:
+	case t == lexer.TokIdent || t == lexer.TokInt || t == lexer.TokFloat || t == lexer.TokString || t == lexer.TokMessageCode:
 		return false
 	case t == lexer.TokTrue || t == lexer.TokFalse || t == lexer.TokNil || t == lexer.TokSelf:
 		return false
