@@ -30,8 +30,8 @@ func TestWatchSummary(t *testing.T) {
 			t.Errorf("%s: %q, beklenen %q", d.ad, got, d.await)
 		}
 	}
-	// Tam sayılı tensör (maks_indeks sonucu) ondalıksız yazılır, yazdır() gibi.
-	v := value(t, "değişken cikti = maks_indeks(tensör([0.1, 0.9, 0.2]))")
+	// Tam sayılı tensör (argmax sonucu) ondalıksız yazılır, yazdır() gibi.
+	v := value(t, "değişken cikti = argmax(tensör([0.1, 0.9, 0.2]))")
 	if got := v.(*TensorValue).WatchSummary(); got != "1 (Tensör, skaler)" {
 		t.Errorf("tam sayılı skaler: %q", got)
 	}

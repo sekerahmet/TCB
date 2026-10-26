@@ -71,14 +71,14 @@ const (
 	FnAdamW              Code = 62  // TR_fn_AdamW: AdamW
 	FnSGD                Code = 63  // TR_fn_SGD: SGD
 	FnAbs                Code = 64  // TR_fn_abs: abs · mutlak
-	FnAcos               Code = 65  // TR_fn_acos: acos · arkkosinüs
-	FnArgmax             Code = 66  // TR_fn_argmax: argmax · maks_indeks
+	FnAcos               Code = 65  // TR_fn_acos: acos
+	FnArgmax             Code = 66  // TR_fn_argmax: argmax
 	FnArgsort            Code = 67  // TR_fn_argsort: argsort · sıralama_indeksi
-	FnAsin               Code = 68  // TR_fn_asin: asin · arksinüs
+	FnAsin               Code = 68  // TR_fn_asin: asin
 	FnAssert             Code = 69  // TR_fn_assert: assert · doğrula
 	FnAssertEqual        Code = 70  // TR_fn_assert_equal: assert_equal · eşit_mi
-	FnAtan               Code = 71  // TR_fn_atan: atan · arktanjant
-	FnAtan2              Code = 72  // TR_fn_atan2: atan2 · arktanjant2
+	FnAtan               Code = 71  // TR_fn_atan: atan
+	FnAtan2              Code = 72  // TR_fn_atan2: atan2
 	FnAttention          Code = 73  // TR_fn_attention: attention · dikkat
 	FnBackward           Code = 74  // TR_fn_backward: backward · geri_yayılım
 	FnCeil               Code = 75  // TR_fn_ceil: ceil · tavan
@@ -89,7 +89,7 @@ const (
 	FnComputeDtype       Code = 80  // TR_fn_compute_dtype: compute_dtype · hesap_türü
 	FnConcat             Code = 81  // TR_fn_concat: concat · bitiştir
 	FnCopy               Code = 82  // TR_fn_copy: copy · kopyala
-	FnCos                Code = 83  // TR_fn_cos: cos · kosinüs
+	FnCos                Code = 83  // TR_fn_cos: cos
 	FnCosh               Code = 84  // TR_fn_cosh: cosh
 	FnCrossEntropy       Code = 85  // TR_fn_cross_entropy: cross_entropy · çapraz_entropi
 	FnCumsum             Code = 86  // TR_fn_cumsum: cumsum · birikimli_toplam
@@ -99,8 +99,8 @@ const (
 	FnDevices            Code = 90  // TR_fn_devices: devices · cihazlar
 	FnEmbedding          Code = 91  // TR_fn_embedding: embedding · gömme
 	FnEnv                Code = 92  // TR_fn_env: env · ortam_değişkeni
-	FnExp                Code = 93  // TR_fn_exp: exp · üstel
-	FnExpm1              Code = 94  // TR_fn_expm1: expm1 · üstel_eksi_bir
+	FnExp                Code = 93  // TR_fn_exp: exp
+	FnExpm1              Code = 94  // TR_fn_expm1: expm1
 	FnEye                Code = 95  // TR_fn_eye: eye · birim_matris
 	FnFloat              Code = 96  // TR_fn_float: float · ondalık
 	FnFloor              Code = 97  // TR_fn_floor: floor · taban
@@ -125,7 +125,7 @@ const (
 	FnLogSoftmax         Code = 116 // TR_fn_log_softmax: log_softmax
 	FnLogger             Code = 117 // TR_fn_logger: logger · günlük
 	FnMakeDir            Code = 118 // TR_fn_make_dir: make_dir · klasör_oluştur
-	FnMax                Code = 119 // TR_fn_max: max · maks
+	FnMax                Code = 119 // TR_fn_max: max
 	FnMean               Code = 120 // TR_fn_mean: mean · ortalama
 	FnMedian             Code = 121 // TR_fn_median: median · ortanca
 	FnMin                Code = 122 // TR_fn_min: min
@@ -153,7 +153,7 @@ const (
 	FnSigmoid            Code = 144 // TR_fn_sigmoid: sigmoid
 	FnSign               Code = 145 // TR_fn_sign: sign · işaret
 	FnSilu               Code = 146 // TR_fn_silu: silu
-	FnSin                Code = 147 // TR_fn_sin: sin · sinüs
+	FnSin                Code = 147 // TR_fn_sin: sin
 	FnSinh               Code = 148 // TR_fn_sinh: sinh
 	FnSleep              Code = 149 // TR_fn_sleep: sleep · bekle
 	FnSoftmax            Code = 150 // TR_fn_softmax: softmax
@@ -161,7 +161,7 @@ const (
 	FnStd                Code = 152 // TR_fn_std: std · standart_sapma
 	FnStr                Code = 153 // TR_fn_str: str · metin
 	FnSum                Code = 154 // TR_fn_sum: sum · toplam
-	FnTan                Code = 155 // TR_fn_tan: tan · tanjant
+	FnTan                Code = 155 // TR_fn_tan: tan
 	FnTanh               Code = 156 // TR_fn_tanh: tanh
 	FnTempDir            Code = 157 // TR_fn_temp_dir: temp_dir · geçici_klasör
 	FnTensor             Code = 158 // TR_fn_tensor: tensor · tensör

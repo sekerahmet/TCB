@@ -1,5 +1,5 @@
 // 25 — Seçme ve sıralama: tensörde koşula göre seçmek, en büyükleri bulmak.
-// Ne öğretir: koşullu ile eleman seçmek, maks_indeks, en_büyük_k, sıralama_indeksi, birikimli_toplam, sınırla.
+// Ne öğretir: koşullu ile eleman seçmek, argmax, en_büyük_k, sıralama_indeksi, birikimli_toplam, sınırla.
 // Önceki örnekten: tensör matematiği (24), tensörler (23), matematik (13).
 // Çalıştırma (proje kökünden): tr examples/tr/25_secme_ve_siralama.tr
 // Ayrıntılar: docs/spec/15_tensorler.md §15.
@@ -13,9 +13,9 @@ yazdır(koşullu(x > 0, 1, -1).değer) // işaret
 // sınırla tensörde de eleman bazlıdır.
 yazdır(sınırla(x, en_az: -2, en_fazla: 3).değer)
 
-// maks_indeks en büyük elemanın indeksini verir (eksen: -1 her satır için).
+// argmax en büyük elemanın indeksini verir (eksen: -1 her satır için).
 değişken puanlar = tensör([[0.1, 2.5, 0.3], [1.7, 0.2, 0.9]])
-yazdır(maks_indeks(puanlar, eksen: -1).değer)
+yazdır(argmax(puanlar, eksen: -1).değer)
 
 // en_büyük_k en büyük k elemanı büyükten küçüğe [değerler, indeksler] olarak verir.
 değişken en_iyiler = en_büyük_k(tensör([3.0, 1.0, 4.0, 1.5]), 2)

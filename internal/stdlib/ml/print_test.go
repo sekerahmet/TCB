@@ -11,7 +11,7 @@ import (
 func TestPrintSpecialValues(t *testing.T) {
 	out := mustRun(t, `yazdır(tensör([0.00001, 1]))
 yazdır(tensör([1000000000.0, 2]))
-yazdır(log(tensör([-1, 0, 1])), üstel(tensör([100])))
+yazdır(log(tensör([-1, 0, 1])), exp(tensör([100])))
 yazdır(toplam(tensör([0.00002])))
 yazdır(min(tensör([3, -2, 5])), min(tensör([3, -2], türev_izle: doğru)))`)
 	want := "Tensör[2] [1.0000e-05, 1.0000e+00]\n" +

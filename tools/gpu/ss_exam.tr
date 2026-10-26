@@ -54,12 +54,12 @@ türevsiz {
         değişken n = iş[0].şekil[0] * T
         toplam_kayıp += çapraz_entropi(logit, iş[1]).değer * n
         parça += n
-        değişken isabet = mutlak(maks_indeks(logit, eksen: -1) - iş[1]) < 0.5
+        değişken isabet = mutlak(argmax(logit, eksen: -1) - iş[1]) < 0.5
         değişken konum = toplam(isabet, 0).değer
         döngü i içinde 0..T { doğru_konum[i] += konum[i] }
     }
 }
-değişken kayıp = toplam_kayıp / maks(parça, 1)
+değişken kayıp = toplam_kayıp / max(parça, 1)
 değişken pencere = parça / T
 değişken bant_sınırları = [[0, 64], [64, 256], [256, 512]]
 değişken bantlar = {}
@@ -68,7 +68,7 @@ döngü b içinde bant_sınırları {
         değişken son = min(b[1], T)
         değişken d = 0.0
         döngü i içinde b[0]..son { d += doğru_konum[i] }
-        bantlar["{b[0]}-{son}"] = d / maks(pencere * (son - b[0]), 1)
+        bantlar["{b[0]}-{son}"] = d / max(pencere * (son - b[0]), 1)
     }
 }
 değişken toplam_doğru = 0.0
@@ -84,7 +84,7 @@ fonksiyon farklı_4(kimlikler) {
         sayım[anahtar] = eğer sayım.içerir(anahtar) { sayım[anahtar] + 1 } değilse { 1 }
     }
     değişken en_çok = 0
-    döngü a, s içinde sayım { en_çok = maks(en_çok, s) }
+    döngü a, s içinde sayım { en_çok = max(en_çok, s) }
     sonuç [sayım.uzunluk / (kimlikler.uzunluk - 3), en_çok >= 3]
 }
 değişken istemler = ["Once upon a time", "The little dog", "One day, a girl named", "In a small village,"]
@@ -105,8 +105,8 @@ döngü istem içinde istemler[0..2] {
 değişken örnekler = []
 döngü istem içinde istemler { örnekler.ekle({istem: istem, metin: açgözlü(istem, ayar.örnek_uzunluğu)[1]}) }
 
-değişken sınav = {kayıp: kayıp, ppl: üstel(min(kayıp, 50.0)), bpb: kayıp / log(2.0) / ayar.bayt_parça,
-    doğruluk: toplam_doğru / maks(parça, 1), bantlar: bantlar, parça: parça, pencere: pencere,
+değişken sınav = {kayıp: kayıp, ppl: exp(min(kayıp, 50.0)), bpb: kayıp / log(2.0) / ayar.bayt_parça,
+    doğruluk: toplam_doğru / max(parça, 1), bantlar: bantlar, parça: parça, pencere: pencere,
     sondalar: sondalar, süre_sn: (zaman_ms() - başla) / 1000.0, hassasiyet: ayar.hassasiyet}
 değişken hız_yolu = yol(ayar.koşu, "speed.json")
 değişken sonuç_ = {ad: yol(ayar.koşu).dosya_adı, parametre_sayısı: yapılandırma.parametre_sayısı, adım: eğitim.adım,

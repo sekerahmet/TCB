@@ -20,7 +20,7 @@ değişken model = hazır_model(arg.klasör)
 değişken logit = model.ileri(tensör(beklenen["ids"]))[0].değer
 değişken en_büyük = 0.0
 döngü i, satır içinde beklenen["logits"] {
-    döngü j, x içinde satır { en_büyük = maks(en_büyük, mutlak(x - logit[i][j])) }
+    döngü j, x içinde satır { en_büyük = max(en_büyük, mutlak(x - logit[i][j])) }
 }
 yazdır(en_büyük)
 `

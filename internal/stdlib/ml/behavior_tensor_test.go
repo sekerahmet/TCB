@@ -25,12 +25,12 @@ değişken b = tensör([[1, 0], [0, 1], [1, 1]])
 		{"toplam(a)", []float32{21}, []int{}},
 		{"toplam(a, eksen: 1)", []float32{6, 15}, []int{2}},
 		{"ortalama(a, eksen: 0)", []float32{2.5, 3.5, 4.5}, []int{3}},
-		{"maks(a)", []float32{6}, []int{}},
+		{"max(a)", []float32{6}, []int{}},
 		{"min(a, eksen: -1)", []float32{1, 4}, []int{2}},
-		{"maks(a, eksen: 0)", []float32{4, 5, 6}, []int{3}},
+		{"max(a, eksen: 0)", []float32{4, 5, 6}, []int{3}},
 		{"relu(a - 3)", []float32{0, 0, 0, 1, 2, 3}, []int{2, 3}},
 		{"karekök(tensör([4, 9]))", []float32{2, 3}, []int{2}},
-		{"üstel(tensör([0]))", []float32{1}, []int{1}},
+		{"exp(tensör([0]))", []float32{1}, []int{1}},
 		{"log(tensör([1]))", []float32{0}, []int{1}},
 		{"a.şekillendir([3, 2]).şekil.uzunluk", nil, nil},
 		{"a.devrik()", []float32{1, 4, 2, 5, 3, 6}, []int{3, 2}},
@@ -61,7 +61,7 @@ değişken b = tensör([[1, 0], [0, 1], [1, 1]])
 	v := value(t, code+"değişken cikti = toplam(softmax(a, eksen: -1), eksen: 1)")
 	data, _ := tensorData(t, v)
 	near(t, "softmax toplamı", data, []float32{1, 1}, 1e-5)
-	v = value(t, code+"değişken cikti = üstel(log_softmax(a)) - softmax(a)")
+	v = value(t, code+"değişken cikti = exp(log_softmax(a)) - softmax(a)")
 	data, _ = tensorData(t, v)
 	near(t, "log_softmax", data, make([]float32, 6), 1e-5)
 
@@ -107,7 +107,7 @@ değişken y = x * x + 2 * x + 1
 geri_yayılım(y)
 yazdır(x.değer, y.değer, x.gradyan, tip(x))
 yazdır(sıfırlar([2, 3]).şekil, tip(birler([2, 2])), tip(sıfırlar([3])))
-yazdır(toplam([1, 2, 3]), min([3, 1, 2]), maks(4, 9), karekök(9), ortalama([1, 2, 3]))
+yazdır(toplam([1, 2, 3]), min([3, 1, 2]), max(4, 9), karekök(9), ortalama([1, 2, 3]))
 yazdır(softmax(tensör([1.0, 1.0])).değer, relu(-2), tip(tensör([[1, 2]]).devrik()))`)
 	want := "3.0 16.0 Tensör(8.0000) Tensör\n[2, 3] Tensör Tensör\n6 1 9 3.0 2.0\n[0.5, 0.5] 0.0 Tensör\n"
 	if out != want {

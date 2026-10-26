@@ -159,7 +159,7 @@ func ListElementError(name any, i int, expected any, given Value) error {
 	return messages.New(messages.H2486, name, i+1, expected, TypeAndSummary(given))
 }
 
-// extreme min/maks'ın (kd) ortak gövdesidir: değerlerin en küçüğünü (buyuk yanlışsa) ya da en
+// extreme min/max'ın (kd) ortak gövdesidir: değerlerin en küçüğünü (buyuk yanlışsa) ya da en
 // büyüğünü, değerin kendisini (tipi korunarak) döndürür. Tam'lar tam karşılaştırılır; sayı
 // olmayan değer hatadır; NaN varsa sonuç NaN'dır. Boş girdide yok döner. liste, değerlerin
 // tek bir liste argümanının elemanları olduğunu söyler (hata mesajı için).

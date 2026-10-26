@@ -154,21 +154,21 @@ test "15.43 tensör belleğinin ömrü: bırakılan ara sonuçlar sonucu değiş
 }
 
 test "15.44 kaynaştır: zincir tek geçişte, sonuç ve gradyan kaynaşmamışla aynı" {
-    fonksiyon döner(x, kos, sin, ölçek) {
+    fonksiyon döner(x, cos_tablosu, sin_tablosu, ölçek) {
         değişken a, b = x.böl(2, eksen: -1)
-        sonuç bitiştir([a * kos - b * sin, (a * sin + b * kos) * ölçek], eksen: -1)
+        sonuç bitiştir([a * cos_tablosu - b * sin_tablosu, (a * sin_tablosu + b * cos_tablosu) * ölçek], eksen: -1)
     }
     değişken k = kaynaştır(döner)
     değişken x1 = tensör(rastgele_normal([3, 4], tohum: 1), türev_izle: doğru)
     değişken x2 = tensör(x1, türev_izle: doğru)
-    değişken kos = rastgele_normal([3, 2], tohum: 2)
-    değişken sin = rastgele_normal([3, 2], tohum: 3)
-    değişken y1 = k(x1, kos, sin, 2.0)
-    değişken y2 = döner(x2, kos, sin, 2.0)
+    değişken cos_tablosu = rastgele_normal([3, 2], tohum: 2)
+    değişken sin_tablosu = rastgele_normal([3, 2], tohum: 3)
+    değişken y1 = k(x1, cos_tablosu, sin_tablosu, 2.0)
+    değişken y2 = döner(x2, cos_tablosu, sin_tablosu, 2.0)
     eşit_mi(y2.değer, y1.değer)
     geri_yayılım(toplam(y1 * y1))
     geri_yayılım(toplam(y2 * y2))
-    doğrula(maks(mutlak(x1.gradyan - x2.gradyan)).değer < 0.00001, "gradyan farklı")
+    doğrula(max(mutlak(x1.gradyan - x2.gradyan)).değer < 0.00001, "gradyan farklı")
     // Sabit önbellek anahtarının parçasıdır; liste döndüren fonksiyon liste verir.
     eşit_mi([3.0], kaynaştır((a, s) => a * s)(tensör([1.0]), 3.0).değer)
     eşit_mi(2, kaynaştır((a) => [a + 1.0, a * 2.0])(tensör([1.0])).uzunluk)
@@ -198,8 +198,8 @@ test "15.25 doğrusal_çapraz_entropi: çapraz_entropi(girdi @ ağırlık) ile a
     değişken k2 = çapraz_entropi(x2 @ w2, hedef)
     geri_yayılım(k2 / 2)
     doğrula(mutlak(k1.değer - k2.değer) < 0.00001, "kayıp {k1.değer} / {k2.değer}")
-    doğrula(maks(mutlak(x.gradyan - x2.gradyan)).değer < 0.00001, "girdi gradyanı farklı")
-    doğrula(maks(mutlak(w.gradyan - w2.gradyan)).değer < 0.00001, "ağırlık gradyanı farklı")
+    doğrula(max(mutlak(x.gradyan - x2.gradyan)).değer < 0.00001, "girdi gradyanı farklı")
+    doğrula(max(mutlak(w.gradyan - w2.gradyan)).değer < 0.00001, "ağırlık gradyanı farklı")
     // Paylaşımlı gömme düzeni: ağırlık tablonun devriği (görünüm).
     değişken tablo = rastgele_normal([5, 4], tohum: 3)
     doğrula(mutlak(doğrusal_çapraz_entropi(x, tablo.devrik(), hedef).değer - çapraz_entropi(x @ tablo.devrik(), hedef).değer) < 0.00001)
@@ -218,24 +218,24 @@ test "15.9 matematik fonksiyonları ve indirgemeler" {
     değişken a = tensör([[1, 2, 3], [4, 5, 6]])
     eşit_mi([[0.0, 0.0, 0.0], [1.0, 2.0, 3.0]], relu(a - 3).değer)
     eşit_mi([2.0, 3.0], karekök(tensör([4, 9])).değer)
-    eşit_mi([1.0], üstel(tensör([0])).değer)
+    eşit_mi([1.0], exp(tensör([0])).değer)
     eşit_mi([0.0], log(tensör([1])).değer)
     eşit_mi(0.5, sigmoid(sıfırlar([1])).değer[0])
     eşit_mi(0.0, tanh(sıfırlar([1])).değer[0])
     eşit_mi(0.0, gelu(sıfırlar([1])).değer[0])
     // Eleman bazlı fonksiyonlar sayıda Ondalık verir, listede çalışmaz (tensör(...) ile çevrilir).
-    eşit_mi(1.0, üstel(0))
+    eşit_mi(1.0, exp(0))
     eşit_mi(0.0, relu(-2))
     doğrula(hata_metni(() => relu([1, -2])).içerir("relu listede çalışmaz, yalnızca tensörde ve sayıda; listeyi tensör(...) ile çevirin: relu(tensör(...))"))
     doğrula(hata_metni(() => log_softmax([1, 2])).içerir("log_softmax listede çalışmaz, yalnızca tensörde; listeyi tensör(...) ile çevirin: log_softmax(tensör(...), eksen: -1)"))
     doğrula(hata_metni(() => softmax(2.0)).içerir("softmax: tensör bekleniyor, Ondalık verildi"))
     değişken s = softmax(a, eksen: -1)
     eşit_mi(1.0, yuvarla(toplam(s, eksen: 1).değer[0], 5))
-    eşit_mi(1.0, yuvarla(toplam(üstel(log_softmax(a))).değer / 2, 5))
+    eşit_mi(1.0, yuvarla(toplam(exp(log_softmax(a))).değer / 2, 5))
     eşit_mi(21.0, toplam(a).değer)
     eşit_mi([6.0, 15.0], toplam(a, eksen: 1).değer)
     eşit_mi([2.5, 3.5, 4.5], ortalama(a, eksen: 0).değer)
-    eşit_mi(6.0, maks(a).değer)
+    eşit_mi(6.0, max(a).değer)
     eşit_mi([1.0, 4.0], min(a, eksen: -1).değer)
     eşit_mi([5.0, 7.0, 9.0], toplam(a, 0).değer)
     // Eski liste davranışı korunur; listedeki tensörler katlanır, iç içe liste hatadır.
@@ -243,11 +243,11 @@ test "15.9 matematik fonksiyonları ve indirgemeler" {
     eşit_mi(2.0, ortalama([1, 2, 3]))
     eşit_mi([4.0, 6.0], toplam([tensör([1, 2]), tensör([3, 4])]).değer)
     doğrula(hata_metni(() => toplam([[1, 2], [3, 4]])).içerir("iç içe liste indirgenemez"))
-    doğrula(hata_metni(() => maks(a, 0)).içerir("maks(x, eksen: 0) yazın"))
+    doğrula(hata_metni(() => max(a, 0)).içerir("max(x, eksen: 0) yazın"))
     doğrula(hata_metni(() => sıfırlar(2, 3, türev_izle: doğru)).içerir("sıfırlar([2, 3]) yazın"))
     doğrula(hata_metni(() => AdamW([tensör([1.0], türev_izle: doğru)], lr: 0.1)).içerir("'öğrenme_oranı'"))
     // Eleman bazlı sonuç elemanın konumuna bağlı değildir (aynı girdi, aynı çıktı).
-    değişken e = üstel(birler([9]) * -48.528).değer
+    değişken e = exp(birler([9]) * -48.528).değer
     eşit_mi(e[0], e[8])
 }
 
@@ -255,13 +255,13 @@ test "15.9 sayı olmayan değer (NaN) yayılır; türevli ve türevsiz yol aynı
     değişken nan_mı = (x) => x != x
     değişken y = tensör([1.0, 0.0, 3.0]) / tensör([1.0, 0.0, 1.0]) // [1, NaN, 3]
     değişken yg = tensör(y, türev_izle: doğru)
-    doğrula(nan_mı(maks(y).değer) ve nan_mı(min(y).değer))
-    doğrula(nan_mı(maks(yg).değer) ve nan_mı(min(yg).değer))
+    doğrula(nan_mı(max(y).değer) ve nan_mı(min(y).değer))
+    doğrula(nan_mı(max(yg).değer) ve nan_mı(min(yg).değer))
     değişken m = tensör([[1.0, 2.0], [3.0, 4.0]]) * tensör([[1.0, 0.0], [1.0, 1.0]]) / tensör([[1.0, 0.0], [1.0, 1.0]])
-    değişken me = maks(m, eksen: 1).değer // [NaN, 4]
+    değişken me = max(m, eksen: 1).değer // [NaN, 4]
     doğrula(nan_mı(me[0]) ve me[1] == 4.0)
     doğrula(nan_mı(min(m, eksen: 1).değer[0]))
-    eşit_mi([1, 1], maks_indeks(m, eksen: 1).değer) // ilk NaN'ın yeri
+    eşit_mi([1, 1], argmax(m, eksen: 1).değer) // ilk NaN'ın yeri
     değişken r = relu(y).değer
     doğrula(r[0] == 1.0 ve nan_mı(r[1]) ve r[2] == 3.0)
 }
@@ -448,7 +448,7 @@ test "15.34 iyileştiriciler: küçük doğrusal regresyon" {
     doğrula(hata_metni(() => AdamW([sıfırlar([2])])).içerir("türev izlemiyor"))
     // Sayı olmayan ya da sonsuz oranlar reddedilir (tek adımda bütün parametreler NaN olurdu).
     doğrula(hata_metni(() => AdamW([p], öğrenme_oranı: log(-1.0))).içerir("sonlu bir sayı olmalıdır"))
-    doğrula(hata_metni(() => SGD([p], öğrenme_oranı: üstel(1000.0))).içerir("sonlu bir sayı olmalıdır"))
+    doğrula(hata_metni(() => SGD([p], öğrenme_oranı: exp(1000.0))).içerir("sonlu bir sayı olmalıdır"))
     doğrula(hata_metni(() => SGD([p], momentum: log(-1.0))).içerir("sonlu bir sayı olmalıdır"))
     doğrula(hata_metni(() => AdamW([p], öğrenme_oranı: 1e300)).içerir("sonlu bir sayı olmalıdır"))
 }
@@ -507,14 +507,14 @@ test "15.35 öğrenme_oranı okunur ve atanabilir; yeni oran sonraki adımda kul
     doğrula(hata_metni(() => { op.durum = {} }).içerir("atama yapılamaz"))
 }
 
-test "15.19 maks_indeks" {
+test "15.19 argmax" {
     değişken x = tensör([[1, 9, 3], [7, 2, 7]])
-    eşit_mi([1, 0], maks_indeks(x).değer)
-    eşit_mi([1, 0, 1], maks_indeks(x, eksen: 0).değer)
-    eşit_mi(1, maks_indeks(tensör([4, 8, 1])).değer)
+    eşit_mi([1, 0], argmax(x).değer)
+    eşit_mi([1, 0, 1], argmax(x, eksen: 0).değer)
+    eşit_mi(1, argmax(tensör([4, 8, 1])).değer)
     // .değer Tam verir; liste indeksi olarak doğrudan kullanılabilir.
     değişken harfler = ["a", "b", "c"]
-    eşit_mi("b", harfler[maks_indeks(x).değer[0]])
+    eşit_mi("b", harfler[argmax(x).değer[0]])
 }
 
 test "15.36 gradyan_kırp normu aşan gradyanları küçültür, kırpma öncesi normu tensör olarak verir" {
@@ -578,7 +578,7 @@ test "15.5 tensör üzerinde döngü ve liste üreteci" {
     eşit_mi([3.0, 5.0], [x * 2 döngü x içinde tensör([1.5, 2.5])])
     eşit_mi([3.0, 7.0, 11.0], [toplam(s).değer döngü s içinde t])
     eşit_mi([2.5], [x döngü x içinde tensör([0.5, 2.5]) eğer x > 1])
-    eşit_mi([Tam, Tam], [tip(x) döngü x içinde maks_indeks(tensör([[1, 5], [7, 0]]), eksen: -1)])
+    eşit_mi([Tam, Tam], [tip(x) döngü x içinde argmax(tensör([[1, 5], [7, 0]]), eksen: -1)])
     // Görünümler veriyi paylaşır: satıra atama tensörü değiştirir.
     değişken z = sıfırlar([2, 2])
     döngü satır içinde z {
@@ -803,17 +803,17 @@ test "15.34 iyileştirici ana_kopya: 16 bitlik parametrelerde küçük adımlar 
     doğrula(hata_metni(() => SGD([q], ana_kopya: 1)).içerir("ana_kopya doğru ya da yanlış olmalıdır"))
 }
 
-test "15.10 sinüs ve kosinüs: sayıda ve tensörde, listede değil; türevli" {
-    eşit_mi(0.0, sinüs(0))
-    eşit_mi(1.0, kosinüs(0.0))
-    doğrula(hata_metni(() => kosinüs([0, 1])).içerir("kosinüs listede çalışmaz"))
+test "15.10 sin ve cos: sayıda ve tensörde, listede değil; türevli" {
+    eşit_mi(0.0, sin(0))
+    eşit_mi(1.0, cos(0.0))
+    doğrula(hata_metni(() => cos([0, 1])).içerir("cos listede çalışmaz"))
     değişken x = tensör([0.0, 1.0, 3.0], türev_izle: doğru)
-    değişken y = sinüs(x)
+    değişken y = sin(x)
     eşit_mi(Tensör, tip(y))
-    doğrula(mutlak(y.değer[2] - sinüs(3.0)) < 0.0000001)
-    geri_yayılım(toplam(y) + toplam(kosinüs(x)))
+    doğrula(mutlak(y.değer[2] - sin(3.0)) < 0.0000001)
+    geri_yayılım(toplam(y) + toplam(cos(x)))
     // d/dx (sin x + cos x) = cos x - sin x
-    doğrula(mutlak(x.gradyan.değer[1] - (kosinüs(1.0) - sinüs(1.0))) < 0.000001)
+    doğrula(mutlak(x.gradyan.değer[1] - (cos(1.0) - sin(1.0))) < 0.000001)
 }
 
 test "15.7 bitiştir ve .böl" {
@@ -849,7 +849,7 @@ test "15.7 bitiştir ve .böl" {
 test "15.18 indirgemelerde boyutu_koru" {
     değişken x = tensör([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
     eşit_mi([2, 2, 1], toplam(x, eksen: -1, boyutu_koru: doğru).şekil)
-    eşit_mi([[[2.0], [4.0]], [[6.0], [8.0]]], maks(x, eksen: -1, boyutu_koru: doğru).değer)
+    eşit_mi([[[2.0], [4.0]], [[6.0], [8.0]]], max(x, eksen: -1, boyutu_koru: doğru).değer)
     eşit_mi([2, 1, 2], ortalama(x, eksen: 1, boyutu_koru: doğru).şekil)
     eşit_mi([1, 2, 2], min(x, eksen: 0, boyutu_koru: doğru).şekil)
     eşit_mi([1, 1, 1], toplam(x, boyutu_koru: doğru).şekil)
@@ -937,7 +937,7 @@ test "15.26 örnekle: sıcaklık, en_iyi_k, tohum" {
     değişken l = tensör([[0.0, 3.0, 1.0], [2.0, 0.0, 0.5]])
     değişken e = örnekle(l, sıcaklık: 0)
     eşit_mi([1, 0], e.değer)
-    eşit_mi(maks_indeks(l).değer, e.değer)
+    eşit_mi(argmax(l).değer, e.değer)
     eşit_mi(Tam, tip(örnekle(tensör([1.0, 2.0])).değer))
     eşit_mi([], örnekle(tensör([1.0, 2.0])).şekil)
     eşit_mi(örnekle(l, tohum: 4).değer, örnekle(l, tohum: 4).değer)
@@ -964,10 +964,10 @@ test "15.26 örnekle: dağılım kurulamayan satır her yolda hatadır (sıcakl�
     eşit_mi(1, örnekle(tensör([eksi_sonsuz, 3.0]), en_iyi_k: 1, tohum: 1).değer)
 }
 
-test "15.4 maks ve min 16 bitlik tensörde girdinin türünde kalır (eksensiz min dahil)" {
+test "15.4 max ve min 16 bitlik tensörde girdinin türünde kalır (eksensiz min dahil)" {
     döngü tür içinde ["bf16", "fp16"] {
         değişken x = tensör([3.0, 1.0, 2.0], tür: tür)
-        eşit_mi(tür, maks(x).tür)
+        eşit_mi(tür, max(x).tür)
         eşit_mi(tür, min(x, eksen: 0).tür)
         eşit_mi(tür, min(x).tür)
         eşit_mi(1.0, min(x).değer)
@@ -1187,7 +1187,7 @@ test "15.50 özel değerler: −0, sonsuz ve NaN tablodaki gibi" {
     değişken ez = tensör([0.0]) * -1 // [−0]
     değişken eksi = (t) => (1 / t).değer[0] < 0 // sıfırın işareti: 1 / −0 = −sonsuz
     // Tek işlevler sıfırın işaretini korur; üs tek tam sayıda da.
-    doğrula(eksi(sinüs(ez)) ve eksi(tanh(ez)) ve eksi(üstel_eksi_bir(ez)) ve eksi(ez ** 3))
+    doğrula(eksi(sin(ez)) ve eksi(tanh(ez)) ve eksi(expm1(ez)) ve eksi(ez ** 3))
     // Yalnızca −0'lardan oluşan toplam +0'dır (PyTorch ve NumPy gibi).
     doğrula((1 / toplam(tensör([0.0, 0.0]) * -1)).değer > 0)
     // Tensör listesinin toplamı ve ortalaması da (Python sum gibi): tek ve iki elemanlı listede +0.
@@ -1203,8 +1203,8 @@ test "15.50 özel değerler: −0, sonsuz ve NaN tablodaki gibi" {
     eşit_mi([0.0, 0.0, 0.0], [silu(tensör([-sn])).değer[0], gelu(tensör([-sn])).değer[0], gelu(tensör([-sn]), yaklaşık: yanlış).değer[0]])
     // işaret(NaN) NaN, işaret(−0) −0.
     doğrula(nan_mı(işaret(tensör([0.0]) / 0).değer[0]) ve eksi(işaret(ez)))
-    // arktanjant2'nin türevi bir girdi sonsuzken 0'dır (limit).
+    // atan2'nin türevi bir girdi sonsuzken 0'dır (limit).
     değişken a = tensör([1.0], türev_izle: doğru)
-    geri_yayılım(toplam(arktanjant2(a, tensör([sn]))))
+    geri_yayılım(toplam(atan2(a, tensör([sn]))))
     eşit_mi([0.0], a.gradyan.değer)
 }

@@ -382,13 +382,13 @@ gömme(birler([4, 2]), tensör([1.0]).cihaza("cpu"))`); !messages.Has(err, messa
 	}
 }
 
-// Kural: sayı işlenenli işlemler (koşullu, ortalama listesi, eksensiz min, arktanjant2, sayıyla
+// Kural: sayı işlenenli işlemler (koşullu, ortalama listesi, eksensiz min, atan2, sayıyla
 // karşılaştırma ve bölme) kayıtta da çalışır: sayı cihazda doldurulur, konaktan yüklenmez
 // (bulgu 8B).
 func TestReplayScalarOperands(t *testing.T) {
 	gpu.RegisterSimulator()
 	defer tensor.SetDefaultDevice(tensor.CPU)
-	for _, expr := range []string{`koşullu(x > 0, x, 0.0)`, `ortalama([x, x * 2])`, `min(x)`, `arktanjant2(x, 1.0)`, `x / 3`} {
+	for _, expr := range []string{`koşullu(x > 0, x, 0.0)`, `ortalama([x, x * 2])`, `min(x)`, `atan2(x, 1.0)`, `x / 3`} {
 		out, err := run(t, `varsayılan_cihaz("gpu")
 değişken f = tekrar_oynat((x) => `+expr+`)
 türevsiz {

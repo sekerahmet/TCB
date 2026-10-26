@@ -1,5 +1,5 @@
 // 32 — Ağırlıkları kaydetmek: eğitilmiş modeli diske yazıp geri yüklemek.
-// Ne öğretir: tensör_kaydet(yol, sözlük), tensör_yükle(yol), parametreleri_yükle, maks_indeks ile en olası sınıfı seçmek.
+// Ne öğretir: tensör_kaydet(yol, sözlük), tensör_yükle(yol), parametreleri_yükle, argmax ile en olası sınıfı seçmek.
 // Önceki örnekten: eğitim döngüsü (28), XOR ağı (30), sözlükler (11), dosya ve JSON (19), yollar (20).
 // Çalıştırma (proje kökünden): tr examples/tr/32_agirliklari_kaydet.tr
 // Ağırlık dosyası geçici klasöre yazılır (program bitince silinir, depoda iz kalmaz).
@@ -20,8 +20,8 @@ değişken örnekler = tensör([[2.0, 0.5], [0.2, 1.8], [1.0, 1.0]])
 değişken puanlar = türevsiz { örnekler @ yüklenen["W"] + yüklenen["b"] }
 yazdır("puanlar =", puanlar)
 
-// maks_indeks her satırdaki en büyük puanın sütununu verir: seçilen sınıf.
-değişken sınıflar = maks_indeks(puanlar, eksen: -1)
+// argmax her satırdaki en büyük puanın sütununu verir: seçilen sınıf.
+değişken sınıflar = argmax(puanlar, eksen: -1)
 değişken adlar = ["kedi", "köpek", "kuş"]
 yazdır("sınıf indeksleri: {sınıflar.değer} → {[adlar[i] döngü i içinde sınıflar.değer]}")
 

@@ -94,13 +94,13 @@ func TestBroadcastWarningLimited(t *testing.T) {
 }
 
 // Kural (dil tanımı 15.49): iki taraf birden genişleyen yayında uyarı bütün yollarda yazılır:
-// liste − tensör, karşılaştırma, arktanjant2, koşullu ve toplam([a, b]).
+// liste − tensör, karşılaştırma, atan2, koşullu ve toplam([a, b]).
 // Neden: uyarı yalnızca bazı işlemlerin yolunda yazılıyordu.
 func TestBroadcastWarningOnEveryPath(t *testing.T) {
 	for _, tc := range []struct{ name, code string }{
 		{"liste - tensör", `değişken _ = [1.0, 2.0] - sıfırlar([2, 1])`},
 		{"karşılaştırma <", `değişken _ = sıfırlar([3, 1]) < sıfırlar([3])`},
-		{"arktanjant2", `değişken _ = arktanjant2(sıfırlar([4, 1]), birler([4]))`},
+		{"atan2", `değişken _ = atan2(sıfırlar([4, 1]), birler([4]))`},
 		{"koşullu", `değişken _ = koşullu(birler([5, 1]), sıfırlar([5]), birler([5]))`},
 		{"toplam([t1, t2])", `değişken _ = toplam([sıfırlar([6, 1]), sıfırlar([6])])`},
 	} {

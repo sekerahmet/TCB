@@ -172,7 +172,7 @@ const (
 	// BasisInferredType alıcının türü bir işlevin çıkarılan dönüş türünden gelir (infer.go).
 	BasisInferredType Basis = "inferred_type"
 	// BasisCallableValue işlev yerleşiğinin çağrılmadan değer olarak kullanılıp çağrılabilir bir yere gittiğidir: bir
-	// çağrının argümanı (`[3, 1, 2].indirge(maks)`) ya da aynı gövdede çağrılan bir değişkene atanması
+	// çağrının argümanı (`[3, 1, 2].indirge(max)`) ya da aynı gövdede çağrılan bir değişkene atanması
 	// (`değişken g = mutlak` ... `g(-2)`). Test bloğunda bu, yerleşiği sınamaktır (exercisesBuiltin).
 	BasisCallableValue Basis = "callable_value"
 )

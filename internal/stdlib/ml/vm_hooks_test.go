@@ -78,8 +78,8 @@ func TestLoopOverTensor(t *testing.T) {
 		döngü i, s içinde t { yazdır(i, s.şekil, s.değer) }
 		yazdır([x * 2 döngü x içinde tensör([1.5, 2.5])])
 		yazdır([x döngü x içinde tensör([0.1])][0] == 0.1)
-		yazdır([tip(x) döngü x içinde maks_indeks(tensör([[1, 5], [7, 0]]), eksen: -1)])
-		değişken k = maks_indeks(tensör([[[0, 9], [5, 0]]]), eksen: -1)
+		yazdır([tip(x) döngü x içinde argmax(tensör([[1, 5], [7, 0]]), eksen: -1)])
+		değişken k = argmax(tensör([[[0, 9], [5, 0]]]), eksen: -1)
 		döngü s içinde k { döngü x içinde s { yazdır(tip(x), x) } }
 		değişken z = sıfırlar([2, 2])
 		döngü satır içinde z { satır[0] = 9 }

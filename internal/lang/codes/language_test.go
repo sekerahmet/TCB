@@ -22,9 +22,9 @@ func TestTRLoads(t *testing.T) {
 }
 
 // Dosya insanlar tarafından düzenlenir: kodlar artan sırada ve her girdi kendi satırında
-// olmalı.
+// olmalı. Her satırın tek alanı açıklamadır (ortak adlı kodun satırında ad yoktur).
 func TestTRSortedOnePerLine(t *testing.T) {
-	checkSortedOnePerLine(t, trJSON, "ad")
+	checkSortedOnePerLine(t, trJSON, "açıklama")
 }
 
 // Farklı iki ad, ad alanları farklı olsa bile aynı ASCII biçime
@@ -259,6 +259,60 @@ func TestClashesCaught(t *testing.T) {
 	// Farklı ad alanlarında aynı ad serbesttir.
 	if _, err := Load("deneme", []byte(`{"TR_fn_abs": {"ad": "mutlak"}, "TR_mem_absolute": {"ad": "mutlak"}, "TR_arg_log": {"ad": "günlük"}, "TR_fn_logger": {"ad": "günlük"}}`)); err != nil {
 		t.Errorf("farklı ad alanlarında aynı ad kabul edilmeliydi: %v", err)
+	}
+}
+
+// Kural (17, ortak ad): ortak adlı kodun (definitions.json "ortak_ad") adı dil dosyasında yazılmaz;
+// yükleyici onu her dile, satırı yoksa yeni satırla ekler ve ortak ad dilin kendi adlarıyla aynı
+// denetimlerden geçer (çakışma, yabancı ad, ortam değişkeninin TR_ istisnası).
+func TestCommonNamesGoThroughTheChecks(t *testing.T) {
+	common := map[Code]string{FnSin: "sin", EnvCpuAvx2: "TR_CPU_AVX2"}
+	for _, c := range []struct{ json, want string }{
+		{`{"TR_fn_sin": {"ad": "x"}}`, "TR_fn_sin has the common name \"sin\""},
+		{`{"TR_fn_print": {"ad": "sin"}}`, "clash in the same namespace"},
+		{`{"TR_fn_print": {"ad": "a", "yabancı": ["sin"]}}`, "the foreign name \"sin\" of TR_fn_print clashes with TR_fn_sin"},
+	} {
+		_, err := load("deneme", []byte(c.json), common)
+		if err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%s: %q içeren hata bekleniyordu, alınan: %v", c.json, c.want, err)
+		}
+	}
+	d, err := load("deneme", []byte(`{"TR_fn_sin": {"aile": "matematik"}}`), common)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d.Name(FnSin) != "sin" || d.Name(EnvCpuAvx2) != "TR_CPU_AVX2" {
+		t.Errorf("ortak adlar: %q, %q", d.Name(FnSin), d.Name(EnvCpuAvx2))
+	}
+	if g, _ := d.Entry(FnSin); g.Family != "matematik" {
+		t.Errorf("dil dosyasının satırı (aile) korunmalı: %+v", g)
+	}
+}
+
+// Kural (17, ortak ad): gömülü dil dosyalarında ortak adlı kodun adı yazılmaz, her dilde adı ortak
+// addır; ortak adsız her kodun her dilde adı vardır.
+func TestCommonNamesAreNotInLanguageFiles(t *testing.T) {
+	common := commonNames()
+	for _, lang := range Languages() {
+		raw, err := parseFile(languages[lang])
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, g := range raw {
+			k, _ := Parse(g.key)
+			if c, ok := common[k]; ok && g.name != "" {
+				t.Errorf("%s.json: %s ortak adlı (%q), dil dosyasında adı (%q) yazılmamalı", lang, k, c, g.name)
+			}
+		}
+		d, err := LoadLanguage(lang)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for k, c := range common {
+			if d.Name(k) != c {
+				t.Errorf("%s: %s'in adı %q, ortak ad %q", lang, k, d.Name(k), c)
+			}
+		}
 	}
 }
 

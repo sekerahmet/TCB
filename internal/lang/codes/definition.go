@@ -130,6 +130,10 @@ type Definition struct {
 	// (in type order).
 	Members []TypeSignature
 	Related []Code
+	// Common is the code's common name ("ortak_ad"): a concept written with international
+	// notation or a proper name (sin, AdamW, json) has the same name in every writing language. It
+	// is written only here, never in a language file; Load gives it to every language.
+	Common string
 }
 
 // Types returns the types the member applies to.
@@ -168,6 +172,18 @@ func DefinitionCodes() []Code {
 	return append([]Code(nil), defOrder...)
 }
 
+// commonNames ortak adı olan kodlardır (kod → ortak ad).
+func commonNames() map[Code]string {
+	loadDefinitions()
+	out := map[Code]string{}
+	for _, k := range defOrder {
+		if c := defs[k].Common; c != "" {
+			out[k] = c
+		}
+	}
+	return out
+}
+
 func loadDefinitions() {
 	defOnce.Do(func() {
 		defs, defOrder, defErr = ParseDefinitions(definitionsJSON)
@@ -188,6 +204,7 @@ type rawDefinition struct {
 	Return     string                  `json:"dönüş"`
 	Signatures map[string]rawSignature `json:"imzalar"`
 	Related    []string                `json:"ilişkili"`
+	Common     string                  `json:"ortak_ad"`
 }
 
 // ParseDefinitions parses a definitions file; it collects every format error into one error.
@@ -271,6 +288,7 @@ func ParseDefinitions(data []byte) (map[Code]Definition, []Code, error) {
 			sort.Slice(t.Members, func(i, j int) bool { return t.Members[i].Type < t.Members[j].Type })
 		}
 		t.Related = codeList("ilişkili", h.Related)
+		t.Common = h.Common
 		out[k] = t
 		order = append(order, k)
 	}

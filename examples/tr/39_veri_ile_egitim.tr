@@ -111,7 +111,7 @@ yazdır("doğrulama: {toplu_sayısı} toplu iş, ortalama kayıp = {yuvarla(topl
 değişken üretilen = p.kodla("Bugün")
 türevsiz {
     döngü n içinde 0..12 {
-        üretilen.ekle(maks_indeks(ileri([üretilen]), eksen: -1).değer[0].son)
+        üretilen.ekle(argmax(ileri([üretilen]), eksen: -1).değer[0].son)
     }
 }
 yazdır("model şunu yazdı: {p.çöz(üretilen)}")

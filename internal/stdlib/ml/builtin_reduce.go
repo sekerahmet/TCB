@@ -9,16 +9,16 @@ import (
 )
 
 // ----------------------------------------------------------------------------
-// İndirgemeler (toplam, ortalama, maks, min) ve en büyüğün indeksi
+// İndirgemeler (toplam, ortalama, max, min) ve en büyüğün indeksi
 // ----------------------------------------------------------------------------
 
-// reduction toplam/ortalama/maks/min'i kaydeder. Eksen verilmezse tüm elemanlar
+// reduction toplam/ortalama/max/min'i kaydeder. Eksen verilmezse tüm elemanlar
 // indirgenir ve 0 boyutlu (skaler) tensör döner; eksen verilirse o eksen kaldırılır.
 // boyutu_koru: doğru indirgenen ekseni (eksen verilmezse bütün eksenleri) 1 uzunlukta
 // korur: [B, T, D] → [B, T, 1].
 func reduction(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, axis int, whole, keep bool) *tensor.Tensor) {
 	ad := codes.NameRef(kd)
-	maxMin := kd == codes.FnMax || kd == codes.FnMin // maks, min
+	maxMin := kd == codes.FnMax || kd == codes.FnMin // max, min
 	wrap(v, kd, func(old interp.BuiltinFunc) interp.BuiltinFunc {
 		return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 			if len(args) == 0 {
@@ -31,7 +31,7 @@ func reduction(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, axis int, 
 				return nonTensorReduce(kd, old, m, args, named)
 			}
 			if maxMin && len(args) >= 2 {
-				// maks(x, 0) eksen mi, eleman bazlı sınır mı belirsiz; sessizce eksen saymak yerine yol göster.
+				// max(x, 0) eksen mi, eleman bazlı sınır mı belirsiz; sessizce eksen saymak yerine yol göster.
 				limit := map[bool]bind.Named{true: nameMin, false: nameMax}[kd == codes.FnMax]
 				return nil, messages.New(messages.H6205, ad, interp.Shown(args[1]), nameAxis, codes.NameRef(codes.FnClamp), limit)
 			}
@@ -102,7 +102,7 @@ func reduction(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, axis int, 
 	})
 }
 
-// argMax verilen eksende en büyük elemanın indeksini verir: maks_indeks(x, eksen: -1).
+// argMax verilen eksende en büyük elemanın indeksini verir: argmax(x, eksen: -1).
 // Sonuç her zaman tam sayı değerli bir tensördür (o eksen kaldırılmış şekilde; 1 boyutlu
 // girdide 0 boyutlu) ve türev izlemez. Tensör tam sayılı olarak işaretlenir: .değer Tam
 // (ya da Tam listesi) verir, böylece liste indeksi olarak doğrudan kullanılabilir; sonuç

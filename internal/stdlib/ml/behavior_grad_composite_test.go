@@ -15,7 +15,7 @@ import (
 
 // Bileşik türevlerin gradyan kapısı. Bu paketin yerleşikleri tensör işlemlerini birleştirir
 // (karışık hassasiyette girdiyi float32'ye açıp ya da 16 bite çevirip işlemi çağırmak, min'i
-// -maks(-x) olarak kurmak, listeyi toplamak): türev, tek tek işlemlerin türevlerinin zinciridir
+// -max(-x) olarak kurmak, listeyi toplamak): türev, tek tek işlemlerin türevlerinin zinciridir
 // ve zincirin kendisi sınanır. Düzen tensör paketinin gradyan kapısıyla aynıdır
 // (internal/compute/tensor/helpers_test.go): float64 başvurunun merkezi sonlu farkı, bf16
 // yuvarlamasının ölçülmüş toleransı. Paketler arası test yardımcısı paylaşılamadığından

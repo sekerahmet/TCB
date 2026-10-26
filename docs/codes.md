@@ -672,26 +672,26 @@ yazdır(mutlak(-5), mutlak(-2.5), mutlak(tensör([-2.0, 0.0, 3.0])).değer)
 
 İlişkili: TR_fn_round `yuvarla`, TR_fn_sign `işaret`
 
-#### TR_fn_acos `arkkosinüs`
+#### TR_fn_acos `acos`
 
-    arkkosinüs(Tensör | Tam | Ondalık) → Tensör | Ondalık
+    acos(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
 Her elemanın arkkosinüsünü radyan olarak [0, π] aralığında verir; [-1, 1] dışında NaN döner. Türevi -1 / karekök(1 - x²)'dir. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
 
 ```tr
-yazdır(arkkosinüs(0.0), arkkosinüs(tensör([1.0, -1.0])).değer)
+yazdır(acos(0.0), acos(tensör([1.0, -1.0])).değer)
 ```
 
-İlişkili: TR_fn_asin `arksinüs`, TR_fn_cos `kosinüs`
+İlişkili: TR_fn_asin `asin`, TR_fn_cos `cos`
 
-#### TR_fn_argmax `maks_indeks`
+#### TR_fn_argmax `argmax`
 
-    maks_indeks(Tensör, eksen: Tam = -1) → Tensör
+    argmax(Tensör, eksen: Tam = -1) → Tensör
 
 Verilen eksende (varsayılan son eksen) en büyük elemanın indeksini verir; eşitlikte ilki seçilir. Sonuç tam sayılı ve türev izlemeyen bir tensördür; eksen yalnızca adlı verilir.
 
 ```tr
-yazdır(maks_indeks(tensör([[0.1, 2.5, 0.3], [1.7, 0.2, 0.9]]), eksen: -1).değer)
+yazdır(argmax(tensör([[0.1, 2.5, 0.3], [1.7, 0.2, 0.9]]), eksen: -1).değer)
 ```
 
 İlişkili: TR_fn_sample `örnekle`
@@ -708,17 +708,17 @@ yazdır(sıralama_indeksi(tensör([3.0, 1.0, 2.0])).değer)
 
 İlişkili: TR_fn_topk `en_büyük_k`, TR_mem_sort `sırala`
 
-#### TR_fn_asin `arksinüs`
+#### TR_fn_asin `asin`
 
-    arksinüs(Tensör | Tam | Ondalık) → Tensör | Ondalık
+    asin(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
 Her elemanın arksinüsünü radyan olarak [-π/2, π/2] aralığında verir; [-1, 1] dışında NaN döner. Türevi 1 / karekök(1 - x²)'dir. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
 
 ```tr
-yazdır(arksinüs(1.0), arksinüs(tensör([0.0, 0.5])).değer)
+yazdır(asin(1.0), asin(tensör([0.0, 0.5])).değer)
 ```
 
-İlişkili: TR_fn_acos `arkkosinüs`, TR_fn_sin `sinüs`
+İlişkili: TR_fn_acos `acos`, TR_fn_sin `sin`
 
 #### TR_fn_assert `doğrula`
 
@@ -744,29 +744,29 @@ eşit_mi(4, 2 + 2); yazdır("eşit")
 
 İlişkili: TR_fn_assert `doğrula`, TR_ctx_test `test`
 
-#### TR_fn_atan `arktanjant`
+#### TR_fn_atan `atan`
 
-    arktanjant(Tensör | Tam | Ondalık) → Tensör | Ondalık
+    atan(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
 Her elemanın arktanjantını radyan olarak (-π/2, π/2) aralığında verir; türevi 1 / (1 + x²)'dir. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
 
 ```tr
-yazdır(arktanjant(1.0), arktanjant(tensör([0.0, 1.0])).değer)
+yazdır(atan(1.0), atan(tensör([0.0, 1.0])).değer)
 ```
 
-İlişkili: TR_fn_atan2 `arktanjant2`, TR_fn_tan `tanjant`
+İlişkili: TR_fn_atan2 `atan2`, TR_fn_tan `tan`
 
-#### TR_fn_atan2 `arktanjant2`
+#### TR_fn_atan2 `atan2`
 
-    arktanjant2(Tensör | Tam | Ondalık, Tensör | Tam | Ondalık) → Tensör | Ondalık
+    atan2(Tensör | Tam | Ondalık, Tensör | Tam | Ondalık) → Tensör | Ondalık
 
-arktanjant2(y, x), (x, y) noktasının açısını (-π, π] aralığında radyan olarak verir; dört bölgeyi ayırır, (0, 0)'da 0 döner. Sayıda Ondalık, tensörde yayınlamalı ve türev izleyen tensör verir; (0, 0)'da türev 0 alınır. Listede çalışmaz (tensör(...) ile çevrilir).
+atan2(y, x), (x, y) noktasının açısını (-π, π] aralığında radyan olarak verir; dört bölgeyi ayırır, (0, 0)'da 0 döner. Sayıda Ondalık, tensörde yayınlamalı ve türev izleyen tensör verir; (0, 0)'da türev 0 alınır. Listede çalışmaz (tensör(...) ile çevrilir).
 
 ```tr
-yazdır(arktanjant2(1.0, -1.0), arktanjant2(tensör([1.0, -1.0]), tensör([0.0])).değer)
+yazdır(atan2(1.0, -1.0), atan2(tensör([1.0, -1.0]), tensör([0.0])).değer)
 ```
 
-İlişkili: TR_fn_atan `arktanjant`
+İlişkili: TR_fn_atan `atan`
 
 #### TR_fn_attention `dikkat`
 
@@ -826,7 +826,7 @@ Değeri en_az ile en_fazla arasına sınırlar; ikisinden en az biri verilmeli, 
 yazdır(sınırla(15, en_fazla: 10), sınırla(tensör([-2.0, 0.5, 3.0]), en_az: 0, en_fazla: 1).değer)
 ```
 
-İlişkili: TR_fn_min `min`, TR_fn_max `maks`
+İlişkili: TR_fn_min `min`, TR_fn_max `max`
 
 #### TR_fn_clip_grad `gradyan_kırp`
 
@@ -888,17 +888,17 @@ dosya_yaz("ağırlık.txt", "w"); klasör_oluştur("yedek"); yazdır(kopyala("a�
 
 İlişkili: TR_fn_move `taşı`
 
-#### TR_fn_cos `kosinüs`
+#### TR_fn_cos `cos`
 
-    kosinüs(Tensör | Tam | Ondalık) → Tensör | Ondalık
+    cos(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
-Her elemanın kosinüsünü (radyan) hesaplar; türevi -sinüs(x)'tir. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
+Her elemanın kosinüsünü (radyan) hesaplar; türevi -sin(x)'tir. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
 
 ```tr
-yazdır(kosinüs(tensör([0.0, 1.0])).değer)
+yazdır(cos(tensör([0.0, 1.0])).değer)
 ```
 
-İlişkili: TR_fn_sin `sinüs`
+İlişkili: TR_fn_sin `sin`
 
 #### TR_fn_cosh `cosh`
 
@@ -1008,29 +1008,29 @@ değişken klasör = ortam_değişkeni("VERİ_KLASÖRÜ") ?? "veri"; yazdır(kla
 
 İlişkili: TR_fn_command_line `komut_satırı`
 
-#### TR_fn_exp `üstel`
+#### TR_fn_exp `exp`
 
-    üstel(Tensör | Tam | Ondalık) → Tensör | Ondalık
+    exp(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
 Her elemanın e tabanında üstelini (e^x) hesaplar. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
 
 ```tr
-yazdır(üstel(tensör([0.0, 1.0])).değer)
+yazdır(exp(tensör([0.0, 1.0])).değer)
 ```
 
 İlişkili: TR_fn_log `log`
 
-#### TR_fn_expm1 `üstel_eksi_bir`
+#### TR_fn_expm1 `expm1`
 
-    üstel_eksi_bir(Tensör | Tam | Ondalık) → Tensör | Ondalık
+    expm1(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
-e^x - 1 hesaplar; küçük x'te çıkarmadaki basamak kaybı olmaz (üstel_eksi_bir(1e-10) = 1e-10). Türevi üstel(x)'tir. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
+e^x - 1 hesaplar; küçük x'te çıkarmadaki basamak kaybı olmaz (expm1(1e-10) = 1e-10). Türevi exp(x)'tir. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
 
 ```tr
-yazdır(üstel_eksi_bir(0.000001), üstel_eksi_bir(tensör([0.0, 1.0])).değer)
+yazdır(expm1(0.000001), expm1(tensör([0.0, 1.0])).değer)
 ```
 
-İlişkili: TR_fn_exp `üstel`, TR_fn_log1p `log1p`
+İlişkili: TR_fn_exp `exp`, TR_fn_log1p `log1p`
 
 #### TR_fn_eye `birim_matris`
 
@@ -1246,7 +1246,7 @@ Her elemanın doğal logaritmasını hesaplar. Tensörde türev izleyen tensör,
 yazdır(log(tensör([1.0, 10.0])).değer)
 ```
 
-İlişkili: TR_fn_exp `üstel`
+İlişkili: TR_fn_exp `exp`
 
 #### TR_fn_log10 `log10`
 
@@ -1270,7 +1270,7 @@ log(1 + x) hesaplar; küçük x'te 1 + x yuvarlamasından etkilenmez (log1p(1e-1
 yazdır(log1p(0.000001), log1p(tensör([0.0, 1.0])).değer)
 ```
 
-İlişkili: TR_fn_log `log`, TR_fn_expm1 `üstel_eksi_bir`
+İlişkili: TR_fn_log `log`, TR_fn_expm1 `expm1`
 
 #### TR_fn_log2 `log2`
 
@@ -1320,17 +1320,17 @@ değişken k = klasör_oluştur("çıktı/kontrol_noktaları"); yazdır(k, k.kla
 
 İlişkili: TR_fn_list_dir `klasörü_listele`, TR_fn_remove `sil`
 
-#### TR_fn_max `maks`
+#### TR_fn_max `max`
 
-    maks(Liste | Tam | Ondalık | Tensör, [Tam | Ondalık...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Tam | Ondalık | Yok | Tensör
+    max(Liste | Tam | Ondalık | Tensör, [Tam | Ondalık...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Tam | Ondalık | Yok | Tensör
 
 Tek bir listenin ya da birden çok sayının en büyüğünü tipini koruyarak verir; boş listede yok döner. Tensörde eksen yalnızca eksen: ile adlı verilir.
 
 ```tr
-yazdır(maks([2.0, 1.5]), maks(3, 7, 5), maks(tensör([[1, 5], [3, 2]]), eksen: 0).değer)
+yazdır(max([2.0, 1.5]), max(3, 7, 5), max(tensör([[1, 5], [3, 2]]), eksen: 0).değer)
 ```
 
-İlişkili: TR_fn_min `min`, TR_fn_argmax `maks_indeks`
+İlişkili: TR_fn_min `min`, TR_fn_argmax `argmax`
 
 #### TR_fn_mean `ortalama`
 
@@ -1366,7 +1366,7 @@ Tek bir listenin ya da birden çok sayının en küçüğünü tipini koruyarak 
 yazdır(min([3, 1, 2]), min(4, 2.5), min([]))
 ```
 
-İlişkili: TR_fn_max `maks`
+İlişkili: TR_fn_max `max`
 
 #### TR_fn_mixed_precision `karışık_hassasiyet`
 
@@ -1606,7 +1606,7 @@ Son eksendeki softmax(logit / sıcaklık) dağılımından bir indeks örnekler;
 yazdır(örnekle(tensör([1.0, 3.0, 0.5]), sıcaklık: 0.8, en_iyi_k: 2, tohum: 7).değer)
 ```
 
-İlişkili: TR_fn_argmax `maks_indeks`, TR_fn_softmax `softmax`
+İlişkili: TR_fn_argmax `argmax`, TR_fn_softmax `softmax`
 
 #### TR_fn_save_tensors `tensör_kaydet`
 
@@ -1656,17 +1656,17 @@ yazdır(silu(tensör([-1.0, 0.0, 2.0])).değer)
 
 İlişkili: TR_fn_sigmoid `sigmoid`, TR_fn_gelu `gelu`
 
-#### TR_fn_sin `sinüs`
+#### TR_fn_sin `sin`
 
-    sinüs(Tensör | Tam | Ondalık) → Tensör | Ondalık
+    sin(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
-Her elemanın sinüsünü (radyan) hesaplar; türevi kosinüs(x)'tir. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
+Her elemanın sinüsünü (radyan) hesaplar; türevi cos(x)'tir. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
 
 ```tr
-yazdır(sinüs(tensör([0.0, 1.0])).değer)
+yazdır(sin(tensör([0.0, 1.0])).değer)
 ```
 
-İlişkili: TR_fn_cos `kosinüs`
+İlişkili: TR_fn_cos `cos`
 
 #### TR_fn_sinh `sinh`
 
@@ -1752,17 +1752,17 @@ yazdır(toplam([1, 2, 3]), toplam([1, 2.5]), toplam(tensör([[1, 2], [3, 4]]), e
 
 İlişkili: TR_fn_mean `ortalama`
 
-#### TR_fn_tan `tanjant`
+#### TR_fn_tan `tan`
 
-    tanjant(Tensör | Tam | Ondalık) → Tensör | Ondalık
+    tan(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
-Her elemanın tanjantını (radyan) hesaplar; türevi 1 + tanjant(x)²'dir. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
+Her elemanın tanjantını (radyan) hesaplar; türevi 1 + tan(x)²'dir. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
 
 ```tr
-yazdır(tanjant(0.5), tanjant(tensör([0.0, 1.0])).değer)
+yazdır(tan(0.5), tan(tensör([0.0, 1.0])).değer)
 ```
 
-İlişkili: TR_fn_sin `sinüs`, TR_fn_cos `kosinüs`, TR_fn_atan `arktanjant`
+İlişkili: TR_fn_sin `sin`, TR_fn_cos `cos`, TR_fn_atan `atan`
 
 #### TR_fn_tanh `tanh`
 
@@ -1822,7 +1822,7 @@ Verilen eksende (varsayılan son eksen) en büyük k elemanı büyükten küçü
 değişken s = en_büyük_k(tensör([3.0, 1.0, 4.0, 1.5]), 2); yazdır(s[0].değer, s[1].değer)
 ```
 
-İlişkili: TR_fn_argsort `sıralama_indeksi`, TR_fn_argmax `maks_indeks`
+İlişkili: TR_fn_argsort `sıralama_indeksi`, TR_fn_argmax `argmax`
 
 #### TR_fn_type `tip`
 
@@ -1902,13 +1902,13 @@ yazdır(sıfırlar([2, 3]).şekil)
 
     pi → Ondalık
 
-Bir çemberin çevresinin çapına oranı olan π sayısıdır (Ondalık, 3.141592653589793); çağrılmaz, değer olarak yazılır. Sinüs, kosinüs ve tanjant radyanla çalışır: 180 derece pi radyandır.
+Bir çemberin çevresinin çapına oranı olan π sayısıdır (Ondalık, 3.141592653589793); çağrılmaz, değer olarak yazılır. sin, cos ve tan radyanla çalışır: 180 derece pi radyandır.
 
 ```tr
-yazdır(pi, sinüs(pi / 2), kosinüs(pi))
+yazdır(pi, sin(pi / 2), cos(pi))
 ```
 
-İlişkili: TR_fn_sin `sinüs`, TR_fn_tan `tanjant`
+İlişkili: TR_fn_sin `sin`, TR_fn_tan `tan`
 
 ### Adlı argümanlar
 
@@ -2024,13 +2024,13 @@ Kullananlar: TR_fn_command_line `komut_satırı` · İlişkili: TR_arg_descripti
 
 #### TR_arg_dim `eksen`
 
-İşlemin uygulanacağı ekseni seçer; negatif değer sondan sayar (-1 son eksen). İndirgemelerde verilmezse bütün elemanlar, softmax, bitiştir ve maks_indeks'te son eksen kullanılır.
+İşlemin uygulanacağı ekseni seçer; negatif değer sondan sayar (-1 son eksen). İndirgemelerde verilmezse bütün elemanlar, softmax, bitiştir ve argmax'te son eksen kullanılır.
 
 ```tr
 yazdır(toplam(tensör([[1, 2], [3, 4]]), eksen: 0).değer)
 ```
 
-Kullananlar: TR_fn_argmax `maks_indeks`, TR_fn_argsort `sıralama_indeksi`, TR_fn_concat `bitiştir`, TR_fn_cumsum `birikimli_toplam`, TR_fn_log_softmax `log_softmax`, TR_fn_max `maks`, TR_fn_mean `ortalama`, TR_fn_min `min`, TR_fn_softmax `softmax`, TR_fn_sum `toplam`, TR_fn_topk `en_büyük_k`, TR_fn_write_slice `yerine_yaz`, TR_mem_split `böl` · İlişkili: TR_arg_keepdim `boyutu_koru`
+Kullananlar: TR_fn_argmax `argmax`, TR_fn_argsort `sıralama_indeksi`, TR_fn_concat `bitiştir`, TR_fn_cumsum `birikimli_toplam`, TR_fn_log_softmax `log_softmax`, TR_fn_max `max`, TR_fn_mean `ortalama`, TR_fn_min `min`, TR_fn_softmax `softmax`, TR_fn_sum `toplam`, TR_fn_topk `en_büyük_k`, TR_fn_write_slice `yerine_yaz`, TR_mem_split `böl` · İlişkili: TR_arg_keepdim `boyutu_koru`
 
 #### TR_arg_dtype `tür`
 
@@ -2110,7 +2110,7 @@ doğru verilince indirgenen eksen 1 uzunlukta korunur, böylece sonuç girdiye y
 yazdır(toplam(tensör([[1, 2], [3, 4]]), eksen: -1, boyutu_koru: doğru).şekil)
 ```
 
-Kullananlar: TR_fn_max `maks`, TR_fn_mean `ortalama`, TR_fn_min `min`, TR_fn_sum `toplam` · İlişkili: TR_arg_dim `eksen`
+Kullananlar: TR_fn_max `max`, TR_fn_mean `ortalama`, TR_fn_min `min`, TR_fn_sum `toplam` · İlişkili: TR_arg_dim `eksen`
 
 #### TR_arg_log `günlük`
 
@@ -3494,4 +3494,4 @@ izle kayıp
 
 `x |> f(a)` ≡ `f(x, a)` (bkz. `docs/spec/04_operatorler.md` 4.9). Boru yalnızca fonksiyonlarla çalışır; metotlar `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 } |> toplam`). Borudaki değeri ilk konumlu argüman olarak alabilen yerleşik fonksiyonlar (kullanıcı fonksiyonları da kullanılabilir):
 
-`AdamW`, `SGD`, `mutlak`, `arkkosinüs`, `maks_indeks`, `sıralama_indeksi`, `arksinüs`, `doğrula`, `eşit_mi`, `arktanjant`, `arktanjant2`, `dikkat`, `geri_yayılım`, `tavan`, `kontrol_noktası`, `sınırla`, `gradyan_kırp`, `komut_satırı`, `bitiştir`, `kopyala`, `kosinüs`, `cosh`, `çapraz_entropi`, `birikimli_toplam`, `veri_kümesi`, `varsayılan_cihaz`, `gömme`, `ortam_değişkeni`, `üstel`, `üstel_eksi_bir`, `birim_matris`, `ondalık`, `taban`, `kaynaştır`, `gelu`, `türev_denetle`, `girdi`, `tam`, `sonlu_mu`, `json_çöz`, `json_metin`, `katman_normu`, `doğrusal_çapraz_entropi`, `klasörü_listele`, `parametreleri_yükle`, `tensör_yükle`, `parçalayıcı_yükle`, `log`, `log10`, `log1p`, `log2`, `log_softmax`, `günlük`, `klasör_oluştur`, `maks`, `ortalama`, `ortanca`, `min`, `karışık_hassasiyet`, `taşı`, `türevsiz`, `birler`, `parametreler`, `csv_çöz`, `yol`, `yazdır`, `ilerleme`, `rastgele_normal`, `aralık`, `csv_oku`, `dosya_oku`, `dosya_satırları`, `relu`, `sil`, `tekrar_oynat`, `rms_normu`, `yuvarla`, `örnekle`, `tensör_kaydet`, `sigmoid`, `işaret`, `silu`, `sinüs`, `sinh`, `bekle`, `softmax`, `karekök`, `standart_sapma`, `metin`, `toplam`, `tanjant`, `tanh`, `tensör`, `en_büyük_k`, `tip`, `koşullu`, `dosya_yaz`, `yerine_yaz`, `sıfırlar`
+`AdamW`, `SGD`, `mutlak`, `acos`, `argmax`, `sıralama_indeksi`, `asin`, `doğrula`, `eşit_mi`, `atan`, `atan2`, `dikkat`, `geri_yayılım`, `tavan`, `kontrol_noktası`, `sınırla`, `gradyan_kırp`, `komut_satırı`, `bitiştir`, `kopyala`, `cos`, `cosh`, `çapraz_entropi`, `birikimli_toplam`, `veri_kümesi`, `varsayılan_cihaz`, `gömme`, `ortam_değişkeni`, `exp`, `expm1`, `birim_matris`, `ondalık`, `taban`, `kaynaştır`, `gelu`, `türev_denetle`, `girdi`, `tam`, `sonlu_mu`, `json_çöz`, `json_metin`, `katman_normu`, `doğrusal_çapraz_entropi`, `klasörü_listele`, `parametreleri_yükle`, `tensör_yükle`, `parçalayıcı_yükle`, `log`, `log10`, `log1p`, `log2`, `log_softmax`, `günlük`, `klasör_oluştur`, `max`, `ortalama`, `ortanca`, `min`, `karışık_hassasiyet`, `taşı`, `türevsiz`, `birler`, `parametreler`, `csv_çöz`, `yol`, `yazdır`, `ilerleme`, `rastgele_normal`, `aralık`, `csv_oku`, `dosya_oku`, `dosya_satırları`, `relu`, `sil`, `tekrar_oynat`, `rms_normu`, `yuvarla`, `örnekle`, `tensör_kaydet`, `sigmoid`, `işaret`, `silu`, `sin`, `sinh`, `bekle`, `softmax`, `karekök`, `standart_sapma`, `metin`, `toplam`, `tan`, `tanh`, `tensör`, `en_büyük_k`, `tip`, `koşullu`, `dosya_yaz`, `yerine_yaz`, `sıfırlar`

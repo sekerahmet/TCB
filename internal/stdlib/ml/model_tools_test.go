@@ -12,17 +12,17 @@ import (
 
 func TestSinCos(t *testing.T) {
 	mustRun(t, `
-eşit_mi(0.0, sinüs(0))
-eşit_mi(1.0, kosinüs(0))
-eşit_mi(Ondalık, tip(sinüs(1)))
+eşit_mi(0.0, sin(0))
+eşit_mi(1.0, cos(0))
+eşit_mi(Ondalık, tip(sin(1)))
 değişken x = tensör([0.0, 1.0, -2.0], türev_izle: doğru)
-değişken y = sinüs(x)
+değişken y = sin(x)
 doğrula(mutlak(y.değer[1] - 0.84147096) < 0.0000001)
 geri_yayılım(toplam(y * 1))
-doğrula(mutlak(x.gradyan.değer[2] - kosinüs(-2.0)) < 0.000001)
+doğrula(mutlak(x.gradyan.değer[2] - cos(-2.0)) < 0.000001)
 değişken z = tensör([0.5], türev_izle: doğru)
-geri_yayılım(toplam(kosinüs(z)))
-doğrula(mutlak(z.gradyan.değer[0] + sinüs(0.5)) < 0.000001)
+geri_yayılım(toplam(cos(z)))
+doğrula(mutlak(z.gradyan.değer[0] + sin(0.5)) < 0.000001)
 `)
 }
 
@@ -70,11 +70,11 @@ değişken x = tensör([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
 eşit_mi([2, 2, 1], toplam(x, eksen: -1, boyutu_koru: doğru).şekil)
 eşit_mi([2, 1, 2], ortalama(x, eksen: 1, boyutu_koru: doğru).şekil)
 eşit_mi([[[4.0, 6.0]], [[12.0, 14.0]]], toplam(x, eksen: 1, boyutu_koru: doğru).değer)
-eşit_mi([[[2.0], [4.0]], [[6.0], [8.0]]], maks(x, eksen: -1, boyutu_koru: doğru).değer)
+eşit_mi([[[2.0], [4.0]], [[6.0], [8.0]]], max(x, eksen: -1, boyutu_koru: doğru).değer)
 eşit_mi([[[1.0, 2.0], [3.0, 4.0]]], min(x, eksen: 0, boyutu_koru: doğru).değer)
 eşit_mi([2, 2], toplam(x, eksen: -1, boyutu_koru: yanlış).şekil)
 eşit_mi([1, 1, 1], toplam(x, boyutu_koru: doğru).şekil)
-eşit_mi([1, 1, 1], maks(x, boyutu_koru: doğru).şekil)
+eşit_mi([1, 1, 1], max(x, boyutu_koru: doğru).şekil)
 // Normalleştirme: yayınlamayla satır toplamına bölme, türev izler.
 değişken w = tensör([[1.0, 3.0]], türev_izle: doğru)
 değişken n = w / toplam(w, eksen: -1, boyutu_koru: doğru)
@@ -112,7 +112,7 @@ döngü i içinde 0..6 {
 değişken ek = tensör(satırlar)
 fonksiyon fark(a, b) {
     değişken d = a - b
-    sonuç maks(d * d).değer
+    sonuç max(d * d).değer
 }
 değişken beklenen = softmax((q @ k.devrik()) * (1.0 / karekök(8)) + ek, eksen: -1) @ v
 geri_yayılım(toplam(beklenen * beklenen))
@@ -136,7 +136,7 @@ func TestAttentionOptions(t *testing.T) {
 	out := mustRun(t, `
 fonksiyon fark(a, b) {
     değişken d = a - b
-    sonuç maks(d * d).değer
+    sonuç max(d * d).değer
 }
 değişken q = rastgele_normal([1, 5, 2, 4], tohum: 1)
 değişken k = rastgele_normal([1, 7, 1, 4], tohum: 2)
@@ -188,7 +188,7 @@ func TestAttentionMixedPrecision(t *testing.T) {
 	out := mustRun(t, `
 fonksiyon fark(a, b) {
     değişken d = a - b
-    sonuç maks(d * d).değer
+    sonuç max(d * d).değer
 }
 değişken q = rastgele_normal([2, 6, 8], tohum: 1)
 değişken a = karışık_hassasiyet("bf16") { dikkat(q, q, q) }

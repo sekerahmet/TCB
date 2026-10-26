@@ -189,12 +189,12 @@ func sumBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 }
 
 // minBuiltin min() yerleşiğidir.
-// min/maks: tek bir liste ya da birden çok sayı alır; kazanan değerin kendisi döner
+// min/max: tek bir liste ya da birden çok sayı alır; kazanan değerin kendisi döner
 func minBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	return extremeArgs(codes.FnMin, args, false)
 }
 
-// maxBuiltin maks() yerleşiğidir.
+// maxBuiltin max() yerleşiğidir.
 func maxBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	return extremeArgs(codes.FnMax, args, true)
 }
@@ -398,7 +398,7 @@ func checkRangeSize(start, end int64) error {
 	return nil
 }
 
-// extremeArgs min/maks'ın argümanlarını açar: tek bir liste verilirse elemanları,
+// extremeArgs min/max'ın argümanlarını açar: tek bir liste verilirse elemanları,
 // değilse argümanların kendisi karşılaştırılır.
 func extremeArgs(kd codes.Code, args []Value, upper bool) (Value, error) {
 	if len(args) == 0 {

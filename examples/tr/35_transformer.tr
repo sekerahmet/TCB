@@ -96,7 +96,7 @@ döngü adım içinde 0..300 {
 değişken deneme = toplu_iş_üret()
 değişken tahmin = türevsiz { ileri(deneme[0]) }
 değişken olasılıklar = tahmin[0] // ilk dizinin [T, V] çıktısı
-değişken tahminler = maks_indeks(olasılıklar, eksen: -1).değer // her konumda en büyük olasılığın indeksi
+değişken tahminler = argmax(olasılıklar, eksen: -1).değer // her konumda en büyük olasılığın indeksi
 yazdır("girdi  : {deneme[0][0]}")
 yazdır("tahmin : {tahminler}")
 

@@ -14,7 +14,7 @@ import (
 // Genişletilmiş matematik yerleşikleri: etkinleştirme (silu), ters trigonometri,
 // hiperbolik, kararlı logaritma/üstel (birli ile: sayıda Ondalık, tensörde türevli
 // tensör), taban/tavan/işaret/mutlak (sayı yolu internal/lang/interp'ta; tensörde tam sayılı
-// işaret korunur), sınırla ve arktanjant2. Koşullu seçim yerlesik_secim.go'da, birikim ve sıralama
+// işaret korunur), sınırla ve atan2. Koşullu seçim yerlesik_secim.go'da, birikim ve sıralama
 // yerlesik_siralama.go'dadır.
 
 func silu64(x float64) float64 {
@@ -206,7 +206,7 @@ func clamp64(x, lo, hi float64) float64 {
 	return x
 }
 
-// atan2Builtin arktanjant2(y, x): iki sayıda Ondalık; biri tensörse yayınlamalı,
+// atan2Builtin atan2(y, x): iki sayıda Ondalık; biri tensörse yayınlamalı,
 // türevli tensör (sayı tensörün türüne çevrilir).
 func atan2Builtin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	ad := codes.NameRef(codes.FnAtan2)

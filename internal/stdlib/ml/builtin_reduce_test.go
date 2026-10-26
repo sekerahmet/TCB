@@ -10,29 +10,29 @@ import (
 
 func TestArgMax(t *testing.T) {
 	out := mustRun(t, `değişken x = tensör([[1, 9, 3], [7, 2, 7]])
-yazdır(maks_indeks(x).değer, maks_indeks(x, eksen: 0).değer, maks_indeks(tensör([4, 8, 1])).değer)
-yazdır(tam(maks_indeks(tensör([4, 8, 1])).değer), maks_indeks(x).şekil)
-yazdır(gömme(tensör([[0, 0], [1, 1], [2, 2]]), maks_indeks(tensör([[0, 0, 5]]))).değer)
+yazdır(argmax(x).değer, argmax(x, eksen: 0).değer, argmax(tensör([4, 8, 1])).değer)
+yazdır(tam(argmax(tensör([4, 8, 1])).değer), argmax(x).şekil)
+yazdır(gömme(tensör([[0, 0], [1, 1], [2, 2]]), argmax(tensör([[0, 0, 5]]))).değer)
 değişken harfler = ["a", "b", "c"]
-değişken i = maks_indeks(tensör([[[0, 9, 1], [5, 0, 0]]]), eksen: -1)
-yazdır(harfler[i.değer[0][0]] + harfler[i.değer[0][1]], tip(i.değer[0][1]), tip(maks_indeks(tensör([1, 3])).değer))
-yazdır(i, maks_indeks(tensör([2, 1])))
+değişken i = argmax(tensör([[[0, 9, 1], [5, 0, 0]]]), eksen: -1)
+yazdır(harfler[i.değer[0][0]] + harfler[i.değer[0][1]], tip(i.değer[0][1]), tip(argmax(tensör([1, 3])).değer))
+yazdır(i, argmax(tensör([2, 1])))
 yazdır(tip((i * 2).değer[0][0]), tip(tensör(i).değer[0][0]))`)
 	want := "[1, 0] [1, 0, 1] 1\n1 [2]\n[[2.0, 2.0]]\n" +
 		"ba Tam Tam\n" +
 		"Tensör[1×2] [\n  [1, 0]\n] Tensör(0)\n" +
 		"Ondalık Ondalık\n"
 	if out != want {
-		t.Fatalf("maks_indeks:\n%q\nbeklenen:\n%q", out, want)
+		t.Fatalf("argmax:\n%q\nbeklenen:\n%q", out, want)
 	}
 	for _, d := range []struct {
 		code string
 		want messages.Code
 	}{
-		{"maks_indeks([1, 2])", messages.H6217},
-		{"maks_indeks(tensör([1, 2]), 0)", messages.H6215},
-		{"maks_indeks(tensör([1, 2]), eksen: 1)", messages.H6016},
-		{"maks_indeks(sıfırlar([0]))", messages.H6209},
+		{"argmax([1, 2])", messages.H6217},
+		{"argmax(tensör([1, 2]), 0)", messages.H6215},
+		{"argmax(tensör([1, 2]), eksen: 1)", messages.H6016},
+		{"argmax(sıfırlar([0]))", messages.H6209},
 	} {
 		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
 			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.want)
@@ -47,7 +47,7 @@ değişken b = tensör([3.0, 4.0])
 yazdır(toplam([a, b]).değer, ortalama([1, 2, b]).şekil)
 geri_yayılım(toplam(toplam([a, a, 1])))
 yazdır(a.gradyan.değer)
-yazdır(toplam([1, 2, 3]), maks(4, 9), min([3, 1]), ortalama([1, 2, 3]))`)
+yazdır(toplam([1, 2, 3]), max(4, 9), min([3, 1]), ortalama([1, 2, 3]))`)
 	want := "[4.0, 6.0] [2]\n[2.0, 2.0]\n6 9 1 2.0\n"
 	if out != want {
 		t.Fatalf("liste indirgemesi:\n%q\nbeklenen:\n%q", out, want)
@@ -61,11 +61,11 @@ yazdır(toplam([1, 2, 3]), maks(4, 9), min([3, 1]), ortalama([1, 2, 3]))`)
 		want messages.Code
 	}{
 		{"toplam([[1, 2], [3, 4]])", messages.H6220},
-		{"maks([[1, 2], [3, 4]])", messages.H6220},
+		{"max([[1, 2], [3, 4]])", messages.H6220},
 		{"ortalama([[1, 2]])", messages.H6220},
-		{"maks([tensör([1]), tensör([2])])", messages.H6224},
+		{"max([tensör([1]), tensör([2])])", messages.H6224},
 		{"toplam([1, 2], eksen: 0)", messages.H6219},
-		{"maks(tensör([1, 2]), 0)", messages.H6205},
+		{"max(tensör([1, 2]), 0)", messages.H6205},
 		{"min(tensör([1, 2]), 0)", messages.H6205},
 		{"sıfırlar(2, 3, türev_izle: doğru)", messages.H6020},
 		{"rastgele_normal(2, 3)", messages.H6020},

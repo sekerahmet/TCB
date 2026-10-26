@@ -114,8 +114,8 @@ değişken en = 0.0
 değişken ölçek = 0.0
 döngü i içinde 0..32 {
     döngü j içinde 0..8 {
-        en = maks(en, mutlak(a[1][i][j] - b[1][i][j]))
-        ölçek = maks(ölçek, mutlak(a[1][i][j]))
+        en = max(en, mutlak(a[1][i][j] - b[1][i][j]))
+        ölçek = max(ölçek, mutlak(a[1][i][j]))
     }
 }
 yazdır(mutlak(a[0] - b[0]) < 0.01, en < 0.05 * ölçek)`)

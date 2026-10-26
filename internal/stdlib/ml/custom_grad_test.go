@@ -332,11 +332,11 @@ func TestRewrappingBuiltinsKeepSingleOwner(t *testing.T) {
 	}
 }
 
-// Kural: x[i] ve maks(x) ara görünüm başlıklarını bırakır; yerel tensör bırakılınca depolaması
+// Kural: x[i] ve max(x) ara görünüm başlıklarını bırakır; yerel tensör bırakılınca depolaması
 // arka uca iade edilir (15.43). Not: sondaki 'değişken' deyimi dönüş değeridir, bu yüzden
 // fonksiyonun son satırı başka bir deyimdir.
 func TestIndexAndWholeReductionsReturnStorageAtScopeExit(t *testing.T) {
-	for _, stmt := range []string{`değişken y = x[0]`, `değişken y = maks(x)`} {
+	for _, stmt := range []string{`değişken y = x[0]`, `değişken y = max(x)`} {
 		dev := &auditSecondDevice{Backend: tensor.BackendFor(tensor.CPU)}
 		tensor.RegisterBackend(dev)
 		tensor.SetDefaultDevice(tensor.GPU(99))

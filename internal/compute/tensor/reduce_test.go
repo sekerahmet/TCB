@@ -7,8 +7,8 @@ import (
 	"testing"
 )
 
-// Bulgu 4: maks/min/relu ve maks_indeks NaN'ı yayar (indirgemede NaN varsa sonuç NaN,
-// maks_indeks ilk NaN'ın yeri); 16 bitlik türlerde de aynı.
+// Bulgu 4: max/min/relu ve argmax NaN'ı yayar (indirgemede NaN varsa sonuç NaN,
+// argmax ilk NaN'ın yeri); 16 bitlik türlerde de aynı.
 func TestNaNPropagates(t *testing.T) {
 	nan := float32(math.NaN())
 	for _, dt := range []DType{Float32, BFloat16, Float16} {

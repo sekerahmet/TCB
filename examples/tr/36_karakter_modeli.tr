@@ -1,6 +1,6 @@
 // 36 — Karakter modeli: gerçek metinle eğitilen küçük bir dil modeli (~100 bin parametre).
 // Ne öğretir: metinden karakter sözlüğü kurmak, katman listesiyle derin (2 katmanlı) model, parametre
-// sayımı, maks_indeks ile açgözlü metin üretimi. Aynı modelin başka dildeki hız kıyası: tools/bench/README.md.
+// sayımı, argmax ile açgözlü metin üretimi. Aynı modelin başka dildeki hız kıyası: tools/bench/README.md.
 // Önceki örnekten: transformer (35), sözlükler (11), dosya okuma (19).
 // Veri: TR'nin kendi Türkçe belgeleri. Model bir sonraki karakteri tahmin etmeyi öğrenir.
 // Çalıştırma (proje kökünden): tr examples/tr/36_karakter_modeli.tr
@@ -138,7 +138,7 @@ döngü t içinde 0..T { bağlam.ekle(veri[t]) }
 değişken üretilen = ""
 türevsiz {
     döngü n içinde 0..120 {
-        değişken en_iyi = maks_indeks(ileri([bağlam], 1), eksen: -1).değer[0][T - 1]
+        değişken en_iyi = argmax(ileri([bağlam], 1), eksen: -1).değer[0][T - 1]
         üretilen = üretilen + harfler[en_iyi]
         bağlam = bağlam[1..T] + [en_iyi] // pencereyi bir kaydır
     }

@@ -154,7 +154,7 @@ değişken d = p.kodla(["soru", "bir"], ikinci: ["bağlam", "iki"], özel_parça
 	}
 }
 
-// Tensör (ör. maks_indeks sonucu ya da okuyucunun girdi tensörü) doğrudan çözülebilir.
+// Tensör (ör. argmax sonucu ya da okuyucunun girdi tensörü) doğrudan çözülebilir.
 func TestDecodeTensor(t *testing.T) {
 	m := mustRun(t, `
 değişken p = parçalayıcı_yükle("`+bpePath+`")

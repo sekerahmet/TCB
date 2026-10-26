@@ -53,7 +53,7 @@ fonksiyon adım_at(adım) {
 // yüzdelik: p. yüzdelik (en yakın sıra yöntemi).
 fonksiyon yüzdelik(değerler, p) {
     değişken s = değerler.sırala()
-    sonuç s[maks(0, tam(tavan(p / 100 * s.uzunluk)) - 1)]
+    sonuç s[max(0, tam(tavan(p / 100 * s.uzunluk)) - 1)]
 }
 
 değişken kayıplar = []
@@ -71,7 +71,7 @@ değişken sonuç_ = {tool: "tr", mode: "tr", precision: HASSASIYET, device: var
     config: {B: B, T: T, D: D, H: H, FF: FF, LAYERS: KATMAN, V: V},
     first_step_ms: ısınma_ms[0], warmup_ms: ısınma_ms,
     measured: {median_ms: ortanca(ölçülen_ms), p90_ms: yüzdelik(ölçülen_ms, 90), mean_ms: ortalama(ölçülen_ms),
-        min_ms: min(ölçülen_ms), max_ms: maks(ölçülen_ms)},
+        min_ms: min(ölçülen_ms), max_ms: max(ölçülen_ms)},
     loss_curve: kayıplar}
 değişken çıktı_metni = json_metin(sonuç_)
 eğer arg.çıktı != "" { dosya_yaz(arg.çıktı, çıktı_metni) }

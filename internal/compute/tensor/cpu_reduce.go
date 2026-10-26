@@ -137,7 +137,7 @@ func (cpuBackend) f32SumAll(out Storage, x View, scale float32) {
 
 // argmaxCPU her (dış, iç) satırı için ilk en büyük elemanın eksen indeksini verir. NaN
 // her sayıdan büyük sayılır: satırda NaN varsa sonuç ilk NaN'dır (yerinde NaN yayılır;
-// maks, min = -maks(-x) ve maks_indeks tutarlı kalır).
+// max, min = -max(-x) ve argmax tutarlı kalır).
 func argmaxCPU(xd []float32, outer, dim, inner int, fn func(k, d int, v float32)) {
 	parallelFor(outer, dim*inner, func(lo, hi int) {
 		for o := lo; o < hi; o++ {

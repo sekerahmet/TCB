@@ -6,8 +6,9 @@
 // (1'den); kimlik tablosu (identities) kodu kimliğine bağlar. Sabitin satır yorumunun ilk sözcüğü
 // kodun kimliğidir (codegraph sabiti koda bununla bağlar).
 //
-// Üretici kod paketini içe aktarmaz: dil dosyasını (internal/lang/codes/tr.json) kendisi okur.
-// Böylece üretilen dosya eskimiş olsa da üretici çalışır.
+// Üretici kod paketini içe aktarmaz: dil dosyasını (internal/lang/codes/tr.json) ve ortak adları
+// (definitions.json "ortak_ad"; adı hiçbir dil dosyasında yazılmayan kodlar) kendisi okur. Böylece
+// üretilen dosya eskimiş olsa da üretici çalışır.
 //
 // Kullanım (depo kökünden):
 //
@@ -36,6 +37,7 @@ import (
 var (
 	trPath     = filepath.Join("internal", "lang", "codes", "tr.json")
 	enPath     = filepath.Join("internal", "lang", "codes", "en.json")
+	defsPath   = filepath.Join("internal", "lang", "codes", "definitions.json")
 	outputPath = filepath.Join("internal", "lang", "codes", "codes_generated.go")
 )
 
@@ -109,6 +111,16 @@ func Generate(root string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	data, err := os.ReadFile(filepath.Join(root, defsPath))
+	if err != nil {
+		return nil, err
+	}
+	var defs map[string]struct {
+		Common string `json:"ortak_ad"`
+	}
+	if err := json.Unmarshal(data, &defs); err != nil {
+		return nil, fmt.Errorf("%s: %v", defsPath, err)
+	}
 	seen := map[string]string{}
 	for _, id := range keys {
 		if !strings.HasPrefix(id, "TR_") || !strings.Contains(strings.TrimPrefix(id, "TR_"), "_") {
@@ -132,6 +144,9 @@ func Generate(root string) ([]byte, error) {
 		name := tr[id]
 		if e := en[id]; e != "" && e != name {
 			name = e + " · " + name
+		}
+		if c := defs[id].Common; c != "" {
+			name = c // her dilde aynı ad
 		}
 		fmt.Fprintf(&b, "\t%s Code = %d // %s: %s\n", goName(id), i+1, id, name)
 	}

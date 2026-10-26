@@ -83,7 +83,7 @@ fonksiyon döner_konum_tablosu(bağlam, bakış_boyutu, taban = 10000.0) {
     değişken frekanslar = [taban ** (-2.0 * i / bakış_boyutu) döngü i içinde 0..yarım]
     değişken konumlar = tensör([[t] döngü t içinde 0..bağlam]) // [bağlam, 1]
     değişken açılar = konumlar @ tensör([frekanslar]) // [bağlam, yarım]
-    sonuç [kosinüs(açılar), sinüs(açılar)]
+    sonuç [cos(açılar), sin(açılar)]
 }
 
 // döner_konum_hesapla x'i ([..., T, bakış, bakış_boyutu]; dikkat'in düzeni) tablonun ilk T satırıyla
@@ -93,11 +93,11 @@ fonksiyon döner_konum_tablosu(bağlam, bakış_boyutu, taban = 10000.0) {
 // geçişin sonunda yapılır: değer aynıdır (bir kez yuvarlanır), float32 sonuç ve ayrı dönüşüm
 // kalkar. döner_konum_uygula aynı hesabın kaynaşmış biçimidir (kaynaştır, dil tanımı 15.44):
 // zincir tek geçişte hesaplanır, ara sonuçlar belleğe yazılmaz; sonuç aynıdır.
-fonksiyon döner_konum_hesapla(x, kos, sin) {
+fonksiyon döner_konum_hesapla(x, cos_tablosu, sin_tablosu) {
     değişken T = x.şekil[-3]
     değişken a, b = x.böl(2, eksen: -1)
-    değişken c = kos[0..T].şekillendir([T, 1, kos.şekil[-1]])
-    değişken s = sin[0..T].şekillendir([T, 1, sin.şekil[-1]])
+    değişken c = cos_tablosu[0..T].şekillendir([T, 1, cos_tablosu.şekil[-1]])
+    değişken s = sin_tablosu[0..T].şekillendir([T, 1, sin_tablosu.şekil[-1]])
     sonuç bitiştir([a * c - b * s, a * s + b * c], eksen: -1).türe(x.tür)
 }
 değişken döner_konum_uygula = kaynaştır(döner_konum_hesapla)
@@ -159,10 +159,10 @@ yapı NedenselDikkat {
         kendi.k_norm = eğer qk_normu { RMSNormKatmanı(kendi.bakış_boyutu, epsilon: epsilon) } değilse { yok }
         kendi.çıkış_katmanı = Doğrusal(bakış_sayısı * bakış_boyutu, boyut, sapmalı: sapmalı, std: çıkış_std, tohum: tohum + 3, tür: ağırlık_türü)
     }
-    // x [B, T, D]; kos/sin döner_konum_tablosu'ndan (önbellekli çağrıda konumdan başlayan
+    // x [B, T, D]; cos_tablosu/sin_tablosu döner_konum_tablosu'ndan (önbellekli çağrıda konumdan başlayan
     // satırlar). önbellek verilirse (KVÖnbellek) yeni anahtar ve değerler katman no'ya eklenir ve
     // sorgular önbellekteki bütün konumlara bakar (dikkat'te nedensellik sondan hizalıdır, 15.24).
-    fonksiyon ileri(x, kos, sin, önbellek = yok, no = 0) {
+    fonksiyon ileri(x, cos_tablosu, sin_tablosu, önbellek = yok, no = 0) {
         değişken B = x.şekil[0]
         değişken T = x.şekil[1]
         değişken k_ham = yok
@@ -184,8 +184,8 @@ yapı NedenselDikkat {
             q = kendi.q_norm.ileri(q)
             k = kendi.k_norm.ileri(k)
         }
-        q = döner_konum_uygula(q, kos, sin)
-        k = döner_konum_uygula(k, kos, sin)
+        q = döner_konum_uygula(q, cos_tablosu, sin_tablosu)
+        k = döner_konum_uygula(k, cos_tablosu, sin_tablosu)
         değişken y = yok
         eğer önbellek != yok ve önbellek.adım_konumu != yok {
             // Cihaz adımı (GPT.tek_adım): konum cihazdadır, sorgu bütün tampona maskeyle bakar.
@@ -320,7 +320,7 @@ yapı PLEBloğu {
 //   sapmalı: dikkat katmanlarının sapması; ileri_sapmalı: SwiGLU'nun sapması.
 //   birleşik_kapı: SwiGLU'da [G | U] tek matris.
 //   ple_boyutu (P) ve dağarcık: PLE için ikisi de verilmeli; yoksa blokta PLE yoktur (ple = yok).
-// ileri(x, kos, sin, kimlikler, bağlam): kimlikler ve bağlam yalnızca PLE varken kullanılır.
+// ileri(x, cos_tablosu, sin_tablosu, kimlikler, bağlam): kimlikler ve bağlam yalnızca PLE varken kullanılır.
 yapı TransformerBloğu {
     norm1
     dikkat
@@ -339,9 +339,9 @@ yapı TransformerBloğu {
             kendi.ple = yok
         }
     }
-    fonksiyon ileri(x, kos, sin, kimlikler = yok, bağlam = yok, önbellek = yok, no = 0) {
+    fonksiyon ileri(x, cos_tablosu, sin_tablosu, kimlikler = yok, bağlam = yok, önbellek = yok, no = 0) {
         // Norm çıktılarını yalnızca dikkatin ve ileri beslemenin ilk çarpımları okur.
-        değişken h = x + kendi.dikkat.ileri(kendi.norm1.ileri(x, çıktı_türü: hesap_türü()), kos, sin, önbellek: önbellek, no: no)
+        değişken h = x + kendi.dikkat.ileri(kendi.norm1.ileri(x, çıktı_türü: hesap_türü()), cos_tablosu, sin_tablosu, önbellek: önbellek, no: no)
         h = h + kendi.ileri_besleme.ileri(kendi.norm2.ileri(h, çıktı_türü: hesap_türü()))
         eğer kendi.ple != yok { sonuç kendi.ple.ileri(h, kimlikler, bağlam) }
         sonuç h
@@ -527,9 +527,9 @@ yapı GPT {
         sonuç [x, eğer kendi.ple_bağlamı == yok { yok } değilse { kendi.ple_bağlamı.ileri(x) }]
     }
     // blokları_işle: x'i bloklardan sırayla geçirir (gizli_durum ve tek_adım ortak gövdesi).
-    fonksiyon blokları_işle(x, bağlamlar, kos, sin, kimlikler, önbellek) {
+    fonksiyon blokları_işle(x, bağlamlar, cos_tablosu, sin_tablosu, kimlikler, önbellek) {
         döngü i, blok içinde kendi.bloklar {
-            x = blok.ileri(x, kos, sin, kimlikler, eğer bağlamlar == yok { yok } değilse { bağlamlar[i] }, önbellek: önbellek, no: i)
+            x = blok.ileri(x, cos_tablosu, sin_tablosu, kimlikler, eğer bağlamlar == yok { yok } değilse { bağlamlar[i] }, önbellek: önbellek, no: i)
         }
         sonuç x
     }
@@ -540,16 +540,16 @@ yapı GPT {
     fonksiyon gizli_durum(kimlikler, önbellek = yok) {
         değişken gb = kendi.gömülü(kimlikler)
         değişken x = gb[0]
-        değişken kos = kendi.kos
-        değişken sin = kendi.sin
+        değişken cos_tablosu = kendi.kos
+        değişken sin_tablosu = kendi.sin
         değişken T = x.şekil[1]
         eğer önbellek != yok {
             değişken baş = önbellek.konum
             doğrula(baş + T <= kendi.ayar.bağlam, "önbellekli ileri: {baş + T} konum bağlamı ({kendi.ayar.bağlam}) aşıyor")
-            kos = kos.dilim(0, baş, baş + T)
-            sin = sin.dilim(0, baş, baş + T)
+            cos_tablosu = cos_tablosu.dilim(0, baş, baş + T)
+            sin_tablosu = sin_tablosu.dilim(0, baş, baş + T)
         }
-        x = kendi.blokları_işle(x, gb[1], kos, sin, kimlikler, önbellek)
+        x = kendi.blokları_işle(x, gb[1], cos_tablosu, sin_tablosu, kimlikler, önbellek)
         eğer önbellek != yok { önbellek.ilerle(T) }
         // Gizli durumu yalnızca çıkış çarpımı (ya da doğrusal_çapraz_entropi) okur.
         sonuç kendi.son_norm.ileri(x, çıktı_türü: hesap_türü())
@@ -560,10 +560,10 @@ yapı GPT {
     // (dil tanımı 15.45). Önbellek sabit olmalı ve ilk parçalar gizli_durum ile işlenmiş olmalı.
     fonksiyon tek_adım(kimlik, konum, önbellek) {
         değişken gb = kendi.gömülü(kimlik)
-        değişken kos = gömme(kendi.kos, konum)
-        değişken sin = gömme(kendi.sin, konum)
+        değişken cos_tablosu = gömme(kendi.kos, konum)
+        değişken sin_tablosu = gömme(kendi.sin, konum)
         önbellek.cihaz_adımı(konum)
-        değişken x = kendi.blokları_işle(gb[0], gb[1], kos, sin, kimlik, önbellek)
+        değişken x = kendi.blokları_işle(gb[0], gb[1], cos_tablosu, sin_tablosu, kimlik, önbellek)
         önbellek.cihaz_adımı(yok)
         sonuç kendi.logit(kendi.son_norm.ileri(x, çıktı_türü: hesap_türü()))[0][0]
     }
@@ -617,13 +617,13 @@ yapı GPT {
                 değişken x = yok
                 değişken son = yok
                 eğer önbellek_çeşidi == yok {
-                    değişken bas = maks(0, kimlikler.uzunluk - bağlam)
+                    değişken bas = max(0, kimlikler.uzunluk - bağlam)
                     x = kendi.gizli_durum([kimlikler[bas..kimlikler.uzunluk]])
                 } değilse eğer ö == yok veya ö.konum >= ö.en_çok {
                     // İlk adım ya da önbellek doldu: son `bağlam` parça baştan işlenir.
                     ö = kendi.önbellek_kur(çeşit: önbellek_çeşidi, en_çok: min(bağlam, kimlikler.uzunluk + adet - i))
                     adım = yok // yeni önbellek: yeni kayıt
-                    değişken bas = maks(0, kimlikler.uzunluk - bağlam)
+                    değişken bas = max(0, kimlikler.uzunluk - bağlam)
                     x = kendi.gizli_durum([kimlikler[bas..kimlikler.uzunluk]], önbellek: ö)
                 } değilse eğer oynat {
                     eğer adım == yok {

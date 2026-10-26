@@ -62,7 +62,7 @@ değişken küme = veri_kümesi(arg.veri)
 değişken örnekler = eğer arg.sıralı { küme.sıralı(toplu: arg.mikro, bağlam: arg.bağlam) } değilse {
     küme.örnekleyici(toplu: arg.mikro, bağlam: arg.bağlam, tohum: arg.tohum) }
 değişken adım_başına = arg.toplu * arg.bağlam
-değişken ısınma = maks(1, tam(arg.adım * 0.01))
+değişken ısınma = max(1, tam(arg.adım * 0.01))
 
 // Parametreler hedefin ayrımıyla sayılır: PLE tabloları gömme gibi çalışır (her parçada bir satır),
 // modelin boyu gövde + gömmedir.
@@ -81,7 +81,7 @@ yazdır("hedef model (TR) | YYGYGYYG | {M(parametre_sayısı)}M parametre (PLE t
 değişken doğrulama_kümesi = eğer arg.doğrulama == "" { yok } değilse { veri_kümesi(arg.doğrulama) }
 fonksiyon değerlendir() {
     değişken s = doğrulama_kümesi.sıralı(toplu: arg.mikro, bağlam: arg.bağlam)
-    değişken n = maks(1, arg.değerlendirme_parça / arg.bağlam / arg.mikro)
+    değişken n = max(1, arg.değerlendirme_parça / arg.bağlam / arg.mikro)
     değişken kayıp_toplamı = 0.0
     türevsiz {
         döngü i içinde 0..n {
@@ -114,7 +114,7 @@ değişken nan_adımı = arg.nan_adımı
 değişken son_dönüş = -1 // aynı noktaya art arda dönüşler sayılır: kalıcı bir bozulmada sonsuz döngü olmasın
 değişken dönüş_sayısı = 0
 döngü adım < arg.adım {
-    op.çarpan_ayarla(maks(0.000001, iyileştirici.oran_planı(adım, arg.adım, ısınma: ısınma, azalma: 0.2)))
+    op.çarpan_ayarla(max(0.000001, iyileştirici.oran_planı(adım, arg.adım, ısınma: ısınma, azalma: 0.2)))
     değişken t0 = zaman_ms()
     değişken toplam_kayıp = 0.0
     döngü m içinde 0..birikim {

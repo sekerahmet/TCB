@@ -16,7 +16,7 @@ yazdır(y.değer, x.gradyan.değer, x.gradyan == 8.0, x.şekil, tip(x.gradyan))
 yazdır(x)
 yazdır(tensör(3.0), tensör(2), tensör(2, doğru))
 // İki tensör türü yoktur: 0 boyutlu tensör çok boyutlularla işleme girer.
-yazdır((tensör(3.0) + tensör([1.0, 2.0])).değer, üstel(tensör(0.0)).değer, toplam([tensör(1.0), tensör([2.0])]).değer)
+yazdır((tensör(3.0) + tensör([1.0, 2.0])).değer, exp(tensör(0.0)).değer, toplam([tensör(1.0), tensör([2.0])]).değer)
 // Eleman bazlı fonksiyonların türevi: σ'(0) = 0.25, tanh'(0) = 1, relu'(2) = 1.
 değişken a = tensör(0.0, türev_izle: doğru)
 geri_yayılım(sigmoid(a) + tanh(a))
