@@ -104,6 +104,12 @@ func loadGraph(path string, o *queryOpts, noRebuild bool) (*Graph, int) {
 	case g.Extractor != extractorRevision:
 		fmt.Fprintf(o.stderr, "codegraph: warning: the graph was built by an older codegraph (extractor %d, now %d); results may be incomplete; run build\n", g.Extractor, extractorRevision)
 	}
+	for _, w := range g.Warnings {
+		if strings.HasPrefix(w, trSkipped) { // Go cevapları tam; .tr kodu ve TR bağları yok
+			w, _, _ = strings.Cut(w, "\n")
+			fmt.Fprintf(o.stderr, "codegraph: warning: answers about .tr code are missing (%s)\n", w)
+		}
+	}
 	return g, exitOK
 }
 

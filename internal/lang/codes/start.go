@@ -1,7 +1,7 @@
 package codes
 
 import (
-	"fmt"
+	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -20,37 +20,88 @@ import (
 // yalnızca gösterimi yerelleştirir. Başka bir yazım dilinde yazılmış metin (tr kodla - --dil en,
 // kabuk satırı) dili açıkça verilerek okunur (lexer.NewBodyIn) ve kanonik biçime çevrilir.
 
-// display LanguageEnvVar'ın seçtiği gösterim dilidir. Değişken geçersiz bir dil seçiyorsa paket
-// süreci kapatmaz (paketi kullanan dil sunucusu, testler ya da TR'yi gömen bir program da
-// kapanırdı): Türkçeye düşülür ve hata LanguageError ile okunur; tr komutu başlarken onu
-// bildirip çıkar.
-var display = func() *Language {
-	langCode := messages.ActiveLanguage()
-	d, err := buildLanguage(langCode)
-	if err != nil {
-		displayErr = messages.New(messages.H2509, LanguageEnvVar, langCode, err)
-		if d, err = buildLanguage(SourceLanguage); err != nil {
-			panic(fmt.Sprintf("codes: the embedded Turkish code list cannot be built: %v", err))
+// display LanguageEnvVar'ın seçtiği gösterim dilidir, active programın okunduğu ve çalıştığı
+// kanonik dildir (her zaman Türkçe). Kurulamayan bir dil paketi başlatırken süreci kapatmaz
+// (paketi kullanan dil sunucusu, codegraph, testler ya da TR'yi gömen bir program da kapanırdı);
+// hata LanguageError ile okunur, tr komutu başlarken onu bildirip çıkar:
+//   - Geçersiz bir TR_DIL seçimi Türkçeye düşer.
+//   - Gömülü Türkçe listenin kendisi kurulamazsa (bozuk ya da yarım değişmiş tr.json) adlar
+//     kimliklere düşer (identityLanguage): Go tarafı çalışır, TR metni okunmaz; Türkçeyi
+//     isteyen LoadLanguage hatayı verir.
+//
+// Karşılaştırma (pkg.go.dev, Go 1.25): regexp.MustCompile başlatmadaki hatada panikler (eski
+// davranış buydu); sync.OnceValues hatayı ilk kullanana verir. Sözcük çözümleyicinin ve
+// denetleyicinin tabloları paket başlatılırken bu listeden kurulduğu için tembel kurulum ilk
+// kullanımı ertelemez, yalnız her Name çağrısına bir eşzamanlama okuması ekler; bu yüzden liste
+// yine başlatmada kurulur, hata OnceValues'taki gibi ilk kullanana (LoadLanguage,
+// LanguageError) saklanır.
+var display, active, displayErr, activeErr = startLanguages(messages.ActiveLanguage(), languages)
+
+// startLanguages gösterim ve kanonik dili langs'tan (dil kodu → dil dosyası; testler bozuk bir
+// dosya verir) kurar.
+func startLanguages(langCode string, langs map[string][]byte) (display, active *Language, displayErr, activeErr error) {
+	active, activeErr = buildLanguage(langs, SourceLanguage)
+	if activeErr == nil {
+		activeErr = complete(active)
+	}
+	if activeErr != nil {
+		active = identityLanguage(SourceLanguage)
+	}
+	display = active
+	if langCode != SourceLanguage {
+		if d, err := buildLanguage(langs, langCode); err != nil {
+			displayErr = messages.New(messages.H2509, LanguageEnvVar, langCode, err)
+		} else {
+			display = d
 		}
 	}
-	return d
-}()
+	return display, active, displayErr, activeErr
+}
 
-// active programın okunduğu ve çalıştığı kanonik dildir: her zaman Türkçe.
-var active = func() *Language {
-	if display.Code == SourceLanguage {
-		return display
+// complete kanonik listede her kodun bir satırı olduğunu denetler: Name eksik kodda paniklerdi,
+// ve sözcük çözümleyici ile denetleyici adları paket başlatılırken ister.
+func complete(d *Language) error {
+	var missing []string
+	for k, id := range identities {
+		if id != "" && d.nameArr[k] == "" {
+			missing = append(missing, id)
+		}
 	}
-	d, err := buildLanguage(SourceLanguage)
-	if err != nil {
-		panic(fmt.Sprintf("codes: the embedded Turkish code list cannot be built: %v", err))
+	if len(missing) > 0 {
+		return messages.Internalf("code list %s: %d codes are not in the language file: %s", d.Code, len(missing), strings.Join(missing, ", "))
+	}
+	return nil
+}
+
+// identityLanguage dil listesi kurulamayınca yerine geçen listedir: her kodun adı kimliğidir
+// (TR_kw_if). Kimlikler dilden bağımsızdır ve tekildir, bu yüzden tabloları çakışmasız kurar.
+func identityLanguage(langCode string) *Language {
+	d := &Language{Code: langCode, entries: make(map[Code]*Entry, len(identities)),
+		spellings: make(map[Code][]string, len(identities)), nameArr: make([]string, len(identities))}
+	for i := range d.names {
+		d.names[i], d.foreignNames[i], d.canonical[i] = map[string]Code{}, map[string][]foreignMatch{}, map[string]string{}
+	}
+	for i, id := range identities {
+		k := Code(i)
+		if id == "" || k.Namespace() == NamespaceNone {
+			continue
+		}
+		ns := k.Namespace()
+		d.entries[k] = &Entry{Code: k, Name: id}
+		d.codeList = append(d.codeList, k)
+		d.nameArr[k], d.spellings[k] = id, []string{id}
+		d.names[ns][id], d.canonical[ns][id] = k, id
 	}
 	return d
-}()
+}
 
-// displayErr LanguageEnvVar'ın seçtiği dil kurulamadıysa hatasıdır (dil Türkçeye düşmüştür).
-var displayErr error
-
-// LanguageError reports why the language selected by LanguageEnvVar could not be built (the
-// display language then fell back to Turkish); nil when the selection is valid.
-func LanguageError() error { return displayErr }
+// LanguageError reports why a language the process needs could not be built: the embedded
+// Turkish list (names then fell back to identities and no TR text can be read) or the one
+// LanguageEnvVar selects (the display language then fell back to Turkish); nil when both are
+// valid.
+func LanguageError() error {
+	if activeErr != nil {
+		return activeErr
+	}
+	return displayErr
+}

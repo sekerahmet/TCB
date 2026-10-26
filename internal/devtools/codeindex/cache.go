@@ -192,6 +192,9 @@ func libraryHash(opts Options, rel string) string {
 // (artımlı yenileme). Dosya eklenmesi/silinmesi ya da gömülü kitaplık kümesinin değişmesi baştan
 // kurulumdur. Sonuç her zaman sıfırdan kurulanla aynıdır. Önbellek yazılamazsa dizin yine döner.
 func BuildCached(root string, opts Options) (*Index, Stats, error) {
+	if err := languageReady(); err != nil {
+		return nil, Stats{}, err
+	}
 	abs, err := filepath.Abs(root)
 	if err != nil {
 		return nil, Stats{}, err

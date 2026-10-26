@@ -85,6 +85,9 @@ type indexer struct {
 // Build root altındaki .tr dosyalarından dizini kurar. Okunamayan ya da ayrıştırılamayan dosya
 // Index.Skipped'a yazılır (modül düğümü kalır, bildirimleri yoktur); hata değildir.
 func Build(root string, opts Options) (*Index, error) {
+	if err := languageReady(); err != nil {
+		return nil, err
+	}
 	abs, err := filepath.Abs(root)
 	if err != nil {
 		return nil, err
@@ -272,6 +275,14 @@ func (x *indexer) finish() *Index {
 		return a.In+a.Kind+a.Op+a.Operand < b.In+b.Kind+b.Op+b.Operand
 	})
 	return idx
+}
+
+// languageReady gömülü Türkçe liste kurulamadıysa (bozuk ya da yarım değişmiş tr.json) nedenini
+// verir: dizin kimliklere düşmüş adlarla kurulup yanlış cevap vermesin, çağıran Go tarafıyla
+// sürer (codegraph) ya da durur (tr dizin).
+func languageReady() error {
+	_, err := codes.LoadLanguage(codes.SourceLanguage)
+	return err
 }
 
 // FindRoot başlangıç klasöründen yukarı doğru proje kökünü arar: `.git` (klasör ya da dosya)

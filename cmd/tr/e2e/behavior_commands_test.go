@@ -372,3 +372,19 @@ func TestModuleRunErrorFrame(t *testing.T) {
 		t.Errorf("çerçeve ana programın satırını göstermemeli:\n%s", s.Stderr)
 	}
 }
+
+// Gömülü Türkçe kod listesi kurulamayınca (bozuk ya da yarım değişmiş tr.json) tr paniklemez:
+// başlarken okunur bir iç hatayla çıkar (codes.LanguageError). İkili bozuk listeyle derlenir.
+func TestABrokenLanguageFileIsAnInternalError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("tr'yi yeniden derler")
+	}
+	exe := testkit.BuildWithFile(t, "./cmd/tr", "internal/lang/codes/tr.json", `{ "TR_kw_if": `)
+	dir := t.TempDir()
+	testkit.WriteFile(t, dir, "boş.tr", "")
+	s := testkit.RunBinary(t, exe, dir, "", nil, "boş.tr")
+	testkit.Wait(t, s, 2, nil, []string{"language list tr"})
+	if strings.Contains(s.Stderr, "goroutine") {
+		t.Errorf("panik yerine iç hata beklenirdi:\n%s", s.Stderr)
+	}
+}

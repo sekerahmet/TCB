@@ -295,6 +295,9 @@ func (d *Language) Suggest(ns Namespace, spelling string, accept func(Code) bool
 // once (lists are read-only): a running program asks for the language of every file it loads
 // (17.1), and for the canonical and the display language it returns the one already built.
 func LoadLanguage(langCode string) (*Language, error) {
+	if langCode == SourceLanguage && activeErr != nil {
+		return nil, activeErr
+	}
 	if active != nil && active.Code == langCode {
 		return active, nil
 	}
@@ -304,7 +307,7 @@ func LoadLanguage(langCode string) (*Language, error) {
 	if l, ok := loaded.Load(langCode); ok {
 		return l.(*Language), nil
 	}
-	l, err := buildLanguage(langCode)
+	l, err := buildLanguage(languages, langCode)
 	if err != nil {
 		return nil, err
 	}
@@ -334,8 +337,8 @@ func OptionFlag(k Code) string {
 	return "--" + strings.ReplaceAll(DisplayName(k), "_", "-")
 }
 
-func buildLanguage(langCode string) (*Language, error) {
-	data, ok := languages[langCode]
+func buildLanguage(langs map[string][]byte, langCode string) (*Language, error) {
+	data, ok := langs[langCode]
 	if !ok {
 		return nil, messages.New(messages.H2508, langCode, strings.Join(Languages(), ", "))
 	}

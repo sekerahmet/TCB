@@ -59,6 +59,10 @@ queries never read half a file) and prints one line on stderr: `graph rebuilt (N
   is never checked.
 - The rebuild fails (a half-edited file does not type-check): the old graph is used with
   `warning: rebuild failed (...)`; the next query tries again.
+- The language cannot be built (a broken or half-converted `internal/lang/codes/tr.json`: the TR
+  language packages are compiled into codegraph): the Go graph is built without the `.tr` side, the
+  build lists `tr sources skipped: ...` and every query says
+  `warning: answers about .tr code are missing (...)` on stderr.
 
 Cost when the graph is fresh (this repository, Windows, 2026-10-25, built binary): `tests-for` takes about 0.95 s,
 0.84 s with `--no-rebuild` (reading the 59 MB `graph.json`), so the stamp's git calls cost about 0.1 s; `go run` adds

@@ -181,3 +181,6 @@ codegraph tests-for internal/lang/codes/language.go:218 | contains: codes.Langua
 
 # K1 partisi, 2026-10-26 (CODEGRAPH)
 codegraph who-uses lexer.keywordMap | contains: lexer.typeCodes [var] | contains: lexer.keywords [var] | src: K1 partisi, 2026-10-26 (var a, b = f(): ikinci ad da değeri kullanır; eskiden yalnız ilk ad)
+codegraph tests-for internal/lang/codes/tr.json --all | contains: codegraph.TestABrokenLanguageFileLeavesTheGoAnswers | contains: e2e.TestABrokenLanguageFileIsAnInternalError | src: K1 partisi ince ayar 3, 2026-10-26 (bozuk dil dosyasını ikiliye gömerek sınayan testler)
+codegraph who-uses codes.LoadLanguage | contains: codeindex.languageReady | src: K1 partisi ince ayar 3, 2026-10-26 (TR tarafı kurulamayınca dizin nerede duruyor)
+codegraph query codes.startLanguages | contains: codes.identityLanguage | contains: codes.complete | src: K1 partisi ince ayar 3, 2026-10-26 (dil listeleri başlatmada nerede kuruluyor, kurulamayınca neye düşüyor)
