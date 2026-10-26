@@ -40,9 +40,12 @@ func checkArity(fnVal Value, owner *StructDefVal, nargs int, named map[string]Va
 	}
 	name := callLabel(fn, owner)
 	known := make(map[string]bool, len(fn.Parameters))
-	for _, p := range fn.Parameters {
+	params := make([]string, len(fn.Parameters))
+	for i, p := range fn.Parameters {
 		known[p.Name] = true
+		params[i] = p.Name
 	}
+	alignNamed(named, params)
 	for k := range named {
 		if !known[k] {
 			return messages.At(line, 0, messages.New(messages.H2410, name, k, suggestParam(k, fn.Parameters)))
@@ -110,6 +113,7 @@ func checkStructArgs(def *StructDefVal, nargs int, named map[string]Value, line 
 	for i, f := range def.Fields {
 		nameList[i] = f.Name
 	}
+	alignNamed(named, nameList)
 	for k := range named {
 		if !slices.Contains(nameList, k) {
 			return messages.At(line, 0, messages.New(messages.H2418, def.Name, k, hint.ClosestSuggestion(k, nameList)))
@@ -124,6 +128,29 @@ func checkStructArgs(def *StructDefVal, nargs int, named map[string]Value, line 
 		}
 	}
 	return nil
+}
+
+// alignNamed kodlu adlı argümanı (TR_arg_lr) bildirimi metin olan parametreye ya da alana bağlar. Kullanıcının
+// parametre adı metin kalır, çağrıdaki dilin sözcüğü kodlanır (öğrenme_oranı:, lr: → TR_arg_lr); kimlik
+// hiçbir adla eşleşmiyorsa kodun herhangi bir yazım dilindeki adı olan parametre seçilir: hiçbir dile
+// ayrıcalık yoktur, Türkçe yazılmış metot İngilizce çağrıyla da eşleşir.
+func alignNamed(named map[string]Value, names []string) {
+	for key, val := range named {
+		if slices.Contains(names, key) || !codes.IsReservedName(key) {
+			continue
+		}
+		k, err := codes.Parse(key)
+		if err != nil {
+			continue
+		}
+		for _, n := range codes.WritingNames(k) {
+			if _, given := named[n]; slices.Contains(names, n) && !given {
+				delete(named, key)
+				named[n] = val
+				break
+			}
+		}
+	}
 }
 
 func suggestParam(name string, params []ast.Param) *messages.Error {

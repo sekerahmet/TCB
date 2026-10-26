@@ -22,13 +22,20 @@ import (
 // files çalışma klasörüne yazılan (Türkçe) modüllerdir.
 func runEnglish(t *testing.T, main string, files map[string]string) string {
 	t.Helper()
-	en, err := codes.LoadLanguage("en")
+	return runCoded(t, main, "en", files)
+}
+
+// runCoded lang dilinde yazılmış main metnini kodlayıp programın kendisi gibi çalıştırır; files çalışma
+// klasörüne olduğu gibi yazılır.
+func runCoded(t *testing.T, main, lang string, files map[string]string) string {
+	t.Helper()
+	l, err := codes.LoadLanguage(lang)
 	if err != nil {
 		t.Fatal(err)
 	}
-	coded, err := source.EncodeIn(main, en)
+	coded, err := source.EncodeIn(main, l)
 	if err != nil {
-		t.Fatalf("İngilizce metin kodlanamadı: %v", err)
+		t.Fatalf("%s metni kodlanamadı: %v", lang, err)
 	}
 	root := t.TempDir()
 	runInDir(t, root)
@@ -36,7 +43,7 @@ func runEnglish(t *testing.T, main string, files map[string]string) string {
 		testkit.WritePath(t, filepath.Join(root, filepath.FromSlash(name)), content)
 	}
 	r := source.Prepare(coded, source.Options{})
-	if r.Stage != "" || r.Language != "en" {
+	if r.Stage != "" || r.Language != lang {
 		t.Fatalf("hazırlık: dil %q, %v", r.Language, r.Errors)
 	}
 	var out bytes.Buffer
