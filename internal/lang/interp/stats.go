@@ -84,10 +84,22 @@ func statsNumbers(kd codes.Code, emptyMessage messages.Code, args []Value) ([]fl
 		switch {
 		case !ok && fromList:
 			return nil, ListElementError(CallPrefix(kd), i, numberType, el)
+		case !ok && i == 0:
+			// 1. argüman liste de olabilirdi: beklenen tipler imzanın 1. parametresidir.
+			return nil, argTypeErrorByName(CallName(kd), 1, firstParamTypes(kd), el)
 		case !ok:
 			return nil, argTypeErrorByName(CallName(kd), i+1, numberType, el) // liste değil: argümanın kendisi
 		}
 		nums[i] = f
 	}
 	return nums, nil
+}
+
+// firstParamTypes yerleşik kd'nin imzasındaki 1. parametrenin tipleridir (definitions.json); imza
+// okunamazsa sayı tipleri.
+func firstParamTypes(kd codes.Code) messages.Localized {
+	if d, ok := codes.DefinitionOf(kd); ok && len(d.Signature.Params) > 0 {
+		return TypeNames(d.Signature.Params[0].Types...)
+	}
+	return numberType
 }
