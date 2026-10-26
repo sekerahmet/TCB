@@ -15,6 +15,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/reporoot"
 	"github.com/sekerahmet/TCB/internal/testkit"
 	"github.com/sekerahmet/TCB/lib"
 )
@@ -48,6 +49,7 @@ func parseExam(t *testing.T, path string) []examRecord {
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
+		line = expandLineRefs(t, line, fmt.Sprintf("%s:%d", path, i+1))
 		fields := strings.Split(line, " | ")
 		r := examRecord{line: i + 1}
 		words := splitArgs(fields[0])
@@ -72,6 +74,52 @@ func parseExam(t *testing.T, path string) []examRecord {
 		out = append(out, r)
 	}
 	return out
+}
+
+// lineRef `@{dosya#metin}` yer tutucusudur: dosyada metnin ilk geçtiği satır (`dosya:satır`).
+var lineRef = regexp.MustCompile(`@\{([^#}]+)#([^}]+)\}`)
+
+// expandLineRefs satırdaki `@{dosya#metin}` yer tutucularını `dosya:satır`a çevirir: soru satır numarasını değil satırın
+// metnini taşır, dosyaya üstten satır eklenince kırılmaz. Metin bulunamazsa
+// sınav durur: soru eskimiştir.
+func expandLineRefs(t *testing.T, line, at string) string {
+	t.Helper()
+	return lineRef.ReplaceAllStringFunc(line, func(ref string) string {
+		m := lineRef.FindStringSubmatch(ref)
+		data, err := os.ReadFile(reporoot.Path(m[1]))
+		if err != nil {
+			t.Fatalf("%s: %s: %v", at, ref, err)
+		}
+		for i, l := range strings.Split(string(data), "\n") {
+			if strings.Contains(l, m[2]) {
+				return m[1] + ":" + strconv.Itoa(i+1)
+			}
+		}
+		t.Fatalf("%s: %s: the text is not in the file", at, ref)
+		return ""
+	})
+}
+
+// pinnedNumber bir sorunun koda değil yazıma bağlı sayısıdır: elle yazılmış satır numarası (`dosya.go:255`) ya da
+// grup ve erişim sayısı (`(23)`, `111 read`).
+var pinnedNumber = regexp.MustCompile(`\.(go|tr|md|json):\d|\(\d+\)|\b\d+ (read|write|literal|accesses)\b`)
+
+// Kural: sınav soruları kodun yerine ve özelliğine bağlıdır, yazımına değil: satır `@{dosya#metin}` ile metinden
+// hesaplanır, sayı yerine grubun bir öğesi sınanır (`group: başlık => öğe`). Dosyaya üstten satır ya da gruba yeni test
+// eklenince doğru cevap kırılmaz (üç kez yanlış "kaldı" verdi).
+func TestPlanningQuestionsPinNoLineOrCount(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("testdata", "planning_questions.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, line := range strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n") {
+		if strings.HasPrefix(line, "#") {
+			continue
+		}
+		if q, _, _ := strings.Cut(line, " | src: "); pinnedNumber.MatchString(q) {
+			t.Errorf("planning_questions.txt:%d pins %q: use @{file#text} for a line, a group item for a count", i+1, pinnedNumber.FindString(q))
+		}
+	}
 }
 
 // splitArgs komut metnini boşluktan böler; çift tırnak içi tek argümandır.
