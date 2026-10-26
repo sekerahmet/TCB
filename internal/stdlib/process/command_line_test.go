@@ -56,12 +56,12 @@ func TestCommandLineValues(t *testing.T) {
 		arg  []string
 		want string
 	}{
-		{nil, `{"öğrenme_oranı": 0.001, "adım": 5000, "veri": "veri/train", "katmanlar": [64, 64], "hızlı": yanlış, "etiket": yok, "hf_token": ""}`},
+		{nil, `{öğrenme_oranı: 0.001, adım: 5000, "veri": "veri/train", "katmanlar": [64, 64], "hızlı": yanlış, "etiket": yok, "hf_token": ""}`},
 		{[]string{"--adım", "5_000", "--öğrenme_oranı=1e-3", "--hızlı", "--katmanlar", "128, 32,8", "--etiket", "deneme"},
-			`{"öğrenme_oranı": 0.001, "adım": 5000, "veri": "veri/train", "katmanlar": [128, 32, 8], "hızlı": doğru, "etiket": "deneme", "hf_token": ""}`},
+			`{öğrenme_oranı: 0.001, adım: 5000, "veri": "veri/train", "katmanlar": [128, 32, 8], "hızlı": doğru, "etiket": "deneme", "hf_token": ""}`},
 		{[]string{"--öğrenme_oranı", "3", "--hızlı=yanlış", "--katmanlar=", "--veri", "-x"},
-			`{"öğrenme_oranı": 3.0, "adım": 5000, "veri": "-x", "katmanlar": [], "hızlı": yanlış, "etiket": yok, "hf_token": ""}`},
-		{[]string{"--adım", "-5"}, `{"öğrenme_oranı": 0.001, "adım": -5, "veri": "veri/train", "katmanlar": [64, 64], "hızlı": yanlış, "etiket": yok, "hf_token": ""}`},
+			`{öğrenme_oranı: 3.0, adım: 5000, "veri": "-x", "katmanlar": [], "hızlı": yanlış, "etiket": yok, "hf_token": ""}`},
+		{[]string{"--adım", "-5"}, `{öğrenme_oranı: 0.001, adım: -5, "veri": "veri/train", "katmanlar": [64, 64], "hızlı": yanlış, "etiket": yok, "hf_token": ""}`},
 	} {
 		got, _, err := commandLine(t, code, d.arg...)
 		if err != nil || got != d.want {

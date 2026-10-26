@@ -98,7 +98,7 @@ func TestDataFormatsIndependentOfFileLanguage(t *testing.T) {
 // Kod taşıyan çıplak sözlük anahtarı diske kodun dilden bağımsız adıyla gider (3.7, 17.3): aynı
 // program Türkçe ve İngilizce yazıldığında json_metin, günlük, config.json ve kontrol noktası bayt
 // bayt aynı anahtarları taşır ({adım: …} de {step: …} de "step"); komut satırında kodlu seçenek her
-// dilin adıyla geçer (--adım, --step; 17.8), yazdır anahtarı dosyanın dilinde yazar. Kitaplığın
+// dilin adıyla geçer (--adım, --step; 17.8), yazdır anahtarı dosyanın dilinde ve tırnaksız yazar. Kitaplığın
 // (tr/egitim) config.json'u İngilizce tanımlayıcılardır; Türkçe program İngilizce JSON'daki
 // "step"'i .adım ile bulur.
 func TestDictCodedKeysOnDisk(t *testing.T) {
@@ -118,8 +118,8 @@ func TestDictCodedKeysOnDisk(t *testing.T) {
 	}
 	var shapes, logs [2]string
 	for i, c := range []struct{ language, option, want string }{
-		{"tr", "--step", "{\"step\":2,\"lr\":0.5}\n{\"adım\": 2, \"öğrenme_oranı\": 0.5}\n4\n"},
-		{"en", "--adım", "{\"step\":2,\"lr\":0.5}\n{\"step\": 2, \"lr\": 0.5}\n4\n"},
+		{"tr", "--step", "{\"step\":2,\"lr\":0.5}\n{adım: 2, öğrenme_oranı: 0.5}\n4\n"},
+		{"en", "--adım", "{\"step\":2,\"lr\":0.5}\n{step: 2, lr: 0.5}\n4\n"},
 	} {
 		dir := t.TempDir()
 		testkit.WriteFile(t, dir, "p.tr", inLanguage(coded, c.language))

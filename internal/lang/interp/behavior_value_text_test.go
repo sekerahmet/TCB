@@ -176,7 +176,8 @@ try { f() } catch e { print(e) }
 
 // Kod taşıyan çıplak sözlük anahtarı ({step: 1}, {adım: 1}: TR_mem_step) içeride kodun dilden
 // bağımsız adıyla saklanır ("step"; 3.7, 17.3): anahtarlar() ve metin anahtar (d["step"]) her
-// yazım dilinde aynı anahtarı görür (json_metin ve günlük: cmd/tr/e2e TestDictCodedKeysOnDisk); yazdır anahtarı yazdırılan dosyanın dilinde
+// yazım dilinde aynı anahtarı görür (json_metin ve günlük: cmd/tr/e2e TestDictCodedKeysOnDisk); yazdır
+// kodlu anahtarı kaynaktaki gibi tırnaksız, metin anahtarı tırnaklı yazar; yazdır anahtarı yazdırılan dosyanın dilinde
 // yazar. d.ad okuması ve yazması önce bu anahtarı, sonra dosyanın dilindeki adı arar; yeni anahtar
 // kodla eklenir: aynı kodun iki anahtarı oluşmaz. Metin anahtar (d["adım"]) çevrilmez; kodsuz
 // çıplak anahtar olduğu gibi kalır.
@@ -201,9 +202,9 @@ var d = {step: 1, foo: 2}
 print(d.keys(), d["step"], d.step)
 `, nil)
 	want := "2 [\"step\", \"renk\", \"lr\"] 0.1 none 2\n" +
-		"{\"step\": 2, \"renk\": \"mavi\", \"lr\": 0.2} {\"step\": 8, \"renk\": 1} 8\n" +
-		"{\"adım\": 8, \"renk\": 1} [\"step\", \"renk\"]\n" + // Türkçe kitaplık yazdırınca Türkçe ad, anahtar aynı
-		"{\"step\": 11, \"adım\": 2}\n" + // metin anahtar "adım" ayrı bir anahtardır
+		"{step: 2, \"renk\": \"mavi\", lr: 0.2} {step: 8, \"renk\": 1} 8\n" +
+		"{adım: 8, \"renk\": 1} [\"step\", \"renk\"]\n" + // Türkçe kitaplık yazdırınca Türkçe ad, anahtar aynı
+		"{step: 11, \"adım\": 2}\n" + // metin anahtar "adım" ayrı bir anahtardır, tırnaklı
 		"[\"step\", \"foo\"] 1 1\n"
 	if out != want {
 		t.Errorf("kodlu anahtar dilden bağımsız saklanmalı, dosyanın dilinde yazdırılmalı:\n%s\nbeklenen:\n%s", out, want)

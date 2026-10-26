@@ -100,7 +100,13 @@ func writeContainer(v Value, lang *codes.Language, filePath []Value) string {
 			if kv, ok := x.KeyVals[k]; ok {
 				sb.WriteString(writeItem(kv, lang, filePath))
 			} else {
-				fmt.Fprintf(&sb, "%q", x.keyText(k, lang)) // kodlu anahtar dosyanın dilinde (17.3)
+				if _, coded := x.coded[k]; coded {
+					// Kodlu anahtar kaynaktaki gibi tırnaksız ve dosyanın dilinde yazılır ({adım: 0}):
+					// bir ad olduğu, d.adım ile okunduğu görünür (17.3; Node.js util.inspect gibi).
+					sb.WriteString(x.keyText(k, lang))
+				} else {
+					fmt.Fprintf(&sb, "%q", k)
+				}
 			}
 			sb.WriteString(": ")
 			val := x.Pairs[k]

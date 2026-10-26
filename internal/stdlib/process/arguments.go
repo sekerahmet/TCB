@@ -202,15 +202,13 @@ func unknownOption(given string, options []*option) error {
 	if o == "" && find(options, name) != nil {
 		o = name // -adım → --adım
 	}
-	if o == "" && name == "h" {
-		o = codes.Source().Name(codes.OptHelp)
-		helps[o] = true
-	}
-	if o == "" {
+	if o == "" && name != "h" {
 		return messages.New(messages.H7208, shorten(given))
 	}
-	var suggestion any = o // programın seçeneği yazıldığı gibi; yardım seçeneği iletinin dilinde
-	if helps[o] && find(options, o) == nil {
+	// Programın seçeneği yazıldığı gibi önerilir; yardım seçeneği (-h ya da bir dildeki --yardım)
+	// iletinin dilindeki adıyla: hiçbir dilin adı öncelikli değildir (17.8).
+	var suggestion any = o
+	if o == "" || (helps[o] && find(options, o) == nil) {
 		suggestion = codes.NameRef(codes.OptHelp)
 	}
 	return messages.New(messages.H7209, shorten(given), suggestion)
