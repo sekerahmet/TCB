@@ -87,6 +87,7 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 			x.noteRangeStrings(fc, n)
 		case *ast.BasicLit:
 			x.pathLit(fc, owner, n)
+			x.noteTestText(fc, owner, n)
 		case *ast.FuncLit:
 			closures[n] = x.closureNode(fc, owner, n, stack, closures)
 		case *ast.SelectorExpr:
@@ -95,7 +96,10 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 			x.literalFields(fc, owner, n, enclosingClosure(stack, closures))
 			x.pathList(fc, owner, n)
 			x.noteTextCompare(fc, owner, n)
-		case *ast.CaseClause, *ast.BinaryExpr:
+		case *ast.CaseClause:
+			x.noteTextCompare(fc, owner, n)
+			x.noteCaseCalls(fc, owner, n)
+		case *ast.BinaryExpr:
 			x.noteTextCompare(fc, owner, n)
 		}
 		return true
