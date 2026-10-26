@@ -40,6 +40,11 @@ func TestArgErrorsFormat(t *testing.T) {
 	if got := Usage(codes.FnInput, "", "istem").MessageText(codes.SourceLanguage); got != "girdi() ya da girdi(istem)" {
 		t.Errorf("kullanım: %s", got)
 	}
+	// Kural: kullanım biçimindeki dil adı (alıcı tipi) kod başvurusudur, iletinin dilinde yazılır.
+	err := ArgCountError(codes.FnJsonParse, 1, 0, codes.ReceiverRef(codes.TypeString))
+	if en, tr := messages.ErrorIn(err, "en"), messages.ErrorIn(err, "tr"); !strings.Contains(en, "json_parse(string)") || !strings.Contains(tr, "(metin)") {
+		t.Errorf("kullanımdaki alıcı adı iletinin dilinde olmalı: %q / %q", en, tr)
+	}
 	// Büyük değerler özetlenir: hata mesajı binlerce elemanı yazdırmaz
 	upper := &ListVal{}
 	for i := 0; i < 10000; i++ {

@@ -27,7 +27,7 @@ import (
 func Register(v *interp.VM) {
 	v.RegisterNoNamed(codes.FnJsonParse, func(vm *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		if len(args) != 1 {
-			return nil, interp.ArgCountError(codes.FnJsonParse, 1, len(args), codes.ReceiverName(codes.TypeString))
+			return nil, interp.ArgCountError(codes.FnJsonParse, 1, len(args), codes.ReceiverRef(codes.TypeString))
 		}
 		s, ok := args[0].(*interp.StringVal)
 		if !ok {
@@ -76,7 +76,7 @@ func Register(v *interp.VM) {
 
 	v.RegisterNoNamed(codes.FnParseCsv, func(vm *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		if len(args) != 1 {
-			return nil, interp.ArgCountError(codes.FnParseCsv, 1, len(args), codes.ReceiverName(codes.TypeString))
+			return nil, interp.ArgCountError(codes.FnParseCsv, 1, len(args), codes.ReceiverRef(codes.TypeString))
 		}
 		s, ok := args[0].(*interp.StringVal)
 		if !ok {

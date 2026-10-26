@@ -29,7 +29,7 @@ const (
 	RefCallName
 	// RefCall is RefCallName with "()": aralık(), liste.filtrele().
 	RefCall
-	// RefReceiver is a type's name as a member's receiver (liste; ReceiverName).
+	// RefReceiver is a type's name as a member's receiver, in lower case (liste, metin).
 	RefReceiver
 	// RefNameCall is RefName with "()": devrik() (a member without its receiver).
 	RefNameCall

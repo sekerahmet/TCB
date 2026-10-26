@@ -1,6 +1,7 @@
 package interp
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -26,24 +27,30 @@ func CallPrefix(kd codes.Code) codes.Ref { return codes.CallRef(kd) }
 
 // Usage writes the valid call forms of a code; each form is a parameter list:
 // Usage(codes.FnRange, "bitiş", "başlangıç, bitiş") → "aralık(bitiş) ya da aralık(başlangıç, bitiş)".
-func Usage(kd codes.Code, forms ...string) messages.Localized {
+// A form that names a language element is a message part (codes.ReceiverRef(codes.TypeString)),
+// written in the message's language like the name.
+func Usage(kd codes.Code, forms ...any) messages.Localized {
 	return usageByName(CallName(kd), forms)
 }
 
-func usageByName(name codes.Ref, forms []string) messages.Localized { return usage{name, forms} }
+func usageByName(name codes.Ref, forms []any) messages.Localized { return usage{name, forms} }
 
 // usage geçerli çağrı biçimleridir, ileti parametresi olarak: iletinin dilinde yazılır
 // ("aralık(bitiş) ya da aralık(başlangıç, bitiş)").
 type usage struct {
 	name  codes.Ref
-	forms []string
+	forms []any
 }
 
 func (u usage) MessageText(lang string) string {
 	name := u.name.MessageText(lang)
 	pieces := make([]string, len(u.forms))
 	for i, b := range u.forms {
-		pieces[i] = name + "(" + b + ")"
+		form := fmt.Sprint(b)
+		if l, ok := b.(messages.Localized); ok {
+			form = l.MessageText(lang)
+		}
+		pieces[i] = name + "(" + form + ")"
 	}
 	return messages.OrListIn(lang, pieces...)
 }
@@ -86,7 +93,7 @@ func argTypeErrorByName(name any, order int, expected any, given Value) error {
 // arguments. expected is the count as a number (1; the plural follows it: "takes 1 argument") or
 // a count phrase written in the message's language (Counts(1, 2), AtLeast(2)); when usage is
 // given, the valid call forms (parameter lists, see Usage) are appended.
-func ArgCountError(kd codes.Code, expected any, given int, usage ...string) error {
+func ArgCountError(kd codes.Code, expected any, given int, usage ...any) error {
 	name := CallName(kd)
 	if len(usage) > 0 {
 		return messages.New(messages.H2011, name, expected, given, usageByName(name, usage))

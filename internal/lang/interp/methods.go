@@ -59,7 +59,7 @@ var (
 // metnindeki parametre adlarıdır ("alt", "eski, yeni").
 type signature struct {
 	minN, maxN int
-	parameters string
+	parameters any // kullanım biçimi: metin ya da ileti parçası (usage)
 	typesOf    []*argKind
 }
 
@@ -89,7 +89,7 @@ func addMethod(typ int, kd codes.Code, im signature, f methodBody) {
 			case im.maxN != im.minN:
 				expected = Counts(im.minN, im.maxN)
 			}
-			return nil, messages.New(messages.H2011, fullName, expected, len(args), usageByName(fullName, []string{im.parameters}))
+			return nil, messages.New(messages.H2011, fullName, expected, len(args), usageByName(fullName, []any{im.parameters}))
 		}
 		for i, a := range args {
 			if i < len(im.typesOf) && im.typesOf[i] != nil && !im.typesOf[i].warn(a) {
@@ -277,7 +277,7 @@ func setupStringMethods() {
 
 // setupListMethods Liste tipinin metotlarını kaydeder.
 func setupListMethods() {
-	addMethod(typeList, codes.MemFilter, signature{1, 1, codes.ReceiverName(codes.TypeFunction), []*argKind{funcArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+	addMethod(typeList, codes.MemFilter, signature{1, 1, codes.ReceiverRef(codes.TypeFunction), []*argKind{funcArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		var result []Value
 		for _, item := range inst.(*ListVal).Elements {
 			keep, err := y.ApplyFunction(args[0], []Value{item}, nil, line)
@@ -290,7 +290,7 @@ func setupListMethods() {
 		}
 		return &ListVal{Elements: result}, nil
 	})
-	addMethod(typeList, codes.MemMap, signature{1, 1, codes.ReceiverName(codes.TypeFunction), []*argKind{funcArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+	addMethod(typeList, codes.MemMap, signature{1, 1, codes.ReceiverRef(codes.TypeFunction), []*argKind{funcArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		elems := inst.(*ListVal).Elements
 		result := make([]Value, 0, len(elems))
 		for _, item := range elems {

@@ -18,7 +18,7 @@ import (
 
 // İleti ve içindeki dil adları tek dildedir: ad iletiye kodla verilir (codes.NameRef,
 // interp.CallName, bind.Named), katalog onu iletinin dilinde yazar. Yazıldığı anda bir dilde
-// kurulmuş metin (codes.Name, codes.DisplayName, codes.ReceiverName, bind.Named'in .TR'si, bir
+// kurulmuş metin (codes.Name, codes.DisplayName, bind.Named'in .TR'si, bir
 // Ref'in String()'i, hazır ileti metni messages.Text, bunları içeren fmt.Sprint) iletiye ne
 // doğrudan, ne bir yerel değişkenle, ne de onu iletiye ileten bir fonksiyonun parametresiyle
 // (fn, ad, iletinin değerlerini alan değişken sayılı sarmalayıcılar: syntaxError, NewReason ...)
@@ -309,7 +309,7 @@ func carried(e ast.Expr) []string {
 }
 
 // fixedName değer (ya da onun + ile birleşen parçası) yazıldığı anda bir dilde kurulmuş bir
-// metinse onu üreten çağrıdır: codes.Name, codes.DisplayName, codes.ReceiverName, bind.Named'in
+// metinse onu üreten çağrıdır: codes.Name, codes.DisplayName, bind.Named'in
 // .TR'si, bir Ref'in String()'i (refs: Ref taşıyan yerel değişkenler), hazır ileti metni
 // (messages.Text) ya da bunlardan birini içeren fmt.Sprint/Sprintf.
 func fixedName(e ast.Expr, refs map[string]bool) string {
@@ -328,7 +328,7 @@ func fixedName(e ast.Expr, refs map[string]bool) string {
 	case *ast.CallExpr:
 		pkg, fn := callee(x)
 		switch {
-		case pkg == "codes" && (fn == "Name" || fn == "DisplayName" || fn == "ReceiverName"):
+		case pkg == "codes" && (fn == "Name" || fn == "DisplayName"):
 			return pkg + "." + fn
 		case pkg == "messages" && fn == "Text":
 			return "messages.Text"
