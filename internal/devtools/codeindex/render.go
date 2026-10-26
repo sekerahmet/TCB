@@ -54,6 +54,9 @@ func Short(n Node) string {
 	if n.Pos != nil {
 		s += "  " + n.Pos.String()
 	}
+	if n.Ignored {
+		s += "  " + messages.Text(messages.H8870)
+	}
 	return strings.TrimSpace(s)
 }
 
@@ -166,6 +169,9 @@ func writeUses(b *strings.Builder, heading messages.Code, uses []Use, counts *Co
 			}
 		}
 		line := fmt.Sprintf("    %-10s %s  %s", RoleLabel(u.Role), u.Pos, who)
+		if u.In.isIgnoredUse() {
+			line += "  " + messages.Text(messages.H8870)
+		}
 		if u.Steps > 0 {
 			line += "  " + messages.Text(messages.H8790, u.Steps)
 		}

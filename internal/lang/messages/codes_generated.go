@@ -1711,5 +1711,6 @@ const (
 	H8867 Code = 8867 // bağlı bildirimler ({count}; aynı adla iletilen ya da aynı adlı alana atanan; birlikte değiştirilmesi önerilir):
 	H8868 Code = 8868 // sözlük anahtarı
 	H8869 Code = 8869 // veri biçimi; kendiliğinden değişmez
+	H8870 Code = 8870 // (yok sayılan klasör)
 	H9000 Code = 9000 // TR'de bir iç hata oluştu (bu sizin programınızın değil, TR'nin hatası); lütfen bildirin: {detail}
 )

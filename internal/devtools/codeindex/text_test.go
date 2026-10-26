@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 func writeTree(t *testing.T, files map[string]string) string {
@@ -194,5 +196,53 @@ func TestListFilesKeepsTwoRules(t *testing.T) {
 		if got := len(NewReader(idx).Resolve("deneme_fonk", "")); got != c.want {
 			t.Errorf("Build(Tracked: %v) finds deneme_fonk %d times, want %d", c.tracked, got, c.want)
 		}
+	}
+}
+
+// Kural (Ahmet, 2026-10-26): tr dizin git'in yok saydığı klasördeki .tr'yi de dizinler (kişinin scratch/ denemeleri), ama
+// cevapta o satırlar depodakilerden sonra gelir ve "yok sayılan klasör" diye işaretlenir (H8870); belirsiz adda depodaki
+// aday önce gelir. ortak hem lib/'de hem yok sayılan deneme/'de tanımlı (alfabede önce gelir); deneme/'deki dosya lib/'deki işlevi de çağırır.
+func TestAnIgnoredFileComesAfterTheRepositoryAndIsMarked(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git yok")
+	}
+	dir := t.TempDir()
+	for name, text := range map[string]string{
+		".gitignore":    "deneme/\n",
+		"lib/m.tr":      "fonksiyon ortak() {\n    sonuç 1\n}\n\nfonksiyon kitaplık_işi() {\n    sonuç 2\n}\n",
+		"examples/a.tr": "aktar \"tr/m\"\nyazdır(kitaplık_işi())\n",
+		"deneme/d.tr":   "aktar \"tr/m\"\nfonksiyon ortak() {\n    sonuç kitaplık_işi()\n}\n",
+	} {
+		if err := os.MkdirAll(filepath.Dir(filepath.Join(dir, name)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, filepath.FromSlash(name)), []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if out, err := exec.Command("git", "-C", dir, "init", "-q").CombinedOutput(); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	idx, err := Build(dir, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := NewReader(idx)
+	def := r.Definition("ortak", QueryOptions{})
+	if def.Status != StatusAmbiguous || len(def.Candidates) != 2 || def.Candidates[0].Pos.File != "lib/m.tr" ||
+		def.Candidates[0].Ignored || !def.Candidates[1].Ignored {
+		t.Fatalf("the repository's ortak first, the ignored folder's second and marked: %+v", def.Candidates)
+	}
+	text := Text(def)
+	mark := messages.Text(messages.H8870)
+	if lines := strings.Split(strings.TrimSpace(text), "\n"); len(lines) != 3 || strings.Contains(lines[1], mark) || !strings.Contains(lines[2], mark) {
+		t.Errorf("only the ignored candidate's line is marked:\n%s", text)
+	}
+	refs := r.References("kitaplık_işi", QueryOptions{})
+	if len(refs.Users) != 2 || refs.Users[0].Pos.File != "examples/a.tr" || refs.Users[1].Pos.File != "deneme/d.tr" || !refs.Users[1].In.Ignored {
+		t.Errorf("the ignored folder's use comes after the repository's and is marked: %+v", refs.Users)
+	}
+	if tracked, _ := Build(dir, Options{Tracked: true}); len(tracked.Ignored) != 0 {
+		t.Errorf("the repository tool reads no ignored file: %v", tracked.Ignored)
 	}
 }

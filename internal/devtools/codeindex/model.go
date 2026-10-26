@@ -120,6 +120,9 @@ type Node struct {
 	Imports []Import `json:"imports,omitempty"`
 	// Doc bildirimin üstündeki yorum satırlarıdır.
 	Doc string `json:"doc,omitempty"`
+	// Ignored düğüm git'in yok saydığı bir dosyadadır (Index.Ignored): yalnız sonuçta (Reader.display), cevap onu
+	// depodakilerden sonra verir ve işaretler.
+	Ignored bool `json:"ignored,omitempty"`
 	// InferredType çıkarılan yapı türüdür (yapı düğümünün kimliği; infer.go): işlev ve metotta dönüş türü, üst düzey
 	// değişken ve sabitte değerin türü. Bilinmezse boş.
 	InferredType string `json:"inferred_type,omitempty"`
@@ -193,6 +196,9 @@ type Index struct {
 	Constructs []Construct `json:"constructs,omitempty"`
 	// MemberGuesses alıcısı bilinmeyen üye erişimleridir, kullanım yeri başına bir kez (MemberGuess).
 	MemberGuesses []MemberGuess `json:"member_guesses,omitempty"`
+	// Ignored dizine girmiş ama git'in yok saydığı dosyalardır (.gitignore'daki scratch/): kişinin denemeleri dizindedir,
+	// cevapta depodakilerden sonra gelir ve işaretlenir (Reader). Her kurulumda git'e sorulur (markIgnored).
+	Ignored []string `json:"ignored,omitempty"`
 }
 
 // MemberGuess alıcısı bilinmeyen bir üye erişimidir (`p.ileri()`, `p.ağırlık = 2`). Hangi üyelere "olası" diye

@@ -110,7 +110,9 @@ func Build(root string, opts Options) (*Index, error) {
 	for _, rel := range x.order {
 		x.resolve(x.files[rel])
 	}
-	return x.finish(), nil
+	idx := x.finish()
+	markIgnored(abs, idx, opts)
+	return idx, nil
 }
 
 // discover .tr dosyalarının köke göre yollarını sıralı verir (ListFiles; opts.Tracked kipi seçer).

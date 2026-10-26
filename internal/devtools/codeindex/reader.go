@@ -22,13 +22,17 @@ type Reader struct {
 	// aynısı Türkçe katlanmış.
 	codeNames, codeNamesFolded map[string][]string
 	parent                     map[string]string   // düğüm -> onu tanımlayan (defines kenarları, ters)
+	ignored                    map[string]bool     // git'in yok saydığı dosyalar (Index.Ignored)
 	children                   map[string][]string // düğüm -> tanımladıkları
 }
 
 // NewReader dizinden bir Reader kurar.
 func NewReader(idx *Index) *Reader {
 	r := &Reader{Index: idx, byID: make(map[string]*Node, len(idx.Nodes)), byFile: map[string][]int{}, parent: map[string]string{},
-		children: map[string][]string{}}
+		children: map[string][]string{}, ignored: map[string]bool{}}
+	for _, rel := range idx.Ignored {
+		r.ignored[rel] = true
+	}
 	for i := range idx.Nodes {
 		r.byID[idx.Nodes[i].ID] = &idx.Nodes[i]
 	}
