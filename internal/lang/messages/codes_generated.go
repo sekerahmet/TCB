@@ -1645,7 +1645,7 @@ const (
 	H8788 Code = 8788 // modül dışındaki kullananlar ({count}{roles}):
 	H8789 Code = 8789 // etkilenen testler ({count}):
 	H8790 Code = 8790 // ({steps} adım)
-	H8791 Code = 8791 // daha fazlası var ({limit} ya da {all} ile artırın)
+	H8791 Code = 8791 // {count} satır daha var ({limit} ya da {all} ile artırın)
 	H8792 Code = 8792 // kullanan yok
 	H8793 Code = 8793 // sınayan yok
 	H8800 Code = 8800 // işlev

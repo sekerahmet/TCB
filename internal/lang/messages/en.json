@@ -1640,7 +1640,7 @@
 "H8788": "used outside the module ({count}{roles}):",
 "H8789": "affected tests ({count}):",
 "H8790": "({steps} steps)",
-"H8791": "there is more (raise with {limit} or {all})",
+"H8791": "{count} more lines (raise with {limit} or {all})",
 "H8792": "no users",
 "H8793": "no tests",
 "H8800": "function",

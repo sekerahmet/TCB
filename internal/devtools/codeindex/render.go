@@ -101,9 +101,9 @@ func Text(r *Result) string {
 	}
 	switch r.Command {
 	case CommandReferences:
-		writeUses(&b, messages.H8785, r.Users, r.Counts, r.Truncated, messages.H8792)
+		writeUses(&b, messages.H8785, r.Users, r.Counts, messages.H8792)
 	case CommandTestedBy:
-		writeUses(&b, messages.H8786, r.Tests, r.Counts, r.Truncated, messages.H8793)
+		writeUses(&b, messages.H8786, r.Tests, r.Counts, messages.H8793)
 	case CommandImpact:
 		writeImpact(&b, r)
 	}
@@ -116,17 +116,28 @@ func writeImpact(b *strings.Builder, r *Result) {
 		return
 	}
 	if len(a.Modules) > 0 {
-		fmt.Fprintf(b, "  %s\n", messages.Text(messages.H8787, total(r.Counts, func(c *Counts) int { return c.Modules }, len(a.Modules))))
+		all := total(r.Counts, func(c *Counts) int { return c.Modules }, len(a.Modules))
+		fmt.Fprintf(b, "  %s\n", messages.Text(messages.H8787, all))
 		for _, n := range a.Modules {
 			fmt.Fprintf(b, "    %s\n", Short(n))
 		}
+		writeHidden(b, all-len(a.Modules))
 	}
-	writeUses(b, messages.H8788, a.Users, r.Counts, r.Truncated, messages.H8792)
+	writeUses(b, messages.H8788, a.Users, r.Counts, messages.H8792)
 	if len(a.Tests) > 0 {
-		fmt.Fprintf(b, "  %s\n", messages.Text(messages.H8789, total(r.Counts, func(c *Counts) int { return c.Tests }, len(a.Tests))))
+		all := total(r.Counts, func(c *Counts) int { return c.Tests }, len(a.Tests))
+		fmt.Fprintf(b, "  %s\n", messages.Text(messages.H8789, all))
 		for _, n := range a.Tests {
 			fmt.Fprintf(b, "    %s\n", Short(n))
 		}
+		writeHidden(b, all-len(a.Tests))
+	}
+}
+
+// writeHidden kesilen bir grubun altına kaç satırın gizlendiğini ve sınırın nasıl artırılacağını yazar (hidden > 0 ise).
+func writeHidden(b *strings.Builder, hidden int) {
+	if hidden > 0 {
+		fmt.Fprintf(b, "    ... %s\n", messages.Text(messages.H8791, hidden, codes.OptionFlag(codes.OptLimit), codes.OptionFlag(codes.OptAll)))
 	}
 }
 
@@ -140,8 +151,8 @@ func total(c *Counts, field func(*Counts) int, shown int) int {
 }
 
 // writeUses başvuru satırlarını yazar; başlıkta toplam ve rollere göre dağılım bulunur, liste
-// boşsa none iletisi yazılır.
-func writeUses(b *strings.Builder, heading messages.Code, uses []Use, counts *Counts, truncated bool, none messages.Code) {
+// boşsa none iletisi yazılır, kesildiyse gizlenen satır sayısı.
+func writeUses(b *strings.Builder, heading messages.Code, uses []Use, counts *Counts, none messages.Code) {
 	if len(uses) == 0 {
 		fmt.Fprintf(b, "  %s\n", messages.Text(none))
 		return
@@ -180,9 +191,7 @@ func writeUses(b *strings.Builder, heading messages.Code, uses []Use, counts *Co
 		}
 		b.WriteString(line + "\n")
 	}
-	if truncated {
-		fmt.Fprintf(b, "    ... %s\n", messages.Text(messages.H8791, codes.OptionFlag(codes.OptLimit), codes.OptionFlag(codes.OptAll)))
-	}
+	writeHidden(b, total-len(uses))
 }
 
 // reasonMessages reddetme nedenlerinin iletileridir.
@@ -240,10 +249,12 @@ func RenameText(r *Result) string {
 	for _, c := range r.Conflicts {
 		fmt.Fprintln(&b, messages.Text(messages.H8839, r.NewName, Short(c.With)))
 	}
-	fmt.Fprintln(&b, messages.Text(messages.H8837, total(r.Counts, func(c *Counts) int { return c.Certain }, len(r.Certain))))
+	certain := total(r.Counts, func(c *Counts) int { return c.Certain }, len(r.Certain))
+	fmt.Fprintln(&b, messages.Text(messages.H8837, certain))
 	for _, c := range r.Certain {
 		writeChange(&b, c)
 	}
+	writeHidden(&b, certain-len(r.Certain))
 	if len(r.Linked) > 0 {
 		fmt.Fprintln(&b, messages.Text(messages.H8867, len(r.Linked)))
 		for _, n := range r.Linked {
@@ -254,17 +265,16 @@ func RenameText(r *Result) string {
 	return b.String()
 }
 
-// writeLikely olası yerleri, atlanan başka sözcük sayısını ve kesilmişse sınır notunu yazar.
+// writeLikely olası yerleri, kesilmişse gizlenen satır sayısını ve atlanan başka sözcük sayısını yazar.
 func writeLikely(b *strings.Builder, r *Result) {
-	fmt.Fprintln(b, messages.Text(messages.H8838, total(r.Counts, func(c *Counts) int { return c.Likely }, len(r.Likely))))
+	likely := total(r.Counts, func(c *Counts) int { return c.Likely }, len(r.Likely))
+	fmt.Fprintln(b, messages.Text(messages.H8838, likely))
 	for _, c := range r.Likely {
 		writeChange(b, c)
 	}
+	writeHidden(b, likely-len(r.Likely))
 	if r.SkippedWords > 0 {
 		fmt.Fprintln(b, messages.Text(messages.H8840, r.SkippedWords))
-	}
-	if r.Truncated {
-		fmt.Fprintf(b, "... %s\n", messages.Text(messages.H8791, codes.OptionFlag(codes.OptLimit), codes.OptionFlag(codes.OptAll)))
 	}
 }
 

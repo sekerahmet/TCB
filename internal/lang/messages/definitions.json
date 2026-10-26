@@ -1640,7 +1640,7 @@
 "H8788": { "param": ["count", "roles"] },
 "H8789": { "param": ["count"] },
 "H8790": { "param": ["steps"] },
-"H8791": { "param": ["limit", "all"] },
+"H8791": { "param": ["count", "limit", "all"] },
 "H8792": { "param": [] },
 "H8793": { "param": [] },
 "H8800": { "param": [] },

@@ -3,6 +3,7 @@ package codeindex
 import (
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -51,5 +52,51 @@ func TestTextHeadersCountTheWholeList(t *testing.T) {
 	}
 	if !cut {
 		t.Error("no list was cut by --sınır 1; the fixture does not exercise the rule")
+	}
+}
+
+// Kural: --sınır ile kesilen her grup, altında kaç satırın gizlendiğini yazar (eksikler listesi, ince ayar, DENETİM
+// 2026-10-26: `tr dizin etki TR_type_GPT` "bunu aktaran modüller (13)" altında 12 satır verip susuyordu, kullananlar
+// grubu sayısız "daha fazlası var" diyordu). Başlığın sayısından grubun gösterilen satırları çıkınca kalan, grubun notunda
+// geçmelidir.
+func TestEveryCutGroupSaysHowManyLinesAreHidden(t *testing.T) {
+	r := fixtureReader(t)
+	header := regexp.MustCompile(`^( *)\S.*\((\d+)`)
+	cut := 0
+	for name, text := range map[string]string{
+		"kullananlar":      Text(r.References("alan", QueryOptions{Limit: 1})),
+		"sınayanlar":       Text(r.TestedBy("Kare", QueryOptions{Limit: 1})),
+		"etki":             Text(r.Impact("geo", QueryOptions{Limit: 1})),
+		"yeniden_adlandır": RenameText(r.RenameImpact("alan", "yüzey", RenameOptions{Root: fixtureDir, Limit: 1})),
+	} {
+		lines := strings.Split(text, "\n")
+		for i, line := range lines {
+			m := header.FindStringSubmatch(line)
+			if m == nil {
+				continue
+			}
+			want, _ := strconv.Atoi(m[2])
+			shown, note := 0, ""
+			for _, item := range lines[i+1:] {
+				if len(item)-len(strings.TrimLeft(item, " ")) <= len(m[1]) {
+					break
+				}
+				if strings.HasPrefix(strings.TrimSpace(item), "... ") {
+					note = item
+				} else {
+					shown++
+				}
+			}
+			if shown >= want {
+				continue
+			}
+			cut++
+			if !strings.Contains(note, strconv.Itoa(want-shown)) {
+				t.Errorf("%s: %q shows %d of %d lines, its note %q does not say %d are hidden:\n%s", name, strings.TrimSpace(line), shown, want, note, want-shown, text)
+			}
+		}
+	}
+	if cut < 4 {
+		t.Errorf("only %d groups were cut by --sınır 1; the fixture does not exercise the rule", cut)
 	}
 }
