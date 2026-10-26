@@ -21,12 +21,7 @@ her durumu kapatan genel çözüm ve sınıfı koruyan bir testtir.
 
 ## Kritik
 
-- **`deleted` ve `history` kimliğe yeniden adlandırılan canlı kodları "silinmiş" sayıyor.** 2026-10-26, DENETİM bildirdi (madde 15 adım 0 doğrulaması, adim0-dogrulama-sonuc.md K1), ana oturum main 7cf269f7'de yeniden üretti. **CODEGRAPH'ta (2026-10-26).**
-  - Komut: `go run ./tools/codegraph deleted` → `names: 401 deleted codes`; canlı 327 kodun eski anahtarlarının hepsi içinde (`A001 removed 39cb86b3 ...`, `G400 removed 39cb86b3 ...`). `history TR_fn_sum` → yalnız `added 39cb86b3 2026-10-26` (kod 2026-10-19'dan beri var). `query G400` → `not found`, ilgisiz `H2400` önerisiyle.
-  - Beklenen: gerçekten silinmiş 74 kod; `history TR_fn_sum` eski anahtarın geçmişiyle devam eder ("renamed G400 → TR_fn_sum", ilk ekleniş 2026-10-19); `query G400` kimliğe yönlendirir (eski notlar ve commit mesajları eski kodları anıyor).
-  - Neden kritik: silinmiş kod listesi kesin bir liste; gerçek silinenler yanlış kayıtların arasında kayboluyor, "ne zaman eklendi, silindi mi" yanlış cevaplanıyor (17.6'nın silinen kod kuralına dayanan karar yanlış veriyle verilir).
-  - Kök (DENETİM): `codehist` eski anahtarları tanıyor (adım 0 kararı 5) ama eski ve yeni anahtarı birbirine bağlamıyor; eşleme `docs/code_identities.md`'de hazır.
-  - İstenen genel çözüm: geçmiş okunurken eşleme belgesindeki her `eski → kimlik` çifti bir yeniden adlandırma olayıdır (`deleted`'a girmez, `history` eskiyle devam eder); `query <eski kod>` eşlemeyle kimliğe gider. Test: hiçbir canlı kimliğin eski anahtarı `deleted`'da yok, eşleme belgesinin 327 satırının tamamı üzerinden (örnek kodla değil; DENETİM, 2026-10-26); `history TR_fn_sum` ilk eklenişi verir. Aynı düzen 3. adımın kitaplık kodlarında da çalışmalı (bir kimliğin yeniden adlandırılması genel bir olay).
+Bugün açık kritik madde yok (son kapanan: kimliğe yeniden adlandırılan kodların "silinmiş" sayılması, 5d5fa022).
 
 ## İnce ayar
 
@@ -40,14 +35,14 @@ her durumu kapatan genel çözüm ve sınıfı koruyan bir testtir.
   - Beklenen: komutu adıyla çalıştıran testler (`run([]string{"who-uses", ...})`) doğrudan. İkinci yol: `grep -ln '"who-uses"' tools/codegraph/*_test.go` → `fields_test.go` ve 5 dosya daha.
   - Kök (CODEGRAPH): komut adı metinle `answer`'ın `switch cmd`'ine gidiyor. Test listede var, uzaklığı yanlış: ince ayar.
 
-- **Dil dosyaları yarım değişmişken codegraph hiç cevap veremiyor (madde 15 adım 2'den önce).** 2026-10-26, MEKANİK bildirdi (adım 0 devir notu), DENETİM kökü doğruladı (adim0-dogrulama-sonuc.md ince ayar 5); ana oturum yeniden üretmedi (geçiş bitti, ara hâl yok); DENETİM klonda bir sınıfın ad alanını değiştirerek üretti (sabah-partileri-sonuc.md). **CODEGRAPH'ta (2026-10-26).** Adım 2 de yükleyiciyi ve `tr.json`'u değiştiriyor; bu yüzden adım 2'den önce.
-  - Gelen: dil dosyaları kimliğe geçip `codes` paketi henüz eskiyken `go run ./tools/codegraph tests-for <dosya>` panikle düşüyor (`codes: the embedded Turkish code list cannot be built ...`), sonra "rebuild failed ... using the existing, stale graph"; Go'ya dair sorular da cevapsız. Kanca her ilk düzenlemede bunu gösterdi.
-  - Kök (DENETİM): codegraph TR dil paketlerini kendi içine derliyor; kod tabloları paket değişkeni olarak başlangıçta kuruluyor.
-  - Beklenen: dilin kurulamaması codegraph'ı düşürmez. `codes` tabloları başlatmada panik yerine ilk kullanımda hata döner (`sync.OnceValues`); codeindex "TR tarafı kurulamadı: <neden>" deyip Go grafiğini kurmaya devam eder, cevaplar bayat ya da eksik olduklarını açıkça söyler. Test: dil dosyası bozuk bir geçici kökte codegraph bir Go sorusunu cevaplar ve uyarıyı yazar. Cevapsızlık (yanlış cevap değil): ince ayar.
-
-- **`compares_value` noktalama gürültüsü.** 2026-10-26, CODEGRAPH bildirdi, ana oturum main d4de3803'te yeniden üretti. **CODEGRAPH'ta (2026-10-26).**
+- **`compares_value` noktalama gürültüsü.** 2026-10-26, CODEGRAPH bildirdi, ana oturum main d4de3803'te yeniden üretti. **Bekliyor: çekirdek değişikliği** (karar ana oturum, 2026-10-26).
   - Komut: `go run ./tools/codegraph who-uses lexer.TokDot` → `compares_value (17)`, çoğu dosya yolu ve bayrak kodu (`other_os.go:42`, `docs.go:127`, `rules.go:113` ...); `"."`, `"-"`, `"+"`, `"/"` için aynı.
   - Beklenen: yalnız işleci kastedenler. Kök (DENETİM): `TokDot` tipsiz bir sabit, asıl kullanımı `TokenType` tipli. Çözüm: `compares_value` kenarı yalnız karşılaştırılan ifadenin tipi sabitin gerçek kullanımlarında aldığı tiplerden biriyse kurulur (go/types `Info.Types`). Test: `TokDot`'un `compares_value` kenarlarının hepsi `TokenType` tipli ifadelerde. Fazla tahmin, yanlış "yok" değil: ince ayar.
+  - CODEGRAPH ölçtü: tip süzgeci tek başına doğru kenarları da düşürür, çünkü AST'nin işleci de metin (`ast.go:62, 295, 306` `Operator string`; `interp.opCode(op string)`, denetleyicinin `e.Operator` karşılaştırması string tipli). Karar: önce işleç alanları `lexer.TokenType` olur (Go'nun `go/ast.BinaryExpr.Op token.Token` gibi; 7 dosyada 18 kullanım, taşıma), sonra süzgeç eklenir. Çekirdek değişikliği madde 15 adım 2'den sonra.
+
+- **README'nin süre ve boyut sayıları eskimiş.** 2026-10-26, ana oturum ölçtü (main 798dbdae, bilgisayar meşgulken).
+  - `tools/codegraph/README.md` "Time": "about 640 Go files, 9 000 nodes, 36 000 edges, `build` about 3 s". Bugün 24 852 düğüm, 172 079 kenar, `build` kendi saydığı 9,3 s (duvar saati ~13 s), en çok ~460 MB bellek. "Cost" bölümü: `tests-for` 0,95 s yazıyor; bugün güncel grafta 1,4–1,8 s (`--no-rebuild` 1,15 s, `graph.json` 61 MB).
+  - Beklenen: sayılar ölçümle güncellenir ya da bir testin ürettiği sayıya bağlanır (sayının eskidiği görünür olsun). Kancanın bayat grafta beklettiği süre (~16 s [tahmin: parçaların toplamı]) de yazılır.
 
 ## Kalan işler (eksik değil, yeni yetenek)
 
