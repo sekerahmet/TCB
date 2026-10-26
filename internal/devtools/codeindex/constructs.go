@@ -69,9 +69,9 @@ func (x *indexer) recordConstruct(f *file, o owner, sc *scope, n any) {
 	var c Construct
 	switch n := n.(type) {
 	case *ast.InfixExpression:
-		c = Construct{Kind: "InfixExpression", Op: n.Operator, Operand: x.operandType(f, sc, n.Left), Pos: tokenPos(f, n.Token.Line, n.Token.Column, n.Operator)}
+		c = Construct{Kind: "InfixExpression", Op: string(n.Operator), Operand: x.operandType(f, sc, n.Left), Pos: tokenPos(f, n.Token.Line, n.Token.Column, string(n.Operator))}
 	case *ast.PrefixExpression:
-		c = Construct{Kind: "PrefixExpression", Op: n.Operator, Operand: x.operandType(f, sc, n.Right), Pos: tokenPos(f, n.Token.Line, n.Token.Column, n.Operator)}
+		c = Construct{Kind: "PrefixExpression", Op: string(n.Operator), Operand: x.operandType(f, sc, n.Right), Pos: tokenPos(f, n.Token.Line, n.Token.Column, string(n.Operator))}
 	case ast.Node:
 		t := reflect.TypeOf(n)
 		if t.Kind() == reflect.Ptr {

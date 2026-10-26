@@ -113,7 +113,7 @@ func (c *compiler) multiVarStatement(k *compilerScope, s *ast.MultiVarStatement)
 // assignStatement atamayı (bileşik atama dahil) derler.
 func (c *compiler) assignStatement(k *compilerScope, s *ast.AssignStatement) statementCode {
 	value := c.expression(k, s.Value)
-	dest := c.assignTarget(k, s.Target, opCode(s.Operator), s.Line())
+	dest := c.assignTarget(k, s.Target, opCode(string(s.Operator)), s.Line())
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
 		val, err := value(v, env)
 		if err != nil {

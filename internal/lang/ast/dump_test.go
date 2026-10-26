@@ -17,7 +17,7 @@ func sample(shift int, op string, n int64) *Program {
 	infix := &InfixExpression{
 		Token:    at(1+shift, 5+shift, op),
 		Left:     &Identifier{Token: at(1+shift, 3+shift, "a"), Value: "a"},
-		Operator: op,
+		Operator: lexer.TokenType(op),
 		Right:    &IntegerLiteral{Token: at(1+shift, 7+shift, "1"), Value: n},
 	}
 	call := &CallExpression{

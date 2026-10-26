@@ -356,7 +356,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 			return typeTensor
 		case "+", "-", "*", "/", "%", "**":
 			lit, intConst := e.Right.(*ast.IntegerLiteral)
-			return arithmeticType(e.Operator, left, right, intConst && lit.Value >= 0)
+			return arithmeticType(string(e.Operator), left, right, intConst && lit.Value >= 0)
 		}
 		return typeAny
 	case *ast.FunctionLiteral:
@@ -429,7 +429,7 @@ func (c *Checker) checkAssign(s *ast.AssignStatement) {
 	if ident, ok := s.Target.(*ast.Identifier); ok {
 		if info, found := c.scope.Resolve(ident.Value); found {
 			// Bileşik atamada (x += y) atanan değer 'x + y' ifadesinin sonucudur
-			if op := strings.TrimSuffix(s.Operator, "="); op != "" {
+			if op := strings.TrimSuffix(string(s.Operator), "="); op != "" {
 				valType = arithmeticType(op, info.TypeName, valType, false)
 			}
 			if info.IsConst {

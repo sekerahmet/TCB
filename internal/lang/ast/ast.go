@@ -57,9 +57,9 @@ func (vs *VarStatement) TokenLiteral() string { return vs.Token.Literal }
 func (vs *VarStatement) Line() int            { return vs.Token.Line }
 
 type AssignStatement struct {
-	Token    lexer.Token // =, +=, -=, *=, /=
-	Target   Expression  // Identifier, IndexExpression or MemberExpression
-	Operator string      // "=", "+=", "-=", "*=", "/="
+	Token    lexer.Token     // =, +=, -=, *=, /=
+	Target   Expression      // Identifier, IndexExpression or MemberExpression
+	Operator lexer.TokenType // "=", "+=", "-=", "*=", "/="
 	Value    Expression
 }
 
@@ -292,7 +292,7 @@ func (re *RangeExpression) Line() int            { return re.Token.Line }
 
 type PrefixExpression struct {
 	Token    lexer.Token
-	Operator string
+	Operator lexer.TokenType // "-", "!" (değil de "!")
 	Right    Expression
 }
 
@@ -303,7 +303,7 @@ func (pe *PrefixExpression) Line() int            { return pe.Token.Line }
 type InfixExpression struct {
 	Token    lexer.Token
 	Left     Expression
-	Operator string
+	Operator lexer.TokenType // işlecin simgesi; ve/veya da "&&"/"||"
 	Right    Expression
 }
 
