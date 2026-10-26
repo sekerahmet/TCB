@@ -3,6 +3,7 @@ package codes
 import (
 	_ "embed"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -435,6 +436,20 @@ func Languages() []string {
 	}
 	sort.Strings(r)
 	return r
+}
+
+// WritingNames returns k's names in every embedded writing language, sorted by language code and
+// without repeats: no language's name comes first.
+func WritingNames(k Code) []string {
+	var names []string
+	for _, lc := range Languages() {
+		if l, err := LoadLanguage(lc); err == nil {
+			if g, ok := l.Entry(k); ok && !slices.Contains(names, g.Name) {
+				names = append(names, g.Name)
+			}
+		}
+	}
+	return names
 }
 
 // Active returns the canonical language programs are read and run in: always Turkish (see

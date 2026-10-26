@@ -12,7 +12,7 @@ import (
 )
 
 // Ortam değişkeni adları (env ad kodları) iki yerde koda bağlanır: hesap çekirdeği ad kodlarını göremediği
-// için değişkeni kaynak dildeki adıyla düz metin okur ya da koyar (`os.Getenv("TR_GPU_ESZAMANLI")`,
+// için değişkeni kimlik adıyla, testler bir dilin adıyla düz metin okur ya da koyar (`os.Getenv("TR_env_GPU_SYNC")`,
 // `t.Setenv(...)`, alt süreç ortamındaki `"TR_DIL=en"` → `uses_env`), iletiler de adı şablonda taşır (H4009:
 // "... TR_GPU_SYNC=1 ile çalıştırın" → `uses_name`, her dilin şablonu kendi adını yazar). Ad, hangi dilde
 // yazılmış olursa olsun aynı koda varır. Değişkeni koyan test (kendisi ya da test dosyasındaki bir yardımcısı)
@@ -41,6 +41,7 @@ func envCodes(root string) map[string]string {
 		for code, n := range names {
 			if strings.HasPrefix(code, envCodePrefix) && n.Ad != "" {
 				out[n.Ad] = code
+				out[code] = code // hesap çekirdeği kimlik adını okur (codes.ExportEnvironment)
 			}
 		}
 	}

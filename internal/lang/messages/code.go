@@ -25,8 +25,9 @@ type Code uint16
 // the same variable. It is the source-language name of the name code TR_env_LANG.
 const LanguageEnvVar = "TR_DIL"
 
-// LanguageEnvVars, LanguageEnvVar'ın bütün gömülü yazım dillerindeki adlarıdır, kaynak dil önce:
-// öbür ortam değişkenleri gibi her dilin adıyla okunur (codes.EnvValue, dil tanımı 17.8). Bu paket
+// LanguageEnvVars, LanguageEnvVar'ın bütün gömülü yazım dillerindeki adlarıdır: öbür ortam değişkenleri
+// gibi her dilin adıyla okunur (codes.EnvValue, dil tanımı 17.8); sıra önemsizdir, iki ad ayrı değerle
+// verilirse tr komutu başlamadan durur (codes.ExportEnvironment, H2527). Bu paket
 // dil listelerinden önce okunduğu için adlar burada yazılıdır; codes'un
 // TestLanguageEnvVarsAreK400 testi listeyi TR_env_LANG'ün adlarıyla aynı tutar.
 var LanguageEnvVars = []string{LanguageEnvVar, "TR_LANG"}

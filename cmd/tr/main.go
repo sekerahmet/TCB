@@ -49,8 +49,11 @@ func main() {
 		os.Exit(2)
 	}
 	// Ortam değişkenleri her yazım dilinin adıyla verilebilir (TR_GPU_SYNC = TR_GPU_ESZAMANLI);
-	// hesap çekirdeği kaynak dildeki adı okur.
-	codes.ExportEnvironment()
+	// hesap çekirdeği kimlik adını (TR_env_GPU_SYNC) okur. İki ad ayrı değerle verilmişse durulur.
+	if err := codes.ExportEnvironment(); err != nil {
+		fmt.Fprintln(os.Stderr, messages.Text(messages.H8060, err))
+		os.Exit(2)
+	}
 	setGCTarget()
 	// Bu .exe 'tr derle' ile üretilmiş bağımsız bir uygulama ise gömülü paketi çalıştır.
 	if pk, found, err := findEmbeddedPackage(); found {

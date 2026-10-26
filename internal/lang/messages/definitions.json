@@ -293,6 +293,7 @@
 "H2524": { "param": ["struct"] },
 "H2525": { "param": ["type", "loop", "in", "next"] },
 "H2526": { "param": ["type", "prop"] },
+"H2527": { "param": ["name", "value", "other", "other_value"] },
 "H3001": { "param": ["dev"] },
 "H3002": { "param": ["mask", "q"] },
 "H3003": { "param": ["q", "k", "v"] },

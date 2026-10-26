@@ -42,6 +42,8 @@ func Other() string { return os.Getenv("HOME") }
 
 func Alias() string { return os.Getenv("TR_GPU_SYNC") }
 
+func Identity() string { return os.Getenv("TR_env_GPU_SYNC") }
+
 func hook(t *testing.T) { t.Setenv("TR_CPU_AVX2", "0") }
 `,
 }
@@ -56,9 +58,10 @@ func TestEnvironmentNamesLinkToTheirCodes(t *testing.T) {
 		t.Fatal(err)
 	}
 	mustEdge(t, g, "go:func:example.com/audit/app.Sync", "name:TR_env_GPU_SYNC", edgeUsesEnv, extracted)
-	mustEdge(t, g, "go:func:example.com/audit/app.Alias", "name:TR_env_GPU_SYNC", edgeUsesEnv, extracted) // İngilizce ad
-	mustEdge(t, g, "go:func:example.com/audit/app.Avx", "name:TR_env_CPU_AVX2", edgeUsesEnv, extracted)   // sabit ad
-	mustEdge(t, g, "go:func:example.com/audit/app.hook", "name:TR_env_CPU_AVX2", edgeUsesEnv, extracted)  // testing.T.Setenv
+	mustEdge(t, g, "go:func:example.com/audit/app.Alias", "name:TR_env_GPU_SYNC", edgeUsesEnv, extracted)    // İngilizce ad
+	mustEdge(t, g, "go:func:example.com/audit/app.Identity", "name:TR_env_GPU_SYNC", edgeUsesEnv, extracted) // kimlik adı
+	mustEdge(t, g, "go:func:example.com/audit/app.Avx", "name:TR_env_CPU_AVX2", edgeUsesEnv, extracted)      // sabit ad
+	mustEdge(t, g, "go:func:example.com/audit/app.hook", "name:TR_env_CPU_AVX2", edgeUsesEnv, extracted)     // testing.T.Setenv
 	mustEdge(t, g, "msg:H4009", "name:TR_env_GPU_SYNC", edgeUsesName, extracted)
 	if e := edge(g, "msg:H4009", "name:TR_env_GPU_SYNC", edgeUsesName); e.Count != 2 || e.File != "internal/lang/messages/tr.json" {
 		t.Errorf("both languages' templates name TR_env_GPU_SYNC, first at tr.json: %+v", e)
