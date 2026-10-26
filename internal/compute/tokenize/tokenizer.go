@@ -52,10 +52,13 @@ type Tokenizer struct {
 	postProcessor PostProcessor
 	decoder       Decoder
 
-	extras   []AddedToken // geçerli kimlikleriyle, dosyadaki sırayla
-	addedID  map[string]int32
-	rawMatch *addedMatcher // normalized=false ek tokenlar
-	nrmMatch *addedMatcher // normalized=true ek tokenlar
+	extras  []AddedToken // geçerli kimlikleriyle, dosyadaki sırayla
+	addedID map[string]int32
+	// addedNormID normalized=true ek tokenların normalleştirilmiş içeriğinden (IDToToken'ın verdiği
+	// metin) kimliğe gider; aynı içerikte dosyadaki ilki.
+	addedNormID map[string]int32
+	rawMatch    *addedMatcher // normalized=false ek tokenlar
+	nrmMatch    *addedMatcher // normalized=true ek tokenlar
 
 	// Kimlik -> token bilgisi. Kimlikler sıkıysa (en büyük kimlik, girdi
 	// sayısının küçük bir katından küçükse) doğrudan dizi, değilse seyrek
@@ -208,6 +211,14 @@ func Parse(data []byte) (*Tokenizer, error) {
 	if err != nil {
 		return nil, err
 	}
+	p.addedNormID = make(map[string]int32, len(nrmContent))
+	for _, e := range p.extras {
+		if c, ok := nrmContent[e.ID]; ok {
+			if _, seen := p.addedNormID[c]; !seen {
+				p.addedNormID[c] = int32(e.ID)
+			}
+		}
+	}
 
 	// Son işleyici, özel token kimliklerine erişebilsin diye en son kurulur.
 	if p.postProcessor, err = NewPostProcessor(d.PostProcessor, func(s string) (int32, bool) {
@@ -310,6 +321,11 @@ func (p *Tokenizer) TokenToID(token string) (int, bool) {
 		return int(id), true
 	}
 	if id, ok := p.model.Vocab()[token]; ok {
+		return int(id), true
+	}
+	// normalized=true ek tokenın IDToToken'daki metni normalleştirilmiş içeriğidir; gidiş-dönüş
+	// tutar (HF tokenizers: önce sözlük, sonra normalleştirilmiş sözlük).
+	if id, ok := p.addedNormID[token]; ok {
 		return int(id), true
 	}
 	return 0, false

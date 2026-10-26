@@ -69,15 +69,40 @@ func TestNormalizedAddedTokens(t *testing.T) {
 			t.Errorf("%s %q: çözüm %q, beklenen %q", d.file, d.text, got, d.parsed)
 		}
 	}
-	// Kimlik -> token normalleştirilmiş, token -> kimlik özgün içerikle.
+	// Kimlik -> token normalleştirilmiş; token -> kimlik özgün içerikle de normalleştirilmiş içerikle de
+	// (gidiş-dönüş: TestIDTokenRoundTrip).
 	p := withAddedTokenizer(t, "tokenizer_word_bpe.json", "<|x|>", "yeni", "ÇAY")
 	if s, _ := p.IDToToken(802); s != "çay" {
 		t.Errorf("KimlikToken(802) = %q, beklenen \"çay\"", s)
 	}
-	if id, ok := p.TokenToID("ÇAY"); !ok || id != 802 {
-		t.Errorf("TokenKimligi(ÇAY) = %d %v", id, ok)
+	for _, s := range []string{"ÇAY", "çay"} {
+		if id, ok := p.TokenToID(s); !ok || id != 802 {
+			t.Errorf("TokenKimligi(%s) = %d %v", s, id, ok)
+		}
 	}
-	if _, ok := p.TokenToID("çay"); ok {
-		t.Error("TokenKimligi(çay) ek token olarak bulunmamalı")
+}
+
+// Kural: her kimlik için TokenToID(IDToToken(id)) == id. normalized=true ek tokenın token metni
+// normalleştirilmiş içeriğidir ("ÇAY" Lowercase'le "çay"); TokenToID onu da tanır (önce ek tokenın
+// özgün içeriği, sonra sözlük, sonra normalleştirilmiş içerik). HF tokenizers iki sürümde de
+// gidiş-dönüşü tutar: v0.21.0 iki yönde özgün içerikle (added_vocabulary.rs), fb9429ee iki yönde
+// normalleştirilmiş içerikle (bucket_added_vocabulary.rs: token_to_id önce vocab, sonra
+// normalized_vocab). TR kimlikten normalleştirilmiş metni verir, metinden ikisini de tanır.
+func TestIDTokenRoundTrip(t *testing.T) {
+	p, err := Parse([]byte(`{"version":"1.0","truncation":null,"padding":null,
+"added_tokens":[{"id":2,"content":"ÇAY","single_word":false,"lstrip":false,"rstrip":false,"normalized":true,"special":false}],
+"normalizer":{"type":"Lowercase"},"pre_tokenizer":null,"post_processor":null,"decoder":null,
+"model":{"type":"WordLevel","unk_token":"<unk>","vocab":{"<unk>":0,"a":1}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for id := 0; id < 3; id++ {
+		s, ok := p.IDToToken(id)
+		if back, found := p.TokenToID(s); !ok || !found || back != id {
+			t.Errorf("IDToToken(%d) = %q, %v; TokenToID(%q) = %d, %v", id, s, ok, s, back, found)
+		}
+	}
+	if id, ok := p.TokenToID("ÇAY"); !ok || id != 2 {
+		t.Errorf("TokenToID(ÇAY) = %d, %v; özgün içerik de 2 vermeli", id, ok)
 	}
 }
