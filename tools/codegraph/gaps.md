@@ -51,8 +51,8 @@ Bugün açık kritik madde yok (son kapanan: kimliğe yeniden adlandırılan kod
     - Tam yerine kesilen grupta beklenen bir test 13. sıraya kaydı (877760db, `--all` ile düzeldi).
   - Ön denetim (`--kip=on`) `tools/codegraph`'ın sınavını koşmuyor: kırık soruyla "✅" verdi; kırılma ancak tam denetimde ve birleşmeden sonra görüldü.
   - Beklenen:
-    - Sorular bir bildirimin içindeki yeri sorar (ör. "`Language.Name`'in gövdesindeki ilk dönüş"), sayı yerine özelliği sınar (grup var, belli bir test grupta).
-    - Bir dosya değişince ona bağlı sınav soruları ön denetimde de koşar ya da ön denetim değişen paketlere bağlı codegraph sorularını seçer.
+    - Sorular satır yerine bir metin kalıbına bağlanır, satır test anında kalıptan hesaplanır (DENETİM, adim2-dogrulama-sonuc.md), ya da bir bildirimin içindeki yeri sorar; sayı yerine özelliği sınar (grup var, belli bir test grupta).
+    - Ön denetimin kapsamı ayrı iş (`scratch/mekanik_bekleyenler.md` C15: testleri `tests-for`/`changed` cevabından seçmek); bu madde yalnız soruların biçimi.
   - Yanlış "kaldı"ya ve gecikmiş kırılmaya götürüyor, yanlış cevaba değil: ince ayar.
 
 ## Kalan işler (eksik değil, yeni yetenek)
