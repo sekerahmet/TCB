@@ -22,7 +22,8 @@ import (
 // envCodePrefix ortam değişkeni kimliklerinin ön ekidir (env sınıfı, codes.NamespaceEnvironment).
 const envCodePrefix = "TR_env_"
 
-// envCodes ad kodu dosyalarındaki (her yazım dili) ortam değişkeni adlarını koda eşler: `TR_GPU_SYNC` → TR_env_GPU_SYNC.
+// envCodes ad kodu dosyalarındaki (her yazım dili ve ortak adlar) ortam değişkeni adlarını koda eşler: `TR_GPU_SYNC` →
+// TR_env_GPU_SYNC.
 func envCodes(root string) map[string]string {
 	files, _ := filepath.Glob(filepath.Join(root, filepath.FromSlash(codesDir), "*.json"))
 	sort.Strings(files)
@@ -41,6 +42,11 @@ func envCodes(root string) map[string]string {
 			if strings.HasPrefix(code, envCodePrefix) && n.Ad != "" {
 				out[n.Ad] = code
 			}
+		}
+	}
+	for code, name := range commonNames(root) { // ortak ad hiçbir dil dosyasında yazılmaz
+		if strings.HasPrefix(code, envCodePrefix) {
+			out[name] = code
 		}
 	}
 	return out

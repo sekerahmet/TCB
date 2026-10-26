@@ -187,3 +187,4 @@ codegraph query codes.startLanguages | contains: codes.identityLanguage | contai
 codegraph history TR_fn_sum | contains: renamed G400 → TR_fn_sum | contains: added    9a88c816 2026-10-19 | not: removed | src: K1 partisi K1, 2026-10-26 (kimliğe geçen kodun geçmişi eski anahtarıyla sürer)
 codegraph deleted | group: names: => K102  removed 020a98a7 | not: G400  removed | not: A001  removed | src: K1 partisi K1, 2026-10-26 (yeniden adlandırılan kod silinmiş sayılmaz)
 codegraph query G400 | contains: TR_fn_sum [name] | not: not found | src: K1 partisi K1, 2026-10-26 (eski notlar ve commit mesajları eski kodu anıyor)
+codegraph who-uses TR_env_CPU_AVX2 | contains: TR_CPU_AVX2 (ortam | group: uses_env => tensor.hasAVX2 | src: K1 partisi Ek 5, 2026-10-26 (adım 2de ad yalnız definitions.json ortak_ad alanında kalır; okuyucu oradan okur)

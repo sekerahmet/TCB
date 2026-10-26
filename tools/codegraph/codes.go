@@ -26,6 +26,31 @@ func jsonKeyLines(file string) map[string]int {
 	return lines
 }
 
+// commonNames definitions.json'daki ortak adlardır (kod → ad): her yazım dilinde aynı yazılan, adı hiçbir dil dosyasında
+// yazılmayan kodlar (madde 15 adım 2, "ortak_ad"; codes.Load da öyle okur). Dil dosyasında adı olmayan kodun adı budur:
+// tek kaynak. Okuyucular (ad kodu düğümleri, ortam değişkeni adları) adı buradan tamamlar.
+func commonNames(root string) map[string]string {
+	defs := map[string]struct {
+		Common string `json:"ortak_ad"`
+	}{}
+	readJSON(filepath.Join(root, filepath.FromSlash(codesDir), "definitions.json"), &defs)
+	out := map[string]string{}
+	for code, d := range defs {
+		if d.Common != "" {
+			out[code] = d.Common
+		}
+	}
+	return out
+}
+
+// orCommon dil dosyasındaki ad, yoksa kodun ortak adıdır.
+func orCommon(name, code string, common map[string]string) string {
+	if name != "" {
+		return name
+	}
+	return common[code]
+}
+
 func readJSON(file string, v any) bool {
 	data, err := os.ReadFile(file)
 	if err != nil {
@@ -62,10 +87,12 @@ func extractCodes(root string, b *builder) {
 	if readJSON(filepath.Join(cdir, "tr.json"), &names) {
 		rel := codesDir + "/tr.json"
 		lines := jsonKeyLines(filepath.Join(cdir, "tr.json"))
+		common := commonNames(root)
 		for code, n := range names {
+			tr := orCommon(n.Ad, code, common)
 			b.addNode(Node{ID: "name:" + code, Kind: kindName, Name: code, File: rel,
-				Line: lines[code], End: lines[code], Detail: n.Ad + " (" + n.Aile + ")",
-				Aliases: nameAliases(n.Ad, english[code].Ad)})
+				Line: lines[code], End: lines[code], Detail: tr + " (" + n.Aile + ")",
+				Aliases: nameAliases(tr, orCommon(english[code].Ad, code, common))})
 		}
 	}
 	relatedNames(cdir, b)
