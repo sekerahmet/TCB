@@ -22,9 +22,9 @@ func TestTRLoads(t *testing.T) {
 }
 
 // Dosya insanlar tarafından düzenlenir: kodlar artan sırada ve her girdi kendi satırında
-// olmalı.
+// olmalı. Her satırın tek alanı açıklamadır (ortak adlı kodun satırında ad yoktur).
 func TestTRSortedOnePerLine(t *testing.T) {
-	checkSortedOnePerLine(t, trJSON, "ad")
+	checkSortedOnePerLine(t, trJSON, "açıklama")
 }
 
 // Farklı iki ad, ad alanları farklı olsa bile aynı ASCII biçime

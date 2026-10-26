@@ -84,7 +84,7 @@ func checkSortedOnePerLine(t *testing.T, data []byte, requiredField string) {
 		if s == "{" || s == "}" {
 			continue
 		}
-		if !strings.HasPrefix(line, "  \"") || strings.Count(s, "\""+requiredField+"\"") != 1 {
+		if !strings.HasPrefix(line, "  \"") || strings.Count(s, "\""+requiredField+"\":") != 1 {
 			t.Errorf("satır %d: her girdi iki boşluk girintili tek satır olmalı: %s", i+1, line)
 		}
 	}
