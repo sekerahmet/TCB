@@ -1,14 +1,10 @@
 # Görüntü sınavının bugün kalan durumları (TestDisplayExam): yüzey F R tür ayrıntı.
 # Liste yalnızca küçülür; -update ile yeniden yazılır.
 dizin en en konum
-dizin en en sızıntı fonksiyon
 dizin en tr konum
 dizin tr en konum
-dizin tr en sızıntı fonksiyon
 dizin tr tr konum
 dizin_json en en konum
-dizin_json en en sızıntı fonksiyon
 dizin_json en tr konum
 dizin_json tr en konum
-dizin_json tr en sızıntı fonksiyon
 dizin_json tr tr konum
