@@ -70,7 +70,9 @@ func (ix *index) testsThroughNames(n *Node) []nameTest {
 		if isTestNode(ix.byID[r.ID]) {
 			return false
 		}
-		collect(r.ID, r.Steps)
+		if r.Steps < testMaxSteps { // koddan teste geçiş de bir adımdır: zincir sınırı aşılmaz
+			collect(r.ID, r.Steps)
+		}
 		return true
 	})
 	sort.SliceStable(out, func(i, j int) bool {
