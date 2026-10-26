@@ -6,7 +6,7 @@
 
 Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`). Birden çok dosyayı kesen davranış testleri:
 
-- `behavior_repo_tr_files_test.go`: depodaki bütün .tr dosyalarının tanımsız ad denetiminden geçmesi
+- `behavior_repo_tr_files_test.go`: depodaki bütün .tr dosyalarının denetimden hatasız ve uyarısız geçmesi (bilerek uyaran yerler gerekçesiyle `repoWarningAllowed`'da)
 
 ## Standartlar
 
