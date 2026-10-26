@@ -11,7 +11,6 @@ package source
 import (
 	"slices"
 	"strings"
-	"sync"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
@@ -132,14 +131,9 @@ func (b Parts) Join() string {
 }
 
 // Turkish is the language's own writing language: a file without the coded header is written
-// in Turkish whatever the active language is (17.7).
-var Turkish = sync.OnceValue(func() *codes.Language {
-	l, err := codes.LoadLanguage(codes.SourceLanguage)
-	if err != nil {
-		panic(messages.Internal("the embedded Turkish code list cannot be built"))
-	}
-	return l
-})
+// in Turkish whatever the active language is (17.7). It is the canonical language; when the
+// embedded list could not be built it is the identity fallback and codes.LanguageError says why.
+func Turkish() *codes.Language { return codes.Active() }
 
 // Lexer returns the body's lexer: for a coded file, one that recognizes codes and whose
 // positions follow the file's view (17.5), the '$' of escaped user names included; for a file

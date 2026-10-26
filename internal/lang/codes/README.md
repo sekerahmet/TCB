@@ -20,6 +20,8 @@ ad alanlarıdır; çakışma dil dosyası yüklenirken hata verir. Denetim: `Tes
 **Dil dosyası dile bağlı olanı içerir.** Ad, yabancı adlar, açıklama ve örnek dil dosyasındadır; imzalar ve türler dilden bağımsızdır ve tanım dosyasında bir
 kez yazılır. Her dil dosyası aynı kodlara kendi adlarını verir. Denetim: `TestWritingLanguagesComplete`, `TestParserMatchesJSON`, `TestDefinitionsConsistent`.
 
+**Kurulamayan dil listesi süreci kapatmaz.** Listeler paket başlatılırken kurulur (sözcük çözümleyicinin ve denetleyicinin tabloları onlardan kurulur). Geçersiz bir `TR_DIL` Türkçeye düşer; gömülü Türkçe listenin kendisi okunamazsa ya da bir kodu eksik taşırsa (bozuk ya da yarım değişmiş `tr.json`) adlar kimliklere düşer. Hata `LanguageError` ile, Türkçeyi isteyene `LoadLanguage` ile verilir: `tr` başlarken iç hatayla çıkar, codegraph Go grafiğini kurar ve TR cevaplarının eksik olduğunu söyler. Denetim: `TestABrokenTurkishListFallsBackToIdentities`, `TestAnInvalidDisplayLanguageKeepsTheTurkishList`, `TestInvalidLanguageFallsBack`, `TestABrokenLanguageFileIsAnInternalError` (cmd/tr/e2e), `TestABrokenLanguageFileLeavesTheGoAnswers` (tools/codegraph).
+
 **Go kodu kodu yazar, adı yazmaz.** Go kodu kodları kimlikten türeyen üretilmiş sabitlerle yazar (`TR_fn_print` → `codes.FnPrint`);
 sözlükte olmayan bir kod derlemeyi düşürür, kodun sayısı (`codes.Code(57)`) yazılmaz. Sabitin yorumu kimlikle başlar, okuyana yardım için kodun
 İngilizce ve Türkçe adını gösterir (`// TR_fn_print: print · yazdır`); başka diller yoruma girmez. Denetim: `TestNoBareCodes`, `TestConstantsUpToDate` (tools/gen/codeconsts).

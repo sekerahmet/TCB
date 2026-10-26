@@ -57,7 +57,7 @@ codegraph query TR_fn_print | group: registered or used in Go => interp.printBui
 codegraph query TR_fn_str | group: registered or used in Go => interp.stringBuiltin | src: deneme 5, 2026-10-23
 codegraph query interp.VM.runModule | contains: interp.Source. | src: deneme 5, 2026-10-23
 codegraph query interp.compiler | group: fields ( => interp.compiler.root | group: fields ( => interp.compiler.source | group: fields ( => interp.compiler.blocks | src: deneme 5, 2026-10-23
-codegraph who-uses 17.7 --all | contains: internal/lang/codes/language.go | contains: lexer.NewBodyIn || internal/lang/lexer/coded.go | src: deneme 5, 2026-10-23
+codegraph who-uses 17.7 --all | contains: internal/lang/codes/start.go | contains: lexer.NewBodyIn || internal/lang/lexer/coded.go | src: deneme 5, 2026-10-23
 codegraph tests-for 17.7 | not: no tests found | src: deneme 5, 2026-10-23
 
 # Önceki işler: .tr dosyasını, kitaplığı ve belgeyi koruyan Go testleri (2026-10-23)
@@ -178,3 +178,12 @@ codegraph who-uses codes.Code.String --all | group: formats => codes.Language.Na
 codegraph who-uses profiler.Snapshot.Start | group: encodes => profiler.statusWriter.put | not: never read or written | src: gaps partisi kritik 3, 2026-10-26 (alan yalnız JSON ile speed.json'a yazılıyor)
 codegraph query internal/lang/codes/language.go:218 | contains: codes.Language.Name [method] | not: line 218 is in no declaration | src: gaps partisi ince ayar, 2026-10-26 (grep'in bulduğu satırı içeren bildirim)
 codegraph tests-for internal/lang/codes/language.go:218 | contains: codes.Language.Name [method] | not: not found | src: gaps partisi ince ayar, 2026-10-26
+
+# K1 partisi, 2026-10-26 (CODEGRAPH)
+codegraph who-uses lexer.keywordMap | contains: lexer.typeCodes [var] | contains: lexer.keywords [var] | src: K1 partisi, 2026-10-26 (var a, b = f(): ikinci ad da değeri kullanır; eskiden yalnız ilk ad)
+codegraph tests-for internal/lang/codes/tr.json --all | contains: codegraph.TestABrokenLanguageFileLeavesTheGoAnswers | contains: e2e.TestABrokenLanguageFileIsAnInternalError | src: K1 partisi ince ayar 3, 2026-10-26 (bozuk dil dosyasını ikiliye gömerek sınayan testler)
+codegraph who-uses codes.LoadLanguage | contains: codeindex.languageReady | src: K1 partisi ince ayar 3, 2026-10-26 (TR tarafı kurulamayınca dizin nerede duruyor)
+codegraph query codes.startLanguages | contains: codes.identityLanguage | contains: codes.complete | src: K1 partisi ince ayar 3, 2026-10-26 (dil listeleri başlatmada nerede kuruluyor, kurulamayınca neye düşüyor)
+codegraph history TR_fn_sum | contains: renamed G400 → TR_fn_sum | contains: added    9a88c816 2026-10-19 | not: removed | src: K1 partisi K1, 2026-10-26 (kimliğe geçen kodun geçmişi eski anahtarıyla sürer)
+codegraph deleted | group: names: => K102  removed 020a98a7 | not: G400  removed | not: A001  removed | src: K1 partisi K1, 2026-10-26 (yeniden adlandırılan kod silinmiş sayılmaz)
+codegraph query G400 | contains: TR_fn_sum [name] | not: not found | src: K1 partisi K1, 2026-10-26 (eski notlar ve commit mesajları eski kodu anıyor)

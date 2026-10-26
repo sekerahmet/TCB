@@ -9,7 +9,10 @@ import (
 // codeKeyDiff bir JSON satırındaki kod anahtarıdır (+/- önekiyle): ileti H0000, ad kimliği TR_fn_sum.
 // Geçmiş okunduğu için madde 15'in 0. adımından önceki commit'lerin ad kodları da (A001) tanınır;
 // eskiyi yeniye eşleme docs/code_identities.md'dedir.
-var codeKeyDiff = regexp.MustCompile(`^([+-])\s*"(H\d{4}|TR_[A-Za-z0-9_]+|[A-Z]\d{3})"\s*:`)
+var codeKeyDiff = regexp.MustCompile(`^([+-])\s*"(` + codeKey + `)"\s*:`)
+
+// codeKey bir kod anahtarının biçimidir: ileti H0000, ad kimliği TR_fn_sum, eski ad kodu A001.
+const codeKey = `H\d{4}|TR_[A-Za-z0-9_]+|[A-Z]\d{3}`
 
 // Kod sözlüğü dosyaları (modül köküne göre): ileti kodları ve ad kodları.
 var (
@@ -22,21 +25,27 @@ type commitInfo struct{ hash, date, subject string }
 
 func (c commitInfo) String() string { return c.hash + " " + c.date + " " + c.subject }
 
-// codeEvent bir commit'te bir kodun bir dosyada eklenmesi (added) ya da silinmesidir (removed).
+// codeEvent bir commit'te bir kodun bir dosyada eklenmesi (added), silinmesi (removed) ya da
+// eski anahtarından yeniden adlandırılmasıdır (from; renames.go).
 type codeEvent struct {
 	commit  commitInfo
 	file    string
+	key     string // olayın anahtarı (yeniden adlandırmada yeni anahtar)
+	from    string // yeniden adlandırılan eski anahtar
+	seq     int    // commit'in git log'daki sırası (0 en yeni): birleştirilen listelerin sırası
 	added   bool
 	removed bool
 }
 
 // scanCodeHistory sözlük dosyalarının geçmişini `git log -p -U0` ile tarar ve kod başına
-// olayları yeniden eskiye doğru verir. only boş değilse yalnızca o kodun geçtiği commit'ler
+// olayları yeniden eskiye doğru verir. only boş değilse yalnızca o kodların geçtiği commit'ler
 // taranır (pickaxe). Aynı commit'te hem eklenip hem silinen satır (taşıma) olay sayılmaz.
-func scanCodeHistory(root string, files []string, only string) (map[string][]codeEvent, error) {
+func scanCodeHistory(root string, files []string, only ...string) (map[string][]codeEvent, error) {
 	args := []string{"log", "--no-renames", "-p", "-U0", "--no-color", "--no-ext-diff", "--format=@@@%h%x09%as%x09%s"}
-	if only != "" {
-		args = append(args, "-S\""+only+"\"")
+	if len(only) > 0 {
+		// -G: anahtarı taşıyan satırı ekleyen ya da silen commit'ler. -S sayıya bakar ve eski anahtarın yenisiyle
+		// değiştiği commit'te iki anahtarın toplam sayısı değişmez. Anahtarlar harf, rakam ve alt çizgidir: kaçış gerekmez.
+		args = append(args, "-G\"("+strings.Join(only, "|")+")\"")
 	}
 	args = append(args, "--")
 	args = append(args, files...)
@@ -48,11 +57,12 @@ func scanCodeHistory(root string, files []string, only string) (map[string][]cod
 	events := map[string][]codeEvent{}
 	var commit commitInfo
 	var file string
+	seq := -1
 	pending := map[[2]string]*counts{} // (kod, dosya) -> sayılar, geçerli commit için
 	flush := func() {
 		for k, c := range pending {
 			if (c.plus > 0) != (c.minus > 0) {
-				events[k[0]] = append(events[k[0]], codeEvent{commit: commit, file: k[1], added: c.plus > 0, removed: c.minus > 0})
+				events[k[0]] = append(events[k[0]], codeEvent{commit: commit, file: k[1], key: k[0], seq: seq, added: c.plus > 0, removed: c.minus > 0})
 			}
 		}
 		pending = map[[2]string]*counts{}
@@ -63,6 +73,7 @@ func scanCodeHistory(root string, files []string, only string) (map[string][]cod
 			flush()
 			f := strings.SplitN(line[3:], "\t", 3)
 			commit = commitInfo{f[0], f[1], f[2]}
+			seq++
 		case strings.HasPrefix(line, "diff --git "):
 			file = line[strings.LastIndex(line, " b/")+3:]
 		default:
@@ -97,12 +108,15 @@ func sortEvents(events map[string][]codeEvent) {
 	}
 }
 
-// formatEvents bir kodun geçmişini satırlara döker: "added"/"removed" işaretli commit'ler.
+// formatEvents bir kodun geçmişini satırlara döker: "added"/"removed"/"renamed" işaretli commit'ler.
 func formatEvents(list []codeEvent) []string {
 	var out []string
 	for _, e := range list {
 		verb := "removed"
-		if e.added {
+		switch {
+		case e.from != "":
+			verb = "renamed " + e.from + " → " + e.key
+		case e.added:
 			verb = "added  "
 		}
 		out = append(out, fmt.Sprintf("%s  %s  (%s)", verb, e.commit, e.file))

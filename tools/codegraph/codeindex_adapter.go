@@ -23,6 +23,10 @@ const (
 // trRoots .tr dosyalarının aranacağı klasörlerdir (modül köküne göre).
 var trRoots = []string{"lib", "tools", "examples", "tests"}
 
+// trSkipped .tr dizini kurulamadığında (ör. gömülü dil listesi bozuk) grafiğe yazılan uyarının
+// önekidir; sorgular onu görünce TR cevaplarının eksik olduğunu söyler (loadGraph).
+const trSkipped = "tr sources skipped: "
+
 func trFileID(rel string) string { return "tr:file:" + rel }
 
 // extractTR trRoots altındaki .tr dosyalarını codeindex ile dizinler ve dizini
@@ -32,7 +36,7 @@ func trFileID(rel string) string { return "tr:file:" + rel }
 func extractTR(root string, b *builder, m *module) {
 	idx, err := codeindex.Build(root, codeindex.Options{Dirs: trRoots, Tracked: true})
 	if err != nil {
-		b.warn("tr sources skipped: " + err.Error())
+		b.warn(trSkipped + err.Error())
 		return
 	}
 	for _, s := range idx.Skipped {

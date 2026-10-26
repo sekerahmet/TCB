@@ -59,6 +59,10 @@ queries never read half a file) and prints one line on stderr: `graph rebuilt (N
   is never checked.
 - The rebuild fails (a half-edited file does not type-check): the old graph is used with
   `warning: rebuild failed (...)`; the next query tries again.
+- The language cannot be built (a broken or half-converted `internal/lang/codes/tr.json`: the TR
+  language packages are compiled into codegraph): the Go graph is built without the `.tr` side, the
+  build lists `tr sources skipped: ...` and every query says
+  `warning: answers about .tr code are missing (...)` on stderr.
 
 Cost when the graph is fresh (this repository, Windows, 2026-10-25, built binary): `tests-for` takes about 0.95 s,
 0.84 s with `--no-rebuild` (reading the 59 MB `graph.json`), so the stamp's git calls cost about 0.1 s; `go run` adds
@@ -239,7 +243,8 @@ repository (a failing git is an error, exit 1).
   (`--all` for every one). A function, method or type uses `git log -L` (by name when the
   declaration is a plain `func`/`type` line, else by its current line range); a message or name
   code uses a pickaxe over the dictionary files and marks the commits that **added** and
-  **removed** it; a file or doc uses `git log --follow`.
+  **removed** it, and those that **renamed** it from an older key (the history goes on with the
+  older key's commits; see the renames below); a file or doc uses `git log --follow`.
 - `changed <branch|range>`: maps the hunks of `git diff -U0 <base>...<branch>` (`--base`, default
   `main`; or a literal `a..b` / `a...b`) onto Go and TR declaration and doc-section line ranges, and onto
   the codes named in changed dictionary lines. Then it lists the tests that exercise the changed
@@ -263,6 +268,14 @@ repository (a failing git is an error, exit 1).
   was produced by it). Since 2026-10-21 (the language is a draft) removed name codes are deleted from the
   dictionary, so the `names` list shows them too. History
   before a file was renamed is not visible to it.
+- Renames: every row of a mapping document (`identityMaps`: `docs/code_identities.md`) whose first two cells are
+  code keys (``| <old code> | `TR_kw_if` |``) is a rename event. Where one commit removes the old key and adds the
+  new one in the same file the two are one `renamed <old code> → TR_kw_if` event: the old key is not `deleted`,
+  the new key's `history` goes on with the old key's commits, and a `query` of the old code answers with
+  `TR_kw_if` (the old key is an alias of the name code node). Chains are followed (`TR_a` renamed again to
+  `TR_b`: a new row ``| TR_a | `TR_b` |``), so a later rename of an identity or the library codes of item 15
+  step 3 need only their rows (`TestEveryRenameInTheMappingKeepsItsHistory` runs over every row of the document
+  and the repository's own history; `TestARenamedCodeIsNotDeletedAndKeepsItsHistory`).
 
 ## Duplicate code (`dups`, `similar`)
 

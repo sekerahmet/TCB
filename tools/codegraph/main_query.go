@@ -104,6 +104,12 @@ func loadGraph(path string, o *queryOpts, noRebuild bool) (*Graph, int) {
 	case g.Extractor != extractorRevision:
 		fmt.Fprintf(o.stderr, "codegraph: warning: the graph was built by an older codegraph (extractor %d, now %d); results may be incomplete; run build\n", g.Extractor, extractorRevision)
 	}
+	for _, w := range g.Warnings {
+		if strings.HasPrefix(w, trSkipped) { // Go cevapları tam; .tr kodu ve TR bağları yok
+			w, _, _ = strings.Cut(w, "\n")
+			fmt.Fprintf(o.stderr, "codegraph: warning: answers about .tr code are missing (%s)\n", w)
+		}
+	}
 	return g, exitOK
 }
 
@@ -199,6 +205,10 @@ func (ix *index) resolve(q string, o *queryOpts, kinds ...string) (*Node, int) {
 		}
 		return found[0], exitOK
 	case 0:
+		if n := ix.renamedCode(q); n != nil {
+			fmt.Fprintf(o.stderr, "codegraph: %s is the old key of %s (%s)\n", q, n.Name, strings.Join(identityMaps, ", "))
+			return n, exitOK
+		}
 		fmt.Fprintf(o.stderr, "%q not found\n", q)
 		ix.printSuggestions(o.stderr, q, kinds, o.limit == 0)
 		return nil, exitNotFound
