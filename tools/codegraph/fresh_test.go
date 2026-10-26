@@ -133,9 +133,9 @@ func TestStampCoversEverySourceTheGraphReads(t *testing.T) {
 // kaynağı girer (grafik öbürlerini okumaz).
 func TestStampFollowsContentNotCommits(t *testing.T) {
 	root := gitFixture(t)
-	testkit.WriteFile(t, root, "tools/check.sh", "#!/bin/sh\n")
+	testkit.WriteFile(t, root, "tools/notes.txt", "not\n")
 	gitMust(t, root, "add", "-A")
-	gitMust(t, root, "commit", "-q", "-m", "script")
+	gitMust(t, root, "commit", "-q", "-m", "notes")
 	stamp := func() string {
 		t.Helper()
 		s, err := sourceStamp(root)
@@ -155,9 +155,9 @@ func TestStampFollowsContentNotCommits(t *testing.T) {
 		t.Errorf("a branch with the same content changed the stamp: %s -> %s", edited, after)
 	}
 	testkit.WriteFile(t, root, "notes/draft.md", "# taslak\n")
-	appendTo(t, filepath.Join(root, "tools", "check.sh"), "echo x\n")
+	appendTo(t, filepath.Join(root, "tools", "notes.txt"), "x\n")
 	if after := stamp(); after != edited {
-		t.Errorf("an untracked doc or a tracked script's content must not change the stamp: %s -> %s", edited, after)
+		t.Errorf("an untracked doc or a tracked non-source file's content must not change the stamp: %s -> %s", edited, after)
 	}
 	gitMust(t, root, "add", "notes/draft.md")
 	if after := stamp(); after == edited {
