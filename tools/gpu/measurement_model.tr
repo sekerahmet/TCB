@@ -51,8 +51,8 @@ yapı Model {
         kendi.bloklar = aralık(KATMAN).haritala { Blok() }
         kendi.gs = tensör(birler([D]), türev_izle: doğru)
     }
-    fonksiyon ileri(girdi) {
-        değişken x = gömme(kendi.E, girdi)
+    fonksiyon ileri(kimlikler) {
+        değişken x = gömme(kendi.E, kimlikler)
         döngü bl içinde kendi.bloklar { x = bl.ileri(x) }
         sonuç rms_normu(x, kendi.gs) @ kendi.E.devrik() // paylaşımlı çıkış
     }
