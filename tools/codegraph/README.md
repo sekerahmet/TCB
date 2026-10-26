@@ -64,10 +64,10 @@ queries never read half a file) and prints one line on stderr: `graph rebuilt (N
   build lists `tr sources skipped: ...` and every query says
   `warning: answers about .tr code are missing (...)` on stderr.
 
-Cost when the graph is fresh (this repository, Windows, 2026-10-25, built binary): `tests-for` takes about 0.95 s,
-0.84 s with `--no-rebuild` (reading the 59 MB `graph.json`), so the stamp's git calls cost about 0.1 s; `go run` adds
-about 1.1 s to either. A stale graph costs one `build` (7-13 s with a warm Go build cache); a real edit makes the graph
-stale, there is no incremental rebuild.
+Cost when the graph is fresh (this repository, Windows, 2026-10-26, built binary): `tests-for` takes about 1.5 s,
+1.4 s with `--no-rebuild` (reading the 62 MB `graph.json`), so the stamp's git calls cost about 0.1 s; `go run` adds
+about 1 s once its build is cached. A stale graph costs one `build` (7-15 s, see "Time"), so the edit hook waits about
+that long on a stale graph; a real edit makes the graph stale, there is no incremental rebuild.
 
 Exit codes: `0` answered, `1` failure (no graph, load error), `2` usage, `3` ambiguous name (the
 candidates are listed on stdout; repeat with an id or a longer name), `4` not found (similar names
@@ -589,8 +589,10 @@ naming the trial when a closed blind spot comes back. One line per question: `to
 src: trial, date`. Expectations are structural so a better output format does not break them: `contains`, `not`, `exit`,
 `first-item`, `group: HEADING => TEXT`, `first-of`, `top: HEADING => N => TEXT`, `before: A => B`; `A || B` accepts either.
 `tr dizin` questions go to codeindex exactly as the command does (default limit 12, `--tümü` for all). The graph and the
-TR index are built once and every question is asked in-process (`runQueryOn`), so the exam takes about 7 s and runs under
-`-short` (the full check). A new trial adds lines, not code.
+TR index are built once and every question is asked in-process (`runQueryOn`), so the exam takes about a minute
+(2026-10-26, most of it the two builds and the tool comparisons) and runs under `-short` (the full check). A question
+names a line by its text, `@{file#text}`, and a count by a group item (`TestPlanningQuestionsPinNoLineOrCount`). A new
+trial adds lines, not code.
 
 Writing the exam found one more blind spot: `query TR_fn_print` listed the builtin's Go registration among 170 TR users, beyond
 the limit, under "registered or used in Go". That section now lists Go code only, registrations naming the implementation
@@ -627,19 +629,20 @@ is the stored, wider graph (docs, rules, messages, tests) for navigation.
 
 ## Time
 
-On this repository (about 640 Go files, 9 000 nodes, 36 000 edges) `build` takes about 3 s with a
-warm Go build cache and about 57 s with a cold one (almost all of it compiling the standard library
-export data that `go list -export` asks for; the module's own packages are type-checked from
-source, not compiled). Queries read the JSON file and answer in well under a second.
+On this repository (2026-10-26: about 980 Go files, 25 000 nodes, 172 000 edges; `TestReadmeGraphSizeIsCurrent`
+fails when one of them drifts by more than a quarter) `build` takes 7-8 s with the built binary and a warm Go build
+cache (Windows; up to about 15 s on a loaded machine), and about 57 s with a cold cache in an older measurement
+(almost all of it compiling the standard library export data that `go list -export` asks for; the module's own
+packages are type-checked from source, not compiled). Query costs are under "Cost" above.
 
 ## Tests
 
 The fixture is a small module in `testdata/mod` (packages, an interface, message and name
 dictionaries, a README with rules, a doc with links, a broken link). Tests that build a graph in
 a temporary git repository take several seconds each, so they call `slowFixture` and are skipped
-by `-short`: `go test -short ./tools/codegraph` takes about 17 s, the full run about 45 s. The
-full check (`tools/full_check.sh`) runs Go tests with `-short`; the skipped ones run in the
-`--kip=uzun` mode (CI).
+by `-short`: `go test -short ./tools/codegraph` takes about 150 s, the full run about 260 s (2026-10-26, Windows; the
+repository graph is built once per run and shared, `repoGraph`). The full check (`tools/full_check.sh`) runs Go tests
+with `-short`; the skipped ones run in the `--kip=uzun` mode (CI).
 
 - `extractor_digest_test.go`: `testdata/extractor_digest.txt` records the extractor revision and a
   digest of the extractor sources (comments and formatting do not count). If the code changes,

@@ -2,9 +2,12 @@ package main
 
 import (
 	"bytes"
+	"math"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -249,5 +252,37 @@ func TestEveryNameCodeHasAUse(t *testing.T) {
 	if len(unused) > 0 {
 		sort.Strings(unused)
 		t.Errorf("%d name codes have no uses_name or reads_name edge:\n  %s", len(unused), strings.Join(unused, "\n  "))
+	}
+}
+
+// readmeSize README'nin "Time" bölümündeki depo boyutudur: "about 980 Go files, 25 000 nodes, 172 000 edges".
+var readmeSize = regexp.MustCompile(`about ([0-9 ]+) Go files, ([0-9 ]+) nodes, ([0-9 ]+) edges`)
+
+// Kural: README'nin yazdığı depo boyutu (Go dosyası, düğüm, kenar) bugünkü grafikten en çok dörtte bir sapar; sayı
+// eskiyince bu test düşer ve sayı ölçümle yeniden yazılır (süreler makineye bağlıdır, tarihleriyle yazılır, sınanmaz).
+func TestReadmeGraphSizeIsCurrent(t *testing.T) {
+	_, _, g := repoGraph(t)
+	data, err := os.ReadFile("README.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := readmeSize.FindStringSubmatch(string(data))
+	if m == nil {
+		t.Fatal(`README.md states no "about N Go files, N nodes, N edges"`)
+	}
+	goFiles := 0
+	for _, n := range g.Nodes {
+		if n.Kind == kindFile && strings.HasSuffix(n.File, ".go") {
+			goFiles++
+		}
+	}
+	for i, now := range []int{goFiles, len(g.Nodes), len(g.Edges)} {
+		said, err := strconv.Atoi(strings.ReplaceAll(m[i+1], " ", ""))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if diff := math.Abs(float64(now-said)) / float64(now); diff > 0.25 {
+			t.Errorf("README.md says %d %s, the graph has %d (%.0f%% off): measure and rewrite it", said, []string{"Go files", "nodes", "edges"}[i], now, 100*diff)
+		}
 	}
 }
