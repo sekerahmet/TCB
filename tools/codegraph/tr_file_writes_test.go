@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
+	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
 // writtenTRScript e2e testinin .tr dosyasına yazdığı bir betiktir: yazan test, çağrının yeri ve metni.
@@ -29,24 +30,29 @@ func e2eWrittenScripts(t *testing.T, root string) []writtenTRScript {
 	t.Helper()
 	dir := filepath.Join(root, "cmd", "tr", "e2e")
 	fset := token.NewFileSet()
-	pkgs, err := parser.ParseDir(fset, dir, func(fi os.FileInfo) bool { return strings.HasSuffix(fi.Name(), "_test.go") }, 0)
+	entries, err := reporoot.ReadDir(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
 	consts := map[string]string{}
 	var files []*ast.File
-	for _, p := range pkgs {
-		for _, f := range p.Files {
-			files = append(files, f)
-			for _, d := range f.Decls {
-				if g, ok := d.(*ast.GenDecl); ok && g.Tok == token.CONST {
-					for _, sp := range g.Specs {
-						vs := sp.(*ast.ValueSpec)
-						for i, n := range vs.Names {
-							if i < len(vs.Values) {
-								if s, ok := literal(vs.Values[i]); ok {
-									consts[n.Name] = s
-								}
+	for _, e := range entries {
+		if !strings.HasSuffix(e.Name(), "_test.go") {
+			continue
+		}
+		f, err := parser.ParseFile(fset, filepath.Join(dir, e.Name()), nil, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		files = append(files, f)
+		for _, d := range f.Decls {
+			if g, ok := d.(*ast.GenDecl); ok && g.Tok == token.CONST {
+				for _, sp := range g.Specs {
+					vs := sp.(*ast.ValueSpec)
+					for i, n := range vs.Names {
+						if i < len(vs.Values) {
+							if s, ok := literal(vs.Values[i]); ok {
+								consts[n.Name] = s
 							}
 						}
 					}

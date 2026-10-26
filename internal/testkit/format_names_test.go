@@ -34,8 +34,8 @@ func TestFormatJSONKeys(t *testing.T) {
 		hidden  int
 	}
 	r := &recorder{TB: t}
-	FormatJSONKeys(r, outer{})
-	if len(r.errors) != 2 { // "tür" (bir kez: tip bir kez gezilir) ve NoTag
+	FormatJSONKeys(r, outer{hidden: 1}) // dışa açık olmayan alan JSON'a girmez, sayılmaz
+	if len(r.errors) != 2 {             // "tür" (bir kez: tip bir kez gezilir) ve NoTag
 		t.Errorf("FormatJSONKeys: %q, want 2 errors", r.errors)
 	}
 }
