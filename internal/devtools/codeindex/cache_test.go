@@ -333,6 +333,8 @@ func BenchmarkBuild(b *testing.B) {
 // sınanır: TestCacheHitSkipsParsing, TestIncrementalReparsesOnlyChangedAndImporters. Ölçülen kurulum hatasız ve tam
 // olmalıdır: birim okunan dosyadır, atlanan dosya hatadır (buildFiles; ScalesLinearly iki boyun birimlerini karşılaştırır).
 // Kod biçimli adlar 400 modülün 300'ünü Skipped'a düşürüyor, iki boyda aynı iş ölçülüyordu.
+// Proje zincir aktarımlıdır (her modül öncekileri dolaylı görür): görünen adları dosya başına kopyalamak ve üye adaylarını
+// bütün kapanışta aramak karesel büyüyordu, CI'da oran 9-10; ad sorulunca aranır (lookupVisible, methodCandidates).
 func TestBuildScalesLinearly(t *testing.T) {
 	if testing.Short() {
 		t.Skip("zaman ölçümü")

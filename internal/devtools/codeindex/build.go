@@ -43,7 +43,6 @@ type file struct {
 	methods   map[string][]string
 	fields    map[string][]string // alan adı -> alan düğümlerinin kimlikleri (alıcı tipi bilinmeyen erişimlerin adayları)
 	imports   []importRef
-	visible   map[string]string // ad -> kimlik: kendi tanımları ve takma adsız aktarılan modüllerinki
 	aliases   map[string]*file
 }
 
@@ -68,8 +67,9 @@ type indexer struct {
 	nodes         map[string]*Node
 	edges         map[edgeKey]*Edge
 	occ           []Occurrence
-	guesses       []MemberGuess      // alıcısı bilinmeyen üye erişimleri (bind.go: noteMemberGuess)
-	visible       map[string][]*file // dosya -> görünen dosyalar (visibleFiles; çözümleme boyunca dosya başına bir kez)
+	guesses       []MemberGuess   // alıcısı bilinmeyen üye erişimleri (bind.go: noteMemberGuess)
+	declared      map[string]bool // projede bir dosyanın üst düzeyde bildirdiği adlar (lookupVisible; tembel)
+	methodNames   map[string]bool // projede bir yapının metot adları (methodCandidates; tembel)
 	skipped       []Skipped
 	unresolved    []Unresolved
 	library       fs.FS

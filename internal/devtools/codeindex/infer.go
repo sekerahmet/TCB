@@ -69,7 +69,8 @@ func (x *indexer) globalType(f *file, sc *scope, name string) string {
 	if sc.locals[name] {
 		return ""
 	}
-	if n := x.nodes[f.visible[name]]; n != nil && (n.Kind == KindVariable || n.Kind == KindConstant) {
+	id, _ := x.lookupVisible(f, name)
+	if n := x.nodes[id]; n != nil && (n.Kind == KindVariable || n.Kind == KindConstant) {
 		return n.InferredType
 	}
 	return ""
@@ -141,7 +142,7 @@ func (x *indexer) calleeFunc(f *file, sc *scope, fn ast.Expression) string {
 	switch fn := fn.(type) {
 	case *ast.Identifier:
 		if !sc.locals[fn.Value] {
-			id = f.visible[fn.Value]
+			id, _ = x.lookupVisible(f, fn.Value)
 		}
 	case *ast.MemberExpression:
 		if obj, ok := fn.Object.(*ast.Identifier); ok && !sc.locals[obj.Value] {
