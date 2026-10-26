@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -100,7 +101,11 @@ func copyFile(to string) error {
 // hatasıyla yazar. Son derlenen ikili yoksa ya da silinmişse (derleme önbelleği temizlendi) derleme
 // hatası görünür.
 func TestABrokenTreeFallsBackToTheLastBuiltCodegraph(t *testing.T) {
-	fake := filepath.Join(t.TempDir(), "go"+filepath.Ext(os.Args[0]))
+	// Ad tam "go" olmalı (TestMain onu tanır): Linux'ta test ikilisinin uzantısı ".test"tir, Windows'ta ".exe".
+	fake := filepath.Join(t.TempDir(), "go")
+	if runtime.GOOS == "windows" {
+		fake += ".exe"
+	}
 	if err := copyFile(fake); err != nil {
 		t.Fatal(err)
 	}
