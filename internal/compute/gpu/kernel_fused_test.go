@@ -12,7 +12,7 @@ import (
 // Kaynaşmış çekirdekler (kernel_fused.go): ileri yön kaynaşmamış GPU yoluyla bit düzeyinde
 // aynıdır; çıktı ve gradyanlar CPU'nun kaynaşmış yürütücüsüyle karşılaştırılır.
 
-// fusedRope lib/katman.tr'deki döner_konum_uygula: x [..., T, D], kos/sin [T', D/2].
+// fusedRope lib/katman.tr'deki döner_konum_uygula_kaynaşık: x [..., T, D], kos/sin [T', D/2].
 func fusedRope(args []*tensor.Tensor) []*tensor.Tensor {
 	x, c, s := args[0], args[1], args[2]
 	T := x.Shape()[len(x.Shape())-2]

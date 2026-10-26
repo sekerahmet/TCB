@@ -23,8 +23,8 @@ CGO_ENABLED=0 go build -trimpath -o "$bin/tr" ./cmd/tr &&
 	CGO_ENABLED=0 go test -c -trimpath -o "$bin/gpu_sinama" ./internal/compute/gpu || exit 1
 (cd internal/compute/gpu && "$bin/gpu_sinama" -test.run '^$' 2>&1 | head -1) # GPU ve matris çarpımı yolu
 
-echo "== GPU testleri, eşzamanlı (TR_GPU_ESZAMANLI=1: hata tam o kernelde bildirilir)"
-(cd internal/compute/gpu && TR_GPU_ESZAMANLI=1 "$bin/gpu_sinama" -test.count=1 >"$out/gpu_eszamanli.log" 2>&1)
+echo "== GPU testleri, eşzamanlı (TR_env_GPU_SYNC=1: hata tam o kernelde bildirilir; test ikilisi tr komutu değildir, kimlik adını okur)"
+(cd internal/compute/gpu && TR_env_GPU_SYNC=1 "$bin/gpu_sinama" -test.count=1 >"$out/gpu_eszamanli.log" 2>&1)
 eszamanli=$?
 tail -2 "$out/gpu_eszamanli.log"
 echo "== GPU testleri, eşzamansız"

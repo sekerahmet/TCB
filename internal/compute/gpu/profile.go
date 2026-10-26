@@ -31,7 +31,7 @@ import (
 var profileOn atomic.Bool
 
 func init() {
-	if os.Getenv("TR_GPU_PROFIL") == "1" {
+	if os.Getenv("TR_env_GPU_PROFILE") == "1" {
 		profileOn.Store(true)
 	}
 }

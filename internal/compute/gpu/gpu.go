@@ -144,7 +144,7 @@ func Status() string {
 func newBackend(dev tensor.Device, sr driver) *backend {
 	g := &backend{dev: dev, sr: sr, kernels: map[string]*kernel{}}
 	g.pool.empty = map[uint64][]uint64{}
-	g.concurrent = os.Getenv("TR_GPU_ESZAMANLI") == "1"
+	g.concurrent = os.Getenv("TR_env_GPU_SYNC") == "1"
 	g.attnPath = os.Getenv("TR_GPU_ATTENTION")
 	g.gemm2 = defaultGemm
 	g.gemvOff = os.Getenv("TR_GPU_GEMV") == "0"
