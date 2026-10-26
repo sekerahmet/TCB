@@ -46,7 +46,7 @@ func registerCustomGrad(v *interp.VM) {
 
 // customGradExample hata mesajlarındaki kullanım örneğidir; adlar koddan kurulur.
 var customGradExample = fmt.Sprintf("%s(%s: %s(x) { %s [x * x, [x]] }, %s: %s(saklananlar, g) { %s [g * 2 * saklananlar[0]] })",
-	codes.Name(codes.FnCustomGrad), nameForward.TR, codes.Name(codes.KwFunc), codes.Name(codes.KwReturn), nameBackward.TR, codes.Name(codes.KwFunc), codes.Name(codes.KwReturn))
+	codes.Source().Name(codes.FnCustomGrad), codes.Source().Name(nameForward.Code), codes.Source().Name(codes.KwFunc), codes.Source().Name(codes.KwReturn), codes.Source().Name(nameBackward.Code), codes.Source().Name(codes.KwFunc), codes.Source().Name(codes.KwReturn))
 
 // backwardError, geri yayılım sırasında (çekirdeğin içinden) kullanıcının geri hesabında
 // oluşan hatayı taşır; backprop paniği yakalayıp hatayı olduğu gibi döndürür.

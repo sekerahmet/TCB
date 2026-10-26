@@ -42,7 +42,7 @@ var (
 // gradExample hata mesajlarındaki türev izleyen tensör örneğidir:
 // gradExample("...") → "tensör(..., türev_izle: doğru)"; adlar koddan kurulur.
 func gradExample(data string) string {
-	return codes.Name(codes.FnTensor) + "(" + data + ", " + nameRequiresGrad.TR + ": " + codes.Name(codes.KwTrue) + ")"
+	return codes.Source().Name(codes.FnTensor) + "(" + data + ", " + codes.Source().Name(nameRequiresGrad.Code) + ": " + codes.Source().Name(codes.KwTrue) + ")"
 }
 
 // safe fn'i çalıştırır; çekirdekten gelen paniği Türkçe bir hataya dönüştürür.

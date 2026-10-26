@@ -49,3 +49,20 @@ func TestAnInvalidDisplayLanguageKeepsTheTurkishList(t *testing.T) {
 		t.Fatalf("active error %v, display error %v, display %s, if %q", activeErr, displayErr, d.Code, a.Name(KwIf))
 	}
 }
+
+// TestProgramRunsOnIdentities program içeride kimliklerle çalışır; hiçbir insan dili içerinin dili
+// değildir (Ahmet, 2026-10-26: "türkçe ve ingilizce sadece gösterim dilidir. disk ve programla dili
+// hep kodlardan çalışır"). İçerinin tablosu yeniden bir yazım dili yapılırsa bu test kalır.
+func TestProgramRunsOnIdentities(t *testing.T) {
+	if Active().Code == SourceLanguage {
+		t.Fatalf("içerinin dili %q: program içeride bir yazım diliyle çalışmamalı", Active().Code)
+	}
+	for _, k := range Active().Codes() {
+		if got := Active().Name(k); got != k.String() {
+			t.Errorf("%s içeride %q adıyla duruyor; içeride ad kimliktir", k, got)
+		}
+	}
+	if Source().Code != SourceLanguage || Source().Name(FnPrint) == FnPrint.String() {
+		t.Fatalf("Türkçe bir yazım dili olarak yüklenmeli: %s, %q", Source().Code, Source().Name(FnPrint))
+	}
+}

@@ -48,6 +48,7 @@ TR, yapay zekâ modeli geliştirmek ve eğitmek için bir programlama dilidir (G
 
 ## Kesin kurallar
 
+- **İçeride kod, dışarıda dil.** Disk ve program her zaman kodla (kimliklerle: `TR_fn_sum`) çalışır; Türkçe ve İngilizce yalnız gösterim dilidir (Ahmet, 2026-10-26: "türkçe ve ingilizce sadece gösterim dilidir. disk ve programla dili hep kodlardan çalışır. kod değiştirmek ve yazmak isteyen dili belirtince dil tercüme edilir"). İçeride bir insan diline ayrıcalık tanıyan öneri yapılmaz; `codes.Active()` kimlik listesidir, Türkçe `codes.Source()`'tur. Koruyan test: `codes.TestProgramRunsOnIdentities`.
 - **Codegraph zorunludur.** Bir dosyaya dokunmadan önce `go run ./tools/codegraph tests-for <dosya>` okunur: kanca (`tools/edithook`, `.claude/settings.json`) her oturumda izlenen bir dosyanın ilk düzenlemesini bir kez durdurup cevabı gösterir. Tasarım ve "nerede, kim kullanıyor, ne etkilenir" soruları dosya okumadan önce codegraph'a ve `tr dizin`'e sorulur. Commit'ten önce `codegraph dups --changed main` çalışır; ön denetim ve tam denetim yeni adayda kalır, bilerek kalan kopya `tools/codegraph/dups_exclude.go`'ya gerekçesiyle yazılır. "Yok" ya da "belirsiz" cevap kanıt değildir, ikinci yoldan doğrulanır.
 - Kullanıcıyla iletişim **Türkçe** ve kısadır.
 - Go adları, dosya ve klasör adları **İngilizce**; Go yorumları **Türkçe**.
