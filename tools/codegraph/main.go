@@ -50,7 +50,7 @@ const usage = `usage: codegraph <command> [flags] [args]
   callees <func> [--in PKG]  the functions it calls, by package
   calls-into <pkg> [--min N] [--in SRC] [--tests]  functions that call at least N distinct functions of a package
   deleted [--retired-json]   message and name codes that existed in the git history and are gone today, with the commit that removed them
-  changed <branch|range>     graph nodes touched by a branch (git diff main...branch), their tests, other claude/ branches on the same code
+  changed <branch|range> [--go-tests]   graph nodes touched by a branch (git diff main...branch), their tests, other claude/ branches on the same code; --go-tests prints only the Go tests to run, one "folder TestName" per line (the pre-check runs them)
   dups [--min N] [--in DIR] [--changed branch|range] [--json]   duplicate-code candidates in the Go sources (token-sequence clones of at least N syntax-tree nodes, default 100); --changed keeps those that touch what a branch changed; deliberate exceptions are listed by --list-exclusions
   similar <func> [--json]    the functions most like this one, with a similarity score
   dead-methods [--in DIR] [--json]   methods with no caller: unreferenced, kept alive only by an interface-satisfaction assertion (assertion-only), shadowed by an earlier interface check, or used only by tests

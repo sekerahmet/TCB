@@ -24,6 +24,7 @@ type queryOpts struct {
 	typeFilter     string // captures: yakalanan değişkenin tipinde geçen metin
 	undirected     bool   // path: yön yok sayılır (tür, paket ve dosyalardan geçmeden)
 	throughHubs    bool   // path: yön yok sayılır, çok bağlı düğümlerden de geçer
+	goTests        bool   // changed: yalnız koşulacak Go testleri, satır başına "klasör test"
 }
 
 // runQuery grafiği okuyan komutları çalıştırır: query, explain, path, who-uses, tests-for,
@@ -52,6 +53,7 @@ func runQueryOn(loaded *Graph, cmd string, args []string, stdout, stderr io.Writ
 	fs.BoolVar(&o.undirected, "undirected", false, "path: also look for a connection ignoring edge direction (never through a type, package or file)")
 	fs.BoolVar(&o.throughHubs, "through-hubs", false, "path: ignore direction and allow types, packages and files on the way (marked [hub])")
 	fs.BoolVar(&o.byPackage, "by-package", false, "who-uses: summarise the users per package")
+	fs.BoolVar(&o.goTests, "go-tests", false, "changed: print only the Go tests to run, one \"folder TestName\" per line (the pre-check runs them)")
 	if err := fs.Parse(reorderFlags(args)); err != nil {
 		return exitUsage
 	}
@@ -116,7 +118,7 @@ func loadGraph(path string, o *queryOpts, noRebuild bool) (*Graph, int) {
 // dispatch adları düğümlere çözer ve komutu çalıştırır.
 func (ix *index) dispatch(cmd string, names []string, o *queryOpts) int {
 	if cmd == "changed" { // adı değil, git revizyonu alır
-		return ix.runChanged(changeOpts{root: o.root, base: o.base, limit: o.limit}, names[0], o.stdout, o.stderr)
+		return ix.runChanged(changeOpts{root: o.root, base: o.base, limit: o.limit, goTests: o.goTests}, names[0], o.stdout, o.stderr)
 	}
 	if cmd == "query" && len(names) == 1 && names[0] == "-" { // grep çıktısı: her satıra içeren düğüm
 		return ix.printLocations(o.stdin, o.stdout)
