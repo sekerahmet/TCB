@@ -20,6 +20,9 @@ func (v *VM) registerTestBuiltins() {
 		if args[0].IsTruthy() {
 			return True, nil
 		}
+		if m, ok := args[len(args)-1].(*MessageVal); ok && len(args) == 2 {
+			return nil, m.Error() // katalog iletisi olduğu gibi, kendi koduyla
+		}
 		if len(args) == 2 {
 			return nil, messages.New(messages.H2456, y.textOf(args[1])) // kullanıcının değeri dosyanın dilinde (3)
 		}

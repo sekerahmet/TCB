@@ -48,7 +48,31 @@ func (t ValueType) MessageText(lang string) string {
 
 // Shown is v as a message parameter: its text follows the message's language (TR_DIL), like
 // the display (DisplayText); Inspect, the canonical text, is for data, not for messages.
-func Shown(v Value) messages.Localized { return shown{v} }
+func Shown(v Value) messages.Localized {
+	if l, ok := v.(*ListVal); ok {
+		return shownList{shown{v}, l}
+	}
+	return shown{v}
+}
+
+// shownList is a list value; {name|list} in a template writes its items as a list of
+// alternatives in the message's language (messages.Listed).
+type shownList struct {
+	shown
+	list *ListVal
+}
+
+func (s shownList) Items(lang string) []string {
+	l, err := codes.LoadLanguage(lang)
+	if err != nil {
+		l = codes.Source()
+	}
+	out := make([]string, len(s.list.Elements))
+	for i, e := range s.list.Elements {
+		out[i] = valueText(e, l)
+	}
+	return out
+}
 
 type shown struct{ v Value }
 

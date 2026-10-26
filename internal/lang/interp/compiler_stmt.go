@@ -250,6 +250,9 @@ func (c *compiler) throwStatement(k *compilerScope, s *ast.ThrowStatement) state
 		if err != nil {
 			return nil, signalNone, err
 		}
+		if m, ok := val.(*MessageVal); ok {
+			return nil, signalNone, messages.At(line, 0, &thrownError{m.Error()}) // katalog iletisi kendi koduyla
+		}
 		// Değerin metni programa geri döner: dosyanın dilinde (3).
 		return nil, signalNone, messages.At(line, 0, &thrownError{messages.New(messages.H2441, v.textOf(val))})
 	}

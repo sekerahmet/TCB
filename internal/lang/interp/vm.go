@@ -265,6 +265,7 @@ func New() *VM {
 	v.registerMath()
 	v.registerEngines()
 	v.registerTestBuiltins()
+	v.registerMessageBuiltins()
 	return v
 }
 
