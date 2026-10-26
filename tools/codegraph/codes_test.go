@@ -15,9 +15,9 @@ import (
 var commonNameFiles = map[string]string{
 	"p/p.go": "package p\n",
 	"internal/lang/codes/definitions.json": `{
-  "TR_fn_sin": { "tür": "fonksiyon", "ortak_ad": "sin" },
-  "TR_fn_print": { "tür": "fonksiyon" },
-  "TR_env_CPU_AVX2": { "tür": "ortam", "ortak_ad": "TR_CPU_AVX2" }
+  "TR_fn_sin": { "kind": "function", "common_name": "sin" },
+  "TR_fn_print": { "kind": "function" },
+  "TR_env_CPU_AVX2": { "kind": "command", "common_name": "TR_CPU_AVX2" }
 }
 `,
 	"internal/lang/codes/tr.json": `{

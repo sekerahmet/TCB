@@ -266,7 +266,7 @@ func TestClashesCaught(t *testing.T) {
 	}
 }
 
-// Kural (17, ortak ad): ortak adlı kodun (definitions.json "ortak_ad") adı dil dosyasında yazılmaz;
+// Kural (17, ortak ad): ortak adlı kodun (definitions.json "common_name") adı dil dosyasında yazılmaz;
 // yükleyici onu her dile, satırı yoksa yeni satırla ekler ve ortak ad dilin kendi adlarıyla aynı
 // denetimlerden geçer (çakışma, yabancı ad, ortam değişkeninin TR_ istisnası).
 func TestCommonNamesGoThroughTheChecks(t *testing.T) {

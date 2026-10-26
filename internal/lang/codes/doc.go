@@ -4,7 +4,7 @@
 // in the binary). Renaming a name changes only its line in the language file; codes never
 // change. Other languages (en.json, pt.json ...) give their own names to the same codes. A
 // concept written with international notation or a proper name (sin, exp, AdamW, json) has a
-// common name: the same in every language, written once as "ortak_ad" in definitions.json and
+// common name: the same in every language, written once as "common_name" in definitions.json and
 // never in a language file; Load gives it to every language.
 //
 // # Identities

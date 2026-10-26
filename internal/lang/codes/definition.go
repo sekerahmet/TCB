@@ -22,17 +22,17 @@ import (
 //
 // File format (each entry is one line or a short block, codes in ascending order):
 //
-//	"TR_fn_range": { "tür": "fonksiyon", "param": ["TR_type_Int", "TR_type_Int?"], "dönüş": "TR_type_List" },
-//	"TR_fn_sum": { "tür": "fonksiyon", "param": ["TR_type_List|TR_type_Tensor"], "adlı": [["TR_arg_dim", "TR_type_Int"], ["TR_arg_keepdim", "TR_type_Bool", false]], "dönüş": "TR_type_Int|TR_type_Float|TR_type_Tensor" },
-//	"TR_mem_length": { "tür": "özellik", "tipler": ["TR_type_String", "TR_type_List", "TR_type_Dict"], "dönüş": "TR_type_Int" },
-//	"TR_mem_split": { "tür": "metot", "imzalar": { "TR_type_String": { "param": ["TR_type_String?"], "dönüş": "TR_type_List" }, "TR_type_Tensor": { ... } } },
+//	"TR_fn_range": { "kind": "function", "params": ["TR_type_Int", "TR_type_Int?"], "returns": "TR_type_List" },
+//	"TR_fn_sum": { "kind": "function", "params": ["TR_type_List|TR_type_Tensor"], "named": [["TR_arg_dim", "TR_type_Int"], ["TR_arg_keepdim", "TR_type_Bool", false]], "returns": "TR_type_Int|TR_type_Float|TR_type_Tensor" },
+//	"TR_mem_length": { "kind": "property", "types": ["TR_type_String", "TR_type_List", "TR_type_Dict"], "returns": "TR_type_Int" },
+//	"TR_mem_split": { "kind": "method", "signatures": { "TR_type_String": { "params": ["TR_type_String?"], "returns": "TR_type_List" }, "TR_type_Tensor": { ... } } },
 //
 // A type expression is a union of type codes joined with "|" (TR_type_Int|TR_type_Float: Tam or
 // Ondalık). On a positional parameter the suffix "?" means optional, "*" zero or more, "+" one
 // or more. Type codes are the type class (the type of AdamW and SGD is a type code too:
 // İyileştirici, TR_type_Optimizer). A named argument is a [code, type, default] triple; the
 // default is a JSON value (null: none) and is omitted when there is no single default. A public
-// name of a standard library module also carries "modül" (the module, "tr/katman"); the code is
+// name of a standard library module also carries "module" (the module, "tr/katman"); the code is
 // then a library code, not a builtin.
 
 //go:embed definitions.json
@@ -45,22 +45,22 @@ func DefinitionData() []byte { return definitionsJSON }
 type Kind string
 
 const (
-	KindKeyword    Kind = "anahtar_kelime"
-	KindContextual Kind = "bağlamsal"
+	KindKeyword    Kind = "keyword"
+	KindContextual Kind = "contextual"
 	// KindValueName is the name of a value that is not a word of the source (inf, nan: written
 	// ondalık("sonsuz")); it is never coded in a file.
-	KindValueName Kind = "değer_adı"
-	KindType      Kind = "tip"
-	KindFunction  Kind = "fonksiyon"
+	KindValueName Kind = "value_name"
+	KindType      Kind = "type"
+	KindFunction  Kind = "function"
 	// KindConstant is a builtin that has a value and is not called (pi); its signature is
 	// only a return type.
-	KindConstant Kind = "sabit"
-	KindMethod   Kind = "metot"
-	KindProperty Kind = "özellik"
-	KindNamedArg Kind = "adlı_argüman"
+	KindConstant Kind = "constant"
+	KindMethod   Kind = "method"
+	KindProperty Kind = "property"
+	KindNamedArg Kind = "named_argument"
 	// KindCommand is a command, option, shell or debugger command or environment variable; it is
 	// not a name in the language, so programs cannot use it.
-	KindCommand Kind = "komut"
+	KindCommand Kind = "command"
 )
 
 // ExpectedKind is the kind implied by the class of the code's identity (for members it returns
@@ -132,11 +132,11 @@ type Definition struct {
 	// (in type order).
 	Members []TypeSignature
 	Related []Code
-	// Common is the code's common name ("ortak_ad"): a concept written with international
+	// Common is the code's common name ("common_name"): a concept written with international
 	// notation or a proper name (sin, AdamW, json) has the same name in every writing language. It
 	// is written only here, never in a language file; Load gives it to every language.
 	Common string
-	// Module is the standard library module ("modül": tr/katman) whose public name the code is;
+	// Module is the standard library module ("module": tr/katman) whose public name the code is;
 	// empty for a core code. codes_generated.go carries it as the libraryModules table.
 	Module string
 }
@@ -196,21 +196,21 @@ func loadDefinitions() {
 }
 
 type rawSignature struct {
-	Param  []string            `json:"param"`
-	Named  [][]json.RawMessage `json:"adlı"`
-	Return string              `json:"dönüş"`
+	Param  []string            `json:"params"`
+	Named  [][]json.RawMessage `json:"named"`
+	Return string              `json:"returns"`
 }
 
 type rawDefinition struct {
-	Kind       string                  `json:"tür"`
-	Types      []string                `json:"tipler"`
-	Param      []string                `json:"param"`
-	Named      [][]json.RawMessage     `json:"adlı"`
-	Return     string                  `json:"dönüş"`
-	Signatures map[string]rawSignature `json:"imzalar"`
-	Related    []string                `json:"ilişkili"`
-	Common     string                  `json:"ortak_ad"`
-	Module     string                  `json:"modül"`
+	Kind       string                  `json:"kind"`
+	Types      []string                `json:"types"`
+	Param      []string                `json:"params"`
+	Named      [][]json.RawMessage     `json:"named"`
+	Return     string                  `json:"returns"`
+	Signatures map[string]rawSignature `json:"signatures"`
+	Related    []string                `json:"related"`
+	Common     string                  `json:"common_name"`
+	Module     string                  `json:"module"`
 }
 
 // ParseDefinitions parses a definitions file; it collects every format error into one error.
@@ -254,14 +254,14 @@ func ParseDefinitions(data []byte) (map[Code]Definition, []Code, error) {
 			for _, p := range param {
 				ti, err := ParseType(p, true)
 				if err != nil {
-					errorf("%s param: %v", k, err)
+					errorf("%s params: %v", k, err)
 				}
 				im.Params = append(im.Params, ti)
 			}
 			for _, a := range named {
 				name, err := parseNamed(a)
 				if err != nil {
-					errorf("%s adlı: %v", k, err)
+					errorf("%s named: %v", k, err)
 					continue
 				}
 				im.Named = append(im.Named, name)
@@ -269,31 +269,31 @@ func ParseDefinitions(data []byte) (map[Code]Definition, []Code, error) {
 			if ret != "" {
 				ti, err := ParseType(ret, false)
 				if err != nil {
-					errorf("%s dönüş: %v", k, err)
+					errorf("%s returns: %v", k, err)
 				}
 				im.Return = ti
 			}
 			return im
 		}
 		t.Signature = sig(h.Param, h.Named, h.Return)
-		for _, typ := range codeList("tipler", h.Types) {
+		for _, typ := range codeList("types", h.Types) {
 			t.Members = append(t.Members, TypeSignature{Type: typ, Signature: t.Signature})
 		}
 		if len(h.Signatures) > 0 {
 			if len(h.Types) > 0 || len(h.Param) > 0 || len(h.Named) > 0 || h.Return != "" {
-				errorf("%s: \"tipler\", \"param\", \"adlı\" and \"dönüş\" must not be written when \"imzalar\" is present", k)
+				errorf("%s: \"types\", \"params\", \"named\" and \"returns\" must not be written when \"signatures\" is present", k)
 			}
 			for s, hi := range h.Signatures {
 				typ, err := Parse(s)
 				if err != nil {
-					errorf("%s imzalar: %v", k, err)
+					errorf("%s signatures: %v", k, err)
 					continue
 				}
 				t.Members = append(t.Members, TypeSignature{Type: typ, Signature: sig(hi.Param, hi.Named, hi.Return)})
 			}
 			sort.Slice(t.Members, func(i, j int) bool { return t.Members[i].Type < t.Members[j].Type })
 		}
-		t.Related = codeList("ilişkili", h.Related)
+		t.Related = codeList("related", h.Related)
 		t.Common = h.Common
 		if t.Module = h.Module; t.Module != "" {
 			switch c := k.Class(); {
@@ -450,7 +450,7 @@ func CheckDefinitions(d *Language) []error {
 		switch t.Kind {
 		case KindMethod, KindProperty:
 			if len(t.Members) == 0 {
-				errorf("%s: the types a member applies to (tipler or imzalar) must be written", k)
+				errorf("%s: the types a member applies to (types or signatures) must be written", k)
 			}
 			for _, u := range t.Members {
 				if !typeCode(u.Type) {

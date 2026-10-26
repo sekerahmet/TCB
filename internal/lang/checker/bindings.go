@@ -150,7 +150,7 @@ func (d *nameChecker) namedArgBindings(c *ast.CallExpression, k *nameScope) {
 }
 
 // LibraryCode returns the code of name when it is a top-level name of the standard library (a
-// struct, function or constant; definitions.json "modül") in lang, otherwise codes.None. The
+// struct, function or constant; definitions.json "module") in lang, otherwise codes.None. The
 // library has no language: its names are words of the language, coded wherever they are written,
 // declaration included (17.3).
 func LibraryCode(lang *codes.Language, name string) codes.Code {

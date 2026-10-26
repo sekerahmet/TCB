@@ -7,9 +7,9 @@
 // kodun kimliğidir (codegraph sabiti koda bununla bağlar).
 //
 // Üretici kod paketini içe aktarmaz: dil dosyasını (internal/lang/codes/tr.json) ve ortak adları
-// (definitions.json "ortak_ad"; adı hiçbir dil dosyasında yazılmayan kodlar) kendisi okur. Böylece
+// (definitions.json "common_name"; adı hiçbir dil dosyasında yazılmayan kodlar) kendisi okur. Böylece
 // üretilen dosya eskimiş olsa da üretici çalışır. Kitaplık kodlarının modülleri (definitions.json
-// "modül") de buradan libraryModules tablosuna yazılır: codes.Code.IsLibrary çalışma anında
+// "module") de buradan libraryModules tablosuna yazılır: codes.Code.IsLibrary çalışma anında
 // definitions.json'u ayrıştırmaz.
 //
 // Kullanım (depo kökünden):
@@ -118,8 +118,8 @@ func Generate(root string) ([]byte, error) {
 		return nil, err
 	}
 	var defs map[string]struct {
-		Common string `json:"ortak_ad"`
-		Module string `json:"modül"`
+		Common string `json:"common_name"`
+		Module string `json:"module"`
 	}
 	if err := json.Unmarshal(data, &defs); err != nil {
 		return nil, fmt.Errorf("%s: %v", defsPath, err)

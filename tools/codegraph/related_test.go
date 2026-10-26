@@ -6,12 +6,12 @@ import (
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
-// Kural: dil tanımının "ilişkili" bağı (internal/lang/codes/definitions.json) ad kodları arasında `related` kenarıdır;
+// Kural: dil tanımının "related" bağı (internal/lang/codes/definitions.json) ad kodları arasında `related` kenarıdır;
 // `query <ad>` akraba adları gösterir (deneme 8 S2: yazdır ↔ girdi, birleştir ↔ böl grafikte yoktu).
 func TestRelatedNamesAreLinked(t *testing.T) {
 	root := auditModule(t, map[string]string{
 		"internal/lang/codes/tr.json":          "{\n  \"TR_mem_split\": { \"ad\": \"böl\", \"aile\": \"x\" },\n  \"TR_mem_join\": { \"ad\": \"birleştir\", \"aile\": \"x\" }\n}\n",
-		"internal/lang/codes/definitions.json": "{\n  \"TR_mem_split\": { \"tür\": \"metot\" },\n  \"TR_mem_join\": { \"tür\": \"metot\", \"ilişkili\": [\"TR_mem_split\"] }\n}\n",
+		"internal/lang/codes/definitions.json": "{\n  \"TR_mem_split\": { \"kind\": \"method\" },\n  \"TR_mem_join\": { \"kind\": \"method\", \"related\": [\"TR_mem_split\"] }\n}\n",
 		"internal/lang/codes/codes.go":         "package codes\n\ntype Code int\n",
 	})
 	g, err := buildGraph(root)

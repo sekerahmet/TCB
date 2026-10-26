@@ -206,7 +206,7 @@ func (k Code) IsBuiltin() bool {
 }
 
 // IsLibrary reports whether the code is a public name of a standard library module (tr/…;
-// definitions.json "modül"): it comes with the module's import, not with the core.
+// definitions.json "module"): it comes with the module's import, not with the core.
 func (k Code) IsLibrary() bool {
 	_, ok := libraryModules[k]
 	return ok

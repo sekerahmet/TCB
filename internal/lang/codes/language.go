@@ -81,7 +81,7 @@ type Language struct {
 
 // Load reads and validates a language file. On format errors, duplicate codes or clashing
 // names in a namespace (in Turkish or ASCII form, foreign names included) it returns one error
-// listing all of them. The codes with a common name (definitions.json "ortak_ad") get it as
+// listing all of them. The codes with a common name (definitions.json "common_name") get it as
 // their name in this language; naming such a code in the language file is an error.
 func Load(langCode string, data []byte) (*Language, error) {
 	return load(langCode, data, commonNames())
@@ -219,7 +219,7 @@ func withCommonNames(raw []rawEntry, common map[Code]string, errorf func(string,
 		}
 		seen[k] = true
 		if raw[i].name != "" {
-			errorf("%s has the common name %q (definitions.json ortak_ad); the language file must not name it (%q)", k, name, raw[i].name)
+			errorf("%s has the common name %q (definitions.json common_name); the language file must not name it (%q)", k, name, raw[i].name)
 			continue
 		}
 		raw[i].name = name

@@ -27,11 +27,11 @@ func jsonKeyLines(file string) map[string]int {
 }
 
 // commonNames definitions.json'daki ortak adlardır (kod → ad): her yazım dilinde aynı yazılan, adı hiçbir dil dosyasında
-// yazılmayan kodlar (madde 15 adım 2, "ortak_ad"; codes.Load da öyle okur). Dil dosyasında adı olmayan kodun adı budur:
+// yazılmayan kodlar (madde 15 adım 2, "common_name"; codes.Load da öyle okur). Dil dosyasında adı olmayan kodun adı budur:
 // tek kaynak. Okuyucular (ad kodu düğümleri, ortam değişkeni adları) adı buradan tamamlar.
 func commonNames(root string) map[string]string {
 	defs := map[string]struct {
-		Common string `json:"ortak_ad"`
+		Common string `json:"common_name"`
 	}{}
 	readJSON(filepath.Join(root, filepath.FromSlash(codesDir), "definitions.json"), &defs)
 	out := map[string]string{}
@@ -99,11 +99,11 @@ func extractCodes(root string, b *builder) {
 	envMessages(root, b)
 }
 
-// relatedNames dil tanımının "ilişkili" bağını (definitions.json: yazdır ↔ girdi, birleştir ↔ böl) ad kodları arasında
+// relatedNames dil tanımının "related" bağını (definitions.json: yazdır ↔ girdi, birleştir ↔ böl) ad kodları arasında
 // `related` kenarı yapar: yeni bir ad tasarlanırken akraba adlar ilk bakılacak yerdir (deneme 8 S2).
 func relatedNames(cdir string, b *builder) {
 	defs := map[string]struct {
-		Related []string `json:"ilişkili"`
+		Related []string `json:"related"`
 	}{}
 	path := filepath.Join(cdir, "definitions.json")
 	if !readJSON(path, &defs) {

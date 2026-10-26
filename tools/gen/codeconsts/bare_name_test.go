@@ -48,15 +48,9 @@ var bareNameAllowances = map[string]map[string]string{
 		"metin": "İzleme Masası iletisinin değer türü (ikon seçimi)",
 		"yok":   "İzleme Masası iletisinin değer türü (ikon seçimi)",
 	},
-	// definitions.json'un "tür" alanının değerleri: dosya biçiminin sabit anahtarlarıdır.
 	// Veri biçimlerindeki sonlu olmayan sayının sabit metni (kontrol noktası, günlük; 19.5, 20):
 	// dilden bağımsız sözleşme, TR_val_nan'in adı olarak değil, biçimin baytı olarak yazılır.
 	"internal/stdlib/common/jsonwrite/jsonwrite.go": {"NaN": "günlük, durum dosyası ve kontrol noktası veri biçimi (NonFiniteData: NaN, Infinity, -Infinity)"},
-	"internal/lang/codes/definition.go": {
-		"tip":       "definitions.json tür değeri (TurTip)",
-		"fonksiyon": "definitions.json tür değeri (TurFonksiyon)",
-		"sabit":     "definitions.json tür değeri (TurSabit)",
-	},
 }
 
 // scanRoots adları koddan üretmesi gereken katmanlardır.

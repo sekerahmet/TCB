@@ -30,15 +30,15 @@ Dilin asıl biçimi koddur. Kullanıcıya görünen her ad (anahtar kelime, bağ
 - `yabancı` başka dillerden alışılmış adlardır (`"TR_arg_seed": { "ad": "tohum", "yabancı": ["seed"] }`): kabul edilmez, hata iletisi doğru adı önerir (`AdamW 'lr' adında bir parametre almaz. Bunu mu demek istediniz: 'öğrenme_oranı'?`). Her dil kendi okurunun alışkanlıklarını yazar.
 - `aile` kısa bir grup adı, `açıklama` bir-iki cümle, `örnek` tek satırlık çalışan TR kodudur. Her kodun açıklaması, her canlı kodun örneği vardır (`go test ./internal/lang/codes ./internal/stdlib`).
 
-**Tanımlar** (`definitions.json`, dilden bağımsız): kodun türü (`anahtar_kelime`, `bağlamsal`, `değer_adı`, `tip`, `fonksiyon`, `sabit`, `metot`, `özellik`, `adlı_argüman`, `komut`), metot ve özelliklerin geçerli olduğu tipler, imza, ilişkili kodlar ve varsa ortak ad:
+**Tanımlar** (`definitions.json`, dilden bağımsız): kodun türü (`kind`: `keyword`, `contextual`, `value_name`, `type`, `function`, `constant`, `method`, `property`, `named_argument`, `command`), metot ve özelliklerin geçerli olduğu tipler, imza, ilişkili kodlar ve varsa ortak ad:
 
 ```json
-"TR_fn_sum": { "tür": "fonksiyon", "param": ["TR_type_List|TR_type_Tensor", "TR_type_Int?"], "adlı": [["TR_arg_dim", "TR_type_Int", null], ["TR_arg_keepdim", "TR_type_Bool", false]], "dönüş": "TR_type_Int|TR_type_Float|TR_type_Tensor", "ilişkili": ["TR_fn_mean"] },
+"TR_fn_sum": { "kind": "function", "params": ["TR_type_List|TR_type_Tensor", "TR_type_Int?"], "named": [["TR_arg_dim", "TR_type_Int", null], ["TR_arg_keepdim", "TR_type_Bool", false]], "returns": "TR_type_Int|TR_type_Float|TR_type_Tensor", "related": ["TR_fn_mean"] },
 ```
 
 İmzada parametre adı yazılmaz (adlar dile bağlıdır): konumlu parametreler tip ifadeleridir (`?` isteğe bağlı, `*` sıfır ya da çok, `+` bir ya da çok), adlı argümanlar `[kod, tip, varsayılan]` üçlüsüdür. Tanımlar davranışla sınanır: tanımdaki adlı argümanlar yerleşiğin gerçekten kabul ettikleridir (13.5).
 
-**Ortak ad.** Uluslararası gösterimle ya da özel adla yazılan kavramın adı her dilde aynıdır (`sin`, `exp`, `log`, `max`, `argmax`, `relu`, `AdamW`, `pi`, `json`, `test`). Ad `definitions.json`'da bir kez yazılır (`"ortak_ad": "sin"`), hiçbir dil dosyasında yazılmaz; yazılırsa yükleme hatasıdır. Yükleyici ortak adı her dile verir; ad o dilin adlarıyla aynı denetimlerden geçer. Karar (baş geliştirici, 2026-10-25/26): matematik fonksiyonlarının uluslararası adları ortak addır; Türkçe kalanlar `karekök`, `mutlak`, `ortalama`, `standart_sapma`.
+**Ortak ad.** Uluslararası gösterimle ya da özel adla yazılan kavramın adı her dilde aynıdır (`sin`, `exp`, `log`, `max`, `argmax`, `relu`, `AdamW`, `pi`, `json`, `test`). Ad `definitions.json`'da bir kez yazılır (`"common_name": "sin"`), hiçbir dil dosyasında yazılmaz; yazılırsa yükleme hatasıdır. Yükleyici ortak adı her dile verir; ad o dilin adlarıyla aynı denetimlerden geçer. Karar (baş geliştirici, 2026-10-25/26): matematik fonksiyonlarının uluslararası adları ortak addır; Türkçe kalanlar `karekök`, `mutlak`, `ortalama`, `standart_sapma`.
 
 **Ad alanları ve eş adlar.** Bir ad yalnız kendi ad alanında benzersizdir (genel, tip, üye, adlı argüman): `mutlak` hem yerleşik (`TR_fn_abs`) hem `Yol`'un metodudur (`TR_mem_absolute`). Yükleme yinelenen kodu, aynı ad alanında çakışan adı (ASCII biçimleri aynı olanlar dahil) ve geçerli bir adla çakışan yabancı adı reddeder. Bir ad birden çok koda yalnız aynı anlamda ya da ayrı alanda (komut satırı ve dil) verilir; her eş ad grubu gerekçesiyle `docs/terimler.md`'dedir (`internal/doc_terms_test.go`). Bu yüzden tensörleri uç uca ekleyen `bitiştir`, liste metodu `.birleştir`tir.
 

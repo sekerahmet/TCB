@@ -34,14 +34,6 @@ var turkishLiteralAllowed = map[string]string{
 	// Dil tanımı atıf tarayıcısı Türkçe belgeleri okur: "PyTorch 2.14", "sürümü 2.1" gibi sürüm numaraları madde atfı sayılmaz.
 	"tools/internal/specref/scan.go:\\b(PyTorch|NumPy|JAX|Go|go|CUDA|cuDNN|cuBLAS|cuBLASLt|Python|Rust|Swift|Kotlin|LSP|CommonMark|Unicode|IEEE|Triton|TensorFlow|Hugging Face|sürüm|sürümü|version)\\b[^.!?]*$": "belgedeki sürüm numarasını tanıyan desen; Türkçe belge sözcüğü, ad ya da ileti değil",
 	// Kod listesi dosyalarının (internal/lang/codes) biçim anahtarları.
-	"internal/lang/codes/definition.go:bağlamsal":    "definitions.json'daki \"tür\" alanının değeri (dosya biçimi)",
-	"internal/lang/codes/definition.go:değer_adı":    "definitions.json'daki \"tür\" alanının değeri (dosya biçimi)",
-	"internal/lang/codes/definition.go:özellik":      "definitions.json'daki \"tür\" alanının değeri (dosya biçimi)",
-	"internal/lang/codes/definition.go:adlı_argüman": "definitions.json'daki \"tür\" alanının değeri (dosya biçimi)",
-	"internal/lang/codes/definition.go:%s adlı: %v":  "definitions.json'un alan adı (dosya biçimi); geliştirici hatasında anılır",
-	"internal/lang/codes/definition.go:%s dönüş: %v": "definitions.json'un alan adı (dosya biçimi); geliştirici hatasında anılır",
-	"internal/lang/codes/definition.go:%s: \"tipler\", \"param\", \"adlı\" and \"dönüş\" must not be written when \"imzalar\" is present": "definitions.json'un alan adı (dosya biçimi); geliştirici hatasında anılır",
-	"internal/lang/codes/definition.go:ilişkili": "definitions.json'un alan adı (dosya biçimi); geliştirici hatasında anılır",
 	"internal/lang/codes/json_parse.go:yabancı":  "dil dosyasının (tr.json) alan adı (dosya biçimi)",
 	"internal/lang/codes/json_parse.go:açıklama": "dil dosyasının (tr.json) alan adı (dosya biçimi)",
 	"internal/lang/codes/json_parse.go:örnek":    "dil dosyasının (tr.json) alan adı (dosya biçimi)",
