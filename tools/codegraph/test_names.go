@@ -56,7 +56,12 @@ func (ix *index) testsThroughNames(n *Node) []nameTest {
 				}
 				seenTest[t.From] = true
 				tn := ix.byID[t.From]
-				out = append(out, nameTest{test: tn, name: name, steps: steps + 1, local: path.Dir(tn.File) == path.Dir(n.File)})
+				local := path.Dir(tn.File) == path.Dir(n.File)
+				s := steps + 1
+				if steps == 0 && local {
+					s = 0 // bildirimin kendisi uyguluyor, test aynı pakette: doğrudan (parti K2, A: stats.go'nun testi)
+				}
+				out = append(out, nameTest{test: tn, name: name, steps: s, local: local})
 			}
 		}
 	}
@@ -130,10 +135,14 @@ func (ix *index) printViaNames(w io.Writer, list []nameTest, limit int) {
 	}
 	fmt.Fprintf(w, "  <- tests through the name codes it implements (%d; same package first):\n", len(list))
 	forEachLimited(w, list, limit, "    ", moreHint, func(t nameTest) string {
-		s := fmt.Sprintf("%s  via %s, %d steps  [INFERRED]", describe(t.test), t.name.Detail, t.steps)
-		if t.name.Detail == "" {
-			s = fmt.Sprintf("%s  via %s, %d steps  [INFERRED]", describe(t.test), t.name.Name, t.steps)
+		name, how := t.name.Detail, fmt.Sprintf("%d steps", t.steps)
+		if name == "" {
+			name = t.name.Name
 		}
+		if t.steps == 0 {
+			how = "direct"
+		}
+		s := fmt.Sprintf("%s  via %s, %s  [INFERRED]", describe(t.test), name, how)
 		if ix.note != nil {
 			if note := ix.note(t.test); note != "" {
 				s += "\n      " + note

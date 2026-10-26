@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -156,5 +157,46 @@ func TestNameCodeTestsMustLinkTheFunctionsPackage(t *testing.T) {
 	}
 	if got, want := names("core.Print"), "a_test: yazdır, checker.TestPrintWarning"; got != want {
 		t.Errorf("imported (transitively) package: got %q, want %q", got, want)
+	}
+}
+
+// Kural (parti K2, A): bir Go testi dizesindeki TR koduyla (tablo satırı dahil) X ad kodunu koşuyorsa ve aynı paketteki
+// bir bildirim X'i uyguluyorsa (uses_name), o bildirimin dosyasının tests-for cevabında test "direct"tir. Önceden
+// stats.go'nun kendi testi (`New().Run(mustParseProgram(t, c.code))`, tablodan) ad koduna bağlanmıyordu, 40. sırada
+// çağrı zinciriyle "2 steps" geliyordu.
+func TestATestOfTheNameCodesAFileImplementsIsDirect(t *testing.T) {
+	_, _, g := repoGraph(t)
+	ix := newIndex(g)
+	checked := 0
+	answers := map[string]string{} // dosya -> tests-for cevabı
+	for i := range g.Nodes {
+		decl := &g.Nodes[i]
+		if decl.Kind != kindFunc && decl.Kind != kindMethod || inTestFile(decl) {
+			continue
+		}
+		for _, use := range ix.out[decl.ID] {
+			name := ix.byID[use.To]
+			if use.Kind != edgeUsesName || name == nil || !implementable(name) {
+				continue
+			}
+			for _, e := range ix.in[name.ID] {
+				test := ix.byID[e.From]
+				if e.Kind != edgeTests || test == nil || !strings.HasPrefix(test.ID, "go:") || path.Dir(test.File) != path.Dir(decl.File) {
+					continue
+				}
+				checked++
+				if answers[decl.File] == "" {
+					var out strings.Builder
+					ix.printTestsFor(&out, ix.byID[fileID(decl.File)], 0)
+					answers[decl.File] = out.String()
+				}
+				if !strings.Contains(answers[decl.File], describe(test)+"  direct") {
+					t.Errorf("tests-for %s: %s runs %s, which %s implements, but is not direct", decl.File, test.Name, name.Name, decl.Name)
+				}
+			}
+		}
+	}
+	if checked < 20 {
+		t.Errorf("only %d same-package name-code tests found", checked)
 	}
 }

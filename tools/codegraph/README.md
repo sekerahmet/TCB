@@ -493,13 +493,17 @@ things close that:
   helper is not named: the language entry points (`lexer.New`, `source.Prepare` ...) are the sinks, and a function
   that passes its own string parameter to a sink makes that parameter a sink, until nothing changes. The text may be
   a constant, a `fmt.Sprintf` format (verbs become placeholders: `%q` → `"x"`), a named constant, a local variable,
-  the text another function returns, or parts joined with `+` (an unknown part becomes `x`). A string that goes to a
+  the text another function returns, parts joined with `+` (an unknown part becomes `x`; every pair of texts, at most 64),
+  or a field of a table the test ranges over (`for _, c := range []struct{ code string }{...} { run(c.code) }`, the table
+  written in the loop or assigned to a local; fields by name or position). A string that goes to a
   helper that never reaches the reader (`notTR(t, "kn.güncelle(1)")`) links nothing. Same chain rule as path
   constants (one package boundary) but at most four steps (half the limit): this edge is listed as a direct test, and
   a longer chain is weak evidence. The codes counted are the ones the text exercises (same rule as a test block).
 - **A Go function is tested through the name it implements**: `tests-for checkpoint.Checkpoint.saveOnInterval`
   walks up its callers (`update` implements `güncelle`, TR_mem_update) and lists the tests of the builtin, member and
   named-argument codes they use (`tests through the name codes it implements`, tests of the same package first).
+  When the declaration itself implements the code and the test is in its package, the test is direct: `tests-for
+  internal/lang/interp/stats.go` starts with `TestStatsNameTheBadValueByItsPlace  direct` (parti K2, A).
   Type names, keywords and messages do not count: every test uses them. A Go test counts only when it can run the
   function: the function's package is the test's own or one the test's package imports (transitively, test files'
   imports included). A test of `yazdır` in `checker` cannot run `tr.startsWithPrint` of `package main`, which nobody

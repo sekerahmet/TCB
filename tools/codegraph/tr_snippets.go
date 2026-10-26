@@ -43,6 +43,9 @@ type textSrc struct {
 	parts  []textSrc // art arda eklenen parçalar (`a + f(x) + b`); bilinmeyen parça yer tutucu olur
 }
 
+// maxJoined bir birleştirmenin (`a + b`) verdiği en çok metin sayısıdır: iki yanın metinleri çarpılır.
+const maxJoined = 64
+
 // placeholder metni bilinmeyen bir ifadenin yerine konur: genellikle TR dizesinin içindeki bir yol ya da sayıdır.
 var placeholder = textSrc{lit: "x"}
 
@@ -64,11 +67,15 @@ type snippetState struct {
 	varTexts    map[string][]textSrc // değişken (bildirim konumu) -> atanan metinler
 	returnTexts map[string][]textSrc // işlev kimliği -> döndürdüğü metinler
 	curParams   map[*types.Var]paramKey
+	// Tablo testleri (`for _, c := range []struct{ code string }{{"ortanca(1)"}} { run(c.code) }`): tables yerel
+	// değişkene atanan tablo, fieldTexts döngü değişkeninin alanının (bildirim konumu + "." + alan) tablodaki metinleri.
+	tables     map[string]*ast.CompositeLit
+	fieldTexts map[string][]textSrc
 }
 
 func newSnippetState() *snippetState {
 	return &snippetState{sinks: map[paramKey]bool{}, varTexts: map[string][]textSrc{}, returnTexts: map[string][]textSrc{},
-		curParams: map[*types.Var]paramKey{}}
+		curParams: map[*types.Var]paramKey{}, tables: map[string]*ast.CompositeLit{}, fieldTexts: map[string][]textSrc{}}
 }
 
 // enterFunc bir işlev bildirimine girerken parametrelerini kaydeder; dil giriş noktasıysa dize parametrelerini
@@ -132,12 +139,92 @@ func (x *goExtractor) textSources(fc *fileCtx, e ast.Expr) []textSrc {
 			if len(r) == 0 {
 				r = []textSrc{placeholder}
 			}
-			return []textSrc{{parts: []textSrc{l[0], r[0]}}}
+			var out []textSrc // her olası metin (tablonun her satırı: `c.code + "\n"`), en çok maxJoined
+			for _, a := range l {
+				for _, b := range r {
+					if len(out) < maxJoined {
+						out = append(out, textSrc{parts: []textSrc{a, b}})
+					}
+				}
+			}
+			return out
 		}
 	case *ast.CallExpr:
 		return x.callTexts(fc, v)
+	case *ast.SelectorExpr:
+		if id, ok := v.X.(*ast.Ident); ok {
+			if o, ok := fc.u.Info.Uses[id].(*types.Var); ok {
+				return x.idx.snip.fieldTexts[x.posKey(o.Pos())+"."+v.Sel.Name]
+			}
+		}
 	}
 	return nil
+}
+
+// structFields tablo öğesinin yapı tipinin alan adlarıdır, sırasıyla: yazılı yapı tipinden (`[]struct{ code string }`)
+// ya da adlı tipin tanımından. İfade tipleri (Info.Types) yüklenmez, tip yazıdan okunur.
+func (x *goExtractor) structFields(fc *fileCtx, t ast.Expr) []string {
+	var names []string
+	if st, ok := t.(*ast.StructType); ok {
+		for _, f := range st.Fields.List {
+			for _, n := range f.Names {
+				names = append(names, n.Name)
+			}
+		}
+		return names
+	}
+	if id := nameIdent(t); id != nil {
+		if tn, ok := fc.u.Info.Uses[id].(*types.TypeName); ok {
+			if st, ok := tn.Type().Underlying().(*types.Struct); ok {
+				for i := 0; i < st.NumFields(); i++ {
+					names = append(names, st.Field(i).Name())
+				}
+			}
+		}
+	}
+	return names
+}
+
+// noteRangeTable tablo üzerinde dönen döngünün değişkeninin alanlarına tablodaki metinleri bağlar: tablo döngüde
+// yazılır ya da yerel bir değişkene atanmıştır (`cases := []struct{...}{...}`); öğenin alanı adla ya da sırayla
+// verilir. Testlerin çoğu TR kodunu böyle tablodan koşar (stats_test.go: `New().Run(mustParseProgram(t, c.code))`).
+func (x *goExtractor) noteRangeTable(fc *fileCtx, rs *ast.RangeStmt) {
+	val, ok := rs.Value.(*ast.Ident)
+	if !ok || fc.u.Info.Defs[val] == nil {
+		return
+	}
+	lit, _ := rs.X.(*ast.CompositeLit)
+	if id, ok := rs.X.(*ast.Ident); ok && fc.u.Info.Uses[id] != nil {
+		lit = x.idx.snip.tables[x.posKey(fc.u.Info.Uses[id].Pos())]
+	}
+	if lit == nil {
+		return
+	}
+	arr, ok := lit.Type.(*ast.ArrayType)
+	if !ok {
+		return
+	}
+	fields := x.structFields(fc, arr.Elt)
+	key := x.posKey(fc.u.Info.Defs[val].Pos()) + "."
+	for _, e := range lit.Elts {
+		elem, ok := e.(*ast.CompositeLit)
+		if !ok {
+			continue
+		}
+		for i, f := range elem.Elts {
+			name, value := "", f
+			if kv, ok := f.(*ast.KeyValueExpr); ok {
+				if k, ok := kv.Key.(*ast.Ident); ok {
+					name, value = k.Name, kv.Value
+				}
+			} else if i < len(fields) {
+				name = fields[i]
+			}
+			if texts := x.textSources(fc, value); name != "" && len(texts) > 0 {
+				x.idx.snip.fieldTexts[key+name] = append(x.idx.snip.fieldTexts[key+name], texts...)
+			}
+		}
+	}
 }
 
 // callTexts çağrının metni: fmt.Sprintf'in kalıbı ya da dize döndüren bir modül işlevinin döndürdüğü metinler.
@@ -183,6 +270,10 @@ func (x *goExtractor) noteSnippets(fc *fileCtx, owner string, n ast.Node) {
 				x.noteVarText(fc, name, s.Values[i])
 			}
 		}
+	case *ast.RangeStmt:
+		if fc.isTest {
+			x.noteRangeTable(fc, s)
+		}
 	case *ast.ReturnStmt:
 		if len(s.Results) == 1 {
 			st.returnTexts[owner] = append(st.returnTexts[owner], x.textSources(fc, s.Results[0])...)
@@ -201,6 +292,9 @@ func (x *goExtractor) noteVarText(fc *fileCtx, lhs, rhs ast.Expr) {
 	obj := fc.u.Info.Defs[id]
 	if obj == nil {
 		obj = fc.u.Info.Uses[id]
+	}
+	if lit, ok := rhs.(*ast.CompositeLit); ok && obj != nil && fc.isTest {
+		x.idx.snip.tables[x.posKey(obj.Pos())] = lit
 	}
 	if v, ok := obj.(*types.Var); ok && isStringType(v.Type()) {
 		if texts := x.textSources(fc, rhs); len(texts) > 0 {
