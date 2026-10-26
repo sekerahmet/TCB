@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // definitions.json dil dosyasıyla tutarlıdır: her kodun tanımı var, türler ailelere uygun,
@@ -185,6 +187,23 @@ func TestLibraryCodeHasNoSignatureInDefinitions(t *testing.T) {
 		want := k.String() + ": a library code's signature and types are written only in the library's source"
 		if !strings.Contains(strings.Join(got, "\n"), want) {
 			t.Errorf("%q bekleniyordu, alınan: %q", want, got)
+		}
+	}
+}
+
+// İleti şablonlarındaki ad yuvaları ({@ad}) dilin adlarına bağlıdır: yuvanın kimliği kod listesinde
+// vardır ve kendi ad alanında bir adı olan koddur.
+func TestMessageSlotsAreNames(t *testing.T) {
+	for code, slots := range messages.Slots() {
+		for slot, identity := range slots {
+			k, err := Parse(identity)
+			if err != nil {
+				t.Errorf("%s {@%s}: %q bir kod kimliği değil: %v", code, slot, identity, err)
+				continue
+			}
+			if _, ok := Source().Entry(k); !ok {
+				t.Errorf("%s {@%s}: %s kaynak dilde adı olan bir kod değil", code, slot, identity)
+			}
 		}
 	}
 }

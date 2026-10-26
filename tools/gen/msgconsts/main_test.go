@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/sekerahmet/TCB/tools/internal/genmain"
 	"go/ast"
 	"go/parser"
@@ -13,6 +14,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
@@ -75,6 +79,11 @@ func TestMessageUsage(t *testing.T) {
 		t.Fatal(err)
 	}
 	calls, banned, used := scan(t, root)
+	trCalls := scanTR(t, root)
+	for _, c := range trCalls {
+		used[c.code] = true
+	}
+	calls = append(calls, trCalls...)
 	for _, c := range calls {
 		d, ok := defs[c.code]
 		if !ok {
@@ -178,6 +187,72 @@ func scan(t *testing.T, root string) (calls, banned []call, used map[string]bool
 		t.Fatal(err)
 	}
 	return calls, banned, used
+}
+
+// scanTR depodaki .tr dosyalarındaki ileti(H…, değerler) çağrılarıdır: kitaplık hata metnini
+// katalogdan alır, bu çağrılar da bir kodu kullanmak ve tanımdaki kadar değer vermek zorundadır.
+// Çağrı sözcük birimlerinden okunur (kodlu dosyada ad kodla, kodsuzda Türkçe adla bulunur);
+// değer sayısı en dıştaki virgüllerle sayılır.
+func scanTR(t *testing.T, root string) (calls []call) {
+	t.Helper()
+	name := codes.Source().Name(codes.FnMessage)
+	err := reporoot.WalkDir(root, func(path string, e fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if e.IsDir() {
+			if n := e.Name(); path != root && (strings.HasPrefix(n, ".") || n == "scratch" || n == "testdata" || n == "negative" || n == "node_modules") {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if !strings.HasSuffix(path, ".tr") {
+			return nil
+		}
+		text, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		parts, err := source.Split(string(text))
+		if err != nil {
+			return nil // başlığı bozuk dosya bu testin konusu değil
+		}
+		calls = append(calls, messageCalls(parts.Lexer(), name, path)...)
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return calls
+}
+
+// messageCalls sözcük birimi akışındaki name(H…, ...) çağrılarını verir.
+func messageCalls(lx *lexer.Lexer, name, path string) (calls []call) {
+	var toks []lexer.Token
+	for tok := lx.NextToken(); tok.Type != lexer.TokEOF; tok = lx.NextToken() {
+		toks = append(toks, tok)
+	}
+	for i := 0; i+2 < len(toks); i++ {
+		if (toks[i].Code != codes.FnMessage && toks[i].Literal != name) || toks[i+1].Type != lexer.TokLParen || toks[i+2].Type != lexer.TokMessageCode {
+			continue
+		}
+		args, depth := 0, 0
+		for _, tok := range toks[i+1:] {
+			switch {
+			case tok.Type.IsOpener():
+				depth++
+			case tok.Type.IsCloser():
+				depth--
+			case tok.Type == lexer.TokComma && depth == 1:
+				args++
+			}
+			if depth == 0 {
+				break
+			}
+		}
+		calls = append(calls, call{code: toks[i+2].Literal, args: args, pos: fmt.Sprintf("%s:%d", path, toks[i].Line)})
+	}
+	return calls
 }
 
 func isSelector(e ast.Expr) bool { _, ok := e.(*ast.SelectorExpr); return ok }
@@ -361,5 +436,24 @@ func TestGenerateRejectsRetiredCode(t *testing.T) {
 	write("tr.json", `{"H0001": "bir"}`)
 	if _, err := Generate(root); err == nil || !strings.Contains(err.Error(), "definitions.json") {
 		t.Errorf("tanımlarda kalan silinmiş kod yakalanmalı: %v", err)
+	}
+}
+
+// ileti(H…, değerler) çağrısının kodu ve değer sayısı sözcük birimlerinden okunur: iç içe çağrıdaki
+// ve liste içindeki virgüller sayılmaz, kodsuz çağrı yoksayılır.
+func TestMessageCallsScanner(t *testing.T) {
+	parts, err := source.Split("ileti(H6903, a, f(b, c))\nileti(H6904)\nileti(x, 1)\ng(H6905, 1)\nileti(H6900, [1, 2], {a: 1})\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := messageCalls(parts.Lexer(), codes.Source().Name(codes.FnMessage), "x.tr")
+	want := []call{{"H6903", 2, "x.tr:1"}, {"H6904", 0, "x.tr:2"}, {"H6900", 2, "x.tr:5"}}
+	if len(got) != len(want) {
+		t.Fatalf("%v, %v bekleniyordu", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("%d. çağrı: %v, %v bekleniyordu", i, got[i], want[i])
+		}
 	}
 }
