@@ -109,6 +109,14 @@ func TestChangedSeesTheWorkingTree(t *testing.T) {
 		}
 	}
 
+	// Yalnız bir testin değişmesi: test kendini koşar (eksikler listesi, ince ayar: test dosyasının kendi testleri).
+	gitMust(t, root, "checkout", "-q", "--", ".")
+	replaceIn(t, filepath.Join(root, "shape", "shape_test.go"), "func TestTwiceName(t *testing.T) {}", "func TestTwiceName(t *testing.T) { t.Log() }")
+	code, out, errOut = commandIn("changed", root, graph, "--all", "HEAD")
+	if code != exitOK || !strings.Contains(out, "changed tests (they run themselves) (1):\n    shape.TestTwiceName [func]") {
+		t.Errorf("a changed test runs itself: exit %d\n%s%s", code, out, errOut)
+	}
+
 	root = branchWithCopy(t)
 	testkit.WriteFile(t, root, "extra.go", strings.TrimPrefix(loopSource("d", "int"), "src:"))
 	gitMust(t, root, "add", "extra.go") // sahnelenmiş yeni dosya

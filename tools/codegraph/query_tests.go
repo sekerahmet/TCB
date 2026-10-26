@@ -474,9 +474,12 @@ func (ix *index) printGoFileTests(w io.Writer, file *Node, limit int) {
 		}
 	}
 	fmt.Fprintf(w, "  declarations in this file: %d\n", len(ts.nodes))
-	ix.printTestsToRun(w, ts, limit, "the declarations in this file")
+	ix.printTestsToRun(w, ts, limit, "the declarations in this file", "this file's tests")
 	ix.printScans(w, file.File, limit)
 	tests := map[string]bool{}
+	for _, t := range ownTests(ts) {
+		tests[t.ID] = true
+	}
 	for _, d := range ts.nodes {
 		for id := range ix.testDistances(d) {
 			tests[id] = true

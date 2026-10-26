@@ -86,7 +86,8 @@ backwards over the chain rule below (EXTRACTED `calls`, TR-to-TR `calls`, `uses`
 are shown nearest first as `N steps via <caller next to the target>`, always `[INFERRED]`. This is
 computed when you ask, not stored in `graph.json`. For a Go file, `tests-for path/file.go` lists the tests of the
 declarations in it (the collection `changed` uses) and the rules those tests guard, so "run tests-for <file> before
-touching it" answers for Go files too. A function a test file uses as a value (a table entry
+touching it" answers for Go files too. The tests a test file declares come first as `this file's tests` (benchmarks
+are measurements and stay out); `changed` lists a changed test the same way, as `changed tests (they run themselves)`. A function a test file uses as a value (a table entry
 `{"ceil", (*Tensor).Ceil}`, a method expression, `f := Cube`) is an INFERRED `calls` edge that the chain does not follow
 (the call happens later, elsewhere); when its owner is in a test file, `tests-for` lists the tests under "tests that use
 it as a function value": the test itself, or the first tests that read the table or call the helper (chain rule).

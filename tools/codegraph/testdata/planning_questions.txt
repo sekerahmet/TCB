@@ -188,3 +188,5 @@ codegraph history TR_fn_sum | contains: renamed G400 → TR_fn_sum | contains: a
 codegraph deleted | group: names: => K102  removed 020a98a7 | not: G400  removed | not: A001  removed | src: K1 partisi K1, 2026-10-26 (yeniden adlandırılan kod silinmiş sayılmaz)
 codegraph query G400 | contains: TR_fn_sum [name] | not: not found | src: K1 partisi K1, 2026-10-26 (eski notlar ve commit mesajları eski kodu anıyor)
 codegraph who-uses TR_env_CPU_AVX2 | contains: TR_CPU_AVX2 (ortam | group: uses_env => tensor.hasAVX2 | src: K1 partisi Ek 5, 2026-10-26 (adım 2de ad yalnız definitions.json ortak_ad alanında kalır; okuyucu oradan okur)
+codegraph tests-for internal/lang/checker/type_names_test.go | contains: this file's tests (2): | contains: checker.TestTypeNamesFollowTheMessageLanguage | not: none found | src: K1 partisi ince ayar 1, 2026-10-26 (test dosyasının kendi testleri)
+codegraph tests-for internal/devtools/testrunner/runner_test.go | contains: this file's tests (10): | src: K1 partisi ince ayar 1, 2026-10-26 (eskiden 10 testten 1'i)

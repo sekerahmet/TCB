@@ -142,6 +142,26 @@ func TestTestsForAGoFileListsTheTestsOfItsDeclarations(t *testing.T) {
 	}
 }
 
+// Kural: bir test dosyasının bildirdiği testler (ölçümler hariç) "this file's tests" grubundadır: yalnız dosyadaki bir
+// yardımcıyı çağıranlar değil; yardımcısız test dosyası "none found" demez (eksikler listesi, ince ayar: type_names_test.go).
+func TestTestsForATestFileListsItsOwnTests(t *testing.T) {
+	root := auditModule(t, measurementFiles)
+	var out, errb strings.Builder
+	if code := run([]string{"build", "--root", root}, &out, &errb); code != exitOK {
+		t.Fatalf("build: %d %s", code, errb.String())
+	}
+	out.Reset()
+	if code := run([]string{"tests-for", "p/p_test.go", "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
+		t.Fatalf("tests-for: %d %s", code, errb.String())
+	}
+	got := out.String()
+	own, _, _ := strings.Cut(got, "<-")
+	if !strings.Contains(own, "this file's tests (1):") || !strings.Contains(own, "p.TestWork") || strings.Contains(own, "Benchmark") ||
+		strings.Contains(got, "none found") {
+		t.Errorf("the file's own test, not its benchmarks:\n%s", got)
+	}
+}
+
 // Kural: tests-for tek sıralamayla yazar: önce hedefi konu edinen testler (adı ya da belge yorumu hedefin adını anıyor,
 // ya da hedefin ürettiği iletiyi bekliyor), sonra onu yalnızca kullanan doğrudan testler, sonra zincirler; her test bir
 // kez, en güçlü kanıtının grubunda (deneme 8 S1: çok kullanılan bir adda onu sınayan testler en dipte kalıyordu).
