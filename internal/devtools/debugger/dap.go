@@ -373,7 +373,7 @@ func (s *dapServer) dispatch(msg *dapMessage) {
 		s.event("terminated", nil)
 		s.exit(0)
 	case "stackTrace", "scopes", "variables", "setVariable", "evaluate", "continue", "next",
-		"stepIn", "stepOut", "goto", "dataBreakpointInfo", "trTablo", "trDegiskenler":
+		"stepIn", "stepOut", "goto", "dataBreakpointInfo", "trTable", "trVariables":
 		if s.isPaused() {
 			s.forward(msg)
 			return

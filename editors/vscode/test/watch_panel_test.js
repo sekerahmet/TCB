@@ -27,7 +27,7 @@ async function openPanel(replies) {
     o.vscode.debug.activeDebugSession = session;
     await o.commands['tr.izlemeMasasi']();
     await wait();
-    requests.length = 0; // açılışta giden "trDegiskenler" isteği sayılmaz
+    requests.length = 0; // açılışta giden "trVariables" isteği sayılmaz
     return Object.assign(o, { requests, panel: o.log.panels[0] });
 }
 
@@ -63,13 +63,13 @@ test('✏️ bilinmeyen kapsam: istek gitmez, hata gösterilir', async () => {
 });
 
 test('tablo isteği kapsamla gider; yanıt ve hata kapsamıyla panele döner (aynı adlı Yerel/Genel sekmeler çakışmaz)', async () => {
-    const o = await openPanel({ trTablo: (args) => (args.kapsam === 'Yok' ? Promise.reject(new Error('yok')) : { baslik: args.ifade, sutunlar: [args.kapsam] }) });
+    const o = await openPanel({ trTable: (args) => (args.scope === 'Yok' ? Promise.reject(new Error('yok')) : { title: args.expression, columns: [args.scope] }) });
     await o.panel.receive({ tur: 'tablo', kapsam: 'Genel', ifade: 'liste' });
     await o.panel.receive({ tur: 'tablo', kapsam: 'Yerel', ifade: 'liste' });
     await o.panel.receive({ tur: 'tablo', kapsam: 'Yok', ifade: 'liste' });
-    assert.deepStrictEqual(o.requests.filter((r) => r.command === 'trTablo').map((r) => r.args), [
-        { ifade: 'liste', kapsam: 'Genel' }, { ifade: 'liste', kapsam: 'Yerel' }, { ifade: 'liste', kapsam: 'Yok' }]);
-    const replies = o.panel.messages.filter((m) => m.tur === 'tablo' || m.tur === 'tabloHata').map((m) => [m.tur, (m.veri || m).kapsam]);
+    assert.deepStrictEqual(o.requests.filter((r) => r.command === 'trTable').map((r) => r.args), [
+        { expression: 'liste', scope: 'Genel' }, { expression: 'liste', scope: 'Yerel' }, { expression: 'liste', scope: 'Yok' }]);
+    const replies = o.panel.messages.filter((m) => m.tur === 'tablo' || m.tur === 'tabloHata').map((m) => [m.tur, m.veri ? m.veri.scope : m.kapsam]);
     assert.deepStrictEqual(replies, [['tablo', 'Genel'], ['tablo', 'Yerel'], ['tabloHata', 'Yok']]);
 });
 

@@ -66,15 +66,15 @@ func TestDAPTensorVariables(t *testing.T) {
 	}
 
 	// İzleme Masası ve tablo görünümü
-	panel := c.request("trDegiskenler", nil)
-	for _, d := range panel["degiskenler"].([]interface{}) {
+	panel := c.request("trVariables", nil)
+	for _, d := range panel["variables"].([]interface{}) {
 		dm := d.(map[string]interface{})
-		if dm["ad"] == "t" && (dm["tur"] != "tensor" || dm["tip"] != "Tensör [2×3]" || dm["tablo"] != true) {
+		if dm["name"] == "t" && (dm["kind"] != "tensor" || dm["type"] != "Tensör [2×3]" || dm["table"] != true) {
 			t.Fatalf("t İzleme Masası'nda tablo olarak açılabilir tensör olmalı: %v", dm)
 		}
 	}
-	table := c.request("trTablo", map[string]interface{}{"ifade": "t"})
-	if len(table["sutunlar"].([]interface{})) != 3 || len(table["satirlar"].([]interface{})) != 2 {
+	table := c.request("trTable", map[string]interface{}{"expression": "t"})
+	if len(table["columns"].([]interface{})) != 3 || len(table["rows"].([]interface{})) != 2 {
 		t.Fatalf("2×3 tablo bekleniyordu: %v", table)
 	}
 

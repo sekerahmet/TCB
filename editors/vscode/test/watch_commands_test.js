@@ -106,7 +106,7 @@ function loadPanel() {
     vm.runInContext(fs.readFileSync(path.join(MEDIA, 'watch_panel.js'), 'utf8'), context, { filename: 'watch_panel.js' });
     const button = (k) => buttons.find((d) => d.dataset.komut === k);
     const sendState = (line, reason) => windowObj.dispatch('message', {
-        data: { tur: 'durum', veri: { dosya: 'a.tr', satir: line, cerceve: 'ana program', neden: reason, degiskenler: [] } }
+        data: { tur: 'durum', veri: { file: 'a.tr', line, frame: 'ana program', reason, variables: [] } }
     });
     return { button, sendState, sent, elements, windowObj };
 }

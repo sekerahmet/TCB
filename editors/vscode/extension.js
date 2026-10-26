@@ -343,12 +343,12 @@ async function showTable(arg) {
     }
     let data;
     try {
-        data = await session.customRequest('trTablo', { ifade: expression });
+        data = await session.customRequest('trTable', { expression });
     } catch (e) {
         vscode.window.showErrorMessage('Tablo gösterilemedi: ' + (e && e.message ? e.message : e));
         return;
     }
-    const panel = vscode.window.createWebviewPanel('trTablo', 'Tablo: ' + expression, vscode.ViewColumn.Beside, webviewOptions());
+    const panel = vscode.window.createWebviewPanel('trTable', 'Tablo: ' + expression, vscode.ViewColumn.Beside, webviewOptions());
     panel.webview.html = tableHtml(panel.webview, data);
 }
 
@@ -395,7 +395,7 @@ async function updateWatchPanel(session) {
         openWatchPanel(session, false);
     }
     try {
-        const data = await session.customRequest('trDegiskenler', {});
+        const data = await session.customRequest('trVariables', {});
         watchPanelState.panel.webview.postMessage({ tur: 'durum', veri: data });
     } catch (e) {
         watchPanelState.panel.webview.postMessage({ tur: 'hata', mesaj: String(e && e.message ? e.message : e) });
@@ -422,8 +422,8 @@ async function onWatchPanelMessage(m) {
     }
     try {
         if (m.tur === 'tablo') {
-            const data = await session.customRequest('trTablo', { ifade: m.ifade, kapsam: m.kapsam });
-            watchPanelState.panel.webview.postMessage({ tur: 'tablo', veri: Object.assign({ kapsam: m.kapsam }, data) });
+            const data = await session.customRequest('trTable', { expression: m.ifade, scope: m.kapsam });
+            watchPanelState.panel.webview.postMessage({ tur: 'tablo', veri: Object.assign({ scope: m.kapsam }, data) });
         } else if (m.tur === 'komut') {
             await runWatchCommand(session, m.komut);
         } else if (m.tur === 'degistir') {

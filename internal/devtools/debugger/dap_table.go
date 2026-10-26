@@ -10,7 +10,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// İzleme Masası (özel istek: trDegiskenler)
+// İzleme Masası (özel istek: trVariables)
 // ---------------------------------------------------------------------------
 
 // variablesTable tüm değişkenleri tek bir tabloda
@@ -21,8 +21,8 @@ func (s *dapServer) variablesTable(msg *dapMessage) {
 		for _, e := range s.scopeVariables(h) {
 			_, _, tblErr := TableData(e.Val)
 			list = append(list, map[string]interface{}{
-				"kapsam": scope, "ad": e.Name, "tip": typeLabel(e.Val), "tur": valueKind(e.Val),
-				"deger": display(e.Val), "tablo": tblErr == nil, "ozet": watchSummary(e.Val),
+				"scope": scope, "name": e.Name, "type": typeLabel(e.Val), "kind": valueKind(e.Val),
+				"value": display(e.Val), "table": tblErr == nil, "summary": watchSummary(e.Val),
 			})
 		}
 	}
@@ -36,8 +36,8 @@ func (s *dapServer) variablesTable(msg *dapMessage) {
 		frame = st[len(st)-1].FuncName + "()"
 	}
 	s.respond(msg, map[string]interface{}{
-		"degiskenler": list, "satir": s.curLine, "neden": s.curReason,
-		"cerceve": frame, "dosya": filepath.Base(s.programPath),
+		"variables": list, "line": s.curLine, "reason": s.curReason,
+		"frame": frame, "file": filepath.Base(s.programPath),
 	})
 }
 
@@ -45,7 +45,7 @@ func (s *dapServer) variablesTable(msg *dapMessage) {
 // göstermek için uyguladığı arayüzdür. ayikla bu paketleri içe aktarmaz; değer
 // arayüzü uyguluyorsa tür, tip etiketi ve tablo verisi ondan alınır.
 type WatchValue interface {
-	// WatchKind ikon seçimi için türdür (ör. "tensor").
+	// WatchKind ikon seçimi için türdür: protokolün sabit anahtarı, İngilizce tanımlayıcı (ör. "tensor").
 	WatchKind() string
 	// WatchLabel tip sütununda gösterilir (ör. "Tensör [2×3]").
 	WatchLabel() string
@@ -61,23 +61,23 @@ func valueKind(val interp.Value) string {
 	switch v := val.(type) {
 	case *interp.ListVal:
 		if recordList(v) {
-			return "tablo"
+			return "table"
 		}
-		return "liste"
+		return "list"
 	case *interp.DictVal:
-		return "sozluk"
+		return "dict"
 	case *interp.StructInstanceVal:
-		return "yapi"
+		return "struct"
 	case *interp.IntVal, *interp.FloatVal:
-		return "sayi"
+		return "number"
 	case *interp.StringVal:
-		return "metin"
+		return "string"
 	case *interp.BoolVal:
-		return "mantik"
+		return "bool"
 	case *interp.NullVal:
-		return "yok"
+		return "none"
 	}
-	return "diger"
+	return "other"
 }
 
 // typeLabel tip sütununda değerin yapısını özetler (ör. Tablo [3×3]).
@@ -101,13 +101,13 @@ func typeLabel(val interp.Value) string {
 }
 
 // ---------------------------------------------------------------------------
-// Tablo görünümü (özel istek: trTablo)
+// Tablo görünümü (özel istek: trTable)
 // ---------------------------------------------------------------------------
 
 func (s *dapServer) table(msg *dapMessage) {
 	var a struct {
-		Expression string `json:"ifade"`
-		Scope      string `json:"kapsam"`
+		Expression string `json:"expression"`
+		Scope      string `json:"scope"`
 	}
 	_ = json.Unmarshal(msg.Arguments, &a)
 	// İzleme Masası aynı adlı Yerel/Genel tabloları ayırır: kapsam "Genel" ise ifade genel
@@ -127,7 +127,7 @@ func (s *dapServer) table(msg *dapMessage) {
 		s.respondErr(msg, err.Error())
 		return
 	}
-	s.respond(msg, map[string]interface{}{"baslik": a.Expression, "sutunlar": cols, "satirlar": rows, "tip": interp.DisplayType(val)})
+	s.respond(msg, map[string]interface{}{"title": a.Expression, "columns": cols, "rows": rows, "type": interp.DisplayType(val)})
 }
 
 // TableData bir değeri tabloya (sütunlar + satırlar) dönüştürür:

@@ -43,7 +43,7 @@ func FuzzDAPMessage(f *testing.F) {
 
 // dapPauseCommands program duraklatılmışken VM goroutine'inde işlenen isteklerdir.
 var dapPauseCommands = []string{"stackTrace", "scopes", "variables", "setVariable", "evaluate",
-	"gotoTargets", "goto", "dataBreakpointInfo", "setDataBreakpoints", "trTablo", "trDegiskenler",
+	"gotoTargets", "goto", "dataBreakpointInfo", "setDataBreakpoints", "trTable", "trVariables",
 	"next", "stepIn", "stepOut", "pause", "threads", "setBreakpoints"}
 
 // dapResumeCommands başarılı olunca programı sürdüren isteklerdir (yanıttan sonra bir duraklama gelir).
@@ -64,7 +64,7 @@ func FuzzDAPPauseRequest(f *testing.F) {
 	f.Add(uint8(5), []byte(`{"source":{"path":"x"},"line":-1}`))
 	f.Add(uint8(6), []byte(`{"threadId":1,"targetId":0}`))
 	f.Add(uint8(7), []byte(`{"variablesReference":2,"name":"k"}`))
-	f.Add(uint8(9), []byte(`{"ifade":"liste"}`))
+	f.Add(uint8(9), []byte(`{"expression":"liste"}`))
 
 	f.Fuzz(func(t *testing.T, choice uint8, arg []byte) {
 		if bytes.ContainsAny(arg, "(") || bytes.Contains(arg, []byte(`\u`)) || len(arg) > 4096 {

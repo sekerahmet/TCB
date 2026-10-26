@@ -96,7 +96,7 @@ func (k *Dataset) Text(lang *codes.Language) string {
 }
 
 // WatchKind İzleme Masası'nda ikon seçimi için türdür.
-func (k *Dataset) WatchKind() string { return "diger" }
+func (k *Dataset) WatchKind() string { return "other" }
 
 // WatchLabel tip sütununda gösterilen özettir.
 func (k *Dataset) WatchLabel() string {
@@ -318,7 +318,7 @@ func (o *Reader) Text(lang *codes.Language) string {
 }
 
 // WatchKind İzleme Masası'nda ikon seçimi için türdür.
-func (o *Reader) WatchKind() string { return "diger" }
+func (o *Reader) WatchKind() string { return "other" }
 
 // WatchLabel tip sütununda gösterilen özettir.
 func (o *Reader) WatchLabel() string {

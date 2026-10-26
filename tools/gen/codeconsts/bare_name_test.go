@@ -41,13 +41,6 @@ var bareNameAllowances = map[string]map[string]string{
 	"internal/lang/messages/code.go": {
 		"TR_DIL": "yazım dili değişkeni TR_env_LANG, dil listelerinden önce okunur",
 	},
-	// Eklentiyle konuşulan iletinin alan adları ve değer türleri: protokolün sabit anahtarları
-	// (eklenti bunlara göre ikon ve sütun seçer); kullanıcıya dilin adı olarak görünmez.
-	"internal/devtools/debugger/dap_table.go": {
-		"tip":   "İzleme Masası iletisinin alan adı (\"tip\": ...)",
-		"metin": "İzleme Masası iletisinin değer türü (ikon seçimi)",
-		"yok":   "İzleme Masası iletisinin değer türü (ikon seçimi)",
-	},
 	// Veri biçimlerindeki sonlu olmayan sayının sabit metni (kontrol noktası, günlük; 19.5, 20):
 	// dilden bağımsız sözleşme, TR_val_nan'in adı olarak değil, biçimin baytı olarak yazılır.
 	"internal/stdlib/common/jsonwrite/jsonwrite.go": {"NaN": "günlük, durum dosyası ve kontrol noktası veri biçimi (NonFiniteData: NaN, Infinity, -Infinity)"},

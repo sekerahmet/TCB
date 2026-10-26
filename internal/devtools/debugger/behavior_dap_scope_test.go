@@ -52,18 +52,18 @@ func TestDAPTableTargetsScope(t *testing.T) {
 	columns := func(args map[string]interface{}) []string {
 		t.Helper()
 		var out []string
-		for _, s := range c.request("trTablo", args)["sutunlar"].([]interface{}) {
+		for _, s := range c.request("trTable", args)["columns"].([]interface{}) {
 			out = append(out, s.(string))
 		}
 		return out
 	}
-	if got := columns(map[string]interface{}{"ifade": "liste", "kapsam": "Genel"}); !reflect.DeepEqual(got, []string{"a"}) {
+	if got := columns(map[string]interface{}{"expression": "liste", "scope": "Genel"}); !reflect.DeepEqual(got, []string{"a"}) {
 		t.Fatalf("genel tablo sütunları: %v", got)
 	}
-	if got := columns(map[string]interface{}{"ifade": "liste", "kapsam": "Yerel"}); !reflect.DeepEqual(got, []string{"b"}) {
+	if got := columns(map[string]interface{}{"expression": "liste", "scope": "Yerel"}); !reflect.DeepEqual(got, []string{"b"}) {
 		t.Fatalf("yerel tablo sütunları: %v", got)
 	}
-	if got := columns(map[string]interface{}{"ifade": "liste"}); !reflect.DeepEqual(got, []string{"b"}) {
+	if got := columns(map[string]interface{}{"expression": "liste"}); !reflect.DeepEqual(got, []string{"b"}) {
 		t.Fatalf("kapsamsız tablo yerelden başlamalı: %v", got)
 	}
 }

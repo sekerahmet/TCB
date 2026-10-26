@@ -122,9 +122,9 @@ func (s *dapServer) handlePaused(msg *dapMessage) (jump int, resume bool) {
 		s.dataBreakpointInfo(msg)
 	case "setDataBreakpoints":
 		s.setDataBreakpoints(msg)
-	case "trTablo":
+	case "trTable":
 		s.table(msg)
-	case "trDegiskenler":
+	case "trVariables":
 		s.variablesTable(msg)
 	default:
 		s.respondErr(msg, messages.Text(messages.H8107, msg.Command))

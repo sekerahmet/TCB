@@ -241,25 +241,25 @@ func TestDAPDebugSession(t *testing.T) {
 	if !strings.Contains(children["[1]"], "Ayşe") {
 		t.Fatalf("liste[1] Ayşe'yi içermeli: %v", children)
 	}
-	table := c.request("trTablo", map[string]interface{}{"ifade": "liste"})
-	if fmt.Sprint(table["sutunlar"]) != "[ad maas]" || len(table["satirlar"].([]interface{})) != 2 {
+	table := c.request("trTable", map[string]interface{}{"expression": "liste"})
+	if fmt.Sprint(table["columns"]) != "[ad maas]" || len(table["rows"].([]interface{})) != 2 {
 		t.Fatalf("2 satırlı [ad maas] tablosu bekleniyordu: %v", table)
 	}
 
 	// İzleme Masası: tek tabloda tüm değişkenler, tablolar işaretli
-	panel := c.request("trDegiskenler", nil)
-	if int(panel["satir"].(float64)) != 9 {
-		t.Fatalf("panel 9. satırı göstermeli: %v", panel["satir"])
+	panel := c.request("trVariables", nil)
+	if int(panel["line"].(float64)) != 9 {
+		t.Fatalf("panel 9. satırı göstermeli: %v", panel["line"])
 	}
 	found := map[string]map[string]interface{}{}
-	for _, d := range panel["degiskenler"].([]interface{}) {
+	for _, d := range panel["variables"].([]interface{}) {
 		dm := d.(map[string]interface{})
-		found[dm["ad"].(string)] = dm
+		found[dm["name"].(string)] = dm
 	}
-	if l := found["liste"]; l == nil || l["tip"] != "Tablo [2×2]" || l["tablo"] != true || l["kapsam"] != "Genel" || l["tur"] != "tablo" {
+	if l := found["liste"]; l == nil || l["type"] != "Tablo [2×2]" || l["table"] != true || l["scope"] != "Genel" || l["kind"] != "table" {
 		t.Fatalf("liste Tablo [2×2] olarak işaretlenmeli: %v", found["liste"])
 	}
-	if tp := found["toplam"]; tp == nil || tp["deger"] != "1100" || tp["tablo"] != false || tp["tur"] != "sayi" {
+	if tp := found["toplam"]; tp == nil || tp["value"] != "1100" || tp["table"] != false || tp["kind"] != "number" {
 		t.Fatalf("toplam = 1100 skaler değişken olmalı: %v", found["toplam"])
 	}
 	if _, var_ := found["yazdır"]; var_ {

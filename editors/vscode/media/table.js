@@ -1,9 +1,9 @@
 // Tablo görünümü web görünümü betiği. Tablo verisi ('veri') şablondaki satır içi betikten gelir.
 // extension.js içindeki tableHtml tarafından yüklenir.
-const columns = ['#'].concat(veri.sutunlar || []);
-const rows = (veri.satirlar || []).map((s, i) => [String(i)].concat(s));
+const columns = ['#'].concat(veri.columns || []);
+const rows = (veri.rows || []).map((s, i) => [String(i)].concat(s));
 let sortState = { column: -1, descending: false };
-document.getElementById('baslik').textContent = veri.baslik + ' — ' + (veri.tip || '') + ' (' + rows.length + ' satır)';
+document.getElementById('baslik').textContent = veri.title + ' — ' + (veri.type || '') + ' (' + rows.length + ' satır)';
 function render() {
   const list = tableRows(rows, document.getElementById('ara').value, sortState);
   const headerRow = document.getElementById('basliklar');

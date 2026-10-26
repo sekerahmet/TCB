@@ -32,10 +32,10 @@ func TestDAPDisplayHelper(t *testing.T) {
 			lines = append(lines, fmt.Sprintf("var %s | %s | %s", name, m["value"], m["type"]))
 		}
 	}
-	for _, d := range c.request("trDegiskenler", nil)["degiskenler"].([]interface{}) {
+	for _, d := range c.request("trVariables", nil)["variables"].([]interface{}) {
 		m := d.(map[string]interface{})
-		if name := m["ad"].(string); name == "b" || name == "l" || name == "t" {
-			lines = append(lines, fmt.Sprintf("panel %s | %s | %s", name, m["deger"], m["tip"]))
+		if name := m["name"].(string); name == "b" || name == "l" || name == "t" {
+			lines = append(lines, fmt.Sprintf("panel %s | %s | %s", name, m["value"], m["type"]))
 		}
 	}
 	ev := c.request("evaluate", map[string]interface{}{"expression": "b", "context": "watch"})

@@ -31,19 +31,19 @@ func TestDAPScalarAndSmallTensorValue(t *testing.T) {
 		t.Errorf("hata ayıklama konsolu / üzerine gelme kayıp = %q", got)
 	}
 
-	panel := c.request("trDegiskenler", nil)
+	panel := c.request("trVariables", nil)
 	summaries := map[string]string{}
 	tables := map[string]bool{}
-	for _, d := range panel["degiskenler"].([]interface{}) {
+	for _, d := range panel["variables"].([]interface{}) {
 		dm := d.(map[string]interface{})
-		ad := dm["ad"].(string)
-		summaries[ad], _ = dm["ozet"].(string)
-		tables[ad], _ = dm["tablo"].(bool)
-		if dm["deger"] != await[ad] {
-			t.Errorf("İzleme Masası %s değeri %q, beklenen %q", ad, dm["deger"], await[ad])
+		ad := dm["name"].(string)
+		summaries[ad], _ = dm["summary"].(string)
+		tables[ad], _ = dm["table"].(bool)
+		if dm["value"] != await[ad] {
+			t.Errorf("İzleme Masası %s değeri %q, beklenen %q", ad, dm["value"], await[ad])
 		}
 	}
-	// Webview satır içi değeri "ozet" alanından alır; büyük tensörde boştur (yalnızca tablo).
+	// Webview satır içi değeri "summary" alanından alır; büyük tensörde boştur (yalnızca tablo).
 	if summaries["w"] != await["w"] || summaries["kayıp"] != await["kayıp"] || summaries["büyük"] != "" {
 		t.Errorf("ozet alanları: %v", summaries)
 	}

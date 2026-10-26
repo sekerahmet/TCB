@@ -49,10 +49,10 @@ yazdır("toplam: {toplam}")
 	}
 	panelValue := func(ad string) string {
 		t.Helper()
-		for _, d := range c.request("trDegiskenler", nil)["degiskenler"].([]interface{}) {
+		for _, d := range c.request("trVariables", nil)["variables"].([]interface{}) {
 			dm := d.(map[string]interface{})
-			if dm["ad"] == ad {
-				return dm["deger"].(string)
+			if dm["name"] == ad {
+				return dm["value"].(string)
 			}
 		}
 		return ""

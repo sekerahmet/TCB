@@ -55,7 +55,7 @@ func (n *Object) Text(lang *codes.Language) string {
 }
 
 // WatchKind İzleme Masası'nda ikon seçimi için türdür.
-func (n *Object) WatchKind() string { return "diger" }
+func (n *Object) WatchKind() string { return "other" }
 
 // WatchLabel tip sütununda gösterilen özettir.
 func (n *Object) WatchLabel() string {

@@ -2,8 +2,8 @@
 const vscode = acquireVsCodeApi();
 // Paneldeki beklenmeyen hatalar sessizce kaybolmasın: eklentiye bildirilir.
 window.addEventListener('error', (e) => vscode.postMessage({ tur: 'panelHatasi', mesaj: String(e.message) + ' (' + e.lineno + ':' + e.colno + ')' }));
-const ICONS = { tablo: '▦', liste: '☰', sozluk: '{}', yapi: '◆', tensor: '▣', sayi: '#', metin: 'Aa', mantik: '◐', yok: '∅', diger: '•' };
-const KIND_NAMES = { tablo: 'Tablo', liste: 'Liste', sozluk: 'Sözlük', yapi: 'Yapı', tensor: 'Tensör', sayi: 'Sayı', metin: 'Metin', mantik: 'Mantık', yok: 'Yok', diger: 'Değer' };
+const ICONS = { table: '▦', list: '☰', dict: '{}', struct: '◆', tensor: '▣', number: '#', string: 'Aa', bool: '◐', none: '∅', other: '•' };
+const KIND_NAMES = { table: 'Tablo', list: 'Liste', dict: 'Sözlük', struct: 'Yapı', tensor: 'Tensör', number: 'Sayı', string: 'Metin', bool: 'Mantık', none: 'Yok', other: 'Değer' };
 const el = (tag, text, cssClass) => { const e = document.createElement(tag); if (text !== undefined) e.textContent = text; if (cssClass) e.className = cssClass; return e; };
 
 // linkButton link görünümlü, fare ve klavyeyle (Enter, Boşluk) kullanılabilen bir düğme kurar.
@@ -58,7 +58,7 @@ window.addEventListener('message', (event) => {
     // Açık sekmelerin içeriğini yeni adımın değerleriyle yenile
     tabs.forEach((s) => vscode.postMessage({ tur: 'tablo', kapsam: s.kapsam, ifade: s.ad }));
   } else if (m.tur === 'tablo') {
-    const s = tabs.find((x) => x.key === tabKey(m.veri.kapsam, m.veri.baslik));
+    const s = tabs.find((x) => x.key === tabKey(m.veri.scope, m.veri.title));
     if (s) { s.veri = m.veri; s.error = ''; if (s.key === activeTab) renderPane(); }
   } else if (m.tur === 'tabloHata') {
     const s = tabs.find((x) => x.key === tabKey(m.kapsam, m.ifade));
@@ -74,12 +74,12 @@ window.addEventListener('message', (event) => {
 
 // openTable: tabloyu alt penceredeki sekmesinde açar (yoksa yeni sekme ekler) ve etkin yapar.
 function openTable(d) {
-  let s = tabs.find((x) => x.key === tabKey(d.kapsam, d.ad));
+  let s = tabs.find((x) => x.key === tabKey(d.scope, d.name));
   if (!s) {
-    s = { key: tabKey(d.kapsam, d.ad), kapsam: d.kapsam, ad: d.ad, tur: d.tur || 'tablo', veri: null, error: '', search: '', sortState: { column: -1, descending: false } };
+    s = { key: tabKey(d.scope, d.name), kapsam: d.scope, ad: d.name, tur: d.kind || 'table', veri: null, error: '', search: '', sortState: { column: -1, descending: false } };
     tabs.push(s);
     if (sessionEnded) s.error = 'Hata ayıklama oturumu bitti; tabloyu görmek için programı yeniden başlatın (F5).';
-    else vscode.postMessage({ tur: 'tablo', kapsam: d.kapsam, ifade: d.ad });
+    else vscode.postMessage({ tur: 'tablo', kapsam: d.scope, ifade: d.name });
   }
   activeTab = s.key;
   renderPane(); renderVariables();
@@ -96,8 +96,8 @@ function closeTab(key) {
 function renderVariables() {
   if (!state) return;
   if (!sessionEnded) {
-    const location = state.dosya + ' · Satır ' + state.satir + ' · ' + state.cerceve;
-    const reason = stopCount + '. duruş' + (state.neden ? ' · ' + state.neden : '');
+    const location = state.file + ' · Satır ' + state.line + ' · ' + state.frame;
+    const reason = stopCount + '. duruş' + (state.reason ? ' · ' + state.reason : '');
     document.getElementById('konum').textContent = location;
     document.getElementById('konum').title = location;
     document.getElementById('neden').textContent = reason;
@@ -107,43 +107,43 @@ function renderVariables() {
   const body = document.getElementById('degiskenler');
   body.replaceChildren();
   const newValues = {};
-  state.degiskenler.forEach((d) => { newValues[d.kapsam + ':' + d.ad] = d.deger; });
-  const visible = state.degiskenler.filter((d) => !q || d.ad.toLocaleLowerCase('tr').includes(q));
-  document.getElementById('degiskenSayac').textContent = visible.length + ' / ' + state.degiskenler.length + ' değişken';
+  state.variables.forEach((d) => { newValues[d.scope + ':' + d.name] = d.value; });
+  const visible = state.variables.filter((d) => !q || d.name.toLocaleLowerCase('tr').includes(q));
+  document.getElementById('degiskenSayac').textContent = visible.length + ' / ' + state.variables.length + ' değişken';
   if (!visible.length) {
     const tr = el('tr'); const td = el('td', 'Değişken yok', 'bos'); td.colSpan = 5; tr.appendChild(td); body.appendChild(tr);
   }
   visible.forEach((d) => {
-    const key = d.kapsam + ':' + d.ad;
-    const kind = d.tur || 'diger';
-    const isOpen = tabs.some((s) => s.key === tabKey(d.kapsam, d.ad));
+    const key = d.scope + ':' + d.name;
+    const kind = d.kind || 'other';
+    const isOpen = tabs.some((s) => s.key === tabKey(d.scope, d.name));
     const tr = el('tr');
     if (isOpen) tr.classList.add('acik');
-    if (key in previousValues && previousValues[key] !== d.deger) tr.classList.add('degisti');
-    const nameCell = el('td', undefined, 'ad'); nameCell.title = d.ad + ' (' + d.tip + ')';
+    if (key in previousValues && previousValues[key] !== d.value) tr.classList.add('degisti');
+    const nameCell = el('td', undefined, 'ad'); nameCell.title = d.name + ' (' + d.type + ')';
     const icon = el('span', ICONS[kind] || '•', 'ikon ' + kind); icon.title = KIND_NAMES[kind] || '';
     nameCell.appendChild(icon);
     let valueCell;
-    if (d.tablo) {
+    if (d.table) {
       // <a href> tıklamalarını VS Code'un web görünümü yakalar; link görünümlü span kullanılır.
-      nameCell.appendChild(linkButton(d.ad, () => openTable(d)));
+      nameCell.appendChild(linkButton(d.name, () => openTable(d)));
       valueCell = el('td', undefined, 'deger');
       // Küçük değerler (ör. 1-8 elemanlı tensör) satır içinde de görünür; tablo bağlantısı yanında kalır.
-      if (d.ozet) { valueCell.appendChild(el('span', d.ozet + '  ', 'ozet')); valueCell.title = d.ozet; }
-      const link = linkButton(isOpen ? '● Açık — sekmeye git' : (d.ozet ? '▸ Tablo' : '▸ Tabloyu aç'), () => openTable(d));
-      link.title = d.tip;
+      if (d.summary) { valueCell.appendChild(el('span', d.summary + '  ', 'ozet')); valueCell.title = d.summary; }
+      const link = linkButton(isOpen ? '● Açık — sekmeye git' : (d.summary ? '▸ Tablo' : '▸ Tabloyu aç'), () => openTable(d));
+      link.title = d.type;
       valueCell.appendChild(link);
       tr.classList.add('tablo-satiri');
       tr.title = 'Çift tıklayın: tabloyu alttaki pencerede aç';
       tr.addEventListener('dblclick', (e) => { if (e.target.tagName !== 'INPUT') openTable(d); });
     } else {
-      nameCell.appendChild(document.createTextNode(d.ad));
-      valueCell = el('td', d.deger, 'deger'); valueCell.title = d.deger;
+      nameCell.appendChild(document.createTextNode(d.name));
+      valueCell = el('td', d.value, 'deger'); valueCell.title = d.value;
     }
     const pencil = el('button', '✏️', 'kalem'); pencil.title = 'Değeri değiştir (TR ifadesi)';
     pencil.addEventListener('click', () => editValue(valueCell, d));
     const actionCell = el('td'); actionCell.appendChild(pencil);
-    tr.append(el('td', d.kapsam, 'kapsam'), nameCell, el('td', d.tip, 'tip'), valueCell, actionCell);
+    tr.append(el('td', d.scope, 'kapsam'), nameCell, el('td', d.type, 'tip'), valueCell, actionCell);
     body.appendChild(tr);
   });
   previousValues = newValues;
@@ -185,8 +185,8 @@ function renderPane() {
   if (s.error) { box.appendChild(el('div', 'Tablo gösterilemedi: ' + s.error, 'bos')); counter.textContent = ''; return; }
   if (!s.veri) { box.appendChild(el('div', 'Yükleniyor…', 'bos')); counter.textContent = ''; return; }
 
-  const columns = ['#'].concat(s.veri.sutunlar || []);
-  const rows = (s.veri.satirlar || []).map((r, i) => [String(i)].concat(r));
+  const columns = ['#'].concat(s.veri.columns || []);
+  const rows = (s.veri.rows || []).map((r, i) => [String(i)].concat(r));
   const list = tableRows(rows, s.search, s.sortState);
   const t = el('table'); const thead = el('thead'); const headerRow = el('tr'); const body = el('tbody');
   columns.forEach((name, i) => {
@@ -201,7 +201,7 @@ function renderPane() {
     body.appendChild(row);
   });
   thead.appendChild(headerRow); t.append(thead, body); box.appendChild(t);
-  counter.textContent = s.ad + ' — ' + list.length + ' / ' + rows.length + ' satır · ' + (s.veri.sutunlar || []).length + ' sütun';
+  counter.textContent = s.ad + ' — ' + list.length + ' / ' + rows.length + ' satır · ' + (s.veri.columns || []).length + ' sütun';
 }
 
 // Izgarada ok tuşlarıyla hücreden hücreye gezinme
@@ -240,10 +240,10 @@ updateButtons();
 })();
 
 function editValue(cell, d) {
-  const input = el('input'); input.value = d.tablo ? '' : d.deger; input.placeholder = 'Yeni değer, ör. 0.20 veya [1, 2]'; input.style.width = '95%';
+  const input = el('input'); input.value = d.table ? '' : d.value; input.placeholder = 'Yeni değer, ör. 0.20 veya [1, 2]'; input.style.width = '95%';
   cell.replaceChildren(input); input.focus(); input.select();
   input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && input.value.trim() !== '') vscode.postMessage({ tur: 'degistir', kapsam: d.kapsam, ad: d.ad, ifade: input.value });
+    if (e.key === 'Enter' && input.value.trim() !== '') vscode.postMessage({ tur: 'degistir', kapsam: d.scope, ad: d.name, ifade: input.value });
     if (e.key === 'Escape') renderVariables();
   });
 }

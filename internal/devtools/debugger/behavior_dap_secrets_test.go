@@ -37,8 +37,8 @@ yazdır("bitti")
 	if v := c.evaluate("ayar.hf_token"); strings.Contains(v, secret) {
 		t.Errorf("izleme ifadesinde gizli değer görünmemeli: %q", v)
 	}
-	panel, _ := json.Marshal(c.request("trDegiskenler", nil))
-	table, _ := json.Marshal(c.request("trTablo", map[string]interface{}{"ifade": "kayıt"}))
+	panel, _ := json.Marshal(c.request("trVariables", nil))
+	table, _ := json.Marshal(c.request("trTable", map[string]interface{}{"expression": "kayıt"}))
 	for _, message := range []string{string(panel), string(table)} {
 		if strings.Contains(message, secret) || !strings.Contains(message, interp.SecretMask) {
 			t.Errorf("İzleme Masası iletisinde gizli değer maskelenmeli: %s", message)
