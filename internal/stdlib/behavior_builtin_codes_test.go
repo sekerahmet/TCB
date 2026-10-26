@@ -8,17 +8,17 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// Tüm motorlar yüklüyken genel kapsamdaki her yerleşiğin sözlükte bir yerleşik kodu
-// (fn) olmalı ve kayıtlı ad o kodun adı olmalı; sözlükteki her yerleşik kodu da
-// adıyla kayıtlı olmalı. Böylece sözlükte adı olmayan
-// bir yerleşik kaydedilemez, sözlükte de kaydı olmayan bir yerleşik kodu kalamaz.
+// Kural: tüm motorlar yüklüyken genel kapsamdaki her yerleşik bir yerleşik kodunun (fn) kimliğiyle
+// kayıtlıdır ve adı o kimliktir; sözlükteki her yerleşik kodu da kimliğiyle kayıtlıdır (sabitler
+// değer olarak). Böylece sözlükte kodu olmayan bir yerleşik kaydedilemez, sözlükte de kaydı olmayan
+// bir yerleşik kodu kalamaz. İçeride ad kimliktir: kayıt hiçbir yazım dilinin adını taşımaz.
 func TestBuiltinsMatchDictionary(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	m := interp.New()
 	for _, name := range m.GlobalEnv.Names() {
 		d, _ := m.GlobalEnv.Get(name)
@@ -26,42 +26,45 @@ func TestBuiltinsMatchDictionary(t *testing.T) {
 		if !ok {
 			continue
 		}
-		k, ok := codes.Find(codes.NamespaceGlobal, name)
-		if !ok || !k.IsBuiltin() {
-			t.Errorf("kayıtlı yerleşik %q sözlükte bir yerleşik kodu değil", name)
-			continue
-		}
-		if actual, _ := codes.CanonicalNameIn(codes.NamespaceGlobal, name); b.Name != actual {
-			t.Errorf("%q (%s) yerleşiğinin adı %q, sözlükte %q", name, k, b.Name, actual)
+		if k, err := codes.Parse(name); err != nil || !k.IsBuiltin() {
+			t.Errorf("kayıtlı yerleşik %q sözlükte bir yerleşik kodunun kimliği değil", name)
+		} else if b.Name != name {
+			t.Errorf("%s yerleşiğinin adı %q, kimliği olmalı", k, b.Name)
 		}
 	}
 	for _, k := range codes.Codes() {
 		if !k.IsBuiltin() {
 			continue
 		}
+		d, ok := m.GlobalEnv.Get(k.String())
 		if tn, _ := codes.DefinitionOf(k); tn.Kind == codes.KindConstant {
 			// Sabitler (pi) yerleşik fonksiyon değil, değer olarak kayıtlıdır.
-			for _, y := range codes.Spellings(k) {
-				if d, ok := m.GlobalEnv.Get(y); !ok || d == nil {
-					t.Errorf("sözlükteki sabit %s (%s) %q yazımıyla kayıtlı değil", k, codes.Name(k), y)
-				}
+			if !ok || d == nil {
+				t.Errorf("sözlükteki sabit %s kimliğiyle kayıtlı değil", k)
 			}
 			continue
 		}
-		b := m.Builtin(k)
-		if b == nil {
-			t.Errorf("sözlükteki %s (%s) kayıtlı değil", k, codes.Name(k))
-			continue
-		}
-		for _, y := range codes.Spellings(k) {
-			if d, _ := m.GlobalEnv.Get(y); d != b {
-				t.Errorf("%s yazımı %q aynı yerleşiğe bağlı değil", k, y)
-			}
+		if b := m.Builtin(k); b == nil {
+			t.Errorf("sözlükteki %s kayıtlı değil", k)
+		} else if d != b {
+			t.Errorf("%s kimliği aynı yerleşiğe bağlı değil", k)
 		}
 	}
 }
 
-// runSame TR kodunu verilen VM'de çalıştırır (genel tanımlar korunur).
+// runCoded kodlu gövdeyi (kimliklerle yazılmış TR kodu, 17.2) verilen VM'de çalıştırır (genel
+// tanımlar korunur).
+func runCoded(t *testing.T, m *interp.VM, body string) (interp.Value, error) {
+	t.Helper()
+	p := parser.New(source.Parts{Coded: true, Language: codes.SourceLanguage, Body: body}.Lexer())
+	prog := p.ParseProgram()
+	if len(p.Errors()) > 0 {
+		t.Fatalf("sözdizimi hatası: %v\n%s", p.Errors(), body)
+	}
+	return m.Run(prog)
+}
+
+// runSame Türkçe yazılmış TR kodunu verilen VM'de çalıştırır (genel tanımlar korunur).
 func runSame(t *testing.T, m *interp.VM, kd string) (interp.Value, error) {
 	t.Helper()
 	p := parser.New(source.TextLexer(kd))
@@ -72,12 +75,11 @@ func runSame(t *testing.T, m *interp.VM, kd string) (interp.Value, error) {
 	return m.Run(prog)
 }
 
-// Kod listesindeki her üye kodu (Y) bütün yazımlarıyla en az bir tipte çalışmalı: kodu
-// olup da hiçbir switch'te karşılanmayan (ya da yalnızca bir yazımı karşılanan) üye
-// kalmamalı. Veri kümesi ve okuyucu üyeleri dizin gerektirdiği için
-// internal/stdlib/dataset testlerinde denenir.
+// Kural: kod listesindeki her üye kodu (mem) en az bir tipte çalışır: kodu olup da hiçbir
+// switch'te karşılanmayan üye kalmaz. Üyeye kimliğiyle erişilir (kodlu gövde). Veri kümesi ve
+// okuyucu üyeleri dizin gerektirdiği için internal/stdlib/dataset testlerinde denenir. Dilde
+// olmayan adlar sıradan adlardır.
 func TestMembersMatchDictionary(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	m := interp.New()
 	m.Err = io.Discard // açılan ilerleme çubuğu test çıktısına yazmasın
 	setup := strings.Join([]string{
@@ -99,35 +101,45 @@ func TestMembersMatchDictionary(t *testing.T) {
 		if k.Namespace() != codes.NamespaceMember || k.IsLibrary() || (k >= codes.MemSampler && k <= codes.MemNext) {
 			continue
 		}
-		for _, y := range codes.Spellings(k) {
-			found := false
-			for _, o := range examples {
-				if _, err := runSame(t, m, o+"."+y); err == nil {
-					found = true
-					break
-				}
-			}
-			if !found {
-				t.Errorf("üye %s (%q) hiçbir tipte karşılanmıyor", k, y)
+		found := false
+		for _, o := range examples {
+			if _, err := runCoded(t, m, o+"."+k.String()); err == nil {
+				found = true
+				break
 			}
 		}
-	}
-	// Motor tiplerinde ASCII yazılmış üye adı hata verir ve Türkçe adı önerir; öneri
-	// yalnızca o tipte geçerli bir üye için yapılır.
-	for _, c := range []struct{ code, want string }{
-		{"u_tensor.sekil", "Bunu mu demek istediniz: 'şekil'?"},
-		{"u_iyilestirici.sifirla", "Bunu mu demek istediniz: 'sıfırla'?"},
-		{"u_parcalayici.coz", "Bunu mu demek istediniz: 'çöz'?"},
-	} {
-		if _, err := runSame(t, m, c.code); err == nil || !strings.Contains(err.Error(), c.want) {
-			t.Errorf("%s: %q içeren hata bekleniyordu: %v", c.code, c.want, err)
+		if !found {
+			t.Errorf("üye %s hiçbir tipte karşılanmıyor", k)
 		}
 	}
-	if _, err := runSame(t, m, "u_tensor.kodla"); err == nil || strings.Contains(err.Error(), "yazmak mı istediniz") {
-		t.Errorf("tensörde kodla önerilmemeli: %v", err)
-	}
-	// Dilde olmayan adlar sıradan adlardır.
 	if v, err := runSame(t, m, "değişken web_sunucu = 3\nweb_sunucu + 1"); err != nil || v.Inspect() != "4" {
-		t.Errorf("kaldırılan ad değişken adı olabilmeli: %v %v", v, err)
+		t.Errorf("dilde olmayan ad değişken adı olabilmeli: %v %v", v, err)
+	}
+}
+
+// Kural: Türkçe yazılmış programda motor tiplerinin ASCII yazılmış üye adı (sekil) hata verir ve
+// Türkçe adı önerir; öneri yalnızca o tipte geçerli bir üye için yapılır (tensörde kodla önerilmez).
+func TestEngineMemberASCIISpellingSuggestsTurkish(t *testing.T) {
+	m := interp.New()
+	m.Err = io.Discard
+	setup := strings.Join([]string{
+		`değişken u_tensor = tensör([[1.0, 2.0]], türev_izle: doğru)`,
+		`değişken u_iyilestirici = SGD([u_tensor])`,
+		`değişken u_parcalayici = parçalayıcı_yükle("` + filepath.ToSlash(reporoot.Path("internal/compute/tokenize/testdata/tokenizer_byte_bpe.json")) + `")`,
+	}, "\n")
+	if _, err := runSame(t, m, setup); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		code string
+		want codes.Code
+	}{{"u_tensor.sekil", codes.MemShape}, {"u_iyilestirici.sifirla", codes.MemZeroGrad}, {"u_parcalayici.coz", codes.MemDecode}} {
+		want := "'" + codes.NameRef(c.want).MessageText("tr") + "'?"
+		if _, err := runSame(t, m, c.code); err == nil || !strings.Contains(messages.ErrorIn(err, "tr"), want) {
+			t.Errorf("%s: %q içeren hata bekleniyordu: %v", c.code, want, err)
+		}
+	}
+	if _, err := runSame(t, m, "u_tensor.kodla"); err == nil || strings.Contains(messages.ErrorIn(err, "tr"), "?") {
+		t.Errorf("tensörde kodla önerilmemeli: %v", err)
 	}
 }

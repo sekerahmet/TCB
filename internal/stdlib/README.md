@@ -10,10 +10,11 @@ bağlar. Tam dili çalıştıran her program bu paketi içe aktarır.
 profil aracı) bilmez.
 Denetim: `TestLayerRule` (`internal/layers_test.go`).
 
-**Sözlük tek kaynaktır.** Her yerleşik ve üye sabit bir koda bağlıdır; kayıtlı adlar, adlı
-argümanlar ve üye tipleri kod sözlüğüyle aynıdır. Testler sözlükte olmayan bir yerleşiğin
-kaydedilmesini ve sözlükteki bir kodun kayıtsız kalmasını engeller.
-Denetim: `TestBuiltinsMatchDictionary`, `TestMembersMatchDictionary`, `TestNamedArgsMatchDefinitions`, `TestMemberTypesMatchDefinitions`, `TestRemovedBuiltinsNotRegistered`.
+**Sözlük tek kaynaktır.** Her yerleşik ve üye sabit bir koda bağlıdır; yerleşikler kodun
+kimliğiyle kayıtlıdır (içeride ad kimliktir), adlı argümanlar ve üye tipleri kod sözlüğüyle
+aynıdır. Testler sözlükte olmayan bir yerleşiğin kaydedilmesini ve sözlükteki bir kodun kayıtsız
+kalmasını engeller.
+Denetim: `TestBuiltinsMatchDictionary`, `TestMembersMatchDictionary`, `TestNamedArgsMatchDefinitions`, `TestMemberTypesMatchDefinitions`, `TestEngineMemberASCIISpellingSuggestsTurkish`.
 
 **Her örnek çalışır.** Sözlükteki her örnek tip denetiminden geçer ve hatasız çalışır.
 Denetim: `TestExamplesRun`.

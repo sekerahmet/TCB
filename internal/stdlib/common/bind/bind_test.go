@@ -24,11 +24,11 @@ func names(codeList ...codes.Code) []Named {
 	return a
 }
 
-// NamedArg yalnızca adlı argüman kodlarını (arg) kabul eder; yanlış kod başlangıçta panikler.
+// Kural: NamedArg yalnızca adlı argüman kodlarını (arg) kabul eder, yanlış kod başlangıçta panikler;
+// adlı argümanın içerideki adı ve tek kabul edilen yazımı kimliğidir (kaynak çözülünce adlar kimliğe döner).
 func TestNamedArg(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	a := NamedArg(codes.ArgLr)
-	if a.TR != codes.Name(codes.ArgLr) || !a.Accepts(a.TR) || a.Spellings()[0] != a.TR {
+	if id := codes.ArgLr.String(); a.TR != id || !a.Accepts(id) || len(a.Spellings()) != 1 || a.Spellings()[0] != id {
 		t.Fatalf("NamedArg(TR_arg_lr) = %+v", a)
 	}
 	defer func() {
@@ -39,62 +39,54 @@ func TestNamedArg(t *testing.T) {
 	NamedArg(codes.FnPrint)
 }
 
-// CheckNamed bilinmeyen adda öneriyi şu sırayla arar: (1) kod listesindeki öneri (ASCII
-// yazım), yalnızca bu fonksiyonun adlarındansa; (2) başka dillerden alışılmış ad
-// (büyük-küçük harf duyarsız), yine yalnızca bu fonksiyonun adlarındansa; (3) yazım
-// yakınlığı. Öneri yoksa geçerli adlar listelenir; fonksiyon adlı argüman almıyorsa söylenir.
+// Kural: CheckNamed bilinmeyen adda öneriyi şu sırayla arar: (1) kod listesindeki öneri (ASCII
+// yazım), yalnızca bu fonksiyonun adlarındansa; (2) başka dillerden alışılmış ad (büyük-küçük harf
+// duyarsız), yine yalnızca bu fonksiyonun adlarındansa; (3) yazım yakınlığı. Öneri yoksa geçerli
+// adlar listelenir; fonksiyon adlı argüman almıyorsa söylenir. Önerilen ve listelenen adlar
+// iletinin dilindedir: aynı hata Türkçede 'öğrenme_oranı', İngilizcede 'lr' önerir.
 func TestCheckNamedSuggestionOrder(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
-	lrName, axisName, epsilon := codes.Name(codes.ArgLr), codes.Name(codes.ArgDim), codes.Name(codes.ArgEps)
+	name := func(k codes.Code, lang string) string { return codes.NameRef(k).MessageText(lang) }
 	cases := []struct {
-		name       string
-		given      string
-		names      []Named
-		suggestion string   // boşsa öneri yok
-		contains   []string // mesajda geçmesi gerekenler (öneri yoksa)
-		excludes   []string
+		name    string
+		given   string
+		names   []Named
+		suggest codes.Code // codes.None: öneri yok
+		listed  []codes.Code
+		message messages.Code // 0: hata yok
 	}{
-		{name: "bilinen ad", given: lrName, names: names(codes.ArgLr, codes.ArgWeightDecay)},
-		{name: "ASCII yazım", given: "ogrenme_orani", names: names(codes.ArgLr, codes.ArgWeightDecay), suggestion: lrName},
-		{name: "yabancı ad", given: "lr", names: names(codes.ArgLr, codes.ArgWeightDecay), suggestion: lrName},
-		{name: "yabancı ad büyük harfle", given: "LR", names: names(codes.ArgLr), suggestion: lrName},
-		{name: "yabancı ad yazım yakınlığından önce", given: "eps", names: names(codes.ArgEps, codes.ArgDim), suggestion: epsilon},
-		{name: "yazım hatası", given: "egsen", names: names(codes.ArgDim, codes.ArgSeed), suggestion: axisName},
-		{name: "yabancı adın karşılığı bu fonksiyonda yok", given: "lr", names: names(codes.ArgDim),
-			contains: []string{axisName}, excludes: []string{lrName}},
-		{name: "adlı argüman almayan fonksiyon", given: "eksen", names: nil, contains: []string{"almaz"}},
+		{name: "bilinen ad", given: codes.ArgLr.String(), names: names(codes.ArgLr, codes.ArgWeightDecay)},
+		{name: "ASCII yazım", given: "ogrenme_orani", names: names(codes.ArgLr, codes.ArgWeightDecay), suggest: codes.ArgLr, message: messages.H7900},
+		{name: "yabancı ad", given: "lr", names: names(codes.ArgLr, codes.ArgWeightDecay), suggest: codes.ArgLr, message: messages.H7900},
+		{name: "yabancı ad büyük harfle", given: "LR", names: names(codes.ArgLr), suggest: codes.ArgLr, message: messages.H7900},
+		{name: "yabancı ad yazım yakınlığından önce", given: "eps", names: names(codes.ArgEps, codes.ArgDim), suggest: codes.ArgEps, message: messages.H7900},
+		{name: "yazım hatası", given: "egsen", names: names(codes.ArgDim, codes.ArgSeed), suggest: codes.ArgDim, message: messages.H7900},
+		{name: "yabancı adın karşılığı bu fonksiyonda yok", given: "lr", names: names(codes.ArgDim), listed: []codes.Code{codes.ArgDim}, message: messages.H7901},
+		{name: "adlı argüman almayan fonksiyon", given: "eksen", message: messages.H7902},
 	}
-	for _, d := range cases {
-		t.Run(d.name, func(t *testing.T) {
-			value := map[string]interp.Value{d.given: &interp.IntVal{Val: 1}}
-			err := CheckNamed("deneme", value, d.names...)
-			if d.suggestion == "" && d.contains == nil {
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			err := CheckNamed("deneme", map[string]interp.Value{c.given: &interp.IntVal{Val: 1}}, c.names...)
+			if c.message == 0 {
 				if err != nil {
 					t.Fatalf("bilinen ad reddedildi: %v", err)
 				}
 				return
 			}
-			if err == nil {
-				t.Fatalf("%q kabul edildi; hata bekleniyordu", d.given)
+			if !messages.Has(err, c.message) {
+				t.Fatalf("%q: %s bekleniyordu, alınan %v", c.given, c.message, err)
 			}
-			m := err.Error()
-			if !strings.Contains(m, "deneme") || !strings.Contains(m, "'"+d.given+"'") {
-				t.Errorf("mesaj fonksiyonu ve verilen adı söylemeli: %s", m)
-			}
-			if d.suggestion != "" && !strings.Contains(m, "'"+d.suggestion+"'?") {
-				t.Errorf("öneri %q bekleniyordu: %s", d.suggestion, m)
-			}
-			if d.suggestion == "" && strings.Contains(m, "?") {
-				t.Errorf("öneri beklenmiyordu: %s", m)
-			}
-			for _, p := range d.contains {
-				if !strings.Contains(m, p) {
-					t.Errorf("mesajda %q yok: %s", p, m)
+			for _, lang := range []string{"tr", "en"} {
+				m := messages.ErrorIn(err, lang)
+				if !strings.Contains(m, "deneme") || !strings.Contains(m, "'"+c.given+"'") {
+					t.Errorf("%s: ileti fonksiyonu ve verilen adı söylemeli: %s", lang, m)
 				}
-			}
-			for _, p := range d.excludes {
-				if strings.Contains(m, p) {
-					t.Errorf("mesajda %q olmamalı: %s", p, m)
+				if c.suggest != codes.None && !strings.Contains(m, "'"+name(c.suggest, lang)+"'?") {
+					t.Errorf("%s: öneri %q bekleniyordu: %s", lang, name(c.suggest, lang), m)
+				}
+				for _, k := range c.listed {
+					if !strings.Contains(m, name(k, lang)) {
+						t.Errorf("%s: iletide %q yok: %s", lang, name(k, lang), m)
+					}
 				}
 			}
 		})
@@ -253,9 +245,9 @@ func TestMethodWrappersTurnPanicsIntoNamedErrors(t *testing.T) {
 }
 
 // Kural: OptionalBool verilmemiş adlı Mantık argümanında varsayılanı verir, verilmişte değeri okur,
-// Mantık olmayan değerde argümanı adıyla anan hata verir; ad iletinin dilindedir (4D).
+// Mantık olmayan değerde argümanı adıyla anan hata verir; ad iletinin dilindedir (4D: Türkçede
+// eksen, İngilizcede dim).
 func TestOptionalBool(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	a := NamedArg(codes.ArgDim)
 	for _, def := range []bool{false, true} {
 		if b, err := OptionalBool("f", map[string]interp.Value{}, a, def); err != nil || b != def {
@@ -266,11 +258,11 @@ func TestOptionalBool(t *testing.T) {
 		t.Errorf("doğru = %v, %v", b, err)
 	}
 	_, err := OptionalBool("f", map[string]interp.Value{a.TR: &interp.IntVal{Val: 1}}, a, false)
-	if err == nil || !strings.Contains(err.Error(), "f: "+a.TR+" ") {
-		t.Errorf("Mantık olmayan değer adıyla hata vermeli: %v", err)
+	tr, en := codes.NameRef(codes.ArgDim).MessageText("tr"), codes.NameRef(codes.ArgDim).MessageText("en")
+	if got := messages.ErrorIn(err, "tr"); err == nil || !strings.Contains(got, "f: "+tr+" ") {
+		t.Errorf("Mantık olmayan değer Türkçe iletide adıyla (%s) anılmalı: %v", tr, got)
 	}
-	en := codes.NameRef(codes.ArgDim).MessageText("en")
-	if got := messages.ErrorIn(err, "en"); en == a.TR || !strings.Contains(got, "f: "+en+" must be") {
+	if got := messages.ErrorIn(err, "en"); en == tr || !strings.Contains(got, "f: "+en+" must be") {
 		t.Errorf("İngilizce iletide ad İngilizce olmalı (%s): %s", en, got)
 	}
 }

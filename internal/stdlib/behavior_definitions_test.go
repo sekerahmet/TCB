@@ -15,6 +15,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/checker"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
@@ -149,48 +150,44 @@ func calls(node any, match func(*ast.CallExpression) bool) []*ast.CallExpression
 // unknownNamed denemede kullanılan, hiçbir adlı argümana yakın olmayan addır.
 const unknownNamed = "zzq_bilinmeyen"
 
-// validNames bilinmeyen adlı argüman hatasından geçerli adlar listesini çıkarır
-// ("(geçerli adlar: a, b)" ya da "(adlı argüman almaz)"); hata bu biçimde değilse ok yanlış.
-func validNames(err error) ([]string, bool) {
+// validNames bilinmeyen adlı argüman hatasının lang dilindeki iletisinden geçerli adlar listesini
+// çıkarır: iletinin son ayracı geçerli adları sayar ("(geçerli adlar: a, b)", "(valid names: a, b)")
+// ya da adlı argüman almadığını söyler (iki noktasız ayraç). Çalışma anı hatası ileti kodunu
+// sarmadığı için (messages.Has görmez) ileti metninden okunur; hata bilinmeyen adı anmıyorsa ok yanlış.
+func validNames(err error, lang string) ([]string, bool) {
 	if err == nil {
 		return nil, false
 	}
-	s := err.Error()
-	if !strings.Contains(s, "'"+unknownNamed+"' adında bir parametre almaz") {
+	s := messages.ErrorIn(err, lang)
+	open, end := strings.LastIndex(s, "("), strings.LastIndex(s, ")")
+	if !strings.Contains(s, "'"+unknownNamed+"'") || open < 0 || end < open {
 		return nil, false
 	}
-	if strings.Contains(s, "(adlı argüman almaz)") {
+	inner := s[open+1 : end]
+	i := strings.Index(inner, ": ")
+	if i < 0 {
 		return []string{}, true
 	}
-	i := strings.Index(s, "(geçerli adlar: ")
-	if i < 0 {
-		return nil, false
-	}
-	s = s[i+len("(geçerli adlar: "):]
-	j := strings.Index(s, ")")
-	if j < 0 {
-		return nil, false
-	}
-	names := strings.Split(s[:j], ", ")
+	names := strings.Split(inner[i+2:], ", ")
 	sort.Strings(names)
 	return names, true
 }
 
-func namedArgNames(im codes.Signature) []string {
+// namedArgNames imzadaki adlı argümanların lang dilindeki adlarıdır (sıralı).
+func namedArgNames(im codes.Signature, lang string) []string {
 	out := []string{}
 	for _, a := range im.Named {
-		out = append(out, codes.Name(a.Code))
+		out = append(out, codes.NameRef(a.Code).MessageText(lang))
 	}
 	sort.Strings(out)
 	return out
 }
 
-// Tanımdaki adlı argümanlar, yerleşiğin ya da metodun gerçekten kabul ettikleridir: her
-// fonksiyonun ve metodun örneğindeki çağrısına bilinmeyen bir adlı argüman eklenir;
-// çağrı, geçerli adları sayan (ya da adlı argüman almadığını söyleyen) hatayla durmalı ve
-// bu adlar tanımdakilerle aynı olmalıdır.
+// Kural (13.5): tanımdaki adlı argümanlar, yerleşiğin ya da metodun gerçekten kabul ettikleridir:
+// her fonksiyonun ve metodun örneğindeki çağrısına bilinmeyen bir adlı argüman eklenir; çağrı,
+// geçerli adları sayan (ya da adlı argüman almadığını söyleyen) hatayla durmalı ve bu adlar her
+// yazım dilinin iletisinde tanımdakilerin o dildeki adlarıyla aynı olmalıdır.
 func TestNamedArgsMatchDefinitions(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	chdirTemp(t)
 	tried := 0
 	for _, k := range codes.Codes() {
@@ -203,39 +200,42 @@ func TestNamedArgsMatchDefinitions(t *testing.T) {
 		if prog == nil {
 			continue
 		}
-		name := codes.Name(k)
+		// Ayrıştırılan program içeride kimliklerle durur: çağrı kimlikle aranır.
+		id := k.String()
 		cs := calls(prog, func(c *ast.CallExpression) bool {
 			switch f := c.Function.(type) {
 			case *ast.Identifier:
-				return tn.Kind == codes.KindFunction && f.Value == name
+				return tn.Kind == codes.KindFunction && f.Value == id
 			case *ast.MemberExpression:
-				return tn.Kind == codes.KindMethod && f.Property == name
+				return tn.Kind == codes.KindMethod && f.Property == id
 			}
 			return false
 		})
 		if len(cs) == 0 {
-			t.Errorf("%s (%s): örnek bu kodu çağırmıyor; adlı argümanlar sınanamaz\n  %s", k, name, example)
+			t.Errorf("%s: örnek bu kodu çağırmıyor; adlı argümanlar sınanamaz\n  %s", k, example)
 			continue
 		}
 		for _, c := range cs {
 			c.NamedArgs = append(c.NamedArgs, ast.NamedArg{Name: unknownNamed, Value: &ast.IntegerLiteral{Value: 1}})
 		}
 		err := runExample(t, prog)
-		received, ok := validNames(err)
-		if !ok {
-			t.Errorf("%s (%s): bilinmeyen adlı argüman geçerli adları sayan bir hata vermedi: %v\n  %s", k, name, err, example)
-			continue
-		}
 		tried++
-		var wants [][]string
-		if tn.Kind == codes.KindFunction {
-			wants = append(wants, namedArgNames(tn.Signature))
-		}
-		for _, u := range tn.Members {
-			wants = append(wants, namedArgNames(u.Signature))
-		}
-		if !slices.ContainsFunc(wants, func(b []string) bool { return slices.Equal(b, received) }) {
-			t.Errorf("%s (%s): yerleşik %v adlı argümanlarını kabul ediyor, tanımda %v", k, name, received, wants)
+		for _, lang := range []string{"tr", "en"} {
+			received, ok := validNames(err, lang)
+			if !ok {
+				t.Errorf("%s: bilinmeyen adlı argüman geçerli adları sayan bir hata vermedi: %v\n  %s", k, err, example)
+				break
+			}
+			var wants [][]string
+			if tn.Kind == codes.KindFunction {
+				wants = append(wants, namedArgNames(tn.Signature, lang))
+			}
+			for _, u := range tn.Members {
+				wants = append(wants, namedArgNames(u.Signature, lang))
+			}
+			if !slices.ContainsFunc(wants, func(b []string) bool { return slices.Equal(b, received) }) {
+				t.Errorf("%s (%s): yerleşik %v adlı argümanlarını kabul ediyor, tanımda %v", k, lang, received, wants)
+			}
 		}
 	}
 	if tried < 70 {
@@ -243,11 +243,10 @@ func TestNamedArgsMatchDefinitions(t *testing.T) {
 	}
 }
 
-// Üye tanımlarındaki tip listeleri, üyeyi gerçekten destekleyen tiplerle aynıdır: her
-// tipten bir örnek değer üzerinde her üye okunur (metotlar çağrılmaz, bağlı değer olarak
-// döner); okuma hatasızsa (sözlükte: yok dönmezse) tip üyeyi destekler.
+// Kural: üye tanımlarındaki tip listeleri, üyeyi gerçekten destekleyen tiplerle aynıdır: her
+// tipten bir örnek değer üzerinde her üye kimliğiyle okunur (kodlu gövde; metotlar çağrılmaz, bağlı
+// değer olarak döner); okuma hatasızsa (sözlükte: yok dönmezse) tip üyeyi destekler.
 func TestMemberTypesMatchDefinitions(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	m := interp.New()
 	m.Out, m.Err = io.Discard, io.Discard
 	m.SourceFile = filepath.Join(repoRoot(t), "ornek.tr")
@@ -285,7 +284,7 @@ func TestMemberTypesMatchDefinitions(t *testing.T) {
 		}
 		var real []codes.Code
 		for i, o := range examples {
-			v, err := runSame(t, m, "u_"+string(rune('a'+i))+"."+codes.Name(k))
+			v, err := runCoded(t, m, "u_"+string(rune('a'+i))+"."+k.String())
 			if err == nil && !(o.typ == codes.TypeDict && v == interp.Null) {
 				real = append(real, o.typ)
 			}
@@ -295,7 +294,7 @@ func TestMemberTypesMatchDefinitions(t *testing.T) {
 		def := tn.Types()
 		slices.Sort(def)
 		if !slices.Equal(real, def) {
-			t.Errorf("%s (%s): üyeyi destekleyen tipler %v, tanımda %v", k, codes.Name(k), codes.Names(real...), codes.Names(def...))
+			t.Errorf("%s: üyeyi destekleyen tipler %v, tanımda %v", k, real, def)
 		}
 	}
 }

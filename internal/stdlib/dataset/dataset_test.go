@@ -160,9 +160,9 @@ yazdır(n, satır, s.sonraki())
 	}
 }
 
-// Kullanılmayan okuyucular çöp toplayıcıyla, kalanlar CloseAll ile kapanır.
+// Kural (19, kaynaklar): kullanılmayan okuyucular çöp toplayıcıyla, kalanlar CloseAll ile kapanır;
+// kapatılmış okuyucu çökmez, açık bir hata verir (H5516).
 func TestResourcesClose(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	d := buildDataset(t)
 	dataset.CloseAll(time.Second)
 	base := dataset.OpenResources()
@@ -190,20 +190,20 @@ kalıcı.sonraki()
 	if n := dataset.OpenResources(); n != base {
 		t.Fatalf("CloseAll sonrası açık kaynak %d, beklenen %d", n, base)
 	}
-	// Kapatılmış okuyucu açık bir hata verir, çökmez.
-	_, err := m.ApplyFunction(mustMember(t, variable(t, m, "kalıcı"), "sonraki"), nil, nil, 1)
+	_, err := m.ApplyFunction(mustMember(t, variable(t, m, "kalıcı"), codes.MemNext), nil, nil, 1)
 	if !messages.Has(err, messages.H5516) {
 		t.Fatalf("kapatılmış okuyucu hatası bekleniyordu: %v", err)
 	}
 }
 
-func mustMember(t *testing.T, v interp.Value, name string) interp.Value {
+// mustMember değerin k üyesidir; üyeye içerideki gibi koduyla (kimliğiyle) erişilir.
+func mustMember(t *testing.T, v interp.Value, k codes.Code) interp.Value {
 	t.Helper()
 	pg, ok := v.(interp.PropertyGetter)
 	if !ok {
 		t.Fatalf("%T üyesi yok", v)
 	}
-	u, err := pg.GetProperty(codes.MemberCode(name), name)
+	u, err := pg.GetProperty(k, k.String())
 	if err != nil {
 		t.Fatal(err)
 	}

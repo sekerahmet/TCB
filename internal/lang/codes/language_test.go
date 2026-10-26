@@ -67,33 +67,43 @@ func TestNamespacesUnique(t *testing.T) {
 	}
 }
 
+// Kural (2.9a, ASCII ipucu): Türkçe yazım dilinde Türkçe harfli bir adın ASCII biçimi (yazdir) asıl
+// ada (yazdır) eşlenir; eşleme ad alanına bağlıdır (tür bir üyedir, genel ad değil). İngilizce adlar
+// zaten ASCII'dir: İngilizcenin eşlemesinde Türkçe biçim yoktur.
 func TestCanonicalNameIn(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
+	en, err := LoadLanguage("en")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tr := Source()
 	for _, c := range []struct {
+		d          *Language
 		ns         Namespace
 		name, want string
 		mustExist  bool
 	}{
-		{NamespaceGlobal, "yazdir", "yazdır", true}, {NamespaceGlobal, "yazdır", "yazdır", true},
-		{NamespaceGlobal, "sonuc", "sonuç", true}, {NamespaceGlobal, "degisken", "değişken", true},
-		{NamespaceMember, "sekil", "şekil", true}, {NamespaceParam, "ogrenme_orani", "öğrenme_oranı", true},
-		{NamespaceMember, "tur", "tür", true}, {NamespaceGlobal, "tur", "", false}, {NamespaceGlobal, "tanimsiz_ad", "", false},
+		{tr, NamespaceGlobal, "yazdir", "yazdır", true}, {tr, NamespaceGlobal, "yazdır", "yazdır", true},
+		{tr, NamespaceGlobal, "sonuc", "sonuç", true}, {tr, NamespaceGlobal, "degisken", "değişken", true},
+		{tr, NamespaceMember, "sekil", "şekil", true}, {tr, NamespaceParam, "ogrenme_orani", "öğrenme_oranı", true},
+		{tr, NamespaceMember, "tur", "tür", true}, {tr, NamespaceGlobal, "tur", "", false}, {tr, NamespaceGlobal, "tanimsiz_ad", "", false},
+		{en, NamespaceGlobal, "print", "print", true}, {en, NamespaceGlobal, "yazdir", "", false},
 	} {
-		if got, ok := CanonicalNameIn(c.ns, c.name); ok != c.mustExist || got != c.want {
-			t.Errorf("AsilAdAlanda(%s, %q) = %q %v; %q %v bekleniyordu", c.ns, c.name, got, ok, c.want, c.mustExist)
+		if got, ok := c.d.CanonicalNameIn(c.ns, c.name); ok != c.mustExist || got != c.want {
+			t.Errorf("%s: CanonicalNameIn(%s, %q) = %q %v; %q %v bekleniyordu", c.d.Code, c.ns, c.name, got, ok, c.want, c.mustExist)
 		}
 	}
 }
 
-// ASCII biçimler kabul edilmez (her işin tek yazımı); Oneri onlar için ve yabancı adlar için
-// her zaman Türkçe adı önerir, ASCII biçimi asla önermez.
+// Kural (2.9a, tek yazım): Türkçe yazım dilinde ASCII biçim (yazdir) kabul edilmez; Suggest onun ve
+// yabancı adların yerine her zaman Türkçe adın kodunu önerir, geçerli ada öneri vermez; accept süzgeci
+// öbür kodları dışlar.
 func TestASCIINotAcceptedSuggestsTurkish(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	if AcceptASCII {
 		t.Fatal("ASCII biçimler kapalı olmalı")
 	}
+	tr := Source()
 	for _, y := range []string{"yazdir", "degisken", "sonuc", "dogru"} {
-		if k, ok := Find(NamespaceGlobal, y); ok {
+		if k, ok := tr.Find(NamespaceGlobal, y); ok {
 			t.Errorf("%q kabul edilmemeli (%s)", y, k)
 		}
 	}
@@ -103,18 +113,17 @@ func TestASCIINotAcceptedSuggestsTurkish(t *testing.T) {
 		want string
 	}{
 		{NamespaceGlobal, "yazdir", "yazdır"}, {NamespaceGlobal, "degisken", "değişken"},
-		{NamespaceGlobal, "degisken", "değişken"}, {NamespaceMember, "tur", "tür"}, {NamespaceMember, "sekil", "şekil"},
+		{NamespaceMember, "tur", "tür"}, {NamespaceMember, "sekil", "şekil"},
 		{NamespaceParam, "turev_izle", "türev_izle"},
 	} {
-		k, ok := Suggest(c.ns, c.name, nil)
-		if !ok || Name(k) != c.want {
-			t.Errorf("Oneri(%s, %q) = %s %v; %q bekleniyordu", c.ns, c.name, k, ok, c.want)
+		if k, ok := tr.Suggest(c.ns, c.name, nil); !ok || tr.Name(k) != c.want {
+			t.Errorf("Suggest(%s, %q) = %s %v; %q bekleniyordu", c.ns, c.name, k, ok, c.want)
 		}
 	}
-	if _, ok := Suggest(NamespaceGlobal, "yazdır", nil); ok {
+	if _, ok := tr.Suggest(NamespaceGlobal, "yazdır", nil); ok {
 		t.Error("geçerli ad için öneri olmamalı")
 	}
-	if _, ok := Suggest(NamespaceGlobal, "yazdir", func(k Code) bool { return !k.IsBuiltin() }); ok {
+	if _, ok := tr.Suggest(NamespaceGlobal, "yazdir", func(k Code) bool { return !k.IsBuiltin() }); ok {
 		t.Error("süzgeç yerleşik kodu dışlamalıydı")
 	}
 }
@@ -213,26 +222,25 @@ func caseOnlyPairs(ids []string) []string {
 	return r
 }
 
-// Yabancı adlar (başka dillerden alışkanlık: lr, axis) kabul edilmez; FindForeign ve Suggest
-// asıl adı verir. accept süzgeci öbür kodları dışlar.
+// Kural (17, yabancı ad): dil dosyasının yabancı adları (başka dillerden alışkanlık: lr, axis) kabul
+// edilmez; FindForeign ve Suggest o dilin asıl adının kodunu verir, accept süzgeci öbür kodları dışlar.
 func TestFindForeign(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
+	tr := Source()
 	for _, c := range []struct {
 		name string
 		code Code
 	}{{"lr", ArgLr}, {"axis", ArgDim}} {
-		if _, ok := Find(NamespaceParam, c.name); ok {
+		if _, ok := tr.Find(NamespaceParam, c.name); ok {
 			t.Errorf("%q kabul edilmemeli", c.name)
 		}
-		k, _, ok := FindForeign(NamespaceParam, c.name, nil)
-		if !ok || k != c.code {
+		if k, _, ok := tr.FindForeign(NamespaceParam, c.name, nil); !ok || k != c.code {
 			t.Errorf("FindForeign(%q) = %s %v; %s bekleniyordu", c.name, k, ok, c.code)
 		}
-		if k, ok := Suggest(NamespaceParam, c.name, nil); !ok || k != c.code {
+		if k, ok := tr.Suggest(NamespaceParam, c.name, nil); !ok || k != c.code {
 			t.Errorf("Suggest(%q) = %s %v; %s bekleniyordu", c.name, k, ok, c.code)
 		}
 	}
-	if _, _, ok := FindForeign(NamespaceParam, "lr", func(k Code) bool { return k == ArgDim }); ok {
+	if _, _, ok := tr.FindForeign(NamespaceParam, "lr", func(k Code) bool { return k == ArgDim }); ok {
 		t.Error("süzgeç öbür kodları dışlamalıydı")
 	}
 }
@@ -258,7 +266,6 @@ func TestUnknownLanguageAsksEveryWritingLanguage(t *testing.T) {
 
 // Yukle kod listesi hatalarını hangi kodların çakıştığını söyleyerek yakalar.
 func TestClashesCaught(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	for _, c := range []struct{ json, want string }{
 		{`{"TR_fn_print": {"name": "a"}, "TR_fn_print": {"name": "b"}}`, "TR_fn_print is defined twice"},
 		{`{"TR_fn_print": {"name": "yazdır"}, "TR_fn_input": {"name": "yazdır"}}`, "TR_fn_input \"yazdır\" and TR_fn_print"},
@@ -289,7 +296,6 @@ func TestClashesCaught(t *testing.T) {
 // yükleyici onu her dile, satırı yoksa yeni satırla ekler ve ortak ad dilin kendi adlarıyla aynı
 // denetimlerden geçer (çakışma, yabancı ad, ortam değişkeninin TR_ istisnası).
 func TestCommonNamesGoThroughTheChecks(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	common := map[Code]string{FnSin: "sin", EnvCpuAvx2: "TR_CPU_AVX2"}
 	for _, c := range []struct{ json, want string }{
 		{`{"TR_fn_sin": {"name": "x"}}`, "TR_fn_sin has the common name \"sin\""},
@@ -340,19 +346,22 @@ func TestCommonNamesAreNotInLanguageFiles(t *testing.T) {
 	}
 }
 
-// Her adın tek yazımı vardır: yalnızca Türkçe biçimi kabul edilir.
+// Kural (2.9a, tek yazım): her yazım dilinde her kodun tek yazımı vardır, o dilin adı (ASCII biçim
+// ya da eş anlamlı yok): Türkçede yazdır, İngilizcede print.
 func TestSingleSpelling(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
-	for _, k := range Codes() {
-		if y := Spellings(k); len(y) != 1 || y[0] != Name(k) {
-			t.Errorf("%s tek yazımlı olmalı (%q): %v", k, Name(k), y)
+	for lang, print := range map[string]string{"tr": "yazdır", "en": "print"} {
+		d, err := LoadLanguage(lang)
+		if err != nil {
+			t.Fatal(err)
 		}
-	}
-	if y := Spellings(FnPrint); len(y) != 1 || y[0] != "yazdır" {
-		t.Errorf("TR_fn_print yalnızca Türkçe biçimiyle kabul edilmeli: %v", y)
-	}
-	if y := Spellings(FnSum); len(y) != 1 {
-		t.Errorf("ASCII ad tek yazımlı olmalı: %v", y)
+		for _, k := range d.Codes() {
+			if y := d.Spellings(k); len(y) != 1 || y[0] != d.Name(k) {
+				t.Errorf("%s: %s tek yazımlı olmalı (%q): %v", lang, k, d.Name(k), y)
+			}
+		}
+		if y := d.Spellings(FnPrint); len(y) != 1 || y[0] != print {
+			t.Errorf("%s: TR_fn_print yalnızca %q yazımıyla kabul edilmeli: %v", lang, print, y)
+		}
 	}
 }
 
