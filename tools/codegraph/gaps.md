@@ -14,8 +14,10 @@ okunur").
 yanlış "yok", yanlış kenar, ortama bağlı düşen depo testi) **kritik**tir; sıralama, etiket ve
 gösterim **ince ayar**dır.
 
-**Akış:** maddeler birikir ve CODEGRAPH oturumuna toplu gider (tek tek gönderilmez); gönderilen
-madde "CODEGRAPH'ta (tarih)" diye işaretlenir. Düzeltme ana dala birleştirilince ana oturum
+**Akış (Ahmet, 2026-10-26):** maddeler bu dosyada birikir; ana oturum onları kendiliğinden CODEGRAPH'a göndermez. Liste
+olgunlaşınca DENETİM bütününü denetler (yeniden üretim, sınıf, istenen çözümün genelliği), sonuç baş geliştiriciye
+sunulur, onun sözüyle tek mesajla CODEGRAPH'a gider (tek tek gönderilmez); gönderilen madde "CODEGRAPH'ta (tarih)" diye
+işaretlenir. Düzeltme ana dala birleştirilince ana oturum
 düzeltmeyi aynı komutla doğrular ve maddeyi siler (geçmişi git'tedir). İstenen her zaman örneği yamalayan değil aynı sınıftaki
 her durumu kapatan genel çözüm ve sınıfı koruyan bir testtir.
 
