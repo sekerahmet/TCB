@@ -44,6 +44,17 @@ Bugün açık kritik madde yok (son kapanan: kimliğe yeniden adlandırılan kod
   - `tools/codegraph/README.md` "Time": "about 640 Go files, 9 000 nodes, 36 000 edges, `build` about 3 s". Bugün 24 852 düğüm, 172 079 kenar, `build` kendi saydığı 9,3 s (duvar saati ~13 s), en çok ~460 MB bellek. "Cost" bölümü: `tests-for` 0,95 s yazıyor; bugün güncel grafta 1,4–1,8 s (`--no-rebuild` 1,15 s, `graph.json` 61 MB).
   - Beklenen: sayılar ölçümle güncellenir ya da bir testin ürettiği sayıya bağlanır (sayının eskidiği görünür olsun). Kancanın bayat grafta beklettiği süre (~16 s [tahmin: parçaların toplamı]) de yazılır.
 
+- **Planlama sınavının bazı soruları kodun yerine değil yazımına bağlı; ön denetim sınavı koşmuyor.** 2026-10-26, MEKANİK bildirdi (adım 2 devri), ana oturum üç kez yaşadı.
+  - Sorular satır numarasına ya da sayıya bağlı:
+    - `planning_questions.txt` `language.go:218`'i soruyordu; `codes` dosyasına üstten kod eklenince sorular kaldı (MEKANİK 8bf9ee84'te düzeltti).
+    - Bir soru `language_test.go` için tam "this file's tests (16)" bekliyordu; adım 2 üç test ekleyince kaldı (4f6e52b9).
+    - Tam yerine kesilen grupta beklenen bir test 13. sıraya kaydı (877760db, `--all` ile düzeldi).
+  - Ön denetim (`--kip=on`) `tools/codegraph`'ın sınavını koşmuyor: kırık soruyla "✅" verdi; kırılma ancak tam denetimde ve birleşmeden sonra görüldü.
+  - Beklenen:
+    - Sorular bir bildirimin içindeki yeri sorar (ör. "`Language.Name`'in gövdesindeki ilk dönüş"), sayı yerine özelliği sınar (grup var, belli bir test grupta).
+    - Bir dosya değişince ona bağlı sınav soruları ön denetimde de koşar ya da ön denetim değişen paketlere bağlı codegraph sorularını seçer.
+  - Yanlış "kaldı"ya ve gecikmiş kırılmaya götürüyor, yanlış cevaba değil: ince ayar.
+
 ## Kalan işler (eksik değil, yeni yetenek)
 
 - `.tr` kodunda tekrar bulma (`dups`'ın `.tr` karşılığı; `tr dizin kopya` bugün yok, 2026-10-25'te denendi).
