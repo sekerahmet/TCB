@@ -141,7 +141,7 @@ verilebilir (PyTorch'un kurduğu kopya da olur):
 
 ## 2. Kart sınaması (GPU testleri, dil tanımı testleri, hız)
 
-Her GPU değişikliği yan dalda en az iki mimaride sınanır ([`docs/development.md`](../../docs/development.md#gönderim-sırası-cpu-ve-gpu)).
+Her GPU değişikliği yan dalda kart sınamasından geçer: tek kart yeter; iş olgunlaşınca ve gerekirse iki kart, L4 ve G4 ([`docs/development.md`](../../docs/development.md#gönderim-sırası-cpu-ve-gpu)).
 [`card_check.sh`](card_check.sh) tek komutla kart bilgisini, derlemeyi, GPU testlerini (önce her kernelden sonra
 eşzamanlayarak, `TR_GPU_ESZAMANLI=1`: hata tam o kernelde bildirilir; sonra eşzamansız), dil tanımı testlerini ve
 hedef modelde 120 adımlık hızı (ortanca ms/adım, tepe bellek) yapar. Kayıt aracıyla sarılır: kart, sürücü ve commit
