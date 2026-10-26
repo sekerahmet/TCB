@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -371,7 +372,7 @@ func (ix *index) printQuery(w io.Writer, n *Node, limit int) {
 	}
 	out := ix.printFields(w, n)
 	ix.printGroups(w, "  ->", out, toOf, limit, false)
-	ix.printGroups(w, "  <-", ix.in[n.ID], fromOf, limit, true)
+	ix.printIncoming(w, ix.in[n.ID], limit)
 	if n.Kind == kindName {
 		ix.printNameChain(w, n, limit)
 	}
@@ -386,8 +387,43 @@ func (ix *index) printWhoUses(w io.Writer, n *Node, limit int) {
 		ix.printOtherConfigs(w, n, limit)
 		return
 	}
-	ix.printGroups(w, "  <-", uses, fromOf, limit, true)
+	ix.printIncoming(w, uses, limit)
 	ix.printOtherConfigs(w, n, limit)
+}
+
+// printIncoming gelen kenarları gruplarıyla yazar; yapı köprüsünün (implemented_by: dil yapısını çalıştıran Go işlevine
+// TR bildirimlerinden) kenarları en sonda, yapı başına tek satır özettir, --all listeyi açar. Köprü doğrudur ama
+// interp.memberKeys'te 1175 TR bildirimi tek Go çağıranını boğuyordu ve hangi yapıdan geldiğini söylemiyordu (DENETİM,
+// parti K2, B).
+func (ix *index) printIncoming(w io.Writer, edges []*Edge, limit int) {
+	var bridged, rest []*Edge
+	for _, e := range edges {
+		if e.Kind == edgeImplementedBy {
+			bridged = append(bridged, e)
+		} else {
+			rest = append(rest, e)
+		}
+	}
+	ix.printGroups(w, "  <-", rest, fromOf, limit, true)
+	if len(bridged) == 0 || limit == 0 {
+		ix.printGroups(w, "  <-", bridged, fromOf, limit, true)
+		return
+	}
+	count := map[string]int{}
+	for _, e := range bridged {
+		count[e.Via]++
+	}
+	vias := slices.Collect(maps.Keys(count))
+	sort.Slice(vias, func(i, j int) bool {
+		if count[vias[i]] != count[vias[j]] {
+			return count[vias[i]] > count[vias[j]]
+		}
+		return vias[i] < vias[j]
+	})
+	fmt.Fprintf(w, "  <- implemented_by (%d TR declarations; they use a language construct this function runs, --all lists them):\n", len(bridged))
+	for _, v := range vias {
+		fmt.Fprintf(w, "    via %s: %d TR declarations  [INFERRED]\n", v, count[v])
+	}
 }
 
 // whoUsesHeader düğümü ve (kod ise) Go sabitini yazar, kullanım kenarlarını verir.

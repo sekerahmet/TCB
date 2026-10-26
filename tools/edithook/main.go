@@ -18,6 +18,9 @@
 // `go run` ile çalışır ve `go run` programın 2 çıkış kodunu 1'e çevirir. Kancanın kendisi
 // çalışamazsa (bozuk girdi, git yok) çıkış 1'dir: Claude Code düzenlemeyi durdurmaz.
 //
+// `go run ./tools/edithook codegraph <args>` aynı aracın üçüncü işidir: ön denetim codegraph'ı
+// kancayla aynı yoldan koşar (codegraph.go: derlenmeyen ağaçta son derlenen ikili, bayat uyarısıyla).
+//
 // Layer: tools (tools); kullanıcıya gitmez.
 package main
 
@@ -54,6 +57,9 @@ type hookInput struct {
 type target struct{ root, rel string }
 
 func main() {
+	if code, ok := mode(os.Args[1:], os.Stdout, os.Stderr); ok {
+		os.Exit(code)
+	}
 	os.Exit(run(os.Stdin, os.Stdout, os.Stderr, filepath.Join(os.TempDir(), "tr-edithook"), locate, testsFor))
 }
 
@@ -250,15 +256,21 @@ func locate(path string) (target, bool) {
 }
 
 // testsFor codegraph'a dosyayı koruyan testleri ve kuralları sorar; cevabın ilk maxLines satırı.
+// Araç bu ağaçla derlenmiyorsa cevap son derlenen sürümündür ve başında bunu söyler (codegraph.go).
 func testsFor(t target) string {
-	cmd := exec.Command("go", "run", "./tools/codegraph", "tests-for", t.rel)
-	cmd.Dir = t.root
-	b, err := cmd.CombinedOutput()
+	cmd, stale, err := codegraph(t.root, "tests-for", t.rel)
+	var b []byte
+	if err == nil {
+		b, err = cmd.CombinedOutput()
+	}
 	lines := strings.Split(strings.TrimRight(string(b), "\n"), "\n")
 	if len(lines) > maxLines {
 		lines = append(lines[:maxLines], fmt.Sprintf("... (%d more lines: run the command)", len(lines)-maxLines))
 	}
 	text := strings.Join(lines, "\n")
+	if stale != "" {
+		text = stale + "\n" + text
+	}
 	if err != nil {
 		text += fmt.Sprintf("\n(codegraph: %v; an ambiguous or missing answer is not evidence: check with grep, "+
 			"CLAUDE.md on reading codegraph answers)", err)

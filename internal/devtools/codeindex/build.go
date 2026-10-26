@@ -169,11 +169,14 @@ func (x *indexer) addLibrary() {
 	for changed := true; changed; {
 		changed = false
 		for _, rel := range append([]string(nil), x.order...) {
-			for _, s := range x.files[rel].res.program.Statements {
-				imp, ok := s.(*ast.ImportStatement)
-				if !ok {
-					continue
+			var imps []*ast.ImportStatement // iç bloklardakiler de (nestedImports): test bloğu modülünü böyle alır
+			ast.Walk(x.files[rel].res.program, func(n any) bool {
+				if imp, ok := n.(*ast.ImportStatement); ok {
+					imps = append(imps, imp)
 				}
+				return true
+			})
+			for _, imp := range imps {
 				name, ok := strings.CutPrefix(strings.TrimSuffix(imp.Path, ".tr"), "tr/")
 				if !ok || x.nodes[NodeID(KindModule, "lib/"+name+".tr", "")] != nil {
 					continue

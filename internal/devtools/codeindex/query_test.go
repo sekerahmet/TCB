@@ -323,7 +323,8 @@ func TestATestBlockTestsAFunctionBuiltinOnlyByCallingIt(t *testing.T) {
 		}
 	}
 	codes := map[string]bool{}
-	for _, u := range Snippet("değişken f = zaman_ms\nyazdır(sin(pi))\n") {
+	uses, _ := Snippet("değişken f = zaman_ms\nyazdır(sin(pi))\n", nil)
+	for _, u := range uses {
 		codes[u.Code] = true
 	}
 	if codes["TR_fn_time_ms"] || !codes["TR_const_pi"] || len(codes) != 3 {

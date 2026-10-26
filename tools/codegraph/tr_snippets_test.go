@@ -45,6 +45,22 @@ func TestConcatenated(t *testing.T) {
 
 func TestNotTRCode(t *testing.T) { notTR(t, "kn.güncelle(1)") }
 
+func TestTable(t *testing.T) {
+	for _, c := range []struct {
+		code string
+		n    int
+	}{{"kontrol_noktası(1, {})", 1}, {code: "kn.güncelle(1)"}} {
+		run(t, c.code+"\n")
+	}
+}
+
+func TestNamedTable(t *testing.T) {
+	cases := []struct{ code string }{{"kontrol_noktası(2, {}, her_dakika: 1)"}}
+	for _, c := range cases {
+		run(t, c.code)
+	}
+}
+
 func far5(t *testing.T) int { return run(t, "kontrol_noktası(2, {})") }
 func far4(t *testing.T) int { return far5(t) }
 func far3(t *testing.T) int { return far4(t) }
@@ -67,6 +83,7 @@ func TestGoTestsLinkToTheNameCodesOfTheTRTheyRun(t *testing.T) {
 	for _, c := range []struct{ test, name string }{
 		{"TestFormatted", "TR_fn_checkpoint"}, {"TestFormatted", "TR_arg_every_minutes"}, {"TestFormatted", "TR_mem_update"},
 		{"TestWrapped", "TR_fn_checkpoint"}, {"TestConcatenated", "TR_fn_checkpoint"}, {"TestConcatenated", "TR_arg_every_minutes"},
+		{"TestTable", "TR_fn_checkpoint"}, {"TestTable", "TR_mem_update"}, {"TestNamedTable", "TR_arg_every_minutes"},
 	} {
 		mustEdge(t, g, app+c.test, "name:"+c.name, edgeTests, inferred)
 	}

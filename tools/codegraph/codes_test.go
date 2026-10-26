@@ -1,6 +1,8 @@
 package main
 
 import (
+	"go/ast"
+	"go/types"
 	"slices"
 	"strings"
 	"testing"
@@ -86,5 +88,77 @@ func TestEveryNameCodeNodeHasTheNameOfTheCodesPackage(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+// Kural (parti K2, C): bir ad kodu codes paketinin bir işlevine argüman olarak verilmişse (`codes.Spellings(codes.FnPrint)`)
+// o satır kodun adını okur, yerleşiği uygulamaz: kenar `reads_name`dir, "uygulayıcının testi" kuralına girmez. Önceden
+// kabuğun startsWithPrint'i yazdır'ın yazımlarını okuduğu için yazdır kullanan altı TR testi cmd/tr/main.go'nun testi
+// görünüyordu. Okumalar codegraph'tan bağımsız, modülün tipleriyle bulunur; aynı satırda kodun başka bir kullanımı
+// yoksa o satırda uses_name kenarı olmamalı, reads_name olmalı.
+func TestANameCodeGivenToTheCodesPackageIsReadNotImplemented(t *testing.T) {
+	root, m, g := repoGraph(t)
+	keys := codeConstKeys(root)
+	type site struct {
+		file string
+		line int
+		code string
+	}
+	reads, other := map[site]bool{}, map[site]bool{}
+	codesPkg := m.Path + "/" + codesDir
+	for _, u := range m.Units {
+		for _, f := range u.Files {
+			inCall := map[*ast.Ident]bool{}
+			ast.Inspect(f, func(n ast.Node) bool {
+				if c, ok := n.(*ast.CallExpr); ok {
+					if fn, ok := u.Info.Uses[nameIdent(c.Fun)].(*types.Func); ok && fn.Pkg() != nil && fn.Pkg().Path() == codesPkg {
+						for _, a := range c.Args {
+							if sel, ok := a.(*ast.SelectorExpr); ok {
+								inCall[sel.Sel] = true
+							}
+						}
+					}
+				}
+				id, ok := n.(*ast.Ident)
+				if !ok {
+					return true
+				}
+				k, isConst := u.Info.Uses[id].(*types.Const)
+				if !isConst || k.Pkg() == nil || k.Pkg().Path() != codesPkg || keys[k.Name()] == "" || u.PkgPath == codesPkg {
+					return true
+				}
+				pos := m.Fset.Position(id.Pos())
+				s := site{m.Rel(pos.Filename), pos.Line, "name:" + keys[k.Name()]}
+				if inCall[id] {
+					reads[s] = true
+				} else {
+					other[s] = true
+				}
+				return true
+			})
+		}
+	}
+	kinds := map[site]map[string]bool{}
+	for _, e := range g.Edges {
+		if e.Kind == edgeUsesName || e.Kind == edgeReadsName {
+			s := site{e.File, e.Line, e.To}
+			if kinds[s] == nil {
+				kinds[s] = map[string]bool{}
+			}
+			kinds[s][e.Kind] = true
+		}
+	}
+	checked := 0
+	for s := range reads {
+		if other[s] || kinds[s] == nil {
+			continue // aynı satırda başka kullanım ya da grafiğin görmediği yapılandırma
+		}
+		checked++
+		if kinds[s][edgeUsesName] || !kinds[s][edgeReadsName] {
+			t.Errorf("%s:%d gives %s to the codes package: want reads_name, the graph has %v", s.file, s.line, s.code, kinds[s])
+		}
+	}
+	if checked < 20 {
+		t.Errorf("only %d name reads checked", checked)
 	}
 }

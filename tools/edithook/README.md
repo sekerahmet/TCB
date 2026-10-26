@@ -15,6 +15,14 @@ Claude Code düzenlemeyi durdurmaz: bozuk bir ağaçta iş kilitlenmez. Denetim:
 `TestFirstEditIsHeldOnceThenPasses`, `TestUntrackedFilesAndBadInputPass`, `TestLocateTrackedFilesOnly`;
 ayar dosyasının kancayı her düzenleme ve kabuk aracında çalıştırdığını `TestSettingsRunTheHookOnEveryEditAndShellTool` denetler.
 
+Kanca codegraph'ı önce derletir (`go run -exec`: Go ikiliyi derleme önbelleğinde bırakır, kanca
+yolunu `.codegraph/last-codegraph`'a yazar), sonra koşar. Araç bu ağaçla derlenmiyorsa (codegraph TR tarafı için dil paketlerini içe aktarır; düzenlenen bir dil paketi ara
+hâlde derlenmeyebilir) son derlenen ikilinin cevabı verilir ve başına "codegraph does not build with
+this tree … it may be stale" uyarısı derleme hatasıyla yazılır; cevapsız kalmaz. Hiç derlenmiş
+ikili yoksa derleme hatası görünür. Ön denetim (`tools/full_check.sh`) codegraph'ı aynı yoldan
+koşar: `go run ./tools/edithook codegraph <args>`. Denetim:
+`TestABrokenTreeFallsBackToTheLastBuiltCodegraph` (sahte `go` ile).
+
 Cevap yanlış, belirsiz ya da eksikse ajan bunu ana oturuma bildirir (komut, beklenen, gelen); ana
 oturum doğrulayıp [`tools/codegraph/gaps.md`](../codegraph/gaps.md)'ye yazar.
 
@@ -44,3 +52,6 @@ başka oturum yeniden durur; izlenmeyen dosya, yolsuz girdi geçer, bozuk girdi 
 yalnızca izlenen dosyayı verir (gerçek bir git deposunda; Windows'un kısa yol adlarında da, git
 yolu kendisi verir); kabuk araçlarında ön plandaki uzun komut durur, arka plandaki, hedefli test ve
 komutu yalnızca anan metin geçer; ayar dosyası kancayı bütün düzenleme ve kabuk araçlarında çalıştırır.
+`codegraph_test.go`: derlenmeyen ağaçta son derlenen codegraph'ın cevabı bayat uyarısıyla gelir (kancada
+ve ön denetimin yolunda), derlenmiş ikili yokken derleme hatası görünür, geçici ikili kalmaz; test
+ikilisi kendisini sahte `go` ve sahte codegraph olarak kopyalar (`TestMain`).

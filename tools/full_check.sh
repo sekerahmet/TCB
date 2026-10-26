@@ -232,7 +232,7 @@ dups_check() {
 		echo "$base ile ortak ata yok (sığ klon): atlandı"
 		return
 	fi
-	out=$(go run ./tools/codegraph dups --changed "$base" 2>&1) || {
+	out=$(go run ./tools/edithook codegraph dups --changed "$base" 2>&1) || {
 		printf '%s\n' "$out" | head -40
 		fail "codegraph dups çalışmadı"
 		return
@@ -339,12 +339,15 @@ selected_tests() {
 	if git rev-parse --verify -q origin/main >/dev/null; then base=origin/main; fi
 	git merge-base "$base" HEAD >/dev/null 2>&1 || return 0
 	errfile=$(mktemp)
-	out=$(go run ./tools/codegraph changed --go-tests --base "$base" HEAD 2>"$errfile") || {
+	# codegraph kancanın yolundan koşar (tools/edithook/codegraph.go): ağaç derlenmezken son derlenen sürümün
+	# cevabı, uyarısıyla; uyarı gösterilir, codegraph'ın öbür hata çıktısı yalnız düşünce.
+	out=$(go run ./tools/edithook codegraph changed --go-tests --base "$base" HEAD 2>"$errfile") || {
 		head -20 "$errfile"
 		rm -f "$errfile"
 		fail "codegraph changed --go-tests çalışmadı"
 		return
 	}
+	grep -A5 '^warning: codegraph does not build' "$errfile"
 	rm -f "$errfile"
 	local -A full=() seen=()
 	local dirs=() names=()

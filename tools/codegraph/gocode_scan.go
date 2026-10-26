@@ -76,6 +76,7 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 			if id := nameIdent(n.Fun); id != nil {
 				callee[id] = true
 			}
+			x.noteNameReads(fc, n)
 			x.envUse(fc, owner, n)
 			x.pathCall(fc, owner, n)
 			x.buildCall(fc, owner, n)
@@ -198,6 +199,23 @@ func (x *goExtractor) objectID(obj types.Object) string {
 	return ""
 }
 
+// noteNameReads codes paketinin bir işlevine (ya da Language metoduna) argüman olarak verilen ad kodu sabitlerini
+// işaretler: `codes.Spellings(codes.FnPrint)` kodun adını okur, yerleşiği uygulamaz (use: reads_name). Uygulayan
+// işlev kodu kayıt tablosunda ya da bir switch'te anar; adın testi onun testidir, adını okuyanın değil (parti K2, C:
+// kabuğun startsWithPrint'i yazdır'ın yazımlarını okuduğu için yazdır kullanan TR testleri cmd/tr/main.go'nun testi
+// görünüyordu).
+func (x *goExtractor) noteNameReads(fc *fileCtx, c *ast.CallExpr) {
+	fn, ok := fc.u.Info.Uses[nameIdent(c.Fun)].(*types.Func)
+	if !ok || fn.Pkg() == nil || fn.Pkg().Path() != x.m.Path+"/"+codesDir {
+		return
+	}
+	for _, a := range c.Args {
+		if id := nameIdent(a); id != nil {
+			x.nameReads[id] = true
+		}
+	}
+}
+
 func (x *goExtractor) use(fc *fileCtx, owner string, id *ast.Ident, isCall bool, writes map[*ast.Ident]writeTarget, closure string) {
 	obj := fc.u.Info.Uses[id]
 	ref := x.objectID(obj)
@@ -225,7 +243,11 @@ func (x *goExtractor) use(fc *fileCtx, owner string, id *ast.Ident, isCall bool,
 		case c.Pkg().Path() == x.m.Path+"/"+messagesDir && messageConst.MatchString(c.Name()):
 			x.b.addEdge(owner, "msg:"+c.Name(), edgeUsesMessage, extracted, fc.rel, line)
 		case c.Pkg().Path() == x.m.Path+"/"+codesDir && x.codeKeys[c.Name()] != "":
-			x.b.addEdge(owner, "name:"+x.codeKeys[c.Name()], edgeUsesName, extracted, fc.rel, line)
+			kind := edgeUsesName
+			if x.nameReads[id] {
+				kind = edgeReadsName
+			}
+			x.b.addEdge(owner, "name:"+x.codeKeys[c.Name()], kind, extracted, fc.rel, line)
 		}
 	}
 	if ref != owner { // bir türün kendi adına başvurusu (özyineli alan) kullanım değildir

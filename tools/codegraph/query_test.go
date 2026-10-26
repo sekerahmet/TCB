@@ -376,3 +376,46 @@ func TestOtherCaseMatchesAreMentioned(t *testing.T) {
 		t.Errorf("a capitalised query chose its case: %v", got)
 	}
 }
+
+// Kural (parti K2, B): yapı köprüsünün kenarları (implemented_by: TR bildirimi → kullandığı dil yapısını çalıştıran Go
+// işlevi) who-uses'ta en sonda, yapının adıyla tek satır özettir; Go çağıranları önce gelir ve TR bildirimleri
+// varsayılanda listelenmez; --all özetin sayısı kadar bildirimi listeler (özet bilgi kaybetmez). Depodaki köprü alan her
+// Go işlevinde: interp.memberKeys'te 1175 TR bildirimi tek Go çağıranını boğuyordu.
+func TestWhoUsesSummarizesTheConstructBridge(t *testing.T) {
+	_, _, g := repoGraph(t)
+	ix := newIndex(g)
+	checked := 0
+	for i := range g.Nodes {
+		n := &g.Nodes[i]
+		bridged := 0
+		for _, e := range ix.in[n.ID] {
+			if e.Kind == edgeImplementedBy {
+				bridged++
+			}
+		}
+		if bridged == 0 {
+			continue
+		}
+		checked++
+		var short, all strings.Builder
+		ix.printWhoUses(&short, n, 12)
+		ix.printWhoUses(&all, n, 0)
+		s, a := short.String(), all.String()
+		head := strings.Index(s, "<- implemented_by (")
+		if head < 0 || !strings.Contains(s[head:], "    via ") || strings.Contains(s[head:], "[tr_") {
+			t.Errorf("who-uses %s: the bridge is one line per construct, without TR declarations:\n%s", n.Name, s)
+		}
+		if strings.Contains(s[head:], "\n  <- ") {
+			t.Errorf("who-uses %s: the bridge comes after the Go callers:\n%s", n.Name, s)
+		}
+		if !strings.Contains(a, fmt.Sprintf("  <- implemented_by (%d):\n", bridged)) {
+			t.Errorf("who-uses --all %s does not list the %d bridge edges:\n%s", n.Name, bridged, a)
+		}
+	}
+	if checked < 10 {
+		t.Errorf("only %d bridged functions found", checked)
+	}
+	var out strings.Builder
+	ix.printWhoUses(&out, ix.byID["go:func:github.com/sekerahmet/TCB/internal/lang/interp.memberKeys"], 12)
+	testkit.MustContain(t, out.String(), "<- calls", "interp.compiler.member", "via MemberExpression")
+}

@@ -296,6 +296,7 @@ func (x *goExtractor) citeRefs(fc *fileCtx, f *ast.File) {
 			if lit, ok := n.(*ast.BasicLit); ok && lit.Kind == token.STRING {
 				if text, ok := stringLit(lit); ok {
 					add(spans[i].owners, lit.Pos(), text, false)
+					x.libraryImports(fc, spans[i].owners, lit.Pos(), text)
 				}
 			}
 			return true

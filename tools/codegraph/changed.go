@@ -198,9 +198,11 @@ func (ix *index) printGoTests(w io.Writer, ts *touchSet) {
 		nodes = append(nodes, ix.byID[id])
 	}
 	for f := range ts.files {
-		if file := ix.byID["file:"+f]; file != nil {
-			for id := range ix.testDistances(file) {
-				nodes = append(nodes, ix.byID[id])
+		for _, id := range []string{"file:" + f, trFileID(f)} { // .tr dosyasının testleri: onu koşan ve aktaranlar
+			if file := ix.byID[id]; file != nil {
+				for id := range ix.testDistances(file) {
+					nodes = append(nodes, ix.byID[id])
+				}
 			}
 		}
 	}

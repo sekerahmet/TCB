@@ -1,6 +1,8 @@
 package codeindex
 
 import (
+	"io/fs"
+	"slices"
 	"sort"
 	"strings"
 
@@ -19,13 +21,17 @@ type SnippetUse struct {
 
 // Snippet src'yi TR programı olarak ayrıştırıp sınadığı yerleşik, üye ve adlı argüman kodlarını verir (koda göre
 // sıralı, her kod bir kez; test bloğuyla aynı kural, exercisesBuiltin: işlev yerleşiği çağrılınca sayılır). Metin ayrıştırılamıyorsa nil: TR olmayan bir metin ya da eksik parça.
-func Snippet(src string) []SnippetUse {
-	x := &indexer{root: "", lang: source.Turkish(), files: map[string]*file{}, nodes: map[string]*Node{}, edges: map[edgeKey]*Edge{},
+// library verilirse (dilin gömülü kitaplığı, lib.Files) metnin `aktar "tr/ad"` ile aldığı kitaplık modülleri dosyadaki
+// kuralla (importTarget, addLibrary) çözülür; imports onların kitaplıktaki yollarıdır ("lib/hazir.tr"; kaynak sırasıyla,
+// iç bloklardakiler dahil, her biri bir kez): metni koşan test aktardığı modülü de koşar.
+func Snippet(src string, library fs.FS) (uses []SnippetUse, imports []string) {
+	x := &indexer{root: "", lang: source.Turkish(), library: library, files: map[string]*file{}, nodes: map[string]*Node{}, edges: map[edgeKey]*Edge{},
 		constructSeen: map[string]bool{}}
 	x.addFile("snippet.tr", []byte(src), nil)
 	if len(x.order) == 0 {
-		return nil
+		return nil, nil
 	}
+	x.addLibrary()
 	for _, rel := range x.order {
 		x.declare(x.files[rel])
 	}
@@ -43,10 +49,15 @@ func Snippet(src string) []SnippetUse {
 			}
 		}
 	}
-	out := make([]SnippetUse, 0, len(first))
+	uses = make([]SnippetUse, 0, len(first))
 	for code, line := range first {
-		out = append(out, SnippetUse{code, line})
+		uses = append(uses, SnippetUse{code, line})
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].Code < out[j].Code })
-	return out
+	sort.Slice(uses, func(i, j int) bool { return uses[i].Code < uses[j].Code })
+	for _, imp := range x.files["snippet.tr"].imports {
+		if rel, ok := strings.CutPrefix(imp.file, libraryPrefix); ok && !slices.Contains(imports, rel) {
+			imports = append(imports, rel)
+		}
+	}
+	return uses, imports
 }
