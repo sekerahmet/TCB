@@ -226,14 +226,14 @@ Kendi denemeleriniz için kökte bir `scratch/` klasörü açıp örnekleri oray
 | :-- | :-- |
 | `cmd/tr` | `tr` komutu: kabuk, `çalıştır`, `kontrol`, `derle`, `test`, `biçimle`, `kodla`, `çöz`, `göster`, `izle`, `profil`, `hata_ayıkla`, `dizin`, `yardım`, `sürüm`, `dap` (VS Code için); komut adları her yazım dilinde kabul edilir |
 | `internal/lang` | Dil çekirdeği: iletiler (`messages`), Türkçe ekler ve dosya hataları (`turkish`), kod listesi (`codes`, [`docs/codes.md`](docs/codes.md)), ad ipuçları (`hint`), sözcük çözümleyici (`lexer`), sözdizimi ağacı (`ast`), ayrıştırıcı (`parser`), tip denetimi (`checker`), kaynak ve kodlu biçim (`source`), yorumlayıcı (`interp`) |
-| `internal/stdlib` | Standart kitaplık: tensör ve öğrenme (`ml`), veri (`dataset`), parçalayıcı (`tokenizer`), dosyalar (`files`), JSON/CSV (`formats`), komut satırı (`process`), günlük ve ilerleme (`logging`), kontrol noktası (`checkpoint`) |
+| `internal/stdlib` | Standart kitaplık: tensör ve öğrenme (`ml`), veri (`dataset`), parçalayıcı (`tokenizer`), dosyalar (`files`), JSON/CSV (`formats`), komut satırı (`process`), günlük ve ilerleme (`logging`), kontrol noktası (`checkpoint`), motorların ortak yardımcıları ve JSON yazımı (`common/bind`, `common/jsonwrite`), GPU'da dil düzeyinde eğitimin sınamaları (`gpuprobe`) |
 | `internal/compute` | Dili bilmeyen hesap çekirdekleri: tensör, otomatik türev ve CPU kernelleri (`tensor`), GPU arka ucu (`gpu`), parçalayıcı (`tokenize`), veri yükleyici (`dataload`) |
-| `internal/devtools` | Hata ayıklayıcı (`debugger`), biçimlendirici (`formatter`), `tr test` çekirdeği (`testrunner`), canlı profil (`profiler`: `tr izle`, `tr profil`), TR kodunun dizini (`codeindex`: `tr dizin`) |
+| `internal/devtools` | Hata ayıklayıcı (`debugger`), biçimlendirici (`formatter`), `tr test` çekirdeği (`testrunner`), canlı profil (`profiler`: `tr izle`, `tr profil`), TR kodunun dizini (`codeindex`: `tr dizin`), Go modülünü testleriyle tip denetiminden geçirip yükleyen ortak paket (`goload`: `codegraph` ve `impact` için) |
 | `lib/` | TR ile yazılan standart kitaplık, ikiliye gömülü: transformer katmanları ve GPT (`aktar "tr/katman"`), Muon/NorMuon (`aktar "tr/iyilestirici"`), eğitim koşusunun kayıt işleri (`aktar "tr/egitim"`: `Koşu`, prova), Hugging Face biçimindeki hazır modeller (`aktar "tr/hazir"`); [`lib/README.md`](lib/README.md) |
 | `editors/vscode/` | VS Code eklentisi |
 | `docs/` | Belgeler ([dizin](docs/README.md)); kod kuralları [`internal/README.md`](internal/README.md), ekleme tarifleri [`docs/recipes.md`](docs/recipes.md) |
 | `examples/`, `tests/` | Örnek programlar ve dil tanımının kural testleri |
-| `tools/` | Depo bakımı: `full_check.sh`, `fuzz.sh`, üreteçler (`gen/`), hız kıyas seti (`bench/`), GPU ölçümleri (`gpu/`), ölçüm kaydı (`record/`), Go kodunun grafiği (`codegraph/`), etki sorgusu (`impact/`) |
+| `tools/` | Depo bakımı: `full_check.sh`, `fuzz.sh`, üreteçler (`gen/`), hız kıyas seti (`bench/`), GPU ölçümleri (`gpu/`), ölçüm kaydı (`record/`), Go kodunun grafiği (`codegraph/`), etki sorgusu (`impact/`), dokunmadan önce koruyan testleri gösteren düzenleme kancası (`edithook/`), dil tanımı maddelerinin yeniden numaralanması (`renumber/`), Hugging Face modelleriyle karşılaştırma (`hf/`), GPU'suz ikilinin statik olduğunun denetimi (`checkstatic/`), araçların ortak paketleri (`internal/`) |
 
 Katmanlar, aralarındaki bağımlılık kuralı ve her paketin görevi: [`docs/architecture.md`](docs/architecture.md).
 
