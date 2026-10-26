@@ -117,12 +117,14 @@ func currentCodes(root string, files []string) map[string]bool {
 }
 
 // deletedCodes ailenin geçmişte silinmiş ve bugün hiçbir dosyada olmayan kodlarını (kod
-// sırasıyla), ayrıca silindikten sonra yeniden tanımlanmış kodları verir.
+// sırasıyla), ayrıca silindikten sonra yeniden tanımlanmış kodları verir. Yeniden adlandırılan
+// kod silinmiş değildir: geçmişi bugünkü anahtarında birleşir (renames.go).
 func deletedCodes(root string, f codeFamily) (gone, redefined []goneCode, err error) {
-	events, err := scanCodeHistory(root, f.files, "")
+	events, err := scanCodeHistory(root, f.files)
 	if err != nil {
 		return nil, nil, err
 	}
+	events = followRenames(events, readRenames(root))
 	cur := currentCodes(root, f.files)
 	codes := make([]string, 0, len(events))
 	for c := range events {

@@ -117,19 +117,21 @@ func historyFile(root string, n *Node, limit int, w io.Writer) error {
 	return nil
 }
 
-// historyCode kodun sözlük dosyalarındaki geçmişini verir; eklendiği ve silindiği commit
-// "added" / "removed" ile işaretlidir.
+// historyCode kodun sözlük dosyalarındaki geçmişini verir; eklendiği, silindiği ve eski
+// anahtarından yeniden adlandırıldığı commit "added" / "removed" / "renamed" ile işaretlidir.
+// Geçmiş eski anahtarlarıyla sürer (renames.go).
 func historyCode(root string, n *Node, limit int, w io.Writer) error {
 	files := nameFiles
 	if n.Kind == kindMessage {
 		files = messageFiles
 	}
-	events, err := scanCodeHistory(root, files, n.Name)
+	renames := readRenames(root)
+	events, err := scanCodeHistory(root, files, append([]string{n.Name}, formerKeys(renames)[n.Name]...)...)
 	if err != nil {
 		return err
 	}
 	fmt.Fprintln(w, describe(n))
-	list := events[n.Name]
+	list := followRenames(events, renames)[n.Name]
 	if len(list) == 0 {
 		fmt.Fprintln(w, "  no commits found")
 		return nil

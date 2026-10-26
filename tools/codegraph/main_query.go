@@ -205,6 +205,10 @@ func (ix *index) resolve(q string, o *queryOpts, kinds ...string) (*Node, int) {
 		}
 		return found[0], exitOK
 	case 0:
+		if n := ix.renamedCode(q); n != nil {
+			fmt.Fprintf(o.stderr, "codegraph: %s is the old key of %s (%s)\n", q, n.Name, strings.Join(identityMaps, ", "))
+			return n, exitOK
+		}
 		fmt.Fprintf(o.stderr, "%q not found\n", q)
 		ix.printSuggestions(o.stderr, q, kinds, o.limit == 0)
 		return nil, exitNotFound

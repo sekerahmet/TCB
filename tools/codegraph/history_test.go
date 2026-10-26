@@ -65,7 +65,7 @@ func TestHistoryOfCodeMarksAddedAndRemoved(t *testing.T) {
 	replaceIn(t, defs, ",\n\"H0003\": { \"param\": [] }", "")
 	commitAll(t, root, "messages: drop H0003")
 
-	events, err := scanCodeHistory(root, messageFiles, "")
+	events, err := scanCodeHistory(root, messageFiles)
 	if err != nil {
 		t.Fatal(err)
 	}
