@@ -257,7 +257,10 @@ repository (a failing git is an error, exit 1).
   the working tree, committed, staged and unstaged edits and tracked new files included, and its new-side lines are
   mapped (new functions included; the lines are the graph's own, so an uncommitted edit above a committed one does not
   shift it); otherwise the old-side lines, which is exact only while the tree equals the merge base. `dups --changed`
-  takes its lines from the same function (`changeHunks`); an untracked file is in neither (DENETİM 2026-10-26:
+  takes its lines from the same function (`changeHunks`). `--go-tests` prints only the Go tests to run, one `folder TestName` per
+  line: the changed tests, the tests of the changed code, the subprocess tests, and the tests that read any changed file (a data
+  file the graph does not parse, such as `planning_questions.txt`, maps to no node, its readers are still listed); the pre-check
+  (`tools/full_check.sh --kip=on`) runs them (`TestChangedGoTestsSelectsTheTestsOfAChangedDataFile`); an untracked file is in neither (DENETİM 2026-10-26:
   the check run before a commit missed its edits; `TestChangedSeesTheWorkingTree`). Added code with no old-side counterpart is counted under "mapped to no node" (by file) and,
   for Go files, named from the branch's own copy of the file ("declarations on the branch that the
   graph does not have": new functions, new tests, new test files). A graph written by an older

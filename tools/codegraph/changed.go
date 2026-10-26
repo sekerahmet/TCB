@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"path"
 	"sort"
 	"strings"
 )
@@ -14,6 +15,8 @@ type changeOpts struct {
 	root  string
 	base  string // dal adı verildiğinde karşılaştırılan dal (git diff base...dal)
 	limit int
+	// goTests: yalnız koşulacak Go testleri (printGoTests); ön denetim okur.
+	goTests bool
 }
 
 // runChanged ref'in (dal ya da a..b / a...b aralığı) değişikliklerini grafiğin düğümlerine eşler:
@@ -37,6 +40,10 @@ func (ix *index) runChanged(o changeOpts, ref string, stdout, stderr io.Writer) 
 	main, mapping := oldSide, "old-side lines (the merge base); the graph is of the checked-out tree, so this is exact only while it equals the merge base"
 	if live {
 		main, mapping = ix.touched(hs, true), "new-side lines up to the working tree, uncommitted edits included (the graph is of this very tree)"
+	}
+	if o.goTests {
+		ix.printGoTests(stdout, main)
+		return exitOK
 	}
 	fmt.Fprintf(stdout, "changed %s: %d hunks in %d files\n  mapping: %s\n", rng, len(hs), len(main.files), mapping)
 	ix.printTouched(stdout, main, o.limit)
@@ -159,12 +166,13 @@ func printLimited(w io.Writer, list []string, limit int, indent string) {
 
 // printTestsToRun değişen düğümlerin (Go ve TR bildirimleri, ad kodları, dosyalar) testlerini yazar: tests-for'un topladığının
 // aynısı (testDistances), doğrudan olanlar önce, sonra dolaylılar (kaç adım uzakta); her test bir kez.
-func (ix *index) printTestsToRun(w io.Writer, ts *touchSet, limit int, what, ownWhat string) {
-	best := map[string]int{} // test kimliği -> en kısa uzaklık (0: doğrudan)
-	subprocess := map[string][]*Node{}
+// testsToRun değişen düğümleri sınayan testlerdir: test kimliği -> en kısa uzaklık (0: doğrudan; tests-for ile aynı
+// toplama: doğrudan, gezen, zincir, ad kodu) ve ikiliyi derleyip koşan alt süreç testleri (klasör -> testler).
+func (ix *index) testsToRun(ts *touchSet) (best map[string]int, subprocess map[string][]*Node) {
+	best, subprocess = map[string]int{}, map[string][]*Node{}
 	pkgs := map[string]bool{}
 	for _, n := range ts.nodes {
-		for id, d := range ix.testDistances(n) { // tests-for ile aynı toplama: doğrudan, gezen, zincir, ad kodu
+		for id, d := range ix.testDistances(n) {
 			if old, ok := best[id]; !ok || d < old {
 				best[id] = d
 			}
@@ -176,6 +184,52 @@ func (ix *index) printTestsToRun(w io.Writer, ts *touchSet, limit int, what, own
 			}
 		}
 	}
+	return best, subprocess
+}
+
+// printGoTests koşulacak Go testlerini satır başına "klasör TestAdı" olarak yazar (sıralı, tekrarsız): değişen
+// testler, değişen kodu sınayanlar, alt süreç testleri ve değişen her dosyayı okuyan testler (grafiğin ayrıştırmadığı
+// bir veri dosyası, planning_questions.txt gibi, hiçbir düğüme eşlenmez; onu okuyan test yine de seçilir). TR testleri
+// (tr test) ve ölçümler (Benchmark) girmez. Ön denetim (tools/full_check.sh --kip=on) bu listeyi koşar.
+func (ix *index) printGoTests(w io.Writer, ts *touchSet) {
+	best, subprocess := ix.testsToRun(ts)
+	nodes := ownTests(ts)
+	for id := range best {
+		nodes = append(nodes, ix.byID[id])
+	}
+	for f := range ts.files {
+		if file := ix.byID["file:"+f]; file != nil {
+			for id := range ix.testDistances(file) {
+				nodes = append(nodes, ix.byID[id])
+			}
+		}
+	}
+	for _, list := range subprocess {
+		nodes = append(nodes, list...)
+	}
+	seen := map[string]bool{}
+	var lines []string
+	for _, n := range nodes {
+		if !isTestNode(n) || n.Kind != kindFunc {
+			continue
+		}
+		name := n.Name[strings.LastIndex(n.Name, ".")+1:]
+		if !strings.HasPrefix(name, "Test") && !strings.HasPrefix(name, "Fuzz") {
+			continue
+		}
+		if line := path.Dir(n.File) + " " + name; !seen[line] {
+			seen[line] = true
+			lines = append(lines, line)
+		}
+	}
+	sort.Strings(lines)
+	for _, l := range lines {
+		fmt.Fprintln(w, l)
+	}
+}
+
+func (ix *index) printTestsToRun(w io.Writer, ts *touchSet, limit int, what, ownWhat string) {
+	best, subprocess := ix.testsToRun(ts)
 	defer ix.printSubprocessTests(w, subprocess)
 	own := ownTests(ts)
 	if len(own) > 0 {

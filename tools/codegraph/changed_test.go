@@ -60,6 +60,33 @@ func TestChangedMapsHunksTestsAndOtherBranches(t *testing.T) {
 	testkit.MustContain(t, out, "declarations on the branch that the graph does not have", "shape/shape.go: Added (func)")
 }
 
+// Kural: changed --go-tests ön denetimin koşacağı Go testlerini satır başına "klasör test" olarak verir: yalnız bir
+// veri dosyası (grafiğin ayrıştırmadığı bir .txt) değişse de onu okuyan test seçilir. Ön denetim eskiden yalnız .go
+// dosyası değişen paketleri koşuyordu: planning_questions.txt kırıkken codegraph sınavı koşmadan "geçti" dedi.
+func TestChangedGoTestsSelectsTheTestsOfAChangedDataFile(t *testing.T) {
+	root := gitFixture(t)
+	testkit.WriteFile(t, root, "data/cases.txt", "a\n")
+	testkit.WriteFile(t, root, "shape/cases_test.go", "package shape\n\nimport (\n\t\"os\"\n\t\"path/filepath\"\n\t\"testing\"\n)\n\n"+
+		"func TestCasesReadable(t *testing.T) {\n\tif _, err := os.ReadFile(filepath.Join(\"..\", \"data/cases.txt\")); err != nil {\n\t\tt.Fatal(err)\n\t}\n}\n")
+	commitAll(t, root, "cases")
+	gitMust(t, root, "checkout", "-q", "-b", "claude/d", "main")
+	testkit.WriteFile(t, root, "data/cases.txt", "a\nb\n")
+	commitAll(t, root, "claude/d")
+	graph := buildInto(t, root)
+	code, out, errOut := commandIn("changed", root, graph, "--go-tests", "claude/d")
+	if code != exitOK {
+		t.Fatalf("exit %d: %s", code, errOut)
+	}
+	if !strings.Contains("\n"+out, "\nshape TestCasesReadable\n") {
+		t.Errorf("the test that reads the changed data file must be selected:\n%s", out)
+	}
+	for _, line := range strings.Split(strings.TrimSpace(out), "\n") {
+		if f := strings.Fields(line); len(f) != 2 || !strings.HasPrefix(f[1], "Test") && !strings.HasPrefix(f[1], "Fuzz") {
+			t.Errorf("each line must be \"folder TestName\": %q", line)
+		}
+	}
+}
+
 func TestChangedOnCheckedOutBranchMapsNewSide(t *testing.T) {
 	slowFixture(t)
 	root := branchFixture(t)

@@ -421,10 +421,10 @@ yapı MuonVeAdamW {
 // oran_planı: "ısınma, sabit, azalma" (WSD) öğrenme oranı çarpanı, adım 0'dan sayılır.
 // İlk `ısınma` adımda 0'dan 1'e doğrusal artar, sonra 1'de kalır, son `azalma` oranındaki
 // adımlarda (0.2: son %20) doğrusal olarak en_az'a iner.
-fonksiyon oran_planı(adım, toplam, ısınma = 0, azalma = 0.2, en_az = 0.0) {
+fonksiyon oran_planı(adım, adım_sayısı, ısınma = 0, azalma = 0.2, en_az = 0.0) {
     eğer adım < ısınma { sonuç 1.0 * (adım + 1) / ısınma }
-    değişken azalma_adımı = tam(toplam * azalma)
-    değişken baş = toplam - azalma_adımı
+    değişken azalma_adımı = tam(adım_sayısı * azalma)
+    değişken baş = adım_sayısı - azalma_adımı
     eğer adım < baş veya azalma_adımı == 0 { sonuç 1.0 }
-    sonuç en_az + (1.0 - en_az) * (toplam - adım) / azalma_adımı
+    sonuç en_az + (1.0 - en_az) * (adım_sayısı - adım) / azalma_adımı
 }

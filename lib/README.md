@@ -85,7 +85,7 @@ değişken rgn = GPT(40000, bağlam: 1024, boyut: 512, katman: 8, bakış_sayıs
 | `ad_uyar_mı(ad, desen)`, `bir_desen_uyar_mı(ad, desenler)` | yol parçası eşleşmesi: tam (`gömme.tablo`), önek (`gömme`), sonek (`ple.tablo`) |
 | `SatırRMS(ağırlıklar, öğrenme_oranı: 0.003, beta2: 0.95, epsilon: 1e-8)` | satır seyrek RMS (yoğun maskeli): yalnızca gradyanı sıfırdan farklı satırlar güncellenir; satır başına ikinci moment ve sayaç |
 | `MuonVeAdamW(model, muon_oranı: yok, adamw_oranı: 0.003, ağırlık_çürümesi: 0.0, normuon: yanlış, ayrı:, beta2: 0.95, adamw_çürümesi: 0.0, muon_ölçeği: "oran", seyrek: [], seyrek_oranı: yok, ns_türü: "float32")` | gruplar tek iyileştiricide: `adım()`, `sıfırla()`, `çarpan_ayarla(c)`; alanlar `muon`, `adamw`, `adamw_sönümsüz`, `satır_rms` |
-| `oran_planı(adım, toplam, ısınma: 0, azalma: 0.2, en_az: 0.0)` | ısınma–sabit–azalma (WSD) öğrenme oranı çarpanı |
+| `oran_planı(adım, adım_sayısı, ısınma: 0, azalma: 0.2, en_az: 0.0)` | ısınma–sabit–azalma (WSD) öğrenme oranı çarpanı |
 | `gradyanları_sıfırla(ağırlıklar)` | gradyanları yerinde sıfırlar |
 
 **Muon.** Kaynak: K. Jordan ve diğ., *Muon: An optimizer for hidden layers in neural networks* (2024, kellerjordan.github.io/posts/muon). Her W için `m ← β·m + (1−β)·g`, Nesterov'la `u ← β·m + (1−β)·g`, `W ← W·(1 − η·λ) − η·√max(1, çıkış/giriş)·dikleştir(u)`. Ölçek, ağırlığı `[çıkış, giriş]` tutan düzendeki √max(1, satır/sütun)'un bu düzendeki karşılığıdır. Aynı şekilli ağırlıklar (`şekil_grupları`) tek yığında dikleştirilir: hedef modelde 56 ayrı dikleştirme yerine 3 toplu dikleştirme (PyTorch'taki yaygın uygulamalar ve `tools/gpu/rgn512.py` de `torch.stack` ile böyle yapar); sonuç tek tek dikleştirmeyle aynıdır (test korur).

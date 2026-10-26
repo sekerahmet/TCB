@@ -27,7 +27,8 @@
 #   --kip=on          ön denetim (~1 dk): üretilmiş dosyalar, gofmt, vet, go.mod, staticcheck,
 #                     ölü kod, düzen kuralları (dosya adı, satır sınırı, Türkçe metin, çıplak ad,
 #                     ileti kullanımı), .tr dosyalarının biçimi, değişen
-#                     paketlerin kısa testleri ve yeni tekrar adayları (codegraph dups --changed;
+#                     paketlerin kısa testleri, değişen dosyaları koruyan testler (codegraph changed
+#                     --go-tests; veri dosyası değişse de) ve yeni tekrar adayları (codegraph dups --changed;
 #                     yeni aday denetimi düşürür, tam denetimde de).
 #                     Yan oturumlar devir notundan, ana oturum GPU yan dalına göndermeden önce
 #                     koşar; tam denetimin yerini tutmaz.
@@ -328,6 +329,43 @@ changed_packages() {
 	done
 }
 
+# selected_tests değişen dosyaları koruyan Go testlerini kısa kipte koşar: codegraph changed --go-tests (değişen kodu
+# sınayan testler, değişen testler, alt süreç testleri ve değişen her dosyayı okuyan testler). Argümanlar tamamı zaten
+# koşan paketlerdir (changed_packages), atlanır. Taban changed_packages ve dups_check'tekiyle aynıdır. Neden: yalnız
+# .go dosyası değişen paketleri koşan ön denetim bir veri dosyası (planning_questions.txt, tr.json) değişince onu
+# koruyan testi koşmuyordu; madde 15 adım 2'de iki kez kırık codegraph sınavıyla "geçti" dedi.
+selected_tests() {
+	local base=main out errfile dir name
+	if git rev-parse --verify -q origin/main >/dev/null; then base=origin/main; fi
+	git merge-base "$base" HEAD >/dev/null 2>&1 || return 0
+	errfile=$(mktemp)
+	out=$(go run ./tools/codegraph changed --go-tests --base "$base" HEAD 2>"$errfile") || {
+		head -20 "$errfile"
+		rm -f "$errfile"
+		fail "codegraph changed --go-tests çalışmadı"
+		return
+	}
+	rm -f "$errfile"
+	local -A full=() seen=()
+	local dirs=() names=()
+	for dir in "$@"; do full[$dir]=1; done
+	while read -r dir name; do
+		case $name in Test* | Fuzz*) ;; *) continue ;; esac
+		[ -z "${full[./$dir]:-}" ] || continue
+		[ -n "${seen[$dir]:-}" ] || { seen[$dir]=1; dirs+=("./$dir"); }
+		names+=("$name")
+	done <<<"$out"
+	[ ${#dirs[@]} -gt 0 ] || return 0
+	step "Değişen dosyaları koruyan testler (${#names[@]} test, ${#dirs[@]} paket; codegraph changed --go-tests)"
+	local run
+	run="^($(printf '%s\n' "${names[@]}" | sort -u | paste -sd'|'))\$"
+	# Windows'ta komut satırı ~32 000 karakterdir: çok büyük seçimde (bir tr.json değişikliği 428 test, 12 500
+	# karakter, 67 sn ölçüldü) seçilen paketler bütün olarak koşar.
+	if [ ${#run} -gt 20000 ]; then run=.; fi
+	go test "${p_flag[@]}" -short -run "$run" "${dirs[@]}" 2>&1 | grep -v '^ok\|no test files'
+	[ "${PIPESTATUS[0]}" -eq 0 ] || fail "değişen dosyaları koruyan testler"
+}
+
 # gpu_race GPU paketi değiştiyse ve bir C derleyicisi varsa (yarış dedektörü cgo ister) GPU
 # paketini yerelde de yarış dedektörüyle koşar: otomatik sınamanın yarış işi PTX benzeticisini
 # 10 dk sınırla koşar, yeni bir sınama bu sınırı yalnızca orada aşmasın. Süre sınırın yarısını
@@ -498,6 +536,7 @@ for mode in $modes; do
 			go test "${p_flag[@]}" -short "${changed[@]}" 2>&1 | grep -v '^ok\|no test files'
 			[ "${PIPESTATUS[0]}" -eq 0 ] || fail "değişen paketlerin testleri"
 		fi
+		selected_tests "${changed[@]}"
 		dups_check
 		;;
 	esac

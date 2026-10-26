@@ -60,6 +60,11 @@ type Checker struct {
 	warnings []error
 	// interactive kabukta açıktır: ifade deyiminin değeri gösterildiği için etkisiz sayılmaz.
 	interactive bool
+	// blockValues değeri kullanılan bir bloğun (değer olarak kullanılan eğer ya da eşle kolu) son ifade
+	// deyimleridir: bloğun değeridir, etkisiz sayılmaz. statementExpr o an denetlenen, değeri kullanılmayan
+	// ifade deyiminin ifadesidir (eğer deyimi olarak yazılan eğer).
+	blockValues   map[*ast.ExpressionStatement]bool
+	statementExpr ast.Expression
 	// İçinde bulunulan fonksiyonun bildirilmiş dönüş tipi ("" = fonksiyon dışı veya tipsiz)
 	returnType string
 	// globalNames tanımsız ad denetiminin genel kapsamıdır (kabukta satırlar arasında kalır);
@@ -276,7 +281,13 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		c.checkStatement(s.Body)
 
 	case *ast.ExpressionStatement:
+		prev := c.statementExpr
+		c.statementExpr = s.Expression
+		if c.blockValues[s] {
+			c.statementExpr = nil // bloğun değeri: içindeki eğer'in değeri de kullanılır
+		}
 		c.inferExpression(s.Expression)
+		c.statementExpr = prev
 		c.warnUnusedNegation(s)
 	}
 }
@@ -296,17 +307,6 @@ func (c *Checker) language() *codes.Language {
 // SetInteractive marks the checker as the shell's: an expression statement's value is shown
 // there, so it is not unused.
 func (c *Checker) SetInteractive() { c.interactive = true }
-
-// warnUnusedNegation değeri kullanılmayan '-x' deyimini bildirir (2.8): satır başındaki '-'
-// önceki satırı sürdürmediği için 'a = 1' ardından gelen '- b' sessizce etkisiz kalırdı.
-func (c *Checker) warnUnusedNegation(s *ast.ExpressionStatement) {
-	if c.interactive {
-		return
-	}
-	if p, ok := s.Expression.(*ast.PrefixExpression); ok && p.Operator == "-" {
-		c.warnings = append(c.warnings, messages.At(p.Token.Line, 0, messages.New(messages.H1011)))
-	}
-}
 
 func (c *Checker) inferExpression(expr ast.Expression) string {
 	if expr == nil {
@@ -394,30 +394,9 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		}
 		return typeAny
 	case *ast.IfExpression:
-		c.inferExpression(e.Condition)
-		c.checkStatement(e.Consequence)
-		for _, elif := range e.ElseIfs {
-			c.inferExpression(elif.Condition)
-			c.checkStatement(elif.Consequence)
-		}
-		if e.Alternative != nil {
-			c.checkStatement(e.Alternative)
-		}
-		return typeAny
+		return c.inferIf(e, expr != c.statementExpr)
 	case *ast.MatchExpression:
-		c.inferExpression(e.Subject)
-		for _, mc := range e.Cases {
-			for _, p := range mc.Patterns {
-				c.inferExpression(p)
-			}
-			if mc.Body != nil {
-				c.checkStatement(mc.Body)
-			}
-			if mc.ValueExpr != nil {
-				c.inferExpression(mc.ValueExpr)
-			}
-		}
-		return typeAny
+		return c.inferMatch(e, expr != c.statementExpr)
 	}
 	return typeAny
 }

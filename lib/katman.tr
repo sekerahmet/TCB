@@ -579,14 +579,14 @@ yapı GPT {
     // kayıp: bir sonraki parçayı tahmin etmenin ortalama çapraz entropisi. Çıkış sapmasızsa
     // (paylaşımlı gömme ya da sapmasız Doğrusal) logitler bütün olarak tutulmaz:
     // doğrusal_çapraz_entropi aynı kaybı dilim dilim hesaplar (dil tanımı 15.25).
-    fonksiyon kayıp(girdi, hedef) {
+    fonksiyon kayıp(kimlikler, hedef) {
         eğer kendi.çıkış == yok {
-            sonuç doğrusal_çapraz_entropi(kendi.gizli_durum(girdi), kendi.gömme.tablo.devrik(), hedef)
+            sonuç doğrusal_çapraz_entropi(kendi.gizli_durum(kimlikler), kendi.gömme.tablo.devrik(), hedef)
         }
         eğer kendi.çıkış.sapma == yok {
-            sonuç doğrusal_çapraz_entropi(kendi.gizli_durum(girdi), kendi.çıkış.ağırlık, hedef)
+            sonuç doğrusal_çapraz_entropi(kendi.gizli_durum(kimlikler), kendi.çıkış.ağırlık, hedef)
         }
-        sonuç çapraz_entropi(kendi.ileri(girdi), hedef)
+        sonuç çapraz_entropi(kendi.ileri(kimlikler), hedef)
     }
     // önbellek_kur: bu modelin katman sayısında bir KVÖnbellek ("sabit" ya da "büyüyen"); sabit
     // önbellek en_çok konum tutar (verilmezse bağlam).
