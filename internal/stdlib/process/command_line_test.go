@@ -140,6 +140,8 @@ func TestCommandLineSetupErrors(t *testing.T) {
 	}{
 		{`komut_satırı({uzunluk: 3})`, messages.H7222},
 		{`komut_satırı({anahtarlar: 3})`, messages.H7222},
+		{`komut_satırı({length: 3})`, messages.H7222}, // her yazım dilinin üye adı
+		{`komut_satırı({keys: 3})`, messages.H7222},
 		{`komut_satırı({yardım: doğru})`, messages.H7221},
 		{`komut_satırı({help: doğru})`, messages.H7221},
 		{`komut_satırı({h: doğru})`, messages.H7221},

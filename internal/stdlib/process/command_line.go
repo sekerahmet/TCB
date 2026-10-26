@@ -123,8 +123,8 @@ func buildOptions(m *interp.VM, fn any, dict *interp.DictVal) ([]*option, error)
 }
 
 // checkOptionName seçenek adının komut satırında yazılabilir ve sonuç sözlüğünde
-// okunabilir olduğunu denetler. Sözlüğün üye adları (uzunluk, anahtarlar ...) seçenek adı
-// olamaz: ayar.uzunluk anahtarı değil eleman sayısını verirdi.
+// okunabilir olduğunu denetler. Sözlüğün herhangi bir yazım dilindeki üye adları (uzunluk,
+// length, anahtarlar, keys ...) seçenek adı olamaz: ayar.length anahtarı değil eleman sayısını verirdi.
 func checkOptionName(fn any, name string) error {
 	if name == "" || strings.HasPrefix(name, "-") || strings.ContainsFunc(name, func(r rune) bool { return r == '=' || unicode.IsSpace(r) }) {
 		return messages.New(messages.H7220, fn, name)
@@ -132,7 +132,7 @@ func checkOptionName(fn any, name string) error {
 	if name == "h" || isHelpName(name) { // --yardım'ın bir dildeki adı ya da -h
 		return messages.New(messages.H7221, fn, name, helpOption())
 	}
-	if k, ok := codes.Source().Find(codes.NamespaceMember, name); ok { // DENEME: anahtar yazım dilinde
+	if k, ok := codes.FindMember(name); ok {
 		if tn, ok := codes.DefinitionOf(k); ok && slices.Contains(tn.Types(), codes.TypeDict) {
 			return messages.New(messages.H7222, fn, name, codes.NameRef(codes.TypeDict))
 		}
