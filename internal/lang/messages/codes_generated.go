@@ -7,7 +7,7 @@ const (
 	H0001 Code = 1    // '{name}' bilinen bir kimlik değil; kodlu dosyada dilin sözcükleri kimlikleriyle (ör. {example}), kullanıcının adları adlarıyla yazılır
 	H0002 Code = 2    // '$' kaçışı bir adın ya da sayının hemen ardından yazılamaz; önüne bir boşluk ya da işleç koyun
 	H0003 Code = 3    // kaynakta NUL (U+0000) karakteri var; metin dosyalarında bulunmaz, dosya bozuk olabilir
-	H0004 Code = 4    // '{name}' ayrılmış bir ad: 'TR_' ile başlayan adlar dilin ve kitaplığının kimlikleri içindir; başka bir ad seçin (ör. {lower}). Kodlu dosyalar ilk satırdaki '{header}' başlığıyla başlar
+	H0004 Code = 4    // '{name}' ayrılmış bir ad: 'TR_' ile başlayan adlar dilin ve kitaplığının kimlikleri içindir; başka bir ad seçin (ör. {lower}){hint}
 	H0005 Code = 5    // '#' TR'de yorum değil; yorum için '//' yazın
 	H0006 Code = 6    // kapatılmamış yorum: '/*' ile başlayan yorum dosya sonuna kadar '*/' ile kapanmadı
 	H0007 Code = 7    // kapatılmamış ham metin: ` ile başlayan metin dosya sonuna kadar kapanmadı
@@ -17,6 +17,7 @@ const (
 	H0011 Code = 11   // yazı yönünü değiştiren görünmez bir karakter var (U+{hex}); kodun göründüğünden farklı okunmasına yol açabileceği için kaynakta kullanılamaz, karakteri silin
 	H0012 Code = 12   // '{name}' adında görünmez bir harf var (U+{hex}); adı yeniden yazın
 	H0013 Code = 13   // '{name}' adında farklı yazı sistemlerinin harfleri karışık ({first} ve {second}): benzer görünen başka bir adla karışabilir, adı tek bir yazı sistemiyle yazın
+	H0014 Code = 14   // . Kodlu dosyalar ilk satırdaki '{header}' başlığıyla başlar
 	H0100 Code = 100  // Sözdizimi hatası — {error}
 	H0110 Code = 110  // dosya sonu
 	H0111 Code = 111  // bir ad
@@ -118,6 +119,8 @@ const (
 	H2112 Code = 2112 // {path|q} modülü okunamadı: {reason}
 	H2113 Code = 2113 // {path|q} bulunamadı: {reason}
 	H2114 Code = 2114 // {path|q} listelenemedi: {reason}
+	H2115 Code = 2115 // {path|q} kodlanamadı: {reason}
+	H2116 Code = 2116 // {path|q} çözülemedi: {reason}
 	H2130 Code = 2130 // bu bir klasör, dosya değil (klasörün içindeki bir dosyanın yolunu verin)
 	H2131 Code = 2131 // {dir|q} klasörü yok
 	H2132 Code = 2132 // böyle bir dosya ya da klasör yok (yolun yazımını denetleyin)
@@ -1501,6 +1504,7 @@ const (
 	H8601 Code = 8601 // Gömülü uygulama okunamadı: {error}
 	H8602 Code = 8602 // '{given}' TR'de bir komut değil; 'tr {command}' yazmak mı istediniz?
 	H8603 Code = 8603 // TR Programlama ve Yapay Zeka Dili v{version}
+	H8604 Code = 8604 // '{given}' bilinmeyen bir seçenek; adı '-' ile başlayan bir dosya için: tr -- {given}. Komutları 'tr {help}' listeler
 	H8605 Code = 8605 // Lütfen bir .tr dosyası belirtin. Örn: tr {command} {file}
 	H8606 Code = 8606 // Lütfen derlenecek .tr dosyasını belirtin. Örn: tr {command} uygulama.tr
 	H8607 Code = 8607 // Hata ayıklama sunucusu: {error}
@@ -1549,7 +1553,7 @@ const (
 	H8671 Code = 8671 // programın çıktı dosyası açılamadı: {error}
 	H8672 Code = 8672 // Programın son çıktısı (tamamı: {path}):
 	H8673 Code = 8673 // Çıktı dosyasına yazma yarıda kaldı, dosya eksik: {error}
-	H8674 Code = 8674 // 'tr {command}' için bilinmeyen seçenek {option|q} (seçenekler: {options})
+	H8674 Code = 8674 // 'tr {command}' için bilinmeyen seçenek {option|q}{options, select, empty { (bu komutun seçeneği yok)} other { (seçenekler: {options})}}{hint}
 	H8675 Code = 8675 // {option} bir değer ister. Örn: tr {command} {option} yol program.tr
 	H8676 Code = 8676 // {path} klasörü açılamadı: {error}
 	H8677 Code = 8677 // JSON raporu yazılamadı: {error}

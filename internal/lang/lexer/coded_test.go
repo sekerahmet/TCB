@@ -1,6 +1,7 @@
 package lexer
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -52,6 +53,22 @@ func TestCodedTokens(t *testing.T) {
 	}
 	if l := NewBody("TR_fn_print", false); allOf(l) == nil || !hasCode(l.Errs(), messages.H0004) {
 		t.Errorf("Türkçe gövdede ayrılmış ad hatası yok: %v", l.Errors())
+	}
+	// Kodlu dosyanın başlığı yalnız ad bilinen bir kimlikse (başlıksız yapıştırılmış kodlu metin)
+	// anılır; başlığın dili okunan metnin dilidir.
+	if l := NewBody("değişken TR_x = 1", false); allOf(l) == nil || !hasCode(l.Errs(), messages.H0004) || hasCode(l.Errs(), messages.H0014) {
+		t.Errorf("kimlik olmayan ayrılmış ad başlığı anmamalı: %v", l.Errors())
+	}
+	for _, c := range []struct{ lang, text string }{{"tr", "değişken TR_fn_sum = 1"}, {"en", "var TR_fn_sum = 1"}} {
+		lang, err := codes.LoadLanguage(c.lang)
+		if err != nil {
+			t.Fatal(err)
+		}
+		l := NewBodyIn(c.text, false, lang)
+		allOf(l)
+		if !hasCode(l.Errs(), messages.H0014) || !strings.Contains(l.Errors()[0], "dil="+c.lang+"'") {
+			t.Errorf("%s: kimlik olan ayrılmış ad '%s%s' başlığını anmalı: %v", c.lang, CodedHeader, c.lang, l.Errors())
+		}
 	}
 }
 
@@ -108,14 +125,18 @@ func TestInterpolationPositions(t *testing.T) {
 // metinli bir dosya dakikalar sürüyordu (her düzey altındaki metni kopyalar). Tarama ayrıştırıcının
 // iç içelik sınırında durur (ayrıştırıcı orada zaten hata verir) ve bir iş bütçesi toplamı girdiyle
 // doğrusal tutar. Duvar saati tavanı yerine büyüme ölçülür (testkit.ScalesLinearly: 5000 ve 20000
-// düzey); yüklü bir makine tavanı aşıyordu.
+// düzey); yüklü bir makine tavanı aşıyordu. Birim tüketilen karakterdir: iki boyda da iç içe metin
+// tek belirteçtir (belirteç sayısı 4), girdinin sonuna kadar okunduğunu karakter gösterir.
 func TestCodedPreScanDepthLimited(t *testing.T) {
-	testkit.ScalesLinearly(t, "nested interpolations", 5000, func(n int) func() {
+	testkit.ScalesLinearly(t, "nested interpolations", 5000, func(n int) func() (int, error) {
 		source := "TR_kw_var s = " + strings.Repeat(`"{`, n) + "1" + strings.Repeat(`}"`, n) + "\n"
-		return func() {
+		return func() (int, error) {
 			l := NewBody(source, true)
+			consumed := 0
 			for l.NextToken().Type != TokEOF {
+				_, consumed = l.LastRange()
 			}
+			return consumed, errors.Join(l.Errs()...)
 		}
 	})
 }

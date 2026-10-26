@@ -22,14 +22,17 @@ import (
 // gömülü dilin (O) sözcüğü kullanıcının adı olarak geçince ya ad kuralı hatası verilir (sözcük
 // bulunduğu yerin ad alanında O'nun bir sözcüğüyse; O'nun bağlamsal sözcükleri her yerde) ya da
 // program, adı nötr bir adla değiştirilmiş hâliyle aynı sonucu verir. O'nun her sözcüğü dil
-// dosyasından ad alanıyla okunur, F'de aynı yazılanlar sınava girmez; programlar Türkçe görünümle
-// yazılıp kodlu biçim üzerinden F'nin görünümüne çevrilir (kodların biçimini bilmez).
+// dosyasından ad alanıyla okunur (değer adları program adı değildir; dil tanımı 17'nin tablosu);
+// F'de aynı yazılan sözcük, F'de aynı yazıldığı ad alanının yerlerinde sınava girmez. Programlar
+// Türkçe görünümle yazılıp kodlu biçim üzerinden F'nin görünümüne çevrilir (kodların biçimini
+// bilmez).
 //
 // Bugün kalan durumlar testdata/name_clash_known.txt'dedir ("F O yer sözcük"); liste yalnızca
-// küçülür: listede olmayan durum kalırsa ya da listedeki durum geçerse test düşer. Liste
-// yeniden yazmak için: go test ./internal/stdlib -run TestNameClashExam -update
+// küçülür: listede olmayan durum kalırsa ya da listedeki durum geçerse test düşer. Artık geçen
+// satırları silmek için: go test ./internal/stdlib -run TestNameClashExam -update (yeni kalan
+// durum elle, nedeniyle eklenir).
 
-var updateKnown = flag.Bool("update", false, "testdata/name_clash_known.txt'i bugünkü sonuçla yeniden yaz")
+var updateKnown = flag.Bool("update", false, "testdata/name_clash_known.txt'ten artık geçen satırları sil")
 
 // clashSlot şablonlarda sınanan adın yeridir; nötr program bu adla koşar.
 const clashSlot = "ad_1"
@@ -59,10 +62,13 @@ var clashPlaces = []clashPlace{
 	{name: "değişken", namespaces: global, main: "değişken ad_1 = 5\nyazdır(ad_1 + 1)\n"},
 	{name: "fonksiyon", namespaces: global, main: "fonksiyon ad_1(x) {\n    sonuç x * 2\n}\nyazdır(ad_1(3))\n"},
 	{name: "parametre", namespaces: global, main: "fonksiyon f(ad_1) {\n    sonuç ad_1 * 2\n}\nyazdır(f(3))\n"},
+	{name: "döngü_değişkeni", namespaces: global, main: "döngü ad_1 içinde [1, 2] {\n    yazdır(ad_1)\n}\n"},
 	{name: "blok_parametresi", namespaces: global, main: "yazdır([1, 2].haritala((ad_1) => ad_1 * 2))\n"},
 	{name: "yakala_adı", namespaces: global, main: "dene {\n    fırlat \"x\"\n} yakala ad_1 {\n    yazdır(ad_1)\n}\n"},
 	{name: "takma_ad", namespaces: global, module: "değişken ad_2 = 1\n", main: "aktar \"m\" olarak ad_1\nyazdır(ad_1.ad_2)\n"},
 	{name: "değer", namespaces: value, main: "yazdır(ad_1)\n", neutralFails: true},
+	// Metin yerleştirmesinin içi kod olarak okunur: değer yeridir.
+	{name: "yerleştirme", namespaces: value, main: "yazdır(\"{ad_1}\")\n", neutralFails: true},
 	{name: "yapı", namespaces: value, main: "yapı ad_1 {\n    a\n}\ndeğişken p: ad_1 = ad_1(a: 1)\nyazdır(p.a)\n"},
 	{name: "tip_açıklaması", namespaces: []codes.Namespace{codes.NamespaceType}, main: "değişken x: ad_1 = 1\nyazdır(x)\n", neutralFails: true},
 	{name: "alan", namespaces: member, main: "yapı P {\n    ad_1\n}\ndeğişken p = P(ad_1: 1)\nyazdır(p.ad_1)\n"},
@@ -154,22 +160,38 @@ func viewIn(t *testing.T, turkish string, lang *codes.Language) string {
 	return text
 }
 
-// clashWord O'nun bir sözcüğüdür: adı ve yasak olduğu ad alanları.
+// clashWord O'nun bir sözcüğüdür: adı, yasak olduğu ad alanları ve F'de aynı yazılan bir adın
+// bulunduğu ad alanları (inF).
 type clashWord struct {
 	name       string
 	namespaces []codes.Namespace
 	contextual bool
+	inF        []codes.Namespace
 }
 
-// clashWords O'nun program adları olan sözcükleridir (genel, tip, üye, adlı argüman); F'de aynı
-// yazılan sözcük girmez.
+// sharedIn sözcüğün yerin ad alanlarından birinde F'nin kendi sözcüğü olduğunu söyler: o yerde F'nin
+// kuralı geçerlidir, (sözcük, yer) çifti sınava girmez.
+func (w clashWord) sharedIn(place []codes.Namespace) bool {
+	for _, ns := range w.inF {
+		if slices.Contains(place, ns) {
+			return true
+		}
+	}
+	return false
+}
+
+// clashWords O'nun program adları olan sözcükleridir (genel, tip, üye, adlı argüman). F'de aynı
+// yazılan sözcük yalnız F'de aynı yazıldığı ad alanlarının yerlerinde atlanır (sharedIn); O'da
+// bağlamsal olan sözcüğün aynısı F'de varsa bütün yerlerde F'nin kuralı geçerlidir, sözcük girmez.
 func clashWords(o, f *codes.Language) []clashWord {
 	programNamespaces := []codes.Namespace{codes.NamespaceGlobal, codes.NamespaceType, codes.NamespaceMember, codes.NamespaceParam}
 	byName := map[string]*clashWord{}
 	var names []string
 	for _, k := range o.Codes() {
 		ns := k.Namespace()
-		if !slices.Contains(programNamespaces, ns) {
+		// Değer adları (inf, nan) genel ad alanında olsa da program adı değildir: kaynakta sözcük
+		// olarak okunmaz, yalnız metinden okunur (dil tanımı 17'nin sınıf tablosu).
+		if !slices.Contains(programNamespaces, ns) || k.Class() == codes.ClassValueName {
 			continue
 		}
 		name := o.Name(k)
@@ -184,14 +206,14 @@ func clashWords(o, f *codes.Language) []clashWord {
 	}
 	var r []clashWord
 	for _, name := range names {
-		same := false
+		w := byName[name]
 		for _, ns := range programNamespaces {
 			if _, ok := f.Find(ns, name); ok {
-				same = true
+				w.inF = append(w.inF, ns)
 			}
 		}
-		if !same {
-			r = append(r, *byName[name])
+		if !w.contextual || len(w.inF) == 0 {
+			r = append(r, *w)
 		}
 	}
 	slices.SortFunc(r, func(a, b clashWord) int { return strings.Compare(a.name, b.name) })
@@ -232,6 +254,9 @@ func TestNameClashExam(t *testing.T) {
 					t.Fatalf("%s/%s: nötr program %s aşamasında durdu: %v\n%s", fCode, p.name, neutral.stage, neutral.errs, main)
 				}
 				for _, w := range words {
+					if w.sharedIn(p.namespaces) {
+						continue
+					}
 					forbidden := w.contextual
 					for _, ns := range w.namespaces {
 						forbidden = forbidden || slices.Contains(p.namespaces, ns)

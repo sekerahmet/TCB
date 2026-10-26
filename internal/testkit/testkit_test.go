@@ -119,24 +119,47 @@ func TestMustContainReportsEveryMissingPart(t *testing.T) {
 // karesel ~16). İş, ölçüm çözünürlüğünün çok üstünde olsun diye büyük tutulur.
 func TestLinearRatioSeparatesLinearFromQuadratic(t *testing.T) {
 	var sink int
-	work := func(steps int) func() {
-		return func() {
+	work := func(steps int) func() (int, error) {
+		return func() (int, error) {
 			s := 0
 			for i := 0; i < steps; i++ {
 				s += i ^ (s >> 3)
 			}
 			sink += s
+			return steps, nil
 		}
 	}
-	linear := func(n int) func() { return work(n * 20000) }
-	quadratic := func(n int) func() { return work(n * n * 100) }
-	if _, _, r := linearRatio(200, linear); r > linearLimit {
-		t.Errorf("doğrusal iş oranı %.1f, en çok %g olmalı", r, linearLimit)
+	linear := func(n int) func() (int, error) { return work(n * 20000) }
+	quadratic := func(n int) func() (int, error) { return work(n * n * 100) }
+	if small, large := linearRuns(200, linear); large.ratio(small) > linearLimit {
+		t.Errorf("doğrusal iş oranı %.1f, en çok %g olmalı", large.ratio(small), linearLimit)
 	}
-	if _, _, r := linearRatio(200, quadratic); r <= linearLimit {
-		t.Errorf("karesel iş oranı %.1f, %g'i aşmalı", r, linearLimit)
+	if small, large := linearRuns(200, quadratic); large.ratio(small) <= linearLimit {
+		t.Errorf("karesel iş oranı %.1f, %g'i aşmalı", large.ratio(small), linearLimit)
 	}
 	_ = sink
+}
+
+// Kural: ScalesLinearly süreyi ancak işin iki boyu da hatasız ve tam bittiyse karşılaştırır: iş hata
+// verirse ya da büyük iş küçüğün 3,5–4,5 katı birim işlemezse (iş yarıda kaldı, girdi büyümedi) test kalır.
+func TestScalesLinearlyChecksTheWorkIsDone(t *testing.T) {
+	for _, c := range []struct {
+		name string
+		work func(n int) (int, error)
+		ok   bool
+	}{
+		{"tam", func(n int) (int, error) { return n, nil }, true},
+		{"sabit pay", func(n int) (int, error) { return n + 10, nil }, true},
+		{"büyümeyen", func(n int) (int, error) { return 100, nil }, false},
+		{"yarıda kalan", func(n int) (int, error) { return min(n, 150), nil }, false},
+		{"hatalı", func(n int) (int, error) { return n, errors.New("bozuk") }, false},
+	} {
+		r := &recorder{TB: t}
+		ScalesLinearly(r, c.name, 100, func(n int) func() (int, error) { return func() (int, error) { return c.work(n) } })
+		if ok := len(r.errors) == 0; ok != c.ok {
+			t.Errorf("%s: geçti %v, beklenen %v (%v)", c.name, ok, c.ok, r.errors)
+		}
+	}
 }
 
 // Kural: GoStringLiterals her metin sabitini çözülmüş değeri ve satırıyla verir; yapı etiketleri

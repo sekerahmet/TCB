@@ -203,41 +203,72 @@ func (e *TeeWriter) String() string {
 }
 
 // ScalesLinearly bir işin girdi boyuyla doğrusal büyüdüğünü sınar. prepare(n) n boylu girdiyi
-// hazırlar (süreye girmez) ve ölçülecek işi verir; iş tekrar çalıştırılabilir olmalıdır. n ve
-// 4n'lik işler art arda, yani aynı makine yükünde ölçülür; her süre üç denemenin en kısasıdır
-// (Python timeit belgesi: yüksek değerler çoğunlukla başka süreçlerin karışmasıdır). Oran 8'i
-// aşarsa test kalır: doğrusal işte ~4 (sabit maliyet baskınsa daha az), karesel bir gerilemede
+// hazırlar (süreye girmez) ve ölçülecek işi verir; iş tekrar çalıştırılabilir olmalıdır ve
+// işlediği birimi (dosya, yerleştirme, karakter) ve hatasını döndürür. n ve 4n'lik işler art
+// arda, yani aynı makine yükünde ölçülür; her süre üç denemenin en kısasıdır (Python timeit
+// belgesi: yüksek değerler çoğunlukla başka süreçlerin karışmasıdır). Süreler ancak iki iş de
+// hatasız ve tam bittiyse karşılaştırılır: iş hata verirse ya da 4n'lik iş n'liğin 3,5–4,5 katı
+// birim işlemezse (iş yarıda kaldı, girdi büyümedi; sabit pay için ±0,5) test kalır. Süre oranı
+// 8'i aşarsa da kalır: doğrusal işte ~4 (sabit maliyet baskınsa daha az), karesel bir gerilemede
 // ~16'dır. Duvar saati tavanının aksine makinenin yükünden bağımsızdır: bütün takım paralel
 // koşarken tek bir sürenin 90 katına uzadığı ölçüldü (2026-10-23).
-func ScalesLinearly(t testing.TB, what string, n int, prepare func(n int) func()) {
+func ScalesLinearly(t testing.TB, what string, n int, prepare func(n int) func() (int, error)) {
 	t.Helper()
-	small, large, r := linearRatio(n, prepare)
-	t.Logf("%s: %v at %d, %v at %d; ratio %.1f", what, small, n, large, linearFactor*n, r)
+	small, large := linearRuns(n, prepare)
+	for _, r := range []linearRun{small, large} {
+		if r.err != nil {
+			t.Errorf("%s: the measured work failed: %v", what, r.err)
+			return
+		}
+	}
+	if u := float64(large.units) / float64(max(small.units, 1)); u < unitsLow || u > unitsHigh {
+		t.Errorf("%s: the work at %d did %d units, at %d %d (%.1f×, expected %g–%g×): it stopped early or the input did not grow",
+			what, n, small.units, linearFactor*n, large.units, u, unitsLow, unitsHigh)
+		return
+	}
+	r := large.ratio(small)
+	t.Logf("%s: %v at %d, %v at %d; ratio %.1f", what, small.best, n, large.best, linearFactor*n, r)
 	if r > linearLimit {
 		t.Errorf("%s does not grow linearly: %v at %d, %v at %d; ratio %.1f (linear ~%d, limit %g)",
-			what, small, n, large, linearFactor*n, r, linearFactor, linearLimit)
+			what, small.best, n, large.best, linearFactor*n, r, linearFactor, linearLimit)
 	}
 }
 
 const (
 	linearFactor = 4
 	linearLimit  = 8.0
+	unitsLow     = 3.5
+	unitsHigh    = 4.5
 )
 
-// linearRatio n ve linearFactor·n boylu işlerin en kısa sürelerini ve oranlarını verir.
-func linearRatio(n int, prepare func(n int) func()) (small, large time.Duration, ratio float64) {
-	best := func(f func()) time.Duration {
-		m := time.Duration(1<<63 - 1)
+// linearRun bir boyun ölçümüdür: üç denemenin en kısa süresi, son denemenin birimi ve ilk hata.
+type linearRun struct {
+	best  time.Duration
+	units int
+	err   error
+}
+
+// ratio r'nin süresinin small'ınkine oranıdır.
+func (r linearRun) ratio(small linearRun) float64 { return float64(r.best) / float64(small.best) }
+
+// linearRuns n ve linearFactor·n boylu işleri ölçer.
+func linearRuns(n int, prepare func(n int) func() (int, error)) (small, large linearRun) {
+	measure := func(f func() (int, error)) linearRun {
+		r := linearRun{best: time.Duration(1<<63 - 1)}
 		for i := 0; i < 3; i++ {
 			start := time.Now()
-			f()
-			m = min(m, time.Since(start))
+			units, err := f()
+			r.best = min(r.best, time.Since(start))
+			r.units = units
+			if r.err == nil {
+				r.err = err
+			}
 		}
-		return max(m, time.Microsecond)
+		r.best = max(r.best, time.Microsecond)
+		return r
 	}
 	fs, fl := prepare(n), prepare(linearFactor*n)
-	small, large = best(fs), best(fl)
-	return small, large, float64(large) / float64(small)
+	return measure(fs), measure(fl)
 }
 
 // GoStringLiterals bir Go dosyasındaki her metin sabitini çözülmüş değeri ve satırıyla fn'e verir;

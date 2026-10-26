@@ -1,9 +1,11 @@
 package parser
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -137,12 +139,21 @@ func TestInterpolationDepthLimited(t *testing.T) {
 // metnin başından yeniden sayılmaz; 200 000 yerleştirme önceden ~40 sn sürüyordu). Duvar saati
 // tavanı yerine büyüme ölçülür (testkit.ScalesLinearly: 50 000 ve 200 000 yerleştirme).
 func TestManyInterpolationsLinear(t *testing.T) {
-	testkit.ScalesLinearly(t, "yerleştirmeli metin", 50000, func(n int) func() {
+	testkit.ScalesLinearly(t, "yerleştirmeli metin", 50000, func(n int) func() (int, error) {
 		code := `değişken s = "` + strings.Repeat("{a}", n) + `"`
-		return func() {
-			if h := parseErrors(code); len(h) > 0 {
-				t.Fatalf("beklenmeyen hata: %.200v", h)
+		return func() (int, error) {
+			p := New(lexer.New(code))
+			prog := p.ParseProgram()
+			if err := errors.Join(p.Errs()...); err != nil {
+				return 0, err
 			}
+			// Birim ayrıştırılan yerleştirme parçasıdır.
+			if v, ok := prog.Statements[0].(*ast.VarStatement); ok {
+				if s, ok := v.Value.(*ast.InterpolatedString); ok {
+					return len(s.Parts), nil
+				}
+			}
+			return 0, nil
 		}
 	})
 }

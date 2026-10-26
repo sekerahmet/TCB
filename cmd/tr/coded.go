@@ -41,29 +41,35 @@ func encodeCommand(args []string) {
 		convertFromInput(language, func(text string) (string, error) { return source.EncodeIn(text, language) })
 		return
 	}
-	convertCommand(args, "kodla", messages.Text(messages.H8704), func(_, text string) (string, error) { return source.Encode(text) })
+	convertCommand(args, "kodla", messages.Text(messages.H8704), messages.H2115, func(_, text string) (string, error) { return source.Encode(text) })
 }
 
 // languageArgument standart giriş kipinin '--dil <kod>' argümanını okur (yoksa kişinin yazım
 // dili, codes.Display) ve yazım dilini doğrular; başka bir argüman ya da bilinmeyen dil hatadır.
 func languageArgument(args []string, command any) *codes.Language {
-	languageCode, _ := parseLanguageArgs(args, false, messages.Text(messages.H8700, codes.OptionFlag(codes.OptLang), command),
+	languageCode, _ := parseLanguageArgs(command, args, false, messages.Text(messages.H8700, codes.OptionFlag(codes.OptLang), command),
 		func(arg string) string { return messages.Text(messages.H8701, command, arg) })
 	return mustLoadLanguage(languageCode)
 }
 
 // parseLanguageArgs '--dil <kod>' argümanını (yoksa kişinin yazım dili) ve allowFile ise tek bir
 // konumlu dosya argümanını okur; dil kodunu ve dosyayı döndürür. Değersiz '--dil' missingValue
-// iletisiyle, başka argüman unexpected(arg) iletisiyle çıkışa götürür (iletiler çağıranındır).
-func parseLanguageArgs(args []string, allowFile bool, missingValue string, unexpected func(arg string) string) (languageCode, file string) {
+// iletisiyle, başka argüman unexpected(arg) iletisiyle (iletiler çağıranındır), başka seçenek
+// unknownOption ile çıkışa götürür. '--'dan sonraki argüman seçenek sayılmaz.
+func parseLanguageArgs(command any, args []string, allowFile bool, missingValue string, unexpected func(arg string) string) (languageCode, file string) {
 	languageCode = codes.Display().Code
+	options := true
 	for i := 0; i < len(args); i++ {
 		switch {
-		case isOption(args[i], codes.OptLang) && i+1 < len(args):
+		case options && args[i] == "--":
+			options = false
+		case options && isOption(args[i], codes.OptLang) && i+1 < len(args):
 			languageCode = args[i+1]
 			i++
-		case isOption(args[i], codes.OptLang):
+		case options && isOption(args[i], codes.OptLang):
 			exitWithError(missingValue)
+		case options && looksLikeOption(args[i]):
+			unknownOption(command, args[i], []codes.Code{codes.OptLang})
 		case allowFile && file == "":
 			file = args[i]
 		default:
@@ -113,7 +119,7 @@ func convertFromInput(language *codes.Language, convert func(string) (string, er
 // decodeCommand 'tr çöz' komutudur; Türkçe yazılmış dosyalara dokunulmaz. Kodsuz dosya Türkçedir
 // (17.7): dili Türkçe olmayan kodlu dosya çözülünce dili değişir, bu yüzden uyarılır (17.1).
 func decodeCommand(args []string) {
-	convertCommand(args, codes.NameRef(codes.CmdDecode), messages.Text(messages.H8705), func(filePath, text string) (string, error) {
+	convertCommand(args, codes.NameRef(codes.CmdDecode), messages.Text(messages.H8705), messages.H2116, func(filePath, text string) (string, error) {
 		out, err := source.Decode(text, source.Turkish())
 		if b, _ := source.Split(text); err == nil && b.Coded && b.Language != codes.SourceLanguage {
 			fmt.Fprintln(os.Stderr, "⚠️ "+messages.Text(messages.H8711, filePath, b.Language))
@@ -124,11 +130,13 @@ func decodeCommand(args []string) {
 
 // convertCommand hedeflerdeki (klasörlerde alt klasörler dahil) bütün .tr dosyalarını cevir ile
 // dönüştürüp değişenleri yerine yazar. Hatalı dosyalar atlanır; biri bile varsa 1 koduyla çıkar.
-func convertCommand(args []string, command any, verb string, convert func(filePath, text string) (string, error)) {
-	if len(args) == 0 {
+// Açılamayan hedef failed iletisiyle bildirilir.
+func convertCommand(args []string, command any, verb string, failed messages.Code, convert func(filePath, text string) (string, error)) {
+	targets := fileArguments(command, args, nil, nil)
+	if len(targets) == 0 {
 		exitWithError(messages.Text(messages.H8703, command))
 	}
-	files, err := collectTrFiles(args)
+	files, err := collectTrFiles(targets, failed)
 	if err != nil {
 		exitWithError(err)
 	}
@@ -165,11 +173,11 @@ func convertCommand(args []string, command any, verb string, convert func(filePa
 }
 
 // collectTrFiles komut satırı hedeflerinin (dosya ya da klasör) .tr dosyalarını sırayla toplar;
-// ilk açılamayan hedefin hatasını döndürür.
-func collectTrFiles(targets []string) ([]string, error) {
+// ilk açılamayan hedefin hatasını komutun failed iletisiyle döndürür.
+func collectTrFiles(targets []string, failed messages.Code) ([]string, error) {
 	var files []string
 	for _, h := range targets {
-		d, err := trFiles(h)
+		d, err := trFiles(h, failed)
 		if err != nil {
 			return nil, err
 		}
@@ -201,7 +209,7 @@ func showCommand(args []string) {
 		return
 	}
 	showName := codes.NameRef(codes.CmdShow)
-	languageCode, file := parseLanguageArgs(args, true, messages.Text(messages.H8708, codes.OptionFlag(codes.OptLang), showName),
+	languageCode, file := parseLanguageArgs(showName, args, true, messages.Text(messages.H8708, codes.OptionFlag(codes.OptLang), showName),
 		func(arg string) string { return messages.Text(messages.H8709, showName, arg) })
 	if file == "" {
 		exitWithError(messages.Text(messages.H8710, codes.NameRef(codes.CmdShow), codes.OptionFlag(codes.OptLang)))

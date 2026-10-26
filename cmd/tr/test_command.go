@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/sekerahmet/TCB/internal/devtools/testrunner"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/stdlib"
 	"os"
 )
@@ -11,8 +12,8 @@ import (
 // Çıkmadan önce motorların açık kaynakları kapatılır ve geçici klasörler silinir (motor.Kapat).
 func testCommand(args []string) {
 	target := "."
-	if len(args) > 0 {
-		target = args[0]
+	if file, _, ok := programFile(codes.NameRef(codes.CmdTest), args); ok {
+		target = file
 	}
 	summary, err := testrunner.Run(target, os.Stdout)
 	stdlib.Close()
