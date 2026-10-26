@@ -148,7 +148,7 @@ codegraph tests-for internal/README.md | group: guard the rules it states => int
 codegraph tests-for CLAUDE.md | contains: no tests read it by name | group: repository-wide checks that scan it => internal_test.TestRetiredTermsStayRetired | src: TCB 2026-10-25, 2. madde (adıyla okuyan yok; depo geneli taramalar var)
 codegraph tests-for cmd/tr/main.go | not: checker.TestBoolTextComparisonWarning | contains: covered by subprocess tests | src: TCB 2026-10-25, 3. madde
 codegraph tests-for editors/vscode/coded_view.js | group: tests, indirect => e2e.TestExtensionJSTests | contains: via editors/vscode/test/coded_view_test.js | src: TCB 2026-10-25, 4. madde
-codegraph tests-for README.md | group: <- tests => e2e.TestExamplesListedInReadme | group: <- tests => e2e.TestDocLinks | not: no tests found | src: TCB 2026-10-25, 2. madde (gaps.md: belgeListesi kök README ve docs/*.md)
+codegraph tests-for README.md | group: <- tests => e2e.TestExamplesListedInReadme | group: among other files => e2e.TestDocLinks | not: no tests found | src: TCB 2026-10-25, 2. madde (gaps.md: belgeListesi kök README ve docs/*.md; K2 partisinden beri listeyle okuyan test kendi grubunda)
 # TCB 2026-10-25: depo genelini tarayan kural testleri (gaps.md)
 codegraph tests-for tools/edithook/main.go | group: repository-wide checks that scan it => internal_test.TestNoTurkishLiterals | contains: internal_test.TestLayoutFileSize | contains: *.go under the repository, not *_test.go | src: TCB 2026-10-25, gaps.md (depo geneli kural testleri)
 codegraph tests-for lib/README.md | group: repository-wide checks that scan it => internal_test.TestRuleTestsExist | not: TestNoTurkishLiterals | src: TCB 2026-10-25, gaps.md (kalıp uzantıya göre: .go taraması .md'ye uymaz)
@@ -198,3 +198,5 @@ codegraph tests-for internal/lang/codes/language_test.go | contains: this file's
 # K2 partisi, 2026-10-26 (CODEGRAPH)
 codegraph tests-for tools/edithook/codegraph.go | contains: edithook.TestABrokenTreeFallsBackToTheLastBuiltCodegraph | src: K2 partisi D, 2026-10-26 (dil paketi derlenmezken kanca son derlenen codegraph'ı bayat uyarısıyla koşar)
 codegraph who-uses edithook.codegraph | contains: edithook.testsFor | contains: edithook.runCodegraph | src: K2 partisi D, 2026-10-26 (kanca ve ön denetim codegraph'ı aynı yoldan koşar)
+codegraph tests-for lib/hazir.tr | contains: e2e.TestReadyModelMatchesTransformers | first-item: e2e.TestReadyModelMatchesTransformers | contains: hazir_test: | src: K2 partisi K, 2026-10-26 (kitaplığı test dizesindeki aktarmayla koşan test; gömülü kitaplığı okuyanlar sonda)
+codegraph tests-for --all lib/katman.tr | contains: e2e.TestGPTTrainingScriptSmoke | contains: e2e.TestLibraryModuleCheckAndBuild | contains: e2e.TestReadyModelMatchesTransformers | contains: katman_test: | src: K2 partisi K, 2026-10-26 (aktarma test erişiminde bağımlılık: betik, aktaran modül, test dosyası)

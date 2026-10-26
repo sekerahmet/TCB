@@ -37,9 +37,17 @@ func (ix *index) indirectTests(target *Node) []indirectTest {
 		return false
 	})
 	out = append(out, ix.loaderTests(target, direct)...)
+	// Aynı uzaklıkta dosyanın kendi test dosyasındakiler önce (lib/katman.tr için lib/katman_test.tr).
+	own := func(t *Node) bool {
+		stem := strings.TrimSuffix(target.File, path.Ext(target.File))
+		return target.Kind == kindFile && strings.TrimSuffix(t.File, path.Ext(t.File)) == stem+"_test"
+	}
 	sort.SliceStable(out, func(i, j int) bool {
 		if out[i].steps != out[j].steps {
 			return out[i].steps < out[j].steps
+		}
+		if a, b := own(out[i].test), own(out[j].test); a != b {
+			return a
 		}
 		return out[i].test.Name < out[j].test.Name
 	})
@@ -48,7 +56,10 @@ func (ix *index) indirectTests(target *Node) []indirectTest {
 
 // loaderTests bir dosyayı yükleyen dosyaları (`loads`, js_loads.go) geriye doğru izler ve onları koşan testleri verir:
 // e2e.TestExtensionJSTests test/coded_view_test.js'yi koşar, o da coded_view.js'yi yükler (2 adım, via test dosyası).
-// Doğrudan `tests` kenarı olanlar (skip) listeye girmez; her test bir kez, en yakın yükleyiciyle.
+// TR'de aktarma da yüklemedir: `.tr` dosyasının testleri onu (geçişli) aktaran `.tr` dosyalarının testleridir, onları
+// koşan Go testleri (TestGPTTrainingScriptSmoke → tools/gpu/gpt_training.tr → lib/katman.tr) ve içlerindeki TR testleri
+// (lib/katman_test.tr'nin testleri, 1 adım). Doğrudan `tests` kenarı olanlar (skip) listeye girmez; her test bir kez,
+// en yakın yükleyiciyle.
 func (ix *index) loaderTests(target *Node, skip map[string]bool) []indirectTest {
 	if target.Kind != kindFile {
 		return nil
@@ -61,15 +72,26 @@ func (ix *index) loaderTests(target *Node, skip map[string]bool) []indirectTest 
 		var next []string
 		for _, id := range level {
 			for _, e := range ix.in[id] {
-				if e.Kind != edgeLoads || seen[e.From] {
+				imports := e.Kind == edgeImports && strings.HasPrefix(e.From, "tr:file:")
+				if e.Kind != edgeLoads && !imports || seen[e.From] {
 					continue
 				}
 				seen[e.From] = true
 				next = append(next, e.From)
-				for _, t := range ix.in[e.From] {
-					if tn := ix.byID[t.From]; t.Kind == edgeTests && tn != nil && !skip[tn.ID] && !shown[tn.ID] {
+				add := func(tn *Node, steps int) {
+					if tn != nil && !skip[tn.ID] && !shown[tn.ID] {
 						shown[tn.ID] = true
-						out = append(out, indirectTest{tn, depth + 1, ix.byID[e.From]})
+						out = append(out, indirectTest{tn, steps, ix.byID[e.From]})
+					}
+				}
+				for _, t := range ix.in[e.From] {
+					if t.Kind == edgeTests {
+						add(ix.byID[t.From], depth+1)
+					}
+				}
+				for _, c := range ix.out[e.From] {
+					if tn := ix.byID[c.To]; imports && c.Kind == edgeContains && tn != nil && tn.Kind == kindTRTest {
+						add(tn, depth)
 					}
 				}
 			}
@@ -221,10 +243,12 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 		fmt.Fprintln(w, "  no tests found (only measurements, below)")
 	}
 	ix.printAboutTests(w, about, limit)
+	tests, withOthers := ix.splitSharedSites(tests)
 	ix.printGroups(w, "  <-", tests, fromOf, limit, true) // sonra doğrudan testler: bu adı ya da dosyayı kullananlar
 	ix.printWalks(w, walks, limit)
 	ix.printValueTests(w, asValue, limit)
 	ix.printInferred(w, n, indirect, viaNames, limit)
+	ix.printSharedSites(w, withOthers, limit)
 	ix.printDocRules(w, rules, limit)
 	ix.printCites(w, cites, limit)
 	if len(scans) > 0 {
@@ -235,6 +259,35 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	ix.printMeasurements(w, measured, indirectMeasured, limit)
 	ix.printGuardedRules(w, allTests, allIndirect, limit)
 	ix.printOtherConfigsExcept(w, n, limit, listed)
+}
+
+// splitSharedSites dosyaya gelen test kenarlarını ayırır: testin aynı yerden (dosya:satır) başka dosyalara da giden
+// kenarı varsa bir kalıp (lib/*.tr) ya da gömülü dosya kümesi (lib/embedded.go'nun go:embed *.tr'si) bu dosyayı
+// ötekilerle birlikte okur (bir yol listesi de: TestDocLinks README.md'yi docs/*.md ile okur); adıyla ya da aktarmayla okuyan testten (TestReadyModelMatchesTransformers) zayıftır ve
+// sonra yazılır (DENETİM, parti K2: gömülü kitaplık üzerinden gelen dört test davranış testinin önündeydi).
+func (ix *index) splitSharedSites(tests []*Edge) (own, shared []*Edge) {
+	for _, e := range tests {
+		other := slices.ContainsFunc(ix.out[e.From], func(o *Edge) bool {
+			t := ix.byID[o.To]
+			return o.Kind == edgeTests && o.To != e.To && o.File == e.File && o.Line == e.Line && t != nil && (t.Kind == kindFile || t.Kind == kindDoc)
+		})
+		if other {
+			shared = append(shared, e)
+		} else {
+			own = append(own, e)
+		}
+	}
+	return own, shared
+}
+
+// printSharedSites dosyayı ötekilerle birlikte okuyan testleri (splitSharedSites) kendi grubunda yazar.
+func (ix *index) printSharedSites(w io.Writer, list []*Edge, limit int) {
+	if len(list) == 0 {
+		return
+	}
+	fmt.Fprintf(w, "  <- tests that read it among other files (%d; a list, a glob or an embedded file set: they read every file of it):\n", len(list))
+	sort.SliceStable(list, func(i, j int) bool { return ix.byID[list[i].From].Name < ix.byID[list[j].From].Name })
+	forEachLimited(w, list, limit, "    ", moreHint, func(e *Edge) string { return ix.edgeLine(e, e.From, true) })
 }
 
 // keepStrongest bir testi, en güçlü kanıtının grubundan başka gruplardan çıkarır (bağımsız denetim grup 6, S1:
