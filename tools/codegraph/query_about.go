@@ -159,7 +159,7 @@ func (ix *index) aboutReason(t, target *Node, names []string, msgs []*Node) stri
 			continue
 		}
 		for _, m := range msgs {
-			if fixed := longestFixedPart(m.Detail); len(fixed) >= 12 && len(fixed) > bestLen && strings.Contains(line, fixed) &&
+			if fixed := longestFixedPart(m.Detail); len(fixed) >= minFixedText && len(fixed) > bestLen && strings.Contains(line, fixed) &&
 				fnSlotHolds(m.Detail, line, names) {
 				best, bestLen = "expects "+m.Name, len(fixed)
 			}

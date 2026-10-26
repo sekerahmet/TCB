@@ -37,7 +37,7 @@ codegraph query codes.DisplayName | contains: display language | src: deneme 2, 
 codegraph query TR_arg_every_minutes | group: registered or used in Go => checkpoint.nameEveryMinutes | src: deneme 3, 2026-10-23
 codegraph query checkpoint.nameEveryMinutes | group: reads_var => checkpoint.options | group: reads_var => checkpoint.setup | src: deneme 3, 2026-10-23
 codegraph who-uses güncelle | contains: checkpoint.Checkpoint.update | src: deneme 3, 2026-10-23
-codegraph tests-for checkpoint.Checkpoint.saveOnInterval | first-item: checkpoint_test. | group: weak evidence => 8 steps | src: deneme 3, 2026-10-23
+codegraph tests-for checkpoint.Checkpoint.saveOnInterval | first-item: kontrol_noktasi_test: 20.10 | group: tests through the name codes it implements => checkpoint_test. | group: weak evidence => 8 steps | src: deneme 3, 2026-10-23; gaps2 2026-10-27 (H7418 yalnız saveOnInterval → lastValidText; TR testi metnini bekliyor)
 tr dizin kullananlar TR_arg_every_minutes --tümü | contains: Koşu.kurucu | src: deneme 3, 2026-10-23
 tr dizin sınayanlar varsayılan_cihaz | contains: tests/tensor_test.tr | src: deneme 3, 2026-10-23
 

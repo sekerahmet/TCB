@@ -272,6 +272,10 @@ func (r *Reader) nameClass(i int, k NameKey, builtin map[string]bool) NameClass 
 		if builtin[n.ID] {
 			return ClassBuiltin
 		}
+	case KindMessage:
+		if !k.Folded && n.Name == k.Key {
+			return ClassBuiltin // ileti kodu bir kimliktir: yalnız yazıldığı gibi (H6932; h6932 değil)
+		}
 	case KindTest:
 		if k.Match(n.Name, f.short) {
 			return ClassTest

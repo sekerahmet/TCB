@@ -13,7 +13,7 @@ import (
 var kindLabels = map[Kind]messages.Code{
 	KindFunction: messages.H8800, KindStruct: messages.H8801, KindMethod: messages.H8802, KindField: messages.H8803,
 	KindConstant: messages.H8804, KindVariable: messages.H8805, KindModule: messages.H8806, KindTest: messages.H8807,
-	KindBuiltin: messages.H8808, KindParameter: messages.H8860, KindOption: messages.H8861,
+	KindBuiltin: messages.H8808, KindParameter: messages.H8860, KindOption: messages.H8861, KindMessage: messages.H8873,
 }
 
 var roleLabels = map[Role]messages.Code{
@@ -187,7 +187,7 @@ func writeUses(b *strings.Builder, heading messages.Code, uses []Use, counts *Co
 
 // reasonMessages reddetme nedenlerinin iletileridir.
 var reasonMessages = map[string]messages.Code{
-	ReasonBuiltin: messages.H8841, ReasonModule: messages.H8842, ReasonNoSymbol: messages.H8843,
+	ReasonBuiltin: messages.H8841, ReasonMessage: messages.H8874, ReasonModule: messages.H8842, ReasonNoSymbol: messages.H8843,
 }
 
 // matchLabels olası yerlerin eşleşme biçimlerinin iletileridir; whereLabels bulundukları yerin.

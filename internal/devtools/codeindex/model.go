@@ -23,7 +23,7 @@ const Schema = "tr-codeindex/2"
 
 // IndexVersion dizinin kaynaktan türettiği içerik değişince artar (yeni düğüm türü, farklı
 // çözümleme). Başka sürümün önbelleği hiçbir zaman kullanılmaz.
-const IndexVersion = 21
+const IndexVersion = 22
 
 // Kind bir düğümün türüdür; değerler JSON'a yazılan değişmez tanımlayıcılardır.
 type Kind string
@@ -40,6 +40,7 @@ const (
 	KindBuiltin   Kind = "builtin"    // yerleşik ad (ad kodu: global işlev, üye ya da adlı argüman)
 	KindParameter Kind = "parameter"  // işlev ya da metot parametresi
 	KindOption    Kind = "option"     // komut_satırı sözlüğünün anahtarı (komut satırı seçeneği)
+	KindMessage   Kind = "message"    // ileti kodu (H6932): kaynakta yazılan kod, metni ileti kataloğunda
 )
 
 // EdgeKind iki düğüm arasındaki bağın türüdür.
@@ -232,7 +233,7 @@ type Unresolved struct {
 // biçiminde birleşir; yerleşiğin dosyası yoktur ("builtin:TR_fn_time_ms"), modülün adı yoktur.
 func NodeID(kind Kind, file, name string) string {
 	switch kind {
-	case KindBuiltin:
+	case KindBuiltin, KindMessage:
 		return string(kind) + ":" + name
 	case KindModule:
 		return string(kind) + ":" + file

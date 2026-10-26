@@ -21,6 +21,7 @@ import (
 const (
 	ReasonBuiltin      = "builtin"            // yerleşik ad
 	ReasonModule       = "module"             // modül adı (ilk sürümde yok)
+	ReasonMessage      = "message_code"       // ileti kodu: kod değişmez, metni ileti kataloğundadır
 	ReasonNoSymbol     = "no_symbol"          // konumda ad yok
 	ReasonInvalidName  = "invalid_identifier" // yeni ad geçerli bir tanımlayıcı değil
 	ReasonLanguageWord = "language_word"      // yeni ad dilin sözcüğü
@@ -68,7 +69,7 @@ var identifierPattern = regexp.MustCompile(`^[\p{L}_][\p{L}\p{N}_]*$`)
 
 // renamable adı değiştirilebilen bir düğüm mü.
 func renamable(n *Node) bool {
-	return n.Kind != KindBuiltin && n.Kind != KindModule && n.Kind != KindTest
+	return n.Kind != KindBuiltin && n.Kind != KindModule && n.Kind != KindTest && n.Kind != KindMessage
 }
 
 // shortName düğümün kendi adıdır ("Yapı.metot.ad" -> "ad").
@@ -89,6 +90,8 @@ func (r *Reader) renameTargets(q string) (targets []*Node, rejected string) {
 			targets = append(targets, n)
 		case n.Kind == KindBuiltin:
 			rejected = ReasonBuiltin
+		case n.Kind == KindMessage:
+			rejected = ReasonMessage
 		case n.Kind == KindModule:
 			rejected = ReasonModule
 		}
@@ -277,6 +280,8 @@ func (r *Reader) PrepareRename(file string, line, col int) (*PrepareResult, stri
 		return nil, ReasonNoSymbol
 	case n.Kind == KindBuiltin:
 		return nil, ReasonBuiltin
+	case n.Kind == KindMessage:
+		return nil, ReasonMessage
 	case !renamable(n):
 		return nil, ReasonModule
 	}

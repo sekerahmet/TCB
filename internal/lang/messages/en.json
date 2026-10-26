@@ -1709,5 +1709,7 @@
 "H8870": "(ignored folder)",
 "H8871": "{code} is a code: its name changes in the language file, coded files carry the identity and stay as they are; a new name comes with the lead developer's approval",
 "H8872": "name in the language file",
+"H8873": "message code",
+"H8874": "cannot be renamed: a message code (the code does not change, its text is in the message catalog)",
 "H9000": "an internal error occurred in TR (not an error in your program); please report it: {detail}"
 }

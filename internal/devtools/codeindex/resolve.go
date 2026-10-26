@@ -7,6 +7,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 )
 
 // owner bir başvurunun çıkış düğümüdür (başvuruyu içeren bildirim, test ya da modül).
@@ -189,9 +190,23 @@ func (x *indexer) scan(f *file, o owner, root any) {
 			x.member(f, o, sc, n)
 		case *ast.Identifier:
 			x.ident(f, o, sc, n)
+		case *ast.StringLiteral:
+			if n.Token.Type == lexer.TokMessageCode {
+				x.message(f, o, n)
+			}
 		}
 		return true
 	})
+}
+
+// message kaynakta yazılan ileti kodunun (`ileti(H6932, x)`, `hata_kodu(h) == H6932`) düğümüne bir kullanım bağı
+// ekler. Düğüm kodun kendisidir, dosyası yoktur; metni ileti kataloğundadır.
+func (x *indexer) message(f *file, o owner, s *ast.StringLiteral) {
+	id := NodeID(KindMessage, "", s.Value)
+	if x.nodes[id] == nil {
+		x.nodes[id] = &Node{ID: id, Kind: KindMessage, Name: s.Value}
+	}
+	x.link(o, id, EdgeUses, Extracted, RoleRead, tokenPos(f, s.Token.Line, s.Token.Column, s.Value))
 }
 
 func (x *indexer) call(f *file, o owner, sc *scope, c *ast.CallExpression) {

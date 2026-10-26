@@ -1709,5 +1709,7 @@
 "H8870": "(yok sayılan klasör)",
 "H8871": "{code} bir koddur: adı dil dosyasında değişir, kodlu dosyalar kimliği taşır ve olduğu gibi kalır; yeni ad baş geliştiricinin onayıyla eklenir",
 "H8872": "dil dosyasındaki ad",
+"H8873": "ileti kodu",
+"H8874": "yeniden adlandırılamaz: ileti kodu (kod değişmez, metni ileti kataloğundadır)",
 "H9000": "TR'de bir iç hata oluştu (bu sizin programınızın değil, TR'nin hatası); lütfen bildirin: {detail}"
 }

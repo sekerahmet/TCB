@@ -22,7 +22,7 @@ Paket yalnızca `internal/lang` paketlerini (ve gömülü kitaplığı) içe akt
 
 ## Modele kısa bakış
 
-Düğüm türleri: `module`, `function`, `struct`, `method`, `field`, `constant`, `variable`, `test_block`, `builtin`. Kenarlar: `defines`, `calls`, `uses`, `imports`, `tests`. Her başvuru ayrıca bir *occurrence*'tır (`definition`, `call`, `read`, `write`, `import`, `test` rolüyle, konumuyla ve içinde bulunduğu bildirimle); kenarlar bunların özetidir. Ayrıntı ve komut tasarımı: [`docs/spec`](../../../docs/spec/README.md) komut satırı bölümü ve aşağıdaki karşılaştırma.
+Düğüm türleri: `module`, `function`, `struct`, `method`, `field`, `constant`, `variable`, `test_block`, `builtin`, `message`. Kenarlar: `defines`, `calls`, `uses`, `imports`, `tests`. Her başvuru ayrıca bir *occurrence*'tır (`definition`, `call`, `read`, `write`, `import`, `test` rolüyle, konumuyla ve içinde bulunduğu bildirimle); kenarlar bunların özetidir. Ayrıntı ve komut tasarımı: [`docs/spec`](../../../docs/spec/README.md) komut satırı bölümü ve aşağıdaki karşılaştırma.
 
 **Konumlar adın yerini gösterir.** Bir başvurunun satır ve sütun aralığı kaynak satırında adın kendisini kapsar (Türkçe harfli satırlarda da). Denetim: `TestOccurrencePositionsPointAtNames`.
 
@@ -50,6 +50,8 @@ Düğüm türleri: `module`, `function`, `struct`, `method`, `field`, `constant`
 
 ## Önbellek ve artımlı yenileme
 
+**Kaynakta yazılan ileti kodu bir `message` düğümünün başvurusudur.** `TR_fn_message(H6932, x)` ve `TR_fn_error_code(h) == H6932` gibi yazımlar (sözcük çözümleyicinin ileti kodu belirteci) kodun düğümüne (`message:H6932`, dosyasız; metni ileti kataloğundadır) bir okuma başvurusudur; düğüm yalnız yazıldığı gibi sorulur (`tr dizin kullananlar H6932`; `h6932` değil), yeniden adlandırılamaz (`message_code`: kod değişmez). codegraph bu bağı `uses_message` yapar. Denetim: `TestEveryMessageCodeTokenIsAUse` (depodaki her `.tr` dosyasının her ileti kodu belirteci bir başvurudur), `TestAMessageCodeIsFoundAsAName`.
+
 **Yerleşik düğümler üç ad alanını kapsar: global yerleşik, üye (`.güncelle`) ve adlı argüman (`her_dakika:`).** Kullanıcının yazdığı kodun kullandığı her ad kodu (`TR_fn_default_device`, `TR_mem_update`, `TR_arg_every_minutes`) bir `builtin` düğümüdür; ad koduyla (`tr dizin kullananlar TR_arg_every_minutes`) ya da herhangi bir dildeki adıyla sorulur. Test bloğunun kullandığı her yerleşik, üye ve adlı argüman aynı zamanda `tests` bağıdır (`tr dizin sınayanlar varsayılan_cihaz` test bloklarını verir). Bildirilmiş bir ad (komut satırı seçeneği `her_dakika`) ve yerleşik ad aynı basamakta aranır; ikisi de adaydır, biri sessizce seçilmez. `Snippet(src, kitaplık)` bir metindeki (örn. bir Go test dizesindeki) TR kodunun kullandığı ad kodlarını verir; `tools/codegraph` Go testlerini bu yolla ad kodlarına bağlar. Kitaplık verilince metnin `aktar "tr/ad"` ile aldığı kitaplık modüllerini dosyadaki kuralla (gömülü kitaplık, iç bloklardakiler dahil) çözüp kitaplıktaki yollarını da verir (`lib/hazir.tr`); codegraph testi o dosyaya bağlar. Denetim: `TestMembersAndNamedArgumentsAreBuiltinsTestedByTestBlocks`, `TestADeclaredNameAndABuiltinNameAreBothCandidates`, `TestSnippetListsTheCodesAProgramTextUses`, `TestSnippetListsTheLibraryModulesItImports` (hepsi snippet_test.go).
 
 **Önbellek proje kökündeki `.tr-dizin/` klasörüdür** (`manifest.json` + `index.json`, sürüm denetimine girmez). Manifest her girdi dosyasının içerik özetini (boyut ve değişme zamanı aynıysa yeniden okunmaz), `IndexVersion`'ı, şema sürümünü ve dizini etkileyen seçeneklerin imzasını tutar; sürüm ya da seçenek farklıysa ve dosya bozuksa önbellek sessizce yok sayılır ve dizin baştan kurulur. Yazım geçici dosya + yeniden adlandırmayladır (okuyan yarım dosya görmez). Denetim: `TestCacheHitSkipsParsing`, `TestCacheNotUsedForOtherVersionOrOptions`.
@@ -61,6 +63,8 @@ Düğüm türleri: `module`, `function`, `struct`, `method`, `field`, `constant`
 ## Testler
 
 Birim testleri sınadıkları dosyanın adını taşır (`model_test.go` → `model.go`, `result_test.go` → `result.go`, `build_test.go` → `build.go`, `reader_test.go` → `reader.go`, `query_test.go` → `query.go`, `cache_test.go` → `cache.go`, `bind_test.go` → `bind.go`, `rename_test.go` → `rename.go`, `text_test.go` → `text.go`, `suffix_test.go` → `suffix.go`; `helpers_test.go` ortak yardımcıdır). `testdata/proj` küçük bir TR projesidir (modül, test, takma adlı aktarma, kodlu ve bozuk dosya).
+
+- `behavior_message_codes_test.go`: kaynakta yazılan ileti kodu (sözcük çözümleyicinin belirteci, çözümde, artımlı kurulumda, aramada ve yeniden adlandırmada) bir `message` düğümünün başvurusudur; depodaki her `.tr` dosyasında
 
 ## Üye erişimi, parametre ve adlı argüman bağları
 

@@ -262,8 +262,9 @@ func (x *goExtractor) use(fc *fileCtx, owner string, id *ast.Ident, isCall bool,
 		return
 	}
 	if c, isConst := obj.(*types.Const); isConst {
-		// Kodun kendi paketindeki (test dışı) kullanım tanım tablolarıdır; kullanım sayılmaz.
-		samePkg := c.Pkg().Path() == fc.base && !fc.isTest
+		// Ad kodunun kendi paketindeki (test dışı) kullanım tanım tablolarıdır; kullanım sayılmaz. İleti paketi sabitleri
+		// yalnız üretilen dosyada tanımlar; paketin içindeki kullanım (konumlu hata H2004, iç hata H9000) iletiyi üretir.
+		samePkg := c.Pkg().Path() == fc.base && !fc.isTest && fc.base != x.m.Path+"/"+messagesDir
 		switch {
 		case samePkg:
 		case c.Pkg().Path() == x.m.Path+"/"+messagesDir && messageConst.MatchString(c.Name()):

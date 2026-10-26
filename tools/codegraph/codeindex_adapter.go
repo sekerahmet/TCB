@@ -50,7 +50,7 @@ func extractTR(root string, b *builder, m *module) {
 	reader := codeindex.NewReader(idx)
 	for _, n := range idx.Nodes {
 		ids[n.ID] = graphID(n)
-		if n.Kind != codeindex.KindBuiltin { // ad kodu düğümlerini codes.go kurar
+		if n.Kind != codeindex.KindBuiltin && n.Kind != codeindex.KindMessage { // ad ve ileti kodu düğümlerini codes.go kurar
 			b.addNode(graphNode(reader, n, ids[n.ID]))
 		}
 	}
@@ -69,6 +69,7 @@ func extractTR(root string, b *builder, m *module) {
 	}
 	namedArgumentEdges(idx, ids, b)
 	libraryCodeEdges(idx, ids, b)
+	trMessageTexts(root, idx, ids, b)
 	if m != nil {
 		linkConstructs(b, readDispatch(m), idx, ids, m.Path+"/internal/lang/interp")
 	}
@@ -79,6 +80,8 @@ func graphID(n codeindex.Node) string {
 	switch n.Kind {
 	case codeindex.KindBuiltin:
 		return "name:" + n.Name
+	case codeindex.KindMessage:
+		return "msg:" + n.Name
 	case codeindex.KindModule:
 		return trFileID(n.Pos.File)
 	case codeindex.KindTest:
@@ -118,13 +121,15 @@ func graphNode(r *codeindex.Reader, n codeindex.Node, id string) Node {
 }
 
 // trEdgeKind codeindex kenar türünü grafik kenar türüne çevirir: yerleşik adlara `uses`
-// grafikte `uses_name`, `defines` `contains` olur.
+// grafikte `uses_name`, ileti kodlarına `uses_message`, `defines` `contains` olur.
 func trEdgeKind(e codeindex.Edge, ids map[string]string) string {
 	switch {
 	case e.Kind == codeindex.EdgeDefines:
 		return edgeContains
 	case e.Kind == codeindex.EdgeUses && len(ids[e.To]) > 5 && ids[e.To][:5] == "name:":
 		return edgeUsesName
+	case e.Kind == codeindex.EdgeUses && strings.HasPrefix(ids[e.To], "msg:"):
+		return edgeUsesMessage
 	}
 	return string(e.Kind)
 }
