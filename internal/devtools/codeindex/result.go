@@ -6,7 +6,6 @@ const (
 	CommandReferences = "references"
 	CommandTestedBy   = "tested-by"
 	CommandImpact     = "impact"
-	CommandIndex      = "index"
 	CommandRename     = "rename"
 )
 

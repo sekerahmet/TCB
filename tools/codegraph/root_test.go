@@ -8,12 +8,13 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/testkit"
+	"github.com/sekerahmet/TCB/tools/internal/repodir"
 )
 
 // Alt klasörden --root ve --graph olmadan sorulabilir; grafik kökteki .codegraph'tadır.
 func TestQueryFromSubdirectoryUsesRootGraph(t *testing.T) {
 	top := t.TempDir()
-	testkit.WritePath(t, filepath.Join(top, "go.mod"), "module "+repoModule+"\n")
+	testkit.WritePath(t, filepath.Join(top, "go.mod"), "module "+repodir.Module+"\n")
 	if err := writeGraph(filepath.Join(top, ".codegraph", "graph.json"), fixture(t)); err != nil {
 		t.Fatal(err)
 	}

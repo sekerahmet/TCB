@@ -122,7 +122,7 @@ func TestHelperLibraryText(t *testing.T) {
 	}
 }
 
-// Kural: çıktı okuyanın dilindedir (TR_DIL). Dizin Türkçe yazımı tutar; kitaplık adı, nitelenmiş adın kodlu
+// Kural: çıktı okuyanın dilindedir (TR_DIL). Dizin kimlikleri tutar; kitaplık adı, nitelenmiş adın kodlu
 // parçaları ve imzadaki anahtar sözcük ile parametre adları gösterim dilinde yazılır, kullanıcının yazdığı belge
 // yorumu ve modül adı aynen kalır.
 func TestALibraryNameIsShownInTheReadersLanguage(t *testing.T) {

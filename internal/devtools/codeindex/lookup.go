@@ -296,7 +296,7 @@ func idsFor(k NameKey, names, folded map[string][]string) []string {
 	return append(slices.Clone(folded[k.Key]), folded[k.Alt]...)
 }
 
-// qualifiedMatch i. düğümün nitelenmiş adı (Türkçe yazımı ya da dilin öğesi olan parçaları başka bir yazımla) uyuyor mu.
+// qualifiedMatch i. düğümün nitelenmiş adı (kimlikle yazılmış Qualified ya da kodlu parçaları bir yazım dilinde) uyuyor mu.
 func (r *Reader) qualifiedMatch(i int, match func(name, folded string) bool) bool {
 	if match(r.Index.Nodes[i].Qualified, r.folded[i].qualified) {
 		return true

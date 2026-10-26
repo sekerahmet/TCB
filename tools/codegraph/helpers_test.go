@@ -109,7 +109,7 @@ func gitMust(t *testing.T, root string, args ...string) {
 	}
 }
 
-// repoModule bu deponun bir kez yüklenmiş modülü ve ondan kurulan grafiğidir: planlama sınavı ve go/types'a karşı
+// repoState bu deponun bir kez yüklenmiş modülü ve ondan kurulan grafiğidir: planlama sınavı ve go/types'a karşı
 // tutarlılık testleri (kullanım kapsamı, arayüz gönderimi) aynı yüklemeyi paylaşır; böylece -short'ta da koşarlar
 // (bağımsız denetim S7: tam denetim -short koşar, bu güvence günlük denetimde kapalıydı).
 var repoState struct {
