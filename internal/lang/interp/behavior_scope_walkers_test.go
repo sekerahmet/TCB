@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
-	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
@@ -32,11 +31,11 @@ func TestExprWalkersMatchReferenceOnRepositoryPrograms(t *testing.T) {
 			if err != nil {
 				return nil
 			}
-			p := parser.New(source.TextLexer(string(src)))
-			prog := p.ParseProgram()
-			if len(p.Errors()) > 0 {
+			r := source.Prepare(string(src), source.Options{}) // kodlu dosya da düz metin de okunur
+			if r.Stage == source.StageSyntax {
 				return nil // bilerek hatalı programlar (hata testleri) gezilmez
 			}
+			prog := r.Program
 			programs++
 			forEachExpression(reflect.ValueOf(prog), map[uintptr]bool{}, func(e ast.Expression) {
 				expressions++

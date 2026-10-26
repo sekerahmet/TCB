@@ -121,7 +121,10 @@ func gatedDefs(tb testing.TB) string {
 	if err != nil {
 		tb.Fatalf("test dosyası okunamadı: %v", err)
 	}
-	s := string(data)
+	s, err := source.Show(string(data), source.Turkish()) // test dosyası kodlu saklanır: Türkçe görünümü
+	if err != nil {
+		tb.Fatalf("test dosyası gösterilemedi: %v", err)
+	}
 	head := strings.Index(s, "// --- kapılı nöron tanımları başı ---")
 	last := strings.Index(s, "// --- kapılı nöron tanımları sonu ---")
 	if head < 0 || last < head {
