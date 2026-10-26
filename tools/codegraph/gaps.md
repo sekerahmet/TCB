@@ -23,7 +23,12 @@ her durumu kapatan genel çözüm ve sınıfı koruyan bir testtir.
 
 Son kapanan kritik madde: kimliğe yeniden adlandırılan kodların "silinmiş" sayılması (5d5fa022). İnce ayardan son kapananlar: test dosyasının kendi testleri ve komut testlerinin uzaklığı (372ac2ed birleşmesi; ana oturum aynı komutlarla doğruladı).
 
-- **Kitaplık dosyasını test dizesindeki `aktar "tr/..."` ile koşan testler o dosyaya bağlanmıyor.** 2026-10-26, ana oturumun alt ajanı bildirdi (madde 15 adım 3a ölçümü), ana oturum main e2312bf3'te yeniden üretti.
+- **codegraph git'in yok saydığı dosyaları dizinliyor; yerel cevap temiz kopyanınkinden farklı.** 2026-10-26, ana oturum yaşadı (d290fd24'ün CI'ı kaldı). CODEGRAPH'ta (2026-10-26).
+  - Komut: `go run ./tools/codegraph who-uses ast.Identifier.Value` → yerelde "111 read", temiz kopyada ve CI'da "103 read". Fark yerelde duran, izlenmeyen `scratch/libcodes/*.go`'dan.
+  - İkinci yol: `git check-ignore -v scratch/libcodes/main.go` → `.gitignore:25:scratch/`.
+  - Neden kritik: ortama bağlı düşen depo testi (planlama sorusu 161 yerelde geçti, CI'da kaldı); yok sayılan kodun kullanımları ve testleri cevaba karışıyor.
+  - Beklenen: dizin yalnız git'in izlediği ya da yok saymadığı dosyaları okur. Sınıfı koruyan test: `.gitignore`'daki bir klasörde duran Go dosyası grafiğe girmez.
+- **Kitaplık dosyasını test dizesindeki `aktar "tr/..."` ile koşan testler o dosyaya bağlanmıyor.** 2026-10-26, ana oturumun alt ajanı bildirdi (madde 15 adım 3a ölçümü), ana oturum main e2312bf3'te yeniden üretti. CODEGRAPH'ta (2026-10-26).
   - Komut: `go run ./tools/codegraph tests-for --all lib/hazir.tr` → `e2e.TestReadyModelMatchesTransformers` yok. Gelenler `TestExamplesCoverLibraryNames` ve `TestRepoFilesEnglishLossless` gibi dosyaları gezen testler.
   - İkinci yol: `cmd/tr/e2e/behavior_ready_model_test.go:16` test dizesi `aktar "tr/hazir"` ile başlıyor; test `lib/hazir.tr`'nin asıl davranış testi (transformers'la logit karşılaştırması).
   - Aynı sınıf (alt ajan): `lib/egitim.tr` ve `lib/katman.tr` için `TestGPTTrainingScriptSmoke` ve `TestLibraryModuleCheckAndBuild` görünmüyor. `tr` ikilisini ya da `tr/` önekli aktarımı koşan testler kitaplık dosyasına bağlanmıyor.
