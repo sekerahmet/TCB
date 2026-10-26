@@ -75,7 +75,7 @@ TR_fn_print(kareler([1, 2, 3]), TR_fn_sum([1, 2], TR_arg_dim: 0))
 - Tip açıklamasındaki tip adı kodlanır (3.14).
 - Adlı argüman, çağrılan dilin öğesiyse kodlanır (`toplam(t, eksen: 0)` → `TR_fn_sum(t, TR_arg_dim: 0)`); kullanıcı fonksiyonunun adlı argümanı kullanıcının adıdır, kurucusuz yapıda alanın kodunu alır.
 
-**17.4** Çeviri yeniden yazdırma değildir: yalnız dilin sözcüklerinin aralıkları değişir; boşluklar, satır düzeni, BOM, yorumlar, kullanıcı adları, metinler ve sayılar bayt bayt korunur; yerleştirmelerdeki sözcükler kodlanır, ham metin ve yorum çevrilmez. Her yazım dili için yazım → kodlu → yazım ve kodlu → yazım → kodlu bayt bayt aynıdır (`go test ./internal/lang/source`, `go test ./cmd/tr/e2e -run Kodlu`). Çevirici sonucunu kendisi denetler: kodlu programın ağacı özgününkiyle aynı olmalı, çözülüp yeniden kodlanınca değişmemeli; değilse dosyaya dokunulmaz. Sözdizimi hatası olan ya da geçerli UTF-8 olmayan dosya çevrilmez.
+**17.4** Çeviri yeniden yazdırma değildir: yalnız dilin sözcüklerinin aralıkları değişir; boşluklar, satır düzeni, BOM, yorumlar, kullanıcı adları, metinler ve sayılar bayt bayt korunur; yerleştirmelerdeki sözcükler kodlanır, ham metin ve yorum çevrilmez. Her yazım dili için yazım → kodlu → yazım ve kodlu → yazım → kodlu bayt bayt aynıdır (`go test ./internal/lang/source`, `go test ./cmd/tr/e2e -run TestCodedFilesGiveSameOutput`). Çevirici sonucunu kendisi denetler: kodlu programın ağacı özgününkiyle aynı olmalı, çözülüp yeniden kodlanınca değişmemeli; değilse dosyaya dokunulmaz. Sözdizimi hatası olan ya da geçerli UTF-8 olmayan dosya çevrilmez.
 
 **17.5** Satır ve sütunlar kişinin gördüğü gösterime göredir: satırlar başlıktan sonra sayılır, bir kod sonraki karakterlerin sütununu gösterimdeki adının uzunluğu kadar kaydırır; ileti, hata çerçevesi ve hata ayıklayıcı `tr göster`'in ya da düzenleyicinin gösterdiği yeri gösterir. **Geçici (madde 15, görüntü):** bugün konumlar ve çerçeve Türkçe gösterime göredir; başka dildeki gösterimde satırlar aynıdır, sütunlar kayabilir.
 
@@ -84,7 +84,7 @@ TR_fn_print(kareler([1, 2, 3]), TR_fn_sum([1, 2], TR_arg_dim: 0))
 **17.7** Yazım dilleri: Türkçe (`tr`) ve İngilizce (`en`); hiçbiri asıl dil değildir, asıl biçim koddur. Her dil dosyası kod listesinin her kodunu adlandırır. Kodlar içeride kod olarak kalır: sözcük çözümleyici kimliği okur, ayrıştırıcı, denetleyici ve yorumlayıcı kimlikle çalışır (`codes.Active()` kimlik listesidir, Türkçe `codes.Source()` ile okunur; koruyan test `codes.TestProgramRunsOnIdentities`). Bu yüzden hangi yerleşiğin çağrıldığı, kullanıcının adları ve programın sonucu yazım diline bağlı değildir.
 - **Programın anlamı koda, değerin metni dosyanın diline, görüntü kişinin diline bağlıdır.** Değerin metni (`doğru`/`true`, `yok`/`none`, `tip()`, kod taşıyan sözlük anahtarı) işlemin yazıldığı dosyanın dilindedir (3, 3.2). `TR_DIL` yalnız görüntüyü değiştirir: iletiler, yardım, kabuk, hata ayıklayıcı, düzenleyicideki görünüm. Dosya biçimleri dilden bağımsızdır.
 - Karşılaştırma (2026-10-24/25): Python, Java, Swift ve Go değer metnini yerelleştirmez; Excel ve LibreOffice çalıştıranın diline göre değiştirir (aynı program farklı sonuç verir); Hedy ve Racket yazıldığı dile bağlar. TR yazıldığı dosyanın diline bağlar: İngilizce yazanın `str(b) == "true"` karşılaştırması tutar.
-- Başka dilde yazılmış metin dili verilerek okunur: `tr kodla - --dil en`, `tr göster <dosya> --dil en` (`--dil` metnin dilidir, iletiler `TR_DIL`'dedir). Yalnız dilin sözcükleri çevrilir; hedef dilde dilin sözcüğü olarak okunacak kullanıcı adı `$ad` kaçışıyla yazılır (2.11). Kodlu → İngilizce → kodlu bayt bayt aynıdır (`go test ./cmd/tr/e2e -run Ingilizce`).
+- Başka dilde yazılmış metin dili verilerek okunur: `tr kodla - --dil en`, `tr göster <dosya> --dil en` (`--dil` metnin dilidir, iletiler `TR_DIL`'dedir). Yalnız dilin sözcükleri çevrilir; hedef dilde dilin sözcüğü olarak okunacak kullanıcı adı `$ad` kaçışıyla yazılır (2.11). Kodlu → İngilizce → kodlu bayt bayt aynıdır (`go test ./cmd/tr/e2e -run 'TestEnglishWritingLanguage|TestRepoFilesEnglishLossless'`).
 
 ### Düzenleyicide
 
@@ -96,7 +96,7 @@ Dilin kuralı değil, düzenleyicinin davranışıdır. Kodlu dosya kişinin dil
 - Kodlu olduğu hâlde ayrıştırılamayan dosya (birleştirme çakışması) ham gösterilir ve olduğu gibi kaydedilir.
 - Kısıtlı kipte çeviri yapılmaz: kodlu dosya salt okunur ve ham gösterilir.
 
-Sınamalar: `go test ./cmd/tr/e2e -run 'KodlaGosterStandartGiris|EklentiJSTestleri'`, `go test ./internal/devtools/debugger -run Kodlu`.
+Sınamalar: `go test ./cmd/tr/e2e -run 'TestEncodeShowStandardInput|TestExtensionJSTests'`, `go test ./internal/devtools/debugger -run TestDAPCodedFileView`.
 
 ## Komut satırı adları
 
