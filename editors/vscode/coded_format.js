@@ -6,6 +6,7 @@
 'use strict';
 
 const { spawn } = require('child_process');
+const { t } = require('./l10n');
 
 // HEADER kodlu bir dosyanın (varsa BOM'dan sonraki) ilk satırının başıdır; ardından dosyanın
 // yazım dilinin kodu gelir: '//! tr kodlu 3 dil=en' (17.1, biçim sürümü 3).
@@ -83,7 +84,7 @@ function translate(interpreter, command, lang, input, timeoutMs) {
         try {
             proc = spawn(interpreter, [command, '-', '--dil', lang], { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
         } catch (e) {
-            resolve({ code: -1, output: Buffer.alloc(0), error: 'TR yorumlayıcısı başlatılamadı: ' + (e && e.message ? e.message : e) });
+            resolve({ code: -1, output: Buffer.alloc(0), error: t('Could not start the TR interpreter: {0}', e && e.message ? e.message : e) });
             return;
         }
         const timer = setTimeout(() => proc.kill(), timeoutMs || TIMEOUT);
@@ -91,13 +92,13 @@ function translate(interpreter, command, lang, input, timeoutMs) {
         const error = [];
         proc.stdout.on('data', (d) => output.push(d));
         proc.stderr.on('data', (d) => error.push(d));
-        proc.on('error', (e) => finish({ code: -1, output: Buffer.alloc(0), error: 'TR yorumlayıcısı başlatılamadı: ' + e.message }));
+        proc.on('error', (e) => finish({ code: -1, output: Buffer.alloc(0), error: t('Could not start the TR interpreter: {0}', e.message) }));
         proc.on('close', (code) => {
             const text = Buffer.concat(error).toString('utf8');
             finish({
                 code: code === null ? -1 : code,
                 output: Buffer.concat(output),
-                error: code === null ? 'TR yorumlayıcısı zamanında yanıt vermedi; çeviri durduruldu.' : text
+                error: code === null ? t('The TR interpreter did not respond in time; the translation was stopped.') : text
             });
         });
         proc.stdin.on('error', () => {}); // süreç girdiyi okumadan çıktıysa (EPIPE)

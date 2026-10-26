@@ -89,7 +89,7 @@ TR_fn_print(kareler([1, 2, 3]), TR_fn_sum([1, 2], TR_arg_dim: 0))
 
 ### Düzenleyicide
 
-Dilin kuralı değil, düzenleyicinin davranışıdır. Kodlu dosya kişinin dilinde (`tr.yazimDili`: `tr` ya da `en`) görünür, düzenlenir ve kaydedilince yine kodlu yazılır. Çeviriyi `tr` yapar: `tr göster - [--dil <kod>]` ve `tr kodla - [--dil <kod>]` standart girişten okur (çıkış 0 çevrildi, 2 ayrıştırılamadı, 1 başka hata).
+Dilin kuralı değil, düzenleyicinin davranışıdır. Kodlu dosya kişinin dilinde (`tr.writingLanguage`: `tr` ya da `en`) görünür, düzenlenir ve kaydedilince yine kodlu yazılır. Çeviriyi `tr` yapar: `tr göster - [--dil <kod>]` ve `tr kodla - [--dil <kod>]` standart girişten okur (çıkış 0 çevrildi, 2 ayrıştırılamadı, 1 başka hata).
 - Başlık görünümde gizlidir; görünümün satırları iletiler ve hata ayıklayıcıyla aynıdır (17.5).
 - Dosyanın dili (`dil=`) kayıtta korunur; yeni dosya yazıldığı dilde kodlanır.
 - Kodsuz dosya kayıtta kişinin diliyle kodlanır. **Geçici (madde 15):** bugün kodsuz dosya Türkçe sayılır ve kodsuz Türkçe kaydedilir.

@@ -1,40 +1,41 @@
 {
   "name": "tr-dili-vscode",
-  "displayName": "%eklenti.ad%",
-  "description": "%eklenti.aciklama%",
+  "displayName": "%extension.displayName%",
+  "description": "%extension.description%",
   "version": "1.8.0",
   "license": "Apache-2.0",
   "engines": {
-    "vscode": "^1.70.0"
+    "vscode": "^1.73.0"
   },
   "categories": [
     "Programming Languages",
     "Snippets"
   ],
   "main": "./extension.js",
+  "l10n": "./l10n",
   "activationEvents": [
     "onLanguage:tr",
-    "onCommand:tr.calistir",
-    "onCommand:tr.denetle",
-    "onCommand:tr.hataAyikla",
+    "onCommand:tr.run",
+    "onCommand:tr.check",
+    "onCommand:tr.debug",
     "onTaskType:tr",
     "onDebugResolve:tr",
     "onDebugInitialConfigurations",
     "onDebugDynamicConfigurations:tr",
-    "onCommand:tr.hataAyiklaBaslat",
-    "onCommand:tr.tabloGoster",
-    "onCommand:tr.izlemeMasasi",
+    "onCommand:tr.debugStart",
+    "onCommand:tr.showTable",
+    "onCommand:tr.watchPanel",
     "onDebug",
-    "onFileSystem:tr-kodlu",
-    "onFileSystem:tr-ham",
-    "onCommand:tr.kodluHaliniGoster"
+    "onFileSystem:tr-coded",
+    "onFileSystem:tr-raw",
+    "onCommand:tr.showCoded"
   ],
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": "limited",
-      "description": "%guven.kisitliKip%",
+      "description": "%untrusted.limited%",
       "restrictedConfigurations": [
-        "tr.yorumlayiciYolu"
+        "tr.interpreterPath"
       ]
     }
   },
@@ -60,52 +61,46 @@
         "path": "./syntaxes/tr.tmLanguage.json"
       }
     ],
-    "snippets": [
-      {
-        "language": "tr",
-        "path": "./snippets/tr.code-snippets"
-      }
-    ],
     "commands": [
       {
-        "command": "tr.calistir",
-        "title": "%komut.calistir%",
+        "command": "tr.run",
+        "title": "%command.run%",
         "category": "TR",
         "icon": "$(play)"
       },
       {
-        "command": "tr.hataAyiklaBaslat",
-        "title": "%komut.hataAyiklaBaslat%",
+        "command": "tr.debugStart",
+        "title": "%command.debugStart%",
         "category": "TR",
         "icon": "$(debug-alt)"
       },
       {
-        "command": "tr.denetle",
-        "title": "%komut.denetle%",
+        "command": "tr.check",
+        "title": "%command.check%",
         "category": "TR",
         "icon": "$(check)"
       },
       {
-        "command": "tr.hataAyikla",
-        "title": "%komut.hataAyikla%",
+        "command": "tr.debug",
+        "title": "%command.debug%",
         "category": "TR",
         "icon": "$(terminal)"
       },
       {
-        "command": "tr.tabloGoster",
-        "title": "%komut.tabloGoster%",
+        "command": "tr.showTable",
+        "title": "%command.showTable%",
         "category": "TR",
         "icon": "$(table)"
       },
       {
-        "command": "tr.izlemeMasasi",
-        "title": "%komut.izlemeMasasi%",
+        "command": "tr.watchPanel",
+        "title": "%command.watchPanel%",
         "category": "TR",
         "icon": "$(table)"
       },
       {
-        "command": "tr.kodluHaliniGoster",
-        "title": "%komut.kodluHaliniGoster%",
+        "command": "tr.showCoded",
+        "title": "%command.showCoded%",
         "category": "TR",
         "icon": "$(file-code)"
       }
@@ -113,117 +108,117 @@
     "menus": {
       "editor/title": [
         {
-          "command": "tr.calistir",
+          "command": "tr.run",
           "when": "editorLangId == tr && !inDebugMode && isWorkspaceTrusted",
           "group": "navigation@1"
         },
         {
-          "command": "tr.hataAyiklaBaslat",
+          "command": "tr.debugStart",
           "when": "editorLangId == tr && !inDebugMode && isWorkspaceTrusted",
           "group": "navigation@2"
         }
       ],
       "editor/context": [
         {
-          "command": "tr.calistir",
+          "command": "tr.run",
           "when": "editorLangId == tr && isWorkspaceTrusted",
           "group": "1_tr@1"
         },
         {
-          "command": "tr.hataAyiklaBaslat",
+          "command": "tr.debugStart",
           "when": "editorLangId == tr && isWorkspaceTrusted",
           "group": "1_tr@1"
         },
         {
-          "command": "tr.denetle",
+          "command": "tr.check",
           "when": "editorLangId == tr && isWorkspaceTrusted",
           "group": "1_tr@2"
         },
         {
-          "command": "tr.hataAyikla",
+          "command": "tr.debug",
           "when": "editorLangId == tr && isWorkspaceTrusted",
           "group": "1_tr@3"
         }
       ],
       "commandPalette": [
         {
-          "command": "tr.calistir",
+          "command": "tr.run",
           "when": "editorLangId == tr && isWorkspaceTrusted"
         },
         {
-          "command": "tr.denetle",
+          "command": "tr.check",
           "when": "editorLangId == tr && isWorkspaceTrusted"
         },
         {
-          "command": "tr.hataAyikla",
+          "command": "tr.debug",
           "when": "editorLangId == tr && isWorkspaceTrusted"
         },
         {
-          "command": "tr.hataAyiklaBaslat",
+          "command": "tr.debugStart",
           "when": "editorLangId == tr && isWorkspaceTrusted"
         },
         {
-          "command": "tr.tabloGoster",
+          "command": "tr.showTable",
           "when": "debugType == 'tr' && inDebugMode"
         },
         {
-          "command": "tr.izlemeMasasi",
+          "command": "tr.watchPanel",
           "when": "debugType == 'tr'"
         },
         {
-          "command": "tr.kodluHaliniGoster",
+          "command": "tr.showCoded",
           "when": "editorLangId == tr"
         }
       ],
       "debug/variables/context": [
         {
-          "command": "tr.tabloGoster",
+          "command": "tr.showTable",
           "when": "debugType == 'tr'",
           "group": "navigation"
         }
       ],
       "debug/watch/context": [
         {
-          "command": "tr.tabloGoster",
+          "command": "tr.showTable",
           "when": "debugType == 'tr'",
           "group": "navigation"
         }
       ],
       "debug/toolBar": [
         {
-          "command": "tr.izlemeMasasi",
+          "command": "tr.watchPanel",
           "when": "debugType == 'tr'"
         }
       ]
     },
     "configuration": {
-      "title": "%ayar.baslik%",
+      "title": "%config.title%",
       "properties": {
-        "tr.yorumlayiciYolu": {
+        "tr.interpreterPath": {
           "type": "string",
           "default": "",
           "scope": "machine",
-          "markdownDescription": "%ayar.yorumlayiciYolu%"
+          "markdownDescription": "%config.interpreterPath%"
         },
-        "tr.izlemeMasasi": {
+        "tr.autoOpenWatchPanel": {
           "type": "boolean",
           "default": true,
           "scope": "window",
-          "markdownDescription": "%ayar.izlemeMasasi%"
+          "markdownDescription": "%config.autoOpenWatchPanel%"
         },
-        "tr.yazimDili": {
+        "tr.writingLanguage": {
           "type": "string",
           "enum": [
             "tr",
             "en"
           ],
           "enumDescriptions": [
-            "%ayar.yazimDili.tr%",
-            "%ayar.yazimDili.en%"
+            "%config.writingLanguage.tr%",
+            "%config.writingLanguage.en%"
           ],
           "default": "tr",
           "scope": "application",
-          "markdownDescription": "%ayar.yazimDili%"
+          "markdownDescription": "%config.writingLanguage%"
         }
       }
     },
@@ -231,21 +226,21 @@
       {
         "type": "tr",
         "required": [
-          "komut"
+          "command"
         ],
         "properties": {
-          "komut": {
+          "command": {
             "type": "string",
             "enum": [
-              "tr.calistir",
-              "tr.denetle",
-              "tr.hataAyikla"
+              "tr.run",
+              "tr.check",
+              "tr.debug"
             ],
-            "description": "%gorev.komut%"
+            "description": "%task.command%"
           },
-          "dosya": {
+          "file": {
             "type": "string",
-            "description": "%gorev.dosya%"
+            "description": "%task.file%"
           }
         }
       }
@@ -275,7 +270,7 @@
     "debuggers": [
       {
         "type": "tr",
-        "label": "%ayiklayici.etiket%",
+        "label": "%debugger.label%",
         "languages": [
           "tr"
         ],
@@ -287,7 +282,7 @@
             "properties": {
               "program": {
                 "type": "string",
-                "description": "%ayiklayici.program%",
+                "description": "%debugger.program%",
                 "default": "${file}"
               },
               "args": {
@@ -295,17 +290,17 @@
                 "items": {
                   "type": "string"
                 },
-                "description": "%ayiklayici.args%",
+                "description": "%debugger.args%",
                 "default": []
               },
               "stopOnEntry": {
                 "type": "boolean",
-                "description": "%ayiklayici.stopOnEntry%",
+                "description": "%debugger.stopOnEntry%",
                 "default": false
               },
               "cwd": {
                 "type": "string",
-                "description": "%ayiklayici.cwd%",
+                "description": "%debugger.cwd%",
                 "default": "${workspaceFolder}"
               }
             }
@@ -315,7 +310,7 @@
           {
             "type": "tr",
             "request": "launch",
-            "name": "TR: Hata Ayıkla",
+            "name": "TR: Debug",
             "program": "${file}",
             "cwd": "${workspaceFolder}",
             "stopOnEntry": false
@@ -323,12 +318,12 @@
         ],
         "configurationSnippets": [
           {
-            "label": "%ayiklayici.parcacik.etiket%",
-            "description": "%ayiklayici.parcacik.aciklama%",
+            "label": "%debugger.snippet.label%",
+            "description": "%debugger.snippet.description%",
             "body": {
               "type": "tr",
               "request": "launch",
-              "name": "TR: Hata Ayıkla",
+              "name": "TR: Debug",
               "program": "^\"\\${file}\"",
               "cwd": "^\"\\${workspaceFolder}\"",
               "stopOnEntry": false

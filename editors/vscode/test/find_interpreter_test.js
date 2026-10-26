@@ -60,9 +60,9 @@ test('göreli ayar yalnızca güvenilen çalışma alanı klasörüne göre çö
     const root = 'D:\\proje';
     assert.deepStrictEqual(findInterpreter(g([root + '\\bin\\tr.exe'], { folder: root, setting: 'bin\\tr.exe' })), { filePath: root + '\\bin\\tr.exe' });
     const noFolder = findInterpreter(g(FOREIGN, { folder: undefined, setting: 'tr.exe' }));
-    assert.ok(noFolder.error && noFolder.error.includes('göreli'), JSON.stringify(noFolder));
+    assert.ok(noFolder.error && noFolder.error.includes('relative'), JSON.stringify(noFolder));
     const untrusted = findInterpreter(g(FOREIGN, { folder: DOWNLOADED, trusted: false, setting: 'tr.exe' }));
-    assert.ok(untrusted.error && untrusted.error.includes('göreli'), JSON.stringify(untrusted));
+    assert.ok(untrusted.error && untrusted.error.includes('relative'), JSON.stringify(untrusted));
 });
 
 test("Unix'te /bin ve /usr/bin'deki 'tr' (karakter çevirme aracı) atlanır", () => {

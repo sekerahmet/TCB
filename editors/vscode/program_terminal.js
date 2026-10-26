@@ -15,6 +15,7 @@
 
 const { spawn } = require('child_process');
 const { StringDecoder } = require('string_decoder');
+const { t } = require('./l10n');
 
 // emitter VS Code'un Event biçiminde (dinleyici -> { dispose }) basit bir olay kaynağıdır.
 function emitter() {
@@ -56,7 +57,7 @@ function programTerminal({ command, args, cwd, env }) {
             return;
         }
         running = false;
-        show(`\n${message} Kapatmak için bir tuşa basın.\n`);
+        show(`\n${message} ${t('Press any key to close.')}\n`);
     }
 
     function type(data) {
@@ -96,8 +97,8 @@ function programTerminal({ command, args, cwd, env }) {
             pipe(child.stderr);
             // Program girdiyi okumadan biterse yazılan satır kapalı boruya gider; yok sayılır.
             child.stdin.on('error', () => {});
-            child.on('error', (e) => finish(`Program başlatılamadı: ${e.message}.`));
-            child.on('close', (code, signal) => finish(signal ? `Program durduruldu (${signal}).` : `Program bitti (çıkış kodu ${code}).`));
+            child.on('error', (e) => finish(t('Could not start the program: {0}.', e.message)));
+            child.on('close', (code, signal) => finish(signal ? t('The program was stopped ({0}).', signal) : t('The program finished (exit code {0}).', code)));
         },
         close() {
             if (running) {

@@ -87,6 +87,7 @@ Yazım kuralları (kod değişmez, ad değişebilir; her işin tek adı; paramet
 | `tools/gen/codeconsts` | `internal/lang/codes/codes_generated.go` (kod sabitleri); Go metnindeki çıplak ad denetimi |
 | `tools/gen/codesdoc` | [`docs/codes.md`](codes.md) (kod listesi belgesi) |
 | `tools/gen/grammar` | VS Code eklentisinin renklendirme listeleri (`editors/vscode/syntaxes/tr.tmLanguage.json`) |
+| `tools/gen/snippets` | VS Code eklentisinin her yazım dilindeki kod şablonları (`editors/vscode/snippets/snippets.json`) |
 | `tools/gen/msgconsts` | `internal/lang/messages/codes_generated.go` (ileti sabitleri); ileti kullanım denetimi |
 
 ## Kancalar: dil çekirdeği motorları nasıl bilir

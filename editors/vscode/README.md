@@ -24,14 +24,15 @@
 
 | Komut | Kimlik | Çalıştırılan |
 | --- | --- | --- |
-| TR: Dosyayı Çalıştır | `tr.calistir` | `tr.exe <dosya>` |
-| TR: Hata Ayıkla (VS Code) | `tr.hataAyiklaBaslat` | VS Code hata ayıklayıcısı (`tr.exe dap`) |
-| TR: Dosyayı Denetle | `tr.denetle` | `tr.exe kontrol <dosya>` |
-| TR: Terminal Hata Ayıklayıcısında Aç | `tr.hataAyikla` | `tr.exe hata_ayıkla <dosya>` |
-| TR: Tablo Görünümü | `tr.tabloGoster` | Hata ayıklarken değişkeni tablo olarak gösterir |
-| TR: İzleme Masası | `tr.izlemeMasasi` | Hata ayıklarken tüm değişkenleri tablo hâlinde gösteren paneli açar |
-| TR: Kodlu Hâlini Göster (salt okunur) | `tr.kodluHaliniGoster` | Açık dosyanın diskteki (kodlu) hâlini yanda salt okunur açar |
+| TR: Dosyayı Çalıştır | `tr.run` | `tr.exe <dosya>` |
+| TR: Hata Ayıkla (VS Code) | `tr.debugStart` | VS Code hata ayıklayıcısı (`tr.exe dap`) |
+| TR: Dosyayı Denetle | `tr.check` | `tr.exe kontrol <dosya>` |
+| TR: Terminal Hata Ayıklayıcısında Aç | `tr.debug` | `tr.exe hata_ayıkla <dosya>` |
+| TR: Tablo Görünümü | `tr.showTable` | Hata ayıklarken değişkeni tablo olarak gösterir |
+| TR: İzleme Masası | `tr.watchPanel` | Hata ayıklarken tüm değişkenleri tablo hâlinde gösteren paneli açar |
+| TR: Kodlu Hâlini Göster (salt okunur) | `tr.showCoded` | Açık dosyanın diskteki (kodlu) hâlini yanda salt okunur açar |
 
+- Komut başlıkları VS Code'un gösterim dilini izler (`Configure Display Language`): Türkçe dil paketiyle yukarıdaki Türkçe başlıklar, aksi hâlde İngilizceleri görünür (`TR: Run File`, `TR: Check File` ...). Komut, ayar ve görev kimlikleri her dilde aynıdır ve İngilizcedir; `tasks.json`'da `{ "type": "tr", "command": "tr.run", "file": "${file}" }` yazılır.
 - Komutlar dosyayı önce kaydeder, sonra terminal panelinde çalıştırır. Hata ayıklayıcı komutlarını bu terminale yazabilirsiniz.
 - Çalışma dizini, dosyanın bulunduğu çalışma alanı klasörüdür; klasör açık değilse dosyanın dizinidir.
 - Düzenleyicinin başlık çubuğundaki **▶** düğmesi dosyayı çalıştırır, yanındaki **🐞** düğmesi hata ayıklamayı başlatır. Komutlar sağ tık menüsünde ve Komut Paleti'nde (`Ctrl+Shift+P`, "TR:") de bulunur.
@@ -46,18 +47,18 @@ Tuşlar terminal hata ayıklayıcısında da (`tr hata_ayıkla`) aynı anlamdad�
 - **Değişkenler:** Tüm değişkenler tek tabloda görünür (Kapsam, Değişken, Tip, Değer). Her değişkenin yanında türünü gösteren bir ikon vardır: ▦ tablo, ☰ liste, { } sözlük, ◆ yapı, ▣ tensör, # sayı, Aa metin, ◐ mantık, ∅ yok. Son adımda değişen değerler vurgulanır; ✏️ ile değer doğrudan değiştirilir. Üstteki kutuyla değişkenler aranır.
 - **Tablolar:** Tablo değerlerinin içeriği satıra dökülmez. Değişkenin adına ya da **▸ Tabloyu aç** linkine tıklayınca (veya satıra çift tıklayınca) tablo alttaki pencerede bir **sekme** olarak açılır. Birden çok tablo sekmeler hâlinde açık kalabilir; her sekme kendi **✕** düğmesiyle, hepsi **Tümünü kapat** ile kapanır. Pencere, üstündeki çubuk sürüklenerek büyütülüp küçültülür. Sütun başlığına tıklayınca sıralanır, arama kutusuyla süzülür, hücreler arasında ok tuşlarıyla gezilir. Adım atıldıkça açık tablolar güncellenir.
 - **Yapay zekâ nesneleri:** Tensörler tip sütununda `Tensör [2×3]` olarak görünür; 1 ve 2 boyutlu tensörler tablo olarak açılır. Skaler tensörün (ör. kayıp) değeri doğrudan görünür: `0.6074 (Tensör, skaler)`; 1-8 elemanlı küçük tensörler satır içinde kısaltılmış yazılır (`[[1.4298]] (Tensör, 1×1)`), daha büyükleri **▸ Tabloyu aç** ile açılır. float32 dışındaki türlerde tür de yazılır (`2.5000 (Tensör, skaler, bf16)`). Variables panelinde ve Debug Console'da da aynı değer görünür. Parçalayıcı, veri kümesi ve örnekleyici özetleriyle görünür (`Parçalayıcı (dağarcık 40000)`, `Veri kümesi (246 veri dosyası, 56,9 milyar parça)`, `Örnekleyici (32×1024, dönem 0, 120 toplu iş)`); parçalayıcının eklenmiş/özel parçaları ve veri kümesinin veri dosyaları tablo olarak açılır.
-- İstemiyorsanız `tr.izlemeMasasi` ayarını kapatın.
+- İstemiyorsanız `tr.autoOpenWatchPanel` ayarını kapatın.
 
 ## Kodlu dosyalar
 
 TR dosyaları diskte dilden bağımsız kodlarla saklanabilir (`tr kodla`; ilk satır `//! tr kodlu 2 dil=<dil>`, dilin sözcükleri `TR_kw_if`, `TR_fn_print` gibi kodlar). Böyle bir dosyayı açtığınızda (dosya gezgininden, bir hata bağlantısından, hata ayıklayıcıdan) eklenti onu **Türkçe yazımıyla** gösterir:
 
-- **Açma:** Sekme Türkçe görünümle değişir. Başlık satırı görünmez; görünümün satır numaraları hata mesajlarındaki ve hata ayıklayıcıdaki satırlarla birebir aynıdır (bir hata bağlantısı `dosya.tr:12:5` aynı yeri açar). Görünümün adresi dosyanın kendi yoludur (şeması `tr-kodlu:`); sekmenin üzerine gelince görülür.
+- **Açma:** Sekme Türkçe görünümle değişir. Başlık satırı görünmez; görünümün satır numaraları hata mesajlarındaki ve hata ayıklayıcıdaki satırlarla birebir aynıdır (bir hata bağlantısı `dosya.tr:12:5` aynı yeri açar). Görünümün adresi dosyanın kendi yoludur (şeması `tr-coded:`); sekmenin üzerine gelince görülür.
 - **Düzenleme ve kayıt:** Her zamanki gibi yazın; geri al/yinele, kaydedilmemiş değişiklik işareti, hepsini kaydet, otomatik kaydetme ve "dosya diskte değişti" uyarısı VS Code'un kendisindedir. Kaydedince dosya diske yine **kodlu** yazılır (`tr kodla -`); görünüm `tr göster -` ile üretilir. Eklentide ikinci bir çevirici yoktur, çeviriyi `tr` yapar.
 - **Yarım kod (sözdizimi hatası) varken kaydetme:** Hiçbir şey kaybolmaz. Metin ayrıştırılamıyorsa dosya **başlıksız Türkçe yazımıyla**, yazdığınız gibi kaydedilir ve bir kez "sözdizimi hatası düzelince yeniden kodlanacak" bilgisi gösterilir. Hata düzelince ilk kayıtta dosya yeniden kodlu yazılır (VS Code kapanıp açılsa da: dosya "kodlanmayı bekliyor" diye hatırlanır). Çeviri başka bir nedenle yapılamazsa da aynısı olur ve neden Türkçe söylenir.
 - **Kodlu ama ayrıştırılamayan dosya** (ör. bir birleştirme çakışmasının `<<<<<<<` işaretleri): ham, kodlu hâliyle gösterilir ve nedeni söylenir; kaydedince olduğu gibi yazılır. Düzeltip kaydettikten sonra dosyayı kapatıp açın, Türkçe görünür.
 - **Hata ayıklama:** Kesme noktaları, adım adım ilerleme, çağrı yığını ve değişkenler görünümün satırlarıyla çalışır; program durunca satır görünümde işaretlenir. `launch.json`'daki `"program": "${file}"` görünümde de çalışır (eklenti dosyanın kendisinden çözer). Eklenti başlatma ayarına görünümün adresini (`"viewURI"`) kendisi ekler; elle yazmanız gerekmez.
-- **Kodlu olmayan dosyalar** (Türkçe yazılmış): yazım diliniz Türkçeyse eskisi gibi açılır ve kaydedilir; eklenti dosyaları kendiliğinden kodlamaz. Yazım diliniz başka bir dilse (`tr.yazimDili`: `en`) bu dosyalar da sizin dilinizde açılır ve kaydedince diske yine **Türkçe** yazılır; yarım kodda yazdığınız kaybolmaz, hata düzelince ilk kayıtta Türkçeye çevrilir. Kısıtlı kipte Türkçe ve düzenlenebilir kalırlar. Bir dosyayı kodlamak ya da geri çevirmek için `tr kodla dosya.tr`, `tr çöz dosya.tr`.
+- **Kodlu olmayan dosyalar** (Türkçe yazılmış): yazım diliniz Türkçeyse eskisi gibi açılır ve kaydedilir; eklenti dosyaları kendiliğinden kodlamaz. Yazım diliniz başka bir dilse (`tr.writingLanguage`: `en`) bu dosyalar da sizin dilinizde açılır ve kaydedince diske yine **Türkçe** yazılır; yarım kodda yazdığınız kaybolmaz, hata düzelince ilk kayıtta Türkçeye çevrilir. Kısıtlı kipte Türkçe ve düzenlenebilir kalırlar. Bir dosyayı kodlamak ya da geri çevirmek için `tr kodla dosya.tr`, `tr çöz dosya.tr`.
 - **Diskteki hâli görmek:** Komut Paleti → "TR: Kodlu Hâlini Göster" dosyanın kodlu hâlini yanda salt okunur açar.
 - **Kısıtlı kip:** Güvenilmeyen çalışma alanında yorumlayıcı çalıştırılmadığından çeviri yapılamaz; kodlu dosya **salt okunur, ham hâliyle** açılır ve nedeni söylenir. Çalışma alanına güvendiğinizde açık sekmeler Türkçe görünüme geçer.
 - **Yorumlayıcı bulunamazsa** kodlu dosya ham hâliyle açık kalır ve yorumlayıcının nasıl kurulacağı söylenir.
@@ -67,9 +68,11 @@ Sınırlar: "Farklı Kaydet" ile kaydedilen yeni dosya Türkçe yazılır (kodla
 
 ## Kod şablonları
 
-`.tr` dosyasında kısayolu yazıp `Tab`a basın: `fonk`, `eğer`, `eşle`, `döngü`, `liste_üret`, `yapı`, `dene`, `filtrele`, `haritala`, `indirge` ve `tensör` (tensörler, `AdamW`, `geri_yayılım`, `iyileştirici.adım()` ve `iyileştirici.sıfırla()` ile küçük bir eğitim döngüsü).
+`.tr` dosyasında kısayolu yazın, öneri listesinden şablonu seçip `Tab` ile durak durak doldurun. Şablonlar **yazım dilinizdedir** (`tr.writingLanguage`): Türkçede `fonksiyon`, `eğer`, `eşle`, `döngü`, `liste_üret`, `yapı`, `dene`, `filtrele`, `haritala`, `indirge` ve `tensör` (tensörler, `AdamW`, `geri_yayılım`, `iyileştirici.adım()` ve `iyileştirici.sıfırla()` ile küçük bir eğitim döngüsü); İngilizcede `func`, `if`, `match`, `for`, `list_comp`, `struct`, `try`, `filter`, `map`, `reduce` ve `tensor`, gövdeleriyle birlikte İngilizce yazımda. Metot şablonları (`filtrele`) hem `filtrele` hem `.filtrele` olarak sunulur; `liste.fil` yazıp seçince nokta da değiştirilir. Şablonlar VS Code'un sabit şablon katkısıyla değil tamamlama önerisiyle verilir (katkı yazım dilini seçemez), bu yüzden "Insert Snippet" komutunun listesinde görünmezler.
 
-Renklendirmenin anahtar kelime, tip ve yerleşik listeleri elle yazılmaz; dilin kod listesinden (`internal/lang/codes/tr.json`, ve İngilizce görünüm için `en.json`) üretilir. Kod listesinde bir ad değişince depo kökünde `go run ./tools/gen/grammar` çalıştırın (`go test ./...` dosyanın güncel olduğunu denetler). Her işin tek yazımı vardır: yalnızca Türkçe biçimler renklendirilir; `#` yorum değildir, yorumlar `//` ve `/* */` ile yazılır.
+Şablonlar elle iki kopya yazılmaz: gövde bir kez Türkçe, geçerli TR kodu olarak `tools/gen/snippets/templates.go`'da durur, her dilin hâli o kodun `source.Show` ile gösterimidir (anahtar kelime, yerleşik, tip ve üye adları dilin kod listesinden gelir). Bir şablonu ya da kod listesindeki bir adı değiştirince depo kökünde `go run ./tools/gen/snippets` çalıştırın (`go test ./...` dosyanın güncel olduğunu ve her dilin şablonunun o dilin yazımında ayrıştırıldığını denetler). Yeni bir yazım dili eklenince şablon dosyası kendiliğinden o dili de taşır; kullanıcıya önerilen ad ve metinler (`isim`, `koşul` ...) `wordTable`dadır, satırı olmayan dil İngilizceyi kullanır.
+
+Renklendirmenin anahtar kelime, tip ve yerleşik listeleri de elle yazılmaz; dilin kod listesinden (`internal/lang/codes/tr.json`, ve İngilizce görünüm için `en.json`) üretilir. Kod listesinde bir ad değişince depo kökünde `go run ./tools/gen/grammar` çalıştırın (`go test ./...` dosyanın güncel olduğunu denetler). Her işin tek yazımı vardır: yalnızca Türkçe biçimler renklendirilir; `#` yorum değildir, yorumlar `//` ve `/* */` ile yazılır.
 
 | Ne yapmak istiyorsunuz? | Nasıl |
 | --- | --- |
@@ -86,7 +89,7 @@ Sınırlamalar: kesme noktaları yalnızca hata ayıklanan dosyada çalışır (
 
 ## Ayar
 
-`tr.yorumlayiciYolu`: TR yorumlayıcısının tam yolu (varsayılan: boş). Bu ayar **yalnızca kullanıcı ayarlarından** okunur (kapsamı `machine`): bir klasörün kendi `.vscode/settings.json` dosyası yorumlayıcıyı başka bir programa çeviremez. Göreli bir yol yalnızca güvenilen bir çalışma alanı klasörüne göre çözülür. Ayar boşsa sırasıyla şunlar denenir:
+`tr.interpreterPath`: TR yorumlayıcısının tam yolu (varsayılan: boş). Bu ayar **yalnızca kullanıcı ayarlarından** okunur (kapsamı `machine`): bir klasörün kendi `.vscode/settings.json` dosyası yorumlayıcıyı başka bir programa çeviremez. Göreli bir yol yalnızca güvenilen bir çalışma alanı klasörüne göre çözülür. Ayar boşsa sırasıyla şunlar denenir:
 
 1. Yalnızca **güvenilen** çalışma alanında, dosyanın çalışma alanı klasörünün kökündeki `bin/tr.exe`, yoksa `tr.exe`
 2. PATH üzerindeki `tr`
@@ -95,7 +98,7 @@ Sınırlamalar: kesme noktaları yalnızca hata ayıklanan dosyada çalışır (
 
 Komutlar yalnızca güvenilen çalışma alanlarında çalışır. Güvenilmeyen (kısıtlı kipteki) klasörlerde renklendirme, şablonlar ve dosya okuma yine kullanılabilir; çalıştırma, denetleme ve hata ayıklama kapalıdır ve bu düğmeler görünmez. Kodlu dosyalar bu kipte Türkçeye çevrilmez, salt okunur ham hâliyle açılır.
 
-`tr.yazimDili`: kodlu dosyaların gösterildiği yazım dili (varsayılan ve bugün tek seçenek: `tr`, Türkçe). Yalnızca kullanıcı ayarlarından okunur; her kişi kendisi seçer, dosyada saklanmaz. Değişiklik açık kodlu dosyaları yeniler (kaydedilmemiş değişikliği olan belge eski dilde kalır ve o dille kaydedilir). Ayar çalıştırma, terminal ve hata ayıklama süreçlerine `TR_DIL` olarak da geçer.
+`tr.writingLanguage`: kodlu dosyaların gösterildiği ve kod şablonlarının sunulduğu yazım dili (`tr`, Türkçe, varsayılan; `en`, İngilizce). Yalnızca kullanıcı ayarlarından okunur; her kişi kendisi seçer, dosyada saklanmaz. Değişiklik açık kodlu dosyaları yeniler (kaydedilmemiş değişikliği olan belge eski dilde kalır ve o dille kaydedilir). Ayar çalıştırma, terminal ve hata ayıklama süreçlerine `TR_DIL` olarak da geçer.
 
 Unicode işaretleme: VS Code kısıtlı kipte ASCII dışındaki her harfi sarı kutuyla işaretler. Eklenti `.tr` dosyalarında yalnızca Türk alfabesinin harflerini (ç, ğ, ı, İ, ö, ş, ü ve büyükleri) serbest bırakır (`editor.unicodeHighlight.nonBasicASCII: false` ve `allowedCharacters`); Latin harflerine benzeyen yabancı harfler (ör. Kiril `а`, `е`, Yunan `ο`) ve görünmez karakterler (ör. sıfır genişlikli boşluk) güvenilen ve güvenilmeyen klasörde yine kutuyla işaretlenir (`ambiguousCharacters` ve `invisibleCharacters` açık). Türkçe harfler hâlâ kutulu görünüyorsa eklentinin eski bir kopyası (1.7.0'dan önceki) çalışıyordur: Uzantılar görünümünden eski kopyayı kaldırıp güncelini kurun.
 
@@ -105,4 +108,4 @@ Unicode işaretleme: VS Code kısıtlı kipte ASCII dışındaki her harfi sarı
 - `.tr` dosyalarında VS Code'un "belirsiz karakter" uyarısı kapalıdır; Türkçe `ı` harfi artık Latin `i` ile karıştırılabilir diye sarı kutuyla işaretlenmez.
 - Bu depoyu klasör olarak açtığınızda `.vscode/tasks.json` görevleri de kullanılabilir: `Ctrl+Shift+B` açık dosyayı `bin/tr.exe` ile çalıştırır; denetleme ve terminal hata ayıklama görevleri de aynı `bin/tr.exe`'yi kullanır. Bu görevler ve eklenti komutları (▶, F5) yorumlayıcıyı **derlemez** (açık bir `tr.exe` Windows'ta dosyayı kilitlediği için otomatik derleme bilerek kapalıdır); Go kodunu değiştirdiyseniz önce "Tasks: Run Task" → **TR: yorumlayıcıyı derle** (`go build -o bin/tr.exe ./cmd/tr`) görevini çalıştırın.
 - `launch.json` ile özelleştirme: `"program"`, `"cwd"`, `"args"` (programa iletilen komut satırı argümanları, ör. `["--adım", "5"]`; F5'te de Ctrl+F5'te de iletilir) ve `"stopOnEntry": true` (ilk satırda dur) desteklenir.
-- Eklentinin arayüz metinleri (komut başlıkları, ayar açıklamaları) `package.nls.json`'dadır; başka bir yazım dili için `package.nls.<dil>.json` eklenir. Eklentinin testleri `test/` klasöründedir (`node test/<ad>_test.js`; `go test ./cmd/tr/e2e` hepsini koşar); çalıştırma ve hata ayıklama yolları sahte bir `vscode` modülüyle sınanır.
+- Eklentinin arayüz metinleri VS Code'un gösterim dilini izler (yazım dili ayarından bağımsızdır). Varsayılan dil İngilizcedir: komut başlıkları ve ayar açıklamaları `package.nls.json`'da, kodun gösterdiği iletiler (`showErrorMessage` ...) iletinin kendisi anahtar olacak biçimde `vscode.l10n.t` çağrılarındadır (`l10n.js`). Türkçeleri `package.nls.tr.json` ve `l10n/bundle.l10n.tr.json`'dadır; başka bir gösterim dili için `package.nls.<dil>.json` ve `l10n/bundle.l10n.<dil>.json` eklenir (VS Code 1.73'ten beri: [`vscode.l10n`](https://code.visualstudio.com/api/references/vscode-api#l10n)). Bir ileti eklerken ya da değiştirirken Türkçe paketi de güncelleyin: `test/l10n_test.js` eksik ve artık iletileri yakalar. Webview'lerdeki (İzleme Masası, Tablo Görünümü) metinler henüz Türkçedir. Eklentinin testleri `test/` klasöründedir (`node test/<ad>_test.js`; `go test ./cmd/tr/e2e` hepsini koşar); çalıştırma ve hata ayıklama yolları sahte bir `vscode` modülüyle sınanır.

@@ -25,7 +25,7 @@ async function openPanel(replies) {
         }
     };
     o.vscode.debug.activeDebugSession = session;
-    await o.commands['tr.izlemeMasasi']();
+    await o.commands['tr.watchPanel']();
     await wait();
     requests.length = 0; // açılışta giden "trVariables" isteği sayılmaz
     return Object.assign(o, { requests, panel: o.log.panels[0] });

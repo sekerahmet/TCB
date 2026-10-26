@@ -82,7 +82,7 @@ function create(vscode, g) {
         return watcher;
     }
 
-    // Kısıtlı kipte (güvenilmeyen çalışma alanı) görünüm şeması da salt okunurdur: tr-kodlu:
+    // Kısıtlı kipte (güvenilmeyen çalışma alanı) görünüm şeması da salt okunurdur: tr-coded:
     // adresi elle verilse bile yerel diske yazılmaz, silinmez, taşınmaz.
     const writable = (fn) => (uri, ...rest) => {
         if (!vscode.workspace.isTrusted) {

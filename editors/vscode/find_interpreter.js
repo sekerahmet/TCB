@@ -2,7 +2,7 @@
 // ayrıca sınanır (test/find_interpreter_test.js).
 //
 // Sıra:
-//   1. 'tr.yorumlayiciYolu' ayarı (kapsamı "machine": yalnızca kullanıcı ayarından okunur, bir
+//   1. 'tr.interpreterPath' ayarı (kapsamı "machine": yalnızca kullanıcı ayarından okunur, bir
 //      çalışma alanının .vscode/settings.json dosyası yorumlayıcıyı başka bir programa çeviremez).
 //      Göreli yol yalnızca güvenilen bir çalışma alanı klasörüne göre çözülür.
 //   2. Yalnızca GÜVENİLEN çalışma alanında, dosyanın çalışma alanı klasörünün KÖKÜNDE
@@ -13,6 +13,7 @@
 'use strict';
 
 const path = require('path');
+const { t } = require('./l10n');
 
 const BIN_FOLDER = 'bin';
 
@@ -21,7 +22,7 @@ function interpreterName(platform) {
 }
 
 // findInterpreter yorumlayıcının yolunu bulur.
-//   g.setting     'tr.yorumlayiciYolu' ayarının değeri ('' ya da undefined: ayar yok)
+//   g.setting     'tr.interpreterPath' ayarının değeri ('' ya da undefined: ayar yok)
 //   g.folder      dosyanın çalışma alanı klasörünün yolu (klasörsüz pencerede undefined)
 //   g.trusted     çalışma alanı güvenilir mi
 //   g.fileExists  filePath -> bool
@@ -38,14 +39,14 @@ function findInterpreter(g) {
         let filePath = setting;
         if (!pathMod.isAbsolute(filePath)) {
             if (!g.folder || !g.trusted) {
-                return { error: `'tr.yorumlayiciYolu' ayarı göreli bir yol (${setting}); göreli yol yalnızca güvenilen bir çalışma alanı klasöründe kullanılabilir. Yorumlayıcının tam yolunu yazın.` };
+                return { error: t("'tr.interpreterPath' is a relative path ({0}); a relative path can only be used in a trusted workspace folder. Write the interpreter's full path.", setting) };
             }
             filePath = pathMod.resolve(g.folder, filePath);
         }
         if (g.fileExists(filePath)) {
             return { filePath };
         }
-        return { error: `'tr.yorumlayiciYolu' ayarında belirtilen yorumlayıcı bulunamadı: ${filePath}` };
+        return { error: t("The interpreter given in 'tr.interpreterPath' was not found: {0}", filePath) };
     }
 
     if (g.folder && g.trusted) {

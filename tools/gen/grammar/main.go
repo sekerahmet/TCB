@@ -38,7 +38,7 @@ func main() {
 // --- sözlükten listeler ---
 
 // spellingLanguages gömülü bütün yazım dilleridir (Türkçe önce): kodlu dosya düzenleyicide seçilen
-// yazım dilinde (tr.yazimDili) gösterilir, renklendirme her dilin adlarını tanır.
+// yazım dilinde (tr.writingLanguage) gösterilir, renklendirme her dilin adlarını tanır.
 var spellingLanguages = func() []*codes.Language {
 	d := []*codes.Language{codes.Source()}
 	for _, langCode := range codes.Languages() {

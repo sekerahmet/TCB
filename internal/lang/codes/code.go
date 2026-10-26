@@ -3,6 +3,7 @@ package codes
 //go:generate go run ../../../tools/gen/codeconsts
 //go:generate go run ../../../tools/gen/codesdoc -root ../../..
 //go:generate go run ../../../tools/gen/grammar -root ../../..
+//go:generate go run ../../../tools/gen/snippets -root ../../..
 
 import (
 	"fmt"

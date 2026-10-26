@@ -140,16 +140,22 @@ func definePlaceholders(body, code string) string {
 // Eklentinin kod şablonları varsayılan değerleriyle açıldığında derlenebilir kod üretmelidir
 // (hakem mimari 3: eşle şablonu derlenmeyen kod üretiyordu).
 func TestExtensionTemplatesBuild(t *testing.T) {
-	data, err := os.ReadFile(reporoot.Path("editors/vscode/snippets/tr.code-snippets"))
+	data, err := os.ReadFile(reporoot.Path("editors/vscode/snippets/snippets.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	var templates map[string]struct {
-		Prefix []string `json:"prefix"`
-		Body   []string `json:"body"`
+	// Türkçe şablonlar kaynaktır; öbür dillerinki ondan üretilir ve tools/gen/snippets testlerinde
+	// kendi yazımlarında ayrıştırılır.
+	var languages map[string][]struct {
+		Label string   `json:"label"`
+		Body  []string `json:"body"`
 	}
-	if err := json.Unmarshal(data, &templates); err != nil {
+	if err := json.Unmarshal(data, &languages); err != nil {
 		t.Fatalf("şablon dosyası geçerli JSON değil: %v", err)
+	}
+	templates := map[string]struct{ Body []string }{}
+	for _, s := range languages["tr"] {
+		templates[s.Label] = struct{ Body []string }{s.Body}
 	}
 	if len(templates) < 10 {
 		t.Fatalf("yalnızca %d şablon bulundu", len(templates))

@@ -132,6 +132,24 @@ func TestExtensionTextsInTranslationFile(t *testing.T) {
 			t.Errorf("package.nls.json: %q anahtarı package.json'da kullanılmıyor", k)
 		}
 	}
+	// Her dilin dosyasında aynı anahtarlar vardır (varsayılan dosya İngilizcedir).
+	others, _ := reporoot.Glob(reporoot.Path("editors/vscode/package.nls.*.json"))
+	if len(others) == 0 {
+		t.Error("package.nls.<dil>.json dosyası yok (en az Türkçe olmalı)")
+	}
+	for _, f := range others {
+		other, _ := readExtensionJSON(t, filepath.Base(f)).(map[string]any)
+		for k := range translation {
+			if _, ok := other[k]; !ok {
+				t.Errorf("%s: %q anahtarı yok", filepath.Base(f), k)
+			}
+		}
+		for k := range other {
+			if _, ok := translation[k]; !ok {
+				t.Errorf("%s: %q anahtarı package.nls.json'da yok", filepath.Base(f), k)
+			}
+		}
+	}
 	// Çevrilecek alanlar düz metin olmamalı.
 	raw := readExtensionJSON(t, "package.json").(map[string]any)
 	contributions := raw["contributes"].(map[string]any)
@@ -220,20 +238,20 @@ func TestExtensionTRFilesUTF8(t *testing.T) {
 	if v := p.Contributes.ConfigurationDefaults["[tr]"]["files.encoding"]; v != "utf8" {
 		t.Errorf(`[tr] files.encoding = %v; "utf8" olmalı`, v)
 	}
-	if s := p.Contributes.Configuration.Properties["tr.yazimDili"].Scope; s != "application" {
-		t.Errorf("tr.yazimDili kapsamı %q; \"application\" olmalı", s)
+	if s := p.Contributes.Configuration.Properties["tr.writingLanguage"].Scope; s != "application" {
+		t.Errorf("tr.writingLanguage kapsamı %q; \"application\" olmalı", s)
 	}
 }
 
-// tr.yorumlayiciYolu yalnızca kullanıcı ayarından okunmalı (kapsam "machine"): güvenilen bir
+// tr.interpreterPath yalnızca kullanıcı ayarından okunmalı (kapsam "machine"): güvenilen bir
 // klasörün .vscode/settings.json dosyası yorumlayıcıyı keyfi bir programa çeviremesin.
 func TestExtensionInterpreterSettingMachineScoped(t *testing.T) {
-	feature, ok := readExtensionPackage(t).Contributes.Configuration.Properties["tr.yorumlayiciYolu"]
+	feature, ok := readExtensionPackage(t).Contributes.Configuration.Properties["tr.interpreterPath"]
 	if !ok {
-		t.Fatal("package.json: tr.yorumlayiciYolu ayarı yok")
+		t.Fatal("package.json: tr.interpreterPath ayarı yok")
 	}
 	if feature.Scope != "machine" {
-		t.Errorf("tr.yorumlayiciYolu kapsamı %q; \"machine\" olmalı", feature.Scope)
+		t.Errorf("tr.interpreterPath kapsamı %q; \"machine\" olmalı", feature.Scope)
 	}
 	js, err := os.ReadFile(reporoot.Path("editors/vscode/extension.js"))
 	if err != nil {
@@ -255,13 +273,13 @@ func TestExtensionRestrictedMode(t *testing.T) {
 	if u.Supported != "limited" {
 		t.Errorf("untrustedWorkspaces.supported = %v; \"limited\" olmalı", u.Supported)
 	}
-	if !strings.Contains(u.Description, "hata ayıklama") || !strings.Contains(u.Description, "renklendirme") {
+	if !strings.Contains(u.Description, "debugging") || !strings.Contains(u.Description, "highlighting") {
 		t.Errorf("untrustedWorkspaces.description neyin açık neyin kapalı olduğunu söylemeli: %q", u.Description)
 	}
-	if !slices.Contains(u.RestrictedConfigurations, "tr.yorumlayiciYolu") {
-		t.Errorf("tr.yorumlayiciYolu kısıtlı ayarlarda olmalı: %v", u.RestrictedConfigurations)
+	if !slices.Contains(u.RestrictedConfigurations, "tr.interpreterPath") {
+		t.Errorf("tr.interpreterPath kısıtlı ayarlarda olmalı: %v", u.RestrictedConfigurations)
 	}
-	runners := map[string]bool{"tr.calistir": true, "tr.denetle": true, "tr.hataAyikla": true, "tr.hataAyiklaBaslat": true}
+	runners := map[string]bool{"tr.run": true, "tr.check": true, "tr.debug": true, "tr.debugStart": true}
 	number := 0
 	for menu, ogeler := range p.Contributes.Menus {
 		for _, o := range ogeler {

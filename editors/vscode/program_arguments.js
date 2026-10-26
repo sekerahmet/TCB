@@ -4,6 +4,8 @@
 // modülüne bağlı değildir; böylece Node ile ayrıca sınanır (test/program_arguments_test.js).
 'use strict';
 
+const { t } = require('./l10n');
+
 // programArguments yapılandırmanın "args" alanını denetler.
 // Döner: { args } (alan yoksa boş liste) | { error } (alan bir metin dizisi değilse).
 function programArguments(config) {
@@ -12,7 +14,7 @@ function programArguments(config) {
         return { args: [] };
     }
     if (!Array.isArray(a) || a.some((x) => typeof x !== 'string')) {
-        return { error: 'Hata ayıklama ayarındaki "args" bir metin dizisi olmalı (ör. "args": ["--adım", "5"]).' };
+        return { error: t('The "args" in the debug configuration must be an array of strings (e.g. "args": ["--step", "5"]).') };
     }
     return { args: a.slice() };
 }

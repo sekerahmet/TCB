@@ -23,7 +23,7 @@ class Uri {
     static file(p) { return new Uri(p, 'file'); }
     static joinPath(u, ...parts) { return new Uri(path.join(u.fsPath, ...parts), u.scheme); }
     with(d) { return new Uri(this.fsPath, d && d.scheme !== undefined ? d.scheme : this.scheme); }
-    // VS Code'un biçimi: "file:///c%3A/a/b.tr", "tr-kodlu:/c%3A/a/b.tr".
+    // VS Code'un biçimi: "file:///c%3A/a/b.tr", "tr-coded:/c%3A/a/b.tr".
     toString() {
         let p = this.fsPath.replace(/\\/g, '/');
         let prefix = '';
@@ -127,8 +127,8 @@ class FakeState {
 }
 
 // sahte bir VS Code ortamı kurar ve eklentiyi etkinleştirir.
-//   s.setting     tr.yorumlayiciYolu
-//   s.settings    başka 'tr.' ayarları ({ yazimDili: 'tr' })
+//   s.setting     tr.interpreterPath
+//   s.settings    başka 'tr.' ayarları ({ writingLanguage: 'tr' })
 //   s.folder      çalışma alanı klasörü (yoksa klasörsüz pencere)
 //   s.trusted     çalışma alanı güvenilir mi (varsayılan doğru)
 //   s.activeFile  etkin düzenleyicideki .tr dosyası (yoksa düzenleyici kapalı)
@@ -177,6 +177,15 @@ function setup(s) {
     const vscode = {
         Uri, EventEmitter, FileSystemError, TabInputText, RelativePattern,
         Disposable: class { constructor(f) { this.dispose = f; } },
+        // l10n.t: s.bundle ({ İngilizce ileti: çevirisi }) verilirse VS Code'un çeviri paketi gibi
+        // çalışır, verilmezse iletinin kendisi (İngilizce) kullanılır.
+        l10n: {
+            t: (message, ...args) => ((s.bundle && s.bundle[message]) || message)
+                .replace(/\{(\d+)\}/g, (match, index) => (Number(index) < args.length ? String(args[index]) : match))
+        },
+        languages: {
+            registerCompletionItemProvider: (selector, p) => { registries.providers.completion = { selector, p }; return { dispose() {} }; }
+        },
         FileType: { File: 1, Directory: 2 },
         FileChangeType: { Changed: 1, Created: 2, Deleted: 3 },
         ViewColumn: { One: 1, Beside: -2 },
@@ -205,7 +214,7 @@ function setup(s) {
             getWorkspaceFolder: (uri) => (uri && uri.scheme === 'file' ? folder : undefined),
             getConfiguration: () => ({
                 get: (name, defaultValue) => {
-                    if (name === 'yorumlayiciYolu') {
+                    if (name === 'interpreterPath') {
                         return s.setting;
                     }
                     return s.settings && name in s.settings ? s.settings[name] : defaultValue;
@@ -345,6 +354,7 @@ function setup(s) {
         return request === 'vscode' ? 'vscode' : originalResolve.call(this, request, ...rest);
     };
     require.cache.vscode = { id: 'vscode', filename: 'vscode', loaded: true, exports: vscode };
+    require('../l10n').use(vscode.l10n);
     let extension;
     try {
         extension = require(extensionPath);
@@ -358,6 +368,7 @@ function setup(s) {
     return {
         vscode, log, state, events,
         provider: registries.providers.configProvider, taskProvider: registries.providers.taskProvider, adapterFactory: registries.providers.adapterFactory,
+        completion: registries.providers.completion,
         commands: registries.commands, filesystems: registries.filesystems
     };
 }

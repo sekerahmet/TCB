@@ -3,7 +3,7 @@
 // kodlu yazılır.
 //
 // Mekanizma: ayrı bir dosya sistemi şeması (VIEW_SCHEME). Görünümün adresi dosyanın kendi
-// yoludur, yalnızca şeması farklıdır ("tr-kodlu:/c:/proje/a.tr"). VS Code bu belgeyi sıradan bir
+// yoludur, yalnızca şeması farklıdır ("tr-coded:/c:/proje/a.tr"). VS Code bu belgeyi sıradan bir
 // metin belgesi olarak yönetir; okuma ve yazma bu sağlayıcıdan geçer:
 //   okuma: dosya kodluysa 'tr göster -' ile Türkçe yazım (başlık satırı görünmez; satırlar
 //          hata mesajları ve hata ayıklayıcıyla aynı sayılır, 17.5), değilse olduğu gibi;
@@ -32,19 +32,20 @@ const fs = require('fs');
 const path = require('path');
 const codedFormat = require('./coded_format');
 const codedFilesystem = require('./coded_filesystem');
+const { t } = require('./l10n');
 
-const VIEW_SCHEME = 'tr-kodlu';
-const RAW_SCHEME = 'tr-ham';
+const VIEW_SCHEME = 'tr-coded';
+const RAW_SCHEME = 'tr-raw';
 // PENDING_KEY kodlanmayı bekleyen (ayrıştırılamadığı için Türkçe kaydedilmiş) dosyaların
 // kalıcı listesinin anahtarıdır; VS Code yeniden açılınca da bilinir.
-const PENDING_KEY = 'tr.kodlanmayiBekleyenDosyalar';
+const PENDING_KEY = 'tr.pendingEncodeFiles';
 // PLAIN_PENDING_KEY Türkçeye çevrilmeyi bekleyen (kişinin dilinde yazılmış ama ayrıştırılamadığı
 // için çevrilemeden kaydedilmiş) kodsuz dosyaların kalıcı listesinin anahtarıdır.
-const PLAIN_PENDING_KEY = 'tr.turkceyeCevrilmeyiBekleyenDosyalar';
+const PLAIN_PENDING_KEY = 'tr.pendingTranslateFiles';
 // PENDING_LANGUAGE_KEY kodlanmayı bekleyen dosyaların dillerinin (başlığın dil='si, 17.1)
 // kalıcı kaydıdır (dosya → dil kodu): bekleyen dosyanın diskteki metninde başlık yoktur; VS Code
 // yeniden açılınca da dosya kendi diliyle kodlanır, dili sessizce değişmez.
-const PENDING_LANGUAGE_KEY = 'tr.kodlanmayiBekleyenDosyalarinDili';
+const PENDING_LANGUAGE_KEY = 'tr.pendingEncodeLanguages';
 // SOURCE_LANGUAGE kodsuz dosyaların yazıldığı dildir (17.7).
 const SOURCE_LANGUAGE = 'tr';
 const CASE_INSENSITIVE = process.platform === 'win32' || process.platform === 'darwin';
@@ -53,7 +54,7 @@ const CASE_INSENSITIVE = process.platform === 'win32' || process.platform === 'd
 //   g.findInterpreter  (dosyaUri) -> { filePath } | { error } | undefined   (find_interpreter.js kuralı)
 //   g.translate             codedFormat.translate ile aynı imza
 //   g.state             kalıcı durum (ExtensionContext.globalState)
-//   g.writingLanguage         () -> yazım dili kodu ('tr.yazimDili' ayarı)
+//   g.writingLanguage         () -> yazım dili kodu ('tr.writingLanguage' ayarı)
 //   g.interpreterNotFound (mesaj) -> ayarı açma düğmeli hata mesajı
 function create(vscode, g) {
     const reported = new Set(); // bu oturumda bir kez söylenen durumlar (anahtar + dosya)
@@ -166,9 +167,9 @@ function create(vscode, g) {
     // interpreter çeviri için yorumlayıcıyı verir; kısıtlı kipte hiçbir şey çalıştırılmaz.
     function interpreter(filePath) {
         if (!vscode.workspace.isTrusted) {
-            return { error: 'Kısıtlı kipte TR yorumlayıcısı çalıştırılmaz (Çalışma Alanı Güveni).' };
+            return { error: t('The TR interpreter is not run in restricted mode (Workspace Trust).') };
         }
-        return g.findInterpreter(vscode.Uri.file(filePath)) || { error: 'TR yorumlayıcısı bulunamadı.' };
+        return g.findInterpreter(vscode.Uri.file(filePath)) || { error: t('TR interpreter not found.') };
     }
 
     // Her açık görünümün Türkçesinin hangi yazım diliyle üretildiği: kayıtta metin AYNI dille
@@ -233,8 +234,7 @@ function create(vscode, g) {
             return s.output;
         }
         once('ham', filePath, () => vscode.window.showWarningMessage(
-            `${path.basename(filePath)} kodlu biçimde saklanıyor ama Türkçe görünümü açılamadı: ${codedFormat.errorSummary(s.error)} ` +
-            'Dosya ham (kodlu) hâliyle gösteriliyor; kaydederseniz olduğu gibi yazılır. Hatayı düzeltip kaydettikten sonra dosyayı yeniden açın.'));
+            t('{0} is stored in coded form but its view in your writing language could not be opened: {1} The file is shown in its raw (coded) form; if you save it, it is written as it is. After fixing the error and saving, reopen the file.', path.basename(filePath), codedFormat.errorSummary(s.error))));
         return data;
     }
 
@@ -254,8 +254,7 @@ function create(vscode, g) {
         }
         resolvedLanguage.set(key(filePath), SOURCE_LANGUAGE);
         once('turkce', filePath, () => vscode.window.showWarningMessage(
-            `${path.basename(filePath)} Türkçe yazılmış ama "${lang}" yazımı açılamadı: ${codedFormat.errorSummary(s.error)} ` +
-            'Dosya Türkçe gösteriliyor ve öyle kaydedilir. Hatayı düzeltip kaydettikten sonra dosyayı yeniden açın.'));
+            t('{0} is written in Turkish but its "{1}" form could not be opened: {2} The file is shown in Turkish and saved that way. After fixing the error and saving, reopen the file.', path.basename(filePath), lang, codedFormat.errorSummary(s.error))));
         return data;
     }
 
@@ -272,10 +271,9 @@ function create(vscode, g) {
         if (s.code === 0) {
             s = await g.translate(y.filePath, 'göster', SOURCE_LANGUAGE, s.output);
         }
-        const kept = `Yazdıklarınız kaybolmadı: dosya şimdilik "${lang}" yazımıyla kaydedildi; `;
         return settleSave(filePath, content, s, PLAIN_PENDING_KEY, {
-            syntax: (name, reason) => `${name}: kodda sözdizimi hatası var (${reason}). ${kept}sözdizimi hatası düzelince ilk kayıtta yeniden Türkçe yazılacak.`,
-            failure: (name, reason) => `${name} Türkçe yazılamadı: ${reason} ${kept}sorun giderilince ilk kayıtta yeniden Türkçe yazılacak.`,
+            syntax: (name, reason) => t('{0}: the code has a syntax error ({1}). What you typed was not lost: the file was saved in its "{2}" form for now; once the syntax error is fixed it will be written in Turkish again on the first save.', name, reason, lang),
+            failure: (name, reason) => t('{0} could not be written in Turkish: {1} What you typed was not lost: the file was saved in its "{2}" form for now; once the problem is fixed it will be written in Turkish again on the first save.', name, reason, lang),
         });
     }
 
@@ -306,10 +304,8 @@ function create(vscode, g) {
             s.output = codedFormat.withLanguage(s.output, kept);
         }
         const saved = await settleSave(filePath, content, s, undefined, {
-            syntax: (name, reason) => `${name}: kodda sözdizimi hatası var (${reason}). Yazdıklarınız kaybolmadı: dosya şimdilik Türkçe yazımıyla kaydedildi; ` +
-                'sözdizimi hatası düzelince ilk kayıtta yeniden kodlu yazılacak.',
-            failure: (name, reason) => `${name} kodlu biçimde kaydedilemedi: ${reason} Yazdıklarınız kaybolmadı: dosya Türkçe yazımıyla kaydedildi; ` +
-                'sorun giderilince ilk kayıtta yeniden kodlu yazılacak.',
+            syntax: (name, reason) => t('{0}: the code has a syntax error ({1}). What you typed was not lost: the file was saved in its Turkish form for now; once the syntax error is fixed it will be written in coded form again on the first save.', name, reason),
+            failure: (name, reason) => t('{0} could not be saved in coded form: {1} What you typed was not lost: the file was saved in its Turkish form; once the problem is fixed it will be written in coded form again on the first save.', name, reason),
         });
         if (kept && isPending(filePath)) {
             languages[key(filePath)] = kept;
@@ -363,9 +359,10 @@ function create(vscode, g) {
             if (trusted) {
                 const y = g.findInterpreter(local);
                 if (!y || y.error) {
-                    const what = kind === 'plain' ? 'Türkçe yazılmış; yazım dilinizdeki görünümü' : 'kodlu biçimde saklanıyor; Türkçe görünümü';
-                    once('yorumlayici', local.fsPath, () => g.interpreterNotFound(
-                        `${path.basename(local.fsPath)} ${what} için TR yorumlayıcısı gerekir (${y ? y.error : 'bulunamadı'}). Dosya olduğu gibi açık kaldı.`));
+                    const reason = y ? y.error : t('not found');
+                    once('yorumlayici', local.fsPath, () => g.interpreterNotFound(kind === 'plain'
+                        ? t('{0} is written in Turkish; its view in your writing language needs the TR interpreter ({1}). The file was left open as it is.', path.basename(local.fsPath), reason)
+                        : t('{0} is stored in coded form; its view in your writing language needs the TR interpreter ({1}). The file was left open as it is.', path.basename(local.fsPath), reason)));
                     return;
                 }
             }
@@ -424,10 +421,9 @@ function create(vscode, g) {
 
     function restrictedModeNotice(filePath) {
         once('kisitli', filePath, async () => {
-            const trustLabel = 'Çalışma Alanına Güven';
+            const trustLabel = t('Trust Workspace');
             const choice = await vscode.window.showInformationMessage(
-                `${path.basename(filePath)} kodlu biçimde saklanıyor (dilin sözcükleri kodlarla). Kısıtlı kipte TR yorumlayıcısı çalıştırılmadığı için ` +
-                'Türkçe görünüm açılamıyor; dosya salt okunur, ham hâliyle gösteriliyor. Çalışma alanına güvenirseniz Türkçe açılır.', trustLabel);
+                t('{0} is stored in coded form (the words of the language as codes). Because the TR interpreter is not run in restricted mode, the view in your writing language cannot be opened; the file is shown read-only in its raw form. If you trust the workspace it opens in your writing language.', path.basename(filePath)), trustLabel);
             if (choice === trustLabel) {
                 vscode.commands.executeCommand('workbench.trust.manage');
             }
@@ -447,7 +443,7 @@ function create(vscode, g) {
         const editor = vscode.window.activeTextEditor;
         const local = editor ? localUri(editor.document.uri) : undefined;
         if (!local || path.extname(local.fsPath).toLowerCase() !== '.tr') {
-            vscode.window.showErrorMessage('Kodlu hâlini göstermek için bir .tr dosyası açın.');
+            vscode.window.showErrorMessage(t('Open a .tr file to show its coded form.'));
             return;
         }
         await vscode.window.showTextDocument(rawUri(local), { viewColumn: vscode.ViewColumn.Beside, preview: false });
@@ -519,9 +515,7 @@ function create(vscode, g) {
             const filePath = localPath(document.uri);
             if (document.isDirty) {
                 once('dil', filePath, () => vscode.window.showWarningMessage(
-                    `${path.basename(filePath)} kaydedilmemiş değişiklikler içeriyor; yazım dili değişti ama belge ` +
-                    `"${resolvedLanguage.get(key(filePath))}" diliyle gösterilmeye devam ediyor ve o dille kaydedilecek. ` +
-                    'Yeni dilde görmek için kaydedip dosyayı yeniden açın.'));
+                    t('{0} has unsaved changes; the writing language changed but the document keeps being shown in "{1}" and will be saved in it. To see it in the new language, save and reopen the file.', path.basename(filePath), resolvedLanguage.get(key(filePath)))));
                 continue;
             }
             revisions.set(key(filePath), revision(filePath) + 1);
@@ -532,7 +526,7 @@ function create(vscode, g) {
     function setup(context) {
         context.subscriptions.push(
             vscode.workspace.onDidChangeConfiguration((e) => {
-                if (e.affectsConfiguration('tr.yazimDili')) {
+                if (e.affectsConfiguration('tr.writingLanguage')) {
                     forgetDirtyNotices();
                     reloadForLanguage();
                     // Kodsuz dosyalar başka bir yazım dilinde görünümle açılır.
@@ -559,7 +553,7 @@ function create(vscode, g) {
                 }
             }),
             vscode.workspace.onDidGrantWorkspaceTrust(redirectAll),
-            vscode.commands.registerCommand('tr.kodluHaliniGoster', openRaw)
+            vscode.commands.registerCommand('tr.showCoded', openRaw)
         );
         return redirectAll();
     }

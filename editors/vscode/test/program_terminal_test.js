@@ -32,10 +32,10 @@ async function until(t, cond) {
 
 test('çıktı terminalde kalır, satır sonları \\r\\n olur, bitince çıkış kodu yazılır', async () => {
     const t = start('console.log("Merhaba, dünya!"); console.error("uyarı"); process.exitCode = 3', { TR_DIL: 'tr' });
-    await until(t, () => t.out.includes('çıkış kodu'));
+    await until(t, () => t.out.includes('exit code'));
     assert.ok(t.out.includes('Merhaba, dünya!\r\n'), t.out);
     assert.ok(t.out.includes('uyarı\r\n'), t.out);
-    assert.ok(t.out.includes('Program bitti (çıkış kodu 3).'), t.out);
+    assert.ok(t.out.includes('The program finished (exit code 3).'), t.out);
     assert.ok(!t.out.replace(/\r\n/g, '').includes('\n'), 'yalın \\n kalmamalı');
     assert.strictEqual(t.closed, false, 'program bitince terminal açık kalmalı');
     t.p.handleInput('x');
@@ -44,7 +44,7 @@ test('çıktı terminalde kalır, satır sonları \\r\\n olur, bitince çıkış
 
 test('ortam değişkeni sürece geçer', async () => {
     const t = start('console.log("dil=" + process.env.TR_DIL)', { TR_DIL: 'tr' });
-    await until(t, () => t.out.includes('çıkış kodu'));
+    await until(t, () => t.out.includes('exit code'));
     assert.ok(t.out.includes('dil=tr'), t.out);
 });
 
@@ -53,7 +53,7 @@ test('girdi: harfler gösterilir, geri silme ve ok tuşları satırı düzenler,
     t.p.handleInput('ağx');
     t.p.handleInput('\x7f');
     t.p.handleInput('\x1b[Dç\r');
-    await until(t, () => t.out.includes('çıkış kodu'));
+    await until(t, () => t.out.includes('exit code'));
     assert.ok(t.out.includes('ağx\b \bç\r\n'), JSON.stringify(t.out));
     assert.ok(t.out.includes('okunan="ağç\\n"'), t.out);
 });
@@ -61,12 +61,12 @@ test('girdi: harfler gösterilir, geri silme ve ok tuşları satırı düzenler,
 test('Ctrl+D girdiyi kapatır, Ctrl+C programı durdurur', async () => {
     const eof = start('process.stdin.resume(); process.stdin.on("end", () => console.log("girdi bitti"))');
     eof.p.handleInput('\x04');
-    await until(eof, () => eof.out.includes('çıkış kodu 0'));
+    await until(eof, () => eof.out.includes('exit code 0'));
     assert.ok(eof.out.includes('girdi bitti'), eof.out);
 
     const t = start('setInterval(() => {}, 1000)');
     t.p.handleInput('\x03');
-    await until(t, () => t.out.includes('Program durduruldu') || t.out.includes('çıkış kodu'));
+    await until(t, () => t.out.includes('The program was stopped') || t.out.includes('exit code'));
     assert.ok(t.out.includes('^C'), t.out);
     assert.strictEqual(t.closed, false);
 });
@@ -75,7 +75,7 @@ test('terminal kapatılınca süreç durdurulur', async () => {
     const t = start('setInterval(() => {}, 1000)');
     t.p.close();
     await new Promise((r) => setTimeout(r, 300));
-    assert.ok(!t.out.includes('Program bitti'), 'kapatılmış terminale yazılmamalı');
+    assert.ok(!t.out.includes('The program finished'), 'kapatılmış terminale yazılmamalı');
 });
 
 test('başlatılamayan program terminalde bildirilir', async () => {
@@ -83,7 +83,7 @@ test('başlatılamayan program terminalde bildirilir', async () => {
     let out = '';
     p.onDidWrite((s) => { out += s; });
     p.open();
-    await until({ out }, () => out.includes('Program başlatılamadı'));
+    await until({ out }, () => out.includes('Could not start the program'));
 });
 
 suite.run();
