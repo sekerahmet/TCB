@@ -135,21 +135,29 @@ func (b Parts) Join() string {
 // embedded list could not be built it is the identity fallback and codes.LanguageError says why.
 func Turkish() *codes.Language { return codes.Source() }
 
-// TextLexer is the lexer of a text written in Turkish without the coded header (an expression
-// typed in the debugger): the text is converted to coded form first, so the program reads codes
-// (DENEME); a text that cannot be converted is read as it is.
-func TextLexer(text string) *lexer.Lexer { return TextLexerWithNames(text, nil) }
+// TextLexer is the lexer of a text written in Turkish without the coded header: the text is
+// converted to coded form first, so the program reads codes (DENEME); a text that cannot be
+// converted is read as it is.
+func TextLexer(text string) *lexer.Lexer { return textLexerIn(text, nil, Turkish()) }
 
-// TextLexerWithNames is TextLexer for a text read inside a running program's scope (the
-// debugger's expression, condition and watch): a name in names is the program's own and is not
-// encoded as a language element (the user's toplam variable stays a variable).
+// TextLexerWithNames is the lexer of a text the person types inside a running program's scope
+// (the debugger's expression, condition and watch): it is written in the person's display
+// language (codes.Display, TR_DIL), like a shell line, not in the file's. A name in names is the
+// program's own and is not encoded as a language element (the user's toplam variable stays a
+// variable).
 func TextLexerWithNames(text string, names []string) *lexer.Lexer {
-	b := Parts{Language: codes.SourceLanguage, Body: text}
-	if coded, err := toCoded(b, Turkish(), names, false); err == nil {
-		_, l := view(coded, Turkish())
+	return textLexerIn(text, names, codes.Display())
+}
+
+// textLexerIn lang'de yazılmış kodsuz metnin sözcük çözümleyicisidir: metin önce kodlu biçime
+// çevrilir, konumlar lang'deki gösterime göredir; çevrilemeyen metin olduğu gibi okunur.
+func textLexerIn(text string, names []string, lang *codes.Language) *lexer.Lexer {
+	b := Parts{Language: lang.Code, Body: text}
+	if coded, err := toCoded(b, lang, names, false); err == nil {
+		_, l := view(coded, lang)
 		return l
 	}
-	return lexer.NewBodyIn(text, false, Turkish())
+	return lexer.NewBodyIn(text, false, lang)
 }
 
 // Lexer returns the body's lexer for the text tools (index, formatter, build): for a coded file,
