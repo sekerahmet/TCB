@@ -1,8 +1,15 @@
 package main
 
 import (
+	"go/ast"
+	"go/parser"
+	"go/token"
+	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
+	"unicode"
+	"unicode/utf8"
 )
 
 var measurementFiles = map[string]string{
@@ -301,4 +308,54 @@ func TestTable(t *testing.T) { _ = codes.Name() }
 	if strings.Contains(about, "TestNameStyle") {
 		t.Errorf("TestNameStyle only shares the common word Name:\n%s", out)
 	}
+}
+
+// Kural: depodaki her izlenen Go test dosyasında tests-for'un "this file's tests" grubu dosyanın bildirdiği her Test,
+// Fuzz ve Example işlevidir (ölçümler hariç). Bildirimler go/parser ile bağımsız okunur; örnekler (known_list_test.go,
+// stats_test.go, context_test.go "none found" diyordu; language_test.go'nun kendi testleri ilk sıralarda değildi) bu
+// sınıftandır.
+func TestEveryTestFileListsEveryTestItDeclares(t *testing.T) {
+	root, _, g := repoGraph(t)
+	ix := newIndex(g)
+	checked := 0
+	for i := range g.Nodes {
+		file := &g.Nodes[i]
+		if file.Kind != kindFile || !strings.HasSuffix(file.File, "_test.go") || strings.Contains(file.File, "/testdata/") {
+			continue
+		}
+		f, err := parser.ParseFile(token.NewFileSet(), filepath.Join(root, filepath.FromSlash(file.File)), nil, parser.SkipObjectResolution)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var want []string
+		for _, d := range f.Decls {
+			if fd, ok := d.(*ast.FuncDecl); ok && fd.Recv == nil && declaresTest(fd.Name.Name) {
+				want = append(want, fd.Name.Name)
+			}
+		}
+		var got []string
+		for _, n := range ownTests(ix.fileDecls(file)) {
+			got = append(got, n.Name[strings.LastIndex(n.Name, ".")+1:])
+		}
+		slices.Sort(want)
+		slices.Sort(got)
+		if !slices.Equal(got, want) {
+			t.Errorf("%s: this file's tests %v, it declares %v", file.File, got, want)
+		}
+		checked++
+	}
+	if checked < 300 {
+		t.Fatalf("only %d test files checked", checked)
+	}
+}
+
+// declaresTest go test'in koştuğu bir Test, Fuzz ya da Example adı mı (ad önekten sonra küçük harfle sürmez; ölçümler hariç).
+func declaresTest(name string) bool {
+	for _, prefix := range []string{"Test", "Fuzz", "Example"} {
+		if rest, ok := strings.CutPrefix(name, prefix); ok {
+			r, _ := utf8.DecodeRuneInString(rest)
+			return rest == "" || !unicode.IsLower(r)
+		}
+	}
+	return false
 }

@@ -212,13 +212,14 @@ func (ix *index) printTestsToRun(w io.Writer, ts *touchSet, limit int, what, own
 	printLimited(w, lines, limit, "    ")
 }
 
-// ownTests kümenin kendi bildirdiği testlerdir (ölçümler hariç, ada göre): bir test dosyasının ya da değişikliğin
+// ownTests kümenin kendi bildirdiği testlerdir (Benchmark* hariç, ada göre; tools/bench'teki bir Test de kendi aracını
+// sınar, isMeasurement'ın klasör kuralı burada geçmez): bir test dosyasının ya da değişikliğin
 // testi kendisini sınar. Eskiden yalnız kümedeki bir yardımcıyı çağıranlar listeleniyordu, test dosyasının yardımcısız
 // testleri "none found" diye kayboluyordu (eksikler listesi, ince ayar: type_names_test.go, runner_test.go 10 testten 1'i).
 func ownTests(ts *touchSet) []*Node {
 	var own []*Node
 	for _, n := range ts.nodes {
-		if isTestNode(n) && !isMeasurement(n) {
+		if isTestNode(n) && !strings.HasPrefix(n.Name[strings.LastIndex(n.Name, ".")+1:], "Benchmark") {
 			own = append(own, n)
 		}
 	}
