@@ -29,6 +29,17 @@ Bugün açık kritik madde yok (son kapanan: kimliğe yeniden adlandırılan kod
   - Komut: `go run ./tools/codegraph tests-for internal/lang/checker/type_names_test.go` → `tests: none found for the declarations in this file` (dosyada bir test bildirimi var). İkinci örnek: `tests-for internal/devtools/testrunner/runner_test.go` → 10 testten 1'i.
   - Sınıf (DENETİM): yalnız dosyadaki bir yardımcıyı çağıran testler listeleniyor; MEKANİK'in `prepare_test.go` ve `testkit_test.go`'da görmemesinin nedeni bu.
   - Beklenen: test dosyasının bildirdiği testler "this file's tests" olarak listelenir; "none found" yanlış "yok"tur. Risk düşük (düzenleyen kişi testi zaten görüyor), bu yüzden ince ayar.
+  - Yeni örnekler (MEKANİK düzeltmeler-2 devri, ana oturum main a2e94151'de yeniden üretti): `tests-for internal/testkit/known_list_test.go`, `internal/lang/interp/stats_test.go`, `internal/lang/parser/context_test.go` → "none found" (dosyalarda 1, 1 ve 8 test). `tests-for internal/lang/codes/language_test.go` → 271 test, ilk sıralar başka paketlerden (`checker.TestBoolTextComparisonWarning` ...), dosyanın kendi `TestIdentities`'i görünmüyor.
+
+- **Birim testi uzak sırada: test dizesindeki TR kodu.** 2026-10-26, MEKANİK bildirdi, ana oturum main a2e94151'de yeniden üretti.
+  - Komut: `go run ./tools/codegraph tests-for --all internal/lang/interp/stats.go` → aynı paketin `TestStatsNameTheBadValueByItsPlace`'i (`stats_test.go:12`) 57. sırada, `2 steps [INFERRED]`; ilk 12'de yok.
+  - Kök (MEKANİK): test yerleşiğe Go'dan değil test dizesindeki TR kodundan varıyor (`New().Run(... standart_sapma(...))`); CLAUDE.md'nin andığı kör nokta.
+  - Beklenen: aynı paketin test dosyasındaki, dosyanın yerleşiğini TR kodu üzerinden çağıran test `direct` ya da en üstte.
+
+- **`cmd/tr/main.go`'ya `.tr` testlerinden kuşkulu bağ.** 2026-10-26, MEKANİK bildirdi, ana oturum main a2e94151'de yeniden üretti; kenarın doğruluğu doğrulanmadı.
+  - Komut: `go run ./tools/codegraph tests-for cmd/tr/main.go` → `tipler_test: 3.11 ...`, `tensor_test: 15.44 ...`, `moduller_test: 11.7 ...`, `hatalar_ertele_test: 9.4 ...`, `yerlesikler_test: 13.5 ...` `1 steps [INFERRED]`.
+  - Gelen bağ: bu testler `tr test` ile süreç içinde koşuyor; MEKANİK kaynakta `main.go`'nun işlevlerini çağıran bir yol görmedi. `query tests/tipler_test.tr:219` yalnız yorumlayıcıya `implemented_by` kenarları gösteriyor.
+  - Beklenen: kenarın hangi kuraldan geldiği; yanlışsa sınıfı kritik (yanlış kenar, "bu testler main.go'yu korur" yanılgısı).
 
 - **`tests-for` komut fonksiyonlarının testlerini dolaylı gösteriyor.** 2026-10-26, CODEGRAPH bildirdi (gaps-parti-devir.md), ana oturum main d4de3803'te yeniden üretti. **CODEGRAPH'ta (2026-10-26).**
   - Komut: `go run ./tools/codegraph tests-for tools/codegraph/query_fields.go` → ilk satır `TestPlanningQuestionsAreAnswered 5 steps [INFERRED]`; doğrudan test yok.
