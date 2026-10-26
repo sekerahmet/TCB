@@ -336,3 +336,34 @@ func TestEncodeKeepsUserErrorVarApartFromImplicitCatchName(t *testing.T) {
 		t.Fatalf("gölgelenmiş 'hata' değişkeni örtük TR_ctx_error koduyla kodlandı:\n%s", coded)
 	}
 }
+
+// Kural (17.5): konumlar ve hata çerçevesi kişinin gösterim dilindedir: İngilizce gösterimde
+// çerçevenin metni İngilizce satırdır, sütun o satırdaki yeri gösterir; Türkçe gösterimde Türkçe.
+func TestViewFollowsTheDisplayLanguage(t *testing.T) {
+	b, err := Split(Header + "tr\nTR_kw_var x = 1\nTR_fn_print(x, tanimsiz)\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for lang, c := range map[string]struct {
+		text string
+		col  int
+	}{"en": {"var x = 1\nprint(x, tanimsiz)\n", 10}, "tr": {"değişken x = 1\nyazdır(x, tanimsiz)\n", 11}} {
+		l, err := codes.LoadLanguage(lang)
+		if err != nil {
+			t.Fatal(err)
+		}
+		text, lx := view(b, l)
+		if text != c.text {
+			t.Errorf("%s gösterimi %q, beklenen %q", lang, text, c.text)
+		}
+		tok := lx.NextToken()
+		for ; tok.Literal != "tanimsiz"; tok = lx.NextToken() {
+			if tok.Line > 2 {
+				t.Fatalf("%s: ad bulunamadı", lang)
+			}
+		}
+		if tok.Line != 2 || tok.Column != c.col {
+			t.Errorf("%s gösteriminde ad %d:%d'de, beklenen 2:%d", lang, tok.Line, tok.Column, c.col)
+		}
+	}
+}

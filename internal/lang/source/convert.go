@@ -176,23 +176,24 @@ func (c *analysis) viewChanges() []change {
 	return d
 }
 
-// view kodlu bir gövdenin kanonik (Türkçe) yazımıdır: hata çerçeveleri ve hata ayıklayıcı
-// bu metni gösterir (17.5). Gövde ayrıştırılamıyorsa yalnızca dosya düzeyindeki kodlar
-// adlarına çevrilir (yerleştirmelerdekiler kod kalır). İkinci değer gösterimin sütunlarını
-// veren sözcük çözümleyicidir: konumlar tam bu metne göredir, '$ad' kaçışları dahil.
-func view(b Parts) (string, *lexer.Lexer) {
-	if c, err := analyze(b, codes.Source(), nil, false); err == nil {
+// view kodlu bir gövdenin lang'deki gösterimidir: hata çerçeveleri ve hata ayıklayıcı bu
+// metni gösterir (17.5; kişinin gösterim dili, codes.Display). Gövde ayrıştırılamıyorsa
+// yalnızca dosya düzeyindeki kodlar adlarına çevrilir (yerleştirmelerdekiler kod kalır). İkinci
+// değer gösterimin sütunlarını veren sözcük çözümleyicidir: konumlar tam bu metne göredir,
+// '$ad' kaçışları dahil.
+func view(b Parts, lang *codes.Language) (string, *lexer.Lexer) {
+	if c, err := analyze(b, lang, nil, false); err == nil {
 		d := uniqueChanges(c.viewChanges())
 		return apply(c.input, d), lexer.NewBodyView(b.Body, viewEdits(d))
 	}
-	l := b.scanLexer(codes.Source())
+	l := b.scanLexer(lang)
 	l.StartRecording()
 	for l.NextToken().Type != lexer.TokEOF {
 	}
 	var d []change
 	for _, r := range l.Records() {
 		if r.Code != codes.None {
-			d = append(d, change{r.Start, r.End, langName(codes.Source(), r.Code)})
+			d = append(d, change{r.Start, r.End, langName(lang, r.Code)})
 		}
 	}
 	d = uniqueChanges(d)

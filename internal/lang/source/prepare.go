@@ -80,7 +80,7 @@ func Prepare(text string, s Options) *Result {
 	}
 	if coded.Coded {
 		var viewLexer *lexer.Lexer
-		r.Text, viewLexer = view(coded)
+		r.Text, viewLexer = view(coded, codes.Display())
 		lex = func() *lexer.Lexer { return viewLexer }
 	}
 	if err != nil {

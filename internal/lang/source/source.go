@@ -146,20 +146,22 @@ func TextLexer(text string) *lexer.Lexer { return TextLexerWithNames(text, nil) 
 func TextLexerWithNames(text string, names []string) *lexer.Lexer {
 	b := Parts{Language: codes.SourceLanguage, Body: text}
 	if coded, err := toCoded(b, Turkish(), names, false); err == nil {
-		_, l := view(coded)
+		_, l := view(coded, Turkish())
 		return l
 	}
 	return lexer.NewBodyIn(text, false, Turkish())
 }
 
-// Lexer returns the body's lexer: for a coded file, one that recognizes codes and whose
-// positions follow the file's view (17.5), the '$' of escaped user names included; for a file
-// written in Turkish, one that reads it in Turkish (the canonical language, whatever TR_DIL is).
+// Lexer returns the body's lexer for the text tools (index, formatter, build): for a coded file,
+// one that recognizes codes and whose positions follow the file's Turkish view, the '$' of
+// escaped user names included, so a tool's output does not depend on TR_DIL; for a file written
+// in Turkish, one that reads it in Turkish (the canonical language, whatever TR_DIL is). A
+// program's positions follow the person's view (Prepare, 17.5).
 func (b Parts) Lexer() *lexer.Lexer {
 	if !b.Coded {
 		return lexer.NewBodyIn(b.Body, false, Turkish()) // DENEME (iç biçim kod): metin araçları Türkçe metni okur
 	}
-	_, l := view(b)
+	_, l := view(b, Turkish()) // DENEME (iç biçim kod): araçların konumları dilden bağımsız olmalı
 	return l
 }
 

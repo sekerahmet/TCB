@@ -19,7 +19,7 @@ func wantPos(t *testing.T, err error, line, col int) {
 	}
 }
 
-// Kodlu dosya çevrilmeden hazırlanır; konumlar Türkçe gösterime göredir (17.5).
+// Kodlu dosya çevrilmeden hazırlanır; konumlar kişinin gösterimine göredir (17.5; TR_DIL yokken Türkçe).
 func TestCodedFilePrepares(t *testing.T) {
 	s := Prepare(Header+"tr\nTR_kw_var x = 1\nTR_fn_print(x, tanımsız)\n", Options{TypeCheck: true})
 	if s.Stage != StageType || len(s.Errors) != 1 {
