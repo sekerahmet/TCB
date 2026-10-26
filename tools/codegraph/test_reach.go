@@ -31,6 +31,14 @@ func reachEdge(kind, confidence, from, to string) bool {
 	return false
 }
 
+// initReader bir `inits_var` kenarı (başlatıcı → değişken: `init()` ya da değişkenin kendi başlatıcısı) için zincirin ters
+// yönüdür: değişkenin değeri başlatıcıdan gelir, değişkeni okuyan başlatıcının okuduğuna da ulaşır. `init()`'i kimse
+// çağırmaz; gömülü bir dosyayı okuyup paket değişkenine yazıyorsa o dosyanın testleri değişkeni okuyanlardır
+// (tools/gen/snippets: data.json → init → templates → Generate). Değişkenin kendine kenarı yoktur.
+func initReader(kind, from, to string) (reader string, ok bool) {
+	return to, kind == edgeInitsVar && from != to
+}
+
 // reached zincirde ulaşılan düğümdür.
 type reached = codeindex.Reached
 

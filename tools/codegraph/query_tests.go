@@ -168,6 +168,11 @@ func (ix *index) callersOf(id string) []string {
 			out = append(out, e.From)
 		}
 	}
+	for _, e := range ix.out[id] {
+		if v, ok := initReader(e.Kind, e.From, e.To); ok {
+			out = append(out, v)
+		}
+	}
 	sort.Strings(out)
 	return out
 }
