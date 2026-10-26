@@ -1,6 +1,6 @@
 //! tr kodlu 3 dil=tr
 // 15 — Hata yönetimi: beklenmedik durumda programı düzgün yönetmek.
-// Ne öğretir: dene/yakala ile hatayı yakalamak, fırlat ile kendi hatanı üretmek,
+// Ne öğretir: dene/yakala ile hatayı yakalamak, fırlat ile kendi hatanı üretmek, katalog iletisiyle (ileti) hata fırlatmak,
 // hatanın nerede ele alınacağına karar vermek, ad verilmeyen yakala'da hata değişkeni.
 // Önceki örnekten: fonksiyonlar (08), koşullar (05); 06'da tam("abc") hata verirdi, burada yönetilir.
 // Çalıştırma (proje kökünden): tr examples/tr/15_hata_yonetimi.tr
@@ -42,6 +42,18 @@ TR_kw_try {
 } TR_kw_catch {
     TR_fn_print("yakalandı: {TR_ctx_error}")
 }
+
+// Kitaplığın hataları katalog iletisidir: ileti(kod, değerler) onu kurar, fırlat ona verilince hata o
+// kodla fırlar. Metin okuyanın dilinde yazılır; testler metni değil kodu sınar (hata_kodu).
+TR_kw_func pencere_denetle(pencere) {
+    TR_kw_if pencere < 0 { TR_kw_throw TR_fn_message(H6903, pencere) }
+    TR_kw_return pencere
+}
+TR_kw_try { pencere_denetle(-1) } TR_kw_catch h { TR_fn_print("yakalandı: {h}") }
+TR_fn_print(TR_fn_error_code(() => { pencere_denetle(-1) }))
+TR_fn_print(TR_fn_error_code(() => { pencere_denetle(4) }))
+TR_kw_var iletim: TR_type_Message = TR_fn_message(H6903, 5)
+TR_fn_print(TR_fn_type(iletim))
 
 // --- Kendin dene ---
 // 1. Boş listenin ortalamasını isteyen bir fonksiyon yaz; boşsa fırlat ile hata ver ve yakala.

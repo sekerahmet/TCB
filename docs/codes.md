@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 572 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 2 değer adı, 41 tip, 134 fonksiyon, 11 sabit, 61 metot, 97 özellik, 136 adlı argüman.
+Toplam 575 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 2 değer adı, 42 tip, 136 fonksiyon, 11 sabit, 61 metot, 97 özellik, 136 adlı argüman.
 
 ## İçindekiler
 
@@ -521,6 +521,16 @@ değişken g = günlük("kayit/a.jsonl"); yazdır(tip(g) == Günlük)
 ```
 
 Üyeleri: TR_mem_append `ekle` · İlişkili: TR_fn_logger `günlük`, TR_mem_append `ekle`
+
+#### TR_type_Message `İleti`
+
+ileti(H6903, ...) ile kurulan katalog iletisinin tipidir: kod ve değerlerinden oluşur, metni gösterilirken iletinin dilinde kurulur. fırlat ve doğrula ona verilince hata o kodla fırlar.
+
+```tr
+değişken i = ileti(H6903, -1); yazdır(tip(i))
+```
+
+İlişkili: TR_fn_message `ileti`, TR_fn_error_code `hata_kodu`
 
 #### TR_type_Muon `Muon`
 
@@ -1102,6 +1112,18 @@ değişken klasör = ortam_değişkeni("VERİ_KLASÖRÜ") ?? "veri"; yazdır(kla
 
 İlişkili: TR_fn_command_line `komut_satırı`
 
+#### TR_fn_error_code `hata_kodu`
+
+    hata_kodu(Fonksiyon | YerleşikFonksiyon) → Metin | Yok
+
+Verilen fonksiyonu çalıştırır; fonksiyon bir ileti (ileti) fırlatırsa onun kodunu Metin olarak ("H6903") döndürür, hata fırlatmazsa ya da hata kodlu değilse yok döndürür. İletinin metnini değil kodunu sınamak içindir.
+
+```tr
+yazdır(hata_kodu(() => { fırlat ileti(H6903, -1) }))
+```
+
+İlişkili: TR_fn_message `ileti`, TR_fn_assert `doğrula`
+
 #### TR_fn_exp `exp`
 
     exp(Tensör | Tam | Ondalık) → Tensör | Ondalık
@@ -1479,6 +1501,18 @@ yazdır(ortanca([3, 1, 4, 2]))
 ```
 
 İlişkili: TR_fn_mean `ortalama`
+
+#### TR_fn_message `ileti`
+
+    ileti(Metin, [Herhangi...]) → İleti
+
+İleti kataloğundaki bir iletiyi kodu (H6903) ve değerleriyle (katalogdaki parametre sırasıyla) kurar. Dönen metindir ve kodunu taşır: fırlat ile doğrula ona verilince hata o kodla fırlar, metni her dilde kataloğun metnidir. Kitaplık hata metnini böyle yazar.
+
+```tr
+dene { fırlat ileti(H6903, -1) } yakala h { yazdır(h) }
+```
+
+İlişkili: TR_fn_error_code `hata_kodu`, TR_fn_assert `doğrula`, TR_kw_throw `fırlat`
 
 #### TR_fn_min `min`
 
@@ -4552,4 +4586,4 @@ izle kayıp
 
 `x |> f(a)` ≡ `f(x, a)` (bkz. `docs/spec/04_operatorler.md` 4.9). Boru yalnızca fonksiyonlarla çalışır; metotlar `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 } |> toplam`). Borudaki değeri ilk konumlu argüman olarak alabilen yerleşik fonksiyonlar (kullanıcı fonksiyonları da kullanılabilir):
 
-`AdamW`, `SGD`, `mutlak`, `acos`, `argmax`, `sıralama_indeksi`, `asin`, `doğrula`, `eşit_mi`, `atan`, `atan2`, `dikkat`, `geri_yayılım`, `tavan`, `kontrol_noktası`, `sınırla`, `gradyan_kırp`, `komut_satırı`, `bitiştir`, `kopyala`, `cos`, `cosh`, `çapraz_entropi`, `birikimli_toplam`, `veri_kümesi`, `varsayılan_cihaz`, `gömme`, `ortam_değişkeni`, `exp`, `expm1`, `birim_matris`, `ondalık`, `taban`, `kaynaştır`, `gelu`, `türev_denetle`, `girdi`, `tam`, `sonlu_mu`, `json_çöz`, `json_metin`, `katman_normu`, `doğrusal_çapraz_entropi`, `klasörü_listele`, `parametreleri_yükle`, `tensör_yükle`, `parçalayıcı_yükle`, `log`, `log10`, `log1p`, `log2`, `log_softmax`, `günlük`, `klasör_oluştur`, `max`, `ortalama`, `ortanca`, `min`, `karışık_hassasiyet`, `taşı`, `türevsiz`, `birler`, `parametreler`, `csv_çöz`, `yol`, `yazdır`, `ilerleme`, `rastgele_normal`, `aralık`, `csv_oku`, `dosya_oku`, `dosya_satırları`, `relu`, `sil`, `tekrar_oynat`, `rms_normu`, `yuvarla`, `örnekle`, `tensör_kaydet`, `sigmoid`, `işaret`, `silu`, `sin`, `sinh`, `bekle`, `softmax`, `karekök`, `standart_sapma`, `metin`, `toplam`, `tan`, `tanh`, `tensör`, `en_büyük_k`, `tip`, `koşullu`, `dosya_yaz`, `yerine_yaz`, `sıfırlar`
+`AdamW`, `SGD`, `mutlak`, `acos`, `argmax`, `sıralama_indeksi`, `asin`, `doğrula`, `eşit_mi`, `atan`, `atan2`, `dikkat`, `geri_yayılım`, `tavan`, `kontrol_noktası`, `sınırla`, `gradyan_kırp`, `komut_satırı`, `bitiştir`, `kopyala`, `cos`, `cosh`, `çapraz_entropi`, `birikimli_toplam`, `veri_kümesi`, `varsayılan_cihaz`, `gömme`, `ortam_değişkeni`, `hata_kodu`, `exp`, `expm1`, `birim_matris`, `ondalık`, `taban`, `kaynaştır`, `gelu`, `türev_denetle`, `girdi`, `tam`, `sonlu_mu`, `json_çöz`, `json_metin`, `katman_normu`, `doğrusal_çapraz_entropi`, `klasörü_listele`, `parametreleri_yükle`, `tensör_yükle`, `parçalayıcı_yükle`, `log`, `log10`, `log1p`, `log2`, `log_softmax`, `günlük`, `klasör_oluştur`, `max`, `ortalama`, `ortanca`, `ileti`, `min`, `karışık_hassasiyet`, `taşı`, `türevsiz`, `birler`, `parametreler`, `csv_çöz`, `yol`, `yazdır`, `ilerleme`, `rastgele_normal`, `aralık`, `csv_oku`, `dosya_oku`, `dosya_satırları`, `relu`, `sil`, `tekrar_oynat`, `rms_normu`, `yuvarla`, `örnekle`, `tensör_kaydet`, `sigmoid`, `işaret`, `silu`, `sin`, `sinh`, `bekle`, `softmax`, `karekök`, `standart_sapma`, `metin`, `toplam`, `tan`, `tanh`, `tensör`, `en_büyük_k`, `tip`, `koşullu`, `dosya_yaz`, `yerine_yaz`, `sıfırlar`

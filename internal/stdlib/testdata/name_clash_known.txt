@@ -333,12 +333,14 @@ en tr blok_parametresi gradyanları_sıfırla
 en tr blok_parametresi gömme
 en tr blok_parametresi günlük
 en tr blok_parametresi hata
+en tr blok_parametresi hata_kodu
 en tr blok_parametresi hazır_model
 en tr blok_parametresi hazır_model_kur
 en tr blok_parametresi hesap_türü
 en tr blok_parametresi hugging_face_eşle
 en tr blok_parametresi iken
 en tr blok_parametresi ilerleme
+en tr blok_parametresi ileti
 en tr blok_parametresi içinde
 en tr blok_parametresi işaret
 en tr blok_parametresi json_metin
@@ -479,12 +481,14 @@ en tr değişken gradyanları_sıfırla
 en tr değişken gömme
 en tr değişken günlük
 en tr değişken hata
+en tr değişken hata_kodu
 en tr değişken hazır_model
 en tr değişken hazır_model_kur
 en tr değişken hesap_türü
 en tr değişken hugging_face_eşle
 en tr değişken iken
 en tr değişken ilerleme
+en tr değişken ileti
 en tr değişken içinde
 en tr değişken işaret
 en tr değişken json_metin
@@ -625,12 +629,14 @@ en tr döngü_değişkeni gradyanları_sıfırla
 en tr döngü_değişkeni gömme
 en tr döngü_değişkeni günlük
 en tr döngü_değişkeni hata
+en tr döngü_değişkeni hata_kodu
 en tr döngü_değişkeni hazır_model
 en tr döngü_değişkeni hazır_model_kur
 en tr döngü_değişkeni hesap_türü
 en tr döngü_değişkeni hugging_face_eşle
 en tr döngü_değişkeni iken
 en tr döngü_değişkeni ilerleme
+en tr döngü_değişkeni ileti
 en tr döngü_değişkeni içinde
 en tr döngü_değişkeni işaret
 en tr döngü_değişkeni json_metin
@@ -771,12 +777,14 @@ en tr fonksiyon gradyanları_sıfırla
 en tr fonksiyon gömme
 en tr fonksiyon günlük
 en tr fonksiyon hata
+en tr fonksiyon hata_kodu
 en tr fonksiyon hazır_model
 en tr fonksiyon hazır_model_kur
 en tr fonksiyon hesap_türü
 en tr fonksiyon hugging_face_eşle
 en tr fonksiyon iken
 en tr fonksiyon ilerleme
+en tr fonksiyon ileti
 en tr fonksiyon içinde
 en tr fonksiyon işaret
 en tr fonksiyon json_metin
@@ -917,12 +925,14 @@ en tr kullanıcı_adlı_argümanı gradyanları_sıfırla
 en tr kullanıcı_adlı_argümanı gömme
 en tr kullanıcı_adlı_argümanı günlük
 en tr kullanıcı_adlı_argümanı hata
+en tr kullanıcı_adlı_argümanı hata_kodu
 en tr kullanıcı_adlı_argümanı hazır_model
 en tr kullanıcı_adlı_argümanı hazır_model_kur
 en tr kullanıcı_adlı_argümanı hesap_türü
 en tr kullanıcı_adlı_argümanı hugging_face_eşle
 en tr kullanıcı_adlı_argümanı iken
 en tr kullanıcı_adlı_argümanı ilerleme
+en tr kullanıcı_adlı_argümanı ileti
 en tr kullanıcı_adlı_argümanı içinde
 en tr kullanıcı_adlı_argümanı işaret
 en tr kullanıcı_adlı_argümanı json_metin
@@ -1244,11 +1254,13 @@ en tr modül_adı gradyanları_sıfırla
 en tr modül_adı gömme
 en tr modül_adı günlük
 en tr modül_adı hata
+en tr modül_adı hata_kodu
 en tr modül_adı hazır_model
 en tr modül_adı hazır_model_kur
 en tr modül_adı hesap_türü
 en tr modül_adı hugging_face_eşle
 en tr modül_adı ilerleme
+en tr modül_adı ileti
 en tr modül_adı işaret
 en tr modül_adı json_metin
 en tr modül_adı json_çöz
@@ -1320,6 +1332,7 @@ en tr modül_adı örnekle
 en tr modül_adı özel_türev
 en tr modül_adı öğrenme_oranı_planı
 en tr modül_adı İlerleme
+en tr modül_adı İleti
 en tr modül_adı İyileştirici
 en tr modül_adı şekil_grupları
 en tr modül_üyesi BLOK_ADLARI
@@ -1579,12 +1592,14 @@ en tr parametre gradyanları_sıfırla
 en tr parametre gömme
 en tr parametre günlük
 en tr parametre hata
+en tr parametre hata_kodu
 en tr parametre hazır_model
 en tr parametre hazır_model_kur
 en tr parametre hesap_türü
 en tr parametre hugging_face_eşle
 en tr parametre iken
 en tr parametre ilerleme
+en tr parametre ileti
 en tr parametre içinde
 en tr parametre işaret
 en tr parametre json_metin
@@ -1882,12 +1897,14 @@ en tr takma_ad gradyanları_sıfırla
 en tr takma_ad gömme
 en tr takma_ad günlük
 en tr takma_ad hata
+en tr takma_ad hata_kodu
 en tr takma_ad hazır_model
 en tr takma_ad hazır_model_kur
 en tr takma_ad hesap_türü
 en tr takma_ad hugging_face_eşle
 en tr takma_ad iken
 en tr takma_ad ilerleme
+en tr takma_ad ileti
 en tr takma_ad içinde
 en tr takma_ad işaret
 en tr takma_ad json_metin
@@ -2002,6 +2019,7 @@ en tr tip_açıklaması ondalık
 en tr tip_açıklaması tam
 en tr tip_açıklaması Örnekleyici
 en tr tip_açıklaması İlerleme
+en tr tip_açıklaması İleti
 en tr tip_açıklaması İyileştirici
 en tr yakala_adı BLOK_ADLARI
 en tr yakala_adı DESTEKLENEN_MİMARİLER
@@ -2060,12 +2078,14 @@ en tr yakala_adı gradyanları_sıfırla
 en tr yakala_adı gömme
 en tr yakala_adı günlük
 en tr yakala_adı hata
+en tr yakala_adı hata_kodu
 en tr yakala_adı hazır_model
 en tr yakala_adı hazır_model_kur
 en tr yakala_adı hesap_türü
 en tr yakala_adı hugging_face_eşle
 en tr yakala_adı iken
 en tr yakala_adı ilerleme
+en tr yakala_adı ileti
 en tr yakala_adı içinde
 en tr yakala_adı işaret
 en tr yakala_adı json_metin
@@ -2228,12 +2248,14 @@ en tr yapı gradyanları_sıfırla
 en tr yapı gömme
 en tr yapı günlük
 en tr yapı hata
+en tr yapı hata_kodu
 en tr yapı hazır_model
 en tr yapı hazır_model_kur
 en tr yapı hesap_türü
 en tr yapı hugging_face_eşle
 en tr yapı iken
 en tr yapı ilerleme
+en tr yapı ileti
 en tr yapı içinde
 en tr yapı işaret
 en tr yapı json_metin
@@ -2318,6 +2340,7 @@ en tr yapı örnekle
 en tr yapı özel_türev
 en tr yapı öğrenme_oranı_planı
 en tr yapı İlerleme
+en tr yapı İleti
 en tr yapı İyileştirici
 en tr yapı şekil_grupları
 en tr üye adamw_çürümesiz
@@ -2796,6 +2819,7 @@ tr en blok_parametresi else
 tr en blok_parametresi embedding
 tr en blok_parametresi env
 tr en blok_parametresi error
+tr en blok_parametresi error_code
 tr en blok_parametresi eye
 tr en blok_parametresi false
 tr en blok_parametresi float
@@ -2830,6 +2854,7 @@ tr en blok_parametresi map_hugging_face
 tr en blok_parametresi match
 tr en blok_parametresi mean
 tr en blok_parametresi median
+tr en blok_parametresi message
 tr en blok_parametresi mixed_precision
 tr en blok_parametresi move
 tr en blok_parametresi name_matches
@@ -2942,6 +2967,7 @@ tr en değişken else
 tr en değişken embedding
 tr en değişken env
 tr en değişken error
+tr en değişken error_code
 tr en değişken eye
 tr en değişken false
 tr en değişken float
@@ -2976,6 +3002,7 @@ tr en değişken map_hugging_face
 tr en değişken match
 tr en değişken mean
 tr en değişken median
+tr en değişken message
 tr en değişken mixed_precision
 tr en değişken move
 tr en değişken name_matches
@@ -3088,6 +3115,7 @@ tr en döngü_değişkeni else
 tr en döngü_değişkeni embedding
 tr en döngü_değişkeni env
 tr en döngü_değişkeni error
+tr en döngü_değişkeni error_code
 tr en döngü_değişkeni eye
 tr en döngü_değişkeni false
 tr en döngü_değişkeni float
@@ -3122,6 +3150,7 @@ tr en döngü_değişkeni map_hugging_face
 tr en döngü_değişkeni match
 tr en döngü_değişkeni mean
 tr en döngü_değişkeni median
+tr en döngü_değişkeni message
 tr en döngü_değişkeni mixed_precision
 tr en döngü_değişkeni move
 tr en döngü_değişkeni name_matches
@@ -3234,6 +3263,7 @@ tr en fonksiyon else
 tr en fonksiyon embedding
 tr en fonksiyon env
 tr en fonksiyon error
+tr en fonksiyon error_code
 tr en fonksiyon eye
 tr en fonksiyon false
 tr en fonksiyon float
@@ -3268,6 +3298,7 @@ tr en fonksiyon map_hugging_face
 tr en fonksiyon match
 tr en fonksiyon mean
 tr en fonksiyon median
+tr en fonksiyon message
 tr en fonksiyon mixed_precision
 tr en fonksiyon move
 tr en fonksiyon name_matches
@@ -3380,6 +3411,7 @@ tr en kullanıcı_adlı_argümanı else
 tr en kullanıcı_adlı_argümanı embedding
 tr en kullanıcı_adlı_argümanı env
 tr en kullanıcı_adlı_argümanı error
+tr en kullanıcı_adlı_argümanı error_code
 tr en kullanıcı_adlı_argümanı eye
 tr en kullanıcı_adlı_argümanı false
 tr en kullanıcı_adlı_argümanı float
@@ -3414,6 +3446,7 @@ tr en kullanıcı_adlı_argümanı map_hugging_face
 tr en kullanıcı_adlı_argümanı match
 tr en kullanıcı_adlı_argümanı mean
 tr en kullanıcı_adlı_argümanı median
+tr en kullanıcı_adlı_argümanı message
 tr en kullanıcı_adlı_argümanı mixed_precision
 tr en kullanıcı_adlı_argümanı move
 tr en kullanıcı_adlı_argümanı name_matches
@@ -3659,6 +3692,7 @@ tr en modül_adı Linear
 tr en modül_adı List
 tr en modül_adı Logger
 tr en modül_adı MIN_RELATIVE_STD
+tr en modül_adı Message
 tr en modül_adı MuonAndAdamW
 tr en modül_adı NONFINITE
 tr en modül_adı None
@@ -3714,6 +3748,7 @@ tr en modül_adı devices
 tr en modül_adı embedding
 tr en modül_adı env
 tr en modül_adı error
+tr en modül_adı error_code
 tr en modül_adı eye
 tr en modül_adı float
 tr en modül_adı floor
@@ -3741,6 +3776,7 @@ tr en modül_adı make_dir
 tr en modül_adı map_hugging_face
 tr en modül_adı mean
 tr en modül_adı median
+tr en modül_adı message
 tr en modül_adı mixed_precision
 tr en modül_adı move
 tr en modül_adı name_matches
@@ -4042,6 +4078,7 @@ tr en parametre else
 tr en parametre embedding
 tr en parametre env
 tr en parametre error
+tr en parametre error_code
 tr en parametre eye
 tr en parametre false
 tr en parametre float
@@ -4076,6 +4113,7 @@ tr en parametre map_hugging_face
 tr en parametre match
 tr en parametre mean
 tr en parametre median
+tr en parametre message
 tr en parametre mixed_precision
 tr en parametre move
 tr en parametre name_matches
@@ -4345,6 +4383,7 @@ tr en takma_ad else
 tr en takma_ad embedding
 tr en takma_ad env
 tr en takma_ad error
+tr en takma_ad error_code
 tr en takma_ad eye
 tr en takma_ad false
 tr en takma_ad float
@@ -4379,6 +4418,7 @@ tr en takma_ad map_hugging_face
 tr en takma_ad match
 tr en takma_ad mean
 tr en takma_ad median
+tr en takma_ad message
 tr en takma_ad mixed_precision
 tr en takma_ad move
 tr en takma_ad name_matches
@@ -4453,6 +4493,7 @@ tr en tip_açıklaması KVCache
 tr en tip_açıklaması LineReader
 tr en tip_açıklaması Linear
 tr en tip_açıklaması Logger
+tr en tip_açıklaması Message
 tr en tip_açıklaması MuonAndAdamW
 tr en tip_açıklaması Object
 tr en tip_açıklaması Optimizer
@@ -4527,6 +4568,7 @@ tr en yakala_adı else
 tr en yakala_adı embedding
 tr en yakala_adı env
 tr en yakala_adı error
+tr en yakala_adı error_code
 tr en yakala_adı eye
 tr en yakala_adı false
 tr en yakala_adı float
@@ -4561,6 +4603,7 @@ tr en yakala_adı map_hugging_face
 tr en yakala_adı match
 tr en yakala_adı mean
 tr en yakala_adı median
+tr en yakala_adı message
 tr en yakala_adı mixed_precision
 tr en yakala_adı move
 tr en yakala_adı name_matches
@@ -4638,6 +4681,7 @@ tr en yapı LineReader
 tr en yapı Linear
 tr en yapı Logger
 tr en yapı MIN_RELATIVE_STD
+tr en yapı Message
 tr en yapı MuonAndAdamW
 tr en yapı NONFINITE
 tr en yapı OK
@@ -4698,6 +4742,7 @@ tr en yapı else
 tr en yapı embedding
 tr en yapı env
 tr en yapı error
+tr en yapı error_code
 tr en yapı eye
 tr en yapı false
 tr en yapı floor
@@ -4731,6 +4776,7 @@ tr en yapı map_hugging_face
 tr en yapı match
 tr en yapı mean
 tr en yapı median
+tr en yapı message
 tr en yapı mixed_precision
 tr en yapı move
 tr en yapı name_matches

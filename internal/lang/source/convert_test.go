@@ -33,7 +33,7 @@ func encodeDecode(t *testing.T, tr string) string {
 // Kenar durumlar (17.3, 17.4): beklenen kodlu gövde başlıktan sonraki metindir.
 func TestEncodeEdgeCases(t *testing.T) {
 	cases := []struct{ name, tr, coded string }{
-		{"ileti kodu bir ad değildir", "yazdır(ileti(H6903, 1))\n", "TR_fn_print(ileti(H6903, 1))\n"},
+		{"ileti kodu bir ad değildir", "yazdır(ileti(H6903, 1))\n", "TR_fn_print(TR_fn_message(H6903, 1))\n"},
 		{"anahtar kelime ve yerleşik", "değişken x = 1\nyazdır(x)\n", "TR_kw_var x = 1\nTR_fn_print(x)\n"},
 		{"gölgelenen yerleşik kullanıcının adıdır",
 			"fonksiyon f() {\n    değişken toplam = 1\n    sonuç toplam\n}\nyazdır(toplam([1, 2]))\n",
