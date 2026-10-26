@@ -51,22 +51,36 @@ func codegraph(root string, args ...string) (cmd *exec.Cmd, stale string, err er
 		return nil, "", err
 	}
 	last := filepath.Join(root, ".codegraph", "last-codegraph")
-	find := exec.Command(goTool, "run", "-exec", "'"+self+"' "+exePath, "./tools/codegraph")
-	find.Dir = root
-	var out, msg bytes.Buffer
-	find.Stdout, find.Stderr = &out, &msg
-	buildErr := find.Run()
-	bin := strings.TrimSpace(out.String())
+	var bin string
+	var msg bytes.Buffer
+	var buildErr error
+	// Kaynak değişince Go ikiliyi önce geçici klasöründe koşar ve klasörü hemen siler; önbelleğe aldığı ikilinin yolunu
+	// ikinci çağrı verir [ölçüldü]. Yine kalmazsa (önbellek kapalı) düz `go run`.
+	for try := 0; try < 2; try++ {
+		find := exec.Command(goTool, "run", "-exec", "'"+self+"' "+exePath, "./tools/codegraph")
+		find.Dir = root
+		var out bytes.Buffer
+		msg.Reset()
+		find.Stdout, find.Stderr = &out, &msg
+		if buildErr = find.Run(); buildErr != nil {
+			break
+		}
+		if bin = strings.TrimSpace(out.String()); exists(bin) {
+			remember(last, bin)
+			cmd = exec.Command(bin, args...)
+			cmd.Dir = root
+			return cmd, "", nil
+		}
+	}
 	if buildErr == nil {
-		remember(last, bin)
-		cmd = exec.Command(bin, args...)
+		cmd = exec.Command(goTool, append([]string{"run", "./tools/codegraph"}, args...)...)
 		cmd.Dir = root
 		return cmd, "", nil
 	}
 	b, _ := os.ReadFile(last)
 	bin = strings.TrimSpace(string(b))
 	info, statErr := os.Stat(last)
-	if _, err := os.Stat(bin); bin == "" || err != nil || statErr != nil {
+	if !exists(bin) || statErr != nil {
 		return nil, "", fmt.Errorf("go build ./tools/codegraph: %v\n%s", buildErr, msg.String())
 	}
 	lines := strings.Split(strings.TrimRight(msg.String(), "\n"), "\n")
@@ -76,6 +90,12 @@ func codegraph(root string, args ...string) (cmd *exec.Cmd, stale string, err er
 		"version that built (%s), it may be stale:\n%s", info.ModTime().Format("2006-01-02 15:04"),
 		strings.Join(lines[:min(len(lines), 5)], "\n"))
 	return cmd, stale, nil
+}
+
+// exists yol boş değil ve dosya var mı.
+func exists(path string) bool {
+	_, err := os.Stat(path)
+	return path != "" && err == nil
 }
 
 // remember son derlenen ikilinin yolunu yazar; yol değişmediyse dosyaya dokunmaz (yazılma zamanı o

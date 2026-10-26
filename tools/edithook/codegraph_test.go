@@ -47,10 +47,20 @@ func fakeGo(args []string) int {
 		fmt.Fprintln(os.Stderr, "fake go: bad -exec", args[2], err)
 		return 1
 	}
-	bin := filepath.Join(filepath.Dir(self), "codegraph"+filepath.Ext(self))
-	if _, err := os.Stat(bin); err != nil {
-		if err := copyFile(bin); err != nil {
+	// Go gibi: önbellekte yoksa ikili geçici klasörde derlenir, -exec programına o yol verilir, klasör silinir ve ikili
+	// önbelleğe girer; sonraki çağrı önbellekteki yolu verir.
+	cached := filepath.Join(filepath.Dir(self), "codegraph"+filepath.Ext(self))
+	bin := cached
+	if _, err := os.Stat(cached); err != nil {
+		tmp, err := os.MkdirTemp(filepath.Dir(self), "go-build")
+		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
+			return 1
+		}
+		defer os.RemoveAll(tmp)
+		defer copyFile(cached)
+		if bin = filepath.Join(tmp, filepath.Base(cached)); copyFile(bin) != nil {
+			fmt.Fprintln(os.Stderr, "fake go: copy failed")
 			return 1
 		}
 	}
