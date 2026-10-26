@@ -1,6 +1,6 @@
 // snippets, VS Code eklentisinin kod şablonlarını (editors/vscode/snippets/snippets.json) her yazım
-// dili için üretir. Şablonun gövdesi bir kez, Türkçe geçerli TR kodu olarak yazılır (templates.go);
-// diğer dillerdeki gövde o kodun source.Show ile o dilin yazımında gösterimidir: anahtar kelime,
+// dili için üretir. Şablonun gövdesi bir kez, kodlu biçimde yazılır (data.json);
+// her dilin (Türkçe dahil) gövdesi o kodun source.Show ile o dilin yazımında gösterimidir: anahtar kelime,
 // yerleşik, tip ve üye adları dilin kod listesinden gelir, elle çevrilmez. Kullanıcının dolduracağı
 // yerler (ad, koşul, sayı) kodda "ph_" ile başlayan adlarla yazılır; üretici onları dilin sözcükleriyle
 // VS Code şablon durağına (${1:koşul}) çevirir. Eklenti, kişinin yazım diline (tr.writingLanguage) göre
@@ -53,27 +53,19 @@ type entry struct {
 	Body        []string `json:"body"`
 }
 
-// text tablosundan dil için değeri verir; dilin satırı yoksa yedek dilinkini kullanır.
-func text(table map[string]string, lang string) string {
-	if v, ok := table[lang]; ok {
+// langText dil için metinlerdir; dilin dosyası yoksa yedek dilinki kullanılır.
+func langText(lang string) languageText {
+	if v, ok := texts[lang]; ok {
 		return v
 	}
-	return table[fallbackLanguage]
-}
-
-// words dilin sözcük tablosudur; satırı olmayan dil yedek dilinkini kullanır.
-func words(lang string) map[string]string {
-	if w, ok := wordTable[lang]; ok {
-		return w
-	}
-	return wordTable[fallbackLanguage]
+	return texts[fallbackLanguage]
 }
 
 // fill bir deliğin metnindeki %sözcük% yazımlarını dilin sözcükleriyle doldurur.
 func fill(hole, lang string) (string, error) {
 	var missing string
 	out := wordRe.ReplaceAllStringFunc(hole, func(m string) string {
-		w, ok := words(lang)[strings.Trim(m, "%")]
+		w, ok := langText(lang).Words[strings.Trim(m, "%")]
 		if !ok {
 			missing = m
 		}
@@ -130,7 +122,8 @@ func build(t template, language *codes.Language) (entry, error) {
 			prefix = append(prefix, "."+name)
 		}
 	}
-	return entry{Label: text(t.Label, lang), Description: text(t.Description, lang), Prefix: prefix, Body: body}, nil
+	about := langText(lang).Templates[t.ID]
+	return entry{Label: about.Label, Description: about.Description, Prefix: prefix, Body: body}, nil
 }
 
 // prefixName kısayolun dildeki yazımıdır: bir kodun dildeki adı ya da bir sözcük.

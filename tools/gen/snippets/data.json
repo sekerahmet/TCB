@@ -2,20 +2,12 @@
   "templates": [
     {
       "id": "function",
-      "label": {
-        "en": "Define Function",
-        "tr": "Fonksiyon Tanımla"
-      },
-      "description": {
-        "en": "Defines a new TR function",
-        "tr": "Yeni bir TR fonksiyonu tanımlar"
-      },
       "prefix": [
         {
           "code": "TR_kw_func"
         }
       ],
-      "source": "fonksiyon ph_name(ph_param) {\n\tsonuç ph_return\n}\n",
+      "source": "//! tr kodlu 3 dil=tr\nTR_kw_func ph_name(ph_param) {\n\tTR_kw_return ph_return\n}\n",
       "holes": {
         "ph_name": "${1:%name%}",
         "ph_param": "${2:%param%}",
@@ -24,20 +16,12 @@
     },
     {
       "id": "if",
-      "label": {
-        "en": "If - Else",
-        "tr": "Eğer - Değilse Koşulu"
-      },
-      "description": {
-        "en": "If / else conditional block",
-        "tr": "Eğer / değilse koşul bloğu"
-      },
       "prefix": [
         {
           "code": "TR_kw_if"
         }
       ],
-      "source": "eğer ph_condition {\n\tph_then\n} değilse {\n\tph_else\n}\n",
+      "source": "//! tr kodlu 3 dil=tr\nTR_kw_if ph_condition {\n\tph_then\n} TR_kw_else {\n\tph_else\n}\n",
       "holes": {
         "ph_condition": "${1:%condition%}",
         "ph_else": "${3}",
@@ -46,20 +30,12 @@
     },
     {
       "id": "match",
-      "label": {
-        "en": "Match (Pattern Matching)",
-        "tr": "Eşle (Pattern Matching)"
-      },
-      "description": {
-        "en": "Case and range matching block",
-        "tr": "Durum ve aralık eşleştirme bloğu"
-      },
       "prefix": [
         {
           "code": "TR_kw_match"
         }
       ],
-      "source": "eşle ph_value {\n\tph_first => ph_first_result\n\tph_second => ph_second_result\n\tvarsayılan => ph_default_result\n}\n",
+      "source": "//! tr kodlu 3 dil=tr\nTR_kw_match ph_value {\n\tph_first => ph_first_result\n\tph_second => ph_second_result\n\tTR_kw_default => ph_default_result\n}\n",
       "holes": {
         "ph_default_result": "${6:\"%other%\"}",
         "ph_first": "${2:1}",
@@ -71,21 +47,13 @@
     },
     {
       "id": "filter",
-      "label": {
-        "en": "Filter (it-lambda)",
-        "tr": "Filtrele (o-lambda)"
-      },
-      "description": {
-        "en": "Filtering with a trailing block; it is the current element",
-        "tr": "Sondaki blokla filtreleme; o, o anki elemandır: liste.filtrele { o > 2 }"
-      },
       "prefix": [
         {
           "code": "TR_mem_filter"
         }
       ],
       "member": true,
-      "source": "ph_list.filtrele { o > ph_limit }\n",
+      "source": "//! tr kodlu 3 dil=tr\nph_list.TR_mem_filter { TR_ctx_it > ph_limit }\n",
       "holes": {
         "ph_limit": "${1:2}",
         "ph_list": ""
@@ -93,21 +61,13 @@
     },
     {
       "id": "map",
-      "label": {
-        "en": "Map (it-lambda)",
-        "tr": "Haritala (o-lambda)"
-      },
-      "description": {
-        "en": "Transforming with a trailing block; it is the current element",
-        "tr": "Sondaki blokla dönüştürme; o, o anki elemandır: liste.haritala { o * o }"
-      },
       "prefix": [
         {
           "code": "TR_mem_map"
         }
       ],
       "member": true,
-      "source": "ph_list.haritala { o * ph_factor }\n",
+      "source": "//! tr kodlu 3 dil=tr\nph_list.TR_mem_map { TR_ctx_it * ph_factor }\n",
       "holes": {
         "ph_factor": "${1:2}",
         "ph_list": ""
@@ -115,21 +75,13 @@
     },
     {
       "id": "reduce",
-      "label": {
-        "en": "Reduce",
-        "tr": "İndirge"
-      },
-      "description": {
-        "en": "Reduces a list from left to right to a single value",
-        "tr": "Listeyi soldan sağa tek değere indirger: liste.indirge(0, (birikim, x) => birikim + x)"
-      },
       "prefix": [
         {
           "code": "TR_mem_reduce"
         }
       ],
       "member": true,
-      "source": "ph_list.indirge(ph_start, (ph_acc, ph_x) => ph_body)\n",
+      "source": "//! tr kodlu 3 dil=tr\nph_list.TR_mem_reduce(ph_start, (ph_acc, ph_x) => ph_body)\n",
       "holes": {
         "ph_acc": "%acc%",
         "ph_body": "${2:%acc% + %x%}",
@@ -140,20 +92,12 @@
     },
     {
       "id": "for",
-      "label": {
-        "en": "Loop (In)",
-        "tr": "Döngü (İçinde)"
-      },
-      "description": {
-        "en": "Loop over a list or a range",
-        "tr": "Liste veya aralık üzerinde döngü"
-      },
       "prefix": [
         {
           "code": "TR_kw_for"
         }
       ],
-      "source": "döngü ph_item içinde ph_range {\n\tyazdır(ph_item)\n}\n",
+      "source": "//! tr kodlu 3 dil=tr\nTR_kw_for ph_item TR_kw_in ph_range {\n\tTR_fn_print(ph_item)\n}\n",
       "holes": {
         "ph_item": "${1:%i%}",
         "ph_range": "${2:1..=10}"
@@ -161,20 +105,13 @@
     },
     {
       "id": "list_comprehension",
-      "label": {
-        "en": "List Comprehension",
-        "tr": "Liste Üreteci (List Comprehension)"
-      },
-      "description": {
-        "en": "Conditional list comprehension on one line",
-        "tr": "Tek satırda koşullu liste üreteci"
-      },
       "prefix": [
         {
+          "code": "",
           "word": "list_comp"
         }
       ],
-      "source": "[ph_result döngü ph_item içinde ph_range eğer ph_filter]\n",
+      "source": "//! tr kodlu 3 dil=tr\n[ph_result TR_kw_for ph_item TR_kw_in ph_range TR_kw_if ph_filter]\n",
       "holes": {
         "ph_filter": "${4:%x% % 2 == 0}",
         "ph_item": "${2:%x%}",
@@ -184,20 +121,12 @@
     },
     {
       "id": "struct",
-      "label": {
-        "en": "Define Struct",
-        "tr": "Yapı Tanımla"
-      },
-      "description": {
-        "en": "Defines a new struct and a method",
-        "tr": "Yeni bir yapı ve metot tanımlar"
-      },
       "prefix": [
         {
           "code": "TR_kw_struct"
         }
       ],
-      "source": "yapı ph_Name {\n\tph_field: Metin\n\n\tfonksiyon ph_method() {\n\t\tsonuç kendi.ph_field\n\t}\n}\n",
+      "source": "//! tr kodlu 3 dil=tr\nTR_kw_struct ph_Name {\n\tph_field: TR_type_String\n\n\tTR_kw_func ph_method() {\n\t\tTR_kw_return TR_kw_self.ph_field\n\t}\n}\n",
       "holes": {
         "ph_Name": "${1:%Name%}",
         "ph_field": "${2:%field%}",
@@ -206,20 +135,12 @@
     },
     {
       "id": "try",
-      "label": {
-        "en": "Try - Catch (Error Handling)",
-        "tr": "Dene - Yakala (Hata Yönetimi)"
-      },
-      "description": {
-        "en": "Error catching block",
-        "tr": "Hata yakalama bloğu"
-      },
       "prefix": [
         {
           "code": "TR_kw_try"
         }
       ],
-      "source": "dene {\n\tph_body\n} yakala ph_error {\n\tyazdır(ph_message)\n}\n",
+      "source": "//! tr kodlu 3 dil=tr\nTR_kw_try {\n\tph_body\n} TR_kw_catch ph_error {\n\tTR_fn_print(ph_message)\n}\n",
       "holes": {
         "ph_body": "${1}",
         "ph_error": "%err%",
@@ -228,24 +149,17 @@
     },
     {
       "id": "tensor",
-      "label": {
-        "en": "Tensor and Training Loop (Automatic Differentiation)",
-        "tr": "Tensör ve Eğitim Döngüsü (Otomatik Türev)"
-      },
-      "description": {
-        "en": "A small training loop (linear model) with tensors, the AdamW optimizer and backward",
-        "tr": "Tensörler, AdamW iyileştiricisi ve geri_yayılım ile küçük bir eğitim döngüsü (doğrusal model)"
-      },
       "prefix": [
         {
           "code": "TR_fn_tensor"
         },
         {
+          "code": "",
           "word": "grad"
         }
       ],
       "end": true,
-      "source": "değişken ph_X = tensör(ph_xs)\ndeğişken ph_Y = tensör(ph_ys)\ndeğişken ph_w = tensör(türevsiz(rastgele_normal([ph_shape], tohum: 1) * 0.1), türev_izle: doğru)\ndeğişken ph_b = tensör([0.0], türev_izle: doğru)\ndeğişken ph_optimizer = AdamW([ph_w, ph_b], öğrenme_oranı: ph_rate, ağırlık_çürümesi: 0)\ndöngü ph_step içinde 0..ph_steps {\n\tph_optimizer.sıfırla()\n\tdeğişken ph_loss = ortalama((ph_X @ ph_w + ph_b - ph_Y) ** 2)\n\tgeri_yayılım(ph_loss)\n\tph_optimizer.adım()\n\teğer ph_step % 100 == 0 { yazdır(\"ph_step_label {ph_step}: ph_loss_label = {ph_loss.değer}\") }\n}\nyazdır(türevsiz { sonuç ph_X @ ph_w + ph_b })\n",
+      "source": "//! tr kodlu 3 dil=tr\nTR_kw_var ph_X = TR_fn_tensor(ph_xs)\nTR_kw_var ph_Y = TR_fn_tensor(ph_ys)\nTR_kw_var ph_w = TR_fn_tensor(TR_fn_no_grad(TR_fn_randn([ph_shape], TR_arg_seed: 1) * 0.1), TR_arg_requires_grad: TR_kw_true)\nTR_kw_var ph_b = TR_fn_tensor([0.0], TR_arg_requires_grad: TR_kw_true)\nTR_kw_var ph_optimizer = TR_fn_AdamW([ph_w, ph_b], TR_arg_lr: ph_rate, TR_arg_weight_decay: 0)\nTR_kw_for ph_step TR_kw_in 0..ph_steps {\n\tph_optimizer.TR_mem_zero_grad()\n\tTR_kw_var ph_loss = TR_fn_mean((ph_X @ ph_w + ph_b - ph_Y) ** 2)\n\tTR_fn_backward(ph_loss)\n\tph_optimizer.TR_mem_step()\n\tTR_kw_if ph_step % 100 == 0 { TR_fn_print(\"ph_step_label {ph_step}: ph_loss_label = {ph_loss.TR_mem_tolist}\") }\n}\nTR_fn_print(TR_fn_no_grad { TR_kw_return ph_X @ ph_w + ph_b })\n",
       "holes": {
         "ph_X": "X",
         "ph_Y": "Y",
@@ -263,55 +177,5 @@
         "ph_ys": "${2:[[-1.0], [1.0], [3.0], [5.0]]}"
       }
     }
-  ],
-  "words": {
-    "en": {
-      "Name": "Name",
-      "acc": "acc",
-      "caught": "Caught error:",
-      "condition": "condition",
-      "err": "err",
-      "few": "a few",
-      "field": "field",
-      "grad": "grad",
-      "i": "i",
-      "list_comp": "list_comp",
-      "loss": "loss",
-      "loss_label": "loss",
-      "method": "method",
-      "name": "name",
-      "one": "one",
-      "optimizer": "optimizer",
-      "other": "other",
-      "param": "parameter",
-      "step": "step",
-      "step_label": "step",
-      "value": "value",
-      "x": "x"
-    },
-    "tr": {
-      "Name": "İsim",
-      "acc": "birikim",
-      "caught": "Hata yakalandı:",
-      "condition": "koşul",
-      "err": "hata",
-      "few": "birkaç",
-      "field": "alan",
-      "grad": "türev",
-      "i": "i",
-      "list_comp": "liste_üret",
-      "loss": "kayıp",
-      "loss_label": "kayıp",
-      "method": "metod",
-      "name": "isim",
-      "one": "bir",
-      "optimizer": "iyileştirici",
-      "other": "diğer",
-      "param": "parametre",
-      "step": "adım",
-      "step_label": "adım",
-      "value": "değer",
-      "x": "x"
-    }
-  }
+  ]
 }

@@ -1,0 +1,72 @@
+{
+  "templates": {
+    "filter": {
+      "label": "Filtrele (o-lambda)",
+      "description": "Sondaki blokla filtreleme; o, o anki elemandır: liste.filtrele { o > 2 }"
+    },
+    "for": {
+      "label": "Döngü (İçinde)",
+      "description": "Liste veya aralık üzerinde döngü"
+    },
+    "function": {
+      "label": "Fonksiyon Tanımla",
+      "description": "Yeni bir TR fonksiyonu tanımlar"
+    },
+    "if": {
+      "label": "Eğer - Değilse Koşulu",
+      "description": "Eğer / değilse koşul bloğu"
+    },
+    "list_comprehension": {
+      "label": "Liste Üreteci (List Comprehension)",
+      "description": "Tek satırda koşullu liste üreteci"
+    },
+    "map": {
+      "label": "Haritala (o-lambda)",
+      "description": "Sondaki blokla dönüştürme; o, o anki elemandır: liste.haritala { o * o }"
+    },
+    "match": {
+      "label": "Eşle (Pattern Matching)",
+      "description": "Durum ve aralık eşleştirme bloğu"
+    },
+    "reduce": {
+      "label": "İndirge",
+      "description": "Listeyi soldan sağa tek değere indirger: liste.indirge(0, (birikim, x) => birikim + x)"
+    },
+    "struct": {
+      "label": "Yapı Tanımla",
+      "description": "Yeni bir yapı ve metot tanımlar"
+    },
+    "tensor": {
+      "label": "Tensör ve Eğitim Döngüsü (Otomatik Türev)",
+      "description": "Tensörler, AdamW iyileştiricisi ve geri_yayılım ile küçük bir eğitim döngüsü (doğrusal model)"
+    },
+    "try": {
+      "label": "Dene - Yakala (Hata Yönetimi)",
+      "description": "Hata yakalama bloğu"
+    }
+  },
+  "words": {
+    "Name": "İsim",
+    "acc": "birikim",
+    "caught": "Hata yakalandı:",
+    "condition": "koşul",
+    "err": "hata",
+    "few": "birkaç",
+    "field": "alan",
+    "grad": "türev",
+    "i": "i",
+    "list_comp": "liste_üret",
+    "loss": "kayıp",
+    "loss_label": "kayıp",
+    "method": "metod",
+    "name": "isim",
+    "one": "bir",
+    "optimizer": "iyileştirici",
+    "other": "diğer",
+    "param": "parametre",
+    "step": "adım",
+    "step_label": "adım",
+    "value": "değer",
+    "x": "x"
+  }
+}

@@ -89,3 +89,20 @@ func TestSnippetsParseInEveryLanguage(t *testing.T) {
 		}
 	}
 }
+
+// Şablon verisi dilden bağımsızdır: gövdeler kodlu biçimdedir, data.json'da Türkçe harf ya da sözcük
+// yoktur; Türkçe de öbür diller gibi aynı kodlu gövdeden source.Show ile çıkar.
+func TestSnippetDataIsLanguageNeutral(t *testing.T) {
+	if turkish := regexp.MustCompile(`[çğıöşüÇĞİÖŞÜ]`).FindString(string(dataJSON)); turkish != "" {
+		t.Errorf("data.json'da Türkçe harf var: %q", turkish)
+	}
+	for _, tpl := range templates {
+		if !strings.HasPrefix(tpl.Source, "//! tr kodlu ") {
+			t.Errorf("%s: gövde kodlu biçimde değil", tpl.ID)
+		}
+	}
+	result := generated(t)
+	if result["tr"][0].Body[0] == result["en"][0].Body[0] {
+		t.Error("Türkçe ve İngilizce şablon aynı çıktı")
+	}
+}

@@ -1,0 +1,72 @@
+{
+  "templates": {
+    "filter": {
+      "label": "Filter (it-lambda)",
+      "description": "Filtering with a trailing block; it is the current element"
+    },
+    "for": {
+      "label": "Loop (In)",
+      "description": "Loop over a list or a range"
+    },
+    "function": {
+      "label": "Define Function",
+      "description": "Defines a new TR function"
+    },
+    "if": {
+      "label": "If - Else",
+      "description": "If / else conditional block"
+    },
+    "list_comprehension": {
+      "label": "List Comprehension",
+      "description": "Conditional list comprehension on one line"
+    },
+    "map": {
+      "label": "Map (it-lambda)",
+      "description": "Transforming with a trailing block; it is the current element"
+    },
+    "match": {
+      "label": "Match (Pattern Matching)",
+      "description": "Case and range matching block"
+    },
+    "reduce": {
+      "label": "Reduce",
+      "description": "Reduces a list from left to right to a single value"
+    },
+    "struct": {
+      "label": "Define Struct",
+      "description": "Defines a new struct and a method"
+    },
+    "tensor": {
+      "label": "Tensor and Training Loop (Automatic Differentiation)",
+      "description": "A small training loop (linear model) with tensors, the AdamW optimizer and backward"
+    },
+    "try": {
+      "label": "Try - Catch (Error Handling)",
+      "description": "Error catching block"
+    }
+  },
+  "words": {
+    "Name": "Name",
+    "acc": "acc",
+    "caught": "Caught error:",
+    "condition": "condition",
+    "err": "err",
+    "few": "a few",
+    "field": "field",
+    "grad": "grad",
+    "i": "i",
+    "list_comp": "list_comp",
+    "loss": "loss",
+    "loss_label": "loss",
+    "method": "method",
+    "name": "name",
+    "one": "one",
+    "optimizer": "optimizer",
+    "other": "other",
+    "param": "parameter",
+    "step": "step",
+    "step_label": "step",
+    "value": "value",
+    "x": "x"
+  }
+}
