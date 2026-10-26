@@ -74,46 +74,11 @@ func main() {
 			exitWithError(messages.Text(messages.H8602, args[0], replacement))
 		}
 	}
-	if run, ok := commandsWithArguments[command]; ok {
+	if run, ok := commands[command]; ok {
 		run(args[1:])
 		return
 	}
-	switch command {
-	case codes.CmdHelp:
-		printHelp()
-	case codes.CmdVersion:
-		fmt.Println(messages.Text(messages.H8603, Version))
-	case codes.CmdCheck:
-		if len(args) < 2 {
-			exitWithError(messages.Text(messages.H8605, codes.NameRef(codes.CmdCheck), "ornek.tr"))
-		}
-		checkFile(args[1])
-	case codes.CmdBuild:
-		if len(args) < 2 {
-			exitWithError(messages.Text(messages.H8606, codes.NameRef(codes.CmdBuild)))
-		}
-		outPath := ""
-		if len(args) >= 3 {
-			outPath = args[2]
-		}
-		compileToExe(args[1], outPath)
-	case codes.CmdDap:
-		// Düzenleyicinin hata ayıklama oturumu: iletiler standart giriş/çıkış üzerinden gelir.
-		// Oturum bitince motorların açık kaynakları kapanır, geçici klasörler silinir.
-		err := debugger.ServeDAP(os.Stdin, os.Stdout)
-		stdlib.Close()
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "❌ "+messages.Text(messages.H8607, err))
-			os.Exit(1)
-		}
-	case codes.CmdRun:
-		if len(args) < 2 {
-			exitWithError(messages.Text(messages.H8605, codes.NameRef(codes.CmdRun), "ornek.tr"))
-		}
-		runFile(args[1], args[2:])
-	default:
-		runFile(args[0], args[1:])
-	}
+	runFile(args[0], args[1:])
 }
 
 // commandCode komut satırının ilk argümanını bir tr komutunun koduna çevirir: kısa bayraklar
@@ -147,12 +112,52 @@ func oldCommand(arg string) (string, bool) {
 	return "", false
 }
 
-// commandsWithArguments argümanlarını kendisi ayrıştıran alt komutlardır (komut adından
-// sonrakiler verilir).
-var commandsWithArguments = map[codes.Code]func([]string){
+// commands tr'nin bütün alt komutlarıdır; her biri komut adından sonraki argümanları alır.
+var commands = map[codes.Code]func([]string){
+	codes.CmdHelp: func([]string) { printHelp() }, codes.CmdVersion: func([]string) { fmt.Println(messages.Text(messages.H8603, Version)) },
+	codes.CmdCheck: checkCommand, codes.CmdBuild: buildCommand, codes.CmdDap: dapCommand, codes.CmdRun: runCommand,
 	codes.CmdDebug: debugCommand, codes.CmdTest: testCommand, codes.CmdFormat: formatCommand, codes.CmdEncode: encodeCommand,
 	codes.CmdDecode: decodeCommand, codes.CmdShow: showCommand, codes.CmdWatch: watchCommand, codes.CmdProfile: profileCommand,
 	codes.CmdIndex: indexCommand,
+}
+
+// checkCommand 'tr kontrol dosya.tr' komutudur.
+func checkCommand(args []string) {
+	if len(args) < 1 {
+		exitWithError(messages.Text(messages.H8605, codes.NameRef(codes.CmdCheck), "ornek.tr"))
+	}
+	checkFile(args[0])
+}
+
+// buildCommand 'tr derle dosya.tr [çıktı]' komutudur.
+func buildCommand(args []string) {
+	if len(args) < 1 {
+		exitWithError(messages.Text(messages.H8606, codes.NameRef(codes.CmdBuild)))
+	}
+	outPath := ""
+	if len(args) >= 2 {
+		outPath = args[1]
+	}
+	compileToExe(args[0], outPath)
+}
+
+// dapCommand düzenleyicinin hata ayıklama oturumudur: iletiler standart giriş/çıkış üzerinden
+// gelir. Oturum bitince motorların açık kaynakları kapanır, geçici klasörler silinir.
+func dapCommand([]string) {
+	err := debugger.ServeDAP(os.Stdin, os.Stdout)
+	stdlib.Close()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "❌ "+messages.Text(messages.H8607, err))
+		os.Exit(1)
+	}
+}
+
+// runCommand 'tr çalıştır dosya.tr [argümanlar]' komutudur.
+func runCommand(args []string) {
+	if len(args) < 1 {
+		exitWithError(messages.Text(messages.H8605, codes.NameRef(codes.CmdRun), "ornek.tr"))
+	}
+	runFile(args[0], args[1:])
 }
 
 // exitWithError iletiyi "Hata: ..." olarak standart hataya yazar ve 1 koduyla çıkar.
