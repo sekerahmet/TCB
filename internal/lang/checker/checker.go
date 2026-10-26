@@ -60,6 +60,11 @@ type Checker struct {
 	warnings []error
 	// interactive kabukta açıktır: ifade deyiminin değeri gösterildiği için etkisiz sayılmaz.
 	interactive bool
+	// blockValues değeri kullanılan bir bloğun (değer olarak kullanılan eğer ya da eşle kolu) son ifade
+	// deyimleridir: bloğun değeridir, etkisiz sayılmaz. statementExpr o an denetlenen, değeri kullanılmayan
+	// ifade deyiminin ifadesidir (eğer deyimi olarak yazılan eğer).
+	blockValues   map[*ast.ExpressionStatement]bool
+	statementExpr ast.Expression
 	// İçinde bulunulan fonksiyonun bildirilmiş dönüş tipi ("" = fonksiyon dışı veya tipsiz)
 	returnType string
 	// globalNames tanımsız ad denetiminin genel kapsamıdır (kabukta satırlar arasında kalır);
@@ -276,7 +281,13 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		c.checkStatement(s.Body)
 
 	case *ast.ExpressionStatement:
+		prev := c.statementExpr
+		c.statementExpr = s.Expression
+		if c.blockValues[s] {
+			c.statementExpr = nil // bloğun değeri: içindeki eğer'in değeri de kullanılır
+		}
 		c.inferExpression(s.Expression)
+		c.statementExpr = prev
 		c.warnUnusedNegation(s)
 	}
 }
@@ -383,9 +394,9 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		}
 		return typeAny
 	case *ast.IfExpression:
-		return c.inferIf(e)
+		return c.inferIf(e, expr != c.statementExpr)
 	case *ast.MatchExpression:
-		return c.inferMatch(e)
+		return c.inferMatch(e, expr != c.statementExpr)
 	}
 	return typeAny
 }
