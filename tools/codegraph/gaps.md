@@ -22,80 +22,26 @@ her durumu kapatan genel çözüm ve sınıfı koruyan bir testtir.
 
 ## Kritik
 
-Son kapananlar (ana oturum 2026-10-26 aynı komutlarla doğruladı, yerel main ed69e06a; DENETİM yeniden koştu, sekizi de kapanmış): kitaplık dosyasını `aktar "tr/..."` ile koşan testlerin bağlanması (`tests-for lib/katman.tr` → `TestLibraryModuleCheckAndBuild`, `lib/hazir.tr` → `TestReadyModelMatchesTransformers`); ince ayardan `stats.go`'nun testinin uzak sırası (artık 5. ve `direct`), `main.go`'ya `.tr` testlerinden kuşkulu bağ, yapı köprüsünün `implemented_by` gürültüsü, derlenmeyen dil paketinde cevapsızlık (son derlenen ikili, 98fcbb19), README sayıları (be65d001), sınav sorularının satır ve sayıya bağlılığı (aa0b2a14).
+Son kapananlar (CODEGRAPH gaps2, main 64324414, 2026-10-27; ana oturum aynı komutlarla doğruladı [ölçüldü]): `tr dizin yeniden_adlandır` kodlu adı dil dosyası değişikliği olarak planlıyor (kodlu dosya kesin listede değil); TR kodundaki ileti kodu `uses_message` veriyor ve `tr dizin kullananlar H6932` buluyor; hedefin üretmediği ileti "tests about it" grubundan çıktı (H6126, H6115, H7900, H7901; H2011 README'nin `{fn}` yuvası kuralıyla kalıyor); `x_test.go` dış pakette de "this file's tests" grubunda; kodlu ortam değişkenleri `.sh`/`.py`'den `uses_env`; JS testinin dizin sabiti ya da yol yardımcısıyla okuduğu dosya bağlı; `tr dizin etki`'de her kısaltılmış grup gizlenen satır sayısını yazıyor; zincir sınırı ve liste tutarlı (en çok 8 adım); yok sayılan klasördeki dosya işaretli ve sonda; `init()`'in doldurduğu değişken; harita satırında yalnız değer. Ayrıntı: side-notes `kol-codegraph-gaps2-devir.md`. `TestBuildScalesLinearly`'nin düzeltmesi (karesel terim, a0939273) aynı push'ta; CI'da izleniyor.
 
-**Denetim (DENETİM 2026-10-26, side-notes `kol-denetim-gaps-sonuc.md`):** 13 maddenin 9'u onay, 4'ü düzeltmeyle onay, ret yok; iki yeni kritik (aşağıda "yeniden adlandırma" ve "ileti kodu ↔ TR kodu" içinde), bir ince ayar. Düzeltmeler bu metne işlendi; DENETİM'in yeni bulgularını ana oturum yeniden üretti. Aşağıdaki maddelerin hepsi denetimden sonra CODEGRAPH'ta (2026-10-26).
+Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (karar bekliyor; hiçbiri CODEGRAPH'a yeniden gitmedi):
 
-- **`tr dizin` yok sayılan klasördeki `.tr` dosyasını depodakilerle aynı sırada ve işaretsiz veriyor.** 2026-10-26, ana oturum gerçek kullanım denemesinde yaşadı. Denetim: onay. **Yapıldı, birleşmeyi bekliyor** (`claude/codegraph-duzeltme` db6cb8db). Go tarafı (codegraph, depo aracı) kapandı: 5ce7ac39; ana oturum ve DENETİM doğruladı (yok sayılan klasöre konan geçici Go paketi grafiğe girmiyor).
-  - Komut: `tr dizin tanım GPT` → `lib/katman.tr:490` ile `scratch/gpt30m/gpt30m.tr:81` aynı sırada, ayrımsız.
-  - Tasarım (codeindex README, 60997f54): `tr dizin` kullanıcının aracıdır, `.gitignore`'a bakmaz. **Karar (Ahmet, 2026-10-26): böyle kalır, ama yok sayılan dosya ayrı işaretli ve depodakilerden sonra gelir.**
-  - Beklenen: aday ve kullanım listelerinde yok sayılan dosyadan gelen satır sonda ve işaretli; belirsizlikte depodaki önce. Test: aynı ad `lib/`'de ve yok sayılan klasörde tanımlıyken `lib/` önce, öbürü işaretli.
+- **Sınav dosyasının andığı düğüm sınava bağlanmıyor; ön denetim sınavı seçmiyor.** 2026-10-26, MEKANİK bildirdi, DENETİM kritik yaptı. Hâlâ açık [ölçüldü 2026-10-27: `tests-for internal/lang/interp/compiler_expr.go` sınavı vermiyor].
+  - Denenen: sınavın andığı her düğüme düz `tests` kenarı; sınavın kendi cevaplarını bozdu (5 soru: "no tests found", "weak evidence", "first-item").
+  - Seçenekler (CODEGRAPH): (a) yeni kenar türü ya da grup ("exam questions that name it"), `tests-for` ayrı yazar, `changed --go-tests` seçer, doğrudan test sayılmaz; (b) bağ grafiğe girmez, yalnız `changed --go-tests` sorgu anında sınav dosyasını okur. Öneri (a) [CODEGRAPH ilk görüşü]. Yeni kenar ya da grup adı karar ister. Denenen kod side-notes'ta (`kol-codegraph-gaps2-exam_links*.txt`).
 
-- **`init()`'in okuduğu gömülü dosya, `init()`'in doldurduğu değişkeni kullanan testlere bağlanmıyor.** 2026-10-26, ana oturum yaşadı. Denetim: onay. **Yapıldı, birleşmeyi bekliyor** (3f79ba60).
-  - Komut: `go run ./tools/codegraph tests-for tools/gen/snippets/data.json` → yalnız `TestSnippetDataIsLanguageNeutral`.
-  - İkinci yol: `tools/gen/snippets/templates.go` `init()` `dataJSON`'dan `templates`'i, `text/*.json`'dan `texts`'i dolduruyor; `TestSnippetsUpToDate`, `TestSnippetsEveryLanguageEveryTemplate`, `TestSnippetsParseInEveryLanguage` `Generate` üzerinden bu değişkenleri okuyor (f40e9f64'te `text/*.json` geçici olarak testin doğrudan okumasıyla bağlandı).
-  - Beklenen: `init()` ve paket değişkeni başlatıcısı → değişken → okuyan testler. Test: go/types ile, `init()`'te gömülü dosyadan doldurulan her değişken için okuyan testler `tests-for` cevabında.
+- **Metinle sürülen dağıtım: DAP istek adı ve JS'in `customRequest`'i işleyicisine bağlanmıyor.** TR üye adı yarısı kapandı (63dab86b: kök 34 takma ad sabitiydi, `memberSkip = codes.MemSkip`). Açık yarı:
+  - `TestDAPSecretMasked` `c.request("trTable", ...)` ile sürülüyor; metin protokolle (io.Pipe) gidiyor, dağıtıcı `handlePaused`'a 11 adımda ve arayüz üzerinden ulaşılıyor (zincir sınırı 8).
+  - Öneri (CODEGRAPH): "dağıtım anahtarı" kuralı: JSON'dan çözülen bir yapının alanına yapılan dize switch'inde (`switch msg.Command`), aynı pakette ya da bir Go testinin koştuğu JS testinde kolun değerini taşıyan test, kolun çağrılarını sınar. Risk: yaygın sözcüklerde (`evaluate`) yanlış pozitif. Karar gerekiyor.
 
-- **`TestBuildScalesLinearly` CI'da art arda düşüyor (sahibi codeindex ve test altyapısı, codegraph'ın cevabı değil).** 2026-10-26, ana oturum CI'da yaşadı. Denetim: düzeltmeyle onay (sahip ve beklenen). **Yapıldı, birleşmeyi bekliyor** (86d49299: kök gürültü değil gerçek karesel terimdi [CODEGRAPH ölçtü], 800 modülde 1162 → 548 ms).
-  - Gelen (saatler UTC): 14:29 "sıfırdan kurulum" oranı 9,2; 17:24 "yenileme" 10,6; 19:34 (08b32ffc) "önbellekten okuma" 8,7 (sınır 8, doğrusal ~4). Test `-short`'ta atlanır; yerelde `-short`'suz geçti.
-  - İkinci yol: `gh run view 40387943068 --log-failed`; `internal/devtools/codeindex/cache_test.go:336`.
-  - Beklenen: `ScalesLinearly` her boyu zaten üç kez ölçüp en kısasını alıyor (`testkit.go:205-270`); en iyi değer yetmiyorsa önce büyümenin gerçek olup olmadığı ölçülür. Gerçekse kök düzeltilir; değilse ölçüm gürültüye dayanıklı olur (ısınma, n=100'de daha uzun iş). Sınır gevşetilerek geçirilmez.
+- **Go dışı ya da dolaylı okunan veri dosyası bir teste bağlanmıyor (kalan yarılar).** JS yarısı kapandı (1cbe2a5d); istisna sınırı 10 → 9.
+  - Python: `tools/bench/run.py` `os.path.join(ROOT, MODEL_TR)` ile `examples/tr/36_karakter_modeli.tr`'yi açıyor; Go testi betiği çıplak adla koşuyor. Python yol çözümleyicisi ve `exec.Command`'daki çıplak betik adı gerekiyor; bugün kapsanmamış bir dosya kazandırmıyor.
+  - Go yardımcısının parametresiyle kurulan yol (CODEGRAPH yeni bulgu): `readExtensionJSON(t, "package.nls.json")` içeride `reporoot.Path("editors/vscode/" + ad)`. Komut: `tests-for editors/vscode/package.nls.json` → "no tests read it by name"; beklenen `e2e.TestExtensionTextsInTranslationFile` (`behavior_extension_test.go:58, 98, 120`). Çözülürse `editors/vscode/*.json` istisnası `language-configuration.json`'a daralır.
+  - `editors/vscode/language-configuration.json`'ı hiçbir test okumuyor (yalnız VS Code): codegraph'ın değil, test kapsamının eksiği; istisna satırı gerekçesiyle kalıyor.
 
-- **Go dışı bir testin okuduğu veri dosyası (eklentinin JS testi; Go testinin koştuğu Python betiği) bir teste bağlanmıyor.** 2026-10-26, ana oturum yaşadı (tam denetim). Denetim: onay, sınıfı genelleştir.
-  - Komut: `go run ./tools/codegraph tests-for editors/vscode/l10n/bundle.l10n.tr.json` → test yok.
-  - İkinci yol: `editors/vscode/test/l10n_test.js:18, 39, 54, 60, 68` (`readJSON` = `fs.readFileSync(path.join(ROOT, ...))`); onu `cmd/tr/e2e` `TestExtensionJSTests` koşuyor. `require` ile yüklenen JS dosyası bağlanıyor (`tests-for editors/vscode/coded_format.js`).
-  - Geçici: dosya `testdata/uncovered_data.txt`'e yazıldı, `maxUncoveredData` 9 → 10 ("yalnızca küçülür" kuralına aykırı). `editors/vscode/*.json` satırı aynı sınıftan.
-  - Beklenen: Go dışı testin okuduğu dosya (JS `readJSON`/`path.join`, Go testinin koştuğu Python'un açtığı dosya) o testi koşan Go testine bağlanır; iki istisna satırı silinir, sınır 8'e iner. (`tools/gpu/phase3_config.json` istisnası doğru kalır: onu bir test değil Colab betikleri okuyor.)
-
-- **İletinin sahibi yanlış: hedefin üretmediği iletiyi bekleyen test "tests about it" grubunda.** 2026-10-26, ana oturum gerçek kullanım denemesinde yaşadı. Denetim: düzeltmeyle onay (kök "ortak çağrılan işlev"den geniş).
-  - Komut: `go run ./tools/codegraph tests-for TR_fn_sum` → "tests about it" içinde `ml.TestGradClip`, `ml.TestDTypeChoice` `[expects H7901]`, `ml.TestConcatAndSplit` `[expects H7900]`, `ml.TestCustomGradBackwardError` `[expects H6126]`, `ml.TestErrors` `[expects H6115]`, `yerlesikler_test 13.1` `[expects H2011]`.
-  - İkinci yol [ana oturum yeniden üretti]: H7900/H7901'i yalnız `bind.CheckNamed` üretiyor (`bind.go:86, 92`, adlı argüman alan her yerleşiğin ortak denetimi); H6126/H6115'i yalnız `ml.matmulDType` (`operators.go:220, 225`) ve `path interp.sumBuiltin ml.matmulDType` → "no directed path"; H2011'i `interp.ArgCountError` ve `addMethod` (her yerleşiğin ortak iletisi).
-  - Neden kritik: en güçlü kanıt grubunda yanlış test. [DENETİM hipotezi] Test, TR dizesinde `toplam`'ı çağırıp iletiyi bekleyince ileti hedefe yazılıyor.
-  - Beklenen: README'nin kuralı ad kodu hedefinde de uygulanır: "expects Hxxxx" ile gruplanan her testin iletisini hedef ve yalnız onun çağırdıkları üretir; birden çok hedefin çağırdığı işlevin iletisi hiçbirinin değildir.
-
-- **İleti kodu ↔ TR kodu bağı yok: TR kodundaki ileti kodları ve iletinin metnini bekleyen TR testleri görünmüyor.** 2026-10-26, ana oturum (metinle bekleyen test) ve DENETİM (TR'deki ileti kodları) buldu; ana oturum ikisini de yeniden üretti. Denetim: iki madde birleşti.
-  - Komut 1: `go run ./tools/codegraph who-uses H6932` → kullanım yok; `tests-for H6932` → yalnız üç katalog testi; `tr dizin kullananlar H6932` → "bulunamadı". İkinci yol: `lib/egitim.tr:116` `TR_fn_message(H6932, TR_arg_num_steps)`; `lib/egitim_test.tr:110` `TR_fn_assert_equal(H6932, TR_fn_error_code(...))`. Kapsam [DENETİM ölçtü]: TR kodunda geçen 27 farklı H69xx kodunun 26'sında "no uses", 10 dosya.
-  - Komut 2: `go run ./tools/codegraph tests-for H2418` → yalnız kataloğu gezen üç test. İkinci yol: `tests/yapilar_test.tr:47` iletinin metnini bekliyor (`"'Nokta' yapısının 'yy' adında bir alanı yok"`).
-  - Neden kritik: iletiyi değiştiren ya da silen onu üreten kitaplık satırını ve sınayan testi görmüyor (yanlış "yok").
-  - Beklenen: kodlu TR kaynağındaki ileti kodu belirteci (`H6932`, `ileti(...)`, `hata_kodu(...) == H...`) `uses_message` kenarı verir; `tr dizin` ileti kodunu ad olarak bulur; TR test satırındaki metin bir iletinin sabit parçalarını taşıyorsa test o koda bağlanır. Test: kataloğun her kodu için Go'daki `messages.Hxxxx` kullanımı ya da `.tr`'deki belirteç grafikte bir kenarla. Not (ayrı iş, birikme dosyasında): TR testleri ileti metnini değil kodunu sınamalı.
-
-- **Metinle sürülen dağıtım: testteki metin sabiti (DAP istek adı, test dizesindeki TR adı) işleyicisine bağlanmıyor.** 2026-10-26, ana oturum gerçek kullanım denemesinde yaşadı. Denetim: onay; "DAP isteği" ile "test dizesindeki TR kodu → uygulayan Go işlevi" aynı kök, tek madde.
-  - Komut 1: `go run ./tools/codegraph tests-for internal/devtools/debugger/dap_table.go` → 6 test; `TestDAPSecretMasked` yok. İkinci yol: `behavior_dap_secrets_test.go:41` `c.request("trTable", ...)`; istek `dap_pause.go:125` `case "trTable": s.table(msg)`; aynı biçimde `behavior_dap_scope_test.go`, `behavior_dap_tensor_variables_test.go`, `dap_fuzz_test.go`. Köprünün öbür ucu: `extension.js:352, 431` `customRequest('trTable', ...)` ve `watch_panel_test.js:66, 70`.
-  - Komut 2: `go run ./tools/codegraph tests-for --all internal/stdlib/dataset/state.go` → `dataset_test.TestReaderStateResumesSameBatches` 9 adımda (DENETİM'de 65., ana oturumda 62. sırada), `TestReaderSkipSameAsNext` yok. İkinci yol: `state_test.go` test dizesindeki TR koduyla `ö.durum`, `durumu_yükle`, `atla`'yı sınıyor; bunları `state.go`'daki `StateDict`, `loadStateTR`, `skipTR` uyguluyor.
-  - Neden kritik: işleyiciyi değiştiren onun davranış testlerini görmüyor.
-  - Beklenen: testteki metin sabiti bir dağıtım anahtarıysa (istek adı, TR'deki yerleşik ya da üye adı) test o anahtarın işleyicisine bağlanır; JS tarafı da aynı işleyiciye.
-
-- **Dosyanın dış test paketindeki adaş test dosyası "this file's tests" grubunda değil.** 2026-10-26, ana oturum yaşadı. Denetim: düzeltmeyle onay (eski maddenin ilk yarısı; ikinci yarısı yukarıdaki dağıtım maddesine taşındı). Kapanan `stats.go` maddesinin (aynı paket) genellenmemiş hâli.
-  - Komut: `go run ./tools/codegraph tests-for internal/stdlib/dataset/state.go` → `state_test.go`'nun testleri (`package dataset_test`) "this file's tests" grubunda yok.
-  - Beklenen: `x.go`'nun adaşı `x_test.go`, aynı ya da dış (`_test`) pakette, "this file's tests" grubunda. Test: her `x.go`/`x_test.go` çiftinde dış paketteki adaş testler ilk grupta.
-
-- **Sınav dosyasının andığı düğüm sınava bağlanmıyor; ön denetim sınavı seçmiyor.** 2026-10-26, MEKANİK bildirmişti (ince ayardaydı); DENETİM kökü codegraph'ta buldu ve kritik yaptı.
-  - Komut: `go run ./tools/codegraph tests-for --all internal/lang/interp/compiler_expr.go` → `TestPlanningQuestionsAreAnswered` yok [ana oturum yeniden üretti]; sınav `planning_questions.txt:162` `interp.codedKeyOf`'u anıyor. Buna karşılık `tests-for lib/egitim.tr` sınavı veriyor (`lib/embedded.go` üzerinden).
-  - Gerçek etkisi: disk anahtarları işinde `dictKey → codedKeyOf` yeniden adlandırması sınavı kırdı, ancak tam denetimde görüldü.
-  - Beklenen: codegraph kendi sınav dosyasının biçimini biliyor (`contains: pkg.Name`); her soruda adı geçen düğüm sınava test bağı verir (init/veri dosyası maddesinin özel hâli). Bu bağ kurulunca ön denetimin `changed --go-tests` seçimi sınavı da seçer.
-
-- **`tr dizin yeniden_adlandır` kodlu bir adı kullanıcı adı gibi planlıyor.** 2026-10-26, DENETİM buldu; ana oturum yeniden üretti. Kritik.
-  - Komut: `tr dizin yeniden_adlandır "parameter:lib/egitim.tr#TR_type_Run.TR_ctx_init.TR_arg_num_steps" adım_toplamı` → "kesin (11)": kodlu dosyalarda `TR_arg_num_steps`'in geçtiği 11 yer (`lib/egitim.tr:115-118`, `lib/egitim_test.tr:79, 97, 110`, `examples/tr/48_egitim_kosusu.tr:38`, `tools/gpu/gpt_training.tr:71`); "olası": `internal/lang/codes/tr.json:310` (adın asıl yeri), `en.json`, `definitions.json`, ileti yuvası, `lib/iyilestirici.tr:425` (aynı kodu kullanan `öğrenme_oranı_planı`).
-  - İkinci yol: `lib/egitim.tr:115` ve `lib/iyilestirici.tr:425` aynı `TR_arg_num_steps` kimliğini taşıyor; adı `tr.json:310` `"name": "adım_sayısı"`.
-  - Neden kritik: "kesin" listeyi uygulamak kimliği kullanıcı adına çevirir, kodlu biçimi bozar ve aynı kodu kullanan bildirimi atlar.
-  - Beklenen: hedef bir ad koduysa önizleme "dil dosyasında ad değişikliği" planı verir: her dil dosyasındaki satır, aynı kodu kullanan bildirimler, yeni adın onay gerektirdiği notu; kodlu dosya kesin listede yer almaz. Test: kodlu kitaplık parametresi, yapısı ve işlevi için önizlemede kodlu dosya kesin listede yok, dil dosyası satırı kesin listede.
-
-- **Kabuk ve Python betiklerinin ortam değişkeni kullanımları görünmüyor.** 2026-10-26, ana oturum yaşadı. Denetim: onay.
-  - Komut: `go run ./tools/codegraph query TR_env_GPU_SYNC` → Go'da okuyan (`gpu.newBackend`) ve testler; değişkeni koyan betik yok.
-  - İkinci yol: `tools/gpu/card_check.sh:27` `TR_env_GPU_SYNC=1 ...`; `tools/full_check.sh:167-169, 437` `TR_CPU_AVX2`, `TR_DIL`; betiklerde `TR_` geçen 3 dosya (`tools/bench/run.py`, `full_check.sh`, `card_check.sh`); `.github/workflows/*.yml`'de yok [DENETİM ölçtü].
-  - Beklenen: `.sh` ve `.py` dosyalarındaki ortam değişkeni ataması ve okuması ad koduna ya da (kodsuzsa) değişken adına `uses_env` kenarı verir. Test: betiklerde geçen her `TR_` değişkeni grafikte bir kenarla.
+- **Kodsuz ortam değişkenlerinin betik kullanımları görünmüyor.** Kodlu değişkenler kapandı (d6ce3e65). Kodsuzların (`TR_RECORD_DIR`: tools/record koyar, betikler okur; `TR_YORUMLAYICI`: Go testi koyar, JS okur) düğümü yok; yeni düğüm türü ya da kimlik biçimi (ör. `env:TR_RECORD_DIR`) bir ad kararı. Ölçüt `TR_mem_*` ve `TR_YOLLAR` gibi ortam değişkeni olmayan `TR_` adlarını dışarıda bırakmalı. Kodsuz değişkenlerin kendisi K3 listesinde (madde 7) koda bağlanabilir; o zaman bu madde kendiliğinden kapanır.
 
 ## İnce ayar
-
-- **Kodun Go'daki uygulaması sorulunca harita satırındaki bütün işlevler veriliyor.** Denetim: onay. **Yapıldı, birleşmeyi bekliyor** (3d78e02d).
-  - Komut: `go run ./tools/codegraph query TR_cmd_encode` → "tr.commands at cmd/tr/main.go:125 -> tr.debugCommand, tr.encodeCommand, tr.formatCommand, tr.testCommand". Beklenen: yalnız `tr.encodeCommand` (anahtar-değer çiftinin değeri).
-
-- **`tr dizin etki`'de kısaltılmış grup bunu söylemiyor.** Denetim: onay. CODEGRAPH'ta (2026-10-26).
-  - Komut: `tr dizin etki TR_type_GPT` → "bunu aktaran modüller (13):" altında 12 satır, not yok (ikinci grupta var). Beklenen: her kısaltılmış grup kaç satırın gizlendiğini yazar.
-
-- **`tests-for` başlığı "up to 8 steps" diyor, liste 9 adımlık zincirler gösteriyor.** DENETİM buldu; ana oturum `state.go` denemesinde gördü. CODEGRAPH'ta (2026-10-26).
-  - Örnekler: `17_testler_test`, `deyimler_test 5.10-5.12`, `dataset_test.TestReaderStateResumesSameBatches` (9 adım). [DENETİM hipotezi] Paket sınırı geçişi adım sayısına ekleniyor, süzgeç (`test_paths.go:500` `n.Steps > maxSteps`) onu saymadan uygulanıyor.
-  - Beklenen: sınır ve liste tutarlı; ya geçiş sayılır ya başlık gerçek sınırı yazar.
 
 - **`compares_value` noktalama gürültüsü.** 2026-10-26, CODEGRAPH bildirdi. Denetim: onay (satırlar bir kaymış: `other_os.go:43`). **Bekliyor: çekirdek değişikliği** (işleç alanlarının `lexer.TokenType` olması); CODEGRAPH'a gitmedi.
   - Komut: `go run ./tools/codegraph who-uses lexer.TokDot` → `compares_value (17)`, çoğu dosya yolu ve bayrak kodu. Beklenen: yalnız işleci kastedenler; tip süzgeci, AST'nin işleç alanları `TokenType` olduktan sonra.
