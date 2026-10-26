@@ -1662,10 +1662,12 @@ tr en adlı_argüman init
 tr en adlı_argüman it
 tr en adlı_argüman keep
 tr en adlı_argüman keepdim
+tr en adlı_argüman log
 tr en adlı_argüman lr
 tr en adlı_argüman mask
 tr en adlı_argüman master_weights
 tr en adlı_argüman max
+tr en adlı_argüman min
 tr en adlı_argüman named
 tr en adlı_argüman overwrite
 tr en adlı_argüman pair

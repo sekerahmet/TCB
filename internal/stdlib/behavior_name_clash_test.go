@@ -22,9 +22,10 @@ import (
 // gömülü dilin (O) sözcüğü kullanıcının adı olarak geçince ya ad kuralı hatası verilir (sözcük
 // bulunduğu yerin ad alanında O'nun bir sözcüğüyse; O'nun bağlamsal sözcükleri her yerde) ya da
 // program, adı nötr bir adla değiştirilmiş hâliyle aynı sonucu verir. O'nun her sözcüğü dil
-// dosyasından ad alanıyla okunur (değer adları program adı değildir; dil tanımı 17'nin tablosu),
-// F'de aynı yazılanlar sınava girmez; programlar Türkçe görünümle yazılıp kodlu biçim üzerinden
-// F'nin görünümüne çevrilir (kodların biçimini bilmez).
+// dosyasından ad alanıyla okunur (değer adları program adı değildir; dil tanımı 17'nin tablosu);
+// F'de aynı yazılan sözcük, F'de aynı yazıldığı ad alanının yerlerinde sınava girmez. Programlar
+// Türkçe görünümle yazılıp kodlu biçim üzerinden F'nin görünümüne çevrilir (kodların biçimini
+// bilmez).
 //
 // Bugün kalan durumlar testdata/name_clash_known.txt'dedir ("F O yer sözcük"); liste yalnızca
 // küçülür: listede olmayan durum kalırsa ya da listedeki durum geçerse test düşer. Artık geçen
@@ -156,15 +157,29 @@ func viewIn(t *testing.T, turkish string, lang *codes.Language) string {
 	return text
 }
 
-// clashWord O'nun bir sözcüğüdür: adı ve yasak olduğu ad alanları.
+// clashWord O'nun bir sözcüğüdür: adı, yasak olduğu ad alanları ve F'de aynı yazılan bir adın
+// bulunduğu ad alanları (inF).
 type clashWord struct {
 	name       string
 	namespaces []codes.Namespace
 	contextual bool
+	inF        []codes.Namespace
 }
 
-// clashWords O'nun program adları olan sözcükleridir (genel, tip, üye, adlı argüman); F'de aynı
-// yazılan sözcük girmez.
+// sharedIn sözcüğün yerin ad alanlarından birinde F'nin kendi sözcüğü olduğunu söyler: o yerde F'nin
+// kuralı geçerlidir, (sözcük, yer) çifti sınava girmez.
+func (w clashWord) sharedIn(place []codes.Namespace) bool {
+	for _, ns := range w.inF {
+		if slices.Contains(place, ns) {
+			return true
+		}
+	}
+	return false
+}
+
+// clashWords O'nun program adları olan sözcükleridir (genel, tip, üye, adlı argüman). F'de aynı
+// yazılan sözcük yalnız F'de aynı yazıldığı ad alanlarının yerlerinde atlanır (sharedIn); O'da
+// bağlamsal olan sözcüğün aynısı F'de varsa bütün yerlerde F'nin kuralı geçerlidir, sözcük girmez.
 func clashWords(o, f *codes.Language) []clashWord {
 	programNamespaces := []codes.Namespace{codes.NamespaceGlobal, codes.NamespaceType, codes.NamespaceMember, codes.NamespaceParam}
 	byName := map[string]*clashWord{}
@@ -188,14 +203,14 @@ func clashWords(o, f *codes.Language) []clashWord {
 	}
 	var r []clashWord
 	for _, name := range names {
-		same := false
+		w := byName[name]
 		for _, ns := range programNamespaces {
 			if _, ok := f.Find(ns, name); ok {
-				same = true
+				w.inF = append(w.inF, ns)
 			}
 		}
-		if !same {
-			r = append(r, *byName[name])
+		if !w.contextual || len(w.inF) == 0 {
+			r = append(r, *w)
 		}
 	}
 	slices.SortFunc(r, func(a, b clashWord) int { return strings.Compare(a.name, b.name) })
@@ -236,6 +251,9 @@ func TestNameClashExam(t *testing.T) {
 					t.Fatalf("%s/%s: nötr program %s aşamasında durdu: %v\n%s", fCode, p.name, neutral.stage, neutral.errs, main)
 				}
 				for _, w := range words {
+					if w.sharedIn(p.namespaces) {
+						continue
+					}
 					forbidden := w.contextual
 					for _, ns := range w.namespaces {
 						forbidden = forbidden || slices.Contains(p.namespaces, ns)
