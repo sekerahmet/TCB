@@ -80,7 +80,7 @@ func fill(hole, lang string) (string, error) {
 		return w
 	})
 	if missing != "" {
-		return "", fmt.Errorf("%q sözcüğü %s için tanımlı değil", missing, lang)
+		return "", fmt.Errorf("word %q is not defined for %s", missing, lang)
 	}
 	return out, nil
 }
@@ -90,20 +90,20 @@ func build(t template, language *codes.Language) (entry, error) {
 	lang := language.Code
 	shown, err := source.Show(t.Source, language)
 	if err != nil {
-		return entry{}, fmt.Errorf("%s şablonu %s için gösterilemedi: %w", t.ID, lang, err)
+		return entry{}, fmt.Errorf("template %s cannot be shown in %s: %w", t.ID, lang, err)
 	}
 	used := map[string]bool{}
 	var failure error
 	shown = holeRe.ReplaceAllStringFunc(shown, func(name string) string {
 		hole, ok := t.Holes[name]
 		if !ok {
-			failure = fmt.Errorf("%s şablonunda %s için delik tanımı yok", t.ID, name)
+			failure = fmt.Errorf("template %s: hole %s is not defined", t.ID, name)
 			return name
 		}
 		used[name] = true
 		filled, err := fill(hole, lang)
 		if err != nil {
-			failure = fmt.Errorf("%s şablonu: %w", t.ID, err)
+			failure = fmt.Errorf("template %s: %w", t.ID, err)
 		}
 		return filled
 	})
@@ -112,7 +112,7 @@ func build(t template, language *codes.Language) (entry, error) {
 	}
 	for name := range t.Holes {
 		if !used[name] {
-			return entry{}, fmt.Errorf("%s şablonunda %s deliği kullanılmıyor", t.ID, name)
+			return entry{}, fmt.Errorf("template %s: hole %s is unused", t.ID, name)
 		}
 	}
 	body := strings.Split(strings.TrimRight(shown, "\n"), "\n")
@@ -123,7 +123,7 @@ func build(t template, language *codes.Language) (entry, error) {
 	for _, p := range t.Prefix {
 		name, err := prefixName(p, language)
 		if err != nil {
-			return entry{}, fmt.Errorf("%s şablonu: %w", t.ID, err)
+			return entry{}, fmt.Errorf("template %s: %w", t.ID, err)
 		}
 		prefix = append(prefix, name)
 		if t.Member {
@@ -133,14 +133,18 @@ func build(t template, language *codes.Language) (entry, error) {
 	return entry{Label: text(t.Label, lang), Description: text(t.Description, lang), Prefix: prefix, Body: body}, nil
 }
 
-// prefixName kısayolun dildeki yazımıdır: "code:KwIf" gibi bir kodun adı ya da "word:ad" sözcüğü.
+// prefixName kısayolun dildeki yazımıdır: bir kodun dildeki adı ya da bir sözcük.
 func prefixName(p prefix, language *codes.Language) (string, error) {
 	if p.Word != "" {
 		return fill("%"+p.Word+"%", language.Code)
 	}
-	g, ok := language.Entry(p.Code)
+	k, err := p.code()
+	if err != nil {
+		return "", err
+	}
+	g, ok := language.Entry(k)
 	if !ok {
-		return "", fmt.Errorf("%s kodunun %s dilinde adı yok", p.Code, language.Code)
+		return "", fmt.Errorf("code %s has no name in %s", p.Code, language.Code)
 	}
 	return g.Name, nil
 }
