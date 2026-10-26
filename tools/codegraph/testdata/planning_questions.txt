@@ -22,7 +22,7 @@ codegraph query varsayılan_cihaz | first-item: TR_fn_default_device || internal
 codegraph path internal/stdlib/ml internal/compute/gpu | contains: (directed, 1 steps) | contains: -imports-> | src: deneme 1, 2026-10-23
 codegraph query bekle_gpu | contains: [tr_func] tools/gpu/gpt_training.tr | not: [name] internal/lang/codes/tr.json:1 | src: deneme 1, 2026-10-23
 codegraph similar ml.defaultDeviceBuiltin | top: similar function => 5 => devicesBuiltin | src: deneme 1, 2026-10-23
-codegraph tests-for internal/lang/codes/tr.json | group: tests that walk the whole list => e2e.TestExamplesCoverNames | src: deneme 1, 2026-10-23
+codegraph tests-for internal/lang/codes/tr.json --all | group: tests that walk the whole list => e2e.TestExamplesCoverNames | src: deneme 1, 2026-10-23
 codegraph tests-for TR_fn_default_device | first-of: <- tests ( => tests/tensor_test.tr || behavior_device_ | before: <- tests ( => tests that walk the whole list | src: deneme 1, 2026-10-23
 codegraph query "Yeni yerleşik" | contains: docs/recipes.md | src: deneme 1, 2026-10-23
 
@@ -187,3 +187,4 @@ codegraph query codes.startLanguages | contains: codes.identityLanguage | contai
 codegraph history TR_fn_sum | contains: renamed G400 → TR_fn_sum | contains: added    9a88c816 2026-10-19 | not: removed | src: K1 partisi K1, 2026-10-26 (kimliğe geçen kodun geçmişi eski anahtarıyla sürer)
 codegraph deleted | group: names: => K102  removed 020a98a7 | not: G400  removed | not: A001  removed | src: K1 partisi K1, 2026-10-26 (yeniden adlandırılan kod silinmiş sayılmaz)
 codegraph query G400 | contains: TR_fn_sum [name] | not: not found | src: K1 partisi K1, 2026-10-26 (eski notlar ve commit mesajları eski kodu anıyor)
+codegraph who-uses TR_env_CPU_AVX2 | contains: TR_CPU_AVX2 (ortam | group: uses_env => tensor.hasAVX2 | src: K1 partisi Ek 5, 2026-10-26 (adım 2de ad yalnız definitions.json ortak_ad alanında kalır; okuyucu oradan okur)
