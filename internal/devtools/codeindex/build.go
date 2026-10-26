@@ -12,7 +12,6 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
-	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
 // Options dizinin nereden kurulacağını söyler.
@@ -39,7 +38,7 @@ var DefaultSkipDirs = map[string]bool{
 type file struct {
 	rel, base string
 	res       *parsed
-	lines     []string          // gösterim metninin satırları (satır numaraları bununla uyumlu)
+	lines     []string          // diskteki satırlar (parsed.lines; satır numaraları dosyanınki)
 	defs      map[string]string // üst düzey ad -> düğüm kimliği (işlev, yapı, sabit, değişken)
 	methods   map[string][]string
 	fields    map[string][]string // alan adı -> alan düğümlerinin kimlikleri (alıcı tipi bilinmeyen erişimlerin adayları)
@@ -78,8 +77,7 @@ type indexer struct {
 	constructs    []Construct       // bildirimlerin kullandığı dil yapıları (constructs.go)
 	constructSeen map[string]bool
 	retDone       map[string]bool
-	paramOrder    map[string][]string        // işlev ya da metot -> parametreleri başlıktaki sırayla (paramsInOrder; tembel)
-	fileLangs     map[string]*codes.Language // dosyaların yazım dilleri (optionName; tembel)
+	paramOrder    map[string][]string // işlev ya da metot -> parametreleri başlıktaki sırayla (paramsInOrder; tembel)
 }
 
 // Build root altındaki .tr dosyalarından dizini kurar. Okunamayan ya da ayrıştırılamayan dosya
@@ -92,7 +90,7 @@ func Build(root string, opts Options) (*Index, error) {
 	if err != nil {
 		return nil, err
 	}
-	x := &indexer{root: abs, lang: source.Turkish(), library: opts.Library, files: map[string]*file{},
+	x := &indexer{root: abs, lang: identities(), library: opts.Library, files: map[string]*file{},
 		nodes: map[string]*Node{}, edges: map[edgeKey]*Edge{}, constructSeen: map[string]bool{}}
 	skip := opts.SkipDirs
 	if skip == nil {
@@ -152,7 +150,7 @@ func (x *indexer) addFile(rel string, data []byte, readErr error) {
 		x.skipped = append(x.skipped, Skipped{File: rel, Reason: firstLine(res.errs[0])})
 		return
 	}
-	x.files[rel] = &file{rel: rel, base: base, res: res, lines: strings.Split(res.text, "\n"),
+	x.files[rel] = &file{rel: rel, base: base, res: res, lines: res.lines,
 		defs: map[string]string{}, methods: map[string][]string{}, fields: map[string][]string{}, aliases: map[string]*file{}}
 	x.order = append(x.order, rel)
 }

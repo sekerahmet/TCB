@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 )
 
 // Bağlı bildirimler (deneme 7 R2). Bir parametre aynı adla başka bir çağrıya iletiliyorsa (`f(ad: ad)` ya da konumlu
@@ -35,20 +36,32 @@ func (x *indexer) forwardArgs(f *file, o owner, sc *scope, c *ast.CallExpression
 		}
 	}
 	for _, a := range c.NamedArgs {
-		if v, ok := a.Value.(*ast.Identifier); ok && v.Value == a.Name {
+		if v, ok := a.Value.(*ast.Identifier); ok && sameName(v.Value, a.Name) {
 			link(v, func() string { return x.calleeParam(def, a.Name) })
 		}
 	}
 	for i, a := range c.Arguments {
 		if v, ok := a.(*ast.Identifier); ok {
 			link(v, func() string {
-				if t := x.calleeParamAt(def, i); t != "" && shortName(x.nodes[t]) == v.Value {
+				if t := x.calleeParamAt(def, i); t != "" && sameName(shortName(x.nodes[t]), v.Value) {
 					return t
 				}
 				return ""
 			})
 		}
 	}
+}
+
+// sameName iki ad aynı kavramın adı mı: aynı yazılmış ya da aynı İngilizce adlı iki kimlik (kimlik TR_<sınıf>_<İngilizce
+// ad> kuralıyla verilir, 17.2): alan TR_mem_num_heads ile parametre TR_arg_num_heads, her dilde aynı adı taşır.
+func sameName(a, b string) bool {
+	if a == b {
+		return true
+	}
+	ka, errA := codes.Parse(a)
+	kb, errB := codes.Parse(b)
+	return errA == nil && errB == nil && strings.TrimPrefix(a, codes.IdentityPrefix+string(ka.Class())+"_") ==
+		strings.TrimPrefix(b, codes.IdentityPrefix+string(kb.Class())+"_")
 }
 
 // forwardedParam name gövdede yeniden bağlanmamış bir parametre ise onun düğümüdür, değilse "": döngü değişkeni ya da
@@ -64,7 +77,7 @@ func (sc *scope) forwardedParam(name string) string {
 func (x *indexer) storeParam(f *file, o owner, sc *scope, s *ast.AssignStatement) {
 	m, ok := s.Target.(*ast.MemberExpression)
 	v, ok2 := s.Value.(*ast.Identifier)
-	if !ok || !ok2 || m.Property != v.Value || sc.forwardedParam(v.Value) == "" {
+	if !ok || !ok2 || !sameName(m.Property, v.Value) || sc.forwardedParam(v.Value) == "" {
 		return
 	}
 	structID, conf, basis := x.receiver(f, o, sc, m.Object)

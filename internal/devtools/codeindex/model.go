@@ -4,9 +4,9 @@
 // sınıyor", "bunu değiştirirsem ne etkilenir" sorularını insana (düz metin), yapay zekâ ajanına
 // (kararlı JSON şeması) ve ileride dil sunucusuna yanıtlar.
 //
-// Dizin kaynağı etkin yazım dilinden bağımsız okur (başlıksız dosya Türkçedir, kodlu dosya önce
-// Türkçeye çözülür): içeriği, kimlikleri ve konumları her dilde aynıdır; yalnızca çıktı, dilin
-// öğelerini okuyanın dilinde yazar (codes.DisplayName).
+// Dizin kaynağı yorumlayıcının okuduğu biçimde, kimlikleriyle okur (read.go; başlıksız dosya Türkçe
+// yazılmış sayılır ve önce kodlanır): içeriği, kimlikleri ve konumları her dilde aynıdır; yalnızca
+// çıktı, dilin öğelerini okuyanın dilinde yazar (Reader.display).
 //
 // Layer: developer tools (internal/devtools); yalnızca internal/lang paketlerini (ve gömülü
 // kitaplığı) içe aktarır.
@@ -23,7 +23,7 @@ const Schema = "tr-codeindex/2"
 
 // IndexVersion dizinin kaynaktan türettiği içerik değişince artar (yeni düğüm türü, farklı
 // çözümleme). Başka sürümün önbelleği hiçbir zaman kullanılmaz.
-const IndexVersion = 20
+const IndexVersion = 21
 
 // Kind bir düğümün türüdür; değerler JSON'a yazılan değişmez tanımlayıcılardır.
 type Kind string
@@ -79,9 +79,8 @@ const (
 	RoleOptionKey  Role = "option_key"    // komut_satırı sözlüğünün anahtarı
 )
 
-// Pos bir kaynak dosyadaki konumdur. Satır ve sütun 1'den başlar; sütun, satırın Türkçe
-// gösterimindeki Unicode kod noktalarını sayar (kodlu dosyada da aynı, 17.5). EndLine sıfırsa
-// konumun sonu yoktur.
+// Pos bir kaynak dosyadaki konumdur. Satır ve sütun 1'den başlar; sütun, diskteki satırın Unicode
+// kod noktalarını sayar (kodlu satırda kimliğin uzunluğuyla). EndLine sıfırsa konumun sonu yoktur.
 type Pos struct {
 	File    string `json:"file"`
 	Line    int    `json:"line"`
@@ -102,7 +101,7 @@ func (p Pos) String() string {
 // Node bir bildirim, modül ya da yerleşik addır. Name kanonik addır: kullanıcı adlarında yazıldığı
 // gibi, yerleşikte kodu (TR_fn_time_ms). Display yerleşiğin okuyanın dilindeki adıdır, kullanıcı adlarında
 // boştur. Code dilin öğesi olan bildirimin kimliğidir (kitaplığın dışa açık adı, TR_type_GPT; library_codes.go):
-// dizin onu Türkçe yazımıyla tutar (Name, Qualified), sonuç okuyanın dilinde yazar (Reader.display).
+// dizin onu kimliğiyle tutar (Name, Qualified), sonuç okuyanın dilinde yazar (Reader.display).
 type Node struct {
 	ID        string `json:"id"`
 	Kind      Kind   `json:"kind"`

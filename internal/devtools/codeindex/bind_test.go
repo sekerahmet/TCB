@@ -78,12 +78,12 @@ func TestMemberAccessBindsToTheField(t *testing.T) {
 
 func TestParameterAndNamedArgumentOccurrences(t *testing.T) {
 	r := buildSource(t, bindSource)
-	if n := r.Node("parameter:m.tr#Dikkat.kurucu.kv_baş"); n == nil || n.Signature != "kv_baş = yok" {
+	if n := r.Node("parameter:m.tr#Dikkat.TR_ctx_init.kv_baş"); n == nil || n.Signature != "kv_baş = yok" {
 		t.Errorf("the default value text is part of the signature: %+v", n)
 	}
-	wantUses(t, r, "parameter:m.tr#Dikkat.kurucu.baş",
+	wantUses(t, r, "parameter:m.tr#Dikkat.TR_ctx_init.baş",
 		"definition@4:29/EXTRACTED", "read@5:21/EXTRACTED")
-	wantUses(t, r, "parameter:m.tr#Dikkat.kurucu.kv_baş",
+	wantUses(t, r, "parameter:m.tr#Dikkat.TR_ctx_init.kv_baş",
 		"definition@4:34/EXTRACTED", "read@6:24/EXTRACTED", "argument_name@27:27/EXTRACTED")
 	wantUses(t, r, "parameter:m.tr#yap.baş",
 		"definition@13:15/EXTRACTED", "read@14:28/EXTRACTED", "argument_name@28:18/EXTRACTED")
@@ -121,7 +121,8 @@ func TestNameOnlyGuessesStayOutOfReferences(t *testing.T) {
 
 // Kural: komut satırı seçeneğinin adı çalışma anındaki adıdır: dilin bir üye adı olan çıplak anahtar dosyanın dilinde
 // yazılır (K3: İngilizce kodlu betikte `{TR_mem_step: 100}` → `--step`, Türkçe betikte `--adım`); kullanıcının kendi adı
-// (`run`) ve kod taşımayan, düz yazılmış `adım` (Türkçe gösterimde `$adım`) olduğu gibi kalır (bağımsız denetim grup 7). Konum Türkçe gösterimdeki anahtarın yeridir; iki dilin eş betikleri ayrı dosyada, ayrı
+// (`run`) ve kod taşımayan, düz yazılmış `adım` olduğu gibi kalır (bağımsız denetim grup 7). Konum diskteki anahtarın yeridir
+// (kodlu satırda kimliklerin uzunluğuyla); iki dilin eş betikleri ayrı dosyada, ayrı
 // düğümlerdir (yerleşik adım yerleşiği onları birleştirir).
 func TestOptionNameFollowsTheFilesLanguage(t *testing.T) {
 	dir := t.TempDir()
@@ -148,9 +149,9 @@ func TestOptionNameFollowsTheFilesLanguage(t *testing.T) {
 		t.Errorf("an English script's option is --step, not --adım: %+v", n)
 	}
 	// İngilizce betikte düz yazılmış `adım` anahtarı kod taşımaz: `--adım`'dır, kodlu TR_mem_step `--step`; iki ayrı seçenek.
-	wantUses(t, r, "option:en2.tr#adım", "option_key@2:28/EXTRACTED")
-	wantUses(t, r, "option:en2.tr#step", "option_key@2:38/EXTRACTED")
-	wantUses(t, r, "option:en.tr#step", "option_key@2:33/EXTRACTED", "option_key@2:73/EXTRACTED")
+	wantUses(t, r, "option:en2.tr#adım", "option_key@2:35/EXTRACTED")
+	wantUses(t, r, "option:en2.tr#step", "option_key@2:44/EXTRACTED")
+	wantUses(t, r, "option:en.tr#step", "option_key@2:40/EXTRACTED", "option_key@2:95/EXTRACTED")
 }
 
 // memberGuessFiles alıcısı bilinmeyen üye erişimleri için bir proje: katman.tr'de aynı adlı beş metot (`ileri`: aday

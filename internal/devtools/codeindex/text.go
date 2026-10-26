@@ -2,6 +2,7 @@ package codeindex
 
 import (
 	"bytes"
+	"github.com/sekerahmet/TCB/internal/lang/source"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -59,19 +60,17 @@ func textFiles(root string) []string {
 	})
 }
 
-// displayText bir .tr dosyasının Türkçe gösterim metnidir (kodlu dosya önce çözülür; çözülemezse
-// ham metin).
-func displayText(text string) string {
-	parts, coded, err := splitTurkish(text)
-	if !coded {
-		if err != nil {
-			return text
-		}
-		return parts.Body
+// diskBody bir .tr dosyasının gövdesinin diskteki metnidir: kodlu dosyada başlık satırının yerine boş satır, böylece
+// satır numaraları dosyadaki gerçek satırdır (read.go ile aynı); bölünemeyen dosya olduğu gibi.
+func diskBody(text string) string {
+	b, err := source.Split(text)
+	switch {
+	case err != nil:
+		return text
+	case b.Coded:
+		return "\n" + b.Body
 	}
-	// Başlık satırının yerine boş satır: satır numaraları dosyadaki gerçek satırdır (read.go ile aynı);
-	// çözülemeyen dosyada kodlu gövde olduğu gibi gösterilir.
-	return "\n" + parts.Body
+	return b.Body
 }
 
 // wordMatcher aranan sözcüğü ve ekli biçimlerini tanır.
@@ -167,7 +166,7 @@ func ScanText(root, word, repl string, exclude map[string]bool) (hits []TextHit,
 		text := string(data)
 		ext := strings.ToLower(filepath.Ext(rel))
 		if ext == ".tr" {
-			text = displayText(text)
+			text = diskBody(text)
 		}
 		h, o := scanFile(rel, ext, text, m, exclude)
 		for _, hit := range h {

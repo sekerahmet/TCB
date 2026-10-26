@@ -183,11 +183,15 @@ of other types never mix), and keyed composite literals `T{f: v}` too. The acces
 ## TR sources
 
 `.tr` files under `lib/`, `tools/` and `examples/` are read with TR's own parser
-(through `internal/devtools/codeindex`, the TR code index package, which uses `internal/lang/source` and `parser`; coded files with a header are read too, lines are the file's real lines, the header line counts). The graph does not depend on the active writing language (`TR_DIL`): a file without
-the header is always read as Turkish, a coded one is first decoded to Turkish (`source.Decode` with
-`source.Turkish()`), never through `source.Prepare`, which follows the active language; the test
-`TestTRGraphIsIndependentOfTheActiveLanguage` builds the fixture graph under `TR_DIL=tr` and `TR_DIL=en`
-in sub-processes and compares the `.tr` facts. Syntax errors in the intentional error examples (`examples/*/hatalar/`, `examples/*/errors/`) are not warnings. Node kinds: `tr_func`, `tr_struct`, `tr_method`, `tr_field`, `tr_const`, `tr_var` (top level)
+(through `internal/devtools/codeindex`, the TR code index package, which uses `internal/lang/source` and `parser`; coded files with a header are read too, lines are the file's real lines, the header line counts). The graph does not depend on the active writing language (`TR_DIL`): the index reads every file
+as the interpreter does, with identities (a coded file's tokens are identities; a file without the header is Turkish
+and is encoded first), never through `source.Prepare`, whose positions follow the reader's view. A name that is a code
+is its identity in the graph, as on disk (`katman.TR_type_Linear.TR_mem_forward`); the declaration carries its names in
+every writing language and its qualified names as aliases (`Doğrusal`, `Linear`, `katman.Linear.forward`), so a query in
+any language finds it, as in `tr dizin`. A bare identity (`TR_type_GPT`) names the code's own node (`name:`), not a
+declaration. The test `TestTRGraphIsIndependentOfTheActiveLanguage` builds the fixture graph under `TR_DIL=tr` and
+`TR_DIL=en` in sub-processes and compares the `.tr` facts. Syntax errors in the intentional error examples
+(`examples/tr/hatalar/`) are not warnings. Node kinds: `tr_func`, `tr_struct`, `tr_method`, `tr_field`, `tr_const`, `tr_var` (top level)
 and `tr_test` (a `test` block), all with file:line:end; `tr_param` is a function or method parameter (`tr:param:<file>:<Owner>.<name>`, `contains` edge from its owner, detail = `name = default text`; a bare-name `query`/`who-uses` lists same-named parameters together with other matches, so one name used in several meanings shows up at once; named arguments `f(name: v)` are `uses` edges from the caller to the parameter, or to the field for a struct without `kurucu`); the file is a `file` node `tr:file:<path>`
 with the module name (`katman`) and the import path (`tr/katman`) as aliases.
 

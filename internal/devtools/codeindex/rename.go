@@ -271,7 +271,7 @@ func (r *Reader) PrepareRename(file string, line, col int) (*PrepareResult, stri
 	return &PrepareResult{Range: oc.Pos, Placeholder: shortName(n), Node: r.display(*n)}, ""
 }
 
-// lineSource değişiklik satırlarının metnini diskten okur (Türkçe gösterim satırları); .tr dosyasını sözdizimi kararları
+// lineSource değişiklik satırlarının metnini diskten okur (diskteki satırlar); .tr dosyasını sözdizimi kararları
 // (sözlük anahtarı) için bir kez ayrıştırır.
 type lineSource struct {
 	root   string
@@ -295,7 +295,7 @@ func (s *lineSource) at(p Pos) string {
 	lines, ok := s.cache[p.File]
 	if !ok {
 		if text, ok := s.read(p.File); ok {
-			lines = strings.Split(displayText(text), "\n")
+			lines = strings.Split(diskBody(text), "\n")
 		}
 		s.cache[p.File] = lines
 	}

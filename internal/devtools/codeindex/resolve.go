@@ -434,11 +434,12 @@ func (x *indexer) occurrenceBasis(node string, role Role, conf Confidence, pos P
 	x.occ = append(x.occ, Occurrence{Node: node, Role: role, Confidence: conf, Pos: pos, In: in, Basis: basis})
 }
 
-// tokenPos bir adın konumudur: sözcük birimi satırda ve sütunda başlar, ad kod noktası kadar sürer.
+// tokenPos bir adın konumudur: sözcük birimi satırda ve sütunda başlar, ad diskteki yazımının (parsed.written) kod
+// noktası kadar sürer.
 func tokenPos(f *file, line, col int, name string) Pos {
 	p := Pos{File: f.rel, Line: line, Col: col}
 	if col > 0 {
-		p.EndLine, p.EndCol = line, col+utf8.RuneCountInString(name)
+		p.EndLine, p.EndCol = line, col+utf8.RuneCountInString(f.res.written(name))
 	}
 	return p
 }

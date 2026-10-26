@@ -1,58 +1,55 @@
 package codeindex
 
 import (
+	"strings"
+
 	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
-// parsed bir .tr dosyasının Türkçe okunmuş hâlidir.
+// Dizin bir .tr dosyasını yorumlayıcının okuduğu biçimde okur: dilin öğeleri kimliktir (TR_fn_print, TR_type_GPT),
+// kullanıcının adları yazıldığı gibidir. Kodlu dosyanın belirteçleri kimliğin kendisidir; başlıksız dosya Türkçe
+// yazılmış sayılır (17.7) ve yorumlayıcı gibi önce kodlu biçime çevrilip okunur. İki durumda da konumlar diskteki
+// metne göredir: satırlar dosyanın satırları, sütunlar diskteki karakterler (kodlu dosyada kimliğin uzunluğuyla).
+// Dizin bu yüzden TR_DIL'den bağımsızdır; okuyanın dilindeki adları çıktı yazar (Reader.display).
+
+// parsed bir .tr dosyasının okunmuş hâlidir.
 type parsed struct {
 	program *ast.Program
-	text    string // Türkçe gösterim metni; kodlu dosyada başlık satırı yerine boş satır konur, böylece satır numaraları dosyadaki gerçek satırdır (dil iletileri 17.5 gereği gövde satırını sayar)
-	coded   bool   // dosya kodlu biçimdeydi
+	lines   []string // gövdenin diskteki satırları; kodlu dosyada başlık satırının yerine boş satır (satır numaraları dosyanınki)
+	coded   bool     // dosya kodlu biçimdeydi
 	errs    []error
 	roles   map[[2]int]parser.NameRole // ad sözcüklerinin sözdizimi görevi (satır, sütun): tırnaksız sözlük anahtarı, tip yazımı, alan adı ...
-	lang    string                     // dosyanın yazım dili (kodlu dosyada başlığınki, kodsuzda tr; 17.7)
+	lang    *codes.Language            // dosyanın yazım dili (kodlu dosyada başlığınki, başlıksızda Türkçe; 17.7)
 }
 
-// splitTurkish bir .tr dosyasını Türkçe gövdesine böler: kodlu dosya önce Türkçe yazıma çevrilir
-// (Decode). coded dosyanın kodlu olduğunu söyler. Kodlu dosya çözülemezse ya da çözümü bölünemezse
-// err doludur ve parts dosyanın kendi (çözülmemiş) bölümleridir.
-func splitTurkish(text string) (parts source.Parts, coded bool, err error) {
-	parts, err = source.Split(text)
-	if err != nil || !parts.Coded {
-		return parts, false, err
-	}
-	turkish, err := source.Decode(text, source.Turkish())
-	if err != nil {
-		return parts, true, err
-	}
-	decoded, err := source.Split(turkish)
-	if err != nil {
-		return parts, true, err
-	}
-	decoded.Language = parts.Language // gövde Türkçeye çevrildi, dosyanın dili başlığınkidir
-	return decoded, true, nil
-}
+// identities dizinin dilidir: yorumlayıcının çalıştığı kimlik dili (sözcük çözümleyicinin dili). Adı dilin öğesi olan
+// her şey bu dilde, yani kimliğiyle aranır (x.lang.Find(ns, "TR_fn_print")).
+func identities() *codes.Language { return codes.Active() }
 
-// readTurkish bir .tr dosyasını etkin yazım dilinden bağımsız ayrıştırır: kodsuz dosya her zaman
-// Türkçe okunur (Parts.Lexer), kodlu dosya önce Türkçe yazıma çevrilir (Decode). Etkin dile bağlı
-// source.Prepare kullanılmaz: TR_DIL=en iken o, dosyayı İngilizce görünümüne çevirirdi ve Türkçe ad
-// tablosuyla çözülen yerleşik adlar kaybolurdu. module true ise dosya bir modül olarak okunur.
-func readTurkish(text string, module bool) *parsed {
-	res := &parsed{program: &ast.Program{}}
-	b, coded, err := splitTurkish(text)
-	res.coded, res.lang = coded, b.Language
+// readIn bir .tr dosyasını okur; module true ise dosya bir modül olarak ayrıştırılır.
+func readIn(text string, module bool) *parsed {
+	res := &parsed{program: &ast.Program{}, lang: source.Turkish()}
+	b, err := source.Split(text)
 	if err != nil {
 		res.errs = []error{err}
 		return res
 	}
-	if coded {
-		b.Body = "\n" + b.Body // başlık satırının yerine boş satır: konumlar dosyadaki gerçek satır olur
+	res.coded = b.Coded
+	if l, err := codes.LoadLanguage(b.Language); err == nil && b.Coded {
+		res.lang = l
 	}
-	res.text = b.Body
-	p := parser.New(b.Lexer())
+	var lex *lexer.Lexer
+	if b.Coded {
+		body := "\n" + b.Body // başlık satırının yerine boş satır: konumlar dosyadaki gerçek satır olur
+		res.lines, lex = strings.Split(body, "\n"), lexer.NewBody(body, true)
+	} else {
+		res.lines, lex = strings.Split(b.Body, "\n"), source.TextLexer(b.Body)
+	}
+	p := parser.New(lex)
 	p.RecordRoles()
 	if module {
 		res.program = p.ParseModule()
@@ -64,18 +61,30 @@ func readTurkish(text string, module bool) *parsed {
 	return res
 }
 
+// readFile dosyayı önce program, olmazsa modül olarak okur.
+func readFile(text string) *parsed {
+	res := readIn(text, false)
+	if len(res.errs) > 0 {
+		res = readIn(text, true)
+	}
+	return res
+}
+
+// written bir adın dosyada yazıldığı biçimdir: kodlu dosyada kimliğin kendisi, başlıksız dosyada kimliğin o dosyanın
+// yazım dilindeki adı; kullanıcının adı olduğu gibi. Adın yerini satırda arayan okumalar (fieldLine, namePos) bunu arar.
+func (p *parsed) written(name string) string {
+	if p == nil || p.coded {
+		return name
+	}
+	if k, err := codes.Parse(name); err == nil {
+		return p.lang.Name(k)
+	}
+	return name
+}
+
 // dictKey satır ve sütundaki ad tırnaksız bir sözlük anahtarı mı (`{ad: değer}`). Karar sözdizimi ağacından verilir:
 // adlı argüman (`f(ad: 1)`), tip yazımı (`değişken ad: Tam`) ve yapı alanı (`ad: Metin`) da `ad:` yazılır ama anahtar
 // değildir; dizgedeki ya da yorumdaki parantez kararı etkilemez (bağımsız denetim grup 6, R3).
 func (p *parsed) dictKey(line, col int) bool {
 	return p != nil && p.roles[[2]int{line, col}] == parser.RoleDictKey
-}
-
-// readFile dosyayı önce program, olmazsa modül olarak okur.
-func readFile(text string) *parsed {
-	res := readTurkish(text, false)
-	if len(res.errs) > 0 {
-		res = readTurkish(text, true)
-	}
-	return res
 }

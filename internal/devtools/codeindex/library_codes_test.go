@@ -62,10 +62,10 @@ değişken f = özel_türev(ileri: fonksiyon(x) { sonuç [x, []] }, geri: fonksi
 func TestALibraryNameIsFoundByItsCodeAndByItsNameInEveryLanguage(t *testing.T) {
 	r := libraryProject(t)
 	for want, spellings := range map[string][]string{
-		"struct:lib/katman.tr#Doğrusal":                           {"TR_type_Linear", "Doğrusal", "Linear", "katman.Linear", "katman.TR_type_Linear"},
-		"method:lib/katman.tr#Doğrusal.ileri":                     {"katman.Doğrusal.ileri", "katman.Linear.forward", "Linear.forward", "katman.TR_type_Linear.TR_mem_forward"},
-		"function:lib/katman.tr#öğrenme_oranı_planı":              {"TR_fn_lr_schedule", "öğrenme_oranı_planı", "lr_schedule", "LR_SCHEDULE"},
-		"parameter:lib/katman.tr#öğrenme_oranı_planı.adım_sayısı": {"lr_schedule.num_steps", "katman.öğrenme_oranı_planı.adım_sayısı"},
+		"struct:lib/katman.tr#TR_type_Linear":                        {"TR_type_Linear", "Doğrusal", "Linear", "katman.Linear", "katman.TR_type_Linear"},
+		"method:lib/katman.tr#TR_type_Linear.TR_mem_forward":         {"katman.Doğrusal.ileri", "katman.Linear.forward", "Linear.forward", "katman.TR_type_Linear.TR_mem_forward"},
+		"function:lib/katman.tr#TR_fn_lr_schedule":                   {"TR_fn_lr_schedule", "öğrenme_oranı_planı", "lr_schedule", "LR_SCHEDULE"},
+		"parameter:lib/katman.tr#TR_fn_lr_schedule.TR_arg_num_steps": {"lr_schedule.num_steps", "katman.öğrenme_oranı_planı.adım_sayısı"},
 	} {
 		var first []string
 		for _, q := range spellings {
@@ -82,7 +82,7 @@ func TestALibraryNameIsFoundByItsCodeAndByItsNameInEveryLanguage(t *testing.T) {
 				t.Errorf("%q answers differently from %q:\n%s\nvs\n%s", q, spellings[0], strings.Join(got, "\n"), strings.Join(first, "\n"))
 			}
 		}
-		if want == "struct:lib/katman.tr#Doğrusal" && !strings.Contains(first[1], "examples/a.tr") || want == "function:lib/katman.tr#öğrenme_oranı_planı" && !strings.Contains(first[2], "katman_test") {
+		if want == "struct:lib/katman.tr#TR_type_Linear" && !strings.Contains(first[1], "examples/a.tr") || want == "function:lib/katman.tr#TR_fn_lr_schedule" && !strings.Contains(first[2], "katman_test") {
 			t.Errorf("%s: the use in the example and the test block are listed:\n%s", want, strings.Join(first, "\n"))
 		}
 	}
@@ -101,7 +101,7 @@ func TestALibraryNameIsFoundByItsCodeAndByItsNameInEveryLanguage(t *testing.T) {
 		t.Errorf("ileri -> %v: the user function is found by its own name", turkish)
 	}
 	turkish = slices.DeleteFunc(turkish, func(id string) bool { return id == "function:examples/a.tr#ileri" })
-	if !slices.Equal(turkish, english) || !slices.Contains(english, "method:lib/katman.tr#Doğrusal.ileri") || !slices.Contains(english, "builtin:TR_arg_forward") {
+	if !slices.Equal(turkish, english) || !slices.Contains(english, "method:lib/katman.tr#TR_type_Linear.TR_mem_forward") || !slices.Contains(english, "builtin:TR_arg_forward") {
 		t.Errorf("ileri -> %v, forward -> %v: the library method and the builtin are candidates under both names", turkish, english)
 	}
 }

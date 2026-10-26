@@ -36,9 +36,10 @@
       "qualified": "geo.Kare.kenar"
     },
     {
-      "id": "method:lib/geo.tr#Kare.kurucu",
+      "id": "method:lib/geo.tr#Kare.TR_ctx_init",
       "kind": "method",
       "name": "Kare.kurucu",
+      "code": "TR_ctx_init",
       "pos": {
         "file": "lib/geo.tr",
         "line": 7,

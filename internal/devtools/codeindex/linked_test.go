@@ -48,7 +48,7 @@ func TestRenameShowsLinkedDeclarationsAndDictKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 	r := NewReader(idx)
-	res := r.RenameImpact("parameter:m.tr#Model.kurucu.baş", "bakış", RenameOptions{Root: dir})
+	res := r.RenameImpact("parameter:m.tr#Model.TR_ctx_init.baş", "bakış", RenameOptions{Root: dir})
 	if res.Status != StatusOK {
 		t.Fatalf("%+v", res)
 	}
@@ -56,12 +56,12 @@ func TestRenameShowsLinkedDeclarationsAndDictKeys(t *testing.T) {
 	for _, n := range res.Linked {
 		linked = append(linked, n.ID)
 	}
-	want := "field:m.tr#Dikkat.baş parameter:m.tr#Blok.kurucu.baş parameter:m.tr#Dikkat.kurucu.baş"
+	want := "field:m.tr#Dikkat.baş parameter:m.tr#Blok.TR_ctx_init.baş parameter:m.tr#Dikkat.TR_ctx_init.baş"
 	if strings.Join(linked, " ") != want {
 		t.Errorf("linked = %v, want %s", linked, want)
 	}
 	for _, c := range res.Certain {
-		if c.Node != "parameter:m.tr#Model.kurucu.baş" {
+		if c.Node != "parameter:m.tr#Model.TR_ctx_init.baş" {
 			t.Errorf("a linked declaration is not a certain change: %+v", c)
 		}
 	}
@@ -159,7 +159,7 @@ func TestDictKeyRecordMatchesTheSyntaxTree(t *testing.T) {
 		if len(res.errs) > 0 {
 			continue // ayrıştırılamayan (olumsuz örnek) dosyada ağaç yarımdır
 		}
-		lines := strings.Split(res.text, "\n")
+		lines := res.lines
 		want := map[[2]int]bool{}
 		ast.Walk(res.program, func(n any) bool {
 			if d, ok := n.(*ast.DictLiteral); ok {
@@ -260,7 +260,7 @@ func TestForwardsFollowPositionAndShadowing(t *testing.T) {
 			got = append(got, e.From+" -> "+e.To)
 		}
 	}
-	want := "parameter:m.tr#Yer.kurucu.ad -> field:m.tr#Yer.ad parameter:m.tr#h.a -> parameter:m.tr#g.a"
+	want := "parameter:m.tr#Yer.TR_ctx_init.ad -> field:m.tr#Yer.ad parameter:m.tr#h.a -> parameter:m.tr#g.a"
 	if strings.Join(got, " ") != want {
 		t.Errorf("forwards = %v, want %s", got, want)
 	}

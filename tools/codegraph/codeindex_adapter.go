@@ -47,10 +47,11 @@ func extractTR(root string, b *builder, m *module) {
 		b.warn("tr syntax error, definitions skipped: " + s.File + ": " + s.Reason)
 	}
 	ids := map[string]string{}
+	reader := codeindex.NewReader(idx)
 	for _, n := range idx.Nodes {
 		ids[n.ID] = graphID(n)
 		if n.Kind != codeindex.KindBuiltin { // ad kodu düğümlerini codes.go kurar
-			b.addNode(graphNode(n, ids[n.ID]))
+			b.addNode(graphNode(reader, n, ids[n.ID]))
 		}
 	}
 	for _, e := range idx.Edges {
@@ -91,7 +92,11 @@ func graphID(n codeindex.Node) string {
 	return "tr:" + prefix + ":" + n.Pos.File + ":" + n.Name
 }
 
-func graphNode(n codeindex.Node, id string) Node {
+// graphNode dizinin bir düğümünü grafik düğümüne çevirir. Dizin dilin öğelerini kimlikleriyle tutar
+// (`katman.TR_type_Linear.TR_mem_forward`, diskteki kodlu dosyanın yazımı); kodlu bildirim her yazım dilindeki
+// adıyla ve nitelenmiş adıyla da bulunur (takma adlar), tr dizin gibi. Kodun kimliği grafikte ad düğümünü
+// gösterir (nameNodeNames); kitaplık kodunun bildirimine oradan uses_name kenarıyla gidilir.
+func graphNode(r *codeindex.Reader, n codeindex.Node, id string) Node {
 	if n.Kind == codeindex.KindModule {
 		detail := "tr"
 		if n.Coded {
@@ -105,11 +110,10 @@ func graphNode(n codeindex.Node, id string) Node {
 		codeindex.KindTest: kindTRTest, codeindex.KindParameter: kindTRParam, codeindex.KindOption: kindTROption,
 	}[n.Kind]
 	node := Node{ID: id, Kind: kind, Name: n.Qualified, File: n.Pos.File, Line: n.Pos.Line, End: n.Pos.EndLine, Detail: n.Signature, Doc: docLine(n.Doc)}
-	// Dilin öğesi olan bildirim (Node.Code) her yazım dilindeki adıyla bulunur, tr dizin gibi. Kodun kimliği grafikte
-	// ad düğümünü gösterir (nameNodeNames); kitaplık kodunun bildirimine oradan uses_name kenarıyla gidilir.
 	if k, err := codes.Parse(n.Code); err == nil {
 		node.Aliases = codeindex.LanguageNames(k)
 	}
+	node.Aliases = append(node.Aliases, r.QualifiedNames(&n)...)
 	return node
 }
 
@@ -154,8 +158,8 @@ func libraryCodeEdges(idx *codeindex.Index, ids map[string]string, b *builder) {
 		}
 	}
 	for _, n := range idx.Nodes {
-		if k, err := codes.Parse(n.Code); err != nil || !k.IsLibrary() {
-			continue // çekirdekle ortak kodu (TR_arg_step) kitaplığın bildirimi sınamaz
+		if k, err := codes.Parse(n.Code); err != nil || !k.IsLibrary() || !strings.HasPrefix(n.Pos.File, "lib/") || strings.HasSuffix(n.Pos.File, "_test.tr") {
+			continue // kitaplığın kendi bildirimi; çekirdekle ortak kod (TR_arg_step) ve kullanıcının aynı kodlu üyesi sayılmaz
 		}
 		name := "name:" + n.Code
 		b.addEdge(ids[n.ID], name, edgeUsesName, extracted, n.Pos.File, n.Pos.Line)
@@ -192,6 +196,15 @@ func libraryTests(start []string, users map[string][]codeindex.Edge) []codeindex
 	return out
 }
 
+// declNames bir TR bildirim düğümünün çıplak sorguda aranan adlarıdır: kısa adı (son parça) ve takma adları. Kodlu
+// bildirimin kısa adı kimliğidir; kimlik ad düğümünü gösterir (nameNodeNames), bildirim dillerdeki adlarıyla bulunur.
+func declNames(n *Node) []string {
+	if short := n.Name[strings.LastIndex(n.Name, ".")+1:]; !codes.IsReservedName(short) {
+		return append([]string{short}, n.Aliases...)
+	}
+	return n.Aliases
+}
+
 // nameNodeNames bir ad kodu düğümünün sorguda aranan adlarıdır: kimliği ve dillerdeki adları. Kitaplık kodunun
 // dillerdeki adlarını kitaplıktaki bildirimi taşır (libraryCodeEdges); kod yalnız kimliğiyle aranır, yoksa her
 // kitaplık adı bildirimiyle birlikte iki aday olurdu.
@@ -202,8 +215,8 @@ func nameNodeNames(n *Node) []string {
 	return append([]string{n.Name}, n.Aliases...)
 }
 
-// isErrorExample bilerek sözdizimi hatalı yazılmış hata örneklerinin klasörlerindeki dosya mı
-// (examples/tr/hatalar): oradaki ayrıştırma hataları beklenendir.
+// isErrorExample bilerek sözdizimi hatalı yazılmış hata örneklerinin klasöründeki dosya mı (examples/tr/hatalar): oradaki
+// ayrıştırma hataları beklenendir.
 func isErrorExample(file string) bool {
-	return strings.HasPrefix(file, "examples/") && (strings.Contains(file, "/hatalar/") || strings.Contains(file, "/errors/"))
+	return strings.HasPrefix(file, "examples/") && strings.Contains(file, "/hatalar/")
 }

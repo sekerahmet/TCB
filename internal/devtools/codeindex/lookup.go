@@ -213,12 +213,18 @@ func (r *Reader) Resolve(q, kind string) []*Node {
 			if kind != "" && string(nodes[i].Kind) != kind {
 				return ClassNone
 			}
-			if coded[nodes[i].ID] {
+			switch {
+			case coded[nodes[i].ID]:
 				return ClassDeclaration
+			case nodes[i].Code != "":
+				return ClassNone // kodlu bildirimin kısa adı kimliğidir; adları codeNames'tedir
 			}
 			return r.nameClass(i, k, builtin)
 		}); len(found) > 0 {
 			return at(found)
+		}
+		if IdentityQuery(q) {
+			continue // çıplak kimlik kodun kendi düğümüdür (yerleşik ya da kitaplık bildirimi), nitelenmiş bir adın sonu değil
 		}
 		for _, match := range []func(i int) bool{
 			func(i int) bool {
@@ -341,6 +347,9 @@ func (r *Reader) Suggest(q string, limit int) []*Node {
 		cands := []string{n.Name, n.Qualified}
 		if j := strings.LastIndexByte(n.Qualified, '.'); j >= 0 {
 			cands = append(cands, n.Qualified[j+1:])
+		}
+		if k, err := codes.Parse(n.Code); err == nil {
+			cands = append(cands, LanguageNames(k)...) // kodlu bildirimin adı kimliğidir; öneri dillerdeki adlarına bakar
 		}
 		if n.Kind == KindBuiltin {
 			for name, ids := range r.builtins {

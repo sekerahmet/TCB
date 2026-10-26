@@ -84,9 +84,9 @@ func TestBuildDeclarations(t *testing.T) {
 		t.Errorf("module aliases: %+v", m.Aliases)
 	}
 	if got["function:examples/coded.tr#kodlu_işlev"].Pos == nil || !got["module:examples/coded.tr"].Coded {
-		t.Errorf("the coded file is read in its Turkish display: %+v", got["function:examples/coded.tr#kodlu_işlev"])
+		t.Errorf("the coded file is read with its identities: %+v", got["function:examples/coded.tr#kodlu_işlev"])
 	}
-	if sig := got["method:lib/geo.tr#Kare.kurucu"].Signature; !strings.HasSuffix(sig, "kurucu(kenar = …)") {
+	if sig := got["method:lib/geo.tr#Kare.TR_ctx_init"].Signature; sig != "TR_kw_func TR_ctx_init(kenar = …)" {
 		t.Errorf("method signature: %q", sig)
 	}
 }
@@ -159,7 +159,8 @@ func buildWithLanguage(t *testing.T, lang string) *Index {
 	return idx
 }
 
-// Kodlu dosya kodsuzla aynı dizini verir: konumlar Türkçe gösterime göredir.
+// Kural: kodlu dosya kodsuzla aynı dizini verir: dizin ikisini de kimlikleriyle okur (read.go), düğümler, kenarlar ve
+// satırlar aynıdır. Sütunlar diskteki metne göredir (kodlu satırda kimliğin uzunluğuyla), bu yüzden karşılaştırılmaz.
 func TestCodedEqualsPlain(t *testing.T) {
 	dir := t.TempDir()
 	for _, rel := range []string{"lib/geo.tr", "lib/geo_test.tr"} {
@@ -191,7 +192,8 @@ func TestCodedEqualsPlain(t *testing.T) {
 		t.Fatal(err)
 	}
 	shiftLines(coded, -1) // kodlu dosyada başlık satırı bir satır ekler: konumlar dosyadaki gerçek satırdır
-	if a, b := strings.Join(facts(plain), "\n"), shiftTestIDs(strings.Join(facts(coded), "\n"), -1); a != b {
+	a := withoutColumns(strings.Join(facts(plain), "\n"))
+	if b := withoutColumns(shiftTestIDs(strings.Join(facts(coded), "\n"), -1)); a != b {
 		pa, pb := strings.Split(a, "\n"), strings.Split(b, "\n")
 		for i := range pa {
 			if i < len(pb) && pa[i] != pb[i] {
@@ -321,3 +323,9 @@ func shiftTestIDs(s string, d int) string {
 		return sub[1] + strconv.Itoa(n+d)
 	})
 }
+
+// lineCol bir olgudaki satır:sütun konumudur.
+var lineCol = regexp.MustCompile(`(\d+):\d+`)
+
+// withoutColumns olguların konumlarından sütunları atar, satırlar kalır.
+func withoutColumns(s string) string { return lineCol.ReplaceAllString(s, "$1") }

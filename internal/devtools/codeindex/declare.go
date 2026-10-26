@@ -92,7 +92,7 @@ func (x *indexer) def(f *file, parent string, kind Kind, idName, name, qualified
 		end, endCol = valueEnd(f, line) // değer bildiriminin sonu, sonraki bloğun sonu değil
 	}
 	pos := &Pos{File: f.rel, Line: line, Col: col, EndLine: end, EndCol: endCol}
-	x.nodes[id] = &Node{ID: id, Kind: kind, Name: name, Code: x.libraryCode(f, kind, name), Pos: pos, Signature: signature, Qualified: qualified,
+	x.nodes[id] = &Node{ID: id, Kind: kind, Name: name, Code: declCode(name), Pos: pos, Signature: signature, Qualified: qualified,
 		Doc: docAbove(f, line)}
 	x.addEdge(parent, id, EdgeDefines, Extracted, Pos{File: f.rel, Line: line})
 	x.occurrence(id, RoleDefinition, Extracted, namePos(f, kind, name, line, col), parent)
@@ -113,7 +113,7 @@ func (x *indexer) valueNode(f *file, name string, isConst bool, line, col int) {
 func (x *indexer) structNodes(f *file, s *ast.StructStatement) {
 	sid := x.def(f, NodeID(KindModule, f.rel, ""), KindStruct, s.Name, s.Name, f.base+"."+s.Name, s.Token.Literal+" "+s.Name, s.Token.Line, s.Token.Column)
 	for _, fld := range s.Fields {
-		line, col := fieldLine(f, fld.Name, s.Token.Line)
+		line, col := fieldLine(f, f.res.written(fld.Name), s.Token.Line)
 		fieldID := x.def(f, sid, KindField, s.Name+"."+fld.Name, s.Name+"."+fld.Name, f.base+"."+s.Name+"."+fld.Name, fld.Name, line, col)
 		f.fields[fld.Name] = append(f.fields[fld.Name], fieldID)
 	}
@@ -307,6 +307,7 @@ func namePos(f *file, kind Kind, name string, line, col int) Pos {
 	if kind == KindMethod || kind == KindField {
 		short = name[strings.LastIndex(name, ".")+1:]
 	}
+	short = f.res.written(short)
 	p := Pos{File: f.rel, Line: line, Col: col}
 	if kind == KindTest || line < 1 || line > len(f.lines) {
 		return p

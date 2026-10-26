@@ -270,42 +270,15 @@ func (x *indexer) paramOf(fnID, arg string) string {
 	return id
 }
 
-// optionName seçeneğin komut satırındaki adıdır. Kod taşıyan (kodlu dosyada bir üye kodu olan) çıplak anahtar çalışma
-// anında derlenen dosyanın dilinde yazılır (K3, compiler.dictKey `s.Token.Code`: İngilizce betikte `{TR_mem_step: 100}` →
-// `--step`); dizin dosyayı Türkçe okuduğu için anahtar `adım` görünür, ad dosyanın dilinden alınır. Kodsuz anahtar
-// olduğu gibi kalır: Türkçe gösterimde dilin bir sözcüğüne denk gelen kodsuz ad `$adım` diye kaçışla yazılır (Decode,
-// 2.11), kaçışsız bir üye adı bu yüzden yalnızca koddan gelebilir; İngilizce betikte düz yazılmış `adım` anahtarı
-// `--adım`dır (bağımsız denetim grup 7). Türkçe dosya olduğu gibi kalır. Konum Türkçe gösterimdeki anahtarın yeridir.
-// İki dildeki eş betiklerin seçenekleri ayrı dosyalarda, ayrı düğümlerdir.
+// optionName seçeneğin komut satırındaki adıdır. Kod taşıyan çıplak anahtar (`{TR_mem_step: 100}`) çalışma anında
+// derlenen dosyanın dilinde yazılır (K3, compiler.dictKey `s.Token.Code`: İngilizce betikte `--step`, Türkçede `--adım`);
+// dizin anahtarı kimliğiyle okur, ad dosyanın dilinden alınır. Kodsuz anahtar (kullanıcının adı, `$adım` kaçışı dahil)
+// olduğu gibi kalır (bağımsız denetim grup 7). İki dildeki eş betiklerin seçenekleri ayrı dosyalarda, ayrı düğümlerdir.
 func (x *indexer) optionName(f *file, key *ast.StringLiteral) string {
-	if f.res.lang == "" || f.res.lang == codes.SourceLanguage || escapedAt(f, key.Token.Line, key.Token.Column) {
-		return key.Value
+	if k, err := codes.Parse(key.Value); err == nil {
+		return f.res.lang.Name(k)
 	}
-	code, ok := x.lang.Find(codes.NamespaceMember, key.Value)
-	if !ok {
-		return key.Value
-	}
-	if x.fileLangs == nil {
-		x.fileLangs = map[string]*codes.Language{}
-	}
-	l, seen := x.fileLangs[f.res.lang]
-	if !seen {
-		l, _ = codes.LoadLanguage(f.res.lang)
-		x.fileLangs[f.res.lang] = l
-	}
-	if l == nil || l.Name(code) == "" {
-		return key.Value
-	}
-	return l.Name(code)
-}
-
-// escapedAt gösterim satırında sütundaki ad `$` kaçışıyla mı yazılmış.
-func escapedAt(f *file, line, col int) bool {
-	if line < 1 || line > len(f.lines) || col < 1 {
-		return false
-	}
-	r := []rune(f.lines[line-1])
-	return col <= len(r) && r[col-1] == '$'
+	return key.Value
 }
 
 // optionKeys komut_satırı({ad: ...}) çağrısının sözlük anahtarlarını (ve açıklamalar: {ad: ...}

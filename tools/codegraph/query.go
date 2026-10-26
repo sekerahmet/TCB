@@ -55,7 +55,7 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 	if n := ix.byID[q]; n != nil && (len(kinds) == 0 || contains(kinds, n.Kind)) {
 		return []*Node{n}
 	}
-	bare := !strings.ContainsAny(q, "./:")
+	bare, identity := !strings.ContainsAny(q, "./:"), codeindex.IdentityQuery(q)
 	var tr []*Node
 	trFolded := false // TR adayları büyük harfli sorgunun harfsiz geçişinden (Go'nun harfsiz basamağıyla aynı sırada)
 	if bare {
@@ -112,8 +112,8 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 		for i := range ix.g.Nodes {
 			n := &ix.g.Nodes[i]
 			cur = &nf[i]
-			if bare && ti < nameTiers && isTRName(n) {
-				continue // çıplak TR adı trByName'in işidir
+			if bare && ti < nameTiers && isTRName(n) || identity && strings.HasPrefix(n.ID, "tr:") {
+				continue // çıplak TR adı trByName'in işidir; kimlik bir TR bildiriminin adının parçası değildir
 			}
 			if (len(kinds) == 0 || contains(kinds, n.Kind)) && match(n) {
 				found = append(found, n)
@@ -217,7 +217,7 @@ func (ix *index) trNameTable() []trName {
 		case n.Kind == kindTRTest:
 			c.class, c.names = codeindex.ClassTest, []string{n.Name[strings.Index(n.Name, ": ")+2:]} // "modül: açıklama"
 		case strings.HasPrefix(n.ID, "tr:"):
-			c.class, c.names = codeindex.ClassDeclaration, append([]string{n.Name[strings.LastIndex(n.Name, ".")+1:]}, n.Aliases...)
+			c.class, c.names = codeindex.ClassDeclaration, declNames(n)
 		default:
 			continue
 		}

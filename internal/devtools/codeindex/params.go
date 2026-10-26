@@ -27,7 +27,7 @@ func (x *indexer) paramNodes(f *file, owner string, ownerID string, fl *ast.Func
 			}
 			sig += " = " + defaultText(f, at, next)
 		}
-		x.nodes[id] = &Node{ID: id, Kind: KindParameter, Name: name, Code: x.libraryCode(f, KindParameter, name), Pos: &at, Signature: sig,
+		x.nodes[id] = &Node{ID: id, Kind: KindParameter, Name: name, Code: declCode(name), Pos: &at, Signature: sig,
 			Qualified: f.base + "." + name}
 		x.addEdge(ownerID, id, EdgeDefines, Extracted, Pos{File: f.rel, Line: at.Line})
 		x.occurrence(id, RoleDefinition, Extracted, at, ownerID)
@@ -70,7 +70,7 @@ func paramPositions(f *file, fl *ast.FunctionLiteral) []Pos {
 				for k < len(runes) && (unicode.IsLetter(runes[k]) || unicode.IsDigit(runes[k]) || runes[k] == '_') {
 					k++
 				}
-				if idx < len(out) && string(runes[j:k]) == fl.Parameters[idx].Name {
+				if idx < len(out) && string(runes[j:k]) == f.res.written(fl.Parameters[idx].Name) {
 					out[idx] = Pos{File: f.rel, Line: li + 1, Col: j + 1, EndLine: li + 1, EndCol: k + 1}
 				}
 				idx++

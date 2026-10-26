@@ -5,8 +5,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-
-	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
 // refresh önbellekteki dizini güncel dosyalara göre tazeler. Dosya kümesi aynı kalmışsa çalışır
@@ -79,7 +77,7 @@ func incrementalBuild(root string, opts Options, prev *Index, changed []string) 
 		prevNodes[prev.Nodes[i].ID] = &prev.Nodes[i]
 	}
 	dirty := dirtyClosure(prev, changed)
-	x := &indexer{root: root, lang: source.Turkish(), library: opts.Library, files: map[string]*file{},
+	x := &indexer{root: root, lang: identities(), library: opts.Library, files: map[string]*file{},
 		nodes: map[string]*Node{}, edges: map[edgeKey]*Edge{}, constructSeen: map[string]bool{}}
 	for _, n := range prev.Nodes {
 		if !dirty[nodeFile(&n)] {

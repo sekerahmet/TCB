@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
-	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
 // Bir Go test dizesinde ya da başka bir metinde bulunan TR kodunun kullandığı yerleşik adlar: dizin dosyadan değil
@@ -27,7 +26,7 @@ type SnippetUse struct {
 // iç bloklardakiler dahil, her biri bir kez): metni koşan test aktardığı modülü de koşar. Metnin sınadığı kitaplık
 // adları da kodlarıyla gelir (TR_fn_pretrained_model; exercisesLibrary).
 func Snippet(src string, library fs.FS) (uses []SnippetUse, imports []string) {
-	x := &indexer{root: "", lang: source.Turkish(), library: library, files: map[string]*file{}, nodes: map[string]*Node{}, edges: map[edgeKey]*Edge{},
+	x := &indexer{root: "", lang: identities(), library: library, files: map[string]*file{}, nodes: map[string]*Node{}, edges: map[edgeKey]*Edge{},
 		constructSeen: map[string]bool{}}
 	x.addFile("snippet.tr", []byte(src), nil)
 	if len(x.order) == 0 {

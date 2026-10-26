@@ -77,7 +77,7 @@ func TestEmbeddedLibraryModule(t *testing.T) {
 	fs := facts(idx)
 	for _, want := range []string{
 		"edge module:main.tr imports module:tr:lib/katman.tr EXTRACTED x1",
-		"edge module:main.tr calls struct:tr:lib/katman.tr#GPT EXTRACTED x1",
+		"edge module:main.tr calls struct:tr:lib/katman.tr#TR_type_GPT EXTRACTED x1",
 	} {
 		if !hasFact(fs, want) {
 			t.Errorf("missing %s in\n%v", want, fs)

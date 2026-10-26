@@ -463,6 +463,14 @@ func trNameSetMismatches(g *Graph, idx *codeindex.Index, reader *codeindex.Reade
 				if known[n.ID] {
 					got[n.ID] = true
 				}
+				// Kitaplık kodunun kimliği grafikte ad düğümünü, dizinde bildirimi gösterir: ikisi aynı koddur.
+				if k, err := codes.Parse(strings.TrimPrefix(n.ID, "name:")); err == nil && k.IsLibrary() {
+					for _, e := range ix.in[n.ID] {
+						if e.Kind == edgeUsesName && known[e.From] && strings.HasPrefix(e.From, "tr:") {
+							got[e.From] = true
+						}
+					}
+				}
 			}
 			if !maps.Equal(want, got) {
 				bad = append(bad, fmt.Sprintf("%q: tr dizin %d %v, codegraph %d %v", q, len(want), slices.Sorted(maps.Keys(want)), len(got), slices.Sorted(maps.Keys(got))))
