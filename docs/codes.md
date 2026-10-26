@@ -1509,7 +1509,7 @@ yazdır(ortanca([3, 1, 4, 2]))
 İleti kataloğundaki bir iletiyi kodu (H6903) ve değerleriyle (katalogdaki parametre sırasıyla) kurar. Dönen metindir ve kodunu taşır: fırlat ile doğrula ona verilince hata o kodla fırlar, metni her dilde kataloğun metnidir. Kitaplık hata metnini böyle yazar.
 
 ```tr
-dene { fırlat ileti(H6903, -1) } yakala h { yazdır(h) }
+değişken i = ileti(H6903, -1); yazdır(i)
 ```
 
 İlişkili: TR_fn_error_code `hata_kodu`, TR_fn_assert `doğrula`, TR_kw_throw `fırlat`
