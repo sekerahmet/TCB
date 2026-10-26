@@ -3,7 +3,6 @@ package lexer
 import (
 	"sort"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -23,24 +22,12 @@ import (
 // the lexer. Unlike New it does not strip a leading U+FEFF: every character of the body is
 // part of the source.
 //
-// Kodlu gövdede konumlar çözümleyicinin dilindeki görünüme göredir (17.5): bir kod o dildeki
-// adıyla gösterilir, satırın sonraki sütunları adın uzunluğu kadar kayar; ön tarama kaymaları
-// bulur (yerleştirmelerdeki kodlar dahil). Kimlik listesinde kodun adı diskteki yazımıdır, konumlar
-// diskteki metne göredir; kişinin gördüğü görünümün konumlarını NewBodyView verir (source.view).
+// Kodlu gövdede konumlar diskteki metne göredir: kodlar kimlikleriyle okunur (Active), kodun adı
+// diskteki yazımıdır, sütun kaymaz. Kişinin gördüğü görünümün konumlarını NewBodyView verir
+// (source.view, 17.5).
 func NewBody(input string, coded bool) *Lexer {
-	if !coded {
-		l := newLexer(input)
-		l.checkBidi()
-		return l
-	}
-	pre := newLexer(input)
-	pre.coded = true
-	var k []shift
-	budget := maxPreScanFactor*len(input) + 1<<16
-	pre.scanCodes(&k, 0, &budget)
 	l := newLexer(input)
-	l.coded = true
-	l.buildShifts(k)
+	l.coded = coded
 	l.checkBidi()
 	return l
 }
@@ -61,10 +48,9 @@ type ViewEdit struct {
 	Start, End, Len int
 }
 
-// NewBodyView returns the lexer for a coded body whose columns follow a view built from edits
-// (internal/lang/source builds the view and passes its edits). Unlike NewBody's pre-scan, the
-// edits also carry the '$' of user names that the view escapes, so every position matches the
-// text the person sees exactly.
+// NewBodyView sütunları edits'ten kurulan görünüme göre olan kodlu gövdenin çözümleyicisidir
+// (görünümü internal/lang/source kurar ve düzenlemelerini verir). Düzenlemeler görünümün kaçırdığı
+// kullanıcı adlarının '$'ını da taşır; her konum kişinin gördüğü metinle birebir aynıdır.
 func NewBodyView(input string, edits []ViewEdit) *Lexer {
 	l := newLexer(input)
 	l.coded = true
@@ -79,49 +65,10 @@ func NewBodyView(input string, edits []ViewEdit) *Lexer {
 	return l
 }
 
-// maxInterpolationNesting is how deep the pre-scan follows interpolations inside
-// interpolations. It equals the parser's nesting limit: deeper code is a parse error anyway,
-// and without a limit each level copies the text below it (quadratic time).
-const maxInterpolationNesting = 1000
-
-// maxPreScanFactor bounds the pre-scan's total work: the interpolation text it reads across all
-// levels stays below this many times the input (plus 64 KiB). Each level re-reads the text
-// below it, so code nested d levels costs d times its length; past the budget deeper levels
-// are skipped (only their column shifts are lost). Real code is never nested 32 levels deep.
-const maxPreScanFactor = 32
-
 // shift, kökün girdisindeki off konumundan başlayarak satırın geri kalanının gösterimdeki
-// sütun kaymasıdır (kodun adının uzunluğu - 4).
+// sütun kaymasıdır (görünümdeki uzunluk - diskteki uzunluk).
 type shift struct {
 	off, d int32
-}
-
-// scanCodes bütün sözcükleri (yerleştirmelerdekiler dahil) okuyup kodların sütun
-// kaymalarını toplar. Bulunan hatalar önemsenmez; asıl çözümleyici onları yeniden bulur.
-func (l *Lexer) scanCodes(k *[]shift, depth int, budget *int) {
-	for {
-		tok := l.NextToken()
-		switch {
-		case tok.Type == TokEOF:
-			return
-		case tok.Code != codes.None:
-			begin, end := l.LastRange()
-			if d := utf8.RuneCountInString(tok.Literal) - (end - begin); d != 0 {
-				*k = append(*k, shift{off: l.sourcePos(end), d: int32(d)})
-			}
-		case tok.Type == TokString && depth < maxInterpolationNesting:
-			if positions := l.Interpolations(tok); positions != nil {
-				value := []rune(tok.Literal)
-				for _, y := range positions {
-					if expr, begin := InterpolationExpr(value, y[0]+1, y[1]); expr != "" {
-						if *budget -= len(expr); *budget >= 0 {
-							l.Interpolation(tok, expr, begin).scanCodes(k, depth+1, budget)
-						}
-					}
-				}
-			}
-		}
-	}
 }
 
 // buildShifts kaymaları konuma göre sıralar ve birikimli toplamlarını kurar. Satır sonundaki

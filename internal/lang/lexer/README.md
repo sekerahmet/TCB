@@ -23,4 +23,4 @@ verir. Bilinmeyen kaçış dizisi hatadır, sessizce kabul edilmez. Denetim: `Te
 **İleti kodu bir ad değil sözcük birimidir.** `H` ve tam dört rakam (`H6903`) `TokMessageCode`'dur (dil tanımı 2.12); ayrıştırıcı onu kodun metnine okur, `ileti(H6903, x)` ile `ileti("H6903", x)` aynıdır. Daha uzun ya da küçük harfli yazım (`H69030`, `h6903`) sıradan bir addır. Denetim: `TestMessageCodeToken`.
 
 **Hiçbir girdide çökmez.** Kaynak güvenilmeyen girdidir. Sözcük çözümleyici panik yapmaz, sonsuz
-döngüye girmez; hataları toplar ve okumaya devam eder (bulanıklaştırma testiyle sınanır). Denetim: `FuzzLexer`, `FuzzCodedLexer`, `TestCodedPreScanDepthLimited`.
+döngüye girmez; hataları toplar ve okumaya devam eder (bulanıklaştırma testiyle sınanır). Denetim: `FuzzLexer`, `FuzzCodedLexer`.

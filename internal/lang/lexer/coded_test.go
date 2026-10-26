@@ -1,13 +1,11 @@
 package lexer
 
 import (
-	"errors"
 	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
-	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // allOf bir çözümleyicinin bütün sözcük birimlerini (dosya sonu hariç) okur.
@@ -120,26 +118,6 @@ func TestInterpolationPositions(t *testing.T) {
 	if string([]rune(source)[end.Start:end.End]) != "yaz" {
 		t.Errorf("kayıt aralığı [%d,%d) %q", end.Start, end.End, string([]rune(source)[end.Start:end.End]))
 	}
-}
-
-// Kodlu kipin ön taraması metin yerleştirmelerinin içine iner; derinlik sınırı olmadan çok iç içe
-// metinli bir dosya dakikalar sürüyordu (her düzey altındaki metni kopyalar). Tarama ayrıştırıcının
-// iç içelik sınırında durur (ayrıştırıcı orada zaten hata verir) ve bir iş bütçesi toplamı girdiyle
-// doğrusal tutar. Duvar saati tavanı yerine büyüme ölçülür (testkit.ScalesLinearly: 5000 ve 20000
-// düzey); yüklü bir makine tavanı aşıyordu. Birim tüketilen karakterdir: iki boyda da iç içe metin
-// tek belirteçtir (belirteç sayısı 4), girdinin sonuna kadar okunduğunu karakter gösterir.
-func TestCodedPreScanDepthLimited(t *testing.T) {
-	testkit.ScalesLinearly(t, "nested interpolations", 5000, func(n int) func() (int, error) {
-		source := "TR_kw_var s = " + strings.Repeat(`"{`, n) + "1" + strings.Repeat(`}"`, n) + "\n"
-		return func() (int, error) {
-			l := NewBody(source, true)
-			consumed := 0
-			for l.NextToken().Type != TokEOF {
-				_, consumed = l.LastRange()
-			}
-			return consumed, errors.Join(l.Errs()...)
-		}
-	})
 }
 
 // Kodsuz gövde verilen dilde okunur (NewBodyIn): Türkçe yazılmış dosya etkin dil ne olursa

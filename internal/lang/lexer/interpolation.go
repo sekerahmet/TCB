@@ -25,7 +25,7 @@ func (l *Lexer) appendString(sb *strings.Builder, r rune, source int) {
 // stringInfo yerleştirme içeren bir metin sabitinin bilgisidir: değerdeki her karakterin
 // kökün girdisindeki konumu ve yerleştirmelerin değerdeki aralıkları ('{' ve onu kapatan '}'
 // indeksleri; kapanmayanda son -1). Aralıkları sözcük çözümleyici metni okurken çıkarır;
-// ayrıştırıcı ve kodlu biçimin ön taraması aynı aralıkları kullanır.
+// ayrıştırıcı aynı aralıkları kullanır.
 type stringInfo struct {
 	srcPos    []int32
 	positions [][2]int
