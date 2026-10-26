@@ -178,3 +178,6 @@ codegraph who-uses codes.Code.String --all | group: formats => codes.Language.Na
 codegraph who-uses profiler.Snapshot.Start | group: encodes => profiler.statusWriter.put | not: never read or written | src: gaps partisi kritik 3, 2026-10-26 (alan yalnız JSON ile speed.json'a yazılıyor)
 codegraph query internal/lang/codes/language.go:218 | contains: codes.Language.Name [method] | not: line 218 is in no declaration | src: gaps partisi ince ayar, 2026-10-26 (grep'in bulduğu satırı içeren bildirim)
 codegraph tests-for internal/lang/codes/language.go:218 | contains: codes.Language.Name [method] | not: not found | src: gaps partisi ince ayar, 2026-10-26
+
+# K1 partisi, 2026-10-26 (CODEGRAPH)
+codegraph who-uses lexer.keywordMap | contains: lexer.typeCodes [var] | contains: lexer.keywords [var] | src: K1 partisi, 2026-10-26 (var a, b = f(): ikinci ad da değeri kullanır; eskiden yalnız ilk ad)

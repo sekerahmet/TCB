@@ -5,6 +5,7 @@ import (
 	"go/token"
 	"go/types"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -329,25 +330,60 @@ func (x *goExtractor) denotes(fc *fileCtx, id, pkg, name string, line int) {
 // scanValueSpecs paket düzeyindeki const/var bildirimlerinin kullanımlarını bildirimin kendi düğümünden çıkarır
 // (`var ValInt = TypeName(codes.TypeInt)`: ValInt TypeName'i ve TR_type_Int'ü kullanır). Hepsini paket düğümüne yazmak aynı
 // hedefe giden farklı dosyalardaki kullanımları tek kenara indirirdi. Adı olmayan (`var _ = ...`) ya da çözülemeyen
-// belirtim dosya düğümüne yazılır (dosyalar arasında aynı hedefe giden kullanımlar tek kenara inmesin).
+// belirtim dosya düğümüne yazılır (dosyalar arasında aynı hedefe giden kullanımlar tek kenara inmesin). Çok adlı
+// belirtimde her ad kendi değerini (`var a, b = f(), g()`), tek ve çok değerli değerde hepsi o değeri kullanır
+// (`var d, err = kur()`); eskiden yalnız ilk ad kullanırdı ve öbürlerinden geçen zincirler kopuktu.
 func (x *goExtractor) scanValueSpecs(fc *fileCtx, d *ast.GenDecl) {
 	for _, spec := range d.Specs {
-		owner := fileID(fc.rel) // `var _ T = ...` gibi adsız belirtim dosyanın kendisinden kullanır
-		if vs, ok := spec.(*ast.ValueSpec); ok {
-			for _, name := range vs.Names {
-				if obj := fc.u.Info.Defs[name]; obj != nil && name.Name != "_" && obj.Pkg() != nil {
-					owner = valueID(map[token.Token]string{token.CONST: kindConst, token.VAR: kindVar}[d.Tok], obj.Pkg().Path(), name.Name)
-					break
+		vs, ok := spec.(*ast.ValueSpec)
+		if !ok {
+			x.scan(fc, fileID(fc.rel), spec)
+			continue
+		}
+		owners := x.specOwners(fc, d, vs)
+		if len(owners) > 1 && len(vs.Values) == len(owners) {
+			for i, owner := range owners {
+				if vs.Type != nil {
+					x.scan(fc, owner, vs.Type)
 				}
+				x.scan(fc, owner, vs.Values[i])
+			}
+		} else {
+			for _, owner := range sharedOwners(owners, fileID(fc.rel)) {
+				x.scan(fc, owner, spec)
 			}
 		}
-		x.scan(fc, owner, spec)
 		x.initializerSites(fc, d, spec)
 	}
 }
 
-// initializerSites başlatıcılı bir paket değişkenini yazanın kendi bildirimi olarak işaretler: değişkenden kendine
-// `inits_var` (kip "initializer"). `query codes.active` yazanları "başlatıcı" ve "init" ayrı grupta gösterir.
+// specOwners belirtimdeki her adın düğümüdür; adsız (`_`) ya da çözülemeyen ad dosya düğümüdür.
+func (x *goExtractor) specOwners(fc *fileCtx, d *ast.GenDecl, vs *ast.ValueSpec) []string {
+	kind := map[token.Token]string{token.CONST: kindConst, token.VAR: kindVar}[d.Tok]
+	owners := make([]string, len(vs.Names))
+	for i, name := range vs.Names {
+		owners[i] = fileID(fc.rel)
+		if obj := fc.u.Info.Defs[name]; obj != nil && name.Name != "_" && obj.Pkg() != nil {
+			owners[i] = valueID(kind, obj.Pkg().Path(), name.Name)
+		}
+	}
+	return owners
+}
+
+// sharedOwners ortak değeri kullanan adlardır: adı olanlar birer kez; hiçbiri yoksa dosya.
+func sharedOwners(owners []string, file string) []string {
+	var named []string
+	for _, o := range owners {
+		if o != file && !slices.Contains(named, o) {
+			named = append(named, o)
+		}
+	}
+	if len(named) == 0 {
+		return []string{file}
+	}
+	return named
+}
+
 func (x *goExtractor) initializerSites(fc *fileCtx, d *ast.GenDecl, spec ast.Spec) {
 	vs, ok := spec.(*ast.ValueSpec)
 	if !ok || d.Tok != token.VAR || len(vs.Values) == 0 {
