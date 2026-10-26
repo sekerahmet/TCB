@@ -131,6 +131,6 @@ TR_ctx_test "8.5 ileti fırlatılınca hata kendi koduyla çıkar; doğrula ilet
     TR_kw_var yakalanan = ""
     TR_kw_try { TR_kw_throw TR_fn_message(H6903, -1) } TR_kw_catch h { yakalanan = h }
     TR_fn_assert(yakalanan.TR_mem_contains("-1"), yakalanan)
-    TR_kw_try { TR_fn_message(H6903) } TR_kw_catch h { yakalanan = h }
+    TR_kw_try { TR_fn_message("H6903") } TR_kw_catch h { yakalanan = h }
     TR_fn_assert(yakalanan.TR_mem_contains("H6903"), yakalanan)
 }
