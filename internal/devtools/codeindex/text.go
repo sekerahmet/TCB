@@ -26,10 +26,11 @@ const (
 
 // Eşleşme biçimi (TextHit.Match).
 const (
-	MatchExact    = "exact"    // sözcüğün kendisi
-	MatchSuffixed = "suffixed" // Türkçe ekli biçim (başı, başları, başında)
-	MatchCompound = "compound" // alt çizgiyle ayrılmış ad parçası (kv_baş, baş_boyutu)
-	MatchDerived  = "derived"  // türemiş sıfat (başlı, başsız)
+	MatchExact        = "exact"         // sözcüğün kendisi
+	MatchLanguageFile = "language_file" // kodlu adın dil dosyasındaki satırı (renameCode)
+	MatchSuffixed     = "suffixed"      // Türkçe ekli biçim (başı, başları, başında)
+	MatchCompound     = "compound"      // alt çizgiyle ayrılmış ad parçası (kv_baş, baş_boyutu)
+	MatchDerived      = "derived"       // türemiş sıfat (başlı, başsız)
 )
 
 // TextHit bir metin eşleşmesidir.

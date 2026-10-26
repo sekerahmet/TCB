@@ -55,7 +55,7 @@ func codeNames(idx *Index) map[string][]string {
 			continue
 		}
 		spellings := LanguageNames(k)
-		if file := strings.TrimPrefix(n.Pos.File, libraryPrefix); k.IsLibrary() && strings.HasPrefix(file, "lib/") && !strings.HasSuffix(file, "_test.tr") {
+		if k.IsLibrary() && libraryDecl(&n) {
 			spellings = append(spellings, n.Code) // kitaplığın kendi bildirimi; kullanıcının aynı kodlu üyesi dillerdeki adıyla
 		}
 		for _, s := range spellings {
@@ -134,4 +134,14 @@ func (r *Reader) QualifiedNames(n *Node) []string {
 		out = append(out, q[0])
 	}
 	return out
+}
+
+// libraryDecl düğüm kitaplığın kodlu bir bildirimi mi: kod taşır ve kitaplıktadır (depodaki lib/ ya da gömülü tr:lib/;
+// kitaplığın testleri değil). Kullanıcının aynı kodla yazılmış üyesi kitaplığın bildirimi değildir.
+func libraryDecl(n *Node) bool {
+	if n.Code == "" || n.Pos == nil {
+		return false
+	}
+	file := strings.TrimPrefix(n.Pos.File, libraryPrefix)
+	return strings.HasPrefix(file, "lib/") && !strings.HasSuffix(file, "_test.tr")
 }

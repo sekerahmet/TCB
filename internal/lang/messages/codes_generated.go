@@ -1712,5 +1712,7 @@ const (
 	H8868 Code = 8868 // sözlük anahtarı
 	H8869 Code = 8869 // veri biçimi; kendiliğinden değişmez
 	H8870 Code = 8870 // (yok sayılan klasör)
+	H8871 Code = 8871 // {code} bir koddur: adı dil dosyasında değişir, kodlu dosyalar kimliği taşır ve olduğu gibi kalır; yeni ad baş geliştiricinin onayıyla eklenir
+	H8872 Code = 8872 // dil dosyasındaki ad
 	H9000 Code = 9000 // TR'de bir iç hata oluştu (bu sizin programınızın değil, TR'nin hatası); lütfen bildirin: {detail}
 )

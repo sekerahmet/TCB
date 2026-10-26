@@ -194,6 +194,7 @@ var reasonMessages = map[string]messages.Code{
 var matchLabels = map[string]messages.Code{
 	MatchMemberGuess: messages.H8847, MatchShadowed: messages.H8848, MatchExact: messages.H8849,
 	MatchSuffixed: messages.H8850, MatchCompound: messages.H8851, MatchDerived: messages.H8865, MatchDataFormat: messages.H8869,
+	MatchLanguageFile: messages.H8872,
 }
 
 var whereLabels = map[string]messages.Code{
@@ -228,6 +229,9 @@ func RenameText(r *Result) string {
 		fmt.Fprintln(&b, messages.Text(messages.H8866))
 		writeLikely(&b, r)
 		return b.String()
+	}
+	if r.Mode == ModeLanguage && len(r.Targets) > 0 {
+		fmt.Fprintln(&b, messages.Text(messages.H8871, r.Targets[0].Code))
 	}
 	fmt.Fprintln(&b, messages.Text(messages.H8836, len(r.Targets)))
 	for _, n := range r.Targets {

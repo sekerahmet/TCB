@@ -1707,5 +1707,7 @@
 "H8868": "dictionary key",
 "H8869": "data format; never changed automatically",
 "H8870": "(ignored folder)",
+"H8871": "{code} is a code: its name changes in the language file, coded files carry the identity and stay as they are; a new name comes with the lead developer's approval",
+"H8872": "name in the language file",
 "H9000": "an internal error occurred in TR (not an error in your program); please report it: {detail}"
 }

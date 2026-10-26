@@ -150,10 +150,16 @@ func (r *Reader) RenameImpact(q, newName string, o RenameOptions) *Result {
 		words[Fold(shortName(n))] = shortName(n)
 	}
 	for _, w := range words {
+		if libraryDecl(targets[0]) {
+			break // kitaplık adının eski adı dil dosyasındadır (renameCode)
+		}
 		if reason := validateNewName(w, newName); reason != "" {
 			res.Status, res.Reason = StatusRejected, reason
 			return res
 		}
+	}
+	if libraryDecl(targets[0]) {
+		return r.renameCode(res, targets[0], newName, o) // kitaplığın kodlu adı: dil dosyasında
 	}
 	for _, n := range targets {
 		res.Targets = append(res.Targets, r.display(*n))
@@ -179,8 +185,14 @@ func (r *Reader) RenameImpact(q, newName string, o RenameOptions) *Result {
 			}
 		}
 	}
+	return finishRename(res, sortedValues(words), newName, o, skip, lines)
+}
+
+// finishRename sözcüklerin metin taramasını olası yerlere ekler (kök verilmiş ve metin kapalı değilse), iki listeyi
+// sıralar, sayar ve sınırla keser.
+func finishRename(res *Result, words []string, newName string, o RenameOptions, skip map[string]bool, lines *lineSource) *Result {
 	if o.Root != "" && !o.NoText {
-		for _, w := range sortedValues(words) {
+		for _, w := range words {
 			hits, other := ScanText(o.Root, w, newName, skip)
 			res.SkippedWords += other
 			for _, h := range hits {

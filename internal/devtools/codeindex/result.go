@@ -96,7 +96,7 @@ type Result struct {
 	Conflicts    []Conflict `json:"conflicts,omitempty"`
 	Linked       []Node     `json:"linked,omitempty"` // bağlı bildirimler: aynı adla iletilen ya da aynı adlı alana atanan (linked.go)
 	SkippedWords int        `json:"skipped_other_words,omitempty"`
-	Mode         string     `json:"mode,omitempty"` // "term": sembol aranmadı, yalnızca metin
+	Mode         string     `json:"mode,omitempty"` // "term": sembol aranmadı, yalnızca metin; "language": kodlu ad, dil dosyasında
 }
 
 // NewResult şema adı yazılmış boş bir sonuç kurar.
@@ -112,3 +112,7 @@ func EncodeJSON(r *Result) ([]byte, error) {
 
 // ModeTerm yeniden adlandırma etkisinin terim kipidir (Result.Mode).
 const ModeTerm = "term"
+
+// ModeLanguage kodlu bir adın yeniden adlandırılmasıdır (Result.Mode): ad dil dosyasında değişir, kodlu dosyalar
+// kimliği taşır ve olduğu gibi kalır (rename_code.go).
+const ModeLanguage = "language"
