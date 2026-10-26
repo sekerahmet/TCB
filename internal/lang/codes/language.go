@@ -80,8 +80,14 @@ type Language struct {
 
 // Load reads and validates a language file. On format errors, duplicate codes or clashing
 // names in a namespace (in Turkish or ASCII form, foreign names included) it returns one error
-// listing all of them.
+// listing all of them. The codes with a common name (definitions.json "ortak_ad") get it as
+// their name in this language; naming such a code in the language file is an error.
 func Load(langCode string, data []byte) (*Language, error) {
+	return load(langCode, data, commonNames())
+}
+
+// load, ortak adları verilmiş Load'dur (testler yapay ortak adlar verir).
+func load(langCode string, data []byte, common map[Code]string) (*Language, error) {
 	var errs []string
 	errorf := func(form string, a ...any) { errs = append(errs, fmt.Sprintf(form, a...)) }
 
@@ -89,6 +95,7 @@ func Load(langCode string, data []byte) (*Language, error) {
 	if err != nil {
 		return nil, messages.Internalf("language list %s: the file could not be read (it must be a JSON object { \"TR_fn_print\": { \"ad\": ... }, ... }): %v", langCode, err)
 	}
+	raw = withCommonNames(raw, common, errorf)
 
 	d := &Language{Code: langCode, entries: make(map[Code]*Entry, len(raw)), spellings: make(map[Code][]string, len(raw))}
 	var nsCount [namespaceCount]int // ad alanı başına yazım sayısı (haritaların boyu için)
@@ -195,6 +202,38 @@ func Load(langCode string, data []byte) (*Language, error) {
 		return nil, messages.Internalf("code list %s:\n  %s", langCode, strings.Join(errs, "\n  "))
 	}
 	return d, nil
+}
+
+// withCommonNames her ortak adı, hiçbir denetimden önce, kodun ham satırına bu dilin adı olarak
+// yazar (dosyada satırı yoksa yeni satır açar): ortak ad dilin kendi adlarıyla aynı denetimlerden
+// geçer (boş ad, yabancı ad, TR_ öneki ve ortam değişkeni istisnası, çakışma). Ortak adlı koda dil
+// dosyasında ad vermek hatadır.
+func withCommonNames(raw []rawEntry, common map[Code]string, errorf func(string, ...any)) []rawEntry {
+	seen := map[Code]bool{}
+	for i := range raw {
+		k, err := Parse(raw[i].key)
+		name, ok := common[k]
+		if err != nil || !ok {
+			continue
+		}
+		seen[k] = true
+		if raw[i].name != "" {
+			errorf("%s has the common name %q (definitions.json ortak_ad); the language file must not name it (%q)", k, name, raw[i].name)
+			continue
+		}
+		raw[i].name = name
+	}
+	added := make([]Code, 0, len(common))
+	for k := range common {
+		if !seen[k] {
+			added = append(added, k)
+		}
+	}
+	sort.Slice(added, func(i, j int) bool { return added[i] < added[j] })
+	for _, k := range added {
+		raw = append(raw, rawEntry{key: k.String(), name: common[k]})
+	}
+	return raw
 }
 
 // Codes returns every code in the language in ascending order.

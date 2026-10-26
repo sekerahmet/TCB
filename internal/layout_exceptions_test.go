@@ -50,7 +50,7 @@ var longFuncs = map[string]exception{
 	"internal/lang/checker/checker.go:Checker.checkStatement":    {147, reasonDispatch},
 	"internal/lang/checker/checker.go:Checker.inferExpression":   {115, reasonDispatch},
 	"internal/lang/parser/struct.go:Parser.parseStructStatement": {97, "yapı tanımı: alanlar, varsayılanlar, metotlar ve hata kurtarma tek akışta; alan ve metot çözümlemesi ayrılabilir"},
-	"internal/lang/codes/language.go:Load":                       {160, reasonRead + " (dil dosyası)"},
+	"internal/lang/codes/language.go:load":                       {160, reasonRead + " (dil dosyası)"},
 	"internal/lang/codes/definition.go:CheckDefinitions":         {113, reasonRead + " (tanım dosyasının tutarlılık denetimleri)"},
 	"internal/lang/codes/definition.go:ParseDefinitions":         {96, reasonRead + " (tanım dosyası)"},
 
