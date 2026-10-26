@@ -7,6 +7,10 @@
   "commit": "0d6949c",
   "reason": "deleted: messages: whole-sentence templates instead of message fragments"
  },
+ "H2116": {
+  "commit": "be79d7e",
+  "reason": "deleted: cmd/tr: tr çöz is gone; nothing writes a file to disk in a writing language"
+ },
  "H2120": {
   "commit": "0d6949c",
   "reason": "deleted: messages: whole-sentence templates instead of message fragments"
@@ -179,6 +183,10 @@
   "commit": "ab7f634",
   "reason": "deleted: messages: one code per meaning, coded reasons kept, safe generator comments"
  },
+ "H8621": {
+  "commit": "be79d7e",
+  "reason": "deleted: cmd/tr: tr çöz is gone; nothing writes a file to disk in a writing language"
+ },
  "H8652": {
   "commit": "ab7f634",
   "reason": "deleted: messages: one code per meaning, coded reasons kept, safe generator comments"
@@ -186,5 +194,13 @@
  "H8653": {
   "commit": "ab7f634",
   "reason": "deleted: messages: one code per meaning, coded reasons kept, safe generator comments"
+ },
+ "H8705": {
+  "commit": "be79d7e",
+  "reason": "deleted: cmd/tr: tr çöz is gone; nothing writes a file to disk in a writing language"
+ },
+ "H8711": {
+  "commit": "be79d7e",
+  "reason": "deleted: cmd/tr: tr çöz is gone; nothing writes a file to disk in a writing language"
  }
 }
