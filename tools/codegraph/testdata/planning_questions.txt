@@ -193,4 +193,4 @@ codegraph tests-for internal/devtools/testrunner/runner_test.go | contains: this
 codegraph tests-for tools/codegraph/query_fields.go | contains: codegraph.TestFieldsCommands [func] tools/codegraph/fields_test.go:88  direct | src: K1 partisi ince ayar 2, 2026-10-26 (komut adıyla çalıştırılan komutun işlevi doğrudan sınanır; eskiden en yakını 5 adım)
 codegraph tests-for internal/testkit/known_list_test.go | contains: this file's tests (1): | not: none found | src: K1 partisi ince ayar 1, 2026-10-26 (MEKANİK örneği, ana oturum a2e94151'de üretti)
 codegraph tests-for internal/lang/parser/context_test.go | contains: this file's tests (8): | not: none found | src: K1 partisi ince ayar 1, 2026-10-26 (MEKANİK örneği)
-codegraph tests-for internal/lang/codes/language_test.go | contains: this file's tests (16): | src: K1 partisi ince ayar 1, 2026-10-26 (MEKANİK örneği: kendi testleri ilk grupta)
+codegraph tests-for internal/lang/codes/language_test.go | contains: this file's tests ( | contains: codes.TestIdentities | src: K1 partisi ince ayar 1, 2026-10-26 (MEKANİK örneği: kendi testleri ilk grupta)
