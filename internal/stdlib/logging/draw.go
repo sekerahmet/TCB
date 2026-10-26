@@ -55,7 +55,7 @@ func bar(ratio float64) string {
 func (c *Progress) metricParts() []string {
 	out := make([]string, 0, len(c.metrics))
 	for _, o := range c.metrics {
-		out = append(out, o.name+" "+metricText(o.value))
+		out = append(out, o.shown+" "+metricText(o.value))
 	}
 	return out
 }

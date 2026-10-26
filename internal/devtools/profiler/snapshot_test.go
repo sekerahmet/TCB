@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // jsonKeys bir tipin JSON anahtarlarını yol olarak sıralı verir ("tensör.işlemler.kod");
@@ -38,7 +40,7 @@ func jsonKeys(typ reflect.Type, prefix string, keys *[]string, errs *[]string) {
 	}
 }
 
-// Profil dosyasının JSON anahtarları okuyan araçların (VS Code eklentisi, tr izle)
+// Profil dosyasının JSON anahtarları okuyan araçların (tr izle, tools/gpu/phase3_table.py)
 // sözleşmesidir: her alan açık bir anahtar taşır ve anahtar kümesi biçim sürümüne bağlıdır.
 // Anahtar eklemek, çıkarmak ya da değiştirmek FormatVersion'ı artırmayı gerektirir: yeni
 // sürümün anahtar kümesi testdata/keys_v<sürüm>.txt'ye (sıralı yollar, satırda bir) eklenir,
@@ -50,6 +52,9 @@ func TestSnapshotKeysFrozenPerVersion(t *testing.T) {
 		t.Errorf("Snapshot.%s için json anahtarı yok; dosya biçimi Go adına bağlı kalır", e)
 	}
 	sort.Strings(keys)
+	// Anahtarlar ve biçimin adı dilden bağımsız İngilizce tanımlayıcılardır (dil tanımı 17.3).
+	testkit.FormatNames(t, keys...)
+	testkit.FormatNames(t, FormatName, StatusFileName)
 	data, err := os.ReadFile(filepath.Join("testdata", fmt.Sprintf("keys_v%d.txt", FormatVersion)))
 	if err != nil {
 		t.Fatalf("FormatVersion %d için testdata/keys_v%d.txt yok; yeni sürümün anahtarlarını ekleyin", FormatVersion, FormatVersion)

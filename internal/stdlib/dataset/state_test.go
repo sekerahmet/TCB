@@ -7,8 +7,9 @@ import (
 
 // Sürdürme kesintisizle aynıdır: okuyucu durumu (ö.durum) düz değerli bir sözlüktür ve
 // aynı ayarla kurulmuş yeni bir okuyucuya durumu_yükle ile verilince kesintisiz okuyucunun
-// geri kalan toplu işlerini aynı sırayla verir. Durum sözlüğünün anahtarları kontrol noktası
-// dosya biçiminin parçasıdır: sabittir, çevrilmez.
+// geri kalan toplu işlerini aynı sırayla verir. Durum sözlüğünün anahtarları ve okuyucu türleri
+// kontrol noktası dosya biçiminin parçasıdır: dilden bağımsız İngilizce tanımlayıcılardır, Türkçe
+// programda da aynıdır (dil tanımı 17.3).
 func TestReaderStateResumesSameBatches(t *testing.T) {
 	d := buildDataset(t)
 	out, _ := mustRun(t, `
@@ -35,9 +36,9 @@ dene_okuyucu(fonksiyon() { sonuç k.örnekleyici(toplu: 2, bağlam: 8, tohum: 3)
 dene_okuyucu(fonksiyon() { sonuç k.sıralı(toplu: 2, bağlam: 8) })
 `)
 	want := "doğru\n" +
-		`["tür", "toplu", "bağlam", "tohum", "küme", "dönem", "sıra", "pencere", "sayaç"]` + "\n" +
+		`["kind", "batch", "context", "seed", "dataset", "epoch", "position", "window", "counter"]` + "\n" +
 		"doğru\n" +
-		`["tür", "toplu", "bağlam", "küme", "sıra", "pencere", "sayaç", "bitti"]` + "\n"
+		`["kind", "batch", "context", "dataset", "position", "window", "counter", "done"]` + "\n"
 	if out != want {
 		t.Fatalf("çıktı:\n%s\nbeklenen:\n%s", strings.TrimSpace(out), strings.TrimSpace(want))
 	}
@@ -61,7 +62,7 @@ fonksiyon dene_okuyucu(yap) {
     b.sonraki()
     yazdır(b.atla(0), b.atla(4))
     değişken x = b.sonraki()
-    yazdır(x[0].değer == beklenen[0].değer, x[1].değer == beklenen[1].değer, b.durum.sayaç == a.durum.sayaç)
+    yazdır(x[0].değer == beklenen[0].değer, x[1].değer == beklenen[1].değer, b.durum["counter"] == a.durum["counter"])
 }
 dene_okuyucu(fonksiyon() { sonuç k.örnekleyici(toplu: 2, bağlam: 8, tohum: 3) })
 dene_okuyucu(fonksiyon() { sonuç k.sıralı(toplu: 2, bağlam: 8) })

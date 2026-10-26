@@ -123,13 +123,13 @@ var (
 	// önce (kilit tutulmadan) çağrılır; üretimde nil'dir.
 	copyHook func(src string, prefetch bool)
 
-	managedName = regexp.MustCompile(`\.[0-9a-f]{16}\.onb(\.[^.]*)?$`)
-	tempSuffix  = ".gecici"
+	managedName = regexp.MustCompile(`\.[0-9a-f]{16}\.cache(\.[^.]*)?$`)
+	tempSuffix  = ".tmp"
 )
 
 // lockPath, önbellek dizinindeki süreçler arası kilit dosyasının adıdır
 // (yönetilen adlara uymaz; silinmez).
-const lockPath = ".onbellek.kilit"
+const lockPath = ".cache.lock"
 
 // cacheRecord, süreç içinde açık önbellek dizinleridir (anahtar: dizinAnahtari).
 var cacheRecord = struct {
@@ -296,7 +296,7 @@ func localName(src string) string {
 	_, _ = h.Write([]byte(filepath.Clean(exact)))
 	baseOff := filepath.Base(src)
 	uz := filepath.Ext(baseOff)
-	return fmt.Sprintf("%s.%016x.onb%s", strings.TrimSuffix(baseOff, uz), h.Sum64(), uz)
+	return fmt.Sprintf("%s.%016x.cache%s", strings.TrimSuffix(baseOff, uz), h.Sum64(), uz)
 }
 
 // sameTime önbellekteki kopyanın zamanı (cached) kaynağınkiyle (source) aynı mı bildirir. Kopya

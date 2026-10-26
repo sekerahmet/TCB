@@ -9,7 +9,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// Durum dosyasının (profil.json) yazıcısı. Dosya önce aynı klasörde geçici bir dosyaya
+// Durum dosyasının (profile.json) yazıcısı. Dosya önce aynı klasörde geçici bir dosyaya
 // yazılıp yerine konur: okuyan (işi izleyen araç, düzenleyici) hiçbir zaman yarım dosya
 // görmez. Yazma hatası eğitimi ASLA durdurmaz:
 //

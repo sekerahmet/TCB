@@ -78,7 +78,7 @@ yazdır("bitti")
 		var n int64
 		inputs, _ := reporoot.ReadDir(cache)
 		for _, g := range inputs {
-			if info, err := g.Info(); err == nil && strings.Contains(g.Name(), ".onb") {
+			if info, err := g.Info(); err == nil && strings.Contains(g.Name(), ".cache") {
 				n += info.Size()
 			}
 		}

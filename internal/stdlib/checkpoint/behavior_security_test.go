@@ -53,20 +53,20 @@ func TestTamperedCheckpointRejected(t *testing.T) {
 		want       messages.Code
 		detail     string // kodu olmayan iç neden (ml, encoding/json)
 	}{
-		{"tensör baytı", "tensorler.trt", func(b []byte) []byte { b[len(b)/2] ^= 1; return b }, messages.H2000, "tensorler.trt: dosya bozuk: sağlama toplamı tutmuyor"},
-		{"yarım tensör", "tensorler.trt", func(b []byte) []byte { return b[:len(b)-7] }, messages.H7474, ""},
-		{"yeni sürüm", "ozet.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"sürüm": 2`, `"sürüm": 3`, 1)) }, messages.H7421, ""},
-		{"sürüm 0", "ozet.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"sürüm": 2`, `"sürüm": 0`, 1)) }, messages.H7422, ""},
-		{"özet ile durumun sürümü farklı", "ozet.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"sürüm": 2`, `"sürüm": 1`, 1)) }, messages.H7473, ""},
-		{"bilinmeyen alan", "ozet.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `{`, `{"yol": "../../x", `, 1)) }, messages.H7423, "unknown field"},
-		{"başka adım", "ozet.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"adım": 2`, `"adım": 3`, 1)) }, messages.H7424, ""},
-		{"büyük özet", "ozet.json", func(b []byte) []byte { return append(b, make([]byte, 70<<10)...) }, messages.H6600, "ozet.json çok büyük"},
-		{"eksik özet", "ozet.json", func([]byte) []byte { return nil }, messages.H7423, ""},
+		{"tensör baytı", "tensors.trt", func(b []byte) []byte { b[len(b)/2] ^= 1; return b }, messages.H2000, "tensors.trt: dosya bozuk: sağlama toplamı tutmuyor"},
+		{"yarım tensör", "tensors.trt", func(b []byte) []byte { return b[:len(b)-7] }, messages.H7474, ""},
+		{"yeni sürüm", "digest.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"version": 3`, `"version": 4`, 1)) }, messages.H7421, ""},
+		{"sürüm 0", "digest.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"version": 3`, `"version": 0`, 1)) }, messages.H7422, ""},
+		{"eski sürüm okunmaz", "digest.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"version": 3`, `"version": 2`, 1)) }, messages.H7422, ""},
+		{"bilinmeyen alan", "digest.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `{`, `{"yol": "../../x", `, 1)) }, messages.H7423, "unknown field"},
+		{"başka adım", "digest.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"step": 2`, `"step": 3`, 1)) }, messages.H7424, ""},
+		{"büyük özet", "digest.json", func(b []byte) []byte { return append(b, make([]byte, 70<<10)...) }, messages.H6600, "digest.json çok büyük"},
+		{"eksik özet", "digest.json", func([]byte) []byte { return nil }, messages.H7423, ""},
 	}
 	for _, d := range states {
 		t.Run(d.name, func(t *testing.T) {
 			runDir := buildCkpt(t)
-			fpath := filepath.Join(runDir, "kontrol_noktalari", "adim_0000000002", d.file)
+			fpath := filepath.Join(runDir, "checkpoints", "step_0000000002", d.file)
 			b, err := os.ReadFile(fpath)
 			if err != nil {
 				t.Fatal(err)
@@ -76,26 +76,26 @@ func TestTamperedCheckpointRejected(t *testing.T) {
 			}
 			_, err = load(t, runDir)
 			if !messages.Has(err, messages.H7472) || !messages.Has(err, d.want) || !strings.Contains(err.Error(), d.detail) ||
-				!strings.Contains(err.Error(), messages.Text(messages.H7471, "adim_0000000001", 1)) {
+				!strings.Contains(err.Error(), messages.Text(messages.H7471, "step_0000000001", 1)) {
 				t.Fatalf("%s ve bir önceki nokta önerisi bekleniyordu: %v", d.want, err)
 			}
 		})
 	}
 }
 
-// son.json yalnızca araçlar içindir: bozuk ya da var olmayan bir noktayı gösterse de yükleme
+// latest.json yalnızca araçlar içindir: bozuk ya da var olmayan bir noktayı gösterse de yükleme
 // klasörlere bakar. Kenara alınmış (aynı adımlı yenisi yerine konamadan kesilmiş) bir nokta
 // yerine geri konur.
 func TestLatestJSONAndStrayCheckpoint(t *testing.T) {
 	runDir := buildCkpt(t)
-	kn := filepath.Join(runDir, "kontrol_noktalari")
-	if err := os.WriteFile(filepath.Join(kn, "son.json"), []byte(`{"klasör": "../../../etc"}`), 0o644); err != nil {
+	kn := filepath.Join(runDir, "checkpoints")
+	if err := os.WriteFile(filepath.Join(kn, "latest.json"), []byte(`{"dir": "../../../etc"}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if output, err := load(t, runDir); err != nil || !strings.Contains(output, "adım 2 [1.") {
 		t.Fatalf("2. adımdan sürmeliydi: %v\n%s", err, output)
 	}
-	if err := os.Rename(filepath.Join(kn, "adim_0000000002"), filepath.Join(kn, "adim_0000000002.eski-77")); err != nil {
+	if err := os.Rename(filepath.Join(kn, "step_0000000002"), filepath.Join(kn, "step_0000000002.old-77")); err != nil {
 		t.Fatal(err)
 	}
 	if output, err := load(t, runDir); err != nil || !strings.Contains(output, "Kaldığı yerden devam: adım 2") {
@@ -103,15 +103,15 @@ func TestLatestJSONAndStrayCheckpoint(t *testing.T) {
 	}
 }
 
-// Yazım atomiktir: süreç yazarken ölürse geride yarım bir geçici klasör (adim_N.tmp-<süreç>)
+// Yazım atomiktir: süreç yazarken ölürse geride yarım bir geçici klasör (step_N.tmp-<süreç>)
 // kalır; eski noktalar bozulmaz, sonraki açılışta geçici klasör silinir.
 func TestStrayTempCheckpointCleaned(t *testing.T) {
 	runDir := buildCkpt(t)
-	stray := filepath.Join(runDir, "kontrol_noktalari", "adim_0000000003.tmp-4242")
+	stray := filepath.Join(runDir, "checkpoints", "step_0000000003.tmp-4242")
 	if err := os.MkdirAll(stray, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(stray, "tensorler.trt"), []byte("yarım"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(stray, "tensors.trt"), []byte("yarım"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if output, err := load(t, runDir); err != nil || !strings.Contains(output, "adım 2 [1.") {
@@ -155,7 +155,7 @@ yazdır("döngü bitti")
 	if strings.Contains(output, "adım bitti 4") || strings.Contains(output, "döngü bitti") {
 		t.Errorf("program adım sınırında durmalıydı:\n%s", output)
 	}
-	if _, err := os.Stat(filepath.Join(runDir, "kontrol_noktalari", "adim_0000000004")); err != nil {
+	if _, err := os.Stat(filepath.Join(runDir, "checkpoints", "step_0000000004")); err != nil {
 		t.Errorf("4. adımın noktası yok: %v", err)
 	}
 }
@@ -179,9 +179,9 @@ rastgele_normal([2])
 
 // Biçim çözücüleri rastgele girdide çökmez; geçerli bir noktanın dosyaları tohumdur.
 func FuzzCheckpointFiles(f *testing.F) {
-	f.Add([]byte(`{"sürüm":1,"adım":2,"dosyalar":{"durum.json":{"bayt":1,"sha256":"00"},"tensorler.trt":{"bayt":1,"sha256":"00"}}}`))
-	f.Add([]byte(`{"sürüm":1,"adım":2,"zaman":"","tr":"","program":"","işçi":1,"nesneler":[{"ad":"d","tür":"değerler","değer":{"sözlük":[["a",1]]}}]}`))
-	f.Add([]byte(`{"sözlük":[[1,{"ondalık":"NaN"}],["b",[null,true,"x"]]]}`))
+	f.Add([]byte(`{"version":3,"step":2,"files":{"state.json":{"bytes":1,"sha256":"00"},"tensors.trt":{"bytes":1,"sha256":"00"}}}`))
+	f.Add([]byte(`{"version":3,"step":2,"time":"","tr":"","program":"","workers":1,"objects":[{"name":"d","kind":"values","value":{"dict":[["a",1]]}}]}`))
+	f.Add([]byte(`{"dict":[[1,{"float":"NaN"}],["b",[null,true,"x"]]]}`))
 	f.Fuzz(func(t *testing.T, b []byte) {
 		_, _ = checkpoint.DecodeDigest(b, 2)
 		_, _ = checkpoint.DecodeState(b, 2)
@@ -200,15 +200,15 @@ func FuzzCheckpointFiles(f *testing.F) {
 // modeli yarı yüklenmiş bırakıyordu (Gemini güvenlik denetimi, bulgu 3).
 func TestCorruptOptimizerStateChangesNothingAndSuggestsPrevious(t *testing.T) {
 	runDir := buildCkpt(t)
-	step2Dir := filepath.Join(runDir, "kontrol_noktalari", "adim_0000000002")
+	step2Dir := filepath.Join(runDir, "checkpoints", "step_0000000002")
 
-	// adim_0000000002/tensorler.trt içine w=[99, 99, 99] ve geçersiz op/adim=[-1, 0]
-	// yazıp ozet.json'daki boy ve SHA-256 özetini güncelliyoruz.
-	trtPath := filepath.Join(step2Dir, "tensorler.trt")
+	// step_0000000002/tensors.trt içine w=[99, 99, 99] ve geçersiz op/step=[-1, 0]
+	// yazıp digest.json'daki boy ve SHA-256 özetini güncelliyoruz.
+	trtPath := filepath.Join(step2Dir, "tensors.trt")
 	_, err := run(t, fmt.Sprintf(`
 tensör_kaydet(%q, {
     "w/0": tensör([99.0, 99.0, 99.0]),
-    "op/adim": tensör([-1.0, 0.0])
+    "op/step": tensör([-1.0, 0.0])
 })
 `, trPath(trtPath)))
 	if err != nil {
@@ -218,7 +218,7 @@ tensör_kaydet(%q, {
 	resignCheckpoint(t, step2Dir, 2)
 
 	// Başlangıçta w = [1.0, 2.0, 3.0]. Yükleme hata verdiğinde w hiç değişmemiş
-	// olmalı ve hata mesajı bir önceki sağlam noktayı (adim_0000000001) önermelidir.
+	// olmalı ve hata mesajı bir önceki sağlam noktayı (step_0000000001) önermelidir.
 	output, err := run(t, fmt.Sprintf(`
 değişken w = tensör([1.0, 2.0, 3.0], türev_izle: doğru)
 değişken hata_metni = ""
@@ -236,15 +236,15 @@ yazdır("HATA:", hata_metni)
 	if !strings.Contains(output, "W: [1.0, 2.0, 3.0]") {
 		t.Errorf("kontrol_noktası yükleme hatasında model parametresi w yerinde bozuldu (atomiklik ihlali):\n%s", output)
 	}
-	wantHint := messages.Text(messages.H7471, "adim_0000000001", 1)
+	wantHint := messages.Text(messages.H7471, "step_0000000001", 1)
 	if !strings.Contains(output, wantHint) {
 		t.Errorf("bozuk son noktada bir önceki sağlam nokta (%s) önerilmedi:\n%s", wantHint, output)
 	}
 }
 
 // Kural (20, Biçim ve güvenlik): düz değerin JSON'u da katı çözülür; ilk değerden sonra
-// fazladan veri hatadır (ozet.json ve durum.json gibi).
-// Neden: kurcalanmış bir durum.json'da ikinci bir değer sessizce yok sayılmasın (Gemini
+// fazladan veri hatadır (digest.json ve state.json gibi).
+// Neden: kurcalanmış bir state.json'da ikinci bir değer sessizce yok sayılmasın (Gemini
 // güvenlik denetimi, bulgu 10).
 func TestPlainValueRejectsTrailingData(t *testing.T) {
 	v, err := checkpoint.ReadPlain([]byte(`42 {"fazladan": "veri"}`))
@@ -284,7 +284,7 @@ kn.kaydet()
 		return runDir
 	}
 
-	wantHint := messages.Text(messages.H7471, "adim_0000000001", 1)
+	wantHint := messages.Text(messages.H7471, "step_0000000001", 1)
 
 	cases := []struct {
 		name   string
@@ -293,14 +293,14 @@ kn.kaydet()
 		{
 			name: "okuyucu_durumunda_negatif_pencere",
 			tamper: func(t *testing.T, step2Dir string) {
-				durumPath := filepath.Join(step2Dir, "durum.json")
+				durumPath := filepath.Join(step2Dir, "state.json")
 				b, err := os.ReadFile(durumPath)
 				if err != nil {
 					t.Fatal(err)
 				}
-				corrupted := strings.Replace(string(b), "\"pencere\",\n            4", "\"pencere\",\n            -1", 1)
+				corrupted := strings.Replace(string(b), "\"window\",\n            4", "\"window\",\n            -1", 1)
 				if corrupted == string(b) {
-					t.Fatalf("pencere alanı durum.json içinde bulunamadı:\n%s", string(b))
+					t.Fatalf("pencere alanı state.json içinde bulunamadı:\n%s", string(b))
 				}
 				if err := os.WriteFile(durumPath, []byte(corrupted), 0o644); err != nil {
 					t.Fatal(err)
@@ -310,14 +310,14 @@ kn.kaydet()
 		{
 			name: "duz_degerde_fazladan_json",
 			tamper: func(t *testing.T, step2Dir string) {
-				durumPath := filepath.Join(step2Dir, "durum.json")
+				durumPath := filepath.Join(step2Dir, "state.json")
 				b, err := os.ReadFile(durumPath)
 				if err != nil {
 					t.Fatal(err)
 				}
-				corrupted := strings.Replace(string(b), "\"a\",\n            1", "\"a\",\n            {\"ondalık\":\"bozuk\"}", 1)
+				corrupted := strings.Replace(string(b), "\"a\",\n            1", "\"a\",\n            {\"float\":\"bozuk\"}", 1)
 				if corrupted == string(b) {
-					t.Fatalf("d alanı durum.json içinde bulunamadı:\n%s", string(b))
+					t.Fatalf("d alanı state.json içinde bulunamadı:\n%s", string(b))
 				}
 				if err := os.WriteFile(durumPath, []byte(corrupted), 0o644); err != nil {
 					t.Fatal(err)
@@ -327,11 +327,11 @@ kn.kaydet()
 		{
 			name: "iyilestirici_adim_sayaci_bozuk_sekil",
 			tamper: func(t *testing.T, step2Dir string) {
-				trtPath := filepath.Join(step2Dir, "tensorler.trt")
+				trtPath := filepath.Join(step2Dir, "tensors.trt")
 				if _, err := run(t, fmt.Sprintf(`
 tensör_kaydet(%q, {
     "w/0": tensör([99.0, 99.0, 99.0]),
-    "op/adim": tensör([1.0, 0.0, 0.0])
+    "op/step": tensör([1.0, 0.0, 0.0])
 })
 `, trPath(trtPath))); err != nil {
 					t.Fatal(err)
@@ -343,9 +343,9 @@ tensör_kaydet(%q, {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			runDir := buildWithReader(t)
-			step2Dir := filepath.Join(runDir, "kontrol_noktalari", "adim_0000000002")
+			step2Dir := filepath.Join(runDir, "checkpoints", "step_0000000002")
 			tc.tamper(t, step2Dir)
-			resignCheckpoint(t, filepath.Join(runDir, "kontrol_noktalari", "adim_0000000002"), 2)
+			resignCheckpoint(t, filepath.Join(runDir, "checkpoints", "step_0000000002"), 2)
 
 			_, err := run(t, fmt.Sprintf(`
 değişken w = tensör([1.0, 2.0, 3.0], türev_izle: doğru)

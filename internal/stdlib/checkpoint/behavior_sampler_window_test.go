@@ -29,15 +29,15 @@ kn.kaydet()
 		t.Fatalf("%v\n%s", err, out)
 	}
 
-	step1Dir := filepath.Join(runDir, "kontrol_noktalari", "adim_0000000001")
-	durumPath := filepath.Join(step1Dir, "durum.json")
+	step1Dir := filepath.Join(runDir, "checkpoints", "step_0000000001")
+	durumPath := filepath.Join(step1Dir, "state.json")
 	b, err := os.ReadFile(durumPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	corrupted := strings.Replace(string(b), "\"pencere\",\n            2", "\"pencere\",\n            999999", 1)
+	corrupted := strings.Replace(string(b), "\"window\",\n            2", "\"window\",\n            999999", 1)
 	if corrupted == string(b) {
-		t.Fatalf("pencere alanı durum.json içinde bulunamadı:\n%s", string(b))
+		t.Fatalf("pencere alanı state.json içinde bulunamadı:\n%s", string(b))
 	}
 	if err := os.WriteFile(durumPath, []byte(corrupted), 0o644); err != nil {
 		t.Fatal(err)

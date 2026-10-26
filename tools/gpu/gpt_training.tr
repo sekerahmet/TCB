@@ -4,14 +4,14 @@
 //
 // Veri klasörü (--veri): tokenizer.json, train.npy ve valid.npy (parça kimlikleri, uint16).
 // Koşu klasörüne (--koşu) yazılanlar:
-//   config.json     ayarlar, parametre sayısı, cihaz
+//   config.json     "config" (ayarlar), "num_params", "device"
 //   metrics.jsonl   günlük_her adımda bir: eğitim kaybı, oran çarpanı, Muon ve AdamW'nin o anki oranları,
 //                   kırpma öncesi gradyan normu (kırpma açıksa), aralığın ms/adım ve parça/sn'si;
 //                   değerlendir_her adımda bir doğrulama kaybı (başlangıç ve devam kayıtlarını günlük yazar, 19.5)
 //   samples.json    her istemin devamı olarak üretilen örnek metinler (örnek_her adımda bir ve sonda)
 //   speed.json      ms/adım ve parça/sn (ilk ölçüm_ısınması adım, değerlendirme, örnek üretimi ve
 //                   kontrol noktası kaydı hariç)
-//   model.trt       son ağırlıklar; kontrol_noktalari/ kaldığı yerden devam için
+//   model.trt       son ağırlıklar; checkpoints/ kaldığı yerden devam için
 // Kesilirse aynı komut kaldığı yerden sürer (her_dakika'da bir kayıt). Klasör, günlük, kontrol noktası
 // ve ağırlık kaydı kitaplığın Koşu yapısıdır (tr/egitim); --prova aynı komutu geçici bir klasörde iki
 // adım koşturup bütün dosyaların yazıldığını denetler (uzun koşudan önce).
@@ -70,7 +70,7 @@ TR_kw_var izlenen = {en_iyi_doğrulama: 99.0, örnekler: []}
 TR_kw_var koşu = TR_type_Run(ayar.koşu, ayar, {model: model, TR_mem_adamw: op.TR_mem_adamw, TR_mem_muon: op.TR_mem_muon.TR_mem_state, ö: ö, izlenen: izlenen},
     TR_arg_num_steps: ayar.TR_mem_step, TR_arg_every_minutes: ayar.her_dakika, TR_arg_dry_run: ayar.TR_mem_dry_run)
 // Parametre sayısını Koşu sayıp config.json'a yazdı; ikinci kez sayılmaz.
-TR_kw_var parametre_sayısı = TR_fn_json_parse(TR_fn_read_file(TR_fn_path(koşu.TR_mem_folder, "config.json"))).parametre_sayısı
+TR_kw_var parametre_sayısı = TR_fn_json_parse(TR_fn_read_file(TR_fn_path(koşu.TR_mem_folder, "config.json")))["num_params"]
 TR_fn_print("model: {TR_fn_round(parametre_sayısı / 1000000, 2)} M parametre · cihaz {model.TR_mem_embedding.TR_mem_table.TR_mem_device} · dağarcık {p.TR_mem_vocab_size} (model {model.TR_mem_config.dağarcık})")
 
 // doğrulama_kaybı: valid.npy'nin baştan ardışık, örtüşmeyen pencerelerinden ilk toplu_sayısı toplu işin

@@ -72,7 +72,11 @@ func applyArguments(m *interp.VM, options []*option, description string) (*inter
 		if !ok {
 			v = s.defaultVal
 		}
-		result.Set(s.name, v)
+		if s.code != codes.None {
+			result.SetCoded(s.code, v) // kodlu seçenek sonuçta da kodlu anahtardır (ayar.adım)
+		} else {
+			result.Set(s.name, v)
+		}
 	}
 	return result, nil
 }
@@ -97,16 +101,16 @@ func parse(m *interp.VM, argv []string, options []*option) (map[string]interp.Va
 			return nil, unknownOption("--"+name, options)
 		}
 		if _, before := given[s.name]; before {
-			return nil, messages.New(messages.H7202, s.name)
+			return nil, messages.New(messages.H7202, s.display())
 		}
 		if !valued && s.optKind != kindBool {
 			if i+1 >= len(argv) || strings.HasPrefix(argv[i+1], "--") {
-				return nil, messages.New(messages.H7203, s.name, exampleValue(s))
+				return nil, messages.New(messages.H7203, s.display(), exampleValue(s))
 			}
 			i++
 			value, valued = argv[i], true
 			if len(value) > argLimit {
-				return nil, messages.New(messages.H7204, s.name, len(value))
+				return nil, messages.New(messages.H7204, s.display(), len(value))
 			}
 			if s.secret && m != nil {
 				addSecretItems(m, value)
@@ -116,7 +120,7 @@ func parse(m *interp.VM, argv []string, options []*option) (map[string]interp.Va
 		// söylenir (Go flag: -flag=false; yalnız --hızlı doğru demektir).
 		if !valued && s.optKind == kindBool && i+1 < len(argv) {
 			if _, isBool := boolName(argv[i+1]); isBool {
-				return nil, messages.New(messages.H7238, s.name, shorten(argv[i+1]))
+				return nil, messages.New(messages.H7238, s.display(), shorten(argv[i+1]))
 			}
 		}
 		v, err := parseValue(s, value, valued)
@@ -147,13 +151,27 @@ func optionName(a string, options []*option) (name, value string, valued bool, e
 	return "", "", false, messages.New(messages.H7207, shorten(a))
 }
 
+// find adı verilen seçeneği bulur: adın kendisiyle ya da kodlu seçenekte kodun herhangi bir gömülü
+// yazım dilindeki adıyla (17.8: girdide her dilin adı geçerlidir, hiçbiri öncelikli değildir).
 func find(options []*option, name string) *option {
 	for _, s := range options {
-		if s.name == name {
+		if s.name == name || (s.code != codes.None && codeHasName(s.code, name)) {
 			return s
 		}
 	}
 	return nil
+}
+
+// codeHasName name, k'nin bir gömülü yazım dilindeki adı mı?
+func codeHasName(k codes.Code, name string) bool {
+	for _, lang := range codes.Languages() {
+		if l, err := codes.LoadLanguage(lang); err == nil {
+			if e, ok := l.Entry(k); ok && e.Name == name {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // unknownOption en yakın seçeneği öneren hatayı verir; verilen, argümanın yazıldığı
@@ -178,7 +196,7 @@ func unknownOption(given string, options []*option) error {
 		}
 	}
 	for _, s := range options {
-		candidates = append(candidates, s.name)
+		candidates = append(candidates, s.display())
 	}
 	o := turkish.Closest(name, candidates)
 	if o == "" && find(options, name) != nil {
@@ -207,12 +225,12 @@ func parseValue(s *option, value string, valued bool) (interp.Value, error) {
 		if b, ok := boolName(value); ok {
 			return interp.BoolToVal(b), nil
 		}
-		return nil, messages.New(messages.H7210, s.name, codes.NameRef(codes.TypeBool), codes.NameRef(codes.KwTrue), codes.NameRef(codes.KwFalse), shorten(value))
+		return nil, messages.New(messages.H7210, s.display(), codes.NameRef(codes.TypeBool), codes.NameRef(codes.KwTrue), codes.NameRef(codes.KwFalse), shorten(value))
 	}
 	if s.optKind != kindList {
 		v, err := parsePlainValue(s.optKind, value)
 		if err != nil {
-			return nil, messages.New(messages.H7211, s.name, codes.NameRef(s.optKind.typeCode()), shorten(value), err)
+			return nil, messages.New(messages.H7211, s.display(), codes.NameRef(s.optKind.typeCode()), shorten(value), err)
 		}
 		return v, nil
 	}
@@ -223,7 +241,7 @@ func parseValue(s *option, value string, valued bool) (interp.Value, error) {
 	for i, p := range strings.Split(value, ",") {
 		v, err := parsePlainValue(s.itemKind, strings.TrimSpace(p))
 		if err != nil {
-			return nil, messages.New(messages.H7212, s.name, codes.NameRef(s.itemKind.typeCode()), i+1, shorten(p), err)
+			return nil, messages.New(messages.H7212, s.display(), codes.NameRef(s.itemKind.typeCode()), i+1, shorten(p), err)
 		}
 		list.Elements = append(list.Elements, v)
 	}

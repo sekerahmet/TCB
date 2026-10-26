@@ -52,7 +52,7 @@ func checkLineExample(t *testing.T, report, line string) {
 	}
 }
 
-// readReport speed.json/profil.json dosyasını çözer.
+// readReport speed.json/profile.json dosyasını çözer.
 func readReport(t *testing.T, filePath string) map[string]any {
 	t.Helper()
 	data, err := os.ReadFile(filePath)
@@ -68,10 +68,10 @@ func readReport(t *testing.T, filePath string) map[string]any {
 
 // processCall rapordaki bir işlemin (kod, yön) çağrı sayısıdır.
 func processCall(d map[string]any, code, direction string) float64 {
-	for _, x := range d["tensör"].(map[string]any)["işlemler"].([]any) {
+	for _, x := range d["tensor"].(map[string]any)["ops"].([]any) {
 		b := x.(map[string]any)
-		if b["kod"] == code && b["yön"] == direction {
-			return b["çağrı"].(float64)
+		if b["code"] == code && b["direction"] == direction {
+			return b["calls"].(float64)
 		}
 	}
 	return -1
@@ -88,18 +88,18 @@ func TestProfileCommand(t *testing.T) {
 		[]string{"speed.json"})
 	checkLineExample(t, s.Stdout+s.Stderr, "egit.tr:")
 	d := readReport(t, filepath.Join(run, "speed.json"))
-	if d["biçim"] != "tr-profil" || d["tür"] != "rapor" || d["çıkış_kodu"] != float64(0) {
-		t.Errorf("rapor kimliği: %v %v %v", d["biçim"], d["tür"], d["çıkış_kodu"])
+	if d["format"] != "tr-profile" || d["kind"] != "report" || d["exit_code"] != float64(0) {
+		t.Errorf("rapor kimliği: %v %v %v", d["format"], d["kind"], d["exit_code"])
 	}
 	for _, x := range []struct {
 		code, direction string
 		n               float64
-	}{{"matmul", "ileri", 60}, {"matmul", "geri", 60}, {"adamw", "ileri", 60}} {
+	}{{"matmul", "forward", 60}, {"matmul", "backward", 60}, {"adamw", "forward", 60}} {
 		if n := processCall(d, x.code, x.direction); n != x.n {
 			t.Errorf("%s (%s) %v çağrı, beklenen %v", x.code, x.direction, n, x.n)
 		}
 	}
-	if d["örnekleme"] == nil {
+	if d["sampling"] == nil {
 		t.Error("tr profil satır örneklemesiyle çalışmalı")
 	}
 }
@@ -110,8 +110,8 @@ func TestProfileCommandReportsOnError(t *testing.T) {
 	testkit.WriteFile(t, dir, "hata.tr", "değişken a = birler([2, 3])\nyazdır(a @ a)\n")
 	s := tr(t, dir, "profil", "--json", "rapor.json", "hata.tr")
 	testkit.Wait(t, s, 1, []string{"⏱ Profil: hata.tr", "çıkış kodu 1"}, []string{"Çalışma Zamanı Hatası"})
-	if d := readReport(t, filepath.Join(dir, "rapor.json")); d["çıkış_kodu"] != float64(1) {
-		t.Errorf("rapordaki çıkış kodu %v", d["çıkış_kodu"])
+	if d := readReport(t, filepath.Join(dir, "rapor.json")); d["exit_code"] != float64(1) {
+		t.Errorf("rapordaki çıkış kodu %v", d["exit_code"])
 	}
 }
 
@@ -144,7 +144,7 @@ func TestWatchJobNameNotYet(t *testing.T) {
 	testkit.Wait(t, s, 1, nil, []string{"bilinmeyen seçenek"})
 }
 
-// Arka plan işi (TR_IS_KLASORU) olarak çalışan program iş klasörüne profil.json yazar.
+// Arka plan işi (TR_IS_KLASORU) olarak çalışan program iş klasörüne profile.json yazar.
 func TestJobProfileFile(t *testing.T) {
 	dir := t.TempDir()
 	testkit.WriteFile(t, dir, "egit.tr", watchTraining)
@@ -154,11 +154,11 @@ func TestJobProfileFile(t *testing.T) {
 	}
 	s := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_IS_KLASORU=" + is}, "egit.tr")
 	testkit.Wait(t, s, 0, []string{"eğitim bitti"}, nil)
-	d := readReport(t, filepath.Join(is, "profil.json"))
-	if d["bitti"] != true || d["örnekleme"] != nil {
-		t.Errorf("profil.json: bitti %v, örnekleme %v (iş profilinde örnekleme kapalı)", d["bitti"], d["örnekleme"])
+	d := readReport(t, filepath.Join(is, "profile.json"))
+	if d["done"] != true || d["sampling"] != nil {
+		t.Errorf("profile.json: bitti %v, örnekleme %v (iş profilinde örnekleme kapalı)", d["done"], d["sampling"])
 	}
-	if n := processCall(d, "matmul", "ileri"); n != 60 {
+	if n := processCall(d, "matmul", "forward"); n != 60 {
 		t.Errorf("iş profilinde matris çarpımı %v çağrı, beklenen 60", n)
 	}
 }
@@ -211,7 +211,7 @@ func TestProfileAndWatchGPU(t *testing.T) {
 	}
 	d := readReport(t, filepath.Join(dir, "speed.json"))
 	g := d["gpu"].(map[string]any)
-	if g["kullanıldı"] != true || g["ölçüm"] != true || len(g["aileler"].([]any)) == 0 || len(g["bellek"].([]any)) == 0 {
+	if g["used"] != true || g["measured"] != true || len(g["families"].([]any)) == 0 || len(g["memory"].([]any)) == 0 {
 		t.Errorf("speed.json GPU bölümü eksik: %v", g)
 	}
 }

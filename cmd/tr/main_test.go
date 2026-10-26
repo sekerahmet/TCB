@@ -95,7 +95,7 @@ func TestReadsOldPackageFormat(t *testing.T) {
 }
 
 func TestUnsupportedPackageVersion(t *testing.T) {
-	body := []byte(`{"ana":{"kod":"yazdır(1)"}}`)
+	body := []byte(`{"main":{"code":"yazdır(1)"}}`)
 	content := append(template(t), body...)
 	footer := make([]byte, footerSize)
 	binary.LittleEndian.PutUint64(footer[0:8], uint64(len(body)))

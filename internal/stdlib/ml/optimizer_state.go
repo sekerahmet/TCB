@@ -16,8 +16,8 @@ import (
 // İyileştirici durumu: op.durum (TR_mem_state) momentleri, adım sayaçlarını ve ana kopyaları ad →
 // tensör sözlüğü olarak verir; op.durumu_yükle(sözlük) (TR_mem_load_state) aynı parametre listesiyle
 // kurulmuş bir iyileştiriciye geri yükler. Anahtarlar çekirdeğin anahtarlarıdır
-// (internal/compute/tensor, iyileştirici durumu): "m.k", "v.k", "hiz.k", "ana.k", "adim.k",
-// "adim"; k parametrenin listedeki sırasıdır. Kontrol noktası aynı Go yöntemlerini kullanır.
+// (internal/compute/tensor, iyileştirici durumu): "m.k", "v.k", "momentum.k", "master.k", "step.k",
+// "step"; k parametrenin listedeki sırasıdır. Kontrol noktası aynı Go yöntemlerini kullanır.
 
 const (
 	memberState     = codes.MemState
@@ -192,19 +192,19 @@ func (o *Optimizer) CheckState(fn any, names []string, shapes [][]int) error {
 // karşılaştırır (yükleme yarıda kalmasın diye önceden).
 func (o *Optimizer) checkStateEntry(fn any, ad string, shape []int) error {
 	prefix, _, _ := strings.Cut(ad, ".")
-	valid := []string{"hiz", "ana"}
+	valid := []string{"momentum", "master"}
 	if o.adamw != nil {
-		valid = []string{"m", "v", "adim", "ana"}
+		valid = []string{"m", "v", "step", "master"}
 	}
 	k, sorted := o.paramOrder(ad)
 	switch {
-	case ad == "adim" && o.adamw != nil:
+	case ad == "step" && o.adamw != nil:
 		k = -1
 	case !sorted || !slices.Contains(valid, prefix):
 		return messages.New(messages.H6516, fn, ad, o.ad, len(o.params), codes.NameRef(memberState))
 	}
 	expected := []int{2} // adım sayaçları
-	if k >= 0 && prefix != "adim" {
+	if k >= 0 && prefix != "step" {
 		expected = o.params[k].Shape()
 	}
 	if !slices.Equal(shape, expected) {

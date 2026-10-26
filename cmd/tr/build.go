@@ -21,14 +21,15 @@ import (
 // oluşur. İki biçim vardır:
 //
 //	Sürüm 1 (eski, yalnızca okunur): [kaynak kod][kod uzunluğu u64][oldPackageSignature]
-//	Sürüm 2 ve sonrası:            [JSON paket][paket uzunluğu u64][sürüm u32][packageSignature]
+//	Sürüm 3:                       [JSON paket][paket uzunluğu u64][sürüm u32][packageSignature]
 //
-// Tüm sayılar küçük uçludur (little endian). Sürüm 2 paketinde ana programın yanında
-// onun 'aktar' ile aldığı .tr modülleri de (özyinelemeli olarak) bulunur.
+// Tüm sayılar küçük uçludur (little endian). JSON paketinde ana programın yanında onun 'aktar'
+// ile aldığı .tr modülleri de (özyinelemeli olarak) bulunur; anahtarları dilden bağımsız
+// İngilizce tanımlayıcılardır (dil tanımı 17.3). Sürüm 2 (Türkçe anahtarlı) okunmaz.
 const (
 	oldPackageSignature        = "TR_EXE_1"
 	packageSignature           = "TR_PAKET"
-	packageVersion      uint32 = 2
+	packageVersion      uint32 = 3
 
 	oldFooterSize = 16 // uzunluk + imza
 	footerSize    = 20 // uzunluk + sürüm + imza
@@ -42,17 +43,17 @@ var embeddedSourceName = messages.Text(messages.H8638)
 // packageFile pakete gömülü tek bir .tr kaynağıdır.
 type packageFile struct {
 	// Name derleme sırasında dosyanın çözüldüğü yoldur (yalnızca bilgi ve geçici dosya adı için).
-	Name string `json:"ad"`
-	Code string `json:"kod"`
+	Name string `json:"name"`
+	Code string `json:"code"`
 	// Imports dosyadaki 'aktar' deyimlerinin, kaynaktaki sırayla, hangi gömülü modüle
 	// (Modules dizisindeki sıra) gittiğini söyler.
-	Imports []int `json:"aktarimlar,omitempty"`
+	Imports []int `json:"imports,omitempty"`
 }
 
 // pkg gömülü uygulamanın tamamıdır.
 type pkg struct {
-	Main    packageFile   `json:"ana"`
-	Modules []packageFile `json:"moduller,omitempty"`
+	Main    packageFile   `json:"main"`
+	Modules []packageFile `json:"modules,omitempty"`
 }
 
 // encodePackage paketi altbilgisiyle birlikte ikilinin sonuna eklenecek baytlara çevirir.
@@ -81,7 +82,7 @@ func extractPackage(exe []byte) (pk *pkg, templateSize int, found bool, err erro
 			return nil, 0, true, messages.New(messages.H8750)
 		}
 		start := n - footerSize - int(length)
-		if version < 2 || version > packageVersion {
+		if version != packageVersion {
 			return nil, start, true, messages.New(messages.H8751, version, packageVersion)
 		}
 		pk = &pkg{}

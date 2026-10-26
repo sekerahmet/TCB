@@ -199,6 +199,10 @@ type DictVal struct {
 	Order   []string
 	Pairs   map[string]Value
 	KeyVals map[string]Value // yalnızca metin olmayan anahtarlar için
+	// coded kod taşıyan çıplak anahtarların kodudur ({adım: 3}: "step" → TR_mem_step; 17.3).
+	// Anahtar metni kodun dilden bağımsız adıdır; kod yalnızca gösterimi değiştirir (yazdır
+	// dosyanın, iletiler kişinin dilinde yazar). Seyrektir: kodlu anahtar yoksa nil.
+	coded map[string]codes.Code
 	// module, 'aktar ... olarak ad' ile bağlanan modül sözlüğünün dışa aktarmadığı (başı _)
 	// adlarını tutar (11.7); sıradan sözlükte nildir.
 	module *moduleExports
@@ -373,6 +377,44 @@ func (d *DictVal) GetValue(key Value) (Value, bool) {
 	return val, ok
 }
 
+// CodedKey is the text of a coded bare dict key ({adım: 3}): the language-independent part of
+// the member code's identity (TR_mem_step → "step"; 17.3). It never changes (17.6) and is the
+// key on disk (JSON, the log, the checkpoint) and in memory in every writing language.
+func CodedKey(k codes.Code) string {
+	_, name, _ := strings.Cut(strings.TrimPrefix(k.String(), codes.IdentityPrefix), "_")
+	return name
+}
+
+// SetCoded stores val under the coded bare key k (CodedKey); a new entry remembers the code for
+// display, like KeyVals keeps the original value of a non-string key.
+func (d *DictVal) SetCoded(k codes.Code, val Value) {
+	key := CodedKey(k)
+	if _, ok := d.Pairs[key]; !ok {
+		if d.coded == nil {
+			d.coded = make(map[string]codes.Code)
+		}
+		d.coded[key] = k
+	}
+	d.setRaw(key, val)
+}
+
+// KeyCode is the code of an internal key that was written as a coded bare key; ok is false for
+// every other key.
+func (d *DictVal) KeyCode(k string) (codes.Code, bool) {
+	c, ok := d.coded[k]
+	return c, ok
+}
+
+// SetFrom stores val under the internal key k of src, keeping its code (SetCoded) or its
+// original non-string value (SetValue): copies of a dict show the same keys.
+func (d *DictVal) SetFrom(src *DictVal, k string, val Value) {
+	if c, ok := src.coded[k]; ok {
+		d.SetCoded(c, val)
+		return
+	}
+	d.SetValue(src.KeyValue(k), val)
+}
+
 // KeyValue returns the original TR value of an internal key.
 func (d *DictVal) KeyValue(k string) Value {
 	if kv, ok := d.KeyVals[k]; ok {
@@ -381,10 +423,34 @@ func (d *DictVal) KeyValue(k string) Value {
 	return &StringVal{Val: k}
 }
 
-// DisplayKey returns the text of an internal key as shown to the user.
+// KeyText is the language-independent text of an internal key, the one data formats write (JSON,
+// weight paths): a string key (a coded key too, CodedKey) as it is, another key's Inspect.
+func (d *DictVal) KeyText(k string) string {
+	if kv, ok := d.KeyVals[k]; ok {
+		return kv.Inspect()
+	}
+	return k
+}
+
+// DisplayKey returns the text of an internal key as shown to the user: a coded key in the
+// person's writing language (TR_DIL). Data formats use KeyText.
 func (d *DictVal) DisplayKey(k string) string {
 	if kv, ok := d.KeyVals[k]; ok {
 		return kv.Inspect()
+	}
+	return d.keyText(k, codes.Display())
+}
+
+// keyText is the text of a metin key k in a file written in lang: a coded key is the code's
+// name in lang (lang nil: Inspect, like shownName), any other key as it is.
+func (d *DictVal) keyText(k string, lang *codes.Language) string {
+	if c, ok := d.coded[k]; ok {
+		if lang == nil {
+			lang = codes.Source()
+		}
+		if e, ok := lang.Entry(c); ok {
+			return e.Name
+		}
 	}
 	return k
 }

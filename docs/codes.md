@@ -906,7 +906,7 @@ yazdır(tavan(3.2), tavan(7), tavan(tensör([-1.5, 2.5])).değer)
 
     kontrol_noktası(Metin | Yol, Sözlük, her_dakika: Tam | Ondalık = 15, tut: Tam = 2) → KontrolNoktası
 
-Koşu klasöründe (noktalar <koşu>/kontrol_noktalari/ altına) eğitimin kontrol noktasını kurar; geçerli bir nokta varsa kurulurken yükler ve kaldığı adımı yazar, yoksa boş başlar. Sözlüğün değerleri modeller (türev izleyen tensörler), iyileştiriciler, okuyucular, günlükler ve düz değerli sözlük ya da listelerdir; anahtarlar veridir.
+Koşu klasöründe (noktalar <koşu>/checkpoints/ altına) eğitimin kontrol noktasını kurar; geçerli bir nokta varsa kurulurken yükler ve kaldığı adımı yazar, yoksa boş başlar. Sözlüğün değerleri modeller (türev izleyen tensörler), iyileştiriciler, okuyucular, günlükler ve düz değerli sözlük ya da listelerdir; anahtarlar veridir.
 
 ```tr
 değişken w = tensör([1.0, 2.0], türev_izle: doğru); değişken op = SGD([w], öğrenme_oranı: 0.1); değişken kn = kontrol_noktası("koşu_t702", {model: [w], op: op}, her_dakika: 15, tut: 2); yazdır(kn.kaldığı_adım)
@@ -2549,7 +2549,7 @@ Kullananlar: TR_fn_custom_grad `özel_türev` · İlişkili: TR_arg_backward `ge
 kontrol_noktası'nın saklayacağı en yeni nokta sayısıdır (pozitif Tam, varsayılan 2); daha eskileri her başarılı kayıttan sonra silinir.
 
 ```tr
-değişken w = tensör([1.0], türev_izle: doğru); değişken kn = kontrol_noktası("koşu_t985", {w: w}, tut: 3); döngü i içinde 1..5 { kn.güncelle(i); kn.kaydet() }; yazdır(klasörü_listele("koşu_t985/kontrol_noktalari", "adim_*").uzunluk)
+değişken w = tensör([1.0], türev_izle: doğru); değişken kn = kontrol_noktası("koşu_t985", {w: w}, tut: 3); döngü i içinde 1..5 { kn.güncelle(i); kn.kaydet() }; yazdır(klasörü_listele("koşu_t985/checkpoints", "step_*").uzunluk)
 ```
 
 Kullananlar: TR_fn_checkpoint `kontrol_noktası` · İlişkili: TR_arg_every_minutes `her_dakika`
@@ -3877,7 +3877,7 @@ dosya_yaz("boyut.txt", "merhaba"); yazdır(yol("boyut.txt").bayt)
 Sıradaki n toplu işi tensör kurmadan atlar ve atladığı sayıyı Tam olarak verir; sonraki .sonraki() n tane sonraki() çağrısından sonra gelecek toplu işi verir, okuyucunun durumu (sayaç) n artar. Sıralı okuyucu biterse kalan kadar atlar. Kayıp sıçramasından sonra son kontrol noktasına dönen eğitim, sıçramayı tetikleyen toplu işleri böyle atlar.
 
 ```tr
-değişken ö = veri_kümesi("tests/data/text").örnekleyici(toplu: 2, bağlam: 8, tohum: 1); yazdır(ö.atla(3), ö.durum.sayaç)
+değişken ö = veri_kümesi("tests/data/text").örnekleyici(toplu: 2, bağlam: 8, tohum: 1); yazdır(ö.atla(3), ö.durum["counter"])
 ```
 
 İlişkili: TR_mem_next `sonraki`, TR_mem_state `durum`, TR_mem_rollback `geri_dön`

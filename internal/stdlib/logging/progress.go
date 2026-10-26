@@ -32,7 +32,8 @@ var barOrder atomic.Int64
 
 // metric çubukta gösterilen ve günlüğe yazılan bir ölçüdür.
 type metric struct {
-	name  string
+	name  string // kayıttaki anahtar (dosya biçimi; kodlu anahtar dilden bağımsız)
+	shown string // çubukta gösterilen ad (kodlu anahtar kişinin dilinde)
 	value interp.Value
 }
 
@@ -44,7 +45,7 @@ type Progress struct {
 	terminal bool
 	width    int
 	log      *Log
-	jobPath  string // arka plan işinde ilerleme.json (yoksa boş)
+	jobPath  string // arka plan işinde progress.json (yoksa boş)
 	order    int64
 
 	mu      sync.Mutex
@@ -146,7 +147,7 @@ func (d *state) openProgress(m *interp.VM, args []interp.Value, named map[string
 }
 
 // setOutput çubuğun yazacağı yeri ve kipini seçer: standart hata (VM.Err) terminalse canlı
-// satır, değilse düz satırlar. Arka plan işinde (TR_IS_KLASORU) her zaman düz satır ve ilerleme.json.
+// satır, değilse düz satırlar. Arka plan işinde (TR_IS_KLASORU) her zaman düz satır ve progress.json.
 func (c *Progress) setOutput() {
 	c.w = c.m.Err
 	if c.w == nil {
@@ -186,7 +187,7 @@ func (c *Progress) update(m *interp.VM, args []interp.Value, named map[string]in
 			return nil, err
 		}
 		for _, k := range record.Order {
-			metrics = append(metrics, metric{name: k, value: record.Pairs[k]})
+			metrics = append(metrics, metric{name: k, shown: record.DisplayKey(k), value: record.Pairs[k]})
 		}
 	}
 	newStep := int64(-1)

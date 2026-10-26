@@ -22,7 +22,7 @@ func ReportText(g *Snapshot) string {
 		write(messages.Text(messages.H8233, full(g.Step.Count), count(g.Step.MsPerStep), count(g.Step.StepsPerSec)))
 		if g.Step.MsPerStep > 0 {
 			source := "progress"
-			if g.Step.Source == "iyilestirici" {
+			if g.Step.Source == "optimizer" {
 				source = "optimizer"
 			}
 			write(messages.Text(messages.H8290, count(g.Step.ForwardMs), count(g.Step.BackwardMs), count(g.Step.AfterMs), source))

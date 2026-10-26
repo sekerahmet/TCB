@@ -12,10 +12,10 @@ import (
 
 // Arka plan işi: program bir iş olarak çalışırken (tr başlat) TR_IS_KLASORU ortam değişkeni iş
 // klasörünü gösterir. Çubuk o zaman terminal kipine geçmez (çıktı dosyaya gider, düz satırlar
-// yazılır) ve iş klasörüne saniyede en çok bir kez ilerleme.json anlık görüntüsünü yazar;
+// yazılır) ve iş klasörüne saniyede en çok bir kez progress.json anlık görüntüsünü yazar;
 // tr izle ve düzenleyici çubuğun aynı satırını bu dosyadan çizer:
 //
-//	{"adım":1200,"toplam":5000,"ölçüler":{"kayıp":2.31},"hız":85.2,"kalan_sn":840,"zaman":"...","bitti":false}
+//	{"step":1200,"total":5000,"metrics":{"kayıp":2.31},"rate":85.2,"remaining_seconds":840,"time":"...","done":false}
 //
 // Dosya geçici bir dosyaya yazılıp yerine konur: okuyan hiçbir zaman yarım dosya görmez.
 
@@ -27,12 +27,12 @@ func jobDir() string {
 }
 
 // jobFile iş klasöründeki ilerleme anlık görüntüsünün adıdır.
-const jobFile = "ilerleme.json"
+const jobFile = "progress.json"
 
 // jobInterval anlık görüntünün en sık yazılma aralığıdır.
 const jobInterval = time.Second
 
-// jobStatusPath ilerleme.json'un yoludur; program bir arka plan işi değilse boş.
+// jobStatusPath progress.json'un yoludur; program bir arka plan işi değilse boş.
 func jobStatusPath() string {
 	k := jobDir()
 	if k == "" {

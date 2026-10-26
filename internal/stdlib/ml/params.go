@@ -113,7 +113,7 @@ func collectLeaves(fn any, model interp.Value, all bool) (names []string, found 
 			if !walked[x] {
 				walked[x] = true
 				for _, k := range x.Order {
-					walk(x.Pairs[k], subPath(x.DisplayKey(k)))
+					walk(x.Pairs[k], subPath(x.KeyText(k))) // ağırlık adı dilden bağımsız
 				}
 			}
 		}

@@ -95,31 +95,7 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 		return c.listComprehension(k, e)
 
 	case *ast.DictLiteral:
-		keyList := make([]exprCode, len(e.Pairs))
-		values := make([]exprCode, len(e.Pairs))
-		for i, p := range e.Pairs {
-			keyList[i] = c.dictKey(k, p.Key)
-			values[i] = c.expression(k, p.Value)
-		}
-		return func(v *VM, env *Environment) (Value, error) {
-			dict := NewDictVal()
-			for i := range keyList {
-				kVal, err := keyList[i](v, env)
-				if err != nil {
-					return nil, err
-				}
-				vVal, err := values[i](v, env)
-				if err != nil {
-					return nil, err
-				}
-				if err := DictKeyError(kVal); err != nil {
-					return nil, messages.At(e.Line(), 0, err)
-				}
-				escape(vVal) // sözlüğe yazılan değer kaçar (ownership.go)
-				dict.SetValue(kVal, vVal)
-			}
-			return dict, nil
-		}
+		return c.dictLiteral(k, e)
 
 	case *ast.RangeExpression:
 		begin := c.expression(k, e.Start)
@@ -224,16 +200,59 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 	return nullCode
 }
 
-// dictKey sözlük yazımındaki bir anahtarın kodudur. Kod taşıyan çıplak anahtar ({TR_mem_step: 3})
-// derlenen dosyanın dilindeki adıdır (3.7, 17.3; yerleştirmeyle aynı yoldan, c.textLang); öbür
-// anahtarlar (kodsuz çıplak ad, metin, ifade) olduğu gibi derlenir.
-func (c *compiler) dictKey(k *compilerScope, key ast.Expression) exprCode {
-	if s, ok := key.(*ast.StringLiteral); ok && c.textLang != nil {
+// dictLiteral sözlük yazımının kodudur: kodlu çıplak anahtar dilden bağımsız saklanır (SetCoded),
+// öbür anahtarlar değer olarak hesaplanır.
+func (c *compiler) dictLiteral(k *compilerScope, e *ast.DictLiteral) exprCode {
+	keyList := make([]exprCode, len(e.Pairs))
+	keyCodes := make([]codes.Code, len(e.Pairs)) // kodlu çıplak anahtarın kodu (yoksa codes.None)
+	values := make([]exprCode, len(e.Pairs))
+	for i, p := range e.Pairs {
+		keyCodes[i] = codedKeyOf(p.Key)
+		if keyCodes[i] == codes.None {
+			keyList[i] = c.expression(k, p.Key)
+		}
+		values[i] = c.expression(k, p.Value)
+	}
+	return func(v *VM, env *Environment) (Value, error) {
+		dict := NewDictVal()
+		for i := range keyList {
+			if keyCodes[i] != codes.None {
+				vVal, err := values[i](v, env)
+				if err != nil {
+					return nil, err
+				}
+				escape(vVal)
+				dict.SetCoded(keyCodes[i], vVal)
+				continue
+			}
+			kVal, err := keyList[i](v, env)
+			if err != nil {
+				return nil, err
+			}
+			vVal, err := values[i](v, env)
+			if err != nil {
+				return nil, err
+			}
+			if err := DictKeyError(kVal); err != nil {
+				return nil, messages.At(e.Line(), 0, err)
+			}
+			escape(vVal) // sözlüğe yazılan değer kaçar (ownership.go)
+			dict.SetValue(kVal, vVal)
+		}
+		return dict, nil
+	}
+}
+
+// codedKeyOf sözlük yazımındaki anahtar kod taşıyan çıplak bir anahtarsa ({TR_mem_step: 3}) üye
+// kodudur, değilse codes.None. Kodlu anahtar dosyanın dilinden bağımsız saklanır (SetCoded,
+// 3.7, 17.3); öbür anahtarlar (kodsuz çıplak ad, metin, ifade) olduğu gibi derlenir.
+func codedKeyOf(key ast.Expression) codes.Code {
+	if s, ok := key.(*ast.StringLiteral); ok {
 		if code := s.Token.Code; code != codes.None && code.Namespace() == codes.NamespaceMember {
-			return constCode(&StringVal{Val: c.textLang.Name(code)})
+			return code
 		}
 	}
-	return c.expression(k, key)
+	return codes.None
 }
 
 // interpolation metin yerleştirmesinin kodudur: parçaların değerleri derlenen dosyanın dilinde

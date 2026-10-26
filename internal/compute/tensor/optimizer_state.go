@@ -47,7 +47,7 @@ func loadState(st map[string]*Tensor, ad string, p *Tensor) Storage {
 // uyumlu olduğunu denetler (başka bir modelin durumu sessizce kısmen yüklenmesin).
 func checkStateKeys(st map[string]*Tensor, n int, prefixes ...string) {
 	for ad := range st {
-		if ad == "adim" {
+		if ad == "step" {
 			continue
 		}
 		valid := false
@@ -71,20 +71,20 @@ func checkStateKeys(st map[string]*Tensor, n int, prefixes ...string) {
 // paniğe geçer. LoadState önce bunu çağırır, böylece yükleme ya hiç olmaz ya tam olur; kontrol
 // noktası da bütün nesneleri yazmadan önce çağırır (dil tanımı 20.7).
 func (o *AdamW) CheckState(st map[string]*Tensor) {
-	checkStateKeys(st, len(o.Params), "m", "v", "adim", "ana")
-	if t, ok := st["adim"]; ok {
-		readCounter("adim", t)
+	checkStateKeys(st, len(o.Params), "m", "v", "step", "master")
+	if t, ok := st["step"]; ok {
+		readCounter("step", t)
 	}
 	for k, p := range o.Params {
 		m := checkStateShape(st, fmt.Sprintf("m.%d", k), p)
 		v := checkStateShape(st, fmt.Sprintf("v.%d", k), p)
-		checkStateShape(st, fmt.Sprintf("ana.%d", k), p)
+		checkStateShape(st, fmt.Sprintf("master.%d", k), p)
 		if m != v {
 			panic(messages.New(messages.H3061, k))
 		}
 		steps := 0
-		if t, ok := st[fmt.Sprintf("adim.%d", k)]; ok {
-			steps = readCounter(fmt.Sprintf("adim.%d", k), t)
+		if t, ok := st[fmt.Sprintf("step.%d", k)]; ok {
+			steps = readCounter(fmt.Sprintf("step.%d", k), t)
 		}
 		if m && steps == 0 {
 			panic(messages.New(messages.H3062, k))
@@ -122,9 +122,9 @@ func checkStateDevices(st map[string]*Tensor, params []*Tensor, prefixes ...stri
 
 // CheckState durumu yüklemeden denetler (anahtarlar ve şekiller; bkz. AdamW.CheckState).
 func (o *SGD) CheckState(st map[string]*Tensor) {
-	checkStateKeys(st, len(o.Params), "hiz", "ana")
+	checkStateKeys(st, len(o.Params), "momentum", "master")
 	for k, p := range o.Params {
-		checkStateShape(st, fmt.Sprintf("hiz.%d", k), p)
-		checkStateShape(st, fmt.Sprintf("ana.%d", k), p)
+		checkStateShape(st, fmt.Sprintf("momentum.%d", k), p)
+		checkStateShape(st, fmt.Sprintf("master.%d", k), p)
 	}
 }

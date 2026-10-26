@@ -30,7 +30,7 @@ func helpText(command, description string, options []*option) string {
 	leftText := make([]string, len(options)+1)
 	width := 0
 	for i, s := range options {
-		leftText[i] = "--" + s.name
+		leftText[i] = "--" + s.display()
 		if s.optKind != kindBool {
 			leftText[i] += " <" + typeText(s) + ">"
 		}
@@ -45,7 +45,7 @@ func helpText(command, description string, options []*option) string {
 	for i, s := range options {
 		right := messages.Text(messages.H7234, defaultText(s.defaultVal))
 		if s.optKind == kindBool && s.defaultVal.IsTruthy() {
-			right = messages.Text(messages.H7237, defaultText(s.defaultVal), s.name, codes.NameRef(codes.KwFalse)) // kapatma biçimi
+			right = messages.Text(messages.H7237, defaultText(s.defaultVal), s.display(), codes.NameRef(codes.KwFalse)) // kapatma biçimi
 		}
 		if s.description != "" {
 			right = s.description + " " + right

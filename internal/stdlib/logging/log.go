@@ -2,29 +2,31 @@
 // eğitim günlüğü (günlük, TR_fn_logger; tip Günlük, TR_type_Logger) ve ilerleme çubuğu (ilerleme, TR_fn_progress; tip
 // İlerleme, TR_type_Progress).
 //
-// Günlük dosyası biçimi (sürüm 1): her satır tek bir JSON nesnesidir ve tek bir yazma
+// Günlük dosyası biçimi (sürüm 2): her satır tek bir JSON nesnesidir ve tek bir yazma
 // çağrısıyla dosyanın sonuna eklenir; süreç çökse de en çok son satır yarım kalır.
 //
-//	{"tür":"başlangıç","zaman":"2026-10-18T14:05:09.123+03:00","sürüm":1,"program":"egit.tr","toplam":5000,"ayarlar":{"adım":5000}}
-//	{"zaman":"2026-10-18T14:05:10.004+03:00","adım":1,"kayıp":4.12,"hız":11.3}
-//	{"zaman":"2026-10-18T14:19:12.870+03:00","doğrulama_kaybı":2.48}
-//	{"tür":"devam","zaman":"...","adım":1500}
-//	{"tür":"bitiş","zaman":"2026-10-18T15:06:12.411+03:00","adım":5000,"süre_sn":3663.3}
+//	{"kind":"start","time":"2026-10-18T14:05:09.123+03:00","version":2,"program":"egit.tr","total":5000,"settings":{"adım":5000}}
+//	{"time":"2026-10-18T14:05:10.004+03:00","step":1,"kayıp":4.12,"rate":11.3}
+//	{"time":"2026-10-18T14:19:12.870+03:00","doğrulama_kaybı":2.48}
+//	{"kind":"resume","time":"...","step":1500}
+//	{"kind":"end","time":"2026-10-18T15:06:12.411+03:00","step":5000,"seconds":3663.3}
 //
-// "tür" taşımayan satırlar ölçü kayıtlarıdır. Anahtarlar yazım dilinden bağımsızdır ve
-// çevrilmez (TRTENSOR imzası gibi); okuyan araçlar (İzleme Masası, tr izle) bunlara bakar.
+// "kind" taşımayan satırlar ölçü kayıtlarıdır. Biçimin anahtarları ve kayıt türleri dilden
+// bağımsız İngilizce tanımlayıcılardır ve çevrilmez (dil tanımı 17.3; TRTENSOR imzası gibi);
+// okuyan araçlar (tr izle, tr profil, testkit) bunlara bakar. Ölçülerin ve ayarların adları
+// programındır, olduğu gibi yazılır.
 // Tanımsız (NaN) ve sonsuz değerler gizlenmez, "NaN", "Infinity", "-Infinity" metni olarak
-// yazılır. Bir "devam" kaydı (kontrol noktasından sürdürme, bkz. Log.WriteResume) kendinden
+// yazılır. Bir "resume" kaydı (kontrol noktasından sürdürme, bkz. Log.WriteResume) kendinden
 // önce gelen ve adımı ondan büyük olan ölçü kayıtlarını geçersiz kılar (adımı eşit olan kayıt
 // kaydedilen noktaya dahildir).
 //
 // İlerleme çubuğu standart hataya (VM.Err) yazar: terminalde tek satırda en çok saniyede 10
 // kez yenilenir (yorumlayıcının canlı satır kancasıyla: yazdır ve hata çıktısı çubuğa
 // karışmaz), terminal değilse 10 saniyede bir düz satır ve sonda özet satırı yazılır. Arka
-// plan işinde (TR_IS_KLASORU ortam değişkeni) ayrıca iş klasörüne ilerleme.json anlık görüntüsü
+// plan işinde (TR_IS_KLASORU ortam değişkeni) ayrıca iş klasörüne progress.json anlık görüntüsü
 // yazılır. Her İlerleme.güncelle çağrısı eğitimin bir adım sınırıdır (SetStepHook).
 //
-// Gizli değerler (interp.VM.AddSecret) günlükte, çubukta ve ilerleme.json'da ***
+// Gizli değerler (interp.VM.AddSecret) günlükte, çubukta ve progress.json'da ***
 // olarak yazılır.
 //
 // Layer: standard library (internal/stdlib); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
@@ -54,9 +56,9 @@ var (
 	nameStep = bind.NamedArg(codes.ArgStep)
 )
 
-// Dosya biçiminin (sürüm 1) anahtarları ve kayıt türleri; bkz. paket belgesi. Dilin adları
+// Dosya biçiminin (sürüm 2) anahtarları ve kayıt türleri; bkz. paket belgesi. Dilin adları
 // değildir (çevrilmez), bu yüzden tek bir metinde tutulurlar.
-var formatNames = strings.Fields("tür zaman sürüm program toplam ayarlar adım hız süre_sn mesaj ölçüler kalan_sn bitti başlangıç bitiş devam")
+var formatNames = strings.Fields("kind time version program total settings step rate seconds message metrics remaining_seconds done start end resume")
 
 var (
 	keyKind, keyTime, keyVersion, keyProgram          = formatNames[0], formatNames[1], formatNames[2], formatNames[3]
@@ -67,7 +69,7 @@ var (
 )
 
 // formatVersion günlük dosyası biçiminin sürümüdür (başlangıç kaydında).
-const formatVersion = 1
+const formatVersion = 2
 
 // timeFormat kayıtların zaman damgasıdır (milisaniyeli, saat dilimli).
 const timeFormat = "2006-01-02T15:04:05.000Z07:00"

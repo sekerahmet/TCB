@@ -19,7 +19,7 @@ import (
 )
 
 // Noktanın yüklenmesi (bkz. paket belgesi). Sıra: (1) en yeni nokta klasörü doğrulanır
-// (ozet.json, dosyaların boyu ve SHA-256 özeti, durum.json, tensör dosyasının biçimi ve
+// (digest.json, dosyaların boyu ve SHA-256 özeti, state.json, tensör dosyasının biçimi ve
 // sağlaması); (2) her nesnenin kayda uyumu hiçbir şey yüklenmeden denetlenir; (3) okuyucular,
 // parametreler (tensör dosyası ikinci kez, girdi girdi okunarak; bellekte modelin ikinci bir
 // kopyası toplanmaz), iyileştirici durumları, düz değerler yüklenir, günlüklere devam kaydı
@@ -162,7 +162,7 @@ func verifyCkpt(dir string, n ckptEntry) (*loadedCkpt, error) {
 
 // walkTensors tensör dosyasını girdi girdi okur; her girdinin adı "<nesne>/<tensör>"
 // olmalı ve nesne tensör tutan bir türden olmalıdır. Dosyanın boyu ve SHA-256 özeti
-// ozet.json'la, sağlaması kendi biçimiyle denetlenir (gez yalnızca bunlar tutarsa güvenilir).
+// digest.json'la, sağlaması kendi biçimiyle denetlenir (gez yalnızca bunlar tutarsa güvenilir).
 func (o *loadedCkpt) walkTensors(walk func(objectName, tensorName string, g ml.TensorEntry) error) error {
 	fpath := filepath.Join(o.dir, tensorFile)
 	f, err := os.Open(fpath)
@@ -200,7 +200,7 @@ func sha256Text(b []byte) string {
 
 func hashText(h hash.Hash) string { return hex.EncodeToString(h.Sum(nil)) }
 
-// digestMatches dosyanın boyunu ve özetini ozet.json'daki kayıtla karşılaştırır.
+// digestMatches dosyanın boyunu ve özetini digest.json'daki kayıtla karşılaştırır.
 func digestMatches(name string, want fileDigest, nBytes int64, digest string) error {
 	if nBytes != want.Bytes || digest != want.SHA256 {
 		return messages.New(messages.H7476, name)
@@ -221,7 +221,7 @@ func (kn *Checkpoint) checkMatch(fn any, o *loadedCkpt) error {
 		if !ok {
 			return messages.New(messages.H7478, fn, n.name, o.objectNames())
 		}
-		if err := n.checkMatch(fn, y, o.state.Version); err != nil {
+		if err := n.checkMatch(fn, y); err != nil {
 			return err
 		}
 	}

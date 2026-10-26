@@ -2,7 +2,6 @@ package interp
 
 import (
 	"fmt"
-	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -121,9 +120,9 @@ type memberInfo struct {
 	codeVal codes.Code // ad bir üye adı değilse kod.Yok
 	// core Metin/Liste/Sözlük metotlarıdır; ad bunların metodu değilse nil.
 	core *coreMethod
-	// keys, üye bir kod taşıyorsa (codeVal) sözlükte aranacak anahtarlardır: kodun her yazım
-	// dilindeki adı, önce erişimin yazıldığı dosyanın dilindeki (3.7, 17.3). nil ise anahtar
-	// erişimin adının kendisidir.
+	// keys, üye bir kod taşıyorsa (codeVal) sözlükte aranacak anahtarlardır: önce kodlu anahtarın
+	// dilden bağımsız metni (CodedKey), sonra kodun erişimin yazıldığı dosyanın dilindeki adı (o
+	// dilde yazılmış JSON için; 3.7, 17.3). nil ise anahtar erişimin adının kendisidir.
 	keys []string
 }
 
@@ -136,30 +135,22 @@ func (c *compiler) member(name string) memberInfo {
 	return u
 }
 
-// memberKeys bir üye kodunun gömülü yazım dillerindeki adlarıdır: önce lang'deki (nil: kanonik),
-// sonra kanonik ad, sonra öbür diller; her ad bir kez.
+// memberKeys bir üye kodunun sözlükte aranacak anahtarlarıdır: kodlu anahtarın dilden bağımsız
+// metni ve kodun lang'deki (erişimin dosyasının dilindeki) adı; hiçbir yazım dili öncelikli
+// değildir, öbür dillerin adları aranmaz.
 func memberKeys(k codes.Code, lang *codes.Language) []string {
-	var keys []string
-	add := func(l *codes.Language) {
-		if e, ok := l.Entry(k); ok && !slices.Contains(keys, e.Name) {
-			keys = append(keys, e.Name)
-		}
-	}
+	keys := []string{CodedKey(k)}
 	if lang != nil {
-		add(lang)
-	}
-	add(codes.Source())
-	for _, code := range codes.Languages() {
-		if l, err := codes.LoadLanguage(code); err == nil {
-			add(l)
+		if e, ok := lang.Entry(k); ok && e.Name != keys[0] {
+			keys = append(keys, e.Name)
 		}
 	}
 	return keys
 }
 
-// dictKey sözlükte u erişiminin anahtarıdır: üye bir kod taşıyorsa kodun bir yazım dilindeki
-// adıyla duran anahtar (önce dosyanın dilindeki); yoksa ok false ve eklenecek ad (dosyanın
-// dilindeki ad). Böylece aynı sözlükte bir kodun iki dilde iki anahtarı oluşmaz.
+// dictKey sözlükte u erişiminin anahtarıdır: üye bir kod taşıyorsa önce kodlu anahtar, sonra
+// dosyanın dilindeki adıyla duran anahtar; yoksa ok false ve eklenecek anahtar (kodlu anahtar).
+// Böylece aynı sözlükte bir kodun iki anahtarı oluşmaz.
 func (u memberInfo) dictKey(d *DictVal, prop string) (key string, ok bool) {
 	if u.keys == nil {
 		_, ok = d.Pairs[prop]

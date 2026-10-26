@@ -84,8 +84,8 @@ func TestProfileKnownOpCount(t *testing.T) {
 		code, direction string
 		n               int64
 	}{
-		{"matmul", "ileri", 200}, {"matmul", "geri", 200}, {"relu", "ileri", 200},
-		{"relu", "geri", 200}, {"adamw", "ileri", 200}, {"sum", "ileri", 200},
+		{"matmul", "forward", 200}, {"matmul", "backward", 200}, {"relu", "forward", 200},
+		{"relu", "backward", 200}, {"adamw", "forward", 200}, {"sum", "forward", 200},
 	} {
 		b := findOp(g, d.code, d.direction)
 		if b == nil || b.Calls != d.n {
@@ -103,7 +103,7 @@ func TestProfileKnownOpCount(t *testing.T) {
 	if g.Seconds >= 0.05 && (g.Tensor.Share <= 0 || g.Tensor.Share > 1.05) {
 		t.Errorf("tensör süresi %v sn, programın %v sn'si içinde payı %v", g.Tensor.Seconds, g.Seconds, g.Tensor.Share)
 	}
-	if b := findOp(g, "matmul", "ileri"); b.MsPerStep == nil {
+	if b := findOp(g, "matmul", "forward"); b.MsPerStep == nil {
 		t.Error("adım varken işlemin adım başına süresi yok")
 	}
 }
@@ -197,7 +197,7 @@ döngü i içinde 0..40 {
 `
 	g, _ := run(t, code, Options{})
 	d := g.Step
-	if d == nil || d.Source != "iyilestirici" || d.All != 40 {
+	if d == nil || d.Source != "optimizer" || d.All != 40 {
 		t.Fatalf("adım bilgisi %+v; iyileştiriciden 40 adım bekleniyordu", d)
 	}
 	if d.BackwardMs <= 0 {
@@ -242,7 +242,7 @@ döngü i içinde 0..60 {
 	}
 }
 
-// profil.json biçimi: sürüm, kimlik alanları, atomik yazma (geçici dosya kalmaz).
+// profile.json biçimi: sürüm, kimlik alanları, atomik yazma (geçici dosya kalmaz).
 func TestProfileStatusFile(t *testing.T) {
 	dir := t.TempDir()
 	fpath := filepath.Join(dir, StatusFileName)
@@ -253,21 +253,21 @@ func TestProfileStatusFile(t *testing.T) {
 	}
 	var d map[string]any
 	if err := json.Unmarshal(data, &d); err != nil {
-		t.Fatalf("profil.json geçerli JSON değil: %v", err)
+		t.Fatalf("profile.json geçerli JSON değil: %v", err)
 	}
-	if d["biçim"] != FormatName || d["sürüm"] != float64(FormatVersion) || d["tür"] != "rapor" || d["bitti"] != true {
-		t.Errorf("kimlik alanları: %v %v %v %v", d["biçim"], d["sürüm"], d["tür"], d["bitti"])
+	if d["format"] != FormatName || d["version"] != float64(FormatVersion) || d["kind"] != "report" || d["done"] != true {
+		t.Errorf("kimlik alanları: %v %v %v %v", d["format"], d["version"], d["kind"], d["done"])
 	}
-	step := d["adım"].(map[string]any)
-	if step["sayı"] != float64(200) {
-		t.Errorf("adım.sayı %v", step["sayı"])
+	step := d["step"].(map[string]any)
+	if step["count"] != float64(200) {
+		t.Errorf("step.count %v", step["count"])
 	}
-	if len(d["tensör"].(map[string]any)["işlemler"].([]any)) != len(g.Tensor.Ops) {
+	if len(d["tensor"].(map[string]any)["ops"].([]any)) != len(g.Tensor.Ops) {
 		t.Error("dosyadaki işlem listesi görüntüyle aynı değil")
 	}
 	inputs, _ := reporoot.ReadDir(dir)
 	if len(inputs) != 1 {
-		t.Errorf("klasörde yalnızca profil.json kalmalı: %v", inputs)
+		t.Errorf("klasörde yalnızca profile.json kalmalı: %v", inputs)
 	}
 }
 
@@ -316,7 +316,7 @@ func TestProfileWriteErrorDoesNotStopProgram(t *testing.T) {
 	var warning []string
 	var mu sync.Mutex
 	g, _ := run(t, shortTraining, Options{
-		StatusFile: filepath.Join(t.TempDir(), "yok", "profil.json"),
+		StatusFile: filepath.Join(t.TempDir(), "yok", "profile.json"),
 		Warning:    func(m string) { mu.Lock(); warning = append(warning, m); mu.Unlock() },
 	})
 	if g.Step == nil || g.Step.Count != 200 {
@@ -393,7 +393,7 @@ func TestProfileModuleLines(t *testing.T) {
 // adım sayısına bölünür (GPU raporundaki gibi), adım sınırları arasındaki aralık sayısına değil.
 func TestProfileOpMsPerStepUsesAllSteps(t *testing.T) {
 	g, _ := run(t, shortTraining, Options{})
-	b := findOp(g, "matmul", "ileri")
+	b := findOp(g, "matmul", "forward")
 	if b == nil || b.MsPerStep == nil {
 		t.Fatalf("işlem ya da adım başına süresi yok: %+v", b)
 	}
@@ -420,7 +420,7 @@ func TestProfileStepsAcrossProgressBars(t *testing.T) {
 	if g.Step == nil || g.Step.All != 200 || g.Step.Count != 100 {
 		t.Fatalf("iki çubukta toplam 200 adım, son çubukta 100 bekleniyordu: %+v", g.Step)
 	}
-	b := findOp(g, "matmul", "ileri")
+	b := findOp(g, "matmul", "forward")
 	if b == nil || b.MsPerStep == nil {
 		t.Fatalf("işlemin adım başına süresi yok: %+v", b)
 	}

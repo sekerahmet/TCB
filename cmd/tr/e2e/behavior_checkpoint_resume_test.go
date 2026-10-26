@@ -139,12 +139,12 @@ func (k *trainingRun) report() string {
 		lines := strings.Split(strings.TrimRight(string(g), "\n"), "\n")
 		fmt.Fprintf(&b, "--- günlük (%d satır, son 12):\n%s\n", len(lines), strings.Join(lines[max(0, len(lines)-12):], "\n"))
 	}
-	if g, err := reporoot.ReadDir(filepath.Join(k.run, "kontrol_noktalari")); err == nil {
+	if g, err := reporoot.ReadDir(filepath.Join(k.run, "checkpoints")); err == nil {
 		var names []string
 		for _, e := range g {
 			names = append(names, e.Name())
 		}
-		fmt.Fprintf(&b, "--- kontrol_noktalari: %v\n", names)
+		fmt.Fprintf(&b, "--- checkpoints: %v\n", names)
 	}
 	return b.String()
 }
@@ -215,7 +215,7 @@ func (k *trainingRun) waitForStop(t *testing.T, step int) {
 // measureCount günlükteki ölçü kaydı sayısıdır (yarım son satır sayılmaz).
 func measureCount(filePath string) int {
 	b, _ := os.ReadFile(filePath)
-	return strings.Count(string(b), `"kayıp":`) - strings.Count(string(b[bytes.LastIndexByte(b, '\n')+1:]), `"kayıp":`)
+	return strings.Count(string(b), `"loss":`) - strings.Count(string(b[bytes.LastIndexByte(b, '\n')+1:]), `"loss":`)
 }
 
 // isSame iki koşunun sonucunu bit düzeyinde karşılaştırır.
@@ -240,28 +240,28 @@ func resumeSteps(t *testing.T, filePath string) []int64 {
 	var out []int64
 	for _, s := range strings.Split(string(data), "\n") {
 		var k struct {
-			Kind string `json:"tür"`
-			Step int64  `json:"adım"`
+			Kind string `json:"kind"`
+			Step int64  `json:"step"`
 		}
-		if json.Unmarshal([]byte(s), &k) == nil && k.Kind == "devam" {
+		if json.Unmarshal([]byte(s), &k) == nil && k.Kind == "resume" {
 			out = append(out, k.Step)
 		}
 	}
 	return out
 }
 
-// lastPointStep kontrol_noktalari/son.json'un söylediği adımdır.
+// lastPointStep checkpoints/latest.json'un söylediği adımdır.
 func lastPointStep(t *testing.T, run string) int64 {
 	t.Helper()
-	b, err := os.ReadFile(filepath.Join(run, "kontrol_noktalari", "son.json"))
+	b, err := os.ReadFile(filepath.Join(run, "checkpoints", "latest.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	var s struct {
-		Step int64 `json:"adım"`
+		Step int64 `json:"step"`
 	}
 	if err := json.Unmarshal(b, &s); err != nil {
-		t.Fatalf("son.json çözülemedi: %v (%s)", err, b)
+		t.Fatalf("latest.json çözülemedi: %v (%s)", err, b)
 	}
 	return s.Step
 }
@@ -330,7 +330,7 @@ func TestCheckpointResumeBitExact(t *testing.T) {
 		}
 		k.wait(t)
 		if breaker != nil {
-			breaker(filepath.Join(k.run, "kontrol_noktalari"), k.cmd.Process.Pid)
+			breaker(filepath.Join(k.run, "checkpoints"), k.cmd.Process.Pid)
 		}
 		d := startTraining(t, dir, run(ad), data, 1, "--kayıt_her", "10")
 		if code := d.wait(t); code != 0 || strings.Contains(d.stderr.String(), "Uyarı") || !strings.Contains(d.stderr.String(), "Kaldığı yerden devam: adım 20 ") {
@@ -343,9 +343,9 @@ func TestCheckpointResumeBitExact(t *testing.T) {
 		if a := resumeSteps(t, filepath.Join(k.run, "metrics.jsonl")); !slices.Equal(a, []int64{20}) {
 			t.Errorf("günlükte adım 20'de bir devam kaydı bekleniyordu, %v var\n%s", a, d.report())
 		}
-		inputs, _ := reporoot.ReadDir(filepath.Join(k.run, "kontrol_noktalari"))
+		inputs, _ := reporoot.ReadDir(filepath.Join(k.run, "checkpoints"))
 		for _, g := range inputs {
-			if strings.Contains(g.Name(), ".tmp-") || strings.Contains(g.Name(), ".eski-") {
+			if strings.Contains(g.Name(), ".tmp-") || strings.Contains(g.Name(), ".old-") {
 				t.Errorf("yarım kaydın artığı kaldı: %s\n%s", g.Name(), d.report())
 			}
 		}
@@ -354,16 +354,16 @@ func TestCheckpointResumeBitExact(t *testing.T) {
 	t.Run("kayıt ortasında öldürme", func(t *testing.T) {
 		// 30. adımın kaydı yazılırken öldürülmüş gibi: geçici klasörde yarım dosyalar.
 		killAndResume(t, "yarim_kayit", func(points string, pid int) {
-			copyDir(t, filepath.Join(points, "adim_0000000020"), filepath.Join(points, "adim_0000000030.tmp-"+strconv.Itoa(pid)), 4096)
+			copyDir(t, filepath.Join(points, "step_0000000020"), filepath.Join(points, "step_0000000030.tmp-"+strconv.Itoa(pid)), 4096)
 		})
 	})
 	t.Run("aynı adımlı nokta yerine konurken öldürme", func(t *testing.T) {
 		// Aynı adımlı noktanın yerine yenisi konurken öldürülmüş gibi: eskisi kenara alınmış,
 		// yenisi geçici klasörde (tam), yerine konmamış.
 		killAndResume(t, "yerine_koyma", func(points string, pid int) {
-			actual := filepath.Join(points, "adim_0000000020")
-			copyDir(t, actual, filepath.Join(points, "adim_0000000020.tmp-"+strconv.Itoa(pid)), 0)
-			if err := os.Rename(actual, actual+".eski-"+strconv.Itoa(pid)); err != nil {
+			actual := filepath.Join(points, "step_0000000020")
+			copyDir(t, actual, filepath.Join(points, "step_0000000020.tmp-"+strconv.Itoa(pid)), 0)
+			if err := os.Rename(actual, actual+".old-"+strconv.Itoa(pid)); err != nil {
 				t.Fatal(err)
 			}
 		})

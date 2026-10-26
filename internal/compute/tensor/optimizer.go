@@ -420,7 +420,7 @@ func gradSquareSum(params []*Tensor) float64 {
 // LoadState aynı parametre listesiyle kurulmuş yeni bir iyileştiriciye yükler. Böylece
 // kontrol noktasından sürdürülen eğitim, kesintisiz eğitimle bit düzeyinde aynı devam eder.
 // Anahtarlar parametrenin listedeki sırasını taşır: "m.k", "v.k" (AdamW momentleri),
-// "hiz.k" (SGD momentumu), "adim.k" ve "adim" (adım sayıları), "ana.k" (16 bitlik
+// "momentum.k" (SGD momentumu), "step.k" ve "step" (adım sayıları), "master.k" (16 bitlik
 // parametrelerin float32 ana kopyası). Sözlük doğrudan dosyaya yazılabilir. Öğrenme oranı
 // gibi ayarlar duruma dahil değildir (kurulumda verilir).
 
@@ -449,7 +449,7 @@ func stateCopy(p *Tensor, s Storage) *Tensor {
 func (a *masterWeights) state(st map[string]*Tensor, params []*Tensor, dup bool) {
 	for k, p := range params {
 		if a.master[k] != nil && !a.closed {
-			st[fmt.Sprintf("ana.%d", k)] = stateTensor(p, a.master[k], dup)
+			st[fmt.Sprintf("master.%d", k)] = stateTensor(p, a.master[k], dup)
 		}
 	}
 }
@@ -459,7 +459,7 @@ func (a *masterWeights) state(st map[string]*Tensor, params []*Tensor, dup bool)
 func (a *masterWeights) loadFn(st map[string]*Tensor, params []*Tensor) {
 	for k, p := range params {
 		a.master[k] = nil
-		if c := loadState(st, fmt.Sprintf("ana.%d", k), p); c != nil && !a.closed && p.dtyp != Float32 {
+		if c := loadState(st, fmt.Sprintf("master.%d", k), p); c != nil && !a.closed && p.dtyp != Float32 {
 			a.master[k] = c
 			a.version[k] = p.storage.Version()
 		}
@@ -476,14 +476,14 @@ func (o *AdamW) State() map[string]*Tensor { return o.state(true) }
 func (o *AdamW) StateView() map[string]*Tensor { return o.state(false) }
 
 func (o *AdamW) state(dup bool) map[string]*Tensor {
-	st := map[string]*Tensor{"adim": counterTensor(o.step)}
+	st := map[string]*Tensor{"step": counterTensor(o.step)}
 	for k, p := range o.Params {
 		if o.m[k] != nil {
 			st[fmt.Sprintf("m.%d", k)] = stateTensor(p, o.m[k], dup)
 			st[fmt.Sprintf("v.%d", k)] = stateTensor(p, o.v[k], dup)
 		}
 		if o.steps[k] != 0 {
-			st[fmt.Sprintf("adim.%d", k)] = counterTensor(o.steps[k])
+			st[fmt.Sprintf("step.%d", k)] = counterTensor(o.steps[k])
 		}
 	}
 	o.master.state(st, o.Params, dup)
@@ -493,10 +493,10 @@ func (o *AdamW) state(dup bool) map[string]*Tensor {
 // LoadState State ile alınmış durumu yükler; parametre sayısı ve şekilleri aynı olmalıdır.
 func (o *AdamW) LoadState(st map[string]*Tensor) {
 	o.CheckState(st)
-	checkStateDevices(st, o.Params, "m", "v", "ana")
+	checkStateDevices(st, o.Params, "m", "v", "master")
 	o.step = 0
-	if t, ok := st["adim"]; ok {
-		o.step = readCounter("adim", t)
+	if t, ok := st["step"]; ok {
+		o.step = readCounter("step", t)
 	}
 	for k, p := range o.Params {
 		o.m[k] = loadState(st, fmt.Sprintf("m.%d", k), p)
@@ -505,8 +505,8 @@ func (o *AdamW) LoadState(st map[string]*Tensor) {
 			panic(messages.New(messages.H3061, k))
 		}
 		o.steps[k] = 0
-		if t, ok := st[fmt.Sprintf("adim.%d", k)]; ok {
-			o.steps[k] = readCounter(fmt.Sprintf("adim.%d", k), t)
+		if t, ok := st[fmt.Sprintf("step.%d", k)]; ok {
+			o.steps[k] = readCounter(fmt.Sprintf("step.%d", k), t)
 		}
 		// Momentler sapma düzeltmesini adım sayısıyla birlikte anlamlıdır: momentli ama
 		// sayaçsız durum tutarsızdır (momentler ilk adımın momentleri sanılırdı).
@@ -527,7 +527,7 @@ func (o *SGD) state(dup bool) map[string]*Tensor {
 	st := map[string]*Tensor{}
 	for k, p := range o.Params {
 		if o.speed[k] != nil {
-			st[fmt.Sprintf("hiz.%d", k)] = stateTensor(p, o.speed[k], dup)
+			st[fmt.Sprintf("momentum.%d", k)] = stateTensor(p, o.speed[k], dup)
 		}
 	}
 	o.master.state(st, o.Params, dup)
@@ -537,9 +537,9 @@ func (o *SGD) state(dup bool) map[string]*Tensor {
 // LoadState State ile alınmış durumu yükler; parametre sayısı ve şekilleri aynı olmalıdır.
 func (o *SGD) LoadState(st map[string]*Tensor) {
 	o.CheckState(st)
-	checkStateDevices(st, o.Params, "hiz", "ana")
+	checkStateDevices(st, o.Params, "momentum", "master")
 	for k, p := range o.Params {
-		o.speed[k] = loadState(st, fmt.Sprintf("hiz.%d", k), p)
+		o.speed[k] = loadState(st, fmt.Sprintf("momentum.%d", k), p)
 	}
 	o.master.loadFn(st, o.Params)
 }

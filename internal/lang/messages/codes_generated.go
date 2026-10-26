@@ -723,7 +723,7 @@ const (
 	H5535 Code = 5535 // örnekleyici sonsuz toplu iş üretir, döngüyle gezilemez; adım sayısıyla döngü kurup .{next}() kullanın (ya da .{sequential}(...) ile sonlu bir okuyucu açın)
 	H5536 Code = 5536 // parça kimliği {id} tensörde tam olarak gösterilemez (kimlikler 0 ile {max} arasında olmalı)
 	H5537 Code = 5537 // {fn} adlı argüman almaz
-	H5538 Code = 5538 // {fn}: kayıt bir {recorded} okuyucusunun durumu, bu okuyucu {kind}
+	H5538 Code = 5538 // {fn}: kayıt bir {recorded, select, sampler {örnekleyici} other {sıralı}} okuyucusunun durumu, bu okuyucu {kind, select, sampler {örnekleyici} other {sıralı}}
 	H5539 Code = 5539 // {fn}: kayıt başka bir veri kümesine ait (veri dosyalarının adları ya da boyları farklı: {path|q}); aynı veriyle sürdürün ya da yeni bir koşu klasörü verin
 	H5540 Code = 5540 // {fn}: kayıttaki konum bu veri kümesinde geçersiz ({path}); kayıt bozuk ya da başka bir veriye ait: {error}
 	H5541 Code = 5541 // {fn}: durumda {name|q} alanı yok; sözlük okuyucunun {method}'u olmalı
@@ -1233,7 +1233,7 @@ const (
 	H7319 Code = 7319 // {fn}: {path|q} bir günlük dosyası adı değil; günlük {ext} uzantılı olmalı (her satırı bir JSON kaydı), ör. {example|q}
 	H7320 Code = 7320 // {fn}: ölçü adları {type} olmalıdır, {given} verildi
 	H7321 Code = 7321 // {fn}: '{name}' adı günlük biçimine ayrılmış ({reason}); ölçüye başka bir ad verin
-	H7322 Code = 7322 // kaydın türünü söyler: başlangıç, bitiş, devam
+	H7322 Code = 7322 // kaydın türünü söyler: start, end, resume
 	H7323 Code = 7323 // kaydın zamanını çubuk kendisi yazar
 	H7324 Code = 7324 // tamamlanan adımı çubuk kendisi yazar
 	H7325 Code = 7325 // adım hızını çubuk kendisi yazar
@@ -1274,7 +1274,7 @@ const (
 	H7437 Code = 7437 // {fn}: {name|q} bir işlemin sonucu (ara tensör, {given}); kaydedilecek tensörler yaprak olmalıdır: parametreler ve {noGrad} içinde güncellenen durum tensörleri
 	H7438 Code = 7438 // {fn}: {name|q} kaydedilemez ({given}); modeller, iyileştiriciler, okuyucular, günlükler ve düz değerli sözlük ya da listeler verilebilir
 	H7439 Code = 7439 // {name|q}: {error}
-	H7440 Code = 7440 // {fn}: {name|q} kayıtta bir {recorded}, şimdi bir {now}; aynı nesnelerle sürdürün ya da yeni bir koşu klasörü verin
+	H7440 Code = 7440 // {fn}: {name|q} kayıtta {recorded, select, parameters {bir model} optimizer {bir iyileştirici} stateful {durumlu bir değer} log {bir günlük} other {düz bir değer}}, şimdi {now, select, parameters {bir model} optimizer {bir iyileştirici} stateful {durumlu bir değer} log {bir günlük} other {düz bir değer}}; aynı nesnelerle sürdürün ya da yeni bir koşu klasörü verin
 	H7441 Code = 7441 // {fn}: {name|q}
 	H7442 Code = 7442 // {fn}: {name|q} kayıtta {recorded_count} parametreli bir {recorded}, şimdi {count} parametreli bir {optimizer}; aynı iyileştiriciyle sürdürün
 	H7443 Code = 7443 // {fn}: {name|q} için kayıtta beklenmeyen tensörler var
@@ -1310,7 +1310,7 @@ const (
 	H7475 Code = 7475 // {name|q} girdisi kayıttaki bir modele ya da iyileştiriciye ait değil
 	H7476 Code = 7476 // {file} özeti tutmuyor (dosya değişmiş, bozulmuş ya da yarım kopyalanmış)
 	H7478 Code = 7478 // {fn}: {name|q} kayıtta yok (kayıttaki nesneler: {names}); aynı nesnelerle sürdürün ya da yeni bir koşu klasörü verin
-	H7479 Code = 7479 // {fn}: kayıttaki {name|q} ({kind}) verilmedi; aynı nesnelerle sürdürün ya da yeni bir koşu klasörü verin
+	H7479 Code = 7479 // {fn}: kayıttaki {name|q} ({kind, select, parameters {model} optimizer {iyileştirici} stateful {durumlu} log {günlük} other {düz değer}}) verilmedi; aynı nesnelerle sürdürün ya da yeni bir koşu klasörü verin
 	H7480 Code = 7480 // ağ ve bulut sürücülerinde (ör. bağlanmış Drive) yeniden adlandırma başarısız olabilir: noktaları yerel diske kaydedip koşu klasörünü ara ara oraya kopyalayın
 	H7481 Code = 7481 // Uyarı: {fn}: {file} güncellenemedi (nokta kaydedildi; yükleme klasörlere bakar): {reason}
 	H7482 Code = 7482 // Uyarı: {fn}: eski noktalar silinemedi: {reason}
@@ -1611,7 +1611,7 @@ const (
 	H8710 Code = 8710 // Lütfen gösterilecek .tr dosyasını belirtin. Örn: tr {command} ornek.tr {option} tr
 	H8711 Code = 8711 // {file}: dosyanın dili {language}; Türkçe yazıma çözülünce dosyanın dili Türkçeye geçer ve programın değerlerden yaptığı metinler (Mantık değerleri, yok, tip adları) Türkçe çıkar
 	H8750 Code = 8750 // gömülü paketin uzunluk alanı bozuk
-	H8751 Code = 8751 // gömülü paket sürümü {version} desteklenmiyor (bu yorumlayıcı en çok {max} sürümünü okur; uygulamayı daha yeni bir 'tr' ile derlenmiş olabilir)
+	H8751 Code = 8751 // gömülü paket sürümü {version} desteklenmiyor (bu yorumlayıcı yalnız {max} sürümünü okur; uygulamayı bu 'tr' ile yeniden derleyin)
 	H8752 Code = 8752 // gömülü paket çözülemedi: {error}
 	H8753 Code = 8753 // gömülü kodun uzunluk alanı bozuk
 	H8754 Code = 8754 // gömülü paketin altbilgisi eksik

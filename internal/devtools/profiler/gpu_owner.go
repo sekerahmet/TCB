@@ -40,9 +40,9 @@ func (p *Profile) gpuOwners(a, before []gpu.OwnerSample) (ops []GPUOpInfo, lines
 		k := opKey{o.Owner.Kind, o.Owner.Backward}
 		s := opSum[k]
 		if s == nil {
-			s = &GPUOpInfo{Code: k.k.Code(), Name: fullName(k.k, k.back, 1), Direction: "ileri"}
+			s = &GPUOpInfo{Code: k.k.Code(), Name: fullName(k.k, k.back, 1), Direction: "forward"}
 			if k.back {
-				s.Direction = "geri"
+				s.Direction = "backward"
 			}
 			opSum[k] = s
 		}

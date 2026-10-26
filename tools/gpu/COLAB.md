@@ -305,7 +305,7 @@ cp /content/kosu.log $R/stdout.log
 
 İlk sonuç (2026-10-23, RTX PRO 6000): TR kayıp 1,5134, PyTorch 1,5196; ayrıntı `docs/roadmap.md` Evre 4.
 
-Oturum kesilirse aynı komut kaldığı yerden sürer (`kontrol_noktalari/`, 15 dakikada bir).
+Oturum kesilirse aynı komut kaldığı yerden sürer (`checkpoints/`, 15 dakikada bir).
 Koşu klasörü: `config.json`, `metrics.jsonl` (eğitim kaybı 10 adımda bir, `oran_çarpanı`,
 `doğrulama_kaybı`), `samples.json` ("Once upon a time" ile örnekler), `speed.json`
 (`ms_adım`, `parça_sn`), `model.trt`.

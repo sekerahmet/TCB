@@ -34,6 +34,22 @@ func commandLine(t *testing.T, code string, arguments ...string) (string, *inter
 	return v.Inspect(), m, nil
 }
 
+// Kodlu bir çıplak anahtarın seçeneği ({adım: 1}, TR_mem_step) her gömülü yazım dilinin adıyla
+// kabul edilir, hiçbiri öncelikli değildir (17.8); sonuç sözlüğünde anahtar kodun dilden bağımsız
+// adıdır ("step", 17.3) ve üye erişimi onu bulur. Kodsuz anahtar yalnız yazıldığı adla geçer.
+func TestCodedOptionInEveryLanguage(t *testing.T) {
+	for _, arg := range [][]string{{"--adım", "5"}, {"--step", "5"}} {
+		got, _, err := commandLine(t, `değişken a = komut_satırı({adım: 1, renk: 2})
+[a.adım, a.anahtarlar()]`, arg...)
+		if want := `[5, ["step", "renk"]]`; err != nil || got != want {
+			t.Errorf("%v: %s (%v), beklenen %s", arg, got, err, want)
+		}
+	}
+	if _, _, err := commandLine(t, "komut_satırı({renk: 2})", "--color", "3"); err == nil {
+		t.Error("kodsuz seçenek başka bir adla kabul edilmemeli")
+	}
+}
+
 func TestCommandLineValues(t *testing.T) {
 	code := "komut_satırı(" + options + ")"
 	for _, d := range []struct {

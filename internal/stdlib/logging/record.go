@@ -198,14 +198,14 @@ func addMetrics(fn any, record *interp.DictVal, dict *interp.DictVal, reserved .
 		}
 		for _, r := range reserved {
 			if k == r {
-				return messages.New(messages.H7321, fn, k, reservedReason(k))
+				return messages.New(messages.H7321, fn, dict.DisplayKey(k), reservedReason(k))
 			}
 		}
-		d, err := metricValue(fn, k, v)
+		d, err := metricValue(fn, dict.DisplayKey(k), v)
 		if err != nil {
 			return err
 		}
-		record.Set(k, d)
+		record.SetFrom(dict, k, d)
 	}
 	return nil
 }
@@ -301,7 +301,7 @@ func (g *Log) Len() (int64, error) {
 	return b.Size(), nil
 }
 
-// WriteResume kontrol noktasından sürdürülen eğitimin {"tür":"devam","adım":N} kaydını yazar.
+// WriteResume kontrol noktasından sürdürülen eğitimin {"kind":"resume","step":N} kaydını yazar.
 // N kaydedilen noktanın tamamlanmış adım sayısıdır. Okuyucu kuralı: bir devam kaydından önce
 // gelen ve adımı N'den büyük olan ölçü kayıtları geçersizdir (kesilmeden önce yazılmış,
 // yeniden hesaplanacak adımlar silinmez; adımı N olan kayıt noktaya dahildir).

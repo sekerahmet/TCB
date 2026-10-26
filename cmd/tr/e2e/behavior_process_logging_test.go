@@ -90,7 +90,7 @@ fırlat "patladı"
 		t.Errorf("çubuk standart çıktıya ve (terminal değilken) satır başı karakteriyle yazılmamalı: %+v", s)
 	}
 	content, _ := os.ReadFile(filepath.Join(dir, "i.jsonl"))
-	if !strings.Contains(string(content), `"tür":"bitiş"`) {
+	if !strings.Contains(string(content), `"kind":"end"`) {
 		t.Errorf("bitiş kaydı yazılmalı:\n%s", content)
 	}
 }

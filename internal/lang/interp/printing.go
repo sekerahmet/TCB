@@ -100,7 +100,7 @@ func writeContainer(v Value, lang *codes.Language, filePath []Value) string {
 			if kv, ok := x.KeyVals[k]; ok {
 				sb.WriteString(writeItem(kv, lang, filePath))
 			} else {
-				fmt.Fprintf(&sb, "%q", k)
+				fmt.Fprintf(&sb, "%q", x.keyText(k, lang)) // kodlu anahtar dosyanın dilinde (17.3)
 			}
 			sb.WriteString(": ")
 			val := x.Pairs[k]

@@ -17,7 +17,7 @@ import (
 // denetimi, Bulgu 5.)
 func TestCorruptOptimizerAndReaderStatesSuggestPrevious(t *testing.T) {
 	dataDir := trPath(filepath.Join(reporoot.Root(), "tests", "data", "text"))
-	wantHint := messages.Text(messages.H7471, "adim_0000000001", 1)
+	wantHint := messages.Text(messages.H7471, "step_0000000001", 1)
 
 	build := func(t *testing.T) string {
 		t.Helper()
@@ -47,11 +47,11 @@ kn.kaydet()
 		{
 			name: "iyilestirici_gecersiz_anahtar_adi",
 			tamper: func(t *testing.T, step2Dir string) {
-				trtPath := filepath.Join(step2Dir, "tensorler.trt")
+				trtPath := filepath.Join(step2Dir, "tensors.trt")
 				if _, err := run(t, fmt.Sprintf(`
 tensör_kaydet(%q, {
     "w/0": tensör([1.0, 2.0, 3.0]),
-    "op/adim": tensör([0.0, 0.0]),
+    "op/step": tensör([0.0, 0.0]),
     "op/bozuk": tensör([1.0, 2.0, 3.0])
 })
 `, trPath(trtPath))); err != nil {
@@ -62,12 +62,12 @@ tensör_kaydet(%q, {
 		{
 			name: "okuyucu_gecersiz_tur_adi",
 			tamper: func(t *testing.T, step2Dir string) {
-				durumPath := filepath.Join(step2Dir, "durum.json")
+				durumPath := filepath.Join(step2Dir, "state.json")
 				b, err := os.ReadFile(durumPath)
 				if err != nil {
 					t.Fatal(err)
 				}
-				corrupted := strings.Replace(string(b), `"örnekleyici"`, `"bozuk_tür"`, 1)
+				corrupted := strings.Replace(string(b), `"sampler"`, `"bozuk_tür"`, 1)
 				if err := os.WriteFile(durumPath, []byte(corrupted), 0o644); err != nil {
 					t.Fatal(err)
 				}
@@ -76,12 +76,12 @@ tensör_kaydet(%q, {
 		{
 			name: "okuyucu_sifir_toplu_boyutu",
 			tamper: func(t *testing.T, step2Dir string) {
-				durumPath := filepath.Join(step2Dir, "durum.json")
+				durumPath := filepath.Join(step2Dir, "state.json")
 				b, err := os.ReadFile(durumPath)
 				if err != nil {
 					t.Fatal(err)
 				}
-				corrupted := strings.Replace(string(b), "\"toplu\",\n            2", "\"toplu\",\n            0", 1)
+				corrupted := strings.Replace(string(b), "\"batch\",\n            2", "\"batch\",\n            0", 1)
 				if err := os.WriteFile(durumPath, []byte(corrupted), 0o644); err != nil {
 					t.Fatal(err)
 				}
@@ -92,7 +92,7 @@ tensör_kaydet(%q, {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			runDir := build(t)
-			step2Dir := filepath.Join(runDir, "kontrol_noktalari", "adim_0000000002")
+			step2Dir := filepath.Join(runDir, "checkpoints", "step_0000000002")
 			tc.tamper(t, step2Dir)
 			resignCheckpoint(t, step2Dir, 2)
 

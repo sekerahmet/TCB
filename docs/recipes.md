@@ -99,7 +99,7 @@ Testler: tipin dosyasının birim testi; metot hem doğru hem yanlış argümanl
 
 Denetimler: aynı metin iki kodda olamaz (bağlamı farklı etiketler gerekçeli izinle), her çağrının değer sayısı tanımla aynı, kullanılmayan kod kalmaz, geçirilmiş pakette `fmt.Errorf`/`errors.New` yok.
 
-İleti olmayan metin koda bağlanmaz: veri biçimi anahtarları (günlükteki `"kayıp"`, `durum.json` alanları), dosya adları, protokol alanları.
+İleti olmayan metin koda bağlanmaz: veri biçimi anahtarları (günlükteki `"step"`, `state.json` alanları; dilden bağımsız İngilizce tanımlayıcılardır, dil tanımı 17.3), dosya adları, protokol alanları.
 
 ---
 

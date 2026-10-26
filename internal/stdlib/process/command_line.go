@@ -33,12 +33,25 @@ const (
 
 // option komut satırının bir seçeneğidir.
 type option struct {
-	name        string
+	name string // sonuç sözlüğündeki anahtar (kodlu anahtarda kodun dilden bağımsız metni)
+	// code seçenek kodlu bir çıplak anahtarsa ({adım: 100}) üye kodudur, yoksa codes.None; kodlu
+	// seçenek her gömülü dilin adıyla kabul edilir (--adım, --step; 17.8). shown kişiye
+	// gösterilen addır (yardım, iletiler; kodluda kişinin dilinde).
+	code        codes.Code
+	shown       string // boşsa name (Go'da kurulan seçenek)
 	optKind     optKind
 	itemKind    optKind // kindList'de öğelerin tipi
 	defaultVal  interp.Value
 	description string
 	secret      bool
+}
+
+// display seçeneğin kişiye gösterilen adıdır (--adım, iletiler, yardım).
+func (s *option) display() string {
+	if s.shown != "" {
+		return s.shown
+	}
+	return s.name
 }
 
 // typeCode seçenek tipinin (yardımda ve hatalarda gösterilen) tip kodudur.
@@ -106,10 +119,13 @@ func buildOptions(m *interp.VM, fn any, dict *interp.DictVal) ([]*option, error)
 				return nil, messages.New(messages.H7219, fn, codes.NameRef(codes.TypeString), interp.TypeAndSummary(key))
 			}
 		}
-		if err := checkOptionName(fn, k); err != nil {
+		if err := checkOptionName(fn, dict.DisplayKey(k)); err != nil { // kodlu anahtar kişinin dilindeki adıyla
 			return nil, err
 		}
-		s := &option{name: k, defaultVal: value, secret: IsSecretName(k)}
+		s := &option{name: k, shown: dict.DisplayKey(k), defaultVal: value, secret: IsSecretName(k)}
+		if c, ok := dict.KeyCode(k); ok {
+			s.code, s.secret = c, s.secret || IsSecretName(s.shown)
+		}
 		var err error
 		if s.optKind, s.itemKind, err = defaultKind(fn, k, value); err != nil {
 			return nil, err
@@ -210,6 +226,10 @@ func readDescriptions(fn any, named map[string]interp.Value, options []*option) 
 	for i, s := range options {
 		names[i] = s.name
 	}
+	shownNames := make([]string, len(options))
+	for i, s := range options {
+		shownNames[i] = s.display()
+	}
 	for _, k := range dict.Order {
 		value, ok := dict.Pairs[k]
 		if !ok {
@@ -217,14 +237,14 @@ func readDescriptions(fn any, named map[string]interp.Value, options []*option) 
 		}
 		i := slices.Index(names, k)
 		if i < 0 {
-			if o := turkish.Closest(k, names); o != "" {
+			if o := turkish.Closest(dict.DisplayKey(k), shownNames); o != "" {
 				return "", messages.New(messages.H7229, fn, nameDescs, dict.DisplayKey(k), o)
 			}
 			return "", messages.New(messages.H7228, fn, nameDescs, dict.DisplayKey(k))
 		}
 		s, ok := value.(*interp.StringVal)
 		if !ok {
-			return "", messages.New(messages.H7230, fn, nameDescs, k, codes.NameRef(codes.TypeString), interp.TypeAndSummary(value))
+			return "", messages.New(messages.H7230, fn, nameDescs, dict.DisplayKey(k), codes.NameRef(codes.TypeString), interp.TypeAndSummary(value))
 		}
 		options[i].description = s.Val
 	}

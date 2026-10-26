@@ -91,8 +91,9 @@ TR_kw_struct TR_type_SpikeGuard {
 //     }
 //     koşu.bitir(model)
 //
-// Klasörde config.json (ayarlar, parametre sayısı, cihaz), metrics.jsonl (günlük; çubuğun ve
-// değerlendirmelerin kayıtları), kontrol_noktalari/ (nesneler ve günlük) ve sonda model.trt durur.
+// Klasörde config.json ("config", "num_params", "device"), metrics.jsonl (günlük; çubuğun ve
+// değerlendirmelerin kayıtları), checkpoints/ (nesneler ve "logger" adıyla günlük) ve sonda
+// model.trt durur. Diske giden anahtarlar dilden bağımsız İngilizce tanımlayıcılardır (dil tanımı 17.3).
 // Aynı komut kaldığı adımdan sürer (dil tanımı 20). bitir ağırlıkları her şeyden önce yazar: sonrası
 // bir hatayla bitse de eğitimin sonucu kaybolmaz.
 //
@@ -121,11 +122,11 @@ TR_kw_struct TR_type_Run {
         TR_kw_if TR_arg_objects.TR_mem_contains("model") {
             TR_kw_for w TR_kw_in TR_fn_parameters(TR_arg_objects["model"]) { sayı += w.TR_mem_shape.TR_mem_reduce(1) { TR_ctx_acc * TR_ctx_it } }
         }
-        TR_fn_write_file(TR_fn_path(TR_kw_self.TR_mem_folder, "config.json"), TR_fn_json_string({TR_mem_config: TR_arg_config, parametre_sayısı: sayı, TR_mem_device: TR_fn_default_device()}))
+        TR_fn_write_file(TR_fn_path(TR_kw_self.TR_mem_folder, "config.json"), TR_fn_json_string({"config": TR_arg_config, "num_params": sayı, "device": TR_fn_default_device()}))
         TR_kw_self.TR_mem_logger = TR_fn_logger(TR_fn_path(TR_kw_self.TR_mem_folder, "metrics.jsonl"))
         TR_kw_var kayıtlılar = {}
         TR_kw_for ad, d TR_kw_in TR_arg_objects { kayıtlılar[ad] = d }
-        kayıtlılar["günlük"] = TR_kw_self.TR_mem_logger
+        kayıtlılar["logger"] = TR_kw_self.TR_mem_logger
         TR_kw_self.TR_mem_checkpoint = TR_fn_checkpoint(TR_kw_self.TR_mem_folder, kayıtlılar, TR_arg_every_minutes: TR_kw_if TR_arg_dry_run { 0 } TR_kw_else { TR_arg_every_minutes })
         TR_kw_self.TR_mem_resume_step = TR_kw_self.TR_mem_checkpoint.TR_mem_resume_step
         TR_kw_self.TR_mem_bar = TR_fn_progress(TR_kw_self.TR_mem_last_step, TR_arg_log: TR_kw_self.TR_mem_logger)
@@ -156,7 +157,7 @@ TR_kw_struct TR_type_Run {
         TR_fn_save_tensors(TR_fn_path(TR_kw_self.TR_mem_folder, "model.trt"), TR_fn_parameters(TR_arg_model, TR_arg_named: TR_kw_true))
         TR_kw_self.TR_mem_checkpoint.TR_mem_save()
         TR_kw_if TR_kw_self.TR_mem_dry_run {
-            TR_kw_for ad TR_kw_in ["config.json", "metrics.jsonl", "model.trt", "kontrol_noktalari"] {
+            TR_kw_for ad TR_kw_in ["config.json", "metrics.jsonl", "model.trt", "checkpoints"] {
                 TR_kw_if TR_kw_not TR_fn_path(TR_kw_self.TR_mem_folder, ad).TR_mem_exists { TR_kw_throw TR_fn_message(H6933, ad, TR_kw_self.TR_mem_folder.TR_mem_absolute) }
             }
             TR_fn_print("Prova geçti: {TR_kw_self.TR_mem_last_step} adım, bütün dosyalar yazıldı")

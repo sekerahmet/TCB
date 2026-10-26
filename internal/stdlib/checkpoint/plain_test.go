@@ -40,7 +40,7 @@ func TestPlainCyclesAndSharedLists(t *testing.T) {
 func TestPlainNonFiniteNumbers(t *testing.T) {
 	l := &interp.ListVal{Elements: []interp.Value{&interp.FloatVal{Val: math.NaN()}, &interp.FloatVal{Val: math.Inf(1)}, &interp.FloatVal{Val: math.Inf(-1)}, &interp.FloatVal{Val: 0.1}}}
 	b, err := writePlain(l)
-	if want := `[{"ondalık":"NaN"},{"ondalık":"Infinity"},{"ondalık":"-Infinity"},{"ondalık":"0.1"}]`; err != nil || string(b) != want {
+	if want := `[{"float":"NaN"},{"float":"Infinity"},{"float":"-Infinity"},{"float":"0.1"}]`; err != nil || string(b) != want {
 		t.Fatalf("yazım %s (%v), beklenen %s", b, err, want)
 	}
 	back, err := readPlain(b)
@@ -48,7 +48,7 @@ func TestPlainNonFiniteNumbers(t *testing.T) {
 		t.Fatalf("geri okuma %v (%v)", back, err)
 	}
 	for _, old := range []string{"+Inf", "-Inf", "inf", "+Sonsuz"} {
-		if _, err := readPlain([]byte(`{"ondalık":"` + old + `"}`)); !messages.Has(err, messages.H7463) {
+		if _, err := readPlain([]byte(`{"float":"` + old + `"}`)); !messages.Has(err, messages.H7463) {
 			t.Errorf("%q okunmamalı (H7463): %v", old, err)
 		}
 	}

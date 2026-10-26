@@ -33,14 +33,6 @@ const turkishLetters = "çğıöşüâîûÇĞİÖŞÜÂÎÛ"
 var turkishLiteralAllowed = map[string]string{
 	// Dil tanımı atıf tarayıcısı Türkçe belgeleri okur: "PyTorch 2.14", "sürümü 2.1" gibi sürüm numaraları madde atfı sayılmaz.
 	"tools/internal/specref/scan.go:\\b(PyTorch|NumPy|JAX|Go|go|CUDA|cuDNN|cuBLAS|cuBLASLt|Python|Rust|Swift|Kotlin|LSP|CommonMark|Unicode|IEEE|Triton|TensorFlow|Hugging Face|sürüm|sürümü|version)\\b[^.!?]*$": "belgedeki sürüm numarasını tanıyan desen; Türkçe belge sözcüğü, ad ya da ileti değil",
-	"internal/devtools/profiler/setup.go:canlı":                                                                      "profil görüntüsü dosyasının 'tür' alanı değeri (dosya biçimi; değiştirmek eski dosyaları okunmaz yapardı)",
-	"internal/stdlib/checkpoint/format.go:parametreler iyileştirici durumlu günlük değerler":                         "kontrol noktası dosyasındaki kayıt türü adları (dosya biçimi; değiştirmek eski kontrol noktalarını okunmaz yapardı)",
-	"internal/stdlib/checkpoint/plain.go:ondalık sözlük":                                                             "kontrol noktasındaki düz değer etiketleri (dosya biçimi; eski dosyalar okunmaz olurdu)",
-	"internal/stdlib/dataset/state.go:tür toplu bağlam tohum küme dönem sıra pencere sayaç bitti örnekleyici sıralı": "veri kümesi durum dosyasının alan adları (dosya biçimi; eski durum dosyaları okunmaz olurdu)",
-	"internal/testkit/runlog.go:adım":                                                                                "eğitim günlüğünün (metrics.jsonl) alan adı (dosya biçimi; eski günlükler okunmaz olurdu)",
-	"internal/testkit/runlog.go:tür":                                                                                 "eğitim günlüğünün (metrics.jsonl) alan adı (dosya biçimi; eski günlükler okunmaz olurdu)",
-	"internal/testkit/runlog.go:kayıp":                                                                               "eğitim günlüğünün (metrics.jsonl) alan adı (dosya biçimi; eski günlükler okunmaz olurdu)",
-	"internal/stdlib/logging/log.go:tür zaman sürüm program toplam ayarlar adım hız süre_sn mesaj ölçüler kalan_sn bitti başlangıç bitiş devam": "günlük dosyasının alan adları (dosya biçimi; eski günlükler okunmaz olurdu)",
 }
 
 // turkishLiteralSkipDirs taranmayan klasörlerdir: Türkçenin dilbilgisi paketi (ek ve harf

@@ -122,7 +122,7 @@ const (
 	OpKindCount
 )
 
-// opCodes dosya biçimlerinde (profil.json) kullanılan, yazım dilinden bağımsız
+// opCodes dosya biçimlerinde (profile.json) kullanılan, yazım dilinden bağımsız
 // değişmez anahtarlardır: Go adları gibi İngilizce tanımlayıcı, OpKind sabitinin adı küçük harfle
 // ve alt çizgiyle (OpKindLessEq → less_eq); PyTorch'un işlem adı tek sözcükse onun yazımı
 // (matmul, argmax, cumsum, topk, argsort). İnsana gösterilen ad profiler paketindedir (opName):

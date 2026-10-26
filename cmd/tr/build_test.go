@@ -1,10 +1,28 @@
 package main
 
 import (
+	"encoding/binary"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
+
+// Kural: 'tr derle' paketinin JSON anahtarları dilden bağımsız İngilizce tanımlayıcılardır (dil
+// tanımı 17.3); eski (Türkçe anahtarlı, sürüm 2) paket okunmaz, sürümüyle reddedilir.
+func TestPackageKeys(t *testing.T) {
+	testkit.FormatJSONKeys(t, pkg{})
+	body := []byte(`{"ana":{"kod":"yazdır(1)"}}`)
+	footer := make([]byte, footerSize)
+	binary.LittleEndian.PutUint64(footer[0:8], uint64(len(body)))
+	binary.LittleEndian.PutUint32(footer[8:12], 2)
+	copy(footer[12:], packageSignature)
+	if _, _, found, err := extractPackage(append(body, footer...)); !found || !messages.Has(err, messages.H8751) {
+		t.Errorf("sürüm 2 paketi reddedilmeli: bulundu=%v hata=%v", found, err)
+	}
+}
 
 // Kural: gömülü paketteki modül adı hangi biçimde olursa olsun ("..", "ust/..", ".", boş)
 // modül, geçici klasörün modül alt klasörüne yazılır; klasörün kökünün ya da dışının yolu

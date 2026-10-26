@@ -6,10 +6,12 @@ görünür.
 
 ## Standartlar
 
-**Günlük biçimi sözleşmedir.** Günlük JSON satırlarıdır (`.jsonl`); kayıt alanlarının adları ve
-biçim sürümü dosya biçiminin parçasıdır, yazım dilinden bağımsızdır ve çevrilmez. Biçim değişirse
-sürüm artar.
-Denetim: `TestLogRecords` (alan adları ve sürüm), `cmd/tr/e2e` `TestFileFormatsIndependentOfWritingLanguage`.
+**Günlük biçimi sözleşmedir.** Günlük JSON satırlarıdır (`.jsonl`); kayıt alanlarının adları, kayıt
+türleri (`start`, `end`, `resume`), `progress.json`'un adı ve anahtarları dilden bağımsız İngilizce
+tanımlayıcılardır, çevrilmez (dil tanımı 17.3). Programın ölçü adları programındır: kodlu çıplak
+anahtar kodun dilden bağımsız adıyla yazılır (`{kayıp: k}` → `"loss"`). Biçim değişirse sürüm artar;
+eski sürüm okunmaz.
+Denetim: `TestLogFormatNamesAreLanguageIndependent` (adlar ve sürüm), `TestLogRecords`, `TestJobStatus`, `cmd/tr/e2e` `TestFileFormatsIndependentOfWritingLanguage`, `TestDictCodedKeysOnDisk`.
 
 **Kayıt kaybolmaz.** Kayıtlar dosyanın sonuna eklenir; önceki koşu yarım satır bıraktıysa yeni kayıt yeni satırda başlar,
 kontrol noktasından sürdürmede "devam" kaydı düşülür. Program bitince açık günlükler kapanır,
@@ -27,3 +29,9 @@ Denetim: `TestFormatNumber`, `TestFormatDurationAndBar`.
 **Adım kancası ucuzdur.** Canlı profil adım sınırlarını bir kancayla izler; kanca yokken
 maliyet tek bir atomik okumadır.
 Denetim: `TestStepHookCostsOneAtomicRead` (kanca yalnızca `atomic.Pointer.Load` ile okunur), `TestStepHook`.
+
+## Testler
+
+Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`). Birden çok dosyayı kesen davranış testleri:
+
+- `behavior_format_names_test.go`: günlüğün ve `progress.json`'un anahtarlarının, kayıt türlerinin ve dosya adının dilden bağımsız İngilizce tanımlayıcı olması (dondurulmuş liste ve sürüm)

@@ -29,8 +29,8 @@ const (
 )
 
 // Durum sözlüğünün anahtarları ve okuyucu türleri dosya biçiminin (kontrol noktasının
-// durum.json'u) parçasıdır: yazım dilinden bağımsızdır ve çevrilmez (günlük biçimi gibi).
-var stateNames = strings.Fields("tür toplu bağlam tohum küme dönem sıra pencere sayaç bitti örnekleyici sıralı")
+// state.json'u) parçasıdır: dilden bağımsız İngilizce tanımlayıcılardır ve çevrilmez (dil tanımı 17.3).
+var stateNames = strings.Fields("kind batch context seed dataset epoch position window counter done sampler sequential")
 
 var (
 	sKind, sBatch, sContext, sSeed    = stateNames[0], stateNames[1], stateNames[2], stateNames[3]

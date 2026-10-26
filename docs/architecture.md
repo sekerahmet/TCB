@@ -213,13 +213,13 @@ Yorumlayıcının motorlara sunduğu ortak hizmetler:
 | `devtools/debugger` | Terminal hata ayıklayıcısı ve düzenleyicinin hata ayıklama sunucusu (`tr dap`, Debug Adapter Protocol). Yüklenirken `interp.NewDebugger`'ı kurar; gizli değerleri düzenleyiciye göndermez |
 | `devtools/formatter` | `tr biçimle`: anlamı değiştirmeyen tek standart biçim (ağaç dökümü aynı kalmazsa sonuç reddedilir) |
 | `devtools/testrunner` | `tr test`: `test "ad" { ... }` bloklarını yalıtılmış kapsamda koşar, Türkçe raporlar |
-| `devtools/profiler` | Canlı profil: `tr izle` ve `tr profil`'in çekirdeği, arka plan işinin `profil.json`'u (aşağıda) |
+| `devtools/profiler` | Canlı profil: `tr izle` ve `tr profil`'in çekirdeği, arka plan işinin `profile.json`'u (aşağıda) |
 | `devtools/codeindex` | TR kodunun dizini: tanım, kullananlar, sınayanlar, etki (`tr dizin ...` ve ileride dil sunucusu); `internal/lang` dışında bağımlılığı yok |
 | `editors/vscode` | VS Code eklentisi; renklendirme listeleri kod listesinden üretilir, hata ayıklama ve izleme komutları yukarıdaki sunucu ve profil dosyalarına bağlanır |
 
 ### Canlı profil (`internal/devtools/profiler`)
 
-`tr izle` (canlı tablo) ve `tr profil` (son rapor) aynı çekirdeği kullanır; arka plan işi olarak çalışan program (`TR_IS_KLASORU` iş klasörünü verir) da canlı durumunu buradan `profil.json`'a yazar. Ağ portu açılmaz: dışarıya yalnızca dosya yazılır. Dört kaynaktan okur:
+`tr izle` (canlı tablo) ve `tr profil` (son rapor) aynı çekirdeği kullanır; arka plan işi olarak çalışan program (`TR_IS_KLASORU` iş klasörünü verir) da canlı durumunu buradan `profile.json`'a yazar. Ağ portu açılmaz: dışarıya yalnızca dosya yazılır. Dört kaynaktan okur:
 
 - **Tensör sayaçları** (`internal/compute/tensor/counter*.go`): her zaman açık. Her işlem türü (`tensor.OpKind`), yön (ileri / geri yayılım) ve cihaz (CPU / GPU) için çağrı sayısı (kesin), ayrılan bayt (kesin) ve süre. CPU'da süre uyarlamalı örneklenir: kısa işlemlerde her çağrı p = 1/32 olasılıkla ölçülür ve ölçülen süre 1/p ile ağırlıklanır (Horvitz–Thompson; p yalnızca geçmiş ölçümlere bağlı olduğundan yansız); uzun işlemde (`longOpTicks`) her çağrı ölçülür. GPU işlemlerinin her çağrısı ölçülür. Saat amd64'te değişmez zaman damgası sayacıdır (`counter_clock_amd64.go`), başka yerde monoton saat. Sayaçlar kilitsizdir (yarış denetimli derlemede atomik: `counter_race.go`). Okuma: `tensor.CounterSnapshot`, `tensor.ActiveOp`.
 - **Örtük kopya sayaçları** (`internal/compute/tensor/implicit.go`): her zaman açık. Arka ucun her kopyası, tür dönüşümü ve ekleyerek yazması (`Copy`, `CopyStrided`, `AddTo`, `ExpandAdd`, `ScatterAdd`; GPU'da her `copyStrided`) o anda çalışan işleme (üst işlem; yoksa "diğer") bağlanır: çağrı ve eleman kesin, süre yalnızca CPU'da ve en az 4096 elemanlı kopyada ölçülür (GPU'da konak süresi yalnızca başlatmadır). PyTorch profilinde `aten::copy_` / `aten::to` çağıran işlemin altında görünür; burada tablo düzdür, üst işlem anahtardır. İşlemin kendisi olan kopyalar (`.kopya()`, `.türe`) işlem tablosundadır, örtük tabloya alınmaz. Okuma: `tensor.ImplicitSnapshot`.
@@ -233,44 +233,44 @@ Profil saniyede bir anlık görüntü alır (`snapshot.go`), son 5 saniyenin far
 
 **Canlı tablo** (`screen.go`): standart hata bir terminalse tablo ekranın başından denetim dizileriyle yeniden çizilir (Windows'ta konsolun sanal terminal kipi açılır; `live_windows.go`). Programın standart çıkışı ve hatası bir boruya alınır (`capture.go`): tamamı bir dosyaya yazılır, son satırları tablonun altında görünür, program bitince yeniden yazılır; boru terminal olmadığından ilerleme çubuğu düz satır kipine geçer. Terminal değilse çıktı olduğu gibi akar, 10 saniyede bir tek satırlık özet eklenir.
 
-**Dosya biçimi** (`snapshot.go`): `profil.json` (canlı, iş klasöründe) ve `speed.json` / `tr profil --json` (son rapor) aynı yapıdadır. Anahtarlar dosya biçiminin parçasıdır (yazım dilinden bağımsız, çevrilmez); işlemlerin `kod` alanı değişmez anahtardır, `ad` insana gösterilen addır (dildeki ad; çevrilebilir). Süreler saniye, baytlar bayt, paylar 0..1'dir. Yazma atomiktir (aynı klasörde geçici dosya + yeniden adlandırma); yazma başarısızsa sonraki saniyede yeniden denenir, program hiçbir durumda durmaz. Sürüm 5 (sürüm 1'e göre `tensör.örtük` (2), satırların `geri_payı` (3), adımın `kaynak` ve evreleri (4), `gpu.işlemler` ve `gpu.satırlar` (5) eklendi):
+**Dosya biçimi** (`snapshot.go`): `profile.json` (canlı, iş klasöründe) ve `speed.json` / `tr profil --json` (son rapor) aynı yapıdadır. Anahtarlar ve sabit değerler (`live`, `forward` ...) dosya biçiminin parçasıdır: dilden bağımsız İngilizce tanımlayıcılardır, çevrilmez (dil tanımı 17.3); işlemlerin `code` alanı değişmez anahtardır, `name` insana gösterilen addır. Süreler saniye, baytlar bayt, paylar 0..1'dir. Yazma atomiktir (aynı klasörde geçici dosya + yeniden adlandırma); yazma başarısızsa sonraki saniyede yeniden denenir, program hiçbir durumda durmaz. Sürüm 6 (sürüm 1'e göre `tensor` altında `implicit` (2), satırların `backward_share` (3), adımın `source` ve evreleri (4), `gpu` altında `ops` ve `lines` (5) eklendi; 6'da anahtarlar Türkçeden İngilizce tanımlayıcılara geçti):
 
 ```jsonc
 {
-  "biçim": "tr-profil", "sürüm": 5, "tür": "canlı",        // "canlı" ya da "rapor"
-  "program": "egit.tr", "başlangıç": "2026-10-19T08:49:12.511+03:00",
-  "zaman": "2026-10-19T08:49:24.511+03:00", "süre_sn": 12.0, "bitti": false,
-  "çıkış_kodu": 0,                                          // yalnızca bitince
-  "adım": {"sayı": 715, "toplam": 1500, "tüm_adım": 715,   // ilerleme yoksa null; sayı ve toplam
-    "ms_adım": 16.7, "adım_sn": 59.7,    // son çubuğun, tüm_adım bütün çubukların (epoch'lar) adımı
-    "kaynak": "ilerleme_cubugu", "ileri_ms": 5.1, "geri_ms": 9.8, "sonra_ms": 1.8},  // kaynak: ilerleme_cubugu | iyilestirici
-  "tensör": {"süre_sn": 11.4, "pay": 0.95, "çağrı": 772761, "bayt": 7642211100,
-    "işlemler": [{"kod": "matmul", "ad": "matris çarpımı (@)", "yön": "ileri",
-      "cihaz": "cpu", "çağrı": 160966, "ölçüm": 160529, "süre_sn": 4.99, "pay": 0.44,
-      "bayt": 2044092928, "ms_adım": 6.99}],               // süreye göre sıralı, en çok 30
-    "örtük": [{"kod": "strided_copy", "üst_kod": "matmul", "ad": "adımlı kopya",
-      "üst_ad": "matris çarpımı (@)", "yön": "ileri", "cihaz": "cpu", "çağrı": 45,
-      "eleman": 17940480, "ölçüm": 45, "süre_sn": 0.022}]}, // elemana göre sıralı, en çok 30
-  "gpu": {"kullanıldı": true, "ölçüm": true, "not": "", "süre_sn": 0.088,
-    "aileler": [{"ad": "carpim", "çağrı": 40, "süre_sn": 0.069, "pay": 0.78}],
-    "çekirdekler": [{"ad": "carpim_64_64_16_4_4_false_false_true", "çağrı": 20, "süre_sn": 0.040, "pay": 0.46}],
-    "bellek": [{"cihaz": 0, "canlı_bayt": 109568, "ayrılmış_bayt": 114176, "havuzda_bayt": 4608,
-      "tepe_canlı_bayt": 113664, "tepe_ayrılmış_bayt": 114176, "çöp_toplama": 0}]},
-  "örnekleme": {"aralık_ms": 1, "örnek": 11800, "süre_sn": 11.8, "tensör_payı": 0.95,  // kapalıysa null
-    "satırlar": [{"dosya": "examples/tr/41_gpt.tr", "satır": 49, "fonksiyon": "",
-      "metin": "değişken y = x @ kendi.ağırlık", "süre_sn": 4.6, "pay": 0.39, "tensör_payı": 0.99,
-      "geri_payı": 0.64}],
-    "fonksiyonlar": [{"ad": "dikleştir", "süre_sn": 3.9, "pay": 0.33}]},
-  "bellek": {"go_yığını_bayt": 7864320, "go_sistem_bayt": 44564480, "cpu_tensör_ayrılan_bayt": 7642211100},
-  "çöp_toplama": {"sayı": 423, "duraklama_sn": 0.113},
-  "son_pencere": {"süre_sn": 5.0, "adım": 292, "ms_adım": 17.1, "adım_sn": 58.3,   // yalnızca canlıda
-    "tensör_payı": 0.96, "işlemler": [], "satırlar": [], "çöp_toplama_sayı": 165,
-    "duraklama_sn": 0.055, "cpu_tensör_ayrılan_bayt": 2980000000,
-    "gpu_süre_sn": 0, "gpu_payı": 0, "gpu_aileler": []}
+  "format": "tr-profile", "version": 6, "kind": "live",         // "live" ya da "report"
+  "program": "egit.tr", "start": "2026-10-19T08:49:12.511+03:00",
+  "time": "2026-10-19T08:49:24.511+03:00", "seconds": 12.0, "done": false,
+  "exit_code": 0,                                          // yalnızca bitince
+  "step": {"count": 715, "total": 1500, "all_steps": 715,   // ilerleme yoksa null; count ve total
+    "ms_per_step": 16.7, "steps_per_second": 59.7,    // son çubuğun, all_steps bütün çubukların (epoch'lar) adımı
+    "source": "progress_bar", "forward_ms": 5.1, "backward_ms": 9.8, "after_ms": 1.8},  // source: progress_bar | optimizer
+  "tensor": {"seconds": 11.4, "share": 0.95, "calls": 772761, "bytes": 7642211100,
+    "ops": [{"code": "matmul", "name": "matris çarpımı (@)", "direction": "forward",
+      "device": "cpu", "calls": 160966, "measured": 160529, "seconds": 4.99, "share": 0.44,
+      "bytes": 2044092928, "ms_per_step": 6.99}],               // süreye göre sıralı, en çok 30
+    "implicit": [{"code": "strided_copy", "parent_code": "matmul", "name": "adımlı kopya",
+      "parent_name": "matris çarpımı (@)", "direction": "forward", "device": "cpu", "calls": 45,
+      "elements": 17940480, "measured": 45, "seconds": 0.022}]}, // elemana göre sıralı, en çok 30
+  "gpu": {"used": true, "measured": true, "note": "", "seconds": 0.088,
+    "families": [{"name": "carpim", "calls": 40, "seconds": 0.069, "share": 0.78}],
+    "kernels": [{"name": "carpim_64_64_16_4_4_false_false_true", "calls": 20, "seconds": 0.040, "share": 0.46}],
+    "memory": [{"device": 0, "live_bytes": 109568, "allocated_bytes": 114176, "pooled_bytes": 4608,
+      "peak_live_bytes": 113664, "peak_allocated_bytes": 114176, "gc_collections": 0}]},
+  "sampling": {"interval_ms": 1, "samples": 11800, "seconds": 11.8, "tensor_share": 0.95,  // kapalıysa null
+    "lines": [{"file": "examples/tr/41_gpt.tr", "line": 49, "function": "",
+      "text": "değişken y = x @ kendi.ağırlık", "seconds": 4.6, "share": 0.39, "tensor_share": 0.99,
+      "backward_share": 0.64}],
+    "functions": [{"name": "dikleştir", "seconds": 3.9, "share": 0.33}]},
+  "memory": {"go_heap_bytes": 7864320, "go_sys_bytes": 44564480, "cpu_tensor_alloc_bytes": 7642211100},
+  "gc": {"count": 423, "pause_seconds": 0.113},
+  "window": {"seconds": 5.0, "step": 292, "ms_per_step": 17.1, "steps_per_second": 58.3,   // yalnızca canlıda
+    "tensor_share": 0.96, "ops": [], "lines": [], "gc_count": 165,
+    "pause_seconds": 0.055, "cpu_tensor_alloc_bytes": 2980000000,
+    "gpu_seconds": 0, "gpu_share": 0, "gpu_families": []}
 }
 ```
 
-Satırın `dosya`sı ana programın dışındaysa (aktarılan modül) boştur: örnek yalnızca fonksiyon adını ve satırı bilir. `ölçüm`, ölçülen çağrı sayısıdır (`çağrı`dan küçükse süre örneklenmiştir). Canlı CPU tensör baytı ayrıca izlenmez (CPU tensörleri Go yığınındadır); `cpu_tensör_ayrılan_bayt` ayırma akışıdır.
+Satırın `file`ı ana programın dışındaysa (aktarılan modül) boştur: örnek yalnızca fonksiyon adını ve satırı bilir. `measured`, ölçülen çağrı sayısıdır (`calls`tan küçükse süre örneklenmiştir). Canlı CPU tensör baytı ayrıca izlenmez (CPU tensörleri Go yığınındadır); `cpu_tensor_alloc_bytes` ayırma akışıdır.
 
 **Maliyet** (ölçüm yöntemi: önce/sonra test ikilileri dönüşümlü, P çekirdeklere sabit; makine yüklüyken ölçüldü, boş makinede yinelenmeli): sayaçların işlem başına yükü ~4 ns (`BenchmarkCounterStartStop`); 16 elemanlı tensörlerle `BenchmarkCounterSmall*` (işlem başına ~350 ns) %1–3; 64 boyutlu küçük MLP eğitim adımında (~75 µs) gürültü içinde. Örnekleme açıkken çağrı yoğun TR kodu ~2 kat yavaşlar (hata ayıklayıcı yuvası doluyken yorumlayıcı fonksiyon ortamlarını havuzlamaz).
 

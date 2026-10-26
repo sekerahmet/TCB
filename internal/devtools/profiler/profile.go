@@ -14,7 +14,7 @@
 //     belleği.
 //
 // Profil saniyede bir anlık görüntü alır; isteyene (canlı tablo) verir ve istenmişse durum
-// dosyasına (profil.json, arka plan işinde) atomik yazar. Program bitince son raporu kurar.
+// dosyasına (profile.json, arka plan işinde) atomik yazar. Program bitince son raporu kurar.
 // Biçim: snapshot.go; mimari: docs/architecture.md, "Canlı profil".
 //
 // Layer: developer tools (internal/devtools); dil, motor, hesap ve araç katmanlarını içe aktarabilir.
@@ -88,10 +88,10 @@ type Profile struct {
 }
 
 // StatusFileName arka plan işinin klasöründeki canlı profil dosyasının adıdır.
-const StatusFileName = "profil.json"
+const StatusFileName = "profile.json"
 
 // JobStatusFile program bir arka plan işi olarak çalışıyorsa (TR_IS_KLASORU) iş klasöründeki
-// profil.json'un yoludur; değilse boş (durum dosyası yazılmaz).
+// profile.json'un yoludur; değilse boş (durum dosyası yazılmaz).
 func JobStatusFile() string {
 	if k := logging.JobDir(); k != "" {
 		return filepath.Join(k, StatusFileName)

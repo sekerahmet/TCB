@@ -90,9 +90,9 @@ TR_ctx_test "Koşu: klasöre ayarları, günlüğü, kontrol noktasını ve ağ�
     TR_kw_var model = {w: TR_fn_tensor([1.0, 2.0], TR_arg_requires_grad: TR_kw_true)}
     TR_kw_var koşu = koş(k, model, 3)
     TR_fn_assert_equal(0, koşu.TR_mem_resume_step)
-    TR_fn_assert_equal(2, TR_fn_json_parse(TR_fn_read_file(TR_fn_path(k, "config.json"))).parametre_sayısı)
+    TR_fn_assert_equal(2, TR_fn_json_parse(TR_fn_read_file(TR_fn_path(k, "config.json")))["num_params"])
     TR_kw_var günlük_metni = TR_fn_read_file(TR_fn_path(k, "metrics.jsonl"))
-    TR_fn_assert(günlük_metni.TR_mem_contains("doğrulama_kaybı") TR_kw_and günlük_metni.TR_mem_contains("kayıp"), "günlük ölçüleri taşımalı: {günlük_metni}")
+    TR_fn_assert(günlük_metni.TR_mem_contains("doğrulama_kaybı") TR_kw_and günlük_metni.TR_mem_contains("\"loss\""), "günlük ölçüleri taşımalı (kayıp anahtarı \"loss\"): {günlük_metni}")
     TR_fn_assert_equal([1.0, 2.0], TR_fn_load_tensors(TR_fn_path(k, "model.trt"))["w"].TR_mem_tolist)
     TR_fn_assert_equal(3, TR_type_Run(k, {deneme: 1}, {model: model}, TR_arg_num_steps: 3).TR_mem_resume_step)
 }

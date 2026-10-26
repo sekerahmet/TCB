@@ -417,17 +417,15 @@ func TestAuditUncodedTurkishNamesCollideWithActiveLanguageWords(t *testing.T) {
 	}
 }
 
-// Denetim (2026-10-21): sözlükte üye erişimi (s.adım, s.tür) ve tırnaksız anahtar ({adım: 2})
-// üye koduna (TR_mem_step, TR_mem_dtype) çevrilir ve TR_DIL=en ile İngilizce adıyla (step, dtype) okunur:
-// Türkçe yazılmış dosyada sözlüğün anahtarı yazım diline göre değişir; okuma yok verir, yazma
-// yeni bir "step" anahtarı ekler (JSON'a, kontrol noktasına giden veri değişir). Dil tanımı
-// 17.7'nin testi de ("Kodlu dosyada üyenin adıyla aynı sözlük anahtarı Türkçe adıyla okunur",
-// tests/kodlu_saklama_test.tr) TR_DIL=en ile kalır.
+// Denetim (2026-10-21; kural 2026-10-26): sözlükte üye erişimi (s.adım, s.tür) ve tırnaksız anahtar
+// ({adım: 2}) üye koduna (TR_mem_step, TR_mem_dtype) çevrilir; sonuç çalıştıranın diline (TR_DIL)
+// bağlı değildir. Metin anahtarlı sözlükte (JSON'dan gelen {"adım": 2}) üye erişimi dosyanın dilindeki
+// adı bulur ve onu günceller; kodlu çıplak anahtar dilden bağımsız adıyla saklanır ("step", 17.3).
 func TestAuditDictMemberKeysChangeWithWritingLanguage(t *testing.T) {
 	dir := t.TempDir()
 	testkit.WriteFile(t, dir, "d.tr", "değişken s = {\"tür\": 1, \"adım\": 2}\nyazdır(s.tür, s.adım)\ns.adım = 5\n"+
 		"değişken k = {adım: 3}\nyazdır(s, k.anahtarlar())\n")
-	want := "1 2\n{\"tür\": 1, \"adım\": 5} [\"adım\"]\n"
+	want := "1 2\n{\"tür\": 1, \"adım\": 5} [\"step\"]\n"
 	for _, lang := range []string{"TR_DIL=tr", "TR_DIL=en"} {
 		if s := testkit.RunBinary(t, trBinary, dir, "", []string{lang}, "d.tr"); s.Code != 0 || s.Stdout != want {
 			t.Errorf("%s: çıktı (kod %d) %q, beklenen %q\nhata:\n%s", lang, s.Code, s.Stdout, want, s.Stderr)

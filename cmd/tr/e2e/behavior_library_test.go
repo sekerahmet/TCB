@@ -138,14 +138,14 @@ func TestGPTTrainingScriptSmoke(t *testing.T) {
 	testkit.Wait(t, exam, 0, []string{"sınav: kayıp", "bant 0-16", "sonda: farklı_4", "örnek: Once upon a time"}, nil)
 	var result struct {
 		Params int `json:"parametre_sayısı"`
-		Steps  int `json:"adım"`
+		Steps  int `json:"step"` // kodlu çıplak anahtar ({adım: …}) dilden bağımsız adıyla (17.3)
 		Final  struct {
-			Loss     float64          `json:"kayıp"`
+			Loss     float64          `json:"loss"`
 			BPB      float64          `json:"bpb"`
 			Accuracy float64          `json:"doğruluk"`
 			Tokens   int              `json:"parça"`
 			Probes   []map[string]any `json:"sondalar"`
-		} `json:"son"`
+		} `json:"last"`
 		Speed   map[string]any   `json:"hız"`
 		Samples []map[string]any `json:"örnekler"`
 	}

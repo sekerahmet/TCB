@@ -11,8 +11,8 @@ import (
 	"testing"
 )
 
-// ValidLossMetrics bir eğitim günlüğünün (metrics.jsonl) geçerli ölçü kayıtlarını "adım:kayıp"
-// olarak verir: bir devam kaydından önce gelen ve adımı ondan büyük olan kayıtlar geçersizdir
+// ValidLossMetrics bir eğitim günlüğünün (metrics.jsonl) geçerli ölçü kayıtlarını "step:loss"
+// olarak verir (kayıp {kayıp: k} ile yazılır, anahtarı "loss"tur; 17.3): bir resume kaydından önce gelen ve adımı ondan büyük olan kayıtlar geçersizdir
 // (19, günlük okuyucu kuralı); kaybı olmayan kayıtlar ölçü değildir. skipBroken true ise
 // ayrıştırılamayan satırlar atlanır (öldürülen sürecin yarım kalmış satırı); false ise test düşer.
 func ValidLossMetrics(t testing.TB, path string, skipBroken bool) []string {
@@ -36,13 +36,13 @@ func ValidLossMetrics(t testing.TB, path string, skipBroken bool) []string {
 		}
 		var step int64
 		var kind string
-		_ = json.Unmarshal(rec["adım"], &step)
-		_ = json.Unmarshal(rec["tür"], &kind)
+		_ = json.Unmarshal(rec["step"], &step)
+		_ = json.Unmarshal(rec["kind"], &kind)
 		switch {
-		case kind == "devam":
+		case kind == "resume":
 			measures = slices.DeleteFunc(measures, func(o measure) bool { return o.step > step })
-		case kind == "" && rec["kayıp"] != nil:
-			measures = append(measures, measure{step, string(rec["kayıp"])})
+		case kind == "" && rec["loss"] != nil:
+			measures = append(measures, measure{step, string(rec["loss"])})
 		}
 	}
 	var out []string

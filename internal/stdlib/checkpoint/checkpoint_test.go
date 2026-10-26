@@ -130,13 +130,13 @@ func TestResumedSameAsUninterrupted(t *testing.T) {
 	}
 	sameResults(t, a, b, outputA, outputB)
 	// tut: 2 → en yeni iki nokta kalır.
-	inputs, _ := reporoot.ReadDir(filepath.Join(b, "kontrol_noktalari"))
+	inputs, _ := reporoot.ReadDir(filepath.Join(b, "checkpoints"))
 	var ckpts []string
 	for _, g := range inputs {
 		ckpts = append(ckpts, g.Name())
 	}
-	if len(ckpts) != 3 || ckpts[2] != "son.json" {
-		t.Errorf("iki nokta ve son.json bekleniyordu: %v", ckpts)
+	if len(ckpts) != 3 || ckpts[0] != "latest.json" {
+		t.Errorf("iki nokta ve latest.json bekleniyordu: %v", ckpts)
 	}
 }
 
@@ -147,7 +147,7 @@ func TestResumedSameAsUninterrupted(t *testing.T) {
 func TestRenameErrorDoesNotStopTraining(t *testing.T) {
 	var broken atomicBool
 	t.Cleanup(checkpoint.FakeRename(func(old, fresh string) error {
-		if broken.load() && filepath.Base(filepath.Dir(fresh)) == "kontrol_noktalari" && strings.HasPrefix(filepath.Base(fresh), "adim_") {
+		if broken.load() && filepath.Base(filepath.Dir(fresh)) == "checkpoints" && strings.HasPrefix(filepath.Base(fresh), "step_") {
 			return &os.LinkError{Op: "rename", Old: old, New: fresh, Err: errors.New("Input/output error")}
 		}
 		return os.Rename(old, fresh)
@@ -202,9 +202,9 @@ yazdır("sonuçlar:", sonuçlar)
 // checkLeftovers noktalar klasöründe geçici ya da kenara alınmış klasör kalmadığını denetler.
 func checkLeftovers(t *testing.T, runDir string) {
 	t.Helper()
-	inputs, _ := reporoot.ReadDir(filepath.Join(runDir, "kontrol_noktalari"))
+	inputs, _ := reporoot.ReadDir(filepath.Join(runDir, "checkpoints"))
 	for _, g := range inputs {
-		if strings.Contains(g.Name(), ".tmp-") || strings.Contains(g.Name(), ".eski-") {
+		if strings.Contains(g.Name(), ".tmp-") || strings.Contains(g.Name(), ".old-") {
 			t.Errorf("artık klasör kaldı: %s", g.Name())
 		}
 	}
@@ -237,32 +237,32 @@ func runHooked(t *testing.T, code string, broken *atomicBool) (string, error) {
 	return w.String(), err
 }
 
-// resignCheckpoint noktanın ozet.json'unu (sürüm 2) durum.json ve tensorler.trt dosyalarının şimdiki
+// resignCheckpoint noktanın digest.json'unu (sürüm 3) state.json ve tensors.trt dosyalarının şimdiki
 // boyları ve SHA-256 özetleriyle yeniden yazar: testler dosyayı bozduktan sonra özet doğru kalır ve
 // yükleme özet denetiminden geçip içerik kurallarına ulaşır. Özet elle yazılır (üretimdeki yazıcı
 // çağrılmaz: yoksa test kendi kendini doğrulardı).
 func resignCheckpoint(t *testing.T, stepDir string, step int) {
 	t.Helper()
-	trtBytes, err := os.ReadFile(filepath.Join(stepDir, "tensorler.trt"))
+	trtBytes, err := os.ReadFile(filepath.Join(stepDir, "tensors.trt"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	durumBytes, err := os.ReadFile(filepath.Join(stepDir, "durum.json"))
+	durumBytes, err := os.ReadFile(filepath.Join(stepDir, "state.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	trtSum := sha256.Sum256(trtBytes)
 	durumSum := sha256.Sum256(durumBytes)
 	ozet := fmt.Sprintf(`{
-  "sürüm": 2,
-  "adım": %d,
-  "dosyalar": {
-    "durum.json": {"bayt": %d, "sha256": %q},
-    "tensorler.trt": {"bayt": %d, "sha256": %q}
+  "version": 3,
+  "step": %d,
+  "files": {
+    "state.json": {"bytes": %d, "sha256": %q},
+    "tensors.trt": {"bytes": %d, "sha256": %q}
   }
 }
 `, step, len(durumBytes), hex.EncodeToString(durumSum[:]), len(trtBytes), hex.EncodeToString(trtSum[:]))
-	if err := os.WriteFile(filepath.Join(stepDir, "ozet.json"), []byte(ozet), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(stepDir, "digest.json"), []byte(ozet), 0o644); err != nil {
 		t.Fatal(err)
 	}
 }

@@ -66,7 +66,7 @@ Ortam değişkenleri (komut ve seçenekler gibi her gömülü dilin adıyla okun
 | Değişken | Ne yapar | Örnek |
 | :-- | :-- | :-- |
 | `TR_DIL` | Yazım dilini seçer (`tr`, `en`): iletiler, yardım, kodlu dosyanın görünümü | `TR_DIL=en tr yardım` |
-| `TR_IS_KLASORU` | Arka plan işinin klasörü: ilerleme çubuğu oraya `ilerleme.json` yazar | `TR_IS_KLASORU=isler/egitim tr examples/tr/28_egitim_dongusu.tr` |
+| `TR_IS_KLASORU` | Arka plan işinin klasörü: ilerleme çubuğu oraya `progress.json` yazar | `TR_IS_KLASORU=isler/egitim tr examples/tr/28_egitim_dongusu.tr` |
 | `TR_GPU_ESZAMANLI` | `1` ise her GPU kernelinden sonra beklenir; kernel hatası tam yerinde bildirilir (yavaş) | `TR_GPU_ESZAMANLI=1 tr examples/tr/33_cihaz_ve_hassasiyet.tr` |
 | `TR_GPU_PROFIL` | `1` ise GPU kernel süreleri ölçülür (`izle` ve `profil` kendileri açar) | `TR_GPU_PROFIL=1 tr examples/tr/33_cihaz_ve_hassasiyet.tr` |
 | `TR_CPU_AVX2` | `0` ise CPU'nun AVX2/FMA kernelleri kapanır, taşınabilir Go kernelleri çalışır | `TR_CPU_AVX2=0 tr examples/tr/23_tensor.tr` |

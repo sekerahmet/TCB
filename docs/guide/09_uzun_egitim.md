@@ -28,11 +28,11 @@ kn.kaydet()
 
 **Ne zaman kaydedilir.** `kn.güncelle(adım)` her adımın sonunda çağrılır; son kayıttan beri `her_dakika` (varsayılan 15) dakika geçtiyse orada kaydeder. Eğitimin sonunda `kn.kaydet()` hemen kaydeder. Ctrl+C'ye bastığınızda program o anki adımı bitirir, noktayı kaydeder ve durur (`Kontrol noktası kaydedildi: adım 1532 ...`; çıkış kodu 3); hemen çıkmak için Ctrl+C'ye ikinci kez basın. Süreç öldürülürse (elektrik kesintisi, çalışma makinesinin geri alınması) en son düzenli noktadan sürülür; aradaki adımlar yeniden hesaplanır ve aynı sonucu verir.
 
-**Kaldığı yerden devam.** Aynı komutu yeniden çalıştırın. Program başta `Kaldığı yerden devam: adım 1500 (runs/deneme1/kontrol_noktalari/adim_0000001500)` yazar; `kn.kaldığı_adım` 1500 olur, döngü oradan başlar. Eğitimi uzatmak için `--adım` değerini artırmanız yeter (ayarlardaki fark yalnızca bir not olarak yazılır). Modeli, iyileştiriciyi ya da okuyucunun ayarlarını değiştirdiyseniz program yükleme yapmadan, neyin farklı olduğunu söyleyen bir hatayla durur: baştan başlamak için `runs/deneme1/kontrol_noktalari` klasörünü silin ya da yeni bir koşu klasörü verin.
+**Kaldığı yerden devam.** Aynı komutu yeniden çalıştırın. Program başta `Kaldığı yerden devam: adım 1500 (runs/deneme1/checkpoints/step_0000001500)` yazar; `kn.kaldığı_adım` 1500 olur, döngü oradan başlar. Eğitimi uzatmak için `--adım` değerini artırmanız yeter (ayarlardaki fark yalnızca bir not olarak yazılır). Modeli, iyileştiriciyi ya da okuyucunun ayarlarını değiştirdiyseniz program yükleme yapmadan, neyin farklı olduğunu söyleyen bir hatayla durur: baştan başlamak için `runs/deneme1/checkpoints` klasörünü silin ya da yeni bir koşu klasörü verin.
 
-**Günlük.** `metrics.jsonl` silinmez ve kesilmez: sürdürülen eğitim araya `{"tür":"devam","adım":1500}` kaydı yazar. Bu kayıttan önce gelen ve adımı 1500'den büyük olan ölçüler (kesilmeden önce yazılmış, sonra yeniden hesaplanan adımlar) geçersizdir; kayıp eğrisi çizen araçlar bu kuralı uygular.
+**Günlük.** `metrics.jsonl` silinmez ve kesilmez: sürdürülen eğitim araya `{"kind":"resume","step":1500}` kaydı yazar (günlüğün ve kontrol noktasının anahtarları dilden bağımsız İngilizce adlardır, programın hangi dilde yazıldığından bağımsız aynıdır). Bu kayıttan önce gelen ve adımı 1500'den büyük olan ölçüler (kesilmeden önce yazılmış, sonra yeniden hesaplanan adımlar) geçersizdir; kayıp eğrisi çizen araçlar bu kuralı uygular.
 
-**Koşu klasörü.** Her eğitim kendi klasörüne yazar; kontrol noktaları onun `kontrol_noktalari/` alt klasöründedir, öbür dosyalarınıza dokunulmaz. Önerilen düzen:
+**Koşu klasörü.** Her eğitim kendi klasörüne yazar; kontrol noktaları onun `checkpoints/` alt klasöründedir, öbür dosyalarınıza dokunulmaz. Önerilen düzen:
 
 ```text
 runs/deneme1/
@@ -42,10 +42,10 @@ runs/deneme1/
   results.json           son değerlendirme
   speed.json             hız ölçümleri
   model.trt              son ağırlıklar: tensör_kaydet(..., parametreler(model, adlarıyla: doğru))
-  kontrol_noktalari/
-    son.json             en son nokta
-    adim_0000001500/     tensorler.trt, durum.json, ozet.json
-    adim_0000001000/     tut: 2 → bir önceki de durur
+  checkpoints/
+    latest.json          en son nokta
+    step_0000001500/     tensors.trt, state.json, digest.json
+    step_0000001000/     tut: 2 → bir önceki de durur
 ```
 
 **Bulut not defteri ve Drive.** Bağlanmış Drive klasörüne doğrudan yazmak yavaştır ve kaydın son adımı (yeniden adlandırma) orada başarısız olabilir. Koşu klasörünü çalışma makinesinin yerel diskinde (`/content/koşular/deneme1`) tutun ve ara ara Drive'a kopyalayın:

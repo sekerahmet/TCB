@@ -10,8 +10,8 @@ import (
 func TestValidLossMetrics(t *testing.T) {
 	dir := t.TempDir()
 	log := WriteFile(t, dir, "metrics.jsonl",
-		`{"adım":1,"kayıp":0.5}`+"\n"+`{"adım":2,"kayıp":0.4}`+"\n"+`{"adım":3,"kayıp":0.3}`+"\n"+
-			`{"adım":2,"tür":"devam"}`+"\n"+`{"adım":9,"tür":"başka"}`+"\n"+`{"adım":3,"kayıp":0.31}`+"\n"+`{"adım":4,"ka`)
+		`{"step":1,"loss":0.5}`+"\n"+`{"step":2,"loss":0.4}`+"\n"+`{"step":3,"loss":0.3}`+"\n"+
+			`{"step":2,"kind":"resume"}`+"\n"+`{"step":9,"kind":"başka"}`+"\n"+`{"step":3,"loss":0.31}`+"\n"+`{"step":4,"ka`)
 	want := []string{"1:0.5", "2:0.4", "3:0.31"}
 	if got := ValidLossMetrics(t, log, true); !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -23,9 +23,9 @@ func TestAssertSameRunFiles(t *testing.T) {
 	a, b := t.TempDir(), t.TempDir()
 	for _, d := range []string{a, b} {
 		WriteFile(t, d, "son.trt", "x")
-		WriteFile(t, d, "metrics.jsonl", `{"adım":1,"kayıp":0.5}`+"\n")
+		WriteFile(t, d, "metrics.jsonl", `{"step":1,"loss":0.5}`+"\n")
 	}
-	WriteFile(t, b, "metrics.jsonl", `{"adım":1,"kayıp":0.5}`+"\n"+`{"adım`)
+	WriteFile(t, b, "metrics.jsonl", `{"step":1,"loss":0.5}`+"\n"+`{"step`)
 	AssertSameRunFiles(t, a, b, []string{"son.trt"}, true)
 	// Katı kipte yarım satır hatadır.
 	if !failsFatally(func(tb testing.TB) { AssertSameRunFiles(tb, a, b, []string{"son.trt"}, false) }) {

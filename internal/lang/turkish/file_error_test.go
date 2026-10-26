@@ -98,7 +98,7 @@ func TestFileErrorReasonThroughCodedWrapper(t *testing.T) {
 	if err := FileError("f()", missing, messages.H2100, wrapped); !messages.Has(err, messages.H2132) {
 		t.Errorf("neden H2132 olmalı: %v", err)
 	}
-	coded := messages.New(messages.H2000, "ozet.json çok büyük", "")
+	coded := messages.New(messages.H2000, "digest.json çok büyük", "")
 	if err := FileError("f()", missing, messages.H2100, coded); !messages.Has(err, messages.H2000) || messages.Has(err, messages.H2132) {
 		t.Errorf("OS hatası olmayan kodlu ileti neden sayılmalı: %v", err)
 	}

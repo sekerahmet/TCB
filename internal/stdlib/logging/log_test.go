@@ -66,7 +66,7 @@ değişken ayar = komut_satırı({adım: 10, hf_token: ""})
 değişken g = günlük("`+pathText(path)+`")
 g.ekle({kayıp: tensör([2.5]), nan: ondalık("NaN"), sonsuz: ondalık("inf"), belirteç: ayar.hf_token})
 g.ekle("merhaba")
-g.ekle({zaman: "elle", x: [1, 2]})
+g.ekle({"time": "elle", x: [1, 2]})
 `)
 	if err != nil {
 		t.Fatal(err)
@@ -76,20 +76,20 @@ g.ekle({zaman: "elle", x: [1, 2]})
 		t.Fatalf("4 satır bekleniyordu: %v", s)
 	}
 	b := s[0]
-	if b["tür"] != "başlangıç" || b["sürüm"] != 1.0 || b["program"] != "egit.tr" {
+	if b["kind"] != "start" || b["version"] != 2.0 || b["program"] != "egit.tr" {
 		t.Errorf("başlangıç kaydı: %v", b)
 	}
-	if a, _ := b["ayarlar"].(map[string]any); a["adım"] != 10.0 || a["hf_token"] != interp.SecretMask {
-		t.Errorf("ayarlar gizli değeri maskelenmiş olarak taşımalı: %v", b["ayarlar"])
+	if a, _ := b["settings"].(map[string]any); a["step"] != 10.0 || a["hf_token"] != interp.SecretMask {
+		t.Errorf("ayarlar gizli değeri maskelenmiş olarak taşımalı: %v", b["settings"])
 	}
 	o := s[1]
-	if o["kayıp"] != 2.5 || o["nan"] != "NaN" || o["sonsuz"] != "Infinity" || o["belirteç"] != interp.SecretMask {
+	if o["loss"] != 2.5 || o["nan"] != "NaN" || o["sonsuz"] != "Infinity" || o["belirteç"] != interp.SecretMask {
 		t.Errorf("ölçü kaydı: %v", o)
 	}
-	if _, ok := o["zaman"].(string); !ok {
+	if _, ok := o["time"].(string); !ok {
 		t.Errorf("zaman eklenmeli: %v", o)
 	}
-	if s[2]["mesaj"] != "merhaba" || s[3]["zaman"] != "elle" {
+	if s[2]["message"] != "merhaba" || s[3]["time"] != "elle" {
 		t.Errorf("mesaj ve elle verilen zaman: %v %v", s[2], s[3])
 	}
 	if strings.Contains(string(mustRead(t, path)), "hf_gizlideger1") {
@@ -115,7 +115,7 @@ func TestLogErrors(t *testing.T) {
 		want messages.Code
 	}{
 		{`günlük("` + pathText(filepath.Join(k, "a.csv")) + `")`, messages.H7319},
-		{`günlük("` + pathText(filepath.Join(k, "a.jsonl")) + `").ekle({tür: "x"})`, messages.H7321},
+		{`günlük("` + pathText(filepath.Join(k, "a.jsonl")) + `").ekle({"kind": "x"})`, messages.H7321},
 		{`günlük("` + pathText(filepath.Join(k, "b.jsonl")) + `").ekle({f: yazdır})`, messages.H7300},
 	} {
 		if _, err := run(t, m, d.code); !messages.Has(err, d.want) {
@@ -133,7 +133,7 @@ func TestLogErrors(t *testing.T) {
 func TestLogAppendAndResume(t *testing.T) {
 	k := t.TempDir()
 	path := filepath.Join(k, "e.jsonl")
-	if err := os.WriteFile(path, []byte(`{"adım":1}`+"\n"+`{"adım":2,"ka`), 0o644); err != nil {
+	if err := os.WriteFile(path, []byte(`{"step":1}`+"\n"+`{"step":2,"ka`), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	m, _ := newVM(t, k)
@@ -156,8 +156,8 @@ g`)
 	}
 	content := string(mustRead(t, path))
 	line := strings.Split(strings.TrimSuffix(content, "\n"), "\n")
-	if len(line) != 5 || line[1] != `{"adım":2,"ka` || !strings.HasPrefix(line[2], `{"tür":"başlangıç"`) ||
-		!strings.Contains(line[4], `"tür":"devam"`) || !strings.HasSuffix(line[4], `"adım":1500}`) {
+	if len(line) != 5 || line[1] != `{"step":2,"ka` || !strings.HasPrefix(line[2], `{"kind":"start"`) ||
+		!strings.Contains(line[4], `"kind":"resume"`) || !strings.HasSuffix(line[4], `"step":1500}`) {
 		t.Errorf("beklenmeyen günlük:\n%s", content)
 	}
 	// Kapatılan günlüğe yazılınca dosya yeniden açılır.
@@ -165,7 +165,7 @@ g`)
 	if _, err := run(t, m, `g.ekle("yine")`); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasSuffix(string(mustRead(t, path)), `"mesaj":"yine"}`+"\n") {
+	if !strings.HasSuffix(string(mustRead(t, path)), `"message":"yine"}`+"\n") {
 		t.Errorf("kapatılan günlük yeniden açılmalı: %s", mustRead(t, path))
 	}
 }
@@ -179,7 +179,7 @@ func TestLogEmptyClose(t *testing.T) {
 		t.Fatal(err)
 	}
 	logging.CloseAll()
-	if s := lines(t, path); len(s) != 1 || s[0]["tür"] != "başlangıç" {
+	if s := lines(t, path); len(s) != 1 || s[0]["kind"] != "start" {
 		t.Errorf("tek başlangıç kaydı bekleniyordu: %v", s)
 	}
 }

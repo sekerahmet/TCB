@@ -27,12 +27,12 @@ const timeFormat = "2006-01-02T15:04:05.000Z07:00"
 func (p *Profile) setup(a snap, before *snap, last bool) *Snapshot {
 	elapsed := a.time2.Sub(p.start)
 	g := &Snapshot{
-		Format: FormatName, Version: FormatVersion, Kind: "canlı", Program: p.pick.Program,
+		Format: FormatName, Version: FormatVersion, Kind: "live", Program: p.pick.Program,
 		Start: p.start.Format(timeFormat), Time: a.time2.Format(timeFormat),
 		Seconds: sn(elapsed), Done: last,
 	}
 	if last {
-		g.Kind = "rapor"
+		g.Kind = "report"
 	}
 	// Tensör sayaçları ve çöp toplayıcı süreç geneldir: profil başladığından beri olanlar.
 	g.Step = stepInfo(a.step)
@@ -60,9 +60,9 @@ func stepInfo(d stepState) *StepInfo {
 	if !d.var_ {
 		return nil
 	}
-	b := &StepInfo{Count: d.last, Total: d.total, All: d.all, Source: "ilerleme_cubugu"}
+	b := &StepInfo{Count: d.last, Total: d.total, All: d.all, Source: "progress_bar"}
 	if d.fromOptimizer {
-		b.Source = "iyilestirici"
+		b.Source = "optimizer"
 	}
 	// Süre ilk adım sınırından sonuncusuna kadardır: aradaki adımlara bölünür.
 	if n := d.all - d.allAtFirst; n > 0 {
@@ -128,11 +128,11 @@ func (p *Profile) tensorInfo(counters, minus []tensor.CounterRecord, dur time.Du
 			continue
 		}
 		b := OpInfo{
-			Code: k.OpKind.Code(), Name: fullName(k.OpKind, k.Backward, k.Calls), Direction: "ileri", Device: "cpu",
+			Code: k.OpKind.Code(), Name: fullName(k.OpKind, k.Backward, k.Calls), Direction: "forward", Device: "cpu",
 			Calls: k.Calls, Measured: k.Measured, Seconds: sn(k.Duration), Bytes: k.Bytes,
 		}
 		if k.Backward {
-			b.Direction = "geri"
+			b.Direction = "backward"
 		}
 		if k.Device != tensor.KindCPU {
 			b.Device = "gpu"
@@ -184,12 +184,12 @@ func implicitInfo(records, minus []tensor.ImplicitRecord) []ImplicitInfo {
 			continue
 		}
 		b := ImplicitInfo{
-			Code: r.Kind.Code(), Parent: r.Parent.Code(), Direction: "ileri", Device: "cpu",
+			Code: r.Kind.Code(), Parent: r.Parent.Code(), Direction: "forward", Device: "cpu",
 			Name: implicitName(r.Kind), ParentName: fullName(r.Parent, r.Backward, 1),
 			Calls: r.Calls, Elements: r.Elems, Measured: r.Measured, Seconds: sn(r.Duration),
 		}
 		if r.Backward {
-			b.Direction = "geri"
+			b.Direction = "backward"
 		}
 		if r.Device != tensor.KindCPU {
 			b.Device = "gpu"

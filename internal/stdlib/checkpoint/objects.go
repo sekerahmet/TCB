@@ -137,7 +137,7 @@ func (n *object) tensors() []tensorPlan {
 	return out
 }
 
-// record nesnenin durum.json kaydıdır (tensörler hariç).
+// record nesnenin state.json kaydıdır (tensörler hariç).
 func (n *object) record(m *interp.VM) (objectRecord, error) {
 	k := objectRecord{Name: n.name, Kind: n.kind.String()}
 	var err error
@@ -169,15 +169,14 @@ type pending struct {
 	value  interp.Value
 }
 
-// checkMatch kaydın şimdiki nesneye uyduğunu, hiçbir şey yüklemeden denetler. surum
-// noktanın biçim sürümüdür (modellerin kaydı sürüme bağlıdır, bkz. modelMatch).
-func (n *object) checkMatch(fn any, y *pending, version int) error {
+// checkMatch kaydın şimdiki nesneye uyduğunu, hiçbir şey yüklemeden denetler.
+func (n *object) checkMatch(fn any, y *pending) error {
 	if y.record.Kind != n.kind.String() {
 		return messages.New(messages.H7440, fn, n.name, y.record.Kind, n.kind)
 	}
 	switch n.kind {
 	case kindModel:
-		return n.modelMatch(messages.New(messages.H7441, fn, n.name), y, version)
+		return n.modelMatch(messages.New(messages.H7441, fn, n.name), y)
 	case kindOptimizer:
 		if y.record.Optimizer != n.op.Name() || y.record.ParamCount != n.op.ParamCount() {
 			return messages.New(messages.H7442,
@@ -215,19 +214,13 @@ func (n *object) checkMatch(fn any, y *pending, version int) error {
 }
 
 // modelMatch modelin tensörlerini kayıttakilerle karşılaştırır: her tensör kayıtta aynı
-// şekil ve türde bulunmalı, kayıtta modelde olmayan tensör olmamalıdır. Sürüm 1 noktalarında
-// yalnızca türev izleyen tensörler kaydedilmişti: orada kayıtta olmayan türev izlemeyen
-// tensörler (ör. sabit tablolar) olduğu gibi kalır, kayıttaki tensörler modelde türev izlesin
-// izlemesin yerlerine yazılır.
-func (n *object) modelMatch(fn any, y *pending, version int) error {
+// şekil ve türde bulunmalı, kayıtta modelde olmayan tensör olmamalıdır.
+func (n *object) modelMatch(fn any, y *pending) error {
 	found := 0
 	for i, name := range n.names {
 		t := n.params[i].Tensor()
 		sk, ok := y.shapes[name]
 		if !ok {
-			if version == 1 && !t.RequiresGrad() {
-				continue
-			}
 			kind := "parameter"
 			if !t.RequiresGrad() {
 				kind = "state"
@@ -268,11 +261,11 @@ func settingsText(m *interp.VM, a *interp.DictVal) json.RawMessage {
 	return b
 }
 
-// badCounter iyileştirici kaydında bir adım sayacının ("adim", "adim.k") şekli [2] değil mi?
+// badCounter iyileştirici kaydında bir adım sayacının ("step", "step.k") şekli [2] değil mi?
 // Sayaçların şekli modelden bağımsızdır; farklıysa kayıt bozuktur.
 func badCounter(y *pending) bool {
 	for _, name := range y.order {
-		if strings.HasPrefix(name, "adim") && !slices.Equal(y.shapes[name], []int{2}) {
+		if strings.HasPrefix(name, "step") && !slices.Equal(y.shapes[name], []int{2}) {
 			return true
 		}
 	}

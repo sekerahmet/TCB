@@ -112,7 +112,7 @@ func (v *VM) setMember(obj Value, prop string, u memberInfo, codeVal uint8, righ
 		if isDictMember(prop) {
 			return messages.At(line, 0, messages.New(messages.H2406, prop))
 		}
-		key, _ := u.dictKey(inst, prop)
+		key, found := u.dictKey(inst, prop)
 		cur := inst.Pairs[key]
 		if cur == nil {
 			cur = Null
@@ -122,7 +122,11 @@ func (v *VM) setMember(obj Value, prop string, u memberInfo, codeVal uint8, righ
 			return err
 		}
 		escape(finalVal)
-		inst.Set(key, finalVal)
+		if !found && u.keys != nil {
+			inst.SetCoded(u.codeVal, finalVal) // yeni kodlu anahtar ({...}.adım = 1 ≡ {adım: 1})
+		} else {
+			inst.Set(key, finalVal)
+		}
 		return nil
 	case MemberAssignable:
 		// Dış değerler (ör. iyileştirici): bileşik atamada mevcut değer GetProperty ile okunur.

@@ -66,7 +66,7 @@ Rapor dosyası ağ ya da bulut sürücüsündeyse ve yazılamazsa program durmaz
 
 ## Arka plan işlerinde
 
-Program bir arka plan işi olarak çalışıyorsa (iş klasörü `.tr/işler/<iş>/`), canlı profili saniyede bir o klasördeki `profil.json`'a yazılır; işi izleyen araçlar buradan okur. Bu kipte satır örneklemesi ve GPU kernel ölçümü kapalıdır: yalnızca her zaman açık sayaçlar (adım hızı, tensör işlemleri, bellek) yazılır, ek yük saniyede bir dosya yazmasıdır. Dosya önce geçici bir dosyaya yazılıp yerine konur (okuyan yarım dosya görmez); yerine koymayı desteklemeyen sürücülerde bir kez uyarılır ve doğrudan yazılır, yazma hiç olmuyorsa sonraki saniyede yeniden denenir; eğitim hiçbir durumda durmaz.
+Program bir arka plan işi olarak çalışıyorsa (iş klasörü `.tr/işler/<iş>/`), canlı profili saniyede bir o klasördeki `profile.json`'a yazılır; işi izleyen araçlar buradan okur. Bu kipte satır örneklemesi ve GPU kernel ölçümü kapalıdır: yalnızca her zaman açık sayaçlar (adım hızı, tensör işlemleri, bellek) yazılır, ek yük saniyede bir dosya yazmasıdır. Dosya önce geçici bir dosyaya yazılıp yerine konur (okuyan yarım dosya görmez); yerine koymayı desteklemeyen sürücülerde bir kez uyarılır ve doğrudan yazılır, yazma hiç olmuyorsa sonraki saniyede yeniden denenir; eğitim hiçbir durumda durmaz.
 
 ## Maliyeti
 

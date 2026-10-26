@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -50,7 +51,7 @@ func TestFileFormatsIndependentOfWritingLanguage(t *testing.T) {
 	if shapes[0] != shapes[1] {
 		t.Fatalf("dosya biçimi yazım diline göre değişti:\nvarsayılan:\n%s\nTR_DIL=en:\n%s", shapes[0], shapes[1])
 	}
-	for _, key := range []string{"ozet.json", "durum.json", "\"sürüm\"", "\"dosyalar\"", "\"nesneler\"", "metrics.jsonl", "\"tür\""} {
+	for _, key := range []string{"digest.json", "state.json", "\"version\"", "\"files\"", "\"objects\"", "metrics.jsonl", "\"kind\""} {
 		if !strings.Contains(shapes[0], key) {
 			t.Errorf("biçim özeti %s içermeli:\n%s", key, shapes[0])
 		}
@@ -94,27 +95,31 @@ func TestDataFormatsIndependentOfFileLanguage(t *testing.T) {
 	}
 }
 
-// Kod taşıyan çıplak sözlük anahtarı dosyanın dilindedir (3.7, 17.3): İngilizce betikte
-// komut_satırı({step: …}) seçeneği --step, json_metin anahtarı "step" olur; Türkçe program
-// İngilizce yazılmış JSON'daki "step"'i .adım ile bulur. Kitaplığın ve motorların kendi dosya
-// anahtarları (config.json, kontrol noktası) Türkçe kalır.
-func TestDictKeysFollowFileLanguage(t *testing.T) {
+// Kod taşıyan çıplak sözlük anahtarı diske kodun dilden bağımsız adıyla gider (3.7, 17.3): aynı
+// program Türkçe ve İngilizce yazıldığında json_metin, günlük, config.json ve kontrol noktası bayt
+// bayt aynı anahtarları taşır ({adım: …} de {step: …} de "step"); komut satırında kodlu seçenek her
+// dilin adıyla geçer (--adım, --step; 17.8), yazdır anahtarı dosyanın dilinde yazar. Kitaplığın
+// (tr/egitim) config.json'u İngilizce tanımlayıcılardır; Türkçe program İngilizce JSON'daki
+// "step"'i .adım ile bulur.
+func TestDictCodedKeysOnDisk(t *testing.T) {
 	program := "aktar \"tr/egitim\" olarak e\n" +
 		"değişken ayar = komut_satırı({adım: 3, öğrenme_oranı: 0.5})\n" +
 		"değişken koşu = e.Koşu(\"kosu\", ayar, {}, adım_sayısı: ayar.adım)\n" +
-		"değişken kn = kontrol_noktası(\"nokta\", {w: tensör([1.0])})\n" +
+		"koşu.değerlendirildi(1, {kayıp: 0.25})\n" +
+		"değişken kn = kontrol_noktası(\"nokta\", {w: tensör([1.0]), sayaç: {adım: 1}})\n" +
 		"kn.güncelle(1)\n" +
 		"kn.kaydet()\n" +
 		"yazdır(json_metin(ayar))\n" +
+		"yazdır(ayar)\n" +
 		"yazdır(json_çöz(`{\"step\": 4}`).adım)\n"
 	coded, err := source.Encode(program)
 	if err != nil {
 		t.Fatal(err)
 	}
-	var shapes [2]string
+	var shapes, logs [2]string
 	for i, c := range []struct{ language, option, want string }{
-		{"tr", "--adım", "{\"adım\":2,\"öğrenme_oranı\":0.5}\n4\n"},
-		{"en", "--step", "{\"step\":2,\"lr\":0.5}\n4\n"},
+		{"tr", "--step", "{\"step\":2,\"lr\":0.5}\n{\"adım\": 2, \"öğrenme_oranı\": 0.5}\n4\n"},
+		{"en", "--adım", "{\"step\":2,\"lr\":0.5}\n{\"step\": 2, \"lr\": 0.5}\n4\n"},
 	} {
 		dir := t.TempDir()
 		testkit.WriteFile(t, dir, "p.tr", inLanguage(coded, c.language))
@@ -132,12 +137,21 @@ func TestDictKeysFollowFileLanguage(t *testing.T) {
 			top = append(top, k)
 		}
 		sort.Strings(top)
-		if got := strings.Join(top, " "); got != "ayar cihaz parametre_sayısı" {
-			t.Errorf("dil=%s: config.json anahtarları %q, kitaplığın Türkçe anahtarları kalmalı", c.language, got)
+		if got := strings.Join(top, " "); got != "config device num_params" {
+			t.Errorf("dil=%s: config.json anahtarları %q, beklenen \"config device num_params\"", c.language, got)
 		}
+		if got := fmt.Sprint(config["config"]); got != "map[lr:0.5 step:2]" {
+			t.Errorf("dil=%s: config.json ayarları %s", c.language, got)
+		}
+		// Değerlendirme kaydının zaman damgasından sonrası.
+		_, after, _ := strings.Cut(readFile(t, filepath.Join(dir, "kosu", "metrics.jsonl")), "\"step\":1,")
+		logs[i], _, _ = strings.Cut(after, "\n")
 		shapes[i] = fileFormatShape(t, filepath.Join(dir, "nokta"))
 	}
-	if shapes[0] != shapes[1] || !strings.Contains(shapes[0], "\"sürüm\"") {
+	if want := "\"loss\":0.25}"; logs[0] != want || logs[1] != want {
+		t.Errorf("günlüğün değerlendirme kaydı dile göre değişti ya da yanlış: tr %q, en %q", logs[0], logs[1])
+	}
+	if shapes[0] != shapes[1] || !strings.Contains(shapes[0], "\"version\"") {
 		t.Errorf("kontrol noktasının biçimi dosyanın diline göre değişti:\ntr:\n%s\nen:\n%s", shapes[0], shapes[1])
 	}
 }
@@ -181,10 +195,10 @@ func TestEngineValueTextFollowsFileLanguage(t *testing.T) {
 	for language, want := range map[string][]string{
 		"tr": {"İlerleme(adım 0/2)", "Günlük(m.jsonl, 0 kayıt)",
 			"AdamW(parametre: 1, öğrenme_oranı: 0.1, ağırlık_çürümesi: 0.01, beta1: 0.9, beta2: 0.999, epsilon: 1e-08, adım: 0)",
-			"KontrolNoktası(k/kontrol_noktalari, adım 0, 1 nesne)", "SatırOkuyucu("},
+			"KontrolNoktası(k/checkpoints, adım 0, 1 nesne)", "SatırOkuyucu("},
 		"en": {"Progress(step 0/2)", "Logger(m.jsonl, 0 records)",
 			"AdamW(parameters: 1, lr: 0.1, weight_decay: 0.01, beta1: 0.9, beta2: 0.999, eps: 1e-08, step: 0)",
-			"Checkpoint(k/kontrol_noktalari, step 0, 1 object)", "LineReader("},
+			"Checkpoint(k/checkpoints, step 0, 1 object)", "LineReader("},
 	} {
 		for _, env := range [][]string{{"TR_DIL=tr"}, {"TR_DIL=en"}} {
 			dir := t.TempDir()
@@ -204,14 +218,15 @@ func TestEngineValueTextFollowsFileLanguage(t *testing.T) {
 }
 
 // Görüntüler kişinin dilindedir (TR_DIL), dosyanın dilinde değil: kabuğun yankısı ve programın
-// --yardım'ı (tip adları, varsayılan değerler) TR_DIL=en ile İngilizce, Türkçe dosyada da.
+// --yardım'ı (tip adları, varsayılan değerler, kodlu seçeneğin adı: {adım: 3} → --step; 17.8)
+// TR_DIL=en ile İngilizce, Türkçe dosyada da. Kodsuz seçenek (--hızlı) yazıldığı gibidir.
 func TestDisplayFollowsPersonsLanguage(t *testing.T) {
 	repl := testkit.RunBinary(t, trBinary, "", "true\ntype(1)\nexit\n", []string{"TR_DIL=en"})
 	testkit.Wait(t, repl, 0, []string{"=> true", "=> Int"}, nil)
 	dir := t.TempDir()
 	testkit.WriteFile(t, dir, "p.tr", "değişken ayar = komut_satırı({adım: 3, hızlı: doğru})\n")
 	help := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "p.tr", "--help")
-	testkit.Wait(t, help, 0, []string{"--adım <Int>", "(default: true; to turn it off --hızlı=false)"}, nil)
+	testkit.Wait(t, help, 0, []string{"--step <Int>", "(default: true; to turn it off --hızlı=false)"}, nil)
 	if strings.Contains(help.Stdout, "doğru") || strings.Contains(help.Stdout, "<Tam>") {
 		t.Errorf("TR_DIL=en yardımında Türkçe değer ya da tip adı:\n%s", help.Stdout)
 	}
@@ -352,9 +367,9 @@ func fileFormatShape(t *testing.T, dir string) string {
 		}
 		rel, _ := filepath.Rel(dir, path)
 		rel = filepath.ToSlash(rel)
-		if strings.HasPrefix(rel, "kosu/kontrol_noktalari/adim_") {
-			// Adım klasörünün adı sabit ("adim_0000000001"); özet yalnızca dosya adını tutar.
-			rel = "kosu/kontrol_noktalari/adim_N/" + filepath.Base(rel)
+		if strings.HasPrefix(rel, "kosu/checkpoints/adim_") {
+			// Adım klasörünün adı sabit ("step_0000000001"); özet yalnızca dosya adını tutar.
+			rel = "kosu/checkpoints/step_N/" + filepath.Base(rel)
 		}
 		lines = append(lines, "dosya "+rel)
 		if strings.HasSuffix(rel, "egit.tr") {

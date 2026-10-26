@@ -45,13 +45,13 @@ değişken ç = ilerleme(100, günlük: g)`); err != nil {
 		t.Errorf("özet satırı:\n%q\nbeklenen\n%q", line[1], want)
 	}
 	records := lines(t, path)
-	if len(records) != 102 || records[0]["toplam"] != 100.0 {
+	if len(records) != 102 || records[0]["total"] != 100.0 {
 		t.Fatalf("başlangıç + 100 ölçü + bitiş bekleniyordu: %d kayıt, %v", len(records), records[0])
 	}
-	if o := records[50]; o["adım"] != 50.0 || o["kayıp"] != 0.08 || o["hız"] != 5.0 {
+	if o := records[50]; o["step"] != 50.0 || o["loss"] != 0.08 || o["rate"] != 5.0 {
 		t.Errorf("ölçü kaydı: %v", o)
 	}
-	if b := records[101]; b["tür"] != "bitiş" || b["adım"] != 100.0 || b["süre_sn"] != 20.0 {
+	if b := records[101]; b["kind"] != "end" || b["step"] != 100.0 || b["seconds"] != 20.0 {
 		t.Errorf("bitiş kaydı: %v", b)
 	}
 	// Bitmiş çubuk güncellenemez; durdur yanlış döner.
@@ -81,7 +81,7 @@ func TestProgressStepAndErrors(t *testing.T) {
 		{`ç.güncelle(adım: 11)`, messages.H7317},
 		{`ç.güncelle(adım: -1)`, messages.H7315},
 		{`ç.güncelle({adım: 3})`, messages.H7321},
-		{`ç.güncelle({hız: 3})`, messages.H7321},
+		{`ç.güncelle({"rate": 3})`, messages.H7321},
 		{`ilerleme(0)`, messages.H7313},
 		{`ilerleme(10, günlük: 5)`, messages.H7314},
 		{`ç.durdur(1)`, messages.H2012},
@@ -159,7 +159,7 @@ döngü i içinde 0..3 { ç.güncelle() }`); err != nil {
 	}
 }
 
-// Arka plan işinde (TR_IS_KLASORU) çubuk iş klasörüne ilerleme.json yazar.
+// Arka plan işinde (TR_IS_KLASORU) çubuk iş klasörüne progress.json yazar.
 func TestJobStatus(t *testing.T) {
 	job := t.TempDir()
 	t.Setenv("TR_IS_KLASORU", job)
@@ -170,25 +170,25 @@ func TestJobStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 	var d map[string]any
-	if err := json.Unmarshal(mustRead(t, filepath.Join(job, "ilerleme.json")), &d); err != nil {
+	if err := json.Unmarshal(mustRead(t, filepath.Join(job, "progress.json")), &d); err != nil {
 		t.Fatal(err)
 	}
-	if d["adım"] != 1.0 || d["toplam"] != 2.0 || d["bitti"] != false || d["ölçüler"].(map[string]any)["kayıp"] != 0.25 {
-		t.Errorf("ilerleme.json: %v", d)
+	if d["step"] != 1.0 || d["total"] != 2.0 || d["done"] != false || d["metrics"].(map[string]any)["loss"] != 0.25 {
+		t.Errorf("progress.json: %v", d)
 	}
 	if _, err := run(t, m, `ç.güncelle()`); err != nil {
 		t.Fatal(err)
 	}
-	if err := json.Unmarshal(mustRead(t, filepath.Join(job, "ilerleme.json")), &d); err != nil || d["bitti"] != true || d["adım"] != 2.0 {
-		t.Errorf("son ilerleme.json: %v %v", d, err)
+	if err := json.Unmarshal(mustRead(t, filepath.Join(job, "progress.json")), &d); err != nil || d["done"] != true || d["step"] != 2.0 {
+		t.Errorf("son progress.json: %v %v", d, err)
 	}
 	if strings.Contains(w.String(), "\r") {
 		t.Errorf("iş kipinde canlı satır olmamalı: %q", w.String())
 	}
-	if remaining, _ := reporoot.Glob(filepath.Join(job, ".ilerleme.json.*")); len(remaining) > 0 {
+	if remaining, _ := reporoot.Glob(filepath.Join(job, ".progress.json.*")); len(remaining) > 0 {
 		t.Errorf("geçici dosya kalmamalı: %v", remaining)
 	}
-	_ = os.Remove(filepath.Join(job, "ilerleme.json"))
+	_ = os.Remove(filepath.Join(job, "progress.json"))
 }
 
 // Program bitince bitmemiş çubuk özet satırını yazar.
@@ -228,7 +228,7 @@ değişken ç = ilerleme(100, günlük: g)`); err != nil {
 	}
 	records := lines(t, path)
 	last := records[len(records)-1]
-	if last["adım"] != 50.0 || last["hız"] != 5.0 {
+	if last["step"] != 50.0 || last["rate"] != 5.0 {
 		t.Fatalf("hız ölçülmedi: %v", last)
 	}
 }

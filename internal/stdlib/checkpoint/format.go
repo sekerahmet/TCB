@@ -13,37 +13,36 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// Kontrol noktası dosya biçimi (sürüm 2; sürüm 1 de okunur: o sürümde modellerin yalnızca
-// türev izleyen tensörleri kaydedilirdi, sürüm 2'de türev izlemeyenler de kaydedilir; dosya
-// düzeni aynıdır). Dosyalar güvenilmeyen girdidir (başkasından
-// gelen ya da yarım kopyalanmış bir koşu klasörü): her dosyanın boyu sınırlıdır, JSON katı
-// çözülür (bilinmeyen alan, fazladan veri hata), sürüm, adım ve dosya adları birbiriyle
-// karşılaştırılır, her dosyanın SHA-256 özeti tutmalıdır. Biçimde yalnızca veri (tensörler,
-// sayılar, metinler) vardır; kod çalıştıran ya da yol çözen hiçbir alan yoktur.
+// Kontrol noktası dosya biçimi (sürüm 3). Dosya ve klasör adları, JSON anahtarları ve kayıt
+// türleri dilden bağımsız İngilizce tanımlayıcılardır (dil tanımı 17.3); değeri bir dil öğesi
+// olan alan (iyileştiricinin adı) kodunu taşır. Eski sürümler okunmaz. Dosyalar güvenilmeyen
+// girdidir (başkasından gelen ya da yarım kopyalanmış bir koşu klasörü): her dosyanın boyu
+// sınırlıdır, JSON katı çözülür (bilinmeyen alan, fazladan veri hata), sürüm, adım ve dosya
+// adları birbiriyle karşılaştırılır, her dosyanın SHA-256 özeti tutmalıdır. Biçimde yalnızca
+// veri (tensörler, sayılar, metinler) vardır; kod çalıştıran ya da yol çözen hiçbir alan yoktur.
 
 const (
-	formatVersion = 2 // yazılan sürüm
-	oldestVersion = 1 // okunabilen en eski sürüm
+	formatVersion = 3 // yazılan ve okunan tek sürüm
 
-	dirName    = "kontrol_noktalari" // <koşu>/kontrol_noktalari/
-	latestFile = "son.json"          // en son kaydedilen noktayı gösterir (araçlar için)
-	digestFile = "ozet.json"         // noktanın dosyalarının bayt sayısı ve SHA-256 özeti (en son yazılır)
-	stateFile  = "durum.json"        // adım, program, ayarlar ve nesnelerin kaydı
-	tensorFile = "tensorler.trt"     // parametreler ve iyileştirici durumları (tensör_kaydet biçimi)
-	ckptPrefix = "adim_"             // adim_0000001500
-	tmpSuffix  = ".tmp-"             // yazılmakta olan nokta: adim_0000001500.tmp-<süreç>
-	oldSuffix  = ".eski-"            // yerine yenisi konan aynı adımlı nokta: adim_...eski-<süreç>
+	dirName    = "checkpoints" // <koşu>/checkpoints/
+	latestFile = "latest.json" // en son kaydedilen noktayı gösterir (araçlar için)
+	digestFile = "digest.json" // noktanın dosyalarının bayt sayısı ve SHA-256 özeti (en son yazılır)
+	stateFile  = "state.json"  // adım, program, ayarlar ve nesnelerin kaydı
+	tensorFile = "tensors.trt" // parametreler ve iyileştirici durumları (tensör_kaydet biçimi)
+	ckptPrefix = "step_"       // step_0000001500
+	tmpSuffix  = ".tmp-"       // yazılmakta olan nokta: step_0000001500.tmp-<süreç>
+	oldSuffix  = ".old-"       // yerine yenisi konan aynı adımlı nokta: step_...old-<süreç>
 
 	// Boy sınırları (SECURITY.md): JSON dosyaları belleğe okunmadan önce sınanır.
-	maxSmallJSON  = 64 << 10 // son.json, ozet.json
-	maxStateJSON  = 64 << 20 // durum.json (düz değerler ve okuyucu durumları)
+	maxSmallJSON  = 64 << 10 // latest.json, digest.json
+	maxStateJSON  = 64 << 20 // state.json (düz değerler ve okuyucu durumları)
 	maxObjects    = 1000     // kontrol_noktası sözlüğündeki nesne sayısı
 	maxObjectName = 200      // nesne adının bayt uzunluğu
 )
 
 // ckptPattern bir noktanın klasör adıdır: en az 10 basamaklı adım (sıralama sözlük sırasıyla
 // da doğru olsun diye sıfırla doldurulur).
-var ckptPattern = regexp.MustCompile(`^adim_([0-9]{10,19})$`)
+var ckptPattern = regexp.MustCompile(`^step_([0-9]{10,19})$`)
 
 // ckptName adımın klasör adıdır.
 func ckptName(step int64) string { return fmt.Sprintf("%s%010d", ckptPrefix, step) }
@@ -58,52 +57,52 @@ func ckptStep(name string) (int64, bool) {
 	return n, err == nil && ckptName(n) == name
 }
 
-// latestRecord son.json'dur.
+// latestRecord latest.json'dur.
 type latestRecord struct {
-	Version int    `json:"sürüm"`
-	Step    int64  `json:"adım"`
-	Dir     string `json:"klasör"`
+	Version int    `json:"version"`
+	Step    int64  `json:"step"`
+	Dir     string `json:"dir"`
 }
 
-// digestRecord ozet.json'dur: noktadaki her dosyanın boyu ve özeti.
+// digestRecord digest.json'dur: noktadaki her dosyanın boyu ve özeti.
 type digestRecord struct {
-	Version int                   `json:"sürüm"`
-	Step    int64                 `json:"adım"`
-	Files   map[string]fileDigest `json:"dosyalar"`
+	Version int                   `json:"version"`
+	Step    int64                 `json:"step"`
+	Files   map[string]fileDigest `json:"files"`
 }
 
 type fileDigest struct {
-	Bytes  int64  `json:"bayt"`
+	Bytes  int64  `json:"bytes"`
 	SHA256 string `json:"sha256"`
 }
 
-// stateRecord durum.json'dur.
+// stateRecord state.json'dur.
 type stateRecord struct {
-	Version int    `json:"sürüm"`
-	Step    int64  `json:"adım"`
-	Time    string `json:"zaman"`
+	Version int    `json:"version"`
+	Step    int64  `json:"step"`
+	Time    string `json:"time"`
 	TR      string `json:"tr"`      // TR sürümü (bilgi için)
 	Program string `json:"program"` // programın dosya adı (bilgi için)
-	Workers int    `json:"işçi"`    // GOMAXPROCS (bilgi için)
+	Workers int    `json:"workers"` // GOMAXPROCS (bilgi için)
 	// Settings programın komut_satırı sonucudur (gizli değerler maskeli); sürdürmede
 	// farklıysa uyarı verilir.
-	Settings json.RawMessage `json:"ayarlar,omitempty"`
-	Objects  []objectRecord  `json:"nesneler"`
+	Settings json.RawMessage `json:"settings,omitempty"`
+	Objects  []objectRecord  `json:"objects"`
 }
 
 // objectRecord kontrol_noktası sözlüğündeki bir nesnenin kaydıdır. Tensörleri (parametreler,
-// iyileştirici durumu) tensorler.trt'de "<ad>/<tensör adı>" adıyla durur.
+// iyileştirici durumu) tensors.trt'de "<ad>/<tensör adı>" adıyla durur.
 type objectRecord struct {
-	Name       string          `json:"ad"`
-	Kind       string          `json:"tür"`
-	Optimizer  string          `json:"iyileştirici,omitempty"`     // AdamW, SGD
-	ParamCount int             `json:"parametre_sayısı,omitempty"` // iyileştiricinin
-	Length     int64           `json:"uzunluk,omitempty"`          // günlüğün bayt uzunluğu
-	Value      json.RawMessage `json:"değer,omitempty"`            // düz değer ya da okuyucu durumu (duz.go)
+	Name       string          `json:"name"`
+	Kind       string          `json:"kind"`
+	Optimizer  string          `json:"optimizer,omitempty"`   // iyileştiricinin kodu: TR_fn_AdamW, TR_fn_SGD
+	ParamCount int             `json:"param_count,omitempty"` // iyileştiricinin
+	Length     int64           `json:"length,omitempty"`      // günlüğün bayt uzunluğu
+	Value      json.RawMessage `json:"value,omitempty"`       // düz değer ya da okuyucu durumu (plain.go)
 }
 
 // Nesne türlerinin dosyadaki adları (biçimin parçası; çevrilmez).
-var kindNames = strings.Fields("parametreler iyileştirici durumlu günlük değerler")
+var kindNames = strings.Fields("parameters optimizer stateful log values")
 
 const (
 	kindModel objectKind = iota
@@ -142,15 +141,15 @@ func decodeJSON(b []byte, target any) error {
 // checkVersion dosyanın biçim sürümünü denetler.
 func checkVersion(file string, version int) error {
 	switch {
-	case version >= oldestVersion && version <= formatVersion:
+	case version == formatVersion:
 		return nil
 	case version > formatVersion:
-		return messages.New(messages.H7421, file, version, oldestVersion, formatVersion)
+		return messages.New(messages.H7421, file, version, formatVersion, formatVersion)
 	}
 	return messages.New(messages.H7422, file, version)
 }
 
-// decodeDigest ozet.json'u çözer ve noktanın adımıyla karşılaştırır.
+// decodeDigest digest.json'u çözer ve noktanın adımıyla karşılaştırır.
 func decodeDigest(b []byte, step int64) (*digestRecord, error) {
 	var o digestRecord
 	if err := decodeJSON(b, &o); err != nil {
@@ -177,7 +176,7 @@ func decodeDigest(b []byte, step int64) (*digestRecord, error) {
 	return &o, nil
 }
 
-// decodeState durum.json'u çözer ve noktanın adımıyla karşılaştırır.
+// decodeState state.json'u çözer ve noktanın adımıyla karşılaştırır.
 func decodeState(b []byte, step int64) (*stateRecord, error) {
 	var d stateRecord
 	if err := decodeJSON(b, &d); err != nil {

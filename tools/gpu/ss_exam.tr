@@ -110,7 +110,7 @@ TR_kw_var sınav = {TR_mem_loss: kayıp, ppl: TR_fn_exp(TR_fn_min(kayıp, 50.0))
     doğruluk: toplam_doğru / TR_fn_max(parça, 1), bantlar: bantlar, parça: parça, pencere: pencere,
     sondalar: sondalar, süre_sn: (TR_fn_time_ms() - başla) / 1000.0, hassasiyet: ayar.hassasiyet}
 TR_kw_var hız_yolu = TR_fn_path(ayar.koşu, "speed.json")
-TR_kw_var sonuç_ = {ad: TR_fn_path(ayar.koşu).TR_mem_name, parametre_sayısı: yapılandırma.parametre_sayısı, TR_mem_step: eğitim.TR_mem_step,
+TR_kw_var sonuç_ = {ad: TR_fn_path(ayar.koşu).TR_mem_name, parametre_sayısı: yapılandırma["num_params"], TR_mem_step: eğitim.TR_mem_step,
     eğitim_parçası: eğitim.TR_mem_step * eğitim.toplu * eğitim.birikim * eğitim.bağlam, TR_mem_last: sınav,
     hız: TR_kw_if hız_yolu.TR_mem_exists { TR_fn_json_parse(TR_fn_read_file(hız_yolu)) } TR_kw_else { TR_kw_none }, örnekler: örnekler,
     TR_mem_device: TR_fn_default_device(), TR_mem_config: eğitim}

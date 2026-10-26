@@ -103,11 +103,11 @@ func TestAdamWLoadStateRejectsBadCounters(t *testing.T) {
 	nan := float32(math.NaN())
 	for _, bad := range [][]float32{{0, -1}, {-1, 0}, {nan, nan}, {0, 0.5}, {1 << 24, 0}} {
 		fresh, st := mk()
-		st["adim.0"] = New(bad, 2)
+		st["step.0"] = New(bad, 2)
 		panicCode(t, fmt.Sprintf("sayaç %v", bad), messages.H3057, func() { fresh.LoadState(st) })
 	}
 	fresh, st := mk()
-	delete(st, "adim.0")
+	delete(st, "step.0")
 	panicCode(t, "sayaçsız moment", messages.H3062, func() { fresh.LoadState(st) })
 	fresh, st = mk()
 	fresh.LoadState(st) // sağlam durum yüklenir

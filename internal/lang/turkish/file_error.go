@@ -105,7 +105,7 @@ func fileErrorReason(path string, err error) *messages.Error {
 	if errors.As(err, &n) {
 		return n.Message
 	}
-	// Kodlu bir ileti işletim sistemi hatası taşımıyorsa kendisi nedendir (ör. "ozet.json çok
+	// Kodlu bir ileti işletim sistemi hatası taşımıyorsa kendisi nedendir (ör. "digest.json çok
 	// büyük"); işletim sistemi hatası sanılıp "beklenmeyen bir hata" diye sarılmaz, kodu da
 	// zincirde kalır. Taşıyorsa (ör. compute'un "dosya açılamadı: {error}" sarmalayıcısı)
 	// işletim sistemi hatası sınıflandırılır.

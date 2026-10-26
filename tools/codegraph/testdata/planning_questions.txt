@@ -159,7 +159,7 @@ codegraph tests-for lib/egitim.tr | group: repository-wide checks that scan it =
 # Deneme: içeride ara dil yok, asıl biçim kod (yol haritası 15, 1. tur, 2026-10-25)
 codegraph who-uses turkish.ErrorFrame | contains: tr.printError | contains: interp.ErrorItems | contains: testrunner.writeError | contains: debugger.dapServer.launch | src: iç dil 1. tur, 2026-10-25 (çerçeveye metin veren yerler)
 codegraph query lexer.NewBodyIn | contains: canonical language | src: iç dil 1. tur, 2026-10-25 (kodlar okunurken Türkçeye çevriliyor)
-codegraph who-uses lexer.Token.Code | contains: interp.compiler.dictKey | contains: checker.nameChecker.bind | src: iç dil 1. tur, 2026-10-25 (kodu taşıyan belirteci okuyan az yer)
+codegraph who-uses lexer.Token.Code | contains: interp.codedKeyOf | contains: checker.nameChecker.bind | src: iç dil 1. tur, 2026-10-25 (kodu taşıyan belirteci okuyan az yer)
 codegraph who-uses ast.Identifier.Value | contains: accesses in | contains: read, | contains: codeindex.indexer.calleeStruct | src: iç dil 1. tur, 2026-10-25 (adı okuyan çok yer)
 codegraph who-uses codes.Spellings | contains: interp.VM.DefineBuiltin | src: iç dil 1. tur, 2026-10-25 (yerleşik genel kapsama Türkçe adıyla girer)
 codegraph who-uses codes.Name --all | contains: interp.ctorName | contains: checker.typeInt | src: iç dil 1. tur, 2026-10-25 (iç adın kimlik olduğu yerler; profil etiketleri 2026-10-26 Türkçe yazım dilinden)

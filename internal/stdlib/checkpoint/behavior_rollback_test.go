@@ -157,7 +157,7 @@ değişken op = AdamW([model.a, model.b], öğrenme_oranı: 0.01)
 değişken izlenen = {adım: 1}
 değişken kn = kontrol_noktası(KOŞU, {model: model, op: op, ö: ö, izlenen: izlenen})
 
-// 1. adımda 1 toplu iş okuyup kontrol noktasını kaydet (ö.durum.sayaç == 1, model.a == [10, 20]).
+// 1. adımda 1 toplu iş okuyup kontrol noktasını kaydet (ö.durum["counter"] == 1, model.a == [10, 20]).
 ö.sonraki()
 kn.güncelle(1)
 kn.kaydet()
@@ -179,7 +179,7 @@ dene {
     hata_var = doğru
 }
 yazdır("HATA:", hata_var)
-yazdır("OKU_SAYAC:", ö.durum.sayaç)
+yazdır("OKU_SAYAC:", ö.durum["counter"])
 yazdır("MODEL_A:", model.a.değer)
 yazdır("IZLENEN_ADIM:", izlenen.adım)
 `, trPath(runDir), trPath(dataDir))

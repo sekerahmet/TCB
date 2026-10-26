@@ -32,10 +32,13 @@ yerleşik yolu aynı yerden çözer. Denetim: `TestResolvePathSingleRule`, `Test
 metotlarının argümanları) değeri işlemin yazıldığı dosyanın dilinde çevirir (tek yol:
 `VM.textOf`/`valueText`; sözcüksel: kitaplık fonksiyonu kendi dilinde, geri çağırma kendi
 dosyasının dilinde). Dile bağlı olan yalnızca dilin değerlerinin adlarıdır (`doğru`, `yanlış`,
-`yok`, tip adları) ile kod taşıyan çıplak sözlük anahtarları (`{step: 1}` İngilizce dosyada
-`"step"`); sözlükte üye erişimi (`d.adım`) anahtarı kodun her dildeki adıyla arar, önce dosyanın
-dilindekini (`memberInfo.keys`), aynı kodun ikinci anahtarını eklemez. `Inspect` kanonik kalır: veri biçimleri (JSON, günlük, kontrol noktası) ve
-iletiler onu kullanır. Denetim: `TestValueTextFollowsTheFilesLanguage`, `TestValueTextIsLexical`, `TestEveryTextConversionFollowsTheFilesLanguage`, `TestDictMemberKeysFollowTheFilesLanguage`, `TestDataFormatsIndependentOfFileLanguage` ve `TestDictKeysFollowFileLanguage` (cmd/tr/e2e).
+`yok`, tip adları) ile yazdırılan kodlu sözlük anahtarlarıdır. Kod taşıyan çıplak sözlük anahtarı
+(`{adım: 1}`, `{step: 1}`) içeride kodun dilden bağımsız adıyla saklanır (`CodedKey`: `"step"`; kod
+`DictVal.coded`'da yalnız gösterim için durur): `anahtarlar()`, `d["step"]` ve veri biçimleri (JSON,
+günlük, kontrol noktası; `KeyText`) her dilde aynı anahtarı görür, `yazdır` dosyanın dilinde,
+`DisplayKey` kişinin dilinde yazar. Sözlükte üye erişimi (`d.adım`) önce bu anahtarı, sonra dosyanın
+dilindeki adla duran metin anahtarı arar (`memberInfo.keys`); yeni anahtarı kodla ekler. `Inspect`
+kanonik kalır ve iletiler onu kullanır. Denetim: `TestValueTextFollowsTheFilesLanguage`, `TestValueTextIsLexical`, `TestEveryTextConversionFollowsTheFilesLanguage`, `TestDictCodedKeysAreLanguageIndependent`, `TestDataFormatsIndependentOfFileLanguage` ve `TestDictCodedKeysOnDisk` (cmd/tr/e2e).
 
 **Sıcak yol ölçülerek değişir.** Yorumlayıcı döngüsündeki ve hızlı yollardaki değişiklikler
 önce/sonra hız ölçümüyle yapılır.

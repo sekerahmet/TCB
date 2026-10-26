@@ -12,10 +12,10 @@ def oku(yol):
 
 def tr_tepe_gb(rapor):
     """tr profil --json raporundan GPU tepe canlı belleği (GB); yoksa None."""
-    bellek = rapor.get("gpu", {}).get("bellek") or []
+    bellek = rapor.get("gpu", {}).get("memory") or []
     if not bellek:
         return None
-    return max(b["tepe_canlı_bayt"] for b in bellek) / 2**30
+    return max(b["peak_live_bytes"] for b in bellek) / 2**30
 
 
 def kayip_sapma(a, b):

@@ -24,11 +24,11 @@ func TestLoadStateChecksEverythingBeforeWriting(t *testing.T) {
 
 	// Yeni durum: 7. adıma ait değerler içeriyor, ancak m.1 bırakılmış (Drop).
 	badState := map[string]*Tensor{
-		"adim":   counterTensor(7),
-		"adim.0": counterTensor(7),
+		"step":   counterTensor(7),
+		"step.0": counterTensor(7),
 		"m.0":    New([]float32{99, 99}, 2),
 		"v.0":    New([]float32{88, 88}, 2),
-		"adim.1": counterTensor(7),
+		"step.1": counterTensor(7),
 		"m.1":    New([]float32{77, 77}, 2),
 		"v.1":    New([]float32{66, 66}, 2),
 	}

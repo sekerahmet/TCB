@@ -1,6 +1,6 @@
 //! tr kodlu 3 dil=tr
 // Eğitim modeli: gpt_training.tr ve ss_exam.tr aynı GPT'yi eğitim ayarlarından (gpt_training.tr'nin
-// komut satırı sözlüğü ya da koşu klasöründeki config.json'un "ayar"ı) bu tek fonksiyonla kurar; yeni bir
+// komut satırı sözlüğü ya da koşu klasöründeki config.json'un "config"i) bu tek fonksiyonla kurar; yeni bir
 // model seçeneği yalnızca burada eklenir. Kendisi program değildir.
 
 TR_kw_import "tr/katman"

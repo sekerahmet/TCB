@@ -21,13 +21,13 @@ import (
 // döner. Bu yazımda değer tipiyle birlikte saklanır:
 //
 //	yok → null · Mantık → true/false · Metin → "..." · Tam → 123 (her zaman tam sayı)
-//	Ondalık → {"ondalık":"0.1"} (en kısa kayıpsız yazım; sonlu olmayan sayı veri biçiminin
+//	Ondalık → {"float":"0.1"} (en kısa kayıpsız yazım; sonlu olmayan sayı veri biçiminin
 //	sabitiyle: "NaN", "Infinity", "-Infinity", jsonwrite.NonFiniteData)
-//	Liste → [...] · Sözlük → {"sözlük":[[anahtar, değer], ...]} (sıra korunur)
+//	Liste → [...] · Sözlük → {"dict":[[anahtar, değer], ...]} (sıra korunur)
 //
-// Nesne biçimleri yalnızca bu iki etiketlidir; başka her şey hatadır.
+// Nesne biçimleri yalnızca bu iki etiketlidir (dilden bağımsız tanımlayıcılar); başka her şey hatadır.
 
-var plainTags = strings.Fields("ondalık sözlük")
+var plainTags = strings.Fields("float dict")
 
 var tagFloat, tagDict = plainTags[0], plainTags[1]
 

@@ -4,18 +4,18 @@
 // sürecek biçimde devam ettirir. Kayıt adım sınırında yapılır: kn.güncelle(adım) (TR_mem_update)
 // her_dakika süresi dolunca ya da durdurma istenince (Ctrl+C), kn.kaydet() (TR_mem_save) hemen.
 //
-// Klasör düzeni (biçim sürümü 2; bkz. bicim.go):
+// Klasör düzeni (biçim sürümü 3; bkz. format.go):
 //
-//	<koşu>/kontrol_noktalari/
-//	  son.json              {"sürüm":2,"adım":1500,"klasör":"adim_0000001500"} (araçlar için)
-//	  adim_0000001500/
-//	    tensorler.trt       modellerin tensörleri (türev izlemeyenler dahil), iyileştirici durumları
-//	    durum.json          adım, program, ayarlar, okuyucu durumları, düz değerler, günlük boyları
-//	    ozet.json           dosyaların bayt sayısı ve SHA-256 özeti (en son yazılır)
-//	  adim_0000001000/      tut: 2 → bir önceki de durur
+//	<koşu>/checkpoints/
+//	  latest.json           {"version":3,"step":1500,"dir":"step_0000001500"} (araçlar için)
+//	  step_0000001500/
+//	    tensors.trt         modellerin tensörleri (türev izlemeyenler dahil), iyileştirici durumları
+//	    state.json          adım, program, ayarlar, okuyucu durumları, düz değerler, günlük boyları
+//	    digest.json         dosyaların bayt sayısı ve SHA-256 özeti (en son yazılır)
+//	  step_0000001000/      tut: 2 → bir önceki de durur
 //
-// Yazma: nokta önce adim_N.tmp-<süreç> klasörüne yazılıp diske işlenir, sonra tek bir
-// yeniden adlandırmayla yerine konur, son.json atomik güncellenir ve tut'u aşan eskiler
+// Yazma: nokta önce step_N.tmp-<süreç> klasörüne yazılıp diske işlenir, sonra tek bir
+// yeniden adlandırmayla yerine konur, latest.json atomik güncellenir ve tut'u aşan eskiler
 // silinir; her aşamada kesilme önceki geçerli noktayı bozmaz. Aralıkla kayıtta yazma hatası
 // eğitimi durdurmaz (uyarı, sonraki aralıkta yeniden deneme; art arda 3 başarısızlıkta açık
 // hata). Yükleme: en yeni nokta klasörü özetleriyle doğrulanır, bütün nesnelerin uyumu
@@ -81,7 +81,7 @@ func Register(v *interp.VM, s *process.State) {
 // Checkpoint TR'de kurulmuş bir kontrol noktasıdır (tip KontrolNoktası). Alanları
 // yorumlayıcı kilidi altında değişir.
 type Checkpoint struct {
-	shown    string // kullanıcıya gösterilen klasör: <koşu>/kontrol_noktalari
+	shown    string // kullanıcıya gösterilen klasör: <koşu>/checkpoints
 	dir      string // çözülmüş klasör
 	objects  []*object
 	interval time.Duration
@@ -109,7 +109,7 @@ func (kn *Checkpoint) Text(lang *codes.Language) string {
 	return messages.TextIn(lang.Code, messages.H7406, lang.Name(codes.TypeCheckpoint), kn.shown, kn.step, len(kn.objects))
 }
 
-// Dir noktaların çözülmüş klasörüdür (<koşu>/kontrol_noktalari).
+// Dir noktaların çözülmüş klasörüdür (<koşu>/checkpoints).
 func (kn *Checkpoint) Dir() string { return kn.dir }
 
 func (kn *Checkpoint) GetProperty(kd codes.Code, prop string) (interp.Value, error) {

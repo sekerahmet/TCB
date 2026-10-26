@@ -125,7 +125,7 @@ func startGoProfile(filePath string) {
 }
 
 // startJobProfile program bir arka plan işi olarak çalışıyorsa (TR_IS_KLASORU) iş klasörüne
-// saniyede bir profil.json yazar (yalnızca her zaman açık sayaçlar; satır örneklemesi
+// saniyede bir profile.json yazar (yalnızca her zaman açık sayaçlar; satır örneklemesi
 // yok: ek maliyet saniyede bir dosya yazmasıdır). İş değilse hiçbir şey yapmaz.
 func startJobProfile(machine *interp.VM, path, code string, prog *ast.Program) {
 	filePath := profiler.JobStatusFile()
