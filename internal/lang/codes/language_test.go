@@ -180,6 +180,37 @@ func TestIdentityClassesKnown(t *testing.T) {
 	}
 }
 
+// Kural (dil tanımı 17, kimlik): iki kimlik yalnızca harf büyüklüğüyle ayrılamaz; böyle çıkan iki
+// kavramın kimliğine sahibinin adı eklenir (TR_arg_G_muon, TR_arg_g_swiglu). Go adı denetimi
+// (tools/gen/codeconsts) bunu yalnız MixedCaps aynı çıkınca yakalar: TR_arg_aB ile TR_arg_ab'yi değil.
+func TestIdentitiesDifferBeyondLetterCase(t *testing.T) {
+	if got := caseOnlyPairs([]string{"TR_arg_G_muon", "TR_arg_g_swiglu", "TR_arg_aB", "TR_arg_ab"}); len(got) != 1 || got[0] != "TR_arg_aB TR_arg_ab" {
+		t.Errorf("caseOnlyPairs = %q; yalnız TR_arg_aB TR_arg_ab bekleniyordu", got)
+	}
+	ids := make([]string, 0, len(Codes()))
+	for _, k := range Codes() {
+		ids = append(ids, k.String())
+	}
+	for _, p := range caseOnlyPairs(ids) {
+		t.Errorf("kimlikler yalnızca harf büyüklüğüyle ayrılıyor: %s (sahibin adını ekleyin)", p)
+	}
+}
+
+// caseOnlyPairs küçük harfe indirilince aynı çıkan kimlik çiftleridir ("ilk sonraki").
+func caseOnlyPairs(ids []string) []string {
+	seen := map[string]string{}
+	var r []string
+	for _, id := range ids {
+		low := strings.ToLower(id)
+		if first, ok := seen[low]; ok {
+			r = append(r, first+" "+id)
+			continue
+		}
+		seen[low] = id
+	}
+	return r
+}
+
 // Yabancı adlar (başka dillerden alışkanlık: lr, axis) kabul edilmez; FindForeign ve Suggest
 // asıl adı verir. accept süzgeci öbür kodları dışlar.
 func TestFindForeign(t *testing.T) {
