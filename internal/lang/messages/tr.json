@@ -1543,7 +1543,7 @@
 "H8617": "tr {command} <dosya.tr>\t.tr dosyasını (aktardığı modüllerle) tek başına çalışan bağımsız .exe dosyasına dönüştürür",
 "H8618": "tr {command} [dosya.tr|klasör]\tTest bloklarını çalıştırır (klasörde tüm *_test.tr dosyaları)",
 "H8619": "tr {command} [{check}] <dosya.tr|klasör>\tKodu standart biçime getirir ({check}: yalnızca denetler)",
-"H8620": "tr {command} <dosya.tr|klasör>\tDosyaları yerinde kodlu biçime çevirir (dilin sözcükleri kodlarla saklanır)",
+"H8620": "tr {command} <dosya.tr|klasör> [{lang} tr]\tBir yazım dilinde yazılmış dosyaları yerinde kodlu biçime çevirir (dilin sözcükleri kodlarla saklanır)",
 "H8622": "tr {command} <dosya.tr> [{lang} tr]\tDosyayı bir yazım dilinde gösterir (kodlu dosya da)",
 "H8623": "tr {command} - [{lang} tr]\tMetni standart girişten okur, gösterimini çıkışa yazar (düzenleyiciler için)",
 "H8624": "tr {command} - [{lang} tr]\tMetni standart girişten okur, kodlu biçimini çıkışa yazar (düzenleyiciler için)",

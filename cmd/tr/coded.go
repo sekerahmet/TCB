@@ -15,10 +15,12 @@ import (
 
 // Kodlu saklama komutları (docs/spec/17_kodlar.md, 17.1-17.6 ve "Düzenleyicide"):
 //
-//	tr kodla <dosya.tr | klasör>...       Türkçe yazılmış dosyaları yerinde kodlu biçime çevirir
-//	tr göster <dosya.tr> [--dil tr]       dosyayı bir yazım dilinde standart çıktıya basar
-//	tr göster - [--dil tr]                metni standart girişten okur, gösterimini çıkışa yazar
-//	tr kodla - [--dil tr]                 metni standart girişten okur, kodlu biçimini çıkışa yazar
+//	tr kodla <dosya.tr | klasör>... [--dil tr]  bir yazım dilinde yazılmış dosyaları yerinde kodlu biçime çevirir
+//	tr göster <dosya.tr> [--dil tr]             dosyayı bir yazım dilinde standart çıktıya basar
+//	tr göster - [--dil tr]                      metni standart girişten okur, gösterimini çıkışa yazar
+//	tr kodla - [--dil tr]                       metni standart girişten okur, kodlu biçimini çıkışa yazar
+//
+// Yazım dili verilmezse kişinin yazım dilidir (codes.Display, TR_DIL).
 //
 // Çeviri yalnızca dilin sözcüklerinin yerini değiştirir; çevirici kendi sonucunu denetler ve
 // kayıp görürse dosyaya dokunmaz (kaynak.ErrKayip).
@@ -32,30 +34,34 @@ import (
 // yapılmadı) bildiren çıkış kodudur.
 const exitSyntax = 2
 
-// encodeCommand 'tr kodla' komutudur; zaten kodlu dosyalara dokunulmaz.
+// encodeCommand 'tr kodla' komutudur: kodlanacak metin '--dil'in yazım dilinde (varsayılan kişinin
+// yazım dili, codes.Display) yazılmıştır; zaten kodlu dosyalara dokunulmaz.
 func encodeCommand(args []string) {
 	if len(args) > 0 && args[0] == "-" {
-		// Kodlanacak metin verilen yazım dilinde yazılmıştır (varsayılan kişinin dili).
 		language := languageArgument(args[1:], "kodla")
 		convertFromInput(language, func(text string) (string, error) { return source.EncodeIn(text, language) })
 		return
 	}
-	convertCommand(args, "kodla", messages.Text(messages.H8704), messages.H2115, func(_, text string) (string, error) { return source.Encode(text) })
+	languageCode, targets := parseLanguageArgs("kodla", args, messages.Text(messages.H8708, codes.OptionFlag(codes.OptLang), "kodla"))
+	language := mustLoadLanguage(languageCode)
+	convertCommand(targets, "kodla", messages.Text(messages.H8704), messages.H2115, func(_, text string) (string, error) { return source.EncodeIn(text, language) })
 }
 
 // languageArgument standart giriş kipinin '--dil <kod>' argümanını okur (yoksa kişinin yazım
 // dili, codes.Display) ve yazım dilini doğrular; başka bir argüman ya da bilinmeyen dil hatadır.
 func languageArgument(args []string, command any) *codes.Language {
-	languageCode, _ := parseLanguageArgs(command, args, false, messages.Text(messages.H8700, codes.OptionFlag(codes.OptLang), command),
-		func(arg string) string { return messages.Text(messages.H8701, command, arg) })
+	languageCode, extra := parseLanguageArgs(command, args, messages.Text(messages.H8700, codes.OptionFlag(codes.OptLang), command))
+	if len(extra) > 0 {
+		exitWithError(messages.Text(messages.H8701, command, extra[0]))
+	}
 	return mustLoadLanguage(languageCode)
 }
 
-// parseLanguageArgs '--dil <kod>' argümanını (yoksa kişinin yazım dili) ve allowFile ise tek bir
-// konumlu dosya argümanını okur; dil kodunu ve dosyayı döndürür. Değersiz '--dil' missingValue
-// iletisiyle, başka argüman unexpected(arg) iletisiyle (iletiler çağıranındır), başka seçenek
-// unknownOption ile çıkışa götürür. '--'dan sonraki argüman seçenek sayılmaz.
-func parseLanguageArgs(command any, args []string, allowFile bool, missingValue string, unexpected func(arg string) string) (languageCode, file string) {
+// parseLanguageArgs '--dil <kod>' argümanını (yoksa kişinin yazım dili) ve konumlu argümanları
+// okur; dil kodunu ve konumlu argümanları döndürür (kaç tane alınacağı çağıranındır). Değersiz
+// '--dil' missingValue iletisiyle (ileti çağıranındır), başka seçenek unknownOption ile çıkışa
+// götürür. '--'dan sonraki argüman seçenek sayılmaz.
+func parseLanguageArgs(command any, args []string, missingValue string) (languageCode string, files []string) {
 	languageCode = codes.Display().Code
 	options := true
 	for i := 0; i < len(args); i++ {
@@ -69,13 +75,11 @@ func parseLanguageArgs(command any, args []string, allowFile bool, missingValue 
 			exitWithError(missingValue)
 		case options && looksLikeOption(args[i]):
 			unknownOption(command, args[i], []codes.Code{codes.OptLang})
-		case allowFile && file == "":
-			file = args[i]
 		default:
-			exitWithError(unexpected(args[i]))
+			files = append(files, args[i])
 		}
 	}
-	return languageCode, file
+	return languageCode, files
 }
 
 // mustLoadLanguage yazım dili kodunun kod listesini yükler; bilinmeyen dil hatadır.
@@ -118,8 +122,7 @@ func convertFromInput(language *codes.Language, convert func(string) (string, er
 // convertCommand hedeflerdeki (klasörlerde alt klasörler dahil) bütün .tr dosyalarını cevir ile
 // dönüştürüp değişenleri yerine yazar. Hatalı dosyalar atlanır; biri bile varsa 1 koduyla çıkar.
 // Açılamayan hedef failed iletisiyle bildirilir.
-func convertCommand(args []string, command any, verb string, failed messages.Code, convert func(filePath, text string) (string, error)) {
-	targets := fileArguments(command, args, nil, nil)
+func convertCommand(targets []string, command any, verb string, failed messages.Code, convert func(filePath, text string) (string, error)) {
 	if len(targets) == 0 {
 		exitWithError(messages.Text(messages.H8703, command))
 	}
@@ -196,11 +199,14 @@ func showCommand(args []string) {
 		return
 	}
 	showName := codes.NameRef(codes.CmdShow)
-	languageCode, file := parseLanguageArgs(showName, args, true, messages.Text(messages.H8708, codes.OptionFlag(codes.OptLang), showName),
-		func(arg string) string { return messages.Text(messages.H8709, showName, arg) })
-	if file == "" {
+	languageCode, files := parseLanguageArgs(showName, args, messages.Text(messages.H8708, codes.OptionFlag(codes.OptLang), showName))
+	if len(files) == 0 {
 		exitWithError(messages.Text(messages.H8710, codes.NameRef(codes.CmdShow), codes.OptionFlag(codes.OptLang)))
 	}
+	if len(files) > 1 {
+		exitWithError(messages.Text(messages.H8709, showName, files[1]))
+	}
+	file := files[0]
 	language := mustLoadLanguage(languageCode)
 	content, err := os.ReadFile(file)
 	if err != nil {

@@ -173,7 +173,7 @@ func TestEncodeShowCommands(t *testing.T) {
 	// tr çöz yoktur: ad bir komut değil, okunamayan bir dosya adıdır; yardımda da geçmez.
 	testkit.Wait(t, tr(t, k, "çöz", "a.tr"), 1, nil, []string{"\"çöz\" okunamadı"})
 	help := tr(t, k, "yardım")
-	testkit.Wait(t, help, 0, []string{"tr kodla <dosya.tr|klasör>", "tr göster <dosya.tr> [--dil tr]"}, nil)
+	testkit.Wait(t, help, 0, []string{"tr kodla <dosya.tr|klasör> [--dil tr]", "tr göster <dosya.tr> [--dil tr]"}, nil)
 	if strings.Contains(help.Stdout, "çöz") {
 		t.Errorf("yardımda tr çöz geçiyor:\n%s", help.Stdout)
 	}
@@ -246,6 +246,27 @@ func TestEnglishWritingLanguage(t *testing.T) {
 	if s := testkit.RunBinary(t, trBinary, "", back.Stdout, nil, "göster", "-"); s.Code != 0 || s.Stdout != turkish {
 		t.Errorf("İngilizceden kodlanan metnin Türkçesi özgün değil: %q", s.Stdout)
 	}
+	// Dosya ve klasör kipi de metni kişinin yazım dilinde (TR_DIL) okur, '--dil' ile başkasında;
+	// başlık o dille yazılır ve kodlu dosya çalışır.
+	englishFile := "var x = 1\nprint(x)\n"
+	wantCoded := source.Header + "en\nTR_kw_var x = 1\nTR_fn_print(x)\n"
+	for _, c := range []struct {
+		env  []string
+		args []string
+	}{
+		{[]string{"TR_DIL=en"}, []string{"kodla", "en.tr"}},
+		{nil, []string{"kodla", "--dil", "en", "."}},
+	} {
+		dir := t.TempDir()
+		testkit.WriteFile(t, dir, "en.tr", englishFile)
+		testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", c.env, c.args...), 0, nil, nil)
+		if got := readFile(t, filepath.Join(dir, "en.tr")); got != wantCoded {
+			t.Errorf("%v %v: kodlu dosya %q, beklenen %q", c.env, c.args, got, wantCoded)
+		}
+		testkit.Wait(t, tr(t, dir, "en.tr"), 0, []string{"1\n"}, nil)
+	}
+	testkit.Wait(t, tr(t, t.TempDir(), "kodla", "a.tr", "--dil"), 1, nil, []string{"'--dil' bir yazım dili bekler"})
+	testkit.Wait(t, tr(t, t.TempDir(), "kodla", "a.tr", "--dil", "xx"), 1, nil, []string{"'xx' yazım dili yok"})
 	// Metin --dil'in dilinde okunur; iletiler kişinin yazım dilindedir (TR_DIL): İngilizce
 	// metnin sözdizimi hatası TR_DIL=en ile İngilizce başlıkla, yoksa Türkçe bildirilir.
 	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "if {\n", []string{"TR_DIL=en"}, "kodla", "-", "--dil", "en"), 2, nil, []string{"Syntax Errors"})
@@ -318,7 +339,8 @@ func TestRepoFilesEnglishLossless(t *testing.T) {
 // okunur ve aynı sonucu verir. Bağlamsal sözcükler (olarak, kurucu, kendi, o, birikim, hata)
 // ve kurucusuz yapının üye adlı alanları da Türkçe tanınır; aktarılan modül de Türkçedir.
 // Sözdizimi hatası dosyanın kendi metnine göre gösterilir; 'tr göster --dil en' dosyayı
-// İngilizce gösterir; dosyaya yazan 'tr kodla' ve 'tr biçimle' onu Türkçe okur.
+// İngilizce gösterir; 'tr biçimle' onu Türkçe okur. 'tr kodla' metni kişinin yazım dilinde
+// okur; Türkçe dosya TR_DIL=en ile '--dil tr' verilerek kodlanır.
 func TestUncodedFileIsTurkishInEveryLanguage(t *testing.T) {
 	dir := t.TempDir()
 	testkit.WriteFile(t, dir, "m.tr", "fonksiyon iki_kat(x) { sonuç x * 2 }\n")
@@ -353,10 +375,11 @@ func TestUncodedFileIsTurkishInEveryLanguage(t *testing.T) {
 	if got := readFile(t, filepath.Join(dir, "bicim.tr")); got != "değişken y = 1\n" {
 		t.Errorf("TR_DIL=en ile biçimlenen Türkçe dosya %q", got)
 	}
-	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "kodla", "ana.tr"), 0, nil, nil)
-	if got := readFile(t, filepath.Join(dir, "ana.tr")); !strings.HasPrefix(got, source.Header) {
-		t.Fatalf("TR_DIL=en ile 'tr kodla' Türkçe dosyayı kodlamadı:\n%s", got)
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "kodla", "ana.tr", "--dil", "tr"), 0, nil, nil)
+	if got := readFile(t, filepath.Join(dir, "ana.tr")); !strings.HasPrefix(got, source.Header+"tr\n") {
+		t.Fatalf("TR_DIL=en --dil tr ile 'tr kodla' Türkçe dosyayı kodlamadı:\n%s", got)
 	}
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "ana.tr"), 0, []string{want}, nil)
 	// Kabuğa yazılan satır kişinin yazım dilindedir; kanonik biçime çevrilip çalışır. Değerler
 	// satırın yazıldığı dilde metne çevrilir (3, 17.1): tip() adı İngilizcedir.
 	repl := testkit.RunBinary(t, trBinary, dir, "var x = [1, 2].map { it * 10 }\nprint(x, type(x), true)\nexit\n", []string{"TR_DIL=en"})

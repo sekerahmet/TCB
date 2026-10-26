@@ -211,7 +211,7 @@ func printHelp() {
 		messages.Text(messages.H8617, codes.NameRef(codes.CmdBuild)),
 		messages.Text(messages.H8618, codes.NameRef(codes.CmdTest)),
 		messages.Text(messages.H8619, codes.NameRef(codes.CmdFormat), codes.OptionFlag(codes.OptCheck)),
-		messages.Text(messages.H8620, codes.NameRef(codes.CmdEncode)),
+		messages.Text(messages.H8620, codes.NameRef(codes.CmdEncode), lang),
 		messages.Text(messages.H8622, codes.NameRef(codes.CmdShow), lang),
 		messages.Text(messages.H8623, codes.NameRef(codes.CmdShow), lang),
 		messages.Text(messages.H8624, codes.NameRef(codes.CmdEncode), lang),

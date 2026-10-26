@@ -1543,7 +1543,7 @@
 "H8617": "tr {command} <file.tr>\tTurns the .tr file (with the modules it imports) into a standalone .exe file",
 "H8618": "tr {command} [file.tr|folder]\tRuns test blocks (all *_test.tr files in a folder)",
 "H8619": "tr {command} [{check}] <file.tr|folder>\tFormats code to the standard form ({check}: only checks)",
-"H8620": "tr {command} <file.tr|folder>\tConverts files in place to the coded form (the language's words are stored as codes)",
+"H8620": "tr {command} <file.tr|folder> [{lang} tr]\tConverts files written in a spelling language in place to the coded form (the language's words are stored as codes)",
 "H8622": "tr {command} <file.tr> [{lang} tr]\tShows the file in a spelling language (coded files too)",
 "H8623": "tr {command} - [{lang} tr]\tReads text from standard input, writes its rendering to the output (for editors)",
 "H8624": "tr {command} - [{lang} tr]\tReads text from standard input, writes its coded form to the output (for editors)",

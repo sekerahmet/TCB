@@ -1543,7 +1543,7 @@
 "H8617": { "param": ["command"] },
 "H8618": { "param": ["command"] },
 "H8619": { "param": ["command", "check"] },
-"H8620": { "param": ["command"] },
+"H8620": { "param": ["command", "lang"] },
 "H8622": { "param": ["command", "lang"] },
 "H8623": { "param": ["command", "lang"] },
 "H8624": { "param": ["command", "lang"] },
