@@ -37,14 +37,15 @@ const exitSyntax = 2
 // encodeCommand 'tr kodla' komutudur: kodlanacak metin '--dil'in yazım dilinde (varsayılan kişinin
 // yazım dili, codes.Display) yazılmıştır; zaten kodlu dosyalara dokunulmaz.
 func encodeCommand(args []string) {
+	encodeName := codes.NameRef(codes.CmdEncode)
 	if len(args) > 0 && args[0] == "-" {
-		language := languageArgument(args[1:], "kodla")
+		language := languageArgument(args[1:], encodeName)
 		convertFromInput(language, func(text string) (string, error) { return source.EncodeIn(text, language) })
 		return
 	}
-	languageCode, targets := parseLanguageArgs("kodla", args, messages.Text(messages.H8708, codes.OptionFlag(codes.OptLang), "kodla"))
+	languageCode, targets := parseLanguageArgs(encodeName, args, messages.Text(messages.H8708, codes.OptionFlag(codes.OptLang), encodeName))
 	language := mustLoadLanguage(languageCode)
-	convertCommand(targets, "kodla", messages.Text(messages.H8704), messages.H2115, func(_, text string) (string, error) { return source.EncodeIn(text, language) })
+	convertCommand(targets, encodeName, messages.Text(messages.H8704), messages.H2115, func(_, text string) (string, error) { return source.EncodeIn(text, language) })
 }
 
 // languageArgument standart giriş kipinin '--dil <kod>' argümanını okur (yoksa kişinin yazım

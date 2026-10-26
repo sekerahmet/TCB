@@ -16,9 +16,9 @@ import (
 )
 
 // "Çıplak ad yok": dilin kullanıcıya görünen adları (anahtar kelimeler, tip adları,
-// yerleşikler, metot ve özellikler, adlı argümanlar) Go metin sabitlerine yazılmaz;
-// mesajlar adı koddan üretir (kod.Ad(kod.FnPrint)). Böylece bir ad tr.json'da değişince ya da
-// başka bir dil dosyası yüklenince mesajlar da değişir.
+// yerleşikler, metot ve özellikler, adlı argümanlar, komut satırı adları) Go metin
+// sabitlerine yazılmaz; mesajlar adı koddan üretir (kod.Ad(kod.FnPrint)). Böylece bir ad
+// tr.json'da değişince ya da başka bir dil dosyası yüklenince mesajlar da değişir.
 //
 // Test, dilin adlarını üreten katmanların (internal/lang, internal/stdlib, internal/devtools,
 // cmd/tr) test dışı Go dosyalarındaki metin sabitlerini tarar. Dilin adları çoğu zaman
@@ -26,7 +26,11 @@ import (
 // yazıldığı yerde yakalanır:
 //   - tip adları (Tam, Liste ...) ve "_" içeren adlar (eşit_mi, öğrenme_oranı) her yerde;
 //   - çağrı: ad(  ;  üye: .ad  ;  adlı argüman: ad:  ;  tırnak içinde: 'ad', "ad", `ad`;
-//   - anahtar kelimeden sonra blok: ad {  ;  metnin tamamı bir ad: "doğru".
+//   - anahtar kelimeden sonra blok: ad {  ;  metnin tamamı bir ad: "doğru", "kodla" (üye ve
+//     adlı argüman adı dışında; bkz. looksLikeCode).
+//
+// Aranan yazım Türkçedir: İngilizce yazımlar Go'nun protokol ve veri anahtarlarıyla aynı düşer
+// (hata ayıklama protokolünün "next", "step" istekleri; 2026-10-27 denemesinde 29 yanlış alarm).
 //
 // internal/compute bu taramanın dışındadır: o katman dili bilmez; İngilizce iç adlarının
 // mesajlara sızması ayrı bir işin konusudur. Yorumlar ve yapı etiketleri taranmaz.
@@ -123,8 +127,12 @@ func looksLikeCode(s string, i, j int, entries []liveName) bool {
 	whole := i == 0 && j == len(s) && utf8.RuneCountInString(w) > 1
 	for _, c := range entries {
 		switch {
-		case whole && (c.namespace == dk.NamespaceGlobal || c.namespace == dk.NamespaceType):
-			return true // metnin tamamı bir anahtar kelime, yerleşik ya da tip adı: "doğru"
+		case whole && c.namespace != dk.NamespaceMember && c.namespace != dk.NamespaceParam:
+			// Metnin tamamı bir anahtar kelime, yerleşik, tip ya da komut satırı adı: "doğru",
+			// "kodla", "tanım". Üye ve adlı argüman adları veri biçimlerinin İngilizce anahtarlarıyla
+			// aynı düşebilir (kontrol noktasının "momentum" durumu), onlar yalnız kod gibi yazıldığı
+			// yerde (.ad, ad:) yakalanır.
+			return true
 		case c.namespace == dk.NamespaceType:
 			return true
 		case after == '(':
@@ -219,14 +227,18 @@ func shorten(s string) string {
 func TestBareNameScanner(t *testing.T) {
 	names := liveNames()
 	for text, want := range map[string]string{
-		"girdi() ya da girdi(istem)":            "girdi girdi",
-		"%q bir sabittir ('sabit')":             "sabit",
-		"eşit_mi başarısız":                     "eşit_mi",
-		"Liste indeksi Tam sayı olmalıdır":      "Liste Tam",
-		"x.uzunluk yazın":                       "uzunluk",
-		"(tohum: 1)":                            "tohum",
-		"doğru":                                 "doğru",
-		"eğer { ... }":                          "eğer",
+		"girdi() ya da girdi(istem)":       "girdi girdi",
+		"%q bir sabittir ('sabit')":        "sabit",
+		"eşit_mi başarısız":                "eşit_mi",
+		"Liste indeksi Tam sayı olmalıdır": "Liste Tam",
+		"x.uzunluk yazın":                  "uzunluk",
+		"(tohum: 1)":                       "tohum",
+		"doğru":                            "doğru",
+		"kodla":                            "kodla",
+		"tanım":                            "tanım",
+		"zıpla":                            "zıpla",
+		"momentum":                         "",
+		"eğer { ... }":                     "eğer",
 		"döngü devam ediyor; sonuç doğru değil": "",
 		"önce toplam alın, sonra yok sayın":     "",
 		"o":                                     "",

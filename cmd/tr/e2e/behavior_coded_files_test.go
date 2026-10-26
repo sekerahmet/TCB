@@ -267,6 +267,10 @@ func TestEnglishWritingLanguage(t *testing.T) {
 	}
 	testkit.Wait(t, tr(t, t.TempDir(), "kodla", "a.tr", "--dil"), 1, nil, []string{"'--dil' bir yazım dili bekler"})
 	testkit.Wait(t, tr(t, t.TempDir(), "kodla", "a.tr", "--dil", "xx"), 1, nil, []string{"'xx' yazım dili yok"})
+	// İletideki komut adı kişinin dilindedir.
+	enEnv := []string{"TR_DIL=en"}
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, t.TempDir(), "", enEnv, "encode", "a.tr", "--x"), 1, nil, []string{"for 'tr encode'"})
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "x\n", enEnv, "encode", "-", "a.tr"), 1, nil, []string{"'tr encode -' reads"})
 	// Metin --dil'in dilinde okunur; iletiler kişinin yazım dilindedir (TR_DIL): İngilizce
 	// metnin sözdizimi hatası TR_DIL=en ile İngilizce başlıkla, yoksa Türkçe bildirilir.
 	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "if {\n", []string{"TR_DIL=en"}, "kodla", "-", "--dil", "en"), 2, nil, []string{"Syntax Errors"})
