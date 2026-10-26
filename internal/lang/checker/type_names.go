@@ -1,6 +1,9 @@
 package checker
 
 import (
+	"strings"
+	"sync"
+
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
@@ -63,60 +66,119 @@ var typeSpellings = func() map[string]string {
 	return m
 }()
 
-// typeCaseSpellings kabul edilen yazımların Türkçe kuralla küçültülmüş biçimi → tip adıdır.
-// Yalnızca ipucu içindir: yazım bir tip adından yalnızca büyük/küçük harfle ayrılıyorsa
-// (tam, ONDALIK) denetleyici asıl yazımı söyler.
-var typeCaseSpellings = func() map[string]string {
-	m := map[string]string{}
-	for y, name := range typeSpellings {
-		m[turkish.Lower(y)] = name
-	}
-	for _, k := range annotationTypes { // DENEME (iç biçim kod): Türkçe yazımların küçük harflisi de
-		for _, y := range codes.Source().Spellings(k) {
-			m[turkish.Lower(y)] = codes.Name(k)
-		}
-	}
-	return m
-}()
+// typeHints bir yazım dilinin tip açıklaması ipuçlarıdır: caseSpellings tip adlarının
+// küçültülmüş yazımı → tip adıdır (yazım bir tip adından yalnızca büyük/küçük harfle ayrılıyorsa,
+// tam, ONDALIK, int: asıl yazım söylenir); suggestions kabul edilmeyen ama bir tip adına işaret
+// eden yazımların (Türkçe karaktersiz biçim: ondalik; başka dillerden alışılmış adlar: int, str)
+// küçültülmüş biçimi → önerilecek tip adıdır; otherNames başka bir yazım dilinin tip adı (tam
+// yazımıyla) → önerilecek tip adıdır (İngilizce dosyada Tam → Int). İpucu adın yazıldığı dosyanın
+// dilinden gelir: aynı yazım İngilizce dosyada Int'in harf yazımı, Türkçe dosyada Tam'ın yabancı adıdır.
+type typeHints struct{ caseSpellings, suggestions, otherNames map[string]string }
 
-// typeSuggestions kabul edilmeyen ama bir tip adına işaret eden yazımların (Türkçe
-// karaktersiz biçim: ondalik; başka dillerden alışılmış adlar: int, str) küçük harfli biçimi → önerilecek tip
-// adıdır. Bu yazımlar tip açıklamasında hata verir ve asıl adı önerir.
-var typeSuggestions = func() map[string]string {
-	m := map[string]string{}
-	add := func(y, name string) {
-		if _, valid := typeCaseSpellings[turkish.Lower(y)]; !valid {
-			m[turkish.Lower(y)] = name
+// typeHintsByLanguage her yazım dilinin ipuçlarıdır (dil kodu → ipuçları); "" dili bilinmeyen
+// metnin, bütün dillerin birleşimidir (orada her dilin adı harf yazımıdır, otherNames boştur). Yalnızca hata yolunda, ilk kullanımda kurulur.
+var typeHintsByLanguage = sync.OnceValue(func() map[string]typeHints {
+	var all []*codes.Language
+	for _, lc := range codes.Languages() {
+		if l, err := codes.LoadLanguage(lc); err == nil {
+			all = append(all, l)
 		}
 	}
-	for _, k := range annotationTypes {
-		g, _ := codes.Source().Entry(k) // DENEME (iç biçim kod): yazımlar Türkçe, karşılık kimlik
-		add(turkish.ASCII(g.Name), codes.Name(k))
-		for _, e := range g.Foreign {
-			add(e, codes.Name(k))
+	out := map[string]typeHints{"": buildTypeHints(all...)}
+	for _, l := range all {
+		h := buildTypeHints(l)
+		for _, o := range all {
+			for _, k := range annotationTypes {
+				if g, ok := o.Entry(k); ok && o != l {
+					h.otherNames[g.Name] = codes.Name(k)
+				}
+			}
+		}
+		out[l.Code] = h
+	}
+	return out
+})
+
+// typeHintsIn lang'in ipuçlarıdır; lang nil ise (dil bilinmiyor) bütün dillerinki.
+func typeHintsIn(lang *codes.Language) typeHints {
+	if lang != nil {
+		if h, ok := typeHintsByLanguage()[lang.Code]; ok {
+			return h
 		}
 	}
-	return m
-}()
+	return typeHintsByLanguage()[""]
+}
+
+// buildTypeHints langs'in tip adlarından ipuçlarını kurar. Bir yazımın harf yazımı olması öneri
+// olmasından önce gelir.
+func buildTypeHints(langs ...*codes.Language) typeHints {
+	h := typeHints{caseSpellings: map[string]string{}, suggestions: map[string]string{}, otherNames: map[string]string{}}
+	for y, name := range typeSpellings {
+		for _, f := range lowerForms(y) {
+			h.caseSpellings[f] = name
+		}
+	}
+	for _, l := range langs {
+		for _, k := range annotationTypes {
+			if g, ok := l.Entry(k); ok {
+				for _, f := range lowerForms(g.Name) {
+					h.caseSpellings[f] = codes.Name(k)
+				}
+			}
+		}
+	}
+	for _, l := range langs {
+		for _, k := range annotationTypes {
+			g, ok := l.Entry(k)
+			if !ok {
+				continue
+			}
+			for _, y := range append([]string{turkish.ASCII(g.Name)}, g.Foreign...) {
+				for _, f := range lowerForms(y) {
+					if _, valid := h.caseSpellings[f]; !valid {
+						h.suggestions[f] = codes.Name(k)
+					}
+				}
+			}
+		}
+	}
+	return h
+}
+
+// lowerForms yazımın küçültülmüş biçimleridir: Türkçe kuralla (METİN → metin) ve Unicode kuralıyla
+// (INT → int). İkisi de anahtar olduğu için her dilin adı kendi harf kuralıyla bulunur; Go
+// tarafında bir dilin adı geçmez.
+func lowerForms(s string) [2]string {
+	return [2]string{turkish.Lower(s), strings.ToLower(s)}
+}
 
 // resolveTypeAnnotation tip açıklamasındaki adı tek aramada çözer: asıl tip adını ve adın
-// kabul edilmeyen bir yazım olup olmadığını verir. Kabul edilen yazımda code 0'dır; yalnızca
+// kabul edilmeyen bir yazım olup olmadığını verir; ipucu lang'den gelir (adın yazıldığı dosyanın
+// dili; nil: bütün yazım dilleri, typeHints). Kabul edilen yazımda code 0'dır; yalnızca
 // büyük/küçük harfi farklı yazımda H1006 (asıl yazım söylenir), Türkçe karaktersiz biçimde ya da
 // başka dillerden alışılmış adta (ondalik, int, str) H1007 (öneri söylenir). Tanınmayan adın
 // kendisi döner. Kabul edilmeyen yazımda da önerilen tip varsayılır: aynı satırda bir de tip
 // uyuşmazlığı çıkmasın.
-func resolveTypeAnnotation(name string) (canonical string, code messages.Code) {
+func resolveTypeAnnotation(name string, lang *codes.Language) (canonical string, code messages.Code) {
 	if name == "" {
 		return typeAny, 0
 	}
 	if canonical, valid := typeSpellings[name]; valid {
 		return canonical, 0
 	}
-	lower := turkish.Lower(name)
-	if canonical, ok := typeCaseSpellings[lower]; ok {
-		return canonical, messages.H1006
+	h := typeHintsIn(lang)
+	forms := lowerForms(name)
+	for _, f := range forms {
+		if canonical, ok := h.caseSpellings[f]; ok {
+			return canonical, messages.H1006
+		}
 	}
-	if suggestion, ok := typeSuggestions[lower]; ok {
+	for _, f := range forms {
+		if suggestion, ok := h.suggestions[f]; ok {
+			return suggestion, messages.H1007
+		}
+	}
+	if suggestion, ok := h.otherNames[name]; ok {
 		return suggestion, messages.H1007
 	}
 	return name, 0
@@ -125,7 +187,7 @@ func resolveTypeAnnotation(name string) (canonical string, code messages.Code) {
 // checkedTypeName tip açıklamasındaki adı çözer ve kabul edilmeyen bir yazımsa (tam, ondalik,
 // int) asıl adı öneren bir hata ekler; asıl tip adını döndürür.
 func (c *Checker) checkedTypeName(name string, line int) string {
-	canonical, code := resolveTypeAnnotation(name)
+	canonical, code := resolveTypeAnnotation(name, c.language())
 	if code != 0 {
 		c.addError(line, 0, messages.New(code, name, typeText(canonical)))
 	}
@@ -134,7 +196,7 @@ func (c *Checker) checkedTypeName(name string, line int) string {
 
 // normalizeTypeName tip açıklamasındaki adı asıl tip adına çevirir (hata eklemeden).
 func normalizeTypeName(t string) string {
-	canonical, _ := resolveTypeAnnotation(t)
+	canonical, _ := resolveTypeAnnotation(t, nil)
 	return canonical
 }
 

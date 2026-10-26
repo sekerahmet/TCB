@@ -345,7 +345,7 @@ func (p *Parser) removedSpellingHints() {
 		if t.Type != lexer.TokIdent || !badLine[t.Line] {
 			continue
 		}
-		if i := hint.KeywordSpellingHint(t.Literal); i != nil {
+		if i := hint.KeywordSpellingHint(t.Literal, nil); i != nil {
 			p.errors = append(p.errors, messages.At(t.Line, t.Column, messages.New(messages.H0164, i)))
 		}
 	}

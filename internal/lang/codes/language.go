@@ -481,14 +481,38 @@ func Spellings(k Code) []string                { return active.Spellings(k) }
 func Find(ns Namespace, y string) (Code, bool) { return active.Find(ns, y) }
 func Codes() []Code                            { return active.Codes() }
 
+// CanonicalNameIn, FindForeign and Suggest are for a text whose writing language is not known:
+// every embedded writing language is asked in language-code order and the first answer wins (no
+// language comes first). A caller that knows the text's language asks that language's method.
 func CanonicalNameIn(ns Namespace, name string) (string, bool) {
-	return Source().CanonicalNameIn(ns, name) // DENEME: kişinin yazdığı yazım Türkçedir
+	for _, lc := range Languages() {
+		if l, err := LoadLanguage(lc); err == nil {
+			if a, ok := l.CanonicalNameIn(ns, name); ok {
+				return a, true
+			}
+		}
+	}
+	return "", false
 }
 func FindForeign(ns Namespace, name string, accept func(Code) bool) (Code, bool, bool) {
-	return Source().FindForeign(ns, name, accept)
+	for _, lc := range Languages() {
+		if l, err := LoadLanguage(lc); err == nil {
+			if k, ascii, ok := l.FindForeign(ns, name, accept); ok {
+				return k, ascii, true
+			}
+		}
+	}
+	return None, false, false
 }
 func Suggest(ns Namespace, spelling string, accept func(Code) bool) (Code, bool) {
-	return Source().Suggest(ns, spelling, accept)
+	for _, lc := range Languages() {
+		if l, err := LoadLanguage(lc); err == nil {
+			if k, ok := l.Suggest(ns, spelling, accept); ok {
+				return k, true
+			}
+		}
+	}
+	return None, false
 }
 
 // MemberCode returns the code of a method or property name (x.name), or None when it is not

@@ -27,9 +27,10 @@ func NotInTRHint(name string, canonical any) *messages.Error {
 // KeywordSpellingHint returns the hint to append to an error message when ad is the ASCII
 // form of a keyword (degisken); otherwise nil. These spellings are ordinary names
 // (e.g. değişken sınıf = "9-A"); only when an error occurs is the real name suggested, since
-// they may have been written out of habit. The suggestion is always the real name.
-func KeywordSpellingHint(name string) *messages.Error {
-	k, ok := codes.Suggest(codes.NamespaceGlobal, name, func(k codes.Code) bool { return !k.IsBuiltin() && !k.IsLibrary() })
+// they may have been written out of habit. The suggestion is always the real name. lang is the
+// language the name was written in (nil: not known, every writing language is asked).
+func KeywordSpellingHint(name string, lang *codes.Language) *messages.Error {
+	k, ok := suggest(lang, codes.NamespaceGlobal, name, func(k codes.Code) bool { return !k.IsBuiltin() && !k.IsLibrary() })
 	if !ok {
 		return nil
 	}
@@ -40,68 +41,55 @@ func KeywordSpellingHint(name string) *messages.Error {
 // form of a builtin (yazdir) or a foreign name of one (a "yabancı" name of a builtin in the
 // dictionary); otherwise nil. These spellings are ordinary names (e.g.
 // değişken boy = 180); only on an undefined-name error is the real name
-// suggested, since they may have been written out of habit.
-func BuiltinSpellingHint(name string) *messages.Error {
-	k, ok := codes.Suggest(codes.NamespaceGlobal, name, codes.Code.IsBuiltin)
+// suggested, since they may have been written out of habit. lang is as in KeywordSpellingHint.
+func BuiltinSpellingHint(name string, lang *codes.Language) *messages.Error {
+	k, ok := suggest(lang, codes.NamespaceGlobal, name, codes.Code.IsBuiltin)
 	if !ok {
 		return nil
 	}
 	return NotInTRHint(name, codes.NameRef(k))
 }
 
+// suggest is lang's suggestion for a spelling (codes.Language.Suggest); when lang is nil the
+// text's language is not known and every writing language is asked (codes.Suggest).
+func suggest(lang *codes.Language, ns codes.Namespace, spelling string, accept func(codes.Code) bool) (codes.Code, bool) {
+	if lang == nil {
+		return codes.Suggest(ns, spelling, accept)
+	}
+	return lang.Suggest(ns, spelling, accept)
+}
+
 // NameSuggestion returns the suggestion to append to the error message for an undefined name:
 // the real name for an ASCII-written keyword or builtin, otherwise the visible name
 // closest to the spelling ("Bunu mu demek istediniz?"); nil when there is none. lang is the
-// language the name was written in (the file's; nil: canonical): see closestVisible.
+// language the name was written in (the file's; nil: not known): see ClosestSuggestion.
 func NameSuggestion(name string, visible []string, lang *codes.Language) *messages.Error {
-	if i := KeywordSpellingHint(name); i != nil {
+	if i := KeywordSpellingHint(name, lang); i != nil {
 		return i
 	}
-	if i := BuiltinSpellingHint(name); i != nil {
+	if i := BuiltinSpellingHint(name, lang); i != nil {
 		return i
 	}
-	return closestVisible(name, visible, lang)
-}
-
-// closestVisible is ClosestSuggestion for visible names (canonical identities): a name of the
-// language is matched by its spelling in lang and suggested as its code, written in the message's
-// language (prnt → print in an English file); a user's name is matched and suggested as written.
-func closestVisible(name string, visible []string, lang *codes.Language) *messages.Error {
-	if lang == nil {
-		lang = codes.Source() // DENEME (iç biçim kod): adlar kimlik, yazım Türkçe
-	}
-	spellings := make([]string, len(visible))
-	suggested := make([]any, len(visible))
-	for i, v := range visible {
-		spellings[i], suggested[i] = v, v
-		k, ok := codes.Find(codes.NamespaceGlobal, v)
-		if !ok {
-			k, ok = codes.Find(codes.NamespaceType, v)
-		}
-		if ok {
-			suggested[i] = codes.NameRef(k)
-			if lang != nil {
-				spellings[i] = lang.Name(k)
-			}
-		}
-	}
-	o := turkish.Closest(name, spellings)
-	if o == "" {
-		return nil
-	}
-	return messages.New(messages.H1104, suggested[slices.Index(spellings, o)])
+	return ClosestSuggestion(name, visible, lang)
 }
 
 // ClosestSuggestion returns the "Bunu mu demek istediniz?" suggestion (H1104) for the
-// candidate closest to name; nil when none is close enough.
-func ClosestSuggestion(name string, candidates []string) *messages.Error {
-	// DENEME (iç biçim kod): kimlik olan aday Türkçe yazımıyla karşılaştırılır, iletinin dilinde önerilir.
-	spellings := make([]string, len(candidates))
-	suggested := make([]any, len(candidates))
-	for i, c := range candidates {
-		spellings[i], suggested[i] = c, c
-		if k, err := codes.Parse(c); err == nil && codes.IsReservedName(c) {
-			spellings[i], suggested[i] = codes.Source().Name(k), codes.NameRef(k)
+// candidate closest to name; nil when none is close enough. A name of the language (an identity,
+// TR_fn_print) is matched by its spelling in lang, the language name was written in, and
+// suggested as its code, written in the message's language (prnt → print in an English file); when
+// lang is nil its name in every writing language is matched. A user's name is matched and
+// suggested as written.
+func ClosestSuggestion(name string, candidates []string, lang *codes.Language) *messages.Error {
+	var spellings []string
+	var suggested []any
+	for _, c := range candidates {
+		k, err := codes.Parse(c)
+		if err != nil || !codes.IsReservedName(c) {
+			spellings, suggested = append(spellings, c), append(suggested, c)
+			continue
+		}
+		for _, s := range spellingsIn(lang, k) {
+			spellings, suggested = append(spellings, s), append(suggested, codes.NameRef(k))
 		}
 	}
 	if o := turkish.Closest(name, spellings); o != "" {
@@ -110,18 +98,45 @@ func ClosestSuggestion(name string, candidates []string) *messages.Error {
 	return nil
 }
 
+// spellingsIn is k's name in lang; when lang is nil, its names in every writing language.
+func spellingsIn(lang *codes.Language, k codes.Code) []string {
+	if lang == nil {
+		return codes.WritingNames(k)
+	}
+	if e, ok := lang.Entry(k); ok {
+		return []string{e.Name}
+	}
+	return nil
+}
+
 // TypeTextComparisonError is the error reporting that a type value (tip(x)) is compared with a
-// string (3.11, H1105): type names are written without quotes. If text is a type name (or its
-// old or ASCII spelling) that type's name is shown, otherwise example (the value's own type, a
-// message part). The checker and the interpreter use the same text.
-func TypeTextComparisonError(op, text string, example any) *messages.Error {
-	if k, ok := codes.Source().Find(codes.NamespaceType, text); ok { // DENEME: metin Türkçe yazımdır
+// string (3.11, H1105): type names are written without quotes. If text is a type name in lang,
+// the language the string was written in (or its old or ASCII spelling; nil: any writing
+// language), that type's name is shown, otherwise example (the value's own type, a message part).
+// The checker and the interpreter use the same text.
+func TypeTextComparisonError(op, text string, example any, lang *codes.Language) *messages.Error {
+	if k, ok := findType(lang, text); ok {
 		example = codes.NameRef(k)
-	} else if k, ok := codes.Suggest(codes.NamespaceType, text, nil); ok {
+	} else if k, ok := suggest(lang, codes.NamespaceType, text, nil); ok {
 		example = codes.NameRef(k)
 	}
 	g := codes.NameRef(codes.FnType)
 	return messages.New(messages.H1105, g, op, text, example)
+}
+
+// findType is the type whose name in lang is text; when lang is nil, in any writing language.
+func findType(lang *codes.Language, text string) (codes.Code, bool) {
+	if lang != nil {
+		return lang.Find(codes.NamespaceType, text)
+	}
+	for _, lc := range codes.Languages() {
+		if l, err := codes.LoadLanguage(lc); err == nil {
+			if k, ok := l.Find(codes.NamespaceType, text); ok {
+				return k, true
+			}
+		}
+	}
+	return codes.None, false
 }
 
 // UndefinedNameError is the same message for an undefined name at run time and in the checker

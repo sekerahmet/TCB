@@ -178,7 +178,7 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 	case *ast.CallExpression:
 		codeVal := c.call(k, e)
 		// Gölgelenmiş bir yerleşiğin çağrısı: hata mesajı gölgelemeyi söyler (shadow.go).
-		if id, ok := e.Function.(*ast.Identifier); ok && builtinName(id.Value) {
+		if id, ok := e.Function.(*ast.Identifier); ok && builtinName(id.Value, c.textLang) {
 			if g, ok := k.findShadow(id.Value); ok {
 				return shadowedCall(codeVal, c.expression(k, id), id.Value, g, e.Line())
 			}

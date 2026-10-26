@@ -49,7 +49,7 @@ func unknownOption(command any, arg string, allowed []codes.Code) {
 	for i, a := range allowed {
 		list[i] = codes.OptionFlag(a)
 	}
-	exitWithError(messages.Text(messages.H8674, command, name, strings.Join(list, ", "), hint.ClosestSuggestion(name, list)))
+	exitWithError(messages.Text(messages.H8674, command, name, strings.Join(list, ", "), hint.ClosestSuggestion(name, list, nil)))
 }
 
 // unknownTopLevelOption tr'nin kendisine verilen seçenek biçimindeki ilk argümanla çıkışa götürür:

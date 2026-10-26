@@ -30,3 +30,13 @@ func TestShadowedBuiltinCall(t *testing.T) {
 		t.Errorf("[1, 2, 7] bekleniyordu: %v %v", val, err)
 	}
 }
+
+// Kural: gölgeleme iletisi adın yazıldığı dosyanın dilini izler: İngilizce dosyada type'ı gölgeleyen
+// değişkenin çağrısı da gölgelemeyi söyler (Türkçe dosyada tip gibi).
+func TestShadowedBuiltinCallFollowsTheFilesLanguage(t *testing.T) {
+	for lang, text := range map[string]string{"en": "var type = 5\ntype([1, 2])\n", "tr": "değişken tip = 5\ntip([1, 2])\n"} {
+		if _, err := runCodedErr(t, text, lang, nil); !codeAt(err, messages.H2450, 2) {
+			t.Errorf("%s: %s (satır 2) bekleniyordu, alınan: %v", lang, messages.H2450, err)
+		}
+	}
+}

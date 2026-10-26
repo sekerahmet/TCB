@@ -29,6 +29,16 @@ func runEnglish(t *testing.T, main string, files map[string]string) string {
 // klasörüne olduğu gibi yazılır.
 func runCoded(t *testing.T, main, lang string, files map[string]string) string {
 	t.Helper()
+	out, err := runCodedErr(t, main, lang, files)
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	return out
+}
+
+// runCodedErr runCoded gibidir; çalışma hatasını testi düşürmeden döndürür.
+func runCodedErr(t *testing.T, main, lang string, files map[string]string) (string, error) {
+	t.Helper()
 	l, err := codes.LoadLanguage(lang)
 	if err != nil {
 		t.Fatal(err)
@@ -50,10 +60,8 @@ func runCoded(t *testing.T, main, lang string, files map[string]string) string {
 	m := New()
 	m.Out, m.Err, m.Stdin = &out, &out, strings.NewReader("\n")
 	m.SourceFile, m.SourceCode, m.SourceLanguage = filepath.Join(root, "main.tr"), r.Text, r.Language
-	if _, err := m.Run(r.Program); err != nil {
-		t.Fatalf("%v\n%s", err, out.String())
-	}
-	return out.String()
+	_, err = m.Run(r.Program)
+	return out.String(), err
 }
 
 func TestValueTextFollowsTheFilesLanguage(t *testing.T) {

@@ -237,6 +237,25 @@ func TestFindForeign(t *testing.T) {
 	}
 }
 
+// Kural: metnin dili bilinmiyorsa öneri bütün yazım dillerine bakar; hiçbir dil önce gelmez.
+// İngilizce bir ad (print) da, Türkçe bir adın ASCII biçimi (yazdir) ve yabancı adı (int) da bulunur.
+func TestUnknownLanguageAsksEveryWritingLanguage(t *testing.T) {
+	for _, c := range []struct{ name, want string }{{"print", "print"}, {"yazdir", "yazdır"}} {
+		if got, ok := CanonicalNameIn(NamespaceGlobal, c.name); !ok || got != c.want {
+			t.Errorf("CanonicalNameIn(%q) = %q %v; %q bekleniyordu", c.name, got, ok, c.want)
+		}
+	}
+	if k, ok := Suggest(NamespaceGlobal, "yazdir", nil); !ok || k != FnPrint {
+		t.Errorf("Suggest(yazdir) = %s %v; %s bekleniyordu", k, ok, FnPrint)
+	}
+	if k, _, ok := FindForeign(NamespaceType, "int", nil); !ok || k != TypeInt {
+		t.Errorf("FindForeign(int) = %s %v; %s bekleniyordu", k, ok, TypeInt)
+	}
+	if _, ok := Suggest(NamespaceGlobal, "print", nil); ok {
+		t.Error("bir yazım dilinde geçerli ad için öneri olmamalı")
+	}
+}
+
 // Yukle kod listesi hatalarını hangi kodların çakıştığını söyleyerek yakalar.
 func TestClashesCaught(t *testing.T) {
 	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")

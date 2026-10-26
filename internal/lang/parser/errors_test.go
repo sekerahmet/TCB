@@ -78,7 +78,7 @@ func TestKeywordSpellingHintKept(t *testing.T) {
 	compound := strings.Join(parseErrors(src), "\n")
 	for _, name := range []string{"eger", "sonuc"} {
 		// İpucu metni tek kaynaktan (hint) gelir; hata satırına eklenmiş olmalı.
-		if want := hint.KeywordSpellingHint(name).Error(); want == "" || !strings.Contains(compound, want) {
+		if want := hint.KeywordSpellingHint(name, nil).Error(); want == "" || !strings.Contains(compound, want) {
 			t.Errorf("%q için ipucu %q bekleniyordu, alınan:\n%s", name, want, compound)
 		}
 	}

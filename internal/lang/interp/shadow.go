@@ -19,16 +19,26 @@ type shadowDef struct {
 	message messages.Code // tanımın türünü anlatan tam cümle: messages.H2450 (değişken), H2451 (parametre) ...
 }
 
-// builtinName ad sözlükteki bir yerleşik fonksiyonun (fn) adı mı?
-func builtinName(name string) bool {
-	k, ok := codes.Source().Find(codes.NamespaceGlobal, name) // DENEME: kullanıcının adı yazım dilindedir
-	return ok && k.IsBuiltin()
+// builtinName ad, lang'de (adın yazıldığı dosyanın dili) bir yerleşik fonksiyonun (fn) adı mı?
+// lang nil ise dil bilinmiyor: herhangi bir yazım dilindeki adı sayılır.
+func builtinName(name string, lang *codes.Language) bool {
+	if lang != nil {
+		k, ok := lang.Find(codes.NamespaceGlobal, name)
+		return ok && k.IsBuiltin()
+	}
+	for _, lc := range codes.Languages() {
+		if l, err := codes.LoadLanguage(lc); err == nil && builtinName(name, l) {
+			return true
+		}
+	}
+	return false
 }
 
-// recordShadow ad bir yerleşik adıysa bu kapsamdaki tanımını kaydeder (kapsamdaki ilk
-// tanım tutulur).
+// recordShadow ad bir yazım dilinde yerleşik adıysa bu kapsamdaki tanımını kaydeder (kapsamdaki
+// ilk tanım tutulur). Kapsam dosyanın dilini bilmez; kayıt geniş tutulur, çağrı yeri onu
+// dosyanın diliyle süzer (compiler_expr.go).
 func (k *compilerScope) recordShadow(name string, lineNo int, message messages.Code) {
-	if !builtinName(name) {
+	if !builtinName(name, nil) {
 		return
 	}
 	if k.shadow == nil {

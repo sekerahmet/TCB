@@ -116,7 +116,7 @@ func checkStructArgs(def *StructDefVal, nargs int, named map[string]Value, line 
 	alignNamed(named, nameList)
 	for k := range named {
 		if !slices.Contains(nameList, k) {
-			return messages.At(line, 0, messages.New(messages.H2418, def.Name, k, hint.ClosestSuggestion(k, nameList)))
+			return messages.At(line, 0, messages.New(messages.H2418, def.Name, k, hint.ClosestSuggestion(k, nameList, nil)))
 		}
 	}
 	if nargs > len(def.Fields) {
@@ -158,7 +158,7 @@ func suggestParam(name string, params []ast.Param) *messages.Error {
 	for _, p := range params {
 		names = append(names, p.Name)
 	}
-	return hint.ClosestSuggestion(name, names)
+	return hint.ClosestSuggestion(name, names, nil)
 }
 
 func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, line int) (Value, error) {

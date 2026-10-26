@@ -130,7 +130,7 @@ func TestKeywordTurkishSpellingOnly(t *testing.T) {
 			t.Errorf("LookupIdent(%q) = %s; ASCII yazım sıradan bir ad olmalı", c.ascii, got)
 		}
 		want := " ('" + c.ascii + "' TR'de anahtar kelime değil; '" + c.turkishSpelling + "' yazmak mı istediniz?)"
-		if got := hint.KeywordSpellingHint(c.ascii).Error(); got != want {
+		if got := hint.KeywordSpellingHint(c.ascii, nil).Error(); got != want {
 			t.Errorf("ipucu.KaldirilanYazimIpucu(%q) = %q, %q bekleniyordu", c.ascii, got, want)
 		}
 	}
@@ -382,7 +382,7 @@ func TestSynonymsAreNames(t *testing.T) {
 		}
 	}
 	for name, want := range map[string]string{"degisken": "'değişken'", "eger": "'eğer'"} {
-		if got := hint.KeywordSpellingHint(name).Error(); !strings.Contains(got, want) {
+		if got := hint.KeywordSpellingHint(name, nil).Error(); !strings.Contains(got, want) {
 			t.Errorf("hint.KeywordSpellingHint(%q) = %q, %s önermeli", name, got, want)
 		}
 	}
