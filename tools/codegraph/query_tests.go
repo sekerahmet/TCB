@@ -467,16 +467,14 @@ func (ix *index) testDistances(n *Node) map[string]int {
 // birleşimi, `changed`'in değişen düğümler için yaptığı toplamanın aynısı (testDistances; alt süreç testleri dahil).
 // "Bir dosyaya dokunmadan önce tests-for <dosya>" kuralı Go dosyasında da cevap alır.
 func (ix *index) printGoFileTests(w io.Writer, file *Node, limit int) {
-	ts := newTouchSet()
-	for _, e := range ix.out[file.ID] {
-		if d := ix.byID[e.To]; e.Kind == edgeContains && d != nil && strings.HasPrefix(d.ID, "go:") && d.Kind != kindFile {
-			ts.nodes[d.ID] = d
-		}
-	}
+	ts := ix.fileDecls(file)
 	fmt.Fprintf(w, "  declarations in this file: %d\n", len(ts.nodes))
-	ix.printTestsToRun(w, ts, limit, "the declarations in this file")
+	ix.printTestsToRun(w, ts, limit, "the declarations in this file", "this file's tests")
 	ix.printScans(w, file.File, limit)
 	tests := map[string]bool{}
+	for _, t := range ownTests(ts) {
+		tests[t.ID] = true
+	}
 	for _, d := range ts.nodes {
 		for id := range ix.testDistances(d) {
 			tests[id] = true
@@ -488,6 +486,17 @@ func (ix *index) printGoFileTests(w io.Writer, file *Node, limit int) {
 		}
 	}
 	ix.printRulesGuardedBy(w, tests, limit)
+}
+
+// fileDecls bir Go dosyasının bildirimleridir (işlev, metot, tip, değer).
+func (ix *index) fileDecls(file *Node) *touchSet {
+	ts := newTouchSet()
+	for _, e := range ix.out[file.ID] {
+		if d := ix.byID[e.To]; e.Kind == edgeContains && d != nil && strings.HasPrefix(d.ID, "go:") && d.Kind != kindFile {
+			ts.nodes[d.ID] = d
+		}
+	}
+	return ts
 }
 
 // testsListed test gruplarında yazılan testlerdir (atlama notu ve başka yapılandırma grubu bunlara bakar).

@@ -25,6 +25,8 @@ type goIndex struct {
 	ranges     []rangeRef          // koleksiyon döndüren işlev/değişken üzerinde dönen range deyimleri (walks.go)
 	envSets    map[string][]envSet // işlev -> koyduğu ortam değişkenleri (env_names.go)
 	scans      *scanState          // depo genelini tarayan test çağrıları (scans.go)
+	caseCalls  []caseCall          // dize kollarında çağrılan işlevler (case_tests.go)
+	testTexts  []testText          // test dosyalarındaki dize değişmezleri (case_tests.go)
 }
 
 // testFunc bir test işlevidir.

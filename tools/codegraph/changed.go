@@ -43,7 +43,7 @@ func (ix *index) runChanged(o changeOpts, ref string, stdout, stderr io.Writer) 
 	if main == oldSide { // grafik dalın ağacı değil: dalda yeni olan bildirimleri dalın kendi dosyalarından adlandır
 		printBranchDecls(stdout, branchDecls(o.root, right, main.unmappedHunks), o.limit)
 	}
-	ix.printTestsToRun(stdout, main, o.limit, "the changed code")
+	ix.printTestsToRun(stdout, main, o.limit, "the changed code", "changed tests (they run themselves)")
 	ix.printOverlaps(stdout, o, ref, oldSide)
 	return exitOK
 }
@@ -159,7 +159,7 @@ func printLimited(w io.Writer, list []string, limit int, indent string) {
 
 // printTestsToRun değişen düğümlerin (Go ve TR bildirimleri, ad kodları, dosyalar) testlerini yazar: tests-for'un topladığının
 // aynısı (testDistances), doğrudan olanlar önce, sonra dolaylılar (kaç adım uzakta); her test bir kez.
-func (ix *index) printTestsToRun(w io.Writer, ts *touchSet, limit int, what string) {
+func (ix *index) printTestsToRun(w io.Writer, ts *touchSet, limit int, what, ownWhat string) {
 	best := map[string]int{} // test kimliği -> en kısa uzaklık (0: doğrudan)
 	subprocess := map[string][]*Node{}
 	pkgs := map[string]bool{}
@@ -177,14 +177,19 @@ func (ix *index) printTestsToRun(w io.Writer, ts *touchSet, limit int, what stri
 		}
 	}
 	defer ix.printSubprocessTests(w, subprocess)
+	own := ownTests(ts)
+	if len(own) > 0 {
+		fmt.Fprintf(w, "  %s (%d):\n", ownWhat, len(own))
+		forEachLimited(w, own, limit, "    ", moreHint, describe)
+	}
 	ids := make([]string, 0, len(best))
 	for id := range best {
-		if isTestNode(ix.byID[id]) {
+		if isTestNode(ix.byID[id]) && ts.nodes[id] == nil {
 			ids = append(ids, id)
 		}
 	}
 	if len(ids) == 0 {
-		if len(subprocess) == 0 {
+		if len(subprocess) == 0 && len(own) == 0 {
 			fmt.Fprintln(w, "  tests: none found for "+what)
 		}
 		return
@@ -205,6 +210,21 @@ func (ix *index) printTestsToRun(w io.Writer, ts *touchSet, limit int, what stri
 		lines[i] = fmt.Sprintf("%s  %s", describe(ix.byID[id]), how)
 	}
 	printLimited(w, lines, limit, "    ")
+}
+
+// ownTests kümenin kendi bildirdiği testlerdir (Benchmark* hariç, ada göre; tools/bench'teki bir Test de kendi aracını
+// sınar, isMeasurement'ın klasör kuralı burada geçmez): bir test dosyasının ya da değişikliğin
+// testi kendisini sınar. Eskiden yalnız kümedeki bir yardımcıyı çağıranlar listeleniyordu, test dosyasının yardımcısız
+// testleri "none found" diye kayboluyordu (eksikler listesi, ince ayar: type_names_test.go, runner_test.go 10 testten 1'i).
+func ownTests(ts *touchSet) []*Node {
+	var own []*Node
+	for _, n := range ts.nodes {
+		if isTestNode(n) && !strings.HasPrefix(n.Name[strings.LastIndex(n.Name, ".")+1:], "Benchmark") {
+			own = append(own, n)
+		}
+	}
+	sort.Slice(own, func(i, j int) bool { return own[i].Name < own[j].Name })
+	return own
 }
 
 // printOverlaps öbür yerel claude/ dallarının aynı düğümlere ya da dosyalara dokunup

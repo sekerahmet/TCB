@@ -158,6 +158,7 @@ func buildGraphFrom(root string, m *module) *Graph {
 	extractJSLoads(root, b)
 	reach := newTestReach(b, idx)
 	linkTestPaths(b, idx, reach)
+	linkCaseTests(b, idx, reach)
 	linkScans(b, idx, reach)
 	linkSnippets(b, idx, reach)
 	return b.graph()
