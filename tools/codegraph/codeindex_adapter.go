@@ -104,7 +104,13 @@ func graphNode(n codeindex.Node, id string) Node {
 		codeindex.KindField: kindTRField, codeindex.KindConstant: kindTRConst, codeindex.KindVariable: kindTRVar,
 		codeindex.KindTest: kindTRTest, codeindex.KindParameter: kindTRParam, codeindex.KindOption: kindTROption,
 	}[n.Kind]
-	return Node{ID: id, Kind: kind, Name: n.Qualified, File: n.Pos.File, Line: n.Pos.Line, End: n.Pos.EndLine, Detail: n.Signature, Doc: docLine(n.Doc)}
+	node := Node{ID: id, Kind: kind, Name: n.Qualified, File: n.Pos.File, Line: n.Pos.Line, End: n.Pos.EndLine, Detail: n.Signature, Doc: docLine(n.Doc)}
+	// Dilin öğesi olan bildirim (Node.Code) her yazım dilindeki adıyla bulunur, tr dizin gibi. Kodun kimliği grafikte
+	// ad düğümünü gösterir (nameNodeNames); kitaplık kodunun bildirimine oradan uses_name kenarıyla gidilir.
+	if k, err := codes.Parse(n.Code); err == nil {
+		node.Aliases = codeindex.LanguageNames(k)
+	}
+	return node
 }
 
 // trEdgeKind codeindex kenar türünü grafik kenar türüne çevirir: yerleşik adlara `uses`
@@ -131,19 +137,11 @@ func namedArgumentEdges(idx *codeindex.Index, ids map[string]string, b *builder)
 	}
 }
 
-// libraryNamespace kitaplık bildiriminin türünden adının ad alanıdır.
-var libraryNamespace = map[codeindex.Kind]codes.Namespace{
-	codeindex.KindStruct: codes.NamespaceType, codeindex.KindFunction: codes.NamespaceGlobal,
-	codeindex.KindConstant: codes.NamespaceGlobal, codeindex.KindVariable: codes.NamespaceGlobal,
-	codeindex.KindField: codes.NamespaceMember, codeindex.KindMethod: codes.NamespaceMember,
-	codeindex.KindParameter: codes.NamespaceParam,
-}
-
 // libraryCodeEdges kitaplığın bildirimlerini kodlarına bağlar (kitaplığın dili yoktur, dil tanımı 17.3): lib/
-// altındaki yapı, fonksiyon, sabit, alan, metot ve parametre bildirimi adının kitaplık koduna `uses_name` kenarı
-// verir. Bildirimi (parametrede sahibi olan fonksiyonu ya da yapıyı) sınayan ya da okuyan test kodu da sınar
-// (`tests`, çıkarım): çekirdekte yerleşiğin okunması onu sınamaktır, kitaplıkta bildirimin. Kitaplığın iç
-// yardımcısı (ayar_değeri, NS_A) testine çağıranları üzerinden ulaşır (libraryTests).
+// altındaki yapı, fonksiyon, sabit, alan, metot ve parametre bildirimi kitaplık kodunun (dizinin Node.Code'u) ad
+// düğümüne `uses_name` kenarı verir. Bildirimi (parametrede sahibi olan fonksiyonu ya da yapıyı) sınayan ya da okuyan test
+// kodu da sınar (`tests`, çıkarım): çekirdekte yerleşiğin okunması onu sınamaktır, kitaplıkta bildirimin. Kitaplığın
+// iç yardımcısı (ayar_değeri, NS_A) testine çağıranları üzerinden ulaşır (libraryTests).
 func libraryCodeEdges(idx *codeindex.Index, ids map[string]string, b *builder) {
 	parent := map[string]string{}          // bildirim → onu tanımlayan (metot → yapı, parametre → fonksiyon)
 	users := map[string][]codeindex.Edge{} // bildirim → onu çağıran ya da okuyan kenarlar
@@ -156,15 +154,10 @@ func libraryCodeEdges(idx *codeindex.Index, ids map[string]string, b *builder) {
 		}
 	}
 	for _, n := range idx.Nodes {
-		space, ok := libraryNamespace[n.Kind]
-		if !ok || !strings.HasPrefix(n.Pos.File, "lib/") || strings.HasSuffix(n.Pos.File, "_test.tr") {
-			continue
+		if k, err := codes.Parse(n.Code); err != nil || !k.IsLibrary() {
+			continue // çekirdekle ortak kodu (TR_arg_step) kitaplığın bildirimi sınamaz
 		}
-		k, ok := codes.Source().Find(space, n.Name[strings.LastIndex(n.Name, ".")+1:]) // DENEME: dizinin adları Türkçe gösterimdedir
-		if !ok || !k.IsLibrary() {
-			continue
-		}
-		name := "name:" + k.String()
+		name := "name:" + n.Code
 		b.addEdge(ids[n.ID], name, edgeUsesName, extracted, n.Pos.File, n.Pos.Line)
 		for _, e := range libraryTests([]string{n.ID, parent[n.ID], parent[parent[n.ID]]}, users) {
 			b.addEdge(ids[e.From], name, edgeTests, inferred, e.Pos.File, e.Pos.Line)

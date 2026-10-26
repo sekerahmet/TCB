@@ -18,24 +18,31 @@ type Reader struct {
 	folded         []foldedNames       // Index.Nodes sırasıyla
 	callers        map[string][]string // düğüm -> onu çağıran düğümler (calls kenarları, ters)
 	importers      map[string][]string // modül -> onu aktaran modüller (imports kenarları, ters)
+	// codeNames kodlu düğümlerin (Node.Code) kodu ve her yazım dilindeki adı -> düğüm kimlikleri; codeNamesFolded
+	// aynısı Türkçe katlanmış.
+	codeNames, codeNamesFolded map[string][]string
+	parent                     map[string]string   // düğüm -> onu tanımlayan (defines kenarları, ters)
+	children                   map[string][]string // düğüm -> tanımladıkları
 }
 
 // NewReader dizinden bir Reader kurar.
 func NewReader(idx *Index) *Reader {
-	r := &Reader{Index: idx, byID: make(map[string]*Node, len(idx.Nodes)), byFile: map[string][]int{}}
+	r := &Reader{Index: idx, byID: make(map[string]*Node, len(idx.Nodes)), byFile: map[string][]int{}, parent: map[string]string{},
+		children: map[string][]string{}}
 	for i := range idx.Nodes {
 		r.byID[idx.Nodes[i].ID] = &idx.Nodes[i]
 	}
-	r.builtins = builtinNames(idx)
-	r.builtinsFolded = map[string][]string{}
-	for name, ids := range r.builtins {
-		f := Fold(name)
-		for _, id := range ids {
-			if !slices.Contains(r.builtinsFolded[f], id) {
-				r.builtinsFolded[f] = append(r.builtinsFolded[f], id)
-			}
+	for _, e := range idx.Edges {
+		if e.Kind == EdgeDefines {
+			r.parent[e.To] = e.From
+			r.children[e.From] = append(r.children[e.From], e.To)
 		}
 	}
+
+	r.builtins = builtinNames(idx)
+	r.builtinsFolded = foldNames(r.builtins)
+	r.codeNames = codeNames(idx)
+	r.codeNamesFolded = foldNames(r.codeNames)
 	r.folded = make([]foldedNames, len(idx.Nodes))
 	for i := range idx.Nodes {
 		n := &idx.Nodes[i]
@@ -43,6 +50,7 @@ func NewReader(idx *Index) *Reader {
 		for _, a := range n.Aliases {
 			f.aliases = append(f.aliases, Fold(a))
 		}
+		f.qualifiedIn = r.qualifiedSpellings(n)
 		r.folded[i] = f
 	}
 	r.callers, r.importers = map[string][]string{}, map[string][]string{}
@@ -73,6 +81,20 @@ func NewReader(idx *Index) *Reader {
 		})
 	}
 	return r
+}
+
+// foldNames ad -> kimlikler eşlemesinin adları Türkçe katlanmış (Fold) karşılığıdır.
+func foldNames(names map[string][]string) map[string][]string {
+	folded := map[string][]string{}
+	for name, ids := range names {
+		f := Fold(name)
+		for _, id := range ids {
+			if !slices.Contains(folded[f], id) {
+				folded[f] = append(folded[f], id)
+			}
+		}
+	}
+	return folded
 }
 
 // Node kimliği verilen düğümdür (yoksa nil).

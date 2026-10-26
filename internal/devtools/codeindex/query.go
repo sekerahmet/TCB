@@ -42,13 +42,20 @@ func (r *Reader) prepare(command, q string, o QueryOptions) (*Result, *Node) {
 	return res, nil
 }
 
-// display düğümü çıktıya hazırlar: yerleşik adın okuyanın dilindeki adı (Display) eklenir.
+// display düğümü çıktıya hazırlar: yerleşik adın okuyanın dilindeki adı (Display) eklenir; bildirimin dilin öğesi
+// olan parçaları (kodlu adlar, imzadaki anahtar sözcük) okuyanın dilinde yazılır, kullanıcının adları aynen kalır.
+// Dizin Türkçe yazımı tutar: okuyanın dili Türkçeyse düğüm değişmez.
 func (r *Reader) display(n Node) Node {
 	n.Imports = nil // dizin içi ayrıntı; sonuçta yer tutmaz
 	if n.Kind == KindBuiltin {
 		if k, err := codes.Parse(n.Name); err == nil {
 			n.Display = codes.DisplayName(k)
 		}
+		return n
+	}
+	if lang := codes.Display(); lang.Code != codes.SourceLanguage && n.Kind != KindModule {
+		n.Qualified, n.Signature = r.qualifiedIn(&n, lang.Name), r.signatureIn(&n, lang)
+		n.Name = r.pathIn(&n, lang.Name)
 	}
 	return n
 }

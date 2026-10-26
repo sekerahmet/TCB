@@ -178,7 +178,8 @@ func builtinNames(idx *Index) map[string][]string {
 
 // Resolve bir sorgu metnini düğümlere çözer; ilk eşleşme veren basamaktaki bütün düğümleri döner
 // (birden çoksa belirsizdir). Basamaklar: "dosya.tr:satır:sütun" konumu; kimlik; çıplak ad (PickByName: modül yolu ya
-// da adı `katman`, `tr/katman`; bildirilmiş kısa ad; yerleşik adı, her dilde; test açıklaması); modülle nitelenmiş ad
+// da adı `katman`, `tr/katman`; bildirilmiş kısa ad, dilin öğesi olan bildirimde (Node.Code) kodu ve her yazım
+// dilindeki adı da; yerleşik adı, her dilde; test açıklaması); modülle nitelenmiş ad
 // (`katman.Doğrusal.ileri`); nitelenmiş adın sonu (`Doğrusal.ileri`). Harf kuralı NameKeys'tir: her geçişte bütün
 // basamaklar denenir. kind boş değilse yalnızca o tür.
 func (r *Reader) Resolve(q, kind string) []*Node {
@@ -201,21 +202,31 @@ func (r *Reader) Resolve(q, kind string) []*Node {
 	for _, k := range NameKeys(q) {
 		// q'ya uyan yerleşik adların düğümleri bir kez bulunur (her yerleşik düğümde bütün adları yeniden katlamak sorguyu
 		// yavaşlatıyordu: 278 adlık denetimde 16 sn).
-		builtin := map[string]bool{}
-		for _, id := range r.builtinIDs(k) {
+		builtin, coded := map[string]bool{}, map[string]bool{}
+		for _, id := range idsFor(k, r.builtins, r.builtinsFolded) {
 			builtin[id] = true
+		}
+		for _, id := range idsFor(k, r.codeNames, r.codeNamesFolded) {
+			coded[id] = true
 		}
 		if found := PickByName(len(nodes), func(i int) NameClass {
 			if kind != "" && string(nodes[i].Kind) != kind {
 				return ClassNone
+			}
+			if coded[nodes[i].ID] {
+				return ClassDeclaration
 			}
 			return r.nameClass(i, k, builtin)
 		}); len(found) > 0 {
 			return at(found)
 		}
 		for _, match := range []func(i int) bool{
-			func(i int) bool { return k.Match(nodes[i].Qualified, r.folded[i].qualified) },
-			func(i int) bool { return k.HasSuffix(nodes[i].Qualified, r.folded[i].qualified, ".") },
+			func(i int) bool {
+				return r.qualifiedMatch(i, func(name, folded string) bool { return k.Match(name, folded) })
+			},
+			func(i int) bool {
+				return r.qualifiedMatch(i, func(name, folded string) bool { return k.HasSuffix(name, folded, ".") })
+			},
 		} {
 			var found []int
 			for i := range nodes {
@@ -235,6 +246,7 @@ func (r *Reader) Resolve(q, kind string) []*Node {
 type foldedNames struct {
 	short, qualified string
 	aliases          []string
+	qualifiedIn      [][2]string // dilin öğesi olan parçaları her yazım dilinde ve kodla yazılmış nitelenmiş ad: yazım, katlanmışı
 }
 
 // nameClass i. düğümün k geçişindeki çıplak ad sınıfıdır (PickByName); builtin k'ye uyan yerleşik düğümlerdir.
@@ -266,15 +278,29 @@ func (r *Reader) nameClass(i int, k NameKey, builtin map[string]bool) NameClass 
 	return ClassNone
 }
 
-// builtinIDs k'ye uyan yerleşik adların düğüm kimlikleridir.
-func (r *Reader) builtinIDs(k NameKey) []string {
+// idsFor k'ye uyan adların düğüm kimlikleridir: names ad -> kimlikler, folded aynısı Türkçe katlanmış (yerleşik adları,
+// kodlu düğümlerin adları).
+func idsFor(k NameKey, names, folded map[string][]string) []string {
 	if !k.Folded {
-		return r.builtins[k.Key]
+		return names[k.Key]
 	}
 	if k.Alt == "" {
-		return r.builtinsFolded[k.Key]
+		return folded[k.Key]
 	}
-	return append(slices.Clone(r.builtinsFolded[k.Key]), r.builtinsFolded[k.Alt]...)
+	return append(slices.Clone(folded[k.Key]), folded[k.Alt]...)
+}
+
+// qualifiedMatch i. düğümün nitelenmiş adı (Türkçe yazımı ya da dilin öğesi olan parçaları başka bir yazımla) uyuyor mu.
+func (r *Reader) qualifiedMatch(i int, match func(name, folded string) bool) bool {
+	if match(r.Index.Nodes[i].Qualified, r.folded[i].qualified) {
+		return true
+	}
+	for _, q := range r.folded[i].qualifiedIn {
+		if match(q[0], q[1]) {
+			return true
+		}
+	}
+	return false
 }
 
 // atQuery konum sorgusunu düğüme çevirir; sütun verilmediyse satırdaki ilk başvuru alınır.

@@ -199,8 +199,8 @@ type trName struct {
 	folded []string
 }
 
-// trNameTable grafiğin TR ad düğümlerini bir kez toplar. Adlar tr dizin'inkilerdir: modülün adı ve takma adları,
-// bildirimin kısa adı (son parça), testin açıklaması, ad kodunun kendisi ve dillerdeki adları.
+// trNameTable grafiğin TR ad düğümlerini bir kez toplar, adlar tr dizin'inkilerdir: modülün adı ve takma adları, bildirimin
+// kısa adı (kodlu bildirimde dillerdeki adları da), testin açıklaması, ad kodunun kendisi ve dillerdeki adları.
 func (ix *index) trNameTable() []trName {
 	if ix.trNames != nil {
 		return ix.trNames
@@ -217,7 +217,7 @@ func (ix *index) trNameTable() []trName {
 		case n.Kind == kindTRTest:
 			c.class, c.names = codeindex.ClassTest, []string{n.Name[strings.Index(n.Name, ": ")+2:]} // "modül: açıklama"
 		case strings.HasPrefix(n.ID, "tr:"):
-			c.class, c.names = codeindex.ClassDeclaration, []string{n.Name[strings.LastIndex(n.Name, ".")+1:]}
+			c.class, c.names = codeindex.ClassDeclaration, append([]string{n.Name[strings.LastIndex(n.Name, ".")+1:]}, n.Aliases...)
 		default:
 			continue
 		}

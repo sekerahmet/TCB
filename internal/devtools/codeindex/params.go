@@ -27,7 +27,8 @@ func (x *indexer) paramNodes(f *file, owner string, ownerID string, fl *ast.Func
 			}
 			sig += " = " + defaultText(f, at, next)
 		}
-		x.nodes[id] = &Node{ID: id, Kind: KindParameter, Name: name, Pos: &at, Signature: sig, Qualified: f.base + "." + name}
+		x.nodes[id] = &Node{ID: id, Kind: KindParameter, Name: name, Code: x.libraryCode(f, KindParameter, name), Pos: &at, Signature: sig,
+			Qualified: f.base + "." + name}
 		x.addEdge(ownerID, id, EdgeDefines, Extracted, Pos{File: f.rel, Line: at.Line})
 		x.occurrence(id, RoleDefinition, Extracted, at, ownerID)
 	}

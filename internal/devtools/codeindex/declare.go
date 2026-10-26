@@ -92,7 +92,8 @@ func (x *indexer) def(f *file, parent string, kind Kind, idName, name, qualified
 		end, endCol = valueEnd(f, line) // değer bildiriminin sonu, sonraki bloğun sonu değil
 	}
 	pos := &Pos{File: f.rel, Line: line, Col: col, EndLine: end, EndCol: endCol}
-	x.nodes[id] = &Node{ID: id, Kind: kind, Name: name, Pos: pos, Signature: signature, Qualified: qualified, Doc: docAbove(f, line)}
+	x.nodes[id] = &Node{ID: id, Kind: kind, Name: name, Code: x.libraryCode(f, kind, name), Pos: pos, Signature: signature, Qualified: qualified,
+		Doc: docAbove(f, line)}
 	x.addEdge(parent, id, EdgeDefines, Extracted, Pos{File: f.rel, Line: line})
 	x.occurrence(id, RoleDefinition, Extracted, namePos(f, kind, name, line, col), parent)
 	if parent == NodeID(KindModule, f.rel, "") && kind != KindTest {

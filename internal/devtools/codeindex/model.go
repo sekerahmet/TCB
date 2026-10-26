@@ -23,7 +23,7 @@ const Schema = "tr-codeindex/2"
 
 // IndexVersion dizinin kaynaktan türettiği içerik değişince artar (yeni düğüm türü, farklı
 // çözümleme). Başka sürümün önbelleği hiçbir zaman kullanılmaz.
-const IndexVersion = 19
+const IndexVersion = 20
 
 // Kind bir düğümün türüdür; değerler JSON'a yazılan değişmez tanımlayıcılardır.
 type Kind string
@@ -101,11 +101,13 @@ func (p Pos) String() string {
 
 // Node bir bildirim, modül ya da yerleşik addır. Name kanonik addır: kullanıcı adlarında yazıldığı
 // gibi, yerleşikte kodu (TR_fn_time_ms). Display yerleşiğin okuyanın dilindeki adıdır, kullanıcı adlarında
-// boştur.
+// boştur. Code dilin öğesi olan bildirimin kimliğidir (kitaplığın dışa açık adı, TR_type_GPT; library_codes.go):
+// dizin onu Türkçe yazımıyla tutar (Name, Qualified), sonuç okuyanın dilinde yazar (Reader.display).
 type Node struct {
 	ID        string `json:"id"`
 	Kind      Kind   `json:"kind"`
 	Name      string `json:"name"`
+	Code      string `json:"code,omitempty"`
 	Display   string `json:"display,omitempty"`
 	Pos       *Pos   `json:"pos,omitempty"`
 	Signature string `json:"signature,omitempty"`
