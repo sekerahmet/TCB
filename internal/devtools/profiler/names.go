@@ -10,22 +10,22 @@ import (
 func tensorOps() string { return messages.Text(messages.H8206, codes.NameRef(codes.TypeTensor)) }
 
 // opName tensör işleminin raporda görünen adıdır. Dildeki bir yerleşiğe ya da metoda
-// karşılık gelen işlemler o adla (kod listesinden) yazılır: kullanıcı kendi kodunda gördüğü
-// adı görür, ad çevrilince rapor da çevrilir. Karşılığı tek bir ad olmayanlar (işleçler,
-// görünümler, kopyalar) açıklama iletisiyle yazılır.
+// karşılık gelen işlemler o adla, kişinin gösterim dilinde (TR_DIL, codes.DisplayName) yazılır:
+// kullanıcı kendi dilinde gördüğü adı görür, ad çevrilince rapor da çevrilir. Karşılığı tek bir
+// ad olmayanlar (işleçler, görünümler, kopyalar) açıklama iletisiyle yazılır.
 func opName(is tensor.OpKind) string {
 	if k, ok := opCode[is]; ok {
-		return codes.Source().Name(k)
+		return codes.DisplayName(k)
 	}
 	switch is {
 	case tensor.OpKindToDevice:
-		return "." + codes.Source().Name(codes.MemToDevice)
+		return "." + codes.DisplayName(codes.MemToDevice)
 	case tensor.OpKindCast:
-		return "." + codes.Source().Name(codes.MemToDtype)
+		return "." + codes.DisplayName(codes.MemToDtype)
 	case tensor.OpKindAdamW:
-		return codes.Source().Name(codes.FnAdamW) + "." + codes.Source().Name(codes.MemStep)
+		return codes.DisplayName(codes.FnAdamW) + "." + codes.DisplayName(codes.MemStep)
 	case tensor.OpKindSGD:
-		return codes.Source().Name(codes.FnSGD) + "." + codes.Source().Name(codes.MemStep)
+		return codes.DisplayName(codes.FnSGD) + "." + codes.DisplayName(codes.MemStep)
 	}
 	if c, ok := opLabel[is]; ok {
 		return messages.Text(c)
