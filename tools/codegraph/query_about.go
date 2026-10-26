@@ -71,24 +71,31 @@ func (ix *index) subjectNames(n *Node) []string {
 	return out
 }
 
-// producedMessages hedefin ürettiği ileti düğümleridir.
+// producedMessages hedefin ürettiği ileti düğümleridir: hedefin işlevlerinin (ad kodunda onu uygulayan, test kodu
+// olmayan Go işlevleri) ve yalnız onların çağırdığı işlevlerin iletileri. Birden çok hedefin çağırdığı işlevin (adlı
+// argüman denetimi bind.CheckNamed, sayı hatası interp.ArgCountError) iletisi hiçbirinin değildir; test dosyasındaki
+// yardımcı (ml.compositeSpecs) ad kodunu anar ama uygulamaz (eksikler listesi, kritik, ana oturum 2026-10-26: `tests-for
+// TR_fn_sum` ilk grupta H6126'yı bekleyen testi veriyordu; H6126'yı yalnız ml.matmulDType üretir).
 func (ix *index) producedMessages(n *Node) []*Node {
 	sources := []string{n.ID}
 	if n.Kind == kindName {
 		for _, e := range ix.in[n.ID] {
-			if e.Kind == edgeUsesName && strings.HasPrefix(e.From, "go:") {
+			if e.Kind == edgeUsesName && strings.HasPrefix(e.From, "go:") && !isTestCode(ix.byID[e.From]) {
 				sources = append(sources, e.From)
 			}
 		}
 	}
+	own := map[string]bool{}
+	for _, s := range sources {
+		own[s] = true
+	}
 	for _, s := range append([]string(nil), sources...) {
 		for _, e := range ix.out[s] {
-			if e.Kind == edgeCalls && e.Confidence == extracted {
+			if e.Kind == edgeCalls && e.Confidence == extracted && !own[e.To] && ix.calledOnlyBy(e.To, own) {
 				sources = append(sources, e.To)
 			}
 		}
 	}
-	own := map[string]bool{}
 	for _, s := range sources {
 		own[s] = true
 	}
@@ -103,12 +110,22 @@ func (ix *index) producedMessages(n *Node) []*Node {
 	return out
 }
 
-// producedOnlyBy iletiyi üreten her (test olmayan) düğüm own'da mı: başka işlevlerin de ürettiği ileti hedefin değildir,
+// calledOnlyBy işlevi test kodu dışında yalnız callers çağırıyor mu.
+func (ix *index) calledOnlyBy(fn string, callers map[string]bool) bool {
+	for _, e := range ix.in[fn] {
+		if e.Kind == edgeCalls && !callers[e.From] && !isTestCode(ix.byID[e.From]) {
+			return false
+		}
+	}
+	return true
+}
+
+// producedOnlyBy iletiyi üreten her (test kodu olmayan) düğüm own'da mı: başka işlevlerin de ürettiği ileti hedefin değildir,
 // onu bekleyen test hedefi konu edinmez (bağımsız denetim grup 6, S1: H2000 `{fn}: {error}` on iki işlevin sarmalayıcı
 // iletisi, yüklemeyi sınayan test saveOnInterval'ın ilk satırına çıkıyordu).
 func (ix *index) producedOnlyBy(m *Node, own map[string]bool) bool {
 	for _, e := range ix.in[m.ID] {
-		if p := ix.byID[e.From]; e.Kind == edgeUsesMessage && p != nil && !isTestNode(p) && !own[p.ID] {
+		if p := ix.byID[e.From]; e.Kind == edgeUsesMessage && p != nil && !isTestCode(p) && !own[p.ID] {
 			return false
 		}
 	}
