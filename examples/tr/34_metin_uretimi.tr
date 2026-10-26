@@ -4,7 +4,7 @@
 // Önceki örnekten: softmax (23), seçme ve sıralama (25), döngüler (07).
 // Çalıştırma (proje kökünden): tr examples/tr/34_metin_uretimi.tr
 
-// Bir dil modeli her adımda bütün sözcükler için puan (logit) üretir. En olasıyı almak (maks_indeks) hep aynı
+// Bir dil modeli her adımda bütün sözcükler için puan (logit) üretir. En olasıyı almak (argmax) hep aynı
 // metni verir; örnekle, puanlardan olasılıkla bir indeks seçer.
 değişken logit = tensör([1.0, 3.0, 0.5])
 yazdır("olasılıklar:", softmax(logit).değer)

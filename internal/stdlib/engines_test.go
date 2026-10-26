@@ -16,7 +16,7 @@ func TestRemovedBuiltinsNotRegistered(t *testing.T) {
 			t.Errorf("%q kayıtlı olmamalı:%s", name, msg)
 		}
 	}
-	for _, name := range []string{"yazdır", "girdi", "tip", "toplam", "ortalama", "maks", "min",
+	for _, name := range []string{"yazdır", "girdi", "tip", "toplam", "ortalama", "max", "min",
 		"bekle", "standart_sapma", "ortanca", "json_metin", "csv_oku", "veri_kümesi", "parçalayıcı_yükle"} {
 		if _, ok := m.GlobalEnv.Get(name); !ok {
 			t.Errorf("asıl ad %q kayıtlı olmalı", name)

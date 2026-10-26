@@ -46,7 +46,7 @@ test "Muon: güncelleme dikleştirilmiş momentumdur; ölçek √max(1, çıkı�
     eşit_mi(1, op.durum.momentum.uzunluk)
     // sıfırla gradyanı sıfırlar; gradyan almayan ağırlık güncellenmez.
     op.sıfırla()
-    eşit_mi(0.0, maks(mutlak(W.gradyan)).değer)
+    eşit_mi(0.0, max(mutlak(W.gradyan)).değer)
     değişken V = tensör(birler([3, 3]), türev_izle: doğru)
     Muon([V]).adım()
     eşit_mi(birler([3, 3]), türevsiz(V))
@@ -109,7 +109,7 @@ test "MuonVeAdamW: oran çarpanı iki grubun öğrenme oranını ölçekler (½:
     op_b.adım()
     değişken tam_adım = türevsiz(a.gömme.tablo) - önce
     değişken yarım = türevsiz(b.gömme.tablo) - önce
-    doğrula(maks(mutlak(tam_adım)).değer > 0, "AdamW gömmeyi güncellemeli")
+    doğrula(max(mutlak(tam_adım)).değer > 0, "AdamW gömmeyi güncellemeli")
     // AdamW'nin adımı öğrenme oranıyla doğrusaldır (momentler orandan bağımsız): yarım oran,
     // float32 yuvarlamasıyla yarım adım verir.
     değişken yarım_fark = en_büyük_mutlak_fark(yarım, 0.5 * tam_adım)
@@ -151,7 +151,7 @@ test "MuonVeAdamW: kontrol noktası Muon momentumunu da saklar ve geri yükler" 
     eşit_mi(kesintisiz[1].muon.durum.momentum, sürdürülen[1].muon.durum.momentum)
     // Durum tensörleri türev izlemez (parametre değildir); kontrol noktası onları da saklar.
     eşit_mi(0, parametreler(sürdürülen[1].muon.durum).uzunluk)
-    doğrula(maks(mutlak(sürdürülen[1].muon.durum.momentum[0])).değer > 0, "momentum yüklenmeli")
+    doğrula(max(mutlak(sürdürülen[1].muon.durum.momentum[0])).değer > 0, "momentum yüklenmeli")
 }
 
 // Ters çevirme görevi: [a b c d | d c b a]. İkinci yarı ilk yarıdan tahmin edilir.
@@ -202,7 +202,7 @@ test "Muon ve NorMuon küçük bir görevde AdamW'den kötü değildir" {
 // ---- Hedef model (RGN) için seçenekler: ad desenleri, ayrı çürümeli AdamW, Muon ölçeği, SatırRMS ----
 
 // en_büyük_mutlak_fark: iki tensörün elemanları arasındaki en büyük mutlak fark.
-fonksiyon en_büyük_mutlak_fark(a, b) { sonuç maks(mutlak(a - b)).değer }
+fonksiyon en_büyük_mutlak_fark(a, b) { sonuç max(mutlak(a - b)).değer }
 
 test "ad_uyar_mı: tam, önek ve sonek eşleşmesi yol parçası sınırındadır" {
     doğrula(ad_uyar_mı("gömme.tablo", "gömme.tablo"))

@@ -154,7 +154,7 @@ yapı Muon {
         kendi.ns_adımı = ns_adımı
         kendi.ns_türü = ns_türü
         kendi.gruplar = şekil_grupları(ağırlıklar)
-        kendi.ölçekler = [eğer ölçek == "rms" { 0.2 * karekök(maks(p.şekil[0], p.şekil[1])) } değilse { karekök(maks(1.0, p.şekil[1] / p.şekil[0])) } döngü p içinde ağırlıklar]
+        kendi.ölçekler = [eğer ölçek == "rms" { 0.2 * karekök(max(p.şekil[0], p.şekil[1])) } değilse { karekök(max(1.0, p.şekil[1] / p.şekil[0])) } döngü p içinde ağırlıklar]
         kendi.durum = {momentum: [durum_tensörü(p.şekil, p.cihaz) döngü p içinde ağırlıklar]}
     }
     fonksiyon adım() {
@@ -339,7 +339,7 @@ yapı SatırRMS {
                 değişken geçti = toplam(mutlak(g), eksen: 1, boyutu_koru: doğru) > 0 // [satır, 1] 0/1
                 n[0..satırlar] = n + geçti
                 v[0..satırlar] = koşullu(geçti, b2 * v + (1 - b2) * ortalama(g * g, eksen: 1, boyutu_koru: doğru), v)
-                değişken düzeltme = 1 - üstel(koşullu(n > 0, n, 1.0) * log(b2)) // 1 − β2ⁿ (n = 0 satırı maskeli)
+                değişken düzeltme = 1 - exp(koşullu(n > 0, n, 1.0) * log(b2)) // 1 − β2ⁿ (n = 0 satırı maskeli)
                 p[0..satırlar] -= kendi.öğrenme_oranı * geçti * g / (karekök(v / düzeltme) + kendi.epsilon)
             }
         }

@@ -272,7 +272,7 @@ func checkMask(fn any, mt, q, k *tensor.Tensor) error {
 // sampleBuiltin örnekle(logit, sıcaklık: 1.0, en_iyi_k: 0, tohum: yok) yerleşiğidir:
 // son eksen üzerindeki softmax(logit / sıcaklık) dağılımından bir indeks örnekler.
 // en_iyi_k > 0 ise yalnızca en olası k arasından seçer; sıcaklık 0 en olasıyı verir
-// (maks_indeks ile aynı). Sonuç son ekseni düşürülmüş, tam sayılı işaretli ve türev
+// (argmax ile aynı). Sonuç son ekseni düşürülmüş, tam sayılı işaretli ve türev
 // izlemeyen bir tensördür.
 func sampleBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.NameRef(codes.FnSample)

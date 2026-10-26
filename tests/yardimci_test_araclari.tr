@@ -16,5 +16,5 @@ fonksiyon hata_metni(f) {
 // 1e-8 kare fark ≈ 1e-4 mutlak fark). lib testlerindeki en_büyük_mutlak_fark başka bir ölçüdür.
 fonksiyon en_büyük_kare_fark(a, b) {
     değişken d = a - b
-    sonuç maks(d * d).değer
+    sonuç max(d * d).değer
 }

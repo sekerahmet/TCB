@@ -90,7 +90,7 @@ fonksiyon doğrulama_kaybı(toplu_sayısı) {
             }
         }
     }
-    sonuç toplam_kayıp / maks(satır, 1)
+    sonuç toplam_kayıp / max(satır, 1)
 }
 
 // örnek_yaz: her istemin devamı olarak örnek_sayısı metin üretir ve samples.json'a yazar.

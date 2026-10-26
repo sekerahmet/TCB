@@ -32,7 +32,7 @@
 
 **4.8** `a?.b`: `a` `yok` ise hata yerine `yok` verir; `yok.b` bir hatadır.
 
-**4.9** `x |> f` ≡ `f(x)`; `x |> f(a)` ≡ `f(x, a)`. Sağ taraf bir fonksiyon çağrısı ya da fonksiyon değeri olmalıdır. Boru yalnızca fonksiyonlarla çalışır: kullanıcı fonksiyonları ve ilk parametresi borudaki değeri alan yerleşik fonksiyonlar (`toplam`, `ortalama`, `min`, `maks`, `metin`, `tip`, `relu`, `softmax`, `json_metin` ...; tam liste [`codes.md`](../codes.md) "Boru hattıyla kullanılabilen fonksiyonlar"). Metotlar boruyla değil `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 }`); `l |> filtrele { ... }` yazılırsa hata metot biçimini önerir (13.6).
+**4.9** `x |> f` ≡ `f(x)`; `x |> f(a)` ≡ `f(x, a)`. Sağ taraf bir fonksiyon çağrısı ya da fonksiyon değeri olmalıdır. Boru yalnızca fonksiyonlarla çalışır: kullanıcı fonksiyonları ve ilk parametresi borudaki değeri alan yerleşik fonksiyonlar (`toplam`, `ortalama`, `min`, `max`, `metin`, `tip`, `relu`, `softmax`, `json_metin` ...; tam liste [`codes.md`](../codes.md) "Boru hattıyla kullanılabilen fonksiyonlar"). Metotlar boruyla değil `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 }`); `l |> filtrele { ... }` yazılırsa hata metot biçimini önerir (13.6).
 
 ```tr
 [1, 2, 3].haritala { o * 2 } |> toplam   // 12

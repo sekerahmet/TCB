@@ -5,7 +5,7 @@
 // Dilin tek sayısal dizi türü tensördür: tek sayıdan tensör 0 boyutlu, matris adlı
 // oluşturucuların (sıfırlar([2, 3]), birim_matris ...) sonucu 2 boyutlu tensördür.
 //
-// Aynı adı taşıyan çekirdek ve yapay zekâ yerleşikleri (toplam, ortalama, min, maks,
+// Aynı adı taşıyan çekirdek ve yapay zekâ yerleşikleri (toplam, ortalama, min, max,
 // karekök) silinmez; kayıt sırasında sarılır: argüman tensörse yeni yol, değilse eski
 // yerleşik çalışır. Bu yüzden bu motor onlardan SONRA kaydedilmelidir (bkz. internal/stdlib).
 //
@@ -25,7 +25,7 @@ type TensorValue struct {
 	// bilgi oluşturma anında saklanır; böylece ara tensörün .gradyan'ı sessizce 'yok'
 	// dönmez ve ara tensör iyileştirici parametresi olarak kabul edilmez.
 	intermediate bool
-	// hasInts, değerlerin tam sayı olduğunu (ör. maks_indeks sonucu) gösterir: .değer
+	// hasInts, değerlerin tam sayı olduğunu (ör. argmax sonucu) gösterir: .değer
 	// Tam döndürür, yazdırma ondalıksız yapılır. İşlem sonuçlarına geçmez.
 	hasInts bool
 	// own yorumlayıcının sahiplik durumudur: değer bırakılınca başlığın bu sarıcısı düşer

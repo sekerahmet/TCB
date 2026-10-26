@@ -13,7 +13,7 @@ import (
 
 // Register tensör yerleşiklerini VM'ye kaydeder. Adlar kod listesindedir (internal/lang/codes); burada
 // yalnızca kodlar geçer. Aynı adlı çekirdek ve yapay zekâ yerleşikleri (toplam, ortalama,
-// min, maks, karekök) sarılır: argüman tensörse tensör yolu, değilse eski yerleşik çalışır.
+// min, max, karekök) sarılır: argüman tensörse tensör yolu, değilse eski yerleşik çalışır.
 func Register(v *interp.VM) {
 	// Türevsiz kip görev başınadır (gorev.go).
 	v.AddTaskHook(taskHook)
@@ -95,7 +95,7 @@ func registerMath(v *interp.VM) {
 	registerSoftmax(v, codes.FnSoftmax, false)
 	registerSoftmax(v, codes.FnLogSoftmax, true)
 
-	// --- İndirgemeler (toplam, ortalama, maks, min) ---
+	// --- İndirgemeler (toplam, ortalama, max, min) ---
 	reduction(v, codes.FnSum, func(t *tensor.Tensor, e int, whole, keep bool) *tensor.Tensor {
 		if whole {
 			return t.SumAll()
@@ -141,7 +141,7 @@ func dropTemp(keep *tensor.Tensor, temps ...*tensor.Tensor) {
 }
 
 // minAll tüm elemanların en küçüğünü 0 boyutlu tensör olarak verir. Çekirdekte Min
-// işlemi yoktur; türev gerekiyorsa ya da tensör CPU'da değilse -maks(-x) ile (gradyan doğru
+// işlemi yoktur; türev gerekiyorsa ya da tensör CPU'da değilse -max(-x) ile (gradyan doğru
 // elemana gider; GPU'da konağa okumaz, tekrar_oynat kaydında da çalışır) hesaplanır. CPU'da
 // türev gerekmiyorsa ara tensör ayırmadan tek geçişle bulunur.
 func minAll(t *tensor.Tensor) *tensor.Tensor {
@@ -151,7 +151,7 @@ func minAll(t *tensor.Tensor) *tensor.Tensor {
 	data := t.Data()
 	m := data[0]
 	for _, x := range data[1:] {
-		if x < m || x != x { // NaN yayılır (maks ile tutarlı)
+		if x < m || x != x { // NaN yayılır (max ile tutarlı)
 			m = x
 			if x != x {
 				break

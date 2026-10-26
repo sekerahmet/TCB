@@ -28,7 +28,7 @@ türevsiz {
     değişken mantık = model.ileri([başlangıç], önbellek: ö)
     döngü i içinde 0..ADET {
         değişken son = mantık.şekil[1] - 1
-        değişken seçilen = maks_indeks(mantık, eksen: -1).değer[0][son] // açgözlü seçim
+        değişken seçilen = argmax(mantık, eksen: -1).değer[0][son] // açgözlü seçim
         çıktı.ekle(seçilen)
         mantık = model.ileri([[seçilen]], önbellek: ö) // yalnızca yeni parçayı işler
     }
@@ -45,7 +45,7 @@ türevsiz {
     // Bir parça daha geri al (konum başlangıç + 2) ve o parçayı yeniden işle: ondan sonra seçilen parça aynı olmalı.
     ö.kırp(başlangıç.uzunluk + 2)
     değişken yeniden = model.ileri([[çıktı[başlangıç.uzunluk + 2]]], önbellek: ö)
-    yazdır("yeniden işlenince seçilen aynı:", maks_indeks(yeniden, eksen: -1).değer[0][0] == çıktı[başlangıç.uzunluk + 3])
+    yazdır("yeniden işlenince seçilen aynı:", argmax(yeniden, eksen: -1).değer[0][0] == çıktı[başlangıç.uzunluk + 3])
 }
 
 // Sabit önbellek ve kayıtlı adım (üret'in GPU'da kullandığı yol; 45. örnekteki mekanizma): önbellek bir kez
@@ -59,7 +59,7 @@ türevsiz {
     değişken son_logit = model.logit(x.dilim(1, başlangıç.uzunluk - 1, başlangıç.uzunluk))[0][0]
     değişken adım = tekrar_oynat((kimlik, konum) => model.tek_adım(kimlik, konum, sabit_önbellek))
     döngü i içinde 0..ADET {
-        değişken seçilen = maks_indeks(son_logit, eksen: -1).değer
+        değişken seçilen = argmax(son_logit, eksen: -1).değer
         sabit_çıktı.ekle(seçilen)
         son_logit = adım(tensör([[seçilen * 1.0]]), tensör([sabit_önbellek.konum * 1.0]))
         sabit_önbellek.ilerle(1)

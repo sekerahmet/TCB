@@ -29,7 +29,7 @@ func init() {
 	interp.AddEngine(formats.Register)
 	interp.AddEngine(files.Register)
 	// Tensör motoru (tensör, otomatik türev, katmanlar) çekirdek yerleşiklerini (toplam,
-	// ortalama, min, maks, karekök) sarar; bu yüzden onlardan SONRA kaydedilmelidir.
+	// ortalama, min, max, karekök) sarar; bu yüzden onlardan SONRA kaydedilmelidir.
 	interp.AddEngine(ml.Register)
 	// Parçalayıcı ve veri motorları tensör değerleri üretir; yeni adlar tanımlar.
 	interp.AddEngine(tokenizer.Register)

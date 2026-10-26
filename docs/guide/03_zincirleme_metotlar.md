@@ -6,7 +6,7 @@
 
 Her metodun ve yerleşiğin imzası ve örneği [`docs/codes.md`](../codes.md)'dedir. `.uzunluk`, `.ilk`, `.son` özelliktir, parantezsiz yazılır.
 
-**Metot mu, fonksiyon mu?** Bir değeri dönüştüren ya da ona soru soran iş metottur (`l.uzunluk`, `l.filtrele {...}`, `l.sırala()`, `l.ekle(x)`, `t.devrik()`); matematik ve tensör işi fonksiyondur (`toplam(l)`, `ortalama(l)`, `min(l)`, `maks(l)`, `relu(t)`). Hedef tipin adını taşıyan dönüştürücüler (`tam(x)`, `ondalık(x)`, `metin(x)`) kurucudur, `tip(x)` de genel bir sorudur; ikisi de fonksiyondur. Her işin tek biçimi vardır; öbür biçim yazılınca hata doğrusunu gösterir:
+**Metot mu, fonksiyon mu?** Bir değeri dönüştüren ya da ona soru soran iş metottur (`l.uzunluk`, `l.filtrele {...}`, `l.sırala()`, `l.ekle(x)`, `t.devrik()`); matematik ve tensör işi fonksiyondur (`toplam(l)`, `ortalama(l)`, `min(l)`, `max(l)`, `relu(t)`). Hedef tipin adını taşıyan dönüştürücüler (`tam(x)`, `ondalık(x)`, `metin(x)`) kurucudur, `tip(x)` de genel bir sorudur; ikisi de fonksiyondur. Her işin tek biçimi vardır; öbür biçim yazılınca hata doğrusunu gösterir:
 
 ```text
 'uzunluk(...)' TR'de bir fonksiyon değil; 'x.uzunluk' yazın
@@ -16,7 +16,7 @@ Her metodun ve yerleşiğin imzası ve örneği [`docs/codes.md`](../codes.md)'d
 
 - `l.indirge([başlangıç], fn)` listeyi soldan sağa `fn(birikim, eleman)` ile tek değere indirger: `[1, 2, 3].indirge(0, (a, x) => a + x)` → `6`. Başlangıç verilmezse ilk eleman başlangıçtır; boş listede başlangıç (yoksa `yok`) döner. Fonksiyon son argümandır, böylece sondaki blokla da yazılır; blokta `birikim` önceki sonuç, `o` sıradaki elemandır: `[1, 2, 3].indirge(1) { birikim * o }` → `6`.
 - `ortalama(l)` boş listede ve sayı olmayan elemanda hata verir (`ortalama(): boş listenin ortalaması yoktur`), `toplam(l)` sayı olmayan elemanda hata verir.
-- `l.sırala()` yalnızca sayılardan ya da yalnızca metinlerden oluşan listeyi sıralar; karışık liste hatadır (`liste.sırala(): Tam (2) ile Metin ("a") karşılaştırılamaz; liste yalnızca sayılardan ya da yalnızca metinlerden oluşmalıdır`). `min` ve `maks` sayı olmayan değerde (metin dahil) hata, boş listede `yok` verir.
+- `l.sırala()` yalnızca sayılardan ya da yalnızca metinlerden oluşan listeyi sıralar; karışık liste hatadır (`liste.sırala(): Tam (2) ile Metin ("a") karşılaştırılamaz; liste yalnızca sayılardan ya da yalnızca metinlerden oluşmalıdır`). `min` ve `max` sayı olmayan değerde (metin dahil) hata, boş listede `yok` verir.
 - Metotlar da yerleşikler gibi argüman sayısını ve tipini denetler: `metin.içerir() 1 argüman bekler, 0 verildi (kullanım: metin.içerir(alt))`, `liste.filtrele() 1. argüman olarak Fonksiyon bekler, Tam (3) verildi`.
 - Yerleşikler ve metotlar yalnızca imzalarındaki adlı argümanları kabul eder; bilinmeyen bir adlı argüman sessizce yok sayılmaz: `yazdır() 'ayraç' adında bir parametre almaz (adlı argüman almaz)`, `tensör() 'ölçek' adında bir parametre almaz (geçerli adlar: türev_izle, tür)`.
 

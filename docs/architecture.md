@@ -96,7 +96,7 @@ Yorumlayıcı (`internal/lang/interp`) motorları ve araçları içe aktarmaz; o
 **Motor kaydı.** `internal/stdlib` paketi yüklenirken (`init`) her motoru `interp.AddEngine` ile ekler; her yeni `VM` çekirdek yerleşiklerden sonra motorları eklenme sırasıyla kaydeder. Sıra önemlidir (`internal/stdlib/engines.go`):
 
 1. `formats`, `files`
-2. `ml`: çekirdek yerleşiklerin (toplam, ortalama, min, maks, karekök) tensör sürümleriyle sarıldığı için onlardan sonra
+2. `ml`: çekirdek yerleşiklerin (toplam, ortalama, min, max, karekök) tensör sürümleriyle sarıldığı için onlardan sonra
 3. `tokenizer`, `dataset`: tensör değerleri üretir
 4. `process`, `logging`, `checkpoint`: tek kayıtta, çünkü günlüğün başlangıç kaydı ve kontrol noktası programın komut satırı ayarlarını (`process.State`) kullanır
 

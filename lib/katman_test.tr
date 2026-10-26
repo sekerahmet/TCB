@@ -78,21 +78,21 @@ test "RMSNormKatmanı: şekil, birim ölçek ve türev" {
 
 test "döner konum: normu korur, iç çarpım yalnızca uzaklığa bağlıdır, türevlidir" {
     değişken tablolar = döner_konum_tablosu(8, 4)
-    değişken kos = tablolar[0]
-    değişken sin = tablolar[1]
-    eşit_mi([8, 2], kos.şekil)
+    değişken cos_tablosu = tablolar[0]
+    değişken sin_tablosu = tablolar[1]
+    eşit_mi([8, 2], cos_tablosu.şekil)
     değişken q = rastgele_normal([1, 4], tohum: 1)
     değişken k = rastgele_normal([1, 4], tohum: 2)
     // q'yu ve k'yı bütün konumlara koy: [8, 1 bakış, 4] → [8, 4]
-    değişken Q = döner_konum_uygula(tensör([q.değer döngü i içinde 0..8]), kos, sin).şekillendir([8, 4])
-    değişken K = döner_konum_uygula(tensör([k.değer döngü i içinde 0..8]), kos, sin).şekillendir([8, 4])
+    değişken Q = döner_konum_uygula(tensör([q.değer döngü i içinde 0..8]), cos_tablosu, sin_tablosu).şekillendir([8, 4])
+    değişken K = döner_konum_uygula(tensör([k.değer döngü i içinde 0..8]), cos_tablosu, sin_tablosu).şekillendir([8, 4])
     değişken fark = en_büyük_mutlak_fark(toplam(Q * Q, eksen: -1), toplam(q * q))
     doğrula(fark < 0.00002, "döndürme normu korumalı: {fark}")
     değişken p = Q @ K.devrik() // p[i][j] = <R_i q, R_j k>
     değişken a = p[3][1].değer
     değişken b = p[6][4].değer
     doğrula(mutlak(a - b) < 0.0001, "iç çarpım yalnızca i - j'ye bağlı olmalı: {a} / {b}")
-    fonksiyon f(x) { sonuç döner_konum_uygula(x, kos, sin) }
+    fonksiyon f(x) { sonuç döner_konum_uygula(x, cos_tablosu, sin_tablosu) }
     doğrula(türev_denetle(f, [rastgele_girdi([2, 5, 3, 4], 3)]))
 }
 
@@ -341,7 +341,7 @@ test "GPT: küçük model kopyalama görevini öğrenir (kayıp belirgin düşer
 // ---- Hedef model (RGN) için seçenekler: pencere, qk normu, birleşik KV/[G|U], epsilon, PLE, düzen, eos ----
 
 // en_büyük_mutlak_fark: iki tensörün elemanları arasındaki en büyük mutlak fark.
-fonksiyon en_büyük_mutlak_fark(a, b) { sonuç maks(mutlak(a - b)).değer }
+fonksiyon en_büyük_mutlak_fark(a, b) { sonuç max(mutlak(a - b)).değer }
 
 test "NedenselDikkat: varsayılan seçenekler eski yapıyı verir (kv_katmanı, q_norm, k_norm yok)" {
     değişken d = NedenselDikkat(8, 4, kv_bakış_sayısı: 2, tohum: 1)

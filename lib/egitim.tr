@@ -60,11 +60,11 @@ yapı SıçramaBekçisi {
     fonksiyon geçmiş_uzunluğu() { sonuç kendi.kayıplar.uzunluk }
     fonksiyon aşıyor(geçmiş, değer) {
         değişken m = mutlak(değer)
-        döngü x içinde geçmiş { m = maks(m, mutlak(x)) }
+        döngü x içinde geçmiş { m = max(m, mutlak(x)) }
         eğer m == 0 { sonuç yanlış }
         değişken g = [x / m döngü x içinde geçmiş]
         değişken o = ortalama(g)
-        değişken s = maks(standart_sapma(g), EN_KÜÇÜK_GÖRELİ_SAPMA * mutlak(o))
+        değişken s = max(standart_sapma(g), EN_KÜÇÜK_GÖRELİ_SAPMA * mutlak(o))
         eğer s == 0 { sonuç yanlış } // geçmiş tamamen sıfır: karar yok
         sonuç değer / m > o + kendi.eşik * s
     }

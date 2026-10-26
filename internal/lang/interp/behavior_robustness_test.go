@@ -123,7 +123,7 @@ func TestAsyncTasksStillOverlapDuringSleep(t *testing.T) {
 		döngü i içinde 0..20 {
 			eşzamanlı {
 				bekleyen += 1
-				en_cok = maks(en_cok, bekleyen)
+				en_cok = max(en_cok, bekleyen)
 				bekle(0.2)
 				bekleyen -= 1
 				biten += 1

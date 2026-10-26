@@ -11,12 +11,12 @@ import (
 // korunması, adlı argümanlar, yayınlama, türev ve yol gösteren hatalar.
 
 func TestWideMathReturnTypes(t *testing.T) {
-	out := mustRun(t, `yazdır(tip(silu(1)), tip(tanjant(1)), tip(arksinüs(0.5)), tip(arkkosinüs(0.5)), tip(arktanjant(2)))
-yazdır(tip(sinh(1)), tip(cosh(1)), tip(log1p(1)), tip(log2(4)), tip(log10(10)), tip(üstel_eksi_bir(1)))
-yazdır(tip(silu(tensör([1.0]))), tip(arktanjant2(1, 2)), tip(arktanjant2(tensör([1.0]), 2)))
+	out := mustRun(t, `yazdır(tip(silu(1)), tip(tan(1)), tip(asin(0.5)), tip(acos(0.5)), tip(atan(2)))
+yazdır(tip(sinh(1)), tip(cosh(1)), tip(log1p(1)), tip(log2(4)), tip(log10(10)), tip(expm1(1)))
+yazdır(tip(silu(tensör([1.0]))), tip(atan2(1, 2)), tip(atan2(tensör([1.0]), 2)))
 yazdır(taban(3.7), taban(-3), tavan(-3.7), tavan(2), işaret(-7), işaret(2.5), işaret(0))
 yazdır(sınırla(15, en_fazla: 10), sınırla(-3, en_az: 0), sınırla(5, en_az: 0.5), sınırla(2.5, en_az: 0, en_fazla: 1))
-yazdır(log2(8), log10(1000), arktanjant2(0, -1) == pi, pi > 3.14159 && pi < 3.1416)`)
+yazdır(log2(8), log10(1000), atan2(0, -1) == pi, pi > 3.14159 && pi < 3.1416)`)
 	want := "Ondalık Ondalık Ondalık Ondalık Ondalık\n" +
 		"Ondalık Ondalık Ondalık Ondalık Ondalık Ondalık\n" +
 		"Tensör Ondalık Tensör\n" +
@@ -29,7 +29,7 @@ yazdır(log2(8), log10(1000), arktanjant2(0, -1) == pi, pi > 3.14159 && pi < 3.1
 }
 
 func TestWideMathTensor(t *testing.T) {
-	out := mustRun(t, `değişken i = maks_indeks(tensör([[1, 5], [7, 2]]))
+	out := mustRun(t, `değişken i = argmax(tensör([[1, 5], [7, 2]]))
 yazdır(taban(i).değer, işaret(i - 1).değer, sınırla(i, en_az: 0, en_fazla: 0).değer, sınırla(i, en_fazla: 0.5).değer)
 değişken x = tensör([-2.0, 0.5, 3.0], türev_izle: doğru)
 geri_yayılım(toplam(sınırla(x, en_az: -1, en_fazla: 1) + taban(x) * 5))
@@ -58,9 +58,9 @@ func TestWideMathErrors(t *testing.T) {
 	}{
 		{"silu([1, 2])", messages.H6104},
 		{"taban([1.5])", messages.H6104},
-		{"arktanjant2([1], 2)", messages.H6104},
-		{"arktanjant2(1)", messages.H6116},
-		{"arktanjant2(tensör([1, 2]), tensör([1, 2, 3]))", messages.H6100},
+		{"atan2([1], 2)", messages.H6104},
+		{"atan2(1)", messages.H6116},
+		{"atan2(tensör([1, 2]), tensör([1, 2, 3]))", messages.H6100},
 		{"sınırla(3)", messages.H6112},
 		{"sınırla(3, en_az: 2, en_fazla: 1)", messages.H6113},
 		{"sınırla(3, min: 1)", messages.H7900},
@@ -77,7 +77,7 @@ func TestWideMathErrors(t *testing.T) {
 		{"en_büyük_k(tensör([1, 2]), 1.5)", messages.H6208},
 		{"sıralama_indeksi(tensör([[1, 2]]), eksen: 2)", messages.H6016},
 		{"tensör([1, 2]) < tensör([1, 2, 3])", messages.H6100},
-		{"maks(tensör([1, 2]), 0)", messages.H6205},
+		{"max(tensör([1, 2]), 0)", messages.H6205},
 		{"min(tensör([1, 2]), 0)", messages.H6205},
 	} {
 		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
@@ -138,7 +138,7 @@ yazdır(sonlu_mu(x.türe("bf16")).değer, sonlu_mu(tensör([[1, 2]])).değer)`)
 }
 
 // Kural (15.36): sonlu_mu'nun sonucu karşılaştırmalar gibi her zaman Ondalık 0/1'dir; tam sayılı
-// işaretli girdide (maks_indeks, sıralama_indeksi) de, kaynaştır içindekiyle aynı.
+// işaretli girdide (argmax, sıralama_indeksi) de, kaynaştır içindekiyle aynı.
 // Neden: eskiden tam sayı işareti korunup [1, 1] veriyordu (Gemini kararlılık denetimi, bulgu 5).
 func TestIsFiniteIsAFloatMaskOnIntTensors(t *testing.T) {
 	out := mustRun(t, `değişken idx = sıralama_indeksi(tensör([20.0, 10.0]))

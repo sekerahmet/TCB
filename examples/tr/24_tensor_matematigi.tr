@@ -1,5 +1,5 @@
 // 24 — Tensör matematiği: işlemleri bir tensörün her elemanına uygulamak.
-// Ne öğretir: üstel, log, sinüs gibi matematik fonksiyonlarının tensörde eleman bazlı çalışması,
+// Ne öğretir: exp, log, sin gibi matematik fonksiyonlarının tensörde eleman bazlı çalışması,
 // silu ve log_softmax, toplam/ortalama ile eksen boyunca indirgeme ve boyutu_koru.
 // Önceki örnekten: tensörler (23), matematik (13).
 // Çalıştırma (proje kökünden): tr examples/tr/24_tensor_matematigi.tr
@@ -8,16 +8,16 @@
 // 13'te sayılara uyguladığımız fonksiyonlar tensörde her elemana ayrı ayrı uygulanır.
 // Sonuç yeni bir tensördür; .değer onu TR listesine çevirir.
 değişken x = tensör([0.0, 1.0, 2.0])
-yazdır("üstel:", üstel(x).değer)
+yazdır("exp:", exp(x).değer)
 yazdır("log:", log(x + 1).değer)
-yazdır("sinüs:", sinüs(x).değer, "kosinüs:", kosinüs(x).değer)
-yazdır("tanjant:", tanjant(tensör([0.0, 1.0])).değer)
-yazdır("arksinüs:", arksinüs(tensör([0.0, 0.5])).değer, "arkkosinüs:", arkkosinüs(tensör([1.0, -1.0])).değer)
-yazdır("arktanjant:", arktanjant(tensör([0.0, 1.0])).değer)
-yazdır("arktanjant2:", arktanjant2(tensör([1.0, -1.0]), tensör([0.0])).değer) // yayınlama: (y, x) çiftleri
+yazdır("sin:", sin(x).değer, "cos:", cos(x).değer)
+yazdır("tan:", tan(tensör([0.0, 1.0])).değer)
+yazdır("asin:", asin(tensör([0.0, 0.5])).değer, "acos:", acos(tensör([1.0, -1.0])).değer)
+yazdır("atan:", atan(tensör([0.0, 1.0])).değer)
+yazdır("atan2:", atan2(tensör([1.0, -1.0]), tensör([0.0])).değer) // yayınlama: (y, x) çiftleri
 yazdır("sinh/cosh:", sinh(tensör([0.0, 1.0])).değer, cosh(tensör([0.0, 1.0])).değer)
 yazdır("log2/log10:", log2(tensör([1.0, 1024.0])).değer, log10(tensör([1.0, 100.0])).değer)
-yazdır("küçük sayıda hassas log ve üstel:", log1p(tensör([0.0, 1.0])).değer, üstel_eksi_bir(tensör([0.0, 1.0])).değer)
+yazdır("küçük sayıda hassas log ve üstel:", log1p(tensör([0.0, 1.0])).değer, expm1(tensör([0.0, 1.0])).değer)
 
 // Etkinleştirme fonksiyonları: silu x · sigmoid(x) hesaplar; log_softmax softmax'ın logaritmasını
 // sayısal olarak kararlı biçimde verir.

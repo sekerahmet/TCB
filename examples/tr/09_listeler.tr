@@ -23,7 +23,7 @@ döngü meyve içinde meyveler {
 değişken sayılar = [5, 2, 8, 2, 1, 9, 5, 4]
 yazdır("sıralı:", sayılar.sırala(), "ters:", sayılar.sırala().ters_çevir())
 yazdır("ilk: {sayılar.ilk}, son: {sayılar.son}, benzersiz: {sayılar.benzersiz()}")
-yazdır("toplam: {toplam(sayılar)}, ortalama: {ortalama(sayılar)}, en büyük: {maks(sayılar)}")
+yazdır("toplam: {toplam(sayılar)}, ortalama: {ortalama(sayılar)}, en büyük: {max(sayılar)}")
 
 // Liste üreteci: bir döngüden yeni liste kurar; eğer ile elenebilir.
 yazdır("kareler: {[x * x döngü x içinde 1..=6]}")
