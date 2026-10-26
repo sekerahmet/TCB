@@ -28,6 +28,7 @@ Son kapanan kritik madde: kimliğe yeniden adlandırılan kodların "silinmiş" 
   - İkinci yol: `cmd/tr/e2e/behavior_ready_model_test.go:16` test dizesi `aktar "tr/hazir"` ile başlıyor; test `lib/hazir.tr`'nin asıl davranış testi (transformers'la logit karşılaştırması).
   - Aynı sınıf (alt ajan): `lib/egitim.tr` ve `lib/katman.tr` için `TestGPTTrainingScriptSmoke` ve `TestLibraryModuleCheckAndBuild` görünmüyor. `tr` ikilisini ya da `tr/` önekli aktarımı koşan testler kitaplık dosyasına bağlanmıyor.
   - Neden kritik: kanca `lib/*.tr`'nin ilk düzenlemesinde bu cevabı gösteriyor; adım 3a kitaplığın her dosyasına dokunacak ve asıl testi koşmadan commit'leyebilir (yanlış "yok").
+  - Kör nokta ön denetime de geçiyor (MEKANİK bildirdi, düzeltmeler-4): ön denetim değişen dosyanın testlerini `codegraph changed --go-tests` ile seçiyor (ef1c8792). `lib/` değişince bu üç test seçilmiyor.
   - Beklenen: test dizesindeki (ve testin `tr` ikilisine verdiği betikteki) `aktar "tr/X"` kitaplığın `lib/X.tr` dosyasına test bağı kurar. Sınıfı koruyan test: `lib/` altındaki her dosyanın en az bir davranış testi `tests-for` cevabında. İnce ayardaki "test dizesindeki TR kodu" maddesiyle aynı kök.
 
 ## İnce ayar
@@ -67,6 +68,12 @@ Son kapanan kritik madde: kimliğe yeniden adlandırılan kodların "silinmiş" 
   - DENETİM bunu yanlış kenar sandı. Ana oturumun bulgusu: kenarlar `dispatch.go`'nun kuralıyla doğru. `memberKeys`'i `compiler.member` çağırıyor; onu `*ast.MemberExpression` dalları (`compiler_expr.go:209`, `compiler_assign.go:71`, `compiler_call.go:19`) çağırıyor. Üye erişimi kullanan her TR bildirimi bu yüzden ona bağlanıyor. `who-uses interp.compiler.member` aynı 1175'i veriyor.
   - Sorun gösterim: dikkatli bir okuyucu bile doğru kenarı yanlış sandı. Kenar hangi dil yapısından geldiğini (`MemberExpression`) yazmıyor. 1175 TR bildirimi Go çağıranlarıyla aynı ağırlıkta sıralanıyor.
   - Beklenen: `implemented_by` grubu yapının adıyla tek satır özet olur (`via MemberExpression: 1175 TR declarations`), liste `--all` ile açılır. Yanlış değişikliğe götürmüyor: ince ayar.
+
+- **Düzenlenen dil paketi derlenmezken codegraph cevap veremiyor.** 2026-10-26, MEKANİK bildirdi (düzeltmeler-4 devri). Ana oturum yeniden üretmedi; kök kaynaktan belli.
+  - Durum: `internal/lang/checker`'ın derlenmeyen bir ara hâli (`checker.go` yeni imzayı çağırıyor, `block_values.go` yarım). Kanca `go run ./tools/codegraph tests-for` çalıştırdı ve "too many arguments in call to c.inferIf" ile düştü.
+  - Kök: codegraph TR tarafı için dil paketlerini içe aktarıyor (`go list -deps ./tools/codegraph`). Düzenlenen paket derlenmezken araç kendisi derlenmiyor.
+  - Bu, kritik bölümünden kapanan "dil dosyası bozukken cevap" maddesinin (5d5fa022) Go tarafındaki eşi.
+  - Beklenen: Go grafiği dil paketleri derlenmeden kurulabilir. Cevap, TR tarafının neden eksik olduğunu söyler. Yanlış cevap değil, cevapsızlık: ince ayar.
 
 ## Kalan işler (eksik değil, yeni yetenek)
 
