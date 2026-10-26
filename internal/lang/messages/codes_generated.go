@@ -7,7 +7,7 @@ const (
 	H0001 Code = 1    // '{name}' bilinen bir kimlik değil; kodlu dosyada dilin sözcükleri kimlikleriyle (ör. {example}), kullanıcının adları adlarıyla yazılır
 	H0002 Code = 2    // '$' kaçışı bir adın ya da sayının hemen ardından yazılamaz; önüne bir boşluk ya da işleç koyun
 	H0003 Code = 3    // kaynakta NUL (U+0000) karakteri var; metin dosyalarında bulunmaz, dosya bozuk olabilir
-	H0004 Code = 4    // '{name}' ayrılmış bir ad: 'TR_' ile başlayan adlar dilin ve kitaplığının kimlikleri içindir; başka bir ad seçin (ör. {lower}). Kodlu dosyalar ilk satırdaki '{header}' başlığıyla başlar
+	H0004 Code = 4    // '{name}' ayrılmış bir ad: 'TR_' ile başlayan adlar dilin ve kitaplığının kimlikleri içindir; başka bir ad seçin (ör. {lower}){hint}
 	H0005 Code = 5    // '#' TR'de yorum değil; yorum için '//' yazın
 	H0006 Code = 6    // kapatılmamış yorum: '/*' ile başlayan yorum dosya sonuna kadar '*/' ile kapanmadı
 	H0007 Code = 7    // kapatılmamış ham metin: ` ile başlayan metin dosya sonuna kadar kapanmadı
@@ -17,6 +17,7 @@ const (
 	H0011 Code = 11   // yazı yönünü değiştiren görünmez bir karakter var (U+{hex}); kodun göründüğünden farklı okunmasına yol açabileceği için kaynakta kullanılamaz, karakteri silin
 	H0012 Code = 12   // '{name}' adında görünmez bir harf var (U+{hex}); adı yeniden yazın
 	H0013 Code = 13   // '{name}' adında farklı yazı sistemlerinin harfleri karışık ({first} ve {second}): benzer görünen başka bir adla karışabilir, adı tek bir yazı sistemiyle yazın
+	H0014 Code = 14   // . Kodlu dosyalar ilk satırdaki '{header}' başlığıyla başlar
 	H0100 Code = 100  // Sözdizimi hatası — {error}
 	H0110 Code = 110  // dosya sonu
 	H0111 Code = 111  // bir ad

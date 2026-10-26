@@ -231,12 +231,17 @@ func (l *Lexer) nulChar(line, col int) Token {
 
 // checkReservedName Türkçe yazılmış kaynakta TR_ ile başlayan bir adı (2.3a) hata olarak bildirir.
 // Önek ASCII'dir; küçük harfli öneri bu yüzden bilerek Türkçe kuralla (turkish.Lower) değil
-// strings.ToLower ile üretilir: TR_ için ır_ değil tr_ önerilir.
+// strings.ToLower ile üretilir: TR_ için ır_ değil tr_ önerilir. Ad bilinen bir kimlikse kişi büyük
+// olasılıkla başlıksız kodlu metin yapıştırmıştır: ipucu, okunan metnin dilindeki başlığı anar.
 func (l *Lexer) checkReservedName(lit string, line, col int) {
 	if !codes.IsReservedName(lit) {
 		return
 	}
-	l.addError(line, col, messages.New(messages.H0004, lit, strings.ToLower(lit), CodedHeader+codes.SourceLanguage))
+	var hint *messages.Error
+	if _, err := codes.Parse(lit); err == nil {
+		hint = messages.New(messages.H0014, CodedHeader+l.Language().Code)
+	}
+	l.addError(line, col, messages.New(messages.H0004, lit, strings.ToLower(lit), hint))
 }
 
 // CodedHeader is the start of a coded file's first line (format version 3: the language's words

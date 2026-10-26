@@ -53,6 +53,22 @@ func TestCodedTokens(t *testing.T) {
 	if l := NewBody("TR_fn_print", false); allOf(l) == nil || !hasCode(l.Errs(), messages.H0004) {
 		t.Errorf("Türkçe gövdede ayrılmış ad hatası yok: %v", l.Errors())
 	}
+	// Kodlu dosyanın başlığı yalnız ad bilinen bir kimlikse (başlıksız yapıştırılmış kodlu metin)
+	// anılır; başlığın dili okunan metnin dilidir.
+	if l := NewBody("değişken TR_x = 1", false); allOf(l) == nil || !hasCode(l.Errs(), messages.H0004) || hasCode(l.Errs(), messages.H0014) {
+		t.Errorf("kimlik olmayan ayrılmış ad başlığı anmamalı: %v", l.Errors())
+	}
+	for _, c := range []struct{ lang, text string }{{"tr", "değişken TR_fn_sum = 1"}, {"en", "var TR_fn_sum = 1"}} {
+		lang, err := codes.LoadLanguage(c.lang)
+		if err != nil {
+			t.Fatal(err)
+		}
+		l := NewBodyIn(c.text, false, lang)
+		allOf(l)
+		if !hasCode(l.Errs(), messages.H0014) || !strings.Contains(l.Errors()[0], "dil="+c.lang+"'") {
+			t.Errorf("%s: kimlik olan ayrılmış ad '%s%s' başlığını anmalı: %v", c.lang, CodedHeader, c.lang, l.Errors())
+		}
+	}
 }
 
 // '$ad' kaçışı (2.11): ad anahtar kelime olsa da kullanıcı adıdır; ada bitişik '$' hatadır.
