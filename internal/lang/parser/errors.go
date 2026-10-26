@@ -57,7 +57,7 @@ func tokenDescription(tok lexer.Token) string {
 }
 
 // tokenName iletide bir sözcük biriminin adıdır: dilin sözcüğü (kod taşıyan) iletinin dilinde
-// adlandırılır, içerideki kimliğiyle değil (DENEME, iç biçim kod); kullanıcının adı olduğu gibi.
+// adlandırılır, içerideki kimliğiyle değil; kullanıcının adı olduğu gibi.
 func tokenName(tok lexer.Token) any {
 	if tok.Code != codes.None {
 		return codes.NameRef(tok.Code)

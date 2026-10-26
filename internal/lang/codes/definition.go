@@ -367,7 +367,7 @@ func parseNamed(a []json.RawMessage) (NamedArg, error) {
 	return name, nil
 }
 
-// SourceLanguage is the code of the source language file (Turkish, the canonical language).
+// SourceLanguage Türkçe dil dosyasının kodudur; Türkçe yazım dillerinden biridir (bkz. Source).
 const SourceLanguage = "tr"
 
 // CheckDefinitions checks that the definitions agree with a language file: every code has a

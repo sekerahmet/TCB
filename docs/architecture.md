@@ -43,7 +43,7 @@ messages → turkish → codes → hint → lexer → ast → parser → checker
 | `turkish` | Türkçe harf kuralları, ünlü uyumuna göre ekler, en yakın ad önerisi, dosya hatası metinleri, kod çerçevesi |
 | `codes` | Dilin kullanıcıya görünen bütün adlarının sabit kodları (`TR_fn_print`...); dil dosyaları ve tanım dosyası |
 | `hint` | ASCII yazılan ve başka dillerden alışılmış adların, tanımsız ada en yakın adın ipuçları (tek kaynak) |
-| `lexer` | Sözcük çözümleyici; Türkçe ve kodlu kaynağı okur, konumları Türkçe gösterime göre verir |
+| `lexer` | Sözcük çözümleyici; kodlu kaynağı kimlikleriyle (`TR_fn_print`) okur, konumları istenen görünüme göre verir (kişinin dilindeki görünüm ya da diskteki metin) |
 | `ast` | Sözdizimi ağacı düğümleri; yalnızca veri taşır, konumdan bağımsız döküm yazar |
 | `parser` | Öncelik tabanlı (Pratt) ifade ve özyinelemeli iniş deyim ayrıştırıcısı |
 | `checker` | Çalıştırmadan önce tip denetimi, uyarılar, tanımsız ad denetimi |
@@ -57,7 +57,7 @@ Sıra bir bağımlılık zinciri olduğu kadar bir döngü korumasıdır: sözc�
 `tr egit.tr` yazıldığında olan şudur:
 
 1. **Dosya okunur ve bölünür.** `source.Split` BOM'u ve kodlu biçimin başlığını ayırır. Komut satırı, kabuk, test koşucusu, hata ayıklama sunucusu ve modül yükleyici bir `.tr` dosyasını yalnızca `internal/lang/source` üzerinden okur; başlık kuralları tek yerdedir.
-2. **Sözcüklere ayrılır.** `lexer.New` kaynağı sözcük birimlerine çevirir. Anahtar kelimeler elle yazılmaz, etkin dilin kod listesinden (`codes`) gelir. Kodlu bir dosyada (`TR_fn_print` gibi) kodlar etkin dilin adlarına çevrilir; konumlar hep Türkçe gösterime göredir, böylece hata iletisi, hata ayıklayıcı ve düzenleyici aynı satırı gösterir.
+2. **Sözcüklere ayrılır.** Sözcük çözümleyici kaynağı sözcük birimlerine çevirir. Program içeride kimliklerle çalışır: kodlu dosyanın her dil sözcüğü (`TR_kw_if`, `TR_fn_print`) kimliğiyle okunur; ayrıştırıcı, denetleyici ve yorumlayıcı hiçbir yazım dilinin adını görmez (`codes.Active` kimlik listesidir; koruyan test `TestProgramRunsOnIdentities`). Türkçe, İngilizce ve sonra eklenecek diller yalnızca gösterimdir, hiçbirinin ayrıcalığı yoktur: hata çerçevesi ve hata ayıklayıcı dosyanın kişinin dilindeki (`TR_DIL`) görünümünü gösterir, satır ve sütun o görünüme göredir (17.5). Başlıksız metin bugün Türkçe yazılmış sayılır ve önce kodlu biçime çevrilir (17.7; kalkacak: [yol haritası](roadmap.md) madde 15).
 3. **Ayrıştırılır.** `parser.New` sözdizimi ağacını (`ast`) kurar. Bağlam kuralları (`çık` yalnızca döngüde ...) burada denetlenir; hatalar tek mesaja toplanıp toparlanır.
 4. **Denetlenir.** `source.Prepare` istenirse `checker` ile tip ve ad denetimi yapar. Denetleyici hiçbir şey çalıştırmaz; emin olamadığında susar.
 5. **Derlenir.** `interp` ağacı bir kez Go kapanışlarına derler (`compiler*.go`): değişkenler yuvalara, üye adları kodlara çözülür; çalışma anında ad karşılaştırılmaz.
@@ -74,9 +74,9 @@ Kullanıcıya görünen her ad ve her ileti sabit bir koda bağlıdır; Go kodu 
 | :-- | :-- | :-- |
 | Kod | Kimlik `TR_<sınıf>_<İngilizce ad>` (`TR_kw_if`, `TR_fn_print`, `TR_mem_shape`); sınıf kodun ne olduğunu gösterir | `H` ve dört basamak (`H7003`); binler basamağı alanı gösterir |
 | Dilden bağımsız | `definitions.json`: tür, imza, dönüş tipi, örnek | `definitions.json`: her kodun parametre adları |
-| Dile bağlı | `tr.json` (kaynak dil), `en.json` | `tr.json` (kaynak dil), `en.json` (her kodu taşır; eksik çeviri test hatasıdır) |
+| Dile bağlı | her yazım dilinin bir dosyası: `tr.json`, `en.json` | her yazım dilinin bir dosyası: `tr.json`, `en.json` (her kodu taşır; eksik çeviri test hatasıdır) |
 | Go'dan kullanım | `codes.Name(codes.FnPrint)`, `codes.Find`, `codes.Active` | `messages.New(messages.H7003, ...)`, `messages.Text`, `messages.Has`, `messages.Internal` |
-| Dil | Okuma ve çalışma dili her zaman Türkçe (`codes.Active`); kişinin yazım dili `TR_DIL` (`codes.Display`, `codes.DisplayName`) yalnızca gösterimdir (17.7) | iletilerin dili `TR_DIL` (`messages.LanguageEnvVar`) |
+| Dil | Program kimliklerle okunur ve çalışır (`codes.Active` kimlik listesidir); hiçbir yazım dilinin ayrıcalığı yoktur. Kişinin yazım dili `TR_DIL` (`codes.Display`, `codes.DisplayName`) yalnızca gösterimdir (17.7). Kalan geçici istisna: başlıksız metin ve değerlerin `Inspect` metni Türkçedir (`codes.Source`) | iletilerin dili `TR_DIL` (`messages.LanguageEnvVar`); metni eksik ileti bugün Türkçeye düşer (geçici istisna) |
 
 Yazım kuralları (kod değişmez, ad değişebilir; her işin tek adı; parametreler adlıdır; iç hata `H9000`) paketlerin README'lerindedir: [`codes`](../internal/lang/codes/README.md), [`messages`](../internal/lang/messages/README.md). Yeni ad için [`development.md`](development.md#yeni-kod-ad-isteği), yeni ileti için [`recipes.md`](recipes.md).
 

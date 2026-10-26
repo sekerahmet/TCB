@@ -12,9 +12,10 @@ import (
 // Kodlu biçim (docs/spec/17_kodlar.md, 17.1-17.2): dosya diskte dilden bağımsız kodlarla
 // saklanır. Kodlu kaynakta dilin her sözcüğü kodla yazılır (TR_kw_if, TR_fn_print, .TR_mem_append, TR_arg_lr:); kod
 // olmayan her ad kullanıcının adıdır ve hiçbir zaman anahtar kelime sayılmaz (başka bir
-// dilde yazılmış bir kullanıcı adı TR'nin bir anahtar kelimesiyle aynı olabilir). Kodlar
-// burada, sözcük çözümlemede kanonik (Türkçe) adlarına çevrilir: ayrıştırıcı, denetleyici ve
-// yorumlayıcı kodlu dosyayı Türkçe yazılmış gibi görür; çalışma anına yük gelmez.
+// dilde yazılmış bir kullanıcı adı TR'nin bir anahtar kelimesiyle aynı olabilir). Bir kod
+// çözümleyicinin dilindeki adıyla gelir (codedToken). Program kimlik listesinde okunur (Active):
+// kodlar kimlik kalır, ayrıştırıcı, denetleyici ve yorumlayıcı hiçbir yazım dilinin adını görmez;
+// çalışma anına yük gelmez.
 
 // NewBody returns the lexer for the body of a source file (the text left after
 // internal/lang/source split off the BOM and the coded-form header); kodlu says the body is
@@ -22,10 +23,10 @@ import (
 // the lexer. Unlike New it does not strip a leading U+FEFF: every character of the body is
 // part of the source.
 //
-// In a coded body, positions follow the file's Turkish view (17.5): a code (4 characters) is
-// shown as its name, so every later column on the line shifts by the name's length. A
-// pre-scan finds the shifts (codes inside interpolations included), so error messages, the
-// debugger and the editor report the same line and column as the text the person sees.
+// Kodlu gövdede konumlar çözümleyicinin dilindeki görünüme göredir (17.5): bir kod o dildeki
+// adıyla gösterilir, satırın sonraki sütunları adın uzunluğu kadar kayar; ön tarama kaymaları
+// bulur (yerleştirmelerdeki kodlar dahil). Kimlik listesinde kodun adı diskteki yazımıdır, konumlar
+// diskteki metne göredir; kişinin gördüğü görünümün konumlarını NewBodyView verir (source.view).
 func NewBody(input string, coded bool) *Lexer {
 	if !coded {
 		l := newLexer(input)
@@ -44,10 +45,10 @@ func NewBody(input string, coded bool) *Lexer {
 	return l
 }
 
-// NewBodyIn returns the lexer for a body read in lang: an uncoded body written in lang, or a
-// coded body whose codes read as lang's names (its view in lang). Programs are read in the
-// canonical language (codes.Active, Turkish; NewBody); another writing language is read only to
-// convert text written in it (tr kodla - --dil en, a REPL line) or to show a file in it (17.7).
+// NewBodyIn lang'de okunan gövdenin sözcük çözümleyicisidir: lang'de yazılmış kodsuz gövde ya da
+// kodları lang'deki adlarıyla okunan kodlu gövde. Programlar kimliklerle okunur (codes.Active;
+// NewBody); bir yazım dili yalnızca o dilde yazılmış metni çevirmek (tr kodla - --dil en, kabuk
+// satırı) ya da dosyayı o dilde göstermek için okunur (17.7).
 func NewBodyIn(input string, coded bool, lang *codes.Language) *Lexer {
 	l := NewBody(input, coded)
 	l.lang, l.words = lang, keywordsOf(lang)

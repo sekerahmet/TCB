@@ -10,7 +10,7 @@ import (
 // Değerin metni (3, 17.1): metin(), yazdır ve metin yerleştirmesi bir değeri işlemin yazıldığı
 // dosyanın dilinde metne çevirir (valueText). Dile bağlı olan yalnızca dilin değerlerinin adlarıdır
 // (doğru, yanlış, yok ve tip adları; LanguageText), iç içe kapların içindekiler dahil. Inspect
-// kanonik (Türkçe) kalır: veri biçimleri (JSON, günlük) ve iletiler onu kullanır.
+// bugün Türkçedir (codes.Source; Türkçeye ayrıcalık tanıyan geçici istisna): veri biçimleri (JSON, günlük) ve iletiler onu kullanır.
 
 // LanguageText is a value whose text depends on a writing language: the language's value and
 // type names (doğru, yok, Tam, sonsuz), names of builtins, messages inside the text. Text(lang)
@@ -52,7 +52,7 @@ func DisplayType(v Value) string {
 	return string(v.Type())
 }
 
-// valueText v'nin lang dilinde yazılmış bir dosyadaki metnidir; lang nil kanonik dildir. Dilin
+// valueText v'nin lang dilinde yazılmış bir dosyadaki metnidir; lang nil ise Türkçe (codes.Source; geçici istisna). Dilin
 // sözcüğü olan değerler (LanguageText) her zaman bir dilde çevrilir: fonksiyon, yerleşik ve yapı
 // değerlerinin Inspect'i görüntüdür (TR_DIL), program metni ondan alınmaz. Aynı dili birden çok değer için bir kez soran çağıranlar (yazdır, birleştir,
 // yerleştirme) bunu kullanır.
@@ -138,7 +138,7 @@ func writeContainer(v Value, lang *codes.Language, filePath []Value) string {
 }
 
 // shownName içerideki bir adın (kimlikse: TR_mem_length) lang'deki yazımıdır; kullanıcının adı
-// olduğu gibi (DENEME, iç biçim kod).
+// olduğu gibi.
 func shownName(name string, lang *codes.Language) string {
 	if !codes.IsReservedName(name) {
 		return name

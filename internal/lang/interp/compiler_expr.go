@@ -271,7 +271,7 @@ func (c *compiler) interpolation(pieces []exprCode) exprCode {
 			return &StringVal{Val: sb.String()}, nil
 		}
 	}
-	// Kanonik dil (Türkçe dosya): çekirdek değerlerin metni Inspect'tir; Inspect'i görüntü
+	// Türkçe dosya: çekirdek değerlerin metni Inspect'tir (Inspect bugün Türkçedir, codes.Source); Inspect'i görüntü
 	// olan öbür değerler (fonksiyon, yerleşik, yapı, motor değerleri) valueText'e gider. Sıcak
 	// yol: tip anahtarı somut.
 	return func(v *VM, env *Environment) (Value, error) {

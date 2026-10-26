@@ -22,8 +22,8 @@ var trFile []byte
 //go:embed en.json
 var enFile []byte
 
-// languageFiles gömülü dil dosyalarıdır; tr kaynak dildir ve her kodun metni oradadır. Başka
-// bir dilde metni olmayan kod Türkçe gösterilir.
+// languageFiles gömülü dil dosyalarıdır; tr bugün yedek dildir ve her kodun metni oradadır. Başka
+// bir dilde metni olmayan kod Türkçe gösterilir (Türkçeye ayrıcalık tanıyan geçici istisna).
 var languageFiles = map[string][]byte{"tr": trFile, "en": enFile}
 
 // Catalog is one language's message templates, checked against the definitions.
@@ -108,7 +108,7 @@ func activeCatalog() *Catalog {
 }
 
 // catalogFor iletiyi gösterecek kataloğudur: etkin dil iletiyi ve içindeki bütün kodlu hataları
-// çeviriyorsa o, değilse kaynak dil. Eksik çeviri iletinin bütününü Türkçeye düşürür; çerçevesi
+// çeviriyorsa o, değilse yedek dil (bugün Türkçe). Eksik çeviri iletinin bütününü Türkçeye düşürür; çerçevesi
 // İngilizce içi Türkçe bir satır okunmazdı.
 func catalogFor(code Code, args []any) *Catalog {
 	c := activeCatalog()

@@ -71,7 +71,7 @@ func (t typeNames) MessageText(lang string) string {
 	return messages.OrListIn(l.Code, names...)
 }
 
-// languageNamed iletinin dilinin kod listesidir; bilinmeyen dilde kanonik dil.
+// languageNamed iletinin dilinin kod listesidir; bilinmeyen dilde bugün Türkçe (codes.Source; geçici istisna).
 func languageNamed(lang string) *codes.Language {
 	if l, err := codes.LoadLanguage(lang); err == nil {
 		return l

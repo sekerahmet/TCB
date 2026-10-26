@@ -43,7 +43,7 @@ type Parts struct {
 	// file's only line).
 	HeaderEOL string
 	// Body is the text after the header (if any). Line numbers count from the body (17.5): line
-	// 1 of a coded file is the line under the header, the same as line 1 of the Turkish view.
+	// 1 of a coded file is the line under the header, the same as line 1 of every view.
 	Body string
 }
 
@@ -130,13 +130,13 @@ func (b Parts) Join() string {
 	return sb.String()
 }
 
-// Turkish is the language's own writing language: a file without the coded header is written
-// in Turkish whatever the active language is (17.7). It is the canonical language; when the
-// embedded list could not be built it is the identity fallback and codes.LanguageError says why.
+// Turkish Türkçe yazım dilidir: kodlu başlığı olmayan metin bugün Türkçe yazılmış sayılır (17.7;
+// Türkçeye ayrıcalık tanıyan geçici kural). Gömülü liste kurulamadıysa kimlik listesidir ve
+// codes.LanguageError nedenini söyler.
 func Turkish() *codes.Language { return codes.Source() }
 
 // TextLexer is the lexer of a text written in Turkish without the coded header: the text is
-// converted to coded form first, so the program reads codes (DENEME); a text that cannot be
+// converted to coded form first, so the program reads codes; a text that cannot be
 // converted is read as it is.
 func TextLexer(text string) *lexer.Lexer { return textLexerIn(text, nil, Turkish()) }
 
@@ -160,16 +160,17 @@ func textLexerIn(text string, names []string, lang *codes.Language) *lexer.Lexer
 	return lexer.NewBodyIn(text, false, lang)
 }
 
-// Lexer returns the body's lexer for the text tools (index, formatter, build): for a coded file,
-// one that recognizes codes and whose positions follow the file's Turkish view, the '$' of
-// escaped user names included, so a tool's output does not depend on TR_DIL; for a file written
-// in Turkish, one that reads it in Turkish (the canonical language, whatever TR_DIL is). A
-// program's positions follow the person's view (Prepare, 17.5).
+// Lexer metin araçlarının (biçimlendirici, tr derle) gövde çözümleyicisidir: kodlu dosyada kodları
+// tanıyan ve konumları dosyanın Türkçe görünümüne göre veren (kaçışlı kullanıcı adlarının '$'ı
+// dahil; araç çıktısı TR_DIL'e bağlı olmasın diye), başlıksız dosyada metni Türkçe okuyan
+// çözümleyici. Türkçe görünüm burada Türkçeye ayrıcalık tanıyan geçici bir istisnadır; dilden
+// bağımsız konum diskteki metindir (IdentityLexer). Programın konumları kişinin görünümüne
+// göredir (Prepare, 17.5).
 func (b Parts) Lexer() *lexer.Lexer {
 	if !b.Coded {
-		return lexer.NewBodyIn(b.Body, false, Turkish()) // DENEME (iç biçim kod): metin araçları Türkçe metni okur
+		return lexer.NewBodyIn(b.Body, false, Turkish()) // başlıksız metin Türkçe sayılır (17.7)
 	}
-	_, l := view(b, Turkish()) // DENEME (iç biçim kod): araçların konumları dilden bağımsız olmalı
+	_, l := view(b, Turkish())
 	return l
 }
 
@@ -188,7 +189,7 @@ func (b Parts) IdentityLexer() *lexer.Lexer {
 // scanLexer kodları tanıyan, sütunları yalnızca kod adlarına göre kayan çözümleyicidir:
 // gösterimi kuran çözümleme (analyze) bunu kullanır, gösterim henüz yoktur. Aralıklar
 // (Record.Start/End) Lexer'ınkiyle aynıdır. Kodsuz gövde lang'de yazılmış okunur; kodlu
-// gövdenin kodları kanonik adlarıyla okunur (gösterimin kaçışları kanonik ağaçtan, adlar
+// gövdenin kodları kimlikleriyle okunur (gösterimin kaçışları kimlikli ağaçtan, adlar
 // lang'de aranarak bulunur; checker.NameBindings).
 func (b Parts) scanLexer(lang *codes.Language) *lexer.Lexer {
 	if b.Coded {

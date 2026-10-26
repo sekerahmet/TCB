@@ -14,7 +14,7 @@ olsa bile anahtar kelime sayılmaz. `TR_` ile başlayan adlar dilin kimliklerine
 ayrılmıştır; kullanıcı adı olamaz (2.3a); kodlu gövdede kod listesinde olmayan kimlik sözdizimi hatasıdır. Denetim: `TestCodedTokens`, `TestEscapedName`.
 
 **Konumlar kişinin gördüğü metne göredir.** Satır ve sütun karakter sayar, bayt değil. Kodlu
-dosyada konumlar Türkçe gösterime göre hesaplanır; metin içi yerleştirmelerdeki sözcükler de
+dosyada konumlar istenen görünüme göre hesaplanır (program için kişinin dilindeki görünüm, `NewBodyView`; kimliklerle okunan gövdede diskteki metin, `NewBody`); metin içi yerleştirmelerdeki sözcükler de
 dosyadaki gerçek yerleriyle gelir. Hata mesajı, hata ayıklayıcı ve düzenleyici aynı yeri gösterir. Denetim: `TestLineAndColumnNumbers`, `TestInterpolationPositions`, `TestCodedTokens`.
 
 **Her işin tek yazımı vardır.** Satır yorumu yalnızca `//`'dir; `#` yorum değildir ve açık bir hata

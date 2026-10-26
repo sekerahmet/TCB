@@ -9,21 +9,21 @@ import (
 )
 
 // İki dil vardır (dil tanımı 17.7):
-//   - active, programın okunduğu ve çalıştığı dildir: her zaman Türkçe (kanonik). Sözcük
-//     çözümleyicinin anahtar kelimeleri, yerleşiklerin ve üyelerin kayıt adları, kurucu,
-//     'kendi', örtük blok adları, tür adları ve çalışma anı değerlerinin adları (doğru, tip())
-//     buradan gelir. Böylece bir programın anlamı ve çıktısı onu çalıştıranın yazım diline
-//     bağlı değildir (aynı program her makinede aynı adlara, sözlük anahtarlarına ve dosyalara
-//     ulaşır).
+//   - active, programın okunduğu ve çalıştığı kimlik listesidir (IdentityLanguage), hiçbir
+//     yazım dili değildir: sözcük çözümleyicinin anahtar kelimeleri ve yerleşiklerin, üyelerin
+//     kayıt adları kimliktir (TR_kw_if, TR_fn_print). Böylece bir programın anlamı onu yazanın
+//     ya da çalıştıranın yazım diline bağlı değildir (aynı program her makinede aynı adlara,
+//     sözlük anahtarlarına ve dosyalara ulaşır).
 //   - display, kişinin yazım dilidir (LanguageEnvVar; varsayılan Türkçe): tanı iletileri,
 //     yardım ve komut satırı çıktısı ile kodlu dosyanın görünümü bu dildedir (DisplayName).
+//     Türkçe, İngilizce ve sonra eklenecek diller yalnızca gösterimdir; hiçbirinin ayrıcalığı yoktur.
 // Karşılaştırma: Python ve Swift çalışma anı değerlerini (True, tür adları) hiç yerelleştirmez;
-// Excel formülü kanonik saklar, yalnızca ekranda yerelleştirir. TR de anlamı kanonik tutar,
-// yalnızca gösterimi yerelleştirir. Başka bir yazım dilinde yazılmış metin (tr kodla - --dil en,
-// kabuk satırı) dili açıkça verilerek okunur (lexer.NewBodyIn) ve kanonik biçime çevrilir.
+// Excel formülü kanonik saklar, yalnızca ekranda yerelleştirir. TR de anlamı kodda tutar,
+// yalnızca gösterimi yerelleştirir. Bir yazım dilinde yazılmış metin (tr kodla - --dil en,
+// kabuk satırı) dili açıkça verilerek okunur (lexer.NewBodyIn) ve kodlu biçime çevrilir.
 
 // display LanguageEnvVar'ın seçtiği gösterim dilidir, active programın okunduğu ve çalıştığı
-// kanonik dildir (her zaman Türkçe). Kurulamayan bir dil paketi başlatırken süreci kapatmaz
+// kimlik listesidir. Kurulamayan bir dil paketi başlatırken süreci kapatmaz
 // (paketi kullanan dil sunucusu, codegraph, testler ya da TR'yi gömen bir program da kapanırdı);
 // hata LanguageError ile okunur, tr komutu başlarken onu bildirip çıkar:
 //   - Geçersiz bir TR_DIL seçimi Türkçeye düşer.
@@ -39,10 +39,10 @@ import (
 // LanguageError) saklanır.
 var display, active, displayErr, activeErr = startLanguages(messages.ActiveLanguage(), languages)
 
-// startLanguages gösterim ve kanonik dili langs'tan (dil kodu → dil dosyası; testler bozuk bir
+// startLanguages gösterim dilini ve kimlik listesini langs'tan (dil kodu → dil dosyası; testler bozuk bir
 // dosya verir) kurar.
 func startLanguages(langCode string, langs map[string][]byte) (display, active *Language, displayErr, activeErr error) {
-	// DENEME (iç biçim kod): program içeride kimliklerle çalışır; Türkçe bir yazım dilidir.
+	// Program içeride kimliklerle çalışır; Türkçe yazım dillerinden biridir.
 	source, sourceErr := buildLanguage(langs, SourceLanguage)
 	if sourceErr == nil {
 		sourceErr = complete(source)
@@ -65,7 +65,7 @@ func startLanguages(langCode string, langs map[string][]byte) (display, active *
 	return display, active, displayErr, activeErr
 }
 
-// complete kanonik listede her kodun bir satırı olduğunu denetler: Name eksik kodda paniklerdi,
+// complete Türkçe listede her kodun bir satırı olduğunu denetler: Name eksik kodda paniklerdi,
 // ve sözcük çözümleyici ile denetleyici adları paket başlatılırken ister.
 func complete(d *Language) error {
 	var missing []string
@@ -86,7 +86,7 @@ func complete(d *Language) error {
 var identityPattern = regexp.MustCompile(`^([\p{L}_][\p{L}\p{N}_]*\.)?(` + IdentityPrefix + `[a-z]+_[A-Za-z0-9_]+)(\(\))?$`)
 
 func init() {
-	// DENEME (iç biçim kod): iletiye giren kimlik iletinin dilindeki adıyla yazılır.
+	// İletiye giren kimlik iletinin dilindeki adıyla yazılır.
 	turkish.CandidateSpelling = func(c string) string {
 		if k, err := Parse(c); err == nil && IsReservedName(c) {
 			return Source().Name(k)
@@ -111,7 +111,7 @@ func init() {
 	}
 }
 
-// IdentityLanguage kimlik listesinin dil kodudur: hiçbir yazım dili değildir (DENEME).
+// IdentityLanguage kimlik listesinin dil kodudur: hiçbir yazım dili değildir.
 const IdentityLanguage = "kimlik"
 
 // identityLanguage dil listesi kurulamayınca yerine geçen listedir: her kodun adı kimliğidir

@@ -56,7 +56,7 @@ type Lexer struct {
 	shiftSum []int32
 	shiftIdx int
 	// lang ve words kökte, kodsuz gövdenin yazıldığı dil ve onun anahtar kelimeleridir
-	// (NewBodyIn); nil ise kanonik dil (codes.Active).
+	// (NewBodyIn); nil ise kimlik listesi (codes.Active).
 	lang  *codes.Language
 	words map[string]TokenType
 }

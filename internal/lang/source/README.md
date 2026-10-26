@@ -23,8 +23,8 @@ diline çevrilmesinde gösterim o dilde geri okunur ve aynı kodlu biçimi verme
 UTF-8 ya da kayıp durumunda hata döner ve dosya yazılmaz. Depodaki bütün `.tr` dosyaları ve
 belgelerdeki kod blokları bu denetimden geçmelidir. Denetim: `TestDecodeRefusesLossyView`, `TestEscapeInOtherLanguage`, `TestRepoTRFilesEncodeLossless`, `TestDocCodeBlocksEncodeLossless`.
 
-**Programın anlamı kanonik koda bağlıdır.** Programlar her zaman kanonik kodlarla (Türkçe adlarıyla)
-okunur ve çalışır (17.7; `codes.Active`): kodsuz dosya olduğu gibi, kodlu dosya Türkçe görünümüyle.
+**Programın anlamı koda bağlıdır.** Programlar her zaman kimliklerle (`TR_fn_print`) okunur ve çalışır
+(17.7; `codes.Active` kimlik listesidir): kodlu dosya olduğu gibi, başlıksız metin önce kodlu biçime çevrilerek (bugün Türkçe yazılmış sayılır). Hiçbir yazım dilinin ayrıcalığı yoktur.
 Değerin metni ise dosyanın başlığındaki dildedir (`dil=`, 17.1; `interp.Source.Language`, dil tanımı 3;
 denetleyici de dili `Prepare`'den alır, `Checker.SetFileLanguage`);
 kişinin yazım dili (`TR_DIL`, `codes.Display`) yalnızca görüntüdür. Başka bir dilde yazılmış metin dili açıkça
@@ -34,7 +34,7 @@ yazılmış kabuk satırı (`Options.Typed`). Denetim: `TestUncodedFileIsTurkish
 (cmd/tr/e2e), `TestBodyInLanguage` (lexer), `TestContextWordsFollowLexer` (parser).
 
 **Satırlar her gösterimde aynıdır.** Satır numaraları başlıktan sonra sayılır: kodlu dosyanın 1.
-satırı, Türkçe gösterimin 1. satırıdır. Denetim: `TestCodedFilePrepares`, `TestEncodeKeepsLineStructure`.
+satırı, her gösterimin 1. satırıdır. Denetim: `TestCodedFilePrepares`, `TestEncodeKeepsLineStructure`.
 
 ## Testler
 

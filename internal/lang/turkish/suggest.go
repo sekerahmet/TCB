@@ -74,7 +74,7 @@ func Distance(a, b string, bound int) int {
 // "Did you mean?"). A Turkish/ASCII letter difference (degisken ↔ değişken) is not counted
 // as an error. Returns "" when no candidate is close enough. Ties go to the alphabetically
 // first candidate (deterministic).
-// CandidateSpelling bir adayın karşılaştırılan yazımıdır (kimlik → Türkçe adı); codes paketi kurar (DENEME).
+// CandidateSpelling bir adayın karşılaştırılan yazımıdır (kimlik → Türkçe adı); codes paketi kurar.
 var CandidateSpelling func(string) string
 
 func Closest(wanted string, candidates []string) string {
@@ -94,7 +94,7 @@ func Closest(wanted string, candidates []string) string {
 		}
 		spelled := a
 		if CandidateSpelling != nil {
-			spelled = CandidateSpelling(a) // DENEME (iç biçim kod): kimlik Türkçe yazımıyla karşılaştırılır
+			spelled = CandidateSpelling(a) // kimlik bugün Türkçe yazımıyla karşılaştırılır
 		}
 		if spelled == wanted {
 			continue

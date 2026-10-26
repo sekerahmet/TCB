@@ -21,9 +21,9 @@ ad iletiye kodla verilir (`codes.NameRef`, `interp.CallName`, `bind.Named`; dene
 (`go run ./tools/gen/msgconsts`); katalogda olmayan kod derlemeyi düşürür. Denetim: `TestMessageUsage`, `TestGeneratedUpToDate` (tools/gen/msgconsts).
 
 **Dosyalar.** `definitions.json` dilden bağımsızdır: her kodun parametre adları
-(`"H7003": { "param": ["fn", "path"] }`; adlar İngilizce tanımlayıcıdır). `tr.json` kaynak dildir
-ve her kodun metnini tutar; başka bir dil dosyası (`en.json` ...) çevirisi olmayan kodu Türkçe
-gösterir. Etkin dil `TR_DIL` ortam değişkenidir (adlarla aynı: `--dil en`); dosyadan tahmin edilmez.
+(`"H7003": { "param": ["fn", "path"] }`; adlar İngilizce tanımlayıcıdır). Her yazım dilinin bir dosyası vardır
+(`tr.json`, `en.json` ...); `tr.json` her kodun metnini tutar ve bugün yedektir: başka bir dil dosyası çevirisi olmayan kodu Türkçe
+gösterir (hiçbir yazım dilinin ayrıcalığı olmaması ilkesine aykırı geçici istisna). Etkin dil `TR_DIL` ortam değişkenidir (adlarla aynı: `--dil en`); dosyadan tahmin edilmez.
 Her kod bir satırdır, kodlar artan sıradadır. Denetim: `TestEmbeddedCatalogValid`, `TestFilesOneCodePerLine`, `TestDefinitionParamsAreASCIIIdentifiers`, `TestUnknownLanguageFallsBack`.
 
 **Şablon** (ICU MessageFormat'ın alt kümesi; çevirmen araçları tanır):
@@ -63,7 +63,7 @@ adla anıldığı için serbesttir. Denetim: `TestRender`, `TestPlural`, `TestSe
 3. Hâl eki olan bir dilse çekimcisini kendi dilbilgisi paketinden `messages.RegisterInflector` ile kaydet.
 4. `go test ./internal/lang/messages` her şablonu ve parametreyi denetler; çevrilmemiş kod Türkçeye düşer.
 
-**Bir ileti tek dildedir.** Süreç dili `TR_DIL`'den bir kez okunur (`messages.ActiveLanguage`; `codes` da bunu kullanır, adlar ve iletiler aynı dildedir). Bir iletinin ya da içindeki kodlu hatalardan (`*Error`, `*PosError`) birinin etkin dilde metni yoksa iletinin bütünü kaynak dilde (Türkçe) gösterilir; iç ileti dıştakinin dilinde yazılır. Bu yüzden ileti değerine metin (`messages.Text`) değil kodlu hata (`messages.New`) geçirilir. Denetim: `TestFallbackKeepsOneLanguage`, `TestLanguageReadOnce`.
+**Bir ileti tek dildedir.** Süreç dili `TR_DIL`'den bir kez okunur (`messages.ActiveLanguage`; `codes` da bunu kullanır, adlar ve iletiler aynı dildedir). Bir iletinin ya da içindeki kodlu hatalardan (`*Error`, `*PosError`) birinin etkin dilde metni yoksa iletinin bütünü yedek dilde (bugün Türkçe) gösterilir; iç ileti dıştakinin dilinde yazılır. Bu yüzden ileti değerine metin (`messages.Text`) değil kodlu hata (`messages.New`) geçirilir. Denetim: `TestFallbackKeepsOneLanguage`, `TestLanguageReadOnce`.
 
 İngilizce: `en.json` her kodun metnini taşır (1648/1648); `TR_DIL=en` ile gösterilir. `en.json`'da olmayan kod hatadır; yeni kod `tr.json`'la birlikte `en.json`'a da yazılır. Denetim: `TestEnglishCoversEveryCode`.
 

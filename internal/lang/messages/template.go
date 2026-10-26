@@ -464,7 +464,7 @@ func (c *Catalog) listText(a any, text string) string {
 	return text
 }
 
-// IdentityNames metindeki kimlikleri lang'deki adlarıyla değiştirir; codes paketi kurar (DENEME).
+// IdentityNames metindeki kimlikleri lang'deki adlarıyla değiştirir; codes paketi kurar.
 var IdentityNames func(text, lang string) string
 
 // codedText değer bir kodlu hataysa onun bu katalogdaki metnidir: iç ileti dıştakiyle aynı
@@ -473,7 +473,7 @@ var IdentityNames func(text, lang string) string
 func (c *Catalog) codedText(a any) (string, bool) {
 	switch e := a.(type) {
 	case string:
-		// DENEME (iç biçim kod): metindeki kimlikler (TR_fn_print) iletinin dilindeki adıyla
+		// Metindeki kimlikler (TR_fn_print) iletinin dilindeki adıyla
 		// yazılır; kimlik kullanıcı adı olamaz (2.3a), bu yüzden değiştirmek güvenlidir.
 		if IdentityNames != nil && strings.Contains(e, "TR_") {
 			return IdentityNames(e, c.Language), true

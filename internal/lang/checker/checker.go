@@ -117,7 +117,7 @@ func (c *Checker) defineName(name string, kind nameKind, line int, info TypeInfo
 // checkShadowing ad bir yerleşik fonksiyonun adıysa (sözlükte fn yerleşik kodu) uyarı
 // ekler: kullanıcı tanımı o kapsamda yerleşiği gölgeler; yerleşik orada artık çağrılamaz.
 func (c *Checker) checkShadowing(name string, line int) {
-	// DENEME (iç biçim kod): kullanıcının adı dosyanın yazım dilinde bir yerleşiğin adı mı?
+	// Kullanıcının adı dosyanın yazım dilinde bir yerleşiğin adı mı?
 	lang := codes.Source()
 	if l, err := codes.LoadLanguage(c.fileLanguage); err == nil && c.fileLanguage != "" {
 		lang = l

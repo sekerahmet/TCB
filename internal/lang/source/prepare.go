@@ -42,10 +42,10 @@ type Options struct {
 // the tree built up to that stage (it may be incomplete after a syntax error).
 type Result struct {
 	Parts
-	// Text is the source text for error frames, the debugger and the interpreter: the body of
-	// a file written in Turkish, the Turkish (canonical) view of a coded body or of a REPL
-	// line typed in another writing language. Lines and columns in error messages refer to
-	// this text (17.5).
+	// Text hata çerçevelerinin, hata ayıklayıcının ve yorumlayıcının kaynak metnidir: gövdenin
+	// kişinin dilindeki (codes.Display, TR_DIL) görünümü; başlıksız metin ve kabuk satırı önce
+	// kodlu biçime çevrilir, çevrilemeyen metin olduğu gibi kalır. Hata iletilerindeki satır ve
+	// sütun bu metne göredir (17.5).
 	Text    string
 	Program *ast.Program
 	Stage   string
@@ -63,14 +63,14 @@ func Prepare(text string, s Options) *Result {
 	r := &Result{Parts: b, Text: b.Body}
 	lex := b.Lexer
 	coded := b
-	// DENEME (iç biçim kod): kodsuz dosya Türkçe yazılmış metindir, kabuk satırı kişinin dilindedir;
+	// Başlıksız dosya bugün Türkçe yazılmış sayılır (17.7), kabuk satırı kişinin dilindedir;
 	// ikisi de kodlu biçime çevrilip okunur (içeride kimlikler).
 	lang, _ := codes.LoadLanguage(codes.SourceLanguage)
 	if s.Typed {
 		lang = codes.Display()
 	}
 	if !b.Coded && err == nil && lang != nil {
-		// Kabuğa yazılan satır kişinin yazım dilindedir: kodlu biçime, oradan kanonik
+		// Kabuğa yazılan satır kişinin yazım dilindedir: kodlu biçime, oradan kişinin
 		// görünümüne çevrilir (kodlu dosya gibi). Ayrıştırılamayan satır o dilde okunur;
 		// sözdizimi hataları satırın kendi metnine göredir.
 		if coded, err = toCoded(b, lang, s.GlobalNames, s.GlobalDynamic); err != nil {

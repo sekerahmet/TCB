@@ -57,14 +57,14 @@ func (v *VM) mainSource() *Source {
 
 // textLanguage şu an çalışan kodun dosyasının yazım dilidir: değerler o dosyada bu dilde metne
 // çevrilir (sözcüksel kural, 3; kitaplık fonksiyonu kitaplığın, geri çağırma kendi dosyasının
-// dilinde). nil kanonik dildir (Türkçe): değerin metni Inspect'tir.
+// dilinde). nil'de değerin metni Inspect'tir (bugün Türkçe, codes.Source).
 func (v *VM) textLanguage() *codes.Language {
 	language := v.SourceLanguage
 	if v.source != nil {
 		language = v.source.Language
 	}
 	if language == "" || language == codes.SourceLanguage {
-		return codes.Source() // DENEME (iç biçim kod): Türkçe bir yazım dilidir, kanonik değil
+		return codes.Source() // Türkçe yazım dillerinden biridir
 	}
 	l, err := codes.LoadLanguage(language)
 	if err != nil {

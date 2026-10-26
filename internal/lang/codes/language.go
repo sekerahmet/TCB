@@ -456,13 +456,13 @@ func WritingNames(k Code) []string {
 	return names
 }
 
-// Active returns the canonical language programs are read and run in: always Turkish (see
-// display for the person's writing language).
+// Active programın okunduğu ve çalıştığı kimlik listesidir (IdentityLanguage): hiçbir yazım dili
+// değildir; kişinin yazım dili Display'dir.
 func Active() *Language { return active }
 
-// Source returns the Turkish writing language: the language of text written without the coded
-// header and of every text the canonical language used to give (Inspect, the Turkish view).
-// The program itself runs in identities (Active, DENEME).
+// Source Türkçe yazım dilidir. Bugün başlıksız metnin dili (17.7) ve Türkçe kalan metinlerin
+// (Inspect, metin araçlarının Türkçe görünümü) dilidir; bunlar Türkçeye ayrıcalık tanıyan geçici
+// istisnalardır. Program içeride kimliklerle çalışır (Active).
 func Source() *Language {
 	if l, err := LoadLanguage(SourceLanguage); err == nil {
 		return l

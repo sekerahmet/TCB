@@ -25,7 +25,7 @@ func floatToInt(name any, f float64) (int64, error) {
 }
 
 // ParseNonFinite reads s as lang's name of an infinite or undefined number (TR_val_inf, TR_val_nan; an
-// infinity may carry '+' or '-'); nil lang is the canonical language. It reads back a number's
+// infinity may carry '+' or '-'); nil lang is Turkish (codes.Source; a temporary exception). It reads back a number's
 // text in a file's language (ondalık("sonsuz") in a Turkish file) and, over every language, a
 // command-line value (17.8).
 func ParseNonFinite(s string, lang *codes.Language) (float64, bool) {

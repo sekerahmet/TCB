@@ -152,7 +152,7 @@ Bu bölüm [`docs/roadmap.md`](../../../docs/roadmap.md) Evre 6'daki "VS Code di
 
 Her satır, kaynağın resmi belgesinden okunmuştur (okuma tarihi 2026-10-21). Sürüm, sayfanın kendisinde görünüyorsa yazılıdır; görünmüyorsa "sürüm sayfada yok" denir. **Al** = TR'ye olduğu gibi ya da küçük uyarlamayla girer; **Uyarla** = fikri alır, biçimi TR'ye göre değiştiririz; **Alma** = bilerek almıyoruz (gerekçesiyle).
 
-TR'nin bu karar için ilgili özellikleri: tek dil, dinamik tipli (bugün tip çıkarımı yok), yapıların kalıtımı/arayüzü yok, çoğu çağrı ad ile çözülür, `x.metot()` alıcı tipi bilinmez; dosyalar Türkçe ya da kodlu yazılır, konumlar Türkçe gösterime göredir; kullanıcılar ve ajanlar dizine komut satırından da sorar.
+TR'nin bu karar için ilgili özellikleri: tek dil, dinamik tipli (bugün tip çıkarımı yok), yapıların kalıtımı/arayüzü yok, çoğu çağrı ad ile çözülür, `x.metot()` alıcı tipi bilinmez; dosyalar diskte kodludur (başlıksız metin bugün Türkçe okunur), dizin kimliklerle kurulur ve konumlar diskteki metne göredir; kullanıcılar ve ajanlar dizine komut satırından da sorar.
 
 ### 1. Protokoller ve dizin biçimleri
 
