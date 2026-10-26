@@ -173,6 +173,18 @@ func (b Parts) Lexer() *lexer.Lexer {
 	return l
 }
 
+// IdentityLexer returns the body's lexer as the interpreter reads it, for tools that keep a program's
+// facts independent of the reader's language (the code index): names that are language elements come as
+// identities (TR_fn_print), user names as written. A coded body is read as it is; a body without the
+// coded header is written in Turkish (17.7) and is encoded first, as the interpreter does. Positions
+// follow the text on disk (a coded line counts an identity's length).
+func (b Parts) IdentityLexer() *lexer.Lexer {
+	if b.Coded {
+		return lexer.NewBody(b.Body, true)
+	}
+	return TextLexer(b.Body)
+}
+
 // scanLexer kodları tanıyan, sütunları yalnızca kod adlarına göre kayan çözümleyicidir:
 // gösterimi kuran çözümleme (analyze) bunu kullanır, gösterim henüz yoktur. Aralıklar
 // (Record.Start/End) Lexer'ınkiyle aynıdır. Kodsuz gövde lang'de yazılmış okunur; kodlu

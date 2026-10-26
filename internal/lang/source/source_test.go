@@ -2,8 +2,10 @@ package source
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -46,4 +48,19 @@ func TestHeaderRules(t *testing.T) {
 func hasPos(err error, line, col int) bool {
 	l, c, ok := messages.Pos(err)
 	return ok && l == line && c == col
+}
+
+// Kural: IdentityLexer gövdeyi yorumlayıcının okuduğu gibi verir: dilin öğesi kimliğiyle gelir (kodlu gövdede yazıldığı
+// gibi, başlıksız Türkçe gövdede önce kodlanarak), kullanıcının adı yazıldığı gibi; sütunlar diskteki metne göredir.
+func TestIdentityLexerReadsIdentitiesAtDiskPositions(t *testing.T) {
+	for _, c := range []struct {
+		body  string
+		paren int // `(` belirtecinin diskteki sütunu
+	}{{"TR_fn_print(adet)", 12}, {"yazdır(adet)", 7}} {
+		l := Parts{Body: c.body, Coded: strings.HasPrefix(c.body, "TR_")}.IdentityLexer()
+		name, open, user := l.NextToken(), l.NextToken(), l.NextToken()
+		if name.Code != codes.FnPrint || name.Literal != "TR_fn_print" || open.Column != c.paren || user.Literal != "adet" {
+			t.Errorf("%q: %+v %+v %+v; want the identity TR_fn_print, `(` at column %d, the user name adet", c.body, name, open, user, c.paren)
+		}
+	}
 }

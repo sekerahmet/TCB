@@ -5,7 +5,6 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 )
@@ -42,14 +41,11 @@ func readIn(text string, module bool) *parsed {
 	if l, err := codes.LoadLanguage(b.Language); err == nil && b.Coded {
 		res.lang = l
 	}
-	var lex *lexer.Lexer
 	if b.Coded {
-		body := "\n" + b.Body // başlık satırının yerine boş satır: konumlar dosyadaki gerçek satır olur
-		res.lines, lex = strings.Split(body, "\n"), lexer.NewBody(body, true)
-	} else {
-		res.lines, lex = strings.Split(b.Body, "\n"), source.TextLexer(b.Body)
+		b.Body = "\n" + b.Body // başlık satırının yerine boş satır: konumlar dosyadaki gerçek satır olur
 	}
-	p := parser.New(lex)
+	res.lines = strings.Split(b.Body, "\n")
+	p := parser.New(b.IdentityLexer())
 	p.RecordRoles()
 	if module {
 		res.program = p.ParseModule()
