@@ -42,6 +42,9 @@ type goExtractor struct {
 	fieldUses []rawFieldUse     // çözülmeyi bekleyen alan erişimleri
 	env       map[string]string // ortam değişkeni adı -> ortam değişkeninin ad kodu (env_names.go)
 	codeKeys  map[string]string // ad kodu sabitinin adı -> dil dosyasındaki anahtarı (codeConstKeys)
+	// codeAliases bir ad kodu sabitine eşitlenmiş sabitlerdir (`memberSkip = codes.MemSkip`): paket yolu.ad -> kodun
+	// anahtarı (codeAliasKeys).
+	codeAliases map[string]string
 	consumed  map[*ast.BasicLit]bool
 	nameReads map[*ast.Ident]bool // codes paketine argüman olarak verilen ad kodu sabitleri (noteNameReads)
 	// rangeVals dize sabiti listesi üzerinde dönen döngü değişkenleri ve alabildikleri değerlerdir
@@ -104,6 +107,7 @@ func extractGo(m *module, b *builder) *goIndex {
 		scans: newScanState(),
 	}, fieldAt: map[string]string{}, env: envCodes(m.Root), codeKeys: codeConstKeys(m.Root), consumed: map[*ast.BasicLit]bool{}, nameReads: map[*ast.Ident]bool{}, rangeVals: map[types.Object][]string{},
 		strConsts: map[string][]string{}, strConstPkg: map[string]string{}}
+	x.codeAliases = x.codeAliasKeys()
 	for _, u := range m.Units {
 		x.unit(u)
 	}
