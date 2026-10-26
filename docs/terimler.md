@@ -24,7 +24,7 @@ Bir ad kod listesinde (`internal/lang/codes/tr.json`) birden çok canlı koda ve
 - **aynı anlam:** kodlar aynı işi ya da aynı kavramı adlandırır (`yardım` komutu, seçeneği ve hata ayıklayıcı komutu).
 - **ayrı alan:** biri komut satırının (`tr` komutları, seçenekleri, kabuk ve hata ayıklayıcı komutları: `cmd`, `sub`, `opt`, `repl`, `dbg`, `env` sınıfları), öbürü dilin adıdır; ikisi aynı metinde karşılaşmaz.
 
-Dilin kendi içinde farklı işe aynı ad verilmez: tensörleri uç uca ekleyen fonksiyon bu yüzden `bitiştir`dir (liste metodu `.birleştir` metin yapar), türev denetiminin fark büyüklüğü `fark_adımı`dır (`adım` eğitim adımıdır). `internal/doc_terms_test.go` (`TestSharedNamesListed`) aynı adı taşıyan her canlı kod grubunun bu tabloda bulunduğunu, tablonun güncel olduğunu ve "ayrı alan" gerekçesinin gerçekten bir komut satırı koduyla bir dil kodunu ayırdığını denetler. Yeni bir eş ad bu tabloya gerekçesiyle girmeden kod listesine giremez.
+Dilin kendi içinde farklı işe aynı ad verilmez: tensörleri uç uca ekleyen fonksiyon bu yüzden `bitiştir`dir (liste metodu `.birleştir` metin yapar), türev denetiminin fark büyüklüğü `fark_adımı`dır (`adım` eğitim adımıdır). `internal/doc_terms_test.go` (`TestSharedNamesListed`) aynı adı taşıyan her canlı kod grubunun bu tabloda bulunduğunu, tablonun güncel olduğunu ve "ayrı alan" gerekçesinin gerçekten bir komut satırı koduyla bir dil kodunu ayırdığını denetler. Yeni bir eş ad bu tabloya gerekçesiyle girmeden kod listesine giremez. Bir istisna tabloya yazılmaz: yalnız **özellik** türündeki üye kodlarıyla adlı argüman kodlarından oluşan ve İngilizce adları da aynı olan grup kendiliğinden aynı anlamdır (alan ile onu kuran adlı argüman tek kavramdır, Python dataclass'ında olduğu gibi: `öğrenme_oranı`: `TR_arg_lr` ve `TR_mem_lr`). Metot içeren grup bu kurala girmez, tabloya yazılır (`TR_mem_step` metodu); İngilizce adları ayrılan çift de tabloya yazılır. Kurala giren grubun satırı tabloda kalmaz.
 
 | Ad | Kodlar | Gerekçe |
 | :-- | :-- | :-- |
@@ -42,7 +42,6 @@ Dilin kendi içinde farklı işe aynı ad verilmez: tensörleri uç uca ekleyen 
 | tür | TR_arg_dtype, TR_mem_dtype, TR_opt_kind | ayrı alan: TR_opt_kind `tr dizin`'de düğüm türü; TR_arg_dtype ile TR_mem_dtype aynı anlamda tensörün veri türüdür |
 | yardım | TR_cmd_help, TR_dbg_help, TR_opt_help | aynı anlam: yardım metni (komut, seçenek, hata ayıklayıcı) |
 | çıkış | TR_dbg_quit, TR_repl_exit | aynı anlam: kabuktan ve hata ayıklayıcıdan çıkmak |
-| öğrenme_oranı | TR_arg_lr, TR_mem_lr | aynı anlam: iyileştiricinin öğrenme oranı (adlı argüman ve özellik) |
 
 ## İleride karar verilecek
 

@@ -126,6 +126,7 @@ func TestSharedNamesListed(t *testing.T) {
 		t.Fatal(err)
 	}
 	listed := sharedNameRows(t, string(table))
+	en := englishLanguage(t)
 	groups := map[string][]codes.Code{}
 	for _, k := range codes.Codes() {
 		groups[codes.Source().Name(k)] = append(groups[codes.Source().Name(k)], k)
@@ -135,6 +136,12 @@ func TestSharedNamesListed(t *testing.T) {
 			continue
 		}
 		row, ok := listed[name]
+		if sameMeaningByRule(ks, en) {
+			if ok {
+				t.Errorf("%q (%v) özellik ile adlı argümanın kuralına giriyor; docs/terimler.md'deki satırı silinmeli", name, ks)
+			}
+			continue
+		}
 		if !ok {
 			t.Errorf("%q birden çok koda verilmiş (%v) ama docs/terimler.md eş adlar tablosunda yok", name, ks)
 			continue
@@ -149,6 +156,27 @@ func TestSharedNamesListed(t *testing.T) {
 	for name := range listed {
 		if len(groups[name]) < 2 {
 			t.Errorf("docs/terimler.md eş adlar tablosunda %q var ama ad artık tek koda ait", name)
+		}
+	}
+}
+
+// Kural (docs/terimler.md "Eş adlar", madde 15 Ç12): yalnız özellik türünde üye kodlarıyla adlı
+// argüman kodlarından oluşan ve İngilizce adları da aynı olan grup kendiliğinden "aynı anlam"
+// sayılır; İngilizce adı farklı çift, metot içeren grup ve tek sınıflı grup tabloya ister.
+func TestSharedNamesRuleNeedsAPropertyAndTheSameEnglishName(t *testing.T) {
+	en := englishLanguage(t)
+	for _, c := range []struct {
+		ks   []codes.Code
+		want bool
+	}{
+		{[]codes.Code{codes.ArgLr, codes.MemLr}, true},
+		{[]codes.Code{codes.ArgDtype, codes.MemDtype}, true},
+		{[]codes.Code{codes.ArgLr, codes.MemDtype}, false},  // İngilizce adları farklı
+		{[]codes.Code{codes.ArgStep, codes.MemStep}, false}, // metot
+		{[]codes.Code{codes.ArgLr, codes.ArgDtype}, false},  // özellik yok
+	} {
+		if got := sameMeaningByRule(c.ks, en); got != c.want {
+			t.Errorf("%v: kural %v vermeli, verdi %v", c.ks, c.want, got)
 		}
 	}
 }
@@ -194,6 +222,38 @@ func codeList(ks []codes.Code) string {
 	}
 	sort.Strings(s)
 	return strings.Join(s, ", ")
+}
+
+// sameMeaningByRule grubun tabloya yazılmadan "aynı anlam" sayılıp sayılmadığını söyler: grup
+// yalnız özellik türünde üye kodlarıyla adlı argüman kodlarındandır, ikisinden de vardır ve
+// İngilizce adları da aynıdır. Alan ile aynı adlı kurucu parametresi tek kavramdır (Python
+// dataclass); metot içeren grup bu kurala girmez, elle yazılır.
+func sameMeaningByRule(ks []codes.Code, en *codes.Language) bool {
+	var property, arg bool
+	for _, k := range ks {
+		d, _ := codes.DefinitionOf(k)
+		switch {
+		case k.Class() == codes.ClassMember && d.Kind == codes.KindProperty:
+			property = true
+		case k.Class() == codes.ClassNamedArg:
+			arg = true
+		default:
+			return false
+		}
+		if en.Name(k) != en.Name(ks[0]) {
+			return false
+		}
+	}
+	return property && arg
+}
+
+func englishLanguage(t *testing.T) *codes.Language {
+	t.Helper()
+	en, err := codes.LoadLanguage("en")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return en
 }
 
 func mixesCommandLine(ks []codes.Code) bool {
