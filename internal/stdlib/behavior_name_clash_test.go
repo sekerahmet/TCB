@@ -62,10 +62,13 @@ var clashPlaces = []clashPlace{
 	{name: "değişken", namespaces: global, main: "değişken ad_1 = 5\nyazdır(ad_1 + 1)\n"},
 	{name: "fonksiyon", namespaces: global, main: "fonksiyon ad_1(x) {\n    sonuç x * 2\n}\nyazdır(ad_1(3))\n"},
 	{name: "parametre", namespaces: global, main: "fonksiyon f(ad_1) {\n    sonuç ad_1 * 2\n}\nyazdır(f(3))\n"},
+	{name: "döngü_değişkeni", namespaces: global, main: "döngü ad_1 içinde [1, 2] {\n    yazdır(ad_1)\n}\n"},
 	{name: "blok_parametresi", namespaces: global, main: "yazdır([1, 2].haritala((ad_1) => ad_1 * 2))\n"},
 	{name: "yakala_adı", namespaces: global, main: "dene {\n    fırlat \"x\"\n} yakala ad_1 {\n    yazdır(ad_1)\n}\n"},
 	{name: "takma_ad", namespaces: global, module: "değişken ad_2 = 1\n", main: "aktar \"m\" olarak ad_1\nyazdır(ad_1.ad_2)\n"},
 	{name: "değer", namespaces: value, main: "yazdır(ad_1)\n", neutralFails: true},
+	// Metin yerleştirmesinin içi kod olarak okunur: değer yeridir.
+	{name: "yerleştirme", namespaces: value, main: "yazdır(\"{ad_1}\")\n", neutralFails: true},
 	{name: "yapı", namespaces: value, main: "yapı ad_1 {\n    a\n}\ndeğişken p: ad_1 = ad_1(a: 1)\nyazdır(p.a)\n"},
 	{name: "tip_açıklaması", namespaces: []codes.Namespace{codes.NamespaceType}, main: "değişken x: ad_1 = 1\nyazdır(x)\n", neutralFails: true},
 	{name: "alan", namespaces: member, main: "yapı P {\n    ad_1\n}\ndeğişken p = P(ad_1: 1)\nyazdır(p.ad_1)\n"},
