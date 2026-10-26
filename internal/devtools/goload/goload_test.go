@@ -5,6 +5,7 @@ import (
 	"go/parser"
 	"go/types"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 )
@@ -133,6 +134,44 @@ func TestRecvExprNameStripsPointersParensAndTypeArguments(t *testing.T) {
 		}
 		if got := RecvExprName(e); got != want {
 			t.Errorf("RecvExprName(%s) = %q, want %q", src, got, want)
+		}
+	}
+}
+
+// Kural: SkipIgnored ile git'in yok saydığı klasördeki paket (.gitignore: scratch/) yüklenmez; henüz eklenmemiş ama
+// yok sayılmayan paket yüklenir. Seçeneksiz yükleme ikisini de görür (go list'in kendisi).
+func TestSkipIgnoredLeavesOutPackagesGitIgnores(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git yok")
+	}
+	dir := writeModule(t)
+	for name, body := range map[string]string{
+		".gitignore":     "scratch/\n",
+		"scratch/c/c.go": "package c\n\nfunc C() int { return 3 }\n",
+		"yeni/yeni.go":   "package yeni\n\nfunc Y() int { return 4 }\n",
+	} {
+		if err := os.MkdirAll(filepath.Dir(filepath.Join(dir, name)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, filepath.FromSlash(name)), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, args := range [][]string{{"init", "-q"}, {"add", "go.mod", "a", "b", ".gitignore"}} {
+		if out, err := exec.Command("git", append([]string{"-C", dir}, args...)...).CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	for _, skip := range []bool{true, false} {
+		m, err := Load(dir, Options{SkipIgnored: skip})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := m.Base["example.com/m/scratch/c"] != nil; got == skip {
+			t.Errorf("SkipIgnored=%v: the ignored package loaded = %v", skip, got)
+		}
+		if m.Base["example.com/m/yeni"] == nil || m.Base["example.com/m/a"] == nil {
+			t.Errorf("SkipIgnored=%v: a tracked or a new, not ignored package is missing: %v", skip, m.Base)
 		}
 	}
 }

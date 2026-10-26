@@ -56,7 +56,7 @@ func loadAudit(o *auditOpts, stderr io.Writer, withTypes bool) (*goload.Module, 
 		fmt.Fprintln(stderr, "codegraph:", err)
 		return nil, exitFail
 	}
-	m, err := goload.Load(root, goload.Options{Selections: true, Types: withTypes})
+	m, err := goload.Load(root, goload.Options{Selections: true, Types: withTypes, SkipIgnored: true})
 	if err != nil {
 		fmt.Fprintln(stderr, "codegraph:", err)
 		return nil, exitFail

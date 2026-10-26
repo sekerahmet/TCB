@@ -10,5 +10,5 @@ type (
 )
 
 func load(dir string) (*module, error) {
-	return goload.Load(dir, goload.Options{Comments: true, Selections: true})
+	return goload.Load(dir, goload.Options{Comments: true, Selections: true, SkipIgnored: true})
 }

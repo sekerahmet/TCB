@@ -100,7 +100,7 @@ Functions of a package that a test builds and runs as a binary get the "covered 
 
 | Node kind | Id | Source |
 | :-- | :-- | :-- |
-| `package`, `file`, `func`, `method`, `type`, `const`, `var` | `go:pkg:`, `go:file:`, `go:func:`, `go:type:`, `go:const:`, `go:var:` + path/name | `go list` + `go/types`, test files included; file:line; `const`/`var` are package-level only (`lexer.TokVar`, `messages.H2100`) |
+| `package`, `file`, `func`, `method`, `type`, `const`, `var` | `go:pkg:`, `go:file:`, `go:func:`, `go:type:`, `go:const:`, `go:var:` + path/name | `go list` + `go/types`, test files included; a package in a folder git ignores (`scratch/`) is left out, as the TR side reads only tracked files (`goload.Options.SkipIgnored`); file:line; `const`/`var` are package-level only (`lexer.TokVar`, `messages.H2100`) |
 | `message` | `msg:H2100` | `internal/lang/messages/tr.json` (text) and `definitions.json` (params) |
 | `name` | `name:TR_kw_if` | `internal/lang/codes/tr.json` (name and family) |
 | `rule` | `rule:<readme>:<line>` | a list item or paragraph with `Denetim:`, or a row of a `Kural` / `Test` table |

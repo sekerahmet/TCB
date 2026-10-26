@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"path"
 )
 
 // Listed `go list -json` çıktısının araçların kullandığı kısmıdır.
@@ -62,4 +63,20 @@ func runGoList(dir string, args ...string) ([]*Listed, error) {
 		pkgs = append(pkgs, p)
 	}
 	return pkgs, nil
+}
+
+// visibleGoDirs git'in izlediği ya da yok saymadığı (henüz eklenmemiş yeni dosya) .go dosyalarının klasörleridir
+// (dir'e göre, "/" ile). git yoksa ya da dir bir depo değilse nil: süzme yapılmaz.
+func visibleGoDirs(dir string) map[string]bool {
+	out, err := exec.Command("git", "-C", dir, "ls-files", "--cached", "--others", "--exclude-standard", "-z", "--", "*.go").Output()
+	if err != nil {
+		return nil
+	}
+	dirs := map[string]bool{}
+	for _, name := range bytes.Split(out, []byte{0}) {
+		if len(name) > 0 {
+			dirs[path.Dir(string(name))] = true
+		}
+	}
+	return dirs
 }

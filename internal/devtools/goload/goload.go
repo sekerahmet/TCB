@@ -48,6 +48,9 @@ type Options struct {
 	Comments   bool // yorumları da ayrıştır (belge yorumlarını okuyan araç)
 	Selections bool // types.Info.Selections'ı doldur (alan ve metot seçimlerini okuyan araç)
 	Types      bool // types.Info.Types'ı doldur (ifadelerin tipleri ve sabit değerleri)
+	// SkipIgnored git'in yok saydığı klasörlerdeki paketleri yüklemez (.gitignore'daki scratch/ altında geliştiricinin
+	// denemesi): `go list` onları da listeler, depoyu inceleyen araç (codegraph) yalnız deponun kodunu görür.
+	SkipIgnored bool
 }
 
 // Load dir'deki modülün bütün paketlerini testleriyle birlikte yalnızca standart kitaplıkla tip
@@ -61,11 +64,18 @@ func Load(dir string, opts Options) (*Module, error) {
 	var own []*Listed
 	var outside []string
 	modPath := ""
+	var visible map[string]bool
+	if opts.SkipIgnored {
+		visible = visibleGoDirs(dir)
+	}
 	for _, p := range pkgs {
 		if strings.Contains(p.ImportPath, " ") || strings.HasSuffix(p.ImportPath, ".test") {
 			continue // test değişkenleri ve test main'leri; dosya listeleri yalın girdidedir
 		}
 		if p.Module != nil && p.Dir != "" && isUnder(p.Dir, dir) {
+			if rel, err := filepath.Rel(dir, p.Dir); visible != nil && err == nil && !visible[filepath.ToSlash(rel)] {
+				continue // git'in yok saydığı klasör
+			}
 			own = append(own, p)
 			modPath = p.Module.Path
 		} else {
