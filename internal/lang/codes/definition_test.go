@@ -10,7 +10,7 @@ import (
 // definitions.json dil dosyasıyla tutarlıdır: her kodun tanımı var, türler ailelere uygun,
 // imzalardaki tip ve adlı argüman kodları geçerli.
 func TestDefinitionsConsistent(t *testing.T) {
-	for _, err := range CheckDefinitions(Active()) {
+	for _, err := range CheckDefinitions(Source()) {
 		t.Error(err)
 	}
 }
@@ -18,7 +18,7 @@ func TestDefinitionsConsistent(t *testing.T) {
 // Her kodun Türkçe bir açıklaması ve bir örneği vardır.
 // Açıklama bir-iki cümledir.
 func TestEveryCodeHasDescription(t *testing.T) {
-	d := Active()
+	d := Source()
 	for _, k := range d.Codes() {
 		g, _ := d.Entry(k)
 		if strings.TrimSpace(g.Description) == "" {

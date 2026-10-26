@@ -3,9 +3,9 @@ package debugger
 import (
 	"encoding/json"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
+	"github.com/sekerahmet/TCB/internal/lang/source"
 	"net/url"
 	"path/filepath"
 	"regexp"
@@ -154,7 +154,7 @@ func (s *dapServer) interpolate(v *interp.VM, env *interp.Environment, text stri
 
 // evalQuiet bir ifadeyi debugger'ı tetiklemeden hesaplar.
 func (s *dapServer) evalQuiet(v *interp.VM, env *interp.Environment, expr string) (interp.Value, error) {
-	p := parser.New(lexer.New(expr))
+	p := parser.New(source.TextLexer(expr))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		return nil, p.Errs()[0]

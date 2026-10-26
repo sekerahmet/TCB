@@ -21,7 +21,7 @@ type shadowDef struct {
 
 // builtinName ad sözlükteki bir yerleşik fonksiyonun (fn) adı mı?
 func builtinName(name string) bool {
-	k, ok := codes.Find(codes.NamespaceGlobal, name)
+	k, ok := codes.Source().Find(codes.NamespaceGlobal, name) // DENEME: kullanıcının adı yazım dilindedir
 	return ok && k.IsBuiltin()
 }
 

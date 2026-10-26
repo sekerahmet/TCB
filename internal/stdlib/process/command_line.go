@@ -132,7 +132,7 @@ func checkOptionName(fn any, name string) error {
 	if name == "h" || isHelpName(name) { // --yardım'ın bir dildeki adı ya da -h
 		return messages.New(messages.H7221, fn, name, helpOption())
 	}
-	if k, ok := codes.Find(codes.NamespaceMember, name); ok {
+	if k, ok := codes.Source().Find(codes.NamespaceMember, name); ok { // DENEME: anahtar yazım dilinde
 		if tn, ok := codes.DefinitionOf(k); ok && slices.Contains(tn.Types(), codes.TypeDict) {
 			return messages.New(messages.H7222, fn, name, codes.NameRef(codes.TypeDict))
 		}

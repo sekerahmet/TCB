@@ -1,9 +1,11 @@
 package codes
 
 import (
+	"regexp"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
 // İki dil vardır (dil tanımı 17.7):
@@ -40,14 +42,19 @@ var display, active, displayErr, activeErr = startLanguages(messages.ActiveLangu
 // startLanguages gösterim ve kanonik dili langs'tan (dil kodu → dil dosyası; testler bozuk bir
 // dosya verir) kurar.
 func startLanguages(langCode string, langs map[string][]byte) (display, active *Language, displayErr, activeErr error) {
-	active, activeErr = buildLanguage(langs, SourceLanguage)
-	if activeErr == nil {
-		activeErr = complete(active)
+	// DENEME (iç biçim kod): program içeride kimliklerle çalışır; Türkçe bir yazım dilidir.
+	source, sourceErr := buildLanguage(langs, SourceLanguage)
+	if sourceErr == nil {
+		sourceErr = complete(source)
 	}
-	if activeErr != nil {
-		active = identityLanguage(SourceLanguage)
+	activeErr = sourceErr
+	active = identityLanguage(IdentityLanguage)
+	display = source
+	if sourceErr != nil {
+		display = active
+	} else {
+		loaded.Store(SourceLanguage, source)
 	}
-	display = active
 	if langCode != SourceLanguage {
 		if d, err := buildLanguage(langs, langCode); err != nil {
 			displayErr = messages.New(messages.H2509, LanguageEnvVar, langCode, err)
@@ -72,6 +79,36 @@ func complete(d *Language) error {
 	}
 	return nil
 }
+
+// identityPattern metindeki bir kimliktir (TR_fn_print, TR_mem_keys).
+var identityPattern = regexp.MustCompile(IdentityPrefix + `[a-z]+_[A-Za-z0-9_]+`)
+
+func init() {
+	// DENEME (iç biçim kod): iletiye giren kimlik iletinin dilindeki adıyla yazılır.
+	turkish.CandidateSpelling = func(c string) string {
+		if k, err := Parse(c); err == nil && IsReservedName(c) {
+			return Source().Name(k)
+		}
+		return c
+	}
+	messages.IdentityNames = func(text, lang string) string {
+		l, err := LoadLanguage(lang)
+		if err != nil {
+			l = Source()
+		}
+		return identityPattern.ReplaceAllStringFunc(text, func(id string) string {
+			if k, err := Parse(id); err == nil {
+				if e, ok := l.Entry(k); ok {
+					return e.Name
+				}
+			}
+			return id
+		})
+	}
+}
+
+// IdentityLanguage kimlik listesinin dil kodudur: hiçbir yazım dili değildir (DENEME).
+const IdentityLanguage = "kimlik"
 
 // identityLanguage dil listesi kurulamayınca yerine geçen listedir: her kodun adı kimliğidir
 // (TR_kw_if). Kimlikler dilden bağımsızdır ve tekildir, bu yüzden tabloları çakışmasız kurar.

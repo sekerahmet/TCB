@@ -76,7 +76,7 @@ type liveName struct {
 func liveNames() map[string][]liveName {
 	m := map[string][]liveName{}
 	for _, k := range dk.Codes() {
-		for _, y := range dk.Spellings(k) {
+		for _, y := range dk.Source().Spellings(k) { // DENEME: Go metninde Türkçe ad aranır
 			m[y] = append(m[y], liveName{k, k.Namespace()})
 		}
 	}

@@ -185,7 +185,7 @@ func unknownOption(given string, options []*option) error {
 		o = name // -adım → --adım
 	}
 	if o == "" && name == "h" {
-		o = codes.Name(codes.OptHelp)
+		o = codes.Source().Name(codes.OptHelp)
 		helps[o] = true
 	}
 	if o == "" {

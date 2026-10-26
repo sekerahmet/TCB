@@ -404,11 +404,21 @@ func (c *Catalog) write(b *strings.Builder, code Code, segs []segment, args []an
 	}
 }
 
+// IdentityNames metindeki kimlikleri lang'deki adlarıyla değiştirir; codes paketi kurar (DENEME).
+var IdentityNames func(text, lang string) string
+
 // codedText değer bir kodlu hataysa onun bu katalogdaki metnidir: iç ileti dıştakiyle aynı
 // dilde yazılır (catalogFor ikisinin de bu dilde metni olduğunu denetlemiştir). Dile bağlı
 // değer (Localized) de bu katalogun dilinde yazılır.
 func (c *Catalog) codedText(a any) (string, bool) {
 	switch e := a.(type) {
+	case string:
+		// DENEME (iç biçim kod): metindeki kimlikler (TR_fn_print) iletinin dilindeki adıyla
+		// yazılır; kimlik kullanıcı adı olamaz (2.3a), bu yüzden değiştirmek güvenlidir.
+		if IdentityNames != nil && strings.Contains(e, "TR_") {
+			return IdentityNames(e, c.Language), true
+		}
+		return "", false
 	case Localized:
 		return e.MessageText(c.Language), true
 	case *Error:

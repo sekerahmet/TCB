@@ -357,7 +357,7 @@ func parseNamed(a []json.RawMessage) (NamedArg, error) {
 // ReceiverName is the name written for a type as a receiver in error messages and docs: the
 // type's name in lower case (Liste → liste, Sözlük → sözlük).
 func ReceiverName(typ Code) string {
-	return turkish.Lower(Name(typ))
+	return turkish.Lower(Source().Name(typ)) // DENEME (iç biçim kod): yazım Türkçe, iç ad kimlik
 }
 
 // SourceLanguage is the code of the source language file (Turkish, the canonical language).

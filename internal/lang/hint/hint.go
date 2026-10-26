@@ -67,6 +67,9 @@ func NameSuggestion(name string, visible []string, lang *codes.Language) *messag
 // language is matched by its spelling in lang and suggested as its code, written in the message's
 // language (prnt → print in an English file); a user's name is matched and suggested as written.
 func closestVisible(name string, visible []string, lang *codes.Language) *messages.Error {
+	if lang == nil {
+		lang = codes.Source() // DENEME (iç biçim kod): adlar kimlik, yazım Türkçe
+	}
 	spellings := make([]string, len(visible))
 	suggested := make([]any, len(visible))
 	for i, v := range visible {
@@ -92,8 +95,17 @@ func closestVisible(name string, visible []string, lang *codes.Language) *messag
 // ClosestSuggestion returns the "Bunu mu demek istediniz?" suggestion (H1104) for the
 // candidate closest to name; nil when none is close enough.
 func ClosestSuggestion(name string, candidates []string) *messages.Error {
-	if o := turkish.Closest(name, candidates); o != "" {
-		return messages.New(messages.H1104, o)
+	// DENEME (iç biçim kod): kimlik olan aday Türkçe yazımıyla karşılaştırılır, iletinin dilinde önerilir.
+	spellings := make([]string, len(candidates))
+	suggested := make([]any, len(candidates))
+	for i, c := range candidates {
+		spellings[i], suggested[i] = c, c
+		if k, err := codes.Parse(c); err == nil && codes.IsReservedName(c) {
+			spellings[i], suggested[i] = codes.Source().Name(k), codes.NameRef(k)
+		}
+	}
+	if o := turkish.Closest(name, spellings); o != "" {
+		return messages.New(messages.H1104, suggested[slices.Index(spellings, o)])
 	}
 	return nil
 }
@@ -103,7 +115,7 @@ func ClosestSuggestion(name string, candidates []string) *messages.Error {
 // old or ASCII spelling) that type's name is shown, otherwise example (the value's own type, a
 // message part). The checker and the interpreter use the same text.
 func TypeTextComparisonError(op, text string, example any) *messages.Error {
-	if k, ok := codes.Find(codes.NamespaceType, text); ok {
+	if k, ok := codes.Source().Find(codes.NamespaceType, text); ok { // DENEME: metin Türkçe yazımdır
 		example = codes.NameRef(k)
 	} else if k, ok := codes.Suggest(codes.NamespaceType, text, nil); ok {
 		example = codes.NameRef(k)

@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/checker"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
+	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
 // Denetçi çalışma anıyla aynı sözleri kullanır: aynı hata denetimde ve çalışırken aynı metinle
@@ -25,7 +25,7 @@ func TestCheckerAndRuntimeShareWording(t *testing.T) {
 	}
 	const header = "Tanımsız ad — "
 	for _, src := range programs {
-		p := parser.New(lexer.New(src))
+		p := parser.New(source.TextLexer(src))
 		prog := p.ParseProgram()
 		if len(p.Errors()) > 0 {
 			t.Fatalf("%q: %v", src, p.Errors())

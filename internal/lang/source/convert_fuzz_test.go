@@ -33,7 +33,7 @@ func FuzzEncodeDecode(f *testing.F) {
 		if err != nil {
 			t.Fatalf("kodlanamadı: %v\nkaynak: %q", err, tr)
 		}
-		back, err := Decode(coded, codes.Active())
+		back, err := Decode(coded, codes.Source())
 		if err != nil {
 			t.Fatalf("kodlu biçim çözülemedi: %v\nkaynak: %q\nkodlu: %q", err, tr, coded)
 		}

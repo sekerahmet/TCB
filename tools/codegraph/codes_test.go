@@ -72,7 +72,7 @@ func TestEveryNameCodeNodeHasTheNameOfTheCodesPackage(t *testing.T) {
 			t.Errorf("%s has no node", id)
 			continue
 		}
-		want := []string{codes.Name(k)}
+		want := []string{codes.Source().Name(k)}
 		if e, ok := en.Entry(k); ok && e.Name != want[0] {
 			want = append(want, e.Name)
 		}

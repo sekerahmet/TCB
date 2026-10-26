@@ -441,6 +441,16 @@ func Languages() []string {
 // display for the person's writing language).
 func Active() *Language { return active }
 
+// Source returns the Turkish writing language: the language of text written without the coded
+// header and of every text the canonical language used to give (Inspect, the Turkish view).
+// The program itself runs in identities (Active, DENEME).
+func Source() *Language {
+	if l, err := LoadLanguage(SourceLanguage); err == nil {
+		return l
+	}
+	return active
+}
+
 // TRData returns the embedded Turkish language file (for tests and tools).
 func TRData() []byte { return trJSON }
 
@@ -453,13 +463,13 @@ func Find(ns Namespace, y string) (Code, bool) { return active.Find(ns, y) }
 func Codes() []Code                            { return active.Codes() }
 
 func CanonicalNameIn(ns Namespace, name string) (string, bool) {
-	return active.CanonicalNameIn(ns, name)
+	return Source().CanonicalNameIn(ns, name) // DENEME: kişinin yazdığı yazım Türkçedir
 }
 func FindForeign(ns Namespace, name string, accept func(Code) bool) (Code, bool, bool) {
-	return active.FindForeign(ns, name, accept)
+	return Source().FindForeign(ns, name, accept)
 }
 func Suggest(ns Namespace, spelling string, accept func(Code) bool) (Code, bool) {
-	return active.Suggest(ns, spelling, accept)
+	return Source().Suggest(ns, spelling, accept)
 }
 
 // MemberCode returns the code of a method or property name (x.name), or None when it is not

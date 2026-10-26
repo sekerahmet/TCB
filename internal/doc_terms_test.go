@@ -128,7 +128,7 @@ func TestSharedNamesListed(t *testing.T) {
 	listed := sharedNameRows(t, string(table))
 	groups := map[string][]codes.Code{}
 	for _, k := range codes.Codes() {
-		groups[codes.Name(k)] = append(groups[codes.Name(k)], k)
+		groups[codes.Source().Name(k)] = append(groups[codes.Source().Name(k)], k)
 	}
 	for name, ks := range groups {
 		if len(ks) < 2 {

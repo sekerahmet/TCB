@@ -61,7 +61,13 @@ func Prepare(text string, s Options) *Result {
 	r := &Result{Parts: b, Text: b.Body}
 	lex := b.Lexer
 	coded := b
-	if lang := codes.Display(); s.Typed && !b.Coded && lang.Code != codes.SourceLanguage && err == nil {
+	// DENEME (iç biçim kod): kodsuz dosya Türkçe yazılmış metindir, kabuk satırı kişinin dilindedir;
+	// ikisi de kodlu biçime çevrilip okunur (içeride kimlikler).
+	lang, _ := codes.LoadLanguage(codes.SourceLanguage)
+	if s.Typed {
+		lang = codes.Display()
+	}
+	if !b.Coded && err == nil && lang != nil {
 		// Kabuğa yazılan satır kişinin yazım dilindedir: kodlu biçime, oradan kanonik
 		// görünümüne çevrilir (kodlu dosya gibi). Ayrıştırılamayan satır o dilde okunur;
 		// sözdizimi hataları satırın kendi metnine göredir.

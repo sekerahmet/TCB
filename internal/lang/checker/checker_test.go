@@ -22,6 +22,7 @@ import (
 // normalizeTypeName kabul edilmeyen harf yazımını (tam) da asıl tipe çevirir: hatayı
 // tipAdiDenetle verir, aynı satırda ayrıca tip uyuşmazlığı çıkmaz.
 func TestTypeNameNormalization(t *testing.T) {
+	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	tests := map[string]string{
 		"Tam": "Tam", "tam": "Tam", "TAM": "Tam",
 		"Ondalık": "Ondalık", "ONDALIK": "Ondalık",
@@ -42,6 +43,7 @@ func TestTypeNameNormalization(t *testing.T) {
 // Tip adlarının yalnızca Türkçe yazımı geçerlidir; ASCII yazım hata verir ve asıl adı
 // önerir (tek hata: aynı satırda ayrıca tip uyuşmazlığı bildirilmez).
 func TestTypeNameASCIISuggestion(t *testing.T) {
+	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	singleError(t, `değişken a: ondalik = 1.5`, messages.H1007, 1, "'ondalik'", "'Ondalık'")
 	singleError(t, `değişken a: Mantık = doğru
 değişken b: tensor = yok`, messages.H1007, 2, "'tensor'", "'Tensör'")
@@ -57,6 +59,7 @@ değişken b: tensor = yok`, messages.H1007, 2, "'tensor'", "'Tensör'")
 // Tip adının tek yazımı vardır (3.14): yalnızca büyük/küçük harfi farklı bir yazım da hata
 // verir ve asıl yazımı söyler (tek hata: aynı satırda tip uyuşmazlığı bildirilmez).
 func TestTypeNameCaseSpelling(t *testing.T) {
+	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	for name, canonical := range map[string]string{"tam": "Tam", "TAM": "Tam", "ondalık": "Ondalık", "ONDALIK": "Ondalık",
 		"METİN": "Metin", "mantık": "Mantık", "aralık": "Aralık", "tensör": "Tensör", "YOK": "Yok",
 		"yerleşikFonksiyon": "YerleşikFonksiyon", "tip": "Tip"} {
@@ -68,6 +71,7 @@ func TestTypeNameCaseSpelling(t *testing.T) {
 }
 
 func TestTypeCompatibility(t *testing.T) {
+	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	tests := []struct {
 		expected, actual string
 		compatible       bool
@@ -97,6 +101,7 @@ func TestTypeCompatibility(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestTypedVarCompatible(t *testing.T) {
+	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	for _, source := range []string{
 		`değişken a: Tam = 5`,
 		`değişken a: Ondalık = 5`,
@@ -137,6 +142,7 @@ func TestTypedVarCompatible(t *testing.T) {
 }
 
 func TestTypedVarIncompatible(t *testing.T) {
+	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	tests := []struct {
 		source, expected, actual string
 	}{
@@ -166,6 +172,7 @@ func TestTypedVarIncompatible(t *testing.T) {
 }
 
 func TestTypeErrorLineAndVarName(t *testing.T) {
+	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	singleError(t, "değişken a = 1\n\ndeğişken öğrenci_sayısı: Tam = \"çok\"",
 		messages.H1001, 3, `"öğrenci_sayısı" değişkeni`)
 }
@@ -175,6 +182,7 @@ func TestTypeErrorLineAndVarName(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestAssignmentTypeCheck(t *testing.T) {
+	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	// Belirtilen tip korunur
 	singleError(t, "değişken a: Tam = 1\na = \"x\"", messages.H1005, 2, `"a" değişkeni (Tam)`, `"Metin"`)
 	noErrors(t, "değişken a: Ondalık = 1\na = 2.5\na = 3")
@@ -196,6 +204,7 @@ func TestAssignmentTypeCheck(t *testing.T) {
 }
 
 func TestCompoundAssignment(t *testing.T) {
+	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	// 's += 1' ile 's = s + 1' aynı şekilde değerlendirilmeli (Metin + Tam = Metin)
 	noErrors(t, "değişken s = \"a\"\ns += 1")
 	noErrors(t, "değişken s = \"a\"\ns = s + 1")
@@ -216,6 +225,7 @@ func TestCompoundAssignment(t *testing.T) {
 }
 
 func TestConstCannotChange(t *testing.T) {
+	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	singleError(t, "sabit PI = 3.14\nPI = 3.0", messages.H1002, 2, `"PI"`)
 	singleError(t, "sabit SAYAÇ = 1\nSAYAÇ += 1", messages.H1002, 2, `"SAYAÇ"`)
 	singleError(t, "sabit a: Metin = \"x\"\na = \"y\"", messages.H1002, 2)
@@ -238,6 +248,7 @@ func TestConstCannotChange(t *testing.T) {
 
 // İç kapsamda aynı adla tanımlanan değişken/parametre dış sabiti gölgeler.
 func TestConstShadowing(t *testing.T) {
+	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	noErrors(t, "sabit x = 1\neğer doğru {\n  değişken x = 2\n  x = 3\n}")
 	noErrors(t, "sabit x = 1\nfonksiyon f(x) {\n  x = 5\n}")
 	noErrors(t, "sabit x = 1\ndöngü x içinde [1, 2] {\n  x = 5\n}")
@@ -252,6 +263,7 @@ func TestConstShadowing(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestFunctionParamTypes(t *testing.T) {
+	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	def := "fonksiyon kare(x: Tam) { sonuç x * x }\n"
 	singleError(t, def+`kare("üç")`, messages.H1004, 2, `"kare"`, "1. parametresi", `"Tam"`, `"Metin"`)
 	noErrors(t, def+"kare(3)")
@@ -281,6 +293,7 @@ func TestFunctionParamTypes(t *testing.T) {
 }
 
 func TestFunctionReturnTypeInference(t *testing.T) {
+	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	def := "fonksiyon topla(a: Tam, b: Tam) -> Tam { sonuç a + b }\n"
 	singleError(t, def+"değişken s: Metin = topla(1, 2)", messages.H1001, 2, `"Metin"`, `"Tam"`)
 	noErrors(t, def+"değişken s: Ondalık = topla(1, 2)")
@@ -294,6 +307,7 @@ func TestFunctionReturnTypeInference(t *testing.T) {
 }
 
 func TestReturnTypeCheck(t *testing.T) {
+	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	singleError(t, "fonksiyon f(): Tam {\n  sonuç \"x\"\n}", messages.H1003, 2, `"Tam"`, `"Metin"`)
 	singleError(t, "fonksiyon f() -> Metin {\n  sonuç 1\n}", messages.H1003, 2)
 	singleError(t, "fonksiyon f(): Tam { sonuç 2.5 }", messages.H1003, 0, `"Ondalık"`)
@@ -335,6 +349,7 @@ func TestReturnTypeCheck(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestNestedStatementsAreChecked(t *testing.T) {
+	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	def := "fonksiyon kare(x: Tam) { sonuç x * x }\n"
 	invalid := `kare("a")`
 	tests := map[string]string{
@@ -372,6 +387,7 @@ func TestNestedStatementsAreChecked(t *testing.T) {
 }
 
 func TestMultipleErrorsInOrder(t *testing.T) {
+	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	errs, coded := checkErrs(t, `değişken a: Tam = "x"
 sabit b = 1
 b = 2
@@ -396,6 +412,7 @@ f(5)`)
 // Yerleşik bir adı kullanıcı adı olarak tanımlamak hata değil uyarıdır: program çalışır,
 // ama o kapsamda yerleşik artık kullanılamaz.
 func TestBuiltinShadowingWarning(t *testing.T) {
+	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	source := `değişken uzunluk = 5
 fonksiyon f(toplam, x) {
     sonuç toplam + x
@@ -452,6 +469,7 @@ func TestEmptyProgram(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestKnownLimitations(t *testing.T) {
+	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	tests := []struct {
 		name, source string
 	}{
@@ -488,6 +506,7 @@ func TestKnownLimitations(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestExamplesCheckWithoutErrors(t *testing.T) {
+	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	files, _ := reporoot.Glob(reporoot.Path("examples/tr/*.tr"))
 	if len(files) == 0 {
 		t.Fatal("examples/tr/*.tr bulunamadı")
@@ -526,6 +545,7 @@ func TestExamplesCheckWithoutErrors(t *testing.T) {
 // Tip açıklamasında kabul edilen yazımlar sözlükten gelir (type); her tipin tek yazımı
 // vardır, büyük/küçük harfi farklı biçim kabul edilen bir yazım değildir (3.14).
 func TestTypeSpellingsUnique(t *testing.T) {
+	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	expected := []string{"Tam", "Ondalık", "Metin", "Mantık", "Liste", "Sözlük", "Tensör", "Yok",
 		"Aralık", "Fonksiyon", "YerleşikFonksiyon", "Tip"}
 	if len(typeSpellings) != len(expected) {

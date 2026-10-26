@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
@@ -41,7 +42,7 @@ func tokenDescription(tok lexer.Token) string {
 	case lexer.TokEOF:
 		return messages.Text(messages.H0110)
 	case lexer.TokIdent:
-		return messages.Text(messages.H0118, tok.Literal)
+		return messages.Text(messages.H0118, tokenName(tok))
 	case lexer.TokInt, lexer.TokFloat:
 		return messages.Text(messages.H0119, tok.Literal)
 	case lexer.TokString:
@@ -50,9 +51,18 @@ func tokenDescription(tok lexer.Token) string {
 		return messages.Text(messages.H0121, tok.Literal)
 	}
 	if lexer.KeywordName(tok.Type) != "" {
-		return messages.Text(messages.H0116, tok.Literal)
+		return messages.Text(messages.H0116, tokenName(tok))
 	}
 	return messages.Text(messages.H0117, tok.Literal)
+}
+
+// tokenName iletide bir sözcük biriminin adıdır: dilin sözcüğü (kod taşıyan) iletinin dilinde
+// adlandırılır, içerideki kimliğiyle değil (DENEME, iç biçim kod); kullanıcının adı olduğu gibi.
+func tokenName(tok lexer.Token) any {
+	if tok.Code != codes.None {
+		return codes.NameRef(tok.Code)
+	}
+	return tok.Literal
 }
 
 // shortText hata mesajında gösterilecek metin sabitini kısaltır.

@@ -10,9 +10,9 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
+	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
@@ -150,7 +150,7 @@ fonksiyon kayıp_%[1]s() { sonuç toplam(%[1]s(x_%[1]s, W_%[1]s, indeks) * ağı
 fonksiyon adım_%[1]s() { geri_yayılım(kayıp_%[1]s()) }
 `, s.fn)
 	}
-	p := parser.New(lexer.New(sb.String()))
+	p := parser.New(source.TextLexer(sb.String()))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		tb.Fatalf("sözdizimi hatası: %v", p.Errors())
@@ -289,7 +289,7 @@ func TestNamedArgumentMethodCallReleasesReceiverAtScopeExit(t *testing.T) {
 			return interp.Null, nil
 		},
 	}, true)
-	p := parser.New(lexer.New(`
+	p := parser.New(source.TextLexer(`
 fonksiyon sına() {
     değişken x = sıfırlar([4, 4])
     izle(x)
@@ -322,7 +322,7 @@ func TestRewrappingBuiltinsKeepSingleOwner(t *testing.T) {
 			},
 		}, true)
 		code := fmt.Sprintf("fonksiyon sına() {\n    değişken x = sıfırlar([4, 4])\n    izle(x)\n    değişken y = %s\n    yazdır(1)\n}\nsına()\n", expr)
-		p := parser.New(lexer.New(code))
+		p := parser.New(source.TextLexer(code))
 		if _, err := m.Run(p.ParseProgram()); err != nil {
 			t.Fatalf("%s: %v", expr, err)
 		}

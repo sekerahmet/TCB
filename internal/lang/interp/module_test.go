@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
+	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
@@ -21,7 +21,7 @@ func runWithModules(t *testing.T, root string, files map[string]string) (string,
 		testkit.WritePath(t, filepath.Join(root, filepath.FromSlash(name)), content)
 	}
 	codeVal := files["ana.tr"]
-	p := parser.New(lexer.New(codeVal))
+	p := parser.New(source.TextLexer(codeVal))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatalf("ana.tr sözdizimi: %v", p.Errors())

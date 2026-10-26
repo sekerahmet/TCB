@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
+	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
 // Kes programı bir sonraki güvenli noktada durdurur: Run ErrKesildi döner, dene/yakala
@@ -91,7 +91,7 @@ func TestInterruptDeferred(t *testing.T) {
 	}}, true)
 	var out bytes.Buffer
 	v.Out = &out
-	p := parser.New(lexer.New("ertele { yazdır(\"ertelenen\") }\ndur()\nyazdır(\"sürdü\")\n"))
+	p := parser.New(source.TextLexer("ertele { yazdır(\"ertelenen\") }\ndur()\nyazdır(\"sürdü\")\n"))
 	prog := p.ParseProgram()
 	if _, err := v.Run(prog); !errors.Is(err, ErrInterrupted) || out.String() != "ertelenen\n" {
 		t.Fatalf("SimdiKes programı o noktada durdurmalıydı: %v %q", err, out.String())

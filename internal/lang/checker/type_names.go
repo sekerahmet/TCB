@@ -71,6 +71,11 @@ var typeCaseSpellings = func() map[string]string {
 	for y, name := range typeSpellings {
 		m[turkish.Lower(y)] = name
 	}
+	for _, k := range annotationTypes { // DENEME (iç biçim kod): Türkçe yazımların küçük harflisi de
+		for _, y := range codes.Source().Spellings(k) {
+			m[turkish.Lower(y)] = codes.Name(k)
+		}
+	}
 	return m
 }()
 
@@ -85,10 +90,10 @@ var typeSuggestions = func() map[string]string {
 		}
 	}
 	for _, k := range annotationTypes {
-		g, _ := codes.Active().Entry(k)
-		add(turkish.ASCII(g.Name), g.Name)
+		g, _ := codes.Source().Entry(k) // DENEME (iç biçim kod): yazımlar Türkçe, karşılık kimlik
+		add(turkish.ASCII(g.Name), codes.Name(k))
 		for _, e := range g.Foreign {
-			add(e, g.Name)
+			add(e, codes.Name(k))
 		}
 	}
 	return m

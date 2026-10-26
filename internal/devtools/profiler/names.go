@@ -15,17 +15,17 @@ func tensorOps() string { return messages.Text(messages.H8206, codes.NameRef(cod
 // görünümler, kopyalar) açıklama iletisiyle yazılır.
 func opName(is tensor.OpKind) string {
 	if k, ok := opCode[is]; ok {
-		return codes.Name(k)
+		return codes.Source().Name(k)
 	}
 	switch is {
 	case tensor.OpKindToDevice:
-		return "." + codes.Name(codes.MemToDevice)
+		return "." + codes.Source().Name(codes.MemToDevice)
 	case tensor.OpKindCast:
-		return "." + codes.Name(codes.MemToDtype)
+		return "." + codes.Source().Name(codes.MemToDtype)
 	case tensor.OpKindAdamW:
-		return codes.Name(codes.FnAdamW) + "." + codes.Name(codes.MemStep)
+		return codes.Source().Name(codes.FnAdamW) + "." + codes.Source().Name(codes.MemStep)
 	case tensor.OpKindSGD:
-		return codes.Name(codes.FnSGD) + "." + codes.Name(codes.MemStep)
+		return codes.Source().Name(codes.FnSGD) + "." + codes.Source().Name(codes.MemStep)
 	}
 	if c, ok := opLabel[is]; ok {
 		return messages.Text(c)

@@ -10,9 +10,9 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
+	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/jsonwrite"
 	"github.com/sekerahmet/TCB/internal/testkit/trrun"
 )
@@ -158,7 +158,7 @@ func TestCSVResolvesRelativeToProgram(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "yerel_tablo.csv"), []byte("a,b\n1,2"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	p := parser.New(lexer.New(`sonuç csv_oku("yerel_tablo.csv")`))
+	p := parser.New(source.TextLexer(`sonuç csv_oku("yerel_tablo.csv")`))
 	prog := p.ParseProgram()
 	machine := interp.New()
 	machine.SourceFile = filepath.Join(dir, "program.tr")

@@ -203,7 +203,7 @@ func (kn *Checkpoint) compareSettings(m *interp.VM, d *stateRecord) {
 	for _, k := range fresh.Order {
 		e, var_ := old.Pairs[k]
 		if !var_ || e.Inspect() != fresh.Pairs[k].Inspect() {
-			oldText := codes.Name(codes.KwNone)
+			oldText := codes.Source().Name(codes.KwNone)
 			if var_ {
 				oldText = e.Inspect()
 			}
@@ -212,7 +212,7 @@ func (kn *Checkpoint) compareSettings(m *interp.VM, d *stateRecord) {
 	}
 	for _, k := range old.Order {
 		if _, ok := fresh.Pairs[k]; !ok {
-			diffs = append(diffs, fmt.Sprintf("%s: %s → %s", k, old.Pairs[k].Inspect(), codes.Name(codes.KwNone)))
+			diffs = append(diffs, fmt.Sprintf("%s: %s → %s", k, old.Pairs[k].Inspect(), codes.Source().Name(codes.KwNone)))
 		}
 	}
 	if len(diffs) == 0 {

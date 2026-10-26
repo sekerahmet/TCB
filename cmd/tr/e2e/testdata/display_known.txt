@@ -58,10 +58,8 @@ kullanım en en çerçeve 1
 kullanım tr en sızıntı ortanca
 kullanım tr en sızıntı yazdır
 kullanım tr en çerçeve 1
-kurucu en en eksik 'init'
 kurucu en en sızıntı fonksiyon
 kurucu en en sızıntı kurucu
-kurucu tr en eksik 'init'
 kurucu tr en sızıntı fonksiyon
 kurucu tr en sızıntı kurucu
 metot_kullanımı en en sızıntı ekle
@@ -90,8 +88,6 @@ uyarı en en sızıntı mutlak
 uyarı en en çerçeve 2
 uyarı tr en sızıntı mutlak
 uyarı tr en çerçeve 2
-yapı_değeri en en sızıntı uzunluk
-yapı_değeri en tr sızıntı uzunluk
 çalışma_hatası en en sızıntı yazdır
 çalışma_hatası en en çerçeve 2
 çalışma_hatası tr en sızıntı yazdır

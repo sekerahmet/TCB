@@ -45,10 +45,10 @@ func TestArgErrorsFormat(t *testing.T) {
 	for i := 0; i < 10000; i++ {
 		upper.Elements = append(upper.Elements, NewInt(int64(i)))
 	}
-	if got := summaryIn(upper, codes.Active()); got != "[0, 1, 2, …], 10000 eleman" {
+	if got := summaryIn(upper, codes.Source()); got != "[0, 1, 2, …], 10000 eleman" {
 		t.Errorf("liste özeti: %s", got)
 	}
-	long := summaryIn(&StringVal{Val: strings.Repeat("ğ", 100)}, codes.Active())
+	long := summaryIn(&StringVal{Val: strings.Repeat("ğ", 100)}, codes.Source())
 	if !strings.HasSuffix(long, `…"`) || len([]rune(long)) != summaryLimit+2 {
 		t.Errorf("metin özeti: %s", long)
 	}

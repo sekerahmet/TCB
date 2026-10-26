@@ -69,7 +69,7 @@ func (p *Parser) checkSignal(tok lexer.Token) {
 	if p.ctx.funcs > 0 {
 		exit = codes.NameRef(codes.KwReturn)
 	}
-	p.syntaxError(tok, messages.H0151, tok.Literal, exit)
+	p.syntaxError(tok, messages.H0151, tokenName(tok), exit)
 }
 
 // checkReturn 'sonuç' deyiminin bulunduğu yerde geçerli olduğunu denetler.
@@ -79,9 +79,9 @@ func (p *Parser) checkReturn(tok lexer.Token) {
 	}
 	switch {
 	case p.ctx.test:
-		p.syntaxError(tok, messages.H0153, tok.Literal, codes.NameRef(codes.KwIf))
+		p.syntaxError(tok, messages.H0153, tokenName(tok), codes.NameRef(codes.KwIf))
 	case p.module:
-		p.syntaxError(tok, messages.H0154, tok.Literal)
+		p.syntaxError(tok, messages.H0154, tokenName(tok))
 	}
 }
 

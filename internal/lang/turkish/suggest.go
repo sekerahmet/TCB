@@ -74,6 +74,9 @@ func Distance(a, b string, bound int) int {
 // "Did you mean?"). A Turkish/ASCII letter difference (degisken ↔ değişken) is not counted
 // as an error. Returns "" when no candidate is close enough. Ties go to the alphabetically
 // first candidate (deterministic).
+// CandidateSpelling bir adayın karşılaştırılan yazımıdır (kimlik → Türkçe adı); codes paketi kurar (DENEME).
+var CandidateSpelling func(string) string
+
 func Closest(wanted string, candidates []string) string {
 	target := foldASCII(wanted)
 	limit := len([]rune(wanted)) / 3
@@ -89,11 +92,18 @@ func Closest(wanted string, candidates []string) string {
 		if a == wanted || a == "" {
 			continue
 		}
-		fa := foldASCII(a)
+		spelled := a
+		if CandidateSpelling != nil {
+			spelled = CandidateSpelling(a) // DENEME (iç biçim kod): kimlik Türkçe yazımıyla karşılaştırılır
+		}
+		if spelled == wanted {
+			continue
+		}
+		fa := foldASCII(spelled)
 		u := Distance(target, fa, max(len(target), len(fa))) // sınırsız: gerçek uzaklık (bayt sayısı kod noktası sayısından az değildir)
 		// Eşit uzaklıkta kullanıcının yazım tercihine (Türkçe / ASCII) uyan aday seçilir:
 		// 'yazdr' → 'yazdir', 'yazdırr' → 'yazdır'
-		sameScript := HasTurkishLetter(a) == typesTurkish
+		sameScript := HasTurkishLetter(spelled) == typesTurkish
 		if u < farthest || (u == farthest && sameScript && !bestMatch) || (u == farthest && sameScript == bestMatch && a < best) {
 			best, farthest, bestMatch = a, u, sameScript
 		}

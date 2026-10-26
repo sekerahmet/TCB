@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
+	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
 // girdi() her çağrıda yeni bir tamponlu okuyucu açınca ilk okuma kaynağın tamamını
@@ -37,7 +37,7 @@ func TestInputReaderShared(t *testing.T) {
 	if s, _ := m.InputReader().ReadString('\n'); s != "komut\n" {
 		t.Fatalf("ilk satır: %q", s)
 	}
-	val, err := m.Run(parser.New(lexer.New(`sonuç girdi()`)).ParseProgram())
+	val, err := m.Run(parser.New(source.TextLexer(`sonuç girdi()`)).ParseProgram())
 	if err != nil || val.Inspect() != "veri" {
 		t.Fatalf("girdi() ikinci satırı okumalıydı: %v %v", val, err)
 	}

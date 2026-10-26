@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
+	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
@@ -32,7 +32,7 @@ func TestExprWalkersMatchReferenceOnRepositoryPrograms(t *testing.T) {
 			if err != nil {
 				return nil
 			}
-			p := parser.New(lexer.New(string(src)))
+			p := parser.New(source.TextLexer(string(src)))
 			prog := p.ParseProgram()
 			if len(p.Errors()) > 0 {
 				return nil // bilerek hatalı programlar (hata testleri) gezilmez

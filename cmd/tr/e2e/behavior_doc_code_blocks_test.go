@@ -14,6 +14,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/checker"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
+	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
@@ -122,7 +123,7 @@ var namePlaceholderRe = regexp.MustCompile(`^[\p{L}_][\p{L}\p{N}_]*$`)
 // tanımsız ad çalışmadan önce hatadır (5.14), şablon ise bu adların kullanıcıda var
 // olduğunu varsayar.
 func definePlaceholders(body, code string) string {
-	defined, _ := checker.TopLevelNames(parser.New(lexer.New(code)).ParseProgram())
+	defined, _ := checker.TopLevelNames(parser.New(source.TextLexer(code)).ParseProgram())
 	var on strings.Builder
 	seen := map[string]bool{}
 	for _, m := range templateDefaultRe.FindAllStringSubmatch(body, -1) {

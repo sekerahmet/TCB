@@ -15,19 +15,18 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/checker"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
-	"github.com/sekerahmet/TCB/internal/lang/parser"
+	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
-// Parse kodu ayrıştırır; sözdizimi hatasında testi düşürür.
+// Parse Türkçe yazılmış kodu kodlu biçime çevirip ayrıştırır (içeride kod); sözdizimi hatasında
+// testi düşürür.
 func Parse(t testing.TB, code string) *ast.Program {
 	t.Helper()
-	p := parser.New(lexer.New(code))
-	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		t.Fatalf("syntax error: %v\ncode:\n%s", p.Errors(), code)
+	r := source.Prepare(code, source.Options{})
+	if r.Stage == source.StageSyntax {
+		t.Fatalf("syntax error: %v\ncode:\n%s", r.Errors, code)
 	}
-	return prog
+	return r.Program
 }
 
 // Outcome bir programın çalışmasının sonucudur.
@@ -66,8 +65,7 @@ func MustExec(t testing.TB, code string) Outcome {
 // kalır.
 func MustExecChecked(t testing.TB, code string) Outcome {
 	t.Helper()
-	p := parser.New(lexer.New(code))
-	if errs := checker.New().CheckProgram(p.ParseProgram()); len(errs) > 0 {
+	if errs := checker.New().CheckProgram(Parse(t, code)); len(errs) > 0 {
 		t.Fatalf("type check error: %v\ncode:\n%s", errs, code)
 	}
 	return MustExec(t, code)

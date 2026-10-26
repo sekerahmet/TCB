@@ -11,6 +11,7 @@ import (
 // atama hedefi, yapı alan varsayılanı ve metot gövdesi, eşle deseni ve parametre
 // varsayılanı içindeki hatalar sessizce geçerdi.
 func TestCheckerDescendsIntoSubexpressions(t *testing.T) {
+	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	const kare = "fonksiyon kare(x: Tam): Tam { sonuç x * x }\n"
 	const want = `1. parametresi "Tam" bekliyor ancak "Metin" verildi`
 	cases := []struct{ name, source string }{

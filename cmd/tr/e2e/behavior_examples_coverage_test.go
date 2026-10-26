@@ -106,7 +106,7 @@ func TestExamplesCoverNames(t *testing.T) {
 		_, excepted := uncoveredNames[id]
 		switch {
 		case !used[id] && !excepted:
-			missing = append(missing, id+" "+codes.Name(k))
+			missing = append(missing, id+" "+codes.Source().Name(k))
 		case used[id] && excepted:
 			staleExceptions = append(staleExceptions, id)
 		}
@@ -136,7 +136,7 @@ func TestExamplesCoverCommandLine(t *testing.T) {
 			continue
 		}
 		found := false
-		for _, name := range codes.Spellings(k) {
+		for _, name := range codes.Source().Spellings(k) {
 			for _, form := range []string{name, strings.ReplaceAll(name, "_", "-")} {
 				word := regexp.MustCompile(`(^|[^\p{L}\p{N}_])` + regexp.QuoteMeta(form) + `($|[^\p{L}\p{N}_])`)
 				if word.MatchString(text) {
@@ -145,7 +145,7 @@ func TestExamplesCoverCommandLine(t *testing.T) {
 			}
 		}
 		if !found {
-			missing = append(missing, k.String()+" "+codes.Name(k))
+			missing = append(missing, k.String()+" "+codes.Source().Name(k))
 		}
 	}
 	if len(missing) > 0 {

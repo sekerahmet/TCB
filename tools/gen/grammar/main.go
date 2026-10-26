@@ -40,9 +40,9 @@ func main() {
 // spellingLanguages gömülü bütün yazım dilleridir (Türkçe önce): kodlu dosya düzenleyicide seçilen
 // yazım dilinde (tr.yazimDili) gösterilir, renklendirme her dilin adlarını tanır.
 var spellingLanguages = func() []*codes.Language {
-	d := []*codes.Language{codes.Active()}
+	d := []*codes.Language{codes.Source()}
 	for _, langCode := range codes.Languages() {
-		if langCode != codes.Active().Code {
+		if langCode != codes.Source().Code {
 			y, err := codes.LoadLanguage(langCode)
 			if err != nil {
 				panic(err)

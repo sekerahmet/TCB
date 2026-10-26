@@ -70,7 +70,7 @@ func writeContainer(v Value, lang *codes.Language, filePath []Value) string {
 			case *ListVal:
 				return "[...]"
 			case *StructInstanceVal:
-				return x.Def.Name + "{...}"
+				return shownName(x.Def.Name, lang) + "{...}"
 			}
 			return "{...}"
 		}
@@ -112,7 +112,7 @@ func writeContainer(v Value, lang *codes.Language, filePath []Value) string {
 		}
 		sb.WriteByte('}')
 	case *StructInstanceVal:
-		sb.WriteString(x.Def.Name)
+		sb.WriteString(shownName(x.Def.Name, lang))
 		sb.WriteByte('{')
 		first := true
 		for _, f := range x.Def.Fields {
@@ -121,7 +121,7 @@ func writeContainer(v Value, lang *codes.Language, filePath []Value) string {
 					sb.WriteString(", ")
 				}
 				first = false
-				sb.WriteString(f.Name)
+				sb.WriteString(shownName(f.Name, lang))
 				sb.WriteString(": ")
 				sb.WriteString(writeItem(val, lang, filePath))
 			}
@@ -129,6 +129,25 @@ func writeContainer(v Value, lang *codes.Language, filePath []Value) string {
 		sb.WriteByte('}')
 	}
 	return sb.String()
+}
+
+// shownName içerideki bir adın (kimlikse: TR_mem_length) lang'deki yazımıdır; kullanıcının adı
+// olduğu gibi (DENEME, iç biçim kod).
+func shownName(name string, lang *codes.Language) string {
+	if !codes.IsReservedName(name) {
+		return name
+	}
+	k, err := codes.Parse(name)
+	if err != nil {
+		return name
+	}
+	if lang == nil {
+		lang = codes.Source()
+	}
+	if e, ok := lang.Entry(k); ok {
+		return e.Name
+	}
+	return name
 }
 
 // writeItem bir kabın elemanını lang dilinde (nil: kanonik) yazar; eleman da bir kapsa döngü
@@ -153,7 +172,7 @@ func writeItem(v Value, lang *codes.Language, filePath []Value) string {
 		return writeContainer(v, lang, filePath)
 	case LanguageText:
 		if lang == nil {
-			lang = codes.Active()
+			lang = codes.Source()
 		}
 		return x.Text(lang)
 	}

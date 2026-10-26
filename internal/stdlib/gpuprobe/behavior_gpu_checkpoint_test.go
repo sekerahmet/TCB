@@ -10,8 +10,8 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/gpu"
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
+	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/stdlib"
 )
 
@@ -49,7 +49,7 @@ fonksiyon eğit(son) {
 
 func runOnGPU(t *testing.T, code string) string {
 	t.Helper()
-	p := parser.New(lexer.New(code))
+	p := parser.New(source.TextLexer(code))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatalf("sözdizimi hatası: %v", p.Errors())

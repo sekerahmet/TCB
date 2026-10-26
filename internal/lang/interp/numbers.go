@@ -30,7 +30,7 @@ func floatToInt(name any, f float64) (int64, error) {
 // command-line value (17.8).
 func ParseNonFinite(s string, lang *codes.Language) (float64, bool) {
 	if lang == nil {
-		lang = codes.Active()
+		lang = codes.Source()
 	}
 	inf := lang.Name(codes.ValInf)
 	switch s {

@@ -90,7 +90,7 @@ type FloatVal struct {
 }
 
 func (f *FloatVal) Type() ValueType { return ValFloat }
-func (f *FloatVal) Inspect() string { return f.Text(codes.Active()) }
+func (f *FloatVal) Inspect() string { return f.Text(codes.Source()) }
 
 // Text sayının lang dilindeki metnidir. Sonsuz ve tanımsız değerin adı dilin değer adıdır (TR_val_inf,
 // TR_val_nan; eksi sonsuz başına '-' alır); tensör yazdırması aynı adları kullanır (NonFiniteText).
@@ -134,7 +134,7 @@ type BoolVal struct {
 }
 
 func (b *BoolVal) Type() ValueType { return ValBool }
-func (b *BoolVal) Inspect() string { return b.Text(codes.Active()) }
+func (b *BoolVal) Inspect() string { return b.Text(codes.Source()) }
 func (b *BoolVal) Text(lang *codes.Language) string {
 	if b.Val {
 		return lang.Name(codes.KwTrue)
@@ -146,7 +146,7 @@ func (b *BoolVal) IsTruthy() bool { return b.Val }
 type NullVal struct{}
 
 func (n *NullVal) Type() ValueType                  { return ValNull }
-func (n *NullVal) Inspect() string                  { return n.Text(codes.Active()) }
+func (n *NullVal) Inspect() string                  { return n.Text(codes.Source()) }
 func (n *NullVal) Text(lang *codes.Language) string { return lang.Name(codes.KwNone) }
 func (n *NullVal) IsTruthy() bool                   { return false }
 

@@ -38,7 +38,7 @@ func (c *Checker) checkBoolTextComparison(e *ast.InfixExpression) {
 	if str == nil || len(str.Arguments) != 1 || !c.isBool(str.Arguments[0]) {
 		return
 	}
-	own := codes.Active()
+	own := codes.Source()
 	if l, err := codes.LoadLanguage(c.fileLanguage); err == nil {
 		own = l
 	}

@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
+	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
 func runTR(t *testing.T, code string) (Value, error) {
@@ -23,7 +23,7 @@ func runTR(t *testing.T, code string) (Value, error) {
 // mustParseProgram kodu ayrıştırır; sözdizimi hatasında testi düşürür.
 func mustParseProgram(tb testing.TB, code string) *ast.Program {
 	tb.Helper()
-	p := parser.New(lexer.New(code))
+	p := parser.New(source.TextLexer(code))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		tb.Fatalf("sözdizimi hatası: %v\nkod:\n%s", p.Errors(), code)
@@ -63,7 +63,7 @@ func TestModuleImportWithAliasAndCircularProtection(t *testing.T) {
 		aktar "yardimci.tr" olarak yrd
 		sonuç yrd.iki_kati(21)
 	`
-	l := lexer.New(code)
+	l := source.TextLexer(code)
 	p := parser.New(l)
 	prog := p.ParseProgram()
 	machine := New()
@@ -82,7 +82,7 @@ func TestModuleImportWithAliasAndCircularProtection(t *testing.T) {
 	_ = os.WriteFile(circA, []byte(`aktar "b.tr"`), 0644)
 	_ = os.WriteFile(circB, []byte(`aktar "a.tr"`), 0644)
 
-	l2 := lexer.New(`aktar "a.tr"`)
+	l2 := source.TextLexer(`aktar "a.tr"`)
 	p2 := parser.New(l2)
 	prog2 := p2.ParseProgram()
 	m2 := New()
@@ -212,7 +212,7 @@ func TestTaskErrorGoesToErrWriter(t *testing.T) {
 	m := New()
 	m.Out = &out
 	m.Err = &failure
-	prog := parser.New(lexer.New("eşzamanlı {\n    değişken x = 1 / 0\n}\nbekle_hepsi()\n")).ParseProgram()
+	prog := parser.New(source.TextLexer("eşzamanlı {\n    değişken x = 1 / 0\n}\nbekle_hepsi()\n")).ParseProgram()
 	if _, err := m.Run(prog); err != nil {
 		t.Fatal(err)
 	}

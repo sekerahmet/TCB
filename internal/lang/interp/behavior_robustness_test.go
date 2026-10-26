@@ -5,15 +5,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
+	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
 // runTRWithin kodu bir süre sınırıyla çalıştırır; kilitlenme (deadlock) testi asmak yerine başarısız olur.
 func runTRWithin(t *testing.T, limit time.Duration, code string) (*VM, Value, error) {
 	t.Helper()
-	p := parser.New(lexer.New(code))
+	p := parser.New(source.TextLexer(code))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatalf("Sözdizimi hatası: %v", p.Errors())
@@ -52,7 +52,7 @@ func TestRunRecoversFromBuiltinPanic(t *testing.T) {
 		m["x"] = 1 // nil map paniği
 		return Null, nil
 	})
-	prog := parser.New(lexer.New(`
+	prog := parser.New(source.TextLexer(`
 		değişken çalıştı = yanlış
 		ertele { çalıştı = doğru }
 		patla()`)).ParseProgram()
@@ -64,7 +64,7 @@ func TestRunRecoversFromBuiltinPanic(t *testing.T) {
 		t.Fatal("panik sonrasında da 'ertele' blokları çalışmalı")
 	}
 	// Panik sonrası kilit bırakılmış olmalı: aynı VM yeniden kullanılabilir (REPL)
-	if _, err := machine.Run(parser.New(lexer.New("1 + 1")).ParseProgram()); err != nil {
+	if _, err := machine.Run(parser.New(source.TextLexer("1 + 1")).ParseProgram()); err != nil {
 		t.Fatalf("panik sonrası VM kullanılamıyor: %v", err)
 	}
 }
@@ -197,7 +197,7 @@ func TestPanicInsideAsyncDoesNotCrashProcess(t *testing.T) {
 	machine.RegisterBuiltin("patla", func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		panic("görev içinde beklenmedik hata")
 	})
-	prog := parser.New(lexer.New(`
+	prog := parser.New(source.TextLexer(`
 		değişken tamam = yanlış
 		eşzamanlı { patla() }
 		bekle_hepsi()

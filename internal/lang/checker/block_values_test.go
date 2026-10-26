@@ -61,7 +61,7 @@ func TestBlockValueIsNotAnUnusedNegation(t *testing.T) {
 		used   []string
 		unused string
 	}{
-		{codes.Active(), []string{
+		{codes.Source(), []string{
 			"değişken a = doğru\ndeğişken g = eğer a { 0.01 } değilse { -0.01 }\nyazdır(g)",
 			"değişken a = doğru\nyazdır(eğer a { 1 } değilse eğer değil a { -1 } değilse { eğer a { -2 } değilse { -3 } })",
 			"değişken a = 1\nyazdır(eşle a { 1 => { -1 }; varsayılan => { -2 } })",

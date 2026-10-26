@@ -42,7 +42,7 @@ func oldCommand(word string) (codes.Code, bool) {
 	if k, ok := oldCommands[word]; ok {
 		return k, true
 	}
-	return codes.Active().Suggest(codes.NamespaceDebugger, word, nil)
+	return codes.Source().Suggest(codes.NamespaceDebugger, word, nil)
 }
 
 // oldCommands başka hata ayıklayıcılardan gelen kısaltmalardır (gdb'nin n, c, bt). Bunlar

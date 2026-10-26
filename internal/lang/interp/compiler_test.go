@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
+	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
 // Kapanış derleyicisinin kapsam kurallarını ağaç yorumlayıcısının anlamıyla karşılaştıran testler.
@@ -61,11 +61,11 @@ func TestCompilerDynamicEval(t *testing.T) {
 	machine := New()
 	env := NewEnvironment(machine.GlobalEnv)
 	env.Define("a", NewInt(4), false)
-	prog := parser.New(lexer.New("değişken b = a * 2\nb += 1")).ParseProgram()
+	prog := parser.New(source.TextLexer("değişken b = a * 2\nb += 1")).ParseProgram()
 	if _, err := machine.ExecStatements(prog.Statements, env); err != nil {
 		t.Fatal(err)
 	}
-	expr := parser.New(lexer.New("a + b")).ParseProgram().Statements[0].(*ast.ExpressionStatement).Expression
+	expr := parser.New(source.TextLexer("a + b")).ParseProgram().Statements[0].(*ast.ExpressionStatement).Expression
 	val, err := machine.EvalExpression(expr, env)
 	if err != nil || val.Inspect() != "13" {
 		t.Fatalf("13 bekleniyordu: %v %v", val, err)
@@ -110,7 +110,7 @@ func TestCompilerJump(t *testing.T) {
 		"    sonuç s\n" + // 5
 		"}\n" + // 6
 		"yazdır(f())\n" // 7
-	p := parser.New(lexer.New(codeVal))
+	p := parser.New(source.TextLexer(codeVal))
 	prog := p.ParseProgram()
 	var out strings.Builder
 	machine := New()

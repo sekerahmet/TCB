@@ -48,7 +48,7 @@ func TestGrammarSingleSpelling(t *testing.T) {
 		}
 	}
 	for _, k := range codes.Codes() {
-		g, _ := codes.Active().Entry(k)
+		g, _ := codes.Source().Entry(k)
 		if a := turkish.ASCII(g.Name); a != g.Name && words[a] && !inOtherLanguage[a] {
 			t.Errorf("%s'in ASCII yazımı %q listelerde olmamalı", k, a)
 		}

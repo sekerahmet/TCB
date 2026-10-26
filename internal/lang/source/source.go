@@ -133,14 +133,26 @@ func (b Parts) Join() string {
 // Turkish is the language's own writing language: a file without the coded header is written
 // in Turkish whatever the active language is (17.7). It is the canonical language; when the
 // embedded list could not be built it is the identity fallback and codes.LanguageError says why.
-func Turkish() *codes.Language { return codes.Active() }
+func Turkish() *codes.Language { return codes.Source() }
+
+// TextLexer is the lexer of a text written in Turkish without the coded header (an expression
+// typed in the debugger): the text is converted to coded form first, so the program reads codes
+// (DENEME); a text that cannot be converted is read as it is.
+func TextLexer(text string) *lexer.Lexer {
+	b := Parts{Language: codes.SourceLanguage, Body: text}
+	if coded, err := toCoded(b, Turkish()); err == nil {
+		_, l := view(coded)
+		return l
+	}
+	return lexer.NewBodyIn(text, false, Turkish())
+}
 
 // Lexer returns the body's lexer: for a coded file, one that recognizes codes and whose
 // positions follow the file's view (17.5), the '$' of escaped user names included; for a file
 // written in Turkish, one that reads it in Turkish (the canonical language, whatever TR_DIL is).
 func (b Parts) Lexer() *lexer.Lexer {
 	if !b.Coded {
-		return lexer.NewBody(b.Body, false)
+		return lexer.NewBodyIn(b.Body, false, Turkish()) // DENEME (iç biçim kod): metin araçları Türkçe metni okur
 	}
 	_, l := view(b)
 	return l

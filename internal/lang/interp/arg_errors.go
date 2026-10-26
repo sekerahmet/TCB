@@ -69,7 +69,7 @@ func languageNamed(lang string) *codes.Language {
 	if l, err := codes.LoadLanguage(lang); err == nil {
 		return l
 	}
-	return codes.Active()
+	return codes.Source()
 }
 
 // ArgTypeError reports that argument number sira of builtin kd (or its member) is not one of

@@ -79,7 +79,7 @@ func typeName(t codes.TypeExpr) string {
 	}
 	parts := make([]string, len(t.Types))
 	for i, k := range t.Types {
-		parts[i] = codes.Name(k)
+		parts[i] = codes.Source().Name(k)
 	}
 	return strings.Join(parts, " | ")
 }
@@ -88,12 +88,12 @@ func typeName(t codes.TypeExpr) string {
 func defaultValue(v any) string {
 	switch x := v.(type) {
 	case nil:
-		return codes.Name(codes.KwNone) // yok
+		return codes.Source().Name(codes.KwNone) // yok
 	case bool:
 		if x {
-			return codes.Name(codes.KwTrue)
+			return codes.Source().Name(codes.KwTrue)
 		}
-		return codes.Name(codes.KwFalse)
+		return codes.Source().Name(codes.KwFalse)
 	case float64:
 		return strconv.FormatFloat(x, 'g', -1, 64)
 	case string:
@@ -118,7 +118,7 @@ func arguments(im codes.Signature) string {
 		parts = append(parts, s)
 	}
 	for _, a := range im.Named {
-		s := codes.Name(a.Code) + ": " + typeName(a.Type)
+		s := codes.Source().Name(a.Code) + ": " + typeName(a.Type)
 		if a.HasDefault {
 			s += " = " + defaultValue(a.Default)
 		}
@@ -136,7 +136,7 @@ func returns(im codes.Signature) string {
 
 // signatureLines bir kodun imzasını adlarla yazar (üyelerde tip başına bir satır).
 func signatureLines(t codes.Definition) []string {
-	name := codes.Name(t.Code)
+	name := codes.Source().Name(t.Code)
 	switch t.Kind {
 	case codes.KindFunction:
 		return []string{name + "(" + arguments(t.Signature) + ")" + returns(t.Signature)}
@@ -145,7 +145,7 @@ func signatureLines(t codes.Definition) []string {
 	case codes.KindMethod, codes.KindProperty:
 		var out []string
 		for _, u := range t.Members {
-			s := codes.Name(u.Type) + "." + name
+			s := codes.Source().Name(u.Type) + "." + name
 			if t.Kind == codes.KindMethod {
 				s += "(" + arguments(u.Signature) + ")"
 			}
@@ -157,14 +157,14 @@ func signatureLines(t codes.Definition) []string {
 }
 
 // codeLabel "TR_fn_sum `toplam`" biçimidir.
-func codeLabel(k codes.Code) string { return fmt.Sprintf("%s `%s`", k, codes.Name(k)) }
+func codeLabel(k codes.Code) string { return fmt.Sprintf("%s `%s`", k, codes.Source().Name(k)) }
 
 // Generate belgenin içeriğini üretir.
 func Generate() ([]byte, error) {
-	if errs := codes.CheckDefinitions(codes.Active()); len(errs) > 0 {
+	if errs := codes.CheckDefinitions(codes.Source()); len(errs) > 0 {
 		return nil, fmt.Errorf("definitions are inconsistent: %v", errs[0])
 	}
-	d := codes.Active()
+	d := codes.Source()
 	allCodes := d.Codes()
 
 	// Ters bağlar: adlı argümanı kullananlar, tipin üyeleri.
@@ -273,7 +273,7 @@ func Generate() ([]byte, error) {
 	for _, k := range d.Codes() {
 		t, _ := codes.DefinitionOf(k)
 		if t.Kind == codes.KindFunction && len(t.Signature.Params) > 0 {
-			pipeable = append(pipeable, "`"+codes.Name(k)+"`")
+			pipeable = append(pipeable, "`"+codes.Source().Name(k)+"`")
 		}
 	}
 	b.WriteString(strings.Join(pipeable, ", ") + "\n")

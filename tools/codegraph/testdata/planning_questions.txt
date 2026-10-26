@@ -160,7 +160,7 @@ codegraph query lexer.NewBodyIn | contains: canonical language | src: iç dil 1.
 codegraph who-uses lexer.Token.Code | contains: interp.compiler.dictKey | contains: checker.nameChecker.bind | src: iç dil 1. tur, 2026-10-25 (kodu taşıyan belirteci okuyan az yer)
 codegraph who-uses ast.Identifier.Value | contains: 100 read | src: iç dil 1. tur, 2026-10-25 (adı okuyan çok yer)
 codegraph who-uses codes.Spellings | contains: interp.VM.DefineBuiltin | src: iç dil 1. tur, 2026-10-25 (yerleşik genel kapsama Türkçe adıyla girer)
-codegraph who-uses codes.Name --all | contains: interp.ctorName | contains: checker.typeInt | contains: profiler.opName | src: iç dil 1. tur, 2026-10-25 (Türkçe adın kimlik olduğu yerler)
+codegraph who-uses codes.Name --all | contains: interp.ctorName | contains: checker.typeInt | src: iç dil 1. tur, 2026-10-25 (iç adın kimlik olduğu yerler; profil etiketleri 2026-10-26 Türkçe yazım dilinden)
 codegraph query GetProperty | exit: 3 | contains: interp.PropertyGetter.GetProperty | src: iç dil 1. tur, 2026-10-25 (üye okuma kod ve ad birlikte alıyor)
 tr dizin tanım toplam | exit: 3 | contains: builtin:TR_fn_sum | src: iç dil 1. tur, 2026-10-25 (yerleşik ile kullanıcı adı ayrı düğüm)
 codegraph query parser.contextWordsOf | contains: codes.Language.Name | src: iç dil 2. tur, 2026-10-25 (örtük adlar kendi, o, birikim, hata okuyucunun dilindeki adla ağaca giriyor)

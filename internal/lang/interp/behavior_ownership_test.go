@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
+	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
 // Sahiplik kuralları (ownership.go, dil tanımı 15.43). Testler sahte bir kaynak değeriyle
@@ -129,7 +129,7 @@ func (w *fakeWorld) install(v *VM) {
 // runOwned programı sahte motorla çalıştırır, yazdır() çıktısını ve dünyayı verir.
 func runOwned(t *testing.T, code string) (string, *fakeWorld) {
 	t.Helper()
-	p := parser.New(lexer.New(code))
+	p := parser.New(source.TextLexer(code))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatalf("sözdizimi hatası: %v", p.Errors())

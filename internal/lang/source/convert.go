@@ -179,18 +179,18 @@ func (c *analysis) viewChanges() []change {
 // adlarına çevrilir (yerleştirmelerdekiler kod kalır). İkinci değer gösterimin sütunlarını
 // veren sözcük çözümleyicidir: konumlar tam bu metne göredir, '$ad' kaçışları dahil.
 func view(b Parts) (string, *lexer.Lexer) {
-	if c, err := analyze(b, codes.Active()); err == nil {
+	if c, err := analyze(b, codes.Source()); err == nil {
 		d := uniqueChanges(c.viewChanges())
 		return apply(c.input, d), lexer.NewBodyView(b.Body, viewEdits(d))
 	}
-	l := b.scanLexer(codes.Active())
+	l := b.scanLexer(codes.Source())
 	l.StartRecording()
 	for l.NextToken().Type != lexer.TokEOF {
 	}
 	var d []change
 	for _, r := range l.Records() {
 		if r.Code != codes.None {
-			d = append(d, change{r.Start, r.End, langName(codes.Active(), r.Code)})
+			d = append(d, change{r.Start, r.End, langName(codes.Source(), r.Code)})
 		}
 	}
 	d = uniqueChanges(d)

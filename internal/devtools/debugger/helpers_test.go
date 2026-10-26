@@ -2,8 +2,8 @@ package debugger
 
 import (
 	"github.com/sekerahmet/TCB/internal/lang/interp"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
+	"github.com/sekerahmet/TCB/internal/lang/source"
 	"io"
 	"testing"
 	"time"
@@ -12,7 +12,7 @@ import (
 // runTRWithin kodu bir süre sınırıyla çalıştırır; kilitlenme (deadlock) testi asmak yerine başarısız olur.
 func runTRWithin(t *testing.T, limit time.Duration, code string) (*interp.VM, interp.Value, error) {
 	t.Helper()
-	p := parser.New(lexer.New(code))
+	p := parser.New(source.TextLexer(code))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatalf("Sözdizimi hatası: %v", p.Errors())

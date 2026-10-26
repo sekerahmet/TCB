@@ -3,9 +3,9 @@ package debugger
 import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
+	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
 // exprStatus bir metnin ilk deyimi olarak ayrıştırılma sonucudur.
@@ -20,7 +20,7 @@ const (
 // parseFirstExpression metni ayrıştırır ve ilk deyiminin ifadesini verir (sonraki deyimler
 // yok sayılır). Hangi kolun hangi iletiyi yazacağı çağıranındır.
 func parseFirstExpression(text string) (ast.Expression, exprStatus) {
-	p := parser.New(lexer.New(text))
+	p := parser.New(source.TextLexer(text))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 || len(prog.Statements) == 0 {
 		return nil, exprSyntaxError

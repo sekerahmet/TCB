@@ -64,7 +64,7 @@ func (v *VM) textLanguage() *codes.Language {
 		language = v.source.Language
 	}
 	if language == "" || language == codes.SourceLanguage {
-		return nil
+		return codes.Source() // DENEME (iç biçim kod): Türkçe bir yazım dilidir, kanonik değil
 	}
 	l, err := codes.LoadLanguage(language)
 	if err != nil {

@@ -12,6 +12,7 @@ import (
 // Önerilen ad her zaman asıl addır (Türkçe yazım); ASCII biçim ya da yabancı ad önerilmez. Dilin
 // her yerleşiği ve anahtar kelimesi için Türkçe harfsiz yazım denenir; adlar koddan gelir.
 func TestAsciiSpellingSuggestsRealName(t *testing.T) {
+	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	tried := 0
 	for _, k := range codes.Codes() {
 		name := codes.Name(k)

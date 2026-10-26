@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
+	"github.com/sekerahmet/TCB/internal/lang/source"
 	_ "github.com/sekerahmet/TCB/internal/stdlib"
 )
 
@@ -22,7 +22,7 @@ func commandLine(t *testing.T, code string, arguments ...string) (string, *inter
 	m.Out, m.Err = io.Discard, io.Discard
 	m.SourceFile = "egit.tr"
 	m.SetArgs(arguments)
-	p := parser.New(lexer.New(code))
+	p := parser.New(source.TextLexer(code))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatalf("sözdizimi: %v", p.Errors())

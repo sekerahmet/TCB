@@ -28,7 +28,7 @@ type TypeVal struct {
 
 func (t *TypeVal) Type() ValueType { return ValType }
 func (t *TypeVal) IsTruthy() bool  { return true }
-func (t *TypeVal) Inspect() string { return t.Text(codes.Active()) }
+func (t *TypeVal) Inspect() string { return t.Text(codes.Source()) }
 func (t *TypeVal) Text(lang *codes.Language) string {
 	if t.Struct != nil {
 		return t.Struct.Name

@@ -83,7 +83,7 @@ func (p *Parser) parseStructStatement() *ast.StructStatement {
 		// (ör. 'yazdır("...")' çağrısının '(' işareti) alan değildir.
 		if next := p.peekToken(); next.Type != lexer.TokRBrace && next.Type != lexer.TokComma &&
 			next.Type != lexer.TokSemicolon && next.Type != lexer.TokEOF && next.Line == p.curToken().Line {
-			return invalid(fieldTok, messages.Text(messages.H0149, fieldTok.Literal, tokenDescription(next)))
+			return invalid(fieldTok, messages.Text(messages.H0149, tokenName(fieldTok), tokenDescription(next)))
 		}
 		if !checkName(fieldTok, field.Name, messages.H0146) {
 			p.skipToBlockEnd()
