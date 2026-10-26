@@ -4,6 +4,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -190,7 +191,8 @@ func TestATestOfTheNameCodesAFileImplementsIsDirect(t *testing.T) {
 					ix.printTestsFor(&out, ix.byID[fileID(decl.File)], 0)
 					answers[decl.File] = out.String()
 				}
-				if !strings.Contains(answers[decl.File], describe(test)+"  direct") {
+				own, _ := groupItems(strings.Split(answers[decl.File], "\n"), "  this file's tests (") // adaş test dosyasının testleri
+				if !strings.Contains(answers[decl.File], describe(test)+"  direct") && !slices.ContainsFunc(own, func(l string) bool { return strings.TrimSpace(l) == describe(test) }) {
 					t.Errorf("tests-for %s: %s runs %s, which %s implements, but is not direct", decl.File, test.Name, name.Name, decl.Name)
 				}
 			}
