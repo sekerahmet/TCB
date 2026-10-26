@@ -8,7 +8,9 @@
 //
 // Üretici kod paketini içe aktarmaz: dil dosyasını (internal/lang/codes/tr.json) ve ortak adları
 // (definitions.json "ortak_ad"; adı hiçbir dil dosyasında yazılmayan kodlar) kendisi okur. Böylece
-// üretilen dosya eskimiş olsa da üretici çalışır.
+// üretilen dosya eskimiş olsa da üretici çalışır. Kitaplık kodlarının modülleri (definitions.json
+// "modül") de buradan libraryModules tablosuna yazılır: codes.Code.IsLibrary çalışma anında
+// definitions.json'u ayrıştırmaz.
 //
 // Kullanım (depo kökünden):
 //
@@ -117,6 +119,7 @@ func Generate(root string) ([]byte, error) {
 	}
 	var defs map[string]struct {
 		Common string `json:"ortak_ad"`
+		Module string `json:"modül"`
 	}
 	if err := json.Unmarshal(data, &defs); err != nil {
 		return nil, fmt.Errorf("%s: %v", defsPath, err)
@@ -155,6 +158,14 @@ func Generate(root string) ([]byte, error) {
 	b.WriteString("var identities = [...]string{\n")
 	for _, id := range keys {
 		fmt.Fprintf(&b, "\t%s: %q,\n", goName(id), id)
+	}
+	b.WriteString("}\n\n")
+	b.WriteString("// libraryModules is the module of every library code (the module field of definitions.json).\n")
+	b.WriteString("var libraryModules = map[Code]string{\n")
+	for _, id := range keys {
+		if m := defs[id].Module; m != "" {
+			fmt.Fprintf(&b, "\t%s: %q,\n", goName(id), m)
+		}
 	}
 	b.WriteString("}\n")
 	return format.Source(b.Bytes())

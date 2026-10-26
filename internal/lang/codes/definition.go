@@ -31,7 +31,9 @@ import (
 // Ondalık). On a positional parameter the suffix "?" means optional, "*" zero or more, "+" one
 // or more. Type codes are the type class (the type of AdamW and SGD is a type code too:
 // İyileştirici, TR_type_Optimizer). A named argument is a [code, type, default] triple; the
-// default is a JSON value (null: none) and is omitted when there is no single default.
+// default is a JSON value (null: none) and is omitted when there is no single default. A public
+// name of a standard library module also carries "modül" (the module, "tr/katman"); the code is
+// then a library code, not a builtin.
 
 //go:embed definitions.json
 var definitionsJSON []byte
@@ -134,6 +136,9 @@ type Definition struct {
 	// notation or a proper name (sin, AdamW, json) has the same name in every writing language. It
 	// is written only here, never in a language file; Load gives it to every language.
 	Common string
+	// Module is the standard library module ("modül": tr/katman) whose public name the code is;
+	// empty for a core code. codes_generated.go carries it as the libraryModules table.
+	Module string
 }
 
 // Types returns the types the member applies to.
@@ -205,6 +210,7 @@ type rawDefinition struct {
 	Signatures map[string]rawSignature `json:"imzalar"`
 	Related    []string                `json:"ilişkili"`
 	Common     string                  `json:"ortak_ad"`
+	Module     string                  `json:"modül"`
 }
 
 // ParseDefinitions parses a definitions file; it collects every format error into one error.
@@ -289,6 +295,14 @@ func ParseDefinitions(data []byte) (map[Code]Definition, []Code, error) {
 		}
 		t.Related = codeList("ilişkili", h.Related)
 		t.Common = h.Common
+		if t.Module = h.Module; t.Module != "" {
+			switch c := k.Class(); {
+			case c != ClassType && c != ClassFunction && c != ClassConstant && c != ClassMember && c != ClassNamedArg:
+				errorf("%s: a module is written only on the public names of a library (type, fn, const, mem and arg codes)", k)
+			case !strings.HasPrefix(t.Module, "tr/"):
+				errorf("%s: module %q is not a standard library module (tr/…)", k, t.Module)
+			}
+		}
 		out[k] = t
 		order = append(order, k)
 	}
@@ -420,6 +434,19 @@ func CheckDefinitions(d *Language) []error {
 		case exp != KindMethod && t.Kind != exp:
 			errorf("%s: kind %q, but the class of the code's identity requires %q", k, t.Kind, exp)
 		}
+		for _, x := range t.Related {
+			if !live(x) {
+				errorf("%s: related code %s is not in the language file", k, x)
+			} else if x == k {
+				errorf("%s is listed as related to itself", k)
+			}
+		}
+		if k.IsLibrary() {
+			if len(t.Members) > 0 || len(t.Signature.Params) > 0 || len(t.Signature.Named) > 0 || !t.Signature.Return.Empty() {
+				errorf("%s: a library code's signature and types are written only in the library's source", k)
+			}
+			continue
+		}
 		switch t.Kind {
 		case KindMethod, KindProperty:
 			if len(t.Members) == 0 {
@@ -444,13 +471,6 @@ func CheckDefinitions(d *Language) []error {
 		default:
 			if len(t.Signature.Params) > 0 || len(t.Signature.Named) > 0 || !t.Signature.Return.Empty() || len(t.Members) > 0 {
 				errorf("%s: %s takes no signature", k, t.Kind)
-			}
-		}
-		for _, x := range t.Related {
-			if !live(x) {
-				errorf("%s: related code %s is not in the language file", k, x)
-			} else if x == k {
-				errorf("%s is listed as related to itself", k)
 			}
 		}
 	}

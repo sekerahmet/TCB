@@ -29,7 +29,7 @@ func NotInTRHint(name string, canonical any) *messages.Error {
 // (e.g. değişken sınıf = "9-A"); only when an error occurs is the real name suggested, since
 // they may have been written out of habit. The suggestion is always the real name.
 func KeywordSpellingHint(name string) *messages.Error {
-	k, ok := codes.Suggest(codes.NamespaceGlobal, name, func(k codes.Code) bool { return !k.IsBuiltin() })
+	k, ok := codes.Suggest(codes.NamespaceGlobal, name, func(k codes.Code) bool { return !k.IsBuiltin() && !k.IsLibrary() })
 	if !ok {
 		return nil
 	}

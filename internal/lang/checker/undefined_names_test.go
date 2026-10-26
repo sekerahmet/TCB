@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
@@ -23,6 +24,43 @@ func TestUndefinedNameIsError(t *testing.T) {
 	singleError(t, "kendi.n = 1", messages.H1010, 1, "'kendi'")
 	// Aynı ad tek kez bildirilir.
 	singleError(t, "yazdır(a)\nyazdır(a + 1)", messages.H1010, 1, "'a'")
+}
+
+// Kural (17, kitaplık kodu): kitaplık kodu yerleşik değildir; kitaplığın fonksiyon ve tip adları her
+// kapsamda tanımlı sayılmaz.
+func TestLibraryNameIsNotABuiltinName(t *testing.T) {
+	markLibrary(t, map[codes.Code]string{codes.FnSin: "tr/deneme", codes.TypeOptimizer: "tr/deneme"})
+	// Program içeride kimliklerle çalışır (17.7): kaynak kodlu gövdedir.
+	for _, src := range []string{"TR_fn_print(TR_fn_sin(1))", "TR_fn_print(TR_type_Optimizer)"} {
+		if errs := checkCoded(t, src); len(errs) != 1 || !messages.Has(errs[0], messages.H1010) {
+			t.Errorf("%s: tek bir tanımsız ad hatası (H1010) bekleniyordu: %v", src, errs)
+		}
+	}
+	if errs := checkCoded(t, "TR_fn_print(TR_fn_cos(1), TR_type_Int)"); len(errs) > 0 {
+		t.Errorf("çekirdek adları tanımlı kalmalı: %v", errs)
+	}
+}
+
+// checkCoded kodlu bir gövdeyi ayrıştırıp denetler, hataları kodlu döndürür.
+func checkCoded(t *testing.T, source string) []error {
+	t.Helper()
+	p := parser.New(lexer.NewBody(source, true))
+	prog := p.ParseProgram()
+	if len(p.Errors()) > 0 {
+		t.Fatalf("beklenmeyen sözdizimi hataları: %v\nkaynak:\n%s", p.Errors(), source)
+	}
+	c := New()
+	c.CheckProgram(prog)
+	return c.Errs()
+}
+
+// markLibrary kodları test boyunca yapay bir modülün kitaplık kodu sayar; yerleşik ad önbelleği
+// yeniden kurulur.
+func markLibrary(t *testing.T, modules map[codes.Code]string) {
+	t.Helper()
+	t.Cleanup(codes.SetLibraryModulesForTest(modules))
+	builtinCache.lang = nil
+	t.Cleanup(func() { builtinCache.lang = nil })
 }
 
 // singleErrorAt tek bir tanımsız ad hatası (H1010) bekler ve konumunu (satır, sütun) sınar.

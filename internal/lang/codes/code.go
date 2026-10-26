@@ -6,6 +6,7 @@ package codes
 
 import (
 	"fmt"
+	"maps"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -198,8 +199,25 @@ func (k Code) IsIndexSubcommand() bool { return k.Class() == ClassSubcommand }
 func (k Code) IsKeyword() bool { return k.Class() == ClassKeyword }
 
 // IsBuiltin reports whether the code is a builtin registered in the global scope (a function
-// or a constant).
+// or a constant of the core; a library code is not a builtin).
 func (k Code) IsBuiltin() bool {
 	c := k.Class()
-	return c == ClassFunction || c == ClassConstant
+	return (c == ClassFunction || c == ClassConstant) && !k.IsLibrary()
+}
+
+// IsLibrary reports whether the code is a public name of a standard library module (tr/…;
+// definitions.json "modül"): it comes with the module's import, not with the core.
+func (k Code) IsLibrary() bool {
+	_, ok := libraryModules[k]
+	return ok
+}
+
+// SetLibraryModulesForTest marks the given codes as library codes of the given modules until the
+// returned function is called (tests check the library mechanism with made-up library codes). It
+// is not safe for parallel tests.
+func SetLibraryModulesForTest(modules map[Code]string) (restore func()) {
+	old := libraryModules
+	libraryModules = maps.Clone(old)
+	maps.Copy(libraryModules, modules)
+	return func() { libraryModules = old }
 }

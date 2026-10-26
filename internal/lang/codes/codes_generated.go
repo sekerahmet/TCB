@@ -666,3 +666,6 @@ var identities = [...]string{
 	EnvJobDir:            "TR_env_JOB_DIR",
 	EnvLang:              "TR_env_LANG",
 }
+
+// libraryModules is the module of every library code (the module field of definitions.json).
+var libraryModules = map[Code]string{}

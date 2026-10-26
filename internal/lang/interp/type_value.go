@@ -60,7 +60,7 @@ func init() {
 	all := codes.Codes()
 	typeValues = make([]*TypeVal, int(slices.Max(all))+1)
 	for _, k := range all {
-		if k.Namespace() == codes.NamespaceType {
+		if coreType(k) {
 			t := &TypeVal{Code: k}
 			typeValues[k] = t
 			typeValueByName[TypeName(k)] = t
@@ -103,10 +103,16 @@ func (s *StructDefVal) typeValue() *TypeVal {
 	return s.typ
 }
 
-// registerTypes tip adlarını genel kapsama tip değerleri olarak bağlar (tip(x) == Tam).
+// coreType k'nin çekirdeğin tip kodu olduğunu söyler. Kitaplığın tip kodu (codes.Code.IsLibrary)
+// yerleşik tip değeri değildir: tipi kitaplığın kendi yapısıdır (StructDefVal.typeValue).
+func coreType(k codes.Code) bool {
+	return k.Namespace() == codes.NamespaceType && !k.IsLibrary()
+}
+
+// registerTypes çekirdek tip adlarını genel kapsama tip değerleri olarak bağlar (tip(x) == Tam).
 func (v *VM) registerTypes() {
 	for _, k := range codes.Codes() {
-		if k.Namespace() == codes.NamespaceType {
+		if coreType(k) {
 			for _, y := range codes.Spellings(k) {
 				v.GlobalEnv.Define(y, typeValues[k], true)
 			}

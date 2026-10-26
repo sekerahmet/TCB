@@ -61,3 +61,16 @@ func TestValidNamesHaveNoHintAndTyposGetClosest(t *testing.T) {
 		t.Errorf("benzer ad yokken öneri olmamalı: %q", got)
 	}
 }
+
+// Kural (17, kitaplık kodu): kitaplık kodu ne anahtar kelime ne yerleşik ipucu alır; adı yalnız
+// aktaran dosyada görünür (öneri görünen adlardan gelir).
+func TestLibraryCodeGetsNoSpellingHint(t *testing.T) {
+	t.Cleanup(codes.SetLibraryModulesForTest(map[codes.Code]string{codes.FnPrint: "tr/deneme"}))
+	ascii := turkish.ASCII(codes.Name(codes.FnPrint))
+	if i := KeywordSpellingHint(ascii); i != nil {
+		t.Errorf("KeywordSpellingHint(%q) = %v, ipucu beklenmiyordu", ascii, i)
+	}
+	if i := BuiltinSpellingHint(ascii); i != nil {
+		t.Errorf("BuiltinSpellingHint(%q) = %v, ipucu beklenmiyordu", ascii, i)
+	}
+}

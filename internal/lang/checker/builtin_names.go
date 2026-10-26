@@ -13,9 +13,10 @@ var builtinCache struct {
 	names map[string]bool
 }
 
-// builtinNames sözlükteki yerleşiklerin (fn, const) ve tip adlarının (type; ifadede tip
+// builtinNames sözlükteki yerleşiklerin (fn, const) ve çekirdek tip adlarının (type; ifadede tip
 // değeridir: tip(x) == Tam) kabul edilen adlarıdır; denetimde bu adlar her kapsamda
-// tanımlıdır (çalışma anında genel kapsama kaydedilirler).
+// tanımlıdır (çalışma anında genel kapsama kaydedilirler). Kitaplık kodları aktarımla gelir,
+// burada yoktur.
 func builtinNames() map[string]bool {
 	o := &builtinCache
 	o.Lock()
@@ -23,7 +24,7 @@ func builtinNames() map[string]bool {
 	if o.lang != codes.Active() {
 		m := map[string]bool{}
 		for _, k := range codes.Codes() {
-			if k.IsBuiltin() || k.Namespace() == codes.NamespaceType {
+			if k.IsBuiltin() || k.Namespace() == codes.NamespaceType && !k.IsLibrary() {
 				for _, y := range codes.Spellings(k) {
 					m[y] = true
 				}

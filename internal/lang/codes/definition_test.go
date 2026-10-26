@@ -20,6 +20,9 @@ func TestDefinitionsConsistent(t *testing.T) {
 func TestEveryCodeHasDescription(t *testing.T) {
 	d := Source()
 	for _, k := range d.Codes() {
+		if k.IsLibrary() {
+			continue // kitaplık kodlarının açıklamaları madde 15 adım 3c'de yazılır; atlama 3c'de kalkar
+		}
 		g, _ := d.Entry(k)
 		if strings.TrimSpace(g.Description) == "" {
 			t.Errorf("%s (%s): açıklama yok", k, g.Name)
@@ -106,5 +109,46 @@ func TestParseDefinitions(t *testing.T) {
 	_, _, err = ParseDefinitions([]byte(`{"TR_fn_print": {"tür": "fonksiyon", "adlı": [["TR_arg_dim"]]}}`))
 	if err == nil {
 		t.Error("eksik adlı argüman hata vermeli")
+	}
+}
+
+// Kural (17, kitaplık kodu): definitions.json'da "modül" alanı olan kod standart kitaplığın
+// (tr/…) kodudur; yerleşik değildir. Alan yalnız kitaplığın dışa açık adlarının sınıflarında
+// (tip, fonksiyon, sabit, üye, adlı argüman) yazılır.
+func TestLibraryCodesAreNotBuiltins(t *testing.T) {
+	defs, _, err := ParseDefinitions([]byte(`{"TR_fn_sin": {"tür": "fonksiyon", "modül": "tr/deneme"}}`))
+	if err != nil || defs[FnSin].Module != "tr/deneme" {
+		t.Fatalf("modül alanı okunmalı: %+v %v", defs[FnSin], err)
+	}
+	for _, c := range []struct{ json, want string }{
+		{`{"TR_kw_if": {"tür": "anahtar_kelime", "modül": "tr/deneme"}}`, "TR_kw_if: a module is written only on"},
+		{`{"TR_fn_sin": {"tür": "fonksiyon", "modül": "deneme"}}`, "TR_fn_sin: module \"deneme\" is not a standard library module"},
+	} {
+		if _, _, err := ParseDefinitions([]byte(c.json)); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%s: %q içeren hata bekleniyordu, alınan: %v", c.json, c.want, err)
+		}
+	}
+	t.Cleanup(SetLibraryModulesForTest(map[Code]string{FnSin: "tr/deneme"}))
+	if !FnSin.IsLibrary() || FnSin.IsBuiltin() {
+		t.Errorf("kitaplık kodu: IsLibrary %v, IsBuiltin %v", FnSin.IsLibrary(), FnSin.IsBuiltin())
+	}
+	if FnPrint.IsLibrary() || !FnPrint.IsBuiltin() {
+		t.Errorf("çekirdek kodu: IsLibrary %v, IsBuiltin %v", FnPrint.IsLibrary(), FnPrint.IsBuiltin())
+	}
+}
+
+// Kural (17, kitaplık kodu): kitaplık kodunun imzası ve üyenin tipleri yalnız kitaplığın kaynağında
+// yazılır; definitions.json'da yalnız türü ve modülü vardır (ikinci kopya yok).
+func TestLibraryCodeHasNoSignatureInDefinitions(t *testing.T) {
+	t.Cleanup(SetLibraryModulesForTest(map[Code]string{MemStep: "tr/deneme", FnSum: "tr/deneme"}))
+	var got []string
+	for _, err := range CheckDefinitions(Active()) {
+		got = append(got, err.Error())
+	}
+	for _, k := range []Code{MemStep, FnSum} {
+		want := k.String() + ": a library code's signature and types are written only in the library's source"
+		if !strings.Contains(strings.Join(got, "\n"), want) {
+			t.Errorf("%q bekleniyordu, alınan: %q", want, got)
+		}
 	}
 }

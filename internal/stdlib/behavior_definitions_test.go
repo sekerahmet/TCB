@@ -92,7 +92,8 @@ func TestExamplesRun(t *testing.T) {
 	for _, k := range codes.Codes() {
 		g, _ := codes.Source().Entry(k)
 		// Komutların örneği bir komut satırıdır, TR programı değil; komut satırı testleri sınar.
-		if g.Example == "" || k.ExpectedKind() == codes.KindCommand {
+		// Kitaplık kodunun örneği aktarım ister (madde 15 adım 3c).
+		if g.Example == "" || k.ExpectedKind() == codes.KindCommand || k.IsLibrary() {
 			continue
 		}
 		prog, example := exampleProgram(t, k)
@@ -194,7 +195,8 @@ func TestNamedArgsMatchDefinitions(t *testing.T) {
 	tried := 0
 	for _, k := range codes.Codes() {
 		tn, _ := codes.DefinitionOf(k)
-		if tn.Kind != codes.KindFunction && tn.Kind != codes.KindMethod {
+		// Kitaplık kodunun imzası yalnız kitaplığın kaynağındadır (madde 15, Ç7).
+		if tn.Kind != codes.KindFunction && tn.Kind != codes.KindMethod || k.IsLibrary() {
 			continue
 		}
 		prog, example := exampleProgram(t, k)
@@ -277,7 +279,8 @@ func TestMemberTypesMatchDefinitions(t *testing.T) {
 	}
 	for _, k := range codes.Codes() {
 		tn, _ := codes.DefinitionOf(k)
-		if tn.Kind != codes.KindMethod && tn.Kind != codes.KindProperty {
+		// Kitaplık üyesinin tipleri kitaplığın yapılarıdır, tanımda yazılmaz (madde 15, Ç8).
+		if tn.Kind != codes.KindMethod && tn.Kind != codes.KindProperty || k.IsLibrary() {
 			continue
 		}
 		var real []codes.Code

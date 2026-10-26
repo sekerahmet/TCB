@@ -19,6 +19,32 @@ func TestConstantsUpToDate(t *testing.T) {
 	genmain.AssertUpToDate(t, reporoot.Root(), "codeconsts", outputPath, Generate)
 }
 
+// Kitaplık kodlarının modül tablosu (libraryModules) definitions.json'un "modül" alanından üretilir;
+// modülsüz kod tabloda yoktur.
+func TestLibraryModulesGenerated(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, filepath.Dir(trPath))
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for path, data := range map[string]string{
+		trPath:   `{"TR_fn_print": {"ad": "yazdır"}, "TR_fn_sin": {"ad": "sin"}}`,
+		defsPath: `{"TR_fn_print": {"tür": "fonksiyon"}, "TR_fn_sin": {"tür": "fonksiyon", "modül": "tr/deneme"}}`,
+	} {
+		if err := os.WriteFile(filepath.Join(root, path), []byte(data), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	out, err := Generate(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, table, _ := strings.Cut(string(out), "var libraryModules")
+	if !strings.Contains(table, `FnSin: "tr/deneme",`) || strings.Contains(table, "FnPrint") {
+		t.Errorf("libraryModules yalnız FnSin'i tr/deneme ile içermeli:\n%s", table)
+	}
+}
+
 // Go kaynaklarında (internal/lang/codes dışında) kodlar yalnızca adlı sabitlerle yazılır: kodun
 // sayısı (codes.Code(57)) dil dosyasındaki sırasıdır, bir kod eklenince kayar. Sözlükte olmayan bir
 // sabit yazılırsa derleme zaten düşer.

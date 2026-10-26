@@ -103,7 +103,8 @@ func TestExamplesCoverNames(t *testing.T) {
 	var missing, staleExceptions []string
 	for _, k := range codes.Codes() {
 		id := k.String()
-		if k.ExpectedKind() == codes.KindCommand {
+		// Kitaplık kodlarını TestExamplesCoverLibraryNames sınar.
+		if k.ExpectedKind() == codes.KindCommand || k.IsLibrary() {
 			continue
 		}
 		live[id] = true
