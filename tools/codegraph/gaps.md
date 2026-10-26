@@ -65,6 +65,18 @@ Son kapananlar (ana oturum 2026-10-26 aynı komutlarla doğruladı, main ed69e06
   - Neden kritik: işleyiciyi değiştiren onun davranış testlerini görmüyor.
   - Beklenen: testin gönderdiği istek adı (metin sabiti) ile o adı `case` eden işleyici arasında test bağı. Aynı köprünün öbür ucu: eklentinin `customRequest('trTable', ...)` çağıran JS kodu ve testleri (`editors/vscode/test/table_common_test.js`, `watch_panel_test.js`) Go işleyicisine bağlanmıyor; protokol anahtarı değişince (V3, 2026-10-26) iki taraf elle bulundu.
 
+- **Kabuk ve Python betiklerinin ortam değişkeni kullanımları görünmüyor.** 2026-10-26, ana oturum gerçek kullanım denemesinde yaşadı (3. tur).
+  - Komut: `go run ./tools/codegraph query TR_env_GPU_SYNC` → Go'da okuyan (`gpu.newBackend`) ve testler; değişkeni koyan betik yok.
+  - İkinci yol: `tools/gpu/card_check.sh:27` `TR_env_GPU_SYNC=1 "$bin/gpu_sinama"`; `tools/full_check.sh:167-169, 437` `TR_CPU_AVX2`, `TR_DIL`; `git grep -l -E 'TR_(env_|DIL|GPU_|IS_|CPU_)' -- '*.sh' '*.py'` → 3 dosya.
+  - Neden kritik: değişkenin adını değiştiren betiği görmüyor (yanlış "başka kullanan yok"); e528db5a'da `card_check.sh` elle bulundu.
+  - Beklenen: `.sh` ve `.py` dosyalarındaki ortam değişkeni ataması ve okuması (`X=1 komut`, `export X`, `${X}`, `os.environ["X"]`) ad koduna ya da (kodsuzsa) değişken adına `uses_env` kenarı verir. Test: depodaki her betikte geçen `TR_` değişkeni grafikte bir kenarla.
+
+- **Dış test paketindeki adaş test dosyası ve TR koduyla sürülen testler: dosyanın kendi testleri en sonda ya da hiç yok.** 2026-10-26, ana oturum gerçek kullanım denemesinde yaşadı (3. tur). Kapanan `stats.go` maddesinin (aynı paket) genellenmemiş hâli.
+  - Komut: `go run ./tools/codegraph tests-for --all internal/stdlib/dataset/state.go` → "tests that exercise the declarations in this file (275, direct first)": ilk 61 satır 5 adımlık `checkpoint_test` ve `kontrol_noktasi_test` testleri; `dataset_test.TestReaderStateResumesSameBatches` 62. sırada, `9 steps [INFERRED]` (sınır 8 adım denmişti); `dataset_test.TestReaderSkipSameAsNext` yok.
+  - İkinci yol: `internal/stdlib/dataset/state_test.go` (`package dataset_test`) iki testi de test dizesindeki TR koduyla `ö.durum`, `durumu_yükle` ve `atla`'yı sınıyor; bunları `state.go`'daki `StateDict`, `loadStateTR`, `skipTR` uyguluyor.
+  - Neden kritik: dosyayı değiştiren onun birim testini görmüyor ya da sonda görüyor (yanlış "yok").
+  - Beklenen: dosyanın adaşı test dosyası (aynı ya da `_test` dış paket) "this file's tests" grubunda; test dizesindeki TR kodunun çağırdığı yerleşik ya da üye (ad kodu) onu uygulayan Go işlevine `direct` bağ verir. Test: her `x.go`/`x_test.go` çiftinde, dış paketteki adaş testler `tests-for x.go`'nun ilk grubunda.
+
 ## İnce ayar
 
 - **`tr dizin etki`'de kısaltılmış grup bunu söylemiyor.** 2026-10-26, ana oturum gerçek kullanım denemesinde yaşadı (2. tur).
