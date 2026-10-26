@@ -313,7 +313,7 @@ func linkSnippets(b *builder, idx *goIndex, reach *testReach) {
 		for _, text := range st.expandTexts(f.texts, 0) {
 			uses, seen := cache[text]
 			if !seen {
-				uses = codeindex.Snippet(text)
+				uses, _ = codeindex.Snippet(text, nil)
 				cache[text] = uses
 			}
 			for _, u := range uses {

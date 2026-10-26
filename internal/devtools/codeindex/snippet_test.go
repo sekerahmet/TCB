@@ -3,8 +3,12 @@ package codeindex
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
+	"testing/fstest"
+
+	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
 const builtinUseSource = `değişken kn = kontrol_noktası(1, {}, her_dakika: 3)
@@ -78,7 +82,7 @@ func TestADeclaredNameAndABuiltinNameAreBothCandidates(t *testing.T) {
 // Kural: Snippet bir metindeki TR kodunun kullandığı yerleşik, üye ve adlı argüman kodlarını verir (Go test dizeleri
 // için); ayrıştırılamayan metin nil verir.
 func TestSnippetListsTheCodesAProgramTextUses(t *testing.T) {
-	got := Snippet(builtinUseSource)
+	got, _ := Snippet(builtinUseSource, nil)
 	var codes []string
 	for _, u := range got {
 		codes = append(codes, u.Code)
@@ -87,7 +91,34 @@ func TestSnippetListsTheCodesAProgramTextUses(t *testing.T) {
 		!strings.Contains(strings.Join(codes, ","), "TR_mem_update") {
 		t.Errorf("codes = %v", codes)
 	}
-	if Snippet("bu bir ((( program değil") != nil {
+	if uses, imports := Snippet("bu bir ((( program değil", nil); uses != nil || imports != nil {
 		t.Error("an unparsable text has no uses")
+	}
+}
+
+// Kural: kitaplık verilince Snippet metnin `aktar "tr/ad"` ile aldığı kitaplık modüllerini dosyadaki kuralla çözer ve
+// kitaplıktaki yollarını verir (kök boşken de): üst düzeyde ve iç blokta, takma adlı ya da adsız, düz ve kodlu yazımda.
+// Kitaplıkta olmayan modül ve göreli aktarma yol vermez; kitaplıksız çağrı (yalnız ad kodları) aktarma vermez.
+func TestSnippetListsTheLibraryModulesItImports(t *testing.T) {
+	library := fstest.MapFS{
+		"modelx.tr":  {Data: []byte("aktar \"katmanx\"\nfonksiyon modelx_kur() { sonuç 1 }\n")},
+		"katmanx.tr": {Data: []byte("fonksiyon GPT() { sonuç 1 }\n")},
+	}
+	src := "aktar \"tr/modelx\"\naktar \"yerel\"\naktar \"tr/olmayan\"\ntest \"t\" {\n    aktar \"tr/katmanx\" olarak k\n    yazdır(modelx_kur())\n}\naktar \"tr/modelx\" olarak h\n"
+	if _, imports := Snippet(src, library); !slices.Equal(imports, []string{"lib/modelx.tr", "lib/katmanx.tr"}) {
+		t.Errorf("imports = %v, want lib/modelx.tr and lib/katmanx.tr once each, in source order", imports)
+	}
+	coded, err := source.Encode("aktar \"tr/katmanx\"\nyazdır(GPT())\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(coded, source.Header) {
+		t.Fatalf("the coded text has no header: %q", coded)
+	}
+	if uses, imports := Snippet(coded, library); !slices.Equal(imports, []string{"lib/katmanx.tr"}) || len(uses) == 0 {
+		t.Errorf("coded text: imports %v, uses %v", imports, uses)
+	}
+	if _, imports := Snippet(src, nil); imports != nil {
+		t.Errorf("without a library no import resolves: %v", imports)
 	}
 }
