@@ -76,7 +76,7 @@ codegraph query "ölü" | not: bölüm | not: Bölüm | contains: source.langNam
 
 # Bağımsız denetim: "bu bir test mi / bu test neyi sınıyor" tek kural (Y1, Y3, T3) (2026-10-23)
 codegraph tests-for hazir.ayar_değeri | not: no tests found | group: tests, indirect => lib/hazir_test.tr | src: bağımsız denetim Y1, 2026-10-23
-codegraph tests-for katman.GPT.gömülü | not: no tests found | first-of: tests, indirect => lib/katman_test.tr | src: bağımsız denetim Y1, 2026-10-23
+codegraph tests-for katman.GPT.göm | not: no tests found | first-of: tests, indirect => lib/katman_test.tr | src: bağımsız denetim Y1, 2026-10-23
 codegraph changed 99f04289~1..99f04289 | contains: egitim.Koşu.bitir | not: none found for the changed code | group: tests that exercise the changed code => lib/egitim_test.tr | src: bağımsız denetim Y3, 2026-10-23
 tr dizin sınayanlar ayar_değeri | contains: lib/hazir_test.tr | src: bağımsız denetim T3 (tr dizin ile tests-for aynı zincir kuralı), 2026-10-23
 

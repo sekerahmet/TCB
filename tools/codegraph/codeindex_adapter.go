@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 )
 
 // TR kaynak düğümleri: internal/devtools/codeindex paketinin dizininden alınır.
@@ -66,6 +67,7 @@ func extractTR(root string, b *builder, m *module) {
 		}
 	}
 	namedArgumentEdges(idx, ids, b)
+	libraryCodeEdges(idx, ids, b)
 	if m != nil {
 		linkConstructs(b, readDispatch(m), idx, ids, m.Path+"/internal/lang/interp")
 	}
@@ -129,8 +131,86 @@ func namedArgumentEdges(idx *codeindex.Index, ids map[string]string, b *builder)
 	}
 }
 
+// libraryNamespace kitaplık bildiriminin türünden adının ad alanıdır.
+var libraryNamespace = map[codeindex.Kind]codes.Namespace{
+	codeindex.KindStruct: codes.NamespaceType, codeindex.KindFunction: codes.NamespaceGlobal,
+	codeindex.KindConstant: codes.NamespaceGlobal, codeindex.KindVariable: codes.NamespaceGlobal,
+	codeindex.KindField: codes.NamespaceMember, codeindex.KindMethod: codes.NamespaceMember,
+	codeindex.KindParameter: codes.NamespaceParam,
+}
+
+// libraryCodeEdges kitaplığın bildirimlerini kodlarına bağlar (kitaplığın dili yoktur, dil tanımı 17.3): lib/
+// altındaki yapı, fonksiyon, sabit, alan, metot ve parametre bildirimi adının kitaplık koduna `uses_name` kenarı
+// verir. Bildirimi (parametrede sahibi olan fonksiyonu ya da yapıyı) sınayan ya da okuyan test kodu da sınar
+// (`tests`, çıkarım): çekirdekte yerleşiğin okunması onu sınamaktır, kitaplıkta bildirimin. Kitaplığın iç
+// yardımcısı (ayar_değeri, NS_A) testine çağıranları üzerinden ulaşır (libraryTests).
+func libraryCodeEdges(idx *codeindex.Index, ids map[string]string, b *builder) {
+	parent := map[string]string{}          // bildirim → onu tanımlayan (metot → yapı, parametre → fonksiyon)
+	users := map[string][]codeindex.Edge{} // bildirim → onu çağıran ya da okuyan kenarlar
+	for _, e := range idx.Edges {
+		switch e.Kind {
+		case codeindex.EdgeDefines:
+			parent[e.To] = e.From
+		case codeindex.EdgeTests, codeindex.EdgeCalls, codeindex.EdgeUses:
+			users[e.To] = append(users[e.To], e)
+		}
+	}
+	for _, n := range idx.Nodes {
+		space, ok := libraryNamespace[n.Kind]
+		if !ok || !strings.HasPrefix(n.Pos.File, "lib/") || strings.HasSuffix(n.Pos.File, "_test.tr") {
+			continue
+		}
+		k, ok := codes.Source().Find(space, n.Name[strings.LastIndex(n.Name, ".")+1:]) // DENEME: dizinin adları Türkçe gösterimdedir
+		if !ok || !k.IsLibrary() {
+			continue
+		}
+		name := "name:" + k.String()
+		b.addEdge(ids[n.ID], name, edgeUsesName, extracted, n.Pos.File, n.Pos.Line)
+		for _, e := range libraryTests([]string{n.ID, parent[n.ID], parent[parent[n.ID]]}, users) {
+			b.addEdge(ids[e.From], name, edgeTests, inferred, e.Pos.File, e.Pos.Line)
+		}
+	}
+}
+
+// libraryTests bildirimlere çağıran ve okuyan zincirinde (en çok libraryTestDepth adım) ulaşan test bloklarının
+// kenarlarıdır.
+func libraryTests(start []string, users map[string][]codeindex.Edge) []codeindex.Edge {
+	const libraryTestDepth = 6
+	var out []codeindex.Edge
+	seen := map[string]bool{}
+	frontier := start
+	for depth := 0; depth < libraryTestDepth && len(frontier) > 0; depth++ {
+		var next []string
+		for _, id := range frontier {
+			if id == "" || seen[id] {
+				continue
+			}
+			seen[id] = true
+			for _, e := range users[id] {
+				if strings.HasPrefix(e.From, string(codeindex.KindTest)) {
+					out = append(out, e)
+				} else {
+					next = append(next, e.From)
+				}
+			}
+		}
+		frontier = next
+	}
+	return out
+}
+
+// nameNodeNames bir ad kodu düğümünün sorguda aranan adlarıdır: kimliği ve dillerdeki adları. Kitaplık kodunun
+// dillerdeki adlarını kitaplıktaki bildirimi taşır (libraryCodeEdges); kod yalnız kimliğiyle aranır, yoksa her
+// kitaplık adı bildirimiyle birlikte iki aday olurdu.
+func nameNodeNames(n *Node) []string {
+	if k, err := codes.Parse(n.Name); err == nil && k.IsLibrary() {
+		return []string{n.Name}
+	}
+	return append([]string{n.Name}, n.Aliases...)
+}
+
 // isErrorExample bilerek sözdizimi hatalı yazılmış hata örneklerinin klasörlerindeki dosya mı
-// (examples/tr/hatalar, examples/en/errors): oradaki ayrıştırma hataları beklenendir.
+// (examples/tr/hatalar): oradaki ayrıştırma hataları beklenendir.
 func isErrorExample(file string) bool {
 	return strings.HasPrefix(file, "examples/") && (strings.Contains(file, "/hatalar/") || strings.Contains(file, "/errors/"))
 }

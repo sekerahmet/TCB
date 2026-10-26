@@ -34,7 +34,7 @@ TR_kw_struct Blok {
         TR_kw_self.W2 = ağırlık([FF, D], 0.01)
     }
     TR_kw_func TR_mem_starts_with(x) { TR_kw_return x.TR_mem_reshape([B, T, H, Dh]) } // dikkat'in düzeni [B, T, H, Dh]
-    TR_kw_func ileri(x) {
+    TR_kw_func TR_mem_forward(x) {
         TR_kw_var h = TR_fn_rms_norm(x, TR_kw_self.g1)
         TR_kw_var y = TR_fn_attention(TR_kw_self.TR_mem_starts_with(h @ TR_kw_self.Wq), TR_kw_self.TR_mem_starts_with(h @ TR_kw_self.Wk), TR_kw_self.TR_mem_starts_with(h @ TR_kw_self.Wv), TR_arg_causal: TR_kw_true)
         TR_kw_var s = x + y.TR_mem_reshape([B, T, D]) @ TR_kw_self.Wo
@@ -45,16 +45,16 @@ TR_kw_struct Blok {
 
 TR_kw_struct Model {
     E
-    bloklar
+    TR_mem_blocks
     gs
     TR_kw_func TR_ctx_init() {
         TR_kw_self.E = ağırlık([V, D], 0.02)
-        TR_kw_self.bloklar = TR_fn_range(KATMAN).TR_mem_map { Blok() }
+        TR_kw_self.TR_mem_blocks = TR_fn_range(KATMAN).TR_mem_map { Blok() }
         TR_kw_self.gs = TR_fn_tensor(TR_fn_ones([D]), TR_arg_requires_grad: TR_kw_true)
     }
-    TR_kw_func ileri(kimlikler) {
+    TR_kw_func TR_mem_forward(kimlikler) {
         TR_kw_var x = TR_fn_embedding(TR_kw_self.E, kimlikler)
-        TR_kw_for bl TR_kw_in TR_kw_self.bloklar { x = bl.ileri(x) }
+        TR_kw_for bl TR_kw_in TR_kw_self.TR_mem_blocks { x = bl.TR_mem_forward(x) }
         TR_kw_return TR_fn_rms_norm(x, TR_kw_self.gs) @ TR_kw_self.E.TR_mem_transpose() // paylaşımlı çıkış
     }
 }

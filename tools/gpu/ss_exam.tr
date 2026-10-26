@@ -32,7 +32,7 @@ TR_kw_if ayar.koşu == "" TR_kw_or ayar.veri == "" {
 }
 TR_fn_default_device(ayar.TR_mem_device)
 TR_kw_var yapılandırma = TR_fn_json_parse(TR_fn_read_file(TR_fn_path(ayar.koşu, "config.json")))
-TR_kw_var eğitim = yapılandırma.ayar
+TR_kw_var eğitim = yapılandırma.TR_mem_config
 TR_kw_var p = TR_fn_load_tokenizer(TR_fn_path(ayar.veri, "tokenizer.json"))
 TR_kw_var model = eğitim_modeli(eğitim, p.TR_mem_vocab_size)
 TR_fn_load_parameters(model, TR_fn_load_tensors(TR_fn_path(ayar.koşu, "model.trt")))
@@ -48,9 +48,9 @@ TR_kw_var okuyucu = TR_fn_dataset(TR_fn_path(ayar.veri, "valid.npy")).TR_mem_seq
 TR_fn_no_grad {
     TR_kw_for iş TR_kw_in okuyucu {
         TR_kw_var h = TR_kw_none
-        TR_fn_mixed_precision(ayar.hassasiyet) { h = model.gizli_durum(iş[0]) }
+        TR_fn_mixed_precision(ayar.hassasiyet) { h = model.TR_mem_hidden_states(iş[0]) }
         // Logitler float32: gizli durum ve çıkış ağırlığı float32'ye çevrilip çarpılır (evaluate.py ile aynı).
-        TR_kw_var w = TR_kw_if model.çıkış == TR_kw_none { model.gömme.tablo } TR_kw_else { model.çıkış.ağırlık.TR_mem_transpose() }
+        TR_kw_var w = TR_kw_if model.TR_mem_logit_layer == TR_kw_none { model.TR_mem_embedding.TR_mem_table } TR_kw_else { model.TR_mem_logit_layer.TR_mem_weight.TR_mem_transpose() }
         TR_kw_var logit = h.TR_mem_to_dtype("float32") @ w.TR_mem_to_dtype("float32").TR_mem_transpose()
         TR_kw_var n = iş[0].TR_mem_shape[0] * T
         toplam_kayıp += TR_fn_cross_entropy(logit, iş[1]).TR_mem_tolist * n
@@ -92,7 +92,7 @@ TR_kw_var istemler = ["Once upon a time", "The little dog", "One day, a girl nam
 TR_kw_func açgözlü(istem, adet) {
     TR_kw_var başlangıç = p.TR_mem_encode(istem)
     TR_kw_var kimlikler = TR_kw_none
-    TR_fn_mixed_precision(ayar.hassasiyet) { kimlikler = model.üret(başlangıç, adet, sıcaklık: 0, eos: ayar.eos) }
+    TR_fn_mixed_precision(ayar.hassasiyet) { kimlikler = model.TR_mem_generate(başlangıç, adet, TR_arg_temperature: 0, TR_arg_eos: ayar.eos) }
     TR_kw_var yeni = kimlikler[başlangıç.TR_mem_length..kimlikler.TR_mem_length]
     TR_kw_if yeni.TR_mem_length > 0 TR_kw_and yeni.TR_mem_last == ayar.eos { yeni = yeni[0..yeni.TR_mem_length - 1] }
     TR_kw_return [yeni, istem + p.TR_mem_decode(yeni)]
@@ -106,14 +106,14 @@ TR_kw_for istem TR_kw_in istemler[0..2] {
 TR_kw_var örnekler = []
 TR_kw_for istem TR_kw_in istemler { örnekler.TR_mem_append({istem: istem, metin: açgözlü(istem, ayar.örnek_uzunluğu)[1]}) }
 
-TR_kw_var sınav = {kayıp: kayıp, ppl: TR_fn_exp(TR_fn_min(kayıp, 50.0)), bpb: kayıp / TR_fn_log(2.0) / ayar.bayt_parça,
+TR_kw_var sınav = {TR_mem_loss: kayıp, ppl: TR_fn_exp(TR_fn_min(kayıp, 50.0)), bpb: kayıp / TR_fn_log(2.0) / ayar.bayt_parça,
     doğruluk: toplam_doğru / TR_fn_max(parça, 1), bantlar: bantlar, parça: parça, pencere: pencere,
     sondalar: sondalar, süre_sn: (TR_fn_time_ms() - başla) / 1000.0, hassasiyet: ayar.hassasiyet}
 TR_kw_var hız_yolu = TR_fn_path(ayar.koşu, "speed.json")
 TR_kw_var sonuç_ = {ad: TR_fn_path(ayar.koşu).TR_mem_name, parametre_sayısı: yapılandırma.parametre_sayısı, TR_mem_step: eğitim.TR_mem_step,
     eğitim_parçası: eğitim.TR_mem_step * eğitim.toplu * eğitim.birikim * eğitim.bağlam, TR_mem_last: sınav,
     hız: TR_kw_if hız_yolu.TR_mem_exists { TR_fn_json_parse(TR_fn_read_file(hız_yolu)) } TR_kw_else { TR_kw_none }, örnekler: örnekler,
-    TR_mem_device: TR_fn_default_device(), ayar: eğitim}
+    TR_mem_device: TR_fn_default_device(), TR_mem_config: eğitim}
 TR_fn_write_file(TR_fn_path(ayar.koşu, "results.json"), TR_fn_json_string(sonuç_))
 TR_fn_print("sınav: kayıp {TR_fn_round(kayıp, 4)} · ppl {TR_fn_round(sınav.ppl, 3)} · bpb {TR_fn_round(sınav.bpb, 4)} · doğruluk {TR_fn_round(sınav.doğruluk, 4)} · {parça} parça ({pencere} pencere)")
 TR_kw_for ad, v TR_kw_in bantlar { TR_fn_print("  bant {ad}: {TR_fn_round(v, 4)}") }

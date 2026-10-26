@@ -28,29 +28,29 @@ from trt_io import write_trt  # noqa: E402
 def tr_name_map(n_layers):
     """PyTorch parameter name -> (TR parameter name, transpose). TR's Doğrusal weight is
     [in, out] (x @ W); PyTorch's nn.Linear weight is [out, in]."""
-    m = {"embed.weight": ("gömme.tablo", False), "norm_f.weight": ("son_norm.ağırlık", False),
-         "ple_ctx.weight": ("ple_bağlamı.ctx_katmanı.ağırlık", True),
-         "ple_ctx_norm.weight": ("ple_bağlamı.norm.ağırlık", False)}
+    m = {"embed.weight": ("TR_mem_embedding.TR_mem_table", False), "norm_f.weight": ("TR_mem_final_norm.TR_mem_weight", False),
+         "ple_ctx.weight": ("TR_mem_ple_context.TR_mem_context_proj.TR_mem_weight", True),
+         "ple_ctx_norm.weight": ("TR_mem_ple_context.TR_mem_norm.TR_mem_weight", False)}
     per_block = {
-        "norm1.weight": ("norm1.ağırlık", False),
-        "norm2.weight": ("norm2.ağırlık", False),
-        "attn.w_q.weight": ("dikkat.sorgu_katmanı.ağırlık", True),
-        "attn.w_kv.weight": ("dikkat.kv_katmanı.ağırlık", True),
-        "attn.w_o.weight": ("dikkat.çıkış_katmanı.ağırlık", True),
-        "attn.q_norm.weight": ("dikkat.q_norm.ağırlık", False),
-        "attn.k_norm.weight": ("dikkat.k_norm.ağırlık", False),
-        "mlp.a.weight": ("ileri_besleme.kapı_yukarı.ağırlık", True),
-        "mlp.a.bias": ("ileri_besleme.kapı_yukarı.sapma", False),
-        "mlp.c.weight": ("ileri_besleme.aşağı.ağırlık", True),
-        "mlp.c.bias": ("ileri_besleme.aşağı.sapma", False),
-        "ple_table": ("ple.tablo", False),
-        "ple_gate.weight": ("ple.kapı.ağırlık", True),
-        "ple_proj.weight": ("ple.izdüşüm.ağırlık", True),
-        "ple_norm.weight": ("ple.norm.ağırlık", False),
+        "norm1.weight": ("TR_mem_input_norm.TR_mem_weight", False),
+        "norm2.weight": ("TR_mem_post_attention_norm.TR_mem_weight", False),
+        "attn.w_q.weight": ("TR_mem_attention.TR_mem_q_proj.TR_mem_weight", True),
+        "attn.w_kv.weight": ("TR_mem_attention.TR_mem_kv_proj.TR_mem_weight", True),
+        "attn.w_o.weight": ("TR_mem_attention.TR_mem_o_proj.TR_mem_weight", True),
+        "attn.q_norm.weight": ("TR_mem_attention.TR_mem_q_norm.TR_mem_weight", False),
+        "attn.k_norm.weight": ("TR_mem_attention.TR_mem_k_norm.TR_mem_weight", False),
+        "mlp.a.weight": ("TR_mem_feed_forward.TR_mem_gate_up_proj.TR_mem_weight", True),
+        "mlp.a.bias": ("TR_mem_feed_forward.TR_mem_gate_up_proj.TR_mem_bias", False),
+        "mlp.c.weight": ("TR_mem_feed_forward.TR_mem_down_proj.TR_mem_weight", True),
+        "mlp.c.bias": ("TR_mem_feed_forward.TR_mem_down_proj.TR_mem_bias", False),
+        "ple_table": ("TR_mem_ple.TR_mem_table", False),
+        "ple_gate.weight": ("TR_mem_ple.TR_mem_gate_proj.TR_mem_weight", True),
+        "ple_proj.weight": ("TR_mem_ple.TR_mem_proj.TR_mem_weight", True),
+        "ple_norm.weight": ("TR_mem_ple.TR_mem_norm.TR_mem_weight", False),
     }
     for i in range(n_layers):
         for k, (v, t) in per_block.items():
-            m["blocks.%d.%s" % (i, k)] = ("bloklar.%d.%s" % (i, v), t)
+            m["blocks.%d.%s" % (i, k)] = ("TR_mem_blocks.%d.%s" % (i, v), t)
     return m
 
 

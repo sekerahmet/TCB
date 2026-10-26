@@ -11,10 +11,10 @@ TR_kw_func eğitim_modeli(ayar, parçalayıcı_dağarcığı) {
     TR_kw_if ayar.dağarcık != 0 TR_kw_and ayar.dağarcık < parçalayıcı_dağarcığı {
         TR_kw_throw ("--dağarcık {ayar.dağarcık} parçalayıcının dağarcığından ({parçalayıcı_dağarcığı}) küçük olamaz")
     }
-    TR_kw_return GPT(TR_kw_if ayar.dağarcık == 0 { parçalayıcı_dağarcığı } TR_kw_else { ayar.dağarcık }, bağlam: ayar.bağlam,
-        boyut: ayar.boyut, katman: ayar.katman, bakış_sayısı: ayar.bakış_sayısı,
-        kv_bakış_sayısı: TR_kw_if ayar.kv_bakış_sayısı == 0 { TR_kw_none } TR_kw_else { ayar.kv_bakış_sayısı },
-        ara_boyut: TR_kw_if ayar.ara_boyut == 0 { TR_kw_none } TR_kw_else { ayar.ara_boyut }, epsilon: ayar.epsilon,
-        qk_normu: ayar.qk_normu, birleşik_kv: ayar.birleşik_kv, birleşik_kapı: ayar.birleşik_kapı,
-        ileri_sapmalı: ayar.ileri_sapmalı, paylaşımlı: ayar.paylaşımlı, tohum: ayar.tohum)
+    TR_kw_return TR_type_GPT(TR_kw_if ayar.dağarcık == 0 { parçalayıcı_dağarcığı } TR_kw_else { ayar.dağarcık }, TR_arg_context: ayar.bağlam,
+        TR_arg_embed_dim: ayar.TR_mem_embed_dim, TR_arg_num_layers: ayar.katman, TR_arg_num_heads: ayar.TR_mem_num_heads,
+        TR_arg_num_kv_heads: TR_kw_if ayar.TR_mem_num_kv_heads == 0 { TR_kw_none } TR_kw_else { ayar.TR_mem_num_kv_heads },
+        TR_arg_intermediate_dim: TR_kw_if ayar.ara_boyut == 0 { TR_kw_none } TR_kw_else { ayar.ara_boyut }, TR_arg_eps: ayar.TR_mem_eps,
+        TR_arg_qk_norm: ayar.qk_normu, TR_arg_merged_kv: ayar.birleşik_kv, TR_arg_merged_gate: ayar.birleşik_kapı,
+        TR_arg_ff_use_bias: ayar.ileri_sapmalı, TR_arg_tied: ayar.paylaşımlı, TR_arg_seed: ayar.tohum)
 }

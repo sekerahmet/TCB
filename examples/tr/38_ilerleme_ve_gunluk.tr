@@ -10,7 +10,7 @@
 TR_kw_var dosya = TR_fn_path(TR_fn_temp_dir(), "günlük.jsonl")
 TR_kw_var kayıt_defteri = TR_fn_logger(dosya)
 TR_fn_print(TR_fn_type(kayıt_defteri) == TR_type_Logger)
-kayıt_defteri.TR_mem_append({TR_mem_step: 0, kayıp: 9.5})
+kayıt_defteri.TR_mem_append({TR_mem_step: 0, TR_mem_loss: 9.5})
 
 // ilerleme(toplam) bir ilerleme çubuğu açar (standart hataya yazar: adım, kayıp, hız, kalan süre).
 // günlük: verilirse çubuğun her güncellemesi aynı zamanda günlüğe yazılır.
@@ -18,7 +18,7 @@ TR_kw_var çubuk = TR_fn_progress(5, TR_arg_log: kayıt_defteri)
 TR_fn_print(TR_fn_type(çubuk) == TR_type_Progress)
 TR_kw_for i TR_kw_in 1..=5 {
     TR_fn_sleep(0.01) // asıl işin yerini tutar
-    çubuk.TR_mem_update({kayıp: 10.0 / (i + 1)}, TR_arg_step: i)
+    çubuk.TR_mem_update({TR_mem_loss: 10.0 / (i + 1)}, TR_arg_step: i)
 }
 
 // Çubuk toplama ulaşınca kendiliğinden biter; durdur() onu elle bitirir (ilk çağrıda doğru,

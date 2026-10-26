@@ -213,7 +213,7 @@ func (ix *index) trNameTable() []trName {
 		case strings.HasPrefix(n.ID, "tr:file:"):
 			c.class, c.names = codeindex.ClassModule, append([]string{n.Name}, n.Aliases...)
 		case strings.HasPrefix(n.ID, "name:"):
-			c.class, c.names = codeindex.ClassBuiltin, append([]string{n.Name}, n.Aliases...)
+			c.class, c.names = codeindex.ClassBuiltin, nameNodeNames(n)
 		case n.Kind == kindTRTest:
 			c.class, c.names = codeindex.ClassTest, []string{n.Name[strings.Index(n.Name, ": ")+2:]} // "modül: açıklama"
 		case strings.HasPrefix(n.ID, "tr:"):

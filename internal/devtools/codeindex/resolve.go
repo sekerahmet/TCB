@@ -377,9 +377,10 @@ func (x *indexer) visibleFiles(f *file) []*file {
 }
 
 // builtin bir ad kodunun yerleşik düğümünü (gerekirse ekleyerek) verir: global yerleşik, üye (Y) ve adlı argüman
-// (arg). Kullanıcının yazdığı kodun kullandığı adlar bunlardır; anahtar sözcük, ileti ve komut sayılmaz.
+// (arg). Kullanıcının yazdığı kodun kullandığı adlar bunlardır; anahtar sözcük, ileti ve komut sayılmaz. Kitaplığın
+// kodu yerleşik değildir: kitaplıktaki bildirimin kendisidir, ayrı düğümü yoktur (dil tanımı 17.3).
 func (x *indexer) builtin(k codes.Code) (string, bool) {
-	if k == codes.None || !(k.IsBuiltin() || k.Namespace() == codes.NamespaceMember || k.Namespace() == codes.NamespaceParam) {
+	if k == codes.None || k.IsLibrary() || !(k.IsBuiltin() || k.Namespace() == codes.NamespaceMember || k.Namespace() == codes.NamespaceParam) {
 		return "", false
 	}
 	id := NodeID(KindBuiltin, "", k.String())

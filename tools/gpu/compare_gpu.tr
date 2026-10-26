@@ -71,7 +71,7 @@ TR_kw_for adım TR_kw_in 0..ADIM {
     TR_kw_var xy = toplu_iş(adım)
     iyileştirici.TR_mem_zero_grad()
     TR_fn_mixed_precision(hassasiyet) {
-        kayıp = TR_fn_cross_entropy(model.ileri(xy[0]), xy[1])
+        kayıp = TR_fn_cross_entropy(model.TR_mem_forward(xy[0]), xy[1])
     }
     TR_fn_backward(kayıp)
     TR_fn_clip_grad(ağırlıklar, TR_arg_max: 1.0)

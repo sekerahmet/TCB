@@ -19,8 +19,6 @@ import (
 // uyarmayan kayıt testi düşürür.
 var repoWarningAllowed = map[string]string{
 	"tests/coded/ornek_kodlu.tr:17": "gölgelemenin kendisini sınar: kodlu dosyada yerleşiğin adıyla aynı yerel ad kod değil, kullanıcının adıdır",
-	"lib/katman.tr:81": "döner_konum_tablosu'nun taban parametresi RoPE'un yerleşik terimidir (rope_theta; onaylı kitaplık tablosu " +
-		"TR_arg_base taban); gövde yerleşik taban'ı kullanmaz",
 }
 
 // Tanımsız ad denetimi (docs/spec/05_deyimler.md §5.14) dinamik dilde yanlış alarm vermemeli:

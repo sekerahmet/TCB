@@ -21,13 +21,13 @@ aktar "tr/katman"
 aktar "tr/iyilestirici"
 fonksiyon eğit(cihaz, normuon) {
     varsayılan_cihaz(cihaz)
-    değişken m = GPT(16, bağlam: 4, boyut: 8, katman: 1, bakış_sayısı: 2, kv_bakış_sayısı: 1, tohum: 3)
-    değişken op = MuonVeAdamW(m, normuon: normuon, adamw_oranı: 0.01)
+    değişken m = GPT(16, bağlam: 4, boyut: 8, katman_sayısı: 1, bakış_sayısı: 2, kv_bakış_sayısı: 1, tohum: 3)
+    değişken op = MuonVeAdamW(m, normuon: normuon, adamw_öğrenme_oranı: 0.01)
     değişken girdiler = [[[3, 1, 4, 1], [5, 9, 2, 6]], [[5, 3, 5, 8], [9, 7, 9, 3]], [[2, 3, 8, 4], [6, 2, 6, 4]]]
     değişken hedefler = [[[1, 4, 1, 5], [9, 2, 6, 5]], [[3, 5, 8, 9], [7, 9, 3, 2]], [[3, 8, 4, 6], [2, 6, 4, 3]]]
     değişken kayıplar = []
     döngü adım içinde 0..3 {
-        op.çarpan_ayarla(oran_planı(adım, 3, ısınma: 1))
+        op.çarpan_ayarla(öğrenme_oranı_planı(adım, 3, ısınma: 1))
         op.sıfırla()
         değişken kayıp = m.kayıp(tensör(girdiler[adım]), tensör(hedefler[adım]))
         geri_yayılım(kayıp)

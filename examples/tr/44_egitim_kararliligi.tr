@@ -45,7 +45,7 @@ op.TR_mem_zero_grad() // bozuk gradyanlar silinir, model değişmedi
 TR_kw_const KOŞU = TR_fn_path("runs/kararlilik_ornegi")
 TR_kw_if KOŞU.TR_mem_exists { TR_fn_remove(KOŞU, TR_arg_recursive: TR_kw_true) }
 TR_kw_var kn = TR_fn_checkpoint(KOŞU, {model: model, op: op, ö: ö}, TR_arg_every_minutes: 0)
-TR_kw_var bekçi = SıçramaBekçisi(pencere: 20, eşik: 6.0)
+TR_kw_var bekçi = TR_type_SpikeGuard(TR_arg_history_limit: 20, TR_arg_threshold: 6.0)
 TR_kw_const TOPLAM = 60
 TR_kw_var bozulacak_adım = 35 // bu adımda kayıp bilerek bir kez NaN olur
 TR_kw_var adım = 0
@@ -59,8 +59,8 @@ TR_kw_for adım < TOPLAM {
     }
     TR_fn_backward(kayıp)
     TR_kw_var norm = TR_fn_clip_grad(TR_fn_parameters(model), TR_arg_max: 1.0)
-    TR_kw_var karar = bekçi.gözle(kayıp.TR_mem_tolist, norm.TR_mem_tolist)
-    TR_kw_if karar != TAMAM {
+    TR_kw_var karar = bekçi.TR_mem_observe(kayıp.TR_mem_tolist, norm.TR_mem_tolist)
+    TR_kw_if karar != TR_const_OK {
         // Bozuk ya da sıçrayan adım uygulanmaz: son sağlam noktaya dönülür, sorunlu toplu işler atlanır.
         TR_fn_print("adım {adım + 1}: {karar}")
         adım = kn.TR_mem_rollback()
@@ -74,7 +74,7 @@ TR_kw_for adım < TOPLAM {
         TR_fn_print("adım {adım}: kayıp {TR_fn_round(kayıp.TR_mem_tolist, 3)}")
     }
 }
-TR_fn_print("model sağlam mı:", TR_fn_is_finite(TR_fn_sum(model.W2).TR_mem_tolist), "| sıçrama sayısı:", bekçi.sıçrama_sayısı)
+TR_fn_print("model sağlam mı:", TR_fn_is_finite(TR_fn_sum(model.W2).TR_mem_tolist), "| sıçrama sayısı:", bekçi.TR_mem_spike_count)
 
 // --- Kendin dene ---
 // 1. bozulacak_adım'ı 5 yap: henüz kontrol noktası yokken geri_dön ne der?

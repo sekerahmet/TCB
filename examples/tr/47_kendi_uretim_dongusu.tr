@@ -10,28 +10,28 @@
 
 TR_kw_import "tr/hazir"
 
-TR_kw_var model = hazır_model("../../tests/data/hf_tiny")
+TR_kw_var model = TR_fn_pretrained_model("../../tests/data/hf_tiny")
 TR_kw_var p = TR_fn_load_tokenizer("../../tests/data/tokenizer.json")
 TR_kw_var başlangıç = p.TR_mem_encode("Bugün hava")
 TR_kw_const ADET = 6
 
 // Hazır yol: model.üret.
-TR_kw_var hazır = model.üret(başlangıç, ADET, sıcaklık: 0)
+TR_kw_var hazır = model.TR_mem_generate(başlangıç, ADET, TR_arg_temperature: 0)
 TR_fn_print("üret:  ", hazır)
 
 // Elle yazılan döngü. önbellek_kur() boş bir KV önbelleği verir: katman başına anahtar ve değerler orada
 // tutulur, ileri çağrısı yeni parçaları ona ekler ve konumu ilerletir. Başlangıç bir kez işlenir; sonra
 // her adım yalnızca son parçayı verir. ileri, her konum için bir logit [dağarcık] verir: bir sonraki
 // parçayı son konumun logiti belirler.
-TR_kw_var ö = model.önbellek_kur()
+TR_kw_var ö = model.TR_mem_build_cache()
 TR_kw_var çıktı = [k TR_kw_for k TR_kw_in başlangıç]
 TR_fn_no_grad {
-    TR_kw_var mantık = model.ileri([başlangıç], önbellek: ö)
+    TR_kw_var mantık = model.TR_mem_forward([başlangıç], TR_arg_cache: ö)
     TR_kw_for i TR_kw_in 0..ADET {
         TR_kw_var son = mantık.TR_mem_shape[1] - 1
         TR_kw_var seçilen = TR_fn_argmax(mantık, TR_arg_dim: -1).TR_mem_tolist[0][son] // açgözlü seçim
         çıktı.TR_mem_append(seçilen)
-        mantık = model.ileri([[seçilen]], önbellek: ö) // yalnızca yeni parçayı işler
+        mantık = model.TR_mem_forward([[seçilen]], TR_arg_cache: ö) // yalnızca yeni parçayı işler
     }
 }
 TR_fn_print("elle:  ", çıktı)
@@ -39,13 +39,13 @@ TR_fn_print("aynı mı:", çıktı == hazır)
 
 // kırp(n) önbelleği ilk n parçaya indirir: sonrakiler geri alınır (ör. reddedilen bir taslak parçalar).
 // Konum n olur; kalan parçalar yeniden işlenince aynı sonuç çıkar.
-TR_fn_print("önbellekte konum:", ö.konum)
-ö.TR_mem_strip(başlangıç.TR_mem_length + 3)
-TR_fn_print("kırpınca konum:", ö.konum)
+TR_fn_print("önbellekte konum:", ö.TR_mem_position)
+ö.TR_mem_truncate(başlangıç.TR_mem_length + 3)
+TR_fn_print("kırpınca konum:", ö.TR_mem_position)
 TR_fn_no_grad {
     // Bir parça daha geri al (konum başlangıç + 2) ve o parçayı yeniden işle: ondan sonra seçilen parça aynı olmalı.
-    ö.TR_mem_strip(başlangıç.TR_mem_length + 2)
-    TR_kw_var yeniden = model.ileri([[çıktı[başlangıç.TR_mem_length + 2]]], önbellek: ö)
+    ö.TR_mem_truncate(başlangıç.TR_mem_length + 2)
+    TR_kw_var yeniden = model.TR_mem_forward([[çıktı[başlangıç.TR_mem_length + 2]]], TR_arg_cache: ö)
     TR_fn_print("yeniden işlenince seçilen aynı:", TR_fn_argmax(yeniden, TR_arg_dim: -1).TR_mem_tolist[0][0] == çıktı[başlangıç.TR_mem_length + 3])
 }
 
@@ -53,17 +53,17 @@ TR_fn_no_grad {
 // ayrılır, başlangıç gizli_durum ile işlenir, sonra her parça tek_adım(kimlik, konum, önbellek) ile gelir.
 // kimlik [1, 1], konum [1] tensörüdür; konum sayacını çağıran ilerletir (ilerle). CPU'da tekrar_oynat
 // tek_adım'ı doğrudan çağırır, sonuç aynıdır.
-TR_kw_var sabit_önbellek = model.önbellek_kur(çeşit: "sabit", en_çok: başlangıç.TR_mem_length + ADET)
+TR_kw_var sabit_önbellek = model.TR_mem_build_cache(TR_arg_kind: "sabit", TR_arg_capacity: başlangıç.TR_mem_length + ADET)
 TR_kw_var sabit_çıktı = [k TR_kw_for k TR_kw_in başlangıç]
 TR_fn_no_grad {
-    TR_kw_var x = model.gizli_durum([başlangıç], önbellek: sabit_önbellek)
-    TR_kw_var son_logit = model.logit(x.TR_mem_slice(1, başlangıç.TR_mem_length - 1, başlangıç.TR_mem_length))[0][0]
-    TR_kw_var adım = TR_fn_replay((kimlik, konum) => model.tek_adım(kimlik, konum, sabit_önbellek))
+    TR_kw_var x = model.TR_mem_hidden_states([başlangıç], TR_arg_cache: sabit_önbellek)
+    TR_kw_var son_logit = model.TR_mem_logits(x.TR_mem_slice(1, başlangıç.TR_mem_length - 1, başlangıç.TR_mem_length))[0][0]
+    TR_kw_var adım = TR_fn_replay((kimlik, konum) => model.TR_mem_single_step(kimlik, konum, sabit_önbellek))
     TR_kw_for i TR_kw_in 0..ADET {
         TR_kw_var seçilen = TR_fn_argmax(son_logit, TR_arg_dim: -1).TR_mem_tolist
         sabit_çıktı.TR_mem_append(seçilen)
-        son_logit = adım(TR_fn_tensor([[seçilen * 1.0]]), TR_fn_tensor([sabit_önbellek.konum * 1.0]))
-        sabit_önbellek.ilerle(1)
+        son_logit = adım(TR_fn_tensor([[seçilen * 1.0]]), TR_fn_tensor([sabit_önbellek.TR_mem_position * 1.0]))
+        sabit_önbellek.TR_mem_advance(1)
     }
 }
 TR_fn_print("tek_adım:", sabit_çıktı, "| aynı mı:", sabit_çıktı == hazır)

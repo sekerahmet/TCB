@@ -994,23 +994,23 @@ TR_ctx_test "15.44 kaynaştır: büyük tensör yazdırma ve tensörde döngü i
 TR_ctx_test "15.33 parametreler: sabit sıra, tekillik, yol adları" {
     TR_kw_func p(x) { TR_kw_return TR_fn_tensor([x], TR_arg_requires_grad: TR_kw_true) }
     TR_kw_struct Dikkat { Wq, Wk }
-    TR_kw_struct Blok { dikkat, mlp }
-    TR_kw_struct Model { gömme, bloklar, TR_mem_last }
+    TR_kw_struct Blok { TR_mem_attention, mlp }
+    TR_kw_struct Model { TR_mem_embedding, TR_mem_blocks, TR_mem_last }
     TR_kw_var ortak = p(9)
     TR_kw_var m = Model(p(1), [Blok(Dikkat(p(2), ortak), [p(3)]), Blok(Dikkat(p(4), p(5)), {"W1": p(6), "sabit": TR_fn_tensor([0.0])})], ortak)
     TR_kw_var l = TR_fn_parameters(m)
     TR_fn_assert_equal([1.0, 2.0, 9.0, 3.0, 4.0, 5.0, 6.0], [x.TR_mem_tolist[0] TR_kw_for x TR_kw_in l])
-    TR_fn_assert(l[0] == m.gömme)
+    TR_fn_assert(l[0] == m.TR_mem_embedding)
     TR_kw_var adlar = TR_fn_parameters(m, TR_arg_named: TR_kw_true)
-    TR_fn_assert_equal(["gömme", "bloklar.0.dikkat.Wq", "bloklar.0.dikkat.Wk", "bloklar.0.mlp.0", "bloklar.1.dikkat.Wq", "bloklar.1.dikkat.Wk", "bloklar.1.mlp.W1"], adlar.TR_mem_keys())
-    TR_fn_assert_equal([4.0], adlar["bloklar.1.dikkat.Wq"].TR_mem_tolist)
+    TR_fn_assert_equal(["TR_mem_embedding", "TR_mem_blocks.0.TR_mem_attention.Wq", "TR_mem_blocks.0.TR_mem_attention.Wk", "TR_mem_blocks.0.mlp.0", "TR_mem_blocks.1.TR_mem_attention.Wq", "TR_mem_blocks.1.TR_mem_attention.Wk", "TR_mem_blocks.1.mlp.W1"], adlar.TR_mem_keys())
+    TR_fn_assert_equal([4.0], adlar["TR_mem_blocks.1.TR_mem_attention.Wq"].TR_mem_tolist)
     // Ara sonuçlar ve türev izlemeyen tensörler parametre değildir.
     TR_fn_assert_equal(0, TR_fn_parameters([p(1) * 2, TR_fn_tensor([1.0])]).TR_mem_length)
     // Sonuç doğrudan iyileştiriciye verilebilir.
     TR_kw_var op = TR_fn_SGD(TR_fn_parameters(m), TR_arg_lr: 1.0)
-    TR_fn_backward(TR_fn_sum(m.gömme * 2))
+    TR_fn_backward(TR_fn_sum(m.TR_mem_embedding * 2))
     op.TR_mem_step()
-    TR_fn_assert_equal([-1.0], m.gömme.TR_mem_tolist)
+    TR_fn_assert_equal([-1.0], m.TR_mem_embedding.TR_mem_tolist)
 }
 
 TR_ctx_test "15.42 bellek sınırı: dev sonuç tensörü ayrılmadan yakalanabilir bir hata verir" {

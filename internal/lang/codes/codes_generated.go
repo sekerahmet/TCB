@@ -7,665 +7,1401 @@ package codes
 // the constant. The value is the code's place in the language files. The comment starts
 // with the code's identity; the names after it only help the reader.
 const (
-	KwAnd                Code = 1   // TR_kw_and: and · ve
-	KwAsync              Code = 2   // TR_kw_async: async · eşzamanlı
-	KwBreak              Code = 3   // TR_kw_break: break · çık
-	KwBreakpoint         Code = 4   // TR_kw_breakpoint: breakpoint · kesme_noktası
-	KwCatch              Code = 5   // TR_kw_catch: catch · yakala
-	KwConst              Code = 6   // TR_kw_const: const · sabit
-	KwContinue           Code = 7   // TR_kw_continue: continue · devam
-	KwDefault            Code = 8   // TR_kw_default: default · varsayılan
-	KwDefer              Code = 9   // TR_kw_defer: defer · ertele
-	KwElse               Code = 10  // TR_kw_else: else · değilse
-	KwFalse              Code = 11  // TR_kw_false: false · yanlış
-	KwFor                Code = 12  // TR_kw_for: for · döngü
-	KwFunc               Code = 13  // TR_kw_func: func · fonksiyon
-	KwIf                 Code = 14  // TR_kw_if: if · eğer
-	KwImport             Code = 15  // TR_kw_import: import · aktar
-	KwIn                 Code = 16  // TR_kw_in: in · içinde
-	KwMatch              Code = 17  // TR_kw_match: match · eşle
-	KwNone               Code = 18  // TR_kw_none: none · yok
-	KwNot                Code = 19  // TR_kw_not: not · değil
-	KwOr                 Code = 20  // TR_kw_or: or · veya
-	KwReturn             Code = 21  // TR_kw_return: return · sonuç
-	KwSelf               Code = 22  // TR_kw_self: self · kendi
-	KwStruct             Code = 23  // TR_kw_struct: struct · yapı
-	KwThrow              Code = 24  // TR_kw_throw: throw · fırlat
-	KwTrue               Code = 25  // TR_kw_true: true · doğru
-	KwTry                Code = 26  // TR_kw_try: try · dene
-	KwVar                Code = 27  // TR_kw_var: var · değişken
-	KwWhile              Code = 28  // TR_kw_while: while · iken
-	CtxAcc               Code = 29  // TR_ctx_acc: acc · birikim
-	CtxAs                Code = 30  // TR_ctx_as: as · olarak
-	CtxError             Code = 31  // TR_ctx_error: error · hata
-	CtxInit              Code = 32  // TR_ctx_init: init · kurucu
-	CtxIt                Code = 33  // TR_ctx_it: it · o
-	CtxTest              Code = 34  // TR_ctx_test: test
-	ValInf               Code = 35  // TR_val_inf: inf · sonsuz
-	ValNan               Code = 36  // TR_val_nan: nan · NaN
-	TypeAny              Code = 37  // TR_type_Any: Any · Herhangi
-	TypeBool             Code = 38  // TR_type_Bool: Bool · Mantık
-	TypeBuiltinFunction  Code = 39  // TR_type_BuiltinFunction: BuiltinFunction · YerleşikFonksiyon
-	TypeCheckpoint       Code = 40  // TR_type_Checkpoint: Checkpoint · KontrolNoktası
-	TypeDataset          Code = 41  // TR_type_Dataset: Dataset · VeriKümesi
-	TypeDict             Code = 42  // TR_type_Dict: Dict · Sözlük
-	TypeFloat            Code = 43  // TR_type_Float: Float · Ondalık
-	TypeFunction         Code = 44  // TR_type_Function: Function · Fonksiyon
-	TypeInt              Code = 45  // TR_type_Int: Int · Tam
-	TypeLineReader       Code = 46  // TR_type_LineReader: LineReader · SatırOkuyucu
-	TypeList             Code = 47  // TR_type_List: List · Liste
-	TypeLogger           Code = 48  // TR_type_Logger: Logger · Günlük
-	TypeNone             Code = 49  // TR_type_None: None · Yok
-	TypeObject           Code = 50  // TR_type_Object: Object · Nesne
-	TypeOptimizer        Code = 51  // TR_type_Optimizer: Optimizer · İyileştirici
-	TypePath             Code = 52  // TR_type_Path: Path · Yol
-	TypeProgress         Code = 53  // TR_type_Progress: Progress · İlerleme
-	TypeRange            Code = 54  // TR_type_Range: Range · Aralık
-	TypeSampler          Code = 55  // TR_type_Sampler: Sampler · Örnekleyici
-	TypeSequentialReader Code = 56  // TR_type_SequentialReader: SequentialReader · SıralıOkuyucu
-	TypeString           Code = 57  // TR_type_String: String · Metin
-	TypeStructType       Code = 58  // TR_type_StructType: StructType · YapıTanımı
-	TypeTensor           Code = 59  // TR_type_Tensor: Tensor · Tensör
-	TypeTokenizer        Code = 60  // TR_type_Tokenizer: Tokenizer · Parçalayıcı
-	TypeType             Code = 61  // TR_type_Type: Type · Tip
-	FnAdamW              Code = 62  // TR_fn_AdamW: AdamW
-	FnSGD                Code = 63  // TR_fn_SGD: SGD
-	FnAbs                Code = 64  // TR_fn_abs: abs · mutlak
-	FnAcos               Code = 65  // TR_fn_acos: acos
-	FnArgmax             Code = 66  // TR_fn_argmax: argmax
-	FnArgsort            Code = 67  // TR_fn_argsort: argsort · sıralama_indeksi
-	FnAsin               Code = 68  // TR_fn_asin: asin
-	FnAssert             Code = 69  // TR_fn_assert: assert · doğrula
-	FnAssertEqual        Code = 70  // TR_fn_assert_equal: assert_equal · eşit_mi
-	FnAtan               Code = 71  // TR_fn_atan: atan
-	FnAtan2              Code = 72  // TR_fn_atan2: atan2
-	FnAttention          Code = 73  // TR_fn_attention: attention · dikkat
-	FnBackward           Code = 74  // TR_fn_backward: backward · geri_yayılım
-	FnCeil               Code = 75  // TR_fn_ceil: ceil · tavan
-	FnCheckpoint         Code = 76  // TR_fn_checkpoint: checkpoint · kontrol_noktası
-	FnClamp              Code = 77  // TR_fn_clamp: clamp · sınırla
-	FnClipGrad           Code = 78  // TR_fn_clip_grad: clip_grad · gradyan_kırp
-	FnCommandLine        Code = 79  // TR_fn_command_line: command_line · komut_satırı
-	FnComputeDtype       Code = 80  // TR_fn_compute_dtype: compute_dtype · hesap_türü
-	FnConcat             Code = 81  // TR_fn_concat: concat · bitiştir
-	FnCopy               Code = 82  // TR_fn_copy: copy · kopyala
-	FnCos                Code = 83  // TR_fn_cos: cos
-	FnCosh               Code = 84  // TR_fn_cosh: cosh
-	FnCrossEntropy       Code = 85  // TR_fn_cross_entropy: cross_entropy · çapraz_entropi
-	FnCumsum             Code = 86  // TR_fn_cumsum: cumsum · birikimli_toplam
-	FnCustomGrad         Code = 87  // TR_fn_custom_grad: custom_grad · özel_türev
-	FnDataset            Code = 88  // TR_fn_dataset: dataset · veri_kümesi
-	FnDefaultDevice      Code = 89  // TR_fn_default_device: default_device · varsayılan_cihaz
-	FnDevices            Code = 90  // TR_fn_devices: devices · cihazlar
-	FnEmbedding          Code = 91  // TR_fn_embedding: embedding · gömme
-	FnEnv                Code = 92  // TR_fn_env: env · ortam_değişkeni
-	FnExp                Code = 93  // TR_fn_exp: exp
-	FnExpm1              Code = 94  // TR_fn_expm1: expm1
-	FnEye                Code = 95  // TR_fn_eye: eye · birim_matris
-	FnFloat              Code = 96  // TR_fn_float: float · ondalık
-	FnFloor              Code = 97  // TR_fn_floor: floor · taban
-	FnFuse               Code = 98  // TR_fn_fuse: fuse · kaynaştır
-	FnGelu               Code = 99  // TR_fn_gelu: gelu
-	FnGradCheck          Code = 100 // TR_fn_grad_check: grad_check · türev_denetle
-	FnInput              Code = 101 // TR_fn_input: input · girdi
-	FnInt                Code = 102 // TR_fn_int: int · tam
-	FnIsFinite           Code = 103 // TR_fn_is_finite: is_finite · sonlu_mu
-	FnJsonParse          Code = 104 // TR_fn_json_parse: json_parse · json_çöz
-	FnJsonString         Code = 105 // TR_fn_json_string: json_string · json_metin
-	FnLayerNorm          Code = 106 // TR_fn_layer_norm: layer_norm · katman_normu
-	FnLinearCrossEntropy Code = 107 // TR_fn_linear_cross_entropy: linear_cross_entropy · doğrusal_çapraz_entropi
-	FnListDir            Code = 108 // TR_fn_list_dir: list_dir · klasörü_listele
-	FnLoadParameters     Code = 109 // TR_fn_load_parameters: load_parameters · parametreleri_yükle
-	FnLoadTensors        Code = 110 // TR_fn_load_tensors: load_tensors · tensör_yükle
-	FnLoadTokenizer      Code = 111 // TR_fn_load_tokenizer: load_tokenizer · parçalayıcı_yükle
-	FnLog                Code = 112 // TR_fn_log: log
-	FnLog10              Code = 113 // TR_fn_log10: log10
-	FnLog1p              Code = 114 // TR_fn_log1p: log1p
-	FnLog2               Code = 115 // TR_fn_log2: log2
-	FnLogSoftmax         Code = 116 // TR_fn_log_softmax: log_softmax
-	FnLogger             Code = 117 // TR_fn_logger: logger · günlük
-	FnMakeDir            Code = 118 // TR_fn_make_dir: make_dir · klasör_oluştur
-	FnMax                Code = 119 // TR_fn_max: max
-	FnMean               Code = 120 // TR_fn_mean: mean · ortalama
-	FnMedian             Code = 121 // TR_fn_median: median · ortanca
-	FnMin                Code = 122 // TR_fn_min: min
-	FnMixedPrecision     Code = 123 // TR_fn_mixed_precision: mixed_precision · karışık_hassasiyet
-	FnMove               Code = 124 // TR_fn_move: move · taşı
-	FnNoGrad             Code = 125 // TR_fn_no_grad: no_grad · türevsiz
-	FnOnes               Code = 126 // TR_fn_ones: ones · birler
-	FnParameters         Code = 127 // TR_fn_parameters: parameters · parametreler
-	FnParseCsv           Code = 128 // TR_fn_parse_csv: parse_csv · csv_çöz
-	FnPath               Code = 129 // TR_fn_path: path · yol
-	FnPrint              Code = 130 // TR_fn_print: print · yazdır
-	FnProgress           Code = 131 // TR_fn_progress: progress · ilerleme
-	FnRandn              Code = 132 // TR_fn_randn: randn · rastgele_normal
-	FnRange              Code = 133 // TR_fn_range: range · aralık
-	FnReadCsv            Code = 134 // TR_fn_read_csv: read_csv · csv_oku
-	FnReadFile           Code = 135 // TR_fn_read_file: read_file · dosya_oku
-	FnReadLines          Code = 136 // TR_fn_read_lines: read_lines · dosya_satırları
-	FnRelu               Code = 137 // TR_fn_relu: relu
-	FnRemove             Code = 138 // TR_fn_remove: remove · sil
-	FnReplay             Code = 139 // TR_fn_replay: replay · tekrar_oynat
-	FnRmsNorm            Code = 140 // TR_fn_rms_norm: rms_norm · rms_normu
-	FnRound              Code = 141 // TR_fn_round: round · yuvarla
-	FnSample             Code = 142 // TR_fn_sample: sample · örnekle
-	FnSaveTensors        Code = 143 // TR_fn_save_tensors: save_tensors · tensör_kaydet
-	FnSigmoid            Code = 144 // TR_fn_sigmoid: sigmoid
-	FnSign               Code = 145 // TR_fn_sign: sign · işaret
-	FnSilu               Code = 146 // TR_fn_silu: silu
-	FnSin                Code = 147 // TR_fn_sin: sin
-	FnSinh               Code = 148 // TR_fn_sinh: sinh
-	FnSleep              Code = 149 // TR_fn_sleep: sleep · bekle
-	FnSoftmax            Code = 150 // TR_fn_softmax: softmax
-	FnSqrt               Code = 151 // TR_fn_sqrt: sqrt · karekök
-	FnStd                Code = 152 // TR_fn_std: std · standart_sapma
-	FnStr                Code = 153 // TR_fn_str: str · metin
-	FnSum                Code = 154 // TR_fn_sum: sum · toplam
-	FnTan                Code = 155 // TR_fn_tan: tan
-	FnTanh               Code = 156 // TR_fn_tanh: tanh
-	FnTempDir            Code = 157 // TR_fn_temp_dir: temp_dir · geçici_klasör
-	FnTensor             Code = 158 // TR_fn_tensor: tensor · tensör
-	FnTimeMs             Code = 159 // TR_fn_time_ms: time_ms · zaman_ms
-	FnTopk               Code = 160 // TR_fn_topk: topk · en_büyük_k
-	FnType               Code = 161 // TR_fn_type: type · tip
-	FnWaitAll            Code = 162 // TR_fn_wait_all: wait_all · bekle_hepsi
-	FnWhere              Code = 163 // TR_fn_where: where · koşullu
-	FnWriteFile          Code = 164 // TR_fn_write_file: write_file · dosya_yaz
-	FnWriteSlice         Code = 165 // TR_fn_write_slice: write_slice · yerine_yaz
-	FnZeros              Code = 166 // TR_fn_zeros: zeros · sıfırlar
-	ConstPi              Code = 167 // TR_const_pi: pi
-	ArgApproximate       Code = 168 // TR_arg_approximate: approximate · yaklaşık
-	ArgBackward          Code = 169 // TR_arg_backward: backward · geri
-	ArgBatchSize         Code = 170 // TR_arg_batch_size: batch_size · toplu
-	ArgBeta1             Code = 171 // TR_arg_beta1: beta1
-	ArgBeta2             Code = 172 // TR_arg_beta2: beta2
-	ArgBias              Code = 173 // TR_arg_bias: bias · sapma
-	ArgCache             Code = 174 // TR_arg_cache: cache · önbellek
-	ArgCausal            Code = 175 // TR_arg_causal: causal · nedensel
-	ArgContext           Code = 176 // TR_arg_context: context · bağlam
-	ArgDescription       Code = 177 // TR_arg_description: description · açıklama
-	ArgDescriptions      Code = 178 // TR_arg_descriptions: descriptions · açıklamalar
-	ArgDim               Code = 179 // TR_arg_dim: dim · eksen
-	ArgDtype             Code = 180 // TR_arg_dtype: dtype · tür
-	ArgEps               Code = 181 // TR_arg_eps: eps · epsilon
-	ArgErrorIfNonfinite  Code = 182 // TR_arg_error_if_nonfinite: error_if_nonfinite · sonlu_değilse_hata
-	ArgEveryMinutes      Code = 183 // TR_arg_every_minutes: every_minutes · her_dakika
-	ArgFdStep            Code = 184 // TR_arg_fd_step: fd_step · fark_adımı
-	ArgForward           Code = 185 // TR_arg_forward: forward · ileri
-	ArgKeep              Code = 186 // TR_arg_keep: keep · tut
-	ArgKeepdim           Code = 187 // TR_arg_keepdim: keepdim · boyutu_koru
-	ArgLog               Code = 188 // TR_arg_log: log · günlük
-	ArgLr                Code = 189 // TR_arg_lr: lr · öğrenme_oranı
-	ArgMask              Code = 190 // TR_arg_mask: mask · maske
-	ArgMasterWeights     Code = 191 // TR_arg_master_weights: master_weights · ana_kopya
-	ArgMax               Code = 192 // TR_arg_max: max · en_fazla
-	ArgMin               Code = 193 // TR_arg_min: min · en_az
-	ArgMomentum          Code = 194 // TR_arg_momentum: momentum
-	ArgNamed             Code = 195 // TR_arg_named: named · adlarıyla
-	ArgOverwrite         Code = 196 // TR_arg_overwrite: overwrite · üzerine_yaz
-	ArgPair              Code = 197 // TR_arg_pair: pair · ikinci
-	ArgQuotaGb           Code = 198 // TR_arg_quota_gb: quota_gb · kota_gb
-	ArgRecursive         Code = 199 // TR_arg_recursive: recursive · içindekilerle
-	ArgRequiresGrad      Code = 200 // TR_arg_requires_grad: requires_grad · türev_izle
-	ArgSeed              Code = 201 // TR_arg_seed: seed · tohum
-	ArgSpecialTokens     Code = 202 // TR_arg_special_tokens: special_tokens · özel_parçalar
-	ArgStart             Code = 203 // TR_arg_start: start · başlangıç
-	ArgStep              Code = 204 // TR_arg_step: step · adım
-	ArgTemperature       Code = 205 // TR_arg_temperature: temperature · sıcaklık
-	ArgTol               Code = 206 // TR_arg_tol: tol · tolerans
-	ArgTopK              Code = 207 // TR_arg_top_k: top_k · en_iyi_k
-	ArgWeight            Code = 208 // TR_arg_weight: weight · ağırlık
-	ArgWeightDecay       Code = 209 // TR_arg_weight_decay: weight_decay · ağırlık_çürümesi
-	ArgWindow            Code = 210 // TR_arg_window: window · pencere
-	MemAbsolute          Code = 211 // TR_mem_absolute: absolute · mutlak
-	MemAppend            Code = 212 // TR_mem_append: append · ekle
-	MemClose             Code = 213 // TR_mem_close: close · kapat
-	MemContains          Code = 214 // TR_mem_contains: contains · içerir
-	MemDecode            Code = 215 // TR_mem_decode: decode · çöz
-	MemDevice            Code = 216 // TR_mem_device: device · cihaz
-	MemDtype             Code = 217 // TR_mem_dtype: dtype · tür
-	MemEncode            Code = 218 // TR_mem_encode: encode · kodla
-	MemEndsWith          Code = 219 // TR_mem_ends_with: ends_with · biter
-	MemExists            Code = 220 // TR_mem_exists: exists · var_mı
-	MemExtension         Code = 221 // TR_mem_extension: extension · uzantı
-	MemFilter            Code = 222 // TR_mem_filter: filter · filtrele
-	MemFirst             Code = 223 // TR_mem_first: first · ilk
-	MemGet               Code = 224 // TR_mem_get: get · varsa_al
-	MemGrad              Code = 225 // TR_mem_grad: grad · gradyan
-	MemIsDir             Code = 226 // TR_mem_is_dir: is_dir · klasör_mü
-	MemIsFile            Code = 227 // TR_mem_is_file: is_file · dosya_mı
-	MemJoin              Code = 228 // TR_mem_join: join · birleştir
-	MemKeys              Code = 229 // TR_mem_keys: keys · anahtarlar
-	MemLast              Code = 230 // TR_mem_last: last · son
-	MemLength            Code = 231 // TR_mem_length: length · uzunluk
-	MemLoadState         Code = 232 // TR_mem_load_state: load_state · durumu_yükle
-	MemLower             Code = 233 // TR_mem_lower: lower · küçük_harf
-	MemLr                Code = 234 // TR_mem_lr: lr · öğrenme_oranı
-	MemMap               Code = 235 // TR_mem_map: map · haritala
-	MemName              Code = 236 // TR_mem_name: name · dosya_adı
-	MemNext              Code = 237 // TR_mem_next: next · sonraki
-	MemParent            Code = 238 // TR_mem_parent: parent · üst_klasör
-	MemPermute           Code = 239 // TR_mem_permute: permute · eksenleri_sırala
-	MemReduce            Code = 240 // TR_mem_reduce: reduce · indirge
-	MemReplace           Code = 241 // TR_mem_replace: replace · değiştir
-	MemReshape           Code = 242 // TR_mem_reshape: reshape · şekillendir
-	MemResumeStep        Code = 243 // TR_mem_resume_step: resume_step · kaldığı_adım
-	MemReverse           Code = 244 // TR_mem_reverse: reverse · ters_çevir
-	MemRollback          Code = 245 // TR_mem_rollback: rollback · geri_dön
-	MemSampler           Code = 246 // TR_mem_sampler: sampler · örnekleyici
-	MemSave              Code = 247 // TR_mem_save: save · kaydet
-	MemSequential        Code = 248 // TR_mem_sequential: sequential · sıralı
-	MemShape             Code = 249 // TR_mem_shape: shape · şekil
-	MemSize              Code = 250 // TR_mem_size: size · bayt
-	MemSkip              Code = 251 // TR_mem_skip: skip · atla
-	MemSlice             Code = 252 // TR_mem_slice: slice · dilim
-	MemSort              Code = 253 // TR_mem_sort: sort · sırala
-	MemSplit             Code = 254 // TR_mem_split: split · böl
-	MemStartsWith        Code = 255 // TR_mem_starts_with: starts_with · başlar
-	MemState             Code = 256 // TR_mem_state: state · durum
-	MemStem              Code = 257 // TR_mem_stem: stem · uzantısız_ad
-	MemStep              Code = 258 // TR_mem_step: step · adım
-	MemStop              Code = 259 // TR_mem_stop: stop · durdur
-	MemStrip             Code = 260 // TR_mem_strip: strip · kırp
-	MemToDevice          Code = 261 // TR_mem_to_device: to_device · cihaza
-	MemToDtype           Code = 262 // TR_mem_to_dtype: to_dtype · türe
-	MemTokenId           Code = 263 // TR_mem_token_id: token_id · parça_kimliği
-	MemTolist            Code = 264 // TR_mem_tolist: tolist · değer
-	MemTranspose         Code = 265 // TR_mem_transpose: transpose · devrik
-	MemUnique            Code = 266 // TR_mem_unique: unique · benzersiz
-	MemUpdate            Code = 267 // TR_mem_update: update · güncelle
-	MemUpper             Code = 268 // TR_mem_upper: upper · büyük_harf
-	MemValues            Code = 269 // TR_mem_values: values · değerler
-	MemVocabSize         Code = 270 // TR_mem_vocab_size: vocab_size · dağarcık_boyutu
-	MemZeroGrad          Code = 271 // TR_mem_zero_grad: zero_grad · sıfırla
-	CmdBuild             Code = 272 // TR_cmd_build: build · derle
-	CmdCheck             Code = 273 // TR_cmd_check: check · kontrol
-	CmdDap               Code = 274 // TR_cmd_dap: dap
-	CmdDebug             Code = 275 // TR_cmd_debug: debug · hata_ayıkla
-	CmdDecode            Code = 276 // TR_cmd_decode: decode · çöz
-	CmdEncode            Code = 277 // TR_cmd_encode: encode · kodla
-	CmdFormat            Code = 278 // TR_cmd_format: format · biçimle
-	CmdHelp              Code = 279 // TR_cmd_help: help · yardım
-	CmdIndex             Code = 280 // TR_cmd_index: index · dizin
-	CmdProfile           Code = 281 // TR_cmd_profile: profile · profil
-	CmdRun               Code = 282 // TR_cmd_run: run · çalıştır
-	CmdShow              Code = 283 // TR_cmd_show: show · göster
-	CmdTest              Code = 284 // TR_cmd_test: test
-	CmdVersion           Code = 285 // TR_cmd_version: version · sürüm
-	CmdWatch             Code = 286 // TR_cmd_watch: watch · izle
-	SubDefinition        Code = 287 // TR_sub_definition: definition · tanım
-	SubImpact            Code = 288 // TR_sub_impact: impact · etki
-	SubReferences        Code = 289 // TR_sub_references: references · kullananlar
-	SubRename            Code = 290 // TR_sub_rename: rename · yeniden_adlandır
-	SubTestedBy          Code = 291 // TR_sub_tested_by: tested_by · sınayanlar
-	OptAll               Code = 292 // TR_opt_all: all · tümü
-	OptCheck             Code = 293 // TR_opt_check: check · kontrol
-	OptClear             Code = 294 // TR_opt_clear: clear · temizle
-	OptGoProfile         Code = 295 // TR_opt_go_profile: go_profile · go_profili
-	OptHelp              Code = 296 // TR_opt_help: help · yardım
-	OptJson              Code = 297 // TR_opt_json: json
-	OptKind              Code = 298 // TR_opt_kind: kind · tür
-	OptLang              Code = 299 // TR_opt_lang: lang · dil
-	OptLimit             Code = 300 // TR_opt_limit: limit · sınır
-	OptNoIndex           Code = 301 // TR_opt_no_index: no_index · dizin_yok
-	OptNoText            Code = 302 // TR_opt_no_text: no_text · metin_yok
-	OptOutput            Code = 303 // TR_opt_output: output · çıktı
-	OptRoot              Code = 304 // TR_opt_root: root · kök
-	OptStatus            Code = 305 // TR_opt_status: status · durum
-	OptTerm              Code = 306 // TR_opt_term: term · terim
-	ReplExit             Code = 307 // TR_repl_exit: exit · çıkış
-	DbgBreak             Code = 308 // TR_dbg_break: break · kesme
-	DbgContinue          Code = 309 // TR_dbg_continue: continue · devam
-	DbgEval              Code = 310 // TR_dbg_eval: eval · hesapla
-	DbgHelp              Code = 311 // TR_dbg_help: help · yardım
-	DbgJump              Code = 312 // TR_dbg_jump: jump · zıpla
-	DbgNext              Code = 313 // TR_dbg_next: next · geç
-	DbgOut               Code = 314 // TR_dbg_out: out · dön
-	DbgQuit              Code = 315 // TR_dbg_quit: quit · çıkış
-	DbgScreen            Code = 316 // TR_dbg_screen: screen · ekran
-	DbgSet               Code = 317 // TR_dbg_set: set · değiştir
-	DbgStack             Code = 318 // TR_dbg_stack: stack · yığın
-	DbgStep              Code = 319 // TR_dbg_step: step · adım
-	DbgTable             Code = 320 // TR_dbg_table: table · tablo
-	DbgWatch             Code = 321 // TR_dbg_watch: watch · izle
-	EnvCpuAvx2           Code = 322 // TR_env_CPU_AVX2: TR_CPU_AVX2
-	EnvGpuCublaslt       Code = 323 // TR_env_GPU_CUBLASLT: TR_GPU_CUBLASLT
-	EnvGpuProfile        Code = 324 // TR_env_GPU_PROFILE: TR_GPU_PROFILE · TR_GPU_PROFIL
-	EnvGpuSync           Code = 325 // TR_env_GPU_SYNC: TR_GPU_SYNC · TR_GPU_ESZAMANLI
-	EnvJobDir            Code = 326 // TR_env_JOB_DIR: TR_JOB_DIR · TR_IS_KLASORU
-	EnvLang              Code = 327 // TR_env_LANG: TR_LANG · TR_DIL
+	KwAnd                       Code = 1   // TR_kw_and: and · ve
+	KwAsync                     Code = 2   // TR_kw_async: async · eşzamanlı
+	KwBreak                     Code = 3   // TR_kw_break: break · çık
+	KwBreakpoint                Code = 4   // TR_kw_breakpoint: breakpoint · kesme_noktası
+	KwCatch                     Code = 5   // TR_kw_catch: catch · yakala
+	KwConst                     Code = 6   // TR_kw_const: const · sabit
+	KwContinue                  Code = 7   // TR_kw_continue: continue · devam
+	KwDefault                   Code = 8   // TR_kw_default: default · varsayılan
+	KwDefer                     Code = 9   // TR_kw_defer: defer · ertele
+	KwElse                      Code = 10  // TR_kw_else: else · değilse
+	KwFalse                     Code = 11  // TR_kw_false: false · yanlış
+	KwFor                       Code = 12  // TR_kw_for: for · döngü
+	KwFunc                      Code = 13  // TR_kw_func: func · fonksiyon
+	KwIf                        Code = 14  // TR_kw_if: if · eğer
+	KwImport                    Code = 15  // TR_kw_import: import · aktar
+	KwIn                        Code = 16  // TR_kw_in: in · içinde
+	KwMatch                     Code = 17  // TR_kw_match: match · eşle
+	KwNone                      Code = 18  // TR_kw_none: none · yok
+	KwNot                       Code = 19  // TR_kw_not: not · değil
+	KwOr                        Code = 20  // TR_kw_or: or · veya
+	KwReturn                    Code = 21  // TR_kw_return: return · sonuç
+	KwSelf                      Code = 22  // TR_kw_self: self · kendi
+	KwStruct                    Code = 23  // TR_kw_struct: struct · yapı
+	KwThrow                     Code = 24  // TR_kw_throw: throw · fırlat
+	KwTrue                      Code = 25  // TR_kw_true: true · doğru
+	KwTry                       Code = 26  // TR_kw_try: try · dene
+	KwVar                       Code = 27  // TR_kw_var: var · değişken
+	KwWhile                     Code = 28  // TR_kw_while: while · iken
+	CtxAcc                      Code = 29  // TR_ctx_acc: acc · birikim
+	CtxAs                       Code = 30  // TR_ctx_as: as · olarak
+	CtxError                    Code = 31  // TR_ctx_error: error · hata
+	CtxInit                     Code = 32  // TR_ctx_init: init · kurucu
+	CtxIt                       Code = 33  // TR_ctx_it: it · o
+	CtxTest                     Code = 34  // TR_ctx_test: test
+	ValInf                      Code = 35  // TR_val_inf: inf · sonsuz
+	ValNan                      Code = 36  // TR_val_nan: nan · NaN
+	TypeAny                     Code = 37  // TR_type_Any: Any · Herhangi
+	TypeBool                    Code = 38  // TR_type_Bool: Bool · Mantık
+	TypeBuiltinFunction         Code = 39  // TR_type_BuiltinFunction: BuiltinFunction · YerleşikFonksiyon
+	TypeCausalAttention         Code = 40  // TR_type_CausalAttention: CausalAttention · NedenselDikkat
+	TypeCheckpoint              Code = 41  // TR_type_Checkpoint: Checkpoint · KontrolNoktası
+	TypeDataset                 Code = 42  // TR_type_Dataset: Dataset · VeriKümesi
+	TypeDict                    Code = 43  // TR_type_Dict: Dict · Sözlük
+	TypeEmbedding               Code = 44  // TR_type_Embedding: Embedding · GömmeKatmanı
+	TypeFloat                   Code = 45  // TR_type_Float: Float · Ondalık
+	TypeFunction                Code = 46  // TR_type_Function: Function · Fonksiyon
+	TypeGPT                     Code = 47  // TR_type_GPT: GPT
+	TypeInt                     Code = 48  // TR_type_Int: Int · Tam
+	TypeKVCache                 Code = 49  // TR_type_KVCache: KVCache · KVÖnbellek
+	TypeLineReader              Code = 50  // TR_type_LineReader: LineReader · SatırOkuyucu
+	TypeLinear                  Code = 51  // TR_type_Linear: Linear · Doğrusal
+	TypeList                    Code = 52  // TR_type_List: List · Liste
+	TypeLogger                  Code = 53  // TR_type_Logger: Logger · Günlük
+	TypeMuon                    Code = 54  // TR_type_Muon: Muon
+	TypeMuonAndAdamW            Code = 55  // TR_type_MuonAndAdamW: MuonAndAdamW · MuonVeAdamW
+	TypeNone                    Code = 56  // TR_type_None: None · Yok
+	TypeNorMuon                 Code = 57  // TR_type_NorMuon: NorMuon
+	TypeObject                  Code = 58  // TR_type_Object: Object · Nesne
+	TypeOptimizer               Code = 59  // TR_type_Optimizer: Optimizer · İyileştirici
+	TypePLEBlock                Code = 60  // TR_type_PLEBlock: PLEBlock · PLEBloğu
+	TypePLEContext              Code = 61  // TR_type_PLEContext: PLEContext · PLEBağlamı
+	TypePath                    Code = 62  // TR_type_Path: Path · Yol
+	TypeProgress                Code = 63  // TR_type_Progress: Progress · İlerleme
+	TypeRMSNorm                 Code = 64  // TR_type_RMSNorm: RMSNorm · RMSNormKatmanı
+	TypeRange                   Code = 65  // TR_type_Range: Range · Aralık
+	TypeRowRMS                  Code = 66  // TR_type_RowRMS: RowRMS · SatırRMS
+	TypeRun                     Code = 67  // TR_type_Run: Run · Koşu
+	TypeSampler                 Code = 68  // TR_type_Sampler: Sampler · Örnekleyici
+	TypeSequentialReader        Code = 69  // TR_type_SequentialReader: SequentialReader · SıralıOkuyucu
+	TypeSpikeGuard              Code = 70  // TR_type_SpikeGuard: SpikeGuard · SıçramaBekçisi
+	TypeString                  Code = 71  // TR_type_String: String · Metin
+	TypeStructType              Code = 72  // TR_type_StructType: StructType · YapıTanımı
+	TypeSwiGLU                  Code = 73  // TR_type_SwiGLU: SwiGLU
+	TypeTensor                  Code = 74  // TR_type_Tensor: Tensor · Tensör
+	TypeTokenizer               Code = 75  // TR_type_Tokenizer: Tokenizer · Parçalayıcı
+	TypeTransformerBlock        Code = 76  // TR_type_TransformerBlock: TransformerBlock · TransformerBloğu
+	TypeType                    Code = 77  // TR_type_Type: Type · Tip
+	FnAdamW                     Code = 78  // TR_fn_AdamW: AdamW
+	FnSGD                       Code = 79  // TR_fn_SGD: SGD
+	FnAbs                       Code = 80  // TR_fn_abs: abs · mutlak
+	FnAcos                      Code = 81  // TR_fn_acos: acos
+	FnAnyPatternMatches         Code = 82  // TR_fn_any_pattern_matches: any_pattern_matches · bir_desen_uyar_mı
+	FnApplyRotary               Code = 83  // TR_fn_apply_rotary: apply_rotary · döner_konum_uygula
+	FnApplyRotaryFused          Code = 84  // TR_fn_apply_rotary_fused: apply_rotary_fused · döner_konum_uygula_kaynaşık
+	FnArgmax                    Code = 85  // TR_fn_argmax: argmax
+	FnArgsort                   Code = 86  // TR_fn_argsort: argsort · sıralama_indeksi
+	FnAsin                      Code = 87  // TR_fn_asin: asin
+	FnAssert                    Code = 88  // TR_fn_assert: assert · doğrula
+	FnAssertEqual               Code = 89  // TR_fn_assert_equal: assert_equal · eşit_mi
+	FnAtan                      Code = 90  // TR_fn_atan: atan
+	FnAtan2                     Code = 91  // TR_fn_atan2: atan2
+	FnAttention                 Code = 92  // TR_fn_attention: attention · dikkat
+	FnBackward                  Code = 93  // TR_fn_backward: backward · geri_yayılım
+	FnBuildPretrainedModel      Code = 94  // TR_fn_build_pretrained_model: build_pretrained_model · hazır_model_kur
+	FnCeil                      Code = 95  // TR_fn_ceil: ceil · tavan
+	FnCheckpoint                Code = 96  // TR_fn_checkpoint: checkpoint · kontrol_noktası
+	FnClamp                     Code = 97  // TR_fn_clamp: clamp · sınırla
+	FnClipGrad                  Code = 98  // TR_fn_clip_grad: clip_grad · gradyan_kırp
+	FnCommandLine               Code = 99  // TR_fn_command_line: command_line · komut_satırı
+	FnComputeDtype              Code = 100 // TR_fn_compute_dtype: compute_dtype · hesap_türü
+	FnConcat                    Code = 101 // TR_fn_concat: concat · bitiştir
+	FnConfigValue               Code = 102 // TR_fn_config_value: config_value · ayar_değeri
+	FnCopy                      Code = 103 // TR_fn_copy: copy · kopyala
+	FnCos                       Code = 104 // TR_fn_cos: cos
+	FnCosh                      Code = 105 // TR_fn_cosh: cosh
+	FnCrossEntropy              Code = 106 // TR_fn_cross_entropy: cross_entropy · çapraz_entropi
+	FnCumsum                    Code = 107 // TR_fn_cumsum: cumsum · birikimli_toplam
+	FnCustomGrad                Code = 108 // TR_fn_custom_grad: custom_grad · özel_türev
+	FnDataset                   Code = 109 // TR_fn_dataset: dataset · veri_kümesi
+	FnDefaultDevice             Code = 110 // TR_fn_default_device: default_device · varsayılan_cihaz
+	FnDevices                   Code = 111 // TR_fn_devices: devices · cihazlar
+	FnEmbedding                 Code = 112 // TR_fn_embedding: embedding · gömme
+	FnEnv                       Code = 113 // TR_fn_env: env · ortam_değişkeni
+	FnExp                       Code = 114 // TR_fn_exp: exp
+	FnExpm1                     Code = 115 // TR_fn_expm1: expm1
+	FnEye                       Code = 116 // TR_fn_eye: eye · birim_matris
+	FnFloat                     Code = 117 // TR_fn_float: float · ondalık
+	FnFloor                     Code = 118 // TR_fn_floor: floor · taban
+	FnFuse                      Code = 119 // TR_fn_fuse: fuse · kaynaştır
+	FnGelu                      Code = 120 // TR_fn_gelu: gelu
+	FnGradCheck                 Code = 121 // TR_fn_grad_check: grad_check · türev_denetle
+	FnHasRopeScaling            Code = 122 // TR_fn_has_rope_scaling: has_rope_scaling · rope_ölçekleme_var_mı
+	FnInitWeight                Code = 123 // TR_fn_init_weight: init_weight · ağırlık_başlat
+	FnInput                     Code = 124 // TR_fn_input: input · girdi
+	FnInt                       Code = 125 // TR_fn_int: int · tam
+	FnIsFinite                  Code = 126 // TR_fn_is_finite: is_finite · sonlu_mu
+	FnJsonParse                 Code = 127 // TR_fn_json_parse: json_parse · json_çöz
+	FnJsonString                Code = 128 // TR_fn_json_string: json_string · json_metin
+	FnLayerNorm                 Code = 129 // TR_fn_layer_norm: layer_norm · katman_normu
+	FnLayerWindows              Code = 130 // TR_fn_layer_windows: layer_windows · katman_pencereleri
+	FnLinearCrossEntropy        Code = 131 // TR_fn_linear_cross_entropy: linear_cross_entropy · doğrusal_çapraz_entropi
+	FnListDir                   Code = 132 // TR_fn_list_dir: list_dir · klasörü_listele
+	FnLoadParameters            Code = 133 // TR_fn_load_parameters: load_parameters · parametreleri_yükle
+	FnLoadTensors               Code = 134 // TR_fn_load_tensors: load_tensors · tensör_yükle
+	FnLoadTokenizer             Code = 135 // TR_fn_load_tokenizer: load_tokenizer · parçalayıcı_yükle
+	FnLog                       Code = 136 // TR_fn_log: log
+	FnLog10                     Code = 137 // TR_fn_log10: log10
+	FnLog1p                     Code = 138 // TR_fn_log1p: log1p
+	FnLog2                      Code = 139 // TR_fn_log2: log2
+	FnLogSoftmax                Code = 140 // TR_fn_log_softmax: log_softmax
+	FnLogger                    Code = 141 // TR_fn_logger: logger · günlük
+	FnLrSchedule                Code = 142 // TR_fn_lr_schedule: lr_schedule · öğrenme_oranı_planı
+	FnMakeDir                   Code = 143 // TR_fn_make_dir: make_dir · klasör_oluştur
+	FnMapHuggingFace            Code = 144 // TR_fn_map_hugging_face: map_hugging_face · hugging_face_eşle
+	FnMax                       Code = 145 // TR_fn_max: max
+	FnMean                      Code = 146 // TR_fn_mean: mean · ortalama
+	FnMedian                    Code = 147 // TR_fn_median: median · ortanca
+	FnMin                       Code = 148 // TR_fn_min: min
+	FnMixedPrecision            Code = 149 // TR_fn_mixed_precision: mixed_precision · karışık_hassasiyet
+	FnMove                      Code = 150 // TR_fn_move: move · taşı
+	FnNameMatches               Code = 151 // TR_fn_name_matches: name_matches · ad_uyar_mı
+	FnNoGrad                    Code = 152 // TR_fn_no_grad: no_grad · türevsiz
+	FnOnes                      Code = 153 // TR_fn_ones: ones · birler
+	FnOnly2d                    Code = 154 // TR_fn_only_2d: only_2d · yalnızca_2b
+	FnOrthogonalize             Code = 155 // TR_fn_orthogonalize: orthogonalize · dikleştir
+	FnOrthogonalizeStack        Code = 156 // TR_fn_orthogonalize_stack: orthogonalize_stack · yığın_dikleştir
+	FnParameterGroups           Code = 157 // TR_fn_parameter_groups: parameter_groups · parametre_grupları
+	FnParameters                Code = 158 // TR_fn_parameters: parameters · parametreler
+	FnParseCsv                  Code = 159 // TR_fn_parse_csv: parse_csv · csv_çöz
+	FnPath                      Code = 160 // TR_fn_path: path · yol
+	FnPleGelu                   Code = 161 // TR_fn_ple_gelu: ple_gelu
+	FnPleMix                    Code = 162 // TR_fn_ple_mix: ple_mix · ple_karışımı
+	FnPleMixFused               Code = 163 // TR_fn_ple_mix_fused: ple_mix_fused · ple_karışımı_kaynaşık
+	FnPretrainedModel           Code = 164 // TR_fn_pretrained_model: pretrained_model · hazır_model
+	FnPrint                     Code = 165 // TR_fn_print: print · yazdır
+	FnProgress                  Code = 166 // TR_fn_progress: progress · ilerleme
+	FnRandn                     Code = 167 // TR_fn_randn: randn · rastgele_normal
+	FnRange                     Code = 168 // TR_fn_range: range · aralık
+	FnReadCsv                   Code = 169 // TR_fn_read_csv: read_csv · csv_oku
+	FnReadFile                  Code = 170 // TR_fn_read_file: read_file · dosya_oku
+	FnReadLines                 Code = 171 // TR_fn_read_lines: read_lines · dosya_satırları
+	FnRelu                      Code = 172 // TR_fn_relu: relu
+	FnRemove                    Code = 173 // TR_fn_remove: remove · sil
+	FnReplay                    Code = 174 // TR_fn_replay: replay · tekrar_oynat
+	FnRmsNorm                   Code = 175 // TR_fn_rms_norm: rms_norm · rms_normu
+	FnRopeTheta                 Code = 176 // TR_fn_rope_theta: rope_theta · rope_tabanı
+	FnRotaryTable               Code = 177 // TR_fn_rotary_table: rotary_table · döner_konum_tablosu
+	FnRound                     Code = 178 // TR_fn_round: round · yuvarla
+	FnSample                    Code = 179 // TR_fn_sample: sample · örnekle
+	FnSaveTensors               Code = 180 // TR_fn_save_tensors: save_tensors · tensör_kaydet
+	FnShapeGroups               Code = 181 // TR_fn_shape_groups: shape_groups · şekil_grupları
+	FnSigmoid                   Code = 182 // TR_fn_sigmoid: sigmoid
+	FnSign                      Code = 183 // TR_fn_sign: sign · işaret
+	FnSilu                      Code = 184 // TR_fn_silu: silu
+	FnSin                       Code = 185 // TR_fn_sin: sin
+	FnSinh                      Code = 186 // TR_fn_sinh: sinh
+	FnSleep                     Code = 187 // TR_fn_sleep: sleep · bekle
+	FnSoftmax                   Code = 188 // TR_fn_softmax: softmax
+	FnSqrt                      Code = 189 // TR_fn_sqrt: sqrt · karekök
+	FnStateTensor               Code = 190 // TR_fn_state_tensor: state_tensor · durum_tensörü
+	FnStd                       Code = 191 // TR_fn_std: std · standart_sapma
+	FnStr                       Code = 192 // TR_fn_str: str · metin
+	FnSum                       Code = 193 // TR_fn_sum: sum · toplam
+	FnSwigluGate                Code = 194 // TR_fn_swiglu_gate: swiglu_gate · swiglu_kapısı
+	FnSwigluGateFused           Code = 195 // TR_fn_swiglu_gate_fused: swiglu_gate_fused · swiglu_kapısı_kaynaşık
+	FnSwigluIntermediateDim     Code = 196 // TR_fn_swiglu_intermediate_dim: swiglu_intermediate_dim · swiglu_ara_boyutu
+	FnSwigluMergedGate          Code = 197 // TR_fn_swiglu_merged_gate: swiglu_merged_gate · swiglu_birleşik_kapısı
+	FnSwigluMergedGateFused     Code = 198 // TR_fn_swiglu_merged_gate_fused: swiglu_merged_gate_fused · swiglu_birleşik_kapısı_kaynaşık
+	FnTan                       Code = 199 // TR_fn_tan: tan
+	FnTanh                      Code = 200 // TR_fn_tanh: tanh
+	FnTempDir                   Code = 201 // TR_fn_temp_dir: temp_dir · geçici_klasör
+	FnTensor                    Code = 202 // TR_fn_tensor: tensor · tensör
+	FnTimeMs                    Code = 203 // TR_fn_time_ms: time_ms · zaman_ms
+	FnTopk                      Code = 204 // TR_fn_topk: topk · en_büyük_k
+	FnType                      Code = 205 // TR_fn_type: type · tip
+	FnWaitAll                   Code = 206 // TR_fn_wait_all: wait_all · bekle_hepsi
+	FnWhere                     Code = 207 // TR_fn_where: where · koşullu
+	FnWriteFile                 Code = 208 // TR_fn_write_file: write_file · dosya_yaz
+	FnWriteSlice                Code = 209 // TR_fn_write_slice: write_slice · yerine_yaz
+	FnZeroGrads                 Code = 210 // TR_fn_zero_grads: zero_grads · gradyanları_sıfırla
+	FnZeros                     Code = 211 // TR_fn_zeros: zeros · sıfırlar
+	ConstBLOCKNAMES             Code = 212 // TR_const_BLOCK_NAMES: BLOCK_NAMES · BLOK_ADLARI
+	ConstDRYRUNSTEPS            Code = 213 // TR_const_DRY_RUN_STEPS: DRY_RUN_STEPS · PROVA_ADIMI
+	ConstMINRELATIVESTD         Code = 214 // TR_const_MIN_RELATIVE_STD: MIN_RELATIVE_STD · EN_AZ_GÖRELİ_SAPMA
+	ConstNONFINITE              Code = 215 // TR_const_NONFINITE: NONFINITE · SONLU_DEĞİL
+	ConstNSA                    Code = 216 // TR_const_NS_A: NS_A
+	ConstNSB                    Code = 217 // TR_const_NS_B: NS_B
+	ConstNSC                    Code = 218 // TR_const_NS_C: NS_C
+	ConstOK                     Code = 219 // TR_const_OK: OK · TAMAM
+	ConstSPIKE                  Code = 220 // TR_const_SPIKE: SPIKE · SIÇRAMA
+	ConstSUPPORTEDARCHITECTURES Code = 221 // TR_const_SUPPORTED_ARCHITECTURES: SUPPORTED_ARCHITECTURES · DESTEKLENEN_MİMARİLER
+	ConstPi                     Code = 222 // TR_const_pi: pi
+	ArgGMuon                    Code = 223 // TR_arg_G_muon: G
+	ArgT                        Code = 224 // TR_arg_T: T
+	ArgAdamwLr                  Code = 225 // TR_arg_adamw_lr: adamw_lr · adamw_öğrenme_oranı
+	ArgAdamwWeightDecay         Code = 226 // TR_arg_adamw_weight_decay: adamw_weight_decay · adamw_çürümesi
+	ArgApproximate              Code = 227 // TR_arg_approximate: approximate · yaklaşık
+	ArgBackward                 Code = 228 // TR_arg_backward: backward · geri
+	ArgBatchSize                Code = 229 // TR_arg_batch_size: batch_size · toplu
+	ArgBeta1                    Code = 230 // TR_arg_beta1: beta1
+	ArgBeta2                    Code = 231 // TR_arg_beta2: beta2
+	ArgBias                     Code = 232 // TR_arg_bias: bias · sapma
+	ArgBuffers                  Code = 233 // TR_arg_buffers: buffers · tamponlar
+	ArgCache                    Code = 234 // TR_arg_cache: cache · önbellek
+	ArgCacheKind                Code = 235 // TR_arg_cache_kind: cache_kind · önbellek_çeşidi
+	ArgCapacity                 Code = 236 // TR_arg_capacity: capacity · kapasite
+	ArgCausal                   Code = 237 // TR_arg_causal: causal · nedensel
+	ArgConfig                   Code = 238 // TR_arg_config: config · ayar
+	ArgContext                  Code = 239 // TR_arg_context: context · bağlam
+	ArgCosTable                 Code = 240 // TR_arg_cos_table: cos_table · cos_tablosu
+	ArgCudaGraph                Code = 241 // TR_arg_cuda_graph: cuda_graph · cuda_çizgesi
+	ArgDecayFraction            Code = 242 // TR_arg_decay_fraction: decay_fraction · azalma
+	ArgDescription              Code = 243 // TR_arg_description: description · açıklama
+	ArgDescriptions             Code = 244 // TR_arg_descriptions: descriptions · açıklamalar
+	ArgDevice                   Code = 245 // TR_arg_device: device · cihaz
+	ArgDim                      Code = 246 // TR_arg_dim: dim · eksen
+	ArgDryRun                   Code = 247 // TR_arg_dry_run: dry_run · prova
+	ArgDtype                    Code = 248 // TR_arg_dtype: dtype · tür
+	ArgEmbedDim                 Code = 249 // TR_arg_embed_dim: embed_dim · boyut
+	ArgEnd                      Code = 250 // TR_arg_end: end · bitiş
+	ArgEos                      Code = 251 // TR_arg_eos: eos
+	ArgEps                      Code = 252 // TR_arg_eps: eps · epsilon
+	ArgErrorIfNonfinite         Code = 253 // TR_arg_error_if_nonfinite: error_if_nonfinite · sonlu_değilse_hata
+	ArgEveryMinutes             Code = 254 // TR_arg_every_minutes: every_minutes · her_dakika
+	ArgFallback                 Code = 255 // TR_arg_fallback: fallback · yedek
+	ArgFdStep                   Code = 256 // TR_arg_fd_step: fd_step · fark_adımı
+	ArgFfUseBias                Code = 257 // TR_arg_ff_use_bias: ff_use_bias · ileri_sapmalı
+	ArgFolder                   Code = 258 // TR_arg_folder: folder · klasör
+	ArgForward                  Code = 259 // TR_arg_forward: forward · ileri
+	ArgGSwiglu                  Code = 260 // TR_arg_g_swiglu: g
+	ArgGate                     Code = 261 // TR_arg_gate: gate · kapı
+	ArgGu                       Code = 262 // TR_arg_gu: gu
+	ArgH                        Code = 263 // TR_arg_h: h
+	ArgHeadDim                  Code = 264 // TR_arg_head_dim: head_dim · bakış_boyutu
+	ArgHistory                  Code = 265 // TR_arg_history: history · geçmiş
+	ArgHistoryLimit             Code = 266 // TR_arg_history_limit: history_limit · geçmiş_sınırı
+	ArgInFeatures               Code = 267 // TR_arg_in_features: in_features · giriş_boyutu
+	ArgInitStd                  Code = 268 // TR_arg_init_std: init_std · başlatma_sapması
+	ArgIntermediateDim          Code = 269 // TR_arg_intermediate_dim: intermediate_dim · ara_boyut
+	ArgK                        Code = 270 // TR_arg_k: k
+	ArgKeep                     Code = 271 // TR_arg_keep: keep · tut
+	ArgKeepdim                  Code = 272 // TR_arg_keepdim: keepdim · boyutu_koru
+	ArgKey                      Code = 273 // TR_arg_key: key · anahtar
+	ArgKind                     Code = 274 // TR_arg_kind: kind · çeşit
+	ArgLayerIdx                 Code = 275 // TR_arg_layer_idx: layer_idx · katman_no
+	ArgLayout                   Code = 276 // TR_arg_layout: layout · düzen
+	ArgLog                      Code = 277 // TR_arg_log: log · günlük
+	ArgLoss                     Code = 278 // TR_arg_loss: loss · kayıp
+	ArgLr                       Code = 279 // TR_arg_lr: lr · öğrenme_oranı
+	ArgMask                     Code = 280 // TR_arg_mask: mask · maske
+	ArgMasterWeights            Code = 281 // TR_arg_master_weights: master_weights · ana_kopya
+	ArgMax                      Code = 282 // TR_arg_max: max · en_fazla
+	ArgMaxNewTokens             Code = 283 // TR_arg_max_new_tokens: max_new_tokens · en_fazla_yeni_parça
+	ArgMerged                   Code = 284 // TR_arg_merged: merged · birleşik
+	ArgMergedGate               Code = 285 // TR_arg_merged_gate: merged_gate · birleşik_kapı
+	ArgMergedKv                 Code = 286 // TR_arg_merged_kv: merged_kv · birleşik_kv
+	ArgMetrics                  Code = 287 // TR_arg_metrics: metrics · ölçüler
+	ArgMin                      Code = 288 // TR_arg_min: min · en_az
+	ArgModel                    Code = 289 // TR_arg_model: model
+	ArgMomentum                 Code = 290 // TR_arg_momentum: momentum
+	ArgMultiplier               Code = 291 // TR_arg_multiplier: multiplier · çarpan
+	ArgMuonLr                   Code = 292 // TR_arg_muon_lr: muon_lr · muon_öğrenme_oranı
+	ArgMuonScale                Code = 293 // TR_arg_muon_scale: muon_scale · muon_ölçeği
+	ArgN                        Code = 294 // TR_arg_n: n
+	ArgName                     Code = 295 // TR_arg_name: name · ad
+	ArgNamed                    Code = 296 // TR_arg_named: named · adlarıyla
+	ArgNesterov                 Code = 297 // TR_arg_nesterov: nesterov
+	ArgNewChunk                 Code = 298 // TR_arg_new_chunk: new_chunk · yeni
+	ArgNorm                     Code = 299 // TR_arg_norm: norm
+	ArgNormuon                  Code = 300 // TR_arg_normuon: normuon
+	ArgNsDtype                  Code = 301 // TR_arg_ns_dtype: ns_dtype · ns_türü
+	ArgNsIterations             Code = 302 // TR_arg_ns_iterations: ns_iterations · ns_yineleme_sayısı
+	ArgNumHeads                 Code = 303 // TR_arg_num_heads: num_heads · bakış_sayısı
+	ArgNumKvHeads               Code = 304 // TR_arg_num_kv_heads: num_kv_heads · kv_bakış_sayısı
+	ArgNumLayers                Code = 305 // TR_arg_num_layers: num_layers · katman_sayısı
+	ArgNumSteps                 Code = 306 // TR_arg_num_steps: num_steps · adım_sayısı
+	ArgObjects                  Code = 307 // TR_arg_objects: objects · nesneler
+	ArgOutFeatures              Code = 308 // TR_arg_out_features: out_features · çıkış_boyutu
+	ArgOutputDtype              Code = 309 // TR_arg_output_dtype: output_dtype · çıktı_türü
+	ArgOutputInitStd            Code = 310 // TR_arg_output_init_std: output_init_std · çıkış_başlatma_sapması
+	ArgOverwrite                Code = 311 // TR_arg_overwrite: overwrite · üzerine_yaz
+	ArgPair                     Code = 312 // TR_arg_pair: pair · ikinci
+	ArgParameters               Code = 313 // TR_arg_parameters: parameters · parametreler
+	ArgPattern                  Code = 314 // TR_arg_pattern: pattern · desen
+	ArgPatterns                 Code = 315 // TR_arg_patterns: patterns · desenler
+	ArgPleContext               Code = 316 // TR_arg_ple_context: ple_context · ple_bağlamı
+	ArgPleContexts              Code = 317 // TR_arg_ple_contexts: ple_contexts · ple_bağlamları
+	ArgPleDim                   Code = 318 // TR_arg_ple_dim: ple_dim · ple_boyutu
+	ArgPosition                 Code = 319 // TR_arg_position: position · konum
+	ArgPrompt                   Code = 320 // TR_arg_prompt: prompt · istem
+	ArgQkNorm                   Code = 321 // TR_arg_qk_norm: qk_norm · qk_normu
+	ArgQuotaGb                  Code = 322 // TR_arg_quota_gb: quota_gb · kota_gb
+	ArgRecursive                Code = 323 // TR_arg_recursive: recursive · içindekilerle
+	ArgRequiresGrad             Code = 324 // TR_arg_requires_grad: requires_grad · türev_izle
+	ArgRopeTheta                Code = 325 // TR_arg_rope_theta: rope_theta · rope_tabanı
+	ArgRow                      Code = 326 // TR_arg_row: row · satır
+	ArgScale                    Code = 327 // TR_arg_scale: scale · ölçek
+	ArgSeed                     Code = 328 // TR_arg_seed: seed · tohum
+	ArgSeparated                Code = 329 // TR_arg_separated: separated · ayrılan
+	ArgShape                    Code = 330 // TR_arg_shape: shape · şekil
+	ArgSinTable                 Code = 331 // TR_arg_sin_table: sin_table · sin_tablosu
+	ArgSparse                   Code = 332 // TR_arg_sparse: sparse · seyrek
+	ArgSparseLr                 Code = 333 // TR_arg_sparse_lr: sparse_lr · seyrek_öğrenme_oranı
+	ArgSpecialTokens            Code = 334 // TR_arg_special_tokens: special_tokens · özel_parçalar
+	ArgStart                    Code = 335 // TR_arg_start: start · başlangıç
+	ArgStep                     Code = 336 // TR_arg_step: step · adım
+	ArgTargets                  Code = 337 // TR_arg_targets: targets · hedef
+	ArgTemperature              Code = 338 // TR_arg_temperature: temperature · sıcaklık
+	ArgThreshold                Code = 339 // TR_arg_threshold: threshold · eşik
+	ArgTied                     Code = 340 // TR_arg_tied: tied · paylaşımlı
+	ArgTokenId                  Code = 341 // TR_arg_token_id: token_id · kimlik
+	ArgTokenIds                 Code = 342 // TR_arg_token_ids: token_ids · kimlikler
+	ArgTol                      Code = 343 // TR_arg_tol: tol · tolerans
+	ArgTopK                     Code = 344 // TR_arg_top_k: top_k · en_iyi_k
+	ArgU                        Code = 345 // TR_arg_u: u
+	ArgUpdates                  Code = 346 // TR_arg_updates: updates · güncellemeler
+	ArgUseBias                  Code = 347 // TR_arg_use_bias: use_bias · sapmalı
+	ArgV                        Code = 348 // TR_arg_v: v
+	ArgValue                    Code = 349 // TR_arg_value: value · değer
+	ArgVocabSize                Code = 350 // TR_arg_vocab_size: vocab_size · dağarcık_büyüklüğü
+	ArgWarmup                   Code = 351 // TR_arg_warmup: warmup · ısınma
+	ArgWeight                   Code = 352 // TR_arg_weight: weight · ağırlık
+	ArgWeightDecay              Code = 353 // TR_arg_weight_decay: weight_decay · ağırlık_çürümesi
+	ArgWeightDtype              Code = 354 // TR_arg_weight_dtype: weight_dtype · ağırlık_türü
+	ArgWeights                  Code = 355 // TR_arg_weights: weights · ağırlıklar
+	ArgWindow                   Code = 356 // TR_arg_window: window · pencere
+	ArgWindows                  Code = 357 // TR_arg_windows: windows · pencereler
+	ArgX                        Code = 358 // TR_arg_x: x
+	MemAbsolute                 Code = 359 // TR_mem_absolute: absolute · mutlak
+	MemAdamw                    Code = 360 // TR_mem_adamw: adamw
+	MemAdamwLr                  Code = 361 // TR_mem_adamw_lr: adamw_lr · adamw_öğrenme_oranı
+	MemAdamwNoDecay             Code = 362 // TR_mem_adamw_no_decay: adamw_no_decay · adamw_çürümesiz
+	MemAdvance                  Code = 363 // TR_mem_advance: advance · ilerle
+	MemAppend                   Code = 364 // TR_mem_append: append · ekle
+	MemAppendBuffer             Code = 365 // TR_mem_append_buffer: append_buffer · tampon_ekle
+	MemAttention                Code = 366 // TR_mem_attention: attention · dikkat
+	MemBar                      Code = 367 // TR_mem_bar: bar · çubuk
+	MemBeta1                    Code = 368 // TR_mem_beta1: beta1
+	MemBeta2                    Code = 369 // TR_mem_beta2: beta2
+	MemBias                     Code = 370 // TR_mem_bias: bias · sapma
+	MemBlocks                   Code = 371 // TR_mem_blocks: blocks · bloklar
+	MemBuildCache               Code = 372 // TR_mem_build_cache: build_cache · önbellek_kur
+	MemCapacity                 Code = 373 // TR_mem_capacity: capacity · kapasite
+	MemCheckpoint               Code = 374 // TR_mem_checkpoint: checkpoint · nokta
+	MemClose                    Code = 375 // TR_mem_close: close · kapat
+	MemConfig                   Code = 376 // TR_mem_config: config · ayar
+	MemContains                 Code = 377 // TR_mem_contains: contains · içerir
+	MemContextProj              Code = 378 // TR_mem_context_proj: context_proj · bağlam_katmanı
+	MemCosTable                 Code = 379 // TR_mem_cos_table: cos_table · cos_tablosu
+	MemDecode                   Code = 380 // TR_mem_decode: decode · çöz
+	MemDevice                   Code = 381 // TR_mem_device: device · cihaz
+	MemDeviceStep               Code = 382 // TR_mem_device_step: device_step · cihaz_adımı
+	MemDownProj                 Code = 383 // TR_mem_down_proj: down_proj · aşağı
+	MemDryRun                   Code = 384 // TR_mem_dry_run: dry_run · prova
+	MemDtype                    Code = 385 // TR_mem_dtype: dtype · tür
+	MemEmbed                    Code = 386 // TR_mem_embed: embed · göm
+	MemEmbedDim                 Code = 387 // TR_mem_embed_dim: embed_dim · boyut
+	MemEmbedding                Code = 388 // TR_mem_embedding: embedding · gömme
+	MemEncode                   Code = 389 // TR_mem_encode: encode · kodla
+	MemEndsWith                 Code = 390 // TR_mem_ends_with: ends_with · biter
+	MemEps                      Code = 391 // TR_mem_eps: eps · epsilon
+	MemEvaluated                Code = 392 // TR_mem_evaluated: evaluated · değerlendirildi
+	MemExceeds                  Code = 393 // TR_mem_exceeds: exceeds · aşıyor
+	MemExists                   Code = 394 // TR_mem_exists: exists · var_mı
+	MemExtension                Code = 395 // TR_mem_extension: extension · uzantı
+	MemFeedForward              Code = 396 // TR_mem_feed_forward: feed_forward · ileri_besleme
+	MemFilter                   Code = 397 // TR_mem_filter: filter · filtrele
+	MemFinalNorm                Code = 398 // TR_mem_final_norm: final_norm · son_norm
+	MemFinish                   Code = 399 // TR_mem_finish: finish · bitir
+	MemFirst                    Code = 400 // TR_mem_first: first · ilk
+	MemFolder                   Code = 401 // TR_mem_folder: folder · klasör
+	MemForward                  Code = 402 // TR_mem_forward: forward · ileri
+	MemGateProj                 Code = 403 // TR_mem_gate_proj: gate_proj · kapı
+	MemGateUpProj               Code = 404 // TR_mem_gate_up_proj: gate_up_proj · kapı_yukarı
+	MemGenerate                 Code = 405 // TR_mem_generate: generate · üret
+	MemGet                      Code = 406 // TR_mem_get: get · varsa_al
+	MemGrad                     Code = 407 // TR_mem_grad: grad · gradyan
+	MemGroups                   Code = 408 // TR_mem_groups: groups · gruplar
+	MemHeadDim                  Code = 409 // TR_mem_head_dim: head_dim · bakış_boyutu
+	MemHiddenStates             Code = 410 // TR_mem_hidden_states: hidden_states · gizli_temsil
+	MemHistoryLength            Code = 411 // TR_mem_history_length: history_length · geçmiş_uzunluğu
+	MemHistoryLimit             Code = 412 // TR_mem_history_limit: history_limit · geçmiş_sınırı
+	MemInputNorm                Code = 413 // TR_mem_input_norm: input_norm · norm1
+	MemIsDir                    Code = 414 // TR_mem_is_dir: is_dir · klasör_mü
+	MemIsFile                   Code = 415 // TR_mem_is_file: is_file · dosya_mı
+	MemJoin                     Code = 416 // TR_mem_join: join · birleştir
+	MemKBuffers                 Code = 417 // TR_mem_k_buffers: k_buffers · k_tamponları
+	MemKNorm                    Code = 418 // TR_mem_k_norm: k_norm
+	MemKProj                    Code = 419 // TR_mem_k_proj: k_proj · anahtar_katmanı
+	MemKeys                     Code = 420 // TR_mem_keys: keys · anahtarlar
+	MemKind                     Code = 421 // TR_mem_kind: kind · çeşit
+	MemKvProj                   Code = 422 // TR_mem_kv_proj: kv_proj · kv_katmanı
+	MemLast                     Code = 423 // TR_mem_last: last · son
+	MemLastStep                 Code = 424 // TR_mem_last_step: last_step · son_adım
+	MemLength                   Code = 425 // TR_mem_length: length · uzunluk
+	MemLoadState                Code = 426 // TR_mem_load_state: load_state · durumu_yükle
+	MemLogger                   Code = 427 // TR_mem_logger: logger · günlük
+	MemLogitLayer               Code = 428 // TR_mem_logit_layer: logit_layer · logit_katmanı
+	MemLogits                   Code = 429 // TR_mem_logits: logits · logit
+	MemLoss                     Code = 430 // TR_mem_loss: loss · kayıp
+	MemLosses                   Code = 431 // TR_mem_losses: losses · kayıplar
+	MemLower                    Code = 432 // TR_mem_lower: lower · küçük_harf
+	MemLr                       Code = 433 // TR_mem_lr: lr · öğrenme_oranı
+	MemLrMultiplier             Code = 434 // TR_mem_lr_multiplier: lr_multiplier · öğrenme_oranı_çarpanı
+	MemMap                      Code = 435 // TR_mem_map: map · haritala
+	MemMask                     Code = 436 // TR_mem_mask: mask · maske
+	MemMasks                    Code = 437 // TR_mem_masks: masks · maskeler
+	MemMomentum                 Code = 438 // TR_mem_momentum: momentum
+	MemMuon                     Code = 439 // TR_mem_muon: muon
+	MemMuonLr                   Code = 440 // TR_mem_muon_lr: muon_lr · muon_öğrenme_oranı
+	MemName                     Code = 441 // TR_mem_name: name · dosya_adı
+	MemNesterov                 Code = 442 // TR_mem_nesterov: nesterov
+	MemNext                     Code = 443 // TR_mem_next: next · sonraki
+	MemNorm                     Code = 444 // TR_mem_norm: norm
+	MemNorms                    Code = 445 // TR_mem_norms: norms · normlar
+	MemNsDtype                  Code = 446 // TR_mem_ns_dtype: ns_dtype · ns_türü
+	MemNsIterations             Code = 447 // TR_mem_ns_iterations: ns_iterations · ns_yineleme_sayısı
+	MemNumHeads                 Code = 448 // TR_mem_num_heads: num_heads · bakış_sayısı
+	MemNumKvHeads               Code = 449 // TR_mem_num_kv_heads: num_kv_heads · kv_bakış_sayısı
+	MemNumLayers                Code = 450 // TR_mem_num_layers: num_layers · katman_sayısı
+	MemOProj                    Code = 451 // TR_mem_o_proj: o_proj · çıkış_katmanı
+	MemObserve                  Code = 452 // TR_mem_observe: observe · gözle
+	MemOther                    Code = 453 // TR_mem_other: other · diğer
+	MemParameters               Code = 454 // TR_mem_parameters: parameters · parametreler
+	MemParent                   Code = 455 // TR_mem_parent: parent · üst_klasör
+	MemPermute                  Code = 456 // TR_mem_permute: permute · eksenleri_sırala
+	MemPle                      Code = 457 // TR_mem_ple: ple
+	MemPleContext               Code = 458 // TR_mem_ple_context: ple_context · ple_bağlamı
+	MemPleDim                   Code = 459 // TR_mem_ple_dim: ple_dim · ple_boyutu
+	MemPosition                 Code = 460 // TR_mem_position: position · konum
+	MemPositions                Code = 461 // TR_mem_positions: positions · konumlar
+	MemPostAttentionNorm        Code = 462 // TR_mem_post_attention_norm: post_attention_norm · norm2
+	MemProj                     Code = 463 // TR_mem_proj: proj · izdüşüm_katmanı
+	MemQNorm                    Code = 464 // TR_mem_q_norm: q_norm
+	MemQProj                    Code = 465 // TR_mem_q_proj: q_proj · sorgu_katmanı
+	MemReduce                   Code = 466 // TR_mem_reduce: reduce · indirge
+	MemReplace                  Code = 467 // TR_mem_replace: replace · değiştir
+	MemReshape                  Code = 468 // TR_mem_reshape: reshape · şekillendir
+	MemResumeStep               Code = 469 // TR_mem_resume_step: resume_step · kaldığı_adım
+	MemReverse                  Code = 470 // TR_mem_reverse: reverse · ters_çevir
+	MemRollback                 Code = 471 // TR_mem_rollback: rollback · geri_dön
+	MemRowRms                   Code = 472 // TR_mem_row_rms: row_rms · satır_rms
+	MemRunBlocks                Code = 473 // TR_mem_run_blocks: run_blocks · blokları_işle
+	MemSampler                  Code = 474 // TR_mem_sampler: sampler · örnekleyici
+	MemSave                     Code = 475 // TR_mem_save: save · kaydet
+	MemScales                   Code = 476 // TR_mem_scales: scales · ölçekler
+	MemSequential               Code = 477 // TR_mem_sequential: sequential · sıralı
+	MemSetMultiplier            Code = 478 // TR_mem_set_multiplier: set_multiplier · çarpan_ayarla
+	MemShape                    Code = 479 // TR_mem_shape: shape · şekil
+	MemSinTable                 Code = 480 // TR_mem_sin_table: sin_table · sin_tablosu
+	MemSingleStep               Code = 481 // TR_mem_single_step: single_step · tek_adım
+	MemSize                     Code = 482 // TR_mem_size: size · bayt
+	MemSkip                     Code = 483 // TR_mem_skip: skip · atla
+	MemSlice                    Code = 484 // TR_mem_slice: slice · dilim
+	MemSort                     Code = 485 // TR_mem_sort: sort · sırala
+	MemSparseLr                 Code = 486 // TR_mem_sparse_lr: sparse_lr · seyrek_öğrenme_oranı
+	MemSpikeCount               Code = 487 // TR_mem_spike_count: spike_count · sıçrama_sayısı
+	MemSplit                    Code = 488 // TR_mem_split: split · böl
+	MemStartsWith               Code = 489 // TR_mem_starts_with: starts_with · başlar
+	MemState                    Code = 490 // TR_mem_state: state · durum
+	MemStem                     Code = 491 // TR_mem_stem: stem · uzantısız_ad
+	MemStep                     Code = 492 // TR_mem_step: step · adım
+	MemStepDone                 Code = 493 // TR_mem_step_done: step_done · adım_bitti
+	MemStepPosition             Code = 494 // TR_mem_step_position: step_position · adım_konumu
+	MemStop                     Code = 495 // TR_mem_stop: stop · durdur
+	MemStrip                    Code = 496 // TR_mem_strip: strip · kırp
+	MemTable                    Code = 497 // TR_mem_table: table · tablo
+	MemThreshold                Code = 498 // TR_mem_threshold: threshold · eşik
+	MemToDevice                 Code = 499 // TR_mem_to_device: to_device · cihaza
+	MemToDtype                  Code = 500 // TR_mem_to_dtype: to_dtype · türe
+	MemTokenId                  Code = 501 // TR_mem_token_id: token_id · parça_kimliği
+	MemTolist                   Code = 502 // TR_mem_tolist: tolist · değer
+	MemTranspose                Code = 503 // TR_mem_transpose: transpose · devrik
+	MemTruncate                 Code = 504 // TR_mem_truncate: truncate · kısalt
+	MemUnique                   Code = 505 // TR_mem_unique: unique · benzersiz
+	MemUpProj                   Code = 506 // TR_mem_up_proj: up_proj · yukarı
+	MemUpdate                   Code = 507 // TR_mem_update: update · güncelle
+	MemUpper                    Code = 508 // TR_mem_upper: upper · büyük_harf
+	MemVBuffers                 Code = 509 // TR_mem_v_buffers: v_buffers · v_tamponları
+	MemVProj                    Code = 510 // TR_mem_v_proj: v_proj · değer_katmanı
+	MemValues                   Code = 511 // TR_mem_values: values · değerler
+	MemVocabSize                Code = 512 // TR_mem_vocab_size: vocab_size · dağarcık_boyutu
+	MemWeight                   Code = 513 // TR_mem_weight: weight · ağırlık
+	MemWeightDecay              Code = 514 // TR_mem_weight_decay: weight_decay · ağırlık_çürümesi
+	MemWindow                   Code = 515 // TR_mem_window: window · pencere
+	MemZeroGrad                 Code = 516 // TR_mem_zero_grad: zero_grad · sıfırla
+	CmdBuild                    Code = 517 // TR_cmd_build: build · derle
+	CmdCheck                    Code = 518 // TR_cmd_check: check · kontrol
+	CmdDap                      Code = 519 // TR_cmd_dap: dap
+	CmdDebug                    Code = 520 // TR_cmd_debug: debug · hata_ayıkla
+	CmdDecode                   Code = 521 // TR_cmd_decode: decode · çöz
+	CmdEncode                   Code = 522 // TR_cmd_encode: encode · kodla
+	CmdFormat                   Code = 523 // TR_cmd_format: format · biçimle
+	CmdHelp                     Code = 524 // TR_cmd_help: help · yardım
+	CmdIndex                    Code = 525 // TR_cmd_index: index · dizin
+	CmdProfile                  Code = 526 // TR_cmd_profile: profile · profil
+	CmdRun                      Code = 527 // TR_cmd_run: run · çalıştır
+	CmdShow                     Code = 528 // TR_cmd_show: show · göster
+	CmdTest                     Code = 529 // TR_cmd_test: test
+	CmdVersion                  Code = 530 // TR_cmd_version: version · sürüm
+	CmdWatch                    Code = 531 // TR_cmd_watch: watch · izle
+	SubDefinition               Code = 532 // TR_sub_definition: definition · tanım
+	SubImpact                   Code = 533 // TR_sub_impact: impact · etki
+	SubReferences               Code = 534 // TR_sub_references: references · kullananlar
+	SubRename                   Code = 535 // TR_sub_rename: rename · yeniden_adlandır
+	SubTestedBy                 Code = 536 // TR_sub_tested_by: tested_by · sınayanlar
+	OptAll                      Code = 537 // TR_opt_all: all · tümü
+	OptCheck                    Code = 538 // TR_opt_check: check · kontrol
+	OptClear                    Code = 539 // TR_opt_clear: clear · temizle
+	OptGoProfile                Code = 540 // TR_opt_go_profile: go_profile · go_profili
+	OptHelp                     Code = 541 // TR_opt_help: help · yardım
+	OptJson                     Code = 542 // TR_opt_json: json
+	OptKind                     Code = 543 // TR_opt_kind: kind · tür
+	OptLang                     Code = 544 // TR_opt_lang: lang · dil
+	OptLimit                    Code = 545 // TR_opt_limit: limit · sınır
+	OptNoIndex                  Code = 546 // TR_opt_no_index: no_index · dizin_yok
+	OptNoText                   Code = 547 // TR_opt_no_text: no_text · metin_yok
+	OptOutput                   Code = 548 // TR_opt_output: output · çıktı
+	OptRoot                     Code = 549 // TR_opt_root: root · kök
+	OptStatus                   Code = 550 // TR_opt_status: status · durum
+	OptTerm                     Code = 551 // TR_opt_term: term · terim
+	ReplExit                    Code = 552 // TR_repl_exit: exit · çıkış
+	DbgBreak                    Code = 553 // TR_dbg_break: break · kesme
+	DbgContinue                 Code = 554 // TR_dbg_continue: continue · devam
+	DbgEval                     Code = 555 // TR_dbg_eval: eval · hesapla
+	DbgHelp                     Code = 556 // TR_dbg_help: help · yardım
+	DbgJump                     Code = 557 // TR_dbg_jump: jump · zıpla
+	DbgNext                     Code = 558 // TR_dbg_next: next · geç
+	DbgOut                      Code = 559 // TR_dbg_out: out · dön
+	DbgQuit                     Code = 560 // TR_dbg_quit: quit · çıkış
+	DbgScreen                   Code = 561 // TR_dbg_screen: screen · ekran
+	DbgSet                      Code = 562 // TR_dbg_set: set · değiştir
+	DbgStack                    Code = 563 // TR_dbg_stack: stack · yığın
+	DbgStep                     Code = 564 // TR_dbg_step: step · adım
+	DbgTable                    Code = 565 // TR_dbg_table: table · tablo
+	DbgWatch                    Code = 566 // TR_dbg_watch: watch · izle
+	EnvCpuAvx2                  Code = 567 // TR_env_CPU_AVX2: TR_CPU_AVX2
+	EnvGpuCublaslt              Code = 568 // TR_env_GPU_CUBLASLT: TR_GPU_CUBLASLT
+	EnvGpuProfile               Code = 569 // TR_env_GPU_PROFILE: TR_GPU_PROFILE · TR_GPU_PROFIL
+	EnvGpuSync                  Code = 570 // TR_env_GPU_SYNC: TR_GPU_SYNC · TR_GPU_ESZAMANLI
+	EnvJobDir                   Code = 571 // TR_env_JOB_DIR: TR_JOB_DIR · TR_IS_KLASORU
+	EnvLang                     Code = 572 // TR_env_LANG: TR_LANG · TR_DIL
 )
 
 // identities is every code's identity, indexed by the code.
 var identities = [...]string{
-	KwAnd:                "TR_kw_and",
-	KwAsync:              "TR_kw_async",
-	KwBreak:              "TR_kw_break",
-	KwBreakpoint:         "TR_kw_breakpoint",
-	KwCatch:              "TR_kw_catch",
-	KwConst:              "TR_kw_const",
-	KwContinue:           "TR_kw_continue",
-	KwDefault:            "TR_kw_default",
-	KwDefer:              "TR_kw_defer",
-	KwElse:               "TR_kw_else",
-	KwFalse:              "TR_kw_false",
-	KwFor:                "TR_kw_for",
-	KwFunc:               "TR_kw_func",
-	KwIf:                 "TR_kw_if",
-	KwImport:             "TR_kw_import",
-	KwIn:                 "TR_kw_in",
-	KwMatch:              "TR_kw_match",
-	KwNone:               "TR_kw_none",
-	KwNot:                "TR_kw_not",
-	KwOr:                 "TR_kw_or",
-	KwReturn:             "TR_kw_return",
-	KwSelf:               "TR_kw_self",
-	KwStruct:             "TR_kw_struct",
-	KwThrow:              "TR_kw_throw",
-	KwTrue:               "TR_kw_true",
-	KwTry:                "TR_kw_try",
-	KwVar:                "TR_kw_var",
-	KwWhile:              "TR_kw_while",
-	CtxAcc:               "TR_ctx_acc",
-	CtxAs:                "TR_ctx_as",
-	CtxError:             "TR_ctx_error",
-	CtxInit:              "TR_ctx_init",
-	CtxIt:                "TR_ctx_it",
-	CtxTest:              "TR_ctx_test",
-	ValInf:               "TR_val_inf",
-	ValNan:               "TR_val_nan",
-	TypeAny:              "TR_type_Any",
-	TypeBool:             "TR_type_Bool",
-	TypeBuiltinFunction:  "TR_type_BuiltinFunction",
-	TypeCheckpoint:       "TR_type_Checkpoint",
-	TypeDataset:          "TR_type_Dataset",
-	TypeDict:             "TR_type_Dict",
-	TypeFloat:            "TR_type_Float",
-	TypeFunction:         "TR_type_Function",
-	TypeInt:              "TR_type_Int",
-	TypeLineReader:       "TR_type_LineReader",
-	TypeList:             "TR_type_List",
-	TypeLogger:           "TR_type_Logger",
-	TypeNone:             "TR_type_None",
-	TypeObject:           "TR_type_Object",
-	TypeOptimizer:        "TR_type_Optimizer",
-	TypePath:             "TR_type_Path",
-	TypeProgress:         "TR_type_Progress",
-	TypeRange:            "TR_type_Range",
-	TypeSampler:          "TR_type_Sampler",
-	TypeSequentialReader: "TR_type_SequentialReader",
-	TypeString:           "TR_type_String",
-	TypeStructType:       "TR_type_StructType",
-	TypeTensor:           "TR_type_Tensor",
-	TypeTokenizer:        "TR_type_Tokenizer",
-	TypeType:             "TR_type_Type",
-	FnAdamW:              "TR_fn_AdamW",
-	FnSGD:                "TR_fn_SGD",
-	FnAbs:                "TR_fn_abs",
-	FnAcos:               "TR_fn_acos",
-	FnArgmax:             "TR_fn_argmax",
-	FnArgsort:            "TR_fn_argsort",
-	FnAsin:               "TR_fn_asin",
-	FnAssert:             "TR_fn_assert",
-	FnAssertEqual:        "TR_fn_assert_equal",
-	FnAtan:               "TR_fn_atan",
-	FnAtan2:              "TR_fn_atan2",
-	FnAttention:          "TR_fn_attention",
-	FnBackward:           "TR_fn_backward",
-	FnCeil:               "TR_fn_ceil",
-	FnCheckpoint:         "TR_fn_checkpoint",
-	FnClamp:              "TR_fn_clamp",
-	FnClipGrad:           "TR_fn_clip_grad",
-	FnCommandLine:        "TR_fn_command_line",
-	FnComputeDtype:       "TR_fn_compute_dtype",
-	FnConcat:             "TR_fn_concat",
-	FnCopy:               "TR_fn_copy",
-	FnCos:                "TR_fn_cos",
-	FnCosh:               "TR_fn_cosh",
-	FnCrossEntropy:       "TR_fn_cross_entropy",
-	FnCumsum:             "TR_fn_cumsum",
-	FnCustomGrad:         "TR_fn_custom_grad",
-	FnDataset:            "TR_fn_dataset",
-	FnDefaultDevice:      "TR_fn_default_device",
-	FnDevices:            "TR_fn_devices",
-	FnEmbedding:          "TR_fn_embedding",
-	FnEnv:                "TR_fn_env",
-	FnExp:                "TR_fn_exp",
-	FnExpm1:              "TR_fn_expm1",
-	FnEye:                "TR_fn_eye",
-	FnFloat:              "TR_fn_float",
-	FnFloor:              "TR_fn_floor",
-	FnFuse:               "TR_fn_fuse",
-	FnGelu:               "TR_fn_gelu",
-	FnGradCheck:          "TR_fn_grad_check",
-	FnInput:              "TR_fn_input",
-	FnInt:                "TR_fn_int",
-	FnIsFinite:           "TR_fn_is_finite",
-	FnJsonParse:          "TR_fn_json_parse",
-	FnJsonString:         "TR_fn_json_string",
-	FnLayerNorm:          "TR_fn_layer_norm",
-	FnLinearCrossEntropy: "TR_fn_linear_cross_entropy",
-	FnListDir:            "TR_fn_list_dir",
-	FnLoadParameters:     "TR_fn_load_parameters",
-	FnLoadTensors:        "TR_fn_load_tensors",
-	FnLoadTokenizer:      "TR_fn_load_tokenizer",
-	FnLog:                "TR_fn_log",
-	FnLog10:              "TR_fn_log10",
-	FnLog1p:              "TR_fn_log1p",
-	FnLog2:               "TR_fn_log2",
-	FnLogSoftmax:         "TR_fn_log_softmax",
-	FnLogger:             "TR_fn_logger",
-	FnMakeDir:            "TR_fn_make_dir",
-	FnMax:                "TR_fn_max",
-	FnMean:               "TR_fn_mean",
-	FnMedian:             "TR_fn_median",
-	FnMin:                "TR_fn_min",
-	FnMixedPrecision:     "TR_fn_mixed_precision",
-	FnMove:               "TR_fn_move",
-	FnNoGrad:             "TR_fn_no_grad",
-	FnOnes:               "TR_fn_ones",
-	FnParameters:         "TR_fn_parameters",
-	FnParseCsv:           "TR_fn_parse_csv",
-	FnPath:               "TR_fn_path",
-	FnPrint:              "TR_fn_print",
-	FnProgress:           "TR_fn_progress",
-	FnRandn:              "TR_fn_randn",
-	FnRange:              "TR_fn_range",
-	FnReadCsv:            "TR_fn_read_csv",
-	FnReadFile:           "TR_fn_read_file",
-	FnReadLines:          "TR_fn_read_lines",
-	FnRelu:               "TR_fn_relu",
-	FnRemove:             "TR_fn_remove",
-	FnReplay:             "TR_fn_replay",
-	FnRmsNorm:            "TR_fn_rms_norm",
-	FnRound:              "TR_fn_round",
-	FnSample:             "TR_fn_sample",
-	FnSaveTensors:        "TR_fn_save_tensors",
-	FnSigmoid:            "TR_fn_sigmoid",
-	FnSign:               "TR_fn_sign",
-	FnSilu:               "TR_fn_silu",
-	FnSin:                "TR_fn_sin",
-	FnSinh:               "TR_fn_sinh",
-	FnSleep:              "TR_fn_sleep",
-	FnSoftmax:            "TR_fn_softmax",
-	FnSqrt:               "TR_fn_sqrt",
-	FnStd:                "TR_fn_std",
-	FnStr:                "TR_fn_str",
-	FnSum:                "TR_fn_sum",
-	FnTan:                "TR_fn_tan",
-	FnTanh:               "TR_fn_tanh",
-	FnTempDir:            "TR_fn_temp_dir",
-	FnTensor:             "TR_fn_tensor",
-	FnTimeMs:             "TR_fn_time_ms",
-	FnTopk:               "TR_fn_topk",
-	FnType:               "TR_fn_type",
-	FnWaitAll:            "TR_fn_wait_all",
-	FnWhere:              "TR_fn_where",
-	FnWriteFile:          "TR_fn_write_file",
-	FnWriteSlice:         "TR_fn_write_slice",
-	FnZeros:              "TR_fn_zeros",
-	ConstPi:              "TR_const_pi",
-	ArgApproximate:       "TR_arg_approximate",
-	ArgBackward:          "TR_arg_backward",
-	ArgBatchSize:         "TR_arg_batch_size",
-	ArgBeta1:             "TR_arg_beta1",
-	ArgBeta2:             "TR_arg_beta2",
-	ArgBias:              "TR_arg_bias",
-	ArgCache:             "TR_arg_cache",
-	ArgCausal:            "TR_arg_causal",
-	ArgContext:           "TR_arg_context",
-	ArgDescription:       "TR_arg_description",
-	ArgDescriptions:      "TR_arg_descriptions",
-	ArgDim:               "TR_arg_dim",
-	ArgDtype:             "TR_arg_dtype",
-	ArgEps:               "TR_arg_eps",
-	ArgErrorIfNonfinite:  "TR_arg_error_if_nonfinite",
-	ArgEveryMinutes:      "TR_arg_every_minutes",
-	ArgFdStep:            "TR_arg_fd_step",
-	ArgForward:           "TR_arg_forward",
-	ArgKeep:              "TR_arg_keep",
-	ArgKeepdim:           "TR_arg_keepdim",
-	ArgLog:               "TR_arg_log",
-	ArgLr:                "TR_arg_lr",
-	ArgMask:              "TR_arg_mask",
-	ArgMasterWeights:     "TR_arg_master_weights",
-	ArgMax:               "TR_arg_max",
-	ArgMin:               "TR_arg_min",
-	ArgMomentum:          "TR_arg_momentum",
-	ArgNamed:             "TR_arg_named",
-	ArgOverwrite:         "TR_arg_overwrite",
-	ArgPair:              "TR_arg_pair",
-	ArgQuotaGb:           "TR_arg_quota_gb",
-	ArgRecursive:         "TR_arg_recursive",
-	ArgRequiresGrad:      "TR_arg_requires_grad",
-	ArgSeed:              "TR_arg_seed",
-	ArgSpecialTokens:     "TR_arg_special_tokens",
-	ArgStart:             "TR_arg_start",
-	ArgStep:              "TR_arg_step",
-	ArgTemperature:       "TR_arg_temperature",
-	ArgTol:               "TR_arg_tol",
-	ArgTopK:              "TR_arg_top_k",
-	ArgWeight:            "TR_arg_weight",
-	ArgWeightDecay:       "TR_arg_weight_decay",
-	ArgWindow:            "TR_arg_window",
-	MemAbsolute:          "TR_mem_absolute",
-	MemAppend:            "TR_mem_append",
-	MemClose:             "TR_mem_close",
-	MemContains:          "TR_mem_contains",
-	MemDecode:            "TR_mem_decode",
-	MemDevice:            "TR_mem_device",
-	MemDtype:             "TR_mem_dtype",
-	MemEncode:            "TR_mem_encode",
-	MemEndsWith:          "TR_mem_ends_with",
-	MemExists:            "TR_mem_exists",
-	MemExtension:         "TR_mem_extension",
-	MemFilter:            "TR_mem_filter",
-	MemFirst:             "TR_mem_first",
-	MemGet:               "TR_mem_get",
-	MemGrad:              "TR_mem_grad",
-	MemIsDir:             "TR_mem_is_dir",
-	MemIsFile:            "TR_mem_is_file",
-	MemJoin:              "TR_mem_join",
-	MemKeys:              "TR_mem_keys",
-	MemLast:              "TR_mem_last",
-	MemLength:            "TR_mem_length",
-	MemLoadState:         "TR_mem_load_state",
-	MemLower:             "TR_mem_lower",
-	MemLr:                "TR_mem_lr",
-	MemMap:               "TR_mem_map",
-	MemName:              "TR_mem_name",
-	MemNext:              "TR_mem_next",
-	MemParent:            "TR_mem_parent",
-	MemPermute:           "TR_mem_permute",
-	MemReduce:            "TR_mem_reduce",
-	MemReplace:           "TR_mem_replace",
-	MemReshape:           "TR_mem_reshape",
-	MemResumeStep:        "TR_mem_resume_step",
-	MemReverse:           "TR_mem_reverse",
-	MemRollback:          "TR_mem_rollback",
-	MemSampler:           "TR_mem_sampler",
-	MemSave:              "TR_mem_save",
-	MemSequential:        "TR_mem_sequential",
-	MemShape:             "TR_mem_shape",
-	MemSize:              "TR_mem_size",
-	MemSkip:              "TR_mem_skip",
-	MemSlice:             "TR_mem_slice",
-	MemSort:              "TR_mem_sort",
-	MemSplit:             "TR_mem_split",
-	MemStartsWith:        "TR_mem_starts_with",
-	MemState:             "TR_mem_state",
-	MemStem:              "TR_mem_stem",
-	MemStep:              "TR_mem_step",
-	MemStop:              "TR_mem_stop",
-	MemStrip:             "TR_mem_strip",
-	MemToDevice:          "TR_mem_to_device",
-	MemToDtype:           "TR_mem_to_dtype",
-	MemTokenId:           "TR_mem_token_id",
-	MemTolist:            "TR_mem_tolist",
-	MemTranspose:         "TR_mem_transpose",
-	MemUnique:            "TR_mem_unique",
-	MemUpdate:            "TR_mem_update",
-	MemUpper:             "TR_mem_upper",
-	MemValues:            "TR_mem_values",
-	MemVocabSize:         "TR_mem_vocab_size",
-	MemZeroGrad:          "TR_mem_zero_grad",
-	CmdBuild:             "TR_cmd_build",
-	CmdCheck:             "TR_cmd_check",
-	CmdDap:               "TR_cmd_dap",
-	CmdDebug:             "TR_cmd_debug",
-	CmdDecode:            "TR_cmd_decode",
-	CmdEncode:            "TR_cmd_encode",
-	CmdFormat:            "TR_cmd_format",
-	CmdHelp:              "TR_cmd_help",
-	CmdIndex:             "TR_cmd_index",
-	CmdProfile:           "TR_cmd_profile",
-	CmdRun:               "TR_cmd_run",
-	CmdShow:              "TR_cmd_show",
-	CmdTest:              "TR_cmd_test",
-	CmdVersion:           "TR_cmd_version",
-	CmdWatch:             "TR_cmd_watch",
-	SubDefinition:        "TR_sub_definition",
-	SubImpact:            "TR_sub_impact",
-	SubReferences:        "TR_sub_references",
-	SubRename:            "TR_sub_rename",
-	SubTestedBy:          "TR_sub_tested_by",
-	OptAll:               "TR_opt_all",
-	OptCheck:             "TR_opt_check",
-	OptClear:             "TR_opt_clear",
-	OptGoProfile:         "TR_opt_go_profile",
-	OptHelp:              "TR_opt_help",
-	OptJson:              "TR_opt_json",
-	OptKind:              "TR_opt_kind",
-	OptLang:              "TR_opt_lang",
-	OptLimit:             "TR_opt_limit",
-	OptNoIndex:           "TR_opt_no_index",
-	OptNoText:            "TR_opt_no_text",
-	OptOutput:            "TR_opt_output",
-	OptRoot:              "TR_opt_root",
-	OptStatus:            "TR_opt_status",
-	OptTerm:              "TR_opt_term",
-	ReplExit:             "TR_repl_exit",
-	DbgBreak:             "TR_dbg_break",
-	DbgContinue:          "TR_dbg_continue",
-	DbgEval:              "TR_dbg_eval",
-	DbgHelp:              "TR_dbg_help",
-	DbgJump:              "TR_dbg_jump",
-	DbgNext:              "TR_dbg_next",
-	DbgOut:               "TR_dbg_out",
-	DbgQuit:              "TR_dbg_quit",
-	DbgScreen:            "TR_dbg_screen",
-	DbgSet:               "TR_dbg_set",
-	DbgStack:             "TR_dbg_stack",
-	DbgStep:              "TR_dbg_step",
-	DbgTable:             "TR_dbg_table",
-	DbgWatch:             "TR_dbg_watch",
-	EnvCpuAvx2:           "TR_env_CPU_AVX2",
-	EnvGpuCublaslt:       "TR_env_GPU_CUBLASLT",
-	EnvGpuProfile:        "TR_env_GPU_PROFILE",
-	EnvGpuSync:           "TR_env_GPU_SYNC",
-	EnvJobDir:            "TR_env_JOB_DIR",
-	EnvLang:              "TR_env_LANG",
+	KwAnd:                       "TR_kw_and",
+	KwAsync:                     "TR_kw_async",
+	KwBreak:                     "TR_kw_break",
+	KwBreakpoint:                "TR_kw_breakpoint",
+	KwCatch:                     "TR_kw_catch",
+	KwConst:                     "TR_kw_const",
+	KwContinue:                  "TR_kw_continue",
+	KwDefault:                   "TR_kw_default",
+	KwDefer:                     "TR_kw_defer",
+	KwElse:                      "TR_kw_else",
+	KwFalse:                     "TR_kw_false",
+	KwFor:                       "TR_kw_for",
+	KwFunc:                      "TR_kw_func",
+	KwIf:                        "TR_kw_if",
+	KwImport:                    "TR_kw_import",
+	KwIn:                        "TR_kw_in",
+	KwMatch:                     "TR_kw_match",
+	KwNone:                      "TR_kw_none",
+	KwNot:                       "TR_kw_not",
+	KwOr:                        "TR_kw_or",
+	KwReturn:                    "TR_kw_return",
+	KwSelf:                      "TR_kw_self",
+	KwStruct:                    "TR_kw_struct",
+	KwThrow:                     "TR_kw_throw",
+	KwTrue:                      "TR_kw_true",
+	KwTry:                       "TR_kw_try",
+	KwVar:                       "TR_kw_var",
+	KwWhile:                     "TR_kw_while",
+	CtxAcc:                      "TR_ctx_acc",
+	CtxAs:                       "TR_ctx_as",
+	CtxError:                    "TR_ctx_error",
+	CtxInit:                     "TR_ctx_init",
+	CtxIt:                       "TR_ctx_it",
+	CtxTest:                     "TR_ctx_test",
+	ValInf:                      "TR_val_inf",
+	ValNan:                      "TR_val_nan",
+	TypeAny:                     "TR_type_Any",
+	TypeBool:                    "TR_type_Bool",
+	TypeBuiltinFunction:         "TR_type_BuiltinFunction",
+	TypeCausalAttention:         "TR_type_CausalAttention",
+	TypeCheckpoint:              "TR_type_Checkpoint",
+	TypeDataset:                 "TR_type_Dataset",
+	TypeDict:                    "TR_type_Dict",
+	TypeEmbedding:               "TR_type_Embedding",
+	TypeFloat:                   "TR_type_Float",
+	TypeFunction:                "TR_type_Function",
+	TypeGPT:                     "TR_type_GPT",
+	TypeInt:                     "TR_type_Int",
+	TypeKVCache:                 "TR_type_KVCache",
+	TypeLineReader:              "TR_type_LineReader",
+	TypeLinear:                  "TR_type_Linear",
+	TypeList:                    "TR_type_List",
+	TypeLogger:                  "TR_type_Logger",
+	TypeMuon:                    "TR_type_Muon",
+	TypeMuonAndAdamW:            "TR_type_MuonAndAdamW",
+	TypeNone:                    "TR_type_None",
+	TypeNorMuon:                 "TR_type_NorMuon",
+	TypeObject:                  "TR_type_Object",
+	TypeOptimizer:               "TR_type_Optimizer",
+	TypePLEBlock:                "TR_type_PLEBlock",
+	TypePLEContext:              "TR_type_PLEContext",
+	TypePath:                    "TR_type_Path",
+	TypeProgress:                "TR_type_Progress",
+	TypeRMSNorm:                 "TR_type_RMSNorm",
+	TypeRange:                   "TR_type_Range",
+	TypeRowRMS:                  "TR_type_RowRMS",
+	TypeRun:                     "TR_type_Run",
+	TypeSampler:                 "TR_type_Sampler",
+	TypeSequentialReader:        "TR_type_SequentialReader",
+	TypeSpikeGuard:              "TR_type_SpikeGuard",
+	TypeString:                  "TR_type_String",
+	TypeStructType:              "TR_type_StructType",
+	TypeSwiGLU:                  "TR_type_SwiGLU",
+	TypeTensor:                  "TR_type_Tensor",
+	TypeTokenizer:               "TR_type_Tokenizer",
+	TypeTransformerBlock:        "TR_type_TransformerBlock",
+	TypeType:                    "TR_type_Type",
+	FnAdamW:                     "TR_fn_AdamW",
+	FnSGD:                       "TR_fn_SGD",
+	FnAbs:                       "TR_fn_abs",
+	FnAcos:                      "TR_fn_acos",
+	FnAnyPatternMatches:         "TR_fn_any_pattern_matches",
+	FnApplyRotary:               "TR_fn_apply_rotary",
+	FnApplyRotaryFused:          "TR_fn_apply_rotary_fused",
+	FnArgmax:                    "TR_fn_argmax",
+	FnArgsort:                   "TR_fn_argsort",
+	FnAsin:                      "TR_fn_asin",
+	FnAssert:                    "TR_fn_assert",
+	FnAssertEqual:               "TR_fn_assert_equal",
+	FnAtan:                      "TR_fn_atan",
+	FnAtan2:                     "TR_fn_atan2",
+	FnAttention:                 "TR_fn_attention",
+	FnBackward:                  "TR_fn_backward",
+	FnBuildPretrainedModel:      "TR_fn_build_pretrained_model",
+	FnCeil:                      "TR_fn_ceil",
+	FnCheckpoint:                "TR_fn_checkpoint",
+	FnClamp:                     "TR_fn_clamp",
+	FnClipGrad:                  "TR_fn_clip_grad",
+	FnCommandLine:               "TR_fn_command_line",
+	FnComputeDtype:              "TR_fn_compute_dtype",
+	FnConcat:                    "TR_fn_concat",
+	FnConfigValue:               "TR_fn_config_value",
+	FnCopy:                      "TR_fn_copy",
+	FnCos:                       "TR_fn_cos",
+	FnCosh:                      "TR_fn_cosh",
+	FnCrossEntropy:              "TR_fn_cross_entropy",
+	FnCumsum:                    "TR_fn_cumsum",
+	FnCustomGrad:                "TR_fn_custom_grad",
+	FnDataset:                   "TR_fn_dataset",
+	FnDefaultDevice:             "TR_fn_default_device",
+	FnDevices:                   "TR_fn_devices",
+	FnEmbedding:                 "TR_fn_embedding",
+	FnEnv:                       "TR_fn_env",
+	FnExp:                       "TR_fn_exp",
+	FnExpm1:                     "TR_fn_expm1",
+	FnEye:                       "TR_fn_eye",
+	FnFloat:                     "TR_fn_float",
+	FnFloor:                     "TR_fn_floor",
+	FnFuse:                      "TR_fn_fuse",
+	FnGelu:                      "TR_fn_gelu",
+	FnGradCheck:                 "TR_fn_grad_check",
+	FnHasRopeScaling:            "TR_fn_has_rope_scaling",
+	FnInitWeight:                "TR_fn_init_weight",
+	FnInput:                     "TR_fn_input",
+	FnInt:                       "TR_fn_int",
+	FnIsFinite:                  "TR_fn_is_finite",
+	FnJsonParse:                 "TR_fn_json_parse",
+	FnJsonString:                "TR_fn_json_string",
+	FnLayerNorm:                 "TR_fn_layer_norm",
+	FnLayerWindows:              "TR_fn_layer_windows",
+	FnLinearCrossEntropy:        "TR_fn_linear_cross_entropy",
+	FnListDir:                   "TR_fn_list_dir",
+	FnLoadParameters:            "TR_fn_load_parameters",
+	FnLoadTensors:               "TR_fn_load_tensors",
+	FnLoadTokenizer:             "TR_fn_load_tokenizer",
+	FnLog:                       "TR_fn_log",
+	FnLog10:                     "TR_fn_log10",
+	FnLog1p:                     "TR_fn_log1p",
+	FnLog2:                      "TR_fn_log2",
+	FnLogSoftmax:                "TR_fn_log_softmax",
+	FnLogger:                    "TR_fn_logger",
+	FnLrSchedule:                "TR_fn_lr_schedule",
+	FnMakeDir:                   "TR_fn_make_dir",
+	FnMapHuggingFace:            "TR_fn_map_hugging_face",
+	FnMax:                       "TR_fn_max",
+	FnMean:                      "TR_fn_mean",
+	FnMedian:                    "TR_fn_median",
+	FnMin:                       "TR_fn_min",
+	FnMixedPrecision:            "TR_fn_mixed_precision",
+	FnMove:                      "TR_fn_move",
+	FnNameMatches:               "TR_fn_name_matches",
+	FnNoGrad:                    "TR_fn_no_grad",
+	FnOnes:                      "TR_fn_ones",
+	FnOnly2d:                    "TR_fn_only_2d",
+	FnOrthogonalize:             "TR_fn_orthogonalize",
+	FnOrthogonalizeStack:        "TR_fn_orthogonalize_stack",
+	FnParameterGroups:           "TR_fn_parameter_groups",
+	FnParameters:                "TR_fn_parameters",
+	FnParseCsv:                  "TR_fn_parse_csv",
+	FnPath:                      "TR_fn_path",
+	FnPleGelu:                   "TR_fn_ple_gelu",
+	FnPleMix:                    "TR_fn_ple_mix",
+	FnPleMixFused:               "TR_fn_ple_mix_fused",
+	FnPretrainedModel:           "TR_fn_pretrained_model",
+	FnPrint:                     "TR_fn_print",
+	FnProgress:                  "TR_fn_progress",
+	FnRandn:                     "TR_fn_randn",
+	FnRange:                     "TR_fn_range",
+	FnReadCsv:                   "TR_fn_read_csv",
+	FnReadFile:                  "TR_fn_read_file",
+	FnReadLines:                 "TR_fn_read_lines",
+	FnRelu:                      "TR_fn_relu",
+	FnRemove:                    "TR_fn_remove",
+	FnReplay:                    "TR_fn_replay",
+	FnRmsNorm:                   "TR_fn_rms_norm",
+	FnRopeTheta:                 "TR_fn_rope_theta",
+	FnRotaryTable:               "TR_fn_rotary_table",
+	FnRound:                     "TR_fn_round",
+	FnSample:                    "TR_fn_sample",
+	FnSaveTensors:               "TR_fn_save_tensors",
+	FnShapeGroups:               "TR_fn_shape_groups",
+	FnSigmoid:                   "TR_fn_sigmoid",
+	FnSign:                      "TR_fn_sign",
+	FnSilu:                      "TR_fn_silu",
+	FnSin:                       "TR_fn_sin",
+	FnSinh:                      "TR_fn_sinh",
+	FnSleep:                     "TR_fn_sleep",
+	FnSoftmax:                   "TR_fn_softmax",
+	FnSqrt:                      "TR_fn_sqrt",
+	FnStateTensor:               "TR_fn_state_tensor",
+	FnStd:                       "TR_fn_std",
+	FnStr:                       "TR_fn_str",
+	FnSum:                       "TR_fn_sum",
+	FnSwigluGate:                "TR_fn_swiglu_gate",
+	FnSwigluGateFused:           "TR_fn_swiglu_gate_fused",
+	FnSwigluIntermediateDim:     "TR_fn_swiglu_intermediate_dim",
+	FnSwigluMergedGate:          "TR_fn_swiglu_merged_gate",
+	FnSwigluMergedGateFused:     "TR_fn_swiglu_merged_gate_fused",
+	FnTan:                       "TR_fn_tan",
+	FnTanh:                      "TR_fn_tanh",
+	FnTempDir:                   "TR_fn_temp_dir",
+	FnTensor:                    "TR_fn_tensor",
+	FnTimeMs:                    "TR_fn_time_ms",
+	FnTopk:                      "TR_fn_topk",
+	FnType:                      "TR_fn_type",
+	FnWaitAll:                   "TR_fn_wait_all",
+	FnWhere:                     "TR_fn_where",
+	FnWriteFile:                 "TR_fn_write_file",
+	FnWriteSlice:                "TR_fn_write_slice",
+	FnZeroGrads:                 "TR_fn_zero_grads",
+	FnZeros:                     "TR_fn_zeros",
+	ConstBLOCKNAMES:             "TR_const_BLOCK_NAMES",
+	ConstDRYRUNSTEPS:            "TR_const_DRY_RUN_STEPS",
+	ConstMINRELATIVESTD:         "TR_const_MIN_RELATIVE_STD",
+	ConstNONFINITE:              "TR_const_NONFINITE",
+	ConstNSA:                    "TR_const_NS_A",
+	ConstNSB:                    "TR_const_NS_B",
+	ConstNSC:                    "TR_const_NS_C",
+	ConstOK:                     "TR_const_OK",
+	ConstSPIKE:                  "TR_const_SPIKE",
+	ConstSUPPORTEDARCHITECTURES: "TR_const_SUPPORTED_ARCHITECTURES",
+	ConstPi:                     "TR_const_pi",
+	ArgGMuon:                    "TR_arg_G_muon",
+	ArgT:                        "TR_arg_T",
+	ArgAdamwLr:                  "TR_arg_adamw_lr",
+	ArgAdamwWeightDecay:         "TR_arg_adamw_weight_decay",
+	ArgApproximate:              "TR_arg_approximate",
+	ArgBackward:                 "TR_arg_backward",
+	ArgBatchSize:                "TR_arg_batch_size",
+	ArgBeta1:                    "TR_arg_beta1",
+	ArgBeta2:                    "TR_arg_beta2",
+	ArgBias:                     "TR_arg_bias",
+	ArgBuffers:                  "TR_arg_buffers",
+	ArgCache:                    "TR_arg_cache",
+	ArgCacheKind:                "TR_arg_cache_kind",
+	ArgCapacity:                 "TR_arg_capacity",
+	ArgCausal:                   "TR_arg_causal",
+	ArgConfig:                   "TR_arg_config",
+	ArgContext:                  "TR_arg_context",
+	ArgCosTable:                 "TR_arg_cos_table",
+	ArgCudaGraph:                "TR_arg_cuda_graph",
+	ArgDecayFraction:            "TR_arg_decay_fraction",
+	ArgDescription:              "TR_arg_description",
+	ArgDescriptions:             "TR_arg_descriptions",
+	ArgDevice:                   "TR_arg_device",
+	ArgDim:                      "TR_arg_dim",
+	ArgDryRun:                   "TR_arg_dry_run",
+	ArgDtype:                    "TR_arg_dtype",
+	ArgEmbedDim:                 "TR_arg_embed_dim",
+	ArgEnd:                      "TR_arg_end",
+	ArgEos:                      "TR_arg_eos",
+	ArgEps:                      "TR_arg_eps",
+	ArgErrorIfNonfinite:         "TR_arg_error_if_nonfinite",
+	ArgEveryMinutes:             "TR_arg_every_minutes",
+	ArgFallback:                 "TR_arg_fallback",
+	ArgFdStep:                   "TR_arg_fd_step",
+	ArgFfUseBias:                "TR_arg_ff_use_bias",
+	ArgFolder:                   "TR_arg_folder",
+	ArgForward:                  "TR_arg_forward",
+	ArgGSwiglu:                  "TR_arg_g_swiglu",
+	ArgGate:                     "TR_arg_gate",
+	ArgGu:                       "TR_arg_gu",
+	ArgH:                        "TR_arg_h",
+	ArgHeadDim:                  "TR_arg_head_dim",
+	ArgHistory:                  "TR_arg_history",
+	ArgHistoryLimit:             "TR_arg_history_limit",
+	ArgInFeatures:               "TR_arg_in_features",
+	ArgInitStd:                  "TR_arg_init_std",
+	ArgIntermediateDim:          "TR_arg_intermediate_dim",
+	ArgK:                        "TR_arg_k",
+	ArgKeep:                     "TR_arg_keep",
+	ArgKeepdim:                  "TR_arg_keepdim",
+	ArgKey:                      "TR_arg_key",
+	ArgKind:                     "TR_arg_kind",
+	ArgLayerIdx:                 "TR_arg_layer_idx",
+	ArgLayout:                   "TR_arg_layout",
+	ArgLog:                      "TR_arg_log",
+	ArgLoss:                     "TR_arg_loss",
+	ArgLr:                       "TR_arg_lr",
+	ArgMask:                     "TR_arg_mask",
+	ArgMasterWeights:            "TR_arg_master_weights",
+	ArgMax:                      "TR_arg_max",
+	ArgMaxNewTokens:             "TR_arg_max_new_tokens",
+	ArgMerged:                   "TR_arg_merged",
+	ArgMergedGate:               "TR_arg_merged_gate",
+	ArgMergedKv:                 "TR_arg_merged_kv",
+	ArgMetrics:                  "TR_arg_metrics",
+	ArgMin:                      "TR_arg_min",
+	ArgModel:                    "TR_arg_model",
+	ArgMomentum:                 "TR_arg_momentum",
+	ArgMultiplier:               "TR_arg_multiplier",
+	ArgMuonLr:                   "TR_arg_muon_lr",
+	ArgMuonScale:                "TR_arg_muon_scale",
+	ArgN:                        "TR_arg_n",
+	ArgName:                     "TR_arg_name",
+	ArgNamed:                    "TR_arg_named",
+	ArgNesterov:                 "TR_arg_nesterov",
+	ArgNewChunk:                 "TR_arg_new_chunk",
+	ArgNorm:                     "TR_arg_norm",
+	ArgNormuon:                  "TR_arg_normuon",
+	ArgNsDtype:                  "TR_arg_ns_dtype",
+	ArgNsIterations:             "TR_arg_ns_iterations",
+	ArgNumHeads:                 "TR_arg_num_heads",
+	ArgNumKvHeads:               "TR_arg_num_kv_heads",
+	ArgNumLayers:                "TR_arg_num_layers",
+	ArgNumSteps:                 "TR_arg_num_steps",
+	ArgObjects:                  "TR_arg_objects",
+	ArgOutFeatures:              "TR_arg_out_features",
+	ArgOutputDtype:              "TR_arg_output_dtype",
+	ArgOutputInitStd:            "TR_arg_output_init_std",
+	ArgOverwrite:                "TR_arg_overwrite",
+	ArgPair:                     "TR_arg_pair",
+	ArgParameters:               "TR_arg_parameters",
+	ArgPattern:                  "TR_arg_pattern",
+	ArgPatterns:                 "TR_arg_patterns",
+	ArgPleContext:               "TR_arg_ple_context",
+	ArgPleContexts:              "TR_arg_ple_contexts",
+	ArgPleDim:                   "TR_arg_ple_dim",
+	ArgPosition:                 "TR_arg_position",
+	ArgPrompt:                   "TR_arg_prompt",
+	ArgQkNorm:                   "TR_arg_qk_norm",
+	ArgQuotaGb:                  "TR_arg_quota_gb",
+	ArgRecursive:                "TR_arg_recursive",
+	ArgRequiresGrad:             "TR_arg_requires_grad",
+	ArgRopeTheta:                "TR_arg_rope_theta",
+	ArgRow:                      "TR_arg_row",
+	ArgScale:                    "TR_arg_scale",
+	ArgSeed:                     "TR_arg_seed",
+	ArgSeparated:                "TR_arg_separated",
+	ArgShape:                    "TR_arg_shape",
+	ArgSinTable:                 "TR_arg_sin_table",
+	ArgSparse:                   "TR_arg_sparse",
+	ArgSparseLr:                 "TR_arg_sparse_lr",
+	ArgSpecialTokens:            "TR_arg_special_tokens",
+	ArgStart:                    "TR_arg_start",
+	ArgStep:                     "TR_arg_step",
+	ArgTargets:                  "TR_arg_targets",
+	ArgTemperature:              "TR_arg_temperature",
+	ArgThreshold:                "TR_arg_threshold",
+	ArgTied:                     "TR_arg_tied",
+	ArgTokenId:                  "TR_arg_token_id",
+	ArgTokenIds:                 "TR_arg_token_ids",
+	ArgTol:                      "TR_arg_tol",
+	ArgTopK:                     "TR_arg_top_k",
+	ArgU:                        "TR_arg_u",
+	ArgUpdates:                  "TR_arg_updates",
+	ArgUseBias:                  "TR_arg_use_bias",
+	ArgV:                        "TR_arg_v",
+	ArgValue:                    "TR_arg_value",
+	ArgVocabSize:                "TR_arg_vocab_size",
+	ArgWarmup:                   "TR_arg_warmup",
+	ArgWeight:                   "TR_arg_weight",
+	ArgWeightDecay:              "TR_arg_weight_decay",
+	ArgWeightDtype:              "TR_arg_weight_dtype",
+	ArgWeights:                  "TR_arg_weights",
+	ArgWindow:                   "TR_arg_window",
+	ArgWindows:                  "TR_arg_windows",
+	ArgX:                        "TR_arg_x",
+	MemAbsolute:                 "TR_mem_absolute",
+	MemAdamw:                    "TR_mem_adamw",
+	MemAdamwLr:                  "TR_mem_adamw_lr",
+	MemAdamwNoDecay:             "TR_mem_adamw_no_decay",
+	MemAdvance:                  "TR_mem_advance",
+	MemAppend:                   "TR_mem_append",
+	MemAppendBuffer:             "TR_mem_append_buffer",
+	MemAttention:                "TR_mem_attention",
+	MemBar:                      "TR_mem_bar",
+	MemBeta1:                    "TR_mem_beta1",
+	MemBeta2:                    "TR_mem_beta2",
+	MemBias:                     "TR_mem_bias",
+	MemBlocks:                   "TR_mem_blocks",
+	MemBuildCache:               "TR_mem_build_cache",
+	MemCapacity:                 "TR_mem_capacity",
+	MemCheckpoint:               "TR_mem_checkpoint",
+	MemClose:                    "TR_mem_close",
+	MemConfig:                   "TR_mem_config",
+	MemContains:                 "TR_mem_contains",
+	MemContextProj:              "TR_mem_context_proj",
+	MemCosTable:                 "TR_mem_cos_table",
+	MemDecode:                   "TR_mem_decode",
+	MemDevice:                   "TR_mem_device",
+	MemDeviceStep:               "TR_mem_device_step",
+	MemDownProj:                 "TR_mem_down_proj",
+	MemDryRun:                   "TR_mem_dry_run",
+	MemDtype:                    "TR_mem_dtype",
+	MemEmbed:                    "TR_mem_embed",
+	MemEmbedDim:                 "TR_mem_embed_dim",
+	MemEmbedding:                "TR_mem_embedding",
+	MemEncode:                   "TR_mem_encode",
+	MemEndsWith:                 "TR_mem_ends_with",
+	MemEps:                      "TR_mem_eps",
+	MemEvaluated:                "TR_mem_evaluated",
+	MemExceeds:                  "TR_mem_exceeds",
+	MemExists:                   "TR_mem_exists",
+	MemExtension:                "TR_mem_extension",
+	MemFeedForward:              "TR_mem_feed_forward",
+	MemFilter:                   "TR_mem_filter",
+	MemFinalNorm:                "TR_mem_final_norm",
+	MemFinish:                   "TR_mem_finish",
+	MemFirst:                    "TR_mem_first",
+	MemFolder:                   "TR_mem_folder",
+	MemForward:                  "TR_mem_forward",
+	MemGateProj:                 "TR_mem_gate_proj",
+	MemGateUpProj:               "TR_mem_gate_up_proj",
+	MemGenerate:                 "TR_mem_generate",
+	MemGet:                      "TR_mem_get",
+	MemGrad:                     "TR_mem_grad",
+	MemGroups:                   "TR_mem_groups",
+	MemHeadDim:                  "TR_mem_head_dim",
+	MemHiddenStates:             "TR_mem_hidden_states",
+	MemHistoryLength:            "TR_mem_history_length",
+	MemHistoryLimit:             "TR_mem_history_limit",
+	MemInputNorm:                "TR_mem_input_norm",
+	MemIsDir:                    "TR_mem_is_dir",
+	MemIsFile:                   "TR_mem_is_file",
+	MemJoin:                     "TR_mem_join",
+	MemKBuffers:                 "TR_mem_k_buffers",
+	MemKNorm:                    "TR_mem_k_norm",
+	MemKProj:                    "TR_mem_k_proj",
+	MemKeys:                     "TR_mem_keys",
+	MemKind:                     "TR_mem_kind",
+	MemKvProj:                   "TR_mem_kv_proj",
+	MemLast:                     "TR_mem_last",
+	MemLastStep:                 "TR_mem_last_step",
+	MemLength:                   "TR_mem_length",
+	MemLoadState:                "TR_mem_load_state",
+	MemLogger:                   "TR_mem_logger",
+	MemLogitLayer:               "TR_mem_logit_layer",
+	MemLogits:                   "TR_mem_logits",
+	MemLoss:                     "TR_mem_loss",
+	MemLosses:                   "TR_mem_losses",
+	MemLower:                    "TR_mem_lower",
+	MemLr:                       "TR_mem_lr",
+	MemLrMultiplier:             "TR_mem_lr_multiplier",
+	MemMap:                      "TR_mem_map",
+	MemMask:                     "TR_mem_mask",
+	MemMasks:                    "TR_mem_masks",
+	MemMomentum:                 "TR_mem_momentum",
+	MemMuon:                     "TR_mem_muon",
+	MemMuonLr:                   "TR_mem_muon_lr",
+	MemName:                     "TR_mem_name",
+	MemNesterov:                 "TR_mem_nesterov",
+	MemNext:                     "TR_mem_next",
+	MemNorm:                     "TR_mem_norm",
+	MemNorms:                    "TR_mem_norms",
+	MemNsDtype:                  "TR_mem_ns_dtype",
+	MemNsIterations:             "TR_mem_ns_iterations",
+	MemNumHeads:                 "TR_mem_num_heads",
+	MemNumKvHeads:               "TR_mem_num_kv_heads",
+	MemNumLayers:                "TR_mem_num_layers",
+	MemOProj:                    "TR_mem_o_proj",
+	MemObserve:                  "TR_mem_observe",
+	MemOther:                    "TR_mem_other",
+	MemParameters:               "TR_mem_parameters",
+	MemParent:                   "TR_mem_parent",
+	MemPermute:                  "TR_mem_permute",
+	MemPle:                      "TR_mem_ple",
+	MemPleContext:               "TR_mem_ple_context",
+	MemPleDim:                   "TR_mem_ple_dim",
+	MemPosition:                 "TR_mem_position",
+	MemPositions:                "TR_mem_positions",
+	MemPostAttentionNorm:        "TR_mem_post_attention_norm",
+	MemProj:                     "TR_mem_proj",
+	MemQNorm:                    "TR_mem_q_norm",
+	MemQProj:                    "TR_mem_q_proj",
+	MemReduce:                   "TR_mem_reduce",
+	MemReplace:                  "TR_mem_replace",
+	MemReshape:                  "TR_mem_reshape",
+	MemResumeStep:               "TR_mem_resume_step",
+	MemReverse:                  "TR_mem_reverse",
+	MemRollback:                 "TR_mem_rollback",
+	MemRowRms:                   "TR_mem_row_rms",
+	MemRunBlocks:                "TR_mem_run_blocks",
+	MemSampler:                  "TR_mem_sampler",
+	MemSave:                     "TR_mem_save",
+	MemScales:                   "TR_mem_scales",
+	MemSequential:               "TR_mem_sequential",
+	MemSetMultiplier:            "TR_mem_set_multiplier",
+	MemShape:                    "TR_mem_shape",
+	MemSinTable:                 "TR_mem_sin_table",
+	MemSingleStep:               "TR_mem_single_step",
+	MemSize:                     "TR_mem_size",
+	MemSkip:                     "TR_mem_skip",
+	MemSlice:                    "TR_mem_slice",
+	MemSort:                     "TR_mem_sort",
+	MemSparseLr:                 "TR_mem_sparse_lr",
+	MemSpikeCount:               "TR_mem_spike_count",
+	MemSplit:                    "TR_mem_split",
+	MemStartsWith:               "TR_mem_starts_with",
+	MemState:                    "TR_mem_state",
+	MemStem:                     "TR_mem_stem",
+	MemStep:                     "TR_mem_step",
+	MemStepDone:                 "TR_mem_step_done",
+	MemStepPosition:             "TR_mem_step_position",
+	MemStop:                     "TR_mem_stop",
+	MemStrip:                    "TR_mem_strip",
+	MemTable:                    "TR_mem_table",
+	MemThreshold:                "TR_mem_threshold",
+	MemToDevice:                 "TR_mem_to_device",
+	MemToDtype:                  "TR_mem_to_dtype",
+	MemTokenId:                  "TR_mem_token_id",
+	MemTolist:                   "TR_mem_tolist",
+	MemTranspose:                "TR_mem_transpose",
+	MemTruncate:                 "TR_mem_truncate",
+	MemUnique:                   "TR_mem_unique",
+	MemUpProj:                   "TR_mem_up_proj",
+	MemUpdate:                   "TR_mem_update",
+	MemUpper:                    "TR_mem_upper",
+	MemVBuffers:                 "TR_mem_v_buffers",
+	MemVProj:                    "TR_mem_v_proj",
+	MemValues:                   "TR_mem_values",
+	MemVocabSize:                "TR_mem_vocab_size",
+	MemWeight:                   "TR_mem_weight",
+	MemWeightDecay:              "TR_mem_weight_decay",
+	MemWindow:                   "TR_mem_window",
+	MemZeroGrad:                 "TR_mem_zero_grad",
+	CmdBuild:                    "TR_cmd_build",
+	CmdCheck:                    "TR_cmd_check",
+	CmdDap:                      "TR_cmd_dap",
+	CmdDebug:                    "TR_cmd_debug",
+	CmdDecode:                   "TR_cmd_decode",
+	CmdEncode:                   "TR_cmd_encode",
+	CmdFormat:                   "TR_cmd_format",
+	CmdHelp:                     "TR_cmd_help",
+	CmdIndex:                    "TR_cmd_index",
+	CmdProfile:                  "TR_cmd_profile",
+	CmdRun:                      "TR_cmd_run",
+	CmdShow:                     "TR_cmd_show",
+	CmdTest:                     "TR_cmd_test",
+	CmdVersion:                  "TR_cmd_version",
+	CmdWatch:                    "TR_cmd_watch",
+	SubDefinition:               "TR_sub_definition",
+	SubImpact:                   "TR_sub_impact",
+	SubReferences:               "TR_sub_references",
+	SubRename:                   "TR_sub_rename",
+	SubTestedBy:                 "TR_sub_tested_by",
+	OptAll:                      "TR_opt_all",
+	OptCheck:                    "TR_opt_check",
+	OptClear:                    "TR_opt_clear",
+	OptGoProfile:                "TR_opt_go_profile",
+	OptHelp:                     "TR_opt_help",
+	OptJson:                     "TR_opt_json",
+	OptKind:                     "TR_opt_kind",
+	OptLang:                     "TR_opt_lang",
+	OptLimit:                    "TR_opt_limit",
+	OptNoIndex:                  "TR_opt_no_index",
+	OptNoText:                   "TR_opt_no_text",
+	OptOutput:                   "TR_opt_output",
+	OptRoot:                     "TR_opt_root",
+	OptStatus:                   "TR_opt_status",
+	OptTerm:                     "TR_opt_term",
+	ReplExit:                    "TR_repl_exit",
+	DbgBreak:                    "TR_dbg_break",
+	DbgContinue:                 "TR_dbg_continue",
+	DbgEval:                     "TR_dbg_eval",
+	DbgHelp:                     "TR_dbg_help",
+	DbgJump:                     "TR_dbg_jump",
+	DbgNext:                     "TR_dbg_next",
+	DbgOut:                      "TR_dbg_out",
+	DbgQuit:                     "TR_dbg_quit",
+	DbgScreen:                   "TR_dbg_screen",
+	DbgSet:                      "TR_dbg_set",
+	DbgStack:                    "TR_dbg_stack",
+	DbgStep:                     "TR_dbg_step",
+	DbgTable:                    "TR_dbg_table",
+	DbgWatch:                    "TR_dbg_watch",
+	EnvCpuAvx2:                  "TR_env_CPU_AVX2",
+	EnvGpuCublaslt:              "TR_env_GPU_CUBLASLT",
+	EnvGpuProfile:               "TR_env_GPU_PROFILE",
+	EnvGpuSync:                  "TR_env_GPU_SYNC",
+	EnvJobDir:                   "TR_env_JOB_DIR",
+	EnvLang:                     "TR_env_LANG",
 }
 
 // libraryModules is the module of every library code (the module field of definitions.json).
-var libraryModules = map[Code]string{}
+var libraryModules = map[Code]string{
+	TypeCausalAttention:         "tr/katman",
+	TypeEmbedding:               "tr/katman",
+	TypeGPT:                     "tr/katman",
+	TypeKVCache:                 "tr/katman",
+	TypeLinear:                  "tr/katman",
+	TypeMuon:                    "tr/iyilestirici",
+	TypeMuonAndAdamW:            "tr/iyilestirici",
+	TypeNorMuon:                 "tr/iyilestirici",
+	TypePLEBlock:                "tr/katman",
+	TypePLEContext:              "tr/katman",
+	TypeRMSNorm:                 "tr/katman",
+	TypeRowRMS:                  "tr/iyilestirici",
+	TypeRun:                     "tr/egitim",
+	TypeSpikeGuard:              "tr/egitim",
+	TypeSwiGLU:                  "tr/katman",
+	TypeTransformerBlock:        "tr/katman",
+	FnAnyPatternMatches:         "tr/iyilestirici",
+	FnApplyRotary:               "tr/katman",
+	FnApplyRotaryFused:          "tr/katman",
+	FnBuildPretrainedModel:      "tr/hazir",
+	FnConfigValue:               "tr/hazir",
+	FnHasRopeScaling:            "tr/hazir",
+	FnInitWeight:                "tr/katman",
+	FnLayerWindows:              "tr/katman",
+	FnLrSchedule:                "tr/iyilestirici",
+	FnMapHuggingFace:            "tr/hazir",
+	FnNameMatches:               "tr/iyilestirici",
+	FnOnly2d:                    "tr/iyilestirici",
+	FnOrthogonalize:             "tr/iyilestirici",
+	FnOrthogonalizeStack:        "tr/iyilestirici",
+	FnParameterGroups:           "tr/iyilestirici",
+	FnPleGelu:                   "tr/katman",
+	FnPleMix:                    "tr/katman",
+	FnPleMixFused:               "tr/katman",
+	FnPretrainedModel:           "tr/hazir",
+	FnRopeTheta:                 "tr/hazir",
+	FnRotaryTable:               "tr/katman",
+	FnShapeGroups:               "tr/iyilestirici",
+	FnStateTensor:               "tr/iyilestirici",
+	FnSwigluGate:                "tr/katman",
+	FnSwigluGateFused:           "tr/katman",
+	FnSwigluIntermediateDim:     "tr/katman",
+	FnSwigluMergedGate:          "tr/katman",
+	FnSwigluMergedGateFused:     "tr/katman",
+	FnZeroGrads:                 "tr/iyilestirici",
+	ConstBLOCKNAMES:             "tr/hazir",
+	ConstDRYRUNSTEPS:            "tr/egitim",
+	ConstMINRELATIVESTD:         "tr/egitim",
+	ConstNONFINITE:              "tr/egitim",
+	ConstNSA:                    "tr/iyilestirici",
+	ConstNSB:                    "tr/iyilestirici",
+	ConstNSC:                    "tr/iyilestirici",
+	ConstOK:                     "tr/egitim",
+	ConstSPIKE:                  "tr/egitim",
+	ConstSUPPORTEDARCHITECTURES: "tr/hazir",
+	ArgGMuon:                    "tr/iyilestirici",
+	ArgT:                        "tr/katman",
+	ArgAdamwLr:                  "tr/iyilestirici",
+	ArgAdamwWeightDecay:         "tr/iyilestirici",
+	ArgBuffers:                  "tr/katman",
+	ArgCacheKind:                "tr/katman",
+	ArgCapacity:                 "tr/katman",
+	ArgConfig:                   "tr/egitim",
+	ArgCosTable:                 "tr/katman",
+	ArgCudaGraph:                "tr/katman",
+	ArgDecayFraction:            "tr/iyilestirici",
+	ArgDevice:                   "tr/iyilestirici",
+	ArgDryRun:                   "tr/egitim",
+	ArgEmbedDim:                 "tr/katman",
+	ArgEnd:                      "tr/katman",
+	ArgEos:                      "tr/katman",
+	ArgFallback:                 "tr/hazir",
+	ArgFfUseBias:                "tr/katman",
+	ArgFolder:                   "tr/egitim",
+	ArgGSwiglu:                  "tr/katman",
+	ArgGate:                     "tr/katman",
+	ArgGu:                       "tr/katman",
+	ArgH:                        "tr/katman",
+	ArgHeadDim:                  "tr/katman",
+	ArgHistory:                  "tr/egitim",
+	ArgHistoryLimit:             "tr/egitim",
+	ArgInFeatures:               "tr/katman",
+	ArgInitStd:                  "tr/katman",
+	ArgIntermediateDim:          "tr/katman",
+	ArgK:                        "tr/katman",
+	ArgKey:                      "tr/hazir",
+	ArgKind:                     "tr/katman",
+	ArgLayerIdx:                 "tr/katman",
+	ArgLayout:                   "tr/katman",
+	ArgLoss:                     "tr/egitim",
+	ArgMaxNewTokens:             "tr/katman",
+	ArgMerged:                   "tr/katman",
+	ArgMergedGate:               "tr/katman",
+	ArgMergedKv:                 "tr/katman",
+	ArgMetrics:                  "tr/egitim",
+	ArgModel:                    "tr/egitim",
+	ArgMultiplier:               "tr/iyilestirici",
+	ArgMuonLr:                   "tr/iyilestirici",
+	ArgMuonScale:                "tr/iyilestirici",
+	ArgN:                        "tr/katman",
+	ArgName:                     "tr/iyilestirici",
+	ArgNesterov:                 "tr/iyilestirici",
+	ArgNewChunk:                 "tr/katman",
+	ArgNorm:                     "tr/egitim",
+	ArgNormuon:                  "tr/iyilestirici",
+	ArgNsDtype:                  "tr/iyilestirici",
+	ArgNsIterations:             "tr/iyilestirici",
+	ArgNumHeads:                 "tr/katman",
+	ArgNumKvHeads:               "tr/katman",
+	ArgNumLayers:                "tr/katman",
+	ArgNumSteps:                 "tr/egitim",
+	ArgObjects:                  "tr/egitim",
+	ArgOutFeatures:              "tr/katman",
+	ArgOutputDtype:              "tr/katman",
+	ArgOutputInitStd:            "tr/katman",
+	ArgParameters:               "tr/iyilestirici",
+	ArgPattern:                  "tr/iyilestirici",
+	ArgPatterns:                 "tr/iyilestirici",
+	ArgPleContext:               "tr/katman",
+	ArgPleContexts:              "tr/katman",
+	ArgPleDim:                   "tr/katman",
+	ArgPosition:                 "tr/katman",
+	ArgPrompt:                   "tr/katman",
+	ArgQkNorm:                   "tr/katman",
+	ArgRopeTheta:                "tr/katman",
+	ArgRow:                      "tr/katman",
+	ArgScale:                    "tr/iyilestirici",
+	ArgSeparated:                "tr/iyilestirici",
+	ArgShape:                    "tr/iyilestirici",
+	ArgSinTable:                 "tr/katman",
+	ArgSparse:                   "tr/iyilestirici",
+	ArgSparseLr:                 "tr/iyilestirici",
+	ArgTargets:                  "tr/katman",
+	ArgThreshold:                "tr/egitim",
+	ArgTied:                     "tr/katman",
+	ArgTokenId:                  "tr/katman",
+	ArgTokenIds:                 "tr/katman",
+	ArgU:                        "tr/katman",
+	ArgUpdates:                  "tr/iyilestirici",
+	ArgUseBias:                  "tr/katman",
+	ArgV:                        "tr/katman",
+	ArgValue:                    "tr/egitim",
+	ArgVocabSize:                "tr/katman",
+	ArgWarmup:                   "tr/iyilestirici",
+	ArgWeightDtype:              "tr/hazir",
+	ArgWeights:                  "tr/hazir",
+	ArgWindows:                  "tr/katman",
+	ArgX:                        "tr/katman",
+	MemAdamw:                    "tr/iyilestirici",
+	MemAdamwLr:                  "tr/iyilestirici",
+	MemAdamwNoDecay:             "tr/iyilestirici",
+	MemAdvance:                  "tr/katman",
+	MemAppendBuffer:             "tr/katman",
+	MemAttention:                "tr/katman",
+	MemBar:                      "tr/egitim",
+	MemBeta1:                    "tr/iyilestirici",
+	MemBeta2:                    "tr/iyilestirici",
+	MemBias:                     "tr/katman",
+	MemBlocks:                   "tr/katman",
+	MemBuildCache:               "tr/katman",
+	MemCapacity:                 "tr/katman",
+	MemCheckpoint:               "tr/egitim",
+	MemConfig:                   "tr/katman",
+	MemContextProj:              "tr/katman",
+	MemCosTable:                 "tr/katman",
+	MemDeviceStep:               "tr/katman",
+	MemDownProj:                 "tr/katman",
+	MemDryRun:                   "tr/egitim",
+	MemEmbed:                    "tr/katman",
+	MemEmbedDim:                 "tr/katman",
+	MemEmbedding:                "tr/katman",
+	MemEps:                      "tr/iyilestirici",
+	MemEvaluated:                "tr/egitim",
+	MemExceeds:                  "tr/egitim",
+	MemFeedForward:              "tr/katman",
+	MemFinalNorm:                "tr/katman",
+	MemFinish:                   "tr/egitim",
+	MemFolder:                   "tr/egitim",
+	MemForward:                  "tr/katman",
+	MemGateProj:                 "tr/katman",
+	MemGateUpProj:               "tr/katman",
+	MemGenerate:                 "tr/katman",
+	MemGroups:                   "tr/iyilestirici",
+	MemHeadDim:                  "tr/katman",
+	MemHiddenStates:             "tr/katman",
+	MemHistoryLength:            "tr/egitim",
+	MemHistoryLimit:             "tr/egitim",
+	MemInputNorm:                "tr/katman",
+	MemKBuffers:                 "tr/katman",
+	MemKNorm:                    "tr/katman",
+	MemKProj:                    "tr/katman",
+	MemKind:                     "tr/katman",
+	MemKvProj:                   "tr/katman",
+	MemLastStep:                 "tr/egitim",
+	MemLogger:                   "tr/egitim",
+	MemLogitLayer:               "tr/katman",
+	MemLogits:                   "tr/katman",
+	MemLoss:                     "tr/katman",
+	MemLosses:                   "tr/egitim",
+	MemLrMultiplier:             "tr/iyilestirici",
+	MemMask:                     "tr/katman",
+	MemMasks:                    "tr/katman",
+	MemMomentum:                 "tr/iyilestirici",
+	MemMuon:                     "tr/iyilestirici",
+	MemMuonLr:                   "tr/iyilestirici",
+	MemNesterov:                 "tr/iyilestirici",
+	MemNorm:                     "tr/katman",
+	MemNorms:                    "tr/egitim",
+	MemNsDtype:                  "tr/iyilestirici",
+	MemNsIterations:             "tr/iyilestirici",
+	MemNumHeads:                 "tr/katman",
+	MemNumKvHeads:               "tr/katman",
+	MemNumLayers:                "tr/katman",
+	MemOProj:                    "tr/katman",
+	MemObserve:                  "tr/egitim",
+	MemOther:                    "tr/iyilestirici",
+	MemParameters:               "tr/iyilestirici",
+	MemPle:                      "tr/katman",
+	MemPleContext:               "tr/katman",
+	MemPleDim:                   "tr/katman",
+	MemPosition:                 "tr/katman",
+	MemPositions:                "tr/katman",
+	MemPostAttentionNorm:        "tr/katman",
+	MemProj:                     "tr/katman",
+	MemQNorm:                    "tr/katman",
+	MemQProj:                    "tr/katman",
+	MemRowRms:                   "tr/iyilestirici",
+	MemRunBlocks:                "tr/katman",
+	MemScales:                   "tr/iyilestirici",
+	MemSetMultiplier:            "tr/iyilestirici",
+	MemSinTable:                 "tr/katman",
+	MemSingleStep:               "tr/katman",
+	MemSparseLr:                 "tr/iyilestirici",
+	MemSpikeCount:               "tr/egitim",
+	MemStepDone:                 "tr/egitim",
+	MemStepPosition:             "tr/katman",
+	MemTable:                    "tr/katman",
+	MemThreshold:                "tr/egitim",
+	MemTruncate:                 "tr/katman",
+	MemUpProj:                   "tr/katman",
+	MemVBuffers:                 "tr/katman",
+	MemVProj:                    "tr/katman",
+	MemWeight:                   "tr/katman",
+	MemWeightDecay:              "tr/iyilestirici",
+	MemWindow:                   "tr/katman",
+}

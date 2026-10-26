@@ -5,20 +5,20 @@
 // üretimin aynı parçaları verdiğini denetler.
 TR_kw_import "tr/hazir"
 
-TR_kw_var arg = TR_fn_command_line({klasör: "", adet: 100, TR_mem_device: "cpu", ad: "", ağırlık_türü: "float32"})
+TR_kw_var arg = TR_fn_command_line({TR_mem_folder: "", adet: 100, TR_mem_device: "cpu", ad: "", ağırlık_türü: "float32"})
 TR_fn_default_device(arg.TR_mem_device)
-TR_kw_var p = TR_fn_load_tokenizer(TR_fn_path(arg.klasör, "tokenizer.json"))
-TR_kw_var model = hazır_model(arg.klasör, ağırlık_türü: arg.ağırlık_türü)
+TR_kw_var p = TR_fn_load_tokenizer(TR_fn_path(arg.TR_mem_folder, "tokenizer.json"))
+TR_kw_var model = TR_fn_pretrained_model(arg.TR_mem_folder, TR_arg_weight_dtype: arg.ağırlık_türü)
 TR_kw_var ids = p.TR_mem_encode("The capital of France is")
-model.üret(ids, 5, sıcaklık: 0)
+model.TR_mem_generate(ids, 5, TR_arg_temperature: 0)
 TR_kw_var hızlar = []
 TR_kw_var son = TR_kw_none
 TR_kw_for tur TR_kw_in 0..3 {
     TR_kw_var başla = TR_fn_time_ms()
-    son = model.üret(ids, arg.adet, sıcaklık: 0)
+    son = model.TR_mem_generate(ids, arg.adet, TR_arg_temperature: 0)
     hızlar.TR_mem_append(arg.adet * 1000.0 / (TR_fn_time_ms() - başla))
 }
 TR_kw_if arg.TR_mem_device != "cpu" {
-    TR_fn_assert(son == model.üret(ids, arg.adet, sıcaklık: 0, çizge: TR_kw_false), "kayıtlı ve kayıtsız üretim farklı")
+    TR_fn_assert(son == model.TR_mem_generate(ids, arg.adet, TR_arg_temperature: 0, TR_arg_cuda_graph: TR_kw_false), "kayıtlı ve kayıtsız üretim farklı")
 }
 TR_fn_print("{arg.ad} | {arg.TR_mem_device} | TR {arg.ağırlık_türü} | {TR_fn_round(hızlar.TR_mem_sort()[1], 1)}")

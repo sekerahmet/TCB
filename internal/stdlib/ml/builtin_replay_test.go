@@ -424,8 +424,8 @@ türevsiz {
 	}
 	out = mustRun(t, `aktar "../../../lib/katman.tr"
 varsayılan_cihaz("gpu")
-değişken m = GPT(12, bağlam: 6, boyut: 8, katman: 2, bakış_sayısı: 2, ple_boyutu: 4, tohum: 5)
-yazdır(m.üret([1, 2], 4, sıcaklık: 0, çizge: doğru) == m.üret([1, 2], 4, sıcaklık: 0, çizge: yanlış))`)
+değişken m = GPT(12, bağlam: 6, boyut: 8, katman_sayısı: 2, bakış_sayısı: 2, ple_boyutu: 4, tohum: 5)
+yazdır(m.üret([1, 2], 4, sıcaklık: 0, cuda_çizgesi: doğru) == m.üret([1, 2], 4, sıcaklık: 0, cuda_çizgesi: yanlış))`)
 	if out != "doğru\n" {
 		t.Fatalf("PLE'li üretim kayıtla farklı: %q", out)
 	}

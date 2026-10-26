@@ -269,7 +269,7 @@
       "patterns": [
         {
           "name": "entity.name.type.tr",
-          "match": "\\b(Herhangi|Mantık|YerleşikFonksiyon|KontrolNoktası|VeriKümesi|Sözlük|Ondalık|Fonksiyon|Tam|SatırOkuyucu|Liste|Günlük|Yok|Nesne|İyileştirici|Yol|İlerleme|Aralık|Örnekleyici|SıralıOkuyucu|Metin|YapıTanımı|Tensör|Parçalayıcı|Tip|Any|Bool|BuiltinFunction|Checkpoint|Dataset|Dict|Float|Function|Int|LineReader|List|Logger|None|Object|Optimizer|Path|Progress|Range|Sampler|SequentialReader|String|StructType|Tensor|Tokenizer|Type)\\b"
+          "match": "\\b(Herhangi|Mantık|YerleşikFonksiyon|NedenselDikkat|KontrolNoktası|VeriKümesi|Sözlük|GömmeKatmanı|Ondalık|Fonksiyon|GPT|Tam|KVÖnbellek|SatırOkuyucu|Doğrusal|Liste|Günlük|Muon|MuonVeAdamW|Yok|NorMuon|Nesne|İyileştirici|PLEBloğu|PLEBağlamı|Yol|İlerleme|RMSNormKatmanı|Aralık|SatırRMS|Koşu|Örnekleyici|SıralıOkuyucu|SıçramaBekçisi|Metin|YapıTanımı|SwiGLU|Tensör|Parçalayıcı|TransformerBloğu|Tip|Any|Bool|BuiltinFunction|CausalAttention|Checkpoint|Dataset|Dict|Embedding|Float|Function|Int|KVCache|LineReader|Linear|List|Logger|MuonAndAdamW|None|Object|Optimizer|PLEBlock|PLEContext|Path|Progress|RMSNorm|Range|RowRMS|Run|Sampler|SequentialReader|SpikeGuard|String|StructType|Tensor|Tokenizer|TransformerBlock|Type)\\b"
         }
       ]
     },

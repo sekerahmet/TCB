@@ -7,7 +7,7 @@ Bir dil modelini her seferinde ağırlık ağırlık yazmak gerekmez ([`examples
 ```tr
 aktar "tr/katman"
 
-değişken model = GPT(4096, bağlam: 256, boyut: 256, katman: 4, bakış_sayısı: 4, paylaşımlı: doğru, tohum: 1)
+değişken model = GPT(4096, bağlam: 256, boyut: 256, katman_sayısı: 4, bakış_sayısı: 4, paylaşımlı: doğru, tohum: 1)
 değişken logit = model.ileri([[1, 2, 3]])            // [1, 3, 4096]
 değişken kayıp = model.kayıp([[1, 2, 3]], [[2, 3, 4]]) // ortalama çapraz entropi
 yazdır(parametreler(model, adlarıyla: doğru).anahtarlar()[0..3])
@@ -24,7 +24,7 @@ Modeli değiştirmek isterseniz `lib/katman.tr`'yi kendi klasörünüze kopyalay
 ```tr
 aktar "tr/katman"
 
-değişken model = GPT(4096, bağlam: 64, boyut: 64, katman: 4, bakış_sayısı: 4, kv_bakış_sayısı: 2, ara_boyut: 96, paylaşımlı: doğru,
+değişken model = GPT(4096, bağlam: 64, boyut: 64, katman_sayısı: 4, bakış_sayısı: 4, kv_bakış_sayısı: 2, ara_boyut: 96, paylaşımlı: doğru,
     pencereler: katman_pencereleri("YGYG", [8, 16]), qk_normu: doğru, birleşik_kv: doğru, birleşik_kapı: doğru,
     ileri_sapmalı: doğru, epsilon: 0.000001, ple_boyutu: 32)
 yazdır(model.üret([1, 2, 3], 10, sıcaklık: 0, eos: 0)) // eos örneklenirse üretim durur
@@ -40,11 +40,11 @@ Ayrıntılı anlatım ve formüller [`lib/README.md`](../../lib/README.md)'dedir
 aktar "tr/katman"
 aktar "tr/iyilestirici"
 
-değişken model = GPT(4096, bağlam: 256, boyut: 256, katman: 4, bakış_sayısı: 4)
-değişken op = MuonVeAdamW(model, muon_oranı: 0.02, adamw_oranı: 0.003)
+değişken model = GPT(4096, bağlam: 256, boyut: 256, katman_sayısı: 4, bakış_sayısı: 4)
+değişken op = MuonVeAdamW(model, muon_öğrenme_oranı: 0.02, adamw_öğrenme_oranı: 0.003)
 değişken toplam_adım = 1000
 döngü adım içinde 0..3 {
-    op.çarpan_ayarla(oran_planı(adım, toplam_adım, ısınma: 100, azalma: 0.2))
+    op.çarpan_ayarla(öğrenme_oranı_planı(adım, toplam_adım, ısınma: 100, azalma: 0.2))
     op.sıfırla()
     geri_yayılım(model.kayıp([[1, 2, 3]], [[2, 3, 4]]))
     op.adım()
@@ -53,7 +53,7 @@ döngü adım içinde 0..3 {
 
 `MuonVeAdamW` modelin parametrelerini ikiye ayırır (`parametre_grupları`): gizli katmanların 2 boyutlu ağırlıkları **Muon**'a, gömme tablosu, çıkış katmanı, norm ağırlıkları ve sapmalar **AdamW**'ye gider. Muon her ağırlığın momentumunu Newton–Schulz yinelemesiyle dikleştirir (`dikleştir`): güncelleme bütün yönlerde aynı büyüklükte olur; küçük ve orta modellerde AdamW'den belirgin hızlı öğrenir. `normuon: doğru` NorMuon'u seçer (dikleştirmeden sonra nöron başına normalleştirme; öğrenme oranı AdamW ölçeğindedir, ör. `muon_oranı: 0.003`).
 
-`oran_planı` ısınma–sabit–azalma (WSD) planıdır: ilk `ısınma` adımda 0'dan 1'e çıkar, sonra sabit kalır, son `azalma` kesrinde 0'a iner. Çarpan iki grubun oranını birlikte ölçekler.
+`öğrenme_oranı_planı` ısınma–sabit–azalma (WSD) planıdır: ilk `ısınma` adımda 0'dan 1'e çıkar, sonra sabit kalır, son `azalma` kesrinde 0'a iner. Çarpan iki grubun oranını birlikte ölçekler.
 
 ## Kendi iyileştiricinizi yazmak
 
@@ -82,13 +82,13 @@ aktar "tr/iyilestirici"
 değişken ayar = komut_satırı({adım: 100, koşu: "runs/gpt"})
 değişken p = parçalayıcı_yükle("../tests/data/tokenizer.json")
 değişken ö = veri_kümesi("../tests/data/text").örnekleyici(toplu: 8, bağlam: 32, tohum: 1)
-değişken model = GPT(p.dağarcık_boyutu, bağlam: 32, boyut: 32, katman: 2, bakış_sayısı: 4, paylaşımlı: doğru)
+değişken model = GPT(p.dağarcık_boyutu, bağlam: 32, boyut: 32, katman_sayısı: 2, bakış_sayısı: 4, paylaşımlı: doğru)
 değişken op = MuonVeAdamW(model)
 değişken g = günlük(yol(ayar.koşu, "metrics.jsonl"))
 değişken kn = kontrol_noktası(ayar.koşu, {model: model, adamw: op.adamw, muon: op.muon.durum, ö: ö, g: g})
 değişken ç = ilerleme(ayar.adım, günlük: g)
 döngü adım içinde kn.kaldığı_adım..ayar.adım {
-    op.çarpan_ayarla(oran_planı(adım, ayar.adım, ısınma: 10))
+    op.çarpan_ayarla(öğrenme_oranı_planı(adım, ayar.adım, ısınma: 10))
     değişken giriş, hedef = ö.sonraki()
     op.sıfırla()
     değişken kayıp = model.kayıp(giriş, hedef)
@@ -116,5 +116,5 @@ yazdır(p.çöz(kimlikler))
 ```
 
 - **`ağırlık_türü`:** matris ağırlıklarının (gömme ve doğrusal katmanlar) türüdür (`"float32"`, `"bf16"`, `"fp16"`); normlar ve hesap float32 kalır. Hugging Face modelleri çoğunlukla bf16 saklanır, `ağırlık_türü: "bf16"` ağırlıkları yarı bellekle tutar. Ayrıntı: [`lib/README.md`](../../lib/README.md).
-- **`üret` ve önbellek:** `model.üret(kimlikler, adet, sıcaklık:, en_iyi_k:, tohum:, eos:, önbellek_çeşidi:, çizge:)` KV önbelleğiyle çalışır: başlangıç bir kez işlenir, her sonraki adım yalnızca yeni parçayı hesaplar. `önbellek_çeşidi` `"sabit"` (varsayılan; bir kez ayrılır, yerine yazılır), `"büyüyen"` ya da `yok` (her adımda bütün dizi) olabilir; sonuç üçünde de aynıdır. `sıcaklık: 0` her adımda en olası parçayı seçer (açgözlü); aynı `tohum` aynı örneği verir. Ayrıntı: [`lib/README.md`](../../lib/README.md) "Üretim".
-- **`çizge` ve `tekrar_oynat`:** GPU'da sabit önbellekle (`çizge: doğru`, varsayılan) her üretim adımı bir kez kaydedilir (CUDA Graph) ve sonraki adımlarda tek seferde oynatılır; yorumlayıcı adımı yeniden çalıştırmaz ve yüzlerce kernelin tek tek başlatılması ortadan kalkar. Aynı mekanizmayı kendi adımınız için `tekrar_oynat(f)` ile, durumu yerinde güncellemek için `yerine_yaz(hedef, kaynak, eksen:, başlangıç:)` ile kullanırsınız; değişen her değer (konum, parça kimliği) tensör olarak verilir. CPU'da `tekrar_oynat(f)` `f`'i doğrudan çağırır, sonuç aynıdır. Kurallar: [dil tanımı 15.45 ve 15.8](../spec/15_tensorler.md). Örnekler: [`46_hazir_model_ve_uretim.tr`](../../examples/tr/46_hazir_model_ve_uretim.tr), [`47_kendi_uretim_dongusu.tr`](../../examples/tr/47_kendi_uretim_dongusu.tr), [`45_tekrar_oynat.tr`](../../examples/tr/45_tekrar_oynat.tr).
+- **`üret` ve önbellek:** `model.üret(kimlikler, en_fazla_yeni_parça, sıcaklık:, en_iyi_k:, tohum:, eos:, önbellek_çeşidi:, cuda_çizgesi:)` KV önbelleğiyle çalışır: başlangıç bir kez işlenir, her sonraki adım yalnızca yeni parçayı hesaplar. `önbellek_çeşidi` `"sabit"` (varsayılan; bir kez ayrılır, yerine yazılır), `"büyüyen"` ya da `yok` (her adımda bütün dizi) olabilir; sonuç üçünde de aynıdır. `sıcaklık: 0` her adımda en olası parçayı seçer (açgözlü); aynı `tohum` aynı örneği verir. Ayrıntı: [`lib/README.md`](../../lib/README.md) "Üretim".
+- **`çizge` ve `tekrar_oynat`:** GPU'da sabit önbellekle (`cuda_çizgesi: doğru`, varsayılan) her üretim adımı bir kez kaydedilir (CUDA Graph) ve sonraki adımlarda tek seferde oynatılır; yorumlayıcı adımı yeniden çalıştırmaz ve yüzlerce kernelin tek tek başlatılması ortadan kalkar. Aynı mekanizmayı kendi adımınız için `tekrar_oynat(f)` ile, durumu yerinde güncellemek için `yerine_yaz(hedef, kaynak, eksen:, başlangıç:)` ile kullanırsınız; değişen her değer (konum, parça kimliği) tensör olarak verilir. CPU'da `tekrar_oynat(f)` `f`'i doğrudan çağırır, sonuç aynıdır. Kurallar: [dil tanımı 15.45 ve 15.8](../spec/15_tensorler.md). Örnekler: [`46_hazir_model_ve_uretim.tr`](../../examples/tr/46_hazir_model_ve_uretim.tr), [`47_kendi_uretim_dongusu.tr`](../../examples/tr/47_kendi_uretim_dongusu.tr), [`45_tekrar_oynat.tr`](../../examples/tr/45_tekrar_oynat.tr).

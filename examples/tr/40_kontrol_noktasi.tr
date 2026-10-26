@@ -53,7 +53,7 @@ TR_kw_if kn.TR_mem_resume_step < ayar.TR_mem_step {
         TR_fn_backward(kayıp)
         op.TR_mem_step()
         TR_kw_if kayıp.TR_mem_tolist < izlenen.en_iyi_kayıp { izlenen.en_iyi_kayıp = kayıp.TR_mem_tolist }
-        ç.TR_mem_update({kayıp: kayıp}, TR_arg_step: adım + 1)
+        ç.TR_mem_update({TR_mem_loss: kayıp}, TR_arg_step: adım + 1)
         kn.TR_mem_update(adım + 1) // her_dakika dolunca ve Ctrl+C gelince burada kaydeder
     }
     TR_fn_print("son nokta:", kn.TR_mem_save())

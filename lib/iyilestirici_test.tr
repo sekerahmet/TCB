@@ -19,50 +19,50 @@ TR_kw_func sapma_rms(X) {
 
 TR_ctx_test "dikleştir: uzun ve geniş matriste sonuç yaklaşık diktir (UᵀU ≈ I)" {
     TR_kw_var G = TR_fn_randn([32, 16], TR_arg_seed: 5)
-    TR_kw_var X = dikleştir(G)
+    TR_kw_var X = TR_fn_orthogonalize(G)
     TR_fn_assert_equal([32, 16], X.TR_mem_shape)
     // Beşinci derece yineleme tekil değerleri ≈ [0.7, 1.2]'ye toplar: tam dik değil, yakın.
     TR_fn_assert(sapma_rms(X) < 0.2, "uzun: {sapma_rms(X)}")
     TR_fn_assert(sapma_rms(G / TR_fn_sqrt(TR_fn_sum(G * G))) > 0.2, "girdinin kendisi dik değil")
-    TR_kw_var Y = dikleştir(G.TR_mem_transpose()) // [16, 32]: satırlar dik
+    TR_kw_var Y = TR_fn_orthogonalize(G.TR_mem_transpose()) // [16, 32]: satırlar dik
     TR_fn_assert(sapma_rms(Y.TR_mem_transpose()) < 0.2, "geniş: {sapma_rms(Y.TR_mem_transpose())}")
     // Ölçekten bağımsızdır.
-    TR_kw_var fark = en_büyük_mutlak_fark(dikleştir(G * 1000), X)
+    TR_kw_var fark = en_büyük_mutlak_fark(TR_fn_orthogonalize(G * 1000), X)
     TR_fn_assert(fark < 0.00001, "ölçek değişince sonuç değişmemeli: {fark}")
 }
 
 TR_ctx_test "Muon: güncelleme dikleştirilmiş momentumdur; ölçek √max(1, çıkış/giriş)" {
     TR_kw_var W = TR_fn_tensor(TR_fn_randn([4, 8], TR_arg_seed: 1), TR_arg_requires_grad: TR_kw_true)
     TR_kw_var önce = TR_fn_tensor(W)
-    TR_kw_var op = Muon([W], öğrenme_oranı: 0.1, momentum: 0.9, nesterov: TR_kw_false)
-    TR_fn_assert_equal([TR_fn_sqrt(2.0)], op.ölçekler)
+    TR_kw_var op = TR_type_Muon([W], TR_arg_lr: 0.1, TR_arg_momentum: 0.9, TR_arg_nesterov: TR_kw_false)
+    TR_fn_assert_equal([TR_fn_sqrt(2.0)], op.TR_mem_scales)
     TR_kw_var G = TR_fn_randn([4, 8], TR_arg_seed: 2)
     TR_fn_backward(TR_fn_sum(W * G))
     op.TR_mem_step()
     // İlk adımda momentum (1 − β)·g'dir; dikleştirme ölçekten bağımsız olduğundan güncelleme
     // −η · √2 · dikleştir(g)'dir.
-    TR_kw_var beklenen = önce - 0.1 * TR_fn_sqrt(2.0) * dikleştir(G)
+    TR_kw_var beklenen = önce - 0.1 * TR_fn_sqrt(2.0) * TR_fn_orthogonalize(G)
     TR_kw_var fark = en_büyük_mutlak_fark(W, beklenen)
     TR_fn_assert(fark < 0.00001, "Muon adımı beklenenden farklı: {fark}")
-    TR_fn_assert_equal(1, op.TR_mem_state.momentum.TR_mem_length)
+    TR_fn_assert_equal(1, op.TR_mem_state.TR_mem_momentum.TR_mem_length)
     // sıfırla gradyanı sıfırlar; gradyan almayan ağırlık güncellenmez.
     op.TR_mem_zero_grad()
     TR_fn_assert_equal(0.0, TR_fn_max(TR_fn_abs(W.TR_mem_grad)).TR_mem_tolist)
     TR_kw_var V = TR_fn_tensor(TR_fn_ones([3, 3]), TR_arg_requires_grad: TR_kw_true)
-    Muon([V]).TR_mem_step()
+    TR_type_Muon([V]).TR_mem_step()
     TR_fn_assert_equal(TR_fn_ones([3, 3]), TR_fn_no_grad(V))
 }
 
 TR_ctx_test "Muon ve NorMuon yalnızca 2 boyutlu ağırlık alır" {
-    TR_kw_var mesaj = hata_metni(() => Muon([TR_fn_tensor(TR_fn_ones([4]), TR_arg_requires_grad: TR_kw_true)]))
+    TR_kw_var mesaj = hata_metni(() => TR_type_Muon([TR_fn_tensor(TR_fn_ones([4]), TR_arg_requires_grad: TR_kw_true)]))
     TR_fn_assert(mesaj.TR_mem_contains("Muon yalnızca 2 boyutlu ağırlıklar içindir; 0. ağırlığın şekli [4]"), mesaj)
-    mesaj = hata_metni(() => NorMuon([TR_fn_tensor(TR_fn_ones([2, 2, 2]), TR_arg_requires_grad: TR_kw_true)]))
+    mesaj = hata_metni(() => TR_type_NorMuon([TR_fn_tensor(TR_fn_ones([2, 2, 2]), TR_arg_requires_grad: TR_kw_true)]))
     TR_fn_assert(mesaj.TR_mem_contains("NorMuon yalnızca 2 boyutlu ağırlıklar içindir"), mesaj)
 }
 
 TR_ctx_test "NorMuon: nöron başına normalleştirilmiş güncellemenin RMS'i 0.2·η'dır" {
     TR_kw_var W = TR_fn_tensor(TR_fn_zeros([6, 4]), TR_arg_requires_grad: TR_kw_true)
-    TR_kw_var op = NorMuon([W], öğrenme_oranı: 0.01)
+    TR_kw_var op = TR_type_NorMuon([W], TR_arg_lr: 0.01)
     TR_fn_assert_equal([1, 4], op.TR_mem_state.ikinci_moment[0].TR_mem_shape)
     TR_fn_backward(TR_fn_sum(W * TR_fn_randn([6, 4], TR_arg_seed: 3)))
     op.TR_mem_step()
@@ -74,72 +74,72 @@ TR_ctx_test "NorMuon: nöron başına normalleştirilmiş güncellemenin RMS'i 0
 }
 
 TR_ctx_test "parametre_grupları: gizli 2B ağırlıklar ile gömme, çıkış ve normlar ayrılır" {
-    TR_kw_var m = GPT(10, bağlam: 4, boyut: 8, katman: 2, bakış_sayısı: 2)
-    TR_kw_var g = parametre_grupları(m)
+    TR_kw_var m = TR_type_GPT(10, TR_arg_context: 4, TR_arg_embed_dim: 8, TR_arg_num_layers: 2, TR_arg_num_heads: 2)
+    TR_kw_var g = TR_fn_parameter_groups(m)
     TR_fn_assert_equal(14, g.gizli.TR_mem_length) // blok başına 7 matris
-    TR_fn_assert_equal(7, g.diğer.TR_mem_length) // gömme, çıkış, 2·2 blok normu, son norm
-    TR_fn_assert(g.diğer.TR_mem_contains(m.gömme.tablo) TR_kw_and g.diğer.TR_mem_contains(m.çıkış.ağırlık))
-    TR_fn_assert(g.gizli.TR_mem_contains(m.bloklar[1].ileri_besleme.aşağı.ağırlık))
-    TR_fn_assert_equal(TR_fn_parameters(m).TR_mem_length, g.gizli.TR_mem_length + g.diğer.TR_mem_length)
+    TR_fn_assert_equal(7, g.TR_mem_other.TR_mem_length) // gömme, çıkış, 2·2 blok normu, son norm
+    TR_fn_assert(g.TR_mem_other.TR_mem_contains(m.TR_mem_embedding.TR_mem_table) TR_kw_and g.TR_mem_other.TR_mem_contains(m.TR_mem_logit_layer.TR_mem_weight))
+    TR_fn_assert(g.gizli.TR_mem_contains(m.TR_mem_blocks[1].TR_mem_feed_forward.TR_mem_down_proj.TR_mem_weight))
+    TR_fn_assert_equal(TR_fn_parameters(m).TR_mem_length, g.gizli.TR_mem_length + g.TR_mem_other.TR_mem_length)
 }
 
 TR_ctx_test "oran_planı: ısınma, sabit, azalma" {
-    TR_fn_assert_equal(0.25, oran_planı(0, 100, ısınma: 4))
-    TR_fn_assert_equal(1.0, oran_planı(3, 100, ısınma: 4))
-    TR_fn_assert_equal(1.0, oran_planı(79, 100, ısınma: 4))
-    TR_fn_assert_equal(1.0, oran_planı(80, 100, azalma: 0.2))
-    TR_fn_assert_equal(0.5, oran_planı(90, 100, azalma: 0.2))
-    TR_fn_assert_equal(0.05, oran_planı(99, 100, azalma: 0.2))
-    TR_fn_assert_equal(1.0, oran_planı(99, 100, azalma: 0.0))
-    TR_fn_assert_equal(0.55, oran_planı(90, 100, azalma: 0.2, en_az: 0.1))
+    TR_fn_assert_equal(0.25, TR_fn_lr_schedule(0, 100, TR_arg_warmup: 4))
+    TR_fn_assert_equal(1.0, TR_fn_lr_schedule(3, 100, TR_arg_warmup: 4))
+    TR_fn_assert_equal(1.0, TR_fn_lr_schedule(79, 100, TR_arg_warmup: 4))
+    TR_fn_assert_equal(1.0, TR_fn_lr_schedule(80, 100, TR_arg_decay_fraction: 0.2))
+    TR_fn_assert_equal(0.5, TR_fn_lr_schedule(90, 100, TR_arg_decay_fraction: 0.2))
+    TR_fn_assert_equal(0.05, TR_fn_lr_schedule(99, 100, TR_arg_decay_fraction: 0.2))
+    TR_fn_assert_equal(1.0, TR_fn_lr_schedule(99, 100, TR_arg_decay_fraction: 0.0))
+    TR_fn_assert_equal(0.55, TR_fn_lr_schedule(90, 100, TR_arg_decay_fraction: 0.2, TR_arg_min: 0.1))
 }
 
 TR_ctx_test "MuonVeAdamW: oran çarpanı iki grubun öğrenme oranını ölçekler (½: yarım adım)" {
     TR_kw_func kur() {
-        TR_kw_var m = GPT(6, bağlam: 3, boyut: 4, katman: 1, bakış_sayısı: 2, tohum: 3)
-        TR_fn_backward(m.kayıp([[1, 2, 3]], [[2, 3, 4]]))
+        TR_kw_var m = TR_type_GPT(6, TR_arg_context: 3, TR_arg_embed_dim: 4, TR_arg_num_layers: 1, TR_arg_num_heads: 2, TR_arg_seed: 3)
+        TR_fn_backward(m.TR_mem_loss([[1, 2, 3]], [[2, 3, 4]]))
         TR_kw_return m
     }
     TR_kw_var a = kur()
     TR_kw_var b = kur()
-    TR_kw_var önce = TR_fn_tensor(a.gömme.tablo)
-    TR_kw_var op_a = MuonVeAdamW(a)
-    TR_kw_var op_b = MuonVeAdamW(b)
-    op_b.çarpan_ayarla(0.5)
+    TR_kw_var önce = TR_fn_tensor(a.TR_mem_embedding.TR_mem_table)
+    TR_kw_var op_a = TR_type_MuonAndAdamW(a)
+    TR_kw_var op_b = TR_type_MuonAndAdamW(b)
+    op_b.TR_mem_set_multiplier(0.5)
     op_a.TR_mem_step()
     op_b.TR_mem_step()
-    TR_kw_var tam_adım = TR_fn_no_grad(a.gömme.tablo) - önce
-    TR_kw_var yarım = TR_fn_no_grad(b.gömme.tablo) - önce
+    TR_kw_var tam_adım = TR_fn_no_grad(a.TR_mem_embedding.TR_mem_table) - önce
+    TR_kw_var yarım = TR_fn_no_grad(b.TR_mem_embedding.TR_mem_table) - önce
     TR_fn_assert(TR_fn_max(TR_fn_abs(tam_adım)).TR_mem_tolist > 0, "AdamW gömmeyi güncellemeli")
     // AdamW'nin adımı öğrenme oranıyla doğrusaldır (momentler orandan bağımsız): yarım oran,
     // float32 yuvarlamasıyla yarım adım verir.
     TR_kw_var yarım_fark = en_büyük_mutlak_fark(yarım, 0.5 * tam_adım)
     TR_fn_assert(yarım_fark < 0.0000001, "yarım çarpan yarım adım vermeli: {yarım_fark}")
-    TR_fn_assert_equal(0.01, op_b.muon.TR_mem_lr)
-    TR_fn_assert_equal(0.0015, op_b.adamw.TR_mem_lr)
-    TR_fn_assert_equal(0.003, op_a.adamw.TR_mem_lr)
+    TR_fn_assert_equal(0.01, op_b.TR_mem_muon.TR_mem_lr)
+    TR_fn_assert_equal(0.0015, op_b.TR_mem_adamw.TR_mem_lr)
+    TR_fn_assert_equal(0.003, op_a.TR_mem_adamw.TR_mem_lr)
     // Çarpan 1 iken AdamW'nin adımı planı olmayan AdamW'ninkiyle bit düzeyinde aynıdır.
     TR_kw_var d = kur()
-    TR_kw_var op_d = TR_fn_AdamW(parametre_grupları(d).diğer, TR_arg_lr: 0.003, TR_arg_weight_decay: 0.0, TR_arg_beta1: 0.9, TR_arg_beta2: 0.95)
+    TR_kw_var op_d = TR_fn_AdamW(TR_fn_parameter_groups(d).TR_mem_other, TR_arg_lr: 0.003, TR_arg_weight_decay: 0.0, TR_arg_beta1: 0.9, TR_arg_beta2: 0.95)
     op_d.TR_mem_step()
-    TR_fn_assert_equal(TR_fn_no_grad(a.gömme.tablo), TR_fn_no_grad(d.gömme.tablo))
+    TR_fn_assert_equal(TR_fn_no_grad(a.TR_mem_embedding.TR_mem_table), TR_fn_no_grad(d.TR_mem_embedding.TR_mem_table))
     TR_kw_var c = kur()
-    TR_kw_var op_c = MuonVeAdamW(c, normuon: TR_kw_true)
-    TR_fn_assert_equal(NorMuon, TR_fn_type(op_c.muon))
-    TR_kw_var mesaj = hata_metni(() => op_c.çarpan_ayarla(0.0))
+    TR_kw_var op_c = TR_type_MuonAndAdamW(c, TR_arg_normuon: TR_kw_true)
+    TR_fn_assert_equal(TR_type_NorMuon, TR_fn_type(op_c.TR_mem_muon))
+    TR_kw_var mesaj = hata_metni(() => op_c.TR_mem_set_multiplier(0.0))
     TR_fn_assert(mesaj.TR_mem_contains("oran çarpanı pozitif olmalı"), mesaj)
-    TR_fn_assert_equal(1.0, op_c.oran_çarpanı)
+    TR_fn_assert_equal(1.0, op_c.TR_mem_lr_multiplier)
 }
 
 TR_ctx_test "MuonVeAdamW: kontrol noktası Muon momentumunu da saklar ve geri yükler" {
     TR_kw_var klasör = TR_fn_temp_dir()
     TR_kw_func eğit(koşu, son) {
-        TR_kw_var m = GPT(6, bağlam: 3, boyut: 4, katman: 1, bakış_sayısı: 2, tohum: 3)
-        TR_kw_var op = MuonVeAdamW(m)
-        TR_kw_var kn = TR_fn_checkpoint(koşu, {model: m, adamw: op.adamw, muon: op.muon.TR_mem_state}, TR_arg_every_minutes: 0)
+        TR_kw_var m = TR_type_GPT(6, TR_arg_context: 3, TR_arg_embed_dim: 4, TR_arg_num_layers: 1, TR_arg_num_heads: 2, TR_arg_seed: 3)
+        TR_kw_var op = TR_type_MuonAndAdamW(m)
+        TR_kw_var kn = TR_fn_checkpoint(koşu, {model: m, TR_mem_adamw: op.TR_mem_adamw, TR_mem_muon: op.TR_mem_muon.TR_mem_state}, TR_arg_every_minutes: 0)
         TR_kw_for adım TR_kw_in kn.TR_mem_resume_step..son {
             op.TR_mem_zero_grad()
-            TR_fn_backward(m.kayıp([[1, 2, adım % 6]], [[2, adım % 6, 4]]))
+            TR_fn_backward(m.TR_mem_loss([[1, 2, adım % 6]], [[2, adım % 6, 4]]))
             op.TR_mem_step()
             kn.TR_mem_update(adım + 1)
         }
@@ -149,10 +149,10 @@ TR_ctx_test "MuonVeAdamW: kontrol noktası Muon momentumunu da saklar ve geri y�
     TR_kw_var sürdürülen = eğit(TR_fn_path(klasör, "kesilen"), 4) // kaldığı yerden sürer
     TR_kw_var kesintisiz = eğit(TR_fn_path(klasör, "kesintisiz"), 4)
     TR_fn_assert_equal(TR_fn_parameters(kesintisiz[0], TR_arg_named: TR_kw_true), TR_fn_parameters(sürdürülen[0], TR_arg_named: TR_kw_true))
-    TR_fn_assert_equal(kesintisiz[1].muon.TR_mem_state.momentum, sürdürülen[1].muon.TR_mem_state.momentum)
+    TR_fn_assert_equal(kesintisiz[1].TR_mem_muon.TR_mem_state.TR_mem_momentum, sürdürülen[1].TR_mem_muon.TR_mem_state.TR_mem_momentum)
     // Durum tensörleri türev izlemez (parametre değildir); kontrol noktası onları da saklar.
-    TR_fn_assert_equal(0, TR_fn_parameters(sürdürülen[1].muon.TR_mem_state).TR_mem_length)
-    TR_fn_assert(TR_fn_max(TR_fn_abs(sürdürülen[1].muon.TR_mem_state.momentum[0])).TR_mem_tolist > 0, "momentum yüklenmeli")
+    TR_fn_assert_equal(0, TR_fn_parameters(sürdürülen[1].TR_mem_muon.TR_mem_state).TR_mem_length)
+    TR_fn_assert(TR_fn_max(TR_fn_abs(sürdürülen[1].TR_mem_muon.TR_mem_state.TR_mem_momentum[0])).TR_mem_tolist > 0, "momentum yüklenmeli")
 }
 
 // Ters çevirme görevi: [a b c d | d c b a]. İkinci yarı ilk yarıdan tahmin edilir.
@@ -175,14 +175,14 @@ TR_kw_func ters_toplu(B, V, yarım) {
 
 TR_kw_func ters_eğit(kur, adım_sayısı) {
     ters_tohumu = 1
-    TR_kw_var m = GPT(8, bağlam: 10, boyut: 32, katman: 2, bakış_sayısı: 4, tohum: 4)
+    TR_kw_var m = TR_type_GPT(8, TR_arg_context: 10, TR_arg_embed_dim: 32, TR_arg_num_layers: 2, TR_arg_num_heads: 4, TR_arg_seed: 4)
     TR_kw_var op = kur(m)
     TR_kw_var ilk = 0.0
     TR_kw_var son = 0.0
     TR_kw_for adım TR_kw_in 0..adım_sayısı {
         TR_kw_var g, h = ters_toplu(16, 8, 5)
         op.TR_mem_zero_grad()
-        TR_kw_var k = m.kayıp(g, h)
+        TR_kw_var k = m.TR_mem_loss(g, h)
         TR_fn_backward(k)
         op.TR_mem_step()
         TR_kw_if adım < 10 { ilk += k.TR_mem_tolist / 10 }
@@ -193,8 +193,8 @@ TR_kw_func ters_eğit(kur, adım_sayısı) {
 
 TR_ctx_test "Muon ve NorMuon küçük bir görevde AdamW'den kötü değildir" {
     TR_kw_var adamw = ters_eğit(m => TR_fn_AdamW(TR_fn_parameters(m), TR_arg_lr: 0.003, TR_arg_weight_decay: 0.0), 300)
-    TR_kw_var muon = ters_eğit(m => MuonVeAdamW(m, adamw_oranı: 0.003), 300)
-    TR_kw_var normuon = ters_eğit(m => MuonVeAdamW(m, normuon: TR_kw_true, adamw_oranı: 0.003), 300)
+    TR_kw_var muon = ters_eğit(m => TR_type_MuonAndAdamW(m, TR_arg_adamw_lr: 0.003), 300)
+    TR_kw_var normuon = ters_eğit(m => TR_type_MuonAndAdamW(m, TR_arg_normuon: TR_kw_true, TR_arg_adamw_lr: 0.003), 300)
     TR_fn_assert(muon[1] < 0.7 * muon[0], "Muon ile kayıp belirgin düşmeli: {muon}")
     TR_fn_assert(muon[1] <= adamw[1] * 1.05, "Muon AdamW'den kötü olmamalı: Muon {muon[1]}, AdamW {adamw[1]}")
     TR_fn_assert(normuon[1] <= adamw[1] * 1.05, "NorMuon AdamW'den kötü olmamalı: NorMuon {normuon[1]}, AdamW {adamw[1]}")
@@ -206,56 +206,56 @@ TR_ctx_test "Muon ve NorMuon küçük bir görevde AdamW'den kötü değildir" {
 TR_kw_func en_büyük_mutlak_fark(a, b) { TR_kw_return TR_fn_max(TR_fn_abs(a - b)).TR_mem_tolist }
 
 TR_ctx_test "ad_uyar_mı: tam, önek ve sonek eşleşmesi yol parçası sınırındadır" {
-    TR_fn_assert(ad_uyar_mı("gömme.tablo", "gömme.tablo"))
-    TR_fn_assert(ad_uyar_mı("gömme.tablo", "gömme"))
-    TR_fn_assert(ad_uyar_mı("bloklar.3.ple.tablo", "bloklar.3"))
-    TR_fn_assert(ad_uyar_mı("bloklar.3.ple.tablo", "tablo"))
-    TR_fn_assert(ad_uyar_mı("bloklar.3.ple.tablo", "ple.tablo"))
-    TR_fn_assert(TR_kw_not ad_uyar_mı("bloklar.3.ple.tablo", "ple"))
-    TR_fn_assert(TR_kw_not ad_uyar_mı("gömme_x.tablo", "gömme"))
-    TR_fn_assert(TR_kw_not ad_uyar_mı("bloklar.3.ple_tablo", "tablo"))
-    TR_fn_assert(TR_kw_not ad_uyar_mı("a", "a.b"))
-    TR_fn_assert(bir_desen_uyar_mı("çıkış.ağırlık", ["gömme", "çıkış"]))
-    TR_fn_assert(TR_kw_not bir_desen_uyar_mı("çıkış.ağırlık", []))
+    TR_fn_assert(TR_fn_name_matches("TR_mem_embedding.TR_mem_table", "TR_mem_embedding.TR_mem_table"))
+    TR_fn_assert(TR_fn_name_matches("TR_mem_embedding.TR_mem_table", "TR_mem_embedding"))
+    TR_fn_assert(TR_fn_name_matches("TR_mem_blocks.3.TR_mem_ple.TR_mem_table", "TR_mem_blocks.3"))
+    TR_fn_assert(TR_fn_name_matches("TR_mem_blocks.3.TR_mem_ple.TR_mem_table", "TR_mem_table"))
+    TR_fn_assert(TR_fn_name_matches("TR_mem_blocks.3.TR_mem_ple.TR_mem_table", "TR_mem_ple.TR_mem_table"))
+    TR_fn_assert(TR_kw_not TR_fn_name_matches("TR_mem_blocks.3.TR_mem_ple.TR_mem_table", "TR_mem_ple"))
+    TR_fn_assert(TR_kw_not TR_fn_name_matches("TR_mem_embedding_x.TR_mem_table", "TR_mem_embedding"))
+    TR_fn_assert(TR_kw_not TR_fn_name_matches("TR_mem_blocks.3.TR_mem_ple_table", "TR_mem_table"))
+    TR_fn_assert(TR_kw_not TR_fn_name_matches("a", "a.b"))
+    TR_fn_assert(TR_fn_any_pattern_matches("TR_mem_logit_layer.TR_mem_weight", ["TR_mem_embedding", "TR_mem_logit_layer"]))
+    TR_fn_assert(TR_kw_not TR_fn_any_pattern_matches("TR_mem_logit_layer.TR_mem_weight", []))
 }
 
 TR_kw_func ple_modeli() {
-    TR_kw_return GPT(10, bağlam: 4, boyut: 8, katman: 2, bakış_sayısı: 2, ara_boyut: 8, tohum: 1, ple_boyutu: 4, ileri_sapmalı: TR_kw_true)
+    TR_kw_return TR_type_GPT(10, TR_arg_context: 4, TR_arg_embed_dim: 8, TR_arg_num_layers: 2, TR_arg_num_heads: 2, TR_arg_intermediate_dim: 8, TR_arg_seed: 1, TR_arg_ple_dim: 4, TR_arg_ff_use_bias: TR_kw_true)
 }
 
 TR_ctx_test "parametre_kümeleri: seyrek, gizli, sönümlü ve sönümsüz gruplar ada göre ayrılır" {
     TR_kw_var m = ple_modeli()
-    TR_kw_var k = parametre_kümeleri(m, ayrı: ["gömme", "ple_bağlamı.ctx_katmanı"], seyrek: ["ple.tablo"])
+    TR_kw_var k = parametre_kümeleri(m, ayrı: ["TR_mem_embedding", "TR_mem_ple_context.TR_mem_context_proj"], seyrek: ["TR_mem_ple.TR_mem_table"])
     TR_fn_assert_equal(2, k.seyrek.TR_mem_length) // bloklar.0.ple.tablo, bloklar.1.ple.tablo
-    TR_fn_assert(k.seyrek.TR_mem_contains(m.bloklar[1].ple.tablo))
+    TR_fn_assert(k.seyrek.TR_mem_contains(m.TR_mem_blocks[1].TR_mem_ple.TR_mem_table))
     TR_fn_assert_equal(2, k.sönümlü.TR_mem_length) // gömme.tablo, ple_bağlamı.ctx_katmanı.ağırlık
-    TR_fn_assert(k.sönümlü.TR_mem_contains(m.gömme.tablo) TR_kw_and k.sönümlü.TR_mem_contains(m.ple_bağlamı.ctx_katmanı.ağırlık))
+    TR_fn_assert(k.sönümlü.TR_mem_contains(m.TR_mem_embedding.TR_mem_table) TR_kw_and k.sönümlü.TR_mem_contains(m.TR_mem_ple_context.TR_mem_context_proj.TR_mem_weight))
     // sönümsüz: 2B olmayanlar: normlar (blok başına 2 + son norm + ple_bağlamı normu + blok ple normu) ve sapmalar
-    TR_fn_assert(k.sönümsüz.TR_mem_contains(m.son_norm.ağırlık) TR_kw_and k.sönümsüz.TR_mem_contains(m.bloklar[0].ileri_besleme.aşağı.sapma))
-    TR_fn_assert(k.sönümsüz.TR_mem_contains(m.bloklar[0].ple.norm.ağırlık))
-    TR_fn_assert(TR_kw_not k.gizli.TR_mem_contains(m.bloklar[0].ple.tablo), "seyrek parametre gizliye girmez")
-    TR_fn_assert(k.gizli.TR_mem_contains(m.bloklar[0].ple.kapı.ağırlık) TR_kw_and k.gizli.TR_mem_contains(m.bloklar[1].ileri_besleme.kapı.ağırlık))
+    TR_fn_assert(k.sönümsüz.TR_mem_contains(m.TR_mem_final_norm.TR_mem_weight) TR_kw_and k.sönümsüz.TR_mem_contains(m.TR_mem_blocks[0].TR_mem_feed_forward.TR_mem_down_proj.TR_mem_bias))
+    TR_fn_assert(k.sönümsüz.TR_mem_contains(m.TR_mem_blocks[0].TR_mem_ple.TR_mem_norm.TR_mem_weight))
+    TR_fn_assert(TR_kw_not k.gizli.TR_mem_contains(m.TR_mem_blocks[0].TR_mem_ple.TR_mem_table), "seyrek parametre gizliye girmez")
+    TR_fn_assert(k.gizli.TR_mem_contains(m.TR_mem_blocks[0].TR_mem_ple.TR_mem_gate_proj.TR_mem_weight) TR_kw_and k.gizli.TR_mem_contains(m.TR_mem_blocks[1].TR_mem_feed_forward.TR_mem_gate_proj.TR_mem_weight))
     TR_fn_assert_equal(TR_fn_parameters(m).TR_mem_length, k.gizli.TR_mem_length + k.sönümlü.TR_mem_length + k.sönümsüz.TR_mem_length + k.seyrek.TR_mem_length)
-    TR_fn_assert_equal(k.sönümlü.TR_mem_length + k.sönümsüz.TR_mem_length, k.diğer.TR_mem_length)
+    TR_fn_assert_equal(k.sönümlü.TR_mem_length + k.sönümsüz.TR_mem_length, k.TR_mem_other.TR_mem_length)
     // seyrek verilmezse tablolar da gizli gruba girer (eski davranış)
-    TR_kw_var g = parametre_grupları(m, ayrı: ["gömme", "ple_bağlamı"])
-    TR_fn_assert(g.gizli.TR_mem_contains(m.bloklar[0].ple.tablo))
+    TR_kw_var g = TR_fn_parameter_groups(m, TR_arg_separated: ["TR_mem_embedding", "TR_mem_ple_context"])
+    TR_fn_assert(g.gizli.TR_mem_contains(m.TR_mem_blocks[0].TR_mem_ple.TR_mem_table))
     // sonek deseni parametre_grupları'nda da çalışır
-    TR_fn_assert(TR_kw_not parametre_grupları(m, ayrı: ["gömme", "ple.tablo"]).gizli.TR_mem_contains(m.bloklar[0].ple.tablo))
+    TR_fn_assert(TR_kw_not TR_fn_parameter_groups(m, TR_arg_separated: ["TR_mem_embedding", "TR_mem_ple.TR_mem_table"]).gizli.TR_mem_contains(m.TR_mem_blocks[0].TR_mem_ple.TR_mem_table))
 }
 
 TR_ctx_test "Muon: ölçek \"rms\" güncellemeyi 0.2·√max(giriş, çıkış) ile ölçekler" {
     TR_kw_var W = TR_fn_tensor(TR_fn_randn([4, 8], TR_arg_seed: 1), TR_arg_requires_grad: TR_kw_true)
     TR_kw_var önce = TR_fn_tensor(W)
-    TR_kw_var op = Muon([W], öğrenme_oranı: 0.1, momentum: 0.9, nesterov: TR_kw_false, ölçek: "rms")
-    TR_fn_assert_equal([0.2 * TR_fn_sqrt(8.0)], op.ölçekler)
+    TR_kw_var op = TR_type_Muon([W], TR_arg_lr: 0.1, TR_arg_momentum: 0.9, TR_arg_nesterov: TR_kw_false, TR_arg_scale: "rms")
+    TR_fn_assert_equal([0.2 * TR_fn_sqrt(8.0)], op.TR_mem_scales)
     TR_kw_var G = TR_fn_randn([4, 8], TR_arg_seed: 2)
     TR_fn_backward(TR_fn_sum(W * G))
     op.TR_mem_step()
-    TR_kw_var beklenen = önce - 0.1 * 0.2 * TR_fn_sqrt(8.0) * dikleştir(G)
+    TR_kw_var beklenen = önce - 0.1 * 0.2 * TR_fn_sqrt(8.0) * TR_fn_orthogonalize(G)
     TR_fn_assert(en_büyük_mutlak_fark(W, beklenen) < 0.00001, "rms ölçeği: {en_büyük_mutlak_fark(W, beklenen)}")
-    TR_fn_assert_equal([TR_fn_sqrt(2.0)], Muon([W]).ölçekler) // varsayılan "oran": √max(1, 8/4)
-    TR_kw_var mesaj = hata_metni(() => Muon([W], ölçek: "x"))
+    TR_fn_assert_equal([TR_fn_sqrt(2.0)], TR_type_Muon([W]).TR_mem_scales) // varsayılan "oran": √max(1, 8/4)
+    TR_kw_var mesaj = hata_metni(() => TR_type_Muon([W], TR_arg_scale: "x"))
     TR_fn_assert(mesaj.TR_mem_contains("ölçek \"oran\" ya da \"rms\" olmalı"), mesaj)
 }
 
@@ -271,26 +271,26 @@ TR_kw_func sabit_gradyanla_adım(model, op) {
 TR_ctx_test "MuonVeAdamW: adamw_çürümesi yalnızca sönümlü gruba uygulanır; normlar çürümez" {
     TR_kw_var a = ple_modeli()
     TR_kw_var b = ple_modeli()
-    TR_kw_var oa = MuonVeAdamW(a, adamw_oranı: 0.1, ayrı: ["gömme"], adamw_çürümesi: 0.0)
-    TR_kw_var ob = MuonVeAdamW(b, adamw_oranı: 0.1, ayrı: ["gömme"], adamw_çürümesi: 0.5)
-    TR_fn_assert_equal(TR_kw_none, oa.adamw_sönümsüz)
-    TR_fn_assert(ob.adamw_sönümsüz != TR_kw_none)
+    TR_kw_var oa = TR_type_MuonAndAdamW(a, TR_arg_adamw_lr: 0.1, TR_arg_separated: ["TR_mem_embedding"], TR_arg_adamw_weight_decay: 0.0)
+    TR_kw_var ob = TR_type_MuonAndAdamW(b, TR_arg_adamw_lr: 0.1, TR_arg_separated: ["TR_mem_embedding"], TR_arg_adamw_weight_decay: 0.5)
+    TR_fn_assert_equal(TR_kw_none, oa.TR_mem_adamw_no_decay)
+    TR_fn_assert(ob.TR_mem_adamw_no_decay != TR_kw_none)
     sabit_gradyanla_adım(a, oa)
     sabit_gradyanla_adım(b, ob)
-    TR_fn_assert(en_büyük_mutlak_fark(a.gömme.tablo, b.gömme.tablo) > 0.001, "gömme çürümeli: ağırlıklar farklı")
-    TR_fn_assert(en_büyük_mutlak_fark(a.son_norm.ağırlık, b.son_norm.ağırlık) < 0.0000001, "norm çürümemeli")
-    TR_fn_assert(en_büyük_mutlak_fark(a.bloklar[0].ileri_besleme.aşağı.sapma, b.bloklar[0].ileri_besleme.aşağı.sapma) < 0.0000001, "sapma çürümemeli")
+    TR_fn_assert(en_büyük_mutlak_fark(a.TR_mem_embedding.TR_mem_table, b.TR_mem_embedding.TR_mem_table) > 0.001, "gömme çürümeli: ağırlıklar farklı")
+    TR_fn_assert(en_büyük_mutlak_fark(a.TR_mem_final_norm.TR_mem_weight, b.TR_mem_final_norm.TR_mem_weight) < 0.0000001, "norm çürümemeli")
+    TR_fn_assert(en_büyük_mutlak_fark(a.TR_mem_blocks[0].TR_mem_feed_forward.TR_mem_down_proj.TR_mem_bias, b.TR_mem_blocks[0].TR_mem_feed_forward.TR_mem_down_proj.TR_mem_bias) < 0.0000001, "sapma çürümemeli")
     // çarpan üç AdamW/SatırRMS grubuna da ulaşır
-    ob.çarpan_ayarla(0.5)
+    ob.TR_mem_set_multiplier(0.5)
     ob.TR_mem_step()
-    TR_fn_assert_equal(0.05, ob.adamw.TR_mem_lr)
-    TR_fn_assert_equal(0.05, ob.adamw_sönümsüz.TR_mem_lr)
+    TR_fn_assert_equal(0.05, ob.TR_mem_adamw.TR_mem_lr)
+    TR_fn_assert_equal(0.05, ob.TR_mem_adamw_no_decay.TR_mem_lr)
 }
 
 TR_ctx_test "SatırRMS: yalnızca gradyanı sıfırdan farklı satırlar değişir; satır sayacıyla sapma düzeltmesi" {
     TR_kw_var W = TR_fn_tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0], [1.0, 1.0, 1.0]], TR_arg_requires_grad: TR_kw_true)
     TR_kw_var önce = TR_fn_tensor(W)
-    TR_kw_var op = SatırRMS([W], öğrenme_oranı: 0.1, beta2: 0.9)
+    TR_kw_var op = TR_type_RowRMS([W], TR_arg_lr: 0.1, TR_arg_beta2: 0.9)
     // 1. adım: yalnızca 1. ve 3. satırın gradyanı var
     TR_kw_var G1 = TR_fn_tensor([[0.0, 0.0, 0.0], [1.0, -2.0, 2.0], [0.0, 0.0, 0.0], [3.0, 0.0, 4.0]])
     TR_fn_backward(TR_fn_sum(W * G1))
@@ -323,42 +323,42 @@ TR_ctx_test "SatırRMS: yalnızca gradyanı sıfırdan farklı satırlar değiş
     TR_fn_assert_equal(öncesi.TR_mem_tolist, W.TR_mem_tolist)
     // gradyan almayan ağırlık güncellenmez; yalnızca 2B kabul eder
     TR_kw_var U = TR_fn_tensor(TR_fn_ones([2, 2]), TR_arg_requires_grad: TR_kw_true)
-    SatırRMS([U]).TR_mem_step()
+    TR_type_RowRMS([U]).TR_mem_step()
     TR_fn_assert_equal(TR_fn_ones([2, 2]), TR_fn_no_grad(U))
-    TR_kw_var mesaj = hata_metni(() => SatırRMS([TR_fn_tensor(TR_fn_ones([4]), TR_arg_requires_grad: TR_kw_true)]))
+    TR_kw_var mesaj = hata_metni(() => TR_type_RowRMS([TR_fn_tensor(TR_fn_ones([4]), TR_arg_requires_grad: TR_kw_true)]))
     TR_fn_assert(mesaj.TR_mem_contains("SatırRMS yalnızca 2 boyutlu ağırlıklar içindir"), mesaj)
 }
 
 TR_ctx_test "MuonVeAdamW: seyrek desen PLE tablolarını SatırRMS'e verir; geçmeyen kelimelerin satırı değişmez" {
     TR_kw_var m = ple_modeli()
-    TR_kw_var op = MuonVeAdamW(m, muon_oranı: 0.002, adamw_oranı: 0.002, ağırlık_çürümesi: 0.1, adamw_çürümesi: 0.1, muon_ölçeği: "rms",
-        ayrı: ["gömme", "ple_bağlamı.ctx_katmanı"], seyrek: ["ple.tablo"], seyrek_oranı: 0.01)
-    TR_fn_assert_equal(2, op.satır_rms.ağırlıklar.TR_mem_length)
-    TR_fn_assert_equal(0.01, op.satır_rms.TR_mem_lr)
-    TR_kw_var önce = TR_fn_tensor(m.bloklar[0].ple.tablo)
+    TR_kw_var op = TR_type_MuonAndAdamW(m, TR_arg_muon_lr: 0.002, TR_arg_adamw_lr: 0.002, TR_arg_weight_decay: 0.1, TR_arg_adamw_weight_decay: 0.1, TR_arg_muon_scale: "rms",
+        TR_arg_separated: ["TR_mem_embedding", "TR_mem_ple_context.TR_mem_context_proj"], TR_arg_sparse: ["TR_mem_ple.TR_mem_table"], TR_arg_sparse_lr: 0.01)
+    TR_fn_assert_equal(2, op.TR_mem_row_rms.TR_mem_parameters.TR_mem_length)
+    TR_fn_assert_equal(0.01, op.TR_mem_row_rms.TR_mem_lr)
+    TR_kw_var önce = TR_fn_tensor(m.TR_mem_blocks[0].TR_mem_ple.TR_mem_table)
     // kayıp yalnızca 1, 2, 3 kimliklerini görür: tabloda yalnızca bu satırların gradyanı sıfırdan farklıdır
-    op.çarpan_ayarla(0.5)
+    op.TR_mem_set_multiplier(0.5)
     op.TR_mem_zero_grad()
-    TR_fn_backward(m.kayıp([[1, 2, 3]], [[2, 3, 4]]))
+    TR_fn_backward(m.TR_mem_loss([[1, 2, 3]], [[2, 3, 4]]))
     op.TR_mem_step()
-    TR_fn_assert_equal(0.005, op.satır_rms.TR_mem_lr)
-    TR_kw_var sonra = m.bloklar[0].ple.tablo.TR_mem_tolist
+    TR_fn_assert_equal(0.005, op.TR_mem_row_rms.TR_mem_lr)
+    TR_kw_var sonra = m.TR_mem_blocks[0].TR_mem_ple.TR_mem_table.TR_mem_tolist
     TR_kw_for satır TR_kw_in [0, 4, 5, 6, 7, 8, 9] { TR_fn_assert_equal(önce.TR_mem_tolist[satır], sonra[satır]) }
     TR_fn_assert(önce.TR_mem_tolist[1] != sonra[1] TR_kw_and önce.TR_mem_tolist[2] != sonra[2] TR_kw_and önce.TR_mem_tolist[3] != sonra[3], "geçen kelimelerin satırı değişmeli")
-    TR_fn_assert_equal(op.satır_rms.TR_mem_state.sayaç[0].TR_mem_tolist[1][0], 1.0)
-    TR_fn_assert_equal(op.satır_rms.TR_mem_state.sayaç[0].TR_mem_tolist[9][0], 0.0)
+    TR_fn_assert_equal(op.TR_mem_row_rms.TR_mem_state.sayaç[0].TR_mem_tolist[1][0], 1.0)
+    TR_fn_assert_equal(op.TR_mem_row_rms.TR_mem_state.sayaç[0].TR_mem_tolist[9][0], 0.0)
     // seyrek verilmezse SatırRMS yok ve tablolar Muon'a girer
-    TR_fn_assert(MuonVeAdamW(ple_modeli()).satır_rms == TR_kw_none)
+    TR_fn_assert(TR_type_MuonAndAdamW(ple_modeli()).TR_mem_row_rms == TR_kw_none)
 }
 
 TR_ctx_test "dikleştir: yığındaki her matris tek başına dikleştirilmiş eşidir (uzun ve geniş yığın)" {
     TR_kw_for şekil TR_kw_in [[8, 4], [4, 8]] {
         TR_kw_var G = [TR_fn_randn(şekil, TR_arg_seed: 10 + k) * (k + 1) TR_kw_for k TR_kw_in 0..3]
         TR_kw_var yığın = TR_fn_concat([g.TR_mem_reshape([1, şekil[0], şekil[1]]) TR_kw_for g TR_kw_in G], TR_arg_dim: 0)
-        TR_kw_var X = dikleştir(yığın)
+        TR_kw_var X = TR_fn_orthogonalize(yığın)
         TR_fn_assert_equal([3, şekil[0], şekil[1]], X.TR_mem_shape)
         TR_kw_for k TR_kw_in 0..3 {
-            TR_kw_var fark = en_büyük_mutlak_fark(X[k], dikleştir(G[k]))
+            TR_kw_var fark = en_büyük_mutlak_fark(X[k], TR_fn_orthogonalize(G[k]))
             TR_fn_assert(fark < 0.00001, "{şekil} yığınının {k}. matrisi: {fark}")
         }
     }
@@ -366,11 +366,11 @@ TR_ctx_test "dikleştir: yığındaki her matris tek başına dikleştirilmiş e
 
 TR_ctx_test "dikleştir: bf16 hesap türünde sonuç float32'dekine yakındır, tür girdininkidir" {
     TR_kw_var G = TR_fn_randn([16, 32], TR_arg_seed: 3)
-    TR_kw_var X = dikleştir(G, tür: "bf16")
+    TR_kw_var X = TR_fn_orthogonalize(G, TR_arg_ns_dtype: "bf16")
     TR_fn_assert_equal("float32", X.TR_mem_dtype)
-    TR_kw_var fark = en_büyük_mutlak_fark(X, dikleştir(G))
+    TR_kw_var fark = en_büyük_mutlak_fark(X, TR_fn_orthogonalize(G))
     TR_fn_assert(fark > 0 TR_kw_and fark < 0.05, "bf16 ile float32 farkı: {fark}")
-    TR_fn_assert_equal("bf16", dikleştir(G.TR_mem_to_dtype("bf16")).TR_mem_dtype)
+    TR_fn_assert_equal("bf16", TR_fn_orthogonalize(G.TR_mem_to_dtype("bf16")).TR_mem_dtype)
 }
 
 // tek_tek_mi: aynı ağırlıkları bir iyileştiricide birlikte (toplu dikleştirme) ve her birini ayrı bir
@@ -402,15 +402,15 @@ TR_kw_func tek_tek_mi(kur) {
 }
 
 TR_ctx_test "Muon ve NorMuon: aynı şekilli ağırlıklar tek yığında dikleştirilir; sonuç tek tek güncellemeyle aynıdır" {
-    TR_kw_var op = tek_tek_mi(TR_kw_func(w) { TR_kw_return Muon(w, öğrenme_oranı: 0.05, ağırlık_çürümesi: 0.1) })
-    TR_fn_assert_equal([[0, 2, 3], [1]], op.gruplar)
-    tek_tek_mi(TR_kw_func(w) { TR_kw_return Muon(w, öğrenme_oranı: 0.05, ölçek: "rms", nesterov: TR_kw_false) })
-    TR_kw_var n = tek_tek_mi(TR_kw_func(w) { TR_kw_return NorMuon(w, öğrenme_oranı: 0.01, ağırlık_çürümesi: 0.1) })
-    TR_fn_assert_equal([[0, 2, 3], [1]], n.gruplar)
+    TR_kw_var op = tek_tek_mi(TR_kw_func(w) { TR_kw_return TR_type_Muon(w, TR_arg_lr: 0.05, TR_arg_weight_decay: 0.1) })
+    TR_fn_assert_equal([[0, 2, 3], [1]], op.TR_mem_groups)
+    tek_tek_mi(TR_kw_func(w) { TR_kw_return TR_type_Muon(w, TR_arg_lr: 0.05, TR_arg_scale: "rms", TR_arg_nesterov: TR_kw_false) })
+    TR_kw_var n = tek_tek_mi(TR_kw_func(w) { TR_kw_return TR_type_NorMuon(w, TR_arg_lr: 0.01, TR_arg_weight_decay: 0.1) })
+    TR_fn_assert_equal([[0, 2, 3], [1]], n.TR_mem_groups)
     // Gradyan almayan ağırlık gruptan düşer, öbürleri güncellenir.
     TR_kw_var A = TR_fn_tensor(TR_fn_ones([4, 8]), TR_arg_requires_grad: TR_kw_true)
     TR_kw_var B = TR_fn_tensor(TR_fn_ones([4, 8]), TR_arg_requires_grad: TR_kw_true)
-    TR_kw_var m = Muon([A, B], öğrenme_oranı: 0.1)
+    TR_kw_var m = TR_type_Muon([A, B], TR_arg_lr: 0.1)
     TR_fn_backward(TR_fn_sum(B * TR_fn_randn([4, 8], TR_arg_seed: 7)))
     m.TR_mem_step()
     TR_fn_assert_equal(TR_fn_ones([4, 8]), TR_fn_no_grad(A))

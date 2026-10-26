@@ -87,7 +87,7 @@ TR_kw_for adım TR_kw_in 0..ADIM {
     TR_kw_var kayıp = TR_fn_cross_entropy(ileri(giriş), hedef)
     TR_fn_backward(kayıp)
     iyileştirici.TR_mem_step()
-    ç.TR_mem_update({kayıp: kayıp})
+    ç.TR_mem_update({TR_mem_loss: kayıp})
     son_kayıp = kayıp.TR_mem_tolist
 }
 TR_fn_print("eğitim bitti: son kayıp = {TR_fn_round(son_kayıp, 3)}")

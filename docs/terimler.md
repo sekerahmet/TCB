@@ -32,7 +32,7 @@ Dilin kendi içinde farklı işe aynı ad verilmez: tensörleri uç uca ekleyen 
 | devam | TR_dbg_continue, TR_kw_continue | aynı anlam: sürdürmek (döngünün sonraki turu; hata ayıklayıcıda programı sürdürmek) |
 | değiştir | TR_dbg_set, TR_mem_replace | ayrı alan: TR_dbg_set hata ayıklayıcıda bir değişkenin değerini değiştirir; TR_mem_replace metinde parçayı değiştirir |
 | durum | TR_mem_state, TR_opt_status | ayrı alan: TR_opt_status `tr dizin`'in dizin durumu; TR_mem_state iyileştiricinin sürdürme durumu |
-| günlük | TR_arg_log, TR_fn_logger | aynı anlam: TR_arg_log adlı argümanı TR_fn_logger'un açtığı günlüğü alır |
+| günlük | TR_arg_log, TR_fn_logger, TR_mem_logger | aynı anlam: TR_arg_log adlı argümanı TR_fn_logger'un açtığı günlüğü alır; `Koşu`nun `günlük` alanı (TR_mem_logger) o günlüktür |
 | izle | TR_cmd_watch, TR_dbg_watch | aynı anlam: izlemeye almak (`tr izle` bir koşuyu, hata ayıklayıcı bir ifadeyi) |
 | kodla | TR_cmd_encode, TR_mem_encode | ayrı alan: TR_cmd_encode dosyayı kodlu biçime çevirir; TR_mem_encode parçalayıcıda metni parça kimliklerine çevirir |
 | çöz | TR_cmd_decode, TR_mem_decode | ayrı alan: `kodla`'nın tersleri (TR_cmd_decode kodlu dosya, TR_mem_decode parça kimlikleri) |
@@ -42,6 +42,16 @@ Dilin kendi içinde farklı işe aynı ad verilmez: tensörleri uç uca ekleyen 
 | tür | TR_arg_dtype, TR_mem_dtype, TR_opt_kind | ayrı alan: TR_opt_kind `tr dizin`'de düğüm türü; TR_arg_dtype ile TR_mem_dtype aynı anlamda tensörün veri türüdür |
 | yardım | TR_cmd_help, TR_dbg_help, TR_opt_help | aynı anlam: yardım metni (komut, seçenek, hata ayıklayıcı) |
 | çıkış | TR_dbg_quit, TR_repl_exit | aynı anlam: kabuktan ve hata ayıklayıcıdan çıkmak |
+| değer | TR_arg_value, TR_mem_tolist | aynı anlam: düz sayı değeri (`SıçramaBekçisi.aşıyor(değer, geçmiş)` izlenen sayıyı, tensörün `.değer`i tensörün düz değerini verir) |
+| dikkat | TR_fn_attention, TR_mem_attention | aynı anlam: dikkat hesabı (`dikkat(q, k, v)` yerleşiği ve bloğun onu çalıştıran `dikkat` katmanı; PyTorch `scaled_dot_product_attention` ve `self_attn`) |
+| gömme | TR_fn_embedding, TR_mem_embedding | aynı anlam: kelime gömmesi (`gömme(tablo, kimlikler)` yerleşiği ve modelin onu çalıştıran `gömme` katmanı; PyTorch `F.embedding` ve `embed_tokens`) |
+| ileri | TR_arg_forward, TR_mem_forward | aynı anlam: ileri hesap (`özel_türev(ileri:, geri:)` ve katmanın `ileri` metodu; PyTorch `forward`) |
+| kapı | TR_arg_gate, TR_mem_gate_proj | aynı anlam: kapı (`ple_karışımı`ndaki kapı değeri ve onu üreten `kapı` katmanı; SwiGLU ve PLE kapısı) |
+| kayıp | TR_arg_loss, TR_mem_loss | aynı anlam: eğitim kaybı (`SıçramaBekçisi.gözle(kayıp, norm)` ve kaybı hesaplayan `model.kayıp(...)`) |
+| maske | TR_arg_mask, TR_mem_mask | aynı anlam: dikkat maskesi (`dikkat(..., maske:)` ve `KVÖnbellek.maske()` ile kurulan maske) |
+| parametreler | TR_arg_parameters, TR_fn_parameters, TR_mem_parameters | aynı anlam: modelin eğitilen tensörleri (`parametreler(model)`, `Muon(parametreler)` ve iyileştiricinin `parametreler` alanı; PyTorch `model.parameters()`, `Optimizer(params)`) |
+| rope_tabanı | TR_arg_rope_theta, TR_fn_rope_theta | aynı anlam: RoPE tabanı (`GPT(rope_tabanı:)` ve onu Hugging Face ayarından okuyan `rope_tabanı(ayar)`; Hugging Face `rope_theta`) |
+| tablo | TR_dbg_table, TR_mem_table | ayrı alan: TR_dbg_table hata ayıklayıcıda bir değeri tablo olarak gösterir; TR_mem_table gömme katmanının ağırlık tablosudur |
 
 ## İleride karar verilecek
 

@@ -76,6 +76,11 @@ type liveName struct {
 func liveNames() map[string][]liveName {
 	m := map[string][]liveName{}
 	for _, k := range dk.Codes() {
+		// Kitaplığın adları TR kodudur, Go onları anmaz; tek harfli parametre adları (x, v, k) Go'nun
+		// biçim dizeleriyle (%v) karışırdı.
+		if k.IsLibrary() {
+			continue
+		}
 		for _, y := range dk.Source().Spellings(k) { // DENEME: Go metninde Türkçe ad aranır
 			m[y] = append(m[y], liveName{k, k.Namespace()})
 		}

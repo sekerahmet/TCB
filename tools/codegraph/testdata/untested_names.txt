@@ -2,3 +2,4 @@
 TR_fn_time_ms	açık boşluk: zaman_ms'yi yalnızca örnekler ve ölçüm betikleri (tools/bench/tr) çağırır, davranışını sınayan test yok; yazılacak
 TR_arg_weight	açık boşluk: rms_normu(ağırlık:) adlı argümanını yalnızca examples/tr/31_katmanlar.tr geçirir, sınayan test yok; yazılacak
 TR_arg_bias	açık boşluk: katman_normu(sapma:) adlı argümanını yalnızca examples/tr/31_katmanlar.tr geçirir, sınayan test yok; yazılacak
+TR_fn_pretrained_model	görünmeyen test: TestReadyModelMatchesTransformers (cmd/tr/e2e) hazır_model betiğini tr ikilisiyle çalıştırır; codegraph alt süreçteki TR metnini ad koduna bağlamaz (gaps.md)

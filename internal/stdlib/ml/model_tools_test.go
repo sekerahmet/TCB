@@ -270,7 +270,7 @@ yazdır(adlar.anahtarlar())
 doğrula(liste[0] == m.gömme)
 tensör_kaydet("`+fpath+`", adlar)
 değişken y = tensör_yükle("`+fpath+`")
-yazdır(y.anahtarlar() == adlar.anahtarlar(), y["bloklar.1.dikkat.Wq"].değer)
+yazdır(y.anahtarlar() == adlar.anahtarlar(), y["TR_mem_blocks.1.TR_mem_attention.Wq"].değer)
 // Ara sonuçlar ve türev izlemeyenler parametre değildir.
 yazdır(parametreler([p(1) * 2, tensör([1.0])]).uzunluk, parametreler(p(1)).uzunluk, parametreler(p(1), adlarıyla: doğru).anahtarlar())
 // Döngülü yapılar sonsuz döngüye girmez.
@@ -281,7 +281,8 @@ yazdır(parametreler(l).uzunluk)
 	lines := strings.Split(out, "\n")
 	expected := []string{
 		"8 [1.0, 2.0, 3.0, 4.0, 9.0, 5.0, 6.0, 7.0]",
-		`["gömme", "bloklar.0.dikkat.Wq", "bloklar.0.dikkat.Wk", "bloklar.0.mlp.0", "bloklar.0.mlp.1", "bloklar.1.dikkat.Wq", "bloklar.1.mlp.W1", "ek"]`,
+		// Ağırlık adı kimlik yoludur: kitaplığın üye adlarıyla aynı alanlar (gömme, bloklar, dikkat) kodludur.
+		`["TR_mem_embedding", "TR_mem_blocks.0.TR_mem_attention.Wq", "TR_mem_blocks.0.TR_mem_attention.Wk", "TR_mem_blocks.0.mlp.0", "TR_mem_blocks.0.mlp.1", "TR_mem_blocks.1.TR_mem_attention.Wq", "TR_mem_blocks.1.mlp.W1", "ek"]`,
 		"doğru [5.0]",
 		`0 1 ["0"]`,
 		"1",

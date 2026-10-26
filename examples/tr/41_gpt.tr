@@ -17,7 +17,7 @@
 TR_kw_import "tr/katman"
 TR_kw_import "tr/iyilestirici"
 
-TR_kw_var ayar = TR_fn_command_line({TR_mem_step: 100, toplu: 8, bağlam: 32, boyut: 32, katman: 2, bakış_sayısı: 4,
+TR_kw_var ayar = TR_fn_command_line({TR_mem_step: 100, toplu: 8, bağlam: 32, TR_mem_embed_dim: 32, katman: 2, TR_mem_num_heads: 4,
     muon_oranı: 0.02, adamw_oranı: 0.01, normuon: TR_kw_false, koşu: "runs/gpt_ornegi"},
     TR_arg_description: "Hazır katmanlarla küçük bir GPT'yi Muon + AdamW ile eğitir",
     TR_arg_descriptions: {TR_mem_step: "toplam eğitim adımı", koşu: "koşu klasörü (ayarlar, günlük, kontrol noktaları)",
@@ -28,28 +28,28 @@ TR_kw_var p = TR_fn_load_tokenizer("../../tests/data/tokenizer.json")
 TR_kw_var ö = TR_fn_dataset("../../tests/data/text").TR_mem_sampler(TR_arg_batch_size: ayar.toplu, TR_arg_context: ayar.bağlam, TR_arg_seed: 1)
 
 // --- Model ve iyileştirici ---
-TR_kw_var model = GPT(p.TR_mem_vocab_size, bağlam: ayar.bağlam, boyut: ayar.boyut, katman: ayar.katman,
-    bakış_sayısı: ayar.bakış_sayısı, paylaşımlı: TR_kw_true, tohum: 1)
-TR_kw_var op = MuonVeAdamW(model, muon_oranı: ayar.muon_oranı, adamw_oranı: ayar.adamw_oranı, normuon: ayar.normuon)
-TR_fn_print("model: {TR_fn_parameters(model).TR_mem_length} ağırlık tensörü; Muon'da {op.muon.ağırlıklar.TR_mem_length}, AdamW'de {op.diğer.TR_mem_length}")
+TR_kw_var model = TR_type_GPT(p.TR_mem_vocab_size, TR_arg_context: ayar.bağlam, TR_arg_embed_dim: ayar.TR_mem_embed_dim, TR_arg_num_layers: ayar.katman,
+    TR_arg_num_heads: ayar.TR_mem_num_heads, TR_arg_tied: TR_kw_true, TR_arg_seed: 1)
+TR_kw_var op = TR_type_MuonAndAdamW(model, TR_arg_muon_lr: ayar.muon_oranı, TR_arg_adamw_lr: ayar.adamw_oranı, TR_arg_normuon: ayar.normuon)
+TR_fn_print("model: {TR_fn_parameters(model).TR_mem_length} ağırlık tensörü; Muon'da {op.TR_mem_muon.TR_mem_parameters.TR_mem_length}, AdamW'de {op.TR_mem_other.TR_mem_length}")
 
 // --- Koşu klasörü ve kontrol noktası: model, AdamW'nin ve Muon'un durumu, okuyucu, günlük ---
 TR_fn_make_dir(ayar.koşu)
 TR_fn_write_file(TR_fn_path(ayar.koşu, "config.json"), TR_fn_json_string(ayar))
 TR_kw_var g = TR_fn_logger(TR_fn_path(ayar.koşu, "metrics.jsonl"))
-TR_kw_var kn = TR_fn_checkpoint(ayar.koşu, {model: model, adamw: op.adamw, muon: op.muon.TR_mem_state, ö: ö, g: g}, TR_arg_every_minutes: 5)
+TR_kw_var kn = TR_fn_checkpoint(ayar.koşu, {model: model, TR_mem_adamw: op.TR_mem_adamw, TR_mem_muon: op.TR_mem_muon.TR_mem_state, ö: ö, g: g}, TR_arg_every_minutes: 5)
 
 // --- Eğitim: ilk %10 ısınma, son %30 azalma ---
 TR_kw_if kn.TR_mem_resume_step < ayar.TR_mem_step {
     TR_kw_var ç = TR_fn_progress(ayar.TR_mem_step, TR_arg_log: g)
     TR_kw_for adım TR_kw_in kn.TR_mem_resume_step..ayar.TR_mem_step {
-        op.çarpan_ayarla(oran_planı(adım, ayar.TR_mem_step, ısınma: TR_fn_int(ayar.TR_mem_step / 10), azalma: 0.3))
+        op.TR_mem_set_multiplier(TR_fn_lr_schedule(adım, ayar.TR_mem_step, TR_arg_warmup: TR_fn_int(ayar.TR_mem_step / 10), TR_arg_decay_fraction: 0.3))
         TR_kw_var giriş, hedef = ö.TR_mem_next()
         op.TR_mem_zero_grad()
-        TR_kw_var kayıp = model.kayıp(giriş, hedef)
+        TR_kw_var kayıp = model.TR_mem_loss(giriş, hedef)
         TR_fn_backward(kayıp)
         op.TR_mem_step()
-        ç.TR_mem_update({kayıp: kayıp}, TR_arg_step: adım + 1)
+        ç.TR_mem_update({TR_mem_loss: kayıp}, TR_arg_step: adım + 1)
         kn.TR_mem_update(adım + 1)
     }
     kn.TR_mem_save()
@@ -62,12 +62,12 @@ TR_kw_var sayı = 0
 TR_fn_no_grad {
     TR_kw_for iş TR_kw_in doğrulama {
         TR_kw_if sayı == 10 { TR_kw_break }
-        toplam_kayıp += model.kayıp(iş[0], iş[1]).TR_mem_tolist
+        toplam_kayıp += model.TR_mem_loss(iş[0], iş[1]).TR_mem_tolist
         sayı += 1
     }
 }
 TR_fn_print("doğrulama kaybı ({sayı} toplu iş): {TR_fn_round(toplam_kayıp / sayı, 3)}")
-TR_kw_var üretilen = model.üret(p.TR_mem_encode("Bugün"), 12, sıcaklık: 0.8, en_iyi_k: 20, tohum: 1)
+TR_kw_var üretilen = model.TR_mem_generate(p.TR_mem_encode("Bugün"), 12, TR_arg_temperature: 0.8, TR_arg_top_k: 20, TR_arg_seed: 1)
 TR_fn_print("model şunu yazdı: {p.TR_mem_decode(üretilen)}")
 
 // --- Kendin dene ---

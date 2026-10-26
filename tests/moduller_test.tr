@@ -115,11 +115,11 @@ TR_ctx_test "11.7 takma adsız aktar modüle özel adları getirmez" {
 TR_ctx_test "11.6 tr/ öneki dilin kitaplığındandır; diskteki tr/ klasörü onu gölgeleyemez" {
     TR_kw_import "tr/katman" TR_ctx_as k
     TR_fn_assert_equal(TR_type_Dict, TR_fn_type(k))
-    TR_fn_assert(k.TR_mem_keys().TR_mem_contains("GPT") TR_kw_and k.TR_mem_keys().TR_mem_contains("Doğrusal"), "kitaplığın katmanları gelmeli")
+    TR_fn_assert(k.TR_mem_keys().TR_mem_contains("TR_type_GPT") TR_kw_and k.TR_mem_keys().TR_mem_contains("TR_type_Linear"), "kitaplığın katmanları gelmeli")
     TR_fn_assert(TR_kw_not k.TR_mem_keys().TR_mem_contains("disk_katmanı"), "tests/tr/katman.tr yüklenmemeli")
     TR_kw_import "./tr/katman" TR_ctx_as d
     TR_fn_assert_equal(TR_kw_true, d.disk_katmanı)
-    TR_fn_assert_equal([4, 3], k.Doğrusal(4, 3).ağırlık.TR_mem_shape)
+    TR_fn_assert_equal([4, 3], k.TR_type_Linear(4, 3).TR_mem_weight.TR_mem_shape)
     TR_kw_var mesaj = ""
     TR_kw_try { TR_kw_import "tr/olmayan_modul" } TR_kw_catch h { mesaj = h }
     TR_fn_assert(mesaj.TR_mem_contains("\"tr/olmayan_modul\" dilin kitaplığında yok; kitaplıktaki modüller: tr/egitim, tr/hazir, tr/iyilestirici, tr/katman"), mesaj)

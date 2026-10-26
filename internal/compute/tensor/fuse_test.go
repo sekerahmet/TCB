@@ -11,7 +11,7 @@ import (
 // Kaynaştırma (fuse.go): ileri yön kaynaşmamış yolla bit düzeyinde aynıdır; geri yön
 // float32'de hesaplanır ve kaynaşmamış otomatik türevle (float32'de) aynı sonucu verir.
 
-// rope döner konum uygulaması (lib/katman.tr'deki döner_konum_uygula): x [..., T, D],
+// rope döner konum uygulaması (lib/katman.tr'deki döner_konum_uygula_kaynaşık): x [..., T, D],
 // kos/sin [T', D/2] (ilk T satırı kullanılır).
 func rope(args []*Tensor) []*Tensor {
 	x, c, s := args[0], args[1], args[2]

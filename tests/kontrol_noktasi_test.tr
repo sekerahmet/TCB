@@ -167,7 +167,7 @@ TR_kw_func eğit(k, son, günlük_adı) {
         op.TR_mem_step()
         TR_kw_if kayıp.TR_mem_tolist < izlenen.en_iyi { izlenen.en_iyi = kayıp.TR_mem_tolist }
         izlenen.adımlar.TR_mem_append(adım)
-        g.TR_mem_append({adım_no: adım + 1, kayıp: kayıp})
+        g.TR_mem_append({adım_no: adım + 1, TR_mem_loss: kayıp})
         kn.TR_mem_update(adım + 1)
     }
     TR_kw_return {model: model, op: op, ö: ö, izlenen: izlenen, kn: kn, g: g}

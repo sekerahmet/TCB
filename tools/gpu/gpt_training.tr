@@ -30,28 +30,28 @@ TR_kw_import "tr/egitim"
 
 TR_kw_var ayar = TR_fn_command_line({
     veri: "", koşu: "runs/gpt_ss", TR_mem_device: "gpu", hassasiyet: "float32",
-    boyut: 512, katman: 8, bakış_sayısı: 8, kv_bakış_sayısı: 0, bağlam: 512, toplu: 128, birikim: 1,
+    TR_mem_embed_dim: 512, katman: 8, TR_mem_num_heads: 8, TR_mem_num_kv_heads: 0, bağlam: 512, toplu: 128, birikim: 1,
     TR_mem_step: 5000, ısınma: 200, azalma: 0.2, muon_oranı: 0.02, adamw_oranı: 0.003,
-    ağırlık_çürümesi: 0.0, adamw_çürümesi: 0.0, muon_ölçeği: "oran", ns_türü: "float32", normuon: TR_kw_false, TR_mem_strip: 1.0, paylaşımlı: TR_kw_true,
-    dağarcık: 0, ara_boyut: 0, epsilon: 0.00001, qk_normu: TR_kw_false, birleşik_kv: TR_kw_false, birleşik_kapı: TR_kw_false, ileri_sapmalı: TR_kw_false,
+    TR_mem_weight_decay: 0.0, adamw_çürümesi: 0.0, muon_ölçeği: "oran", TR_mem_ns_dtype: "float32", normuon: TR_kw_false, TR_mem_strip: 1.0, paylaşımlı: TR_kw_true,
+    dağarcık: 0, ara_boyut: 0, TR_mem_eps: 0.00001, qk_normu: TR_kw_false, birleşik_kv: TR_kw_false, birleşik_kapı: TR_kw_false, ileri_sapmalı: TR_kw_false,
     günlük_her: 10, değerlendir_her: 250, değerlendir_toplu: 20, son_değerlendir_toplu: 0, örnek_her: 1000,
-    örnek_sayısı: 3, örnek_uzunluğu: 120, istemler: "Once upon a time", ölçüm_ısınması: 10, her_dakika: 15.0, tohum: 1, prova: TR_kw_false},
+    örnek_sayısı: 3, örnek_uzunluğu: 120, istemler: "Once upon a time", ölçüm_ısınması: 10, her_dakika: 15.0, tohum: 1, TR_mem_dry_run: TR_kw_false},
     TR_arg_description: "SimpleStories verisiyle GPT eğitir (Muon + AdamW, WSD planı, kontrol noktası)",
     TR_arg_descriptions: {veri: "tokenizer.json, train.npy, valid.npy klasörü", koşu: "koşu klasörü",
         TR_mem_device: "gpu ya da cpu", hassasiyet: "float32 ya da bf16 (karışık hassasiyet)",
-        kv_bakış_sayısı: "anahtar/değer bakış sayısı (0: bakış_sayısı ile aynı)", birikim: "adım başına toplu iş (gradyan biriktirme)",
+        TR_mem_num_kv_heads: "anahtar/değer bakış sayısı (0: bakış_sayısı ile aynı)", birikim: "adım başına toplu iş (gradyan biriktirme)",
         azalma: "son adımların azalan oranlı kesri", normuon: "gizli ağırlıklarda NorMuon",
         TR_mem_strip: "gradyan normu sınırı (0: kırpma yok)", paylaşımlı: "çıkış katmanı gömme tablosunu kullanır",
         istemler: "örnek metinlerin başlangıçları, | ile ayrılır (her istem için örnek_sayısı metin)",
-        ağırlık_çürümesi: "Muon'un (gizli matrisler) ağırlık çürümesi", adamw_çürümesi: "gömmenin ağırlık çürümesi (normlar ve sapmalar çürümesiz)",
+        TR_mem_weight_decay: "Muon'un (gizli matrisler) ağırlık çürümesi", adamw_çürümesi: "gömmenin ağırlık çürümesi (normlar ve sapmalar çürümesiz)",
         muon_ölçeği: "oran ya da rms (güncellemenin RMS'i AdamW'ninkiyle eşlenir; öğrenme oranı AdamW ölçeğinde)",
-        ns_türü: "Newton–Schulz hesap türü: float32 ya da bf16",
+        TR_mem_ns_dtype: "Newton–Schulz hesap türü: float32 ya da bf16",
         dağarcık: "0: parçalayıcının dağarcığı; büyükse dolgu satırları eklenir (ör. 64'ün katı: çarpım hızlanır)",
-        ara_boyut: "SwiGLU ara boyutu (0: 8/3 · boyut, 32'nin katına)", epsilon: "RMS normunun epsilonu",
+        ara_boyut: "SwiGLU ara boyutu (0: 8/3 · boyut, 32'nin katına)", TR_mem_eps: "RMS normunun epsilonu",
         qk_normu: "sorgu ve anahtar normu", birleşik_kv: "K ve V tek matris", birleşik_kapı: "SwiGLU kapı ve yukarı tek matris",
         ileri_sapmalı: "SwiGLU katmanları sapmalı",
         son_değerlendir_toplu: "son adımdaki değerlendirmenin toplu işi (0: değerlendir_toplu; büyük sayı: bütün doğrulama verisi)",
-        prova: "aynı komutu geçici klasörde iki adım koşturup dosyaların yazıldığını denetler"})
+        TR_mem_dry_run: "aynı komutu geçici klasörde iki adım koşturup dosyaların yazıldığını denetler"})
 
 TR_kw_if ayar.veri == "" {
     TR_kw_throw ("veri klasörü verilmedi: --veri /content/ss4096 (tokenizer.json, train.npy, valid.npy)")
@@ -62,16 +62,16 @@ TR_kw_var eğitim_verisi = TR_fn_dataset(TR_fn_path(ayar.veri, "train.npy"))
 TR_kw_var ö = eğitim_verisi.TR_mem_sampler(TR_arg_batch_size: ayar.toplu, TR_arg_context: ayar.bağlam, TR_arg_seed: ayar.tohum)
 
 TR_kw_var model = eğitim_modeli(ayar, p.TR_mem_vocab_size)
-TR_kw_var op = MuonVeAdamW(model, muon_oranı: ayar.muon_oranı, adamw_oranı: ayar.adamw_oranı,
-    ağırlık_çürümesi: ayar.ağırlık_çürümesi, adamw_çürümesi: ayar.adamw_çürümesi, muon_ölçeği: ayar.muon_ölçeği,
-    ns_türü: ayar.ns_türü, normuon: ayar.normuon)
+TR_kw_var op = TR_type_MuonAndAdamW(model, TR_arg_muon_lr: ayar.muon_oranı, TR_arg_adamw_lr: ayar.adamw_oranı,
+    TR_arg_weight_decay: ayar.TR_mem_weight_decay, TR_arg_adamw_weight_decay: ayar.adamw_çürümesi, TR_arg_muon_scale: ayar.muon_ölçeği,
+    TR_arg_ns_dtype: ayar.TR_mem_ns_dtype, TR_arg_normuon: ayar.normuon)
 TR_kw_var ağırlıklar = TR_fn_parameters(model)
 TR_kw_var izlenen = {en_iyi_doğrulama: 99.0, örnekler: []}
-TR_kw_var koşu = Koşu(ayar.koşu, ayar, {model: model, adamw: op.adamw, muon: op.muon.TR_mem_state, ö: ö, izlenen: izlenen},
-    adım_sayısı: ayar.TR_mem_step, her_dakika: ayar.her_dakika, prova: ayar.prova)
+TR_kw_var koşu = TR_type_Run(ayar.koşu, ayar, {model: model, TR_mem_adamw: op.TR_mem_adamw, TR_mem_muon: op.TR_mem_muon.TR_mem_state, ö: ö, izlenen: izlenen},
+    TR_arg_num_steps: ayar.TR_mem_step, TR_arg_every_minutes: ayar.her_dakika, TR_arg_dry_run: ayar.TR_mem_dry_run)
 // Parametre sayısını Koşu sayıp config.json'a yazdı; ikinci kez sayılmaz.
-TR_kw_var parametre_sayısı = TR_fn_json_parse(TR_fn_read_file(TR_fn_path(koşu.klasör, "config.json"))).parametre_sayısı
-TR_fn_print("model: {TR_fn_round(parametre_sayısı / 1000000, 2)} M parametre · cihaz {model.gömme.tablo.TR_mem_device} · dağarcık {p.TR_mem_vocab_size} (model {model.ayar.dağarcık})")
+TR_kw_var parametre_sayısı = TR_fn_json_parse(TR_fn_read_file(TR_fn_path(koşu.TR_mem_folder, "config.json"))).parametre_sayısı
+TR_fn_print("model: {TR_fn_round(parametre_sayısı / 1000000, 2)} M parametre · cihaz {model.TR_mem_embedding.TR_mem_table.TR_mem_device} · dağarcık {p.TR_mem_vocab_size} (model {model.TR_mem_config.dağarcık})")
 
 // doğrulama_kaybı: valid.npy'nin baştan ardışık, örtüşmeyen pencerelerinden ilk toplu_sayısı toplu işin
 // parça başına ortalama kaybı (eksik son toplu iş satır sayısıyla ağırlıklanır).
@@ -84,7 +84,7 @@ TR_kw_func doğrulama_kaybı(toplu_sayısı) {
         TR_fn_mixed_precision(ayar.hassasiyet) {
             TR_kw_for iş TR_kw_in okuyucu {
                 TR_kw_var n = iş[0].TR_mem_shape[0]
-                toplam_kayıp += model.kayıp(iş[0], iş[1]).TR_mem_tolist * n
+                toplam_kayıp += model.TR_mem_loss(iş[0], iş[1]).TR_mem_tolist * n
                 satır += n
                 sayı += 1
                 TR_kw_if sayı == toplu_sayısı { TR_kw_break }
@@ -101,13 +101,13 @@ TR_kw_func örnek_yaz(adım) {
         TR_kw_for j, istem TR_kw_in ayar.istemler.TR_mem_split("|") {
             TR_kw_var başlangıç = p.TR_mem_encode(istem.TR_mem_strip())
             TR_kw_for i TR_kw_in 0..ayar.örnek_sayısı {
-                TR_kw_var kimlikler = model.üret(başlangıç, ayar.örnek_uzunluğu, sıcaklık: 0.8, en_iyi_k: 50, tohum: 1000 * adım + 100 * j + i)
+                TR_kw_var kimlikler = model.TR_mem_generate(başlangıç, ayar.örnek_uzunluğu, TR_arg_temperature: 0.8, TR_arg_top_k: 50, TR_arg_seed: 1000 * adım + 100 * j + i)
                 metinler.TR_mem_append(p.TR_mem_decode(kimlikler))
             }
         }
     }
     izlenen.örnekler.TR_mem_append({TR_mem_step: adım, metinler: metinler})
-    TR_fn_write_file(TR_fn_path(koşu.klasör, "samples.json"), TR_fn_json_string(izlenen.örnekler))
+    TR_fn_write_file(TR_fn_path(koşu.TR_mem_folder, "samples.json"), TR_fn_json_string(izlenen.örnekler))
 }
 
 TR_kw_var parça_adım = ayar.toplu * ayar.birikim * ayar.bağlam
@@ -124,20 +124,20 @@ TR_kw_var kayıp = TR_kw_none
 TR_kw_func bekle_gpu() {
     TR_kw_if kayıp != TR_kw_none { TR_kw_var b_ = kayıp.TR_mem_tolist }
 }
-TR_kw_for adım TR_kw_in koşu.TR_mem_resume_step..koşu.son_adım {
+TR_kw_for adım TR_kw_in koşu.TR_mem_resume_step..koşu.TR_mem_last_step {
     TR_kw_if adım - koşu.TR_mem_resume_step == ayar.ölçüm_ısınması {
         bekle_gpu() // ısınma adımlarının GPU'da bitmesini bekle
         ölçüm_başı = TR_fn_time_ms()
         ölçülen_adım = 0
         dış = 0.0
     }
-    TR_kw_var çarpan = oran_planı(adım, ayar.TR_mem_step, ısınma: ayar.ısınma, azalma: ayar.azalma)
-    op.çarpan_ayarla(çarpan)
+    TR_kw_var çarpan = TR_fn_lr_schedule(adım, ayar.TR_mem_step, TR_arg_warmup: ayar.ısınma, TR_arg_decay_fraction: ayar.azalma)
+    op.TR_mem_set_multiplier(çarpan)
     op.TR_mem_zero_grad()
     TR_kw_for b TR_kw_in 0..ayar.birikim {
         TR_kw_var giriş, hedef = ö.TR_mem_next()
         TR_fn_mixed_precision(ayar.hassasiyet) {
-            kayıp = model.kayıp(giriş, hedef)
+            kayıp = model.TR_mem_loss(giriş, hedef)
             TR_fn_backward(kayıp / ayar.birikim)
         }
     }
@@ -147,10 +147,10 @@ TR_kw_for adım TR_kw_in koşu.TR_mem_resume_step..koşu.son_adım {
     ölçülen_adım += 1
     // Kaybın değerini okumak GPU'yu bekletir: çubuk ve günlük günlük_her adımda bir güncellenir.
     TR_kw_var ölçüler = TR_kw_none
-    TR_kw_if (adım + 1) % ayar.günlük_her == 0 TR_kw_or adım + 1 == koşu.son_adım {
+    TR_kw_if (adım + 1) % ayar.günlük_her == 0 TR_kw_or adım + 1 == koşu.TR_mem_last_step {
         TR_kw_var k = kayıp.TR_mem_tolist // GPU'yu bekler: aşağıdaki zaman tamamlanmış adımları kapsar
         TR_kw_var şimdi = TR_fn_time_ms()
-        ölçüler = {kayıp: k, oran_çarpanı: çarpan, muon_oranı: ayar.muon_oranı * çarpan,
+        ölçüler = {TR_mem_loss: k, oran_çarpanı: çarpan, muon_oranı: ayar.muon_oranı * çarpan,
             adamw_oranı: ayar.adamw_oranı * çarpan}
         TR_kw_if norm != TR_kw_none { ölçüler["gradyan_normu"] = norm.TR_mem_tolist }
         TR_kw_if aralık_başı != TR_kw_none {
@@ -162,12 +162,12 @@ TR_kw_for adım TR_kw_in koşu.TR_mem_resume_step..koşu.son_adım {
         aralık_adımı = adım + 1
         aralık_dış = 0.0
     }
-    TR_kw_if (adım + 1) % ayar.değerlendir_her == 0 TR_kw_or adım + 1 == koşu.son_adım {
+    TR_kw_if (adım + 1) % ayar.değerlendir_her == 0 TR_kw_or adım + 1 == koşu.TR_mem_last_step {
         bekle_gpu()
         TR_kw_var t0 = TR_fn_time_ms()
-        TR_kw_var son_adım = adım + 1 == koşu.son_adım TR_kw_and ayar.son_değerlendir_toplu > 0
+        TR_kw_var son_adım = adım + 1 == koşu.TR_mem_last_step TR_kw_and ayar.son_değerlendir_toplu > 0
         TR_kw_var dk = doğrulama_kaybı(TR_kw_if son_adım { ayar.son_değerlendir_toplu } TR_kw_else { ayar.değerlendir_toplu })
-        koşu.değerlendirildi(adım + 1, {doğrulama_kaybı: dk})
+        koşu.TR_mem_evaluated(adım + 1, {doğrulama_kaybı: dk})
         TR_kw_if dk < izlenen.en_iyi_doğrulama { izlenen.en_iyi_doğrulama = dk }
         dış += TR_fn_time_ms() - t0
         aralık_dış += TR_fn_time_ms() - t0
@@ -182,7 +182,7 @@ TR_kw_for adım TR_kw_in koşu.TR_mem_resume_step..koşu.son_adım {
     // Kayıt GPU'daki tensörleri okuduğu için adımın bitmesini de bekler; kayıt yapılan adımda en çok bir
     // adımın süresi dış sayılır (10 dakikada bir, ihmal edilir). Her adımda beklemek eğitimi yavaşlatırdı.
     TR_kw_var t_kn = TR_fn_time_ms()
-    TR_kw_if koşu.adım_bitti(adım + 1, ölçüler) {
+    TR_kw_if koşu.TR_mem_step_done(adım + 1, ölçüler) {
         dış += TR_fn_time_ms() - t_kn
         aralık_dış += TR_fn_time_ms() - t_kn
     }
@@ -191,16 +191,16 @@ TR_kw_if kayıp != TR_kw_none {
     TR_kw_var son_kayıp = kayıp.TR_mem_tolist // son adımın bitmesini bekler
     TR_kw_if ölçüm_başı != TR_kw_none TR_kw_and ölçülen_adım > 0 {
         TR_kw_var ms = (TR_fn_time_ms() - ölçüm_başı - dış) / ölçülen_adım
-        TR_fn_write_file(TR_fn_path(koşu.klasör, "speed.json"), TR_fn_json_string({ms_adım: ms,
+        TR_fn_write_file(TR_fn_path(koşu.TR_mem_folder, "speed.json"), TR_fn_json_string({ms_adım: ms,
             parça_sn: parça_adım * 1000.0 / ms, ölçülen_adım: ölçülen_adım, dış_sn: dış / 1000.0,
             TR_mem_device: TR_fn_default_device(), hassasiyet: ayar.hassasiyet, son_kayıp: son_kayıp}))
         TR_fn_print("hız: {TR_fn_round(ms, 1)} ms/adım · {TR_fn_round(parça_adım * 1000.0 / ms, 0)} parça/sn")
     }
 }
 // Ağırlıklar örneklerden önce yazılır (Koşu.bitir): üretimde bir hata olsa da eğitimin sonucu kaybolmaz.
-koşu.bitir(model)
-örnek_yaz(koşu.son_adım)
-TR_fn_print("bitti: en iyi doğrulama kaybı {TR_fn_round(izlenen.en_iyi_doğrulama, 4)} · koşu klasörü {koşu.klasör.TR_mem_absolute}")
+koşu.TR_mem_finish(model)
+örnek_yaz(koşu.TR_mem_last_step)
+TR_fn_print("bitti: en iyi doğrulama kaybı {TR_fn_round(izlenen.en_iyi_doğrulama, 4)} · koşu klasörü {koşu.TR_mem_folder.TR_mem_absolute}")
 // Her istemin ilk örneği.
 TR_kw_for i TR_kw_in 0..izlenen.örnekler.TR_mem_last.metinler.TR_mem_length {
     TR_kw_if i % ayar.örnek_sayısı == 0 { TR_fn_print(izlenen.örnekler.TR_mem_last.metinler[i]) }

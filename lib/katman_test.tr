@@ -15,206 +15,206 @@ TR_kw_func rastgele_girdi(şekil, tohum) {
 }
 
 TR_ctx_test "Doğrusal: şekil, sapma ve türev" {
-    TR_kw_var d = Doğrusal(3, 5, sapmalı: TR_kw_true, tohum: 2)
-    TR_fn_assert_equal([3, 5], d.ağırlık.TR_mem_shape)
-    TR_fn_assert_equal([5], d.sapma.TR_mem_shape)
-    TR_fn_assert_equal([2, 4, 5], d.ileri(TR_fn_randn([2, 4, 3], TR_arg_seed: 1)).TR_mem_shape)
-    TR_fn_assert_equal(TR_kw_none, Doğrusal(3, 5).sapma)
+    TR_kw_var d = TR_type_Linear(3, 5, TR_arg_use_bias: TR_kw_true, TR_arg_seed: 2)
+    TR_fn_assert_equal([3, 5], d.TR_mem_weight.TR_mem_shape)
+    TR_fn_assert_equal([5], d.TR_mem_bias.TR_mem_shape)
+    TR_fn_assert_equal([2, 4, 5], d.TR_mem_forward(TR_fn_randn([2, 4, 3], TR_arg_seed: 1)).TR_mem_shape)
+    TR_fn_assert_equal(TR_kw_none, TR_type_Linear(3, 5).TR_mem_bias)
     TR_fn_assert_equal(2, TR_fn_parameters(d).TR_mem_length)
     TR_kw_func f(x, w, b) {
-        d.ağırlık = w
-        d.sapma = b
-        TR_kw_return d.ileri(x)
+        d.TR_mem_weight = w
+        d.TR_mem_bias = b
+        TR_kw_return d.TR_mem_forward(x)
     }
     TR_fn_assert(TR_fn_grad_check(f, [rastgele_girdi([2, 3], 3), rastgele_girdi([3, 5], 4), rastgele_girdi([5], 5)]))
 }
 
 TR_ctx_test "Doğrusal: karışık hassasiyette sapma çarpımın türünde eklenir; çıktı bf16, sapmanın gradyanı float32" {
-    TR_kw_var d = Doğrusal(8, 6, sapmalı: TR_kw_true, tohum: 3)
-    TR_fn_no_grad { d.sapma[0..6] = TR_fn_tensor([0.5, -1.0, 2.0, 0.25, -0.75, 1.5]) }
+    TR_kw_var d = TR_type_Linear(8, 6, TR_arg_use_bias: TR_kw_true, TR_arg_seed: 3)
+    TR_fn_no_grad { d.TR_mem_bias[0..6] = TR_fn_tensor([0.5, -1.0, 2.0, 0.25, -0.75, 1.5]) }
     TR_kw_var x = TR_fn_randn([4, 8], TR_arg_seed: 4)
-    TR_kw_var tam_y = d.ileri(x)
+    TR_kw_var tam_y = d.TR_mem_forward(x)
     TR_fn_assert_equal("float32", tam_y.TR_mem_dtype)
     TR_kw_var y = TR_kw_none
-    TR_fn_mixed_precision("bf16") { y = d.ileri(x) }
+    TR_fn_mixed_precision("bf16") { y = d.TR_mem_forward(x) }
     TR_fn_assert_equal("bf16", y.TR_mem_dtype)
     TR_kw_var fark = en_büyük_mutlak_fark(y.TR_mem_to_dtype("float32"), tam_y)
     TR_fn_assert(fark < 0.05, "bf16 çıktı float32'dekinden uzak: {fark}")
     TR_fn_backward(TR_fn_sum(y.TR_mem_to_dtype("float32")))
-    TR_fn_assert_equal("float32", d.sapma.TR_mem_grad.TR_mem_dtype)
-    TR_fn_assert_equal(TR_fn_tensor([4.0, 4.0, 4.0, 4.0, 4.0, 4.0]), d.sapma.TR_mem_grad)
+    TR_fn_assert_equal("float32", d.TR_mem_bias.TR_mem_grad.TR_mem_dtype)
+    TR_fn_assert_equal(TR_fn_tensor([4.0, 4.0, 4.0, 4.0, 4.0, 4.0]), d.TR_mem_bias.TR_mem_grad)
 }
 
 TR_ctx_test "Doğrusal: başlatma ölçeği std'dir, aynı tohum aynı ağırlığı verir" {
-    TR_kw_var d = Doğrusal(64, 64, std: 0.02, tohum: 9)
-    TR_kw_var s = TR_fn_sqrt(TR_fn_mean(d.ağırlık * d.ağırlık)).TR_mem_tolist
+    TR_kw_var d = TR_type_Linear(64, 64, TR_arg_init_std: 0.02, TR_arg_seed: 9)
+    TR_kw_var s = TR_fn_sqrt(TR_fn_mean(d.TR_mem_weight * d.TR_mem_weight)).TR_mem_tolist
     TR_fn_assert(s > 0.018 TR_kw_and s < 0.022, "std 0.02 olmalı, {s}")
-    TR_fn_assert(Doğrusal(64, 64, tohum: 9).ağırlık == d.ağırlık, "aynı tohum aynı ağırlık")
-    TR_fn_assert(Doğrusal(64, 64, tohum: 10).ağırlık != d.ağırlık, "farklı tohum farklı ağırlık")
+    TR_fn_assert(TR_type_Linear(64, 64, TR_arg_seed: 9).TR_mem_weight == d.TR_mem_weight, "aynı tohum aynı ağırlık")
+    TR_fn_assert(TR_type_Linear(64, 64, TR_arg_seed: 10).TR_mem_weight != d.TR_mem_weight, "farklı tohum farklı ağırlık")
 }
 
 TR_ctx_test "GömmeKatmanı: şekil ve türev" {
-    TR_kw_var g = GömmeKatmanı(7, 4, tohum: 1)
-    TR_fn_assert_equal([2, 3, 4], g.ileri([[1, 2, 3], [6, 0, 1]]).TR_mem_shape)
+    TR_kw_var g = TR_type_Embedding(7, 4, TR_arg_seed: 1)
+    TR_fn_assert_equal([2, 3, 4], g.TR_mem_forward([[1, 2, 3], [6, 0, 1]]).TR_mem_shape)
     TR_kw_func f(t) {
-        g.tablo = t
-        TR_kw_return g.ileri([[1, 2], [2, 6]])
+        g.TR_mem_table = t
+        TR_kw_return g.TR_mem_forward([[1, 2], [2, 6]])
     }
     TR_fn_assert(TR_fn_grad_check(f, [rastgele_girdi([7, 4], 2)]))
 }
 
 TR_ctx_test "RMSNormKatmanı: şekil, birim ölçek ve türev" {
-    TR_kw_var n = RMSNormKatmanı(4)
-    TR_fn_assert_equal([1.0, 1.0, 1.0, 1.0], n.ağırlık.TR_mem_tolist)
-    TR_kw_var y = n.ileri(TR_fn_randn([3, 4], TR_arg_seed: 1) * 5)
+    TR_kw_var n = TR_type_RMSNorm(4)
+    TR_fn_assert_equal([1.0, 1.0, 1.0, 1.0], n.TR_mem_weight.TR_mem_tolist)
+    TR_kw_var y = n.TR_mem_forward(TR_fn_randn([3, 4], TR_arg_seed: 1) * 5)
     TR_fn_assert_equal([3, 4], y.TR_mem_shape)
     TR_kw_var rms = TR_fn_sqrt(TR_fn_mean(y * y)).TR_mem_tolist
     TR_fn_assert(rms > 0.999 TR_kw_and rms < 1.001, "normlu çıktının RMS'i 1 olmalı, {rms}")
     TR_kw_func f(x, w) {
-        n.ağırlık = w
-        TR_kw_return n.ileri(x)
+        n.TR_mem_weight = w
+        TR_kw_return n.TR_mem_forward(x)
     }
     TR_fn_assert(TR_fn_grad_check(f, [rastgele_girdi([2, 4], 2), rastgele_girdi([4], 3)]))
 }
 
 TR_ctx_test "döner konum: normu korur, iç çarpım yalnızca uzaklığa bağlıdır, türevlidir" {
-    TR_kw_var tablolar = döner_konum_tablosu(8, 4)
+    TR_kw_var tablolar = TR_fn_rotary_table(8, 4)
     TR_kw_var cos_tablosu = tablolar[0]
     TR_kw_var sin_tablosu = tablolar[1]
     TR_fn_assert_equal([8, 2], cos_tablosu.TR_mem_shape)
     TR_kw_var q = TR_fn_randn([1, 4], TR_arg_seed: 1)
     TR_kw_var k = TR_fn_randn([1, 4], TR_arg_seed: 2)
     // q'yu ve k'yı bütün konumlara koy: [8, 1 bakış, 4] → [8, 4]
-    TR_kw_var Q = döner_konum_uygula(TR_fn_tensor([q.TR_mem_tolist TR_kw_for i TR_kw_in 0..8]), cos_tablosu, sin_tablosu).TR_mem_reshape([8, 4])
-    TR_kw_var K = döner_konum_uygula(TR_fn_tensor([k.TR_mem_tolist TR_kw_for i TR_kw_in 0..8]), cos_tablosu, sin_tablosu).TR_mem_reshape([8, 4])
+    TR_kw_var Q = TR_fn_apply_rotary_fused(TR_fn_tensor([q.TR_mem_tolist TR_kw_for i TR_kw_in 0..8]), cos_tablosu, sin_tablosu).TR_mem_reshape([8, 4])
+    TR_kw_var K = TR_fn_apply_rotary_fused(TR_fn_tensor([k.TR_mem_tolist TR_kw_for i TR_kw_in 0..8]), cos_tablosu, sin_tablosu).TR_mem_reshape([8, 4])
     TR_kw_var fark = en_büyük_mutlak_fark(TR_fn_sum(Q * Q, TR_arg_dim: -1), TR_fn_sum(q * q))
     TR_fn_assert(fark < 0.00002, "döndürme normu korumalı: {fark}")
     TR_kw_var p = Q @ K.TR_mem_transpose() // p[i][j] = <R_i q, R_j k>
     TR_kw_var a = p[3][1].TR_mem_tolist
     TR_kw_var b = p[6][4].TR_mem_tolist
     TR_fn_assert(TR_fn_abs(a - b) < 0.0001, "iç çarpım yalnızca i - j'ye bağlı olmalı: {a} / {b}")
-    TR_kw_func f(x) { TR_kw_return döner_konum_uygula(x, cos_tablosu, sin_tablosu) }
+    TR_kw_func f(x) { TR_kw_return TR_fn_apply_rotary_fused(x, cos_tablosu, sin_tablosu) }
     TR_fn_assert(TR_fn_grad_check(f, [rastgele_girdi([2, 5, 3, 4], 3)]))
 }
 
 TR_ctx_test "döner konum ve PLE karışımı: sonuç girdinin türündedir, değer float32 sonucun dönüşümüdür" {
-    TR_kw_var tablolar = döner_konum_tablosu(6, 4)
+    TR_kw_var tablolar = TR_fn_rotary_table(6, 4)
     TR_kw_var x = TR_fn_randn([2, 6, 2, 4], TR_arg_seed: 4)
     TR_kw_var xb = x.TR_mem_to_dtype("bf16")
     // float32 tablolarla bf16 girdi: sonuç bf16, float32 hesabın bir kez yuvarlanmışı.
-    TR_kw_var r = döner_konum_uygula(xb, tablolar[0], tablolar[1])
+    TR_kw_var r = TR_fn_apply_rotary_fused(xb, tablolar[0], tablolar[1])
     TR_fn_assert_equal("bf16", r.TR_mem_dtype)
-    TR_fn_assert_equal(döner_konum_hesapla(xb.TR_mem_to_dtype("float32"), tablolar[0], tablolar[1]).TR_mem_to_dtype("bf16").TR_mem_tolist, r.TR_mem_tolist)
-    TR_fn_assert_equal(döner_konum_hesapla(xb, tablolar[0], tablolar[1]).TR_mem_tolist, r.TR_mem_tolist)
-    TR_fn_assert_equal("float32", döner_konum_uygula(x, tablolar[0], tablolar[1]).TR_mem_dtype)
+    TR_fn_assert_equal(TR_fn_apply_rotary(xb.TR_mem_to_dtype("float32"), tablolar[0], tablolar[1]).TR_mem_to_dtype("bf16").TR_mem_tolist, r.TR_mem_tolist)
+    TR_fn_assert_equal(TR_fn_apply_rotary(xb, tablolar[0], tablolar[1]).TR_mem_tolist, r.TR_mem_tolist)
+    TR_fn_assert_equal("float32", TR_fn_apply_rotary_fused(x, tablolar[0], tablolar[1]).TR_mem_dtype)
     TR_kw_var kapı = TR_fn_randn([3, 5], TR_arg_seed: 5).TR_mem_to_dtype("bf16")
     TR_kw_var bağlam = TR_fn_randn([3, 5], TR_arg_seed: 6).TR_mem_to_dtype("bf16")
     TR_kw_var satır = TR_fn_randn([3, 5], TR_arg_seed: 7)
-    TR_kw_var m = ple_karış(kapı, bağlam, satır, 2.0)
+    TR_kw_var m = TR_fn_ple_mix_fused(kapı, bağlam, satır, 2.0)
     TR_fn_assert_equal("bf16", m.TR_mem_dtype)
     // Eski zincir (sonuç float32) ve ardından çarpımın yapacağı dönüşüm:
-    TR_fn_assert_equal((ple_gelu(kapı) * ((bağlam + 2.0 * satır) / TR_fn_sqrt(2.0))).TR_mem_to_dtype("bf16").TR_mem_tolist, m.TR_mem_tolist)
-    TR_fn_assert_equal(ple_karışımı(kapı, bağlam, satır, 2.0).TR_mem_tolist, m.TR_mem_tolist)
+    TR_fn_assert_equal((TR_fn_ple_gelu(kapı) * ((bağlam + 2.0 * satır) / TR_fn_sqrt(2.0))).TR_mem_to_dtype("bf16").TR_mem_tolist, m.TR_mem_tolist)
+    TR_fn_assert_equal(TR_fn_ple_mix(kapı, bağlam, satır, 2.0).TR_mem_tolist, m.TR_mem_tolist)
 }
 
 TR_ctx_test "NedenselDikkat: şekil, gruplu sorgu ve türev" {
-    TR_kw_var tablolar = döner_konum_tablosu(4, 2)
-    TR_kw_var d = NedenselDikkat(8, 4, kv_bakış_sayısı: 2, tohum: 1)
-    TR_fn_assert_equal([8, 4], d.anahtar_katmanı.ağırlık.TR_mem_shape) // 2 kv bakışı × 2 bakış boyutu
-    TR_fn_assert_equal([2, 3, 8], d.ileri(TR_fn_randn([2, 3, 8], TR_arg_seed: 1), tablolar[0], tablolar[1]).TR_mem_shape)
-    TR_kw_var k = NedenselDikkat(4, 2, kv_bakış_sayısı: 1, tohum: 3)
+    TR_kw_var tablolar = TR_fn_rotary_table(4, 2)
+    TR_kw_var d = TR_type_CausalAttention(8, 4, TR_arg_num_kv_heads: 2, TR_arg_seed: 1)
+    TR_fn_assert_equal([8, 4], d.TR_mem_k_proj.TR_mem_weight.TR_mem_shape) // 2 kv bakışı × 2 bakış boyutu
+    TR_fn_assert_equal([2, 3, 8], d.TR_mem_forward(TR_fn_randn([2, 3, 8], TR_arg_seed: 1), tablolar[0], tablolar[1]).TR_mem_shape)
+    TR_kw_var k = TR_type_CausalAttention(4, 2, TR_arg_num_kv_heads: 1, TR_arg_seed: 3)
     TR_kw_func f(x, wq, wk, wv, wo) {
-        k.sorgu_katmanı.ağırlık = wq
-        k.anahtar_katmanı.ağırlık = wk
-        k.değer_katmanı.ağırlık = wv
-        k.çıkış_katmanı.ağırlık = wo
-        TR_kw_return k.ileri(x, tablolar[0], tablolar[1])
+        k.TR_mem_q_proj.TR_mem_weight = wq
+        k.TR_mem_k_proj.TR_mem_weight = wk
+        k.TR_mem_v_proj.TR_mem_weight = wv
+        k.TR_mem_o_proj.TR_mem_weight = wo
+        TR_kw_return k.TR_mem_forward(x, tablolar[0], tablolar[1])
     }
     TR_kw_var w = [rastgele_girdi([1, 3, 4], 2), rastgele_girdi([4, 4], 3) * 0.5, rastgele_girdi([4, 2], 4) * 0.5, rastgele_girdi([4, 2], 5), rastgele_girdi([4, 4], 6)]
     TR_fn_assert(TR_fn_grad_check(f, w))
 }
 
 TR_ctx_test "NedenselDikkat: bir konum sonraki konumlardan etkilenmez" {
-    TR_kw_var tablolar = döner_konum_tablosu(5, 4)
-    TR_kw_var d = NedenselDikkat(8, 2, tohum: 4)
+    TR_kw_var tablolar = TR_fn_rotary_table(5, 4)
+    TR_kw_var d = TR_type_CausalAttention(8, 2, TR_arg_seed: 4)
     TR_kw_var x = TR_fn_randn([1, 5, 8], TR_arg_seed: 1)
     TR_kw_var x2 = TR_fn_tensor(x)
     TR_fn_no_grad { x2[0][4] = TR_fn_randn([8], TR_arg_seed: 99) }
-    TR_kw_var y1 = d.ileri(x, tablolar[0], tablolar[1])
-    TR_kw_var y2 = d.ileri(x2, tablolar[0], tablolar[1])
+    TR_kw_var y1 = d.TR_mem_forward(x, tablolar[0], tablolar[1])
+    TR_kw_var y2 = d.TR_mem_forward(x2, tablolar[0], tablolar[1])
     TR_fn_assert(y1[0][0..4] == y2[0][0..4], "ilk dört konum değişmemeli")
     TR_fn_assert(y1[0][4] != y2[0][4], "son konum değişmeli")
 }
 
 TR_ctx_test "NedenselDikkat: boyut bakış sayısına bölünmeli" {
-    TR_kw_var mesaj = hata_metni(() => NedenselDikkat(10, 4))
+    TR_kw_var mesaj = hata_metni(() => TR_type_CausalAttention(10, 4))
     TR_fn_assert(mesaj.TR_mem_contains("boyut (10) bakış sayısına (4) bölünmeli"), mesaj)
 }
 
 TR_ctx_test "SwiGLU: ara boyut, şekil ve türev" {
-    TR_fn_assert_equal(1376, swiglu_ara_boyutu(512))
-    TR_fn_assert_equal(96, swiglu_ara_boyutu(32))
-    TR_kw_var s = SwiGLU(4, ara_boyut: 6, tohum: 1)
-    TR_fn_assert_equal([2, 3, 4], s.ileri(TR_fn_randn([2, 3, 4], TR_arg_seed: 1)).TR_mem_shape)
+    TR_fn_assert_equal(1376, TR_fn_swiglu_intermediate_dim(512))
+    TR_fn_assert_equal(96, TR_fn_swiglu_intermediate_dim(32))
+    TR_kw_var s = TR_type_SwiGLU(4, TR_arg_intermediate_dim: 6, TR_arg_seed: 1)
+    TR_fn_assert_equal([2, 3, 4], s.TR_mem_forward(TR_fn_randn([2, 3, 4], TR_arg_seed: 1)).TR_mem_shape)
     TR_kw_func f(x, wg, wu, wd) {
-        s.kapı.ağırlık = wg
-        s.yukarı.ağırlık = wu
-        s.aşağı.ağırlık = wd
-        TR_kw_return s.ileri(x)
+        s.TR_mem_gate_proj.TR_mem_weight = wg
+        s.TR_mem_up_proj.TR_mem_weight = wu
+        s.TR_mem_down_proj.TR_mem_weight = wd
+        TR_kw_return s.TR_mem_forward(x)
     }
     TR_fn_assert(TR_fn_grad_check(f, [rastgele_girdi([2, 4], 2), rastgele_girdi([4, 6], 3), rastgele_girdi([4, 6], 4), rastgele_girdi([6, 4], 5)]))
 }
 
 TR_ctx_test "TransformerBloğu: şekil ve türev" {
-    TR_kw_var tablolar = döner_konum_tablosu(3, 2)
-    TR_kw_var b = TransformerBloğu(4, 2, ara_boyut: 4, tohum: 1)
-    TR_fn_assert_equal([2, 3, 4], b.ileri(TR_fn_randn([2, 3, 4], TR_arg_seed: 1), tablolar[0], tablolar[1]).TR_mem_shape)
+    TR_kw_var tablolar = TR_fn_rotary_table(3, 2)
+    TR_kw_var b = TR_type_TransformerBlock(4, 2, TR_arg_intermediate_dim: 4, TR_arg_seed: 1)
+    TR_fn_assert_equal([2, 3, 4], b.TR_mem_forward(TR_fn_randn([2, 3, 4], TR_arg_seed: 1), tablolar[0], tablolar[1]).TR_mem_shape)
     TR_kw_func f(x, wq, w2) {
-        b.dikkat.sorgu_katmanı.ağırlık = wq
-        b.ileri_besleme.aşağı.ağırlık = w2
-        TR_kw_return b.ileri(x, tablolar[0], tablolar[1])
+        b.TR_mem_attention.TR_mem_q_proj.TR_mem_weight = wq
+        b.TR_mem_feed_forward.TR_mem_down_proj.TR_mem_weight = w2
+        TR_kw_return b.TR_mem_forward(x, tablolar[0], tablolar[1])
     }
     TR_fn_assert(TR_fn_grad_check(f, [rastgele_girdi([1, 3, 4], 2), rastgele_girdi([4, 4], 3) * 0.5, rastgele_girdi([4, 4], 4) * 0.5]))
 }
 
 TR_ctx_test "GPT: şekil, parametre adları, paylaşımlı çıkış ve küçültülmüş çıkış katmanları" {
-    TR_kw_var m = GPT(10, bağlam: 6, boyut: 8, katman: 2, bakış_sayısı: 2, tohum: 1)
-    TR_fn_assert_equal([2, 6, 10], m.ileri([[1, 2, 3, 4, 5, 6], [0, 0, 1, 1, 2, 2]]).TR_mem_shape)
+    TR_kw_var m = TR_type_GPT(10, TR_arg_context: 6, TR_arg_embed_dim: 8, TR_arg_num_layers: 2, TR_arg_num_heads: 2, TR_arg_seed: 1)
+    TR_fn_assert_equal([2, 6, 10], m.TR_mem_forward([[1, 2, 3, 4, 5, 6], [0, 0, 1, 1, 2, 2]]).TR_mem_shape)
     TR_kw_var adlar = TR_fn_parameters(m, TR_arg_named: TR_kw_true).TR_mem_keys()
     TR_fn_assert_equal(21, adlar.TR_mem_length)
-    TR_fn_assert_equal("gömme.tablo", adlar[0])
-    TR_fn_assert_equal("çıkış.ağırlık", adlar[-1])
-    TR_fn_assert(adlar.TR_mem_contains("bloklar.1.dikkat.çıkış_katmanı.ağırlık"))
-    TR_kw_var p = GPT(10, bağlam: 6, boyut: 8, katman: 2, bakış_sayısı: 2, paylaşımlı: TR_kw_true)
-    TR_fn_assert_equal(TR_kw_none, p.çıkış)
+    TR_fn_assert_equal("TR_mem_embedding.TR_mem_table", adlar[0])
+    TR_fn_assert_equal("TR_mem_logit_layer.TR_mem_weight", adlar[-1])
+    TR_fn_assert(adlar.TR_mem_contains("TR_mem_blocks.1.TR_mem_attention.TR_mem_o_proj.TR_mem_weight"))
+    TR_kw_var p = TR_type_GPT(10, TR_arg_context: 6, TR_arg_embed_dim: 8, TR_arg_num_layers: 2, TR_arg_num_heads: 2, TR_arg_tied: TR_kw_true)
+    TR_fn_assert_equal(TR_kw_none, p.TR_mem_logit_layer)
     TR_fn_assert_equal(20, TR_fn_parameters(p).TR_mem_length)
-    TR_fn_assert_equal([1, 3, 10], p.ileri([[1, 2, 3]]).TR_mem_shape)
+    TR_fn_assert_equal([1, 3, 10], p.TR_mem_forward([[1, 2, 3]]).TR_mem_shape)
     // Artık yola yazan katmanlar 0.02 / √(2 · katman) ile başlar.
-    TR_kw_var büyük = GPT(10, bağlam: 4, boyut: 64, katman: 8, bakış_sayısı: 4)
-    TR_kw_var w = büyük.bloklar[0].ileri_besleme.aşağı.ağırlık
+    TR_kw_var büyük = TR_type_GPT(10, TR_arg_context: 4, TR_arg_embed_dim: 64, TR_arg_num_layers: 8, TR_arg_num_heads: 4)
+    TR_kw_var w = büyük.TR_mem_blocks[0].TR_mem_feed_forward.TR_mem_down_proj.TR_mem_weight
     TR_kw_var s = TR_fn_sqrt(TR_fn_mean(w * w)).TR_mem_tolist
     TR_fn_assert(s > 0.0045 TR_kw_and s < 0.0055, "çıkış katmanının std'si 0.02/4 olmalı: {s}")
 }
 
 TR_ctx_test "GPT: aynı tohum aynı modeli verir, kayıp başta ln(dağarcık) civarındadır" {
-    TR_kw_var a = GPT(16, bağlam: 4, boyut: 8, katman: 1, bakış_sayısı: 2, tohum: 5)
-    TR_kw_var b = GPT(16, bağlam: 4, boyut: 8, katman: 1, bakış_sayısı: 2, tohum: 5)
+    TR_kw_var a = TR_type_GPT(16, TR_arg_context: 4, TR_arg_embed_dim: 8, TR_arg_num_layers: 1, TR_arg_num_heads: 2, TR_arg_seed: 5)
+    TR_kw_var b = TR_type_GPT(16, TR_arg_context: 4, TR_arg_embed_dim: 8, TR_arg_num_layers: 1, TR_arg_num_heads: 2, TR_arg_seed: 5)
     TR_kw_var x = [[1, 2, 3, 4]]
-    TR_fn_assert(a.ileri(x) == b.ileri(x))
-    TR_kw_var k = a.kayıp(x, [[2, 3, 4, 5]]).TR_mem_tolist
+    TR_fn_assert(a.TR_mem_forward(x) == b.TR_mem_forward(x))
+    TR_kw_var k = a.TR_mem_loss(x, [[2, 3, 4, 5]]).TR_mem_tolist
     TR_fn_assert(k > 2.6 TR_kw_and k < 2.95, "başlangıç kaybı ln(16) ≈ 2.77 civarında olmalı: {k}")
 }
 
 TR_ctx_test "GPT.kayıp: sapmasız çıkışta doğrusal_çapraz_entropi kullanır; kayıp ve gradyanlar logitlerle aynıdır" {
     TR_kw_for paylaşımlı TR_kw_in [TR_kw_true, TR_kw_false] {
-        TR_kw_var m = GPT(12, bağlam: 4, boyut: 8, katman: 1, bakış_sayısı: 2, paylaşımlı: paylaşımlı, tohum: 3)
+        TR_kw_var m = TR_type_GPT(12, TR_arg_context: 4, TR_arg_embed_dim: 8, TR_arg_num_layers: 1, TR_arg_num_heads: 2, TR_arg_tied: paylaşımlı, TR_arg_seed: 3)
         TR_kw_var x = [[1, 2, 3, 4], [5, 6, 7, 8]]
         TR_kw_var hedef = [[2, 3, -1, 5], [6, 7, 8, 9]]
-        TR_kw_var k1 = m.kayıp(x, hedef)
+        TR_kw_var k1 = m.TR_mem_loss(x, hedef)
         TR_fn_backward(k1)
         TR_kw_var g1 = [TR_fn_tensor(p.TR_mem_grad) TR_kw_for p TR_kw_in TR_fn_parameters(m)]
-        gradyanları_sıfırla(TR_fn_parameters(m))
-        TR_kw_var k2 = TR_fn_cross_entropy(m.ileri(x), hedef)
+        TR_fn_zero_grads(TR_fn_parameters(m))
+        TR_kw_var k2 = TR_fn_cross_entropy(m.TR_mem_forward(x), hedef)
         TR_fn_backward(k2)
         TR_fn_assert(TR_fn_abs(k1.TR_mem_tolist - k2.TR_mem_tolist) < 0.00001, "paylaşımlı {paylaşımlı}: kayıp {k1.TR_mem_tolist} / {k2.TR_mem_tolist}")
         TR_kw_for i, p TR_kw_in TR_fn_parameters(m) {
@@ -224,82 +224,82 @@ TR_ctx_test "GPT.kayıp: sapmasız çıkışta doğrusal_çapraz_entropi kullan�
 }
 
 TR_ctx_test "GPT: üret istenen kadar parça ekler; tohumla tekrarlanır, bağlamdan uzun dizide çalışır" {
-    TR_kw_var m = GPT(12, bağlam: 4, boyut: 8, katman: 1, bakış_sayısı: 2)
-    TR_kw_var a = m.üret([1, 2], 6, tohum: 3)
+    TR_kw_var m = TR_type_GPT(12, TR_arg_context: 4, TR_arg_embed_dim: 8, TR_arg_num_layers: 1, TR_arg_num_heads: 2)
+    TR_kw_var a = m.TR_mem_generate([1, 2], 6, TR_arg_seed: 3)
     TR_fn_assert_equal(8, a.TR_mem_length)
     TR_fn_assert_equal([1, 2], a[0..2])
-    TR_fn_assert_equal(a, m.üret([1, 2], 6, tohum: 3))
-    TR_fn_assert_equal(m.üret([1], 3, sıcaklık: 0), m.üret([1], 3, sıcaklık: 0))
+    TR_fn_assert_equal(a, m.TR_mem_generate([1, 2], 6, TR_arg_seed: 3))
+    TR_fn_assert_equal(m.TR_mem_generate([1], 3, TR_arg_temperature: 0), m.TR_mem_generate([1], 3, TR_arg_temperature: 0))
 }
 
 // KV önbelleği: önbellekli ileri hesap önbelleksizle aynı logitleri verir. Başlangıç bir kez,
 // sonraki parçalar tek tek işlenir; her adımın son logiti bütün dizinin aynı konumdaki logitine
 // eşittir. GQA, kayan pencere, qk normu ve PLE'li model; iki önbellek çeşidi.
 TR_ctx_test "KVÖnbellek: önbellekli ileri önbelleksizle aynıdır (sabit ve büyüyen)" {
-    TR_kw_var m = GPT(20, bağlam: 12, boyut: 16, katman: 3, bakış_sayısı: 4, kv_bakış_sayısı: 2,
-        pencereler: [3, 0, 2], qk_normu: TR_kw_true, ple_boyutu: 4, tohum: 5)
+    TR_kw_var m = TR_type_GPT(20, TR_arg_context: 12, TR_arg_embed_dim: 16, TR_arg_num_layers: 3, TR_arg_num_heads: 4, TR_arg_num_kv_heads: 2,
+        TR_arg_windows: [3, 0, 2], TR_arg_qk_norm: TR_kw_true, TR_arg_ple_dim: 4, TR_arg_seed: 5)
     TR_kw_var dizi = [3, 7, 1, 9, 4, 4, 12, 0, 5, 18]
     TR_fn_no_grad {
-        TR_kw_var tam_logit = m.ileri([dizi])
+        TR_kw_var tam_logit = m.TR_mem_forward([dizi])
         TR_kw_for çeşit TR_kw_in ["sabit", "büyüyen"] {
-            TR_kw_var ö = m.önbellek_kur(çeşit: çeşit)
-            TR_kw_var ilk = m.ileri([dizi[0..4]], önbellek: ö)
+            TR_kw_var ö = m.TR_mem_build_cache(TR_arg_kind: çeşit)
+            TR_kw_var ilk = m.TR_mem_forward([dizi[0..4]], TR_arg_cache: ö)
             TR_fn_assert(en_büyük_mutlak_fark(ilk[0], tam_logit[0][0..4]) < 0.0001, "{çeşit}: başlangıç logitleri")
-            TR_fn_assert_equal(4, ö.konum)
+            TR_fn_assert_equal(4, ö.TR_mem_position)
             TR_kw_for i TR_kw_in 4..dizi.TR_mem_length {
-                TR_kw_var l = m.ileri([[dizi[i]]], önbellek: ö)
+                TR_kw_var l = m.TR_mem_forward([[dizi[i]]], TR_arg_cache: ö)
                 TR_fn_assert(en_büyük_mutlak_fark(l[0][0], tam_logit[0][i]) < 0.0001, "{çeşit}: {i}. konum")
             }
-            TR_fn_assert_equal(dizi.TR_mem_length, ö.konum)
+            TR_fn_assert_equal(dizi.TR_mem_length, ö.TR_mem_position)
         }
     }
 }
 
 TR_ctx_test "KVÖnbellek: kırp son parçaları geri alır; aynı parçalar yeniden işlenince sonuç aynıdır" {
-    TR_kw_var m = GPT(20, bağlam: 12, boyut: 16, katman: 2, bakış_sayısı: 2, tohum: 6)
+    TR_kw_var m = TR_type_GPT(20, TR_arg_context: 12, TR_arg_embed_dim: 16, TR_arg_num_layers: 2, TR_arg_num_heads: 2, TR_arg_seed: 6)
     TR_fn_no_grad {
         TR_kw_for çeşit TR_kw_in ["sabit", "büyüyen"] {
-            TR_kw_var ö = m.önbellek_kur(çeşit: çeşit)
-            m.ileri([[1, 2, 3]], önbellek: ö)
-            TR_kw_var a = m.ileri([[4]], önbellek: ö)
-            ö.TR_mem_strip(3)
-            m.ileri([[9]], önbellek: ö) // reddedilen taslak gibi
-            ö.TR_mem_strip(3)
-            TR_kw_var b = m.ileri([[4]], önbellek: ö)
+            TR_kw_var ö = m.TR_mem_build_cache(TR_arg_kind: çeşit)
+            m.TR_mem_forward([[1, 2, 3]], TR_arg_cache: ö)
+            TR_kw_var a = m.TR_mem_forward([[4]], TR_arg_cache: ö)
+            ö.TR_mem_truncate(3)
+            m.TR_mem_forward([[9]], TR_arg_cache: ö) // reddedilen taslak gibi
+            ö.TR_mem_truncate(3)
+            TR_kw_var b = m.TR_mem_forward([[4]], TR_arg_cache: ö)
             TR_fn_assert(en_büyük_mutlak_fark(a, b) < 0.000001, "{çeşit}: kırpmadan sonra aynı logit")
         }
-        TR_kw_var ö = m.önbellek_kur(çeşit: "sabit", en_çok: 2)
-        TR_kw_var mesaj = hata_metni(() => m.ileri([[1, 2, 3]], önbellek: ö))
+        TR_kw_var ö = m.TR_mem_build_cache(TR_arg_kind: "sabit", TR_arg_capacity: 2)
+        TR_kw_var mesaj = hata_metni(() => m.TR_mem_forward([[1, 2, 3]], TR_arg_cache: ö))
         TR_fn_assert(mesaj.TR_mem_contains("sabit önbellek dolu"), mesaj)
-        mesaj = hata_metni(() => KVÖnbellek(2, çeşit: "kocaman"))
+        mesaj = hata_metni(() => TR_type_KVCache(2, TR_arg_kind: "kocaman"))
         TR_fn_assert(mesaj.TR_mem_contains("önbellek çeşidi"), mesaj)
     }
 }
 
 TR_ctx_test "GPT: üret önbellekli ve önbelleksiz aynı parçaları verir, bağlam dolunca da" {
-    TR_kw_var m = GPT(16, bağlam: 6, boyut: 16, katman: 2, bakış_sayısı: 2, kv_bakış_sayısı: 1, pencereler: [2, 0], tohum: 8)
-    TR_kw_var yok_ile = m.üret([1, 2, 3], 9, sıcaklık: 0, önbellek_çeşidi: TR_kw_none)
-    TR_fn_assert_equal(yok_ile, m.üret([1, 2, 3], 9, sıcaklık: 0))
-    TR_fn_assert_equal(yok_ile, m.üret([1, 2, 3], 9, sıcaklık: 0, önbellek_çeşidi: "büyüyen"))
-    TR_fn_assert_equal(m.üret([1], 7, tohum: 4, önbellek_çeşidi: TR_kw_none), m.üret([1], 7, tohum: 4, önbellek_çeşidi: "sabit"))
+    TR_kw_var m = TR_type_GPT(16, TR_arg_context: 6, TR_arg_embed_dim: 16, TR_arg_num_layers: 2, TR_arg_num_heads: 2, TR_arg_num_kv_heads: 1, TR_arg_windows: [2, 0], TR_arg_seed: 8)
+    TR_kw_var yok_ile = m.TR_mem_generate([1, 2, 3], 9, TR_arg_temperature: 0, TR_arg_cache_kind: TR_kw_none)
+    TR_fn_assert_equal(yok_ile, m.TR_mem_generate([1, 2, 3], 9, TR_arg_temperature: 0))
+    TR_fn_assert_equal(yok_ile, m.TR_mem_generate([1, 2, 3], 9, TR_arg_temperature: 0, TR_arg_cache_kind: "büyüyen"))
+    TR_fn_assert_equal(m.TR_mem_generate([1], 7, TR_arg_seed: 4, TR_arg_cache_kind: TR_kw_none), m.TR_mem_generate([1], 7, TR_arg_seed: 4, TR_arg_cache_kind: "sabit"))
 }
 
 TR_ctx_test "GPT.tek_adım: cihazdaki konumla adım önbellekli gizli_durum ile aynı logiti verir (pencere dahil); üret çizgeyle ve çizgesiz aynı" {
-    TR_kw_var m = GPT(16, bağlam: 8, boyut: 16, katman: 2, bakış_sayısı: 2, kv_bakış_sayısı: 1, pencereler: [2, 0], tohum: 8)
+    TR_kw_var m = TR_type_GPT(16, TR_arg_context: 8, TR_arg_embed_dim: 16, TR_arg_num_layers: 2, TR_arg_num_heads: 2, TR_arg_num_kv_heads: 1, TR_arg_windows: [2, 0], TR_arg_seed: 8)
     TR_fn_no_grad {
-        TR_kw_var ö1 = m.önbellek_kur(en_çok: 8)
-        TR_kw_var ö2 = m.önbellek_kur(en_çok: 8)
-        m.gizli_durum([[1, 2, 3]], önbellek: ö1)
-        m.gizli_durum([[1, 2, 3]], önbellek: ö2)
+        TR_kw_var ö1 = m.TR_mem_build_cache(TR_arg_capacity: 8)
+        TR_kw_var ö2 = m.TR_mem_build_cache(TR_arg_capacity: 8)
+        m.TR_mem_hidden_states([[1, 2, 3]], TR_arg_cache: ö1)
+        m.TR_mem_hidden_states([[1, 2, 3]], TR_arg_cache: ö2)
         TR_kw_for i, id TR_kw_in [5, 7, 2, 9] {
-            TR_kw_var x = m.gizli_durum([[id]], önbellek: ö1)
-            TR_kw_var beklenen = m.logit(x)[0][0]
-            TR_kw_var l = m.tek_adım(TR_fn_tensor([[id * 1.0]]), TR_fn_tensor([ö2.konum * 1.0]), ö2)
-            ö2.ilerle(1)
+            TR_kw_var x = m.TR_mem_hidden_states([[id]], TR_arg_cache: ö1)
+            TR_kw_var beklenen = m.TR_mem_logits(x)[0][0]
+            TR_kw_var l = m.TR_mem_single_step(TR_fn_tensor([[id * 1.0]]), TR_fn_tensor([ö2.TR_mem_position * 1.0]), ö2)
+            ö2.TR_mem_advance(1)
             TR_fn_assert(en_büyük_mutlak_fark(l, beklenen) < 0.00001, "adım {i}: tek_adım farklı")
         }
     }
-    TR_fn_assert_equal(m.üret([1, 2, 3], 9, sıcaklık: 0, çizge: TR_kw_false), m.üret([1, 2, 3], 9, sıcaklık: 0))
+    TR_fn_assert_equal(m.TR_mem_generate([1, 2, 3], 9, TR_arg_temperature: 0, TR_arg_cuda_graph: TR_kw_false), m.TR_mem_generate([1, 2, 3], 9, TR_arg_temperature: 0))
 }
 
 // Kopyalama görevi: [a b c d | a b c d]; ikinci yarı ilk yarıdan tahmin edilebilir.
@@ -322,14 +322,14 @@ TR_kw_func kopya_toplu(B, V, yarım) {
 
 TR_ctx_test "GPT: küçük model kopyalama görevini öğrenir (kayıp belirgin düşer)" {
     kopya_tohumu = 11
-    TR_kw_var m = GPT(8, bağlam: 12, boyut: 32, katman: 2, bakış_sayısı: 4, tohum: 2)
+    TR_kw_var m = TR_type_GPT(8, TR_arg_context: 12, TR_arg_embed_dim: 32, TR_arg_num_layers: 2, TR_arg_num_heads: 4, TR_arg_seed: 2)
     TR_kw_var op = TR_fn_AdamW(TR_fn_parameters(m), TR_arg_lr: 0.01, TR_arg_weight_decay: 0.0)
     TR_kw_var ilk = 0.0
     TR_kw_var son = 0.0
     TR_kw_for adım TR_kw_in 0..250 {
         TR_kw_var g, h = kopya_toplu(16, 8, 6)
         op.TR_mem_zero_grad()
-        TR_kw_var k = m.kayıp(g, h)
+        TR_kw_var k = m.TR_mem_loss(g, h)
         TR_fn_backward(k)
         op.TR_mem_step()
         TR_kw_if adım < 10 { ilk += k.TR_mem_tolist / 10 }
@@ -345,111 +345,111 @@ TR_ctx_test "GPT: küçük model kopyalama görevini öğrenir (kayıp belirgin 
 TR_kw_func en_büyük_mutlak_fark(a, b) { TR_kw_return TR_fn_max(TR_fn_abs(a - b)).TR_mem_tolist }
 
 TR_ctx_test "NedenselDikkat: varsayılan seçenekler eski yapıyı verir (kv_katmanı, q_norm, k_norm yok)" {
-    TR_kw_var d = NedenselDikkat(8, 4, kv_bakış_sayısı: 2, tohum: 1)
-    TR_fn_assert_equal(0, d.pencere)
-    TR_fn_assert_equal(TR_kw_none, d.kv_katmanı)
-    TR_fn_assert_equal(TR_kw_none, d.q_norm)
-    TR_fn_assert_equal(TR_kw_none, d.k_norm)
+    TR_kw_var d = TR_type_CausalAttention(8, 4, TR_arg_num_kv_heads: 2, TR_arg_seed: 1)
+    TR_fn_assert_equal(0, d.TR_mem_window)
+    TR_fn_assert_equal(TR_kw_none, d.TR_mem_kv_proj)
+    TR_fn_assert_equal(TR_kw_none, d.TR_mem_q_norm)
+    TR_fn_assert_equal(TR_kw_none, d.TR_mem_k_norm)
     TR_fn_assert_equal(4, TR_fn_parameters(d).TR_mem_length) // sorgu, anahtar, değer, çıkış
 }
 
 TR_ctx_test "NedenselDikkat: pencere yalnızca son w konuma bakar" {
-    TR_kw_var tablolar = döner_konum_tablosu(6, 4)
+    TR_kw_var tablolar = TR_fn_rotary_table(6, 4)
     TR_kw_var x = TR_fn_randn([1, 6, 8], TR_arg_seed: 1)
     TR_kw_var x2 = TR_fn_tensor(x)
     TR_fn_no_grad { x2[0][0] = TR_fn_randn([8], TR_arg_seed: 99) } // yalnızca 0. konum değişir
-    TR_kw_var yerel = NedenselDikkat(8, 2, tohum: 4, pencere: 2)
-    TR_kw_var genel = NedenselDikkat(8, 2, tohum: 4)
-    TR_kw_var y1 = yerel.ileri(x, tablolar[0], tablolar[1])
-    TR_kw_var y2 = yerel.ileri(x2, tablolar[0], tablolar[1])
+    TR_kw_var yerel = TR_type_CausalAttention(8, 2, TR_arg_seed: 4, TR_arg_window: 2)
+    TR_kw_var genel = TR_type_CausalAttention(8, 2, TR_arg_seed: 4)
+    TR_kw_var y1 = yerel.TR_mem_forward(x, tablolar[0], tablolar[1])
+    TR_kw_var y2 = yerel.TR_mem_forward(x2, tablolar[0], tablolar[1])
     // pencere 2: t. konum yalnızca t ve t-1'e bakar; 0. konumun değişimi 0 ve 1'i etkiler, 2.'den sonrasını etkilemez.
     TR_fn_assert(y1[0][0] != y2[0][0] TR_kw_and y1[0][1] != y2[0][1], "0. ve 1. konum değişmeli")
     TR_fn_assert(en_büyük_mutlak_fark(y1[0][2..6], y2[0][2..6]) < 0.0000001, "2. konumdan sonrası değişmemeli")
     // aynı ağırlıkla pencerenin dışındaki konum tam dikkatte değişir
-    TR_kw_var t1 = genel.ileri(x, tablolar[0], tablolar[1])
-    TR_kw_var t2 = genel.ileri(x2, tablolar[0], tablolar[1])
+    TR_kw_var t1 = genel.TR_mem_forward(x, tablolar[0], tablolar[1])
+    TR_kw_var t2 = genel.TR_mem_forward(x2, tablolar[0], tablolar[1])
     TR_fn_assert(en_büyük_mutlak_fark(t1[0][5], t2[0][5]) > 0.000001, "tam dikkatte son konum 0. konumdan etkilenir")
     // pencere uzunluğa eşit ya da büyükse tam nedensel dikkatle aynıdır
-    TR_kw_var geniş = NedenselDikkat(8, 2, tohum: 4, pencere: 6)
-    TR_fn_assert(en_büyük_mutlak_fark(geniş.ileri(x, tablolar[0], tablolar[1]), t1) < 0.0000001, "pencere ≥ T tam dikkattir")
-    TR_kw_var mesaj = hata_metni(() => NedenselDikkat(8, 2, pencere: -1))
+    TR_kw_var geniş = TR_type_CausalAttention(8, 2, TR_arg_seed: 4, TR_arg_window: 6)
+    TR_fn_assert(en_büyük_mutlak_fark(geniş.TR_mem_forward(x, tablolar[0], tablolar[1]), t1) < 0.0000001, "pencere ≥ T tam dikkattir")
+    TR_kw_var mesaj = hata_metni(() => TR_type_CausalAttention(8, 2, TR_arg_window: -1))
     TR_fn_assert(mesaj.TR_mem_contains("pencere negatif olamaz"), mesaj)
 }
 
 TR_ctx_test "NedenselDikkat: qk_normu q ve k'yı bakış boyutunda normlar (sorgu ölçeğinden bağımsız), türevlidir" {
-    TR_kw_var tablolar = döner_konum_tablosu(4, 4)
+    TR_kw_var tablolar = TR_fn_rotary_table(4, 4)
     TR_kw_var x = TR_fn_randn([1, 4, 8], TR_arg_seed: 2)
-    TR_kw_var d = NedenselDikkat(8, 2, tohum: 3, qk_normu: TR_kw_true)
-    TR_fn_assert_equal([4], d.q_norm.ağırlık.TR_mem_shape) // bakış boyutu = 8 / 2
+    TR_kw_var d = TR_type_CausalAttention(8, 2, TR_arg_seed: 3, TR_arg_qk_norm: TR_kw_true)
+    TR_fn_assert_equal([4], d.TR_mem_q_norm.TR_mem_weight.TR_mem_shape) // bakış boyutu = 8 / 2
     TR_fn_assert_equal(6, TR_fn_parameters(d).TR_mem_length)
-    TR_kw_var y = d.ileri(x, tablolar[0], tablolar[1])
+    TR_kw_var y = d.TR_mem_forward(x, tablolar[0], tablolar[1])
     TR_fn_assert_equal([1, 4, 8], y.TR_mem_shape)
     // q normlu olduğundan sorgu ağırlığını 1000 ile çarpmak çıktıyı değiştirmez; normsuzda değiştirir.
-    d.sorgu_katmanı.ağırlık = d.sorgu_katmanı.ağırlık * 1000
-    TR_fn_assert(en_büyük_mutlak_fark(y, d.ileri(x, tablolar[0], tablolar[1])) < 0.0001, "qk normu ölçeği silmeli")
-    TR_kw_var n = NedenselDikkat(8, 2, tohum: 3)
-    TR_kw_var y0 = n.ileri(x, tablolar[0], tablolar[1])
-    n.sorgu_katmanı.ağırlık = n.sorgu_katmanı.ağırlık * 1000
-    TR_fn_assert(en_büyük_mutlak_fark(y0, n.ileri(x, tablolar[0], tablolar[1])) > 0.001, "normsuzda ölçek çıktıyı değiştirir")
-    TR_kw_var e = NedenselDikkat(8, 2, qk_normu: TR_kw_true, epsilon: 0.000001)
-    TR_fn_assert_equal(0.000001, e.q_norm.epsilon)
+    d.TR_mem_q_proj.TR_mem_weight = d.TR_mem_q_proj.TR_mem_weight * 1000
+    TR_fn_assert(en_büyük_mutlak_fark(y, d.TR_mem_forward(x, tablolar[0], tablolar[1])) < 0.0001, "qk normu ölçeği silmeli")
+    TR_kw_var n = TR_type_CausalAttention(8, 2, TR_arg_seed: 3)
+    TR_kw_var y0 = n.TR_mem_forward(x, tablolar[0], tablolar[1])
+    n.TR_mem_q_proj.TR_mem_weight = n.TR_mem_q_proj.TR_mem_weight * 1000
+    TR_fn_assert(en_büyük_mutlak_fark(y0, n.TR_mem_forward(x, tablolar[0], tablolar[1])) > 0.001, "normsuzda ölçek çıktıyı değiştirir")
+    TR_kw_var e = TR_type_CausalAttention(8, 2, TR_arg_qk_norm: TR_kw_true, TR_arg_eps: 0.000001)
+    TR_fn_assert_equal(0.000001, e.TR_mem_q_norm.TR_mem_eps)
     TR_kw_func f(x, wq, wq_n) {
-        d.sorgu_katmanı.ağırlık = wq
-        d.q_norm.ağırlık = wq_n
-        TR_kw_return d.ileri(x, tablolar[0], tablolar[1])
+        d.TR_mem_q_proj.TR_mem_weight = wq
+        d.TR_mem_q_norm.TR_mem_weight = wq_n
+        TR_kw_return d.TR_mem_forward(x, tablolar[0], tablolar[1])
     }
     TR_fn_assert(TR_fn_grad_check(f, [rastgele_girdi([1, 4, 8], 2), rastgele_girdi([8, 8], 3) * 0.5, rastgele_girdi([4], 4)]))
 }
 
 TR_ctx_test "NedenselDikkat: birleşik KV, ayrı K ve V ile aynı sonucu verir ([K | V])" {
-    TR_kw_var tablolar = döner_konum_tablosu(4, 4)
+    TR_kw_var tablolar = TR_fn_rotary_table(4, 4)
     TR_kw_var x = TR_fn_randn([2, 4, 8], TR_arg_seed: 5)
-    TR_kw_var a = NedenselDikkat(8, 2, kv_bakış_sayısı: 1, tohum: 1)
-    TR_kw_var b = NedenselDikkat(8, 2, kv_bakış_sayısı: 1, tohum: 1, birleşik_kv: TR_kw_true)
-    TR_fn_assert_equal([8, 8], b.kv_katmanı.ağırlık.TR_mem_shape) // 2 · (1 kv bakışı · 4 bakış boyutu)
-    TR_fn_assert_equal(TR_kw_none, b.anahtar_katmanı)
-    TR_fn_assert_equal(TR_kw_none, b.değer_katmanı)
+    TR_kw_var a = TR_type_CausalAttention(8, 2, TR_arg_num_kv_heads: 1, TR_arg_seed: 1)
+    TR_kw_var b = TR_type_CausalAttention(8, 2, TR_arg_num_kv_heads: 1, TR_arg_seed: 1, TR_arg_merged_kv: TR_kw_true)
+    TR_fn_assert_equal([8, 8], b.TR_mem_kv_proj.TR_mem_weight.TR_mem_shape) // 2 · (1 kv bakışı · 4 bakış boyutu)
+    TR_fn_assert_equal(TR_kw_none, b.TR_mem_k_proj)
+    TR_fn_assert_equal(TR_kw_none, b.TR_mem_v_proj)
     TR_fn_assert_equal(3, TR_fn_parameters(b).TR_mem_length) // sorgu, kv, çıkış
-    b.sorgu_katmanı.ağırlık = a.sorgu_katmanı.ağırlık
-    b.çıkış_katmanı.ağırlık = a.çıkış_katmanı.ağırlık
-    b.kv_katmanı.ağırlık = TR_fn_concat([a.anahtar_katmanı.ağırlık, a.değer_katmanı.ağırlık], TR_arg_dim: 1)
-    TR_fn_assert(en_büyük_mutlak_fark(a.ileri(x, tablolar[0], tablolar[1]), b.ileri(x, tablolar[0], tablolar[1])) < 0.000001, "birleşik KV ayrıyla aynı olmalı")
+    b.TR_mem_q_proj.TR_mem_weight = a.TR_mem_q_proj.TR_mem_weight
+    b.TR_mem_o_proj.TR_mem_weight = a.TR_mem_o_proj.TR_mem_weight
+    b.TR_mem_kv_proj.TR_mem_weight = TR_fn_concat([a.TR_mem_k_proj.TR_mem_weight, a.TR_mem_v_proj.TR_mem_weight], TR_arg_dim: 1)
+    TR_fn_assert(en_büyük_mutlak_fark(a.TR_mem_forward(x, tablolar[0], tablolar[1]), b.TR_mem_forward(x, tablolar[0], tablolar[1])) < 0.000001, "birleşik KV ayrıyla aynı olmalı")
     TR_kw_func f(x, w) {
-        b.kv_katmanı.ağırlık = w
-        TR_kw_return b.ileri(x, tablolar[0], tablolar[1])
+        b.TR_mem_kv_proj.TR_mem_weight = w
+        TR_kw_return b.TR_mem_forward(x, tablolar[0], tablolar[1])
     }
     TR_fn_assert(TR_fn_grad_check(f, [rastgele_girdi([1, 4, 8], 6), rastgele_girdi([8, 8], 7) * 0.5]))
 }
 
 TR_ctx_test "SwiGLU: birleşik [G | U] ayrı kapı ve yukarı ile aynıdır; sapmalı sapma ekler" {
-    TR_kw_var a = SwiGLU(4, ara_boyut: 6, tohum: 1)
-    TR_kw_var b = SwiGLU(4, ara_boyut: 6, tohum: 1, birleşik: TR_kw_true)
-    TR_fn_assert_equal([4, 12], b.kapı_yukarı.ağırlık.TR_mem_shape)
-    TR_fn_assert_equal(TR_kw_none, b.kapı)
-    TR_fn_assert_equal(TR_kw_none, a.kapı_yukarı)
+    TR_kw_var a = TR_type_SwiGLU(4, TR_arg_intermediate_dim: 6, TR_arg_seed: 1)
+    TR_kw_var b = TR_type_SwiGLU(4, TR_arg_intermediate_dim: 6, TR_arg_seed: 1, TR_arg_merged: TR_kw_true)
+    TR_fn_assert_equal([4, 12], b.TR_mem_gate_up_proj.TR_mem_weight.TR_mem_shape)
+    TR_fn_assert_equal(TR_kw_none, b.TR_mem_gate_proj)
+    TR_fn_assert_equal(TR_kw_none, a.TR_mem_gate_up_proj)
     TR_fn_assert_equal(2, TR_fn_parameters(b).TR_mem_length)
-    b.kapı_yukarı.ağırlık = TR_fn_concat([a.kapı.ağırlık, a.yukarı.ağırlık], TR_arg_dim: 1)
-    b.aşağı.ağırlık = a.aşağı.ağırlık
+    b.TR_mem_gate_up_proj.TR_mem_weight = TR_fn_concat([a.TR_mem_gate_proj.TR_mem_weight, a.TR_mem_up_proj.TR_mem_weight], TR_arg_dim: 1)
+    b.TR_mem_down_proj.TR_mem_weight = a.TR_mem_down_proj.TR_mem_weight
     TR_kw_var x = TR_fn_randn([2, 3, 4], TR_arg_seed: 2)
-    TR_fn_assert(en_büyük_mutlak_fark(a.ileri(x), b.ileri(x)) < 0.000001, "birleşik [G | U] ayrıyla aynı olmalı")
-    TR_kw_var s = SwiGLU(4, ara_boyut: 6, sapmalı: TR_kw_true, birleşik: TR_kw_true, tohum: 1)
-    TR_fn_assert_equal([12], s.kapı_yukarı.sapma.TR_mem_shape)
-    TR_fn_assert_equal([4], s.aşağı.sapma.TR_mem_shape)
+    TR_fn_assert(en_büyük_mutlak_fark(a.TR_mem_forward(x), b.TR_mem_forward(x)) < 0.000001, "birleşik [G | U] ayrıyla aynı olmalı")
+    TR_kw_var s = TR_type_SwiGLU(4, TR_arg_intermediate_dim: 6, TR_arg_use_bias: TR_kw_true, TR_arg_merged: TR_kw_true, TR_arg_seed: 1)
+    TR_fn_assert_equal([12], s.TR_mem_gate_up_proj.TR_mem_bias.TR_mem_shape)
+    TR_fn_assert_equal([4], s.TR_mem_down_proj.TR_mem_bias.TR_mem_shape)
     TR_fn_assert_equal(4, TR_fn_parameters(s).TR_mem_length)
     TR_kw_func f(x, w, b1, b2) {
-        s.kapı_yukarı.ağırlık = w
-        s.kapı_yukarı.sapma = b1
-        s.aşağı.sapma = b2
-        TR_kw_return s.ileri(x)
+        s.TR_mem_gate_up_proj.TR_mem_weight = w
+        s.TR_mem_gate_up_proj.TR_mem_bias = b1
+        s.TR_mem_down_proj.TR_mem_bias = b2
+        TR_kw_return s.TR_mem_forward(x)
     }
     TR_fn_assert(TR_fn_grad_check(f, [rastgele_girdi([2, 4], 3), rastgele_girdi([4, 12], 4), rastgele_girdi([12], 5), rastgele_girdi([4], 6)]))
 }
 
 TR_ctx_test "PLEBağlamı: x @ W_ctx / √D, katman başına parçalara bölünüp ortak RMS normundan geçer" {
-    TR_kw_var c = PLEBağlamı(2, 2, 2)
-    TR_fn_assert_equal([2, 4], c.ctx_katmanı.ağırlık.TR_mem_shape)
-    c.ctx_katmanı.ağırlık = TR_fn_tensor([[1.0, 2.0, 3.0, 4.0], [5.0, 6.0, 7.0, 8.0]])
-    TR_kw_var b = c.ileri(TR_fn_tensor([[[1.0, 2.0]]])) // x @ W = [11, 14, 17, 20]
+    TR_kw_var c = TR_type_PLEContext(2, 2, 2)
+    TR_fn_assert_equal([2, 4], c.TR_mem_context_proj.TR_mem_weight.TR_mem_shape)
+    c.TR_mem_context_proj.TR_mem_weight = TR_fn_tensor([[1.0, 2.0, 3.0, 4.0], [5.0, 6.0, 7.0, 8.0]])
+    TR_kw_var b = c.TR_mem_forward(TR_fn_tensor([[[1.0, 2.0]]])) // x @ W = [11, 14, 17, 20]
     TR_fn_assert_equal(2, b.TR_mem_length)
     TR_fn_assert_equal([1, 1, 2], b[0].TR_mem_shape)
     // RMS normu ölçekten bağımsızdır: √D bölümü silinir; parça i, [11, 14] ve [17, 20]'nin normlusudur.
@@ -461,140 +461,140 @@ TR_ctx_test "PLEBağlamı: x @ W_ctx / √D, katman başına parçalara bölün�
 
 TR_ctx_test "PLEBloğu: H + RMSNorm(W_p · (GELU(W_g · H) ⊙ (bağlam + √P · tablo[kelime]) / √2)) elle hesaplanan değeri verir" {
     // D = 2, P = 2; kapı ve izdüşüm birim matris, normun ağırlığı 1.
-    TR_kw_var p = PLEBloğu(2, 3, 2)
-    p.kapı.ağırlık = TR_fn_eye(2)
-    p.izdüşüm.ağırlık = TR_fn_eye(2)
-    p.tablo = TR_fn_tensor([[0.0, 0.0], [1.0, 3.0], [9.0, 9.0]])
+    TR_kw_var p = TR_type_PLEBlock(2, 3, 2)
+    p.TR_mem_gate_proj.TR_mem_weight = TR_fn_eye(2)
+    p.TR_mem_proj.TR_mem_weight = TR_fn_eye(2)
+    p.TR_mem_table = TR_fn_tensor([[0.0, 0.0], [1.0, 3.0], [9.0, 9.0]])
     TR_kw_var h = TR_fn_tensor([[[1.0, 2.0]]])
     TR_kw_var bağlam = TR_fn_tensor([[[1.0, -1.0]]])
-    TR_kw_var çıktı = p.ileri(h, [[1]], bağlam) // kelime 1: tablo satırı [1, 3]
+    TR_kw_var çıktı = p.TR_mem_forward(h, [[1]], bağlam) // kelime 1: tablo satırı [1, 3]
     // elle: e = (bağlam + √2 · [1, 3]) / √2
     TR_kw_var e0 = (1.0 + TR_fn_sqrt(2.0) * 1.0) / TR_fn_sqrt(2.0)
     TR_kw_var e1 = (-1.0 + TR_fn_sqrt(2.0) * 3.0) / TR_fn_sqrt(2.0)
-    TR_kw_var g = ple_gelu(TR_fn_tensor([1.0, 2.0])).TR_mem_tolist
+    TR_kw_var g = TR_fn_ple_gelu(TR_fn_tensor([1.0, 2.0])).TR_mem_tolist
     TR_kw_var k0 = g[0] * e0
     TR_kw_var k1 = g[1] * e1
     TR_kw_var r = TR_fn_sqrt((k0 * k0 + k1 * k1) / 2 + 0.00001)
     TR_kw_var beklenen = TR_fn_tensor([[[1.0 + k0 / r, 2.0 + k1 / r]]])
     TR_fn_assert(en_büyük_mutlak_fark(çıktı, beklenen) < 0.0001, "PLE formülü: {çıktı.TR_mem_tolist} ≠ {beklenen.TR_mem_tolist}")
     // gelu'nun kendisi: tek çağrı yeri ple_gelu
-    TR_fn_assert(en_büyük_mutlak_fark(ple_gelu(TR_fn_tensor([0.5, -1.0])), TR_fn_gelu(TR_fn_tensor([0.5, -1.0]), TR_arg_approximate: TR_kw_false)) < 0.0000001)
+    TR_fn_assert(en_büyük_mutlak_fark(TR_fn_ple_gelu(TR_fn_tensor([0.5, -1.0])), TR_fn_gelu(TR_fn_tensor([0.5, -1.0]), TR_arg_approximate: TR_kw_false)) < 0.0000001)
 }
 
 TR_ctx_test "TransformerBloğu: PLE'siz varsayılan değişmez; PLE, epsilon, pencere ve birleşik seçenekleri bağlanır" {
-    TR_kw_var tablolar = döner_konum_tablosu(4, 4)
-    TR_kw_var düz = TransformerBloğu(8, 2, ara_boyut: 8, tohum: 1)
-    TR_fn_assert_equal(TR_kw_none, düz.ple)
-    TR_fn_assert_equal(0.00001, düz.norm1.epsilon)
-    TR_fn_assert_equal(0, düz.dikkat.pencere)
+    TR_kw_var tablolar = TR_fn_rotary_table(4, 4)
+    TR_kw_var düz = TR_type_TransformerBlock(8, 2, TR_arg_intermediate_dim: 8, TR_arg_seed: 1)
+    TR_fn_assert_equal(TR_kw_none, düz.TR_mem_ple)
+    TR_fn_assert_equal(0.00001, düz.TR_mem_input_norm.TR_mem_eps)
+    TR_fn_assert_equal(0, düz.TR_mem_attention.TR_mem_window)
     TR_kw_var x = TR_fn_randn([2, 4, 8], TR_arg_seed: 1)
-    TR_fn_assert_equal([2, 4, 8], düz.ileri(x, tablolar[0], tablolar[1]).TR_mem_shape)
-    TR_kw_var b = TransformerBloğu(8, 2, kv_bakış_sayısı: 1, ara_boyut: 8, tohum: 1, epsilon: 0.000001, pencere: 2, qk_normu: TR_kw_true,
-        birleşik_kv: TR_kw_true, birleşik_kapı: TR_kw_true, sapmalı: TR_kw_false, ileri_sapmalı: TR_kw_true, ple_boyutu: 4, dağarcık: 10)
-    TR_fn_assert_equal(0.000001, b.norm2.epsilon)
-    TR_fn_assert_equal(0.000001, b.dikkat.q_norm.epsilon)
-    TR_fn_assert_equal(0.000001, b.ple.norm.epsilon)
-    TR_fn_assert_equal(2, b.dikkat.pencere)
-    TR_fn_assert_equal([10, 4], b.ple.tablo.TR_mem_shape)
-    TR_fn_assert_equal([8], b.ileri_besleme.aşağı.sapma.TR_mem_shape)
+    TR_fn_assert_equal([2, 4, 8], düz.TR_mem_forward(x, tablolar[0], tablolar[1]).TR_mem_shape)
+    TR_kw_var b = TR_type_TransformerBlock(8, 2, TR_arg_num_kv_heads: 1, TR_arg_intermediate_dim: 8, TR_arg_seed: 1, TR_arg_eps: 0.000001, TR_arg_window: 2, TR_arg_qk_norm: TR_kw_true,
+        TR_arg_merged_kv: TR_kw_true, TR_arg_merged_gate: TR_kw_true, TR_arg_use_bias: TR_kw_false, TR_arg_ff_use_bias: TR_kw_true, TR_arg_ple_dim: 4, TR_arg_vocab_size: 10)
+    TR_fn_assert_equal(0.000001, b.TR_mem_post_attention_norm.TR_mem_eps)
+    TR_fn_assert_equal(0.000001, b.TR_mem_attention.TR_mem_q_norm.TR_mem_eps)
+    TR_fn_assert_equal(0.000001, b.TR_mem_ple.TR_mem_norm.TR_mem_eps)
+    TR_fn_assert_equal(2, b.TR_mem_attention.TR_mem_window)
+    TR_fn_assert_equal([10, 4], b.TR_mem_ple.TR_mem_table.TR_mem_shape)
+    TR_fn_assert_equal([8], b.TR_mem_feed_forward.TR_mem_down_proj.TR_mem_bias.TR_mem_shape)
     TR_kw_var bağlam = TR_fn_randn([2, 4, 4], TR_arg_seed: 3)
-    TR_fn_assert_equal([2, 4, 8], b.ileri(x, tablolar[0], tablolar[1], [[1, 2, 3, 4], [5, 6, 7, 8]], bağlam).TR_mem_shape)
+    TR_fn_assert_equal([2, 4, 8], b.TR_mem_forward(x, tablolar[0], tablolar[1], [[1, 2, 3, 4], [5, 6, 7, 8]], bağlam).TR_mem_shape)
     TR_kw_func f(x, w, t, bağlam) {
-        b.ple.kapı.ağırlık = w
-        b.ple.tablo = t
-        TR_kw_return b.ileri(x, tablolar[0], tablolar[1], [[1, 2, 3, 4]], bağlam)
+        b.TR_mem_ple.TR_mem_gate_proj.TR_mem_weight = w
+        b.TR_mem_ple.TR_mem_table = t
+        TR_kw_return b.TR_mem_forward(x, tablolar[0], tablolar[1], [[1, 2, 3, 4]], bağlam)
     }
     TR_fn_assert(TR_fn_grad_check(f, [rastgele_girdi([1, 4, 8], 2), rastgele_girdi([8, 4], 3), rastgele_girdi([10, 4], 4), rastgele_girdi([1, 4, 4], 5)]))
-    TR_kw_var mesaj = hata_metni(() => TransformerBloğu(8, 2, ple_boyutu: 4))
+    TR_kw_var mesaj = hata_metni(() => TR_type_TransformerBlock(8, 2, TR_arg_ple_dim: 4))
     TR_fn_assert(mesaj.TR_mem_contains("ple_boyutu için dağarcık da verilmeli"), mesaj)
 }
 
 TR_ctx_test "katman_pencereleri: G katmanı 0, Y katmanları pencereleri sırayla alır" {
-    TR_fn_assert_equal([32, 64, 0, 32, 0, 64, 32, 0], katman_pencereleri("YYGYGYYG", [32, 64]))
-    TR_fn_assert_equal([0, 0], katman_pencereleri("GG", [8]))
-    TR_kw_var mesaj = hata_metni(() => katman_pencereleri("YXG", [8]))
+    TR_fn_assert_equal([32, 64, 0, 32, 0, 64, 32, 0], TR_fn_layer_windows("YYGYGYYG", [32, 64]))
+    TR_fn_assert_equal([0, 0], TR_fn_layer_windows("GG", [8]))
+    TR_kw_var mesaj = hata_metni(() => TR_fn_layer_windows("YXG", [8]))
     TR_fn_assert(mesaj.TR_mem_contains("yalnızca Y ve G"), mesaj)
 }
 
 TR_ctx_test "GPT: yeni seçenekler varsayılanda modeli değiştirmez; PLE'li yerel/genel model kurulur" {
     TR_kw_var x = [[1, 2, 3, 4, 5]]
-    TR_kw_var a = GPT(12, bağlam: 6, boyut: 8, katman: 2, bakış_sayısı: 2, tohum: 3)
-    TR_kw_var b = GPT(12, bağlam: 6, boyut: 8, katman: 2, bakış_sayısı: 2, tohum: 3, pencereler: [0, 0])
-    TR_fn_assert(a.ileri(x) == b.ileri(x), "pencereler: 0 varsayılanla aynı")
-    TR_fn_assert_equal(TR_kw_none, a.ple_bağlamı)
-    TR_kw_var m = GPT(12, bağlam: 6, boyut: 8, katman: 4, bakış_sayısı: 2, kv_bakış_sayısı: 1, ara_boyut: 12, paylaşımlı: TR_kw_true, tohum: 3,
-        pencereler: katman_pencereleri("YGYG", [2, 3]), qk_normu: TR_kw_true, birleşik_kv: TR_kw_true, birleşik_kapı: TR_kw_true,
-        ileri_sapmalı: TR_kw_true, epsilon: 0.000001, ple_boyutu: 4)
-    TR_fn_assert_equal([2, 5, 12], m.ileri([[1, 2, 3, 4, 5], [5, 4, 3, 2, 1]]).TR_mem_shape)
-    TR_fn_assert_equal([2, 0, 3, 0], [m.bloklar[0].dikkat.pencere, m.bloklar[1].dikkat.pencere, m.bloklar[2].dikkat.pencere, m.bloklar[3].dikkat.pencere])
+    TR_kw_var a = TR_type_GPT(12, TR_arg_context: 6, TR_arg_embed_dim: 8, TR_arg_num_layers: 2, TR_arg_num_heads: 2, TR_arg_seed: 3)
+    TR_kw_var b = TR_type_GPT(12, TR_arg_context: 6, TR_arg_embed_dim: 8, TR_arg_num_layers: 2, TR_arg_num_heads: 2, TR_arg_seed: 3, TR_arg_windows: [0, 0])
+    TR_fn_assert(a.TR_mem_forward(x) == b.TR_mem_forward(x), "pencereler: 0 varsayılanla aynı")
+    TR_fn_assert_equal(TR_kw_none, a.TR_mem_ple_context)
+    TR_kw_var m = TR_type_GPT(12, TR_arg_context: 6, TR_arg_embed_dim: 8, TR_arg_num_layers: 4, TR_arg_num_heads: 2, TR_arg_num_kv_heads: 1, TR_arg_intermediate_dim: 12, TR_arg_tied: TR_kw_true, TR_arg_seed: 3,
+        TR_arg_windows: TR_fn_layer_windows("YGYG", [2, 3]), TR_arg_qk_norm: TR_kw_true, TR_arg_merged_kv: TR_kw_true, TR_arg_merged_gate: TR_kw_true,
+        TR_arg_ff_use_bias: TR_kw_true, TR_arg_eps: 0.000001, TR_arg_ple_dim: 4)
+    TR_fn_assert_equal([2, 5, 12], m.TR_mem_forward([[1, 2, 3, 4, 5], [5, 4, 3, 2, 1]]).TR_mem_shape)
+    TR_fn_assert_equal([2, 0, 3, 0], [m.TR_mem_blocks[0].TR_mem_attention.TR_mem_window, m.TR_mem_blocks[1].TR_mem_attention.TR_mem_window, m.TR_mem_blocks[2].TR_mem_attention.TR_mem_window, m.TR_mem_blocks[3].TR_mem_attention.TR_mem_window])
     TR_kw_var adlar = TR_fn_parameters(m, TR_arg_named: TR_kw_true).TR_mem_keys()
-    TR_fn_assert(adlar.TR_mem_contains("bloklar.0.ple.tablo") TR_kw_and adlar.TR_mem_contains("bloklar.3.ple.tablo"))
-    TR_fn_assert(adlar.TR_mem_contains("ple_bağlamı.ctx_katmanı.ağırlık") TR_kw_and adlar.TR_mem_contains("ple_bağlamı.norm.ağırlık"))
-    TR_fn_assert(adlar.TR_mem_contains("bloklar.1.dikkat.kv_katmanı.ağırlık") TR_kw_and adlar.TR_mem_contains("bloklar.2.ileri_besleme.kapı_yukarı.ağırlık"))
-    TR_fn_assert(adlar.TR_mem_contains("bloklar.0.dikkat.q_norm.ağırlık"))
+    TR_fn_assert(adlar.TR_mem_contains("TR_mem_blocks.0.TR_mem_ple.TR_mem_table") TR_kw_and adlar.TR_mem_contains("TR_mem_blocks.3.TR_mem_ple.TR_mem_table"))
+    TR_fn_assert(adlar.TR_mem_contains("TR_mem_ple_context.TR_mem_context_proj.TR_mem_weight") TR_kw_and adlar.TR_mem_contains("TR_mem_ple_context.TR_mem_norm.TR_mem_weight"))
+    TR_fn_assert(adlar.TR_mem_contains("TR_mem_blocks.1.TR_mem_attention.TR_mem_kv_proj.TR_mem_weight") TR_kw_and adlar.TR_mem_contains("TR_mem_blocks.2.TR_mem_feed_forward.TR_mem_gate_up_proj.TR_mem_weight"))
+    TR_fn_assert(adlar.TR_mem_contains("TR_mem_blocks.0.TR_mem_attention.TR_mem_q_norm.TR_mem_weight"))
     // nedensellik: 4. konumdaki kelimeyi değiştirmek ilk dört konumun logit'ini değiştirmez
-    TR_kw_var l1 = m.ileri([[1, 2, 3, 4, 5]])
-    TR_kw_var l2 = m.ileri([[1, 2, 3, 4, 6]])
+    TR_kw_var l1 = m.TR_mem_forward([[1, 2, 3, 4, 5]])
+    TR_kw_var l2 = m.TR_mem_forward([[1, 2, 3, 4, 6]])
     TR_fn_assert(en_büyük_mutlak_fark(l1[0][0..4], l2[0][0..4]) < 0.000001, "PLE ve pencere nedenselliği bozmamalı")
     TR_fn_assert(en_büyük_mutlak_fark(l1[0][4], l2[0][4]) > 0.000001, "son konum değişmeli")
-    TR_kw_var mesaj = hata_metni(() => GPT(12, katman: 2, pencereler: [1, 2, 3]))
+    TR_kw_var mesaj = hata_metni(() => TR_type_GPT(12, TR_arg_num_layers: 2, TR_arg_windows: [1, 2, 3]))
     TR_fn_assert(mesaj.TR_mem_contains("katman sayısına (2) eşit olmalı"), mesaj)
-    TR_fn_assert(m.kayıp([[1, 2, 3]], [[2, 3, 4]]).TR_mem_tolist > 0)
+    TR_fn_assert(m.TR_mem_loss([[1, 2, 3]], [[2, 3, 4]]).TR_mem_tolist > 0)
 }
 
 TR_ctx_test "GPT.üret: eos örneklenince durur (eos dizide kalır), eos'suz adet kadar üretir" {
-    TR_kw_var m = GPT(6, bağlam: 8, boyut: 8, katman: 1, bakış_sayısı: 2, tohum: 2)
-    TR_kw_var dizi = m.üret([1], 6, sıcaklık: 0)
+    TR_kw_var m = TR_type_GPT(6, TR_arg_context: 8, TR_arg_embed_dim: 8, TR_arg_num_layers: 1, TR_arg_num_heads: 2, TR_arg_seed: 2)
+    TR_kw_var dizi = m.TR_mem_generate([1], 6, TR_arg_temperature: 0)
     TR_fn_assert_equal(7, dizi.TR_mem_length)
     TR_kw_var eos = dizi[3]
     // beklenen: eos'un ilk üretildiği konuma kadar (ikisi dahil)
     TR_kw_var j = 1
     TR_kw_while dizi[j] != eos { j += 1 }
-    TR_fn_assert_equal(dizi[0..j + 1], m.üret([1], 6, sıcaklık: 0, eos: eos))
-    TR_fn_assert_equal(dizi, m.üret([1], 6, sıcaklık: 0, eos: -5)) // hiç örneklenmeyen kimlik: durmaz
+    TR_fn_assert_equal(dizi[0..j + 1], m.TR_mem_generate([1], 6, TR_arg_temperature: 0, TR_arg_eos: eos))
+    TR_fn_assert_equal(dizi, m.TR_mem_generate([1], 6, TR_arg_temperature: 0, TR_arg_eos: -5)) // hiç örneklenmeyen kimlik: durmaz
 }
 
 TR_ctx_test "NedenselDikkat: bakış_boyutu gizli boyuttan bağımsızdır (Hugging Face head_dim); verilmezse boyut / bakış_sayısı" {
     // Qwen3 gibi: gizli 8, 2 bakış × 8 bakış boyutu = 16 (gizliden büyük), kv 1 bakış.
-    TR_kw_var d = NedenselDikkat(8, 2, kv_bakış_sayısı: 1, bakış_boyutu: 8, tohum: 3)
-    TR_fn_assert_equal(8, d.bakış_boyutu)
-    TR_fn_assert_equal([8, 16], d.sorgu_katmanı.ağırlık.TR_mem_shape)
-    TR_fn_assert_equal([8, 8], d.anahtar_katmanı.ağırlık.TR_mem_shape)
-    TR_fn_assert_equal([16, 8], d.çıkış_katmanı.ağırlık.TR_mem_shape)
-    TR_kw_var tablolar = döner_konum_tablosu(5, 8)
+    TR_kw_var d = TR_type_CausalAttention(8, 2, TR_arg_num_kv_heads: 1, TR_arg_head_dim: 8, TR_arg_seed: 3)
+    TR_fn_assert_equal(8, d.TR_mem_head_dim)
+    TR_fn_assert_equal([8, 16], d.TR_mem_q_proj.TR_mem_weight.TR_mem_shape)
+    TR_fn_assert_equal([8, 8], d.TR_mem_k_proj.TR_mem_weight.TR_mem_shape)
+    TR_fn_assert_equal([16, 8], d.TR_mem_o_proj.TR_mem_weight.TR_mem_shape)
+    TR_kw_var tablolar = TR_fn_rotary_table(5, 8)
     TR_kw_var x = rastgele_girdi([2, 5, 8], 4)
-    TR_fn_assert_equal([2, 5, 8], d.ileri(x, tablolar[0], tablolar[1]).TR_mem_shape)
-    TR_fn_assert_equal(4, NedenselDikkat(8, 2).bakış_boyutu)
+    TR_fn_assert_equal([2, 5, 8], d.TR_mem_forward(x, tablolar[0], tablolar[1]).TR_mem_shape)
+    TR_fn_assert_equal(4, TR_type_CausalAttention(8, 2).TR_mem_head_dim)
     // bakış_boyutu verilince boyut bakış sayısına bölünmek zorunda değildir.
-    TR_fn_assert_equal([6, 8], NedenselDikkat(6, 4, bakış_boyutu: 2).sorgu_katmanı.ağırlık.TR_mem_shape)
-    TR_kw_var mesaj = hata_metni(() => NedenselDikkat(8, 2, bakış_boyutu: 3))
+    TR_fn_assert_equal([6, 8], TR_type_CausalAttention(6, 4, TR_arg_head_dim: 2).TR_mem_q_proj.TR_mem_weight.TR_mem_shape)
+    TR_kw_var mesaj = hata_metni(() => TR_type_CausalAttention(8, 2, TR_arg_head_dim: 3))
     TR_fn_assert(mesaj.TR_mem_contains("çift"), mesaj)
 }
 
 TR_ctx_test "GPT: bakış_boyutu bloklara ve döner konum tablosuna iletilir; varsayılan model değişmez" {
-    TR_kw_var m = GPT(12, bağlam: 6, boyut: 8, katman: 2, bakış_sayısı: 2, kv_bakış_sayısı: 1, bakış_boyutu: 16, tohum: 3)
-    TR_fn_assert_equal([8, 32], m.bloklar[0].dikkat.sorgu_katmanı.ağırlık.TR_mem_shape)
-    TR_fn_assert_equal([6, 8], m.kos.TR_mem_shape)
-    TR_fn_assert_equal([2, 6, 12], m.ileri(TR_fn_tensor([[1, 2, 3, 4, 5, 6], [6, 5, 4, 3, 2, 1]])).TR_mem_shape)
-    TR_kw_var a = GPT(12, bağlam: 6, boyut: 8, katman: 2, bakış_sayısı: 2, tohum: 3)
-    TR_kw_var b = GPT(12, bağlam: 6, boyut: 8, katman: 2, bakış_sayısı: 2, bakış_boyutu: 4, tohum: 3)
-    TR_fn_assert_equal(a.ileri(TR_fn_tensor([[1, 2, 3]])).TR_mem_tolist, b.ileri(TR_fn_tensor([[1, 2, 3]])).TR_mem_tolist)
+    TR_kw_var m = TR_type_GPT(12, TR_arg_context: 6, TR_arg_embed_dim: 8, TR_arg_num_layers: 2, TR_arg_num_heads: 2, TR_arg_num_kv_heads: 1, TR_arg_head_dim: 16, TR_arg_seed: 3)
+    TR_fn_assert_equal([8, 32], m.TR_mem_blocks[0].TR_mem_attention.TR_mem_q_proj.TR_mem_weight.TR_mem_shape)
+    TR_fn_assert_equal([6, 8], m.TR_mem_cos_table.TR_mem_shape)
+    TR_fn_assert_equal([2, 6, 12], m.TR_mem_forward(TR_fn_tensor([[1, 2, 3, 4, 5, 6], [6, 5, 4, 3, 2, 1]])).TR_mem_shape)
+    TR_kw_var a = TR_type_GPT(12, TR_arg_context: 6, TR_arg_embed_dim: 8, TR_arg_num_layers: 2, TR_arg_num_heads: 2, TR_arg_seed: 3)
+    TR_kw_var b = TR_type_GPT(12, TR_arg_context: 6, TR_arg_embed_dim: 8, TR_arg_num_layers: 2, TR_arg_num_heads: 2, TR_arg_head_dim: 4, TR_arg_seed: 3)
+    TR_fn_assert_equal(a.TR_mem_forward(TR_fn_tensor([[1, 2, 3]])).TR_mem_tolist, b.TR_mem_forward(TR_fn_tensor([[1, 2, 3]])).TR_mem_tolist)
 }
 
 TR_ctx_test "GPT: rope_tabanı döner konum tablolarının tabanıdır; varsayılan 10000 (Hugging Face rope_theta)" {
-    TR_kw_var m = GPT(12, bağlam: 6, boyut: 8, katman: 1, bakış_sayısı: 2, rope_tabanı: 100000.0)
-    TR_fn_assert_equal(döner_konum_tablosu(6, 4, taban: 100000.0)[0].TR_mem_tolist, m.kos.TR_mem_tolist)
-    TR_kw_var v = GPT(12, bağlam: 6, boyut: 8, katman: 1, bakış_sayısı: 2)
-    TR_fn_assert_equal(döner_konum_tablosu(6, 4)[1].TR_mem_tolist, v.sin.TR_mem_tolist)
+    TR_kw_var m = TR_type_GPT(12, TR_arg_context: 6, TR_arg_embed_dim: 8, TR_arg_num_layers: 1, TR_arg_num_heads: 2, TR_arg_rope_theta: 100000.0)
+    TR_fn_assert_equal(TR_fn_rotary_table(6, 4, TR_arg_rope_theta: 100000.0)[0].TR_mem_tolist, m.TR_mem_cos_table.TR_mem_tolist)
+    TR_kw_var v = TR_type_GPT(12, TR_arg_context: 6, TR_arg_embed_dim: 8, TR_arg_num_layers: 1, TR_arg_num_heads: 2)
+    TR_fn_assert_equal(TR_fn_rotary_table(6, 4)[1].TR_mem_tolist, v.TR_mem_sin_table.TR_mem_tolist)
 }
 
 TR_ctx_test "GPT: ağırlık_türü PLE tablolarına ve katmanlarına da iletilir" {
-    TR_kw_var m = GPT(12, bağlam: 6, boyut: 8, katman: 2, bakış_sayısı: 2, ple_boyutu: 4, ağırlık_türü: "bf16")
+    TR_kw_var m = TR_type_GPT(12, TR_arg_context: 6, TR_arg_embed_dim: 8, TR_arg_num_layers: 2, TR_arg_num_heads: 2, TR_arg_ple_dim: 4, TR_arg_weight_dtype: "bf16")
     TR_fn_assert_equal(["bf16", "bf16", "bf16", "bf16", "bf16"], [
-        m.gömme.tablo.TR_mem_dtype,
-        m.ple_bağlamı.ctx_katmanı.ağırlık.TR_mem_dtype,
-        m.bloklar[0].ple.tablo.TR_mem_dtype,
-        m.bloklar[0].ple.kapı.ağırlık.TR_mem_dtype,
-        m.bloklar[0].ple.izdüşüm.ağırlık.TR_mem_dtype
+        m.TR_mem_embedding.TR_mem_table.TR_mem_dtype,
+        m.TR_mem_ple_context.TR_mem_context_proj.TR_mem_weight.TR_mem_dtype,
+        m.TR_mem_blocks[0].TR_mem_ple.TR_mem_table.TR_mem_dtype,
+        m.TR_mem_blocks[0].TR_mem_ple.TR_mem_gate_proj.TR_mem_weight.TR_mem_dtype,
+        m.TR_mem_blocks[0].TR_mem_ple.TR_mem_proj.TR_mem_weight.TR_mem_dtype
     ])
 }

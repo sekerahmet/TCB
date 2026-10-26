@@ -35,27 +35,27 @@ TR_kw_func eğit(prova) {
     }
     TR_kw_var op = TR_fn_AdamW(TR_fn_parameters(model), TR_arg_lr: ayar.TR_mem_lr, TR_arg_weight_decay: 0.0)
     // Sözlükteki her şey kontrol noktasına girer; klasörde bir nokta varsa burada yüklenir.
-    TR_kw_var koşu = Koşu(KOŞU, ayar, {model: model, op: op, ö: ö}, adım_sayısı: ayar.TR_mem_step, prova: prova)
-    TR_kw_for adım TR_kw_in koşu.TR_mem_resume_step..koşu.son_adım {
+    TR_kw_var koşu = TR_type_Run(KOŞU, ayar, {model: model, op: op, ö: ö}, TR_arg_num_steps: ayar.TR_mem_step, TR_arg_dry_run: prova)
+    TR_kw_for adım TR_kw_in koşu.TR_mem_resume_step..koşu.TR_mem_last_step {
         TR_kw_var giriş, hedef = ö.TR_mem_next()
         op.TR_mem_zero_grad()
         TR_kw_var kayıp = TR_fn_cross_entropy(ileri(giriş), hedef)
         TR_fn_backward(kayıp)
         op.TR_mem_step()
         // Kaybı okumak (GPU'da) beklemek demektir: ölçüler her adımda değil, 10 adımda bir verilir.
-        koşu.adım_bitti(adım + 1, TR_kw_if (adım + 1) % 10 == 0 { {kayıp: kayıp.TR_mem_tolist} } TR_kw_else { TR_kw_none })
+        koşu.TR_mem_step_done(adım + 1, TR_kw_if (adım + 1) % 10 == 0 { {TR_mem_loss: kayıp.TR_mem_tolist} } TR_kw_else { TR_kw_none })
         TR_kw_if (adım + 1) % 30 == 0 {
             TR_kw_var dk = TR_fn_cross_entropy(ileri(doğrulama_girişi), doğrulama_hedefi).TR_mem_tolist
-            koşu.değerlendirildi(adım + 1, {doğrulama_kaybı: dk})
+            koşu.TR_mem_evaluated(adım + 1, {doğrulama_kaybı: dk})
             TR_fn_print("adım {adım + 1}: doğrulama kaybı {TR_fn_round(dk, 3)}")
         }
     }
-    koşu.bitir(model)
+    koşu.TR_mem_finish(model)
     TR_kw_return koşu
 }
 
 // --- Önce prova: geçici bir klasörde PROVA_ADIMI adım; koşu klasörüne dokunmaz ---
-TR_fn_print("prova {PROVA_ADIMI} adım sürer")
+TR_fn_print("prova {TR_const_DRY_RUN_STEPS} adım sürer")
 eğit(TR_kw_true)
 TR_fn_print("prova koşu klasörünü açtı mı:", KOŞU.TR_mem_exists)
 
