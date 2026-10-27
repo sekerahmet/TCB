@@ -39,7 +39,7 @@ Her kuralın emsali ve gerekçesi: [`rationale/04_operators.md`](rationale/04_op
 **4.4** `<`, `>`, `<=`, `>=` sayılar ve metinler arasında tanımlıdır: sayılar 4.5'teki gibi kesin, metinler kod noktası sırasıyla karşılaştırılır. Karşılaştırmalar zincirlenmez: `0 <= i < n` ve `a < b == c` sözdizimi hatasıdır, ileti `0 <= i TR_and i < n` ya da parantez önerir.
 - *Test:* TR testi; metin karşılaştırması ve zincir hatası uygulanınca TR testi.
 
-**4.5** `==` ve `!=` aynı tipten iki değeri karşılaştırır; ayrı tipler (`"1" == 1`) denetim hatasıdır. Sayılar tipten bağımsız, kesin karşılaştırılır, `TR_Int` yuvarlanmaz (`1 == 1.0`, `9007199254740993 != 9007199254740992.0`); `TR_nan` hiçbir sayıya eşit değildir. İsteğe bağlı değer asıl tipten bir değerle ya da `TR_none`'la karşılaştırılabilir. Liste ve sözlük öğe öğe (sözlükte sıra önemsiz), aralık uçlarıyla karşılaştırılır. Fonksiyonlar karşılaştırılamaz. Yapının ve tensörün eşitliği sonraki bölümlerdedir.
+**4.5** `==` ve `!=` aynı tipten iki değeri karşılaştırır; ayrı tipler (`"1" == 1`) denetim hatasıdır. Sayılar tipten bağımsız, kesin karşılaştırılır, `TR_Int` yuvarlanmaz (`1 == 1.0`, `9007199254740993 != 9007199254740992.0`); `TR_nan` hiçbir sayıya eşit değildir. İsteğe bağlı değer asıl tipten bir değerle ya da `TR_none`'la karşılaştırılabilir. Liste ve sözlük öğe öğe (sözlükte sıra önemsiz), bayt dizisi bayt bayt, `TR_JSON` JSON değeri olarak (sayılar 4.5'in sayı kuralıyla), aralık uçlarıyla karşılaştırılır. Fonksiyonlar karşılaştırılamaz. Yapının ve tensörün eşitliği sonraki bölümlerdedir.
 - *Test:* TR testi; tip kuralı uygulanınca denetleyicinin testi.
 
 **4.6** `TR_and`, `TR_or` ve `TR_not`'un işlenenleri `TR_Bool`dur (3.10); `TR_and` ve `TR_or` kısa devre yapar.

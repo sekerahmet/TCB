@@ -12,7 +12,7 @@ Bu dilde her şey kimlik koduyla yazılır (`TR_print`). İnsanların okuyabilme
 **2.1a** Göründüğünden farklı okunan kaynak kabul edilmez. Yazı yönünü değiştiren karakterler (U+202A–U+202E, U+2066–U+2069, U+200E, U+200F, U+061C) hiçbir yerde, yorumda ve metinde de, yazılamaz; metinde gerekirse kaçışla (2.6). Adlarda görünmez dolgu harfleri (U+115F, U+1160, U+3164, U+FFA0) yazılamaz. Dosyanın adları ve aktardığı adlar arasında, Unicode benzerlik iskeleti (UTS #39) aynı olan iki ayrı ad hatadır (`yetki` ile son harfi Kiril `і` olan `yetkі`). İskeleti `TR_` ile başlayan ad kullanıcı adı olamaz: Kiril `Т` ile yazılmış `ТR_print` dilin sözcüğü gibi görünür (2.3a). Tek bir adda birden çok yazı sistemi uyarıdır (`θ_eski`); tek yazı sistemindeki ad (`öğrenme`, `привет`, `αβγ`) uyarısızdır.
 - *Test:* TR testi; iskelet kuralı uygulanınca TR testi.
 
-**2.2** Yorum, metin dışındaki `#` ile başlar ve satır sonuna kadar sürer. Çok satırlı yorum yoktur; her satır `#` ile başlar. `//` yorum değil tam bölmedir (4.2a); satır başındaki `//` ve `/*` sözdizimi hatasıdır, ileti `#`'i önerir.
+**2.2** Yorum, metin dışındaki `#` ile başlar ve satır sonuna kadar sürer. Çok satırlı yorum yoktur; her satır `#` ile başlar. `//` yorum değildir, tam bölme işlecidir (sonraki bölümlerde); satır başındaki `//` ve `/*` sözdizimi hatasıdır, ileti `#`'i önerir.
 - *Test:* TR testi; `#` yorumu uygulanınca TR testi.
 
 ```tr

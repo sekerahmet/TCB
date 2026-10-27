@@ -28,7 +28,7 @@ TR_print("şeker".TR_length, "şeker"[-1], "şeker"[1..3])   # çıktı: 5 r ek
 
 **3.5** `TR_none` yokluktur, `TR_NoneType`'ın tek değeridir. Değişken, parametre, alan ya da dönüş ancak tipi isteğe bağlıysa (`TR_Int?`) `TR_none` alabilir; ilk değeri `TR_none` olan değişken tipini yazar. İsteğe bağlı değer asıl tipin yerinde kullanılamaz; `??` ile varsayılan verilerek, `?.` ile ya da `TR_none`'la karşılaştırılarak açılır.
 - `x != TR_none` sınamasının dalında `x` asıl tipindedir, yalnız `x` yerel bir değişkense, dalda ona atama yapılmıyorsa ve onu değiştiren bir kapanış yoksa. Alan ve indeks daraltılmaz; `??` ya da yerel bir kopyayla açılır.
-- İsteğe bağlı olmayan bir değeri `TR_none`'la karşılaştırmak uyarıdır (sonuç hep aynıdır).
+- İsteğe bağlı olmayan bir değeri `TR_none`'la karşılaştırmak denetim hatasıdır (sonuç hep aynıdır).
 - Değer döndürmeyen fonksiyonun çağrısı değer olarak kullanılamaz (denetim hatası); `TR_NoneType` yalnız dönüş tipi ve tip değeri olarak yazılır.
 - *Test:* TR testi; isteğe bağlı tip uygulanınca denetleyicinin testi.
 
