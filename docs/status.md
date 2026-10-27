@@ -217,6 +217,11 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM ve Gem
 - **Mevcut durum:** 1e6 ve üstü bilimsel yazılıyor ("1e+06", 1234567.0 için "1.234567e+06") [ölçüldü].
 - **Yapılacaklar:** bilimsel gösterim üs −4'ün altında ve 16'dan itibaren.
 
+### 3.3a
+
+- **Mevcut durum:** bayt dizisi tipi yok (kimlik listesinde yok).
+- **Yapılacaklar:** `TR_Bytes`: değiştirilemez; metinden UTF-8 ile ve sayılardan kurulur; dosya ve ağ okumaları bayt da verebilir.
+
 ### 3.5
 
 - **Mevcut durum:** isteğe bağlı tip yok; `TR_Int` açıklamalı bir değişkene `TR_none` atanabiliyor [ölçüldü].
@@ -231,6 +236,11 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM ve Gem
 
 - **Mevcut durum:** `{k: 1}` anahtarı "k" metni sayıyor, `d.k` anahtarı okuyor, olmayan anahtar `TR_none` veriyor, ondalık anahtar çalışıyor [ölçüldü].
 - **Yapılacaklar:** `TR_Dict[K, V]`; değişmezdeki anahtar bir ifade, erişim yalnız köşeli parantezle, olmayan anahtar hata, anahtar yalnız `TR_Int`, `TR_String`, `TR_Bool`. Depodaki kullanımlar çevrilir.
+
+### 3.7a
+
+- **Mevcut durum:** JSON çözülünce sözlük ve liste oluyor, tip denetimi yok; genel "her şey" tipi (Any) kimlik listesinde var.
+- **Yapılacaklar:** `TR_JSON`; çözme onu verir, asıl değere tip çağrısıyla geçilir. Genel "her şey" tipi kalkar; depodaki kullanımlar `TR_JSON`'a ya da asıl tipe çevrilir.
 
 ### 3.8
 
