@@ -101,7 +101,14 @@ func (e *ModuleError) Error() string {
 	return e.header() + ": " + strings.Join(pieces, "; ")
 }
 
-func (e *ModuleError) Unwrap() error { return e.Err }
+// Unwrap hatanın nedenleridir: çalışma hatası (Err) ya da yüklemeden önceki denetim hataları
+// (Errors); hata_kodu modülün denetim hatasında ilk tanının koduna böyle iner.
+func (e *ModuleError) Unwrap() []error {
+	if e.Err != nil {
+		return append([]error{e.Err}, e.Errors...)
+	}
+	return e.Errors
+}
 
 // MessageText is the error's text in lang (messages.Localized): a module's error caught in a
 // file is written in that file's language (messages.ErrorIn).

@@ -255,12 +255,12 @@ TR_ctx_test "20.9 bozuk nokta açık hata verir ve bir önceki geçerli noktayı
     TR_kw_var n = kn.TR_mem_save()
     TR_kw_var d = TR_fn_path(n, "state.json")
     TR_fn_write_file(d, TR_fn_read_file(d).TR_mem_replace("\"workers\"", "\"workers\" "))
-    TR_fn_assert_equal(H7472, TR_fn_error_code(() => TR_fn_checkpoint(k, {w: w})))
+    TR_fn_assert_equal(H7476, TR_fn_error_code(() => TR_fn_checkpoint(k, {w: w})))
     // İleti bozuk noktayı ve bir önceki geçerli noktayı adıyla söyler.
     TR_kw_var m = hata_metni(() => TR_fn_checkpoint(k, {w: w}))
     TR_fn_assert(m.TR_mem_contains("step_0000000002") TR_kw_and m.TR_mem_contains("step_0000000001"), m)
     TR_fn_remove(TR_fn_path(k, "checkpoints", "step_0000000001"), TR_arg_recursive: TR_kw_true)
-    TR_fn_assert_equal(H7472, TR_fn_error_code(() => TR_fn_checkpoint(k, {w: w})))
+    TR_fn_assert_equal(H7476, TR_fn_error_code(() => TR_fn_checkpoint(k, {w: w})))
     m = hata_metni(() => TR_fn_checkpoint(k, {w: w}))
     TR_fn_assert(m.TR_mem_contains("step_0000000002") TR_kw_and TR_kw_not m.TR_mem_contains("step_0000000001"), m)
     TR_fn_remove(n, TR_arg_recursive: TR_kw_true)
@@ -281,7 +281,7 @@ TR_ctx_test "20.10 aralıklı kayıtta yazma hatası eğitimi durdurmaz; art ard
     TR_fn_write_file(TR_fn_path(k, "checkpoints"), "engel")
     TR_fn_assert_equal(TR_kw_false, kn.TR_mem_update(1))
     TR_fn_assert_equal(TR_kw_false, kn.TR_mem_update(2))
-    TR_fn_assert_equal(H7412, TR_fn_error_code(() => kn.TR_mem_update(3)))
+    TR_fn_assert_equal(H7400, TR_fn_error_code(() => kn.TR_mem_update(3)))
     TR_fn_assert(hata_metni(() => kn.TR_mem_save()).TR_mem_contains("kaydedilemedi"))
 }
 

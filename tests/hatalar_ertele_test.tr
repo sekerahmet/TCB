@@ -139,3 +139,16 @@ TR_ctx_test "8.5 ileti fırlatılınca hata kendi koduyla çıkar; doğrula ilet
     TR_kw_try { TR_fn_message("H6903") } TR_kw_catch h { yakalanan = h }
     TR_fn_assert(yakalanan.TR_mem_contains("H6903"), yakalanan)
 }
+
+TR_ctx_test "8.5 hata_kodu neden yuvasından iner: sarmalayıcının değil asıl nedenin, modülün denetim hatasında ilk tanının kodu" {
+    // İletinin parçaları ("tensörde ve sayıda", "Tam (5)") neden değildir: kod iletinin kendisinindir.
+    TR_fn_assert_equal(H2423, TR_fn_error_code(() => TR_fn_floor("a")))
+    TR_fn_assert_equal(H6104, TR_fn_error_code(() => TR_fn_floor([1.5])))
+    // Nedeni taşıyan yuva ({error}) inilir: dosya hatasının kendi kodu gelir.
+    TR_fn_assert_equal(H2132, TR_fn_error_code(() => TR_fn_load_tensors("bu_dosya_yok_12345.trt")))
+    // Tip değeriyle metnin karşılaştırılması (3.11) çalışma anında da kendi koduyla çıkar.
+    TR_kw_var ad = "Tam"
+    TR_fn_assert_equal(H1105, TR_fn_error_code(() => { TR_fn_print(TR_fn_type(5) == ad) }))
+    // Modül yüklenemezse (denetim hatası) hata yeniden fırlatılmaz; ilk tanının kodu gelir.
+    TR_fn_assert_equal(H1106, TR_fn_error_code(() => { TR_kw_import "negative/test_yerel_adi" }))
+}

@@ -157,7 +157,7 @@ TR_ctx_test "16.7 hatalar Türkçe ve yakalanabilir" {
     TR_fn_assert(hata_metni(() => TR_fn_load_tokenizer("data/yok.json")).TR_mem_contains("yüklenemedi: böyle bir dosya ya da klasör yok"))
     TR_fn_assert_equal(H5617, TR_fn_error_code(() => TR_fn_load_tokenizer("data/corrupt.npy")))
     TR_fn_assert(hata_metni(() => TR_fn_dataset("data/yok_klasor")).TR_mem_contains("açılamadı: böyle bir dosya ya da klasör yok"))
-    TR_fn_assert_equal(H5514, TR_fn_error_code(() => TR_fn_dataset("data/corrupt.npy")))
+    TR_fn_assert_equal(H5053, TR_fn_error_code(() => TR_fn_dataset("data/corrupt.npy")))
     TR_fn_assert_equal(H5513, TR_fn_error_code(() => TR_fn_dataset("data/numbers", TR_arg_cache: "onb")))
     TR_kw_var küme = TR_fn_dataset("data/numbers")
     TR_fn_assert_equal(H5529, TR_fn_error_code(() => küme.TR_mem_sampler(TR_arg_batch_size: 2)))
