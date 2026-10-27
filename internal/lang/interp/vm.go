@@ -402,7 +402,8 @@ func (v *VM) WaitAsync() {
 // Öneri denetleyiciyle ortaktır (ipucu.AdOnerisi): tanımsız ad çalışmadan önce de aynı
 // mesajla bulunur.
 func (v *VM) suggestName(name string, env *Environment) *messages.Error {
-	return hint.NameSuggestion(name, env.Names(), codes.Display())
+	// Program bir dosyadır, dili yoktur (2.1): öneri kimliğin yazımıdır (TR_print).
+	return hint.NameSuggestion(name, env.Names(), nil)
 }
 
 func (v *VM) reportAsyncError(line int, err error) {

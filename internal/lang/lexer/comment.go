@@ -5,7 +5,7 @@ import "github.com/sekerahmet/TCB/internal/lang/messages"
 // skipWhitespaceAndComments boşlukları ve yorumları atlar. Yorum '#' ile başlar, satır sonuna
 // kadar sürer (2.2); dosyanın başlığı (# TR 4) ve ilk satırdaki '#!' de birer yorumdur. '//' tam
 // bölme işlecidir; satır başında yazılınca (C ailesinin yorumu) sözdizimi hatasıdır, '/*' de öyle
-// (4.9): ileti '#'i önerir, satırın (ya da '*/'ya kadar yorumun) geri kalanı atlanır ki ardındaki
+// (2.2): ileti '#'i önerir, satırın (ya da '*/'ya kadar yorumun) geri kalanı atlanır ki ardındaki
 // sözcükler ikinci bir hata üretmesin.
 func (l *Lexer) skipWhitespaceAndComments() {
 	for {

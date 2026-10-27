@@ -35,7 +35,9 @@ import (
 const exitSyntax = 2
 
 // encodeCommand 'tr kodla' komutudur: kodlanacak metin '--dil'in yazım dilinde (varsayılan kişinin
-// yazım dili, codes.Display) yazılmıştır; zaten kodlu dosyalara dokunulmaz.
+// yazım dili, codes.Display) yazılmıştır. Başlıklı dosya zaten kodludur (2.1), dokunulmaz: onu
+// gösterim sayıp okumak, o dilin sözcüğüyle aynı adlı kullanıcı adını (eğer) kimliğe çevirirdi.
+// Standart girişteki metin her zaman gösterimdir (tr göster'in çıktısı başlığı tutar).
 func encodeCommand(args []string) {
 	encodeName := codes.NameRef(codes.CmdEncode)
 	if len(args) > 0 && args[0] == "-" {
@@ -45,7 +47,12 @@ func encodeCommand(args []string) {
 	}
 	languageCode, targets := parseLanguageArgs(encodeName, args, messages.Text(messages.H8708, codes.OptionFlag(codes.OptLang), encodeName))
 	language := mustLoadLanguage(languageCode)
-	convertCommand(targets, encodeName, messages.Text(messages.H8704), messages.H2115, func(_, text string) (string, error) { return source.EncodeIn(text, language) })
+	convertCommand(targets, encodeName, messages.Text(messages.H8704), messages.H2115, func(_, text string) (string, error) {
+		if b, err := source.Split(text); err == nil && b.Coded {
+			return text, nil
+		}
+		return source.EncodeIn(text, language)
+	})
 }
 
 // languageArgument standart giriş kipinin '--dil <kod>' argümanını okur (yoksa kişinin yazım
@@ -190,9 +197,9 @@ func writeInPlace(filePath, text string) error {
 }
 
 // showCommand 'tr göster <dosya.tr> [--dil tr]' komutudur: dosya verilen yazım dilinde
-// (varsayılan kişinin yazım dili) standart çıktıya yazılır; kodsuz dosya Türkçedir, Türkçede
-// olduğu gibi kalır (source.Show). Dosya yerine '-' verilirse metin standart girişten okunur
-// (düzenleyiciler için; çıkış kodları yukarıda).
+// (varsayılan kişinin yazım dili) standart çıktıya yazılır; gösterim başlığı ve satırları tutar,
+// başlıksız metin olduğu gibi kalır (source.Show). Dosya yerine '-' verilirse metin standart girişten
+// okunur (düzenleyiciler için; çıkış kodları yukarıda).
 func showCommand(args []string) {
 	if len(args) > 0 && args[0] == "-" {
 		language := languageArgument(args[1:], codes.NameRef(codes.CmdShow))

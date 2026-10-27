@@ -32,7 +32,11 @@ func (l *Lexer) readString(quote rune, startLine, startCol int) string {
 			l.readChar() // kapanış tırnağını geç
 			return sb.String()
 		case l.ch == '\\' && l.peekChar() == '(':
-			l.readInterpolation(&sb)
+			if !l.readInterpolation(&sb) {
+				// Kapanmayan yerleştirmede metin orada biter: sonraki satırlar kendi sözcükleriyle
+				// okunur, tek hata verilir.
+				return sb.String()
+			}
 		case l.ch == '\\':
 			l.readEscape(&sb)
 		case l.ch == '\r' && l.peekChar() == '\n':
@@ -48,8 +52,8 @@ func (l *Lexer) readString(quote rune, startLine, startCol int) string {
 
 // readInterpolation '\(' ile başlayan yerleştirmeyi okur: değere '(' + ifadenin kaynaktaki metni
 // + ')' yazılır, '(' ve ')'nin değerdeki indeksleri posBuf'a kaydedilir. Satır sonunda ya da dosya
-// sonunda kapanmamışsa hata verir ve aralığın sonu açık kalır (-1).
-func (l *Lexer) readInterpolation(sb *strings.Builder) {
+// sonunda kapanmamışsa hata verir, aralığın sonu açık kalır (-1) ve false döner.
+func (l *Lexer) readInterpolation(sb *strings.Builder) bool {
 	openLine, openCol := l.line, l.column
 	l.readChar() // '\'
 	l.posBuf = append(l.posBuf, [2]int{len(l.strBuf), -1})
@@ -57,11 +61,12 @@ func (l *Lexer) readInterpolation(sb *strings.Builder) {
 	l.readChar()
 	if !l.copyCode(sb) {
 		l.addError(openLine, openCol, messages.New(messages.H0009))
-		return
+		return false
 	}
 	l.posBuf[len(l.posBuf)-1][1] = len(l.strBuf)
 	l.appendString(sb, ')', l.position)
 	l.readChar()
+	return true
 }
 
 // copyCode yerleştirmenin içindeki kodu eşi olan ')'ye kadar (')' hariç) değere olduğu gibi
@@ -73,6 +78,10 @@ func (l *Lexer) copyCode(sb *strings.Builder) bool {
 		switch l.ch {
 		case 0, '\n':
 			return false
+		case '\r':
+			if l.peekChar() == '\n' {
+				return false
+			}
 		case '(':
 			depth++
 		case ')':
