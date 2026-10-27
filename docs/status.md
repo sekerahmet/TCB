@@ -24,7 +24,7 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
   - kitaplığın, örneklerin ve testlerin imzaları;
   - "olabilir" tipi;
   - tensörün tür ve şekil bilgisinin tipe ne kadar gireceği;
-  - `TR_kw_import ... TR_ctx_as ad` modülü bugün `TR_type_Dict`'e bağlıyor (11.2), üyelerin tipi korunmalı; gerçek sürücü ile benzetim arasında seçim için ortak bir arayüz tipi.
+  - `TR_kw_import ... TR_ctx_as m` modülü bugün `TR_type_Dict`'e bağlıyor (11.2), üyelerin tipi korunmalı; gerçek sürücü ile benzetim arasında seçim için ortak bir arayüz tipi.
 
 ### 1.3
 
@@ -141,7 +141,7 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). Taslak: D
 
 ### 2.1
 
-- **Mevcut durum:** başlığı olmayan metin bugün Türkçe yazılmış sayılıp okunuyor. Başlık bugün `//! tr kodlu 3 dil=tr` biçiminde: bir Türkçe sözcük ve dosyanın dilini taşıyor. Programın sonucu bu dile bağlı: `TR_fn_print(TR_kw_true)` dil=tr ile "doğru", dil=en ile "true" yazdırıyor [ölçüldü].
+- **Mevcut durum:** başlığı olmayan metin bugün Türkçe yazılmış sayılıp okunuyor. Başlık bugün eski biçimde (tr kodlu 3 dil=tr): bir Türkçe sözcük ve dosyanın dilini taşıyor. Programın sonucu bu dile bağlı: `TR_fn_print(TR_kw_true)` dil=tr ile "doğru", dil=en ile "true" yazdırıyor [ölçüldü].
 - **Yapılacaklar:** diskteki her dosya kodludur; başlıksız dosya çalışmaz, ileti kodlama yolunu söyler. Bilerek bozuk sınav dosyaları, belgelerdeki kod blokları ve Go testlerindeki TR metni kodlu biçime geçer.
   - Başlık `//! TR 4`; bugün tanınmıyor, dosya başlıksız sayılıp hata veriyor [ölçüldü]. 1. ve 2. bölümün kod blokları yeni başlıkla yazıldı; başlık uygulanana kadar belgelerdeki kod bloklarını çalıştıran testler kalır. Dosyanın dili kalkınca programın sonucu hiçbir dile bağlı olmaz (değer metni ve hata metni ilgili bölümlerde).
   - İlk satırdaki `#!` yok sayılır; bugün sözdizimi hatası veriyor [ölçüldü].
@@ -174,7 +174,7 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). Taslak: D
 ### 2.4
 
 - **Mevcut durum:** `0x1F` sözdizimi hatası veriyor [ölçüldü]; aralığı aşan tam sayı yazımı hata veriyor, ileti ondalık yazımı öneriyor [ölçüldü], kuralla aynı.
-- **Yapılacaklar:** `0x`, `0o`, `0b` ön ekleri ve ön ekten sonra `_`.
+- **Yapılacaklar:** `0x1F`, `0o17`, `0b1010` biçimindeki ön ekler ve ön ekten sonra `_`.
   - `0X1F` bugün genel bir sözdizimi hatası veriyor ("')' bekleniyordu"), küçük harfli ön eki önermiyor [ölçüldü]; ileti `0x1F`'yi önerir.
 
 ### 2.6
