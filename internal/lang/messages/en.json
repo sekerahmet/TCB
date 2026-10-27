@@ -1604,7 +1604,6 @@
 "H8750": "the length field of the embedded package is corrupt",
 "H8751": "embedded package version {version} is not supported (this interpreter reads only version {max}; rebuild the application with this 'tr')",
 "H8752": "the embedded package could not be decoded: {error}",
-"H8753": "the length field of the embedded code is corrupt",
 "H8754": "the footer of the embedded package is missing",
 "H8755": "{file}, line {line}: {error}",
 "H8756": "{file}, line {line}: the module {module|q} was not found (searched: {searched})",

@@ -6,21 +6,42 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // Kural: 'tr derle' paketinin JSON anahtarları dilden bağımsız İngilizce tanımlayıcılardır (dil
-// tanımı 17.3); eski (Türkçe anahtarlı, sürüm 2) paket okunmaz, sürümüyle reddedilir.
+// tanımı 17.3).
 func TestPackageKeys(t *testing.T) {
 	testkit.FormatJSONKeys(t, pkg{})
-	body := []byte(`{"ana":{"kod":"yazdır(1)"}}`)
-	footer := make([]byte, footerSize)
-	binary.LittleEndian.PutUint64(footer[0:8], uint64(len(body)))
-	binary.LittleEndian.PutUint32(footer[8:12], 2)
-	copy(footer[12:], packageSignature)
-	if _, _, found, err := extractPackage(append(body, footer...)); !found || !messages.Has(err, messages.H8751) {
-		t.Errorf("sürüm 2 paketi reddedilmeli: bulundu=%v hata=%v", found, err)
+}
+
+// Kural: paketin imzası dilden bağımsız İngilizce tanımlayıcı TR_PACKAGE, sürümü 4'tür (dil tanımı
+// 17.3). Eski biçimler okunmaz (geriye uyumluluk yok): sürüm 1 (TR_EXE_1) ve sürüm 3 (TR_PAKET)
+// imzalı ikili paketsiz sayılır, yorumlayıcının kendisidir.
+func TestPackageSignature(t *testing.T) {
+	coded, err := encodePackage(&pkg{Main: packageFile{Code: "x"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	signature := "TR_PACKAGE"
+	if !strings.HasSuffix(string(coded), signature) {
+		t.Fatalf("paket %q imzasıyla bitmeli: %q", signature, coded[len(coded)-12:])
+	}
+	if v := binary.LittleEndian.Uint32(coded[len(coded)-len(signature)-4:]); v != 4 {
+		t.Errorf("paket sürümü %d, beklenen 4", v)
+	}
+	body := []byte(`{"main":{"code":"x"}}`)
+	v3 := make([]byte, 20)
+	binary.LittleEndian.PutUint64(v3[0:8], uint64(len(body)))
+	binary.LittleEndian.PutUint32(v3[8:12], 3)
+	copy(v3[12:], "TR_PAKET")
+	for name, exe := range map[string][]byte{
+		"sürüm 1": []byte("x\n\x02\x00\x00\x00\x00\x00\x00\x00TR_EXE_1"),
+		"sürüm 3": append(body, v3...),
+	} {
+		if _, templateSize, found, err := extractPackage(exe); found || err != nil || templateSize != len(exe) {
+			t.Errorf("%s paketi okunmamalı: bulundu=%v boy=%d hata=%v", name, found, templateSize, err)
+		}
 	}
 }
 

@@ -18,21 +18,19 @@ import (
 )
 
 // 'tr derle' ile üretilen uygulama, yorumlayıcı ikilisinin sonuna eklenmiş bir paketten
-// oluşur. İki biçim vardır:
+// oluşur:
 //
-//	Sürüm 1 (eski, yalnızca okunur): [kaynak kod][kod uzunluğu u64][oldPackageSignature]
-//	Sürüm 3:                       [JSON paket][paket uzunluğu u64][sürüm u32][packageSignature]
+//	[JSON paket][paket uzunluğu u64][sürüm u32][packageSignature]
 //
 // Tüm sayılar küçük uçludur (little endian). JSON paketinde ana programın yanında onun 'aktar'
-// ile aldığı .tr modülleri de (özyinelemeli olarak) bulunur; anahtarları dilden bağımsız
-// İngilizce tanımlayıcılardır (dil tanımı 17.3). Sürüm 2 (Türkçe anahtarlı) okunmaz.
+// ile aldığı .tr modülleri de (özyinelemeli olarak) bulunur. İmza ve anahtarlar dilden bağımsız
+// İngilizce tanımlayıcılardır (dil tanımı 17.3). Eski biçimler okunmaz: sürüm 1-3'ün imzası
+// (TR_EXE_1, TR_PAKET) tanınmaz; imzası tutup sürümü packageVersion olmayan paket reddedilir.
 const (
-	oldPackageSignature        = "TR_EXE_1"
-	packageSignature           = "TR_PAKET"
-	packageVersion      uint32 = 3
+	packageSignature        = "TR_PACKAGE"
+	packageVersion   uint32 = 4
 
-	oldFooterSize = 16 // uzunluk + imza
-	footerSize    = 20 // uzunluk + sürüm + imza
+	footerSize = 8 + 4 + len(packageSignature) // uzunluk + sürüm + imza
 )
 
 // embeddedSourceName gömülü uygulamanın ana programına verilen addır. VM bu adı görünce
@@ -65,7 +63,7 @@ func encodePackage(pk *pkg) ([]byte, error) {
 	footer := make([]byte, footerSize)
 	binary.LittleEndian.PutUint64(footer[0:8], uint64(len(content)))
 	binary.LittleEndian.PutUint32(footer[8:12], packageVersion)
-	copy(footer[12:20], packageSignature)
+	copy(footer[12:], packageSignature)
 	return append(content, footer...), nil
 }
 
@@ -74,33 +72,24 @@ func encodePackage(pk *pkg) ([]byte, error) {
 // verir. İmza var ama paket bozuksa ya da desteklenmeyen bir sürümse hata döner.
 func extractPackage(exe []byte) (pk *pkg, templateSize int, found bool, err error) {
 	n := len(exe)
-	switch {
-	case n >= footerSize && string(exe[n-8:]) == packageSignature:
-		length := binary.LittleEndian.Uint64(exe[n-20 : n-12])
-		version := binary.LittleEndian.Uint32(exe[n-12 : n-8])
-		if length > uint64(n-footerSize) {
-			return nil, 0, true, messages.New(messages.H8750)
-		}
-		start := n - footerSize - int(length)
-		if version != packageVersion {
-			return nil, start, true, messages.New(messages.H8751, version, packageVersion)
-		}
-		pk = &pkg{}
-		if err := json.Unmarshal(exe[start:n-footerSize], pk); err != nil {
-			return nil, start, true, messages.New(messages.H8752, err)
-		}
-		return pk, start, true, nil
-	case n >= oldFooterSize && string(exe[n-8:]) == oldPackageSignature:
-		// Sürüm 1: modülsüz, yalnızca ana programın kaynağı.
-		length := binary.LittleEndian.Uint64(exe[n-16 : n-8])
-		if length == 0 || length > uint64(n-oldFooterSize) {
-			return nil, 0, true, messages.New(messages.H8753)
-		}
-		start := n - oldFooterSize - int(length)
-		code := string(exe[start : n-oldFooterSize])
-		return &pkg{Main: packageFile{Code: code}}, start, true, nil
+	if n < footerSize || string(exe[n-len(packageSignature):]) != packageSignature {
+		return nil, n, false, nil
 	}
-	return nil, n, false, nil
+	footer := exe[n-footerSize:]
+	length := binary.LittleEndian.Uint64(footer[0:8])
+	version := binary.LittleEndian.Uint32(footer[8:12])
+	if length > uint64(n-footerSize) {
+		return nil, 0, true, messages.New(messages.H8750)
+	}
+	start := n - footerSize - int(length)
+	if version != packageVersion {
+		return nil, start, true, messages.New(messages.H8751, version, packageVersion)
+	}
+	pk = &pkg{}
+	if err := json.Unmarshal(exe[start:n-footerSize], pk); err != nil {
+		return nil, start, true, messages.New(messages.H8752, err)
+	}
+	return pk, start, true, nil
 }
 
 // findEmbeddedPackage çalışan ikilinin sonunda bir uygulama paketi arar.
@@ -118,25 +107,17 @@ func findEmbeddedPackage() (*pkg, bool, error) {
 	if err != nil {
 		return nil, false, nil
 	}
-	// Önce yalnızca son 8 bayta (imza) bakılır.
+	// Önce yalnızca sondaki imzaya bakılır.
 	size := info.Size()
-	if size < oldFooterSize {
+	if size < int64(len(packageSignature)) {
 		return nil, false, nil
 	}
-	signature := make([]byte, 8)
-	if _, err := f.ReadAt(signature, size-8); err != nil {
+	signature := make([]byte, len(packageSignature))
+	if _, err := f.ReadAt(signature, size-int64(len(signature))); err != nil || string(signature) != packageSignature {
 		return nil, false, nil
 	}
 	// İmza varsa yalnızca altbilgi ve paket okunur (yorumlayıcının kendisi değil).
-	var footer int64
-	switch string(signature) {
-	case packageSignature:
-		footer = footerSize
-	case oldPackageSignature:
-		footer = oldFooterSize
-	default:
-		return nil, false, nil
-	}
+	footer := int64(footerSize)
 	if size < footer {
 		return nil, true, messages.New(messages.H8754)
 	}

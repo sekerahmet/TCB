@@ -1609,7 +1609,6 @@ const (
 	H8750 Code = 8750 // gömülü paketin uzunluk alanı bozuk
 	H8751 Code = 8751 // gömülü paket sürümü {version} desteklenmiyor (bu yorumlayıcı yalnız {max} sürümünü okur; uygulamayı bu 'tr' ile yeniden derleyin)
 	H8752 Code = 8752 // gömülü paket çözülemedi: {error}
-	H8753 Code = 8753 // gömülü kodun uzunluk alanı bozuk
 	H8754 Code = 8754 // gömülü paketin altbilgisi eksik
 	H8755 Code = 8755 // {file}, satır {line}: {error}
 	H8756 Code = 8756 // {file}, satır {line}: {module|q} modülü bulunamadı (aranan: {searched})
