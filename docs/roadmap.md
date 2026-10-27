@@ -12,7 +12,7 @@ Yazıldı; DENETİM'den ve Gemini'nin araştırmasından geçti (2026-10-27). He
 
 ## Sıradaki
 
-2. bölüm (sözcük yapısı) DENETİM'den geçti; Gemini 1. ve 2. bölümü birlikte araştırıyor. 3. bölüm (tipler ve değerler) taslak, DENETİM 1–3'ü birlikte okuyor. 4. bölüm (işleçler) taslak. Dil tanımı kodlu biçimi, yani kimliklerle yazılmış programı anlatır.
+1. ve 2. bölüm DENETİM'den ve Gemini'nin araştırmasından, 3. bölüm DENETİM'den geçti; DENETİM 1–4'ü birlikte okuyor. 5. bölüm (deyimler ve kontrol yapıları) taslak; sırada 6. ve 7. bölüm. Dil tanımı kodlu biçimi, yani kimliklerle yazılmış programı anlatır.
 
 **En sonda: gösterim dilleri** (Ahmet, 2026-10-27: "bu ayrı yeni bir spec olur en sonda"). Kod her zaman kimliklerle yazılır, hiçbir insan dilinde yazılmaz. Kodun okunabilmesi için bir insan diline çevrilmesi, diller arası ad çakışması, değer metninin dili ve çok dilli ekip ayrı bir dil tanımı bölümü olarak, öbür bölümler bittikten sonra tasarlanır.
 

@@ -139,7 +139,7 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
 
 ## 2. Sözcük yapısı
 
-Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). DENETİM'den (üç tur) ve Gemini'nin araştırmasından geçti (2026-10-27). Sonradan değişen ve henüz denetlenmeyenler: yorumun `#`, başlığın `# TR 4` olması, 2.1a'nın `TR_` iskelet kuralı. Eski 2.9a (her dilde tek yazım) ve 2.11 (diller arası ad kuralı, $ad kaçışı) gösterim dilleri bölümüne gitti; o numaralar boş kalır. `tests/` altındaki 2.9a, 2.11 ve 2.12 numaralı testler, testler koşulmadan önce taşınır ya da silinir; yoksa her test numarasını bir kurala bağlayan kapı kalır. Kapılar da testlerle birlikte düzelir: `TestEveryRuleHasATest` harfli kural örneği olarak 2.9a'yı sabit arıyor (yerine 2.1a); kimlik kapısı `TR_` ile başlayan sözcükleri hiç denetlemiyor, TR_ ile yazılan her sözcüğü yerine göre bir kimliğe çözmeli (onaylı yeni adlar ve bilerek yanlış örnekler bir listede); gerekçe dosyalarının düzenini ve aynı yerde çakışan kimlik olmamasını koruyan test yok. Eski 2.12 (çıplak ileti kodu) kalktı. Anlamı değişmeyen maddelerin bugünkü TR testi var; aşağıda yalnız değişen ya da eksik olanlar.
+Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). DENETİM'den (üç tur) ve Gemini'nin araştırmasından geçti (2026-10-27). Sonradan değişen ve henüz denetlenmeyenler: yorumun `#`, başlığın `# TR 4` olması, 2.1a'nın `TR_` iskelet kuralı, 2.3b'de yerel sabitin küçük harfle yazılması. Eski 2.9a (her dilde tek yazım) ve 2.11 (diller arası ad kuralı, $ad kaçışı) gösterim dilleri bölümüne gitti; o numaralar boş kalır. `tests/` altındaki 2.9a, 2.11 ve 2.12 numaralı testler, testler koşulmadan önce taşınır ya da silinir; yoksa her test numarasını bir kurala bağlayan kapı kalır. Kapılar da testlerle birlikte düzelir: `TestEveryRuleHasATest` harfli kural örneği olarak 2.9a'yı sabit arıyor (yerine 2.1a); kimlik kapısı `TR_` ile başlayan sözcükleri hiç denetlemiyor, TR_ ile yazılan her sözcüğü yerine göre bir kimliğe çözmeli (onaylı yeni adlar ve bilerek yanlış örnekler bir listede); gerekçe dosyalarının düzenini ve aynı yerde çakışan kimlik olmamasını koruyan test yok. Eski 2.12 (çıplak ileti kodu) kalktı. Anlamı değişmeyen maddelerin bugünkü TR testi var; aşağıda yalnız değişen ya da eksik olanlar.
 
 ### 2.1
 
@@ -173,6 +173,11 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). DENETİM'
 - **Mevcut durum:** kimlikler sınıflı yazılıyor (TR_kw_if, TR_fn_print). Listede olmayan kimlik hata veriyor ama en yakın kimliği önermiyor: TR_fn_prnt ve x.TR_fn_map için ileti yalnız "bilinen bir kimlik değil" diyor [ölçüldü].
 - **Yapılacaklar:** program metninde sınıfsız yazım (`TR_print`, `x.TR_map`); sınıfı yer belirler. Kimlik çizelgesi yerle birlikte okunur; aynı ad iki yerde aynı kavramsa (argüman ve üye olarak lr) çeviri adları birleştirilir. Depodaki bütün kodlu dosyalar ve belgeler yeni yazıma çevrilir.
   - İleti, ad başka bir yerde geçerliyse doğru yeri, değilse o yerde yazımca en yakın kimliği önerir; uzaklık `TR_`'den sonraki adda ölçülür, komşu harflerin yer değiştirmesi tek değişikliktir.
+
+### 2.3b
+
+- **Mevcut durum:** her sabit büyük harf istiyor: fonksiyonun içindeki küçük harfli sabit de ad yazılışı uyarısı veriyor [ölçüldü].
+- **Yapılacaklar:** büyük harf yalnız modülün en dışındaki sabitte; yerel sabit küçük harfle yazılır. Depodaki yerel sabitler çevrilir.
 
 ### 2.4
 
@@ -326,3 +331,47 @@ Kurallar: [`docs/spec/04_operatorler.md`](spec/04_operatorler.md). Taslak: DENET
 
 - **Mevcut durum:** bit işleçleri yok: `5 & 3` sözdizimi hatası veriyor [ölçüldü].
 - **Yapılacaklar:** `&`, `|`, `^`, `~`, `<<`, `>>` tam sayıda.
+
+## 5. Deyimler ve kontrol yapıları
+
+Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: DENETİM ve Gemini'nin araştırması bekleniyor. `tests/deyimler_test.tr` eski kuralları da sınıyor (`:=` tanımı, `TR_while`, iç kapsamda aynı adla tanım); testler koşulmadan önce yeni kurallara göre yeniden yazılır. Yeni denetim hataları (5.1, 5.5, 5.6, 5.12, 5.14) uygulanırken depodaki kodlu dosyalar da düzeltilir; yoksa `TestRepoTRFilesPassCheck` kapısı kalır. Anlamı değişmeyen maddelerin bugünkü TR testi var: sabite atama denetim hatası, fonksiyonun içindeki `TR_break` sözdizimi hatası veriyor, takas çalışıyor [ölçüldü]. Koşullu döngünün `TR_while`'sız yazımı 2.9'da.
+
+### 5.1
+
+- **Mevcut durum:** `x := 5` çalışıyor; ilk değersiz `TR_var y` yokluk alıyor; hiç yeniden atanmayan değişken uyarı vermiyor [ölçüldü].
+- **Yapılacaklar:** ilk değer zorunlu; `:=` sözdizimi hatası, ileti `TR_var`'ı önerir; yeniden atanmayan yerel `TR_var` uyarısı `TR_const`'u önerir. Depodaki `:=` kullanımları çevrilir.
+
+### 5.3
+
+- **Mevcut durum:** `TR_var p, q = [1, 2, 3]` hata vermiyor, ilk iki öğeyi alıyor [ölçüldü].
+- **Yapılacaklar:** öğe sayısı tutmazsa çalışma hatası.
+
+### 5.4
+
+- **Mevcut durum:** tam sayı değişkene `/=` 3.5 yazıyor; `%=`, `**=` ve `&=` sözdizimi hatası veriyor; `k //= 2` yorum sayılıyor [ölçüldü].
+- **Yapılacaklar:** on iki bileşik atama; sonucun tipi değişkenin tipi, `/=` iletisi `//=`'yi önerir.
+
+### 5.5
+
+- **Mevcut durum:** `TR_else`'siz değer veren `TR_if` yokluk veriyor; `TR_elif` "bilinen bir kimlik değil" diyor, `TR_else TR_if`'i önermiyor [ölçüldü].
+- **Yapılacaklar:** ifade olarak kullanılınca `TR_else` zorunlu, dalların tipi aynı; `TR_elif` iletisi `TR_else TR_if`'i önerir.
+
+### 5.6
+
+- **Mevcut durum:** değişkenin adı deseni değeri karşılaştırıyor, kuralla aynı; eşleşmeyen `TR_match` yokluk veriyor, kapsama denetimi yok [ölçüldü]. Varsayılan kol `TR_default` ile de yazılıyor (2.9).
+- **Yapılacaklar:** kapsama denetimi (`TR_Bool`'da iki değer, öbür tiplerde `_`); ifade olarak kullanılınca kolların tipi aynı.
+
+### 5.7
+
+- **Mevcut durum:** dolaşılan sözlüğe anahtar eklemek hata vermiyor (sonuç `{"a": 1, "b": 2}`), dolaşılan listeye eklemek de (sonuç `[1, 2, 1, 2]`) [ölçüldü].
+- **Yapılacaklar:** dolaşırken listeye ya da sözlüğe ekleme ve çıkarma çalışma hatası. Bayt dizisinde ve `TR_JSON`'da dolaşma tipleriyle birlikte (3.3a, 3.7a).
+
+### 5.12
+
+- **Mevcut durum:** iç bloktaki `TR_var t = 5` dıştaki `t`'yi gizliyor, dıştaki 0 kalıyor, hata yok [ölçüldü]. `tests/deyimler_test.tr`'deki bir 5.12 testi iç kapsamda aynı adla tanımı geçerli sayıyor.
+- **Yapılacaklar:** kapsayan ya da aynı kapsamdaki yerel adla yeniden tanım denetim hatası.
+
+### 5.14
+
+- **Mevcut durum:** tanımsız ad çalışmadan önce bulunuyor ve en yakın adı öneriyor; tanımından önce kullanılan ad ise çalışma hatası veriyor [ölçüldü].
+- **Yapılacaklar:** tanımından önce kullanma denetim hatası; öneri 2.3a'nın uzaklığıyla.

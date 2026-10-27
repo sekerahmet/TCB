@@ -1,58 +1,80 @@
 # 5. Deyimler ve kontrol yapıları
 
-**5.1** `TR_kw_var ad = ifade` (ya da kısa `ad := ifade`) bulunulan kapsamda yeni bir ad tanımlar; değer verilmezse `TR_kw_none` olur.
+Bu bölümün kurallarına göre bugünkü durum ve yapılacaklar: [`docs/status.md`](../status.md), "5. Deyimler ve kontrol yapıları".
 
-**5.2** `TR_kw_const AD = ifade` yeniden atanamayan bir ad tanımlar; ihlali tip denetleyicisi çalıştırmadan önce yakalar.
+Her kuralın emsali ve gerekçesi: [`rationale/05_statements.md`](rationale/05_statements.md).
 
-**5.3** Çoklu tanım ve atama virgülle yapılır; sağdaki tüm ifadeler atamadan önce hesaplanır (takas güvenlidir), sağda tek bir liste varsa elemanlarına açılır.
+**5.1** `TR_var x = ifade` bulunulan kapsamda yeni bir değişken tanımlar; ilk değer her zaman yazılır, tip ondan çıkar (3.13). Kısa yazım (`x := ifade`) yoktur: sözdizimi hatasıdır, ileti `TR_var`'ı önerir. Hiç yeniden atanmayan yerel `TR_var` uyarı verir, ileti `TR_const`'u önerir.
+- *Test:* TR testi; ilk değerin zorunluluğu, kısa yazımın hatası ve uyarı uygulanınca TR testi.
+
+**5.2** `TR_const x = ifade` yeniden atanamayan bir ad tanımlar; ona atama denetim hatasıdır. Sabit olan bağdır, değer değil: `TR_const l = [1]` iken `l.TR_append(2)` geçerli, `l = []` hatadır. Modülün en dışındaki sabitin ilk değeri sabit ifadedir (1.1).
+- *Test:* TR testi.
+
+**5.3** Çoklu tanım ve atama virgülle yapılır; sağdaki ifadelerin hepsi atamadan önce hesaplanır (`a, b = b, a` takas eder). Sağda tek bir liste varsa öğelerine açılır; öğe sayısı tutmazsa çalışma hatasıdır.
+- *Test:* TR testi; öğe sayısı hatası uygulanınca TR testi.
 
 ```tr
-//! tr kodlu 3 dil=tr
-TR_kw_var a, b = 1, 2
+# TR 4
+TR_var a, b = 1, 2
 a, b = b, a
-TR_kw_var ad, soyad = ["Mustafa", "Kemal"]
+TR_const ad, soyad = ["Mustafa", "Kemal"]
 ```
 
-**5.4** Atama `=` ile, bileşik atama `+= -= *= /=` ile yapılır; hedef bir ad, indeks (`l[0]`) ya da alan (`p.x`) olabilir. Tanımlanmamış bir ada atama hatadır (önce `TR_kw_var` ile tanımlanmalıdır); hata çalışmadan önce bulunur (5.14).
+**5.4** Atama `=` ile, bileşik atama `+=`, `-=`, `*=`, `/=`, `//=`, `%=`, `**=`, `&=`, `|=`, `^=`, `<<=`, `>>=` ile yapılır; `x op= y`, `x = x op y` demektir ve sonucun tipi `x`'in tipi olmalıdır (`TR_Int` bir değişkene `/=` denetim hatasıdır, ileti `//=`'yi önerir). Hedef bir ad, indeks (`l[0]`) ya da alan (`p.x`) olabilir. Tanımlanmamış bir ada atama denetim hatasıdır.
+- *Test:* TR testi; yeni bileşik atamalar ve tip kuralı uygulanınca TR testi.
 
-**5.5** `TR_kw_if koşul { ... } TR_kw_else TR_kw_if koşul { ... } TR_kw_else { ... }` bir ifadedir: değeri çalışan bloğun son deyimidir; hiçbir dal çalışmazsa `TR_kw_none`.
+**5.5** `TR_if koşul { ... } TR_else TR_if koşul { ... } TR_else { ... }`: koşul `TR_Bool`'dur (3.10), gövde her zaman süslü parantez içindedir. `TR_if` ifade olarak da kullanılır: değeri çalışan bloğun son ifadesidir; o zaman `TR_else` zorunludur ve bütün dalların tipi aynıdır. `TR_elif` yoktur; ileti `TR_else TR_if`'i önerir.
+- *Test:* TR testi; zorunlu `TR_else` ve dal tipi uygulanınca denetleyicinin testi.
 
 ```tr
-//! tr kodlu 3 dil=tr
-TR_kw_var n = -3
-TR_kw_var tür = TR_kw_if n < 0 { "negatif" } TR_kw_else { "pozitif" }
+# TR 4
+TR_var n = -3
+TR_var tur = TR_if n < 0 { "negatif" } TR_else { "sıfır ya da pozitif" }
 ```
 
-**5.6** `eşle konu { desen => sonuç ... }` konuyu kollarla sırayla karşılaştırır ve ilk eşleşen kolu çalıştırır. Desen bir ifadedir ve değeri konuyla karşılaştırılır: ad (`sınır => ...`) ve parantezli ifade (`(sınır * 2) => ...`) de desendir, ok fonksiyonu sayılmaz (kolun sonucu ise bir ok fonksiyonu olabilir: `1 => (y) => y + 1`). Bir kolda virgülle birden çok desen olabilir; `TR_type_Range` deseni içerme sınar; `TR_kw_default` ya da `_` her şeyle eşleşir. Kol gövdesi bir ifade, `{ blok }` ya da `TR_kw_return ifade` olabilir; eşleşme yoksa `TR_kw_none`.
+**5.6** `TR_match x { ... }` x'i kollarla sırayla karşılaştırır, ilk eşleşen kolu çalıştırır; her kol bir desen, `=>` ve bir sonuçtur.
+- Desen bir değerdir ve konuyla `==` ile karşılaştırılır: sayı ya da metin yazımı, sabit, değişkenin adı (değeri karşılaştırılır, ad bağlanmaz), parantezli ifade. Bir kolda virgülle birden çok desen olabilir; `TR_Range` deseni içermeyi sınar; `_` her şeyle eşleşir.
+- Eşleme her durumu kapsar: `TR_Bool`'da iki değer, öbür tiplerde bir `_` kolu gerekir; kapsamayan eşleme denetim hatasıdır.
+- Kol gövdesi bir ifade, `{ blok }` ya da `TR_return ifade` olabilir. `TR_match` ifade olarak kullanılınca bütün kolların tipi aynıdır.
+- Durumlu tiplerin ve yapıların deseni sonraki bölümlerdedir.
+- *Test:* TR testi; kapsama denetimi uygulanınca denetleyicinin testi.
 
 ```tr
-//! tr kodlu 3 dil=tr
-TR_kw_var puan = 95
-TR_kw_match puan {
+# TR 4
+TR_var puan = 95
+TR_var not_ = TR_match puan {
     100 => "tam puan"
     90..100 => "pekiyi"
     50, 60, 70 => "yuvarlak"
-    TR_kw_default => "diğer"
+    _ => "diğer"
 }
 ```
 
-**5.7** `TR_kw_for x TR_kw_in kaynak { ... }` listede, aralıkta, metinde (karakterler), sözlükte (anahtarlar) ve tensörde (ilk eksen boyunca, bkz. 15.5) dolaşır; akışlı kaynaklarda (veri kümesinin sıralı okuyucusu, 16.6) öğeler istendikçe okunur ve kaynak bitince döngü biter. İki değişkenli biçim `TR_kw_for i, x TR_kw_in ...` liste/metin/tensörde indeks ile elemanı, sözlükte anahtar ile değeri verir.
+**5.7** `TR_for x TR_in kaynak { ... }` dolaşır: listede öğeler, aralıkta sayılar, metinde karakterler, bayt dizisinde baytlar (`TR_Int`), sözlükte anahtarlar, `TR_JSON` dizisinde öğeler ve nesnesinde anahtarlar; akışlı kaynakta (veri okuyucu) öğeler istendikçe okunur, kaynak bitince döngü biter. `TR_for i, x TR_in ...` listede, metinde ve bayt dizisinde indeksle öğeyi, sözlükte anahtarla değeri verir. Dolaşılan liste ya da sözlüğe öğe eklemek ya da ondan öğe çıkarmak çalışma hatasıdır. Tensörde dolaşmak sonraki bölümlerdedir.
+- *Test:* TR testi; dolaşırken değiştirme hatası uygulanınca TR testi.
 
-**5.8** `TR_kw_for koşul { ... }` ve `TR_kw_while koşul { ... }` koşul doğru oldukça tekrarlar.
+**5.8** `TR_for koşul { ... }` koşul doğru oldukça döner; koşul `TR_Bool`'dur. Ayrı bir `TR_while` yoktur (2.9).
+- *Test:* TR testi; `TR_while`'ın kalkması uygulanınca TR testi.
 
-**5.9** `TR_kw_for { ... }` sonsuz döngüdür; `TR_kw_break` en içteki döngüden çıkar.
+**5.9** `TR_for { ... }` sonsuz döngüdür; `TR_break` en içteki döngüden çıkar.
+- *Test:* TR testi.
 
-**5.10** `TR_kw_continue` en içteki döngünün sonraki turuna geçer.
+**5.10** `TR_continue` en içteki döngünün sonraki turuna geçer.
+- *Test:* TR testi.
 
-**5.11** Liste üreteci: `[ifade TR_kw_for x TR_kw_in kaynak TR_kw_if koşul]` (koşul isteğe bağlı).
+**5.11** Liste üreteci `[ifade TR_for x TR_in kaynak TR_if koşul]` bir `TR_List` kurar; koşul isteğe bağlıdır, değişken üretecin içinde kalır.
+- *Test:* TR testi.
 
 ```tr
-//! tr kodlu 3 dil=tr
-[x * x TR_kw_for x TR_kw_in 1..=5 TR_kw_if x % 2 == 1]   // [1, 9, 25]
+# TR 4
+TR_print([x * x TR_for x TR_in 1..=5 TR_if x % 2 == 1])   # çıktı: [1, 9, 25]
 ```
 
-**5.12** Her `{ ... }` bloğu (eğer/döngü gövdesi dahil) yeni bir kapsam açar; içeride tanımlanan ad dışarıda görünmez, dıştaki adlar okunup atanabilir. Döngünün her turu kendi kapsamında çalışır. İfade içindeki bloklar da (değer veren `TR_kw_if`, `TR_kw_match` kolları — tek satırlık `desen => ifade` kolu dahil — ve sondaki blok) kapsam açar: kolda ya da blokta tanımlanan adlı fonksiyon orada kalır, dıştaki aynı adı ezmez; koşul, `TR_kw_match` konusu ve desenler blok değildir, bulundukları kapsamda değerlendirilir.
+**5.12** Her `{ ... }` bloğu yeni bir kapsam açar: `TR_if` ve döngü gövdesi, `TR_match` kolu, sondaki blok. İçeride tanımlanan ad dışarıda görünmez; dıştaki adlar okunur ve atanır. Döngünün her turu kendi kapsamındadır. Bir yerel ad, aynı fonksiyonda kendisini kapsayan ya da aynı kapsamda tanımlı bir yerel adla yeniden tanımlanamaz (denetim hatası): iç bloktaki `TR_var t = 0` dıştaki `t`'yi gizlemez, hata verir. Koşul, `TR_match`'in konusu ve desenler blok değildir.
+- *Test:* TR testi; yeniden tanımlama hatası uygulanınca denetleyicinin testi.
 
-**5.13** `TR_kw_break` ve `TR_kw_continue` yalnızca bir döngünün gövdesinde geçerlidir (araya `TR_kw_if`, `TR_kw_match`, `TR_kw_try` gibi bloklar girebilir); döngü dışında yazılmaları derleme hatasıdır ve program hiç çalışmaz. Fonksiyon, ok fonksiyonu, sondaki blok, `TR_ctx_test`, `TR_kw_defer` ve `TR_kw_async` gövdeleri sınırdır: içlerinden dıştaki döngüye `TR_kw_break`/`TR_kw_continue` uygulanamaz (`döngü { fonksiyon f() { çık } }` hatadır; fonksiyondan çıkmak için `TR_kw_return` yazılır).
+**5.13** `TR_break` ve `TR_continue` yalnız bir döngünün gövdesinde geçerlidir; araya `TR_if`, `TR_match`, `TR_try` blokları girebilir. Fonksiyon, fonksiyon ifadesi, sondaki blok, `TR_test`, `TR_defer` ve `TR_async` gövdeleri sınırdır: içlerinden dıştaki döngüye uygulanamaz. Aksi denetim hatasıdır.
+- *Test:* TR testi.
 
-**5.14** Tanımsız ad çalışmadan önce bulunur: okunan ya da atanan bir ad, bulunduğu yerden görünen hiçbir kapsamda (5.12) tanımlı değilse ve bir yerleşik değilse program (ya da modül) hiç çalışmaz. Hata tip hatalarıyla birlikte, satır sırasıyla bildirilir; yerleşik ad gölgeleme uyarıları (2.9a) da ayrı başlıkla aynı anda yazılır: `Satır 3, Sütun 1: Tanımsız ad — 'yazdir' adında bir değişken ya da fonksiyon yok ('yazdir' TR'de yok; 'yazdır' yazmak mı istediniz?)`. Bugün dil dinamiktir (karar statik tiptir, 1.2); denetim yalnızca kesin durumları yakalar: bir kapsamda tanımlanan ad o kapsamın her yerinden görünür sayılır (fonksiyon kendisinden sonra tanımlanan bir fonksiyonu çağırabilir; tanımından önce okunan ad ise çalışma anında hata verir); takma adsız `TR_kw_import`ın bulunduğu kapsamda ve altında ad aranmaz (adlar çalışma anında gelir); modül, aktaranın genel kapsamındaki adları görür (11.1). Üye adları (`x.ad`), adlı argümanlar ve yapı alanları bu denetimin konusu değildir; parametreler, döngü ve üreteç değişkenleri, sondaki bloğun `TR_ctx_it`'su, `TR_kw_catch`'nın `TR_ctx_error`'sı ve yapı metotlarındaki `TR_kw_self` kendi kapsamlarında tanımlıdır.
+**5.14** Her ad çalışmadan önce çözülür (1.3): okunan ya da atanan ad görünen bir kapsamda tanımlı değilse denetim hatasıdır ve ileti görünen adlardan en yakınını önerir (2.3a'nın uzaklığıyla). Yerel ad tanımından önce kullanılamaz; dosyanın en dışındaki fonksiyon ve yapı tanımları dosyanın her yerinden görünür, birbirini çağırabilir. Bir dosya yalnız kendi adlarını, yerleşikleri ve aktardığı adları görür; kendisini aktaranın adlarını görmez. Üye adları, adlı argümanlar ve alanlar tipten çözülür (3.13).
+- *Test:* TR testi; yakın ad önerisi ve görünürlük kuralı uygulanınca denetleyicinin testi.
