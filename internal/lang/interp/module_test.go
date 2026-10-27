@@ -32,6 +32,10 @@ func runWithModules(t *testing.T, root string, files map[string]string) (string,
 	m.Err = &out
 	m.SourceFile = filepath.Join(root, "ana.tr")
 	m.SourceCode = codeVal
+	// Çalışmadan önce aktarılan modüller denetlenir (1.3); hata varsa hiçbir satır çalışmaz.
+	if err := CheckImportedModules(m.SourceFile, prog); err != nil {
+		return out.String(), err
+	}
 	_, err := m.Run(prog)
 	m.WaitAsync()
 	return out.String(), err

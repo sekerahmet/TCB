@@ -73,7 +73,9 @@ döngü adım içinde kn.kaldığı_adım..ayar.adım {
     eğer adım + 1 == ayar.dur {
         // Testin kesme ya da öldürme noktası: süreç bu adımın sınırında bekler.
         dosya_yaz(yol(ayar.koşu, "bekliyor.txt"), adım + 1)
-        döngü doğru { kn.güncelle(adım + 1) }
+        // Her tur gerçek bir adım gibi kısa sürer: erteleme süresi son iki güncelleme arasındaki sürenin
+        // iki katıdır (1.6); beklemesiz sıkı döngüde bu süre istekten önce dolardı.
+        döngü doğru { bekle(0.05); kn.güncelle(adım + 1) }
     }
 }
 tensör_kaydet(yol(ayar.koşu, "son.trt"), parametreler(model, adlarıyla: doğru))
@@ -175,6 +177,20 @@ func (k *trainingRun) wait(t *testing.T) int {
 		t.Fatalf("eğitim beklenemedi: %v\n%s", err, k.report())
 	}
 	return code
+}
+
+// endedByInterrupt sürecin bitmesini (en çok 2 dk) bekler ve isteğin sinyaliyle bittiğini söyler
+// (1.9).
+func (k *trainingRun) endedByInterrupt(t *testing.T) bool {
+	t.Helper()
+	select {
+	case err := <-k.done:
+		k.done <- err
+		return interruptEnd(err)
+	case <-time.After(2 * time.Minute):
+		t.Fatalf("eğitim 2 dk içinde bitmedi\n%s", k.report())
+		return false
+	}
 }
 
 // train eğitimi baştan sona (ya da kaldığı yerden sona) çalıştırır ve çıktısını verir.
@@ -304,8 +320,8 @@ func TestCheckpointResumeBitExact(t *testing.T) {
 		k := startTraining(t, dir, run("kesme"), data, 8, "--dur", "12")
 		k.waitForStop(t, 12)
 		sendInterrupt(t, k.cmd)
-		if code := k.wait(t); code != 3 {
-			t.Fatalf("çıkış kodu %d, 3 bekleniyordu\n%s", code, k.report())
+		if !k.endedByInterrupt(t) {
+			t.Fatalf("süreç isteğin sinyaliyle bitmeliydi\n%s", k.report())
 		}
 		if h := k.stderr.String(); !strings.Contains(h, "adım bitince kontrol noktası kaydedilip çıkılacak") || !strings.Contains(h, "Kontrol noktası kaydedildi: adım 12") {
 			t.Fatalf("durdurma bildirimleri yok\n%s", k.report())

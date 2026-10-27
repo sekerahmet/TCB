@@ -36,6 +36,7 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 
 - `behavior_rollback_test.go`: `TR_mem_rollback` ile NaN'la bozulan adımdan geri dönülen eğitimin kesintisizle bit düzeyinde aynı bitmesi; nokta yokken açık hata
 - `behavior_security_test.go`: kurcalanmış, yarım ve daha yeni biçimli kontrol noktası dosyalarının reddi; içeriği bozuk noktanın hiçbir nesneyi değiştirmeden reddedilip önceki noktayı önermesi; düz değerde fazladan JSON
+- `behavior_stop_request_test.go`: durdurma isteğinin kontrol noktasındaki yolu (`TR_stop_requested` ile aynı istek): ikinci güncellemeden önce gelen isteğin ertelenmemesi, ertelenen isteğin `.TR_update`/`.TR_save` ile bir kez karşılanması, üstlenen programda yalnız kaydetmesi, erteleme süresinin dolması, bitişte ek kayıt yapılmaması
 - `behavior_stateful_test.go`: durumlu motor tiplerinin (`StateDict` + `PrepareState`) `Stateful` arayüzünü derleme anında denetlemesi
 - `behavior_shared_containers_test.go`: düz değerde aynı iç kaba birden çok yerden bağ varken yüklemenin ve `TR_mem_rollback`'ün kayıttaki değerleri ezmeden ve belirlenimci yazması
 - `behavior_corrupt_states_test.go`: bozuk iyileştirici ve okuyucu durumlarının uyumsuzluk değil bozukluk sayılıp önceki noktayı önermesi

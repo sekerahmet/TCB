@@ -3,6 +3,7 @@
 package e2e
 
 import (
+	"errors"
 	"os/exec"
 	"syscall"
 	"testing"
@@ -24,4 +25,13 @@ func sendInterrupt(t *testing.T, cmd *exec.Cmd) {
 	if r, _, err := function.Call(ctrlBreakEvent, uintptr(cmd.Process.Pid)); r == 0 {
 		t.Skipf("konsol olayı gönderilemedi (test süreci bir konsola bağlı değil olabilir): %v", err)
 	}
+}
+
+// statusControlCExit Ctrl+C ve Ctrl+Break'le biten sürecin çıkış kodudur (STATUS_CONTROL_C_EXIT, 1.9).
+const statusControlCExit = 0xC000013A
+
+// interruptEnd sürecin isteğin sonu kodu (STATUS_CONTROL_C_EXIT) ile bittiğini söyler.
+func interruptEnd(err error) bool {
+	var exitErr *exec.ExitError
+	return errors.As(err, &exitErr) && uint32(exitErr.ExitCode()) == statusControlCExit
 }

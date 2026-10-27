@@ -6,7 +6,9 @@
 
 Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`); bu klasörde üretim kodu olmadığından hepsi davranış testidir. Birden çok dosyayı kesen davranış testleri:
 
-- `behavior_arguments_test.go`: betiğe ve derlenmiş uygulamaya komut satırı argümanlarının iletilmesi
+- `behavior_arguments_test.go`: betiğe ve derlenmiş uygulamaya komut satırı argümanlarının iletilmesi; argüman verilip okunmayan programın kullanım hatası (çıkış 2), yalnız `-h`, başlatıcı argümanlarının (`--ros-args`, `--local-rank`) ayrılması
+- `behavior_exit_test.go`: `TR_exit` ve çıkış kodları (ertele, yakala, görev, aralık, ertelenen işin ve görevin hatası), `tr`nin kullanım hatasının 2 olması, çalışmadan önce modüllerin tek yoldan denetlenmesi
+- `behavior_stop_test.go`: durdurma isteğinin süreçteki yolu: üstlenen programın kendi sınırında bitmesi ve çıkış kodu, biterken gelen ilk isteğin ertelenen işleri kesmemesi, ertelenen işlerdeki beklemelerin bırakılmaması
 - `behavior_checkpoint_resume_test.go`: kontrol noktasından devam eden eğitimin kesintisizle bit düzeyinde aynı sonucu vermesi
 - `behavior_coded_files_test.go`: kodlu dosyaların Türkçe dosyalarla aynı çıktıyı vermesi; kodla/göster komutları ve İngilizce yazım dili
 - `behavior_colab_cells_test.go`: `tools/gpu/COLAB.md` hücrelerindeki satır içi Python'un ve GPU betiklerinin sözdizimi (Colab'a gitmeden önce)

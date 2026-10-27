@@ -39,7 +39,7 @@ func TestCommandsHaveOneName(t *testing.T) {
 		"yardim": "yardım", "--help": "yardım", "surum": "sürüm", "--version": "sürüm",
 	} {
 		s := tr(t, dir, ad, "a.tr")
-		testkit.Wait(t, s, 1, nil, []string{"'" + ad + "' TR'de bir komut değil; 'tr " + actual + "' yazmak mı istediniz?"})
+		testkit.Wait(t, s, 2, nil, []string{"'" + ad + "' TR'de bir komut değil; 'tr " + actual + "' yazmak mı istediniz?"})
 		if strings.Contains(s.Stdout, "çalıştı") {
 			t.Errorf("%s: program çalışmamalıydı", ad)
 		}
@@ -47,7 +47,7 @@ func TestCommandsHaveOneName(t *testing.T) {
 	// Seçenekler de ad kodudur (opt): her dilin adı kabul edilir, sözcükleri tireyle yazılır.
 	testkit.Wait(t, tr(t, dir, "biçimle", "--check", "a.tr"), 0, nil, nil)
 	testkit.Wait(t, tr(t, dir, "format", "--kontrol", "a.tr"), 0, nil, nil)
-	testkit.Wait(t, tr(t, dir, "profil", "--go_profili", "x.prof", "a.tr"), 1, nil, []string{"bilinmeyen seçenek \"--go_profili\"", "--go-profili"})
+	testkit.Wait(t, tr(t, dir, "profil", "--go_profili", "x.prof", "a.tr"), 2, nil, []string{"bilinmeyen seçenek \"--go_profili\"", "--go-profili"})
 	// İngilizce yazım dilinin adları da her makinede komuttur.
 	testkit.Wait(t, tr(t, dir, "run", "a.tr"), 0, []string{"çalıştı"}, nil)
 	testkit.Wait(t, tr(t, dir, "version"), 0, []string{"v" + trVersion(t)}, nil)
@@ -57,7 +57,7 @@ func TestCommandsHaveOneName(t *testing.T) {
 func TestMissingArgument(t *testing.T) {
 	for _, k := range []string{"kontrol", "derle", "hata_ayıkla", "çalıştır", "biçimle"} {
 		s := tr(t, "", k)
-		testkit.Wait(t, s, 1, nil, []string{"Hata: Lütfen"})
+		testkit.Wait(t, s, 2, nil, []string{"Hata: Lütfen"}) // eksik argüman bir kullanım hatasıdır (1.9)
 	}
 }
 
@@ -319,7 +319,7 @@ func TestBuildModuleErrors(t *testing.T) {
 
 	exit := filepath.Join(dir, "x.exe")
 	s := tr(t, dir, "derle", "eksik.tr", exit)
-	testkit.Wait(t, s, 1, nil, []string{"❌ Derleme hatası:", "satır 2", `"yok_boyle_modul" modülü bulunamadı`, "yok_boyle_modul.tr"})
+	testkit.Wait(t, s, 1, nil, []string{"❌ Derleme hatası:", "Satır 2", "modülü okunamadı", "yok_boyle_modul.tr"})
 	if _, err := os.Stat(exit); err == nil {
 		t.Error("hatalı derlemede çıktı dosyası oluşmamalı")
 	}
@@ -371,7 +371,7 @@ func TestCheckModules(t *testing.T) {
 		t.Errorf("kontrol programı çalıştırmamalı: %q", s.Stdout)
 	}
 	testkit.WriteFile(t, dir, "eksik.tr", "aktar \"olmayan\"\n")
-	testkit.Wait(t, tr(t, dir, "kontrol", "eksik.tr"), 1, nil, []string{"❌ Modül hatası:", `"olmayan" modülü bulunamadı`})
+	testkit.Wait(t, tr(t, dir, "kontrol", "eksik.tr"), 1, nil, []string{"❌ Modül hatası:", "olmayan.tr", "modülü okunamadı"})
 	testkit.WriteFile(t, dir, "lib/ic.tr", "değişken a = 1\n")
 	testkit.Wait(t, tr(t, dir, "kontrol", "ana.tr"), 0, []string{"başarıyla denetlendi"}, nil)
 }
