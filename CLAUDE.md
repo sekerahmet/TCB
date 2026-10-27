@@ -31,7 +31,7 @@ TR, yapay zekânın bütün işleri için bir programlama dilidir (Go, modül `g
 
 1. **Önce ara, sonra yaz.** "Yok" demeden önce codegraph, `tr dizin`, dil tanımı ve `lib/` taranır; bulunamazsa nerelere bakıldığı söylenir. Bir dosyaya dokunmadan önce `go run ./tools/codegraph tests-for <dosya>` onu koruyan testleri ve kuralları gösterir (`.tr` ve `.md` dosyaları için Go testleri dahil): kod o kurallara göre yazılır, commit'ten önce o testlerin saniyelik olanları yerelde koşar.
 2. **Var olanı aç, yenisini kurma.** Go'da hesaplanan bir şey dile lazımsa mevcut olan açılır; ikinci sayaç, ikinci yol yazılmaz.
-3. **Somut ihtiyaç olmadan ekleme yok.** Bugün kullanan bir yer gösterilemiyorsa eklenmez, yol haritasına not düşülür.
+3. **Somut ihtiyaç olmadan ekleme yok.** Bugün kullanan bir yer gösterilemiyorsa eklenmez, yol haritasına not düşülür. Bu kural kod içindir: dil tanımının kararları amaca ve araştırmaya göre verilir, bugünkü koda ve kullanıma göre değil (Ahmet, 2026-10-27: "01 zaten işin temeli hangi kurala tabi olabilir? Geçmişten gelen şeylerle hareket etmiyoruz").
 4. **Kullanıcıya görünen her yeni ad bir karardır.** Yerleşik, parametre, betik seçeneği: kaynaklı karşılaştırma ve onay olmadan eklenmez.
 5. **Bir sorun, bir değişiklik.** Çalışırken fark edilen başka eksik o işe eklenmez; ayrı not olur.
 6. **Silmek eklemekten önce gelir.** Yeni şeyin gereksizleştirdiği kod aynı değişiklikte silinir.
