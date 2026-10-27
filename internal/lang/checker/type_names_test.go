@@ -14,13 +14,12 @@ import (
 // tip hatası ve tip açıklaması önerisi tip adlarını iletinin dilinde yazar (İngilizcede Int,
 // Int or Float), kullanıcının sınıf adı olduğu gibi kalır.
 func TestTypeNamesFollowTheMessageLanguage(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	for _, c := range []struct{ source, want string }{
-		{"değişken x: Tam = \"a\"\n", `type "Int" but a value of type "String"`},
-		{"değişken x: Tam = 6 / 3\n", `type "Int" but a value of type "Int or Float"`},
-		{"değişken x: Tam = 6 / 3\n", "gives Float if the quotient"},
-		{"değişken x: ondalik = 1.5\n", "did you mean 'Float'?"},
-		{"yapı Nokta {\n  x: Tam\n}\ndeğişken p: Nokta = 1\n", `declared with type "Nokta" but a value of type "Int"`},
+		{"TR_kw_var x: TR_type_Int = \"a\"\n", `type "Int" but a value of type "String"`},
+		{"TR_kw_var x: TR_type_Int = 6 / 3\n", `type "Int" but a value of type "Int or Float"`},
+		{"TR_kw_var x: TR_type_Int = 6 / 3\n", "gives Float if the quotient"},
+		{"TR_kw_var x: ondalik = 1.5\n", "did you mean 'Float'?"},
+		{"TR_kw_struct Nokta {\n  x: TR_type_Int\n}\nTR_kw_var p: Nokta = 1\n", `declared with type "Nokta" but a value of type "Int"`},
 	} {
 		_, errs := checkErrs(t, c.source)
 		var text []string

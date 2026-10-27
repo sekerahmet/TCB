@@ -2,92 +2,100 @@ package checker
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
-	"github.com/sekerahmet/TCB/internal/lang/turkish"
-	"github.com/sekerahmet/TCB/internal/reporoot"
-	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // ---------------------------------------------------------------------------
 // Tip adları ve uyumluluk kuralları
 // ---------------------------------------------------------------------------
 
-// normalizeTypeName kabul edilmeyen harf yazımını (tam) da asıl tipe çevirir: hatayı
-// tipAdiDenetle verir, aynı satırda ayrıca tip uyuşmazlığı çıkmaz.
+// normalizeTypeName kabul edilmeyen harf yazımını (tam, int) da asıl tipe çevirir: hatayı
+// checkedTypeName verir, aynı satırda ayrıca tip uyuşmazlığı çıkmaz. Program içeride kimliklerle
+// çalışır: asıl tip adı tipin kimliğidir; dili bilinmeyen adın ipucu her yazım dilinden gelir.
 func TestTypeNameNormalization(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
-	tests := map[string]string{
-		"Tam": "Tam", "tam": "Tam", "TAM": "Tam",
-		"Ondalık": "Ondalık", "ONDALIK": "Ondalık",
-		"Metin": "Metin", "METİN": "Metin",
-		"Mantık": "Mantık", "MANTIK": "Mantık",
-		"Liste": "Liste", "Sözlük": "Sözlük", "Tensör": "Tensör", "Yok": "Yok",
-		"": "Herhangi",
-		// Bilinmeyen adlar (kullanıcı yapıları) olduğu gibi kalır
-		"Nokta": "Nokta", "Fonksiyon": "Fonksiyon",
+	tests := map[string]codes.Code{
+		"TR_type_Int": codes.TypeInt, "tam": codes.TypeInt, "TAM": codes.TypeInt, "int": codes.TypeInt,
+		"TR_type_Float": codes.TypeFloat, "ONDALIK": codes.TypeFloat, "float": codes.TypeFloat,
+		"TR_type_String": codes.TypeString, "METİN": codes.TypeString,
+		"TR_type_Bool": codes.TypeBool, "MANTIK": codes.TypeBool,
+		"TR_type_List": codes.TypeList, "TR_type_Dict": codes.TypeDict, "TR_type_Tensor": codes.TypeTensor, "TR_type_None": codes.TypeNone,
+		"Fonksiyon": codes.TypeFunction, "": codes.TypeAny,
 	}
 	for input, want := range tests {
-		if got := normalizeTypeName(input); got != want {
+		if got := normalizeTypeName(input); got != want.String() {
 			t.Errorf("normalizeTypeName(%q) = %q, beklenen %q", input, got, want)
+		}
+	}
+	// Bilinmeyen adlar (kullanıcı yapıları) olduğu gibi kalır.
+	for _, name := range []string{"Nokta", "Nesne"} {
+		if got := normalizeTypeName(name); got != name {
+			t.Errorf("normalizeTypeName(%q) = %q, olduğu gibi kalmalı", name, got)
 		}
 	}
 }
 
-// Tip adlarının yalnızca Türkçe yazımı geçerlidir; ASCII yazım hata verir ve asıl adı
-// önerir (tek hata: aynı satırda ayrıca tip uyuşmazlığı bildirilmez).
+// Kural (tek hata, tek mesaj): kabul edilmeyen bir tip yazımı tek hata verir ve dosyanın dilindeki
+// asıl adı önerir; aynı satırda ayrıca tip uyuşmazlığı bildirilmez. Türkçe dosyada Türkçe
+// karaktersiz yazım (ondalik) ve başka dillerden alışılmış adlar (int, dict) Türkçe adı, İngilizce
+// dosyada başka bir yazım dilinin adı (Ondalık) İngilizce adı önerir.
 func TestTypeNameASCIISuggestion(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
-	singleError(t, `değişken a: ondalik = 1.5`, messages.H1007, 1, "'ondalik'", "'Ondalık'")
-	singleError(t, `değişken a: Mantık = doğru
-değişken b: tensor = yok`, messages.H1007, 2, "'tensor'", "'Tensör'")
-	singleError(t, `fonksiyon f(x: sozluk) { sonuç x }`, messages.H1007, 1, "'sozluk'", "'Sözlük'")
-	singleError(t, `fonksiyon f(x) -> mantik { sonuç doğru }`, messages.H1007, 1, "'mantik'", "'Mantık'")
-	// Kaldırılan eş yazımlar da hata verir ve asıl adı önerir.
+	singleErrorIn(t, "tr", "TR_kw_var a: ondalik = 1.5", messages.H1007, 1, "'ondalik'", "'Ondalık'")
+	singleErrorIn(t, "tr", "TR_kw_var a: TR_type_Bool = TR_kw_true\nTR_kw_var b: tensor = TR_kw_none", messages.H1007, 2, "'tensor'", "'Tensör'")
+	singleErrorIn(t, "tr", "TR_kw_func f(x: sozluk) { TR_kw_return x }", messages.H1007, 1, "'sozluk'", "'Sözlük'")
+	singleErrorIn(t, "tr", "TR_kw_func f(x) -> mantik { TR_kw_return TR_kw_true }", messages.H1007, 1, "'mantik'", "'Mantık'")
 	for name, canonical := range map[string]string{"int": "Tam", "float": "Ondalık", "str": "Metin", "string": "Metin",
 		"bool": "Mantık", "null": "Yok", "list": "Liste", "dict": "Sözlük", "map": "Sözlük", "matrix": "Tensör"} {
-		singleError(t, "değişken a: "+name, messages.H1007, 1, "'"+name+"'", "'"+canonical+"'")
+		singleErrorIn(t, "tr", "TR_kw_var a: "+name, messages.H1007, 1, "'"+name+"'", "'"+canonical+"'")
+	}
+	for name, canonical := range map[string]string{"Ondalık": "Float", "Tam": "Int", "Sözlük": "Dict"} {
+		singleErrorIn(t, "en", "TR_kw_var a: "+name, messages.H1007, 1, "'"+name+"'", "'"+canonical+"'")
 	}
 }
 
-// Tip adının tek yazımı vardır (3.14): yalnızca büyük/küçük harfi farklı bir yazım da hata
-// verir ve asıl yazımı söyler (tek hata: aynı satırda tip uyuşmazlığı bildirilmez).
+// Kural (3.14, tek hata, tek mesaj): tip adının her yazım dilinde tek yazımı vardır; yalnızca
+// büyük/küçük harfi farklı bir yazım da tek hata verir ve dosyanın dilindeki asıl yazımı söyler.
 func TestTypeNameCaseSpelling(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
-	for name, canonical := range map[string]string{"tam": "Tam", "TAM": "Tam", "ondalık": "Ondalık", "ONDALIK": "Ondalık",
-		"METİN": "Metin", "mantık": "Mantık", "aralık": "Aralık", "tensör": "Tensör", "YOK": "Yok",
-		"yerleşikFonksiyon": "YerleşikFonksiyon", "tip": "Tip"} {
-		singleError(t, "değişken a: "+name, messages.H1006, 1, "'"+name+"'", "'"+canonical+"'")
+	for lang, names := range map[string]map[string]string{
+		"tr": {"tam": "Tam", "TAM": "Tam", "ondalık": "Ondalık", "ONDALIK": "Ondalık", "METİN": "Metin", "mantık": "Mantık",
+			"aralık": "Aralık", "tensör": "Tensör", "YOK": "Yok", "yerleşikFonksiyon": "YerleşikFonksiyon", "tip": "Tip"},
+		"en": {"int": "Int", "FLOAT": "Float", "string": "String", "bool": "Bool", "list": "List"},
+	} {
+		for name, canonical := range names {
+			singleErrorIn(t, lang, "TR_kw_var a: "+name, messages.H1006, 1, "'"+name+"'", "'"+canonical+"'")
+		}
 	}
-	singleError(t, `fonksiyon f(x: liste) { sonuç x }`, messages.H1006, 1, "'liste'", "'Liste'")
-	singleError(t, `fonksiyon f(x) -> sözlük { sonuç {} }`, messages.H1006, 1, "'sözlük'", "'Sözlük'")
-	singleError(t, "değişken a: tam = 1\ndeğişken b: Tam = a", messages.H1006, 1, "'tam'")
+	singleErrorIn(t, "tr", "TR_kw_func f(x: liste) { TR_kw_return x }", messages.H1006, 1, "'liste'", "'Liste'")
+	singleErrorIn(t, "tr", "TR_kw_func f(x) -> sözlük { TR_kw_return {} }", messages.H1006, 1, "'sözlük'", "'Sözlük'")
+	singleErrorIn(t, "tr", "TR_kw_var a: tam = 1\nTR_kw_var b: TR_type_Int = a", messages.H1006, 1, "'tam'")
 }
 
+// Tip uyumu kimlikler üzerindedir: Tam Ondalık beklenen yere, yok her tipe atanabilir; Herhangi
+// her şeyle uyumludur; kabul edilmeyen harf yazımı ayrıca uyuşmazlık sayılmaz (hatayı
+// checkedTypeName verir).
 func TestTypeCompatibility(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
+	i, f, s, l := codes.TypeInt.String(), codes.TypeFloat.String(), codes.TypeString.String(), codes.TypeList.String()
 	tests := []struct {
 		expected, actual string
 		compatible       bool
 	}{
-		{"Tam", "Tam", true},
-		{"Ondalık", "Tam", true}, // Tam, Ondalık beklenen yere atanabilir
-		{"Tam", "Ondalık", false},
-		{"Metin", "Tam", false},
-		{"Herhangi", "Metin", true},
-		{"Metin", "Herhangi", true},
-		{"Liste", "Yok", true}, // 'yok' her tipe atanabilir
-		{"Yok", "Tam", false},
-		{"tam", "Tam", true}, // kabul edilmeyen harf yazımı hatayı tipAdiDenetle verir (3.14); uyuşmazlık eklenmez
+		{i, i, true},
+		{f, i, true},
+		{i, f, false},
+		{s, i, false},
+		{typeAny, s, true},
+		{s, typeAny, true},
+		{l, typeNull, true},
+		{typeNull, i, false},
+		{"tam", i, true},
 		{"Nokta", "Nokta", true},
-		{"Nokta", "Tam", false},
-		{"Liste", "Sözlük", false},
+		{"Nokta", i, false},
+		{l, codes.TypeDict.String(), false},
 	}
 	for _, tt := range tests {
 		if got := typesCompatible(tt.expected, tt.actual); got != tt.compatible {
@@ -101,70 +109,68 @@ func TestTypeCompatibility(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestTypedVarCompatible(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	for _, source := range []string{
-		`değişken a: Tam = 5`,
-		`değişken a: Ondalık = 5`,
-		`değişken a: Ondalık = 2.5`,
-		`değişken a: Ondalık = 1 + 2.5`,
-		`değişken a: Metin = "merhaba"`,
-		`değişken x = 1
-		 değişken a: Metin = "x = {x}"`,
-		`değişken a: Metin = "a" + 1`,
-		`değişken a: Mantık = doğru`,
-		`değişken a: Mantık = 1 < 2`,
-		`değişken a: Mantık = !5`,
-		`değişken a: Mantık = doğru ve yanlış`,
-		`değişken a: Liste = [1, 2]`,
-		`değişken a: Aralık = 1..=5`,
-		`değişken a: Ondalık = 7 / 2`,
-		`değişken a: Ondalık = 2 ** -1`,
-		`değişken a: Tam = 7 % 2`,
-		`değişken a: Tam = (2 ** 3) * 4`,
-		`değişken a = 7 / 2`,
-		`değişken a: Liste = [x * 2 döngü x içinde 1..3]`,
-		`değişken a: Sözlük = {"a": 1}`,
-		"değişken m1 = birim_matris(2)\ndeğişken m2 = m1\ndeğişken a: Tensör = m1 @ m2",
-		`değişken a: Tam = yok`,
-		`değişken a: Tam`, // değer verilmezse 'yok' atanır
-		"değişken bilinmeyen_tip = girdi()\ndeğişken a: Tam = bilinmeyen_tip",
-		`değişken a: Tam = yazdır("x")`,
-		`değişken a: Tam = 5 |> tam`,
-		`değişken a: Tam = (5 ?? 6)`,
-		`değişken a: Metin = yok ?? "varsayılan"`,
-		`değişken a: Tam = -5`,
-		`değişken a: Tam = 2 ** 3`,
-		`değişken a: Fonksiyon = fonksiyon(x) { sonuç x }`,
-		`sabit a: Tam = 1`,
+		"TR_kw_var a: TR_type_Int = 5",
+		"TR_kw_var a: TR_type_Float = 5",
+		"TR_kw_var a: TR_type_Float = 2.5",
+		"TR_kw_var a: TR_type_Float = 1 + 2.5",
+		`TR_kw_var a: TR_type_String = "merhaba"`,
+		`TR_kw_var x = 1
+		 TR_kw_var a: TR_type_String = "x = {x}"`,
+		`TR_kw_var a: TR_type_String = "a" + 1`,
+		"TR_kw_var a: TR_type_Bool = TR_kw_true",
+		"TR_kw_var a: TR_type_Bool = 1 < 2",
+		"TR_kw_var a: TR_type_Bool = !5",
+		"TR_kw_var a: TR_type_Bool = TR_kw_true TR_kw_and TR_kw_false",
+		"TR_kw_var a: TR_type_List = [1, 2]",
+		"TR_kw_var a: TR_type_Range = 1..=5",
+		"TR_kw_var a: TR_type_Float = 7 / 2",
+		"TR_kw_var a: TR_type_Float = 2 ** -1",
+		"TR_kw_var a: TR_type_Int = 7 % 2",
+		"TR_kw_var a: TR_type_Int = (2 ** 3) * 4",
+		"TR_kw_var a = 7 / 2",
+		"TR_kw_var a: TR_type_List = [x * 2 TR_kw_for x TR_kw_in 1..3]",
+		`TR_kw_var a: TR_type_Dict = {"a": 1}`,
+		"TR_kw_var m1 = TR_fn_eye(2)\nTR_kw_var m2 = m1\nTR_kw_var a: TR_type_Tensor = m1 @ m2",
+		"TR_kw_var a: TR_type_Int = TR_kw_none",
+		"TR_kw_var a: TR_type_Int", // değer verilmezse 'yok' atanır
+		"TR_kw_var bilinmeyen_tip = TR_fn_input()\nTR_kw_var a: TR_type_Int = bilinmeyen_tip",
+		`TR_kw_var a: TR_type_Int = TR_fn_print("x")`,
+		"TR_kw_var a: TR_type_Int = 5 |> TR_fn_int",
+		"TR_kw_var a: TR_type_Int = (5 ?? 6)",
+		`TR_kw_var a: TR_type_String = TR_kw_none ?? "varsayılan"`,
+		"TR_kw_var a: TR_type_Int = -5",
+		"TR_kw_var a: TR_type_Int = 2 ** 3",
+		"TR_kw_var a: TR_type_Function = TR_kw_func(x) { TR_kw_return x }",
+		"TR_kw_const a: TR_type_Int = 1",
 	} {
 		noErrors(t, source)
 	}
 }
 
 func TestTypedVarIncompatible(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	tests := []struct {
 		source, expected, actual string
 	}{
-		{`değişken yaş: Tam = "yirmi"`, "Tam", "Metin"},
-		{`değişken a: Tam = 2.5`, "Tam", "Ondalık"},
-		{`değişken a: Tam = 1 + 2.5`, "Tam", "Ondalık"},
-		{`değişken a: Metin = 5`, "Metin", "Tam"},
-		{`değişken a: Mantık = 1`, "Mantık", "Tam"},
-		{`değişken a: Tam = 1 == 1`, "Tam", "Mantık"},
-		{`değişken a: Tam = !doğru`, "Tam", "Mantık"},
-		{`değişken a: Liste = {"a": 1}`, "Liste", "Sözlük"},
-		{`değişken a: Sözlük = [1]`, "Sözlük", "Liste"},
-		{`değişken a: Tam = 1..5`, "Tam", "Aralık"},
-		{`değişken a: Liste = 1..5`, "Liste", "Aralık"},
-		{`değişken a: Tam = 7 / 2`, "Tam", "Tam ya da Ondalık"},
-		{`değişken a: Tam = 6 / 3`, "Tam", "Tam ya da Ondalık"},
-		{`değişken a: Tam = 2 ** -1`, "Tam", "Tam ya da Ondalık"},
-		{`değişken a: Metin = 7 / 2`, "Metin", "Tam ya da Ondalık"},
-		{`değişken a: Metin = fonksiyon() { }`, "Metin", "Fonksiyon"},
-		{`değişken a: Nokta = 5`, "Nokta", "Tam"},
-		{`sabit a: Metin = doğru`, "Metin", "Mantık"},
-		{`değişken a: Metin = 5 ?? "x"`, "Metin", "Tam"},
+		{`TR_kw_var yaş: TR_type_Int = "yirmi"`, "Tam", "Metin"},
+		{"TR_kw_var a: TR_type_Int = 2.5", "Tam", "Ondalık"},
+		{"TR_kw_var a: TR_type_Int = 1 + 2.5", "Tam", "Ondalık"},
+		{"TR_kw_var a: TR_type_String = 5", "Metin", "Tam"},
+		{"TR_kw_var a: TR_type_Bool = 1", "Mantık", "Tam"},
+		{"TR_kw_var a: TR_type_Int = 1 == 1", "Tam", "Mantık"},
+		{"TR_kw_var a: TR_type_Int = !TR_kw_true", "Tam", "Mantık"},
+		{`TR_kw_var a: TR_type_List = {"a": 1}`, "Liste", "Sözlük"},
+		{"TR_kw_var a: TR_type_Dict = [1]", "Sözlük", "Liste"},
+		{"TR_kw_var a: TR_type_Int = 1..5", "Tam", "Aralık"},
+		{"TR_kw_var a: TR_type_List = 1..5", "Liste", "Aralık"},
+		{"TR_kw_var a: TR_type_Int = 7 / 2", "Tam", "Tam ya da Ondalık"},
+		{"TR_kw_var a: TR_type_Int = 6 / 3", "Tam", "Tam ya da Ondalık"},
+		{"TR_kw_var a: TR_type_Int = 2 ** -1", "Tam", "Tam ya da Ondalık"},
+		{"TR_kw_var a: TR_type_String = 7 / 2", "Metin", "Tam ya da Ondalık"},
+		{"TR_kw_var a: TR_type_String = TR_kw_func() { }", "Metin", "Fonksiyon"},
+		{"TR_kw_var a: Nokta = 5", "Nokta", "Tam"},
+		{"TR_kw_const a: TR_type_String = TR_kw_true", "Metin", "Mantık"},
+		{`TR_kw_var a: TR_type_String = 5 ?? "x"`, "Metin", "Tam"},
 	}
 	for _, tt := range tests {
 		singleError(t, tt.source, messages.H1001, 1, `"`+tt.expected+`"`, `"`+tt.actual+`"`)
@@ -172,8 +178,7 @@ func TestTypedVarIncompatible(t *testing.T) {
 }
 
 func TestTypeErrorLineAndVarName(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
-	singleError(t, "değişken a = 1\n\ndeğişken öğrenci_sayısı: Tam = \"çok\"",
+	singleError(t, "TR_kw_var a = 1\n\nTR_kw_var öğrenci_sayısı: TR_type_Int = \"çok\"",
 		messages.H1001, 3, `"öğrenci_sayısı" değişkeni`)
 }
 
@@ -182,65 +187,62 @@ func TestTypeErrorLineAndVarName(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestAssignmentTypeCheck(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	// Belirtilen tip korunur
-	singleError(t, "değişken a: Tam = 1\na = \"x\"", messages.H1005, 2, `"a" değişkeni (Tam)`, `"Metin"`)
-	noErrors(t, "değişken a: Ondalık = 1\na = 2.5\na = 3")
+	singleError(t, "TR_kw_var a: TR_type_Int = 1\na = \"x\"", messages.H1005, 2, `"a" değişkeni (Tam)`, `"Metin"`)
+	noErrors(t, "TR_kw_var a: TR_type_Float = 1\na = 2.5\na = 3")
 
 	// Dil dinamiktir: tip açıklaması olmayan değişkenin ilk değerden çıkarılan tipi kalıcı
 	// bir bildirim değildir; başka tipte değer atanabilir. Sabitlerin tipi kalır.
-	noErrors(t, "değişken a = 5\na = \"beş\"")
-	noErrors(t, "x := doğru\nx = 1")
-	noErrors(t, "değişken kayıp = 0\ndöngü i içinde 1..3 { kayıp += 0.5 }")
-	singleError(t, "sabit S = 5\ndeğişken m: Metin = S", messages.H1001, 2, `"Metin"`, `"Tam"`)
+	noErrors(t, "TR_kw_var a = 5\na = \"beş\"")
+	noErrors(t, "x := TR_kw_true\nx = 1")
+	noErrors(t, "TR_kw_var kayıp = 0\nTR_kw_for i TR_kw_in 1..3 { kayıp += 0.5 }")
+	singleError(t, "TR_kw_const S = 5\nTR_kw_var m: TR_type_String = S", messages.H1001, 2, `"Metin"`, `"Tam"`)
 
 	// 'yok' veya bilinmeyen tipte başlayan değişkenler serbestçe atanabilir
-	noErrors(t, "değişken a = yok\na = 5\na = \"x\"")
-	noErrors(t, "değişken a = girdi()\na = 5\na = \"x\"")
-	noErrors(t, "değişken a\na = [1]")
+	noErrors(t, "TR_kw_var a = TR_kw_none\na = 5\na = \"x\"")
+	noErrors(t, "TR_kw_var a = TR_fn_input()\na = 5\na = \"x\"")
+	noErrors(t, "TR_kw_var a\na = [1]")
 
 	// Tanımlanmamış bir hedefe atama tanımsız ad hatasıdır (5.4, 5.14)
 	singleError(t, "tanımsız = 5", messages.H1010, 1, "'tanımsız'")
 }
 
 func TestCompoundAssignment(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	// 's += 1' ile 's = s + 1' aynı şekilde değerlendirilmeli (Metin + Tam = Metin)
-	noErrors(t, "değişken s = \"a\"\ns += 1")
-	noErrors(t, "değişken s = \"a\"\ns = s + 1")
-	noErrors(t, "değişken x = 10\nx += 1\nx -= 2\nx *= 3")
-	noErrors(t, "değişken x = 1.5\nx += 1")
-	noErrors(t, "değişken x: Ondalık = 1\nx *= 2.5")
+	noErrors(t, "TR_kw_var s = \"a\"\ns += 1")
+	noErrors(t, "TR_kw_var s = \"a\"\ns = s + 1")
+	noErrors(t, "TR_kw_var x = 10\nx += 1\nx -= 2\nx *= 3")
+	noErrors(t, "TR_kw_var x = 1.5\nx += 1")
+	noErrors(t, "TR_kw_var x: TR_type_Float = 1\nx *= 2.5")
 
 	// 'x = x + 0.5' gibi, Tam açıklamalı bir değişkene Ondalık sonuç atanamaz; açıklamasız
 	// değişken (biriktirici) serbesttir.
-	singleError(t, "değişken x: Tam = 1\nx += 0.5", messages.H1005, 2, `"x" değişkeni (Tam)`, `"Ondalık"`)
-	singleError(t, "değişken x: Tam = 1\nx = x + 0.5", messages.H1005, 2, `"x" değişkeni (Tam)`, `"Ondalık"`)
-	noErrors(t, "değişken x = 1\nx += 0.5")
+	singleError(t, "TR_kw_var x: TR_type_Int = 1\nx += 0.5", messages.H1005, 2, `"x" değişkeni (Tam)`, `"Ondalık"`)
+	singleError(t, "TR_kw_var x: TR_type_Int = 1\nx = x + 0.5", messages.H1005, 2, `"x" değişkeni (Tam)`, `"Ondalık"`)
+	noErrors(t, "TR_kw_var x = 1\nx += 0.5")
 
 	// '/' Tam/Tam'da tam bölünmezse Ondalık verir (10 / 4 = 2.5): sonuç "Tam ya da Ondalık"tır.
-	noErrors(t, "değişken x = 10\nx /= 4")
-	singleError(t, "değişken y: Tam = 10 / 4", messages.H1001, 1, `"Tam ya da Ondalık"`, "tam(...)")
-	singleError(t, "değişken y: Tam = 10\ny /= 4", messages.H1005, 2, `"Tam ya da Ondalık"`)
+	noErrors(t, "TR_kw_var x = 10\nx /= 4")
+	singleError(t, "TR_kw_var y: TR_type_Int = 10 / 4", messages.H1001, 1, `"Tam ya da Ondalık"`, "tam(...)")
+	singleError(t, "TR_kw_var y: TR_type_Int = 10\ny /= 4", messages.H1005, 2, `"Tam ya da Ondalık"`)
 }
 
 func TestConstCannotChange(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
-	singleError(t, "sabit PI = 3.14\nPI = 3.0", messages.H1002, 2, `"PI"`)
-	singleError(t, "sabit SAYAÇ = 1\nSAYAÇ += 1", messages.H1002, 2, `"SAYAÇ"`)
-	singleError(t, "sabit a: Metin = \"x\"\na = \"y\"", messages.H1002, 2)
+	singleError(t, "TR_kw_const PI = 3.14\nPI = 3.0", messages.H1002, 2, `"PI"`)
+	singleError(t, "TR_kw_const SAYAÇ = 1\nSAYAÇ += 1", messages.H1002, 2, `"SAYAÇ"`)
+	singleError(t, "TR_kw_const a: TR_type_String = \"x\"\na = \"y\"", messages.H1002, 2)
 
 	// Çoklu tanım ve çoklu atama
-	singleError(t, "sabit a, b = 1, 2\nb = 3", messages.H1002, 2, `"b"`)
-	singleError(t, "sabit a = 1\ndeğişken b = 2\nb, a = a, b", messages.H1002, 3, `"a"`)
+	singleError(t, "TR_kw_const a, b = 1, 2\nb = 3", messages.H1002, 2, `"b"`)
+	singleError(t, "TR_kw_const a = 1\nTR_kw_var b = 2\nb, a = a, b", messages.H1002, 3, `"a"`)
 
 	// İç kapsamlardan dış sabite atama da yakalanır
-	singleError(t, "sabit a = 1\neğer doğru {\n  a = 2\n}", messages.H1002, 3)
-	singleError(t, "sabit a = 1\nfonksiyon f() {\n  a = 2\n}", messages.H1002, 3)
-	singleError(t, "sabit a = 1\ndöngü i içinde 1..3 {\n  a = i\n}", messages.H1002, 3)
+	singleError(t, "TR_kw_const a = 1\nTR_kw_if TR_kw_true {\n  a = 2\n}", messages.H1002, 3)
+	singleError(t, "TR_kw_const a = 1\nTR_kw_func f() {\n  a = 2\n}", messages.H1002, 3)
+	singleError(t, "TR_kw_const a = 1\nTR_kw_for i TR_kw_in 1..3 {\n  a = i\n}", messages.H1002, 3)
 
 	// Hem sabit hem tip hatası aynı anda bildirilir
-	errs, coded := checkErrs(t, "sabit a = 1\na = \"x\"")
+	errs, coded := checkErrs(t, "TR_kw_const a = 1\na = \"x\"")
 	if len(errs) != 2 || !messages.Has(coded[0], messages.H1002) || !messages.Has(coded[1], messages.H1005) {
 		t.Errorf("önce sabit, sonra tip hatası bekleniyordu, gelen: %v", errs)
 	}
@@ -248,14 +250,13 @@ func TestConstCannotChange(t *testing.T) {
 
 // İç kapsamda aynı adla tanımlanan değişken/parametre dış sabiti gölgeler.
 func TestConstShadowing(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
-	noErrors(t, "sabit x = 1\neğer doğru {\n  değişken x = 2\n  x = 3\n}")
-	noErrors(t, "sabit x = 1\nfonksiyon f(x) {\n  x = 5\n}")
-	noErrors(t, "sabit x = 1\ndöngü x içinde [1, 2] {\n  x = 5\n}")
-	noErrors(t, "sabit i = 1\ndöngü i, x içinde [1, 2] {\n  i = 5\n}")
-	noErrors(t, "sabit e = 1\ndene {\n} yakala e {\n  e = \"x\"\n}")
+	noErrors(t, "TR_kw_const x = 1\nTR_kw_if TR_kw_true {\n  TR_kw_var x = 2\n  x = 3\n}")
+	noErrors(t, "TR_kw_const x = 1\nTR_kw_func f(x) {\n  x = 5\n}")
+	noErrors(t, "TR_kw_const x = 1\nTR_kw_for x TR_kw_in [1, 2] {\n  x = 5\n}")
+	noErrors(t, "TR_kw_const i = 1\nTR_kw_for i, x TR_kw_in [1, 2] {\n  i = 5\n}")
+	noErrors(t, "TR_kw_const e = 1\nTR_kw_try {\n} TR_kw_catch e {\n  e = \"x\"\n}")
 	// Blok bitince dış sabit yeniden geçerlidir
-	singleError(t, "sabit x = 1\neğer doğru {\n  değişken x = 2\n}\nx = 3", messages.H1002, 5)
+	singleError(t, "TR_kw_const x = 1\nTR_kw_if TR_kw_true {\n  TR_kw_var x = 2\n}\nx = 3", messages.H1002, 5)
 }
 
 // ---------------------------------------------------------------------------
@@ -263,81 +264,78 @@ func TestConstShadowing(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestFunctionParamTypes(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
-	def := "fonksiyon kare(x: Tam) { sonuç x * x }\n"
+	def := "TR_kw_func kare(x: TR_type_Int) { TR_kw_return x * x }\n"
 	singleError(t, def+`kare("üç")`, messages.H1004, 2, `"kare"`, "1. parametresi", `"Tam"`, `"Metin"`)
 	noErrors(t, def+"kare(3)")
-	noErrors(t, def+"kare(girdi())")
-	noErrors(t, def+"kare(yok)")
+	noErrors(t, def+"kare(TR_fn_input())")
+	noErrors(t, def+"kare(TR_kw_none)")
 
-	two := "fonksiyon böl(a: Ondalık, b: Ondalık) -> Ondalık { sonuç a / b }\n"
+	two := "TR_kw_func böl(a: TR_type_Float, b: TR_type_Float) -> TR_type_Float { TR_kw_return a / b }\n"
 	noErrors(t, two+"böl(1, 2)")
 	singleError(t, two+`böl(1, "iki")`, messages.H1004, 0, "2. parametresi", `"Ondalık"`, `"Metin"`)
 
 	// Tipsiz parametreler her değeri kabul eder
-	noErrors(t, "fonksiyon f(a, b: Tam) { }\nf(\"x\", 2)")
-	singleError(t, "fonksiyon f(a, b: Tam) { }\nf(\"x\", \"y\")", messages.H1004, 0, "2. parametresi")
+	noErrors(t, "TR_kw_func f(a, b: TR_type_Int) { }\nf(\"x\", 2)")
+	singleError(t, "TR_kw_func f(a, b: TR_type_Int) { }\nf(\"x\", \"y\")", messages.H1004, 0, "2. parametresi")
 
 	// Parametreler fonksiyon gövdesinde bildirilen tipleriyle bilinir
-	singleError(t, "fonksiyon f(a: Metin) {\n  değişken b: Tam = a\n}", messages.H1001, 2, `"b"`, `"Metin"`)
+	singleError(t, "TR_kw_func f(a: TR_type_String) {\n  TR_kw_var b: TR_type_Int = a\n}", messages.H1001, 2, `"b"`, `"Metin"`)
 
 	// Özyinelemeli çağrılar da denetlenir (ad, gövdeden önce tanımlanır)
-	singleError(t, "fonksiyon f(n: Tam) {\n  sonuç f(\"x\")\n}", messages.H1004, 2)
+	singleError(t, "TR_kw_func f(n: TR_type_Int) {\n  TR_kw_return f(\"x\")\n}", messages.H1004, 2)
 
 	// İç içe çağrılar denetlenir
-	singleError(t, def+"yazdır(kare(\"a\"))", messages.H1004, 2)
+	singleError(t, def+`TR_fn_print(kare("a"))`, messages.H1004, 2)
 	singleError(t, def+"kare(kare(\"a\"))", messages.H1004, 2)
 	// Fazladan argümanlar ve isimli argümanlar içindeki çağrılar da denetlenir
 	singleError(t, def+"kare(1, kare(\"a\"))", messages.H1004, 2)
-	singleError(t, def+"yazdır(1, ayraç: kare(\"a\"))", messages.H1004, 2)
+	singleError(t, def+`TR_fn_print(1, ayraç: kare("a"))`, messages.H1004, 2)
 }
 
 func TestFunctionReturnTypeInference(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
-	def := "fonksiyon topla(a: Tam, b: Tam) -> Tam { sonuç a + b }\n"
-	singleError(t, def+"değişken s: Metin = topla(1, 2)", messages.H1001, 2, `"Metin"`, `"Tam"`)
-	noErrors(t, def+"değişken s: Ondalık = topla(1, 2)")
+	def := "TR_kw_func topla(a: TR_type_Int, b: TR_type_Int) -> TR_type_Int { TR_kw_return a + b }\n"
+	singleError(t, def+"TR_kw_var s: TR_type_String = topla(1, 2)", messages.H1001, 2, `"Metin"`, `"Tam"`)
+	noErrors(t, def+"TR_kw_var s: TR_type_Float = topla(1, 2)")
 
 	// Parametresiz fonksiyonların dönüş tipi de kullanılır
-	singleError(t, "fonksiyon ad(): Metin { sonuç \"Ali\" }\ndeğişken n: Tam = ad()", messages.H1001, 2, `"Tam"`, `"Metin"`)
+	singleError(t, "TR_kw_func ad(): TR_type_String { TR_kw_return \"Ali\" }\nTR_kw_var n: TR_type_Int = ad()", messages.H1001, 2, `"Tam"`, `"Metin"`)
 
 	// Dönüş tipi belirtilmemişse sonuç bilinmez (Herhangi)
-	noErrors(t, "fonksiyon f(a: Tam) { sonuç a }\ndeğişken s: Metin = f(1)")
-	noErrors(t, "fonksiyon f() { sonuç 1 }\ndeğişken s: Metin = f()")
+	noErrors(t, "TR_kw_func f(a: TR_type_Int) { TR_kw_return a }\nTR_kw_var s: TR_type_String = f(1)")
+	noErrors(t, "TR_kw_func f() { TR_kw_return 1 }\nTR_kw_var s: TR_type_String = f()")
 }
 
 func TestReturnTypeCheck(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
-	singleError(t, "fonksiyon f(): Tam {\n  sonuç \"x\"\n}", messages.H1003, 2, `"Tam"`, `"Metin"`)
-	singleError(t, "fonksiyon f() -> Metin {\n  sonuç 1\n}", messages.H1003, 2)
-	singleError(t, "fonksiyon f(): Tam { sonuç 2.5 }", messages.H1003, 0, `"Ondalık"`)
+	singleError(t, "TR_kw_func f(): TR_type_Int {\n  TR_kw_return \"x\"\n}", messages.H1003, 2, `"Tam"`, `"Metin"`)
+	singleError(t, "TR_kw_func f() -> TR_type_String {\n  TR_kw_return 1\n}", messages.H1003, 2)
+	singleError(t, "TR_kw_func f(): TR_type_Int { TR_kw_return 2.5 }", messages.H1003, 0, `"Ondalık"`)
 	// Tam / Tam Tam olmayabilir (7 / 2 = 3.5): ': Tam' bildiren fonksiyon bunu döndüremez
-	singleError(t, "fonksiyon ort(a: Tam, b: Tam): Tam { sonuç a / b }", messages.H1003, 0, `"Tam ya da Ondalık"`)
-	noErrors(t, "fonksiyon ort(a: Tam, b: Tam): Ondalık { sonuç a / b }")
+	singleError(t, "TR_kw_func ort(a: TR_type_Int, b: TR_type_Int): TR_type_Int { TR_kw_return a / b }", messages.H1003, 0, `"Tam ya da Ondalık"`)
+	noErrors(t, "TR_kw_func ort(a: TR_type_Int, b: TR_type_Int): TR_type_Float { TR_kw_return a / b }")
 
 	// İç bloklardaki dönüşler de denetlenir
-	singleError(t, "fonksiyon f(x): Tam {\n  eğer x {\n    sonuç \"a\"\n  }\n  sonuç 1\n}", messages.H1003, 3)
-	singleError(t, "fonksiyon f(x): Tam {\n  döngü i içinde x {\n    sonuç doğru\n  }\n}", messages.H1003, 3)
+	singleError(t, "TR_kw_func f(x): TR_type_Int {\n  TR_kw_if x {\n    TR_kw_return \"a\"\n  }\n  TR_kw_return 1\n}", messages.H1003, 3)
+	singleError(t, "TR_kw_func f(x): TR_type_Int {\n  TR_kw_for i TR_kw_in x {\n    TR_kw_return TR_kw_true\n  }\n}", messages.H1003, 3)
 
 	for _, source := range []string{
-		"fonksiyon f(): Ondalık { sonuç 1 }",       // Tam -> Ondalık
-		"fonksiyon f(): Liste { sonuç yok }",       // 'yok' her tipe uyar
-		"fonksiyon f(): Tam { sonuç }",             // boş dönüş 'yok' sayılır
-		"fonksiyon f(x): Tam { sonuç x }",          // bilinmeyen tip
-		"fonksiyon f(x: Tam): Tam { sonuç x * 2 }", // çıkarılan tip uyumlu
-		"fonksiyon f(): Mantık { sonuç 1 < 2 }",    // karşılaştırma
-		"fonksiyon f(): Fonksiyon { sonuç (x) => x }",
-		"fonksiyon f() { sonuç \"x\" }", // dönüş tipi yoksa denetim yok
-		"sonuç \"x\"",                   // fonksiyon dışındaki dönüş denetlenmez
+		"TR_kw_func f(): TR_type_Float { TR_kw_return 1 }",                 // Tam -> Ondalık
+		"TR_kw_func f(): TR_type_List { TR_kw_return TR_kw_none }",         // 'yok' her tipe uyar
+		"TR_kw_func f(): TR_type_Int { TR_kw_return }",                     // boş dönüş 'yok' sayılır
+		"TR_kw_func f(x): TR_type_Int { TR_kw_return x }",                  // bilinmeyen tip
+		"TR_kw_func f(x: TR_type_Int): TR_type_Int { TR_kw_return x * 2 }", // çıkarılan tip uyumlu
+		"TR_kw_func f(): TR_type_Bool { TR_kw_return 1 < 2 }",              // karşılaştırma
+		"TR_kw_func f(): TR_type_Function { TR_kw_return (x) => x }",
+		`TR_kw_func f() { TR_kw_return "x" }`, // dönüş tipi yoksa denetim yok
+		`TR_kw_return "x"`,                    // fonksiyon dışındaki dönüş denetlenmez
 	} {
 		noErrors(t, source)
 	}
 
 	// İç fonksiyonlar dış fonksiyonun dönüş tipini devralmaz
-	noErrors(t, "fonksiyon f(): Tam {\n  değişken g = (x) => \"metin\"\n  sonuç 1\n}")
-	noErrors(t, "fonksiyon f(): Tam {\n  fonksiyon g() { sonuç \"metin\" }\n  sonuç 1\n}")
+	noErrors(t, "TR_kw_func f(): TR_type_Int {\n  TR_kw_var g = (x) => \"metin\"\n  TR_kw_return 1\n}")
+	noErrors(t, "TR_kw_func f(): TR_type_Int {\n  TR_kw_func g() { TR_kw_return \"metin\" }\n  TR_kw_return 1\n}")
 	// İç fonksiyonun kendi dönüş tipi denetlenir; dış fonksiyonunki geri yüklenir
-	errs, coded := checkErrs(t, "fonksiyon f(): Tam {\n  fonksiyon g(): Metin { sonuç 1 }\n  sonuç \"x\"\n}")
+	errs, coded := checkErrs(t, "TR_kw_func f(): TR_type_Int {\n  TR_kw_func g(): TR_type_String { TR_kw_return 1 }\n  TR_kw_return \"x\"\n}")
 	if len(errs) != 2 || !messages.Has(coded[0], messages.H1003) || !messages.Has(coded[1], messages.H1003) ||
 		!strings.Contains(errs[0], `"Metin"`) || !strings.Contains(errs[1], `"Tam"`) {
 		t.Errorf("iç ve dış fonksiyon için birer dönüş hatası bekleniyordu, gelen: %v", errs)
@@ -349,35 +347,34 @@ func TestReturnTypeCheck(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestNestedStatementsAreChecked(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
-	def := "fonksiyon kare(x: Tam) { sonuç x * x }\n"
+	def := "TR_kw_func kare(x: TR_type_Int) { TR_kw_return x * x }\n"
 	invalid := `kare("a")`
 	tests := map[string]string{
-		"eğer":             "eğer doğru { " + invalid + " }",
-		"değilse eğer":     "eğer yanlış { } değilse eğer doğru { " + invalid + " }",
-		"değilse":          "eğer yanlış { } değilse { " + invalid + " }",
-		"eğer koşulu":      "eğer " + invalid + " > 1 { }",
-		"iken":             "iken yanlış { " + invalid + " }",
-		"iken koşulu":      "iken " + invalid + " > 1 { }",
-		"döngü":            "döngü i içinde 1..3 { " + invalid + " }",
-		"döngü kaynağı":    "döngü i içinde " + invalid + " { }",
-		"dene":             "dene { " + invalid + " } yakala h { }",
-		"yakala":           "dene { } yakala h { " + invalid + " }",
-		"eşle gövde":       "eşle 1 { 1 => { " + invalid + " } }",
-		"eşle ifade":       "eşle 1 { 1 => " + invalid + " }",
-		"eşle konusu":      "eşle " + invalid + " { varsayılan => 1 }",
-		"ertele blok":      "ertele { " + invalid + " }",
-		"ertele çağrı":     "ertele " + invalid,
-		"sonuç":            "fonksiyon g() { sonuç " + invalid + " }",
-		"fırlat":           "fırlat " + invalid,
-		"eşzamanlı blok":   "eşzamanlı { " + invalid + " }",
-		"eşzamanlı çağrı":  "eşzamanlı " + invalid,
-		"kesme noktası":    "kesme_noktası eğer " + invalid + " > 1",
-		"lambda":           "değişken g = (y) => " + invalid,
-		"çoklu tanım":      "değişken a, b = 1, " + invalid,
-		"çoklu atama":      "değişken a = 1\ndeğişken b = 2\na, b = " + invalid + ", 1",
-		"atama değeri":     "değişken a = 1\na = " + invalid,
-		"liste dışı ifade": "yazdır(" + invalid + ")",
+		"eğer":             "TR_kw_if TR_kw_true { " + invalid + " }",
+		"değilse eğer":     "TR_kw_if TR_kw_false { } TR_kw_else TR_kw_if TR_kw_true { " + invalid + " }",
+		"değilse":          "TR_kw_if TR_kw_false { } TR_kw_else { " + invalid + " }",
+		"eğer koşulu":      "TR_kw_if " + invalid + " > 1 { }",
+		"iken":             "TR_kw_while TR_kw_false { " + invalid + " }",
+		"iken koşulu":      "TR_kw_while " + invalid + " > 1 { }",
+		"döngü":            "TR_kw_for i TR_kw_in 1..3 { " + invalid + " }",
+		"döngü kaynağı":    "TR_kw_for i TR_kw_in " + invalid + " { }",
+		"dene":             "TR_kw_try { " + invalid + " } TR_kw_catch h { }",
+		"yakala":           "TR_kw_try { } TR_kw_catch h { " + invalid + " }",
+		"eşle gövde":       "TR_kw_match 1 { 1 => { " + invalid + " } }",
+		"eşle ifade":       "TR_kw_match 1 { 1 => " + invalid + " }",
+		"eşle konusu":      "TR_kw_match " + invalid + " { TR_kw_default => 1 }",
+		"ertele blok":      "TR_kw_defer { " + invalid + " }",
+		"ertele çağrı":     "TR_kw_defer " + invalid,
+		"sonuç":            "TR_kw_func g() { TR_kw_return " + invalid + " }",
+		"fırlat":           "TR_kw_throw " + invalid,
+		"eşzamanlı blok":   "TR_kw_async { " + invalid + " }",
+		"eşzamanlı çağrı":  "TR_kw_async " + invalid,
+		"kesme noktası":    "TR_kw_breakpoint TR_kw_if " + invalid + " > 1",
+		"lambda":           "TR_kw_var g = (y) => " + invalid,
+		"çoklu tanım":      "TR_kw_var a, b = 1, " + invalid,
+		"çoklu atama":      "TR_kw_var a = 1\nTR_kw_var b = 2\na, b = " + invalid + ", 1",
+		"atama değeri":     "TR_kw_var a = 1\na = " + invalid,
+		"liste dışı ifade": "TR_fn_print(" + invalid + ")",
 	}
 	for name, body := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -387,11 +384,10 @@ func TestNestedStatementsAreChecked(t *testing.T) {
 }
 
 func TestMultipleErrorsInOrder(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
-	errs, coded := checkErrs(t, `değişken a: Tam = "x"
-sabit b = 1
+	errs, coded := checkErrs(t, `TR_kw_var a: TR_type_Int = "x"
+TR_kw_const b = 1
 b = 2
-fonksiyon f(x: Metin): Tam { sonuç x }
+TR_kw_func f(x: TR_type_String): TR_type_Int { TR_kw_return x }
 f(5)`)
 	expected := []struct {
 		line int
@@ -409,43 +405,56 @@ f(5)`)
 	}
 }
 
-// Yerleşik bir adı kullanıcı adı olarak tanımlamak hata değil uyarıdır: program çalışır,
-// ama o kapsamda yerleşik artık kullanılamaz.
+// Kural (hata ile uyarı ayrıdır): yerleşik bir adı kullanıcı adı olarak tanımlamak hata değil
+// uyarıdır: program çalışır, ama o kapsamda yerleşik artık kullanılamaz. Ad dosyanın dilinde bir
+// yerleşiğin adıysa uyarılır: Türkçe dosyada girdi, İngilizce dosyada input.
 func TestBuiltinShadowingWarning(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
-	source := `değişken uzunluk = 5
-fonksiyon f(toplam, x) {
-    sonuç toplam + x
+	for lang, c := range map[string]struct {
+		input, str string
+		other      string // öbür dilin yerleşik adı: bu dosyada sıradan kullanıcı adıdır
+	}{
+		"tr": {"girdi", "metin", "input"},
+		"en": {"input", "str", "girdi"},
+	} {
+		source := `TR_kw_var uzunluk = 5
+TR_kw_func f(toplam, x) {
+    TR_kw_return toplam + x
 }
-fonksiyon girdi() { sonuç 1 }
-döngü i, metin içinde ["a"] { yazdır(metin) }
-dene { fırlat "x" } yakala ekle { yazdır(ekle) }
-değişken a, sırala = 1, 2
-yapı Nokta {
-    x: Tam
-    fonksiyon uzunluk() { sonuç 1 }
+TR_kw_func ` + c.input + `() { TR_kw_return 1 }
+TR_kw_for i, ` + c.str + ` TR_kw_in ["a"] { TR_fn_print(` + c.str + `) }
+TR_kw_try { TR_kw_throw "x" } TR_kw_catch ekle { TR_fn_print(ekle) }
+TR_kw_var a, sırala = 1, 2
+TR_kw_struct Nokta {
+    x: TR_type_Int
+    TR_kw_func TR_mem_length() { TR_kw_return 1 }
 }
-değişken sayaç = uzunluk + sırala`
-	p := parser.New(lexer.New(source))
-	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		t.Fatal(p.Errors())
-	}
-	c := New()
-	if errs := c.CheckProgram(prog); len(errs) > 0 {
-		t.Fatalf("gölgeleme hata değildir: %v", errs)
-	}
-	// uzunluk, ekle ve sırala artık yerleşik değil (metotlar): gölgeleme sayılmaz.
-	// Uyarı konumuyla (yapı) ve koduyla (H1009) sınanır; metne bakılmaz.
-	expected := map[int]string{2: "toplam", 5: "girdi", 6: "metin"}
-	got := c.Warnings()
-	if len(got) != len(expected) {
-		t.Fatalf("%d uyarı bekleniyordu: %v", len(expected), got)
-	}
-	for _, w := range got {
-		line, col, ok := messages.Pos(w)
-		if !ok || col != 0 || !messages.Has(w, messages.H1009) || !strings.Contains(w.Error(), "'"+expected[line]+"'") {
-			t.Errorf("uyarı H1009 olmalı, satır %d (%v) için '%s' adını taşımalı: %v", line, ok, expected[line], w)
+TR_kw_var sayaç = uzunluk + sırala
+TR_kw_var ` + c.other + ` = 1`
+		p := parser.New(lexer.NewBody(source, true))
+		prog := p.ParseProgram()
+		if len(p.Errors()) > 0 {
+			t.Fatal(p.Errors())
+		}
+		chk := New()
+		chk.SetFileLanguage(lang)
+		if errs := chk.CheckProgram(prog); len(errs) > 0 {
+			t.Fatalf("%s: gölgeleme hata değildir: %v", lang, errs)
+		}
+		// uzunluk, ekle ve sırala yerleşik değil (metotlar): gölgeleme sayılmaz. Uyarı konumuyla
+		// (yapı) ve koduyla (H1009) sınanır.
+		expected := map[int]string{5: c.input, 6: c.str}
+		if lang == "tr" {
+			expected[2] = "toplam" // İngilizce dosyada toplam sıradan bir addır (sum)
+		}
+		got := chk.Warnings()
+		if len(got) != len(expected) {
+			t.Fatalf("%s: %d uyarı bekleniyordu: %v", lang, len(expected), got)
+		}
+		for _, w := range got {
+			line, col, ok := messages.Pos(w)
+			if !ok || col != 0 || !messages.Has(w, messages.H1009) || !strings.Contains(messages.ErrorIn(w, lang), "'"+expected[line]+"'") {
+				t.Errorf("%s: uyarı H1009 olmalı, satır %d (%v) için '%s' adını taşımalı: %v", lang, line, ok, expected[line], w)
+			}
 		}
 	}
 	// Yapı metotları ve alanları yerleşikleri gölgelemez (x.uzunluk() ile erişilir).
@@ -469,27 +478,26 @@ func TestEmptyProgram(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestKnownLimitations(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	tests := []struct {
 		name, source string
 	}{
-		{"tanımdan önce çağrı (öne alma yok)", "kare(\"a\")\nfonksiyon kare(x: Tam) { }"},
-		{"değişkene atanan fonksiyonun parametre tipleri unutulur", "değişken kare = fonksiyon(x: Tam) { sonuç x }\nkare(\"a\")"},
-		{"lambda parametre tipleri", "değişken f = (x: Tam) => x\nf(\"a\")"},
-		{"eksik argüman", "fonksiyon f(a: Tam, b: Tam) { }\nf(1)"},
-		{"fazla argüman", "fonksiyon f(a: Tam) { }\nf(1, 2, 3)"},
-		{"isimli argüman tipi", "fonksiyon f(a: Tam) { }\nf(a: \"x\")"},
-		{"dönüş tipi olan fonksiyonda eksik 'sonuç'", "fonksiyon f(): Tam { }"},
-		{"sabitin yeniden tanımlanması", "sabit x = 1\ndeğişken x = 2\nx = 3"},
-		{"sabitin aynı adlı fonksiyonla ezilmesi", "sabit f = 1\nfonksiyon f() { }\nf = fonksiyon() { }"},
-		{"sabit listenin elemanını değiştirme", "sabit l = [1, 2]\nl[0] = 5"},
-		{"sabit sözlüğün alanını değiştirme", "sabit p = {\"x\": 1}\np.x = 5"},
-		{"çoklu atamada tip denetimi yok", "değişken x: Tam = 1\ndeğişken y = 2\nx, y = \"a\", 2"},
-		{"çoklu tanımda değişkenler tipsizdir", "değişken a, b = 1, 2\na = \"x\""},
-		{"yapı alan tipleri", "yapı Nokta {\n  x: Tam\n}\ndeğişken p = Nokta(\"a\")"},
-		{"döngü değişkenleri tipsizdir", "döngü x içinde [1, 2] { değişken s: Metin = x }"},
-		{"uyumsuz işlenenler", "değişken a = \"x\" - 1\ndeğişken b = doğru + 1"},
-		{"koşul tipi", "eğer 5 { }\niken \"x\" { }"},
+		{"tanımdan önce çağrı (öne alma yok)", "kare(\"a\")\nTR_kw_func kare(x: TR_type_Int) { }"},
+		{"değişkene atanan fonksiyonun parametre tipleri unutulur", "TR_kw_var kare = TR_kw_func(x: TR_type_Int) { TR_kw_return x }\nkare(\"a\")"},
+		{"lambda parametre tipleri", "TR_kw_var f = (x: TR_type_Int) => x\nf(\"a\")"},
+		{"eksik argüman", "TR_kw_func f(a: TR_type_Int, b: TR_type_Int) { }\nf(1)"},
+		{"fazla argüman", "TR_kw_func f(a: TR_type_Int) { }\nf(1, 2, 3)"},
+		{"isimli argüman tipi", "TR_kw_func f(a: TR_type_Int) { }\nf(a: \"x\")"},
+		{"dönüş tipi olan fonksiyonda eksik 'sonuç'", "TR_kw_func f(): TR_type_Int { }"},
+		{"sabitin yeniden tanımlanması", "TR_kw_const x = 1\nTR_kw_var x = 2\nx = 3"},
+		{"sabitin aynı adlı fonksiyonla ezilmesi", "TR_kw_const f = 1\nTR_kw_func f() { }\nf = TR_kw_func() { }"},
+		{"sabit listenin elemanını değiştirme", "TR_kw_const l = [1, 2]\nl[0] = 5"},
+		{"sabit sözlüğün alanını değiştirme", "TR_kw_const p = {\"x\": 1}\np.x = 5"},
+		{"çoklu atamada tip denetimi yok", "TR_kw_var x: TR_type_Int = 1\nTR_kw_var y = 2\nx, y = \"a\", 2"},
+		{"çoklu tanımda değişkenler tipsizdir", "TR_kw_var a, b = 1, 2\na = \"x\""},
+		{"yapı alan tipleri", "TR_kw_struct Nokta {\n  x: TR_type_Int\n}\nTR_kw_var p = Nokta(\"a\")"},
+		{"döngü değişkenleri tipsizdir", "TR_kw_for x TR_kw_in [1, 2] { TR_kw_var s: TR_type_String = x }"},
+		{"uyumsuz işlenenler", "TR_kw_var a = \"x\" - 1\nTR_kw_var b = TR_kw_true + 1"},
+		{"koşul tipi", "TR_kw_if 5 { }\nTR_kw_while \"x\" { }"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -498,68 +506,26 @@ func TestKnownLimitations(t *testing.T) {
 	}
 
 	// Yakalanan hata değişkeni açıklamasızdır: başka tipte değer alabilir.
-	noErrors(t, "dene { } yakala h {\n  h = 5\n}")
+	noErrors(t, "TR_kw_try { } TR_kw_catch h {\n  h = 5\n}")
 }
 
-// ---------------------------------------------------------------------------
-// Örnek programlar yanlış alarm üretmemeli
-// ---------------------------------------------------------------------------
-
-func TestExamplesCheckWithoutErrors(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
-	files, _ := reporoot.Glob(reporoot.Path("examples/tr/*.tr"))
-	if len(files) == 0 {
-		t.Fatal("examples/tr/*.tr bulunamadı")
-	}
-	for _, file := range files {
-		t.Run(filepath.Base(file), func(t *testing.T) {
-			data, err := os.ReadFile(file)
-			if err != nil {
-				t.Fatal(err)
-			}
-			noErrors(t, string(data))
-		})
-	}
-	// Depodaki programlar (örnekler, dil tanımı testleri ve kıyas programları)
-	// uyarısız denetlenmeli: yerleşik adları gölgeleyen ya da yazılış kuralına (2.3b) uymayan
-	// kullanıcı adı olmamalı.
-	for _, file := range testkit.GlobFiles(t, "examples/tr/*.tr", "examples/tr/helpers/*.tr", "tests/*.tr", "tools/bench/tr/*.tr") {
-		data, err := os.ReadFile(file)
-		if err != nil {
-			t.Fatal(err)
-		}
-		p := parser.New(lexer.New(strings.TrimPrefix(string(data), "\ufeff")))
-		prog := p.ParseProgram()
-		if len(p.Errors()) > 0 {
-			t.Errorf("%s: %v", file, p.Errors())
-			continue
-		}
-		c := New()
-		c.CheckProgram(prog)
-		if u := c.Warnings(); len(u) > 0 {
-			t.Errorf("%s uyarısız denetlenmeli: %v", file, u)
-		}
-	}
-}
-
-// Tip açıklamasında kabul edilen yazımlar sözlükten gelir (type); her tipin tek yazımı
-// vardır, büyük/küçük harfi farklı biçim kabul edilen bir yazım değildir (3.14).
+// Kural (3.14): tip açıklamasında kabul edilen yazımlar sözlükten gelir (type); program içeride
+// kimliklerle çalıştığı için her tipin tek kabul edilen yazımı kimliğidir; büyük/küçük harfi
+// farklı biçim kabul edilen bir yazım değildir.
 func TestTypeSpellingsUnique(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
-	expected := []string{"Tam", "Ondalık", "Metin", "Mantık", "Liste", "Sözlük", "Tensör", "Yok",
-		"Aralık", "Fonksiyon", "YerleşikFonksiyon", "Tip"}
-	if len(typeSpellings) != len(expected) {
-		t.Errorf("%d yazım bekleniyordu, %d var: %v", len(expected), len(typeSpellings), typeSpellings)
+	if len(typeSpellings) != len(annotationTypes) {
+		t.Errorf("%d yazım bekleniyordu, %d var: %v", len(annotationTypes), len(typeSpellings), typeSpellings)
 	}
-	for _, typ := range expected {
-		if got, ok := typeSpellings[typ]; !ok || got != typ {
-			t.Errorf("tipYazimlari[%q] = %q, %v; kendisi bekleniyordu", typ, got, ok)
+	for _, k := range annotationTypes {
+		id := k.String()
+		if got, ok := typeSpellings[id]; !ok || got != id {
+			t.Errorf("typeSpellings[%q] = %q, %v; kendisi bekleniyordu", id, got, ok)
 		}
-		if _, ok := typeSpellings[turkish.Lower(typ)]; ok {
-			t.Errorf("%q kabul edilen bir yazım olmamalı (3.14)", turkish.Lower(typ))
+		if _, ok := typeSpellings[strings.ToLower(id)]; ok {
+			t.Errorf("%q kabul edilen bir yazım olmamalı (3.14)", strings.ToLower(id))
 		}
 	}
-	for _, c := range []struct{ in, want string }{{"", "Herhangi"}, {"TAM", "Tam"}, {"Herhangi", "Herhangi"}, {"herhangi", "herhangi"}, {"Nokta", "Nokta"}} {
+	for _, c := range []struct{ in, want string }{{"", typeAny}, {"TAM", typeInt}, {typeAny, typeAny}, {"herhangi", "herhangi"}, {"Nokta", "Nokta"}} {
 		if got := normalizeTypeName(c.in); got != c.want {
 			t.Errorf("normalizeTypeName(%q) = %q, %q bekleniyordu", c.in, got, c.want)
 		}
