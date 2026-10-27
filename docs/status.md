@@ -137,12 +137,13 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
 
 ## 2. Sözcük yapısı
 
-Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). Taslak: DENETİM ve Gemini'nin araştırması bekleniyor. Eski 2.9a (her dilde tek yazım) ve 2.11 (diller arası ad kuralı, $ad kaçışı) gösterim dilleri bölümüne gitti; o numaralar boş kalır, testleri o bölüm yazılınca taşınır. Anlamı değişmeyen maddelerin bugünkü TR testi var; aşağıda yalnız değişen ya da eksik olanlar.
+Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). Taslak: DENETİM ve Gemini'nin araştırması bekleniyor. Eski 2.9a (her dilde tek yazım) ve 2.11 (diller arası ad kuralı, $ad kaçışı) gösterim dilleri bölümüne gitti; o numaralar boş kalır, testleri o bölüm yazılınca taşınır. Eski 2.12 (çıplak ileti kodu) kalktı. Anlamı değişmeyen maddelerin bugünkü TR testi var; aşağıda yalnız değişen ya da eksik olanlar.
 
 ### 2.1
 
 - **Mevcut durum:** başlığı olmayan metin bugün Türkçe yazılmış sayılıp okunuyor.
 - **Yapılacaklar:** diskteki her dosya kodludur; başlıksız dosya çalışmaz, ileti kodlama yolunu söyler. Bilerek bozuk sınav dosyaları, belgelerdeki kod blokları ve Go testlerindeki TR metni kodlu biçime geçer.
+  - İlk satırdaki `#!` yok sayılır; bugün sözdizimi hatası veriyor [ölçüldü].
 
 ### 2.2
 
@@ -154,12 +155,28 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). Taslak: D
 - **Mevcut durum:** adlar karşılaştırılmadan önce normalleştirilmiyor (sözcük çözümleyicide normalleştirme yok).
 - **Yapılacaklar:** adlar NFC'ye göre karşılaştırılır; kodlama ve gösterim de aynı biçimi kullanır.
 
+### 2.3 (ad kuralı)
+
+- **Mevcut durum:** adın harf, rakam ve `_` ile yazıldığı bugünkü kural birleşen işaretleri kapsıyor mu ölçülmedi.
+- **Yapılacaklar:** UAX #31 (XID_Start, XID_Continue) ile okunur.
+
 ### 2.4
 
-- **Mevcut durum:** `0x1F` sözdizimi hatası veriyor [ölçüldü].
+- **Mevcut durum:** `0x1F` sözdizimi hatası veriyor [ölçüldü]; aralığı aşan tam sayı yazımı hata veriyor, ileti ondalık yazımı öneriyor [ölçüldü], kuralla aynı.
 - **Yapılacaklar:** `0x`, `0o`, `0b` ön ekleri ve ön ekten sonra `_`.
 
 ### 2.6
 
 - **Mevcut durum:** `\u{...}` bilinmeyen kaçış dizisi hatası veriyor [ölçüldü].
 - **Yapılacaklar:** `\u{...}` kaçışı; bilinmeyen kaçış iletisi bilinenlere onu da ekler.
+  - Tek tırnaklı metin kalkar; depodaki kullanımlar çift tırnağa çevrilir.
+
+### 2.9
+
+- **Mevcut durum:** `TR_kw_while` ve `TR_kw_default` çalışıyor.
+- **Yapılacaklar:** ikisi kalkar; koşullu döngü `TR_kw_for` ve bir koşulla, varsayılan kol `_` ile yazılır; depodaki kullanımlar çevrilir.
+
+### 2.12 (kalktı)
+
+- **Mevcut durum:** `H6903` gibi çıplak ileti kodu metin değeri olarak okunuyor.
+- **Yapılacaklar:** bu sözcük sınıfı kalkar; ileti kodu metin olarak yazılır (`"H6903"`); `H6903` sıradan bir ad olur.
