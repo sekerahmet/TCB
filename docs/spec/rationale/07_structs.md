@@ -1,0 +1,43 @@
+# 7. Yapılar: emsal ve gerekçe
+
+Kurallar: [`07_yapilar.md`](../07_yapilar.md). Bu dosya her kuralın emsalini (başka dillerde nasıl olduğu, neyi almadığımız, kaynaklarıyla) ve gerekçesini tutar. Dili kullanmak için kuralların kendisi yeter; bu dosya kararları tartmak ve denetlemek içindir.
+
+### 7.1
+
+- *Emsal:* Python'un veri sınıfı alanları tipiyle yazar ve sırayı korur: "`TypeError` will be raised if a field without a default value follows a field with a default value." Go ve Rust'ta kalıtım yoktur; ortak davranış arayüzle ya da trait'le, ortak parça gömme ya da alanla kurulur. *Almadık:* Python'un ve Java'nın sınıf kalıtımı (`class Net(nn.Module)`): üst sınıfın gizli durumu ve metot ezme, çağrının nereye gittiğini okumayı zorlaştırır; tipsiz alan (bugünkü TR'de `y = 0` geçerli). ([Python 3.15 dataclasses](https://docs.python.org/3/library/dataclasses.html), [Go 1.27](https://go.dev/ref/spec#Struct_types), [Rust 1.99 kitabı](https://doc.rust-lang.org/book/ch18-01-what-is-oo.html))
+- *Gerekçe:* alanın tipi yapının sözleşmesidir, parametrenin tipi gibi (6.1); veri sınıfı alışkanlığıyla yazan model tipi zaten yazar. Kütüphanenin katmanları (`lib/katman.tr`) bugün de kalıtımsızdır: her katman sıradan bir yapıdır. PyTorch alışkanlığıyla yazılan `class A(B):` gürültülü hata verir ve ileti doğru yazımı söyler.
+
+### 7.2
+
+- *Emsal:* Swift: "Structure types automatically receive a memberwise initializer if they don't define any of their own custom initializers." Python'un veri sınıfı da alanlardan kurucu üretir. *Almadık:* bugünkü TR'nin verilmeyen alana sessizce yokluk koyması [ölçüldü]. ([Swift 6.4](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/initialization/), [Python 3.15 dataclasses](https://docs.python.org/3/library/dataclasses.html))
+- *Gerekçe:* kurma bir çağrıdır, 6.5'in kurallarıyla okunur; unutulmuş bir alan çalışmadan önce görünür.
+
+### 7.3
+
+- *Emsal:* Python alana her zaman `self.x` ile erişir. *Almadık:* Python'un `self`'i parametre olarak yazması; Swift'in ve Kotlin'in alanı `self` olmadan da okuması (düz `x` yerel mi alan mı belirsiz kalır); Python'un `@staticmethod`'u (aynı iş dosyanın fonksiyonuyla yazılır, 2.9). ([Python 3.15](https://docs.python.org/3/tutorial/classes.html#random-remarks))
+- *Gerekçe:* `TR_self.x` her zaman alandır, düz `x` her zaman yereldir; ikisi karışmaz. Python alışkanlığıyla `self.x` yazan model yalnız sözcüğü değiştirir; düz `x` yazarsa hata gürültülüdür ve ileti doğrusunu söyler (bugün ileti `TR_var`'ı öneriyor [ölçüldü]).
+
+### 7.4
+
+- *Emsal:* Swift: "Classes and structures must set all of their stored properties to an appropriate initial value by the time an instance" ... "is created"; Swift ve Kotlin bunu derlemede denetler. Python'un `__init__`'i alanları kurucuda kurar. *Almadık:* Python'da kurucuda unutulan alanın ancak okunduğunda `AttributeError` vermesi; bugünkü TR'de kurucunun atamadığı alanın sessizce konumlu argümanı ya da yokluğu alması [ölçüldü]. ([Swift 6.4](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/initialization/))
+- *Gerekçe:* katman ağırlıkları kurucuda boyutlardan hesaplanır (`lib/katman.tr`'deki `TR_init`'ler); atanmamış bir ağırlık eğitimin ortasında değil, çalışmadan önce görünür.
+
+### 7.5
+
+- *Emsal:* Go, Rust, Swift ve Kotlin olmayan alanı ve alanın tipine uymayan atamayı derlemede reddeder. *Almadık:* bugünkü TR'nin `TR_Int` alana metin ataması [ölçüldü] ve olmayan alanı ancak çalışırken bulması [ölçüldü]. ([Go 1.27](https://go.dev/ref/spec#Selectors))
+- *Gerekçe:* yazım yanlışı bir alan adı (`p.agirlik`) çalışmadan önce bulunur ve ileti doğrusunu söyler.
+
+### 7.6
+
+- *Emsal:* Python'un, Java'nın ve Kotlin'in nesneleri başvuruyla paylaşılır (bugünkü TR de böyle [ölçüldü]). Python'un veri sınıfı eşitliği alanlardandır: "This method compares the class by comparing each field in order." *Almadık:* Python'da sıradan sınıfın eşitliğinin kimlik olması ("By default, `object` implements `__eq__()` by using `is`"); Swift'in ve Go'nun değer yapıları (kopyalanır). ([Python 3.15 dataclasses](https://docs.python.org/3/library/dataclasses.html), [Python 3.15 veri modeli](https://docs.python.org/3/reference/datamodel.html#object.__eq__))
+- *Gerekçe:* PyTorch alışkanlığıyla `katman = model.katmanlar[0]` alıp ağırlığını değiştiren kod modeli değiştirmeyi bekler; değer yapısında bu sessizce kopyada kalırdı. Eşitliğin alanlardan gelmesi listelerle aynıdır (4.5): onlar da paylaşılır ve içerikle karşılaştırılır. Metnin kurma yazımı olması, metni okuyan modelin aynı değeri yeniden kurmasını sağlar; bellek adresi taşımaz (Güvenilir).
+
+### 7.7
+
+- *Emsal:* Rust: "we can put data directly into each enum variant"; "The `Option` type encodes the very common scenario in which a value could be something, or it could be nothing." Swift'in durumları da değer taşır; Python 3.10'un `match`'i sınıf desenleriyle aynı işi yapar. *Almadık:* Python'un ve C'nin sayı değerli `Enum`'u (durum başka bir tipin değeri olur); desende değer karşılaştırması (5.6'nın parantez kuralıyla karışırdı); durumların sessizce eksik eşlenmesi. ([Rust 1.99 kitabı](https://doc.rust-lang.org/book/ch06-01-defining-an-enum.html), [Swift 6.4](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/enumerations/), [Python 3.15](https://docs.python.org/3/reference/compound_stmts.html#class-patterns))
+- *Gerekçe:* ajanın araç cevabı (başarı, hata, zaman aşımı), robotun kipi ve eğitimin aşaması birkaç durumdan biridir ve her durumun kendi verisi vardır. Kapsama denetimi (5.6) yeni bir durum eklenince onu ele almayan her eşlemeyi çalışmadan önce gösterir. Durumun değiştirilemez olması, paylaşma sorusunu (7.6) kaldırır.
+
+### 7.8
+
+- *Emsal:* Go'da tip, arayüzün metotlarını taşıyınca onu karşılar ("A type `T` implements an interface `I` if" ...); Python'un Protocol'ü aynı yapısal düzeni getirir: "structural subtyping", "without explicit base classes in the class definition". Python 3.12 tip parametresinin sınırını iki noktayla yazar: "A single expression after the colon indicates a bound (e.g. `T: int`)". *Almadık:* Rust'ın, Swift'in ve Java'nın açık bildirimi (`impl Katman for Doğrusal`, `: Katman`): yapıyı yazan arayüzü bilmek zorunda kalır, ikinci bir yazım gerekir. ([Go 1.27](https://go.dev/ref/spec#Interface_types), [PEP 544](https://peps.python.org/pep-0544/), [Python 3.15](https://docs.python.org/3/reference/compound_stmts.html#type-params))
+- *Gerekçe:* farklı katmanlardan oluşan bir model (`TR_List[Katman]`) ve kısıtlı genel fonksiyonlar (6.10) bir arayüz ister. Yapısal karşılama, kütüphanenin bugünkü yapılarını değiştirmeden arayüze sokar. Karşılamayan değerin iletisi eksik metodu adıyla söyler.

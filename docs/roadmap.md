@@ -12,7 +12,7 @@ Yazıldı; DENETİM'den ve Gemini'nin araştırmasından geçti (2026-10-27). He
 
 ## Sıradaki
 
-1. ve 2. bölüm DENETİM'den ve Gemini'nin araştırmasından, 3., 4. ve 5. bölüm DENETİM'den geçti. 6. bölüm (fonksiyonlar) taslak; sırada 7. bölüm. Dil tanımı kodlu biçimi, yani kimliklerle yazılmış programı anlatır.
+1. ve 2. bölüm DENETİM'den ve Gemini'nin araştırmasından, 3., 4. ve 5. bölüm DENETİM'den geçti. 6. bölüm (fonksiyonlar) ve 7. bölüm (yapılar) taslak; 7. bölümün iki yeni anahtar kelimesi (`TR_enum`, `TR_interface`) onay bekliyor. Dil tanımı kodlu biçimi, yani kimliklerle yazılmış programı anlatır.
 
 **7. bölümden sonra: ajan hata oranı deneyi** (Ahmet, 2026-10-27, plan onaylı). Kodlama modeli TR'yi alışkanlıkla doğru yazıyor mu, yanlış yazınca hata gürültülü mü; aynı görevlerde Python'la karşılaştırılır.
 - **Evre A** (1–7 yazılınca, uygulamadan önce): üç Claude modeli, 20 görev, iki bağlam (yalnız tek sayfalık başvuru; ya da 1–7'nin kuralları ve kimlik listesi). Programlar kural numarasıyla denetlenir; sık çiğnenen kural ya da başvuru yeniden tartılır. Başvuru (Araç işleri) Evre A'dan önce yazılır.

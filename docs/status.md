@@ -448,3 +448,51 @@ Depodaki kullanımlar çevrilir: `TR_it` 44 ve `TR_acc` 10 yerde, adsız `TR_fun
 
 - **Mevcut durum:** `TR_func f[T](l)` sözdizimi hatası veriyor [ölçüldü].
 - **Yapılacaklar:** tip parametreleri ve çağrıda çıkarımı.
+
+## 7. Yapılar
+
+Kurallar: [`docs/spec/07_yapilar.md`](spec/07_yapilar.md). Taslak: DENETİM ve Gemini'nin araştırması bekleniyor. Kuralla aynı olanlar: nesne başvuruyla paylaşılıyor (`q.x = 9` `p.x`'i de değiştiriyor), eşitlik alanlardan, çağrısız metot nesneye bağlı bir fonksiyon [ölçüldü].
+
+İki yeni anahtar kelime kimlik listesinde yok: `TR_enum` (7.7) ve `TR_interface` (7.8); adları Ahmet'in onayında. Yapının tipi olan genel tip (StructType) kalkar; yapının tipi `TR_Type`'tır (3.11).
+
+`tests/yapilar_test.tr` eski kuralları da sınıyor; testler koşulmadan önce yeni kurallara göre yeniden yazılır: tipsiz alanlar ve varsayılanlıdan sonra varsayılansız alan (7.1), verilmeyen alanın yokluk alması (7.2), `p?.z` (7.5, 4.8), eski metin biçimi ve yapının tipinin StructType olması (7.6). Kütüphanenin yapıları (`lib/katman.tr` ve öbürleri) tipli alanlara ve tipli kurucu parametrelerine çevrilir.
+
+### 7.1
+
+- **Mevcut durum:** alan tipsiz yazılabiliyor (`y = 0`); varsayılanlı alandan sonra varsayılansız alan geçerli (bugünkü 7.1 testi).
+- **Yapılacaklar:** her alanın tipi; varsayılanlıların sonda olması; yapının tip parametresi; kalıtım yazımları için iletiler.
+
+### 7.2
+
+- **Mevcut durum:** verilmeyen ve varsayılanı olmayan alan yokluk alıyor [ölçüldü].
+- **Yapılacaklar:** zorunlu alan verilmezse denetim hatası.
+
+### 7.3
+
+- **Mevcut durum:** metotta düz alan adı tanımsız ad hatası veriyor, ama ileti `TR_var`'ı öneriyor [ölçüldü].
+- **Yapılacaklar:** ileti `TR_self.x`'i önerir; Python'un self parametresi için ileti.
+
+### 7.4
+
+- **Mevcut durum:** kurucu alanı atamasa da konumlu argüman alana yazılıyor (`D(3).n` 3 veriyor) [ölçüldü].
+- **Yapılacaklar:** kurucu varken yalnız onun imzasıyla kurma; her alanın kurucuda atanma denetimi.
+
+### 7.5
+
+- **Mevcut durum:** `TR_Int` alana metin atanabiliyor; olmayan alan ancak çalışırken bulunuyor ("alanı veya metodu bulunamadı") [ölçüldü]; `p?.z` yokluk veriyor (bugünkü 7.5 testi).
+- **Yapılacaklar:** alan tipinin denetimi; olmayan alan denetim hatası, ileti en yakın alanı önerir.
+
+### 7.6
+
+- **Mevcut durum:** nesnenin metni `Nokta{x: 1, y: 2}` biçiminde [ölçüldü]; yapının tipi StructType (bugünkü 7.6 testi).
+- **Yapılacaklar:** metin kurma yazımıyla ("Nokta(x: 1.0, y: 2.0)"); karşılaştırılamayan alanlı yapının `==`'si denetim hatası.
+
+### 7.7
+
+- **Mevcut durum:** durumlu tip yok.
+- **Yapılacaklar:** `TR_enum`, durumların kurulması, eşlemede desen ve kapsama, metin.
+
+### 7.8
+
+- **Mevcut durum:** arayüz yok.
+- **Yapılacaklar:** `TR_interface`, yapısal karşılama, eksik metodu söyleyen ileti, tip parametresinde kısıt.
