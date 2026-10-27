@@ -47,7 +47,7 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
   - §19 `--ros-args`'ı bilinmeyen seçenek sayıyor.
 - **Yapılacaklar:**
   - Argüman verilip programın en dışından ulaşılabilen bir `TR_fn_command_line` çağrısı yoksa program çalışmadan kullanım hatası verir (2); ulaşılabilirlik kesin değilse çağrı var sayılır.
-  - Böyle bir programa yalnız `--yardım` ya da `-h` verilirse "seçeneği yok" yazılır, çıkış 0 (yeni ileti kodu).
+  - Böyle bir programa yalnız yardım seçeneği (`-h`) verilirse "seçeneği yok" yazılır, çıkış 0 (yeni ileti kodu).
   - Bitişteki uyarı silinir.
   - ROS 2'nin `--ros-args` blokları ve dağıtık eğitim başlatıcılarının `--local-rank=N`, `--local_rank=N` argümanı programın argümanlarından ayrılır.
 
@@ -137,7 +137,7 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
 
 ## 2. Sözcük yapısı
 
-Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). Taslak: DENETİM ve Gemini'nin araştırması bekleniyor. Anlamı değişmeyen maddelerin bugünkü TR testi var; aşağıda yalnız değişen ya da eksik olanlar.
+Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). Taslak: DENETİM ve Gemini'nin araştırması bekleniyor. Gösterim dillerine ait işler (ad kuralı, $ad kaçışı, dile göre yazım) bu bölümde değil, gösterim dilleri bölümünde ele alınacak. Anlamı değişmeyen maddelerin bugünkü TR testi var; aşağıda yalnız değişen ya da eksik olanlar.
 
 ### 2.1
 
@@ -163,8 +163,3 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). Taslak: D
 
 - **Mevcut durum:** `\u{...}` bilinmeyen kaçış dizisi hatası veriyor [ölçüldü].
 - **Yapılacaklar:** `\u{...}` kaçışı; bilinmeyen kaçış iletisi bilinenlere onu da ekler.
-
-### 2.11
-
-- **Mevcut durum:** Türkçe yazılmış dosyada başka bir gösterim dilinin sözcüğü ad olabiliyor (`TR_fn_print`'in İngilizce adıyla bir değişken çalışıyor) [ölçüldü]; $ad kaçışı çalışıyor [ölçüldü]; 17 çakışmayı bu kaçışla anlatıyor.
-- **Yapılacaklar:** ad kuralı (tanımda ve kullanımda, her denetimde); $ad kaçışı silinir; depoda bu kurala takılan adlar yeniden adlandırılır; 17'nin kaçışa yaptığı göndermeler kalkar.

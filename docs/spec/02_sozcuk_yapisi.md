@@ -2,9 +2,11 @@
 
 Bu bölümün kurallarına göre bugünkü durum ve yapılacaklar: [`docs/status.md`](../status.md), "2. Sözcük yapısı".
 
-**2.1** Diskteki her `.tr` dosyası UTF-8 metindir ve kodludur (17.1): ilk satırı kodlu biçimin başlığıdır, dilin sözcükleri kimlikleriyle (`TR_fn_print`) yazılır. Kişi dosyayı bir gösterim dilinde görür ve yazar; yazdığı metin o dilden koda çevrilir (17). Başlıktan sonra aktarmalar gelir (1.3), sonra öbür tanım ve deyimler. Baştaki BOM (U+FEFF) yok sayılır; kaynağın ortasındaki NUL (U+0000) sözdizimi hatasıdır. Konumlar 1'den başlayan satır ve karakter (bayt değil) sütunlarıyla, kişinin gördüğü gösterime göre bildirilir (17.5).
+Bu bölüm kodlu biçimi, yani kimliklerle yazılmış programı anlatır. Kodun bir insan dilinde gösterilmesi ve o dilde yazılması (gösterim dilleri) ayrı bir konudur, ayrıca tasarlanacak ([yol haritası](../roadmap.md)).
+
+**2.1** Diskteki her `.tr` dosyası UTF-8 metindir ve kodludur (17.1): ilk satırı kodlu biçimin başlığıdır, dilin sözcükleri kimlikleriyle (`TR_fn_print`) yazılır. Başlıktan sonra aktarmalar gelir (1.3), sonra öbür tanım ve deyimler. Baştaki BOM (U+FEFF) yok sayılır; kaynağın ortasındaki NUL (U+0000) sözdizimi hatasıdır. Konumlar 1'den başlayan satır ve karakter (bayt değil) sütunlarıyla bildirilir.
 - *Emsal:* Go, Rust ve Python kaynağı UTF-8 okur; Go baştaki BOM'u yok sayabilir, Rust siler. Kodlu saklamanın emsali programlama dillerinde değil, yerelleştirilmiş fonksiyon adlarını içte tek kimliğe bağlayan çizelge programlarındadır (17.7). *Almadık:* Python'un dosya başında başka bir kodlama bildirilmesine izin vermesi. ([Go 1.27](https://go.dev/ref/spec#Source_code_representation), [Rust 1.99 Reference](https://doc.rust-lang.org/reference/input-format.html), [Python 3.15](https://docs.python.org/3/reference/lexical_analysis.html#encoding-declarations))
-- *Gerekçe:* program her makinede, dizüstünde de robotta da, aynı baytlardan aynı anlamı çıkarır. Kodlu biçim programın anlamını gösterim dilinden ayırır: aynı dosya her dilde okunur, hiçbir dilin ayrıcalığı yoktur.
+- *Gerekçe:* program her makinede, dizüstünde de robotta da, aynı baytlardan aynı anlamı çıkarır. Kimliklerle yazılan program hiçbir insan diline bağlı değildir.
 - *Test:* TR testi.
 
 **2.1a** Göründüğünden farklı okunan kaynak kabul edilmez. Yazı yönünü değiştiren görünmez karakterler (U+202A–U+202E, U+2066–U+2069, U+200E, U+200F, U+061C) kaynağın hiçbir yerinde, yorum ve metin içinde de, yazılamaz; metinde gerekiyorsa kaçışla yazılır (2.6). Adlarda görünmez dolgu harfleri (U+115F, U+1160, U+3164, U+FFA0) kullanılamaz. Bir ad birbirine benzeyen yazı sistemlerinden (Latin, Kiril, Yunan) yalnız birinin harfleriyle yazılır: son harfi Kiril olan `yetkі` hatadır, çünkü Latin harfli yazımından ayırt edilemez; tamamı tek yazı sisteminde olan adlar (`öğrenme`, `привет`, `αβγ`) geçerlidir.
@@ -29,14 +31,14 @@ TR_kw_var x = 1  // satır sonuna kadar yorum
 - *Gerekçe:* kişi kodu kendi dilinde yazar; aynı harf farklı klavyelerden ya da kopyalanan metinden birleşik ya da ayrık gelebilir. Aynı görünen ad aynı ad olmalı.
 - *Test:* TR testi; NFC karşılaştırması uygulanınca TR testi.
 
-**2.3a** `TR_` ile başlayan adlar kimliklere ayrılmıştır (17): kişinin bir gösterim dilinde yazdığı metinde kullanıcı adı olamaz, sözdizimi hatasıdır ve ileti başka bir ad önerir (`tr_x`). Ad bilinen bir kimlikse (başlıksız yapıştırılmış kodlu metin) ileti kodlu dosyanın başlığını hatırlatır. Kodlu dosyada bu adlar dilin sözcükleridir; listede olmayan `TR_` adı hatadır (17.2). `tr_x`, `TRx` ve kodların eski numaralı biçimi (`G100`, `A001`) sıradan addır.
+**2.3a** `TR_` ile başlayan adlar kimliklere ayrılmıştır (17): kodlu dosyada `TR_` ile başlayan her ad dilin bir sözcüğüdür, listede olmayan `TR_` adı hatadır (17.2). Kullanıcının adı `TR_` ile başlayamaz. `tr_x`, `TRx` ve kodların eski numaralı biçimi (`G100`, `A001`) sıradan addır.
 - *Emsal:* Python iki alt çizgiyle başlayıp biten adları (`__init__`) sisteme ayırır; C ve C++ alt çizgi ve büyük harfle başlayan adları gerçekleştirmeye ayırır. *Almadık:* Python'da bu ayrımın yalnız gelenek olması: TR'de ayrılmış ad hatadır. ([Python 3.15](https://docs.python.org/3/reference/lexical_analysis.html#reserved-classes-of-identifiers))
 - *Gerekçe:* kimlik ile kullanıcının adı hiçbir zaman karışmaz; dile yeni bir kimlik eklemek hiçbir programın adını bozmaz.
 - *Test:* TR testi.
 
-**2.3b** Ad yazılışı: sabitler `BÜYÜK_YILAN` (`TR_kw_const EN_BÜYÜK = 10`), yapılar `BüyükDeve` (kısaltma bütünüyle büyük kalır: `TR_type_GPT`), değişken, fonksiyon, parametre, alan ve metot adları `küçük_yılan` (`öğrenci_sayısı`) yazılır. Matematik adları muaftır: en çok üç harf ve rakamdan oluşan parça büyük harfli olabilir (`W`, `Wq`, `dW`, `W1`, `QKV`, `X_veri`). Baştaki `_` yazılışa sayılmaz. Kurala uymayan ad hata değil uyarıdır, program çalışır; uyarı önerilen yazımı verir ve büyük harfle yazılmış, değeri değişmeyen bir değişkene `TR_kw_const` önerir. Önerinin büyük/küçük harf dönüşümü adın diline göredir. Depodaki kitaplık, örnek, test ve araç programları uyarısızdır.
+**2.3b** Ad yazılışı: sabitler `BÜYÜK_YILAN` (`TR_kw_const EN_BÜYÜK = 10`), yapılar `BüyükDeve` (kısaltma bütünüyle büyük kalır: `TR_type_GPT`), değişken, fonksiyon, parametre, alan ve metot adları `küçük_yılan` (`öğrenci_sayısı`) yazılır. Matematik adları muaftır: en çok üç harf ve rakamdan oluşan parça büyük harfli olabilir (`W`, `Wq`, `dW`, `W1`, `QKV`, `X_veri`). Baştaki `_` yazılışa sayılmaz. Kurala uymayan ad hata değil uyarıdır, program çalışır; uyarı önerilen yazımı verir ve büyük harfle yazılmış, değeri değişmeyen bir değişkene `TR_kw_const` önerir. Depodaki kitaplık, örnek, test ve araç programları uyarısızdır.
 - *Emsal:* Python (PEP 8) aynı düzeni gelenek olarak koyar; Rust aynı düzeni varsayılan uyarılarla denetler (`non_snake_case`, `non_camel_case_types`, `non_upper_case_globals`); Kotlin sabitlerde aynıdır, değişkende `küçükDeve` yazar. *Almadık:* Go'da büyük harfin görünürlüğü belirlemesi (yazılışa anlam yüklenmez). ([PEP 8](https://peps.python.org/pep-0008/#naming-conventions), [Rust lints, uyarı](https://doc.rust-lang.org/rustc/lints/listing/warn-by-default.html), [Kotlin 2.4](https://kotlinlang.org/docs/coding-conventions.html#naming-rules), [Go 1.27](https://go.dev/ref/spec#Exported_identifiers))
-- *Gerekçe:* adın yazılışı ne olduğunu söyler; `TR_kw_const` bir anahtar kelime olduğundan yazılış ile tanım birbirini doğrular. Uyarı, çünkü program yine doğrudur. Öneri `'öğrenciSayısı' yerine 'öğrenci_sayısı'` biçimindedir; Türkçe bir adda harf dönüşümü Türkçe kuralladır (`ADIM` → `adım`).
+- *Gerekçe:* adın yazılışı ne olduğunu söyler; `TR_kw_const` bir anahtar kelime olduğundan yazılış ile tanım birbirini doğrular. Uyarı, çünkü program yine doğrudur. Öneri `'öğrenciSayısı' yerine 'öğrenci_sayısı'` biçimindedir.
 - *Test:* TR testi.
 
 **2.4** Tam sayı ondalık rakamlarla ya da ön ekle başka tabanda yazılır: onaltılık `0x1F`, sekizlik `0o17`, ikilik `0b1010`. Okunabilirlik için rakamların arasına ve ön ekten sonra `_` yazılabilir (`1_000_000`, `0xFF_FF`); `_` değeri değiştirmez, sayının sonunda ya da ön ekin içinde yazılamaz.
@@ -90,7 +92,7 @@ TR_kw_var t = 1 +
     2                    // t = 3
 ```
 
-**2.9** Kişi kodu bir gösterim dilinde (bugün Türkçe ve İngilizce) yazar ve okur; bir gösterim dilinde dilin her sözcüğünün o dildeki yazımı geçerlidir: anahtar kelime, bağlamsal sözcük, tip, yerleşik, metot, özellik, adlı argüman (17.7). O dilin kendine özgü harfleri olmadan yazılmış bir biçim dilin sözcüğü değil, sıradan bir addır; tanımsızken kullanılırsa ileti doğru adı önerir. Anahtar kelimeler:
+**2.9** Anahtar kelimeler dilin ayrılmış sözcükleridir ve kimlikleriyle yazılır; ad olarak kullanılamazlar:
 
 | Görev | Anahtar kelimeler |
 | :-- | :-- |
@@ -104,29 +106,19 @@ TR_kw_var t = 1 +
 | Modül ve eşzamanlılık | `TR_kw_import`, `TR_kw_async`, `TR_kw_defer` |
 | Hata ayıklama | `TR_kw_breakpoint` |
 
-- *Emsal:* Go, Rust ve Python'un sözcükleri tek bir insan dilinde yazılır. Yerelleştirilmiş adları içte tek kimliğe bağlayan emsaller 17.7'dedir. *Almadık:* sözcüklerin tek bir insan dilinde olması. ([Go 1.27](https://go.dev/ref/spec#Keywords), [Rust 1.99 Reference](https://doc.rust-lang.org/reference/keywords.html), [Python 3.15](https://docs.python.org/3/reference/lexical_analysis.html#keywords))
-- *Gerekçe:* kişi kodu kendi dilinde yazar ve okur; program kimliklerle çalıştığı için anlamı gösterim diline bağlı değildir. Türkçede `degisken` ve `yazdir` sıradan addır; tanımsızsa ileti `'yazdir' TR'de yok; 'yazdır' yazmak mı istediniz?` der.
+- *Emsal:* Go, Rust ve Python'un anahtar kelimeleri ayrılmıştır, ad olamaz. ([Go 1.27](https://go.dev/ref/spec#Keywords), [Rust 1.99 Reference](https://doc.rust-lang.org/reference/keywords.html), [Python 3.15](https://docs.python.org/3/reference/lexical_analysis.html#keywords))
+- *Gerekçe:* anahtar kelimeler kimlikle yazıldığı için hiçbir kullanıcı adıyla karışmaz; dile yeni bir anahtar kelime eklemek mevcut adları bozmaz.
 - *Test:* TR testi.
 
-**2.9a** Her işin bir gösterim dilinde tek yazımı vardır: her anahtar kelimenin, yerleşiğin, metodun, özelliğin, adlı argümanın ve tipin o dilde yalnız bir adı vardır; eş anlamlı ya da başka yazımlı ikinci bir ad dilin adı değil, sıradan bir addır. Başka dillerden alışılmış adlar da bir gösterim dilinde dilin adı değildir; bir hatada ileti asıl adı önerir. Bu adlar kod listesinde kodun `foreign` alanındadır (17). Dil taslak aşamasındadır: bir ad değişince eski adı için ipucu tutulmaz (17.6).
-- *Emsal:* Python'un ilkesi: bir işi yapmanın tek ve açık bir yolu olmalı. *Almadık:* eş anlamlı adlar (aynı iş iki adla yazılınca okuyan ikisini de öğrenmek zorunda kalır). ([PEP 20](https://peps.python.org/pep-0020/))
-- *Gerekçe:* okunan her kod aynı adları kullanır; alışkanlıkla yazılan yanlış ad sessizce yeni bir değişken açmaz, ileti doğrusunu söyler. Türkçe yazımda `int` ya da `lr` dilin adı değildir; ileti `'int' TR'de bir tip adı değil; 'Tam' yazmak mı istediniz?` der.
-- *Test:* TR testi.
-
-**2.9b** Bağlamsal sözcükler anahtar kelime değildir, yalnız bağlamlarında dilin sözcüğüdür, başka yerde ad olabilir: `TR_ctx_test` (deyim başında ardından metin gelince, 12.2), `TR_ctx_as` (`TR_kw_import` içinde), `TR_ctx_init` (yapının kurucu metodu, 7.4), `TR_ctx_error` (adsız `TR_kw_catch`'te hata değişkeni, 8.1), `TR_ctx_it` (sondaki bloğun parametresi, 6.7), `TR_ctx_acc` (`TR_mem_reduce`'nin sondaki bloğunda önceki sonuç, 6.7), `_` (`TR_kw_match` kolunda varsayılan).
+**2.9b** Bağlamsal sözcükler (`TR_ctx_...`) anahtar kelime değildir, yalnız kendi bağlamlarında yazılır: `TR_ctx_test` (deyim başında ardından metin gelince, 12.2), `TR_ctx_as` (`TR_kw_import` içinde), `TR_ctx_init` (yapının kurucu metodu, 7.4), `TR_ctx_error` (adsız `TR_kw_catch`'te hata değişkeni, 8.1), `TR_ctx_it` (sondaki bloğun parametresi, 6.7), `TR_ctx_acc` (`TR_mem_reduce`'nin sondaki bloğunda önceki sonuç, 6.7), `_` (`TR_kw_match` kolunda varsayılan).
 - *Emsal:* Python'un yumuşak anahtar kelimeleri (`match`, `case`, `_`) ve C#'ın bağlamsal anahtar kelimeleri yalnız bağlamlarında sözcüktür. ([Python 3.15](https://docs.python.org/3/reference/lexical_analysis.html#soft-keywords), [C# 14](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/keywords/#contextual-keywords))
-- *Gerekçe:* yaygın sözcükler kullanıcının adı olarak da kalabilir.
+- *Gerekçe:* bağlamsal sözcük bir kavramı yalnız yerinde adlandırır; dilin ayrılmış sözcüklerini çoğaltmaz.
 - *Test:* gerekmez: her bağlamsal sözcük kendi maddesinin testinde sınanır (12.2, 7.4, 8.1, 6.7).
 
 **2.10** İfadeler ve bloklar en çok 1000 düzey iç içe yazılabilir (`((((1))))` dört düzeydir); sınır aşılırsa program çalışmaz, sözdizimi hatası verilir. Metin içindeki yerleştirmenin ifadesi (2.7) bulunduğu yerin düzeyinden sayılır.
 - *Emsal:* Python'un sözcük çözümleyicisi en çok 200 iç içe parantez kabul eder. ([CPython 3.15 lexer](https://github.com/python/cpython/blob/3.15/Parser/lexer/state.h))
 - *Gerekçe:* sınırsız iç içelik yorumlayıcıyı yakalanamaz biçimde çökertirdi; güvenilmeyen bir kaynak dosya da `tr`'yi düşürememeli.
 - *Test:* TR testi.
-
-**2.11** Bir dosyada kullanıcının adı başka bir gösterim dilinde dilin bir sözcüğü olamaz, tanımda da kullanımda da; ileti başına `_` eklenmiş bir ad önerir. Böylece kodlu dosya her gösterim dilinde kayıpsız gösterilir ve hiçbir dilde kullanıcının adı dilin sözcüğüne bağlanmaz; ad kaçışı yoktur. Dile yeni bir sözcük ya da yeni bir gösterim dili eklenince o sözcüğü ad yapmış dosyalar yeniden adlandırılır (17.6).
-- *Emsal:* Rust (`r#match`), Swift ve Kotlin (`` `is` ``) ve C# (`@if`) bir anahtar kelimeyi ad yapmak için kaçış kullanır; hepsi tek bir insan dilinde yazılır. *Almadık:* kaçış: TR'de aynı dosya birçok dilde gösterildiği için kaçış, kişinin yazmadığı yerlerde de görünürdü. ([Rust 1.99 Reference](https://doc.rust-lang.org/reference/identifiers.html), [Swift 6.4](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/lexicalstructure/), [C# 14](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/tokens/verbatim))
-- *Gerekçe:* aynı program her dilde aynı okunur. Türkçe yazan birinin `print` adlı değişkeni İngilizce okuyanda yerleşik `TR_fn_print` gibi görünmez; İngilizce yazanın `toplam` adlı değişkeni de Türkçe okuyanda `TR_fn_sum` gibi görünmez.
-- *Test:* TR testi; ad kuralı uygulanınca TR testi.
 
 **2.12** İleti kodu (`H6903`: `H` ve tam dört rakam) bir ad değil sözcük birimidir ve ifadede kodun metnidir: `TR_fn_message(H6903, -1)` ile `TR_fn_message("H6903", -1)` aynıdır (8.5). Daha uzun, kısa ya da küçük harfli yazım (`H69030`, `h6903`) sıradan bir addır; tam `H` ve dört rakamlık sözcük ad olamaz. İleti kodu hiçbir gösterim dilinde çevrilmez. Yazım yanlışı (`H690`) tanımsız ad hatasıdır; var olmayan kod `TR_fn_message` kurulurken bildirilir.
 - *Emsal:* yok. Rust'ın hata kodları (`E0308`) belgede ve iletide geçer, dilin sözcüğü değildir. *Almadık:* iletiyi metniyle yakalamak (metin dile göre değişir).
