@@ -13,7 +13,7 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar henüz kesin
   - Modülde ilk değer her ifadeyi kabul ediyor (5.1, 5.2).
 - **Yapılacaklar:**
   - Denetleyici modülde ve test dosyasında en dışta tanım dışındaki deyimi hata sayar.
-  - Modülde ilk değer sabit ifade değilse hata verir; `TR_fn_fuse` ve `TR_fn_replay` çağrısı serbesttir.
+  - Modülde ilk değer sabit ifade değilse hata verir; fonksiyon adı, dışarıdan değişken yakalamayan fonksiyon ifadesi, sonucu yalnız argümanlarına bağlı sayı yerleşikleri ve `TR_fn_fuse`, `TR_fn_replay`, `TR_fn_custom_grad` serbesttir.
   - `lib/`, `tests/` ve örnekler kurala göre düzeltilir.
 
 ### 1.2
@@ -23,7 +23,8 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar henüz kesin
   - denetleyiciye tip çıkarımı;
   - kitaplığın, örneklerin ve testlerin imzaları;
   - "olabilir" tipi;
-  - tensörün tür ve şekil bilgisinin tipe ne kadar gireceği.
+  - tensörün tür ve şekil bilgisinin tipe ne kadar gireceği;
+  - `TR_kw_import ... TR_ctx_as ad` modülü bugün `TR_type_Dict`'e bağlıyor (11.2), üyelerin tipi korunmalı; gerçek sürücü ile benzetim arasında seçim için ortak bir arayüz tipi.
 
 ### 1.3
 
@@ -45,21 +46,23 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar henüz kesin
   - Argüman okunmadan program biterse bitişte uyarı yazılıyor, çıkış kodu değişmiyor.
   - §19 `--ros-args`'ı bilinmeyen seçenek sayıyor.
 - **Yapılacaklar:**
-  - Argüman verilip `TR_fn_command_line` hiç çağrılmıyorsa program çalışmadan kullanım hatası verir (2).
+  - Argüman verilip programın en dışından ulaşılabilen bir `TR_fn_command_line` çağrısı yoksa program çalışmadan kullanım hatası verir (2); ulaşılabilirlik kesin değilse çağrı var sayılır.
+  - Böyle bir programa yalnız `--yardım` ya da `-h` verilirse "seçeneği yok" yazılır, çıkış 0 (yeni ileti kodu).
   - Bitişteki uyarı silinir.
-  - ROS 2'nin `--ros-args` blokları programın argümanlarından ayrılır.
+  - ROS 2'nin `--ros-args` blokları ve dağıtık eğitim başlatıcılarının `--local-rank=N`, `--local_rank=N` argümanı programın argümanlarından ayrılır.
 
 ### 1.5
 
 - **Mevcut durum:**
   - Süreç temizlikten sonra 3 koduyla çıkıyor.
   - Çalışan her yerleşik önce bitiyor; `TR_fn_input` satır beklerken ilk istek beklemeyi kesmiyor.
-  - Ağ ve alt süreç yerleşiği yok.
+  - Ağ yerleşiği yok; TR alt süreç açmıyor (19.1).
+  - SIGUSR1'in bugün ne yaptığı ölçülmedi.
 - **Yapılacaklar:**
-  - Süreç isteğin kendi sinyaliyle biter.
-  - Durum değiştirmeyen yerleşik ve her bekleme bırakılır, önce `TR_fn_input` ve dosyadan yükleme.
-  - Durum değiştiren yerleşiklerin listesi yazılır ve sınanır.
-  - Alt süreç yerleşiği gelince bırakılan alt sürece istek iletilir.
+  - Süreç isteğin kendi sinyaliyle biter; SIGUSR1 de durdurma isteği olur.
+  - Durum değiştirmeyen yerleşik ve bekleme bırakılır, önce `TR_fn_input` ve dosyadan yükleme; bırakılan hesabın GPU'da başlamış işi beklenir, ertelenen işler sonra çalışır.
+  - Durum değiştirenlerin listesi yazılır ve sınanır: `TR_fn_backward`, iyileştirici adımı, indeksle atama, `TR_fn_write_slice`, dosyaya yazma, üretecin ve yükleyicinin ilerlemesi.
+  - TR alt süreç açmaya başlarsa (19.1) bu madde ona göre genişler: istek alt sürece, kendisi zaten almadıysa iletilir.
 
 ### 1.6
 
@@ -70,8 +73,9 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar henüz kesin
   - Ertelenen durdurma bayrağı temizlenmiyor, `.TR_mem_save()` iki kez kaydediyor [ölçüldü, DENETİM].
 - **Yapılacaklar:**
   - İki yerleşik; "durdurma istendi" hatası için ileti kodu.
-  - Üstlenen programda yeni iş bekleyen yerleşik bu hatayla döner, `TR_fn_sleep` hemen döner.
-  - Kontrol noktası aynı yolu kullanır; istekten sonraki ilk kayıtta durur, bitişte kaydetmez.
+  - Üstlenen programda yeni bir şey bekleyen yerleşik, `TR_fn_sleep` dahil, bu hatayla döner.
+  - `TR_kw_defer` bloklarında ve bu hatayı yakalayan `TR_kw_catch` gövdesinde beklemeler normal çalışır.
+  - Kontrol noktası isteği yalnız kaydeder, beklemeleri hataya çevirmez; istekten sonraki ilk kayıtta durur, bitişte kaydetmez.
 
 ### 1.7
 
@@ -88,8 +92,11 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar henüz kesin
 - **Mevcut durum:**
   - Durdurmada 3 ve 130 kodlarıyla çıkılıyor.
   - `tr` aracının kendi kullanım hatası 1 veriyor.
+  - Bir görevdeki yakalanmayan hata yazılıyor ama çıkış 0 [ölçüldü, DENETİM].
+  - Program sona gelince önce görevleri bekliyor, ertelenen işler sonra çalışıyor [ölçüldü, DENETİM]; kuralla aynı.
 - **Yapılacaklar:**
-  - İstek geldiyse süreç her yoldan isteğin sinyaliyle biter (1.5, 1.7 ile).
+  - İstek geldiyse süreç isteğin sinyaliyle biter (1.5, 1.7 ile); durdurmayı üstlenen program sona gelirse sinyal, `TR_fn_exit(kod)` ya da en dıştaki `TR_kw_return kod` ile o kod.
+  - Görevdeki yakalanmayan hata olduysa çıkış 1.
   - `tr` aracının kullanım hatası 2 verir.
 
 ### 1.10
@@ -110,7 +117,7 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar henüz kesin
 ### 1.13
 
 - **Mevcut durum:** `TR_fn_exit` olmadığı için yok.
-- **Yapılacaklar:** ertelenen işten çağrılan `TR_fn_exit` kodu değiştirir; istek geldiyse sinyal korunur.
+- **Yapılacaklar:** ertelenen işten çağrılan `TR_fn_exit` kodu değiştirir; durdurmayı üstlenmemiş programa istek geldiyse sinyal korunur.
 
 ### 1.14
 
