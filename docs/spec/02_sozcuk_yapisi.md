@@ -2,7 +2,7 @@
 
 Bu bölümün kurallarına göre bugünkü durum ve yapılacaklar: [`docs/status.md`](../status.md), "2. Sözcük yapısı".
 
-Bu bölüm kodlu biçimi, yani kimliklerle yazılmış programı anlatır. Kodun bir insan dilinde gösterilmesi ve o dilde yazılması (gösterim dilleri) ayrı bir konudur, ayrıca tasarlanacak ([yol haritası](../roadmap.md)).
+Bu dilde her şey kimlik koduyla yazılır (`TR_fn_print`). İnsanların okuyabilmesi için kod Türkçeye, İngilizceye ya da başka bir dile çevrilir; ama hiçbir insan dilinde kod yazılmaz. Çevirinin kuralları ayrı bir bölümde tasarlanacak ([yol haritası](../roadmap.md)).
 
 **2.1** Diskteki her `.tr` dosyası UTF-8 metindir ve kodludur: ilk satırı kodlu biçimi ve sürümünü bildiren başlıktır, dilin sözcükleri kimlikleriyle (`TR_fn_print`) yazılır. Dosyanın ilk satırı `#!` ile başlıyorsa (Unix'te dosyayı doğrudan çalıştırmak için) yok sayılır ve başlık ikinci satırdır. Başlıktan sonra aktarmalar gelir (1.3), sonra öbür tanım ve deyimler. Satır sonu LF ya da CRLF olabilir. Baştaki BOM (U+FEFF) yok sayılır; kaynağın ortasındaki NUL (U+0000) sözdizimi hatasıdır. Konumlar 1'den başlayan satır ve Unicode karakteri (bayt değil) sütunlarıyla bildirilir.
 - *Emsal:* Go, Rust ve Python kaynağı UTF-8 okur; Go baştaki BOM'u yok sayabilir, Rust siler. Rust ilk satırdaki `#!`'i siler, Python'da o satır bir yorumdur. *Almadık:* Python'un dosya başında başka bir kodlama bildirilmesine izin vermesi. ([Go 1.27](https://go.dev/ref/spec#Source_code_representation), [Rust 1.99 Reference](https://doc.rust-lang.org/reference/input-format.html), [Python 3.15](https://docs.python.org/3/reference/lexical_analysis.html#encoding-declarations))
