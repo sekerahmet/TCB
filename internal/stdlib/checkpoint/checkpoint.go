@@ -23,8 +23,11 @@
 // durumları (parametrelerin cihazına), düz değerler (yerinde) yüklenir ve günlüklere devam
 // kaydı yazılır. Bozuk bir nokta açık hatadır ve bir önceki geçerli noktayı önerir.
 //
-// Kontrol noktası kurulunca ilk kesme isteği programı hemen durdurmaz (interp.VM.RequestInterrupt):
-// sıradaki adım sınırında nokta kaydedilir ve program nazikçe (çıkış kodu 3) durur.
+// Kontrol noktası kurulunca ilk durdurma isteği programı hemen durdurmaz (interp.VM.RequestStop):
+// istekten sonraki ilk .güncelle ya da .kaydet noktayı kaydeder ve program nazikçe durur (1.6).
+// Erteleme süreyle sınırlıdır: istek ikinci .güncelle'den önce geldiyse ya da son iki .güncelle
+// arasındaki sürenin iki katı içinde kayda varılmazsa istek hemen uygulanır. Program durdurmayı
+// TR_handle_stop ile de üstlendiyse nokta yalnız kaydedilir. Biterken ek kayıt yapılmaz.
 //
 // Layer: standard library (internal/stdlib); dil ve hesap çekirdeklerini ve öbür motorları içe aktarır.
 package checkpoint
@@ -36,6 +39,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -93,6 +97,15 @@ type Checkpoint struct {
 	lastSave  time.Time // son kayıt ya da kayıt denemesi (aralık buradan sayılır)
 	failures  int       // art arda başarısız aralıklı kayıt
 	lastValid int64     // son geçerli noktanın adımı (-1: yok)
+
+	// Ertelenen durdurma isteği (1.6): updates .güncelle çağrı sayısı, lastUpdate sonuncusunun
+	// zamanı (monoton saat), window son iki .güncelle arasındaki sürenin iki katı (nanosaniye; 0:
+	// henüz iki güncelleme olmadı, erteleme yok); istek sinyal goroutine'inden geldiği için
+	// atomiktir. honored kayıtlı isteğin bu noktada karşılandığını söyler.
+	updates    int
+	lastUpdate time.Time
+	window     atomic.Int64
+	honored    bool
 }
 
 func (kn *Checkpoint) Type() interp.ValueType { return CheckpointType }
@@ -170,9 +183,26 @@ func setup(m *interp.VM, s *process.State, args []interp.Value, named map[string
 		return nil, err
 	}
 	kn.lastSave = clock()
-	m.DeferInterrupts()
+	m.DeferStops(kn.stopWindow)
 	setupUnseededWarning(m)
 	return kn, nil
+}
+
+// stopWindow bir durdurma isteğinin adım sınırına ertelenebileceği süreyi verir: son iki
+// .güncelle arasındaki sürenin iki katı (1.6). İkinci .güncelle'den önce gelen istek ertelenmez.
+func (kn *Checkpoint) stopWindow() (time.Duration, bool) {
+	w := kn.window.Load()
+	return time.Duration(w), w > 0
+}
+
+// noteUpdate bir .güncelle çağrısının zamanını kaydeder ve erteleme süresini günceller.
+func (kn *Checkpoint) noteUpdate() {
+	now := clock()
+	if kn.updates > 0 {
+		kn.window.Store(2 * int64(now.Sub(kn.lastUpdate)))
+	}
+	kn.updates++
+	kn.lastUpdate = now
 }
 
 // options her_dakika: ve tut: adlı argümanlarını okur.
@@ -228,8 +258,10 @@ func (kn *Checkpoint) update(m *interp.VM, args []interp.Value) (interp.Value, e
 		return nil, err
 	}
 	kn.step = n
-	if m.StopRequested() {
+	kn.noteUpdate()
+	if m.StopRequested() && !kn.honored {
 		kn.halt(m)
+		return interp.True, nil // program durdurmayı üstlenmişti: kaydedildi, program sürer
 	}
 	if clock().Sub(kn.lastSave) < kn.interval {
 		return interp.False, nil
@@ -274,8 +306,8 @@ func (kn *Checkpoint) saveTR(m *interp.VM, args []interp.Value) (interp.Value, e
 		return nil, err
 	}
 	kn.failures = 0
-	if m.StopRequested() {
-		kn.halt(m)
+	if m.StopRequested() && !kn.honored {
+		kn.stopAfterSave(m, fpath) // bu kayıt isteği de karşılar: ikinci kez kaydedilmez
 	}
 	return files.NewPath(fpath), nil
 }
@@ -298,15 +330,31 @@ func (kn *Checkpoint) rollback(m *interp.VM, args []interp.Value) (interp.Value,
 	return interp.NewInt(o.step), nil
 }
 
-// halt ertelenen kesme isteğini karşılar: noktayı kaydeder (hata uyarıdır) ve programı
-// nazikçe durdurur (dönmez).
+// halt kayıtlı durdurma isteğini adım sınırında karşılar: noktayı kaydeder (hata uyarıdır) ve
+// program durdurmayı üstlenmediyse nazikçe durdurur (dönmez). Üstlenen program kendi sınırında
+// biter; kontrol noktası yalnız kaydeder (1.6).
 func (kn *Checkpoint) halt(m *interp.VM) {
-	if fpath, err := kn.save(m); err != nil {
+	fpath, err := kn.save(m)
+	kn.lastSave = clock()
+	if err != nil {
+		kn.honored = true
 		m.WriteOutput(m.Err, messages.Text(messages.H7416, err, kn.lastValidText())+"\n")
-	} else {
-		m.WriteOutput(m.Err, messages.Text(messages.H7417, kn.step, fpath)+"\n")
+		if !m.StopHandled() {
+			m.InterruptNow()
+		}
+		return
 	}
-	m.InterruptNow()
+	kn.stopAfterSave(m, fpath)
+}
+
+// stopAfterSave kaydı yapılmış durdurma isteğini karşılar: kaydı bildirir ve program
+// durdurmayı üstlenmediyse nazikçe durdurur (dönmez).
+func (kn *Checkpoint) stopAfterSave(m *interp.VM, fpath string) {
+	kn.honored = true
+	m.WriteOutput(m.Err, messages.Text(messages.H7417, kn.step, fpath)+"\n")
+	if !m.StopHandled() {
+		m.InterruptNow()
+	}
 }
 
 // lastValidText son geçerli noktayı söyler (uyarı ve hata mesajları için).

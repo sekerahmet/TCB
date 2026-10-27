@@ -62,6 +62,9 @@ func testShow(d Value) string {
 // an uncaught error in a task the test started fails the test too (10.1). The program must
 // already be loaded with Run.
 func (v *VM) RunTest(t *ast.TestStatement) (err error) {
+	// Testin içinde TR_exit süreci bitirmez, testi düşürür (1.12).
+	v.testing.Add(1)
+	defer v.testing.Add(-1)
 	var taskErrs []error
 	v.taskErrorsMu.Lock()
 	v.taskErrors = &taskErrs
@@ -99,7 +102,7 @@ func (v *VM) RunTest(t *ast.TestStatement) (err error) {
 	env.IsFuncRoot = true
 	func() {
 		// Testin ertelenen işleri test bitince çalışır; hataları testin hatasına eklenir (9.4)
-		defer func() { err = addDeferError(err, env.RunDefers()) }()
+		defer func() { err = addDeferError(err, v.runDefers(env)) }()
 		if t.Body != nil {
 			_, _, err = kd.run(v, env)
 		}

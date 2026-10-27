@@ -4,49 +4,39 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"syscall"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// Nazik çıkış kodları: 3 "durduruldu" (ertelenen işler çalıştı; kontrol noktası kullanan
-// bir eğitim kaldığı yerden sürdürülebilir), 130 ikinci kesme isteğiyle hemen çıkış.
-const (
-	interruptExitCode = 3
-	immediateExitCode = 130
-)
-
-// catchInterrupt Ctrl+C'yi ve sonlandırma isteklerini (Unix'te SIGTERM ve SIGHUP; Windows'ta
-// Ctrl+Break ve konsol penceresinin kapanması) yakalar. Windows oturum ve bilgisayar kapanma
-// olaylarını yalnız hizmetlere gönderir; etkileşimli program bu olayları almadan sonlandırılır.
-// İlk istek programın nazikçe durmasını ister (VM.RequestInterrupt): program bir kontrol noktası
-// kurduysa istek adım sınırına ertelenir (nokta kaydedilip öyle durulur), kurmadıysa program
-// hemen durur. İkinci istek süreci hemen bitirir. Sınır: Windows konsol penceresi kapatılınca
-// işletim sistemi süreci varsayılan olarak 5 saniye içinde öldürür; ertelenen işler ve uzun bir adım bu
-// sürede bitmeyebilir (gerçek güvence kontrol noktasının düzenli kaydıdır).
-func catchInterrupt(machine *interp.VM) {
+// catchStop Ctrl+C'yi ve sonlandırma isteklerini yakalar (Unix'te SIGTERM, SIGHUP, SIGUSR1;
+// Windows'ta Ctrl+Break ve konsol penceresinin kapanması; sinyaller signals_*.go'da). Windows
+// oturum ve bilgisayar kapanma olaylarını yalnız hizmetlere gönderir; etkileşimli program bu
+// olayları almadan sonlandırılır. İlk istek VM'ye iletilir (RequestStop): program nazikçe durur,
+// üstlendiyse kaydedilir, kontrol noktası kurduysa adım sınırına ertelenir, biterken geldiyse
+// ertelenen işleri kesmez (1.5, 1.6, 1.15). İkinci istek süreci hemen bitirir (1.7). Sınır:
+// Windows konsol penceresi kapatılınca işletim sistemi süreci varsayılan olarak 5 saniye içinde
+// öldürür; ertelenen işler ve uzun bir adım bu sürede bitmeyebilir (gerçek güvence kontrol
+// noktasının düzenli kaydıdır, 1.8).
+func catchStop(machine *interp.VM) {
 	channel := make(chan os.Signal, 2)
-	signal.Notify(channel, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
+	signal.Notify(channel, requestSignals...)
 	go func() {
-		<-channel
-		if machine.RequestInterrupt() {
-			machine.WriteOutput(os.Stderr, "\n⏹️ "+messages.Text(messages.H8660)+"\n")
-		} else {
-			machine.WriteOutput(os.Stderr, "\n⏹️ "+messages.Text(messages.H8661)+"\n")
-		}
-		<-channel
+		first := <-channel
+		machine.WriteOutput(os.Stderr, "\n⏹️ "+stopNotice(machine.RequestStop(signalNumber(first)))+"\n")
+		second := <-channel
 		fmt.Fprintln(os.Stderr, "⏹️ "+messages.Text(messages.H8662))
-		os.Exit(immediateExitCode)
+		endBySignal(signalNumber(second))
 	}()
 }
 
-// reportInterrupt program kesme isteğiyle durduysa bildirimi yazar ve 3 koduyla çıkar.
-// err programın hatasıdır (kesilmeyse ertelenen işlerin hataları da içinde olabilir).
-func reportInterrupt(machine *interp.VM, err error, code string) {
-	if err != nil && err != interp.ErrInterrupted {
-		writeRunError(machine, err, code) // ertelenen işlerin hataları
+// stopNotice isteğin nasıl karşılandığını kullanıcıya söyler.
+func stopNotice(d interp.StopDisposition) string {
+	switch d {
+	case interp.StopHandled:
+		return messages.Text(messages.H8666)
+	case interp.StopDeferred:
+		return messages.Text(messages.H8660)
 	}
-	machine.WriteOutput(os.Stderr, "⏹️ "+messages.Text(messages.H8663, interruptExitCode)+"\n")
-	exit(interruptExitCode)
+	return messages.Text(messages.H8661)
 }

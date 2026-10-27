@@ -49,7 +49,7 @@ func unknownOption(command any, arg string, allowed []codes.Code) {
 	for i, a := range allowed {
 		list[i] = codes.OptionFlag(a)
 	}
-	exitWithError(messages.Text(messages.H8674, command, name, strings.Join(list, ", "), hint.ClosestSuggestion(name, list, nil)))
+	exitUsage(messages.Text(messages.H8674, command, name, strings.Join(list, ", "), hint.ClosestSuggestion(name, list, nil)))
 }
 
 // unknownTopLevelOption tr'nin kendisine verilen seçenek biçimindeki ilk argümanla çıkışa götürür:
@@ -70,9 +70,9 @@ func unknownTopLevelOption(arg string) {
 		}
 	}
 	if ok {
-		exitWithError(messages.Text(messages.H8602, arg, codes.NameRef(k)))
+		exitUsage(messages.Text(messages.H8602, arg, codes.NameRef(k)))
 	}
-	exitWithError(messages.Text(messages.H8604, arg, codes.NameRef(codes.CmdHelp)))
+	exitUsage(messages.Text(messages.H8604, arg, codes.NameRef(codes.CmdHelp)))
 }
 
 // fileArguments komutun dosya argümanlarını verir: '--'dan önce seçenek biçimindeki her argüman
@@ -128,7 +128,7 @@ func parseLongOption(command any, arg string, rest []string, allowed []codes.Cod
 	}
 	if valued(k) && !hasValue {
 		if len(rest) == 0 {
-			exitWithError(messages.Text(messages.H8675, codes.OptionFlag(k), command))
+			exitUsage(messages.Text(messages.H8675, codes.OptionFlag(k), command))
 		}
 		value, rest = rest[0], rest[1:]
 	}

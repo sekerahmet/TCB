@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"os"
 	"sync"
+
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 )
 
 // Standart girişin süreçte tek bir tamponlu okuyucusu vardır. Her okuma (girdi(), kabuk,
@@ -29,19 +31,48 @@ func (v *VM) InputReader() *bufio.Reader {
 	return v.inputReader
 }
 
-// readLine girdi() için bir satır okur. Okuma yorumlayıcı kilidi bırakılarak yapılır;
-// aynı anda okuyan görevler okuyucuyu sırayla kullanır.
-func (v *VM) readLine() (string, error) {
-	r := v.InputReader()
-	var lineNo string
-	var err error
-	v.Blocking(func() {
-		inputOrder.Lock()
-		defer inputOrder.Unlock()
-		lineNo, err = r.ReadString('\n')
-	})
-	return lineNo, err
+// lineRead başlamış bir satır okumasıdır; bitince done kapanır.
+type lineRead struct {
+	done chan struct{}
+	line string
+	err  error
 }
 
-// inputOrder aynı okuyucudan aynı anda okuyan görevleri sıraya koyar.
-var inputOrder sync.Mutex
+// readLine girdi() için bir satır okur. Okuma yorumlayıcı kilidi bırakılarak yapılır ve bir
+// durdurma onu bırakabilir (1.5); bırakılan okuma sürer ve okuduğu satırı bir sonraki okuyan
+// alır, satır yitmez (ertelenen bir iş de girdi isteyebilir). Aynı anda okuyan görevler
+// okumayı paylaşır: biri satırı alır, öbürü yeni okuma başlatır. waitErr üstlenilmiş programda
+// "durdurma istendi" hatasıdır (1.6).
+func (v *VM) readLine() (line string, readErr, waitErr error) {
+	r := v.InputReader()
+	for {
+		rd := v.startLineRead(r)
+		if err := v.awaitReady(CallPrefix(codes.FnInput), rd.done, true); err != nil {
+			return "", nil, err
+		}
+		v.isInput.Lock()
+		mine := v.pendingRead == rd
+		if mine {
+			v.pendingRead = nil
+		}
+		v.isInput.Unlock()
+		if mine {
+			return rd.line, rd.err, nil
+		}
+	}
+}
+
+// startLineRead sürmekte olan satır okumasını verir; yoksa r'den yenisini başlatır.
+func (v *VM) startLineRead(r *bufio.Reader) *lineRead {
+	v.isInput.Lock()
+	defer v.isInput.Unlock()
+	if v.pendingRead == nil {
+		rd := &lineRead{done: make(chan struct{})}
+		v.pendingRead = rd
+		go func() {
+			rd.line, rd.err = r.ReadString('\n')
+			close(rd.done)
+		}()
+	}
+	return v.pendingRead
+}

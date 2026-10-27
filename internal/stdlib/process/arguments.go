@@ -54,7 +54,7 @@ func applyArguments(m *interp.VM, options []*option, description string) (*inter
 	}
 	for _, a := range argv {
 		if isHelpArgument(a) {
-			return nil, &interp.ExitRequest{Code: 0, Message: helpText(command, description, options)}
+			return nil, requestExit(m, 0, helpText(command, description, options))
 		}
 	}
 	given, err := parse(m, argv, options)
@@ -63,8 +63,7 @@ func applyArguments(m *interp.VM, options []*option, description string) (*inter
 		if !strings.HasSuffix(msg, "?") {
 			msg += "."
 		}
-		return nil, &interp.ExitRequest{Code: usageErrorCode,
-			Message: messages.Text(messages.H7200, msg, command, helpOption())}
+		return nil, requestExit(m, usageErrorCode, messages.Text(messages.H7200, msg, command, helpOption()))
 	}
 	result := interp.NewDictVal()
 	for _, s := range options {
@@ -79,6 +78,15 @@ func applyArguments(m *interp.VM, options []*option, description string) (*inter
 		}
 	}
 	return result, nil
+}
+
+// requestExit programın çıkış isteğidir (VM'de kayıtlı: kod ve ileti, 1.10); m nil ise (VM'siz
+// çağrı) yalnızca hatayı kurar.
+func requestExit(m *interp.VM, code int, message string) error {
+	if m == nil {
+		return &interp.ExitRequest{Code: code, Message: message}
+	}
+	return m.RequestExit(code, message)
 }
 
 // parse argümanları seçeneklere göre çözer: seçenek adı → değer.

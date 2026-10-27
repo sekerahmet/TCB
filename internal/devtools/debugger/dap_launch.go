@@ -117,29 +117,24 @@ func (s *dapServer) start() {
 		_, err := s.machine.Run(s.prog)
 		s.machine.WaitAsync()
 		logging.CloseAll() // bitmemiş ilerleme çubuklarının son satırı konsola
-		exitCode := 0
-		if c, ok := interp.IsExitRequest(err); ok {
+		end := s.machine.End(err)
+		if end.Message != "" {
 			// Programın istediği çıkış (ör. komut satırı seçeneklerinde --yardım ya da hatalı
 			// argüman): mesaj konsola, kod düzenleyiciye.
-			exitCode = c.Code
 			category := "stderr"
-			if c.Code == 0 {
+			if end.MessageToOutput {
 				category = "stdout"
 			}
-			if c.Message != "" {
-				s.output(category, s.machine.Mask(c.Message)+"\n")
-			}
-		} else if err != nil {
-			exitCode = 1
+			s.output(category, s.machine.Mask(end.Message)+"\n")
+		}
+		for _, failure := range end.Errors {
 			text := "❌ " + messages.Text(messages.H8126) + "\n"
-			for _, m := range interp.ErrorItems(err, s.machine.SourceCode) {
+			for _, m := range interp.ErrorItems(failure, s.machine.SourceCode) {
 				text += "  • " + m.Message + "\n" + turkish.IndentLines(m.Frame, "    ")
 			}
 			s.output("stderr", s.machine.Mask(text))
-		} else if u := s.machine.UnusedArgsWarning(); u != "" {
-			s.output("stderr", u+"\n")
 		}
-		s.event("exited", map[string]interface{}{"exitCode": exitCode})
+		s.event("exited", map[string]interface{}{"exitCode": end.Code})
 		s.event("terminated", nil)
 	}()
 }

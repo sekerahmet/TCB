@@ -313,8 +313,7 @@ func processorNoteText(arch, level string) string {
 // compileToExe 'tr derle' komutudur: kaynağı ve aktardığı modülleri denetleyip çalışan
 // yorumlayıcının bir kopyasının sonuna paket olarak ekler.
 func compileToExe(srcPath string, outPath string) {
-	code, _ := prepareFile(srcPath, buildPreparation)
-	pk := checkModules(srcPath, code, buildPreparation, "❌ "+messages.Text(messages.H8761))
+	_, _, pk := checkProgram(srcPath, buildPreparation, "❌ "+messages.Text(messages.H8761))
 
 	if outPath == "" {
 		base := strings.TrimSuffix(srcPath, filepath.Ext(srcPath))
@@ -498,6 +497,7 @@ func runEmbeddedApp(pk *pkg) {
 	machine.SourceCode, machine.SourceLanguage = original.Text, original.Language
 	// Üretilen uygulamanın bütün argümanları programındır (uygulama.exe --adım 5).
 	machine.SetArgs(os.Args[1:])
+	checkArguments(machine, s.Program)
 	runProgram(machine, s.Program, original.Text)
 	cleanup()
 }

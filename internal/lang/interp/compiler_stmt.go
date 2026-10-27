@@ -233,6 +233,11 @@ func (c *compiler) tryCatchStatement(k *compilerScope, s *ast.TryCatchStatement)
 			}
 			catchEnv := newEnv(env, info)
 			catchEnv.define(errSlot, &StringVal{Val: messages.ErrorIn(caughtError(err), lang)}, false)
+			if IsStopRequestedError(err) {
+				// Durdurma hatasını yakalayan gövde bir temizlik işidir: orada beklemeler normal çalışır (1.6)
+				v.cleanupDepth++
+				defer func() { v.cleanupDepth-- }()
+			}
 			return catchClause.run(v, catchEnv)
 		}
 		return val, sig, nil
@@ -442,7 +447,8 @@ func (c *compiler) concurrent(k *compilerScope, s *ast.AsyncStatement) statement
 			var err error
 			defer func() {
 				// Görevin ertelenen işleri görev bitince çalışır; hataları görev hatasına eklenir.
-				if err = addDeferError(err, e.RunDefers()); err != nil {
+				// Durdurma ya da TR_exit yüzünden bitmek bir görev hatası değildir.
+				if err = taskError(addDeferError(err, task.runDefers(e))); err != nil {
 					task.reportAsyncError(line, err)
 				}
 			}()

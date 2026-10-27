@@ -183,6 +183,17 @@ func addDeferError(current, extra error) error {
 	case current == nil:
 		return extra
 	}
+	// Ertele bloğu TR_exit çağırdıysa kod VM'dedir (RequestExit), burada bildirilecek bir hata yok;
+	// ertelenen işlerinin hataları varsa onlar eklenir (1.13, 1.14).
+	if d, ok := extra.(*deferError); ok && silentEnd(d.mainSrc) {
+		for _, e := range d.extras {
+			current = addDeferError(current, e)
+		}
+		return current
+	}
+	if _, wrapped := extra.(*deferError); !wrapped && silentEnd(extra) {
+		return current
+	}
 	if h, ok := current.(*deferError); ok {
 		return &deferError{mainSrc: h.mainSrc, extras: append(slices.Clip(h.extras), extra)}
 	}
