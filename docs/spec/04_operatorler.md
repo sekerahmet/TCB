@@ -1,44 +1,69 @@
-# 4. Operatörler
+# 4. İşleçler
 
-**4.1** Öncelik tablosu (gevşekten sıkıya). Aynı satırdakiler soldan birleşir; `**` sağdan birleşir.
+Bu bölümün kurallarına göre bugünkü durum ve yapılacaklar: [`docs/status.md`](../status.md), "4. İşleçler".
 
-| Düzey | Operatörler | Not |
-| :-: | :-- | :-- |
-| 1 | `\|>` | boru hattı |
-| 2 | `??` | yok-birleştirme |
-| 3 | `TR_kw_or` `\|\|` | |
-| 4 | `TR_kw_and` `&&` | |
-| 5 | `TR_kw_not x` | karşılaştırmadan gevşek: `TR_kw_not 1 == 2` ≡ `TR_kw_not (1 == 2)`; `TR_kw_not a TR_kw_and b` ≡ `(TR_kw_not a) TR_kw_and b` |
-| 6 | `==` `!=` | |
-| 7 | `<` `>` `<=` `>=` | |
-| 8 | `..` `..=` | `1..2 + 3` ≡ `1..5` |
-| 9 | `+` `-` | |
-| 10 | `*` `/` `%` `@` | |
-| 11 | `-x` `!x` | tekli |
-| 12 | `**` | tekli eksiden sıkı: `-2 ** 2` = `-4`; `2 ** 3 ** 2` = `512` |
-| 13 | `f(x)` `a[i]` `a.b` `a?.b` `f { ... }` | çağrı, indeks, üye, sondaki blok |
+Her kuralın emsali ve gerekçesi: [`rationale/04_operators.md`](rationale/04_operators.md).
 
-**4.2** Aritmetik: `TR_type_Int` ile `TR_type_Int` işlemi `TR_type_Int` verir; `/` bölümü tam çıkmazsa `TR_type_Float` verir (`7 / 2` = `3.5`, `6 / 3` = `2`). `TR_type_Int` ile `TR_type_Float` karışırsa sonuç `TR_type_Float`tır. `%` kalanı verir (ondalıklarda da). Sıfıra bölme ve sıfıra göre kalan hatadır. Tam bölme operatörü yoktur (`//` yorumdur).
+**4.1** Öncelik, gevşekten sıkıya; aynı düzeydekiler soldan birleşir, `**` sağdan; karşılaştırmalar birleşmez (4.4).
 
-**4.3** `**` üs alır; negatif üs `TR_type_Float` verir (`2 ** -1` = `0.5`).
+| Düzey | İşleçler |
+| :-: | :-- |
+| 1 | `TR_or` |
+| 2 | `TR_and` |
+| 3 | `TR_not x` |
+| 4 | `==` `!=` `<` `>` `<=` `>=` |
+| 5 | `??` |
+| 6 | `..` `..=` |
+| 7 | `\|` |
+| 8 | `^` |
+| 9 | `&` |
+| 10 | `<<` `>>` |
+| 11 | `+` `-` |
+| 12 | `*` `/` `%` `@` |
+| 13 | `-x` `~x` |
+| 14 | `**` |
+| 15 | `f(x)` `a[i]` `a.b` `a?.b` `f { ... }` |
 
-**4.4** `< > <= >=` yalnızca sayılar arasında tanımlıdır (tensörlerde eleman bazlı 0/1 maskesi verir, bkz. 15.6); karşılaştırmalar zincirlenmez (`1 < 2 < 3` hatadır).
+Örnekler: `TR_not a == b` ≡ `TR_not (a == b)`; `x ?? 0 > 3` ≡ `(x ?? 0) > 3`; `1..n + 1` ≡ `1..(n + 1)`; `x & 1 == 0` ≡ `(x & 1) == 0`; `-2 ** 2` = −4; `2 ** 3 ** 2` = 512.
+- *Test:* TR testi; yeni öncelik uygulanınca TR testi.
 
-**4.5** Eşitlik: iki sayı tipten bağımsız değerle karşılaştırılır (`1 == 1.0`); iki `TR_type_Int` tam olarak karşılaştırılır (`9007199254740993 != 9007199254740992`); `TR_type_Int` ile `TR_type_Float` da değerleriyle kesin karşılaştırılır, `TR_type_Int` yuvarlanmaz (`9007199254740993 != 9007199254740992.0`, `9007199254740993 > 9007199254740992.0`); `<`, `>`, `<=`, `>=` aynı kurala uyar ve NaN hiçbir sayıya eşit değildir; diğer değerler aynı tipte ve aynı içerikteyse eşittir (`[1, "a"] == [1, "a"]`, `"1" != 1`, `TR_kw_none != TR_kw_false`). Listeler, sözlükler ve yapı nesneleri eleman eleman bu kuralla karşılaştırılır (`[1, 2] == [1.0, 2]`); sözlüklerde anahtar sırası önemsizdir. Fonksiyonlar, yerleşikler ve yapı tanımları kimlikle karşılaştırılır: aynı değer kendisine eşittir, görünüşleri aynı olsa da ayrı tanımlar eşit değildir (`(x => x) != (x => x)`); bir nesnenin metodu aynı nesne için kendisine eşittir (`k.selamla == k.selamla`). Aralıklar uçları ve dahil olup olmamalarıyla karşılaştırılır. Tensörler şekilleri ve tüm elemanları aynıysa eşittir. 0 boyutlu tensör, değeri (`.TR_mem_tolist`) bir sayıya eşitse o sayıya eşittir (`TR_fn_tensor(7.0) == 7`, `TR_fn_tensor([[1, 2]])[0][1] == 2.0`, `TR_fn_sum(t) == 10`); en az bir ekseni olan tensör sayıya eşit değildir (`TR_fn_tensor([7.0]) != 7`).
+**4.2** İki `TR_Int`in `+`, `-` ve `*` sonucu `TR_Int`tir (taşma 3.1). `/` her zaman `TR_Float` verir: `7 / 2` = 3.5, `6 / 3` = 2.0. `TR_Int` ile `TR_Float` karışırsa sonuç `TR_Float`tır. Sıfıra bölme çalışma hatasıdır.
+- *Test:* TR testi; `/`'nin her zaman ondalık vermesi uygulanınca TR testi.
 
-**4.6** `TR_kw_and`/`&&` ile `TR_kw_or`/`||` kısa devre yapar ve sonucu her zaman `TR_type_Bool` olarak verir (`1 && "a"` → `TR_kw_true`). `!x` ve `TR_kw_not x` doğruluğun tersidir.
+**4.2a** Tam bölme `TR_div(a, b)` ile yapılır ve aşağı yuvarlar: `TR_div(7, 2)` = 3, `TR_div(-7, 2)` = −4. `%` kalanı verir, işareti bölenin işaretidir: `-7 % 3` = 2, `7.5 % 2` = 1.5. Her zaman `a == TR_div(a, b) * b + a % b`. İkisi de iki `TR_Int`te `TR_Int`, ondalıkla `TR_Float` verir; sıfıra bölme çalışma hatasıdır.
+- *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
 
-**4.7** `a ?? b`: `a` `TR_kw_none` ise `b`, değilse `a` (yalnızca `TR_kw_none` sayılır: `0 ?? 5` → `0`).
+**4.3** `**` üs alır. İki `TR_Int`te sonuç `TR_Int`tir ve üs eksi olamaz (çalışma hatası; ileti `2.0 ** -1`'i önerir); bir taraf ondalıksa sonuç `TR_Float`tır.
+- *Test:* TR testi; tam sayı üssünün kuralı uygulanınca TR testi.
 
-**4.8** `a?.b`: `a` `TR_kw_none` ise hata yerine `TR_kw_none` verir; `TR_kw_none.b` bir hatadır.
+**4.4** `<`, `>`, `<=`, `>=` sayılar ve metinler arasında tanımlıdır: sayılar 4.5'teki gibi kesin, metinler kod noktası sırasıyla karşılaştırılır. Karşılaştırmalar zincirlenmez: `0 <= i < n` ve `a < b == c` sözdizimi hatasıdır, ileti `0 <= i TR_and i < n` ya da parantez önerir.
+- *Test:* TR testi; metin karşılaştırması ve zincir hatası uygulanınca TR testi.
 
-**4.9** `x |> f` ≡ `f(x)`; `x |> f(a)` ≡ `f(x, a)`. Sağ taraf bir fonksiyon çağrısı ya da fonksiyon değeri olmalıdır. Boru yalnızca fonksiyonlarla çalışır: kullanıcı fonksiyonları ve ilk parametresi borudaki değeri alan yerleşik fonksiyonlar (`TR_fn_sum`, `TR_fn_mean`, `TR_fn_min`, `TR_fn_max`, `TR_fn_str`, `TR_fn_type`, `TR_fn_relu`, `TR_fn_softmax`, `TR_fn_json_string` ...; tam liste [`codes.md`](../codes.md) "Boru hattıyla kullanılabilen fonksiyonlar"). Metotlar boruyla değil `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 }`); `l |> filtrele { ... }` yazılırsa hata metot biçimini önerir (13.6).
+**4.5** `==` ve `!=` aynı tipten iki değeri karşılaştırır; ayrı tipler (`"1" == 1`) denetim hatasıdır. Sayılar tipten bağımsız, kesin karşılaştırılır, `TR_Int` yuvarlanmaz (`1 == 1.0`, `9007199254740993 != 9007199254740992.0`); `TR_nan` hiçbir sayıya eşit değildir. İsteğe bağlı değer asıl tipten bir değerle ya da `TR_none`'la karşılaştırılabilir. Liste ve sözlük öğe öğe (sözlükte sıra önemsiz), aralık uçlarıyla karşılaştırılır. Fonksiyonlar karşılaştırılamaz. Yapının ve tensörün eşitliği sonraki bölümlerdedir.
+- *Test:* TR testi; tip kuralı uygulanınca denetleyicinin testi.
+
+**4.6** `TR_and`, `TR_or` ve `TR_not`'un işlenenleri `TR_Bool`dur (3.10); `TR_and` ve `TR_or` kısa devre yapar.
+- *Test:* TR testi; işlenen kuralı uygulanınca denetleyicinin testi.
+
+**4.7** `a ?? b`: `a` isteğe bağlıdır (`T?`); `a` `TR_none` ise sonuç `b`, değilse `a`'nın değeridir. `b` `T` ise sonuç `T`, `T?` ise `T?`. `a` isteğe bağlı değilse uyarı verilir, çünkü sağ taraf hiç kullanılmaz.
+- *Test:* TR testi; uyarı uygulanınca denetleyicinin testi.
+
+**4.8** `a?.b`: `a` `TR_none` ise sonuç `TR_none`, değilse `a.b`; sonucun tipi isteğe bağlıdır. İsteğe bağlı değerin üyesine `.` ile erişmek denetim hatasıdır (3.5).
+- *Test:* TR testi.
+
+**4.9** Başka dillerin işleçleri TR'de yoktur; ileti TR'deki yazımı söyler. `&&`, `||` ve tekli `!` sözdizimi hatasıdır (`TR_and`, `TR_or`, `TR_not`); `|>` sözdizimi hatasıdır (`f(x)`). `//` yorumdur (2.2): bir ifadenin ardındaki `//` yorumunun bütünü tek bir sayı ya da tanımlı tek bir adsa (`n = a // 2`) uyarı verilir, çünkü Python'un tam bölmesi olabilir (`TR_div(a, b)`).
+- *Test:* TR testi; iletiler ve uyarı uygulanınca TR testi.
+
+**4.10** `+` aynı tipten iki metni, iki bayt dizisini ya da iki listeyi uç uca ekler. Başka bir tiple `+` denetim hatasıdır (`"a" + 1`); ileti yerleştirmeyi önerir (`"a\(1)"`).
+- *Test:* TR testi; tip kuralı uygulanınca denetleyicinin testi.
+
+**4.11** `@` iki tensörün matris çarpımıdır. Tensörlerde öbür işleçlerin öğe öğe anlamı ve genişletme sonraki bölümlerdedir.
+- *Test:* TR testi.
+
+**4.12** Bit işleçleri yalnız `TR_Int`te tanımlıdır: `&`, `|`, `^` (dışlayan veya), `~` (tümleme), `<<`, `>>`. Kaydırma miktarı 0–63 dışındaysa çalışma hatasıdır; dışarı taşan bitler atılır (3.1'in taşma kuralı aritmetik içindir); `>>` işareti korur (`-8 >> 1` = −4).
+- *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
 
 ```tr
-//! tr kodlu 3 dil=tr
-[1, 2, 3].TR_mem_map { TR_ctx_it * 2 } |> TR_fn_sum   // 12
+//! TR 4
+TR_print(7 / 2, TR_div(7, 2), -7 % 3, 2 ** 10, 0x0F & 0b0101, 1 << 4)   // çıktı: 3.5 3 2 1024 5 16
 ```
-
-**4.10** `+` en az bir tarafı metinse öbürünü metne çevirip birleştirir (`"a" + 1` → `"a1"`); iki listeyi uç uca ekler.
-
-**4.11** `@` matris çarpımıdır (`TR_fn_tensor([[1, 2], [3, 4]]) @ TR_fn_tensor([[1], [1]])`; matris 2 boyutlu tensördür); `+ - * /` tensörlerde eleman bazlıdır (bkz. 15.6).

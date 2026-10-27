@@ -33,7 +33,7 @@ TR_print("şeker".TR_length, "şeker"[-1], "şeker"[1..3])   // 5 r ek
 //! TR 4
 TR_var l: TR_List[TR_Int] = [10, 20, 30]
 TR_var x: TR_Int? = l.TR_get(5)
-TR_print(x ?? 0)                 // 0
+TR_print(x ?? 0)                 // çıktı: 0
 TR_if x != TR_none { TR_print(x + 1) }   // bu dalda x bir TR_Int
 ```
 

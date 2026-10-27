@@ -266,3 +266,62 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM ve Gem
 
 - **Mevcut durum:** değerin metni dosyanın dilinde: Türkçe dosyada tip "Tam", yokluk "yok", sonsuz "sonsuz" yazılıyor [ölçüldü].
 - **Yapılacaklar:** değerin metni dilden bağımsız, kimliğin ad kısmıyla.
+
+## 4. İşleçler
+
+Kurallar: [`docs/spec/04_operatorler.md`](spec/04_operatorler.md). Taslak: DENETİM ve Gemini'nin araştırması bekleniyor. `tests/` altındaki 4. bölüm testleri eski kuralları da sınıyor (`/`'nin değere göre tipi, metne her değerin eklenmesi, boru işleci); testler koşulmadan önce yeni kurallara göre yeniden yazılır.
+
+### 4.1
+
+- **Mevcut durum:** `??` en gevşek düzeyde, `&&` ve `||` sözcüklerle aynı düzeyde; `==` ile `<` ayrı düzeylerde.
+- **Yapılacaklar:** yeni öncelik tablosu; karşılaştırmalar tek düzeyde ve birleşmez.
+
+### 4.2
+
+- **Mevcut durum:** `7 / 2` 3.5, `6 / 3` 2 veriyor: sonucun tipi değere bağlı [ölçüldü].
+- **Yapılacaklar:** `/` her zaman ondalık verir.
+
+### 4.2a
+
+- **Mevcut durum:** tam bölme yok; `-7 % 3` −1 veriyor (kesen kalan) [ölçüldü].
+- **Yapılacaklar:** `TR_div` (aşağı yuvarlar); `%`'nin işareti bölenin işareti.
+
+### 4.3
+
+- **Mevcut durum:** `2 ** -1` 0.5 veriyor [ölçüldü].
+- **Yapılacaklar:** iki tam sayıda eksi üs çalışma hatası, ileti ondalık yazımı önerir.
+
+### 4.4
+
+- **Mevcut durum:** metinler karşılaştırılamıyor ("Metin ve Metin tipleri arasında < işlemi desteklenmiyor") [ölçüldü].
+- **Yapılacaklar:** metinler kod noktası sırasıyla karşılaştırılır; zincir ve karışık karşılaştırma iletisi.
+
+### 4.5
+
+- **Mevcut durum:** ayrı tipler sessizce eşit değil sayılıyor; fonksiyonlar kimlikle karşılaştırılıyor.
+- **Yapılacaklar:** ayrı tipler denetim hatası; fonksiyonlar karşılaştırılamaz.
+
+### 4.6
+
+- **Mevcut durum:** işlenen her tipten olabiliyor: `1 && "a"` doğru veriyor [ölçüldü].
+- **Yapılacaklar:** işlenen yalnız mantık değeri.
+
+### 4.7
+
+- **Mevcut durum:** isteğe bağlı tip olmadığı için sol yan her tipten olabiliyor.
+- **Yapılacaklar:** sol yan isteğe bağlı değilse uyarı.
+
+### 4.9
+
+- **Mevcut durum:** `&&`, `||`, `!` ve `|>` çalışıyor; boru `[1, 2, 3] |> TR_sum` 6 veriyor [ölçüldü].
+- **Yapılacaklar:** dördü sözdizimi hatası, ileti TR'deki yazımı söyler; tek sayı ya da tek ad olan satır sonu yorumunda uyarı. Depodaki kullanımlar çevrilir.
+
+### 4.10
+
+- **Mevcut durum:** `"a" + 1` "a1" veriyor [ölçüldü].
+- **Yapılacaklar:** başka tiple `+` denetim hatası, ileti yerleştirmeyi önerir.
+
+### 4.12
+
+- **Mevcut durum:** bit işleçleri yok: `5 & 3` sözdizimi hatası veriyor [ölçüldü].
+- **Yapılacaklar:** `&`, `|`, `^`, `~`, `<<`, `>>` tam sayıda.
