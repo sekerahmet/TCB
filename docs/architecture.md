@@ -208,7 +208,7 @@ Yorumlayıcının motorlara sunduğu ortak hizmetler:
 
 | Paket | Görevi |
 | :-- | :-- |
-| `cmd/tr` | `tr` komutu: alt komutları ayrıştırır (çalıştır, kabuk, `kontrol`, `TR_cmd_build`, `test`, `TR_cmd_format`, `kodla`, `çöz`, `TR_cmd_show`, `izle`, `TR_cmd_profile`, `TR_cmd_debug`, `TR_cmd_dap`), işi `internal/`'a bırakır; kitaplığı ve Ctrl+C işleyicisini bağlar |
+| `cmd/tr` | `tr` komutu: alt komutları ayrıştırır (çalıştır, kabuk, `kontrol`, `TR_cmd_build`, `test`, `TR_cmd_format`, `kodla`, `TR_cmd_show`, `izle`, `TR_cmd_profile`, `TR_cmd_debug`, `TR_cmd_dap`), işi `internal/`'a bırakır; kitaplığı ve Ctrl+C işleyicisini bağlar |
 | `cmd/tr/e2e` | Uçtan uca testler (yalnızca testler): ikiliyi bir kez derler, alt süreç olarak çalıştırır; komutlar, çıkış kodları, kesme, kontrol noktasından devam, belgelerdeki kod blokları ve bağlantılar, VS Code eklentisi |
 | `devtools/debugger` | Terminal hata ayıklayıcısı ve düzenleyicinin hata ayıklama sunucusu (`TR_cmd_dap`, Debug Adapter Protocol). Yüklenirken `interp.NewDebugger`'ı kurar; gizli değerleri düzenleyiciye göndermez |
 | `devtools/formatter` | `TR_cmd_format`: anlamı değiştirmeyen tek standart biçim (ağaç dökümü aynı kalmazsa sonuç reddedilir) |
