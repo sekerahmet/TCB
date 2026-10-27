@@ -59,15 +59,31 @@ func (v *VM) CheckArguments(prog *ast.Program) ArgumentVerdict {
 	if len(v.arguments) == 0 || v.ReadsCommandLine(prog) {
 		return ArgumentsUsable
 	}
-	if len(v.arguments) == 1 && v.arguments[0] == "-h" {
+	if len(v.arguments) == 1 && isHelpArgument(v.arguments[0]) {
 		return ArgumentsNoOptions
 	}
 	return ArgumentsUnread
 }
 
-// ArgumentsMessage CheckArguments'in kararının kullanıcıya yazılacak metnidir. Kullanım hatası
-// verilen seçeneklerin adlarını ve programın başına eklenecek çağrıyı söyler; seçeneklerin değerleri
-// (gizli olabilir) yazılmaz.
+// isHelpArgument argümanın yardımı istediğidir: -h ya da herhangi bir yazım dilindeki yardım
+// seçeneği (--help, --yardım; TR_opt_help). Komut satırı çözümleyicisiyle (internal/stdlib/process)
+// aynı tanımdır.
+func isHelpArgument(a string) bool {
+	if a == "-h" {
+		return true
+	}
+	name, ok := strings.CutPrefix(a, "--")
+	if !ok {
+		return false
+	}
+	k, found := codes.FindOption(name)
+	return found && k == codes.OptHelp
+}
+
+// ArgumentsMessage CheckArguments'in kararının kullanıcıya yazılacak metnidir. Seçenek biçiminde
+// (--ad) verilen argüman varsa verilen seçeneklerin adlarını ve programın başına eklenecek hazır
+// çağrıyı söyler; yalnız konumlu argüman verildiyse (TR programı konumlu argüman almaz) onların
+// seçenek olarak yazılacağını söyler. Seçeneklerin değerleri (gizli olabilir) yazılmaz.
 func (v *VM) ArgumentsMessage(verdict ArgumentVerdict) string {
 	if verdict == ArgumentsNoOptions {
 		return messages.Text(messages.H8665, v.ProgramCommand())
@@ -79,11 +95,10 @@ func (v *VM) ArgumentsMessage(verdict ArgumentVerdict) string {
 			options = append(options, "--"+name)
 		}
 	}
-	example := "ad"
-	if len(options) > 0 {
-		example = strings.TrimPrefix(options[0], "--")
+	if len(options) == 0 {
+		return messages.Text(messages.H8667, len(v.arguments), codes.NameRef(codes.KwVar), codes.NameRef(codes.FnCommandLine))
 	}
-	return messages.Text(messages.H8664, len(v.arguments), strings.Join(options, ", "), example,
+	return messages.Text(messages.H8664, len(v.arguments), strings.Join(options, ", "), strings.TrimPrefix(options[0], "--"),
 		codes.NameRef(codes.KwVar), codes.NameRef(codes.FnCommandLine))
 }
 

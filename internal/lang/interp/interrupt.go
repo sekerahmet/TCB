@@ -73,6 +73,7 @@ func (v *VM) RequestStop(signal int) StopDisposition {
 		return StopApplied
 	case v.stopHandled.Load():
 		v.stopRequested.Store(true)
+		v.stopChanSent = true
 		close(v.stopChan)
 		v.stopMu.Unlock()
 		return StopHandled
@@ -119,12 +120,29 @@ func (v *VM) DeferStops(window func() (time.Duration, bool)) {
 }
 
 // HandleStop programın durdurmayı üstlendiğini bildirir (TR_handle_stop, 1.6): ondan sonra gelen
-// ilk istek programı durdurmaz, kaydedilir.
+// ilk istek programı durdurmaz, kaydedilir. Kontrol noktası bir isteği ertelemişken çağrılırsa
+// erteleme zamanlayıcısı kalkar ve istek üstlenilmiş istek olur: yeni bekleyen yerleşikler hata
+// verir, kontrol noktası yalnız kaydeder, program kendi sınırında biter.
 func (v *VM) HandleStop() {
 	v.stopMu.Lock()
+	defer v.stopMu.Unlock()
 	v.stopHandled.Store(true)
-	v.stopMu.Unlock()
+	if v.stopRequested.Load() && !v.interrupted.Load() {
+		if v.stopTimer != nil {
+			v.stopTimer.Stop()
+			v.stopTimer = nil
+		}
+		if !v.stopChanSent {
+			v.stopChanSent = true
+			close(v.stopChan)
+		}
+	}
 }
+
+// SetInteractive VM'nin etkileşimli kabukta olduğunu bildirir: VM birden çok Run ile sürer, bu
+// yüzden yakalanmayan hatayla biten bir satır görevleri durdurmaz (1.9 programlar içindir). Run'dan
+// önce çağrılır.
+func (v *VM) SetInteractive() { v.interactive = true }
 
 // StopHandled program durdurmayı üstlendi mi?
 func (v *VM) StopHandled() bool { return v.stopHandled.Load() }

@@ -1578,6 +1578,7 @@
 "H8664": "{count, plural, one {# argument was} other {# arguments were}} given to the program{options, select, empty {} other { ({options})}}, but the program does not read its command line: no {fn}() call can be reached from the outermost level. Do not pass the arguments, or add this at the start of the program: {var} config = {fn}({{\"{example}\": 0}}) (write the option's default value instead of 0)",
 "H8665": "{program} takes no command-line options",
 "H8666": "Stop request received: the program will end at its own boundary (press Ctrl+C again to exit immediately)",
+"H8667": "{count, plural, one {# positional argument was} other {# positional arguments were}} given to the program, but a TR program takes no positional arguments: arguments are written as options and read with {fn}(). For example write {var} config = {fn}({{\"data\": \"\"}}) at the start of the program and run it with --data file.txt",
 "H8670": "{path|q} is not a .tr file. Watching a running background job (tr {command} <job_name>) does not exist yet; run the program under watch: tr {command} <file.tr>",
 "H8671": "the program's output file could not be opened: {error}",
 "H8672": "The program's last output (full: {path}):",

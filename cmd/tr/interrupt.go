@@ -26,6 +26,10 @@ func catchStop(machine *interp.VM) {
 		machine.WriteOutput(os.Stderr, "\n⏹️ "+stopNotice(machine.RequestStop(signalNumber(first)))+"\n")
 		second := <-channel
 		fmt.Fprintln(os.Stderr, "⏹️ "+messages.Text(messages.H8662))
+		// 1.7 "hemen" der: exitCleanup işleri (profilin son raporu, geçici klasörler) bilerek
+		// çalıştırılmaz, takılan bir temizlik ikinci isteği de bekletirdi. Biten süreç gömülü
+		// uygulamanın geçici klasörünü bırakmış olabilir; ilk istekten sonra normal yoldan
+		// çıkılsaydı finishProgram temizliği yapardı.
 		endBySignal(signalNumber(second))
 	}()
 }

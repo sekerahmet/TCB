@@ -73,9 +73,7 @@ döngü adım içinde kn.kaldığı_adım..ayar.adım {
     eğer adım + 1 == ayar.dur {
         // Testin kesme ya da öldürme noktası: süreç bu adımın sınırında bekler.
         dosya_yaz(yol(ayar.koşu, "bekliyor.txt"), adım + 1)
-        // Her tur gerçek bir adım gibi kısa sürer: erteleme süresi son iki güncelleme arasındaki sürenin
-        // iki katıdır (1.6); beklemesiz sıkı döngüde bu süre istekten önce dolardı.
-        döngü doğru { bekle(0.05); kn.güncelle(adım + 1) }
+        döngü doğru { kn.güncelle(adım + 1) }
     }
 }
 tensör_kaydet(yol(ayar.koşu, "son.trt"), parametreler(model, adlarıyla: doğru))

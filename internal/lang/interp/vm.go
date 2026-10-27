@@ -144,9 +144,13 @@ type vmShared struct {
 	stopHandled   atomic.Bool
 	stopRequested atomic.Bool
 	stopChan      chan struct{}
+	stopChanSent  bool // stopChan kapandı (stopMu altında)
 	stopWindows   []func() (time.Duration, bool)
 	stopTimer     *time.Timer
 	finishing     atomic.Bool
+	// interactive etkileşimli kabukta açıktır: VM birden çok Run ile sürer, hatayla biten satır
+	// görevleri durdurmaz (bkz. SetInteractive).
+	interactive bool
 
 	// Çıkış durumu (bkz. program_exit.go): TR_exit'in son çağrısı kazanır (1.13). testing bir test
 	// koşarken sıfırdan büyüktür: orada çıkış süreci bitirmez, testi düşürür (1.12). taskFailed
@@ -397,7 +401,12 @@ func (v *VM) Run(prog *ast.Program) (Value, error) {
 		defer v.releaseGIL()
 	}
 	val, err := v.runMain(prog)
-	// Görevlere durma emri gittiyse (durdurma, TR_exit) ya da program hatasız bittiyse görevler
+	// Yakalanmayan bir hatayla biten programda öbür görevler 1.5'teki gibi durur (1.9); etkileşimli
+	// kabukta VM sonraki satırlarla sürdüğünden durdurulmaz.
+	if main, _ := splitProgramErrors(err); main != nil && !v.interactive {
+		v.Interrupt()
+	}
+	// Görevlere durma emri gittiyse (durdurma, TR_exit, hata) ya da program hatasız bittiyse görevler
 	// beklenir. Görevleri bekleyen bu bekleme bir temizlik işidir: bir istek onu kesmez.
 	if err == nil || v.interrupted.Load() {
 		v.cleanupDepth++

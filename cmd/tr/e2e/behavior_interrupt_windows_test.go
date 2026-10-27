@@ -17,12 +17,14 @@ func prepareProcess(cmd *exec.Cmd) {
 
 // sendInterrupt sürecin grubuna Ctrl+Break konsol olayı gönderir (Go'da os.Interrupt olarak
 // gelir; yeni süreç grubunda Ctrl+C olayı kapalıdır). Test süreci bir konsola bağlı değilse
-// olay gönderilemez; o zaman test atlanır.
+// olay gönderilemez; o zaman test atlanır ve atlanan testin sayısı artar (TestMain sonunda bir
+// satırla bildirir: atlanan sinyal testleri sessizce geçmiş sayılmaz).
 func sendInterrupt(t *testing.T, cmd *exec.Cmd) {
 	t.Helper()
 	const ctrlBreakEvent = 1
 	function := syscall.NewLazyDLL("kernel32.dll").NewProc("GenerateConsoleCtrlEvent")
 	if r, _, err := function.Call(ctrlBreakEvent, uintptr(cmd.Process.Pid)); r == 0 {
+		skippedSignalTests.Add(1)
 		t.Skipf("konsol olayı gönderilemedi (test süreci bir konsola bağlı değil olabilir): %v", err)
 	}
 }

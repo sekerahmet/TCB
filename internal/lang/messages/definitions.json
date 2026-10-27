@@ -1578,6 +1578,7 @@
 "H8664": { "param": ["count", "options", "example", "var", "fn"] },
 "H8665": { "param": ["program"] },
 "H8666": { "param": [] },
+"H8667": { "param": ["count", "var", "fn"] },
 "H8670": { "param": ["path", "command"] },
 "H8671": { "param": ["error"] },
 "H8672": { "param": ["path"] },

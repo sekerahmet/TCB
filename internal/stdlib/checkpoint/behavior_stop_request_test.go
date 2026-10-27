@@ -24,15 +24,24 @@ import (
 // kadar ilerler.
 func stopRun(t *testing.T, tick time.Duration, body string) (output string, err error, runDir string, m *interp.VM) {
 	t.Helper()
+	ticks := 0
+	return stopRunClock(t, func() time.Time { ticks++; return time.Unix(0, 0).Add(time.Duration(ticks) * tick) }, nil, body)
+}
+
+// stopRunClock stopRun'ın saati dışarıdan verilen biçimidir; setup varsa VM'ye ek yerleşikler tanımlar.
+func stopRunClock(t *testing.T, clock func() time.Time, setup func(*interp.VM), body string) (output string, err error, runDir string, m *interp.VM) {
+	t.Helper()
 	runDir = t.TempDir()
 	m = interp.New()
 	w := &testkit.TeeWriter{}
 	m.Out, m.Err = w, w
-	ticks := 0
-	defer checkpoint.FakeClock(func() time.Time { ticks++; return time.Unix(0, 0).Add(time.Duration(ticks) * tick) })()
+	defer checkpoint.FakeClock(clock)()
 	m.GlobalEnv.Define("kesme_iste", &interp.BuiltinVal{Name: "kesme_iste", Fn: func(m *interp.VM, _ []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 		return interp.NewInt(int64(m.RequestStop(2))), nil
 	}}, true)
+	if setup != nil {
+		setup(m)
+	}
 	_, err = runVM(t, m, fmt.Sprintf(`# TR 4
 TR_var w = TR_tensor([1.0], TR_requires_grad: TR_true)
 TR_var kn = TR_checkpoint(%q, {w: w})
@@ -113,8 +122,8 @@ TR_print("döngü bitti")
 	}
 }
 
-// Erteleme süresi (son iki güncelleme arasındaki sürenin iki katı) dolarsa istek uygulanır ve
-// bekleyen yerleşik uyanır; nokta kaydedilmez. Saat her okunuşta bir milisaniye ilerler.
+// Erteleme süresi (şimdiye dek iki güncelleme arasındaki en uzun sürenin iki katı) dolarsa istek
+// uygulanır ve bekleyen yerleşik uyanır; nokta kaydedilmez. Saat her okunuşta bir milisaniye ilerler.
 func TestDeferralExpiresWhileWaiting(t *testing.T) {
 	start := time.Now()
 	output, err, runDir, _ := stopRun(t, time.Millisecond, `
@@ -154,5 +163,40 @@ TR_print("bitti")
 	}
 	if end := m.End(nil); end.Signal != 2 {
 		t.Errorf("istek kaybolmamalı, süreç isteğin sinyaliyle bitmeli: %+v", end)
+	}
+}
+
+// Erteleme süresi son aralığa değil şimdiye dek görülen en uzun aralığa bağlıdır (1.6): en uzun
+// aralık 2 sn iken son aralık 10 ms olsa da süre 4 sn'dir; 300 ms'lik bir bekleme isteği uygulamaz,
+// sıradaki .güncelle onu karşılar (kaydeder ve durur). Saat yalnız saat_ileri ile ilerler.
+func TestDeferralWindowIsTwiceTheLongestInterval(t *testing.T) {
+	var now time.Duration
+	clock := func() time.Time { return time.Unix(0, 0).Add(now) }
+	setup := func(m *interp.VM) {
+		m.GlobalEnv.Define("saat_ileri", &interp.BuiltinVal{Name: "saat_ileri", Fn: func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+			now += time.Duration(args[0].(*interp.IntVal).Val) * time.Millisecond
+			return interp.NewInt(0), nil
+		}}, true)
+	}
+	output, err, runDir, _ := stopRunClock(t, clock, setup, `
+kn.TR_update(1)
+saat_ileri(2000)
+kn.TR_update(2)
+saat_ileri(10)
+kn.TR_update(3)
+kesme_iste()
+TR_sleep(0.3)
+TR_print("bekledi")
+kn.TR_update(4)
+TR_print("sürdü (görünmemeli)")
+`)
+	if !errors.Is(err, interp.ErrInterrupted) {
+		t.Fatalf("sıradaki güncelleme isteği karşılayıp programı durdurmalıydı: %v\n%s", err, output)
+	}
+	if !strings.Contains(output, "bekledi") {
+		t.Errorf("erteleme süresi en uzun aralığa göre uzun olmalı, bekleme kesilmemeliydi:\n%s", output)
+	}
+	if strings.Contains(output, "sürdü") || !hasStep(runDir, 4) {
+		t.Errorf("4. adımın noktası kaydedilip program durmalıydı:\n%s", output)
 	}
 }

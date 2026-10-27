@@ -74,13 +74,27 @@ func TestArgumentsToAProgramThatReadsNoneAreAUsageError(t *testing.T) {
 	testkit.Wait(t, tr(t, dir, "okumaz.tr"), 0, []string{"çalıştı"}, nil)
 }
 
-// Komut satırını okumayan programa yalnız -h verilirse programın seçeneği olmadığı yazılır,
-// çıkış 0 (1.4). Başlatıcıların argümanları (ROS 2'nin --ros-args blokları, --local-rank=N)
-// programın sayılmaz: programa argüman verilmemiş gibi çalışır.
+// Komut satırını okumayan programa seçenek biçiminde olmayan (konumlu) argüman verilirse de
+// kullanım hatasıdır (çıkış 2, hiçbir satır çalışmaz); ileti argümanların seçenek olarak yazılıp
+// komut_satırı ile okunduğunu söyler (1.4).
+func TestPositionalArgumentsToAProgramThatReadsNoneAreAUsageError(t *testing.T) {
+	dir := t.TempDir()
+	testkit.WriteFile(t, dir, "okumaz.tr", readsNothing)
+	s := tr(t, dir, "okumaz.tr", "veri.txt")
+	testkit.Wait(t, s, 2, nil, []string{"komut_satırı"})
+	if s.Stdout != "" {
+		t.Errorf("hiçbir satır çalışmamalıydı: %q", s.Stdout)
+	}
+}
+
+// Komut satırını okumayan programa yalnız yardım seçeneği (-h ya da --help) verilirse programın
+// seçeneği olmadığı yazılır, çıkış 0 (1.4). Başlatıcıların argümanları (ROS 2'nin --ros-args
+// blokları, --local-rank=N) programın sayılmaz: programa argüman verilmemiş gibi çalışır.
 func TestHelpAndLauncherArgumentsOfAProgramThatReadsNone(t *testing.T) {
 	dir := t.TempDir()
 	testkit.WriteFile(t, dir, "okumaz.tr", readsNothing)
 	testkit.Wait(t, tr(t, dir, "okumaz.tr", "-h"), 0, []string{"seçeneği almıyor"}, nil)
+	testkit.Wait(t, tr(t, dir, "okumaz.tr", "--help"), 0, []string{"seçeneği almıyor"}, nil)
 	for _, launcher := range [][]string{
 		{"--ros-args", "-r", "__node:=x", "-p", "a:=1", "--"},
 		{"--ros-args", "-r", "__node:=x"},

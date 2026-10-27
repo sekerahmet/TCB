@@ -272,3 +272,27 @@ func TestInterruptNowStopsAtThePoint(t *testing.T) {
 		t.Fatalf("InterruptNow programı o noktada durdurmalıydı: %v %q", err, out.String())
 	}
 }
+
+// Kontrol noktası bir isteği ertelemişken program durdurmayı üstlenirse erteleme zamanlayıcısı
+// kalkar: süre dolunca istek uygulanmaz, üstlenilmiş istek olarak kalır ve yeni bekleyen yerleşik
+// "durdurma istendi" hatası verir (1.6).
+func TestHandleStopCancelsTheDeferralTimer(t *testing.T) {
+	v := New()
+	v.DeferStops(func() (time.Duration, bool) { return 30 * time.Millisecond, true })
+	if d := v.RequestStop(2); d != StopDeferred {
+		t.Fatalf("istek ertelenmeliydi: %v", d)
+	}
+	v.HandleStop()
+	time.Sleep(300 * time.Millisecond) // erteleme süresinin çok üstü
+	if v.Interrupted() {
+		t.Fatal("üstlenen programda erteleme süresi dolunca istek uygulanmamalı")
+	}
+	if !v.StopRequested() || v.stopWaitError("sleep") == nil {
+		t.Errorf("ertelenen istek üstlenilmiş istek olmalı: istendi=%v", v.StopRequested())
+	}
+	select {
+	case <-v.stopChan:
+	default:
+		t.Error("bekleyen yerleşiği uyandıran kanal kapanmalıydı")
+	}
+}

@@ -1578,6 +1578,7 @@
 "H8664": "programa {count} argüman verildi{options, select, empty {} other { ({options})}} ama program komut satırını okumuyor: programın en dışından ulaşılan bir {fn}() çağrısı yok. Argümanları vermeyin ya da programın başına şunu ekleyin: {var} ayar = {fn}({{\"{example}\": 0}}) (0 yerine seçeneğin varsayılan değeri yazılır)",
 "H8665": "{program} komut satırı seçeneği almıyor",
 "H8666": "Durdurma isteği alındı: program kendi sınırında bitecek (hemen çıkmak için Ctrl+C'ye yeniden basın)",
+"H8667": "programa {count} konumlu argüman verildi ama TR programı konumlu argüman almaz: argümanlar seçenek olarak yazılır ve {fn}() ile okunur. Örneğin programın başına {var} ayar = {fn}({{\"veri\": \"\"}}) yazın ve çalıştırırken --veri dosya.txt verin",
 "H8670": "{path|q} bir .tr dosyası değil. Çalışan bir arka plan işini izlemek (tr {command} <iş_adı>) henüz yok; programı izleyerek çalıştırın: tr {command} <dosya.tr>",
 "H8671": "programın çıktı dosyası açılamadı: {error}",
 "H8672": "Programın son çıktısı (tamamı: {path}):",

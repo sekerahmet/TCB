@@ -277,6 +277,7 @@ func startREPL() {
 	fmt.Println(messages.Text(messages.H8633, Version))
 	fmt.Println(messages.Text(messages.H8634, codes.NameRef(codes.ReplExit)))
 	machine := interp.New()
+	machine.SetInteractive()
 	// Kabuğa yazılan satırlar kişinin yazım dilindedir (source.Options.Typed); değerler de o
 	// dilde metne çevrilir (3).
 	machine.SourceLanguage = codes.Display().Code

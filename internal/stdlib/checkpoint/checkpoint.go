@@ -25,8 +25,8 @@
 //
 // Kontrol noktası kurulunca ilk durdurma isteği programı hemen durdurmaz (interp.VM.RequestStop):
 // istekten sonraki ilk .güncelle ya da .kaydet noktayı kaydeder ve program nazikçe durur (1.6).
-// Erteleme süreyle sınırlıdır: istek ikinci .güncelle'den önce geldiyse ya da son iki .güncelle
-// arasındaki sürenin iki katı içinde kayda varılmazsa istek hemen uygulanır. Program durdurmayı
+// Erteleme süreyle sınırlıdır: istek ikinci .güncelle'den önce geldiyse ya da şimdiye kadarki en uzun iki ardışık .güncelle
+// arası sürenin iki katı içinde kayda varılmazsa istek hemen uygulanır. Program durdurmayı
 // TR_handle_stop ile de üstlendiyse nokta yalnız kaydedilir. Biterken ek kayıt yapılmaz.
 //
 // Layer: standard library (internal/stdlib); dil ve hesap çekirdeklerini ve öbür motorları içe aktarır.
@@ -99,11 +99,13 @@ type Checkpoint struct {
 	lastValid int64     // son geçerli noktanın adımı (-1: yok)
 
 	// Ertelenen durdurma isteği (1.6): updates .güncelle çağrı sayısı, lastUpdate sonuncusunun
-	// zamanı (monoton saat), window son iki .güncelle arasındaki sürenin iki katı (nanosaniye; 0:
-	// henüz iki güncelleme olmadı, erteleme yok); istek sinyal goroutine'inden geldiği için
-	// atomiktir. honored kayıtlı isteğin bu noktada karşılandığını söyler.
+	// zamanı (monoton saat), longest şimdiye kadarki en uzun iki ardışık güncelleme arası, window
+	// onun iki katı (nanosaniye; 0: henüz iki güncelleme olmadı, erteleme yok); istek sinyal
+	// goroutine'inden geldiği için window atomiktir. honored kayıtlı isteğin bu noktada
+	// karşılandığını söyler.
 	updates    int
 	lastUpdate time.Time
+	longest    time.Duration
 	window     atomic.Int64
 	honored    bool
 }
@@ -188,18 +190,22 @@ func setup(m *interp.VM, s *process.State, args []interp.Value, named map[string
 	return kn, nil
 }
 
-// stopWindow bir durdurma isteğinin adım sınırına ertelenebileceği süreyi verir: son iki
-// .güncelle arasındaki sürenin iki katı (1.6). İkinci .güncelle'den önce gelen istek ertelenmez.
+// stopWindow bir durdurma isteğinin adım sınırına ertelenebileceği süreyi verir: şimdiye kadarki en uzun
+// iki ardışık .güncelle arasının iki katı (1.6). İkinci .güncelle'den önce gelen istek ertelenmez.
 func (kn *Checkpoint) stopWindow() (time.Duration, bool) {
 	w := kn.window.Load()
 	return time.Duration(w), w > 0
 }
 
-// noteUpdate bir .güncelle çağrısının zamanını kaydeder ve erteleme süresini günceller.
+// noteUpdate bir .güncelle çağrısının zamanını kaydeder ve erteleme süresini günceller: süre
+// şimdiye kadarki en uzun iki ardışık güncelleme arasının iki katıdır (1.6); oynak adım süreli
+// (değerlendirme adımı, günlük, ilk adımların derlemesi) bir eğitimde istek kısa bir aralıkla
+// ölçülüp kayıtsız uygulanmaz.
 func (kn *Checkpoint) noteUpdate() {
 	now := clock()
 	if kn.updates > 0 {
-		kn.window.Store(2 * int64(now.Sub(kn.lastUpdate)))
+		kn.longest = max(kn.longest, now.Sub(kn.lastUpdate))
+		kn.window.Store(2 * int64(kn.longest))
 	}
 	kn.updates++
 	kn.lastUpdate = now

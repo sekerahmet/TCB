@@ -234,3 +234,52 @@ func TestSplitProgramErrors(t *testing.T) {
 		}
 	}
 }
+
+// Yakalanmayan hatayla biten programda öbür görevler 1.5'teki gibi durur ve beklenir, sonra en
+// dıştaki ertelenen işler çalışır (1.9): görevin ertelenen işi ana programınkinden önce biter.
+func TestUncaughtErrorStopsTasksBeforeTheOutermostDefers(t *testing.T) {
+	v := New()
+	end, err := runEnd(t, v, `# TR 4
+TR_var izler = []
+TR_defer { izler.TR_append("ana ertele") }
+TR_async {
+    TR_defer { izler.TR_append("görev ertele") }
+    TR_sleep(60)
+}
+TR_sleep(0.1)
+TR_throw "ana hata"
+`)
+	if err == nil || end.Code != 1 || len(end.Errors) != 1 {
+		t.Fatalf("hata ve çıkış 1 bekleniyordu: %v %+v", err, end)
+	}
+	text := traceText(v)
+	task, main := strings.Index(text, "görev ertele"), strings.Index(text, "ana ertele")
+	if task < 0 || main < 0 || task > main {
+		t.Errorf("görev durdurulup ertelenen işi bitmeli, sonra ana program ertelenen işleri çalışmalı: %s", text)
+	}
+}
+
+// Görevin ve ertelenen işin hatası TR_exit'in kodundan önce gelir (çıkış 1); ertelenen işten
+// çağrılan TR_exit yalnız programın kendi yakalanmayan hatasının 1'ini değiştirir (1.9, 1.13).
+func TestErrorsComeBeforeTheExitCode(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		code       string
+		wantCode   int
+		wantErrors int
+	}{
+		{"görevin hatası, sonra TR_exit", "TR_async { TR_throw \"görev hatası\" }\nTR_wait_all()\nTR_exit(3)", 1, 0},
+		{"ertelenen işin hatası, sonra TR_exit", "TR_defer { TR_throw \"ertele hatası\" }\nTR_exit(3)", 1, 1},
+		{"ertelenen işten TR_exit programın kendi hatasının kodunu değiştirir", "TR_defer { TR_exit(7) }\nTR_throw \"ana hata\"", 7, 1},
+		{"ertelenen iş hatası TR_exit'i geçer", "TR_defer { TR_exit(7) }\nTR_defer { TR_throw \"ertele hatası\" }\nTR_throw \"ana hata\"", 1, 2},
+		{"görev hatası TR_exit'i geçer", "TR_async { TR_throw \"görev hatası\" }\nTR_wait_all()\nTR_defer { TR_exit(7) }\nTR_throw \"ana hata\"", 1, 1},
+	} {
+		v := New()
+		var failure strings.Builder
+		v.Err = &failure
+		end, _ := runEnd(t, v, "# TR 4\n"+tc.code+"\n")
+		if end.Code != tc.wantCode || end.Signal != 0 || len(end.Errors) != tc.wantErrors {
+			t.Errorf("%s: %+v, kod %d ve %d hata bekleniyordu", tc.name, end, tc.wantCode, tc.wantErrors)
+		}
+	}
+}
