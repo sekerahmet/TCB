@@ -1,8 +1,8 @@
 # TR — yapay zekâ için programlama dili
 
-TR, yapay zekâ modellerini **eğiten** ve **kullanan** geliştiriciler için tasarlanmış bir programlama dilidir. Tensörler, otomatik türev, iyileştiriciler, `tokenizer.json` parçalayıcıları ve büyük veri kümeleri dilin içinde yerleşik olarak gelir; testler de aynı dosyada yazılır.
+TR, yapay zekânın bütün işleri için bir programlama dilidir: dil, görüntü ya da ses, her türden modeli yazmak ve eğitmek; hazır modelleri çalıştırmak ve ince ayarla kendi işine uyarlamak; modeli robot gibi bir makinenin içinde çalıştırmak; uzaktaki bir modeli API ile kullanmak. Tensörler, otomatik türev, iyileştiriciler, `tokenizer.json` parçalayıcıları ve büyük veri kümeleri dilin içinde yerleşik olarak gelir; testler de aynı dosyada yazılır.
 
-**Kod, geliştiricinin kendi dilinde yazılır ve okunur:** bugün Türkçe ve İngilizce; İspanyolca, Almanca ve Fransızca sırada. Dilin ana yazımı Türkçedir. Başka bir dilde yazılan dosya dilden bağımsız **kodlu biçimde** saklanır; aynı program her yazım dilinde aynı anlama gelir ve VS Code'da her geliştirici dosyayı kendi dilinde görüp düzenler. Hata mesajları da kişinin dilindedir (`TR_DIL`) ve sorunu satırıyla gösterir.
+**Kod, geliştiricinin kendi dilinde yazılır ve okunur:** bugün Türkçe ve İngilizce; İspanyolca, Almanca ve Fransızca sırada. Hiçbir dilin ayrıcalığı yoktur, dilin asıl biçimi koddur: dosya diskte dilden bağımsız kimliklerle (`TR_fn_print`) **kodlu biçimde** saklanır, program da onlarla çalışır. Aynı program her yazım dilinde aynı anlama gelir ve VS Code'da her geliştirici dosyayı kendi dilinde görüp düzenler. Hata mesajları da kişinin dilindedir (`TR_DIL`) ve sorunu satırıyla gösterir.
 
 Her işin tek yazımı vardır: bir yazım dilinde her anahtar kelimenin, yerleşiğin ve tipin tek adı vardır (Türkçede `değişken`, `yazdır`; İngilizcede `var`, `print`). Türkçe harfsiz bir yazım (`degisken`, `yazdir`) dilin kelimesi değildir, hata mesajı doğru adı önerir: `'yazdir' TR'de yok; 'yazdır' yazmak mı istediniz?` `tr` komutları ise her yazım dilinin adıyla çalışır (`tr çalıştır` ile `tr run` aynıdır).
 
