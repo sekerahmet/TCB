@@ -9,38 +9,48 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
-// Önerilen ad her zaman asıl addır (Türkçe yazım); ASCII biçim ya da yabancı ad önerilmez. Dilin
-// her yerleşiği ve anahtar kelimesi için Türkçe harfsiz yazım denenir; adlar koddan gelir.
+// Kural (ne yazılacağını söyler, öneri her zaman asıl addır): Türkçe yazılmış metinde bir yerleşiğin
+// ya da anahtar kelimenin Türkçe harfsiz yazımı (yazdir) ipucu alır, ipucu asıl adı söyler; ASCII
+// biçim ya da yabancı ad önerilmez. Türkçe yazım diline özgü kuraldır, dil açıkça verilir. Önerilen
+// ad kod başvurusudur: iletinin dilinde yazılır (Türkçe iletide yazdır, İngilizcede print). Dilin
+// her yerleşiği ve anahtar kelimesi denenir; adlar koddan gelir.
 func TestAsciiSpellingSuggestsRealName(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
+	tr := codes.Source()
 	tried := 0
 	for _, k := range codes.Codes() {
-		name := codes.Name(k)
+		name := tr.Name(k)
 		ascii := turkish.ASCII(name)
 		if ascii == name {
 			continue
 		}
-		if _, valid := codes.Find(codes.NamespaceGlobal, ascii); valid {
+		if _, valid := tr.Find(codes.NamespaceGlobal, ascii); valid {
 			continue // ASCII biçim başka bir geçerli ad
 		}
-		var got, want string
+		var got, want *messages.Error
 		switch {
 		case k.IsKeyword():
-			got, want = KeywordSpellingHint(ascii, nil).Error(), messages.Text(messages.H1103, ascii, name)
+			got, want = KeywordSpellingHint(ascii, tr), messages.New(messages.H1103, ascii, codes.NameRef(k))
 		case k.IsBuiltin():
-			got, want = BuiltinSpellingHint(ascii, nil).Error(), NotInTRHint(ascii, name).Error()
+			got, want = BuiltinSpellingHint(ascii, tr), NotInTRHint(ascii, codes.NameRef(k))
 		default:
 			continue
 		}
 		tried++
-		if got != want {
-			t.Errorf("%s (%s): ipucu %q, beklenen %q", k, ascii, got, want)
+		if got == nil {
+			t.Errorf("%s (%s): ipucu yok", k, ascii)
+			continue
 		}
-		if s := NameSuggestion(ascii, nil, nil).Error(); s != want {
-			t.Errorf("%s: NameSuggestion(%q) = %q, beklenen %q", k, ascii, s, want)
-		}
-		if !strings.Contains(got, "'"+name+"'") {
-			t.Errorf("%s: ipucu asıl adı (%q) söylemiyor: %q", k, name, got)
+		for _, lang := range []string{"tr", "en"} {
+			g, w := messages.ErrorIn(got, lang), messages.ErrorIn(want, lang)
+			if g != w {
+				t.Errorf("%s (%s, %s): ipucu %q, beklenen %q", k, ascii, lang, g, w)
+			}
+			if s := NameSuggestion(ascii, nil, tr); s == nil || messages.ErrorIn(s, lang) != w {
+				t.Errorf("%s (%s): NameSuggestion(%q) = %v, beklenen %q", k, lang, ascii, s, w)
+			}
+			if real := codes.NameRef(k).MessageText(lang); !strings.Contains(g, "'"+real+"'") {
+				t.Errorf("%s (%s): ipucu asıl adı (%q) söylemiyor: %q", k, lang, real, g)
+			}
 		}
 	}
 	if tried == 0 {

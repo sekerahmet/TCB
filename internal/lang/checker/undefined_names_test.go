@@ -10,20 +10,21 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
-// 5.14: tanımsız ad çalışmadan önce hatadır; ipucu çalışma anındakiyle aynıdır.
+// Kural (5.14): tanımsız ad çalışmadan önce hatadır; ipucu çalışma anındakiyle aynıdır. Konum
+// denetlenen gövdeye göredir (kodlu gövdede TR_fn_print( 12 sütundur; kişinin görünümündeki
+// konumu source.view verir, 17.5).
 func TestUndefinedNameIsError(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	singleErrorAt(t, "yazdir(1)", 1, 1, "'yazdir' TR'de yok; 'yazdır' yazmak mı istediniz?")
-	singleErrorAt(t, "değişken öğrenci_sayısı = 1\nyazdır(öğrenci_sayis)", 2, 8, "'öğrenci_sayis' adında bir değişken ya da fonksiyon yok", "Bunu mu demek istediniz: 'öğrenci_sayısı'?")
+	singleErrorAt(t, "TR_kw_var öğrenci_sayısı = 1\nTR_fn_print(öğrenci_sayis)", 2, 13, "'öğrenci_sayis' adında bir değişken ya da fonksiyon yok", "Bunu mu demek istediniz: 'öğrenci_sayısı'?")
 	singleErrorAt(t, "tanımsız = 3", 1, 1, "'tanımsız'")
-	singleError(t, "eğer doğru { değişken iç = 1 }\nyazdır(iç)", messages.H1010, 2, "'iç'")
-	singleError(t, "fonksiyon f() { sonuç g() }", messages.H1010, 1, "'g'")
-	singleError(t, "test \"a\" { değişken yerel = 1 }\ntest \"b\" { yazdır(yerel) }", messages.H1010, 2, "'yerel'")
-	singleError(t, "yazdır(\"{bilinmeyen}\")", messages.H1010, 1, "'bilinmeyen'")
-	singleError(t, "değişken l = [1, 2]\nyazdır([x * 2 döngü x içinde l eğer y > 0])", messages.H1010, 2, "'y'")
-	singleError(t, "kendi.n = 1", messages.H1010, 1, "'kendi'")
+	singleError(t, "TR_kw_if TR_kw_true { TR_kw_var iç = 1 }\nTR_fn_print(iç)", messages.H1010, 2, "'iç'")
+	singleError(t, "TR_kw_func f() { TR_kw_return g() }", messages.H1010, 1, "'g'")
+	singleError(t, "TR_ctx_test \"a\" { TR_kw_var yerel = 1 }\nTR_ctx_test \"b\" { TR_fn_print(yerel) }", messages.H1010, 2, "'yerel'")
+	singleError(t, `TR_fn_print("{bilinmeyen}")`, messages.H1010, 1, "'bilinmeyen'")
+	singleError(t, "TR_kw_var l = [1, 2]\nTR_fn_print([x * 2 TR_kw_for x TR_kw_in l TR_kw_if y > 0])", messages.H1010, 2, "'y'")
+	singleError(t, "TR_kw_self.n = 1", messages.H1010, 1, "'kendi'")
 	// Aynı ad tek kez bildirilir.
-	singleError(t, "yazdır(a)\nyazdır(a + 1)", messages.H1010, 1, "'a'")
+	singleError(t, "TR_fn_print(a)\nTR_fn_print(a + 1)", messages.H1010, 1, "'a'")
 }
 
 // Kural (17, kitaplık kodu): kitaplık kodu yerleşik değildir; kitaplığın fonksiyon ve tip adları her
@@ -78,28 +79,27 @@ func singleErrorAt(t *testing.T, source string, line, col int, parts ...string) 
 
 // Dinamik dilde yanlış alarm yok: aşağıdakilerin hepsi tanımlıdır.
 func TestUndefinedNameNoFalseAlarm(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	cases := map[string]string{
-		"sonra tanımlanan fonksiyon":  "fonksiyon a() { sonuç b() }\nfonksiyon b() { sonuç 1 }\nyazdır(a())",
-		"özyineleme":                  "fonksiyon f(n) { sonuç eğer n < 1 { 0 } değilse { f(n - 1) } }",
-		"sondaki blok o":              "yazdır([1, 2].haritala { o * 2 }.filtrele { o > 2 })",
-		"ok fonksiyonu":               "değişken k = (x) => x * x\nyazdır(k(3), [1].haritala(y => y + 1))",
-		"yakala hata":                 "dene { fırlat \"x\" } yakala { yazdır(hata) }",
-		"yakala adlı":                 "dene { fırlat \"x\" } yakala h { yazdır(h) }",
-		"döngü değişkenleri":          "döngü i, x içinde [5, 6] { yazdır(i, x) }",
-		"liste üreteci":               "yazdır([x * x döngü x içinde 0..3 eğer x > 0])",
-		"yapı ve kendi":               "yapı Sayaç { n = 0; fonksiyon artır(k) { kendi.n += k } }\ndeğişken s = Sayaç()\ns.artır(2)\nyazdır(s.n)",
-		"üye ve adlı argüman":         "değişken l = [3, 1]\nyazdır(l.sırala(ters: doğru).uzunluk)",
-		"sabit ve çoklu":              "sabit PI2 = 6.28\ndeğişken a, b = 1, 2\na, b = b, a\nyazdır(PI2, a, b)",
-		"dış değişkene atama":         "değişken n = 0\nfonksiyon art() { n += 1 }\nart()",
-		"eşle":                        "değişken p = 5\ndeğişken s = 3\nyazdır(eşle p { s => \"eşit\"\n 1..10 => \"aralık\"\n varsayılan => \"diğer\" })",
-		"ertele ve eşzamanlı":         "fonksiyon f() { değişken iz = []\n ertele iz.ekle(1)\n eşzamanlı { yazdır(iz) }\n sonuç iz }",
-		"takma adsız aktar":           "aktar \"yardimci_modul\"\nyazdır(kare(PI))",
-		"takma adlı aktar":            "aktar \"yardimci_modul\" olarak ym\nyazdır(ym.kare(2))",
-		"ifade içinde adlı fonksiyon": "değişken l = [1].haritala(fonksiyon ikiye(x) { sonuç x * 2 })\nyazdır(ikiye(3))",
-		"test bloğu genel ad":         "değişken g = 1\ntest \"t\" { eşit_mi(1, g) }",
-		"kesme noktası koşulu":        "değişken x = 1\nkesme_noktası eğer x > 10",
-		"varsayılan parametre":        "değişken taban = 2\nfonksiyon üs(x, k = taban) { sonuç x ** k }",
+		"sonra tanımlanan fonksiyon":  "TR_kw_func a() { TR_kw_return b() }\nTR_kw_func b() { TR_kw_return 1 }\nTR_fn_print(a())",
+		"özyineleme":                  "TR_kw_func f(n) { TR_kw_return TR_kw_if n < 1 { 0 } TR_kw_else { f(n - 1) } }",
+		"sondaki blok o":              "TR_fn_print([1, 2].TR_mem_map { TR_ctx_it * 2 }.TR_mem_filter { TR_ctx_it > 2 })",
+		"ok fonksiyonu":               "TR_kw_var k = (x) => x * x\nTR_fn_print(k(3), [1].TR_mem_map(y => y + 1))",
+		"yakala hata":                 `TR_kw_try { TR_kw_throw "x" } TR_kw_catch { TR_fn_print(TR_ctx_error) }`,
+		"yakala adlı":                 `TR_kw_try { TR_kw_throw "x" } TR_kw_catch h { TR_fn_print(h) }`,
+		"döngü değişkenleri":          "TR_kw_for i, x TR_kw_in [5, 6] { TR_fn_print(i, x) }",
+		"liste üreteci":               "TR_fn_print([x * x TR_kw_for x TR_kw_in 0..3 TR_kw_if x > 0])",
+		"yapı ve kendi":               "TR_kw_struct Sayaç { n = 0; TR_kw_func artır(k) { TR_kw_self.n += k } }\nTR_kw_var s = Sayaç()\ns.artır(2)\nTR_fn_print(s.n)",
+		"üye ve adlı argüman":         "TR_kw_var l = [3, 1]\nTR_fn_print(l.TR_mem_sort(ters: TR_kw_true).TR_mem_length)",
+		"sabit ve çoklu":              "TR_kw_const PI2 = 6.28\nTR_kw_var a, b = 1, 2\na, b = b, a\nTR_fn_print(PI2, a, b)",
+		"dış değişkene atama":         "TR_kw_var n = 0\nTR_kw_func art() { n += 1 }\nart()",
+		"eşle":                        "TR_kw_var p = 5\nTR_kw_var s = 3\nTR_fn_print(TR_kw_match p { s => \"eşit\"\n 1..10 => \"aralık\"\n TR_kw_default => \"diğer\" })",
+		"ertele ve eşzamanlı":         "TR_kw_func f() { TR_kw_var iz = []\n TR_kw_defer iz.TR_mem_append(1)\n TR_kw_async { TR_fn_print(iz) }\n TR_kw_return iz }",
+		"takma adsız aktar":           "TR_kw_import \"yardimci_modul\"\nTR_fn_print(kare(PI))",
+		"takma adlı aktar":            "TR_kw_import \"yardimci_modul\" TR_ctx_as ym\nTR_fn_print(ym.kare(2))",
+		"ifade içinde adlı fonksiyon": "TR_kw_var l = [1].TR_mem_map(TR_kw_func ikiye(x) { TR_kw_return x * 2 })\nTR_fn_print(ikiye(3))",
+		"test bloğu genel ad":         "TR_kw_var g = 1\nTR_ctx_test \"t\" { TR_fn_assert_equal(1, g) }",
+		"kesme noktası koşulu":        "TR_kw_var x = 1\nTR_kw_breakpoint TR_kw_if x > 10",
+		"varsayılan parametre":        "TR_kw_var taban = 2\nTR_kw_func üs(x, k = taban) { TR_kw_return x ** k }",
 	}
 	for name, source := range cases {
 		if errs := check(t, source); len(errs) > 0 {
@@ -111,8 +111,7 @@ func TestUndefinedNameNoFalseAlarm(t *testing.T) {
 // Tip hatası, tanımsız ad ve gölgeleme uyarısı birlikte bildirilir; biri ötekini gizlemez.
 // Hatalar satır sırasıyladır.
 func TestTypeErrorUndefinedNameAndWarningTogether(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
-	p := parser.New(lexer.New("değişken toplam = [1, 2]\nyazdir(toplam)\ndeğişken x: Tam = \"metin\"\n"))
+	p := parser.New(lexer.NewBody("TR_kw_var toplam = [1, 2]\nyazdir(toplam)\nTR_kw_var x: TR_type_Int = \"metin\"\n", true))
 	prog := p.ParseProgram()
 	c := New()
 	errs := c.CheckProgram(prog)
@@ -137,19 +136,18 @@ func TestTypeErrorUndefinedNameAndWarningTogether(t *testing.T) {
 
 // Etkileşimli kabukta denetleyici satırlar arasında kalır: önceki satırın tanımı görünür.
 func TestUndefinedNameAcrossREPLLines(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	c := New()
 	line := func(source string) []string {
-		p := parser.New(lexer.New(source))
+		p := parser.New(lexer.NewBody(source, true))
 		return c.CheckProgram(p.ParseProgram())
 	}
-	if errs := line("değişken a = 1"); len(errs) != 0 {
+	if errs := line("TR_kw_var a = 1"); len(errs) != 0 {
 		t.Fatal(errs)
 	}
-	if errs := line("yazdır(a)"); len(errs) != 0 {
+	if errs := line("TR_fn_print(a)"); len(errs) != 0 {
 		t.Fatalf("önceki satırın tanımı görünmeli: %v", errs)
 	}
-	if errs := line("yazdır(b)"); len(errs) != 1 {
+	if errs := line("TR_fn_print(b)"); len(errs) != 1 {
 		t.Fatalf("tanımsız ad bildirilmeli: %v", errs)
 	}
 }
@@ -157,12 +155,11 @@ func TestUndefinedNameAcrossREPLLines(t *testing.T) {
 // Modül aktaranın genel kapsamının altında çalışır (11.1): genel adlar modülde tanımlıdır;
 // adlar bilinmiyorsa (dinamik) tanımsız ad aranmaz.
 func TestUndefinedNameModuleGlobalScope(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
-	module := "yükleme_kaydı.ekle(1)\nyazdır(bilinmeyen)"
+	module := "yükleme_kaydı.TR_mem_append(1)\nTR_fn_print(bilinmeyen)"
 	checkModule := func(names []string, dynamic bool) []string {
 		c := New()
 		c.SetGlobalScope(names, dynamic)
-		return c.CheckProgram(parser.New(lexer.New(module)).ParseModule())
+		return c.CheckProgram(parser.New(lexer.NewBody(module, true)).ParseModule())
 	}
 	errs := checkModule([]string{"yükleme_kaydı"}, false)
 	if len(errs) != 1 || !strings.Contains(errs[0], "'bilinmeyen'") { // ad, ileti parametresidir
@@ -171,11 +168,11 @@ func TestUndefinedNameModuleGlobalScope(t *testing.T) {
 	if errs := checkModule(nil, true); len(errs) != 0 {
 		t.Fatalf("dinamik genel kapsamda tanımsız ad aranmamalı: %v", errs)
 	}
-	names, dynamic := TopLevelNames(parser.New(lexer.New("değişken a = 1\nyapı Y { x }\nfonksiyon f() {}\naktar \"m\" olarak mm\neğer doğru { değişken iç = 2 }")).ParseProgram())
+	names, dynamic := TopLevelNames(parser.New(lexer.NewBody("TR_kw_var a = 1\nTR_kw_struct Y { x }\nTR_kw_func f() {}\nTR_kw_import \"m\" TR_ctx_as mm\nTR_kw_if TR_kw_true { TR_kw_var iç = 2 }", true)).ParseProgram())
 	if strings.Join(names, ",") != "Y,a,f,mm" || dynamic {
 		t.Fatalf("üst düzey adlar: %v %v", names, dynamic)
 	}
-	if _, dynamic := TopLevelNames(parser.New(lexer.New("aktar \"m\"")).ParseProgram()); !dynamic {
+	if _, dynamic := TopLevelNames(parser.New(lexer.NewBody(`TR_kw_import "m"`, true)).ParseProgram()); !dynamic {
 		t.Fatal("takma adsız aktar adları belirsiz kılmalı")
 	}
 }

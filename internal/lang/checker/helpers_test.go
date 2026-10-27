@@ -19,15 +19,29 @@ func check(t *testing.T, source string) []string {
 // checkErrs check gibidir; ayrıca hataları kodlu (messages.Pos ve messages.Has ile sınanabilir) döndürür.
 func checkErrs(t *testing.T, source string) ([]string, []error) {
 	t.Helper()
-	p := parser.New(lexer.New(source))
+	return checkErrsIn(t, "", source)
+}
+
+// checkErrsIn checkErrs gibidir; dosyanın yazım dili lang'dir (SetFileLanguage) ve hata metinleri
+// lang'in iletisidir. lang boşsa dil bilinmez, metinler gösterim dilindedir. Kaynak kodlu gövdedir:
+// program içeride kimliklerle çalışır (17.7), kullanıcı adları yazıldıkları gibi kalır.
+func checkErrsIn(t *testing.T, lang, source string) ([]string, []error) {
+	t.Helper()
+	p := parser.New(lexer.NewBody(source, true))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatalf("beklenmeyen sözdizimi hataları: %v\nkaynak:\n%s", p.Errors(), source)
 	}
 	c := New()
+	c.SetFileLanguage(lang)
 	errs := c.CheckProgram(prog)
 	if len(errs) != len(c.Errors()) || len(errs) != len(c.Errs()) {
 		t.Errorf("CheckProgram, Errors() ve Errs() farklı sayıda hata döndürdü: %v / %v", errs, c.Errors())
+	}
+	if lang != "" {
+		for i, err := range c.Errs() {
+			errs[i] = messages.ErrorIn(err, lang)
+		}
 	}
 	return errs, c.Errs()
 }
@@ -54,7 +68,13 @@ func expectCode(t *testing.T, err error, code messages.Code, line int) {
 // taşımasını ve parts değerlerini (adlar, tip adları) içermesini bekler.
 func singleError(t *testing.T, source string, code messages.Code, line int, parts ...string) {
 	t.Helper()
-	errs, coded := checkErrs(t, source)
+	singleErrorIn(t, "", source, code, line, parts...)
+}
+
+// singleErrorIn singleError gibidir; dosya lang'de yazılmıştır, parts lang'in iletisinde aranır (checkErrsIn).
+func singleErrorIn(t *testing.T, lang, source string, code messages.Code, line int, parts ...string) {
+	t.Helper()
+	errs, coded := checkErrsIn(t, lang, source)
 	if len(errs) != 1 {
 		t.Errorf("tek bir hata bekleniyordu, gelen %d: %v\nkaynak:\n%s", len(errs), errs, source)
 		return

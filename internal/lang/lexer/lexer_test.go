@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/hint"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -11,7 +12,13 @@ import (
 // allTokens girdinin tüm sözcük birimlerini (DOSYA_SONU dahil) ve sözcük çözümleyici hatalarını döndürür.
 func allTokens(t *testing.T, input string) ([]Token, []error) {
 	t.Helper()
-	l := New(input)
+	return lexTokens(t, New(input), input)
+}
+
+// lexTokens l'nin tüm sözcük birimlerini (DOSYA_SONU dahil) ve hatalarını döndürür; input yalnızca
+// hata iletisi içindir.
+func lexTokens(t *testing.T, l *Lexer, input string) ([]Token, []error) {
+	t.Helper()
 	var toks []Token
 	for i := 0; ; i++ {
 		if i > 10000 {
@@ -64,7 +71,21 @@ type expected struct {
 
 func checkTokens(t *testing.T, input string, want []expected) {
 	t.Helper()
-	toks := tokensNoErrors(t, input)
+	compareTokens(t, input, tokensNoErrors(t, input), want)
+}
+
+// checkTokensIn checkTokens gibidir; girdi lang'de yazılmış metindir (NewBodyIn).
+func checkTokensIn(t *testing.T, lang *codes.Language, input string, want []expected) {
+	t.Helper()
+	toks, errs := lexTokens(t, NewBodyIn(input, false, lang), input)
+	if len(errs) > 0 {
+		t.Fatalf("%q için beklenmeyen sözcük çözümleyici hataları: %v", input, errs)
+	}
+	compareTokens(t, input, toks, want)
+}
+
+func compareTokens(t *testing.T, input string, toks []Token, want []expected) {
+	t.Helper()
 	if len(toks) != len(want) {
 		t.Fatalf("%q: %d token bekleniyordu, %d geldi: %v", input, len(want), len(toks), toks)
 	}
@@ -96,11 +117,11 @@ func TestKeywordTableComplete(t *testing.T) {
 	}
 }
 
-// Anahtar kelimelerin yalnızca Türkçe yazımı geçerlidir (her işin tek yazımı); ASCII
-// yazım sıradan bir addır ve hata mesajında Türkçe biçim önerilir. Bu liste, tablodan
-// bir yazımın yanlışlıkla silinmesini de yakalar.
+// Türkçe yazılmış metinde anahtar kelimelerin yalnızca Türkçe yazımı geçerlidir (her işin tek
+// yazımı); ASCII yazım sıradan bir addır ve hata iletisinde Türkçe biçim önerilir. Bu liste,
+// Türkçe listeden bir yazımın yanlışlıkla silinmesini de yakalar. Dil açıkça verilir: program
+// içeride kimliklerle okunur (LookupIdent kimlik listesindedir).
 func TestKeywordTurkishSpellingOnly(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	pairs := []struct {
 		turkishSpelling, ascii string
 		kind                   TokenType
@@ -122,16 +143,17 @@ func TestKeywordTurkishSpellingOnly(t *testing.T) {
 		{"eşzamanlı", "eszamanli", TokConcurrent},
 		{"kesme_noktası", "kesme_noktasi", TokBreakpoint},
 	}
+	tr := keywordsOf(codes.Source())
 	for _, c := range pairs {
-		if got := LookupIdent(c.turkishSpelling); got != c.kind {
-			t.Errorf("LookupIdent(%q) = %s, beklenen %s", c.turkishSpelling, got, c.kind)
+		if got := tr[c.turkishSpelling]; got != c.kind {
+			t.Errorf("Türkçe %q = %s, beklenen %s", c.turkishSpelling, got, c.kind)
 		}
-		if got := LookupIdent(c.ascii); got != TokIdent {
-			t.Errorf("LookupIdent(%q) = %s; ASCII yazım sıradan bir ad olmalı", c.ascii, got)
+		if got, ok := tr[c.ascii]; ok {
+			t.Errorf("Türkçe %q = %s; ASCII yazım sıradan bir ad olmalı", c.ascii, got)
 		}
 		want := " ('" + c.ascii + "' TR'de anahtar kelime değil; '" + c.turkishSpelling + "' yazmak mı istediniz?)"
-		if got := hint.KeywordSpellingHint(c.ascii, nil).Error(); got != want {
-			t.Errorf("ipucu.KaldirilanYazimIpucu(%q) = %q, %q bekleniyordu", c.ascii, got, want)
+		if got := hint.KeywordSpellingHint(c.ascii, codes.Source()).Error(); got != want {
+			t.Errorf("hint.KeywordSpellingHint(%q) = %q, %q bekleniyordu", c.ascii, got, want)
 		}
 	}
 
@@ -143,8 +165,8 @@ func TestKeywordTurkishSpellingOnly(t *testing.T) {
 		"aktar": TokImport, "ertele": TokDefer,
 	}
 	for word, kind := range singles {
-		if got := LookupIdent(word); got != kind {
-			t.Errorf("LookupIdent(%q) = %s, beklenen %s", word, got, kind)
+		if got := tr[word]; got != kind {
+			t.Errorf("Türkçe %q = %s, beklenen %s", word, got, kind)
 		}
 	}
 }
@@ -364,14 +386,13 @@ func TestIllegalCharacters(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestFullProgram(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	src := `fonksiyon topla(a: Tam, b: Tam) -> Tam {
 	sonuç a + b
 }
 sabit liste = [1, 2.5, "üç"]
 döngü i, x içinde liste { eğer x == yok ve değil doğru { çık } }
 `
-	checkTokens(t, src, []expected{
+	checkTokensIn(t, codes.Source(), src, []expected{
 		{TokFunction, "fonksiyon"}, {TokIdent, "topla"}, {TokLParen, "("},
 		{TokIdent, "a"}, {TokColon, ":"}, {TokIdent, "Tam"}, {TokComma, ","},
 		{TokIdent, "b"}, {TokColon, ":"}, {TokIdent, "Tam"}, {TokRParen, ")"},
@@ -390,17 +411,17 @@ döngü i, x içinde liste { eğer x == yok ve değil doğru { çık } }
 	})
 }
 
-// Eş anlamlılar (her işin tek adı vardır, 2.9a) sıradan adlardır; anahtar kelimenin ASCII
-// biçimi de sıradan addır, ipucu Türkçe adı önerir.
+// Türkçe yazılmış metinde eş anlamlılar (her işin tek adı vardır, 2.9a) sıradan adlardır;
+// anahtar kelimenin ASCII biçimi de sıradan addır, ipucu Türkçe adı önerir. Dil açıkça verilir.
 func TestSynonymsAreNames(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
+	tr := codes.Source()
 	for _, name := range []string{"işlev", "döndür", "kır", "sınıf", "degisken", "eger"} {
-		if kind := LookupIdent(name); kind != TokIdent {
+		if kind, ok := keywordsOf(tr)[name]; ok {
 			t.Errorf("%q ad olmalı, %s", name, kind)
 		}
 	}
 	for name, want := range map[string]string{"degisken": "'değişken'", "eger": "'eğer'"} {
-		if got := hint.KeywordSpellingHint(name, nil).Error(); !strings.Contains(got, want) {
+		if got := hint.KeywordSpellingHint(name, tr).Error(); !strings.Contains(got, want) {
 			t.Errorf("hint.KeywordSpellingHint(%q) = %q, %s önermeli", name, got, want)
 		}
 	}

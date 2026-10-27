@@ -11,28 +11,27 @@ import (
 // atama hedefi, yapı alan varsayılanı ve metot gövdesi, eşle deseni ve parametre
 // varsayılanı içindeki hatalar sessizce geçerdi.
 func TestCheckerDescendsIntoSubexpressions(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
-	const kare = "fonksiyon kare(x: Tam): Tam { sonuç x * x }\n"
+	const kare = "TR_kw_func kare(x: TR_type_Int): TR_type_Int { TR_kw_return x * x }\n"
 	const want = `1. parametresi "Tam" bekliyor ancak "Metin" verildi`
 	cases := []struct{ name, source string }{
-		{"liste", `değişken l = [1, kare("a")]`},
-		{"sözlük değeri", `değişken s = {"k": kare("a")}`},
-		{"sözlük anahtarı", `değişken s = {kare("a"): 1}`},
-		{"aralık", `değişken a = kare("a")..3`},
-		{"metin içi ifade", `değişken m = "x: {kare("a")}"`},
-		{"liste üreteci çıktısı", `değişken l = [kare("a") döngü x içinde 1..3]`},
-		{"liste üreteci kaynağı", `değişken l = [x döngü x içinde [kare("a")]]`},
-		{"liste üreteci koşulu", `değişken l = [x döngü x içinde 1..3 eğer kare("a") > 1]`},
-		{"indeks", "değişken l = [1]\n" + `değişken i = l[kare("a")]`},
-		{"indekslenen", `değişken i = [kare("a")][0]`},
-		{"üye", `değişken u = kare("a").x`},
-		{"indeks atama hedefi", "değişken l = [1]\n" + `l[kare("a")] = 1`},
+		{"liste", `TR_kw_var l = [1, kare("a")]`},
+		{"sözlük değeri", `TR_kw_var s = {"k": kare("a")}`},
+		{"sözlük anahtarı", `TR_kw_var s = {kare("a"): 1}`},
+		{"aralık", `TR_kw_var a = kare("a")..3`},
+		{"metin içi ifade", `TR_kw_var m = "x: {kare("a")}"`},
+		{"liste üreteci çıktısı", `TR_kw_var l = [kare("a") TR_kw_for x TR_kw_in 1..3]`},
+		{"liste üreteci kaynağı", `TR_kw_var l = [x TR_kw_for x TR_kw_in [kare("a")]]`},
+		{"liste üreteci koşulu", `TR_kw_var l = [x TR_kw_for x TR_kw_in 1..3 TR_kw_if kare("a") > 1]`},
+		{"indeks", "TR_kw_var l = [1]\n" + `TR_kw_var i = l[kare("a")]`},
+		{"indekslenen", `TR_kw_var i = [kare("a")][0]`},
+		{"üye", `TR_kw_var u = kare("a").x`},
+		{"indeks atama hedefi", "TR_kw_var l = [1]\n" + `l[kare("a")] = 1`},
 		{"alan atama hedefi", `[kare("a")].x = 1`},
-		{"çoklu atama hedefi", "değişken l = [1]\ndeğişken y = 1\n" + `l[kare("a")], y = 1, 2`},
-		{"yapı alan varsayılanı", "yapı A {\n  alan = kare(\"a\")\n}"},
-		{"yapı metot gövdesi", "yapı A {\n  fonksiyon m() { kare(\"a\") }\n}"},
-		{"eşle deseni", `değişken e = eşle 1 { kare("a") => 1 }`},
-		{"parametre varsayılanı", `fonksiyon g(p = kare("a")) { }`},
+		{"çoklu atama hedefi", "TR_kw_var l = [1]\nTR_kw_var y = 1\n" + `l[kare("a")], y = 1, 2`},
+		{"yapı alan varsayılanı", "TR_kw_struct A {\n  alan = kare(\"a\")\n}"},
+		{"yapı metot gövdesi", "TR_kw_struct A {\n  TR_kw_func m() { kare(\"a\") }\n}"},
+		{"eşle deseni", `TR_kw_var e = TR_kw_match 1 { kare("a") => 1 }`},
+		{"parametre varsayılanı", `TR_kw_func g(p = kare("a")) { }`},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -40,11 +39,11 @@ func TestCheckerDescendsIntoSubexpressions(t *testing.T) {
 		})
 	}
 	// Metodun dönüş tipi kendi gövdesinde denetlenir.
-	singleError(t, "yapı A {\n  fonksiyon m(): Tam { sonuç \"a\" }\n}", messages.H1003, 2)
+	singleError(t, "TR_kw_struct A {\n  TR_kw_func m(): TR_type_Int { TR_kw_return \"a\" }\n}", messages.H1003, 2)
 	// Sabite iç içe bir fonksiyonda atama da yakalanır.
-	singleError(t, "sabit k = 1\ndeğişken l = [fonksiyon() { k = 2 }]", messages.H1002, 2)
+	singleError(t, "TR_kw_const k = 1\nTR_kw_var l = [TR_kw_func() { k = 2 }]", messages.H1002, 2)
 	// Metodun adı yapının dışındaki kapsama tanımlanmaz: dıştaki 'm'nin imzası kalır.
-	singleError(t, "fonksiyon m(x: Tam) { }\nyapı A {\n  fonksiyon m() { }\n}\nm(\"a\")", messages.H1004, 0, want)
+	singleError(t, "TR_kw_func m(x: TR_type_Int) { }\nTR_kw_struct A {\n  TR_kw_func m() { }\n}\nm(\"a\")", messages.H1004, 0, want)
 	// Üreteç değişkeni kendi kapsamındadır: dıştaki aynı adlı açıklamalı değişkeni gizler.
-	noErrors(t, "fonksiyon f(x: Tam) { }\ndeğişken x: Metin = \"a\"\ndeğişken l = [f(x) döngü x içinde 1..3]")
+	noErrors(t, "TR_kw_func f(x: TR_type_Int) { }\nTR_kw_var x: TR_type_String = \"a\"\nTR_kw_var l = [f(x) TR_kw_for x TR_kw_in 1..3]")
 }
