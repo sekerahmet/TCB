@@ -139,7 +139,7 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
 
 ## 2. Sözcük yapısı
 
-Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). Taslak: DENETİM'den geçti (2026-10-27); Gemini'nin araştırması bekleniyor. Eski 2.9a (her dilde tek yazım) ve 2.11 (diller arası ad kuralı, $ad kaçışı) gösterim dilleri bölümüne gitti; o numaralar boş kalır. `tests/` altındaki 2.9a, 2.11 ve 2.12 numaralı testler, testler koşulmadan önce taşınır ya da silinir; yoksa her test numarasını bir kurala bağlayan kapı kalır. Eski 2.12 (çıplak ileti kodu) kalktı. Anlamı değişmeyen maddelerin bugünkü TR testi var; aşağıda yalnız değişen ya da eksik olanlar.
+Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). DENETİM'den (üç tur) ve Gemini'nin araştırmasından geçti (2026-10-27). Sonradan değişen ve henüz denetlenmeyenler: yorumun `#`, başlığın `# TR 4` olması, 2.1a'nın `TR_` iskelet kuralı. Eski 2.9a (her dilde tek yazım) ve 2.11 (diller arası ad kuralı, $ad kaçışı) gösterim dilleri bölümüne gitti; o numaralar boş kalır. `tests/` altındaki 2.9a, 2.11 ve 2.12 numaralı testler, testler koşulmadan önce taşınır ya da silinir; yoksa her test numarasını bir kurala bağlayan kapı kalır. Kapılar da testlerle birlikte düzelir: `TestEveryRuleHasATest` harfli kural örneği olarak 2.9a'yı sabit arıyor (yerine 2.1a); kimlik kapısı `TR_` ile başlayan sözcükleri hiç denetlemiyor, TR_ ile yazılan her sözcüğü yerine göre bir kimliğe çözmeli (onaylı yeni adlar ve bilerek yanlış örnekler bir listede); gerekçe dosyalarının düzenini ve aynı yerde çakışan kimlik olmamasını koruyan test yok. Eski 2.12 (çıplak ileti kodu) kalktı. Anlamı değişmeyen maddelerin bugünkü TR testi var; aşağıda yalnız değişen ya da eksik olanlar.
 
 ### 2.1
 
@@ -151,7 +151,7 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). Taslak: D
 ### 2.1a
 
 - **Mevcut durum:** Yunan ve Latin harfli `θ_eski` "farklı yazı sistemlerinin harfleri karışık" hatası veriyor [ölçüldü].
-- **Yapılacaklar:** aynı dosyada UTS #39 iskeleti aynı iki ad hata; tek bir addaki karışık yazı sistemi uyarı.
+- **Yapılacaklar:** dosyanın ve aktardığı adların arasında UTS #39 iskeleti aynı iki ad hata; iskeleti `TR_` ile başlayan kullanıcı adı hata (bugün `ТR_print` karışık yazı sistemi hatası veriyor [ölçüldü, DENETİM]); tek bir addaki karışık yazı sistemi uyarı.
 
 ### 2.2
 
@@ -210,12 +210,13 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). Taslak: D
 
 ## 3. Tipler ve değerler
 
-Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM ve Gemini'nin araştırması bekleniyor. TR bugün dinamik tipli; tip açıklamalarını yalnız çalışmadan önceki denetleyici kullanıyor. `tests/` altındaki 3. bölüm testleri eski kuralları da sınıyor (karışık tipli liste, doğruluk sınaması, çıplak ad anahtarı, açıklamasız değişkenin tipi); testler koşulmadan önce yeni kurallara göre yeniden yazılır. Eski 3.14 (tip adının tek yazımı) 2.3a'ya düştü; eski 3.15 (katalog iletisinin tipi) hata bölümüne gider, `tests/` altındaki 3.15 testi o bölüm yazılınca taşınır.
+Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM'den geçti, bulguları işlendi (2026-10-27); Gemini'nin araştırması bekleniyor. TR bugün dinamik tipli; tip açıklamalarını yalnız çalışmadan önceki denetleyici kullanıyor. `tests/` altındaki 3. bölüm testleri eski kuralları da sınıyor (karışık tipli liste, doğruluk sınaması, çıplak ad anahtarı, açıklamasız değişkenin tipi); testler koşulmadan önce yeni kurallara göre yeniden yazılır. Eski 3.14 (tip adının tek yazımı) 2.3a'ya düştü; eski 3.15 (katalog iletisinin tipi) hata bölümüne gider, `tests/` altındaki 3.15 testi o bölüm yazılınca taşınır.
 
 ### 3.2
 
 - **Mevcut durum:** 1e6 ve üstü bilimsel yazılıyor ("1e+06", 1234567.0 için "1.234567e+06") [ölçüldü].
-- **Yapılacaklar:** bilimsel gösterim üs −4'ün altında ve 16'dan itibaren.
+- **Yapılacaklar:** bilimsel gösterim üs −4'ün altında ve 16'dan itibaren; üs işaretli ve en az iki rakamlı.
+  - `TR_inf` ve `TR_nan` bugün program metninde yazılamıyor: değer adı sınıflı kimlikle tanımsız ad hatası veriyor [ölçüldü, DENETİM].
 
 ### 3.3a
 
@@ -225,7 +226,7 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM ve Gem
 ### 3.5
 
 - **Mevcut durum:** isteğe bağlı tip yok; `TR_Int` açıklamalı bir değişkene `TR_none` atanabiliyor [ölçüldü].
-- **Yapılacaklar:** `T?` tipi; açılmamış kullanım denetim hatası; sınamadan sonra daraltma. `.TR_get` isteğe bağlı tip döner.
+- **Yapılacaklar:** `T?` tipi; açılmamış kullanım denetim hatası; daraltma yalnız değişmeyen yerel değişkende. `.TR_get` isteğe bağlı tip döner. Değer döndürmeyen çağrı değer olarak kullanılamaz; isteğe bağlı olmayanı `TR_none`'la karşılaştırmak uyarı.
 
 ### 3.6
 
@@ -240,7 +241,7 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM ve Gem
 ### 3.7a
 
 - **Mevcut durum:** JSON çözülünce sözlük ve liste oluyor, tip denetimi yok; genel "her şey" tipi (Any) kimlik listesinde var.
-- **Yapılacaklar:** `TR_JSON`; çözme onu verir, asıl değere tip çağrısıyla geçilir. Genel "her şey" tipi kalkar; depodaki kullanımlar `TR_JSON`'a ya da asıl tipe çevrilir.
+- **Yapılacaklar:** `TR_JSON`; çözme ve `TR_JSON` beklenen değişmez onu kurar; tür `TR_Type(j)` ile sorulur, asıl değere tip çağrısıyla geçilir; sayının tam ya da ondalık yazımı korunur. Bugün çözme Any döndürüyor; Any, Object ve StructType gibi genel tipler kalkar ya da yapılar bölümünde yeniden tanımlanır. Genel "her şey" tipi kalkar; depodaki kullanımlar `TR_JSON`'a ya da asıl tipe çevrilir.
 
 ### 3.8
 
@@ -254,8 +255,8 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM ve Gem
 
 ### 3.12
 
-- **Mevcut durum:** dönüşüm ve kurma tipten ayrı fonksiyonlarla yapılıyor; 14 tip ile fonksiyon çifti yalnız büyük-küçük harfle ayrılıyor (Int/int, Float/float, Tensor/tensor, Checkpoint/checkpoint, Dataset/dataset, Type/type gibi), yokluğun tipi ile değeri de (None/none).
-- **Yapılacaklar:** tip çağrılınca kurar ve dönüştürür; ayrı fonksiyonlar kalkar (dönüşümde metin fonksiyonu da). Yokluğun tipi `TR_NoneType` olur. Depodaki kullanımlar çevrilir.
+- **Mevcut durum:** dönüşüm ve kurma tipten ayrı fonksiyonlarla yapılıyor; 13 çift aynı yerde yalnız büyük-küçük harfle ayrılıyor: 12 tip ile fonksiyon çifti (Int/int, Float/float, Tensor/tensor, Checkpoint/checkpoint, Dataset/dataset, Type/type gibi), yokluğun tipi ile değeri de (None/none).
+- **Yapılacaklar:** tip çağrılınca kurar ve dönüştürür; ayrı fonksiyonlar kalkar (dönüşümde metin fonksiyonu da). Yokluğun tipi `TR_NoneType` olur. Metin okuma 2.4 ve 2.5'in yazımıyla, yerel ayarsız; mantık değeri yalnız iki metinden. Depodaki kullanımlar çevrilir.
 
 ### 3.13
 
