@@ -175,7 +175,13 @@ func (c *converter) copyLine() {
 // blockComment '/* ... */' yorumunu her satırı '#' ile başlayan yoruma çevirir. Yorumdan önce ya
 // da sonra aynı satırda kod varsa çevrilmez (yeni yazımda satır içi yorum yoktur).
 func (c *converter) blockComment() {
-	end := strings.Index(string(c.src[c.i:]), "*/")
+	end := -1
+	for j := c.i + 2; j+1 < len(c.src); j++ {
+		if c.src[j] == '*' && c.src[j+1] == '/' {
+			end = j
+			break
+		}
+	}
 	if end < 0 {
 		c.fail("closing '*/' not found")
 		for c.i < len(c.src) {
@@ -183,8 +189,8 @@ func (c *converter) blockComment() {
 		}
 		return
 	}
-	body := []rune(string(c.src[c.i:])[:end])[2:]
-	after := c.i + len([]rune(string(c.src[c.i:])[:end])) + 2
+	body := c.src[c.i+2 : end]
+	after := end + 2
 	lineStart := strings.LastIndexByte(c.out.String(), '\n') + 1
 	indent := c.out.String()[lineStart:]
 	rest := after
@@ -253,7 +259,7 @@ func (c *converter) word() {
 		out = c.identity(w)
 	case isMessageCode(w):
 		out = `"` + w + `"`
-	case codes.IdentityClass(w) != "":
+	case knownClass(codes.IdentityClass(w)):
 		out = c.identity(w)
 	case c.v != nil && !named && c.v.removed[w] != "":
 		out = c.v.removed[w]
@@ -347,6 +353,17 @@ func (c *converter) identity(w string) string {
 		return w
 	}
 	return codes.IdentityPrefix + strings.TrimPrefix(w, codes.IdentityPrefix+string(cls)+"_")
+}
+
+// knownClass sınıf bir kimlik sınıfı mı? TR_GPU_ESZAMANLI gibi ortam değişkeni adları (sınıfı yok)
+// kimlik değildir, dokunulmaz.
+func knownClass(cls codes.Class) bool {
+	for _, c := range codes.Classes {
+		if c.Class == cls {
+			return true
+		}
+	}
+	return false
 }
 
 // removedIdentities sözlükten kalkan kimliklerin yeni yazımdaki karşılığıdır (2.9).

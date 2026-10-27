@@ -102,10 +102,11 @@ func (l *Lexer) placeOf(line int) (place codes.Place, method bool) {
 		return codes.PlaceMember, false
 	case top.params && (s.prev == TokLParen || s.prev == TokComma):
 		return codes.PlaceArg, false
-	case top.structBody && s.prev == TokFunction:
+	case top.structBody && (s.prev == TokFunction || s.prev == TokLBrace || s.prev == TokComma ||
+		s.prev == TokSemicolon || s.prev == TokVar || s.prevLine < line):
+		// Yapı gövdesinde alan ve metot adı üyedir; aynı yerde TR_func ve TR_var da yazılır,
+		// TR_init bağlamsal sözcüktür: üye bulunmazsa öbür yere bakılır.
 		return codes.PlaceMember, true
-	case top.structBody && (s.prev == TokLBrace || s.prev == TokComma || s.prev == TokSemicolon || s.prev == TokVar || s.prevLine < line):
-		return codes.PlaceMember, false
 	case top.open == TokLParen && l.colonAhead():
 		return codes.PlaceArg, false
 	case top.open == TokLBrace && l.colonAhead():

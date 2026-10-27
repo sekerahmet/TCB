@@ -78,9 +78,12 @@ func convertTRFile(_ string, in string) (string, []problem) {
 	}
 	// Başlıksız metin Türkçe gösterimdir (eski 17.7).
 	body, probs := convertCode(text, viewOf(codes.SourceLanguage), lineBase)
-	coded, err := encodeView(body, codes.SourceLanguage)
+	coded, lexical, err := encodeView(body, codes.SourceLanguage)
 	if err != nil {
 		return in, append(probs, problem{Line: lineBase + 1, Reason: "cannot encode the Turkish text: " + err.Error()})
+	}
+	if lexical {
+		probs = append(probs, problem{Line: lineBase + 1, Reason: "syntax error: encoded word by word, review it"})
 	}
 	return prefix + newHeader + findEOL(body) + coded, probs
 }
