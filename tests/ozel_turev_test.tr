@@ -24,7 +24,7 @@ TR_ctx_test "15.28 özel_türev: ileri ve geri hesabı kullanıcı yazar" {
     TR_fn_backward(TR_fn_sum(y))
     TR_fn_assert_equal([6.0], x.TR_mem_grad.TR_mem_tolist)
     // Sonuç bir işlemin sonucudur: .gradyan'ı yoktur.
-    TR_fn_assert(hata_metni(() => y.TR_mem_grad).TR_mem_contains("işlemin sonucu"))
+    TR_fn_assert_equal(H6700, TR_fn_error_code(() => y.TR_mem_grad))
     // Bileşik sürümle aynı gradyan: kare(x) * x = x³ → 3x².
     TR_kw_var a = TR_fn_tensor([[0.5, -2.0, 1.5]], TR_arg_requires_grad: TR_kw_true)
     TR_kw_var b = TR_fn_tensor([[0.5, -2.0, 1.5]], TR_arg_requires_grad: TR_kw_true)
@@ -127,20 +127,19 @@ TR_ctx_test "15.31 özel_türev: hatalar" {
     TR_kw_var x = TR_fn_tensor([[1.0, 2.0]], TR_arg_requires_grad: TR_kw_true)
     // ileri yanlış biçim döndürürse.
     TR_kw_var bozuk = TR_fn_custom_grad(TR_arg_forward: TR_kw_func(x) { TR_kw_return x * x }, TR_arg_backward: TR_kw_func(k, g) { TR_kw_return [g] })
-    TR_fn_assert(hata_metni(() => bozuk(x)).TR_mem_contains("ileri [çıktı, saklananlar] döndürmeli"))
+    TR_fn_assert_equal(H6409, TR_fn_error_code(() => bozuk(x)))
     TR_kw_var bozuk2 = TR_fn_custom_grad(TR_arg_forward: TR_kw_func(x) { TR_kw_return [x, x] }, TR_arg_backward: TR_kw_func(k, g) { TR_kw_return [g] })
-    TR_fn_assert(hata_metni(() => bozuk2(x)).TR_mem_contains("saklananlar bir liste olmalıdır"))
+    TR_fn_assert_equal(H6410, TR_fn_error_code(() => bozuk2(x)))
     // Yanlış şekilli gradyan: yayınlama yapılmaz.
     TR_kw_var şekilsiz = TR_fn_custom_grad(TR_arg_forward: TR_kw_func(x) { TR_kw_return [x * 2, []] }, TR_arg_backward: TR_kw_func(k, g) { TR_kw_return [TR_fn_sum(g)] })
-    TR_kw_var h = hata_metni(() => TR_fn_backward(TR_fn_sum(şekilsiz(x))))
-    TR_fn_assert(h.TR_mem_contains("geri 1. girdi için [] şeklinde gradyan döndürdü, beklenen [1, 2]"))
-    TR_fn_assert(h.TR_mem_contains("yayınlama yapılmaz"))
+    TR_fn_assert_equal(H6418, TR_fn_error_code(() => TR_fn_backward(TR_fn_sum(şekilsiz(x)))))
+    TR_fn_assert(hata_metni(() => TR_fn_backward(TR_fn_sum(şekilsiz(x)))).TR_mem_contains("[1, 2]"))
     // Liste uzunluğu yanlış.
     TR_kw_var eksik = TR_fn_custom_grad(TR_arg_forward: TR_kw_func(a, b) { TR_kw_return [a + b, []] }, TR_arg_backward: TR_kw_func(k, g) { TR_kw_return [g] })
-    TR_fn_assert(hata_metni(() => TR_fn_backward(TR_fn_sum(eksik(x, x)))).TR_mem_contains("geri 1 öğeli liste döndürdü ama işlemin 2 konumlu girdisi var"))
+    TR_fn_assert_equal(H6415, TR_fn_error_code(() => TR_fn_backward(TR_fn_sum(eksik(x, x)))))
     // Tensör olmayan girdi için gradyan verilemez.
     TR_kw_var sayılı = TR_fn_custom_grad(TR_arg_forward: TR_kw_func(a, n) { TR_kw_return [a * n, []] }, TR_arg_backward: TR_kw_func(k, g) { TR_kw_return [g, g] })
-    TR_fn_assert(hata_metni(() => TR_fn_backward(TR_fn_sum(sayılı(x, 2)))).TR_mem_contains("2. girdi tensör değil (Tam); geri bu girdi için yok döndürmeli"))
+    TR_fn_assert_equal(H6417, TR_fn_error_code(() => TR_fn_backward(TR_fn_sum(sayılı(x, 2)))))
     // Saklanan bir tensör ileri hesaptan sonra yerinde değiştirilirse geri yayılım hata verir.
     TR_kw_var c = TR_fn_tensor([[3.0, 4.0]])
     TR_kw_var ölçekle = TR_fn_custom_grad(TR_arg_forward: TR_kw_func(x, c) { TR_kw_return [x * c, [c]] }, TR_arg_backward: TR_kw_func(k, g) { TR_kw_return [g * k[0], TR_kw_none] })
@@ -151,10 +150,10 @@ TR_ctx_test "15.31 özel_türev: hatalar" {
     TR_kw_var fırlatan = TR_fn_custom_grad(TR_arg_forward: TR_kw_func(x) { TR_kw_return [x, []] }, TR_arg_backward: TR_kw_func(k, g) { TR_kw_throw "geri bozuk" })
     TR_fn_assert(hata_metni(() => TR_fn_backward(TR_fn_sum(fırlatan(x)))).TR_mem_contains("geri bozuk"))
     // Kullanım hataları.
-    TR_fn_assert(hata_metni(() => TR_fn_custom_grad(TR_arg_forward: TR_kw_func(x) { TR_kw_return [x, []] })).TR_mem_contains("geri: eksik"))
-    TR_fn_assert(hata_metni(() => TR_fn_custom_grad(TR_arg_forward: 3, TR_arg_backward: TR_kw_func(k, g) { TR_kw_return [g] })).TR_mem_contains("ileri bir fonksiyon olmalıdır"))
-    TR_fn_assert(hata_metni(() => TR_fn_custom_grad(TR_arg_forward: TR_kw_func(x) { TR_kw_return [x, []] }, TR_arg_backward: TR_kw_func(g) { TR_kw_return [g] })).TR_mem_contains("geri iki parametre almalıdır"))
-    TR_fn_assert(hata_metni(() => TR_fn_custom_grad(TR_arg_forward: TR_kw_func(x) { TR_kw_return [x, []] }, backward: TR_kw_func(k, g) { TR_kw_return [g] })).TR_mem_contains("'backward' adında bir parametre almaz"))
+    TR_fn_assert_equal(H6430, TR_fn_error_code(() => TR_fn_custom_grad(TR_arg_forward: TR_kw_func(x) { TR_kw_return [x, []] })))
+    TR_fn_assert_equal(H6406, TR_fn_error_code(() => TR_fn_custom_grad(TR_arg_forward: 3, TR_arg_backward: TR_kw_func(k, g) { TR_kw_return [g] })))
+    TR_fn_assert_equal(H6408, TR_fn_error_code(() => TR_fn_custom_grad(TR_arg_forward: TR_kw_func(x) { TR_kw_return [x, []] }, TR_arg_backward: TR_kw_func(g) { TR_kw_return [g] })))
+    TR_fn_assert_equal(H7901, TR_fn_error_code(() => TR_fn_custom_grad(TR_arg_forward: TR_kw_func(x) { TR_kw_return [x, []] }, backward: TR_kw_func(k, g) { TR_kw_return [g] })))
 }
 
 TR_ctx_test "15.32 türev_denetle: sayısal gradyanla karşılaştırma" {
@@ -164,9 +163,8 @@ TR_ctx_test "15.32 türev_denetle: sayısal gradyanla karşılaştırma" {
         TR_arg_forward: TR_kw_func(x) { TR_kw_return [x * x, [x]] },
         TR_arg_backward: TR_kw_func(k, g) { TR_kw_return [g * k[0]] }
     )
-    TR_kw_var h = hata_metni(() => TR_fn_grad_check(yanlış_kare, [TR_fn_tensor([[0.3, -1.2]], TR_arg_requires_grad: TR_kw_true)]))
-    TR_fn_assert(h.TR_mem_contains("analitik (geri yayılım) ve sayısal gradyan uyuşmuyor"))
-    TR_fn_assert(h.TR_mem_contains("1. girdinin [0, 1] elemanında"))
+    TR_fn_assert_equal(H6432, TR_fn_error_code(() => TR_fn_grad_check(yanlış_kare, [TR_fn_tensor([[0.3, -1.2]], TR_arg_requires_grad: TR_kw_true)])))
+    TR_fn_assert(hata_metni(() => TR_fn_grad_check(yanlış_kare, [TR_fn_tensor([[0.3, -1.2]], TR_arg_requires_grad: TR_kw_true)])).TR_mem_contains("[0, 1]"))
     // Sıradan TR fonksiyonlarında, çok girdide ve çok çıktıda da çalışır.
     TR_fn_assert(TR_fn_grad_check(TR_kw_func(a, b) { TR_kw_return a * TR_fn_sigmoid(b) }, [TR_fn_tensor([[0.3, -1.2]], TR_arg_requires_grad: TR_kw_true), TR_fn_tensor([[0.5, 2.0]], TR_arg_requires_grad: TR_kw_true)]))
     TR_fn_assert(TR_fn_grad_check((a, b) => [a * b, a + b], [TR_fn_tensor([1.0, 2.0], TR_arg_requires_grad: TR_kw_true), TR_fn_tensor([3.0], TR_arg_requires_grad: TR_kw_true)]))
@@ -176,14 +174,13 @@ TR_ctx_test "15.32 türev_denetle: sayısal gradyanla karşılaştırma" {
     TR_fn_assert_equal(TR_kw_none, w.TR_mem_grad)
     // adım ve tolerans.
     TR_fn_assert(TR_fn_grad_check(kare, [TR_fn_tensor([1.0, 2.0], TR_arg_requires_grad: TR_kw_true)], TR_arg_fd_step: 0.01, TR_arg_tol: 0.001))
-    TR_fn_assert(hata_metni(() => TR_fn_grad_check(kare, [w], TR_arg_fd_step: 0)).TR_mem_contains("fark_adımı pozitif bir sayı olmalıdır"))
+    TR_fn_assert_equal(H6429, TR_fn_error_code(() => TR_fn_grad_check(kare, [w], TR_arg_fd_step: 0)))
     // float32'de etkisiz fark_adımı (x ± adım == x): sahte uyuşmazlık değil, açık hata.
     TR_kw_for etkisiz TR_kw_in [1e-46, 1e-30] {
-        TR_kw_var e = hata_metni(() => TR_fn_grad_check(kare, [TR_fn_tensor([2.0], TR_arg_requires_grad: TR_kw_true)], TR_arg_fd_step: etkisiz))
-        TR_fn_assert(e.TR_mem_contains("float32'de etkisiz") TR_kw_and e.TR_mem_contains("fark_adımı"), e)
+        TR_fn_assert_equal(H6445, TR_fn_error_code(() => TR_fn_grad_check(kare, [TR_fn_tensor([2.0], TR_arg_requires_grad: TR_kw_true)], TR_arg_fd_step: etkisiz)))
     }
-    TR_fn_assert(hata_metni(() => TR_fn_grad_check(kare, [TR_fn_tensor([1.0])])).TR_mem_contains("girdilerden hiçbiri türev izlemiyor"))
-    TR_fn_assert(hata_metni(() => TR_fn_grad_check(kare, [w], step: 0.1)).TR_mem_contains("'step' adında bir parametre almaz"))
+    TR_fn_assert_equal(H6423, TR_fn_error_code(() => TR_fn_grad_check(kare, [TR_fn_tensor([1.0])])))
+    TR_fn_assert_equal(H7901, TR_fn_error_code(() => TR_fn_grad_check(kare, [w], step: 0.1)))
     // karışık_hassasiyet içinde: ileri ve geri bloğun türüyle çalışır, gradyanlar girdilerin türündedir.
     TR_kw_var çarp = TR_fn_custom_grad(
         TR_arg_forward: TR_kw_func(x, m) { TR_kw_return [x @ m, [x, m]] },

@@ -25,9 +25,12 @@ TR_ctx_test "8.2 fırlat her değeri hata metnine çevirir" {
 }
 
 TR_ctx_test "8.3 çalışma zamanı hataları yakalanabilir; mesaj satır bilgisi içerir" {
+    TR_fn_assert_equal(H2469, TR_fn_error_code(() => { TR_kw_var z = [1] + 1 }))
+    // Satır bilgisi iletinin başındadır ("Satır 28: ..."): sözcük dosyanın dilindedir, numara değil.
     TR_kw_var mesaj = ""
     TR_kw_try { TR_kw_var z = [1] + 1 } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_starts_with("Satır "), mesaj)
+    TR_kw_var önek = mesaj.TR_mem_split(":")[0]
+    TR_fn_assert("0123456789".TR_mem_contains(önek[önek.TR_mem_length - 1]), mesaj)
 }
 
 TR_ctx_test "8.3 hata fonksiyon çağrılarından yukarı yayılır" {
@@ -92,9 +95,11 @@ TR_ctx_test "9.4 ertele içindeki hata yutulmaz" {
         TR_kw_throw "gövde hatası"
     }
     TR_kw_try { iki_hata() } TR_kw_catch h { m = h }
-    TR_fn_assert(m.TR_mem_starts_with("gövde hatası; ertele içinde de hata: "), m)
-    TR_fn_assert(m.TR_mem_contains("Sıfıra bölme hatası"), m)
-    TR_fn_assert(m.TR_mem_contains("ilk ertele"), m)
+    // Parçalar sırayla: gövdenin hatası, sıfıra bölme, ilk ertelenen işin hatası.
+    TR_kw_var parçalar = m.TR_mem_split("; ")
+    TR_fn_assert_equal(3, parçalar.TR_mem_length, m)
+    TR_fn_assert_equal("gövde hatası", parçalar[0])
+    TR_fn_assert(parçalar[2].TR_mem_ends_with("ilk ertele"), m)
     // Ertelenen işler hata verse de hepsi çalışır
     TR_kw_func temizlik() {
         TR_kw_defer iz.TR_mem_append("ikinci temizlik")

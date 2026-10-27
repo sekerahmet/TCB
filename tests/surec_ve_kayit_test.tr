@@ -22,8 +22,8 @@ TR_ctx_test "19.1 ortam_değişkeni değeri Metin olarak, tanımsızsa yok verir
     TR_fn_assert_equal(TR_kw_none, TR_fn_env("TR_BOYLE_BIR_DEGISKEN_YOK_19"))
     TR_fn_assert_equal("varsayılan", TR_fn_env("TR_BOYLE_BIR_DEGISKEN_YOK_19") ?? "varsayılan")
     TR_fn_assert_equal(TR_type_String, TR_fn_type(TR_fn_env("PATH")))
-    TR_fn_assert(hata_metni(() => TR_fn_env(5)).TR_mem_contains("1. argüman olarak Metin bekler"))
-    TR_fn_assert(hata_metni(() => TR_fn_env("")).TR_mem_contains("geçerli bir ortam değişkeni adı değil"))
+    TR_fn_assert_equal(H2423, TR_fn_error_code(() => TR_fn_env(5)))
+    TR_fn_assert_equal(H7231, TR_fn_error_code(() => TR_fn_env("")))
 }
 
 TR_ctx_test "19.2 komut_satırı argümansızken varsayılanları yeni bir sözlükte verir" {
@@ -37,17 +37,17 @@ TR_ctx_test "19.2 komut_satırı argümansızken varsayılanları yeni bir sözl
 }
 
 TR_ctx_test "19.2 komut_satırı programda bir kez çağrılır" {
-    TR_fn_assert(hata_metni(() => TR_fn_command_line({TR_mem_step: 1})).TR_mem_contains("programda bir kez çağrılır"))
+    TR_fn_assert_equal(H7218, TR_fn_error_code(() => TR_fn_command_line({TR_mem_step: 1})))
 }
 
 TR_ctx_test "19.3 seçenek tipleri ve adları kurulumda denetlenir" {
-    TR_fn_assert(hata_metni(() => TR_fn_command_line({TR_mem_length: 3})).TR_mem_contains("\"uzunluk\" seçenek adı olamaz: Sözlük tipinin bir üyesidir"))
-    TR_fn_assert(hata_metni(() => TR_fn_command_line({TR_mem_contains: "x"})).TR_mem_contains("seçenek adı olamaz"))
-    TR_fn_assert(hata_metni(() => TR_fn_command_line({yardım: TR_kw_true})).TR_mem_contains("--yardım ve -h seçenekleri listeler"))
-    TR_fn_assert(hata_metni(() => TR_fn_command_line({a: {b: 1}})).TR_mem_contains("'a' seçeneğinin varsayılanı"))
-    TR_fn_assert(hata_metni(() => TR_fn_command_line({a: [1, "x"]})).TR_mem_contains("öğeler aynı tipte olmalı"))
-    TR_fn_assert(hata_metni(() => TR_fn_command_line({TR_mem_step: 1}, TR_arg_descriptions: {adim: "x"})).TR_mem_contains("Bunu mu demek istediniz: 'adım'?"))
-    TR_fn_assert(hata_metni(() => TR_fn_command_line({a: 1}, açklama: "x")).TR_mem_contains("Bunu mu demek istediniz: 'açıklama'?"))
+    TR_fn_assert_equal(H7222, TR_fn_error_code(() => TR_fn_command_line({TR_mem_length: 3})))
+    TR_fn_assert_equal(H7222, TR_fn_error_code(() => TR_fn_command_line({TR_mem_contains: "x"})))
+    TR_fn_assert_equal(H7221, TR_fn_error_code(() => TR_fn_command_line({yardım: TR_kw_true})))
+    TR_fn_assert_equal(H7225, TR_fn_error_code(() => TR_fn_command_line({a: {b: 1}})))
+    TR_fn_assert_equal(H7224, TR_fn_error_code(() => TR_fn_command_line({a: [1, "x"]})))
+    TR_fn_assert_equal(H7229, TR_fn_error_code(() => TR_fn_command_line({TR_mem_step: 1}, TR_arg_descriptions: {adim: "x"})))
+    TR_fn_assert_equal(H7900, TR_fn_error_code(() => TR_fn_command_line({a: 1}, açklama: "x")))
 }
 
 TR_ctx_test "19.4 gizli adlı seçeneğin değeri insanın göreceği çıktıda maskelenir, veride değişmez" {
@@ -86,44 +86,44 @@ TR_ctx_test "19.5 günlük .jsonl dosyasına başlangıç kaydı ve kayıtlar ek
 }
 
 TR_ctx_test "19.6 günlük hataları" {
-    TR_fn_assert(hata_metni(() => TR_fn_logger("{KOŞU}/a.csv")).TR_mem_contains("uzantılı olmalı"))
+    TR_fn_assert_equal(H7319, TR_fn_error_code(() => TR_fn_logger("{KOŞU}/a.csv")))
     TR_kw_var g = TR_fn_logger("{KOŞU}/h.jsonl")
-    TR_fn_assert(hata_metni(() => g.TR_mem_append({"kind": "x"})).TR_mem_contains("'kind' adı günlük biçimine ayrılmış"))
-    TR_fn_assert(hata_metni(() => g.TR_mem_append({f: TR_fn_print})).TR_mem_contains("ölçüsünün değeri"))
-    TR_fn_assert(hata_metni(() => g.TR_mem_append(5)).TR_mem_contains("Sözlük ya da Metin bekler"))
-    TR_fn_assert(hata_metni(() => g.eklee({})).TR_mem_contains("Bunu mu demek istediniz: 'ekle'?"))
+    TR_fn_assert_equal(H7321, TR_fn_error_code(() => g.TR_mem_append({"kind": "x"})))
+    TR_fn_assert_equal(H7300, TR_fn_error_code(() => g.TR_mem_append({f: TR_fn_print})))
+    TR_fn_assert_equal(H2423, TR_fn_error_code(() => g.TR_mem_append(5)))
+    TR_fn_assert_equal(H7903, TR_fn_error_code(() => g.eklee({})))
 }
 
 TR_ctx_test "19.7 ilerleme adım sayar, toplama ulaşınca biter" {
     TR_kw_var ç = TR_fn_progress(3)
     TR_fn_assert_equal(TR_type_Progress, TR_fn_type(ç))
     TR_fn_assert_equal(TR_kw_true, ç.TR_mem_update({TR_mem_loss: 0.5}))
-    TR_fn_assert_equal("İlerleme(adım 1/3)", TR_fn_str(ç))
+    TR_fn_assert(TR_fn_str(ç).TR_mem_contains(" 1/3)"), TR_fn_str(ç))
     ç.TR_mem_update()
     ç.TR_mem_update()
-    TR_fn_assert_equal("İlerleme(adım 3/3, bitti)", TR_fn_str(ç))
-    TR_fn_assert(hata_metni(() => ç.TR_mem_update()).TR_mem_contains("çubuk bitti (adım 3/3)"))
+    TR_fn_assert(TR_fn_str(ç).TR_mem_contains(" 3/3, "), TR_fn_str(ç))
+    TR_fn_assert_equal(H7316, TR_fn_error_code(() => ç.TR_mem_update()))
     TR_fn_assert_equal(TR_kw_false, ç.TR_mem_stop())
     // adım: kaldığı yerden sürdürür; toplamsız sayaç; elle durdurma
     TR_kw_var d = TR_fn_progress(1000)
     d.TR_mem_update(TR_arg_step: 500)
     d.TR_mem_update()
-    TR_fn_assert_equal("İlerleme(adım 501/1000)", TR_fn_str(d))
+    TR_fn_assert(TR_fn_str(d).TR_mem_contains(" 501/1000)"), TR_fn_str(d))
     TR_fn_assert_equal(TR_kw_true, d.TR_mem_stop())
     TR_kw_var s = TR_fn_progress()
     s.TR_mem_update()
-    TR_fn_assert_equal("İlerleme(adım 1)", TR_fn_str(s))
+    TR_fn_assert(TR_fn_str(s).TR_mem_ends_with(" 1)"), TR_fn_str(s))
     s.TR_mem_stop()
 }
 
 TR_ctx_test "19.8 ilerleme hataları" {
-    TR_fn_assert(hata_metni(() => TR_fn_progress(0)).TR_mem_contains("pozitif olmalı"))
-    TR_fn_assert(hata_metni(() => TR_fn_progress("çok")).TR_mem_contains("Tam ya da Yok bekler"))
-    TR_fn_assert(hata_metni(() => TR_fn_progress(5, TR_arg_log: "a.jsonl")).TR_mem_contains("bir Günlük olmalı"))
+    TR_fn_assert_equal(H7313, TR_fn_error_code(() => TR_fn_progress(0)))
+    TR_fn_assert_equal(H2423, TR_fn_error_code(() => TR_fn_progress("çok")))
+    TR_fn_assert_equal(H7314, TR_fn_error_code(() => TR_fn_progress(5, TR_arg_log: "a.jsonl")))
     TR_kw_var ç = TR_fn_progress(5)
-    TR_fn_assert(hata_metni(() => ç.TR_mem_update(TR_arg_step: 9)).TR_mem_contains("toplam adım sayısından (5) büyük olamaz"))
-    TR_fn_assert(hata_metni(() => ç.TR_mem_update({TR_mem_step: 1})).TR_mem_contains("'adım' adı günlük biçimine ayrılmış"))
-    TR_fn_assert(hata_metni(() => ç.TR_mem_update(adim: 1)).TR_mem_contains("Bunu mu demek istediniz: 'adım'?"))
+    TR_fn_assert_equal(H7317, TR_fn_error_code(() => ç.TR_mem_update(TR_arg_step: 9)))
+    TR_fn_assert_equal(H7321, TR_fn_error_code(() => ç.TR_mem_update({TR_mem_step: 1})))
+    TR_fn_assert_equal(H7900, TR_fn_error_code(() => ç.TR_mem_update(adim: 1)))
     ç.TR_mem_stop()
 }
 

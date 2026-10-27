@@ -39,7 +39,7 @@ TR_ctx_test "20.1 kontrol_noktası yeni bir koşuda boş başlar; klasör ilk ka
     TR_fn_assert_equal(TR_type_Checkpoint, TR_fn_type(kn))
     TR_fn_assert_equal(0, kn.TR_mem_resume_step)
     TR_fn_assert_equal(TR_kw_false, k.TR_mem_exists)
-    TR_fn_assert(TR_fn_str(kn).TR_mem_contains("checkpoints, adım 0, 1 nesne"), TR_fn_str(kn))
+    TR_fn_assert(TR_fn_str(kn).TR_mem_contains("checkpoints, ") TR_kw_and TR_fn_str(kn).TR_mem_contains(" 0, 1 "), TR_fn_str(kn))
     TR_kw_var kn2 = TR_fn_checkpoint(TR_fn_str(k), {w: w}, TR_arg_every_minutes: 0.5, TR_arg_keep: 3)
     TR_fn_assert_equal(0, kn2.TR_mem_resume_step)
 }
@@ -47,15 +47,15 @@ TR_ctx_test "20.1 kontrol_noktası yeni bir koşuda boş başlar; klasör ilk ka
 TR_ctx_test "20.1 kurulum hataları" {
     TR_kw_defer { temizle() }
     TR_kw_var w = param([2], 1)
-    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(koşu("h"))).TR_mem_contains("2 argüman"))
-    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(5, {w: w})).TR_mem_contains("Metin ya da Yol"))
-    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(koşu("h"), [w])).TR_mem_contains("Sözlük"))
-    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(koşu("h"), {w: w}, her_dakka: 1)).TR_mem_contains("Bunu mu demek istediniz: 'her_dakika'?"))
-    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(koşu("h"), {w: w}, TR_arg_every_minutes: -1)).TR_mem_contains("0 ile"))
-    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(koşu("h"), {w: w}, TR_arg_keep: 0)).TR_mem_contains("1 ile 1000 arasında"))
+    TR_fn_assert_equal(H2011, TR_fn_error_code(() => TR_fn_checkpoint(koşu("h"))))
+    TR_fn_assert_equal(H2423, TR_fn_error_code(() => TR_fn_checkpoint(5, {w: w})))
+    TR_fn_assert_equal(H2423, TR_fn_error_code(() => TR_fn_checkpoint(koşu("h"), [w])))
+    TR_fn_assert_equal(H7900, TR_fn_error_code(() => TR_fn_checkpoint(koşu("h"), {w: w}, her_dakka: 1)))
+    TR_fn_assert_equal(H7408, TR_fn_error_code(() => TR_fn_checkpoint(koşu("h"), {w: w}, TR_arg_every_minutes: -1)))
+    TR_fn_assert_equal(H7409, TR_fn_error_code(() => TR_fn_checkpoint(koşu("h"), {w: w}, TR_arg_keep: 0)))
     TR_fn_make_dir(TABAN)
     TR_fn_write_file(TR_fn_path(TABAN, "dosya"), "x")
-    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(TR_fn_path(TABAN, "dosya"), {w: w})).TR_mem_contains("bir dosya; koşu klasörü olmalı"))
+    TR_fn_assert_equal(H7407, TR_fn_error_code(() => TR_fn_checkpoint(TR_fn_path(TABAN, "dosya"), {w: w})))
 }
 
 TR_ctx_test "20.2 kaydedilebilen nesneler ve hatalar" {
@@ -67,13 +67,13 @@ TR_ctx_test "20.2 kaydedilebilen nesneler ve hatalar" {
     TR_kw_var kn = TR_fn_checkpoint(koşu("nesneler"), {model: {katman: [w]}, op: op, ö: ö, g: g, sayaçlar: {TR_mem_step: 0}, liste: [1, 2.5, "a", TR_kw_none]})
     TR_fn_assert_equal(0, kn.TR_mem_resume_step)
     TR_kw_var k = koşu("nesneler_h")
-    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {})).TR_mem_contains("1 ile 1000 arası nesne"))
-    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {en_iyi: 99.0})).TR_mem_contains("düz bir değer doğrudan verilemez"))
-    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {t: w * 2})).TR_mem_contains("ara tensör"))
-    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {f: (x) => x})).TR_mem_contains("kaydedilemez"))
+    TR_fn_assert_equal(H7435, TR_fn_error_code(() => TR_fn_checkpoint(k, {})))
+    TR_fn_assert_equal(H7436, TR_fn_error_code(() => TR_fn_checkpoint(k, {en_iyi: 99.0})))
+    TR_fn_assert_equal(H7437, TR_fn_error_code(() => TR_fn_checkpoint(k, {t: w * 2})))
+    TR_fn_assert_equal(H7438, TR_fn_error_code(() => TR_fn_checkpoint(k, {f: (x) => x})))
     TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {izlenen: {sayı: 1, f: (x) => x}})).TR_mem_contains("izlenen"))
     TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {"a/b": w})).TR_mem_contains("'/' ya da denetim karakteri içeremez"))
-    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {1: w})).TR_mem_contains("nesne adları (Metin)"))
+    TR_fn_assert_equal(H7434, TR_fn_error_code(() => TR_fn_checkpoint(k, {1: w})))
 }
 
 TR_ctx_test "20.2 türev izlemeyen tensörler (durum) de saklanır ve yerinde geri yazılır" {
@@ -97,7 +97,7 @@ TR_ctx_test "20.2 türev izlemeyen tensörler (durum) de saklanır ve yerinde ge
     TR_fn_assert_equal(0, TR_fn_parameters(durum2).TR_mem_length)
     TR_fn_assert_equal(1, TR_fn_parameters(model2).TR_mem_length)
     // Kayıtta olan bir durum tensörü eksikse açık hata.
-    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {model: model2, opt: {m: m2}})).TR_mem_contains("\"sayaç\" tensörü modelde yok"))
+    TR_fn_assert_equal(H7452, TR_fn_error_code(() => TR_fn_checkpoint(k, {model: model2, opt: {m: m2}})))
 }
 
 TR_ctx_test "20.3 güncelle tamamlanan adımı bildirir; her_dakika dolunca kaydeder" {
@@ -109,9 +109,9 @@ TR_ctx_test "20.3 güncelle tamamlanan adımı bildirir; her_dakika dolunca kayd
     TR_fn_assert_equal(TR_kw_true, TR_fn_path(k, "checkpoints", "step_0000000001").TR_mem_is_dir)
     TR_kw_var kn2 = TR_fn_checkpoint(koşu("güncelle2"), {w: w})
     TR_fn_assert_equal(TR_kw_false, kn2.TR_mem_update(1))
-    TR_fn_assert(hata_metni(() => kn2.TR_mem_update(-1)).TR_mem_contains("0 ya da pozitif bir Tam"))
-    TR_fn_assert(hata_metni(() => kn2.TR_mem_update(1.5)).TR_mem_contains("0 ya da pozitif bir Tam"))
-    TR_fn_assert(hata_metni(() => kn2.TR_mem_update()).TR_mem_contains("1 argüman"))
+    TR_fn_assert_equal(H7411, TR_fn_error_code(() => kn2.TR_mem_update(-1)))
+    TR_fn_assert_equal(H7411, TR_fn_error_code(() => kn2.TR_mem_update(1.5)))
+    TR_fn_assert_equal(H2011, TR_fn_error_code(() => kn2.TR_mem_update()))
 }
 
 TR_ctx_test "20.4 kaydet hemen kaydeder ve noktanın klasörünü verir" {
@@ -127,7 +127,7 @@ TR_ctx_test "20.4 kaydet hemen kaydeder ve noktanın klasörünü verir" {
     // Aynı adımın noktası yeniden kaydedilince yenisi yerine konur.
     TR_fn_assert_equal("step_0000001500", kn.TR_mem_save().TR_mem_name)
     TR_fn_assert_equal(["step_0000000000", "step_0000001500"], TR_fn_list_dir(TR_fn_path(k, "checkpoints"), "step_*").TR_mem_map { TR_ctx_it.TR_mem_name })
-    TR_fn_assert(hata_metni(() => kn.TR_mem_save(1)).TR_mem_contains("0 argüman"))
+    TR_fn_assert_equal(H2012, TR_fn_error_code(() => kn.TR_mem_save(1)))
 }
 
 TR_ctx_test "20.5 nokta klasörü tensör dosyası, durum ve özet içerir; latest.json en son noktayı gösterir" {
@@ -219,13 +219,13 @@ TR_ctx_test "20.7 uyumsuz nesneler hata verir ve hiçbir şeyi değiştirmez" {
     kn.TR_mem_save()
     TR_kw_var yeni = param([2], 9)
     TR_kw_var önce = yeni.TR_mem_tolist
-    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {w: yeni, op: TR_fn_AdamW([yeni])})).TR_mem_contains("kayıttaki \"ö\" (durumlu) verilmedi"))
-    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {w: yeni, op: TR_fn_AdamW([yeni]), ö: ö, x: {a: 1}})).TR_mem_contains("\"x\" kayıtta yok"))
-    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {w: param([3], 1), op: TR_fn_AdamW([yeni]), ö: ö})).TR_mem_contains("şekli modelde [3], kayıtta [2]"))
-    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {w: yeni, op: TR_fn_SGD([yeni]), ö: ö})).TR_mem_contains("1 parametreli bir AdamW, şimdi 1 parametreli bir SGD"))
+    TR_fn_assert_equal(H7479, TR_fn_error_code(() => TR_fn_checkpoint(k, {w: yeni, op: TR_fn_AdamW([yeni])})))
+    TR_fn_assert_equal(H7478, TR_fn_error_code(() => TR_fn_checkpoint(k, {w: yeni, op: TR_fn_AdamW([yeni]), ö: ö, x: {a: 1}})))
+    TR_fn_assert_equal(H7450, TR_fn_error_code(() => TR_fn_checkpoint(k, {w: param([3], 1), op: TR_fn_AdamW([yeni]), ö: ö})))
+    TR_fn_assert_equal(H7442, TR_fn_error_code(() => TR_fn_checkpoint(k, {w: yeni, op: TR_fn_SGD([yeni]), ö: ö})))
     TR_kw_var ö2 = TR_fn_dataset("data/text").TR_mem_sampler(TR_arg_batch_size: 3, TR_arg_context: 4, TR_arg_seed: 1)
     TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {w: yeni, op: TR_fn_AdamW([yeni]), ö: ö2})).TR_mem_contains("toplu değeri 2, bu okuyucununki 3"))
-    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {w: yeni, op: TR_fn_AdamW([yeni]), ö: {a: 1}})).TR_mem_contains("kayıtta durumlu bir değer, şimdi düz bir değer"))
+    TR_fn_assert_equal(H7440, TR_fn_error_code(() => TR_fn_checkpoint(k, {w: yeni, op: TR_fn_AdamW([yeni]), ö: {a: 1}})))
     TR_fn_assert_equal(önce, yeni.TR_mem_tolist)
     TR_kw_var kn2 = TR_fn_checkpoint(k, {w: yeni, op: TR_fn_AdamW([yeni]), ö: ö})
     TR_fn_assert_equal(5, kn2.TR_mem_resume_step)
@@ -255,12 +255,14 @@ TR_ctx_test "20.9 bozuk nokta açık hata verir ve bir önceki geçerli noktayı
     TR_kw_var n = kn.TR_mem_save()
     TR_kw_var d = TR_fn_path(n, "state.json")
     TR_fn_write_file(d, TR_fn_read_file(d).TR_mem_replace("\"workers\"", "\"workers\" "))
+    TR_fn_assert_equal(H7472, TR_fn_error_code(() => TR_fn_checkpoint(k, {w: w})))
+    // İleti bozuk noktayı ve bir önceki geçerli noktayı adıyla söyler.
     TR_kw_var m = hata_metni(() => TR_fn_checkpoint(k, {w: w}))
-    TR_fn_assert(m.TR_mem_contains("step_0000000002\" bozuk: state.json özeti tutmuyor"), m)
-    TR_fn_assert(m.TR_mem_contains("Bir önceki geçerli nokta: step_0000000001 (adım 1)"), m)
+    TR_fn_assert(m.TR_mem_contains("step_0000000002") TR_kw_and m.TR_mem_contains("step_0000000001"), m)
     TR_fn_remove(TR_fn_path(k, "checkpoints", "step_0000000001"), TR_arg_recursive: TR_kw_true)
+    TR_fn_assert_equal(H7472, TR_fn_error_code(() => TR_fn_checkpoint(k, {w: w})))
     m = hata_metni(() => TR_fn_checkpoint(k, {w: w}))
-    TR_fn_assert(m.TR_mem_contains("Başka geçerli nokta yok"), m)
+    TR_fn_assert(m.TR_mem_contains("step_0000000002") TR_kw_and TR_kw_not m.TR_mem_contains("step_0000000001"), m)
     TR_fn_remove(n, TR_arg_recursive: TR_kw_true)
     TR_fn_assert_equal(0, TR_fn_checkpoint(k, {w: w}).TR_mem_resume_step)
     // Yarıda kalmış bir kaydın geçici klasörü sessizce temizlenir.
@@ -279,9 +281,7 @@ TR_ctx_test "20.10 aralıklı kayıtta yazma hatası eğitimi durdurmaz; art ard
     TR_fn_write_file(TR_fn_path(k, "checkpoints"), "engel")
     TR_fn_assert_equal(TR_kw_false, kn.TR_mem_update(1))
     TR_fn_assert_equal(TR_kw_false, kn.TR_mem_update(2))
-    TR_kw_var m = hata_metni(() => kn.TR_mem_update(3))
-    TR_fn_assert(m.TR_mem_contains("art arda 3 kez kaydedilemedi, eğitim durduruldu"), m)
-    TR_fn_assert(m.TR_mem_contains("Henüz geçerli bir kontrol noktası yok"), m)
+    TR_fn_assert_equal(H7412, TR_fn_error_code(() => kn.TR_mem_update(3)))
     TR_fn_assert(hata_metni(() => kn.TR_mem_save()).TR_mem_contains("kaydedilemedi"))
 }
 
@@ -299,11 +299,11 @@ TR_ctx_test "20.11 parametreleri_yükle var olan parametrelere yerinde yazar" {
     TR_fn_backward(TR_fn_sum(model.katman.b))
     op.TR_mem_step()
     TR_fn_assert_equal([0.4, 0.4, 0.4], model.katman.b.TR_mem_tolist.TR_mem_map { TR_fn_round(TR_ctx_it, 4) })
-    TR_fn_assert(hata_metni(() => TR_fn_load_parameters(model, {"katman.w": TR_fn_tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])})).TR_mem_contains("\"katman.b\" parametresi sözlükte yok"))
-    TR_fn_assert(hata_metni(() => TR_fn_load_parameters(model, {"katman.w": TR_fn_tensor([1.0]), "katman.b": TR_fn_tensor([1.0, 1.0, 1.0])})).TR_mem_contains("şekli modelde [2, 3], sözlükte [1]"))
-    TR_fn_assert(hata_metni(() => TR_fn_load_parameters(model, {"katman.w": TR_fn_tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]), "katman.b": TR_fn_tensor([1.0, 1.0, 1.0]), "katman.c": TR_fn_tensor([1.0])})).TR_mem_contains("ilki \"katman.c\" modelde bir parametre değil"))
-    TR_fn_assert(hata_metni(() => TR_fn_load_parameters({a: 1}, {})).TR_mem_contains("modelde türev izleyen parametre yok"))
-    TR_fn_assert(hata_metni(() => TR_fn_load_parameters(model, [1])).TR_mem_contains("Sözlük"))
+    TR_fn_assert_equal(H6508, TR_fn_error_code(() => TR_fn_load_parameters(model, {"katman.w": TR_fn_tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])})))
+    TR_fn_assert_equal(H6511, TR_fn_error_code(() => TR_fn_load_parameters(model, {"katman.w": TR_fn_tensor([1.0]), "katman.b": TR_fn_tensor([1.0, 1.0, 1.0])})))
+    TR_fn_assert_equal(H6532, TR_fn_error_code(() => TR_fn_load_parameters(model, {"katman.w": TR_fn_tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]), "katman.b": TR_fn_tensor([1.0, 1.0, 1.0]), "katman.c": TR_fn_tensor([1.0])})))
+    TR_fn_assert_equal(H6520, TR_fn_error_code(() => TR_fn_load_parameters({a: 1}, {})))
+    TR_fn_assert_equal(H2423, TR_fn_error_code(() => TR_fn_load_parameters(model, [1])))
 }
 
 TR_ctx_test "20.12 iyileştiricinin durumu alınıp aynı parametrelerle kurulmuş iyileştiriciye yüklenir" {
@@ -323,9 +323,9 @@ TR_ctx_test "20.12 iyileştiricinin durumu alınıp aynı parametrelerle kurulmu
     TR_fn_backward(TR_fn_sum(w2 * w2))
     yeni.TR_mem_step()
     TR_fn_assert_equal(w.TR_mem_tolist, w2.TR_mem_tolist)
-    TR_fn_assert(hata_metni(() => yeni.TR_mem_load_state({"m.0": TR_fn_tensor([1.0])})).TR_mem_contains("\"m.0\" girdisinin şekli [1], beklenen [3]"))
-    TR_fn_assert(hata_metni(() => TR_fn_SGD([w]).TR_mem_load_state(op.TR_mem_state)).TR_mem_contains("bu iyileştiricinin (SGD, 1 parametre) durum anahtarı değil"))
-    TR_fn_assert(hata_metni(() => yeni.TR_mem_load_state({"m.0": 1})).TR_mem_contains("anahtarları Metin, değerleri Tensör"))
+    TR_fn_assert_equal(H6518, TR_fn_error_code(() => yeni.TR_mem_load_state({"m.0": TR_fn_tensor([1.0])})))
+    TR_fn_assert_equal(H6516, TR_fn_error_code(() => TR_fn_SGD([w]).TR_mem_load_state(op.TR_mem_state)))
+    TR_fn_assert_equal(H6501, TR_fn_error_code(() => yeni.TR_mem_load_state({"m.0": 1})))
     TR_fn_assert_equal(TR_type_Dict, TR_fn_type(TR_fn_SGD([w]).TR_mem_state))
 }
 
@@ -341,8 +341,8 @@ TR_ctx_test "20.13 okuyucunun durumu alınıp aynı ayarla kurulmuş okuyucuya y
     TR_kw_var yeni = küme.TR_mem_sampler(TR_arg_batch_size: 2, TR_arg_context: 4, TR_arg_seed: 7)
     TR_fn_assert_equal(TR_kw_true, yeni.TR_mem_load_state(d))
     TR_fn_assert_equal(beklenen, yeni.TR_mem_next()[0].TR_mem_tolist)
-    TR_fn_assert(hata_metni(() => küme.TR_mem_sampler(TR_arg_batch_size: 2, TR_arg_context: 4, TR_arg_seed: 8).TR_mem_load_state(d)).TR_mem_contains("tohum değeri 7, bu okuyucununki 8"))
-    TR_fn_assert(hata_metni(() => küme.TR_mem_sequential(TR_arg_batch_size: 2, TR_arg_context: 4).TR_mem_load_state(d)).TR_mem_contains("kayıt bir örnekleyici okuyucusunun durumu, bu okuyucu sıralı"))
+    TR_fn_assert_equal(H5544, TR_fn_error_code(() => küme.TR_mem_sampler(TR_arg_batch_size: 2, TR_arg_context: 4, TR_arg_seed: 8).TR_mem_load_state(d)))
+    TR_fn_assert_equal(H5538, TR_fn_error_code(() => küme.TR_mem_sequential(TR_arg_batch_size: 2, TR_arg_context: 4).TR_mem_load_state(d)))
     TR_kw_var s = küme.TR_mem_sequential(TR_arg_batch_size: 2, TR_arg_context: 4)
     s.TR_mem_next()
     TR_kw_var sd = s.TR_mem_state
@@ -351,7 +351,7 @@ TR_ctx_test "20.13 okuyucunun durumu alınıp aynı ayarla kurulmuş okuyucuya y
     TR_kw_var s2 = küme.TR_mem_sequential(TR_arg_batch_size: 2, TR_arg_context: 4)
     s2.TR_mem_load_state(sd)
     TR_fn_assert_equal(sb, s2.TR_mem_next()[0].TR_mem_tolist)
-    TR_fn_assert(hata_metni(() => s2.TR_mem_load_state({"kind": "sequential"})).TR_mem_contains("durumda \"batch\" alanı yok"))
+    TR_fn_assert_equal(H5541, TR_fn_error_code(() => s2.TR_mem_load_state({"kind": "sequential"})))
 }
 
 TR_ctx_test "20.14 geri_dön en yeni noktayı yerinde yükler ve adımını verir; nokta yoksa hatadır" {
@@ -360,7 +360,7 @@ TR_ctx_test "20.14 geri_dön en yeni noktayı yerinde yükler ve adımını veri
     TR_kw_var op = TR_fn_AdamW([w], TR_arg_lr: 0.1)
     TR_kw_var izlenen = {sayaç: 0}
     TR_kw_var kn = TR_fn_checkpoint(koşu("geri"), {w: w, op: op, izlenen: izlenen})
-    TR_fn_assert(hata_metni(() => kn.TR_mem_rollback()).TR_mem_contains("dönülecek bir kontrol noktası yok"))
+    TR_fn_assert_equal(H7486, TR_fn_error_code(() => kn.TR_mem_rollback()))
     TR_fn_backward(TR_fn_sum(w * w))
     op.TR_mem_step()
     op.TR_mem_zero_grad()
@@ -379,7 +379,7 @@ TR_ctx_test "20.14 geri_dön en yeni noktayı yerinde yükler ve adımını veri
     TR_fn_assert_equal(kayıtlı_durum, op.TR_mem_state["m.0"].TR_mem_tolist)
     TR_fn_assert_equal(1, izlenen.sayaç)
     TR_fn_assert_equal(0, kn.TR_mem_resume_step)
-    TR_fn_assert(hata_metni(() => kn.TR_mem_rollback(1)).TR_mem_contains("0 argüman"))
+    TR_fn_assert_equal(H2012, TR_fn_error_code(() => kn.TR_mem_rollback(1)))
 }
 
 TR_ctx_test "20.15 atla sıradaki toplu işleri tensör kurmadan atlar" {
@@ -392,7 +392,7 @@ TR_ctx_test "20.15 atla sıradaki toplu işleri tensör kurmadan atlar" {
     TR_fn_assert_equal(3, b.TR_mem_skip(3))
     TR_fn_assert_equal(3, b.TR_mem_state["counter"])
     TR_fn_assert_equal(beklenen, b.TR_mem_next()[0].TR_mem_tolist)
-    TR_fn_assert(hata_metni(() => b.TR_mem_skip(-1)).TR_mem_contains("negatif olamaz"))
+    TR_fn_assert_equal(H5545, TR_fn_error_code(() => b.TR_mem_skip(-1)))
 }
 
 TR_ctx_test "20.2 düz değerler iç içe yerinde yenilenir; iç kaplara tutulan bağlar kopmaz" {
