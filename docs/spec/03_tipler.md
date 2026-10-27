@@ -16,8 +16,8 @@ TR statik tiplidir (1.2): her değerin tipi çalışmadan önce bilinir. Tip den
 - *Test:* TR testi.
 
 ```tr
-//! TR 4
-TR_print("şeker".TR_length, "şeker"[-1], "şeker"[1..3])   // 5 r ek
+# TR 4
+TR_print("şeker".TR_length, "şeker"[-1], "şeker"[1..3])   # 5 r ek
 ```
 
 **3.3a** `TR_Bytes`: değiştirilemez bayt dizisi (dosya, ağ, görüntü, ses verisi). `b[i]` 0–255 arası `TR_Int`, `b[a..c]` `TR_Bytes` verir; indeks ve dilim 3.3'teki gibidir. `TR_Bytes("ab")` metnin UTF-8 baytlarını, `TR_Bytes([0, 255])` sayıları verir; 0–255 dışı sayı hatadır. `TR_String(b)` UTF-8 okur; geçersiz UTF-8 hatadır. Metin ile bayt kendiliğinden dönüşmez.
@@ -30,11 +30,11 @@ TR_print("şeker".TR_length, "şeker"[-1], "şeker"[1..3])   // 5 r ek
 - *Test:* TR testi; isteğe bağlı tip uygulanınca denetleyicinin testi.
 
 ```tr
-//! TR 4
+# TR 4
 TR_var l: TR_List[TR_Int] = [10, 20, 30]
 TR_var x: TR_Int? = l.TR_get(5)
-TR_print(x ?? 0)                 // çıktı: 0
-TR_if x != TR_none { TR_print(x + 1) }   // bu dalda x bir TR_Int
+TR_print(x ?? 0)                 # çıktı: 0
+TR_if x != TR_none { TR_print(x + 1) }   # bu dalda x bir TR_Int
 ```
 
 **3.6** `TR_List[T]`: tek tipli, sıralı, değiştirilebilir dizi; `[1, 2, 3]` bir `TR_List[TR_Int]`dir, boş liste tipini yazar (`TR_var l: TR_List[TR_Int] = []`). Negatif indeks sondan sayar; sınır dışı okuma ve yazma çalışma hatasıdır, ileti indeksi ve uzunluğu söyler; `.TR_get(i)` `T?` verir. Dilim 3.3'teki gibidir. Liste, sözlük ve yapı nesnesi başvuruyla paylaşılır: `b = a`'dan sonra ikisi aynı listedir.
@@ -62,24 +62,24 @@ TR_if x != TR_none { TR_print(x + 1) }   // bu dalda x bir TR_Int
 - *Test:* TR testi.
 
 ```tr
-//! TR 4
-TR_print(TR_Int("42") + 1, TR_Int(3.9), TR_Int(-3.9), TR_String(12) + "a")   // 43 3 -3 12a
+# TR 4
+TR_print(TR_Int("42") + 1, TR_Int(3.9), TR_Int(-3.9), TR_String(12) + "a")   # 43 3 -3 12a
 ```
 
 **3.13** Tip denetimi çalışmadan önce bütün programa iner (1.3): her ifadenin, atama hedefinin, varsayılanın, alanın ve metot gövdesinin tipi bilinir. Fonksiyon parametrelerinin ve dönüşünün tipini yazar (1.2); yerel değişkenin tipi ilk değerinden çıkar ve değişmez, açıklaması isteğe bağlıdır (`n: TR_Int`). Tam sayı yazımı (2.4) `TR_Float` beklenen yerde ondalıktır (`r: TR_Float = 1` → 1.0); `TR_Int` tipli bir değer `TR_Float` yerine verilmez. Tip uyuşmazlığı denetim hatasıdır (çıkış kodu 1); ileti doğru yazımı ya da dönüşümü önerir (`0.0`, `TR_Float(n)`).
 - *Test:* TR testi; kalıcı tip ve tam sayı yazımı uygulanınca denetleyicinin testleri.
 
 ```tr hata
-//! TR 4
+# TR 4
 TR_var toplam = 0
-toplam += 0.5        // denetim hatası: toplam bir TR_Int; ilk değeri 0.0 yazın
+toplam += 0.5        # denetim hatası: toplam bir TR_Int; ilk değeri 0.0 yazın
 ```
 
 **3.14** Değerin metni dilden bağımsızdır: `TR_String(x)`, `TR_print` ve yerleştirme (2.7) her makinede ve her okuyan için aynı metni verir. Tam sayı ondalık rakamla, ondalık 3.2'deki gibi yazılır. Dilin değerleri ve tipleri kimliğin adıyla yazılır: "true", "false", "none", "inf", "-inf", "nan"; tip adıyla ("Int", "List[Int]", "Int?"). Liste "[1, 2]", sözlük "{"k": 1}" biçimindedir; içlerindeki metin çift tırnakla ve 2.6'nın kaçışlarıyla yazılır. Yapı ve tensörün metni sonraki bölümlerdedir. Program çıktısı çevrilmez; kişinin dilinde görünen yalnız iletiler, kabuk ve hata ayıklayıcıdır.
 - *Test:* TR testi; dilden bağımsız metin uygulanınca TR testi.
 
 ```tr
-//! TR 4
+# TR 4
 TR_print(TR_true, TR_none, 1e16, TR_Type([1]), ["a"], {"k": 1})
-// true none 1e+16 List[Int] ["a"] {"k": 1}
+# true none 1e+16 List[Int] ["a"] {"k": 1}
 ```

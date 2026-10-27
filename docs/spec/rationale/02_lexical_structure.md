@@ -4,7 +4,7 @@ Kurallar: [`02_sozcuk_yapisi.md`](../02_sozcuk_yapisi.md). Bu dosya her kuralın
 
 ### 2.1
 
-- *Emsal:* Go, Rust ve Python kaynağı UTF-8 okur; Go baştaki BOM'u yok sayabilir, Rust siler. Rust ilk satırdaki `#!`'i siler, Python'da o satır bir yorumdur. *Almadık:* Python'un dosya başında başka bir kodlama bildirilmesine izin vermesi. ([Go 1.27](https://go.dev/ref/spec#Source_code_representation), [Rust 1.99 Reference](https://doc.rust-lang.org/reference/input-format.html), [Python 3.15](https://docs.python.org/3/reference/lexical_analysis.html#encoding-declarations))
+- *Emsal:* Go, Rust ve Python kaynağı UTF-8 okur; Go baştaki BOM'u yok sayabilir, Rust siler. Rust ilk satırdaki `#!`'i siler, Python'da o satır bir yorumdur. Python ilk ya da ikinci satırdaki özel bir yorumu kodlama bildirimi sayar ("If a comment in the first or second line of the Python script matches the regular expression"); TR'nin başlığı da ilk satırdaki (ya da `#!`'den sonraki) bir yorumdur. *Almadık:* Python'un dosya başında başka bir kodlama bildirilmesine izin vermesi. ([Go 1.27](https://go.dev/ref/spec#Source_code_representation), [Rust 1.99 Reference](https://doc.rust-lang.org/reference/input-format.html), [Python 3.15](https://docs.python.org/3/reference/lexical_analysis.html#encoding-declarations))
 - *Gerekçe:* program her makinede, dizüstünde de robotta da, aynı baytlardan aynı anlamı çıkarır. Kimliklerle yazılan program hiçbir insan diline bağlı değildir: dosyanın dili olmadığı için programın anlamı ve sonucu onu yazanın ya da okuyanın diline bağlı olamaz. Başlıktaki sürüm, dilin kodlu dosyayı kıran bir değişikliğinden sonra eski bir dosyanın sessizce başka anlamda okunmasını önler. Robotta ve hizmette program dosyası betik gibi doğrudan çalıştırılabilir (`./program.tr`).
 
 ### 2.1a
@@ -14,8 +14,8 @@ Kurallar: [`02_sozcuk_yapisi.md`](../02_sozcuk_yapisi.md). Bu dosya her kuralın
 
 ### 2.2
 
-- *Emsal:* Go, Rust, Swift ve C# yorumu `//` ve `/* */` ile yazar; Rust ve Swift çok satırlı yorumu iç içe kabul eder. *Almadık:* Python'un `#`'i: yorumun tek yazımı `//`'dir; Go'nun iç içe olmayan yorumu: içinde yorum bulunan bir kod parçası yoruma alınamaz. ([Go 1.27](https://go.dev/ref/spec#Comments), [Rust 1.99 Reference](https://doc.rust-lang.org/reference/comments.html), [Swift 6.4](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/lexicalstructure/), [Python 3.15](https://docs.python.org/3/reference/lexical_analysis.html#comments))
-- *Gerekçe:* bir kod parçası, içindeki yorumlarla birlikte geçici olarak devre dışı bırakılabilir (`/* dış /* iç */ dış */`); Python alışkanlığıyla yazılan `#` sessizce başka bir anlama kaymaz.
+- *Emsal:* Python, Ruby, kabuk, YAML ve TOML yorumu `#` ile yazar; Python'da çok satırlı yorum yoktur, PEP 8'e göre "Each line of a block comment starts with a # and a single space". *Almadık:* C ailesinin `//` ve `/* */` yorumu: TR'de `//` Python'daki gibi tam bölmedir (4.2a), iki yorum biçimi de aynı işin ikinci yazımı olurdu; Rust'ın ve Swift'in iç içe blok yorumu. ([Python 3.15](https://docs.python.org/3/reference/lexical_analysis.html#comments), [PEP 8](https://peps.python.org/pep-0008/#block-comments), [Go 1.27](https://go.dev/ref/spec#Comments), [Rust 1.99 Reference](https://doc.rust-lang.org/reference/comments.html))
+- *Gerekçe:* kodu çoğunlukla kodlama modelleri yazar; yapay zekâ işinde en çok yazdıkları dil Python'dur. Yorum ve tam bölme Python'daki gibi olunca alışkanlık doğru yazar: `a // 2` tam bölmedir, `# not` yorumdur. C alışkanlığıyla yazılan `// not` ya da `/* */` sessizce başka bir anlama kaymaz, sözdizimi hatası verir ve ileti `#`'i önerir. Bir kod parçasını yoruma almak her satırının başına `#` koymaktır; biçimlendirici ve düzenleyici bunu tek adımda yapar.
 
 ### 2.3
 

@@ -14,8 +14,8 @@ Kurallar: [`04_operatorler.md`](../04_operatorler.md). Bu dosya her kuralın ems
 
 ### 4.2a
 
-- *Emsal:* Python: "floor division of integers results in an integer; the result is that of mathematical division with the 'floor' function applied to the result" ve "The modulo operator always yields a result with the same sign as its second operand". Haskell'in `div` ve `mod`'u da aşağı yuvarlar. *Almadık:* Go'nun ve Rust'ın kesen bölmesi ve kalanı (`-7 % 3` = −1); Python'un `//` yazımı (TR'de yorumdur, 2.2). ([Python 3.15](https://docs.python.org/3/reference/expressions.html#binary-arithmetic-operations), [Haskell Prelude](https://hackage.haskell.org/package/base/docs/Prelude.html#v:div), [Go 1.27](https://go.dev/ref/spec#Integer_operators))
-- *Gerekçe:* halka arabellek, parti ve adım hesabında eksi sayıyla da doğru indeks çıkar (`(i - 1) % n` hep 0 ile n−1 arasında); bölme ile kalan birbirini tutar.
+- *Emsal:* Python: "floor division of integers results in an integer; the result is that of mathematical division with the 'floor' function applied to the result" ve "The modulo operator always yields a result with the same sign as its second operand". Haskell'in `div` ve `mod`'u da aşağı yuvarlar. *Almadık:* Go'nun ve Rust'ın kesen bölmesi ve kalanı (`-7 % 3` = −1); tam bölme için ayrı bir fonksiyon (Python alışkanlığıyla yazılan `//` yine yazılırdı). ([Python 3.15](https://docs.python.org/3/reference/expressions.html#binary-arithmetic-operations), [Haskell Prelude](https://hackage.haskell.org/package/base/docs/Prelude.html#v:div), [Go 1.27](https://go.dev/ref/spec#Integer_operators))
+- *Gerekçe:* kodlama modelleri tam bölmeyi Python'daki gibi `//` ile yazar; aynı yazım TR'de aynı anlamı taşır. Halka arabellek, parti ve adım hesabında eksi sayıyla da doğru indeks çıkar (`(i - 1) % n` hep 0 ile n−1 arasında); bölme ile kalan birbirini tutar.
 
 ### 4.3
 
@@ -49,8 +49,8 @@ Kurallar: [`04_operatorler.md`](../04_operatorler.md). Bu dosya her kuralın ems
 
 ### 4.9
 
-- *Emsal:* Python'da `&&`, `||` ve `!` yoktur, sözcükleri vardır; F# ve Elixir `|>` ile çağırır. *Almadık:* C ailesinin sembolleri ve `|>`: aynı işin ikinci yazımı olurdu (2.9); Python'un `//` tam bölmesi TR'de yorum olduğundan sessizce yanlış sonuç verirdi. ([Python 3.15](https://docs.python.org/3/reference/expressions.html#boolean-operations), [F#](https://learn.microsoft.com/en-us/dotnet/fsharp/language-reference/symbol-and-operator-reference/))
-- *Gerekçe:* her işin tek yazımı vardır; kodlama modelleri başka dillerin işlecini alışkanlıkla yazar, ileti doğrusunu söyleyince ilk düzeltme tutar. Python'un `a // 2`'si TR'de `a` olarak okunurdu; uyarı bu sessiz yanlışı gösterir.
+- *Emsal:* Python'da `&&`, `||` ve `!` yoktur, sözcükleri vardır; F# ve Elixir `|>` ile çağırır. *Almadık:* C ailesinin sembolleri ve `|>`: aynı işin ikinci yazımı olurdu (2.9); C ailesinin `//` ve `/* */` yorumu (2.2). ([Python 3.15](https://docs.python.org/3/reference/expressions.html#boolean-operations), [F#](https://learn.microsoft.com/en-us/dotnet/fsharp/language-reference/symbol-and-operator-reference/))
+- *Gerekçe:* her işin tek yazımı vardır; kodlama modelleri başka dillerin işlecini ve yorumunu alışkanlıkla yazar. Bu yazımların hepsi sessiz bir yanlış değil, sözdizimi hatası olur ve ileti doğrusunu söyler; düzeltme ilk denemede tutar.
 
 ### 4.10
 

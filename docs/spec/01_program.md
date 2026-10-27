@@ -8,7 +8,7 @@ Her kuralın emsali ve gerekçesi: [`rationale/01_program.md`](rationale/01_prog
 - *Test:* Go: `TestProgramRunsTopToBottom`. Modül ve test dosyası kısmı uygulanınca denetleyicinin testleri.
 
 ```tr
-//! TR 4
+# TR 4
 TR_print("Merhaba, dünya!")
 ```
 

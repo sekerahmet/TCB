@@ -6,20 +6,20 @@ Her kuralın emsali ve gerekçesi: [`rationale/02_lexical_structure.md`](rationa
 
 Bu dilde her şey kimlik koduyla yazılır (`TR_print`). İnsanların okuyabilmesi için kod Türkçeye, İngilizceye ya da başka bir dile çevrilir; ama hiçbir insan dilinde kod yazılmaz. Çevirinin kuralları ayrı bir bölümde tasarlanacak ([yol haritası](../roadmap.md)).
 
-**2.1** Her `.tr` dosyası UTF-8 metindir; ilk satırı tam olarak `//! TR 4` başlığıdır, başka bir başlık ya da başlıksızlık dosyayı çalıştırmaz ve nedenini söyler. Dosyanın dili yoktur: dilin sözcükleri kimlikleriyle yazılır, kullanıcının adları (2.3), metinler ve yorumlar kişinin yazdığı gibidir. İlk satır `#!` ile başlıyorsa yok sayılır, başlık ikinci satırdır. Başlıktan sonra aktarmalar (1.3), sonra öbür tanımlar ve deyimler gelir. Satır sonu LF ya da CRLF; baştaki BOM yok sayılır, NUL (U+0000) sözdizimi hatasıdır. Konum, 1'den başlayan satır ve Unicode karakteri (bayt değil) sütunudur.
+**2.1** Her `.tr` dosyası UTF-8 metindir; ilk satırı tam olarak `# TR 4` başlığıdır, başka bir başlık ya da başlıksızlık dosyayı çalıştırmaz ve nedenini söyler. Dosyanın dili yoktur: dilin sözcükleri kimlikleriyle yazılır, kullanıcının adları (2.3), metinler ve yorumlar kişinin yazdığı gibidir. İlk satır `#!` ile başlıyorsa (bir yorumdur, 2.2) başlık ikinci satırdır. Başlıktan sonra aktarmalar (1.3), sonra öbür tanımlar ve deyimler gelir. Satır sonu LF ya da CRLF; baştaki BOM yok sayılır, NUL (U+0000) sözdizimi hatasıdır. Konum, 1'den başlayan satır ve Unicode karakteri (bayt değil) sütunudur.
 - *Test:* TR testi; `#!` satırı uygulanınca TR testi.
 
 **2.1a** Göründüğünden farklı okunan kaynak kabul edilmez. Yazı yönünü değiştiren karakterler (U+202A–U+202E, U+2066–U+2069, U+200E, U+200F, U+061C) hiçbir yerde, yorumda ve metinde de, yazılamaz; metinde gerekirse kaçışla (2.6). Adlarda görünmez dolgu harfleri (U+115F, U+1160, U+3164, U+FFA0) yazılamaz. Aynı dosyada Unicode benzerlik iskeleti (UTS #39) aynı olan iki ayrı ad hatadır (`yetki` ile son harfi Kiril `і` olan `yetkі`). Tek bir adda birden çok yazı sistemi uyarıdır (`θ_eski`); tek yazı sistemindeki ad (`öğrenme`, `привет`, `αβγ`) uyarısızdır.
 - *Test:* TR testi; iskelet kuralı uygulanınca TR testi.
 
-**2.2** Yorum `//` ile satır sonuna kadar ya da `/* ... */` arasındadır; `/* */` iç içe yazılabilir, kapanmayan `/*` hatadır. `#` yorum değildir: ilk satırdaki `#!` dışında, metin dışındaki `#` sözdizimi hatasıdır ve ileti `//`'yi önerir.
-- *Test:* TR testi; iç içe yorum uygulanınca TR testi.
+**2.2** Yorum, metin dışındaki `#` ile başlar ve satır sonuna kadar sürer. Çok satırlı yorum yoktur; her satır `#` ile başlar. `//` yorum değil tam bölmedir (4.2a); satır başındaki `//` ve `/*` sözdizimi hatasıdır, ileti `#`'i önerir.
+- *Test:* TR testi; `#` yorumu uygulanınca TR testi.
 
 ```tr
-//! TR 4
-TR_var x = 1  // satır sonuna kadar yorum
-/* çok
-   satırlı */
+# TR 4
+TR_var x = 1  # satır sonuna kadar yorum
+# birden çok satırlık açıklama
+# her satırı # ile başlar
 ```
 
 **2.3** Ad UAX #31'e uyar: bir harfle (XID_Start) ya da `_` ile başlar; harf, rakam, birleşen işaret ve `_` (XID_Continue) ile sürer; her yazı sisteminin harfleri geçerlidir (`öğrenci_sayısı2`). Adlar NFC biçimine göre karşılaştırılır: aynı görünen iki yazım aynı addır.
@@ -44,16 +44,16 @@ TR_var x = 1  // satır sonuna kadar yorum
 - *Test:* TR testi.
 
 ```tr
-//! TR 4
+# TR 4
 TR_var yol = `C:\veri\tokenizer.json`
-TR_var tarih = `\d{4}-\d{2}-\d{2}`     // "\\d{4}-\\d{2}-\\d{2}" ile aynı
+TR_var tarih = `\d{4}-\d{2}-\d{2}`     # "\\d{4}-\\d{2}-\\d{2}" ile aynı
 ```
 
 **2.7** Tırnaklı metindeki `\(ifade)` yerleştirmedir: ifade hesaplanıp metne yazılır. Süslü parantez sıradan karakterdir: `n` 3 iken `"{\"n\": \(n)}"` → `{"n": 3}`. Yerleştirme `\(`'in eşi olan parantezle kapanır, içindeki parantez ve metinler onu kapatmaz (`"\((1 + 2) * 3)"` → `9`); aynı satırda kapanmalıdır; boşsa ya da tek bir ifade değilse sözdizimi hatasıdır. İçindeki sözcükler dosyadaki gerçek konumlarıyla bildirilir.
 - *Test:* TR testi.
 
 ```tr
-//! TR 4
+# TR 4
 TR_var ad = "Ali"
 TR_var p = {"ad": "Ayşe"}
 TR_print("Merhaba \(ad), 1 + 2 = \(1 + 2), kişi: \(p["ad"]), JSON: {\"adım\": \(1 + 2)}")
@@ -63,11 +63,11 @@ TR_print("Merhaba \(ad), 1 + 2 = \(1 + 2), kişi: \(p["ad"]), JSON: {\"adım\": 
 - *Test:* TR testi.
 
 ```tr
-//! TR 4
+# TR 4
 TR_var f = TR_sum
-(1 + 2)                    // ayrı deyim, kullanılmayan değer uyarısı; 'TR_sum(1 + 2)' çağrısı değil
+(1 + 2)                    # ayrı deyim, kullanılmayan değer uyarısı; 'TR_sum(1 + 2)' çağrısı değil
 TR_var t = 1 +
-    2                    // t = 3
+    2                    # t = 3
 ```
 
 **2.9** Anahtar kelimeler ayrılmıştır, ad olamaz. Her işin tek yazımı vardır: koşullu döngü `TR_for` ve bir koşulla, eşlemenin varsayılan kolu `_` ile yazılır. Başka dillerden alışkanlıkla yazılan `TR_while` ya da `TR_default` sözdizimi hatasıdır, ileti TR'deki yazımı söyler:
@@ -92,5 +92,5 @@ TR_var t = 1 +
 **2.10** İfade ve bloklar en çok 1000 düzey iç içe olabilir (`((((1))))` dört düzey); aşan program sözdizimi hatası verir. Yerleştirmedeki ifade bulunduğu düzeyden sayılır.
 - *Test:* TR testi.
 
-**2.13** Çalışmadan önceki hatalar ve uyarılar (sözdizimi ve tip, 1.3; kullanım, 1.4) metin iletisinin yanında JSON olarak da verilebilir. Her kayıt ayrı alanlarda kodu, türü (hata ya da uyarı), dosyayı, başlangıç ve bitiş satır ve sütununu (2.1), iletiyi, varsa ilgili öbür konumları ve önerilen düzeltmeyi (2.3a, 2.3b) taşır; olduğu gibi uygulanabilecek düzeltme bunu bir işaretle söyler (`#` → `//`, `0X1F` → `0x1F`). İleti okuyanın dilindedir; kod, konum ve düzeltme dilden bağımsızdır. Seçenek ve alanların tam listesi sonraki bölümlerdedir.
+**2.13** Çalışmadan önceki hatalar ve uyarılar (sözdizimi ve tip, 1.3; kullanım, 1.4) metin iletisinin yanında JSON olarak da verilebilir. Her kayıt ayrı alanlarda kodu, türü (hata ya da uyarı), dosyayı, başlangıç ve bitiş satır ve sütununu (2.1), iletiyi, varsa ilgili öbür konumları ve önerilen düzeltmeyi (2.3a, 2.3b) taşır; olduğu gibi uygulanabilecek düzeltme bunu bir işaretle söyler (satır başındaki `//` → `#`, `0X1F` → `0x1F`). İleti okuyanın dilindedir; kod, konum ve düzeltme dilden bağımsızdır. Seçenek ve alanların tam listesi sonraki bölümlerdedir.
 - *Test:* gerekmez, henüz uygulanmadı; uygulanınca Go e2e testi.

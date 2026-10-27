@@ -145,7 +145,7 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). Taslak: D
 
 - **Mevcut durum:** başlığı olmayan metin bugün Türkçe yazılmış sayılıp okunuyor. Başlık bugün eski biçimde (tr kodlu 3 dil=tr): bir Türkçe sözcük ve dosyanın dilini taşıyor. Programın sonucu bu dile bağlı: `TR_print(TR_true)` dil=tr ile "doğru", dil=en ile "true" yazdırıyor [ölçüldü].
 - **Yapılacaklar:** diskteki her dosya kodludur; başlıksız dosya çalışmaz, ileti kodlama yolunu söyler. Bilerek bozuk sınav dosyaları, belgelerdeki kod blokları ve Go testlerindeki TR metni kodlu biçime geçer.
-  - Başlık `//! TR 4`; bugün tanınmıyor, dosya başlıksız sayılıp hata veriyor [ölçüldü]. 1. ve 2. bölümün kod blokları yeni başlıkla yazıldı; başlık uygulanana kadar belgelerdeki kod bloklarını çalıştıran testler kalır. Dosyanın dili kalkınca programın sonucu hiçbir dile bağlı olmaz (değer metni ve hata metni ilgili bölümlerde).
+  - Başlık `# TR 4`; bugün tanınmıyor, dosya başlıksız sayılıp hata veriyor [ölçüldü]. 1. ve 2. bölümün kod blokları yeni başlıkla yazıldı; başlık uygulanana kadar belgelerdeki kod bloklarını çalıştıran testler kalır. Dosyanın dili kalkınca programın sonucu hiçbir dile bağlı olmaz (değer metni ve hata metni ilgili bölümlerde).
   - İlk satırdaki `#!` yok sayılır; bugün sözdizimi hatası veriyor [ölçüldü].
 
 ### 2.1a
@@ -155,8 +155,8 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). Taslak: D
 
 ### 2.2
 
-- **Mevcut durum:** iç içe çok satırlı yorum sözdizimi hatası veriyor [ölçüldü].
-- **Yapılacaklar:** çok satırlı yorum iç içe okunur.
+- **Mevcut durum:** yorum `//` ve `/* */` ile yazılıyor, iç içe yorum hata veriyor; `#` "TR'de yorum değil" hatası veriyor [ölçüldü].
+- **Yapılacaklar:** yorum `#` ile; `//` tam bölme (4.2a); `/* */` kalkar; satır başındaki `//` ve `/*` iletisi `#`'i önerir. Depodaki bütün kodlu dosyalar ve belgelerdeki kod blokları çevrilir.
 
 ### 2.3
 
@@ -284,7 +284,7 @@ Kurallar: [`docs/spec/04_operatorler.md`](spec/04_operatorler.md). Taslak: DENET
 ### 4.2a
 
 - **Mevcut durum:** tam bölme yok; `-7 % 3` −1 veriyor (kesen kalan) [ölçüldü].
-- **Yapılacaklar:** `TR_div` (aşağı yuvarlar); `%`'nin işareti bölenin işareti.
+- **Yapılacaklar:** `//` tam bölme (aşağı yuvarlar); `%`'nin işareti bölenin işareti.
 
 ### 4.3
 
@@ -314,7 +314,7 @@ Kurallar: [`docs/spec/04_operatorler.md`](spec/04_operatorler.md). Taslak: DENET
 ### 4.9
 
 - **Mevcut durum:** `&&`, `||`, `!` ve `|>` çalışıyor; boru `[1, 2, 3] |> TR_sum` 6 veriyor [ölçüldü].
-- **Yapılacaklar:** dördü sözdizimi hatası, ileti TR'deki yazımı söyler; tek sayı ya da tek ad olan satır sonu yorumunda uyarı. Depodaki kullanımlar çevrilir.
+- **Yapılacaklar:** dördü sözdizimi hatası, ileti TR'deki yazımı söyler; C ailesinin yorumları hata verir, ileti `#`'i önerir. Depodaki kullanımlar çevrilir.
 
 ### 4.10
 
