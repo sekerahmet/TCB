@@ -17,45 +17,60 @@ func allOf(l *Lexer) []Token {
 	return t
 }
 
-// Kodlu gövdede kodlar etkin dilin adlarıyla, kod olmayan adlar kullanıcı adı olarak okunur (17.2).
+// Kural (17.2, 17.5): kodlu gövdede kodlar okunduğu dilin adlarıyla, kod olmayan adlar kullanıcı adı
+// olarak okunur. Program kimlik listesinde okunur (NewBody): sözcüğün yazımı kimliğidir; bir yazım
+// dilinde okunan gövdede (NewBodyIn) o dilin adıdır. Kod her dilde aynıdır; konumlar diskteki
+// metne göredir (kişinin görünümünün konumlarını NewBodyView verir).
 func TestCodedTokens(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
-	l := NewBody("TR_kw_var eğer = TR_fn_print\nx.TR_mem_append TR_kw_true", true)
-	toks := allOf(l)
-	if len(l.Errors()) > 0 {
-		t.Fatal(l.Errors())
+	const src = "TR_kw_var eğer = TR_fn_print\nx.TR_mem_append TR_kw_true"
+	en, err := codes.LoadLanguage("en")
+	if err != nil {
+		t.Fatal(err)
 	}
-	expected := []struct {
-		kind TokenType
-		lit  string
-		kd   codes.Code
+	for _, c := range []struct {
+		name  string
+		lexer *Lexer
+		words [4]string // var, print, append, true
 	}{
-		{TokVar, "değişken", codes.KwVar}, {TokIdent, "eğer", codes.None}, {TokAssign, "=", codes.None},
-		{TokIdent, "yazdır", codes.FnPrint}, {TokIdent, "x", codes.None}, {TokDot, ".", codes.None},
-		{TokIdent, "ekle", codes.MemAppend}, {TokTrue, "doğru", codes.KwTrue},
-	}
-	if len(toks) != len(expected) {
-		t.Fatalf("%d sözcük, beklenen %d: %v", len(toks), len(expected), toks)
-	}
-	for i, b := range expected {
-		if toks[i].Type != b.kind || toks[i].Literal != b.lit || toks[i].Code != b.kd {
-			t.Errorf("sözcük %d: %v (kod %v), beklenen %s %q %v", i, toks[i], toks[i].Code, b.kind, b.lit, b.kd)
+		{"kimlik", NewBody(src, true), [4]string{"TR_kw_var", "TR_fn_print", "TR_mem_append", "TR_kw_true"}},
+		{"tr", NewBodyIn(src, true, codes.Source()), [4]string{"değişken", "yazdır", "ekle", "doğru"}},
+		{"en", NewBodyIn(src, true, en), [4]string{"var", "print", "append", "true"}},
+	} {
+		toks := allOf(c.lexer)
+		if len(c.lexer.Errors()) > 0 {
+			t.Fatalf("%s: %v", c.name, c.lexer.Errors())
 		}
-	}
-	// Sütunlar Türkçe gösterime göredir (17.5): "değişken eğer = yazdır" → '=' 15. sütunda.
-	if toks[2].Column != 15 || toks[3].Column != 17 {
-		t.Errorf("gösterim sütunları: '=' %d, 'yazdır' %d (beklenen 15, 17)", toks[2].Column, toks[3].Column)
+		expected := []struct {
+			kind TokenType
+			lit  string
+			kd   codes.Code
+		}{
+			{TokVar, c.words[0], codes.KwVar}, {TokIdent, "eğer", codes.None}, {TokAssign, "=", codes.None},
+			{TokIdent, c.words[1], codes.FnPrint}, {TokIdent, "x", codes.None}, {TokDot, ".", codes.None},
+			{TokIdent, c.words[2], codes.MemAppend}, {TokTrue, c.words[3], codes.KwTrue},
+		}
+		if len(toks) != len(expected) {
+			t.Fatalf("%s: %d sözcük, beklenen %d: %v", c.name, len(toks), len(expected), toks)
+		}
+		for i, b := range expected {
+			if toks[i].Type != b.kind || toks[i].Literal != b.lit || toks[i].Code != b.kd {
+				t.Errorf("%s: sözcük %d: %v (kod %v), beklenen %s %q %v", c.name, i, toks[i], toks[i].Code, b.kind, b.lit, b.kd)
+			}
+		}
+		if toks[2].Column != 16 || toks[3].Column != 18 {
+			t.Errorf("%s: disk sütunları: '=' %d, yazdır %d (beklenen 16, 18)", c.name, toks[2].Column, toks[3].Column)
+		}
 	}
 	// Bilinmeyen kimlik hatadır; Türkçe yazılmış gövdede kimlik ayrılmış addır (2.3a).
 	if l := NewBody("TR_fn_yok", true); len(allOf(l)) != 1 || !hasCode(l.Errs(), messages.H0001) {
 		t.Errorf("bilinmeyen kimlik hatası yok: %v", l.Errors())
 	}
-	if l := NewBody("TR_fn_print", false); allOf(l) == nil || !hasCode(l.Errs(), messages.H0004) {
+	if l := NewBodyIn("TR_fn_print", false, codes.Source()); allOf(l) == nil || !hasCode(l.Errs(), messages.H0004) {
 		t.Errorf("Türkçe gövdede ayrılmış ad hatası yok: %v", l.Errors())
 	}
 	// Kodlu dosyanın başlığı yalnız ad bilinen bir kimlikse (başlıksız yapıştırılmış kodlu metin)
 	// anılır; başlığın dili okunan metnin dilidir.
-	if l := NewBody("değişken TR_x = 1", false); allOf(l) == nil || !hasCode(l.Errs(), messages.H0004) || hasCode(l.Errs(), messages.H0014) {
+	if l := NewBodyIn("değişken TR_x = 1", false, codes.Source()); allOf(l) == nil || !hasCode(l.Errs(), messages.H0004) || hasCode(l.Errs(), messages.H0014) {
 		t.Errorf("kimlik olmayan ayrılmış ad başlığı anmamalı: %v", l.Errors())
 	}
 	for _, c := range []struct{ lang, text string }{{"tr", "değişken TR_fn_sum = 1"}, {"en", "var TR_fn_sum = 1"}} {
