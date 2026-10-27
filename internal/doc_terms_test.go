@@ -36,7 +36,7 @@ func TestRetiredTermsStayRetired(t *testing.T) {
 	var files []string
 	for _, rel := range strings.Split(strings.TrimSpace(string(listed)), "\n") {
 		switch {
-		case rel == "docs/terimler.md", rel == "docs/roadmap.md": // tarihçe eski adı anar
+		case rel == "docs/terimler.md", rel == "docs/archive/roadmap-2026-10-27.md": // tarihçe eski adı anar
 		case strings.HasSuffix(rel, ".md"), strings.HasSuffix(rel, ".tr") && !strings.HasSuffix(rel, "_test.tr"),
 			rel == "internal/lang/messages/tr.json", rel == "internal/lang/codes/tr.json":
 			files = append(files, rel)

@@ -127,7 +127,7 @@ Dil sunucuları kümeyi yapı sisteminden ya da kendi ayarlarından alır, `.git
 
 **Sonraki adım: yazma kipi.** Bu sürüm yalnızca listeler. Yazma kipi (`değiştir`) `certain` listesini `WorkspaceEdit`'e çevirecek; çakışma varsa varsayılan olarak **durur** (gopls'un çakışmada iptali gibi; rust-analyzer'ın onay notunun karşılığı bir `--zorla`), olası yerleri yalnızca açıkça seçileni değiştirir.
 
-## Dil sunucusu sözleşmesi (yol haritası, Evre 6)
+## Dil sunucusu sözleşmesi
 
 Dil sunucusu bu paketin üstüne kurulur; ayrı bir dizin ya da ayrı bir ad çözümlemesi yazılmaz. Her LSP isteği bu pakette bir karşılığa eşlenir:
 
@@ -152,7 +152,7 @@ Dil sunucusu bu paketin üstüne kurulur; ayrı bir dizin ya da ayrı bir ad ç�
 - **Tür bilgisi sonra gelir.** Dizin ad çözümlemesidir; alıcı tipi bilinmeyen `x.metot()` çağrıları `INFERRED` kalır. Tip denetleyicisinin çıkarımı bağlandığında bu kenarlar `EXTRACTED` olur; arayüz değişmez, yalnızca `confidence` yükselir.
 - **Çıkış biçimi.** Sunucu `Result` ve `Index` Go türlerini doğrudan kullanır (JSON'a çevirmeden); `--json` yalnızca komut satırı ve ajanlar içindir.
 
-Bu bölüm [`docs/roadmap.md`](../../../docs/roadmap.md) Evre 6'daki "VS Code dil sunucusu" maddesine bağlıdır; sunucu yazılırken buradaki eşleme esas alınır, eksik bir istek çıkarsa önce bu pakette (testle) eklenir.
+Bu bölüm [eski yol haritasının](../../../docs/archive/roadmap-2026-10-27.md) Evre 6'sındaki "VS Code dil sunucusu" maddesinden gelir; sunucu yazılırken buradaki eşleme esas alınır, eksik bir istek çıkarsa önce bu pakette (testle) eklenir.
 
 ## Başka dillerin ve araçların kod dizinleri: karşılaştırma ve kararlar
 

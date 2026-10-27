@@ -26,7 +26,7 @@ var oldCodeAllowed = map[string]map[string]string{
 	"internal/compute/tokenize/norm_table.go": {"*": "Unicode kod noktası tablosu (A770 ...), kod değil"},
 	"internal/compute/gpu/gpu_bench_test.go":  {"T256": "tensör boyutu (T = 256), kod değil"},
 	"tools/record/main_test.go":               {"A100": "NVIDIA A100 kartının adı"},
-	"docs/roadmap.md": {"A100": "NVIDIA A100 kartının adı", "A001": "madde 15: eski kodun kimliğe geçişinin örneği",
+	"docs/archive/roadmap-2026-10-27.md": {"A100": "NVIDIA A100 kartının adı", "A001": "madde 15: eski kodun kimliğe geçişinin örneği",
 		"G400": "madde 15: eski kodun kimliğe geçişinin örneği", "T910": "madde 15: eski kodun kimliğe geçişinin örneği"},
 	"docs/README.md":                       {"A001": "eski kod biçiminin örneği (eşleme belgesinin tanıtımı)"},
 	"docs/spec/02_sozcuk_yapisi.md":        {"A001": "2.3a: eski biçim artık sıradan addır", "G100": "2.3a: eski biçim artık sıradan addır"},

@@ -1,7 +1,7 @@
 # codegraph eksikleri
 
 codegraph'ın (ve `tr dizin`'in) yetmeyen ya da yanlış cevaplarının biriktiği yer. Yol haritası
-yalnızca aracın gelişimini özetler ([madde 7](../../docs/roadmap.md)); tek tek eksikler buradadır.
+aracın gelişimini özetlerdi ([eski yol haritası, Evre 4 madde 7](../../docs/archive/roadmap-2026-10-27.md)); tek tek eksikler buradadır.
 
 **Kim yazar:** dosyayı yalnızca ana oturum günceller. Yan oturumlar ve ajanlar codegraph'ın
 yanlış, eksik, belirsiz ya da yavaş cevabını (kancanın gösterdikleri dahil, `tools/edithook`) ana

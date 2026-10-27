@@ -303,7 +303,7 @@ cp /content/kosu.log $R/stdout.log
 /content/tr/tr tools/gpu/ss_exam.tr --koşu $R --veri /content/ss_gpt2 | tail -12
 ```
 
-İlk sonuç (2026-10-23, RTX PRO 6000): TR kayıp 1,5134, PyTorch 1,5196; ayrıntı `docs/roadmap.md` Evre 4.
+İlk sonuç (2026-10-23, RTX PRO 6000): TR kayıp 1,5134, PyTorch 1,5196; ayrıntı `docs/archive/roadmap-2026-10-27.md` Evre 4.
 
 Oturum kesilirse aynı komut kaldığı yerden sürer (`checkpoints/`, 15 dakikada bir).
 Koşu klasörü: `config.json`, `metrics.jsonl` (eğitim kaybı 10 adımda bir, `oran_çarpanı`,
