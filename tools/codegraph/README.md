@@ -542,7 +542,7 @@ once, before anything reads: that is the part "who sets it up" and "who changes 
 Every Go node (function, method, type, field, const, var, interface method) carries `doc`: the first
 paragraph of its doc comment (at most 3 lines, 300 characters), else its end-of-line comment; for a
 single-spec `const X = 1` or `type T int` the comment on the declaration counts. `query codes.active` prints
-"active programın okunduğu ve çalıştığı kanonik dildir: her zaman Türkçe.", so the answer is not one file
+"... active programın okunduğu ve çalıştığı kimlik listesidir. ...", so the answer is not one file
 open away. `//go:` directives are not comments. `.tr` nodes get the same line from `tr dizin`'s `Doc`.
 Pinned by `TestQueryShowsGoDocComments`.
 
