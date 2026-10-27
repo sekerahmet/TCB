@@ -198,7 +198,7 @@ func (v *VM) stopWaitError(fn any) error {
 	if v.cleanupDepth > 0 || !v.stopHandled.Load() || !v.stopRequested.Load() {
 		return nil
 	}
-	return messages.New(messages.H2530, fn)
+	return messages.New(messages.H2530, fn, codes.NameRef(codes.FnStopRequested), codes.NameRef(codes.KwDefer), codes.NameRef(codes.KwCatch))
 }
 
 // IsStopRequestedError hatanın "durdurma istendi" hatası (1.6) olup olmadığını söyler. Onu

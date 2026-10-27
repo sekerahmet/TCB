@@ -2,7 +2,6 @@ package debugger
 
 import (
 	"encoding/json"
-	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/source"
@@ -81,8 +80,8 @@ func (s *dapServer) launch(msg *dapMessage) {
 	machine.SetArgs(a.Args)
 	// Argüman verilip programın en dışından ulaşılan bir komut_satırı çağrısı yoksa program
 	// çalışmaz (1.4): düzenleyicinin "args" ayarı da bu kurala bağlıdır.
-	if given := machine.Args(); len(given) > 0 && !machine.ReadsCommandLine(prog) {
-		s.output("stderr", "❌ "+messages.Text(messages.H8664, len(given), codes.NameRef(codes.FnCommandLine))+"\n")
+	if verdict := machine.CheckArguments(prog); verdict != interp.ArgumentsUsable {
+		s.output("stderr", "❌ "+machine.ArgumentsMessage(verdict)+"\n")
 		s.respondErr(msg, messages.Text(messages.H8124, filepath.Base(path)))
 		s.event("terminated", nil)
 		return

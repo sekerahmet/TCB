@@ -44,7 +44,7 @@ func profileArguments(command any, args []string, allowed ...codes.Code) (profil
 // hata ayıklama aynı adımları kullanır).
 func prepareProgram(path string, arguments []string, h preparation) (*interp.VM, *ast.Program, string) {
 	// Çalışmadan önce program ve aktardığı modüller 'tr kontrol'ün yoluyla denetlenir (1.3).
-	_, s, _ := checkProgram(path, h, "❌ "+messages.Text(messages.H8632))
+	_, s := checkProgram(path, h, "❌ "+messages.Text(messages.H8632))
 	machine := interp.New()
 	machine.SourceFile = path
 	machine.SourceCode = s.Text

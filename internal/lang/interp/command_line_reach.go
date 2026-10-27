@@ -199,7 +199,7 @@ func (s *reachScan) importModule(unit any, im *ast.ImportStatement) {
 func (s *reachScan) call(c *ast.CallExpression) {
 	switch f := c.Function.(type) {
 	case *ast.Identifier:
-		if isCommandLineName(f.Value) {
+		if s.isCommandLine(f.Value) {
 			s.found = true
 		} else if !s.known(f.Value) {
 			s.found = true // fonksiyon değeriyle çağrı (değişken, parametre)
@@ -226,7 +226,7 @@ func (s *reachScan) known(name string) bool {
 
 // name bir adın anılmasını işler: komut_satırı, adlı fonksiyon ya da yapı.
 func (s *reachScan) name(name string) {
-	if isCommandLineName(name) {
+	if s.isCommandLine(name) {
 		s.found = true
 		return
 	}
@@ -246,9 +246,15 @@ func (s *reachScan) member(name string) {
 	}
 }
 
-// isCommandLineName adın komut_satırı yerleşiği olduğunu söyler: yazım dilindeki adı ya da
-// kimliği.
-func isCommandLineName(name string) bool {
+// isCommandLine adın komut_satırı yerleşiği olduğunu söyler: adın global kapsamda bağlandığı
+// yerleşik kayıtlı komut_satırı yerleşiğidir; yerleşik kayıtlı değilse (yorumlayıcı tek başına)
+// yazım dilindeki adı ya da kimliği.
+func (s *reachScan) isCommandLine(name string) bool {
+	if want := s.vm.Builtin(codes.FnCommandLine); want != nil {
+		if got, ok := s.vm.GlobalEnv.Get(name); ok && got == Value(want) {
+			return true
+		}
+	}
 	if slices.Contains(codes.Spellings(codes.FnCommandLine), name) {
 		return true
 	}

@@ -185,12 +185,26 @@ func moduleHeader(header, filePath string) string {
 
 // checkProgram dosyayı ve aktardığı bütün modülleri çalıştırmadan denetler (1.3): hata varsa
 // hepsini yazıp 1 koduyla çıkar, hiçbir satır çalışmaz. 'tr kontrol', 'tr derle', 'tr çalıştır',
-// 'tr hata_ayıkla', 'tr izle' ve 'tr profil' bu tek yolu kullanır. globalHeader bulunamayan ya da
-// okunamayan modül hatalarının başlığıdır. Dosyanın metnini, hazırlığının sonucunu ve (modüllerle
-// birlikte) paketi verir.
-func checkProgram(path string, h preparation, globalHeader string) (string, *source.Result, *pkg) {
+// 'tr hata_ayıkla', 'tr izle' ve 'tr profil' bu tek yolu kullanır; hata ayıklayıcının başlatma
+// yolu da aynı işlevi (interp.CheckImportedModules) çağırır. globalHeader bulunamayan ya da
+// okunamayan modül hatalarının başlığıdır. Dosyanın metnini ve hazırlığının sonucunu verir.
+func checkProgram(path string, h preparation, globalHeader string) (string, *source.Result) {
 	text, s := prepareFile(path, h)
-	return text, s, checkModules(path, text, h, globalHeader)
+	err := interp.CheckImportedModules(path, s.Program)
+	if err == nil {
+		return text, s
+	}
+	var moduleErr *interp.ModuleError
+	if errors.As(err, &moduleErr) && len(moduleErr.Errors) > 0 {
+		header := h.typeHeader
+		if moduleErr.Kind == source.StageSyntax {
+			header = h.syntaxHeader
+		}
+		exitWithDiags(moduleHeader(header, moduleErr.Source.Name), moduleErr.Errors, moduleErr.Source.Code)
+	}
+	fmt.Fprintf(os.Stderr, "%s %v\n", globalHeader, err)
+	exit(1)
+	return text, s
 }
 
 // checkModules programın 'aktar' ile aldığı bütün modülleri (özyinelemeli) bulur ve

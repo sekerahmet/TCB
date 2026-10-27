@@ -313,7 +313,9 @@ func processorNoteText(arch, level string) string {
 // compileToExe 'tr derle' komutudur: kaynağı ve aktardığı modülleri denetleyip çalışan
 // yorumlayıcının bir kopyasının sonuna paket olarak ekler.
 func compileToExe(srcPath string, outPath string) {
-	_, _, pk := checkProgram(srcPath, buildPreparation, "❌ "+messages.Text(messages.H8761))
+	// Denetim 'tr kontrol'ün yoludur (checkProgram); paket kurulurken modüller yeniden okunur.
+	code, _ := checkProgram(srcPath, buildPreparation, "❌ "+messages.Text(messages.H8761))
+	pk := checkModules(srcPath, code, buildPreparation, "❌ "+messages.Text(messages.H8761))
 
 	if outPath == "" {
 		base := strings.TrimSuffix(srcPath, filepath.Ext(srcPath))

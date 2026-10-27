@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -122,15 +123,19 @@ func TestStrayTempCheckpointCleaned(t *testing.T) {
 	}
 }
 
-// Kesme isteği kontrol noktası kurulduktan sonra gelirse ertelenir: sıradaki güncelle noktayı
-// kaydeder, program nazikçe durur (ertelenen işler çalışır, Run ErrKesildi verir).
+// Durdurma isteği kontrol noktası kurulduktan ve iki güncelleme yapıldıktan sonra gelirse
+// ertelenir: sıradaki güncelle noktayı kaydeder, program nazikçe durur (ertelenen işler çalışır,
+// Run ErrInterrupted verir). Saat her okunuşta bir saniye ilerler: adım süresi bir saniye,
+// erteleme süresi iki saniyedir (1.6).
 func TestDeferredInterruptSavesAtStepBoundary(t *testing.T) {
 	runDir := t.TempDir()
 	m := interp.New()
 	w := &testkit.TeeWriter{}
 	m.Out, m.Err = w, w
+	ticks := 0
+	defer checkpoint.FakeClock(func() time.Time { ticks++; return time.Unix(0, 0).Add(time.Duration(ticks) * time.Second) })()
 	m.GlobalEnv.Define("kesme_iste", &interp.BuiltinVal{Name: "kesme_iste", Fn: func(m *interp.VM, _ []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-		return interp.BoolToVal(m.RequestInterrupt()), nil
+		return interp.BoolToVal(m.RequestStop(2) == interp.StopDeferred), nil
 	}}, true)
 	_, err := runVM(t, m, fmt.Sprintf(`
 ertele { yazdır("ertelenen çalıştı") }

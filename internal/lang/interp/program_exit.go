@@ -25,7 +25,7 @@ type ExitRequest struct {
 
 func (c *ExitRequest) Error() string {
 	if c.inTest {
-		return messages.Text(messages.H2532, CallName(codes.FnExit), c.Code)
+		return messages.Text(messages.H2532, CallName(codes.FnExit), c.Code, codes.NameRef(codes.FnAssert))
 	}
 	if c.Message == "" {
 		return messages.Text(messages.H2491, c.Code)
@@ -83,7 +83,7 @@ func exitBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 		return nil, ArgTypeError(codes.FnExit, 1, args[0], codes.TypeInt)
 	}
 	if n.Val < 0 || n.Val > maxExitCode {
-		return nil, messages.New(messages.H2531, CallPrefix(codes.FnExit), n.Val)
+		return nil, messages.New(messages.H2531, CallPrefix(codes.FnExit), n.Val, codes.NameRef(codes.FnExit))
 	}
 	return nil, y.RequestExit(int(n.Val), "")
 }
