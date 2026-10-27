@@ -10,7 +10,7 @@ Her kuralın emsali ve gerekçesi: [`rationale/05_statements.md`](rationale/05_s
 **5.2** `TR_const x = ifade` yeniden atanamayan bir ad tanımlar; ona atama denetim hatasıdır. Sabit olan bağdır, değer değil: `TR_const l = [1]` iken `l.TR_append(2)` geçerli, `l = []` hatadır. Modülün en dışındaki sabitin ilk değeri sabit ifadedir (1.1).
 - *Test:* TR testi.
 
-**5.3** Çoklu tanım ve atama virgülle yapılır; sağdaki ifadelerin hepsi atamadan önce hesaplanır (`a, b = b, a` takas eder). Sağda tek bir liste varsa öğelerine açılır; öğe sayısı tutmazsa çalışma hatasıdır.
+**5.3** Çoklu tanım ve atama virgülle yapılır; sağdaki ifadelerin hepsi atamadan önce hesaplanır (`a, b = b, a` takas eder). Sağda tek bir liste varsa öğelerine açılır; öğe sayısı tutmazsa çalışma hatasıdır. Gerekmeyen değerin yerine `_` yazılır (`TR_var a, _ = b, c`); `_` bir ad değildir, okunamaz.
 - *Test:* TR testi; öğe sayısı hatası uygulanınca TR testi.
 
 ```tr

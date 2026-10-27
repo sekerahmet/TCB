@@ -1,40 +1,67 @@
 # 6. Fonksiyonlar
 
-**6.1** `TR_kw_func ad(parametreler) { ... }` bir fonksiyon tanımlar ve adı bulunulan kapsama bağlar. Tanım çalıştırıldığı noktada gerçekleşir; öne alma (hoisting) yoktur, fonksiyon tanımından önce çağrılamaz.
+Bu bölümün kurallarına göre bugünkü durum ve yapılacaklar: [`docs/status.md`](../status.md), "6. Fonksiyonlar".
 
-**6.2** `TR_kw_return ifade` fonksiyondan değer döndürür; yalnız `TR_kw_return` `TR_kw_none` döndürür. `TR_kw_return` hiç çalışmazsa son deyimin değeri döner. Program dosyasının en dışındaki `TR_kw_return` programı bitirir: sonraki satırlar çalışmaz, ertelenen işler çalışır (9.3), değer programın çıkış kodu olur (`TR_kw_return 3` → 3, değersiz `TR_kw_return` → 0; kod 1.11'deki gibi 0–125 arasında bir `TR_type_Int`'tir). Test gövdesinde (12.6) derleme hatasıdır; modülün en dışında deyim bulunmaz (11.1).
-- *Durum:* en dıştaki `TR_kw_return`'ün değeri karar (Ahmet, 2026-10-27; C#'ın en dıştaki `return`'ü ve Rust'ın `main`'den döndürdüğü `ExitCode` gibi, 1.10). Bugün çıkış kodu her zaman 0, değer sessizce yok sayılıyor.
+Her kuralın emsali ve gerekçesi: [`rationale/06_functions.md`](rationale/06_functions.md).
 
-**6.3** Parametrelere varsayılan değer verilebilir (`ek = "!"`). Varsayılan, argümanı verilmediğinde her çağrıda yeniden, soldan sağa hesaplanır; kendisinden önceki parametreleri ve fonksiyonun tanımlandığı kapsamı görür (`TR_kw_func f(a, b = a * 2)` ile `f(1)` → `b = 2`). Parametrenin kendisi ve sonraki parametreler henüz tanımlı değildir; varsayılanda adları geçerse dıştaki aynı adlı değişken kullanılmaz, çağrı `'b' parametresi henüz tanımlanmadı` hatası verir. Varsayılanı olmayan bir parametre için argüman verilmezse, fazla argüman verilirse ya da bilinmeyen bir adla argüman verilirse çağrı satırında hata oluşur (`'topla' fonksiyonu 2 argüman bekler, 1 verildi (eksik: 'b')`). Adlı argümanlar varken eksik zorunlu parametre adıyla söylenir (`TR_kw_func f(a, b = 10)` ile `f(b: 20)` → `'f' fonksiyonu için zorunlu 'a' argümanı verilmedi`). Yerleşiklerin ve metotların geri çağırdığı fonksiyonlar (ör. `l.TR_mem_filter(f)` içindeki `f`, web işleyicileri) bu denetime girmez.
-
-**6.3a** İç içe fonksiyon çağrısı derinliği 10000 ile sınırlıdır; aşılırsa `dene/yakala` ile yakalanabilen "Özyineleme derinliği sınırı aşıldı" hatası oluşur.
-
-**6.4** Argümanlar adla da verilebilir: `böl(bölen: 2, bölünen: 10)`. Konumlu argümanlar önce yerleşir. Konumlu argümanın doldurduğu bir parametre adıyla da verilirse çağrı hata verir; adlı değer sessizce yok sayılmaz (`f(1, a: 2)` → `'f' fonksiyonu 'a' parametresi hem sırayla (1. argüman) hem adıyla verildi`).
-
-**6.5** Fonksiyonlar tanımlandıkları ortamı yakalar (kapanış); özyineleme desteklenir.
+**6.1** `TR_func f(p: T, q: U) -> R { ... }` bir fonksiyon tanımlar. Her parametrenin tipi yazılır (1.2). Değer döndüren fonksiyon dönüş tipini `->` ile yazar; değer döndürmeyende `->` yazılmaz. Ad, bulunduğu bloğun her yerinden görünür (5.14). Aynı kapsamda aynı adla ikinci bir tanım denetim hatasıdır: bir ad tek fonksiyondur, parametre tipine göre ayrışma yoktur. Başka dillerin yazımları sözdizimi hatasıdır ve ileti TR'deki yazımı söyler: `def f(x):`, dönüş tipinin `: R` ile yazılması, Python'un süsleyicisi (satır başında `@f`; ileti sondaki bloğu önerir, 6.7).
+- *Test:* TR testi; tipli parametre zorunluluğu, tek ad kuralı ve iletiler uygulanınca TR testi.
 
 ```tr
-//! tr kodlu 3 dil=tr
-TR_kw_func sayaç_yap() {
-    TR_kw_var n = 0
-    TR_kw_return TR_kw_func() { n += 1; TR_kw_return n }
+# TR 4
+TR_func ölçekle(x: TR_Float, k: TR_Float = 2.0) -> TR_Float {
+    TR_return x * k
 }
+TR_print(ölçekle(1.5), ölçekle(1.5, k: 10.0))   # çıktı: 3.0 15.0
 ```
 
-**6.6** Ok fonksiyonları: `x => ifade`, `(a, b) => ifade` ya da `(x) => { blok }`; adsız `TR_kw_func(x) { ... }` de bir değerdir.
+**6.2** `TR_return ifade` fonksiyondan değer döndürür; değer döndürmeyen fonksiyonda `TR_return` değersiz yazılır. Dönüş tipi yazılmış fonksiyonda her yol `TR_return` ile, `TR_exit` ile ya da çıkışı olmayan bir sonsuz döngüyle (5.9) biter; bitmeyen yol denetim hatasıdır, ileti `TR_return`'ü önerir. Gövdenin son ifadesi dönüş değeri değildir. Programın en dışında `TR_return` yazılmaz (1.10).
+- *Test:* TR testi; eksik dönüş hatası uygulanınca denetleyicinin testi.
 
-**6.7** Sondaki blok: bir çağrının, üye erişiminin ya da adın hemen ardından **aynı satırda** yazılan `{ ... }`, tek parametresi `TR_ctx_it` olan bir fonksiyondur ve çağrının son argümanı olur: `l.filtrele { o > 2 }` ≡ `l.TR_mem_filter((o) => o > 2)`. İç içe bloklarda `TR_ctx_it` en içteki elemanı gösterir. `liste.TR_mem_reduce`'nin bloğu iki parametrelidir: `TR_ctx_acc` o ana kadarki sonuç, `TR_ctx_it` sıradaki elemandır (`l.TR_mem_reduce(0) { TR_ctx_acc + TR_ctx_it }` ≡ `l.TR_mem_reduce(0, (birikim, o) => birikim + o)`); eski `o[0]`/`o[1]` biçimi (o, `[birikim, eleman]` listesiyken) sözdizimi hatasıdır ve `TR_ctx_acc` ile `TR_ctx_it` yazmayı önerir. `TR_kw_if`, `TR_kw_while`, `TR_kw_for` ve `TR_kw_match` başlıklarında `{` her zaman gövdeyi başlatır; orada sondaki blok için ifade paranteze alınır.
+**6.3** Birden çok değer: dönüş tipi parantez içinde virgülle yazılır (`-> (TR_Float, TR_Int)`), `TR_return a, b` hepsini döndürür. Çağrının sonucu tek bir değer değildir, 5.3'teki gibi açılır (`TR_var a, b = f(x)`); değer sayısı tutmazsa ya da sonuç tek değer olarak kullanılırsa denetim hatasıdır, ileti açmayı önerir.
+- *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
+
+**6.4** Varsayılan değer `p: T = ifade` diye yazılır; varsayılanlı bir parametreden sonraki parametrelerin de varsayılanı vardır. Varsayılan, argümanı verilmediğinde her çağrıda yeniden, soldan sağa hesaplanır: önceki parametreleri ve fonksiyonun tanımlandığı kapsamı görür (`TR_func f(a: TR_Int, b: TR_Int = a * 2)` ile `f(1)` → `b` 2). Parametrenin kendisi ve sonraki parametreler varsayılanda kullanılamaz (denetim hatası). Varsayılanı `[]` olan parametre her çağrıda yeni bir liste alır.
+- *Test:* TR testi.
+
+**6.5** Argümanlar önce sırayla, sonra adla verilir: `f(10, k: 2)`; adlı argümanların kendi arasındaki sırası serbesttir.
+- Python'un `k=2` yazımı sözdizimi hatasıdır; ileti `k: 2`'yi önerir.
+- Eksik zorunlu argüman, fazla argüman, bilinmeyen ad, hem sırayla hem adla verilen parametre ve tipi tutmayan argüman denetim hatasıdır; ileti parametrenin adını söyler.
+- Değişken sayıda parametre (Python'un `*args` ve `**kwargs`'ı) yoktur; liste ya da sözlük parametresi alınır. Yerleşiklerin bazıları (`TR_print`) değişken sayıda argüman alır.
+- Liste ve sözlük argümanı paylaşılır (3.6). Parametre gövdenin yerel değişkenidir ve atanabilir.
+- *Test:* TR testi; adlı argüman iletisi ve denetim hataları uygulanınca denetleyicinin testi.
+
+**6.6** Fonksiyon ifadesi `(a, b) => ifade` ya da `(a) => { ... }` bir fonksiyon değeridir; blok gövdesi değerini `TR_return` ile verir (6.2). Parametre tipleri beklenen fonksiyon tipinden çıkar (`l.TR_filter((x) => x > 2)`); beklenen tip yoksa yazılır (`(x: TR_Int) => x * 2`). Parantez her zaman yazılır. Fonksiyon ifadesinin tek yazımı budur: adsız `TR_func(x) { ... }`, parantezsiz `x => ...` ve Python'un `lambda x: ...`'i sözdizimi hatasıdır, ileti `(x) => ...`'i önerir. `TR_func` tanımı yalnız deyim olarak yazılır; ifade yerinde sözdizimi hatasıdır.
+- *Test:* TR testi; yazım iletileri uygulanınca TR testi.
+
+**6.7** Sondaki blok: bir çağrının ardından aynı satırda yazılan `{ ... }` (2.8) parametresiz bir fonksiyondur ve çağrının son argümanı olur: `TR_mixed_precision("bfloat16") { ... }`. Blok tek argümansa parantez yazılmaz (`TR_error_code { f(1) }`).
+- Bloğun değeri son ifadesidir (5.5'teki gibi). İçinde `TR_return` denetim hatasıdır; `TR_break` ve `TR_continue` 5.13'teki gibi sınırı geçemez.
+- Son argüman parametresiz bir fonksiyon ifadesiyse yalnız böyle yazılır: `f(() => { ... })` sözdizimi hatasıdır, ileti sondaki bloğu önerir. Parametreli fonksiyon ok ile verilir; sondaki blokta parametre yoktur.
+- `TR_if`, `TR_for` ve `TR_match` başlığında `{` her zaman gövdeyi başlatır; orada sondaki bloklu çağrı paranteze alınır.
+- *Test:* TR testi; parametresiz blok ve iletiler uygulanınca TR testi.
+
+**6.8** Fonksiyon ve fonksiyon ifadesi tanımlandıkları kapsamın değişkenlerini başvuruyla yakalar (kapanış): onları okur ve atar, değişiklik iki yanda da görünür. Döngünün her turu kendi değişkenini taşır (5.12); turda kurulan kapanış o turun değerini görür. Dıştaki değişkene atamak için ek bir sözcük gerekmez, çünkü yeni yerel ad `TR_var` ile tanımlanır (5.1). Özyineleme serbesttir.
+- *Test:* TR testi.
 
 ```tr
-//! tr kodlu 3 dil=tr
-TR_kw_var sayılar = [1, 2, 3, 4]
-sayılar.TR_mem_filter { TR_ctx_it > 2 }.TR_mem_map { TR_ctx_it * TR_ctx_it }
-TR_kw_if (sayılar.TR_mem_filter { TR_ctx_it > 2 }).TR_mem_length > 0 { TR_fn_print("2'den büyük var") }
+# TR 4
+TR_func sayaç_kur() -> () -> TR_Int {
+    TR_var n = 0
+    TR_return () => {
+        n += 1
+        TR_return n
+    }
+}
+TR_var say = sayaç_kur()
+say()
+TR_print(say())   # çıktı: 2
 ```
 
-**6.8** Dönüş tipi `: Tip` ya da `-> Tip` ile bildirilir; tip denetleyicisi `TR_kw_return` değerlerini buna göre denetler.
+**6.9** Fonksiyon tipi `(T1, T2) -> R` diye yazılır: `(TR_Int) -> TR_Bool`, parametresizde `() -> R`. Değer döndürmeyen fonksiyonun tipi `(T) -> TR_NoneType`, birden çok değer döndürenin `(T) -> (A, B)`'dir. Fonksiyon değeri sırayla ve bütün argümanlarıyla çağrılır; adlı argüman ve varsayılan yalnız tanımın adıyla yapılan çağrıda geçerlidir. Fonksiyonlar karşılaştırılamaz (4.5); fonksiyonun metni tipinin metnidir ("(Int) -> Bool", 3.14).
+- *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
 
-```tr
-//! tr kodlu 3 dil=tr
-TR_kw_func topla(a: TR_type_Int, b: TR_type_Int): TR_type_Int { TR_kw_return a + b }
-```
+**6.10** Tip parametresi adla parametreler arasında köşeli parantezle yazılır: `TR_func baştaki[T](l: TR_List[T]) -> T? { ... }`. Çağrıda argümanlardan çıkar, çıkmıyorsa yazılır (`baştaki[TR_Int]([])`). `T` tipindeki değerle yalnız her tipte geçerli işler yapılır: atamak, argüman olarak vermek, döndürmek, listeye ve sözlüğe değer olarak koymak, `TR_print` ve `TR_String`. Öbür işlemler (`==`, `+`, üye) bir kısıt ister; kısıtlar sonraki bölümlerdedir.
+- *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
+
+**6.11** İç içe çağrı derinliği 10000'i aşarsa çalışma hatasıdır.
+- *Test:* TR testi; bugünkü testi 6.3a numarasıyla, testler yeniden yazılırken 6.11'e taşınır.

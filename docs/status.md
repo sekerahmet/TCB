@@ -388,3 +388,63 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: DENETİM'de
 
 - **Mevcut durum:** tanımsız ad çalışmadan önce bulunuyor ve en yakın adı öneriyor; tanımından önce kullanılan ad ise çalışma hatası veriyor [ölçüldü]. Kendisinden sonra tanımlanan en dış değişkeni okuyan fonksiyon, değişkenden sonra çağrılınca çalışıyor [ölçüldü, DENETİM].
 - **Yapılacaklar:** tanımından önce kullanma denetim hatası; öneri 2.3a'nın uzaklığıyla. Fonksiyonu çağıran ifade, fonksiyonun doğrudan ya da dolaylı kullandığı değişkenlerden sonra gelmeli; modülün en dışında sıradan bağımsızlık ve sabitler arasında döngü hatası.
+
+## 6. Fonksiyonlar
+
+Kurallar: [`docs/spec/06_fonksiyonlar.md`](spec/06_fonksiyonlar.md). Taslak: DENETİM ve Gemini'nin araştırması bekleniyor. Kuralla aynı olanlar: döngüde kurulan kapanış o turun değerini görüyor, fonksiyon dıştaki değişkene atayabiliyor, tipi tutmayan argüman çalışmadan önce bulunuyor [ölçüldü]; varsayılan her çağrıda yeniden hesaplanıyor, derinlik sınırı 10000 (bugünkü testler).
+
+`tests/fonksiyonlar_test.tr` eski kuralları da sınıyor; testler koşulmadan önce yeni kurallara göre yeniden yazılır:
+- tipsiz parametreler (1.2);
+- tanımından önce çağrının hata vermesi (5.14'e aykırı);
+- son ifadenin örtük dönüşü (6.2);
+- dönüş tipinin `:` ile yazımı (6.1);
+- parantezsiz ok ve adsız `TR_func` (6.6);
+- `TR_it` ve `TR_acc`'li sondaki blok, son argümanda `() => { ... }` (6.7);
+- numaralar: eski 6.3 → 6.4, 6.4 → 6.5, 6.5 → 6.8, 6.8 → 6.1, 6.3a → 6.11.
+
+Depodaki kullanımlar çevrilir: `TR_it` 44 ve `TR_acc` 10 yerde, adsız `TR_func` 52, parantezsiz ok 21 [ölçüldü]; 13.6'daki `TR_reduce` bloğu da.
+
+### 6.1
+
+- **Mevcut durum:** parametre tipi isteğe bağlı; dönüş tipi hem `:` hem `->` ile yazılıyor; aynı adla ikinci tanım hata vermiyor, ikincisi kazanıyor; `def f(x):` genel bir sözdizimi hatası veriyor [ölçüldü].
+- **Yapılacaklar:** parametre tipi zorunlu; dönüş tipinin tek yazımı `->`; aynı kapsamda ikinci tanım denetim hatası; `def`, `: R` ve süsleyici için iletiler.
+
+### 6.2
+
+- **Mevcut durum:** dönüş tipi yazılmış fonksiyonda `TR_return`'süz yol yokluk veriyor; gövdenin son ifadesi örtük dönüyor (`TR_func s(x) { x }` 4 veriyor) [ölçüldü].
+- **Yapılacaklar:** eksik dönüş denetim hatası, ileti `TR_return`'ü önerir; örtük dönüş kalkar.
+
+### 6.3
+
+- **Mevcut durum:** `TR_return 1, 2` sözdizimi hatası veriyor [ölçüldü].
+- **Yapılacaklar:** birden çok değer döndürme ve açma; tek değer olarak kullanımı denetim hatası.
+
+### 6.4
+
+- **Mevcut durum:** varsayılansız parametrenin varsayılanlıdan sonra gelmesi ölçülmedi.
+- **Yapılacaklar:** varsayılanlı parametrelerden sonrakilerin de varsayılanı olur; varsayılanın denetimi çalışmadan önce.
+
+### 6.5
+
+- **Mevcut durum:** eksik argüman ancak çalışırken bulunuyor ("'m' fonksiyonu 2 argüman bekler, 1 verildi"); Python'un `b=5` yazımı genel bir sözdizimi hatası veriyor [ölçüldü].
+- **Yapılacaklar:** eksik, fazla, bilinmeyen ve iki kez verilen argüman denetim hatası; `k=2` iletisi iki noktalı yazımı önerir.
+
+### 6.6
+
+- **Mevcut durum:** üç yazım da çalışıyor: `x => ...`, `(x) => ...`, adsız `TR_func(x) { ... }` (bugünkü 6.6 ve 6.5 testleri).
+- **Yapılacaklar:** yalnız parantezli ok; öbürleri ve `lambda` sözdizimi hatası, ileti oku önerir; `TR_func` tanımı ifade yerinde hata.
+
+### 6.7
+
+- **Mevcut durum:** sondaki blok tek parametreli, parametresi `TR_it`; `TR_reduce` bloğunda `TR_acc` (bugünkü 6.7 testleri).
+- **Yapılacaklar:** sondaki blok parametresiz; `TR_it` ve `TR_acc` kalkar (2.9b); blokta `TR_return` denetim hatası; son argümanda `() => { ... }` sözdizimi hatası, ileti sondaki bloğu önerir.
+
+### 6.9
+
+- **Mevcut durum:** fonksiyonun metni dosyanın dilinde ve tipsiz: ok fonksiyonu için "<ok fonksiyonu>" yazılıyor [ölçüldü].
+- **Yapılacaklar:** fonksiyon tipinin yazımı (`(T) -> R`); metin tipin metni. Kimlik listesindeki genel fonksiyon tipi kalkar (3.11).
+
+### 6.10
+
+- **Mevcut durum:** `TR_func f[T](l)` sözdizimi hatası veriyor [ölçüldü].
+- **Yapılacaklar:** tip parametreleri ve çağrıda çıkarımı.
