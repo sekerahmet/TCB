@@ -204,3 +204,47 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). Taslak: D
 
 - **Mevcut durum:** sözdizimi hataları yalnız metin olarak veriliyor; komut satırının yardımında JSON yalnız hız raporu için var [ölçüldü].
 - **Yapılacaklar:** hata ve uyarılar JSON olarak da verilir; seçenek ve alanlar sonraki bölümlerde tanımlanınca.
+
+## 3. Tipler ve değerler
+
+Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM ve Gemini'nin araştırması bekleniyor. TR bugün dinamik tipli; tip açıklamalarını yalnız çalışmadan önceki denetleyici kullanıyor. `tests/` altındaki 3. bölüm testleri eski kuralları da sınıyor (karışık tipli liste, doğruluk sınaması, çıplak ad anahtarı, açıklamasız değişkenin tipi); testler koşulmadan önce yeni kurallara göre yeniden yazılır. Eski 3.14 (tip adının tek yazımı) 2.3a'ya düştü; eski 3.15 (katalog iletisinin tipi) hata bölümüne gider, `tests/` altındaki 3.15 testi o bölüm yazılınca taşınır.
+
+### 3.2
+
+- **Mevcut durum:** 1e6 ve üstü bilimsel yazılıyor ("1e+06", 1234567.0 için "1.234567e+06") [ölçüldü].
+- **Yapılacaklar:** bilimsel gösterim üs −4'ün altında ve 16'dan itibaren.
+
+### 3.5
+
+- **Mevcut durum:** isteğe bağlı tip yok; `TR_type_Int` açıklamalı bir değişkene `TR_kw_none` atanabiliyor [ölçüldü].
+- **Yapılacaklar:** `T?` tipi; açılmamış kullanım denetim hatası; sınamadan sonra daraltma. `.TR_mem_get` isteğe bağlı tip döner.
+
+### 3.6
+
+- **Mevcut durum:** karışık tipli liste çalışıyor [ölçüldü].
+- **Yapılacaklar:** `TR_type_List[T]`; öğelerin tipi aynı, boş liste tipini yazar.
+
+### 3.7
+
+- **Mevcut durum:** `{k: 1}` anahtarı "k" metni sayıyor, `d.k` anahtarı okuyor, olmayan anahtar `TR_kw_none` veriyor, ondalık anahtar çalışıyor [ölçüldü].
+- **Yapılacaklar:** `TR_type_Dict[K, V]`; değişmezdeki anahtar bir ifade, erişim yalnız köşeli parantezle, olmayan anahtar hata, anahtar yalnız `TR_type_Int`, `TR_type_String`, `TR_type_Bool`. Depodaki kullanımlar çevrilir.
+
+### 3.8
+
+- **Mevcut durum:** `3..0` geriye sayıyor (3, 2, 1) [ölçüldü].
+- **Yapılacaklar:** başlangıç bitişten büyük ya da eşitse aralık boş; `.TR_mem_reverse()` aralıkta da çalışır.
+
+### 3.10
+
+- **Mevcut durum:** doğruluk sınaması var: boş liste koşulda yanlış sayılıyor [ölçüldü].
+- **Yapılacaklar:** koşulda yalnız `TR_type_Bool`; başka tip denetim hatası, ileti açık sınamayı önerir.
+
+### 3.13
+
+- **Mevcut durum:** `0` ile başlayan değişkene ondalık eklenebiliyor [ölçüldü]; açıklamasız değişkenin tipi kalıcı değil.
+- **Yapılacaklar:** statik tip (1.2); kalıcı yerel tip; tam sayı yazımı ondalık beklenen yerde ondalık.
+
+### 3.14
+
+- **Mevcut durum:** değerin metni dosyanın dilinde: Türkçe dosyada tip "Tam", yokluk "yok", sonsuz "sonsuz" yazılıyor [ölçüldü].
+- **Yapılacaklar:** değerin metni dilden bağımsız, kimliğin ad kısmıyla.
