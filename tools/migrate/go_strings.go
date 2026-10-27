@@ -88,6 +88,9 @@ func quoteLike(orig, s string) string {
 
 // convertSnippet bir metin değişmezini çevirir; ok, metnin bir TR metni olduğudur.
 func convertSnippet(s string, view bool, line int) (string, bool, []problem) {
+	if looksNew(s) {
+		return s, false, nil
+	}
 	if strings.HasPrefix(strings.TrimPrefix(s, bom), oldHeaderPrefix) {
 		out, probs := convertTRFile("", s)
 		return out, true, relocate(probs, line-1)
@@ -116,6 +119,26 @@ func relocate(probs []problem, base int) []problem {
 		probs[i].Line += base
 	}
 	return probs
+}
+
+// looksNew metin zaten yeni biçimde mi: yeni başlıkla başlıyor, yeni yazımda bir kimlik (TR_print) ya
+// da '\(' yerleştirmesi içeriyor (eski yazımda TR_print ayrılmış ad, '\(' bilinmeyen kaçış hatasıydı).
+// Yeni biçimdeki girdiye dokunulmaz: iki kez koşmak bir kez koşmakla aynıdır.
+func looksNew(s string) bool {
+	if strings.HasPrefix(strings.TrimPrefix(s, bom), newHeaderPrefix) || strings.Contains(s, `\(`) {
+		return true
+	}
+	for w := range wordsOf(s) {
+		if !strings.HasPrefix(w, codes.IdentityPrefix) || knownClass(codes.IdentityClass(w)) {
+			continue
+		}
+		for _, p := range []codes.Place{codes.PlaceOther, codes.PlaceMember, codes.PlaceArg} {
+			if _, ok := codes.FromSpelling(p, w); ok {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // hasOldIdentity metinde eski sınıflı bir kimlik (TR_fn_print) var mı?

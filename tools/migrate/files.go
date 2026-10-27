@@ -134,6 +134,9 @@ func convertExamples(rel, in string) (string, []problem) {
 			probs = append(probs, problem{Line: i + 1, Reason: "example is not a JSON string"})
 			continue
 		}
+		if looksNew(ex) {
+			continue
+		}
 		conv, ps := convertCode(ex, v, i)
 		probs = append(probs, ps...)
 		if conv == ex {
