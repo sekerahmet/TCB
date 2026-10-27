@@ -73,6 +73,35 @@ izler.ekle("sürdü")
 	}
 }
 
+// İlk kesme isteği çalışan bir yerleşiği yarıda bırakmaz (dil tanımı 1.8): istek hesabın
+// ortasında gelse de yerleşik işini bitirip döner, program bir sonraki güvenli noktada
+// (fonksiyon çağrısı) durur.
+func TestInterruptWaitsForBuiltin(t *testing.T) {
+	prog := mustParseProgram(t, `
+değişken izler = []
+fonksiyon sür() { izler.ekle("sürdü") }
+izler.ekle(uzun())
+sür()
+`)
+	vmx := New()
+	finished := false
+	vmx.RegisterBuiltin("uzun", func(v *VM, _ []Value, _ map[string]Value) (Value, error) {
+		v.Interrupt()   // istek hesabın ortasında gelir
+		finished = true // hesabın geri kalanı
+		return &StringVal{Val: "bitti"}, nil
+	})
+	if _, err := vmx.Run(prog); !errors.Is(err, ErrInterrupted) {
+		t.Fatalf("ErrKesildi bekleniyordu: %v", err)
+	}
+	if !finished {
+		t.Error("yerleşik kesme isteğiyle yarıda kaldı")
+	}
+	traces, _ := vmx.GlobalEnv.Get("izler")
+	if text := traces.Inspect(); strings.Contains(text, "sürdü") {
+		t.Errorf("program fonksiyon çağrısında durmalıydı: %s", text)
+	}
+}
+
 // Kesmeyi erteleyen (kontrol noktası) yoksa KesmeIste programı Kes gibi durdurur; varsa
 // yalnızca bayrak koyar, program SimdiKes çağrılınca o noktada durur.
 func TestInterruptDeferred(t *testing.T) {

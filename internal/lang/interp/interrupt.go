@@ -8,7 +8,7 @@ import (
 )
 
 // Kesilme (nazik çıkış): kullanıcı Ctrl+C'ye bastığında ya da süreç sonlandırma isteği
-// (SIGTERM; Windows'ta konsol kapatma/oturum kapatma olayı) aldığında komut satırı Kes'i
+// (SIGTERM; Windows'ta konsol penceresinin kapanması) aldığında komut satırı Kes'i
 // çağırır. VM programı bir sonraki güvenli noktada (döngü turu, fonksiyon çağrısı) durdurur:
 // yığın çözülürken bütün 'ertele' blokları çalışır, 'dene/yakala' kesilmeyi yakalayamaz ve
 // Run ErrKesildi döndürür (komut satırı 3 koduyla çıkar). Bekleme (bekle) hemen uyanır.

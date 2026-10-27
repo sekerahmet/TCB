@@ -18,11 +18,12 @@ const (
 )
 
 // catchInterrupt Ctrl+C'yi ve sonlandırma isteklerini (Unix'te SIGTERM ve SIGHUP; Windows'ta
-// Ctrl+Break ile konsol kapatma, oturum kapatma ve bilgisayarı kapatma olayları) yakalar.
+// Ctrl+Break ve konsol penceresinin kapanması) yakalar. Windows oturum ve bilgisayar kapanma
+// olaylarını yalnız hizmetlere gönderir; etkileşimli program bu olayları almadan sonlandırılır.
 // İlk istek programın nazikçe durmasını ister (VM.RequestInterrupt): program bir kontrol noktası
 // kurduysa istek adım sınırına ertelenir (nokta kaydedilip öyle durulur), kurmadıysa program
 // hemen durur. İkinci istek süreci hemen bitirir. Sınır: Windows konsol penceresi kapatılınca
-// işletim sistemi süreci birkaç saniye içinde öldürür; ertelenen işler ve uzun bir adım bu
+// işletim sistemi süreci varsayılan olarak 5 saniye içinde öldürür; ertelenen işler ve uzun bir adım bu
 // sürede bitmeyebilir (gerçek güvence kontrol noktasının düzenli kaydıdır).
 func catchInterrupt(machine *interp.VM) {
 	channel := make(chan os.Signal, 2)

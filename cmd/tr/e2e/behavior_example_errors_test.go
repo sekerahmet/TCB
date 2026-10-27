@@ -59,8 +59,8 @@ func expectedCode(t *testing.T, path string) messages.Code {
 }
 
 // producedErrors dosyayı süreç içinde hazırlar ve çalıştırır; sözdizimi, tip ya da çalışma zamanı
-// hatalarının hepsini verir.
-func producedErrors(t *testing.T, path string) []error {
+// hatalarının hepsini verir. beforeRun hatanın çalışmadan önceki denetimde çıktığını söyler.
+func producedErrors(t *testing.T, path string) (errs []error, beforeRun bool) {
 	t.Helper()
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -68,19 +68,20 @@ func producedErrors(t *testing.T, path string) []error {
 	}
 	r := source.Prepare(string(data), source.Options{TypeCheck: true})
 	if r.Stage != "" {
-		return r.Errors
+		return r.Errors, true
 	}
 	machine := interp.New()
 	machine.SourceFile = path
 	machine.SourceCode = r.Text
 	if _, err := machine.Run(r.Program); err != nil {
-		return []error{err}
+		return []error{err}, false
 	}
-	return nil
+	return nil, false
 }
 
 // Her hata örneği süreç içinde söylediği ileti kodunu gerçekten üretir; ikili her gösterim dilinde 1
-// koduyla çıkar ve hatayı standart hataya yazar.
+// koduyla çıkar ve hatayı standart hataya yazar. Denetimde düşen örnekte hiçbir satır çalışmaz:
+// hatadan önceki satırın çıktısı da yoktur (dil tanımı 1.3; 23_devam_disinda.tr hatadan önce yazdırır).
 func TestExampleErrors(t *testing.T) {
 	examples := errorExamples(t, "tr", "hatalar")
 	if len(examples) < 20 {
@@ -90,7 +91,8 @@ func TestExampleErrors(t *testing.T) {
 		t.Run(n, func(t *testing.T) {
 			want := expectedCode(t, p)
 			found := false
-			for _, e := range producedErrors(t, p) {
+			errs, beforeRun := producedErrors(t, p)
+			for _, e := range errs {
 				found = found || messages.Has(e, want)
 			}
 			if !found {
@@ -101,6 +103,9 @@ func TestExampleErrors(t *testing.T) {
 				s := testkit.RunBinary(t, trBinary, reporoot.Path(), "", []string{"TR_DIL=" + display}, filepath.ToSlash(rel))
 				if s.Code != 1 || !strings.Contains(s.Stderr, "❌") {
 					t.Errorf("%s (TR_DIL=%s): çıkış kodu %d (beklenen 1), hata çıktısı:\n%s", rel, display, s.Code, s.Stderr)
+				}
+				if beforeRun && s.Stdout != "" {
+					t.Errorf("%s (TR_DIL=%s): denetim hatasından önce satır çalıştı, çıktı:\n%s", rel, display, s.Stdout)
 				}
 			}
 		})
