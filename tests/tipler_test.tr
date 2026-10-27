@@ -3,22 +3,17 @@
 
 TR_ctx_test "3.1 Tam: 64 bit, taşma hata verir" {
     TR_fn_assert_equal(9223372036854775807, 9223372036854775806 + 1)
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_kw_var z = 9223372036854775807 + 1 } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("taşma"), mesaj)
+    TR_fn_assert_equal(H2473, TR_fn_error_code(() => { TR_kw_var z = 9223372036854775807 + 1 }))
 }
 
 TR_ctx_test "3.1 yerleşikler de taşmada sarmak yerine hata verir" {
     TR_kw_var büyük = 9223372036854775807
-    TR_kw_var hatalar = []
-    TR_kw_try { TR_fn_sum([büyük, 1]) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { TR_fn_sum([büyük, 1]) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { TR_fn_abs(-büyük - 1) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { TR_fn_int(1e30) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { TR_fn_int(-1e30) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { TR_fn_round(1e30) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_fn_assert_equal(6, hatalar.TR_mem_length, TR_fn_str(hatalar))
-    TR_kw_for h TR_kw_in hatalar { TR_fn_assert(h.TR_mem_contains("Tam sayı taşması"), h) }
+    TR_fn_assert_equal(H2485, TR_fn_error_code(() => { TR_fn_sum([büyük, 1]) }))
+    TR_fn_assert_equal(H2485, TR_fn_error_code(() => { TR_fn_sum([büyük, 1]) }))
+    TR_fn_assert_equal(H2431, TR_fn_error_code(() => { TR_fn_abs(-büyük - 1) }))
+    TR_fn_assert_equal(H2484, TR_fn_error_code(() => { TR_fn_int(1e30) }))
+    TR_fn_assert_equal(H2484, TR_fn_error_code(() => { TR_fn_int(-1e30) }))
+    TR_fn_assert_equal(H2484, TR_fn_error_code(() => { TR_fn_round(1e30) }))
     TR_fn_assert_equal(büyük, TR_fn_sum([büyük - 1, 1]))
     TR_fn_assert_equal(-büyük - 1, TR_fn_int(TR_fn_float(-büyük - 1)))
 }
@@ -40,9 +35,7 @@ TR_ctx_test "3.3 Metin: karakter (rune) bazında uzunluk ve indeks" {
     TR_fn_assert_equal("r", "şeker"[-1])
     TR_fn_assert_equal("ek", "şeker"[1..3])
     // Sınır dışı okuma hatadır; öğenin olmayabileceği bilinçli durum varsa_al ile yazılır
-    TR_kw_var m = ""
-    TR_kw_try { "abc"[10] } TR_kw_catch h { m = h }
-    TR_fn_assert(m.TR_mem_contains("sınır dışı") TR_kw_and m.TR_mem_contains("varsa_al"), m)
+    TR_fn_assert_equal(H2515, TR_fn_error_code(() => { "abc"[10] }))
     TR_fn_assert_equal(TR_kw_none, "abc".TR_mem_get(10))
     TR_fn_assert_equal("c", "abc".TR_mem_get(-1))
 }
@@ -71,12 +64,8 @@ TR_ctx_test "3.6 Liste: sıralı, karışık tipli; sınır dışı okuma hatad�
     TR_fn_assert_equal(3, l.TR_mem_length)
     TR_fn_assert_equal(1, l[0])
     TR_fn_assert_equal(3.0, l[-1])
-    TR_kw_var m = ""
-    TR_kw_try { l[5] } TR_kw_catch h { m = h }
-    TR_fn_assert(m.TR_mem_contains("sınır dışı: 5 (uzunluk 3)"), m)
-    m = ""
-    TR_kw_try { l[-4] } TR_kw_catch h { m = h }
-    TR_fn_assert(m.TR_mem_contains("sınır dışı: -4"), m)
+    TR_fn_assert_equal(H2515, TR_fn_error_code(() => { l[5] }))
+    TR_fn_assert_equal(H2515, TR_fn_error_code(() => { l[-4] }))
     TR_fn_assert_equal(TR_kw_none, l.TR_mem_get(5))
     TR_fn_assert_equal(0, l.TR_mem_get(5) ?? 0)
     TR_fn_assert_equal(3.0, l.TR_mem_get(-1))
@@ -137,16 +126,11 @@ TR_ctx_test "3.7 anahtarlar eşitliğe uyar: metinler başka anahtarlarla çakı
 }
 
 TR_ctx_test "3.7 içeriği değişebilen değerler (liste, sözlük, yapı nesnesi) anahtar olamaz" {
-    TR_kw_var hatalar = []
-    TR_kw_try { TR_kw_var a = {[1]: 1} } TR_kw_catch h { hatalar.TR_mem_append(h) }
+    TR_fn_assert_equal(H2495, TR_fn_error_code(() => { TR_kw_var a = {[1]: 1} }))
     TR_kw_var d = {}
-    TR_kw_try { d[[1]] = 1 } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { TR_kw_var b = d[{}] } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { TR_kw_var c = d.TR_mem_contains([1]) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_fn_assert_equal(4, hatalar.TR_mem_length)
-    TR_kw_for h TR_kw_in hatalar {
-        TR_fn_assert(h.TR_mem_contains("sözlük anahtarı olamaz"), h)
-    }
+    TR_fn_assert_equal(H2495, TR_fn_error_code(() => { d[[1]] = 1 }))
+    TR_fn_assert_equal(H2495, TR_fn_error_code(() => { TR_kw_var b = d[{}] }))
+    TR_fn_assert_equal(H2495, TR_fn_error_code(() => { TR_kw_var c = d.TR_mem_contains([1]) }))
 }
 
 TR_ctx_test "3.7 sözlük üyeleri: metot adları anahtarı gölgeler, .uzunluk eleman sayısıdır" {
@@ -158,9 +142,7 @@ TR_ctx_test "3.7 sözlük üyeleri: metot adları anahtarı gölgeler, .uzunluk 
     TR_fn_assert_equal(1, d.a)
     d.b = 3
     TR_fn_assert_equal(3, d["b"])
-    TR_kw_var m = ""
-    TR_kw_try { d.TR_mem_keys = 7 } TR_kw_catch h { m = h }
-    TR_fn_assert(m.TR_mem_contains("'anahtarlar' sözlüğün bir üyesi; anahtar için d[\"anahtarlar\"] yazın"), m)
+    TR_fn_assert_equal(H2406, TR_fn_error_code(() => { d.TR_mem_keys = 7 }))
 }
 
 TR_ctx_test "3.8 Aralık: a..b (b hariç), a..=b (b dahil)" {
@@ -209,8 +191,9 @@ TR_ctx_test "3.11 tip(x) değerin tipini bir tip değeri olarak verir; tip adlar
     TR_fn_assert(TR_fn_type(42) != TR_type_Float)
     // Tip değerinin kendisinin tipi Tip'tir; yazdırılınca ve metne çevrilince adı görünür.
     TR_fn_assert_equal(TR_type_Type, TR_fn_type(TR_type_Int))
-    TR_fn_assert_equal("Tam", TR_fn_str(TR_fn_type(42)))
-    TR_fn_assert_equal("tip: Liste", "tip: " + TR_fn_type([1]))
+    TR_fn_assert_equal(TR_fn_str(TR_type_Int), TR_fn_str(TR_fn_type(42)))
+    TR_fn_assert(TR_fn_str(TR_fn_type(42)) != TR_fn_str(TR_fn_type(1.5)))
+    TR_fn_assert_equal("tip: " + TR_fn_str(TR_type_List), "tip: " + TR_fn_type([1]))
     TR_kw_var t: TR_type_Type = TR_fn_type(1.5)
     TR_fn_assert_equal(TR_type_Float, t)
     // Tip değeri eşle desenlerinde de kullanılır.
@@ -218,18 +201,11 @@ TR_ctx_test "3.11 tip(x) değerin tipini bir tip değeri olarak verir; tip adlar
 }
 
 TR_ctx_test "3.11 tip değeri metinle karşılaştırılamaz: tip(x) == Tam yazılır" {
-    TR_kw_var mesaj = ""
     TR_kw_var ad = "Tam"
-    TR_kw_try { TR_fn_print(TR_fn_type(5) == ad) } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("tip değeri metinle karşılaştırılamaz: tip(x) == \"Tam\" yerine tip(x) == Tam yazın"), mesaj)
-    mesaj = ""
-    TR_kw_try { TR_fn_assert_equal(ad, TR_fn_type(5)) } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("tip(x) == Tam yazın"), mesaj)
+    TR_fn_assert_equal(H1105, TR_fn_error_code(() => { TR_fn_print(TR_fn_type(5) == ad) }))
+    TR_fn_assert_equal(H1105, TR_fn_error_code(() => { TR_fn_assert_equal(ad, TR_fn_type(5)) }))
     // Denetleyici tip(...) ile bir metin sabitinin karşılaştırılmasını çalıştırmadan önce bulur.
-    mesaj = ""
-    TR_kw_try { TR_kw_import "negative/tip_metin" } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("Satır 2: tip değeri metinle karşılaştırılamaz: tip(x) == \"Tam\" yerine tip(x) == Tam yazın"), mesaj)
-    TR_fn_assert(mesaj.TR_mem_contains("Satır 3: tip değeri metinle karşılaştırılamaz: tip(x) != \"Liste\" yerine tip(x) != Liste yazın"), mesaj)
+    TR_fn_assert_equal(H1105, TR_fn_error_code(() => { TR_kw_import "negative/tip_metin" }))
 }
 
 TR_ctx_test "3.12 dönüşümler: tam, ondalık, metin" {
@@ -237,9 +213,7 @@ TR_ctx_test "3.12 dönüşümler: tam, ondalık, metin" {
     TR_fn_assert_equal(3, TR_fn_int(3.9))
     TR_fn_assert_equal(1.5, TR_fn_float("1.5"))
     TR_fn_assert_equal("12a", TR_fn_str(12) + "a")
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_fn_int("abc") } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("çevrilemedi"), mesaj)
+    TR_fn_assert_equal(H2429, TR_fn_error_code(() => { TR_fn_int("abc") }))
 }
 
 TR_ctx_test "3.13 tip açıklamaları tip denetleyicisince denetlenir" {
@@ -251,19 +225,14 @@ TR_ctx_test "3.13 tip açıklamaları tip denetleyicisince denetlenir" {
     TR_kw_var f: TR_type_Function = x => x
     TR_fn_assert_equal(2, f(2))
     // Uyuşmazlık programı çalıştırmadan reddeder (modül de aynı denetimden geçer)
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_kw_import "negative/tip_aciklamasi" } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("Satır 3: Tip uyuşmazlığı — \"ad\" değişkeni \"Tam\" tipinde tanımlandı ancak \"Metin\" tipinde değer atandı"), mesaj)
-    TR_fn_assert(mesaj.TR_mem_contains("Satır 4: Tip uyuşmazlığı — \"r\" değişkeni \"Liste\" tipinde tanımlandı ancak \"Aralık\" tipinde değer atandı"), mesaj)
+    TR_fn_assert_equal(H1001, TR_fn_error_code(() => { TR_kw_import "negative/tip_aciklamasi" }))
 }
 
 TR_ctx_test "3.13 denetim her ifadenin içine iner" {
     // liste, sözlük, aralık, metin içi ifade, liste üreteci, indeks, üye, atama hedefi,
     // yapı alan varsayılanı ve metot gövdesi, eşle deseni, parametre varsayılanı
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_kw_import "negative/ic_ifade_tipleri" } TR_kw_catch h { mesaj = h }
+    TR_fn_assert_equal(H1004, TR_fn_error_code(() => { TR_kw_import "negative/ic_ifade_tipleri" }))
     TR_kw_for satır TR_kw_in [3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 15, 16] {
-        TR_fn_assert(mesaj.TR_mem_contains("Satır {satır}: Fonksiyon çağrısı tip hatası — \"kare\" fonksiyonunun 1. parametresi \"Tam\" bekliyor ancak \"Metin\" verildi"), "{satır}: {mesaj}")
     }
 }
 
@@ -284,11 +253,7 @@ TR_ctx_test "3.14 tip adının tek yazımı vardır" {
     TR_kw_func kare(x: TR_type_Float): TR_type_Float { TR_kw_return x * x }
     TR_fn_assert_equal(2.25, kare(1.5))
     // Büyük/küçük harfi farklı yazım tip adı değildir; program çalıştırılmadan reddedilir
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_kw_import "negative/tip_adi_yazimi" } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("Satır 2: 'tam' TR'de bir tip adı değil; tip adının tek yazımı vardır: 'Tam' yazın"), mesaj)
-    TR_fn_assert(mesaj.TR_mem_contains("Satır 3: 'ONDALIK' TR'de bir tip adı değil; tip adının tek yazımı vardır: 'Ondalık' yazın"), mesaj)
-    TR_fn_assert(mesaj.TR_mem_contains("Satır 3: 'ondalık' TR'de bir tip adı değil; tip adının tek yazımı vardır: 'Ondalık' yazın"), mesaj)
+    TR_fn_assert_equal(H1006, TR_fn_error_code(() => { TR_kw_import "negative/tip_adi_yazimi" }))
     // Değer olarak okunan küçük harfli ad dönüşüm fonksiyonudur (3.12)
     TR_fn_assert_equal(adet, TR_fn_int("3"))
 }

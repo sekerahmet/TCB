@@ -73,27 +73,6 @@ func template(t *testing.T) []byte {
 	return content
 }
 
-func TestReadsOldPackageFormat(t *testing.T) {
-	code := []byte("yazdır(\"eski biçim çalışıyor\")\n")
-	content := append(template(t), code...)
-	footer := make([]byte, 16)
-	binary.LittleEndian.PutUint64(footer[0:8], uint64(len(code)))
-	copy(footer[8:], oldPackageSignature)
-	content = append(content, footer...)
-
-	filePath := filepath.Join(t.TempDir(), "eski.exe")
-	if err := os.WriteFile(filePath, content, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	testkit.Wait(t, testkit.RunBinary(t, filePath, t.TempDir(), "", nil), 0, []string{"eski biçim çalışıyor"}, nil)
-
-	// Derlemede şablonun sonundaki eski paket de doğru boyda atılır.
-	pk, templateSize, found, err := extractPackage(content)
-	if err != nil || !found || templateSize != len(template(t)) || pk.Main.Code != string(code) {
-		t.Fatalf("eski paket ayıklanamadı: bulundu=%v boy=%d hata=%v", found, templateSize, err)
-	}
-}
-
 func TestUnsupportedPackageVersion(t *testing.T) {
 	body := []byte(`{"main":{"code":"yazdır(1)"}}`)
 	content := append(template(t), body...)
@@ -132,7 +111,7 @@ func TestPackageRoundTrip(t *testing.T) {
 		t.Error("paketsiz ikilide paket bulunmamalı")
 	}
 	corrupt := append([]byte{}, coded...)
-	binary.LittleEndian.PutUint64(corrupt[len(corrupt)-20:], 1<<40)
+	binary.LittleEndian.PutUint64(corrupt[len(corrupt)-footerSize:], 1<<40)
 	if _, _, found, err := extractPackage(corrupt); !found || !messages.Has(err, messages.H8750) {
 		t.Error("bozuk uzunluk alanı hata vermeli")
 	}

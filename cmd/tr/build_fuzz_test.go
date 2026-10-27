@@ -28,7 +28,6 @@ func FuzzEmbeddedPackage(f *testing.F) {
 		}
 		f.Add(append([]byte("YORUMLAYICI"), coded...))
 	}
-	f.Add([]byte("yazdır(1)\n\x0a\x00\x00\x00\x00\x00\x00\x00TR_EXE_1"))
 
 	f.Fuzz(func(t *testing.T, exe []byte) {
 		pk, templateSize, found, err := extractPackage(exe)

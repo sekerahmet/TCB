@@ -29,9 +29,7 @@ TR_ctx_test "4.2 aritmetik: tam bölme tam çıkarsa Tam, değilse Ondalık" {
 }
 
 TR_ctx_test "4.2 sıfıra bölme hata verir" {
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_kw_var z = 1 / 0 } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("Sıfıra bölme"), mesaj)
+    TR_fn_assert_equal(H2470, TR_fn_error_code(() => { TR_kw_var z = 1 / 0 }))
 }
 
 TR_ctx_test "4.3 üs alma sağdan birleşir, negatif üs Ondalık verir" {
@@ -115,6 +113,8 @@ TR_ctx_test "4.7 ?? yalnızca yok ise sağ tarafı verir" {
 TR_ctx_test "4.8 ?. yok üzerinde hata yerine yok verir" {
     TR_kw_var kişi = TR_kw_none
     TR_fn_assert_equal(TR_kw_none, kişi?.ad)
+    TR_fn_assert_equal(H2466, TR_fn_error_code(() => { kişi.ad }))
+    // Hata '?.' güvenli erişimini önerir (işleç her dilde aynı yazılır).
     TR_kw_var mesaj = ""
     TR_kw_try { kişi.ad } TR_kw_catch h { mesaj = h }
     TR_fn_assert(mesaj.TR_mem_contains("?."), mesaj)

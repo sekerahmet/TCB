@@ -202,5 +202,9 @@
  "H8711": {
   "commit": "be79d7e",
   "reason": "deleted: cmd/tr: tr çöz is gone; nothing writes a file to disk in a writing language"
+ },
+ "H8753": {
+  "commit": "f60c7bc",
+  "reason": "deleted: cmd/tr: tr derle's version 1 package (TR_EXE_1) is no longer read"
  }
 }

@@ -37,12 +37,8 @@ TR_ctx_test "6.3 varsayılan parametreler; eksik ya da fazla argüman hata verir
     TR_fn_assert_equal("Selam Ali!", selam("Ali"))
     TR_fn_assert_equal("Selam Ali?", selam("Ali", "?"))
     TR_kw_func ikinci(a, b) { TR_kw_return b }
-    TR_kw_var eksik = ""
-    TR_kw_try { ikinci(1) } TR_kw_catch hata { eksik = hata }
-    TR_fn_assert(eksik.TR_mem_contains("2 argüman bekler, 1 verildi (eksik: 'b')"), eksik)
-    TR_kw_var fazla = ""
-    TR_kw_try { ikinci(1, 2, 3) } TR_kw_catch hata { fazla = hata }
-    TR_fn_assert(fazla.TR_mem_contains("en fazla 2 argüman alır, 3 verildi"), fazla)
+    TR_fn_assert_equal(H2414, TR_fn_error_code(() => { ikinci(1) }))
+    TR_fn_assert_equal(H2412, TR_fn_error_code(() => { ikinci(1, 2, 3) }))
 }
 
 TR_ctx_test "6.3 varsayılan değer önceki parametreleri görür" {
@@ -56,9 +52,7 @@ TR_ctx_test "6.3 varsayılan değer önceki parametreleri görür" {
     // Sonraki parametre (ve parametrenin kendisi) henüz tanımlı değildir; dıştaki aynı adlı değişken kullanılmaz
     TR_kw_var b = 7
     TR_kw_func h(a = b, b = 1) { TR_kw_return a }
-    TR_kw_var mesaj = ""
-    TR_kw_try { h() } TR_kw_catch hata { mesaj = hata }
-    TR_fn_assert(mesaj.TR_mem_contains("'b' parametresi henüz tanımlanmadı"), mesaj)
+    TR_fn_assert_equal(H2440, TR_fn_error_code(() => { h() }))
     // Varsayılan her çağrıda yeniden hesaplanır
     TR_kw_func liste_al(l = []) { l.TR_mem_append(1); TR_kw_return l }
     TR_fn_assert_equal([1], liste_al())
@@ -67,9 +61,7 @@ TR_ctx_test "6.3 varsayılan değer önceki parametreleri görür" {
 
 TR_ctx_test "6.3a özyineleme derinliği sınırı yakalanabilir hata verir" {
     TR_kw_func sonsuz(n) { TR_kw_return sonsuz(n + 1) }
-    TR_kw_var mesaj = ""
-    TR_kw_try { sonsuz(0) } TR_kw_catch hata { mesaj = hata }
-    TR_fn_assert(mesaj.TR_mem_contains("Özyineleme derinliği sınırı aşıldı"), mesaj)
+    TR_fn_assert_equal(H2422, TR_fn_error_code(() => { sonsuz(0) }))
 }
 
 TR_ctx_test "6.4 adlı argümanlar" {
@@ -81,13 +73,9 @@ TR_ctx_test "6.4 adlı argümanlar" {
 TR_ctx_test "6.4 aynı parametre hem sırayla hem adıyla verilemez" {
     TR_kw_func f(a, b = 10) { TR_kw_return [a, b] }
     TR_fn_assert_equal([1, 20], f(1, b: 20))
-    TR_kw_var iki_kez = ""
-    TR_kw_try { f(1, a: 2) } TR_kw_catch hata { iki_kez = hata }
-    TR_fn_assert(iki_kez.TR_mem_contains("'f' fonksiyonu 'a' parametresi hem sırayla (1. argüman) hem adıyla verildi"), iki_kez)
+    TR_fn_assert_equal(H2413, TR_fn_error_code(() => { f(1, a: 2) }))
     // adlı argümanlar varken eksik zorunlu parametre adıyla söylenir (6.3)
-    TR_kw_var eksik = ""
-    TR_kw_try { f(b: 20) } TR_kw_catch hata { eksik = hata }
-    TR_fn_assert(eksik.TR_mem_contains("'f' fonksiyonu için zorunlu 'a' argümanı verilmedi"), eksik)
+    TR_fn_assert_equal(H2415, TR_fn_error_code(() => { f(b: 20) }))
 }
 
 TR_ctx_test "6.5 kapanışlar tanımlandıkları ortamı yakalar" {
@@ -143,9 +131,7 @@ TR_ctx_test "6.7 indirge'nin sondaki bloğunda birikim önceki sonuç, o elemand
     TR_kw_var birikim = 5
     TR_fn_assert_equal(5, birikim)
     TR_fn_assert_equal(2, [1, 2].TR_mem_reduce(birikim) { TR_ctx_acc - TR_ctx_it })
-    TR_kw_var mesaj = ""
-    TR_kw_try { [1, 2].TR_mem_reduce(0, (x) => x) } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("liste.indirge(): fonksiyon iki parametre almalı (birikim, eleman), 1 parametreli verildi"), mesaj)
+    TR_fn_assert_equal(H2476, TR_fn_error_code(() => { [1, 2].TR_mem_reduce(0, (x) => x) }))
 }
 
 TR_ctx_test "6.7 kontrol yapısı başlığında \{ gövdeyi başlatır" {
@@ -160,10 +146,7 @@ TR_ctx_test "6.8 dönüş tipi : Tip ya da -> Tip ile bildirilir" {
     TR_kw_func b(x: TR_type_Int) -> TR_type_String { TR_kw_return TR_fn_str(x) }
     TR_fn_assert_equal("3", b(a(3)))
     // Bildirilen tiple uyuşmayan sonuç değeri programı çalıştırmadan reddeder
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_kw_import "negative/donus_tipi" } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("donus_tipi.tr, Satır 2: Dönüş tipi uyuşmazlığı — fonksiyon \"Tam\" döndürmeli ancak \"Metin\""), mesaj)
-    TR_fn_assert(mesaj.TR_mem_contains("donus_tipi.tr, Satır 4: Dönüş tipi uyuşmazlığı — fonksiyon \"Tam\" döndürmeli ancak \"Tam ya da Ondalık\""), mesaj)
+    TR_fn_assert_equal(H1003, TR_fn_error_code(() => { TR_kw_import "negative/donus_tipi" }))
 }
 
 TR_ctx_test "6.7 değilse eğer başlığında da süslü parantez gövdeyi başlatır, sondaki blok olmaz" {

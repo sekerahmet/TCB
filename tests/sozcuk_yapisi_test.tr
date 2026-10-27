@@ -42,29 +42,19 @@ iki"
 }
 
 TR_ctx_test "2.6 bilinmeyen kaçış dizisi sözdizimi hatasıdır; ham metin önerilir" {
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_kw_import "negative/bilinmeyen_kacis" } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains(`Satır 3, Sütun 19: bilinmeyen kaçış dizisi '\v'`), mesaj)
-    TR_fn_assert(mesaj.TR_mem_contains(`Satır 4, Sütun 24: bilinmeyen kaçış dizisi '\d'`), mesaj)
-    TR_fn_assert(mesaj.TR_mem_contains("ham metin"), mesaj)
+    TR_fn_assert_equal(H0008, TR_fn_error_code(() => { TR_kw_import "negative/bilinmeyen_kacis" }))
 }
 
 TR_ctx_test "2.1a göründüğünden farklı okunan kaynak kabul edilmez" {
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_kw_import "negative/yon_karakteri" } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("Satır 2, Sütun 19: yazı yönünü değiştiren görünmez bir karakter var (U+202E)"), mesaj)
-    mesaj = ""
-    TR_kw_try { TR_kw_import "negative/karisik_yazi_adi" } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("farklı yazı sistemlerinin harfleri karışık (Latin ve Kiril)"), mesaj)
+    TR_fn_assert_equal(H0011, TR_fn_error_code(() => { TR_kw_import "negative/yon_karakteri" }))
+    TR_fn_assert_equal(H0013, TR_fn_error_code(() => { TR_kw_import "negative/karisik_yazi_adi" }))
     // Tamamı tek yazı sisteminde olan adlar geçerlidir
     TR_kw_var привет, αβγ = 1, 2
     TR_fn_assert_equal(3, привет + αβγ)
 }
 
 TR_ctx_test "2.3a TR_ ile başlayan adlar ayrılmıştır" {
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_kw_import "negative/kod_bicimli_ad" } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("Satır 2, Sütun 10: 'TR_x' ayrılmış bir ad: 'TR_' ile başlayan adlar dilin ve kitaplığının kimlikleri içindir"), mesaj)
+    TR_fn_assert_equal(H0004, TR_fn_error_code(() => { TR_kw_import "negative/kod_bicimli_ad" }))
     // Benzer ama ayrılmamış adlar sıradandır; eski kod biçimi (G100) de sıradan addır
     TR_kw_var tr_x, TRx, G100 = 1, 2, 3
     TR_fn_assert_equal(6, tr_x + TRx + G100)
@@ -106,10 +96,7 @@ TR_ctx_test "2.7 metin içinde \{ifade\} yerleştirme, düz süslü parantez iç
 
 TR_ctx_test "2.7 kaçışsız her \{ bir yerleştirme başlatır; içi ifade değilse sözdizimi hatasıdır" {
     // Sessizce düz metne dönülmez: bir parçanın kod mu metin mi olduğu dile bağlı olmasın.
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_kw_import "negative/yerlestirme" } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains(`Satır 2, Sütun 9: Sözdizimi hatası — metindeki her '{' bir yerleştirme başlatır, ama '{değil}' bir ifade değil`), mesaj)
-    TR_fn_assert(mesaj.TR_mem_contains(`'\{' yazın ya da ham metin kullanın`), mesaj)
+    TR_fn_assert_equal(H0160, TR_fn_error_code(() => { TR_kw_import "negative/yerlestirme" }))
     // Düz süslü parantezin iki yazımı
     TR_fn_assert_equal(`{"kod": 5}`, "\{\"kod\": 5\}")
 }
@@ -149,30 +136,23 @@ TR_ctx_test "2.8 parantez içinde satır sonu ifadeyi bitirmez; zincir işleçle
 TR_ctx_test "2.9 dilin kelimelerinin yalnızca Türkçe yazımı geçerlidir" {
     TR_kw_var degisken = 1 // ASCII biçim sıradan bir addır
     TR_fn_assert_equal(1, degisken)
-    TR_kw_var mesaj = ""
-    TR_kw_try { dogru } TR_kw_catch h { mesaj = "{h}" }
-    TR_fn_assert(mesaj.TR_mem_contains("'dogru' TR'de anahtar kelime değil; 'doğru' yazmak mı istediniz?"), mesaj)
-    TR_kw_try { yazdir("x") } TR_kw_catch h { mesaj = "{h}" }
-    TR_fn_assert(mesaj.TR_mem_contains("'yazdir' TR'de yok; 'yazdır' yazmak mı istediniz?"), mesaj)
-    TR_kw_try { "abc".buyuk_harf() } TR_kw_catch h { mesaj = "{h}" }
-    TR_fn_assert(mesaj.TR_mem_contains("'buyuk_harf' TR'de yok; 'büyük_harf' yazmak mı istediniz?"), mesaj)
+    // ASCII yazım tanımsız addır; Türkçe yazımın önerisini (dosyanın dilinde) hint_test.go sınar.
+    TR_fn_assert_equal(H1106, TR_fn_error_code(() => { dogru }))
+    TR_fn_assert_equal(H1106, TR_fn_error_code(() => { yazdir("x") }))
+    TR_fn_assert_equal(H2474, TR_fn_error_code(() => { "abc".buyuk_harf() }))
 }
 
 TR_ctx_test "2.9a her işin tek yazımı vardır; eş anlamlılar sıradan addır" {
     TR_kw_var sınıf = "9-A"
     TR_kw_var kır = "yeşil"
     TR_fn_assert_equal("9-A yeşil", "{sınıf} {kır}")
-    TR_kw_var mesaj = ""
-    TR_kw_try { yazdir(1) } TR_kw_catch h { mesaj = "{h}" }
-    TR_fn_assert(mesaj.TR_mem_contains("'yazdır'"), mesaj)
+    TR_fn_assert_equal(H1106, TR_fn_error_code(() => { yazdir(1) }))
 }
 
 TR_ctx_test "2.10 iç içelik sınırı aşılınca sözdizimi hatası verilir" {
     TR_kw_var derin = ((((((((((1))))))))))
     TR_fn_assert_equal(1, derin)
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_kw_import "negative/cok_derin" } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("çok derin iç içe (en fazla 1000 düzey)"), mesaj)
+    TR_fn_assert_equal(H0155, TR_fn_error_code(() => { TR_kw_import "negative/cok_derin" }))
 }
 
 TR_ctx_test "2.12 ileti kodu (H ve dört rakam) kodun metnidir; daha uzun yazım sıradan bir addır" {

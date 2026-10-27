@@ -50,19 +50,15 @@ TR_ctx_test "10.3 bekle(sn) kilidi bırakır; görevler iç içe ilerler" {
 }
 
 TR_ctx_test "10.3 bekle() negatif, sayı olmayan ya da aşırı uzun süreyi reddeder" {
-    TR_kw_var hatalar = []
-    TR_kw_try { TR_fn_sleep(-5) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { TR_fn_sleep(TR_fn_float("nan")) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { TR_fn_sleep(1e300) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { TR_fn_sleep(9.3e9) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_fn_assert_equal(4, hatalar.TR_mem_length)
+    TR_fn_assert_equal(H2433, TR_fn_error_code(() => { TR_fn_sleep(-5) }))
+    TR_fn_assert_equal(H2433, TR_fn_error_code(() => { TR_fn_sleep(TR_fn_float("nan")) }))
+    TR_fn_assert_equal(H2434, TR_fn_error_code(() => { TR_fn_sleep(1e300) }))
+    TR_fn_assert_equal(H2434, TR_fn_error_code(() => { TR_fn_sleep(9.3e9) }))
     TR_fn_sleep(0)
 }
 
 TR_ctx_test "10.4 eşzamanlı çağrıdaki adlı fonksiyon görevin kapsamındadır, dışarıda tanımsızdır (5.12)" {
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_kw_import "negative/eszamanli_kapsam" } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("Satır 5, Sütun 8: Tanımsız ad — 'görev_işi' adında bir değişken ya da fonksiyon yok"), mesaj)
+    TR_fn_assert_equal(H1106, TR_fn_error_code(() => { TR_kw_import "negative/eszamanli_kapsam" }))
 }
 
 TR_ctx_test "10.4 görev değişkenleri döngü turuna aittir" {

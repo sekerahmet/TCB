@@ -1,8 +1,6 @@
 package interp
 
 import (
-	"errors"
-
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -70,7 +68,8 @@ func (v *VM) registerMessageBuiltins() {
 		return &MessageVal{Code: code, Args: append([]Value(nil), args[1:]...)}, nil
 	})
 
-	// hata_kodu(f): f'yi çalıştırır; hata kodlu bir iletiyse kodunu (Metin) verir, hata yoksa yok.
+	// hata_kodu(f): f'yi çalıştırır; hatanın en içteki nedeninin kodunu (Metin) verir, hata
+	// yoksa yok.
 	v.RegisterNoNamed(codes.FnErrorCode, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
 			return nil, ArgCountError(codes.FnErrorCode, 1, len(args))
@@ -79,10 +78,37 @@ func (v *VM) registerMessageBuiltins() {
 		if err == nil {
 			return Null, nil
 		}
-		var coded *messages.Error
-		if errors.As(err, &coded) {
+		if coded, ok := rootMessage(err); ok {
 			return &StringVal{Val: coded.Code.String()}, nil
 		}
 		return nil, err
 	})
+}
+
+// rootMessage err'in en içteki nedeninin iletisidir: ilk kodlu iletiden başlayıp yalnızca neden
+// yuvalarından (messages.IsCauseSlot: "tensör işlemi başarısız: {reason}") iner; iletinin
+// parçalarına ("tensörde ve sayıda") inmez. Emsal Rust Error::source() zinciri ve anyhow
+// root_cause ("the lowest level cause"); Go errors.As ise en dıştakini verir.
+func rootMessage(err error) (*messages.Error, bool) {
+	m, ok := messages.As(err)
+	for ok {
+		inner, found := causeMessage(m)
+		if !found {
+			break
+		}
+		m = inner
+	}
+	return m, ok
+}
+
+// causeMessage m'nin neden yuvalarındaki ilk kodlu iletidir.
+func causeMessage(m *messages.Error) (*messages.Error, bool) {
+	for i, a := range m.Args {
+		if e, isErr := a.(error); isErr && messages.IsCauseSlot(m.Code, i) {
+			if inner, found := messages.As(e); found {
+				return inner, true
+			}
+		}
+	}
+	return nil, false
 }

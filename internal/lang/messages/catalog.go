@@ -49,6 +49,20 @@ func ParamCount(c Code) (n int, ok bool) {
 	return len(p), ok
 }
 
+// causeSlotNames neden yuvalarının adlarıdır: bu adlı parametre iletinin nedenini (sardığı
+// hatayı) taşır. Öbür parametrelerdeki ileti bir parçadır ("tensörde ve sayıda"), neden değildir.
+var causeSlotNames = map[string]bool{"error": true, "reason": true}
+
+// IsCauseSlot reports whether parameter i of code c carries the message's cause (a wrapped
+// error, as in "{fn}: {error}"): hata_kodu goes down through these slots only, like Rust's
+// Error::source(), and not into message parts given as values. It is the one definition of a
+// cause slot; today the parameters named error and reason.
+func IsCauseSlot(c Code, i int) bool {
+	load()
+	p := definitions.Params[c]
+	return i >= 0 && i < len(p) && causeSlotNames[p[i]]
+}
+
 // Slots returns the name slots of every code that has any: slot name → identity (TR_arg_kind).
 // Packages that know the names check that every identity is a name of the language.
 func Slots() map[Code]map[string]string {

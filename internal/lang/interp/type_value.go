@@ -5,7 +5,6 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/hint"
-	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Tip değerleri (3.11): tip(x) değerin tipini bir tip değeri olarak verir; tip adları (Tam,
@@ -132,7 +131,7 @@ func typeTextError(op string, a, b Value) error {
 			return nil
 		}
 	}
-	return messages.New(messages.H2441, hint.TypeTextComparisonError(op, m.Val, t, nil))
+	return hint.TypeTextComparisonError(op, m.Val, t, nil)
 }
 
 // Compile-time check: the interpreter finds Equaler by type assertion, so a renamed or changed

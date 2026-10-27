@@ -9,9 +9,7 @@ TR_ctx_test "11.1 aktar modülün üst düzey adlarını getirir; .tr uzantısı
 }
 
 TR_ctx_test "11.1 modül yolu metin olarak yazılır; tırnaksız yazım hatadır" {
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_kw_import "negative/tirnaksiz_aktar" } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("'aktar' modül yolunu metin olarak bekler, ancak 'yardimci_modul' adı bulundu: aktar \"yardimci_modul\" yazın"), mesaj)
+    TR_fn_assert_equal(H0143, TR_fn_error_code(() => { TR_kw_import "negative/tirnaksiz_aktar" }))
 }
 
 TR_ctx_test "11.1 göreli aktar önce aktaran dosyanın, sonra programın klasörüne göre çözülür" {
@@ -66,16 +64,11 @@ TR_ctx_test "11.3 eşzamanlı görevler aynı modülü aktarınca biri ötekinin
 }
 
 TR_ctx_test "11.4 modül çalışmadan önce denetlenir; hatalıysa hiçbir satırı çalışmaz" {
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_kw_import "negative/tip_hatali_modul" } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("\"negative/tip_hatali_modul\" modülü tip denetimi hataları nedeniyle yüklenemedi"), mesaj)
-    TR_fn_assert(mesaj.TR_mem_contains("tip_hatali_modul.tr, Satır 3: Tip uyuşmazlığı"), mesaj)
+    TR_fn_assert_equal(H1001, TR_fn_error_code(() => { TR_kw_import "negative/tip_hatali_modul" }))
     TR_kw_var tanımlı = TR_kw_true
     TR_kw_try { yarım_kalan } TR_kw_catch { tanımlı = TR_kw_false }
     TR_fn_assert(TR_kw_not tanımlı, "hatalı modülün hiçbir adı gelmemeli")
-    mesaj = ""
-    TR_kw_try { TR_kw_import "negative/ust_duzey_sonuc" } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("ust_duzey_sonuc.tr, Satır 3, Sütun 1: Sözdizimi hatası — 'sonuç' modülün üst düzeyinde kullanılamaz"), mesaj)
+    TR_fn_assert_equal(H0154, TR_fn_error_code(() => { TR_kw_import "negative/ust_duzey_sonuc" }))
 }
 
 TR_ctx_test "11.5 modülün kodu kendi dosyasının bağlamında çalışır" {
@@ -83,9 +76,10 @@ TR_ctx_test "11.5 modülün kodu kendi dosyasının bağlamında çalışır" {
     // Göreli yol modülün klasörüne göre de aranır
     TR_fn_assert_equal("alt klasörün verisi", alt_veri())
     // Hata modülün adı ve kendi satırıyla bildirilir
+    TR_fn_assert_equal(H2470, TR_fn_error_code(() => { sıfıra_böl(1) }))
     TR_kw_var mesaj = ""
     TR_kw_try { sıfıra_böl(1) } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("yardimci_alt.tr, Satır 4: Sıfıra bölme hatası"), mesaj)
+    TR_fn_assert(mesaj.TR_mem_contains("yardimci_alt.tr, ") TR_kw_and mesaj.TR_mem_contains(" 4: "), mesaj)
     // fırlat ile atılan değer olduğu gibi yakalanır
     TR_kw_try { özel_fırlat() } TR_kw_catch h { mesaj = h }
     TR_fn_assert_equal("özel hata", mesaj)
@@ -96,20 +90,14 @@ TR_ctx_test "11.7 başı _ olan üst düzey adlar modüle özeldir" {
     TR_fn_assert_equal(7, m.dış_hesap(2))
     TR_fn_assert_equal(1, m.TR_mem_length)
     TR_fn_assert_equal(TR_kw_false, m.TR_mem_contains("_iç_hesap"))
-    TR_kw_var mesaj = ""
-    TR_kw_try { m._iç_hesap(2) } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("\"_iç_hesap\" \"yardimci_ozel\" modülüne özel bir ad"), mesaj)
-    mesaj = ""
-    TR_kw_try { TR_fn_print(m["_ÇARPAN"]) } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("\"_ÇARPAN\" \"yardimci_ozel\" modülüne özel bir ad"), mesaj)
+    TR_fn_assert_equal(H2487, TR_fn_error_code(() => { m._iç_hesap(2) }))
+    TR_fn_assert_equal(H2487, TR_fn_error_code(() => { TR_fn_print(m["_ÇARPAN"]) }))
 }
 
 TR_ctx_test "11.7 takma adsız aktar modüle özel adları getirmez" {
     TR_kw_import "yardimci_ozel"
     TR_fn_assert_equal(7, dış_hesap(2))
-    TR_kw_var mesaj = ""
-    TR_kw_try { _iç_hesap(2) } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("'_iç_hesap' adında bir değişken ya da fonksiyon yok"), mesaj)
+    TR_fn_assert_equal(H1106, TR_fn_error_code(() => { _iç_hesap(2) }))
 }
 
 TR_ctx_test "11.6 tr/ öneki dilin kitaplığındandır; diskteki tr/ klasörü onu gölgeleyemez" {
@@ -120,13 +108,7 @@ TR_ctx_test "11.6 tr/ öneki dilin kitaplığındandır; diskteki tr/ klasörü 
     TR_kw_import "./tr/katman" TR_ctx_as d
     TR_fn_assert_equal(TR_kw_true, d.disk_katmanı)
     TR_fn_assert_equal([4, 3], k.TR_type_Linear(4, 3).TR_mem_weight.TR_mem_shape)
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_kw_import "tr/olmayan_modul" } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("\"tr/olmayan_modul\" dilin kitaplığında yok; kitaplıktaki modüller: tr/egitim, tr/hazir, tr/iyilestirici, tr/katman"), mesaj)
-    mesaj = ""
-    TR_kw_try { TR_kw_import "tr/iyileştirici" } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("Bunu mu demek istediniz: \"tr/iyilestirici\"?"), mesaj)
-    mesaj = ""
-    TR_kw_try { TR_kw_import "tr/katman_test" } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("dilin kitaplığında yok"), "test dosyası modül değildir: {mesaj}")
+    TR_fn_assert_equal(H2478, TR_fn_error_code(() => { TR_kw_import "tr/olmayan_modul" }))
+    TR_fn_assert_equal(H2478, TR_fn_error_code(() => { TR_kw_import "tr/iyileştirici" }))
+    TR_fn_assert_equal(H2478, TR_fn_error_code(() => { TR_kw_import "tr/katman_test" }))
 }
