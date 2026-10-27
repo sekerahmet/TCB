@@ -126,6 +126,14 @@ func (l *Lexer) nameToken(lit string, line, col int) Token {
 		if k := l.identity(lit, line, col); k != codes.None {
 			return l.codeToken(k, line, col)
 		}
+		// Kalkan sözcükten sonra TR'deki yazımıyla sürülür: ileti bir kez çıkar, ayrıştırıcı ardından
+		// yanıltıcı ikinci bir hata vermez.
+		switch removedWords[lit] {
+		case messages.H0021:
+			return l.codeToken(codes.KwFor, line, col)
+		case messages.H0022:
+			return Token{Type: TokIdent, Literal: "_", Line: line, Column: col}
+		}
 		return Token{Type: TokIdent, Literal: lit, Line: line, Column: col}
 	}
 	lit = nfc(lit) // aynı görünen iki yazım aynı addır (2.3)
@@ -142,13 +150,18 @@ func (l *Lexer) nameToken(lit string, line, col int) Token {
 // sözcüğüyle aynı olsa bile (değişken $eğer = 1). Kaçış, bir dosya başka bir yazım dilinde
 // gösterilirken o dilin sözcükleriyle çakışan kullanıcı adları içindir; kodlama '$'ı atar. TR_ ile
 // başlayan adlar kaçışla da ayrılmıştır (2.3a). '$' bir harfe, rakama ya da '_'ye bitişik
-// yazılamaz: '$' atılınca iki sözcük birleşirdi (a$b → ab, 1$e5 → 1e5).
+// yazılamaz: '$' atılınca iki sözcük birleşirdi (a$b → ab, 1$e5 → 1e5). Kodlu gövdede (dosya)
+// kullanıcının adı dilin sözcüğüyle çakışmaz, '$' yoktur (2.3): yazılırsa hata adı '$'sız önerir.
 func (l *Lexer) escapedName(line, col int) Token {
-	if l.position > 0 && isNameChar(l.input[l.position-1]) {
-		l.addError(line, col, messages.New(messages.H0002))
-	}
+	adjacent := l.position > 0 && isNameChar(l.input[l.position-1])
 	l.readChar() // '$'
 	lit := nfc(l.readIdentifier())
+	switch {
+	case l.coded:
+		l.addError(line, col, messages.New(messages.H0031, lit))
+	case adjacent:
+		l.addError(line, col, messages.New(messages.H0002))
+	}
 	if codes.IsReservedName(lit) {
 		// Önek ASCII'dir; küçük harfli öneri bu yüzden Türkçe kuralla değil strings.ToLower ile
 		// üretilir: TR_ için ır_ değil tr_ önerilir.

@@ -2,6 +2,8 @@ package checker
 
 import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -22,15 +24,25 @@ func (c *Checker) checkUnusedValue(s *ast.ExpressionStatement) {
 	if containsCall(s.Expression) {
 		return
 	}
-	c.addError(s.Line(), 0, messages.New(messages.H1017))
+	// İkili biçimi de olan işleçle başlayan satır kopan bir formül parçasıdır; ileti işleci önceki
+	// satırın sonuna taşımayı söyler. Öbürlerinde değeri bir değişkene atamak ya da satırı silmek.
+	if pe, ok := s.Expression.(*ast.PrefixExpression); ok && (pe.Operator == lexer.TokMinus || pe.Operator == lexer.TokPlus) {
+		c.addError(s.Line(), 0, messages.New(messages.H1017, string(pe.Operator)))
+		return
+	}
+	c.addError(s.Line(), 0, messages.New(messages.H1023, codes.Spelling(codes.KwVar)))
 }
 
-// containsCall ifadenin (metin yerleştirmeleri dahil) bir çağrı içerdiğidir.
+// containsCall ifadenin (metin yerleştirmeleri dahil) bir çağrı içerdiğidir; '|>' sağındaki
+// fonksiyonun çağrısıdır (x |> f, f(x)).
 func containsCall(e ast.Expression) bool {
 	found := false
 	ast.Walk(e, func(n any) bool {
-		if _, ok := n.(*ast.CallExpression); ok {
+		switch n := n.(type) {
+		case *ast.CallExpression:
 			found = true
+		case *ast.InfixExpression:
+			found = n.Operator == lexer.TokPipe
 		}
 		return !found
 	})

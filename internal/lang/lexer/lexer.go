@@ -209,6 +209,9 @@ func (l *Lexer) nextToken() Token {
 	case '?':
 		tok = l.operator(line, col, TokQuestion, follow{'?', TokNullCoalesc}, follow{'.', TokSafeDot})
 	case '.':
+		if isDigit(l.peekChar()) {
+			return l.pointFraction(line, col)
+		}
 		if l.peekChar() == '.' {
 			l.readChar()
 			if l.peekChar() == '=' {

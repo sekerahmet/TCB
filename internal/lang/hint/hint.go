@@ -34,7 +34,7 @@ func KeywordSpellingHint(name string, lang *codes.Language) *messages.Error {
 	if !ok {
 		return nil
 	}
-	return messages.New(messages.H1103, name, codes.NameRef(k))
+	return messages.New(messages.H1103, name, suggested(k, lang))
 }
 
 // BuiltinSpellingHint returns the hint to append to an error message when ad is the ASCII
@@ -47,7 +47,17 @@ func BuiltinSpellingHint(name string, lang *codes.Language) *messages.Error {
 	if !ok {
 		return nil
 	}
-	return NotInTRHint(name, codes.NameRef(k))
+	return NotInTRHint(name, suggested(k, lang))
+}
+
+// suggested is how a hint names the language's word k: in a file (lang nil: the file has no
+// language, 2.1) its spelling, TR_print, which can be copied into the file as it is; in text written
+// in a writing language (a typed line) the word in the message's language.
+func suggested(k codes.Code, lang *codes.Language) any {
+	if lang == nil {
+		return codes.Spelling(k)
+	}
+	return codes.NameRef(k)
 }
 
 // suggest is lang's suggestion for a spelling (codes.Language.Suggest); when lang is nil the
@@ -79,25 +89,25 @@ func NameSuggestion(name string, visible []string, lang *codes.Language) *messag
 
 // ClosestSuggestion returns the "Bunu mu demek istediniz?" suggestion (H1104) for the
 // candidate closest to name; nil when none is close enough. A name of the language (an identity,
-// TR_fn_print) is matched by its spelling in lang, the language name was written in, and
-// suggested as its code, written in the message's language (prnt → print in an English file); when
-// lang is nil its name in every writing language is matched. A user's name is matched and
-// suggested as written.
+// TR_print) is matched by its spelling in lang, the language name was written in, and
+// suggested as its code, written in the message's language (prnt → print on an English typed line);
+// when lang is nil (a file) its name in every writing language is matched and the suggestion is its
+// spelling (prnt → TR_print). A user's name is matched and suggested as written.
 func ClosestSuggestion(name string, candidates []string, lang *codes.Language) *messages.Error {
 	var spellings []string
-	var suggested []any
+	var names []any
 	for _, c := range candidates {
 		k, err := codes.Parse(c)
 		if err != nil || !codes.IsReservedName(c) {
-			spellings, suggested = append(spellings, c), append(suggested, c)
+			spellings, names = append(spellings, c), append(names, c)
 			continue
 		}
 		for _, s := range spellingsIn(lang, k) {
-			spellings, suggested = append(spellings, s), append(suggested, codes.NameRef(k))
+			spellings, names = append(spellings, s), append(names, suggested(k, lang))
 		}
 	}
 	if o := turkish.Closest(name, spellings); o != "" {
-		return messages.New(messages.H1104, suggested[slices.Index(spellings, o)])
+		return messages.New(messages.H1104, names[slices.Index(spellings, o)])
 	}
 	return nil
 }

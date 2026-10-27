@@ -1,6 +1,7 @@
 package lexer
 
 import (
+	"strings"
 	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -174,6 +175,13 @@ func (l *Lexer) identity(lit string, line, col int) codes.Code {
 		if k, ok := codes.FromSpelling(second, lit); ok {
 			return k
 		}
+	}
+	switch l.places.prev {
+	case TokVar, TokConst, TokFunction, TokStruct:
+		// Tanımlanan ad TR_ ile başlıyor: kullanıcı adı olamaz (2.3a), ileti başka bir ad önerir. Önek
+		// ASCII'dir; küçük harfli öneri strings.ToLower ile üretilir (TR_x → tr_x).
+		l.addError(line, col, messages.New(messages.H0004, lit, strings.ToLower(lit)))
+		return codes.None
 	}
 	l.addError(line, col, identityError(place, lit))
 	return codes.None

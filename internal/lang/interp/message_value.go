@@ -78,37 +78,9 @@ func (v *VM) registerMessageBuiltins() {
 		if err == nil {
 			return Null, nil
 		}
-		if coded, ok := rootMessage(err); ok {
+		if coded, ok := messages.Root(err); ok {
 			return &StringVal{Val: coded.Code.String()}, nil
 		}
 		return nil, err
 	})
-}
-
-// rootMessage err'in en içteki nedeninin iletisidir: ilk kodlu iletiden başlayıp yalnızca neden
-// yuvalarından (messages.IsCauseSlot: "tensör işlemi başarısız: {reason}") iner; iletinin
-// parçalarına ("tensörde ve sayıda") inmez. Emsal Rust Error::source() zinciri ve anyhow
-// root_cause ("the lowest level cause"); Go errors.As ise en dıştakini verir.
-func rootMessage(err error) (*messages.Error, bool) {
-	m, ok := messages.As(err)
-	for ok {
-		inner, found := causeMessage(m)
-		if !found {
-			break
-		}
-		m = inner
-	}
-	return m, ok
-}
-
-// causeMessage m'nin neden yuvalarındaki ilk kodlu iletidir.
-func causeMessage(m *messages.Error) (*messages.Error, bool) {
-	for i, a := range m.Args {
-		if e, isErr := a.(error); isErr && messages.IsCauseSlot(m.Code, i) {
-			if inner, found := messages.As(e); found {
-				return inner, true
-			}
-		}
-	}
-	return nil, false
 }

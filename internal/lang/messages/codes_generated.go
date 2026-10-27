@@ -29,6 +29,8 @@ const (
 	H0028 Code = 28   // '{name}' bir adlı argümandır ve çağrıda iki noktadan önce yazılır: {example}
 	H0029 Code = 29   // '{name}' noktadan sonra ya da adlı argüman olarak yazılmaz: {example}
 	H0030 Code = 30   // '{name}' bir kimliğe benziyor (Unicode benzerlik iskeleti TR_ ile başlıyor) ama başka harflerle yazılmış: dilin sözcükleri Latin harfleriyle TR_ ve kimliğin adıyla yazılır (TR_print), kullanıcının adı TR_ gibi görünemez (2.1a)
+	H0031 Code = 31   // TR dosyasında '$' yoktur: kullanıcının adı olduğu gibi yazılır ('{name}'), dilin sözcükleri TR_ ile; '$ad' yalnız bir dildeki gösterimde o dilin sözcüğüyle aynı olan adı ayırır
+	H0032 Code = 32   // '{literal}' sayı değildir: ondalık sayıda noktanın iki yanında rakam vardır, '{fixed}' yazın (2.5)
 	H0100 Code = 100  // Sözdizimi hatası — {error}
 	H0110 Code = 110  // dosya sonu
 	H0111 Code = 111  // bir ad
@@ -86,12 +88,13 @@ const (
 	H1014 Code = 1014 // Ad yazılışı — yapı adları büyük harfle başlar, sözcükler alt çizgisiz ve her biri büyük harfle yazılır: {name|q} yerine {suggestion|q} (bkz. 2.3b)
 	H1015 Code = 1015 // Ad yazılışı — {name|q} büyük harfle yazılmış bir değişken; değeri değişmiyorsa {keyword|q} ile tanımlayın, değişiyorsa {suggestion|q} yazın (bkz. 2.3b)
 	H1016 Code = 1016 // {fn}(x) bu dosyada {true|q} ya da {false|q} verir (dosyanın dili: {language}); {text|q} başka bir yazım dilinin adı, karşılaştırma hiç tutmaz
-	H1017 Code = 1017 // çağrı içermeyen ifadenin değeri kullanılmıyor (2.8): satır başındaki işleç önceki satırı sürdürmez; ifadeyi bölmek için işleci önceki satırın sonuna yazın ya da değeri bir değişkene atayın
+	H1017 Code = 1017 // satır '{op}' işleciyle başlıyor ve değeri kullanılmıyor (2.8): satır başındaki işleç önceki satırı sürdürmez; ifadeyi bölmek için '{op}' işlecini önceki satırın sonuna yazın
 	H1018 Code = 1018 // '{name}' adında bir değişken ya da fonksiyon yok; '//' tam bölmedir, yorum değil: yorum '#' ile yazılır (x = 1  # not)
 	H1019 Code = 1019 // '{name}' adında farklı yazı sistemlerinin harfleri karışık ({first} ve {second}): benzer görünen başka bir adla karışabilir; adı tek bir yazı sistemiyle yazın (bkz. 2.1a)
 	H1020 Code = 1020 // '{name}' adı {line}. satırdaki '{other}' adıyla aynı görünüyor (Unicode benzerlik iskeleti aynı, 2.1a): okuyan birini öbürü sanar; adlardan birini değiştirin
 	H1021 Code = 1021 // . Dilin sözcükleri TR_ ile yazılır: '{spelling}' mi demek istediniz?
 	H1022 Code = 1022 // metindeki '{text}' başka dillerin yerleştirme yazımıdır, metne olduğu gibi geçer; {name} değerini yazmak için '\({name})' yazın (2.7)
+	H1023 Code = 1023 // ifadenin değeri kullanılmıyor (2.8): çağrı içermeyen bir ifade tek başına deyim olamaz; değeri bir değişkene atayın ({var} v = …) ya da satırı silin
 	H1101 Code = 1101 //  ('{name}' TR'de yok; '{canonical}' yazmak mı istediniz?)
 	H1103 Code = 1103 //  ('{name}' TR'de anahtar kelime değil; '{keyword}' yazmak mı istediniz?)
 	H1104 Code = 1104 // . Bunu mu demek istediniz: '{closest}'?

@@ -1,8 +1,6 @@
 package parser
 
 import (
-	"fmt"
-
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -94,20 +92,20 @@ func (p *Parser) interpolationError(lineNo, colNo int, rawExpr string, problem *
 }
 
 // interpolationProblem yerleştirmenin neden ayrıştırılamadığıdır: her neden kendi tam
-// cümlesi olan bir ileti kodudur (H0158-H0162); detail yalnızca H0160'ın alt hata metnidir.
+// cümlesi olan bir ileti kodudur (H0158-H0162); detail yalnızca H0160'ın alt hatasıdır.
 type interpolationProblem struct {
 	code   messages.Code
-	detail string
+	detail any
 }
 
-// plainError bir alt hatanın konum ve "Sözdizimi hatası — " öneki olmadan metnini verir (ileti
-// yerleştirme hatasının içinde gösterilir).
-func plainError(err error) string {
+// plainError bir alt hatayı konum ve "Sözdizimi hatası — " öneki olmadan verir (ileti yerleştirme
+// hatasının içinde gösterilir). Hata metne çevrilmeden geçer: dış iletinin dilinde yazılır.
+func plainError(err error) any {
 	if pe, ok := err.(*messages.PosError); ok {
 		err = pe.Err
 	}
 	if m, ok := err.(*messages.Error); ok && m.Code == messages.H0100 && len(m.Args) == 1 {
-		return fmt.Sprint(m.Args[0])
+		return m.Args[0]
 	}
-	return err.Error()
+	return err
 }

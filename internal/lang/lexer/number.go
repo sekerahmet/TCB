@@ -32,6 +32,14 @@ func (l *Lexer) number(line, col int) Token {
 		sb.WriteRune(l.ch)
 		l.readChar()
 		ok = l.readDigits(&sb, 10) && ok
+	} else if p := l.peekChar(); l.ch == '.' && p != '.' && !isLetter(p) {
+		// '1.' sayı değildir (2.5): ileti '1.0'ı önerir, okuma öyle yazılmış gibi sürer (nokta ardından
+		// gelen satırı üye sanmasın). Noktadan sonra harf üye erişimidir, ikinci nokta aralıktır.
+		written := string(l.input[start:l.position]) + "."
+		l.addError(line, col, messages.New(messages.H0032, written, written+"0"))
+		l.readChar()
+		isFloat = true
+		sb.WriteString(".0")
 	}
 	// Bilimsel yazım: 1e-5, 3.2E+4, 2e10 (üsten sonra en az bir rakam gelmelidir)
 	if l.ch == 'e' || l.ch == 'E' {
@@ -87,10 +95,26 @@ func (l *Lexer) prefixedNumber(line, col, start int) Token {
 		l.addError(line, col, messages.New(messages.H0018, written, fixed))
 	case bad != "":
 		l.addError(line, col, messages.New(messages.H0020, written, bad))
+		return Token{Type: TokInt, Literal: "0", Line: line, Column: col}
 	case !ok:
 		l.addError(line, col, messages.New(messages.H0019, written))
+		// Rakamsız ön ekin (0x_) değeri yok; ayrıştırıcı ikinci bir hata vermesin.
+		return Token{Type: TokInt, Literal: "0", Line: line, Column: col}
 	}
 	return Token{Type: TokInt, Literal: sb.String(), Line: line, Column: col}
+}
+
+// pointFraction '.5' yazımını okur (2.5): sayı değildir, ileti '0.5'i önerir; okuma öyle yazılmış
+// gibi sürer.
+func (l *Lexer) pointFraction(line, col int) Token {
+	start := l.position
+	l.readChar() // '.'
+	var sb strings.Builder
+	sb.WriteString("0.")
+	l.readDigits(&sb, 10)
+	written := string(l.input[start:l.position])
+	l.addError(line, col, messages.New(messages.H0032, written, "0"+written))
+	return Token{Type: TokFloat, Literal: sb.String(), Line: line, Column: col}
 }
 
 // readDigits tabandaki rakamları (ve ayırıcı '_' işaretlerini, onları yazmadan) sb'ye okur. '_'

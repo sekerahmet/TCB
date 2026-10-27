@@ -1,6 +1,0 @@
-# TR 4
-# moduller_test.tr (11.3): iki görev aynı anda aktarır; yükleme kilidi bıraktığı sırada
-# ikinci görev bekler. Her yüklemede programın yükleme_kaydı listesine bir giriş eklenir.
-yükleme_kaydı.TR_append("yüklendi")
-TR_sleep(0.05)
-TR_var yavaş_hazır = TR_true
