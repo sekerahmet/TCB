@@ -19,6 +19,7 @@ Ne işe yarayacak? Hangi programda, hangi adımda gerekiyor?
 ## İmza ve örnek
 
 ```tr
+//! tr kodlu 3 dil=tr
 // ör. değişken y = yeni_ad(x, eksen: -1)
 ```
 

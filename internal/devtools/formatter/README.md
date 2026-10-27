@@ -1,6 +1,6 @@
 # formatter
 
-`tr biçimle` komutunun çekirdeği: TR kaynağını tek bir standart biçime getirir (girinti,
+`TR_cmd_format` komutunun çekirdeği: TR kaynağını tek bir standart biçime getirir (girinti,
 boşluklar, satır yapısı).
 
 ## Standartlar

@@ -73,7 +73,7 @@ Birim testleri sınadıkları dosyanın adını taşır. Birden çok dosyayı ke
 - **Kod tabanı İngilizcedir:** klasör, dosya, paket, Go adları (dışa açık ve iç), test ve kıyas adları. Geliştirici belgeleri, betikler, test verisi ve eklenti dosyaları da dahildir; kullanıcı katmanı istisnadır: kullanıcı belgeleri (`docs/spec`, `docs/guide`) Türkçe yazılır, `examples/` ve `*.tr` dosyalarının adları bugün denetimin dışındadır. `.tr` dosyalarının içeriği diskte kodludur (dilden bağımsız kimlikler); dil dosyaları (`tr.json`, `en.json`) her yazım dilinin adlarını taşır, hiçbirinin ayrıcalığı yoktur. Denetim: `TestLayoutEnglishFileNames`.
 - **Go yorumları Türkçedir.** Başka ürün, şirket ya da kitaplık adı yoruma yazılmaz.
 - **Go adları Go biçimindedir (MixedCaps):** C tarzı BÜYÜK_HARFLİ ad yazılmaz; sabit önekleri `Tok` (belirteç türü), `Val` (değer tipi), `prec` (öncelik). Dış API adları (CUDA, Windows) ve ortam değişkeni adları metin olarak olduğu gibi kalır. Denetim: `TestGoNamesMixedCaps`; istisna listesi `internal/go_names_test.go` içindedir ve yalnızca küçülür.
-- **Go metninde kullanıcıya görünen Türkçe yoktur:** ad ad kodudur, ileti ileti kodudur; geliştiriciye giden iç hata ayrıntısı ve araç çıktısı İngilizcedir. Türkçe harfli metin sabiti yalnızca izinli yerdedir: `internal/lang/turkish` (dilbilgisi tabloları), yapı alanı etiketleri ve gerekçeli `dosya:metin` kayıtları (veri biçimi anahtarları, Türkçe belge üreten aracın içeriği). Denetim: `TestNoTurkishLiterals`; izin listesi `internal/turkish_literals_test.go` içindedir ve yalnızca küçülür.
+- **Go metninde kullanıcıya görünen Türkçe yoktur:** ad ad kodudur, ileti ileti kodudur; geliştiriciye giden iç hata ayrıntısı ve araç çıktısı İngilizcedir. Türkçe harfli metin sabiti yalnızca izinli yerdedir: `internal/lang/turkish` (dilbilgisi tabloları), yapı alanı etiketleri ve gerekçeli `dosya:TR_fn_str` kayıtları (veri biçimi anahtarları, Türkçe belge üreten aracın içeriği). Denetim: `TestNoTurkishLiterals`; izin listesi `internal/turkish_literals_test.go` içindedir ve yalnızca küçülür.
 - **Kullanıcıya görünen adlar Go metnine yazılmaz.** Anahtar kelime, yerleşik, tip, üye ve adlı argüman adları sabit kodlara bağlıdır (`lang/codes`, `tr.json`). Go kodu kodu yazar, ad dil dosyasından gelir:
 
   ```go
@@ -119,7 +119,7 @@ return nil, messages.Internal("vector width must be 2 or 4") // iç hata: ayrın
 
 ## Yorumlayıcı kilidi ve eşzamanlılık
 
-- TR görevleri (`eşzamanlı`) tek bir yorumlayıcı kilidi altında çalışır; TR değerlerine yalnızca kilit tutulurken dokunulur.
+- TR görevleri (`TR_kw_async`) tek bir yorumlayıcı kilidi altında çalışır; TR değerlerine yalnızca kilit tutulurken dokunulur.
 - **Uzun iş kilidi bırakarak yapılır:** disk ve ağ okuma, bekleme, ağır hesap `m.Blocking(func() { ... })` içinde. İçeride TR değeri okunmaz, kurulmaz; değerler kilit geri alınınca kurulur:
 
   ```go
@@ -134,7 +134,7 @@ return nil, messages.Internal("vector width must be 2 or 4") // iç hata: ayrın
 
 ## Sınırlar ve güvenilmeyen girdi
 
-- **Koleksiyon sınırı:** kullanıcının boyutunu belirlediği her ayırma `interp.MaxCollectionSize` ile denetlenir. Sıfır uzunluklu eksen sınırda 1 sayılır (`[0, 10⁹]` veri tutmaz ama `.değer` 10⁹ liste ister).
+- **Koleksiyon sınırı:** kullanıcının boyutunu belirlediği her ayırma `interp.MaxCollectionSize` ile denetlenir. Sıfır uzunluklu eksen sınırda 1 sayılır (`[0, 10⁹]` veri tutmaz ama `.TR_mem_tolist` 10⁹ liste ister).
 - **Döngüsel değer:** bir değeri dış biçime yazan ya da gezen kod kendini içeren listeyi `interp.ContainerWalker` ile yakalar; sonsuz özyinelemeye girmez.
 - **Güvenilmeyen girdiler** (tensör dosyası, kontrol noktası, `.npy`, `tokenizer.json`, CSV/JSON metni) bozuk ya da kötü niyetli olabilir: çökertmemeli, sonsuz döngüye sokmamalı, sınırsız bellek ayırmamalı; açık bir hata vermelidir. Her birinin bir bulanıklaştırma testi (`Fuzz...`) vardır. Liste ve korumalar: [`SECURITY.md`](../SECURITY.md).
 - TR programları güvenilmeyen girdi değildir; yorumlayıcı bir kum havuzu değildir.

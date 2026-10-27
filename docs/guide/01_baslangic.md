@@ -29,7 +29,7 @@ Program dosyası her x86-64 işlemcide çalışır: matris çarpımı ve vektör
 | `./bin/tr.exe dap` | VS Code hata ayıklama sunucusu; eklenti kendisi başlatır, elle çalıştırılmaz |
 | `./bin/tr.exe yardım` / `-h`, `./bin/tr.exe sürüm` / `-v` | Yardımı ve sürümü gösterir |
 
-Çalışan bir programı **Ctrl+C** nazikçe durdurur: program sıradaki döngü turunda ya da çağrıda durur, `ertele` blokları çalışır (dosyalar kapanır, kayıtlar yazılır), çıkış kodu 3'tür; ikinci Ctrl+C hemen çıkar (130). Ayrıntılar: `docs/spec/01_program.md`.
+Çalışan bir programı **Ctrl+C** nazikçe durdurur: program sıradaki döngü turunda ya da çağrıda durur, `TR_kw_defer` blokları çalışır (dosyalar kapanır, kayıtlar yazılır), çıkış kodu 3'tür; ikinci Ctrl+C hemen çıkar (130). Ayrıntılar: `docs/spec/01_program.md`.
 
 Her komutun tek, Türkçe bir adı vardır; Türkçe karaktersiz ya da İngilizce yazımlar (`calistir`, `bicimle`, `debug`, `--help` ...) çalışmaz, hata mesajı asıl komutu önerir (`'debug' TR'de bir komut değil; 'tr hata_ayıkla' yazmak mı istediniz?`). Kısa bayraklar `-h`, `-v`, `-k` simgedir. Kabuktan (REPL) yalnızca `çıkış` ile çıkılır; `exit` ya da `cikis` yazılınca kabuk `çıkış` yazmanızı söyler.
 
@@ -39,11 +39,11 @@ Her komutun tek, Türkçe bir adı vardır; Türkçe karaktersiz ya da İngilizc
 
 Kodlu bir dosyayı (ilk satırı `//! tr kodlu 2 dil=<dil>`) VS Code'da açtığınızda Türkçe yazımıyla görürsünüz; kaydedince diske yine kodlu yazılır, satır numaraları hata mesajlarıyla ve hata ayıklayıcıyla aynıdır (ayrıntılar: [eklenti belgesi](../../editors/vscode/README.md#kodlu-dosyalar); kurallar: [17_kodlar.md, Düzenleyicide](../spec/17_kodlar.md#düzenleyicide)).
 
-`git diff` kodlu dosyada kodları gösterir (`TR_kw_var x = 1`). Farkı Türkçe görmek için git'e `tr göster`'i bir "textconv" (farktan önce metni çeviren komut) olarak tanıtın. Depodaki `.gitattributes` `.tr` dosyalarını `tr` adlı fark sürücüsüne bağlar (`*.tr diff=tr`); sürücüyü siz, kendi git ayarınızda bir kez tanımlarsınız:
+`git diff` kodlu dosyada kodları gösterir (`TR_kw_var x = 1`). Farkı Türkçe görmek için git'e `TR_cmd_show`'i bir "textconv" (farktan önce metni çeviren komut) olarak tanıtın. Depodaki `.gitattributes` `.tr` dosyalarını `tr` adlı fark sürücüsüne bağlar (`*.tr diff=tr`); sürücüyü siz, kendi git ayarınızda bir kez tanımlarsınız:
 
 ```bash
 git config --global diff.tr.textconv "tr göster"                      # tr PATH üzerindeyse
 git config --global diff.tr.textconv "'C:/Projeler/TR/bin/tr.exe' göster"   # ya da tam yolla (boşluklu yol tek tırnakta)
 ```
 
-Sonra `git diff`, `git log -p` ve `git show` kodlu dosyalarda Türkçe fark gösterir (Türkçe yazılmış dosyalar olduğu gibi gösterilir); ham farkı görmek için `git diff --no-textconv`. Sürücü tanımlı değilse git olağan farkı gösterir, hiçbir şey bozulmaz. Textconv yalnızca gösterimi değiştirir: depoya kodlu metin girer, birleştirme de kodlu metin üzerinde yapılır. Bir birleştirme çakışması dosyayı ayrıştırılamaz bıraktıysa `tr göster` hata verir (git "textconv failed" der); çakışmayı düzeltin ya da `--no-textconv` kullanın. VS Code'un kendi kaynak denetimi görünümündeki farklar ham (kodlu) metni gösterir.
+Sonra `git diff`, `git log -p` ve `git show` kodlu dosyalarda Türkçe fark gösterir (Türkçe yazılmış dosyalar olduğu gibi gösterilir); ham farkı görmek için `git diff --no-textconv`. Sürücü tanımlı değilse git olağan farkı gösterir, hiçbir şey bozulmaz. Textconv yalnızca gösterimi değiştirir: depoya kodlu metin girer, birleştirme de kodlu metin üzerinde yapılır. Bir birleştirme çakışması dosyayı ayrıştırılamaz bıraktıysa `TR_cmd_show` hata verir (git "textconv failed" der); çakışmayı düzeltin ya da `--no-textconv` kullanın. VS Code'un kendi kaynak denetimi görünümündeki farklar ham (kodlu) metni gösterir.

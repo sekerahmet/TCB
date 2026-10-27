@@ -19,12 +19,13 @@ Program dosyası her x86-64 işlemcide çalışır: matris çarpımı ve vektör
 ## İlk program
 
 ```tr
+//! tr kodlu 3 dil=tr
 // merhaba.tr
-değişken ad = "dünya"
-yazdır("Merhaba, {ad}!")
+TR_kw_var ad = "dünya"
+TR_fn_print("Merhaba, {ad}!")
 
-fonksiyon kare(x) { sonuç x * x }
-yazdır([1, 2, 3, 4].haritala { kare(o) })   // [1, 4, 9, 16]
+TR_kw_func kare(x) { TR_kw_return x * x }
+TR_fn_print([1, 2, 3, 4].TR_mem_map { kare(TR_ctx_it) })   // [1, 4, 9, 16]
 ```
 
 ```bash
@@ -33,16 +34,17 @@ yazdır([1, 2, 3, 4].haritala { kare(o) })   // [1, 4, 9, 16]
 ./bin/tr.exe                     # etkileşimli kabuk
 ```
 
-> **Güvenlik:** TR programları kum havuzunda (sandbox) çalışmaz; her program gibi onu çalıştıran kişinin yetkileriyle dosya okur, yazar ve siler. Tanımadığınız bir `.tr` programını ya da `tr derle` ile üretilmiş bir uygulamayı çalıştırmayın. Hangi girdilerin güvenilmeyen sayılıp korunduğu: [`SECURITY.md`](SECURITY.md).
+> **Güvenlik:** TR programları kum havuzunda (sandbox) çalışmaz; her program gibi onu çalıştıran kişinin yetkileriyle dosya okur, yazar ve siler. Tanımadığınız bir `.tr` programını ya da `TR_cmd_build` ile üretilmiş bir uygulamayı çalıştırmayın. Hangi girdilerin güvenilmeyen sayılıp korunduğu: [`SECURITY.md`](SECURITY.md).
 
 ## Testler ve biçimlendirme
 
 ```tr
+//! tr kodlu 3 dil=tr
 // hesap_test.tr
-fonksiyon topla(a, b) { sonuç a + b }
+TR_kw_func topla(a, b) { TR_kw_return a + b }
 
-test "toplama" {
-    eşit_mi(4, topla(2, 2))
+TR_ctx_test "toplama" {
+    TR_fn_assert_equal(4, topla(2, 2))
 }
 ```
 
@@ -54,36 +56,38 @@ test "toplama" {
 ## Tensörler ve otomatik türev
 
 ```tr
+//! tr kodlu 3 dil=tr
 // y = 2·x - 1 doğrusunu öğren
-değişken X = tensör([[0], [1], [2], [3]])
-değişken Y = tensör([[-1], [1], [3], [5]])
-değişken w = tensör([[0.0]], türev_izle: doğru)
-değişken b = tensör([0.0], türev_izle: doğru)
-değişken iyileştirici = AdamW([w, b], öğrenme_oranı: 0.1, ağırlık_çürümesi: 0)
+TR_kw_var X = TR_fn_tensor([[0], [1], [2], [3]])
+TR_kw_var Y = TR_fn_tensor([[-1], [1], [3], [5]])
+TR_kw_var w = TR_fn_tensor([[0.0]], TR_arg_requires_grad: TR_kw_true)
+TR_kw_var b = TR_fn_tensor([0.0], TR_arg_requires_grad: TR_kw_true)
+TR_kw_var iyileştirici = TR_fn_AdamW([w, b], TR_arg_lr: 0.1, TR_arg_weight_decay: 0)
 
-döngü adım içinde 0..500 {
-    iyileştirici.sıfırla()
-    değişken fark = X @ w + b - Y
-    geri_yayılım(ortalama(fark ** 2))
-    iyileştirici.adım()
+TR_kw_for adım TR_kw_in 0..500 {
+    iyileştirici.TR_mem_zero_grad()
+    TR_kw_var fark = X @ w + b - Y
+    TR_fn_backward(TR_fn_mean(fark ** 2))
+    iyileştirici.TR_mem_step()
 }
-yazdır("w = {yuvarla(w.değer[0][0], 3)}, b = {yuvarla(b.değer[0], 3)}")   // w = 2.0, b = -1.0
+TR_fn_print("w = {TR_fn_round(w.TR_mem_tolist[0][0], 3)}, b = {TR_fn_round(b.TR_mem_tolist[0], 3)}")   // w = 2.0, b = -1.0
 ```
 
-Dilin tek sayısal dizi türü tensördür: matrisler 2 boyutlu tensördür (`tensör([[1, 2], [3, 4]])`), elemanlar varsayılan olarak `float32`'dir, `bf16` ve `fp16` de seçilebilir; hesaplar en az `float32` ile yapılır. Tensörler `döngü satır içinde t` ile ilk ekseni boyunca gezilir ve `t[i] = d` ile yerinde değiştirilir. `@` matris çarpımıdır; `+ - * /` eleman bazlı ve yayınlamalıdır. `relu`, `gelu`, `softmax`, `katman_normu`, `gömme`, `çapraz_entropi`, `SGD`, `gradyan_kırp`, `tensör_kaydet` / `tensör_yükle` ve fazlası için: [Kullanım Kılavuzu §4.C](docs/guide/04_yapay_zeka_ve_veri.md#c-tensörler-ve-otomatik-türev).
+Dilin tek sayısal dizi türü tensördür: matrisler 2 boyutlu tensördür (`TR_fn_tensor([[1, 2], [3, 4]])`), elemanlar varsayılan olarak `float32`'dir, `bf16` ve `fp16` de seçilebilir; hesaplar en az `float32` ile yapılır. Tensörler `TR_kw_for satır TR_kw_in t` ile ilk ekseni boyunca gezilir ve `t[i] = d` ile yerinde değiştirilir. `@` matris çarpımıdır; `+ - * /` eleman bazlı ve yayınlamalıdır. `TR_fn_relu`, `TR_fn_gelu`, `TR_fn_softmax`, `TR_fn_layer_norm`, `TR_fn_embedding`, `TR_fn_cross_entropy`, `TR_fn_SGD`, `TR_fn_clip_grad`, `TR_fn_save_tensors` / `TR_fn_load_tensors` ve fazlası için: [Kullanım Kılavuzu §4.C](docs/guide/04_yapay_zeka_ve_veri.md#c-tensörler-ve-otomatik-türev).
 
 ## Veri ve parçalayıcı
 
 ```tr
-değişken p = parçalayıcı_yükle("tokenizer.json")
-yazdır(p.kodla("Merhaba dünya"), p.dağarcık_boyutu)
+//! tr kodlu 3 dil=tr
+TR_kw_var p = TR_fn_load_tokenizer("tokenizer.json")
+TR_fn_print(p.TR_mem_encode("Merhaba dünya"), p.TR_mem_vocab_size)
 
-değişken küme = veri_kümesi("veri/train")                       // .npy veri dosyaları
-değişken ö = küme.örnekleyici(toplu: 8, bağlam: 256, tohum: 1)
-değişken girdi, hedef = ö.sonraki()                              // [8, 256] tensörler
+TR_kw_var küme = TR_fn_dataset("veri/train")                       // .npy veri dosyaları
+TR_kw_var ö = küme.TR_mem_sampler(TR_arg_batch_size: 8, TR_arg_context: 256, TR_arg_seed: 1)
+TR_kw_var girdi, hedef = ö.TR_mem_next()                              // [8, 256] tensörler
 ```
 
-`parçalayıcı_yükle` yaygın `tokenizer.json` biçimini okur; `veri_kümesi` büyük derlemleri belleğe almadan parça parça okur, sonraki toplu işleri arka planda hazırlar. Uçtan uca örnek: [`examples/tr/39_veri_ile_egitim.tr`](examples/tr/39_veri_ile_egitim.tr); ayrıntılar: [Kılavuz §4.D](docs/guide/04_yapay_zeka_ve_veri.md#d-veri-ve-parçalayıcı).
+`TR_fn_load_tokenizer` yaygın `tokenizer.json` biçimini okur; `TR_fn_dataset` büyük derlemleri belleğe almadan parça parça okur, sonraki toplu işleri arka planda hazırlar. Uçtan uca örnek: [`examples/tr/39_veri_ile_egitim.tr`](examples/tr/39_veri_ile_egitim.tr); ayrıntılar: [Kılavuz §4.D](docs/guide/04_yapay_zeka_ve_veri.md#d-veri-ve-parçalayıcı).
 
 ## Başka dillerden aldıklarımız
 
@@ -97,20 +101,20 @@ TR'nin hedeflerinden biri başka dillerin güçlü yanlarını bir araya getirme
 | Sınır dışı okuma hatadır; olmayabilecek öğe `varsa_al(i) ?? varsayılan` ile istenir | Python, Go, Rust ve Kotlin'de hata; Kotlin `getOrNull`, Rust `get` | [3.6](docs/spec/03_tipler.md), [15.49](docs/spec/15_tensorler.md) |
 | `a ?? b` ve `a?.b` | Swift, C# | [4.7, 4.8](docs/spec/04_operatorler.md) |
 | `x \|> f(a)` ≡ `f(x, a)` (değer ilk argüman olur) | Elixir | [4.9](docs/spec/04_operatorler.md) |
-| Liste üreteci `[x * x döngü x içinde 1..=5 eğer x % 2 == 1]` | Python | [5.11](docs/spec/05_deyimler.md) |
+| Liste üreteci `[x * x TR_kw_for x TR_kw_in 1..=5 TR_kw_if x % 2 == 1]` | Python | [5.11](docs/spec/05_deyimler.md) |
 | `eşle konu { 1 => ..., _ => ... }` (desen değerle karşılaştırılır) | Rust'ın `match` yazımı | [5.6](docs/spec/05_deyimler.md) |
-| Sondaki blok: `l.filtrele { o > 2 }`, tek parametre `o` | Kotlin'in sondaki lambdası ve `it`'i | [6.7](docs/spec/06_fonksiyonlar.md) |
-| `ertele`: fonksiyon bitince, ters sırayla çalışır | Go `defer` | [9.1](docs/spec/09_ertele.md) |
-| `eşzamanlı` görev ve yorumlayıcı kilidi | Go'nun `go` deyimi; kilit Python'unki gibi | [10.1, 10.2](docs/spec/10_eszamanlilik.md) |
+| Sondaki blok: `l.filtrele { o > 2 }`, tek parametre `TR_ctx_it` | Kotlin'in sondaki lambdası ve `it`'i | [6.7](docs/spec/06_fonksiyonlar.md) |
+| `TR_kw_defer`: fonksiyon bitince, ters sırayla çalışır | Go `defer` | [9.1](docs/spec/09_ertele.md) |
+| `TR_kw_async` görev ve yorumlayıcı kilidi | Go'nun `go` deyimi; kilit Python'unki gibi | [10.1, 10.2](docs/spec/10_eszamanlilik.md) |
 | Başı `_` olan ad modüle özeldir ve dışarıdan erişilemez | Python'un yazımı; Python'da yalnızca gelenek, TR'de kural | [11.7](docs/spec/11_moduller.md) |
-| `test "ad" { ... }` programla aynı dosyada; normal çalıştırmada atlanır | Zig | [12.1](docs/spec/12_testler.md) |
+| `TR_ctx_test "ad" { ... }` programla aynı dosyada; normal çalıştırmada atlanır | Zig | [12.1](docs/spec/12_testler.md) |
 | Tensör kuralları: yayınlama, tür yükseltme, indeks, dilim | PyTorch ve NumPy, satır satır karşılaştırıldı | [15.49](docs/spec/15_tensorler.md) |
 | Özel değerler (±0, ±∞, NaN) CPU'da ve GPU'da aynı | PyTorch 2.14 ve NumPy 2.1 ile ölçüldü; farklar gerekçeli | [15.50](docs/spec/15_tensorler.md) |
-| `gelu(yaklaşık: doğru)`: seçenek Mantık bayraktır | JAX ve TensorFlow (PyTorch'un `"tanh"` metni yazım hatasına açık) | [15.17](docs/spec/15_tensorler.md) |
+| `TR_fn_gelu(TR_arg_approximate: TR_kw_true)`: seçenek Mantık bayraktır | JAX ve TensorFlow (PyTorch'un `"tanh"` metni yazım hatasına açık) | [15.17](docs/spec/15_tensorler.md) |
 | Dikkatin tensör düzeni `(toplu, uzunluk, bakış, boyut)` | JAX ve FlashAttention (çevirme kopyası olmaz) | [15.24](docs/spec/15_tensorler.md) |
 | Bellek: ara sonuçlar işlemden hemen sonra, depolama son sahibi gidince bırakılır | Mojo, PyTorch, TensorFlow.js `tidy` | [15.43](docs/spec/15_tensorler.md) |
-| `kaynaştır`: dışarıdan okunan sayılar ilk çağrıda sabitlenir | JAX `jit` | [15.44](docs/spec/15_tensorler.md) |
-| `tekrar_oynat`: GPU adımını bir kez kaydedip oynatır, girdileri kendisi kopyalar | CUDA Graphs (PyTorch bu işi kullanıcıya bırakır) | [15.45](docs/spec/15_tensorler.md) |
+| `TR_fn_fuse`: dışarıdan okunan sayılar ilk çağrıda sabitlenir | JAX `jit` | [15.44](docs/spec/15_tensorler.md) |
+| `TR_fn_replay`: GPU adımını bir kez kaydedip oynatır, girdileri kendisi kopyalar | CUDA Graphs (PyTorch bu işi kullanıcıya bırakır) | [15.45](docs/spec/15_tensorler.md) |
 | safetensors okumasının denetimleri | safetensors'un kendi okuyucusu (yinelenen anahtar ayrıca reddedilir) | [15.47](docs/spec/15_tensorler.md) |
 | Günlükte NaN ve sonsuz `"NaN"`, `"Infinity"` olarak yazılır | Python `json.dumps` (`float()` geri okur) | [19.5](docs/spec/19_surec_ve_kayit.md) |
 
@@ -118,7 +122,7 @@ TR'nin hedeflerinden biri başka dillerin güçlü yanlarını bir araya getirme
 
 ## VS Code eklentisi ve hata ayıklama
 
-[`editors/vscode/`](editors/vscode/README.md) `.tr` dosyalarına renklendirme, kod şablonları (`tensör` yazıp `Tab`: küçük bir eğitim döngüsü), çalıştırma (▶) ve hata ayıklama getirir. **F5** ile hata ayıklarken **İzleme Masası** paneli tüm değişkenleri tek tabloda gösterir; listeler, tensörler ve veri kümeleri tablo olarak açılır, değerler çalışma anında değiştirilebilir. Terminalde hata ayıklamak için: `tr hata_ayıkla dosya.tr`.
+[`editors/vscode/`](editors/vscode/README.md) `.tr` dosyalarına renklendirme, kod şablonları (`TR_fn_tensor` yazıp `Tab`: küçük bir eğitim döngüsü), çalıştırma (▶) ve hata ayıklama getirir. **F5** ile hata ayıklarken **İzleme Masası** paneli tüm değişkenleri tek tabloda gösterir; listeler, tensörler ve veri kümeleri tablo olarak açılır, değerler çalışma anında değiştirilebilir. Terminalde hata ayıklamak için: `tr hata_ayıkla dosya.tr`.
 
 Bu depoyu VS Code'da klasör olarak açtığınızda `Ctrl+Shift+B` açık dosyayı `bin/tr.exe` ile çalıştırır (`.vscode/tasks.json`). Çalıştırma görevleri yorumlayıcıyı **derlemez** (açık bir `tr.exe` Windows'ta dosyayı kilitlediği için otomatik derleme bilerek kapalıdır); Go kodunu değiştirdiyseniz önce `Ctrl+Shift+P` → "Tasks: Run Task" → **TR: yorumlayıcıyı derle** görevini çalıştırın.
 
@@ -172,10 +176,10 @@ Bu depoyu VS Code'da klasör olarak açtığınızda `Ctrl+Shift+B` açık dosya
 | 42 | [`42_hata_ayiklama.tr`](examples/tr/42_hata_ayiklama.tr) | Hata ayıklama: koddaki kesme noktasıyla bir hesap hatasını çalışırken bulup düzeltmek |
 | 43 | [`43_hata_ayiklama_alistirmasi.tr`](examples/tr/43_hata_ayiklama_alistirmasi.tr) | Hata ayıklama alıştırması: VS Code hata ayıklayıcısıyla bir programı adım adım izlemek |
 | 44 | [`44_egitim_kararliligi.tr`](examples/tr/44_egitim_kararliligi.tr) | Eğitimin kararlılığı: NaN'i ve kayıp sıçramasını yakalamak, son kontrol noktasına dönüp sorunlu toplu işleri atlamak |
-| 45 | [`45_tekrar_oynat.tr`](examples/tr/45_tekrar_oynat.tr) | Kaydedip oynatmak: sık tekrarlanan küçük bir GPU adımını bir kez kaydedip tek seferde oynatmak (`tekrar_oynat`, `yerine_yaz`) |
-| 46 | [`46_hazir_model_ve_uretim.tr`](examples/tr/46_hazir_model_ve_uretim.tr) | Hazır model ve üretim: Hugging Face biçimindeki bir modeli yüklemek (`hazır_model`, `ağırlık_türü`) ve `üret` ile parça üretmek (küçük, rastgele ağırlıklı model `tests/data/hf_tiny`) |
-| 47 | [`47_kendi_uretim_dongusu.tr`](examples/tr/47_kendi_uretim_dongusu.tr) | Kendi üretim döngün: `önbellek_kur`, önbellekli `ileri`, `kırp`; elle yazılan döngü `üret` ile aynı diziyi verir; `gizli_durum` + `tek_adım` + `tekrar_oynat` |
-| 48 | [`48_egitim_kosusu.tr`](examples/tr/48_egitim_kosusu.tr) | Eğitim koşusu: kayıt işlerini kitaplığa bırakmak (`Koşu`: klasör, günlük, çubuk, kontrol noktası, ağırlıklar önce) ve uzun koşudan önce `prova` |
+| 45 | [`45_tekrar_oynat.tr`](examples/tr/45_tekrar_oynat.tr) | Kaydedip oynatmak: sık tekrarlanan küçük bir GPU adımını bir kez kaydedip tek seferde oynatmak (`TR_fn_replay`, `TR_fn_write_slice`) |
+| 46 | [`46_hazir_model_ve_uretim.tr`](examples/tr/46_hazir_model_ve_uretim.tr) | Hazır model ve üretim: Hugging Face biçimindeki bir modeli yüklemek (`TR_fn_pretrained_model`, `ağırlık_türü`) ve `TR_mem_generate` ile parça üretmek (küçük, rastgele ağırlıklı model `tests/data/hf_tiny`) |
+| 47 | [`47_kendi_uretim_dongusu.tr`](examples/tr/47_kendi_uretim_dongusu.tr) | Kendi üretim döngün: `TR_mem_build_cache`, önbellekli `ileri`, `TR_mem_strip`; elle yazılan döngü `TR_mem_generate` ile aynı diziyi verir; `gizli_durum` + `TR_mem_single_step` + `TR_fn_replay` |
+| 48 | [`48_egitim_kosusu.tr`](examples/tr/48_egitim_kosusu.tr) | Eğitim koşusu: kayıt işlerini kitaplığa bırakmak (`TR_type_Run`: klasör, günlük, çubuk, kontrol noktası, ağırlıklar önce) ve uzun koşudan önce `prova` |
 
 **Hata örnekleri.** [`examples/tr/hatalar/`](examples/tr/hatalar/) sık yapılan hataları tek tek gösterir: her dosya bir hatayı bilerek yapar, yorumunda iletinin kodunu, nedenini ve düzeltilmiş hâlini yazar (çıkış kodu 1).
 
@@ -205,7 +209,7 @@ Bu depoyu VS Code'da klasör olarak açtığınızda `Ctrl+Shift+B` açık dosya
 | 22 | [`22_tensor_eksen.tr`](examples/tr/hatalar/22_tensor_eksen.tr) | Geçersiz eksen (`H6016`) |
 | 23 | [`23_devam_disinda.tr`](examples/tr/hatalar/23_devam_disinda.tr) | Döngü dışında devam (`H0100`) |
 
-Komut satırı adları (`tr test`, `tr biçimle`, `tr kodla`, hata ayıklayıcı komutları ...) [`examples/README.md`](examples/README.md)'dedir.
+Komut satırı adları (`tr test`, `TR_cmd_format`, `TR_cmd_encode`, hata ayıklayıcı komutları ...) [`examples/README.md`](examples/README.md)'dedir.
 
 Kendi denemeleriniz için kökte bir `scratch/` klasörü açıp örnekleri oraya kopyalayabilirsiniz (ör. `examples/tr/01_merhaba.tr`); bu klasör depoya girmez.
 
@@ -224,12 +228,12 @@ Kendi denemeleriniz için kökte bir `scratch/` klasörü açıp örnekleri oray
 
 | Klasör | İçerik |
 | :-- | :-- |
-| `cmd/tr` | `tr` komutu: kabuk, `çalıştır`, `kontrol`, `derle`, `test`, `biçimle`, `kodla`, `göster`, `izle`, `profil`, `hata_ayıkla`, `dizin`, `yardım`, `sürüm`, `dap` (VS Code için); komut adları her yazım dilinde kabul edilir |
+| `cmd/tr` | `tr` komutu: kabuk, `TR_cmd_run`, `kontrol`, `TR_cmd_build`, `test`, `TR_cmd_format`, `kodla`, `TR_cmd_show`, `izle`, `TR_cmd_profile`, `TR_cmd_debug`, `TR_cmd_index`, `yardım`, `TR_cmd_version`, `TR_cmd_dap` (VS Code için); komut adları her yazım dilinde kabul edilir |
 | `internal/lang` | Dil çekirdeği: iletiler (`messages`), Türkçe ekler ve dosya hataları (`turkish`), kod listesi (`codes`, [`docs/codes.md`](docs/codes.md)), ad ipuçları (`hint`), sözcük çözümleyici (`lexer`), sözdizimi ağacı (`ast`), ayrıştırıcı (`parser`), tip denetimi (`checker`), kaynak ve kodlu biçim (`source`), yorumlayıcı (`interp`) |
 | `internal/stdlib` | Standart kitaplık: tensör ve öğrenme (`ml`), veri (`dataset`), parçalayıcı (`tokenizer`), dosyalar (`files`), JSON/CSV (`formats`), komut satırı (`process`), günlük ve ilerleme (`logging`), kontrol noktası (`checkpoint`), motorların ortak yardımcıları ve JSON yazımı (`common/bind`, `common/jsonwrite`), GPU'da dil düzeyinde eğitimin sınamaları (`gpuprobe`) |
 | `internal/compute` | Dili bilmeyen hesap çekirdekleri: tensör, otomatik türev ve CPU kernelleri (`tensor`), GPU arka ucu (`gpu`), parçalayıcı (`tokenize`), veri yükleyici (`dataload`) |
-| `internal/devtools` | Hata ayıklayıcı (`debugger`), biçimlendirici (`formatter`), `tr test` çekirdeği (`testrunner`), canlı profil (`profiler`: `tr izle`, `tr profil`), TR kodunun dizini (`codeindex`: `tr dizin`), Go modülünü testleriyle tip denetiminden geçirip yükleyen ortak paket (`goload`: `codegraph` ve `impact` için) |
-| `lib/` | TR ile yazılan standart kitaplık, ikiliye gömülü: transformer katmanları ve GPT (`aktar "tr/katman"`), Muon/NorMuon (`aktar "tr/iyilestirici"`), eğitim koşusunun kayıt işleri (`aktar "tr/egitim"`: `Koşu`, prova), Hugging Face biçimindeki hazır modeller (`aktar "tr/hazir"`); [`lib/README.md`](lib/README.md) |
+| `internal/devtools` | Hata ayıklayıcı (`debugger`), biçimlendirici (`formatter`), `tr test` çekirdeği (`testrunner`), canlı profil (`profiler`: `TR_cmd_watch`, `TR_cmd_profile`), TR kodunun dizini (`codeindex`: `TR_cmd_index`), Go modülünü testleriyle tip denetiminden geçirip yükleyen ortak paket (`goload`: `codegraph` ve `impact` için) |
+| `lib/` | TR ile yazılan standart kitaplık, ikiliye gömülü: transformer katmanları ve GPT (`TR_kw_import "tr/katman"`), Muon/NorMuon (`TR_kw_import "tr/iyilestirici"`), eğitim koşusunun kayıt işleri (`TR_kw_import "tr/egitim"`: `TR_type_Run`, prova), Hugging Face biçimindeki hazır modeller (`TR_kw_import "tr/hazir"`); [`lib/README.md`](lib/README.md) |
 | `editors/vscode/` | VS Code eklentisi |
 | `docs/` | Belgeler ([dizin](docs/README.md)); kod kuralları [`internal/README.md`](internal/README.md), ekleme tarifleri [`docs/recipes.md`](docs/recipes.md) |
 | `examples/`, `tests/` | Örnek programlar ve dil tanımının kural testleri |

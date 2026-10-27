@@ -1,6 +1,6 @@
 # jsonwrite
 
-TR değerlerini JSON metnine yazan tek yer: `json_metin`, web sunucusunun yanıtları, kayıt
+TR değerlerini JSON metnine yazan tek yer: `TR_fn_json_string`, web sunucusunun yanıtları, kayıt
 dosyaları ve eğitim günlükleri bunu kullanır.
 
 ## Standartlar

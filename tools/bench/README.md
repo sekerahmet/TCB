@@ -16,7 +16,7 @@ python tools/bench/run.py --json sonuc.json         # sonuçları dosyaya yaz
 | `dongu` | 3 milyon turluk sıkı döngü: değişken okuma/yazma ve tamsayı aritmetiği |
 | `fib` | Özyinelemeli fib(27): fonksiyon çağrısı maliyeti |
 | `sirala` | 300 bin sayı üretip sıralama: liste ekleme ve yerleşik sıralama |
-| `metin` | 200 bin metin oluşturma: metin birleştirme ve dönüştürme |
+| `TR_fn_str` | 200 bin metin oluşturma: metin birleştirme ve dönüştürme |
 | `sozluk` | 200 bin anahtar yazıp okuma: sözlük erişimi |
 | `matris_dongu` | 120×120 matris çarpımı, iç içe döngülerle: liste indeksleme |
 | `matris_yerlesik` | 512×512 matrisle iki çarpım, yerleşik `@` ile (Python sürümü bir dizi kütüphanesi ister; bkz. `py/compare.py`) |
@@ -39,7 +39,7 @@ go build -o bin/tr.exe ./cmd/tr
 Süreler makineye ve o anki yüke göre değişir; karşılaştırmaları aynı makinede, bilgisayar
 boştayken yapın.
 
-**Ölçüm çözünürlüğü:** TR programları süreyi `zaman_ms()` ile, Python sürümü tam sayıya kesilen
+**Ölçüm çözünürlüğü:** TR programları süreyi `TR_fn_time_ms()` ile, Python sürümü tam sayıya kesilen
 milisaniyeyle ölçer; ikisi de 1 ms çözünürlüklüdür. Birkaç milisaniyelik testlerde (ör. `matris_yerlesik`)
 sonuç ±1 ms oynar ve `run.py` en iyi süreyi aldığı için küçük değerler 1–2 ms'ye iner. Hassas karşılaştırma
 için işi bir döngüde 20 kez yapıp toplam süreyi tur sayısına bölün.
@@ -99,8 +99,8 @@ kernellerini (`BenchmarkSpeed*`) 5'er tekrarla ölçer; `tools/record` ile sarı
 TR en iyi 13,5, çoğunlukla 13,5–16 ms/adım, yükün arttığı anlarda 18–22 ms/adım; Python sürümü
 12–13,5 ms/adım. Yüklü makinede farklar büyür; karşılaştırmayı boş makinede yineleyin.
 
-**Birleşik dikkat (`dikkat(...)`) sonrası (18.10.2026, 2 çekirdek, 300 adım, `GOAMD64=v3`, makine
-yüklü):** örnek elle kurulan maske ve softmax yerine `dikkat(q, k, v)` kullanır; kayıp eğrisi önceki
+**Birleşik dikkat (`TR_fn_attention(...)`) sonrası (18.10.2026, 2 çekirdek, 300 adım, `GOAMD64=v3`, makine
+yüklü):** örnek elle kurulan maske ve softmax yerine `TR_fn_attention(q, k, v)` kullanır; kayıp eğrisi önceki
 sürümle 4 basamağa kadar aynıdır. Aynı veriyle art arda çalıştırılan çiftlerde TR önce/sonra 26,8/21,6,
 24,1/19,8, 31,7/27,3, 29,0/19,8 ms/adım (en iyi: 20,6 → 18,8); Python sürümü 20,8 ms/adım. Yalnızca
 dikkatin ileri+geri süresi bu şekilde (toplu 16, 4 bakış, T 64, dh 16) 3,8 ms'den 1,8 ms'ye iner

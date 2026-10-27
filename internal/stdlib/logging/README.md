@@ -1,7 +1,7 @@
 # logging
 
-TR'nin eğitim günlüğü ve ilerleme çubuğu yerleşikleri: `günlük(yol)` ve `ilerleme(toplam)`.
-Araçlar (`tr izle`, `tr profil`) sayı ve süre yazımını buradan alır, böylece her yerde aynı
+TR'nin eğitim günlüğü ve ilerleme çubuğu yerleşikleri: `TR_fn_logger(yol)` ve `TR_fn_progress(toplam)`.
+Araçlar (`TR_cmd_watch`, `TR_cmd_profile`) sayı ve süre yazımını buradan alır, böylece her yerde aynı
 görünür.
 
 ## Standartlar
@@ -9,7 +9,7 @@ görünür.
 **Günlük biçimi sözleşmedir.** Günlük JSON satırlarıdır (`.jsonl`); kayıt alanlarının adları, kayıt
 türleri (`start`, `end`, `resume`), `progress.json`'un adı ve anahtarları dilden bağımsız İngilizce
 tanımlayıcılardır, çevrilmez (dil tanımı 17.3). Programın ölçü adları programındır: kodlu çıplak
-anahtar kodun dilden bağımsız adıyla yazılır (`{kayıp: k}` → `"loss"`). Biçim değişirse sürüm artar;
+anahtar kodun dilden bağımsız adıyla yazılır (`{TR_mem_loss: k}` → `"loss"`). Biçim değişirse sürüm artar;
 eski sürüm okunmaz.
 Denetim: `TestLogFormatNamesAreLanguageIndependent` (adlar ve sürüm), `TestLogRecords`, `TestJobStatus`, `cmd/tr/e2e` `TestFileFormatsIndependentOfWritingLanguage`, `TestDictCodedKeysOnDisk`.
 

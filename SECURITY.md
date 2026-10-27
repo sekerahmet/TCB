@@ -4,7 +4,7 @@
 
 Güvenlik açıklarını herkese açık bir konu (issue) olarak **açmayın**. Deponun **Security** sekmesindeki **Report a vulnerability** düğmesiyle (GitHub'ın özel güvenlik açığı bildirme özelliği) bildirin; bildirim yalnızca proje sahibine görünür.
 
-Bildirimde şunlar olsun: etkilenen girdi ya da komut, açığı gösteren en küçük dosya veya program, beklenen ve gerçekleşen davranış, kullandığınız işletim sistemi ve `tr sürüm` çıktısı. Bildirim doğrulanır; düzeltme ana dala alındıktan sonra açık, bildirenle birlikte açıklanır.
+Bildirimde şunlar olsun: etkilenen girdi ya da komut, açığı gösteren en küçük dosya veya program, beklenen ve gerçekleşen davranış, kullandığınız işletim sistemi ve `TR_cmd_version` çıktısı. Bildirim doğrulanır; düzeltme ana dala alındıktan sonra açık, bildirenle birlikte açıklanır.
 
 ## Desteklenen sürüm
 
@@ -16,15 +16,15 @@ TR, bir yapay zekâ modeli geliştiricisinin başkasından aldığı dosyaları 
 
 | Girdi | Okuyan | Korumalar |
 | :-- | :-- | :-- |
-| `.trt` tensör dosyaları | `tensör_yükle` | biçim ve sürüm denetimi, sağlama toplamı, tensör başına eleman sınırı, fiziksel bellek sınırı ([kılavuz §4.C](docs/guide/04_yapay_zeka_ve_veri.md#c-tensörler-ve-otomatik-türev), [dil tanımı 15.46 ve 15.42](docs/spec/15_tensorler.md)) |
-| Kontrol noktaları (`<koşu>/checkpoints/`) | `kontrol_noktası` | JSON dosyalarında boy sınırı (64 KB / 64 MB) ve katı çözüm, biçim sürümü, adımın klasör adı ve dosyalar arasında tutması, her dosyanın SHA-256 özeti, tensör dosyasının bütün `tensör_yükle` sınırları; biçimde yalnızca veri var (kod, nesne kurma, yol çözme yok); bozuk nokta açık hata, önceki nokta önerilir ([dil tanımı §20](docs/spec/20_kontrol_noktasi.md)); bulanıklaştırma: `FuzzNoktaDosyalari` |
-| `.npy` veri dosyaları | `veri_kümesi` | başlık boyu sınırı, tür ve şekil denetimi |
-| `tokenizer.json` parçalayıcı dosyaları | `parçalayıcı_yükle` | düzenli ifadeler adım bütçesiyle çalışır, üstel geri izlemeye açık ve çok derin iç içe desenler yüklenmez ([kılavuz §4.D](docs/guide/04_yapay_zeka_ve_veri.md)) |
-| CSV ve JSON metinleri | `csv_oku`, `csv_çöz`, `json_çöz` | biçim hataları açık hata verir |
-| `tr derle` ile üretilmiş uygulamanın gömülü paketi | uygulamanın kendisi | bozuk (yarım indirilmiş, kırpılmış) paket açık hata verir, modüller geçici klasörün dışına yazılmaz |
-| Hata ayıklama iletileri | `tr dap` | iletiler standart giriş/çıkıştan gelir; ağ portu açılmaz |
+| `.trt` tensör dosyaları | `TR_fn_load_tensors` | biçim ve sürüm denetimi, sağlama toplamı, tensör başına eleman sınırı, fiziksel bellek sınırı ([kılavuz §4.C](docs/guide/04_yapay_zeka_ve_veri.md#c-tensörler-ve-otomatik-türev), [dil tanımı 15.46 ve 15.42](docs/spec/15_tensorler.md)) |
+| Kontrol noktaları (`<koşu>/checkpoints/`) | `TR_fn_checkpoint` | JSON dosyalarında boy sınırı (64 KB / 64 MB) ve katı çözüm, biçim sürümü, adımın klasör adı ve dosyalar arasında tutması, her dosyanın SHA-256 özeti, tensör dosyasının bütün `TR_fn_load_tensors` sınırları; biçimde yalnızca veri var (kod, nesne kurma, yol çözme yok); bozuk nokta açık hata, önceki nokta önerilir ([dil tanımı §20](docs/spec/20_kontrol_noktasi.md)); bulanıklaştırma: `FuzzNoktaDosyalari` |
+| `.npy` veri dosyaları | `TR_fn_dataset` | başlık boyu sınırı, tür ve şekil denetimi |
+| `tokenizer.json` parçalayıcı dosyaları | `TR_fn_load_tokenizer` | düzenli ifadeler adım bütçesiyle çalışır, üstel geri izlemeye açık ve çok derin iç içe desenler yüklenmez ([kılavuz §4.D](docs/guide/04_yapay_zeka_ve_veri.md)) |
+| CSV ve JSON metinleri | `TR_fn_read_csv`, `TR_fn_parse_csv`, `TR_fn_json_parse` | biçim hataları açık hata verir |
+| `TR_cmd_build` ile üretilmiş uygulamanın gömülü paketi | uygulamanın kendisi | bozuk (yarım indirilmiş, kırpılmış) paket açık hata verir, modüller geçici klasörün dışına yazılmaz |
+| Hata ayıklama iletileri | `TR_cmd_dap` | iletiler standart giriş/çıkıştan gelir; ağ portu açılmaz |
 
-**TR programları güvenilmeyen girdi değildir.** Bir `.tr` programı ya da `tr derle` ile üretilmiş bir uygulama, her program gibi, onu çalıştıran kişinin yetkileriyle dosya okur ve yazar. Yorumlayıcı bir kum havuzu (sandbox) değildir; tanımadığınız bir programı çalıştırmayın.
+**TR programları güvenilmeyen girdi değildir.** Bir `.tr` programı ya da `TR_cmd_build` ile üretilmiş bir uygulama, her program gibi, onu çalıştıran kişinin yetkileriyle dosya okur ve yazar. Yorumlayıcı bir kum havuzu (sandbox) değildir; tanımadığınız bir programı çalıştırmayın.
 
 **Yüklenen dış kitaplıklar (GPU).** GPU arka ucu çalışma anında yalnızca NVIDIA'nın sürücüsünü (Linux'ta `libcuda.so.1`, Windows'ta sistem klasöründen `nvcuda.dll`) ve makinede kuruluysa matris çarpımı kitaplığını (cuBLASLt: `libcublasLt.so.13/.12`, `cublasLt64_13/12.dll`) yükler; TR bu kitaplıkları dağıtmaz. Linux'ta `LD_LIBRARY_PATH` boş öğe ya da göreli yol içeriyorsa sürücü de standart arama yoluyla değil, yalnızca bilinen sürücü klasörlerinden tam yolla yüklenir. cuBLASLt yalnızca şu yerlerde aranır: `TR_GPU_CUBLASLT` (tam yol olmalı), Linux'ta standart kitaplık arama yolu (yalnızca `LD_LIBRARY_PATH` mutlak klasörlerden oluşuyorsa), bilinen CUDA kurulum klasörleri, Python'un pip ile kurduğu NVIDIA paketlerinin bilinen klasörleri ve TR'nin kendi önbellek klasörü. **Çalışma klasörü ve programın yanındaki klasör hiçbir zaman aranmaz** (kitaplık kaçırma). Windows'ta DLL'in bağımlılıkları yalnızca DLL'in kendi klasöründen ve sistem klasöründen yüklenir. Bulunamazsa TR aynı GPU'da kendi çekirdeğini kullanır; hangi yolun kullanıldığı GPU durum mesajında görünür ([mimari](docs/architecture.md#gpu-arka-ucu-internalcomputegpu)).
 
