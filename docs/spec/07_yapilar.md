@@ -27,25 +27,26 @@ TR_print(p.uzaklık(), p)   # çıktı: 5.0 Nokta(x: 3.0, y: 4.0)
 **7.2** Yapının adı çağrılınca nesne kurulur: alanlar tanım sırasıyla ya da adla verilir (`Nokta(3.0, 4.0)`, `Nokta(y: 4.0)`); argüman kuralları 6.5'tekidir. Varsayılanı olmayan alan verilmezse denetim hatasıdır. Varsayılan her kurmada yeniden, yapının tanımlandığı kapsamda hesaplanır (6.4). Yapının kurucusu varsa kurma onun imzasıyla yapılır (7.4).
 - *Test:* TR testi; zorunlu alanın denetimi uygulanınca denetleyicinin testi.
 
-**7.3** Metot gövdedeki `TR_func`'tır ve `p.m(...)` ile çağrılır. Metot nesneye `TR_self` ile erişir; alan her zaman `TR_self.x` diye okunur ve atanır. Metotta düz `x` alan değildir: tanımlı değilse 5.14'ün hatasıdır ve ileti `TR_self.x`'i önerir. `TR_self` parametre olarak yazılmaz; Python'un self parametresi sözdizimi hatasıdır. Çağrısız `p.m` `p`'ye bağlı bir fonksiyon değeridir (6.9). Nesnesiz metot yoktur; `TR_self` kullanmayan iş dosyanın fonksiyonu olarak yazılır.
+**7.3** Metot gövdedeki `TR_func`'tır ve `p.m(...)` ile çağrılır. Metot nesneye `TR_self` ile erişir: alan her zaman `TR_self.x` diye okunur ve atanır, başka metot `TR_self.m()` diye çağrılır. Metotta düz `x` ya da `m()` alan ya da metot değildir. Düz ad yapının bir alanının ya da metodunun adıysa ve dıştaki bir ada çözülüyorsa denetim hatasıdır; hiçbir ada çözülmüyorsa 5.14'ün hatasıdır. İkisinde de ileti `TR_self.x`'i önerir. `TR_self` parametre olarak yazılmaz; Python'un self parametresi sözdizimi hatasıdır. Çağrısız `p.m` `p`'ye bağlı bir fonksiyon değeridir (6.9). Nesnesiz metot yoktur; `TR_self` kullanmayan iş dosyanın fonksiyonu olarak yazılır.
 - *Test:* TR testi; iletiler uygulanınca TR testi.
 
 **7.4** Kurucu `TR_init` adlı metottur. Yapının kurucusu varsa nesne yalnız onun parametreleriyle kurulur (`Kat(512, 1024)`); alanlarla kurma kalkar. Kurucu değer döndürmez. Kurucunun sonunda, her yolda, varsayılanı olmayan her alana atanmış olmalıdır; atanmadan okunan alan ve bütün alanlar atanmadan metot çağrısı denetim hatasıdır.
 - *Test:* TR testi; alanların atanma denetimi uygulanınca denetleyicinin testi.
 
-**7.5** Alan `p.x` ile okunur, `p.x = ifade` ile atanır; atanan değerin tipi alanın tipidir (3.13). Olmayan alana erişmek ve metoda değer atamak denetim hatasıdır; ileti en yakın alanı önerir (2.3a'nın uzaklığıyla). Bağı sabit bir nesnenin (`TR_const p`) alanları atanabilir (5.2).
+**7.5** Alan `p.x` ile okunur, `p.x = ifade` ile atanır; atanan değerin tipi alanın tipidir (3.13). Olmayan alana erişmek ve metoda değer atamak denetim hatasıdır; ileti en yakın alanı önerir (2.3a'nın uzaklığıyla), yakın alan yoksa alanı yapıya `k: T` diye eklemeyi. Bağı sabit bir nesnenin (`TR_const p`) alanları atanabilir (5.2).
 - *Test:* TR testi; alan tipinin ve olmayan alanın denetimi uygulanınca denetleyicinin testi.
 
 **7.6** Yapı nesnesi listeler gibi başvuruyla paylaşılır (3.6): `TR_var q = p` aynı nesnedir, `q.x = 9` `p.x`'i de değiştirir; bu yüzden 4.10'un yineleme kuralına girer.
-- `==` aynı yapıdan iki nesneyi alanlarıyla, tanım sırasıyla karşılaştırır (4.5); alanlarından biri karşılaştırılamayan yapı (ör. fonksiyon alanı) karşılaştırılamaz, denetim hatasıdır.
+- `==` aynı yapıdan iki nesneyi alanlarıyla, tanım sırasıyla karşılaştırır (4.5). Alanlarından biri karşılaştırılamayan yapı karşılaştırılamaz, denetim hatasıdır: fonksiyon alanı ve tensör alanı (tensörün `==`'si öğe öğedir, sonraki bölümlerde) böyledir.
 - Metni kurma yazımıdır: "Nokta(x: 3.0, y: 4.0)"; alanlar 3.14'teki gibi yazılır.
+- Nesne kendine bağlanabilir (ağaçta ebeveyn, çift yönlü bağlantı). Metin, yazılmakta olan bir nesneye yeniden varınca orada "..." yazar. `==` karşılaştırılmakta olan bir nesne çiftine yeniden varırsa çalışma hatasıdır.
 - `TR_Type(p)` yapının kendisidir (`TR_Type(p) == Nokta`); yapının metni adıdır.
 - *Test:* TR testi; metin uygulanınca TR testi.
 
 **7.7** `TR_enum Ad { ... }` durumlu bir tip tanımlar: değer, sayılı durumlardan biridir; durum alan taşıyabilir.
-- Durum `BüyükDeve` bir addır (2.3b), alanları parantez içinde 7.1'deki gibi yazılır: `Bekliyor`, `Çalışıyor(adım: TR_Int)`. Durumlardan sonra metotlar yazılabilir (7.3).
-- Değer `Durum.Bekliyor` ya da `Durum.Çalışıyor(5)` ile kurulur (argümanlar 6.5'teki gibi). Değer değiştirilemez; alanları yalnız eşlemeyle okunur.
-- `TR_match`'te desen: `Durum.Bekliyor`; ya da `Durum.Çalışıyor(a)`, burada `a` alanın değerini bağlar ve yalnız o kolda görünür (5.12). `_` bir alanı atlar. Alanın içinde değer karşılaştırılmaz; karşılaştırma kolun içinde yapılır.
+- Durum `BüyükDeve` bir addır (2.3b), alanları parantez içinde 7.1'deki gibi yazılır: `Bekliyor`, `Çalışıyor(adım: TR_Int)`. Durumlardan sonra metotlar yazılabilir (7.3). Durumlu tip 6.10'daki gibi tip parametresi alabilir: `TR_enum Cevap[T] { ... }`, durumları `Tamam(v: T)` ve `Hata(m: TR_String)`.
+- Değer `Durum.Bekliyor` ya da `Durum.Çalışıyor(5)` ile kurulur (argümanlar 6.5'teki gibi). Değer değiştirilemez; alanları yalnız eşlemeyle okunur. Alanlarından biri başvuruyla paylaşılan tipteyse değer 4.10'un yineleme kuralına girer.
+- `TR_match`'te desen: `Durum.Bekliyor`; ya da `Durum.Çalışıyor(a)`, burada `a` alanın değerini bağlar ve yalnız o kolda görünür. Bağlanan ad dıştaki bir adla aynıysa 5.12'nin hatasıdır. `_` bir alanı atlar. Alanın içinde değer karşılaştırılmaz ve koşullu kol (`... TR_if koşul =>`) yoktur, sözdizimi hatasıdır; karşılaştırma kolun içinde yapılır.
 - Eşleme her durumu ya da `_`'yi kapsar (5.6).
 - `==` aynı durumu ve eşit alanları sınar. Metni kurma yazımıdır: "Durum.Çalışıyor(adım: 5)".
 - Yapının deseni yoktur; yapıyla karşılaştırma parantezli ifadeyle yapılır (5.6).
@@ -69,8 +70,9 @@ TR_print(anlat(Durum.Çalışıyor(5)))   # çıktı: adım 5
 ```
 
 **7.8** `TR_interface Ad { ... }` bir arayüz tanımlar: gövdesiz metot imzalarından oluşur (`TR_func f(x: TR_Tensor) -> TR_Tensor`).
-- Bir yapı ya da durumlu tip arayüzün bütün metotlarını aynı imzayla taşıyorsa onu karşılar; ayrıca bildirilmez.
-- Arayüz bir tiptir: parametrede, alanda ve listede kullanılır (`TR_List[Katman]`). Çağrı nesnenin kendi metoduna gider.
+- Bir yapı ya da durumlu tip arayüzün bütün metotlarını aynı imzayla taşıyorsa onu karşılar; ayrıca bildirilmez. İmza parametre tipleri ve dönüş tipidir; parametre adları sayılmaz, arayüz üzerinden çağrı sırayla yapılır (6.9).
+- Arayüz bir tiptir: parametrede, alanda ve listede kullanılır (`TR_List[Katman]`). Çağrı nesnenin kendi metoduna gider. Arayüz değeri karşılaştırılamaz (4.5); metni asıl değerin metnidir.
+- Asıl tipe `TR_Type` sınamasıyla inilir: `TR_if TR_Type(k) == Kat { ... }` dalında `k` `Kat` tipindedir, 3.5'in daraltma koşullarıyla (yerel, dalda atanmayan, onu değiştiren kapanış olmayan değişken).
 - Arayüzü karşılamayan değer verilirse denetim hatasıdır; ileti eksik ya da imzası tutmayan metotları söyler.
 - Arayüz tip parametresine kısıt olur: `TR_func f[T: Katman](k: T)`; kısıtlı `T`'nin değerinde arayüzün metotları çağrılır (6.10).
 - Yerleşik tiplerin karşıladığı hazır arayüzler (eşitlik, sıralama, sayı) sonraki bölümlerdedir.

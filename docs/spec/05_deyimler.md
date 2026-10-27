@@ -33,7 +33,7 @@ TR_var tur = TR_if n < 0 { "negatif" } TR_else { "sıfır ya da pozitif" }
 ```
 
 **5.6** `TR_match x { ... }` x'i kollarla sırayla karşılaştırır, ilk eşleşen kolu çalıştırır; her kol bir desen, `=>` ve bir sonuçtur.
-- Desen bir değerdir ve konuyla `==` ile karşılaştırılır: sayı ya da metin yazımı, sabitin (`TR_const`) adı, parantezli ifade. Ad deseni adı bağlamaz. Değişkenle karşılaştırmak için parantez yazılır (`(x)`); düz adla yazılan değişken denetim hatasıdır, çünkü başka dillerde bu yazım her şeyle eşleşip adı bağlar; ileti `(x)`'i ya da `_`'yi önerir.
+- Desen bir değerdir ve konuyla `==` ile karşılaştırılır: sayı ya da metin yazımı, sabitin (`TR_const`) adı, parantezli ifade. Ad deseni adı bağlamaz (tek istisna, durumlu tipin deseninde alanların adları, sonraki bölümlerde). Değişkenle karşılaştırmak için parantez yazılır (`(x)`); düz adla yazılan değişken denetim hatasıdır, çünkü başka dillerde bu yazım her şeyle eşleşip adı bağlar; ileti `(x)`'i ya da `_`'yi önerir.
 - Bir kolda virgülle birden çok desen olabilir; konu `TR_Int` iken `TR_Range` deseni içermeyi sınar; `_` her şeyle eşleşir.
 - Eşleme her durumu kapsar: `TR_Bool`'da iki değer, öbür tiplerde bir `_` kolu gerekir; kapsamayan eşleme denetim hatasıdır.
 - Kol gövdesi bir ifade, `{ blok }` ya da `TR_return ifade` olabilir. `TR_match` ifade olarak kullanılınca bütün kolların tipi aynıdır.

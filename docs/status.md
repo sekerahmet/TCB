@@ -231,7 +231,7 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM'den ge
 ### 3.5
 
 - **Mevcut durum:** isteğe bağlı tip yok; `TR_Int` açıklamalı bir değişkene `TR_none` atanabiliyor [ölçüldü].
-- **Yapılacaklar:** `T?` tipi; açılmamış kullanım denetim hatası; daraltma yalnız değişmeyen yerel değişkende. `.TR_get` isteğe bağlı tip döner. Değer döndürmeyen çağrı değer olarak kullanılamaz; isteğe bağlı olmayanı `TR_none`'la karşılaştırmak denetim hatası.
+- **Yapılacaklar:** `T?` tipi; açılmamış kullanım denetim hatası; daraltma yalnız değişmeyen yerel değişkende, asıl tipten atamayla da. `.TR_get` isteğe bağlı tip döner. Değer döndürmeyen çağrı değer olarak kullanılamaz; isteğe bağlı olmayanı `TR_none`'la karşılaştırmak denetim hatası.
 
 ### 3.6
 
@@ -460,11 +460,22 @@ Depodaki kullanımlar çevrilir: `.tr` dosyalarında `TR_it` 44, `TR_acc` 10, ad
 
 ## 7. Yapılar
 
-Kurallar: [`docs/spec/07_yapilar.md`](spec/07_yapilar.md). Taslak: DENETİM ve Gemini'nin araştırması bekleniyor. Kuralla aynı olanlar: nesne başvuruyla paylaşılıyor (`q.x = 9` `p.x`'i de değiştiriyor), eşitlik alanlardan, çağrısız metot nesneye bağlı bir fonksiyon [ölçüldü].
+Kurallar: [`docs/spec/07_yapilar.md`](spec/07_yapilar.md). Taslak: DENETİM'den geçti, bulguları işlendi (2026-10-27); Gemini'nin araştırması bekleniyor. Kuralla aynı olanlar: nesne başvuruyla paylaşılıyor (`q.x = 9` `p.x`'i de değiştiriyor), eşitlik alanlardan, çağrısız metot nesneye bağlı bir fonksiyon [ölçüldü].
 
 İki yeni anahtar kelime kimlik listesine eklenir: `TR_enum` (7.7) ve `TR_interface` (7.8) (Ahmet, 2026-10-27, adları ana oturuma bıraktı: "senin için hataya en az sebep olacak hangisi ise o isimleri seçebilirsin"). Yapının tipi olan genel tip (StructType) kalkar; yapının tipi `TR_Type`'tır (3.11).
 
-`tests/yapilar_test.tr` eski kuralları da sınıyor; testler koşulmadan önce yeni kurallara göre yeniden yazılır: tipsiz alanlar ve varsayılanlıdan sonra varsayılansız alan (7.1), verilmeyen alanın yokluk alması (7.2), `p?.z` (7.5, 4.8), eski metin biçimi ve yapının tipinin StructType olması (7.6). Kütüphanenin yapıları (`lib/katman.tr` ve öbürleri) tipli alanlara ve tipli kurucu parametrelerine çevrilir.
+`tests/yapilar_test.tr` eski kuralları da sınıyor; testler koşulmadan önce yeni kurallara göre yeniden yazılır:
+- tipsiz alanlar ve varsayılanlıdan sonra varsayılansız alan (7.1); tipsiz metot ve kurucu parametreleri (1.2);
+- verilmeyen alanın yokluk alması (7.2);
+- argüman ve alan hatalarını çalışırken yakalayan 7.2 ve 7.5 testleri: artık denetim hatası, `tests/negative/` fikstürlerine taşınır;
+- `p?.z` (7.5, 4.8);
+- eski metin biçimi ve yapının tipinin StructType olması (7.6); `TR_fn_str` ve `TR_fn_type` (3.12); `//` yorumları ve eski başlık.
+
+Örneklerdeki eski genel tipler de kalkar: StructType, Function, BuiltinFunction, None (`examples/tr/12_tip_adlari.tr`, `14_yapilar_ve_metotlar.tr`) [DENETİM].
+
+Kütüphanenin bedeli [ölçüldü, DENETİM]: depoda 38 yapı tanımı (`lib/`'de 16); alanlar ve kurucu parametreleri tipsiz, tipli yazıma çevrilir. Alan daraltılmadığı için (3.5) `lib/`'deki 15 `TR_self.alan != TR_none` sınaması yerel kopyaya ya da `?.`'ya çevrilir; "yoksa varsayılan ata" kalıbının 4 yeri 3.5'in atamayla daraltmasıyla geçerli kalır. `lib/katman.tr`'nin kurucuları 7.4'e uyuyor.
+
+JSON'dan tipli yapıya doğrudan okuma (alan adı eşlemesiyle; Rust'ın serde'si, Python'un pydantic'i gibi) henüz hiçbir bölümde yok; sonraki bölümlerde tasarlanır.
 
 ### 7.1
 
@@ -478,8 +489,8 @@ Kurallar: [`docs/spec/07_yapilar.md`](spec/07_yapilar.md). Taslak: DENETİM ve G
 
 ### 7.3
 
-- **Mevcut durum:** metotta düz alan adı tanımsız ad hatası veriyor, ama ileti `TR_var`'ı öneriyor [ölçüldü].
-- **Yapılacaklar:** ileti `TR_self.x`'i önerir; Python'un self parametresi için ileti.
+- **Mevcut durum:** metotta düz alan adı tanımsız ad hatası veriyor; atamada ileti `TR_var`'ı [ölçüldü], okumada en yakın adı öneriyor, ilgisiz bir tip adı bile olabiliyor [ölçüldü, DENETİM]. Dışta aynı adlı değişken varsa düz ad onu okuyor (hata yok).
+- **Yapılacaklar:** alan ya da metot adıyla aynı düz ad denetim hatası, ileti `TR_self.x`'i önerir; metot `TR_self.m()` ile; Python'un self parametresi için ileti.
 
 ### 7.4
 
@@ -494,14 +505,14 @@ Kurallar: [`docs/spec/07_yapilar.md`](spec/07_yapilar.md). Taslak: DENETİM ve G
 ### 7.6
 
 - **Mevcut durum:** nesnenin metni `Nokta{x: 1, y: 2}` biçiminde [ölçüldü]; yapının tipi StructType (bugünkü 7.6 testi).
-- **Yapılacaklar:** metin kurma yazımıyla ("Nokta(x: 1.0, y: 2.0)"); karşılaştırılamayan alanlı yapının `==`'si denetim hatası.
+- **Yapılacaklar:** metin kurma yazımıyla ("Nokta(x: 1.0, y: 2.0)"), döngüde "..."; döngüde `==` çalışma hatası; fonksiyon ya da tensör alanlı yapının `==`'si denetim hatası.
 
 ### 7.7
 
 - **Mevcut durum:** durumlu tip yok.
-- **Yapılacaklar:** `TR_enum`, durumların kurulması, eşlemede desen ve kapsama, metin.
+- **Yapılacaklar:** `TR_enum`, tip parametresi, durumların kurulması, eşlemede desen, alan bağlama ve kapsama, koşullu kol iletisi, metin.
 
 ### 7.8
 
 - **Mevcut durum:** arayüz yok.
-- **Yapılacaklar:** `TR_interface`, yapısal karşılama, eksik metodu söyleyen ileti, tip parametresinde kısıt.
+- **Yapılacaklar:** `TR_interface`, yapısal karşılama, eksik metodu söyleyen ileti, tip parametresinde kısıt, `TR_Type` sınamasıyla asıl tipe daraltma. Kimlik kapısının onaylı yeni adlar listesine `TR_enum` ve `TR_interface` girer.
