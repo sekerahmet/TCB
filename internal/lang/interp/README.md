@@ -27,18 +27,17 @@ yerleşik yolu aynı yerden çözer. Denetim: `TestResolvePathSingleRule`, `Test
 **Sıra belirlenimlidir.** Sözlükler ekleme sırasını korur, yapı alanları sabit bir sırayla gezilir;
 çıktı harita gezinme sırasına bağlı olmaz. Denetim: `TestOutputOrderIsDeterministic`.
 
-**Değerin metni dosyanın dilindedir.** Programın bir değerden metin yaptığı her yer (`TR_fn_str()`,
-`TR_fn_print`, metin yerleştirmesi, Metin ile `+`, `TR_mem_join`, `TR_fn_write_file`, `TR_fn_input`'nin istemi, metin
-metotlarının argümanları) değeri işlemin yazıldığı dosyanın dilinde çevirir (tek yol:
-`VM.textOf`/`valueText`; sözcüksel: kitaplık fonksiyonu kendi dilinde, geri çağırma kendi
-dosyasının dilinde). Dile bağlı olan yalnızca dilin değerlerinin adlarıdır (`TR_kw_true`, `TR_kw_false`,
-`TR_kw_none`, tip adları) ile yazdırılan kodlu sözlük anahtarlarıdır. Kod taşıyan çıplak sözlük anahtarı
-(`{TR_mem_step: 1}`, `{step: 1}`) içeride kodun dilden bağımsız adıyla saklanır (`CodedKey`: `"step"`; kod
-`DictVal.coded`'da yalnız gösterim için durur): `TR_mem_keys()`, `d["step"]` ve veri biçimleri (JSON,
-günlük, kontrol noktası; `KeyText`) her dilde aynı anahtarı görür, `TR_fn_print` dosyanın dilinde,
-`DisplayKey` kişinin dilinde yazar. Sözlükte üye erişimi (`d.TR_mem_step`) önce bu anahtarı, sonra dosyanın
-dilindeki adla duran metin anahtarı arar (`memberInfo.keys`); yeni anahtarı kodla ekler. `Inspect`
-kanonik kalır ve iletiler onu kullanır. Denetim: `TestValueTextFollowsTheFilesLanguage`, `TestValueTextIsLexical`, `TestEveryTextConversionFollowsTheFilesLanguage`, `TestDictCodedKeysAreLanguageIndependent`, `TestDataFormatsIndependentOfFileLanguage` ve `TestDictCodedKeysOnDisk` (cmd/tr/e2e).
+**Değerin metni dilden bağımsızdır.** Dosyanın dili yoktur (dil tanımı 2.1): programın bir değerden
+metin yaptığı her yer (`TR_str()`, `TR_print`, metin yerleştirmesi, Metin ile `+`, `TR_join`,
+`TR_write_file`, `TR_input`'un istemi, metin metotlarının argümanları) değeri kimliğin adıyla yazar
+(`true`, `none`, `Int`; tek yol: `VM.textOf`/`valueText`, dil `codes.ValueNames()`): aynı program her
+makinede ve her `TR_DIL`'de aynı çıktıyı verir. Yakalanan hatanın metni sabit İngilizce katalogdan kurulur
+(`caughtErrorLanguage`). Kod taşıyan çıplak sözlük anahtarı (`{TR_step: 1}`) içeride kodun dilden bağımsız
+adıyla saklanır (`CodedKey`: `"step"`; kod `DictVal.coded`'da yalnız gösterim için durur): `TR_keys()`,
+`d["step"]` ve veri biçimleri (JSON, günlük, kontrol noktası; `KeyText`) aynı anahtarı görür,
+`DisplayKey` kişinin dilinde yazar. Sözlükte üye erişimi (`d.TR_step`) bu anahtarı arar (`memberInfo.keys`);
+bir dildeki adla duran metin anahtar (`"adım"`) ayrı bir anahtardır. `Inspect` kanonik kalır ve iletiler
+onu kullanır. Denetim: `TestValueTextIsLanguageIndependent`, `TestValueTextIsTheSameInEveryModule`, `TestEveryTextConversionIsLanguageIndependent`, `TestCaughtErrorTextIsEnglish`, `TestDictCodedKeysAreLanguageIndependent`, `TestDataFormatsIndependentOfFileLanguage` ve `TestDictCodedKeysOnDisk` (cmd/tr/e2e).
 
 **Sıcak yol ölçülerek değişir.** Yorumlayıcı döngüsündeki ve hızlı yollardaki değişiklikler
 önce/sonra hız ölçümüyle yapılır.

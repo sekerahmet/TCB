@@ -9,39 +9,38 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
+// Başlık (2.1): ilk satır tam olarak '# TR 4'tür, '#!' ile başlayan ilk satırdan sonra ikinci satır.
+// Dosyanın dili yoktur. Başka bir sürümün başlığı (aynı önekle başlayıp başlık olmayan satır) okunmaz
+// ve satırıyla bildirilir; başlıksız metin dosya değildir, çalışmaz, ileti kodlama komutunu söyler.
 func TestHeaderRules(t *testing.T) {
-	cases := map[string]string{Header + "tr\n": "tr", Header + "en": "en", "\xef\xbb\xbf" + Header + "en\r\nTR_var x = 1": "en"}
-	for m, language := range cases {
-		if b, err := Split(m); err != nil || !b.Coded || b.Language != language || b.Join() != m {
-			t.Errorf("%q: %s dilinde kodlu okunmalı ve geri birleşmeli (%+v, %v)", m, language, b, err)
+	for _, m := range []string{Header + "\n", Header, "\xef\xbb\xbf" + Header + "\r\nTR_var x = 1", "#!/usr/bin/env tr\n" + Header + "\nTR_var x = 1\n"} {
+		if b, err := Split(m); err != nil || !b.Coded || b.Join() != m {
+			t.Errorf("%q: kodlu okunmalı ve geri birleşmeli (%+v, %v)", m, b, err)
 		}
 	}
-	// Başlıksız dosya Türkçedir (17.7).
-	if b, err := Split("TR_var x = 1\n"); err != nil || b.Coded || b.Language != "tr" {
-		t.Errorf("başlıksız dosya Türkçe olmalı: %+v, %v", b, err)
+	// Başlıksız metin, başlığın başka satırda olduğu metin ve eski biçimin başlığı başlıksızdır.
+	for _, m := range []string{"TR_var x = 1\n", "\n" + Header + "\n", "# yorum\n" + Header + "\n", "//! tr kodlu 3 dil=tr\nTR_kw_var x = 1\n", "# TR\n"} {
+		if b, err := Split(m); err != nil || b.Coded {
+			t.Errorf("%q: başlıksız sayılmalı (%+v, %v)", m, b, err)
+		}
+		s := Prepare(m, Options{})
+		if s.Stage != StageSyntax || len(s.Errors) != 1 || !messages.Has(s.Errors[0], messages.H2540) || !hasPos(s.Errors[0], 1, 1) {
+			t.Errorf("%q: başlıksız dosya H2540 (1:1) vermeli: %v", m, s.Errors)
+		}
 	}
-	// Eski ve yeni biçim sürümleri, dilsiz ya da bilinmeyen dilli başlık okunmaz (17.1, 17.6); dilsiz
-	// sürüm 2 başlığı sürümü değil eksik dili söyler (H2523).
-	unreadable := map[string]messages.Code{
-		"//! tr kodlu 1\nTR_kw_var x = 1": messages.H2512, "//! tr kodlu 2 dil=en\nA030 x = 1\n": messages.H2512,
-		"//! tr kodlu 4 dil=en\n": messages.H2512, "//! tr kodlu 3\n": messages.H2523, Header + "\n": messages.H2523, Header: messages.H2523, Header + "en \n": messages.H2508,
-		"//! tr kodlu 2 \n": messages.H2512,
-		Header + "fr\n":     messages.H2508, "//! tr kodlu\n": messages.H2512,
-	}
-	for m, code := range unreadable {
+	// Başka bir sürümün başlığı okunmaz; hata başlığın satırındadır.
+	for m, line := range map[string]int{"# TR 3\n": 1, "# TR 5\nTR_var x = 1\n": 1, Header + " \n": 1, "# TR 4 # yorum\n": 1, "#!/usr/bin/env tr\n# TR 3\n": 2} {
 		var bh *HeaderError
-		if _, err := Split(m); !errors.As(err, &bh) || !messages.Has(err, code) {
-			t.Errorf("%q: %v başlık hatası bekleniyordu, alınan %v", m, code, err)
+		if _, err := Split(m); !errors.As(err, &bh) || !messages.Has(err, messages.H2512) || bh.At != line {
+			t.Errorf("%q: H2512 başlık hatası (satır %d) bekleniyordu, alınan %v", m, line, err)
 		}
-		if s := Prepare(m, Options{}); s.Stage != StageSyntax || !hasPos(s.Errors[0], 1, 1) {
+		if s := Prepare(m, Options{}); s.Stage != StageSyntax || !hasPos(s.Errors[0], line, 1) {
 			t.Errorf("%q: hazırlık başlık hatasını sözdizimi hatası olarak bildirmeli: %+v", m, s.Errors)
 		}
 	}
-	// İlk satır olmayan ya da başka bir '//!' yorumu sıradan yorumdur.
-	for _, m := range []string{"\n" + Header + "\n", "//! tr notu\n"} {
-		if b, err := Split(m); err != nil || b.Coded {
-			t.Errorf("%q: Türkçe kaynak sayılmalı (%+v, %v)", m, b, err)
-		}
+	// Başlıksız kodlu gövde (bir testin ya da aracın parçası) Body ile okunur.
+	if s := Prepare("TR_var x = 1\nTR_print(x)\n", Options{Body: true, TypeCheck: true}); s.Stage != "" {
+		t.Errorf("başlıksız kodlu gövde okunmalı: %v", s.Errors)
 	}
 }
 
@@ -56,10 +55,10 @@ func TestIdentityLexerReadsIdentitiesAtDiskPositions(t *testing.T) {
 	for _, c := range []struct {
 		body  string
 		paren int // `(` belirtecinin diskteki sütunu
-	}{{"TR_print(adet)", 12}, {"yazdır(adet)", 7}} {
+	}{{"TR_print(adet)", 9}, {"yazdır(adet)", 7}} {
 		l := Parts{Body: c.body, Coded: strings.HasPrefix(c.body, "TR_")}.IdentityLexer()
 		name, open, user := l.NextToken(), l.NextToken(), l.NextToken()
-		if name.Code != codes.FnPrint || name.Literal != "TR_print" || open.Column != c.paren || user.Literal != "adet" {
+		if name.Code != codes.FnPrint || open.Column != c.paren || user.Literal != "adet" {
 			t.Errorf("%q: %+v %+v %+v; want the identity TR_print, `(` at column %d, the user name adet", c.body, name, open, user, c.paren)
 		}
 	}

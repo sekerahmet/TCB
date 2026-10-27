@@ -461,11 +461,19 @@ TR_var ` + c.other + ` = 1`
 	if u := New().Warnings(); len(u) != 0 {
 		t.Errorf("yeni denetleyicide uyarı olmamalı: %v", u)
 	}
+	// Dosyanın dili yoktur (2.1): yerleşik TR_ ile yazılır, 'toplam' ya da 'input' adlı kullanıcı adı
+	// hiçbir yerleşiği gölgelemez; uyarı yalnız kişinin dilinde yazılan satırdadır (SetFileLanguage).
+	p := parser.New(lexer.NewBody("TR_var toplam, input, girdi = 1, 2, 3\nTR_print(toplam + input + girdi)", true))
+	chk := New()
+	chk.CheckProgram(p.ParseProgram())
+	if u := chk.Warnings(); len(u) != 0 {
+		t.Errorf("dosyada kullanıcı adı yerleşiği gölgelemez: %v", u)
+	}
 }
 
 func TestEmptyProgram(t *testing.T) {
 	noErrors(t, "")
-	noErrors(t, "// yalnızca yorum")
+	noErrors(t, "# yalnızca yorum")
 	if errs := New().Errors(); errs == nil || len(errs) != 0 {
 		t.Errorf("yeni denetleyicinin hata listesi boş (nil olmayan) olmalı, gelen: %#v", errs)
 	}

@@ -73,7 +73,7 @@ func TestDataFormatsIndependentOfFileLanguage(t *testing.T) {
 	var data, logs [2]string
 	for i, language := range []string{"tr", "en"} {
 		dir := t.TempDir()
-		testkit.WriteFile(t, dir, "p.tr", inLanguage(coded, language))
+		testkit.WriteFile(t, dir, "p.tr", coded)
 		s := testkit.RunBinary(t, trBinary, dir, "", nil, "p.tr")
 		testkit.Wait(t, s, 0, nil, nil)
 		lines := strings.SplitN(s.Stdout, "\n", 3)
@@ -122,7 +122,7 @@ func TestDictCodedKeysOnDisk(t *testing.T) {
 		{"en", "--adım", "{\"step\":2,\"lr\":0.5}\n{step: 2, lr: 0.5}\n4\n"},
 	} {
 		dir := t.TempDir()
-		testkit.WriteFile(t, dir, "p.tr", inLanguage(coded, c.language))
+		testkit.WriteFile(t, dir, "p.tr", coded)
 		s := testkit.RunBinary(t, trBinary, dir, "", nil, "p.tr", c.option, "2")
 		testkit.Wait(t, s, 0, nil, nil)
 		if got := progressLine.ReplaceAllString(s.Stdout, ""); got != c.want {
@@ -202,7 +202,7 @@ func TestEngineValueTextFollowsFileLanguage(t *testing.T) {
 	} {
 		for _, env := range [][]string{{"TR_DIL=tr"}, {"TR_DIL=en"}} {
 			dir := t.TempDir()
-			testkit.WriteFile(t, dir, "p.tr", inLanguage(coded, language))
+			testkit.WriteFile(t, dir, "p.tr", coded)
 			s := testkit.RunBinary(t, trBinary, dir, "", env, "p.tr")
 			lines := strings.Split(s.Stdout, "\n")
 			if s.Code != 0 || len(lines) < len(want) {
@@ -256,7 +256,7 @@ func TestBoolTextComparisonWarnsByFileLanguage(t *testing.T) {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "en.tr", inLanguage(coded, "en"))
+	testkit.WriteFile(t, dir, "en.tr", coded)
 	testkit.WriteFile(t, dir, "tr.tr", coded)
 	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "en.tr"), 0, []string{"false"}, []string{`"doğru" is the name in another writing language`})
 	if s := testkit.RunBinary(t, trBinary, dir, "", nil, "tr.tr"); s.Code != 0 || s.Stdout != "doğru\n" || strings.Contains(s.Stderr, "başka bir yazım dilinin") {
@@ -279,7 +279,7 @@ func TestMessageNamesFollowTheMessageLanguage(t *testing.T) {
 	want := []string{"tensor: requires_grad must be true or false", "Did you mean 'transpose()'?",
 		"tensor() takes no parameter named 'türev_izl'. Did you mean 'requires_grad'?"}
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "en.tr", inLanguage(coded, "en"))
+	testkit.WriteFile(t, dir, "en.tr", coded)
 	testkit.WriteFile(t, dir, "tr.tr", coded)
 	caught := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=tr"}, "en.tr")
 	shown := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "tr.tr")
@@ -321,7 +321,7 @@ func TestMessagePartsFollowTheMessageLanguage(t *testing.T) {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "en.tr", inLanguage(coded, "en"))
+	testkit.WriteFile(t, dir, "en.tr", coded)
 	s := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=tr"}, "en.tr")
 	if strings.Count(s.Stdout, "does not work on lists, only on tensors") != 2 {
 		t.Errorf("İngilizce dosyanın yakaladığı hatada parça İngilizce olmalı:\n%s%s", s.Stdout, s.Stderr)
@@ -344,7 +344,7 @@ func TestDatasetErrorsFollowTheMessageLanguage(t *testing.T) {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "en.tr", inLanguage(coded, "en"))
+	testkit.WriteFile(t, dir, "en.tr", coded)
 	s := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=tr"}, "en.tr")
 	if !strings.Contains(s.Stdout, "the cache quota is insufficient") || !strings.Contains(s.Stdout, "bytes are needed") {
 		t.Errorf("İngilizce iletinin ayrıntısı İngilizce olmalı:\n%s%s", s.Stdout, s.Stderr)
@@ -435,7 +435,7 @@ func sameOutputInEveryLanguage(t *testing.T, program string, want map[string]str
 	}
 	for language, want := range want {
 		dir := t.TempDir()
-		testkit.WriteFile(t, dir, "p.tr", inLanguage(coded, language))
+		testkit.WriteFile(t, dir, "p.tr", coded)
 		for _, env := range [][]string{{"TR_DIL=tr"}, {"TR_DIL=en"}} {
 			if s := testkit.RunBinary(t, trBinary, dir, "", env, "p.tr"); s.Code != 0 || s.Stdout != want {
 				t.Errorf("dil=%s, %s: %q (çıkış %d, %s), beklenen %q", language, env[0], s.Stdout, s.Code, s.Stderr, want)

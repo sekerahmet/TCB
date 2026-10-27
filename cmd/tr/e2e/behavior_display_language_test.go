@@ -13,7 +13,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
@@ -128,7 +127,7 @@ var displaySurfaces = []displaySurface{
 	// Sözdizimi hatalı program görünüme çevrilemez: kodlu biçimiyle (kimlikler dilden bağımsız) yazılır.
 	{name: "kurucu", args: run,
 		raw: func(*codes.Language) map[string]string {
-			return map[string]string{"p.tr": lexer.CodedHeader + "tr\nTR_struct P {\n    ad_1\n" +
+			return map[string]string{"p.tr": source.Header + "\nTR_struct P {\n    ad_1\n" +
 				"    TR_func TR_init(ad_2) {\n        TR_self.ad_1 = ad_2\n    }\n" +
 				"    TR_func TR_init(ad_3) {\n        TR_self.ad_1 = ad_3\n    }\n}\nTR_print(P(1))\n"}
 		},

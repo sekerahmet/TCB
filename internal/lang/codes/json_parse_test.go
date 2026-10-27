@@ -2,7 +2,6 @@ package codes
 
 import (
 	"encoding/json"
-	"strings"
 	"testing"
 )
 
@@ -14,9 +13,8 @@ func TestParserMatchesJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	type entry struct {
-		Name    string   `json:"name"`
-		Foreign []string `json:"foreign"`
-		Family  string   `json:"family"`
+		Name   string `json:"name"`
+		Family string `json:"family"`
 	}
 	var std map[string]entry
 	if err := json.Unmarshal(trJSON, &std); err != nil {
@@ -27,13 +25,12 @@ func TestParserMatchesJSON(t *testing.T) {
 	}
 	for _, g := range raw {
 		s := std[g.key]
-		if g.name != s.Name || g.family != s.Family ||
-			strings.Join(g.foreign, "|") != strings.Join(s.Foreign, "|") {
+		if g.name != s.Name || g.family != s.Family {
 			t.Errorf("%s farklı okundu: %+v / %+v", g.key, g, s)
 		}
 	}
-	g, err := parseFile([]byte("\xef\xbb\xbf{ \"TR_fn_print\" : {\"name\": \"a\\u00e7\\\"\", \"foreign\": [\"print\"]} }"))
-	if err != nil || len(g) != 1 || g[0].name != "aç\"" || len(g[0].foreign) != 1 || g[0].foreign[0] != "print" {
+	g, err := parseFile([]byte("\xef\xbb\xbf{ \"TR_fn_print\" : {\"name\": \"a\\u00e7\\\"\"} }"))
+	if err != nil || len(g) != 1 || g[0].name != "aç\"" {
 		t.Errorf("kaçışlı metin ya da BOM okunamadı: %+v %v", g, err)
 	}
 	for _, broken := range []string{``, `[]`, `{"TR_fn_print": {"name": "a"}`, `{"TR_fn_print": {"name": "a"},}`, `{"TR_fn_print": {"name": 1}}`,

@@ -56,7 +56,7 @@ func TestBuiltinsMatchDictionary(t *testing.T) {
 // tanımlar korunur).
 func runCoded(t *testing.T, m *interp.VM, body string) (interp.Value, error) {
 	t.Helper()
-	p := parser.New(source.Parts{Coded: true, Language: codes.SourceLanguage, Body: body}.Lexer())
+	p := parser.New(source.Parts{Coded: true, Body: body}.Lexer())
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatalf("sözdizimi hatası: %v\n%s", p.Errors(), body)

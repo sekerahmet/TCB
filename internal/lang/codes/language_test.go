@@ -271,9 +271,8 @@ func TestClashesCaught(t *testing.T) {
 		{`{"TR_fn_print": {"name": "yazdır"}, "TR_fn_input": {"name": "yazdır"}}`, "TR_input \"yazdır\" and TR_print"},
 		{`{"TR_fn_print": {"name": "yazdır"}, "TR_fn_input": {"name": "yazdir"}}`, "TR_input \"yazdir\" and TR_print \"yazdır\""},
 		{`{"TR_kw_if": {"name": "eğer"}, "TR_fn_print": {"name": "eger"}}`, "TR_if \"eğer\" and TR_print"},
-		{`{"TR_fn_print": {"name": "yazdır"}, "TR_fn_input": {"name": "girdi", "foreign": ["yazdir"]}}`, "the foreign name \"yazdir\" of TR_input clashes with TR_print"},
-		{`{"TR_fn_print": {"name": "a", "foreign": ["çık"]}, "TR_fn_input": {"name": "b", "foreign": ["cik"]}}`, "\"cik\" is registered for both TR_input and TR_print"},
-		{`{"TR_fn_print": {"name": "a", "foreign": ["a"]}}`, "must not be the name itself"},
+		// Tanıdık adlar dilden bağımsızdır, definitions.json'da durur (2.3a); dil dosyasında yazılamaz.
+		{`{"TR_fn_print": {"name": "a", "foreign": ["b"]}}`, "unknown field \"foreign\""},
 		{`{"TR_fn_print": {"name": "a", "eski": ["b"]}}`, "unknown field \"eski\""},
 		{`{"TR_fn_print": {"name": "a b"}}`, "contain spaces"},
 		{`{"TR_fn_print": {"name": "yazdır", "es": ["yaz"]}}`, "unknown field \"es\""},
@@ -294,13 +293,13 @@ func TestClashesCaught(t *testing.T) {
 
 // Kural (17, ortak ad): ortak adlı kodun (definitions.json "common_name") adı dil dosyasında yazılmaz;
 // yükleyici onu her dile, satırı yoksa yeni satırla ekler ve ortak ad dilin kendi adlarıyla aynı
-// denetimlerden geçer (çakışma, yabancı ad, ortam değişkeninin TR_ istisnası).
+// denetimlerden geçer (çakışma, ortam değişkeninin TR_ istisnası). Bir dildeki başka bir kodun adına
+// eşit tanıdık ad (definitions.json "familiar") o dilde tanıdık ad sayılmaz, hata değildir.
 func TestCommonNamesGoThroughTheChecks(t *testing.T) {
 	common := map[Code]string{FnSin: "sin", EnvCpuAvx2: "TR_CPU_AVX2"}
 	for _, c := range []struct{ json, want string }{
 		{`{"TR_fn_sin": {"name": "x"}}`, "TR_sin has the common name \"sin\""},
 		{`{"TR_fn_print": {"name": "sin"}}`, "clash in the same namespace"},
-		{`{"TR_fn_print": {"name": "a", "foreign": ["sin"]}}`, "the foreign name \"sin\" of TR_print clashes with TR_sin"},
 	} {
 		_, err := load("deneme", []byte(c.json), common)
 		if err == nil || !strings.Contains(err.Error(), c.want) {

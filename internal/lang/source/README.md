@@ -10,8 +10,9 @@ Kodlu biçim ile dil yazımları arasındaki çevirici de buradadır.
 modül yükleyici bir `.tr` dosyasını yalnızca bu paket üzerinden okur; başlık kuralları başka yerde
 yinelenmez. Denetim: `TestHeaderRulesLiveOnlyInSourceAndLexer`.
 
-**Başlık kesindir.** İlk satır tam olarak kodlu biçim başlığıysa dosya kodludur. Başlığa benzeyen
-ama tanınmayan bir ilk satır hatadır; sessizce Türkçe kaynak sayılmaz. Denetim: `TestHeaderRules`.
+**Başlık kesindir.** İlk satır (ilk satır `#!` ise ikinci satır) tam olarak `# TR 4` ise dosyadır.
+Başlığa benzeyen ama tanınmayan satır (başka sürüm) hatadır; başlıksız metin çalışmaz, sessizce bir
+dilde yazılmış sayılmaz. Denetim: `TestHeaderRules`.
 
 **Çeviri yeniden yazdırma değildir.** Yalnızca dilin sözcükleri değişir; boşluklar, satır sonları,
 yorumlar, kullanıcının adları, metinler ve sayılar bayt bayt korunur. Yorumların ve ham metinlerin
@@ -21,20 +22,19 @@ içi hiçbir zaman çevrilmez. Denetim: `TestEncodeEdgeCases`, `TestEncodeBOMAnd
 ağacı) aynı kalmalı, çevrilen metin geri çevrilince özgününe dönmelidir. Kodlu metnin bir yazım
 diline çevrilmesinde gösterim o dilde geri okunur ve aynı kodlu biçimi vermelidir. Sözdizimi hatası, bozuk
 UTF-8 ya da kayıp durumunda hata döner ve dosya yazılmaz. Depodaki bütün `.tr` dosyaları ve
-belgelerdeki kod blokları bu denetimden geçmelidir. Denetim: `TestDecodeRefusesLossyView`, `TestEscapeInOtherLanguage`, `TestRepoTRFilesEncodeLossless`, `TestDocCodeBlocksEncodeLossless`.
+belgelerdeki kod blokları bu denetimden geçmelidir. Denetim: `TestDecodeRefusesAnUnreadableFile`, `TestEscapeInOtherLanguage`, `TestRepoTRFilesEncodeLossless`, `TestDocCodeBlocksEncodeLossless`.
 
-**Programın anlamı koda bağlıdır.** Programlar her zaman kimliklerle (`TR_fn_print`) okunur ve çalışır
-(17.7; `codes.Active` kimlik listesidir): kodlu dosya olduğu gibi, başlıksız metin önce kodlu biçime çevrilerek (bugün Türkçe yazılmış sayılır). Hiçbir yazım dilinin ayrıcalığı yoktur.
-Değerin metni ise dosyanın başlığındaki dildedir (`dil=`, 17.1; `interp.Source.Language`, dil tanımı 3;
-denetleyici de dili `Prepare`'den alır, `Checker.SetFileLanguage`);
-kişinin yazım dili (`TR_DIL`, `codes.Display`) yalnızca görüntüdür. Başka bir dilde yazılmış metin dili açıkça
-verilerek okunur (`lexer.NewBodyIn`, `EncodeIn`, `Show`): `tr kodla - --dil en`, kişinin dilinde
-yazılmış kabuk satırı (`Options.Typed`). Denetim: `TestUncodedFileIsTurkishInEveryLanguage`,
-`TestAuditUncodedTurkishNamesCollideWithActiveLanguageWords`, `TestAuditDictMemberKeysChangeWithWritingLanguage`
-(cmd/tr/e2e), `TestBodyInLanguage` (lexer), `TestContextWordsFollowLexer` (parser).
+**Dosyanın dili yoktur.** Dosya `# TR 4` başlığıyla başlar ve kimliklerle (`TR_print`) yazılır (dil
+tanımı 2.1); program her zaman kimliklerle okunur ve çalışır, başlıksız metin çalışmaz (`NoHeaderError`,
+ileti kodlama komutunu söyler). Hiçbir yazım dilinin ayrıcalığı yoktur; değerin metni dilden bağımsızdır
+(`codes.ValueNames`). Kişinin yazım dili (`TR_DIL`, `codes.Display`) yalnızca görüntüdür. Bir dilde yazılmış
+metin dili açıkça verilerek okunur (`lexer.NewBodyIn`, `EncodeIn`, `Show`): `tr kodla - --dil en`, kişinin
+dilinde yazılmış kabuk satırı (`Options.Typed`), başlıksız kodlu parça (`Options.Body`). Denetim:
+`TestHeaderRules`, `TestHeaderlessFileDoesNotRun`, `TestUserNamesNeverBecomeLanguageWords`,
+`TestDictMemberKeysDoNotDependOnTheLanguage` (cmd/tr/e2e), `TestBodyInLanguage` (lexer), `TestContextWordsFollowLexer` (parser).
 
-**Satırlar her gösterimde aynıdır.** Satır numaraları başlıktan sonra sayılır: kodlu dosyanın 1.
-satırı, her gösterimin 1. satırıdır. Denetim: `TestCodedFilePrepares`, `TestEncodeKeepsLineStructure`.
+**Satırlar dosyanın satırlarıdır.** Başlık ve `#!` satırı dahil, 1. satır dosyanın ilk satırıdır; gösterim
+başlığı ve satırları tutar. Denetim: `TestCodedFilePrepares`, `TestEncodeKeepsLineStructure`.
 
 ## Testler
 

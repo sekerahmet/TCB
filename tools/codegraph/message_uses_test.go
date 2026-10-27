@@ -17,8 +17,8 @@ var messageCodeName = regexp.MustCompile(`^H\d{4}$`)
 
 // Kural: ileti kodunun her kullanımı grafikte bir `uses_message` kenarıdır; who-uses ve tests-for bir iletiyi üreten
 // ve bekleyen yeri kaçırmaz. Kapsam, grafikten bağımsız iki yoldan: Go'da go/types'ın messages paketinin bir ileti
-// sabitine (messages.H6932, paketin içinde H9000) gördüğü her kullanım; .tr kaynağında sözcük çözümleyicinin verdiği
-// her ileti kodu belirteci (`ileti(H6932, x)`, `hata_kodu(h) == H6932`). Her biri için, kullanımın bulunduğu dosyadaki
+// sabitine (messages.H6932, paketin içinde H9000) gördüğü her kullanım; .tr kaynağında ileti kodu olan her metin
+// (`TR_message("H6932", x)`, `TR_error_code(h) == "H6932"`). Her biri için, kullanımın bulunduğu dosyadaki
 // bir düğümden o kodun ileti düğümüne `uses_message` kenarı olmalıdır.
 func TestEveryMessageCodeUseIsAnEdge(t *testing.T) {
 	root, m, g := repoGraph(t)
@@ -45,7 +45,8 @@ func TestEveryMessageCodeUseIsAnEdge(t *testing.T) {
 		}
 		l := b.IdentityLexer()
 		for tok := l.NextToken(); tok.Type != lexer.TokEOF; tok = l.NextToken() {
-			if tok.Type == lexer.TokMessageCode {
+			// İleti kodu bir metin olarak yazılır ("H6903").
+			if tok.Type == lexer.TokString && messageCodeName.MatchString(tok.Literal) {
 				want[tok.Literal+" "+n.File] = true
 			}
 		}

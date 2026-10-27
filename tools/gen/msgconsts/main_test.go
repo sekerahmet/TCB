@@ -10,6 +10,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"testing"
@@ -19,6 +20,9 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
+
+// messageCodeText bir ileti kodunun metnidir ("H6903").
+var messageCodeText = regexp.MustCompile(`^H\d{4}$`)
 
 // migrated ileti kodlarına geçirilmiş paketlerdir: test dışı kodlarında fmt.Errorf ve errors.New
 // kullanılmaz (her ileti bir koddur). Geçiş ilerledikçe liste büyür; bkz.
@@ -233,7 +237,9 @@ func messageCalls(lx *lexer.Lexer, name, path string) (calls []call) {
 		toks = append(toks, tok)
 	}
 	for i := 0; i+2 < len(toks); i++ {
-		if (toks[i].Code != codes.FnMessage && toks[i].Literal != name) || toks[i+1].Type != lexer.TokLParen || toks[i+2].Type != lexer.TokMessageCode {
+		// İleti kodu bir metin olarak yazılır: TR_message("H6903", x).
+		if (toks[i].Code != codes.FnMessage && toks[i].Literal != name) || toks[i+1].Type != lexer.TokLParen ||
+			toks[i+2].Type != lexer.TokString || !messageCodeText.MatchString(toks[i+2].Literal) {
 			continue
 		}
 		args, depth := 0, 0

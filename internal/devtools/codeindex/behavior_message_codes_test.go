@@ -7,11 +7,12 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// Kural: .tr kaynağında yazılan her ileti kodu (`ileti(H6932, x)`, `hata_kodu(h) == H6932`) ileti düğümünün bir
+// Kural: .tr kaynağında metin olarak yazılan her ileti kodu (`TR_message("H6932", x)`, `TR_error_code(h) == "H6932"`) ileti düğümünün bir
 // başvurusudur: düğüm kodun kendisiyle bulunur, başvurular onu yazan bildirimden çıkar (`tr dizin kullananlar H6932`).
 // Kapsam: depodaki her .tr dosyasının sözcük çözümleyicisinin verdiği her ileti kodu belirteci bir başvurudur.
 func TestEveryMessageCodeTokenIsAUse(t *testing.T) {
@@ -44,12 +45,10 @@ func TestEveryMessageCodeTokenIsAUse(t *testing.T) {
 		if err != nil {
 			continue
 		}
-		if b.Coded {
-			b.Body = "\n" + b.Body // başlık satırı (readIn gibi)
-		}
-		l := b.IdentityLexer()
+		l := b.IdentityLexer() // gövde başlık satırını içerir: satırlar dosyanınkidir (readIn gibi)
 		for tok := l.NextToken(); tok.Type != lexer.TokEOF; tok = l.NextToken() {
-			if tok.Type != lexer.TokMessageCode {
+			// İleti kodu bir metin olarak yazılır ("H6903").
+			if _, err := messages.Parse(tok.Literal); tok.Type != lexer.TokString || err != nil {
 				continue
 			}
 			tokens++

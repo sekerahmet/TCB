@@ -141,7 +141,7 @@ func clashCase(t *testing.T, dir string, text string, f *codes.Language, module 
 	var out bytes.Buffer
 	vm := interp.New()
 	vm.Out, vm.Err = &out, &out
-	vm.SourceFile, vm.SourceCode, vm.SourceLanguage = filepath.Join(dir, "main.tr"), r.Text, r.Language
+	vm.SourceFile, vm.SourceCode = filepath.Join(dir, "main.tr"), r.Text
 	_, err = vm.Run(r.Program)
 	vm.WaitAsync()
 	if err != nil {
