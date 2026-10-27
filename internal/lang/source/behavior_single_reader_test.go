@@ -12,10 +12,12 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// Dosyalar tek yerden okunur: kodlu biçim başlığının kuralları (başlık satırı, gövdeyi kodlu
-// okuyan sözcük çözümleyici kurucusu) yalnızca lexer ve source paketlerindedir; öbür paketler
-// başlığı kendileri tanımaz, source.Split ve source.Prepare'i kullanır. Test, test dışı Go
-// kodunda başlık metnini, lexer.CodedHeader, lexer.NewBody ve source.Header kullanımlarını arar.
+// Dosyalar tek yerden okunur: başlığın kuralları (başlık satırı '# TR 4', gövdeyi kodlu okuyan
+// sözcük çözümleyici kurucusu) yalnızca lexer ve source paketlerindedir; öbür paketler başlığı
+// kendileri tanımaz, source.Split, source.Prepare ve source.HeaderLines'ı kullanır. Test, test dışı Go
+// kodunda başlık metnini (bugünkü '# TR ' ve eski '//! tr kodlu'), lexer.NewBody ve source.Header
+// kullanımlarını arar. Tek istisna çeviricidir (tools/migrate): eski başlığı okuyan yol yalnız orada
+// yaşar, yeni başlığı yazar.
 func TestHeaderRulesLiveOnlyInSourceAndLexer(t *testing.T) {
 	root := reporoot.Root()
 	checked := 0
@@ -26,7 +28,7 @@ func TestHeaderRulesLiveOnlyInSourceAndLexer(t *testing.T) {
 			}
 			rel, _ := filepath.Rel(root, path)
 			rel = filepath.ToSlash(rel)
-			if strings.HasPrefix(rel, "internal/lang/source/") || strings.HasPrefix(rel, "internal/lang/lexer/") {
+			if strings.HasPrefix(rel, "internal/lang/source/") || strings.HasPrefix(rel, "internal/lang/lexer/") || strings.HasPrefix(rel, "tools/migrate/") {
 				return nil
 			}
 			f, err := parser.ParseFile(token.NewFileSet(), path, nil, 0)
@@ -37,8 +39,8 @@ func TestHeaderRulesLiveOnlyInSourceAndLexer(t *testing.T) {
 			ast.Inspect(f, func(n ast.Node) bool {
 				switch n := n.(type) {
 				case *ast.BasicLit:
-					if n.Kind == token.STRING && strings.Contains(n.Value, "//! tr kodlu") {
-						t.Errorf("%s: kodlu biçim başlığı metni yazılmış; başlık kuralı yalnızca source ve lexer paketlerindedir", rel)
+					if n.Kind == token.STRING && (strings.Contains(n.Value, "# TR ") || strings.Contains(n.Value, "//! tr kodlu")) {
+						t.Errorf("%s: başlık metni yazılmış; başlık kuralı yalnızca source ve lexer paketlerindedir (source.HeaderLines, source.Split)", rel)
 					}
 				case *ast.SelectorExpr:
 					pkg, ok := n.X.(*ast.Ident)
@@ -46,7 +48,7 @@ func TestHeaderRulesLiveOnlyInSourceAndLexer(t *testing.T) {
 						return true
 					}
 					switch pkg.Name + "." + n.Sel.Name {
-					case "lexer.CodedHeader", "lexer.NewBody", "source.Header":
+					case "lexer.NewBody", "source.Header":
 						t.Errorf("%s: %s.%s kullanılıyor; dosyayı source.Split / source.Prepare ile okuyun", rel, pkg.Name, n.Sel.Name)
 					}
 				}

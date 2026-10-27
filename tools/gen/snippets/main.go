@@ -75,7 +75,7 @@ func build(t template, language *codes.Language) (entry, error) {
 	}
 	// Gösterim dosyanın satırlarını, başlık dahil, tutar; şablon bir dosyanın içine yazılır, başlığı
 	// almaz.
-	shown = strings.TrimPrefix(shown, source.Header+"\n")
+	shown = strings.Join(strings.SplitAfter(shown, "\n")[source.HeaderLines(shown):], "")
 	used := map[string]bool{}
 	var failure error
 	shown = holeRe.ReplaceAllStringFunc(shown, func(name string) string {

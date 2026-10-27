@@ -94,6 +94,20 @@ func Split(text string) (Parts, error) {
 	return b, nil
 }
 
+// HeaderLines is the number of the text's first lines that are its '#!' line and header (0 when
+// the text has no header): tools that read a file's lines skip them, so the header is not a doc
+// comment and a template body does not carry it.
+func HeaderLines(text string) int {
+	b, err := Split(text)
+	if err != nil || !b.Coded {
+		return 0
+	}
+	if strings.HasPrefix(b.Body, shebang) {
+		return 2
+	}
+	return 1
+}
+
 // firstLine metnin ilk satırını, ondan sonrasını ve aradaki satır sonunu verir.
 func firstLine(text string) (first, rest, eol string) {
 	i := strings.IndexByte(text, '\n')

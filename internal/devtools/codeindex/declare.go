@@ -8,7 +8,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
-	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
 // declare bir dosyanın üst düzey bildirimlerini düğüm yapar ve `aktar` ifadelerini toplar.
@@ -338,13 +337,13 @@ func namePos(f *file, kind Kind, name string, line, col int) Pos {
 }
 
 // docAbove bildirimin hemen üstündeki yorum satırlarıdır ("# " önekleri atılır, bitişik satırlar
-// bir araya gelir, 2.2); boş satır ya da yorum olmayan satır blokta durur. Dosyanın başlığı
-// (# TR 4) ve '#!' satırı belge değildir.
+// bir araya gelir, 2.2); boş satır ya da yorum olmayan satır blokta durur. Dosyanın başlığı ve
+// '#!' satırı belge değildir (parsed.header).
 func docAbove(f *file, line int) string {
 	var parts []string
-	for i := line - 2; i >= 0 && i < len(f.lines); i-- {
+	for i := line - 2; i >= f.res.header && i < len(f.lines); i-- {
 		t := strings.TrimSpace(f.lines[i])
-		if !strings.HasPrefix(t, "#") || t == source.Header || strings.HasPrefix(t, "#!") {
+		if !strings.HasPrefix(t, "#") {
 			break
 		}
 		parts = append([]string{strings.TrimSpace(strings.TrimPrefix(t, "#"))}, parts...)

@@ -18,7 +18,8 @@ import (
 // parsed bir .tr dosyasının okunmuş hâlidir.
 type parsed struct {
 	program *ast.Program
-	lines   []string // gövdenin diskteki satırları; kodlu dosyada başlık satırının yerine boş satır (satır numaraları dosyanınki)
+	lines   []string // dosyanın diskteki satırları, başlık ve '#!' satırı dahil (satır numaraları dosyanınki)
+	header  int      // baştaki '#!' ve başlık satırlarının sayısı (source.HeaderLines): belge yorumu değildir
 	coded   bool     // dosya kodlu biçimdeydi
 	errs    []error
 	roles   map[[2]int]parser.NameRole // ad sözcüklerinin sözdizimi görevi (satır, sütun): tırnaksız sözlük anahtarı, tip yazımı, alan adı ...
@@ -39,6 +40,7 @@ func readIn(text string, module bool) *parsed {
 	}
 	res.coded = b.Coded
 	res.lines = strings.Split(b.Body, "\n") // başlık satırı dahil: konumlar dosyadaki gerçek satırdır
+	res.header = source.HeaderLines(text)
 	p := parser.New(b.IdentityLexer())
 	p.RecordRoles()
 	if module {
