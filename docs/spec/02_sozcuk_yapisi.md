@@ -4,8 +4,8 @@ Bu bölümün kurallarına göre bugünkü durum ve yapılacaklar: [`docs/status
 
 Bu bölüm kodlu biçimi, yani kimliklerle yazılmış programı anlatır. Kodun bir insan dilinde gösterilmesi ve o dilde yazılması (gösterim dilleri) ayrı bir konudur, ayrıca tasarlanacak ([yol haritası](../roadmap.md)).
 
-**2.1** Diskteki her `.tr` dosyası UTF-8 metindir ve kodludur (17.1): ilk satırı kodlu biçimin başlığıdır, dilin sözcükleri kimlikleriyle (`TR_fn_print`) yazılır. Başlıktan sonra aktarmalar gelir (1.3), sonra öbür tanım ve deyimler. Baştaki BOM (U+FEFF) yok sayılır; kaynağın ortasındaki NUL (U+0000) sözdizimi hatasıdır. Konumlar 1'den başlayan satır ve karakter (bayt değil) sütunlarıyla bildirilir.
-- *Emsal:* Go, Rust ve Python kaynağı UTF-8 okur; Go baştaki BOM'u yok sayabilir, Rust siler. Kodlu saklamanın emsali programlama dillerinde değil, yerelleştirilmiş fonksiyon adlarını içte tek kimliğe bağlayan çizelge programlarındadır (17.7). *Almadık:* Python'un dosya başında başka bir kodlama bildirilmesine izin vermesi. ([Go 1.27](https://go.dev/ref/spec#Source_code_representation), [Rust 1.99 Reference](https://doc.rust-lang.org/reference/input-format.html), [Python 3.15](https://docs.python.org/3/reference/lexical_analysis.html#encoding-declarations))
+**2.1** Diskteki her `.tr` dosyası UTF-8 metindir ve kodludur: ilk satırı kodlu biçimi ve sürümünü bildiren başlıktır, dilin sözcükleri kimlikleriyle (`TR_fn_print`) yazılır. Başlıktan sonra aktarmalar gelir (1.3), sonra öbür tanım ve deyimler. Baştaki BOM (U+FEFF) yok sayılır; kaynağın ortasındaki NUL (U+0000) sözdizimi hatasıdır. Konumlar 1'den başlayan satır ve karakter (bayt değil) sütunlarıyla bildirilir.
+- *Emsal:* Go, Rust ve Python kaynağı UTF-8 okur; Go baştaki BOM'u yok sayabilir, Rust siler. *Almadık:* Python'un dosya başında başka bir kodlama bildirilmesine izin vermesi. ([Go 1.27](https://go.dev/ref/spec#Source_code_representation), [Rust 1.99 Reference](https://doc.rust-lang.org/reference/input-format.html), [Python 3.15](https://docs.python.org/3/reference/lexical_analysis.html#encoding-declarations))
 - *Gerekçe:* program her makinede, dizüstünde de robotta da, aynı baytlardan aynı anlamı çıkarır. Kimliklerle yazılan program hiçbir insan diline bağlı değildir.
 - *Test:* TR testi.
 
@@ -15,7 +15,7 @@ Bu bölüm kodlu biçimi, yani kimliklerle yazılmış programı anlatır. Kodun
 - *Test:* TR testi.
 
 **2.2** Yorumlar iki biçimdedir: satır sonuna kadar `//` ve çok satırlı `/* ... */`. Çok satırlı yorumlar iç içe yazılabilir; kapanmayan `/*` hatadır. `#` yorum değildir: metin dışında yazılan `#` sözdizimi hatasıdır ve ileti `//`'yi önerir; metin içinde (`"#22c55e"`) sıradan bir karakterdir.
-- *Emsal:* Go, Rust, Swift ve C# yorumu `//` ve `/* */` ile yazar; Rust ve Swift çok satırlı yorumu iç içe kabul eder. *Almadık:* Python'un `#`'i (tek yazım, 2.9a); Go'nun iç içe olmayan yorumu: içinde yorum bulunan bir kod parçası yoruma alınamaz. ([Go 1.27](https://go.dev/ref/spec#Comments), [Rust 1.99 Reference](https://doc.rust-lang.org/reference/comments.html), [Swift 6.4](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/lexicalstructure/), [Python 3.15](https://docs.python.org/3/reference/lexical_analysis.html#comments))
+- *Emsal:* Go, Rust, Swift ve C# yorumu `//` ve `/* */` ile yazar; Rust ve Swift çok satırlı yorumu iç içe kabul eder. *Almadık:* Python'un `#`'i: yorumun tek yazımı `//`'dir; Go'nun iç içe olmayan yorumu: içinde yorum bulunan bir kod parçası yoruma alınamaz. ([Go 1.27](https://go.dev/ref/spec#Comments), [Rust 1.99 Reference](https://doc.rust-lang.org/reference/comments.html), [Swift 6.4](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/lexicalstructure/), [Python 3.15](https://docs.python.org/3/reference/lexical_analysis.html#comments))
 - *Gerekçe:* bir kod parçası, içindeki yorumlarla birlikte geçici olarak devre dışı bırakılabilir (`/* dış /* iç */ dış */`); Python alışkanlığıyla yazılan `#` sessizce başka bir anlama kaymaz.
 - *Test:* TR testi; iç içe yorum uygulanınca TR testi.
 
@@ -28,10 +28,10 @@ TR_kw_var x = 1  // satır sonuna kadar yorum
 
 **2.3** Ad bir harf ya da `_` ile başlar, harf, rakam ve `_` ile sürer; bütün Unicode harfleri geçerlidir: `öğrenci_sayısı2`. Adlar Unicode'un NFC biçimine göre karşılaştırılır: aynı görünen iki yazım (tek karakterli `ş` ya da `s` ile birleşen çengel) aynı addır.
 - *Emsal:* Rust adı XID_Start ya da `_` ile başlatır ve NFC'ye göre karşılaştırır; Python NFKC'ye çevirir. *Almadık:* Go'nun adı hiç normalleştirmemesi (aynı görünen iki ad farklı olur); Python'un NFKC'si (uyumluluk biçimlerini de birleştirir, üst simge `²` ile `2` aynı ad olur). ([Rust 1.99 Reference](https://doc.rust-lang.org/reference/identifiers.html), [Python 3.15](https://docs.python.org/3/reference/lexical_analysis.html#identifiers), [Go 1.27](https://go.dev/ref/spec#Identifiers))
-- *Gerekçe:* kişi kodu kendi dilinde yazar; aynı harf farklı klavyelerden ya da kopyalanan metinden birleşik ya da ayrık gelebilir. Aynı görünen ad aynı ad olmalı.
+- *Gerekçe:* aynı harf farklı klavyelerden ya da kopyalanan metinden birleşik ya da ayrık gelebilir; aynı görünen ad aynı ad olmalı.
 - *Test:* TR testi; NFC karşılaştırması uygulanınca TR testi.
 
-**2.3a** `TR_` ile başlayan adlar kimliklere ayrılmıştır (17): kodlu dosyada `TR_` ile başlayan her ad dilin bir sözcüğüdür, listede olmayan `TR_` adı hatadır (17.2). Kullanıcının adı `TR_` ile başlayamaz. `tr_x`, `TRx` ve kodların eski numaralı biçimi (`G100`, `A001`) sıradan addır.
+**2.3a** `TR_` ile başlayan adlar kimliklere ayrılmıştır: kodlu dosyada `TR_` ile başlayan her ad dilin bir sözcüğüdür, dilin kimlik listesinde olmayan `TR_` adı hatadır. Kullanıcının adı `TR_` ile başlayamaz; `tr_x` ve `TRx` sıradan addır.
 - *Emsal:* Python iki alt çizgiyle başlayıp biten adları (`__init__`) sisteme ayırır; C ve C++ alt çizgi ve büyük harfle başlayan adları gerçekleştirmeye ayırır. *Almadık:* Python'da bu ayrımın yalnız gelenek olması: TR'de ayrılmış ad hatadır. ([Python 3.15](https://docs.python.org/3/reference/lexical_analysis.html#reserved-classes-of-identifiers))
 - *Gerekçe:* kimlik ile kullanıcının adı hiçbir zaman karışmaz; dile yeni bir kimlik eklemek hiçbir programın adını bozmaz.
 - *Test:* TR testi.
@@ -56,7 +56,7 @@ TR_kw_var x = 1  // satır sonuna kadar yorum
 - *Gerekçe:* modeller her dilin metniyle çalışır; kaynakta yazılamayan karakter (yazı yönü karakteri, 2.1a) metne kaçışla girer. `"C:\veri"` gibi bir yol sessizce bozulmaz.
 - *Test:* TR testi; `\u{...}` uygulanınca TR testi.
 
-**2.6a** Ham metin ters tırnakla (`` `...` ``) yazılır: içinde kaçış dizisi ve `{ifade}` yerleştirmesi (2.7) yoktur, ters bölü, tırnaklar ve süslü parantezler olduğu gibi kalır. Düzenli ifadeler, Windows yolları ve yerleştirme istenmeyen `{` içeren metinler için önerilen yazımdır. Ham metin de `TR_type_String` değeridir, birden çok satıra yayılabilir (satır sonu `\n`dir); içine ters tırnak yazılamaz. Kapanmayan ham metin sözdizimi hatasıdır. `TR_cmd_format` ham metni olduğu gibi korur.
+**2.6a** Ham metin ters tırnakla (`` `...` ``) yazılır: içinde kaçış dizisi ve `{ifade}` yerleştirmesi (2.7) yoktur, ters bölü, tırnaklar ve süslü parantezler olduğu gibi kalır. Düzenli ifadeler, Windows yolları ve yerleştirme istenmeyen `{` içeren metinler için önerilen yazımdır. Ham metin de `TR_type_String` değeridir, birden çok satıra yayılabilir (satır sonu `\n`dir); içine ters tırnak yazılamaz. Kapanmayan ham metin sözdizimi hatasıdır. `TR_cmd_format` ham metnin içeriğine dokunmaz, yalnız satır sonlarını LF yazar (2.6).
 - *Emsal:* Go ham metni ters tırnakla yazar, içinde ters bölünün anlamı yoktur ve satır başı karakteri değerden atılır; Rust ve Python ham metni `r"..."` ön ekiyle yazar. ([Go 1.27](https://go.dev/ref/spec#String_literals), [Rust 1.99 Reference](https://doc.rust-lang.org/reference/tokens.html#raw-string-literals), [Python 3.15](https://docs.python.org/3/reference/lexical_analysis.html#string-and-bytes-literals))
 - *Gerekçe:* düzenli ifade, Windows yolu ve JSON metni kaçışsız, okunduğu gibi yazılır.
 - *Test:* TR testi.
@@ -79,7 +79,7 @@ TR_kw_var p = {"ad": "Ayşe"}
 TR_fn_print("Merhaba {ad}, 1 + 2 = {1 + 2}, kişi: {p['ad']}, düz: \{x\}")
 ```
 
-**2.8** Deyimler satır sonuyla ya da isteğe bağlı `;` ile ayrılır. Satır sonu ifadeyi bitirir, parantez içinde (`(`, `[` ve sözlük `{`) bitirmez. Yeni satırda başlayan `(` ya da `[` önceki ifadeyi sürdürmez, yeni bir deyim başlatır; sondaki blok `{` (6.7) önceki ifadeyle aynı satırda olmalıdır. Yeni satırın başındaki ikili işleç de önceki ifadeyi sürdürmez: `-x` satırı ayrı bir deyimdir ve değeri kullanılmadığı için uyarı verir; tekli biçimi olmayan işleç (`+`, `*`, `TR_kw_and`, `??` ...) satır başında sözdizimi hatasıdır ve nedenini söyler. İfadeyi bölmek için işleç satır sonuna yazılır (`1 +` ↵ `2`) ya da ifade parantez içine alınır. Zincir işleçleri satır başında da sürer: üye erişimi `.` ve `?.`, boru `|>`.
+**2.8** Deyimler satır sonuyla ya da isteğe bağlı `;` ile ayrılır. Satır sonu ifadeyi bitirir, parantez içinde (`(`, `[` ve sözlük `{`) bitirmez. Yeni satırda başlayan `(` ya da `[` önceki ifadeyi sürdürmez, yeni bir deyim başlatır; sondaki blok `{` önceki ifadeyle aynı satırda olmalıdır. Yeni satırın başındaki ikili işleç de önceki ifadeyi sürdürmez: `-x` satırı ayrı bir deyimdir ve değeri kullanılmadığı için uyarı verir; tekli biçimi olmayan işleç (`+`, `*`, `TR_kw_and`, `??` ...) satır başında sözdizimi hatasıdır ve nedenini söyler. İfadeyi bölmek için işleç satır sonuna yazılır (`1 +` ↵ `2`) ya da ifade parantez içine alınır. Zincir işleçleri satır başında da sürer: üye erişimi `.` ve `?.`, boru `|>`.
 - *Emsal:* Go satırın son sözcüğü bir ad, değer, `)`, `]` ya da `}` ise noktalı virgülü kendisi koyar; Python, Kotlin ve Swift'te de satır sonu deyimi bitirir. *Almadık:* JavaScript'in satır başındaki `-`'yi önceki satıra bağlaması, bilinen bir tuzak. ([Go 1.27](https://go.dev/ref/spec#Semicolons), [Python 3.15](https://docs.python.org/3/reference/lexical_analysis.html#line-structure), [Kotlin 2.4](https://kotlinlang.org/docs/basic-syntax.html), [Swift 6.4](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/lexicalstructure/))
 - *Gerekçe:* satırın nerede bittiği gözle görülür; bir satırın başındaki işaret önceki satırı sessizce değiştirmez.
 - *Test:* TR testi.
@@ -110,17 +110,17 @@ TR_kw_var t = 1 +
 - *Gerekçe:* anahtar kelimeler kimlikle yazıldığı için hiçbir kullanıcı adıyla karışmaz; dile yeni bir anahtar kelime eklemek mevcut adları bozmaz.
 - *Test:* TR testi.
 
-**2.9b** Bağlamsal sözcükler (`TR_ctx_...`) anahtar kelime değildir, yalnız kendi bağlamlarında yazılır: `TR_ctx_test` (deyim başında ardından metin gelince, 12.2), `TR_ctx_as` (`TR_kw_import` içinde), `TR_ctx_init` (yapının kurucu metodu, 7.4), `TR_ctx_error` (adsız `TR_kw_catch`'te hata değişkeni, 8.1), `TR_ctx_it` (sondaki bloğun parametresi, 6.7), `TR_ctx_acc` (`TR_mem_reduce`'nin sondaki bloğunda önceki sonuç, 6.7), `_` (`TR_kw_match` kolunda varsayılan).
+**2.9b** Bağlamsal sözcükler (`TR_ctx_...`) anahtar kelime değildir, yalnız kendi bağlamlarında yazılır: `TR_ctx_test` (deyim başında ardından metin gelince), `TR_ctx_as` (`TR_kw_import` içinde), `TR_ctx_init` (yapının kurucu metodu), `TR_ctx_error` (adsız `TR_kw_catch`'te hata değişkeni), `TR_ctx_it` (sondaki bloğun parametresi), `TR_ctx_acc` (`TR_mem_reduce`'nin sondaki bloğunda önceki sonuç), `_` (`TR_kw_match` kolunda varsayılan).
 - *Emsal:* Python'un yumuşak anahtar kelimeleri (`match`, `case`, `_`) ve C#'ın bağlamsal anahtar kelimeleri yalnız bağlamlarında sözcüktür. ([Python 3.15](https://docs.python.org/3/reference/lexical_analysis.html#soft-keywords), [C# 14](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/keywords/#contextual-keywords))
 - *Gerekçe:* bağlamsal sözcük bir kavramı yalnız yerinde adlandırır; dilin ayrılmış sözcüklerini çoğaltmaz.
-- *Test:* gerekmez: her bağlamsal sözcük kendi maddesinin testinde sınanır (12.2, 7.4, 8.1, 6.7).
+- *Test:* gerekmez: her bağlamsal sözcük kendi bağlamının kuralıyla sınanır.
 
 **2.10** İfadeler ve bloklar en çok 1000 düzey iç içe yazılabilir (`((((1))))` dört düzeydir); sınır aşılırsa program çalışmaz, sözdizimi hatası verilir. Metin içindeki yerleştirmenin ifadesi (2.7) bulunduğu yerin düzeyinden sayılır.
 - *Emsal:* Python'un sözcük çözümleyicisi en çok 200 iç içe parantez kabul eder. ([CPython 3.15 lexer](https://github.com/python/cpython/blob/3.15/Parser/lexer/state.h))
 - *Gerekçe:* sınırsız iç içelik yorumlayıcıyı yakalanamaz biçimde çökertirdi; güvenilmeyen bir kaynak dosya da `tr`'yi düşürememeli.
 - *Test:* TR testi.
 
-**2.12** İleti kodu (`H6903`: `H` ve tam dört rakam) bir ad değil sözcük birimidir ve ifadede kodun metnidir: `TR_fn_message(H6903, -1)` ile `TR_fn_message("H6903", -1)` aynıdır (8.5). Daha uzun, kısa ya da küçük harfli yazım (`H69030`, `h6903`) sıradan bir addır; tam `H` ve dört rakamlık sözcük ad olamaz. İleti kodu hiçbir gösterim dilinde çevrilmez. Yazım yanlışı (`H690`) tanımsız ad hatasıdır; var olmayan kod `TR_fn_message` kurulurken bildirilir.
+**2.12** İleti kodu (`H6903`: `H` ve tam dört rakam) bir ad değil sözcük birimidir ve ifadede kodun metnidir: `TR_fn_message(H6903, -1)` ile `TR_fn_message("H6903", -1)` aynıdır. Daha uzun, kısa ya da küçük harfli yazım (`H69030`, `h6903`) sıradan bir addır; tam `H` ve dört rakamlık sözcük ad olamaz. İleti kodu dilden bağımsızdır, olduğu gibi yazılır. Yazım yanlışı (`H690`) tanımsız ad hatasıdır; var olmayan kod `TR_fn_message` kurulurken bildirilir.
 - *Emsal:* yok. Rust'ın hata kodları (`E0308`) belgede ve iletide geçer, dilin sözcüğü değildir. *Almadık:* iletiyi metniyle yakalamak (metin dile göre değişir).
-- *Gerekçe:* program bir hatayı gösterim dilinden bağımsız koduyla tanır ve kendi iletisini kurar.
+- *Gerekçe:* program bir hatayı dilden bağımsız koduyla tanır ve kendi iletisini kurar.
 - *Test:* TR testi.

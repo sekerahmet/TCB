@@ -137,11 +137,11 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
 
 ## 2. Sözcük yapısı
 
-Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). Taslak: DENETİM ve Gemini'nin araştırması bekleniyor. Gösterim dillerine ait işler (ad kuralı, $ad kaçışı, dile göre yazım) bu bölümde değil, gösterim dilleri bölümünde ele alınacak. Anlamı değişmeyen maddelerin bugünkü TR testi var; aşağıda yalnız değişen ya da eksik olanlar.
+Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). Taslak: DENETİM ve Gemini'nin araştırması bekleniyor. Eski 2.9a (her dilde tek yazım) ve 2.11 (diller arası ad kuralı, $ad kaçışı) gösterim dilleri bölümüne gitti; o numaralar boş kalır, testleri o bölüm yazılınca taşınır. Anlamı değişmeyen maddelerin bugünkü TR testi var; aşağıda yalnız değişen ya da eksik olanlar.
 
 ### 2.1
 
-- **Mevcut durum:** başlığı olmayan metin bugün Türkçe yazılmış sayılıp okunuyor (17.1'in geçici kuralı).
+- **Mevcut durum:** başlığı olmayan metin bugün Türkçe yazılmış sayılıp okunuyor.
 - **Yapılacaklar:** diskteki her dosya kodludur; başlıksız dosya çalışmaz, ileti kodlama yolunu söyler. Bilerek bozuk sınav dosyaları, belgelerdeki kod blokları ve Go testlerindeki TR metni kodlu biçime geçer.
 
 ### 2.2
