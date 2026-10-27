@@ -136,22 +136,22 @@ func TestIntEdges(t *testing.T) {
 	}
 }
 
-// Yerleşiğin geri çağırdığı fonksiyonun hatası zaten satırlıysa ikinci kez sarılmaz.
+// Yerleşiğin geri çağırdığı fonksiyonun hatası zaten satırlıysa ikinci kez sarılmaz. Program Türkçe
+// yazılmıştır, dil açıkça verilir (runCoded); yakalanan hata dosyanın dilinde yazılır.
 func TestInternalErrorLineOnce(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
-	_, val, err := runTROut(t, `
-		değişken h = []
-		dene { [1].filtrele((x) => x / 0) } yakala e { h.ekle(e) }
-		dene { [1].filtrele(
-			(x) => x / 0) } yakala e { h.ekle(e) }
-		dene { [1].haritala(1, 2) } yakala e { h.ekle(e) }
-		dene { aralık("a") } yakala e { h.ekle(e) }
-		sonuç h
-	`)
-	want := `["Satır 3: Sıfıra bölme hatası", "Satır 5: Sıfıra bölme hatası", ` +
-		`"Satır 6: liste.haritala() 1 argüman bekler, 2 verildi (kullanım: liste.haritala(fonksiyon))", "Satır 7: aralık() 1. argüman olarak Tam bekler, Metin (\"a\") verildi"]`
-	if err != nil || val.Inspect() != want {
-		t.Fatalf("beklenmeyen:\n%v\n%v", val, err)
+	out := runCoded(t, `değişken h = []
+dene { [1].filtrele((x) => x / 0) } yakala e { h.ekle(metin(e)) }
+dene { [1].filtrele(
+	(x) => x / 0) } yakala e { h.ekle(metin(e)) }
+dene { [1].haritala(1, 2) } yakala e { h.ekle(metin(e)) }
+dene { aralık("a") } yakala e { h.ekle(metin(e)) }
+döngü s içinde h { yazdır(s) }
+`, "tr", nil)
+	want := "Satır 2: Sıfıra bölme hatası\nSatır 4: Sıfıra bölme hatası\n" +
+		"Satır 5: liste.haritala() 1 argüman bekler, 2 verildi (kullanım: liste.haritala(fonksiyon))\n" +
+		"Satır 6: aralık() 1. argüman olarak Tam bekler, Metin (\"a\") verildi\n"
+	if out != want {
+		t.Fatalf("beklenmeyen:\n%s\nbeklenen:\n%s", out, want)
 	}
 	var sh *LineError
 	e := lineSuffix(4, errors.New("iç"))
