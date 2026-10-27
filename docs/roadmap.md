@@ -14,6 +14,15 @@ Yazıldı; DENETİM'den ve Gemini'nin araştırmasından geçti (2026-10-27). He
 
 1. ve 2. bölüm DENETİM'den ve Gemini'nin araştırmasından, 3. ve 4. bölüm DENETİM'den geçti. 5. bölüm (deyimler ve kontrol yapıları) taslak; sırada 6. ve 7. bölüm. Dil tanımı kodlu biçimi, yani kimliklerle yazılmış programı anlatır.
 
+**7. bölümden sonra: ajan hata oranı deneyi** (Ahmet, 2026-10-27, plan onaylı). Kodlama modeli TR'yi alışkanlıkla doğru yazıyor mu, yanlış yazınca hata gürültülü mü; aynı görevlerde Python'la karşılaştırılır.
+- **Evre A** (1–7 yazılınca, uygulamadan önce): üç Claude modeli, 20 görev, iki bağlam (yalnız tek sayfalık başvuru; ya da 1–7'nin kuralları ve kimlik listesi). Programlar kural numarasıyla denetlenir; sık çiğnenen kural ya da başvuru yeniden tartılır. Başvuru (Araç işleri) Evre A'dan önce yazılır.
+- **Evre B** (1–7 uygulanınca): aynı görevler yeniden yazdırılır, denetlenir ve çalıştırılır; en çok 3 düzeltme turu, yalnız TR'nin iletileriyle. Python ve Gemini'yle karşılaştırılır.
+- **Önceden konan eşikler:**
+  - A'da yalnız başvuruyla yazılan programların en az %70'i kural ihlalsiz;
+  - B'de TR'de ilk deneme başarısı Python'unkinin en az %85'i;
+  - B'de 3 turda düzelme en az %95;
+  - B'de TR kuralından doğan sessiz yanlış 0.
+
 **En sonda: gösterim dilleri** (Ahmet, 2026-10-27: "bu ayrı yeni bir spec olur en sonda"). Kod her zaman kimliklerle yazılır, hiçbir insan dilinde yazılmaz. Kodun okunabilmesi için bir insan diline çevrilmesi, diller arası ad çakışması, değer metninin dili ve çok dilli ekip ayrı bir dil tanımı bölümü olarak, öbür bölümler bittikten sonra tasarlanır.
 
 ## Araç işleri
