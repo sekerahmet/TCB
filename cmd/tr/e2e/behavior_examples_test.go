@@ -266,22 +266,22 @@ func TestExamplesSameOutputInEveryDisplayLanguage(t *testing.T) {
 	}
 }
 
-// Kök README'deki örnek tablosu her örneği ve her hata örneğini listeler.
+// examples/README.md'deki sıralı liste her örneği ve her hata örneğini listeler.
 func TestExamplesListedInReadme(t *testing.T) {
-	data, err := os.ReadFile(reporoot.Path("README.md"))
+	data, err := os.ReadFile(reporoot.Path("examples/README.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	readme := string(data)
 	for _, name := range exampleFiles(t, "tr") {
-		if !strings.Contains(readme, "(examples/tr/"+name+")") {
-			t.Errorf("README.md örnek tablosunda examples/tr/%s yok", name)
+		if !strings.Contains(readme, "(tr/"+name+")") {
+			t.Errorf("examples/README.md sıralı listesinde tr/%s yok", name)
 		}
 	}
 	for lang, dir := range errorsDir {
 		for _, p := range errorExamples(t, lang, dir) {
-			if !strings.Contains(readme, "(examples/"+lang+"/"+dir+"/"+filepath.Base(p)+")") {
-				t.Errorf("README.md hata örnekleri tablosunda examples/%s/%s/%s yok", lang, dir, filepath.Base(p))
+			if !strings.Contains(readme, "("+lang+"/"+dir+"/"+filepath.Base(p)+")") {
+				t.Errorf("examples/README.md hata örnekleri listesinde %s/%s/%s yok", lang, dir, filepath.Base(p))
 			}
 		}
 	}

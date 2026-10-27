@@ -1,6 +1,6 @@
 # TR Yol Haritası
 
-TR, yapay zekânın bütün işleri için bir programlama dilidir: dil, görüntü ya da ses, her türden modeli yazmak ve eğitmek; hazır modelleri çalıştırmak ve ince ayarla kendi işine uyarlamak; modeli robot gibi bir makinenin içinde çalıştırmak; uzaktaki bir modeli API ile kullanmak. Her karar bu işlerin hepsine göre verilir.
+TR'nin amacı [README](../README.md)'dedir: yapay zekânın bütün işleri için bir programlama dili.
 
 ## Yöntem
 

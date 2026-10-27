@@ -12,6 +12,6 @@
 | [`architecture.md`](architecture.md) | Depoda çalışanlar | Katmanlar, kim kimi içe aktarabilir, her paketin görevi, klasör haritası, sahiplik |
 | [`development.md`](development.md) | Depoda çalışanlar | Kod düzeni: dosya başına tek konu, dosya ve fonksiyon sınırları, Türkçe adlar, paket belgesi, testlerin yeri, yeni kod isteği, tam denetim, ölçüm disiplini |
 
-Depo kökündeki [`README.md`](../README.md) dili tanıtır ve ilk programı çalıştırmayı anlatır; VS Code eklentisi [`editors/vscode/README.md`](../editors/vscode/README.md)'de, hız kıyas seti [`tools/bench/README.md`](../tools/bench/README.md)'dedir.
+Depo kökündeki [`README.md`](../README.md) dilin amacını anlatır; eski, uzun hâli [`archive/`](archive/README-2026-10-27.md)'tedir; VS Code eklentisi [`editors/vscode/README.md`](../editors/vscode/README.md)'de, hız kıyas seti [`tools/bench/README.md`](../tools/bench/README.md)'dedir.
 
 Belgelerdeki her ```tr kod bloğu `tr kontrol`den geçer ve her göreli bağlantı var olan bir dosyaya ve başlığa gider; ikisini de `go test ./cmd/tr/e2e` denetler.
