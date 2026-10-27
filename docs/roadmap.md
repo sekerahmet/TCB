@@ -8,15 +8,7 @@ Dil tanımı ([`docs/spec/`](spec/README.md)) baştan, bölüm bölüm yazılıy
 
 ## 1. bölüm: Program
 
-Yazıldı ve iki denetimden geçti (2026-10-27). Uygulanacak kararlar; her birinin bugünkü durumu [`status/01_program.md`](status/01_program.md)'dedir, her biri testle kapanır:
-
-1. **Statik tip ve tip çıkarımı (1.2).** Büyük tasarım: denetleyiciye tip çıkarımı; kitaplığın, örneklerin ve testlerin imzaları; "olabilir" tipi; tensörün tür ve şekil bilgisinin tipe ne kadar gireceği.
-2. **Modülde ve test dosyasında yalnız tanım, ilk değer sabit ifade (1.1).**
-3. **Çalışmadan önce bütün program denetlenir (1.3):** modül hatasında program hiç başlamaz, `TR_cmd_debug` da denetler, `TR_kw_import` yalnız dosyanın başında.
-4. **Okunmayan argüman çalışmadan önce kullanım hatasıdır; ROS 2'nin `--ros-args` blokları programın değildir (1.4).**
-5. **Durdurma (1.5, 1.7, 1.9):** durum değiştirmeyen iş ve her bekleme bırakılır, alt sürece istek iletilir; süreç isteğin sinyaliyle biter; `tr` aracının kullanım hatası 2.
-6. **Durdurmayı üstlenme (1.6):** `TR_fn_handle_stop`, `TR_fn_stop_requested`; kontrol noktası adım sınırında kaydeder, bitişte kaydetmez.
-7. **Programın bitişi (1.10–1.15):** `TR_fn_exit`, çıkış kodu aralığı, `tr test`'te çıkış, temizlik sırasındaki çıkış ve hata, bitişte gelen Ctrl+C.
+Yazıldı ve iki denetimden geçti (2026-10-27). Her maddenin bugünkü durumu ve yapılacakları [`status/01_program.md`](status/01_program.md)'dedir; her iş testiyle kapanır.
 
 ## Sıradaki
 
