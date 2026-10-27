@@ -177,7 +177,7 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). DENETİM'
 ### 2.3b
 
 - **Mevcut durum:** her sabit büyük harf istiyor: fonksiyonun içindeki küçük harfli sabit de ad yazılışı uyarısı veriyor [ölçüldü].
-- **Yapılacaklar:** büyük harf yalnız modülün en dışındaki sabitte; yerel sabit küçük harfle yazılır. Depodaki yerel sabitler çevrilir.
+- **Yapılacaklar:** büyük harf yalnız dosyanın en dışındaki sabitte; yerel sabit küçük harfle yazılır. Depodaki yerel sabitler çevrilir.
 
 ### 2.4
 
@@ -335,7 +335,19 @@ Kurallar: [`docs/spec/04_operatorler.md`](spec/04_operatorler.md). Taslak: DENET
 
 ## 5. Deyimler ve kontrol yapıları
 
-Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: DENETİM ve Gemini'nin araştırması bekleniyor. `tests/deyimler_test.tr` eski kuralları da sınıyor (`:=` tanımı, `TR_while`, iç kapsamda aynı adla tanım); testler koşulmadan önce yeni kurallara göre yeniden yazılır. Yeni denetim hataları (5.1, 5.5, 5.6, 5.12, 5.14) uygulanırken depodaki kodlu dosyalar da düzeltilir; yoksa `TestRepoTRFilesPassCheck` kapısı kalır. Anlamı değişmeyen maddelerin bugünkü TR testi var: sabite atama denetim hatası, fonksiyonun içindeki `TR_break` sözdizimi hatası veriyor, takas çalışıyor [ölçüldü]. Koşullu döngünün `TR_while`'sız yazımı 2.9'da.
+Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: DENETİM'den geçti, bulguları işlendi (2026-10-27); Gemini'nin araştırması bekleniyor. `tests/deyimler_test.tr` eski kuralları da sınıyor; testler koşulmadan önce yeni kurallara göre yeniden yazılır [DENETİM'in listesi]:
+- 5.1: `:=` tanımı, ilk değersiz değişken;
+- 5.2: yerel büyük harfli sabit (2.3b);
+- 5.4: tam sayı değişkene `/=`;
+- 5.5: `TR_else`'siz `TR_if` ifadesinin yokluk vermesi;
+- 5.6: `TR_default`, kapsamayan iki eşleme, düz adla yazılmış değişken deseni (`(x)`'e çevrilir);
+- 5.7: `{i}{x}` yerleştirmesi (2.7), `TR_fn_str` (3.12), geriye sayan `3..0` (3.8), tipsiz boş listeler (3.6);
+- 5.8: `TR_while`;
+- 5.12: kolda dıştaki fonksiyonla aynı adlı fonksiyon (yeni kurala göre hata); adlı fonksiyon ifadesinin adının dışarı çıkması (6. bölümün kararı);
+- 5.13: kapsamayan eşleme;
+- her yerde: tipsiz parametreler (1.2) ve `//` yorumları (2.2).
+
+`TR_elif` bilerek kimliği olmayan addır; kimlik kapısı düzelince bilerek yanlış örnekler listesine girer (2. bölümün girişi). Yeni denetim hataları (5.1, 5.5, 5.6, 5.12, 5.14) uygulanırken depodaki kodlu dosyalar da düzeltilir; yoksa `TestRepoTRFilesPassCheck` kapısı kalır. Anlamı değişmeyen maddelerin bugünkü TR testi var: sabite atama denetim hatası, fonksiyonun içindeki `TR_break` sözdizimi hatası veriyor, takas çalışıyor [ölçüldü]. Koşullu döngünün `TR_while`'sız yazımı 2.9'da.
 
 ### 5.1
 
@@ -350,7 +362,7 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: DENETİM ve
 ### 5.4
 
 - **Mevcut durum:** tam sayı değişkene `/=` 3.5 yazıyor; `%=`, `**=` ve `&=` sözdizimi hatası veriyor; `k //= 2` yorum sayılıyor; listede `+=` yeni liste kuruyor, listeyi paylaşan ad eski listede kalıyor [ölçüldü].
-- **Yapılacaklar:** on iki bileşik atama; sonucun tipi değişkenin tipi, `/=` iletisi `//=`'yi önerir; listede `+=` ve `*=` yerinde.
+- **Yapılacaklar:** on iki bileşik atama; sonucun tipi değişkenin tipi, `/=` iletisi `//=`'yi önerir; listede `+=` ve `*=` yerinde, `*=` 4.10'un yineleme kuralıyla; hedef bir kez hesaplanır; tanımsız ada atamanın iletisi `TR_var`'ı önerir.
 
 ### 5.5
 
@@ -359,20 +371,20 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: DENETİM ve
 
 ### 5.6
 
-- **Mevcut durum:** değişkenin adı deseni değeri karşılaştırıyor, kuralla aynı; eşleşmeyen `TR_match` yokluk veriyor, kapsama denetimi yok [ölçüldü]. Varsayılan kol `TR_default` ile de yazılıyor (2.9).
-- **Yapılacaklar:** kapsama denetimi (`TR_Bool`'da iki değer, öbür tiplerde `_`); ifade olarak kullanılınca kolların tipi aynı.
+- **Mevcut durum:** değişkenin adı deseni değeri karşılaştırıyor; eşleşmeyen `TR_match` yokluk veriyor, kapsama denetimi yok [ölçüldü]. Varsayılan kol `TR_default` ile de yazılıyor (2.9).
+- **Yapılacaklar:** kapsama denetimi (`TR_Bool`'da iki değer, öbür tiplerde `_`); ifade olarak kullanılınca kolların tipi aynı; düz ad deseni yalnız sabit, değişken düz adla yazılınca denetim hatası, ileti `(x)`'i ya da `_`'yi önerir.
 
 ### 5.7
 
 - **Mevcut durum:** dolaşılan sözlüğe anahtar eklemek hata vermiyor (sonuç `{"a": 1, "b": 2}`), dolaşılan listeye eklemek de (sonuç `[1, 2, 1, 2]`) [ölçüldü].
-- **Yapılacaklar:** dolaşırken listeye ya da sözlüğe ekleme ve çıkarma çalışma hatası. Bayt dizisinde ve `TR_JSON`'da dolaşma tipleriyle birlikte (3.3a, 3.7a).
+- **Yapılacaklar:** dolaşırken listeye ya da sözlüğe ekleme ve çıkarma çalışma hatası; var olan öğeye ve anahtara atama serbest. Bayt dizisinde ve `TR_JSON`'da dolaşma tipleriyle birlikte (3.3a, 3.7a).
 
 ### 5.12
 
-- **Mevcut durum:** iç bloktaki `TR_var t = 5` dıştaki `t`'yi gizliyor, dıştaki 0 kalıyor, hata yok [ölçüldü]. `tests/deyimler_test.tr`'deki bir 5.12 testi iç kapsamda aynı adla tanımı geçerli sayıyor.
-- **Yapılacaklar:** kapsayan ya da aynı kapsamdaki yerel adla yeniden tanım denetim hatası.
+- **Mevcut durum:** iç bloktaki `TR_var t = 5` dıştaki `t`'yi gizliyor, dıştaki 0 kalıyor, hata yok [ölçüldü]. Üretecin değişkeni dıştakini değiştirmiyor, kuralla aynı [ölçüldü, DENETİM].
+- **Yapılacaklar:** kapsayan ya da aynı kapsamdaki yerel adla yeniden tanım denetim hatası; programın en dışı ve parametreler de kurala girer; fonksiyon sınırında gizleme serbest.
 
 ### 5.14
 
-- **Mevcut durum:** tanımsız ad çalışmadan önce bulunuyor ve en yakın adı öneriyor; tanımından önce kullanılan ad ise çalışma hatası veriyor [ölçüldü].
-- **Yapılacaklar:** tanımından önce kullanma denetim hatası; öneri 2.3a'nın uzaklığıyla.
+- **Mevcut durum:** tanımsız ad çalışmadan önce bulunuyor ve en yakın adı öneriyor; tanımından önce kullanılan ad ise çalışma hatası veriyor [ölçüldü]. Kendisinden sonra tanımlanan en dış değişkeni okuyan fonksiyon, değişkenden sonra çağrılınca çalışıyor [ölçüldü, DENETİM].
+- **Yapılacaklar:** tanımından önce kullanma denetim hatası; öneri 2.3a'nın uzaklığıyla. Fonksiyonu çağıran ifade, fonksiyonun doğrudan ya da dolaylı kullandığı değişkenlerden sonra gelmeli; modülün en dışında sıradan bağımsızlık ve sabitler arasında döngü hatası.

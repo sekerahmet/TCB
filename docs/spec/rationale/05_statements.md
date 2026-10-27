@@ -20,7 +20,7 @@ Kurallar: [`05_deyimler.md`](../05_deyimler.md). Bu dosya her kuralın emsalini 
 ### 5.4
 
 - *Emsal:* Python'da her ikili işlecin bileşik ataması vardır (`//=`, `**=`, `&=` ...) ve değiştirilebilir nesnede yerinde çalışır: "when possible, the actual operation is performed in-place, meaning that rather than creating a new object and assigning that to the target, the old object is modified instead" (`m = l; l += [2]` `m`'yi de uzatır [ölçüldü: Python 3.12.6]). *Almadık:* Python'da bileşik atamanın değişkenin tipini değiştirebilmesi (`n /= 2` bir tam sayıyı ondalığa çevirir); bugünkü TR'nin listede `+=`'yi yeni liste kurup atayarak yapması (paylaşan ad eski listede kalıyor [ölçüldü]). ([Python 3.15](https://docs.python.org/3/reference/simple_stmts.html#augmented-assignment-statements))
-- *Gerekçe:* her işlecin bileşik biçimi olunca kodlama modeli alışkanlıkla doğru yazar; tipin değişmemesi 3.13'ün kalıcı tip kuralıdır, ileti doğru işleci söyler. Listeler başvuruyla paylaşıldığı için (3.6) Python'un yerinde `+=`'si TR'de de aynı sonucu verir; ayrı bir anlam, Python alışkanlığıyla yazılmış kodda sessiz bir fark olurdu (DENETİM, 2026-10-27).
+- *Gerekçe:* Python alışkanlığıyla yazılan `x = 5` tanımsız ada atamadır; gürültülü hata verir ve ileti `TR_var`'ı önerir. Hedefin bir kez hesaplanması Python'daki gibidir ("In the augmented version, `x` is only evaluated once"). `l *= 3` de 4.10'un yineleme kuralına uyar, yoksa iç içe listenin sessiz yanlışı bu yoldan geri gelirdi (DENETİM). Her işlecin bileşik biçimi olunca kodlama modeli alışkanlıkla doğru yazar; tipin değişmemesi 3.13'ün kalıcı tip kuralıdır, ileti doğru işleci söyler. Listeler başvuruyla paylaşıldığı için (3.6) Python'un yerinde `+=`'si TR'de de aynı sonucu verir; ayrı bir anlam, Python alışkanlığıyla yazılmış kodda sessiz bir fark olurdu (DENETİM, 2026-10-27).
 
 ### 5.5
 
@@ -29,13 +29,13 @@ Kurallar: [`05_deyimler.md`](../05_deyimler.md). Bu dosya her kuralın emsalini 
 
 ### 5.6
 
-- *Emsal:* Swift: "Every `switch` statement must be *exhaustive*"; Rust'ta `match` da her durumu kapsar. Swift'te düz ad deseni değeri karşılaştırır, bağlamak için `let` yazılır. *Almadık:* Python'un yakalama deseni: düz ad her şeyle eşleşir ve konuyu o ada bağlar ("Capture patterns always succeed"; `case GREEN:` hiçbir zaman karşılaştırma değildir); Python'da eşleşme yoksa sessizce hiçbir şey olmaması; bugünkü TR'nin `TR_default`'u (2.9). ([Swift 6.4](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/controlflow/#Switch), [Rust 1.99 kitabı](https://doc.rust-lang.org/book/ch06-02-match.html), [Python 3.15](https://docs.python.org/3/reference/compound_stmts.html#capture-patterns))
-- *Gerekçe:* unutulmuş bir durum çalışmadan önce görünür; bir sabitle karşılaştırırken yazılan ad sessizce her şeyi yakalamaz.
+- *Emsal:* Swift: "Every `switch` statement must be *exhaustive*"; Rust'ta `match` da her durumu kapsar. Swift'te düz ad deseni değeri karşılaştırır, bağlamak için `let` yazılır. Python karşılaştırmayı noktalı adla ayırır: "The dotted name in the pattern is looked up using standard Python name resolution rules"; düz ad ise her zaman yakalar. *Almadık:* Python'un ve Rust'ın yakalama deseni: düz ad her şeyle eşleşir ve konuyu o ada bağlar ("Capture patterns always succeed"; `case GREEN:` hiçbir zaman karşılaştırma değildir); Swift'in değişken adını düz yazımla karşılaştırması; Python'da eşleşme yoksa sessizce hiçbir şey olmaması; bugünkü TR'nin `TR_default`'u (2.9). ([Swift 6.4](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/controlflow/#Switch), [Rust 1.99 kitabı](https://doc.rust-lang.org/book/ch06-02-match.html), [Python 3.15](https://docs.python.org/3/reference/compound_stmts.html#capture-patterns))
+- *Gerekçe:* unutulmuş bir durum çalışmadan önce görünür; bir sabitle karşılaştırırken yazılan ad sessizce her şeyi yakalamaz. Python ya da Rust alışkanlığıyla `x =>` yazan model bağlama bekler. Ad tanımsızsa 5.14, kol kapsamıyorsa kapsama denetimi hata verir. Ama ad tanımlı bir değişkense ve bir `_` kolu da varsa, kol sessizce karşılaştırma olurdu (DENETİM, 2026-10-27). Düz adın yalnız sabit olabilmesi bu son durumu da gürültülü yapar; değişkenle karşılaştırma `(x)` diye açıkça yazılır.
 
 ### 5.7
 
 - *Emsal:* Go'nun `for i, x := range` biçimi indeksle öğeyi verir; Python dolaşılırken boyu değişen sözlükte hata verir ("dictionary changed size during iteration"). *Almadık:* Python'da dolaşılırken boyu değişen listenin sessizce öğe atlaması ya da yinelemesi. ([Go 1.27](https://go.dev/ref/spec#For_range), [Python 3.15](https://docs.python.org/3/library/stdtypes.html#dictionary-view-objects))
-- *Gerekçe:* dolaşırken değiştirmek yaygın bir yanlıştır ve sonucu belirsizdir; hata o anda görünür.
+- *Gerekçe:* dolaşırken listeyi ya da sözlüğü büyütüp küçültmek yaygın bir yanlıştır ve sonucu belirsizdir; hata o anda görünür. Var olan öğeye atama boyu değiştirmez, Python'da da serbesttir (`l[i] = x * 10`, `d[k] = 0` dolaşırken çalışır [ölçüldü: Python 3.12.6]); öğeleri yerinde dönüştürmek sık bir iştir.
 
 ### 5.8
 
@@ -55,12 +55,12 @@ Kurallar: [`05_deyimler.md`](../05_deyimler.md). Bu dosya her kuralın emsalini 
 ### 5.11
 
 - *Emsal:* Python'un liste üreteci (PEP 202). ([PEP 202](https://peps.python.org/pep-0202/))
-- *Gerekçe:* kodlama modelleri listeyi en sık bu biçimle kurar; değişkenin üretecin dışına sızmaması Python 3'teki gibidir.
+- *Gerekçe:* kodlama modelleri listeyi en sık bu biçimle kurar; değişkenin üretecin dışına sızmaması Python 3'teki gibidir (`x = 1; [x for x in [5, 6]]` sonrasında `x` 1 kalır [ölçüldü: Python 3.12.6]). Üretecin değişkeni bu yüzden 5.12'nin dışındadır: Python alışkanlığıyla yazılan kod aynı sonucu verir, sessiz bir fark doğmaz.
 
 ### 5.12
 
 - *Emsal:* C#: "within a nested declaration space it is not possible to declare a local variable or constant with the same name as a local variable or constant in an enclosing declaration space" (CS0136). *Almadık:* Rust'ın ve Go'nun gölgelemeye izin vermesi. ([C# CS0136](https://learn.microsoft.com/en-us/dotnet/csharp/misc/cs0136))
-- *Gerekçe:* iç blokta yanlışlıkla yazılan `TR_var t = 0` atama yerine yeni bir değişken tanımlar ve dıştaki değer sessizce değişmez; bu hatanın çalışmadan önce görünmesi gerekir.
+- *Gerekçe:* iç blokta yanlışlıkla yazılan `TR_var t = 0` atama yerine yeni bir değişken tanımlar ve dıştaki değer sessizce değişmez; bu hatanın çalışmadan önce görünmesi gerekir. Python'da blok kapsamı yoktur, betikler işi en dışta yapar; bu yüzden programın en dışı da kurala girer. Döngü değişkeni dıştaki bir adla aynıysa da hata verir: Python'da döngüden sonra o ad son değeri taşır, TR'de taşımaz. Bu ikinci anlamın sessiz kalmasını hata önler. Fonksiyon sınırında gizleme serbesttir: fonksiyon ifadesinin parametresi (`(x) => x * 2`) dıştaki `x`'le karışmaz.
 
 ### 5.13
 
@@ -69,5 +69,5 @@ Kurallar: [`05_deyimler.md`](../05_deyimler.md). Bu dosya her kuralın emsalini 
 
 ### 5.14
 
-- *Emsal:* Go ve Rust adları derlemede çözer; paket düzeyindeki tanımlar sırasından bağımsız görünür. Python 3.10'dan beri bulunamayan ad iletisi benzer adı önerir. *Almadık:* bir modülün kendisini aktaranın adlarını görmesi (modülün anlamı aktarana bağlı olur, tek başına denetlenemez). ([Go 1.27](https://go.dev/ref/spec#Declarations_and_scope), [Python 3.10 yenilikleri](https://docs.python.org/3/whatsnew/3.10.html#nameerror))
-- *Gerekçe:* yazım yanlışı bir ad çalışmadan önce bulunur ve ileti doğrusunu söyler; her modül tek başına denetlenir (1.3).
+- *Emsal:* Go ve Rust adları derlemede çözer; paket düzeyindeki tanımlar sırasından bağımsız görünür. Go paket düzeyindeki değişkenleri bağımlılık sırasıyla başlatır ("a package-level variable is considered ready for initialization if it is not yet initialized and either has no initialization expression or its initialization expression has no dependencies on uninitialized variables"), döngüyü reddeder ("those variables are part of one or more initialization cycles, and the program is not valid"). Rust'ta blokta tanımlanan öğe bütün blokta görünür: "The name of an item declared as a statement has a scope that extends from the start of the block the item statement is in until the end of the block." Python 3.10'dan beri bulunamayan ad iletisi benzer adı önerir. *Almadık:* Python'da en dıştaki değişkeni okuyan fonksiyonun, değişkenden önce çağrılınca ancak çalışırken hata vermesi; bir modülün kendisini aktaranın adlarını görmesi (modülün anlamı aktarana bağlı olur, tek başına denetlenemez). ([Go 1.27](https://go.dev/ref/spec#Package_initialization), [Rust 1.99 Reference](https://doc.rust-lang.org/reference/names/scopes.html#item-scopes), [Python 3.10 yenilikleri](https://docs.python.org/3/whatsnew/3.10.html#nameerror))
+- *Gerekçe:* yazım yanlışı bir ad çalışmadan önce bulunur ve ileti doğrusunu söyler; her modül tek başına denetlenir (1.3). Fonksiyonların sıradan bağımsız görünmesi karşılıklı çağrıyı ve Python'daki "önce fonksiyonlar, sonra ana kod" düzenini korur. Çağrının fonksiyonun kullandığı değişkenlerden sonra gelmesi, bugün çalışırken ortaya çıkan "henüz tanımlanmamış" hatasını çalışmadan önceye taşır (bugün sonradan tanımlanan en dış değişkeni okuyan fonksiyon çalışıyor [ölçüldü, DENETİM]).
