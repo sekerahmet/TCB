@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 574 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 2 değer adı, 42 tip, 136 fonksiyon, 11 sabit, 61 metot, 97 özellik, 136 adlı argüman.
+Toplam 577 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 2 değer adı, 42 tip, 139 fonksiyon, 11 sabit, 61 metot, 97 özellik, 136 adlı argüman.
 
 ## İçindekiler
 
@@ -1124,6 +1124,18 @@ yazdır(hata_kodu(() => { fırlat ileti(H6903, -1) }))
 
 İlişkili: TR_fn_message `ileti`, TR_fn_assert `doğrula`
 
+#### TR_fn_exit `sonlandır`
+
+    sonlandır(Tam) → Yok
+
+Programı verilen çıkış koduyla nazikçe bitirir: ertele blokları çalışır, dene/yakala bunu yakalamaz; eşzamanlı bir görevden çağrılsa da bütün program biter. Kod 0–125 arasında bir Tam olmalıdır, dışındaki değer çalışma hatasıdır; programın kendi kodları 4'ten başlar (1 hata, 2 kullanım hatası).
+
+```tr
+sonlandır(4)
+```
+
+İlişkili: TR_fn_handle_stop `durdurmayı_üstlen`
+
 #### TR_fn_exp `exp`
 
     exp(Tensör | Tam | Ondalık) → Tensör | Ondalık
@@ -1219,6 +1231,18 @@ yazdır(türev_denetle(fonksiyon(x) { sonuç x * x }, [tensör([0.5, -1.0], tür
 ```
 
 İlişkili: TR_fn_custom_grad `özel_türev`
+
+#### TR_fn_handle_stop `durdurmayı_üstlen`
+
+    durdurmayı_üstlen() → Yok
+
+Ctrl+C ve sonlandırma isteklerinin karşılanmasını programa bırakır: ondan sonra gelen ilk istek programı durdurmaz, kaydedilir (durdurma_istendi() doğru döner). Program kendi sınırında biter; ertele blokları çalışır.
+
+```tr
+durdurmayı_üstlen()
+```
+
+İlişkili: TR_fn_stop_requested `durdurma_istendi`, TR_fn_exit `sonlandır`
 
 #### TR_fn_has_rope_scaling `rope_ölçekleme_var_mı`
 
@@ -1963,6 +1987,18 @@ yazdır(standart_sapma([2, 4, 4, 4, 5, 5, 7, 9]))
 ```
 
 İlişkili: TR_fn_mean `ortalama`
+
+#### TR_fn_stop_requested `durdurma_istendi`
+
+    durdurma_istendi() → Mantık
+
+Bir durdurma isteği geldiyse doğru döner ve hiçbir şeyi değiştirmez; isteği durdurmayı_üstlen() ya da kontrol noktası ertelemişse sorgulanır.
+
+```tr
+durdurma_istendi()
+```
+
+İlişkili: TR_fn_handle_stop `durdurmayı_üstlen`
 
 #### TR_fn_str `metin`
 
@@ -4578,4 +4614,4 @@ izle kayıp
 
 `x |> f(a)` ≡ `f(x, a)` (bkz. `docs/spec/04_operatorler.md` 4.9). Boru yalnızca fonksiyonlarla çalışır; metotlar `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 } |> toplam`). Borudaki değeri ilk konumlu argüman olarak alabilen yerleşik fonksiyonlar (kullanıcı fonksiyonları da kullanılabilir):
 
-`AdamW`, `SGD`, `mutlak`, `acos`, `argmax`, `sıralama_indeksi`, `asin`, `doğrula`, `eşit_mi`, `atan`, `atan2`, `dikkat`, `geri_yayılım`, `tavan`, `kontrol_noktası`, `sınırla`, `gradyan_kırp`, `komut_satırı`, `bitiştir`, `kopyala`, `cos`, `cosh`, `çapraz_entropi`, `birikimli_toplam`, `veri_kümesi`, `varsayılan_cihaz`, `gömme`, `ortam_değişkeni`, `hata_kodu`, `exp`, `expm1`, `birim_matris`, `ondalık`, `taban`, `kaynaştır`, `gelu`, `türev_denetle`, `girdi`, `tam`, `sonlu_mu`, `json_çöz`, `json_metin`, `katman_normu`, `doğrusal_çapraz_entropi`, `klasörü_listele`, `parametreleri_yükle`, `tensör_yükle`, `parçalayıcı_yükle`, `log`, `log10`, `log1p`, `log2`, `log_softmax`, `günlük`, `klasör_oluştur`, `max`, `ortalama`, `ortanca`, `ileti`, `min`, `karışık_hassasiyet`, `taşı`, `türevsiz`, `birler`, `parametreler`, `csv_çöz`, `yol`, `yazdır`, `ilerleme`, `rastgele_normal`, `aralık`, `csv_oku`, `dosya_oku`, `dosya_satırları`, `relu`, `sil`, `tekrar_oynat`, `rms_normu`, `yuvarla`, `örnekle`, `tensör_kaydet`, `sigmoid`, `işaret`, `silu`, `sin`, `sinh`, `bekle`, `softmax`, `karekök`, `standart_sapma`, `metin`, `toplam`, `tan`, `tanh`, `tensör`, `en_büyük_k`, `tip`, `koşullu`, `dosya_yaz`, `yerine_yaz`, `sıfırlar`
+`AdamW`, `SGD`, `mutlak`, `acos`, `argmax`, `sıralama_indeksi`, `asin`, `doğrula`, `eşit_mi`, `atan`, `atan2`, `dikkat`, `geri_yayılım`, `tavan`, `kontrol_noktası`, `sınırla`, `gradyan_kırp`, `komut_satırı`, `bitiştir`, `kopyala`, `cos`, `cosh`, `çapraz_entropi`, `birikimli_toplam`, `veri_kümesi`, `varsayılan_cihaz`, `gömme`, `ortam_değişkeni`, `hata_kodu`, `sonlandır`, `exp`, `expm1`, `birim_matris`, `ondalık`, `taban`, `kaynaştır`, `gelu`, `türev_denetle`, `girdi`, `tam`, `sonlu_mu`, `json_çöz`, `json_metin`, `katman_normu`, `doğrusal_çapraz_entropi`, `klasörü_listele`, `parametreleri_yükle`, `tensör_yükle`, `parçalayıcı_yükle`, `log`, `log10`, `log1p`, `log2`, `log_softmax`, `günlük`, `klasör_oluştur`, `max`, `ortalama`, `ortanca`, `ileti`, `min`, `karışık_hassasiyet`, `taşı`, `türevsiz`, `birler`, `parametreler`, `csv_çöz`, `yol`, `yazdır`, `ilerleme`, `rastgele_normal`, `aralık`, `csv_oku`, `dosya_oku`, `dosya_satırları`, `relu`, `sil`, `tekrar_oynat`, `rms_normu`, `yuvarla`, `örnekle`, `tensör_kaydet`, `sigmoid`, `işaret`, `silu`, `sin`, `sinh`, `bekle`, `softmax`, `karekök`, `standart_sapma`, `metin`, `toplam`, `tan`, `tanh`, `tensör`, `en_büyük_k`, `tip`, `koşullu`, `dosya_yaz`, `yerine_yaz`, `sıfırlar`
