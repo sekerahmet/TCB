@@ -16,7 +16,8 @@ test "toplama doğru" {
 
 **12.4** `eşit_mi(beklenen, gerçek, [mesaj])` iki değer `==` anlamında eşit değilse ikisini de tipiyle gösteren hata fırlatır: `eşitlik başarısız: beklenen "5" (Metin), gerçek 5 (Tam)`. Her iki yerleşik test dışında da (ör. sözleşme denetimi için) kullanılabilir.
 
-**12.5** Önce dosyanın kendisi (testler hariç) çalışıp üst düzey tanımları oluşturur; sonra her test bu tanımların üzerinde açılan **yeni bir kapsamda** çalışır. Bir testin yerel adları diğerine sızmaz; kalan ya da hata veren test diğerlerini durdurmaz. Testin başlattığı görevler beklenir; testteki `ertele` ondan sonra, test bitince çalışır (programın üst düzeyindeki gibi, 9.3).
+**12.5** Test dosyasının en dışında yalnız tanım ve `TR_ctx_test` blokları bulunur (1.1); önce bu tanımlar kurulur, sonra her test bu tanımların üzerinde açılan **yeni bir kapsamda** çalışır. Bir testin yerel adları diğerine sızmaz; kalan ya da hata veren test diğerlerini durdurmaz. Testin başlattığı görevler beklenir; testteki `ertele` ondan sonra, test bitince çalışır (programın üst düzeyindeki gibi, 9.3).
+- *Durum:* en dışta yalnız tanım kuralı karar (Ahmet, 2026-10-27; 1.1). Bugün test dosyasının en dışındaki deyimler de testlerden önce çalışıyor.
 
 **12.6** Test gövdesinde, gövdedeki bir fonksiyonun dışında yazılan `sonuç` derleme hatasıdır: test her zaman sonuna kadar çalışır, bir doğrulamayı atlayarak sessizce "geçmez". (Döngü dışındaki `çık`/`devam` da her yerde olduğu gibi hatadır, 5.13.)
 
