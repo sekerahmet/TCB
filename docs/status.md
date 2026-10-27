@@ -47,7 +47,7 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
   - Komut satırı çözümleyicisi `--ros-args`'ı bilinmeyen seçenek sayıyor.
 - **Yapılacaklar:**
   - Argüman verilip programın en dışından ulaşılabilen bir `TR_command_line` çağrısı yoksa program çalışmadan kullanım hatası verir (2); ulaşılabilirlik kesin değilse çağrı var sayılır.
-  - Böyle bir programa yalnız yardım seçeneği (`-h`) verilirse "seçeneği yok" yazılır, çıkış 0 (yeni ileti kodu).
+  - Böyle bir programa yalnız yardım seçeneği (`-h` ya da `--help`) verilirse "seçeneği yok" yazılır, çıkış 0 (yeni ileti kodu).
   - Bitişteki uyarı silinir.
   - ROS 2'nin `--ros-args` blokları ve dağıtık eğitim başlatıcılarının `--local-rank=N`, `--local_rank=N` argümanı programın argümanlarından ayrılır.
 
@@ -62,7 +62,7 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
   - Süreç isteğin kendi sinyaliyle biter; SIGUSR1 de durdurma isteği olur.
   - Durum değiştirmeyen yerleşik ve bekleme bırakılır, önce `TR_input` ve dosyadan yükleme; bırakılan hesabın GPU'da başlamış işi beklenir, ertelenen işler sonra çalışır.
   - Yığın çözülürken ertelenen işlerdeki beklemeler bırakılmaz (bugün `interruptibleSleep` kesmede hemen dönüyor [kanıtlı, DENETİM]).
-  - Durum değiştirenlerin listesi yazılır ve sınanır: `TR_backward`, iyileştirici adımı, indeksle atama, `TR_write_slice`, dosyaya yazma, üretecin ve yükleyicinin ilerlemesi.
+  - Durum değiştirenlerin listesi yazılır ve sınanır: `TR_backward`, iyileştirici adımı, indeksle atama, `TR_write_slice`, dosyaya yazma, üretecin ve yükleyicinin ilerlemesi (yükleyicinin bir sonraki parçayı beklemesi dahil).
   - TR alt süreç açmaya başlarsa (19.1) bu madde ona göre genişler: istek alt sürece, kendisi zaten almadıysa iletilir.
 
 ### 1.6
@@ -78,7 +78,7 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
   - `TR_defer` bloklarında ve bu hatayı yakalayan `TR_catch` gövdesinde beklemeler normal çalışır.
   - Kontrol noktası isteği yalnız kaydeder, beklemeleri hataya çevirmez; istekten sonraki ilk kayıtta durur, bitişte kaydetmez.
   - Program `TR_handle_stop` ile de üstlendiyse kontrol noktası yalnız kaydeder, durmayı programa bırakır.
-  - Erteleme süreyle sınırlı: son iki `.TR_update` arasındaki sürenin iki katı içinde kayda varılmazsa ya da istek ikinci güncellemeden önce geldiyse istek 1.5'teki gibi uygulanır.
+  - Erteleme süreyle sınırlı: şimdiye kadarki en uzun iki ardışık `.TR_update` arasının iki katı içinde kayda varılmazsa ya da istek ikinci güncellemeden önce geldiyse istek 1.5'teki gibi uygulanır.
 
 ### 1.7
 
@@ -99,7 +99,9 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
   - Program sona gelince önce görevleri bekliyor, ertelenen işler sonra çalışıyor [ölçüldü, DENETİM]; kuralla aynı.
 - **Yapılacaklar:**
   - İstek geldiyse süreç isteğin sinyaliyle biter (1.5, 1.7 ile); durdurmayı üstlenen program sona gelirse sinyal, `TR_exit(kod)` ile o kod.
-  - Görevdeki yakalanmayan hata olduysa çıkış 1.
+  - Görevdeki yakalanmayan hata olduysa çıkış 1; görevin ve ertelenen işin hatası `TR_exit`'in kodundan önce gelir.
+  - Yakalanmayan hatayla biten programda görevler 1.5'teki gibi durur ve beklenir, sonra ertelenen işler çalışır; bugün görevler durdurulmadan ertelenen işler çalışıyor [kanıtlı: DENETİM, `vm.go:401–405`].
+  - SIGUSR1'de süreç 128+10 ile çıkar (Go bu sinyalle ölemez).
   - `tr` aracının kullanım hatası 2 verir.
 
 ### 1.10
