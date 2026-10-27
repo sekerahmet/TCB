@@ -69,7 +69,7 @@ const (
 	H1007 Code = 1007 // '{name}' TR'de bir tip adı değil; '{suggestion}' yazmak mı istediniz?
 	H1008 Code = 1008 // ; '/' bölüm tam çıkmazsa, '**' üs negatifse {float} verir: {int} için {fn}(...) kullanın ya da tipi {float} yapın
 	H1009 Code = 1009 // '{name}' yerleşik bir ad; bu kapsamda yerleşik '{name}' artık kullanılamaz
-	H1010 Code = 1010 // Tanımsız ad — {detail}
+	H1010 Code = 1010 // Tanımsız ad — {error}
 	H1011 Code = 1011 // Etkisiz ifade — satır başındaki '-' önceki satırı sürdürmez; bu satır yalnızca bir değer hesaplar ve kullanmaz. Önceki ifadeye eklemek için işleci önceki satırın sonuna yazın ya da ifadeyi parantez içine alın
 	H1012 Code = 1012 // Ad yazılışı — değişken, fonksiyon, parametre, alan ve metot adları küçük harfle, sözcükleri alt çizgiyle ayrılarak yazılır: {name|q} yerine {suggestion|q} (bkz. 2.3b)
 	H1013 Code = 1013 // Ad yazılışı — sabitler büyük harfle, sözcükleri alt çizgiyle ayrılarak yazılır: {name|q} yerine {suggestion|q} (bkz. 2.3b)
@@ -1128,7 +1128,7 @@ const (
 	H7106 Code = 7106 // Uyarı: {fn}: {count} bağlantı ya da özel dosya kopyalanmadı (ilki: {first|q}); TR bağlantıları izlemez
 	H7107 Code = 7107 // {fn}: {path|q} bir bağlantı; TR bağlantıları izlemez ve kopyalamaz (bağlantının gösterdiği yolu verin)
 	H7108 Code = 7108 // {fn}: {path|q} sıradan bir dosya ya da klasör değil (aygıt, boru ...); kopyalanmaz
-	H7109 Code = 7109 // {fn}: {path|q} ({real}) {reason}; TR bunu yerinden kaldırmaz
+	H7109 Code = 7109 // {fn}: {path|q} ({real}) {place}; TR bunu yerinden kaldırmaz
 	H7110 Code = 7110 // {fn}: hedef {path|q} bir bağlantı; TR bağlantıların gösterdiği yere yazmaz (önce {delete}(...) ile kaldırın)
 	H7111 Code = 7111 // {fn}: hedef {path|q} bir dosya, klasör değil
 	H7112 Code = 7112 // {fn}: hedef klasör {path|q} yok; önce {mkdir}({dir|q}) ile oluşturun
@@ -1139,8 +1139,8 @@ const (
 	H7117 Code = 7117 // {fn}: hedef {path|q} bir klasör, kaynak bir dosya; dosya bir klasörün yerine konmaz
 	H7118 Code = 7118 // {fn}: hedef {path|q} bir dosya, kaynak bir klasör; klasör bir dosyanın yerine konmaz
 	H7119 Code = 7119 // {fn}: hedef {path|q} kaynağı içeriyor; yerine konamaz
-	H7120 Code = 7120 // {fn}: hedef {path|q} ({real}) {reason}; TR onun yerine bir şey koymaz
-	H7121 Code = 7121 // {fn}: {path|q} ({real}) {reason}; TR bunu silmez
+	H7120 Code = 7120 // {fn}: hedef {path|q} ({real}) {place}; TR onun yerine bir şey koymaz
+	H7121 Code = 7121 // {fn}: {path|q} ({real}) {place}; TR bunu silmez
 	H7122 Code = 7122 // {fn}: {path|q} klasörü boş değil; içindekilerle birlikte silmek için {option}: doğru verin
 	H7123 Code = 7123 // {fn}: {path|q} oluşturulamadı: aynı adda bir dosya var
 	H7124 Code = 7124 // {fn}: yol boş olamaz
@@ -1169,7 +1169,7 @@ const (
 	H7150 Code = 7150 // işletim sisteminin bir klasörü ya da onun bir üst klasörü
 	H7151 Code = 7151 // çalışma klasörü ya da onun bir üst klasörü
 	H7152 Code = 7152 // programın (ya da modülün) klasörü ya da onun bir üst klasörü
-	H7153 Code = 7153 // {fn}: {path|q} {reason}; TR bunu silmez
+	H7153 Code = 7153 // {fn}: {path|q} {place}; TR bunu silmez
 	H7154 Code = 7154 // {fn}: {path|q} içindeki {open|q} bu programda bir {type} ile okunuyor; önce okuyucuyu kapatın (x.{close}()) ya da dosyayı sonuna kadar okuyun
 	H7200 Code = 7200 // Hata: {error} Seçenekler için: {command} {help}
 	H7201 Code = 7201 // {index}. argüman çok uzun ({size} bayt; en çok 1 MB)
