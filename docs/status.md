@@ -1,10 +1,12 @@
-# Durum: 1. Program
+# Durum
 
-Kurallar: [`docs/spec/01_program.md`](../spec/01_program.md). Her madde için bugünkü durum ve kurala varmak için yapılacaklar. Yapılan iş testiyle birlikte buradan silinir.
+Dil tanımının yeniden yazılan bölümlerine göre bugünkü TR'nin durumu ve kurala varmak için yapılacaklar. Her maddenin kuralı dil tanımındadır ([`docs/spec/`](spec/README.md)); yapılan iş testiyle birlikte buradan silinir. İşlerin sırası [yol haritasındadır](roadmap.md).
 
-Kararlar henüz kesin değil: Gemini'nin araştırması bekleniyor, yapılacaklar ondan sonra başlar.
+## 1. Program
 
-## 1.1
+Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar henüz kesin değil: Gemini'nin araştırması bekleniyor, yapılacaklar ondan sonra başlar.
+
+### 1.1
 
 - **Mevcut durum:**
   - Modülün ve test dosyasının en dışındaki deyimler de çalışıyor (11.1, 12.5).
@@ -14,7 +16,7 @@ Kararlar henüz kesin değil: Gemini'nin araştırması bekleniyor, yapılacakla
   - Modülde ilk değer sabit ifade değilse hata verir; `TR_fn_fuse` ve `TR_fn_replay` çağrısı serbesttir.
   - `lib/`, `tests/` ve örnekler kurala göre düzeltilir.
 
-## 1.2
+### 1.2
 
 - **Mevcut durum:** TR dinamik tiplidir; tip açıklaması isteğe bağlıdır (3.13).
 - **Yapılacaklar:** büyük tasarım, turlarla:
@@ -23,7 +25,7 @@ Kararlar henüz kesin değil: Gemini'nin araştırması bekleniyor, yapılacakla
   - "olabilir" tipi;
   - tensörün tür ve şekil bilgisinin tipe ne kadar gireceği.
 
-## 1.3
+### 1.3
 
 - **Mevcut durum:**
   - Çalıştırmada modülün hatası `TR_kw_import` satırında çıkıyor, aktaranın önceki satırları çalışmış oluyor (11.4).
@@ -37,7 +39,7 @@ Kararlar henüz kesin değil: Gemini'nin araştırması bekleniyor, yapılacakla
   - `TR_kw_import` yalnız dosyanın başında yazılır.
   - Takma adsız aktarmada tanımsız ad çalışmadan önce bulunur.
 
-## 1.4
+### 1.4
 
 - **Mevcut durum:**
   - Argüman okunmadan program biterse bitişte uyarı yazılıyor, çıkış kodu değişmiyor.
@@ -47,7 +49,7 @@ Kararlar henüz kesin değil: Gemini'nin araştırması bekleniyor, yapılacakla
   - Bitişteki uyarı silinir.
   - ROS 2'nin `--ros-args` blokları programın argümanlarından ayrılır.
 
-## 1.5
+### 1.5
 
 - **Mevcut durum:**
   - Süreç temizlikten sonra 3 koduyla çıkıyor.
@@ -59,7 +61,7 @@ Kararlar henüz kesin değil: Gemini'nin araştırması bekleniyor, yapılacakla
   - Durum değiştiren yerleşiklerin listesi yazılır ve sınanır.
   - Alt süreç yerleşiği gelince bırakılan alt sürece istek iletilir.
 
-## 1.6
+### 1.6
 
 - **Mevcut durum:**
   - `TR_fn_handle_stop` ve `TR_fn_stop_requested` yok (adları onaylı).
@@ -71,17 +73,17 @@ Kararlar henüz kesin değil: Gemini'nin araştırması bekleniyor, yapılacakla
   - Üstlenen programda yeni iş bekleyen yerleşik bu hatayla döner, `TR_fn_sleep` hemen döner.
   - Kontrol noktası aynı yolu kullanır; istekten sonraki ilk kayıtta durur, bitişte kaydetmez.
 
-## 1.7
+### 1.7
 
 - **Mevcut durum:** ikinci istekte süreç sinyalle değil, 130 koduyla çıkıyor.
 - **Yapılacaklar:** ikinci istekte süreç SIGINT ile biter.
 
-## 1.8
+### 1.8
 
 - **Mevcut durum:** kuralın uygulanacak bir yanı yok; süre sınırı süreci başlatanındır.
 - **Yapılacaklar:** yok.
 
-## 1.9
+### 1.9
 
 - **Mevcut durum:**
   - Durdurmada 3 ve 130 kodlarıyla çıkılıyor.
@@ -90,27 +92,27 @@ Kararlar henüz kesin değil: Gemini'nin araştırması bekleniyor, yapılacakla
   - İstek geldiyse süreç her yoldan isteğin sinyaliyle biter (1.5, 1.7 ile).
   - `tr` aracının kullanım hatası 2 verir.
 
-## 1.10
+### 1.10
 
 - **Mevcut durum:** `TR_fn_exit` yok.
 - **Yapılacaklar:** yerleşik eklenir: nazik çıkış, `TR_kw_defer` çalışır, `TR_kw_catch` yakalamaz, görevden çağrılınca bütün program biter.
 
-## 1.11
+### 1.11
 
 - **Mevcut durum:** `TR_fn_exit` olmadığı için yok.
 - **Yapılacaklar:** 0–125 dışındaki kod çalışma hatasıdır.
 
-## 1.12
+### 1.12
 
 - **Mevcut durum:** `TR_fn_exit` olmadığı için yok.
 - **Yapılacaklar:** `tr test` altında `TR_fn_exit` testi düşürür, öbür testler sürer.
 
-## 1.13
+### 1.13
 
 - **Mevcut durum:** `TR_fn_exit` olmadığı için yok.
 - **Yapılacaklar:** ertelenen işten çağrılan `TR_fn_exit` kodu değiştirir; istek geldiyse sinyal korunur.
 
-## 1.14
+### 1.14
 
 - **Mevcut durum:**
   - Program sona gelince ve en dıştaki `TR_kw_return` ile ertelenen işin hatası yazılıyor, çıkış 1 [ölçüldü].
@@ -119,7 +121,7 @@ Kararlar henüz kesin değil: Gemini'nin araştırması bekleniyor, yapılacakla
   - §19'un çıkışlarında da hata yazılır, çıkış 1.
   - `TR_fn_exit` ve durdurma kısımları 1.10 ve 1.5 ile.
 
-## 1.15
+### 1.15
 
 - **Mevcut durum:** ölçülmedi.
 - **Yapılacaklar:** önce ölçülür; bitişte gelen ilk Ctrl+C ertelenen işleri kesmez, işler bitince süreç SIGINT ile biter.

@@ -195,48 +195,49 @@ func TestSectionTestProblems(t *testing.T) {
 // reviewedRe gözden geçirilmiş (Test satırı biçimine geçmiş) bölümü tanır.
 var reviewedRe = regexp.MustCompile(`(?m)^- \*Test:\*`)
 
-// statusDocs docs/status/ altındaki uygulama durumu belgelerini okur (ad → metin).
-func statusDocs(t *testing.T) map[string]string {
+// statusDoc dil tanımına göre bugünkü durumu ve yapılacakları tutan docs/status.md'yi okur.
+func statusDoc(t *testing.T) string {
 	t.Helper()
-	files, err := reporoot.Glob(reporoot.Path("docs/status/*.md"))
+	data, err := os.ReadFile(reporoot.Path("docs/status.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	docs := map[string]string{}
-	for _, d := range files {
-		data, err := os.ReadFile(d)
-		if err != nil {
-			t.Fatal(err)
-		}
-		docs[filepath.Base(d)] = string(data)
-	}
-	return docs
+	return string(data)
 }
 
+// statusSectionRe docs/status.md'deki bölüm başlığını (## 1. Program) tanır.
+var statusSectionRe = regexp.MustCompile(`(?m)^## (\d+)\. `)
+
 // Gözden geçirilmiş bölüm yalnız kuralı yazar (Ahmet, 2026-10-27: "bunlar bizim belirlediğimiz
-// kurallar. bu kurallara göre mevcut durum analizi ayrı bir konu"): bölümde *Durum:* satırı
-// yoktur; kararın kaydı ve bugünkü uygulamanın kuraldan farkı aynı adlı docs/status/ belgesindedir.
+// kurallar. bu kurallara göre mevcut durum analizi ayrı bir konu"; "status.md gibi tek bir
+// dosya"): bölümde *Durum:* satırı yoktur; bugünkü durum ve yapılacaklar docs/status.md'de
+// bölümün başlığı altındadır.
 func TestReviewedSectionsHoldOnlyRules(t *testing.T) {
-	status := statusDocs(t)
+	headings := map[int]bool{}
+	for _, m := range statusSectionRe.FindAllStringSubmatch(statusDoc(t), -1) {
+		n, _ := strconv.Atoi(m[1])
+		headings[n] = true
+	}
 	for name, text := range languageSpec(t) {
 		if !reviewedRe.MatchString(text) {
 			continue
 		}
 		for i, line := range strings.Split(text, "\n") {
 			if strings.HasPrefix(line, "- *Durum:*") {
-				t.Errorf("docs/spec/%s:%d: Durum satırı; bugünkü uygulama docs/status/%s'e yazılır", name, i+1, name)
+				t.Errorf("docs/spec/%s:%d: Durum satırı; bugünkü durum docs/status.md'ye yazılır", name, i+1)
 			}
 		}
-		if _, ok := status[name]; !ok {
-			t.Errorf("docs/spec/%s gözden geçirilmiş, ama uygulama durumu belgesi docs/status/%s yok", name, name)
+		n, _ := strconv.Atoi(sectionFileRe.FindStringSubmatch(name)[1])
+		if !headings[n] {
+			t.Errorf("docs/spec/%s gözden geçirilmiş, ama docs/status.md'de \"## %d. ...\" başlığı yok", name, n)
 		}
 	}
 }
 
 // Gözden geçirilmiş (Test satırı biçimine geçmiş) bölüm dilin sözcüklerini kimlikle yazar
 // (Ahmet, 2026-10-27: "niye kodlar ile konuşmuyorsun"; K3): madde ve Test satırlarında ve
-// uygulama durumu belgesinin (docs/status/) her satırında ters tırnak içindeki bir sözcük bir
-// kodun herhangi bir gösterim dilindeki adı olamaz (`aktar`, `import` değil `TR_kw_import`).
+// durum belgesinin (docs/status.md) her satırında ters tırnak içindeki bir sözcük bir kodun
+// herhangi bir gösterim dilindeki adı olamaz (`aktar`, `import` değil `TR_kw_import`).
 // Emsal ve Gerekçe satırları başka dillerin kodunu bilerek yazar (Python'un `if`'i, C#'ın
 // `return`'ü), bakılmaz; kod çitleri belgelerin kodlu saklanmasıyla (E4) gelecek. Bölümler
 // gözden geçirildikçe kapsama girer.
@@ -292,9 +293,7 @@ func TestReviewedSectionsWriteIdentities(t *testing.T) {
 			return ruleHeadRe.MatchString(line) || strings.HasPrefix(line, "- *Test:*")
 		})
 	}
-	for name, text := range statusDocs(t) {
-		check("docs/status/"+name, text, func(string) bool { return true })
-	}
+	check("docs/status.md", statusDoc(t), func(string) bool { return true })
 }
 
 // Test satırının üç biçimi tanınır, eksik ya da çelişkili satır yakalanır.

@@ -20,14 +20,14 @@ kullanıldığını denetler.
 Denetim: `TestRuleInItsOwnSection`, `TestEveryRuleHasATest`, `TestRuleTestLineForms`, `TestSectionTestProblems`, `TestNegativeFixturesUsed`.
 
 **Gözden geçirilmiş bölüm dilin sözcüklerini kimlikle yazar.** Test satırı biçimine geçmiş
-bölümde madde ve Test satırları ve uygulama durumu belgesinin (`docs/status/`) her satırı ters
+bölümde madde ve Test satırları ve durum belgesinin (`docs/status.md`) her satırı ters
 tırnak içinde bir kodun hiçbir gösterim dilindeki adını (`aktar`, `import`) taşımaz, kimliğini
 (`TR_kw_import`) yazar; Emsal ve Gerekçe başka dillerin kodunu bilerek yazdığı için bakılmaz.
 Denetim: `TestReviewedSectionsWriteIdentities`.
 
-**Gözden geçirilmiş bölüm yalnız kuralı yazar.** Kararın kaydı ve bugünkü uygulamanın kuraldan
-farkı bölümde *Durum:* satırı olarak değil, `docs/status/`'te bölümle aynı adlı belgede durur;
-gözden geçirilmiş her bölümün o belgesi vardır. Denetim: `TestReviewedSectionsHoldOnlyRules`.
+**Gözden geçirilmiş bölüm yalnız kuralı yazar.** Bugünkü uygulamanın kuraldan farkı ve
+yapılacaklar bölümde *Durum:* satırı olarak değil, `docs/status.md`'de bölümün başlığı altında
+durur; gözden geçirilmiş her bölümün orada başlığı vardır. Denetim: `TestReviewedSectionsHoldOnlyRules`.
 
 ## Testler
 
