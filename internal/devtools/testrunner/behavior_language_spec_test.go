@@ -240,7 +240,9 @@ func TestReviewedSectionsHoldOnlyRules(t *testing.T) {
 // Gözden geçirilmiş (Test satırı biçimine geçmiş) bölüm dilin sözcüklerini kimlikle yazar
 // (Ahmet, 2026-10-27: "niye kodlar ile konuşmuyorsun"; K3): madde ve Test satırlarında ve
 // durum belgesinin (docs/status.md) her satırında ters tırnak içindeki bir sözcük bir kodun
-// herhangi bir gösterim dilindeki adı olamaz (`aktar`, `import` değil `TR_kw_import`).
+// herhangi bir gösterim dilindeki adı olamaz (`aktar`, `import` değil `TR_import`). Kimlik kapısı:
+// TR_ ile yazılan her sözcük bir kimliktir (identityWord; sınıflı eski yazım `TR_fn_str` değildir),
+// onaylı yeni adlar ve bilerek yanlış örnekler identityExceptions'tadır.
 // Emsal ve Gerekçe satırları başka dillerin kodunu bilerek yazar (Python'un `if`'i, C#'ın
 // `return`'ü), bakılmaz; kod çitleri belgelerin kodlu saklanmasıyla (E4) gelecek. Bölümler
 // gözden geçirildikçe kapsama girer.
@@ -274,7 +276,10 @@ func TestReviewedSectionsWriteIdentities(t *testing.T) {
 					continue
 				}
 				for _, w := range words.FindAllString(m[1], -1) {
-					if strings.HasPrefix(w, "TR_") {
+					if strings.HasPrefix(w, codes.IdentityPrefix) {
+						if w != codes.IdentityPrefix && !identityWord(w) && identityExceptions[w] == "" {
+							t.Errorf("%s:%d: `%s` bir kimlik değil: dilin sözcüğü TR_ ve kimliğin adıyla yazılır (2.3a); onaylı yeni ad ya da bilerek yanlış örnekse identityExceptions'a gerekçesiyle eklenir", path, i+1, w)
+						}
 						continue
 					}
 					for _, lang := range langs {
@@ -297,6 +302,40 @@ func TestReviewedSectionsWriteIdentities(t *testing.T) {
 		})
 	}
 	check("docs/status.md", statusDoc(t), func(string) bool { return true })
+}
+
+// identityWord w'nin bir kimlik olduğudur: programın bir yerinde (öbür, üye, adlı argüman) geçerli
+// yazım (TR_print, TR_map, TR_lr) ya da programın dışındaki sınıflı ad (TR_cmd_test, 2.3a). Bir parçanın
+// (`TR_lr: 0.003`) yeri eksik olabilir; yeri yazımın kendisi değil kuralın metni söyler.
+func identityWord(w string) bool {
+	for _, p := range []codes.Place{codes.PlaceOther, codes.PlaceMember, codes.PlaceArg} {
+		if _, ok := codes.FromSpelling(p, w); ok {
+			return true
+		}
+	}
+	if k, err := codes.Parse(w); err == nil && k != codes.None {
+		_, inProgram := codes.PlaceOf(k)
+		return !inProgram
+	}
+	return false
+}
+
+// identityExceptions kimlik listesinde (henüz) olmayan ama tanımda anılan TR_ sözcükleridir: onaylı
+// yeni adlar (kodu kendi katmanıyla gelir; gelince buradan silinir) ve bilerek yanlış yazılan örnekler.
+var identityExceptions = map[string]string{
+	"TR_exit":           "onaylı yeni ad (1.10, süreç katmanı)",
+	"TR_handle_stop":    "onaylı yeni ad (1.5, süreç katmanı)",
+	"TR_stop_requested": "onaylı yeni ad (1.5, süreç katmanı)",
+	"TR_JSON":           "onaylı yeni ad (3.7a)",
+	"TR_Bytes":          "onaylı yeni ad (3.3)",
+	"TR_NoneType":       "onaylı yeni ad (3.11)",
+	"TR_enum":           "onaylı yeni ad (7.x, durumlu tip)",
+	"TR_interface":      "onaylı yeni ad (7.x, arayüz)",
+	"TR_while":          "bilerek yanlış: kalkan sözcük (2.9)",
+	"TR_default":        "bilerek yanlış: kalkan sözcük (2.9)",
+	"TR_elif":           "bilerek yanlış: başka dilin yazımı (5.5)",
+	"TR_prnt":           "bilerek yanlış: önerinin örneği (2.3a)",
+	"TR_Flaot":          "bilerek yanlış: önerinin örneği (2.3a)",
 }
 
 // Test satırının üç biçimi tanınır, eksik ya da çelişkili satır yakalanır.
