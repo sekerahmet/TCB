@@ -134,3 +134,37 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
 
 - **Mevcut durum:** ölçülmedi.
 - **Yapılacaklar:** önce ölçülür; bitişte gelen ilk Ctrl+C ertelenen işleri kesmez, işler bitince süreç SIGINT ile biter.
+
+## 2. Sözcük yapısı
+
+Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). Taslak: DENETİM ve Gemini'nin araştırması bekleniyor. Anlamı değişmeyen maddelerin bugünkü TR testi var; aşağıda yalnız değişen ya da eksik olanlar.
+
+### 2.1
+
+- **Mevcut durum:** başlığı olmayan metin bugün Türkçe yazılmış sayılıp okunuyor (17.1'in geçici kuralı).
+- **Yapılacaklar:** diskteki her dosya kodludur; başlıksız dosya çalışmaz, ileti kodlama yolunu söyler. Bilerek bozuk sınav dosyaları, belgelerdeki kod blokları ve Go testlerindeki TR metni kodlu biçime geçer.
+
+### 2.2
+
+- **Mevcut durum:** iç içe çok satırlı yorum sözdizimi hatası veriyor [ölçüldü].
+- **Yapılacaklar:** çok satırlı yorum iç içe okunur.
+
+### 2.3
+
+- **Mevcut durum:** adlar karşılaştırılmadan önce normalleştirilmiyor (sözcük çözümleyicide normalleştirme yok).
+- **Yapılacaklar:** adlar NFC'ye göre karşılaştırılır; kodlama ve gösterim de aynı biçimi kullanır.
+
+### 2.4
+
+- **Mevcut durum:** `0x1F` sözdizimi hatası veriyor [ölçüldü].
+- **Yapılacaklar:** `0x`, `0o`, `0b` ön ekleri ve ön ekten sonra `_`.
+
+### 2.6
+
+- **Mevcut durum:** `\u{...}` bilinmeyen kaçış dizisi hatası veriyor [ölçüldü].
+- **Yapılacaklar:** `\u{...}` kaçışı; bilinmeyen kaçış iletisi bilinenlere onu da ekler.
+
+### 2.11
+
+- **Mevcut durum:** Türkçe yazılmış dosyada başka bir gösterim dilinin sözcüğü ad olabiliyor (`TR_fn_print`'in İngilizce adıyla bir değişken çalışıyor) [ölçüldü]; $ad kaçışı çalışıyor [ölçüldü]; 17 çakışmayı bu kaçışla anlatıyor.
+- **Yapılacaklar:** ad kuralı (tanımda ve kullanımda, her denetimde); $ad kaçışı silinir; depoda bu kurala takılan adlar yeniden adlandırılır; 17'nin kaçışa yaptığı göndermeler kalkar.
