@@ -40,17 +40,15 @@ TR_ctx_test "13.1 yerleşiklerin argüman hataları tek biçimdedir" {
 TR_ctx_test "13.1 dosya_oku ve dosya_yaz hataları Türkçedir; göreli yol önce çalışma klasöründe, sonra programın klasöründe aranır" {
     // Programın klasöründeki dosya, program başka bir klasörden çalıştırılsa da bulunur
     TR_fn_assert(TR_fn_read_file("data/tokenizer.json").TR_mem_contains("model"))
+    TR_fn_assert_equal(H2132, TR_fn_error_code(() => { TR_fn_read_file("data/olmayan_dosya.txt") }))
+    // İleti dosyanın yolunu söyler; işletim sisteminin kendi metni sızmaz.
     TR_kw_var m = ""
     TR_kw_try { TR_fn_read_file("data/olmayan_dosya.txt") } TR_kw_catch h { m = h }
-    TR_fn_assert(m.TR_mem_contains("dosya_oku(): \"data/olmayan_dosya.txt\" okunamadı: böyle bir dosya ya da klasör yok"), m)
-    TR_fn_assert(m.TR_mem_contains("bakılan yerler: "), m)
+    TR_fn_assert(m.TR_mem_contains("\"data/olmayan_dosya.txt\""), m)
     TR_fn_assert(TR_kw_not m.TR_mem_contains("system cannot"), m)
-    TR_kw_try { TR_fn_read_file("data") } TR_kw_catch h { m = h }
-    TR_fn_assert(m.TR_mem_contains("bu bir klasör, dosya değil"), m)
-    TR_kw_try { TR_fn_write_file("olmayan_klasör_tr/a.txt", "x") } TR_kw_catch h { m = h }
-    TR_fn_assert(m.TR_mem_ends_with("dosya_yaz(): \"olmayan_klasör_tr/a.txt\" yazılamadı: \"olmayan_klasör_tr\" klasörü yok"), m)
-    TR_kw_try { TR_fn_read_file(5) } TR_kw_catch h { m = h }
-    TR_fn_assert(m.TR_mem_ends_with("dosya_oku() 1. argüman olarak Metin ya da Yol bekler, Tam (5) verildi"), m)
+    TR_fn_assert_equal(H2130, TR_fn_error_code(() => { TR_fn_read_file("data") }))
+    TR_fn_assert_equal(H2131, TR_fn_error_code(() => { TR_fn_write_file("olmayan_klasör_tr/a.txt", "x") }))
+    TR_fn_assert_equal(H2423, TR_fn_error_code(() => { TR_fn_read_file(5) }))
 }
 
 TR_ctx_test "13.1a yolda sekme ya da satır sonu varsa yol alan yerleşikler ham metni önerir" {

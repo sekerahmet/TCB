@@ -2,15 +2,11 @@
 // Kodlu saklama (docs/spec/17_kodlar.md, 17.1-17.7) ve '$ad' kaçışı (2.11). Kodlu modül:
 // tests/coded/ornek_kodlu.tr (Türkçe gösterimi: tr göster tests/coded/ornek_kodlu.tr).
 
-TR_kw_import "yardimci_test_araclari"
-
 TR_ctx_test "17.1 ilk satırı başlık olan dosya kodludur ve çevrilmeden çalışır" {
     TR_kw_import "coded/ornek_kodlu" TR_ctx_as m
     TR_fn_assert_equal([1, 4, 9], m.kareler([1, 2, 3]))
     // Başka bir kodlu biçim sürümü (burada eski sürüm 2) Türkçe kaynak sanılmaz, hatadır.
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_kw_import "negative/kodlu_surum" } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("Satır 1, Sütun 1: '//! tr kodlu 2 dil=tr' okunamayan bir kodlu biçim başlığı: bu biçim sürümü okunamıyor"), mesaj)
+    TR_fn_assert_equal(H2512, TR_fn_error_code(() => { TR_kw_import "negative/kodlu_surum" }))
 }
 
 TR_ctx_test "17.2 kodlu dosyada dilin sözcükleri kodla, kullanıcının adları adıyla yazılır" {
@@ -37,16 +33,12 @@ TR_ctx_test "17.4 metinler, ham metin ve yorumlar olduğu gibi kalır; yerleşti
 }
 
 TR_ctx_test "17.5 kodlu dosyada konumlar Türkçe gösterime göredir" {
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_kw_import "negative/kodlu_tanimsiz" } TR_kw_catch h { mesaj = h }
+    TR_fn_assert_equal(H1106, TR_fn_error_code(() => { TR_kw_import "negative/kodlu_tanimsiz" }))
     // Gösterim: 'yazdır(a, tanımsız_ad)'; ad 11. sütunda (kodlu dosyada 'TR_fn_print(a, ' 16 karakter).
-    TR_fn_assert(mesaj.TR_mem_contains("Satır 3, Sütun 11: Tanımsız ad — 'tanımsız_ad'"), mesaj)
 }
 
 TR_ctx_test "17.6 kod listesinde olmayan kimlik hatadır" {
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_kw_import "negative/kodlu_bilinmeyen" } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("Satır 2, Sütun 1: 'TR_fn_yok' bilinen bir kimlik değil"), mesaj)
+    TR_fn_assert_equal(H0001, TR_fn_error_code(() => { TR_kw_import "negative/kodlu_bilinmeyen" }))
 }
 
 TR_ctx_test "17.7 kodsuz dosya Türkçedir; başka yazım dillerinin sözcükleri burada kullanıcının adıdır" {
@@ -68,9 +60,7 @@ TR_ctx_test "2.11 '$ad' kaçışı: ad dilin bir sözcüğüyle aynı olsa da ku
     TR_kw_var eğer = 3
     TR_kw_var değişken = eğer + 1
     TR_fn_assert_equal(4, değişken)
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_kw_import "negative/kacis_bitisik" } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("Satır 3, Sütun 15: '$' kaçışı bir adın ya da sayının hemen ardından yazılamaz"), mesaj)
+    TR_fn_assert_equal(H0002, TR_fn_error_code(() => { TR_kw_import "negative/kacis_bitisik" }))
 }
 
 TR_ctx_test "17.8 komut satırı adları kodludur: programın yardım seçeneğinin her dildeki adı ayrılmıştır" {

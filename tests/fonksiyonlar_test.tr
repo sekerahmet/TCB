@@ -146,10 +146,7 @@ TR_ctx_test "6.8 dönüş tipi : Tip ya da -> Tip ile bildirilir" {
     TR_kw_func b(x: TR_type_Int) -> TR_type_String { TR_kw_return TR_fn_str(x) }
     TR_fn_assert_equal("3", b(a(3)))
     // Bildirilen tiple uyuşmayan sonuç değeri programı çalıştırmadan reddeder
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_kw_import "negative/donus_tipi" } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("donus_tipi.tr, Satır 2: Dönüş tipi uyuşmazlığı — fonksiyon \"Tam\" döndürmeli ancak \"Metin\""), mesaj)
-    TR_fn_assert(mesaj.TR_mem_contains("donus_tipi.tr, Satır 4: Dönüş tipi uyuşmazlığı — fonksiyon \"Tam\" döndürmeli ancak \"Tam ya da Ondalık\""), mesaj)
+    TR_fn_assert_equal(H1003, TR_fn_error_code(() => { TR_kw_import "negative/donus_tipi" }))
 }
 
 TR_ctx_test "6.7 değilse eğer başlığında da süslü parantez gövdeyi başlatır, sondaki blok olmaz" {

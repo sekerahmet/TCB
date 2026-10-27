@@ -71,8 +71,8 @@ TR_ctx_test "20.2 kaydedilebilen nesneler ve hatalar" {
     TR_fn_assert_equal(H7436, TR_fn_error_code(() => TR_fn_checkpoint(k, {en_iyi: 99.0})))
     TR_fn_assert_equal(H7437, TR_fn_error_code(() => TR_fn_checkpoint(k, {t: w * 2})))
     TR_fn_assert_equal(H7438, TR_fn_error_code(() => TR_fn_checkpoint(k, {f: (x) => x})))
-    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {izlenen: {sayı: 1, f: (x) => x}})).TR_mem_contains("izlenen"))
-    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {"a/b": w})).TR_mem_contains("'/' ya da denetim karakteri içeremez"))
+    TR_fn_assert_equal(H7457, TR_fn_error_code(() => TR_fn_checkpoint(k, {izlenen: {sayı: 1, f: (x) => x}})))
+    TR_fn_assert_equal(H7433, TR_fn_error_code(() => TR_fn_checkpoint(k, {"a/b": w})))
     TR_fn_assert_equal(H7434, TR_fn_error_code(() => TR_fn_checkpoint(k, {1: w})))
 }
 
@@ -224,7 +224,7 @@ TR_ctx_test "20.7 uyumsuz nesneler hata verir ve hiçbir şeyi değiştirmez" {
     TR_fn_assert_equal(H7450, TR_fn_error_code(() => TR_fn_checkpoint(k, {w: param([3], 1), op: TR_fn_AdamW([yeni]), ö: ö})))
     TR_fn_assert_equal(H7442, TR_fn_error_code(() => TR_fn_checkpoint(k, {w: yeni, op: TR_fn_SGD([yeni]), ö: ö})))
     TR_kw_var ö2 = TR_fn_dataset("data/text").TR_mem_sampler(TR_arg_batch_size: 3, TR_arg_context: 4, TR_arg_seed: 1)
-    TR_fn_assert(hata_metni(() => TR_fn_checkpoint(k, {w: yeni, op: TR_fn_AdamW([yeni]), ö: ö2})).TR_mem_contains("toplu değeri 2, bu okuyucununki 3"))
+    TR_fn_assert_equal(H5544, TR_fn_error_code(() => TR_fn_checkpoint(k, {w: yeni, op: TR_fn_AdamW([yeni]), ö: ö2})))
     TR_fn_assert_equal(H7440, TR_fn_error_code(() => TR_fn_checkpoint(k, {w: yeni, op: TR_fn_AdamW([yeni]), ö: {a: 1}})))
     TR_fn_assert_equal(önce, yeni.TR_mem_tolist)
     TR_kw_var kn2 = TR_fn_checkpoint(k, {w: yeni, op: TR_fn_AdamW([yeni]), ö: ö})
@@ -282,7 +282,7 @@ TR_ctx_test "20.10 aralıklı kayıtta yazma hatası eğitimi durdurmaz; art ard
     TR_fn_assert_equal(TR_kw_false, kn.TR_mem_update(1))
     TR_fn_assert_equal(TR_kw_false, kn.TR_mem_update(2))
     TR_fn_assert_equal(H7400, TR_fn_error_code(() => kn.TR_mem_update(3)))
-    TR_fn_assert(hata_metni(() => kn.TR_mem_save()).TR_mem_contains("kaydedilemedi"))
+    TR_fn_assert_equal(H7400, TR_fn_error_code(() => kn.TR_mem_save()))
 }
 
 TR_ctx_test "20.11 parametreleri_yükle var olan parametrelere yerinde yazar" {

@@ -145,7 +145,7 @@ TR_ctx_test "15.31 özel_türev: hatalar" {
     TR_kw_var ölçekle = TR_fn_custom_grad(TR_arg_forward: TR_kw_func(x, c) { TR_kw_return [x * c, [c]] }, TR_arg_backward: TR_kw_func(k, g) { TR_kw_return [g * k[0], TR_kw_none] })
     TR_kw_var y = ölçekle(x, c)
     c[0] = [9.0, 9.0]
-    TR_fn_assert(hata_metni(() => TR_fn_backward(TR_fn_sum(y))).TR_mem_contains("yerinde değiştirildi"))
+    TR_fn_assert_equal(H3012, TR_fn_error_code(() => TR_fn_backward(TR_fn_sum(y))))
     // geri'deki hata dene/yakala ile yakalanır.
     TR_kw_var fırlatan = TR_fn_custom_grad(TR_arg_forward: TR_kw_func(x) { TR_kw_return [x, []] }, TR_arg_backward: TR_kw_func(k, g) { TR_kw_throw "geri bozuk" })
     TR_fn_assert(hata_metni(() => TR_fn_backward(TR_fn_sum(fırlatan(x)))).TR_mem_contains("geri bozuk"))

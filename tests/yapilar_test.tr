@@ -23,14 +23,9 @@ TR_ctx_test "7.1 yapı alanları ve varsayılan değerleri" {
 }
 
 TR_ctx_test "7.1 yapı gövdesinde geçersiz içerik ve yinelenen ad sözdizimi hatasıdır" {
-    TR_kw_var hatalar = []
-    TR_kw_try { TR_kw_import "negative/yapi_govdesi" } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { TR_kw_import "negative/yapi_yinelenen_alan" } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { TR_kw_import "negative/yapi_yinelenen_metot" } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_fn_assert_equal(3, hatalar.TR_mem_length, TR_fn_str(hatalar))
-    TR_fn_assert(hatalar[0].TR_mem_contains("Satır 4, Sütun 5: Sözdizimi hatası — yapı gövdesinde yalnızca alanlar"), hatalar[0])
-    TR_fn_assert(hatalar[1].TR_mem_contains("Satır 4, Sütun 5: Sözdizimi hatası — 'x' alanı 'A' yapısında iki kez tanımlandı"), hatalar[1])
-    TR_fn_assert(hatalar[2].TR_mem_contains("'f' metodu 'A' yapısında iki kez tanımlandı"), hatalar[2])
+    TR_fn_assert_equal(H0147, TR_fn_error_code(() => { TR_kw_import "negative/yapi_govdesi" }))
+    TR_fn_assert_equal(H0146, TR_fn_error_code(() => { TR_kw_import "negative/yapi_yinelenen_alan" }))
+    TR_fn_assert_equal(H0145, TR_fn_error_code(() => { TR_kw_import "negative/yapi_yinelenen_metot" }))
 }
 
 TR_ctx_test "7.2 oluşturma: konumlu ve adlı argümanlarla" {

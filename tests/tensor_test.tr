@@ -183,8 +183,8 @@ TR_ctx_test "15.44 kaynaştır: zincir tek geçişte, sonuç ve gradyan kaynaşm
     TR_fn_assert_equal([3.0], verilen(TR_fn_tensor([1.0]), ölçek2).TR_mem_tolist)
     // Kaynaştırılamayan işlem ve dış tensör hata verir.
     TR_kw_var dış = TR_fn_tensor([1.0])
-    TR_fn_assert(hata_metni(() => TR_fn_fuse((a) => TR_fn_sum(a))(TR_fn_tensor([1.0]))).TR_mem_contains("kaynaştırılamayan"))
-    TR_fn_assert(hata_metni(() => TR_fn_fuse((a) => a + dış)(TR_fn_tensor([1.0]))).TR_mem_contains("dışarıdan"))
+    TR_fn_assert_equal(H3107, TR_fn_error_code(() => TR_fn_fuse((a) => TR_fn_sum(a))(TR_fn_tensor([1.0]))))
+    TR_fn_assert_equal(H3108, TR_fn_error_code(() => TR_fn_fuse((a) => a + dış)(TR_fn_tensor([1.0]))))
     TR_fn_assert_equal(H6433, TR_fn_error_code(() => TR_fn_fuse(3)))
 }
 
@@ -375,16 +375,16 @@ TR_ctx_test "15.27 .gradyan canlı takma addır; değişince onu kullanan hesap 
     TR_fn_backward(TR_fn_sum(x * 5)) // x.gradyan (ve g) yerinde birikir
     TR_fn_assert_equal([8.0, 8.0], g.TR_mem_tolist)
     TR_fn_assert_equal([3.0, 3.0], kopya.TR_mem_tolist)
-    TR_fn_assert(hata_metni(() => TR_fn_backward(k)).TR_mem_contains("yerinde değiştirildi"))
+    TR_fn_assert_equal(H3012, TR_fn_error_code(() => TR_fn_backward(k)))
     // Sıfırlama ve kırpma da gradyanı yerinde değiştirir.
     TR_kw_var k2 = TR_fn_sum(x.TR_mem_grad * w)
     TR_fn_SGD([x], TR_arg_lr: 0.1).TR_mem_zero_grad()
     TR_fn_assert_equal([0.0, 0.0], g.TR_mem_tolist)
-    TR_fn_assert(hata_metni(() => TR_fn_backward(k2)).TR_mem_contains("yerinde değiştirildi"))
+    TR_fn_assert_equal(H3012, TR_fn_error_code(() => TR_fn_backward(k2)))
     TR_fn_backward(TR_fn_sum(x * 3))
     TR_kw_var k3 = TR_fn_sum(x.TR_mem_grad * w)
     TR_fn_clip_grad([x], TR_arg_max: 0.1)
-    TR_fn_assert(hata_metni(() => TR_fn_backward(k3)).TR_mem_contains("yerinde değiştirildi"))
+    TR_fn_assert_equal(H3012, TR_fn_error_code(() => TR_fn_backward(k3)))
     // Kopyayla kurulan hesap etkilenmez.
     TR_fn_backward(TR_fn_sum(kopya * w))
     TR_fn_assert_equal([3.0, 3.0], w.TR_mem_grad.TR_mem_tolist)
@@ -529,8 +529,8 @@ TR_ctx_test "15.36 gradyan_kırp normu aşan gradyanları küçültür, kırpma 
 
 TR_ctx_test "15.46 tensör_kaydet ve tensör_yükle hataları" {
     // Gidiş-dönüş Go testlerinde (geçici klasörde) denetlenir; burada dosya oluşturmayan hatalar.
-    TR_fn_assert(hata_metni(() => TR_fn_load_tensors("bu_dosya_yok_12345.trt")).TR_mem_contains("yüklenemedi: böyle bir dosya ya da klasör yok"))
-    TR_fn_assert(hata_metni(() => TR_fn_load_tensors(".")).TR_mem_contains("bir klasör, tensör dosyası değil"))
+    TR_fn_assert_equal(H2132, TR_fn_error_code(() => TR_fn_load_tensors("bu_dosya_yok_12345.trt")))
+    TR_fn_assert_equal(H6629, TR_fn_error_code(() => TR_fn_load_tensors(".")))
     TR_fn_assert_equal(H6605, TR_fn_error_code(() => TR_fn_save_tensors("x.trt", [1])))
     TR_fn_assert_equal(H6608, TR_fn_error_code(() => TR_fn_save_tensors("x.trt", {"a": 1})))
 }
@@ -545,16 +545,14 @@ TR_ctx_test "15.46 tensör dosyası sürüm 2 türü korur; eski sürüm 1 dosya
     TR_fn_assert(y["b"] == TR_fn_tensor([0.1, 65504.0], TR_arg_dtype: "fp16"))
     TR_fn_assert_equal([0.1], y["c"].TR_mem_tolist)
     // tensor_version1.trt: eski TR'nin yazdığı sürüm 1 dosyası artık okunmaz.
-    TR_kw_var h = hata_metni(() => TR_fn_load_tensors("data/tensor_version1.trt"))
-    TR_fn_assert(h.TR_mem_contains("dosya biçimi sürümü 1; bu TR sürümü yalnızca sürüm 2 okur"), h)
+    TR_fn_assert_equal(H6611, TR_fn_error_code(() => TR_fn_load_tensors("data/tensor_version1.trt")))
 }
 
 TR_ctx_test "15.46 tensör dosyası eleman sınırını sıfır uzunluklu eksenlerle aşamaz" {
     // tensor_zero_axis.trt (74 bayt): [2, 0] ve [1048576, 0, 8192] şekilli, verisiz iki
     // tensör. Sıfır eksen 1 sayılınca ikincisi 8,6 milyar eleman eder; kabul edilseydi
     // [4, 2] @ W1 @ W2 gibi bir ileri geçiş belleği tüketip süreci çökertirdi.
-    TR_kw_var h = hata_metni(() => TR_fn_load_tensors("data/tensor_zero_axis.trt"))
-    TR_fn_assert(h.TR_mem_contains("tensör çok büyük") && h.TR_mem_contains("sıfır uzunluklu eksenler 1 sayılır"), h)
+    TR_fn_assert_equal(H6621, TR_fn_error_code(() => TR_fn_load_tensors("data/tensor_zero_axis.trt")))
     // Sınır içindeki boş tensörler kaydedilip yüklenebilir (Go testlerinde gidiş-dönüş).
     TR_fn_assert_equal([0, 3], TR_fn_zeros([0, 3]).TR_mem_shape)
 }
@@ -979,14 +977,12 @@ TR_ctx_test "15.44 kaynaştır: büyük tensör yazdırma ve tensörde döngü i
         TR_fn_print(x)
         TR_kw_return x + 1
     })
-    TR_kw_var e1 = hata_metni(() => yaz(TR_fn_zeros([1001])))
-    TR_fn_assert(e1.TR_mem_contains("kaynaştır") TR_kw_and TR_kw_not e1.TR_mem_contains("nil") TR_kw_and TR_kw_not e1.TR_mem_contains("runtime error"), e1)
+    TR_fn_assert_equal(H3107, TR_fn_error_code(() => yaz(TR_fn_zeros([1001]))))
     TR_kw_var don = TR_fn_fuse((x) => {
         TR_kw_for e TR_kw_in x { TR_fn_print(e) }
         TR_kw_return x + 1
     })
-    TR_kw_var e2 = hata_metni(() => don(TR_fn_zeros([1001])))
-    TR_fn_assert(e2.TR_mem_contains("kaynaştır") TR_kw_and TR_kw_not e2.TR_mem_contains("nil") TR_kw_and TR_kw_not e2.TR_mem_contains("runtime error"), e2)
+    TR_fn_assert_equal(H3107, TR_fn_error_code(() => don(TR_fn_zeros([1001]))))
 }
 
 TR_ctx_test "15.33 parametreler: sabit sıra, tekillik, yol adları" {
@@ -1013,12 +1009,9 @@ TR_ctx_test "15.33 parametreler: sabit sıra, tekillik, yol adları" {
 
 TR_ctx_test "15.42 bellek sınırı: dev sonuç tensörü ayrılmadan yakalanabilir bir hata verir" {
     // İki küçük tensörün yayınlanması [2000000, 2000000] (yaklaşık 14,6 TB) isterdi.
-    TR_kw_var m = hata_metni(() => TR_fn_zeros([2000000, 1]) + TR_fn_zeros([2000000]))
-    TR_fn_assert(m.TR_mem_contains("toplama: sonuç tensörü [2000000, 2000000] şeklinde"))
-    TR_fn_assert(m.TR_mem_contains("TB bellek ister; bu makinede"))
-    TR_fn_assert(m.TR_mem_contains("yayınlama beklenmedik bir boyut üretmiş olabilir"))
+    TR_fn_assert_equal(H3085, TR_fn_error_code(() => TR_fn_zeros([2000000, 1]) + TR_fn_zeros([2000000])))
     // Verisiz (sıfır eksenli) tensörlerin çarpımı da denetlenir.
-    TR_fn_assert(hata_metni(() => TR_fn_zeros([46000000, 0]) @ TR_fn_zeros([0, 46000000])).TR_mem_contains("matris çarpımı: sonuç tensörü [46000000, 46000000]"))
+    TR_fn_assert_equal(H3085, TR_fn_error_code(() => TR_fn_zeros([46000000, 0]) @ TR_fn_zeros([0, 46000000])))
     // Hatadan sonra program sürer; sınır içindeki işlemler etkilenmez.
     TR_fn_assert_equal([3, 4], (TR_fn_zeros([3, 4]) + TR_fn_zeros([4])).TR_mem_shape)
 }
@@ -1176,7 +1169,7 @@ TR_ctx_test "15.8 yerine_yaz: kaynağı eksendeki dilime başlangıçtan yerinde
     TR_fn_assert_equal([[0.0, 1.0, 1.0, 0.0], [0.0, 1.0, 1.0, 0.0]], t.TR_mem_tolist)
     TR_fn_write_slice(t, TR_fn_ones([2, 1]) * 5, TR_arg_dim: 1, TR_arg_start: TR_fn_tensor(3.0))
     TR_fn_assert_equal([[0.0, 1.0, 1.0, 5.0], [0.0, 1.0, 1.0, 5.0]], t.TR_mem_tolist)
-    TR_fn_assert(hata_metni(() => TR_fn_write_slice(t, TR_fn_ones([2, 2]), TR_arg_dim: 1, TR_arg_start: 3)).TR_mem_contains("sığmıyor"))
+    TR_fn_assert_equal(H6442, TR_fn_error_code(() => TR_fn_write_slice(t, TR_fn_ones([2, 2]), TR_arg_dim: 1, TR_arg_start: 3)))
 }
 
 TR_ctx_test "15.50 özel değerler: −0, sonsuz ve NaN tablodaki gibi" {

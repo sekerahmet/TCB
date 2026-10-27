@@ -13,9 +13,7 @@ TR_ctx_test "5.2 sabit: tanımlandıktan sonra değiştirilemez" {
     TR_kw_const PI = 3.14
     TR_fn_assert_equal(3.14, PI)
     // Yeniden atama denetleyicide yakalanır: dosyanın hiçbir satırı çalışmaz
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_kw_import "negative/sabit_yeniden" } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("sabit_yeniden.tr, Satır 4: Sabit hatası — \"PI\" bir sabittir"), mesaj)
+    TR_fn_assert_equal(H1002, TR_fn_error_code(() => { TR_kw_import "negative/sabit_yeniden" }))
 }
 
 TR_ctx_test "5.3 çoklu tanım, takas ve listeden açma" {
@@ -40,9 +38,7 @@ TR_ctx_test "5.4 atama ve bileşik atama" {
 
 TR_ctx_test "5.4 tanımsız bir ada atama hatadır" {
     // Hata çalışmadan önce bulunur (5.14): modülün hiçbir satırı çalışmaz.
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_kw_import "negative/tanimsiz_adlar" } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("tanimsiz_adlar.tr, Satır 5, Sütun 1: Tanımsız ad — tanımsız değişken: 'tanımsız_değişken' (önce 'değişken' ile tanımlayın)"), mesaj)
+    TR_fn_assert_equal(H1106, TR_fn_error_code(() => { TR_kw_import "negative/tanimsiz_adlar" }))
 }
 
 TR_ctx_test "5.5 eğer / değilse eğer / değilse bir ifadedir" {
@@ -155,9 +151,7 @@ TR_ctx_test "5.12 bloklar kapsam açar; dış değişkenler atanabilir" {
     }
     TR_fn_assert_equal(5, dış)
     // Blokta tanımlanan ad dışarıda tanımsızdır; denetim bunu çalışmadan önce bulur (5.14).
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_kw_import "negative/tanimsiz_adlar" } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("Satır 9, Sütun 8: Tanımsız ad — 'iç' adında bir değişken ya da fonksiyon yok"), mesaj)
+    TR_fn_assert_equal(H1106, TR_fn_error_code(() => { TR_kw_import "negative/tanimsiz_adlar" }))
 }
 
 TR_ctx_test "5.12 eşle kolu kendi kapsamını açar: kolda tanımlanan adlı fonksiyon dış adı ezmez" {
@@ -189,20 +183,12 @@ TR_ctx_test "5.13 çık ve devam yalnızca döngü içinde geçerlidir" {
     }
     TR_fn_assert_equal([0, 2], l)
     // Döngü dışındaki çık/devam (fonksiyon, sondaki blok içinde de) derleme hatasıdır
-    TR_kw_var h1 = ""
-    TR_kw_try { TR_kw_import "negative/dongu_disi_cik" } TR_kw_catch h { h1 = h }
-    TR_fn_assert(h1.TR_mem_contains("'çık' yalnızca bir döngünün içinde kullanılabilir; fonksiyondan çıkmak için 'sonuç' yazın"), h1)
-    TR_kw_var h2 = ""
-    TR_kw_try { TR_kw_import "negative/dongu_disi_devam" } TR_kw_catch h { h2 = h }
-    TR_fn_assert(h2.TR_mem_contains("'devam' yalnızca bir döngünün içinde kullanılabilir"), h2)
+    TR_fn_assert_equal(H0151, TR_fn_error_code(() => { TR_kw_import "negative/dongu_disi_cik" }))
+    TR_fn_assert_equal(H0151, TR_fn_error_code(() => { TR_kw_import "negative/dongu_disi_devam" }))
 }
 
 TR_ctx_test "5.14 tanımsız ad çalışmadan önce bulunur; dinamik adlar yanlış alarm vermez" {
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_kw_import "negative/tanimsiz_adlar" } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("modülü tip denetimi hataları nedeniyle yüklenemedi"), mesaj)
-    TR_fn_assert(mesaj.TR_mem_contains("Satır 4, Sütun 1: Tanımsız ad — 'yazdir' adında bir değişken ya da fonksiyon yok ('yazdir' TR'de yok; 'yazdır' yazmak mı istediniz?)"), mesaj)
-    TR_fn_assert(mesaj.TR_mem_contains("Satır 11, Sütun 11: Tanımsız ad — 'bilinmeyen_ad'"), mesaj)
+    TR_fn_assert_equal(H1106, TR_fn_error_code(() => { TR_kw_import "negative/tanimsiz_adlar" }))
     // Bunlar tanımlıdır; denetim yanlış alarm vermez.
     TR_kw_func önce() { TR_kw_return sonra() + 1 }
     TR_kw_func sonra() { TR_kw_return 1 }

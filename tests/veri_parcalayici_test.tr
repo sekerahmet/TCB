@@ -3,8 +3,6 @@
 // Sentetik test verisi tests/data altındadır (üreteci: internal/stdlib/dataset/ornek_veri_test.go).
 // Göreli yollar çalışma klasöründe yoksa bu dosyanın klasörüne göre çözülür (16.8).
 
-TR_kw_import "yardimci_test_araclari"
-
 TR_ctx_test "16.1 parçalayıcı_yükle, dağarcık_boyutu, parça_kimliği" {
     TR_kw_var p = TR_fn_load_tokenizer("data/tokenizer.json")
     TR_fn_assert_equal(TR_type_Tokenizer, TR_fn_type(p))
@@ -154,9 +152,9 @@ TR_ctx_test "16.6 sıralı okuyucu döngüyle gezilir; örnekleyici gezilmez" {
 }
 
 TR_ctx_test "16.7 hatalar Türkçe ve yakalanabilir" {
-    TR_fn_assert(hata_metni(() => TR_fn_load_tokenizer("data/yok.json")).TR_mem_contains("yüklenemedi: böyle bir dosya ya da klasör yok"))
+    TR_fn_assert_equal(H2132, TR_fn_error_code(() => TR_fn_load_tokenizer("data/yok.json")))
     TR_fn_assert_equal(H5617, TR_fn_error_code(() => TR_fn_load_tokenizer("data/corrupt.npy")))
-    TR_fn_assert(hata_metni(() => TR_fn_dataset("data/yok_klasor")).TR_mem_contains("açılamadı: böyle bir dosya ya da klasör yok"))
+    TR_fn_assert_equal(H2132, TR_fn_error_code(() => TR_fn_dataset("data/yok_klasor")))
     TR_fn_assert_equal(H5053, TR_fn_error_code(() => TR_fn_dataset("data/corrupt.npy")))
     TR_fn_assert_equal(H5513, TR_fn_error_code(() => TR_fn_dataset("data/numbers", TR_arg_cache: "onb")))
     TR_kw_var küme = TR_fn_dataset("data/numbers")

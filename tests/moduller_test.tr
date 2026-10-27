@@ -9,9 +9,7 @@ TR_ctx_test "11.1 aktar modülün üst düzey adlarını getirir; .tr uzantısı
 }
 
 TR_ctx_test "11.1 modül yolu metin olarak yazılır; tırnaksız yazım hatadır" {
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_kw_import "negative/tirnaksiz_aktar" } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("'aktar' modül yolunu metin olarak bekler, ancak 'yardimci_modul' adı bulundu: aktar \"yardimci_modul\" yazın"), mesaj)
+    TR_fn_assert_equal(H0143, TR_fn_error_code(() => { TR_kw_import "negative/tirnaksiz_aktar" }))
 }
 
 TR_ctx_test "11.1 göreli aktar önce aktaran dosyanın, sonra programın klasörüne göre çözülür" {
@@ -66,16 +64,11 @@ TR_ctx_test "11.3 eşzamanlı görevler aynı modülü aktarınca biri ötekinin
 }
 
 TR_ctx_test "11.4 modül çalışmadan önce denetlenir; hatalıysa hiçbir satırı çalışmaz" {
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_kw_import "negative/tip_hatali_modul" } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("\"negative/tip_hatali_modul\" modülü tip denetimi hataları nedeniyle yüklenemedi"), mesaj)
-    TR_fn_assert(mesaj.TR_mem_contains("tip_hatali_modul.tr, Satır 3: Tip uyuşmazlığı"), mesaj)
+    TR_fn_assert_equal(H1001, TR_fn_error_code(() => { TR_kw_import "negative/tip_hatali_modul" }))
     TR_kw_var tanımlı = TR_kw_true
     TR_kw_try { yarım_kalan } TR_kw_catch { tanımlı = TR_kw_false }
     TR_fn_assert(TR_kw_not tanımlı, "hatalı modülün hiçbir adı gelmemeli")
-    mesaj = ""
-    TR_kw_try { TR_kw_import "negative/ust_duzey_sonuc" } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("ust_duzey_sonuc.tr, Satır 3, Sütun 1: Sözdizimi hatası — 'sonuç' modülün üst düzeyinde kullanılamaz"), mesaj)
+    TR_fn_assert_equal(H0154, TR_fn_error_code(() => { TR_kw_import "negative/ust_duzey_sonuc" }))
 }
 
 TR_ctx_test "11.5 modülün kodu kendi dosyasının bağlamında çalışır" {

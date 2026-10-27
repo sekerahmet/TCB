@@ -5,8 +5,6 @@
 // Bağlantılı (sembolik bağlantı, Windows dizin bağlantısı) durumlar TR'den kurulamadığı için
 // internal/stdlib/files Go testlerinde sınanır.
 
-TR_kw_import "yardimci_test_araclari"
-
 TR_ctx_test "18.1 yol parçaları birleştirip temizler; mutlak ikinci parça ve boş parça hatadır" {
     TR_fn_assert_equal("a/c", TR_fn_str(TR_fn_path("a/./b/../c")))
     TR_fn_assert_equal("veri/eğitim/a.npy", TR_fn_str(TR_fn_path("veri", "eğitim", "a.npy")))
@@ -48,10 +46,8 @@ TR_ctx_test "18.3 diske bakan özellikler yolu tek kuralla çözer" {
     // Programın klasöründeki veri, program başka bir klasörden çalışsa da bulunur.
     TR_fn_assert(TR_fn_path("data/tokenizer.json").TR_mem_exists)
     TR_fn_assert_equal("tokenizer.json", TR_fn_path("data/tokenizer.json").TR_mem_absolute.TR_mem_name)
-    TR_kw_var m = hata_metni(() => k.TR_mem_size)
-    TR_fn_assert(m.TR_mem_contains("bir klasör"), m)
-    m = hata_metni(() => TR_fn_path(k, "yok.txt").TR_mem_size)
-    TR_fn_assert(m.TR_mem_contains("böyle bir dosya ya da klasör yok"), m)
+    TR_fn_assert_equal(H7140, TR_fn_error_code(() => k.TR_mem_size))
+    TR_fn_assert_equal(H2132, TR_fn_error_code(() => TR_fn_path(k, "yok.txt").TR_mem_size))
 }
 
 TR_ctx_test "18.4 yol alan yerleşikler Metin ya da Yol alır" {
@@ -59,10 +55,8 @@ TR_ctx_test "18.4 yol alan yerleşikler Metin ya da Yol alır" {
     TR_fn_write_file(TR_fn_path(k, "t.csv"), "a,b\n1,2")
     TR_fn_assert_equal("a,b\n1,2", TR_fn_read_file(TR_fn_path(k, "t.csv")))
     TR_fn_assert_equal([["a", "b"], [1, 2]], TR_fn_read_csv(TR_fn_path(k, "t.csv")))
-    TR_kw_var m = hata_metni(() => TR_fn_read_file(5))
-    TR_fn_assert(m.TR_mem_contains("dosya_oku() 1. argüman olarak Metin ya da Yol bekler"), m)
-    m = hata_metni(() => TR_fn_read_csv(TR_fn_path(k, "olmayan.csv")))
-    TR_fn_assert(m.TR_mem_contains("okunamadı"), m)
+    TR_fn_assert_equal(H2423, TR_fn_error_code(() => TR_fn_read_file(5)))
+    TR_fn_assert_equal(H2132, TR_fn_error_code(() => TR_fn_read_csv(TR_fn_path(k, "olmayan.csv"))))
 }
 
 TR_ctx_test "18.5 klasörü_listele kalıba uyan dosya ve klasörleri sıralı verir" {
@@ -83,12 +77,9 @@ TR_ctx_test "18.5 klasörü_listele kalıba uyan dosya ve klasörleri sıralı v
     TR_fn_assert_equal([".gizli"], adlar(TR_fn_list_dir(k, ".*")))
     TR_fn_assert_equal(["a.txt", "b.npy"], adlar(TR_fn_list_dir(k, "[ab].*")))
     TR_fn_assert_equal(TR_type_Path, TR_fn_type(TR_fn_list_dir(k)[0]))
-    TR_kw_var m = hata_metni(() => TR_fn_list_dir(k, "../*"))
-    TR_fn_assert(m.TR_mem_contains("kalıpta .. olamaz"), m)
-    m = hata_metni(() => TR_fn_list_dir(k, "a**"))
-    TR_fn_assert(m.TR_mem_contains("** yalnızca tam bir bileşen olabilir"), m)
-    m = hata_metni(() => TR_fn_list_dir(TR_fn_path(k, "olmayan")))
-    TR_fn_assert(m.TR_mem_contains("listelenemedi"), m)
+    TR_fn_assert_equal(H7143, TR_fn_error_code(() => TR_fn_list_dir(k, "../*")))
+    TR_fn_assert_equal(H7144, TR_fn_error_code(() => TR_fn_list_dir(k, "a**")))
+    TR_fn_assert_equal(H2132, TR_fn_error_code(() => TR_fn_list_dir(TR_fn_path(k, "olmayan"))))
 }
 
 TR_ctx_test "18.6 klasör_oluştur üst klasörleriyle oluşturur; varsa sorun değildir" {
@@ -110,16 +101,13 @@ TR_ctx_test "18.7 sil dosyayı ya da boş klasörü siler; dolu klasör içindek
     TR_fn_make_dir(TR_fn_path(k, "dolu/alt"))
     TR_fn_write_file(TR_fn_path(k, "dolu/a.txt"), "x")
     TR_fn_write_file(TR_fn_path(k, "dolu/alt/b.txt"), "x")
-    TR_kw_var m = hata_metni(() => TR_fn_remove(TR_fn_path(k, "dolu")))
-    TR_fn_assert(m.TR_mem_contains("klasörü boş değil; içindekilerle birlikte silmek için içindekilerle: doğru verin"), m)
+    TR_fn_assert_equal(H7122, TR_fn_error_code(() => TR_fn_remove(TR_fn_path(k, "dolu"))))
     TR_fn_assert_equal(2, TR_fn_remove(TR_fn_path(k, "dolu"), TR_arg_recursive: TR_kw_true))
-    m = hata_metni(() => TR_fn_remove(TR_fn_path(k, "olmayan.txt")))
-    TR_fn_assert(m.TR_mem_contains("silinemedi: böyle bir dosya ya da klasör yok"), m)
+    TR_fn_assert_equal(H2132, TR_fn_error_code(() => TR_fn_remove(TR_fn_path(k, "olmayan.txt"))))
     TR_fn_write_file(TR_fn_path(k, "s.txt"), "1\n2")
     TR_kw_var o = TR_fn_read_lines(TR_fn_path(k, "s.txt"))
     o.TR_mem_next()
-    m = hata_metni(() => TR_fn_remove(k, TR_arg_recursive: TR_kw_true))
-    TR_fn_assert(m.TR_mem_contains("SatırOkuyucu ile okunuyor; önce okuyucuyu kapatın (x.kapat())"), m)
+    TR_fn_assert_equal(H7154, TR_fn_error_code(() => TR_fn_remove(k, TR_arg_recursive: TR_kw_true)))
     o.TR_mem_close()
     TR_fn_assert_equal(1, TR_fn_remove(TR_fn_path(k, "s.txt")))
 }
@@ -183,9 +171,7 @@ TR_ctx_test "18.11 dosya_satırları dosyayı akışla satır satır okur" {
     TR_fn_assert_equal("1", o.TR_mem_next())
     TR_fn_assert_equal(["2", "3"], [s TR_kw_for s TR_kw_in o])
     TR_fn_assert_equal(TR_kw_none, o.TR_mem_next())
-    TR_kw_var m = hata_metni(() => TR_fn_read_lines(TR_fn_path(k, "olmayan.txt")))
-    TR_fn_assert(m.TR_mem_contains("dosya_satırları(): "), m)
-    TR_fn_assert(m.TR_mem_contains("okunamadı"), m)
+    TR_fn_assert_equal(H2132, TR_fn_error_code(() => TR_fn_read_lines(TR_fn_path(k, "olmayan.txt"))))
 }
 
 TR_ctx_test "18.12 .gz uzantılı dosyalar saydam sıkıştırılır ve açılır" {
@@ -198,8 +184,7 @@ TR_ctx_test "18.12 .gz uzantılı dosyalar saydam sıkıştırılır ve açılı
     TR_fn_assert(TR_fn_path(k, "t.csv.gz").TR_mem_size != 7)
     TR_fn_write_file(TR_fn_path(k, "duz.txt"), "sıkıştırılmamış")
     TR_fn_copy(TR_fn_path(k, "duz.txt"), TR_fn_path(k, "duz.gz"))
-    TR_kw_var m = hata_metni(() => TR_fn_read_file(TR_fn_path(k, "duz.gz")))
-    TR_fn_assert(m.TR_mem_contains("uzantısı .gz ama içerik gzip değil"), m)
+    TR_fn_assert_equal(H2040, TR_fn_error_code(() => TR_fn_read_file(TR_fn_path(k, "duz.gz"))))
 }
 
 TR_ctx_test "18.13 dosya_yaz atomik yazar; geride geçici dosya kalmaz" {
@@ -208,8 +193,7 @@ TR_ctx_test "18.13 dosya_yaz atomik yazar; geride geçici dosya kalmaz" {
     TR_fn_write_file(TR_fn_path(k, "a.txt"), "yeni")
     TR_fn_assert_equal("yeni", TR_fn_read_file(TR_fn_path(k, "a.txt")))
     TR_fn_assert_equal([], TR_fn_list_dir(k, ".*"))
-    TR_kw_var m = hata_metni(() => TR_fn_write_file(k, "x"))
-    TR_fn_assert(m.TR_mem_contains("bu bir klasör"), m)
+    TR_fn_assert_equal(H2130, TR_fn_error_code(() => TR_fn_write_file(k, "x")))
 }
 
 TR_ctx_test "18.14 geçici_klasör yeni, boş bir klasör verir; program bitince silinir" {
