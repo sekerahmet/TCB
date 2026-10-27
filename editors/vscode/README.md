@@ -39,7 +39,7 @@
 
 ## Hata ayıklama
 
-Tuşlar terminal hata ayıklayıcısında da (`tr hata_ayıkla`) aynı anlamdadır: F5 devam, F10 üstten geç, F11 içine gir, Shift+F11 dışarı çık (terminalde tuş adı yazılıp Enter'a basılır). **F5** hata ayıklayıcıyı açık `.tr` dosyasında başlatır; **Ctrl+F5** hata ayıklamadan terminalde çalıştırır (`girdi()` kullanan programlar için). Denemek için depodaki `examples/tr/43_hata_ayiklama_alistirmasi.tr` (adım adım alıştırma) ya da `examples/tr/42_hata_ayiklama.tr` (koddaki koşullu `kesme_noktası`) dosyasını açıp F5'e basın.
+Tuşlar terminal hata ayıklayıcısında da (`TR_cmd_debug`) aynı anlamdadır: F5 devam, F10 üstten geç, F11 içine gir, Shift+F11 dışarı çık (terminalde tuş adı yazılıp Enter'a basılır). **F5** hata ayıklayıcıyı açık `.tr` dosyasında başlatır; **Ctrl+F5** hata ayıklamadan terminalde çalıştırır (`TR_fn_input()` kullanan programlar için). Denemek için depodaki `examples/tr/43_hata_ayiklama_alistirmasi.tr` (adım adım alıştırma) ya da `examples/tr/42_hata_ayiklama.tr` (koddaki koşullu `TR_kw_breakpoint`) dosyasını açıp F5'e basın.
 
 **İzleme Masası:** Program her durduğunda editörün yanında açılır.
 
@@ -51,7 +51,7 @@ Tuşlar terminal hata ayıklayıcısında da (`tr hata_ayıkla`) aynı anlamdad�
 
 ## Kodlu dosyalar
 
-TR dosyaları diskte dilden bağımsız kodlarla saklanabilir (`tr kodla`; ilk satır `//! tr kodlu 2 dil=<dil>`, dilin sözcükleri `TR_kw_if`, `TR_fn_print` gibi kodlar). Böyle bir dosyayı açtığınızda (dosya gezgininden, bir hata bağlantısından, hata ayıklayıcıdan) eklenti onu **Türkçe yazımıyla** gösterir:
+TR dosyaları diskte dilden bağımsız kodlarla saklanabilir (`TR_cmd_encode`; ilk satır `//! tr kodlu 2 dil=<dil>`, dilin sözcükleri `TR_kw_if`, `TR_fn_print` gibi kodlar). Böyle bir dosyayı açtığınızda (dosya gezgininden, bir hata bağlantısından, hata ayıklayıcıdan) eklenti onu **Türkçe yazımıyla** gösterir:
 
 - **Açma:** Sekme Türkçe görünümle değişir. Başlık satırı görünmez; görünümün satır numaraları hata mesajlarındaki ve hata ayıklayıcıdaki satırlarla birebir aynıdır (bir hata bağlantısı `dosya.tr:12:5` aynı yeri açar). Görünümün adresi dosyanın kendi yoludur (şeması `tr-coded:`); sekmenin üzerine gelince görülür.
 - **Düzenleme ve kayıt:** Her zamanki gibi yazın; geri al/yinele, kaydedilmemiş değişiklik işareti, hepsini kaydet, otomatik kaydetme ve "dosya diskte değişti" uyarısı VS Code'un kendisindedir. Kaydedince dosya diske yine **kodlu** yazılır (`tr kodla -`); görünüm `tr göster -` ile üretilir. Eklentide ikinci bir çevirici yoktur, çeviriyi `tr` yapar.
@@ -62,13 +62,13 @@ TR dosyaları diskte dilden bağımsız kodlarla saklanabilir (`tr kodla`; ilk s
 - **Diskteki hâli görmek:** Komut Paleti → "TR: Kodlu Hâlini Göster" dosyanın kodlu hâlini yanda salt okunur açar.
 - **Kısıtlı kip:** Güvenilmeyen çalışma alanında yorumlayıcı çalıştırılmadığından çeviri yapılamaz; kodlu dosya **salt okunur, ham hâliyle** açılır ve nedeni söylenir. Çalışma alanına güvendiğinizde açık sekmeler Türkçe görünüme geçer.
 - **Yorumlayıcı bulunamazsa** kodlu dosya ham hâliyle açık kalır ve yorumlayıcının nasıl kurulacağı söylenir.
-- **Git farkları:** `git diff`'in Türkçe fark göstermesi için `tr göster`'i textconv olarak tanıtın ([kılavuz](../../docs/guide/01_baslangic.md#kodlu-dosyalar-düzenleyici-ve-git-farkları)). VS Code'un kaynak denetimi görünümündeki farklar ham (kodlu) metni gösterir.
+- **Git farkları:** `git diff`'in Türkçe fark göstermesi için `TR_cmd_show`'i textconv olarak tanıtın ([kılavuz](../../docs/guide/01_baslangic.md#kodlu-dosyalar-düzenleyici-ve-git-farkları)). VS Code'un kaynak denetimi görünümündeki farklar ham (kodlu) metni gösterir.
 
-Sınırlar: "Farklı Kaydet" ile kaydedilen yeni dosya Türkçe yazılır (kodlamak için `tr kodla`). Çalışma alanında arama (Ctrl+Shift+F) diskteki kodlu metinde arar; sonuçtan açılan satır başlık yüzünden bir satır kayabilir.
+Sınırlar: "Farklı Kaydet" ile kaydedilen yeni dosya Türkçe yazılır (kodlamak için `TR_cmd_encode`). Çalışma alanında arama (Ctrl+Shift+F) diskteki kodlu metinde arar; sonuçtan açılan satır başlık yüzünden bir satır kayabilir.
 
 ## Kod şablonları
 
-`.tr` dosyasında kısayolu yazın, öneri listesinden şablonu seçip `Tab` ile durak durak doldurun. Şablonlar **yazım dilinizdedir** (`tr.writingLanguage`): Türkçede `fonksiyon`, `eğer`, `eşle`, `döngü`, `liste_üret`, `yapı`, `dene`, `filtrele`, `haritala`, `indirge` ve `tensör` (tensörler, `AdamW`, `geri_yayılım`, `iyileştirici.adım()` ve `iyileştirici.sıfırla()` ile küçük bir eğitim döngüsü); İngilizcede `func`, `if`, `match`, `for`, `list_comp`, `struct`, `try`, `filter`, `map`, `reduce` ve `tensor`, gövdeleriyle birlikte İngilizce yazımda. Metot şablonları (`filtrele`) hem `filtrele` hem `.filtrele` olarak sunulur; `liste.fil` yazıp seçince nokta da değiştirilir. Şablonlar VS Code'un sabit şablon katkısıyla değil tamamlama önerisiyle verilir (katkı yazım dilini seçemez), bu yüzden "Insert Snippet" komutunun listesinde görünmezler.
+`.tr` dosyasında kısayolu yazın, öneri listesinden şablonu seçip `Tab` ile durak durak doldurun. Şablonlar **yazım dilinizdedir** (`tr.writingLanguage`): Türkçede `TR_kw_func`, `TR_kw_if`, `TR_kw_match`, `TR_kw_for`, `liste_üret`, `TR_kw_struct`, `TR_kw_try`, `TR_mem_filter`, `TR_mem_map`, `TR_mem_reduce` ve `TR_fn_tensor` (tensörler, `TR_fn_AdamW`, `TR_fn_backward`, `iyileştirici.TR_mem_step()` ve `iyileştirici.TR_mem_zero_grad()` ile küçük bir eğitim döngüsü); İngilizcede `func`, `if`, `match`, `for`, `list_comp`, `struct`, `try`, `filter`, `map`, `reduce` ve `tensor`, gövdeleriyle birlikte İngilizce yazımda. Metot şablonları (`TR_mem_filter`) hem `TR_mem_filter` hem `.TR_mem_filter` olarak sunulur; `liste.fil` yazıp seçince nokta da değiştirilir. Şablonlar VS Code'un sabit şablon katkısıyla değil tamamlama önerisiyle verilir (katkı yazım dilini seçemez), bu yüzden "Insert Snippet" komutunun listesinde görünmezler.
 
 Şablonlar elle iki kopya yazılmaz: gövde bir kez, kodlu biçimde (`TR_kw_func` ...) `tools/gen/snippets/data.json`da durur (Türkçe sözcük yalnız `text/<dil>.json`da), her dilin hâli, Türkçe dahil, o kodun `source.Show` ile gösterimidir (anahtar kelime, yerleşik, tip ve üye adları dilin kod listesinden gelir). Bir şablonu ya da kod listesindeki bir adı değiştirince depo kökünde `go run ./tools/gen/snippets` çalıştırın (`go test ./...` dosyanın güncel olduğunu ve her dilin şablonunun o dilin yazımında ayrıştırıldığını denetler). Yeni bir yazım dili eklenince şablon dosyası kendiliğinden o dili de taşır; kullanıcıya önerilen ad ve metinler (`isim`, `koşul` ...) `wordTable`dadır, satırı olmayan dil İngilizceyi kullanır.
 
@@ -76,7 +76,7 @@ Renklendirmenin anahtar kelime, tip ve yerleşik listeleri de elle yazılmaz; di
 
 | Ne yapmak istiyorsunuz? | Nasıl |
 | --- | --- |
-| Kesme noktası koymak | Satır numarasının soluna tıklayın. Sağ tık → koşullu kesme noktası (`bakiye < 0`) veya iz noktası (`bakiye = {bakiye}` — durmadan Debug Console'a yazar). Koddaki `kesme_noktası` da durdurur. |
+| Kesme noktası koymak | Satır numarasının soluna tıklayın. Sağ tık → koşullu kesme noktası (`bakiye < 0`) veya iz noktası (`bakiye = {bakiye}` — durmadan Debug Console'a yazar). Koddaki `TR_kw_breakpoint` da durdurur. |
 | Adım adım ilerlemek | F11 adım içine, F10 üstten geç, Shift+F11 fonksiyondan çık, F5 devam |
 | Değişkenleri görmek | İzleme Masası ya da Variables paneli (Yerel ve Genel kapsamlar; listeler, sözlükler, yapılar ve tensörler açılır) |
 | Değeri değiştirmek | İzleme Masası'nda ✏️ ya da Variables panelinde çift tıklama; TR ifadesi yazın (`0.20`, `[1, 2]`, `fiyat * 2`) |
@@ -85,7 +85,7 @@ Renklendirmenin anahtar kelime, tip ve yerleşik listeleri de elle yazılmaz; di
 | Çağrı yığınını görmek | Call Stack paneli |
 | Komut çalıştırmak | Debug Console: ifade değerlendirin veya deyim çalıştırın (`bakiye = 0`) |
 
-Sınırlamalar: kesme noktaları yalnızca hata ayıklanan dosyada çalışır (`aktar` ile yüklenen modüllerde değil); hata ayıklama oturumunda `girdi()` kullanılamaz.
+Sınırlamalar: kesme noktaları yalnızca hata ayıklanan dosyada çalışır (`TR_kw_import` ile yüklenen modüllerde değil); hata ayıklama oturumunda `TR_fn_input()` kullanılamaz.
 
 ## Ayar
 
@@ -104,7 +104,7 @@ Unicode işaretleme: VS Code kısıtlı kipte ASCII dışındaki her harfi sarı
 
 ## Notlar
 
-- En iyi deneyim için tek dosya yerine proje **klasörünü** açın (Dosya → Klasör Aç). Klasör açılmadan da çalıştırma çalışır: program bu durumda dosyanın bulunduğu klasörde, ayrı bir terminalde başlatılır; program bitince terminal açık kalır, çıkış kodu yazılır, bir tuşa basınca kapanır. `girdi()` bu terminalde de çalışır (Enter satırı yollar, Ctrl+C programı durdurur).
+- En iyi deneyim için tek dosya yerine proje **klasörünü** açın (Dosya → Klasör Aç). Klasör açılmadan da çalıştırma çalışır: program bu durumda dosyanın bulunduğu klasörde, ayrı bir terminalde başlatılır; program bitince terminal açık kalır, çıkış kodu yazılır, bir tuşa basınca kapanır. `TR_fn_input()` bu terminalde de çalışır (Enter satırı yollar, Ctrl+C programı durdurur).
 - `.tr` dosyalarında VS Code'un "belirsiz karakter" uyarısı kapalıdır; Türkçe `ı` harfi artık Latin `i` ile karıştırılabilir diye sarı kutuyla işaretlenmez.
 - Bu depoyu klasör olarak açtığınızda `.vscode/tasks.json` görevleri de kullanılabilir: `Ctrl+Shift+B` açık dosyayı `bin/tr.exe` ile çalıştırır; denetleme ve terminal hata ayıklama görevleri de aynı `bin/tr.exe`'yi kullanır. Bu görevler ve eklenti komutları (▶, F5) yorumlayıcıyı **derlemez** (açık bir `tr.exe` Windows'ta dosyayı kilitlediği için otomatik derleme bilerek kapalıdır); Go kodunu değiştirdiyseniz önce "Tasks: Run Task" → **TR: yorumlayıcıyı derle** (`go build -o bin/tr.exe ./cmd/tr`) görevini çalıştırın.
 - `launch.json` ile özelleştirme: `"program"`, `"cwd"`, `"args"` (programa iletilen komut satırı argümanları, ör. `["--adım", "5"]`; F5'te de Ctrl+F5'te de iletilir) ve `"stopOnEntry": true` (ilk satırda dur) desteklenir.

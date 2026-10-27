@@ -1,6 +1,6 @@
 # tokenizer
 
-Genel `tokenizer.json` parçalayıcısını TR diline bağlar: `parçalayıcı_yükle` ve parçalayıcı
+Genel `tokenizer.json` parçalayıcısını TR diline bağlar: `TR_fn_load_tokenizer` ve parçalayıcı
 nesnesinin kodlama, çözme, dağarcık boyutu ve parça kimliği üyeleri.
 
 ## Standartlar

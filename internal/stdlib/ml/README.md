@@ -14,7 +14,7 @@ Aynı işlemin CPU ve GPU sonuçları aynıdır (aynı çekirdek sözleşmesi).
 bağlıdır; ad değişikliği yalnızca çeviri dosyasını değiştirir.
 Denetim: `TestBuiltinsMatchDictionary`, `TestMembersMatchDictionary` (`internal/stdlib`), `TestNoBareCodes` (`tools/gen/codeconsts`).
 
-**Karışık hassasiyet bloğa bağlıdır.** `karışık_hassasiyet(tür) { ... }` görevin durumudur:
+**Karışık hassasiyet bloğa bağlıdır.** `TR_fn_mixed_precision(tür) { ... }` görevin durumudur:
 başka görevlere sızmaz, blok bitince (hata ile de) önceki tür geri gelir. Ağırlıkların türü
 değişmez; dönüşümler türevlenebilir kopyalardır. Kurallar dil tanımının 15.4 maddesindedir.
 Denetim: `TestMixedPrecisionBlock`, `TestMixedPrecisionTaskIsolation`, `TestMixedPrecisionGradient`, `TestOptimizerMasterCopy`.
@@ -40,8 +40,8 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 - `behavior_grad_composite_specs_test.go`: bileşik gradyan kayıtları (kayıt başına girdi şekli, float64 başvuru, bf16 tolerans)
 - `behavior_grad_composite_test.go`: bileşik türevlerin gradyan kapısı (yerleşiğin karışık hassasiyet dönüşümü + tensör işlemi zinciri): float64 sonlu fark ve bf16 tolerans (ölçmek için `TR_MEASURE_BF16=1 go test ./internal/stdlib/ml -run TestMeasureCompositeBF16 -v`)
 - `behavior_grad_composite_coverage_test.go`: türevli tensör işlemlerinden ikisini ya da fazlasını birleştiren her fonksiyonun bileşik gradyan kaydı vardır; testsiz yeni bileşik testi düşürür (istisnalar gerekçeleriyle dosyada)
-- `behavior_grad_clip_overflow_test.go`: `gradyan_kırp`'ta float32'de taşan normun sonsuz sayılıp gradyanları sıfırlaması
-- `behavior_grad_clip_version_test.go`: `gradyan_kırp`'ın gradyan sürümünü CPU ve GPU'da aynı kuralla artırması (katı kipin hatasında artırmaması)
-- `behavior_fused_comparison_grad_test.go`: kaynaştır içindeki karşılaştırma ve `sonlu_mu`'nun türev izlememesi
+- `behavior_grad_clip_overflow_test.go`: `TR_fn_clip_grad`'ta float32'de taşan normun sonsuz sayılıp gradyanları sıfırlaması
+- `behavior_grad_clip_version_test.go`: `TR_fn_clip_grad`'ın gradyan sürümünü CPU ve GPU'da aynı kuralla artırması (katı kipin hatasında artırmaması)
+- `behavior_fused_comparison_grad_test.go`: kaynaştır içindeki karşılaştırma ve `TR_fn_is_finite`'nun türev izlememesi
 - `behavior_safetensors_order_test.go`: aynı ofsette boş ve dolu tensörlü geçerli safetensors dosyasının okunması
 - `behavior_safetensors_header_test.go`: safetensors başlığının katı okunması (alan adları, yinelenen anahtar, null, vekil kaçışı)

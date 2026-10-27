@@ -1,6 +1,6 @@
 # profiler
 
-`tr izle` ve `tr profil` komutlarının ortak çekirdeği: çalışan bir TR programının canlı
+`TR_cmd_watch` ve `TR_cmd_profile` komutlarının ortak çekirdeği: çalışan bir TR programının canlı
 profilini çıkarır. Tensör sayaçlarını (işlem, süre, bayt), isteğe bağlı satır ve fonksiyon
 örneklemesini, eğitim adımı sınırlarını, GPU kernel sürelerini ve belleği tek bir görüntüde
 toplar; terminale canlı yazar, dosyaya rapor olarak kaydeder.
@@ -15,7 +15,7 @@ dedektörüyle derlenen sürümde atomik okunup yazılır. Denetim: `TestSampler
 sürer; dosyalar atomik yazılır, okuyan hiçbir zaman yarım dosya görmez. Denetim: `TestProfileWriteErrorDoesNotStopProgram`, `TestCaptureKeepsDrainingAfterFileError`, `TestStatusFileReaderSeesNoPartialFile`.
 
 **Dosya biçimi sözleşmedir.** Rapor ve durum dosyasının JSON anahtarları ve biçim sürümü,
-okuyan araçların (VS Code eklentisi, `tr izle`) sözleşmesidir; yazım dilinden bağımsızdır ve
+okuyan araçların (VS Code eklentisi, `TR_cmd_watch`) sözleşmesidir; yazım dilinden bağımsızdır ve
 çevrilmez. Biçim değişirse sürüm artar. Denetim: `TestSnapshotKeysFrozenPerVersion`, `TestProfileStatusFile`.
 
 **Çıktıya göre davranış.** Terminalde canlı ekran tek yerde yenilenir; terminal olmayan

@@ -1,7 +1,7 @@
 # process
 
 Programın içinde çalıştığı süreçle ilgili TR yerleşikleri: ortam değişkenleri ve betiğin komut
-satırı seçenekleri (`komut_satırı`).
+satırı seçenekleri (`TR_fn_command_line`).
 
 ## Standartlar
 

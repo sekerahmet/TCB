@@ -6,7 +6,7 @@
 python -I tools/hf/small_model.py --arch qwen3 --out /tmp/qwen3   # --tied: paylaşımlı gömme
 ```
 
-`cmd/tr/e2e` `TestReadyModelMatchesTransformers` bunu kullanır: `tr/hazir`'ın `hazır_model` ile yüklediği modelin logitleri transformers'ınkilerle float32 yuvarlama düzeyinde aynı olmalıdır (fark ≤ 1·10⁻⁵; ölçülen ~3·10⁻⁷). `torch`, `transformers` ya da `safetensors` yoksa test atlanır.
+`cmd/tr/e2e` `TestReadyModelMatchesTransformers` bunu kullanır: `tr/hazir`'ın `TR_fn_pretrained_model` ile yüklediği modelin logitleri transformers'ınkilerle float32 yuvarlama düzeyinde aynı olmalıdır (fark ≤ 1·10⁻⁵; ölçülen ~3·10⁻⁷). `torch`, `transformers` ya da `safetensors` yoksa test atlanır.
 
 ## Örnek modeli (`tests/data/hf_tiny`)
 

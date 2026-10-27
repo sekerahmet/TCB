@@ -34,10 +34,10 @@ Denetim: `TestStatefulImplementersAreAsserted` (yöntemleri yazan her tipin `var
 
 Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`). Birden çok dosyayı kesen davranış testleri:
 
-- `behavior_rollback_test.go`: `geri_dön` ile NaN'la bozulan adımdan geri dönülen eğitimin kesintisizle bit düzeyinde aynı bitmesi; nokta yokken açık hata
+- `behavior_rollback_test.go`: `TR_mem_rollback` ile NaN'la bozulan adımdan geri dönülen eğitimin kesintisizle bit düzeyinde aynı bitmesi; nokta yokken açık hata
 - `behavior_security_test.go`: kurcalanmış, yarım ve daha yeni biçimli kontrol noktası dosyalarının reddi; içeriği bozuk noktanın hiçbir nesneyi değiştirmeden reddedilip önceki noktayı önermesi; düz değerde fazladan JSON
 - `behavior_stateful_test.go`: durumlu motor tiplerinin (`StateDict` + `PrepareState`) `Stateful` arayüzünü derleme anında denetlemesi
-- `behavior_shared_containers_test.go`: düz değerde aynı iç kaba birden çok yerden bağ varken yüklemenin ve `geri_dön`'ün kayıttaki değerleri ezmeden ve belirlenimci yazması
+- `behavior_shared_containers_test.go`: düz değerde aynı iç kaba birden çok yerden bağ varken yüklemenin ve `TR_mem_rollback`'ün kayıttaki değerleri ezmeden ve belirlenimci yazması
 - `behavior_corrupt_states_test.go`: bozuk iyileştirici ve okuyucu durumlarının uyumsuzluk değil bozukluk sayılıp önceki noktayı önermesi
 - `behavior_sampler_window_test.go`: örnekleyici durumunda grubun pencere sayısını aşan konumun reddi
 - `behavior_format_names_test.go`: noktanın dosya ve klasör adlarının, JSON anahtarlarının, nesne türlerinin ve iyileştirici durumu tensör adlarının dilden bağımsız İngilizce tanımlayıcı, iyileştiricinin adının kod olması

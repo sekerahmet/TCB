@@ -1,6 +1,6 @@
 # testrunner
 
-`tr test` komutunun çekirdeği: `.tr` dosyalarındaki `test "ad" { ... }` bloklarını bulur, her
+`tr test` komutunun çekirdeği: `.tr` dosyalarındaki `TR_ctx_test "ad" { ... }` bloklarını bulur, her
 birini yalıtılmış bir kapsamda çalıştırır ve sonucu Türkçe raporlar.
 
 ## Standartlar
@@ -21,7 +21,7 @@ Denetim: `TestRuleInItsOwnSection`, `TestEveryRuleHasATest`, `TestRuleTestLineFo
 
 **Gözden geçirilmiş bölüm dilin sözcüklerini kimlikle yazar.** Test satırı biçimine geçmiş
 bölümde madde satırı, Durum ve Test satırları ters tırnak içinde bir kodun hiçbir gösterim
-dilindeki adını (`aktar`, `import`) taşımaz, kimliğini (`TR_kw_import`) yazar; Emsal ve Gerekçe
+dilindeki adını (`TR_kw_import`, `import`) taşımaz, kimliğini (`TR_kw_import`) yazar; Emsal ve Gerekçe
 başka dillerin kodunu bilerek yazdığı için bakılmaz. Denetim: `TestReviewedSectionsWriteIdentities`.
 
 ## Testler

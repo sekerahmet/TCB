@@ -15,7 +15,7 @@ yanlış zincirleme hatalar üretmez. Denetim: `TestSingleErrorNoCascade`.
 **Hiçbir girdide çökmez.** Bozuk kaynak panik yerine hata verir. İç içelik sınırlıdır; aşırı derin
 kaynak yığını taşırmadan hatayla reddedilir. Denetim: `FuzzParser`, `TestNestingDepthLimit`, `TestInterpolationDepthLimited`, `TestMalformedStructMethodReportsErrorInsteadOfPanic`.
 
-**Bağlam kuralları burada denetlenir.** `çık` ve `devam` yalnızca döngüde, `sonuç` yalnızca
+**Bağlam kuralları burada denetlenir.** `TR_kw_break` ve `TR_kw_continue` yalnızca döngüde, `TR_kw_return` yalnızca
 fonksiyonda geçerlidir; ihlal çalıştırmadan önce sözdizimi hatasıdır. Denetim: `TestBreakContinueOutsideLoopIsError`, `TestReturnInTestBodyIsError`, `TestModuleTopLevelReturnIsError`.
 
 **Ağaçta düğümü olmayan adlar da kaybolmaz.** Tip açıklamaları, üye ve alan adları, bağlamsal

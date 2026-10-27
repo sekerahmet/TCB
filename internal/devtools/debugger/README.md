@@ -1,7 +1,7 @@
 # debugger
 
-TR'nin hata ayıklayıcısı: terminalde çalışan etkileşimli hata ayıklayıcı (`tr hata_ayıkla`,
-koddaki `kesme_noktası`) ve düzenleyicilerin bağlandığı hata ayıklama sunucusu (`tr dap`,
+TR'nin hata ayıklayıcısı: terminalde çalışan etkileşimli hata ayıklayıcı (`TR_cmd_debug`,
+koddaki `TR_kw_breakpoint`) ve düzenleyicilerin bağlandığı hata ayıklama sunucusu (`TR_cmd_dap`,
 Debug Adapter Protocol). Yüklenirken kendini yorumlayıcıya kaydeder; yorumlayıcı bu paketi
 içe aktarmaz.
 
