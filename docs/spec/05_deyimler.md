@@ -4,7 +4,7 @@ Bu bölümün kurallarına göre bugünkü durum ve yapılacaklar: [`docs/status
 
 Her kuralın emsali ve gerekçesi: [`rationale/05_statements.md`](rationale/05_statements.md).
 
-**5.1** `TR_var x = ifade` bulunulan kapsamda yeni bir değişken tanımlar; ilk değer her zaman yazılır, tip ondan çıkar (3.13). Kısa yazım (`x := ifade`) yoktur: sözdizimi hatasıdır, ileti `TR_var`'ı önerir. Hiç yeniden atanmayan yerel `TR_var` uyarı verir, ileti `TR_const`'u önerir.
+**5.1** `TR_var x = ifade` bulunulan kapsamda yeni bir değişken tanımlar; ilk değer her zaman yazılır, tip ondan çıkar (3.13). Kısa yazım (`x := ifade`) yoktur: sözdizimi hatasıdır, ileti `TR_var`'ı önerir. Fonksiyonun içinde hiç yeniden atanmayan yerel `TR_var` uyarı verir, ileti `TR_const`'u önerir; programın en dışındaki değişkenler bu uyarıya girmez.
 - *Test:* TR testi; ilk değerin zorunluluğu, kısa yazımın hatası ve uyarı uygulanınca TR testi.
 
 **5.2** `TR_const x = ifade` yeniden atanamayan bir ad tanımlar; ona atama denetim hatasıdır. Sabit olan bağdır, değer değil: `TR_const l = [1]` iken `l.TR_append(2)` geçerli, `l = []` hatadır. Tip açıklaması 3.13'teki gibi yazılır (`TR_const l: TR_List[TR_Int] = []`). Modülün en dışındaki sabitin ilk değeri sabit ifadedir (1.1).

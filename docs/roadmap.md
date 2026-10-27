@@ -12,7 +12,14 @@ Yazıldı; DENETİM'den ve Gemini'nin araştırmasından geçti (2026-10-27). He
 
 ## Sıradaki
 
-1. ve 2. bölüm DENETİM'den ve Gemini'nin araştırmasından, 3.–7. bölüm DENETİM'den geçti. Sırada ajan hata oranı deneyi (aşağıda). Dil tanımı kodlu biçimi, yani kimliklerle yazılmış programı anlatır.
+1. ve 2. bölüm DENETİM'den ve Gemini'nin araştırmasından, 3.–7. bölüm DENETİM'den geçti; 1–7 Gemini'nin bağımsız denetiminden de geçti, doğrulanan bulguları işlendi (2026-10-27). Ajan hata oranı deneyinin Evre A'sı bitti (aşağıda).
+
+**Açık tasarım soruları** (Gemini ve DENETİM, 2026-10-27; ilgili bölüm yazılırken karara bağlanır):
+- birinci sınıf demet tipi ya da anahtarla sıralama (`sorted(d.items(), key=...)` bugün yapısız yazılamıyor);
+- nesne kimliğinin sınanması (paylaşılan ağırlıklar, 15. bölüm);
+- salt okunur görünüm ya da derin değişmezlik (`TR_const` yalnız bağı sabitler);
+- sondaki blokta erken çıkış;
+- JSON'dan tipli yapıya okuma (alan adı eşlemesiyle). Dil tanımı kodlu biçimi, yani kimliklerle yazılmış programı anlatır.
 
 **7. bölümden sonra: ajan hata oranı deneyi** (Ahmet, 2026-10-27, plan onaylı). Kodlama modeli TR'yi alışkanlıkla doğru yazıyor mu, yanlış yazınca hata gürültülü mü; aynı görevlerde Python'la karşılaştırılır.
 - **Evre A** (1–7 yazılınca, uygulamadan önce): üç Claude modeli, 20 görev, iki bağlam (yalnız tek sayfalık başvuru; ya da 1–7'nin kuralları ve kimlik listesi). Programlar kural numarasıyla denetlenir; sık çiğnenen kural ya da başvuru yeniden tartılır. Başvuru (Araç işleri) Evre A'dan önce yazılır.

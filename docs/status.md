@@ -197,6 +197,11 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). DENETİM'
 - **Mevcut durum:** yerleştirme `{x}` ile yapılıyor; `"a \(1 + 2) b"` bilinmeyen kaçış dizisi hatası veriyor [ölçüldü].
 - **Yapılacaklar:** yerleştirme `\(x)` ile; `{` metinde sıradan karakter. Depodaki metinler çevrilir: `{x}` → `\(x)`, `\{` ve `\}` → `{` ve `}`.
 
+### 2.8
+
+- **Mevcut durum:** çağrısız tek başına ifadenin bugünkü davranışı ölçülmedi.
+- **Yapılacaklar:** çağrısız tek başına ifade (`-x`, `a + b`) denetim hatası.
+
 ### 2.9
 
 - **Mevcut durum:** `TR_while` ve `TR_default` çalışıyor [ölçüldü].
@@ -231,22 +236,22 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM'den ge
 ### 3.5
 
 - **Mevcut durum:** isteğe bağlı tip yok; `TR_Int` açıklamalı bir değişkene `TR_none` atanabiliyor [ölçüldü].
-- **Yapılacaklar:** `T?` tipi; açılmamış kullanım denetim hatası; daraltma yalnız değişmeyen yerel değişkende, asıl tipten atamayla da. `.TR_get` isteğe bağlı tip döner. Değer döndürmeyen çağrı değer olarak kullanılamaz; isteğe bağlı olmayanı `TR_none`'la karşılaştırmak denetim hatası.
+- **Yapılacaklar:** `T?` tipi; açılmamış kullanım denetim hatası; daraltma yalnız değişmeyen yerel değişkende: sınamanın dalında, `TR_else` dalında, `TR_and`/`TR_or`'un sağ yanında, her yolda biten erken çıkıştan sonra ve asıl tipten atamayla; alana atama daraltmayı bozmaz. `.TR_get` isteğe bağlı tip döner. Değer döndürmeyen çağrı değer olarak kullanılamaz; isteğe bağlı olmayanı `TR_none`'la karşılaştırmak denetim hatası.
 
 ### 3.6
 
 - **Mevcut durum:** karışık tipli liste çalışıyor [ölçüldü].
-- **Yapılacaklar:** `TR_List[T]`; öğelerin tipi aynı, boş liste tipini yazar.
+- **Yapılacaklar:** `TR_List[T]`; öğelerin tipi aynı, boş liste tipini yazar; `TR_none` içeren değişmez `TR_List[T?]`.
 
 ### 3.7
 
 - **Mevcut durum:** `{k: 1}` anahtarı "k" metni sayıyor, `d.k` anahtarı okuyor, olmayan anahtar `TR_none` veriyor, ondalık anahtar çalışıyor [ölçüldü].
-- **Yapılacaklar:** `TR_Dict[K, V]`; değişmezdeki anahtar bir ifade, erişim yalnız köşeli parantezle, olmayan anahtar hata, anahtar yalnız `TR_Int`, `TR_String`, `TR_Bool`. Depodaki kullanımlar çevrilir.
+- **Yapılacaklar:** `TR_Dict[K, V]`; değişmezdeki anahtar bir ifade, erişim yalnız köşeli parantezle, olmayan anahtar hata, anahtar yalnız `TR_Int`, `TR_String`, `TR_Bool`, `TR_Bytes` ve alanları anahtar olabilen durumlu tip. Depodaki kullanımlar çevrilir.
 
 ### 3.7a
 
 - **Mevcut durum:** JSON çözülünce sözlük ve liste oluyor, tip denetimi yok; genel "her şey" tipi (Any) kimlik listesinde var.
-- **Yapılacaklar:** `TR_JSON`; çözme ve `TR_JSON` beklenen değişmez onu kurar; tür `TR_Type(j)` ile sorulur, asıl değere tip çağrısıyla geçilir; sayının tam ya da ondalık yazımı korunur, `TR_Int`'e sığmayan tam sayının türü `TR_Float`; sonsuz ve `TR_nan` `TR_JSON`'a giremez; `.TR_keys()` yalnız nesnede. Bugün çözme Any döndürüyor; Any, Object ve StructType gibi genel tipler kalkar ya da yapılar bölümünde yeniden tanımlanır. Genel "her şey" tipi kalkar; depodaki kullanımlar `TR_JSON`'a ya da asıl tipe çevrilir.
+- **Yapılacaklar:** `TR_JSON`; çözme ve `TR_JSON` beklenen değişmez onu kurar; tür `TR_Type(j)` ile sorulur, asıl değere tip çağrısıyla geçilir; sayının tam ya da ondalık yazımı korunur, `TR_Int`'e sığmayan tam sayının türü `TR_Float`; sonsuz ve `TR_nan` `TR_JSON`'a giremez; `.TR_keys()` yalnız nesnede; değer metni metin türünde metnin kendisi (yazdırma ve yerleştirme); `TR_Type(j) == TR_JSON` denetim hatası. Bugün çözme Any döndürüyor; Any, Object ve StructType gibi genel tipler kalkar ya da yapılar bölümünde yeniden tanımlanır. Genel "her şey" tipi kalkar; depodaki kullanımlar `TR_JSON`'a ya da asıl tipe çevrilir.
 
 ### 3.8
 
@@ -315,7 +320,7 @@ Kurallar: [`docs/spec/04_operatorler.md`](spec/04_operatorler.md). Taslak: DENET
 ### 4.7
 
 - **Mevcut durum:** isteğe bağlı tip olmadığı için sol yan her tipten olabiliyor: `1 ?? 2` 1 veriyor [ölçüldü].
-- **Yapılacaklar:** sol yan isteğe bağlı değilse denetim hatası.
+- **Yapılacaklar:** sol yan isteğe bağlı değilse denetim hatası; sağ yanda parantezsiz ikili işleç sözdizimi hatası (`?? 0 + 1`), ileti parantezi önerir.
 
 ### 4.9
 
@@ -352,7 +357,7 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: DENETİM'de
 ### 5.1
 
 - **Mevcut durum:** `x := 5` çalışıyor; ilk değersiz `TR_var y` yokluk alıyor; hiç yeniden atanmayan değişken uyarı vermiyor [ölçüldü].
-- **Yapılacaklar:** ilk değer zorunlu; `:=` sözdizimi hatası, ileti `TR_var`'ı önerir; yeniden atanmayan yerel `TR_var` uyarısı `TR_const`'u önerir. Depodaki `:=` kullanımları çevrilir.
+- **Yapılacaklar:** ilk değer zorunlu; `:=` sözdizimi hatası, ileti `TR_var`'ı önerir; fonksiyonun içinde yeniden atanmayan yerel `TR_var` uyarısı `TR_const`'u önerir (programın en dışı girmez). Depodaki `:=` kullanımları çevrilir.
 
 ### 5.3
 
@@ -495,7 +500,7 @@ JSON'dan tipli yapıya doğrudan okuma (alan adı eşlemesiyle; Rust'ın serde's
 ### 7.4
 
 - **Mevcut durum:** kurucu alanı atamasa da konumlu argüman alana yazılıyor (`D(3).n` 3 veriyor) [ölçüldü].
-- **Yapılacaklar:** kurucu varken yalnız onun imzasıyla kurma; her alanın kurucuda atanma denetimi.
+- **Yapılacaklar:** kurucu varken yalnız onun imzasıyla kurma; varsayılanlı alanlar kurucudan önce, tanım sırasıyla; her alanın kurucuda atanma denetimi.
 
 ### 7.5
 
@@ -515,4 +520,4 @@ JSON'dan tipli yapıya doğrudan okuma (alan adı eşlemesiyle; Rust'ın serde's
 ### 7.8
 
 - **Mevcut durum:** arayüz yok.
-- **Yapılacaklar:** `TR_interface`, yapısal karşılama, eksik metodu söyleyen ileti, tip parametresinde kısıt, `TR_Type` sınamasıyla asıl tipe daraltma. Kimlik kapısının onaylı yeni adlar listesine `TR_enum` ve `TR_interface` girer.
+- **Yapılacaklar:** `TR_interface` (en az bir metot; boş arayüz denetim hatası), yapısal karşılama, eksik metodu söyleyen ileti, tip parametresinde kısıt, `TR_Type` sınamasıyla asıl tipe daraltma. Kimlik kapısının onaylı yeni adlar listesine `TR_enum` ve `TR_interface` girer.

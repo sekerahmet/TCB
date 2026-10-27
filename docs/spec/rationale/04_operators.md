@@ -9,7 +9,7 @@ Kurallar: [`04_operatorler.md`](../04_operatorler.md). Bu dosya her kuralın ems
 
 ### 4.2
 
-- *Emsal:* Python 3: "Division of integers yields a float"; PEP 238 eski bölmenin sorununu yazar: "if the expressions for both arguments happen to have an integral type, it implements floor division rather than true division". Kotlin'de "you can combine different numeric types in arithmetic expressions". *Almadık:* Go'nun, Rust'ın ve C'nin tam sayıda `/`'yi kesmesi (Rust: "Integer division rounds towards zero"); bugünkü TR'nin sonucu değere göre tam sayı ya da ondalık vermesi (statik tiple bağdaşmaz); Swift'in aritmetikte de dönüşümü açık istemesi. ([Python 3.15](https://docs.python.org/3/reference/expressions.html#binary-arithmetic-operations), [PEP 238](https://peps.python.org/pep-0238/), [Kotlin 2.4](https://kotlinlang.org/docs/numbers.html), [Rust 1.99 Reference](https://doc.rust-lang.org/reference/expressions/operator-expr.html#arithmetic-and-logical-binary-operators), [Go 1.27](https://go.dev/ref/spec#Integer_operators))
+- *Emsal:* Python 3: "Division of integers yields a float"; PEP 238 eski bölmenin sorununu yazar: "if the expressions for both arguments happen to have an integral type, it implements floor division rather than true division". Kotlin'de "you can combine different numeric types in arithmetic expressions". *Almadık:* Go'nun, Rust'ın, Kotlin'in ve C'nin tam sayıda `/`'yi kesmesi (Rust: "Integer division rounds towards zero"); bugünkü TR'nin sonucu değere göre tam sayı ya da ondalık vermesi (statik tiple bağdaşmaz); Swift'in aritmetikte de dönüşümü açık istemesi. ([Python 3.15](https://docs.python.org/3/reference/expressions.html#binary-arithmetic-operations), [PEP 238](https://peps.python.org/pep-0238/), [Kotlin 2.4](https://kotlinlang.org/docs/numbers.html), [Rust 1.99 Reference](https://doc.rust-lang.org/reference/expressions/operator-expr.html#arithmetic-and-logical-binary-operators), [Go 1.27](https://go.dev/ref/spec#Integer_operators))
 - *Gerekçe:* `/`'nin sonucunun tipi değere bağlı olmaz; ortalama kayıp (`toplam / n`) her zaman doğru çıkar. Öğrenme oranı ile adım sayısı gibi karışık formüller dönüşüm yazmadan okunur.
 
 ### 4.2a
@@ -40,7 +40,7 @@ Kurallar: [`04_operatorler.md`](../04_operatorler.md). Bu dosya her kuralın ems
 ### 4.7
 
 - *Emsal:* Swift'te `??`'nin sol yanı her zaman isteğe bağlıdır, sağ yanı içteki tiple aynıdır; Kotlin'de `?:`. *Almadık:* Swift'in ve Kotlin'in isteğe bağlı olmayan sol yanda yalnız uyarı vermesi (DENETİM, 2026-10-27): kodlama modeli uyarıyı geçebilir, ve 3.5 aynı türden durumu hata sayar. ([Swift 6.4](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/basicoperators/#Nil-Coalescing-Operator), [Kotlin 2.4](https://kotlinlang.org/docs/null-safety.html#elvis-operator))
-- *Gerekçe:* varsayılan değer isteğe bağlı değeri açmanın kısa yoludur (3.5); hiç kullanılmayacak bir sağ taraf bir yanlışı gösterir ve çalışmadan önce görünür.
+- *Gerekçe:* varsayılan değer isteğe bağlı değeri açmanın kısa yoludur (3.5); hiç kullanılmayacak bir sağ taraf bir yanlışı gösterir ve çalışmadan önce görünür. Python'un `d.get(k, 0) + 1` alışkanlığı `d.TR_get(k) ?? 0 + 1` diye yazılır ve 4.1'e göre `?? (0 + 1)` okunur: tip denetiminden geçer, sayaç sessizce 1'de kalır (Gemini, 2026-10-27). Swift, Kotlin ve C# da aynı biçimde ayrıştırır [kanıtlı: DENETİM, Policy.swift ve Kotlin dilbilgisi]; önceliği değiştirmek onların alışkanlığını bozardı. Bu yüzden öncelik kalır, parantezsiz karışım hata verir.
 
 ### 4.8
 

@@ -59,7 +59,7 @@ TR_var p = {"ad": "Ayşe"}
 TR_print("Merhaba \(ad), 1 + 2 = \(1 + 2), kişi: \(p["ad"]), JSON: {\"adım\": \(1 + 2)}")
 ```
 
-**2.8** Deyimler satır sonuyla ya da `;` ile ayrılır. Satır sonu ifadeyi bitirir, açık parantezin (`(`, `[`, sözlük `{`) içinde bitirmez. Yeni satırdaki `(` ya da `[` yeni deyim başlatır; sondaki blok `{` önceki ifadeyle aynı satırda olmalıdır. Satır başındaki ikili işleç önceki satırı sürdürmez: `-x` ayrı bir deyimdir ve kullanılmayan değer uyarısı verir; tekli biçimi olmayan işleç (`+`, `*`, `TR_and`, `??` ...) satır başında sözdizimi hatasıdır. Bölmek için işleç satır sonuna yazılır (`1 +` ↵ `2`) ya da parantez kullanılır. Zincir işleçleri satır başında sürer: `.` ve `?.`.
+**2.8** Deyimler satır sonuyla ya da `;` ile ayrılır. Satır sonu ifadeyi bitirir, açık parantezin (`(`, `[`, sözlük `{`) içinde bitirmez. Yeni satırdaki `(` ya da `[` yeni deyim başlatır; sondaki blok `{` önceki ifadeyle aynı satırda olmalıdır. Satır başındaki ikili işleç önceki satırı sürdürmez: `-x` ayrı bir deyimdir. Çağrı içermeyen tek başına bir ifade (`-x`, `a + b`) değeri hiç kullanılmadığı için denetim hatasıdır; tekli biçimi olmayan işleç (`+`, `*`, `TR_and`, `??` ...) satır başında sözdizimi hatasıdır. Bölmek için işleç satır sonuna yazılır (`1 +` ↵ `2`) ya da parantez kullanılır. Zincir işleçleri satır başında sürer: `.` ve `?.`.
 - *Test:* TR testi.
 
 ```tr

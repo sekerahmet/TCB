@@ -27,7 +27,12 @@ TR_print("şeker".TR_length, "şeker"[-1], "şeker"[1..3])   # çıktı: 5 r ek
 - *Test:* TR testi.
 
 **3.5** `TR_none` yokluktur, `TR_NoneType`'ın tek değeridir. Değişken, parametre, alan ya da dönüş ancak tipi isteğe bağlıysa (`TR_Int?`) `TR_none` alabilir; ilk değeri `TR_none` olan değişken tipini yazar. İsteğe bağlı değer asıl tipin yerinde kullanılamaz; `??` ile varsayılan verilerek, `?.` ile ya da `TR_none`'la karşılaştırılarak açılır.
-- `x != TR_none` sınamasının dalında `x` asıl tipindedir, yalnız `x` yerel bir değişkense, dalda ona atama yapılmıyorsa ve onu değiştiren bir kapanış yoksa. Yerel değişkene asıl tipten bir değer atanınca, sonraki atamaya kadar asıl tiptedir (onu değiştiren bir kapanış yoksa): `TR_if x == TR_none { x = 0 }`'dan sonra `x` asıl tipindedir. Alan ve indeks daraltılmaz; `??` ya da yerel bir kopyayla açılır.
+- Daraltma: `x` yerel bir değişkense, o yolda ona atama yapılmıyorsa ve onu değiştiren bir kapanış yoksa `x` asıl tipindedir:
+  - `x != TR_none` sınamasının dalında ve `x == TR_none` sınamasının `TR_else` dalında;
+  - `TR_and`'in sağ yanında, sol yan `x != TR_none` ise; `TR_or`'un sağ yanında, sol yan `x == TR_none` ise;
+  - gövdesi her yolda biten (`TR_return`, `TR_break`, `TR_continue`, `TR_throw`, `TR_exit`) bir `TR_if x == TR_none { ... }`'dan sonra, bloğun sonuna kadar;
+  - asıl tipten bir değer atanınca, sonraki atamaya kadar: `TR_if x == TR_none { x = 0 }`'dan sonra.
+- Yalnız değişkenin kendisine atama daraltmayı bozar; alanına atama (`x.alan = ...`) bozmaz. Alan ve indeks daraltılmaz; `??` ya da yerel bir kopyayla açılır.
 - İsteğe bağlı olmayan bir değeri `TR_none`'la karşılaştırmak denetim hatasıdır (sonuç hep aynıdır).
 - Değer döndürmeyen fonksiyonun çağrısı değer olarak kullanılamaz (denetim hatası); `TR_NoneType` yalnız fonksiyon tipinin dönüşü (sonraki bölümlerde) ve tip değeri olarak yazılır.
 - *Test:* TR testi; isteğe bağlı tip uygulanınca denetleyicinin testi.
@@ -40,10 +45,10 @@ TR_print(x ?? 0)                 # çıktı: 0
 TR_if x != TR_none { TR_print(x + 1) }   # bu dalda x bir TR_Int
 ```
 
-**3.6** `TR_List[T]`: tek tipli, sıralı, değiştirilebilir dizi; tip parametresi köşeli parantezle yazılır. `[1, 2, 3]` bir `TR_List[TR_Int]`, `[1, 2.5]` bir `TR_List[TR_Float]`dır (değişmezde bir ondalık varsa tam sayı yazımları ondalıktır); boş liste tipini yazar (`TR_var l: TR_List[TR_Int] = []`). Negatif indeks sondan sayar; sınır dışı okuma ve yazma çalışma hatasıdır, ileti indeksi ve uzunluğu söyler; `.TR_get(i)` `T?` verir. Dilim 3.3'teki gibidir. Liste, sözlük ve yapı nesnesi başvuruyla paylaşılır: `b = a`'dan sonra ikisi aynı listedir. Bu yüzden `TR_List[TR_Int]`, `TR_List[TR_Float]` beklenen yere verilmez.
+**3.6** `TR_List[T]`: tek tipli, sıralı, değiştirilebilir dizi; tip parametresi köşeli parantezle yazılır. `[1, 2, 3]` bir `TR_List[TR_Int]`, `[1, 2.5]` bir `TR_List[TR_Float]`dır (değişmezde bir ondalık varsa tam sayı yazımları ondalıktır; `TR_none` varsa öğe tipi isteğe bağlıdır: `[1.0, TR_none]` bir `TR_List[TR_Float?]`); boş liste tipini yazar (`TR_var l: TR_List[TR_Int] = []`). Negatif indeks sondan sayar; sınır dışı okuma ve yazma çalışma hatasıdır, ileti indeksi ve uzunluğu söyler; `.TR_get(i)` `T?` verir. Dilim 3.3'teki gibidir. Liste, sözlük ve yapı nesnesi başvuruyla paylaşılır: `b = a`'dan sonra ikisi aynı listedir. Bu yüzden `TR_List[TR_Int]`, `TR_List[TR_Float]` beklenen yere verilmez.
 - *Test:* TR testi; tek tipli liste uygulanınca denetleyicinin testi.
 
-**3.7** `TR_Dict[K, V]`: eklenme sırasını koruyan tablo (`{"k": 1}`); anahtar tipi `TR_Int`, `TR_String` ya da `TR_Bool`; boş sözlük tipini yazar. Değişmezdeki anahtar bir ifadedir: `{k: 1}`'de `k` değişkendir. Anahtar yalnız köşeli parantezle okunur ve yazılır (`d["k"]`); nokta yalnız üyeleri verir (`.TR_length`, `.TR_keys()`, `.TR_values()`, `.TR_contains(k)`, `.TR_get(k)`). Olmayan anahtarı köşeli parantezle okumak çalışma hatasıdır; `.TR_get(k)` `V?` verir.
+**3.7** `TR_Dict[K, V]`: eklenme sırasını koruyan tablo (`{"k": 1}`); anahtar tipi `TR_Int`, `TR_String`, `TR_Bool`, `TR_Bytes` ya da alanlarının hepsi anahtar olabilen bir durumlu tip (sonraki bölümlerde); boş sözlük tipini yazar. Değişmezdeki anahtar bir ifadedir: `{k: 1}`'de `k` değişkendir. Anahtar yalnız köşeli parantezle okunur ve yazılır (`d["k"]`); nokta yalnız üyeleri verir (`.TR_length`, `.TR_keys()`, `.TR_values()`, `.TR_contains(k)`, `.TR_get(k)`). Olmayan anahtarı köşeli parantezle okumak çalışma hatasıdır; `.TR_get(k)` `V?` verir.
 - *Test:* TR testi; anahtar ve erişim kuralları uygulanınca TR testi.
 
 **3.7a** `TR_JSON`: yapısı önceden bilinmeyen veri; JSON'un her değerini tutar: yokluk, mantık değeri, sayı, metin, dizi, nesne.
@@ -51,7 +56,7 @@ TR_if x != TR_none { TR_print(x + 1) }   # bu dalda x bir TR_Int
 - **Okumak:** `j["k"]` ve `j[i]` yine `TR_JSON` verir; olmayan alan ve sınır dışı indeks çalışma hatasıdır. `.TR_get(k)` `TR_JSON?` verir: eksik alan `TR_none`'dır, var olan JSON yokluğu ise bir `TR_JSON` değeridir. `.TR_length` nesnede ve dizide, `.TR_keys()` yalnız nesnede çalışır; tür tutmazsa çalışma hatasıdır.
 - **Türü sormak:** `TR_Type(j)` değerin JSON türünü tip olarak verir: `TR_NoneType`, `TR_Bool`, `TR_Int` (tam yazılmış ve `TR_Int`'e sığan sayı), `TR_Float` (öbür sayılar), `TR_String`, `TR_List[TR_JSON]`, `TR_Dict[TR_String, TR_JSON]`.
 - **Açmak:** tip çağrısı JSON değerini açar: `TR_String(j)` metni, `TR_Int(j)` tam yazılmış ve `TR_Int`'e sığan sayıyı, `TR_Float(j)` her sayıyı, `TR_Bool(j)` mantık değerini verir; tür tutmazsa çalışma hatasıdır, metin sayı olarak okunmaz.
-- **Yazmak:** `TR_json_string(j)`, `TR_print(j)` ve yerleştirme JSON metnini yazar: `"\(j["k"])"` metni tırnaklı çıkar.
+- **Yazmak:** `TR_json_string(j)` her zaman JSON metnini verir (metin tırnaklı: `"\"merhaba\""`). Değerin metni (`TR_print(j)`, yerleştirme, 3.14) JSON metin türünde metnin kendisidir (`"\(j["k"])"` → merhaba), öbür türlerde JSON metnidir.
 - Her değeri tutan genel bir tip yoktur.
 - *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
 
@@ -72,7 +77,7 @@ TR_var istek: TR_JSON = {"soru": metin, "en_fazla": 512, "akış": TR_false}
 **3.10** Koşul `TR_Bool` olmalıdır: `TR_if` ve koşullu `TR_for`'un koşulu, `TR_and`, `TR_or`, `TR_not`'un işlenenleri. Başka tip denetim hatasıdır; boşluk `.TR_length == 0`, yokluk `TR_none`'la karşılaştırma ile sorulur.
 - *Test:* TR testi; mantık dışı koşulun hatası uygulanınca denetleyicinin testi.
 
-**3.11** `TR_Type(x)` değerin tipini verir; tip değerlerinin tipi `TR_Type`'tır. Tip değerleri: dilin tipleri (`TR_Int`, `TR_Float`, `TR_String`, `TR_Bytes`, `TR_Bool`, `TR_NoneType`, `TR_JSON`, `TR_Range`, `TR_Tensor`, `TR_Type`), parametreli tipler (`TR_List[TR_Int]`, `TR_Int?`), fonksiyon tipleri (3.9), yapılar ve kitaplığın tipleri (`TR_Optimizer`, `TR_Tokenizer`). Tip, tiple karşılaştırılır (`TR_Type(x) == TR_Int`); metinle karşılaştırma denetim hatasıdır. `TR_JSON` değerinde `TR_Type` JSON türünü verir (3.7a); bu yüzden `TR_Type(j) == TR_JSON` hiç doğru değildir. `TR_print`, `TR_String(x)` ve `TR_Type(x)` her tipten değer alan yerleşiklerdir; kullanıcının yazabileceği genel bir tip yoktur (3.7a). Matris iki boyutlu tensördür.
+**3.11** `TR_Type(x)` değerin tipini verir; tip değerlerinin tipi `TR_Type`'tır. Tip değerleri: dilin tipleri (`TR_Int`, `TR_Float`, `TR_String`, `TR_Bytes`, `TR_Bool`, `TR_NoneType`, `TR_JSON`, `TR_Range`, `TR_Tensor`, `TR_Type`), parametreli tipler (`TR_List[TR_Int]`, `TR_Int?`), fonksiyon tipleri (3.9), yapılar ve kitaplığın tipleri (`TR_Optimizer`, `TR_Tokenizer`). Tip, tiple karşılaştırılır (`TR_Type(x) == TR_Int`); metinle karşılaştırma denetim hatasıdır. `TR_JSON` değerinde `TR_Type` JSON türünü verir (3.7a); bu yüzden `TR_Type(j) == TR_JSON` hiç doğru olmaz ve denetim hatasıdır. İsteğe bağlı değerde `TR_Type` içteki değerin tipini, yoklukta `TR_NoneType`'ı verir. `TR_print`, `TR_String(x)` ve `TR_Type(x)` her tipten değer alan yerleşiklerdir; kullanıcının yazabileceği genel bir tip yoktur (3.7a). Matris iki boyutlu tensördür.
 - *Test:* TR testi.
 
 **3.12** Tip çağrılınca değerini kurar ya da verileni o tipe çevirir; aynı işi gören ayrı fonksiyon yoktur.
@@ -101,7 +106,7 @@ toplam += 0.5        # denetim hatası: toplam bir TR_Int; ilk değeri 0.0 yazı
 **3.14** Değerin metni dilden bağımsızdır: `TR_String(x)`, `TR_print` ve yerleştirme (2.7) her makinede ve her okuyan için aynı metni verir.
 - Tam sayı ondalık rakamla, ondalık 3.2'deki gibi yazılır. Dilin değerleri ve tipleri kimliğin adıyla yazılır: "true", "false", "none", "inf", "-inf", "nan"; tip adıyla ("Int", "List[Int]", "Int?").
 - Metin kendisi olarak yazılır. Liste "[1, 2]", sözlük "{"k": 1}" biçimindedir; içlerindeki metin çift tırnakla ve kaçışla yazılır: `\n`, `\t`, `\r`, `\"`, `\\`, öbür denetim karakterleri `\u{...}` ile (2.6).
-- İsteğe bağlı değer içindeki değerin ya da "none"ın metnini, `TR_JSON` JSON metnini (`TR_json_string` ile aynı), aralık "0..3" ya da "0..=3" metnini verir.
+- İsteğe bağlı değer içindeki değerin ya da "none"ın metnini, `TR_JSON` JSON metin türünde metnin kendisini, öbür türlerde JSON metnini (3.7a), aralık "0..3" ya da "0..=3" metnini verir.
 - Bayt dizisinin, fonksiyonun, yapı nesnesinin ve tensörün metni sonraki bölümlerdedir.
 - Program çıktısı çevrilmez; kişinin dilinde görünen yalnız iletiler, kabuk ve hata ayıklayıcıdır.
 - *Test:* TR testi; dilden bağımsız metin uygulanınca TR testi.

@@ -45,7 +45,7 @@ Her kuralın emsali ve gerekçesi: [`rationale/04_operators.md`](rationale/04_op
 **4.6** `TR_and`, `TR_or` ve `TR_not`'un işlenenleri `TR_Bool`dur (3.10); `TR_and` ve `TR_or` kısa devre yapar.
 - *Test:* TR testi; işlenen kuralı uygulanınca denetleyicinin testi.
 
-**4.7** `a ?? b`: `a` isteğe bağlıdır (`T?`); `a` `TR_none` ise sonuç `b`, değilse `a`'nın değeridir. `b` `T` ise sonuç `T`, `T?` ise `T?`. `a` isteğe bağlı değilse denetim hatasıdır, çünkü sağ taraf hiç kullanılmaz (3.5'teki `TR_none` karşılaştırması gibi).
+**4.7** `a ?? b`: `a` isteğe bağlıdır (`T?`); `a` `TR_none` ise sonuç `b`, değilse `a`'nın değeridir. `b` `T` ise sonuç `T`, `T?` ise `T?`. `a` isteğe bağlı değilse denetim hatasıdır, çünkü sağ taraf hiç kullanılmaz (3.5'teki `TR_none` karşılaştırması gibi). Sağ yanda parantezsiz bir ikili işleç varsa (`d.TR_get(k) ?? 0 + 1`, 4.1'e göre `?? (0 + 1)` okunur) sözdizimi hatasıdır; ileti `(d.TR_get(k) ?? 0) + 1`'i ya da sağ yanın parantezini önerir.
 - *Test:* TR testi; hata uygulanınca denetleyicinin testi.
 
 **4.8** `a?.b`: `a` `TR_none` ise sonuç `TR_none`, değilse `a.b`; sonucun tipi isteğe bağlıdır, `b` zaten isteğe bağlıysa yine `T?`'dir (iki kat isteğe bağlı olmaz). İsteğe bağlı değerin üyesine `.` ile erişmek denetim hatasıdır (3.5).

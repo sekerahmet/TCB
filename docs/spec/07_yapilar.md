@@ -30,7 +30,7 @@ TR_print(p.uzaklık(), p)   # çıktı: 5.0 Nokta(x: 3.0, y: 4.0)
 **7.3** Metot gövdedeki `TR_func`'tır ve `p.m(...)` ile çağrılır. Metot nesneye `TR_self` ile erişir: alan her zaman `TR_self.x` diye okunur ve atanır, başka metot `TR_self.m()` diye çağrılır. Metotta düz `x` ya da `m()` alan ya da metot değildir. Düz ad yapının bir alanının ya da metodunun adıysa ve dıştaki bir ada çözülüyorsa denetim hatasıdır; hiçbir ada çözülmüyorsa 5.14'ün hatasıdır. İkisinde de ileti `TR_self.x`'i önerir. `TR_self` parametre olarak yazılmaz; Python'un self parametresi sözdizimi hatasıdır. Çağrısız `p.m` `p`'ye bağlı bir fonksiyon değeridir (6.9). Nesnesiz metot (yapının adıyla, nesne olmadan çağrılan) yoktur; yapıya bağlı olmayan iş dosyanın fonksiyonu olarak yazılır. Metot `TR_self` kullanmayabilir: alansız bir yapı (`TR_struct Relu { ... }`) bir arayüzü (7.8) böyle karşılar.
 - *Test:* TR testi; iletiler uygulanınca TR testi.
 
-**7.4** Kurucu `TR_init` adlı metottur. Yapının kurucusu varsa nesne yalnız onun parametreleriyle kurulur (`Kat(512, 1024)`); alanlarla kurma kalkar. Kurucu değer döndürmez. Kurucunun sonunda, her yolda, varsayılanı olmayan her alana atanmış olmalıdır; atanmadan okunan alan ve bütün alanlar atanmadan metot çağrısı denetim hatasıdır.
+**7.4** Kurucu `TR_init` adlı metottur. Yapının kurucusu varsa nesne yalnız onun parametreleriyle kurulur (`Kat(512, 1024)`); alanlarla kurma kalkar. Kurucu değer döndürmez. Varsayılanlı alanlar kurucunun gövdesinden önce, tanım sırasıyla değerini alır; kurucu onları yeniden atayabilir. Kurucunun sonunda, her yolda, varsayılanı olmayan her alana atanmış olmalıdır; atanmadan okunan alan ve bütün alanlar atanmadan metot çağrısı denetim hatasıdır.
 - *Test:* TR testi; alanların atanma denetimi uygulanınca denetleyicinin testi.
 
 **7.5** Alan `p.x` ile okunur, `p.x = ifade` ile atanır; atanan değerin tipi alanın tipidir (3.13). Olmayan alana erişmek ve metoda değer atamak denetim hatasıdır; ileti en yakın alanı önerir (2.3a'nın uzaklığıyla), yakın alan yoksa alanı yapıya `k: T` diye eklemeyi. Bağı sabit bir nesnenin (`TR_const p`) alanları atanabilir (5.2).
@@ -69,7 +69,7 @@ TR_func anlat(d: Durum) -> TR_String {
 TR_print(anlat(Durum.Çalışıyor(5)))   # çıktı: adım 5
 ```
 
-**7.8** `TR_interface Ad { ... }` bir arayüz tanımlar: gövdesiz metot imzalarından oluşur (`TR_func f(x: TR_Tensor) -> TR_Tensor`).
+**7.8** `TR_interface Ad { ... }` bir arayüz tanımlar: gövdesiz metot imzalarından oluşur (`TR_func f(x: TR_Tensor) -> TR_Tensor`). En az bir metot yazılır; boş arayüz denetim hatasıdır, çünkü her tip onu karşılar ve genel bir tip olurdu (3.11).
 - Bir yapı ya da durumlu tip arayüzün bütün metotlarını aynı imzayla taşıyorsa onu karşılar; ayrıca bildirilmez. İmza parametre tipleri ve dönüş tipidir; parametre adları sayılmaz, arayüz üzerinden çağrı sırayla yapılır (6.9).
 - Arayüz bir tiptir: parametrede, alanda ve listede kullanılır (`TR_List[Katman]`). Çağrı nesnenin kendi metoduna gider. Arayüz değeri karşılaştırılamaz (4.5); metni asıl değerin metnidir.
 - Asıl tipe `TR_Type` sınamasıyla inilir: `TR_if TR_Type(k) == Kat { ... }` dalında `k` `Kat` tipindedir, 3.5'in daraltma koşullarıyla (yerel, dalda atanmayan, onu değiştiren kapanış olmayan değişken).
