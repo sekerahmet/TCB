@@ -147,6 +147,34 @@ func convertExamples(rel, in string) (string, []problem) {
 	return strings.Join(lines, ""), probs
 }
 
+// templateKey kod şablonlarında (tools/gen/snippets/data.json) gövde alanının başıdır.
+const templateKey = `"source": `
+
+// convertTemplates kod şablonlarının kodlu gövdelerini (tam dosya metni) çevirir.
+func convertTemplates(rel, in string) (string, []problem) {
+	lines := strings.SplitAfter(in, "\n")
+	var probs []problem
+	for i, l := range lines {
+		k := strings.Index(l, templateKey)
+		if k < 0 {
+			continue
+		}
+		start := k + len(templateKey)
+		end := jsonStringEnd(l, start)
+		var src string
+		if end < 0 || json.Unmarshal([]byte(l[start:end]), &src) != nil {
+			probs = append(probs, problem{Line: i + 1, Reason: "source is not a JSON string"})
+			continue
+		}
+		conv, ps := convertTRFile(rel, src)
+		probs = append(probs, ps...)
+		if conv != src {
+			lines[i] = l[:start] + jsonQuote(conv) + l[end:]
+		}
+	}
+	return strings.Join(lines, ""), probs
+}
+
 // jsonStringEnd s[start]'taki JSON metninin kapanış tırnağından sonraki indekstir (yoksa -1).
 func jsonStringEnd(s string, start int) int {
 	if start >= len(s) || s[start] != '"' {

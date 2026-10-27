@@ -73,6 +73,9 @@ func build(t template, language *codes.Language) (entry, error) {
 	if err != nil {
 		return entry{}, fmt.Errorf("template %s cannot be shown in %s: %w", t.ID, lang, err)
 	}
+	// Gösterim dosyanın satırlarını, başlık dahil, tutar; şablon bir dosyanın içine yazılır, başlığı
+	// almaz.
+	shown = strings.TrimPrefix(shown, source.Header+"\n")
 	used := map[string]bool{}
 	var failure error
 	shown = holeRe.ReplaceAllStringFunc(shown, func(name string) string {

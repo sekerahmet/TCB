@@ -121,6 +121,8 @@ func convertFile(root, rel string) (result, bool) {
 		conv = convertGoTest
 	case slash == "internal/lang/codes/tr.json" || slash == "internal/lang/codes/en.json":
 		conv = convertExamples
+	case slash == "tools/gen/snippets/data.json":
+		conv = convertTemplates
 	default:
 		return result{}, false
 	}
