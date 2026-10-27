@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -26,9 +27,13 @@ func shape(e ast.Expression) string {
 	return fmt.Sprintf("<%T>", e)
 }
 
+// trLexer Türkçe yazılmış metnin sözcük çözümleyicisidir: dil açıkça verilir (program içeride
+// kimliklerle çalışır, Türkçe bir yazım dilidir; 17.7).
+func trLexer(code string) *lexer.Lexer { return lexer.NewBodyIn(code, false, codes.Source()) }
+
 func firstExpr(t *testing.T, code string) ast.Expression {
 	t.Helper()
-	p := New(lexer.New(code))
+	p := New(trLexer(code))
 	prog := p.ParseProgram()
 	if len(p.Errors()) != 0 {
 		t.Fatalf("%s: beklenmeyen hata: %v", code, p.Errors())
@@ -42,7 +47,6 @@ func firstExpr(t *testing.T, code string) ast.Expression {
 
 // Hatalı yapı metodları eskiden "interface conversion: agac.Expression is nil" paniğine yol açıyordu.
 func TestMalformedStructMethodReportsErrorInsteadOfPanic(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	for _, code := range []string{
 		"yapı A { fonksiyon f { } }",
 		"yapı A { fonksiyon f { yazdır(1) } }\nyazdır(2)",
@@ -56,7 +60,7 @@ func TestMalformedStructMethodReportsErrorInsteadOfPanic(t *testing.T) {
 					t.Fatalf("%q ayrıştırılırken panik: %v", code, r)
 				}
 			}()
-			p := New(lexer.New(code))
+			p := New(trLexer(code))
 			p.ParseProgram()
 			if len(p.Errors()) == 0 {
 				t.Errorf("%q için sözdizimi hatası bekleniyordu", code)
@@ -66,23 +70,26 @@ func TestMalformedStructMethodReportsErrorInsteadOfPanic(t *testing.T) {
 }
 
 func TestValidStructMethodStillParses(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
-	p := New(lexer.New("yapı A {\n  ad: Metin\n  fonksiyon selam() { sonuç kendi.ad }\n}"))
+	p := New(trLexer("yapı A {\n  ad: Metin\n  fonksiyon selam() { sonuç kendi.ad }\n}"))
 	p.ParseProgram()
 	if len(p.Errors()) != 0 {
 		t.Fatalf("geçerli yapı hata vermemeli: %v", p.Errors())
 	}
 }
 
+// parseErrors Türkçe yazılmış metni ayrıştırır, hata metinlerini verir.
 func parseErrors(code string) []string {
-	p := New(lexer.New(code))
-	p.ParseProgram()
-	return p.Errors()
+	return messages.Texts(parseErrs(code))
 }
 
 // parseErrs, parseErrors gibi ama hataları ileti kodu ve konumuyla denetlenebilsin diye error olarak verir.
 func parseErrs(code string) []error {
-	p := New(lexer.New(code))
+	return parseErrsIn(code, codes.Source())
+}
+
+// parseErrsIn lang'de yazılmış metni ayrıştırır, hatalarını verir.
+func parseErrsIn(code string, lang *codes.Language) []error {
+	p := New(lexer.NewBodyIn(code, false, lang))
 	p.ParseProgram()
 	return p.Errs()
 }
@@ -131,7 +138,6 @@ func TestEscapedBracesParseAsLiteral(t *testing.T) {
 }
 
 func TestPowerAndNotPrecedenceShape(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	cases := map[string]string{
 		"2 ** 3 ** 2":  "(2 ** (3 ** 2))",
 		"-2 ** 2":      "(-(2 ** 2))",
@@ -147,8 +153,7 @@ func TestPowerAndNotPrecedenceShape(t *testing.T) {
 }
 
 func TestCallOnNextLineStartsNewStatement(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
-	p := New(lexer.New("değişken f = 5\n(1 + 2) |> yazdır\nx\n[1]"))
+	p := New(trLexer("değişken f = 5\n(1 + 2) |> yazdır\nx\n[1]"))
 	prog := p.ParseProgram()
 	if len(p.Errors()) != 0 {
 		t.Fatalf("beklenmeyen hata: %v", p.Errors())
@@ -162,7 +167,6 @@ func TestCallOnNextLineStartsNewStatement(t *testing.T) {
 // gibi; JavaScript'in tuzağı değil): 'a = 1' ardından gelen '-x' satırı 'a = 1 - x' okunmaz.
 // İşleç satır sonundaysa ya da ifade parantez içindeyse sürer; '.' ve '|>' ile zincir sürer.
 func TestBinaryOperatorOnNextLineDoesNotContinue(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	for _, d := range []struct {
 		code  string
 		stmts int
@@ -175,7 +179,7 @@ func TestBinaryOperatorOnNextLineDoesNotContinue(t *testing.T) {
 		{"değişken a = x ve\ny", 1},
 		{"değişken a = x\n|> yazdır", 1},
 	} {
-		p := New(lexer.New(d.code))
+		p := New(trLexer(d.code))
 		prog := p.ParseProgram()
 		if len(p.Errors()) != 0 || len(prog.Statements) != d.stmts {
 			t.Errorf("%q: %d deyim bekleniyordu, %d alındı (hatalar %v)", d.code, d.stmts, len(prog.Statements), p.Errors())
@@ -191,8 +195,7 @@ func TestBinaryOperatorOnNextLineDoesNotContinue(t *testing.T) {
 
 // 'test' yalnızca deyim başında ve ardından metin geldiğinde anahtar kelimedir.
 func TestTestIsContextualKeyword(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
-	p := New(lexer.New("test \"toplama\" { doğrula(1 + 1 == 2) }"))
+	p := New(trLexer("test \"toplama\" { doğrula(1 + 1 == 2) }"))
 	prog := p.ParseProgram()
 	if len(p.Errors()) != 0 {
 		t.Fatalf("beklenmeyen hata: %v", p.Errors())
@@ -204,7 +207,7 @@ func TestTestIsContextualKeyword(t *testing.T) {
 
 	// Ad olarak kullanım bozulmamalı
 	for _, code := range []string{"değişken test = 5\ntest = test + 1\nyazdır(test)", "test := [1]\ntest[0]", "fonksiyon test(a) { sonuç a }\ntest(\"x\")"} {
-		p := New(lexer.New(code))
+		p := New(trLexer(code))
 		prog := p.ParseProgram()
 		if len(p.Errors()) != 0 {
 			t.Fatalf("%q: beklenmeyen hata: %v", code, p.Errors())
@@ -217,7 +220,7 @@ func TestTestIsContextualKeyword(t *testing.T) {
 	}
 
 	// Gövdesiz test bir sözdizimi hatasıdır
-	p = New(lexer.New("test \"ad\" doğrula(doğru)"))
+	p = New(trLexer("test \"ad\" doğrula(doğru)"))
 	p.ParseProgram()
 	if len(p.Errors()) == 0 {
 		t.Fatal("gövdesiz test hata vermedi")
@@ -226,8 +229,7 @@ func TestTestIsContextualKeyword(t *testing.T) {
 
 // Metin içi yerleştirmedeki ifadeler dosyadaki gerçek konumlarını taşımalı (eskiden Satır 1, Sütun 1).
 func TestInterpolationKeepsSourcePosition(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
-	p := New(lexer.New("değişken a = 1\nyazdır(\"x = {toplm + 1}\")"))
+	p := New(trLexer("değişken a = 1\nyazdır(\"x = {toplm + 1}\")"))
 	prog := p.ParseProgram()
 	if len(p.Errors()) != 0 {
 		t.Fatalf("beklenmeyen hata: %v", p.Errors())
@@ -243,7 +245,6 @@ func TestInterpolationKeepsSourcePosition(t *testing.T) {
 
 // Test raporu Y1: kapatılmamış '{' hatasız kabul ediliyor, sonraki kod sessizce bloğa giriyordu.
 func TestUnclosedBlockBraceIsReported(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	// sütun 0: konuma bakılmaz
 	for code, want := range map[string][2]int{
 		"eğer yanlış {\n    yazdır(\"gizli\")\nyazdır(\"son\")":    {1, 13},
@@ -266,7 +267,6 @@ func TestUnclosedBlockBraceIsReported(t *testing.T) {
 // parantezler (JSON, başka dillerde kod) sessizce düz metin kalmaz, '{'nin konumunda
 // sözdizimi hatası verir. Düz süslü parantezin iki yazımı (\{ ve ham metin) hata vermez.
 func TestNonExpressionInterpolationIsError(t *testing.T) {
-	t.Skip("ARŞİV (iç biçim kod, 2026-10-26): test Türkçe metni dil belirtmeden okuyor ya da içerinin Türkçe olduğunu varsayıyor; yeniden yazılacak")
 	for code, col := range map[string]int{
 		`yazdır("{\"kod\": 5}")`:      9,
 		`yazdır("Nokta{x: 1, y: 2}")`: 14,
