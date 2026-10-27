@@ -6,6 +6,8 @@
 # Tepe bellek bu dosyadan değil, `tr profil --json` raporundan (gpu.bellek[].tepe_canlı_bayt) okunur.
 # Çıktı (JSON, anahtarlar İngilizce: phase3_torch.py ile aynı): ilk adım, ısınma adımları, ölçülen adımların medyan ve p90 süresi, kayıp eğrisi.
 
+TR_import "measurement_model"
+
 TR_var arg = TR_command_line({TR_device: "gpu", TR_config: "phase3_config.json", çıktı: ""},
     TR_description: "Evre 3 ölçümü, TR tarafı (PyTorch karşılığı: phase3_torch.py)")
 TR_default_device(arg.TR_device)
@@ -30,8 +32,6 @@ TR_for s TR_in TR_range(8) {
     TR_var tümü = TR_tensor(satırlar)
     sentetik.TR_append([tümü.TR_slice(1, 0, T), tümü.TR_slice(1, 1, T + 1)])
 }
-
-TR_import "measurement_model"
 
 TR_var model = Model()
 TR_var ağırlıklar = TR_parameters(model)

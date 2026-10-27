@@ -29,6 +29,10 @@
 # kendi koduyla ölçer ve metin üretir.
 # Tersi: --ağırlık DOSYA --adım 0 PyTorch'ta eğitilmiş modeli (rgn_to_tr.py) eğitmeden TR'nin koduyla ölçer.
 
+TR_import "tr/katman" TR_as katman
+TR_import "tr/iyilestirici" TR_as iyileştirici
+TR_import "tr/egitim" TR_as eğitim
+
 TR_var arg = TR_command_line({veri: "", TR_step: 120, toplu: 64, mikro: 32, bağlam: 1024, oran: 0.002,
     TR_device: "gpu", tohum: 0, TR_logger: 50, çıktı: "", TR_weight: "", TR_sequential: TR_false, hassasiyet: "bf16",
     TR_losses: "", dağarcık: 40000, TR_embed_dim: 512, katman: 8, TR_num_heads: 8, TR_num_kv_heads: 4, ara: 672,
@@ -37,10 +41,6 @@ TR_var arg = TR_command_line({veri: "", TR_step: 120, toplu: 64, mikro: 32, bağ
     TR_description: "Hedef modelin TR karşılığı (PyTorch: rgn512.py)")
 TR_assert(arg.veri != "", "--veri ile .npy klasörü verilmeli")
 TR_default_device(arg.TR_device)
-
-TR_import "tr/katman" TR_as katman
-TR_import "tr/iyilestirici" TR_as iyileştirici
-TR_import "tr/egitim" TR_as eğitim
 
 # Boyutlar hedefin varsayılanlarıdır; küçük boyutlar yalnızca hızlı doğruluk testi içindir (8 katman ve
 # düzen sabittir, PLE boyutu = boyut).

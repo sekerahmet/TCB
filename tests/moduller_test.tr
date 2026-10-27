@@ -1,8 +1,9 @@
 # TR 4
 # docs/spec/11_moduller.md §11 — Modüller
-TR_var yükleme_kaydı = []
 TR_import "yardimci_modul"
 TR_import "yardimci_modul.tr" TR_as ym
+
+TR_var yükleme_kaydı = []
 
 TR_test "11.1 aktar modülün üst düzey adlarını getirir; .tr uzantısı isteğe bağlıdır" {
     TR_assert_equal(9, kare(PI))

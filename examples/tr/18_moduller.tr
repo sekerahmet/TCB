@@ -6,9 +6,10 @@
 # Çalıştırma (proje kökünden): tr examples/tr/18_moduller.tr
 
 TR_import "helpers/geometri" # .tr uzantısı isteğe bağlı; adlar doğrudan kullanılır
+TR_import "helpers/geometri" TR_as geo # takma adla: geo.ad
+
 TR_print("r = 2 dairenin alanı: \(TR_round(daire_alanı(2), 3))")
 
-TR_import "helpers/geometri" TR_as geo # takma adla: geo.ad
 TR_print("geo.PI = \(geo.PI)")
 TR_print("r = 1 dairenin alanı: \(TR_round(geo.daire_alanı(1), 3))")
 

@@ -6,11 +6,11 @@
 # (yeniden adlandırma hatası) benzetimi ve GPU yolu Go testleriyle sınanır (internal/stdlib/checkpoint,
 # cmd/tr/e2e, internal/stdlib/gpuprobe).
 
+TR_import "yardimci_test_araclari"
+
 TR_const TABAN = TR_temp_dir()
 # Günlük dosyaları bu koşunun geçici klasöründe (18.14); program bitince silinir.
 TR_const GÜNLÜKLER = TR_temp_dir()
-
-TR_import "yardimci_test_araclari"
 
 # koşu: testin kendi boş koşu klasörünün yolu (önceki bir koşudan kalmışsa silinir).
 TR_func koşu(ad) {
