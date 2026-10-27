@@ -25,7 +25,7 @@ Kurallar:
   Yalnızca anında bitenler (birkaç saniye) ön planda koşar; klonlama, derleme ve veri kopyası dahil gerisi arka planda.
 - **Arka plan kalıbı:** her iş `bash /content/is_baslat.sh <ad> "<ne, nasıl>" -- <komut>` ile başlar
   (hücre 2 yazar). Yardımcı komutu `setsid nohup ... < /dev/null &` ile ayrı oturumda başlatır (hücreyi
-  kesmek koşuya ulaşmaz, hücre beklemez), `tools/record` ile sarar ve `/content/is/<ad>/` altına `log` ile
+  kesmek koşuya ulaşmaz, hücre beklemez), `tools/record` ile sarar ve `/content/is/<ad>/` altına `TR_fn_log` ile
   `bitti` (çıkış kodu) yazar. Durum yalnızca hücre 3'le, tahmini süre dolunca bir kez okunur; art arda sorgulanmaz.
 - **Kayıt:** her koşu `TR_dili/olcumler/<ad>/<zaman>.json` (Türkiye saati) ve `OZET.md`'ye tek satır
   ([`tools/record`](../record/README.md)). Not (`--note`) ne ölçüldüğünü ve nasıl ölçüldüğünü söyler.
@@ -253,8 +253,8 @@ TR_GPU_MICRO=1 TR_GPU_OWN_GEMM=1 ncu --target-processes all -k regex:carpim --la
 
 ## 9. SimpleStories ile GPT eğitimi (dilin kitaplığıyla)
 
-`gpt_training.tr` dilin kitaplığındaki GPT'yi (`aktar "tr/katman"`) gizli ağırlıklarda Muon,
-gömme/norm ağırlıklarında AdamW ile (`aktar "tr/iyilestirici"`), ısınma–sabit–azalma (WSD)
+`gpt_training.tr` dilin kitaplığındaki GPT'yi (`TR_kw_import "tr/katman"`) gizli ağırlıklarda Muon,
+gömme/norm ağırlıklarında AdamW ile (`TR_kw_import "tr/iyilestirici"`), ısınma–sabit–azalma (WSD)
 öğrenme oranı planıyla eğitir. Veri klasörü: `tokenizer.json`, `train.npy`, `valid.npy`
 (uint16 parça kimlikleri). Varsayılan model d512, 8 katman, 8 bakış, bağlam 512, toplu 128.
 Koşu klasörünü yerel diskte tutun, bitince Drive'a kopyalayın.
@@ -318,7 +318,7 @@ sentetik veri); TR ve PyTorch aynı dosyayı okur, ikisi de aynı sabit sentetik
 kırpma/iyileştirici ayarını kullanır. Başka bir yapılandırma için dosyayı değiştirmek yeter.
 Her adım sonunda kayıp okunur (GPU eşzamanlanır): iki tarafın da adım süresi budur; sıradaki
 adımın başlatılması ile GPU'nun çalışması üst üste bindirilmediği için bu süre toplu koşudan
-biraz uzundur. TR'nin `zaman_ms`'i milisaniye çözünürlüklüdür; adımlar onlarca ms olduğundan
+biraz uzundur. TR'nin `TR_fn_time_ms`'i milisaniye çözünürlüklüdür; adımlar onlarca ms olduğundan
 yeter. Isınma adımları (`warmup`, ilki derleme dahil) ölçülenlerden (`measured`) ayrıdır. Tepe
 bellek PyTorch'ta `max_memory_allocated`, TR'de `tr profil --json` raporundan okunur (ikisi de
 tensörlerin canlı tepesidir; ayrılan havuz değil).
@@ -345,7 +345,7 @@ nsys --version
 
 ### 10.2. Adım süreleri: PyTorch üç kip ve TR
 
-Dört koşu, her biri ayrı süreçte (derleme önbelleği ve bellek kirlenmesin). `max-autotune`
+Dört koşu, her biri ayrı süreçte (derleme önbelleği ve bellek kirlenmesin). `TR_fn_max-autotune`
 derlemesi dakikalar sürebilir.
 
 ```bash
@@ -721,7 +721,7 @@ else echo "sürüyor: $(tail -c 160 tr.log 2>/dev/null)"; fi
 Bir kitaplık değişikliğini dile ve depoya almadan önce ölçer: `/content/TCB`'nin kopyasında
 `lib/katman.tr` yamalanır (kitaplık ikiliye gömülüdür), `tr_deney` derlenir; iki ikili aynı
 sentetik veride sırayla ikişer kez 120 adım koşar. Örnekteki yama, f32 girdili normların
-(`norm1`, `norm2`, `son_norm`) çıktısını doğrudan bf16 yazar (`tür:`): bu modelde onları yalnızca
+(`TR_mem_input_norm`, `TR_mem_post_attention_norm`, `TR_mem_final_norm`) çıktısını doğrudan bf16 yazar (`TR_arg_dtype:`): bu modelde onları yalnızca
 çarpımlar okur, çarpımın kendi dönüşümü gereksizleşir. Yamayı deneye göre değiştirin
 (`assert`, her aranan metnin kitaplıkta bir kez geçtiğini denetler).
 

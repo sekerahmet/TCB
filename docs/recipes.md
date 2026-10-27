@@ -15,11 +15,11 @@ TR'ye yeni bir şey eklerken hangi dosyalara, hangi sırayla dokunulduğu ve "bi
 
 ## 1. Eleman bazlı matematik fonksiyonu
 
-Örnek: `silu` (TR_fn_silu). Sayıda `Ondalık`, tensörde türev izleyen tensör verir; CPU ve GPU'da, 16 bitte de çalışır.
+Örnek: `TR_fn_silu` (TR_fn_silu). Sayıda `TR_type_Float`, tensörde türev izleyen tensör verir; CPU ve GPU'da, 16 bitte de çalışır.
 
 | Adım | Dosya | Ne eklenir |
 | :-- | :-- | :-- |
-| Ad | `internal/lang/codes/tr.json` | `"TR_fn_silu": { "family": ..., "description": ..., "example": "yazdır(silu(tensör([-1.0, 0.0, 2.0])).değer)" }` (ad yok: `silu` ortak addır; ortak adı olmayan kodda `"name": ...` ilk alandır, `en.json`'a da `{ "ad": ... }` satırı girer) |
+| Ad | `internal/lang/codes/tr.json` | `"TR_fn_silu": { "family": ..., "description": ..., "example": "yazdır(silu(tensör([-1.0, 0.0, 2.0])).değer)" }` (ad yok: `TR_fn_silu` ortak addır; ortak adı olmayan kodda `"name": ...` ilk alandır, `en.json`'a da `{ "ad": ... }` satırı girer) |
 | İmza | `internal/lang/codes/definitions.json` | `"TR_fn_silu": { "kind": "function", "common_name": "silu", "params": ["TR_type_Tensor\|TR_type_Int\|TR_type_Float"], "returns": "TR_type_Tensor\|TR_type_Float" }` |
 | Üret | — | `go generate ./internal/lang/codes`: Go sabitleri, `docs/codes.md`, düzenleyici renklendirmesi |
 | İşlem | `internal/compute/tensor/device.go` | `UnOp` listesinin sonuna, `numUnOps` sayacının **önüne** `OpSilu` (sayaç her zaman son kalır; kapsam testi işlemleri onunla sayar) |
@@ -40,7 +40,7 @@ Testler:
 | `internal/compute/tensor/elementwise_wide_test.go` (`gradSpec` kaydı) | float64 başvuruya karşı sonlu fark gradyanı ve bf16 gradyan toleransı (3e-2); kayıt yoksa `behavior_grad_coverage_test.go` düşer; sınır değerlerde türev `TestUnaryGradEdges` |
 | `internal/compute/gpu/backend_wide_test.go` | GPU'nun CPU ile aynı sonucu vermesi, bf16/fp16 |
 | `internal/stdlib/ml/builtin_math_test.go` | sayıda ve tensörde dönüş tipi, listede açık hata |
-| `tests/matematik_test.tr` | dil kuralı: `test "15.11 ..."` (madde numarasıyla başlar) |
+| `tests/matematik_test.tr` | dil kuralı: `TR_ctx_test "15.11 ..."` (madde numarasıyla başlar) |
 | `tr.json`'daki örnek | kendiliğinden tip denetiminden geçer ve çalışır (`internal/lang/codes`, `internal/stdlib`) |
 
 Belge: `docs/spec/15_tensorler.md`'de ilgili madde (15.11 genişletilmiş eleman bazlı fonksiyonlar).
@@ -51,7 +51,7 @@ Bitti: NaN ve sonsuzlar tanımlı; türev sınırlarda doğru; 16 bit tensörde 
 
 ## 2. Standart kitaplığa yeni yerleşik fonksiyon
 
-Örnek: `csv_oku` (TR_fn_read_csv), `internal/stdlib/formats`.
+Örnek: `TR_fn_read_csv` (TR_fn_read_csv), `internal/stdlib/formats`.
 
 1. **Ad ve imza.** `tr.json`'a ad, açıklama, çalışan tek satırlık örnek; `definitions.json`'a tür, konumlu parametreler (`"TR_type_String|TR_type_Path"`), adlı argümanlar (`[kod, tip, varsayılan]`), dönüş. Adlı argüman da bir koddur (`arg` sınıfı: `TR_arg_dim`). Sonra `go generate ./internal/lang/codes`.
 2. **Kayıt.** Paketin `Register(v *interp.VM)` fonksiyonunda:
@@ -77,7 +77,7 @@ Testler: paketin birim testi (`formats_test.go`): davranış ve hatalar, hatalar
 
 ## 3. Bir tipe yeni metot ya da özellik
 
-Örnek: `SatırOkuyucu.sonraki()` (`internal/stdlib/files/lines.go`).
+Örnek: `TR_type_LineReader.TR_mem_next()` (`internal/stdlib/files/lines.go`).
 
 1. **Ad.** Üye kodu (`TR_mem_...`); `definitions.json`'da `"kind": "method"` ya da `"property"` ve hangi tiplerde geçerli olduğu (`"signatures": { "TR_type_LineReader": {...} }`).
 2. **Kanca.** Tip, yorumlayıcının arayüzünü uygular: üyeler için `GetProperty(kd codes.Code, prop string) (interp.Value, error)` (`interp.PropertyGetter`). Yineleme, indeksleme, işleçler için `interp.Iterable`, `interp.Indexable`, `interp.OperatorHook` ...
@@ -95,7 +95,7 @@ Testler: tipin dosyasının birim testi; metot hem doğru hem yanlış argümanl
 3. **Üret.** `go run ./tools/gen/msgconsts`.
 4. **Kullan.** Hata: `messages.New(messages.H7006, fn, path)`. Çıktı: `messages.Text(...)`. Konumlu hata: `messages.At(satır, sütun, ...)`. Yalnızca TR'nin kendi hatasıyla oluşabilen durum: `messages.Internal("English detail")`.
 5. **Test.** `messages.Has(err, messages.H7006)`; metne değil koda bakılır.
-6. **TR kodundan (`lib/*.tr`).** Kitaplık hata metni yazmaz, katalog iletisi kurar: `fırlat ileti(H6903, pencere)` ya da `doğrula(koşul, ileti(H6903, pencere))` (dil tanımı 8.5). Değerler tanımdaki sırayla verilir; kitaplığın kendi adları (parametre, alan, metot, yapı) değer değil ad yuvasıdır: `definitions.json`'da `"slots": {"num_heads": "TR_arg_num_heads"}`, şablonda `{@num_heads}` (iletinin dilindeki adıyla yazılır). Sıcak yolda ileti `eğer değil koşul { fırlat ileti(...) }` ile yalnız hatada kurulur. Test: iletinin metnine değil koduna bakılır, `eşit_mi(H6903, hata_kodu(() => ...))`. `tools/gen/msgconsts` `.tr` dosyalarındaki `ileti(H…)` çağrılarını da sayar (kod kullanılmış sayılır, değer sayısı tanımla aynı olmalı).
+6. **TR kodundan (`lib/*.tr`).** Kitaplık hata metni yazmaz, katalog iletisi kurar: `TR_kw_throw TR_fn_message(H6903, pencere)` ya da `TR_fn_assert(koşul, TR_fn_message(H6903, pencere))` (dil tanımı 8.5). Değerler tanımdaki sırayla verilir; kitaplığın kendi adları (parametre, alan, metot, yapı) değer değil ad yuvasıdır: `definitions.json`'da `"slots": {"num_heads": "TR_arg_num_heads"}`, şablonda `{@num_heads}` (iletinin dilindeki adıyla yazılır). Sıcak yolda ileti `TR_kw_if TR_kw_not koşul { TR_kw_throw TR_fn_message(...) }` ile yalnız hatada kurulur. Test: iletinin metnine değil koduna bakılır, `TR_fn_assert_equal(H6903, TR_fn_error_code(() => ...))`. `tools/gen/msgconsts` `.tr` dosyalarındaki `TR_fn_message(H…)` çağrılarını da sayar (kod kullanılmış sayılır, değer sayısı tanımla aynı olmalı).
 
 Denetimler: aynı metin iki kodda olamaz (bağlamı farklı etiketler gerekçeli izinle), her çağrının değer sayısı tanımla aynı, kullanılmayan kod kalmaz, geçirilmiş pakette `fmt.Errorf`/`errors.New` yok.
 
@@ -120,7 +120,7 @@ Testler: `x_test.go` her kaynak dosyanın yanında; birden çok dosyayı kesen d
 
 ## 6. Yeni dil kuralı ya da anahtar kelime
 
-Örnek: `eşle` (TR_kw_match).
+Örnek: `TR_kw_match` (TR_kw_match).
 
 1. **Tasarım ve ad.** Dil tanımında yeni madde (`docs/spec/`); ad kodu (`kw` anahtar kelime ya da `ctx` bağlamsal sözcük; kimlik İngilizce adından: `TR_kw_match`), adı baş geliştiricinin onayıyla. Kodlu saklama da adı kimlikle yazar, bu yüzden ad sonradan değişebilir.
 2. **Sözdizimi.** `internal/lang/lexer` (gerekiyorsa yeni sözcük), `internal/lang/ast` (düğüm), `internal/lang/parser` (ayrıştırma; hata `messages.At(satır, sütun, messages.New(...))`).
@@ -133,7 +133,7 @@ Testler: `tests/<bölüm>_test.tr` (her test madde numarasıyla başlar; olumsuz
 
 ## 7. Dış girdi okuyan özellik
 
-Örnek: `tensör_yükle` (`.trt` dosyası), `kontrol_noktası`.
+Örnek: `TR_fn_load_tensors` (`.trt` dosyası), `TR_fn_checkpoint`.
 
 1. **Güvenilmeyen girdi** sayılır: bozuk ya da kötü niyetli olabilir.
 2. **Sınırlar:**
@@ -159,14 +159,14 @@ Testler: `tests/<bölüm>_test.tr` (her test madde numarasıyla başlar; olumsuz
 
 ## 9. Bir kavramı ortak ada çevirmek
 
-Örnek: `TR_fn_sin` (`sinüs` → `sin`, 2026-10-26). Uluslararası gösterimle ya da özel adla yazılan bir kavramın adı her dilde aynıdır (dil tanımı 17, "Ortak ad"); adı baş geliştirici onaylar.
+Örnek: `TR_fn_sin` (`sinüs` → `TR_fn_sin`, 2026-10-26). Uluslararası gösterimle ya da özel adla yazılan bir kavramın adı her dilde aynıdır (dil tanımı 17, "Ortak ad"); adı baş geliştirici onaylar.
 
 | Adım | Ne yapılır |
 | :-- | :-- |
 | Kullanımları kodla | Ad değişecekse (bugünkü adlar dillerde farklıysa) veriden **önce**: kodsuz `.tr` dosyaları `tr kodla <dosyalar> --dil tr`, belgelerin ```tr blokları ve satır içi kodu `tr kodla - --dil tr` ile eski adlarla kodlanır (dil verilmezse metin kişinin yazım dilinde, `TR_DIL`, okunur) (çağrı ve başvuru kimliğe döner, yorum ve düzyazı bayt bayt kalır). Sözcükle arayıp değiştirme yapılmaz. |
 | Veri | Tek betikle: `definitions.json` satırına `"common_name": "sin"`; `tr.json` satırından `"name"` düşer (`description`, `example`, `family` kalır); `en.json`'da yalnız ad taşıyan satır silinir; ortak adla aynı `foreign` girdisi silinir. |
 | Denetle | Kodlu dosyalar geri yazılmaz, kimlikleri değişmez; görünüm `tr göster <dosya> --dil tr` ve `tr göster - --dil tr` ile denetlenir, yalnız ad çiftleri değişmiş olmalı. Elle: Go test dizgilerindeki TR kodu, fonksiyonu anan yorumlar, `tr.json`'un açıklamaları, `.tr` testlerinin beklediği ileti metinleri. |
-| Gölgeleme | Yeni adı yerel ad ya da parametre olarak kullanan yer yerleşiği gölgeler (2.9a): depodaki her kodsuz `.tr` dosyası `tr kontrol` ile koşulur, uyarı aranır. |
+| Gölgeleme | Yeni adı yerel ad ya da parametre olarak kullanan yer yerleşiği gölgeler (2.9a): depodaki her kodsuz `.tr` dosyası `TR_cmd_check` ile koşulur, uyarı aranır. |
 | Üret, sına | `go generate ./internal/lang/codes`; ad çakışması sınavı `-update` ile yalnız satır siler (yeni satır çıkarsa elle, nedeniyle). |
 
 ## Bitti kontrol listesi
