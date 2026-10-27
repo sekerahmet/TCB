@@ -246,7 +246,7 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM'den ge
 ### 3.7a
 
 - **Mevcut durum:** JSON çözülünce sözlük ve liste oluyor, tip denetimi yok; genel "her şey" tipi (Any) kimlik listesinde var.
-- **Yapılacaklar:** `TR_JSON`; çözme ve `TR_JSON` beklenen değişmez onu kurar; tür `TR_Type(j)` ile sorulur, asıl değere tip çağrısıyla geçilir; sayının tam ya da ondalık yazımı korunur. Bugün çözme Any döndürüyor; Any, Object ve StructType gibi genel tipler kalkar ya da yapılar bölümünde yeniden tanımlanır. Genel "her şey" tipi kalkar; depodaki kullanımlar `TR_JSON`'a ya da asıl tipe çevrilir.
+- **Yapılacaklar:** `TR_JSON`; çözme ve `TR_JSON` beklenen değişmez onu kurar; tür `TR_Type(j)` ile sorulur, asıl değere tip çağrısıyla geçilir; sayının tam ya da ondalık yazımı korunur, `TR_Int`'e sığmayan tam sayının türü `TR_Float`; sonsuz ve `TR_nan` `TR_JSON`'a giremez; `.TR_keys()` yalnız nesnede. Bugün çözme Any döndürüyor; Any, Object ve StructType gibi genel tipler kalkar ya da yapılar bölümünde yeniden tanımlanır. Genel "her şey" tipi kalkar; depodaki kullanımlar `TR_JSON`'a ya da asıl tipe çevrilir.
 
 ### 3.8
 
@@ -261,7 +261,7 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM'den ge
 ### 3.12
 
 - **Mevcut durum:** dönüşüm ve kurma tipten ayrı fonksiyonlarla yapılıyor; 13 çift aynı yerde yalnız büyük-küçük harfle ayrılıyor: 12 tip ile fonksiyon çifti (Int/int, Float/float, Tensor/tensor, Checkpoint/checkpoint, Dataset/dataset, Type/type gibi), yokluğun tipi ile değeri de (None/none).
-- **Yapılacaklar:** tip çağrılınca kurar ve dönüştürür; ayrı fonksiyonlar kalkar (dönüşümde metin fonksiyonu da). Yokluğun tipi `TR_NoneType` olur. Metin okuma 2.4 ve 2.5'in yazımıyla, yerel ayarsız; mantık değeri yalnız iki metinden. Depodaki kullanımlar çevrilir.
+- **Yapılacaklar:** tip çağrılınca kurar ve dönüştürür; ayrı fonksiyonlar kalkar (dönüşümde metin fonksiyonu da). Yokluğun tipi `TR_NoneType` olur. Metin okuma 2.4 ve 2.5'in yazımıyla, önde isteğe bağlı işaretle, yerel ayarsız; mantık değeri yalnız iki metinden. Depodaki kullanımlar çevrilir.
 
 ### 3.13
 
@@ -275,12 +275,12 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM'den ge
 
 ## 4. İşleçler
 
-Kurallar: [`docs/spec/04_operatorler.md`](spec/04_operatorler.md). Taslak: DENETİM ve Gemini'nin araştırması bekleniyor. `tests/` altındaki 4. bölüm testleri eski kuralları da sınıyor (`/`'nin değere göre tipi, metne her değerin eklenmesi, boru işleci); testler koşulmadan önce yeni kurallara göre yeniden yazılır.
+Kurallar: [`docs/spec/04_operatorler.md`](spec/04_operatorler.md). Taslak: DENETİM'den geçti, bulguları işlendi (2026-10-27); Gemini'nin araştırması bekleniyor. `tests/` altındaki 4. bölüm testleri eski kuralları da sınıyor (`/`'nin değere göre tipi, metne her değerin eklenmesi, boru işleci); testler koşulmadan önce yeni kurallara göre yeniden yazılır.
 
 ### 4.1
 
 - **Mevcut durum:** `??` en gevşek düzeyde, `&&` ve `||` sözcüklerle aynı düzeyde; `==` ile `<` ayrı düzeylerde.
-- **Yapılacaklar:** yeni öncelik tablosu; karşılaştırmalar tek düzeyde ve birleşmez.
+- **Yapılacaklar:** yeni öncelik tablosu; karşılaştırmalar tek düzeyde, zincir 4.4'teki gibi; `**` sağındaki tekli işleçten gevşek bağlar.
 
 ### 4.2
 
@@ -294,13 +294,13 @@ Kurallar: [`docs/spec/04_operatorler.md`](spec/04_operatorler.md). Taslak: DENET
 
 ### 4.3
 
-- **Mevcut durum:** `2 ** -1` 0.5 veriyor [ölçüldü].
-- **Yapılacaklar:** iki tam sayıda eksi üs çalışma hatası, ileti ondalık yazımı önerir.
+- **Mevcut durum:** `2 ** -1` 0.5 veriyor; `0.0 ** -1` sonsuz, `(-8.0) ** (1.0 / 3)` NaN veriyor [ölçüldü].
+- **Yapılacaklar:** iki tam sayıda eksi üs çalışma hatası, ileti ondalık yazımı önerir; sıfırın eksi üssü ve eksi sayının tam olmayan üssü çalışma hatası.
 
 ### 4.4
 
-- **Mevcut durum:** metinler karşılaştırılamıyor ("Metin ve Metin tipleri arasında < işlemi desteklenmiyor") [ölçüldü].
-- **Yapılacaklar:** metinler kod noktası sırasıyla karşılaştırılır; zincir ve karışık karşılaştırma iletisi.
+- **Mevcut durum:** metinler karşılaştırılamıyor ("Metin ve Metin tipleri arasında < işlemi desteklenmiyor"); `0 <= i < 5` C'deki gibi okunuyor ve çalışırken "Mantık ve Tam tipleri arasında" hatası veriyor [ölçüldü].
+- **Yapılacaklar:** metinler kod noktası sırasıyla karşılaştırılır; sıralama işleçlerinin zinciri Python'daki gibi, ortadaki ifade bir kez hesaplanır; `==` ya da `!=` içeren zincir sözdizimi hatası.
 
 ### 4.5
 
@@ -314,18 +314,19 @@ Kurallar: [`docs/spec/04_operatorler.md`](spec/04_operatorler.md). Taslak: DENET
 
 ### 4.7
 
-- **Mevcut durum:** isteğe bağlı tip olmadığı için sol yan her tipten olabiliyor.
-- **Yapılacaklar:** sol yan isteğe bağlı değilse uyarı.
+- **Mevcut durum:** isteğe bağlı tip olmadığı için sol yan her tipten olabiliyor: `1 ?? 2` 1 veriyor [ölçüldü].
+- **Yapılacaklar:** sol yan isteğe bağlı değilse denetim hatası.
 
 ### 4.9
 
 - **Mevcut durum:** `&&`, `||`, `!` ve `|>` çalışıyor; boru `[1, 2, 3] |> TR_sum` 6 veriyor [ölçüldü].
-- **Yapılacaklar:** dördü sözdizimi hatası, ileti TR'deki yazımı söyler; C ailesinin yorumları hata verir, ileti `#`'i önerir. Depodaki kullanımlar çevrilir.
+- **Yapılacaklar:** dördü sözdizimi hatası, ileti TR'deki yazımı söyler; C ailesinin yorumları hata verir, ileti `#`'i önerir; `//`'nin sağındaki tanımsız adın iletisi de `#`'i önerir. Depodaki kullanımlar çevrilir.
+  - Döngü dışındaki `TR_in` bugün genel bir sözdizimi hatası veriyor ("')' bekleniyordu") [ölçüldü]; ileti `.TR_contains`'i önerir.
 
 ### 4.10
 
-- **Mevcut durum:** `"a" + 1` "a1" veriyor [ölçüldü].
-- **Yapılacaklar:** başka tiple `+` denetim hatası, ileti yerleştirmeyi önerir.
+- **Mevcut durum:** `"a" + 1` "a1" veriyor; `[0] * 3` ve `"-" * 3` çalışırken "desteklenmiyor" hatası veriyor [ölçüldü].
+- **Yapılacaklar:** başka tiple `+` denetim hatası, ileti yerleştirmeyi önerir; metin, bayt dizisi ve listenin `*` ile yinelenmesi; öğeleri başvuruyla paylaşılan listenin yinelenmesi denetim hatası.
 
 ### 4.12
 
@@ -348,13 +349,13 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: DENETİM ve
 
 ### 5.4
 
-- **Mevcut durum:** tam sayı değişkene `/=` 3.5 yazıyor; `%=`, `**=` ve `&=` sözdizimi hatası veriyor; `k //= 2` yorum sayılıyor [ölçüldü].
-- **Yapılacaklar:** on iki bileşik atama; sonucun tipi değişkenin tipi, `/=` iletisi `//=`'yi önerir.
+- **Mevcut durum:** tam sayı değişkene `/=` 3.5 yazıyor; `%=`, `**=` ve `&=` sözdizimi hatası veriyor; `k //= 2` yorum sayılıyor; listede `+=` yeni liste kuruyor, listeyi paylaşan ad eski listede kalıyor [ölçüldü].
+- **Yapılacaklar:** on iki bileşik atama; sonucun tipi değişkenin tipi, `/=` iletisi `//=`'yi önerir; listede `+=` ve `*=` yerinde.
 
 ### 5.5
 
 - **Mevcut durum:** `TR_else`'siz değer veren `TR_if` yokluk veriyor; `TR_elif` "bilinen bir kimlik değil" diyor, `TR_else TR_if`'i önermiyor [ölçüldü].
-- **Yapılacaklar:** ifade olarak kullanılınca `TR_else` zorunlu, dalların tipi aynı; `TR_elif` iletisi `TR_else TR_if`'i önerir.
+- **Yapılacaklar:** ifade olarak kullanılınca `TR_else` zorunlu, dalların tipi aynı; `TR_elif` iletisi `TR_else TR_if`'i, Python'un koşullu ifadesinin iletisi `TR_if` ifadesini önerir.
 
 ### 5.6
 

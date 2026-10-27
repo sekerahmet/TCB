@@ -20,10 +20,10 @@ a, b = b, a
 TR_const ad, soyad = ["Mustafa", "Kemal"]
 ```
 
-**5.4** Atama `=` ile, bileşik atama `+=`, `-=`, `*=`, `/=`, `//=`, `%=`, `**=`, `&=`, `|=`, `^=`, `<<=`, `>>=` ile yapılır; `x op= y`, `x = x op y` demektir ve sonucun tipi `x`'in tipi olmalıdır (`TR_Int` bir değişkene `/=` denetim hatasıdır, ileti `//=`'yi önerir). Hedef bir ad, indeks (`l[0]`) ya da alan (`p.x`) olabilir. Tanımlanmamış bir ada atama denetim hatasıdır.
-- *Test:* TR testi; yeni bileşik atamalar ve tip kuralı uygulanınca TR testi.
+**5.4** Atama `=` ile, bileşik atama `+=`, `-=`, `*=`, `/=`, `//=`, `%=`, `**=`, `&=`, `|=`, `^=`, `<<=`, `>>=` ile yapılır; `x op= y`, `x = x op y` demektir ve sonucun tipi `x`'in tipi olmalıdır (`TR_Int` bir değişkene `/=` denetim hatasıdır, ileti `//=`'yi önerir). Tek istisna `TR_List`'tir: `+=` ve `*=` listeyi yerinde değiştirir, listeyi paylaşan her ad değişikliği görür (`TR_var m = l` iken `l += [2]` `m`'yi de uzatır); `TR_const` listede de geçerlidir (5.2). Hedef bir ad, indeks (`l[0]`) ya da alan (`p.x`) olabilir. Tanımlanmamış bir ada atama denetim hatasıdır.
+- *Test:* TR testi; yeni bileşik atamalar, tip kuralı ve listenin yerinde değişmesi uygulanınca TR testi.
 
-**5.5** `TR_if koşul { ... } TR_else TR_if koşul { ... } TR_else { ... }`: koşul `TR_Bool`'dur (3.10), gövde her zaman süslü parantez içindedir. `TR_if` ifade olarak da kullanılır: değeri çalışan bloğun son ifadesidir; o zaman `TR_else` zorunludur ve bütün dalların tipi aynıdır. `TR_elif` yoktur; ileti `TR_else TR_if`'i önerir.
+**5.5** `TR_if koşul { ... } TR_else TR_if koşul { ... } TR_else { ... }`: koşul `TR_Bool`'dur (3.10), gövde her zaman süslü parantez içindedir. `TR_if` ifade olarak da kullanılır: değeri çalışan bloğun son ifadesidir; o zaman `TR_else` zorunludur ve bütün dalların tipi aynıdır. `TR_elif` yoktur; ileti `TR_else TR_if`'i önerir. Python'un koşullu ifadesi (`a TR_if c TR_else b`) sözdizimi hatasıdır; ileti `TR_if c { a } TR_else { b }`'yi önerir.
 - *Test:* TR testi; zorunlu `TR_else` ve dal tipi uygulanınca denetleyicinin testi.
 
 ```tr

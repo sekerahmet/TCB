@@ -19,12 +19,12 @@ Kurallar: [`05_deyimler.md`](../05_deyimler.md). Bu dosya her kuralın emsalini 
 
 ### 5.4
 
-- *Emsal:* Python'da her ikili işlecin bileşik ataması vardır (`//=`, `**=`, `&=` ...). *Almadık:* Python'da bileşik atamanın değişkenin tipini değiştirebilmesi (`n /= 2` bir tam sayıyı ondalığa çevirir). ([Python 3.15](https://docs.python.org/3/reference/simple_stmts.html#augmented-assignment-statements))
-- *Gerekçe:* her işlecin bileşik biçimi olunca kodlama modeli alışkanlıkla doğru yazar; tipin değişmemesi 3.13'ün kalıcı tip kuralıdır, ileti doğru işleci söyler.
+- *Emsal:* Python'da her ikili işlecin bileşik ataması vardır (`//=`, `**=`, `&=` ...) ve değiştirilebilir nesnede yerinde çalışır: "when possible, the actual operation is performed in-place, meaning that rather than creating a new object and assigning that to the target, the old object is modified instead" (`m = l; l += [2]` `m`'yi de uzatır [ölçüldü: Python 3.12.6]). *Almadık:* Python'da bileşik atamanın değişkenin tipini değiştirebilmesi (`n /= 2` bir tam sayıyı ondalığa çevirir); bugünkü TR'nin listede `+=`'yi yeni liste kurup atayarak yapması (paylaşan ad eski listede kalıyor [ölçüldü]). ([Python 3.15](https://docs.python.org/3/reference/simple_stmts.html#augmented-assignment-statements))
+- *Gerekçe:* her işlecin bileşik biçimi olunca kodlama modeli alışkanlıkla doğru yazar; tipin değişmemesi 3.13'ün kalıcı tip kuralıdır, ileti doğru işleci söyler. Listeler başvuruyla paylaşıldığı için (3.6) Python'un yerinde `+=`'si TR'de de aynı sonucu verir; ayrı bir anlam, Python alışkanlığıyla yazılmış kodda sessiz bir fark olurdu (DENETİM, 2026-10-27).
 
 ### 5.5
 
-- *Emsal:* Rust'ta `if` bir ifadedir ("An `if` expression must have the same type in all situations"); Go, Rust ve Swift gövdeyi her zaman süslü parantezle yazar. *Almadık:* C ailesinde süslü parantezsiz gövde (Apple'ın 2014'teki "goto fail" güvenlik açığı tek satırlık gövdenin yanlış okunmasıydı); Python'un `elif`'i (TR'de `TR_else TR_if`). ([Rust 1.99 Reference](https://doc.rust-lang.org/reference/expressions/if-expr.html), [Go 1.27](https://go.dev/ref/spec#If_statements), [CVE-2014-1266](https://nvd.nist.gov/vuln/detail/CVE-2014-1266))
+- *Emsal:* Rust'ta `if` bir ifadedir ("An `if` expression must have the same type in all situations"); Go, Rust ve Swift gövdeyi her zaman süslü parantezle yazar. *Almadık:* C ailesinde süslü parantezsiz gövde (Apple'ın 2014'teki "goto fail" güvenlik açığı tek satırlık gövdenin yanlış okunmasıydı); Python'un `elif`'i (TR'de `TR_else TR_if`); Python'un `a if c else b`'si (aynı işin ikinci yazımı, 2.9; liste üretecinin `TR_if`'iyle de karışırdı). ([Rust 1.99 Reference](https://doc.rust-lang.org/reference/expressions/if-expr.html), [Go 1.27](https://go.dev/ref/spec#If_statements), [CVE-2014-1266](https://nvd.nist.gov/vuln/detail/CVE-2014-1266))
 - *Gerekçe:* değer veren `TR_if`'in her dalı bir değer vermek zorundadır; `TR_else`'siz bir ifade sessizce yokluk vermez.
 
 ### 5.6
