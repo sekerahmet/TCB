@@ -7,7 +7,7 @@ Her kuralın emsali ve gerekçesi: [`rationale/05_statements.md`](rationale/05_s
 **5.1** `TR_var x = ifade` bulunulan kapsamda yeni bir değişken tanımlar; ilk değer her zaman yazılır, tip ondan çıkar (3.13). Kısa yazım (`x := ifade`) yoktur: sözdizimi hatasıdır, ileti `TR_var`'ı önerir. Hiç yeniden atanmayan yerel `TR_var` uyarı verir, ileti `TR_const`'u önerir.
 - *Test:* TR testi; ilk değerin zorunluluğu, kısa yazımın hatası ve uyarı uygulanınca TR testi.
 
-**5.2** `TR_const x = ifade` yeniden atanamayan bir ad tanımlar; ona atama denetim hatasıdır. Sabit olan bağdır, değer değil: `TR_const l = [1]` iken `l.TR_append(2)` geçerli, `l = []` hatadır. Modülün en dışındaki sabitin ilk değeri sabit ifadedir (1.1).
+**5.2** `TR_const x = ifade` yeniden atanamayan bir ad tanımlar; ona atama denetim hatasıdır. Sabit olan bağdır, değer değil: `TR_const l = [1]` iken `l.TR_append(2)` geçerli, `l = []` hatadır. Tip açıklaması 3.13'teki gibi yazılır (`TR_const l: TR_List[TR_Int] = []`). Modülün en dışındaki sabitin ilk değeri sabit ifadedir (1.1).
 - *Test:* TR testi.
 
 **5.3** Çoklu tanım ve atama virgülle yapılır; sağdaki ifadelerin hepsi atamadan önce hesaplanır (`a, b = b, a` takas eder). Sağda tek bir liste varsa öğelerine açılır; öğe sayısı tutmazsa çalışma hatasıdır. Gerekmeyen değerin yerine `_` yazılır (`TR_var a, _ = b, c`); `_` bir ad değildir, okunamaz.
@@ -17,7 +17,7 @@ Her kuralın emsali ve gerekçesi: [`rationale/05_statements.md`](rationale/05_s
 # TR 4
 TR_var a, b = 1, 2
 a, b = b, a
-TR_const ad, soyad = ["Mustafa", "Kemal"]
+TR_const AD, SOYAD = ["Mustafa", "Kemal"]
 ```
 
 **5.4** Atama `=` ile, bileşik atama `+=`, `-=`, `*=`, `/=`, `//=`, `%=`, `**=`, `&=`, `|=`, `^=`, `<<=`, `>>=` ile yapılır; `x op= y`, `x = x op y` demektir ve sonucun tipi `x`'in tipi olmalıdır (`TR_Int` bir değişkene `/=` denetim hatasıdır, ileti `//=`'yi önerir). Tek istisna `TR_List`'tir: `+=` ve `*=` listeyi yerinde değiştirir, listeyi paylaşan her ad değişikliği görür (`TR_var m = l` iken `l += [2]` `m`'yi de uzatır); `TR_const` listede de geçerlidir (5.2); `*=` 4.10'un yineleme kuralına uyar. Hedef bir ad, indeks (`l[0]`) ya da alan (`p.x`) olabilir ve bir kez hesaplanır (`l[f()] += 1`'de `f` bir kez çağrılır). Tanımlanmamış bir ada atama denetim hatasıdır; ileti `TR_var`'ı önerir.
