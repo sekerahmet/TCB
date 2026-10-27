@@ -8,7 +8,7 @@ Bu bölümün kurallarına göre bugünkü durum ve yapılacaklar: [`docs/status
 - *Test:* Go: `TestProgramRunsTopToBottom`. Modül ve test dosyası kısmı uygulanınca denetleyicinin testleri.
 
 ```tr
-//! tr kodlu 3 dil=tr
+//! TR 4
 TR_fn_print("Merhaba, dünya!")
 ```
 

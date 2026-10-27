@@ -137,14 +137,19 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
 
 ## 2. Sözcük yapısı
 
-Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). Taslak: DENETİM ve Gemini'nin araştırması bekleniyor. Eski 2.9a (her dilde tek yazım) ve 2.11 (diller arası ad kuralı, $ad kaçışı) gösterim dilleri bölümüne gitti; o numaralar boş kalır, testleri o bölüm yazılınca taşınır. Eski 2.12 (çıplak ileti kodu) kalktı. Anlamı değişmeyen maddelerin bugünkü TR testi var; aşağıda yalnız değişen ya da eksik olanlar.
+Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). Taslak: DENETİM'den geçti (2026-10-27); Gemini'nin araştırması bekleniyor. Eski 2.9a (her dilde tek yazım) ve 2.11 (diller arası ad kuralı, $ad kaçışı) gösterim dilleri bölümüne gitti; o numaralar boş kalır. `tests/` altındaki 2.9a, 2.11 ve 2.12 numaralı testler, testler koşulmadan önce taşınır ya da silinir; yoksa her test numarasını bir kurala bağlayan kapı kalır. Eski 2.12 (çıplak ileti kodu) kalktı. Anlamı değişmeyen maddelerin bugünkü TR testi var; aşağıda yalnız değişen ya da eksik olanlar.
 
 ### 2.1
 
 - **Mevcut durum:** başlığı olmayan metin bugün Türkçe yazılmış sayılıp okunuyor. Başlık bugün `//! tr kodlu 3 dil=tr` biçiminde: bir Türkçe sözcük ve dosyanın dilini taşıyor. Programın sonucu bu dile bağlı: `TR_fn_print(TR_kw_true)` dil=tr ile "doğru", dil=en ile "true" yazdırıyor [ölçüldü].
 - **Yapılacaklar:** diskteki her dosya kodludur; başlıksız dosya çalışmaz, ileti kodlama yolunu söyler. Bilerek bozuk sınav dosyaları, belgelerdeki kod blokları ve Go testlerindeki TR metni kodlu biçime geçer.
-  - Başlık yalnız biçim sürümünü taşır; yeni yazımı seçilecek. Dosyanın dili kalkınca programın sonucu hiçbir dile bağlı olmaz (değer metni ve hata metni ilgili bölümlerde).
+  - Başlık `//! TR 4`; bugün tanınmıyor, dosya başlıksız sayılıp hata veriyor [ölçüldü]. 1. ve 2. bölümün kod blokları yeni başlıkla yazıldı; başlık uygulanana kadar belgelerdeki kod bloklarını çalıştıran testler kalır. Dosyanın dili kalkınca programın sonucu hiçbir dile bağlı olmaz (değer metni ve hata metni ilgili bölümlerde).
   - İlk satırdaki `#!` yok sayılır; bugün sözdizimi hatası veriyor [ölçüldü].
+
+### 2.1a
+
+- **Mevcut durum:** Yunan ve Latin harfli `θ_eski` "farklı yazı sistemlerinin harfleri karışık" hatası veriyor [ölçüldü].
+- **Yapılacaklar:** karışık ad yalnız başka yazı sisteminden gelen harflerin hepsi karıştırılabilen harflerse hata (UTS #39 benzerlik çizelgesi).
 
 ### 2.2
 
@@ -170,17 +175,25 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). Taslak: D
 
 - **Mevcut durum:** `0x1F` sözdizimi hatası veriyor [ölçüldü]; aralığı aşan tam sayı yazımı hata veriyor, ileti ondalık yazımı öneriyor [ölçüldü], kuralla aynı.
 - **Yapılacaklar:** `0x`, `0o`, `0b` ön ekleri ve ön ekten sonra `_`.
+  - `0X1F` bugün genel bir sözdizimi hatası veriyor ("')' bekleniyordu"), küçük harfli ön eki önermiyor [ölçüldü]; ileti `0x1F`'yi önerir.
 
 ### 2.6
 
-- **Mevcut durum:** `\u{...}` bilinmeyen kaçış dizisi hatası veriyor [ölçüldü].
+- **Mevcut durum:** `\u{...}` bilinmeyen kaçış dizisi hatası veriyor [ölçüldü]. Bilinen kaçışlar arasında `\'`, `\{` ve `\}` var.
 - **Yapılacaklar:** `\u{...}` kaçışı; bilinmeyen kaçış iletisi bilinenlere onu da ekler.
-  - Tek tırnaklı metin kalkar; depodaki kullanımlar çift tırnağa çevrilir.
+  - Tek tırnaklı metin kalkar, iletisi çift tırnağı önerir; depodaki kullanımlar çift tırnağa çevrilir.
+  - `\{` ve `\}` kaçışları kalkar (2.7).
+
+### 2.7
+
+- **Mevcut durum:** yerleştirme `{x}` ile yapılıyor; `"a \(1 + 2) b"` bilinmeyen kaçış dizisi hatası veriyor [ölçüldü].
+- **Yapılacaklar:** yerleştirme `\(x)` ile; `{` metinde sıradan karakter. Depodaki metinler çevrilir: `{x}` → `\(x)`, `\{` ve `\}` → `{` ve `}`.
 
 ### 2.9
 
-- **Mevcut durum:** `TR_kw_while` ve `TR_kw_default` çalışıyor.
+- **Mevcut durum:** `TR_kw_while` ve `TR_kw_default` çalışıyor [ölçüldü].
 - **Yapılacaklar:** ikisi kalkar; koşullu döngü `TR_kw_for` ve bir koşulla, varsayılan kol `_` ile yazılır; depodaki kullanımlar çevrilir.
+  - İkisi yazılırsa ileti TR'deki yazımı söyler.
 
 ### 2.12 (kalktı)
 
