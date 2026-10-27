@@ -26,4 +26,4 @@ Her karar bu işlerin hepsine göre verilir.
 
 **Modeller de yazar, insanlar da okur.** TR, en gelişmiş (frontier) dil ve kodlama modellerinin de rahatça kullanacağı bir dildir. Hata riski az, yüksek performanslı bir programlama dilidir. İnsanların anlaması için kod onların dillerine çevrilip okunur.
 
-**Kimlik kodlu dil.** Bu dilde her şey kimlik koduyla yazılır: dosyalar diskte, program içeride dilden bağımsız kimliklerle (`TR_fn_sum`) çalışır. İnsanların okuyabilmesi için kod Türkçeye, İngilizceye ya da başka bir dile çevrilir; ama hiçbir insan dilinde kod yazılmaz. Hiçbir dilin ayrıcalığı yoktur.
+**Kimlik kodlu dil.** Bu dilde her şey kimlik koduyla yazılır: dosyalar diskte, program içeride dilden bağımsız kimliklerle (`TR_sum`) çalışır. İnsanların okuyabilmesi için kod Türkçeye, İngilizceye ya da başka bir dile çevrilir; ama hiçbir insan dilinde kod yazılmaz. Hiçbir dilin ayrıcalığı yoktur.
