@@ -43,6 +43,8 @@ Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliy
 
 ## İnce ayar
 
+- **Ürün sürümü madde atfı sanılıyor; ürün adları kapalı bir listede.** 2026-10-27, ana oturum (dil tanımı 1. bölümün emsal bağlantıları). Komut: `go run ./tools/codegraph spec-refs` → `docs/spec/01_program.md:61 note [missing] no item 1.37` [ölçüldü]. Kaynak: `[Kubernetes 1.37](https://kubernetes.io/...)`; Kubernetes `tools/internal/specref/scan.go:320` `versionWords` listesinde yok. Beklenen: not yok (sürüm, atıf değil). Sonuç: planlama sınavı satır 97 (`contains: 0 note(s)`) kaldı; belgede Kubernetes'in kendi yazımıyla `v1.37` yapılarak geçildi. Aynı sınıf [hipotez, doğrulanmadı]: listede olmayan ürünün var olan bir madde numarasıyla sürümü (`[Mojo 1.2](...)`, `[Lightning 2.7](...)`) sessizce madde 1.2 ve 2.7'ye zayıf anma oluyor. İstenen genel çözüm: dil tanımı dışını gösteren bir bağlantının yazısındaki numara (`[Ad X.Y](http...)`) atıf sayılmaz; ürün listesine ad eklemek bu sınıfı kapatmaz. Koruyan test `TestProductVersionsAreNotItemReferences`'ın genişlemesi.
+
 - **`compares_value` noktalama gürültüsü.** 2026-10-26, CODEGRAPH bildirdi. Denetim: onay (satırlar bir kaymış: `other_os.go:43`). **Bekliyor: çekirdek değişikliği** (işleç alanlarının `lexer.TokenType` olması); CODEGRAPH'a gitmedi.
   - Komut: `go run ./tools/codegraph who-uses lexer.TokDot` → `compares_value (17)`, çoğu dosya yolu ve bayrak kodu. Beklenen: yalnız işleci kastedenler; tip süzgeci, AST'nin işleç alanları `TokenType` olduktan sonra.
 
