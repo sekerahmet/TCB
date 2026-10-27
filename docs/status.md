@@ -141,8 +141,9 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). Taslak: D
 
 ### 2.1
 
-- **Mevcut durum:** başlığı olmayan metin bugün Türkçe yazılmış sayılıp okunuyor.
+- **Mevcut durum:** başlığı olmayan metin bugün Türkçe yazılmış sayılıp okunuyor. Başlık bugün `//! tr kodlu 3 dil=tr` biçiminde: bir Türkçe sözcük ve dosyanın dilini taşıyor. Programın sonucu bu dile bağlı: `TR_fn_print(TR_kw_true)` dil=tr ile "doğru", dil=en ile "true" yazdırıyor [ölçüldü].
 - **Yapılacaklar:** diskteki her dosya kodludur; başlıksız dosya çalışmaz, ileti kodlama yolunu söyler. Bilerek bozuk sınav dosyaları, belgelerdeki kod blokları ve Go testlerindeki TR metni kodlu biçime geçer.
+  - Başlık yalnız biçim sürümünü taşır; yeni yazımı seçilecek. Dosyanın dili kalkınca programın sonucu hiçbir dile bağlı olmaz (değer metni ve hata metni ilgili bölümlerde).
   - İlk satırdaki `#!` yok sayılır; bugün sözdizimi hatası veriyor [ölçüldü].
 
 ### 2.2
