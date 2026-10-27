@@ -255,7 +255,10 @@ func tensorLoad(m *interp.VM, args []interp.Value, named map[string]interp.Value
 	decoded, tried := bind.ResolvePathTried(m, fpath)
 	var inputs []fileEntry
 	var readErr, osErr error
-	m.Blocking(func() { inputs, readErr, osErr = readFromFile(decoded) })
+	// Dosyadan yükleme programın durumunu değiştirmez: durdurma onu bırakır (1.5).
+	if waitErr := m.Abandonable(func() { inputs, readErr, osErr = readFromFile(decoded) }); waitErr != nil {
+		return nil, waitErr
+	}
 	if osErr != nil {
 		return nil, interp.ReadError(fn, fpath, messages.H2107, osErr, tried)
 	}

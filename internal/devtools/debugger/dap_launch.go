@@ -2,6 +2,7 @@ package debugger
 
 import (
 	"encoding/json"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/source"
@@ -64,6 +65,12 @@ func (s *dapServer) launch(msg *dapMessage) {
 		return
 	}
 
+	// Aktarılan modüller de çalışmadan önce denetlenir (1.3); hata varsa hiçbir satır çalışmaz.
+	if err := interp.CheckImportedModules(path, prog); err != nil {
+		s.launchFailed(msg, path, err, code)
+		return
+	}
+
 	machine := interp.New()
 	machine.SourceFile = path
 	machine.SourceCode = code
@@ -72,6 +79,14 @@ func (s *dapServer) launch(msg *dapMessage) {
 	machine.Err = dapOutput{s, "stderr"} // eşzamanlı görev hataları da hata ayıklama konsoluna
 	machine.Stdin = dapNoStdin{}
 	machine.SetArgs(a.Args)
+	// Argüman verilip programın en dışından ulaşılan bir komut_satırı çağrısı yoksa program
+	// çalışmaz (1.4): düzenleyicinin "args" ayarı da bu kurala bağlıdır.
+	if given := machine.Args(); len(given) > 0 && !machine.ReadsCommandLine(prog) {
+		s.output("stderr", "❌ "+messages.Text(messages.H8664, len(given), codes.NameRef(codes.FnCommandLine))+"\n")
+		s.respondErr(msg, messages.Text(messages.H8124, filepath.Base(path)))
+		s.event("terminated", nil)
+		return
+	}
 
 	if !a.NoDebug {
 		dbg := NewDebugger(path, code, a.StopOnEntry)
@@ -137,4 +152,16 @@ func (s *dapServer) start() {
 		s.event("exited", map[string]interface{}{"exitCode": end.Code})
 		s.event("terminated", nil)
 	}()
+}
+
+// launchFailed çalışmadan önceki bir hatayı (modül denetimi) hata ayıklama konsoluna yazar ve
+// oturumu bitirir.
+func (s *dapServer) launchFailed(msg *dapMessage, path string, err error, code string) {
+	text := "❌ " + messages.Text(messages.H8126) + "\n"
+	for _, m := range interp.ErrorItems(err, code) {
+		text += "  • " + m.Message + "\n" + turkish.IndentLines(m.Frame, "    ")
+	}
+	s.output("stderr", text)
+	s.respondErr(msg, messages.Text(messages.H8124, filepath.Base(path)))
+	s.event("terminated", nil)
 }

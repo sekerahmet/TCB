@@ -335,6 +335,12 @@ func startREPL() {
 			continue
 		}
 
+		// Satırın aktardığı modüller de çalışmadan önce denetlenir (1.3).
+		if err := interp.CheckImportedModules(machine.SourceFile, s.Program); err != nil {
+			writeRunError(machine, err, line)
+			continue
+		}
+
 		val, err := machine.Run(s.Program)
 		if err != nil {
 			writeRunError(machine, err, line)

@@ -117,6 +117,13 @@ func RunFile(fpath string, out io.Writer) Summary {
 		return summary
 	}
 
+	// Aktarılan modüller de testler yüklenmeden önce denetlenir (1.3).
+	if err := interp.CheckImportedModules(fpath, prog); err != nil {
+		writeLoadFailure(out, err, text)
+		summary.Unloadable++
+		return summary
+	}
+
 	machine := interp.New()
 	machine.Out = out
 	machine.Err = out // eşzamanlı görev hataları da raporda görünür
@@ -124,11 +131,7 @@ func RunFile(fpath string, out io.Writer) Summary {
 	machine.SourceCode = text
 	machine.SourceLanguage = ready.Language
 	if _, err := machine.Run(prog); err != nil {
-		fmt.Fprintln(out, "  ✗ "+messages.Text(messages.H8507))
-		for _, m := range interp.ErrorItems(err, text) {
-			fmt.Fprintf(out, "    • %s\n", m.Message)
-			fmt.Fprint(out, turkish.IndentLines(m.Frame, "      "))
-		}
+		writeLoadFailure(out, err, text)
 		summary.Unloadable++
 		return summary
 	}
@@ -156,6 +159,15 @@ func RunFile(fpath string, out io.Writer) Summary {
 		fmt.Fprintf(out, "  ✓ %s\n", t.Name)
 	}
 	return summary
+}
+
+// writeLoadFailure dosyanın yüklenemediğini (modül denetimi ya da üst düzey hata) ve hatayı yazar.
+func writeLoadFailure(out io.Writer, err error, text string) {
+	fmt.Fprintln(out, "  ✗ "+messages.Text(messages.H8507))
+	for _, m := range interp.ErrorItems(err, text) {
+		fmt.Fprintf(out, "    • %s\n", m.Message)
+		fmt.Fprint(out, turkish.IndentLines(m.Frame, "      "))
+	}
 }
 
 func writeError(out io.Writer, err error, source string) {

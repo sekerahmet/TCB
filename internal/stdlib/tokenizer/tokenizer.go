@@ -134,12 +134,15 @@ func load(m *interp.VM, args []interp.Value, named map[string]interp.Value) (int
 	var p *tokenize.Tokenizer
 	var err error
 	var info os.FileInfo
-	m.Blocking(func() {
+	// Dosyadan yükleme programın durumunu değiştirmez: durdurma onu bırakır (1.5).
+	if waitErr := m.Abandonable(func() {
 		info, err = os.Stat(path)
 		if err == nil && !info.IsDir() {
 			p, err = tokenize.Load(path)
 		}
-	})
+	}); waitErr != nil {
+		return nil, waitErr
+	}
 	if err != nil {
 		return nil, loadError(raw, err, tried)
 	}
