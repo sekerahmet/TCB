@@ -10,35 +10,35 @@ import (
 )
 
 // bindSource üye erişimleri, parametreler, adlı argümanlar ve komut_satırı anahtarları için bir proje.
-const bindSource = `yapı Dikkat {
+const bindSource = `TR_struct Dikkat {
     baş
     kv_baş
-    fonksiyon kurucu(boyut, baş, kv_baş = yok) {
-        kendi.baş = baş
-        kendi.kv_baş = kv_baş
+    TR_func TR_init(boyut, baş, kv_baş = TR_none) {
+        TR_self.baş = baş
+        TR_self.kv_baş = kv_baş
     }
-    fonksiyon say() {
-        sonuç kendi.baş
+    TR_func say() {
+        TR_return TR_self.baş
     }
 }
 
-fonksiyon yap(baş) {
-    değişken d = Dikkat(8, baş)
-    sonuç d.baş
+TR_func yap(baş) {
+    TR_var d = Dikkat(8, baş)
+    TR_return d.baş
 }
 
-fonksiyon gez(x) {
-    sonuç x.baş
+TR_func gez(x) {
+    TR_return x.baş
 }
 
-fonksiyon gölge(baş) {
-    değişken baş = 3
-    sonuç baş
+TR_func gölge(baş) {
+    TR_var baş = 3
+    TR_return baş
 }
 
-değişken a = Dikkat(8, 2, kv_baş: 1)
-değişken e = yap(baş: 4)
-değişken ayar = komut_satırı({baş: 8, adım: 1}, açıklamalar: {baş: "baş sayısı"})
+TR_var a = Dikkat(8, 2, kv_baş: 1)
+TR_var e = yap(baş: 4)
+TR_var ayar = TR_command_line({baş: 8, TR_step: 1}, TR_descriptions: {baş: "baş sayısı"})
 `
 
 // uses bir düğümün başvurularını "rol@satır:sütun/güven/dayanak" olarak sıralı verir.
@@ -78,7 +78,7 @@ func TestMemberAccessBindsToTheField(t *testing.T) {
 
 func TestParameterAndNamedArgumentOccurrences(t *testing.T) {
 	r := buildSource(t, bindSource)
-	if n := r.Node("parameter:m.tr#Dikkat.TR_ctx_init.kv_baş"); n == nil || n.Signature != "kv_baş = yok" {
+	if n := r.Node("parameter:m.tr#Dikkat.TR_ctx_init.kv_baş"); n == nil || n.Signature != "kv_baş = TR_none" {
 		t.Errorf("the default value text is part of the signature: %+v", n)
 	}
 	wantUses(t, r, "parameter:m.tr#Dikkat.TR_ctx_init.baş",
@@ -127,9 +127,9 @@ func TestNameOnlyGuessesStayOutOfReferences(t *testing.T) {
 func TestOptionNameFollowsTheFilesLanguage(t *testing.T) {
 	dir := t.TempDir()
 	for name, text := range map[string]string{
-		"en.tr":  "//! tr kodlu 3 dil=en\nTR_kw_var config = TR_fn_command_line({TR_mem_step: 100, run: \"trial\"}, TR_arg_descriptions: {TR_mem_step: \"steps\"})\n",
-		"en2.tr": "//! tr kodlu 3 dil=en\nTR_kw_var c = TR_fn_command_line({adım: 1, TR_mem_step: 2, run: 3})\n",
-		"tr.tr":  "değişken ayar = komut_satırı({adım: 100, run: \"deneme\"})\n",
+		"en.tr":  "# TR 4\nTR_var config = TR_command_line({TR_step: 100, run: \"trial\"}, TR_descriptions: {TR_step: \"steps\"})\n",
+		"en2.tr": "# TR 4\nTR_var c = TR_command_line({adım: 1, TR_step: 2, run: 3})\n",
+		"tr.tr":  "TR_var ayar = TR_command_line({TR_step: 100, run: \"deneme\"})\n",
 	} {
 		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644); err != nil {
 			t.Fatal(err)
@@ -162,14 +162,14 @@ var memberGuessFiles = map[string]string{
 		for i := 1; i <= 5; i++ {
 			fmt.Fprintf(&b, "yapı Katman%d {\n    ağırlık = %d\n    fonksiyon ileri() {\n        sonuç kendi.ağırlık\n    }\n", i, i)
 			if i <= 2 {
-				b.WriteString("    fonksiyon geri() {\n        sonuç 0\n    }\n")
+				b.WriteString("    TR_func geri() {\n        TR_return 0\n    }\n")
 			}
 			b.WriteString("}\n")
 		}
 		return b.String()
 	}(),
-	"kullan.tr": "aktar \"katman\"\n\nfonksiyon çalış(p) {\n    yazdır(p.ileri())\n    p.ağırlık = 2\n    yazdır(p.geri())\n}\n",
-	"başka.tr":  "fonksiyon başka(p) {\n    yazdır(p.ileri())\n    yazdır(p.ağırlık)\n}\n",
+	"kullan.tr": "TR_import \"katman\"\n\nTR_func çalış(p) {\n    TR_print(p.TR_forward())\n    p.TR_weight = 2\n    TR_print(p.geri())\n}\n",
+	"başka.tr":  "TR_func başka(p) {\n    TR_print(p.TR_forward())\n    TR_print(p.TR_weight)\n}\n",
 }
 
 // Kural: alıcısı bilinmeyen üye erişimi (`p.ileri()`, `p.ağırlık = 2`) aynı adlı ve erişimin dosyasından görünen her

@@ -83,14 +83,14 @@ func TestMembersMatchDictionary(t *testing.T) {
 	m := interp.New()
 	m.Err = io.Discard // açılan ilerleme çubuğu test çıktısına yazmasın
 	setup := strings.Join([]string{
-		`değişken u_metin = "abc"`,
-		`değişken u_liste = [1, 2]`,
-		`değişken u_sozluk = {"a": 1}`,
-		`değişken u_tensor = tensör([[1.0, 2.0]], türev_izle: doğru)`,
-		`değişken u_iyilestirici = SGD([u_tensor])`,
+		`TR_var u_metin = "abc"`,
+		`TR_var u_liste = [1, 2]`,
+		`TR_var u_sozluk = {"a": 1}`,
+		`TR_var u_tensor = TR_tensor([[1.0, 2.0]], TR_requires_grad: TR_true)`,
+		`TR_var u_iyilestirici = TR_SGD([u_tensor])`,
 		`değişken u_parcalayici = parçalayıcı_yükle("` + filepath.ToSlash(reporoot.Path("internal/compute/tokenize/testdata/tokenizer_byte_bpe.json")) + `")`,
 		`değişken u_yol = yol("` + filepath.ToSlash(reporoot.Path("go.mod")) + `")`,
-		`değişken u_ilerleme = ilerleme(3)`,
+		`TR_var u_ilerleme = TR_progress(3)`,
 	}, "\n")
 	if _, err := runSame(t, m, setup); err != nil {
 		t.Fatal(err)
@@ -112,7 +112,7 @@ func TestMembersMatchDictionary(t *testing.T) {
 			t.Errorf("üye %s hiçbir tipte karşılanmıyor", k)
 		}
 	}
-	if v, err := runSame(t, m, "değişken web_sunucu = 3\nweb_sunucu + 1"); err != nil || v.Inspect() != "4" {
+	if v, err := runSame(t, m, "TR_var web_sunucu = 3\nweb_sunucu + 1"); err != nil || v.Inspect() != "4" {
 		t.Errorf("dilde olmayan ad değişken adı olabilmeli: %v %v", v, err)
 	}
 }
@@ -123,8 +123,8 @@ func TestEngineMemberASCIISpellingSuggestsTurkish(t *testing.T) {
 	m := interp.New()
 	m.Err = io.Discard
 	setup := strings.Join([]string{
-		`değişken u_tensor = tensör([[1.0, 2.0]], türev_izle: doğru)`,
-		`değişken u_iyilestirici = SGD([u_tensor])`,
+		`TR_var u_tensor = TR_tensor([[1.0, 2.0]], TR_requires_grad: TR_true)`,
+		`TR_var u_iyilestirici = TR_SGD([u_tensor])`,
 		`değişken u_parcalayici = parçalayıcı_yükle("` + filepath.ToSlash(reporoot.Path("internal/compute/tokenize/testdata/tokenizer_byte_bpe.json")) + `")`,
 	}, "\n")
 	if _, err := runSame(t, m, setup); err != nil {

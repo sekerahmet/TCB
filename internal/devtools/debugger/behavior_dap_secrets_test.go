@@ -16,10 +16,10 @@ func init() { interp.AddEngine(func(v *interp.VM) { process.Register(v) }) }
 // değişkenler, izleme ifadesi, İzleme Masası tablosu ve konsol çıktısı.
 func TestDAPSecretMasked(t *testing.T) {
 	const secret = "hf_dapgizli77"
-	path := writeProgram(t, `değişken ayar = komut_satırı({hf_token: ""})
-değişken kayıt = {belirteç: ayar.hf_token, adım: 3}
-yazdır("belirteç", ayar.hf_token)
-yazdır("bitti")
+	path := writeProgram(t, `TR_var ayar = TR_command_line({hf_token: ""})
+TR_var kayıt = {belirteç: ayar.hf_token, TR_step: 3}
+TR_print("belirteç", ayar.hf_token)
+TR_print("bitti")
 `)
 	c := startDAP(t)
 	c.request("initialize", map[string]interface{}{"adapterID": "tr"})

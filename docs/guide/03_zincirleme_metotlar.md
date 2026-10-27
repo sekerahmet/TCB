@@ -25,12 +25,12 @@ Her metodun ve yerleşiğin imzası ve örneği [`docs/codes.md`](../codes.md)'d
 Bir çağrının sonuna aynı satırda yazılan `{ ... }` bloğu, tek parametresi `TR_ctx_it` olan bir fonksiyondur. `TR_ctx_it` o anki elemanı gösterir:
 
 ```tr
-//! tr kodlu 3 dil=tr
-TR_kw_var sayılar = [1, 2, 3, 4]
-TR_kw_var personel = [{"ad": "Ali"}, {"ad": "Ayşe"}]
-sayılar.TR_mem_filter { TR_ctx_it > 2 }.TR_mem_map { TR_ctx_it * TR_ctx_it }   // sayılar.filtrele((x) => x > 2)... ile aynı
-personel.TR_mem_map { TR_ctx_it["ad"] }
-sayılar.TR_mem_filter { TR_ctx_it % 2 == 0 } |> TR_fn_sum      // boru yalnızca fonksiyonlarla: toplam(sayılar.filtrele {...})
+# TR 4
+TR_var sayılar = [1, 2, 3, 4]
+TR_var personel = [{"ad": "Ali"}, {"ad": "Ayşe"}]
+sayılar.TR_filter { TR_it > 2 }.TR_map { TR_it * TR_it }   # sayılar.filtrele((x) => x > 2)... ile aynı
+personel.TR_map { TR_it["ad"] }
+sayılar.TR_filter { TR_it % 2 == 0 } |> TR_sum      # boru yalnızca fonksiyonlarla: toplam(sayılar.filtrele {...})
 ```
 
 - İç içe bloklarda `TR_ctx_it` en içteki elemanı gösterir: `[[1, 2]].TR_mem_map { TR_ctx_it.TR_mem_map { TR_ctx_it * 10 } }`.

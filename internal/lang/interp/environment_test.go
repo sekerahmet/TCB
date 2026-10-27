@@ -16,7 +16,7 @@ func TestDeferErrorInProgramAndTask(t *testing.T) {
 	m := New()
 	m.Out = &out
 	m.Err = &failure
-	prog := parser.New(source.TextLexer("ertele { fırlat \"üst düzey ertele\" }\neşzamanlı {\n    ertele { fırlat \"görev ertelesi\" }\n}\nyazdır(\"gövde\")\n")).ParseProgram()
+	prog := parser.New(source.TextLexer("TR_defer { TR_throw \"üst düzey ertele\" }\nTR_async {\n    TR_defer { TR_throw \"görev ertelesi\" }\n}\nTR_print(\"gövde\")\n")).ParseProgram()
 	_, err := m.Run(prog)
 	if err == nil || err.Error() != "Satır 1: üst düzey ertele" {
 		t.Fatalf("programın ertele hatası dönmeli: %v", err)
@@ -33,9 +33,9 @@ func TestUncaughtThrowStopsWithPosition(t *testing.T) {
 	var out, failure bytes.Buffer
 	m := New()
 	m.Out, m.Err = &out, &failure
-	prog := parser.New(source.TextLexer("fonksiyon f() {\n    fırlat \"sıfır olamaz\"\n}\n" +
-		"dene { f() } yakala e { yazdır(e) }\n" +
-		"eşzamanlı {\n    fırlat \"kötü öğe\"\n}\nbekle_hepsi()\nf()\n")).ParseProgram()
+	prog := parser.New(source.TextLexer("TR_func f() {\n    TR_throw \"sıfır olamaz\"\n}\n" +
+		"TR_try { f() } TR_catch e { TR_print(e) }\n" +
+		"TR_async {\n    TR_throw \"kötü öğe\"\n}\nTR_wait_all()\nf()\n")).ParseProgram()
 	_, err := m.Run(prog)
 	if line, _, ok := messages.Pos(err); !ok || line != 2 || err.Error() != "Satır 2: sıfır olamaz" {
 		t.Errorf("yakalanmayan fırlat satırıyla durmalı: %v (satır %d)", err, line)

@@ -139,23 +139,23 @@ func TestUnaryWideEdges(t *testing.T) {
 		f    func(*Tensor) *Tensor
 		x, y float32
 	}{
-		{"asin(2)", (*Tensor).Asin, 2, nan32},
-		{"acos(-1.5)", (*Tensor).Acos, -1.5, nan32},
-		{"asin(1)", (*Tensor).Asin, 1, float32(math.Pi / 2)},
-		{"acos(-1)", (*Tensor).Acos, -1, float32(math.Pi)},
+		{"TR_asin(2)", (*Tensor).Asin, 2, nan32},
+		{"TR_acos(-1.5)", (*Tensor).Acos, -1.5, nan32},
+		{"TR_asin(1)", (*Tensor).Asin, 1, float32(math.Pi / 2)},
+		{"TR_acos(-1)", (*Tensor).Acos, -1, float32(math.Pi)},
 		{"atan(+sonsuz)", (*Tensor).Atan, posInf32, float32(math.Pi / 2)},
-		{"log1p(-1)", (*Tensor).Log1p, -1, negInf32},
-		{"log1p(-2)", (*Tensor).Log1p, -2, nan32},
-		{"log1p(1e-10)", (*Tensor).Log1p, 1e-10, 1e-10},
-		{"log2(8)", (*Tensor).Log2, 8, 3},
-		{"log2(0)", (*Tensor).Log2, 0, negInf32},
-		{"log10(1000)", (*Tensor).Log10, 1000, 3},
-		{"log10(-1)", (*Tensor).Log10, -1, nan32},
-		{"expm1(1e-10)", (*Tensor).Expm1, 1e-10, 1e-10},
-		{"expm1(-sonsuz)", (*Tensor).Expm1, negInf32, -1},
-		{"sinh(89)", (*Tensor).Sinh, 89, float32(math.Sinh(89))},
-		{"cosh(-sonsuz)", (*Tensor).Cosh, negInf32, posInf32},
-		{"silu(-sonsuz)", (*Tensor).Silu, negInf32, 0},
+		{"TR_log1p(-1)", (*Tensor).Log1p, -1, negInf32},
+		{"TR_log1p(-2)", (*Tensor).Log1p, -2, nan32},
+		{"TR_log1p(1e-10)", (*Tensor).Log1p, 1e-10, 1e-10},
+		{"TR_log2(8)", (*Tensor).Log2, 8, 3},
+		{"TR_log2(0)", (*Tensor).Log2, 0, negInf32},
+		{"TR_log10(1000)", (*Tensor).Log10, 1000, 3},
+		{"TR_log10(-1)", (*Tensor).Log10, -1, nan32},
+		{"TR_expm1(1e-10)", (*Tensor).Expm1, 1e-10, 1e-10},
+		{"TR_expm1(-sonsuz)", (*Tensor).Expm1, negInf32, -1},
+		{"TR_sinh(89)", (*Tensor).Sinh, 89, float32(math.Sinh(89))},
+		{"TR_cosh(-sonsuz)", (*Tensor).Cosh, negInf32, posInf32},
+		{"TR_silu(-sonsuz)", (*Tensor).Silu, negInf32, 0},
 		{"silu(+sonsuz)", (*Tensor).Silu, posInf32, posInf32},
 		{"gelu_exact(-sonsuz)", (*Tensor).GeluExact, negInf32, 0},
 		{"gelu_exact(+sonsuz)", (*Tensor).GeluExact, posInf32, posInf32},
@@ -287,8 +287,8 @@ func TestAtan2(t *testing.T) {
 	y := New([]float32{0, 1}, 2).SetRequiresGrad(true)
 	x := New([]float32{0, 1}, 2).SetRequiresGrad(true)
 	Atan2(y, x).SumAll().Backward()
-	nanSame(t, "atan2 (0,0) gradyanı y", y.Grad().Data(), []float32{0, 0.5})
-	nanSame(t, "atan2 (0,0) gradyanı x", x.Grad().Data(), []float32{0, -0.5})
+	nanSame(t, "TR_atan2 (0,0) gradyanı y", y.Grad().Data(), []float32{0, 0.5})
+	nanSame(t, "TR_atan2 (0,0) gradyanı x", x.Grad().Data(), []float32{0, -0.5})
 }
 
 func TestCompareAndWhere(t *testing.T) {

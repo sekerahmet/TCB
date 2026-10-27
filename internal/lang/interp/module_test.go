@@ -43,7 +43,7 @@ func TestModuleTopLevelReturnError(t *testing.T) {
 	root := t.TempDir()
 	runInDir(t, root)
 	out, err := runWithModules(t, root, map[string]string{
-		"m1.tr":  "yazdır(\"modül çalıştı\")\nsonuç 5\n",
+		"m1.tr":  "TR_print(\"modül çalıştı\")\nTR_return 5\n",
 		"ana.tr": "yazdır(\"başla\")\naktar \"m1\"\nyazdır(\"aktardıktan sonra\")\n",
 	})
 	if err == nil || !strings.Contains(err.Error(), "'sonuç' modülün üst düzeyinde kullanılamaz") {
@@ -59,8 +59,8 @@ func TestModulePassesTypeCheck(t *testing.T) {
 	root := t.TempDir()
 	runInDir(t, root)
 	out, err := runWithModules(t, root, map[string]string{
-		"m5.tr":  "değişken t: Tam = \"metin\"\nfonksiyon f(a: Tam): Tam { sonuç \"yanlış tip\" }\nyazdır(\"m5 çalıştı\")\n",
-		"ana.tr": "aktar \"m5\"\n",
+		"m5.tr":  "TR_var t: TR_Int = \"metin\"\nTR_func f(a: TR_Int): TR_Int { TR_return \"yanlış tip\" }\nTR_print(\"m5 çalıştı\")\n",
+		"ana.tr": "TR_import \"m5\"\n",
 	})
 	if err == nil {
 		t.Fatalf("tip hatalı modül çalıştı:\n%s", out)
@@ -75,7 +75,7 @@ func TestModulePassesTypeCheck(t *testing.T) {
 		t.Error("tip hatalı modülün hiçbir satırı çalışmamalı")
 	}
 	// Maddeler: aktar satırı ana dosyadan, her tip hatası modülün kaynağından çerçevelenir.
-	entries := ErrorItems(err, "aktar \"m5\"\n")
+	entries := ErrorItems(err, "TR_import \"m5\"\n")
 	if len(entries) != 3 || !strings.Contains(entries[0].Frame, "1 | aktar \"m5\"") ||
 		!strings.Contains(entries[1].Frame, "1 | değişken t: Tam = \"metin\"") ||
 		!strings.Contains(entries[2].Frame, "2 | fonksiyon f(a: Tam)") {
@@ -88,7 +88,7 @@ func TestModuleRuntimeErrorWithOwnFile(t *testing.T) {
 	root := t.TempDir()
 	runInDir(t, root)
 	_, err := runWithModules(t, root, map[string]string{
-		"m2.tr":  "değişken x = 1\n\ndeğişken z = x / 0\n",
+		"m2.tr":  "TR_var x = 1\n\nTR_var z = x / 0\n",
 		"ana.tr": "yazdır(1)\n\naktar \"m2\"\n",
 	})
 	var mh *ModuleError
@@ -104,16 +104,16 @@ func TestModuleRuntimeErrorWithOwnFile(t *testing.T) {
 	root2 := t.TempDir()
 	runInDir(t, root2)
 	_, err = runWithModules(t, root2, map[string]string{
-		"lib.tr": "fonksiyon böl(a) {\n    sonuç a / 0\n}\n",
-		"ana.tr": "aktar \"lib\"\nyazdır(\"x\")\nböl(1)\n",
+		"lib.tr": "TR_func böl(a) {\n    TR_return a / 0\n}\n",
+		"ana.tr": "TR_import \"lib\"\nTR_print(\"x\")\nböl(1)\n",
 	})
 	if err == nil || !strings.HasPrefix(err.Error(), "lib.tr, Satır 2: Sıfıra bölme hatası") {
 		t.Fatalf("lib.tr'nin satırı bekleniyordu: %v", err)
 	}
 	// Modülün geri çağırdığı ana program fonksiyonunun hatası ana dosyaya ait kalır.
 	_, err = runWithModules(t, root2, map[string]string{
-		"uygula.tr": "fonksiyon uygula(f) {\n    sonuç f()\n}\n",
-		"ana.tr":    "aktar \"uygula\"\nfonksiyon g() {\n    sonuç 1 / 0\n}\nuygula(g)\n",
+		"uygula.tr": "TR_func uygula(f) {\n    TR_return f()\n}\n",
+		"ana.tr":    "TR_import \"uygula\"\nTR_func g() {\n    TR_return 1 / 0\n}\nuygula(g)\n",
 	})
 	if err == nil || !strings.HasSuffix(strings.SplitN(err.Error(), ",", 2)[0], "ana.tr") || !strings.Contains(err.Error(), "Satır 3: Sıfıra bölme") {
 		t.Fatalf("hata ana.tr'nin 3. satırına ait olmalı: %v", err)
@@ -126,7 +126,7 @@ func TestConcurrentSameModule(t *testing.T) {
 	root := t.TempDir()
 	runInDir(t, root)
 	out, err := runWithModules(t, root, map[string]string{
-		"m3.tr":  "yazdır(\"m3 yükleniyor\")\nbekle(0.1)\ndeğişken hazır = doğru\n",
+		"m3.tr":  "TR_print(\"m3 yükleniyor\")\nTR_sleep(0.1)\nTR_var hazır = TR_true\n",
 		"ana.tr": "eşzamanlı { aktar \"m3\"; yazdır(\"A\", hazır) }\neşzamanlı { aktar \"m3\"; yazdır(\"B\", hazır) }\nbekle_hepsi()\n",
 	})
 	if err != nil {
@@ -137,9 +137,9 @@ func TestConcurrentSameModule(t *testing.T) {
 	}
 	// Gerçek döngü yine hatadır.
 	_, err = runWithModules(t, root, map[string]string{
-		"a.tr":   "aktar \"b\"\n",
-		"b.tr":   "aktar \"a\"\n",
-		"ana.tr": "aktar \"a\"\n",
+		"a.tr":   "TR_import \"b\"\n",
+		"b.tr":   "TR_import \"a\"\n",
+		"ana.tr": "TR_import \"a\"\n",
 	})
 	if !messages.Has(err, messages.H2481) && !messages.Has(err, messages.H2483) {
 		t.Fatalf("döngüsel aktarım hatası bekleniyordu: %v", err)
@@ -156,7 +156,7 @@ func TestSourceFileBelongsToTask(t *testing.T) {
 	mainSrc := filepath.Join(root, "A")
 	files := map[string]string{
 		"veri.txt":             "ana veri",
-		"alt/mod.tr":           "bekle(0.2)\nfonksiyon oku() {\n    sonuç dosya_oku(\"modul_verisi.txt\")\n}\n",
+		"alt/mod.tr":           "TR_sleep(0.2)\nTR_func oku() {\n    TR_return TR_read_file(\"modul_verisi.txt\")\n}\n",
 		"alt/modul_verisi.txt": "modül verisi",
 		"ana.tr":               "eşzamanlı { bekle(0.05); yazdır(dosya_oku(\"veri.txt\")) }\naktar \"alt/mod\"\nbekle_hepsi()\nyazdır(oku())\n",
 	}
@@ -204,7 +204,7 @@ func TestImportInFunctionDoesNotLeakBetweenCalls(t *testing.T) {
 	root := t.TempDir()
 	runInDir(t, root)
 	out, err := runWithModules(t, root, map[string]string{
-		"m.tr": "değişken ad = \"m\"\n",
+		"m.tr": "TR_var ad = \"m\"\n",
 		"ana.tr": `
 fonksiyon takma(i) {
     değişken önce = "yok"

@@ -1,13 +1,14 @@
-// Hata 23 — Döngü dışında devam.
-// İleti kodu: H0100
-// Ne olur: Program hiç çalışmaz; ileti devam'ın yalnızca döngü içinde kullanılabildiğini söyler.
-// Neden: devam ve çık döngülere aittir.
-// Düzeltilmiş hâli:
-//     döngü i içinde 1..=3 {
-//         eğer i == 2 { devam }
-//         yazdır(i)
-//     }
-// Çalıştırma (proje kökünden): tr examples/tr/hatalar/23_devam_disinda.tr   (çıkış kodu 1)
+# TR 4
+# Hata 23 — Döngü dışında devam.
+# İleti kodu: H0100
+# Ne olur: Program hiç çalışmaz; ileti devam'ın yalnızca döngü içinde kullanılabildiğini söyler.
+# Neden: devam ve çık döngülere aittir.
+# Düzeltilmiş hâli:
+#     döngü i içinde 1..=3 {
+#         eğer i == 2 { devam }
+#         yazdır(i)
+#     }
+# Çalıştırma (proje kökünden): tr examples/tr/hatalar/23_devam_disinda.tr   (çıkış kodu 1)
 
-yazdır("önce")
-devam
+TR_print("önce")
+TR_continue

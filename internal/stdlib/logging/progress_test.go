@@ -67,9 +67,9 @@ değişken ç = ilerleme(100, günlük: g)`); err != nil {
 func TestProgressStepAndErrors(t *testing.T) {
 	setClock(t)
 	m, _ := newVM(t, t.TempDir())
-	v, err := run(t, m, `değişken ç = ilerleme(10)
-ç.güncelle(adım: 7)
-ç.güncelle()
+	v, err := run(t, m, `TR_var ç = TR_progress(10)
+ç.TR_update(TR_step: 7)
+ç.TR_update()
 ç`)
 	if err != nil || v.Inspect() != "İlerleme(adım 8/10)" {
 		t.Fatalf("adım: ile sürdürme: %v %v", v, err)
@@ -82,8 +82,8 @@ func TestProgressStepAndErrors(t *testing.T) {
 		{`ç.güncelle(adım: -1)`, messages.H7315},
 		{`ç.güncelle({adım: 3})`, messages.H7321},
 		{`ç.güncelle({"rate": 3})`, messages.H7321},
-		{`ilerleme(0)`, messages.H7313},
-		{`ilerleme(10, günlük: 5)`, messages.H7314},
+		{`TR_progress(0)`, messages.H7313},
+		{`TR_progress(10, TR_log: 5)`, messages.H7314},
 		{`ç.durdur(1)`, messages.H2012},
 	} {
 		if _, err := run(t, m, d.code); !messages.Has(err, d.want) {
@@ -91,12 +91,12 @@ func TestProgressStepAndErrors(t *testing.T) {
 		}
 	}
 	// Argüman tipi hatası henüz kodlu değil (interp).
-	if _, err := run(t, m, `ç.güncelle(5)`); err == nil || !strings.Contains(err.Error(), "1. argüman olarak Sözlük bekler") {
+	if _, err := run(t, m, `ç.güncelle(5)`); err == nil || !strings.Contains(err.Error(), "1. argüman olarak TR_Dict bekler") {
 		t.Errorf("argüman tipi hatası bekleniyordu: %v", err)
 	}
 	// Toplamsız sayaç: kalan süre yerine geçen süre.
-	if v, err := run(t, m, `değişken s = ilerleme()
-s.güncelle(); s.güncelle(); s`); err != nil || v.Inspect() != "İlerleme(adım 2)" {
+	if v, err := run(t, m, `TR_var s = TR_progress()
+s.TR_update(); s.TR_update(); s`); err != nil || v.Inspect() != "İlerleme(adım 2)" {
 		t.Errorf("sayaç: %v %v", v, err)
 	}
 }
@@ -107,7 +107,7 @@ func TestProgressTerminal(t *testing.T) {
 	t.Cleanup(logging.FakeTerminal(100))
 	s := setClock(t)
 	m, w := newVM(t, t.TempDir())
-	if _, err := run(t, m, `değişken ç = ilerleme(4)`); err != nil {
+	if _, err := run(t, m, `TR_var ç = TR_progress(4)`); err != nil {
 		t.Fatal(err)
 	}
 	step := func(code string) {
@@ -118,7 +118,7 @@ func TestProgressTerminal(t *testing.T) {
 	}
 	step(`ç.güncelle({kayıp: 2.0})`) // çizilir
 	step(`ç.güncelle({kayıp: 1.5})`) // 100 ms dolmadı: çizilmez
-	step(`yazdır("ara")`)            // sil, yaz, tazelenmiş satırı yeniden çiz
+	step(`TR_print("ara")`)          // sil, yaz, tazelenmiş satırı yeniden çiz
 	s.advance(time.Second)
 	step(`ç.güncelle({kayıp: 1.0})`) // çizilir; hız 1 saniyede 3 adım
 	step(`ç.güncelle({kayıp: 0.5})`) // bitti: özet
@@ -133,7 +133,7 @@ func TestProgressTerminal(t *testing.T) {
 		t.Errorf("terminal çıktısı:\n%q\nbeklenen\n%q", got, want)
 	}
 	// Çubuk bitince canlı satır kalkar: yazdır doğrudan yazar.
-	step(`yazdır("son")`)
+	step(`TR_print("son")`)
 	if !strings.HasSuffix(w.String(), "\nson\n") {
 		t.Errorf("çubuk bittikten sonra yazdır doğrudan yazmalı: %q", w.String())
 	}
@@ -150,8 +150,8 @@ func TestStepHook(t *testing.T) {
 		steps = append(steps, a.Step)
 	})
 	t.Cleanup(func() { logging.SetStepHook(nil) })
-	if _, err := run(t, m, `değişken ç = ilerleme(3)
-döngü i içinde 0..3 { ç.güncelle() }`); err != nil {
+	if _, err := run(t, m, `TR_var ç = TR_progress(3)
+TR_for i TR_in 0..3 { ç.TR_update() }`); err != nil {
 		t.Fatal(err)
 	}
 	if len(steps) != 3 || steps[0] != 1 || steps[2] != 3 {
@@ -165,8 +165,8 @@ func TestJobStatus(t *testing.T) {
 	t.Setenv("TR_IS_KLASORU", job)
 	t.Cleanup(logging.FakeTerminal(60)) // iş kipinde terminal kullanılmaz
 	m, w := newVM(t, t.TempDir())
-	if _, err := run(t, m, `değişken ç = ilerleme(2)
-ç.güncelle({kayıp: 0.25})`); err != nil {
+	if _, err := run(t, m, `TR_var ç = TR_progress(2)
+ç.TR_update({TR_loss: 0.25})`); err != nil {
 		t.Fatal(err)
 	}
 	var d map[string]any
@@ -195,8 +195,8 @@ func TestJobStatus(t *testing.T) {
 func TestCloseAllFinishesBar(t *testing.T) {
 	setClock(t)
 	m, w := newVM(t, t.TempDir())
-	if _, err := run(t, m, `değişken ç = ilerleme(10)
-ç.güncelle({kayıp: 3.25})`); err != nil {
+	if _, err := run(t, m, `TR_var ç = TR_progress(10)
+ç.TR_update({TR_loss: 3.25})`); err != nil {
 		t.Fatal(err)
 	}
 	logging.CloseAll()
@@ -240,9 +240,9 @@ func TestNestedProgressRedrawsOuter(t *testing.T) {
 	s := setClock(t)
 	m, w := newVM(t, t.TempDir())
 	for _, code := range []string{
-		`değişken dış = ilerleme(3)`,
+		`TR_var dış = TR_progress(3)`,
 		`dış.güncelle({kayıp: 9.0})`,
-		`değişken iç = ilerleme(2)`,
+		`TR_var iç = TR_progress(2)`,
 		`iç.güncelle()`,
 		`dış.güncelle({kayıp: 7.0})`, // iç çubuk görünürken: yalnızca işaretlenir
 		`iç.güncelle()`,              // iç biter: dış yeniden çizilir

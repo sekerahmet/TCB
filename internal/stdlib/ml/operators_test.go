@@ -12,12 +12,12 @@ import (
 // Kural (dil tanımı 15.49): iki tarafın da genişlediği yayınlama programın hata akışına bir
 // kez uyarı yazar (işlem ve şekil çifti başına); tek taraflı yayınlamada uyarı yoktur.
 func TestBroadcastWarning(t *testing.T) {
-	o := trrun.MustExecChecked(t, `değişken a = sıfırlar([4, 1])
-değişken b = sıfırlar([4])
-döngü i içinde 0..3 { değişken c = a + b }
-yazdır((a - b).şekil)
-değişken d = sıfırlar([2, 3]) + sıfırlar([3])
-değişken e = sıfırlar([5, 3]) * sıfırlar([1, 3])`)
+	o := trrun.MustExecChecked(t, `TR_var a = TR_zeros([4, 1])
+TR_var b = TR_zeros([4])
+TR_for i TR_in 0..3 { TR_var c = a + b }
+TR_print((a - b).TR_shape)
+TR_var d = TR_zeros([2, 3]) + TR_zeros([3])
+TR_var e = TR_zeros([5, 3]) * TR_zeros([1, 3])`)
 	if o.Out != "[4, 4]\n" {
 		t.Fatalf("çıktı: %q", o.Out)
 	}
@@ -32,7 +32,7 @@ değişken e = sıfırlar([5, 3]) * sıfırlar([1, 3])`)
 // test'in dosyaları, düzenleyici oturumu) aynı uyarıyı ayrı ayrı gösterir; süreç geneli bir
 // durumda ikincisi susardı.
 func TestBroadcastWarningPerProgram(t *testing.T) {
-	const code = `değişken c = sıfırlar([4, 1]) + sıfırlar([4])`
+	const code = `TR_var c = TR_zeros([4, 1]) + TR_zeros([4])`
 	for i := 0; i < 2; i++ {
 		if n := strings.Count(trrun.MustExecChecked(t, code).ErrOut, "Uyarı"); n != 1 {
 			t.Fatalf("%d. program %d uyarı yazdı, 1 bekleniyordu", i+1, n)
@@ -98,11 +98,11 @@ func TestBroadcastWarningLimited(t *testing.T) {
 // Neden: uyarı yalnızca bazı işlemlerin yolunda yazılıyordu.
 func TestBroadcastWarningOnEveryPath(t *testing.T) {
 	for _, tc := range []struct{ name, code string }{
-		{"liste - tensör", `değişken _ = [1.0, 2.0] - sıfırlar([2, 1])`},
-		{"karşılaştırma <", `değişken _ = sıfırlar([3, 1]) < sıfırlar([3])`},
-		{"atan2", `değişken _ = atan2(sıfırlar([4, 1]), birler([4]))`},
-		{"koşullu", `değişken _ = koşullu(birler([5, 1]), sıfırlar([5]), birler([5]))`},
-		{"toplam([t1, t2])", `değişken _ = toplam([sıfırlar([6, 1]), sıfırlar([6])])`},
+		{"liste - tensör", `TR_var _ = [1.0, 2.0] - TR_zeros([2, 1])`},
+		{"karşılaştırma <", `TR_var _ = TR_zeros([3, 1]) < TR_zeros([3])`},
+		{"atan2", `TR_var _ = TR_atan2(TR_zeros([4, 1]), TR_ones([4]))`},
+		{"koşullu", `TR_var _ = TR_where(TR_ones([5, 1]), TR_zeros([5]), TR_ones([5]))`},
+		{"TR_sum([t1, t2])", `TR_var _ = TR_sum([TR_zeros([6, 1]), TR_zeros([6])])`},
 	} {
 		if n := strings.Count(trrun.MustExecChecked(t, tc.code).ErrOut, "Uyarı"); n != 1 {
 			t.Errorf("%s: %d yayın uyarısı yazıldı, 1 bekleniyordu", tc.name, n)

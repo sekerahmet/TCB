@@ -8,11 +8,11 @@ import (
 // gradyanlar 0'dır (PyTorch 2.14 clip_grad_norm_ ile aynı). (Gemini gerileme denetimi, Bulgu 2.)
 func TestGradClipOverflowingNormZeroesGrads(t *testing.T) {
 	out := mustRun(t, `
-değişken w = tensör([1.0, 1.0], türev_izle: doğru)
-geri_yayılım(toplam(w * tensör([3e38, 3e38])))
-değişken norm = gradyan_kırp([w], en_fazla: 1.0)
-yazdır("NORM:", norm.değer)
-yazdır("GRAD:", w.gradyan.değer)
+TR_var w = TR_tensor([1.0, 1.0], TR_requires_grad: TR_true)
+TR_backward(TR_sum(w * TR_tensor([3e38, 3e38])))
+TR_var norm = TR_clip_grad([w], TR_max: 1.0)
+TR_print("NORM:", norm.TR_tolist)
+TR_print("GRAD:", w.TR_grad.TR_tolist)
 `)
 	want := "NORM: sonsuz\nGRAD: [0.0, 0.0]\n"
 	if out != want {

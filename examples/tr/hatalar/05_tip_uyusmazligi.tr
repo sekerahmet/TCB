@@ -1,11 +1,11 @@
-//! tr kodlu 3 dil=tr
-// Hata 05 — Tip uyuşmazlığı.
-// İleti kodu: H1001
-// Ne olur: Tip denetimi, tipi bildirilmiş bir değişkene başka tipte değer atandığını program çalışmadan yakalar.
-// Neden: yaş: Tam diye bildirildi ama bir Metin atandı.
-// Düzeltilmiş hâli:
-//     değişken yaş: Tam = 30
-// Çalıştırma (proje kökünden): tr examples/tr/hatalar/05_tip_uyusmazligi.tr   (çıkış kodu 1)
+# TR 4
+# Hata 05 — Tip uyuşmazlığı.
+# İleti kodu: H1001
+# Ne olur: Tip denetimi, tipi bildirilmiş bir değişkene başka tipte değer atandığını program çalışmadan yakalar.
+# Neden: yaş: Tam diye bildirildi ama bir Metin atandı.
+# Düzeltilmiş hâli:
+#     değişken yaş: Tam = 30
+# Çalıştırma (proje kökünden): tr examples/tr/hatalar/05_tip_uyusmazligi.tr   (çıkış kodu 1)
 
-TR_kw_var yaş: TR_type_Int = "otuz"
-TR_fn_print(yaş)
+TR_var yaş: TR_Int = "otuz"
+TR_print(yaş)

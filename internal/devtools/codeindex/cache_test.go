@@ -84,7 +84,7 @@ func TestIncrementalReparsesOnlyChangedAndImporters(t *testing.T) {
 	// ana.tr'yi kimse aktarmıyor: yalnızca kendisi yeniden ayrıştırılır.
 	p := filepath.Join(dir, "examples", "ana.tr")
 	data, _ := os.ReadFile(p)
-	if err := os.WriteFile(p, append(data, []byte("yazdır(1)\n")...), 0o644); err != nil {
+	if err := os.WriteFile(p, append(data, []byte("TR_print(1)\n")...), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	_, st, err := BuildCached(dir, Options{})
@@ -94,7 +94,7 @@ func TestIncrementalReparsesOnlyChangedAndImporters(t *testing.T) {
 	// geo.tr'yi ana.tr ve geo_test.tr aktarıyor: üçü yeniden çözülür.
 	g := filepath.Join(dir, "lib", "geo.tr")
 	data, _ = os.ReadFile(g)
-	if err := os.WriteFile(g, append(data, []byte("\nfonksiyon yeni_ad() {\n    sonuç 1\n}\n")...), 0o644); err != nil {
+	if err := os.WriteFile(g, append(data, []byte("\nTR_func yeni_ad() {\n    TR_return 1\n}\n")...), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	_, st, err = BuildCached(dir, Options{})
@@ -111,10 +111,10 @@ func TestStatusReportsChanges(t *testing.T) {
 	if _, _, err := BuildCached(dir, Options{}); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "lib", "geo.tr"), []byte("sabit X = 1\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "lib", "geo.tr"), []byte("TR_const X = 1\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "yeni.tr"), []byte("sabit Y = 1\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "yeni.tr"), []byte("TR_const Y = 1\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.Remove(filepath.Join(dir, "examples", "ana.tr")); err != nil {
@@ -142,26 +142,26 @@ func writeModule(t *testing.T, dir string, i, n int, extra []string) {
 	t.Helper()
 	var b strings.Builder
 	for k := 0; k < i && k < 3; k++ {
-		fmt.Fprintf(&b, "aktar \"m%d\"\n", i-1-k)
+		fmt.Fprintf(&b, "TR_import \"m%d\"\n", i-1-k)
 	}
 	if i%4 == 1 && i > 0 {
-		fmt.Fprintf(&b, "aktar \"m%d\" olarak a\n", i-1)
+		fmt.Fprintf(&b, "TR_import \"m%d\" TR_as a\n", i-1)
 	}
 	if i%5 == 2 {
-		b.WriteString("aktar \"tr/katman\"\n")
+		b.WriteString("TR_import \"tr/katman\"\n")
 	}
 	fmt.Fprintf(&b, "sabit C%d = %d\n", i, i)
 	fmt.Fprintf(&b, "yapı S%d {\n    x = 1\n    fonksiyon ileri() {\n        sonuç kendi.x\n    }\n}\n", i)
 	for j := 0; j < 3; j++ {
 		fmt.Fprintf(&b, "fonksiyon f%d_%d(p) {\n", i, j)
 		if i > 0 {
-			fmt.Fprintf(&b, "    değişken v = f%d_%d(p)\n", i-1, j)
+			fmt.Fprintf(&b, "    TR_var v = f%d_%d(p)\n", i-1, j)
 		}
 		if i%4 == 1 && i > 0 {
-			fmt.Fprintf(&b, "    değişken w = a.f%d_0(p)\n", i-1)
+			fmt.Fprintf(&b, "    TR_var w = a.f%d_0(p)\n", i-1)
 		}
 		if i%5 == 2 {
-			b.WriteString("    değişken g = Katman(1)\n")
+			b.WriteString("    TR_var g = Katman(1)\n")
 		}
 		b.WriteString("    yazdır(p.ileri())\n    sonuç p\n}\n")
 	}
@@ -179,7 +179,7 @@ func TestIncrementalEqualsFull(t *testing.T) {
 	dir := t.TempDir()
 	const n = 12
 	genProject(t, dir, n)
-	lib := fstest.MapFS{"katman.tr": {Data: []byte("yapı Katman {\n    n = 1\n}\n")}}
+	lib := fstest.MapFS{"katman.tr": {Data: []byte("TR_struct Katman {\n    n = 1\n}\n")}}
 	opts := Options{Library: lib}
 	rng := rand.New(rand.NewSource(7))
 	extras := make([][]string, n)
@@ -232,7 +232,7 @@ func TestIncrementalEqualsFull(t *testing.T) {
 		}
 	}
 	// Dosya eklemek ve silmek baştan kurulumdur ve yine aynıdır.
-	if err := os.WriteFile(filepath.Join(dir, "yeni.tr"), []byte("aktar \"m3\"\nfonksiyon y() {\n    sonuç f3_0(1)\n}\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "yeni.tr"), []byte("TR_import \"m3\"\nTR_func y() {\n    TR_return f3_0(1)\n}\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	inc, st, err := BuildCached(dir, opts)
@@ -271,13 +271,13 @@ func benchProject(tb testing.TB, n int) string {
 	for i := 0; i < n; i++ {
 		var b strings.Builder
 		for k := 0; k < i && k < 3; k++ {
-			fmt.Fprintf(&b, "aktar \"m%d\"\n", i-1-k)
+			fmt.Fprintf(&b, "TR_import \"m%d\"\n", i-1-k)
 		}
 		fmt.Fprintf(&b, "sabit c_%d = %d\nyapı S_%d {\n    x = 1\n    ağırlık = 1\n    fonksiyon ileri() {\n        sonuç kendi.x\n    }\n}\n", i, i, i)
 		for j := 0; j < 3; j++ {
 			fmt.Fprintf(&b, "fonksiyon f%d_%d(p) {\n", i, j)
 			if i > 0 {
-				fmt.Fprintf(&b, "    değişken v = f%d_%d(p)\n", i-1, j)
+				fmt.Fprintf(&b, "    TR_var v = f%d_%d(p)\n", i-1, j)
 			}
 			b.WriteString("    yazdır(p.ileri())\n    yazdır(p.ağırlık)\n    sonuç p\n}\n")
 		}

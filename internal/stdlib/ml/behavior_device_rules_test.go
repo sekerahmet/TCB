@@ -15,8 +15,8 @@ func TestIndexAssignAcrossDevicesIsAnError(t *testing.T) {
 	gpu.RegisterSimulator()
 	defer tensor.SetDefaultDevice(tensor.CPU)
 
-	_, err := run(t, `değişken a = sıfırlar([2, 1]).cihaza("cpu")
-değişken b = birler([1]).cihaza("gpu")
+	_, err := run(t, `TR_var a = TR_zeros([2, 1]).TR_to_device("cpu")
+TR_var b = TR_ones([1]).TR_to_device("gpu")
 a[0] = b`)
 	if err == nil || !strings.Contains(err.Error(), ".cihaza(") {
 		t.Errorf("a[0] = b (farklı cihaz) .cihaza(...) öneren bir hata vermeliydi: %v", err)
@@ -30,19 +30,19 @@ func TestReplayIndexAssignScalarIsFilledOnDevice(t *testing.T) {
 	gpu.RegisterSimulator()
 	defer tensor.SetDefaultDevice(tensor.CPU)
 
-	out := mustRun(t, `varsayılan_cihaz("gpu")
-fonksiyon sıfırla_ilk(x) {
+	out := mustRun(t, `TR_default_device("gpu")
+TR_func sıfırla_ilk(x) {
     x[0] = 0.0
-    sonuç x * 2
+    TR_return x * 2
 }
-değişken f = tekrar_oynat(sıfırla_ilk)
-türevsiz {
-    değişken a = tensör([5.0, 3.0])
-    değişken b = tensör([7.0, 4.0])
-    değişken c = tensör([9.0, 6.0])
-    yazdır(f(a).değer, a.değer)
-    yazdır(f(b).değer, b.değer)
-    yazdır(f(c).değer, c.değer)
+TR_var f = TR_replay(sıfırla_ilk)
+TR_no_grad {
+    TR_var a = TR_tensor([5.0, 3.0])
+    TR_var b = TR_tensor([7.0, 4.0])
+    TR_var c = TR_tensor([9.0, 6.0])
+    TR_print(f(a).TR_tolist, a.TR_tolist)
+    TR_print(f(b).TR_tolist, b.TR_tolist)
+    TR_print(f(c).TR_tolist, c.TR_tolist)
 }`)
 	want := "[0.0, 6.0] [0.0, 3.0]\n[0.0, 8.0] [0.0, 4.0]\n[0.0, 12.0] [0.0, 6.0]\n"
 	if out != want {

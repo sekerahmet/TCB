@@ -17,34 +17,34 @@ import (
 
 func TestCompilerScopes(t *testing.T) {
 	out, _, err := runTROut(t, `
-		değişken x = "genel"
-		fonksiyon f() {
-			yazdır(x)
-			değişken x = "yerel"
-			yazdır(x)
+		TR_var x = "genel"
+		TR_func f() {
+			TR_print(x)
+			TR_var x = "yerel"
+			TR_print(x)
 		}
 		f()
-		yazdır(x)
+		TR_print(x)
 
-		// her tur kendi değişkenini yakalar
-		değişken fs = []
-		döngü i içinde 0..3 {
-			değişken j = i * 10
-			fs.ekle(() => i + j)
+		# her tur kendi değişkenini yakalar
+		TR_var fs = []
+		TR_for i TR_in 0..3 {
+			TR_var j = i * 10
+			fs.TR_append(() => i + j)
 		}
-		döngü g içinde fs { yazdır(g()) }
+		TR_for g TR_in fs { TR_print(g()) }
 
-		// ortamı yakalamayan döngü gövdesi yeniden kullanılsa da önceki turun tanımı görünmez
-		değişken k = 0
-		değişken y = "dış"
-		iken k < 2 {
-			yazdır(y)
-			değişken y = "tur"
+		# ortamı yakalamayan döngü gövdesi yeniden kullanılsa da önceki turun tanımı görünmez
+		TR_var k = 0
+		TR_var y = "dış"
+		TR_for k < 2 {
+			TR_print(y)
+			TR_var y = "tur"
 			k += 1
 		}
 
-		eğer doğru { değişken gizli = 1 }
-		dene { yazdır(gizli) } yakala h { yazdır("yok") }
+		TR_if TR_true { TR_var gizli = 1 }
+		TR_try { TR_print(gizli) } TR_catch h { TR_print("yok") }
 	`)
 	if err != nil {
 		t.Fatal(err)
@@ -61,7 +61,7 @@ func TestCompilerDynamicEval(t *testing.T) {
 	machine := New()
 	env := NewEnvironment(machine.GlobalEnv)
 	env.Define("a", NewInt(4), false)
-	prog := parser.New(source.TextLexer("değişken b = a * 2\nb += 1")).ParseProgram()
+	prog := parser.New(source.TextLexer("TR_var b = a * 2\nb += 1")).ParseProgram()
 	if _, err := machine.ExecStatements(prog.Statements, env); err != nil {
 		t.Fatal(err)
 	}
@@ -104,12 +104,12 @@ func (d *jumpingDebugger) Breakpoint(string) {}
 // Hata ayıklayıcı bir satır döndürdüğünde yürütme o satıra (fonksiyon gövdesinde de) atlamalı.
 func TestCompilerJump(t *testing.T) {
 	codeVal := "fonksiyon f() {\n" + // 1
-		"    değişken s = 0\n" + // 2
+		"    TR_var s = 0\n" + // 2
 		"    s += 1\n" + // 3
 		"    s += 10\n" + // 4
 		"    sonuç s\n" + // 5
 		"}\n" + // 6
-		"yazdır(f())\n" // 7
+		"TR_print(f())\n" // 7
 	p := parser.New(source.TextLexer(codeVal))
 	prog := p.ParseProgram()
 	var out strings.Builder
@@ -159,17 +159,17 @@ func TestSortValuesStable(t *testing.T) {
 // Havuzdan alınan çağrı ortamları özyinelemede ve hata sonrasında karışmamalı.
 func TestCallEnvPool(t *testing.T) {
 	_, val, err := runTROut(t, `
-		fonksiyon fib(n) {
-			eğer n < 2 { sonuç n }
-			sonuç fib(n - 1) + fib(n - 2)
+		TR_func fib(n) {
+			TR_if n < 2 { TR_return n }
+			TR_return fib(n - 1) + fib(n - 2)
 		}
-		fonksiyon bol(a, b) { sonuç a / b }
-		dene { bol(1, 0) } yakala h { }
-		fonksiyon iki(x, y = 10) {
-			değişken z = x * y
-			sonuç z
+		TR_func bol(a, b) { TR_return a / b }
+		TR_try { bol(1, 0) } TR_catch h { }
+		TR_func iki(x, y = 10) {
+			TR_var z = x * y
+			TR_return z
 		}
-		sonuç [fib(15), iki(fib(5)), iki(2, 3), bol(9, 3)]
+		TR_return [fib(15), iki(fib(5)), iki(2, 3), bol(9, 3)]
 	`)
 	if err != nil || val.Inspect() != "[610, 50, 6, 3]" {
 		t.Fatalf("[610, 50, 6, 3] bekleniyordu: %v %v", val, err)
@@ -179,19 +179,19 @@ func TestCallEnvPool(t *testing.T) {
 // Doğrudan metot çağrıları bağlı yerleşik yoluyla aynı sonucu vermeli.
 func TestDirectMethodCalls(t *testing.T) {
 	_, val, err := runTROut(t, `
-		değişken l = [1]
-		l.ekle(l.uzunluk, l.uzunluk)
-		l.ekle(9)
-		değişken e = l.ekle
+		TR_var l = [1]
+		l.TR_append(l.TR_length, l.TR_length)
+		l.TR_append(9)
+		TR_var e = l.TR_append
 		e(7)
-		değişken d = {"içerir": 5, "a": 1}
-		sonuç [l, d.içerir("a"), d.a, "Kar".büyük_harf(), [3, 1, 2].sırala(), metin(12), "çağ".uzunluk,
-			[1, 2, 3].filtrele { o > 1 }.haritala { o * 10 }]
+		TR_var d = {"içerir": 5, "a": 1}
+		TR_return [l, d.TR_contains("a"), d.a, "Kar".TR_upper(), [3, 1, 2].TR_sort(), TR_str(12), "çağ".TR_length,
+			[1, 2, 3].TR_filter { TR_it > 1 }.TR_map { TR_it * 10 }]
 	`)
 	if err != nil || val.Inspect() != `[[1, 1, 1, 9, 7], doğru, 1, "KAR", [1, 2, 3], "12", 3, [20, 30]]` {
 		t.Fatalf("beklenmeyen: %v %v", val, err)
 	}
-	_, _, err = runTROut(t, "değişken l = [1]\nl.haritala(1, 2)\n")
+	_, _, err = runTROut(t, "TR_var l = [1]\nl.TR_map(1, 2)\n")
 	if err == nil || err.Error() != "Satır 2: liste.haritala() 1 argüman bekler, 2 verildi (kullanım: liste.haritala(fonksiyon))" {
 		t.Fatalf("metot hatası: %v", err)
 	}
@@ -201,7 +201,7 @@ func TestDirectMethodCalls(t *testing.T) {
 func TestStructDefaultInDefScope(t *testing.T) {
 	dir := t.TempDir()
 	module := filepath.Join(dir, "modk.tr")
-	if err := os.WriteFile(module, []byte("sabit VARS = 5\nyapı K { a: Tam = VARS }\nfonksiyon K_yap() { sonuç K() }\n"), 0o644); err != nil {
+	if err := os.WriteFile(module, []byte("TR_const VARS = 5\nTR_struct K { a: TR_Int = VARS }\nTR_func K_yap() { TR_return K() }\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	_, val, err := runTROut(t, `
@@ -223,28 +223,28 @@ func TestStructDefaultInDefScope(t *testing.T) {
 // anlamı korumalı.
 func TestFastPathSemantics(t *testing.T) {
 	_, val, err := runTROut(t, `
-		değişken s = "abç"
-		değişken a = "xyz"
-		değişken d = {1: "bir", "1": "metin bir", 1.5: "ondalık"}
+		TR_var s = "abç"
+		TR_var a = "xyz"
+		TR_var d = {1: "bir", "1": "metin bir", 1.5: "ondalık"}
 		d[1] = "BİR"
 		d[2] = "iki"
-		yapı P {
-			x: Tam = 3
+		TR_struct P {
+			x: TR_Int = 3
 			f
-			fonksiyon m(k = 1) { sonuç kendi.x * k }
+			TR_func m(k = 1) { TR_return TR_self.x * k }
 		}
-		değişken p = P()
+		TR_var p = P()
 		p.f = () => "alan"
-		değişken bagli = p.m
-		sonuç [s[2], s[-1], s.varsa_al(5), a[0], a[-1], a.varsa_al(3), a[0..2], s[1..3], a.varsa_al(-4),
-			d[1], d["1"], d[1.5], d[2], d.anahtarlar(), d.içerir(2), d.içerir(3),
+		TR_var bagli = p.m
+		TR_return [s[2], s[-1], s.TR_get(5), a[0], a[-1], a.TR_get(3), a[0..2], s[1..3], a.TR_get(-4),
+			d[1], d["1"], d[1.5], d[2], d.TR_keys(), d.TR_contains(2), d.TR_contains(3),
 			p.m(), p.m(2), p.f(), bagli(10)]
 	`)
 	want := `["ç", "ç", yok, "x", "z", yok, "xy", "bç", yok, "BİR", "metin bir", "ondalık", "iki", [1, "1", 1.5, 2], doğru, yanlış, 3, 6, "alan", 30]`
 	if err != nil || val.Inspect() != want {
 		t.Fatalf("beklenmeyen:\n%v\n%v", val, err)
 	}
-	_, _, err = runTROut(t, "yapı Q { fonksiyon m(a) { sonuç a } }\ndeğişken q = Q()\nq.m()\n")
+	_, _, err = runTROut(t, "TR_struct Q { TR_func m(a) { TR_return a } }\nTR_var q = Q()\nq.m()\n")
 	if !messages.Has(err, messages.H2414) {
 		t.Fatalf("metot argüman denetimi: %v", err)
 	}
@@ -253,9 +253,9 @@ func TestFastPathSemantics(t *testing.T) {
 // Yerleşik adı gölgeleyen genel değişken sabit sayılmamalı; kullanıcı sabiti korunmalı.
 func TestCompilerShadowingAndConst(t *testing.T) {
 	_, val, err := runTROut(t, `
-		değişken toplam = 0
-		döngü i içinde 1..=4 { toplam += i }
-		sonuç toplam
+		TR_var toplam = 0
+		TR_for i TR_in 1..=4 { toplam += i }
+		TR_return toplam
 	`)
 	if err != nil || val.Inspect() != "10" {
 		t.Fatalf("10 bekleniyordu: %v %v", val, err)

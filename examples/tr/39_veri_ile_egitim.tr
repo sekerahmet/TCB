@@ -1,122 +1,122 @@
-//! tr kodlu 3 dil=tr
-// 39 — Veri ile eğitim: parçalayıcı ve veri yükleyiciyle uçtan uca küçük bir dil modeli.
-// Ne öğretir: tokenizer.json yükleyip metni kodlamak/çözmek (Parçalayıcı, parça_kimliği, özel_parçalar, ikinci), .npy veri dosyalarından örnekleyiciyle
-// rastgele toplu işler almak, sıralı okuyucuyla doğrulamak, önbellek.
-// Önceki örnekten: transformer ve çapraz_entropi (35), eğitim döngüsü (28), komut satırı (37), ilerleme çubuğu ve günlük (38).
-// Ayrıntılar: docs/guide/04_yapay_zeka_ve_veri.md §4.D, docs/spec/16_veri_parcalayici.md §16.
-//
-// Varsayılan olarak depodaki sentetik test verisini (tests/data) kullanır. Kendi
-// verinizle çalıştırmak için aşağıdaki üç yolu kendi dosyalarınıza çevirin, ör.:
-//     sabit PARÇALAYICI_YOLU = "D:/veri/tokenizer.json"
-//     sabit VERİ_YOLU = "D:/veri/train"          // .npy veri dosyalarının klasörü
-//     sabit DOĞRULAMA_YOLU = "D:/veri/valid"
-// Veri dosyaları standart .npy biçiminde parça kimliği dosyalarıdır (tek boyutlu uint16/uint32/int32 diziler); meta.json
-// varsa veri dosyalarının parça sayıları oradan okunur. Veri yavaş bir sürücüdeyse (ağ ya da bulut)
-// yerel önbellek kullanın: veri_kümesi(VERİ_YOLU, önbellek: "onbellek/veri", kota_gb: 20)
-// Göreli yollar önce çalışma klasörüne, sonra bu dosyanın klasörüne göre çözülür.
-// Çalıştırma (proje kökünden): tr examples/tr/39_veri_ile_egitim.tr
-// Ayarlar komut satırından değişir (docs/guide/04_yapay_zeka_ve_veri.md §4.F; ayarlar 37, ilerleme ve günlük 38'de):
-//     tr examples/tr/39_veri_ile_egitim.tr --adım 500 --günlük_dosyası kayit/egitim.jsonl
-//     tr examples/tr/39_veri_ile_egitim.tr --yardım
+# TR 4
+# 39 — Veri ile eğitim: parçalayıcı ve veri yükleyiciyle uçtan uca küçük bir dil modeli.
+# Ne öğretir: tokenizer.json yükleyip metni kodlamak/çözmek (Parçalayıcı, parça_kimliği, özel_parçalar, ikinci), .npy veri dosyalarından örnekleyiciyle
+# rastgele toplu işler almak, sıralı okuyucuyla doğrulamak, önbellek.
+# Önceki örnekten: transformer ve çapraz_entropi (35), eğitim döngüsü (28), komut satırı (37), ilerleme çubuğu ve günlük (38).
+# Ayrıntılar: docs/guide/04_yapay_zeka_ve_veri.md §4.D, docs/spec/16_veri_parcalayici.md §16.
+#
+# Varsayılan olarak depodaki sentetik test verisini (tests/data) kullanır. Kendi
+# verinizle çalıştırmak için aşağıdaki üç yolu kendi dosyalarınıza çevirin, ör.:
+#     sabit PARÇALAYICI_YOLU = "D:/veri/tokenizer.json"
+#     sabit VERİ_YOLU = "D:/veri/train"          // .npy veri dosyalarının klasörü
+#     sabit DOĞRULAMA_YOLU = "D:/veri/valid"
+# Veri dosyaları standart .npy biçiminde parça kimliği dosyalarıdır (tek boyutlu uint16/uint32/int32 diziler); meta.json
+# varsa veri dosyalarının parça sayıları oradan okunur. Veri yavaş bir sürücüdeyse (ağ ya da bulut)
+# yerel önbellek kullanın: veri_kümesi(VERİ_YOLU, önbellek: "onbellek/veri", kota_gb: 20)
+# Göreli yollar önce çalışma klasörüne, sonra bu dosyanın klasörüne göre çözülür.
+# Çalıştırma (proje kökünden): tr examples/tr/39_veri_ile_egitim.tr
+# Ayarlar komut satırından değişir (docs/guide/04_yapay_zeka_ve_veri.md §4.F; ayarlar 37, ilerleme ve günlük 38'de):
+#     tr examples/tr/39_veri_ile_egitim.tr --adım 500 --günlük_dosyası kayit/egitim.jsonl
+#     tr examples/tr/39_veri_ile_egitim.tr --yardım
 
-TR_kw_const PARÇALAYICI_YOLU = "../../tests/data/tokenizer.json"
-TR_kw_const VERİ_YOLU = "../../tests/data/text"
-TR_kw_const DOĞRULAMA_YOLU = "../../tests/data/text"
+TR_const PARÇALAYICI_YOLU = "../../tests/data/tokenizer.json"
+TR_const VERİ_YOLU = "../../tests/data/text"
+TR_const DOĞRULAMA_YOLU = "../../tests/data/text"
 
-TR_kw_var ayar = TR_fn_command_line({TR_mem_step: 150, toplu: 8, bağlam: 32, TR_mem_lr: 0.01, günlük_dosyası: TR_kw_none},
-    TR_arg_description: "Sentetik metin verisiyle küçük bir dil modelini eğitir",
-    TR_arg_descriptions: {TR_mem_step: "eğitim adımı sayısı", toplu: "toplu iş başına satır", bağlam: "satır başına parça",
+TR_var ayar = TR_command_line({TR_step: 150, toplu: 8, bağlam: 32, TR_lr: 0.01, günlük_dosyası: TR_none},
+    TR_description: "Sentetik metin verisiyle küçük bir dil modelini eğitir",
+    TR_descriptions: {TR_step: "eğitim adımı sayısı", toplu: "toplu iş başına satır", bağlam: "satır başına parça",
         günlük_dosyası: "her adımın kaybının yazılacağı .jsonl dosyası"})
-TR_kw_const ADIM = ayar.TR_mem_step
-TR_kw_const TOPLU = ayar.toplu
-TR_kw_const BAĞLAM = ayar.bağlam
-TR_kw_var D = 32 // gömme boyutu
-TR_kw_const GİZLİ = 64 // ara katman boyutu
+TR_const ADIM = ayar.TR_step
+TR_const TOPLU = ayar.toplu
+TR_const BAĞLAM = ayar.bağlam
+TR_var D = 32 # gömme boyutu
+TR_const GİZLİ = 64 # ara katman boyutu
 
-// --- Parçalayıcı ---
-TR_kw_var p = TR_fn_load_tokenizer(PARÇALAYICI_YOLU)
-TR_fn_print(p)
-TR_kw_var cümle = "Bugün hava çok güzel."
-TR_kw_var kimlikler = p.TR_mem_encode(cümle)
-TR_fn_print("\"{cümle}\" → {kimlikler.TR_mem_length} parça: {kimlikler}")
-TR_fn_print("geri çözülen: {p.TR_mem_decode(kimlikler)}")
-// parça_kimliği bir parçanın dağarcıktaki kimliğini verir (yoksa yok). özel_parçalar: yanlış özel parçaları
-// kodlamaya katmaz; ikinci: ile iki metin birlikte kodlanır (soru ve cevap gibi).
-TR_fn_print(TR_fn_type(p) == TR_type_Tokenizer, p.TR_mem_token_id("<|endoftext|>"))
-TR_fn_print(p.TR_mem_encode(cümle, TR_arg_special_tokens: TR_kw_false), p.TR_mem_encode("soru", TR_arg_pair: "cevap"))
-TR_kw_var V = p.TR_mem_vocab_size
+# --- Parçalayıcı ---
+TR_var p = TR_load_tokenizer(PARÇALAYICI_YOLU)
+TR_print(p)
+TR_var cümle = "Bugün hava çok güzel."
+TR_var kimlikler = p.TR_encode(cümle)
+TR_print("\"\(cümle)\" → \(kimlikler.TR_length) parça: \(kimlikler)")
+TR_print("geri çözülen: \(p.TR_decode(kimlikler))")
+# parça_kimliği bir parçanın dağarcıktaki kimliğini verir (yoksa yok). özel_parçalar: yanlış özel parçaları
+# kodlamaya katmaz; ikinci: ile iki metin birlikte kodlanır (soru ve cevap gibi).
+TR_print(TR_type(p) == TR_Tokenizer, p.TR_token_id("<|endoftext|>"))
+TR_print(p.TR_encode(cümle, TR_special_tokens: TR_false), p.TR_encode("soru", TR_pair: "cevap"))
+TR_var V = p.TR_vocab_size
 
-// --- Veri ---
-TR_kw_var küme = TR_fn_dataset(VERİ_YOLU)
-TR_fn_print(küme)
-// önbellek: veri yavaş bir sürücüdeyse yerel klasöre kopyalanır; kota_gb: o klasörün en çok kaç GB kullanacağıdır
-// (ikisi birlikte verilir).
-TR_kw_var önbellekli = TR_fn_dataset(VERİ_YOLU, TR_arg_cache: TR_fn_path(TR_fn_temp_dir(), "önbellek"), TR_arg_quota_gb: 1)
-TR_fn_print(TR_fn_type(küme) == TR_type_Dataset, TR_fn_type(önbellekli) == TR_type_Dataset)
-TR_kw_var ö = küme.TR_mem_sampler(TR_arg_batch_size: TOPLU, TR_arg_context: BAĞLAM, TR_arg_seed: 1)
-TR_fn_print(TR_fn_type(ö) == TR_type_Sampler)
+# --- Veri ---
+TR_var küme = TR_dataset(VERİ_YOLU)
+TR_print(küme)
+# önbellek: veri yavaş bir sürücüdeyse yerel klasöre kopyalanır; kota_gb: o klasörün en çok kaç GB kullanacağıdır
+# (ikisi birlikte verilir).
+TR_var önbellekli = TR_dataset(VERİ_YOLU, TR_cache: TR_path(TR_temp_dir(), "önbellek"), TR_quota_gb: 1)
+TR_print(TR_type(küme) == TR_Dataset, TR_type(önbellekli) == TR_Dataset)
+TR_var ö = küme.TR_sampler(TR_batch_size: TOPLU, TR_context: BAĞLAM, TR_seed: 1)
+TR_print(TR_type(ö) == TR_Sampler)
 
-// --- Model: gömme → ara katman → dağarcık üzerinde dağılım (bir sonraki parça yalnızca
-// şimdiki parçaya bakılarak tahmin edilir; dikkatli bir model için examples/tr/35_transformer.tr) ---
-TR_kw_var ağırlıklar = []
-TR_kw_var parametre_tohumu = 0
-TR_kw_func parametre(şekil, ölçek) {
+# --- Model: gömme → ara katman → dağarcık üzerinde dağılım (bir sonraki parça yalnızca
+# şimdiki parçaya bakılarak tahmin edilir; dikkatli bir model için examples/tr/35_transformer.tr) ---
+TR_var ağırlıklar = []
+TR_var parametre_tohumu = 0
+TR_func parametre(şekil, ölçek) {
     parametre_tohumu += 1
-    TR_kw_var w = TR_fn_tensor(TR_fn_no_grad(TR_fn_randn(şekil, TR_arg_seed: parametre_tohumu) * ölçek), TR_arg_requires_grad: TR_kw_true)
-    ağırlıklar.TR_mem_append(w)
-    TR_kw_return w
+    TR_var w = TR_tensor(TR_no_grad(TR_randn(şekil, TR_seed: parametre_tohumu) * ölçek), TR_requires_grad: TR_true)
+    ağırlıklar.TR_append(w)
+    TR_return w
 }
-TR_kw_var E = parametre([V, D], 0.1)
-TR_kw_var W1 = parametre([D, GİZLİ], 0.1)
-TR_kw_var W2 = parametre([GİZLİ, V], 0.1)
+TR_var E = parametre([V, D], 0.1)
+TR_var W1 = parametre([D, GİZLİ], 0.1)
+TR_var W2 = parametre([GİZLİ, V], 0.1)
 
-TR_kw_func ileri(giriş) {
-    TR_kw_return TR_fn_gelu(TR_fn_embedding(E, giriş) @ W1) @ W2
+TR_func ileri(giriş) {
+    TR_return TR_gelu(TR_embedding(E, giriş) @ W1) @ W2
 }
 
-// --- Eğitim ---
-TR_kw_var iyileştirici = TR_fn_AdamW(ağırlıklar, TR_arg_lr: ayar.TR_mem_lr, TR_arg_weight_decay: 0.0)
-// İlerleme çubuğu (standart hataya): adım, kayıp, adım hızı ve kalan süre. Günlük dosyası
-// verildiyse her adımın kaybı oraya da yazılır.
-TR_kw_var g = TR_kw_if ayar.günlük_dosyası != TR_kw_none { TR_fn_logger(ayar.günlük_dosyası) } TR_kw_else { TR_kw_none }
-TR_kw_var ç = TR_fn_progress(ADIM, TR_arg_log: g)
-TR_kw_var son_kayıp = 0.0
-TR_kw_for adım TR_kw_in 0..ADIM {
-    TR_kw_var giriş, hedef = ö.TR_mem_next()
-    iyileştirici.TR_mem_zero_grad()
-    TR_kw_var kayıp = TR_fn_cross_entropy(ileri(giriş), hedef)
-    TR_fn_backward(kayıp)
-    iyileştirici.TR_mem_step()
-    ç.TR_mem_update({TR_mem_loss: kayıp})
-    son_kayıp = kayıp.TR_mem_tolist
+# --- Eğitim ---
+TR_var iyileştirici = TR_AdamW(ağırlıklar, TR_lr: ayar.TR_lr, TR_weight_decay: 0.0)
+# İlerleme çubuğu (standart hataya): adım, kayıp, adım hızı ve kalan süre. Günlük dosyası
+# verildiyse her adımın kaybı oraya da yazılır.
+TR_var g = TR_if ayar.günlük_dosyası != TR_none { TR_logger(ayar.günlük_dosyası) } TR_else { TR_none }
+TR_var ç = TR_progress(ADIM, TR_log: g)
+TR_var son_kayıp = 0.0
+TR_for adım TR_in 0..ADIM {
+    TR_var giriş, hedef = ö.TR_next()
+    iyileştirici.TR_zero_grad()
+    TR_var kayıp = TR_cross_entropy(ileri(giriş), hedef)
+    TR_backward(kayıp)
+    iyileştirici.TR_step()
+    ç.TR_update({TR_loss: kayıp})
+    son_kayıp = kayıp.TR_tolist
 }
-TR_fn_print("eğitim bitti: son kayıp = {TR_fn_round(son_kayıp, 3)}")
-TR_fn_print(ö)
+TR_print("eğitim bitti: son kayıp = \(TR_round(son_kayıp, 3))")
+TR_print(ö)
 
-// --- Doğrulama: tüm doğrulama verisi sırayla, bir kez ---
-TR_kw_var doğrulama = TR_fn_dataset(DOĞRULAMA_YOLU).TR_mem_sequential(TR_arg_batch_size: TOPLU, TR_arg_context: BAĞLAM)
-TR_fn_print(TR_fn_type(doğrulama) == TR_type_SequentialReader)
-TR_kw_var toplam_kayıp = 0.0
-TR_kw_var toplu_sayısı = 0
-TR_fn_no_grad {
-    TR_kw_for {
-        TR_kw_var iş = doğrulama.TR_mem_next()
-        TR_kw_if iş == TR_kw_none { TR_kw_break }
-        toplam_kayıp += TR_fn_cross_entropy(ileri(iş[0]), iş[1]).TR_mem_tolist
+# --- Doğrulama: tüm doğrulama verisi sırayla, bir kez ---
+TR_var doğrulama = TR_dataset(DOĞRULAMA_YOLU).TR_sequential(TR_batch_size: TOPLU, TR_context: BAĞLAM)
+TR_print(TR_type(doğrulama) == TR_SequentialReader)
+TR_var toplam_kayıp = 0.0
+TR_var toplu_sayısı = 0
+TR_no_grad {
+    TR_for {
+        TR_var iş = doğrulama.TR_next()
+        TR_if iş == TR_none { TR_break }
+        toplam_kayıp += TR_cross_entropy(ileri(iş[0]), iş[1]).TR_tolist
         toplu_sayısı += 1
     }
 }
-TR_fn_print("doğrulama: {toplu_sayısı} toplu iş, ortalama kayıp = {TR_fn_round(toplam_kayıp / toplu_sayısı, 3)}")
+TR_print("doğrulama: \(toplu_sayısı) toplu iş, ortalama kayıp = \(TR_round(toplam_kayıp / toplu_sayısı, 3))")
 
-// --- Metin üretimi: her adımda en olası parça ---
-TR_kw_var üretilen = p.TR_mem_encode("Bugün")
-TR_fn_no_grad {
-    TR_kw_for n TR_kw_in 0..12 {
-        üretilen.TR_mem_append(TR_fn_argmax(ileri([üretilen]), TR_arg_dim: -1).TR_mem_tolist[0].TR_mem_last)
+# --- Metin üretimi: her adımda en olası parça ---
+TR_var üretilen = p.TR_encode("Bugün")
+TR_no_grad {
+    TR_for n TR_in 0..12 {
+        üretilen.TR_append(TR_argmax(ileri([üretilen]), TR_dim: -1).TR_tolist[0].TR_last)
     }
 }
-TR_fn_print("model şunu yazdı: {p.TR_mem_decode(üretilen)}")
+TR_print("model şunu yazdı: \(p.TR_decode(üretilen))")
 
-// --- Kendin dene ---
-// 1. --adım 400 ile çalıştır ve doğrulama kaybının eğitim kaybından farkına bak.
-// 2. Üretimi "Bugün" yerine başka bir kelimeyle başlat.
+# --- Kendin dene ---
+# 1. --adım 400 ile çalıştır ve doğrulama kaybının eğitim kaybından farkına bak.
+# 2. Üretimi "Bugün" yerine başka bir kelimeyle başlat.

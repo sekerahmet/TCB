@@ -7,7 +7,7 @@
           "code": "TR_kw_func"
         }
       ],
-      "source": "//! tr kodlu 3 dil=tr\nTR_kw_func ph_name(ph_param) {\n\tTR_kw_return ph_return\n}\n",
+      "source": "# TR 4\nTR_func ph_name(ph_param) {\n\tTR_return ph_return\n}\n",
       "holes": {
         "ph_name": "${1:%name%}",
         "ph_param": "${2:%param%}",
@@ -21,7 +21,7 @@
           "code": "TR_kw_if"
         }
       ],
-      "source": "//! tr kodlu 3 dil=tr\nTR_kw_if ph_condition {\n\tph_then\n} TR_kw_else {\n\tph_else\n}\n",
+      "source": "# TR 4\nTR_if ph_condition {\n\tph_then\n} TR_else {\n\tph_else\n}\n",
       "holes": {
         "ph_condition": "${1:%condition%}",
         "ph_else": "${3}",
@@ -35,7 +35,7 @@
           "code": "TR_kw_match"
         }
       ],
-      "source": "//! tr kodlu 3 dil=tr\nTR_kw_match ph_value {\n\tph_first => ph_first_result\n\tph_second => ph_second_result\n\tTR_kw_default => ph_default_result\n}\n",
+      "source": "# TR 4\nTR_match ph_value {\n\tph_first => ph_first_result\n\tph_second => ph_second_result\n\t_ => ph_default_result\n}\n",
       "holes": {
         "ph_default_result": "${6:\"%other%\"}",
         "ph_first": "${2:1}",
@@ -53,7 +53,7 @@
         }
       ],
       "member": true,
-      "source": "//! tr kodlu 3 dil=tr\nph_list.TR_mem_filter { TR_ctx_it > ph_limit }\n",
+      "source": "# TR 4\nph_list.TR_filter { TR_it > ph_limit }\n",
       "holes": {
         "ph_limit": "${1:2}",
         "ph_list": ""
@@ -67,7 +67,7 @@
         }
       ],
       "member": true,
-      "source": "//! tr kodlu 3 dil=tr\nph_list.TR_mem_map { TR_ctx_it * ph_factor }\n",
+      "source": "# TR 4\nph_list.TR_map { TR_it * ph_factor }\n",
       "holes": {
         "ph_factor": "${1:2}",
         "ph_list": ""
@@ -81,7 +81,7 @@
         }
       ],
       "member": true,
-      "source": "//! tr kodlu 3 dil=tr\nph_list.TR_mem_reduce(ph_start, (ph_acc, ph_x) => ph_body)\n",
+      "source": "# TR 4\nph_list.TR_reduce(ph_start, (ph_acc, ph_x) => ph_body)\n",
       "holes": {
         "ph_acc": "%acc%",
         "ph_body": "${2:%acc% + %x%}",
@@ -97,7 +97,7 @@
           "code": "TR_kw_for"
         }
       ],
-      "source": "//! tr kodlu 3 dil=tr\nTR_kw_for ph_item TR_kw_in ph_range {\n\tTR_fn_print(ph_item)\n}\n",
+      "source": "# TR 4\nTR_for ph_item TR_in ph_range {\n\tTR_print(ph_item)\n}\n",
       "holes": {
         "ph_item": "${1:%i%}",
         "ph_range": "${2:1..=10}"
@@ -111,7 +111,7 @@
           "word": "list_comp"
         }
       ],
-      "source": "//! tr kodlu 3 dil=tr\n[ph_result TR_kw_for ph_item TR_kw_in ph_range TR_kw_if ph_filter]\n",
+      "source": "# TR 4\n[ph_result TR_for ph_item TR_in ph_range TR_if ph_filter]\n",
       "holes": {
         "ph_filter": "${4:%x% % 2 == 0}",
         "ph_item": "${2:%x%}",
@@ -126,7 +126,7 @@
           "code": "TR_kw_struct"
         }
       ],
-      "source": "//! tr kodlu 3 dil=tr\nTR_kw_struct ph_Name {\n\tph_field: TR_type_String\n\n\tTR_kw_func ph_method() {\n\t\tTR_kw_return TR_kw_self.ph_field\n\t}\n}\n",
+      "source": "# TR 4\nTR_struct ph_Name {\n\tph_field: TR_String\n\n\tTR_func ph_method() {\n\t\tTR_return TR_self.ph_field\n\t}\n}\n",
       "holes": {
         "ph_Name": "${1:%Name%}",
         "ph_field": "${2:%field%}",
@@ -140,7 +140,7 @@
           "code": "TR_kw_try"
         }
       ],
-      "source": "//! tr kodlu 3 dil=tr\nTR_kw_try {\n\tph_body\n} TR_kw_catch ph_error {\n\tTR_fn_print(ph_message)\n}\n",
+      "source": "# TR 4\nTR_try {\n\tph_body\n} TR_catch ph_error {\n\tTR_print(ph_message)\n}\n",
       "holes": {
         "ph_body": "${1}",
         "ph_error": "%err%",
@@ -159,7 +159,7 @@
         }
       ],
       "end": true,
-      "source": "//! tr kodlu 3 dil=tr\nTR_kw_var ph_X = TR_fn_tensor(ph_xs)\nTR_kw_var ph_Y = TR_fn_tensor(ph_ys)\nTR_kw_var ph_w = TR_fn_tensor(TR_fn_no_grad(TR_fn_randn([ph_shape], TR_arg_seed: 1) * 0.1), TR_arg_requires_grad: TR_kw_true)\nTR_kw_var ph_b = TR_fn_tensor([0.0], TR_arg_requires_grad: TR_kw_true)\nTR_kw_var ph_optimizer = TR_fn_AdamW([ph_w, ph_b], TR_arg_lr: ph_rate, TR_arg_weight_decay: 0)\nTR_kw_for ph_step TR_kw_in 0..ph_steps {\n\tph_optimizer.TR_mem_zero_grad()\n\tTR_kw_var ph_loss = TR_fn_mean((ph_X @ ph_w + ph_b - ph_Y) ** 2)\n\tTR_fn_backward(ph_loss)\n\tph_optimizer.TR_mem_step()\n\tTR_kw_if ph_step % 100 == 0 { TR_fn_print(\"ph_step_label {ph_step}: ph_loss_label = {ph_loss.TR_mem_tolist}\") }\n}\nTR_fn_print(TR_fn_no_grad { TR_kw_return ph_X @ ph_w + ph_b })\n",
+      "source": "# TR 4\nTR_var ph_X = TR_tensor(ph_xs)\nTR_var ph_Y = TR_tensor(ph_ys)\nTR_var ph_w = TR_tensor(TR_no_grad(TR_randn([ph_shape], TR_seed: 1) * 0.1), TR_requires_grad: TR_true)\nTR_var ph_b = TR_tensor([0.0], TR_requires_grad: TR_true)\nTR_var ph_optimizer = TR_AdamW([ph_w, ph_b], TR_lr: ph_rate, TR_weight_decay: 0)\nTR_for ph_step TR_in 0..ph_steps {\n\tph_optimizer.TR_zero_grad()\n\tTR_var ph_loss = TR_mean((ph_X @ ph_w + ph_b - ph_Y) ** 2)\n\tTR_backward(ph_loss)\n\tph_optimizer.TR_step()\n\tTR_if ph_step % 100 == 0 { TR_print(\"ph_step_label \\(ph_step): ph_loss_label = \\(ph_loss.TR_tolist)\") }\n}\nTR_print(TR_no_grad { TR_return ph_X @ ph_w + ph_b })\n",
       "holes": {
         "ph_X": "X",
         "ph_Y": "Y",

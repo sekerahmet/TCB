@@ -11,26 +11,26 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-const linkedSource = `yapı Dikkat {
+const linkedSource = `TR_struct Dikkat {
     baş
-    fonksiyon kurucu(boyut, baş) {
-        kendi.baş = baş
+    TR_func TR_init(boyut, baş) {
+        TR_self.baş = baş
     }
 }
 
-yapı Blok {
-    dikkat
-    fonksiyon kurucu(boyut, baş) {
-        kendi.dikkat = Dikkat(boyut, baş)
+TR_struct Blok {
+    TR_attention
+    TR_func TR_init(boyut, baş) {
+        TR_self.TR_attention = Dikkat(boyut, baş)
     }
 }
 
-yapı Model {
-    ayar
+TR_struct Model {
+    TR_config
     blok
-    fonksiyon kurucu(boyut, baş = 2) {
-        kendi.ayar = {boyut: boyut, baş: baş}
-        kendi.blok = Blok(boyut, baş: baş)
+    TR_func TR_init(boyut, baş = 2) {
+        TR_self.TR_config = {TR_embed_dim: boyut, baş: baş}
+        TR_self.blok = Blok(boyut, baş: baş)
     }
 }
 `
@@ -85,34 +85,34 @@ func TestRenameShowsLinkedDeclarationsAndDictKeys(t *testing.T) {
 
 // dictKeySource `a:` yazımının bütün biçimleri: yapı alanı, adlı argüman (dizgede ')' ile), sözlük anahtarı (dizgede ve
 // yorumda '(' ile), tip yazımı.
-const dictKeySource = `yapı Kişi {
-    a: Metin
+const dictKeySource = `TR_struct Kişi {
+    a: TR_String
 }
 
-fonksiyon hedef(a) {
-    sonuç a
+TR_func hedef(a) {
+    TR_return a
 }
 
-fonksiyon çağır(nesne) {
-    sonuç nesne.koş(")", a: 1)
+TR_func çağır(nesne) {
+    TR_return nesne.koş(")", a: 1)
 }
 
-fonksiyon sözlükler(x) {
-    değişken s = {ad: "(", a: x}
-    değişken t = {
-        // açıklama (
+TR_func sözlükler(x) {
+    TR_var s = {ad: "(", a: x}
+    TR_var t = {
+        # açıklama (
         a: x,
     }
-    sonuç [s, t]
+    TR_return [s, t]
 }
 
-fonksiyon yerel() {
-    değişken a: Tam = 1
-    sonuç a
+TR_func yerel() {
+    TR_var a: TR_Int = 1
+    TR_return a
 }
 
-fonksiyon tipli(a: Metin) {
-    sonuç 1
+TR_func tipli(a: TR_String) {
+    TR_return 1
 }
 `
 
@@ -196,8 +196,8 @@ func TestDictKeyRecordMatchesTheSyntaxTree(t *testing.T) {
 // (bağımsız denetim Y12: ağırlık_başlat'ı yalnızca Doğrusal'ın kurucusu çağırıyordu, iki araç da "sınayan yok" diyordu).
 func TestAConstructorCallReachesItsKurucu(t *testing.T) {
 	dir := t.TempDir()
-	src := "fonksiyon başlat(n) {\n    sonuç n\n}\n\nyapı Katman {\n    w\n    fonksiyon kurucu(n) {\n        kendi.w = başlat(n)\n    }\n}\n"
-	test := "test \"katman kurulur\" {\n    değişken k = Katman(2)\n    doğrula(k.w == 2)\n}\n"
+	src := "TR_func başlat(n) {\n    TR_return n\n}\n\nTR_struct Katman {\n    w\n    TR_func TR_init(n) {\n        TR_self.w = başlat(n)\n    }\n}\n"
+	test := "TR_test \"katman kurulur\" {\n    TR_var k = Katman(2)\n    TR_assert(k.w == 2)\n}\n"
 	for name, text := range map[string]string{"m_test.tr": src + "\n" + test} { // aynı dosya: aktarma gerekmez
 		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644); err != nil {
 			t.Fatal(err)
@@ -214,31 +214,31 @@ func TestAConstructorCallReachesItsKurucu(t *testing.T) {
 
 // forwardSource konumlu iletimde sıra ve alana atamada gölgeleme: `f`'nin `a`'sı `g`'nin `b`'sine gider (bağ yok),
 // `h`'nin `a`'sı `g`'nin `a`'sına (bağ var); Kişi'nin kurucusunda döngü değişkeni `ad` parametreyi gölgeler (bağ yok).
-const forwardSource = `fonksiyon g(b, a) {
-    sonuç b + a
+const forwardSource = `TR_func g(b, a) {
+    TR_return b + a
 }
 
-fonksiyon f(a) {
-    sonuç g(a, 1)
+TR_func f(a) {
+    TR_return g(a, 1)
 }
 
-fonksiyon h(a) {
-    sonuç g(1, a)
+TR_func h(a) {
+    TR_return g(1, a)
 }
 
-yapı Kişi {
+TR_struct Kişi {
     ad
-    fonksiyon kurucu(ad, adlar) {
-        döngü ad içinde adlar {
-            kendi.ad = ad
+    TR_func TR_init(ad, adlar) {
+        TR_for ad TR_in adlar {
+            TR_self.ad = ad
         }
     }
 }
 
-yapı Yer {
+TR_struct Yer {
     ad
-    fonksiyon kurucu(ad) {
-        kendi.ad = ad
+    TR_func TR_init(ad) {
+        TR_self.ad = ad
     }
 }
 `

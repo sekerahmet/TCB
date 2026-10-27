@@ -1,163 +1,163 @@
-//! tr kodlu 3 dil=tr
-// docs/spec/02_sozcuk_yapisi.md §2 — Sözcük yapısı
-TR_kw_import "bom_ornegi"
+# TR 4
+# docs/spec/02_sozcuk_yapisi.md §2 — Sözcük yapısı
+TR_import "bom_ornegi"
 
-TR_ctx_test "2.1 kaynak UTF-8, baştaki BOM yok sayılır" {
-    TR_fn_assert(bom_okundu)
+TR_test "2.1 kaynak UTF-8, baştaki BOM yok sayılır" {
+    TR_assert(bom_okundu)
 }
 
-TR_ctx_test "2.2 yorumlar: // ve /* */" {
-    TR_kw_var x = 1 // satır sonu yorumu
-    // tam satır yorumu
-    /* çok
-       satırlı yorum */
+TR_test "2.2 yorumlar: // ve /* */" {
+    TR_var x = 1 # satır sonu yorumu
+    # tam satır yorumu
+    # çok
+    # satırlı yorum
     x = x /* satır içi */ + 1
-    TR_fn_assert_equal(2, x)
+    TR_assert_equal(2, x)
 }
 
-TR_ctx_test "2.3 tanımlayıcılar Türkçe harf, rakam ve _ içerebilir" {
-    TR_kw_var öğrenci_sayısı2 = 30
-    TR_kw_var _gizli = 1
-    TR_fn_assert_equal(31, öğrenci_sayısı2 + _gizli)
+TR_test "2.3 tanımlayıcılar Türkçe harf, rakam ve _ içerebilir" {
+    TR_var öğrenci_sayısı2 = 30
+    TR_var _gizli = 1
+    TR_assert_equal(31, öğrenci_sayısı2 + _gizli)
 }
 
-TR_ctx_test "2.4 tam sayılar _ ile gruplanabilir" {
-    TR_fn_assert_equal(1000000, 1_000_000)
-    TR_fn_assert_equal(TR_type_Int, TR_fn_type(42))
+TR_test "2.4 tam sayılar _ ile gruplanabilir" {
+    TR_assert_equal(1000000, 1_000_000)
+    TR_assert_equal(TR_Int, TR_type(42))
 }
 
-TR_ctx_test "2.5 ondalık sayılar noktayla yazılır" {
-    TR_fn_assert_equal(TR_type_Float, TR_fn_type(3.14))
-    TR_fn_assert_equal(0.5, 1_0.5 - 10)
+TR_test "2.5 ondalık sayılar noktayla yazılır" {
+    TR_assert_equal(TR_Float, TR_type(3.14))
+    TR_assert_equal(0.5, 1_0.5 - 10)
 }
 
-TR_ctx_test "2.6 metinler çift ya da tek tırnakla, kaçış dizileriyle yazılır" {
-    TR_fn_assert_equal('tek', "tek")
-    TR_fn_assert_equal(3, "a\tb".TR_mem_length)
-    TR_fn_assert_equal("\"", '"')
-    TR_fn_assert_equal(3, "a\\b".TR_mem_length)
-    TR_kw_var iki_satir = "bir
+TR_test "2.6 metinler çift ya da tek tırnakla, kaçış dizileriyle yazılır" {
+    TR_assert_equal("tek", "tek")
+    TR_assert_equal(3, "a\tb".TR_length)
+    TR_assert_equal("\"", "\"")
+    TR_assert_equal(3, "a\\b".TR_length)
+    TR_var iki_satir = "bir
 iki"
-    TR_fn_assert_equal(2, iki_satir.TR_mem_split("\n").TR_mem_length)
+    TR_assert_equal(2, iki_satir.TR_split("\n").TR_length)
 }
 
-TR_ctx_test "2.6 bilinmeyen kaçış dizisi sözdizimi hatasıdır; ham metin önerilir" {
-    TR_fn_assert_equal(H0008, TR_fn_error_code(() => { TR_kw_import "negative/bilinmeyen_kacis" }))
+TR_test "2.6 bilinmeyen kaçış dizisi sözdizimi hatasıdır; ham metin önerilir" {
+    TR_assert_equal("H0008", TR_error_code(() => { TR_import "negative/bilinmeyen_kacis" }))
 }
 
-TR_ctx_test "2.1a göründüğünden farklı okunan kaynak kabul edilmez" {
-    TR_fn_assert_equal(H0011, TR_fn_error_code(() => { TR_kw_import "negative/yon_karakteri" }))
-    TR_fn_assert_equal(H0013, TR_fn_error_code(() => { TR_kw_import "negative/karisik_yazi_adi" }))
-    // Tamamı tek yazı sisteminde olan adlar geçerlidir
-    TR_kw_var привет, αβγ = 1, 2
-    TR_fn_assert_equal(3, привет + αβγ)
+TR_test "2.1a göründüğünden farklı okunan kaynak kabul edilmez" {
+    TR_assert_equal("H0011", TR_error_code(() => { TR_import "negative/yon_karakteri" }))
+    TR_assert_equal("H0013", TR_error_code(() => { TR_import "negative/karisik_yazi_adi" }))
+    # Tamamı tek yazı sisteminde olan adlar geçerlidir
+    TR_var привет, αβγ = 1, 2
+    TR_assert_equal(3, привет + αβγ)
 }
 
-TR_ctx_test "2.3a TR_ ile başlayan adlar ayrılmıştır" {
-    TR_fn_assert_equal(H0004, TR_fn_error_code(() => { TR_kw_import "negative/kod_bicimli_ad" }))
-    // Benzer ama ayrılmamış adlar sıradandır; eski kod biçimi (G100) de sıradan addır
-    TR_kw_var tr_x, TRx, G100 = 1, 2, 3
-    TR_fn_assert_equal(6, tr_x + TRx + G100)
+TR_test "2.3a TR_ ile başlayan adlar ayrılmıştır" {
+    TR_assert_equal("H0004", TR_error_code(() => { TR_import "negative/kod_bicimli_ad" }))
+    # Benzer ama ayrılmamış adlar sıradandır; eski kod biçimi (G100) de sıradan addır
+    TR_var tr_x, TRx, G100 = 1, 2, 3
+    TR_assert_equal(6, tr_x + TRx + G100)
 }
 
-TR_ctx_test "2.3b yazılış kuralına uymayan ad uyarıdır, hata değildir" {
-    TR_kw_import "negative/ad_yazilisi" TR_ctx_as m
-    TR_fn_assert_equal(30, m.HazırModel())
-    TR_fn_assert_equal(TR_kw_false, m.önbellek_durumu().dolu)
-    // Kurala uyan adlar ve matematik adları (en çok üç harf ve rakam)
-    TR_kw_const EN_BÜYÜK = 10
-    TR_kw_var öğrenci_sayısı, W, dW, W1 = 1, 2, 3, 4
-    TR_fn_assert_equal(20, EN_BÜYÜK + öğrenci_sayısı + W + dW + W1)
+TR_test "2.3b yazılış kuralına uymayan ad uyarıdır, hata değildir" {
+    TR_import "negative/ad_yazilisi" TR_as m
+    TR_assert_equal(30, m.HazırModel())
+    TR_assert_equal(TR_false, m.önbellek_durumu().dolu)
+    # Kurala uyan adlar ve matematik adları (en çok üç harf ve rakam)
+    TR_const en_büyük = 10
+    TR_var öğrenci_sayısı, W, dW, W1 = 1, 2, 3, 4
+    TR_assert_equal(20, en_büyük + öğrenci_sayısı + W + dW + W1)
 }
 
-TR_ctx_test "2.6a ham metin: ters tırnak, kaçış ve yerleştirme yok, çok satırlı" {
-    TR_kw_var a = 5
-    TR_fn_assert_equal("C:\\veri\\yeni", `C:\veri\yeni`)
-    TR_fn_assert_equal("\\d\{3\}-\{a\}", `\d{3}-{a}`)
-    TR_fn_assert_equal(4, `\n\t`.TR_mem_length)
-    TR_kw_var iki_satir = `bir
+TR_test "2.6a ham metin: ters tırnak, kaçış ve yerleştirme yok, çok satırlı" {
+    TR_var a = 5
+    TR_assert_equal("C:\\veri\\yeni", `C:\veri\yeni`)
+    TR_assert_equal("\\d{3}-{a}", `\d{3}-{a}`)
+    TR_assert_equal(4, `\n\t`.TR_length)
+    TR_var iki_satir = `bir
 iki`
-    TR_fn_assert_equal("bir\niki", iki_satir)
-    TR_fn_assert_equal(TR_type_String, TR_fn_type(`x`))
-    TR_fn_assert_equal("", ``)
-    TR_fn_assert_equal(`"tek" 'çift'`, "\"tek\" 'çift'")
+    TR_assert_equal("bir\niki", iki_satir)
+    TR_assert_equal(TR_String, TR_type(`x`))
+    TR_assert_equal("", ``)
+    TR_assert_equal(`"tek" 'çift'`, "\"tek\" 'çift'")
 }
 
-TR_ctx_test "2.7 metin içinde \{ifade\} yerleştirme, düz süslü parantez için kaçış" {
-    TR_kw_var ad = "Ali"
-    TR_fn_assert_equal("Merhaba Ali, 1 + 2 = 3", "Merhaba {ad}, 1 + 2 = {1 + 2}")
-    TR_fn_assert_equal(5, "\{düz\}".TR_mem_length)
-    TR_fn_assert_equal("\{", "\{düz\}"[0])
-    TR_kw_var p = {"ad": "Ayşe"}
-    TR_fn_assert_equal("Ayşe", "{p['ad']}")
-    // Yerleştirmenin içindeki tırnaklı metinde süslü parantez sayılmaz.
-    TR_fn_assert_equal("x a\}b y", "x {"a}b"} y")
+TR_test "2.7 metin içinde {ifade} yerleştirme, düz süslü parantez için kaçış" {
+    TR_var ad = "Ali"
+    TR_assert_equal("Merhaba Ali, 1 + 2 = 3", "Merhaba \(ad), 1 + 2 = \(1 + 2)")
+    TR_assert_equal(5, "{düz}".TR_length)
+    TR_assert_equal("{", "{düz}"[0])
+    TR_var p = {"ad": "Ayşe"}
+    TR_assert_equal("Ayşe", "\(p["ad"])")
+    # Yerleştirmenin içindeki tırnaklı metinde süslü parantez sayılmaz.
+    TR_assert_equal("x a}b y", "x \("a}b") y")
 }
 
-TR_ctx_test "2.7 kaçışsız her \{ bir yerleştirme başlatır; içi ifade değilse sözdizimi hatasıdır" {
-    // Sessizce düz metne dönülmez: bir parçanın kod mu metin mi olduğu dile bağlı olmasın.
-    TR_fn_assert_equal(H0160, TR_fn_error_code(() => { TR_kw_import "negative/yerlestirme" }))
-    // Düz süslü parantezin iki yazımı
-    TR_fn_assert_equal(`{"kod": 5}`, "\{\"kod\": 5\}")
+TR_test "2.7 kaçışsız her { bir yerleştirme başlatır; içi ifade değilse sözdizimi hatasıdır" {
+    # Sessizce düz metne dönülmez: bir parçanın kod mu metin mi olduğu dile bağlı olmasın.
+    TR_assert_equal("H0160", TR_error_code(() => { TR_import "negative/yerlestirme" }))
+    # Düz süslü parantezin iki yazımı
+    TR_assert_equal(`{"kod": 5}`, "{\"kod\": 5}")
 }
 
-TR_ctx_test "2.8 deyim sonu gerekmez; ; isteğe bağlıdır" {
-    TR_kw_var a = 1; TR_kw_var b = 2;
-    TR_fn_assert_equal(3, a + b)
+TR_test "2.8 deyim sonu gerekmez; ; isteğe bağlıdır" {
+    TR_var a = 1; TR_var b = 2;
+    TR_assert_equal(3, a + b)
 }
 
-TR_ctx_test "2.8 yeni satırdaki ( ve [ yeni deyim başlatır" {
-    TR_kw_var f = 5
-    (1 + 2) |> TR_fn_str
-    TR_fn_assert_equal(5, f)
+TR_test "2.8 yeni satırdaki ( ve [ yeni deyim başlatır" {
+    TR_var f = 5
+    (1 + 2) |> TR_str
+    TR_assert_equal(5, f)
 }
 
-TR_ctx_test "2.8 satır sonundaki operatörden sonra ifade sürer" {
-    TR_kw_var t = 1 +
+TR_test "2.8 satır sonundaki operatörden sonra ifade sürer" {
+    TR_var t = 1 +
         2
-    TR_fn_assert_equal(3, t)
+    TR_assert_equal(3, t)
 }
 
-TR_ctx_test "2.8 parantez içinde satır sonu ifadeyi bitirmez; zincir işleçleri satır başında sürer" {
-    TR_kw_var c = (10
+TR_test "2.8 parantez içinde satır sonu ifadeyi bitirmez; zincir işleçleri satır başında sürer" {
+    TR_var c = (10
         - 3)
-    TR_fn_assert_equal(7, c)
-    TR_kw_var l = [3,
+    TR_assert_equal(7, c)
+    TR_var l = [3,
         1, 2]
-    TR_fn_assert_equal(3, l.TR_mem_length)
-    TR_kw_var s = [3, 1, 2]
-        .TR_mem_sort()
-    TR_fn_assert_equal([1, 2, 3], s)
-    TR_kw_var m = [1, 2]
-        |> TR_fn_str
-    TR_fn_assert_equal("[1, 2]", m)
+    TR_assert_equal(3, l.TR_length)
+    TR_var s = [3, 1, 2]
+        .TR_sort()
+    TR_assert_equal([1, 2, 3], s)
+    TR_var m = [1, 2]
+        |> TR_str
+    TR_assert_equal("[1, 2]", m)
 }
 
-TR_ctx_test "2.9 dilin kelimelerinin yalnızca Türkçe yazımı geçerlidir" {
-    TR_kw_var degisken = 1 // ASCII biçim sıradan bir addır
-    TR_fn_assert_equal(1, degisken)
-    // ASCII yazım tanımsız addır; Türkçe yazımın önerisini (dosyanın dilinde) hint_test.go sınar.
-    TR_fn_assert_equal(H1106, TR_fn_error_code(() => { dogru }))
-    TR_fn_assert_equal(H1106, TR_fn_error_code(() => { yazdir("x") }))
-    TR_fn_assert_equal(H2474, TR_fn_error_code(() => { "abc".buyuk_harf() }))
+TR_test "2.9 dilin kelimelerinin yalnızca Türkçe yazımı geçerlidir" {
+    TR_var degisken = 1 # ASCII biçim sıradan bir addır
+    TR_assert_equal(1, degisken)
+    # ASCII yazım tanımsız addır; Türkçe yazımın önerisini (dosyanın dilinde) hint_test.go sınar.
+    TR_assert_equal("H1106", TR_error_code(() => { dogru }))
+    TR_assert_equal("H1106", TR_error_code(() => { yazdir("x") }))
+    TR_assert_equal("H2474", TR_error_code(() => { "abc".buyuk_harf() }))
 }
 
-TR_ctx_test "2.9a her işin tek yazımı vardır; eş anlamlılar sıradan addır" {
-    TR_kw_var sınıf = "9-A"
-    TR_kw_var kır = "yeşil"
-    TR_fn_assert_equal("9-A yeşil", "{sınıf} {kır}")
-    TR_fn_assert_equal(H1106, TR_fn_error_code(() => { yazdir(1) }))
+TR_test "2.9a her işin tek yazımı vardır; eş anlamlılar sıradan addır" {
+    TR_var sınıf = "9-A"
+    TR_var kır = "yeşil"
+    TR_assert_equal("9-A yeşil", "\(sınıf) \(kır)")
+    TR_assert_equal("H1106", TR_error_code(() => { yazdir(1) }))
 }
 
-TR_ctx_test "2.10 iç içelik sınırı aşılınca sözdizimi hatası verilir" {
-    TR_kw_var derin = ((((((((((1))))))))))
-    TR_fn_assert_equal(1, derin)
-    TR_fn_assert_equal(H0155, TR_fn_error_code(() => { TR_kw_import "negative/cok_derin" }))
+TR_test "2.10 iç içelik sınırı aşılınca sözdizimi hatası verilir" {
+    TR_var derin = ((((((((((1))))))))))
+    TR_assert_equal(1, derin)
+    TR_assert_equal("H0155", TR_error_code(() => { TR_import "negative/cok_derin" }))
 }
 
-TR_ctx_test "2.12 ileti kodu (H ve dört rakam) kodun metnidir; daha uzun yazım sıradan bir addır" {
-    TR_fn_assert_equal("H6903", TR_fn_error_code(() => { TR_kw_throw TR_fn_message(H6903, -1) }))
-    TR_fn_assert_equal(TR_fn_error_code(() => { TR_kw_throw TR_fn_message(H6903, -1) }), TR_fn_error_code(() => { TR_kw_throw TR_fn_message("H6903", -1) }))
-    TR_kw_var H69030 = 5
-    TR_fn_assert_equal(5, H69030)
+TR_test "2.12 ileti kodu (H ve dört rakam) kodun metnidir; daha uzun yazım sıradan bir addır" {
+    TR_assert_equal("H6903", TR_error_code(() => { TR_throw TR_message("H6903", -1) }))
+    TR_assert_equal(TR_error_code(() => { TR_throw TR_message("H6903", -1) }), TR_error_code(() => { TR_throw TR_message("H6903", -1) }))
+    TR_var H69030 = 5
+    TR_assert_equal(5, H69030)
 }

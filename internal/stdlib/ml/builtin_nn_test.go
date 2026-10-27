@@ -12,27 +12,27 @@ func TestNormEpsilonMustBeFinite(t *testing.T) {
 	for _, eps := range []string{"nan", "1e300", "1e-50", "0", "-1"} {
 		code := "değişken nan = log(tensör([-1.0])).değer[0]\nkatman_normu(tensör([[1.0, 2.0]]), epsilon: " + eps + ")"
 		if eps == "nan" {
-			code = "değişken nan = log(tensör([-1.0])).değer[0]\nrms_normu(tensör([[1.0, 2.0]]), epsilon: nan)"
+			code = "TR_var nan = TR_log(TR_tensor([-1.0])).TR_tolist[0]\nTR_rms_norm(TR_tensor([[1.0, 2.0]]), TR_eps: nan)"
 		}
 		_, err := run(t, code)
 		if err == nil || !messages.Has(err, messages.H6325) {
 			t.Fatalf("epsilon %s: hata beklenirdi: %v", eps, err)
 		}
 	}
-	mustRun(t, "katman_normu(tensör([[1.0, 2.0]]), epsilon: 0.001)")
+	mustRun(t, "TR_layer_norm(TR_tensor([[1.0, 2.0]]), TR_eps: 0.001)")
 }
 
 // türev_izle Mantık olmalıdır: dolu bir metin ("yanlış") doğru sayılıp türevi açmaz.
 func TestRequiresGradMustBeBool(t *testing.T) {
 	for _, code := range []string{
-		`tensör([1.0, 2.0], türev_izle: "yanlış")`,
-		`tensör([1.0, 2.0], 1)`,
-		`sıfırlar([2], türev_izle: "doğru")`,
+		`TR_tensor([1.0, 2.0], TR_requires_grad: "yanlış")`,
+		`TR_tensor([1.0, 2.0], 1)`,
+		`TR_zeros([2], TR_requires_grad: "doğru")`,
 	} {
 		_, err := run(t, code)
 		if err == nil || !messages.Has(err, messages.H7905) {
 			t.Fatalf("%s: hata beklenirdi: %v", code, err)
 		}
 	}
-	mustRun(t, "değişken q = tensör([1.0], türev_izle: yanlış)\nyazdır(q.gradyan)")
+	mustRun(t, "TR_var q = TR_tensor([1.0], TR_requires_grad: TR_false)\nTR_print(q.TR_grad)")
 }

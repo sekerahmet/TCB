@@ -1,3 +1,4 @@
-// Bilerek hatalı: 2.11 — '$' kaçışı bir adın ya da sayının hemen ardından yazılamaz.
-değişken a = 1
-değişken b = a$a
+# TR 4
+# Bilerek hatalı: 2.11 — '$' kaçışı bir adın ya da sayının hemen ardından yazılamaz.
+TR_var a = 1
+TR_var b = a$a

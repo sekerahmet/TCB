@@ -202,7 +202,7 @@ func TestShardTruncatedData(t *testing.T) {
 		t.Fatalf("kesik dosya hatası bekleniyordu: %v", err)
 	}
 	// Hiç .npy olmayan dosya.
-	path2 := filepath.Join(d, "metin.npy")
+	path2 := filepath.Join(d, "TR_str.npy")
 	_ = os.WriteFile(path2, []byte("merhaba dünya, bu bir npy değil"), 0o644)
 	if _, err := OpenShard(path2, ShardOptions{}); !messages.Has(err, messages.H5053) {
 		t.Fatalf("büyü hatası bekleniyordu: %v", err)

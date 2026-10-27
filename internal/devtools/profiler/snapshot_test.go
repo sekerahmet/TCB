@@ -57,7 +57,7 @@ func TestSnapshotKeysFrozenPerVersion(t *testing.T) {
 	testkit.FormatNames(t, FormatName, StatusFileName)
 	data, err := os.ReadFile(filepath.Join("testdata", fmt.Sprintf("keys_v%d.txt", FormatVersion)))
 	if err != nil {
-		t.Fatalf("FormatVersion %d için testdata/keys_v%d.txt yok; yeni sürümün anahtarlarını ekleyin", FormatVersion, FormatVersion)
+		t.Fatalf("FormatVersion %d için testdata/keys_v%d.txt TR_none; yeni sürümün anahtarlarını ekleyin", FormatVersion, FormatVersion)
 	}
 	want := strings.Fields(string(data))
 	if got := strings.Join(keys, "\n"); got != strings.Join(want, "\n") {

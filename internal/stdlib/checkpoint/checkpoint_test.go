@@ -171,7 +171,7 @@ yazdır("sonuçlar:", sonuçlar)
 `, trPath(runDir), n, brokenSteps)
 	}
 	hooks := func(code string) string {
-		return strings.ReplaceAll(strings.ReplaceAll(code, "boz()", "bozuk_yap(doğru)"), "düzelt()", "bozuk_yap(yanlış)")
+		return strings.ReplaceAll(strings.ReplaceAll(code, "boz()", "bozuk_yap(TR_true)"), "düzelt()", "bozuk_yap(TR_false)")
 	}
 	output, err := runHooked(t, hooks(program(6, "3, 4")), &broken)
 	if err != nil {

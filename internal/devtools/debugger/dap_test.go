@@ -174,15 +174,15 @@ func (c *dapClient) launch(path string, stopOnEntry bool, breakpoints ...map[str
 	c.request("configurationDone", nil)
 }
 
-const dapProgram = `değişken toplam = 0
-değişken liste = [{"ad": "Ali", "maas": 60}, {"ad": "Ayşe", "maas": 90}]
-fonksiyon ekle_maas(k) {
-    sonuç k["maas"] + 10
+const dapProgram = `TR_var toplam = 0
+TR_var liste = [{"ad": "Ali", "maas": 60}, {"ad": "Ayşe", "maas": 90}]
+TR_func ekle_maas(k) {
+    TR_return k["maas"] + 10
 }
-döngü i içinde 0..2 {
+TR_for i TR_in 0..2 {
     toplam += ekle_maas(liste[i])
 }
-yazdır("toplam: {toplam}")
+TR_print("toplam: \(toplam)")
 `
 
 // Düzenleyicinin tipik bir hata ayıklama oturumu: koşullu kesme noktası, çağrı yığını,
@@ -267,7 +267,7 @@ func TestDAPDebugSession(t *testing.T) {
 	}
 
 	// Hata ayıklama konsolunda deyim çalıştırma
-	c.request("evaluate", map[string]interface{}{"expression": "toplam = 5", "context": "repl"})
+	c.request("evaluate", map[string]interface{}{"expression": "TR_sum = 5", "context": "repl"})
 
 	c.request("continue", map[string]interface{}{"threadId": 1})
 	exited := c.event("exited")
@@ -283,7 +283,7 @@ func TestDAPDebugSession(t *testing.T) {
 // İzleme noktası ve iz noktası (durmadan mesaj yazan kesme noktası).
 func TestDAPWatchpointAndLogpoint(t *testing.T) {
 	c := startDAP(t)
-	path := writeProgram(t, "değişken a = 1\ndeğişken b = 2\na = 5\nb = 3\nyazdır(\"bitti\")\n")
+	path := writeProgram(t, "TR_var a = 1\nTR_var b = 2\na = 5\nb = 3\nTR_print(\"bitti\")\n")
 	c.launch(path, true, map[string]interface{}{"line": 4, "logMessage": "b şu an {b}, a = {a}"})
 
 	if r := c.event("stopped")["reason"]; r != "entry" {
@@ -315,7 +315,7 @@ func TestDAPWatchpointAndLogpoint(t *testing.T) {
 // Satıra zıpla (düzenleyicinin "imlece zıpla" komutu) ve hatalı programın bildirilmesi.
 func TestDAPGotoAndLaunchErrors(t *testing.T) {
 	c := startDAP(t)
-	path := writeProgram(t, "değişken x = 1\nx = 2\nx = 3\nyazdır(x)\n")
+	path := writeProgram(t, "TR_var x = 1\nx = 2\nx = 3\nTR_print(x)\n")
 	c.launch(path, false, map[string]interface{}{"line": 3})
 	c.event("stopped")
 	if got := c.evaluate("x"); got != "2" {
@@ -350,7 +350,7 @@ func TestDAPGotoAndLaunchErrors(t *testing.T) {
 // kesme noktası hata ayıklanan dosyada tetiklenmemeli.
 func TestDAPBreakpointsPerFile(t *testing.T) {
 	c := startDAP(t)
-	path := writeProgram(t, "değişken a = 1\na = 2\na = 3\na = 4\nyazdır(a)\n")
+	path := writeProgram(t, "TR_var a = 1\na = 2\na = 3\na = 4\nTR_print(a)\n")
 	other := filepath.Join(t.TempDir(), "modul.tr")
 	c.request("initialize", map[string]interface{}{"adapterID": "tr"})
 	c.event("initialized")
@@ -380,7 +380,7 @@ func TestDAPBreakpointsPerFile(t *testing.T) {
 // ("zıplandı" deyip başka satırda sürmez).
 func TestDAPGotoOutsideBlockRejected(t *testing.T) {
 	c := startDAP(t)
-	path := writeProgram(t, "değişken x = 0\nfonksiyon f() {\n    x = 1\n    x = 2\n}\nf()\nx = 7\nyazdır(x)\n")
+	path := writeProgram(t, "TR_var x = 0\nTR_func f() {\n    x = 1\n    x = 2\n}\nf()\nx = 7\nTR_print(x)\n")
 	c.launch(path, false, map[string]interface{}{"line": 3})
 	c.event("stopped")
 	targets := c.request("gotoTargets", map[string]interface{}{"source": map[string]interface{}{"path": path}, "line": 7})
@@ -421,7 +421,7 @@ func TestDAPContentLengthLimit(t *testing.T) {
 // Eşzamanlı görev hataları hata ayıklama konsoluna "stderr" kategorisiyle gelir.
 func TestDAPTaskError(t *testing.T) {
 	c := startDAP(t)
-	path := writeProgram(t, "eşzamanlı {\n    değişken x = 1 / 0\n}\nbekle_hepsi()\nyazdır(\"bitti\")\n")
+	path := writeProgram(t, "TR_async {\n    TR_var x = 1 / 0\n}\nTR_wait_all()\nTR_print(\"bitti\")\n")
 	c.launch(path, false)
 	stderr := c.next(func(m map[string]interface{}) bool {
 		if m["type"] != "event" || m["event"] != "output" {
@@ -459,7 +459,7 @@ func TestTableData(t *testing.T) {
 func TestDAPSecondLaunchIsRejectedWhileSessionRuns(t *testing.T) {
 	dir := t.TempDir()
 	progPath := filepath.Join(dir, "ana.tr")
-	if err := os.WriteFile(progPath, []byte("değişken a = 1\ndeğişken b = 2\nyazdır(a + b)\n"), 0o600); err != nil {
+	if err := os.WriteFile(progPath, []byte("TR_var a = 1\nTR_var b = 2\nTR_print(a + b)\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	c := startDAP(t)

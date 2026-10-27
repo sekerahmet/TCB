@@ -1,5 +1,6 @@
-// Bilerek hatalı: 7.1 — aynı alan iki kez tanımlanamaz.
-yapı A {
+# TR 4
+# Bilerek hatalı: 7.1 — aynı alan iki kez tanımlanamaz.
+TR_struct A {
     x = 1
     x = 2
 }

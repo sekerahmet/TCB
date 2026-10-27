@@ -57,13 +57,13 @@ func TestTestsForKeepsMeasurementsApartFromTests(t *testing.T) {
 func TestTestsForOrdersInferredTestsByEvidence(t *testing.T) {
 	g := &Graph{Nodes: []Node{
 		{ID: "target", Kind: kindFunc, Name: "p.target", File: "p/x.go"},
-		{ID: "name:TR_mem_update", Kind: kindName, Name: "TR_mem_update", Detail: "güncelle"},
+		{ID: "name:TR_update", Kind: kindName, Name: "TR_update", Detail: "güncelle"},
 		{ID: "near", Kind: kindFunc, Name: "p.TestNear", File: "p/x_test.go"},
 		{ID: "far", Kind: kindFunc, Name: "q.TestFar", File: "q/y_test.go"},
 	}}
 	g.Edges = append(g.Edges,
-		Edge{From: "target", To: "name:TR_mem_update", Kind: edgeUsesName, Confidence: extracted},
-		Edge{From: "near", To: "name:TR_mem_update", Kind: edgeTests, Confidence: inferred})
+		Edge{From: "target", To: "name:TR_update", Kind: edgeUsesName, Confidence: extracted},
+		Edge{From: "near", To: "name:TR_update", Kind: edgeTests, Confidence: inferred})
 	prev := "far"
 	for i := 1; i < testMaxSteps; i++ {
 		id := "q" + string(rune('a'+i))
@@ -236,9 +236,9 @@ func TestMessageSlotMustHoldTheTarget(t *testing.T) {
 		names []string
 		want  bool
 	}{
-		{`hata_bekle(yazdır(1, ayraç: 2), "yazdır() 'ayraç' adında bir parametre almaz")`, []string{"yazdır"}, true},
-		{`hata_bekle(metin.böl("a", x: 1), "böl() 'x' adında bir parametre almaz")`, []string{"metin"}, false},
-		{`yazdır(metin(1))`, []string{"metin"}, false},
+		{`hata_bekle(TR_print(1, ayraç: 2), "yazdır() 'ayraç' adında bir parametre almaz")`, []string{"yazdır"}, true},
+		{`hata_bekle(TR_str.TR_split("a", TR_x: 1), "böl() 'x' adında bir parametre almaz")`, []string{"metin"}, false},
+		{`TR_print(TR_str(1))`, []string{"metin"}, false},
 	} {
 		if got := fnSlotHolds(tpl, c.line, c.names); got != c.want {
 			t.Errorf("%s / %v = %v, want %v", c.line, c.names, got, c.want)

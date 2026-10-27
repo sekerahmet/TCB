@@ -16,10 +16,10 @@ func TestStatsNameTheBadValueByItsPlace(t *testing.T) {
 		code string
 		want messages.Code
 	}{
-		{`standart_sapma("abc")`, messages.H2423},
-		{`ortanca(1, "a")`, messages.H2423},
-		{`standart_sapma([1, "a"])`, messages.H2486},
-		{`ortanca(["a"])`, messages.H2486},
+		{`TR_std("abc")`, messages.H2423},
+		{`TR_median(1, "a")`, messages.H2423},
+		{`TR_std([1, "a"])`, messages.H2486},
+		{`TR_median(["a"])`, messages.H2486},
 	} {
 		_, err := New().Run(mustParseProgram(t, c.code+"\n"))
 		if !messages.Has(err, c.want) {
@@ -34,7 +34,7 @@ func TestStatsFirstArgumentExpectsTheSignature(t *testing.T) {
 	for _, c := range []struct {
 		code     string
 		wantList bool
-	}{{`ortanca("abc")`, true}, {`standart_sapma(doğru)`, true}, {`ortanca(1, "a")`, false}} {
+	}{{`TR_median("abc")`, true}, {`TR_std(TR_true)`, true}, {`TR_median(1, "a")`, false}} {
 		_, err := New().Run(mustParseProgram(t, c.code+"\n"))
 		m, ok := messages.As(err)
 		if !ok || m.Code != messages.H2423 {

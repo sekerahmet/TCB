@@ -1,36 +1,36 @@
-//! tr kodlu 3 dil=tr
-// 43 — Hata ayıklama alıştırması: VS Code hata ayıklayıcısıyla bir programı adım adım izlemek.
-// Ne öğretir: kesme noktası koymak, değişkenleri tablo olarak açmak, fonksiyonun içine girmek ve bir
-// değeri çalışırken değiştirmek (koddaki kesme_noktası deyimi için bkz. 42).
-// Önceki örnekten: hata ayıklama (42), fonksiyonlar (08), sözlük listeleri (11).
-// Çalıştırma (proje kökünden): tr examples/tr/43_hata_ayiklama_alistirmasi.tr   (VS Code'da F5)
-//
-// 1. 26. satırın soluna tıklayıp kesme noktası koyun, sonra F5'e basın.
-// 2. Variables panelinde 'siparisler' değişkenini açın; sağ tık → "TR: Tablo Görünümü".
-// 3. F10 ile satır satır ilerleyin, F11 ile 'kdv_ekle' fonksiyonunun içine girin.
-// 4. 'oran' değişkenine çift tıklayıp 0.20 yazın: sonuç anında değişir.
+# TR 4
+# 43 — Hata ayıklama alıştırması: VS Code hata ayıklayıcısıyla bir programı adım adım izlemek.
+# Ne öğretir: kesme noktası koymak, değişkenleri tablo olarak açmak, fonksiyonun içine girmek ve bir
+# değeri çalışırken değiştirmek (koddaki kesme_noktası deyimi için bkz. 42).
+# Önceki örnekten: hata ayıklama (42), fonksiyonlar (08), sözlük listeleri (11).
+# Çalıştırma (proje kökünden): tr examples/tr/43_hata_ayiklama_alistirmasi.tr   (VS Code'da F5)
+#
+# 1. 26. satırın soluna tıklayıp kesme noktası koyun, sonra F5'e basın.
+# 2. Variables panelinde 'siparisler' değişkenini açın; sağ tık → "TR: Tablo Görünümü".
+# 3. F10 ile satır satır ilerleyin, F11 ile 'kdv_ekle' fonksiyonunun içine girin.
+# 4. 'oran' değişkenine çift tıklayıp 0.20 yazın: sonuç anında değişir.
 
-TR_kw_var oran = 0.18
-TR_kw_var siparisler = [
+TR_var oran = 0.18
+TR_var siparisler = [
     {"müşteri": "Ayşe", "ürün": "Laptop", "tutar": 45000},
     {"müşteri": "Mehmet", "ürün": "Telefon", "tutar": 28000},
     {"müşteri": "Elif", "ürün": "Kulaklık", "tutar": 3500}
 ]
 
-TR_kw_func kdv_ekle(tutar) {
-    TR_kw_var kdv = tutar * oran
-    TR_kw_return tutar + kdv
+TR_func kdv_ekle(tutar) {
+    TR_var kdv = tutar * oran
+    TR_return tutar + kdv
 }
 
-TR_kw_var genel_toplam = 0
-TR_kw_for s TR_kw_in siparisler {
-    TR_kw_var kdvli = kdv_ekle(s["tutar"])
+TR_var genel_toplam = 0
+TR_for s TR_in siparisler {
+    TR_var kdvli = kdv_ekle(s["tutar"])
     genel_toplam += kdvli
-    TR_fn_print("{s["müşteri"]}: {kdvli} TL")
+    TR_print("\(s["müşteri"]): \(kdvli) TL")
 }
 
-TR_fn_print("Genel toplam: {genel_toplam} TL")
+TR_print("Genel toplam: \(genel_toplam) TL")
 
-// --- Kendin dene ---
-// 1. İzleme (watch) paneline genel_toplam ifadesini ekle ve her turda değişimini izle.
-// 2. Kesme noktasına koşul ver: yalnızca tutar > 40000 olduğunda dursun.
+# --- Kendin dene ---
+# 1. İzleme (watch) paneline genel_toplam ifadesini ekle ve her turda değişimini izle.
+# 2. Kesme noktasına koşul ver: yalnızca tutar > 40000 olduğunda dursun.

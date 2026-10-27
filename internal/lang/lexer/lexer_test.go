@@ -199,7 +199,7 @@ func TestMessageCodeToken(t *testing.T) {
 			t.Errorf("%q: tek bir TANIMLAYICI bekleniyordu, gelen: %v", s, toks)
 		}
 	}
-	checkTokens(t, "ileti(H6903, x)", []expected{
+	checkTokens(t, "ileti(\"H6903\", x)", []expected{
 		{TokIdent, "ileti"}, {TokLParen, "("}, {TokMessageCode, "H6903"}, {TokComma, ","}, {TokIdent, "x"}, {TokRParen, ")"}, {TokEOF, ""},
 	})
 }

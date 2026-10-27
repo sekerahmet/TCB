@@ -1,35 +1,35 @@
-//! tr kodlu 3 dil=tr
-// 31 — Katmanlar: sinir ağlarının hazır yapı taşları.
-// Ne öğretir: katman_normu ve rms_normu (ağırlık, sapma, epsilon), gelu'nun iki biçimi (yaklaşık:),
-// doğrusal_çapraz_entropi ile büyük sözlüklü çıkış kaybı.
-// Önceki örnekten: XOR ağı (30), tensör matematiği (24).
-// Çalıştırma (proje kökünden): tr examples/tr/31_katmanlar.tr
-// Ayrıntılar: docs/spec/15_tensorler.md §15.
+# TR 4
+# 31 — Katmanlar: sinir ağlarının hazır yapı taşları.
+# Ne öğretir: katman_normu ve rms_normu (ağırlık, sapma, epsilon), gelu'nun iki biçimi (yaklaşık:),
+# doğrusal_çapraz_entropi ile büyük sözlüklü çıkış kaybı.
+# Önceki örnekten: XOR ağı (30), tensör matematiği (24).
+# Çalıştırma (proje kökünden): tr examples/tr/31_katmanlar.tr
+# Ayrıntılar: docs/spec/15_tensorler.md §15.
 
-// Normalleştirme katmanları, değerlerin ölçeğini sabit tutarak derin ağların eğitimini kolaylaştırır.
-// katman_normu son eksende ortalamayı çıkarıp standart sapmaya böler; ağırlık ölçekler, sapma kaydırır.
-// epsilon sıfıra bölmeyi önleyen küçük sayıdır.
-TR_kw_var x = TR_fn_tensor([[1.0, 2.0, 3.0]])
-TR_fn_print(TR_fn_layer_norm(x).TR_mem_tolist)
-TR_fn_print(TR_fn_layer_norm(x, TR_arg_eps: 0.001).TR_mem_tolist)
-TR_fn_print(TR_fn_layer_norm(TR_fn_tensor([[1.0, 3.0]]), TR_arg_bias: TR_fn_tensor([0.5, 0.5])).TR_mem_tolist)
+# Normalleştirme katmanları, değerlerin ölçeğini sabit tutarak derin ağların eğitimini kolaylaştırır.
+# katman_normu son eksende ortalamayı çıkarıp standart sapmaya böler; ağırlık ölçekler, sapma kaydırır.
+# epsilon sıfıra bölmeyi önleyen küçük sayıdır.
+TR_var x = TR_tensor([[1.0, 2.0, 3.0]])
+TR_print(TR_layer_norm(x).TR_tolist)
+TR_print(TR_layer_norm(x, TR_eps: 0.001).TR_tolist)
+TR_print(TR_layer_norm(TR_tensor([[1.0, 3.0]]), TR_bias: TR_tensor([0.5, 0.5])).TR_tolist)
 
-// rms_normu ortalamayı çıkarmaz; yalnızca karelerinin ortalamasının köküne böler.
-TR_fn_print(TR_fn_rms_norm(TR_fn_tensor([[3.0, 4.0]])).TR_mem_tolist)
-TR_fn_print(TR_fn_rms_norm(TR_fn_tensor([[3.0, 4.0]]), TR_arg_weight: TR_fn_tensor([2.0, 1.0])).TR_mem_tolist)
+# rms_normu ortalamayı çıkarmaz; yalnızca karelerinin ortalamasının köküne böler.
+TR_print(TR_rms_norm(TR_tensor([[3.0, 4.0]])).TR_tolist)
+TR_print(TR_rms_norm(TR_tensor([[3.0, 4.0]]), TR_weight: TR_tensor([2.0, 1.0])).TR_tolist)
 
-// gelu varsayılan olarak tanh yaklaşımıyla hesaplanır; yaklaşık: yanlış tam (erf tabanlı) biçimi verir.
-TR_kw_var a = TR_fn_tensor([-1.0, 0.0, 1.0])
-TR_fn_print(TR_fn_gelu(a).TR_mem_tolist)
-TR_fn_print(TR_fn_gelu(a, TR_arg_approximate: TR_kw_false).TR_mem_tolist)
+# gelu varsayılan olarak tanh yaklaşımıyla hesaplanır; yaklaşık: yanlış tam (erf tabanlı) biçimi verir.
+TR_var a = TR_tensor([-1.0, 0.0, 1.0])
+TR_print(TR_gelu(a).TR_tolist)
+TR_print(TR_gelu(a, TR_approximate: TR_false).TR_tolist)
 
-// doğrusal_çapraz_entropi(örnek_girdi, ağırlık, hedefler), çapraz_entropi(örnek_girdi @ ağırlık, hedefler) ile aynı kaybı verir
-// ama bütün logitleri bellekte tutmaz; büyük sözlüklü dil modellerinin çıkış katmanı için kullanılır.
-TR_kw_var örnek_girdi = TR_fn_tensor([[1.0, 2.0]])
-TR_kw_var ağırlık_matrisi = TR_fn_tensor([[0.5, -1.0, 0.2], [0.1, 0.3, -0.4]])
-TR_fn_print(TR_fn_linear_cross_entropy(örnek_girdi, ağırlık_matrisi, [2]).TR_mem_tolist)
-TR_fn_print(TR_fn_cross_entropy(örnek_girdi @ ağırlık_matrisi, [2]).TR_mem_tolist)
+# doğrusal_çapraz_entropi(örnek_girdi, ağırlık, hedefler), çapraz_entropi(örnek_girdi @ ağırlık, hedefler) ile aynı kaybı verir
+# ama bütün logitleri bellekte tutmaz; büyük sözlüklü dil modellerinin çıkış katmanı için kullanılır.
+TR_var örnek_girdi = TR_tensor([[1.0, 2.0]])
+TR_var ağırlık_matrisi = TR_tensor([[0.5, -1.0, 0.2], [0.1, 0.3, -0.4]])
+TR_print(TR_linear_cross_entropy(örnek_girdi, ağırlık_matrisi, [2]).TR_tolist)
+TR_print(TR_cross_entropy(örnek_girdi @ ağırlık_matrisi, [2]).TR_tolist)
 
-// --- Kendin dene ---
-// 1. katman_normu çıktısının ortalamasının 0 olduğunu ortalama(...) ile göster.
-// 2. rms_normu ve katman_normu sonuçlarını aynı girdide karşılaştır: ne zaman aynı çıkarlar?
+# --- Kendin dene ---
+# 1. katman_normu çıktısının ortalamasının 0 olduğunu ortalama(...) ile göster.
+# 2. rms_normu ve katman_normu sonuçlarını aynı girdide karşılaştır: ne zaman aynı çıkarlar?

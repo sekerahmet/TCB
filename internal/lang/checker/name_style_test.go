@@ -35,17 +35,17 @@ func TestNameStyleWarnings(t *testing.T) {
 		line       int
 		suggestion string
 	}{
-		{"TR_kw_var öğrenciSayısı = 1", messages.H1012, 1, `"öğrenci_sayısı"`},
-		{"TR_kw_func HazırModel() { TR_kw_return 1 }", messages.H1012, 1, `"hazır_model"`},
-		{"TR_kw_func f(GirdiBoyu) { TR_kw_return GirdiBoyu }", messages.H1012, 1, `"girdi_boyu"`},
-		{"TR_kw_for Eleman TR_kw_in [1] { TR_fn_print(Eleman) }", messages.H1012, 1, `"eleman"`},
-		{"TR_kw_struct Nokta { SolKenar = 0 }", messages.H1012, 1, `"sol_kenar"`},
-		{"TR_kw_const en_büyük = 10", messages.H1013, 1, `"EN_BÜYÜK"`},
-		{"TR_kw_const maxCount = 10", messages.H1013, 1, `"MAX_COUNT"`},
-		{"TR_kw_struct önbellek_durumu { }", messages.H1014, 1, `"ÖnbellekDurumu"`},
-		{"TR_kw_struct Önbellek_Durumu { }", messages.H1014, 1, `"ÖnbellekDurumu"`},
-		{"TR_kw_var ADIM = 300", messages.H1015, 1, `"adım"`},
-		{"TR_kw_var _GizliAd = 1", messages.H1012, 1, `"_gizli_ad"`},
+		{"TR_var öğrenciSayısı = 1", messages.H1012, 1, `"öğrenci_sayısı"`},
+		{"TR_func HazırModel() { TR_return 1 }", messages.H1012, 1, `"hazır_model"`},
+		{"TR_func f(GirdiBoyu) { TR_return GirdiBoyu }", messages.H1012, 1, `"girdi_boyu"`},
+		{"TR_for Eleman TR_in [1] { TR_print(Eleman) }", messages.H1012, 1, `"eleman"`},
+		{"TR_struct Nokta { SolKenar = 0 }", messages.H1012, 1, `"sol_kenar"`},
+		{"TR_const en_büyük = 10", messages.H1013, 1, `"EN_BÜYÜK"`},
+		{"TR_const maxCount = 10", messages.H1013, 1, `"MAX_COUNT"`},
+		{"TR_struct önbellek_durumu { }", messages.H1014, 1, `"ÖnbellekDurumu"`},
+		{"TR_struct Önbellek_Durumu { }", messages.H1014, 1, `"ÖnbellekDurumu"`},
+		{"TR_var ADIM = 300", messages.H1015, 1, `"adım"`},
+		{"TR_var _GizliAd = 1", messages.H1012, 1, `"_gizli_ad"`},
 	} {
 		w := warningsOf(t, c.source)
 		if len(w) != 1 {
@@ -62,18 +62,18 @@ func TestNameStyleWarnings(t *testing.T) {
 // Kurala uyan adlar ve matematik adları (en çok üç harf ve rakam: W, X, Wq, dW, W1, QKV;
 // X_veri'nin X'i) uyarı vermez; baştaki _ (modüle özel) ve $ (kaçış) yazılışa sayılmaz.
 func TestNameStyleAcceptsConventionalAndMathNames(t *testing.T) {
-	source := `TR_kw_const EN_BÜYÜK = 10
-TR_kw_const D2 = 2
-TR_kw_var öğrenci_sayısı2 = 1
-TR_kw_var W = 1
-TR_kw_var Wq, dW, W1, QKV = 1, 2, 3, 4
-TR_kw_var X_veri = 1
-TR_kw_var _iç = 1
-TR_kw_var $eğer = 1
-TR_kw_func hazır_model(B, T) { TR_kw_return B * T }
-TR_kw_struct GPT { katman = 1 }
-TR_kw_struct SıçramaBekçisi { pencere = 20 }
-TR_kw_for _ TR_kw_in [1] { TR_fn_print(1) }`
+	source := `TR_const EN_BÜYÜK = 10
+TR_const D2 = 2
+TR_var öğrenci_sayısı2 = 1
+TR_var W = 1
+TR_var Wq, dW, W1, QKV = 1, 2, 3, 4
+TR_var X_veri = 1
+TR_var _iç = 1
+TR_var $eğer = 1
+TR_func hazır_model(B, T) { TR_return B * T }
+TR_struct GPT { katman = 1 }
+TR_struct SıçramaBekçisi { pencere = 20 }
+TR_for _ TR_in [1] { TR_print(1) }`
 	if w := warningsOf(t, source); len(w) > 0 {
 		t.Errorf("uyarı beklenmiyordu: %v", w)
 	}

@@ -1,5 +1,6 @@
-// Bilerek hatalı: 7.1 — aynı metot iki kez tanımlanamaz.
-yapı A {
-    fonksiyon f() { sonuç 1 }
-    fonksiyon f() { sonuç 2 }
+# TR 4
+# Bilerek hatalı: 7.1 — aynı metot iki kez tanımlanamaz.
+TR_struct A {
+    TR_func f() { TR_return 1 }
+    TR_func f() { TR_return 2 }
 }

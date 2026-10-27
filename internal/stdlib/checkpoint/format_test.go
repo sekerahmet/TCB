@@ -38,9 +38,9 @@ yazdır(kn.kaldığı_adım, w.değer, m.değer, model.durum.m.değer, model.dur
 		model string
 		want  messages.Code
 	}{
-		{`{w: tensör([0.0, 0.0], türev_izle: doğru), durum: {m: tensör([0.0, 0.0])}}`, messages.H7452}, // "state.step" yok
-		{`{w: tensör([0.0, 0.0], türev_izle: doğru), durum: {m: tensör([0.0]), adım: tensör(0.0)}}`, messages.H7450},
-		{`{w: tensör([0.0, 0.0], türev_izle: doğru), durum: {m: tensör([0.0, 0.0]), adım: tensör(0.0), yeni: tensör([1.0])}}`, messages.H7449},
+		{`{w: TR_tensor([0.0, 0.0], TR_requires_grad: TR_true), TR_state: {m: TR_tensor([0.0, 0.0])}}`, messages.H7452}, // "state.step" yok
+		{`{w: TR_tensor([0.0, 0.0], TR_requires_grad: TR_true), TR_state: {m: TR_tensor([0.0]), TR_step: TR_tensor(0.0)}}`, messages.H7450},
+		{`{w: TR_tensor([0.0, 0.0], TR_requires_grad: TR_true), TR_state: {m: TR_tensor([0.0, 0.0]), TR_step: TR_tensor(0.0), yeni: TR_tensor([1.0])}}`, messages.H7449},
 	} {
 		output, err := run(t, fmt.Sprintf(`kontrol_noktası(%q, {model: %s, tek: tensör([[0.0], [0.0]], tür: "bf16")})`, runDir, d.model))
 		if !messages.Has(err, d.want) {

@@ -1,33 +1,33 @@
-//! tr kodlu 3 dil=tr
-// 16 — Ertele: temizliği her durumda yapmak.
-// Ne öğretir: ertele ile bir işi fonksiyondan çıkarken (hata olsa da olmasa da) ters sırayla çalıştırmak.
-// Önceki örnekten: fonksiyonlar (08), hata yönetimi (15).
-// Çalıştırma (proje kökünden): tr examples/tr/16_ertele.tr
+# TR 4
+# 16 — Ertele: temizliği her durumda yapmak.
+# Ne öğretir: ertele ile bir işi fonksiyondan çıkarken (hata olsa da olmasa da) ters sırayla çalıştırmak.
+# Önceki örnekten: fonksiyonlar (08), hata yönetimi (15).
+# Çalıştırma (proje kökünden): tr examples/tr/16_ertele.tr
 
-// ertele ifadesi hemen çalışmaz; fonksiyon bitince çalışır. Birden çoksa sonuncu önce çalışır.
-// Açılan her şeyin (dosya, bağlantı) kapatılması bu sayede unutulmaz.
-TR_kw_func dosya_işlemi() {
-    TR_kw_defer TR_fn_print("  [ertele 1] bağlantı kapatıldı")
-    TR_kw_defer TR_fn_print("  [ertele 2] önbellek temizlendi") // önce bu çalışır
-    TR_fn_print("  [işlem] veri işleniyor...")
-    TR_kw_return "başarılı"
+# ertele ifadesi hemen çalışmaz; fonksiyon bitince çalışır. Birden çoksa sonuncu önce çalışır.
+# Açılan her şeyin (dosya, bağlantı) kapatılması bu sayede unutulmaz.
+TR_func dosya_işlemi() {
+    TR_defer TR_print("  [ertele 1] bağlantı kapatıldı")
+    TR_defer TR_print("  [ertele 2] önbellek temizlendi") # önce bu çalışır
+    TR_print("  [işlem] veri işleniyor...")
+    TR_return "başarılı"
 }
-TR_fn_print("dönüş: {dosya_işlemi()}")
+TR_print("dönüş: \(dosya_işlemi())")
 
-// Hata çıksa da ertelenen işler çalışır.
-TR_kw_func başarısız_işlem() {
-    TR_kw_defer TR_fn_print("  [ertele] hata olsa da temizlik yapıldı")
-    TR_kw_throw "işlem başarısız"
+# Hata çıksa da ertelenen işler çalışır.
+TR_func başarısız_işlem() {
+    TR_defer TR_print("  [ertele] hata olsa da temizlik yapıldı")
+    TR_throw "işlem başarısız"
 }
-TR_kw_try { başarısız_işlem() } TR_kw_catch h { TR_fn_print("yakalandı: {h}") }
+TR_try { başarısız_işlem() } TR_catch h { TR_print("yakalandı: \(h)") }
 
-// Döngü içinde fonksiyon çağrısıyla her tur için ertele çalıştırılabilir.
-TR_kw_func tur(n) {
-    TR_kw_defer TR_fn_print("  tur {n} bitti")
-    TR_fn_print("tur {n} başladı")
+# Döngü içinde fonksiyon çağrısıyla her tur için ertele çalıştırılabilir.
+TR_func tur(n) {
+    TR_defer TR_print("  tur \(n) bitti")
+    TR_print("tur \(n) başladı")
 }
-TR_kw_for n TR_kw_in 1..=3 { tur(n) }
+TR_for n TR_in 1..=3 { tur(n) }
 
-// --- Kendin dene ---
-// 1. Üç ertele yaz ve hangi sırayla çalıştıklarını gözle.
-// 2. Hata fırlatan bir fonksiyona ertele ekle ve hatayı dışarıda yakala: temizlik hata iletisinden önce mi sonra mı?
+# --- Kendin dene ---
+# 1. Üç ertele yaz ve hangi sırayla çalıştıklarını gözle.
+# 2. Hata fırlatan bir fonksiyona ertele ekle ve hatayı dışarıda yakala: temizlik hata iletisinden önce mi sonra mı?

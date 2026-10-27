@@ -136,15 +136,15 @@ func TestIdentities(t *testing.T) {
 		k  Code
 		s  string
 		ns Namespace
-	}{{KwIf, "TR_kw_if", NamespaceGlobal}, {FnPrint, "TR_fn_print", NamespaceGlobal}, {MemStep, "TR_mem_step", NamespaceMember},
-		{TypeTensor, "TR_type_Tensor", NamespaceType}, {ArgLr, "TR_arg_lr", NamespaceParam}, {ConstPi, "TR_const_pi", NamespaceGlobal},
-		{CmdIndex, "TR_cmd_index", NamespaceCommand}, {SubDefinition, "TR_sub_definition", NamespaceSubcommand},
-		{OptHelp, "TR_opt_help", NamespaceOption}, {ReplExit, "TR_repl_exit", NamespaceCommand},
-		{DbgStep, "TR_dbg_step", NamespaceDebugger}, {EnvLang, "TR_env_LANG", NamespaceEnvironment},
+	}{{KwIf, "TR_if", NamespaceGlobal}, {FnPrint, "TR_print", NamespaceGlobal}, {MemStep, "TR_step", NamespaceMember},
+		{TypeTensor, "TR_Tensor", NamespaceType}, {ArgLr, "TR_lr", NamespaceParam}, {ConstPi, "TR_pi", NamespaceGlobal},
+		{CmdIndex, "TR_index", NamespaceCommand}, {SubDefinition, "TR_definition", NamespaceSubcommand},
+		{OptHelp, "TR_help", NamespaceOption}, {ReplExit, "TR_exit", NamespaceCommand},
+		{DbgStep, "TR_step", NamespaceDebugger}, {EnvLang, "TR_LANG", NamespaceEnvironment},
 		// Değer adları genel ad alanındadır ama program adı değildir (dil tanımı 17'nin tablosu):
 		// ad çakışması sınavı onları atlar; ad alanı, aynı dilde aynı yazılan bir yerleşikle
 		// çakışmayı yükleyicide yakalar.
-		{ValNan, "TR_val_nan", NamespaceGlobal}} {
+		{ValNan, "TR_nan", NamespaceGlobal}} {
 		if c.k.String() != c.s {
 			t.Errorf("%d: %s, %s bekleniyordu", c.k, c.k, c.s)
 		}
@@ -168,7 +168,7 @@ func TestIdentities(t *testing.T) {
 		t.Error("sınıftan okunan türler yanlış")
 	}
 	// Ayrılmış adlar (2.3a): TR_ ile başlayan her ad, kimlik kod listesinde olmasa da; eski kod biçimi sıradan addır.
-	for s, want := range map[string]bool{"TR_fn_print": true, "TR_": true, "TR_kw_yeni": true,
+	for s, want := range map[string]bool{"TR_print": true, "TR_": true, "TR_kw_yeni": true,
 		"G100": false, "A001": false, "tr_fn_print": false, "Tr_x": false, "x_TR_": false, "": false} {
 		if IsReservedName(s) != want {
 			t.Errorf("IsReservedName(%q) = %v, %v bekleniyordu", s, !want, want)
@@ -195,7 +195,7 @@ func TestIdentityClassesKnown(t *testing.T) {
 // kavramın kimliğine sahibinin adı eklenir (TR_arg_G_muon, TR_arg_g_swiglu). Go adı denetimi
 // (tools/gen/codeconsts) bunu yalnız MixedCaps aynı çıkınca yakalar: TR_arg_aB ile TR_arg_ab'yi değil.
 func TestIdentitiesDifferBeyondLetterCase(t *testing.T) {
-	if got := caseOnlyPairs([]string{"TR_arg_G_muon", "TR_arg_g_swiglu", "TR_arg_aB", "TR_arg_ab"}); len(got) != 1 || got[0] != "TR_arg_aB TR_arg_ab" {
+	if got := caseOnlyPairs([]string{"TR_G_muon", "TR_g_swiglu", "TR_arg_aB", "TR_arg_ab"}); len(got) != 1 || got[0] != "TR_arg_aB TR_arg_ab" {
 		t.Errorf("caseOnlyPairs = %q; yalnız TR_arg_aB TR_arg_ab bekleniyordu", got)
 	}
 	ids := make([]string, 0, len(Codes()))
@@ -267,12 +267,12 @@ func TestUnknownLanguageAsksEveryWritingLanguage(t *testing.T) {
 // Yukle kod listesi hatalarını hangi kodların çakıştığını söyleyerek yakalar.
 func TestClashesCaught(t *testing.T) {
 	for _, c := range []struct{ json, want string }{
-		{`{"TR_fn_print": {"name": "a"}, "TR_fn_print": {"name": "b"}}`, "TR_fn_print is defined twice"},
-		{`{"TR_fn_print": {"name": "yazdır"}, "TR_fn_input": {"name": "yazdır"}}`, "TR_fn_input \"yazdır\" and TR_fn_print"},
-		{`{"TR_fn_print": {"name": "yazdır"}, "TR_fn_input": {"name": "yazdir"}}`, "TR_fn_input \"yazdir\" and TR_fn_print \"yazdır\""},
-		{`{"TR_kw_if": {"name": "eğer"}, "TR_fn_print": {"name": "eger"}}`, "TR_kw_if \"eğer\" and TR_fn_print"},
-		{`{"TR_fn_print": {"name": "yazdır"}, "TR_fn_input": {"name": "girdi", "foreign": ["yazdir"]}}`, "the foreign name \"yazdir\" of TR_fn_input clashes with TR_fn_print"},
-		{`{"TR_fn_print": {"name": "a", "foreign": ["çık"]}, "TR_fn_input": {"name": "b", "foreign": ["cik"]}}`, "\"cik\" is registered for both TR_fn_input and TR_fn_print"},
+		{`{"TR_fn_print": {"name": "a"}, "TR_fn_print": {"name": "b"}}`, "TR_print is defined twice"},
+		{`{"TR_fn_print": {"name": "yazdır"}, "TR_fn_input": {"name": "yazdır"}}`, "TR_input \"yazdır\" and TR_print"},
+		{`{"TR_fn_print": {"name": "yazdır"}, "TR_fn_input": {"name": "yazdir"}}`, "TR_input \"yazdir\" and TR_print \"yazdır\""},
+		{`{"TR_kw_if": {"name": "eğer"}, "TR_fn_print": {"name": "eger"}}`, "TR_if \"eğer\" and TR_print"},
+		{`{"TR_fn_print": {"name": "yazdır"}, "TR_fn_input": {"name": "girdi", "foreign": ["yazdir"]}}`, "the foreign name \"yazdir\" of TR_input clashes with TR_print"},
+		{`{"TR_fn_print": {"name": "a", "foreign": ["çık"]}, "TR_fn_input": {"name": "b", "foreign": ["cik"]}}`, "\"cik\" is registered for both TR_input and TR_print"},
 		{`{"TR_fn_print": {"name": "a", "foreign": ["a"]}}`, "must not be the name itself"},
 		{`{"TR_fn_print": {"name": "a", "eski": ["b"]}}`, "unknown field \"eski\""},
 		{`{"TR_fn_print": {"name": "a b"}}`, "contain spaces"},
@@ -298,9 +298,9 @@ func TestClashesCaught(t *testing.T) {
 func TestCommonNamesGoThroughTheChecks(t *testing.T) {
 	common := map[Code]string{FnSin: "sin", EnvCpuAvx2: "TR_CPU_AVX2"}
 	for _, c := range []struct{ json, want string }{
-		{`{"TR_fn_sin": {"name": "x"}}`, "TR_fn_sin has the common name \"sin\""},
+		{`{"TR_fn_sin": {"name": "x"}}`, "TR_sin has the common name \"sin\""},
 		{`{"TR_fn_print": {"name": "sin"}}`, "clash in the same namespace"},
-		{`{"TR_fn_print": {"name": "a", "foreign": ["sin"]}}`, "the foreign name \"sin\" of TR_fn_print clashes with TR_fn_sin"},
+		{`{"TR_fn_print": {"name": "a", "foreign": ["sin"]}}`, "the foreign name \"sin\" of TR_print clashes with TR_sin"},
 	} {
 		_, err := load("deneme", []byte(c.json), common)
 		if err == nil || !strings.Contains(err.Error(), c.want) {
@@ -360,7 +360,7 @@ func TestSingleSpelling(t *testing.T) {
 			}
 		}
 		if y := d.Spellings(FnPrint); len(y) != 1 || y[0] != print {
-			t.Errorf("%s: TR_fn_print yalnızca %q yazımıyla kabul edilmeli: %v", lang, print, y)
+			t.Errorf("%s: TR_print yalnızca %q yazımıyla kabul edilmeli: %v", lang, print, y)
 		}
 	}
 }
@@ -456,14 +456,14 @@ func TestIndexSubcommandsAreNotCommands(t *testing.T) {
 	}
 	for _, name := range []string{"dizin", "index"} {
 		if k, ok := FindCommand(name); !ok || k != CmdIndex {
-			t.Errorf("%q is the index command TR_cmd_index, got %s %v", name, k, ok)
+			t.Errorf("%q is the index command TR_index, got %s %v", name, k, ok)
 		}
 		if _, ok := FindSubcommand(name); ok {
 			t.Errorf("%q is not a subcommand of itself", name)
 		}
 	}
 	if CmdIndex.IsIndexSubcommand() || CmdIndex.Namespace() != NamespaceCommand {
-		t.Error("TR_cmd_index itself is a command")
+		t.Error("TR_index itself is a command")
 	}
 	for _, k := range []Code{SubDefinition, SubReferences, SubTestedBy, SubImpact, SubRename} {
 		if !k.IsIndexSubcommand() {

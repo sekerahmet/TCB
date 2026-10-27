@@ -15,11 +15,11 @@ import (
 // Int or Float), kullanıcının sınıf adı olduğu gibi kalır.
 func TestTypeNamesFollowTheMessageLanguage(t *testing.T) {
 	for _, c := range []struct{ source, want string }{
-		{"TR_kw_var x: TR_type_Int = \"a\"\n", `type "Int" but a value of type "String"`},
-		{"TR_kw_var x: TR_type_Int = 6 / 3\n", `type "Int" but a value of type "Int or Float"`},
-		{"TR_kw_var x: TR_type_Int = 6 / 3\n", "gives Float if the quotient"},
-		{"TR_kw_var x: ondalik = 1.5\n", "did you mean 'Float'?"},
-		{"TR_kw_struct Nokta {\n  x: TR_type_Int\n}\nTR_kw_var p: Nokta = 1\n", `declared with type "Nokta" but a value of type "Int"`},
+		{"TR_var x: TR_Int = \"a\"\n", `type "Int" but a value of type "String"`},
+		{"TR_var x: TR_Int = 6 / 3\n", `type "Int" but a value of type "Int or Float"`},
+		{"TR_var x: TR_Int = 6 / 3\n", "gives Float if the quotient"},
+		{"TR_var x: ondalik = 1.5\n", "did you mean 'Float'?"},
+		{"TR_struct Nokta {\n  x: TR_Int\n}\nTR_var p: Nokta = 1\n", `declared with type "Nokta" but a value of type "Int"`},
 	} {
 		_, errs := checkErrs(t, c.source)
 		var text []string

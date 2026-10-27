@@ -1,8 +1,8 @@
-//! tr kodlu 3 dil=tr
-TR_kw_var n = 512
-TR_kw_var a = TR_fn_randn([n, n])
-TR_kw_var b = TR_fn_randn([n, n])
-TR_kw_var bas = TR_fn_time_ms()
-TR_kw_var c = a @ b
-TR_kw_var c2 = c @ b
-TR_fn_print("matris_yerlesik - {TR_fn_time_ms() - bas}")
+# TR 4
+TR_var n = 512
+TR_var a = TR_randn([n, n])
+TR_var b = TR_randn([n, n])
+TR_var bas = TR_time_ms()
+TR_var c = a @ b
+TR_var c2 = c @ b
+TR_print("matris_yerlesik - \(TR_time_ms() - bas)")

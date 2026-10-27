@@ -1,5 +1,6 @@
-// Bilerek hatalı: 12.6 — test gövdesinde sonuç kullanılamaz.
-test "erken biten" {
-    eğer doğru { sonuç }
-    doğrula(yanlış)
+# TR 4
+# Bilerek hatalı: 12.6 — test gövdesinde sonuç kullanılamaz.
+TR_test "erken biten" {
+    TR_if TR_true { TR_return }
+    TR_assert(TR_false)
 }

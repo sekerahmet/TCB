@@ -12,10 +12,10 @@ func TestParseFirstExpressionSeparatesOutcomes(t *testing.T) {
 		want exprStatus
 	}{
 		{"1 + 2", exprParsed},
-		{"1 + 2\nyazdır(3)", exprParsed},
+		{"1 + 2\nTR_print(3)", exprParsed},
 		{"1 +", exprSyntaxError},
 		{"", exprSyntaxError},
-		{"değişken a = 1", exprNotExpression},
+		{"TR_var a = 1", exprNotExpression},
 	} {
 		if _, got := parseFirstExpression(c.text, nil); got != c.want {
 			t.Errorf("parseFirstExpression(%q) = %d, beklenen %d", c.text, got, c.want)

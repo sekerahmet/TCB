@@ -14,8 +14,8 @@ func TestEnvVar(t *testing.T) {
 	t.Setenv("TR_TEST_HF_TOKEN", "hf_ortamgizli99")
 	t.Setenv("TR_TEST_MAX_TOKENS", "4096000")
 	t.Setenv("TR_TEST_TOKENIZER", "D:/veri/tokenizer.json")
-	got, m, err := commandLine(t, `[ortam_değişkeni("TR_TEST_DIR"), ortam_değişkeni("TR_TEST_NO_SUCH") ?? "varsayılan",
-  ortam_değişkeni("TR_TEST_HF_TOKEN"), ortam_değişkeni("TR_TEST_MAX_TOKENS"), ortam_değişkeni("TR_TEST_TOKENIZER")]`)
+	got, m, err := commandLine(t, `[TR_env("TR_TEST_DIR"), TR_env("TR_TEST_NO_SUCH") ?? "varsayılan",
+  TR_env("TR_TEST_HF_TOKEN"), TR_env("TR_TEST_MAX_TOKENS"), TR_env("TR_TEST_TOKENIZER")]`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -26,14 +26,14 @@ func TestEnvVar(t *testing.T) {
 		t.Errorf("maskeleme: %q", s)
 	}
 	for _, d := range []struct{ code, want string }{
-		{`ortam_değişkeni(5)`, "1. argüman olarak Metin bekler"},
-		{`ortam_değişkeni()`, "1 argüman bekler"},
+		{`TR_env(5)`, "1. argüman olarak TR_String bekler"},
+		{`TR_env()`, "1 argüman bekler"},
 	} {
 		if _, _, err := commandLine(t, d.code); err == nil || !strings.Contains(err.Error(), d.want) {
 			t.Errorf("%s: %q içeren hata bekleniyordu: %v", d.code, d.want, err)
 		}
 	}
-	for _, code := range []string{`ortam_değişkeni("")`, `ortam_değişkeni("A=B")`} {
+	for _, code := range []string{`TR_env("")`, `TR_env("A=B")`} {
 		if _, _, err := commandLine(t, code); !messages.Has(err, messages.H7231) {
 			t.Errorf("%s: %s bekleniyordu: %v", code, messages.H7231, err)
 		}

@@ -28,15 +28,15 @@ func TestDAPWatchPanelButtons(t *testing.T) {
 	}
 
 	c := startDAP(t)
-	path := writeProgram(t, `değişken toplam = 0
-fonksiyon kare(x) {
-    sonuç x * x
+	path := writeProgram(t, `TR_var toplam = 0
+TR_func kare(x) {
+    TR_return x * x
 }
-döngü s içinde [1, 2, 3] {
-    değişken k = kare(s)
+TR_for s TR_in [1, 2, 3] {
+    TR_var k = kare(s)
     toplam += k
 }
-yazdır("toplam: {toplam}")
+TR_print("toplam: \(toplam)")
 `)
 	c.launch(path, false, map[string]interface{}{"line": 6})
 	stopped := func(wantLine int, cause string) map[string]interface{} {
@@ -95,7 +95,7 @@ yazdır("toplam: {toplam}")
 // Durdur düğmesi (düzenleyicide terminate) duraklatılmış programı sonlandırır.
 func TestDAPWatchPanelStop(t *testing.T) {
 	c := startDAP(t)
-	path := writeProgram(t, "değişken a = 1\nyazdır(a)\n")
+	path := writeProgram(t, "TR_var a = 1\nTR_print(a)\n")
 	c.launch(path, true)
 	c.event("stopped")
 	c.request("terminate", map[string]interface{}{"restart": false})

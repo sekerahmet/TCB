@@ -20,23 +20,23 @@ func TestListDir(t *testing.T) {
 	k := tmpWork(t)
 	buildTree(t, k)
 	cases := map[string]string{
-		`klasörü_listele("v")`:              "[v/Büyük.NPY, v/a.npy, v/alt, v/b.txt]",
-		`klasörü_listele("v", "*.npy")`:     "[v/a.npy]",
-		`klasörü_listele("v", "**/*.npy")`:  "[v/a.npy, v/alt/c.npy, v/alt/derin/d.npy]",
-		`klasörü_listele("v", "**")`:        "[v/Büyük.NPY, v/a.npy, v/alt, v/alt/c.npy, v/alt/derin, v/alt/derin/d.npy, v/b.txt]",
-		`klasörü_listele("v", "alt/*")`:     "[v/alt/c.npy, v/alt/derin]",
-		`klasörü_listele("v", ".*")`:        "[v/.f.npy, v/.gizli]",
-		`klasörü_listele("v", ".gizli/*")`:  "[v/.gizli/e.npy]",
-		`klasörü_listele("v", "[ab].*")`:    "[v/a.npy, v/b.txt]",
-		`klasörü_listele("v", "**/derin")`:  "[v/alt/derin]",
-		`klasörü_listele("./v/", "a.npy")`:  "[v/a.npy]",
-		`klasörü_listele(yol("v"), "yok*")`: "[]",
-		`tip(klasörü_listele("v")[0])`:      "Yol",
-		`klasörü_listele()`:                 "[v]",
+		`TR_list_dir("v")`:                  "[v/Büyük.NPY, v/a.npy, v/alt, v/b.txt]",
+		`TR_list_dir("v", "*.npy")`:         "[v/a.npy]",
+		`TR_list_dir("v", "**/*.npy")`:      "[v/a.npy, v/alt/c.npy, v/alt/derin/d.npy]",
+		`TR_list_dir("v", "**")`:            "[v/Büyük.NPY, v/a.npy, v/alt, v/alt/c.npy, v/alt/derin, v/alt/derin/d.npy, v/b.txt]",
+		`TR_list_dir("v", "alt/*")`:         "[v/alt/c.npy, v/alt/derin]",
+		`TR_list_dir("v", ".*")`:            "[v/.f.npy, v/.gizli]",
+		`TR_list_dir("v", ".gizli/*")`:      "[v/.gizli/e.npy]",
+		`TR_list_dir("v", "[ab].*")`:        "[v/a.npy, v/b.txt]",
+		`TR_list_dir("v", "**/derin")`:      "[v/alt/derin]",
+		`TR_list_dir("./v/", "a.npy")`:      "[v/a.npy]",
+		`TR_list_dir(TR_path("v"), "yok*")`: "[]",
+		`TR_type(TR_list_dir("v")[0])`:      "Yol",
+		`TR_list_dir()`:                     "[v]",
 	}
 	if caseInsensitive {
-		cases[`klasörü_listele("v", "*.npy")`] = "[v/Büyük.NPY, v/a.npy]"
-		cases[`klasörü_listele("v", "**/*.npy")`] = "[v/Büyük.NPY, v/a.npy, v/alt/c.npy, v/alt/derin/d.npy]"
+		cases[`TR_list_dir("v", "*.npy")`] = "[v/Büyük.NPY, v/a.npy]"
+		cases[`TR_list_dir("v", "**/*.npy")`] = "[v/Büyük.NPY, v/a.npy, v/alt/c.npy, v/alt/derin/d.npy]"
 	}
 	for code, wants := range cases {
 		if got := mustRunTR(t, code); got != wants {
@@ -48,11 +48,11 @@ func TestListDir(t *testing.T) {
 	if !strings.HasSuffix(got, "/v/b.txt]") || !strings.Contains(got, ":") && !strings.HasPrefix(got, "[/") {
 		t.Errorf("mutlak taban: %s", got)
 	}
-	errContains(t, `klasörü_listele("yok")`, `klasörü_listele(): "yok" listelenemedi: böyle bir dosya ya da klasör yok`)
-	errHas(t, `klasörü_listele("v/a.npy")`, messages.H7136)
-	errContains(t, `klasörü_listele("v", "../*")`, `kalıp "../*" geçersiz: kalıpta .. olamaz`)
-	errHas(t, `klasörü_listele("v", "../*")`, messages.H7135, messages.H7143)
-	errContains(t, `klasörü_listele("v", 5)`, "2. argüman olarak Metin bekler")
+	errContains(t, `TR_list_dir("yok")`, `klasörü_listele(): "yok" listelenemedi: böyle bir dosya ya da klasör yok`)
+	errHas(t, `TR_list_dir("v/a.npy")`, messages.H7136)
+	errContains(t, `TR_list_dir("v", "../*")`, `kalıp "../*" geçersiz: kalıpta .. olamaz`)
+	errHas(t, `TR_list_dir("v", "../*")`, messages.H7135, messages.H7143)
+	errContains(t, `TR_list_dir("v", 5)`, "2. argüman olarak TR_String bekler")
 }
 
 // ** klasör bağlantılarının içine girmez (döngü olmaz); adıyla yazılmış bağlantının içine
@@ -61,10 +61,10 @@ func TestListDoesNotEnterLinks(t *testing.T) {
 	k := tmpWork(t)
 	write(t, filepath.Join(k, "v", "a.npy"), "x")
 	dirLink(t, filepath.Join(k, "v"), filepath.Join(k, "v", "dongu"))
-	if got := mustRunTR(t, `klasörü_listele("v", "**/*.npy")`); got != "[v/a.npy]" {
+	if got := mustRunTR(t, `TR_list_dir("v", "**/*.npy")`); got != "[v/a.npy]" {
 		t.Errorf("** bağlantıya girdi: %s", got)
 	}
-	if got := mustRunTR(t, `klasörü_listele("v", "dongu/*.npy")`); got != "[v/dongu/a.npy]" {
+	if got := mustRunTR(t, `TR_list_dir("v", "dongu/*.npy")`); got != "[v/dongu/a.npy]" {
 		t.Errorf("adıyla yazılan bağlantı: %s", got)
 	}
 }

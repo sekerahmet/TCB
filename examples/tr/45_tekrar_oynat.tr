@@ -1,36 +1,36 @@
-//! tr kodlu 3 dil=tr
-// 45 — Kaydedip oynatmak: sık tekrarlanan küçük bir GPU adımını bir kez kaydedip tek seferde oynatmak.
-// Ne öğretir: tekrar_oynat(f) (GPU'da CUDA Graph), yerine_yaz(hedef, kaynak, eksen:, başlangıç:) ile
-// önbelleğe konumundan yazmak, değişen değeri (konum, kimlik) tensör argümanı olarak vermek.
-// Üretimde her parça aynı küçük işi yapar; asıl maliyet çoğu zaman yüzlerce kernelin tek tek
-// başlatılmasıdır. tekrar_oynat ikinci çağrıda işi kaydeder, sonra yorumlayıcıyı atlayıp kaydı oynatır.
-// Önceki örnekten: hazır katmanlarla GPT (41); GPT.üret aynı yolu GPU'da kendiliğinden kullanır.
-// Ayrıntılar: docs/spec/15_tensorler.md §15.45, §15.8, lib/README.md (Üretim).
-//
-// Çalıştırma (proje kökünden): tr examples/tr/45_tekrar_oynat.tr
-// GPU'da: aşağıdaki satırın yorumunu kaldırın; CPU'da tekrar_oynat f'i doğrudan çağırır, sonuç aynıdır.
-// varsayılan_cihaz("gpu")
+# TR 4
+# 45 — Kaydedip oynatmak: sık tekrarlanan küçük bir GPU adımını bir kez kaydedip tek seferde oynatmak.
+# Ne öğretir: tekrar_oynat(f) (GPU'da CUDA Graph), yerine_yaz(hedef, kaynak, eksen:, başlangıç:) ile
+# önbelleğe konumundan yazmak, değişen değeri (konum, kimlik) tensör argümanı olarak vermek.
+# Üretimde her parça aynı küçük işi yapar; asıl maliyet çoğu zaman yüzlerce kernelin tek tek
+# başlatılmasıdır. tekrar_oynat ikinci çağrıda işi kaydeder, sonra yorumlayıcıyı atlayıp kaydı oynatır.
+# Önceki örnekten: hazır katmanlarla GPT (41); GPT.üret aynı yolu GPU'da kendiliğinden kullanır.
+# Ayrıntılar: docs/spec/15_tensorler.md §15.45, §15.8, lib/README.md (Üretim).
+#
+# Çalıştırma (proje kökünden): tr examples/tr/45_tekrar_oynat.tr
+# GPU'da: aşağıdaki satırın yorumunu kaldırın; CPU'da tekrar_oynat f'i doğrudan çağırır, sonuç aynıdır.
+# varsayılan_cihaz("gpu")
 
-TR_kw_var tablo = TR_fn_randn([6, 4], TR_arg_seed: 1) // 6 parçalık sözlük, 4 boyutlu gömme
-TR_kw_var önbellek = TR_fn_zeros([5, 4]) // 5 konumluk "önbellek"
+TR_var tablo = TR_randn([6, 4], TR_seed: 1) # 6 parçalık sözlük, 4 boyutlu gömme
+TR_var önbellek = TR_zeros([5, 4]) # 5 konumluk "önbellek"
 
-// Bir adım: parçanın gömmesini seçer, önbellekte konumuna yazar, önbelleğin toplamını verir.
-// Değişen her şey tensördür: kayıtta sabitlenmez, her oynatmada yeniden okunur.
-TR_kw_func adım(kimlik, konum) {
-    TR_kw_var e = TR_fn_embedding(tablo, kimlik) // [1, 4]
-    TR_fn_write_slice(önbellek, e, TR_arg_dim: 0, TR_arg_start: konum)
-    TR_kw_return TR_fn_sum(önbellek, TR_arg_dim: 0)
+# Bir adım: parçanın gömmesini seçer, önbellekte konumuna yazar, önbelleğin toplamını verir.
+# Değişen her şey tensördür: kayıtta sabitlenmez, her oynatmada yeniden okunur.
+TR_func adım(kimlik, konum) {
+    TR_var e = TR_embedding(tablo, kimlik) # [1, 4]
+    TR_write_slice(önbellek, e, TR_dim: 0, TR_start: konum)
+    TR_return TR_sum(önbellek, TR_dim: 0)
 }
 
-TR_kw_var oynat = TR_fn_replay(adım)
-TR_fn_no_grad {
-    TR_kw_for konum, kimlik TR_kw_in [3, 1, 4, 1, 5] {
-        TR_kw_var s = oynat(TR_fn_tensor([kimlik * 1.0]), TR_fn_tensor(konum * 1.0))
-        TR_fn_print("konum {konum}, parça {kimlik}: toplam {TR_fn_round(TR_fn_sum(s).TR_mem_tolist, 4)}")
+TR_var oynat = TR_replay(adım)
+TR_no_grad {
+    TR_for konum, kimlik TR_in [3, 1, 4, 1, 5] {
+        TR_var s = oynat(TR_tensor([kimlik * 1.0]), TR_tensor(konum * 1.0))
+        TR_print("konum \(konum), parça \(kimlik): toplam \(TR_round(TR_sum(s).TR_tolist, 4))")
     }
 }
-TR_fn_print("önbellek:", önbellek.TR_mem_shape)
+TR_print("önbellek:", önbellek.TR_shape)
 
-// --- Kendin dene ---
-// 1. Listedeki parça kimliklerini değiştir: önbelleğin hangi satırları değişiyor?
-// 2. Önbelleği 3 konumluk yap: konum 3 ve ötesinde yerine_yaz ne der? (Önce dene/yakala ile yakala.)
+# --- Kendin dene ---
+# 1. Listedeki parça kimliklerini değiştir: önbelleğin hangi satırları değişiyor?
+# 2. Önbelleği 3 konumluk yap: konum 3 ve ötesinde yerine_yaz ne der? (Önce dene/yakala ile yakala.)

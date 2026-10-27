@@ -137,8 +137,8 @@ func TestDocLinks(t *testing.T) {
 
 func TestHeadingAnchors(t *testing.T) {
 	for heading, expected := range map[string]string{
-		"C. Tensörler ve Otomatik Türev":          "c-tensörler-ve-otomatik-türev",
-		"7. Test Yazma ve Çalıştırma (`tr test`)": "7-test-yazma-ve-çalıştırma-tr-test",
+		"C. Tensörler TR_and Otomatik Türev":          "c-tensörler-ve-otomatik-türev",
+		"7. Test Yazma TR_and Çalıştırma (`tr test`)": "7-test-yazma-ve-çalıştırma-tr-test",
 		"Örnekler":      "örnekler",
 		"B. İstatistik": "b-i̇statistik",
 	} {

@@ -17,10 +17,10 @@ import (
 func TestCheckerAndRuntimeShareWording(t *testing.T) {
 	programs := []string{
 		"yazdir(1)",
-		"değişken öğrenci_sayısı = 1\nyazdır(öğrenci_sayis)",
-		"değişken l = [1]\nfiltrele(l, (x) => x > 0)",
+		"TR_var öğrenci_sayısı = 1\nTR_print(öğrenci_sayis)",
+		"TR_var l = [1]\nfiltrele(l, (x) => x > 0)",
 		"matris([[1]])",
-		"yazdır(zzz)",
+		"TR_print(zzz)",
 		"tanımsız = 3",
 	}
 	const header = "Tanımsız ad — "

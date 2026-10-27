@@ -1,4 +1,4 @@
-//! tr kodlu 3 dil=tr
-// Bilerek hatalı: 3.14 — tip adının yalnızca kendi yazımı geçerlidir.
-TR_kw_var adet: tam = 3
-TR_kw_func kare(x: ONDALIK): ondalık { TR_kw_return x * x }
+# TR 4
+# Bilerek hatalı: 3.14 — tip adının yalnızca kendi yazımı geçerlidir.
+TR_var adet: tam = 3
+TR_func kare(x: ONDALIK): ondalık { TR_return x * x }

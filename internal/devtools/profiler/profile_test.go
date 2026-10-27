@@ -21,18 +21,18 @@ import (
 )
 
 // shortTraining 200 adımlık küçük bir eğitimdir: her adımda bilinen sayıda tensör işlemi.
-const shortTraining = `değişken w = tensör(rastgele_normal([16, 16], tohum: 1), türev_izle: doğru)
-değişken x = rastgele_normal([8, 16], tohum: 2)
-değişken op = AdamW([w], öğrenme_oranı: 0.01)
-değişken ç = ilerleme(200)
-döngü i içinde 0..200 {
-    op.sıfırla()
-    değişken kayıp = toplam(relu(x @ w))
-    geri_yayılım(kayıp)
-    op.adım()
-    ç.güncelle({kayıp: kayıp})
+const shortTraining = `TR_var w = TR_tensor(TR_randn([16, 16], TR_seed: 1), TR_requires_grad: TR_true)
+TR_var x = TR_randn([8, 16], TR_seed: 2)
+TR_var op = TR_AdamW([w], TR_lr: 0.01)
+TR_var ç = TR_progress(200)
+TR_for i TR_in 0..200 {
+    op.TR_zero_grad()
+    TR_var kayıp = TR_sum(TR_relu(x @ w))
+    TR_backward(kayıp)
+    op.TR_step()
+    ç.TR_update({TR_loss: kayıp})
 }
-yazdır("bitti")
+TR_print("bitti")
 `
 
 // run kodu bir VM'de profille çalıştırır ve son raporu verir.
@@ -135,11 +135,11 @@ func TestProfileMsPerStepFromStepBoundary(t *testing.T) {
 
 // Örnekleme yalnızca istenince açılır; sıcak döngünün satırını bulur.
 func TestProfileSamplingLine(t *testing.T) {
-	code := `değişken s = 0
-döngü i içinde 0..400000 {
+	code := `TR_var s = 0
+TR_for i TR_in 0..400000 {
     s += i % 7
 }
-yazdır(s)
+TR_print(s)
 `
 	g, m := run(t, code, Options{SampleLines: true})
 	if m.Debugger == nil {
@@ -159,12 +159,12 @@ func TestProfileCallerLineAfterReturn(t *testing.T) {
 	if !hasDepth {
 		t.Skip("yarış denetimli derlemede örnekleyici çağrı derinliğini okumaz")
 	}
-	code := `fonksiyon küçük() {
-    sonuç 1
+	code := `TR_func küçük() {
+    TR_return 1
 }
-değişken a = rastgele_normal([256, 256], tohum: 1)
-döngü i içinde 0..120 {
-    değişken b = küçük() + toplam(a @ a @ a).değer
+TR_var a = TR_randn([256, 256], TR_seed: 1)
+TR_for i TR_in 0..120 {
+    TR_var b = küçük() + TR_sum(a @ a @ a).TR_tolist
 }
 `
 	g, _ := run(t, code, Options{SampleLines: true})
@@ -180,19 +180,19 @@ döngü i içinde 0..120 {
 	if n := s.Share * float64(g.Sampling.Samples); n < 20 {
 		t.Logf("6. satırda yalnızca %.0f örnek var; tensör payı denetlenmedi", n)
 	} else if s.TensorShare < 0.5 {
-		t.Errorf("6. satırın tensör payı %v; zaman matris çarpımında geçmeli", s.TensorShare)
+		t.Errorf("6. satırın TR_tensor payı %v; zaman matris çarpımında geçmeli", s.TensorShare)
 	}
 }
 
 // ilerleme(...) yoksa adım sınırı iyileştiricinin adımıdır; adım evrelerin toplamıdır.
 func TestProfileStepsFromOptimizerWithPhases(t *testing.T) {
-	code := `değişken w = tensör(rastgele_normal([64, 64], tohum: 1), türev_izle: doğru)
-değişken x = rastgele_normal([32, 64], tohum: 2)
-değişken op = AdamW([w], öğrenme_oranı: 0.01)
-döngü i içinde 0..40 {
-    op.sıfırla()
-    geri_yayılım(toplam(relu(x @ w @ w)))
-    op.adım()
+	code := `TR_var w = TR_tensor(TR_randn([64, 64], TR_seed: 1), TR_requires_grad: TR_true)
+TR_var x = TR_randn([32, 64], TR_seed: 2)
+TR_var op = TR_AdamW([w], TR_lr: 0.01)
+TR_for i TR_in 0..40 {
+    op.TR_zero_grad()
+    TR_backward(TR_sum(TR_relu(x @ w @ w)))
+    op.TR_step()
 }
 `
 	g, _ := run(t, code, Options{})
@@ -213,12 +213,12 @@ func TestProfileBackwardTimeGoesToForwardLine(t *testing.T) {
 	if !hasDepth {
 		t.Skip("yarış denetimli derlemede örnekleyici çağrı derinliğini okumaz")
 	}
-	code := `değişken w = tensör(rastgele_normal([256, 256], tohum: 1), türev_izle: doğru)
-değişken x = rastgele_normal([256, 256], tohum: 2)
-döngü i içinde 0..60 {
-    değişken y = x @ w @ w @ w
-    değişken kayıp = toplam(y)
-    geri_yayılım(kayıp)
+	code := `TR_var w = TR_tensor(TR_randn([256, 256], TR_seed: 1), TR_requires_grad: TR_true)
+TR_var x = TR_randn([256, 256], TR_seed: 2)
+TR_for i TR_in 0..60 {
+    TR_var y = x @ w @ w @ w
+    TR_var kayıp = TR_sum(y)
+    TR_backward(kayıp)
 }
 `
 	g, _ := run(t, code, Options{SampleLines: true})
@@ -366,7 +366,7 @@ func TestProfileNonTerminalOutput(t *testing.T) {
 func TestProfileModuleLines(t *testing.T) {
 	dir := t.TempDir()
 	module := filepath.Join(dir, "yardımcı.tr")
-	code := "değişken ısınma = 0\ndöngü j içinde 0..300000 {\n    ısınma += j % 3\n}\nfonksiyon ileri(x) {\n    değişken s = 0\n    döngü i içinde 0..300000 {\n        s += i % 7\n    }\n    sonuç s + x\n}\n"
+	code := "TR_var ısınma = 0\nTR_for j TR_in 0..300000 {\n    ısınma += j % 3\n}\nTR_func ileri(x) {\n    TR_var s = 0\n    TR_for i TR_in 0..300000 {\n        s += i % 7\n    }\n    TR_return s + x\n}\n"
 	if err := os.WriteFile(module, []byte(code), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -404,13 +404,13 @@ func TestProfileOpMsPerStepUsesAllSteps(t *testing.T) {
 
 // Her epoch'ta yeni bir ilerleme çubuğu (adım 1'den yeniden başlar) adımları sıfırlamaz:
 // tamamlanan adımlar çubuklar boyunca birikir (Count son çubuğun adımıdır).
-const epochTraining = `değişken w = tensör(rastgele_normal([16, 16], tohum: 1), türev_izle: doğru)
-değişken x = rastgele_normal([8, 16], tohum: 2)
-döngü e içinde 0..2 {
-    değişken ç = ilerleme(100)
-    döngü i içinde 0..100 {
-        değişken kayıp = toplam(relu(x @ w))
-        ç.güncelle({kayıp: kayıp})
+const epochTraining = `TR_var w = TR_tensor(TR_randn([16, 16], TR_seed: 1), TR_requires_grad: TR_true)
+TR_var x = TR_randn([8, 16], TR_seed: 2)
+TR_for e TR_in 0..2 {
+    TR_var ç = TR_progress(100)
+    TR_for i TR_in 0..100 {
+        TR_var kayıp = TR_sum(TR_relu(x @ w))
+        ç.TR_update({TR_loss: kayıp})
     }
 }
 `

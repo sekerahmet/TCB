@@ -1,12 +1,12 @@
-//! tr kodlu 3 dil=tr
-// Hata 04 — Tanımsız ad.
-// İleti kodu: H1010
-// Ne olur: Tip denetimi program çalışmadan önce hatayı yakalar ve benzer bir adı önerir.
-// Neden: Kullanılan ad hiç tanımlanmamış ya da yanlış yazılmış.
-// Düzeltilmiş hâli:
-//     değişken toplam_tutar = 40
-//     yazdır(toplam_tutar)
-// Çalıştırma (proje kökünden): tr examples/tr/hatalar/04_tanimsiz_ad.tr   (çıkış kodu 1)
+# TR 4
+# Hata 04 — Tanımsız ad.
+# İleti kodu: H1010
+# Ne olur: Tip denetimi program çalışmadan önce hatayı yakalar ve benzer bir adı önerir.
+# Neden: Kullanılan ad hiç tanımlanmamış ya da yanlış yazılmış.
+# Düzeltilmiş hâli:
+#     değişken toplam_tutar = 40
+#     yazdır(toplam_tutar)
+# Çalıştırma (proje kökünden): tr examples/tr/hatalar/04_tanimsiz_ad.tr   (çıkış kodu 1)
 
-TR_kw_var toplam_tutar = 40
-TR_fn_print(toplam_tutr)
+TR_var toplam_tutar = 40
+TR_print(toplam_tutr)

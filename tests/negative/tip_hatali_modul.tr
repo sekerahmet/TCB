@@ -1,4 +1,4 @@
-//! tr kodlu 3 dil=tr
-// Bilerek hatalı: 11.4 — modül çalışmadan önce tip denetiminden geçer.
-TR_kw_var yarım_kalan = 1
-TR_kw_var x: TR_type_Int = "metin"
+# TR 4
+# Bilerek hatalı: 11.4 — modül çalışmadan önce tip denetiminden geçer.
+TR_var yarım_kalan = 1
+TR_var x: TR_Int = "metin"

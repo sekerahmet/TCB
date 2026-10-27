@@ -173,7 +173,7 @@ yazdır([x * x döngü x içinde 1..=5 eğer x % 2 == 1])
 Konuyu kollarla sırayla karşılaştırır ve ilk eşleşen kolun sonucunu verir; Aralık deseni içerme sınar, eşleşme yoksa yok döner.
 
 ```tr
-değişken puan = 95; yazdır(eşle puan { 100 => "tam puan"; 90..100 => "pekiyi"; varsayılan => "diğer" })
+değişken puan = 95; yazdır(eşle puan { 100 => "tam puan"; 90..100 => "pekiyi"; _ => "diğer" })
 ```
 
 #### TR_kw_none `yok`
@@ -505,7 +505,7 @@ değişken g = günlük("kayit/a.jsonl"); yazdır(tip(g) == Günlük)
 ileti(H6903, ...) ile kurulan katalog iletisinin tipidir: kod ve değerlerinden oluşur, metni gösterilirken iletinin dilinde kurulur. fırlat ve doğrula ona verilince hata o kodla fırlar.
 
 ```tr
-değişken i = ileti(H6903, -1); yazdır(tip(i))
+değişken i = ileti("H6903", -1); yazdır(tip(i))
 ```
 
 İlişkili: TR_fn_message `ileti`, TR_fn_error_code `hata_kodu`
@@ -1097,7 +1097,7 @@ değişken klasör = ortam_değişkeni("VERİ_KLASÖRÜ") ?? "veri"; yazdır(kla
 Verilen fonksiyonu çalıştırır; fonksiyon bir ileti (ileti) fırlatırsa onun kodunu Metin olarak ("H6903") döndürür, hata fırlatmazsa ya da hata kodlu değilse yok döndürür. İletinin metnini değil kodunu sınamak içindir.
 
 ```tr
-yazdır(hata_kodu(() => { fırlat ileti(H6903, -1) }))
+yazdır(hata_kodu(() => { fırlat ileti("H6903", -1) }))
 ```
 
 İlişkili: TR_fn_message `ileti`, TR_fn_assert `doğrula`
@@ -1487,7 +1487,7 @@ yazdır(ortanca([3, 1, 4, 2]))
 İleti kataloğundaki bir iletiyi kodu (H6903) ve değerleriyle (katalogdaki parametre sırasıyla) kurar. Dönen metindir ve kodunu taşır: fırlat ile doğrula ona verilince hata o kodla fırlar, metni her dilde kataloğun metnidir. Kitaplık hata metnini böyle yazar.
 
 ```tr
-değişken i = ileti(H6903, -1); yazdır(i)
+değişken i = ileti("H6903", -1); yazdır(i)
 ```
 
 İlişkili: TR_fn_error_code `hata_kodu`, TR_fn_assert `doğrula`, TR_kw_throw `fırlat`

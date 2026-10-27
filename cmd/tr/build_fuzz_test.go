@@ -15,10 +15,10 @@ import (
 //	go test ./cmd/tr -run '^$' -fuzz FuzzEmbeddedPackage -fuzztime 5m
 func FuzzEmbeddedPackage(f *testing.F) {
 	for _, pk := range []*pkg{
-		{Main: packageFile{Name: "ana.tr", Code: "yazdır(1)\n"}},
+		{Main: packageFile{Name: "ana.tr", Code: "TR_print(1)\n"}},
 		{
-			Main:    packageFile{Name: "ana.tr", Code: "aktar \"m\"\naktar \"alt/ç\" olarak c\n", Imports: []int{0, 1}},
-			Modules: []packageFile{{Name: "m.tr", Code: "değişken a = 1\n"}, {Name: "alt/ç.tr", Code: "aktar \"m\"\n", Imports: []int{0}}},
+			Main:    packageFile{Name: "ana.tr", Code: "TR_import \"m\"\nTR_import \"alt/ç\" TR_as c\n", Imports: []int{0, 1}},
+			Modules: []packageFile{{Name: "m.tr", Code: "TR_var a = 1\n"}, {Name: "alt/ç.tr", Code: "TR_import \"m\"\n", Imports: []int{0}}},
 		},
 		{Main: packageFile{Code: "\ufeffaktar \"..\"\n", Imports: []int{0}}, Modules: []packageFile{{Name: "..", Code: ""}}},
 	} {

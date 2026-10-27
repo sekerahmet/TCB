@@ -20,12 +20,12 @@ func TestSmallIntCache(t *testing.T) {
 // değeri tutan başka bir değişkeni etkilememeli.
 func TestSharedIntImmutable(t *testing.T) {
 	outcome, err := runTR(t, `
-değişken a = 5
-değişken b = a
+TR_var a = 5
+TR_var b = a
 a += 1
-değişken l = [5, 5]
+TR_var l = [5, 5]
 l[0] += 10
-değişken s = "{a} {b} {l} {2 + 3}"
+TR_var s = "\(a) \(b) \(l) \(2 + 3)"
 s`)
 	if err != nil {
 		t.Fatal(err)

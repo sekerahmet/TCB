@@ -1,2 +1,3 @@
-// Bilerek hatalı: 11.1 — aktar modül yolunu metin olarak bekler.
-aktar yardimci_modul
+# TR 4
+# Bilerek hatalı: 11.1 — aktar modül yolunu metin olarak bekler.
+TR_import yardimci_modul

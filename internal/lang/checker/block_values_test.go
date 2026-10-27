@@ -23,17 +23,17 @@ func TestUnusedNegationWarns(t *testing.T) {
 		c.CheckProgram(prog)
 		return c.Warnings()
 	}
-	w := check("değişken b = 2\ndeğişken a = 1\n    - b", false)
+	w := check("TR_var b = 2\nTR_var a = 1\n    - b", false)
 	if len(w) != 1 || !messages.Has(w[0], messages.H1011) {
 		t.Fatalf("H1011 uyarısı bekleniyordu: %v", w)
 	}
 	if line, _, _ := messages.Pos(w[0]); line != 3 {
 		t.Errorf("uyarı 3. satırda olmalı: %v", w[0])
 	}
-	if w := check("değişken b = 2\ndeğişken a = 1 -\n    b\ndeğişken c = -b", false); len(w) != 0 {
+	if w := check("TR_var b = 2\nTR_var a = 1 -\n    b\nTR_var c = -b", false); len(w) != 0 {
 		t.Errorf("kullanılan değerde uyarı olmamalı: %v", w)
 	}
-	if w := check("değişken b = 2\n-b", true); len(w) != 0 {
+	if w := check("TR_var b = 2\n-b", true); len(w) != 0 {
 		t.Errorf("kabukta uyarı olmamalı: %v", w)
 	}
 }
@@ -62,10 +62,10 @@ func TestBlockValueIsNotAnUnusedNegation(t *testing.T) {
 		unused string
 	}{
 		{codes.Source(), []string{
-			"değişken a = doğru\ndeğişken g = eğer a { 0.01 } değilse { -0.01 }\nyazdır(g)",
-			"değişken a = doğru\nyazdır(eğer a { 1 } değilse eğer değil a { -1 } değilse { eğer a { -2 } değilse { -3 } })",
-			"değişken a = 1\nyazdır(eşle a { 1 => { -1 }; varsayılan => { -2 } })",
-		}, "değişken a = doğru\ndeğişken b = 1\neğer a {\n    -b\n}"},
+			"TR_var a = TR_true\nTR_var g = TR_if a { 0.01 } TR_else { -0.01 }\nTR_print(g)",
+			"TR_var a = TR_true\nTR_print(TR_if a { 1 } TR_else TR_if TR_not a { -1 } TR_else { TR_if a { -2 } TR_else { -3 } })",
+			"TR_var a = 1\nTR_print(TR_match a { 1 => { -1 }; _ => { -2 } })",
+		}, "TR_var a = TR_true\nTR_var b = 1\nTR_if a {\n    -b\n}"},
 		{en, []string{
 			"var a = true\nvar g = if a { 0.01 } else { -0.01 }\nprint(g)",
 			"var a = true\nprint(if a { 1 } else if not a { -1 } else { if a { -2 } else { -3 } })",

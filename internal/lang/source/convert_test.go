@@ -33,39 +33,39 @@ func encodeDecode(t *testing.T, tr string) string {
 // Kenar durumlar (17.3, 17.4): beklenen kodlu gövde başlıktan sonraki metindir.
 func TestEncodeEdgeCases(t *testing.T) {
 	cases := []struct{ name, tr, coded string }{
-		{"ileti kodu bir ad değildir", "yazdır(ileti(H6903, 1))\n", "TR_fn_print(TR_fn_message(H6903, 1))\n"},
-		{"anahtar kelime ve yerleşik", "değişken x = 1\nyazdır(x)\n", "TR_kw_var x = 1\nTR_fn_print(x)\n"},
+		{"ileti kodu bir ad değildir", "yazdır(ileti(\"H6903\", 1))\n", "TR_print(TR_message(\"H6903\", 1))\n"},
+		{"anahtar kelime ve yerleşik", "değişken x = 1\nyazdır(x)\n", "TR_var x = 1\nTR_print(x)\n"},
 		{"gölgelenen yerleşik kullanıcının adıdır",
 			"fonksiyon f() {\n    değişken toplam = 1\n    sonuç toplam\n}\nyazdır(toplam([1, 2]))\n",
-			"TR_kw_func f() {\n    TR_kw_var toplam = 1\n    TR_kw_return toplam\n}\nTR_fn_print(TR_fn_sum([1, 2]))\n"},
+			"TR_func f() {\n    TR_var toplam = 1\n    TR_return toplam\n}\nTR_print(TR_sum([1, 2]))\n"},
 		{"yorum ve ham metin çevrilmez",
 			"// eğer yazdır\n/* değişken */ değişken y = `yazdır {eğer}`\n",
-			"// eğer yazdır\n/* değişken */ TR_kw_var y = `yazdır {eğer}`\n"},
+			"# eğer yazdır\n/* değişken */ TR_var y = `yazdır {eğer}`\n"},
 		{"metin içi yerleştirme ve iç içe yerleştirme",
-			"yazdır(\"a\\n{toplam([1])} \\{x\\} {\"iç {uzunluk_x(1)} {yazdır}\"}\")\nfonksiyon uzunluk_x(a) { sonuç a }\n",
-			"TR_fn_print(\"a\\n{TR_fn_sum([1])} \\{x\\} {\"iç {uzunluk_x(1)} {TR_fn_print}\"}\")\nTR_kw_func uzunluk_x(a) { TR_kw_return a }\n"},
+			"yazdır(\"a\\n\\(toplam([1])) {x} \\(\"iç \\(uzunluk_x(1)) \\(yazdır)\")\")\nfonksiyon uzunluk_x(a) { sonuç a }\n",
+			"TR_print(\"a\\n\\(TR_sum([1])) {x} \\(\"iç \\(uzunluk_x(1)) \\(TR_print)\")\")\nTR_func uzunluk_x(a) { TR_return a }\n"},
 		{"üyeler tanımda ve kullanımda aynı kodla (Y5)",
 			"yapı Sepet {\n    uzunluk = 0\n    fonksiyon ekle(x) { kendi.uzunluk += 1 }\n}\ndeğişken s = Sepet(uzunluk: 2)\ns.ekle(1)\n[1].ekle(2)\n",
-			"TR_kw_struct Sepet {\n    TR_mem_length = 0\n    TR_kw_func TR_mem_append(x) { TR_kw_self.TR_mem_length += 1 }\n}\nTR_kw_var s = Sepet(TR_mem_length: 2)\ns.TR_mem_append(1)\n[1].TR_mem_append(2)\n"},
+			"TR_struct Sepet {\n    TR_length = 0\n    TR_func TR_append(x) { TR_self.TR_length += 1 }\n}\nTR_var s = Sepet(TR_length: 2)\ns.TR_append(1)\n[1].TR_append(2)\n"},
 		{"kurucu bağlamsal sözcüktür",
 			"yapı N {\n    a\n    fonksiyon kurucu(a) { kendi.a = a }\n}\n",
-			"TR_kw_struct N {\n    a\n    TR_kw_func TR_ctx_init(a) { TR_kw_self.a = a }\n}\n"},
+			"TR_struct N {\n    a\n    TR_func TR_init(a) { TR_self.a = a }\n}\n"},
 		{"adlı argüman yalnızca dilin öğesinde",
 			"fonksiyon f(eksen = 0) { sonuç eksen }\nyazdır(toplam([1], eksen: 0), f(eksen: 1))\n",
-			"TR_kw_func f(eksen = 0) { TR_kw_return eksen }\nTR_fn_print(TR_fn_sum([1], TR_arg_dim: 0), f(eksen: 1))\n"},
+			"TR_func f(eksen = 0) { TR_return eksen }\nTR_print(TR_sum([1], TR_dim: 0), f(eksen: 1))\n"},
 		{"örtük adlar yalnızca kendi bloklarında",
 			"değişken o = 1\nyazdır([1].haritala { o * 2 }, [1].indirge(0) { birikim + o }, (o) => o)\ndene { fırlat \"x\" } yakala { yazdır(hata) }\ndene { fırlat \"y\" } yakala hata { yazdır(hata) }\n",
-			"TR_kw_var o = 1\nTR_fn_print([1].TR_mem_map { TR_ctx_it * 2 }, [1].TR_mem_reduce(0) { TR_ctx_acc + TR_ctx_it }, (o) => o)\nTR_kw_try { TR_kw_throw \"x\" } TR_kw_catch { TR_fn_print(TR_ctx_error) }\nTR_kw_try { TR_kw_throw \"y\" } TR_kw_catch hata { TR_fn_print(hata) }\n"},
+			"TR_var o = 1\nTR_print([1].TR_map { TR_it * 2 }, [1].TR_reduce(0) { TR_acc + TR_it }, (o) => o)\nTR_try { TR_throw \"x\" } TR_catch { TR_print(TR_error) }\nTR_try { TR_throw \"y\" } TR_catch hata { TR_print(hata) }\n"},
 		{"test ve olarak",
 			"aktar \"m\" olarak m\ntest \"t\" { doğrula(doğru) }\ndeğişken test = 1\n",
-			"TR_kw_import \"m\" TR_ctx_as m\nTR_ctx_test \"t\" { TR_fn_assert(TR_kw_true) }\nTR_kw_var test = 1\n"},
+			"TR_import \"m\" TR_as m\nTR_test \"t\" { TR_assert(TR_true) }\nTR_var test = 1\n"},
 		{"tip açıklaması; kabul edilmeyen harf yazımı (3.14) olduğu gibi kalır",
 			"değişken a: Tam = 1\ndeğişken b: tam = 2\nyazdır(tip(a) == Tam)\n",
-			"TR_kw_var a: TR_type_Int = 1\nTR_kw_var b: tam = 2\nTR_fn_print(TR_fn_type(a) == TR_type_Int)\n"},
+			"TR_var a: TR_Int = 1\nTR_var b: tam = 2\nTR_print(TR_type(a) == TR_Int)\n"},
 		{"Türkçe harfler ve eski kod biçimine benzeyen adlar",
 			"değişken İSİM_ı = \"Iİ\"\ndeğişken g100 = 1\nyazdır(İSİM_ı, g100)\n",
-			"TR_kw_var İSİM_ı = \"Iİ\"\nTR_kw_var g100 = 1\nTR_fn_print(İSİM_ı, g100)\n"},
-		{"kaçış '$' atılır", "değişken $eğer = 3\nyazdır($eğer)\n", "TR_kw_var eğer = 3\nTR_fn_print(eğer)\n"},
+			"TR_var İSİM_ı = \"Iİ\"\nTR_var g100 = 1\nTR_print(İSİM_ı, g100)\n"},
+		{"kaçış '$' atılır", "değişken $eğer = 3\nyazdır($eğer)\n", "TR_var eğer = 3\nTR_print(eğer)\n"},
 	}
 	for _, d := range cases {
 		t.Run(d.name, func(t *testing.T) {
@@ -85,7 +85,7 @@ func TestEncodeEdgeCases(t *testing.T) {
 func TestEncodeBOMAndCRLF(t *testing.T) {
 	tr := "\xef\xbb\xbfdeğişken x = 1\r\nyazdır(\"a\r\nb\")\r\n"
 	coded := encodeDecode(t, tr)
-	if want := "\xef\xbb\xbf" + Header + "tr\r\nTR_kw_var x = 1\r\nTR_fn_print(\"a\r\nb\")\r\n"; coded != want {
+	if want := "\xef\xbb\xbf" + Header + "tr\r\nTR_var x = 1\r\nTR_print(\"a\r\nb\")\r\n"; coded != want {
 		t.Errorf("kodlu: %q, beklenen %q", coded, want)
 	}
 	// Zaten kodlu dosyaya dokunulmaz.
@@ -281,7 +281,7 @@ func TestDocCodeBlocksEncodeLossless(t *testing.T) {
 // global name): its view would not read back as the same program, so Decode must refuse it
 // instead of showing it.
 func TestDecodeRefusesLossyView(t *testing.T) {
-	coded := Header + "tr\nTR_kw_var l = TR_mem_length\n"
+	coded := Header + "tr\nTR_var l = TR_length\n"
 	if out, err := Decode(coded, codes.Source()); !errors.Is(err, ErrLossy) {
 		t.Fatalf("Decode gave %q, %v; ErrLossy expected", out, err)
 	}
@@ -290,7 +290,7 @@ func TestDecodeRefusesLossyView(t *testing.T) {
 // Satırlar her gösterimde aynıdır (17.5): kodlu dosyanın 1. satırı başlığın altındaki satırdır,
 // Türkçe gösterimin 1. satırıyla aynıdır; çeviri satır eklemez, silmez, birleştirmez.
 func TestEncodeKeepsLineStructure(t *testing.T) {
-	tr := "// başlık yorumu\n\nfonksiyon f(a) {\n    sonuç a + 1\n}\n\n/* iki\nsatırlık */\nyazdır(f(1))\ndeğişken s = \"çok\nsatırlı {f(2)}\"\n"
+	tr := "# başlık yorumu\n\nfonksiyon f(a) {\n    sonuç a + 1\n}\n\n# iki\n# satırlık\nyazdır(f(1))\ndeğişken s = \"çok\nsatırlı \\(f(2))\"\n"
 	coded := encodeDecode(t, tr)
 	body := strings.TrimPrefix(coded, Header+"tr\n")
 	if body == coded {
@@ -313,7 +313,7 @@ func TestEncodeKeepsLineStructure(t *testing.T) {
 // etkin dilde Decode(coded, codes.Source()) '$yazdır' kaçışını geri kodlayamadığı için
 // ErrLossy ile başarısız olmamalıdır.
 func TestDecodeKeepsEscapedUserNameApartFromBuiltin(t *testing.T) {
-	coded := Header + "tr\nTR_kw_var yazdır = 2\nTR_fn_print(yazdır)\n"
+	coded := Header + "tr\nTR_var yazdır = 2\nTR_print(yazdır)\n"
 	got, err := Decode(coded, codes.Source())
 	if err != nil {
 		t.Fatalf("etkin dilde çakışan kullanıcı değişkenli kodlu kaynak çözülemedi: %v", err)
@@ -333,15 +333,15 @@ func TestEncodeKeepsUserErrorVarApartFromImplicitCatchName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("kodlanamadı: %v", err)
 	}
-	if strings.Contains(coded, "TR_ctx_error") {
-		t.Fatalf("gölgelenmiş 'hata' değişkeni örtük TR_ctx_error koduyla kodlandı:\n%s", coded)
+	if strings.Contains(coded, "TR_error") {
+		t.Fatalf("gölgelenmiş \"hata\" değişkeni örtük TR_error koduyla kodlandı:\n%s", coded)
 	}
 }
 
 // Kural (17.5): konumlar ve hata çerçevesi kişinin gösterim dilindedir: İngilizce gösterimde
 // çerçevenin metni İngilizce satırdır, sütun o satırdaki yeri gösterir; Türkçe gösterimde Türkçe.
 func TestViewFollowsTheDisplayLanguage(t *testing.T) {
-	b, err := Split(Header + "tr\nTR_kw_var x = 1\nTR_fn_print(x, tanimsiz)\n")
+	b, err := Split(Header + "tr\nTR_var x = 1\nTR_print(x, tanimsiz)\n")
 	if err != nil {
 		t.Fatal(err)
 	}

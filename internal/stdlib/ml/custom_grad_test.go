@@ -20,14 +20,14 @@ import (
 // tests/ozel_turev_test.tr'dedir.
 
 func TestCustomGradSquare(t *testing.T) {
-	out := mustRun(t, `değişken kare = özel_türev(
-    ileri: fonksiyon(x) { sonuç [x * x, [x]] },
-    geri: fonksiyon(saklananlar, g) { sonuç [g * 2 * saklananlar[0]] }
+	out := mustRun(t, `TR_var kare = TR_custom_grad(
+    TR_forward: TR_func(x) { TR_return [x * x, [x]] },
+    TR_backward: TR_func(saklananlar, g) { TR_return [g * 2 * saklananlar[0]] }
 )
-değişken x = tensör([3.0, -1.0], türev_izle: doğru)
-geri_yayılım(toplam(kare(x)))
-yazdır(x.gradyan.değer)
-yazdır(türev_denetle(kare, [tensör([[0.3, -1.2]], türev_izle: doğru)]))`)
+TR_var x = TR_tensor([3.0, -1.0], TR_requires_grad: TR_true)
+TR_backward(TR_sum(kare(x)))
+TR_print(x.TR_grad.TR_tolist)
+TR_print(TR_grad_check(kare, [TR_tensor([[0.3, -1.2]], TR_requires_grad: TR_true)]))`)
 	if want := "[6.0, -2.0]\ndoğru\n"; out != want {
 		t.Fatalf("çıktı %q, beklenen %q", out, want)
 	}
@@ -37,50 +37,50 @@ yazdır(türev_denetle(kare, [tensör([[0.3, -1.2]], türev_izle: doğru)]))`)
 // geri yayılım ise karışık_hassasiyet("bf16") bloğu kurmuş bir eşzamanlı görevde yapılınca
 // geri'nin içindeki '@' bloğun türüyle (bf16) hesaplanır. Tersi de doğrudur.
 func TestCustomGradBackwardRunsInCallerTask(t *testing.T) {
-	out := mustRun(t, `değişken görülen = []
-değişken f = özel_türev(
-    ileri: fonksiyon(x) { sonuç [x * 1, []] },
-    geri: fonksiyon(k, g) {
-        görülen.ekle((tensör([[1.001]]) @ tensör([[1.0]])).değer[0][0])
-        sonuç [g]
+	out := mustRun(t, `TR_var görülen = []
+TR_var f = TR_custom_grad(
+    TR_forward: TR_func(x) { TR_return [x * 1, []] },
+    TR_backward: TR_func(k, g) {
+        görülen.TR_append((TR_tensor([[1.001]]) @ TR_tensor([[1.0]])).TR_tolist[0][0])
+        TR_return [g]
     }
 )
-değişken y = f(tensör([1.0], türev_izle: doğru))
-eşzamanlı { karışık_hassasiyet("bf16") { geri_yayılım(toplam(y)) } }
-bekle_hepsi()
-değişken z = karışık_hassasiyet("bf16") { f(tensör([1.0], türev_izle: doğru)) }
-eşzamanlı { geri_yayılım(toplam(z)) }
-bekle_hepsi()
-yazdır(görülen)`)
+TR_var y = f(TR_tensor([1.0], TR_requires_grad: TR_true))
+TR_async { TR_mixed_precision("bf16") { TR_backward(TR_sum(y)) } }
+TR_wait_all()
+TR_var z = TR_mixed_precision("bf16") { f(TR_tensor([1.0], TR_requires_grad: TR_true)) }
+TR_async { TR_backward(TR_sum(z)) }
+TR_wait_all()
+TR_print(görülen)`)
 	if want := "[1.0, 1.001]\n"; out != want {
 		t.Fatalf("çıktı %q, beklenen %q", out, want)
 	}
 }
 
 func TestCustomGradErrorMessages(t *testing.T) {
-	prefixVal := `değişken x = tensör([[1.0, 2.0]], türev_izle: doğru)
+	prefixVal := `TR_var x = TR_tensor([[1.0, 2.0]], TR_requires_grad: TR_true)
 `
 	cases := []struct {
 		code string
 		want messages.Code
 	}{
-		{`özel_türev(ileri: fonksiyon(x) { sonuç x }, geri: fonksiyon(k, g) { sonuç [g] })(x)`,
+		{`TR_custom_grad(TR_forward: TR_func(x) { TR_return x }, TR_backward: TR_func(k, g) { TR_return [g] })(x)`,
 			messages.H6409},
-		{`özel_türev(ileri: fonksiyon(x) { sonuç [[x, 3], []] }, geri: fonksiyon(k, g) { sonuç [g] })(x)`,
+		{`TR_custom_grad(TR_forward: TR_func(x) { TR_return [[x, 3], []] }, TR_backward: TR_func(k, g) { TR_return [g] })(x)`,
 			messages.H6412},
-		{`geri_yayılım(toplam(özel_türev(ileri: fonksiyon(x) { sonuç [x, []] }, geri: fonksiyon(k, g) { sonuç g })(x)))`,
+		{`TR_backward(TR_sum(TR_custom_grad(TR_forward: TR_func(x) { TR_return [x, []] }, TR_backward: TR_func(k, g) { TR_return g })(x)))`,
 			messages.H6414},
-		{`geri_yayılım(toplam(özel_türev(ileri: fonksiyon(x) { sonuç [x, []] }, geri: fonksiyon(k, g) { sonuç [g.şekillendir([2, 1])] })(x)))`,
+		{`TR_backward(TR_sum(TR_custom_grad(TR_forward: TR_func(x) { TR_return [x, []] }, TR_backward: TR_func(k, g) { TR_return [g.TR_reshape([2, 1])] })(x)))`,
 			messages.H6418},
-		{`geri_yayılım(toplam(özel_türev(ileri: fonksiyon(x) { sonuç [x, []] }, geri: fonksiyon(k, g) { sonuç [3] })(x)))`,
+		{`TR_backward(TR_sum(TR_custom_grad(TR_forward: TR_func(x) { TR_return [x, []] }, TR_backward: TR_func(k, g) { TR_return [3] })(x)))`,
 			messages.H6416},
-		{`özel_türev(fonksiyon(x) { sonuç [x, []] })`, messages.H6405},
-		{`özel_türev()`, messages.H6431},
-		{`türev_denetle(x, [x])`, messages.H6420},
-		{`türev_denetle((a) => a, x)`, messages.H6421},
-		{`türev_denetle((a) => 3, [x])`, messages.H6428},
-		{`türev_denetle((a) => a, [x], tolerans: -1)`, messages.H6429},
-		{`türevsiz { türev_denetle((a) => a, [x]) }`, messages.H6422},
+		{`TR_custom_grad(TR_func(x) { TR_return [x, []] })`, messages.H6405},
+		{`TR_custom_grad()`, messages.H6431},
+		{`TR_grad_check(x, [x])`, messages.H6420},
+		{`TR_grad_check((a) => a, x)`, messages.H6421},
+		{`TR_grad_check((a) => 3, [x])`, messages.H6428},
+		{`TR_grad_check((a) => a, [x], TR_tol: -1)`, messages.H6429},
+		{`TR_no_grad { TR_grad_check((a) => a, [x]) }`, messages.H6422},
 	}
 	for _, d := range cases {
 		_, err := run(t, prefixVal+d.code)
@@ -93,10 +93,10 @@ func TestCustomGradErrorMessages(t *testing.T) {
 // Kullanıcının geri hesabındaki hata satır bilgisiyle ve dene/yakala ile yakalanabilir
 // olarak gelir; geri yayılım yarıda kalsa da program çökmez.
 func TestCustomGradBackwardError(t *testing.T) {
-	_, err := run(t, `değişken f = özel_türev(ileri: fonksiyon(x) { sonuç [x, []] }, geri: fonksiyon(k, g) {
-    sonuç [g @ g]
+	_, err := run(t, `TR_var f = TR_custom_grad(TR_forward: TR_func(x) { TR_return [x, []] }, TR_backward: TR_func(k, g) {
+    TR_return [g @ g]
 })
-geri_yayılım(toplam(f(tensör([[1.0, 2.0]], türev_izle: doğru))))`)
+TR_backward(TR_sum(f(TR_tensor([[1.0, 2.0]], TR_requires_grad: TR_true))))`)
 	if err == nil || !strings.Contains(err.Error(), "Satır 2:") || !messages.Has(err, messages.H6126) {
 		t.Fatalf("geri'deki hata satırıyla gelmeli: %v", err)
 	}
@@ -270,9 +270,9 @@ func (d *auditSecondDevice) Release(s tensor.Storage) {
 // Neden: varsayılan cihazda kurulursa başka cihazdaki tensörlerle işlem cihaz uyuşmazlığı verir.
 func TestCheckGradBuildsCopiesOnTheInputDevice(t *testing.T) {
 	tensor.RegisterBackend(&auditSecondDevice{Backend: tensor.BackendFor(tensor.CPU)})
-	out, err := run(t, `değişken w = tensör([2.0, 3.0]).cihaza("gpu:99")
-değişken x = tensör([1.0, 4.0], türev_izle: doğru).cihaza("gpu:99")
-yazdır(türev_denetle((a) => a * w, [x]))`)
+	out, err := run(t, `TR_var w = TR_tensor([2.0, 3.0]).TR_to_device("gpu:99")
+TR_var x = TR_tensor([1.0, 4.0], TR_requires_grad: TR_true).TR_to_device("gpu:99")
+TR_print(TR_grad_check((a) => a * w, [x]))`)
 	if err != nil || out != "doğru\n" {
 		t.Fatalf("varsayılan dışı cihazda türev_denetle başarısız: err=%v out=%q", err, out)
 	}
@@ -293,10 +293,10 @@ func TestNamedArgumentMethodCallReleasesReceiverAtScopeExit(t *testing.T) {
 		},
 	}, true)
 	p := parser.New(source.TextLexer(`
-fonksiyon sına() {
-    değişken x = sıfırlar([4, 4])
+TR_func sına() {
+    TR_var x = TR_zeros([4, 4])
     izle(x)
-    değişken parça = x.böl(2, eksen: 0)
+    TR_var parça = x.TR_split(2, TR_dim: 0)
 }
 sına()
 `))
@@ -312,7 +312,7 @@ sına()
 // başlığı ikinci kez sarmaz; yerel tensör kapsam sonunda bırakılır (15.43). Neden: ikinci
 // sarıcı sahipliği alamaz ve başlık hiç düşmez.
 func TestRewrappingBuiltinsKeepSingleOwner(t *testing.T) {
-	for _, expr := range []string{`x.cihaza("cpu")`, `toplam([x])`} {
+	for _, expr := range []string{`x.cihaza("cpu")`, `TR_sum([x])`} {
 		m := interp.New()
 		m.Out = &bytes.Buffer{}
 		var captured *tensor.Tensor
@@ -339,7 +339,7 @@ func TestRewrappingBuiltinsKeepSingleOwner(t *testing.T) {
 // arka uca iade edilir (15.43). Not: sondaki 'değişken' deyimi dönüş değeridir, bu yüzden
 // fonksiyonun son satırı başka bir deyimdir.
 func TestIndexAndWholeReductionsReturnStorageAtScopeExit(t *testing.T) {
-	for _, stmt := range []string{`değişken y = x[0]`, `değişken y = max(x)`} {
+	for _, stmt := range []string{`TR_var y = x[0]`, `TR_var y = TR_max(x)`} {
 		dev := &auditSecondDevice{Backend: tensor.BackendFor(tensor.CPU)}
 		tensor.RegisterBackend(dev)
 		tensor.SetDefaultDevice(tensor.GPU(99))
@@ -357,8 +357,8 @@ func TestIndexAndWholeReductionsReturnStorageAtScopeExit(t *testing.T) {
 
 // Kural: ileti, verilen değeri dilin ortak "Tip (özet)" biçiminde anar; uzun değerler özetlenir.
 func TestCustomGradMessagesUseTypeAndSummary(t *testing.T) {
-	_, err := run(t, `değişken x = tensör([[1.0, 2.0]], türev_izle: doğru)
-türev_denetle((a) => 3, [x])`)
+	_, err := run(t, `TR_var x = TR_tensor([[1.0, 2.0]], TR_requires_grad: TR_true)
+TR_grad_check((a) => 3, [x])`)
 	if err == nil || !strings.Contains(err.Error(), "Tam (3)") {
 		t.Errorf("verilen değer \"Tam (3)\" biçiminde anılmalı: %v", err)
 	}

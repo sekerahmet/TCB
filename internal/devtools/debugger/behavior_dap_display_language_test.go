@@ -23,7 +23,7 @@ func TestDAPDisplayHelper(t *testing.T) {
 		t.Skip("yalnızca TestDAPDisplayFollowsPersonsLanguage'ın alt süreci")
 	}
 	c := startDAP(t)
-	path := writeProgram(t, "değişken b = doğru\ndeğişken l = [doğru, yok]\ndeğişken t = tensör([1.0, 2.0])\nyazdır(b)\n")
+	path := writeProgram(t, "TR_var b = TR_true\nTR_var l = [TR_true, TR_none]\nTR_var t = TR_tensor([1.0, 2.0])\nTR_print(b)\n")
 	c.launch(path, false, map[string]interface{}{"line": 4})
 	c.event("stopped")
 	var lines []string
@@ -63,7 +63,7 @@ func TestDAPExpressionHelper(t *testing.T) {
 	}
 	sum := codes.Display().Name(codes.FnSum)
 	c := startDAP(t)
-	path := writeProgram(t, "değişken l = [1, 2]\ndöngü i içinde 0..3 {\n    yazdır(i)\n}\n")
+	path := writeProgram(t, "TR_var l = [1, 2]\nTR_for i TR_in 0..3 {\n    TR_print(i)\n}\n")
 	c.launch(path, false, map[string]interface{}{"line": 3, "condition": sum + "(l) == i + 2"})
 	c.event("stopped")
 	i := c.request("evaluate", map[string]interface{}{"expression": "i", "context": "watch"})["result"]

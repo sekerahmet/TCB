@@ -14,9 +14,9 @@ import (
 // ve 2 ile biter. İkisinde de ertele blokları çalışır; argüman uyarısı verilmez.
 func TestCommandLineOptions(t *testing.T) {
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "egit.tr", `ertele yazdır("ertelenen")
-değişken ayar = komut_satırı({adım: 10, oran: 0.5, hızlı: yanlış}, açıklama: "Deneme eğitimi")
-yazdır("adım={ayar.adım} oran={ayar.oran} hızlı={ayar.hızlı}")
+	testkit.WriteFile(t, dir, "egit.tr", `TR_defer TR_print("ertelenen")
+TR_var ayar = TR_command_line({TR_step: 10, oran: 0.5, hızlı: TR_false}, TR_description: "Deneme eğitimi")
+TR_print("adım=\(ayar.TR_step) oran=\(ayar.oran) hızlı=\(ayar.hızlı)")
 `)
 	for _, command := range [][]string{
 		{"egit.tr", "--adım", "20", "--oran=0.25", "--hızlı"},
@@ -24,7 +24,7 @@ yazdır("adım={ayar.adım} oran={ayar.oran} hızlı={ayar.hızlı}")
 		{"hata_ayıkla", "egit.tr", "--adım", "20", "--oran=0.25", "--hızlı"},
 	} {
 		s := tr(t, dir, command...)
-		testkit.Wait(t, s, 0, []string{"adım=20 oran=0.25 hızlı=doğru", "ertelenen"}, nil)
+		testkit.Wait(t, s, 0, []string{"adım=20 oran=0.25 hızlı=TR_true", "ertelenen"}, nil)
 		if strings.Contains(s.Stderr, "Uyarı") {
 			t.Errorf("%v: okunan argümanlar için uyarı olmamalı: %q", command, s.Stderr)
 		}
@@ -50,13 +50,13 @@ yazdır("adım={ayar.adım} oran={ayar.oran} hızlı={ayar.hızlı}")
 // mesajında ve günlükte *** olur; dosyaya yazılan veri (dosya_yaz) değişmez.
 func TestSecretValuesMaskedInOutput(t *testing.T) {
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "g.tr", `değişken ayar = komut_satırı({api_key: ""})
-değişken belirteç = ortam_değişkeni("HF_TOKEN")
-yazdır("belirteç:", belirteç, "anahtar:", ayar.api_key)
-değişken g = günlük("kayit/g.jsonl")
-g.ekle({belirteç: belirteç})
-dosya_yaz("veri.txt", belirteç)
-fırlat "bozuk: " + ayar.api_key
+	testkit.WriteFile(t, dir, "g.tr", `TR_var ayar = TR_command_line({api_key: ""})
+TR_var belirteç = TR_env("HF_TOKEN")
+TR_print("belirteç:", belirteç, "anahtar:", ayar.api_key)
+TR_var g = TR_logger("kayit/g.jsonl")
+g.TR_append({belirteç: belirteç})
+TR_write_file("veri.txt", belirteç)
+TR_throw "bozuk: " + ayar.api_key
 `)
 	s := testkit.RunBinary(t, trBinary, dir, "", []string{"HF_TOKEN=hf_cokgizli123"}, "g.tr", "--api_key", "sk-anahtar-456")
 	testkit.Wait(t, s, 1, []string{"belirteç: *** anahtar: ***"}, []string{"bozuk: ***"})
@@ -78,11 +78,11 @@ fırlat "bozuk: " + ayar.api_key
 // satırı yazılır; program hatayla bitse de çubuk biter, bitiş günlüğe yazılır.
 func TestProgressOnCommandLine(t *testing.T) {
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "i.tr", `değişken g = günlük("i.jsonl")
-değişken ç = ilerleme(10, günlük: g)
-döngü i içinde 0..4 { ç.güncelle({kayıp: 1.5}) }
-yazdır("bitti mi:", ç)
-fırlat "patladı"
+	testkit.WriteFile(t, dir, "i.tr", `TR_var g = TR_logger("i.jsonl")
+TR_var ç = TR_progress(10, TR_log: g)
+TR_for i TR_in 0..4 { ç.TR_update({TR_loss: 1.5}) }
+TR_print("bitti mi:", ç)
+TR_throw "patladı"
 `)
 	s := tr(t, dir, "i.tr")
 	testkit.Wait(t, s, 1, []string{"bitti mi: İlerleme(adım 4/10)"}, []string{"adım 4/10 · kayıp 1,5 ·", "sürdü\n❌ Çalışma Zamanı Hatası:", "patladı"})

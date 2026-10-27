@@ -37,7 +37,7 @@ func TestArgErrorsFormat(t *testing.T) {
 			t.Errorf("İngilizce sayı hatası %q, %q bekleniyordu", got, c.en)
 		}
 	}
-	if got := Usage(codes.FnInput, "", "istem").MessageText(codes.SourceLanguage); got != "girdi() ya da girdi(istem)" {
+	if got := Usage(codes.FnInput, "", "istem").MessageText(codes.SourceLanguage); got != "TR_input() ya da TR_input(istem)" {
 		t.Errorf("kullanım: %s", got)
 	}
 	// Kural: kullanım biçimindeki dil adı (alıcı tipi) kod başvurusudur, iletinin dilinde yazılır.

@@ -15,7 +15,7 @@ const (
 	geoYaz   = "tr:func:" + geo + ":yaz_alan"
 	test1    = "tr:test:lib/geo_test.tr:3"
 	test2    = "tr:test:lib/geo_test.tr:8"
-	printG   = "name:TR_fn_print"
+	printG   = "name:TR_print"
 )
 
 func TestTRNodes(t *testing.T) {
@@ -23,7 +23,7 @@ func TestTRNodes(t *testing.T) {
 	want := map[string]int{
 		geoKare: 5, geoAlan: 10, geoCevre: 15, "tr:func:" + geo + ":yaz_alan": 19,
 		"tr:const:" + geo + ":PI2": 2, "tr:var:" + geo + ":sayaç": 3,
-		"tr:field:" + geo + ":Kare.kenar": 6, "tr:method:" + geo + ":Kare.TR_ctx_init": 7,
+		"tr:field:" + geo + ":Kare.kenar": 6, "tr:method:" + geo + ":Kare.TR_init": 7,
 	}
 	for _, n := range g.Nodes {
 		if line, ok := want[n.ID]; ok {
@@ -128,17 +128,17 @@ func TestTRCodedFile(t *testing.T) {
 // argüman olarak geçtiği yerler `who-uses` ile bulunur.
 func TestTRParametersAndNamedArguments(t *testing.T) {
 	g := fixture(t)
-	const param = "tr:param:lib/geo.tr:Kare.TR_ctx_init.kenar"
+	const param = "tr:param:lib/geo.tr:Kare.TR_init.kenar"
 	found := false
 	for _, n := range g.Nodes {
-		if n.ID == param && n.Kind == kindTRParam && n.Detail == "kenar = 1" && n.Name == "geo.Kare.TR_ctx_init.kenar" {
+		if n.ID == param && n.Kind == kindTRParam && n.Detail == "kenar = 1" && n.Name == "geo.Kare.TR_init.kenar" {
 			found = true
 		}
 	}
 	if !found {
 		t.Fatal("parameter node missing or wrong")
 	}
-	mustEdge(t, g, "tr:method:lib/geo.tr:Kare.TR_ctx_init", param, edgeContains, extracted)
+	mustEdge(t, g, "tr:method:lib/geo.tr:Kare.TR_init", param, edgeContains, extracted)
 	mustEdge(t, g, "tr:var:examples/ana.tr:k2", param, edgeUses, extracted) // g.Kare(kenar: 3)
 	_, out, _ := cli(t, "who-uses", "geo.Kare.kurucu.kenar")
 	testkit.MustContain(t, out, "examples/ana.tr")

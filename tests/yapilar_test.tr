@@ -1,97 +1,97 @@
-//! tr kodlu 3 dil=tr
-// docs/spec/07_yapilar.md §7 — Yapılar
+# TR 4
+# docs/spec/07_yapilar.md §7 — Yapılar
 
-TR_kw_struct Nokta {
-    x: TR_type_Int = 0
+TR_struct Nokta {
+    x: TR_Int = 0
     y = 0
-    TR_kw_func uzaklık_kare() {
-        TR_kw_return TR_kw_self.x ** 2 + TR_kw_self.y ** 2
+    TR_func uzaklık_kare() {
+        TR_return TR_self.x ** 2 + TR_self.y ** 2
     }
-    TR_kw_func taşı(dx, dy) {
-        TR_kw_self.x += dx
-        TR_kw_self.y += dy
+    TR_func taşı(dx, dy) {
+        TR_self.x += dx
+        TR_self.y += dy
     }
 }
 
-TR_ctx_test "7.1 yapı alanları ve varsayılan değerleri" {
-    TR_kw_var p = Nokta()
-    TR_fn_assert_equal(0, p.x)
-    TR_fn_assert_equal(0, p.y)
-    TR_kw_struct Satır { a, b: TR_type_Int = 2; c }
-    TR_kw_var s = Satır()
-    TR_fn_assert_equal([TR_kw_none, 2, TR_kw_none], [s.a, s.b, s.c])
+TR_test "7.1 yapı alanları ve varsayılan değerleri" {
+    TR_var p = Nokta()
+    TR_assert_equal(0, p.x)
+    TR_assert_equal(0, p.y)
+    TR_struct Satır { a, b: TR_Int = 2; c }
+    TR_var s = Satır()
+    TR_assert_equal([TR_none, 2, TR_none], [s.a, s.b, s.c])
 }
 
-TR_ctx_test "7.1 yapı gövdesinde geçersiz içerik ve yinelenen ad sözdizimi hatasıdır" {
-    TR_fn_assert_equal(H0147, TR_fn_error_code(() => { TR_kw_import "negative/yapi_govdesi" }))
-    TR_fn_assert_equal(H0146, TR_fn_error_code(() => { TR_kw_import "negative/yapi_yinelenen_alan" }))
-    TR_fn_assert_equal(H0145, TR_fn_error_code(() => { TR_kw_import "negative/yapi_yinelenen_metot" }))
+TR_test "7.1 yapı gövdesinde geçersiz içerik ve yinelenen ad sözdizimi hatasıdır" {
+    TR_assert_equal("H0147", TR_error_code(() => { TR_import "negative/yapi_govdesi" }))
+    TR_assert_equal("H0146", TR_error_code(() => { TR_import "negative/yapi_yinelenen_alan" }))
+    TR_assert_equal("H0145", TR_error_code(() => { TR_import "negative/yapi_yinelenen_metot" }))
 }
 
-TR_ctx_test "7.2 oluşturma: konumlu ve adlı argümanlarla" {
-    TR_fn_assert_equal(3, Nokta(3, 4).x)
-    TR_fn_assert_equal(4, Nokta(y: 4).y)
-    TR_fn_assert_equal(0, Nokta(y: 4).x)
+TR_test "7.2 oluşturma: konumlu ve adlı argümanlarla" {
+    TR_assert_equal(3, Nokta(3, 4).x)
+    TR_assert_equal(4, Nokta(y: 4).y)
+    TR_assert_equal(0, Nokta(y: 4).x)
 }
 
-TR_ctx_test "7.2 fazla konumlu ya da bilinmeyen adlı argüman hatadır" {
-    TR_fn_assert_equal(H2419, TR_fn_error_code(() => { Nokta(1, 2, 3) }))
-    TR_fn_assert_equal(H2418, TR_fn_error_code(() => { Nokta(yy: 9) }))
-    // kurucu varsa argümanlar kurucunun imzasına göre denetlenir
-    TR_kw_struct Hesap {
+TR_test "7.2 fazla konumlu ya da bilinmeyen adlı argüman hatadır" {
+    TR_assert_equal("H2419", TR_error_code(() => { Nokta(1, 2, 3) }))
+    TR_assert_equal("H2418", TR_error_code(() => { Nokta(yy: 9) }))
+    # kurucu varsa argümanlar kurucunun imzasına göre denetlenir
+    TR_struct Hesap {
         bakiye
-        TR_kw_func TR_ctx_init(b, kat = 2) { TR_kw_self.bakiye = b * kat }
+        TR_func TR_init(b, kat = 2) { TR_self.bakiye = b * kat }
     }
-    TR_fn_assert_equal(15, Hesap(5, 3).bakiye)
-    TR_fn_assert_equal(H2412, TR_fn_error_code(() => { Hesap(1, 2, 3) }))
+    TR_assert_equal(15, Hesap(5, 3).bakiye)
+    TR_assert_equal("H2412", TR_error_code(() => { Hesap(1, 2, 3) }))
 }
 
-TR_ctx_test "7.2 bir alan hem sırayla hem adıyla verilemez" {
-    TR_fn_assert_equal(H2420, TR_fn_error_code(() => { Nokta(1, x: 2) }))
-    TR_fn_assert_equal(2, Nokta(1, y: 2).y)
-    TR_kw_struct Hesap {
+TR_test "7.2 bir alan hem sırayla hem adıyla verilemez" {
+    TR_assert_equal("H2420", TR_error_code(() => { Nokta(1, x: 2) }))
+    TR_assert_equal(2, Nokta(1, y: 2).y)
+    TR_struct Hesap {
         bakiye
-        TR_kw_func TR_ctx_init(b, kat = 2) { TR_kw_self.bakiye = b * kat }
+        TR_func TR_init(b, kat = 2) { TR_self.bakiye = b * kat }
     }
-    TR_fn_assert_equal(H2413, TR_fn_error_code(() => { Hesap(1, b: 2) }))
+    TR_assert_equal("H2413", TR_error_code(() => { Hesap(1, b: 2) }))
 }
 
-TR_ctx_test "7.3 metotlar kendi ile nesneye erişir" {
-    TR_kw_var p = Nokta(3, 4)
-    TR_fn_assert_equal(25, p.uzaklık_kare())
+TR_test "7.3 metotlar kendi ile nesneye erişir" {
+    TR_var p = Nokta(3, 4)
+    TR_assert_equal(25, p.uzaklık_kare())
     p.taşı(1, 1)
-    TR_fn_assert_equal(41, p.uzaklık_kare())
+    TR_assert_equal(41, p.uzaklık_kare())
 }
 
-TR_ctx_test "7.4 kurucu metodu oluşturmada çağrılır" {
-    TR_kw_struct Hesap {
+TR_test "7.4 kurucu metodu oluşturmada çağrılır" {
+    TR_struct Hesap {
         bakiye
-        TR_kw_func TR_ctx_init(b) { TR_kw_self.bakiye = b * 2 }
+        TR_func TR_init(b) { TR_self.bakiye = b * 2 }
     }
-    TR_fn_assert_equal(10, Hesap(5).bakiye)
+    TR_assert_equal(10, Hesap(5).bakiye)
 }
 
-TR_ctx_test "7.5 alanlar atanabilir; olmayan alan hata verir" {
-    TR_kw_var p = Nokta()
+TR_test "7.5 alanlar atanabilir; olmayan alan hata verir" {
+    TR_var p = Nokta()
     p.x = 7
-    TR_fn_assert_equal(7, p.x)
-    TR_fn_assert_equal(H2468, TR_fn_error_code(() => { p.z }))
-    TR_fn_assert_equal(TR_kw_none, p?.z)
+    TR_assert_equal(7, p.x)
+    TR_assert_equal("H2468", TR_error_code(() => { p.z }))
+    TR_assert_equal(TR_none, p?.z)
 }
 
-TR_ctx_test "7.5 tanımda olmayan alana atama hatadır; nesnenin alanları her zaman tanımdakilerdir" {
-    TR_kw_var p = Nokta(1, 2)
-    TR_fn_assert_equal(H2405, TR_fn_error_code(() => { p.z = 5 }))
-    TR_fn_assert_equal(H2404, TR_fn_error_code(() => { p.taşı = 5 }))
-    TR_fn_assert_equal(`Nokta{x: 1, y: 2}`, TR_fn_str(p))
-    TR_fn_assert(p == Nokta(1, 2))
+TR_test "7.5 tanımda olmayan alana atama hatadır; nesnenin alanları her zaman tanımdakilerdir" {
+    TR_var p = Nokta(1, 2)
+    TR_assert_equal("H2405", TR_error_code(() => { p.z = 5 }))
+    TR_assert_equal("H2404", TR_error_code(() => { p.taşı = 5 }))
+    TR_assert_equal(`Nokta{x: 1, y: 2}`, TR_str(p))
+    TR_assert(p == Nokta(1, 2))
 }
 
-TR_ctx_test "7.6 nesneler içerikle karşılaştırılır; tip() yapının kendisini verir" {
-    TR_fn_assert(Nokta(1, 2) == Nokta(1, 2))
-    TR_fn_assert_equal(`Nokta{x: 1, y: 2}`, TR_fn_str(Nokta(1, 2)))
-    TR_fn_assert_equal(Nokta, TR_fn_type(Nokta()))
-    TR_fn_assert(TR_fn_type(Nokta()) == Nokta)
-    TR_fn_assert_equal("Nokta", TR_fn_str(TR_fn_type(Nokta())))
-    TR_fn_assert_equal(TR_type_StructType, TR_fn_type(Nokta))
+TR_test "7.6 nesneler içerikle karşılaştırılır; tip() yapının kendisini verir" {
+    TR_assert(Nokta(1, 2) == Nokta(1, 2))
+    TR_assert_equal(`Nokta{x: 1, y: 2}`, TR_str(Nokta(1, 2)))
+    TR_assert_equal(Nokta, TR_type(Nokta()))
+    TR_assert(TR_type(Nokta()) == Nokta)
+    TR_assert_equal("Nokta", TR_str(TR_type(Nokta())))
+    TR_assert_equal(TR_StructType, TR_type(Nokta))
 }

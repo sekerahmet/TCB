@@ -1,55 +1,55 @@
-//! tr kodlu 3 dil=tr
-// 46 — Hazır model ve üretim: Hugging Face biçiminde bir modeli yükleyip metin üretmek.
-// Ne öğretir: hazır_model(klasör, ağırlık_türü:) ile modeli kurmak ve yüklemek, model.üret(başlangıç, adet,
-// sıcaklık:, en_iyi_k:, tohum:, eos:, önbellek_çeşidi:) ile parça üretmek, üretimi tekrarlanabilir yapmak.
-// Önceki örnekten: GPT ve kitaplık (41), parçalayıcı (39), örnekleme (34).
-// Çalıştırma (proje kökünden): tr examples/tr/46_hazir_model_ve_uretim.tr
-// Ayrıntılar: docs/guide/10_hazir_katmanlarla_gpt.md, docs/spec/15_tensorler.md §15.47, §15.45, lib/README.md (tr/hazir).
-//
-// Model: tests/data/hf_tiny, RASTGELE ağırlıklı 18 KB'lık küçük bir Llama (config.json + model.safetensors);
-// anlamlı metin üretmez, bu yüzden örnek metni değil parça kimliklerini yazdırır. Aynı kod gerçek bir
-// modelle (ör. indirilmiş bir SmolLM2-135M klasörü) çalışır: yalnızca YOL değişir. Ağ gerekmez.
+# TR 4
+# 46 — Hazır model ve üretim: Hugging Face biçiminde bir modeli yükleyip metin üretmek.
+# Ne öğretir: hazır_model(klasör, ağırlık_türü:) ile modeli kurmak ve yüklemek, model.üret(başlangıç, adet,
+# sıcaklık:, en_iyi_k:, tohum:, eos:, önbellek_çeşidi:) ile parça üretmek, üretimi tekrarlanabilir yapmak.
+# Önceki örnekten: GPT ve kitaplık (41), parçalayıcı (39), örnekleme (34).
+# Çalıştırma (proje kökünden): tr examples/tr/46_hazir_model_ve_uretim.tr
+# Ayrıntılar: docs/guide/10_hazir_katmanlarla_gpt.md, docs/spec/15_tensorler.md §15.47, §15.45, lib/README.md (tr/hazir).
+#
+# Model: tests/data/hf_tiny, RASTGELE ağırlıklı 18 KB'lık küçük bir Llama (config.json + model.safetensors);
+# anlamlı metin üretmez, bu yüzden örnek metni değil parça kimliklerini yazdırır. Aynı kod gerçek bir
+# modelle (ör. indirilmiş bir SmolLM2-135M klasörü) çalışır: yalnızca YOL değişir. Ağ gerekmez.
 
-TR_kw_import "tr/hazir"
+TR_import "tr/hazir"
 
-TR_kw_const YOL = "../../tests/data/hf_tiny"
+TR_const YOL = "../../tests/data/hf_tiny"
 
-// hazır_model, klasördeki config.json'dan modeli kurar (bir GPT) ve model.safetensors'ı yükler.
-// Parçalayıcı ayrıca açılır; bu modelin gömme tablosu tests/data/tokenizer.json'ın dağarcığıyla eşleşir.
-TR_kw_var model = TR_fn_pretrained_model(YOL)
-TR_kw_var p = TR_fn_load_tokenizer("../../tests/data/tokenizer.json")
-TR_kw_var parametre_sayısı = 0
-TR_kw_for w TR_kw_in TR_fn_parameters(model) { parametre_sayısı += w.TR_mem_shape.TR_mem_reduce(1) { TR_ctx_acc * TR_ctx_it } } // şeklin boyutlarının çarpımı
-TR_fn_print("bağlam:", model.TR_mem_config.bağlam, "| dağarcık:", p.TR_mem_vocab_size, "| parametre:", parametre_sayısı)
+# hazır_model, klasördeki config.json'dan modeli kurar (bir GPT) ve model.safetensors'ı yükler.
+# Parçalayıcı ayrıca açılır; bu modelin gömme tablosu tests/data/tokenizer.json'ın dağarcığıyla eşleşir.
+TR_var model = TR_pretrained_model(YOL)
+TR_var p = TR_load_tokenizer("../../tests/data/tokenizer.json")
+TR_var parametre_sayısı = 0
+TR_for w TR_in TR_parameters(model) { parametre_sayısı += w.TR_shape.TR_reduce(1) { TR_acc * TR_it } } # şeklin boyutlarının çarpımı
+TR_print("bağlam:", model.TR_config.bağlam, "| dağarcık:", p.TR_vocab_size, "| parametre:", parametre_sayısı)
 
-// üret(başlangıç, adet): başlangıç kimliklerinin ardına adet parça ekler ve bütün listeyi verir.
-// sıcaklık: 0 her adımda en olası parçayı seçer (açgözlü); aynı girdiyle hep aynı sonucu verir.
-TR_kw_var başlangıç = p.TR_mem_encode("Bugün hava")
-TR_fn_print("başlangıç:", başlangıç)
-TR_kw_var açgözlü = model.TR_mem_generate(başlangıç, 6, TR_arg_temperature: 0)
-TR_fn_print("açgözlü:", açgözlü)
+# üret(başlangıç, adet): başlangıç kimliklerinin ardına adet parça ekler ve bütün listeyi verir.
+# sıcaklık: 0 her adımda en olası parçayı seçer (açgözlü); aynı girdiyle hep aynı sonucu verir.
+TR_var başlangıç = p.TR_encode("Bugün hava")
+TR_print("başlangıç:", başlangıç)
+TR_var açgözlü = model.TR_generate(başlangıç, 6, TR_temperature: 0)
+TR_print("açgözlü:", açgözlü)
 
-// sıcaklık ve en_iyi_k rastgeleliği ayarlar (34. örnek); tohum: verilirse sonuç tekrarlanır.
-TR_kw_var örnek_1 = model.TR_mem_generate(başlangıç, 6, TR_arg_temperature: 0.8, TR_arg_top_k: 5, TR_arg_seed: 3)
-TR_kw_var örnek_2 = model.TR_mem_generate(başlangıç, 6, TR_arg_temperature: 0.8, TR_arg_top_k: 5, TR_arg_seed: 3)
-TR_fn_print("örnekleme:", örnek_1, "| aynı tohum aynı sonuç:", örnek_1 == örnek_2)
+# sıcaklık ve en_iyi_k rastgeleliği ayarlar (34. örnek); tohum: verilirse sonuç tekrarlanır.
+TR_var örnek_1 = model.TR_generate(başlangıç, 6, TR_temperature: 0.8, TR_top_k: 5, TR_seed: 3)
+TR_var örnek_2 = model.TR_generate(başlangıç, 6, TR_temperature: 0.8, TR_top_k: 5, TR_seed: 3)
+TR_print("örnekleme:", örnek_1, "| aynı tohum aynı sonuç:", örnek_1 == örnek_2)
 
-// eos: bir parça kimliğidir; o parça üretilince dizide kalır ve üretim adet dolmadan durur.
-TR_kw_var ilk_üretilen = açgözlü[başlangıç.TR_mem_length]
-TR_fn_print("eos ile:", model.TR_mem_generate(başlangıç, 6, TR_arg_temperature: 0, TR_arg_eos: ilk_üretilen))
+# eos: bir parça kimliğidir; o parça üretilince dizide kalır ve üretim adet dolmadan durur.
+TR_var ilk_üretilen = açgözlü[başlangıç.TR_length]
+TR_print("eos ile:", model.TR_generate(başlangıç, 6, TR_temperature: 0, TR_eos: ilk_üretilen))
 
-// önbellek_çeşidi: üret, KV önbelleğiyle çalışır (başlangıç bir kez işlenir, sonra yalnızca yeni parça).
-// "sabit" (varsayılan) bir kez ayrılır ve yerine yazılır, "büyüyen" her adımda uzar, yok her adımda
-// bütün diziyi yeniden hesaplar. Üçü de aynı parçaları verir.
-TR_kw_var büyüyen = model.TR_mem_generate(başlangıç, 6, TR_arg_temperature: 0, TR_arg_cache_kind: "büyüyen")
-TR_kw_var önbelleksiz = model.TR_mem_generate(başlangıç, 6, TR_arg_temperature: 0, TR_arg_cache_kind: TR_kw_none)
-TR_fn_print("üç önbellek çeşidi aynı mı:", açgözlü == büyüyen TR_kw_and büyüyen == önbelleksiz)
+# önbellek_çeşidi: üret, KV önbelleğiyle çalışır (başlangıç bir kez işlenir, sonra yalnızca yeni parça).
+# "sabit" (varsayılan) bir kez ayrılır ve yerine yazılır, "büyüyen" her adımda uzar, yok her adımda
+# bütün diziyi yeniden hesaplar. Üçü de aynı parçaları verir.
+TR_var büyüyen = model.TR_generate(başlangıç, 6, TR_temperature: 0, TR_cache_kind: "büyüyen")
+TR_var önbelleksiz = model.TR_generate(başlangıç, 6, TR_temperature: 0, TR_cache_kind: TR_none)
+TR_print("üç önbellek çeşidi aynı mı:", açgözlü == büyüyen TR_and büyüyen == önbelleksiz)
 
-// ağırlık_türü: matris ağırlıklarının türüdür. Hugging Face modelleri çoğunlukla bf16 saklanır;
-// "bf16" ağırlıkları yarı bellekle tutar (normlar ve hesap float32 kalır).
-TR_kw_var küçük = TR_fn_pretrained_model(YOL, TR_arg_weight_dtype: "bf16")
-TR_fn_print("türler:", TR_fn_parameters(model)[0].TR_mem_dtype, "ve", TR_fn_parameters(küçük)[0].TR_mem_dtype)
+# ağırlık_türü: matris ağırlıklarının türüdür. Hugging Face modelleri çoğunlukla bf16 saklanır;
+# "bf16" ağırlıkları yarı bellekle tutar (normlar ve hesap float32 kalır).
+TR_var küçük = TR_pretrained_model(YOL, TR_weight_dtype: "bf16")
+TR_print("türler:", TR_parameters(model)[0].TR_dtype, "ve", TR_parameters(küçük)[0].TR_dtype)
 
-// --- Kendin dene ---
-// 1. Başlangıcı p.kodla("İstanbul") yap ve açgözlü üretimin nasıl değiştiğine bak.
-// 2. tohum: 3'ü 4 yap: örnekleme sonucu değişir mi? ağırlık_türü: "bf16" ile açgözlü sonuç hâlâ aynı mı?
+# --- Kendin dene ---
+# 1. Başlangıcı p.kodla("İstanbul") yap ve açgözlü üretimin nasıl değiştiğine bak.
+# 2. tohum: 3'ü 4 yap: örnekleme sonucu değişir mi? ağırlık_türü: "bf16" ile açgözlü sonuç hâlâ aynı mı?

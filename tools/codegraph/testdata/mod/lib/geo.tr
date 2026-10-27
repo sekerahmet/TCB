@@ -1,22 +1,23 @@
-// geo: a fixture module for the TR extractor.
-sabit PI2 = 6.28
-değişken sayaç = 0
+# TR 4
+# geo: a fixture module for the TR extractor.
+TR_const PI2 = 6.28
+TR_var sayaç = 0
 
-yapı Kare {
+TR_struct Kare {
     kenar = 1
-    fonksiyon kurucu(kenar = 1) {
-        kendi.kenar = kenar
+    TR_func TR_init(kenar = 1) {
+        TR_self.kenar = kenar
     }
-    fonksiyon alan() {
-        sonuç kendi.kenar * kendi.kenar
+    TR_func alan() {
+        TR_return TR_self.kenar * TR_self.kenar
     }
 }
 
-fonksiyon çevre_hesapla(k) {
-    sonuç 4 * k.kenar
+TR_func çevre_hesapla(k) {
+    TR_return 4 * k.kenar
 }
 
-fonksiyon yaz_alan(k) {
-    yazdır(k.alan())
-    sonuç çevre_hesapla(k)
+TR_func yaz_alan(k) {
+    TR_print(k.alan())
+    TR_return çevre_hesapla(k)
 }

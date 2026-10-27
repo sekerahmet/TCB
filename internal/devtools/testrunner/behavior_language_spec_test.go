@@ -31,7 +31,7 @@ import (
 // numarayı taşır.
 var (
 	ruleRe = regexp.MustCompile(`\*\*(\d+\.\d+[a-z]?)\*\*`)
-	testRe = regexp.MustCompile(`(?m)^(?:test|TR_ctx_test) "(\d+\.\d+[a-z]?)\s`) // kodlu dosyada TR_ctx_test
+	testRe = regexp.MustCompile(`(?m)^(?:test|TR_test) "(\d+\.\d+[a-z]?)\s`) // kodlu dosyada TR_ctx_test
 	// Kuralın tanımı satır başında yazılır (**4.2** ...); metnin içindeki **13.1** gibi
 	// geçişler başka bir bölümdeki kurala başvurudur.
 	ruleDefRe     = regexp.MustCompile(`(?m)^\*\*(\d+)\.\d+[a-z]?\*\*`)
@@ -401,7 +401,7 @@ func TestNegativeFixturesUsed(t *testing.T) {
 	for _, f := range fixtures {
 		ad := strings.TrimSuffix(filepath.Base(f), ".tr")
 		// Test dosyaları kodlu saklanır: aktarım `TR_kw_import "negative/..."` diye yazılır.
-		if !bytes.Contains(all, []byte(`aktar "negative/`+ad+`"`)) && !bytes.Contains(all, []byte(`TR_kw_import "negative/`+ad+`"`)) {
+		if !bytes.Contains(all, []byte(`aktar "negative/`+ad+`"`)) && !bytes.Contains(all, []byte(`TR_import "negative/`+ad+`"`)) {
 			t.Errorf("%s hiçbir testte aktarılmıyor", filepath.Base(f))
 		}
 	}

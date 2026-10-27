@@ -12,19 +12,19 @@ TR ile yazılmış, `tr` ikilisine gömülü kitaplık. Modüller `TR_kw_import 
 Testler her modülün yanındadır (`katman_test.tr`, `iyilestirici_test.tr`, `egitim_test.tr`, `hazir_test.tr`) ve `tr test lib` ile koşar (tam denetimin parçasıdır). Test dosyaları gömülür ama modül olarak aktarılamaz. Kullanım rehberi: [kılavuz §10](../docs/guide/10_hazir_katmanlarla_gpt.md); tam örnek: [`examples/tr/41_gpt.tr`](../examples/tr/41_gpt.tr); GPU'da SimpleStories eğitimi: [`tools/gpu/gpt_training.tr`](../tools/gpu/gpt_training.tr).
 
 ```tr
-//! tr kodlu 3 dil=tr
-TR_kw_import "tr/katman"
-TR_kw_import "tr/iyilestirici"
+# TR 4
+TR_import "tr/katman"
+TR_import "tr/iyilestirici"
 
-TR_kw_var model = TR_type_GPT(1000, TR_arg_context: 64, TR_arg_embed_dim: 64, TR_arg_num_layers: 2, TR_arg_num_heads: 4)
-TR_kw_var op = TR_type_MuonAndAdamW(model) // gizli 2B ağırlıklar Muon, öbürleri AdamW
-TR_kw_var giriş = [[1, 2, 3, 4]]
-TR_kw_var hedef = [[2, 3, 4, 5]]
-TR_kw_for adım TR_kw_in 0..10 {
-    op.TR_mem_set_multiplier(TR_fn_lr_schedule(adım, 10, TR_arg_warmup: 2))
-    op.TR_mem_zero_grad()
-    TR_fn_backward(model.TR_mem_loss(giriş, hedef))
-    op.TR_mem_step()
+TR_var model = TR_GPT(1000, TR_context: 64, TR_embed_dim: 64, TR_num_layers: 2, TR_num_heads: 4)
+TR_var op = TR_MuonAndAdamW(model) # gizli 2B ağırlıklar Muon, öbürleri AdamW
+TR_var giriş = [[1, 2, 3, 4]]
+TR_var hedef = [[2, 3, 4, 5]]
+TR_for adım TR_in 0..10 {
+    op.TR_set_multiplier(TR_lr_schedule(adım, 10, TR_warmup: 2))
+    op.TR_zero_grad()
+    TR_backward(model.TR_loss(giriş, hedef))
+    op.TR_step()
 }
 ```
 
@@ -52,12 +52,12 @@ Her katman sıradan bir `TR_kw_struct`dır: ağırlıklar alanlarındadır, iler
 **Hedef model seçenekleri (RGN-512).** Aşağıdaki seçeneklerin hepsinin varsayılanı eski davranıştır (`katman_test.tr` varsayılanın değişmediğini sınar). `tools/gpu/rgn512.py`'nin ileri hesabı yeni bir model yapısı gerektirmez, `TR_type_GPT`nin blok seçenekleriyle kurulur:
 
 ```tr
-//! tr kodlu 3 dil=tr
-TR_kw_import "tr/katman"
+# TR 4
+TR_import "tr/katman"
 
-TR_kw_var rgn = TR_type_GPT(40000, TR_arg_context: 1024, TR_arg_embed_dim: 512, TR_arg_num_layers: 8, TR_arg_num_heads: 8, TR_arg_num_kv_heads: 4, TR_arg_intermediate_dim: 672, TR_arg_tied: TR_kw_true,
-    TR_arg_windows: TR_fn_layer_windows("YYGYGYYG", [32, 64]), TR_arg_qk_norm: TR_kw_true, TR_arg_merged_kv: TR_kw_true,
-    TR_arg_merged_gate: TR_kw_true, TR_arg_ff_use_bias: TR_kw_true, TR_arg_eps: 0.000001, TR_arg_ple_dim: 512)
+TR_var rgn = TR_GPT(40000, TR_context: 1024, TR_embed_dim: 512, TR_num_layers: 8, TR_num_heads: 8, TR_num_kv_heads: 4, TR_intermediate_dim: 672, TR_tied: TR_true,
+    TR_windows: TR_layer_windows("YYGYGYYG", [32, 64]), TR_qk_norm: TR_true, TR_merged_kv: TR_true,
+    TR_merged_gate: TR_true, TR_ff_use_bias: TR_true, TR_eps: 0.000001, TR_ple_dim: 512)
 ```
 
 - `pencere` (dikkat/blok): her konum yalnızca son `pencere` konuma bakar (`dikkat(..., pencere:)`); 0 tam nedensel. Pencere katmanın özelliğidir: `TR_type_GPT`de `pencereler` katman başına bir listedir (G katman 0, Y katman 32/64...), `TR_fn_layer_windows` düzen metninden kurar (Y katmanları pencere listesini sırayla alır).
@@ -115,19 +115,19 @@ Kitaplığın adları kullanıcı düzeyi TR adlarıdır; dilin kodu değildir, 
 `TR_type_Run(klasör, ayar, nesneler, adım_sayısı, TR_arg_every_minutes: 15.0, TR_arg_dry_run: TR_kw_false)` bir eğitimin kayıt işlerini üstlenir, döngü kullanıcıda kalır (Hugging Face Accelerate'in yolu; Lightning ve Keras döngüyü kendileri sürer). Klasöre `config.json` (`"config"`: ayarlar, `"num_params"`, `"device"`; diske giden anahtarlar dilden bağımsız İngilizce tanımlayıcılardır, dil tanımı 17.3) yazar, `metrics.jsonl` günlüğünü, ilerleme çubuğunu ve kontrol noktasını (dil tanımı 20; `nesneler` ve `"logger"` adıyla günlük) kurar; aynı komut `TR_mem_resume_step`'dan sürer. `adım_bitti(adım, ölçüler)` adım sınırıdır: ölçüler verilirse çubuk ve günlük güncellenir, zamanı geldiyse kontrol noktası yazılır (yazıldıysa `TR_kw_true`). `değerlendirildi(adım, ölçüler)` değerlendirmeyi günlüğe yazar. `bitir(model)` ağırlıkları (`model.trt`) her şeyden önce yazar, sonra son kontrol noktasını: sonrası bir hatayla bitse de eğitimin sonucu kaybolmaz. `TR_arg_dry_run: TR_kw_true` aynı komutun uzun koşudan önceki denemesidir (Lightning `fast_dev_run`): yeni bir geçici klasörde `TR_const_DRY_RUN_STEPS` (2) adım, kontrol noktası her adımda; `TR_mem_finish` bütün dosyaların yazıldığını denetler. Döngü `koşu.TR_mem_resume_step..koşu.TR_mem_last_step` üzerinde döner.
 
 ```tr
-//! tr kodlu 3 dil=tr
-TR_kw_import "tr/egitim"
-TR_kw_var model = {w: TR_fn_tensor([1.0, 2.0], TR_arg_requires_grad: TR_kw_true)}
-TR_kw_var op = TR_fn_AdamW(TR_fn_parameters(model))
-TR_kw_var koşu = TR_type_Run("koşu", {oran: 0.001}, {model: model, op: op}, TR_arg_num_steps: 1000)
-TR_kw_for adım TR_kw_in koşu.TR_mem_resume_step..koşu.TR_mem_last_step {
-    op.TR_mem_zero_grad()
-    TR_kw_var kayıp = TR_fn_sum(model.w * model.w)
-    TR_fn_backward(kayıp)
-    op.TR_mem_step()
-    koşu.TR_mem_step_done(adım + 1, TR_kw_if (adım + 1) % 100 == 0 { {TR_mem_loss: kayıp.TR_mem_tolist} } TR_kw_else { TR_kw_none })
+# TR 4
+TR_import "tr/egitim"
+TR_var model = {w: TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)}
+TR_var op = TR_AdamW(TR_parameters(model))
+TR_var koşu = TR_Run("koşu", {oran: 0.001}, {model: model, op: op}, TR_num_steps: 1000)
+TR_for adım TR_in koşu.TR_resume_step..koşu.TR_last_step {
+    op.TR_zero_grad()
+    TR_var kayıp = TR_sum(model.w * model.w)
+    TR_backward(kayıp)
+    op.TR_step()
+    koşu.TR_step_done(adım + 1, TR_if (adım + 1) % 100 == 0 { {TR_loss: kayıp.TR_tolist} } TR_else { TR_none })
 }
-koşu.TR_mem_finish(model)
+koşu.TR_finish(model)
 ```
 
 GPU'da tam kullanım: [`tools/gpu/gpt_training.tr`](../tools/gpu/gpt_training.tr) (`--prova`).
@@ -137,29 +137,29 @@ GPU'da tam kullanım: [`tools/gpu/gpt_training.tr`](../tools/gpu/gpt_training.tr
 Bekçi yalnızca karar verir; ne yapılacağını döngü seçer (dil tanımı 15.36, 20.14, 20.15):
 
 ```tr
-//! tr kodlu 3 dil=tr
-TR_kw_import "tr/egitim"
-TR_kw_var w = TR_fn_tensor([1.0, 2.0], TR_arg_requires_grad: TR_kw_true)
-TR_kw_var op = TR_fn_AdamW([w])
-TR_kw_var ö = TR_fn_dataset("veri").TR_mem_sampler(TR_arg_batch_size: 8, TR_arg_context: 32, TR_arg_seed: 1)
-TR_kw_var kn = TR_fn_checkpoint("koşu", {w: w, op: op, ö: ö})
-TR_kw_var bekçi = TR_type_SpikeGuard()
-TR_kw_var adım = kn.TR_mem_resume_step
-TR_kw_for adım < 1000 {
-    TR_kw_var giriş, hedef = ö.TR_mem_next()
-    op.TR_mem_zero_grad()
-    TR_kw_var kayıp = TR_fn_sum(w * w)
-    TR_fn_backward(kayıp)
-    TR_kw_var norm = TR_fn_clip_grad([w], TR_arg_max: 1.0)
-    TR_kw_var karar = bekçi.TR_mem_observe(kayıp.TR_mem_tolist, norm.TR_mem_tolist)
-    TR_kw_if karar != TR_const_OK {
-        adım = kn.TR_mem_rollback()   // son sağlam kontrol noktası
-        ö.TR_mem_skip(200)            // sorunlu toplu işleri atla (PaLM §5.1)
-        TR_kw_continue
+# TR 4
+TR_import "tr/egitim"
+TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+TR_var op = TR_AdamW([w])
+TR_var ö = TR_dataset("veri").TR_sampler(TR_batch_size: 8, TR_context: 32, TR_seed: 1)
+TR_var kn = TR_checkpoint("koşu", {w: w, op: op, ö: ö})
+TR_var bekçi = TR_SpikeGuard()
+TR_var adım = kn.TR_resume_step
+TR_for adım < 1000 {
+    TR_var giriş, hedef = ö.TR_next()
+    op.TR_zero_grad()
+    TR_var kayıp = TR_sum(w * w)
+    TR_backward(kayıp)
+    TR_var norm = TR_clip_grad([w], TR_max: 1.0)
+    TR_var karar = bekçi.TR_observe(kayıp.TR_tolist, norm.TR_tolist)
+    TR_if karar != TR_OK {
+        adım = kn.TR_rollback()   # son sağlam kontrol noktası
+        ö.TR_skip(200)            # sorunlu toplu işleri atla (PaLM §5.1)
+        TR_continue
     }
-    op.TR_mem_step()
+    op.TR_step()
     adım += 1
-    kn.TR_mem_update(adım)
+    kn.TR_update(adım)
 }
 ```
 

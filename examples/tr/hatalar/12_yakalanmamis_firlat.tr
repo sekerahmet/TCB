@@ -1,18 +1,18 @@
-//! tr kodlu 3 dil=tr
-// Hata 12 — Yakalanmayan fırlat.
-// İleti kodu: H2441
-// Ne olur: fırlat ile üretilen hata hiçbir yakala bloğuna ulaşmazsa program durur ve hata iletisi yazılır.
-// Neden: Hatayı karşılayan bir dene/yakala yok.
-// Düzeltilmiş hâli:
-//     dene {
-//         yazdır(yaş_denetle(-3))
-//     } yakala h {
-//         yazdır("yakalandı: {h}")
-//     }
-// Çalıştırma (proje kökünden): tr examples/tr/hatalar/12_yakalanmamis_firlat.tr   (çıkış kodu 1)
+# TR 4
+# Hata 12 — Yakalanmayan fırlat.
+# İleti kodu: H2441
+# Ne olur: fırlat ile üretilen hata hiçbir yakala bloğuna ulaşmazsa program durur ve hata iletisi yazılır.
+# Neden: Hatayı karşılayan bir dene/yakala yok.
+# Düzeltilmiş hâli:
+#     dene {
+#         yazdır(yaş_denetle(-3))
+#     } yakala h {
+#         yazdır("yakalandı: {h}")
+#     }
+# Çalıştırma (proje kökünden): tr examples/tr/hatalar/12_yakalanmamis_firlat.tr   (çıkış kodu 1)
 
-TR_kw_func yaş_denetle(yaş) {
-    TR_kw_if yaş < 0 { TR_kw_throw "yaş negatif olamaz" }
-    TR_kw_return yaş
+TR_func yaş_denetle(yaş) {
+    TR_if yaş < 0 { TR_throw "yaş negatif olamaz" }
+    TR_return yaş
 }
-TR_fn_print(yaş_denetle(-3))
+TR_print(yaş_denetle(-3))

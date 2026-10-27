@@ -165,7 +165,7 @@ func TestExtensionTemplatesBuild(t *testing.T) {
 		code := openTemplate(body)
 		if strings.HasPrefix(code, ".") {
 			// Metot şablonları (.filtrele { o }) bir listenin ardına yazılır
-			code = "değişken liste = [1, 2, 3]\nliste" + code
+			code = "TR_var liste = [1, 2, 3]\nliste" + code
 		}
 		code = definePlaceholders(body, code)
 		if passed, stdout := trCheck(t, "sablon", code); !passed {

@@ -53,8 +53,8 @@ func TestPackageSignature(t *testing.T) {
 func TestWriteEmbeddedModulesKeepsDotNamesInsideTheModuleFolder(t *testing.T) {
 	for _, name := range []string{"..", "ust/..", ".", "", "a/b/.."} {
 		pk := &pkg{
-			Main:    packageFile{Name: "ana.tr", Code: "değişken a = 1\n"},
-			Modules: []packageFile{{Name: name, Code: "değişken x = 1\n"}},
+			Main:    packageFile{Name: "ana.tr", Code: "TR_var a = 1\n"},
+			Modules: []packageFile{{Name: name, Code: "TR_var x = 1\n"}},
 		}
 		for _, dir := range []string{t.TempDir(), filepath.Join(t.TempDir(), "paket")} {
 			paths, err := writeEmbeddedModules(pk, dir)

@@ -1,4 +1,4 @@
-//! tr kodlu 3 dil=tr
-// 11.1 testinin fikstürü: göreli aktar önce bu dosyanın klasörüne göre çözülür.
-TR_kw_import "sira_ortak" TR_ctx_as o
-TR_kw_var sıra_kaynağı = o.kimden
+# TR 4
+# 11.1 testinin fikstürü: göreli aktar önce bu dosyanın klasörüne göre çözülür.
+TR_import "sira_ortak" TR_as o
+TR_var sıra_kaynağı = o.kimden

@@ -1,35 +1,35 @@
-//! tr kodlu 3 dil=tr
-// 28 — Eğitim döngüsü: bir modelin veriden öğrenmesi.
-// Ne öğretir: ağırlıkları rastgele başlatmak yerine sabit vermek, AdamW iyileştirici, tahmin → kayıp →
-// geri_yayılım → adım döngüsü, sıfırla, öğrenilen değerleri okumak.
-// Önceki örnekten: tensörler (23), otomatik türev (26), döngüler (07).
-// Çalıştırma (proje kökünden): tr examples/tr/28_egitim_dongusu.tr
+# TR 4
+# 28 — Eğitim döngüsü: bir modelin veriden öğrenmesi.
+# Ne öğretir: ağırlıkları rastgele başlatmak yerine sabit vermek, AdamW iyileştirici, tahmin → kayıp →
+# geri_yayılım → adım döngüsü, sıfırla, öğrenilen değerleri okumak.
+# Önceki örnekten: tensörler (23), otomatik türev (26), döngüler (07).
+# Çalıştırma (proje kökünden): tr examples/tr/28_egitim_dongusu.tr
 
-// Görev: noktalardan y = 2x - 1 doğrusunu bulmak. Model: y_tahmin = x @ w + b.
-TR_kw_var X = TR_fn_tensor([[0], [1], [2], [3]])
-TR_kw_var Y = TR_fn_tensor([[-1], [1], [3], [5]])
-TR_kw_var w = TR_fn_tensor([[0.0]], TR_arg_requires_grad: TR_kw_true) // öğrenilecek eğim
-TR_kw_var b = TR_fn_tensor([0.0], TR_arg_requires_grad: TR_kw_true) // öğrenilecek kayma
+# Görev: noktalardan y = 2x - 1 doğrusunu bulmak. Model: y_tahmin = x @ w + b.
+TR_var X = TR_tensor([[0], [1], [2], [3]])
+TR_var Y = TR_tensor([[-1], [1], [3], [5]])
+TR_var w = TR_tensor([[0.0]], TR_requires_grad: TR_true) # öğrenilecek eğim
+TR_var b = TR_tensor([0.0], TR_requires_grad: TR_true) # öğrenilecek kayma
 
-// İyileştirici gradyana bakıp ağırlıkları kayıp azalacak yönde günceller.
-// öğrenme_oranı adımın büyüklüğüdür: çok büyükse sapar, çok küçükse yavaş öğrenir.
-TR_kw_var iyileştirici = TR_fn_AdamW([w, b], TR_arg_lr: 0.1, TR_arg_weight_decay: 0)
+# İyileştirici gradyana bakıp ağırlıkları kayıp azalacak yönde günceller.
+# öğrenme_oranı adımın büyüklüğüdür: çok büyükse sapar, çok küçükse yavaş öğrenir.
+TR_var iyileştirici = TR_AdamW([w, b], TR_lr: 0.1, TR_weight_decay: 0)
 
-TR_kw_for adım TR_kw_in 0..300 {
-    iyileştirici.TR_mem_zero_grad() // 1) gradyanlar birikir, önce sıfırla
-    TR_kw_var fark = X @ w + b - Y // 2) tahmin ve hata
-    TR_kw_var kayıp = TR_fn_mean(fark ** 2) // 3) kayıp: ortalama kare hata
-    TR_fn_backward(kayıp) // 4) gradyanları hesapla
-    iyileştirici.TR_mem_step() // 5) ağırlıkları güncelle
-    TR_kw_if adım % 50 == 0 {
-        TR_fn_print("adım {adım}: kayıp = {TR_fn_round(kayıp.TR_mem_tolist, 5)}")
+TR_for adım TR_in 0..300 {
+    iyileştirici.TR_zero_grad() # 1) gradyanlar birikir, önce sıfırla
+    TR_var fark = X @ w + b - Y # 2) tahmin ve hata
+    TR_var kayıp = TR_mean(fark ** 2) # 3) kayıp: ortalama kare hata
+    TR_backward(kayıp) # 4) gradyanları hesapla
+    iyileştirici.TR_step() # 5) ağırlıkları güncelle
+    TR_if adım % 50 == 0 {
+        TR_print("adım \(adım): kayıp = \(TR_round(kayıp.TR_tolist, 5))")
     }
 }
-TR_fn_print("w = {TR_fn_round(w.TR_mem_tolist[0][0], 3)}, b = {TR_fn_round(b.TR_mem_tolist[0], 3)} (beklenen 2, -1)")
+TR_print("w = \(TR_round(w.TR_tolist[0][0], 3)), b = \(TR_round(b.TR_tolist[0], 3)) (beklenen 2, -1)")
 
-// Eğitilen model türevsiz kullanılır.
-TR_fn_print("x = 10 için tahmin: {TR_fn_round(TR_fn_no_grad { TR_fn_tensor([[10]]) @ w + b }.TR_mem_tolist[0][0], 2)}")
+# Eğitilen model türevsiz kullanılır.
+TR_print("x = 10 için tahmin: \(TR_round(TR_no_grad { TR_tensor([[10]]) @ w + b }.TR_tolist[0][0], 2))")
 
-// --- Kendin dene ---
-// 1. öğrenme_oranı'nı 0.001 ve 1.0 yap: kayıp nasıl değişir?
-// 2. Y'yi 3x + 2 doğrusunun değerleriyle değiştir ve w, b'nin 3 ve 2'ye yaklaştığını gör.
+# --- Kendin dene ---
+# 1. öğrenme_oranı'nı 0.001 ve 1.0 yap: kayıp nasıl değişir?
+# 2. Y'yi 3x + 2 doğrusunun değerleriyle değiştir ve w, b'nin 3 ve 2'ye yaklaştığını gör.

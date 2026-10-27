@@ -1,14 +1,14 @@
-//! tr kodlu 3 dil=tr
-// 36 — Karakter modeli: gerçek metinle eğitilen küçük bir dil modeli (~100 bin parametre).
-// Ne öğretir: metinden karakter sözlüğü kurmak, katman listesiyle derin (2 katmanlı) model, parametre
-// sayımı, argmax ile açgözlü metin üretimi. Aynı modelin başka dildeki hız kıyası: tools/bench/README.md.
-// Önceki örnekten: transformer (35), sözlükler (11), dosya okuma (19).
-// Veri: TR'nin kendi Türkçe belgeleri. Model bir sonraki karakteri tahmin etmeyi öğrenir.
-// Çalıştırma (proje kökünden): tr examples/tr/36_karakter_modeli.tr
+# TR 4
+# 36 — Karakter modeli: gerçek metinle eğitilen küçük bir dil modeli (~100 bin parametre).
+# Ne öğretir: metinden karakter sözlüğü kurmak, katman listesiyle derin (2 katmanlı) model, parametre
+# sayımı, argmax ile açgözlü metin üretimi. Aynı modelin başka dildeki hız kıyası: tools/bench/README.md.
+# Önceki örnekten: transformer (35), sözlükler (11), dosya okuma (19).
+# Veri: TR'nin kendi Türkçe belgeleri. Model bir sonraki karakteri tahmin etmeyi öğrenir.
+# Çalıştırma (proje kökünden): tr examples/tr/36_karakter_modeli.tr
 
-TR_kw_const ADIM = 300
-// Eğitim metni: kullanım kılavuzunun ve dil tanımının bölümleri, sırasıyla.
-TR_kw_const BELGELER = [
+TR_const ADIM = 300
+# Eğitim metni: kullanım kılavuzunun ve dil tanımının bölümleri, sırasıyla.
+TR_const BELGELER = [
     "docs/guide/01_baslangic.md", "docs/guide/02_anahtar_kelimeler.md",
     "docs/guide/03_zincirleme_metotlar.md", "docs/guide/04_yapay_zeka_ve_veri.md",
     "docs/guide/05_hata_ayiklayici.md", "docs/guide/06_vscode_kisayollari.md",
@@ -20,132 +20,132 @@ TR_kw_const BELGELER = [
     "docs/spec/13_yerlesikler.md", "docs/spec/14_sinirlamalar.md", "docs/spec/15_tensorler.md",
     "docs/spec/16_veri_parcalayici.md", "docs/spec/17_kodlar.md"
 ]
-TR_kw_var metin_verisi = ""
-TR_kw_for belge_yolu TR_kw_in BELGELER {
-    metin_verisi += TR_fn_read_file("../../" + belge_yolu)
+TR_var metin_verisi = ""
+TR_for belge_yolu TR_in BELGELER {
+    metin_verisi += TR_read_file("../../" + belge_yolu)
 }
 
-// --- Karakter sözlüğü ---
-TR_kw_var harfler = []
-TR_kw_var harf_no = {}
-TR_kw_var veri = []
-TR_kw_for h TR_kw_in metin_verisi {
-    TR_kw_if harf_no[h] == TR_kw_none {
-        harf_no[h] = harfler.TR_mem_length
-        harfler.TR_mem_append(h)
+# --- Karakter sözlüğü ---
+TR_var harfler = []
+TR_var harf_no = {}
+TR_var veri = []
+TR_for h TR_in metin_verisi {
+    TR_if harf_no[h] == TR_none {
+        harf_no[h] = harfler.TR_length
+        harfler.TR_append(h)
     }
-    veri.TR_mem_append(harf_no[h])
+    veri.TR_append(harf_no[h])
 }
 
-TR_kw_var V = harfler.TR_mem_length // sözlük boyutu
-TR_kw_var T = 64 // bağlam uzunluğu
-TR_kw_var D = 64 // gizli boyut
-TR_kw_var H = 4 // dikkat bakışı
-TR_kw_var Dh = 16 // bakış boyutu
-TR_kw_var B = 16 // toplu iş boyutu
-TR_kw_const KATMAN = 2
+TR_var V = harfler.TR_length # sözlük boyutu
+TR_var T = 64 # bağlam uzunluğu
+TR_var D = 64 # gizli boyut
+TR_var H = 4 # dikkat bakışı
+TR_var Dh = 16 # bakış boyutu
+TR_var B = 16 # toplu iş boyutu
+TR_const KATMAN = 2
 
-// --- Parametreler ---
-TR_kw_var parametre_tohumu = 1
-TR_kw_var ağırlıklar = []
-TR_kw_func parametre(şekil, ölçek) {
+# --- Parametreler ---
+TR_var parametre_tohumu = 1
+TR_var ağırlıklar = []
+TR_func parametre(şekil, ölçek) {
     parametre_tohumu += 1
-    TR_kw_var p = TR_fn_tensor(TR_fn_no_grad(TR_fn_randn(şekil, TR_arg_seed: parametre_tohumu) * ölçek), TR_arg_requires_grad: TR_kw_true)
-    ağırlıklar.TR_mem_append(p)
-    TR_kw_return p
+    TR_var p = TR_tensor(TR_no_grad(TR_randn(şekil, TR_seed: parametre_tohumu) * ölçek), TR_requires_grad: TR_true)
+    ağırlıklar.TR_append(p)
+    TR_return p
 }
-TR_kw_func sabit_parametre(şekil, değer) {
-    TR_kw_var p = TR_fn_tensor(TR_fn_ones(şekil) * değer, TR_arg_requires_grad: TR_kw_true)
-    ağırlıklar.TR_mem_append(p)
-    TR_kw_return p
+TR_func sabit_parametre(şekil, değer) {
+    TR_var p = TR_tensor(TR_ones(şekil) * değer, TR_requires_grad: TR_true)
+    ağırlıklar.TR_append(p)
+    TR_return p
 }
 
-TR_kw_var E = parametre([V, D], 0.1)
-TR_kw_var P = parametre([T, D], 0.1)
-TR_kw_var katmanlar = []
-TR_kw_for k TR_kw_in 0..KATMAN {
-    katmanlar.TR_mem_append({
+TR_var E = parametre([V, D], 0.1)
+TR_var P = parametre([T, D], 0.1)
+TR_var katmanlar = []
+TR_for k TR_in 0..KATMAN {
+    katmanlar.TR_append({
         "Wq": parametre([D, D], 0.1), "Wk": parametre([D, D], 0.1), "Wv": parametre([D, D], 0.1),
         "Wo": parametre([D, D], 0.1), "W1": parametre([D, 4 * D], 0.1), "W2": parametre([4 * D, D], 0.05),
         "g1": sabit_parametre([D], 1.0), "s1": sabit_parametre([D], 0.0),
         "g2": sabit_parametre([D], 1.0), "s2": sabit_parametre([D], 0.0)
     })
 }
-TR_kw_var gs = sabit_parametre([D], 1.0)
-TR_kw_var ss = sabit_parametre([D], 0.0)
-TR_kw_var Wu = parametre([D, V], 0.1)
+TR_var gs = sabit_parametre([D], 1.0)
+TR_var ss = sabit_parametre([D], 0.0)
+TR_var Wu = parametre([D, V], 0.1)
 
-TR_kw_var toplam_parametre = 0
-TR_kw_for p TR_kw_in ağırlıklar { toplam_parametre += p.TR_mem_shape.TR_mem_reduce(1) { TR_ctx_acc * TR_ctx_it } } // şeklin boyutlarının çarpımı
-TR_fn_print("veri: {veri.TR_mem_length} karakter, sözlük: {V} karakter, parametre: {toplam_parametre}")
+TR_var toplam_parametre = 0
+TR_for p TR_in ağırlıklar { toplam_parametre += p.TR_shape.TR_reduce(1) { TR_acc * TR_it } } # şeklin boyutlarının çarpımı
+TR_print("veri: \(veri.TR_length) karakter, sözlük: \(V) karakter, parametre: \(toplam_parametre)")
 
-// --- Model ---
-TR_kw_var konumlar = TR_fn_range(T)
+# --- Model ---
+TR_var konumlar = TR_range(T)
 
-TR_kw_func ileri(girdiler, b) {
-    TR_kw_var x = TR_fn_embedding(E, girdiler) + TR_fn_embedding(P, konumlar)
-    TR_kw_for L TR_kw_in katmanlar {
-        // Ön normalizasyonlu blok: dikkat, ardından ileri besleme
-        TR_kw_var a = TR_fn_layer_norm(x, L["g1"], L["s1"])
-        TR_kw_var q = (a @ L["Wq"]).TR_mem_reshape([b, T, H, Dh])
-        TR_kw_var k = (a @ L["Wk"]).TR_mem_reshape([b, T, H, Dh])
-        TR_kw_var v = (a @ L["Wv"]).TR_mem_reshape([b, T, H, Dh])
-        // Nedensel dikkat, ölçek 1/√Dh = 0.25 (softmax(q·kᵀ·0.25 + nedensel maske) · v ile aynı)
-        TR_kw_var y = TR_fn_attention(q, k, v).TR_mem_reshape([b, T, D])
+TR_func ileri(girdiler, b) {
+    TR_var x = TR_embedding(E, girdiler) + TR_embedding(P, konumlar)
+    TR_for L TR_in katmanlar {
+        # Ön normalizasyonlu blok: dikkat, ardından ileri besleme
+        TR_var a = TR_layer_norm(x, L["g1"], L["s1"])
+        TR_var q = (a @ L["Wq"]).TR_reshape([b, T, H, Dh])
+        TR_var k = (a @ L["Wk"]).TR_reshape([b, T, H, Dh])
+        TR_var v = (a @ L["Wv"]).TR_reshape([b, T, H, Dh])
+        # Nedensel dikkat, ölçek 1/√Dh = 0.25 (softmax(q·kᵀ·0.25 + nedensel maske) · v ile aynı)
+        TR_var y = TR_attention(q, k, v).TR_reshape([b, T, D])
         x = x + y @ L["Wo"]
-        TR_kw_var m = TR_fn_layer_norm(x, L["g2"], L["s2"])
-        x = x + TR_fn_gelu(m @ L["W1"]) @ L["W2"]
+        TR_var m = TR_layer_norm(x, L["g2"], L["s2"])
+        x = x + TR_gelu(m @ L["W1"]) @ L["W2"]
     }
-    TR_kw_return TR_fn_layer_norm(x, gs, ss) @ Wu
+    TR_return TR_layer_norm(x, gs, ss) @ Wu
 }
 
-// --- Veri örnekleme (tekrar üretilebilir) ---
-TR_kw_var tohum = 12345
-TR_kw_func rastgele_tam(n) {
+# --- Veri örnekleme (tekrar üretilebilir) ---
+TR_var tohum = 12345
+TR_func rastgele_tam(n) {
     tohum = (tohum * 1103515245 + 12345) % 2147483648
-    TR_kw_return tohum % n
+    TR_return tohum % n
 }
-TR_kw_func toplu_iş() {
-    TR_kw_var girdiler = []
-    TR_kw_var hedefler = []
-    TR_kw_for b TR_kw_in 0..B {
-        TR_kw_var baş = rastgele_tam(veri.TR_mem_length - T - 1)
-        TR_kw_var satır = []
-        TR_kw_for t TR_kw_in 0..T {
-            satır.TR_mem_append(veri[baş + t])
-            hedefler.TR_mem_append(veri[baş + t + 1])
+TR_func toplu_iş() {
+    TR_var girdiler = []
+    TR_var hedefler = []
+    TR_for b TR_in 0..B {
+        TR_var baş = rastgele_tam(veri.TR_length - T - 1)
+        TR_var satır = []
+        TR_for t TR_in 0..T {
+            satır.TR_append(veri[baş + t])
+            hedefler.TR_append(veri[baş + t + 1])
         }
-        girdiler.TR_mem_append(satır)
+        girdiler.TR_append(satır)
     }
-    TR_kw_return [girdiler, hedefler]
+    TR_return [girdiler, hedefler]
 }
 
-// --- Eğitim ---
-TR_kw_var iyileştirici = TR_fn_AdamW(ağırlıklar, TR_arg_lr: 0.003, TR_arg_weight_decay: 0.0)
-TR_kw_for adım TR_kw_in 0..ADIM {
-    TR_kw_var tb = toplu_iş()
-    iyileştirici.TR_mem_zero_grad()
-    TR_kw_var kayıp = TR_fn_cross_entropy(ileri(tb[0], B), tb[1])
-    TR_fn_backward(kayıp)
-    iyileştirici.TR_mem_step()
-    TR_kw_if adım % 50 == 0 TR_kw_or adım == ADIM - 1 {
-        TR_fn_print("adım {adım}: kayıp = {TR_fn_round(kayıp.TR_mem_tolist, 4)}")
+# --- Eğitim ---
+TR_var iyileştirici = TR_AdamW(ağırlıklar, TR_lr: 0.003, TR_weight_decay: 0.0)
+TR_for adım TR_in 0..ADIM {
+    TR_var tb = toplu_iş()
+    iyileştirici.TR_zero_grad()
+    TR_var kayıp = TR_cross_entropy(ileri(tb[0], B), tb[1])
+    TR_backward(kayıp)
+    iyileştirici.TR_step()
+    TR_if adım % 50 == 0 TR_or adım == ADIM - 1 {
+        TR_print("adım \(adım): kayıp = \(TR_round(kayıp.TR_tolist, 4))")
     }
 }
 
-// --- Metin üretimi (her adımda en olası karakter) ---
-TR_kw_var bağlam = []
-TR_kw_for t TR_kw_in 0..T { bağlam.TR_mem_append(veri[t]) }
-TR_kw_var üretilen = ""
-TR_fn_no_grad {
-    TR_kw_for n TR_kw_in 0..120 {
-        TR_kw_var en_iyi = TR_fn_argmax(ileri([bağlam], 1), TR_arg_dim: -1).TR_mem_tolist[0][T - 1]
+# --- Metin üretimi (her adımda en olası karakter) ---
+TR_var bağlam = []
+TR_for t TR_in 0..T { bağlam.TR_append(veri[t]) }
+TR_var üretilen = ""
+TR_no_grad {
+    TR_for n TR_in 0..120 {
+        TR_var en_iyi = TR_argmax(ileri([bağlam], 1), TR_dim: -1).TR_tolist[0][T - 1]
         üretilen = üretilen + harfler[en_iyi]
-        bağlam = bağlam[1..T] + [en_iyi] // pencereyi bir kaydır
+        bağlam = bağlam[1..T] + [en_iyi] # pencereyi bir kaydır
     }
 }
-TR_fn_print("model şunu yazdı: {üretilen}")
+TR_print("model şunu yazdı: \(üretilen)")
 
-// --- Kendin dene ---
-// 1. ADIM'ı 300'den 600'e çıkar: üretilen metin nasıl değişiyor?
-// 2. BELGELER listesinden birkaç dosya çıkar ve kayıpla üretilen metne etkisine bak.
+# --- Kendin dene ---
+# 1. ADIM'ı 300'den 600'e çıkar: üretilen metin nasıl değişiyor?
+# 2. BELGELER listesinden birkaç dosya çıkar ve kayıpla üretilen metne etkisine bak.

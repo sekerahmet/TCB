@@ -22,7 +22,7 @@ func runTROut(t *testing.T, code string) (string, Value, error) {
 
 // Tanımsız bir isme atama eskiden en dış kapsamda sessizce genel değişken oluşturuyordu.
 func TestAssignToUndeclaredNameIsError(t *testing.T) {
-	_, _, err := runTROut(t, "fonksiyon f() { gizli = 42 }\nf()\nyazdır(gizli)")
+	_, _, err := runTROut(t, "TR_func f() { gizli = 42 }\nf()\nTR_print(gizli)")
 	if !messages.Has(err, messages.H2448) {
 		t.Fatalf("tanımsız değişken hatası bekleniyordu, alınan: %v", err)
 	}
@@ -34,12 +34,12 @@ func TestAssignToUndeclaredNameIsError(t *testing.T) {
 
 	// Tanımlı değişkenlere iç kapsamlardan atama çalışmaya devam etmeli.
 	val, err := runTR(t, `
-		değişken sayaç = 0
-		fonksiyon artır() { sayaç = sayaç + 1 }
+		TR_var sayaç = 0
+		TR_func artır() { sayaç = sayaç + 1 }
 		artır()
 		artır()
-		döngü i içinde 1..=3 { sayaç += i }
-		sonuç sayaç
+		TR_for i TR_in 1..=3 { sayaç += i }
+		TR_return sayaç
 	`)
 	if err != nil || val.Inspect() != "8" {
 		t.Fatalf("8 bekleniyordu, alınan: %v, %v", val, err)
@@ -82,7 +82,7 @@ func TestOperatorPrecedence(t *testing.T) {
 }
 
 func TestNewlineEndsCallOrIndex(t *testing.T) {
-	out, _, err := runTROut(t, "değişken f = 5\n(1 + 2) |> yazdır\ndeğişken l = [1, 2]\n[3, 4] |> yazdır\nyazdır(f, l)")
+	out, _, err := runTROut(t, "TR_var f = 5\n(1 + 2) |> TR_print\nTR_var l = [1, 2]\n[3, 4] |> TR_print\nTR_print(f, l)")
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
 	}
@@ -91,7 +91,7 @@ func TestNewlineEndsCallOrIndex(t *testing.T) {
 	}
 
 	// Aynı satırdaki çağrı/indeks ve çok satırlı argümanlar çalışmaya devam etmeli.
-	out, _, err = runTROut(t, "değişken l = [10, 20]\nyazdır(\n  l[1],\n  l [0]\n)")
+	out, _, err = runTROut(t, "TR_var l = [10, 20]\nTR_print(\n  l[1],\n  l [0]\n)")
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
 	}
@@ -102,12 +102,12 @@ func TestNewlineEndsCallOrIndex(t *testing.T) {
 
 func TestStringBracesAndEscapes(t *testing.T) {
 	out, _, err := runTROut(t, `
-		değişken ad = "Ali"
-		değişken p = {"ad": "Veli"}
-		yazdır("\{ad\} = {ad}")
-		yazdır("{p["ad"]} ve {p['ad']}")
-		yazdır("C:\\{ad}")
-		yazdır("sonra")
+		TR_var ad = "Ali"
+		TR_var p = {"ad": "Veli"}
+		TR_print("{ad} = \(ad)")
+		TR_print("\(p["ad"]) ve \(p["ad"])")
+		TR_print("C:\\\(ad)")
+		TR_print("sonra")
 	`)
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
@@ -120,25 +120,25 @@ func TestStringBracesAndEscapes(t *testing.T) {
 
 // Test blokları normal çalıştırmada atlanır; doğrula/eşit_mi her yerde çalışır.
 func TestTestBlocksSkippedAndAssertions(t *testing.T) {
-	out, _, err := runTROut(t, `test "atlanmalı" { yazdır("TEST ÇALIŞTI") }
-doğrula(1 + 1 == 2)
-eşit_mi([1, 2], [1, 2])
-yazdır("tamam")`)
+	out, _, err := runTROut(t, `TR_test "atlanmalı" { TR_print("TEST ÇALIŞTI") }
+TR_assert(1 + 1 == 2)
+TR_assert_equal([1, 2], [1, 2])
+TR_print("tamam")`)
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
 	}
 	if strings.Contains(out, "TEST ÇALIŞTI") || !strings.Contains(out, "tamam") {
 		t.Fatalf("çıktı yanlış: %q", out)
 	}
-	_, _, err = runTROut(t, `eşit_mi("5", 5)`)
+	_, _, err = runTROut(t, `TR_assert_equal("5", 5)`)
 	if !messages.Has(err, messages.H2458) {
 		t.Fatalf("eşit_mi hata mesajı yanlış: %v", err)
 	}
-	_, _, err = runTROut(t, `eşit_mi("5", 5, "ek not")`)
+	_, _, err = runTROut(t, `TR_assert_equal("5", 5, "ek not")`)
 	if !messages.Has(err, messages.H2517) {
 		t.Fatalf("üç argümanlı eşit_mi hata mesajı yanlış: %v", err)
 	}
-	_, _, err = runTROut(t, "\n\ndoğrula(yanlış)")
+	_, _, err = runTROut(t, "\n\nTR_assert(TR_false)")
 	if !codeAt(err, messages.H2457, 3) {
 		t.Fatalf("doğrula hata mesajı yanlış: %v", err)
 	}
@@ -172,18 +172,18 @@ func TestFloatModulo(t *testing.T) {
 // kullanıcının kendi 'sabit' tanımları ise korunmalı.
 func TestShadowingBuiltinCreatesMutableVariable(t *testing.T) {
 	val, err := runTR(t, `
-		değişken toplam = 0
+		TR_var toplam = 0
 		toplam += 5
-		değişken uzunluk = 1
+		TR_var uzunluk = 1
 		uzunluk = uzunluk + 1
-		sonuç [toplam, uzunluk]`)
+		TR_return [toplam, uzunluk]`)
 	if err != nil {
 		t.Fatalf("yerleşik adı gölgeleyen değişken değiştirilebilmeli: %v", err)
 	}
 	if val.Inspect() != "[5, 2]" {
 		t.Fatalf("[5, 2] bekleniyordu, %s alındı", val.Inspect())
 	}
-	if _, err := runTR(t, "sabit PI_DEGERI = 3\nPI_DEGERI = 4"); !messages.Has(err, messages.H2447) {
+	if _, err := runTR(t, "TR_const PI_DEGERI = 3\nPI_DEGERI = 4"); !messages.Has(err, messages.H2447) {
 		t.Fatalf("kullanıcı sabiti korunmalı, alınan: %v", err)
 	}
 }

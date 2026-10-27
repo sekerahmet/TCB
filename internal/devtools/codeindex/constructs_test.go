@@ -11,7 +11,7 @@ import (
 // deneme 10; değer dili tasarımı 3. tur).
 func TestConstructsAreRecordedPerDeclaration(t *testing.T) {
 	dir := t.TempDir()
-	src := "fonksiyon f(x) {\n    değişken l = [x, x]\n    yazdır(\"{x} {l[0]}\")\n    sonuç g(x)\n}\n\nfonksiyon g(y) {\n    sonuç y\n}\n"
+	src := "TR_func f(x) {\n    TR_var l = [x, x]\n    TR_print(\"\\(x) \\(l[0])\")\n    TR_return g(x)\n}\n\nTR_func g(y) {\n    TR_return y\n}\n"
 	if err := os.WriteFile(filepath.Join(dir, "m.tr"), []byte(src), 0o644); err != nil {
 		t.Fatal(err)
 	}

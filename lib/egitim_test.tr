@@ -1,111 +1,111 @@
-//! tr kodlu 3 dil=tr
-// tr/egitim testleri: sıçrama bekçisinin kararları (pencere dolmadan karar yok, sonlu olmayan
-// değer, z-skoru eşiği), sıçramanın geçmişe girmemesi ve kayan pencere. Koşturma: tr test lib
-TR_kw_import "tr/egitim"
+# TR 4
+# tr/egitim testleri: sıçrama bekçisinin kararları (pencere dolmadan karar yok, sonlu olmayan
+# değer, z-skoru eşiği), sıçramanın geçmişe girmemesi ve kayan pencere. Koşturma: tr test lib
+TR_import "tr/egitim"
 
-// Hafif gürültülü, sabit bir kayıp ve norm dizisi (her biri 1,0 ± 0,01).
-TR_kw_func besle(b, n) {
-    TR_kw_for i TR_kw_in 0..n {
-        TR_kw_var g = TR_kw_if i % 2 == 0 { 0.01 } TR_kw_else { -0.01 }
-        TR_fn_assert_equal(TR_const_OK, b.TR_mem_observe(1.0 + g, 1.0 - g))
+# Hafif gürültülü, sabit bir kayıp ve norm dizisi (her biri 1,0 ± 0,01).
+TR_func besle(b, n) {
+    TR_for i TR_in 0..n {
+        TR_var g = TR_if i % 2 == 0 { 0.01 } TR_else { -0.01 }
+        TR_assert_equal(TR_OK, b.TR_observe(1.0 + g, 1.0 - g))
     }
 }
 
-TR_ctx_test "SıçramaBekçisi: pencere dolana kadar yalnızca sonlu olmayanı yakalar" {
-    TR_kw_var b = TR_type_SpikeGuard(TR_arg_history_limit: 8, TR_arg_threshold: 6.0)
-    TR_fn_assert_equal(TR_const_OK, b.TR_mem_observe(1.0, 1.0))
-    TR_fn_assert_equal(TR_const_OK, b.TR_mem_observe(100.0, 1.0)) // pencere dolmadı: karar yok
-    TR_fn_assert_equal(TR_const_NONFINITE, b.TR_mem_observe(TR_fn_float("nan"), 1.0))
-    TR_fn_assert_equal(TR_const_NONFINITE, b.TR_mem_observe(1.0, TR_fn_float("inf")))
-    TR_fn_assert_equal(2, b.TR_mem_history_length())
+TR_test "SıçramaBekçisi: pencere dolana kadar yalnızca sonlu olmayanı yakalar" {
+    TR_var b = TR_SpikeGuard(TR_history_limit: 8, TR_threshold: 6.0)
+    TR_assert_equal(TR_OK, b.TR_observe(1.0, 1.0))
+    TR_assert_equal(TR_OK, b.TR_observe(100.0, 1.0)) # pencere dolmadı: karar yok
+    TR_assert_equal(TR_NONFINITE, b.TR_observe(TR_float("nan"), 1.0))
+    TR_assert_equal(TR_NONFINITE, b.TR_observe(1.0, TR_float("inf")))
+    TR_assert_equal(2, b.TR_history_length())
 }
 
-TR_ctx_test "SıçramaBekçisi: kayıp ya da norm eşik kadar standart sapma yukarıdaysa sıçramadır" {
-    TR_kw_var b = TR_type_SpikeGuard(TR_arg_history_limit: 16, TR_arg_threshold: 6.0)
+TR_test "SıçramaBekçisi: kayıp ya da norm eşik kadar standart sapma yukarıdaysa sıçramadır" {
+    TR_var b = TR_SpikeGuard(TR_history_limit: 16, TR_threshold: 6.0)
     besle(b, 16)
-    TR_fn_assert_equal(TR_const_OK, b.TR_mem_observe(1.05, 1.0)) // 5σ: eşiğin altında
-    TR_fn_assert_equal(TR_const_SPIKE, b.TR_mem_observe(1.2, 1.0)) // kayıp 20σ
-    TR_fn_assert_equal(TR_const_SPIKE, b.TR_mem_observe(1.0, 1.5)) // norm 50σ
-    TR_fn_assert_equal(TR_const_OK, b.TR_mem_observe(0.5, 1.0)) // aşağı yönde düşüş sıçrama değildir
-    TR_fn_assert_equal(2, b.TR_mem_spike_count)
+    TR_assert_equal(TR_OK, b.TR_observe(1.05, 1.0)) # 5σ: eşiğin altında
+    TR_assert_equal(TR_SPIKE, b.TR_observe(1.2, 1.0)) # kayıp 20σ
+    TR_assert_equal(TR_SPIKE, b.TR_observe(1.0, 1.5)) # norm 50σ
+    TR_assert_equal(TR_OK, b.TR_observe(0.5, 1.0)) # aşağı yönde düşüş sıçrama değildir
+    TR_assert_equal(2, b.TR_spike_count)
 }
 
-TR_ctx_test "SıçramaBekçisi: sıçrama ve sonlu olmayan değer geçmişe girmez; pencere kayar" {
-    TR_kw_var b = TR_type_SpikeGuard(TR_arg_history_limit: 4, TR_arg_threshold: 6.0)
+TR_test "SıçramaBekçisi: sıçrama ve sonlu olmayan değer geçmişe girmez; pencere kayar" {
+    TR_var b = TR_SpikeGuard(TR_history_limit: 4, TR_threshold: 6.0)
     besle(b, 4)
-    TR_fn_assert_equal(TR_const_SPIKE, b.TR_mem_observe(9.0, 1.0))
-    TR_fn_assert_equal(TR_const_NONFINITE, b.TR_mem_observe(TR_fn_float("nan"), 1.0))
-    TR_fn_assert_equal(4, b.TR_mem_history_length())
+    TR_assert_equal(TR_SPIKE, b.TR_observe(9.0, 1.0))
+    TR_assert_equal(TR_NONFINITE, b.TR_observe(TR_float("nan"), 1.0))
+    TR_assert_equal(4, b.TR_history_length())
     besle(b, 10)
-    TR_fn_assert_equal(4, b.TR_mem_history_length())
+    TR_assert_equal(4, b.TR_history_length())
 }
 
-TR_ctx_test "SıçramaBekçisi: değişmeyen dizide (σ = 0) eşik yerine en küçük sapma kullanılır" {
-    TR_kw_var b = TR_type_SpikeGuard(TR_arg_history_limit: 4, TR_arg_threshold: 6.0)
-    TR_kw_for i TR_kw_in 0..4 { b.TR_mem_observe(2.0, 1.0) }
-    TR_fn_assert_equal(TR_const_OK, b.TR_mem_observe(2.0, 1.0))
-    TR_fn_assert_equal(TR_const_SPIKE, b.TR_mem_observe(3.0, 1.0))
+TR_test "SıçramaBekçisi: değişmeyen dizide (σ = 0) eşik yerine en küçük sapma kullanılır" {
+    TR_var b = TR_SpikeGuard(TR_history_limit: 4, TR_threshold: 6.0)
+    TR_for i TR_in 0..4 { b.TR_observe(2.0, 1.0) }
+    TR_assert_equal(TR_OK, b.TR_observe(2.0, 1.0))
+    TR_assert_equal(TR_SPIKE, b.TR_observe(3.0, 1.0))
 }
 
-TR_ctx_test "SıçramaBekçisi: geçersiz ayar hatadır" {
-    TR_fn_assert_equal(H6930, TR_fn_error_code(() => TR_type_SpikeGuard(TR_arg_history_limit: 1)))
-    TR_fn_assert_equal(H6931, TR_fn_error_code(() => TR_type_SpikeGuard(TR_arg_threshold: 0)))
+TR_test "SıçramaBekçisi: geçersiz ayar hatadır" {
+    TR_assert_equal("H6930", TR_error_code(() => TR_SpikeGuard(TR_history_limit: 1)))
+    TR_assert_equal("H6931", TR_error_code(() => TR_SpikeGuard(TR_threshold: 0)))
 }
 
-TR_ctx_test "SıçramaBekçisi: ölçekten bağımsızdır; çok büyük sonlu değerlerde taşmaz" {
-    TR_kw_var b = TR_type_SpikeGuard(TR_arg_history_limit: 2, TR_arg_threshold: 6.0)
-    b.TR_mem_observe(1e155, 1.0)
-    b.TR_mem_observe(2e155, 1.0)
-    TR_fn_assert_equal(TR_const_SPIKE, b.TR_mem_observe(1e308, 1.0))
-    TR_kw_var k = TR_type_SpikeGuard(TR_arg_history_limit: 4, TR_arg_threshold: 6.0)
-    TR_kw_for i TR_kw_in 0..4 { k.TR_mem_observe(2e-30, 1.0) }
-    TR_fn_assert_equal(TR_const_SPIKE, k.TR_mem_observe(3e-30, 1.0))
+TR_test "SıçramaBekçisi: ölçekten bağımsızdır; çok büyük sonlu değerlerde taşmaz" {
+    TR_var b = TR_SpikeGuard(TR_history_limit: 2, TR_threshold: 6.0)
+    b.TR_observe(1e155, 1.0)
+    b.TR_observe(2e155, 1.0)
+    TR_assert_equal(TR_SPIKE, b.TR_observe(1e308, 1.0))
+    TR_var k = TR_SpikeGuard(TR_history_limit: 4, TR_threshold: 6.0)
+    TR_for i TR_in 0..4 { k.TR_observe(2e-30, 1.0) }
+    TR_assert_equal(TR_SPIKE, k.TR_observe(3e-30, 1.0))
 }
 
-TR_ctx_test "SıçramaBekçisi: geçmiş tamamen sıfırsa karar vermez, kilitlenmez" {
-    TR_kw_var b = TR_type_SpikeGuard(TR_arg_history_limit: 3, TR_arg_threshold: 6.0)
-    TR_kw_for i TR_kw_in 0..3 { b.TR_mem_observe(0.0, 0.0) }
-    TR_fn_assert_equal(TR_const_OK, b.TR_mem_observe(0.000000000001, 0.0))
-    TR_fn_assert_equal(3, b.TR_mem_history_length())
+TR_test "SıçramaBekçisi: geçmiş tamamen sıfırsa karar vermez, kilitlenmez" {
+    TR_var b = TR_SpikeGuard(TR_history_limit: 3, TR_threshold: 6.0)
+    TR_for i TR_in 0..3 { b.TR_observe(0.0, 0.0) }
+    TR_assert_equal(TR_OK, b.TR_observe(0.000000000001, 0.0))
+    TR_assert_equal(3, b.TR_history_length())
 }
 
-TR_ctx_test "SıçramaBekçisi: kesirli pencere ve sonsuz eşik reddedilir" {
-    TR_fn_assert_equal(H6930, TR_fn_error_code(() => TR_type_SpikeGuard(TR_arg_history_limit: 2.5)))
-    TR_fn_assert_equal(H6931, TR_fn_error_code(() => TR_type_SpikeGuard(TR_arg_threshold: TR_fn_float("inf"))))
+TR_test "SıçramaBekçisi: kesirli pencere ve sonsuz eşik reddedilir" {
+    TR_assert_equal("H6930", TR_error_code(() => TR_SpikeGuard(TR_history_limit: 2.5)))
+    TR_assert_equal("H6931", TR_error_code(() => TR_SpikeGuard(TR_threshold: TR_float("inf"))))
 }
 
-// Küçük bir koşu: iki parametreli model, adım_sayısı adım, her adımda ölçü, sonda değerlendirme.
-TR_kw_func koş(klasör, model, adım_sayısı, prova = TR_kw_false) {
-    TR_kw_var koşu = TR_type_Run(klasör, {deneme: 1}, {model: model}, TR_arg_num_steps: adım_sayısı, TR_arg_dry_run: prova)
-    TR_kw_for adım TR_kw_in koşu.TR_mem_resume_step..koşu.TR_mem_last_step {
-        koşu.TR_mem_step_done(adım + 1, {TR_mem_loss: 1.0 / (adım + 1)})
+# Küçük bir koşu: iki parametreli model, adım_sayısı adım, her adımda ölçü, sonda değerlendirme.
+TR_func koş(klasör, model, adım_sayısı, prova = TR_false) {
+    TR_var koşu = TR_Run(klasör, {deneme: 1}, {model: model}, TR_num_steps: adım_sayısı, TR_dry_run: prova)
+    TR_for adım TR_in koşu.TR_resume_step..koşu.TR_last_step {
+        koşu.TR_step_done(adım + 1, {TR_loss: 1.0 / (adım + 1)})
     }
-    koşu.TR_mem_evaluated(koşu.TR_mem_last_step, {doğrulama_kaybı: 0.5})
-    koşu.TR_mem_finish(model)
-    TR_kw_return koşu
+    koşu.TR_evaluated(koşu.TR_last_step, {doğrulama_kaybı: 0.5})
+    koşu.TR_finish(model)
+    TR_return koşu
 }
 
-TR_ctx_test "Koşu: klasöre ayarları, günlüğü, kontrol noktasını ve ağırlıkları yazar; aynı klasör kaldığı adımdan sürer" {
-    TR_kw_var k = TR_fn_temp_dir()
-    TR_kw_var model = {w: TR_fn_tensor([1.0, 2.0], TR_arg_requires_grad: TR_kw_true)}
-    TR_kw_var koşu = koş(k, model, 3)
-    TR_fn_assert_equal(0, koşu.TR_mem_resume_step)
-    TR_fn_assert_equal(2, TR_fn_json_parse(TR_fn_read_file(TR_fn_path(k, "config.json")))["num_params"])
-    TR_kw_var günlük_metni = TR_fn_read_file(TR_fn_path(k, "metrics.jsonl"))
-    TR_fn_assert(günlük_metni.TR_mem_contains("doğrulama_kaybı") TR_kw_and günlük_metni.TR_mem_contains("\"loss\""), "günlük ölçüleri taşımalı (kayıp anahtarı \"loss\"): {günlük_metni}")
-    TR_fn_assert_equal([1.0, 2.0], TR_fn_load_tensors(TR_fn_path(k, "model.trt"))["w"].TR_mem_tolist)
-    TR_fn_assert_equal(3, TR_type_Run(k, {deneme: 1}, {model: model}, TR_arg_num_steps: 3).TR_mem_resume_step)
+TR_test "Koşu: klasöre ayarları, günlüğü, kontrol noktasını ve ağırlıkları yazar; aynı klasör kaldığı adımdan sürer" {
+    TR_var k = TR_temp_dir()
+    TR_var model = {w: TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)}
+    TR_var koşu = koş(k, model, 3)
+    TR_assert_equal(0, koşu.TR_resume_step)
+    TR_assert_equal(2, TR_json_parse(TR_read_file(TR_path(k, "config.json")))["num_params"])
+    TR_var günlük_metni = TR_read_file(TR_path(k, "metrics.jsonl"))
+    TR_assert(günlük_metni.TR_contains("doğrulama_kaybı") TR_and günlük_metni.TR_contains("\"loss\""), "günlük ölçüleri taşımalı (kayıp anahtarı \"loss\"): \(günlük_metni)")
+    TR_assert_equal([1.0, 2.0], TR_load_tensors(TR_path(k, "model.trt"))["w"].TR_tolist)
+    TR_assert_equal(3, TR_Run(k, {deneme: 1}, {model: model}, TR_num_steps: 3).TR_resume_step)
 }
 
-TR_ctx_test "Koşu: prova geçici klasörde en çok PROVA_ADIMI adım sürer ve dosyaları denetler" {
-    TR_kw_var k = TR_fn_temp_dir()
-    TR_kw_var koşu = koş(k, {w: TR_fn_tensor([1.0], TR_arg_requires_grad: TR_kw_true)}, 100, prova: TR_kw_true)
-    TR_fn_assert_equal(TR_const_DRY_RUN_STEPS, koşu.TR_mem_last_step)
-    TR_fn_assert(koşu.TR_mem_folder.TR_mem_absolute != TR_fn_path(k).TR_mem_absolute, "prova verilen klasöre yazmamalı")
-    TR_fn_assert(TR_fn_path(koşu.TR_mem_folder, "model.trt").TR_mem_exists, "provada ağırlıklar yazılmalı")
-    TR_fn_assert(TR_kw_not TR_fn_path(k, "config.json").TR_mem_exists, "prova asıl klasörü kirletmemeli")
+TR_test "Koşu: prova geçici klasörde en çok PROVA_ADIMI adım sürer ve dosyaları denetler" {
+    TR_var k = TR_temp_dir()
+    TR_var koşu = koş(k, {w: TR_tensor([1.0], TR_requires_grad: TR_true)}, 100, prova: TR_true)
+    TR_assert_equal(TR_DRY_RUN_STEPS, koşu.TR_last_step)
+    TR_assert(koşu.TR_folder.TR_absolute != TR_path(k).TR_absolute, "prova verilen klasöre yazmamalı")
+    TR_assert(TR_path(koşu.TR_folder, "model.trt").TR_exists, "provada ağırlıklar yazılmalı")
+    TR_assert(TR_not TR_path(k, "config.json").TR_exists, "prova asıl klasörü kirletmemeli")
 }
 
-TR_ctx_test "Koşu: adım_sayısı pozitif bir Tam olmalıdır" {
-    TR_fn_assert_equal(H6932, TR_fn_error_code(() => TR_type_Run(TR_fn_temp_dir(), {}, {}, TR_arg_num_steps: 0)))
+TR_test "Koşu: adım_sayısı pozitif bir Tam olmalıdır" {
+    TR_assert_equal("H6932", TR_error_code(() => TR_Run(TR_temp_dir(), {}, {}, TR_num_steps: 0)))
 }

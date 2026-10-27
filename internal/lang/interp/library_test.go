@@ -23,14 +23,14 @@ func withLibrary(t *testing.T, f fstest.MapFS) {
 func TestImportIgnoresWorkingDir(t *testing.T) {
 	root := t.TempDir()
 	execution := filepath.Join(root, "scratch")
-	testkit.WritePath(t, filepath.Join(execution, "yardimci.tr"), "değişken kimden = \"çalışma klasörü\"\n")
-	testkit.WritePath(t, filepath.Join(execution, "ozel.tr"), "değişken ozel = \"çalışma klasörü\"\n")
+	testkit.WritePath(t, filepath.Join(execution, "yardimci.tr"), "TR_var kimden = \"çalışma klasörü\"\n")
+	testkit.WritePath(t, filepath.Join(execution, "ozel.tr"), "TR_var ozel = \"çalışma klasörü\"\n")
 	runInDir(t, execution)
 	prog := filepath.Join(root, "program")
 	out, err := runWithModules(t, prog, map[string]string{
-		"yardimci.tr":     "değişken kimden = \"programın yanı\"\n",
-		"alt/modul.tr":    "aktar \"yardimci\"\ndeğişken alt_kimden = kimden\n",
-		"alt/yardimci.tr": "değişken kimden = \"alt modülün yanı\"\n",
+		"yardimci.tr":     "TR_var kimden = \"programın yanı\"\n",
+		"alt/modul.tr":    "TR_import \"yardimci\"\nTR_var alt_kimden = kimden\n",
+		"alt/yardimci.tr": "TR_var kimden = \"alt modülün yanı\"\n",
 		"ana.tr": "aktar \"yardimci\"\nyazdır(kimden)\naktar \"alt/modul\" olarak m\nyazdır(m.alt_kimden)\n" +
 			"dene { aktar \"ozel\" } yakala h { yazdır(h) }\n",
 	})
@@ -52,15 +52,15 @@ func TestImportIgnoresWorkingDir(t *testing.T) {
 // kitaplıkta çözülür; olmayan modülün hatası kitaplıktakileri ve en yakın adı söyler.
 func TestLibraryPrefix(t *testing.T) {
 	withLibrary(t, fstest.MapFS{
-		"katman.tr":       {Data: []byte("aktar \"ortak\"\ndeğişken kaynak = \"kitaplık\" + ek\n")},
-		"ortak.tr":        {Data: []byte("değişken ek = \"!\"\n")},
-		"iyilestirici.tr": {Data: []byte("değişken iy = 1\n")},
-		"katman_test.tr":  {Data: []byte("test \"x\" { }\n")},
+		"katman.tr":       {Data: []byte("TR_import \"ortak\"\nTR_var kaynak = \"kitaplık\" + ek\n")},
+		"ortak.tr":        {Data: []byte("TR_var ek = \"!\"\n")},
+		"iyilestirici.tr": {Data: []byte("TR_var iy = 1\n")},
+		"katman_test.tr":  {Data: []byte("TR_test \"x\" { }\n")},
 	})
 	root := t.TempDir()
 	runInDir(t, root)
 	out, err := runWithModules(t, root, map[string]string{
-		"tr/katman.tr": "değişken kaynak = \"disk\"\n",
+		"tr/katman.tr": "TR_var kaynak = \"disk\"\n",
 		"ana.tr": "aktar \"tr/katman\" olarak k\nyazdır(k.kaynak)\naktar \"./tr/katman\" olarak d\nyazdır(d.kaynak)\n" +
 			"dene { aktar \"tr/iyileştirici\" } yakala h { yazdır(h) }\n" +
 			"dene { aktar \"tr/katman_test\" } yakala h { yazdır(h) }\n" +
@@ -86,10 +86,10 @@ func TestLibraryPrefix(t *testing.T) {
 // Kitaplık modülünün hatası "tr/..." adıyla ve kendi satırıyla yazılır; göreli dosya yolları
 // kitaplığın (diskte olmayan) klasörüne göre aranmaz.
 func TestLibraryModuleError(t *testing.T) {
-	withLibrary(t, fstest.MapFS{"m.tr": {Data: []byte("fonksiyon böl(a) {\n    sonuç a / 0\n}\n")}})
+	withLibrary(t, fstest.MapFS{"m.tr": {Data: []byte("TR_func böl(a) {\n    TR_return a / 0\n}\n")}})
 	root := t.TempDir()
 	runInDir(t, root)
-	_, err := runWithModules(t, root, map[string]string{"ana.tr": "aktar \"tr/m\"\nböl(1)\n"})
+	_, err := runWithModules(t, root, map[string]string{"ana.tr": "TR_import \"tr/m\"\nböl(1)\n"})
 	if err == nil || !strings.Contains(err.Error(), "tr/m.tr, Satır 2: Sıfıra bölme hatası") {
 		t.Fatalf("hata kitaplık modülünün adı ve satırıyla gelmeli: %v", err)
 	}

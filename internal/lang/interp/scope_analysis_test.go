@@ -12,22 +12,22 @@ import (
 // dedektörü olmayan yerde de test her VM'in doğru sonucu verdiğini sınar.
 func TestOneProgramCompiledInParallelVMs(t *testing.T) {
 	const code = `
-		fonksiyon sayaç_yap() {
-			değişken n = 0
-			sonuç fonksiyon() { n += 1; sonuç n }
+		TR_func sayaç_yap() {
+			TR_var n = 0
+			TR_return TR_func() { n += 1; TR_return n }
 		}
-		değişken toplam_ = 0
-		döngü i içinde 1..=20 {
-			değişken kare = i * i
-			eğer kare % 2 == 0 { değişken yarım = kare / 2; toplam_ += yarım } değilse { toplam_ += kare }
+		TR_var toplam_ = 0
+		TR_for i TR_in 1..=20 {
+			TR_var kare = i * i
+			TR_if kare % 2 == 0 { TR_var yarım = kare / 2; toplam_ += yarım } TR_else { toplam_ += kare }
 		}
-		değişken s = sayaç_yap()
-		değişken j = 0
-		iken j < 5 { değişken k = j; s(); j += 1 }
-		değişken kapanışlar = [(fonksiyon() { sonuç x }) döngü x içinde 1..=3]
-		yapı Nokta { x = 0
-			fonksiyon iki_kat() { değişken d = kendi.x * 2; sonuç d } }
-		sonuç [toplam_, s(), kapanışlar[2](), Nokta(4).iki_kat()]`
+		TR_var s = sayaç_yap()
+		TR_var j = 0
+		TR_for j < 5 { TR_var k = j; s(); j += 1 }
+		TR_var kapanışlar = [(TR_func() { TR_return x }) TR_for x TR_in 1..=3]
+		TR_struct Nokta { x = 0
+			TR_func iki_kat() { TR_var d = TR_self.x * 2; TR_return d } }
+		TR_return [toplam_, s(), kapanışlar[2](), Nokta(4).iki_kat()]`
 	prog := mustParseProgram(t, code)
 	const want = "[2100, 6, 3, 8]"
 	const vms = 8

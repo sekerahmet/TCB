@@ -57,14 +57,14 @@ func TestEnvironmentNamesLinkToTheirCodes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	mustEdge(t, g, "go:func:example.com/audit/app.Sync", "name:TR_env_GPU_SYNC", edgeUsesEnv, extracted)
-	mustEdge(t, g, "go:func:example.com/audit/app.Alias", "name:TR_env_GPU_SYNC", edgeUsesEnv, extracted)    // İngilizce ad
-	mustEdge(t, g, "go:func:example.com/audit/app.Identity", "name:TR_env_GPU_SYNC", edgeUsesEnv, extracted) // kimlik adı
-	mustEdge(t, g, "go:func:example.com/audit/app.Avx", "name:TR_env_CPU_AVX2", edgeUsesEnv, extracted)      // sabit ad
-	mustEdge(t, g, "go:func:example.com/audit/app.hook", "name:TR_env_CPU_AVX2", edgeUsesEnv, extracted)     // testing.T.Setenv
-	mustEdge(t, g, "msg:H4009", "name:TR_env_GPU_SYNC", edgeUsesName, extracted)
-	if e := edge(g, "msg:H4009", "name:TR_env_GPU_SYNC", edgeUsesName); e.Count != 2 || e.File != "internal/lang/messages/tr.json" {
-		t.Errorf("both languages' templates name TR_env_GPU_SYNC, first at tr.json: %+v", e)
+	mustEdge(t, g, "go:func:example.com/audit/app.Sync", "name:TR_GPU_SYNC", edgeUsesEnv, extracted)
+	mustEdge(t, g, "go:func:example.com/audit/app.Alias", "name:TR_GPU_SYNC", edgeUsesEnv, extracted)    // İngilizce ad
+	mustEdge(t, g, "go:func:example.com/audit/app.Identity", "name:TR_GPU_SYNC", edgeUsesEnv, extracted) // kimlik adı
+	mustEdge(t, g, "go:func:example.com/audit/app.Avx", "name:TR_CPU_AVX2", edgeUsesEnv, extracted)      // sabit ad
+	mustEdge(t, g, "go:func:example.com/audit/app.hook", "name:TR_CPU_AVX2", edgeUsesEnv, extracted)     // testing.T.Setenv
+	mustEdge(t, g, "msg:H4009", "name:TR_GPU_SYNC", edgeUsesName, extracted)
+	if e := edge(g, "msg:H4009", "name:TR_GPU_SYNC", edgeUsesName); e.Count != 2 || e.File != "internal/lang/messages/tr.json" {
+		t.Errorf("both languages\" templates name TR_env_GPU_SYNC, first at tr.json: %+v", e)
 	}
 	for _, e := range g.Edges {
 		if e.Kind == edgeUsesEnv && e.From == "go:func:example.com/audit/app.Other" {
@@ -78,7 +78,7 @@ func TestEnvironmentNamesLinkToTheirCodes(t *testing.T) {
 	if code := run([]string{"build", "--root", root}, &out, &errb); code != exitOK {
 		t.Fatalf("build: %d %s", code, errb.String())
 	}
-	for _, query := range []string{"TR_env_GPU_SYNC", "TR_GPU_SYNC"} {
+	for _, query := range []string{"TR_GPU_SYNC", "TR_GPU_SYNC"} {
 		out.Reset()
 		if code := run([]string{"who-uses", query, "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
 			t.Fatalf("who-uses %s: %d %s", query, code, errb.String())
@@ -189,12 +189,12 @@ func TestTestsThatSetAnEnvironmentVariableTestItsCode(t *testing.T) {
 		t.Fatal(err)
 	}
 	for test, code := range map[string]string{
-		"app.TestSetenv": "TR_env_CPU_AVX2", "app.TestChildEnv": "TR_env_LANG", "app.TestConstEnv": "TR_env_LANG", "app.TestPrefixEnv": "TR_env_GPU_SYNC",
-		"kit.TestWithLang": "TR_env_LANG", "other.TestSelectorConst": "TR_env_GPU_SYNC",
+		"app.TestSetenv": "TR_CPU_AVX2", "app.TestChildEnv": "TR_LANG", "app.TestConstEnv": "TR_LANG", "app.TestPrefixEnv": "TR_GPU_SYNC",
+		"kit.TestWithLang": "TR_LANG", "other.TestSelectorConst": "TR_GPU_SYNC",
 	} {
 		mustEdge(t, g, "go:func:example.com/audit/"+test, "name:"+code, edgeTests, extracted)
 	}
-	if e := edge(g, "go:func:example.com/audit/kit.TestServe", "name:TR_env_CPU_AVX2", edgeTests); e != nil {
+	if e := edge(g, "go:func:example.com/audit/kit.TestServe", "name:TR_CPU_AVX2", edgeTests); e != nil {
 		t.Errorf("Serve is production code (Main calls it); its child's variable is not TestServe's: %+v", e)
 	}
 	for _, e := range g.Edges {

@@ -1,114 +1,114 @@
-//! tr kodlu 3 dil=tr
-// 35 — Transformer: elle yazılmış küçük bir transformer.
-// Ne öğretir: gömme ve konum gömmesi, çok bakışlı nedensel dikkat (şekillendir ve
-// birleşik dikkat(...)), katman normu, gelu ile ileri besleme, çapraz_entropi kaybı.
-// Önceki örnekten: tensörler ve türev (23–28), çok katmanlı ağ (30), katmanlar (31): katman_normu, gelu, çapraz_entropi.
-// Görev: 0..V-1 arasında döngüsel ilerleyen dizilerde bir sonraki parçayı tahmin etmek.
-// Çalıştırma (proje kökünden): tr examples/tr/35_transformer.tr
+# TR 4
+# 35 — Transformer: elle yazılmış küçük bir transformer.
+# Ne öğretir: gömme ve konum gömmesi, çok bakışlı nedensel dikkat (şekillendir ve
+# birleşik dikkat(...)), katman normu, gelu ile ileri besleme, çapraz_entropi kaybı.
+# Önceki örnekten: tensörler ve türev (23–28), çok katmanlı ağ (30), katmanlar (31): katman_normu, gelu, çapraz_entropi.
+# Görev: 0..V-1 arasında döngüsel ilerleyen dizilerde bir sonraki parçayı tahmin etmek.
+# Çalıştırma (proje kökünden): tr examples/tr/35_transformer.tr
 
-TR_kw_var V = 8 // sözlük boyutu
-TR_kw_var T = 8 // bağlam uzunluğu
-TR_kw_var D = 16 // gizli boyut
-TR_kw_var H = 2 // dikkat bakışı (İngilizce head)
-TR_kw_var Dh = 8 // bakış boyutu (D / H)
-TR_kw_var B = 4 // toplu iş boyutu
+TR_var V = 8 # sözlük boyutu
+TR_var T = 8 # bağlam uzunluğu
+TR_var D = 16 # gizli boyut
+TR_var H = 2 # dikkat bakışı (İngilizce head)
+TR_var Dh = 8 # bakış boyutu (D / H)
+TR_var B = 4 # toplu iş boyutu
 
-// Öğrenilen parametre: küçük rastgele değerlerle başlar, gradyanı izlenir.
-TR_kw_var parametre_tohumu = 1
-TR_kw_func parametre(şekil, ölçek) {
-    parametre_tohumu += 1 // her parametreye farklı ama sabit bir tohum: sonuç tekrar üretilebilir
-    TR_kw_return TR_fn_tensor(TR_fn_no_grad(TR_fn_randn(şekil, TR_arg_seed: parametre_tohumu) * ölçek), TR_arg_requires_grad: TR_kw_true)
+# Öğrenilen parametre: küçük rastgele değerlerle başlar, gradyanı izlenir.
+TR_var parametre_tohumu = 1
+TR_func parametre(şekil, ölçek) {
+    parametre_tohumu += 1 # her parametreye farklı ama sabit bir tohum: sonuç tekrar üretilebilir
+    TR_return TR_tensor(TR_no_grad(TR_randn(şekil, TR_seed: parametre_tohumu) * ölçek), TR_requires_grad: TR_true)
 }
 
-TR_kw_var E = parametre([V, D], 0.1) // parça gömme tablosu
-TR_kw_var P = parametre([T, D], 0.1) // konum gömme tablosu
-TR_kw_var Wq = parametre([D, D], 0.2)
-TR_kw_var Wk = parametre([D, D], 0.2)
-TR_kw_var Wv = parametre([D, D], 0.2)
-TR_kw_var Wo = parametre([D, D], 0.2)
-TR_kw_var W1 = parametre([D, 4 * D], 0.2)
-TR_kw_var W2 = parametre([4 * D, D], 0.1)
-TR_kw_var g1 = TR_fn_tensor(TR_fn_ones([D]), TR_arg_requires_grad: TR_kw_true)
-TR_kw_var s1 = TR_fn_tensor(TR_fn_zeros([D]), TR_arg_requires_grad: TR_kw_true)
-TR_kw_var g2 = TR_fn_tensor(TR_fn_ones([D]), TR_arg_requires_grad: TR_kw_true)
-TR_kw_var s2 = TR_fn_tensor(TR_fn_zeros([D]), TR_arg_requires_grad: TR_kw_true)
-TR_kw_var Wu = parametre([D, V], 0.2)
+TR_var E = parametre([V, D], 0.1) # parça gömme tablosu
+TR_var P = parametre([T, D], 0.1) # konum gömme tablosu
+TR_var Wq = parametre([D, D], 0.2)
+TR_var Wk = parametre([D, D], 0.2)
+TR_var Wv = parametre([D, D], 0.2)
+TR_var Wo = parametre([D, D], 0.2)
+TR_var W1 = parametre([D, 4 * D], 0.2)
+TR_var W2 = parametre([4 * D, D], 0.1)
+TR_var g1 = TR_tensor(TR_ones([D]), TR_requires_grad: TR_true)
+TR_var s1 = TR_tensor(TR_zeros([D]), TR_requires_grad: TR_true)
+TR_var g2 = TR_tensor(TR_ones([D]), TR_requires_grad: TR_true)
+TR_var s2 = TR_tensor(TR_zeros([D]), TR_requires_grad: TR_true)
+TR_var Wu = parametre([D, V], 0.2)
 
-TR_kw_var konumlar = TR_fn_range(T)
+TR_var konumlar = TR_range(T)
 
-TR_kw_func başlara_ayır(x) {
-    // [B, T, D] -> [B, T, H, Dh]: dikkat bu düzeni okur, eksen sıralamaya gerek yok
-    TR_kw_return x.TR_mem_reshape([B, T, H, Dh])
+TR_func başlara_ayır(x) {
+    # [B, T, D] -> [B, T, H, Dh]: dikkat bu düzeni okur, eksen sıralamaya gerek yok
+    TR_return x.TR_reshape([B, T, H, Dh])
 }
 
-TR_kw_func ileri(girdiler) {
-    TR_kw_var x = TR_fn_embedding(E, girdiler) + TR_fn_embedding(P, konumlar) // [B, T, D]
-    TR_kw_var q = başlara_ayır(x @ Wq)
-    TR_kw_var k = başlara_ayır(x @ Wk)
-    TR_kw_var v = başlara_ayır(x @ Wv)
-    // Nedensel dikkat: her konum yalnızca kendisine ve öncekilere bakar. Elle yazılmış
-    // karşılığı softmax((q @ k.devrik()) / karekök(Dh) + maske, eksen: -1) @ v'dir (maske
-    // gelecekteki konumlarda çok büyük bir eksi sayı); dikkat(...) aynı sonucu T×T puan
-    // matrisini tutmadan, tek adımda hesaplar.
-    TR_kw_var y = TR_fn_attention(q, k, v, TR_arg_causal: TR_kw_true).TR_mem_reshape([B, T, D])
-    TR_kw_var h = TR_fn_layer_norm(x + y @ Wo, g1, s1)
-    TR_kw_var m = TR_fn_gelu(h @ W1) @ W2
-    TR_kw_var çıkış = TR_fn_layer_norm(h + m, g2, s2)
-    TR_kw_return çıkış @ Wu // [B, T, V]
+TR_func ileri(girdiler) {
+    TR_var x = TR_embedding(E, girdiler) + TR_embedding(P, konumlar) # [B, T, D]
+    TR_var q = başlara_ayır(x @ Wq)
+    TR_var k = başlara_ayır(x @ Wk)
+    TR_var v = başlara_ayır(x @ Wv)
+    # Nedensel dikkat: her konum yalnızca kendisine ve öncekilere bakar. Elle yazılmış
+    # karşılığı softmax((q @ k.devrik()) / karekök(Dh) + maske, eksen: -1) @ v'dir (maske
+    # gelecekteki konumlarda çok büyük bir eksi sayı); dikkat(...) aynı sonucu T×T puan
+    # matrisini tutmadan, tek adımda hesaplar.
+    TR_var y = TR_attention(q, k, v, TR_causal: TR_true).TR_reshape([B, T, D])
+    TR_var h = TR_layer_norm(x + y @ Wo, g1, s1)
+    TR_var m = TR_gelu(h @ W1) @ W2
+    TR_var çıkış = TR_layer_norm(h + m, g2, s2)
+    TR_return çıkış @ Wu # [B, T, V]
 }
 
-// Basit, tekrar üretilebilir sözde rastgele sayılar
-TR_kw_var tohum = 12345
-TR_kw_func rastgele_tam(n) {
+# Basit, tekrar üretilebilir sözde rastgele sayılar
+TR_var tohum = 12345
+TR_func rastgele_tam(n) {
     tohum = (tohum * 1103515245 + 12345) % 2147483648
-    TR_kw_return tohum % n
+    TR_return tohum % n
 }
 
-TR_kw_func toplu_iş_üret() {
-    TR_kw_var girdiler = []
-    TR_kw_var hedefler = []
-    TR_kw_for b TR_kw_in 0..B {
-        TR_kw_var baş = rastgele_tam(V)
-        TR_kw_var g = []
-        TR_kw_for t TR_kw_in 0..T {
-            g.TR_mem_append((baş + t) % V)
-            hedefler.TR_mem_append((baş + t + 1) % V)
+TR_func toplu_iş_üret() {
+    TR_var girdiler = []
+    TR_var hedefler = []
+    TR_for b TR_in 0..B {
+        TR_var baş = rastgele_tam(V)
+        TR_var g = []
+        TR_for t TR_in 0..T {
+            g.TR_append((baş + t) % V)
+            hedefler.TR_append((baş + t + 1) % V)
         }
-        girdiler.TR_mem_append(g)
+        girdiler.TR_append(g)
     }
-    TR_kw_return [girdiler, hedefler]
+    TR_return [girdiler, hedefler]
 }
 
-TR_kw_var ağırlıklar = [E, P, Wq, Wk, Wv, Wo, W1, W2, g1, s1, g2, s2, Wu]
-TR_kw_var iyileştirici = TR_fn_AdamW(ağırlıklar, TR_arg_lr: 0.01, TR_arg_weight_decay: 0.0)
+TR_var ağırlıklar = [E, P, Wq, Wk, Wv, Wo, W1, W2, g1, s1, g2, s2, Wu]
+TR_var iyileştirici = TR_AdamW(ağırlıklar, TR_lr: 0.01, TR_weight_decay: 0.0)
 
-TR_kw_for adım TR_kw_in 0..300 {
-    TR_kw_var veri = toplu_iş_üret()
-    iyileştirici.TR_mem_zero_grad()
-    TR_kw_var kayıp = TR_fn_cross_entropy(ileri(veri[0]), veri[1])
-    TR_fn_backward(kayıp)
-    iyileştirici.TR_mem_step()
-    TR_kw_if adım % 50 == 0 {
-        TR_fn_print("adım {adım}: kayıp = {TR_fn_round(kayıp.TR_mem_tolist, 4)}")
+TR_for adım TR_in 0..300 {
+    TR_var veri = toplu_iş_üret()
+    iyileştirici.TR_zero_grad()
+    TR_var kayıp = TR_cross_entropy(ileri(veri[0]), veri[1])
+    TR_backward(kayıp)
+    iyileştirici.TR_step()
+    TR_if adım % 50 == 0 {
+        TR_print("adım \(adım): kayıp = \(TR_round(kayıp.TR_tolist, 4))")
     }
 }
 
-// Öğrendi mi? Bir diziyi verip tahminleri yazdır.
-TR_kw_var deneme = toplu_iş_üret()
-TR_kw_var tahmin = TR_fn_no_grad { ileri(deneme[0]) }
-TR_kw_var olasılıklar = tahmin[0] // ilk dizinin [T, V] çıktısı
-TR_kw_var tahminler = TR_fn_argmax(olasılıklar, TR_arg_dim: -1).TR_mem_tolist // her konumda en büyük olasılığın indeksi
-TR_fn_print("girdi  : {deneme[0][0]}")
-TR_fn_print("tahmin : {tahminler}")
+# Öğrendi mi? Bir diziyi verip tahminleri yazdır.
+TR_var deneme = toplu_iş_üret()
+TR_var tahmin = TR_no_grad { ileri(deneme[0]) }
+TR_var olasılıklar = tahmin[0] # ilk dizinin [T, V] çıktısı
+TR_var tahminler = TR_argmax(olasılıklar, TR_dim: -1).TR_tolist # her konumda en büyük olasılığın indeksi
+TR_print("girdi  : \(deneme[0][0])")
+TR_print("tahmin : \(tahminler)")
 
-// dikkat'in iki ek ayarı: pencere: her sorguyu son w konumla sınırlar (yerel dikkat);
-// maske: 0/1 tensörüyle hangi konumlara bakılacağını siz seçersiniz (nedensel: yanlış ile birlikte).
-TR_kw_var sorgu = TR_fn_randn([6, 4], TR_arg_seed: 2)
-TR_fn_print("pencere:", TR_fn_attention(sorgu, sorgu, sorgu, TR_arg_window: 2).TR_mem_shape)
-TR_kw_var sorgu2 = TR_fn_randn([3, 4], TR_arg_seed: 1)
-TR_kw_var bakılacaklar = TR_fn_tensor([[1, 1, 0], [1, 1, 0], [1, 1, 1]])
-TR_fn_print("maske:", TR_fn_attention(sorgu2, sorgu2, sorgu2, TR_arg_causal: TR_kw_false, TR_arg_mask: bakılacaklar).TR_mem_shape)
+# dikkat'in iki ek ayarı: pencere: her sorguyu son w konumla sınırlar (yerel dikkat);
+# maske: 0/1 tensörüyle hangi konumlara bakılacağını siz seçersiniz (nedensel: yanlış ile birlikte).
+TR_var sorgu = TR_randn([6, 4], TR_seed: 2)
+TR_print("pencere:", TR_attention(sorgu, sorgu, sorgu, TR_window: 2).TR_shape)
+TR_var sorgu2 = TR_randn([3, 4], TR_seed: 1)
+TR_var bakılacaklar = TR_tensor([[1, 1, 0], [1, 1, 0], [1, 1, 1]])
+TR_print("maske:", TR_attention(sorgu2, sorgu2, sorgu2, TR_causal: TR_false, TR_mask: bakılacaklar).TR_shape)
 
-// --- Kendin dene ---
-// 1. D'yi 16'dan 32'ye çıkar (Dh'yi de güncelle): kayıp daha hızlı mı düşüyor?
-// 2. Eğitim adımını 300'den 60'a indir ve son tahminlerin bozulduğunu gör.
+# --- Kendin dene ---
+# 1. D'yi 16'dan 32'ye çıkar (Dh'yi de güncelle): kayıp daha hızlı mı düşüyor?
+# 2. Eğitim adımını 300'den 60'a indir ve son tahminlerin bozulduğunu gör.

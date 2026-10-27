@@ -48,14 +48,14 @@ func TestTestCommandLeavesNoTempDir(t *testing.T) {
 // geçici_klasör()'ün klasörleri içlerindeki açık satır okuyucusuyla birlikte silinir.
 func TestTempDirRemovedWhenProgramEnds(t *testing.T) {
 	dir := t.TempDir()
-	shared := "değişken k = geçici_klasör()\ndosya_yaz(yol(k, \"a.txt\"), \"1\\n2\")\ndeğişken o = dosya_satırları(yol(k, \"a.txt\"))\no.sonraki()\nyazdır(k.var_mı)\n"
+	shared := "TR_var k = TR_temp_dir()\nTR_write_file(TR_path(k, \"a.txt\"), \"1\\n2\")\nTR_var o = TR_read_lines(TR_path(k, \"a.txt\"))\no.TR_next()\nTR_print(k.TR_exists)\n"
 	states := []struct {
 		ad, last, argument string
 		code               int
 	}{
 		{"başarı", "", "", 0},
-		{"çalışma hatası", "yazdır(1 / 0)\n", "", 1},
-		{"komut satırı çıkışı", "komut_satırı({adım: 1})\n", "--bilinmeyen", 2},
+		{"çalışma hatası", "TR_print(1 / 0)\n", "", 1},
+		{"komut satırı çıkışı", "TR_command_line({TR_step: 1})\n", "--bilinmeyen", 2},
 	}
 	for _, d := range states {
 		temp, env := tempEnv(t)

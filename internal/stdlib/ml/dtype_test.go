@@ -17,17 +17,17 @@ import (
 
 // Tensör başına tür: oluşturucular, .tür, .türe ve yazdırma.
 func TestDTypeChoice(t *testing.T) {
-	out := mustRun(t, `değişken a = tensör([[1.001, 2], [3, 4]], tür: "bf16")
-yazdır(a.tür, a.değer)
-yazdır(a)
-yazdır(tensör(2.5, tür: "fp16"), tensör(2.5))
-yazdır(sıfırlar([2], tür: "fp16").tür, birler([2], tür: "bf16").tür, rastgele_normal([2], tohum: 1, tür: "bf16").tür)
-yazdır(tensör(a).tür, a.türe("float32").tür, (a @ a).tür, (a + tensör([1.0, 1.0])).tür)
-değişken w = tensör([1.0, 3.0], türev_izle: doğru)
-değişken h = w.türe("bf16")
-yazdır(h.tür, h)
-geri_yayılım(toplam(h * h))
-yazdır(w.gradyan.değer, w.gradyan.tür)`)
+	out := mustRun(t, `TR_var a = TR_tensor([[1.001, 2], [3, 4]], TR_dtype: "bf16")
+TR_print(a.TR_dtype, a.TR_tolist)
+TR_print(a)
+TR_print(TR_tensor(2.5, TR_dtype: "fp16"), TR_tensor(2.5))
+TR_print(TR_zeros([2], TR_dtype: "fp16").TR_dtype, TR_ones([2], TR_dtype: "bf16").TR_dtype, TR_randn([2], TR_seed: 1, TR_dtype: "bf16").TR_dtype)
+TR_print(TR_tensor(a).TR_dtype, a.TR_to_dtype("float32").TR_dtype, (a @ a).TR_dtype, (a + TR_tensor([1.0, 1.0])).TR_dtype)
+TR_var w = TR_tensor([1.0, 3.0], TR_requires_grad: TR_true)
+TR_var h = w.TR_to_dtype("bf16")
+TR_print(h.TR_dtype, h)
+TR_backward(TR_sum(h * h))
+TR_print(w.TR_grad.TR_tolist, w.TR_grad.TR_dtype)`)
 	want := "bf16 [[1.0, 2.0], [3.0, 4.0]]\n" +
 		"Tensör[2×2] bf16 [\n  [1.0000, 2.0000],\n  [3.0000, 4.0000]\n]\n" +
 		"Tensör(2.5000) fp16 Tensör(2.5000)\n" +
@@ -49,15 +49,15 @@ yazdır(w.gradyan.değer, w.gradyan.tür)`)
 		code string
 		want messages.Code
 	}{
-		{`tensör([1], tür: "bfloat16")`, messages.H6811},
-		{`tensör([1], tür: "bf61")`, messages.H6811},
-		{`birler([1], tür: "half")`, messages.H6811},
-		{`sıfırlar([1], tür: "float64")`, messages.H6811},
-		{`tensör([1.0]).türe("fp32")`, messages.H6811},
-		{`tensör([1.0]).türe()`, messages.H6806},
-		{`tensör([1], tür: yok)`, messages.H6803},
-		{`tensör([1], dtype: "bf16")`, messages.H7901},
-		{`tensör([1.0]).tür_`, messages.H7903},
+		{`TR_tensor([1], TR_dtype: "bfloat16")`, messages.H6811},
+		{`TR_tensor([1], TR_dtype: "bf61")`, messages.H6811},
+		{`TR_ones([1], TR_dtype: "half")`, messages.H6811},
+		{`TR_zeros([1], TR_dtype: "float64")`, messages.H6811},
+		{`TR_tensor([1.0]).TR_to_dtype("fp32")`, messages.H6811},
+		{`TR_tensor([1.0]).TR_to_dtype()`, messages.H6806},
+		{`TR_tensor([1], TR_dtype: TR_none)`, messages.H6803},
+		{`TR_tensor([1], dtype: "bf16")`, messages.H7901},
+		{`TR_tensor([1.0]).tür_`, messages.H7903},
 	} {
 		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
 			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.want)
@@ -67,58 +67,58 @@ yazdır(w.gradyan.değer, w.gradyan.tür)`)
 
 // karışık_hassasiyet: blok değeri, iç içe bloklar, hatada geri dönüş ve geri yayılım.
 func TestMixedPrecisionBlock(t *testing.T) {
-	out := mustRun(t, `değişken x = tensör([[1.001]])
-değişken y = tensör([[1.0]])
-değişken r = karışık_hassasiyet("bf16") {
-    yazdır((x @ y).değer, (x @ y).tür)
-    karışık_hassasiyet("fp16") { yazdır((x @ y).değer) }
-    karışık_hassasiyet("float32") { yazdır((x @ y).değer) }
-    yazdır(([1.001] @ y).değer)
+	out := mustRun(t, `TR_var x = TR_tensor([[1.001]])
+TR_var y = TR_tensor([[1.0]])
+TR_var r = TR_mixed_precision("bf16") {
+    TR_print((x @ y).TR_tolist, (x @ y).TR_dtype)
+    TR_mixed_precision("fp16") { TR_print((x @ y).TR_tolist) }
+    TR_mixed_precision("float32") { TR_print((x @ y).TR_tolist) }
+    TR_print(([1.001] @ y).TR_tolist)
     (x @ y) * 3
 }
-yazdır(r.değer, (x @ y).değer)
-dene { karışık_hassasiyet("bf16") { fırlat "dur" } } yakala h { yazdır(h) }
-yazdır((x @ y).değer)
-yazdır(karışık_hassasiyet("bf16") { 5 }, karışık_hassasiyet("bf16") {})`)
+TR_print(r.TR_tolist, (x @ y).TR_tolist)
+TR_try { TR_mixed_precision("bf16") { TR_throw "dur" } } TR_catch h { TR_print(h) }
+TR_print((x @ y).TR_tolist)
+TR_print(TR_mixed_precision("bf16") { 5 }, TR_mixed_precision("bf16") {})`)
 	want := "[[1.0]] bf16\n[[1.0009766]]\n[[1.001]]\n[1.0]\n[[3.0]] [[1.001]]\ndur\n[[1.001]]\n5 yok\n" // yakalanan fırlat öneksiz (8.2)
 	if out != want {
 		t.Fatalf("karışık_hassasiyet:\n%q\nbeklenen:\n%q", out, want)
 	}
 	expectCodes(t, []codeCase{
-		{`karışık_hassasiyet("bf16")`, messages.H6807},
-		{`karışık_hassasiyet("bf17") { 1 }`, messages.H6811},
-		{`karışık_hassasiyet("bf16", 3)`, messages.H6809},
-		{`karışık_hassasiyet() { 1 }`, messages.H6808},
+		{`TR_mixed_precision("bf16")`, messages.H6807},
+		{`TR_mixed_precision("bf17") { 1 }`, messages.H6811},
+		{`TR_mixed_precision("bf16", 3)`, messages.H6809},
+		{`TR_mixed_precision() { 1 }`, messages.H6808},
 	})
 }
 
 // Blok içindeki gradyanlar float32 gradyanlarına yakındır; ağırlıklar float32 kalır.
 func TestMixedPrecisionGradient(t *testing.T) {
-	out := mustRun(t, `fonksiyon hesap(karışık) {
-    değişken x = rastgele_normal([16, 32], tohum: 1)
-    değişken w = tensör(rastgele_normal([32, 8], tohum: 2) * 0.2, türev_izle: doğru)
-    değişken g = tensör(birler([8]), türev_izle: doğru)
-    fonksiyon ileri() {
-        değişken h = katman_normu(gelu(x @ w), g)
-        sonuç ortalama(log_softmax(h, eksen: -1) * -1)
+	out := mustRun(t, `TR_func hesap(karışık) {
+    TR_var x = TR_randn([16, 32], TR_seed: 1)
+    TR_var w = TR_tensor(TR_randn([32, 8], TR_seed: 2) * 0.2, TR_requires_grad: TR_true)
+    TR_var g = TR_tensor(TR_ones([8]), TR_requires_grad: TR_true)
+    TR_func ileri() {
+        TR_var h = TR_layer_norm(TR_gelu(x @ w), g)
+        TR_return TR_mean(TR_log_softmax(h, TR_dim: -1) * -1)
     }
-    değişken k = yok
-    eğer karışık { k = karışık_hassasiyet("bf16") { ileri() } } değilse { k = ileri() }
-    geri_yayılım(k)
-    sonuç [k.değer, w.gradyan.değer, g.gradyan.değer, w.tür, k.tür]
+    TR_var k = TR_none
+    TR_if karışık { k = TR_mixed_precision("bf16") { ileri() } } TR_else { k = ileri() }
+    TR_backward(k)
+    TR_return [k.TR_tolist, w.TR_grad.TR_tolist, g.TR_grad.TR_tolist, w.TR_dtype, k.TR_dtype]
 }
-değişken a = hesap(yanlış)
-değişken b = hesap(doğru)
-yazdır(a[3], b[3], b[4])
-değişken en = 0.0
-değişken ölçek = 0.0
-döngü i içinde 0..32 {
-    döngü j içinde 0..8 {
-        en = max(en, mutlak(a[1][i][j] - b[1][i][j]))
-        ölçek = max(ölçek, mutlak(a[1][i][j]))
+TR_var a = hesap(TR_false)
+TR_var b = hesap(TR_true)
+TR_print(a[3], b[3], b[4])
+TR_var en = 0.0
+TR_var ölçek = 0.0
+TR_for i TR_in 0..32 {
+    TR_for j TR_in 0..8 {
+        en = TR_max(en, TR_abs(a[1][i][j] - b[1][i][j]))
+        ölçek = TR_max(ölçek, TR_abs(a[1][i][j]))
     }
 }
-yazdır(mutlak(a[0] - b[0]) < 0.01, en < 0.05 * ölçek)`)
+TR_print(TR_abs(a[0] - b[0]) < 0.01, en < 0.05 * ölçek)`)
 	if out != "float32 float32 float32\ndoğru doğru\n" {
 		t.Fatalf("karışık hassasiyet gradyanı:\n%s", out)
 	}
@@ -127,26 +127,26 @@ yazdır(mutlak(a[0] - b[0]) < 0.01, en < 0.05 * ölçek)`)
 // Karışık hassasiyet durumu göreve bağlıdır: blok GIL'i bırakan bir çağrıdayken (bekle)
 // çalışan başka görev bloktan etkilenmez; görev beklemeden sonra kendi türünü görür.
 func TestMixedPrecisionTaskIsolation(t *testing.T) {
-	out := mustRun(t, `değişken x = tensör([[1.001]])
-değişken y = tensör([[1.0]])
-değişken görev = []
-değişken başla = []
-eşzamanlı {
-    karışık_hassasiyet("bf16") {
-        görev.ekle((x @ y).değer[0][0])
-        bekle(0.3)
-        görev.ekle((x @ y).değer[0][0])
+	out := mustRun(t, `TR_var x = TR_tensor([[1.001]])
+TR_var y = TR_tensor([[1.0]])
+TR_var görev = []
+TR_var başla = []
+TR_async {
+    TR_mixed_precision("bf16") {
+        görev.TR_append((x @ y).TR_tolist[0][0])
+        TR_sleep(0.3)
+        görev.TR_append((x @ y).TR_tolist[0][0])
     }
 }
-eşzamanlı {
-    // Bu görev bloğun dışında: float32.
-    döngü görev.uzunluk == 0 { bekle(0.01) }
-    başla.ekle((x @ y).değer[0][0])
+TR_async {
+    # Bu görev bloğun dışında: float32.
+    TR_for görev.TR_length == 0 { TR_sleep(0.01) }
+    başla.TR_append((x @ y).TR_tolist[0][0])
 }
-döngü görev.uzunluk == 0 { bekle(0.01) }
-değişken ana = [(x @ y).değer[0][0], karışık_hassasiyet("fp16") { bekle(0.05); (x @ y).değer[0][0] }]
-bekle_hepsi()
-yazdır(görev, başla, ana, (x @ y).değer[0][0])`)
+TR_for görev.TR_length == 0 { TR_sleep(0.01) }
+TR_var ana = [(x @ y).TR_tolist[0][0], TR_mixed_precision("fp16") { TR_sleep(0.05); (x @ y).TR_tolist[0][0] }]
+TR_wait_all()
+TR_print(görev, başla, ana, (x @ y).TR_tolist[0][0])`)
 	if out != "[1.0, 1.0] [1.001] [1.001, 1.0009766] 1.001\n" {
 		t.Fatalf("görev izolasyonu:\n%s", out)
 	}
@@ -234,22 +234,22 @@ func writeClipped(t *testing.T, dir string, data []byte, n int) string {
 
 // İyileştiricilerin ana_kopya seçeneği SetMasterWeights'e bağlanır.
 func TestOptimizerMasterCopy(t *testing.T) {
-	out := mustRun(t, `fonksiyon eğit(ad, ana) {
-    değişken p = tensör([1.0], tür: "bf16", türev_izle: doğru)
-    değişken o = yok
-    eğer ad == "SGD" { o = SGD([p], öğrenme_oranı: 0.001, ana_kopya: ana) } değilse { o = AdamW([p], öğrenme_oranı: 0.001, ağırlık_çürümesi: 0.0, ana_kopya: ana) }
-    döngü i içinde 0..20 {
-        o.sıfırla()
-        geri_yayılım(toplam(p))
-        o.adım()
+	out := mustRun(t, `TR_func eğit(ad, ana) {
+    TR_var p = TR_tensor([1.0], TR_dtype: "bf16", TR_requires_grad: TR_true)
+    TR_var o = TR_none
+    TR_if ad == "SGD" { o = TR_SGD([p], TR_lr: 0.001, TR_master_weights: ana) } TR_else { o = TR_AdamW([p], TR_lr: 0.001, TR_weight_decay: 0.0, TR_master_weights: ana) }
+    TR_for i TR_in 0..20 {
+        o.TR_zero_grad()
+        TR_backward(TR_sum(p))
+        o.TR_step()
     }
-    sonuç p.değer[0]
+    TR_return p.TR_tolist[0]
 }
-yazdır(eğit("SGD", yanlış), eğit("AdamW", yanlış), eğit("SGD", doğru) < 0.99, eğit("AdamW", doğru) < 0.99)`)
+TR_print(eğit("SGD", TR_false), eğit("AdamW", TR_false), eğit("SGD", TR_true) < 0.99, eğit("AdamW", TR_true) < 0.99)`)
 	if out != "1.0 1.0 doğru doğru\n" {
 		t.Fatalf("ana_kopya: %q", out)
 	}
-	if _, err := run(t, `AdamW([tensör([1.0], türev_izle: doğru)], ana_kopya: "evet")`); err == nil || !messages.Has(err, messages.H7905) {
+	if _, err := run(t, `TR_AdamW([TR_tensor([1.0], TR_requires_grad: TR_true)], TR_master_weights: "evet")`); err == nil || !messages.Has(err, messages.H7905) {
 		t.Errorf("ana_kopya türü: %v", err)
 	}
 }

@@ -33,10 +33,10 @@ func mustParseProgram(tb testing.TB, code string) *ast.Program {
 
 func TestCoreLanguageAndMultiAssign(t *testing.T) {
 	code := `
-		değişken a, b = 10, 20
+		TR_var a, b = 10, 20
 		a, b = b, a
-		değişken kareler = [x * x döngü x içinde 1..=5 eğer x % 2 == 1]
-		sonuç [a, b, toplam(kareler)]
+		TR_var kareler = [x * x TR_for x TR_in 1..=5 TR_if x % 2 == 1]
+		TR_return [a, b, TR_sum(kareler)]
 	`
 	val, err := runTR(t, code)
 	if err != nil {
@@ -51,8 +51,8 @@ func TestModuleImportWithAliasAndCircularProtection(t *testing.T) {
 	tmpDir := t.TempDir()
 	modPath := filepath.Join(tmpDir, "yardimci.tr")
 	err := os.WriteFile(modPath, []byte(`
-		sabit PI_SAYISI = 3.14
-		fonksiyon iki_kati(x) { sonuç x * 2 }
+		TR_const PI_SAYISI = 3.14
+		TR_func iki_kati(x) { TR_return x * 2 }
 	`), 0644)
 	if err != nil {
 		t.Fatal(err)
@@ -60,8 +60,8 @@ func TestModuleImportWithAliasAndCircularProtection(t *testing.T) {
 
 	mainFile := filepath.Join(tmpDir, "ana.tr")
 	code := `
-		aktar "yardimci.tr" olarak yrd
-		sonuç yrd.iki_kati(21)
+		TR_import "yardimci.tr" TR_as yrd
+		TR_return yrd.iki_kati(21)
 	`
 	l := source.TextLexer(code)
 	p := parser.New(l)
@@ -79,10 +79,10 @@ func TestModuleImportWithAliasAndCircularProtection(t *testing.T) {
 	// Döngüsel aktarım (circular import) testi
 	circA := filepath.Join(tmpDir, "a.tr")
 	circB := filepath.Join(tmpDir, "b.tr")
-	_ = os.WriteFile(circA, []byte(`aktar "b.tr"`), 0644)
-	_ = os.WriteFile(circB, []byte(`aktar "a.tr"`), 0644)
+	_ = os.WriteFile(circA, []byte(`TR_import "b.tr"`), 0644)
+	_ = os.WriteFile(circB, []byte(`TR_import "a.tr"`), 0644)
 
-	l2 := source.TextLexer(`aktar "a.tr"`)
+	l2 := source.TextLexer(`TR_import "a.tr"`)
 	p2 := parser.New(l2)
 	prog2 := p2.ParseProgram()
 	m2 := New()
@@ -111,16 +111,16 @@ func TestNewTaskVMStack(t *testing.T) {
 
 func TestConcurrentCallStackSafety(t *testing.T) {
 	code := `
-		fonksiyon hesapla(n) {
-			sonuç n * n
+		TR_func hesapla(n) {
+			TR_return n * n
 		}
-		döngü i içinde 1..=20 {
-			eşzamanlı {
+		TR_for i TR_in 1..=20 {
+			TR_async {
 				hesapla(i)
 			}
 		}
-		bekle_hepsi()
-		sonuç doğru
+		TR_wait_all()
+		TR_return TR_true
 	`
 	val, err := runTR(t, code)
 	if err != nil {
@@ -135,11 +135,11 @@ func TestConcurrentCallStackSafety(t *testing.T) {
 func TestLockHandoffConcurrentTask(t *testing.T) {
 	begin := time.Now()
 	_, val, err := runTROut(t, `
-		değişken bitti = yanlış
-		eşzamanlı { bitti = doğru }
-		değişken n = 0
-		iken !bitti && n < 200000000 { n += 1 }
-		sonuç n < 200000000
+		TR_var bitti = TR_false
+		TR_async { bitti = TR_true }
+		TR_var n = 0
+		TR_for !bitti && n < 200000000 { n += 1 }
+		TR_return n < 200000000
 	`)
 	if err != nil || val.Inspect() != "doğru" {
 		t.Fatalf("eşzamanlı görev döngü bitmeden çalışmalıydı: %v %v (%v)", val, err, time.Since(begin))
@@ -151,18 +151,18 @@ func TestLockHandoffConcurrentTask(t *testing.T) {
 // ayarlamasaydı döngü sınırına (100000000 tur) kadar sürerdi.
 func TestLockHandoffRecursiveLoop(t *testing.T) {
 	_, val, err := runTROut(t, `
-		değişken durdur = yanlış
-		fonksiyon dolas(n) {
-			eğer durdur || n == 0 { sonuç n }
-			sonuç dolas(n - 1)
+		TR_var durdur = TR_false
+		TR_func dolas(n) {
+			TR_if durdur || n == 0 { TR_return n }
+			TR_return dolas(n - 1)
 		}
-		eşzamanlı { durdur = doğru }
-		değişken tur = 0
-		iken !durdur && tur < 100000000 {
+		TR_async { durdur = TR_true }
+		TR_var tur = 0
+		TR_for !durdur && tur < 100000000 {
 			dolas(50)
 			tur += 1
 		}
-		sonuç tur
+		TR_return tur
 	`)
 	if err != nil {
 		t.Fatal(err)
@@ -212,7 +212,7 @@ func TestTaskErrorGoesToErrWriter(t *testing.T) {
 	m := New()
 	m.Out = &out
 	m.Err = &failure
-	prog := parser.New(source.TextLexer("eşzamanlı {\n    değişken x = 1 / 0\n}\nbekle_hepsi()\n")).ParseProgram()
+	prog := parser.New(source.TextLexer("TR_async {\n    TR_var x = 1 / 0\n}\nTR_wait_all()\n")).ParseProgram()
 	if _, err := m.Run(prog); err != nil {
 		t.Fatal(err)
 	}

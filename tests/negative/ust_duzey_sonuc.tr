@@ -1,4 +1,4 @@
-//! tr kodlu 3 dil=tr
-// Bilerek hatalı: 11.4 — modülün üst düzeyinde sonuç kullanılamaz.
-TR_kw_var önce = 1
-TR_kw_return önce
+# TR 4
+# Bilerek hatalı: 11.4 — modülün üst düzeyinde sonuç kullanılamaz.
+TR_var önce = 1
+TR_return önce

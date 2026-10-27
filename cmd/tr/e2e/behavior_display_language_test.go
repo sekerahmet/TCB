@@ -128,9 +128,9 @@ var displaySurfaces = []displaySurface{
 	// Sözdizimi hatalı program görünüme çevrilemez: kodlu biçimiyle (kimlikler dilden bağımsız) yazılır.
 	{name: "kurucu", args: run,
 		raw: func(*codes.Language) map[string]string {
-			return map[string]string{"p.tr": lexer.CodedHeader + "tr\nTR_kw_struct P {\n    ad_1\n" +
-				"    TR_kw_func TR_ctx_init(ad_2) {\n        TR_kw_self.ad_1 = ad_2\n    }\n" +
-				"    TR_kw_func TR_ctx_init(ad_3) {\n        TR_kw_self.ad_1 = ad_3\n    }\n}\nTR_fn_print(P(1))\n"}
+			return map[string]string{"p.tr": lexer.CodedHeader + "tr\nTR_struct P {\n    ad_1\n" +
+				"    TR_func TR_init(ad_2) {\n        TR_self.ad_1 = ad_2\n    }\n" +
+				"    TR_func TR_init(ad_3) {\n        TR_self.ad_1 = ad_3\n    }\n}\nTR_print(P(1))\n"}
 		},
 		want: func(r *codes.Language) []string { return []string{"'" + r.Name(codes.CtxInit) + "'"} }},
 }

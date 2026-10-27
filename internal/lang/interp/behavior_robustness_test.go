@@ -53,8 +53,8 @@ func TestRunRecoversFromBuiltinPanic(t *testing.T) {
 		return Null, nil
 	})
 	prog := parser.New(source.TextLexer(`
-		değişken çalıştı = yanlış
-		ertele { çalıştı = doğru }
+		TR_var çalıştı = TR_false
+		TR_defer { çalıştı = TR_true }
 		patla()`)).ParseProgram()
 	_, err := machine.Run(prog)
 	if !messages.Has(err, messages.H9000) {
@@ -76,16 +76,16 @@ func TestRunRecoversFromBuiltinPanic(t *testing.T) {
 // Eskiden: "fatal error: concurrent map writes" ile süreç çöküyordu (recover edilemez).
 func TestAsyncConcurrentDictAndListWrites(t *testing.T) {
 	_, val, err := runTRWithin(t, 20*time.Second, `
-		değişken d = {}
-		değişken l = []
-		döngü i içinde 0..3000 {
-			eşzamanlı {
-				d[metin(i)] = i
-				l.ekle(i)
+		TR_var d = {}
+		TR_var l = []
+		TR_for i TR_in 0..3000 {
+			TR_async {
+				d[TR_str(i)] = i
+				l.TR_append(i)
 			}
 		}
-		bekle_hepsi()
-		sonuç [d.anahtarlar().uzunluk, l.uzunluk]`)
+		TR_wait_all()
+		TR_return [d.TR_keys().TR_length, l.TR_length]`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,12 +97,12 @@ func TestAsyncConcurrentDictAndListWrites(t *testing.T) {
 // Eskiden: 20000 artırımdan yalnızca ~900'ü kalıyordu (kayıp güncelleme).
 func TestAsyncCounterIncrementIsAtomic(t *testing.T) {
 	_, val, err := runTRWithin(t, 20*time.Second, `
-		değişken s = 0
-		döngü i içinde 0..5000 {
-			eşzamanlı { s += 1 }
+		TR_var s = 0
+		TR_for i TR_in 0..5000 {
+			TR_async { s += 1 }
 		}
-		bekle_hepsi()
-		sonuç s`)
+		TR_wait_all()
+		TR_return s`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,20 +117,20 @@ func TestAsyncCounterIncrementIsAtomic(t *testing.T) {
 // görevler sıraya girseydi en çok 1 olurdu. Süre sınırı yalnızca takılmaya karşıdır.
 func TestAsyncTasksStillOverlapDuringSleep(t *testing.T) {
 	_, val, err := runTRWithin(t, 30*time.Second, `
-		değişken biten = 0
-		değişken bekleyen = 0
-		değişken en_cok = 0
-		döngü i içinde 0..20 {
-			eşzamanlı {
+		TR_var biten = 0
+		TR_var bekleyen = 0
+		TR_var en_cok = 0
+		TR_for i TR_in 0..20 {
+			TR_async {
 				bekleyen += 1
-				en_cok = max(en_cok, bekleyen)
-				bekle(0.2)
+				en_cok = TR_max(en_cok, bekleyen)
+				TR_sleep(0.2)
 				bekleyen -= 1
 				biten += 1
 			}
 		}
-		bekle_hepsi()
-		sonuç [biten, en_cok]`)
+		TR_wait_all()
+		TR_return [biten, en_cok]`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,13 +146,13 @@ func TestAsyncTasksStillOverlapDuringSleep(t *testing.T) {
 // Eskiden: "fatal error: all goroutines are asleep - deadlock!"
 func TestWaitAllInsideAsyncDoesNotDeadlock(t *testing.T) {
 	_, val, err := runTRWithin(t, 5*time.Second, `
-		değişken sonra = yanlış
-		eşzamanlı {
-			bekle_hepsi()
-			sonra = doğru
+		TR_var sonra = TR_false
+		TR_async {
+			TR_wait_all()
+			sonra = TR_true
 		}
-		bekle_hepsi()
-		sonuç sonra`)
+		TR_wait_all()
+		TR_return sonra`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -164,22 +164,22 @@ func TestWaitAllInsideAsyncDoesNotDeadlock(t *testing.T) {
 
 func TestDeferInsideAsyncRunsWhenTaskEnds(t *testing.T) {
 	machine, val, err := runTRWithin(t, 5*time.Second, `
-		değişken sira = []
-		ertele { sira.ekle("program-ertele") }
-		fonksiyon f() {
-			eşzamanlı {
-				ertele { sira.ekle("görev-ertele") }
-				sira.ekle("görev")
+		TR_var sira = []
+		TR_defer { sira.TR_append("program-ertele") }
+		TR_func f() {
+			TR_async {
+				TR_defer { sira.TR_append("görev-ertele") }
+				sira.TR_append("görev")
 			}
-			bekle_hepsi()
-			sira.ekle("f-son")
+			TR_wait_all()
+			sira.TR_append("f-son")
 		}
 		f()
-		eşzamanlı {
-			bekle(0.05)
-			sira.ekle("geç-görev")
+		TR_async {
+			TR_sleep(0.05)
+			sira.TR_append("geç-görev")
 		}
-		sonuç sira`)
+		TR_return sira`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -198,10 +198,10 @@ func TestPanicInsideAsyncDoesNotCrashProcess(t *testing.T) {
 		panic("görev içinde beklenmedik hata")
 	})
 	prog := parser.New(source.TextLexer(`
-		değişken tamam = yanlış
-		eşzamanlı { patla() }
-		bekle_hepsi()
-		tamam = doğru`)).ParseProgram()
+		TR_var tamam = TR_false
+		TR_async { patla() }
+		TR_wait_all()
+		tamam = TR_true`)).ParseProgram()
 	if _, err := machine.Run(prog); err != nil {
 		t.Fatalf("ana program etkilenmemeli: %v", err)
 	}
@@ -213,20 +213,20 @@ func TestPanicInsideAsyncDoesNotCrashProcess(t *testing.T) {
 // Test raporu K1: sınırsız özyineleme Go yığınını taşırıp süreci yakalanamaz biçimde
 // çökertiyordu. Artık sınırda 'dene/yakala' ile yakalanabilen bir hata döner.
 func TestDeepRecursionIsCatchableError(t *testing.T) {
-	_, _, err := runTRWithin(t, 30*time.Second, "fonksiyon f(n) { sonuç f(n + 1) }\nf(0)")
+	_, _, err := runTRWithin(t, 30*time.Second, "TR_func f(n) { TR_return f(n + 1) }\nf(0)")
 	if !messages.Has(err, messages.H2422) {
 		t.Fatalf("özyineleme sınırı hatası bekleniyordu, alınan: %v", err)
 	}
 	_, val, err := runTRWithin(t, 30*time.Second, `
-		fonksiyon f(n) { sonuç f(n + 1) }
-		değişken yakalandı = yanlış
-		dene { f(0) } yakala hata { yakalandı = doğru }
-		sonuç yakalandı`)
+		TR_func f(n) { TR_return f(n + 1) }
+		TR_var yakalandı = TR_false
+		TR_try { f(0) } TR_catch hata { yakalandı = TR_true }
+		TR_return yakalandı`)
 	if err != nil || val.Inspect() != "doğru" {
 		t.Fatalf("özyineleme hatası dene/yakala ile yakalanmalıydı: %v / %v", val, err)
 	}
 	// Sınırın altındaki derin ama sonlu özyineleme çalışmaya devam etmeli
-	_, val, err = runTRWithin(t, 30*time.Second, "fonksiyon say(n) { eğer n == 0 { sonuç 0 } sonuç 1 + say(n - 1) }\nsonuç say(5000)")
+	_, val, err = runTRWithin(t, 30*time.Second, "TR_func say(n) { TR_if n == 0 { TR_return 0 } TR_return 1 + say(n - 1) }\nTR_return say(5000)")
 	if err != nil || val.Inspect() != "5000" {
 		t.Fatalf("5000 derinlik çalışmalı: %v / %v", val, err)
 	}
@@ -239,21 +239,21 @@ func TestUserFunctionArityIsChecked(t *testing.T) {
 		want messages.Code
 		line int // 0: satır denetlenmez
 	}{
-		{"fonksiyon topla(a, b) { sonuç a + b }\ntopla(1)", messages.H2414, 2},
-		{"fonksiyon topla(a, b) { sonuç a + b }\ntopla(1, 2, 3)", messages.H2412, 2},
-		{"fonksiyon f(isim) { sonuç isim }\nf(isimm: 1)", messages.H2410, 0},
-		{"değişken g = (x, y) => x + y\ng(1)", messages.H2414, 0},
-		{"fonksiyon iki(a, b) { sonuç a }\n5 |> iki", messages.H2414, 0},
+		{"TR_func topla(a, b) { TR_return a + b }\ntopla(1)", messages.H2414, 2},
+		{"TR_func topla(a, b) { TR_return a + b }\ntopla(1, 2, 3)", messages.H2412, 2},
+		{"TR_func f(isim) { TR_return isim }\nf(isimm: 1)", messages.H2410, 0},
+		{"TR_var g = (x, y) => x + y\ng(1)", messages.H2414, 0},
+		{"TR_func iki(a, b) { TR_return a }\n5 |> iki", messages.H2414, 0},
 		// aynı parametre hem sırayla hem adıyla: adlı değer eskiden sessizce yok sayılırdı
-		{"fonksiyon f(a, b = 10) { sonuç [a, b] }\nf(1, a: 2)", messages.H2413, 2},
-		{"fonksiyon f(a, b) { sonuç [a, b] }\nf(1, 2, b: 3)", messages.H2413, 0},
-		{"fonksiyon f(a, b) { sonuç a }\n5 |> f(a: 1)", messages.H2413, 0},
-		{"yapı Nokta { x\n y }\nNokta(1, x: 2).x", messages.H2420, 3},
-		{"yapı H { b\n fonksiyon kurucu(v) { kendi.b = v } }\nH(1, v: 2)", messages.H2413, 0},
+		{"TR_func f(a, b = 10) { TR_return [a, b] }\nf(1, a: 2)", messages.H2413, 2},
+		{"TR_func f(a, b) { TR_return [a, b] }\nf(1, 2, b: 3)", messages.H2413, 0},
+		{"TR_func f(a, b) { TR_return a }\n5 |> f(a: 1)", messages.H2413, 0},
+		{"TR_struct Nokta { x\n y }\nNokta(1, x: 2).x", messages.H2420, 3},
+		{"TR_struct H { b\n TR_func TR_init(v) { TR_self.b = v } }\nH(1, v: 2)", messages.H2413, 0},
 		// eksik zorunlu parametre: sayılar kendisiyle çelişmemeli ("1 bekler, 1 verildi")
-		{"fonksiyon f(a, b = 10) { sonuç a }\nf(b: 20)", messages.H2415, 2},
-		{"fonksiyon f(a, b, c = 1) { sonuç a }\nf(c: 2)", messages.H2415, 0},
-		{"fonksiyon f(a = 1, b) { sonuç a }\nf(5)", messages.H2415, 0},
+		{"TR_func f(a, b = 10) { TR_return a }\nf(b: 20)", messages.H2415, 2},
+		{"TR_func f(a, b, c = 1) { TR_return a }\nf(c: 2)", messages.H2415, 0},
+		{"TR_func f(a = 1, b) { TR_return a }\nf(5)", messages.H2415, 0},
 	}
 	for _, c := range cases {
 		_, _, err := runTRWithin(t, 5*time.Second, c.code)
@@ -263,11 +263,11 @@ func TestUserFunctionArityIsChecked(t *testing.T) {
 	}
 	// Varsayılan değerler, adlandırılmış argümanlar ve geri çağrılar (fazladan argüman alabilir) çalışmalı
 	_, val, err := runTRWithin(t, 5*time.Second, `
-		fonksiyon selam(ad, ek = "!") { sonuç ad + ek }
-		değişken a = selam("Ali")
-		değişken b = selam(ek: "?", ad: "Ayşe")
-		değişken c = [1, 2, 3].filtrele((x) => x > 1)
-		sonuç [a, b, c]`)
+		TR_func selam(ad, ek = "!") { TR_return ad + ek }
+		TR_var a = selam("Ali")
+		TR_var b = selam(ek: "?", ad: "Ayşe")
+		TR_var c = [1, 2, 3].TR_filter((x) => x > 1)
+		TR_return [a, b, c]`)
 	if err != nil || val.Inspect() != `["Ali!", "Ayşe?", [2, 3]]` {
 		t.Fatalf("geçerli çağrılar çalışmalı: %v / %v", val, err)
 	}

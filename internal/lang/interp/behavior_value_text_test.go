@@ -86,14 +86,14 @@ print(str(b) == "true", str(none) == "none", str(type(1.5)) == "Float")
 // modüle verilen İngilizce geri çağırma, modülden çağrılınca İngilizce çevirir (kendi dosyası).
 func TestValueTextIsLexical(t *testing.T) {
 	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(
-		"fonksiyon anlat(x) { sonuç \"{x} \" + metin(tip(x)) }\n" +
-			"fonksiyon uygula(f) { yazdır(f(doğru)) }\n")}})
+		"TR_func anlat(x) { TR_return \"\\(x) \" + TR_str(TR_type(x)) }\n" +
+			"TR_func uygula(f) { TR_print(f(TR_true)) }\n")}})
 	out := runEnglish(t, `import "tr/kitap" as k
 import "yerel" as y
 print(k.anlat(true), y.anlat(none))
 k.uygula((x) => "{x} " + str(x))
 y.uygula((x) => str([x]))
-`, map[string]string{"yerel.tr": "fonksiyon anlat(x) { sonuç metin(x) }\nfonksiyon uygula(f) { yazdır(f(yok)) }\n"})
+`, map[string]string{"yerel.tr": "TR_func anlat(x) { TR_return TR_str(x) }\nTR_func uygula(f) { TR_print(f(TR_none)) }\n"})
 	want := "doğru Mantık yok\ntrue true\n[none]\n"
 	if out != want {
 		t.Errorf("metin işlemin yazıldığı dosyanın dilinde olmalı:\n%s\nbeklenen:\n%s", out, want)
@@ -103,7 +103,7 @@ y.uygula((x) => str([x]))
 // Programa geri dönen hata metni de program metnidir: fırlatılan değer ve doğrula'nın mesaj
 // değeri fırlatıldığı dosyanın dilinde çevrilir (iletinin çerçevesi görüntüdür, TR_DIL).
 func TestThrownValueTextFollowsTheFilesLanguage(t *testing.T) {
-	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte("fonksiyon at() { fırlat [doğru, yok] }\n")}})
+	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte("TR_func at() { TR_throw [TR_true, TR_none] }\n")}})
 	out := runEnglish(t, `import "tr/kitap" as k
 try { throw true } catch e { print(e, e == "true") }
 try { throw [none, Int] } catch e { print(e) }
@@ -125,7 +125,7 @@ try { float("sonsuz") } catch e { print("not read") }
 	if want := "inf -inf nan true inf\nnot read\n"; out != want {
 		t.Errorf("İngilizce dosyada değer adları:\n%s\nbeklenen:\n%s", out, want)
 	}
-	_, val, err := runTROut(t, `sonuç [ondalık("sonsuz"), ondalık("-sonsuz"), ondalık("+sonsuz"), ondalık("inf"), metin(ondalık("NaN")), ondalık(metin(ondalık("-inf")))]`)
+	_, val, err := runTROut(t, `TR_return [TR_float("sonsuz"), TR_float("-sonsuz"), TR_float("+sonsuz"), TR_float("inf"), TR_str(TR_float("NaN")), TR_float(TR_str(TR_float("-inf")))]`)
 	if err != nil || val.Inspect() != `[sonsuz, -sonsuz, sonsuz, sonsuz, "NaN", -sonsuz]` {
 		t.Errorf("Türkçe dosyada değer adları: %v, %v", val, err)
 	}
@@ -135,7 +135,7 @@ try { float("sonsuz") } catch e { print("not read") }
 // kurulur, içindeki tip ve değerlerle (DENETİM 3. adım, karar 4). Sınama süreci Türkçedir
 // (TR_DIL=tr); İngilizce dosyanın yakaladığı hata yine İngilizcedir, Türkçe kitaplıkta oluşsa da.
 func TestCaughtErrorTextFollowsTheCatchingFile(t *testing.T) {
-	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte("fonksiyon taşır() { sonuç [1][5] }\n")}})
+	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte("TR_func taşır() { TR_return [1][5] }\n")}})
 	out := runEnglish(t, `import "tr/kitap" as k
 try { [1].join(true) } catch e { print(e) }
 try { k.taşır() } catch e { print(e) }
@@ -183,9 +183,9 @@ try { f() } catch e { print(e) }
 // çıplak anahtar olduğu gibi kalır.
 func TestDictCodedKeysAreLanguageIndependent(t *testing.T) {
 	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(
-		"fonksiyon artır(ayar) {\n    ayar.adım += 1\n    ayar.öğrenme_oranı = 0.1\n    sonuç ayar.adım\n}\n" +
-			"fonksiyon yeni() { sonuç {adım: 7, renk: 1} }\n" +
-			"fonksiyon göster(d) { yazdır(d, d.anahtarlar()) }\n")}})
+		"TR_func artır(ayar) {\n    ayar.TR_step += 1\n    ayar.TR_lr = 0.1\n    TR_return ayar.TR_step\n}\n" +
+			"TR_func yeni() { TR_return {TR_step: 7, renk: 1} }\n" +
+			"TR_func göster(d) { TR_print(d, d.TR_keys()) }\n")}})
 	out := runEnglish(t, `import "tr/kitap" as k
 var cfg = {step: 1, renk: "mavi"}
 print(k.artır(cfg), cfg.keys(), cfg.lr, cfg["adım"], cfg["step"])
@@ -215,7 +215,7 @@ print(d.keys(), d["step"], d.step)
 // dosya_yaz'ın içeriği, girdi'nin istemi. Kitaplığın içindeki birleştirme Türkçe kalır.
 func TestEveryTextConversionFollowsTheFilesLanguage(t *testing.T) {
 	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(
-		"fonksiyon ekle(x) { sonuç \"a\" + x + \",\" + [x, yok].birleştir(\"/\") }\n")}})
+		"TR_func ekle(x) { TR_return \"a\" + x + \",\" + [x, TR_none].TR_join(\"/\") }\n")}})
 	out := runEnglish(t, `import "tr/kitap" as k
 print("x" + true, none + "!", [true, none, Int].join(","), k.ekle(false))
 write_file("out.txt", [false])

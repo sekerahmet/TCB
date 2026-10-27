@@ -44,9 +44,9 @@ func TestResolveTiers(t *testing.T) {
 		"ÇEVRE_HESAPLA":          "function:lib/geo.tr#çevre_hesapla",
 		"ÇEVRE_HESAPLAMA":        "",
 		"geo.çevre_hesapla":      "function:lib/geo.tr#çevre_hesapla",
-		"yazdır":                 "builtin:TR_fn_print", // TR adı
-		"print":                  "builtin:TR_fn_print", // İngilizce adı
-		"TR_fn_print":            "builtin:TR_fn_print",
+		"yazdır":                 "builtin:TR_print", // TR adı
+		"print":                  "builtin:TR_print", // İngilizce adı
+		"TR_print":               "builtin:TR_print",
 	}
 	for q, want := range cases {
 		got := r.Resolve(q, "")
@@ -77,7 +77,7 @@ func buildSource(t *testing.T, src string) *Reader {
 }
 
 func TestTurkishCaseFolding(t *testing.T) {
-	r := buildSource(t, "fonksiyon Işık() {\n    sonuç 1\n}\n")
+	r := buildSource(t, "TR_func Işık() {\n    TR_return 1\n}\n")
 	if got := r.Resolve("ışık", ""); len(got) != 1 {
 		t.Errorf("ışık (dotless ı) must match Işık: %v", got)
 	}
@@ -90,16 +90,16 @@ func TestTurkishCaseFolding(t *testing.T) {
 // eşleşir, tam eşleşen yoksa harfe bakılmaz; o geçişte ASCII küçültmesi de denenir; dilin bir sözcüğüyle birebir aynı
 // sorguda geçiş yoktur (bağımsız denetim grup 6 ve 7, R1).
 func TestCaseRuleExactFirstThenFolded(t *testing.T) {
-	r := buildSource(t, `yapı Kare {
+	r := buildSource(t, `TR_struct Kare {
     a
 }
 
-fonksiyon kare() {
-    sonuç 1
+TR_func kare() {
+    TR_return 1
 }
 
-fonksiyon gizli_işlev() {
-    sonuç metin(1)
+TR_func gizli_işlev() {
+    TR_return TR_str(1)
 }
 `)
 	for q, want := range map[string]string{
@@ -109,7 +109,7 @@ fonksiyon gizli_işlev() {
 		"GİZLİ_İŞLEV": "function:m.tr#gizli_işlev", // Türkçe büyük harf
 		"GIZLI_IŞLEV": "function:m.tr#gizli_işlev", // İngilizce klavye: I, Türkçede ı olurdu
 		"Metin":       "",                          // dilin tip adı: metin() yerleşiğine sessizce düşülmez
-		"metin":       "builtin:TR_fn_str",
+		"metin":       "builtin:TR_str",
 	} {
 		var ids []string
 		for _, n := range r.Resolve(q, "") {
@@ -128,13 +128,13 @@ fonksiyon gizli_işlev() {
 func TestBareNameClasses(t *testing.T) {
 	dir := t.TempDir()
 	for name, text := range map[string]string{
-		"metin.tr": "değişken metin_boyu = uzunluk(metin(12))\n",
-		"m_test.tr": `test "ortalama" {
-    doğrula(ortalama([1, 3]) == 2)
+		"TR_str.tr": "TR_var metin_boyu = uzunluk(TR_str(12))\n",
+		"m_test.tr": `TR_test "ortalama" {
+    TR_assert(TR_mean([1, 3]) == 2)
 }
 
-test "yalnız bir test" {
-    doğrula(doğru)
+TR_test "yalnız bir test" {
+    TR_assert(TR_true)
 }
 `,
 	} {
@@ -148,8 +148,8 @@ test "yalnız bir test" {
 	}
 	r := NewReader(idx)
 	for q, want := range map[string]string{
-		"metin":           "builtin:TR_fn_str module:metin.tr",
-		"ortalama":        "builtin:TR_fn_mean",
+		"metin":           "builtin:TR_str module:metin.tr",
+		"ortalama":        "builtin:TR_mean",
 		"yalnız bir test": "test_block:m_test.tr#5",
 	} {
 		var ids []string
@@ -164,7 +164,7 @@ test "yalnız bir test" {
 }
 
 func TestAmbiguousAndNotFound(t *testing.T) {
-	r := buildSource(t, "yapı A {\n    fonksiyon ileri() {\n        sonuç 1\n    }\n}\nyapı B {\n    fonksiyon ileri() {\n        sonuç 2\n    }\n}\n")
+	r := buildSource(t, "TR_struct A {\n    TR_func TR_forward() {\n        TR_return 1\n    }\n}\nTR_struct B {\n    TR_func TR_forward() {\n        TR_return 2\n    }\n}\n")
 	res := r.Definition("ileri", QueryOptions{})
 	if res.Status != StatusAmbiguous || len(res.Candidates) != 2 || ExitCode(res.Status) != ExitAmbiguous {
 		t.Fatalf("%+v", res)
@@ -205,7 +205,7 @@ func TestReferences(t *testing.T) {
 
 func TestBuiltinReferencesCarryDisplayNames(t *testing.T) {
 	res := fixtureReader(t).References("print", QueryOptions{})
-	if res.Status != StatusOK || res.Target.ID != "builtin:TR_fn_print" || res.Target.Display != "yazdır" {
+	if res.Status != StatusOK || res.Target.ID != "builtin:TR_print" || res.Target.Display != "yazdır" {
 		t.Fatalf("a built-in is found by its English name and shown in the reader's language: %+v", res.Target)
 	}
 	if res.Counts.Total < 3 {
@@ -306,9 +306,9 @@ func TestTextOutput(t *testing.T) {
 // Go testindeki TR parçası da aynı kuralla (Snippet).
 func TestATestBlockTestsAFunctionBuiltinOnlyByCallingIt(t *testing.T) {
 	dir := t.TempDir()
-	src := "test \"değer\" {\n    değişken f = zaman_ms\n    doğrula(doğru)\n}\n\ntest \"çağrı\" {\n    doğrula(sin(pi) < 1)\n}\n" +
-		"test \"argüman\" {\n    doğrula([3, 1, 2].indirge(max) == 3)\n}\n" +
-		"test \"atama\" {\n    değişken g = karekök\n    doğrula(g(4) == 2)\n}\n"
+	src := "TR_test \"değer\" {\n    TR_var f = TR_time_ms\n    TR_assert(TR_true)\n}\n\nTR_test \"çağrı\" {\n    TR_assert(TR_sin(TR_pi) < 1)\n}\n" +
+		"TR_test \"argüman\" {\n    TR_assert([3, 1, 2].TR_reduce(TR_max) == 3)\n}\n" +
+		"TR_test \"atama\" {\n    TR_var g = TR_sqrt\n    TR_assert(g(4) == 2)\n}\n"
 	if err := os.WriteFile(filepath.Join(dir, "m_test.tr"), []byte(src), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -323,11 +323,11 @@ func TestATestBlockTestsAFunctionBuiltinOnlyByCallingIt(t *testing.T) {
 		}
 	}
 	codes := map[string]bool{}
-	uses, _ := Snippet("değişken f = zaman_ms\nyazdır(sin(pi))\n", nil)
+	uses, _ := Snippet("TR_var f = TR_time_ms\nTR_print(TR_sin(TR_pi))\n", nil)
 	for _, u := range uses {
 		codes[u.Code] = true
 	}
-	if codes["TR_fn_time_ms"] || !codes["TR_const_pi"] || len(codes) != 3 {
+	if codes["TR_time_ms"] || !codes["TR_pi"] || len(codes) != 3 {
 		t.Errorf("Snippet: zaman_ms only named, sin and yazdır called, pi read: %v", codes)
 	}
 }

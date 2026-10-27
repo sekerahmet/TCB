@@ -1,5 +1,5 @@
-//! tr kodlu 3 dil=tr
-// Bilerek hatalı: 3.13 — açıklanan tiple atanan değerin tipi uyuşmuyor.
-TR_kw_var yaş: TR_type_Int = 25
-TR_kw_var ad: TR_type_Int = "Ali"
-TR_kw_var r: TR_type_List = 0..3
+# TR 4
+# Bilerek hatalı: 3.13 — açıklanan tiple atanan değerin tipi uyuşmuyor.
+TR_var yaş: TR_Int = 25
+TR_var ad: TR_Int = "Ali"
+TR_var r: TR_List = 0..3

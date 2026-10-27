@@ -15,7 +15,7 @@ import (
 //	go test ./internal/lang/checker -run '^$' -fuzz FuzzChecker -fuzztime 5m
 func FuzzChecker(f *testing.F) {
 	testkit.TRSeeds(f)
-	for _, s := range []string{"değişken a: Tam = \"x\"", "sabit a = 1\na = 2", "fonksiyon f(a: Tam): Metin { sonuç a }", "yazdır(tanımsız)", "değişken yazdır = 1"} {
+	for _, s := range []string{"TR_var a: TR_Int = \"x\"", "TR_const a = 1\na = 2", "TR_func f(a: TR_Int): TR_String { TR_return a }", "TR_print(tanımsız)", "TR_var yazdır = 1"} {
 		f.Add(s)
 	}
 	f.Fuzz(func(t *testing.T, source string) {

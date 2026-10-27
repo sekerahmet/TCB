@@ -1,34 +1,34 @@
-//! tr kodlu 3 dil=tr
-// 02 — Değişkenler: bir değeri adlandırıp saklamak.
-// Ne öğretir: değişken ile tanımlamak, yeniden atamak, +=, -=, *=, sabit.
-// Önceki örnekten: yazdır ve yorum (01).
-// Çalıştırma (proje kökünden): tr examples/tr/02_degiskenler.tr
+# TR 4
+# 02 — Değişkenler: bir değeri adlandırıp saklamak.
+# Ne öğretir: değişken ile tanımlamak, yeniden atamak, +=, -=, *=, sabit.
+# Önceki örnekten: yazdır ve yorum (01).
+# Çalıştırma (proje kökünden): tr examples/tr/02_degiskenler.tr
 
-// değişken ad = değer: değer bir adla saklanır, sonra adıyla kullanılır.
-TR_kw_var yaş = 30
-TR_fn_print("yaş:", yaş)
+# değişken ad = değer: değer bir adla saklanır, sonra adıyla kullanılır.
+TR_var yaş = 30
+TR_print("yaş:", yaş)
 
-// Değişkenin değeri sonradan değişebilir.
+# Değişkenin değeri sonradan değişebilir.
 yaş = 31
-TR_fn_print("yaş:", yaş)
+TR_print("yaş:", yaş)
 
-// Hesapta değişkenler değer yerine geçer; sonuç yeni bir değişkende saklanır.
-TR_kw_var aylık = 1500
-TR_kw_var yıllık = aylık * 12
-TR_fn_print("yıllık:", yıllık)
+# Hesapta değişkenler değer yerine geçer; sonuç yeni bir değişkende saklanır.
+TR_var aylık = 1500
+TR_var yıllık = aylık * 12
+TR_print("yıllık:", yıllık)
 
-// += -= *= değişkeni kendi değerinden hesaplayıp günceller.
-yaş += 1 // yaş = yaş + 1
-TR_fn_print("yaş:", yaş)
+# += -= *= değişkeni kendi değerinden hesaplayıp günceller.
+yaş += 1 # yaş = yaş + 1
+TR_print("yaş:", yaş)
 yıllık -= 1000
-TR_fn_print("yıllık:", yıllık)
+TR_print("yıllık:", yıllık)
 aylık *= 2
-TR_fn_print("aylık:", aylık)
+TR_print("aylık:", aylık)
 
-// sabit bir kez atanır, sonra değişmez: değişmemesi gereken değerler için.
-TR_kw_const KDV_ORANI = 18
-TR_fn_print("KDV:", KDV_ORANI)
+# sabit bir kez atanır, sonra değişmez: değişmemesi gereken değerler için.
+TR_const KDV_ORANI = 18
+TR_print("KDV:", KDV_ORANI)
 
-// --- Kendin dene ---
-// 1. Boyunu ve kilonu iki değişkende sakla, ikisinin toplamını yazdır.
-// 2. KDV_ORANI = 20 yazmayı dene: sabit değiştirilemediği için program hata verir.
+# --- Kendin dene ---
+# 1. Boyunu ve kilonu iki değişkende sakla, ikisinin toplamını yazdır.
+# 2. KDV_ORANI = 20 yazmayı dene: sabit değiştirilemediği için program hata verir.

@@ -1,14 +1,14 @@
-//! tr kodlu 3 dil=tr
-// Hata 15 — Dönüşüm hatası.
-// İleti kodu: H2429
-// Ne olur: Sayıya çevrilemeyen bir metin tam() ile çevrilmek istenirse çalışma anında hata alınır.
-// Neden: "abc" bir tam sayı yazımı değildir.
-// Düzeltilmiş hâli:
-//     dene {
-//         yazdır(tam("abc"))
-//     } yakala h {
-//         yazdır("sayı değil: {h}")
-//     }
-// Çalıştırma (proje kökünden): tr examples/tr/hatalar/15_donusum_hatasi.tr   (çıkış kodu 1)
+# TR 4
+# Hata 15 — Dönüşüm hatası.
+# İleti kodu: H2429
+# Ne olur: Sayıya çevrilemeyen bir metin tam() ile çevrilmek istenirse çalışma anında hata alınır.
+# Neden: "abc" bir tam sayı yazımı değildir.
+# Düzeltilmiş hâli:
+#     dene {
+#         yazdır(tam("abc"))
+#     } yakala h {
+#         yazdır("sayı değil: {h}")
+#     }
+# Çalıştırma (proje kökünden): tr examples/tr/hatalar/15_donusum_hatasi.tr   (çıkış kodu 1)
 
-TR_fn_print(TR_fn_int("abc"))
+TR_print(TR_int("abc"))

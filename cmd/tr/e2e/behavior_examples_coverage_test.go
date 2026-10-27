@@ -24,8 +24,8 @@ import (
 var uncoveredNames = map[string]string{
 	// Değer adları (val) kaynakta sözcük olarak yazılmaz, yalnızca programın metninde görünür
 	// (3.2: yazdır(ondalık("sonsuz"))); kodlu iskelette geçemezler.
-	"TR_val_inf": "değer adı (sonsuz), kaynakta sözcük değil",
-	"TR_val_nan": "değer adı (NaN), kaynakta sözcük değil",
+	"TR_inf": "değer adı (sonsuz), kaynakta sözcük değil",
+	"TR_nan": "değer adı (NaN), kaynakta sözcük değil",
 }
 
 // exampleTexts bütün örnek .tr dosyalarını (examples/tr, alt klasörleriyle) verir.

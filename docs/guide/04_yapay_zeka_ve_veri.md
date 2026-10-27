@@ -59,44 +59,44 @@ Tensör, n boyutlu bir sayı dizisidir (veri türü varsayılan olarak `float32`
 - **İyileştiriciler:** `TR_fn_AdamW(parametreler, TR_arg_lr: 0.001, TR_arg_weight_decay: 0.01, TR_arg_beta1: 0.9, TR_arg_beta2: 0.999, TR_arg_eps: 0.00000001)`, `TR_fn_SGD(parametreler, TR_arg_lr: 0.01, TR_arg_momentum: 0, TR_arg_weight_decay: 0)`; `.TR_mem_step()` parametreleri günceller, `.TR_mem_zero_grad()` gradyanları sıfırlar. Parametreler doğrudan `TR_fn_tensor(..., TR_arg_requires_grad: TR_kw_true)` ile oluşturulmuş tensörler olmalıdır. İkisi de `TR_arg_master_weights: TR_kw_true` (varsayılan) seçeneğini alır: 16 bitlik (`bf16`/`fp16`) parametrelerin float32 ana kopyası tutulur, güncelleme ana kopyada yapılıp parametreye yuvarlanarak yazılır; böylece 16 bitlik aralıktan küçük adımlar kaybolmaz (`TR_arg_master_weights: TR_kw_false` ile güncelleme doğrudan 16 bitlik parametrede yapılır). float32 parametreleri etkilemez; moment tahminleri her zaman float32'dir.
 
 ```tr
-//! tr kodlu 3 dil=tr
-// y = 2·x - 1 doğrusunu öğren
-TR_kw_var X = TR_fn_tensor([[0], [1], [2], [3]])
-TR_kw_var Y = TR_fn_tensor([[-1], [1], [3], [5]])
-TR_kw_var w = TR_fn_tensor([[0.0]], TR_arg_requires_grad: TR_kw_true)
-TR_kw_var b = TR_fn_tensor([0.0], TR_arg_requires_grad: TR_kw_true)
-TR_kw_var op = TR_fn_AdamW([w, b], TR_arg_lr: 0.1, TR_arg_weight_decay: 0)
+# TR 4
+# y = 2·x - 1 doğrusunu öğren
+TR_var X = TR_tensor([[0], [1], [2], [3]])
+TR_var Y = TR_tensor([[-1], [1], [3], [5]])
+TR_var w = TR_tensor([[0.0]], TR_requires_grad: TR_true)
+TR_var b = TR_tensor([0.0], TR_requires_grad: TR_true)
+TR_var op = TR_AdamW([w, b], TR_lr: 0.1, TR_weight_decay: 0)
 
-TR_kw_for adım TR_kw_in 0..500 {
-    op.TR_mem_zero_grad()
-    TR_kw_var fark = X @ w + b - Y
-    TR_fn_backward(TR_fn_mean(fark * fark))
-    op.TR_mem_step()
+TR_for adım TR_in 0..500 {
+    op.TR_zero_grad()
+    TR_var fark = X @ w + b - Y
+    TR_backward(TR_mean(fark * fark))
+    op.TR_step()
 }
-TR_fn_print("w = {TR_fn_round(w.TR_mem_tolist[0][0], 3)}, b = {TR_fn_round(b.TR_mem_tolist[0], 3)}")   // w = 2.0, b = -1.0
-TR_fn_print(TR_fn_no_grad { TR_kw_return X @ w + b })                                       // Tensör[4×1] [...]
+TR_print("w = \(TR_round(w.TR_tolist[0][0], 3)), b = \(TR_round(b.TR_tolist[0], 3))")   # w = 2.0, b = -1.0
+TR_print(TR_no_grad { TR_return X @ w + b })                                       # Tensör[4×1] [...]
 ```
 
 Kullanıcı tanımlı türev: kapılı çarpım `a * TR_fn_sigmoid(b)` için elle yazılmış geri hesap ve denetimi.
 
 ```tr
-//! tr kodlu 3 dil=tr
-TR_kw_var kapılı = TR_fn_custom_grad(
-    TR_arg_forward: TR_kw_func(a, b) {
-        TR_kw_var s = TR_fn_sigmoid(b)
-        TR_kw_return [a * s, [a, s]]                       // [çıktı, saklananlar]
+# TR 4
+TR_var kapılı = TR_custom_grad(
+    TR_forward: TR_func(a, b) {
+        TR_var s = TR_sigmoid(b)
+        TR_return [a * s, [a, s]]                       # [çıktı, saklananlar]
     },
-    TR_arg_backward: TR_kw_func(k, g) {                          // k: saklananlar, g: çıktının gradyanı
-        TR_kw_var a = k[0]
-        TR_kw_var s = k[1]
-        TR_kw_return [g * s, g * a * s * (1 - s)]           // a ve b için birer gradyan
+    TR_backward: TR_func(k, g) {                          # k: saklananlar, g: çıktının gradyanı
+        TR_var a = k[0]
+        TR_var s = k[1]
+        TR_return [g * s, g * a * s * (1 - s)]           # a ve b için birer gradyan
     }
 )
-TR_kw_var a = TR_fn_tensor([[1.0, -2.0]], TR_arg_requires_grad: TR_kw_true)
-TR_kw_var b = TR_fn_tensor([[0.5, 0.0]], TR_arg_requires_grad: TR_kw_true)
-TR_fn_backward(TR_fn_sum(kapılı(a, b)))
-TR_fn_print(a.TR_mem_grad, b.TR_mem_grad)
-TR_fn_print(TR_fn_grad_check(kapılı, [a, b]))               // doğru (yanlış bir geri hesabında açık hata)
+TR_var a = TR_tensor([[1.0, -2.0]], TR_requires_grad: TR_true)
+TR_var b = TR_tensor([[0.5, 0.0]], TR_requires_grad: TR_true)
+TR_backward(TR_sum(kapılı(a, b)))
+TR_print(a.TR_grad, b.TR_grad)
+TR_print(TR_grad_check(kapılı, [a, b]))               # doğru (yanlış bir geri hesabında açık hata)
 ```
 
 Şekil hataları şekli gösterir ve `dene/yakala` ile yakalanabilir: `[32, 1024] ile [512, 10] matris çarpımı yapılamaz; 1024 ≠ 512`. Fonksiyon, metot, işleç (`@`, `+`, `<`...) ve özellik hatalarının başında `Satır N:` bulunur: `Satır 3: [2, 2] ile [1, 3] matris çarpımı yapılamaz; 2 ≠ 1 (...)`.
@@ -115,18 +115,18 @@ varsayılan cihazı seçmektir: ağırlıklar, iyileştiricinin durumları ve ve
 toplu işler GPU'da oluşur.
 
 ```tr
-//! tr kodlu 3 dil=tr
-TR_kw_if TR_fn_devices().TR_mem_contains("gpu") { TR_fn_default_device("gpu") }   // GPU yoksa CPU'da kalır
-TR_kw_var W = TR_fn_tensor(TR_fn_no_grad(TR_fn_randn([16, 4], TR_arg_seed: 1) * 0.1), TR_arg_requires_grad: TR_kw_true)
-TR_kw_var x = TR_fn_randn([8, 16], TR_arg_seed: 2)              // varsayılan cihazda
-TR_kw_var iyileştirici = TR_fn_AdamW([W], TR_arg_lr: 0.01)
-TR_kw_for adım TR_kw_in 0..10 {                                    // döngü CPU'dakiyle aynı
-    iyileştirici.TR_mem_zero_grad()
-    TR_kw_var kayıp = TR_fn_cross_entropy(x @ W, [0, 1, 2, 3, 0, 1, 2, 3])
-    TR_fn_backward(kayıp)
-    iyileştirici.TR_mem_step()
+# TR 4
+TR_if TR_devices().TR_contains("gpu") { TR_default_device("gpu") }   # GPU yoksa CPU'da kalır
+TR_var W = TR_tensor(TR_no_grad(TR_randn([16, 4], TR_seed: 1) * 0.1), TR_requires_grad: TR_true)
+TR_var x = TR_randn([8, 16], TR_seed: 2)              # varsayılan cihazda
+TR_var iyileştirici = TR_AdamW([W], TR_lr: 0.01)
+TR_for adım TR_in 0..10 {                                    # döngü CPU'dakiyle aynı
+    iyileştirici.TR_zero_grad()
+    TR_var kayıp = TR_cross_entropy(x @ W, [0, 1, 2, 3, 0, 1, 2, 3])
+    TR_backward(kayıp)
+    iyileştirici.TR_step()
 }
-TR_fn_print(W.TR_mem_device, TR_fn_default_device())
+TR_print(W.TR_device, TR_default_device())
 ```
 
 Veri kümesinin örnekleyicisi (`TR_fn_dataset(...).TR_mem_sampler(...)`) de toplu işleri varsayılan
@@ -178,23 +178,23 @@ Büyük metin derlemleriyle model eğitmek için iki yerleşik nesne vardır: `t
 - Hatalar Türkçe ve yol göstericidir (dosya yok, `.npy` değil, kota yetersiz, bağlam veri dosyalarından uzun, adlı argüman yazım hatası...) ve `dene/yakala` ile yakalanır.
 
 ```tr
-//! tr kodlu 3 dil=tr
-TR_kw_var p = TR_fn_load_tokenizer("tokenizer.json")
-TR_fn_print(p.TR_mem_encode("Merhaba dünya"), p.TR_mem_vocab_size)
-TR_kw_var küme = TR_fn_dataset("veri/train")
-TR_kw_var ö = küme.TR_mem_sampler(TR_arg_batch_size: 8, TR_arg_context: 256, TR_arg_seed: 1)
-TR_kw_var E = TR_fn_tensor(TR_fn_no_grad(TR_fn_randn([p.TR_mem_vocab_size, 64], TR_arg_seed: 1) * 0.1), TR_arg_requires_grad: TR_kw_true)
-TR_kw_var W = TR_fn_tensor(TR_fn_no_grad(TR_fn_randn([64, p.TR_mem_vocab_size], TR_arg_seed: 2) * 0.1), TR_arg_requires_grad: TR_kw_true)
-TR_kw_var op = TR_fn_AdamW([E, W], TR_arg_lr: 0.01)
-TR_kw_for adım TR_kw_in 0..100 {
-    TR_kw_var girdi, hedef = ö.TR_mem_next()
-    op.TR_mem_zero_grad()
-    TR_kw_var kayıp = TR_fn_cross_entropy(TR_fn_embedding(E, girdi) @ W, hedef)
-    TR_fn_backward(kayıp)
-    op.TR_mem_step()
+# TR 4
+TR_var p = TR_load_tokenizer("tokenizer.json")
+TR_print(p.TR_encode("Merhaba dünya"), p.TR_vocab_size)
+TR_var küme = TR_dataset("veri/train")
+TR_var ö = küme.TR_sampler(TR_batch_size: 8, TR_context: 256, TR_seed: 1)
+TR_var E = TR_tensor(TR_no_grad(TR_randn([p.TR_vocab_size, 64], TR_seed: 1) * 0.1), TR_requires_grad: TR_true)
+TR_var W = TR_tensor(TR_no_grad(TR_randn([64, p.TR_vocab_size], TR_seed: 2) * 0.1), TR_requires_grad: TR_true)
+TR_var op = TR_AdamW([E, W], TR_lr: 0.01)
+TR_for adım TR_in 0..100 {
+    TR_var girdi, hedef = ö.TR_next()
+    op.TR_zero_grad()
+    TR_var kayıp = TR_cross_entropy(TR_embedding(E, girdi) @ W, hedef)
+    TR_backward(kayıp)
+    op.TR_step()
 }
-TR_kw_var doğrulama = TR_fn_dataset("veri/_valid").TR_mem_sequential(TR_arg_batch_size: 8, TR_arg_context: 256)
-TR_kw_for doğrulama.TR_mem_next() != TR_kw_none { }   // bitince yok döner
+TR_var doğrulama = TR_dataset("veri/_valid").TR_sequential(TR_batch_size: 8, TR_context: 256)
+TR_for doğrulama.TR_next() != TR_none { }   # bitince yok döner
 ```
 
 VS Code İzleme Masası'nda bu nesneler tip sütununda `Parçalayıcı (dağarcık 40000)`, `Veri kümesi (246 veri dosyası, 56,9 milyar parça)`, `Örnekleyici (32×1024, dönem 0, 120 toplu iş)` gibi görünür; parçalayıcı (eklenmiş/özel parçalar) ve veri kümesi (veri dosyaları) tablo olarak açılabilir.
@@ -211,29 +211,29 @@ Veri klasörünü gezmek, çıktı klasörü açmak, kontrol noktalarını yedek
 - **Atomik yazma:** `TR_fn_write_file` de `TR_fn_save_tensors` gibi önce geçici dosyaya yazıp yerine koyar: yarıda kalan yazma eski dosyayı bozmaz. Bedeli: her yazma diske işlenir (çok sayıda küçük yazma eskisinden yavaştır) ve dosyanın sabit bağlantıları kopar.
 
 ```tr
-//! tr kodlu 3 dil=tr
-TR_kw_var çıktı = TR_fn_make_dir(TR_fn_path("çıktı", "deneme_1"))
-TR_kw_for p TR_kw_in TR_fn_list_dir("veri", "**/*.npy") { TR_fn_print(p.TR_mem_name, p.TR_mem_size) }
-TR_kw_var model = TR_fn_path(çıktı, "model.trt")
-TR_kw_if model.TR_mem_exists { TR_fn_copy(model, TR_fn_make_dir("yedek"), TR_arg_overwrite: TR_kw_true) }
-TR_kw_var n = 0
-TR_kw_for satır TR_kw_in TR_fn_read_lines("veri/derlem.jsonl.gz") { n += 1 }
-TR_fn_print("{n} satır")
+# TR 4
+TR_var çıktı = TR_make_dir(TR_path("çıktı", "deneme_1"))
+TR_for p TR_in TR_list_dir("veri", "**/*.npy") { TR_print(p.TR_name, p.TR_size) }
+TR_var model = TR_path(çıktı, "model.trt")
+TR_if model.TR_exists { TR_copy(model, TR_make_dir("yedek"), TR_overwrite: TR_true) }
+TR_var n = 0
+TR_for satır TR_in TR_read_lines("veri/derlem.jsonl.gz") { n += 1 }
+TR_print("\(n) satır")
 ```
 
 ## F. Eğitimde ayarlar, günlük ve ilerleme
 Uzun bir eğitimi izlemek için üç yerleşik yeter: betiğin ayarlarını komut satırından alan `TR_fn_command_line`, her adımı gösteren `TR_fn_progress` çubuğu ve sonradan bakılacak `TR_fn_logger` dosyası. Kurallar: [`docs/spec/19_surec_ve_kayit.md`](../spec/19_surec_ve_kayit.md). Uçtan uca örnek: `examples/tr/39_veri_ile_egitim.tr`.
 
 ```tr
-//! tr kodlu 3 dil=tr
-TR_kw_var ayar = TR_fn_command_line({TR_mem_step: 2000, TR_mem_lr: 0.001, günlük_dosyası: TR_kw_none},
-    TR_arg_description: "Küçük dil modelini eğitir",
-    TR_arg_descriptions: {TR_mem_step: "eğitim adımı sayısı", günlük_dosyası: "ölçülerin yazılacağı .jsonl dosyası"})
-TR_kw_var g = TR_kw_if ayar.günlük_dosyası != TR_kw_none { TR_fn_logger(ayar.günlük_dosyası) } TR_kw_else { TR_kw_none }
-TR_kw_var ç = TR_fn_progress(ayar.TR_mem_step, TR_arg_log: g)
-TR_kw_for adım TR_kw_in 0..ayar.TR_mem_step {
-    TR_kw_var kayıp = 1.0 / (adım + 1)   // burada modelin bir eğitim adımı çalışır
-    ç.TR_mem_update({TR_mem_loss: kayıp, TR_mem_lr: ayar.TR_mem_lr})
+# TR 4
+TR_var ayar = TR_command_line({TR_step: 2000, TR_lr: 0.001, günlük_dosyası: TR_none},
+    TR_description: "Küçük dil modelini eğitir",
+    TR_descriptions: {TR_step: "eğitim adımı sayısı", günlük_dosyası: "ölçülerin yazılacağı .jsonl dosyası"})
+TR_var g = TR_if ayar.günlük_dosyası != TR_none { TR_logger(ayar.günlük_dosyası) } TR_else { TR_none }
+TR_var ç = TR_progress(ayar.TR_step, TR_log: g)
+TR_for adım TR_in 0..ayar.TR_step {
+    TR_var kayıp = 1.0 / (adım + 1)   # burada modelin bir eğitim adımı çalışır
+    ç.TR_update({TR_loss: kayıp, TR_lr: ayar.TR_lr})
 }
 ```
 

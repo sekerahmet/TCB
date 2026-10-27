@@ -66,7 +66,7 @@ yazdır(z["sapma"].gradyan.değer)`)
 		{write("surum.trt", version), messages.H6611},
 		{write("tur.trt", dtype), messages.H6616},
 		{write("fazla.trt", append(append([]byte{}, data...), 0)), messages.H6628},
-		{filepath.ToSlash(filepath.Join(dir, "yok.trt")), messages.H2107},
+		{filepath.ToSlash(filepath.Join(dir, "TR_none.trt")), messages.H2107},
 		{filepath.ToSlash(dir), messages.H6629},
 	}
 	for _, d := range cases {
@@ -82,7 +82,7 @@ yazdır(z["sapma"].gradyan.değer)`)
 		{`tensör_kaydet("` + fpath + `", {"a": 1})`, messages.H6608},
 		{`tensör_kaydet("` + fpath + `", {1: tensör([1])})`, messages.H6606},
 		{`tensör_kaydet("` + fpath + `", [tensör([1])])`, messages.H6605},
-		{`tensör_kaydet("", {})`, messages.H6603},
+		{`TR_save_tensors("", {})`, messages.H6603},
 	} {
 		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
 			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.want)

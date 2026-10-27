@@ -11,10 +11,10 @@ import (
 )
 
 func TestTruthValue(t *testing.T) {
-	out := mustRun(t, `eğer tensör([0.0]) { yazdır("yanlış") } değilse { yazdır("sıfır yanlıştır") }
-eğer toplam(tensör([1, -1])) { yazdır("yanlış") } değilse { yazdır("skaler sıfır yanlıştır") }
-eğer tensör([2.5]) { yazdır("sıfır olmayan doğrudur") }
-eğer sıfırlar([0]) { yazdır("yanlış") } değilse { yazdır("boş yanlıştır") }`)
+	out := mustRun(t, `TR_if TR_tensor([0.0]) { TR_print("yanlış") } TR_else { TR_print("sıfır yanlıştır") }
+TR_if TR_sum(TR_tensor([1, -1])) { TR_print("yanlış") } TR_else { TR_print("skaler sıfır yanlıştır") }
+TR_if TR_tensor([2.5]) { TR_print("sıfır olmayan doğrudur") }
+TR_if TR_zeros([0]) { TR_print("yanlış") } TR_else { TR_print("boş yanlıştır") }`)
 	want := "sıfır yanlıştır\nskaler sıfır yanlıştır\nsıfır olmayan doğrudur\nboş yanlıştır\n"
 	if out != want {
 		t.Fatalf("doğruluk:\n%q", out)
@@ -22,11 +22,11 @@ eğer sıfırlar([0]) { yazdır("yanlış") } değilse { yazdır("boş yanlışt
 }
 
 func TestValueShortForm(t *testing.T) {
-	out := mustRun(t, `değişken a = tensör([0.1, 0.2, 1.5, 3])
-yazdır(a.değer, a.değer[0] == 0.1, toplam(tensör([0.1])).değer)
-değişken m = tensör([[1, 2], [3, 4]]).değer
-m[0].ekle(9)
-yazdır(m)`)
+	out := mustRun(t, `TR_var a = TR_tensor([0.1, 0.2, 1.5, 3])
+TR_print(a.TR_tolist, a.TR_tolist[0] == 0.1, TR_sum(TR_tensor([0.1])).TR_tolist)
+TR_var m = TR_tensor([[1, 2], [3, 4]]).TR_tolist
+m[0].TR_append(9)
+TR_print(m)`)
 	want := "[0.1, 0.2, 1.5, 3.0] doğru 0.1\n[[1.0, 2.0, 9], [3.0, 4.0]]\n"
 	if out != want {
 		t.Fatalf("değer:\n%q\nbeklenen:\n%q", out, want)
@@ -57,23 +57,23 @@ func TestValueAllocations(t *testing.T) {
 }
 
 func TestIntermediateTensorGrad(t *testing.T) {
-	_, err := run(t, `değişken w = tensör([1.0, 2.0], türev_izle: doğru)
-geri_yayılım(toplam(w * w))
-w = w - w.gradyan * 0.1
-yazdır(w.gradyan)`)
+	_, err := run(t, `TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+TR_backward(TR_sum(w * w))
+w = w - w.TR_grad * 0.1
+TR_print(w.TR_grad)`)
 	if err == nil || !messages.Has(err, messages.H6700) {
 		t.Fatalf("ara tensör gradyanı: %v", err)
 	}
 	// Geri yayılımdan sonra da ara tensör ara sayılır ve iyileştiriciye verilemez.
-	_, err = run(t, `değişken w = tensör([1.0], türev_izle: doğru)
-değişken y = w * 2
-geri_yayılım(toplam(y))
-AdamW([y])`)
+	_, err = run(t, `TR_var w = TR_tensor([1.0], TR_requires_grad: TR_true)
+TR_var y = w * 2
+TR_backward(TR_sum(y))
+TR_AdamW([y])`)
 	if err == nil || !messages.Has(err, messages.H6514) {
 		t.Fatalf("ara tensör parametre: %v", err)
 	}
 	// Henüz geri yayılım yapılmamış yaprakta gradyan yoktur.
-	out := mustRun(t, `yazdır(tensör([1.0], türev_izle: doğru).gradyan, sıfırlar([2]).gradyan)`)
+	out := mustRun(t, `TR_print(TR_tensor([1.0], TR_requires_grad: TR_true).TR_grad, TR_zeros([2]).TR_grad)`)
 	if out != "yok yok\n" {
 		t.Fatalf("yaprak gradyanı: %q", out)
 	}

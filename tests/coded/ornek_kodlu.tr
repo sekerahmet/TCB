@@ -1,35 +1,35 @@
-//! tr kodlu 3 dil=tr
-// Kodlu biçimde saklanmış bir modül (docs/spec/17_kodlar.md, 17.1-17.4): dilin sözcükleri
-// kodlarla yazılır, kullanıcının adları, metinler, sayılar ve yorumlar olduğu gibi kalır.
-// Türkçe gösterimi: tr göster tests/coded/ornek_kodlu.tr
-TR_kw_func kareler(liste) {
-    TR_kw_return liste.TR_mem_map { TR_ctx_it * TR_ctx_it }
+# TR 4
+# Kodlu biçimde saklanmış bir modül (docs/spec/17_kodlar.md, 17.1-17.4): dilin sözcükleri
+# kodlarla yazılır, kullanıcının adları, metinler, sayılar ve yorumlar olduğu gibi kalır.
+# Türkçe gösterimi: tr göster tests/coded/ornek_kodlu.tr
+TR_func kareler(liste) {
+    TR_return liste.TR_map { TR_it * TR_it }
 }
 
-TR_kw_struct Sayac {
-    TR_mem_length = 0
-    TR_kw_func TR_mem_append(x) {
-        TR_kw_self.TR_mem_length += x
+TR_struct Sayac {
+    TR_length = 0
+    TR_func TR_append(x) {
+        TR_self.TR_length += x
     }
 }
 
-// Gölgelenen yerleşik kullanıcının adıdır: bu kapsamdaki 'toplam' kod değil.
-TR_kw_func golge() {
-    TR_kw_var toplam = 5
-    TR_kw_return toplam
+# Gölgelenen yerleşik kullanıcının adıdır: bu kapsamdaki 'toplam' kod değil.
+TR_func golge() {
+    TR_var toplam = 5
+    TR_return toplam
 }
 
-// Kod olmayan her ad kullanıcının adıdır, Türkçenin bir anahtar kelimesiyle aynı olsa bile.
-TR_kw_var eğer = 7
+# Kod olmayan her ad kullanıcının adıdır, Türkçenin bir anahtar kelimesiyle aynı olsa bile.
+TR_var eğer = 7
 
-TR_kw_func bilgi() {
-    TR_kw_return "toplam: {TR_fn_sum(TR_fn_tensor([1, 2, 3]), TR_arg_dim: 0).TR_mem_tolist}, eğer: {eğer}, ham: " + `{TR_fn_sum}`
+TR_func bilgi() {
+    TR_return "toplam: \(TR_sum(TR_tensor([1, 2, 3]), TR_dim: 0).TR_tolist), eğer: \(eğer), ham: " + `{TR_fn_sum}`
 }
 
-TR_kw_func yakalanan() {
-    TR_kw_try {
-        TR_kw_throw "x"
-    } TR_kw_catch {
-        TR_kw_return TR_ctx_error
+TR_func yakalanan() {
+    TR_try {
+        TR_throw "x"
+    } TR_catch {
+        TR_return TR_error
     }
 }

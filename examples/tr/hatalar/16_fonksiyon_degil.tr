@@ -1,14 +1,14 @@
-//! tr kodlu 3 dil=tr
-// Hata 16 — Fonksiyon olmayanı çağırmak.
-// İleti kodu: H2421
-// Ne olur: Fonksiyon olmayan bir değer çağrılırsa çalışma anında hata alınır.
-// Neden: x bir Tam; Tam fonksiyon gibi çağrılamaz.
-// Düzeltilmiş hâli:
-//     fonksiyon x() {
-//         sonuç 5
-//     }
-//     yazdır(x())
-// Çalıştırma (proje kökünden): tr examples/tr/hatalar/16_fonksiyon_degil.tr   (çıkış kodu 1)
+# TR 4
+# Hata 16 — Fonksiyon olmayanı çağırmak.
+# İleti kodu: H2421
+# Ne olur: Fonksiyon olmayan bir değer çağrılırsa çalışma anında hata alınır.
+# Neden: x bir Tam; Tam fonksiyon gibi çağrılamaz.
+# Düzeltilmiş hâli:
+#     fonksiyon x() {
+#         sonuç 5
+#     }
+#     yazdır(x())
+# Çalıştırma (proje kökünden): tr examples/tr/hatalar/16_fonksiyon_degil.tr   (çıkış kodu 1)
 
-TR_kw_var x = 5
+TR_var x = 5
 x()

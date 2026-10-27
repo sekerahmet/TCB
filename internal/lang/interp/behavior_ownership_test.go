@@ -161,11 +161,11 @@ func expectOut(t *testing.T, code, want string) *fakeWorld {
 // Bir işlemin ara sonucu işlem biter bitmez bırakılır (Mojo'nun "ASAP" yok etmesi gibi).
 func TestOwnershipOperandTemporaryReleasedAfterOperation(t *testing.T) {
 	expectOut(t, `
-değişken a = yeni()
-değişken b = yeni()
-değişken c = a + b + a
-yazdır(bırakılan())
-yazdır(oku(a), oku(b), oku(c))
+TR_var a = yeni()
+TR_var b = yeni()
+TR_var c = a + b + a
+TR_print(bırakılan())
+TR_print(oku(a), oku(b), oku(c))
 `, `
 [3]
 1 2 4`)
@@ -175,19 +175,19 @@ yazdır(oku(a), oku(b), oku(c))
 // düzeyin değişkenleri geneldir (fonksiyonlar görür): onlara yazılan değer kaçar.
 func TestOwnershipOverwrittenVariableReleased(t *testing.T) {
 	expectOut(t, `
-fonksiyon f() {
-    değişken x = yeni()
-    değişken y = x
+TR_func f() {
+    TR_var x = yeni()
+    TR_var y = x
     x = yeni()
-    yazdır(bırakılan())
+    TR_print(bırakılan())
     y = yeni()
-    yazdır(bırakılan())
-    yazdır(oku(x), oku(y))
+    TR_print(bırakılan())
+    TR_print(oku(x), oku(y))
 }
 f()
-değişken genel = yeni()
+TR_var genel = yeni()
 genel = yeni()
-yazdır(bırakılan())
+TR_print(bırakılan())
 `, `
 []
 [1]
@@ -198,15 +198,15 @@ yazdır(bırakılan())
 // Fonksiyonun yerelleri dönüşte bırakılır, döndürdüğü çağırana geçer; argüman çağıranındır.
 func TestOwnershipReturnMovesToCallerLocalsReleased(t *testing.T) {
 	expectOut(t, `
-fonksiyon f(p) {
-    değişken t = yeni()
-    değişken u = p + t
-    sonuç u
+TR_func f(p) {
+    TR_var t = yeni()
+    TR_var u = p + t
+    TR_return u
 }
-değişken q = yeni()
-değişken r = f(q)
-yazdır(bırakılan())
-yazdır(oku(q), oku(r))
+TR_var q = yeni()
+TR_var r = f(q)
+TR_print(bırakılan())
+TR_print(oku(q), oku(r))
 `, `
 [2]
 1 3`)
@@ -215,15 +215,15 @@ yazdır(oku(q), oku(r))
 // Örtük dönüş (gövdenin son değeri) ve iç içe çağrılar.
 func TestOwnershipImplicitReturnAndNestedCalls(t *testing.T) {
 	expectOut(t, `
-fonksiyon iç(a) { a + yeni() }
-fonksiyon dış(a) {
-    değişken x = iç(a)
+TR_func iç(a) { a + yeni() }
+TR_func dış(a) {
+    TR_var x = iç(a)
     iç(x)
 }
-değişken s = yeni()
-değişken r = dış(s)
-yazdır(oku(s), oku(r))
-yazdır(bırakılan())
+TR_var s = yeni()
+TR_var r = dış(s)
+TR_print(oku(s), oku(r))
+TR_print(bırakılan())
 `, `
 1 5
 [2, 4, 3]`)
@@ -232,21 +232,21 @@ yazdır(bırakılan())
 // Nesne alanına, Go'nun tuttuğu yere ve kapanışın gördüğü değişkene yazılan değer kaçar.
 func TestOwnershipEscapesAreNeverReleased(t *testing.T) {
 	expectOut(t, `
-yapı K {
+TR_struct K {
     alan
 }
-değişken k = K(yok)
+TR_var k = K(TR_none)
 k.alan = yeni()
 sakla(yeni())
-fonksiyon yapıcı() {
-    değişken gizli = yeni()
-    sonuç () => oku(gizli)
+TR_func yapıcı() {
+    TR_var gizli = yeni()
+    TR_return () => oku(gizli)
 }
-değişken g = yapıcı()
-değişken s = {a: yeni()}
-döngü i içinde 0..3 { değişken geçici = yeni() }
-yazdır(oku(k.alan), g(), oku(s["a"]))
-yazdır(bırakılan())
+TR_var g = yapıcı()
+TR_var s = {a: yeni()}
+TR_for i TR_in 0..3 { TR_var geçici = yeni() }
+TR_print(oku(k.alan), g(), oku(s["a"]))
+TR_print(bırakılan())
 `, `
 1 3 4
 [5, 6, 7]`)
@@ -256,14 +256,14 @@ yazdır(bırakılan())
 // yerleşiğin ara sonuç argümanı (liste) çağrıdan hemen sonra bırakılır.
 func TestOwnershipListLiteralOwnsElements(t *testing.T) {
 	expectOut(t, `
-fonksiyon f() {
-    değişken a = yeni()
-    değişken l = [yeni(), a]
-    değişken c = birleşim([a + a, yeni()])
-    yazdır(bırakılan())
-    l = yok
-    yazdır(bırakılan())
-    yazdır(oku(a), oku(c))
+TR_func f() {
+    TR_var a = yeni()
+    TR_var l = [yeni(), a]
+    TR_var c = birleşim([a + a, yeni()])
+    TR_print(bırakılan())
+    l = TR_none
+    TR_print(bırakılan())
+    TR_print(oku(a), oku(c))
 }
 f()
 `, `
@@ -275,17 +275,17 @@ f()
 // Sonradan değişen ya da bir alana yazılan sahip liste elemanlarıyla birlikte kaçar.
 func TestOwnershipMutatedOrStoredListEscapes(t *testing.T) {
 	expectOut(t, `
-yapı K {
+TR_struct K {
     liste
 }
-değişken l = [yeni()]
-l.ekle(yeni())
-değişken m = [yeni(), yeni()]
-değişken k = K(m)
-l = yok
-m = yok
-yazdır(bırakılan())
-yazdır(oku(k.liste[0]))
+TR_var l = [yeni()]
+l.TR_append(yeni())
+TR_var m = [yeni(), yeni()]
+TR_var k = K(m)
+l = TR_none
+m = TR_none
+TR_print(bırakılan())
+TR_print(oku(k.liste[0]))
 `, `
 []
 3`)
@@ -295,11 +295,11 @@ yazdır(oku(k.liste[0]))
 // değişkene bağlanan eleman yaşar, diğeri liste ile bırakılır.
 func TestOwnershipEngineListOwnsElements(t *testing.T) {
 	expectOut(t, `
-değişken p = böl2(yeni())[0]
-yazdır(bırakılan())
-değişken a, b = böl2(p)
-yazdır(oku(p), oku(a), oku(b))
-yazdır(bırakılan())
+TR_var p = böl2(yeni())[0]
+TR_print(bırakılan())
+TR_var a, b = böl2(p)
+TR_print(oku(p), oku(a), oku(b))
+TR_print(bırakılan())
 `, `
 [1, 3]
 2 4 5
@@ -310,11 +310,11 @@ yazdır(bırakılan())
 // gezilen liste döngü sürerken korunur.
 func TestOwnershipLoopTurnsReleaseTheirValues(t *testing.T) {
 	expectOut(t, `
-döngü x içinde [yeni(), yeni()] {
-    değişken t = x + x
-    yazdır(oku(x), oku(t), bırakılan())
+TR_for x TR_in [yeni(), yeni()] {
+    TR_var t = x + x
+    TR_print(oku(x), oku(t), bırakılan())
 }
-yazdır(bırakılan())
+TR_print(bırakılan())
 `, `
 1 3 []
 2 4 [3]
@@ -324,15 +324,15 @@ yazdır(bırakılan())
 // Fonksiyonun içinden, döngünün ortasından dönen değer çağırana geçer.
 func TestOwnershipReturnFromLoop(t *testing.T) {
 	expectOut(t, `
-fonksiyon bul() {
-    döngü i içinde 0..5 {
-        değişken t = yeni()
-        eğer i == 2 { sonuç t }
+TR_func bul() {
+    TR_for i TR_in 0..5 {
+        TR_var t = yeni()
+        TR_if i == 2 { TR_return t }
     }
-    sonuç yok
+    TR_return TR_none
 }
-değişken r = bul()
-yazdır(oku(r), bırakılan())
+TR_var r = bul()
+TR_print(oku(r), bırakılan())
 `, `
 3 [1, 2]`)
 }
@@ -341,15 +341,15 @@ yazdır(oku(r), bırakılan())
 // bırakılmaz.
 func TestOwnershipNestedIfInsideExpressionKeepsOuterTemporaries(t *testing.T) {
 	expectOut(t, `
-değişken a = yeni()
-değişken r = (a + a) + eğer doğru {
-    değişken w = yeni()
+TR_var a = yeni()
+TR_var r = (a + a) + TR_if TR_true {
+    TR_var w = yeni()
     oku(w)
     w + w
-} değilse {
+} TR_else {
     yeni()
 }
-yazdır(oku(r))
+TR_print(oku(r))
 `, `
 5`)
 }
@@ -357,13 +357,13 @@ yazdır(oku(r))
 // Liste üreteci sonuçlarının sahibidir.
 func TestOwnershipComprehensionOwnsResults(t *testing.T) {
 	expectOut(t, `
-fonksiyon kat(x) { sonuç x + yeni() }
-fonksiyon f() {
-    değişken a = yeni()
-    değişken m = [kat(a) döngü i içinde 0..2]
-    yazdır(oku(m[0]), oku(m[1]))
-    m = yok
-    yazdır(bırakılan())
+TR_func kat(x) { TR_return x + yeni() }
+TR_func f() {
+    TR_var a = yeni()
+    TR_var m = [kat(a) TR_for i TR_in 0..2]
+    TR_print(oku(m[0]), oku(m[1]))
+    m = TR_none
+    TR_print(bırakılan())
 }
 f()
 `, `
@@ -374,10 +374,10 @@ f()
 // Go'dan çağrılan fonksiyonun sonucu (liste metotlarının geri çağrıları) kaçar.
 func TestOwnershipCallbackResultsEscape(t *testing.T) {
 	expectOut(t, `
-değişken a = yeni()
-değişken l = [1, 2].haritala((i) => a + a)
-yazdır(oku(l[0]), oku(l[1]))
-yazdır(bırakılan())
+TR_var a = yeni()
+TR_var l = [1, 2].TR_map((i) => a + a)
+TR_print(oku(l[0]), oku(l[1]))
+TR_print(bırakılan())
 `, `
 2 3
 []`)
@@ -386,15 +386,15 @@ yazdır(bırakılan())
 // 'ertele' ve 'eşzamanlı' ortamı yakalar: yakalanan değer onlar çalışana kadar yaşar.
 func TestOwnershipDeferAndAsyncCaptureEscape(t *testing.T) {
 	expectOut(t, `
-fonksiyon f() {
-    değişken t = yeni()
-    ertele { yazdır(oku(t)) }
+TR_func f() {
+    TR_var t = yeni()
+    TR_defer { TR_print(oku(t)) }
     yeni()
 }
 f()
-değişken u = yeni()
-eşzamanlı { yazdır(oku(u)) }
-bekle_hepsi()
+TR_var u = yeni()
+TR_async { TR_print(oku(u)) }
+TR_wait_all()
 `, `
 1
 3`)
@@ -403,13 +403,13 @@ bekle_hepsi()
 // Özyineleme: her çağrının kendi çerçevesi vardır.
 func TestOwnershipRecursion(t *testing.T) {
 	expectOut(t, `
-fonksiyon zincir(n, x) {
-    eğer n == 0 { sonuç x }
-    değişken y = x + yeni()
-    sonuç zincir(n - 1, y)
+TR_func zincir(n, x) {
+    TR_if n == 0 { TR_return x }
+    TR_var y = x + yeni()
+    TR_return zincir(n - 1, y)
 }
-değişken r = zincir(3, yeni())
-yazdır(oku(r), bırakılan().uzunluk)
+TR_var r = zincir(3, yeni())
+TR_print(oku(r), bırakılan().TR_length)
 `, `
 7 6`)
 }
@@ -419,12 +419,12 @@ yazdır(oku(r), bırakılan().uzunluk)
 // havuza sıfırlanarak verilir, kapanışı çağırmak 'ad yok' hatası verir.
 func TestDefaultParamClosureKeepsFunctionEnvironment(t *testing.T) {
 	expectOut(t, `
-fonksiyon kur(x = yeni(), g = () => oku(x)) {
-    sonuç g
+TR_func kur(x = yeni(), g = () => oku(x)) {
+    TR_return g
 }
-değişken f = kur()
-yazdır(bırakılan())
-yazdır(f())
+TR_var f = kur()
+TR_print(bırakılan())
+TR_print(f())
 `, `
 []
 1`)
@@ -435,17 +435,17 @@ yazdır(f())
 // kaynak hiç bırakılmaz.
 func TestFailingCallArgumentReleasesEarlierArguments(t *testing.T) {
 	expectOut(t, `
-fonksiyon hedef(a, b) { sonuç a }
-fonksiyon patla() { fırlat "hata" }
-fonksiyon sına() {
-    değişken x = yeni()
-    dene {
+TR_func hedef(a, b) { TR_return a }
+TR_func patla() { TR_throw "hata" }
+TR_func sına() {
+    TR_var x = yeni()
+    TR_try {
         hedef(x, patla())
-    } yakala {
+    } TR_catch {
     }
 }
 sına()
-yazdır(bırakılan())
+TR_print(bırakılan())
 `, `
 [1]`)
 }

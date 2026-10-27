@@ -86,7 +86,7 @@ func TestBuildDeclarations(t *testing.T) {
 	if got["function:examples/coded.tr#kodlu_işlev"].Pos == nil || !got["module:examples/coded.tr"].Coded {
 		t.Errorf("the coded file is read with its identities: %+v", got["function:examples/coded.tr#kodlu_işlev"])
 	}
-	if sig := got["method:lib/geo.tr#Kare.TR_ctx_init"].Signature; sig != "TR_kw_func TR_ctx_init(kenar = …)" {
+	if sig := got["method:lib/geo.tr#Kare.TR_ctx_init"].Signature; sig != "TR_func TR_init(kenar = …)" {
 		t.Errorf("method signature: %q", sig)
 	}
 }

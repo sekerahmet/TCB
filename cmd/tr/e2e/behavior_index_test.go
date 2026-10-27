@@ -13,8 +13,8 @@ func indexProject(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
 	testkit.WriteFile(t, dir, ".git/HEAD", "ref: refs/heads/main\n")
-	testkit.WriteFile(t, dir, "lib/geo.tr", "// Kare bir kenar uzunluğu taşır.\nyapı Kare {\n    kenar = 1\n    fonksiyon alan() {\n        sonuç kendi.kenar * kendi.kenar\n    }\n}\n\nfonksiyon çevre(k) {\n    yazdır(k.kenar)\n    sonuç 4 * k.kenar\n}\n")
-	testkit.WriteFile(t, dir, "lib/geo_test.tr", "aktar \"geo\"\n\ntest \"çevre hesaplanır\" {\n    çevre(Kare())\n}\n")
+	testkit.WriteFile(t, dir, "lib/geo.tr", "# Kare bir kenar uzunluğu taşır.\nTR_struct Kare {\n    kenar = 1\n    TR_func alan() {\n        TR_return TR_self.kenar * TR_self.kenar\n    }\n}\n\nTR_func çevre(k) {\n    TR_print(k.kenar)\n    TR_return 4 * k.kenar\n}\n")
+	testkit.WriteFile(t, dir, "lib/geo_test.tr", "TR_import \"geo\"\n\nTR_test \"çevre hesaplanır\" {\n    çevre(Kare())\n}\n")
 	return dir
 }
 
@@ -44,7 +44,7 @@ func TestIndexSubcommandsInEveryLanguage(t *testing.T) {
 // Çıkış kodu sonucun durumudur: belirsiz ad 3, bulunamayan ad 4; --json kararlı şemadır.
 func TestIndexExitCodesAndJSON(t *testing.T) {
 	dir := indexProject(t)
-	testkit.WriteFile(t, dir, "m.tr", "yapı A {\n    fonksiyon ileri() {\n        sonuç 1\n    }\n}\nyapı B {\n    fonksiyon ileri() {\n        sonuç 2\n    }\n}\n")
+	testkit.WriteFile(t, dir, "m.tr", "TR_struct A {\n    TR_func TR_forward() {\n        TR_return 1\n    }\n}\nTR_struct B {\n    TR_func TR_forward() {\n        TR_return 2\n    }\n}\n")
 	testkit.Wait(t, tr(t, dir, "dizin", "tanım", "ileri"), 3, []string{"A.ileri", "B.ileri"}, nil)
 	testkit.Wait(t, tr(t, dir, "dizin", "tanım", "yok_boyle_bir_ad"), 4, nil, nil)
 	s := tr(t, dir, "dizin", "kullananlar", "çevre", "--json")
@@ -85,7 +85,7 @@ func TestIndexCache(t *testing.T) {
 	testkit.Wait(t, tr(t, dir, "dizin", "--durum"), 0, []string{"önbellek yok"}, nil)
 	testkit.Wait(t, tr(t, dir, "dizin"), 0, []string{"2/2 dosya yeniden ayrıştırıldı"}, nil)
 	testkit.Wait(t, tr(t, dir, "dizin"), 0, []string{"önbellekten okundu"}, nil)
-	testkit.WriteFile(t, dir, "lib/geo_test.tr", "aktar \"geo\"\n\ntest \"çevre hesaplanır\" {\n    çevre(Kare())\n    çevre(Kare())\n}\n")
+	testkit.WriteFile(t, dir, "lib/geo_test.tr", "TR_import \"geo\"\n\nTR_test \"çevre hesaplanır\" {\n    çevre(Kare())\n    çevre(Kare())\n}\n")
 	testkit.Wait(t, tr(t, dir, "dizin", "--durum"), 0, []string{"1 değişmiş", "lib/geo_test.tr"}, nil)
 	testkit.Wait(t, tr(t, dir, "dizin", "kullananlar", "çevre", "--dizin-yok", "--json"), 0, []string{`"total": 1`}, nil)
 	testkit.Wait(t, tr(t, dir, "dizin", "kullananlar", "çevre", "--json"), 0, []string{`"total": 2`}, nil)
@@ -97,7 +97,7 @@ func TestIndexCache(t *testing.T) {
 func TestIndexRename(t *testing.T) {
 	dir := t.TempDir()
 	testkit.WriteFile(t, dir, ".git/HEAD", "ref: refs/heads/main\n")
-	testkit.WriteFile(t, dir, "m.tr", "yapı Dikkat {\n    baş\n    fonksiyon say() {\n        sonuç kendi.baş\n    }\n}\n\nfonksiyon yap(baş) {\n    değişken d = Dikkat()\n    sonuç d.baş + baş\n}\n\ndeğişken e = yap(baş: 4)\nyazdır(e)\n")
+	testkit.WriteFile(t, dir, "m.tr", "TR_struct Dikkat {\n    baş\n    TR_func say() {\n        TR_return TR_self.baş\n    }\n}\n\nTR_func yap(baş) {\n    TR_var d = Dikkat()\n    TR_return d.baş + baş\n}\n\nTR_var e = yap(baş: 4)\nTR_print(e)\n")
 	testkit.WriteFile(t, dir, "doc.md", "Dikkatin başı ve başka şey.\n")
 	r := tr(t, dir, "dizin", "yeniden_adlandır", "Dikkat.baş", "bakış_sayısı", "--metin-yok")
 	testkit.Wait(t, r, 0, []string{"kesin (", "olası (", "m.tr:2:5", "m.tr:4:21", "hiçbir dosya değiştirilmedi"}, nil)

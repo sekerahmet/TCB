@@ -1,54 +1,54 @@
-//! tr kodlu 3 dil=tr
-// 08 — Fonksiyonlar: işi adlandırıp yeniden kullanmak.
-// Ne öğretir: fonksiyon ve sonuç, tip bildirimi, varsayılan değer, adlı argüman, kendini
-// çağıran (özyinelemeli) fonksiyon.
-// Önceki örnekten: koşullar (05), döngüler (07), metne değer yerleştirme (04).
-// Çalıştırma (proje kökünden): tr examples/tr/08_fonksiyonlar.tr
+# TR 4
+# 08 — Fonksiyonlar: işi adlandırıp yeniden kullanmak.
+# Ne öğretir: fonksiyon ve sonuç, tip bildirimi, varsayılan değer, adlı argüman, kendini
+# çağıran (özyinelemeli) fonksiyon.
+# Önceki örnekten: koşullar (05), döngüler (07), metne değer yerleştirme (04).
+# Çalıştırma (proje kökünden): tr examples/tr/08_fonksiyonlar.tr
 
-// fonksiyon ad(parametreler) { ... sonuç değer }: sonuç değeri çağırana geri verir.
-TR_kw_func topla(a, b) {
-    TR_kw_return a + b
+# fonksiyon ad(parametreler) { ... sonuç değer }: sonuç değeri çağırana geri verir.
+TR_func topla(a, b) {
+    TR_return a + b
 }
-TR_fn_print(topla(2, 3))
-TR_fn_print(topla(topla(1, 2), 4)) // sonuç başka bir çağrıya girdi olabilir
+TR_print(topla(2, 3))
+TR_print(topla(topla(1, 2), 4)) # sonuç başka bir çağrıya girdi olabilir
 
-// Parametrelere ve sonuca tip yazılabilir; yanlış tipte değer verilirse hata alınır.
-TR_kw_func alan(en: TR_type_Float, boy: TR_type_Float) -> TR_type_Float {
-    TR_kw_return en * boy
+# Parametrelere ve sonuca tip yazılabilir; yanlış tipte değer verilirse hata alınır.
+TR_func alan(en: TR_Float, boy: TR_Float) -> TR_Float {
+    TR_return en * boy
 }
-TR_fn_print(alan(2.5, 4.0))
+TR_print(alan(2.5, 4.0))
 
-// Varsayılan değer: argüman verilmezse o kullanılır.
-// Adlı argüman: parametre adıyla verilir, sıra önemsizdir.
-TR_kw_func selam(ad, ek = "!") {
-    TR_kw_return "Selam {ad}{ek}"
+# Varsayılan değer: argüman verilmezse o kullanılır.
+# Adlı argüman: parametre adıyla verilir, sıra önemsizdir.
+TR_func selam(ad, ek = "!") {
+    TR_return "Selam \(ad)\(ek)"
 }
-TR_fn_print(selam("Ayşe"))
-TR_fn_print(selam("Ali", "?"))
-TR_fn_print(selam(ek: "...", ad: "Veli"))
+TR_print(selam("Ayşe"))
+TR_print(selam("Ali", "?"))
+TR_print(selam(ek: "...", ad: "Veli"))
 
-// sonuç fonksiyonu hemen bitirir; koşulla birlikte erken çıkış yapılabilir.
-TR_kw_func mutlak_değer(x) {
-    TR_kw_if x < 0 { TR_kw_return -x }
-    TR_kw_return x
+# sonuç fonksiyonu hemen bitirir; koşulla birlikte erken çıkış yapılabilir.
+TR_func mutlak_değer(x) {
+    TR_if x < 0 { TR_return -x }
+    TR_return x
 }
-TR_fn_print(mutlak_değer(-7), mutlak_değer(7))
+TR_print(mutlak_değer(-7), mutlak_değer(7))
 
-// Fonksiyon kendini çağırabilir (özyineleme); mutlaka duran bir koşulu olmalıdır.
-TR_kw_func faktöriyel(n) {
-    TR_kw_if n <= 1 { TR_kw_return 1 }
-    TR_kw_return n * faktöriyel(n - 1)
+# Fonksiyon kendini çağırabilir (özyineleme); mutlaka duran bir koşulu olmalıdır.
+TR_func faktöriyel(n) {
+    TR_if n <= 1 { TR_return 1 }
+    TR_return n * faktöriyel(n - 1)
 }
-TR_fn_print("5! = {faktöriyel(5)}, 10! = {faktöriyel(10)}")
+TR_print("5! = \(faktöriyel(5)), 10! = \(faktöriyel(10))")
 
-// Fonksiyonun içindeki değişkenler dışarıdan görünmez.
-TR_kw_func say_ve_yaz(sınır) {
-    TR_kw_var birikmiş = 0
-    TR_kw_for i TR_kw_in 1..=sınır { birikmiş += i }
-    TR_fn_print("1..{sınır} toplamı {birikmiş}")
+# Fonksiyonun içindeki değişkenler dışarıdan görünmez.
+TR_func say_ve_yaz(sınır) {
+    TR_var birikmiş = 0
+    TR_for i TR_in 1..=sınır { birikmiş += i }
+    TR_print("1..\(sınır) toplamı \(birikmiş)")
 }
 say_ve_yaz(10)
 
-// --- Kendin dene ---
-// 1. Bir sayının karesini veren kare(x) fonksiyonunu yaz ve kare(kare(2)) değerini bul.
-// 2. n'inci Fibonacci sayısını özyinelemeyle hesapla (fib(1) = 1, fib(2) = 1).
+# --- Kendin dene ---
+# 1. Bir sayının karesini veren kare(x) fonksiyonunu yaz ve kare(kare(2)) değerini bul.
+# 2. n'inci Fibonacci sayısını özyinelemeyle hesapla (fib(1) = 1, fib(2) = 1).

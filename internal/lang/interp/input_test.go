@@ -13,10 +13,10 @@ import (
 // tampona çekiyor, sonraki satırlar tamponla birlikte kayboluyordu. VM başına tek okuyucu
 // kullanılır: art arda okumalar satırları sırayla verir.
 func TestInputReadsConsecutiveLines(t *testing.T) {
-	prog := mustParseProgram(t, `değişken a = girdi()
-değişken b = girdi()
-değişken c = girdi()
-yazdır("a=[{a}] b=[{b}] c=[{c}]")`)
+	prog := mustParseProgram(t, `TR_var a = TR_input()
+TR_var b = TR_input()
+TR_var c = TR_input()
+TR_print("a=[\(a)] b=[\(b)] c=[\(c)]")`)
 	var out bytes.Buffer
 	m := New()
 	m.Out = &out
@@ -37,7 +37,7 @@ func TestInputReaderShared(t *testing.T) {
 	if s, _ := m.InputReader().ReadString('\n'); s != "komut\n" {
 		t.Fatalf("ilk satır: %q", s)
 	}
-	val, err := m.Run(parser.New(source.TextLexer(`sonuç girdi()`)).ParseProgram())
+	val, err := m.Run(parser.New(source.TextLexer(`TR_return TR_input()`)).ParseProgram())
 	if err != nil || val.Inspect() != "veri" {
 		t.Fatalf("girdi() ikinci satırı okumalıydı: %v %v", val, err)
 	}

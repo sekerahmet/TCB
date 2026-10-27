@@ -11,7 +11,7 @@ import (
 func renameProject(t *testing.T) (*Reader, string) {
 	t.Helper()
 	dir := writeTree(t, map[string]string{
-		"m.tr":   bindSource + "yazdır(1)\n",
+		"m.tr":   bindSource + "TR_print(1)\n",
 		"doc.md": "Dikkatin başı ve başları; başka bir şey. kv_baş da.\n",
 	})
 	idx, err := Build(dir, Options{})
@@ -188,7 +188,7 @@ func TestRenameImpactGolden(t *testing.T) {
 // Terim kipi sembol aramaz: yalnızca metin eşleşmeleri (belge, yorum, metin), Go'da kod adları hariç.
 func TestRenameTermMode(t *testing.T) {
 	dir := writeTree(t, map[string]string{
-		"m.tr":   "// çekirdek derlenir\nfonksiyon çekirdek_ekle() {\n    sonuç 1\n}\n",
+		"m.tr":   "# çekirdek derlenir\nTR_func çekirdek_ekle() {\n    TR_return 1\n}\n",
 		"doc.md": "GPU çekirdeği ve işlemci çekirdeği.\n",
 		"k.go":   "package k\n\n// çekirdek başlatılır\nvar çekirdek = 1\nvar s = \"çekirdek\"\n",
 	})

@@ -1,3 +1,3 @@
-//! tr kodlu 3 dil=tr
-// 11.1 testinin fikstürü: aktaran dosyanın (alt/sira_modulu.tr) klasöründeki modül.
-TR_kw_var kimden = "alt klasör"
+# TR 4
+# 11.1 testinin fikstürü: aktaran dosyanın (alt/sira_modulu.tr) klasöründeki modül.
+TR_var kimden = "alt klasör"

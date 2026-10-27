@@ -1,60 +1,60 @@
-//! tr kodlu 3 dil=tr
-// 15 — Hata yönetimi: beklenmedik durumda programı düzgün yönetmek.
-// Ne öğretir: dene/yakala ile hatayı yakalamak, fırlat ile kendi hatanı üretmek, katalog iletisiyle (ileti) hata fırlatmak,
-// hatanın nerede ele alınacağına karar vermek, ad verilmeyen yakala'da hata değişkeni.
-// Önceki örnekten: fonksiyonlar (08), koşullar (05); 06'da tam("abc") hata verirdi, burada yönetilir.
-// Çalıştırma (proje kökünden): tr examples/tr/15_hata_yonetimi.tr
+# TR 4
+# 15 — Hata yönetimi: beklenmedik durumda programı düzgün yönetmek.
+# Ne öğretir: dene/yakala ile hatayı yakalamak, fırlat ile kendi hatanı üretmek, katalog iletisiyle (ileti) hata fırlatmak,
+# hatanın nerede ele alınacağına karar vermek, ad verilmeyen yakala'da hata değişkeni.
+# Önceki örnekten: fonksiyonlar (08), koşullar (05); 06'da tam("abc") hata verirdi, burada yönetilir.
+# Çalıştırma (proje kökünden): tr examples/tr/15_hata_yonetimi.tr
 
-// Hata oluşunca program durur. dene bloğundaki hata yakala bloğuna gider, program sürer.
-TR_kw_try {
-    TR_kw_var x = 10 / 0
-    TR_fn_print("buraya gelinmez")
-} TR_kw_catch hata {
-    TR_fn_print("yakalandı: {hata}")
+# Hata oluşunca program durur. dene bloğundaki hata yakala bloğuna gider, program sürer.
+TR_try {
+    TR_var x = 10 / 0
+    TR_print("buraya gelinmez")
+} TR_catch hata {
+    TR_print("yakalandı: \(hata)")
 }
 
-// fırlat: kendi hatanı üret. Fonksiyon kuralı bozan girdiyi kabul etmez.
-TR_kw_func yaş_denetle(yaş) {
-    TR_kw_if yaş < 0 { TR_kw_throw "yaş negatif olamaz" }
-    TR_kw_return yaş
+# fırlat: kendi hatanı üret. Fonksiyon kuralı bozan girdiyi kabul etmez.
+TR_func yaş_denetle(yaş) {
+    TR_if yaş < 0 { TR_throw "yaş negatif olamaz" }
+    TR_return yaş
 }
-TR_kw_try { yaş_denetle(-3) } TR_kw_catch h { TR_fn_print("yakalandı: {h}") }
-TR_fn_print("geçerli yaş: {yaş_denetle(30)}")
+TR_try { yaş_denetle(-3) } TR_catch h { TR_print("yakalandı: \(h)") }
+TR_print("geçerli yaş: \(yaş_denetle(30))")
 
-// Hata, çağrı zincirinde yukarı çıkar; ilk yakala onu ele alır.
-TR_kw_func sayıya_çevir(yazı) {
-    TR_kw_return TR_fn_int(yazı)
+# Hata, çağrı zincirinde yukarı çıkar; ilk yakala onu ele alır.
+TR_func sayıya_çevir(yazı) {
+    TR_return TR_int(yazı)
 }
-TR_kw_func güvenli_çevir(yazı, varsayılan_değer) {
-    TR_kw_try {
-        TR_kw_return sayıya_çevir(yazı)
-    } TR_kw_catch h {
-        TR_fn_print("  '{yazı}' sayı değil, {varsayılan_değer} kullanılıyor")
-        TR_kw_return varsayılan_değer
+TR_func güvenli_çevir(yazı, varsayılan_değer) {
+    TR_try {
+        TR_return sayıya_çevir(yazı)
+    } TR_catch h {
+        TR_print("  '\(yazı)' sayı değil, \(varsayılan_değer) kullanılıyor")
+        TR_return varsayılan_değer
     }
 }
-TR_fn_print(güvenli_çevir("42", 0))
-TR_fn_print(güvenli_çevir("abc", 0))
+TR_print(güvenli_çevir("42", 0))
+TR_print(güvenli_çevir("abc", 0))
 
-// yakala'ya ad verilmezse hata iletisi hata adlı değişkende gelir.
-TR_kw_try {
-    TR_kw_throw "patladı"
-} TR_kw_catch {
-    TR_fn_print("yakalandı: {TR_ctx_error}")
+# yakala'ya ad verilmezse hata iletisi hata adlı değişkende gelir.
+TR_try {
+    TR_throw "patladı"
+} TR_catch {
+    TR_print("yakalandı: \(TR_error)")
 }
 
-// Kitaplığın hataları katalog iletisidir: ileti(kod, değerler) onu kurar, fırlat ona verilince hata o
-// kodla fırlar. Metin okuyanın dilinde yazılır; testler metni değil kodu sınar (hata_kodu).
-TR_kw_func pencere_denetle(pencere) {
-    TR_kw_if pencere < 0 { TR_kw_throw TR_fn_message(H6903, pencere) }
-    TR_kw_return pencere
+# Kitaplığın hataları katalog iletisidir: ileti(kod, değerler) onu kurar, fırlat ona verilince hata o
+# kodla fırlar. Metin okuyanın dilinde yazılır; testler metni değil kodu sınar (hata_kodu).
+TR_func pencere_denetle(pencere) {
+    TR_if pencere < 0 { TR_throw TR_message("H6903", pencere) }
+    TR_return pencere
 }
-TR_kw_try { pencere_denetle(-1) } TR_kw_catch h { TR_fn_print("yakalandı: {h}") }
-TR_fn_print(TR_fn_error_code(() => { pencere_denetle(-1) }))
-TR_fn_print(TR_fn_error_code(() => { pencere_denetle(4) }))
-TR_kw_var iletim: TR_type_Message = TR_fn_message(H6903, 5)
-TR_fn_print(TR_fn_type(iletim))
+TR_try { pencere_denetle(-1) } TR_catch h { TR_print("yakalandı: \(h)") }
+TR_print(TR_error_code(() => { pencere_denetle(-1) }))
+TR_print(TR_error_code(() => { pencere_denetle(4) }))
+TR_var iletim: TR_Message = TR_message("H6903", 5)
+TR_print(TR_type(iletim))
 
-// --- Kendin dene ---
-// 1. Boş listenin ortalamasını isteyen bir fonksiyon yaz; boşsa fırlat ile hata ver ve yakala.
-// 2. Bir listedeki metinlerin hepsini sayıya çevir; çevrilemeyenleri atla.
+# --- Kendin dene ---
+# 1. Boş listenin ortalamasını isteyen bir fonksiyon yaz; boşsa fırlat ile hata ver ve yakala.
+# 2. Bir listedeki metinlerin hepsini sayıya çevir; çevrilemeyenleri atla.

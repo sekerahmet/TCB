@@ -29,7 +29,7 @@ func TestLiveLineHook(t *testing.T) {
 	vmx.Out, vmx.Err = &output, &output
 	vmx.Stdin = bytes.NewBufferString("ali\n")
 	vmx.SetLiveLine(&fakeLiveLine{w: &output})
-	execCode(t, vmx, "yazdır(\"a\", 1)\ndeğişken ad = girdi(\"ad: \")\n")
+	execCode(t, vmx, "TR_print(\"a\", 1)\nTR_var ad = TR_input(\"ad: \")\n")
 	vmx.reportAsyncError(3, errors.New("bozuk"))
 	expected := "[sil]a 1\n[çiz][sil]ad: [çiz][sil]⚠️  Eşzamanlı görev hatası (satır 3'te başlatılan): bozuk\n[çiz]"
 	if output.String() != expected {
@@ -37,7 +37,7 @@ func TestLiveLineHook(t *testing.T) {
 	}
 	output.Reset()
 	vmx.SetLiveLine(nil)
-	execCode(t, vmx, "yazdır(\"b\")\n")
+	execCode(t, vmx, "TR_print(\"b\")\n")
 	if output.String() != "b\n" {
 		t.Errorf("canlı satır kaldırılınca düz yazılmalı: %q", output.String())
 	}
@@ -65,7 +65,7 @@ func TestSecretFilter(t *testing.T) {
 		t.Fatal("gizli değer kaydedilemedi")
 	}
 	vmx.GlobalEnv.Define("anahtar", &StringVal{Val: "hf_gizli123"}, false)
-	execCode(t, vmx, "değişken d = yazdır(\"anahtar: {anahtar}, uzun: hf_gizli123_uzun, abc\")\n")
+	execCode(t, vmx, "TR_var d = TR_print(\"anahtar: \\(anahtar), uzun: hf_gizli123_uzun, abc\")\n")
 	if got := output.String(); got != "anahtar: ***, uzun: ***, abc\n" {
 		t.Errorf("yazdır çıktısı maskelenmeli: %q", got)
 	}

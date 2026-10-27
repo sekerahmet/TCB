@@ -1,37 +1,37 @@
-//! tr kodlu 3 dil=tr
-// 38 — İlerleme çubuğu ve günlük: uzun işi izlemek ve kaydını tutmak.
-// Ne öğretir: ilerleme(toplam) ile çubuk açmak, güncelle ile ilerletmek, durdur; günlük(yol) ile her adımın
-// kaydını bir JSON satırı olarak yazmak ve ilerleme(günlük:) ile bağlamak; İlerleme ve Günlük tipleri.
-// Önceki örnekten: döngüler (07), sözlükler (11), dosya ve JSON (19), yollar (20), komut satırı (37).
-// Çalıştırma (proje kökünden): tr examples/tr/38_ilerleme_ve_gunluk.tr
-// Günlük dosyası geçici klasöre yazılır (program bitince silinir).
+# TR 4
+# 38 — İlerleme çubuğu ve günlük: uzun işi izlemek ve kaydını tutmak.
+# Ne öğretir: ilerleme(toplam) ile çubuk açmak, güncelle ile ilerletmek, durdur; günlük(yol) ile her adımın
+# kaydını bir JSON satırı olarak yazmak ve ilerleme(günlük:) ile bağlamak; İlerleme ve Günlük tipleri.
+# Önceki örnekten: döngüler (07), sözlükler (11), dosya ve JSON (19), yollar (20), komut satırı (37).
+# Çalıştırma (proje kökünden): tr examples/tr/38_ilerleme_ve_gunluk.tr
+# Günlük dosyası geçici klasöre yazılır (program bitince silinir).
 
-// günlük(yol) bir günlük dosyası açar; ekle(sözlük) her çağrıda dosyaya bir JSON satırı ekler.
-TR_kw_var dosya = TR_fn_path(TR_fn_temp_dir(), "günlük.jsonl")
-TR_kw_var kayıt_defteri = TR_fn_logger(dosya)
-TR_fn_print(TR_fn_type(kayıt_defteri) == TR_type_Logger)
-kayıt_defteri.TR_mem_append({TR_mem_step: 0, TR_mem_loss: 9.5})
+# günlük(yol) bir günlük dosyası açar; ekle(sözlük) her çağrıda dosyaya bir JSON satırı ekler.
+TR_var dosya = TR_path(TR_temp_dir(), "günlük.jsonl")
+TR_var kayıt_defteri = TR_logger(dosya)
+TR_print(TR_type(kayıt_defteri) == TR_Logger)
+kayıt_defteri.TR_append({TR_step: 0, TR_loss: 9.5})
 
-// ilerleme(toplam) bir ilerleme çubuğu açar (standart hataya yazar: adım, kayıp, hız, kalan süre).
-// günlük: verilirse çubuğun her güncellemesi aynı zamanda günlüğe yazılır.
-TR_kw_var çubuk = TR_fn_progress(5, TR_arg_log: kayıt_defteri)
-TR_fn_print(TR_fn_type(çubuk) == TR_type_Progress)
-TR_kw_for i TR_kw_in 1..=5 {
-    TR_fn_sleep(0.01) // asıl işin yerini tutar
-    çubuk.TR_mem_update({TR_mem_loss: 10.0 / (i + 1)}, TR_arg_step: i)
+# ilerleme(toplam) bir ilerleme çubuğu açar (standart hataya yazar: adım, kayıp, hız, kalan süre).
+# günlük: verilirse çubuğun her güncellemesi aynı zamanda günlüğe yazılır.
+TR_var çubuk = TR_progress(5, TR_log: kayıt_defteri)
+TR_print(TR_type(çubuk) == TR_Progress)
+TR_for i TR_in 1..=5 {
+    TR_sleep(0.01) # asıl işin yerini tutar
+    çubuk.TR_update({TR_loss: 10.0 / (i + 1)}, TR_step: i)
 }
 
-// Çubuk toplama ulaşınca kendiliğinden biter; durdur() onu elle bitirir (ilk çağrıda doğru,
-// çubuk zaten bittiyse yanlış verir).
-TR_fn_print("çubuk zaten bitmişti:", çubuk.TR_mem_stop())
+# Çubuk toplama ulaşınca kendiliğinden biter; durdur() onu elle bitirir (ilk çağrıda doğru,
+# çubuk zaten bittiyse yanlış verir).
+TR_print("çubuk zaten bitmişti:", çubuk.TR_stop())
 
-// Günlük dosyası: her satır bir JSON kaydı.
-TR_kw_var kayıt_sayısı = 0
-TR_kw_for satır TR_kw_in TR_fn_read_lines(dosya) {
+# Günlük dosyası: her satır bir JSON kaydı.
+TR_var kayıt_sayısı = 0
+TR_for satır TR_in TR_read_lines(dosya) {
     kayıt_sayısı += 1
 }
-TR_fn_print("günlükteki kayıt sayısı:", kayıt_sayısı)
+TR_print("günlükteki kayıt sayısı:", kayıt_sayısı)
 
-// --- Kendin dene ---
-// 1. Günlükteki son satırı json_çöz ile oku ve kayıp değerini yazdır.
-// 2. Çubuğu günlüksüz aç (ilerleme(5)) ve yalnızca ekrana yazıldığını gör.
+# --- Kendin dene ---
+# 1. Günlükteki son satırı json_çöz ile oku ve kayıp değerini yazdır.
+# 2. Çubuğu günlüksüz aç (ilerleme(5)) ve yalnızca ekrana yazıldığını gör.

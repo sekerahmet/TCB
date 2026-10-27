@@ -13,16 +13,16 @@ import (
 
 // readyModelCompare tr/hazir ile yüklenen modelin logitlerini transformers'ın yazdığı logits.json
 // ile karşılaştırır ve en büyük mutlak farkı yazar.
-const readyModelCompare = `aktar "tr/hazir"
-değişken arg = komut_satırı({klasör: ""})
-değişken beklenen = json_çöz(dosya_oku(yol(arg.klasör, "logits.json")))
-değişken model = hazır_model(arg.klasör)
-değişken logit = model.ileri(tensör(beklenen["ids"]))[0].değer
-değişken en_büyük = 0.0
-döngü i, satır içinde beklenen["logits"] {
-    döngü j, x içinde satır { en_büyük = max(en_büyük, mutlak(x - logit[i][j])) }
+const readyModelCompare = `TR_import "tr/hazir"
+TR_var arg = TR_command_line({TR_folder: ""})
+TR_var beklenen = TR_json_parse(TR_read_file(TR_path(arg.TR_folder, "logits.json")))
+TR_var model = TR_pretrained_model(arg.TR_folder)
+TR_var logit = model.TR_forward(TR_tensor(beklenen["ids"]))[0].TR_tolist
+TR_var en_büyük = 0.0
+TR_for i, satır TR_in beklenen["logits"] {
+    TR_for j, x TR_in satır { en_büyük = TR_max(en_büyük, TR_abs(x - logit[i][j])) }
 }
-yazdır(en_büyük)
+TR_print(en_büyük)
 `
 
 // Kural (Evre 5, hazır modeller; dil tanımı 15.47): Hugging Face biçiminde kaydedilmiş bir model

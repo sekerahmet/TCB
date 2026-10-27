@@ -18,65 +18,65 @@ import (
 // eğitilir; kayıplar karşılaştırılır. Gerçek GPU yoksa GPU PTX benzetimidir (yavaş; şekiller
 // küçük).
 const gpuTrainingProgram = `
-değişken B = 2
-değişken T = 4
-değişken D = 8
-değişken H = 2
-değişken Dh = 4
-değişken FF = 8
-değişken V = 16
-değişken tohum_sayacı = 0
-fonksiyon ağırlık(şekil, ölçek) {
+TR_var B = 2
+TR_var T = 4
+TR_var D = 8
+TR_var H = 2
+TR_var Dh = 4
+TR_var FF = 8
+TR_var V = 16
+TR_var tohum_sayacı = 0
+TR_func ağırlık(şekil, ölçek) {
     tohum_sayacı += 1
-    sonuç tensör(türevsiz(rastgele_normal(şekil, tohum: tohum_sayacı) * ölçek), türev_izle: doğru)
+    TR_return TR_tensor(TR_no_grad(TR_randn(şekil, TR_seed: tohum_sayacı) * ölçek), TR_requires_grad: TR_true)
 }
-fonksiyon başlar(x) { sonuç x.şekillendir([B, T, H, Dh]).eksenleri_sırala([0, 2, 1, 3]) }
-fonksiyon eğit(cihaz) {
-    varsayılan_cihaz(cihaz)
+TR_func başlar(x) { TR_return x.TR_reshape([B, T, H, Dh]).TR_permute([0, 2, 1, 3]) }
+TR_func eğit(cihaz) {
+    TR_default_device(cihaz)
     tohum_sayacı = 0
-    değişken E = ağırlık([V, D], 0.02)
-    değişken g1 = tensör(birler([D]), türev_izle: doğru)
-    değişken Wq = ağırlık([D, D], 0.2)
-    değişken Wk = ağırlık([D, D], 0.2)
-    değişken Wv = ağırlık([D, D], 0.2)
-    değişken Wg = ağırlık([D, FF], 0.2)
-    değişken Wu = ağırlık([D, FF], 0.2)
-    değişken W2 = ağırlık([FF, D], 0.2)
-    değişken ağırlıklar = [E, g1, Wq, Wk, Wv, Wg, Wu, W2]
-    değişken op = AdamW(ağırlıklar, öğrenme_oranı: 0.01, ağırlık_çürümesi: 0.0)
-    // Toplu işler varsayılan cihazda kurulur (veri kümesi örnekleyicisi de böyle yapar).
-    değişken girdiler = [[[3, 1, 4, 1], [5, 9, 2, 6]], [[5, 3, 5, 8], [9, 7, 9, 3]], [[2, 3, 8, 4], [6, 2, 6, 4]]]
-    değişken hedefler = [[1, 4, 1, 5, 9, 2, 6, 5], [3, 5, 8, 9, 7, 9, 3, 2], [3, 8, 4, 6, 2, 6, 4, 3]]
-    değişken kayıplar = []
-    değişken son_x = yok
-    değişken son_k = yok
-    döngü adım içinde 0..3 {
-        değişken xg = tensör(girdiler[adım])
-        değişken yh = tensör(hedefler[adım])
-        op.sıfırla()
-        değişken x = gömme(E, xg)
-        değişken h = rms_normu(x, g1)
-        değişken y = dikkat(başlar(h @ Wq), başlar(h @ Wk), başlar(h @ Wv), nedensel: doğru)
-        değişken s = x + y.eksenleri_sırala([0, 2, 1, 3]).şekillendir([B, T, D])
-        değişken a = s @ Wg
-        s = s + (a * sigmoid(a) * (s @ Wu)) @ W2
-        değişken kayıp = çapraz_entropi(s @ E.devrik(), yh)
-        geri_yayılım(kayıp)
-        gradyan_kırp(ağırlıklar, en_fazla: 1.0)
-        op.adım()
-        kayıplar.ekle(kayıp.değer)
+    TR_var E = ağırlık([V, D], 0.02)
+    TR_var g1 = TR_tensor(TR_ones([D]), TR_requires_grad: TR_true)
+    TR_var Wq = ağırlık([D, D], 0.2)
+    TR_var Wk = ağırlık([D, D], 0.2)
+    TR_var Wv = ağırlık([D, D], 0.2)
+    TR_var Wg = ağırlık([D, FF], 0.2)
+    TR_var Wu = ağırlık([D, FF], 0.2)
+    TR_var W2 = ağırlık([FF, D], 0.2)
+    TR_var ağırlıklar = [E, g1, Wq, Wk, Wv, Wg, Wu, W2]
+    TR_var op = TR_AdamW(ağırlıklar, TR_lr: 0.01, TR_weight_decay: 0.0)
+    # Toplu işler varsayılan cihazda kurulur (veri kümesi örnekleyicisi de böyle yapar).
+    TR_var girdiler = [[[3, 1, 4, 1], [5, 9, 2, 6]], [[5, 3, 5, 8], [9, 7, 9, 3]], [[2, 3, 8, 4], [6, 2, 6, 4]]]
+    TR_var hedefler = [[1, 4, 1, 5, 9, 2, 6, 5], [3, 5, 8, 9, 7, 9, 3, 2], [3, 8, 4, 6, 2, 6, 4, 3]]
+    TR_var kayıplar = []
+    TR_var son_x = TR_none
+    TR_var son_k = TR_none
+    TR_for adım TR_in 0..3 {
+        TR_var xg = TR_tensor(girdiler[adım])
+        TR_var yh = TR_tensor(hedefler[adım])
+        op.TR_zero_grad()
+        TR_var x = TR_embedding(E, xg)
+        TR_var h = TR_rms_norm(x, g1)
+        TR_var y = TR_attention(başlar(h @ Wq), başlar(h @ Wk), başlar(h @ Wv), TR_causal: TR_true)
+        TR_var s = x + y.TR_permute([0, 2, 1, 3]).TR_reshape([B, T, D])
+        TR_var a = s @ Wg
+        s = s + (a * TR_sigmoid(a) * (s @ Wu)) @ W2
+        TR_var kayıp = TR_cross_entropy(s @ E.TR_transpose(), yh)
+        TR_backward(kayıp)
+        TR_clip_grad(ağırlıklar, TR_max: 1.0)
+        op.TR_step()
+        kayıplar.TR_append(kayıp.TR_tolist)
         son_x = xg
         son_k = kayıp
     }
-    değişken son_cihaz = E.cihaz + " " + son_x.cihaz + " " + son_k.cihaz
-    varsayılan_cihaz("cpu")
-    sonuç [kayıplar, son_cihaz]
+    TR_var son_cihaz = E.TR_device + " " + son_x.TR_device + " " + son_k.TR_device
+    TR_default_device("cpu")
+    TR_return [kayıplar, son_cihaz]
 }
-değişken c = eğit("cpu")
-değişken g = eğit("gpu")
-yazdır(c[1])
-yazdır(g[1])
-döngü i içinde 0..3 { yazdır(c[0][i], g[0][i]) }
+TR_var c = eğit("cpu")
+TR_var g = eğit("gpu")
+TR_print(c[1])
+TR_print(g[1])
+TR_for i TR_in 0..3 { TR_print(c[0][i], g[0][i]) }
 `
 
 func TestGPUTrainingLanguageLevel(t *testing.T) {

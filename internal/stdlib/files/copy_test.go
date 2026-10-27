@@ -28,31 +28,31 @@ func TestCopyFile(t *testing.T) {
 	old := time.Date(2020, 1, 2, 3, 4, 5, 0, time.UTC)
 	os.Chtimes(filepath.Join(k, "a.txt"), old, old)
 	os.Mkdir(filepath.Join(k, "yedek"), 0o755)
-	if got := mustRunTR(t, `kopyala("a.txt", "yedek")`); got != "yedek/a.txt" {
+	if got := mustRunTR(t, `TR_copy("a.txt", "yedek")`); got != "yedek/a.txt" {
 		t.Fatalf("klasörün içine: %s", got)
 	}
 	if b, _ := os.Stat(filepath.Join(k, "yedek", "a.txt")); !b.ModTime().Equal(old) {
 		t.Errorf("değiştirilme zamanı korunmadı: %v", b.ModTime())
 	}
-	errContains(t, `kopyala("a.txt", "yedek/")`, `hedef "yedek/a.txt" zaten var`)
-	mustRunTR(t, `kopyala(yol("a.txt"), yol("b.txt"))`)
+	errContains(t, `TR_copy("a.txt", "yedek/")`, `hedef "yedek/a.txt" zaten var`)
+	mustRunTR(t, `TR_copy(TR_path("a.txt"), TR_path("b.txt"))`)
 	if content(t, filepath.Join(k, "b.txt")) != "bir" {
 		t.Fatal("yeni adla kopya")
 	}
 	write(t, filepath.Join(k, "a.txt"), "iki")
-	errContains(t, `kopyala("a.txt", "b.txt")`, `kopyala(): hedef "b.txt" zaten var; yerine koymak için üzerine_yaz: doğru verin`)
-	mustRunTR(t, `kopyala("a.txt", "b.txt", üzerine_yaz: doğru)`)
+	errContains(t, `TR_copy("a.txt", "b.txt")`, `kopyala(): hedef "b.txt" zaten var; yerine koymak için üzerine_yaz: doğru verin`)
+	mustRunTR(t, `TR_copy("a.txt", "b.txt", TR_overwrite: TR_true)`)
 	if content(t, filepath.Join(k, "b.txt")) != "iki" {
 		t.Fatal("üzerine yazılmadı")
 	}
-	errHas(t, `kopyala("a.txt", "a.txt", üzerine_yaz: doğru)`, messages.H7113)
-	errContains(t, `kopyala("a.txt", "olmayan/")`, `hedef klasör "olmayan/" yok; önce klasör_oluştur("olmayan")`)
-	errHas(t, `kopyala("a.txt", "olmayan/b.txt")`, messages.H2131)
-	errContains(t, `kopyala("yok.txt", "c.txt")`, `"yok.txt" bulunamadı`)
-	errHas(t, `kopyala("a.txt", "b.txt", overwrite: doğru)`, messages.H7900)
+	errHas(t, `TR_copy("a.txt", "a.txt", TR_overwrite: TR_true)`, messages.H7113)
+	errContains(t, `TR_copy("a.txt", "olmayan/")`, `hedef klasör "olmayan/" TR_none; önce TR_make_dir("olmayan")`)
+	errHas(t, `TR_copy("a.txt", "olmayan/b.txt")`, messages.H2131)
+	errContains(t, `TR_copy("yok.txt", "c.txt")`, `"yok.txt" bulunamadı`)
+	errHas(t, `TR_copy("a.txt", "b.txt", overwrite: TR_true)`, messages.H7900)
 	// Dosya klasörün, klasör dosyanın yerine konmaz.
 	os.MkdirAll(filepath.Join(k, "h", "a.txt"), 0o755)
-	errHas(t, `kopyala("a.txt", "h", üzerine_yaz: doğru)`, messages.H7117)
+	errHas(t, `TR_copy("a.txt", "h", TR_overwrite: TR_true)`, messages.H7117)
 	if entries, _ := reporoot.ReadDir(k); len(entries) != 4 {
 		t.Errorf("geçici dosya kaldı: %v", entries)
 	}
@@ -63,7 +63,7 @@ func TestCopyDir(t *testing.T) {
 	buildTree(t, k)
 	write(t, filepath.Join(k, "dis", "x.txt"), "x")
 	dirLink(t, filepath.Join(k, "dis"), filepath.Join(k, "v", "bag"))
-	s := runTR(t, "", `kopyala("v", "v2")`)
+	s := runTR(t, "", `TR_copy("v", "v2")`)
 	if s.failure != nil || s.value.Inspect() != "v2" {
 		t.Fatalf("%v %v", s.value, s.failure)
 	}
@@ -73,11 +73,11 @@ func TestCopyDir(t *testing.T) {
 	if content(t, filepath.Join(k, "v2", "alt", "derin", "d.npy")) != "x" || !exists(filepath.Join(k, "v2", ".gizli", "e.npy")) || exists(filepath.Join(k, "v2", "bag")) {
 		t.Fatal("ağaç eksik kopyalandı ya da bağlantı kopyalandı")
 	}
-	errHas(t, `kopyala("v", "v/alt")`, messages.H7114)
-	errHas(t, `kopyala("v/bag", "x")`, messages.H7107)
+	errHas(t, `TR_copy("v", "v/alt")`, messages.H7114)
+	errHas(t, `TR_copy("v/bag", "x")`, messages.H7107)
 	// Var olan klasörün yerine konma: eski içerik gider, yenisi gelir.
 	write(t, filepath.Join(k, "hedef", "v", "eski.txt"), "e")
-	mustRunTR(t, `kopyala("v", "hedef", üzerine_yaz: doğru)`)
+	mustRunTR(t, `TR_copy("v", "hedef", TR_overwrite: TR_true)`)
 	if exists(filepath.Join(k, "hedef", "v", "eski.txt")) || !exists(filepath.Join(k, "hedef", "v", "a.npy")) {
 		t.Fatal("klasör yerine konmadı")
 	}
@@ -93,20 +93,20 @@ func TestCopyDir(t *testing.T) {
 func TestMove(t *testing.T) {
 	k := tmpWork(t)
 	write(t, filepath.Join(k, "a.txt"), "x")
-	if got := mustRunTR(t, `taşı("a.txt", "b.txt")`); got != "b.txt" || exists(filepath.Join(k, "a.txt")) {
+	if got := mustRunTR(t, `TR_move("a.txt", "b.txt")`); got != "b.txt" || exists(filepath.Join(k, "a.txt")) {
 		t.Fatalf("yeniden adlandırma: %s", got)
 	}
 	buildTree(t, k)
-	if got := mustRunTR(t, `taşı("v", "w")`); got != "w" || exists(filepath.Join(k, "v")) || !exists(filepath.Join(k, "w", "alt", "c.npy")) {
+	if got := mustRunTR(t, `TR_move("v", "w")`); got != "w" || exists(filepath.Join(k, "v")) || !exists(filepath.Join(k, "w", "alt", "c.npy")) {
 		t.Fatalf("klasör: %s", got)
 	}
 	write(t, filepath.Join(k, "c.txt"), "c")
-	errHas(t, `taşı("c.txt", "b.txt")`, messages.H7115)
-	mustRunTR(t, `taşı("c.txt", "b.txt", üzerine_yaz: doğru)`)
+	errHas(t, `TR_move("c.txt", "b.txt")`, messages.H7115)
+	mustRunTR(t, `TR_move("c.txt", "b.txt", TR_overwrite: TR_true)`)
 	if content(t, filepath.Join(k, "b.txt")) != "c" {
 		t.Fatal("üzerine taşınmadı")
 	}
-	errHas(t, `taşı(".", "x")`, messages.H7109, messages.H7151)
+	errHas(t, `TR_move(".", "x")`, messages.H7109, messages.H7151)
 }
 
 // Başka bir diske taşıma: yeniden adlandırma "farklı aygıt" hatası verince kopyalanır,
@@ -126,11 +126,11 @@ func TestMoveToOtherDisk(t *testing.T) {
 		return &os.LinkError{Op: "rename", Old: a, New: b, Err: no}
 	}
 	buildTree(t, k)
-	if got := mustRunTR(t, `taşı("v", "w")`); got != "w" || exists(filepath.Join(k, "v")) || content(t, filepath.Join(k, "w", "alt", "derin", "d.npy")) != "x" {
+	if got := mustRunTR(t, `TR_move("v", "w")`); got != "w" || exists(filepath.Join(k, "v")) || content(t, filepath.Join(k, "w", "alt", "derin", "d.npy")) != "x" {
 		t.Fatalf("başka diske klasör: %s", got)
 	}
 	write(t, filepath.Join(k, "a.txt"), "dosya")
-	mustRunTR(t, `taşı("a.txt", "w")`)
+	mustRunTR(t, `TR_move("a.txt", "w")`)
 	if exists(filepath.Join(k, "a.txt")) || content(t, filepath.Join(k, "w", "a.txt")) != "dosya" {
 		t.Fatal("başka diske dosya")
 	}
@@ -138,7 +138,7 @@ func TestMoveToOtherDisk(t *testing.T) {
 	write(t, filepath.Join(k, "dis", "x.txt"), "x")
 	write(t, filepath.Join(k, "b", "y.txt"), "y")
 	dirLink(t, filepath.Join(k, "dis"), filepath.Join(k, "b", "bag"))
-	errHas(t, `taşı("b", "c")`, messages.H7101)
+	errHas(t, `TR_move("b", "c")`, messages.H7101)
 	if !exists(filepath.Join(k, "b", "y.txt")) || exists(filepath.Join(k, "c")) {
 		t.Fatal("başarısız taşıma kaynağı ya da hedefi değiştirdi")
 	}
@@ -148,7 +148,7 @@ func TestMoveToOtherDisk(t *testing.T) {
 	locked := filepath.Join(k, "ro", "kilitli.txt")
 	os.Chmod(locked, 0o444)
 	t.Cleanup(func() { os.Chmod(locked, 0o644) })
-	errHas(t, `taşı("ro", "ro2")`, messages.H7104)
+	errHas(t, `TR_move("ro", "ro2")`, messages.H7104)
 	if !exists(locked) || exists(filepath.Join(k, "ro2")) {
 		t.Fatal("silinemeyecek kaynak başka diske kopyalandı")
 	}
@@ -163,7 +163,7 @@ func TestOverwriteDirWithReadOnlyFile(t *testing.T) {
 	locked := filepath.Join(k, "hedef", "yeni", "kilitli.txt")
 	os.Chmod(locked, 0o444)
 	t.Cleanup(func() { os.Chmod(locked, 0o644) })
-	errHas(t, `kopyala("yeni", "hedef", üzerine_yaz: doğru)`, messages.H7104)
+	errHas(t, `TR_copy("yeni", "hedef", TR_overwrite: TR_true)`, messages.H7104)
 	if content(t, locked) != "eski" || exists(filepath.Join(k, "hedef", "yeni", "a.txt")) {
 		t.Fatal("hedef değişti")
 	}
@@ -180,7 +180,7 @@ func TestOverwriteDirWithReadOnlyFile(t *testing.T) {
 func TestMoveOpenReader(t *testing.T) {
 	k := tmpWork(t)
 	write(t, filepath.Join(k, "k", "s.txt"), "a\nb\nc\n")
-	s := runTR(t, "", `değişken o = dosya_satırları("k/s.txt"); o.sonraki(); taşı("k", "w")`)
+	s := runTR(t, "", `TR_var o = TR_read_lines("k/s.txt"); o.TR_next(); TR_move("k", "w")`)
 	if !messages.Has(s.failure, messages.H7154) {
 		t.Fatalf("açık dosya: %v", s.failure)
 	}
@@ -189,7 +189,7 @@ func TestMoveOpenReader(t *testing.T) {
 		t.Fatal("açık dosyalı klasör taşındı")
 	}
 	// Okuyucu kapanınca aynı taşıma çalışır.
-	if got := mustRunTR(t, `taşı("k", "w")`); got != "w" || !exists(filepath.Join(k, "w", "s.txt")) {
+	if got := mustRunTR(t, `TR_move("k", "w")`); got != "w" || !exists(filepath.Join(k, "w", "s.txt")) {
 		t.Fatalf("okuyucu kapandıktan sonra taşıma: %s", got)
 	}
 }

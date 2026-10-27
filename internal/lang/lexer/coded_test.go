@@ -22,7 +22,7 @@ func allOf(l *Lexer) []Token {
 // dilinde okunan gövdede (NewBodyIn) o dilin adıdır. Kod her dilde aynıdır; konumlar diskteki
 // metne göredir (kişinin görünümünün konumlarını NewBodyView verir).
 func TestCodedTokens(t *testing.T) {
-	const src = "TR_kw_var eğer = TR_fn_print\nx.TR_mem_append TR_kw_true"
+	const src = "TR_var eğer = TR_print\nx.TR_append TR_true"
 	en, err := codes.LoadLanguage("en")
 	if err != nil {
 		t.Fatal(err)
@@ -32,7 +32,7 @@ func TestCodedTokens(t *testing.T) {
 		lexer *Lexer
 		words [4]string // var, print, append, true
 	}{
-		{"kimlik", NewBody(src, true), [4]string{"TR_kw_var", "TR_fn_print", "TR_mem_append", "TR_kw_true"}},
+		{"kimlik", NewBody(src, true), [4]string{"TR_var", "TR_print", "TR_append", "TR_true"}},
 		{"tr", NewBodyIn(src, true, codes.Source()), [4]string{"değişken", "yazdır", "ekle", "doğru"}},
 		{"en", NewBodyIn(src, true, en), [4]string{"var", "print", "append", "true"}},
 	} {
@@ -65,7 +65,7 @@ func TestCodedTokens(t *testing.T) {
 	if l := NewBody("TR_fn_yok", true); len(allOf(l)) != 1 || !hasCode(l.Errs(), messages.H0001) {
 		t.Errorf("bilinmeyen kimlik hatası yok: %v", l.Errors())
 	}
-	if l := NewBodyIn("TR_fn_print", false, codes.Source()); allOf(l) == nil || !hasCode(l.Errs(), messages.H0004) {
+	if l := NewBodyIn("TR_print", false, codes.Source()); allOf(l) == nil || !hasCode(l.Errs(), messages.H0004) {
 		t.Errorf("Türkçe gövdede ayrılmış ad hatası yok: %v", l.Errors())
 	}
 	// Kodlu dosyanın başlığı yalnız ad bilinen bir kimlikse (başlıksız yapıştırılmış kodlu metin)
@@ -73,7 +73,7 @@ func TestCodedTokens(t *testing.T) {
 	if l := NewBodyIn("değişken TR_x = 1", false, codes.Source()); allOf(l) == nil || !hasCode(l.Errs(), messages.H0004) || hasCode(l.Errs(), messages.H0014) {
 		t.Errorf("kimlik olmayan ayrılmış ad başlığı anmamalı: %v", l.Errors())
 	}
-	for _, c := range []struct{ lang, text string }{{"tr", "değişken TR_fn_sum = 1"}, {"en", "var TR_fn_sum = 1"}} {
+	for _, c := range []struct{ lang, text string }{{"tr", "değişken TR_sum = 1"}, {"en", "var TR_sum = 1"}} {
 		lang, err := codes.LoadLanguage(c.lang)
 		if err != nil {
 			t.Fatal(err)
@@ -93,7 +93,7 @@ func TestEscapedName(t *testing.T) {
 	if len(l.Errors()) > 0 || len(toks) != 3 || toks[0].Type != TokIdent || toks[0].Literal != "eğer" || toks[2].Literal != "yazdır" {
 		t.Fatalf("kaçışlı adlar: %v %v", toks, l.Errors())
 	}
-	for _, k := range []string{"a$b", "1$x", "$TR_fn_print"} {
+	for _, k := range []string{"a$b", "1$x", "$TR_print"} {
 		if l := New(k); allOf(l) == nil || len(l.Errors()) == 0 {
 			t.Errorf("%q hata vermeli", k)
 		}

@@ -1,20 +1,20 @@
-//! tr kodlu 3 dil=tr
-// Eğitim modeli: gpt_training.tr ve ss_exam.tr aynı GPT'yi eğitim ayarlarından (gpt_training.tr'nin
-// komut satırı sözlüğü ya da koşu klasöründeki config.json'un "config"i) bu tek fonksiyonla kurar; yeni bir
-// model seçeneği yalnızca burada eklenir. Kendisi program değildir.
+# TR 4
+# Eğitim modeli: gpt_training.tr ve ss_exam.tr aynı GPT'yi eğitim ayarlarından (gpt_training.tr'nin
+# komut satırı sözlüğü ya da koşu klasöründeki config.json'un "config"i) bu tek fonksiyonla kurar; yeni bir
+# model seçeneği yalnızca burada eklenir. Kendisi program değildir.
 
-TR_kw_import "tr/katman"
+TR_import "tr/katman"
 
-// eğitim_modeli: ayar.dağarcık 0 ise parçalayıcının dağarcığı kullanılır; büyükse dolgu satırları eklenir,
-// küçükse hatadır. 0 verilen kv_bakış_sayısı ve ara_boyut kitaplığın varsayılanıdır.
-TR_kw_func eğitim_modeli(ayar, parçalayıcı_dağarcığı) {
-    TR_kw_if ayar.dağarcık != 0 TR_kw_and ayar.dağarcık < parçalayıcı_dağarcığı {
-        TR_kw_throw ("--dağarcık {ayar.dağarcık} parçalayıcının dağarcığından ({parçalayıcı_dağarcığı}) küçük olamaz")
+# eğitim_modeli: ayar.dağarcık 0 ise parçalayıcının dağarcığı kullanılır; büyükse dolgu satırları eklenir,
+# küçükse hatadır. 0 verilen kv_bakış_sayısı ve ara_boyut kitaplığın varsayılanıdır.
+TR_func eğitim_modeli(ayar, parçalayıcı_dağarcığı) {
+    TR_if ayar.dağarcık != 0 TR_and ayar.dağarcık < parçalayıcı_dağarcığı {
+        TR_throw ("--dağarcık \(ayar.dağarcık) parçalayıcının dağarcığından (\(parçalayıcı_dağarcığı)) küçük olamaz")
     }
-    TR_kw_return TR_type_GPT(TR_kw_if ayar.dağarcık == 0 { parçalayıcı_dağarcığı } TR_kw_else { ayar.dağarcık }, TR_arg_context: ayar.bağlam,
-        TR_arg_embed_dim: ayar.TR_mem_embed_dim, TR_arg_num_layers: ayar.katman, TR_arg_num_heads: ayar.TR_mem_num_heads,
-        TR_arg_num_kv_heads: TR_kw_if ayar.TR_mem_num_kv_heads == 0 { TR_kw_none } TR_kw_else { ayar.TR_mem_num_kv_heads },
-        TR_arg_intermediate_dim: TR_kw_if ayar.ara_boyut == 0 { TR_kw_none } TR_kw_else { ayar.ara_boyut }, TR_arg_eps: ayar.TR_mem_eps,
-        TR_arg_qk_norm: ayar.qk_normu, TR_arg_merged_kv: ayar.birleşik_kv, TR_arg_merged_gate: ayar.birleşik_kapı,
-        TR_arg_ff_use_bias: ayar.ileri_sapmalı, TR_arg_tied: ayar.paylaşımlı, TR_arg_seed: ayar.tohum)
+    TR_return TR_GPT(TR_if ayar.dağarcık == 0 { parçalayıcı_dağarcığı } TR_else { ayar.dağarcık }, TR_context: ayar.bağlam,
+        TR_embed_dim: ayar.TR_embed_dim, TR_num_layers: ayar.katman, TR_num_heads: ayar.TR_num_heads,
+        TR_num_kv_heads: TR_if ayar.TR_num_kv_heads == 0 { TR_none } TR_else { ayar.TR_num_kv_heads },
+        TR_intermediate_dim: TR_if ayar.ara_boyut == 0 { TR_none } TR_else { ayar.ara_boyut }, TR_eps: ayar.TR_eps,
+        TR_qk_norm: ayar.qk_normu, TR_merged_kv: ayar.birleşik_kv, TR_merged_gate: ayar.birleşik_kapı,
+        TR_ff_use_bias: ayar.ileri_sapmalı, TR_tied: ayar.paylaşımlı, TR_seed: ayar.tohum)
 }

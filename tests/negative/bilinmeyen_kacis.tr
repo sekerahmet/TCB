@@ -1,4 +1,5 @@
-// Bilerek hatalı modül (2.6): bilinmeyen kaçış dizisi sözdizimi hatasıdır; ters bölü
-// sessizce atılmaz. Düzenli ifade ve Windows yolu için ham metin (2.6a) yazılır.
-değişken yol = "C:\veri\yeni"
-değişken desen = "[0-9]\d+"
+# TR 4
+# Bilerek hatalı modül (2.6): bilinmeyen kaçış dizisi sözdizimi hatasıdır; ters bölü
+# sessizce atılmaz. Düzenli ifade ve Windows yolu için ham metin (2.6a) yazılır.
+TR_var TR_path = "C:\veri\yeni"
+TR_var desen = "[0-9]\d+"

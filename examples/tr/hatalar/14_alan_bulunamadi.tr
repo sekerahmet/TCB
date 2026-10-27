@@ -1,18 +1,18 @@
-//! tr kodlu 3 dil=tr
-// Hata 14 — Olmayan alan.
-// İleti kodu: H2468
-// Ne olur: Yapıda tanımlı olmayan bir alana erişilirse çalışma anında hata alınır.
-// Neden: Nokta yapısının alanları x ve y; z diye bir alan yok.
-// Düzeltilmiş hâli:
-//     yapı Nokta {
-//         x
-//         y
-//         z = 0 // alan gerekiyorsa yapıya ekleyin
-//     }
-// Çalıştırma (proje kökünden): tr examples/tr/hatalar/14_alan_bulunamadi.tr   (çıkış kodu 1)
+# TR 4
+# Hata 14 — Olmayan alan.
+# İleti kodu: H2468
+# Ne olur: Yapıda tanımlı olmayan bir alana erişilirse çalışma anında hata alınır.
+# Neden: Nokta yapısının alanları x ve y; z diye bir alan yok.
+# Düzeltilmiş hâli:
+#     yapı Nokta {
+#         x
+#         y
+#         z = 0 // alan gerekiyorsa yapıya ekleyin
+#     }
+# Çalıştırma (proje kökünden): tr examples/tr/hatalar/14_alan_bulunamadi.tr   (çıkış kodu 1)
 
-TR_kw_struct Nokta {
+TR_struct Nokta {
     x
     y
 }
-TR_fn_print(Nokta(1, 2).z)
+TR_print(Nokta(1, 2).z)

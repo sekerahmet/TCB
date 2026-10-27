@@ -4,7 +4,7 @@ import "testing"
 
 var snippetFiles = map[string]string{
 	"internal/lang/codes/tr.json": "{\n  \"TR_fn_checkpoint\": { \"name\": \"kontrol_noktası\", \"family\": \"x\" },\n  \"TR_arg_every_minutes\": { \"name\": \"her_dakika\", \"family\": \"x\" },\n  \"TR_mem_update\": { \"name\": \"güncelle\", \"family\": \"x\" },\n  \"TR_fn_pretrained_model\": { \"name\": \"hazır_model\", \"family\": \"x\" }\n}\n",
-	"lib/hazirx.tr":               "fonksiyon hazır_model(klasör) {\n    sonuç klasör\n}\n",
+	"lib/hazirx.tr":               "TR_func TR_pretrained_model(TR_folder) {\n    TR_return TR_folder\n}\n",
 	"internal/lang/lexer/lexer.go": `package lexer
 
 // New TR metnini okur.
@@ -35,7 +35,7 @@ func notTR(t *testing.T, text string) int { return len(text) }
 func TestFormatted(t *testing.T) { run(t, program("d")) }
 
 func TestWrapped(t *testing.T) {
-	code := ` + "`" + `değişken kn = kontrol_noktası(1, {})` + "`" + `
+	code := ` + "`" + `TR_var kn = TR_checkpoint(1, {})` + "`" + `
 	runIn(t, "d", code)
 }
 
@@ -129,9 +129,9 @@ func TestGoTestsLinkToTheNameCodesOfTheTRTheyRun(t *testing.T) {
 	}
 	const app = "go:func:example.com/audit/app."
 	for _, c := range []struct{ test, name string }{
-		{"TestFormatted", "TR_fn_checkpoint"}, {"TestFormatted", "TR_arg_every_minutes"}, {"TestFormatted", "TR_mem_update"},
-		{"TestWrapped", "TR_fn_checkpoint"}, {"TestConcatenated", "TR_fn_checkpoint"}, {"TestConcatenated", "TR_arg_every_minutes"},
-		{"TestTable", "TR_fn_checkpoint"}, {"TestTable", "TR_mem_update"}, {"TestNamedTable", "TR_arg_every_minutes"},
+		{"TestFormatted", "TR_checkpoint"}, {"TestFormatted", "TR_every_minutes"}, {"TestFormatted", "TR_update"},
+		{"TestWrapped", "TR_checkpoint"}, {"TestConcatenated", "TR_checkpoint"}, {"TestConcatenated", "TR_every_minutes"},
+		{"TestTable", "TR_checkpoint"}, {"TestTable", "TR_update"}, {"TestNamedTable", "TR_every_minutes"},
 	} {
 		mustEdge(t, g, app+c.test, "name:"+c.name, edgeTests, inferred)
 	}
@@ -139,21 +139,21 @@ func TestGoTestsLinkToTheNameCodesOfTheTRTheyRun(t *testing.T) {
 	// yolunu ona ileten bir yardımcıyla) yazılan içerik; yol filepath.Join'le, ad sözlük tablosundan, içerik satırlardan
 	// kurulabilir. Kitaplıktan aktarılan adın kodu da gelir. .tr olmayan dosyaya yazılan metin TR değildir.
 	for _, c := range []struct{ test, name string }{
-		{"TestWrittenByHelper", "TR_fn_checkpoint"}, {"TestWrittenDirectly", "TR_mem_update"}, {"TestWrittenByName", "TR_arg_every_minutes"},
-		{"TestWrittenFromAMap", "TR_mem_update"}, {"TestWrittenLines", "TR_fn_checkpoint"}, {"TestWrittenLines", "TR_mem_update"},
-		{"TestWrittenLibraryUse", "TR_fn_pretrained_model"},
+		{"TestWrittenByHelper", "TR_checkpoint"}, {"TestWrittenDirectly", "TR_update"}, {"TestWrittenByName", "TR_every_minutes"},
+		{"TestWrittenFromAMap", "TR_update"}, {"TestWrittenLines", "TR_checkpoint"}, {"TestWrittenLines", "TR_update"},
+		{"TestWrittenLibraryUse", "TR_pretrained_model"},
 	} {
 		mustEdge(t, g, app+c.test, "name:"+c.name, edgeTests, inferred)
 	}
-	if e := edge(g, app+"TestNotATRFile", "name:TR_mem_update", edgeTests); e != nil {
+	if e := edge(g, app+"TestNotATRFile", "name:TR_update", edgeTests); e != nil {
 		t.Errorf("text written to a file that is not .tr is not TR: %+v", e)
 	}
-	if e := edge(g, app+"TestNotTRCode", "name:TR_mem_update", edgeTests); e != nil {
+	if e := edge(g, app+"TestNotTRCode", "name:TR_update", edgeTests); e != nil {
 		t.Errorf("a string given to a helper that never reaches the TR reader is not TR: %+v", e)
 	}
 	// TR metni testten beş adım uzakta: bu bağ "doğrudan" test sayılır, bu yüzden zincir en çok yarı sınırdır (4 adım;
 	// daha uzunu tests-for'da zayıf kanıttır). Bağımsız denetim S3.
-	if e := edge(g, app+"TestFar", "name:TR_fn_checkpoint", edgeTests); e != nil {
+	if e := edge(g, app+"TestFar", "name:TR_checkpoint", edgeTests); e != nil {
 		t.Errorf("TR text five steps from the test is weak evidence, not a tests edge: %+v", e)
 	}
 }

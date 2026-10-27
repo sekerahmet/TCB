@@ -1,21 +1,21 @@
-//! tr kodlu 3 dil=tr
-// Test dosyalarının ortak sınama yardımcıları (kendisi test dosyası değildir): tests/ altındaki
-// *_test.tr dosyaları takma adsız `aktar "yardimci_test_araclari"` ile kullanır. Kitaplık
-// (lib/) testleri buradan aktarmaz; her lib test dosyası kendi tanımını taşır.
+# TR 4
+# Test dosyalarının ortak sınama yardımcıları (kendisi test dosyası değildir): tests/ altındaki
+# *_test.tr dosyaları takma adsız `aktar "yardimci_test_araclari"` ile kullanır. Kitaplık
+# (lib/) testleri buradan aktarmaz; her lib test dosyası kendi tanımını taşır.
 
-// hata_metni: f çalışırken oluşan hatanın mesajını döndürür (hata yoksa boş metin).
-TR_kw_func hata_metni(f) {
-    TR_kw_try {
+# hata_metni: f çalışırken oluşan hatanın mesajını döndürür (hata yoksa boş metin).
+TR_func hata_metni(f) {
+    TR_try {
         f()
-    } TR_kw_catch h {
-        TR_kw_return h
+    } TR_catch h {
+        TR_return h
     }
-    TR_kw_return ""
+    TR_return ""
 }
 
-// en_büyük_kare_fark: iki tensörün elemanları arasındaki en büyük kare fark (eşikler kare ölçeğindedir:
-// 1e-8 kare fark ≈ 1e-4 mutlak fark). lib testlerindeki en_büyük_mutlak_fark başka bir ölçüdür.
-TR_kw_func en_büyük_kare_fark(a, b) {
-    TR_kw_var d = a - b
-    TR_kw_return TR_fn_max(d * d).TR_mem_tolist
+# en_büyük_kare_fark: iki tensörün elemanları arasındaki en büyük kare fark (eşikler kare ölçeğindedir:
+# 1e-8 kare fark ≈ 1e-4 mutlak fark). lib testlerindeki en_büyük_mutlak_fark başka bir ölçüdür.
+TR_func en_büyük_kare_fark(a, b) {
+    TR_var d = a - b
+    TR_return TR_max(d * d).TR_tolist
 }

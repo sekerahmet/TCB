@@ -66,14 +66,14 @@ func TestNextReleasesLockWhileWaiting(t *testing.T) {
 		return interp.Null, nil
 	})
 	p := parser.New(source.TextLexer(`
-değişken alınan = yok
-eşzamanlı {
+TR_var alınan = TR_none
+TR_async {
     başladı()
-    alınan = s.sonraki()
+    alınan = s.TR_next()
 }
 görevi_bekle()
 kapıyı_aç()
-bekle_hepsi()
+TR_wait_all()
 `))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {

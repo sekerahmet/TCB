@@ -14,7 +14,7 @@ import (
 
 func TestFileErrorTurkishAndHelpful(t *testing.T) {
 	d := t.TempDir()
-	missing := filepath.Join(d, "yok.txt")
+	missing := filepath.Join(d, "TR_none.txt")
 	_, errNotExist := os.ReadFile(missing)
 	_, errDirMissing := os.ReadFile(filepath.Join(d, "a", "b", "c.txt"))
 	errWriteDirMissing := os.WriteFile(filepath.Join(d, "a", "c.txt"), nil, 0o644)
@@ -38,7 +38,7 @@ func TestFileErrorTurkishAndHelpful(t *testing.T) {
 		if d.err == nil {
 			t.Fatalf("%s: işletim sistemi hata vermedi", d.name)
 		}
-		e := FileError("dosya_oku()", "x.txt", d.op, d.err, messages.New(messages.H2030, "y.txt"))
+		e := FileError("TR_read_file()", "x.txt", d.op, d.err, messages.New(messages.H2030, "y.txt"))
 		m := e.Error()
 		if !strings.HasPrefix(m, "dosya_oku(): ") || !strings.Contains(m, `"x.txt" `) || !messages.Has(e, d.op) || !strings.Contains(m, d.wantSub) || !strings.HasSuffix(m, "; "+messages.Text(messages.H2030, "y.txt")) {
 			t.Errorf("%s: beklenmeyen mesaj: %s", d.name, m)
@@ -89,7 +89,7 @@ func TestFileErrorUnknownStatusCode(t *testing.T) {
 // Kodlu bir sarmalayıcı işletim sistemi hatasını taşıyorsa neden sarmalayıcı değil işletim
 // sistemi hatasıdır; işletim sistemi hatası yoksa kodlu ileti nedendir.
 func TestFileErrorReasonThroughCodedWrapper(t *testing.T) {
-	missing := filepath.Join(t.TempDir(), "yok.npy")
+	missing := filepath.Join(t.TempDir(), "TR_none.npy")
 	_, osErr := os.ReadFile(missing)
 	wrapped := messages.New(messages.H2000, "x", osErr)
 	if got := FileErrorReason(missing, wrapped); got != FileErrorReason(missing, osErr) {

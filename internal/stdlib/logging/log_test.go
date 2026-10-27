@@ -123,7 +123,7 @@ func TestLogErrors(t *testing.T) {
 		}
 	}
 	// Argüman tipi hatası henüz kodlu değil (interp).
-	if _, err := run(t, m, `günlük("`+pathText(filepath.Join(k, "c.jsonl"))+`").ekle(5)`); err == nil || !strings.Contains(err.Error(), "1. argüman olarak Sözlük ya da Metin bekler") {
+	if _, err := run(t, m, `günlük("`+pathText(filepath.Join(k, "c.jsonl"))+`").ekle(5)`); err == nil || !strings.Contains(err.Error(), "1. argüman olarak TR_Dict ya da TR_String bekler") {
 		t.Errorf("argüman tipi hatası bekleniyordu: %v", err)
 	}
 }

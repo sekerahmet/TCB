@@ -111,7 +111,7 @@ kn.kaydet()
 	kinds := map[string]string{}
 	for _, o := range state.Objects {
 		kinds[o.Name] = o.Kind
-		if o.Name == "op" && o.Optimizer != "TR_fn_AdamW" {
+		if o.Name == "op" && o.Optimizer != "TR_AdamW" {
 			t.Errorf("iyileştiricinin adı kodu olmalı: %q", o.Optimizer)
 		}
 	}

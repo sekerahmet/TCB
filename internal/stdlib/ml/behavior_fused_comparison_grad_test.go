@@ -9,23 +9,23 @@ import (
 // sonucu kaynaştır dışındaki gibi türevsizdir. (Gemini gerileme denetimi, Bulgu 7.)
 func TestFusedComparisonDoesNotTrackGrad(t *testing.T) {
 	out := mustRun(t, `
-değişken x = tensör([1.0, 2.0], türev_izle: doğru)
-değişken dış_hata = yanlış
-dene {
-    geri_yayılım(toplam(sonlu_mu(x)))
-} yakala h {
-    dış_hata = doğru
+TR_var x = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+TR_var dış_hata = TR_false
+TR_try {
+    TR_backward(TR_sum(TR_is_finite(x)))
+} TR_catch h {
+    dış_hata = TR_true
 }
-yazdır("DIS_HATA:", dış_hata, "DIS_GRAD:", x.gradyan)
+TR_print("DIS_HATA:", dış_hata, "DIS_GRAD:", x.TR_grad)
 
-değişken f = kaynaştır(fonksiyon(t) { sonuç sonlu_mu(t) })
-değişken iç_hata = yanlış
-dene {
-    geri_yayılım(toplam(f(x)))
-} yakala h {
-    iç_hata = doğru
+TR_var f = TR_fuse(TR_func(t) { TR_return TR_is_finite(t) })
+TR_var iç_hata = TR_false
+TR_try {
+    TR_backward(TR_sum(f(x)))
+} TR_catch h {
+    iç_hata = TR_true
 }
-yazdır("IC_HATA:", iç_hata, "IC_GRAD:", x.gradyan)
+TR_print("IC_HATA:", iç_hata, "IC_GRAD:", x.TR_grad)
 `)
 	want := "DIS_HATA: doğru DIS_GRAD: yok\nIC_HATA: doğru IC_GRAD: yok\n"
 	if out != want {

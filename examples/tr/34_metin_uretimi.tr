@@ -1,33 +1,33 @@
-//! tr kodlu 3 dil=tr
-// 34 — Metin üretimi: modelin çıktısından örnek seçmek.
-// Ne öğretir: örnekle ile logit dağılımından bir indeks seçmek, sıcaklık: ve en_iyi_k: ile rastgeleliği ayarlamak,
-// tohum: ile sonucu tekrar üretilebilir yapmak.
-// Önceki örnekten: softmax (23), seçme ve sıralama (25), döngüler (07).
-// Çalıştırma (proje kökünden): tr examples/tr/34_metin_uretimi.tr
+# TR 4
+# 34 — Metin üretimi: modelin çıktısından örnek seçmek.
+# Ne öğretir: örnekle ile logit dağılımından bir indeks seçmek, sıcaklık: ve en_iyi_k: ile rastgeleliği ayarlamak,
+# tohum: ile sonucu tekrar üretilebilir yapmak.
+# Önceki örnekten: softmax (23), seçme ve sıralama (25), döngüler (07).
+# Çalıştırma (proje kökünden): tr examples/tr/34_metin_uretimi.tr
 
-// Bir dil modeli her adımda bütün sözcükler için puan (logit) üretir. En olasıyı almak (argmax) hep aynı
-// metni verir; örnekle, puanlardan olasılıkla bir indeks seçer.
-TR_kw_var logit = TR_fn_tensor([1.0, 3.0, 0.5])
-TR_fn_print("olasılıklar:", TR_fn_softmax(logit).TR_mem_tolist)
+# Bir dil modeli her adımda bütün sözcükler için puan (logit) üretir. En olasıyı almak (argmax) hep aynı
+# metni verir; örnekle, puanlardan olasılıkla bir indeks seçer.
+TR_var logit = TR_tensor([1.0, 3.0, 0.5])
+TR_print("olasılıklar:", TR_softmax(logit).TR_tolist)
 
-// sıcaklık: logitleri böler. 0 her zaman en olasıyı seçer; küçük değer en olasıya yaklaştırır, büyük değer dağıtır.
-TR_fn_print("sıcaklık 0 ->", TR_fn_sample(logit, TR_arg_temperature: 0).TR_mem_tolist)
+# sıcaklık: logitleri böler. 0 her zaman en olasıyı seçer; küçük değer en olasıya yaklaştırır, büyük değer dağıtır.
+TR_print("sıcaklık 0 ->", TR_sample(logit, TR_temperature: 0).TR_tolist)
 
-// tohum: aynı tohum aynı sonucu verir (tekrar üretilebilirlik).
-TR_fn_print(TR_fn_sample(logit, TR_arg_seed: 7).TR_mem_tolist, TR_fn_sample(logit, TR_arg_seed: 7).TR_mem_tolist)
+# tohum: aynı tohum aynı sonucu verir (tekrar üretilebilirlik).
+TR_print(TR_sample(logit, TR_seed: 7).TR_tolist, TR_sample(logit, TR_seed: 7).TR_tolist)
 
-// en_iyi_k: seçimi en olası k sınıfla sınırlar; 1 yalnızca en olasıyı bırakır.
-TR_fn_print("en_iyi_k 1 ->", TR_fn_sample(logit, TR_arg_top_k: 1).TR_mem_tolist)
-TR_fn_print(TR_fn_sample(logit, TR_arg_temperature: 0.8, TR_arg_top_k: 2, TR_arg_seed: 7).TR_mem_tolist)
+# en_iyi_k: seçimi en olası k sınıfla sınırlar; 1 yalnızca en olasıyı bırakır.
+TR_print("en_iyi_k 1 ->", TR_sample(logit, TR_top_k: 1).TR_tolist)
+TR_print(TR_sample(logit, TR_temperature: 0.8, TR_top_k: 2, TR_seed: 7).TR_tolist)
 
-// Bir toplu üretim: tohumu değiştirerek 8 örnek alıp hangi sınıfın kaç kez geldiğini sayalım.
-TR_kw_var sayım = [0, 0, 0]
-TR_kw_for tohum TR_kw_in 1..=8 { // yüksek sıcaklıkta dağılım yayılır
-    TR_kw_var seçilen = TR_fn_sample(logit, TR_arg_temperature: 3.0, TR_arg_seed: tohum).TR_mem_tolist
+# Bir toplu üretim: tohumu değiştirerek 8 örnek alıp hangi sınıfın kaç kez geldiğini sayalım.
+TR_var sayım = [0, 0, 0]
+TR_for tohum TR_in 1..=8 { # yüksek sıcaklıkta dağılım yayılır
+    TR_var seçilen = TR_sample(logit, TR_temperature: 3.0, TR_seed: tohum).TR_tolist
     sayım[seçilen] += 1
 }
-TR_fn_print("8 örnekte (sıcaklık 3) sınıf sayıları:", sayım)
+TR_print("8 örnekte (sıcaklık 3) sınıf sayıları:", sayım)
 
-// --- Kendin dene ---
-// 1. sıcaklık: 5.0 ile 8 örnek al: dağılım nasıl değişir?
-// 2. en_iyi_k: 2 ile en az olası sınıfın hiç seçilmediğini doğrula.
+# --- Kendin dene ---
+# 1. sıcaklık: 5.0 ile 8 örnek al: dağılım nasıl değişir?
+# 2. en_iyi_k: 2 ile en az olası sınıfın hiç seçilmediğini doğrula.

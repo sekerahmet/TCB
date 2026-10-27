@@ -13,8 +13,8 @@ import (
 // dosyanın dilinin adlarıdır.
 func TestMessageThrown(t *testing.T) {
 	out, _, err := runTROut(t, `
-		dene { fırlat ileti(H6903, -1) } yakala h { yazdır(h) }
-		yazdır(tip(ileti(H6903, 2)))
+		TR_try { TR_throw TR_message("H6903", -1) } TR_catch h { TR_print(h) }
+		TR_print(TR_type(TR_message("H6903", 2)))
 	`)
 	if err != nil {
 		t.Fatal(err)
@@ -22,7 +22,7 @@ func TestMessageThrown(t *testing.T) {
 	if !strings.Contains(out, "negatif olamaz, -1 verildi") || !strings.Contains(out, "İleti") {
 		t.Errorf("çıktı: %q", out)
 	}
-	_, _, err = runTROut(t, "fırlat ileti(H6903, -1)")
+	_, _, err = runTROut(t, "TR_throw TR_message(\"H6903\", -1)")
 	if !messages.Has(err, messages.H6903) {
 		t.Errorf("yakalanmayan hata H6903 kodunu taşımalı: %v", err)
 	}
@@ -30,11 +30,11 @@ func TestMessageThrown(t *testing.T) {
 
 // doğrula(koşul, ileti(…)) koşul yanlışken iletiyi kendi koduyla fırlatır (H2456'ya sarmaz).
 func TestMessageAssert(t *testing.T) {
-	_, _, err := runTROut(t, "doğrula(1 > 2, ileti(H6903, 5))")
+	_, _, err := runTROut(t, "TR_assert(1 > 2, TR_message(\"H6903\", 5))")
 	if !messages.Has(err, messages.H6903) || messages.Has(err, messages.H2456) {
 		t.Errorf("doğrula iletiyi olduğu gibi fırlatmalı: %v", err)
 	}
-	if _, _, err := runTROut(t, "doğrula(2 > 1, ileti(H6903, 5))"); err != nil {
+	if _, _, err := runTROut(t, "TR_assert(2 > 1, TR_message(\"H6903\", 5))"); err != nil {
 		t.Errorf("doğru koşul hata vermemeli: %v", err)
 	}
 }
@@ -42,11 +42,11 @@ func TestMessageAssert(t *testing.T) {
 // hata_kodu(f) f'yi çalıştırır; fırlayan iletinin kodunu verir, hata yoksa yok.
 func TestErrorCode(t *testing.T) {
 	out, _, err := runTROut(t, `
-		yazdır(hata_kodu(() => { fırlat ileti(H6903, -1) }))
-		yazdır(hata_kodu(() => doğrula(yanlış, ileti(H6900, 10, 4))))
-		yazdır(hata_kodu(() => 1 + 1))
-		yazdır(hata_kodu(() => { fırlat "metin" }) == "H2441")
-		yazdır(hata_kodu(() => { fırlat ileti(H6903, -1) }) == H6903)
+		TR_print(TR_error_code(() => { TR_throw TR_message("H6903", -1) }))
+		TR_print(TR_error_code(() => TR_assert(TR_false, TR_message("H6900", 10, 4))))
+		TR_print(TR_error_code(() => 1 + 1))
+		TR_print(TR_error_code(() => { TR_throw "metin" }) == "H2441")
+		TR_print(TR_error_code(() => { TR_throw TR_message("H6903", -1) }) == "H6903")
 	`)
 	if err != nil {
 		t.Fatal(err)
@@ -58,17 +58,17 @@ func TestErrorCode(t *testing.T) {
 
 // ileti tanımsız kodu ve yanlış değer sayısını kurulurken bildirir.
 func TestMessageErrors(t *testing.T) {
-	_, _, err := runTROut(t, `ileti("H9998", 1)`)
+	_, _, err := runTROut(t, `TR_message("H9998", 1)`)
 	if !messages.Has(err, messages.H2528) {
 		t.Errorf("tanımsız kod H2528 vermeli: %v", err)
 	}
-	_, _, err = runTROut(t, "ileti(H6903)")
+	_, _, err = runTROut(t, "TR_message(\"H6903\")")
 	if !messages.Has(err, messages.H2529) {
 		t.Errorf("yanlış değer sayısı H2529 vermeli: %v", err)
 	}
-	_, _, err = runTROut(t, "ileti()")
+	_, _, err = runTROut(t, "TR_message()")
 	if err == nil {
-		t.Error("kodsuz ileti() hata vermeli")
+		t.Error("kodsuz TR_message() hata vermeli")
 	}
 }
 

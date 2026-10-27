@@ -22,15 +22,15 @@ import (
 // kitaplıkta yok: sahte depo dizesi gerçek kitaplık dosyasına bağlanmasın), onu aktaran
 // bir betik ve kitaplığı dize, kodlu dize, betik ve kalıpla koşan Go testleridir.
 func libraryImportFiles(t *testing.T) map[string]string {
-	coded, err := source.Encode("aktar \"tr/katmanx\"\nyazdır(1)\n")
+	coded, err := source.Encode("TR_import \"tr/katmanx\"\nTR_print(1)\n")
 	if err != nil {
 		t.Fatal(err)
 	}
 	return map[string]string{
-		"lib/modelx.tr":             "aktar \"tr/katmanx\"\nfonksiyon h() {\n}\n",
-		"lib/katmanx.tr":            "fonksiyon k() {\n}\n",
-		"lib/katmanx_test.tr":       "aktar \"tr/katmanx\"\ntest \"k\" {\n    k()\n}\n",
-		"tools/run.tr":              "aktar \"tr/modelx\"\nh()\n",
+		"lib/modelx.tr":             "TR_import \"tr/katmanx\"\nTR_func h() {\n}\n",
+		"lib/katmanx.tr":            "TR_func k() {\n}\n",
+		"lib/katmanx_test.tr":       "TR_import \"tr/katmanx\"\nTR_test \"k\" {\n    k()\n}\n",
+		"tools/run.tr":              "TR_import \"tr/modelx\"\nh()\n",
 		"internal/reporoot/root.go": "package reporoot\n\nfunc Path(parts ...string) string { return \"\" }\n",
 		"app/app_test.go": `package app
 
@@ -40,8 +40,8 @@ import (
 	"example.com/audit/internal/reporoot"
 )
 
-const program = ` + "`" + `aktar "tr/modelx"
-yazdır(1)
+const program = ` + "`" + `TR_import "tr/modelx"
+TR_print(1)
 ` + "`" + `
 
 func writeAndRun(string) {}
@@ -110,7 +110,7 @@ func TestALibraryModuleIsTestedByTheTestsThatImportIt(t *testing.T) {
 func TestEveryLibraryImportOfARepositoryTestReachesTheLibraryFile(t *testing.T) {
 	root, _, g := repoGraph(t)
 	ix := newIndex(g)
-	imp := regexp.MustCompile(`(?:` + regexp.QuoteMeta(codes.Source().Name(codes.KwImport)) + `|TR_kw_import)\s+"((?:tr/)?[^"]+)"`)
+	imp := regexp.MustCompile(`(?:` + regexp.QuoteMeta(codes.Source().Name(codes.KwImport)) + `|TR_import)\s+"((?:tr/)?[^"]+)"`)
 	reached := map[string]map[string]int{}
 	testsOf := func(lib string) map[string]int {
 		if reached[lib] == nil {

@@ -24,7 +24,7 @@ import "testing"
 // Kural (dil tanımı 17.7): yazım dili dosyanın dilidir.
 func TestWritingLanguage(t *testing.T) { Compile() }
 `,
-	"tests/kod_test.tr": "test \"17.7 kodsuz dosya Türkçedir\" {\n    yazdır(1)\n}\n",
+	"tests/kod_test.tr": "TR_test \"17.7 kodsuz dosya Türkçedir\" {\n    TR_print(1)\n}\n",
 }
 
 // Kural: dil tanımı maddeleri düğümdür ve her atıf atıf yapan yerden (en iç bildirim, doc yorumunun bildirimi, başlık

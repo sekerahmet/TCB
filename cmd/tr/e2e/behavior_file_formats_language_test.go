@@ -19,13 +19,13 @@ import (
 // kayıt alanları yazım dilinden bağımsızdır, çevrilmez. Aynı kodlu program varsayılan dilde ve
 // TR_DIL=en ile çalıştırılır; ürettiği dosyaların adları ve anahtar kümeleri aynı olmalı.
 func TestFileFormatsIndependentOfWritingLanguage(t *testing.T) {
-	program := "değişken w = tensör([1.0, 2.0], türev_izle: doğru)\n" +
-		"değişken g = günlük(\"metrics.jsonl\")\n" +
-		"değişken kn = kontrol_noktası(\"kosu\", {w: w})\n" +
+	program := "TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)\n" +
+		"TR_var g = TR_logger(\"metrics.jsonl\")\n" +
+		"TR_var kn = TR_checkpoint(\"kosu\", {w: w})\n" +
 		"kn.güncelle(1)\n" +
 		"kn.kaydet()\n" +
 		"g.ekle({kayıp: 1.5})\n" +
-		"yazdır(tip(kn))\n"
+		"TR_print(TR_type(kn))\n"
 	coded, err := source.Encode(program)
 	if err != nil {
 		t.Fatal(err)
@@ -62,10 +62,10 @@ func TestFileFormatsIndependentOfWritingLanguage(t *testing.T) {
 // İngilizce (dil=en) yazıldığında değerlerin metni değişir ama JSON metni, CSV'den okunan değerler
 // ve günlük satırı bayt bayt aynıdır.
 func TestDataFormatsIndependentOfFileLanguage(t *testing.T) {
-	program := "yazdır(json_metin({a: doğru, b: yok, c: [1.5, yanlış], d: \"x\"}))\n" +
-		"yazdır(json_metin(csv_çöz(\"a,b\\ndoğru,1\\n\")))\n" +
-		"günlük(\"metrics.jsonl\").ekle({hazır: doğru, boş: yok})\n" +
-		"yazdır(doğru)\n"
+	program := "TR_print(TR_json_string({a: TR_true, b: TR_none, c: [1.5, TR_false], d: \"x\"}))\n" +
+		"TR_print(TR_json_string(TR_parse_csv(\"a,b\\ndoğru,1\\n\")))\n" +
+		"TR_logger(\"metrics.jsonl\").TR_append({hazır: TR_true, boş: TR_none})\n" +
+		"TR_print(TR_true)\n"
 	coded, err := source.Encode(program)
 	if err != nil {
 		t.Fatal(err)
@@ -102,16 +102,16 @@ func TestDataFormatsIndependentOfFileLanguage(t *testing.T) {
 // (tr/egitim) config.json'u İngilizce tanımlayıcılardır; Türkçe program İngilizce JSON'daki
 // "step"'i .adım ile bulur.
 func TestDictCodedKeysOnDisk(t *testing.T) {
-	program := "aktar \"tr/egitim\" olarak e\n" +
-		"değişken ayar = komut_satırı({adım: 3, öğrenme_oranı: 0.5})\n" +
-		"değişken koşu = e.Koşu(\"kosu\", ayar, {}, adım_sayısı: ayar.adım)\n" +
+	program := "TR_import \"tr/egitim\" TR_as e\n" +
+		"TR_var ayar = TR_command_line({TR_step: 3, TR_lr: 0.5})\n" +
+		"TR_var koşu = e.Koşu(\"kosu\", ayar, {}, TR_num_steps: ayar.TR_step)\n" +
 		"koşu.değerlendirildi(1, {kayıp: 0.25})\n" +
-		"değişken kn = kontrol_noktası(\"nokta\", {w: tensör([1.0]), sayaç: {adım: 1}})\n" +
+		"TR_var kn = TR_checkpoint(\"nokta\", {w: TR_tensor([1.0]), sayaç: {TR_step: 1}})\n" +
 		"kn.güncelle(1)\n" +
 		"kn.kaydet()\n" +
-		"yazdır(json_metin(ayar))\n" +
-		"yazdır(ayar)\n" +
-		"yazdır(json_çöz(`{\"step\": 4}`).adım)\n"
+		"TR_print(TR_json_string(ayar))\n" +
+		"TR_print(ayar)\n" +
+		"TR_print(TR_json_parse(`{\"step\": 4}`).TR_step)\n"
 	coded, err := source.Encode(program)
 	if err != nil {
 		t.Fatal(err)
@@ -159,8 +159,8 @@ func TestDictCodedKeysOnDisk(t *testing.T) {
 // Fonksiyon, yerleşik ve yapı değerinin metni de dosyanın dilindedir, çalıştıranın diline
 // (TR_DIL) bağlı değildir (3): aynı program her makinede aynı metni verir.
 func TestFunctionTextFollowsFileLanguage(t *testing.T) {
-	program := "fonksiyon f() { sonuç 1 }\nyapı P { a }\ndeğişken l = [1]\n" +
-		"yazdır(metin(f), metin(P), metin(yazdır), metin(l.ekle), \"{f}\", metin(x => x))\n"
+	program := "TR_func f() { TR_return 1 }\nTR_struct P { a }\nTR_var l = [1]\n" +
+		"TR_print(TR_str(f), TR_str(P), TR_str(TR_print), TR_str(l.TR_append), \"\\(f)\", TR_str(x => x))\n"
 	sameOutputInEveryLanguage(t, program, map[string]string{
 		"tr": "<fonksiyon f> <yapı P> <yerleşik yazdır> <yerleşik ekle> <fonksiyon f> <ok fonksiyonu>\n",
 		"en": "<function f> <struct P> <built-in print> <built-in append> <function f> <lambda>\n",
@@ -171,8 +171,8 @@ func TestFunctionTextFollowsFileLanguage(t *testing.T) {
 // ve çalıştıranın diline (TR_DIL) bağlı değildir (3.2). Önceden tensör yazdırması adları
 // iletiden alıyordu: aynı program TR_DIL'e göre farklı yazıyordu ("Tanımsız" / "NaN").
 func TestNonFiniteNamesFollowFileLanguage(t *testing.T) {
-	program := "değişken t = tensör([0.0, 1.0, -1.0]) / 0.0\ndeğişken s = ondalık(\"inf\")\n" +
-		"yazdır(t, -s, s, ondalık(\"nan\"), metin(tensör([2.0], türev_izle: doğru)), \"{tensör(s)}\")\n"
+	program := "TR_var t = TR_tensor([0.0, 1.0, -1.0]) / 0.0\nTR_var s = TR_float(\"inf\")\n" +
+		"TR_print(t, -s, s, TR_float(\"nan\"), TR_str(TR_tensor([2.0], TR_requires_grad: TR_true)), \"\\(TR_tensor(s))\")\n"
 	sameOutputInEveryLanguage(t, program, map[string]string{
 		"tr": "Tensör[3] [    NaN,  sonsuz, -sonsuz] -sonsuz sonsuz NaN Tensör[1] (türev izleniyor) [2.0000] Tensör(sonsuz)\n",
 		"en": "Tensor[3] [ nan,  inf, -inf] -inf inf nan Tensor[1] (requires grad) [2.0000] Tensor(inf)\n",
@@ -183,21 +183,21 @@ func TestNonFiniteNamesFollowFileLanguage(t *testing.T) {
 // TR_DIL'e bağlı değildir (DENETİM 3): İlerleme, Günlük, iyileştirici, kontrol noktası, satır
 // okuyucu. Önceden tip adı kanonik, geri kalanı TR_DIL'deydi.
 func TestEngineValueTextFollowsFileLanguage(t *testing.T) {
-	program := "değişken w = tensör([1.0], türev_izle: doğru)\n" +
-		"dosya_yaz(\"s.txt\", \"a\\nb\\n\")\n" +
-		"yazdır(metin(ilerleme(2)))\nyazdır(metin(günlük(\"m.jsonl\")))\n" +
-		"yazdır(metin(AdamW([w], öğrenme_oranı: 0.1)))\nyazdır(metin(kontrol_noktası(\"k\", {w: w})))\n" +
-		"yazdır(metin(dosya_satırları(\"s.txt\")))\n"
+	program := "TR_var w = TR_tensor([1.0], TR_requires_grad: TR_true)\n" +
+		"TR_write_file(\"s.txt\", \"a\\nb\\n\")\n" +
+		"TR_print(TR_str(TR_progress(2)))\nTR_print(TR_str(TR_logger(\"m.jsonl\")))\n" +
+		"TR_print(TR_str(TR_AdamW([w], TR_lr: 0.1)))\nTR_print(TR_str(TR_checkpoint(\"k\", {w: w})))\n" +
+		"TR_print(TR_str(TR_read_lines(\"s.txt\")))\n"
 	coded, err := source.Encode(program)
 	if err != nil {
 		t.Fatal(err)
 	}
 	for language, want := range map[string][]string{
 		"tr": {"İlerleme(adım 0/2)", "Günlük(m.jsonl, 0 kayıt)",
-			"AdamW(parametre: 1, öğrenme_oranı: 0.1, ağırlık_çürümesi: 0.01, beta1: 0.9, beta2: 0.999, epsilon: 1e-08, adım: 0)",
+			"TR_AdamW(parametre: 1, TR_lr: 0.1, TR_weight_decay: 0.01, TR_beta1: 0.9, TR_beta2: 0.999, TR_eps: 1e-08, TR_step: 0)",
 			"KontrolNoktası(k/checkpoints, adım 0, 1 nesne)", "SatırOkuyucu("},
 		"en": {"Progress(step 0/2)", "Logger(m.jsonl, 0 records)",
-			"AdamW(parameters: 1, lr: 0.1, weight_decay: 0.01, beta1: 0.9, beta2: 0.999, eps: 1e-08, step: 0)",
+			"TR_AdamW(parameters: 1, lr: 0.1, weight_decay: 0.01, TR_beta1: 0.9, TR_beta2: 0.999, eps: 1e-08, step: 0)",
 			"Checkpoint(k/checkpoints, step 0, 1 object)", "LineReader("},
 	} {
 		for _, env := range [][]string{{"TR_DIL=tr"}, {"TR_DIL=en"}} {
@@ -224,14 +224,14 @@ func TestDisplayFollowsPersonsLanguage(t *testing.T) {
 	repl := testkit.RunBinary(t, trBinary, "", "true\ntype(1)\nexit\n", []string{"TR_DIL=en"})
 	testkit.Wait(t, repl, 0, []string{"=> true", "=> Int"}, nil)
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "p.tr", "değişken ayar = komut_satırı({adım: 3, hızlı: doğru})\n")
+	testkit.WriteFile(t, dir, "p.tr", "TR_var ayar = TR_command_line({TR_step: 3, hızlı: TR_true})\n")
 	help := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "p.tr", "--help")
 	testkit.Wait(t, help, 0, []string{"--step <Int>", "(default: true; to turn it off --hızlı=false)"}, nil)
 	if strings.Contains(help.Stdout, "doğru") || strings.Contains(help.Stdout, "<Tam>") {
 		t.Errorf("TR_DIL=en yardımında Türkçe değer ya da tip adı:\n%s", help.Stdout)
 	}
 	// Yardımın gösterdiği yazım okunur (19.3, 17.8): TR_DIL=en'de "true,false" ve "inf".
-	testkit.WriteFile(t, dir, "v.tr", "değişken a = komut_satırı({liste: [doğru], büyük: 1.5})\nyazdır(a.liste, a.büyük)\n")
+	testkit.WriteFile(t, dir, "v.tr", "TR_var a = TR_command_line({liste: [TR_true], büyük: 1.5})\nTR_print(a.liste, a.büyük)\n")
 	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "v.tr", "--liste", "true,false", "--büyük", "inf"), 0, []string{"[doğru, yanlış] sonsuz"}, nil)
 }
 
@@ -239,19 +239,19 @@ func TestDisplayFollowsPersonsLanguage(t *testing.T) {
 // ile "Bool (true)", Türkçede "Mantık (doğru)" der; ileti ile içindeki değer bir dildedir.
 func TestMessageValuesFollowPersonsLanguage(t *testing.T) {
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "p.tr", "yazdır([1].birleştir(doğru))\n")
+	testkit.WriteFile(t, dir, "p.tr", "TR_print([1].TR_join(TR_true))\n")
 	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "p.tr"), 1, nil, []string{"expects String as argument 1, Bool (true) given"})
-	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=tr"}, "p.tr"), 1, nil, []string{"Mantık (doğru) verildi"})
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=tr"}, "p.tr"), 1, nil, []string{"TR_Bool (TR_true) verildi"})
 	// Motorların iletileri de (değer interp.Shown, tip adı ValueType ile).
-	testkit.WriteFile(t, dir, "t.tr", "yazdır(tensör([1.0, doğru]))\n")
+	testkit.WriteFile(t, dir, "t.tr", "TR_print(TR_tensor([1.0, TR_true]))\n")
 	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "t.tr"), 1, nil, []string{"true (Bool) given"})
-	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=tr"}, "t.tr"), 1, nil, []string{"doğru (Mantık) verildi"})
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=tr"}, "t.tr"), 1, nil, []string{"TR_true (TR_Bool) verildi"})
 }
 
 // Denetleyici dosyanın dilini bilir (source.Prepare): İngilizce dosyada str(b) == "doğru"
 // hiç tutmaz, uyarı verir (H1016); aynı karşılaştırma Türkçe dosyada doğrudur, sessizdir.
 func TestBoolTextComparisonWarnsByFileLanguage(t *testing.T) {
-	coded, err := source.Encode("sabit b = doğru\nyazdır(metin(b) == \"doğru\")\n")
+	coded, err := source.Encode("TR_const b = TR_true\nTR_print(TR_str(b) == \"doğru\")\n")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -269,10 +269,10 @@ func TestBoolTextComparisonWarnsByFileLanguage(t *testing.T) {
 // TR_DIL=en görüntüsünde İngilizcedir. Önceden ad TR_DIL'de kurulup iletiye metin olarak
 // veriliyordu (yakalanan hatada "tensör", "devrik()", "türev_izle" kalıyordu).
 func TestMessageNamesFollowTheMessageLanguage(t *testing.T) {
-	coded, err := source.Encode("dene { tensör([1.0], türev_izle: 5) } yakala h { yazdır(h) }\n" +
-		"dene { yazdır(tensör([[1.0]]).T) } yakala h { yazdır(h) }\n" +
-		"dene { tensör([1.0], türev_izl: doğru) } yakala h { yazdır(h) }\n" +
-		"yazdır(tensör([[1.0]]).T)\n")
+	coded, err := source.Encode("TR_try { TR_tensor([1.0], TR_requires_grad: 5) } TR_catch h { TR_print(h) }\n" +
+		"TR_try { TR_print(TR_tensor([[1.0]]).T) } TR_catch h { TR_print(h) }\n" +
+		"TR_try { TR_tensor([1.0], türev_izl: TR_true) } TR_catch h { TR_print(h) }\n" +
+		"TR_print(TR_tensor([[1.0]]).T)\n")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -315,8 +315,8 @@ func TestSyntaxHintNamesFollowPersonsLanguage(t *testing.T) {
 // İngilizcedir. Önceden parça messages.Text ile TR_DIL'de kurulup iletiye metin olarak giriyordu
 // ("only on tensörde").
 func TestMessagePartsFollowTheMessageLanguage(t *testing.T) {
-	coded, err := source.Encode("dene { softmax([1.0, 2.0]) } yakala h { yazdır(h) }\n" +
-		"dene { koşullu([1, 2], 1, 2) } yakala h { yazdır(h) }\n")
+	coded, err := source.Encode("TR_try { TR_softmax([1.0, 2.0]) } TR_catch h { TR_print(h) }\n" +
+		"TR_try { TR_where([1, 2], 1, 2) } TR_catch h { TR_print(h) }\n")
 	if err != nil {
 		t.Fatal(err)
 	}

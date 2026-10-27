@@ -13,7 +13,7 @@ import (
 // yazılır; çıkış kodu değişmez, standart çıktıya karışmaz.
 func TestScriptArgumentsPassed(t *testing.T) {
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "a.tr", "yazdır(\"çalıştı\")\n")
+	testkit.WriteFile(t, dir, "a.tr", "TR_print(\"çalıştı\")\n")
 	warning := "⚠️ Uyarı: programa verilen 3 argüman kullanılmadı (--öğrenme_oranı 0.01 veri); program komut satırı argümanlarını okumuyor"
 	for _, command := range [][]string{
 		{"a.tr", "--öğrenme_oranı", "0.01", "veri"},
@@ -31,7 +31,7 @@ func TestScriptArgumentsPassed(t *testing.T) {
 		t.Errorf("argümansız çalıştırmada uyarı olmamalı: %+v", s)
 	}
 	// Program hatayla biterse yalnızca hata yazılır
-	testkit.WriteFile(t, dir, "hata.tr", "yazdır(1 / 0)\n")
+	testkit.WriteFile(t, dir, "hata.tr", "TR_print(1 / 0)\n")
 	if s := tr(t, dir, "hata.tr", "x"); s.Code != 1 || strings.Contains(s.Stderr, "kullanılmadı") {
 		t.Errorf("hatalı programda argüman uyarısı olmamalı: %+v", s)
 	}
@@ -40,7 +40,7 @@ func TestScriptArgumentsPassed(t *testing.T) {
 // 'tr derle' ile üretilen uygulamanın bütün argümanları programındır.
 func TestBuiltAppArguments(t *testing.T) {
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "uyg.tr", "yazdır(\"uygulama\")\n")
+	testkit.WriteFile(t, dir, "uyg.tr", "TR_print(\"uygulama\")\n")
 	exit := filepath.Join(t.TempDir(), "uyg.exe")
 	testkit.Wait(t, tr(t, dir, "derle", "uyg.tr", exit), 0, nil, nil)
 	s := testkit.RunBinary(t, exit, dir, "", nil, "--adım", "5")

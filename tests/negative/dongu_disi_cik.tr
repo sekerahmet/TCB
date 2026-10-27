@@ -1,7 +1,8 @@
-// Bilerek hatalı: 5.13 — fonksiyon gövdesi döngünün içini kesmez.
-döngü {
-    fonksiyon f() {
-        çık
+# TR 4
+# Bilerek hatalı: 5.13 — fonksiyon gövdesi döngünün içini kesmez.
+TR_for {
+    TR_func f() {
+        TR_break
     }
-    çık
+    TR_break
 }

@@ -1,12 +1,12 @@
-//! tr kodlu 3 dil=tr
-TR_kw_var bas = TR_fn_time_ms()
-TR_kw_var x = 42
-TR_kw_var l = []
-TR_kw_var i = 0
-TR_kw_while i < 300000 {
+# TR 4
+TR_var bas = TR_time_ms()
+TR_var x = 42
+TR_var l = []
+TR_var i = 0
+TR_for i < 300000 {
     x = (x * 1103515245 + 12345) % 2147483648
-    l.TR_mem_append(x)
+    l.TR_append(x)
     i += 1
 }
-TR_kw_var s = l.TR_mem_sort()
-TR_fn_print("sirala {s[0] + s[150000] + s[299999]} {TR_fn_time_ms() - bas}")
+TR_var s = l.TR_sort()
+TR_print("sirala \(s[0] + s[150000] + s[299999]) \(TR_time_ms() - bas)")

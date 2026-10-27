@@ -10,14 +10,14 @@ import (
 )
 
 func TestHeaderRules(t *testing.T) {
-	cases := map[string]string{Header + "tr\n": "tr", Header + "en": "en", "\xef\xbb\xbf" + Header + "en\r\nTR_kw_var x = 1": "en"}
+	cases := map[string]string{Header + "tr\n": "tr", Header + "en": "en", "\xef\xbb\xbf" + Header + "en\r\nTR_var x = 1": "en"}
 	for m, language := range cases {
 		if b, err := Split(m); err != nil || !b.Coded || b.Language != language || b.Join() != m {
 			t.Errorf("%q: %s dilinde kodlu okunmalı ve geri birleşmeli (%+v, %v)", m, language, b, err)
 		}
 	}
 	// Başlıksız dosya Türkçedir (17.7).
-	if b, err := Split("TR_kw_var x = 1\n"); err != nil || b.Coded || b.Language != "tr" {
+	if b, err := Split("TR_var x = 1\n"); err != nil || b.Coded || b.Language != "tr" {
 		t.Errorf("başlıksız dosya Türkçe olmalı: %+v, %v", b, err)
 	}
 	// Eski ve yeni biçim sürümleri, dilsiz ya da bilinmeyen dilli başlık okunmaz (17.1, 17.6); dilsiz
@@ -56,11 +56,11 @@ func TestIdentityLexerReadsIdentitiesAtDiskPositions(t *testing.T) {
 	for _, c := range []struct {
 		body  string
 		paren int // `(` belirtecinin diskteki sütunu
-	}{{"TR_fn_print(adet)", 12}, {"yazdır(adet)", 7}} {
+	}{{"TR_print(adet)", 12}, {"yazdır(adet)", 7}} {
 		l := Parts{Body: c.body, Coded: strings.HasPrefix(c.body, "TR_")}.IdentityLexer()
 		name, open, user := l.NextToken(), l.NextToken(), l.NextToken()
-		if name.Code != codes.FnPrint || name.Literal != "TR_fn_print" || open.Column != c.paren || user.Literal != "adet" {
-			t.Errorf("%q: %+v %+v %+v; want the identity TR_fn_print, `(` at column %d, the user name adet", c.body, name, open, user, c.paren)
+		if name.Code != codes.FnPrint || name.Literal != "TR_print" || open.Column != c.paren || user.Literal != "adet" {
+			t.Errorf("%q: %+v %+v %+v; want the identity TR_print, `(` at column %d, the user name adet", c.body, name, open, user, c.paren)
 		}
 	}
 }

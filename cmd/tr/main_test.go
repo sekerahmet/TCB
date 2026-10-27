@@ -92,8 +92,8 @@ func TestUnsupportedPackageVersion(t *testing.T) {
 
 func TestPackageRoundTrip(t *testing.T) {
 	pk := &pkg{
-		Main:    packageFile{Name: "ana.tr", Code: "aktar \"m\"\n", Imports: []int{0}},
-		Modules: []packageFile{{Name: "m.tr", Code: "değişken a = 1\n"}},
+		Main:    packageFile{Name: "ana.tr", Code: "TR_import \"m\"\n", Imports: []int{0}},
+		Modules: []packageFile{{Name: "m.tr", Code: "TR_var a = 1\n"}},
 	}
 	coded, err := encodePackage(pk)
 	if err != nil {
@@ -128,7 +128,7 @@ func TestImportSitesAndRedirect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	expected := strings.Replace(strings.Replace(code, `aktar "a"`, `aktar "/g/1/a.tr"`, 1), `aktar "alt/ç.tr"`, `aktar "/g/0/ç.tr"`, 1)
+	expected := strings.Replace(strings.Replace(code, `TR_import "a"`, `TR_import "/g/1/a.tr"`, 1), `TR_import "alt/ç.tr"`, `TR_import "/g/0/ç.tr"`, 1)
 	if updated != expected {
 		t.Fatalf("yönlendirilmiş kod:\n%s\nbeklenen:\n%s", updated, expected)
 	}

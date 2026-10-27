@@ -1,13 +1,13 @@
-//! tr kodlu 3 dil=tr
-// Hata 07 — Yanlış tipte argüman.
-// İleti kodu: H1004
-// Ne olur: Tipi bildirilmiş parametreye başka tipte değer verildiğini tip denetimi çağrı yerinde yakalar.
-// Neden: alan() parametresini Ondalık bekler, bir Metin verildi.
-// Düzeltilmiş hâli:
-//     yazdır(alan(3.0))
-// Çalıştırma (proje kökünden): tr examples/tr/hatalar/07_yanlis_tip_arguman.tr   (çıkış kodu 1)
+# TR 4
+# Hata 07 — Yanlış tipte argüman.
+# İleti kodu: H1004
+# Ne olur: Tipi bildirilmiş parametreye başka tipte değer verildiğini tip denetimi çağrı yerinde yakalar.
+# Neden: alan() parametresini Ondalık bekler, bir Metin verildi.
+# Düzeltilmiş hâli:
+#     yazdır(alan(3.0))
+# Çalıştırma (proje kökünden): tr examples/tr/hatalar/07_yanlis_tip_arguman.tr   (çıkış kodu 1)
 
-TR_kw_func alan(kenar: TR_type_Float) -> TR_type_Float {
-    TR_kw_return kenar * kenar
+TR_func alan(kenar: TR_Float) -> TR_Float {
+    TR_return kenar * kenar
 }
-TR_fn_print(alan("üç"))
+TR_print(alan("üç"))
