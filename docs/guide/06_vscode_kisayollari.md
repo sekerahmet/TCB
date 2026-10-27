@@ -1,12 +1,12 @@
 # 6. VS Code Editör Eklentisi Kısayolları (Snippets)
 `.tr` uzantılı bir dosya açtığınızda aşağıdaki kısayolları yazıp `Tab` tuşuna basabilirsiniz:
-- `fonk` / `fonksiyon` $\rightarrow$ Fonksiyon bloğu oluşturur
-- `eğer` $\rightarrow$ `eğer ... değilse` bloğu oluşturur
-- `eşle` $\rightarrow$ `eşle` durum eşleştirme bloğu oluşturur
-- `filtrele` / `haritala` $\rightarrow$ Sondaki blokla `.filtrele { o ... }` / `.haritala { o ... }` yazar
-- `indirge` $\rightarrow$ `.indirge(başlangıç, (birikim, x) => ...)` yazar
-- `döngü` $\rightarrow$ `döngü i içinde 1..=10` bloğu oluşturur
+- `fonk` / `TR_kw_func` $\rightarrow$ Fonksiyon bloğu oluşturur
+- `TR_kw_if` $\rightarrow$ `eğer ... değilse` bloğu oluşturur
+- `TR_kw_match` $\rightarrow$ `TR_kw_match` durum eşleştirme bloğu oluşturur
+- `TR_mem_filter` / `TR_mem_map` $\rightarrow$ Sondaki blokla `.TR_mem_filter { TR_ctx_it ... }` / `.TR_mem_map { TR_ctx_it ... }` yazar
+- `TR_mem_reduce` $\rightarrow$ `.TR_mem_reduce(başlangıç, (birikim, x) => ...)` yazar
+- `TR_kw_for` $\rightarrow$ `TR_kw_for i TR_kw_in 1..=10` bloğu oluşturur
 - `liste_üret` $\rightarrow$ Tek satırda liste üreteci oluşturur
-- `yapı` $\rightarrow$ `yapı` ve metot şablonu oluşturur
-- `dene` $\rightarrow$ `dene ... yakala` hata yakalama bloğu oluşturur
-- `tensör` / `türev` $\rightarrow$ Tensörlerle küçük bir eğitim döngüsü oluşturur (`tensör(..., türev_izle: doğru)`, `AdamW`, `iyileştirici.sıfırla()`, `geri_yayılım`, `iyileştirici.adım()`)
+- `TR_kw_struct` $\rightarrow$ `TR_kw_struct` ve metot şablonu oluşturur
+- `TR_kw_try` $\rightarrow$ `dene ... yakala` hata yakalama bloğu oluşturur
+- `TR_fn_tensor` / `türev` $\rightarrow$ Tensörlerle küçük bir eğitim döngüsü oluşturur (`TR_fn_tensor(..., TR_arg_requires_grad: TR_kw_true)`, `TR_fn_AdamW`, `iyileştirici.TR_mem_zero_grad()`, `TR_fn_backward`, `iyileştirici.TR_mem_step()`)

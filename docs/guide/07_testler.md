@@ -1,23 +1,24 @@
 # 7. Test Yazma ve Çalıştırma (`tr test`)
 
-Testler kodun yanına `test "ad" { ... }` bloklarıyla yazılır. Dosya normal çalıştırıldığında (`tr dosya.tr`) test blokları atlanır; yalnızca `tr test` çalıştırır. Örnek: `tr test examples/tr/17_testler_test.tr`.
+Testler kodun yanına `TR_ctx_test "ad" { ... }` bloklarıyla yazılır. Dosya normal çalıştırıldığında (`tr dosya.tr`) test blokları atlanır; yalnızca `tr test` çalıştırır. Örnek: `tr test examples/tr/17_testler_test.tr`.
 
 ```tr
+//! tr kodlu 3 dil=tr
 // hesap_test.tr
-fonksiyon topla(a, b) { sonuç a + b }
+TR_kw_func topla(a, b) { TR_kw_return a + b }
 
-test "toplama doğru" {
-    doğrula(topla(2, 2) == 4)
+TR_ctx_test "toplama doğru" {
+    TR_fn_assert(topla(2, 2) == 4)
 }
 
-test "eşitlik" {
-    eşit_mi(5, topla(2, 2))   // beklenen önce, gerçek sonra
+TR_ctx_test "eşitlik" {
+    TR_fn_assert_equal(5, topla(2, 2))   // beklenen önce, gerçek sonra
 }
 ```
 
-- `doğrula(koşul, [mesaj])`: koşul yanlışsa test kalır.
-- `eşit_mi(beklenen, gerçek, [mesaj])`: değerler `==` anlamında eşit değilse ikisini de tipiyle gösterir.
-- `test` yalnızca deyim başında ve ardından bir metin gelince test başlatır; `değişken test = 5` gibi kullanımlar çalışmaya devam eder.
+- `TR_fn_assert(koşul, [mesaj])`: koşul yanlışsa test kalır.
+- `TR_fn_assert_equal(beklenen, gerçek, [mesaj])`: değerler `==` anlamında eşit değilse ikisini de tipiyle gösterir.
+- `TR_ctx_test` yalnızca deyim başında ve ardından bir metin gelince test başlatır; `TR_kw_var test = 5` gibi kullanımlar çalışmaya devam eder.
 - Önce dosyanın kendisi çalışıp üst düzey tanımları oluşturur; sonra her test bu tanımların üzerinde **yeni bir kapsamda** çalışır. Kalan ya da hata veren test diğerlerini durdurmaz. (Üst düzey bir değişkene atama yapan test, sonrakilerin gördüğü değeri değiştirir.)
 
 ```text
