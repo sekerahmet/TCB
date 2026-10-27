@@ -136,7 +136,7 @@ Yorumlayıcının motorlara sunduğu ortak hizmetler:
 
 | Kanca | Görevi |
 | :-- | :-- |
-| `logging.SetStepHook`, `logging.StepBoundary` | Eğitimin adım sınırı: `TR_type_Progress.TR_mem_update`'nin her çağrısında (yorumlayıcı kilidi altında) adım ve zamanla çağrılır. Canlı profil ms/adım'ı ve adım başına işlem dağılımını buradan ölçer; kanca yokken maliyet tek atomik okumadır |
+| `logging.SetStepHook`, `logging.StepBoundary` | Eğitimin adım sınırı: `İlerleme.güncelle`'nin her çağrısında (yorumlayıcı kilidi altında) adım ve zamanla çağrılır. Canlı profil ms/adım'ı ve adım başına işlem dağılımını buradan ölçer; kanca yokken maliyet tek atomik okumadır |
 | `logging.JobDir` | Arka plan işinin klasörü (`TR_IS_KLASORU`); canlı profil durumunu oraya yazar |
 | `logging.CloseAll`, `dataset.CloseAll`, `files.CloseAll`, `ml.Close` | Program bitince kaynakların kapanışı (`stdlib.Close` hepsini çağırır) |
 | `process.State.Settings` | Programın `TR_fn_command_line` sonucu; günlüğün başlangıç kaydı yazar, kontrol noktası saklayabilir |
