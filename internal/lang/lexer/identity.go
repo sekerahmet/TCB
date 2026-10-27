@@ -40,6 +40,14 @@ type placeState struct {
 	pending    map[string]codes.Code
 	// base yerleştirme alt çözümleyicisinde metnin bulunduğu yerin kapsamıdır.
 	base []map[string]codes.Code
+	// aliases takma adla aktarılan modüllerin adlarıdır (TR_import "tr/katman" TR_as katman):
+	// katman.TR_GPT kitaplığın tipidir, üye değil. importStep aktarma deyiminin okunan sözcüğüdür
+	// (1: TR_import, 2: yol, 3: TR_as); prevName son adın metni, afterAlias noktanın bir takma addan
+	// sonra geldiğidir.
+	aliases    map[string]bool
+	importStep int
+	prevName   string
+	afterAlias bool
 }
 
 // track okunan sözcük birimine göre bağlamı günceller.
@@ -72,7 +80,38 @@ func (l *Lexer) track(tok Token) {
 			}
 		}
 	}
+	l.trackAlias(tok)
 	s.prev2, s.prev, s.prevLine = s.prev, tok.Type, tok.Line
+}
+
+// trackAlias aktarma deyimlerinin takma adlarını toplar ve noktanın bir takma addan sonra gelip
+// gelmediğini tutar.
+func (l *Lexer) trackAlias(tok Token) {
+	s := &l.places
+	isAs := tok.Type == TokIdent && (tok.Code == codes.CtxAs || tok.Literal == l.Language().Name(codes.CtxAs))
+	switch {
+	case tok.Type == TokImport:
+		s.importStep = 1
+	case s.importStep == 1 && tok.Type == TokString:
+		s.importStep = 2
+	case s.importStep == 2 && isAs:
+		s.importStep = 3
+	case s.importStep == 3 && tok.Type == TokIdent:
+		if s.aliases == nil {
+			s.aliases = map[string]bool{}
+		}
+		s.aliases[tok.Literal] = true
+		s.importStep = 0
+	default:
+		s.importStep = 0
+	}
+	if tok.Type == TokDot {
+		s.afterAlias = s.prev == TokIdent && s.aliases[s.prevName]
+	}
+	s.prevName = ""
+	if tok.Type == TokIdent {
+		s.prevName = tok.Literal
+	}
 }
 
 // top en içteki açık parantezdir (yoksa boş).
@@ -92,33 +131,36 @@ func (l *Lexer) colonAhead() bool {
 	return i < len(l.input) && l.input[i] == ':' && (i+1 >= len(l.input) || l.input[i+1] != '=')
 }
 
-// placeOf c.ch'deki adın yeridir; member, struct gövdesinde metot adıdır (üye bulunmazsa öbür yere
-// bakılır: TR_init).
-func (l *Lexer) placeOf(line int) (place codes.Place, method bool) {
+// placeOf okunan adın yeridir; fallback doğruysa ad o yerde bulunmazsa ikinci yere bakılır (yapı
+// gövdesinde üye bulunmazsa öbür yer: TR_func, TR_init; takma adlı modülde öbür yer bulunmazsa üye).
+func (l *Lexer) placeOf(line int) (place, second codes.Place, fallback bool) {
 	s := &l.places
 	top := s.top()
 	switch {
+	case s.prev == TokDot && s.afterAlias:
+		// Takma adlı modülün adı: kitaplığın tipi, fonksiyonu ya da sabiti (öbür yer); bulunmazsa üye.
+		return codes.PlaceOther, codes.PlaceMember, true
 	case s.prev == TokDot || s.prev == TokSafeDot:
-		return codes.PlaceMember, false
+		return codes.PlaceMember, 0, false
 	case top.params && (s.prev == TokLParen || s.prev == TokComma):
-		return codes.PlaceArg, false
+		return codes.PlaceArg, 0, false
 	case top.structBody && (s.prev == TokFunction || s.prev == TokLBrace || s.prev == TokComma ||
 		s.prev == TokSemicolon || s.prev == TokVar || s.prevLine < line):
 		// Yapı gövdesinde alan ve metot adı üyedir; aynı yerde TR_func ve TR_var da yazılır,
 		// TR_init bağlamsal sözcüktür: üye bulunmazsa öbür yere bakılır.
-		return codes.PlaceMember, true
+		return codes.PlaceMember, codes.PlaceOther, true
 	case top.open == TokLParen && l.colonAhead():
-		return codes.PlaceArg, false
+		return codes.PlaceArg, 0, false
 	case top.open == TokLBrace && l.colonAhead():
-		return codes.PlaceMember, false
+		return codes.PlaceMember, 0, false
 	}
-	return codes.PlaceOther, false
+	return codes.PlaceOther, 0, false
 }
 
 // identity TR_ ile başlayan sözcüğü bulunduğu yerin koduna çözer; çözemezse hatayı (önerisiyle)
 // kaydeder ve codes.None döner.
 func (l *Lexer) identity(lit string, line, col int) codes.Code {
-	place, method := l.placeOf(line)
+	place, second, fallback := l.placeOf(line)
 	if place == codes.PlaceOther {
 		if k, ok := l.paramInScope(lit); ok {
 			return k
@@ -128,8 +170,8 @@ func (l *Lexer) identity(lit string, line, col int) codes.Code {
 		l.declareParam(place, lit, k)
 		return k
 	}
-	if method {
-		if k, ok := codes.FromSpelling(codes.PlaceOther, lit); ok {
+	if fallback {
+		if k, ok := codes.FromSpelling(second, lit); ok {
 			return k
 		}
 	}
