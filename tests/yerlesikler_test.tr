@@ -20,13 +20,9 @@ TR_ctx_test "13.1 min ve max türü korur, Tam'ları tam karşılaştırır, say
     TR_fn_assert_equal(TR_type_Int, TR_fn_type(TR_fn_max(9223372036854775807, 1)))
     TR_fn_assert_equal(-7, TR_fn_min(3, -7, 0.5))
     TR_fn_assert_equal(TR_kw_none, TR_fn_max([]))
-    TR_kw_var hatalar = []
-    TR_kw_try { TR_fn_max([1, "a", 5]) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { TR_fn_min("abc") } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { TR_fn_sum([1, "a", 2]) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_fn_assert_equal(3, hatalar.TR_mem_length, TR_fn_str(hatalar))
-    TR_fn_assert(hatalar[0].TR_mem_contains("max(): listenin 2. elemanı Tam ya da Ondalık olmalıdır, Metin (\"a\") verildi"), hatalar[0])
-    TR_fn_assert(hatalar[1].TR_mem_contains("min() 1. argüman olarak Tam ya da Ondalık bekler"), hatalar[1])
+    TR_fn_assert_equal(H2486, TR_fn_error_code(() => { TR_fn_max([1, "a", 5]) }))
+    TR_fn_assert_equal(H2423, TR_fn_error_code(() => { TR_fn_min("abc") }))
+    TR_fn_assert_equal(H2486, TR_fn_error_code(() => { TR_fn_sum([1, "a", 2]) }))
     // Negatif basamak onlar, yüzler basamağına yuvarlar
     TR_fn_assert_equal(1200, TR_fn_round(1234, -2))
     TR_fn_assert_equal(1240, TR_fn_round(1235.0, -1))
@@ -34,17 +30,11 @@ TR_ctx_test "13.1 min ve max türü korur, Tam'ları tam karşılaştırır, say
 }
 
 TR_ctx_test "13.1 yerleşiklerin argüman hataları tek biçimdedir" {
-    TR_kw_var m = ""
-    TR_kw_try { TR_fn_range("a") } TR_kw_catch h { m = h }
-    TR_fn_assert(m.TR_mem_ends_with("aralık() 1. argüman olarak Tam bekler, Metin (\"a\") verildi"), m)
-    TR_kw_try { TR_fn_range(1, 2.5) } TR_kw_catch h { m = h }
-    TR_fn_assert(m.TR_mem_ends_with("aralık() 2. argüman olarak Tam bekler, Ondalık (2.5) verildi"), m)
-    TR_kw_try { [1].TR_mem_filter(3) } TR_kw_catch h { m = h }
-    TR_fn_assert(m.TR_mem_ends_with("liste.filtrele() 1. argüman olarak Fonksiyon bekler, Tam (3) verildi"), m)
-    TR_kw_try { TR_fn_sum() } TR_kw_catch h { m = h }
-    TR_fn_assert(m.TR_mem_ends_with("toplam() 1 argüman bekler, 0 verildi (kullanım: toplam(liste))"), m)
-    TR_kw_try { TR_fn_round(1.25, "x") } TR_kw_catch h { m = h }
-    TR_fn_assert(m.TR_mem_ends_with("yuvarla() 2. argüman olarak Tam bekler, Metin (\"x\") verildi"), m)
+    TR_fn_assert_equal(H2423, TR_fn_error_code(() => { TR_fn_range("a") }))
+    TR_fn_assert_equal(H2423, TR_fn_error_code(() => { TR_fn_range(1, 2.5) }))
+    TR_fn_assert_equal(H2423, TR_fn_error_code(() => { [1].TR_mem_filter(3) }))
+    TR_fn_assert_equal(H2011, TR_fn_error_code(() => { TR_fn_sum() }))
+    TR_fn_assert_equal(H2423, TR_fn_error_code(() => { TR_fn_round(1.25, "x") }))
 }
 
 TR_ctx_test "13.1 dosya_oku ve dosya_yaz hataları Türkçedir; göreli yol önce çalışma klasöründe, sonra programın klasöründe aranır" {
@@ -64,19 +54,17 @@ TR_ctx_test "13.1 dosya_oku ve dosya_yaz hataları Türkçedir; göreli yol önc
 }
 
 TR_ctx_test "13.1a yolda sekme ya da satır sonu varsa yol alan yerleşikler ham metni önerir" {
+    TR_fn_assert_equal(H2489, TR_fn_error_code(() => { TR_fn_read_file("C:\tokenizer.json") }))
+    TR_fn_assert_equal(H2489, TR_fn_error_code(() => { TR_fn_write_file("D:\new\rapor.txt", "x") }))
+    // Önerilen ham metin, iletinin dilinden bağımsız olarak yolun kendisidir.
     TR_kw_var m = ""
     TR_kw_try { TR_fn_read_file("C:\tokenizer.json") } TR_kw_catch h { m = h }
-    TR_fn_assert(m.TR_mem_contains("dosya_oku(): dosya yolunda sekme karakteri var"), m)
-    TR_fn_assert(m.TR_mem_contains("ham metin kullanın: `C:\\tokenizer.json`"), m)
+    TR_fn_assert(m.TR_mem_contains("`C:\\tokenizer.json`"), m)
     TR_kw_try { TR_fn_write_file("D:\new\rapor.txt", "x") } TR_kw_catch h { m = h }
-    TR_fn_assert(m.TR_mem_contains("dosya_yaz(): dosya yolunda satır sonu karakteri var"), m)
     TR_fn_assert(m.TR_mem_contains(`D:\new\rapor.txt`), m)
-    TR_kw_try { TR_fn_load_tensors("a\tb.trt") } TR_kw_catch h { m = h }
-    TR_fn_assert(m.TR_mem_contains("tensör_yükle: dosya yolunda sekme"), m)
-    TR_kw_try { TR_fn_load_tokenizer("a\tb.json") } TR_kw_catch h { m = h }
-    TR_fn_assert(m.TR_mem_contains("parçalayıcı_yükle: dosya yolunda sekme"), m)
-    TR_kw_try { TR_fn_dataset("veri\tsayilar") } TR_kw_catch h { m = h }
-    TR_fn_assert(m.TR_mem_contains("veri_kümesi: dosya yolunda sekme"), m)
+    TR_fn_assert_equal(H2489, TR_fn_error_code(() => { TR_fn_load_tensors("a\tb.trt") }))
+    TR_fn_assert_equal(H2489, TR_fn_error_code(() => { TR_fn_load_tokenizer("a\tb.json") }))
+    TR_fn_assert_equal(H2489, TR_fn_error_code(() => { TR_fn_dataset("veri\tsayilar") }))
 }
 
 TR_ctx_test "13.2 metin metotları" {
@@ -104,29 +92,20 @@ TR_ctx_test "13.3 sırala sayıları tam, metinleri karakter sırasıyla dizer; 
     TR_fn_assert_equal([9007199254740992, 9007199254740993], [9007199254740993, 9007199254740992].TR_mem_sort())
     TR_fn_assert_equal([-1, 0.5, 2, 2.5], [2.5, 2, -1, 0.5].TR_mem_sort())
     TR_fn_assert_equal(["a", "b", "ç"], ["ç", "b", "a"].TR_mem_sort())
-    TR_kw_var hatalar = []
-    TR_kw_try { [2, "10", 10].TR_mem_sort() } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { [10, 2, "10"].TR_mem_sort() } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { [TR_kw_true, TR_kw_false].TR_mem_sort() } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_fn_assert_equal(3, hatalar.TR_mem_length, TR_fn_str(hatalar))
-    TR_kw_for h TR_kw_in hatalar { TR_fn_assert(h.TR_mem_contains("yalnızca sayılardan ya da yalnızca metinlerden"), h) }
+    TR_fn_assert_equal(H2493, TR_fn_error_code(() => { [2, "10", 10].TR_mem_sort() }))
+    TR_fn_assert_equal(H2493, TR_fn_error_code(() => { [10, 2, "10"].TR_mem_sort() }))
+    TR_fn_assert_equal(H2492, TR_fn_error_code(() => { [TR_kw_true, TR_kw_false].TR_mem_sort() }))
 }
 
 TR_ctx_test "13.2 metotlar argüman sayısını ve tipini denetler" {
-    TR_kw_var hatalar = []
-    TR_kw_try { "abc".TR_mem_contains() } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { "a1".TR_mem_contains(1) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { "abc".TR_mem_upper(1) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { "a,b".TR_mem_split(1) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { "abc".TR_mem_replace("a") } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { [1, 2].TR_mem_filter(3) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { [1].TR_mem_append() } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { {"a": 1}.TR_mem_keys(1) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_fn_assert_equal(8, hatalar.TR_mem_length, TR_fn_str(hatalar))
-    TR_fn_assert(hatalar[0].TR_mem_contains("metin.içerir() 1 argüman bekler, 0 verildi (kullanım: metin.içerir(alt))"), hatalar[0])
-    TR_fn_assert(hatalar[1].TR_mem_contains("metin.içerir() 1. argüman olarak Metin bekler, Tam (1) verildi"), hatalar[1])
-    TR_fn_assert(hatalar[2].TR_mem_contains("metin.büyük_harf() 0 argüman bekler, 1 verildi"), hatalar[2])
-    TR_fn_assert(hatalar[5].TR_mem_contains("liste.filtrele() 1. argüman olarak Fonksiyon bekler"), hatalar[5])
+    TR_fn_assert_equal(H2011, TR_fn_error_code(() => { "abc".TR_mem_contains() }))
+    TR_fn_assert_equal(H2423, TR_fn_error_code(() => { "a1".TR_mem_contains(1) }))
+    TR_fn_assert_equal(H2011, TR_fn_error_code(() => { "abc".TR_mem_upper(1) }))
+    TR_fn_assert_equal(H2423, TR_fn_error_code(() => { "a,b".TR_mem_split(1) }))
+    TR_fn_assert_equal(H2011, TR_fn_error_code(() => { "abc".TR_mem_replace("a") }))
+    TR_fn_assert_equal(H2423, TR_fn_error_code(() => { [1, 2].TR_mem_filter(3) }))
+    TR_fn_assert_equal(H2011, TR_fn_error_code(() => { [1].TR_mem_append() }))
+    TR_fn_assert_equal(H2011, TR_fn_error_code(() => { {"a": 1}.TR_mem_keys(1) }))
     // Liste ve sözlük içerir her tipte değer arar
     TR_fn_assert(TR_kw_not [1, 2].TR_mem_contains("1"))
     TR_fn_assert([1, 2].TR_mem_contains(1.0))
@@ -134,12 +113,8 @@ TR_ctx_test "13.2 metotlar argüman sayısını ve tipini denetler" {
 
 TR_ctx_test "13.3 boş ya da sayı olmayan listenin ortalaması hatadır" {
     TR_fn_assert_equal(2.0, TR_fn_mean([1, 2, 3]))
-    TR_kw_var hatalar = []
-    TR_kw_try { TR_fn_mean([]) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { TR_fn_mean([1, "x", 3]) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_fn_assert_equal(2, hatalar.TR_mem_length, TR_fn_str(hatalar))
-    TR_fn_assert(hatalar[0].TR_mem_contains("boş listenin ortalaması yoktur"), hatalar[0])
-    TR_fn_assert(hatalar[1].TR_mem_contains("listenin 2. elemanı Tam ya da Ondalık olmalıdır"), hatalar[1])
+    TR_fn_assert_equal(H2477, TR_fn_error_code(() => { TR_fn_mean([]) }))
+    TR_fn_assert_equal(H2486, TR_fn_error_code(() => { TR_fn_mean([1, "x", 3]) }))
 }
 
 TR_ctx_test "13.1 standart_sapma ve ortanca ortalama kadar sıkıdır: boş ve sayı olmayanda hata" {
@@ -147,33 +122,19 @@ TR_ctx_test "13.1 standart_sapma ve ortanca ortalama kadar sıkıdır: boş ve s
     TR_fn_assert_equal(0.5, TR_fn_std(1, 2))
     TR_fn_assert_equal(2.5, TR_fn_median([3, 1, 2, 4]))
     TR_fn_assert_equal(2.0, TR_fn_median(3, 1, 2))
-    TR_kw_var hatalar = []
-    TR_kw_try { TR_fn_std([]) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { TR_fn_median([]) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { TR_fn_std([1, "x"]) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { TR_fn_median([1, TR_kw_none, 3]) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { TR_fn_median() } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_fn_assert_equal(5, hatalar.TR_mem_length, TR_fn_str(hatalar))
-    TR_fn_assert(hatalar[0].TR_mem_contains("standart_sapma(): boş listenin standart sapması yoktur"), hatalar[0])
-    TR_fn_assert(hatalar[1].TR_mem_contains("ortanca(): boş listenin ortancası yoktur"), hatalar[1])
-    TR_fn_assert(hatalar[2].TR_mem_contains("standart_sapma(): listenin 2. elemanı Tam ya da Ondalık olmalıdır, Metin (\"x\") verildi"), hatalar[2])
-    TR_fn_assert(hatalar[3].TR_mem_contains("ortanca(): listenin 2. elemanı Tam ya da Ondalık olmalıdır"), hatalar[3])
-    TR_fn_assert(hatalar[4].TR_mem_contains("ortanca() en az 1 argüman bekler"), hatalar[4])
+    TR_fn_assert_equal(H2505, TR_fn_error_code(() => { TR_fn_std([]) }))
+    TR_fn_assert_equal(H2506, TR_fn_error_code(() => { TR_fn_median([]) }))
+    TR_fn_assert_equal(H2486, TR_fn_error_code(() => { TR_fn_std([1, "x"]) }))
+    TR_fn_assert_equal(H2486, TR_fn_error_code(() => { TR_fn_median([1, TR_kw_none, 3]) }))
+    TR_fn_assert_equal(H2011, TR_fn_error_code(() => { TR_fn_median() }))
 }
 
 TR_ctx_test "13.5 yerleşikler ve metotlar bilinmeyen adlı argümanı reddeder" {
-    TR_kw_var hatalar = []
-    TR_kw_try { TR_fn_print("a", ayraç: "-") } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { "a b".TR_mem_split(TR_arg_dim: 1) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { TR_fn_sum([1, 2], eksn: 0) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { TR_fn_AdamW([TR_fn_tensor([1.0], TR_arg_requires_grad: TR_kw_true)], lr: 0.1) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { TR_fn_sample(TR_fn_tensor([1.0, 2.0]), tohm: 1) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_fn_assert_equal(5, hatalar.TR_mem_length, TR_fn_str(hatalar))
-    TR_fn_assert(hatalar[0].TR_mem_contains("yazdır() 'ayraç' adında bir parametre almaz (adlı argüman almaz)"), hatalar[0])
-    TR_fn_assert(hatalar[1].TR_mem_contains("metin.böl() 'eksen' adında bir parametre almaz (adlı argüman almaz)"), hatalar[1])
-    TR_fn_assert(hatalar[2].TR_mem_contains("toplam() 'eksn' adında bir parametre almaz. Bunu mu demek istediniz: 'eksen'?"), hatalar[2])
-    TR_fn_assert(hatalar[3].TR_mem_contains("AdamW 'lr' adında bir parametre almaz. Bunu mu demek istediniz: 'öğrenme_oranı'?"), hatalar[3])
-    TR_fn_assert(hatalar[4].TR_mem_contains("örnekle() 'tohm' adında bir parametre almaz. Bunu mu demek istediniz: 'tohum'?"), hatalar[4])
+    TR_fn_assert_equal(H2427, TR_fn_error_code(() => { TR_fn_print("a", ayraç: "-") }))
+    TR_fn_assert_equal(H2427, TR_fn_error_code(() => { "a b".TR_mem_split(TR_arg_dim: 1) }))
+    TR_fn_assert_equal(H7900, TR_fn_error_code(() => { TR_fn_sum([1, 2], eksn: 0) }))
+    TR_fn_assert_equal(H7900, TR_fn_error_code(() => { TR_fn_AdamW([TR_fn_tensor([1.0], TR_arg_requires_grad: TR_kw_true)], lr: 0.1) }))
+    TR_fn_assert_equal(H7900, TR_fn_error_code(() => { TR_fn_sample(TR_fn_tensor([1.0, 2.0]), tohm: 1) }))
 }
 
 TR_ctx_test "13.6 hedef tipin adını taşıyan dönüştürücüler kurucudur ve tip() genel sorudur: ikisi de fonksiyondur" {
@@ -201,13 +162,9 @@ TR_ctx_test "13.6 değeri dönüştüren ya da soran iş metot, matematik ve ten
     TR_fn_assert_equal(7, [].TR_mem_reduce(7, (a, x) => a + x))
     TR_fn_assert_equal([[1, 2]], TR_fn_tensor([[1], [2]]).TR_mem_transpose().TR_mem_tolist)
     // Öbür biçim yoktur: liste.toplam() ve tensör.toplam bir üye değildir.
-    TR_kw_var hatalar = []
-    TR_kw_try { l.toplam() } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { TR_fn_tensor([1.0]).toplam } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { l.TR_mem_reduce((a, x) => a + x, 0) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_fn_assert_equal(3, hatalar.TR_mem_length, TR_fn_str(hatalar))
-    TR_fn_assert(hatalar[0].TR_mem_contains("\"toplam\""), hatalar[0])
-    TR_fn_assert(hatalar[2].TR_mem_contains("liste.indirge(): fonksiyon son argüman olmalı"), hatalar[2])
+    TR_fn_assert_equal(H2474, TR_fn_error_code(() => { l.toplam() }))
+    TR_fn_assert_equal(H6721, TR_fn_error_code(() => { TR_fn_tensor([1.0]).toplam }))
+    TR_fn_assert_equal(H2475, TR_fn_error_code(() => { l.TR_mem_reduce((a, x) => a + x, 0) }))
     // Metot adları genel kapsamda sıradan adlardır
     TR_kw_var uzunluk = 5
     TR_kw_func sırala(x) { TR_kw_return x }
@@ -227,10 +184,6 @@ TR_ctx_test "13.8 csv_oku dosya okur, csv_çöz metni ayrıştırır" {
     TR_fn_assert_equal([["ad", "yaş"], ["Ali", 30]], TR_fn_read_csv(TR_fn_path(k, "t.csv")))
     TR_fn_assert_equal([["ad", "yaş"], ["Ali", 30]], TR_fn_parse_csv("ad,yaş\nAli,30"))
     TR_fn_assert_equal([["007", 7]], TR_fn_parse_csv("007,7"))
-    TR_kw_var m = ""
-    TR_kw_try { TR_fn_read_csv("ad,yaş\nAli,30") } TR_kw_catch h { m = h }
-    TR_fn_assert(m.TR_mem_contains("csv_çöz()"), m)
-    m = ""
-    TR_kw_try { TR_fn_parse_csv(5) } TR_kw_catch h { m = h }
-    TR_fn_assert(m.TR_mem_contains("csv_çöz() 1. argüman olarak Metin bekler"), m)
+    TR_fn_assert_equal(H7006, TR_fn_error_code(() => { TR_fn_read_csv("ad,yaş\nAli,30") }))
+    TR_fn_assert_equal(H2423, TR_fn_error_code(() => { TR_fn_parse_csv(5) }))
 }

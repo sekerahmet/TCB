@@ -18,7 +18,8 @@ TR_ctx_test "7.1 yapı alanları ve varsayılan değerleri" {
     TR_fn_assert_equal(0, p.x)
     TR_fn_assert_equal(0, p.y)
     TR_kw_struct Satır { a, b: TR_type_Int = 2; c }
-    TR_fn_assert_equal(`Satır{a: yok, b: 2, c: yok}`, TR_fn_str(Satır()))
+    TR_kw_var s = Satır()
+    TR_fn_assert_equal([TR_kw_none, 2, TR_kw_none], [s.a, s.b, s.c])
 }
 
 TR_ctx_test "7.1 yapı gövdesinde geçersiz içerik ve yinelenen ad sözdizimi hatasıdır" {
@@ -39,34 +40,25 @@ TR_ctx_test "7.2 oluşturma: konumlu ve adlı argümanlarla" {
 }
 
 TR_ctx_test "7.2 fazla konumlu ya da bilinmeyen adlı argüman hatadır" {
-    TR_kw_var hatalar = []
-    TR_kw_try { Nokta(1, 2, 3) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { Nokta(yy: 9) } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_fn_assert_equal(2, hatalar.TR_mem_length, TR_fn_str(hatalar))
-    TR_fn_assert(hatalar[0].TR_mem_contains("'Nokta' yapısı en fazla 2 argüman alır (alanlar: x, y), 3 verildi"), hatalar[0])
-    TR_fn_assert(hatalar[1].TR_mem_contains("'Nokta' yapısının 'yy' adında bir alanı yok. Bunu mu demek istediniz: 'y'?"), hatalar[1])
+    TR_fn_assert_equal(H2419, TR_fn_error_code(() => { Nokta(1, 2, 3) }))
+    TR_fn_assert_equal(H2418, TR_fn_error_code(() => { Nokta(yy: 9) }))
     // kurucu varsa argümanlar kurucunun imzasına göre denetlenir
     TR_kw_struct Hesap {
         bakiye
         TR_kw_func TR_ctx_init(b, kat = 2) { TR_kw_self.bakiye = b * kat }
     }
     TR_fn_assert_equal(15, Hesap(5, 3).bakiye)
-    TR_kw_var m = ""
-    TR_kw_try { Hesap(1, 2, 3) } TR_kw_catch h { m = h }
-    TR_fn_assert(m.TR_mem_contains("'Hesap' yapısı en fazla 2 argüman alır, 3 verildi"), m)
+    TR_fn_assert_equal(H2412, TR_fn_error_code(() => { Hesap(1, 2, 3) }))
 }
 
 TR_ctx_test "7.2 bir alan hem sırayla hem adıyla verilemez" {
-    TR_kw_var m = ""
-    TR_kw_try { Nokta(1, x: 2) } TR_kw_catch h { m = h }
-    TR_fn_assert(m.TR_mem_contains("'Nokta' yapısının 'x' alanı hem sırayla (1. argüman) hem adıyla verildi"), m)
+    TR_fn_assert_equal(H2420, TR_fn_error_code(() => { Nokta(1, x: 2) }))
     TR_fn_assert_equal(2, Nokta(1, y: 2).y)
     TR_kw_struct Hesap {
         bakiye
         TR_kw_func TR_ctx_init(b, kat = 2) { TR_kw_self.bakiye = b * kat }
     }
-    TR_kw_try { Hesap(1, b: 2) } TR_kw_catch h { m = h }
-    TR_fn_assert(m.TR_mem_contains("'Hesap' yapısı 'b' parametresi hem sırayla (1. argüman) hem adıyla verildi"), m)
+    TR_fn_assert_equal(H2413, TR_fn_error_code(() => { Hesap(1, b: 2) }))
 }
 
 TR_ctx_test "7.3 metotlar kendi ile nesneye erişir" {
@@ -88,20 +80,14 @@ TR_ctx_test "7.5 alanlar atanabilir; olmayan alan hata verir" {
     TR_kw_var p = Nokta()
     p.x = 7
     TR_fn_assert_equal(7, p.x)
-    TR_kw_var mesaj = ""
-    TR_kw_try { p.z } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("bulunamadı"), mesaj)
+    TR_fn_assert_equal(H2468, TR_fn_error_code(() => { p.z }))
     TR_fn_assert_equal(TR_kw_none, p?.z)
 }
 
 TR_ctx_test "7.5 tanımda olmayan alana atama hatadır; nesnenin alanları her zaman tanımdakilerdir" {
     TR_kw_var p = Nokta(1, 2)
-    TR_kw_var hatalar = []
-    TR_kw_try { p.z = 5 } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_kw_try { p.taşı = 5 } TR_kw_catch h { hatalar.TR_mem_append(h) }
-    TR_fn_assert_equal(2, hatalar.TR_mem_length, TR_fn_str(hatalar))
-    TR_fn_assert(hatalar[0].TR_mem_contains("Nokta yapısında 'z' alanı yok; yapı tanımına 'z' alanını ekleyin"), hatalar[0])
-    TR_fn_assert(hatalar[1].TR_mem_contains("'taşı' Nokta yapısının bir metodu; metoda değer atanamaz"), hatalar[1])
+    TR_fn_assert_equal(H2405, TR_fn_error_code(() => { p.z = 5 }))
+    TR_fn_assert_equal(H2404, TR_fn_error_code(() => { p.taşı = 5 }))
     TR_fn_assert_equal(`Nokta{x: 1, y: 2}`, TR_fn_str(p))
     TR_fn_assert(p == Nokta(1, 2))
 }

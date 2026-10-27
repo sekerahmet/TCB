@@ -144,9 +144,7 @@ TR_ctx_test "5.11 liste üreteci" {
 }
 
 TR_ctx_test "5.11 liste üreteci aralıkta da eleman sınırına uyar (bellek tükenmez)" {
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_kw_var l = [x TR_kw_for x TR_kw_in 0..9000000000000000000] } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("çok büyük"), mesaj)
+    TR_fn_assert_equal(H2462, TR_fn_error_code(() => { TR_kw_var l = [x TR_kw_for x TR_kw_in 0..9000000000000000000] }))
 }
 
 TR_ctx_test "5.12 bloklar kapsam açar; dış değişkenler atanabilir" {

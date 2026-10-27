@@ -21,17 +21,13 @@ TR_ctx_test "12.2 test yalnızca deyim başında ve ardından metin gelince anah
 TR_ctx_test "12.3 doğrula(koşul, [mesaj])" {
     TR_fn_assert(1 < 2)
     TR_fn_assert(TR_kw_true, "mesajlı biçim")
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_fn_assert(TR_kw_false, "özel mesaj") } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("doğrulama başarısız: özel mesaj"), mesaj)
+    TR_fn_assert_equal(H2456, TR_fn_error_code(() => { TR_fn_assert(TR_kw_false, "özel mesaj") }))
 }
 
 TR_ctx_test "12.4 eşit_mi(beklenen, gerçek) iki değeri de gösterir" {
     TR_fn_assert_equal([1, 2], [1, 2])
     TR_fn_assert_equal("a", "a")
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_fn_assert_equal("5", 5) } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("beklenen \"5\" (Metin), gerçek 5 (Tam)"), mesaj)
+    TR_fn_assert_equal(H2458, TR_fn_error_code(() => { TR_fn_assert_equal("5", 5) }))
 }
 
 TR_ctx_test "12.5 her test yeni bir kapsamda çalışır; üst düzey tanımlar görünür" {

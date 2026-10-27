@@ -76,7 +76,7 @@ TR_ctx_test "2.11 '$ad' kaçışı: ad dilin bir sözcüğüyle aynı olsa da ku
 TR_ctx_test "17.8 komut satırı adları kodludur: programın yardım seçeneğinin her dildeki adı ayrılmıştır" {
     // tr komutlarının, seçeneklerin, kabuğun ve hata ayıklayıcının adları Go testleriyle
     // sınanır (dil tanımı 17.8, Sınamalar); programın --yardım'ı (TR_opt_help) her dilde ayrılmıştır.
-    TR_fn_assert(hata_metni(() => TR_fn_command_line({yardım: TR_kw_true})).TR_mem_contains("seçenek adı olamaz"))
-    TR_fn_assert(hata_metni(() => TR_fn_command_line({help: TR_kw_true})).TR_mem_contains("seçenek adı olamaz"))
-    TR_fn_assert(hata_metni(() => TR_fn_command_line({h: TR_kw_true})).TR_mem_contains("seçenek adı olamaz"))
+    TR_fn_assert_equal(H7221, TR_fn_error_code(() => TR_fn_command_line({yardım: TR_kw_true})))
+    TR_fn_assert_equal(H7221, TR_fn_error_code(() => TR_fn_command_line({help: TR_kw_true})))
+    TR_fn_assert_equal(H7221, TR_fn_error_code(() => TR_fn_command_line({h: TR_kw_true})))
 }
