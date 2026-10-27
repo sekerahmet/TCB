@@ -4,6 +4,7 @@ import (
 	"errors"
 	"path/filepath"
 	"testing"
+	"testing/fstest"
 
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/testkit"
@@ -47,7 +48,12 @@ func TestCheckImportedModules(t *testing.T) {
 	if err := checkImports(t, "# TR 4\nTR_import \"yok_modul\"\n", nil); err == nil || errors.As(err, &moduleErr) {
 		t.Errorf("bulunamayan modül bir okuma hatasıdır: %v", err)
 	}
+	// Dilin kitaplığı derlemeyle gelir, içeriği denetlenmez; olmayan bir kitaplık modülü bulunur.
+	withLibrary(t, fstest.MapFS{"katman.tr": {Data: []byte("# TR 4\nTR_var K = 1\n")}})
 	if err := checkImports(t, "# TR 4\nTR_import \"tr/katman\"\n", nil); err != nil {
-		t.Errorf("dilin kitaplık modülleri çalışmadan önce denetlenmez: %v", err)
+		t.Errorf("kitaplıktaki modül çalışmadan önce denetlenmez, yalnız varlığı bakılır: %v", err)
+	}
+	if err := checkImports(t, "# TR 4\nTR_import \"tr/olmayan\"\n", nil); err == nil {
+		t.Error("kitaplıkta olmayan modül çalışmadan önce bulunmalı")
 	}
 }

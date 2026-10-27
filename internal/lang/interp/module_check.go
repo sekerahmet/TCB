@@ -58,7 +58,12 @@ func (c *moduleChecker) module(importer *Source, file string, im *ast.ImportStat
 	if !strings.HasSuffix(path, ".tr") {
 		path += ".tr"
 	}
-	if _, library := LibraryModule(path); library {
+	if name, library := LibraryModule(path); library {
+		// Dilin gömülü kitaplığı derlemeyle gelir, denetlenmez; ama olmayan bir kitaplık modülü
+		// çalışmadan önce bulunur (1.3).
+		if _, err := ReadLibrary(name); err != nil {
+			return messages.At(im.Line(), 0, err)
+		}
 		return nil
 	}
 	resolved, searched, ok := ResolveModulePath(path, FileDirs(file, c.mainFile))
