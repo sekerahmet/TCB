@@ -44,7 +44,7 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
 
 - **Mevcut durum:**
   - Argüman okunmadan program biterse bitişte uyarı yazılıyor, çıkış kodu değişmiyor.
-  - §19 `--ros-args`'ı bilinmeyen seçenek sayıyor.
+  - Komut satırı çözümleyicisi `--ros-args`'ı bilinmeyen seçenek sayıyor.
 - **Yapılacaklar:**
   - Argüman verilip programın en dışından ulaşılabilen bir `TR_fn_command_line` çağrısı yoksa program çalışmadan kullanım hatası verir (2); ulaşılabilirlik kesin değilse çağrı var sayılır.
   - Böyle bir programa yalnız yardım seçeneği (`-h`) verilirse "seçeneği yok" yazılır, çıkış 0 (yeni ileti kodu).
@@ -78,6 +78,7 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
   - `TR_kw_defer` bloklarında ve bu hatayı yakalayan `TR_kw_catch` gövdesinde beklemeler normal çalışır.
   - Kontrol noktası isteği yalnız kaydeder, beklemeleri hataya çevirmez; istekten sonraki ilk kayıtta durur, bitişte kaydetmez.
   - Program `TR_fn_handle_stop` ile de üstlendiyse kontrol noktası yalnız kaydeder, durmayı programa bırakır.
+  - Erteleme süreyle sınırlı: son iki `.TR_mem_update` arasındaki sürenin iki katı içinde kayda varılmazsa ya da istek ikinci güncellemeden önce geldiyse istek 1.5'teki gibi uygulanır.
 
 ### 1.7
 
@@ -97,14 +98,15 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
   - Bir görevdeki yakalanmayan hata yazılıyor ama çıkış 0 [ölçüldü, DENETİM].
   - Program sona gelince önce görevleri bekliyor, ertelenen işler sonra çalışıyor [ölçüldü, DENETİM]; kuralla aynı.
 - **Yapılacaklar:**
-  - İstek geldiyse süreç isteğin sinyaliyle biter (1.5, 1.7 ile); durdurmayı üstlenen program sona gelirse sinyal, `TR_fn_exit(kod)` ya da en dıştaki `TR_kw_return kod` ile o kod.
+  - İstek geldiyse süreç isteğin sinyaliyle biter (1.5, 1.7 ile); durdurmayı üstlenen program sona gelirse sinyal, `TR_fn_exit(kod)` ile o kod.
   - Görevdeki yakalanmayan hata olduysa çıkış 1.
   - `tr` aracının kullanım hatası 2 verir.
 
 ### 1.10
 
-- **Mevcut durum:** `TR_fn_exit` yok.
+- **Mevcut durum:** `TR_fn_exit` yok; programın en dışındaki `TR_kw_return` çalışıyor (1.14'teki ölçüm).
 - **Yapılacaklar:** yerleşik eklenir: nazik çıkış, `TR_kw_defer` çalışır, `TR_kw_catch` yakalamaz, görevden çağrılınca bütün program biter.
+  - Programın en dışındaki `TR_kw_return` sözdizimi hatası olur; depodaki kullanımlar `TR_fn_exit`'e çevrilir.
 
 ### 1.11
 
@@ -114,7 +116,7 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
 ### 1.12
 
 - **Mevcut durum:** `TR_fn_exit` olmadığı için yok.
-- **Yapılacaklar:** `tr test` altında `TR_fn_exit` testi düşürür, öbür testler sürer.
+- **Yapılacaklar:** `TR_cmd_test` altında `TR_fn_exit` testi düşürür, öbür testler sürer.
 
 ### 1.13
 
@@ -125,9 +127,9 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
 
 - **Mevcut durum:**
   - Program sona gelince ve en dıştaki `TR_kw_return` ile ertelenen işin hatası yazılıyor, çıkış 1 [ölçüldü].
-  - §19'un yardım ve kullanım hatası çıkışları ertelenen işin hatasını yutuyor, çıkış 0 ya da 2 [ölçüldü, DENETİM].
+  - Komut satırı çözümleyicisinin yardım ve kullanım hatası çıkışları ertelenen işin hatasını yutuyor, çıkış 0 ya da 2 [ölçüldü, DENETİM].
 - **Yapılacaklar:**
-  - §19'un çıkışlarında da hata yazılır, çıkış 1.
+  - Komut satırı çözümleyicisinin çıkışlarında da hata yazılır, çıkış 1.
   - `TR_fn_exit` ve durdurma kısımları 1.10 ve 1.5 ile.
 
 ### 1.15
@@ -149,7 +151,7 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). Taslak: D
 ### 2.1a
 
 - **Mevcut durum:** Yunan ve Latin harfli `θ_eski` "farklı yazı sistemlerinin harfleri karışık" hatası veriyor [ölçüldü].
-- **Yapılacaklar:** karışık ad yalnız başka yazı sisteminden gelen harflerin hepsi karıştırılabilen harflerse hata (UTS #39 benzerlik çizelgesi).
+- **Yapılacaklar:** aynı dosyada UTS #39 iskeleti aynı iki ad hata; tek bir addaki karışık yazı sistemi uyarı.
 
 ### 2.2
 
@@ -169,7 +171,7 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). Taslak: D
 ### 2.3a
 
 - **Mevcut durum:** listede olmayan kimlik hata veriyor ama en yakın kimliği önermiyor: `TR_fn_prnt` ve `x.TR_fn_map` için ileti yalnız "bilinen bir kimlik değil" diyor [ölçüldü].
-- **Yapılacaklar:** ileti önce aynı adın başka sınıftaki kimliğini, yoksa yazımca en yakın kimliği önerir.
+- **Yapılacaklar:** ileti önce aynı adın başka sınıftaki kimliğini, yoksa aynı sınıfta yazımca en yakın kimliği önerir; uzaklık sınıftan sonraki adda ölçülür, komşu harflerin yer değiştirmesi tek değişikliktir.
 
 ### 2.4
 
@@ -203,7 +205,7 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). Taslak: D
 ### 2.13
 
 - **Mevcut durum:** sözdizimi hataları yalnız metin olarak veriliyor; komut satırının yardımında JSON yalnız hız raporu için var [ölçüldü].
-- **Yapılacaklar:** hata ve uyarılar JSON olarak da verilir; seçenek ve alanlar sonraki bölümlerde tanımlanınca.
+- **Yapılacaklar:** çalışmadan önceki bütün hata ve uyarılar (sözdizimi, tip, kullanım) JSON olarak da verilir: başlangıç ve bitiş konumu, ilgili konumlar, önerilen düzeltme ve uygulanabilirlik işaretiyle. Seçenek ve alanlar sonraki bölümlerde tanımlanınca.
 
 ## 3. Tipler ve değerler
 
