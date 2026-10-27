@@ -26,6 +26,8 @@ Her karar bu işlerin hepsine göre verilir.
 
 **Güvenilir.** Aynı program aynı veriyle aynı sonucu verir; kesilen bir eğitim kaldığı yerden aynı sonuçla sürer.
 
+**Modeller de yazar, insanlar da okur.** TR, en gelişmiş (frontier) dil ve kodlama modellerinin de rahatça kullanacağı bir dildir. Hata riski az, yüksek performanslı bir programlama dilidir. İnsanların anlaması için kod onların dillerine çevrilip okunur.
+
 **Kimlik kodlu dil.** Bu dilde her şey kimlik koduyla yazılır: dosyalar diskte, program içeride dilden bağımsız kimliklerle (`TR_fn_sum`) çalışır. İnsanların okuyabilmesi için kod Türkçeye, İngilizceye ya da başka bir dile çevrilir; ama hiçbir insan dilinde kod yazılmaz. Bugün Türkçe ve İngilizce var, başka diller sırada; hiçbir dilin ayrıcalığı yoktur.
 
 ## Dil tanımı

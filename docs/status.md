@@ -161,6 +161,11 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). Taslak: D
 - **Mevcut durum:** adın harf, rakam ve `_` ile yazıldığı bugünkü kural birleşen işaretleri kapsıyor mu ölçülmedi.
 - **Yapılacaklar:** UAX #31 (XID_Start, XID_Continue) ile okunur.
 
+### 2.3a
+
+- **Mevcut durum:** listede olmayan kimlik hata veriyor ama en yakın kimliği önermiyor: `TR_fn_prnt` ve `x.TR_fn_map` için ileti yalnız "bilinen bir kimlik değil" diyor [ölçüldü].
+- **Yapılacaklar:** ileti önce aynı adın başka sınıftaki kimliğini, yoksa yazımca en yakın kimliği önerir.
+
 ### 2.4
 
 - **Mevcut durum:** `0x1F` sözdizimi hatası veriyor [ölçüldü]; aralığı aşan tam sayı yazımı hata veriyor, ileti ondalık yazımı öneriyor [ölçüldü], kuralla aynı.
@@ -181,3 +186,8 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). Taslak: D
 
 - **Mevcut durum:** `H6903` gibi çıplak ileti kodu metin değeri olarak okunuyor.
 - **Yapılacaklar:** bu sözcük sınıfı kalkar; ileti kodu metin olarak yazılır (`"H6903"`); `H6903` sıradan bir ad olur.
+
+### 2.13
+
+- **Mevcut durum:** sözdizimi hataları yalnız metin olarak veriliyor; komut satırının yardımında JSON yalnız hız raporu için var [ölçüldü].
+- **Yapılacaklar:** hata ve uyarılar JSON olarak da verilir; seçenek ve alanlar sonraki bölümlerde tanımlanınca.
