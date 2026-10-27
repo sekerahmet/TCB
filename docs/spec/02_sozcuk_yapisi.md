@@ -86,7 +86,7 @@ TR_var t = 1 +
 
 - *Test:* TR testi; iki anahtar kelimenin kalkması uygulanınca TR testi.
 
-**2.9b** Bağlamsal sözcükler yalnız kendi yerlerinde sözcüktür: `TR_test` (test tanımının başında, ardından metin), `TR_as` (`TR_import` içinde), `TR_init` (yapının kurucu metodu), `TR_error` (adsız `TR_catch`'te hata), `_` (`TR_match`'te varsayılan kol, çoklu atamada atılan değer).
+**2.9b** Bağlamsal sözcükler yalnız kendi yerlerinde sözcüktür: `TR_test` (test tanımının başında, ardından metin), `TR_as` (`TR_import` içinde), `TR_init` (yapının kurucu metodu), `TR_error` (adsız `TR_catch`'te hata), `_` (`TR_match`'te varsayılan kol; çoklu atamada, döngüde ve üreteçte atılan değer; okunamaz).
 - *Test:* gerekmez: her bağlamsal sözcük kendi bağlamının kuralıyla sınanır.
 
 **2.10** İfade ve bloklar en çok 1000 düzey iç içe olabilir (`((((1))))` dört düzey); aşan program sözdizimi hatası verir. Yerleştirmedeki ifade bulunduğu düzeyden sayılır.

@@ -139,7 +139,7 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
 
 ## 2. Sözcük yapısı
 
-Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). DENETİM'den (üç tur) ve Gemini'nin araştırmasından geçti (2026-10-27). Sonradan değişen ve henüz denetlenmeyenler: yorumun `#`, başlığın `# TR 4` olması, 2.1a'nın `TR_` iskelet kuralı, 2.3b'de yerel sabitin küçük harfle yazılması. Eski 2.9a (her dilde tek yazım) ve 2.11 (diller arası ad kuralı, $ad kaçışı) gösterim dilleri bölümüne gitti; o numaralar boş kalır. `tests/` altındaki 2.9a, 2.11 ve 2.12 numaralı testler, testler koşulmadan önce taşınır ya da silinir; yoksa her test numarasını bir kurala bağlayan kapı kalır. Kapılar da testlerle birlikte düzelir: `TestEveryRuleHasATest` harfli kural örneği olarak 2.9a'yı sabit arıyor (yerine 2.1a); kimlik kapısı `TR_` ile başlayan sözcükleri hiç denetlemiyor, TR_ ile yazılan her sözcüğü yerine göre bir kimliğe çözmeli (onaylı yeni adlar ve bilerek yanlış örnekler bir listede); gerekçe dosyalarının düzenini ve aynı yerde çakışan kimlik olmamasını koruyan test yok. Eski 2.12 (çıplak ileti kodu) kalktı. Anlamı değişmeyen maddelerin bugünkü TR testi var; aşağıda yalnız değişen ya da eksik olanlar.
+Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). DENETİM'den (üç tur) ve Gemini'nin araştırmasından geçti (2026-10-27). Sonradan değişen ve henüz denetlenmeyenler: yorumun `#`, başlığın `# TR 4` olması, 2.1a'nın `TR_` iskelet kuralı, 2.3b'de yerel sabitin küçük harfle yazılması. Eski 2.9a (her dilde tek yazım) ve 2.11 (diller arası ad kuralı, $ad kaçışı) gösterim dilleri bölümüne gitti; o numaralar boş kalır. `tests/` altındaki 2.9a, 2.11 ve 2.12 numaralı testler, testler koşulmadan önce taşınır ya da silinir; yoksa her test numarasını bir kurala bağlayan kapı kalır. Kapılar da testlerle birlikte düzelir: `TestEveryRuleHasATest` harfli kural örneği olarak 2.9a'yı ve 6.3a'yı sabit arıyor, ikisi de artık tanımda yok (yerine 2.1a ve 3.7a); kimlik kapısı `TR_` ile başlayan sözcükleri hiç denetlemiyor, TR_ ile yazılan her sözcüğü yerine göre bir kimliğe çözmeli (onaylı yeni adlar ve bilerek yanlış örnekler bir listede); gerekçe dosyalarının düzenini ve aynı yerde çakışan kimlik olmamasını koruyan test yok. Eski 2.12 (çıplak ileti kodu) kalktı. Anlamı değişmeyen maddelerin bugünkü TR testi var; aşağıda yalnız değişen ya da eksik olanlar.
 
 ### 2.1
 
@@ -391,7 +391,7 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: DENETİM'de
 
 ## 6. Fonksiyonlar
 
-Kurallar: [`docs/spec/06_fonksiyonlar.md`](spec/06_fonksiyonlar.md). Taslak: DENETİM ve Gemini'nin araştırması bekleniyor. Kuralla aynı olanlar: döngüde kurulan kapanış o turun değerini görüyor, fonksiyon dıştaki değişkene atayabiliyor, tipi tutmayan argüman çalışmadan önce bulunuyor [ölçüldü]; varsayılan her çağrıda yeniden hesaplanıyor, derinlik sınırı 10000 (bugünkü testler).
+Kurallar: [`docs/spec/06_fonksiyonlar.md`](spec/06_fonksiyonlar.md). Taslak: DENETİM'den geçti, bulguları işlendi (2026-10-27); Gemini'nin araştırması bekleniyor. Kuralla aynı olanlar: döngüde kurulan kapanış o turun değerini görüyor, fonksiyon dıştaki değişkene atayabiliyor, tipi tutmayan argüman çalışmadan önce bulunuyor [ölçüldü]; varsayılan her çağrıda yeniden hesaplanıyor, derinlik sınırı 10000 (bugünkü testler).
 
 `tests/fonksiyonlar_test.tr` eski kuralları da sınıyor; testler koşulmadan önce yeni kurallara göre yeniden yazılır:
 - tipsiz parametreler (1.2);
@@ -400,24 +400,28 @@ Kurallar: [`docs/spec/06_fonksiyonlar.md`](spec/06_fonksiyonlar.md). Taslak: DEN
 - dönüş tipinin `:` ile yazımı (6.1);
 - parantezsiz ok ve adsız `TR_func` (6.6);
 - `TR_it` ve `TR_acc`'li sondaki blok, son argümanda `() => { ... }` (6.7);
+- argüman hatalarını çalışırken yakalayan testler (eski 6.3 ve 6.4: eksik, fazla, iki kez verilen argüman, varsayılandaki ileri başvuru): artık denetim hatası olduklarından `tests/negative/` fikstürlerine taşınır, yoksa dosya denetimden geçmez (1.3);
+- 6.7 testinin adındaki `\{` (2.6), `TR_fn_str` (3.12), `//` yorumları ve eski başlık (2.1, 2.2);
 - numaralar: eski 6.3 → 6.4, 6.4 → 6.5, 6.5 → 6.8, 6.8 → 6.1, 6.3a → 6.11.
 
-Depodaki kullanımlar çevrilir: `TR_it` 44 ve `TR_acc` 10 yerde, adsız `TR_func` 52, parantezsiz ok 21 [ölçüldü]; 13.6'daki `TR_reduce` bloğu da.
+Kapıların bu bölümdeki kırılmaları, testler yeniden yazılırken giderilir: 6.3'ün Test satırı "gerekmez" diyor ama eski 6.3 numaralı testler var; 6.11 "TR testi" diyor ama 6.11 numaralı test yok (bugün 6.3a) [DENETİM].
+
+Depodaki kullanımlar çevrilir: `.tr` dosyalarında `TR_it` 44, `TR_acc` 10, adsız `TR_func` 52, parantezsiz ok 21 yerde [ölçüldü]; bütün depoda (belgeler ve Go testleri dahil) `TR_it` 88, `TR_acc` 29, adsız `TR_func` 63 [ölçüldü, DENETİM]; 13.6'daki `TR_reduce` bloğu da.
 
 ### 6.1
 
 - **Mevcut durum:** parametre tipi isteğe bağlı; dönüş tipi hem `:` hem `->` ile yazılıyor; aynı adla ikinci tanım hata vermiyor, ikincisi kazanıyor; `def f(x):` genel bir sözdizimi hatası veriyor [ölçüldü].
-- **Yapılacaklar:** parametre tipi zorunlu; dönüş tipinin tek yazımı `->`; aynı kapsamda ikinci tanım denetim hatası; `def`, `: R` ve süsleyici için iletiler.
+- **Yapılacaklar:** parametre tipi zorunlu; dönüş tipinin tek yazımı `->`, `-> TR_NoneType` hata; aynı kapsamda ikinci tanım denetim hatası; `def`, `: R` ve süsleyici için iletiler.
 
 ### 6.2
 
 - **Mevcut durum:** dönüş tipi yazılmış fonksiyonda `TR_return`'süz yol yokluk veriyor; gövdenin son ifadesi örtük dönüyor (`TR_func s(x) { x }` 4 veriyor) [ölçüldü].
-- **Yapılacaklar:** eksik dönüş denetim hatası, ileti `TR_return`'ü önerir; örtük dönüş kalkar.
+- **Yapılacaklar:** eksik dönüş denetim hatası, ileti `TR_return`'ü önerir; bitiren deyimler: `TR_return`, `TR_throw`, `TR_exit`, sonsuz döngü, bütün dalları biten `TR_if` ve `TR_match`; fonksiyon ifadesinin blok gövdesi de; örtük dönüş kalkar.
 
 ### 6.3
 
 - **Mevcut durum:** `TR_return 1, 2` sözdizimi hatası veriyor [ölçüldü].
-- **Yapılacaklar:** birden çok değer döndürme ve açma; tek değer olarak kullanımı denetim hatası.
+- **Yapılacaklar:** birden çok değer döndürme ve açma; `TR_return f()` ile iletme; tek değer olarak ve argüman olarak kullanımı denetim hatası.
 
 ### 6.4
 
@@ -437,7 +441,12 @@ Depodaki kullanımlar çevrilir: `TR_it` 44 ve `TR_acc` 10 yerde, adsız `TR_fun
 ### 6.7
 
 - **Mevcut durum:** sondaki blok tek parametreli, parametresi `TR_it`; `TR_reduce` bloğunda `TR_acc` (bugünkü 6.7 testleri).
-- **Yapılacaklar:** sondaki blok parametresiz; `TR_it` ve `TR_acc` kalkar (2.9b); blokta `TR_return` denetim hatası; son argümanda `() => { ... }` sözdizimi hatası, ileti sondaki bloğu önerir.
+- **Yapılacaklar:** sondaki blok parametresiz; `TR_it` ve `TR_acc` kalkar (2.9b); blokta `TR_return` denetim hatası; son argümanda `() => { ... }` ve `() => x` sözdizimi hatası, ileti sondaki bloğu önerir; sondaki blokta 5.12'nin gizleme yasağı.
+
+### 6.8
+
+- **Mevcut durum:** fonksiyon dıştaki değişkene uyarısız atıyor [ölçüldü].
+- **Yapılacaklar:** dıştaki değişkene okumadan önce atama uyarısı, ileti `TR_var`'ı önerir.
 
 ### 6.9
 
@@ -447,13 +456,13 @@ Depodaki kullanımlar çevrilir: `TR_it` 44 ve `TR_acc` 10 yerde, adsız `TR_fun
 ### 6.10
 
 - **Mevcut durum:** `TR_func f[T](l)` sözdizimi hatası veriyor [ölçüldü].
-- **Yapılacaklar:** tip parametreleri ve çağrıda çıkarımı.
+- **Yapılacaklar:** tip parametreleri ve çağrıda çıkarımı; kısıtsız `T`'de izin verilen işlerin denetimi.
 
 ## 7. Yapılar
 
 Kurallar: [`docs/spec/07_yapilar.md`](spec/07_yapilar.md). Taslak: DENETİM ve Gemini'nin araştırması bekleniyor. Kuralla aynı olanlar: nesne başvuruyla paylaşılıyor (`q.x = 9` `p.x`'i de değiştiriyor), eşitlik alanlardan, çağrısız metot nesneye bağlı bir fonksiyon [ölçüldü].
 
-İki yeni anahtar kelime kimlik listesinde yok: `TR_enum` (7.7) ve `TR_interface` (7.8); adları Ahmet'in onayında. Yapının tipi olan genel tip (StructType) kalkar; yapının tipi `TR_Type`'tır (3.11).
+İki yeni anahtar kelime kimlik listesine eklenir: `TR_enum` (7.7) ve `TR_interface` (7.8) (Ahmet, 2026-10-27, adları ana oturuma bıraktı: "senin için hataya en az sebep olacak hangisi ise o isimleri seçebilirsin"). Yapının tipi olan genel tip (StructType) kalkar; yapının tipi `TR_Type`'tır (3.11).
 
 `tests/yapilar_test.tr` eski kuralları da sınıyor; testler koşulmadan önce yeni kurallara göre yeniden yazılır: tipsiz alanlar ve varsayılanlıdan sonra varsayılansız alan (7.1), verilmeyen alanın yokluk alması (7.2), `p?.z` (7.5, 4.8), eski metin biçimi ve yapının tipinin StructType olması (7.6). Kütüphanenin yapıları (`lib/katman.tr` ve öbürleri) tipli alanlara ve tipli kurucu parametrelerine çevrilir.
 
