@@ -14,8 +14,10 @@
 // VS Code'un kendi belge modelindedir; kayıtta belgenin metnine dokunulmaz.
 //
 // Dosya gezgininden (ya da bir hata bağlantısından) açılan kodlu dosyanın ham sekmesi görünümle
-// değiştirilir; seçim (satır, sütun) olduğu gibi taşınır: hata konumları zaten Türkçe gösterime
-// göredir (17.5). Eklenti kendiliğinden kodlamaz.
+// değiştirilir; seçim (satır, sütun) olduğu gibi taşınır: hata konumları kişinin görünümüne
+// (TR_DIL) göredir ve eklenti başlattığı her 'tr' sürecine TR_DIL'i yazım diliyle verir
+// (extension.js languageEnvironment), görünüm de aynı dille açılır; böylece iki konum aynıdır
+// (17.5). Eklenti kendiliğinden kodlamaz.
 //
 // Kodsuz (başlıksız) dosya Türkçe yazılmıştır (17.7). Yazım dili Türkçeyse olduğu gibi açılır;
 // başka bir dilse o da görünümle, kişinin dilinde açılır ('tr göster - --dil en') ve kaydedilince
