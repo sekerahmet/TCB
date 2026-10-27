@@ -242,6 +242,11 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM ve Gem
 - **Mevcut durum:** doğruluk sınaması var: boş liste koşulda yanlış sayılıyor [ölçüldü].
 - **Yapılacaklar:** koşulda yalnız `TR_Bool`; başka tip denetim hatası, ileti açık sınamayı önerir.
 
+### 3.12
+
+- **Mevcut durum:** dönüşüm ve kurma tipten ayrı fonksiyonlarla yapılıyor; 14 tip ile fonksiyon çifti yalnız büyük-küçük harfle ayrılıyor (Int/int, Float/float, Tensor/tensor, Checkpoint/checkpoint, Dataset/dataset, Type/type gibi), yokluğun tipi ile değeri de (None/none).
+- **Yapılacaklar:** tip çağrılınca kurar ve dönüştürür; ayrı fonksiyonlar kalkar (dönüşümde metin fonksiyonu da). Yokluğun tipi `TR_NoneType` olur. Depodaki kullanımlar çevrilir.
+
 ### 3.13
 
 - **Mevcut durum:** `0` ile başlayan değişkene ondalık eklenebiliyor [ölçüldü]; açıklamasız değişkenin tipi kalıcı değil.
