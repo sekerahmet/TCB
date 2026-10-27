@@ -15,11 +15,11 @@ TR'ye yeni bir şey eklerken hangi dosyalara, hangi sırayla dokunulduğu ve "bi
 
 ## 1. Eleman bazlı matematik fonksiyonu
 
-Örnek: `TR_fn_silu` (TR_fn_silu). Sayıda `TR_type_Float`, tensörde türev izleyen tensör verir; CPU ve GPU'da, 16 bitte de çalışır.
+Örnek: `silu` (TR_fn_silu). Sayıda `TR_type_Float`, tensörde türev izleyen tensör verir; CPU ve GPU'da, 16 bitte de çalışır.
 
 | Adım | Dosya | Ne eklenir |
 | :-- | :-- | :-- |
-| Ad | `internal/lang/codes/tr.json` | `"TR_fn_silu": { "family": ..., "description": ..., "example": "yazdır(silu(tensör([-1.0, 0.0, 2.0])).değer)" }` (ad yok: `TR_fn_silu` ortak addır; ortak adı olmayan kodda `"name": ...` ilk alandır, `en.json`'a da `{ "ad": ... }` satırı girer) |
+| Ad | `internal/lang/codes/tr.json` | `"TR_fn_silu": { "family": ..., "description": ..., "example": "yazdır(silu(tensör([-1.0, 0.0, 2.0])).değer)" }` (ad yok: `silu` ortak addır; ortak adı olmayan kodda `"name": ...` ilk alandır, `en.json`'a da `{ "ad": ... }` satırı girer) |
 | İmza | `internal/lang/codes/definitions.json` | `"TR_fn_silu": { "kind": "function", "common_name": "silu", "params": ["TR_type_Tensor\|TR_type_Int\|TR_type_Float"], "returns": "TR_type_Tensor\|TR_type_Float" }` |
 | Üret | — | `go generate ./internal/lang/codes`: Go sabitleri, `docs/codes.md`, düzenleyici renklendirmesi |
 | İşlem | `internal/compute/tensor/device.go` | `UnOp` listesinin sonuna, `numUnOps` sayacının **önüne** `OpSilu` (sayaç her zaman son kalır; kapsam testi işlemleri onunla sayar) |
@@ -51,7 +51,7 @@ Bitti: NaN ve sonsuzlar tanımlı; türev sınırlarda doğru; 16 bit tensörde 
 
 ## 2. Standart kitaplığa yeni yerleşik fonksiyon
 
-Örnek: `TR_fn_read_csv` (TR_fn_read_csv), `internal/stdlib/formats`.
+Örnek: `csv_oku` (TR_fn_read_csv), `internal/stdlib/formats`.
 
 1. **Ad ve imza.** `tr.json`'a ad, açıklama, çalışan tek satırlık örnek; `definitions.json`'a tür, konumlu parametreler (`"TR_type_String|TR_type_Path"`), adlı argümanlar (`[kod, tip, varsayılan]`), dönüş. Adlı argüman da bir koddur (`arg` sınıfı: `TR_arg_dim`). Sonra `go generate ./internal/lang/codes`.
 2. **Kayıt.** Paketin `Register(v *interp.VM)` fonksiyonunda:
@@ -120,7 +120,7 @@ Testler: `x_test.go` her kaynak dosyanın yanında; birden çok dosyayı kesen d
 
 ## 6. Yeni dil kuralı ya da anahtar kelime
 
-Örnek: `TR_kw_match` (TR_kw_match).
+Örnek: `eşle` (TR_kw_match).
 
 1. **Tasarım ve ad.** Dil tanımında yeni madde (`docs/spec/`); ad kodu (`kw` anahtar kelime ya da `ctx` bağlamsal sözcük; kimlik İngilizce adından: `TR_kw_match`), adı baş geliştiricinin onayıyla. Kodlu saklama da adı kimlikle yazar, bu yüzden ad sonradan değişebilir.
 2. **Sözdizimi.** `internal/lang/lexer` (gerekiyorsa yeni sözcük), `internal/lang/ast` (düğüm), `internal/lang/parser` (ayrıştırma; hata `messages.At(satır, sütun, messages.New(...))`).
@@ -159,7 +159,7 @@ Testler: `tests/<bölüm>_test.tr` (her test madde numarasıyla başlar; olumsuz
 
 ## 9. Bir kavramı ortak ada çevirmek
 
-Örnek: `TR_fn_sin` (`sinüs` → `TR_fn_sin`, 2026-10-26). Uluslararası gösterimle ya da özel adla yazılan bir kavramın adı her dilde aynıdır (dil tanımı 17, "Ortak ad"); adı baş geliştirici onaylar.
+Örnek: `TR_fn_sin` (`sinüs` → `sin`, 2026-10-26). Uluslararası gösterimle ya da özel adla yazılan bir kavramın adı her dilde aynıdır (dil tanımı 17, "Ortak ad"); adı baş geliştirici onaylar.
 
 | Adım | Ne yapılır |
 | :-- | :-- |

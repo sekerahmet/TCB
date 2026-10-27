@@ -25,7 +25,7 @@ Kurallar:
   Yalnızca anında bitenler (birkaç saniye) ön planda koşar; klonlama, derleme ve veri kopyası dahil gerisi arka planda.
 - **Arka plan kalıbı:** her iş `bash /content/is_baslat.sh <ad> "<ne, nasıl>" -- <komut>` ile başlar
   (hücre 2 yazar). Yardımcı komutu `setsid nohup ... < /dev/null &` ile ayrı oturumda başlatır (hücreyi
-  kesmek koşuya ulaşmaz, hücre beklemez), `tools/record` ile sarar ve `/content/is/<ad>/` altına `TR_fn_log` ile
+  kesmek koşuya ulaşmaz, hücre beklemez), `tools/record` ile sarar ve `/content/is/<ad>/` altına `log` ile
   `bitti` (çıkış kodu) yazar. Durum yalnızca hücre 3'le, tahmini süre dolunca bir kez okunur; art arda sorgulanmaz.
 - **Kayıt:** her koşu `TR_dili/olcumler/<ad>/<zaman>.json` (Türkiye saati) ve `OZET.md`'ye tek satır
   ([`tools/record`](../record/README.md)). Not (`--note`) ne ölçüldüğünü ve nasıl ölçüldüğünü söyler.
