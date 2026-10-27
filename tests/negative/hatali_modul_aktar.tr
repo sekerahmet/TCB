@@ -1,0 +1,4 @@
+# TR 4
+TR_import "tip_hatali_modul" # RUN-ERROR H1001
+# TEST 11.4 aktarılan modül çalışmadan önce denetlenir; hatalıysa hiçbir satırı çalışmaz (çıktı boş kalır)
+TR_print("bu satır çalışmamalı")

@@ -1,0 +1,3 @@
+# TR 4
+TR_import "tr/katman_test" # RUN-ERROR H2478
+# TEST 11.6 kitaplığın test dosyaları aktarılamaz

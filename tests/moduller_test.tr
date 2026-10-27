@@ -1,39 +1,24 @@
 # TR 4
-# docs/spec/11_moduller.md §11 — Modüller
+# docs/spec/11_moduller.md §11 — Modüller. Aktarmalar dosyanın başındadır (2.1); hatalı modüllerin
+# testleri olumsuz fikstürlerdedir (tests/negative/: tirnaksiz_aktar, tip_hatali_modul,
+# hatali_modul_aktar, ust_duzey_sonuc, kitaplik_*).
 TR_import "yardimci_modul"
 TR_import "yardimci_modul.tr" TR_as ym
-
-TR_var yükleme_kaydı = []
+TR_import "sub/sira_modulu" TR_as sm
+TR_import "sira_ortak" TR_as so
+TR_import "sub/yardimci_alt"
+TR_import "yardimci_ozel" TR_as özel
+TR_import "yardimci_ozel"
+TR_import "tr/katman" TR_as k
+TR_import "./tr/katman" TR_as d
 
 TR_test "11.1 aktar modülün üst düzey adlarını getirir; .tr uzantısı isteğe bağlıdır" {
     TR_assert_equal(9, kare(PI))
 }
 
-TR_test "11.1 modül yolu metin olarak yazılır; tırnaksız yazım hatadır" {
-    TR_assert_equal("H0143", TR_error_code(() => { TR_import "negative/tirnaksiz_aktar" }))
-}
-
 TR_test "11.1 göreli aktar önce aktaran dosyanın, sonra programın klasörüne göre çözülür" {
-    TR_import "sub/sira_modulu" TR_as sm
-    TR_assert_equal("alt klasör", sm.sıra_kaynağı) # alt/sira_ortak.tr, tests/sira_ortak.tr değil
-    TR_import "sira_ortak" TR_as so
+    TR_assert_equal("alt klasör", sm.sıra_kaynağı) # sub/sira_ortak.tr, tests/sira_ortak.tr değil
     TR_assert_equal("program klasörü", so.kimden)
-}
-
-TR_test "11.1 çalışma klasörü modül aramasına girmez" {
-    TR_var çalışma = TR_path(".").TR_absolute
-    TR_var program = TR_path("moduller_test.tr").TR_absolute.TR_parent
-    TR_if çalışma != program {
-        # Yeni dosya çalışma klasörüne yazılır (13.1); programın yanında öyle bir modül yok.
-        TR_write_file("gecici_calisma_modulu.tr", "değişken çalışma_modülü = doğru
-")
-        TR_defer TR_remove("gecici_calisma_modulu.tr")
-        TR_assert(TR_path(çalışma, "gecici_calisma_modulu.tr").TR_exists)
-        TR_var mesaj = ""
-        TR_try { TR_import "gecici_calisma_modulu" } TR_catch h { mesaj = h }
-        TR_assert(mesaj.TR_contains("gecici_calisma_modulu.tr"), mesaj)
-        TR_assert(TR_not mesaj.TR_contains(TR_str(TR_path(çalışma, "gecici_calisma_modulu.tr"))), "çalışma klasörüne bakılmamalı: \(mesaj)")
-    }
 }
 
 TR_test "11.2 olarak ile modül tek bir Sözlük olarak bağlanır" {
@@ -47,69 +32,36 @@ TR_test "11.3 modül bir kez çalıştırılır; sonraki aktarımlar aynı değe
     TR_assert_equal(["x"], kayıt)
 }
 
-TR_test "11.3 eşzamanlı görevler aynı modülü aktarınca biri ötekinin yüklemesini bekler" {
-    TR_var sonuçlar = []
-    TR_for i TR_in 0..2 {
-        TR_async {
-            TR_try {
-                TR_import "yardimci_yavas"
-                sonuçlar.TR_append(yavaş_hazır)
-            } TR_catch h {
-                sonuçlar.TR_append(h)
-            }
-        }
-    }
-    TR_wait_all()
-    TR_assert_equal([TR_true, TR_true], sonuçlar)
-    TR_assert_equal(["yüklendi"], yükleme_kaydı)
-}
-
-TR_test "11.4 modül çalışmadan önce denetlenir; hatalıysa hiçbir satırı çalışmaz" {
-    TR_assert_equal("H1001", TR_error_code(() => { TR_import "negative/tip_hatali_modul" }))
-    TR_var tanımlı = TR_true
-    TR_try { yarım_kalan } TR_catch { tanımlı = TR_false }
-    TR_assert(TR_not tanımlı, "hatalı modülün hiçbir adı gelmemeli")
-    TR_assert_equal("H0154", TR_error_code(() => { TR_import "negative/ust_duzey_sonuc" }))
-}
-
 TR_test "11.5 modülün kodu kendi dosyasının bağlamında çalışır" {
-    TR_import "sub/yardimci_alt"
     # Göreli yol modülün klasörüne göre de aranır
     TR_assert_equal("alt klasörün verisi", alt_veri())
-    # Hata modülün adı ve kendi satırıyla bildirilir
+    # Hata modülün adı ve kendi satırıyla (başlık 1. satır) bildirilir
     TR_assert_equal("H2470", TR_error_code(() => { sıfıra_böl(1) }))
     TR_var mesaj = ""
     TR_try { sıfıra_böl(1) } TR_catch h { mesaj = h }
-    TR_assert(mesaj.TR_contains("yardimci_alt.tr, ") TR_and mesaj.TR_contains(" 4: "), mesaj)
+    TR_assert(mesaj.TR_contains("yardimci_alt.tr, ") TR_and mesaj.TR_contains(" 5: "), mesaj)
     # fırlat ile atılan değer olduğu gibi yakalanır
     TR_try { özel_fırlat() } TR_catch h { mesaj = h }
     TR_assert_equal("özel hata", mesaj)
 }
 
 TR_test "11.7 başı _ olan üst düzey adlar modüle özeldir" {
-    TR_import "yardimci_ozel" TR_as m
-    TR_assert_equal(7, m.dış_hesap(2))
-    TR_assert_equal(1, m.TR_length)
-    TR_assert_equal(TR_false, m.TR_contains("_iç_hesap"))
-    TR_assert_equal("H2487", TR_error_code(() => { m._iç_hesap(2) }))
-    TR_assert_equal("H2487", TR_error_code(() => { TR_print(m["_ÇARPAN"]) }))
+    TR_assert_equal(7, özel.dış_hesap(2))
+    TR_assert_equal(1, özel.TR_length)
+    TR_assert_equal(TR_false, özel.TR_contains("_iç_hesap"))
+    TR_assert_equal("H2487", TR_error_code(() => { özel._iç_hesap(2) }))
+    TR_assert_equal("H2487", TR_error_code(() => { TR_print(özel["_ÇARPAN"]) }))
 }
 
 TR_test "11.7 takma adsız aktar modüle özel adları getirmez" {
-    TR_import "yardimci_ozel"
     TR_assert_equal(7, dış_hesap(2))
     TR_assert_equal("H1106", TR_error_code(() => { _iç_hesap(2) }))
 }
 
 TR_test "11.6 tr/ öneki dilin kitaplığındandır; diskteki tr/ klasörü onu gölgeleyemez" {
-    TR_import "tr/katman" TR_as k
     TR_assert_equal(TR_Dict, TR_type(k))
     TR_assert(k.TR_keys().TR_contains("TR_type_GPT") TR_and k.TR_keys().TR_contains("TR_type_Linear"), "kitaplığın katmanları gelmeli")
     TR_assert(TR_not k.TR_keys().TR_contains("disk_katmanı"), "tests/tr/katman.tr yüklenmemeli")
-    TR_import "./tr/katman" TR_as d
     TR_assert_equal(TR_true, d.disk_katmanı)
     TR_assert_equal([4, 3], k.TR_Linear(4, 3).TR_weight.TR_shape)
-    TR_assert_equal("H2478", TR_error_code(() => { TR_import "tr/olmayan_modul" }))
-    TR_assert_equal("H2478", TR_error_code(() => { TR_import "tr/iyileştirici" }))
-    TR_assert_equal("H2478", TR_error_code(() => { TR_import "tr/katman_test" }))
 }

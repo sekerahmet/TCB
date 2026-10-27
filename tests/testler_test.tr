@@ -1,13 +1,13 @@
 # TR 4
 # docs/spec/12_testler.md §12 — Testler
+TR_import "yardimci_testli"
 
 TR_var test = "test sıradan bir ad olarak da kullanılabilir"
 TR_var genel_değer = 42
 
 TR_test "12.1 test bloğu adıyla birlikte tanımlanır; normal çalıştırmada atlanır" {
     # Modül normal biçimde çalıştırılır: içindeki test bloğu atlanır (çalışsaydı sayaç değişir
-    # ve hata fırlatırdı), sonraki satırlar çalışır.
-    TR_import "yardimci_testli"
+    # ve hata fırlatırdı), sonraki satırlar çalışır. Modül dosyanın başında aktarılır.
     TR_assert_equal(0, testli_sayaç)
     TR_assert(testli_bitti)
 }
@@ -36,14 +36,8 @@ TR_test "12.5 her test yeni bir kapsamda çalışır; üst düzey tanımlar gör
     TR_assert_equal(42, genel_değer)
 }
 
-TR_test "12.5 bir testin yerel adı ötekine sızmaz" {
-    # Başka bir testin tanımladığı ad (yerel) bu testte tanımsızdır; testlerin sırasından
-    # bağımsız olarak doğrudur.
-    TR_assert_equal("H1106", TR_error_code(() => { TR_import "negative/test_yerel_adi" }))
-}
-
 TR_test "12.6 test gövdesinde sonuç derleme hatasıdır" {
     TR_func iç() { TR_return 7 }
     TR_assert_equal(7, iç())
-    TR_assert_equal("H0153", TR_error_code(() => { TR_import "negative/test_govdesi_sonuc" }))
+    # Olumsuz fikstür: tests/negative/test_govdesi_sonuc.tr
 }

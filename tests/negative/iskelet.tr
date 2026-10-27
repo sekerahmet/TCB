@@ -1,0 +1,4 @@
+# TR 4
+# TEST 2.1a dosyanın adları arasında Unicode karıştırılabilirlik iskeleti aynı iki ayrı ad hatadır (ikincisi bütünüyle Kiril harfleriyle: с о р у)
+TR_var copy = 1
+TR_var сору = 2 # ERROR H1020

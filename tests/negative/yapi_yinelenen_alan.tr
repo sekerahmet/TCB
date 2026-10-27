@@ -1,6 +1,6 @@
 # TR 4
-# Bilerek hatalı: 7.1 — aynı alan iki kez tanımlanamaz.
+# TEST 7.1 aynı alan iki kez tanımlanamaz
 TR_struct A {
     x = 1
-    x = 2
+    x = 2 # ERROR H0146
 }

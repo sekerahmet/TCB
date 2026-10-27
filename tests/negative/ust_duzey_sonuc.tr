@@ -1,4 +1,4 @@
 # TR 4
-# Bilerek hatalı: 11.4 — modülün üst düzeyinde sonuç kullanılamaz.
+# TEST 11.4 modülün üst düzeyinde TR_return kullanılamaz
 TR_var önce = 1
-TR_return önce
+TR_return önce # ERROR H0154

@@ -205,7 +205,7 @@ TR_test "3.11 tip değeri metinle karşılaştırılamaz: tip(x) == Tam yazılı
     TR_assert_equal("H1105", TR_error_code(() => { TR_print(TR_type(5) == ad) }))
     TR_assert_equal("H1105", TR_error_code(() => { TR_assert_equal(ad, TR_type(5)) }))
     # Denetleyici tip(...) ile bir metin sabitinin karşılaştırılmasını çalıştırmadan önce bulur.
-    TR_assert_equal("H1105", TR_error_code(() => { TR_import "negative/tip_metin" }))
+    # Olumsuz fikstür: tests/negative/tip_metin.tr
 }
 
 TR_test "3.12 dönüşümler: tam, ondalık, metin" {
@@ -225,15 +225,7 @@ TR_test "3.13 tip açıklamaları tip denetleyicisince denetlenir" {
     TR_var f: TR_Function = x => x
     TR_assert_equal(2, f(2))
     # Uyuşmazlık programı çalıştırmadan reddeder (modül de aynı denetimden geçer)
-    TR_assert_equal("H1001", TR_error_code(() => { TR_import "negative/tip_aciklamasi" }))
-}
-
-TR_test "3.13 denetim her ifadenin içine iner" {
-    # liste, sözlük, aralık, metin içi ifade, liste üreteci, indeks, üye, atama hedefi,
-    # yapı alan varsayılanı ve metot gövdesi, eşle deseni, parametre varsayılanı
-    TR_assert_equal("H1004", TR_error_code(() => { TR_import "negative/ic_ifade_tipleri" }))
-    TR_for satır TR_in [3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 15, 16] {
-    }
+    # Olumsuz fikstür: tests/negative/tip_aciklamasi.tr
 }
 
 TR_test "3.13 açıklamasız değişkenin tipi kalıcı değildir" {
@@ -253,7 +245,7 @@ TR_test "3.14 tip adının tek yazımı vardır" {
     TR_func kare(x: TR_Float): TR_Float { TR_return x * x }
     TR_assert_equal(2.25, kare(1.5))
     # Büyük/küçük harfi farklı yazım tip adı değildir; program çalıştırılmadan reddedilir
-    TR_assert_equal("H1006", TR_error_code(() => { TR_import "negative/tip_adi_yazimi" }))
+    # Olumsuz fikstür: tests/negative/tip_adi_yazimi.tr
     # Değer olarak okunan küçük harfli ad dönüşüm fonksiyonudur (3.12)
     TR_assert_equal(adet, TR_int("3"))
 }

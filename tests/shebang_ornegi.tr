@@ -1,0 +1,4 @@
+#!/usr/bin/env tr
+# TR 4
+# sozcuk_yapisi_test.tr (2.1): ilk satırı #! olan dosya; başlık ikinci satırdır.
+TR_var shebang_okundu = TR_true

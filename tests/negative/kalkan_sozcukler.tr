@@ -1,0 +1,4 @@
+# TR 4
+# TEST 2.9 her işin tek yazımı vardır: koşullu döngü TR_for ile, varsayılan kol _ ile yazılır; kalkan sözcüğün iletisi doğru yazımı söyler
+TR_while TR_true { TR_break } # ERROR H0021
+TR_var k = TR_match 1 { 1 => "bir"; TR_default => "başka" } # ERROR H0022

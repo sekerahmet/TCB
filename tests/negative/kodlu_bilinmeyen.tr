@@ -1,3 +1,4 @@
 # TR 4
-# Bilerek hatalı kodlu modül (17.6): kod listesinde olmayan bir kimlik (TR_fn_yok) sözdizimi hatasıdır.
-TR_fn_yok(1)
+# TEST 17.6 kod listesinde olmayan kimlik sözdizimi hatasıdır
+# TEST 2.3a TR_ ile yazılan bilinmeyen sözcük hatadır; ileti en yakın kimliği önerir
+TR_yok(1) # ERROR H0001

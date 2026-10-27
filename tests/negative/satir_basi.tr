@@ -1,0 +1,8 @@
+# TR 4
+# TEST 2.8 satır başındaki işleç önceki satırı sürdürmez; çağrı içermeyen ifadenin değeri kullanılmazsa hatadır
+TR_var a = 1
+TR_var b = 2
+a = a
+    - b # ERROR H1017
+TR_var k = {ad: 1}
+k.ad # ERROR H1023

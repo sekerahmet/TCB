@@ -1,13 +1,13 @@
 # TR 4
-# Bilerek hatalı modül (5.4, 5.12, 5.14): tanımsız adlar çalışmadan önce bulunur; modülün
-# hiçbir satırı çalışmaz. Satır numaraları testlerde geçer: satır eklerken testleri güncelleyin.
+# TEST 5.4 tanımsız bir ada atama hatadır
+# TEST 5.14 tanımsız ad çalışmadan önce bulunur; modülün hiçbir satırı çalışmaz
 TR_var çalıştı = TR_true
-yazdir("merhaba")
-tanımsız_değişken = 3
+yazdir("merhaba") # ERROR H1106
+tanımsız_değişken = 3 # ERROR H2448
 TR_if TR_true {
     TR_var iç = 1
 }
-TR_print(iç)
+TR_print(iç) # ERROR H1106
 TR_func f() {
-    TR_return bilinmeyen_ad + 1
+    TR_return bilinmeyen_ad + 1 # ERROR H1106
 }

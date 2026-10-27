@@ -1,6 +1,6 @@
 # TR 4
-# Bilerek hatalı: 12.6 — test gövdesinde sonuç kullanılamaz.
+# TEST 12.6 test gövdesinde TR_return derleme hatasıdır
 TR_test "erken biten" {
-    TR_if TR_true { TR_return }
+    TR_if TR_true { TR_return } # ERROR H0153
     TR_assert(TR_false)
 }

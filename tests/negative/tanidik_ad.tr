@@ -1,0 +1,4 @@
+# TR 4
+# TEST 2.3a başka dillerden tanıdık ad (print, None, elif) tanımsız addır; ileti TR_ ile yazımını önerir
+print("merhaba") # ERROR H1106
+TR_var a = None # ERROR H1106

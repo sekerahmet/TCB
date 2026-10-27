@@ -1,66 +1,51 @@
 # TR 4
-# Kodlu saklama (docs/spec/17_kodlar.md, 17.1-17.7) ve '$ad' kaçışı (2.11). Kodlu modül:
-# tests/coded/ornek_kodlu.tr (Türkçe gösterimi: tr göster tests/coded/ornek_kodlu.tr).
+# Kodlu saklama (docs/spec/17_kodlar.md): dosya kimliklerle yazılır (2.1, 2.3a), kullanıcının adları
+# olduğu gibi. Kodlu modüller: tests/coded/ornek_kodlu.tr, tests/coded/sozluk_anahtari.tr (bir dildeki
+# gösterimi: tr show tests/coded/ornek_kodlu.tr --lang tr).
+TR_import "coded/ornek_kodlu" TR_as m
+TR_import "coded/sozluk_anahtari" TR_as anahtarlı
 
-TR_test "17.1 ilk satırı başlık olan dosya kodludur ve çevrilmeden çalışır" {
-    TR_import "coded/ornek_kodlu" TR_as m
+TR_test "17.1 ilk satırı başlık olan dosya çevrilmeden çalışır" {
     TR_assert_equal([1, 4, 9], m.kareler([1, 2, 3]))
-    # Başka bir kodlu biçim sürümü (burada eski sürüm 2) Türkçe kaynak sanılmaz, hatadır.
-    TR_assert_equal("H2512", TR_error_code(() => { TR_import "negative/kodlu_surum" }))
+    # Başka bir başlığın ve başlıksızlığın hatası: tests/negative/kodlu_surum.tr, basliksiz.tr
 }
 
-TR_test "17.2 kodlu dosyada dilin sözcükleri kodla, kullanıcının adları adıyla yazılır" {
-    TR_import "coded/ornek_kodlu" TR_as m
-    # Kod olmayan her ad kullanıcının adıdır: modüldeki 'eğer' bir değişkendir.
+TR_test "17.2 dilin sözcükleri kimlikle, kullanıcının adları adıyla yazılır" {
+    # Kimlik olmayan her ad kullanıcının adıdır: modüldeki 'eğer' bir değişkendir.
     TR_assert_equal(7, m["eğer"])
     TR_assert_equal("x", m.yakalanan())
 }
 
 TR_test "17.3 neyin kodlandığını kapsam belirler; üyeler tanımda ve kullanımda aynı kodla" {
-    TR_import "coded/ornek_kodlu" TR_as m
     # Gölgelenen 'toplam' modülde kullanıcının adıdır.
     TR_assert_equal(5, m.golge())
-    # Modüldeki yapının .TR_mem_append metodu ve .TR_mem_length alanı burada Türkçe adlarıyla çağrılır.
+    # Modüldeki yapının TR_append metodu ve TR_length alanı burada da kimlikleriyle çağrılır.
     TR_var s = m.Sayac()
     s.TR_append(2)
     s.TR_append(3)
     TR_assert_equal(5, s.TR_length)
+    # Üyenin kimliğiyle yazılan sözlük anahtarı ({TR_step: 3}) kimliğin dilden bağımsız adıyla
+    # saklanır ("step") ve üye erişimiyle bulunur; bir dildeki adı ("adım") anahtar değildir.
+    TR_assert_equal(3, anahtarlı.ayar.TR_step)
+    TR_assert_equal(3, anahtarlı.ayar["step"])
+    TR_assert_equal(TR_false, anahtarlı.ayar.TR_contains("adım"))
+    TR_assert_equal(["step", "renk"], anahtarlı.ayar.TR_keys())
 }
 
 TR_test "17.4 metinler, ham metin ve yorumlar olduğu gibi kalır; yerleştirmedeki kodlar çalışır" {
-    TR_import "coded/ornek_kodlu" TR_as m
     TR_assert_equal("toplam: 6.0, eğer: 7, ham: " + `{TR_fn_sum}`, m.bilgi())
 }
 
-TR_test "17.5 kodlu dosyada konumlar Türkçe gösterime göredir" {
-    TR_assert_equal("H1106", TR_error_code(() => { TR_import "negative/kodlu_tanimsiz" }))
-    # Gösterim: 'yazdır(a, tanımsız_ad)'; ad 11. sütunda (kodlu dosyada 'TR_fn_print(a, ' 16 karakter).
-}
-
-TR_test "17.6 kod listesinde olmayan kimlik hatadır" {
-    TR_assert_equal("H0001", TR_error_code(() => { TR_import "negative/kodlu_bilinmeyen" }))
-}
-
-TR_test "17.7 kodsuz dosya Türkçedir; başka yazım dillerinin sözcükleri burada kullanıcının adıdır" {
-    # İngilizcenin sözcükleri (var, print, if) Türkçe yazılmış dosyada sıradan adlardır.
+TR_test "17.7 hiçbir yazım dili asıl dil değildir: dillerin sözcükleri dosyada kullanıcının adıdır" {
+    # İngilizcenin ve Türkçenin sözcükleri (var, print, if, eğer, değişken) sıradan adlardır; dilin
+    # sözcükleri yalnız TR_ ile yazılır. '$ad' kaçışı dosyada yoktur: tests/negative/dolar_isareti.tr
     TR_var var = 1
     TR_var print = var + 1
     TR_func if(x) { TR_return x * 2 }
     TR_assert_equal(4, if(print))
-    # Kodlu dosyada üyenin adıyla aynı sözlük anahtarı ({TR_mem_step: 3}) kodun dilden bağımsız
-    # adıyla saklanır ("step", 17.3) ve üye erişimiyle bulunur; Türkçe adı metin anahtar değildir.
-    TR_import "coded/sozluk_anahtari" TR_as m
-    TR_assert_equal(3, m.TR_config.TR_step)
-    TR_assert_equal(3, m.TR_config["step"])
-    TR_assert_equal(TR_false, m.TR_config.TR_contains("adım"))
-    TR_assert_equal(["step", "renk"], m.TR_config.TR_keys())
-}
-
-TR_test "2.11 '$ad' kaçışı: ad dilin bir sözcüğüyle aynı olsa da kullanıcının adıdır" {
     TR_var eğer = 3
     TR_var değişken = eğer + 1
     TR_assert_equal(4, değişken)
-    TR_assert_equal("H0002", TR_error_code(() => { TR_import "negative/kacis_bitisik" }))
 }
 
 TR_test "17.8 komut satırı adları kodludur: programın yardım seçeneğinin her dildeki adı ayrılmıştır" {

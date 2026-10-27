@@ -22,12 +22,6 @@ TR_test "7.1 yapı alanları ve varsayılan değerleri" {
     TR_assert_equal([TR_none, 2, TR_none], [s.a, s.b, s.c])
 }
 
-TR_test "7.1 yapı gövdesinde geçersiz içerik ve yinelenen ad sözdizimi hatasıdır" {
-    TR_assert_equal("H0147", TR_error_code(() => { TR_import "negative/yapi_govdesi" }))
-    TR_assert_equal("H0146", TR_error_code(() => { TR_import "negative/yapi_yinelenen_alan" }))
-    TR_assert_equal("H0145", TR_error_code(() => { TR_import "negative/yapi_yinelenen_metot" }))
-}
-
 TR_test "7.2 oluşturma: konumlu ve adlı argümanlarla" {
     TR_assert_equal(3, Nokta(3, 4).x)
     TR_assert_equal(4, Nokta(y: 4).y)

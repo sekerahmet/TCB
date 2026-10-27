@@ -13,7 +13,7 @@ TR_test "5.2 sabit: tanımlandıktan sonra değiştirilemez" {
     TR_const PI = 3.14
     TR_assert_equal(3.14, PI)
     # Yeniden atama denetleyicide yakalanır: dosyanın hiçbir satırı çalışmaz
-    TR_assert_equal("H1002", TR_error_code(() => { TR_import "negative/sabit_yeniden" }))
+    # Olumsuz fikstür: tests/negative/sabit_yeniden.tr
 }
 
 TR_test "5.3 çoklu tanım, takas ve listeden açma" {
@@ -34,11 +34,6 @@ TR_test "5.4 atama ve bileşik atama" {
     TR_var l = [1, 2]
     l[0] = 9
     TR_assert_equal([9, 2], l)
-}
-
-TR_test "5.4 tanımsız bir ada atama hatadır" {
-    # Hata çalışmadan önce bulunur (5.14): modülün hiçbir satırı çalışmaz.
-    TR_assert_equal("H1106", TR_error_code(() => { TR_import "negative/tanimsiz_adlar" }))
 }
 
 TR_test "5.5 eğer / değilse eğer / değilse bir ifadedir" {
@@ -151,7 +146,7 @@ TR_test "5.12 bloklar kapsam açar; dış değişkenler atanabilir" {
     }
     TR_assert_equal(5, dış)
     # Blokta tanımlanan ad dışarıda tanımsızdır; denetim bunu çalışmadan önce bulur (5.14).
-    TR_assert_equal("H1106", TR_error_code(() => { TR_import "negative/tanimsiz_adlar" }))
+    # Olumsuz fikstür: tests/negative/tanimsiz_adlar.tr
 }
 
 TR_test "5.12 eşle kolu kendi kapsamını açar: kolda tanımlanan adlı fonksiyon dış adı ezmez" {
@@ -183,12 +178,12 @@ TR_test "5.13 çık ve devam yalnızca döngü içinde geçerlidir" {
     }
     TR_assert_equal([0, 2], l)
     # Döngü dışındaki çık/devam (fonksiyon, sondaki blok içinde de) derleme hatasıdır
-    TR_assert_equal("H0151", TR_error_code(() => { TR_import "negative/dongu_disi_cik" }))
-    TR_assert_equal("H0151", TR_error_code(() => { TR_import "negative/dongu_disi_devam" }))
+    # Olumsuz fikstür: tests/negative/dongu_disi_cik.tr
+    # Olumsuz fikstür: tests/negative/dongu_disi_devam.tr
 }
 
 TR_test "5.14 tanımsız ad çalışmadan önce bulunur; dinamik adlar yanlış alarm vermez" {
-    TR_assert_equal("H1106", TR_error_code(() => { TR_import "negative/tanimsiz_adlar" }))
+    # Olumsuz fikstür: tests/negative/tanimsiz_adlar.tr
     # Bunlar tanımlıdır; denetim yanlış alarm vermez.
     TR_func önce() { TR_return sonra() + 1 }
     TR_func sonra() { TR_return 1 }

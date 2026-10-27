@@ -57,10 +57,6 @@ TR_test "10.3 bekle() negatif, sayı olmayan ya da aşırı uzun süreyi reddede
     TR_sleep(0)
 }
 
-TR_test "10.4 eşzamanlı çağrıdaki adlı fonksiyon görevin kapsamındadır, dışarıda tanımsızdır (5.12)" {
-    TR_assert_equal("H1106", TR_error_code(() => { TR_import "negative/eszamanli_kapsam" }))
-}
-
 TR_test "10.4 görev değişkenleri döngü turuna aittir" {
     TR_var görülen = []
     TR_for i TR_in 1..=3 {

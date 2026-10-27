@@ -1,6 +1,6 @@
 # TR 4
-# Bilerek hatalı: 6.8 — dönüş değerleri bildirilen dönüş tipine göre denetlenir.
-TR_func ad(): TR_Int { TR_return "Ali" }
+# TEST 6.8 dönüş değerleri bildirilen dönüş tipine göre denetlenir
+TR_func ad(): TR_Int { TR_return "Ali" } # ERROR H1003
 TR_func ort(a: TR_Int, b: TR_Int): TR_Int {
-    TR_return a / b
+    TR_return a / b # ERROR H1003
 }

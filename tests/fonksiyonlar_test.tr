@@ -146,7 +146,7 @@ TR_test "6.8 dönüş tipi : Tip ya da -> Tip ile bildirilir" {
     TR_func b(x: TR_Int) -> TR_String { TR_return TR_str(x) }
     TR_assert_equal("3", b(a(3)))
     # Bildirilen tiple uyuşmayan sonuç değeri programı çalıştırmadan reddeder
-    TR_assert_equal("H1003", TR_error_code(() => { TR_import "negative/donus_tipi" }))
+    # Olumsuz fikstür: tests/negative/donus_tipi.tr
 }
 
 TR_test "6.7 değilse eğer başlığında da süslü parantez gövdeyi başlatır, sondaki blok olmaz" {

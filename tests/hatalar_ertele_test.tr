@@ -150,5 +150,5 @@ TR_test "8.5 hata_kodu neden yuvasından iner: sarmalayıcının değil asıl ne
     TR_var ad = "Tam"
     TR_assert_equal("H1105", TR_error_code(() => { TR_print(TR_type(5) == ad) }))
     # Modül yüklenemezse (denetim hatası) hata yeniden fırlatılmaz; ilk tanının kodu gelir.
-    TR_assert_equal("H1106", TR_error_code(() => { TR_import "negative/test_yerel_adi" }))
+    # Olumsuz fikstür: tests/negative/test_yerel_adi.tr
 }

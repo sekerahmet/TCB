@@ -32,7 +32,6 @@ var oldCodeAllowed = map[string]map[string]string{
 	"docs/spec/02_sozcuk_yapisi.md":        {"A001": "2.3a: eski biçim artık sıradan addır", "G100": "2.3a: eski biçim artık sıradan addır"},
 	"internal/lang/codes/README.md":        {"A001": "eski kodların eşleme belgesine yönlendirme"},
 	"internal/lang/codes/language_test.go": {"A001": "eski biçim kimlik değildir ve ayrılmış değildir", "G100": "eski biçim kimlik değildir ve ayrılmış değildir"},
-	"tests/negative/kodlu_surum.tr":        {"A030": "eski kodlu biçim sürümü (2) okunmaz"},
 	"tests/sozcuk_yapisi_test.tr":          {"G100": "2.3a: eski kod biçimi sıradan addır"},
 	"tools/codegraph/codehist.go":          {"A001": "geçmişteki eski anahtarlar da okunur"},
 	"tools/codegraph/testdata/planning_questions.txt": {"K102": "silinmiş kodun geçmişi (codegraph deleted sorusu)",

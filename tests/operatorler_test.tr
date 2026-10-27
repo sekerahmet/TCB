@@ -116,7 +116,7 @@ TR_test "4.8 ?. yok üzerinde hata yerine yok verir" {
     TR_assert_equal("H2466", TR_error_code(() => { kişi.ad }))
     # Hata '?.' güvenli erişimini önerir (işleç her dilde aynı yazılır).
     TR_var mesaj = ""
-    TR_try { kişi.ad } TR_catch h { mesaj = h }
+    TR_try { TR_var ad = kişi.ad } TR_catch h { mesaj = h }
     TR_assert(mesaj.TR_contains("?."), mesaj)
 }
 

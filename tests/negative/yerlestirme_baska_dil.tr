@@ -1,0 +1,5 @@
+# TR 4
+# TEST 2.7 süslü parantez sıradan karakterdir: başka dillerin yerleştirme yazımı ({ad}, ${ad}) metne olduğu gibi geçer, uyarı \(ad)'ı önerir
+TR_var ad = "Ali"
+TR_print("Merhaba {ad}") # WARNING H1022
+TR_print("Merhaba ${ad}") # WARNING H1022

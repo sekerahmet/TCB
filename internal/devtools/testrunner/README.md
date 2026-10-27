@@ -17,7 +17,7 @@ ad ya da yarıda kalan bir görev ötekini etkilemez. Denetim: `TestRunFile`, `T
 olan bölümde her kuralın bir Test satırı olduğunu, biçime uymayan Test satırı kalmadığını,
 Test satırı henüz olmayan bölümde her kuralın bir TR testi olduğunu ve olumsuz örneklerin
 kullanıldığını denetler.
-Denetim: `TestRuleInItsOwnSection`, `TestEveryRuleHasATest`, `TestRuleTestLineForms`, `TestSectionTestProblems`, `TestNegativeFixturesUsed`.
+Denetim: `TestRuleInItsOwnSection`, `TestEveryRuleHasATest`, `TestRuleTestLineForms`, `TestSectionTestProblems`, `TestNegativeFixtures`, `TestFixtureLabels`.
 
 **Gözden geçirilmiş bölüm dilin sözcüklerini kimlikle yazar.** Test satırı biçimine geçmiş
 bölümde madde ve Test satırları ve durum belgesinin (`docs/status.md`) her satırı ters

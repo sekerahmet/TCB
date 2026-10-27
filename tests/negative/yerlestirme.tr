@@ -1,3 +1,4 @@
 # TR 4
-# Bilerek hatalı: 2.7 — kaçışsız her '{' bir yerleştirme başlatır; içi ifade değilse hata.
-TR_print("\(değil)")
+# TEST 2.7 yerleştirmenin içi bir ifadedir: boş ya da ifade olmayan yerleştirme sözdizimi hatasıdır
+TR_print("boş: \()") # ERROR H0158
+TR_print("sözcük: \(TR_for)") # ERROR H0160

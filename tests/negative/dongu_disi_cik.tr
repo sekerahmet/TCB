@@ -1,8 +1,8 @@
 # TR 4
-# Bilerek hatalı: 5.13 — fonksiyon gövdesi döngünün içini kesmez.
+# TEST 5.13 fonksiyon gövdesi döngünün içini kesmez: içindeki TR_break döngünün dışındadır
 TR_for {
     TR_func f() {
-        TR_break
+        TR_break # ERROR H0151
     }
     TR_break
 }

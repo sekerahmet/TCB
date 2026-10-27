@@ -1,3 +1,3 @@
 # TR 4
-# Yazı yönünü değiştiren karakter (2.1a): yorumun içinde bile hatadır
-TR_var a = 1 # ‮ gizli
+# TEST 2.1a yazı yönünü değiştiren karakter yorumun içinde bile hatadır
+TR_var a = 1 # ‮ gizli # ERROR H0011
