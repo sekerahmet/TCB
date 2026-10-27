@@ -7,7 +7,8 @@
 - *Test:* Go: `TestProgramRunsTopToBottom`. Modül ve test dosyası kısmı uygulanınca denetleyicinin testleri.
 
 ```tr
-yazdır("Merhaba, dünya!")
+//! tr kodlu 3 dil=tr
+TR_fn_print("Merhaba, dünya!")
 ```
 
 **1.2** TR statik tiplidir: her değerin tipi çalışmadan önce bilinir. Fonksiyonun parametreleri ve dönüş değeri tipini yazar; yerel değişkenin tipi değerinden çıkarılır.
@@ -19,7 +20,7 @@ yazdır("Merhaba, dünya!")
 **1.3** Çalışmadan önce bütün dosya ayrıştırılır ve tip denetiminden geçer (tip hataları ve tanımsız adlar, 5.14); hata varsa hiçbir satır çalışmaz, çıkış kodu 1'dir. `TR_kw_import` ile alınan modül de böyledir (11.4).
 - *Emsal:* Go ve Rust: program önce derlenir, derleme hatası varsa hiç çalışmaz; Go'nun derlemesi aktarılan paketleri de kapsar. *Almadık:* Python'un ad çözümünü çalışma anına bırakması. ([Go 1.27 go run](https://pkg.go.dev/cmd/go#hdr-Compile_and_run_Go_program), [Go 1.27 go build](https://pkg.go.dev/cmd/go#hdr-Compile_packages_and_dependencies), [Rust 1.99 kitabı, cargo run](https://doc.rust-lang.org/book/ch01-03-hello-cargo.html), [Python 3.15](https://docs.python.org/3/reference/executionmodel.html#interaction-with-dynamic-features))
 - *Gerekçe:* hata, program bir şey yapmadan önce görünsün: yarıda düşen bir koşu ne süre harcar ne de yarım bir sonuç bırakır.
-- *Durum:* modül kısmı karar (Ahmet, 2026-10-27: "modülde hata varsa program hiç başlamasın"). Bugün çalıştırmada modülün hatası `TR_kw_import` satırında çıkıyor, aktaranın önceki satırları çalışmış oluyor (11.4); `TR_cmd_check` ve `TR_cmd_build` modülleri zaten önceden denetliyor. Program kısmında da bir açık var: `TR_cmd_debug` tip denetimini hiç yapmıyor, hatalı programın satırları çalışıyor [ölçüldü, DENETİM].
+- *Durum:* modül kısmı karar (Ahmet, 2026-10-27: "modülde hata varsa program hiç başlamasın"). Bugün çalıştırmada modülün hatası `TR_kw_import` satırında çıkıyor, aktaranın önceki satırları çalışmış oluyor (11.4); `TR_cmd_check` ve `TR_cmd_build` modülleri zaten önceden denetliyor. Program kısmında da açıklar var: `TR_cmd_debug` tip denetimini hiç yapmıyor, hatalı programın satırları çalışıyor [ölçüldü, DENETİM]; takma adsız `TR_kw_import` olan kapsamda tanımsız adlar çalışmadan önce aranmıyor, tanımından önce okunan ad da ancak çalışırken hata veriyor (5.14).
 - *Test:* Go: `TestExampleErrors`; hatadan önceki satırın çalışmadığı da sınanır. Modül kısmı uygulanınca e2e testi.
 
 **1.4** Program dosyasının adından sonra yazılan argümanlar programındır; her çalıştırma yolunda (`TR_cmd_run`, `TR_cmd_debug`, `TR_cmd_build`'in ürettiği uygulama, düzenleyicinin başlatma ayarındaki `"args"`) aynıdır. Onları `TR_fn_command_line` okur (§19). Program onları hiç okumadan biterse standart hataya uyarı yazılır, çıkış kodu değişmez; program hatayla biterse yalnız hata yazılır.
