@@ -22,6 +22,7 @@ var (
 	ruleBacktick = regexp.MustCompile("`([^`]+)`")
 	ruleTestName = regexp.MustCompile(`^(Test|Fuzz|Benchmark|Example)(\w*)$`)
 	ruleListItem = regexp.MustCompile(`^\s*([-*+]|\d+\.)\s`)
+	ruleSpecFile = regexp.MustCompile(`^docs/spec/\d\d_[a-z0-9_]+\.md$`)
 )
 
 // ruleGuard bir README'nin bir kuralı koruyan olarak anıp tuttuğu bir test adı ya da test dosyasıdır.
@@ -31,9 +32,10 @@ type ruleGuard struct {
 	token  string
 }
 
-// TestRuleTestsExist README'lerdeki her "Denetim:" maddesinin ve "Kural | Test" tablosu
-// satırının andığı test işlevleri ve test dosyaları depoda vardır. Yeniden adlandırılan bir test
-// kuralı sessizce korumasız bırakmaz.
+// TestRuleTestsExist README'lerdeki her "Denetim:" maddesinin, "Kural | Test" tablosu
+// satırının ve dil tanımındaki (docs/spec/NN_*.md) her "- *Test:*" satırının andığı test
+// işlevleri ve test dosyaları depoda vardır. Yeniden adlandırılan bir test kuralı sessizce
+// korumasız bırakmaz.
 func TestRuleTestsExist(t *testing.T) {
 	root := reporoot.Root()
 	funcs, files := ruleTestDecls(t, root)
@@ -96,7 +98,7 @@ func ruleFileExists(root string, g ruleGuard, files map[string]bool) bool {
 	return !strings.Contains(g.token, "/") && files[g.token]
 }
 
-// ruleGuards bütün README'lerden koruma simgelerini toplar.
+// ruleGuards bütün README'lerden ve dil tanımının bölümlerinden koruma simgelerini toplar.
 func ruleGuards(t *testing.T, root string) []ruleGuard {
 	t.Helper()
 	var out []ruleGuard
@@ -110,15 +112,16 @@ func ruleGuards(t *testing.T, root string) []ruleGuard {
 			}
 			return nil
 		}
-		if d.Name() != "README.md" {
+		rel, _ := filepath.Rel(root, p)
+		rel = filepath.ToSlash(rel)
+		if d.Name() != "README.md" && !ruleSpecFile.MatchString(rel) {
 			return nil
 		}
 		data, err := os.ReadFile(p)
 		if err != nil {
 			return err
 		}
-		rel, _ := filepath.Rel(root, p)
-		out = append(out, readmeGuards(filepath.ToSlash(rel), string(data))...)
+		out = append(out, docGuards(rel, string(data))...)
 		return nil
 	})
 	if err != nil {
@@ -133,9 +136,9 @@ func ruleGuards(t *testing.T, root string) []ruleGuard {
 	return out
 }
 
-// readmeGuards bir README'deki "Denetim:" maddelerinin ve "Kural | Test" tablolarının
-// simgelerini çıkarır; kod çitlerinin içine bakılmaz.
-func readmeGuards(rel, text string) []ruleGuard {
+// docGuards bir belgedeki "Denetim:" maddelerinin, "Kural | Test" tablolarının ve dil
+// tanımının "- *Test:*" satırlarının simgelerini çıkarır; kod çitlerinin içine bakılmaz.
+func docGuards(rel, text string) []ruleGuard {
 	var out []ruleGuard
 	add := func(line int, s string) {
 		for _, m := range ruleBacktick.FindAllStringSubmatch(s, -1) {
@@ -179,6 +182,11 @@ func readmeGuards(rel, text string) []ruleGuard {
 		if i := strings.Index(line, "Denetim:"); i >= 0 {
 			inGuard = true
 			line = line[i:]
+		}
+		// Dil tanımının Test satırı satır başında yazılır; girintili satırı kapı biçim hatası sayar.
+		if strings.HasPrefix(raw, "- *Test:*") {
+			add(n, line)
+			continue
 		}
 		if inGuard {
 			add(n, line)

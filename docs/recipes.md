@@ -127,7 +127,7 @@ Testler: `x_test.go` her kaynak dosyanın yanında; birden çok dosyayı kesen d
 3. **Anlam.** `internal/lang/checker` (tip denetimi ve uyarılar), `internal/lang/interp` (derleme ve çalışma; sıcak yolda ad araması yok).
 4. **Araçlar.** Biçimlendirici (`internal/devtools/formatter`), düzenleyici renklendirmesi (`go generate ./internal/lang/codes`), gerekiyorsa hata ayıklayıcı.
 
-Testler: `tests/<bölüm>_test.tr` (her test madde numarasıyla başlar; olumsuz durumlar `tests/negative/`), ayrıştırıcı ve denetleyicinin birim testleri, biçimlendiricinin "anlam korunur" testi. Dil kuralı Go testinde yinelenmez.
+Testler: `tests/<bölüm>_test.tr` (her test madde numarasıyla başlar; olumsuz durumlar `tests/negative/`), ayrıştırıcı ve denetleyicinin birim testleri, biçimlendiricinin "anlam korunur" testi. Dil kuralı Go testinde yinelenmez. Maddenin *Test:* satırı onu neyin sınadığını söyler (`TR testi`, `` Go: `TestX` `` ya da `gerekmez` ve nedeni; [madde biçimi](spec/README.md)).
 
 ---
 

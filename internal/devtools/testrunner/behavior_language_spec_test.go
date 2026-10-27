@@ -11,14 +11,19 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 	"github.com/sekerahmet/TCB/lib"
 )
 
-// Faz 3 kapısı: "her kural bir testte". Dil tanımında (docs/spec/NN_*.md) numarası geçen her
-// kuralın (**4.2** gibi) tests/ klasöründe adı o numarayla başlayan en az bir testi olmalı;
-// tersine, her test numarası tanımda bir kurala karşılık gelmeli. Ardından tüm testler geçmelidir.
+// Faz 3 kapısı: "her kural bir testte". Dil tanımındaki (docs/spec/NN_*.md) her kural (**4.2**
+// gibi) altındaki "- *Test:*" satırında neyle sınandığını söyler (Ahmet, 2026-10-27): "TR testi"
+// tests/ klasöründe adı o numarayla başlayan bir test ister; "Go: `TestX`" Go testini anar
+// (varlığını internal.TestRuleTestsExist denetler); "gerekmez" nedeniyle yazılır. Test satırı
+// olan bölümde her kural bir Test satırı ister; Test satırı henüz olmayan bölümde (gözden
+// geçirilmemiş) her kural bir TR testi ister. Tersine, her test numarası tanımda bir kurala
+// karşılık gelmeli. Ardından tüm testler geçmelidir.
 
 // Kural numaraları harfli olabilir (**2.9a**, **6.3a**); testin numarası da harfiyle
 // birlikte okunur ve tanımdaki bir kurala tam olarak karşılık gelmelidir (test "6.3a ...",
@@ -31,6 +36,10 @@ var (
 	// geçişler başka bir bölümdeki kurala başvurudur.
 	ruleDefRe     = regexp.MustCompile(`(?m)^\*\*(\d+)\.\d+[a-z]?\*\*`)
 	sectionFileRe = regexp.MustCompile(`^(\d\d)_[a-z0-9_]+\.md$`)
+	ruleHeadRe    = regexp.MustCompile(`^\*\*(\d+\.\d+[a-z]?)\*\*`)
+	testLineRe    = regexp.MustCompile(`^- \*Test:\*\s*(.*)$`)
+	testLikeRe    = regexp.MustCompile(`(?i)^\s*[-*+]\s+\**\s*test\s*\**\s*:`)
+	goTestRe      = regexp.MustCompile("`Test[A-Z0-9_]\\w*`")
 )
 
 // languageSpec docs/spec/ altındaki bölüm dosyalarını (NN_ad.md) sırayla okur.
@@ -75,13 +84,205 @@ func TestRuleInItsOwnSection(t *testing.T) {
 	}
 }
 
+// sectionTestProblems bir bölümün tanımladığı kuralları sırasıyla ve Test satırı sorunlarını
+// verir. Test satırı kuralın tanım satırından sonraki maddelerde, satır başında "- *Test:*" ile
+// yazılır; bir sonraki kural ya da başlık kuralı kapatır, kod çitinin (``` ya da ~~~) içine
+// bakılmaz. Bölümde Test satırı varsa her kural bir Test satırı ister; yoksa (gözden geçirilmemiş
+// bölüm) her kural tests/ altında bir TR testi ister. withTests numarasıyla başlayan TR testi olan
+// kurallardır.
+func sectionTestProblems(name, text string, withTests map[string]bool) (defined, problems []string) {
+	lines := map[string]string{}
+	cur, inFence := "", false
+	for i, line := range strings.Split(text, "\n") {
+		line = strings.TrimRight(line, "\r")
+		trimmed := strings.TrimSpace(line)
+		switch {
+		case strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "~~~"):
+			inFence = !inFence
+		case inFence:
+		case strings.HasPrefix(line, "#"):
+			cur = ""
+		case ruleHeadRe.MatchString(line):
+			cur = ruleHeadRe.FindStringSubmatch(line)[1]
+			defined = append(defined, cur)
+		case testLineRe.MatchString(line) && cur == "":
+			problems = append(problems, fmt.Sprintf("docs/spec/%s:%d: Test satırı bir kuralın altında değil", name, i+1))
+		case testLineRe.MatchString(line):
+			if _, dup := lines[cur]; dup {
+				problems = append(problems, fmt.Sprintf("docs/spec/%s: **%s** kuralının birden çok Test satırı var", name, cur))
+			}
+			lines[cur] = testLineRe.FindStringSubmatch(line)[1]
+		case testLikeRe.MatchString(line):
+			problems = append(problems, fmt.Sprintf("docs/spec/%s:%d: Test satırı biçime uymuyor, satır başında \"- *Test:*\" olmalı: %s", name, i+1, trimmed))
+		}
+	}
+	for _, k := range defined {
+		line, ok := lines[k]
+		switch {
+		case ok:
+			if p := testLineProblem(line, withTests[k]); p != "" {
+				problems = append(problems, fmt.Sprintf("**%s** Test satırı: %s", k, p))
+			}
+		case len(lines) > 0:
+			problems = append(problems, fmt.Sprintf("**%s**: Test satırı yok (docs/spec/%s Test satırı biçiminde)", k, name))
+		case !withTests[k]:
+			problems = append(problems, fmt.Sprintf("**%s**: Test satırı da tests/ altında testi de yok", k))
+		}
+	}
+	return defined, problems
+}
+
+// testLineProblem kuralın Test satırındaki sorunu verir (yoksa ""); trTest kuralın tests/
+// altında numarasıyla başlayan bir testi olup olmadığıdır. Satır "TR testi", "Go:" ya da
+// "gerekmez" ile başlar.
+func testLineProblem(line string, trTest bool) string {
+	saysTR := strings.HasPrefix(line, "TR testi")
+	if rest, ok := strings.CutPrefix(line, "gerekmez"); ok {
+		switch {
+		case trTest:
+			return `"gerekmez" diyor ama tests/ altında testi var`
+		case strings.Trim(rest, " ,;:.") == "":
+			return `"gerekmez" nedenini yazmalı`
+		}
+		return ""
+	}
+	switch {
+	case saysTR && !trTest:
+		return `"TR testi" diyor ama tests/ altında numarasıyla başlayan test yok`
+	case trTest && !saysTR:
+		return `tests/ altında testi var; Test satırı "TR testi" diye anmalı`
+	case !saysTR && !(strings.HasPrefix(line, "Go:") && goTestRe.MatchString(line)):
+		return "Test satırı \"TR testi\", \"Go: `TestX`\" ya da \"gerekmez: neden\" ile başlamalı"
+	}
+	return ""
+}
+
+// Bölümün Test satırları okunurken kaçabilecek yazımlar yakalanır: biçime uymayan ya da girintili
+// Test satırı, çitin içindeki satır, biçime geçmiş bölümde Test satırı unutulmuş kural.
+func TestSectionTestProblems(t *testing.T) {
+	cases := []struct {
+		name, text string
+		want       []string // sorunlarda geçmesi gereken parçalar, sırayla
+	}{
+		{"biçime geçmiş bölüm",
+			"**9.1** a\n- *Test:* TR testi.\n\n**9.2** b\n- *Emsal:* yok.\n", []string{"**9.2**: Test satırı yok"}},
+		{"yanlış yazılmış satır, TR testi var",
+			"**9.1** a\n- **Test:** gerekmez.\n", []string{"biçime uymuyor"}},
+		{"girintili satır",
+			"**9.1** a\n- *Test:* TR testi.\n\n**9.2** b\n  - *Test:* TR testi.\n", []string{"biçime uymuyor", "**9.2**: Test satırı yok"}},
+		{"çitin içi okunmaz",
+			"**9.1** a\n- *Test:* TR testi.\n~~~\n- *Test:* gerekmez.\n~~~\n", nil},
+		{"başlıktan sonra kurala bağlı değil",
+			"**9.1** a\n- *Test:* TR testi.\n## Başlık\n- *Test:* TR testi.\n", []string{"bir kuralın altında değil"}},
+		{"gözden geçirilmemiş bölüm TR testiyle geçer",
+			"**9.1** a\n\n**9.2** b\n", []string{"**9.2**: Test satırı da tests/ altında testi de yok"}},
+	}
+	withTests := map[string]bool{"9.1": true}
+	for _, c := range cases {
+		_, problems := sectionTestProblems("09_x.md", strings.ReplaceAll(c.text, "\n", "\r\n"), withTests)
+		if len(problems) != len(c.want) {
+			t.Errorf("%s: %d sorun, beklenen %d: %q", c.name, len(problems), len(c.want), problems)
+			continue
+		}
+		for i, w := range c.want {
+			if !strings.Contains(problems[i], w) {
+				t.Errorf("%s: %q, beklenen parça %q", c.name, problems[i], w)
+			}
+		}
+	}
+}
+
+// Gözden geçirilmiş (Test satırı biçimine geçmiş) bölüm dilin sözcüklerini kimlikle yazar
+// (Ahmet, 2026-10-27: "niye kodlar ile konuşmuyorsun"; K3): madde satırında, Durum ve Test
+// satırlarında ters tırnak içindeki bir sözcük bir kodun herhangi bir gösterim dilindeki adı
+// olamaz (`aktar`, `import` değil `TR_kw_import`). Emsal ve Gerekçe satırları başka dillerin
+// kodunu bilerek yazar (Python'un `if`'i, C#'ın `return`'ü), bakılmaz; kod çitleri belgelerin
+// kodlu saklanmasıyla (E4) gelecek. Bölümler gözden geçirildikçe kapsama girer.
+func TestReviewedSectionsWriteIdentities(t *testing.T) {
+	var langs []*codes.Language
+	for _, l := range codes.Languages() {
+		lang, err := codes.LoadLanguage(l)
+		if err != nil {
+			t.Fatal(err)
+		}
+		langs = append(langs, lang)
+	}
+	// Kimliği olmayan bir ad kimlikle yazılamaz; kimliği gelince buradan silinir.
+	noIdentity := map[string]string{"tr test": "tr test komutunun kimliği yok (birikme listesi D1-12)"}
+	spans := regexp.MustCompile("`([^`\n]+)`")
+	words := regexp.MustCompile(`[\p{L}_][\p{L}\p{N}_]*`)
+	for name, text := range languageSpec(t) {
+		if !regexp.MustCompile(`(?m)^- \*Test:\*`).MatchString(text) {
+			continue
+		}
+		inFence := false
+		for i, line := range strings.Split(text, "\n") {
+			trimmed := strings.TrimSpace(line)
+			if strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "~~~") {
+				inFence = !inFence
+				continue
+			}
+			if inFence || !(ruleHeadRe.MatchString(line) || strings.HasPrefix(line, "- *Durum:*") || strings.HasPrefix(line, "- *Test:*")) {
+				continue
+			}
+			for _, m := range spans.FindAllStringSubmatch(line, -1) {
+				if _, ok := noIdentity[m[1]]; ok {
+					continue
+				}
+				for _, w := range words.FindAllString(m[1], -1) {
+					if strings.HasPrefix(w, "TR_") {
+						continue
+					}
+					for _, lang := range langs {
+						for _, ns := range []codes.Namespace{codes.NamespaceGlobal, codes.NamespaceType, codes.NamespaceMember, codes.NamespaceCommand} {
+							if k, ok := lang.Find(ns, w); ok {
+								t.Errorf("docs/spec/%s:%d: `%s` bir kodun adı (%s); kimliğiyle yazılır", name, i+1, w, k)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+// Test satırının üç biçimi tanınır, eksik ya da çelişkili satır yakalanır.
+func TestRuleTestLineForms(t *testing.T) {
+	cases := []struct {
+		line   string
+		trTest bool
+		ok     bool
+	}{
+		{"TR testi.", true, true},
+		{"TR testi.", false, false},
+		{"Go: `TestExampleErrors`; hatadan önceki satırın çalışmadığı da sınanır.", false, true},
+		{"Go: `TestA`, `TestB`.", true, false},
+		{"TR testi ve Go: `TestA`.", true, true},
+		{"Go: `TestExampleErrors`; TR testi gerekmez.", false, true},
+		{"gerekmez; davranış süreye bağlı.", false, true},
+		{"gerekmez.", false, false},
+		{"gerekmez, henüz uygulanmadı.", true, false},
+		{"Go testi var.", false, false},
+		{"", false, false},
+	}
+	for _, c := range cases {
+		if got := testLineProblem(c.line, c.trTest) == ""; got != c.ok {
+			t.Errorf("%q (TR testi var: %v): geçerli %v, beklenen %v", c.line, c.trTest, got, c.ok)
+		}
+	}
+}
+
 func TestEveryRuleHasATest(t *testing.T) {
+	spec := languageSpec(t)
 	rules := map[string]bool{}
-	for _, text := range languageSpec(t) {
+	var names []string
+	for name, text := range spec {
+		names = append(names, name)
 		for _, m := range ruleRe.FindAllStringSubmatch(text, -1) {
 			rules[m[1]] = true
 		}
 	}
+	sort.Strings(names)
 	if len(rules) < 50 {
 		t.Fatalf("tanımda yalnızca %d kural bulundu; biçim değişmiş olabilir", len(rules))
 	}
@@ -101,15 +302,27 @@ func TestEveryRuleHasATest(t *testing.T) {
 		}
 	}
 
+	defined := map[string]bool{}
+	for _, name := range names {
+		ks, problems := sectionTestProblems(name, spec[name], withTests)
+		for _, k := range ks {
+			defined[k] = true
+		}
+		for _, p := range problems {
+			t.Error(p)
+		}
+	}
+	// Tanımı olmayan bir numaranın kalın yazıldığı anma (**13.1**) da bir test ister: kural ya
+	// tanımlanır ya da anma düzeltilir.
 	var missing []string
 	for k := range rules {
-		if !withTests[k] {
+		if !defined[k] && !withTests[k] {
 			missing = append(missing, k)
 		}
 	}
 	sort.Strings(missing)
 	if len(missing) > 0 {
-		t.Errorf("testi olmayan kurallar: %v", missing)
+		t.Errorf("tanımı ve testi olmayan kural numaraları: %v", missing)
 	}
 	// Harfli kurallar kapıdan kaçmamalı (eski düzenli ifade onları hiç saymıyordu).
 	for _, k := range []string{"2.9a", "6.3a"} {

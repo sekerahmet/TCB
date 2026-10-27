@@ -204,7 +204,7 @@ Denetim: `TestTestFileMatchesSource` (birim testinin kaynağı var, her davranı
 | Go metninde kullanıcıya görünen Türkçe metin yok | `internal/turkish_literals_test.go` (`TestNoTurkishLiterals`) |
 | Dosya ve fonksiyon boyu | `internal/layout_test.go`, istisnalar `internal/layout_exceptions_test.go` |
 | Test dosyası düzeni | `internal/layout_test.go` (`TestTestFileMatchesSource`) |
-| README'lerdeki `Denetim:` ve `Kural`/`Test` tablosu satırlarının andığı test işlevleri ve dosyaları depoda var | `internal/rule_tests_test.go` (`TestRuleTestsExist`) |
+| README'lerdeki `Denetim:` ve `Kural`/`Test` tablosu satırlarının ve dil tanımındaki `*Test:*` satırlarının andığı test işlevleri ve dosyaları depoda var | `internal/rule_tests_test.go` (`TestRuleTestsExist`) |
 | Kullanıcıya görünen adlar koddan | `tools/gen/codeconsts` (`TestNoBareNames`) |
 | Kodlar kimlikle anılır, eski numaralı biçim kalmaz (eşleme `docs/code_identities.md`) | `internal/old_codes_test.go` (`TestNoOldCodeForm`) |
 | İleti kodları | `tools/gen/msgconsts` (`TestMessageUsage`) |
