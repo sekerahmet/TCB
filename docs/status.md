@@ -147,6 +147,7 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). DENETİM'
 - **Yapılacaklar:** diskteki her dosya kodludur; başlıksız dosya çalışmaz, ileti kodlama yolunu söyler. Bilerek bozuk sınav dosyaları, belgelerdeki kod blokları ve Go testlerindeki TR metni kodlu biçime geçer.
   - Başlık `# TR 4`; bugün tanınmıyor, dosya başlıksız sayılıp hata veriyor [ölçüldü]. 1. ve 2. bölümün kod blokları yeni başlıkla yazıldı; başlık uygulanana kadar belgelerdeki kod bloklarını çalıştıran testler kalır. Dosyanın dili kalkınca programın sonucu hiçbir dile bağlı olmaz (değer metni ve hata metni ilgili bölümlerde).
   - İlk satırdaki `#!` yok sayılır; bugün sözdizimi hatası veriyor [ölçüldü].
+  - İletilerdeki satır numarası başlık satırını saymıyor: dosyanın 3. satırındaki hata "Line 2" olarak bildiriliyor [ölçüldü: 84ee01b8, `TR_cmd_check`]. Konum dosyanın gerçek satırıdır, başlık dahil.
 
 ### 2.1a
 
@@ -173,6 +174,8 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). DENETİM'
 - **Mevcut durum:** kimlikler sınıflı yazılıyor (TR_kw_if, TR_fn_print). Listede olmayan kimlik hata veriyor ama en yakın kimliği önermiyor: TR_fn_prnt ve x.TR_fn_map için ileti yalnız "bilinen bir kimlik değil" diyor [ölçüldü].
 - **Yapılacaklar:** program metninde sınıfsız yazım (`TR_print`, `x.TR_map`); sınıfı yer belirler. Kimlik çizelgesi yerle birlikte okunur; aynı ad iki yerde aynı kavramsa (argüman ve üye olarak lr) çeviri adları birleştirilir. Depodaki bütün kodlu dosyalar ve belgeler yeni yazıma çevrilir.
   - İleti, ad başka bir yerde geçerliyse doğru yeri, değilse o yerde yazımca en yakın kimliği önerir; uzaklık `TR_`'den sonraki adda ölçülür, komşu harflerin yer değiştirmesi tek değişikliktir.
+  - `TR_`'siz ve başka dillerden tanıdık adlar önerilir: bugün `print(2)` yalnız "there is no variable or function named 'print'" diyor, `True` ve `TR_fn_argv` için de öneri yok [ölçüldü: 84ee01b8]. Tanıdık adlar (`foreign`, bugün `tr.json`'da 73 kodda) kimliğin tanımına (`definitions.json`) taşınır; başka dillerin sözcükleri eklenir (`True`, `False`, `None`, `null`, `nil`, `def`, `fn`, `elif`).
+  - Kitaplığın kimlikle adlanmış parametresi gövdede aynı adlı yerleşiği gölgeler (`lib/iyilestirici.tr`'de `TR_parameters` ve `TR_min`, `lib/katman.tr`'de `TR_rope_theta`).
 
 ### 2.3b
 
@@ -196,6 +199,7 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). DENETİM'
 
 - **Mevcut durum:** yerleştirme `{x}` ile yapılıyor; `"a \(1 + 2) b"` bilinmeyen kaçış dizisi hatası veriyor [ölçüldü].
 - **Yapılacaklar:** yerleştirme `\(x)` ile; `{` metinde sıradan karakter. Depodaki metinler çevrilir: `{x}` → `\(x)`, `\{` ve `\}` → `{` ve `}`.
+  - Tırnaklı metinde kapsamdaki bir adın `{konu}` ya da `${konu}` yazımı uyarı, `\(konu)`'ı önerir; ham metinde yalnız `${konu}`. Bugün yok (bugün `{x}` yerleştirmedir).
 
 ### 2.8
 
