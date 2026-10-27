@@ -46,7 +46,7 @@ func tokenDescription(tok lexer.Token) string {
 	case lexer.TokInt, lexer.TokFloat:
 		return messages.Text(messages.H0119, tok.Literal)
 	case lexer.TokString:
-		return messages.Text(messages.H0120, shortText(unescapeBraces(tok.Literal)))
+		return messages.Text(messages.H0120, shortText(tok.Literal))
 	case lexer.TokIllegal:
 		return messages.Text(messages.H0121, tok.Literal)
 	}

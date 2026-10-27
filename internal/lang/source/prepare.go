@@ -18,8 +18,8 @@ const (
 
 // Options selects the stages a source goes through.
 type Options struct {
-	// Module parses the source as a module (a file brought in with 'aktar': a top-level
-	// 'sonuç' is an error).
+	// Module parses the source as a module (a file brought in with an import: a top-level
+	// return is an error).
 	Module bool
 	// TypeCheck runs the type check and the undefined-name check; warnings come with it.
 	TypeCheck bool
@@ -28,24 +28,27 @@ type Options struct {
 	Checker *checker.Checker
 	// InGlobalScope says the source runs under an importer's global scope (11.1):
 	// GlobalNames are that scope's names, GlobalDynamic says they are not fully known.
-	// Text without the coded header is encoded knowing GlobalNames (also a REPL line: the
-	// earlier lines' names), so a user's name is not read as a language element.
+	// A typed line is encoded knowing GlobalNames (the earlier lines' names), so a user's name
+	// is not read as a language element.
 	InGlobalScope bool
 	GlobalNames   []string
 	GlobalDynamic bool
 	// Typed says the text is not a file but a line typed in the person's writing language
-	// (codes.Display; the REPL); a file without the coded header is written in Turkish (17.7).
+	// (codes.Display; the REPL): it is encoded first.
 	Typed bool
+	// Body says the text is a coded body without the header (a test's snippet, a program built
+	// in memory): it is read as coded, line 1 is its first line. A file needs the header (2.1).
+	Body bool
 }
 
 // Result is the outcome of preparation. On error, Stage is the error's stage and Program is
 // the tree built up to that stage (it may be incomplete after a syntax error).
 type Result struct {
 	Parts
-	// Text hata çerçevelerinin, hata ayıklayıcının ve yorumlayıcının kaynak metnidir: gövdenin
-	// kişinin dilindeki (codes.Display, TR_DIL) görünümü; başlıksız metin ve kabuk satırı önce
-	// kodlu biçime çevrilir, çevrilemeyen metin olduğu gibi kalır. Hata iletilerindeki satır ve
-	// sütun bu metne göredir (17.5).
+	// Text hata çerçevelerinin, hata ayıklayıcının ve yorumlayıcının kaynak metnidir: dosyanın
+	// kişinin dilindeki (codes.Display, TR_DIL) görünümü, başlık satırı dahil; kabuk satırı önce
+	// kodlu biçime çevrilir, çevrilemeyen satır olduğu gibi kalır. Hata iletilerindeki satır ve
+	// sütun bu metne göredir: dosyanın kendi satırları.
 	Text    string
 	Program *ast.Program
 	Stage   string
@@ -56,39 +59,35 @@ type Result struct {
 	Warnings []error
 }
 
-// Prepare turns source text (the whole file, BOM included) into a program: header parsing,
-// lexing, parsing and, when requested, type checking.
+// Prepare turns source text (the whole file, BOM included) into a program: header check,
+// lexing, parsing and, when requested, type checking. A file without the header does not run
+// (2.1): the error gives the encoding command.
 func Prepare(text string, s Options) *Result {
 	b, err := Split(text)
 	r := &Result{Parts: b, Text: b.Body}
-	lex := b.Lexer
-	coded := b
-	// Başlıksız dosya bugün Türkçe yazılmış sayılır (17.7), kabuk satırı kişinin dilindedir;
-	// ikisi de kodlu biçime çevrilip okunur (içeride kimlikler).
-	lang, _ := codes.LoadLanguage(codes.SourceLanguage)
-	if s.Typed {
-		lang = codes.Display()
-	}
-	if !b.Coded && err == nil && lang != nil {
-		// Kabuğa yazılan satır kişinin yazım dilindedir: kodlu biçime, oradan kişinin
-		// görünümüne çevrilir (kodlu dosya gibi). Ayrıştırılamayan satır o dilde okunur;
-		// sözdizimi hataları satırın kendi metnine göredir.
-		if coded, err = toCoded(b, lang, s.GlobalNames, s.GlobalDynamic); err != nil {
-			coded, err = b, nil
-			lex = func() *lexer.Lexer { return lexer.NewBodyIn(b.Body, false, lang) }
-		}
-	}
-	if coded.Coded {
-		var viewLexer *lexer.Lexer
-		r.Text, viewLexer = view(coded, codes.Display())
-		lex = func() *lexer.Lexer { return viewLexer }
+	if err == nil && !b.Coded && !s.Typed && !s.Body {
+		err = NoHeaderError()
 	}
 	if err != nil {
 		r.Program = &ast.Program{}
 		r.Stage, r.Errors = StageSyntax, []error{err}
 		return r
 	}
-	p := parser.New(lex())
+	var lex *lexer.Lexer
+	coded := b.Body
+	if s.Typed {
+		// Kabuğa yazılan satır kişinin yazım dilindedir: kodlu biçime, oradan kişinin görünümüne
+		// çevrilir. Ayrıştırılamayan satır o dilde okunur; sözdizimi hataları satırın kendi
+		// metnine göredir.
+		lang := codes.Display()
+		if coded, err = toCoded(b.Body, lang, s.GlobalNames, s.GlobalDynamic); err != nil {
+			lex = lexer.NewBodyIn(b.Body, false, lang)
+		}
+	}
+	if lex == nil {
+		r.Text, lex = view(coded, codes.Display())
+	}
+	p := parser.New(lex)
 	if s.Module {
 		r.Program = p.ParseModule()
 	} else {
@@ -108,7 +107,10 @@ func Prepare(text string, s Options) *Result {
 	if s.InGlobalScope {
 		chk.SetGlobalScope(s.GlobalNames, s.GlobalDynamic)
 	}
-	chk.SetFileLanguage(coded.Language) // değer metni dosyanın dilinde (kabuk satırı: kişinin dili)
+	if s.Typed {
+		// Kabukta kullanıcının adları kişinin dilindedir: bir yerleşiğin adını gölgeleyebilir.
+		chk.SetFileLanguage(codes.Display().Code)
+	}
 	chk.CheckProgram(r.Program)
 	r.Warnings = limitErrors(chk.Warnings())
 	if errs := chk.Errs(); len(errs) > 0 {

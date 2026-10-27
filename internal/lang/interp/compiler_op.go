@@ -125,6 +125,12 @@ func (c *compiler) binary(k *compilerScope, e *ast.InfixExpression) exprCode {
 	rightFn := c.expression(k, e.Right)
 	op := string(e.Operator)
 	line := e.Line()
+	if op == "//" {
+		// Tam bölmenin sözcüğü ve ayrıştırılması var (2.2); çalışma anlamı (4.2a) henüz yok.
+		return func(*VM, *Environment) (Value, error) {
+			return nil, messages.At(line, 0, messages.New(messages.H2046))
+		}
+	}
 
 	// Kısa devre ve özel operatörler (&&, ||, ??, |>)
 	switch codeVal {

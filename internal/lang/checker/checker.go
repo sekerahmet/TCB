@@ -143,6 +143,7 @@ func (c *Checker) check(prog *ast.Program) {
 	c.nameErrors = c.nameErrors[:0]
 	c.checkNames(prog)
 	c.errors = append(c.errors, c.nameErrors...)
+	c.checkSkeletons(prog)
 	sortByLine(c.errors[start:])
 }
 
@@ -153,7 +154,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 	switch s := stmt.(type) {
 	case *ast.VarStatement:
 		c.checkShadowing(s.Name.Value, s.Line())
-		c.checkNameStyle(s.Name.Value, varKind(s.IsConst), s.Line())
+		c.checkNameStyle(s.Name.Value, c.varKind(s.IsConst), s.Line())
 		declared := c.checkedTypeName(s.TypeName, s.Line())
 		inferred := c.inferExpression(s.Value)
 		if s.TypeName != "" && !typesCompatible(declared, inferred) {
@@ -235,7 +236,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 			c.inferExpression(v)
 		}
 		for _, name := range s.Names {
-			c.defineName(name.Value, varKind(s.IsConst), s.Line(), TypeInfo{TypeName: typeAny, IsConst: s.IsConst})
+			c.defineName(name.Value, c.varKind(s.IsConst), s.Line(), TypeInfo{TypeName: typeAny, IsConst: s.IsConst})
 		}
 
 	case *ast.MultiAssignStatement:
@@ -293,7 +294,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		}
 		c.inferExpression(s.Expression)
 		c.statementExpr = prev
-		c.warnUnusedNegation(s)
+		c.checkUnusedValue(s)
 	}
 }
 
@@ -326,6 +327,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 	case *ast.FloatLiteral:
 		return typeFloat
 	case *ast.StringLiteral:
+		c.checkForeignInterpolation(e)
 		return typeString
 	case *ast.BooleanLiteral:
 		return typeBool

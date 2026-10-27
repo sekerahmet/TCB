@@ -61,7 +61,7 @@ func (p *Parser) parseMatchExpression() ast.Expression {
 		}
 
 		mc := ast.MatchCase{}
-		if p.curTokenIs(lexer.TokDefault) || (p.curTokenIs(lexer.TokIdent) && p.curToken().Literal == "_") {
+		if p.curTokenIs(lexer.TokIdent) && p.curToken().Literal == "_" {
 			mc.IsDefault = true
 		} else {
 			pat := p.parseMatchPattern()

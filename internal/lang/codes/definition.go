@@ -138,6 +138,11 @@ type Definition struct {
 	// Module is the standard library module ("module": tr/katman) whose public name the code is;
 	// empty for a core code. codes_generated.go carries it as the libraryModules table.
 	Module string
+	// Familiar holds names familiar from other languages and libraries ("familiar": print's
+	// println, none's None, null and nil, func's def): they are not accepted, a message only
+	// suggests the code (2.3a). They belong to no writing language; Load gives them to every
+	// language, except one equal to that language's own name.
+	Familiar []string
 }
 
 // Types returns the types the member applies to.
@@ -188,6 +193,43 @@ func commonNames() map[Code]string {
 	return out
 }
 
+// familiarNames tanıdık adı olan kodlardır (kod → tanıdık adlar).
+func familiarNames() map[Code][]string {
+	loadDefinitions()
+	out := map[Code][]string{}
+	for _, k := range defOrder {
+		if f := defs[k].Familiar; len(f) > 0 {
+			out[k] = f
+		}
+	}
+	return out
+}
+
+// FamiliarCode returns the code a name familiar from another language stands for in program text's
+// other place (keywords, values, types, functions: None → TR_kw_none, def → TR_kw_func,
+// println → TR_fn_print; 2.3a), for a message's suggestion.
+func FamiliarCode(name string) (Code, bool) {
+	familiarOnce.Do(func() {
+		familiarOther = map[string]Code{}
+		for k, names := range familiarNames() {
+			if p, ok := PlaceOf(k); ok && p == PlaceOther {
+				for _, n := range names {
+					if prev, ok := familiarOther[n]; !ok || k < prev {
+						familiarOther[n] = k
+					}
+				}
+			}
+		}
+	})
+	k, ok := familiarOther[name]
+	return k, ok
+}
+
+var (
+	familiarOnce  sync.Once
+	familiarOther map[string]Code
+)
+
 func loadDefinitions() {
 	defOnce.Do(func() {
 		defs, defOrder, defErr = ParseDefinitions(definitionsJSON)
@@ -210,6 +252,7 @@ type rawDefinition struct {
 	Related    []string                `json:"related"`
 	Common     string                  `json:"common_name"`
 	Module     string                  `json:"module"`
+	Familiar   []string                `json:"familiar"`
 }
 
 // ParseDefinitions parses a definitions file; it collects every format error into one error.
@@ -293,7 +336,7 @@ func ParseDefinitions(data []byte) (map[Code]Definition, []Code, error) {
 			sort.Slice(t.Members, func(i, j int) bool { return t.Members[i].Type < t.Members[j].Type })
 		}
 		t.Related = codeList("related", h.Related)
-		t.Common = h.Common
+		t.Common, t.Familiar = h.Common, h.Familiar
 		if t.Module = h.Module; t.Module != "" {
 			switch c := k.Class(); {
 			case c != ClassType && c != ClassFunction && c != ClassConstant && c != ClassMember && c != ClassNamedArg:

@@ -361,7 +361,7 @@ func (c *compiler) readName(k *compilerScope, e *ast.Identifier) exprCode {
 func (v *VM) readByName(env *Environment, e *ast.Identifier) (Value, error) {
 	val, ok := env.Get(e.Value)
 	if !ok {
-		return nil, messages.At(e.Line(), e.Token.Column, hint.UndefinedNameError(e.Value, env.Names(), v.textLanguage()))
+		return nil, messages.At(e.Line(), e.Token.Column, hint.UndefinedNameError(e.Value, env.Names(), codes.Display()))
 	}
 	return val, nil
 }

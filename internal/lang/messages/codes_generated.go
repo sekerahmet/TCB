@@ -4,20 +4,31 @@ package messages
 
 // Message codes (tr.json); each constant's comment is its Turkish text.
 const (
-	H0001 Code = 1    // '{name}' bilinen bir kimlik değil; kodlu dosyada dilin sözcükleri kimlikleriyle (ör. {example}), kullanıcının adları adlarıyla yazılır
+	H0001 Code = 1    // '{name}' bilinen bir kimlik değil: dilin sözcükleri TR_ ve kimliğin adıyla yazılır (ör. TR_print), kullanıcının adları TR_ ile başlamaz
 	H0002 Code = 2    // '$' kaçışı bir adın ya da sayının hemen ardından yazılamaz; önüne bir boşluk ya da işleç koyun
 	H0003 Code = 3    // kaynakta NUL (U+0000) karakteri var; metin dosyalarında bulunmaz, dosya bozuk olabilir
-	H0004 Code = 4    // '{name}' ayrılmış bir ad: 'TR_' ile başlayan adlar dilin ve kitaplığının kimlikleri içindir; başka bir ad seçin (ör. {lower}){hint}
-	H0005 Code = 5    // '#' TR'de yorum değil; yorum için '//' yazın
-	H0006 Code = 6    // kapatılmamış yorum: '/*' ile başlayan yorum dosya sonuna kadar '*/' ile kapanmadı
+	H0004 Code = 4    // '{name}' ayrılmış bir ad: 'TR_' ile başlayan adlar dilin ve kitaplığının kimlikleri içindir; başka bir ad seçin (ör. {lower})
 	H0007 Code = 7    // kapatılmamış ham metin: ` ile başlayan metin dosya sonuna kadar kapanmadı
-	H0008 Code = 8    // bilinmeyen kaçış dizisi {escape} (bilinenler: \n \t \r \" \' \\ \{{ \}}); ters bölüyü olduğu gibi yazmak için ham metin (`C:\veri`, `\d+`) kullanın ya da ters bölüyü ikileyin ("\\")
-	H0009 Code = 9    // metin içindeki '{{' kapatılmamış (interpolasyon aynı satırda '}}' ile bitmeli; düz süslü parantez için '\{{' yazın)
+	H0008 Code = 8    // bilinmeyen kaçış dizisi {escape} (bilinenler: \n \t \r \" \\ \u{{...}}; yerleştirme \(...)); ters bölüyü olduğu gibi yazmak için ham metin (`C:\veri`, `\d+`) kullanın ya da ters bölüyü ikileyin ("\\")
+	H0009 Code = 9    // metindeki '\(' yerleştirmesi kapatılmamış: yerleştirme aynı satırda eşi olan ')' ile biter
 	H0010 Code = 10   // kapatılmamış metin: {quote} ile başlayan metin dosya sonuna kadar kapanmadı
 	H0011 Code = 11   // yazı yönünü değiştiren görünmez bir karakter var (U+{hex}); kodun göründüğünden farklı okunmasına yol açabileceği için kaynakta kullanılamaz, karakteri silin
 	H0012 Code = 12   // '{name}' adında görünmez bir harf var (U+{hex}); adı yeniden yazın
-	H0013 Code = 13   // '{name}' adında farklı yazı sistemlerinin harfleri karışık ({first} ve {second}): benzer görünen başka bir adla karışabilir, adı tek bir yazı sistemiyle yazın
-	H0014 Code = 14   // . Kodlu dosyalar ilk satırdaki '{header}' başlığıyla başlar
+	H0015 Code = 15   // '{token}' TR'de yorum değil; yorum '#' ile yazılır: # not
+	H0016 Code = 16   // metin tek tırnakla yazılmaz; çift tırnak kullanın ("...")
+	H0017 Code = 17   // geçersiz Unicode kaçışı '{escape}': \u{{...}} içinde bir ile altı onaltılık rakamla geçerli bir Unicode karakteri yazılır (ör. \u{{1F600}})
+	H0018 Code = 18   // sayı ön eki küçük harfle yazılır: '{literal}' yerine '{fixed}'
+	H0019 Code = 19   // '{literal}' geçerli bir sayı yazımı değil: '_' yalnız iki rakamın arasına ya da ön ekten sonra yazılır, ön ekten sonra en az bir rakam gelir
+	H0020 Code = 20   // '{literal}' geçerli bir sayı yazımı değil: '{digit}' bu tabanda bir rakam değil
+	H0021 Code = 21   // '{name}' TR'de yok; koşullu döngü '{for} koşul {{ ... }}' biçiminde yazılır
+	H0022 Code = 22   // '{name}' TR'de yok; eşlemenin varsayılan kolu '_ => ...' biçiminde yazılır
+	H0024 Code = 24   // {import} yalnız dosyanın başında, başlıktan sonra ve öbür tanım ve deyimlerden önce yazılır
+	H0025 Code = 25   // '//' tam bölme işlecidir, yorum değil; yorum '#' ile yazılır: x = 1  # not
+	H0026 Code = 26   // '{name}' bilinen bir kimlik değil; '{suggestion}' mi demek istediniz?
+	H0027 Code = 27   // '{name}' bir üyedir ve noktadan sonra yazılır: {example}
+	H0028 Code = 28   // '{name}' bir adlı argümandır ve çağrıda iki noktadan önce yazılır: {example}
+	H0029 Code = 29   // '{name}' noktadan sonra ya da adlı argüman olarak yazılmaz: {example}
+	H0030 Code = 30   // '{name}' bir kimliğe benziyor (Unicode benzerlik iskeleti TR_ ile başlıyor) ama başka harflerle yazılmış: dilin sözcükleri Latin harfleriyle TR_ ve kimliğin adıyla yazılır (TR_print), kullanıcının adı TR_ gibi görünemez (2.1a)
 	H0100 Code = 100  // Sözdizimi hatası — {error}
 	H0110 Code = 110  // dosya sonu
 	H0111 Code = 111  // bir ad
@@ -48,11 +59,11 @@ const (
 	H0154 Code = 154  // '{keyword}' modülün üst düzeyinde kullanılamaz; modül bir fonksiyon değildir, aktaran programı bitiremez
 	H0155 Code = 155  // ifade ya da blok çok derin iç içe (en fazla {max} düzey); kodu ara değişkenlere ya da fonksiyonlara bölün
 	H0156 Code = 156  // '{{' kapatılmadı; dosya bitti ama bu bloğu kapatan '}}' bulunamadı
-	H0158 Code = 158  // metindeki her '{{' bir yerleştirme başlatır, ama '{{{expr}}}' boş. Düz süslü parantez için '\{{' yazın ya da ham metin kullanın: `...{{...}}...`
-	H0159 Code = 159  // metindeki her '{{' bir yerleştirme başlatır, ama '{{{expr}}}' iç içelik sınırı aşıldı. Düz süslü parantez için '\{{' yazın ya da ham metin kullanın: `...{{...}}...`
-	H0160 Code = 160  // metindeki her '{{' bir yerleştirme başlatır, ama '{{{expr}}}' bir ifade değil ({detail}). Düz süslü parantez için '\{{' yazın ya da ham metin kullanın: `...{{...}}...`
-	H0161 Code = 161  // metindeki her '{{' bir yerleştirme başlatır, ama '{{{expr}}}' tek bir ifade olmalı. Düz süslü parantez için '\{{' yazın ya da ham metin kullanın: `...{{...}}...`
-	H0162 Code = 162  // metindeki her '{{' bir yerleştirme başlatır, ama '{{{expr}}}' bir ifade değil, bir deyim. Düz süslü parantez için '\{{' yazın ya da ham metin kullanın: `...{{...}}...`
+	H0158 Code = 158  // metindeki '\({expr})' yerleştirmesi boş; '\(' ile ')' arasına bir ifade yazın
+	H0159 Code = 159  // metindeki '\({expr})' yerleştirmesi iç içelik sınırını aşıyor
+	H0160 Code = 160  // metindeki '\({expr})' yerleştirmesi bir ifade değil ({detail})
+	H0161 Code = 161  // metindeki '\({expr})' yerleştirmesi tek bir ifade olmalı
+	H0162 Code = 162  // metindeki '\({expr})' yerleştirmesi bir ifade değil, bir deyim
 	H0164 Code = 164  // ipucu{hint}
 	H0165 Code = 165  // {literal} tam sayı olarak çok büyük (en fazla {max} olabilir; ondalık sayı için sonuna .0 ekleyin)
 	H0166 Code = 166  // {literal} ondalık sayı olarak çok büyük ya da geçersiz
@@ -70,12 +81,17 @@ const (
 	H1008 Code = 1008 // ; '/' bölüm tam çıkmazsa, '**' üs negatifse {float} verir: {int} için {fn}(...) kullanın ya da tipi {float} yapın
 	H1009 Code = 1009 // '{name}' yerleşik bir ad; bu kapsamda yerleşik '{name}' artık kullanılamaz
 	H1010 Code = 1010 // Tanımsız ad — {error}
-	H1011 Code = 1011 // Etkisiz ifade — satır başındaki '-' önceki satırı sürdürmez; bu satır yalnızca bir değer hesaplar ve kullanmaz. Önceki ifadeye eklemek için işleci önceki satırın sonuna yazın ya da ifadeyi parantez içine alın
 	H1012 Code = 1012 // Ad yazılışı — değişken, fonksiyon, parametre, alan ve metot adları küçük harfle, sözcükleri alt çizgiyle ayrılarak yazılır: {name|q} yerine {suggestion|q} (bkz. 2.3b)
 	H1013 Code = 1013 // Ad yazılışı — sabitler büyük harfle, sözcükleri alt çizgiyle ayrılarak yazılır: {name|q} yerine {suggestion|q} (bkz. 2.3b)
 	H1014 Code = 1014 // Ad yazılışı — yapı adları büyük harfle başlar, sözcükler alt çizgisiz ve her biri büyük harfle yazılır: {name|q} yerine {suggestion|q} (bkz. 2.3b)
 	H1015 Code = 1015 // Ad yazılışı — {name|q} büyük harfle yazılmış bir değişken; değeri değişmiyorsa {keyword|q} ile tanımlayın, değişiyorsa {suggestion|q} yazın (bkz. 2.3b)
 	H1016 Code = 1016 // {fn}(x) bu dosyada {true|q} ya da {false|q} verir (dosyanın dili: {language}); {text|q} başka bir yazım dilinin adı, karşılaştırma hiç tutmaz
+	H1017 Code = 1017 // çağrı içermeyen ifadenin değeri kullanılmıyor (2.8): satır başındaki işleç önceki satırı sürdürmez; ifadeyi bölmek için işleci önceki satırın sonuna yazın ya da değeri bir değişkene atayın
+	H1018 Code = 1018 // '{name}' adında bir değişken ya da fonksiyon yok; '//' tam bölmedir, yorum değil: yorum '#' ile yazılır (x = 1  # not)
+	H1019 Code = 1019 // '{name}' adında farklı yazı sistemlerinin harfleri karışık ({first} ve {second}): benzer görünen başka bir adla karışabilir; adı tek bir yazı sistemiyle yazın (bkz. 2.1a)
+	H1020 Code = 1020 // '{name}' adı {line}. satırdaki '{other}' adıyla aynı görünüyor (Unicode benzerlik iskeleti aynı, 2.1a): okuyan birini öbürü sanar; adlardan birini değiştirin
+	H1021 Code = 1021 // . Dilin sözcükleri TR_ ile yazılır: '{spelling}' mi demek istediniz?
+	H1022 Code = 1022 // metindeki '{text}' başka dillerin yerleştirme yazımıdır, metne olduğu gibi geçer; {name} değerini yazmak için '\({name})' yazın (2.7)
 	H1101 Code = 1101 //  ('{name}' TR'de yok; '{canonical}' yazmak mı istediniz?)
 	H1103 Code = 1103 //  ('{name}' TR'de anahtar kelime değil; '{keyword}' yazmak mı istediniz?)
 	H1104 Code = 1104 // . Bunu mu demek istediniz: '{closest}'?
@@ -104,6 +120,7 @@ const (
 	H2043 Code = 2043 // gzip içeriği yarıda kesilmiş (dosya eksik indirilmiş olabilir)
 	H2044 Code = 2044 // gzip içeriği bozuk (sıkıştırılmış veri çözülemedi)
 	H2045 Code = 2045 // açılmış içerik 1 GB'tan büyük; büyük dosyaları satır satır okumak için {fn}(...) kullanın
+	H2046 Code = 2046 // '//' tam bölme işleci henüz uygulanmadı (dil tanımı 4.2a)
 	H2100 Code = 2100 // {path|q} okunamadı: {reason}
 	H2101 Code = 2101 // {path|q} yazılamadı: {reason}
 	H2102 Code = 2102 // {path|q} kaydedilemedi: {reason}
@@ -283,7 +300,7 @@ const (
 	H2509 Code = 2509 // {variable}={language}: {error}
 	H2510 Code = 2510 // dosya geçerli bir UTF-8 metni değil (2.1); bozuk baytlar çeviride korunamaz, dosyaya dokunulmadı: dosyayı UTF-8 olarak kaydedin
 	H2511 Code = 2511 // çeviri kayıpsız olmadı (programın anlamı ya da metni değişecekti), dosyaya dokunulmadı; lütfen bu dosyayı bir hata kaydıyla bildirin
-	H2512 Code = 2512 // '{line}' okunamayan bir kodlu biçim başlığı: bu biçim sürümü okunamıyor; yalnızca '{header}<dil>' okunur, <dil> dosyanın yazım dilinin kodudur ({languages}). '{prefix}' ile başlayan ilk satır kodlu biçim için ayrılmıştır
+	H2512 Code = 2512 // '{line}' okunamayan bir başlık: TR dosyasının ilk satırı tam olarak '{header}' olmalıdır (ilk satır '#!' ile başlıyorsa ikinci satırı)
 	H2513 Code = 2513 // … ve {count} hata daha (ilk {max} hata gösterildi)
 	H2514 Code = 2514 // sözdizimi hatası olan kaynak çevrilmez: {error}
 	H2515 Code = 2515 // {container} indeksi sınır dışı: {index} (uzunluk {length}); öğe olmayabilirse .{get}({index}) ?? varsayılan yazın
@@ -293,13 +310,13 @@ const (
 	H2520 Code = 2520 // Koddaki kesme noktası ({keyword})
 	H2521 Code = 2521 // JSON tam sayısı {token|q} Tam aralığının (64 bit işaretli) dışında; ondalık olarak yazın (ör. 1e30)
 	H2522 Code = 2522 // {fn} {owner} içinde çağrılamaz: orada kilit başka göreve geçmez, görevler ilerleyemez
-	H2523 Code = 2523 // '{line}' kodlu biçim başlığında dosyanın dili eksik: '{header}<dil>' yazın, <dil> dosyanın yazım dilinin kodudur ({languages})
 	H2524 Code = 2524 // '{struct}' yapısı
 	H2525 Code = 2525 // {type} tipi sırayla okunur, indekslenemez: öğelerini '{loop} x {in} ...' döngüsüyle ya da .{next}() ile okuyun
 	H2526 Code = 2526 // {type} tipinde {prop|q} metodu yok; dilim köşeli parantezle alınır: x[a..b]
 	H2527 Code = 2527 // {name}={value|q} ile {other}={other_value|q} aynı ortam değişkenidir ama değerleri farklı: birini kaldırın ya da ikisine aynı değeri verin
 	H2528 Code = 2528 // {fn}: {code|q} tanımlı bir ileti kodu değil
 	H2529 Code = 2529 // {fn}: {code} iletisi {expected} değer alır, {given} verildi
+	H2540 Code = 2540 // dosyanın ilk satırı '{header}' başlığı değil: TR dosyası bu başlıkla başlar (ilk satır '#!' ile başlıyorsa ikinci satırda). Bir yazım dilinde yazılmış metni kodlamak için: tr {encode} <dosya> --{lang} {code}
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

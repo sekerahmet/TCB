@@ -76,18 +76,15 @@ func (e *SyntaxError) MessageText(lang string) string {
 // Format kaynağı standart biçime getirir. Kaynak ayrıştırılamıyorsa *SyntaxError,
 // sonuç özgün kodla aynı anlama gelmiyorsa *MeaningChangedError döner.
 func Format(text string) (string, error) {
-	// Dosya başındaki UTF-8 BOM ve kodlu biçim başlığı korunur (source.Parts); kodlu
-	// dosyanın gövdesi kodlu biçimde biçimlenir (kodlar olduğu gibi kalır).
+	// Dosya başındaki UTF-8 BOM korunur (source.Parts); başlık ve '#!' birer yorumdur, olduğu
+	// gibi kalır. Kodlu dosyanın gövdesi kodlu biçimde biçimlenir (kimlikler olduğu gibi kalır).
 	b, err := source.Split(text)
 	if err != nil {
 		return "", &SyntaxError{Errors: []error{err}}
 	}
 	// Satır sonları LF yazılır; metinlerin içindekiler de (sözcük çözümleyici çok satırlı
-	// metindeki CRLF'yi zaten '\n' okur, anlam değişmez): karışık satır sonu kalmaz.
+	// metindeki CRLF'yi zaten '\n' okur, anlam değişmez): karışık satır sonu kalmaz (2.6).
 	b.Body = strings.ReplaceAll(b.Body, "\r\n", "\n")
-	if b.Coded {
-		b.HeaderEOL = "\n"
-	}
 	p := parser.New(b.Lexer())
 	prog := p.ParseProgram()
 	if errs := p.Errs(); len(errs) > 0 {
@@ -107,7 +104,7 @@ func Format(text string) (string, error) {
 func SameMeaning(before, after string) error {
 	b1, err1 := source.Split(before)
 	b2, err2 := source.Split(after)
-	if err1 != nil || err2 != nil || b1.Coded != b2.Coded || b1.Language != b2.Language {
+	if err1 != nil || err2 != nil || b1.Coded != b2.Coded {
 		return &MeaningChangedError{Detail: messages.Text(messages.H8402)}
 	}
 	p1 := parser.New(b1.Lexer())
@@ -222,28 +219,13 @@ func commentsInRange(r []rune) []item {
 			i++
 		case c == ' ' || c == '\t' || c == '\r':
 			i++
-		case c == '/' && i+1 < len(r) && r[i+1] == '/':
+		case c == '#':
+			// Yorum '#' ile başlar, satır sonuna kadar sürer (2.2); çok satırlı yorum yoktur.
 			j := i
 			for j < len(r) && r[j] != '\n' {
 				j++
 			}
 			result = append(result, item{kind: tokComment, text: strings.TrimRight(string(r[i:j]), " \t\r"), lineA: lineA})
-			lineA = 0
-			i = j
-		case c == '/' && i+1 < len(r) && r[i+1] == '*':
-			j := i + 2
-			for j+1 < len(r) && !(r[j] == '*' && r[j+1] == '/') {
-				j++
-			}
-			j += 2
-			if j > len(r) {
-				j = len(r)
-			}
-			lines := strings.Split(string(r[i:j]), "\n")
-			for k := range lines {
-				lines[k] = strings.TrimRight(lines[k], " \t\r")
-			}
-			result = append(result, item{kind: tokComment, text: strings.Join(lines, "\n"), lineA: lineA})
 			lineA = 0
 			i = j
 		default:
@@ -262,17 +244,10 @@ func lineCount(r []rune) int {
 		case c == '\n':
 			n++
 			i++
-		case c == '/' && i+1 < len(r) && r[i+1] == '/':
+		case c == '#':
 			for i < len(r) && r[i] != '\n' {
 				i++
 			}
-			n = 0
-		case c == '/' && i+1 < len(r) && r[i+1] == '*':
-			i += 2
-			for i+1 < len(r) && !(r[i] == '*' && r[i+1] == '/') {
-				i++
-			}
-			i += 2
 			n = 0
 		default:
 			i++
@@ -284,7 +259,7 @@ func lineCount(r []rune) int {
 // Operatör sınıfları
 var binaryOps = map[lexer.TokenType]bool{
 	lexer.TokPlus: true, lexer.TokMinus: true, lexer.TokAsterisk: true, lexer.TokSlash: true,
-	lexer.TokPercent: true, lexer.TokPower: true, lexer.TokMatmul: true,
+	lexer.TokSlashSlash: true, lexer.TokPercent: true, lexer.TokPower: true, lexer.TokMatmul: true,
 	lexer.TokEq: true, lexer.TokNotEq: true, lexer.TokLt: true, lexer.TokGt: true,
 	lexer.TokLte: true, lexer.TokGte: true, lexer.TokAnd: true, lexer.TokOr: true,
 	lexer.TokPipe: true, lexer.TokNullCoalesc: true, lexer.TokArrow: true,
@@ -318,7 +293,7 @@ func isUnary(prev *item) bool {
 	switch {
 	case t == lexer.TokRParen || t == lexer.TokRBracket || t == lexer.TokRBrace:
 		return false
-	case t == lexer.TokIdent || t == lexer.TokInt || t == lexer.TokFloat || t == lexer.TokString || t == lexer.TokMessageCode:
+	case t == lexer.TokIdent || t == lexer.TokInt || t == lexer.TokFloat || t == lexer.TokString:
 		return false
 	case t == lexer.TokTrue || t == lexer.TokFalse || t == lexer.TokNil || t == lexer.TokSelf:
 		return false

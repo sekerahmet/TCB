@@ -97,6 +97,7 @@ func load(langCode string, data []byte, common map[Code]string) (*Language, erro
 		return nil, messages.Internalf("language list %s: the file could not be read (it must be a JSON object { \"TR_fn_print\": { \"name\": ... }, ... }): %v", langCode, err)
 	}
 	raw = withCommonNames(raw, common, errorf)
+	familiar := familiarNames()
 
 	d := &Language{Code: langCode, entries: make(map[Code]*Entry, len(raw)), spellings: make(map[Code][]string, len(raw))}
 	var nsCount [namespaceCount]int // ad alanı başına yazım sayısı (haritaların boyu için)
@@ -118,14 +119,16 @@ func load(langCode string, data []byte, common map[Code]string) (*Language, erro
 			errorf("%s: the name must not be empty or contain spaces (%q)", k, g.name)
 			continue
 		}
-		gr := &Entry{Code: k, Name: g.name, Foreign: g.foreign, Family: g.family,
-			Description: g.description, Example: g.example}
-		for _, e := range g.foreign {
+		gr := &Entry{Code: k, Name: g.name, Family: g.family, Description: g.description, Example: g.example}
+		// Tanıdık adlar dilden bağımsızdır (definitions.json "familiar"); bu dilin kendi adına eşit
+		// olan (İngilizcede max) bu dilde tanıdık ad değildir.
+		for _, e := range familiar[k] {
 			if e == "" || strings.IndexFunc(e, unicode.IsSpace) >= 0 {
-				errorf("%s: a foreign name must not be empty or contain spaces (%q)", k, e)
+				errorf("%s: a familiar name must not be empty or contain spaces (%q)", k, e)
+				continue
 			}
-			if e == g.name || turkish.ASCII(e) == turkish.ASCII(g.name) {
-				errorf("%s: the foreign name %q must not be the name itself (or its ASCII form)", k, e)
+			if e != g.name && turkish.ASCII(e) != turkish.ASCII(g.name) {
+				gr.Foreign = append(gr.Foreign, e)
 			}
 		}
 		d.entries[k] = gr
@@ -187,8 +190,7 @@ func load(langCode string, data []byte, common map[Code]string) (*Language, erro
 			}
 			for i, name := range spellings {
 				if o, ok := owners[ns][turkish.ASCII(name)]; ok && (name == o.name || name == turkish.ASCII(o.name)) {
-					errorf("the foreign name %q of %s clashes with %s %q (or its ASCII form)", name, k, o.code, o.name)
-					continue
+					continue // bu dilde başka bir kodun adı: o dilde tanıdık ad değil, kendi adıdır
 				}
 				for _, o := range d.foreignNames[ns][name] {
 					if o.code != k {

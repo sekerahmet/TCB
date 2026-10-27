@@ -5,16 +5,36 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// warnUnusedNegation değeri kullanılmayan '-x' deyimini bildirir (2.8): satır başındaki '-'
-// önceki satırı sürdürmediği için 'a = 1' ardından gelen '- b' sessizce etkisiz kalırdı. Değeri
-// kullanılan bir bloğun son ifadesi (blockValues) bloğun değeridir, etkisiz değildir.
-func (c *Checker) warnUnusedNegation(s *ast.ExpressionStatement) {
-	if c.interactive || c.blockValues[s] {
+// checkUnusedValue değeri kullanılmayan, çağrı içermeyen ifade deyimini hata sayar (2.8): satır
+// başındaki ikili işleç önceki satırı sürdürmediği için 'a = 1' ardından gelen '- b' ya da '+ c'
+// bölünmüş bir formülün kopan parçasıdır; uyarı geçilebileceği için hatadır (Go da yalnız çağrıyı
+// deyim olarak kabul eder). Değeri kullanılan bir bloğun son ifadesi (blockValues) bloğun
+// değeridir; deyim olarak yazılan eğer ve eşle, fonksiyon tanımı ve kabuk satırı (interactive)
+// sayılmaz.
+func (c *Checker) checkUnusedValue(s *ast.ExpressionStatement) {
+	if c.interactive || c.blockValues[s] || s.Expression == nil {
 		return
 	}
-	if p, ok := s.Expression.(*ast.PrefixExpression); ok && p.Operator == "-" {
-		c.warnings = append(c.warnings, messages.At(p.Token.Line, 0, messages.New(messages.H1011)))
+	switch s.Expression.(type) {
+	case *ast.IfExpression, *ast.MatchExpression, *ast.FunctionLiteral:
+		return
 	}
+	if containsCall(s.Expression) {
+		return
+	}
+	c.addError(s.Line(), 0, messages.New(messages.H1017))
+}
+
+// containsCall ifadenin (metin yerleştirmeleri dahil) bir çağrı içerdiğidir.
+func containsCall(e ast.Expression) bool {
+	found := false
+	ast.Walk(e, func(n any) bool {
+		if _, ok := n.(*ast.CallExpression); ok {
+			found = true
+		}
+		return !found
+	})
+	return found
 }
 
 // markBlockValue değeri kullanılan bloğun son deyimini, ifade deyimiyse, bloğun değeri olarak işaretler.

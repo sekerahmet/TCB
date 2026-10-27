@@ -47,7 +47,6 @@ func prepareProgram(path string, arguments []string, h preparation) (*interp.VM,
 	machine := interp.New()
 	machine.SourceFile = path
 	machine.SourceCode = s.Text
-	machine.SourceLanguage = s.Language
 	machine.SetArgs(arguments)
 	return machine, s.Program, s.Text
 }

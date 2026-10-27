@@ -22,9 +22,12 @@ type Token struct {
 	Literal string
 	Line    int
 	Column  int
-	// Code is the code the word was written with in a coded file (TR_kw_if, TR_fn_print), otherwise
-	// codes.None. Literal is then the code's name in the active language (see coded.go).
+	// Code is the code the word was written with (an identity TR_print, or a word of the writing
+	// language the body is read in), otherwise codes.None. Literal is then the code's name in the
+	// lexer's language (see identity.go).
 	Code codes.Code
+	// Raw says a string token was written as a raw string (`...`, 2.6a).
+	Raw bool
 }
 
 func (t Token) String() string {
@@ -40,9 +43,6 @@ const (
 	TokInt    = "INT"
 	TokFloat  = "FLOAT"
 	TokString = "STRING"
-	// TokMessageCode is a message code written in the source: H and four digits as a whole word
-	// (H6903). The parser reads it as the string of the code.
-	TokMessageCode = "MESSAGE_CODE"
 
 	// Operators
 	TokAssign      = "="
@@ -51,6 +51,7 @@ const (
 	TokMinus       = "-"
 	TokAsterisk    = "*"
 	TokSlash       = "/"
+	TokSlashSlash  = "//"
 	TokPercent     = "%"
 	TokPower       = "**"
 	TokMatmul      = "@"
@@ -97,10 +98,8 @@ const (
 	TokIf         = "IF"         // TR_kw_if
 	TokElse       = "ELSE"       // TR_kw_else
 	TokMatch      = "MATCH"      // TR_kw_match
-	TokDefault    = "DEFAULT"    // TR_kw_default
 	TokFor        = "FOR"        // TR_kw_for
 	TokIn         = "IN"         // TR_kw_in
-	TokWhile      = "WHILE"      // TR_kw_while
 	TokBreak      = "BREAK"      // TR_kw_break
 	TokContinue   = "CONTINUE"   // TR_kw_continue
 	TokTrue       = "TRUE"       // TR_kw_true

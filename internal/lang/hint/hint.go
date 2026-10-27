@@ -64,6 +64,10 @@ func suggest(lang *codes.Language, ns codes.Namespace, spelling string, accept f
 // closest to the spelling ("Bunu mu demek istediniz?"); nil when there is none. lang is the
 // language the name was written in (the file's; nil: not known): see ClosestSuggestion.
 func NameSuggestion(name string, visible []string, lang *codes.Language) *messages.Error {
+	// Dilin sözcüğü TR_'siz ya da başka bir dilin adıyla yazılmış olabilir (2.3a): print → TR_print.
+	if s, ok := codes.SuggestIdentity(name); ok {
+		return messages.New(messages.H1021, s)
+	}
 	if i := KeywordSpellingHint(name, lang); i != nil {
 		return i
 	}

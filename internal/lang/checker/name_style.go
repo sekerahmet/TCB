@@ -5,6 +5,7 @@ import (
 	"unicode"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
@@ -19,9 +20,14 @@ const (
 	kindType                     // yapı
 )
 
-func varKind(isConst bool) nameKind {
-	if isConst {
+// varKind değişken ya da sabit tanımının yazılış kuralıdır: büyük harf yalnız dosyanın en dışındaki
+// sabittedir; fonksiyonun ya da bloğun içindeki sabit öbür adlar gibi küçük harfle yazılır (2.3b).
+func (c *Checker) varKind(isConst bool) nameKind {
+	switch {
+	case isConst && c.scope.parent == nil:
 		return kindConst
+	case isConst:
+		return kindValue
 	}
 	return kindVariable
 }
@@ -36,6 +42,7 @@ const mathSymbolLetters = 3
 // BÜYÜK_YILAN, yapılar BüyükDeve, geri kalan adlar küçük_yılan. Baştaki _ (modüle özel ad) ve
 // $ (kaçış) yazılışa sayılmaz; TR_ ile başlayan adlar (2.3a) zaten hatadır.
 func (c *Checker) checkNameStyle(name string, kind nameKind, line int) {
+	c.checkScripts(name, line)
 	bare := strings.TrimLeft(name, "$_")
 	if bare == "" || codes.IsReservedName(bare) || !strings.ContainsFunc(bare, unicode.IsLetter) {
 		return
@@ -62,6 +69,14 @@ func (c *Checker) checkNameStyle(name string, kind nameKind, line int) {
 	}
 	if warning != nil {
 		c.warnings = append(c.warnings, messages.At(line, 0, warning))
+	}
+}
+
+// checkScripts tek bir adda birden çok yazı sisteminin harfi varsa uyarır (2.1a): θ_eski gibi
+// formül adları geçerlidir ama başka bir adla karışabilir. Tek yazı sistemindeki ad uyarısızdır.
+func (c *Checker) checkScripts(name string, line int) {
+	if first, second, mixed := lexer.MixedScripts(name); mixed {
+		c.warnings = append(c.warnings, messages.At(line, 0, messages.New(messages.H1019, name, first, second)))
 	}
 }
 

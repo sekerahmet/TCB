@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 574 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 2 değer adı, 42 tip, 136 fonksiyon, 11 sabit, 61 metot, 97 özellik, 136 adlı argüman.
+Toplam 572 kod: 26 anahtar kelime, 6 bağlamsal sözcük, 2 değer adı, 42 tip, 136 fonksiyon, 11 sabit, 61 metot, 97 özellik, 136 adlı argüman.
 
 ## İçindekiler
 
@@ -90,16 +90,6 @@ döngü x içinde 1..=5 { eğer x % 2 == 0 { devam }; yazdır(x) }
 
 İlişkili: TR_kw_break `çık`
 
-#### TR_kw_default `varsayılan`
-
-eşle içinde her değerle eşleşen koldur; hiçbir desen tutmadığında çalışır (_ ile aynı).
-
-```tr
-yazdır(eşle 7 { 1, 2 => "küçük"; varsayılan => "büyük" })
-```
-
-İlişkili: TR_kw_match `eşle`
-
 #### TR_kw_defer `ertele`
 
 Çağrıyı ya da bloğu içinde bulunduğu fonksiyon bitince çalıştırır; birden çok ertele ters sırayla çalışır, erken sonuç ve hata durumunda da çalışır.
@@ -136,7 +126,7 @@ Bir kaynağı gezer (döngü x içinde ...), koşul doğru oldukça tekrarlar (d
 döngü i, x içinde ["a", "b"] { yazdır(i, x) }
 ```
 
-İlişkili: TR_kw_in `içinde`, TR_kw_while `iken`
+İlişkili: TR_kw_in `içinde`
 
 #### TR_kw_func `fonksiyon`
 
@@ -185,8 +175,6 @@ Konuyu kollarla sırayla karşılaştırır ve ilk eşleşen kolun sonucunu veri
 ```tr
 değişken puan = 95; yazdır(eşle puan { 100 => "tam puan"; 90..100 => "pekiyi"; varsayılan => "diğer" })
 ```
-
-İlişkili: TR_kw_default `varsayılan`
 
 #### TR_kw_none `yok`
 
@@ -287,16 +275,6 @@ değişken a, b = 1, 2; a, b = b, a; yazdır(a, b)
 ```
 
 İlişkili: TR_kw_const `sabit`
-
-#### TR_kw_while `iken`
-
-Koşul doğru oldukça bloğu tekrarlar; döngü koşul { ... } ile aynıdır.
-
-```tr
-değişken i = 0; iken i < 3 { i += 1 }; yazdır(i)
-```
-
-İlişkili: TR_kw_for `döngü`
 
 ### Bağlamsal sözcükler
 
@@ -2992,7 +2970,7 @@ Kullananlar: TR_fn_sample `örnekle` · İlişkili: TR_arg_temperature `sıcakl�
 
 
 
-#### TR_arg_vocab_size `dağarcık_büyüklüğü`
+#### TR_arg_vocab_size `dağarcık_boyutu`
 
 
 

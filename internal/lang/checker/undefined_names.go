@@ -90,6 +90,8 @@ func (k *nameScope) visible() []string {
 type nameChecker struct {
 	c    *Checker
 	decl map[string]bool // aynı ad için tek hata (ilk geçtiği yer)
+	// floorDivRight '//' işlecinin sağ yanındaki adlardır: tanımsızsa ileti '#'i önerir (4.9).
+	floorDivRight map[*ast.Identifier]bool
 	// bindings nil değilse gezinti hata aramaz, her adın neye bağlandığını dil'in adlarıyla
 	// kaydeder (NameBindings, bindings.go).
 	bindings *[]NameBinding
@@ -325,6 +327,14 @@ func (d *nameChecker) expression(e ast.Expression, k *nameScope) {
 			if d.bindings != nil {
 				d.namedArgBindings(y, k)
 			}
+		case *ast.InfixExpression:
+			// '//'nin sağındaki tanımsız ad çoğunlukla C ailesinin yorumudur (4.9).
+			if id, ok := y.Right.(*ast.Identifier); ok && y.Operator == "//" {
+				if d.floorDivRight == nil {
+					d.floorDivRight = map[*ast.Identifier]bool{}
+				}
+				d.floorDivRight[id] = true
+			}
 		case *ast.FunctionLiteral:
 			d.function(y, k)
 			return false
@@ -365,8 +375,11 @@ func (d *nameChecker) name(id *ast.Identifier, k *nameScope) {
 		return
 	}
 	d.decl[id.Value] = true
-	d.c.nameErrors = append(d.c.nameErrors, messages.At(id.Line(), id.Token.Column,
-		messages.New(messages.H1010, hint.UndefinedNameError(id.Value, k.visible(), d.c.language()))))
+	var err error = hint.UndefinedNameError(id.Value, k.visible(), d.c.language())
+	if d.floorDivRight[id] {
+		err = messages.New(messages.H1018, id.Value)
+	}
+	d.c.nameErrors = append(d.c.nameErrors, messages.At(id.Line(), id.Token.Column, messages.New(messages.H1010, err)))
 }
 
 // sortByLine hataları konumlarının satırına göre (eşitlikte ilk sırayı koruyarak) sıralar;

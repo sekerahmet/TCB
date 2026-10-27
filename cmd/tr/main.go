@@ -265,9 +265,8 @@ func startREPL() {
 	fmt.Println(messages.Text(messages.H8633, Version))
 	fmt.Println(messages.Text(messages.H8634, codes.NameRef(codes.ReplExit)))
 	machine := interp.New()
-	// Kabuğa yazılan satırlar kişinin yazım dilindedir (source.Options.Typed); değerler de o
-	// dilde metne çevrilir (3).
-	machine.SourceLanguage = codes.Display().Code
+	// Kabuğa yazılan satırlar kişinin yazım dilindedir (source.Options.Typed); değerlerin metni
+	// dilden bağımsızdır (3.14).
 	// Satırlar girdi() ile aynı tamponlu okuyucudan okunur; ayrı bir okuyucu, programın
 	// okuyacağı satırları kendi tamponuna çekip yutardı.
 	reader := machine.InputReader()

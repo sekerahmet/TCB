@@ -24,12 +24,10 @@ var keywordTable = []Keyword{
 	{codes.KwIf, TokIf},
 	{codes.KwElse, TokElse},
 	{codes.KwMatch, TokMatch},
-	{codes.KwDefault, TokDefault},
 
 	// Döngüler ve akış kontrolü
 	{codes.KwFor, TokFor},
 	{codes.KwIn, TokIn},
-	{codes.KwWhile, TokWhile},
 	{codes.KwBreak, TokBreak},
 	{codes.KwContinue, TokContinue},
 

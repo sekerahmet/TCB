@@ -495,7 +495,7 @@ func runEmbeddedApp(pk *pkg) {
 	machine.CommandName = filepath.Base(os.Args[0])
 	// Hata çerçeveleri kullanıcının yazdığı (yönlendirilmemiş) kaynağı göstersin; satırlar aynıdır.
 	original := source.Prepare(pk.Main.Code, source.Options{})
-	machine.SourceCode, machine.SourceLanguage = original.Text, original.Language
+	machine.SourceCode = original.Text
 	// Üretilen uygulamanın bütün argümanları programındır (uygulama.exe --adım 5).
 	machine.SetArgs(os.Args[1:])
 	runProgram(machine, s.Program, original.Text)

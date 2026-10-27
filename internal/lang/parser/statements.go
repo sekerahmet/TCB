@@ -29,8 +29,6 @@ func (p *Parser) parseStatement() ast.Statement {
 		return stmt
 	case lexer.TokFor:
 		return p.parseForStatement()
-	case lexer.TokWhile:
-		return p.parseWhileStatement()
 	case lexer.TokStruct:
 		return p.parseStructStatement()
 	case lexer.TokTry:
@@ -64,7 +62,7 @@ func (p *Parser) parseTestStatement() ast.Statement {
 	tok := p.curToken() // test
 	p.role(tok, RoleTest)
 	p.nextToken() // test adı (metin)
-	name := unescapeBraces(p.curToken().Literal)
+	name := p.curToken().Literal
 	if !p.expectPeek(lexer.TokLBrace) {
 		return nil
 	}
@@ -276,6 +274,11 @@ func (p *Parser) requireClosingBrace(open lexer.Token) {
 }
 func (p *Parser) parseImportStatement() *ast.ImportStatement {
 	tok := p.curToken()
+	// Aktarma yalnız dosyanın başında, öbür tanım ve deyimlerden önce yazılır (1.3): bir bloğun,
+	// fonksiyonun ya da testin içinde ve başka bir deyimden sonra sözdizimi hatasıdır.
+	if !p.importsOpen {
+		p.syntaxError(tok, messages.H0024, codes.NameRef(codes.KwImport))
+	}
 	// Modül yolu bir metin olarak yazılır: aktar "yol" (§11). Tırnaksız ad yol sayılmaz.
 	if !p.peekTokenIs(lexer.TokString) {
 		next := p.peekToken()

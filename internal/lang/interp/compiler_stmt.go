@@ -204,6 +204,12 @@ func (c *compiler) returnStatement(k *compilerScope, s *ast.ReturnStatement) sta
 	}
 }
 
+// caughtErrorLanguage yakalanan hatanın metninin kurulduğu ileti kataloğudur: program çıktısı
+// çevrilmez (3.14), aynı program her makinede aynı metni verir. Ara karar (katman 1): kimliklerin
+// adları İngilizce olduğu için İngilizce katalog; hata değerinin metni hata yönetimi bölümünde
+// yeniden tartılır.
+const caughtErrorLanguage = "en"
+
 // tryCatchStatement 'dene'/'yakala' deyimini derler.
 func (c *compiler) tryCatchStatement(k *compilerScope, s *ast.TryCatchStatement) statementCode {
 	tryBlock := c.blockStatement(k, s.TryBody)
@@ -219,12 +225,10 @@ func (c *compiler) tryCatchStatement(k *compilerScope, s *ast.TryCatchStatement)
 	sub.predefine(catchStatements)
 	catchClause := c.statements(sub, catchStatements)
 	info := sub.info
-	// Yakalanan hata programın Metin değeri olur: metni onu yakalayan dosyanın dilinde kurulur
-	// (değer metni kuralı, 3); yakalanmayan hata ekranda TR_DIL'dedir (görüntü).
-	lang := codes.SourceLanguage
-	if c.textLang != nil {
-		lang = c.textLang.Code
-	}
+	// Yakalanan hata programın Metin değeri olur: değerin metni gibi hiçbir dosyanın ve kişinin
+	// diline bağlı değildir (3.14), sabit bir katalogla kurulur (caughtErrorLanguage); yakalanmayan
+	// hata ekranda TR_DIL'dedir (görüntü).
+	lang := caughtErrorLanguage
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
 		val, sig, err := tryBlock(v, env)
 		if err != nil {

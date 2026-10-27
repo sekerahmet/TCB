@@ -30,9 +30,6 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		}
 	case lexer.TokSelf:
 		leftExp = &ast.Identifier{Token: p.curToken(), Value: p.words.self}
-	case lexer.TokMessageCode:
-		// ileti(H6903, x): kod, katalogdaki ileti kodunun metnidir
-		leftExp = &ast.StringLiteral{Token: p.curToken(), Value: p.curToken().Literal}
 	case lexer.TokInt:
 		leftExp = p.parseIntegerLiteral()
 	case lexer.TokFloat:
@@ -72,7 +69,20 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 }
 func (p *Parser) parseIntegerLiteral() ast.Expression {
 	tok := p.curToken()
-	val, err := strconv.ParseInt(tok.Literal, 10, 64)
+	// Ön ekli yazımın (0x1F, 0o17, 0b1010; 2.4) tabanı ön ekten okunur. Ön eksiz yazım her zaman
+	// ondalıktır (017, 17'dir; sekizlik değil).
+	digits, base := tok.Literal, 10
+	if len(digits) > 2 && digits[0] == '0' {
+		switch digits[1] {
+		case 'x':
+			digits, base = digits[2:], 16
+		case 'o':
+			digits, base = digits[2:], 8
+		case 'b':
+			digits, base = digits[2:], 2
+		}
+	}
+	val, err := strconv.ParseInt(digits, base, 64)
 	if err != nil {
 		p.recordError(p.curToken(), messages.New(messages.H0165, tok.Literal, int64(math.MaxInt64)))
 		return nil
@@ -119,8 +129,29 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 		prec--
 	}
 	p.nextToken()
+	if tok.Type == lexer.TokSlashSlash && !p.startsExpression() {
+		// '// not' C ailesinin yorumudur (4.9): tam bölmenin sağında ifade yoksa ileti '#'i önerir.
+		p.syntaxError(p.curToken(), messages.H0025)
+		return nil
+	}
 	right := p.parseExpression(prec)
 	return &ast.InfixExpression{Token: tok, Left: left, Operator: op, Right: right}
+}
+
+// startsExpression şimdiki belirteç aynı satırda bir ifade başlatabilir mi (ad, değer, tekli işleç,
+// açan parantez ya da ifade olan anahtar kelime)?
+func (p *Parser) startsExpression() bool {
+	if p.pos > 0 && p.tokens[p.pos-1].Line < p.curToken().Line {
+		return false
+	}
+	switch p.curToken().Type {
+	case lexer.TokIdent, lexer.TokSelf, lexer.TokInt, lexer.TokFloat, lexer.TokString,
+		lexer.TokTrue, lexer.TokFalse, lexer.TokNil, lexer.TokBang, lexer.TokMinus,
+		lexer.TokKwNot, lexer.TokLParen, lexer.TokIf, lexer.TokMatch, lexer.TokFunction,
+		lexer.TokLBracket, lexer.TokLBrace:
+		return true
+	}
+	return false
 }
 func (p *Parser) parseRangeExpression(left ast.Expression) ast.Expression {
 	tok := p.curToken()
@@ -141,7 +172,7 @@ func (p *Parser) parseRangeExpression(left ast.Expression) ast.Expression {
 func (p *Parser) parseInfixChain(leftExp ast.Expression, precedence int) ast.Expression {
 	for !p.peekTokenIs(lexer.TokSemicolon) && precedence < p.peekPrecedence() {
 		switch p.peekToken().Type {
-		case lexer.TokPlus, lexer.TokMinus, lexer.TokSlash, lexer.TokAsterisk,
+		case lexer.TokPlus, lexer.TokMinus, lexer.TokSlash, lexer.TokSlashSlash, lexer.TokAsterisk,
 			lexer.TokPercent, lexer.TokPower, lexer.TokMatmul,
 			lexer.TokEq, lexer.TokNotEq, lexer.TokLt, lexer.TokGt,
 			lexer.TokLte, lexer.TokGte, lexer.TokAnd, lexer.TokOr,
@@ -196,7 +227,7 @@ func (p *Parser) parseInfixChain(leftExp ast.Expression, precedence int) ast.Exp
 // satırı sürdürmek için yazılmış olabilir (2.8), hata nedenini söyler.
 func (p *Parser) leadingBinaryOperator() bool {
 	switch p.curToken().Type {
-	case lexer.TokPlus, lexer.TokSlash, lexer.TokAsterisk, lexer.TokPercent,
+	case lexer.TokPlus, lexer.TokSlash, lexer.TokSlashSlash, lexer.TokAsterisk, lexer.TokPercent,
 		lexer.TokPower, lexer.TokMatmul, lexer.TokEq, lexer.TokNotEq, lexer.TokLt,
 		lexer.TokGt, lexer.TokLte, lexer.TokGte, lexer.TokAnd, lexer.TokOr,
 		lexer.TokKwAnd, lexer.TokKwOr, lexer.TokNullCoalesc, lexer.TokRange,

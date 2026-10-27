@@ -52,7 +52,7 @@ const (
 	precLessgreater // > < >= <=
 	precRange       // .. ..=
 	precSum         // + -
-	precProduct     // * / % @
+	precProduct     // * / // % @
 	precPrefix      // -X !X  ('değil X' ise karşılaştırmalardan gevşek bağlanır, bkz. parsePrefixExpression)
 	precPower       // **  (sağdan birleşir ve tekli eksiden sıkı bağlanır: -2 ** 2 = -4)
 	precCall        // fn(X) dizi[i] nesne.alan nesne?.alan
@@ -76,6 +76,7 @@ var precedences = map[lexer.TokenType]int{
 	lexer.TokPlus:        precSum,
 	lexer.TokMinus:       precSum,
 	lexer.TokSlash:       precProduct,
+	lexer.TokSlashSlash:  precProduct,
 	lexer.TokAsterisk:    precProduct,
 	lexer.TokPercent:     precProduct,
 	lexer.TokMatmul:      precProduct,
@@ -124,6 +125,9 @@ type Parser struct {
 	// (context.go); modul, kodun bir modül olarak ayrıştırıldığını söyler (ParseModule).
 	ctx    stmtContext
 	module bool
+	// importsOpen, okunan deyim listesinde aktarma yazılabildiğini söyler: dosyanın en dışında ve
+	// başka bir deyimden önce (parseStatementList).
+	importsOpen bool
 
 	// nesting içinde bulunulan ifade/blok iç içelik düzeyidir; derinlikAsildi sınır
 	// aşıldıktan sonra açıktır (bkz. derinlikGir).
@@ -310,8 +314,12 @@ func (p *Parser) ParseProgram() *ast.Program {
 }
 
 // parseStatementList deyimleri dosya sonuna (topLevel) ya da bloğun '}' ya da dosya sonuna kadar
-// okur; her deyimden sonra hata kurtarma noktasına eşitlenir.
+// okur; her deyimden sonra hata kurtarma noktasına eşitlenir. Aktarmalar yalnız dosyanın en
+// dışında, ilk başka deyimden önce açıktır (importsOpen, 1.3).
 func (p *Parser) parseStatementList(topLevel bool) []ast.Statement {
+	saved := p.importsOpen
+	defer func() { p.importsOpen = saved }()
+	p.importsOpen = topLevel
 	stmts := []ast.Statement{}
 	for !p.curTokenIs(lexer.TokEOF) && (topLevel || !p.curTokenIs(lexer.TokRBrace)) {
 		if p.curTokenIs(lexer.TokSemicolon) {
@@ -319,6 +327,9 @@ func (p *Parser) parseStatementList(topLevel bool) []ast.Statement {
 			continue
 		}
 		stmtStart := p.pos
+		if !p.curTokenIs(lexer.TokImport) {
+			p.importsOpen = false
+		}
 		stmt := p.parseStatement()
 		if stmt != nil {
 			stmts = append(stmts, stmt)

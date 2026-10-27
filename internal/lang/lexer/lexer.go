@@ -1,6 +1,6 @@
 // Package lexer is TR's lexer: it splits source text into tokens (keywords, names, numbers,
-// strings, operators, comments) with line and column information. Keyword spellings come
-// from the code list (internal/lang/codes); the parser and the formatter work on the tokens
+// strings, operators) with line and column information; comments are skipped. Keyword spellings
+// come from the code list (internal/lang/codes); the parser and the formatter work on the tokens
 // this package produces.
 //
 // Layer: language core (internal/lang); imports only internal/lang packages.
@@ -14,14 +14,6 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// Braces escaped as '\{' and '\}' inside a string are carried in the token as these
-// private-use characters; the parser turns them back into plain '{' and '}'. This keeps
-// '\\{' (a backslash followed by an interpolation) apart from '\{' (a plain brace).
-const (
-	EscapedLBrace = '\uE000'
-	EscapedRBrace = '\uE001'
-)
-
 type Lexer struct {
 	input        []rune
 	position     int  // mevcut karakterin indeksi
@@ -32,8 +24,8 @@ type Lexer struct {
 	errors       []error
 	tokenStart   int // son okunan sözcük biriminin başladığı karakter (rune) indeksi
 
-	// coded, kaynağın kodlu biçimde (17.10) yazıldığını söyler: kodlar (TR_kw_if, TR_fn_print) dilin
-	// sözcükleri, kod olmayan her ad kullanıcının adıdır (coded.go).
+	// coded, gövdenin kimliklerle yazıldığını söyler: dilin sözcükleri TR_<ad> kimlikleridir
+	// (TR_if, TR_print), başka her ad kullanıcının adıdır (identity.go).
 	coded bool
 	// root dosyanın çözümleyicisidir (kökte kendisi). Metin içi yerleştirmelerin alt
 	// çözümleyicileri konumlarını, metin haritalarını ve kayıtlarını kökle paylaşır.
@@ -41,7 +33,7 @@ type Lexer struct {
 	// posMap alt çözümleyicide girdinin her karakterinin kökteki konumudur (interpolation.go).
 	posMap []int32
 	// stringInfos kökte, yerleştirme içeren metin sabitlerinin bilgisidir (sözcük biriminin satır
-	// ve sütunuyla anahtarlı; interpolation.go); metinTampon ve yerTampon okunmakta olan metnin
+	// ve sütunuyla anahtarlı; interpolation.go); strBuf ve posBuf okunmakta olan metnin
 	// konumlarını ve yerleştirme aralıklarını biriktirir.
 	stringInfos map[[2]int]*stringInfo
 	strBuf      []int32
@@ -50,8 +42,8 @@ type Lexer struct {
 	lineStarts []int
 	// rec açıksa (Kaydet) kökte üretilen bütün sözcük birimleri kaynak aralıklarıyla tutulur.
 	rec *[]Record
-	// shifts kodlu kökte gösterimdeki sütun kaymalarıdır (coded.go); kaymaToplam birikimli
-	// toplamları, kaymaSira kök çözümleyicinin sıradaki kayma noktasıdır.
+	// shifts kodlu kökte gösterimdeki sütun kaymalarıdır (coded.go); shiftSum birikimli
+	// toplamları, shiftIdx kök çözümleyicinin sıradaki kayma noktasıdır.
 	shifts   []shift
 	shiftSum []int32
 	shiftIdx int
@@ -59,6 +51,10 @@ type Lexer struct {
 	// (NewBodyIn); nil ise kimlik listesi (codes.Active).
 	lang  *codes.Language
 	words map[string]TokenType
+	// places kimliklerin yerini (2.3a) bulmak için izlenen bağlamdır (identity.go).
+	places placeState
+	// lineStart, bu satırda henüz sözcük birimi okunmadığını söyler (satır başındaki '//', 2.2).
+	lineStart bool
 }
 
 // Language returns the language whose words the lexer reads: the language of an uncoded body
@@ -113,9 +109,10 @@ func New(input string) *Lexer {
 
 func newLexer(input string) *Lexer {
 	l := &Lexer{
-		input:  []rune(input),
-		line:   1,
-		column: 0,
+		input:     []rune(input),
+		line:      1,
+		column:    0,
+		lineStart: true,
 	}
 	l.root = l
 	l.readChar()
@@ -164,10 +161,17 @@ func (l *Lexer) peekCharN(n int) rune {
 
 // NextToken reads the next token; when recording is on (StartRecording) it adds the token
 // with its source range to the root's record.
-func (l *Lexer) NextToken() (result Token) {
+func (l *Lexer) NextToken() Token {
+	tok := l.nextToken()
+	l.track(tok)
+	l.lineStart = false
 	if l.root.rec != nil {
-		defer func() { l.record(result) }()
+		l.record(tok)
 	}
+	return tok
+}
+
+func (l *Lexer) nextToken() Token {
 	l.skipWhitespaceAndComments()
 	l.tokenStart = l.position
 
@@ -187,7 +191,7 @@ func (l *Lexer) NextToken() (result Token) {
 	case '*':
 		tok = l.operator(line, col, TokAsterisk, follow{'*', TokPower}, follow{'=', TokMulAssign})
 	case '/':
-		tok = l.operator(line, col, TokSlash, follow{'=', TokDivAssign})
+		tok = l.operator(line, col, TokSlash, follow{'/', TokSlashSlash}, follow{'=', TokDivAssign})
 	case '%':
 		tok = l.operator(line, col, TokPercent)
 	case '@':
@@ -232,13 +236,15 @@ func (l *Lexer) NextToken() (result Token) {
 		tok = l.operator(line, col, TokLBracket)
 	case ']':
 		tok = l.operator(line, col, TokRBracket)
-	case '"', '\'':
-		quote := l.ch
-		str := l.readString(quote, line, col)
-		tok = Token{Type: TokString, Literal: str, Line: line, Column: col}
-		return tok
+	case '"':
+		return Token{Type: TokString, Literal: l.readString('"', line, col), Line: line, Column: col}
+	case '\'':
+		// Metin yalnız çift tırnakla yazılır (2.6); tek tırnaklı metin yine okunur ki ardındaki
+		// sözcükler ikinci bir hata üretmesin.
+		l.addError(line, col, messages.New(messages.H0016))
+		return Token{Type: TokString, Literal: l.readString('\'', line, col), Line: line, Column: col}
 	case '`':
-		return Token{Type: TokString, Literal: l.readRawString(line, col), Line: line, Column: col}
+		return Token{Type: TokString, Literal: l.readRawString(line, col), Line: line, Column: col, Raw: true}
 	case 0:
 		if l.position < len(l.input) {
 			return l.nulChar(line, col)
@@ -255,11 +261,7 @@ func (l *Lexer) NextToken() (result Token) {
 			l.checkName(name, line, col)
 			return l.nameToken(name, line, col)
 		} else if isDigit(l.ch) {
-			lit, isFloat := l.readNumber()
-			if isFloat {
-				return Token{Type: TokFloat, Literal: lit, Line: line, Column: col}
-			}
-			return Token{Type: TokInt, Literal: lit, Line: line, Column: col}
+			return l.number(line, col)
 		} else {
 			tok = Token{Type: TokIllegal, Literal: string(l.ch), Line: line, Column: col}
 		}
@@ -269,56 +271,14 @@ func (l *Lexer) NextToken() (result Token) {
 	return tok
 }
 
+// readIdentifier bir adı okur (UAX #31, 2.3): ilk karakteri harf ya da '_' (isLetter), öbürleri
+// harf, rakam, birleşen işaret ya da bağlayıcı noktalama (isNameChar).
 func (l *Lexer) readIdentifier() string {
 	start := l.position
-	for isLetter(l.ch) || isDigit(l.ch) {
+	for isNameChar(l.ch) {
 		l.readChar()
 	}
 	return string(l.input[start:l.position])
-}
-
-// readDigits rakamları (ve ayırıcı '_' işaretlerini, onları yazmadan) sb'ye okur. Metottur,
-// kapanış değil: sayı başına en çok üç çağrıdır ve sb yakalanıp yığından kaçmaz.
-func (l *Lexer) readDigits(sb *strings.Builder) {
-	for isDigit(l.ch) || l.ch == '_' {
-		if l.ch != '_' {
-			sb.WriteRune(l.ch)
-		}
-		l.readChar()
-	}
-}
-
-func (l *Lexer) readNumber() (string, bool) {
-	var sb strings.Builder
-	isFloat := false
-
-	l.readDigits(&sb)
-
-	// Ondalık kısım kontrolü ('1..10' aralığı ile karışmaması için peekChar() != '.' kontrolü)
-	if l.ch == '.' && isDigit(l.peekChar()) {
-		isFloat = true
-		sb.WriteRune(l.ch)
-		l.readChar()
-		l.readDigits(&sb)
-	}
-
-	// Bilimsel yazım: 1e-5, 3.2E+4, 2e10 (üsten sonra en az bir rakam gelmelidir)
-	if l.ch == 'e' || l.ch == 'E' {
-		next := l.peekChar()
-		marked := (next == '+' || next == '-') && isDigit(l.peekCharN(2))
-		if isDigit(next) || marked {
-			isFloat = true
-			sb.WriteRune(l.ch)
-			l.readChar()
-			if marked {
-				sb.WriteRune(l.ch)
-				l.readChar()
-			}
-			l.readDigits(&sb)
-		}
-	}
-
-	return sb.String(), isFloat
 }
 
 // follow, iki karakterli bir işlecin ikinci karakteri ve türüdür.
@@ -341,10 +301,20 @@ func (l *Lexer) operator(line, col int, single TokenType, follows ...follow) Tok
 	return Token{Type: single, Literal: string(l.ch), Line: line, Column: col}
 }
 
+// isLetter adın ilk karakteri olabilir mi (UAX #31 XID_Start ya da '_', 2.3): harf ya da harf
+// sayı (Nl, Roma rakamı Ⅻ gibi). Go'nun unicode paketi XID özelliğini vermez; bu, XID_Start'ın
+// genel kategorilerden kurulan karşılığıdır (NFKC'de farklı okunan birkaç karakter dışında aynı).
 func isLetter(ch rune) bool {
-	return unicode.IsLetter(ch) || ch == '_'
+	return ch == '_' || unicode.IsLetter(ch) || unicode.Is(unicode.Nl, ch)
 }
 
+// isNameChar adın ilk karakterinden sonra gelebilir mi (XID_Continue): harf, rakam (Nd), birleşen
+// işaret (Mn, Mc) ya da bağlayıcı noktalama (Pc, '_' dahil).
+func isNameChar(ch rune) bool {
+	return isLetter(ch) || unicode.Is(unicode.Nd, ch) || unicode.In(ch, unicode.Mn, unicode.Mc, unicode.Pc)
+}
+
+// isDigit sayı yazımındaki ondalık rakamdır (yalnız ASCII; 2.4).
 func isDigit(ch rune) bool {
 	return '0' <= ch && ch <= '9'
 }

@@ -65,13 +65,10 @@ func textFiles(root string) []string {
 // satır numaraları dosyadaki gerçek satırdır (read.go ile aynı); bölünemeyen dosya olduğu gibi.
 func diskBody(text string) string {
 	b, err := source.Split(text)
-	switch {
-	case err != nil:
+	if err != nil {
 		return text
-	case b.Coded:
-		return "\n" + b.Body
 	}
-	return b.Body
+	return b.Body // başlık satırı gövdenin içindedir
 }
 
 // wordMatcher aranan sözcüğü ve ekli biçimlerini tanır.

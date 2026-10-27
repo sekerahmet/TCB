@@ -19,7 +19,6 @@ import (
 type rawEntry struct {
 	key                  string
 	name                 string
-	foreign              []string
 	family               string
 	description, example string
 }
@@ -133,7 +132,7 @@ func (c *jsonParser) strList() ([]string, error) {
 	}
 }
 
-// entry { "name": ..., "foreign": [...], "family": ..., "description": ..., "example": ... }
+// entry { "name": ..., "family": ..., "description": ..., "example": ... }
 // nesnesini okur.
 func (c *jsonParser) entry(g *rawEntry) error {
 	if err := c.expect('{'); err != nil {
@@ -161,14 +160,12 @@ func (c *jsonParser) entry(g *rawEntry) error {
 			g.name, err = c.str()
 		case "family":
 			g.family, err = c.str()
-		case "foreign":
-			g.foreign, err = c.strList()
 		case "description":
 			g.description, err = c.str()
 		case "example":
 			g.example, err = c.str()
 		default:
-			return c.errorf("%s entry has unknown field %q (valid fields: name, foreign, family, description, example)", g.key, field)
+			return c.errorf("%s entry has unknown field %q (valid fields: name, family, description, example; familiar names are in definitions.json)", g.key, field)
 		}
 		if err != nil {
 			return err

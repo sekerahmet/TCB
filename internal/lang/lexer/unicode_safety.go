@@ -11,10 +11,11 @@ import (
 //
 //   - bidirectional control characters anywhere (comments and strings included): they reorder
 //     how a line is displayed, so code can look like something it is not ("Trojan Source");
-//   - invisible filler letters in names (Unicode counts them as letters);
-//   - names that mix writing systems (a Cyrillic е inside a Latin name looks like a Latin e,
-//     so two different names would look the same). A name written wholly in one script is
-//     fine.
+//     in a string they are written with an escape (\u{202E});
+//   - invisible filler letters in names (Unicode counts them as letters).
+//
+// A name that mixes writing systems (θ_eski) is a warning, not an error: the checker reports it
+// (MixedScripts), since the letters of machine learning formulas (θ, α) are confusable too.
 
 // isBidiControl reports whether r changes the display order of text.
 func isBidiControl(r rune) bool {
@@ -46,7 +47,7 @@ func (l *Lexer) checkBidi() {
 	}
 }
 
-// scripts are the writing systems whose letters look alike; a name may use only one of them.
+// scripts are the writing systems whose letters look alike.
 var scripts = []struct {
 	name  string
 	table *unicode.RangeTable
@@ -56,23 +57,29 @@ var scripts = []struct {
 	{"Yunan", unicode.Greek},
 }
 
-// checkName reports a name with an invisible letter or with letters of more than one of the
-// look-alike scripts.
+// checkName reports a name with an invisible letter.
 func (l *Lexer) checkName(name string, line, col int) {
-	used := ""
 	for _, r := range name {
 		if isInvisibleLetter(r) {
 			l.addError(line, col, messages.New(messages.H0012, name, fmt.Sprintf("%04X", r)))
 			return
 		}
+	}
+}
+
+// MixedScripts reports whether name has letters of more than one of the look-alike scripts
+// (Latin, Cyrillic, Greek) and names the first two (2.1a: a warning).
+func MixedScripts(name string) (first, second string, mixed bool) {
+	for _, r := range name {
 		for _, s := range scripts {
-			if unicode.Is(s.table, r) {
-				if used != "" && used != s.name {
-					l.addError(line, col, messages.New(messages.H0013, name, used, s.name))
-					return
-				}
-				used = s.name
+			if !unicode.Is(s.table, r) {
+				continue
 			}
+			if first != "" && first != s.name {
+				return first, s.name, true
+			}
+			first = s.name
 		}
 	}
+	return "", "", false
 }

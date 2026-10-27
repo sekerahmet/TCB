@@ -172,9 +172,12 @@ func TestLayerRule(t *testing.T) {
 // externalDeps modül dışı (standart kitaplık olmayan) içe aktarmalar ve onları içe
 // aktarabilen tek paket. Yeni bir dış bağımlılık baş geliştiricinin kararıdır; tek dosya
 // dağıtım ve cgo'suz derleme korunur. Dinamik yükleyici: GPU arka ucunun Linux'ta NVIDIA sürücü
-// kitaplığını cgo'suz yüklemesi (internal/compute/gpu/cuda_linux.go).
+// kitaplığını cgo'suz yüklemesi (internal/compute/gpu/cuda_linux.go). Unicode normalleştirmesi:
+// adların NFC karşılaştırması ve benzerlik iskeletinin NFD'si (dil tanımı 2.3, 2.1a; Ahmet
+// 2026-10-28: "x/text (yalnız unicode/norm) ve confusables.txt'e izin veriyorum").
 var externalDeps = map[string]string{
-	"github.com/ebitengine/purego": "internal/compute/gpu",
+	"github.com/ebitengine/purego":   "internal/compute/gpu",
+	"golang.org/x/text/unicode/norm": "internal/lang/lexer",
 }
 
 // TestExternalDependencies her işletim sistemi için (yapı kısıtları farklı dosyaları seçer)
