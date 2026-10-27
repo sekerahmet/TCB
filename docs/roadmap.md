@@ -8,7 +8,7 @@ Dil tanımı ([`docs/spec/`](spec/README.md)) baştan, bölüm bölüm yazılıy
 
 ## 1. bölüm: Program
 
-Taslak yazıldı ve DENETİM'den geçti (2026-10-27). Kararlar Gemini'nin araştırmasından sonra kesinleşir; uygulama ondan sonra başlar. Her maddenin bugünkü durumu ve yapılacakları [`status.md`](status.md)'dedir; her iş testiyle kapanır.
+Yazıldı; DENETİM'den ve Gemini'nin araştırmasından geçti (2026-10-27). Her maddenin bugünkü durumu ve yapılacakları [`status.md`](status.md)'dedir; her iş testiyle kapanır.
 
 ## Sıradaki
 

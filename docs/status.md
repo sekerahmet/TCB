@@ -4,7 +4,7 @@ Dil tanımının yeniden yazılan bölümlerine göre bugünkü TR'nin durumu ve
 
 ## 1. Program
 
-Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar henüz kesin değil: Gemini'nin araştırması bekleniyor, yapılacaklar ondan sonra başlar.
+Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den ve Gemini'nin araştırmasından geçti (2026-10-27).
 
 ### 1.1
 
@@ -61,6 +61,7 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar henüz kesin
 - **Yapılacaklar:**
   - Süreç isteğin kendi sinyaliyle biter; SIGUSR1 de durdurma isteği olur.
   - Durum değiştirmeyen yerleşik ve bekleme bırakılır, önce `TR_fn_input` ve dosyadan yükleme; bırakılan hesabın GPU'da başlamış işi beklenir, ertelenen işler sonra çalışır.
+  - Yığın çözülürken ertelenen işlerdeki beklemeler bırakılmaz (bugün `interruptibleSleep` kesmede hemen dönüyor [kanıtlı, DENETİM]).
   - Durum değiştirenlerin listesi yazılır ve sınanır: `TR_fn_backward`, iyileştirici adımı, indeksle atama, `TR_fn_write_slice`, dosyaya yazma, üretecin ve yükleyicinin ilerlemesi.
   - TR alt süreç açmaya başlarsa (19.1) bu madde ona göre genişler: istek alt sürece, kendisi zaten almadıysa iletilir.
 
@@ -76,6 +77,7 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar henüz kesin
   - Üstlenen programda yeni bir şey bekleyen yerleşik, `TR_fn_sleep` dahil, bu hatayla döner.
   - `TR_kw_defer` bloklarında ve bu hatayı yakalayan `TR_kw_catch` gövdesinde beklemeler normal çalışır.
   - Kontrol noktası isteği yalnız kaydeder, beklemeleri hataya çevirmez; istekten sonraki ilk kayıtta durur, bitişte kaydetmez.
+  - Program `TR_fn_handle_stop` ile de üstlendiyse kontrol noktası yalnız kaydeder, durmayı programa bırakır.
 
 ### 1.7
 
