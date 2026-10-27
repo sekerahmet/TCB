@@ -1,6 +1,6 @@
 # TR — proje kuralları (her oturum ve ajan için)
 
-TR, yapay zekâ modeli geliştirmek ve eğitmek için bir programlama dilidir (Go, modül `github.com/sekerahmet/TCB`). Dilin asıl biçimi koddur: dosyalar diskte, program içeride dilden bağımsız kimliklerle (`TR_fn_sum`) çalışır. Türkçe ve İngilizce yalnızca gösterim dilleridir; geliştirici kodu kendi dilinde okur ve yazar, yazdığı metin o dilden koda çevrilir. Bugün Türkçe ve İngilizce var, başka diller sıradadır; hiçbir dilin ayrıcalığı yoktur, "Türkçe programlama dili" diye tanıtılmaz. Ürün dilin kendisidir; model eğitimi dilin sınavıdır.
+TR, yapay zekâ modelini yazmak, eğitmek ve robot gibi makinelerin içinde çalıştırmak, uzaktaki modelleri bağlantı ve API ile kullanmak için bir programlama dilidir (Go, modül `github.com/sekerahmet/TCB`). Kararlar modelin bütün yaşamına göre verilir: yazma, eğitim ve cihazda çalıştırma; yalnız eğitime göre değil (Ahmet, 2026-10-27: "bir robotun içine yapay zeka modeli de yerleştirebilmek ... internete bağlı bir robotun içinden de çalıştırabilmeyi kastediyorum"). Dilin asıl biçimi koddur: dosyalar diskte, program içeride dilden bağımsız kimliklerle (`TR_fn_sum`) çalışır. Türkçe ve İngilizce yalnızca gösterim dilleridir; geliştirici kodu kendi dilinde okur ve yazar, yazdığı metin o dilden koda çevrilir. Bugün Türkçe ve İngilizce var, başka diller sıradadır; hiçbir dilin ayrıcalığı yoktur, "Türkçe programlama dili" diye tanıtılmaz. Ürün dilin kendisidir; model eğitimi dilin sınavıdır.
 
 ## Nereye bakılır
 
