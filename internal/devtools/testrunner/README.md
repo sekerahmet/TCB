@@ -21,7 +21,7 @@ Denetim: `TestRuleInItsOwnSection`, `TestEveryRuleHasATest`, `TestRuleTestLineFo
 
 **Gözden geçirilmiş bölüm dilin sözcüklerini kimlikle yazar.** Test satırı biçimine geçmiş
 bölümde madde satırı, Durum ve Test satırları ters tırnak içinde bir kodun hiçbir gösterim
-dilindeki adını (`TR_kw_import`, `import`) taşımaz, kimliğini (`TR_kw_import`) yazar; Emsal ve Gerekçe
+dilindeki adını (`aktar`, `import`) taşımaz, kimliğini (`TR_kw_import`) yazar; Emsal ve Gerekçe
 başka dillerin kodunu bilerek yazdığı için bakılmaz. Denetim: `TestReviewedSectionsWriteIdentities`.
 
 ## Testler

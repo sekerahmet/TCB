@@ -11,7 +11,7 @@ TR_DIL=en tr examples/tr/01_merhaba.tr   # aynı program, iletiler İngilizce
 
 ## Komut satırı
 
-Örneklerin hepsi bir `.tr` dosyasıdır; dilin komut satırı adları (`K` ailesi) dosyada geçmez, burada gösterilir. Komut ve seçenek adlarının her gömülü dilde yazımı kabul edilir (`TR_cmd_run` ile `tr run` aynıdır).
+Örneklerin hepsi bir `.tr` dosyasıdır; dilin komut satırı adları (`K` ailesi) dosyada geçmez, burada gösterilir. Komut ve seçenek adlarının her gömülü dilde yazımı kabul edilir (`tr çalıştır` ile `tr run` aynıdır).
 
 | Komut | Ne yapar | Örnek |
 | :-- | :-- | :-- |
@@ -20,7 +20,7 @@ TR_DIL=en tr examples/tr/01_merhaba.tr   # aynı program, iletiler İngilizce
 | `TR_cmd_run` | Programı çalıştırır (komut adı yazılmadan verilen dosya da çalışır) | `tr çalıştır examples/tr/07_donguler.tr` |
 | `kontrol` | Çalıştırmadan sözdizimi ve tip denetimi | `tr kontrol examples/tr/13_matematik.tr` |
 | `TR_cmd_build` | Programı yorumlayıcıyla birlikte tek çalıştırılabilir dosyaya paketler | `tr derle examples/tr/18_moduller.tr` |
-| `TR_ctx_test` | Dosyadaki ya da klasördeki `*_test.tr` testlerini koşar | `tr test examples/tr/17_testler_test.tr` |
+| `test` | Dosyadaki ya da klasördeki `*_test.tr` testlerini koşar | `tr test examples/tr/17_testler_test.tr` |
 | `TR_cmd_format` | Dosyaları standart biçime getirir | `tr biçimle examples/tr/09_listeler.tr` |
 | `kodla` | Dosyayı dilden bağımsız kodlu biçime çevirir | `tr kodla scratch/deneme.tr` |
 | `TR_cmd_show` | Kodlu dosyayı değiştirmeden bir yazım dilinde yazar | `tr göster examples/tr/01_merhaba.tr --dil en` |
