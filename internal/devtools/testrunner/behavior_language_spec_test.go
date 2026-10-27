@@ -192,12 +192,54 @@ func TestSectionTestProblems(t *testing.T) {
 	}
 }
 
+// reviewedRe gözden geçirilmiş (Test satırı biçimine geçmiş) bölümü tanır.
+var reviewedRe = regexp.MustCompile(`(?m)^- \*Test:\*`)
+
+// statusDocs docs/status/ altındaki uygulama durumu belgelerini okur (ad → metin).
+func statusDocs(t *testing.T) map[string]string {
+	t.Helper()
+	files, err := reporoot.Glob(reporoot.Path("docs/status/*.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	docs := map[string]string{}
+	for _, d := range files {
+		data, err := os.ReadFile(d)
+		if err != nil {
+			t.Fatal(err)
+		}
+		docs[filepath.Base(d)] = string(data)
+	}
+	return docs
+}
+
+// Gözden geçirilmiş bölüm yalnız kuralı yazar (Ahmet, 2026-10-27: "bunlar bizim belirlediğimiz
+// kurallar. bu kurallara göre mevcut durum analizi ayrı bir konu"): bölümde *Durum:* satırı
+// yoktur; kararın kaydı ve bugünkü uygulamanın kuraldan farkı aynı adlı docs/status/ belgesindedir.
+func TestReviewedSectionsHoldOnlyRules(t *testing.T) {
+	status := statusDocs(t)
+	for name, text := range languageSpec(t) {
+		if !reviewedRe.MatchString(text) {
+			continue
+		}
+		for i, line := range strings.Split(text, "\n") {
+			if strings.HasPrefix(line, "- *Durum:*") {
+				t.Errorf("docs/spec/%s:%d: Durum satırı; bugünkü uygulama docs/status/%s'e yazılır", name, i+1, name)
+			}
+		}
+		if _, ok := status[name]; !ok {
+			t.Errorf("docs/spec/%s gözden geçirilmiş, ama uygulama durumu belgesi docs/status/%s yok", name, name)
+		}
+	}
+}
+
 // Gözden geçirilmiş (Test satırı biçimine geçmiş) bölüm dilin sözcüklerini kimlikle yazar
-// (Ahmet, 2026-10-27: "niye kodlar ile konuşmuyorsun"; K3): madde satırında, Durum ve Test
-// satırlarında ters tırnak içindeki bir sözcük bir kodun herhangi bir gösterim dilindeki adı
-// olamaz (`aktar`, `import` değil `TR_kw_import`). Emsal ve Gerekçe satırları başka dillerin
-// kodunu bilerek yazar (Python'un `if`'i, C#'ın `return`'ü), bakılmaz; kod çitleri belgelerin
-// kodlu saklanmasıyla (E4) gelecek. Bölümler gözden geçirildikçe kapsama girer.
+// (Ahmet, 2026-10-27: "niye kodlar ile konuşmuyorsun"; K3): madde ve Test satırlarında ve
+// uygulama durumu belgesinin (docs/status/) her satırında ters tırnak içindeki bir sözcük bir
+// kodun herhangi bir gösterim dilindeki adı olamaz (`aktar`, `import` değil `TR_kw_import`).
+// Emsal ve Gerekçe satırları başka dillerin kodunu bilerek yazar (Python'un `if`'i, C#'ın
+// `return`'ü), bakılmaz; kod çitleri belgelerin kodlu saklanmasıyla (E4) gelecek. Bölümler
+// gözden geçirildikçe kapsama girer.
 func TestReviewedSectionsWriteIdentities(t *testing.T) {
 	var langs []*codes.Language
 	for _, l := range codes.Languages() {
@@ -211,10 +253,8 @@ func TestReviewedSectionsWriteIdentities(t *testing.T) {
 	noIdentity := map[string]string{"tr test": "tr test komutunun kimliği yok (birikme listesi D1-12)"}
 	spans := regexp.MustCompile("`([^`\n]+)`")
 	words := regexp.MustCompile(`[\p{L}_][\p{L}\p{N}_]*`)
-	for name, text := range languageSpec(t) {
-		if !regexp.MustCompile(`(?m)^- \*Test:\*`).MatchString(text) {
-			continue
-		}
+	// check bir belgenin seçilen satırlarında kimlik yerine yazılmış adları yakalar.
+	check := func(path, text string, selected func(line string) bool) {
 		inFence := false
 		for i, line := range strings.Split(text, "\n") {
 			trimmed := strings.TrimSpace(line)
@@ -222,7 +262,7 @@ func TestReviewedSectionsWriteIdentities(t *testing.T) {
 				inFence = !inFence
 				continue
 			}
-			if inFence || !(ruleHeadRe.MatchString(line) || strings.HasPrefix(line, "- *Durum:*") || strings.HasPrefix(line, "- *Test:*")) {
+			if inFence || !selected(line) {
 				continue
 			}
 			for _, m := range spans.FindAllStringSubmatch(line, -1) {
@@ -236,13 +276,24 @@ func TestReviewedSectionsWriteIdentities(t *testing.T) {
 					for _, lang := range langs {
 						for _, ns := range []codes.Namespace{codes.NamespaceGlobal, codes.NamespaceType, codes.NamespaceMember, codes.NamespaceCommand} {
 							if k, ok := lang.Find(ns, w); ok {
-								t.Errorf("docs/spec/%s:%d: `%s` bir kodun adı (%s); kimliğiyle yazılır", name, i+1, w, k)
+								t.Errorf("%s:%d: `%s` bir kodun adı (%s); kimliğiyle yazılır", path, i+1, w, k)
 							}
 						}
 					}
 				}
 			}
 		}
+	}
+	for name, text := range languageSpec(t) {
+		if !reviewedRe.MatchString(text) {
+			continue
+		}
+		check("docs/spec/"+name, text, func(line string) bool {
+			return ruleHeadRe.MatchString(line) || strings.HasPrefix(line, "- *Test:*")
+		})
+	}
+	for name, text := range statusDocs(t) {
+		check("docs/status/"+name, text, func(string) bool { return true })
 	}
 }
 

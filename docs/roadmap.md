@@ -8,7 +8,7 @@ Dil tanımı ([`docs/spec/`](spec/README.md)) baştan, bölüm bölüm yazılıy
 
 ## 1. bölüm: Program
 
-Yazıldı ve iki denetimden geçti (2026-10-27). Uygulanacak kararlar; her birinin bugünkü durumu maddenin *Durum:* satırındadır, her biri testle kapanır:
+Yazıldı ve iki denetimden geçti (2026-10-27). Uygulanacak kararlar; her birinin bugünkü durumu [`status/01_program.md`](status/01_program.md)'dedir, her biri testle kapanır:
 
 1. **Statik tip ve tip çıkarımı (1.2).** Büyük tasarım: denetleyiciye tip çıkarımı; kitaplığın, örneklerin ve testlerin imzaları; "olabilir" tipi; tensörün tür ve şekil bilgisinin tipe ne kadar gireceği.
 2. **Modülde ve test dosyasında yalnız tanım, ilk değer sabit ifade (1.1).**
