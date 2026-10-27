@@ -2,6 +2,8 @@
 
 Kurallar: [`docs/spec/01_program.md`](../spec/01_program.md). Her madde için bugünkü durum ve kurala varmak için yapılacaklar. Yapılan iş testiyle birlikte buradan silinir.
 
+Kararlar henüz kesin değil: Gemini'nin araştırması bekleniyor, yapılacaklar ondan sonra başlar.
+
 ## 1.1
 
 - **Mevcut durum:**
