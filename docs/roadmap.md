@@ -1,6 +1,6 @@
 # TR Yol Haritası
 
-TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici için en iyi programlama dili. Model eğitimi dilin sınavıdır; ürün dilin kendisidir. Dilin en önemli yan faydası: biraz teknik bilgisi olan herkesin kendi yapay zekâ modelini kurup eğitebilmesi.
+TR'nin hedefi: yapay zekâ ekosistemindeki işler için en iyi programlama dili. Her türden model içindir (dil, görüntü, ses ...): model yazmak ve eğitmek, hazır modelleri çalıştırmak ve onlara ince ayar yapmak, modeli robot gibi makinelerin içinde çalıştırmak, uzaktaki modelleri bağlantı ve API ile kullanmak. Ürün dilin kendisidir. RGN-512 gibi modeller hedef değil, bu yolda kilometre taşıdır: dili gerçek işte sınarlar. Dilin en önemli yan faydası: biraz teknik bilgisi olan herkesin kendi yapay zekâ modelini kurup eğitebilmesi.
 
 Bugün TR, tek GPU'da sıfırdan model eğitmekte derlenmiş PyTorch'un (`torch.compile`) %7–15 gerisinde, belleği eşit kullanıyor ve aynı tarifle daha düşük kayba iniyor; hazır modelleri (Llama, Qwen3) safetensors'tan yükleyip GPU'da derlenmiş transformers'tan hızlı üretiyor; ama ince ayar yapamıyor, eğittiği modeli yaygın araçlara veremiyor. Yeni ML dillerinin (Swift for TensorFlow, Julia, Mojo, Dex, Futhark) ve Python dışı çerçevelerin (Gorgonia, GoMLX, Candle, Burn, llama.cpp) ortak dersi: kullanıcıyı dil tasarımı kazanmaz. Hazır modellere erişim, doğru gradyan, kararlı sürümler ve her gün kullanan bir iç kullanıcı kazanır. Bu yüzden sıra şudur: önce ölçüm ve doğruluk kapıları, sonra tek GPU'da bellek ve bakış boyu uyumu, sonra hazır ağırlık, ince ayar ve üretim yolu. Çoklu GPU ve genel derleyici ancak bunlar yerine oturunca gelir.
 
@@ -37,7 +37,7 @@ Tek GPU'da Transformer eğitmek ve hazır bir modeli çalıştırmak için kulla
 - **Dış incelemeler doğrulanarak düzeltilir.** Her bulgu önce yeniden üretilir. Doğrulananın düzeltmesine, düzeltmeden önce kalan sonra geçen bir test eklenir.
 - **Birlikte çalışma dosya ve protokol düzeyindedir.** Python köprüsü bilinçli olarak yoktur. Karşılığı, yaygın ve kararlı biçimleri okuyup yazmaktır: safetensors, Hugging Face `config.json` ve `tokenizer.json`, PEFT bağdaştırıcısı, GGUF, `.npy`, jsonl; sunumda OpenAI uyumlu HTTP protokolü.
 - **Tutulamayacak söz verilmez.** Uyumluluk yazılı bir sürüm politikasıyla verilir; her yerleşiğin kararlılık düzeyi bellidir.
-- **Hedef model sürekli TR'de eğitilir.** Dilin ilk ve her gün kullanan iç kullanıcısı odur.
+- **Kilometre taşı modelleri sürekli TR'de eğitilir ve çalıştırılır.** Dilin ilk ve her gün kullanan iç kullanıcısı onlardır; bugün RGN-512 (aşağıda "hedef model" diye geçer).
 - **Güçlü yanlar korunur.** Yeni özellik şunları bozmaz:
   - belirlenimcilik: sonuç işçi sayısından bağımsızdır, kesilip devam eden eğitim bit düzeyinde aynıdır;
   - tek dosya ve cgo'suz dağıtım: GPU yalnızca sürücüyle çalışır;
