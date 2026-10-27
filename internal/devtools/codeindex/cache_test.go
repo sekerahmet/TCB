@@ -199,7 +199,7 @@ func TestIncrementalEqualsFull(t *testing.T) {
 		case 1: // sabiti kullanan bir işlev
 			extras[i] = append(extras[i], fmt.Sprintf("fonksiyon k%d_%d() {\n    sonuç C%d\n}", i, step, rng.Intn(n)))
 		case 2: // yorum/boşluk değişikliği (içerik değişir, anlam değişmez)
-			extras[i] = append(extras[i], fmt.Sprintf("// not %d", step))
+			extras[i] = append(extras[i], fmt.Sprintf("# not %d", step))
 		case 3: // dosyayı boz ya da düzelt
 			if broken[i] {
 				delete(broken, i)
@@ -316,7 +316,7 @@ func BenchmarkBuild(b *testing.B) {
 		orig, _ := os.ReadFile(p)
 		defer os.WriteFile(p, orig, 0o644)
 		for i := 0; i < b.N; i++ {
-			if err := os.WriteFile(p, append(append([]byte(nil), orig...), []byte(fmt.Sprintf("// %d\n", i))...), 0o644); err != nil {
+			if err := os.WriteFile(p, append(append([]byte(nil), orig...), []byte(fmt.Sprintf("# %d\n", i))...), 0o644); err != nil {
 				b.Fatal(err)
 			}
 			if _, _, err := BuildCached(dir, opts); err != nil {
@@ -356,7 +356,7 @@ func TestBuildScalesLinearly(t *testing.T) {
 		edits := 0
 		return func() (int, error) {
 			edits++
-			os.WriteFile(p, append(append([]byte(nil), orig...), fmt.Sprintf("// düzenleme %d", edits)...), 0o644)
+			os.WriteFile(p, append(append([]byte(nil), orig...), fmt.Sprintf("# düzenleme %d", edits)...), 0o644)
 			return buildFiles(dir, true)
 		}
 	})

@@ -51,20 +51,20 @@ Tuşlar terminal hata ayıklayıcısında da (`TR_cmd_debug`) aynı anlamdadır:
 
 ## Kodlu dosyalar
 
-TR dosyaları diskte dilden bağımsız kodlarla saklanabilir (`TR_cmd_encode`; ilk satır `//! tr kodlu 2 dil=<dil>`, dilin sözcükleri `TR_kw_if`, `TR_fn_print` gibi kodlar). Böyle bir dosyayı açtığınızda (dosya gezgininden, bir hata bağlantısından, hata ayıklayıcıdan) eklenti onu **Türkçe yazımıyla** gösterir:
+TR dosyaları diskte dilden bağımsız kimliklerle saklanır: ilk satır `# TR 4`, dilin sözcükleri `TR_if`, `TR_print` gibi kimlikler; dosyanın dili yoktur. Böyle bir dosyayı açtığınızda (dosya gezgininden, bir hata bağlantısından, hata ayıklayıcıdan) eklenti onu **yazım dilinizde** (`tr.writingLanguage`) gösterir:
 
-- **Açma:** Sekme Türkçe görünümle değişir. Başlık satırı görünmez; görünümün satır numaraları hata mesajlarındaki ve hata ayıklayıcıdaki satırlarla birebir aynıdır (bir hata bağlantısı `dosya.tr:12:5` aynı yeri açar). Görünümün adresi dosyanın kendi yoludur (şeması `tr-coded:`); sekmenin üzerine gelince görülür.
+- **Açma:** Sekme yazım dilinizdeki görünümle değişir. Başlık satırı görünümde de durur; görünümün satır numaraları hata mesajlarındaki ve hata ayıklayıcıdaki satırlarla birebir aynıdır (bir hata bağlantısı `dosya.tr:12:5` aynı yeri açar). Görünümün adresi dosyanın kendi yoludur (şeması `tr-coded:`); sekmenin üzerine gelince görülür.
 - **Düzenleme ve kayıt:** Her zamanki gibi yazın; geri al/yinele, kaydedilmemiş değişiklik işareti, hepsini kaydet, otomatik kaydetme ve "dosya diskte değişti" uyarısı VS Code'un kendisindedir. Kaydedince dosya diske yine **kodlu** yazılır (`tr kodla -`); görünüm `tr göster -` ile üretilir. Eklentide ikinci bir çevirici yoktur, çeviriyi `tr` yapar.
-- **Yarım kod (sözdizimi hatası) varken kaydetme:** Hiçbir şey kaybolmaz. Metin ayrıştırılamıyorsa dosya **başlıksız Türkçe yazımıyla**, yazdığınız gibi kaydedilir ve bir kez "sözdizimi hatası düzelince yeniden kodlanacak" bilgisi gösterilir. Hata düzelince ilk kayıtta dosya yeniden kodlu yazılır (VS Code kapanıp açılsa da: dosya "kodlanmayı bekliyor" diye hatırlanır). Çeviri başka bir nedenle yapılamazsa da aynısı olur ve neden Türkçe söylenir.
-- **Kodlu ama ayrıştırılamayan dosya** (ör. bir birleştirme çakışmasının `<<<<<<<` işaretleri): ham, kodlu hâliyle gösterilir ve nedeni söylenir; kaydedince olduğu gibi yazılır. Düzeltip kaydettikten sonra dosyayı kapatıp açın, Türkçe görünür.
+- **Yarım kod (sözdizimi hatası) varken kaydetme:** Hiçbir şey kaybolmaz. Metin ayrıştırılamıyorsa dosya **yazım dilinizdeki yazımıyla**, yazdığınız gibi kaydedilir ve bir kez "sözdizimi hatası düzelince yeniden kodlanacak" bilgisi gösterilir. Hata düzelince ilk kayıtta dosya yeniden kodlu yazılır (VS Code kapanıp açılsa da: dosya "kodlanmayı bekliyor" diye hatırlanır). Çeviri başka bir nedenle yapılamazsa da aynısı olur ve nedeni söylenir.
+- **Kodlu ama ayrıştırılamayan dosya** (ör. bir birleştirme çakışmasının `<<<<<<<` işaretleri): ham, kodlu hâliyle gösterilir ve nedeni söylenir; kaydedince olduğu gibi yazılır. Düzeltip kaydettikten sonra dosyayı kapatıp açın, görünüm açılır.
 - **Hata ayıklama:** Kesme noktaları, adım adım ilerleme, çağrı yığını ve değişkenler görünümün satırlarıyla çalışır; program durunca satır görünümde işaretlenir. `launch.json`'daki `"program": "${file}"` görünümde de çalışır (eklenti dosyanın kendisinden çözer). Eklenti başlatma ayarına görünümün adresini (`"viewURI"`) kendisi ekler; elle yazmanız gerekmez.
-- **Kodlu olmayan dosyalar** (Türkçe yazılmış): yazım diliniz Türkçeyse eskisi gibi açılır ve kaydedilir; eklenti dosyaları kendiliğinden kodlamaz. Yazım diliniz başka bir dilse (`tr.writingLanguage`: `en`) bu dosyalar da sizin dilinizde açılır ve kaydedince diske yine **Türkçe** yazılır; yarım kodda yazdığınız kaybolmaz, hata düzelince ilk kayıtta Türkçeye çevrilir. Kısıtlı kipte Türkçe ve düzenlenebilir kalırlar. Bir dosyayı kodlamak için `tr kodla dosya.tr`.
+- **Başlıksız dosyalar** bir TR dosyası değildir (çalışmaz): olduğu gibi açılır ve kaydedilir; eklenti dosyaları kendiliğinden kodlamaz. Bir dilde yazılmış metni kodlamak için `tr kodla dosya.tr --dil tr`.
 - **Diskteki hâli görmek:** Komut Paleti → "TR: Kodlu Hâlini Göster" dosyanın kodlu hâlini yanda salt okunur açar.
-- **Kısıtlı kip:** Güvenilmeyen çalışma alanında yorumlayıcı çalıştırılmadığından çeviri yapılamaz; kodlu dosya **salt okunur, ham hâliyle** açılır ve nedeni söylenir. Çalışma alanına güvendiğinizde açık sekmeler Türkçe görünüme geçer.
+- **Kısıtlı kip:** Güvenilmeyen çalışma alanında yorumlayıcı çalıştırılmadığından çeviri yapılamaz; kodlu dosya **salt okunur, ham hâliyle** açılır ve nedeni söylenir. Çalışma alanına güvendiğinizde açık sekmeler görünüme geçer.
 - **Yorumlayıcı bulunamazsa** kodlu dosya ham hâliyle açık kalır ve yorumlayıcının nasıl kurulacağı söylenir.
 - **Git farkları:** `git diff`'in Türkçe fark göstermesi için `TR_cmd_show`'i textconv olarak tanıtın ([kılavuz](../../docs/guide/01_baslangic.md#kodlu-dosyalar-düzenleyici-ve-git-farkları)). VS Code'un kaynak denetimi görünümündeki farklar ham (kodlu) metni gösterir.
 
-Sınırlar: "Farklı Kaydet" ile kaydedilen yeni dosya Türkçe yazılır (kodlamak için `TR_cmd_encode`). Çalışma alanında arama (Ctrl+Shift+F) diskteki kodlu metinde arar; sonuçtan açılan satır başlık yüzünden bir satır kayabilir.
+Sınırlar: "Farklı Kaydet" ile kaydedilen yeni dosya yazım dilinizde yazılır (kodlamak için `TR_cmd_encode`). Çalışma alanında arama (Ctrl+Shift+F) diskteki kodlu metinde arar; satırlar aynıdır.
 
 ## Kod şablonları
 

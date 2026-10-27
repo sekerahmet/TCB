@@ -63,26 +63,26 @@ func TestStandardFormat(t *testing.T) {
 }
 
 func TestCommentsKept(t *testing.T) {
-	input := `// dosya başı yorumu
-// ikinci yorum
-değişken x = 1   // sondaki yorum
-/* çok
-   satırlı yorum */
+	input := `# dosya başı yorumu
+# ikinci yorum
+değişken x = 1   # sondaki yorum
+# çok
+#   satırlı yorum
 eğer x {
-        // blok içi yorum
-    yazdır(x) /* satır içi */ ; yazdır(2)
-    // kapanıştan önce
+        # blok içi yorum
+    yazdır(x) ; yazdır(2) # satır sonu
+    # kapanıştan önce
 }
-// dosya sonu
+# dosya sonu
 `
 	output := formatT(t, input)
-	for _, y := range []string{"// dosya başı yorumu", "// ikinci yorum", "// sondaki yorum",
-		"/* çok\n   satırlı yorum */", "// blok içi yorum", "/* satır içi */", "// kapanıştan önce", "// dosya sonu"} {
+	for _, y := range []string{"# dosya başı yorumu", "# ikinci yorum", "# sondaki yorum",
+		"# çok\n#   satırlı yorum", "# blok içi yorum", "# satır sonu", "# kapanıştan önce", "# dosya sonu"} {
 		if !strings.Contains(output, y) {
 			t.Errorf("yorum kayboldu: %q\nçıktı:\n%s", y, output)
 		}
 	}
-	if !strings.Contains(output, "\n    // blok içi yorum\n") || !strings.Contains(output, "\n    // kapanıştan önce\n}") {
+	if !strings.Contains(output, "\n    # blok içi yorum\n") || !strings.Contains(output, "\n    # kapanıştan önce\n}") {
 		t.Errorf("blok içi yorumlar girintilenmedi:\n%s", output)
 	}
 	if !strings.Contains(output, "değişken x = 1 # sondaki yorum\n") {
@@ -221,14 +221,14 @@ func TestCodedFileFormats(t *testing.T) {
 	if err := SameMeaning(got, "fonksiyon f(a) { sonuç a + 1 }\nyazdır(f(1))\n"); !errors.As(err, &meaning) {
 		t.Errorf("kodlu ve Türkçe biçim aynı sayıldı: %v", err)
 	}
-	// Kodlu sözcük kodla, kullanıcı adı metinle karşılaştırılır: TR_fn_print ile adı 'yazdır' olan
+	// Kodlu sözcük kodla, kullanıcı adı metinle karşılaştırılır: TR_print ile adı 'yazdır' olan
 	// kullanıcı değişkeni aynı değildir.
 	if err := SameMeaning("# TR 4\nTR_print\n", "# TR 4\nyazdır\n"); !errors.As(err, &meaning) {
 		t.Errorf("kod ile aynı adlı kullanıcı adı aynı sayıldı: %v", err)
 	}
-	// Dosyanın dili değerlerin metnini belirler (17.1): dili değişen dosya aynı anlamda değildir.
-	if err := SameMeaning("# TR 4\nTR_print(TR_true)\n", "# TR 4\nTR_print(TR_true)\n"); !errors.As(err, &meaning) {
-		t.Errorf("dili değişen kodlu dosya aynı sayıldı: %v", err)
+	// Biçimleme yorumu korur: '#' yorumu satırında kalır, başlık yorum olarak dokunulmadan durur.
+	if got, err := Format("# TR 4\nTR_var  x=1 # not\n"); err != nil || got != "# TR 4\nTR_var x = 1 # not\n" {
+		t.Errorf("kodlu dosyada yorum: %q, %v", got, err)
 	}
 }
 
