@@ -24,4 +24,4 @@ Her karar bu işlerin hepsine göre verilir.
 
 **Güvenilir.** Aynı program aynı veriyle aynı sonucu verir; kesilen bir eğitim kaldığı yerden aynı sonuçla sürer.
 
-**Kimlik kodlu dil.** Dilin asıl biçimi koddur: dosyalar diskte, program içeride dilden bağımsız kimliklerle (`TR_fn_sum`) çalışır. Türkçe ve İngilizce yalnız gösterim dilleridir; geliştirici kodu kendi dilinde okur ve yazar, yazdığı metin o dilden koda çevrilir. Hiçbir dilin ayrıcalığı yoktur.
+**Kimlik kodlu dil.** Bu dilde her şey kimlik koduyla yazılır: dosyalar diskte, program içeride dilden bağımsız kimliklerle (`TR_fn_sum`) çalışır. İnsanların okuyabilmesi için kod Türkçeye, İngilizceye ya da başka bir dile çevrilir; ama hiçbir insan dilinde kod yazılmaz. Hiçbir dilin ayrıcalığı yoktur.

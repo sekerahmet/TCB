@@ -14,7 +14,7 @@ Yazıldı; DENETİM'den ve Gemini'nin araştırmasından geçti (2026-10-27). He
 
 2. bölüm (sözcük yapısı), aynı yöntemle. Dil tanımı kodlu biçimi, yani kimliklerle yazılmış programı anlatır.
 
-**En sonda: gösterim dilleri** (Ahmet, 2026-10-27: "bu ayrı yeni bir spec olur en sonda"). Kodun bir insan dilinde gösterilmesi, o dilde yazılıp koda çevrilmesi, diller arası ad çakışması, değer metninin dili ve çok dilli ekip ayrı bir dil tanımı bölümü olarak, öbür bölümler bittikten sonra tasarlanır.
+**En sonda: gösterim dilleri** (Ahmet, 2026-10-27: "bu ayrı yeni bir spec olur en sonda"). Kod her zaman kimliklerle yazılır, hiçbir insan dilinde yazılmaz. Kodun okunabilmesi için bir insan diline çevrilmesi, diller arası ad çakışması, değer metninin dili ve çok dilli ekip ayrı bir dil tanımı bölümü olarak, öbür bölümler bittikten sonra tasarlanır.
 
 ## Kilometre taşları
 
