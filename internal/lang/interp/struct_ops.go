@@ -121,10 +121,25 @@ func structMember(inst *StructInstanceVal, e *ast.MemberExpression) (Value, erro
 			codeVal:    method.codeVal,
 		}, nil
 	}
-	if e.Safe {
-		return Null, nil
+	// '?.' yalnız yokluğu açar (4.8): var olan nesnede olmayan alan '.' ile aynı hatadır (7.5)
+	return nil, messages.At(e.Line(), 0, messages.New(messages.H2468, inst.Def.Name, e.Property, memberHint(inst.Def, e.Property)))
+}
+
+// memberHint yapıda olmayan bir üyenin ipucudur (7.5): adı 2.3a'nın uzaklığıyla en yakın alan ya da
+// metot; yakın ad yoksa alanı yapıya tipiyle eklemek.
+func memberHint(def *StructDefVal, prop string) *messages.Error {
+	names := make([]string, 0, len(def.Fields)+len(def.Methods))
+	for _, f := range def.Fields {
+		names = append(names, f.Name)
 	}
-	return nil, messages.At(e.Line(), 0, messages.New(messages.H2468, inst.Def.Name, e.Property, (*messages.Error)(nil)))
+	for name := range def.Methods {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	if h := hint.ClosestSuggestion(prop, names, nil); h != nil {
+		return h
+	}
+	return messages.New(messages.H2754, prop, def.Name)
 }
 
 // structDefMember yapının kendisinin (nesnesiz) üyesine erişimdir (N.m): yapının nesnesiz
@@ -142,18 +157,12 @@ func structDefMember(def *StructDefVal, e *ast.MemberExpression) (Value, error) 
 		}
 		return nil, messages.At(e.Line(), 0, messages.New(messages.H2751, def.Name, e.Property, args, margs))
 	}
-	names := make([]string, 0, len(def.Fields)+len(def.Methods))
 	for _, f := range def.Fields {
 		if f.Name == e.Property {
 			return nil, messages.At(e.Line(), 0, messages.New(messages.H2752, def.Name, e.Property, args))
 		}
-		names = append(names, f.Name)
 	}
-	for name := range def.Methods {
-		names = append(names, name)
-	}
-	slices.Sort(names)
-	return nil, messages.At(e.Line(), 0, messages.New(messages.H2468, def.Name, e.Property, hint.ClosestSuggestion(e.Property, names, nil)))
+	return nil, messages.At(e.Line(), 0, messages.New(messages.H2468, def.Name, e.Property, memberHint(def, e.Property)))
 }
 
 // constructibleBare yapı argümansız kurulabilir mi: kurucusu varsa parametrelerinin hepsinin,
@@ -178,7 +187,7 @@ func (v *VM) setStructField(inst *StructInstanceVal, prop string, codeVal uint8,
 		if _, meth := inst.Def.Methods[prop]; meth {
 			return messages.At(line, 0, messages.New(messages.H2404, prop, inst.Def.Name))
 		}
-		return messages.At(line, 0, messages.New(messages.H2405, inst.Def.Name, prop))
+		return messages.At(line, 0, messages.New(messages.H2405, inst.Def.Name, prop, memberHint(inst.Def, prop)))
 	}
 	if cur == nil {
 		cur = Null

@@ -123,7 +123,24 @@ TR_test "7.5 alanlar atanabilir; olmayan alan hata verir" {
     p.x = 7
     TR_assert_equal(7, p.x)
     TR_assert_equal("H2468", TR_error_code { p.z })
-    TR_assert_equal(TR_none, p?.z)
+    # '?.' yalnız yokluğu açar: var olan nesnede olmayan alan '.' ile aynı hatadır
+    TR_assert_equal("H2468", TR_error_code { p?.z })
+    TR_var yok = TR_none
+    TR_assert_equal(TR_none, yok?.z)
+}
+
+TR_test "7.5 ileti en yakın alanı önerir, yoksa alanı eklemeyi" {
+    TR_var p = Nokta(1, 2)
+    TR_var iletiler = []
+    TR_try { TR_print(p.yy) } TR_catch { iletiler.TR_append(TR_error) }
+    TR_try { p.xx = 3 } TR_catch { iletiler.TR_append(TR_error) }
+    TR_try { TR_print(p.renk) } TR_catch { iletiler.TR_append(TR_error) }
+    TR_assert(iletiler[0].TR_contains("'y'"), iletiler[0])
+    TR_assert(iletiler[1].TR_contains("'x'"), iletiler[1])
+    TR_assert(iletiler[2].TR_contains("renk: "), iletiler[2])
+    # önerilen yazım
+    p.x = 3
+    TR_assert_equal([3, 2], [p.x, p.y])
 }
 
 TR_test "7.5 tanımda olmayan alana atama hatadır; nesnenin alanları her zaman tanımdakilerdir" {

@@ -251,7 +251,7 @@ const (
 	H2402 Code = 2402 // {type} tipinde indeksli bileşik atama yapılamaz
 	H2403 Code = 2403 // Bu tipe indeks ile atama yapılamaz ({type})
 	H2404 Code = 2404 // '{prop}' {struct} yapısının bir metodu; metoda değer atanamaz
-	H2405 Code = 2405 // {struct} yapısında '{prop}' alanı yok; yapı tanımına '{prop}' alanını ekleyin
+	H2405 Code = 2405 // {struct} yapısında '{prop}' alanı yok{hint}
 	H2406 Code = 2406 // '{prop}' sözlüğün bir üyesi; anahtar için d[{prop|q}] yazın
 	H2407 Code = 2407 // {type} tipinin {prop|q} alanına atama yapılamaz
 	H2408 Code = 2408 // '{name}' fonksiyonu
@@ -430,6 +430,7 @@ const (
 	H2750 Code = 2750 // {struct}: '{field}' alanının varsayılanı yok ve ona değer verilmedi; argüman olarak, sırayla ya da adla verin
 	H2751 Code = 2751 // '{struct}.{method}': yapının kendi metodu yoktur; metot bir nesnede çağrılır, {struct}({args}).{method}({margs}), nesne gerektirmeyen iş dosyanın fonksiyonu olarak yazılır
 	H2752 Code = 2752 // '{struct}.{field}': alan yapının değil nesnenin alanıdır: {struct}({args}).{field}
+	H2754 Code = 2754 // ; '{prop}' içinde değer tutmak için onu {struct} yapısına tipiyle alan olarak ekleyin: {prop}: <Tip>
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}
