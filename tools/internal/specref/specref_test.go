@@ -335,3 +335,21 @@ func TestProductVersionsAreNotItemReferences(t *testing.T) {
 		t.Errorf("weak mentions = %v, want the existing 15.3 and the plain missing 15.9", weak)
 	}
 }
+
+// Kural: dış adrese (http, https) giden bağlantının yazısındaki numara, ürün adı versionWords'te olsun olmasın, madde
+// atfı değildir; madde var olsa da (Apply onu yeniden numaralamaz). Aynı satırdaki bağlantı dışı anmalar ve iç
+// bağlantılar sayılmaya devam eder (gaps.md: "[Kubernetes 1.37]", "[CPython 3.15 lexer]" not veriyordu).
+func TestExternalLinkTextIsNotAnItemReference(t *testing.T) {
+	spec := specFile(15, 1, 2, 3)
+	spec.Text += "[CPython 15.14 lexer](https://github.com/python/cpython/blob/15.14/x.h) ve [Mojo 15.2](http://mojo.example) ile, (15.9) ve (15.3) bkz.\n"
+	_, ms := build(spec)
+	var weak []string
+	for _, m := range ms {
+		if m.Kind == "weak" {
+			weak = append(weak, m.Tokens[0].ID)
+		}
+	}
+	if strings.Join(weak, ",") != "15.9,15.3" {
+		t.Errorf("weak mentions = %v, want only the plain 15.9 and 15.3 outside the external links", weak)
+	}
+}

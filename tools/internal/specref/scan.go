@@ -145,6 +145,7 @@ var (
 	reBold    = regexp.MustCompile(`\*\*(` + tok + `)(?:\s*([–-])\s*(` + tok + `))?\*\*(?:\s*([–-])\s*\*\*(` + tok + `)\*\*)?`)
 	reKeyword = regexp.MustCompile(`(?i:dil tan.m\p{L}*|§)\s*\[?(` + tok + `)(?:\]\([^)]*\))?(?:\s*(?:,|ve|[–-])\s*(?:\[?` + tok + `)(?:\]\([^)]*\))?)*`)
 	reLink    = regexp.MustCompile(`\[(` + tok + `)\]\([^)]*spec/[^)]*\)`)
+	reExtLink = regexp.MustCompile(`\[([^\]]*)\]\(https?://[^)]*\)`)
 	reToken   = regexp.MustCompile(tok)
 	reWeak    = regexp.MustCompile(`(?:^|[\s(,;–-])(` + tok + `)`)
 	reSuffix  = regexp.MustCompile(`^['’](\p{L}+)`)
@@ -242,6 +243,13 @@ func scanLine(path string, no, offset int, raw, line string, ix *Index) []Mentio
 		return nil // madde numarası içeremeyen satırda düzenli ifadeleri çalıştırmanın anlamı yok (satırların çoğu)
 	}
 	s := &lineScan{path: path, no: no, offset: offset, line: line, covered: make([]bool, len(line)+1)}
+	for _, m := range reExtLink.FindAllStringSubmatchIndex(line, -1) {
+		// Dış adrese giden bağlantının yazısı o kaynağın adıdır ("[CPython 3.15 lexer](https://...)"): içindeki numara
+		// ürün sürümüdür, madde atfı değildir; ürün adı hangisi olursa olsun.
+		for i := m[2]; i < m[3]; i++ {
+			s.covered[i] = true
+		}
+	}
 	if m := itemLine.FindStringSubmatchIndex(raw); m != nil && IsSpecFile(path) {
 		s.add("definition", m[2]-2, m[3]+2, false, []Token{{ID: raw[m[2]:m[3]], Start: m[2], End: m[3]}})
 	}
@@ -316,7 +324,8 @@ func (s *lineScan) weak(ix *Index) {
 }
 
 // versionWords ardından gelen numarayı ürün sürümü yapan adlardır: karşılaştırılan diller, çerçeveler ve belgeler ile
-// "sürüm" sözcüğü. Liste somut kullanıma göre büyür (dil tanımında geçenler).
+// "sürüm" sözcüğü. Yalnız bağlantısız anmalar içindir: kaynak bağlantısının yazısındaki sürüm adı ne olursa olsun
+// sayılmaz (reExtLink).
 var versionWords = regexp.MustCompile(`\b(PyTorch|NumPy|JAX|Go|go|CUDA|cuDNN|cuBLAS|cuBLASLt|Python|Rust|Swift|Kotlin|LSP|CommonMark|Unicode|IEEE|Triton|TensorFlow|Hugging Face|sürüm|sürümü|version)\b[^.!?]*$`)
 
 // versionContext numaranın önündeki aynı cümle parçası bir ürün adı ya da "sürüm" içeriyor mu: "PyTorch 2.14",
