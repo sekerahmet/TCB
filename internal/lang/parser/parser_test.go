@@ -336,7 +336,7 @@ func TestTestIsContextualKeyword(t *testing.T) {
 	}
 
 	// Ad olarak kullanım bozulmamalı
-	for _, code := range []string{"TR_var test = 5\ntest = test + 1\nTR_print(test)", "test := [1]\ntest[0]", "TR_func test(a) { TR_return a }\ntest(\"x\")"} {
+	for _, code := range []string{"TR_var test = 5\ntest = test + 1\nTR_print(test)", "TR_var test = [1]\ntest[0]", "TR_func test(a) { TR_return a }\ntest(\"x\")"} {
 		p := New(codedLexer(code))
 		prog := p.ParseProgram()
 		if len(p.Errors()) != 0 {

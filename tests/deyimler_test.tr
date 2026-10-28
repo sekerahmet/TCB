@@ -1,12 +1,10 @@
 # TR 4
 # docs/spec/05_deyimler.md §5 — Deyimler ve kontrol yapıları
 
-TR_test "5.1 değişken ve := tanımı" {
+TR_test "5.1 değişken ilk değeriyle tanımlanır" {
     TR_var a = 1
-    b := 2
-    TR_var c
+    TR_var b = 2
     TR_assert_equal(3, a + b)
-    TR_assert_equal(TR_none, c)
 }
 
 TR_test "5.2 sabit: tanımlandıktan sonra değiştirilemez" {

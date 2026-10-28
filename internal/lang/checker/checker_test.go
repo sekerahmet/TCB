@@ -51,10 +51,10 @@ func TestTypeNameASCIISuggestion(t *testing.T) {
 	singleErrorIn(t, "tr", "TR_func f(x) -> mantik { TR_return TR_true }", messages.H1007, 1, "'mantik'", "'Mantık'")
 	for name, canonical := range map[string]string{"int": "Tam", "float": "Ondalık", "str": "Metin", "string": "Metin",
 		"bool": "Mantık", "null": "YokTipi", "list": "Liste", "dict": "Sözlük", "map": "Sözlük", "matrix": "Tensör"} {
-		singleErrorIn(t, "tr", "TR_var a: "+name, messages.H1007, 1, "'"+name+"'", "'"+canonical+"'")
+		singleErrorIn(t, "tr", "TR_var a: "+name+" = TR_none", messages.H1007, 1, "'"+name+"'", "'"+canonical+"'")
 	}
 	for name, canonical := range map[string]string{"Ondalık": "Float", "Tam": "Int", "Sözlük": "Dict"} {
-		singleErrorIn(t, "en", "TR_var a: "+name, messages.H1007, 1, "'"+name+"'", "'"+canonical+"'")
+		singleErrorIn(t, "en", "TR_var a: "+name+" = TR_none", messages.H1007, 1, "'"+name+"'", "'"+canonical+"'")
 	}
 }
 
@@ -67,7 +67,7 @@ func TestTypeNameCaseSpelling(t *testing.T) {
 		"en": {"int": "Int", "FLOAT": "Float", "string": "String", "bool": "Bool", "list": "List"},
 	} {
 		for name, canonical := range names {
-			singleErrorIn(t, lang, "TR_var a: "+name, messages.H1006, 1, "'"+name+"'", "'"+canonical+"'")
+			singleErrorIn(t, lang, "TR_var a: "+name+" = TR_none", messages.H1006, 1, "'"+name+"'", "'"+canonical+"'")
 		}
 	}
 	singleErrorIn(t, "tr", "TR_func f(x: liste) { TR_return x }", messages.H1006, 1, "'liste'", "'Liste'")
@@ -133,7 +133,6 @@ func TestTypedVarCompatible(t *testing.T) {
 		`TR_var a: TR_Dict = {"a": 1}`,
 		"TR_var m1 = TR_eye(2)\nTR_var m2 = m1\nTR_var a: TR_Tensor = m1 @ m2",
 		"TR_var a: TR_Int = TR_none",
-		"TR_var a: TR_Int", // değer verilmezse 'yok' atanır
 		"TR_var bilinmeyen_tip = TR_input()\nTR_var a: TR_Int = bilinmeyen_tip",
 		`TR_var a: TR_Int = TR_print("x")`,
 		"TR_var a: TR_Int = TR_Int(5)",
@@ -198,14 +197,13 @@ func TestAssignmentTypeCheck(t *testing.T) {
 	// Dil dinamiktir: tip açıklaması olmayan değişkenin ilk değerden çıkarılan tipi kalıcı
 	// bir bildirim değildir; başka tipte değer atanabilir. Sabitlerin tipi kalır.
 	noErrors(t, "TR_var a = 5\na = \"beş\"")
-	noErrors(t, "x := TR_true\nx = 1")
+	noErrors(t, "TR_var x = TR_true\nx = 1")
 	noErrors(t, "TR_var kayıp = 0\nTR_for i TR_in 1..3 { kayıp += 0.5 }")
 	singleError(t, "TR_const S = 5\nTR_var m: TR_String = S", messages.H1001, 2, `"TR_String"`, `"TR_Int"`)
 
 	// 'yok' veya bilinmeyen tipte başlayan değişkenler serbestçe atanabilir
 	noErrors(t, "TR_var a = TR_none\na = 5\na = \"x\"")
 	noErrors(t, "TR_var a = TR_input()\na = 5\na = \"x\"")
-	noErrors(t, "TR_var a\na = [1]")
 
 	// Tanımlanmamış bir hedefe atama tanımsız ad hatasıdır (5.4, 5.14)
 	singleError(t, "tanımsız = 5", messages.H1010, 1, "'tanımsız'")
