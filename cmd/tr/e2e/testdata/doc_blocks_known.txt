@@ -10,7 +10,6 @@ docs/spec/12_testler.md:5
 docs/spec/15_tensorler.md:118
 docs/spec/15_tensorler.md:17
 docs/spec/15_tensorler.md:84
-docs/spec/17_kodlar.md:56
 docs/spec/18_dosya_ve_yol.md:35
 docs/spec/20_kontrol_noktasi.md:5
 docs/spec/20_kontrol_noktasi.md:71

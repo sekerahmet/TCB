@@ -52,7 +52,7 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). DENETİM'
 
 - **Mevcut durum:**
   - Belgelerde ters tırnak içinde sınıflı kimlik yazımı kalıyor (TR_kw_…, TR_fn_…, TR_mem_… biçimi; 48 belgede yaklaşık 2 770 yer, spec ve arşiv hariç) [ölçüldü: katman 1].
-  - Bölüm 11 ve 17 eski başlığı, dosyanın dilini, iç içe aktarmayı ve gösterime göre konumu anlatıyor (11.3'ün eşzamanlı aktarma cümlesi, 17.1, 17.4, 17.5, 17.7); bölümler yeniden yazılınca düzelir.
+  - Bölüm 11 eski başlığı, dosyanın dilini ve iç içe aktarmayı anlatıyor (11.3'ün eşzamanlı aktarma cümlesi); bölüm yeniden yazılınca düzelir. 17 yeniden yazıldı (2026-10-29).
 - **Yapılacaklar:** belgelerdeki sınıflı yazım `tools/migrate`'in kimlik çevirisiyle çevrilir.
 
 ### 2.3a
@@ -414,3 +414,30 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 
 - **Mevcut durum:** yanlış tip ve sayı çalışma anında, iletiyle: "sqrt() expects Int or Float as argument 1, String (\"a\") given", "sqrt() takes 1 argument, 2 given (usage: sqrt(number))" [ölçüldü].
 - **Yapılacaklar:** denetleyicide aynı kodla (4a).
+
+## 17. Kodlar
+
+Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): ana oturum yeniden yazdı (Ahmet: "17 şimdi düzeltsen ? sürekli kafanı karıştıracak"), DENETİM bekleniyor. 4a'dan önce gelir, çünkü 4a kod kaydına yeni kodlar ekler.
+
+### 17.2
+
+- **Mevcut durum:** program metninde kısa yazım, içeride sınıflı kimlik uygulanmış (katman 1). 60 kısa ad birden çok sınıfta, yeri ayırıyor [ölçüldü: `definitions.json`].
+- **Yapılacaklar:** aynı yerde geçerli iki kimliğin kısa adının aynı olmasını yüklemede reddetmek ve Go testi.
+
+### 17.4
+
+- **Mevcut durum:** 565 kodun 245'i kitaplık kodu; kitaplık kodlarının hiçbirinin açıklaması ve örneği yok, `TestEveryCodeHasDescription` onları atlıyor ("madde 15 adım 3c") [ölçüldü].
+- **Yapılacaklar:** kitaplık kodlarının açıklaması ve örneği; atlama kalkar. Dil tanımına giren ama uygulanmamış adlar (13'ün ve 15'in yeni adları) uygulandıkları commit'te tanım ve dil dosyalarına girer.
+
+### 17.5
+
+- **Yapılacaklar:** ad alanı çakışmasının reddine Go testi; `TR_assert_equal`'ın Türkçe adı bugün "eşit_mi", bir sınama soru gibi okunuyor (13'ün ad işinde).
+
+### 17.8
+
+- **Mevcut durum:** değerin metni dilden bağımsız ("true", "none", "List", "<builtin print>") [ölçüldü]. Kitaplık tipinin metni sınıflı kimlik veriyor: `TR_print(TR_Type(TR_Linear(2, 3, TR_seed: 1)))` → "TR_type_Linear" [ölçüldü: main `1ef66921`].
+- **Yapılacaklar:** tipin metni kimliğin adı ("Linear"); TR testi.
+
+### 17.10
+
+- **Mevcut durum:** belgelerde eski sınıflı yazım kalıyor (2.1'in satırı).

@@ -18,7 +18,6 @@ var classedIdentity = regexp.MustCompile(`(^|[^\p{L}\p{N}_])(TR_(?:kw|ctx|val|ty
 // bütün eşleşmeleri). Liste küçük tutulur; yeni bir kayıt gerekçesiyle girer.
 var deadIdentityAllowed = map[string]map[string]string{
 	"internal/live_identities_test.go":                            {"*": "bu testin kendisi: izin listesi bilerek yazılan kimlikleri anar"},
-	"docs/spec/17_kodlar.md":                                      {"TR_fn_yok": "bilinmeyen kimlik iletisinin örneği (17.2)"},
 	"docs/spec/rationale/02_lexical_structure.md":                 {"TR_fn_argv": "84ee01b8'deki ölçümün alıntısı: bugünkü TR'nin öneri vermediği ad"},
 	"docs/code_identities.md":                                     {"*": "eski kodu kimliğe eşleyen donmuş tablo: silinen kimlikleri bilerek taşır"},
 	"internal/lang/codes/language_test.go":                        {"*": "kod listesinin denetimi: geçersiz ve uydurma kimliklerin örnekleri"},
