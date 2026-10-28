@@ -28,7 +28,7 @@
   "reason": "deleted: checker: an unused value without a call is the error H1017 (2.8)"
  },
  "H2046": {
-  "commit": "83891db1",
+  "commit": "d134bc2d",
   "reason": "deleted: interp: '//' is floor division (4.2a); the not-implemented error is gone"
  },
  "H2116": {
