@@ -33,7 +33,7 @@ func run(t *testing.T, code string) (string, interp.Value, error) {
 func TestJSONDecodePreservesKeyOrder(t *testing.T) {
 	_, val, err := run(t, `
 		TR_var d = TR_json_parse("{\"zeta\": 1, \"alfa\": 2.5, \"orta\": [true, null, \"x\"], \"iç\": {\"b\": 1, \"a\": 2}}")
-		TR_return [d.TR_keys(), d["iç"].TR_keys(), d["orta"], d["alfa"], TR_json_string(d)]`)
+		TR_var result = [d.TR_keys(), d["iç"].TR_keys(), d["orta"], d["alfa"], TR_json_string(d)]`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func TestDictKeysAreTypeAware(t *testing.T) {
 		TR_var d = {1: "tam", "1": "metin"}
 		d[TR_true] = "mantık"
 		d["doğru"] = "metin2"
-		TR_return [d[1], d["1"], d[TR_true], d["doğru"], d.TR_length, d.TR_contains(1), d.TR_contains("2")]
+		TR_var result = [d[1], d["1"], d[TR_true], d["doğru"], d.TR_length, d.TR_contains(1), d.TR_contains("2")]
 	`)
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
@@ -63,7 +63,7 @@ func TestDictKeysAreTypeAware(t *testing.T) {
 		TR_var d = {1: "a", "b": 2}
 		TR_var tipler = []
 		TR_for k, v TR_in d { tipler = tipler + [TR_type(k)] }
-		TR_return [tipler, d.TR_keys(), [TR_type(k) TR_for k TR_in d]]
+		TR_var result = [tipler, d.TR_keys(), [TR_type(k) TR_for k TR_in d]]
 	`)
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
@@ -104,7 +104,7 @@ func TestCSVReadFileAndParseText(t *testing.T) {
 	if err := os.WriteFile(file, []byte("ad, yaş\nAli, 30\nAyşe, 27.5\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	_, val, err := run(t, fmt.Sprintf(`sonuç [csv_oku(%q), csv_çöz("x,1\ny,2"), csv_çöz("tek"), csv_çöz("tarih,1/2/2024"), csv_çöz("")]`, file))
+	_, val, err := run(t, fmt.Sprintf(`TR_var result = [TR_read_csv(%q), TR_parse_csv("x,1\ny,2"), TR_parse_csv("tek"), TR_parse_csv("tarih,1/2/2024"), TR_parse_csv("")]`, file))
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
 	}
@@ -113,7 +113,7 @@ func TestCSVReadFileAndParseText(t *testing.T) {
 		t.Fatalf("%s bekleniyordu, %s alındı", want, val.Inspect())
 	}
 	// csv_çöz dosya okumaz: var olan dosyanın yolu da tek hücreli bir tablodur.
-	_, val, err = run(t, fmt.Sprintf(`sonuç csv_çöz(%q)`, file))
+	_, val, err = run(t, fmt.Sprintf(`TR_var result = TR_parse_csv(%q)`, file))
 	if err != nil || val.Inspect() != fmt.Sprintf(`[[%q]]`, file) {
 		t.Fatalf("csv_çöz yolu metin saymalı: %v %v", val, err)
 	}
@@ -136,7 +136,7 @@ func TestCSVReadRejectsText(t *testing.T) {
 		{filepath.ToSlash(filepath.Join(dir, "yok", "veri.txt")), 0},
 		{"a\tb.csv", messages.H2489},
 	} {
-		_, val, err := run(t, fmt.Sprintf(`sonuç csv_oku(%q)`, d.arg))
+		_, val, err := run(t, fmt.Sprintf(`TR_var result = TR_read_csv(%q)`, d.arg))
 		ok := messages.Has(err, d.want)
 		if d.want == 0 {
 			ok = errors.Is(err, fs.ErrNotExist) && !messages.Has(err, messages.H7007)
@@ -146,7 +146,7 @@ func TestCSVReadRejectsText(t *testing.T) {
 		}
 	}
 	// Klasör yolu da sessizce metin sayılmamalı.
-	_, _, err := run(t, fmt.Sprintf(`sonuç csv_oku(%q)`, filepath.ToSlash(dir)))
+	_, _, err := run(t, fmt.Sprintf(`TR_var result = TR_read_csv(%q)`, filepath.ToSlash(dir)))
 	if !messages.Has(err, messages.H7003) {
 		t.Fatalf("klasör hatası (H7003) bekleniyordu, alınan: %v", err)
 	}
@@ -158,14 +158,15 @@ func TestCSVResolvesRelativeToProgram(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "yerel_tablo.csv"), []byte("a,b\n1,2"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	p := parser.New(source.TextLexer(`TR_return TR_read_csv("yerel_tablo.csv")`))
+	p := parser.New(source.TextLexer(`TR_var result = TR_read_csv("yerel_tablo.csv")`))
 	prog := p.ParseProgram()
 	machine := interp.New()
 	machine.SourceFile = filepath.Join(dir, "program.tr")
-	val, err := machine.Run(prog)
+	_, err := machine.Run(prog)
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
 	}
+	val, _ := machine.GlobalEnv.Get("result")
 	if val.Inspect() != `[["a", "b"], [1, 2]]` {
 		t.Fatalf("beklenmeyen sonuç: %s", val.Inspect())
 	}
@@ -180,13 +181,13 @@ func TestCSVStrictNumbersAndBOM(t *testing.T) {
 	if err := os.WriteFile(file, []byte("\ufeffad,deger\nx,1\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	_, val, err := run(t, fmt.Sprintf(`sonuç [csv_oku(%q)[0][0] == "ad", csv_çöz("%sa,b")[0][0]]`, file, "\ufeff"))
+	_, val, err := run(t, fmt.Sprintf(`TR_var result = [TR_read_csv(%q)[0][0] == "ad", TR_parse_csv("%sa,b")[0][0]]`, file, "\ufeff"))
 	if err != nil || val.Inspect() != `[doğru, "a"]` {
 		t.Fatalf("BOM soyulmalı: %v %v", val, err)
 	}
 	_, val, err = run(t, `
 		TR_var s = TR_parse_csv("a,b,c,d,e,f,g,h,i,j,k,l\nNaN,Inf,-Inf,infinity,007,12345678901234567890,0x10,1_000,1e400,+5,00.5,.5\n-0,0,1.0,2.5e3,-7,9223372036854775807,1E-3,0.0,,  42 ,1.,1e")
-		TR_return [s[1], [TR_type(h) TR_for h TR_in s[1]], s[2], [TR_type(h) TR_for h TR_in s[2]]]`)
+		TR_var result = [s[1], [TR_type(h) TR_for h TR_in s[1]], s[2], [TR_type(h) TR_for h TR_in s[2]]]`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -202,7 +203,7 @@ func TestCSVStrictNumbersAndBOM(t *testing.T) {
 // Hakem bulgusu 15 ve 5: json_metin anahtar sırasını kaybediyordu, NaN'da İngilizce hata
 // veriyordu, döngüsel listede süreç yığın taşmasıyla çöküyordu (dene yakalayamıyordu).
 func TestJSONTextOrderNaNAndCycle(t *testing.T) {
-	_, val, err := run(t, `TR_return TR_json_string(TR_json_parse("{\"b\": 1, \"a\": {\"z\": 2, \"y\": [3]}}"))`)
+	_, val, err := run(t, `TR_var result = TR_json_string(TR_json_parse("{\"b\": 1, \"a\": {\"z\": 2, \"y\": [3]}}"))`)
 	if err != nil || val.Inspect() != `{"b":1,"a":{"z":2,"y":[3]}}` {
 		t.Fatalf("sıra korunmalı: %v %v", val, err)
 	}
@@ -216,16 +217,17 @@ func TestJSONTextOrderNaNAndCycle(t *testing.T) {
 		TR_try { TR_json_string(d) } TR_catch h { mesajlar.TR_append("\(h)") }
 		TR_try { TR_json_string({"x": TR_sqrt(-1.0)}) } TR_catch h { mesajlar.TR_append("\(h)") }
 		TR_try { TR_json_string([1e308 * 10.0]) } TR_catch h { mesajlar.TR_append("\(h)") }
-		TR_return mesajlar`)
+		TR_var result = mesajlar`)
 	if err != nil {
 		t.Fatal(err)
 	}
 	m := val.Inspect()
-	if strings.Count(m, "kendini içeriyor") != 2 || strings.Count(m, "JSON'a yazılamaz") != 4 || strings.Contains(m, "unsupported") {
-		t.Fatalf("Türkçe döngü ve NaN hataları bekleniyordu: %s", m)
+	// Yakalanan hatanın metni dilden bağımsızdır (İngilizce, 3.14).
+	if strings.Count(m, "contains itself") != 2 || strings.Count(m, "cannot be written to JSON") != 4 || strings.Contains(m, "unsupported") {
+		t.Fatalf("döngü ve NaN hataları bekleniyordu: %s", m)
 	}
 	// BOM'lu JSON metni de çözülür
-	_, val, err = run(t, fmt.Sprintf(`TR_return TR_json_parse("%s{\"a\": 1}")["a"]`, "\ufeff"))
+	_, val, err = run(t, fmt.Sprintf(`TR_var result = TR_json_parse("%s{\"a\": 1}")["a"]`, "\ufeff"))
 	if err != nil || val.Inspect() != "1" {
 		t.Fatalf("BOM'lu JSON: %v %v", val, err)
 	}

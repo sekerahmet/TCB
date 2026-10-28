@@ -34,11 +34,12 @@ type Outcome struct {
 	Out    string       // yazdır() çıktısı
 	ErrOut string       // programın hata akışı (VM.Err): uyarılar ve görev hataları
 	VM     *interp.VM   // programın çalıştığı VM (genel değişkenleri okumak için)
-	Value  interp.Value // programın son değeri
+	Value  interp.Value // programın 'result' adlı genel değişkeni; yoksa son değeri
 	Err    error
 }
 
-// Exec kodu yeni bir VM'de çalıştırır, eşzamanlı görevleri bekler ve sonucu verir.
+// Exec kodu yeni bir VM'de çalıştırır, eşzamanlı görevleri bekler ve sonucu verir. Programın
+// sonucu 'result' adlı genel değişkendir: programın en dışında TR_return yazılmaz (1.10).
 func Exec(t testing.TB, code string) Outcome {
 	t.Helper()
 	prog := Parse(t, code)
@@ -46,6 +47,9 @@ func Exec(t testing.TB, code string) Outcome {
 	var out, errOut bytes.Buffer
 	m.Out, m.Err = &out, &errOut
 	val, err := m.Run(prog)
+	if r, ok := m.GlobalEnv.Get("result"); ok {
+		val = r
+	}
 	m.WaitAsync()
 	return Outcome{Out: out.String(), ErrOut: errOut.String(), VM: m, Value: val, Err: err}
 }
