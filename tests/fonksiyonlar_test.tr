@@ -19,7 +19,7 @@ TR_test "6.1 fonksiyonlar tanımlandıkları noktadan sonra kullanılabilir" {
     TR_assert_equal(1, sonra_tanımlı())
 }
 
-TR_test "6.2 sonuç değer döndürür; yoksa son deyimin değeri döner" {
+TR_test "6.2 TR_return değer döndürür; gövdenin son ifadesi dönüş değeri değildir" {
     TR_func erken(x) {
         TR_if x > 0 { TR_return "pozitif" }
         TR_return "değil"
@@ -27,7 +27,10 @@ TR_test "6.2 sonuç değer döndürür; yoksa son deyimin değeri döner" {
     TR_assert_equal("pozitif", erken(1))
     TR_assert_equal("değil", erken(-1))
     TR_func örtük() { 5 }
-    TR_assert_equal(5, örtük())
+    TR_assert_equal(TR_none, örtük())
+    # Sondaki blok ise bir fonksiyon gövdesi değildir: değeri son ifadesidir (6.7)
+    TR_func çalıştır(iş) { TR_return iş() }
+    TR_assert_equal(5, çalıştır { 5 })
     TR_func boş_dönüş() { TR_return }
     TR_assert_equal(TR_none, boş_dönüş())
 }

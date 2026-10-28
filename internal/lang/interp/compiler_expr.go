@@ -5,6 +5,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/hint"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -132,6 +133,7 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 
 	case *ast.FunctionLiteral:
 		fk := c.function(k, e.Parameters, e.Body, false)
+		fk.blockValue = e.Token.Type == lexer.TokLBrace
 		var definition func(*Environment, Value, bool)
 		if e.Name != "" {
 			definition = identifier(k, e.Name)
