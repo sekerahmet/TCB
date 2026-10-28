@@ -58,9 +58,9 @@ func (vs *VarStatement) TokenLiteral() string { return vs.Token.Literal }
 func (vs *VarStatement) Line() int            { return vs.Token.Line }
 
 type AssignStatement struct {
-	Token    lexer.Token     // =, +=, -=, *=, /=
+	Token    lexer.Token     // = ya da bileşik atama (+=, //=, <<= ...; 5.4)
 	Target   Expression      // Identifier, IndexExpression or MemberExpression
-	Operator lexer.TokenType // "=", "+=", "-=", "*=", "/="
+	Operator lexer.TokenType // "=", "+=", "-=", "*=", "/=", "//=", "%=", "**=", "&=", "|=", "^=", "<<=", ">>="
 	Value    Expression
 }
 

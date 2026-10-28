@@ -63,6 +63,32 @@ func checkFixedCases(t *testing.T, cases []fixedCase) {
 	}
 }
 
+// Kural (4.9, 5.4): satır sonundaki '//' (sağında ifade yok) yorum alışkanlığıdır; hata '//'dedir,
+// düzeltme '#' yazar ve parantez dışında olduğu gibi uygulanır. Parantez içinde kapanış da yoruma
+// girerdi: düzeltme yalnız öneridir. '//=' bileşik atamadır, H0025 vermez.
+func TestFloorDivisionWithoutRightSideSuggestsAComment(t *testing.T) {
+	checkFixedCases(t, []fixedCase{
+		{"TR_var a = 7 //", "//", messages.H0025, "TR_var a = 7 #", true},
+		{"TR_var a = 7 // : not", "//", messages.H0025, "TR_var a = 7 # : not", true},
+	})
+	code := "TR_print(7 // )"
+	errs := parseErrs(code)
+	line, col := posOf(t, code, "//")
+	if !hasErrAt(errs, line, col, messages.H0025) {
+		t.Fatalf("%q: H0025 bekleniyordu: %v", code, errs)
+	}
+	if pos, _ := messages.Find(errs[0]); len(pos.Fixes) != 1 || pos.Fixes[0].Applicable || pos.Fixes[0].Replacement != "#" {
+		t.Errorf("%q: parantez içinde uygulanamaz '#' önerisi bekleniyordu: %+v", code, pos.Fixes)
+	}
+	if errs := parseErrs("TR_var x = 9\nx //= 2"); len(errs) != 0 {
+		t.Errorf("'//=' hata vermemeli: %v", errs)
+	}
+	// Hedef tam bölmenin sağında bir ifadeyse tam bölmedir: H0025 bir kez, '//'de.
+	if errs := parseErrs("TR_var a = 7 // 2"); len(errs) != 0 {
+		t.Errorf("tam bölme hata vermemeli: %v", errs)
+	}
+}
+
 // Kural (5.1): kısa tanım (x := 5) yoktur, ileti ve düzeltme TR_var'ı yazar; TR_var ile ':=' de hatadır;
 // ilk değeri yazılmamış tanım hatadır, önerilen '= TR_none' bugünkü anlamı korur ama asıl değer
 // olmadığından olduğu gibi uygulanmaz.

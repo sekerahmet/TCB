@@ -311,16 +311,16 @@
           "match": "=>"
         },
         {
+          "name": "keyword.operator.assignment.compound.tr",
+          "match": "//=|\\*\\*=|<<=|>>=|\\+=|-=|\\*=|/=|%=|&=|\\|=|\\^="
+        },
+        {
           "name": "keyword.operator.comparison.tr",
           "match": "==|!=|<=|>=|<|>"
         },
         {
           "name": "keyword.operator.logical.tr",
           "match": "&&|\\|\\||!"
-        },
-        {
-          "name": "keyword.operator.assignment.compound.tr",
-          "match": "\\+=|-=|\\*=|/="
         },
         {
           "name": "keyword.operator.assignment.tr",

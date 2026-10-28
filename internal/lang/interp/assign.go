@@ -4,17 +4,45 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// Bu dosyada derlenmiş atamaların değer düzeyindeki yardımcıları vardır. kod opAta ise düz
-// atamadır; opTopla/opCikar/opCarp/opBol bileşik atamalardır (+=, -=, *=, /=).
+// Bu dosyada derlenmiş atamaların değer düzeyindeki yardımcıları vardır. kod opAssign ise düz
+// atamadır; öbür kodlar bileşik atamanın ikili işlecidir (+=, //=, <<= ...; 5.4).
 
 // assignOp bileşik atamada mevcut değerle sağ tarafı birleştirir; düz atamada sağ
 // tarafı olduğu gibi döndürür.
 func (v *VM) assignOp(codeVal uint8, cur Value, rhs Value, line int) (Value, error) {
-	switch codeVal {
-	case opAdd, opSub, opMul, opDiv:
-		return v.infix(codeVal, assignOpText(codeVal), cur, rhs, line)
+	if codeVal == opAssign {
+		return rhs, nil
 	}
-	return rhs, nil
+	if res, done, err := v.listInPlace(codeVal, cur, rhs, line); done {
+		return res, err
+	}
+	return v.infix(codeVal, assignOpText(codeVal), cur, rhs, line)
+}
+
+// listInPlace listede += ve *= atamasını yerinde yapar (5.4): sonuç '+' ve '*'nin kurallarıyla (4.10:
+// yinelenemeyen öğe, boy sınırı) kurulur, öğeleri aynı listeye yazılır; listeyi paylaşan her ad
+// değişikliği görür. Bağ değişmediği için sabit listede de geçerlidir. done, atamanın bir liste
+// ataması olduğudur (yapıldı ya da hata verdi); değilse çağıran genel yolla sürer.
+func (v *VM) listInPlace(codeVal uint8, cur, rhs Value, line int) (res Value, done bool, err error) {
+	l, ok := cur.(*ListVal)
+	if !ok || codeVal != opAdd && codeVal != opMul {
+		return nil, false, nil
+	}
+	fresh, err := v.infix(codeVal, assignOpText(codeVal), cur, rhs, line)
+	if err != nil {
+		return nil, true, err
+	}
+	nl, ok := fresh.(*ListVal)
+	if !ok {
+		return fresh, true, nil
+	}
+	// Değişen liste ve ona giren öğeler kaçar (ownership.go; setIndex gibi).
+	escape(l)
+	for _, e := range nl.Elements {
+		escape(e)
+	}
+	l.Elements = nl.Elements
+	return l, true, nil
 }
 
 // setIndex kap[idx] = değer atamasını yapar.

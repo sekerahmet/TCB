@@ -104,6 +104,15 @@ const (
 	TokMinusAssign = "-="
 	TokMulAssign   = "*="
 	TokDivAssign   = "/="
+	// Öbür ikili işleçlerin bileşik ataması (5.4).
+	TokFloorDivAssign = "//="
+	TokModAssign      = "%="
+	TokPowAssign      = "**="
+	TokBitAndAssign   = "&="
+	TokBitOrAssign    = "|="
+	TokBitXorAssign   = "^="
+	TokShlAssign      = "<<="
+	TokShrAssign      = ">>="
 
 	// Delimiters
 	TokComma     = ","

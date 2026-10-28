@@ -289,9 +289,11 @@ func (p *Parser) parseExpressionOrAssignmentStatement() ast.Statement {
 		}
 	}
 
-	// Atama operatörü kontrolü (=, +=, -=, *=, /=)
+	// Atama ve on iki bileşik atama (5.4)
 	switch p.peekToken().Type {
-	case lexer.TokAssign, lexer.TokPlusAssign, lexer.TokMinusAssign, lexer.TokMulAssign, lexer.TokDivAssign:
+	case lexer.TokAssign, lexer.TokPlusAssign, lexer.TokMinusAssign, lexer.TokMulAssign, lexer.TokDivAssign,
+		lexer.TokFloorDivAssign, lexer.TokModAssign, lexer.TokPowAssign, lexer.TokBitAndAssign, lexer.TokBitOrAssign,
+		lexer.TokBitXorAssign, lexer.TokShlAssign, lexer.TokShrAssign:
 		p.nextToken()
 		opTok := p.curToken()
 		p.nextToken()

@@ -426,7 +426,10 @@ func (c *Checker) checkAssign(s *ast.AssignStatement) {
 			if op != "" {
 				valType = arithmeticType(op, info.TypeName, valType)
 			}
-			if info.IsConst {
+			// Listede += ve *= listeyi yerinde değiştirir, bağ değişmez: sabit listede de geçerlidir
+			// (5.4, 5.2); tipi bilinmeyen sabitte karar çalışma anında verilir.
+			inPlace := (op == "+" || op == "*") && (info.TypeName == typeList || info.TypeName == typeAny)
+			if info.IsConst && !inPlace {
 				c.addErrorAt(ident, messages.New(messages.H1002, ident.Value, c.word(codes.KwConst)))
 			}
 			if info.TypeName != typeAny && info.TypeName != typeNull && !typesCompatible(info.TypeName, valType) {

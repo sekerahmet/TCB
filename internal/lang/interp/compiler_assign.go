@@ -12,7 +12,7 @@ import (
 // assignTarget bir atama hedefini derler; dönen işlev sağ taraf değerini hedefe yazar
 // (bileşik atamada önce mevcut değerle işlem yapar).
 func (c *compiler) assignTarget(k *compilerScope, target ast.Expression, codeVal uint8, line int) func(v *VM, env *Environment, rhs Value) error {
-	compound := codeVal == opAdd || codeVal == opSub || codeVal == opMul || codeVal == opDiv
+	compound := codeVal != opAssign
 	switch t := target.(type) {
 	case *ast.Identifier:
 		r := k.resolve(t.Value)
@@ -27,12 +27,19 @@ func (c *compiler) assignTarget(k *compilerScope, target ast.Expression, codeVal
 		return func(v *VM, env *Environment, rhs Value) error {
 			o := slotEnv(r, env)
 			if i < len(o.vals) {
-				if cur := o.vals[i]; cur != nil && !o.isConstant(i) {
+				cur := o.vals[i]
+				if compound && cur != nil {
+					// Listede += ve *= yerindedir, bağ değişmez: sabit listede de geçerli (5.4).
+					if _, done, err := v.listInPlace(codeVal, cur, rhs, line); done {
+						return err
+					}
+				}
+				if cur != nil && !o.isConstant(i) {
 					if !compound {
 						o.store(i, rhs)
 						return nil
 					}
-					if li, ok := cur.(*IntVal); ok {
+					if li, ok := cur.(*IntVal); ok && fast != nil {
 						if ri, ok := rhs.(*IntVal); ok {
 							if x, ok := fast(li.Val, ri.Val); ok {
 								o.vals[i] = x
@@ -92,6 +99,9 @@ func (v *VM) assignByName(env *Environment, t *ast.Identifier, codeVal uint8, ri
 		cur, ok := env.Get(t.Value)
 		if !ok {
 			return messages.At(line, t.Token.Column, messages.New(messages.H2437, t.Value, v.suggestName(t.Value, env)))
+		}
+		if _, done, err := v.listInPlace(codeVal, cur, rightVal, line); done {
+			return err // yerinde: bağ değişmez (sabit listede de)
 		}
 		var err error
 		finalVal, err = v.assignOp(codeVal, cur, rightVal, line)

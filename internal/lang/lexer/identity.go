@@ -187,7 +187,8 @@ func expectsOperand(t TokenType) bool {
 	case TokAssign, TokWalrus, TokPlus, TokMinus, TokAsterisk, TokSlash, TokSlashSlash, TokPercent,
 		TokPower, TokMatmul, TokBang, TokEq, TokNotEq, TokLt, TokGt, TokLte, TokGte, TokAnd, TokOr,
 		TokPipe, TokNullCoalesc, TokArrow, TokRange, TokRangeIncl, TokPlusAssign, TokMinusAssign,
-		TokMulAssign, TokDivAssign, TokColon, TokQuestion, TokLParen, TokLBracket,
+		TokMulAssign, TokDivAssign, TokFloorDivAssign, TokModAssign, TokPowAssign, TokBitAndAssign,
+		TokBitOrAssign, TokBitXorAssign, TokShlAssign, TokShrAssign, TokColon, TokQuestion, TokLParen, TokLBracket,
 		TokBitAnd, TokBitOr, TokBitXor, TokTilde, TokShl, TokShr:
 		return true
 	}

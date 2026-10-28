@@ -144,8 +144,11 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	}
 	p.nextToken()
 	if tok.Type == lexer.TokSlashSlash && !p.startsExpression() {
-		// '// not' C ailesinin yorumudur (4.9): tam bölmenin sağında ifade yoksa ileti '#'i önerir.
-		p.syntaxError(p.curToken(), messages.H0025)
+		// '// not' C ailesinin yorumudur (4.9): tam bölmenin sağında ifade yoksa hata '//'dedir ve '#'i
+		// önerir. Düzeltme satırın kalanını yoruma çevirir; parantez dışında soldaki ifade tamamdır,
+		// olduğu gibi uygulanabilir. Parantez içinde kapanış da yoruma girerdi: yalnız öneri.
+		fix := messages.Fix{Range: tok.Range(), Replacement: "#", Applicable: p.brackets == 0}
+		p.syntaxErrorFix(tok, []messages.Fix{fix}, messages.H0025)
 		return nil
 	}
 	if prec == precCompare {

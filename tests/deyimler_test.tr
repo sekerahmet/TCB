@@ -42,11 +42,72 @@ TR_test "5.4 atama ve bileşik atama" {
     x += 3
     x -= 1
     x *= 2
-    x /= 7
+    x //= 7
     TR_assert_equal(2, x)
     TR_var l = [1, 2]
     l[0] = 9
     TR_assert_equal([9, 2], l)
+}
+
+TR_test "5.4 on iki bileşik atama x op= y, x = x op y demektir" {
+    TR_var x = 17
+    x //= 2
+    TR_assert_equal(8, x)
+    x %= 5
+    TR_assert_equal(3, x)
+    x **= 3
+    TR_assert_equal(27, x)
+    x &= 6
+    TR_assert_equal(2, x)
+    x |= 1
+    TR_assert_equal(3, x)
+    x ^= 5
+    TR_assert_equal(6, x)
+    x <<= 2
+    TR_assert_equal(24, x)
+    x >>= 1
+    TR_assert_equal(12, x)
+    TR_var o = 7.0
+    o /= 2
+    TR_assert_equal(3.5, o)
+    TR_var d = {"a": 7}
+    d["a"] //= 2
+    TR_assert_equal(3, d["a"])
+}
+
+TR_test "5.4 listede += ve *= yerindedir, listeyi paylaşan ad da görür" {
+    TR_var l = [1]
+    TR_var m = l
+    l += [2]
+    TR_assert_equal([1, 2], m)
+    l *= 2
+    TR_assert_equal([1, 2, 1, 2], m)
+    # sabit olan bağdır: sabit listede de geçerli (5.2)
+    TR_const s = [0]
+    s += [1]
+    TR_assert_equal([0, 1], s)
+    # eski anlam (yeni liste) isteniyorsa açıkça yazılır
+    TR_var n = l
+    l = l + [3]
+    TR_assert_equal([1, 2, 1, 2], n)
+    # *= 4.10'un yineleme kuralına uyar: boy sınırını aşan liste çalışma hatasıdır, liste değişmez
+    TR_var büyük = [0]
+    TR_var kod = TR_error_code { [0] * 200000000 }
+    TR_assert(kod != TR_none)
+    TR_assert_equal(kod, TR_error_code { büyük *= 200000000 })
+    TR_assert_equal([0], büyük)
+}
+
+TR_test "5.4 bileşik atamanın hedefi bir kez hesaplanır" {
+    TR_var çağrı = 0
+    TR_func sıra() {
+        çağrı += 1
+        TR_return 0
+    }
+    TR_var l = [5]
+    l[sıra()] += 1
+    TR_assert_equal(1, çağrı)
+    TR_assert_equal([6], l)
 }
 
 TR_test "5.5 eğer / değilse eğer / değilse bir ifadedir" {

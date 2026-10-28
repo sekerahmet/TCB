@@ -40,7 +40,6 @@ const maxLongFuncs = 40
 // longFuncs funcLimit'i aşan test dışı fonksiyonlardır ("dosya:Alici.Ad").
 var longFuncs = map[string]exception{
 	// Dil çekirdeği
-	"internal/lang/lexer/lexer.go:Lexer.nextToken":               {102, reasonDispatch + " (karakter başına durum makinesi; " + reasonHotPath + "; NextToken onu sarar)"},
 	"internal/lang/interp/compiler_loop.go:compiler.inLoop":      {172, reasonHotPath + " (liste/aralık/sözlük/metin döngülerinin hızlı yolları)"},
 	"internal/lang/interp/compiler_expr.go:compiler.expression":  {168, reasonDispatch},
 	"internal/lang/interp/compiler_op.go:compiler.binary":        {132, reasonHotPath + " (işleç başına tam sayı/ondalık hızlı yolları)"},

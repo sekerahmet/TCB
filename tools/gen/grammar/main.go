@@ -265,9 +265,10 @@ func Generate() ([]byte, error) {
 				rule("keyword.operator.null-coalescing.tr", `\?\?`),
 				rule("punctuation.accessor.optional.tr", `\?\.`),
 				rule("keyword.operator.arrow.tr", `=>`),
+				// Bileşik atama karşılaştırmadan önce: <<= ve >>= '<' ile '<=' diye bölünmesin (5.4).
+				rule("keyword.operator.assignment.compound.tr", `//=|\*\*=|<<=|>>=|\+=|-=|\*=|/=|%=|&=|\|=|\^=`),
 				rule("keyword.operator.comparison.tr", `==|!=|<=|>=|<|>`),
 				rule("keyword.operator.logical.tr", `&&|\|\||!`),
-				rule("keyword.operator.assignment.compound.tr", `\+=|-=|\*=|/=`),
 				rule("keyword.operator.assignment.tr", `=`),
 				rule("keyword.operator.arithmetic.tr", `\*\*|//|@|[+\-*/%]`),
 				rule("keyword.operator.ternary.tr", `\?`),

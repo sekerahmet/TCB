@@ -50,21 +50,21 @@ func opCode(op string) uint8 {
 		return opMul
 	case "/", "/=":
 		return opDiv
-	case "%":
+	case "%", "%=":
 		return opMod
-	case "//":
+	case "//", "//=":
 		return opFloorDiv
-	case "&":
+	case "&", "&=":
 		return opBitAnd
-	case "|":
+	case "|", "|=":
 		return opBitOr
-	case "^":
+	case "^", "^=":
 		return opBitXor
-	case "<<":
+	case "<<", "<<=":
 		return opShl
-	case ">>":
+	case ">>", ">>=":
 		return opShr
-	case "**":
+	case "**", "**=":
 		return opPow
 	case "<":
 		return opLt
@@ -103,6 +103,22 @@ func assignOpText(codeVal uint8) string {
 		return "*"
 	case opDiv:
 		return "/"
+	case opFloorDiv:
+		return "//"
+	case opMod:
+		return "%"
+	case opPow:
+		return "**"
+	case opBitAnd:
+		return "&"
+	case opBitOr:
+		return "|"
+	case opBitXor:
+		return "^"
+	case opShl:
+		return "<<"
+	case opShr:
+		return ">>"
 	}
 	return ""
 }
