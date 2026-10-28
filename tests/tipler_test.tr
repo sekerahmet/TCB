@@ -62,6 +62,46 @@ TR_test "3.3 dilimde negatif uç indeksteki gibi sondan sayar" {
     TR_assert_equal("", "şeker"[3..1])
 }
 
+TR_test "3.3a Bayt dizisi: metinden ve tam sayı listesinden kurulur, indeks ve dilim metindeki gibidir" {
+    TR_var b = TR_Bytes("şe")
+    TR_assert_equal(TR_Bytes([197, 159, 101]), b)
+    TR_assert_equal(3, b.TR_length)
+    TR_assert_equal(197, b[0])
+    TR_assert_equal(101, b[-1])
+    TR_assert_equal(TR_Bytes([159, 101]), b[1..3])
+    TR_assert_equal(TR_Bytes([]), b[2..1])
+    TR_assert_equal("H2515", TR_error_code(() => { b[3] }))
+    TR_assert_equal(TR_none, b.TR_get(3))
+    TR_assert_equal(TR_Bytes, TR_Type(b))
+    TR_var toplam = 0
+    TR_for i, x TR_in b { toplam = toplam + i * x }
+    TR_assert_equal(159 + 2 * 101, toplam)
+}
+
+TR_test "3.3a 0–255 dışındaki sayı ve geçersiz UTF-8 çalışma hatasıdır; metinle bayt kendiliğinden dönüşmez" {
+    TR_assert_equal("şe", TR_String(TR_Bytes("şe")))
+    TR_assert_equal("H2655", TR_error_code(() => { TR_Bytes([0, 256]) }))
+    TR_assert_equal("H2655", TR_error_code(() => { TR_Bytes([-1]) }))
+    TR_assert_equal("H2655", TR_error_code(() => { TR_Bytes(["a"]) }))
+    TR_assert_equal("H2656", TR_error_code(() => { TR_String(TR_Bytes([197])) }))
+    TR_assert_equal("H2656", TR_error_code(() => { TR_String(TR_Bytes([255, 97])) }))
+    TR_assert(TR_Bytes("a") != TR_Bytes("b"))
+}
+
+TR_test "3.3a bayt dizisi bayt bayt karşılaştırılır (4.5), birleşir ve yinelenir (4.10), sözlük anahtarı olur (3.7)" {
+    TR_var b = TR_Bytes([1, 2])
+    TR_assert(b == TR_Bytes([1, 2]))
+    TR_assert(TR_Bytes("") == TR_Bytes([]))
+    TR_assert_equal(TR_Bytes([1, 2, 3]), b + TR_Bytes([3]))
+    TR_assert_equal(TR_Bytes([1, 2, 1, 2]), b * 2)
+    TR_assert_equal(TR_Bytes([1, 2, 1, 2]), 2 * b)
+    TR_assert_equal(TR_Bytes([]), b * -1)
+    TR_assert_equal(TR_Bytes([1, 2]), b)
+    TR_var d = {b: "iki bayt"}
+    TR_assert_equal("iki bayt", d[TR_Bytes([1, 2])])
+    TR_assert_equal(TR_false, d.TR_contains(TR_Bytes([1])))
+}
+
 TR_test "3.4 Mantık: doğru ve yanlış" {
     TR_assert_equal(TR_Bool, TR_type(TR_true))
     TR_assert(TR_true != TR_false)
@@ -122,7 +162,7 @@ TR_test "3.7 anahtar yalnız köşeli parantezle okunur ve yazılır; olmayan an
     TR_assert_equal("H2647", TR_error_code(() => { {1: "bir"}["1"] }))
 }
 
-TR_test "3.7 anahtar tipi Int, String ya da Bool'dur; ondalık ve öbür değerler anahtar olamaz" {
+TR_test "3.7 anahtar tipi Int, String, Bool ya da Bytes'tır; ondalık ve öbür değerler anahtar olamaz" {
     TR_var d = {}
     TR_assert_equal("H2646", TR_error_code(() => { d[1.0] = "bir" }))
     TR_assert_equal("H2646", TR_error_code(() => { TR_var e = {0.5: "yarım"} }))

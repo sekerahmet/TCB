@@ -41,6 +41,7 @@ func (v *VM) registerTypeCalls() {
 		{codes.TypeList, listCall},
 		{codes.TypeType, typeCall},
 		{codes.TypeJSON, jsonCall},
+		{codes.TypeBytes, bytesCall},
 	} {
 		k, single := c.k, c.fn
 		v.RegisterTypeCall(k, &BuiltinVal{NoNamedArgs: true, Single: single,
@@ -132,6 +133,9 @@ func stringCall(y *VM, a Value) (Value, error) {
 			return s, nil
 		}
 		return nil, jsonKindError(codes.TypeString, j)
+	}
+	if b, ok := a.(*BytesVal); ok {
+		return bytesText(b)
 	}
 	return &StringVal{Val: y.textOf(a)}, nil
 }

@@ -35,6 +35,7 @@
   "TR_type_Any": { "name": "Any" },
   "TR_type_Bool": { "name": "Bool" },
   "TR_type_BuiltinFunction": { "name": "BuiltinFunction" },
+  "TR_type_Bytes": { "name": "Bytes" },
   "TR_type_CausalAttention": { "name": "CausalAttention" },
   "TR_type_Checkpoint": { "name": "Checkpoint" },
   "TR_type_Dataset": { "name": "Dataset" },

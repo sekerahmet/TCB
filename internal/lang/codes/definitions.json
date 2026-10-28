@@ -36,6 +36,7 @@
   "TR_type_Any": { "kind": "type" },
   "TR_type_Bool": { "kind": "type", "related": ["TR_kw_true", "TR_kw_false"], "familiar": ["bool"] },
   "TR_type_BuiltinFunction": { "kind": "type", "related": ["TR_type_Function"] },
+  "TR_type_Bytes": { "kind": "type", "related": ["TR_type_String"], "familiar": ["bytes", "bytearray", "Buffer"] },
   "TR_type_CausalAttention": { "kind": "type", "module": "tr/katman" },
   "TR_type_Checkpoint": { "kind": "type", "related": ["TR_fn_checkpoint", "TR_mem_update", "TR_mem_resume_step", "TR_mem_save", "TR_mem_rollback"], "familiar": ["Checkpoint"] },
   "TR_type_Dataset": { "kind": "type", "related": ["TR_fn_dataset"] },

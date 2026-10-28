@@ -267,6 +267,8 @@ func DictKey(v Value) string {
 		if x.Struct != nil {
 			return identityKey(x.Struct)
 		}
+	case *BytesVal:
+		return nonStringKeyPrefix + string(ValBytes) + ":" + string(x.b)
 	case *BoolVal, *NullVal, *FloatVal, *IntVal, *RangeVal:
 	default:
 		return identityKey(v)
@@ -284,13 +286,13 @@ func identityKey(v Value) string {
 	return fmt.Sprintf("%s%s:%p", nonStringKeyPrefix, v.Type(), v)
 }
 
-// DictKeyError reports why a value cannot be a dict key, or nil (3.7). Keys are Int, String and
-// Bool. A value whose contents can change in place (a list, a dict, a struct instance, an engine
+// DictKeyError reports why a value cannot be a dict key, or nil (3.7). Keys are Int, String, Bool
+// and Bytes. A value whose contents can change in place (a list, a dict, a struct instance, an engine
 // object such as a tensor) would be lost from the dict once changed (H2495); a decimal key could
 // be missed by rounding, and other values have no key equality (H2646).
 func DictKeyError(v Value) error {
 	switch v.(type) {
-	case *StringVal, *IntVal, *BoolVal:
+	case *StringVal, *IntVal, *BoolVal, *BytesVal:
 		return nil
 	case *ListVal, *DictVal, *StructInstanceVal, IndexAssignable, MemberAssignable:
 		return messages.New(messages.H2495, v.Type())

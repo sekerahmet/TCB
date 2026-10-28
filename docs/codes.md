@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 576 kod: 26 anahtar kelime, 6 bağlamsal sözcük, 2 değer adı, 43 tip, 139 fonksiyon, 11 sabit, 61 metot, 97 özellik, 136 adlı argüman.
+Toplam 577 kod: 26 anahtar kelime, 6 bağlamsal sözcük, 2 değer adı, 44 tip, 139 fonksiyon, 11 sabit, 61 metot, 97 özellik, 136 adlı argüman.
 
 ## İçindekiler
 
@@ -388,6 +388,16 @@ değişken f: YerleşikFonksiyon = yazdır; f(tip(f))
 ```
 
 İlişkili: TR_type_Function `Fonksiyon`
+
+#### TR_type_Bytes `Baytlar`
+
+Değiştirilemez bayt dizisinin tipidir (3.3a): dosya, ağ, görüntü ve ses verisi. b[i] 0–255 arası bir Tam, b[a..c] yine Baytlar verir; Baytlar("ab") metnin UTF-8 baytlarını, Baytlar([0, 255]) bir tam sayı listesini kurar; Metin(b) UTF-8 okur. Metin ile bayt kendiliğinden dönüşmez.
+
+```tr
+değişken b = Baytlar("şe"); yazdır(b, b.uzunluk, b[0], Metin(b + Baytlar([107])))
+```
+
+İlişkili: TR_type_String `Metin`
 
 #### TR_type_CausalAttention `NedenselDikkat`
 

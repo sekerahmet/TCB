@@ -357,8 +357,8 @@ const (
 	H2642 Code = 2642 // {@Float}(): {value|q} sayı olarak okunamadı; programdaki gibi noktayla, isteğe bağlı işaret ve üsle yazın ("3.14", "-1.5", "2e-3") ya da "inf", "-inf", "nan"; yerel ayar yoktur ("1,5" okunmaz) ve {@Float} aralığını aşan sayı okunmaz
 	H2643 Code = 2643 // {@Bool}(): {value|q} bir mantık değeri değil; yalnız "true" ve "false" okunur
 	H2644 Code = 2644 // {@Bool}() yalnız "true" ya da "false" metnini okur, {given} verildi; bunun yerine karşılaştırmayla sorun (x != 0, l.{@length} > 0)
-	H2645 Code = 2645 // {type} tipi çağrılamaz; değer kuran ya da çeviren tipler {@Int}, {@Float}, {@String}, {@Bool}, {@List}, {@Type}, {@JSON} ve kitaplığın tipleridir
-	H2646 Code = 2646 // {type} bir sözlük anahtarı olamaz: anahtarlar {@Int}, {@String} ya da {@Bool} olur (ondalık anahtar yuvarlama yüzünden bulunamayabilirdi); anahtarı {@Int}(x) ya da {@String}(x) ile çevirin
+	H2645 Code = 2645 // {type} tipi çağrılamaz; değer kuran ya da çeviren tipler {@Int}, {@Float}, {@String}, {@Bool}, {@List}, {@Type}, {@JSON}, {@Bytes} ve kitaplığın tipleridir
+	H2646 Code = 2646 // {type} bir sözlük anahtarı olamaz: anahtarlar {@Int}, {@String}, {@Bool} ya da {@Bytes} olur (ondalık anahtar yuvarlama yüzünden bulunamayabilirdi); anahtarı {@Int}(x) ya da {@String}(x) ile çevirin
 	H2647 Code = 2647 // {key} anahtarı sözlükte yok; olmayabilecek bir anahtar için .{@get}({key}) ?? varsayılan yazın
 	H2648 Code = 2648 // sözlük anahtarı noktayla değil köşeli parantezle okunur ve yazılır: ["{name}"] yazın (nokta yalnız sözlüğün üyelerini verir, .{@keys}() gibi)
 	H2649 Code = 2649 // JSON nesnesinde {key} anahtarı yok; olmayabilecek bir anahtar için .{@get}({key}) yazıp yokla karşılaştırın
@@ -367,6 +367,8 @@ const (
 	H2652 Code = 2652 // {type}() bu JSON değerini açamaz: türü {kind}; türünü {@Type}(j) ile sorup uygun tiple açın
 	H2653 Code = 2653 // {value} JSON'a giremez: JSON'da sonsuz ya da tanımsız sayı yoktur
 	H2654 Code = 2654 // {given} {@JSON} içine giremez: JSON yokluk, mantık değeri, sayı, metin, liste ve {@String} anahtarlı sözlük tutar
+	H2655 Code = 2655 // {@Bytes}() 0 ile 255 arası {@Int} sayılardan kurar; {index} indeksindeki öğe {value}
+	H2656 Code = 2656 // {@String}(): baytlar geçerli UTF-8 değil (ilk geçersiz bayt {offset} indeksinde); UTF-8 olmayan veri {@Bytes} olarak kalır
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

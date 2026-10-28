@@ -1,7 +1,7 @@
 # TR 4
 # 04 — Metin: metne değer yerleştirmek ve metinle çalışmak.
 # Ne öğretir: {...} ile metne ifade yerleştirmek, \" kaçışı, uzunluk, büyük_harf/küçük_harf,
-# kırp, içerir, başlar, biter, değiştir, böl.
+# kırp, içerir, başlar, biter, değiştir, böl; metnin baytları (Baytlar).
 # Önceki örnekten: değişkenler ve tipler (02, 03).
 # Çalıştırma (proje kökünden): tr examples/tr/04_metin.tr
 
@@ -32,6 +32,11 @@ TR_print("rapor.tr".TR_starts_with("rap"), "rapor.tr".TR_ends_with(".tr"), "rapo
 
 # böl metni ayırıcıdan parçalara ayırır; sonuç bir listedir (listeleri 09'da öğreneceğiz).
 TR_print("elma,armut,kiraz".TR_split(","))
+
+# Metin karakterlerden, bayt dizisi baytlardan oluşur: "ş" bir karakterdir, UTF-8'de iki bayttır.
+# Dosya, ağ ve görüntü verisi baytlardır; metinle bayt kendiliğinden birbirine dönüşmez.
+TR_var baytlar = TR_Bytes("aş")
+TR_print(baytlar, baytlar.TR_length, "aş".TR_length, TR_String(baytlar))
 
 # --- Kendin dene ---
 # 1. Adını ve doğum yılını iki değişkene yaz; "{ad} {yıl} doğumlu, bu yıl ... yaşında" cümlesini kur.
