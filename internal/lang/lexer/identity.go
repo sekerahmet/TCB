@@ -49,6 +49,14 @@ type placeState struct {
 	importStep int
 	prevName   string
 	afterAlias bool
+	// forHeader döngü başlığında (TR_for'dan TR_in'e ya da '{'ye kadar), varDecl tanımda
+	// (TR_var/TR_const'tan '='e ya da satır sonuna kadar) olunduğudur: oradaki adlar tanımdır
+	// (defines).
+	forHeader bool
+	varDecl   bool
+	// declDepth döngü başlığının ya da tanımın açıldığı parantez derinliğidir: içteki parantezlerin
+	// adları (TR_for a < f(x, y)) tanım değildir.
+	declDepth int
 }
 
 // track okunan sözcük birimine göre bağlamı günceller.
@@ -56,6 +64,19 @@ func (l *Lexer) track(tok Token) {
 	s := &l.places
 	if s.pending != nil && tok.Line != s.paramsLine {
 		s.pending = nil
+	}
+	if tok.Line != s.prevLine {
+		s.varDecl = false
+	}
+	switch tok.Type {
+	case TokFor:
+		s.forHeader, s.declDepth = true, len(s.stack)
+	case TokIn:
+		s.forHeader = false
+	case TokVar, TokConst:
+		s.varDecl, s.declDepth = true, len(s.stack)
+	case TokAssign:
+		s.varDecl = false
 	}
 	switch tok.Type {
 	case TokLParen:
@@ -67,6 +88,7 @@ func (l *Lexer) track(tok Token) {
 	case TokLBracket:
 		s.stack = append(s.stack, bracket{open: TokLBracket})
 	case TokLBrace:
+		s.forHeader = false
 		b := bracket{open: TokLBrace, structBody: s.prev == TokIdent && s.prev2 == TokStruct}
 		if s.pending != nil {
 			b.scope, s.pending = s.pending, nil
@@ -146,9 +168,10 @@ func (l *Lexer) placeOf(line int) (place, second codes.Place, fallback bool) {
 	case top.params && (s.prev == TokLParen || s.prev == TokComma):
 		return codes.PlaceArg, 0, false
 	case top.structBody && (s.prev == TokFunction || s.prev == TokLBrace || s.prev == TokComma ||
-		s.prev == TokSemicolon || s.prev == TokVar || s.prevLine < line):
+		s.prev == TokSemicolon || s.prev == TokVar || s.prevLine < line && !expectsOperand(s.prev)):
 		// Yapı gövdesinde alan ve metot adı üyedir; aynı yerde TR_func ve TR_var da yazılır,
-		// TR_init bağlamsal sözcüktür: üye bulunmazsa öbür yere bakılır.
+		// TR_init bağlamsal sözcüktür: üye bulunmazsa öbür yere bakılır. '=' ya da bir işleçten
+		// sonraki satır değerin devamıdır (TR_eps = ↵ TR_embedding): öbür yer.
 		return codes.PlaceMember, codes.PlaceOther, true
 	case top.open == TokLParen && l.colonAhead():
 		return codes.PlaceArg, 0, false
@@ -158,9 +181,99 @@ func (l *Lexer) placeOf(line int) (place, second codes.Place, fallback bool) {
 	return codes.PlaceOther, 0, false
 }
 
+// expectsOperand t'den sonra bir değer beklenir mi: atama, işleç, açılan parantez, ':' (değer
+// satır sonundan sonra sürer).
+func expectsOperand(t TokenType) bool {
+	switch t {
+	case TokAssign, TokWalrus, TokPlus, TokMinus, TokAsterisk, TokSlash, TokSlashSlash, TokPercent,
+		TokPower, TokMatmul, TokBang, TokEq, TokNotEq, TokLt, TokGt, TokLte, TokGte, TokAnd, TokOr,
+		TokPipe, TokNullCoalesc, TokArrow, TokRange, TokRangeIncl, TokPlusAssign, TokMinusAssign,
+		TokMulAssign, TokDivAssign, TokColon, TokQuestion, TokLParen, TokLBracket:
+		return true
+	}
+	return false
+}
+
+// defines okunan ad, değişken adı tanımlanan bir yerde mi (2.3a: kullanıcının adı TR_ ile
+// başlamaz): çoklu tanımın sonraki adları (TR_var a, b), döngü değişkenleri (TR_for i, x TR_in),
+// yakalama adı (TR_catch h) ve ok fonksiyonunun parametreleri ((a, b) =>, a =>). Fonksiyonun
+// parametresi adlı argümandır (TR_func f(TR_lr)), tanım sayılmaz; TR_var, TR_const, TR_func ve
+// TR_struct'tan sonraki ad identity'de, kimlik olarak çözülemezse denetlenir (TR_init, TR_GPT).
+func (l *Lexer) defines() bool {
+	s := &l.places
+	top := s.top()
+	switch {
+	case s.prev == TokCatch, s.varDecl && s.prev == TokComma && len(s.stack) == s.declDepth:
+		return true
+	case s.forHeader && len(s.stack) == s.declDepth && (s.prev == TokFor || s.prev == TokComma):
+		return l.aheadIs(",") || l.aheadWord(codes.Spelling(codes.KwIn))
+	case top.params:
+		return false
+	case top.open == TokLParen && (s.prev == TokLParen || s.prev == TokComma) && l.closesBeforeArrow():
+		return true
+	case s.prev == TokAssign || s.prev == TokLParen || s.prev == TokComma && top.open == TokLParen:
+		return l.aheadIs("=>")
+	}
+	return false
+}
+
+// skipBlanks i'den başlayarak boşluk ve sekmeleri atlar.
+func (l *Lexer) skipBlanks(i int) int {
+	for i < len(l.input) && (l.input[i] == ' ' || l.input[i] == '\t') {
+		i++
+	}
+	return i
+}
+
+// aheadIs okunan addan sonra (boşluktan sonra) s geliyor mu?
+func (l *Lexer) aheadIs(s string) bool {
+	i := l.skipBlanks(l.position)
+	return strings.HasPrefix(string(l.input[i:min(len(l.input), i+utf8.RuneCountInString(s))]), s)
+}
+
+// aheadWord okunan addan sonra (boşluktan sonra) w sözcüğü geliyor mu (ardından ad harfi yok)?
+func (l *Lexer) aheadWord(w string) bool {
+	i := l.skipBlanks(l.position)
+	r := []rune(w)
+	if i+len(r) > len(l.input) || string(l.input[i:i+len(r)]) != w {
+		return false
+	}
+	return i+len(r) == len(l.input) || !isLetter(l.input[i+len(r)]) && !isDigit(l.input[i+len(r)])
+}
+
+// closesBeforeArrow okunan addan sonra içinde bulunduğu parantez kapanıyor ve ardından '=>'
+// geliyor mu (ok fonksiyonunun parametre listesi)? Metinler atlanır; arama sınırlıdır.
+func (l *Lexer) closesBeforeArrow() bool {
+	depth := 0
+	for i := l.position; i < len(l.input) && i < l.position+4096; i++ {
+		switch l.input[i] {
+		case '"':
+			for i++; i < len(l.input) && l.input[i] != '"' && l.input[i] != '\n'; i++ {
+				if l.input[i] == '\\' {
+					i++
+				}
+			}
+		case '(', '[', '{':
+			depth++
+		case ')', ']', '}':
+			if depth == 0 {
+				j := l.skipBlanks(i + 1)
+				return j+1 < len(l.input) && l.input[j] == '=' && l.input[j+1] == '>'
+			}
+			depth--
+		}
+	}
+	return false
+}
+
 // identity TR_ ile başlayan sözcüğü bulunduğu yerin koduna çözer; çözemezse hatayı (önerisiyle)
 // kaydeder ve codes.None döner.
 func (l *Lexer) identity(lit string, line, col int) codes.Code {
+	if l.defines() {
+		// Tanımlanan ad TR_ ile başlıyor: kullanıcı adı olamaz (2.3a), geçerli bir kimlik olsa da.
+		l.addError(line, col, messages.New(messages.H0004, lit, strings.ToLower(lit)))
+		return codes.None
+	}
 	place, second, fallback := l.placeOf(line)
 	if place == codes.PlaceOther {
 		if k, ok := l.paramInScope(lit); ok {
@@ -254,9 +367,10 @@ func identityError(place codes.Place, lit string) error {
 	}
 	// Yanlış yazılmış kimlik başka bir yerin kimliğine yakın olabilir: öbür yerlerde en yakın olan, o
 	// yerin yazımıyla önerilir (TR_lenght(l) → x.TR_length). Eşit uzaklıkta yerlerin sırası seçer.
+	// Üç harften kısa adda öbür yerlerin öneri gürültüdür (TR_y → TR_T:), aranmaz.
 	best, bestDist := "", 0
 	for _, other := range []codes.Place{codes.PlaceOther, codes.PlaceMember, codes.PlaceArg} {
-		if other == place {
+		if other == place || utf8.RuneCountInString(lit)-len(codes.IdentityPrefix) < 3 {
 			continue
 		}
 		if s, d := nearestSpelling(other, lit); s != "" && (best == "" || d < bestDist) {
