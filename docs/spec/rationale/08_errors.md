@@ -19,7 +19,7 @@ Kurallar: [`08_hata_yonetimi.md`](../08_hata_yonetimi.md). Bu dosya her kuralın
 
 ### 8.4
 
-- *Emsal:* git dosya adını terminale yazarken kaçırır: `core.quotePath` "will quote "unusual" characters in the pathname by enclosing the pathname in double-quotes and escaping those characters with backslashes in the same way C escapes control characters". GNU `ls` `--quoting-style=shell-escape` ile denetim karakterini kaçırarak yazar (`'a'$'\t''b'`; coreutils 8.32'de ölçüldü). *Almadık:* Python ve Go hata metnini olduğu gibi yazar [kanıtsız]. ([git-config](https://git-scm.com/docs/git-config#Documentation/git-config.txt-corequotePath), [GNU coreutils](https://www.gnu.org/software/coreutils/manual/html_node/Formatting-file-names.html))
+- *Emsal:* git dosya adını terminale yazarken kaçırır: `core.quotePath` "will quote "unusual" characters in the pathname by enclosing the pathname in double-quotes and escaping those characters with backslashes in the same way C escapes control characters". GNU `ls` `--quoting-style=shell-escape` ile denetim karakterini kaçırarak yazar (`'a'$'\t''b'`; GNU coreutils'te ölçüldü). *Almadık:* Python ve Go hata metnini olduğu gibi yazar [kanıtsız]. ([git-config](https://git-scm.com/docs/git-config#Documentation/git-config.txt-corequotePath), [GNU coreutils](https://www.gnu.org/software/coreutils/manual/html_node/Formatting-file-names.html))
 - *Gerekçe:* iletiye giren dış veri (dosya adı, JSON değeri) terminali silemez ya da metni gizleyemez; kaçış 2.6'nın yazımı olduğu için iletideki metin programa kopyalanınca aynı karakteri verir; yakalanan metin değişmediği için program aldığı veriyi olduğu gibi işler.
 
 ### 8.5
