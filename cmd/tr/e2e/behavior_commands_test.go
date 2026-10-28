@@ -182,7 +182,7 @@ func TestREPL(t *testing.T) {
 	testkit.Wait(t, s, 0, []string{"merhaba", "=> 5", "Görüşmek üzere!"}, []string{
 		"'cikis' TR'de bir komut değil; çıkmak için 'çıkış' yazın.",
 		"❌ Sözdizimi Hataları:\n  • Satır 1, Sütun 4",
-		"❌ Tip ve Güvenlik Denetimi Hataları:\n  • Satır 1: Tip uyuşmazlığı",
+		"❌ Tip ve Güvenlik Denetimi Hataları:\n  • Satır 1, Sütun 1: Tip uyuşmazlığı",
 		"❌ Çalışma Zamanı Hatası:\n  • Satır 1: Sıfıra bölme hatası",
 		"1 | 1 / 0",
 	})
@@ -334,7 +334,7 @@ func TestBuildModuleErrors(t *testing.T) {
 	// Modüller de tip denetiminden geçer; modülde üst düzey 'sonuç' hatadır.
 	writeTR(t, dir, "tipli.tr", "TR_import \"tip_modul\"\n")
 	writeTR(t, dir, "tip_modul.tr", "TR_print(1)\nTR_var y: TR_Int = \"b\"\n")
-	testkit.Wait(t, tr(t, dir, "derle", "tipli.tr", exit), 1, nil, []string{"❌ Derleme Öncesi Tip Güvenliği Hataları (tip_modul.tr modülünde):", "Satır 3: Tip uyuşmazlığı", "3 | TR_var y: TR_Int"})
+	testkit.Wait(t, tr(t, dir, "derle", "tipli.tr", exit), 1, nil, []string{"❌ Derleme Öncesi Tip Güvenliği Hataları (tip_modul.tr modülünde):", "Satır 3, Sütun 1: Tip uyuşmazlığı", "3 | TR_var y: TR_Int"})
 	writeTR(t, dir, "sonuclu.tr", "TR_import \"sonuc_modul\"\n")
 	writeTR(t, dir, "sonuc_modul.tr", "TR_return 1\n")
 	testkit.Wait(t, tr(t, dir, "derle", "sonuclu.tr", exit), 1, nil, []string{"(sonuc_modul.tr modülünde)", "'TR_return' modülün üst düzeyinde kullanılamaz"})
@@ -367,7 +367,7 @@ func TestCheckModules(t *testing.T) {
 	writeTR(t, dir, "lib/m.tr", "TR_import \"ic\"\n")
 	writeTR(t, dir, "lib/ic.tr", "TR_var a = 1\nTR_const S = 1\nS = 2\n")
 	s := tr(t, dir, "kontrol", "ana.tr")
-	testkit.Wait(t, s, 1, nil, []string{"❌ Tip ve Güvenlik Denetimi Hataları (lib/ic.tr modülünde):", "Satır 4: Sabit hatası", "4 | S = 2"})
+	testkit.Wait(t, s, 1, nil, []string{"❌ Tip ve Güvenlik Denetimi Hataları (lib/ic.tr modülünde):", "Satır 4, Sütun 1: Sabit hatası", "4 | S = 2"})
 	if strings.Contains(s.Stdout, "ana") {
 		t.Errorf("kontrol programı çalıştırmamalı: %q", s.Stdout)
 	}

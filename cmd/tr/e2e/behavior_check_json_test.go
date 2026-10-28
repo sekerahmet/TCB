@@ -309,6 +309,19 @@ func TestCheckJSONNamesTheImportedModuleFile(t *testing.T) {
 	if len(missing) != 1 || missing[0].File != "eksik.tr" || missing[0].Start == nil || missing[0].Start.Line != 2 {
 		t.Errorf("ana dosyanın aktar satırı bekleniyordu: %+v", missing)
 	}
+	// İç içe modülün 'aktar' hatası hangi dosyanın satırı olduğu bilinmeden verilmez: yanlış dosyayı
+	// göstermektense file ve start yazılmaz.
+	writeTR(t, dir, "ic.tr", "# TR 4\nTR_import \"yok_boyle_modul\"\n")
+	writeTR(t, dir, "dis.tr", "# TR 4\nTR_import \"ic\"\n")
+	nested, raw := checkRecords(t, checkJSON(t, dir, "en", "dis.tr").Stdout)
+	if len(nested) != 1 || nested[0].Message == "" {
+		t.Fatalf("iç içe modül: %+v", nested)
+	}
+	for _, field := range []string{"file", "start", "end"} {
+		if _, ok := raw[0][field]; ok {
+			t.Errorf("iç içe modülün kaydı dosyasız olmalı, %q yazıyor: %v", field, raw[0])
+		}
+	}
 }
 
 // Kullanım hataları da kayıttır: konumları yoktur (file, start, end yazılmaz), çıkış kodu 2'dir; dosya
