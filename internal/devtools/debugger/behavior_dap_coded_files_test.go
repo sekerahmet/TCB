@@ -6,7 +6,6 @@ import (
 	"runtime"
 	"strings"
 	"testing"
-
 )
 
 // makeViewURI bir dosya yolunun düzenleyicideki Türkçe görünümünün adresidir; VS Code'un
