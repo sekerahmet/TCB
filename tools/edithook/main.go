@@ -1,20 +1,21 @@
-// edithook, Claude Code'un düzenleme kancasıdır (PreToolUse: Edit, Write, MultiEdit,
+// edithook, Claude Code'un düzenleme kancasıdır (PostToolUse: Edit, Write, MultiEdit,
 // NotebookEdit; .claude/settings.json). Bir oturum depoda izlenen bir dosyayı ilk kez
-// düzenlemeden önce o dosyanın `codegraph tests-for` çıktısını ajana gösterir ve düzenlemeyi bir
-// kez durdurur; ajan dosyayı koruyan testleri ve kuralları okuyup düzenlemeyi yineleyince geçer.
-// Kural CLAUDE.md'dedir ("Kesin kurallar": dokunmadan önce tests-for); kanca onu ajanın
-// dikkatine bırakmaz.
+// düzenleyince o dosyanın `codegraph tests-for` cevabının başını ajana bağlam olarak verir:
+// düzenleme durmaz (durdurup yinelemek her dosyada bir tur alıyor, kararı değiştirmiyordu), ajan
+// dosyayı koruyan testleri görür ve commit'ten önce hızlı olanları koşar.
 //
-// Kabuk araçlarında (Bash, PowerShell) ikinci kural: dakikalar süren denetimler (ön denetim ve
-// tam denetim `tools/full_check.sh`, `./...` desenli `go test`) ön planda çağrılınca durur ve
-// arka planda koşulması istenir; yazılı kural ve hafıza bunu tutmadı, kanca tutar. Ayar dosyası
+// Kabuk araçlarında (Bash, PowerShell; PreToolUse) ikinci kural: dakikalar süren denetimler (ön
+// denetim ve tam denetim `tools/full_check.sh`, bütün ağacın ya da bir üst klasörün `go test`'i:
+// `./...`, `./internal/...`) ön planda çağrılınca durur ve arka planda koşulması istenir; dar alt
+// ağaç (`./internal/lang/...`) geçer. Durdurma bütün komutu durdurur, iletisi bunu söyler: aynı
+// komuttaki önceki adımlar da çalışmamıştır. Yazılı kural ve hafıza bunu tutmadı, kanca tutar. Ayar dosyası
 // `go run`'ı yalnızca komut bu adayları anıyorsa çağırır (her kabuk çağrısına derleme bedeli
 // binmez); asıl karar burada, tırnak ve heredoc metni sayılmadan verilir.
 //
 // Kanca girdisi standart girişten JSON gelir (session_id, tool_name, tool_input.file_path ya da
 // notebook_path; kabukta tool_input.command ve run_in_background). Depo dışındaki, izlenmeyen (yeni ya da scratch) dosyalar ve oturumda daha önce
-// gösterilmiş dosyalar sessizce geçer. İşaretler geçici klasörde oturum başınadır. Durdurma
-// çıkış koduyla değil Claude Code'un JSON kararıyla (permissionDecision "deny") yapılır: kanca
+// gösterilmiş dosyalar sessizce geçer. İşaretler geçici klasörde oturum başınadır. Bağlam ve
+// durdurma çıkış koduyla değil Claude Code'un JSON cevabıyla (additionalContext, permissionDecision "deny") verilir: kanca
 // `go run` ile çalışır ve `go run` programın 2 çıkış kodunu 1'e çevirir. Kancanın kendisi
 // çalışamazsa (bozuk girdi, git yok) çıkış 1'dir: Claude Code düzenlemeyi durdurmaz.
 //
@@ -38,9 +39,9 @@ import (
 	"strings"
 )
 
-// maxLines tests-for çıktısından gösterilen en çok satırdır; uzun listenin başı (önce doğrudan
-// testler, sonra kurallar) yeter, gerisi elle sorulur.
-const maxLines = 60
+// maxLines tests-for çıktısından gösterilen en çok satırdır; uzun listenin başı (önce dosyanın
+// kendi testleri ve doğrudan testler) yeter, gerisi elle sorulur.
+const maxLines = 30
 
 type hookInput struct {
 	SessionID      string `json:"session_id"`
@@ -64,8 +65,8 @@ func main() {
 	os.Exit(run(os.Stdin, os.Stdout, os.Stderr, filepath.Join(os.TempDir(), "tr-edithook"), locate, testsFor))
 }
 
-// run kancanın kararıdır. Çıkış 0'da out boşsa düzenleme geçer, doluysa out durdurma kararıdır
-// (gerekçesi ajana gider); çıkış 1 kancanın çalışamadığıdır (errOut).
+// run kancanın cevabıdır. Çıkış 0'da out boşsa söylenecek bir şey yoktur; doluysa kabukta durdurma
+// kararı, düzenlemede ajana giden bağlamdır. Çıkış 1 kancanın çalışamadığıdır (errOut).
 func run(in io.Reader, out, errOut io.Writer, stamps string, find func(string) (target, bool), ask func(target) string) int {
 	var h hookInput
 	if err := json.NewDecoder(in).Decode(&h); err != nil {
@@ -73,14 +74,15 @@ func run(in io.Reader, out, errOut io.Writer, stamps string, find func(string) (
 		return 1
 	}
 	if h.ToolName == "Bash" || h.ToolName == "PowerShell" {
-		switch c := longCommand(h.ToolInput.Command); {
+		side := sideSession(h.TranscriptPath)
+		switch c := longCommand(h.ToolInput.Command, side); {
 		case c == "":
-		case sideSession(h.TranscriptPath):
-			return deny(out, errOut, c+" is the main session's job: a side session runs only the tests of the packages "+
+		case side:
+			return deny(out, errOut, nothingRan+c+" is the main session's job: a side session runs only the tests of the packages "+
 				"it touched (go test ./internal/x -run TestY, the tests-for answer), in the background; the main session "+
 				"runs the full check when it merges (CLAUDE.md, side sessions).")
 		case !h.ToolInput.RunInBackground:
-			return deny(out, errOut, c+" takes minutes: run it with run_in_background: true and go on; "+
+			return deny(out, errOut, nothingRan+c+" takes minutes: run it with run_in_background: true and go on; "+
 				"the notification says when it ends (CLAUDE.md, hard rules: long checks run in the background).")
 		}
 		return 0
@@ -109,13 +111,16 @@ func run(in io.Reader, out, errOut io.Writer, stamps string, find func(string) (
 		fmt.Fprintln(errOut, "edithook:", err)
 		return 1
 	}
-	reason := fmt.Sprintf("First edit of %s in this session: read the tests and rules that guard it "+
-		"(CLAUDE.md, hard rules: codegraph), write the change by them, run the fast ones before "+
-		"committing, then repeat the edit. A wrong, ambiguous or missing answer is reported to the "+
-		"main session with the command, the expected and the actual answer (tools/codegraph/gaps.md)."+
-		"\n\n$ go run ./tools/codegraph tests-for %s\n%s", t.rel, t.rel, report)
-	return deny(out, errOut, reason)
+	note := fmt.Sprintf("First edit of %s in this session (the edit is done): these tests and rules guard it; "+
+		"keep the change by them and run the fast ones before committing. A wrong, ambiguous or missing "+
+		"answer is reported to the main session with the command, the expected and the actual answer "+
+		"(tools/codegraph/gaps.md).\n\n$ go run ./tools/codegraph tests-for %s\n%s", t.rel, t.rel, report)
+	return context(out, errOut, note)
 }
+
+// nothingRan kabuk durdurma iletisinin başıdır: kanca komutun tamamını durdurur, ajan aynı komuttaki
+// önceki adımların (bir düzeltme, bir derleme) çalıştığını sanmasın.
+const nothingRan = "Nothing in this command ran, its earlier steps included (the hook stops the whole command): "
 
 // sideSession oturum bir yan çalışma ağacında mı başladı: Claude Code dökümü oturumun başladığı
 // klasörün adından kurulan klasöre yazar (C--Turkish-Code-Base--claude-worktrees-<ad>); ana
@@ -125,8 +130,13 @@ func sideSession(transcript string) bool {
 	return strings.Contains(transcript, "-claude-worktrees-")
 }
 
-// longCommand komut dakikalar süren bir denetimi çağırıyorsa onun adını verir, yoksa "".
-func longCommand(command string) string {
+// longCommand komut dakikalar süren bir denetimi çağırıyorsa onun adını verir, yoksa "". Yan
+// oturumda (side) her alt ağaç deseni geniştir: yan oturum yalnız dokunduğu paketleri koşar.
+func longCommand(command string, side bool) string {
+	pattern := wide
+	if side {
+		pattern = subtree
+	}
 	for _, words := range commands(command) {
 		for len(words) > 0 && (strings.Contains(words[0], "=") || slices.Contains([]string{"bash", "sh", "time", "nohup", "env"}, words[0])) {
 			words = words[1:] // ortam ataması (TR_DIL=en) ve sarmalayan komut
@@ -135,13 +145,22 @@ func longCommand(command string) string {
 		case len(words) == 0:
 		case strings.TrimPrefix(words[0], "./") == "tools/full_check.sh":
 			return "tools/full_check.sh"
-		case len(words) > 1 && words[0] == "go" && words[1] == "test" &&
-			slices.ContainsFunc(words[2:], func(a string) bool { return strings.HasSuffix(a, "...") }):
+		case len(words) > 1 && words[0] == "go" && words[1] == "test" && slices.ContainsFunc(words[2:], pattern):
 			return "go test ./..."
 		}
 	}
 	return ""
 }
+
+// wide go test'in desen argümanı bütün ağaç ya da bir üst klasör mü (./..., ./internal/...,
+// cmd/...): bunlar dakikalar sürer. Daha dar alt ağaç (./internal/lang/...) saniyeler sürer, geçer.
+func wide(a string) bool {
+	p, ok := strings.CutSuffix(strings.TrimPrefix(a, "./"), "...")
+	return ok && strings.Count(strings.Trim(p, "/"), "/") == 0
+}
+
+// subtree go test'in desen argümanı herhangi bir alt ağaç mı (yan oturumda hepsi geniştir).
+func subtree(a string) bool { return strings.HasSuffix(a, "...") }
 
 // commands kabuk metnini komutlara ve sözcüklere böler: ayırıcılar &&, ||, ;, |, &, (, ) ve satır
 // sonudur. Tırnağın içi sözcüğün metnidir; heredoc gövdesi (<<EOF ... EOF) ve PowerShell
@@ -225,7 +244,23 @@ func commands(s string) [][]string {
 	return out
 }
 
-// deny düzenlemeyi Claude Code'un PreToolUse kararıyla durdurur; gerekçe ajana gider.
+// context düzenlemeden sonra ajana bağlam verir (Claude Code'un PostToolUse cevabı).
+func context(out, errOut io.Writer, text string) int {
+	type note struct {
+		HookEventName     string `json:"hookEventName"`
+		AdditionalContext string `json:"additionalContext"`
+	}
+	err := json.NewEncoder(out).Encode(struct {
+		HookSpecificOutput note `json:"hookSpecificOutput"`
+	}{note{"PostToolUse", text}})
+	if err != nil {
+		fmt.Fprintln(errOut, "edithook:", err)
+		return 1
+	}
+	return 0
+}
+
+// deny kabuk komutunu Claude Code'un PreToolUse kararıyla durdurur; gerekçe ajana gider.
 func deny(out, errOut io.Writer, reason string) int {
 	type decision struct {
 		HookEventName            string `json:"hookEventName"`

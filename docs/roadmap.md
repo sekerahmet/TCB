@@ -37,6 +37,7 @@ Yazıldı; DENETİM'den ve Gemini'nin araştırmasından geçti (2026-10-27). He
 Dilin kuralı değil, kodlama modellerinin dili rahat kullanması için araçlar (Gemini'nin 1. ve 2. bölüm araştırması, DENETİM doğruladı, 2026-10-27):
 - Dilin makinece okunur dilbilgisi dosyası: model kod üretirken sözdizimine uymayan sözcüğü baştan dışarıda bırakabilsin.
 - Kodlama modeline verilecek tek sayfalık başvuru: kimliklerin yazımı, sık hatalar ve doğruları.
+- **Claude Code kancalarının gözden geçirilmesi** (Ahmet, 2026-10-28; [`tools/edithook`](../tools/edithook/README.md)). Kancalar ajanın yanlış yapmasını önlemek için var; her biri ajanı gerçekten doğru şeye yönlendiriyor mu, bedeli ne, diye tartılır. 2026-10-28'de bulunan ve o gün giderilenler: düzenleme kancası ilk düzenlemeyi durdurup yineletiyordu (her dosyada bir tur, karar değişmiyordu; artık düzenlemeden sonra bilgi verir); test kancası bütün komutu durdurduğunu söylemiyordu (aynı komuttaki bir düzeltme çalışmamış, ajan onu uygulanmış sanmıştı) ve dar alt ağaçları da durduruyordu. Açık kalan: düzenleme kancası kabuktan (Python, sed) yapılan düzenlemeyi görmez, büyük işlerde düzenlemelerin çoğu oradan yapılıyor; bilgi listesinin hangi testleri öne alacağı; kancaların kendi bedeli (her çağrıda derleme).
 
 ## Kilometre taşları
 

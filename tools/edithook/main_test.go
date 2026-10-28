@@ -25,6 +25,22 @@ func hook(t *testing.T, stamps, session, file string, asked *int) (int, string) 
 	return code, out.String()
 }
 
+// shown cevap Claude Code'a düzenlemeden sonra verilen bağlam mı; metnini verir.
+func shown(t *testing.T, out string) (string, bool) {
+	t.Helper()
+	if out == "" {
+		return "", false
+	}
+	var d struct {
+		HookSpecificOutput struct{ HookEventName, AdditionalContext string }
+	}
+	if err := json.Unmarshal([]byte(out), &d); err != nil {
+		t.Fatalf("cevap JSON değil: %v %q", err, out)
+	}
+	h := d.HookSpecificOutput
+	return h.AdditionalContext, h.HookEventName == "PostToolUse"
+}
+
 // held karar Claude Code'un durdurma kararı mı; gerekçesini verir.
 func held(t *testing.T, out string) (string, bool) {
 	t.Helper()
@@ -43,24 +59,27 @@ func held(t *testing.T, out string) (string, bool) {
 	return h.PermissionDecisionReason, h.HookEventName == "PreToolUse" && h.PermissionDecision == "deny"
 }
 
-// Kural (CLAUDE.md, Kesin kurallar): bir oturumda izlenen bir dosyanın ilk düzenlemesi bir kez
-// durur (Claude Code'un "deny" kararı) ve tests-for cevabı gerekçe olarak ajana gider; aynı dosyanın sonraki düzenlemesi geçer, başka oturum
-// yeniden görür.
-func TestFirstEditIsHeldOnceThenPasses(t *testing.T) {
+// Kural (codegraph kullanım kuralı): bir oturumda izlenen bir dosyanın ilk düzenlemesinden sonra
+// tests-for cevabı ajana bağlam olarak gider; düzenleme durmaz (Claude Code'un PostToolUse cevabı).
+// Aynı dosyanın sonraki düzenlemesinde bir şey söylenmez; başka dosya ve başka oturum yeniden görür.
+func TestFirstEditShowsTheGuardingTestsOnce(t *testing.T) {
 	stamps := t.TempDir()
 	asked := 0
 	_, out := hook(t, stamps, "s1", "a.go", &asked)
-	if reason, ok := held(t, out); !ok || !strings.Contains(reason, "tests-for a.go") || !strings.Contains(reason, "tests guarding it") {
-		t.Fatalf("ilk düzenleme durmalı, gerekçede cevap olmalı: %q", out)
+	if note, ok := shown(t, out); !ok || !strings.Contains(note, "tests-for a.go") || !strings.Contains(note, "tests guarding it") {
+		t.Fatalf("ilk düzenlemeden sonra cevap bağlam olarak verilmeli: %q", out)
+	}
+	if _, held := held(t, out); held {
+		t.Fatalf("düzenleme durdurulmamalı: %q", out)
 	}
 	if _, out = hook(t, stamps, "s1", "a.go", &asked); out != "" {
-		t.Fatalf("ikinci düzenleme geçmeli: %q", out)
+		t.Fatalf("ikinci düzenlemede bir şey söylenmemeli: %q", out)
 	}
 	if _, out = hook(t, stamps, "s1", "b.go", &asked); out == "" {
-		t.Fatal("başka dosya durmalı")
+		t.Fatal("başka dosya görülmeli")
 	}
 	if _, out = hook(t, stamps, "s2", "a.go", &asked); out == "" {
-		t.Fatal("başka oturum durmalı")
+		t.Fatal("başka oturum yeniden görmeli")
 	}
 	if asked != 3 {
 		t.Fatalf("codegraph %d kez soruldu, beklenen 3", asked)
@@ -106,10 +125,11 @@ func shellIn(t *testing.T, transcript, tool, command string, background bool) st
 	return out.String()
 }
 
-// Kural (CLAUDE.md, Kesin kurallar): dakikalar süren denetimler (ön denetim ve tam denetim,
-// `./...` desenli go test) ön planda çağrılınca durur ve arka planda koşulması istenir; arka
-// planda koşan, saniyelik hedefli test ve komutu yalnızca anan metin (tırnak, heredoc,
-// PowerShell here-string, grep) geçer.
+// Kural (uzun denetimler arka planda): dakikalar süren denetimler (ön denetim ve tam denetim,
+// bütün ağacın ya da bir üst klasörün go test'i) ön planda çağrılınca durur ve arka planda
+// koşulması istenir; ileti komutun hiçbir parçasının çalışmadığını söyler. Arka planda koşan,
+// saniyelik hedefli test, dar alt ağaç (./internal/lang/...) ve komutu yalnızca anan metin
+// (tırnak, heredoc, PowerShell here-string, grep) geçer.
 func TestLongCommandsRunInTheBackground(t *testing.T) {
 	long := []string{
 		"bash tools/full_check.sh",
@@ -117,11 +137,13 @@ func TestLongCommandsRunInTheBackground(t *testing.T) {
 		"./tools/full_check.sh --kip=zorlama",
 		"go test ./... -count=1",
 		"go test -short ./internal/... ./cmd/...",
+		"python fix.py && go build ./... && go test ./... -count=1",
 		"git add x && go run ./tools/codegraph dups --changed main\nTR_DIL=en bash tools/full_check.sh",
 		"x=$(bash tools/full_check.sh --kip=on)",
 	}
 	text := []string{
 		"go test ./cmd/tr/e2e -run TestDocLinks -count=1",
+		"go test ./internal/lang/... -count=1",
 		"grep -n dups_check tools/full_check.sh",
 		`git commit -m "tools/full_check.sh; bash tools/full_check.sh runs"`,
 		"git commit -q -F - <<'EOF'\nbash tools/full_check.sh is slow\ngo test ./...\nEOF\ngit log -1",
@@ -130,7 +152,7 @@ func TestLongCommandsRunInTheBackground(t *testing.T) {
 	}
 	for _, tool := range []string{"Bash", "PowerShell"} {
 		for _, c := range long {
-			if reason, ok := held(t, shell(t, tool, c, false)); !ok || !strings.Contains(reason, "run_in_background") {
+			if reason, ok := held(t, shell(t, tool, c, false)); !ok || !strings.Contains(reason, "run_in_background") || !strings.HasPrefix(reason, nothingRan) {
 				t.Errorf("%s: ön plandaki uzun komut durmalı, gerekçe arka planı söylemeli: %q -> %q", tool, c, reason)
 			}
 			if out := shell(t, tool, c, true); out != "" {
@@ -182,7 +204,7 @@ func TestSettingsRunTheHookOnEveryEditAndShellTool(t *testing.T) {
 	}
 	var s struct {
 		Hooks struct {
-			PreToolUse []struct {
+			PreToolUse, PostToolUse []struct {
 				Matcher string
 				Hooks   []struct{ Type, Command string }
 			}
@@ -191,24 +213,31 @@ func TestSettingsRunTheHookOnEveryEditAndShellTool(t *testing.T) {
 	if err := json.Unmarshal(data, &s); err != nil {
 		t.Fatalf("ayar JSON değil: %v", err)
 	}
+	// Düzenlemeler düzenlemeden sonra (PostToolUse) görülür, kabuk komutları çalışmadan önce
+	// (PreToolUse) durdurulabilir.
 	commandOf := map[string]string{}
-	for _, e := range s.Hooks.PreToolUse {
-		for _, h := range e.Hooks {
-			if h.Type == "command" && strings.Contains(h.Command, "go run ./tools/edithook") {
-				for _, tool := range strings.Split(e.Matcher, "|") {
-					commandOf[tool] = h.Command
+	for event, entries := range map[string][]struct {
+		Matcher string
+		Hooks   []struct{ Type, Command string }
+	}{"PreToolUse": s.Hooks.PreToolUse, "PostToolUse": s.Hooks.PostToolUse} {
+		for _, e := range entries {
+			for _, h := range e.Hooks {
+				if h.Type == "command" && strings.Contains(h.Command, "go run ./tools/edithook") {
+					for _, tool := range strings.Split(e.Matcher, "|") {
+						commandOf[event+" "+tool] = h.Command
+					}
 				}
 			}
 		}
 	}
-	for _, tool := range []string{"Edit", "Write", "MultiEdit", "NotebookEdit", "Bash", "PowerShell"} {
+	for _, tool := range []string{"PostToolUse Edit", "PostToolUse Write", "PostToolUse MultiEdit", "PostToolUse NotebookEdit", "PreToolUse Bash", "PreToolUse PowerShell"} {
 		if _, ok := commandOf[tool]; !ok {
-			t.Errorf("kanca %s aracında çalışmıyor (.claude/settings.json, PreToolUse, `go run ./tools/edithook`)", tool)
+			t.Errorf("kanca %s aracında çalışmıyor (.claude/settings.json, `go run ./tools/edithook`)", tool)
 		}
 	}
 	for _, tool := range []string{"Bash", "PowerShell"} {
 		for _, candidate := range []string{"full_check.sh", "go test"} {
-			if c := commandOf[tool]; c != "" && !strings.Contains(c, candidate) {
+			if c := commandOf["PreToolUse "+tool]; c != "" && !strings.Contains(c, candidate) {
 				t.Errorf("%s kancasının ön süzgeci %q adayını kanca aracına geçirmiyor: %q", tool, candidate, c)
 			}
 		}

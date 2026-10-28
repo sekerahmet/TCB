@@ -2,17 +2,6 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "cd \"$CLAUDE_PROJECT_DIR\" && go run ./tools/edithook",
-            "timeout": 180,
-            "statusMessage": "codegraph tests-for"
-          }
-        ]
-      },
-      {
         "matcher": "Bash|PowerShell",
         "hooks": [
           {
@@ -20,6 +9,19 @@
             "command": "input=$(cat); case \"$input\" in *full_check.sh*|*\"go test\"*) cd \"$CLAUDE_PROJECT_DIR\" && printf '%s' \"$input\" | go run ./tools/edithook ;; esac",
             "timeout": 120,
             "statusMessage": "long checks run in the background"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && go run ./tools/edithook",
+            "timeout": 180,
+            "statusMessage": "codegraph tests-for"
           }
         ]
       }
