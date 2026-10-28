@@ -29,6 +29,9 @@ Yazıldı; DENETİM'den ve Gemini'nin araştırmasından geçti (2026-10-27). He
 - **Unicode normalleştirmesi:** NFC ve NFKC; parçalayıcı eğitimi ve metin hazırlama.
 - **Bellek ve gerçek zaman:** çöp toplayıcının duraklamasının robotun sabit hızlı döngüsüne etkisi; ölçüm ve gerekirse sınır (tasarım yönteminin açık konusu).
 - **Bayttan sayı okuma ve yazma** (bayt sırasıyla; 3.3a) ve CSV yazmak, yüzdelik gibi küçük yerleşikler; ilgili bölümler (16, 18, 13) yazılırken.
+- **Veriyi toplamak ve temizlemek** (2026-10-29, 16'nın tartısı): yinelenen veriyi ayıklamak (hash ile), süzmek, Unicode normalleştirmesi, metni dosyadan ve ağdan toplamak. 16 parçalayıcıyı ve veri parçalarını yazar; toplama ve temizleme 13'ün metin ve liste işleriyle, yukarıdaki hash, düzenli ifade ve normalleştirmeyle yazılır.
+- **Dağıtık eğitim:** birçok GPU ve kümede eğitim, verinin süreçler arasında bölünmesi (örnekleyicinin sıra ve sayı argümanı). Amacın 2. işi ister.
+- **Hazır modelin sohbet biçimi:** sohbet şablonu (`tokenizer_config.json`'un şablonu) ve özel parçalar; amacın 4. işinin "sohbet etmek"i ister. Hazır modelleri yükleyen bölümle birlikte.
 
 **7. bölümden sonra: ajan hata oranı deneyi** (Ahmet, 2026-10-27, plan onaylı). Kodlama modeli TR'yi alışkanlıkla doğru yazıyor mu, yanlış yazınca hata gürültülü mü; aynı görevlerde Python'la karşılaştırılır.
 - **Evre A** (1–7 yazılınca, uygulamadan önce): üç Claude modeli, 20 görev, iki bağlam (yalnız tek sayfalık başvuru; ya da 1–7'nin kuralları ve kimlik listesi). Programlar kural numarasıyla denetlenir; sık çiğnenen kural ya da başvuru yeniden tartılır. Başvuru (Araç işleri) Evre A'dan önce yazılır.

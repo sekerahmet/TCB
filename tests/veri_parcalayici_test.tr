@@ -71,7 +71,7 @@ TR_test "16.5 veri_kümesi: klasör ya da tek .npy dosyası" {
     TR_assert(TR_String(TR_Dataset("data/text")).TR_contains("(2 "), TR_String(TR_Dataset("data/text")))
 }
 
-TR_test "16.7 örnekleyici: [girdi, hedef] tensörleri, tohumla tekrar üretilebilir" {
+TR_test "16.7 örnekleyici: girdi ve hedef tensörleri, tohumla tekrar üretilebilir" {
     TR_var küme = TR_Dataset("data/numbers")
     TR_var ö = küme.TR_sampler(TR_batch_size: 3, TR_context: 5, TR_seed: 1)
     TR_assert_equal(TR_Sampler, TR_Type(ö))
@@ -151,7 +151,7 @@ TR_test "16.8 sıralı okuyucu döngüyle gezilir; örnekleyici gezilmez" {
     TR_assert_equal("H5535", TR_error_code { TR_for iş TR_in küme.TR_sampler(TR_batch_size: 2, TR_context: 4) {} })
 }
 
-TR_test "16.9 hatalar Türkçe ve yakalanabilir" {
+TR_test "16.9 hatalar kodlu ve yakalanabilir" {
     TR_assert_equal("H2132", TR_error_code { TR_load_tokenizer("data/yok.json") })
     TR_assert_equal("H5617", TR_error_code { TR_load_tokenizer("data/corrupt.npy") })
     TR_assert_equal("H2132", TR_error_code { TR_Dataset("data/yok_klasor") })

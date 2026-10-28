@@ -424,6 +424,10 @@ Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Tas
 - **Mevcut durum:** iki boyutlu tensör ya da liste listesi de metin listesine çözülüyor; dağarcıkta olmayan kimlik sessizce atlanıyor [ölçüldü: main `f1ebe718`].
 - **Yapılacaklar:** `.TR_decode` yalnız tek dizi, birden çok dizi `TR_batch_decode` (13.8a); dağarcık dışı kimliğin hatası ve TR testi.
 
+### 16.3 (sürüyor)
+
+- **Test:** `tests/veri_parcalayici_test.tr`'nin 16.3 testi bugünkü toplu çözümü (liste listesi, 2 boyutlu tensör) sınıyor; `TR_batch_decode` gelince değişir.
+
 ### 16.4
 
 - **Mevcut durum:** parçalayıcı eğitmek yok; bugün Python'a gidiliyor.
@@ -431,7 +435,8 @@ Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Tas
 
 ### 16.5
 
-- **Mevcut durum:** `.npy` okuyucusu işaretsiz 16 ve 32 bit ile işaretli 32 bit okuyor [kanıtlı: `internal/compute/dataload/npy.go`].
+- **Mevcut durum:** `.npy` okuyucusu işaretsiz 16 ve 32 bit ile işaretli 32 bit okuyor [kanıtlı: `internal/compute/dataload/npy.go`]; NumPy'nin varsayılanı olan işaretli 64 biti reddediyor [ölçüldü: DENETİM].
+- **Yapılacaklar:** işaretli 64 bit; TR testi.
 
 ### 16.6
 
