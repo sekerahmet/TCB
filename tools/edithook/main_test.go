@@ -168,9 +168,9 @@ func TestLongCommandsRunInTheBackground(t *testing.T) {
 }
 
 // Kural (CLAUDE.md, Yan oturumlar ve ajanlar): yan oturum tam denetimi ve bütün ağacın testini
-// (`...` desenli go test) arka planda da koşmaz; yalnız dokunduğu paketlerin testlerini koşar, tam
-// denetim birleştirmede ana oturumdadır. Yan oturum, dökümü bir çalışma ağacının klasörüne yazılan
-// oturumdur.
+// (`...` desenli go test) arka planda da koşmaz; yalnız dokunduğu paketlerin testlerini ve bir
+// maddenin sonunda ön denetimi (`--kip=on`, arka planda) koşar, tam denetim birleştirmede ana
+// oturumdadır. Yan oturum, dökümü bir çalışma ağacının klasörüne yazılan oturumdur.
 func TestSideSessionsRunOnlyTheirPackagesTests(t *testing.T) {
 	side := `C:\Users\u\.claude\projects\C--Turkish-Code-Base--claude-worktrees-ceviri-c395b3\s.jsonl`
 	wide := []string{
@@ -189,6 +189,14 @@ func TestSideSessionsRunOnlyTheirPackagesTests(t *testing.T) {
 		}
 		if out := shellIn(t, side, tool, "go test ./internal/lang/hint ./internal/lang/interp -run TestSuggest -count=1", true); out != "" {
 			t.Errorf("%s: yan oturumda dokunulan paketlerin testi geçmeli: %q", tool, out)
+		}
+		// Ön denetim maddenin sonunda yan oturumun da işidir; dakikalar sürdüğü için arka planda.
+		precheck := "bash tools/full_check.sh --kip=on --taban=abc123"
+		if out := shellIn(t, side, tool, precheck, true); out != "" {
+			t.Errorf("%s: yan oturumda arka plandaki ön denetim geçmeli: %q", tool, out)
+		}
+		if reason, ok := held(t, shellIn(t, side, tool, precheck, false)); !ok || !strings.Contains(reason, "run_in_background") {
+			t.Errorf("%s: yan oturumda ön planda ön denetim arka plana yönlendirilmeli: %q", tool, reason)
 		}
 	}
 }

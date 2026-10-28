@@ -24,9 +24,12 @@
 #                     (çöp toplayıcının zamanlamasına bağlı test). Kalan testin karışık sırası
 #                     çıktıdaki -test.shuffle tohumuyla yeniden üretilir.
 #   --hizli           --kip=dagitim ile aynı (iş sırasında; birleştirmeden önce bayraksız koşulur)
+#   --taban=<commit>  ön denetimin "değişen"i bu commit'e göre bulur (yan dalda varsayılan yerel main,
+#                     ana dalda origin/main): bir maddenin sonunda yalnız o maddenin değiştirdikleri
 #   --kip=on          ön denetim (~1 dk): üretilmiş dosyalar, gofmt, vet, go.mod, staticcheck,
 #                     ölü kod, düzen kuralları (dosya adı, satır sınırı, Türkçe metin, çıplak ad,
-#                     ileti kullanımı), .tr dosyalarının biçimi, dil tanımı testleri (tr test tests), değişen
+#                     ileti kullanımı), öbür paketlerdeki depo taramaları, .tr dosyalarının biçimi, dil
+#                     tanımı testleri (tr test tests), değişen
 #                     paketlerin kısa testleri, değişen dosyaları koruyan testler (codegraph changed
 #                     --go-tests; veri dosyası değişse de) ve yeni tekrar adayları (codegraph dups --changed;
 #                     yeni aday denetimi düşürür, tam denetimde de).
@@ -55,8 +58,10 @@ set -o pipefail
 cd "$(dirname "$0")/.."
 
 modes="dagitim go-esleri"
+base_override=""
 for arg in "$@"; do
 	case "$arg" in
+	--taban=*) base_override=${arg#--taban=} ;;
 	--hizli | --kip=dagitim) modes=dagitim ;;
 	--kip=go-esleri | --kip=v1) modes=go-esleri ;;
 	--kip=v3) modes=v3 ;;
@@ -65,11 +70,19 @@ for arg in "$@"; do
 	--kip=zorlama) modes=zorlama ;;
 	--kip=on) modes=on ;;
 	*)
-		echo "bilinmeyen argüman: $arg (kullanım: bash tools/full_check.sh [--hizli] [--kip=dagitim|go-esleri|v3|yaris|uzun|zorlama|on])" >&2
+		echo "bilinmeyen argüman: $arg (kullanım: bash tools/full_check.sh [--hizli] [--kip=dagitim|go-esleri|v3|yaris|uzun|zorlama|on] [--taban=<commit>])" >&2
 		exit 2
 		;;
 	esac
 done
+
+# repo_scans düzen kurallarının paketleri dışında depoyu tarayan kural testleridir (ön denetim hepsini koşar).
+repo_scans=(
+	TestEveryErrorTypeIsLocalized TestGoCodeDoesNotEditMessageText TestMessageArgsAreNotMessageFragments
+	TestHeaderRulesLiveOnlyInSourceAndLexer TestRepoTRFilesEncodeLossless TestDocCodeBlocksEncodeLossless
+	TestHintMessagesBuiltOnlyHere TestEveryMultiNameValueSpecInTheRepositoryHasItsUses
+	TestExprWalkersMatchReferenceOnRepositoryPrograms TestLibraryModulesDoNotReadTheCommandLine TestRepoTRFilesPassCheck
+)
 
 failed=0
 failures=()
@@ -222,9 +235,14 @@ quick_static_checks() {
 # compare_base ön denetimin "değişen"i neye göre bulduğudur. Yan dalda (oturumun worktree'si) yerel
 # main: dal ondan açılır, ana dalın gönderilmemiş commit'leri yan dalın değişikliği değildir (öyle
 # sayılınca her oturumun ön denetimi 41 paketi koşuyordu, 416 sn). Ana dalda ve yerel main'i olmayan
-# klonda (otomatik sınama) origin/main: gönderilmemiş commit'ler de sayılır.
+# klonda (otomatik sınama) origin/main: gönderilmemiş commit'ler de sayılır. --taban=<commit> tabanı
+# verir: bir işin maddesi bitince yalnız o maddenin değiştirdikleri (maddenin başındaki commit).
 compare_base() {
 	local branch
+	if [ -n "$base_override" ]; then
+		echo "$base_override"
+		return
+	fi
 	branch=$(git symbolic-ref -q --short HEAD 2>/dev/null)
 	if [ -n "$branch" ] && [ "$branch" != main ] && git rev-parse --verify -q main >/dev/null; then
 		echo main
@@ -354,6 +372,15 @@ selected_tests() {
 	base=$(compare_base)
 	git merge-base "$base" HEAD >/dev/null 2>&1 || return 0
 	errfile=$(mktemp)
+	# Yeni bir worktree'de graf henüz yoktur (oturumun ilk ön denetimi): önce kurulur.
+	if [ ! -f .codegraph/graph.json ]; then
+		go run ./tools/codegraph build >/dev/null 2>"$errfile" || {
+			head -20 "$errfile"
+			rm -f "$errfile"
+			fail "codegraph build çalışmadı"
+			return
+		}
+	fi
 	# codegraph kancanın yolundan koşar (tools/edithook/codegraph.go): ağaç derlenmezken son derlenen sürümün
 	# cevabı, uyarısıyla; uyarı gösterilir, codegraph'ın öbür hata çıktısı yalnız düşünce.
 	out=$(go run ./tools/edithook codegraph changed --go-tests --base "$base" HEAD 2>"$errfile") || {
@@ -546,6 +573,14 @@ for mode in $modes; do
 		step "Düzen kuralları (dosya adı, boy sınırı, Türkçe metin, çıplak ad, ileti kullanımı)"
 		go test "${p_flag[@]}" -short ./internal/ ./internal/reporoot ./tools/gen/... 2>&1 | grep -v '^ok\|no test files'
 		[ "${PIPESTATUS[0]}" -eq 0 ] || fail "düzen kuralları"
+		step "Öbür paketlerdeki depo taramaları (ileti, okuma, öneri, kod grafiği, yorumlayıcı, komut)"
+		# Depoyu tarayan kural testleri: hangi dosya değişirse değişsin koşar (değişen paketlere bağlı
+		# kalınca source.TestHeaderRulesLiveOnlyInSourceAndLexer'ın kırığı ancak bütün ağaçta çıkmıştı,
+		# 9ca4b3df). Düzen kurallarının paketleri yukarıda bütün olarak koşar. Liste elle; codegraph'ın
+		# tarama düğümlerinden üretilmesi tools/codegraph/gaps.md'de.
+		go test "${p_flag[@]}" -short -run "^($(printf '%s|' "${repo_scans[@]}" | sed 's/|$//'))\$" \
+			./internal/lang/messages ./internal/lang/source ./internal/lang/hint ./tools/codegraph ./internal/lang/interp ./cmd/tr 2>&1 | grep -v '^ok\|no test files'
+		[ "${PIPESTATUS[0]}" -eq 0 ] || fail "depo taramaları"
 		step "TR dosyalarının biçimi (tr biçimle --kontrol) ve dil tanımı testleri (tr test tests, ~2 sn)"
 		# Go'nun kısa kipi dil tanımı testlerini atlıyor; ön denetim onları burada koşar.
 		if build_tr; then

@@ -77,7 +77,7 @@ func run(in io.Reader, out, errOut io.Writer, stamps string, find func(string) (
 		side := sideSession(h.TranscriptPath)
 		switch c := longCommand(h.ToolInput.Command, side); {
 		case c == "":
-		case side:
+		case side && c != precheck:
 			return deny(out, errOut, nothingRan+c+" is the main session's job: a side session runs only the tests of the packages "+
 				"it touched (go test ./internal/x -run TestY, the tests-for answer), in the background; the main session "+
 				"runs the full check when it merges (CLAUDE.md, side sessions).")
@@ -130,8 +130,13 @@ func sideSession(transcript string) bool {
 	return strings.Contains(transcript, "-claude-worktrees-")
 }
 
-// longCommand komut dakikalar süren bir denetimi çağırıyorsa onun adını verir, yoksa "". Yan
-// oturumda (side) her alt ağaç deseni geniştir: yan oturum yalnız dokunduğu paketleri koşar.
+// precheck ön denetimdir (`full_check.sh --kip=on`): yan oturum da bir maddenin sonunda koşar, arka
+// planda; tam denetim ana oturumundur.
+const precheck = "tools/full_check.sh --kip=on"
+
+// longCommand komut dakikalar süren bir denetimi çağırıyorsa onun adını verir (ön denetimse
+// precheck), yoksa "". Yan oturumda (side) her alt ağaç deseni geniştir: yan oturum yalnız dokunduğu
+// paketleri koşar.
 func longCommand(command string, side bool) string {
 	pattern := wide
 	if side {
@@ -144,6 +149,9 @@ func longCommand(command string, side bool) string {
 		switch {
 		case len(words) == 0:
 		case strings.TrimPrefix(words[0], "./") == "tools/full_check.sh":
+			if slices.Contains(words[1:], "--kip=on") {
+				return precheck
+			}
 			return "tools/full_check.sh"
 		case len(words) > 1 && words[0] == "go" && words[1] == "test" && slices.ContainsFunc(words[2:], pattern):
 			return "go test ./..."
