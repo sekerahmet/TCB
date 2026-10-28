@@ -1,8 +1,6 @@
 # TR 4
-# TEST 7.1 aynı metot iki kez tanımlanamaz
+# TEST 7.1 aynı metot iki kez tanımlanamaz; yapının geri kalanı okunmaya devam eder
 TR_struct A {
     TR_func f() { TR_return 1 }
     TR_func f() { TR_return 2 } # ERROR H0145
-# Ayrıştırıcının toparlanma kusuru: yinelenen metottan sonra kapanan parantez ikinci bir hata verir
-# (bugünkü davranış; düzelince bu etiket silinir).
-} # ERROR H0141
+}

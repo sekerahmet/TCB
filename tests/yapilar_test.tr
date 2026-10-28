@@ -17,9 +17,15 @@ TR_test "7.1 yapı alanları ve varsayılan değerleri" {
     TR_var p = Nokta()
     TR_assert_equal(0, p.x)
     TR_assert_equal(0, p.y)
-    TR_struct Satır { a, b: TR_Int = 2; c }
+    TR_struct Satır { a, c, b: TR_Int = 2 }
     TR_var s = Satır()
     TR_assert_equal([TR_none, 2, TR_none], [s.a, s.b, s.c])
+}
+
+TR_test "7.1 kalıtım yok: ortak parça alanla kurulur (H0275'in önerdiği yazım)" {
+    TR_struct Taban { x = 1 }
+    TR_struct A { taban: Taban }
+    TR_assert_equal(1, A(Taban()).taban.x)
 }
 
 TR_test "7.2 oluşturma: konumlu ve adlı argümanlarla" {
