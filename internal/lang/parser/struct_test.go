@@ -107,16 +107,24 @@ func TestConstructorReturnsNoValue(t *testing.T) {
 	}
 }
 
-// Python'un self parametresi (7.3) sözdizimi hatasıdır; düzeltme onu ardındaki virgülle siler.
-// Yazım dilindeki metinde ('kendi') sınanır: kodlu dosyada sözcük çözümleyici parametre yerindeki
-// TR_self'i önce kendisi reddeder (H0029).
+// Python'un self parametresi (7.3) sözdizimi hatasıdır; düzeltme onu ardındaki virgülle siler. Kodlu
+// dosyada da: sözcük çözümleyici parametre yerindeki TR_self'i anahtar kelime olarak geçirir.
 func TestSelfParameterIsDeleted(t *testing.T) {
-	for _, c := range []struct{ line, cut string }{
-		{"fonksiyon m(kendi, k) { sonuç k }", "kendi, "},
-		{"fonksiyon m(kendi) { sonuç 1 }", "kendi"},
+	for _, c := range []struct {
+		coded     bool
+		line, cut string
+	}{
+		{false, "fonksiyon m(kendi, k) { sonuç k }", "kendi, "},
+		{false, "fonksiyon m(kendi) { sonuç 1 }", "kendi"},
+		{true, "TR_func m(TR_self, k) { TR_return k }", "TR_self, "},
+		{true, "TR_func m(TR_self) { TR_return 1 }", "TR_self"},
 	} {
 		code := "yapı N {\n" + c.line + "\n}"
 		errs := parseErrsIn(code, codes.Source())
+		if c.coded {
+			code = "TR_struct N {\n" + c.line + "\n}"
+			errs = parseErrs(code)
+		}
 		if len(errs) != 1 || !messages.Has(errs[0], messages.H0284) {
 			t.Fatalf("%q: want one H0284, got %v", code, errs)
 		}

@@ -26,7 +26,7 @@ import (
 type bracket struct {
 	open       TokenType
 	params     bool // fonksiyonun parametre listesi: fonksiyon [ad] (
-	structBody bool // yapının gövdesi: yapı Ad {
+	structBody bool // yapının gövdesi: yapı Ad { (durumlu tip ve arayüzünki de)
 	// scope fonksiyon gövdesinde (ve parametre listesinde) TR_ ile yazılmış parametrelerdir:
 	// yazım → argüman kodu.
 	scope map[string]codes.Code
@@ -90,7 +90,7 @@ func (l *Lexer) track(tok Token) {
 		s.stack = append(s.stack, bracket{open: TokLBracket})
 	case TokLBrace:
 		s.forHeader = false
-		b := bracket{open: TokLBrace, structBody: s.prev == TokIdent && s.prev2 == TokStruct}
+		b := bracket{open: TokLBrace, structBody: s.prev == TokIdent && (s.prev2 == TokStruct || s.prev2 == TokEnum || s.prev2 == TokInterface)}
 		if s.pending != nil {
 			b.scope, s.pending = s.pending, nil
 		}
@@ -276,6 +276,11 @@ func (l *Lexer) identity(lit string, line, col int) codes.Code {
 		return codes.None
 	}
 	place, second, fallback := l.placeOf(line)
+	if place == codes.PlaceArg && l.places.top().params && lit == codes.Spelling(codes.KwSelf) {
+		// Python alışkanlığıyla parametre yerinde yazılan TR_self anahtar kelimedir: ayrıştırıcı
+		// iletisinde onu silmeyi önerir (7.3).
+		return codes.KwSelf
+	}
 	if place == codes.PlaceOther {
 		if k, ok := l.paramInScope(lit); ok {
 			return k

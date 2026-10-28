@@ -25,6 +25,18 @@ func TestEnumAndInterfaceDefinitions(t *testing.T) {
 	}
 }
 
+// Durumlu tip ve arayüz gövdesinde metot adı yapınınki gibi üyedir: kitaplığın metot adı yazılabilir.
+func TestLibraryMethodNameInEnumAndInterface(t *testing.T) {
+	for _, code := range []string{
+		"TR_interface K {\n    TR_func TR_forward(x)\n}",
+		"TR_enum D {\n    A\n    TR_func TR_forward(x) { TR_return x }\n}",
+	} {
+		if errs := parseErrs(code); len(errs) != 0 {
+			t.Errorf("%q: %v", code, errs)
+		}
+	}
+}
+
 // Parantezsiz 'Durum.Durum(a, _)' deseni durumlu tip desenidir; parantezli ifade değeriyle
 // karşılaştırılır (5.6).
 func TestEnumPatternIsOnlyTheBareCall(t *testing.T) {
