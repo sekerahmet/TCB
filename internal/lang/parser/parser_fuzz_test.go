@@ -16,7 +16,7 @@ import (
 //	go test ./internal/lang/parser -run '^$' -fuzz FuzzParser -fuzztime 5m
 func FuzzParser(f *testing.F) {
 	testkit.TRSeeds(f)
-	for _, s := range []string{"eğer {", "fonksiyon (", "yapı A { fonksiyon", "\"{(\"", "[x döngü", "eşle x {", "a.b.c(", "((((", "test \"x\" {"} {
+	for _, s := range []string{"TR_if {", "TR_func (", "TR_struct A { TR_func", "\"{(\"", "[x TR_for", "TR_match x {", "a.b.c(", "((((", "TR_test \"x\" {"} {
 		f.Add(s)
 	}
 	f.Fuzz(func(t *testing.T, source string) {
