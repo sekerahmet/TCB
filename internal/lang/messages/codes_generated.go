@@ -191,7 +191,7 @@ const (
 	H2310 Code = 2310 // a, b, ...
 	H2311 Code = 2311 // koşul, [mesaj]
 	H2312 Code = 2312 // beklenen, gerçek, [mesaj]
-	H2313 Code = 2313 // koşu_klasörü, {{model: model, op: op, ...}}
+	H2313 Code = 2313 // koşu_klasörü, {{"model": model, "op": op, ...}}
 	H2314 Code = 2314 // tamamlanan_adım
 	H2315 Code = 2315 // ö.{member}
 	H2316 Code = 2316 // kaynak, hedef
@@ -200,13 +200,13 @@ const (
 	H2319 Code = 2319 // klasör, kalıp
 	H2320 Code = 2320 // parça, ...
 	H2322 Code = 2322 // toplam_adım
-	H2323 Code = 2323 // {{ölçü: değer, ...}}
-	H2324 Code = 2324 // {{ad: değer, ...}}
+	H2323 Code = 2323 // {{"ölçü": değer, ...}}
+	H2324 Code = 2324 // {{"ad": değer, ...}}
 	H2325 Code = 2325 // ileti
 	H2326 Code = 2326 // op.{member}
 	H2327 Code = 2327 // model
-	H2328 Code = 2328 // {{ad: tensör, ...}}
-	H2329 Code = 2329 // {{seçenek: varsayılan, ...}}
+	H2328 Code = 2328 // {{"ad": tensör, ...}}
+	H2329 Code = 2329 // {{"seçenek": varsayılan, ...}}
 	H2330 Code = 2330 // ad
 	H2331 Code = 2331 // [ayırıcı]
 	H2332 Code = 2332 // önek
@@ -1335,8 +1335,8 @@ const (
 	H7432 Code = 7432 // nesne adı boş ya da çok uzun (en çok {max} bayt)
 	H7433 Code = 7433 // {name|q} nesne adı '/' ya da denetim karakteri içeremez
 	H7434 Code = 7434 // {fn}: sözlük anahtarları nesne adları ({type}) olmalıdır, {given} verildi
-	H7435 Code = 7435 // {fn}: kaydedilecek nesneler sözlüğü 1 ile {max} arası nesne içermeli, ör. {example}("runs/deneme1", {{model: model, op: op}})
-	H7436 Code = 7436 // {fn}: {name|q} bir {type}; düz bir değer doğrudan verilemez (geri yüklenirken yerine yazılamaz). Bir sözlüğe koyun: {{{key}: {{değer: ...}}}}
+	H7435 Code = 7435 // {fn}: kaydedilecek nesneler sözlüğü 1 ile {max} arası nesne içermeli, ör. {example}("runs/deneme1", {{"model": model, "op": op}})
+	H7436 Code = 7436 // {fn}: {name|q} bir {type}; düz bir değer doğrudan verilemez (geri yüklenirken yerine yazılamaz). Bir sözlüğe koyun: {{"{key}": {{"değer": ...}}}}
 	H7437 Code = 7437 // {fn}: {name|q} bir işlemin sonucu (ara tensör, {given}); kaydedilecek tensörler yaprak olmalıdır: parametreler ve {noGrad} içinde güncellenen durum tensörleri
 	H7438 Code = 7438 // {fn}: {name|q} kaydedilemez ({given}); modeller, iyileştiriciler, okuyucular, günlükler ve düz değerli sözlük ya da listeler verilebilir
 	H7439 Code = 7439 // {name|q}: {error}

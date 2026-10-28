@@ -194,3 +194,16 @@ func TestParamCount(t *testing.T) {
 		t.Error("tanımsız kod ok olmamalı")
 	}
 }
+
+// Kural (3.7): iletideki sözlük örneği kopyalanınca çalışır: sözlüğün anahtarı bir ifadedir, metin
+// anahtarı tırnaklı yazılır ({"model": model}); çıplak ad ({model: model}) değişken olurdu.
+func TestMessageDictExamplesWriteTextKeys(t *testing.T) {
+	bare := regexp.MustCompile(`\{\{\s*[\p{L}_][\p{L}\p{N}_]*\s*:`)
+	for lang, data := range languageFiles {
+		for i, l := range strings.Split(string(data), "\n") {
+			if m := bare.FindString(l); m != "" {
+				t.Errorf("%s.json:%d: sözlük örneğinde çıplak anahtar %q; metin anahtarı tırnaklı yazılır: %.80s", lang, i+1, m, l)
+			}
+		}
+	}
+}
