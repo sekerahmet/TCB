@@ -345,7 +345,7 @@ test "toplama" { eşit_mi(4, 2 + 2) }
 Ondalık sonsuz değerin metindeki adıdır; eksi sonsuz başına - alır. Ayrılmış sözcük değildir: kodda ondalık("sonsuz") ile yazılır, sıradan bir ad olarak da kullanılabilir.
 
 ```tr
-yazdır(ondalık("sonsuz"), -ondalık("sonsuz"))
+yazdır(ondalık("inf"), -ondalık("inf"))
 ```
 
 İlişkili: TR_val_nan `NaN`, TR_type_Float `Ondalık`, TR_fn_float `ondalık`
