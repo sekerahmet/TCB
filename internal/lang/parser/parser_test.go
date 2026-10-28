@@ -247,7 +247,8 @@ func TestComparisonChainShape(t *testing.T) {
 }
 
 // İçinde '==' ya da '!=' olan zincir (4.4) ve '??'nin sağındaki parantezsiz ikili işleç (4.7)
-// sözdizimi hatasıdır; hata ikinci karşılaştırmada ya da '??'den sonraki işleçtedir.
+// sözdizimi hatasıdır; hata zincirdeki '==' ya da '!='de ('<' zincirde geçerlidir) ya da '??'den
+// sonraki işleçtedir.
 func TestChainAndCoalescingErrors(t *testing.T) {
 	for _, d := range []struct {
 		code, at string
@@ -255,7 +256,8 @@ func TestChainAndCoalescingErrors(t *testing.T) {
 	}{
 		{"TR_var x = a < b == c", "==", messages.H0200},
 		{"TR_var x = a == b == c", "== c", messages.H0200},
-		{"TR_var x = a != b < c", "<", messages.H0200},
+		{"TR_var x = a != b < c", "!=", messages.H0200},
+		{"TR_var x = a == 2 < 3", "==", messages.H0200},
 		{"TR_var x = d ?? 0 + 1", "+", messages.H0201},
 		{"TR_var x = d ?? 2 ** 3", "**", messages.H0201},
 		{"TR_var x = d ?? f(1) * 2", "*", messages.H0201},

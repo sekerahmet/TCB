@@ -163,7 +163,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		inferred := c.inferExpression(s.Value)
 		if s.TypeName != "" && !typesCompatible(declared, inferred) {
 			c.addError(s.Line(), 0, messages.New(messages.H1001,
-				s.Name.Value, c.typeArg(declared), c.typeArg(inferred), c.numberHint(declared, inferred)))
+				s.Name.Value, c.typeArg(declared), c.typeArg(inferred), c.divisionHint(declared, inferred, dividesAtTop(s.Value))))
 		}
 		// Dil dinamiktir: açıklamasız bir değişkenin ilk değerden çıkarılan tipi kalıcı bir
 		// bildirim değildir (değişken sonra başka tipte değer alabilir), bu yüzden tipsiz
@@ -270,7 +270,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		valType := c.inferExpression(s.ReturnValue)
 		if c.returnType != "" && !typesCompatible(c.returnType, valType) {
 			c.addError(s.Line(), 0, messages.New(messages.H1003,
-				c.typeArg(c.returnType), c.typeArg(valType), c.numberHint(c.returnType, valType)))
+				c.typeArg(c.returnType), c.typeArg(valType), c.divisionHint(c.returnType, valType, dividesAtTop(s.ReturnValue))))
 		}
 
 	case *ast.ThrowStatement:
@@ -348,8 +348,14 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		return typeAny
 	case *ast.PrefixExpression:
 		right := c.inferExpression(e.Right)
-		if e.Operator == "!" {
+		switch e.Operator {
+		case "!":
 			return typeBool
+		case "~":
+			if right == typeInt {
+				return typeInt
+			}
+			return typeAny
 		}
 		return right
 	case *ast.InfixExpression:
@@ -365,13 +371,10 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 				return left
 			}
 			return right
-		case "|>":
-			return typeAny
 		case "@":
 			return typeTensor
-		case "+", "-", "*", "/", "%", "**":
-			lit, intConst := e.Right.(*ast.IntegerLiteral)
-			return arithmeticType(string(e.Operator), left, right, intConst && lit.Value >= 0)
+		case "+", "-", "*", "/", "//", "%", "**", "&", "|", "^", "<<", ">>":
+			return arithmeticType(string(e.Operator), left, right)
 		}
 		return typeAny
 	case *ast.FunctionLiteral:
@@ -423,15 +426,16 @@ func (c *Checker) checkAssign(s *ast.AssignStatement) {
 	if ident, ok := s.Target.(*ast.Identifier); ok {
 		if info, found := c.scope.Resolve(ident.Value); found {
 			// Bileşik atamada (x += y) atanan değer 'x + y' ifadesinin sonucudur
-			if op := strings.TrimSuffix(string(s.Operator), "="); op != "" {
-				valType = arithmeticType(op, info.TypeName, valType, false)
+			op := strings.TrimSuffix(string(s.Operator), "=")
+			if op != "" {
+				valType = arithmeticType(op, info.TypeName, valType)
 			}
 			if info.IsConst {
 				c.addError(s.Line(), 0, messages.New(messages.H1002, ident.Value, c.word(codes.KwConst)))
 			}
 			if info.TypeName != typeAny && info.TypeName != typeNull && !typesCompatible(info.TypeName, valType) {
 				c.addError(s.Line(), 0, messages.New(messages.H1005,
-					ident.Value, c.typeArg(info.TypeName), c.typeArg(valType), c.numberHint(info.TypeName, valType)))
+					ident.Value, c.typeArg(info.TypeName), c.typeArg(valType), c.divisionHint(info.TypeName, valType, op == "/" || op == "" && dividesAtTop(s.Value))))
 			}
 		}
 	} else {

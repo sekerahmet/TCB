@@ -169,8 +169,13 @@ func (p *Parser) parseComparison(first *ast.InfixExpression) ast.Expression {
 		}
 		p.nextToken()
 		tok := p.curToken()
-		if equality(chain.Operator) || tok.Type == lexer.TokEq || tok.Type == lexer.TokNotEq {
-			p.syntaxError(tok, messages.H0200, tok.Literal)
+		if equality(chain.Operator) || equality(tok.Type) {
+			// Hata zincirdeki '==' ya da '!='dedir: '<' zincirde geçerlidir.
+			bad := tok
+			if !equality(tok.Type) {
+				bad = chain.Token
+			}
+			p.syntaxError(bad, messages.H0200, bad.Literal)
 			return nil
 		}
 		p.nextToken()

@@ -4,6 +4,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
@@ -24,23 +25,12 @@ var (
 	typeAny      = codes.Name(codes.TypeAny)
 )
 
-// typeNumber denetleyicinin iç tipidir: değer çalışma anında Tam da Ondalık da olabilir (ör.
-// Tam / Tam: 6 / 3 = 2, 7 / 2 = 3.5). Kullanıcı açıklamasında yazılamaz; yalnızca Ondalık
-// (Tam da Ondalığa atanabildiği için) ve tipsiz yerlere atanabilir.
-//
-// Kimlik dilden bağımsızdır (iki tipin kanonik adı, kod listesindeki birleşim yazımıyla: TR_type_Int|TR_type_Float);
-// iletide typeText onu iletinin dilinde yazar ("Tam ya da Ondalık", "Int or Float").
-var typeNumber = typeInt + "|" + typeFloat
-
 // typeText denetleyicinin tip adıdır, ileti parametresi olarak (messages.Localized): tip adı
 // iletinin dilinde yazılır (Tam → Int); kullanıcının sınıf adı olduğu gibi kalır. Denetleyici
 // tipleri kanonik adla taşır (karşılaştırma için); ad yalnız iletide dile çevrilir.
 type typeText string
 
 func (t typeText) MessageText(lang string) string {
-	if string(t) == typeNumber {
-		return messages.OrListIn(lang, codes.NameRef(codes.TypeInt).MessageText(lang), codes.NameRef(codes.TypeFloat).MessageText(lang))
-	}
 	if k, ok := codes.Find(codes.NamespaceType, string(t)); ok {
 		return codes.NameRef(k).MessageText(lang)
 	}
@@ -48,13 +38,10 @@ func (t typeText) MessageText(lang string) string {
 }
 
 // typeSpelling typeText'in dosyadaki hâlidir: tip adı dosyada yazıldığı gibi, kimlik yazımıyla
-// (TR_Int; TR_Int ya da TR_Float); cümle iletinin dilindedir.
+// (TR_Int); cümle iletinin dilindedir.
 type typeSpelling string
 
 func (t typeSpelling) MessageText(lang string) string {
-	if string(t) == typeNumber {
-		return messages.OrListIn(lang, codes.Spelling(codes.TypeInt), codes.Spelling(codes.TypeFloat))
-	}
 	if k, ok := codes.Find(codes.NamespaceType, string(t)); ok {
 		return codes.Spelling(k)
 	}
@@ -229,47 +216,63 @@ func typesCompatible(expected, actual string) bool {
 	if exp == typeAny || act == typeAny || act == typeNull {
 		return true
 	}
-	// Tam sayı (ve Tam ya da Ondalık olabilen değer), Ondalık beklenen yere atanabilir
-	if exp == typeFloat && (act == typeInt || act == typeNumber) {
+	// Tam sayı Ondalık beklenen yere atanabilir
+	if exp == typeFloat && act == typeInt {
 		return true
 	}
 	return exp == act
 }
 
-// numberHint Tam beklenen yere Tam ya da Ondalık olabilen bir değer verildiğinde yol gösterir:
-// iletinin bir parçası olarak (dıştaki iletinin dilinde yazılır); yol yoksa boş metin.
-func (c *Checker) numberHint(expected, given string) any {
-	if normalizeTypeName(expected) == typeInt && given == typeNumber {
-		return messages.New(messages.H1008, c.typeArg(typeFloat), c.typeArg(typeInt), c.word(codes.FnInt))
+// divisionHint Tam beklenen yere '/'nin sonucu verildiğinde yol gösterir: '/' her zaman Ondalık
+// verir (4.2), tam bölme '//'dir. İletinin bir parçasıdır (dıştaki iletinin dilinde yazılır);
+// yol yoksa boş metin.
+func (c *Checker) divisionHint(expected, given string, divides bool) any {
+	if divides && normalizeTypeName(expected) == typeInt && given == typeFloat {
+		return messages.New(messages.H1008, c.typeArg(typeFloat))
 	}
 	return ""
 }
 
-// numericType tip bir sayı tipi mi (Tam, Ondalık ya da ikisinden biri)?
+// dividesAtTop ifadenin en dıştaki işlemi '/' mi?
+func dividesAtTop(e ast.Expression) bool {
+	in, ok := e.(*ast.InfixExpression)
+	return ok && in.Operator == "/"
+}
+
+// numericType tip bir sayı tipi mi (Tam ya da Ondalık)?
 func numericType(t string) bool {
-	return t == typeInt || t == typeFloat || t == typeNumber
+	return t == typeInt || t == typeFloat
+}
+
+// bitOperator işleç bir bit işleci mi (4.12)?
+func bitOperator(op string) bool {
+	switch op {
+	case "&", "|", "^", "<<", ">>":
+		return true
+	}
+	return false
 }
 
 // arithmeticType bir aritmetik işlemin sonuç tipini çalışma zamanının kurallarıyla çıkarır
-// (4.2, 4.3, 4.10): denetleyici çalışma zamanından farklı bir tip iddia etmez. Tam / Tam
-// tam bölünmezse Ondalık verir, Tam ** Tam üs negatifse Ondalık verir; bu yüzden ikisi de
-// "Tam ya da Ondalık"tır. tamUs, '**'in sağının negatif olmayan bir Tam sabiti olduğunu
-// söyler (2 ** 3 her zaman Tam'dır).
-func arithmeticType(op, left, right string, intExponent bool) string {
+// (4.2, 4.2a, 4.3, 4.10, 4.12): denetleyici çalışma zamanından farklı bir tip iddia etmez.
+// '/' her zaman Ondalık verir; '+', '-', '*', '//', '%' ve '**' iki Tam'da Tam (Tam'ın eksi
+// üssü çalışma hatasıdır), bir yanı Ondalıksa Ondalık verir. Bit işleçleri yalnız iki Tam'da
+// tanımlıdır; başka işlenenin hatası çalışma anındadır, denetleyici tip iddia etmez.
+func arithmeticType(op, left, right string) string {
 	if op == "+" && (left == typeString || right == typeString) {
 		return typeString
+	}
+	if bitOperator(op) {
+		if left == typeInt && right == typeInt {
+			return typeInt
+		}
+		return typeAny
 	}
 	if !numericType(left) || !numericType(right) {
 		return typeAny
 	}
-	if left == typeFloat || right == typeFloat {
+	if op == "/" || left == typeFloat || right == typeFloat {
 		return typeFloat
-	}
-	if op == "/" || (op == "**" && !(intExponent && left == typeInt)) {
-		return typeNumber
-	}
-	if left == typeNumber || right == typeNumber {
-		return typeNumber
 	}
 	return typeInt
 }

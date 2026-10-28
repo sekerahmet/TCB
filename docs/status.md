@@ -101,8 +101,8 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM'den ge
 
 ### 3.10
 
-- **Mevcut durum:** doğruluk sınaması var: boş liste koşulda yanlış sayılıyor [ölçüldü].
-- **Yapılacaklar:** koşulda yalnız `TR_Bool`; başka tip denetim hatası, ileti açık sınamayı önerir.
+- **Mevcut durum:** koşulda yalnız `TR_Bool`; başka tip çalışma anında hata veriyor (H2600), ileti açık sınamayı öneriyor (katman 2) [ölçüldü]. Hata ayıklayıcının koşullu durağı hâlâ doğruluk sınamasıyla (`IsTruthy`) okunuyor.
+- **Yapılacaklar:** başka tip denetim hatası da olur (katman 4); hata ayıklayıcının koşulu da yalnız `TR_Bool` alır.
 
 ### 3.12
 
@@ -121,63 +121,27 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM'den ge
 
 ## 4. İşleçler
 
-Kurallar: [`docs/spec/04_operatorler.md`](spec/04_operatorler.md). Taslak: DENETİM'den geçti, bulguları işlendi (2026-10-27); Gemini'nin araştırması bekleniyor. `tests/` altındaki 4. bölüm testleri eski kuralları da sınıyor (`/`'nin değere göre tipi, metne her değerin eklenmesi, boru işleci); testler koşulmadan önce yeni kurallara göre yeniden yazılır.
-
-### 4.1
-
-- **Mevcut durum:** `??` en gevşek düzeyde, `&&` ve `||` sözcüklerle aynı düzeyde; `==` ile `<` ayrı düzeylerde.
-- **Yapılacaklar:** yeni öncelik tablosu; karşılaştırmalar tek düzeyde, zincir 4.4'teki gibi; `**` sağındaki tekli işleçten gevşek bağlar.
-
-### 4.2
-
-- **Mevcut durum:** `7 / 2` 3.5, `6 / 3` 2 veriyor: sonucun tipi değere bağlı [ölçüldü].
-- **Yapılacaklar:** `/` her zaman ondalık verir.
-
-### 4.2a
-
-- **Mevcut durum:** tam bölme yok; `-7 % 3` −1 veriyor (kesen kalan) [ölçüldü].
-- **Yapılacaklar:** `//` tam bölme (aşağı yuvarlar); `%`'nin işareti bölenin işareti.
-
-### 4.3
-
-- **Mevcut durum:** `2 ** -1` 0.5 veriyor; `0.0 ** -1` sonsuz, `(-8.0) ** (1.0 / 3)` NaN veriyor [ölçüldü].
-- **Yapılacaklar:** iki tam sayıda eksi üs çalışma hatası, ileti ondalık yazımı önerir; sıfırın eksi üssü ve eksi sayının tam olmayan üssü çalışma hatası.
-
-### 4.4
-
-- **Mevcut durum:** metinler karşılaştırılamıyor ("Metin ve Metin tipleri arasında < işlemi desteklenmiyor"); `0 <= i < 5` C'deki gibi okunuyor ve çalışırken "Mantık ve Tam tipleri arasında" hatası veriyor [ölçüldü].
-- **Yapılacaklar:** metinler kod noktası sırasıyla karşılaştırılır; sıralama işleçlerinin zinciri Python'daki gibi, ortadaki ifade bir kez hesaplanır; `==` ya da `!=` içeren zincir sözdizimi hatası.
+Kurallar: [`docs/spec/04_operatorler.md`](spec/04_operatorler.md). Taslak: DENETİM'den geçti, bulguları işlendi (2026-10-27); Gemini'nin araştırması bekleniyor. 4.1–4.4, 4.6, 4.9, 4.11 ve 4.12'nin çalışma anı uygulandı (katman 2, DENETİM'den geçti, 2026-10-28); aşağıda yalnız kalanlar. Tip isteyen denetim hataları katman 4'tedir.
 
 ### 4.5
 
-- **Mevcut durum:** ayrı tipler sessizce eşit değil sayılıyor; fonksiyonlar kimlikle karşılaştırılıyor.
-- **Yapılacaklar:** ayrı tipler denetim hatası; fonksiyonlar karşılaştırılamaz.
-
-### 4.6
-
-- **Mevcut durum:** işlenen her tipten olabiliyor: `1 && "a"` doğru veriyor [ölçüldü].
-- **Yapılacaklar:** işlenen yalnız mantık değeri.
+- **Mevcut durum:** ayrı tipler sessizce eşit değil sayılıyor; fonksiyonlar yalnız üst düzey `==` ve `!=`'de hata veriyor (H2613), fonksiyon içeren liste kimlikle karşılaştırılıyor (`[f] == [f]` doğru) [ölçüldü].
+- **Yapılacaklar:** ayrı tipler denetim hatası; fonksiyon içeren değer de karşılaştırılamaz (denetim hatası).
 
 ### 4.7
 
-- **Mevcut durum:** isteğe bağlı tip olmadığı için sol yan her tipten olabiliyor: `1 ?? 2` 1 veriyor [ölçüldü].
-- **Yapılacaklar:** sol yan isteğe bağlı değilse denetim hatası; sağ yanda parantezsiz ikili işleç sözdizimi hatası (`?? 0 + 1`), ileti parantezi önerir.
+- **Mevcut durum:** sağ yanda parantezsiz ikili işleç sözdizimi hatası (H0201); isteğe bağlı tip olmadığı için sol yan her tipten olabiliyor: `1 ?? 2` 1 veriyor [ölçüldü].
+- **Yapılacaklar:** sol yan isteğe bağlı değilse denetim hatası.
 
 ### 4.9
 
-- **Mevcut durum:** `&&`, `||`, `!` ve `|>` çalışıyor; boru `[1, 2, 3] |> TR_sum` 6 veriyor [ölçüldü].
-- **Yapılacaklar:** dördü sözdizimi hatası, ileti TR'deki yazımı söyler; C ailesinin yorumları hata verir, ileti `#`'i önerir; `//`'nin sağındaki tanımsız adın iletisi de `#`'i önerir. Depodaki kullanımlar çevrilir.
-  - Döngü dışındaki `TR_in` bugün genel bir sözdizimi hatası veriyor ("')' bekleniyordu") [ölçüldü]; ileti `.TR_contains`'i önerir.
+- **Mevcut durum:** satır sonunda `//`'den sonraki metin bir ifade değilse `#`'i anmayan bir hata çıkıyor: `TR_var x = 5 // bu bir yorum` iki kez "ifadenin değeri kullanılmıyor" veriyor [ölçüldü].
+- **Yapılacaklar:** bu durumda da ileti `#`'i önerir.
 
 ### 4.10
 
-- **Mevcut durum:** `"a" + 1` "a1" veriyor; `[0] * 3` ve `"-" * 3` çalışırken "desteklenmiyor" hatası veriyor [ölçüldü].
-- **Yapılacaklar:** başka tiple `+` denetim hatası, ileti yerleştirmeyi önerir; metin, bayt dizisi ve listenin `*` ile yinelenmesi; öğeleri başvuruyla paylaşılan listenin yinelenmesi denetim hatası.
-
-### 4.12
-
-- **Mevcut durum:** bit işleçleri yok: `5 & 3` sözdizimi hatası veriyor [ölçüldü].
-- **Yapılacaklar:** `&`, `|`, `^`, `~`, `<<`, `>>` tam sayıda.
+- **Mevcut durum:** başka tiple `+` ve `*` çalışma anında hata veriyor (H2609, H2614); öğeleri başvuruyla paylaşılan liste sessizce yineleniyor: `[[0] * 3] * 3`'ün üç satırı aynı liste [ölçüldü].
+- **Yapılacaklar:** ikisi de denetim hatası olur; paylaşılan listenin iletisi her satırı ayrı kuran yazımı önerir.
 
 ## 5. Deyimler ve kontrol yapıları
 

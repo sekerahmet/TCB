@@ -3,6 +3,7 @@ package interp
 import (
 	"math"
 	"math/big"
+	"strconv"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -170,6 +171,18 @@ func (v *VM) evalInfixKod(codeVal uint8, op string, left Value, right Value, lin
 	return nil, messages.At(line, 0, messages.New(messages.H2469, left.Type(), right.Type(), op))
 }
 
+// floatBase a'nın ondalık yazımıdır, '**'in tabanı olarak: eksi taban paranteze alınır, çünkü
+// '-2.0 ** -2' 4.1'e göre '-(2.0 ** -2)' okunur (H2603'ün önerisi kopyalanınca doğru sonuç vermeli).
+func floatBase(a int64) string { return powBase(a, ".0") }
+
+// powBase a'yı '**'in tabanı olarak yazar (suffix: ".0" ondalık yazım için).
+func powBase(a int64, suffix string) string {
+	if a < 0 {
+		return "(" + strconv.FormatInt(a, 10) + suffix + ")"
+	}
+	return strconv.FormatInt(a, 10) + suffix
+}
+
 // intOp iki Tam sayı arasındaki işlemi yapar; işleç burada ele alınmıyorsa ok=false döner.
 // Hesap intFastFunc ile ortaktır; burada yalnızca hızlı yolun düştüğü durumun hatası ayrılır.
 func intOp(codeVal uint8, op string, a, b int64, line int) (Value, bool, error) {
@@ -190,7 +203,7 @@ func intOp(codeVal uint8, op string, a, b int64, line int) (Value, bool, error) 
 	if codeVal == opPow {
 		if b < 0 {
 			// İki TR_Int'in üssü TR_Int'tir; eksi üs ondalık yazımla istenir (4.3).
-			return nil, true, messages.At(line, 0, messages.New(messages.H2603, a, b))
+			return nil, true, messages.At(line, 0, messages.New(messages.H2603, powBase(a, ""), b, floatBase(a)))
 		}
 		res, ok := intPow(a, b)
 		if !ok {

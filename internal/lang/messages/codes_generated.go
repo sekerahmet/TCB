@@ -91,7 +91,7 @@ const (
 	H1005 Code = 1005 // Tip uyuşmazlığı — {name|q} değişkeni ({declared}) içine {given|q} tipinde değer atanamaz{hint}
 	H1006 Code = 1006 // '{name}' TR'de bir tip adı değil; tip adının tek yazımı vardır: '{canonical}' yazın
 	H1007 Code = 1007 // '{name}' TR'de bir tip adı değil; '{suggestion}' yazmak mı istediniz?
-	H1008 Code = 1008 // ; '/' bölüm tam çıkmazsa, '**' üs negatifse {float} verir: {int} için {fn}(...) kullanın ya da tipi {float} yapın
+	H1008 Code = 1008 // ; '/' her zaman {float} verir: tam bölme için '//' yazın
 	H1009 Code = 1009 // '{name}' yerleşik bir ad; bu kapsamda yerleşik '{name}' artık kullanılamaz
 	H1010 Code = 1010 // Tanımsız ad — {error}
 	H1012 Code = 1012 // Ad yazılışı — değişken, fonksiyon, parametre, alan ve metot adları küçük harfle, sözcükleri alt çizgiyle ayrılarak yazılır: {name|q} yerine {suggestion|q} (bkz. 2.3b)
@@ -338,17 +338,19 @@ const (
 	H2600 Code = 2600 // koşul bir mantık değeri (Bool) olmalı; {type} verildi. Açık bir sınama yazın: boşluk için 'x.{@length} == 0', yokluk için 'x != {@none}', sayı için 'x != 0'
 	H2601 Code = 2601 // '{@and}', '{@or}' ve '{@not}' yalnız mantık değeri (Bool) alır; {type} verildi. Açık bir sınama yazın: 'x.{@length} > 0', 'x != {@none}', 'x != 0'
 	H2602 Code = 2602 // karşılaştırma zincirindeki '{op}' bir mantık değeri vermedi ({type}): zincir ('a < b < c') yalnız sayıları ve metinleri karşılaştırır; karşılaştırmaları ayrı yazın
-	H2603 Code = 2603 // iki tam sayının üssünde üs eksi olamaz ({a} ** {b}); ondalık sonuç için {a}.0 ** {b} yazın
+	H2603 Code = 2603 // iki tam sayının üssünde üs eksi olamaz ({a} ** {b}); ondalık sonuç için {base} ** {b} yazın
 	H2604 Code = 2604 // sıfırın eksi üssü tanımsızdır ({a} ** {b}); üssü almadan önce tabanın sıfır olmadığını sınayın
 	H2605 Code = 2605 // eksi sayının tam olmayan üssü gerçek sayı değildir ({a} ** {b}); tabanın mutlak değeriyle hesaplayıp işareti ayrıca verin
 	H2606 Code = 2606 // kaydırma miktarı 0 ile 63 arasında olmalı ('{op}' için {n} verildi)
 	H2607 Code = 2607 // '{op}' bit işlecidir ve yalnız iki tam sayı (Int) alır; {left} ve {right} verildi. Mantık değerleri '{@and}' ve '{@or}' ile birleştirilir
 	H2608 Code = 2608 // '~' bit tümlemesidir ve yalnız tam sayı (Int) alır; {type} verildi. Mantık değerinin tersi '{@not}' ile yazılır
 	H2609 Code = 2609 // '+' iki sayıyı toplar ya da aynı tipten iki metni ya da iki listeyi uç uca ekler; {left} ile {right} eklenmez. Değeri metne yerleştirmek için "metin \(x)" yazın
-	H2610 Code = 2610 // yineleme çok büyük: {count} öğe {n} kez yinelenemez
+	H2610 Code = 2610 // yineleme çok büyük: {n} kez yinelemek {limit} baytlık metni aşar
 	H2611 Code = 2611 // '.{@filter}'in fonksiyonu mantık değeri (Bool) döndürmeli; {type} döndü. Açık bir sınama döndürün: l.{@filter}(x => x != 0)
 	H2612 Code = 2612 // '{@assert}' koşul olarak mantık değeri (Bool) alır; {type} verildi. Karşılaştırmayı yazın: {@assert}(x == beklenen) ya da {@assert_equal}(beklenen, x)
 	H2613 Code = 2613 // fonksiyonlar '{op}' ile karşılaştırılamaz: görünüşü aynı iki fonksiyon da eşit sayılmaz. Sonuçlarını karşılaştırın: f(x) == g(x)
+	H2614 Code = 2614 // '+' iki listeyi uç uca ekler; {left} ile {right} eklenmez. Listeye öğe eklemek için l + [x] ya da l.{@append}(x) yazın
+	H2615 Code = 2615 // yineleme çok büyük: {n} kez yinelemek {limit} öğelik listeyi aşar
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

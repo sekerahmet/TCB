@@ -77,6 +77,7 @@ TR_test "4.3 üs alma sağdan birleşir; iki Tam'da eksi üs hatadır" {
     TR_assert_equal(0.5, 2.0 ** -1)
     TR_assert_equal(0.5, 2 ** -1.0)
     TR_assert_equal("H2603", TR_error_code(() => { TR_var z = 2 ** -1 }))
+    TR_assert_equal(0.25, (-2.0) ** -2)
     TR_assert_equal("H2472", TR_error_code(() => { TR_var z = 2 ** 64 }))
 }
 
@@ -236,7 +237,8 @@ TR_test "4.10 '+' yalnız iki metni ya da iki listeyi uç uca ekler" {
     TR_assert_equal("a1", "a\(n)")
     TR_assert_equal("H2609", TR_error_code(() => { TR_var z = "a" + 1 }))
     TR_assert_equal("H2609", TR_error_code(() => { TR_var z = 1 + "a" }))
-    TR_assert_equal("H2609", TR_error_code(() => { TR_var z = [1] + 2 }))
+    TR_assert_equal("H2614", TR_error_code(() => { TR_var z = [1] + 2 }))
+    TR_assert_equal("H2614", TR_error_code(() => { TR_var z = 2 + [1] }))
     TR_assert_equal("H2609", TR_error_code(() => { TR_var z = "a" + [1] }))
 }
 
@@ -251,6 +253,10 @@ TR_test "4.10 '*' metni ve listeyi bir Tam kadar yineler; sıfır ya da eksi bo�
     TR_assert_equal("şşş", "ş" * 3)
     TR_assert_equal("H2469", TR_error_code(() => { TR_var z = "a" * 1.5 }))
     TR_assert_equal("H2610", TR_error_code(() => { TR_var z = "ab" * 9223372036854775807 }))
+    TR_assert_equal("H2610", TR_error_code(() => { TR_var z = "ab" * 1073741825 }))
+    TR_assert_equal("H2615", TR_error_code(() => { TR_var z = [0] * 134217729 }))
+    TR_assert_equal([], [] * 9223372036854775807)
+    TR_assert_equal("", "" * 9223372036854775807)
 }
 
 TR_test "4.11 @ matris çarpımıdır" {

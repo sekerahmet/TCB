@@ -2,7 +2,6 @@ package interp
 
 import (
 	"strings"
-	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -39,6 +38,9 @@ func sequenceOp(codeVal uint8, left, right Value, line int) (Value, bool, error)
 			combined = append(combined, ll.Elements...)
 			combined = append(combined, rl.Elements...)
 			return &ListVal{Elements: combined}, true, nil
+		case (lList || rList) && !lStr && !rStr:
+			// Listeye öğe eklemek isteyen için ayrı ileti: metin yerleştirmesi orada yol değildir.
+			return nil, true, messages.At(line, 0, messages.New(messages.H2614, left.Type(), right.Type()))
 		case lStr || rStr || lList || rList:
 			return nil, true, messages.At(line, 0, messages.New(messages.H2609, left.Type(), right.Type()))
 		}
@@ -64,13 +66,17 @@ func repeat(seq Value, n int64, line int) (Value, bool, error) {
 	}
 	switch s := seq.(type) {
 	case *StringVal:
-		if !mulFits(int64(len(s.Val)), n) || int64(len(s.Val))*n > maxRepeat {
-			return nil, true, messages.At(line, 0, messages.New(messages.H2610, utf8.RuneCountInString(s.Val), n))
+		if !mulFits(int64(len(s.Val)), n) || int64(len(s.Val))*n > maxRepeatBytes {
+			return nil, true, messages.At(line, 0, messages.New(messages.H2610, n, maxRepeatBytes))
 		}
 		return &StringVal{Val: strings.Repeat(s.Val, int(n))}, true, nil
 	case *ListVal:
-		if !mulFits(int64(len(s.Elements)), n) || int64(len(s.Elements))*n > maxRepeat {
-			return nil, true, messages.At(line, 0, messages.New(messages.H2610, len(s.Elements), n))
+		// Boş liste ne kadar yinelenirse yinelensin boştur; n kez boşuna dönülmez.
+		if len(s.Elements) == 0 || n == 0 {
+			return &ListVal{Elements: []Value{}}, true, nil
+		}
+		if !mulFits(int64(len(s.Elements)), n) || int64(len(s.Elements))*n > maxRepeatItems {
+			return nil, true, messages.At(line, 0, messages.New(messages.H2615, n, maxRepeatItems))
 		}
 		out := make([]Value, 0, len(s.Elements)*int(n))
 		for range n {
@@ -81,5 +87,9 @@ func repeat(seq Value, n int64, line int) (Value, bool, error) {
 	return nil, false, nil
 }
 
-// maxRepeat yinelemenin en çok öğe ya da bayt sayısıdır: daha büyüğü belleği bir anda tüketir.
-const maxRepeat = 1 << 31
+// Yinelemenin sonucu en çok 2^31 bayt metin ya da 2^27 öğe liste olur (4.10): daha büyüğü belleği
+// bir anda tüketir. Listede bir öğe bir Value arayüzüdür (16 bayt), iki sınır aynı belleği tutar.
+const (
+	maxRepeatBytes = 1 << 31
+	maxRepeatItems = 1 << 27
+)

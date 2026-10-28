@@ -109,7 +109,7 @@ değişken n = -3; değişken tür = eğer n < 0 { "negatif" } değilse eğer n 
 
 #### TR_kw_false `yanlış`
 
-Mantık tipinin yanlış değeridir; koşullarda yok, 0, boş metin, boş liste ve boş sözlük de yanlış sayılır.
+Mantık tipinin yanlış değeridir. Koşul yalnız Mantık değeri alır: yok, 0, boş metin ve boş liste koşul olamaz, açık sınama yazılır (l.uzunluk == 0, x != yok).
 
 ```tr
 yazdır(yanlış veya doğru, değil yanlış)
@@ -187,7 +187,7 @@ değişken l = [1, 2]; yazdır(l.varsa_al(5) == yok, l.varsa_al(5) ?? "boş", {"
 
 #### TR_kw_not `değil`
 
-Doğruluğun tersini verir; karşılaştırmadan gevşek bağlanır: değil 1 == 2, değil (1 == 2) demektir.
+Mantık değerinin tersini verir; işleneni Mantık olmalıdır. Karşılaştırmadan gevşek bağlanır: değil 1 == 2, değil (1 == 2) demektir.
 
 ```tr
 yazdır(değil 1 == 2)

@@ -163,10 +163,14 @@ func TestTypedVarIncompatible(t *testing.T) {
 		{"TR_var a: TR_Dict = [1]", "TR_Dict", "TR_List"},
 		{"TR_var a: TR_Int = 1..5", "TR_Int", "TR_Range"},
 		{"TR_var a: TR_List = 1..5", "TR_List", "TR_Range"},
-		{"TR_var a: TR_Int = 7 / 2", "TR_Int", "TR_Int ya da TR_Float"},
-		{"TR_var a: TR_Int = 6 / 3", "TR_Int", "TR_Int ya da TR_Float"},
-		{"TR_var a: TR_Int = 2 ** -1", "TR_Int", "TR_Int ya da TR_Float"},
-		{"TR_var a: TR_String = 7 / 2", "TR_String", "TR_Int ya da TR_Float"},
+		{"TR_var a: TR_Int = 7 / 2", "TR_Int", "TR_Float"},
+		{"TR_var a: TR_Int = 6 / 3", "TR_Int", "TR_Float"},
+		{"TR_var a: TR_Int = 7 // 2.0", "TR_Int", "TR_Float"},
+		{"TR_var a: TR_String = 7 / 2", "TR_String", "TR_Float"},
+		{"TR_var a: TR_String = 7 // 2", "TR_String", "TR_Int"},
+		{"TR_var a: TR_String = 2 ** 3", "TR_String", "TR_Int"},
+		{"TR_var a: TR_String = 1 << 2", "TR_String", "TR_Int"},
+		{"TR_var a: TR_String = ~1", "TR_String", "TR_Int"},
 		{"TR_var a: TR_String = TR_func() { }", "TR_String", "TR_Function"},
 		{"TR_var a: Nokta = 5", "Nokta", "TR_Int"},
 		{"TR_const a: TR_String = TR_true", "TR_String", "TR_Bool"},
@@ -221,10 +225,12 @@ func TestCompoundAssignment(t *testing.T) {
 	singleError(t, "TR_var x: TR_Int = 1\nx = x + 0.5", messages.H1005, 2, `"x" değişkeni (TR_Int)`, `"TR_Float"`)
 	noErrors(t, "TR_var x = 1\nx += 0.5")
 
-	// '/' Tam/Tam'da tam bölünmezse Ondalık verir (10 / 4 = 2.5): sonuç "TR_Int ya da TR_Float"tır.
+	// Kural (4.2): '/' her zaman Ondalık verir (6 / 3 = 2.0); Tam beklenen yerde ileti '//'yi önerir.
 	noErrors(t, "TR_var x = 10\nx /= 4")
-	singleError(t, "TR_var y: TR_Int = 10 / 4", messages.H1001, 1, `"TR_Int ya da TR_Float"`, "TR_int(...)")
-	singleError(t, "TR_var y: TR_Int = 10\ny /= 4", messages.H1005, 2, `"TR_Int ya da TR_Float"`)
+	singleError(t, "TR_var y: TR_Int = 10 / 4", messages.H1001, 1, `"TR_Float"`, "'//'")
+	singleError(t, "TR_var y: TR_Int = 10\ny /= 4", messages.H1005, 2, `"TR_Float"`, "'//'")
+	noErrors(t, "TR_var y: TR_Int = 10 // 4\nTR_var z: TR_Int = 10 % 4\nTR_var w: TR_Int = 2 ** 3 & 7")
+	noErrors(t, "TR_var y: TR_Float = 10 / 4")
 }
 
 func TestConstCannotChange(t *testing.T) {
@@ -309,8 +315,9 @@ func TestReturnTypeCheck(t *testing.T) {
 	singleError(t, "TR_func f(): TR_Int {\n  TR_return \"x\"\n}", messages.H1003, 2, `"TR_Int"`, `"TR_String"`)
 	singleError(t, "TR_func f() -> TR_String {\n  TR_return 1\n}", messages.H1003, 2)
 	singleError(t, "TR_func f(): TR_Int { TR_return 2.5 }", messages.H1003, 0, `"TR_Float"`)
-	// Tam / Tam Tam olmayabilir (7 / 2 = 3.5): ': Tam' bildiren fonksiyon bunu döndüremez
-	singleError(t, "TR_func ort(a: TR_Int, b: TR_Int): TR_Int { TR_return a / b }", messages.H1003, 0, `"TR_Int ya da TR_Float"`)
+	// '/' her zaman Ondalık verir (4.2): ': TR_Int' bildiren fonksiyon a / b'yi döndüremez
+	singleError(t, "TR_func ort(a: TR_Int, b: TR_Int): TR_Int { TR_return a / b }", messages.H1003, 0, `"TR_Float"`, "'//'")
+	noErrors(t, "TR_func ort(a: TR_Int, b: TR_Int): TR_Int { TR_return a // b }")
 	noErrors(t, "TR_func ort(a: TR_Int, b: TR_Int): TR_Float { TR_return a / b }")
 
 	// İç bloklardaki dönüşler de denetlenir

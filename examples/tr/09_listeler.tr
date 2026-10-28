@@ -35,7 +35,7 @@ TR_func bölüm_ve_kalan(a, b) {
     TR_return [a // b, a % b]
 }
 TR_var bölüm, kalan = bölüm_ve_kalan(17, 5)
-TR_print("17 / 5 = \(bölüm), kalan \(kalan)")
+TR_print("17 // 5 = \(bölüm), kalan \(kalan)")
 
 # Çoklu atamayla iki değişken yer değiştirir (takas).
 TR_var a, b = 10, 20
