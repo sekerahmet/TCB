@@ -23,10 +23,10 @@ Toplam 575 kod: 26 anahtar kelime, 6 bağlamsal sözcük, 2 değer adı, 42 tip,
 
 #### TR_kw_and `ve`
 
-Mantıksal ve (&& ile aynı); kısa devre yapar ve sonucu her zaman Mantık olarak verir.
+Mantıksal ve; işlenenleri Mantık olmalıdır, kısa devre yapar. TR'de && yoktur: yazılırsa sözdizimi hatasıdır, ileti ve'yi önerir.
 
 ```tr
-yazdır(1 < 2 ve 2 < 3, 1 && "a")
+yazdır(1 < 2 ve 2 < 3, yanlış ve doğru)
 ```
 
 İlişkili: TR_kw_or `veya`, TR_kw_not `değil`
@@ -197,10 +197,10 @@ yazdır(değil 1 == 2)
 
 #### TR_kw_or `veya`
 
-Mantıksal veya (|| ile aynı); kısa devre yapar ve sonucu her zaman Mantık olarak verir.
+Mantıksal veya; işlenenleri Mantık olmalıdır, kısa devre yapar. TR'de || yoktur: yazılırsa sözdizimi hatasıdır, ileti veya'yı önerir.
 
 ```tr
-yazdır(yanlış veya 0, 1 > 2 || 3 > 2)
+yazdır(yanlış veya doğru, 1 > 2 veya 3 > 2)
 ```
 
 İlişkili: TR_kw_and `ve`, TR_kw_not `değil`

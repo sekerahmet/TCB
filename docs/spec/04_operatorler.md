@@ -31,7 +31,7 @@ Her kuralın emsali ve gerekçesi: [`rationale/04_operators.md`](rationale/04_op
 - *Test:* TR testi; `/`'nin her zaman ondalık vermesi uygulanınca TR testi.
 
 **4.2a** `//` tam bölmedir ve aşağı yuvarlar: `7 // 2` = 3, `-7 // 2` = −4. `%` kalanı verir, işareti bölenin işaretidir: `-7 % 3` = 2, `7.5 % 2` = 1.5. İki `TR_Int`te her zaman `a == (a // b) * b + a % b`; ondalıkta yuvarlama yüzünden tutmayabilir. İkisi de iki `TR_Int`te `TR_Int`, ondalıkla `TR_Float` verir; sıfıra bölme çalışma hatasıdır, en küçük `TR_Int`'in `// -1`'i taşmadır (3.1).
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
+- *Test:* TR testi.
 
 **4.3** `**` üs alır. İki `TR_Int`te sonuç `TR_Int`tir (taşma 3.1) ve üs eksi olamaz (çalışma hatası; ileti `2.0 ** -1`'i önerir); bir taraf ondalıksa sonuç `TR_Float`tır. Sıfırın eksi üssü ve eksi sayının tam olmayan üssü çalışma hatasıdır (`0.0 ** -1`, `(-8.0) ** (1.0 / 3)`); tensörde sonraki bölümlerdedir.
 - *Test:* TR testi; tam sayı üssünün kuralı uygulanınca TR testi.
@@ -61,7 +61,7 @@ Her kuralın emsali ve gerekçesi: [`rationale/04_operators.md`](rationale/04_op
 - *Test:* TR testi.
 
 **4.12** Bit işleçleri yalnız `TR_Int`te tanımlıdır: `&`, `|`, `^` (dışlayan veya), `~` (tümleme), `<<`, `>>`. Kaydırma miktarı 0–63 dışındaysa çalışma hatasıdır; dışarı taşan bitler atılır (3.1'in taşma kuralı aritmetik içindir); `>>` işareti korur (`-8 >> 1` = −4).
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
+- *Test:* TR testi.
 
 ```tr
 # TR 4
