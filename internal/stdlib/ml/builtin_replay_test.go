@@ -396,7 +396,7 @@ TR_no_grad {
     TR_var s = [f(x).TR_tolist TR_for i TR_in 0..3]
     TR_print(s[0] == s[2], s[2] == (`+expr+`).TR_tolist)
 }`)
-		if err != nil || out != "doğru doğru\n" {
+		if err != nil || out != "true true\n" {
 			t.Errorf("%s: %q %v", expr, out, err)
 		}
 	}
@@ -419,14 +419,14 @@ TR_no_grad {
     TR_var s = [f(tampon[1]).TR_tolist TR_for i TR_in 0..3]
     TR_print(s[0] == s[2], s[2] == TR_attention(q, k, v, TR_causal: TR_false, TR_mask: tampon[1]).TR_tolist)
 }`)
-	if out != "doğru doğru\n" {
+	if out != "true true\n" {
 		t.Fatalf("ofsetli maske: %q", out)
 	}
 	out = mustRun(t, `TR_import "../../../lib/katman.tr"
 TR_default_device("gpu")
 TR_var m = TR_GPT(12, TR_context: 6, TR_embed_dim: 8, TR_num_layers: 2, TR_num_heads: 2, TR_ple_dim: 4, TR_seed: 5)
 TR_print(m.TR_generate([1, 2], 4, TR_temperature: 0, TR_cuda_graph: TR_true) == m.TR_generate([1, 2], 4, TR_temperature: 0, TR_cuda_graph: TR_false))`)
-	if out != "doğru\n" {
+	if out != "true\n" {
 		t.Fatalf("PLE'li üretim kayıtla farklı: %q", out)
 	}
 }

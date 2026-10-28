@@ -26,7 +26,7 @@ func TestVMHooks(t *testing.T) {
 		TR_print([1, 2] @ TR_tensor([[1.0], [1.0]]))
 	`)
 	want := []string{
-		"yanlış", "doğru", "doğru",
+		"false", "true", "true",
 		"[[9.0, 8.0], [7.0, 6.0]]",
 		"[[12.0, 6.0], [4.0, 3.0]]",
 		"[[-1.0, -2.0], [-3.0, -4.0]]",
@@ -96,10 +96,10 @@ func TestLoopOverTensor(t *testing.T) {
 		"1 [2] [3.0, 4.0]",
 		"2 [2] [5.0, 6.0]",
 		"[3.0, 5.0]",
-		"doğru",
-		`[Tam, Tam]`,
-		"Tam 1",
-		"Tam 0",
+		"true",
+		`[Int, Int]`,
+		"Int 1",
+		"Int 0",
 		"[[9.0, 0.0], [9.0, 0.0]]",
 		"[[2.0, 4.0], [6.0, 8.0]]",
 	}, "\n")

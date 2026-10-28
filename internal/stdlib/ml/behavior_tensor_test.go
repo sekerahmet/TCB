@@ -85,9 +85,9 @@ func TestPrintFormat(t *testing.T) {
 	out := mustRun(t, `TR_print(TR_tensor([[1, 2], [3, 4]]))
 TR_print(TR_tensor([1.5, -2]))
 TR_print(TR_sum(TR_tensor([1, 2], TR_requires_grad: TR_true)))`)
-	want := "Tensör[2×2] [\n  [1.0000, 2.0000],\n  [3.0000, 4.0000]\n]\n" +
-		"Tensör[2] [ 1.5000, -2.0000]\n" +
-		"Tensör(3.0000, türev izleniyor)\n"
+	want := "Tensor[2×2] [\n  [1.0000, 2.0000],\n  [3.0000, 4.0000]\n]\n" +
+		"Tensor[2] [ 1.5000, -2.0000]\n" +
+		"Tensor(3.0000, türev izleniyor)\n"
 	if out != want {
 		t.Fatalf("yazdırma:\n%s\nbeklenen:\n%s", out, want)
 	}
@@ -109,7 +109,7 @@ TR_print(x.TR_tolist, y.TR_tolist, x.TR_grad, TR_type(x))
 TR_print(TR_zeros([2, 3]).TR_shape, TR_type(TR_ones([2, 2])), TR_type(TR_zeros([3])))
 TR_print(TR_sum([1, 2, 3]), TR_min([3, 1, 2]), TR_max(4, 9), TR_sqrt(9), TR_mean([1, 2, 3]))
 TR_print(TR_softmax(TR_tensor([1.0, 1.0])).TR_tolist, TR_relu(-2), TR_type(TR_tensor([[1, 2]]).TR_transpose()))`)
-	want := "3.0 16.0 Tensör(8.0000) Tensör\n[2, 3] Tensör Tensör\n6 1 9 3.0 2.0\n[0.5, 0.5] 0.0 Tensör\n"
+	want := "3.0 16.0 Tensor(8.0000) Tensor\n[2, 3] Tensor Tensor\n6 1 9 3.0 2.0\n[0.5, 0.5] 0.0 Tensor\n"
 	if out != want {
 		t.Fatalf("eski davranış:\n%q\nbeklenen:\n%q", out, want)
 	}
@@ -151,7 +151,7 @@ TR_var b = TR_no_grad(w * 2)
 TR_var c = w * 2
 TR_print(a, b, c)
 TR_try { TR_backward(TR_sum(a)) } TR_catch h { TR_print("hata") }`)
-	want := "Tensör[2] [2.0000, 4.0000] Tensör[2] [2.0000, 4.0000] Tensör[2] (türev izleniyor) [2.0000, 4.0000]\nhata\n"
+	want := "Tensor[2] [2.0000, 4.0000] Tensor[2] [2.0000, 4.0000] Tensor[2] (türev izleniyor) [2.0000, 4.0000]\nhata\n"
 	if out != want {
 		t.Fatalf("türevsiz:\n%q\nbeklenen:\n%q", out, want)
 	}

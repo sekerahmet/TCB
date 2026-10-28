@@ -27,7 +27,7 @@ TR_print(a.TR_tolist, a.TR_tolist[0] == 0.1, TR_sum(TR_tensor([0.1])).TR_tolist)
 TR_var m = TR_tensor([[1, 2], [3, 4]]).TR_tolist
 m[0].TR_append(9)
 TR_print(m)`)
-	want := "[0.1, 0.2, 1.5, 3.0] doğru 0.1\n[[1.0, 2.0, 9], [3.0, 4.0]]\n"
+	want := "[0.1, 0.2, 1.5, 3.0] true 0.1\n[[1.0, 2.0, 9], [3.0, 4.0]]\n"
 	if out != want {
 		t.Fatalf("değer:\n%q\nbeklenen:\n%q", out, want)
 	}
@@ -74,7 +74,7 @@ TR_AdamW([y])`)
 	}
 	// Henüz geri yayılım yapılmamış yaprakta gradyan yoktur.
 	out := mustRun(t, `TR_print(TR_tensor([1.0], TR_requires_grad: TR_true).TR_grad, TR_zeros([2]).TR_grad)`)
-	if out != "yok yok\n" {
+	if out != "none none\n" {
 		t.Fatalf("yaprak gradyanı: %q", out)
 	}
 }

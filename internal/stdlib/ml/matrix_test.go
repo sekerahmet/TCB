@@ -22,13 +22,13 @@ TR_print((G + TR_tensor([10, 20])).TR_tolist, G.TR_transpose().TR_tolist, G.TR_t
 TR_print(TR_zeros([2, 3]).TR_shape, TR_zeros([1, 4]).TR_shape, TR_ones([2, 2]).TR_tolist, TR_eye(3).TR_tolist)
 TR_print(TR_softmax(TR_tensor([[1, 2], [3, 3]])).TR_tolist, TR_sigmoid(TR_zeros([1, 2])).TR_tolist, TR_tanh(TR_zeros([1, 1])).TR_tolist)
 TR_print(TR_tensor(G) == G)`)
-	want := "Tensör [2, 2] Tensör Tensör Tensör Tensör\n" +
-		"Tensör[2×2] [\n  [2.5000, 3.5000],\n  [5.5000, 6.5000]\n]\n" +
+	want := "Tensor [2, 2] Tensor Tensor Tensor Tensor\n" +
+		"Tensor[2×2] [\n  [2.5000, 3.5000],\n  [5.5000, 6.5000]\n]\n" +
 		"[[2.5, 3.5], [5.5, 6.5]] [[1.5, 1.5], [4.0, 6.0]] [[0.0, 1.0], [2.0, 3.0]] [[2.0, 4.0], [6.0, 8.0]] [[0.5, 1.0], [1.5, 2.0]] [[0.5, -1.0], [3.0, 8.0]]\n" +
 		"[[11.0, 22.0], [13.0, 24.0]] [[1.0, 3.0], [2.0, 4.0]] [[1.0, 3.0], [2.0, 4.0]] [2, 1]\n" +
 		"[2, 3] [1, 4] [[1.0, 1.0], [1.0, 1.0]] [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]\n" +
 		"[[0.26894143, 0.7310586], [0.5, 0.5]] [[0.5, 0.5]] [[0.0]]\n" +
-		"doğru\n"
+		"true\n"
 	if out != want {
 		t.Fatalf("matris:\n%q\nbeklenen:\n%q", out, want)
 	}
@@ -61,7 +61,7 @@ TR_print(T.TR_tolist)
 TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
 TR_no_grad { w[0] = 5 }
 TR_print(w.TR_tolist)`)
-	want := "doğru 8.0 [8.0, 9.0] [[1.0, 10.0], [8.0, 9.0]]\n" +
+	want := "true 8.0 [8.0, 9.0] [[1.0, 10.0], [8.0, 9.0]]\n" +
 		"[[[-3.0, 0.0], [1.0, 2.0]], [[7.0, 7.0], [7.0, 7.0]]]\n" +
 		"[5.0, 2.0]\n"
 	if out != want {

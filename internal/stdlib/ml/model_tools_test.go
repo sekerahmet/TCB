@@ -219,7 +219,7 @@ TR_for x TR_in TR_sample(TR_tensor([[1.0, 1.1, 1.2]]) + TR_ones([2000, 3]), TR_t
 TR_print(sayılar[0], sayılar[1] > 800, sayılar[2] > 800)
 `)
 	lines := strings.Split(out, "\n")
-	want := []string{"Tensör[2] [1, 0] [1, 0] [2] Tam", "1", "doğru", "[1, 0]", "doğru", "0 doğru doğru"}
+	want := []string{"Tensor[2] [1, 0] [1, 0] [2] Int", "1", "true", "[1, 0]", "true", "0 true true"}
 	for i, w := range want {
 		if i >= len(lines) || lines[i] != w {
 			t.Fatalf("satır %d: %q, beklenen %q\n%s", i+1, lines[min(i, len(lines)-1)], w, out)

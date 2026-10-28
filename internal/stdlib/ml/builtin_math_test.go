@@ -17,12 +17,12 @@ TR_print(TR_type(TR_silu(TR_tensor([1.0]))), TR_type(TR_atan2(1, 2)), TR_type(TR
 TR_print(TR_floor(3.7), TR_floor(-3), TR_ceil(-3.7), TR_ceil(2), TR_sign(-7), TR_sign(2.5), TR_sign(0))
 TR_print(TR_clamp(15, TR_max: 10), TR_clamp(-3, TR_min: 0), TR_clamp(5, TR_min: 0.5), TR_clamp(2.5, TR_min: 0, TR_max: 1))
 TR_print(TR_log2(8), TR_log10(1000), TR_atan2(0, -1) == TR_pi, TR_pi > 3.14159 && TR_pi < 3.1416)`)
-	want := "Ondalık Ondalık Ondalık Ondalık Ondalık\n" +
-		"Ondalık Ondalık Ondalık Ondalık Ondalık Ondalık\n" +
-		"Tensör Ondalık Tensör\n" +
+	want := "Float Float Float Float Float\n" +
+		"Float Float Float Float Float Float\n" +
+		"Tensor Float Tensor\n" +
 		"3.0 -3 -3.0 2 -1 1.0 0\n" +
 		"10 0 5.0 1.0\n" +
-		"3.0 3.0 doğru doğru\n"
+		"3.0 3.0 true true\n"
 	if out != want {
 		t.Fatalf("dönüş tipleri:\n%q\nbeklenen:\n%q", out, want)
 	}
@@ -42,7 +42,7 @@ TR_print(TR_where(m, TR_tensor([1.0, 2.0]), -1).TR_tolist, TR_where(TR_false, TR
 TR_print((TR_tensor([1, 2, 3]) >= TR_tensor([[2], [1]])).TR_tolist, (2 < TR_tensor([1, 2, 3])).TR_tolist)`)
 	want := "[1, 0] [0.0, -1.0] [0, 0] [0.5, 0.0]\n" + // i - 1 tam sayılı değil (15.19)
 		"[0.0, 1.0, 0.0]\n" +
-		"[[3.0, 3.0], [2.0, 1.0]] [[0, 2], [1, 2]] Tam\n" +
+		"[[3.0, 3.0], [2.0, 1.0]] [[0, 2], [1, 2]] Int\n" +
 		"[3, 1, 0, 2] [1, 1]\n" +
 		"[[1.0, 2.0], [-1.0, -1.0]] [7.0]\n" +
 		"[[0.0, 1.0, 1.0], [1.0, 1.0, 1.0]] [0.0, 0.0, 1.0]\n"
@@ -109,13 +109,13 @@ TR_print(TR_clamp(7, TR_min: 1, TR_max: 3), TR_clamp(7, TR_min: 1.5))`)
 // Neden: eğitim döngüsü gradyan normunu ve kaybı NaN için böyle denetler (torch.isfinite).
 func TestIsFiniteNumbersAndTensors(t *testing.T) {
 	out := mustRun(t, `TR_var nan = TR_float("nan")
-TR_var sonsuz = TR_float("inf")
-TR_print(TR_is_finite(3), TR_is_finite(-2.5), TR_is_finite(nan), TR_is_finite(sonsuz), TR_is_finite(-sonsuz), TR_type(TR_is_finite(0)))
-TR_var x = TR_tensor([1.0, nan, sonsuz, -sonsuz, -0.0], TR_requires_grad: TR_true)
+TR_var inf = TR_float("inf")
+TR_print(TR_is_finite(3), TR_is_finite(-2.5), TR_is_finite(nan), TR_is_finite(inf), TR_is_finite(-inf), TR_type(TR_is_finite(0)))
+TR_var x = TR_tensor([1.0, nan, inf, -inf, -0.0], TR_requires_grad: TR_true)
 TR_var s = TR_is_finite(x)
 TR_print(s.TR_tolist, s.TR_dtype)
 TR_print(TR_is_finite(x.TR_to_dtype("bf16")).TR_tolist, TR_is_finite(TR_tensor([[1, 2]])).TR_tolist)`)
-	want := "doğru doğru yanlış yanlış yanlış Mantık\n" +
+	want := "true true false false false Bool\n" +
 		"[1.0, 0.0, 0.0, 0.0, 1.0] float32\n" +
 		"[1.0, 0.0, 0.0, 0.0, 1.0] [[1.0, 1.0]]\n"
 	if out != want {

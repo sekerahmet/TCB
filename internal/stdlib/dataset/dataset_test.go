@@ -263,7 +263,7 @@ TR_var W = TR_randn([4, 20000], TR_seed: 2)
 TR_var çıktı = TR_embedding(E, girdi) @ W
 TR_print(çıktı.TR_shape, TR_type(TR_cross_entropy(çıktı, hedef)), girdi.TR_shape, hedef.TR_shape)
 `)
-	if strings.TrimSpace(out) != "[2, 8, 20000] Tensör [2, 8] [2, 8]" {
+	if strings.TrimSpace(out) != "[2, 8, 20000] Tensor [2, 8] [2, 8]" {
 		t.Fatalf("çıktı %q", out)
 	}
 }

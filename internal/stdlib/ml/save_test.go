@@ -26,7 +26,7 @@ TR_backward(TR_sum(z["sapma"] * 2))
 TR_print(z["sapma"].TR_grad.TR_tolist)`)
 	want := "[\"gömme\", \"sapma\", \"ölçek\", \"boş\"]\n" +
 		"[[0.1, 0.2], [0.3, 0.4]] [1.5] 5.0 [0, 3]\n" +
-		"doğru yok\n" +
+		"true none\n" +
 		"[2.0]\n"
 	if out != want {
 		t.Fatalf("kaydet/yükle:\n%q\nbeklenen:\n%q", out, want)

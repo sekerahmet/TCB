@@ -273,7 +273,7 @@ func TestCheckGradBuildsCopiesOnTheInputDevice(t *testing.T) {
 	out, err := run(t, `TR_var w = TR_tensor([2.0, 3.0]).TR_to_device("gpu:99")
 TR_var x = TR_tensor([1.0, 4.0], TR_requires_grad: TR_true).TR_to_device("gpu:99")
 TR_print(TR_grad_check((a) => a * w, [x]))`)
-	if err != nil || out != "doğru\n" {
+	if err != nil || out != "true\n" {
 		t.Fatalf("varsayılan dışı cihazda türev_denetle başarısız: err=%v out=%q", err, out)
 	}
 }

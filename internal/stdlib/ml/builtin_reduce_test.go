@@ -19,9 +19,9 @@ TR_print(harfler[i.TR_tolist[0][0]] + harfler[i.TR_tolist[0][1]], TR_type(i.TR_t
 TR_print(i, TR_argmax(TR_tensor([2, 1])))
 TR_print(TR_type((i * 2).TR_tolist[0][0]), TR_type(TR_tensor(i).TR_tolist[0][0]))`)
 	want := "[1, 0] [1, 0, 1] 1\n1 [2]\n[[2.0, 2.0]]\n" +
-		"ba Tam Tam\n" +
-		"Tensör[1×2] [\n  [1, 0]\n] Tensör(0)\n" +
-		"Ondalık Ondalık\n"
+		"ba Int Int\n" +
+		"Tensor[1×2] [\n  [1, 0]\n] Tensor(0)\n" +
+		"Float Float\n"
 	if out != want {
 		t.Fatalf("argmax:\n%q\nbeklenen:\n%q", out, want)
 	}

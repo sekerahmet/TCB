@@ -163,8 +163,8 @@ TR_print(y["a"].TR_dtype, y["b"].TR_dtype, y["c"].TR_dtype)
 TR_print(y["a"] == p["a"], y["b"] == p["b"], y["c"] == p["c"], y["a"].TR_tolist)
 TR_print(y["b"].TR_grad, y["b"])`)
 	want := "bf16 fp16 float32\n" +
-		"doğru doğru doğru [[1.5, -2.25], [3.0, 0.100097656]]\n" +
-		"yok Tensör[3] fp16 (türev izleniyor) [9.9976e-02, 6.5504e+04, 1.0014e-05]\n"
+		"true true true [[1.5, -2.25], [3.0, 0.100097656]]\n" +
+		"none Tensor[3] fp16 (türev izleniyor) [9.9976e-02, 6.5504e+04, 1.0014e-05]\n"
 	if out != want {
 		t.Fatalf("sürüm 2 gidiş-dönüş:\n%q\nbeklenen:\n%q", out, want)
 	}
