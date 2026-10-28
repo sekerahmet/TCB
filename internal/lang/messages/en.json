@@ -82,7 +82,7 @@
 "H1013": "Name spelling — constants are written in uppercase with words separated by underscores: {suggestion|q} instead of {name|q} (see 2.3b)",
 "H1014": "Name spelling — struct names start with an uppercase letter, with words joined without underscores and each capitalized: {suggestion|q} instead of {name|q} (see 2.3b)",
 "H1015": "Name spelling — {name|q} is a variable written in uppercase; if its value does not change declare it with {keyword|q}, if it does change write {suggestion|q} (see 2.3b)",
-"H1016": "{fn}(x) gives {true|q} or {false|q} in this file (the file's language: {language}); {text|q} is the name in another writing language, so the comparison never holds",
+"H1016": "{fn}(x) gives {true|q} or {false|q}; {text|q} is the name in a writing language, so the comparison never holds",
 "H1017": "the line starts with the operator '{op}' and its value is not used (2.8): an operator at the start of a line does not continue the previous line; to split an expression put '{op}' at the end of the previous line",
 "H1018": "there is no variable or function named '{name}'; '//' is floor division, not a comment: comments are written with '#' (x = 1  # note)",
 "H1019": "the name '{name}' mixes letters from different scripts ({first} and {second}): it can be confused with another look-alike name; write it in a single script (see 2.1a)",

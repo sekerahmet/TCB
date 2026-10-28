@@ -82,7 +82,7 @@
 "H1013": { "param": ["name", "suggestion"] },
 "H1014": { "param": ["name", "suggestion"] },
 "H1015": { "param": ["name", "keyword", "suggestion"] },
-"H1016": { "param": ["fn", "true", "false", "language", "text"] },
+"H1016": { "param": ["fn", "true", "false", "text"] },
 "H1017": { "param": ["op"] },
 "H1018": { "param": ["name"] },
 "H1019": { "param": ["name", "first", "second"] },

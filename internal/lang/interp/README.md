@@ -37,7 +37,7 @@ adıyla saklanır (`CodedKey`: `"step"`; kod `DictVal.coded`'da yalnız gösteri
 `d["step"]` ve veri biçimleri (JSON, günlük, kontrol noktası; `KeyText`) aynı anahtarı görür,
 `DisplayKey` kişinin dilinde yazar. Sözlükte üye erişimi (`d.TR_step`) bu anahtarı arar (`memberInfo.keys`);
 bir dildeki adla duran metin anahtar (`"adım"`) ayrı bir anahtardır. `Inspect` kanonik kalır ve iletiler
-onu kullanır. Denetim: `TestValueTextIsLanguageIndependent`, `TestValueTextIsTheSameInEveryModule`, `TestEveryTextConversionIsLanguageIndependent`, `TestCaughtErrorTextIsEnglish`, `TestDictCodedKeysAreLanguageIndependent`, `TestDataFormatsIndependentOfFileLanguage` ve `TestDictCodedKeysOnDisk` (cmd/tr/e2e).
+onu kullanır. Denetim: `TestValueTextIsLanguageIndependent`, `TestValueTextIsTheSameInEveryModule`, `TestEveryTextConversionIsLanguageIndependent`, `TestCaughtErrorTextIsEnglish`, `TestDictCodedKeysAreLanguageIndependent`, `TestDataFormatsAreLanguageIndependent` ve `TestDictCodedKeysOnDisk` (cmd/tr/e2e).
 
 **Sıcak yol ölçülerek değişir.** Yorumlayıcı döngüsündeki ve hızlı yollardaki değişiklikler
 önce/sonra hız ölçümüyle yapılır.

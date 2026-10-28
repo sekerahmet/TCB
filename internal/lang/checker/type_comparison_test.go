@@ -31,28 +31,30 @@ func boolTextWarnings(t *testing.T, language, source string) int {
 	return n
 }
 
-// Mantık değerinin metni dosyanın dilindedir (3): metin(Mantık) başka bir yazım dilinin
-// doğru/yanlış adıyla karşılaştırılırsa karşılaştırma hiç tutmaz, denetleyici uyarır (5. adım;
-// 3.11'in tip(x) == "Tam" kuralıyla aynı aile). Dosyanın dilindeki ad ve başka metinler sessizdir.
+// Mantık değerinin metni dilden bağımsızdır (codes.ValueNames; "true", "false"): TR_str(Mantık) bir
+// yazım dilinin doğru/yanlış adıyla karşılaştırılırsa karşılaştırma hiç tutmaz, denetleyici uyarır
+// (3.11'in TR_type(x) == "Tam" kuralıyla aynı aile). Değer metnindeki ad ve başka metinler sessizdir;
+// dosyada da yazılan satırda (dil "tr", "en") da aynıdır.
 func TestBoolTextComparisonWarning(t *testing.T) {
 	// Tipi bilinen Mantık: sabit, tip açıklamalı değişken, karşılaştırma (açıklamasız değişken
 	// dinamik dilde tipsiz sayılır, checker.go VarStatement).
 	const decl = "TR_const b = TR_true\nTR_var c: TR_Bool = TR_false\n"
 	for _, c := range []struct {
-		language, line string
-		want           int
+		line string
+		want int
 	}{
-		{"en", `TR_print(TR_str(b) == "doğru")`, 1},
-		{"en", `TR_print("yanlış" != TR_str(1 > 2))`, 1},
-		{"en", `TR_print(TR_str(b) == "true")`, 0},
-		{"tr", `TR_print(TR_str(b) == "true")`, 1},
-		{"tr", `TR_print(TR_str(b) == "doğru")`, 0},
-		{"en", `TR_print(TR_str(b) == "evet")`, 0},
-		{"en", `TR_print(TR_str(3) == "doğru")`, 0}, // Mantık değil
-		{"en", `TR_print(TR_str(c) == "yanlış")`, 1},
+		{`TR_print(TR_str(b) == "doğru")`, 1},
+		{`TR_print("yanlış" != TR_str(1 > 2))`, 1},
+		{`TR_print(TR_str(b) == "true")`, 0},
+		{`TR_print(TR_str(c) == "false")`, 0},
+		{`TR_print(TR_str(b) == "evet")`, 0},
+		{`TR_print(TR_str(3) == "doğru")`, 0}, // Mantık değil
+		{`TR_print(TR_str(c) == "yanlış")`, 1},
 	} {
-		if got := boolTextWarnings(t, c.language, decl+c.line+"\n"); got != c.want {
-			t.Errorf("dil=%q %s: %d uyarı, beklenen %d", c.language, c.line, got, c.want)
+		for _, language := range []string{"", "tr", "en"} {
+			if got := boolTextWarnings(t, language, decl+c.line+"\n"); got != c.want {
+				t.Errorf("dil=%q %s: %d uyarı, beklenen %d", language, c.line, got, c.want)
+			}
 		}
 	}
 	// metin gölgelenmişse kullanıcının fonksiyonudur.
