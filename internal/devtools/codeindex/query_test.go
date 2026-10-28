@@ -151,7 +151,7 @@ TR_test "yalnız bir test" {
 	}
 	r := NewReader(idx)
 	for q, want := range map[string]string{
-		"metin":           "module:metin.tr",
+		"metin":           "builtin:TR_type_String module:metin.tr",
 		"ortalama":        "builtin:TR_fn_mean",
 		"yalnız bir test": "test_block:m_test.tr#" + strings.Split(srcAt(t, tests, `TR_test "yalnız bir test"`, "TR_test", 1), ":")[0],
 	} {

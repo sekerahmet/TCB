@@ -44,7 +44,7 @@ TR_if TR_String(ayar["veri"]) != "" {
     ö = TR_Dataset(TR_String(ayar["veri"])).TR_sampler(TR_batch_size: B, TR_context: T, TR_seed: 1)
 } TR_else {
     TR_for s TR_in 0..8 {
-        TR_var satırlar = [[(s * 7919 + i * 104729 + t * 31) % V TR_for t TR_in 0..(T + 1)] TR_for i TR_in 0..B]
+        TR_var satırlar = [[(s * 7919 + i * 104729 + t * 31) % V TR_for t TR_in 0.. (T + 1)] TR_for i TR_in 0..B]
         TR_var tümü = TR_Tensor(satırlar)
         sentetik.TR_append([tümü.TR_slice(1, 0, T), tümü.TR_slice(1, 1, T + 1)])
     }

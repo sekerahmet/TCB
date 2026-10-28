@@ -85,7 +85,7 @@ func TestSnippetListsTheCodesAProgramTextUses(t *testing.T) {
 	for _, u := range got {
 		codes = append(codes, u.Code)
 	}
-	if !strings.Contains(strings.Join(codes, ","), "TR_arg_every_minutes") ||
+	if !strings.Contains(strings.Join(codes, ","), "TR_type_Checkpoint") || !strings.Contains(strings.Join(codes, ","), "TR_arg_every_minutes") ||
 		!strings.Contains(strings.Join(codes, ","), "TR_mem_update") {
 		t.Errorf("codes = %v", codes)
 	}
