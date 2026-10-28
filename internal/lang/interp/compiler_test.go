@@ -201,7 +201,7 @@ func TestDirectMethodCalls(t *testing.T) {
 func TestStructDefaultInDefScope(t *testing.T) {
 	dir := t.TempDir()
 	module := filepath.Join(dir, "modk.tr")
-	if err := os.WriteFile(module, []byte(source.Header + "\nTR_const VARS = 5\nTR_struct K { a: TR_Int = VARS }\nTR_func K_yap() { TR_return K() }\n"), 0o644); err != nil {
+	if err := os.WriteFile(module, []byte(source.Header+"\nTR_const VARS = 5\nTR_struct K { a: TR_Int = VARS }\nTR_func K_yap() { TR_return K() }\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	_, val, err := runTROut(t, `
