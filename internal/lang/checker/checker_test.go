@@ -396,17 +396,20 @@ b = 2
 TR_func f(x: TR_String): TR_Int { TR_return x }
 f(5)`)
 	expected := []struct {
-		line int
-		code messages.Code
-	}{{1, messages.H1001}, {3, messages.H1002}, {4, messages.H1003}, {5, messages.H1004}}
+		line, col int
+		code      messages.Code
+	}{{1, 1, messages.H1001}, {3, 1, messages.H1002}, {4, 35, messages.H1003}, {5, 3, messages.H1004}}
 	if len(errs) != len(expected) {
 		t.Fatalf("%d hata bekleniyordu, gelen: %v", len(expected), errs)
 	}
 	for i, b := range expected {
 		expectCode(t, coded[i], b.code, b.line)
-		// Metin biçimi: "Satır N: ..." ile başlar.
-		if prefix := fmt.Sprintf("Satır %d: ", b.line); !strings.HasPrefix(errs[i], prefix) {
+		// Metin biçimi: "Satır N, Sütun M: ..." ile başlar (denetleyici hatası düğümünün yerindedir, 2.13).
+		if prefix := fmt.Sprintf("Satır %d, Sütun %d: ", b.line, b.col); !strings.HasPrefix(errs[i], prefix) {
 			t.Errorf("hata[%d] %q ile başlamalı, gelen: %q", i, prefix, errs[i])
+		}
+		if p, ok := messages.Find(coded[i]); !ok || p.Col != b.col || p.EndLine != b.line || p.EndCol <= p.Col {
+			t.Errorf("hata[%d] %d. sütunda başlayıp aynı satırda bitmeli: %+v", i, b.col, p)
 		}
 	}
 }
@@ -458,7 +461,7 @@ TR_var ` + c.other + ` = 1`
 		}
 		for _, w := range got {
 			line, col, ok := messages.Pos(w)
-			if !ok || col != 0 || !messages.Has(w, messages.H1009) || !strings.Contains(messages.ErrorIn(w, lang), "'"+expected[line]+"'") {
+			if !ok || col == 0 || !messages.Has(w, messages.H1009) || !strings.Contains(messages.ErrorIn(w, lang), "'"+expected[line]+"'") {
 				t.Errorf("%s: uyarı H1009 olmalı, satır %d (%v) için '%s' adını taşımalı: %v", lang, line, ok, expected[line], w)
 			}
 		}

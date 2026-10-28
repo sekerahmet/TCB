@@ -126,9 +126,9 @@ func TestTypeErrorUndefinedNameAndWarningTogether(t *testing.T) {
 	if l, _, _ := messages.Pos(coded[1]); l != 3 {
 		t.Errorf("tip hatası 3. satırda olmalı, gelen %d", l)
 	}
-	// Metin biçimi: "Satır N: ..." (tanımsız adda sütun da var).
-	if !strings.HasPrefix(errs[0], "Satır 2, Sütun 1: ") || !strings.HasPrefix(errs[1], "Satır 3: ") {
-		t.Errorf("hata metni 'Satır N: ...' biçiminde olmalı: %q", errs)
+	// Metin biçimi: "Satır N, Sütun M: ..." (her iki hatanın da sütunu var).
+	if !strings.HasPrefix(errs[0], "Satır 2, Sütun 1: ") || !strings.HasPrefix(errs[1], "Satır 3, Sütun 1: ") {
+		t.Errorf("hata metni 'Satır N, Sütun M: ...' biçiminde olmalı: %q", errs)
 	}
 	if u := c.Warnings(); len(u) != 0 {
 		t.Fatalf("dosyada gölgeleme uyarısı yok (2.1: toplam bir kullanıcı adıdır): %q", u)

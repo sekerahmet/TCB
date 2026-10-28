@@ -45,11 +45,12 @@ func (p *Program) Line() int {
 // --- STATEMENTS ---
 
 type VarStatement struct {
-	Token    lexer.Token // değişken / sabit / :=
-	Name     *Identifier
-	TypeName string // optional type name (e.g. "Tam", "Metin")
-	Value    Expression
-	IsConst  bool
+	Token     lexer.Token // değişken / sabit / :=
+	Name      *Identifier
+	TypeName  string      // optional type name (e.g. "Tam", "Metin")
+	TypeToken lexer.Token // the type name as written
+	Value     Expression
+	IsConst   bool
 }
 
 func (vs *VarStatement) statementNode()       {}
@@ -138,6 +139,7 @@ type StructField struct {
 	Name         string
 	NameToken    lexer.Token // the name as written
 	TypeName     string
+	TypeToken    lexer.Token // the type name as written
 	DefaultValue Expression
 }
 
@@ -360,6 +362,7 @@ type Param struct {
 	Name         string
 	NameToken    lexer.Token // the name as written; zero for a parameter the parser made (the implicit 'it')
 	TypeName     string
+	TypeToken    lexer.Token // the type name as written
 	DefaultValue Expression
 }
 
@@ -369,7 +372,9 @@ type FunctionLiteral struct {
 	NameToken  lexer.Token // the function's name as written; zero for an unnamed one
 	Parameters []Param
 	ReturnType string
-	Body       *BlockStatement
+	// ReturnToken is the token of the return type's name (zero when not written).
+	ReturnToken lexer.Token
+	Body        *BlockStatement
 }
 
 func (fl *FunctionLiteral) expressionNode()      {}

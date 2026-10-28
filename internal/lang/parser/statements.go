@@ -159,7 +159,7 @@ func (p *Parser) parseVarStatement(isConst bool) ast.Statement {
 		if !p.expectPeek(lexer.TokIdent) {
 			return nil
 		}
-		stmt.TypeName = p.curToken().Literal
+		stmt.TypeName, stmt.TypeToken = p.curToken().Literal, p.curToken()
 		p.role(p.curToken(), RoleType)
 	}
 

@@ -42,6 +42,6 @@ func (c *Checker) checkForeignInterpolation(s *ast.StringLiteral) {
 		if dollar {
 			start--
 		}
-		c.warnings = append(c.warnings, messages.At(s.Token.Line, 0, messages.New(messages.H1022, string(r[start:j+1]), name)))
+		c.addWarningAtToken(s.Token, messages.New(messages.H1022, string(r[start:j+1]), name))
 	}
 }

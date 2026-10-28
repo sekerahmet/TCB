@@ -73,7 +73,7 @@ func TestModulePassesTypeCheck(t *testing.T) {
 		t.Fatalf("tip hatalı modül çalıştı:\n%s", out)
 	}
 	message := err.Error()
-	for _, wantSub := range []string{"Satır 1:", "\"m5\" modülü tip denetimi hataları nedeniyle yüklenemedi", "m5.tr, Satır 2: Tip uyuşmazlığı", "m5.tr, Satır 3: Dönüş tipi uyuşmazlığı"} {
+	for _, wantSub := range []string{"Satır 1:", "\"m5\" modülü tip denetimi hataları nedeniyle yüklenemedi", "m5.tr, Satır 2, Sütun 1: Tip uyuşmazlığı", "m5.tr, Satır 3, Sütun 32: Dönüş tipi uyuşmazlığı"} {
 		if !strings.Contains(message, wantSub) {
 			t.Errorf("hatada %q yok: %s", wantSub, message)
 		}

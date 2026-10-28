@@ -16,11 +16,13 @@ func (c *Checker) checkSkeletons(prog *ast.Program) {
 	type seen struct {
 		name string
 		line int
+		tok  lexer.Token // where the name is written (no column when the tree kept none)
 	}
 	first := map[string]seen{}
 	skeletons := map[string]string{}
 	reported := map[string]bool{}
-	visit := func(name string, line int) {
+	visit := func(name string, tok lexer.Token, line int) {
+		tok = siteOf(tok, line)
 		if name == "" || name == "_" || codes.IsReservedName(name) {
 			return
 		}
@@ -32,29 +34,32 @@ func (c *Checker) checkSkeletons(prog *ast.Program) {
 		f, ok := first[sk]
 		switch {
 		case !ok:
-			first[sk] = seen{name, line}
+			first[sk] = seen{name, line, tok}
 		case f.name != name && !reported[name]:
 			reported[name] = true
-			c.addError(line, 0, messages.New(messages.H1020, name, f.name, f.line))
+			e := c.addErrorAtToken(tok, messages.New(messages.H1020, name, f.name, f.line))
+			if f.tok.Column > 0 {
+				e.WithRelated(messages.Related{Range: f.tok.Range(), Err: messages.New(messages.H8300, f.name)})
+			}
 		}
 	}
 	ast.Walk(prog, func(n any) bool {
 		switch x := n.(type) {
 		case *ast.Identifier:
-			visit(x.Value, x.Line())
+			visit(x.Value, x.Token, x.Line())
 		case *ast.FunctionLiteral:
-			visit(x.Name, x.Line())
+			visit(x.Name, x.NameToken, x.Line())
 			for _, p := range x.Parameters {
-				visit(p.Name, x.Line())
+				visit(p.Name, p.NameToken, x.Line())
 			}
 		case *ast.StructStatement:
-			visit(x.Name, x.Line())
+			visit(x.Name, x.NameToken, x.Line())
 			for _, f := range x.Fields {
-				visit(f.Name, x.Line())
+				visit(f.Name, f.NameToken, x.Line())
 			}
 		case *ast.ForInStatement:
-			visit(x.KeyVar, x.Line())
-			visit(x.ValueVar, x.Line())
+			visit(x.KeyVar, x.KeyToken, x.Line())
+			visit(x.ValueVar, x.ValueToken, x.Line())
 		}
 		return true
 	})

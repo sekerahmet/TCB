@@ -309,7 +309,7 @@ func (d *nameChecker) target(e ast.Expression, k *nameScope) {
 	if id, ok := e.(*ast.Identifier); ok && d.bindings == nil {
 		if !k.isKnown(id.Value) && !d.decl[id.Value] {
 			d.decl[id.Value] = true
-			d.c.nameErrors = append(d.c.nameErrors, messages.At(id.Line(), id.Token.Column,
+			d.c.nameErrors = append(d.c.nameErrors, messages.AtRange(id.Token.Range(),
 				messages.New(messages.H1010, messages.New(messages.H2448, id.Value, d.c.word(codes.KwVar)))))
 		}
 		return
@@ -394,7 +394,13 @@ func (d *nameChecker) name(id *ast.Identifier, k *nameScope) {
 	if d.dictKeys[id] {
 		err = messages.New(messages.H0241, id.Value)
 	}
-	d.c.nameErrors = append(d.c.nameErrors, messages.At(id.Line(), id.Token.Column, messages.New(messages.H1010, err)))
+	e := messages.AtRange(id.Token.Range(), messages.New(messages.H1010, err))
+	// The closest name is a guess: the fix names it, never applicable as it stands (TR_str is
+	// closest to TR_std and means TR_String).
+	if suggestion, ok := hint.SuggestedName(err); ok && id.Token.Column > 0 {
+		e.WithFix(replaceToken(id.Token, id.Value, suggestion, false))
+	}
+	d.c.nameErrors = append(d.c.nameErrors, e)
 }
 
 // sortByLine hataları konumlarının satırına göre (eşitlikte ilk sırayı koruyarak) sıralar;
