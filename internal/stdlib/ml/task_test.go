@@ -83,8 +83,8 @@ func TestCustomGradForwardBackwardTaskBound(t *testing.T) {
 TR_var v = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
 TR_var adım = {"ileri": TR_false, "ileri_devam": TR_false, "geri": TR_false, "geri_devam": TR_false}
 TR_var yavaş = TR_custom_grad(
-    TR_forward: TR_func(x) { adım["ileri"] = TR_true; bekle_koşul { adım["ileri_devam"] }; TR_return [x * 1, []] },
-    TR_backward: TR_func(s, g) { adım["geri"] = TR_true; bekle_koşul { adım["geri_devam"] }; TR_return [g] }
+    TR_forward: (x) => { adım["ileri"] = TR_true; bekle_koşul { adım["ileri_devam"] }; TR_return [x * 1, []] },
+    TR_backward: (s, g) => { adım["geri"] = TR_true; bekle_koşul { adım["geri_devam"] }; TR_return [g] }
 )
 TR_async {
     TR_var y = yavaş(w)
@@ -127,8 +127,8 @@ TR_print(w.TR_tolist, h.TR_contains("no_grad"))`)
 func TestConcurrentBackwardSameGraph(t *testing.T) {
 	out := mustRun(t, watchedTR+`TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
 TR_var yavaş = TR_custom_grad(
-    TR_forward: TR_func(x) { TR_return [x * 1, []] },
-    TR_backward: TR_func(s, g) { d["başladı"] = TR_true; bekle_koşul { d["devam"] }; TR_return [g] }
+    TR_forward: (x) => { TR_return [x * 1, []] },
+    TR_backward: (s, g) => { d["başladı"] = TR_true; bekle_koşul { d["devam"] }; TR_return [g] }
 )
 TR_var o = yavaş(w)
 TR_var k1 = TR_sum(o * 3)

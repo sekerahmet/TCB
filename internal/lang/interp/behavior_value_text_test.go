@@ -139,7 +139,7 @@ try { Float("sonsuz") } catch e { print("not read") }
 func TestOneValueTextForEveryValue(t *testing.T) {
 	out := runEnglish(t, `func f() {}
 struct P { a }
-print([print, Int, f, P, P(1), inf, -inf, nan, 1e6, 1234567.0, 1e15, 1e16, 0.00001, -0.0, x => x])
+print([print, Int, f, P, P(1), inf, -inf, nan, 1e6, 1234567.0, 1e15, 1e16, 0.00001, -0.0, (x) => x])
 print(String(print), "\(f)", String(1e15), String(inf) == "inf")
 `, nil)
 	want := "[<builtin print>, Int, <function f>, <struct P>, P{a: 1}, inf, -inf, nan, 1000000.0, 1234567.0, " +

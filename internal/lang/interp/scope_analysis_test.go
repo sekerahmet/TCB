@@ -14,7 +14,7 @@ func TestOneProgramCompiledInParallelVMs(t *testing.T) {
 	const code = `
 		TR_func sayaç_yap() {
 			TR_var n = 0
-			TR_return TR_func() { n += 1; TR_return n }
+			TR_return () => { n += 1; TR_return n }
 		}
 		TR_var toplam_ = 0
 		TR_for i TR_in 1..=20 {
@@ -24,7 +24,7 @@ func TestOneProgramCompiledInParallelVMs(t *testing.T) {
 		TR_var s = sayaç_yap()
 		TR_var j = 0
 		TR_for j < 5 { TR_var k = j; s(); j += 1 }
-		TR_var kapanışlar = [(TR_func() { TR_return x }) TR_for x TR_in 1..=3]
+		TR_var kapanışlar = [(() => { TR_return x }) TR_for x TR_in 1..=3]
 		TR_struct Nokta { x = 0
 			TR_func iki_kat() { TR_var d = TR_self.x * 2; TR_return d } }
 		TR_var result = [toplam_, s(), kapanışlar[2](), Nokta(4).iki_kat()]`

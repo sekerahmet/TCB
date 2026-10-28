@@ -44,7 +44,7 @@ TR_func ileri(x) {
 
 TR_var d = TR_Linear()
 TR_print(d.TR_forward(ileri(3)), TR_lr_schedule(1, 4))
-TR_var f = TR_custom_grad(TR_forward: TR_func(x) { TR_return [x, []] }, TR_backward: TR_func(s, g) { TR_return [g] })
+TR_var f = TR_custom_grad(TR_forward: (x) => { TR_return [x, []] }, TR_backward: (s, g) => { TR_return [g] })
 `,
 	} {
 		testkit.WriteFile(t, dir, name, string(trText(name, text)))

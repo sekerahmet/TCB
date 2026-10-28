@@ -192,7 +192,7 @@ TR_test "15.20 birikimli_toplam: eksen, şekil, türev; eksen adlı" {
     TR_var v = TR_Tensor([1.0, 2.0, 3.0, 4.0], TR_requires_grad: TR_true)
     TR_backward(TR_sum(TR_cumsum(v)))
     TR_assert_equal([4.0, 3.0, 2.0, 1.0], v.TR_grad.TR_tolist)
-    TR_assert(TR_grad_check(TR_func(t) { TR_return TR_cumsum(t, TR_dim: 0) }, [TR_Tensor([[0.5, -1.0], [2.0, 0.3]], TR_requires_grad: TR_true)]))
+    TR_assert(TR_grad_check((t) => { TR_return TR_cumsum(t, TR_dim: 0) }, [TR_Tensor([[0.5, -1.0], [2.0, 0.3]], TR_requires_grad: TR_true)]))
     TR_assert_equal(TR_Int, TR_Type(TR_cumsum(TR_argmax(TR_Tensor([[1, 2], [3, 1]]))).TR_tolist[0]))
     TR_assert_equal("H6200", TR_error_code { TR_cumsum(TR_Tensor([1, 2]), 0) })
     TR_assert_equal("H6104", TR_error_code { TR_cumsum([1, 2]) })

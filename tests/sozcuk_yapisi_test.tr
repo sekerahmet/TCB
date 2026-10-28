@@ -177,7 +177,7 @@ TR_test "2.8 deyim sonu gerekmez; ; isteğe bağlıdır" {
 
 TR_test "2.8 yeni satırdaki ( ve [ yeni deyim başlatır" {
     TR_var f = 5
-    (x => x * 2)(f)
+    ((x) => x * 2)(f)
     TR_assert_equal(5, f)
 }
 

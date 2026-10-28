@@ -140,7 +140,7 @@ func TestTypedVarCompatible(t *testing.T) {
 		`TR_var a: TR_String = TR_none ?? "varsayılan"`,
 		"TR_var a: TR_Int = -5",
 		"TR_var a: TR_Int = 2 ** 3",
-		"TR_var a: TR_Function = TR_func(x) { TR_return x }",
+		"TR_var a: TR_Function = (x) => { TR_return x }",
 		"TR_const a: TR_Int = 1",
 	} {
 		noErrors(t, source)
@@ -170,7 +170,7 @@ func TestTypedVarIncompatible(t *testing.T) {
 		{"TR_var a: TR_String = 2 ** 3", "TR_String", "TR_Int"},
 		{"TR_var a: TR_String = 1 << 2", "TR_String", "TR_Int"},
 		{"TR_var a: TR_String = ~1", "TR_String", "TR_Int"},
-		{"TR_var a: TR_String = TR_func() { }", "TR_String", "TR_Function"},
+		{"TR_var a: TR_String = () => { }", "TR_String", "TR_Function"},
 		{"TR_var a: Nokta = 5", "Nokta", "TR_Int"},
 		{"TR_const a: TR_String = TR_true", "TR_String", "TR_Bool"},
 		{`TR_var a: TR_String = 5 ?? "x"`, "TR_String", "TR_Int"},
@@ -497,14 +497,14 @@ func TestKnownLimitations(t *testing.T) {
 		name, source string
 	}{
 		{"tanımdan önce çağrı (öne alma yok)", "kare(\"a\")\nTR_func kare(x: TR_Int) { }"},
-		{"değişkene atanan fonksiyonun parametre tipleri unutulur", "TR_var kare = TR_func(x: TR_Int) { TR_return x }\nkare(\"a\")"},
+		{"değişkene atanan fonksiyonun parametre tipleri unutulur", "TR_var kare = (x: TR_Int) => { TR_return x }\nkare(\"a\")"},
 		{"lambda parametre tipleri", "TR_var f = (x: TR_Int) => x\nf(\"a\")"},
 		{"eksik argüman", "TR_func f(a: TR_Int, b: TR_Int) { }\nf(1)"},
 		{"fazla argüman", "TR_func f(a: TR_Int) { }\nf(1, 2, 3)"},
 		{"isimli argüman tipi", "TR_func f(a: TR_Int) { }\nf(a: \"x\")"},
 		{"dönüş tipi olan fonksiyonda eksik 'sonuç'", "TR_func f() -> TR_Int { }"},
 		{"sabitin yeniden tanımlanması", "TR_const x = 1\nTR_var x = 2\nx = 3"},
-		{"sabitin aynı adlı fonksiyonla ezilmesi", "TR_const f = 1\nTR_func f() { }\nf = TR_func() { }"},
+		{"sabitin aynı adlı fonksiyonla ezilmesi", "TR_const f = 1\nTR_func f() { }\nf = () => { }"},
 		{"TR_const listenin elemanını değiştirme", "TR_const l = [1, 2]\nl[0] = 5"},
 		{"TR_const sözlüğün alanını değiştirme", "TR_const p = {\"x\": 1}\np.x = 5"},
 		{"çoklu atamada tip denetimi yok", "TR_var x: TR_Int = 1\nTR_var y = 2\nx, y = \"a\", 2"},

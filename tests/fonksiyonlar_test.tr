@@ -84,7 +84,7 @@ TR_test "6.4 aynı parametre hem sırayla hem adıyla verilemez" {
 TR_test "6.5 kapanışlar tanımlandıkları ortamı yakalar" {
     TR_func sayaç_yap() {
         TR_var n = 0
-        TR_return TR_func() {
+        TR_return () => {
             n += 1
             TR_return n
         }
@@ -104,7 +104,7 @@ TR_test "6.5 özyineleme" {
 }
 
 TR_test "6.6 ok fonksiyonları (lambda)" {
-    TR_var iki_kat = x => x * 2
+    TR_var iki_kat = (x) => x * 2
     TR_var topla2 = (a, b) => a + b
     TR_var blok = (x) => {
         TR_var y = x + 1

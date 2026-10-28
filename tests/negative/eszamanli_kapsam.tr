@@ -1,5 +1,7 @@
 # TR 4
-# TEST 10.4 eşzamanlı çağrıdaki adlı fonksiyon görevin kapsamındadır, dışarıda tanımsızdır (5.12); denetim bunu çalışmadan önce bulur
-TR_async (TR_func görev_işi() { TR_return 1 })()
+# TEST 10.4 eşzamanlı blokta tanımlanan adlı fonksiyon görevin kapsamındadır, dışarıda tanımsızdır (5.12); denetim bunu çalışmadan önce bulur
+TR_async {
+    TR_func görev_işi() { TR_return 1 }
+}
 TR_wait_all()
 TR_print(görev_işi()) # ERROR H1106

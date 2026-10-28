@@ -263,22 +263,20 @@ TR_test "5.12 bloklar kapsam açar; dış değişkenler atanabilir" {
     # Olumsuz fikstür: tests/negative/tanimsiz_adlar.tr
 }
 
-TR_test "5.12 eşle kolu kendi kapsamını açar: kolda tanımlanan adlı fonksiyon dış adı ezmez" {
+TR_test "5.12 eşle kolu ve eğer dalı kendi kapsamını açar: blokta tanımlanan adlı fonksiyon dış adı ezmez" {
     TR_func f() { TR_return 1 }
-    TR_var r = TR_match 1 { 1 => (TR_func f() { TR_return 7 })() _ => 0 }
-    TR_assert_equal(7, r)
-    TR_assert_equal(1, f())
-    # Süslü parantezli kol ve değer veren eğer de aynı: ad blokta kalır.
-    TR_var s = TR_match 1 { 1 => { (TR_func f() { TR_return 8 })() } _ => 0 }
-    TR_var t = TR_if TR_true { (TR_func f() { TR_return 9 })() } TR_else { 0 }
+    TR_var s = TR_match 1 {
+        1 => {
+            TR_func f() { TR_return 8 }
+            f()
+        }
+        _ => 0
+    }
+    TR_var t = TR_if TR_true {
+        TR_func f() { TR_return 9 }
+        f()
+    } TR_else { 0 }
     TR_assert_equal([8, 9, 1], [s, t, f()])
-}
-
-TR_test "5.12 koşul, konu ve desen blok değildir: adlı fonksiyon bulunulan kapsama girer" {
-    TR_if (TR_func koşul_işi() { TR_return 9 })() == 9 {}
-    TR_assert_equal(9, koşul_işi())
-    TR_match (TR_func konu_işi() { TR_return 3 })() { 3 => {} _ => {} }
-    TR_assert_equal(3, konu_işi())
 }
 
 TR_test "5.13 çık ve devam yalnızca döngü içinde geçerlidir" {

@@ -83,7 +83,7 @@ func TestUndefinedNameNoFalseAlarm(t *testing.T) {
 		"sonra tanımlanan fonksiyon":  "TR_func a() { TR_return b() }\nTR_func b() { TR_return 1 }\nTR_print(a())",
 		"özyineleme":                  "TR_func f(n) { TR_return TR_if n < 1 { 0 } TR_else { f(n - 1) } }",
 		"sondaki blok o":              "TR_print([1, 2].TR_map((x) => x * 2).TR_filter((x) => x > 2))",
-		"ok fonksiyonu":               "TR_var k = (x) => x * x\nTR_print(k(3), [1].TR_map(y => y + 1))",
+		"ok fonksiyonu":               "TR_var k = (x) => x * x\nTR_print(k(3), [1].TR_map((y) => y + 1))",
 		"yakala hata":                 `TR_try { TR_throw "x" } TR_catch { TR_print(TR_error) }`,
 		"yakala adlı":                 `TR_try { TR_throw "x" } TR_catch h { TR_print(h) }`,
 		"döngü değişkenleri":          "TR_for i, x TR_in [5, 6] { TR_print(i, x) }",

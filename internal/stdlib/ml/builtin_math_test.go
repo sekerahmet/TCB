@@ -142,7 +142,7 @@ TR_print(TR_is_finite(x.TR_to_dtype("bf16")).TR_tolist, TR_is_finite(TR_Tensor([
 // Neden: eskiden tam sayı işareti korunup [1, 1] veriyordu (Gemini kararlılık denetimi, bulgu 5).
 func TestIsFiniteIsAFloatMaskOnIntTensors(t *testing.T) {
 	out := mustRun(t, `TR_var idx = TR_argsort(TR_Tensor([20.0, 10.0]))
-TR_var f = TR_fuse(TR_func(x) { TR_return TR_is_finite(x) })
+TR_var f = TR_fuse((x) => { TR_return TR_is_finite(x) })
 TR_print(TR_is_finite(idx).TR_tolist, f(idx).TR_tolist)`)
 	if out != "[1.0, 1.0] [1.0, 1.0]\n" {
 		t.Fatalf("çıktı: %q", out)

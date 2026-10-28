@@ -150,10 +150,10 @@ TR_test "4.5 Tam ile Ondalık değerleriyle kesin karşılaştırılır (2^53 ü
 }
 
 TR_test "4.5 fonksiyonlar karşılaştırılamaz; sonuçları karşılaştırılır" {
-    TR_var f = x => x
+    TR_var f = (x) => x
     TR_var g = f
     TR_assert_equal("H2613", TR_error_code { TR_var z = f == g })
-    TR_assert_equal("H2613", TR_error_code { TR_var z = (x => x) != (x => x * 2) })
+    TR_assert_equal("H2613", TR_error_code { TR_var z = ((x) => x) != ((x) => x * 2) })
     TR_assert_equal("H2613", TR_error_code { TR_var z = TR_print == TR_print })
     TR_assert_equal("H2613", TR_error_code { TR_var z = f == 1 })
     TR_assert(f(2) == g(2))

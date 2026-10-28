@@ -261,7 +261,7 @@ func TestReplayCaptureHoldsTheLock(t *testing.T) {
 	out := mustRun(t, `TR_default_device("gpu")
 TR_var yan = TR_zeros([4])
 TR_var d = {"çağrı": 0}
-TR_var f = TR_replay(TR_func(x) {
+TR_var f = TR_replay((x) => {
     d["çağrı"] += 1
     TR_if d["çağrı"] == 2 {
         TR_async { TR_no_grad { TR_write_slice(yan, TR_ones([4]), TR_dim: 0) } }
@@ -282,7 +282,7 @@ TR_no_grad {
 		t.Fatalf("başka görevin işi kayda girdi: yan %q, beklenen %q", out, want)
 	}
 	_, err := run(t, `TR_default_device("gpu")
-TR_var f = TR_replay(TR_func(x) {
+TR_var f = TR_replay((x) => {
     TR_wait_all()
     TR_return x * 2
 })
@@ -310,7 +310,7 @@ TR_var oynat = TR_replay(adım)
 TR_var ö1 = TR_zeros([3])
 TR_var ö2 = TR_zeros([3])
 TR_var dokuz = TR_Tensor([9.0])
-TR_var g = TR_replay(TR_func(a, b) {
+TR_var g = TR_replay((a, b) => {
     TR_write_slice(a, dokuz, TR_dim: 0)
     TR_return b * 2
 })
@@ -350,7 +350,7 @@ TR_func kur() { TR_return TR_Tensor([i * 1.0 TR_for i TR_in 0..64]) }
 TR_var a = kur()
 TR_var b = kur()
 TR_no_grad { TR_write_slice(a, a.TR_slice(0, 0, 48), TR_dim: 0, TR_start: TR_Tensor(16.0)) }
-TR_var f = TR_replay(TR_func(konum) {
+TR_var f = TR_replay((konum) => {
     TR_write_slice(b, b.TR_slice(0, 0, 48), TR_dim: 0, TR_start: konum)
     TR_return b * 1
 })

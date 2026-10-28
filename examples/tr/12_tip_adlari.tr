@@ -17,7 +17,7 @@ TR_print(TR_Type(1..5) == TR_Range, TR_Type(TR_List(0..5)) == TR_List, TR_List(0
 
 # Fonksiyonlar birinci sınıf değerdir: ok fonksiyonu ve fonksiyon Fonksiyon,
 # dilin kendi fonksiyonları YerleşikFonksiyon tipindedir.
-TR_var kare = x => x * x
+TR_var kare = (x) => x * x
 TR_print(TR_Type(kare) == TR_Function, TR_Type(TR_print) == TR_BuiltinFunction, kare(7))
 
 # Tip bildirimi: ad: Tip. Tip denetleyicisi yanlış atamayı program çalışmadan yakalar.

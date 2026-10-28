@@ -82,11 +82,11 @@ Kullanıcı tanımlı türev: kapılı çarpım `a * TR_fn_sigmoid(b)` için ell
 ```tr
 # TR 4
 TR_var kapılı = TR_custom_grad(
-    TR_forward: TR_func(a, b) {
+    TR_forward: (a, b) => {
         TR_var s = TR_sigmoid(b)
         TR_return [a * s, [a, s]]                       # [çıktı, saklananlar]
     },
-    TR_backward: TR_func(k, g) {                          # k: saklananlar, g: çıktının gradyanı
+    TR_backward: (k, g) => {                          # k: saklananlar, g: çıktının gradyanı
         TR_var a = k[0]
         TR_var s = k[1]
         TR_return [g * s, g * a * s * (1 - s)]           # a ve b için birer gradyan

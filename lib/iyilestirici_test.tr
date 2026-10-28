@@ -183,9 +183,9 @@ TR_func ters_eğit(kur, adım_sayısı) {
 }
 
 TR_test "Muon ve NorMuon küçük bir görevde AdamW'den kötü değildir" {
-    TR_var adamw = ters_eğit(m => TR_AdamW(TR_parameters(m), TR_lr: 0.003, TR_weight_decay: 0.0), 300)
-    TR_var muon = ters_eğit(m => TR_MuonAndAdamW(m, TR_adamw_lr: 0.003), 300)
-    TR_var normuon = ters_eğit(m => TR_MuonAndAdamW(m, TR_normuon: TR_true, TR_adamw_lr: 0.003), 300)
+    TR_var adamw = ters_eğit((m) => TR_AdamW(TR_parameters(m), TR_lr: 0.003, TR_weight_decay: 0.0), 300)
+    TR_var muon = ters_eğit((m) => TR_MuonAndAdamW(m, TR_adamw_lr: 0.003), 300)
+    TR_var normuon = ters_eğit((m) => TR_MuonAndAdamW(m, TR_normuon: TR_true, TR_adamw_lr: 0.003), 300)
     TR_assert(muon[1] < 0.7 * muon[0], "Muon ile kayıp belirgin düşmeli: \(muon)")
     TR_assert(muon[1] <= adamw[1] * 1.05, "Muon AdamW'den kötü olmamalı: Muon \(muon[1]), AdamW \(adamw[1])")
     TR_assert(normuon[1] <= adamw[1] * 1.05, "NorMuon AdamW'den kötü olmamalı: NorMuon \(normuon[1]), AdamW \(adamw[1])")
@@ -391,10 +391,10 @@ TR_func tek_tek_mi(kur) {
 }
 
 TR_test "Muon ve NorMuon: aynı şekilli ağırlıklar tek yığında dikleştirilir; sonuç tek tek güncellemeyle aynıdır" {
-    TR_var op = tek_tek_mi(TR_func(w) { TR_return TR_Muon(w, TR_lr: 0.05, TR_weight_decay: 0.1) })
+    TR_var op = tek_tek_mi((w) => { TR_return TR_Muon(w, TR_lr: 0.05, TR_weight_decay: 0.1) })
     TR_assert_equal([[0, 2, 3], [1]], op.TR_groups)
-    tek_tek_mi(TR_func(w) { TR_return TR_Muon(w, TR_lr: 0.05, TR_scale: "rms", TR_nesterov: TR_false) })
-    TR_var n = tek_tek_mi(TR_func(w) { TR_return TR_NorMuon(w, TR_lr: 0.01, TR_weight_decay: 0.1) })
+    tek_tek_mi((w) => { TR_return TR_Muon(w, TR_lr: 0.05, TR_scale: "rms", TR_nesterov: TR_false) })
+    TR_var n = tek_tek_mi((w) => { TR_return TR_NorMuon(w, TR_lr: 0.01, TR_weight_decay: 0.1) })
     TR_assert_equal([[0, 2, 3], [1]], n.TR_groups)
     # Gradyan almayan ağırlık gruptan düşer, öbürleri güncellenir.
     TR_var A = TR_Tensor(TR_ones([4, 8]), TR_requires_grad: TR_true)

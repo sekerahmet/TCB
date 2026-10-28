@@ -147,7 +147,7 @@ func valueEdits(rel, body string, lineBase int, members bool) ([]valueEdit, []pr
 		}
 		return true
 	})
-	more, moreProbs := statementEdits(prog, records, at, lineBase)
+	more, moreProbs := statementEdits(prog, body, records, at, lineBase)
 	return append(edits, more...), append(probs, moreProbs...)
 }
 

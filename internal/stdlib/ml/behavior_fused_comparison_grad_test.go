@@ -18,7 +18,7 @@ TR_try {
 }
 TR_print("DIS_HATA:", dış_hata, "DIS_GRAD:", x.TR_grad)
 
-TR_var f = TR_fuse(TR_func(t) { TR_return TR_is_finite(t) })
+TR_var f = TR_fuse((t) => { TR_return TR_is_finite(t) })
 TR_var iç_hata = TR_false
 TR_try {
     TR_backward(TR_sum(f(x)))
