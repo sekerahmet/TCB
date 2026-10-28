@@ -99,6 +99,7 @@
 "H0263": { "param": ["keyword", "if", "else"] },
 "H0264": { "param": ["keyword", "if", "else"] },
 "H0265": { "param": [] },
+"H0266": { "param": ["name"] },
 "H1001": { "param": ["name", "declared", "given", "hint"] },
 "H1002": { "param": ["name", "keyword"] },
 "H1003": { "param": ["expected", "given", "hint"] },

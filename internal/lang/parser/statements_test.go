@@ -202,3 +202,12 @@ func TestMultipleResultsParse(t *testing.T) {
 		t.Error("kapanmayan tip listesi hata vermeli")
 	}
 }
+
+// Kural (6.5): Python'un k=2'si sözdizimi hatasıdır; hata '='de, düzeltme iki noktayı yazar ve olduğu
+// gibi uygulanır; ardından gelen argümanlar okunmaya devam eder.
+func TestNamedArgumentWithEqualsSign(t *testing.T) {
+	checkFixedCases(t, []fixedCase{
+		{"TR_func f(a, k = 1) { TR_return a + k }\nTR_print(f(1, k=2))", "=2", messages.H0266, "TR_func f(a, k = 1) { TR_return a + k }\nTR_print(f(1, k: 2))", true},
+		{"TR_func f(a, k = 1) { TR_return a + k }\nTR_print(f(1, k = 2))", "= 2", messages.H0266, "TR_func f(a, k = 1) { TR_return a + k }\nTR_print(f(1, k : 2))", true},
+	})
+}

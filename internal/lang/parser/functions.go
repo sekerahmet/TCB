@@ -190,7 +190,17 @@ func (p *Parser) parseCallArguments() ([]ast.Expression, []ast.NamedArg) {
 
 	p.nextToken()
 	for {
-		if p.curTokenIs(lexer.TokIdent) && p.peekTokenIs(lexer.TokColon) {
+		if p.curTokenIs(lexer.TokIdent) && p.peekTokenIs(lexer.TokAssign) {
+			// Python'un k=2'si: adlı argüman iki noktayla yazılır (6.5); '=' atamadır. Hata '='de,
+			// düzeltme onu ':' yapar ve olduğu gibi uygulanabilir; okuma adlı argüman olarak sürer.
+			eq := p.peekToken()
+			colon := ":"
+			if v := p.peekTokenN(2); v.Line == eq.EndLine && v.Column == eq.EndColumn {
+				colon = ": " // k=2 → k: 2
+			}
+			p.syntaxErrorFix(eq, []messages.Fix{{Range: eq.Range(), Replacement: colon, Applicable: true}}, messages.H0266, p.curToken().Literal)
+		}
+		if p.curTokenIs(lexer.TokIdent) && (p.peekTokenIs(lexer.TokColon) || p.peekTokenIs(lexer.TokAssign)) {
 			nameTok := p.curToken()
 			p.nextToken() // ':'
 			p.nextToken()

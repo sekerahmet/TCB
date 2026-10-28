@@ -99,6 +99,7 @@
 "H0263": "'{keyword}' is not written in a trailing block: the block ends and its value is its last expression; instead of leaving early write the branches: {if} c {{ a }} {else} {{ b }}",
 "H0264": "'{keyword}' can only be used inside a loop; a trailing block is not a loop and ends with its last expression: write the branches, {if} c {{ a }} {else} {{ b }}",
 "H0265": "in a control header '{{' always starts the body: put a call with a trailing block in the header in parentheses, (l.f {{ ... }}) {{ body }}",
+"H0266": "a named argument is written with a colon, not '=': {name}: value ('=' is assignment)",
 "H1001": "Type mismatch — the variable {name|q} was declared with type {declared|q} but a value of type {given|q} was assigned{hint}",
 "H1002": "Constant error — {name|q} is a constant ('{keyword}') and its value cannot be changed",
 "H1003": "Return type mismatch — the function must return {expected|q} but returns a value of type {given|q}{hint}",

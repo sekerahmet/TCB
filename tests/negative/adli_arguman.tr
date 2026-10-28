@@ -1,0 +1,5 @@
+# TR 4
+# TEST 6.5 adlı argüman iki noktayla yazılır: Python'un k=2'si sözdizimi hatasıdır, ileti k: 2'yi önerir
+TR_func f(a: TR_Int, k: TR_Int = 1) -> TR_Int { TR_return a + k }
+TR_print(f(1, k: 2))
+TR_print(f(1, k=2)) # ERROR H0266

@@ -104,6 +104,7 @@ const (
 	H0263 Code = 263  // sondaki blokta '{keyword}' yazılmaz: blok biter ve değeri son ifadesidir; erken çıkış yerine dalları yazın: {if} c {{ a }} {else} {{ b }}
 	H0264 Code = 264  // '{keyword}' yalnız bir döngünün içinde kullanılabilir; sondaki blok bir döngü değildir, son ifadesiyle biter: dalları yazın, {if} c {{ a }} {else} {{ b }}
 	H0265 Code = 265  // kontrol yapısının başlığında '{{' her zaman gövdeyi başlatır: başlıktaki sondaki bloklu çağrı paranteze alınır, (l.f {{ ... }}) {{ gövde }}
+	H0266 Code = 266  // adlı argüman '=' ile değil iki noktayla yazılır: {name}: değer ('=' atamadır)
 	H1001 Code = 1001 // Tip uyuşmazlığı — {name|q} değişkeni {declared|q} tipinde tanımlandı ancak {given|q} tipinde değer atandı{hint}
 	H1002 Code = 1002 // Sabit hatası — {name|q} bir sabittir ('{keyword}') ve değeri değiştirilemez
 	H1003 Code = 1003 // Dönüş tipi uyuşmazlığı — fonksiyon {expected|q} döndürmeli ancak {given|q} tipinde değer döndürülüyor{hint}
