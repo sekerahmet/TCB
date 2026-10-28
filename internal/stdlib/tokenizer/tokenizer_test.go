@@ -234,11 +234,11 @@ TR_try { p.TR_encode(["iyi", "`+bad+`"]) } TR_catch e { h2 = e }
 	}
 	for _, name := range []string{"h1", "h2"} {
 		h := al(t, m, name).Inspect()
-		if !strings.Contains(h, "adım sınırını") || !strings.Contains(h, "daha küçük parçalara") {
+		if !strings.Contains(h, "exceeded the step limit") || !strings.Contains(h, "smaller pieces") {
 			t.Fatalf("%s: adım sınırı hatası bekleniyordu: %q", name, h)
 		}
 	}
-	if !strings.Contains(al(t, m, "h2").Inspect(), "listenin 2. metni") {
+	if !strings.Contains(al(t, m, "h2").Inspect(), "string 2 of the list") {
 		t.Fatalf("toplu hatada metnin sırası belirtilmeli: %s", al(t, m, "h2").Inspect())
 	}
 }
@@ -333,7 +333,8 @@ func TestHeavyWorkReleasesLock(t *testing.T) {
 	isRelease := func(c *ast.CallExpr) bool {
 		switch f := c.Fun.(type) {
 		case *ast.SelectorExpr:
-			return f.Sel.Name == "Blocking" || f.Sel.Name == "maybeRelease"
+			// Abandonable ve AwaitNew de işi kilidi bırakarak koşar (1.5).
+			return f.Sel.Name == "Blocking" || f.Sel.Name == "maybeRelease" || f.Sel.Name == "Abandonable" || f.Sel.Name == "AwaitNew"
 		case *ast.Ident:
 			return f.Name == "maybeRelease"
 		}

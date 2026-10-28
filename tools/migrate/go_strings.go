@@ -209,7 +209,7 @@ func convertFormatted(s string, view bool, line int) (string, bool, []problem) {
 }
 
 // fmtVerb bir fmt biçim işaretidir ('%%' dahil değil).
-var fmtVerb = regexp.MustCompile(`%[-+# 0]*[0-9]*(\.[0-9]+)?[sdqvgfxtc]`)
+var fmtVerb = regexp.MustCompile(`%(\[[0-9]+\])?[-+# 0]*[0-9]*(\.[0-9]+)?[sdqvgfxtc]`)
 
 // quoteLike çevrilen metni özgün değişmezin tırnak biçimiyle yazar (ters tırnak, içinde ters tırnak
 // yoksa).

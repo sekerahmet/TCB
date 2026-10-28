@@ -201,8 +201,7 @@ func (kn *Checkpoint) stopWindow() (time.Duration, bool) {
 // şimdiye kadarki en uzun iki ardışık güncelleme arasının iki katıdır (1.6); oynak adım süreli
 // (değerlendirme adımı, günlük, ilk adımların derlemesi) bir eğitimde istek kısa bir aralıkla
 // ölçülüp kayıtsız uygulanmaz.
-func (kn *Checkpoint) noteUpdate() {
-	now := clock()
+func (kn *Checkpoint) noteUpdate(now time.Time) {
 	if kn.updates > 0 {
 		kn.longest = max(kn.longest, now.Sub(kn.lastUpdate))
 		kn.window.Store(2 * int64(kn.longest))
@@ -263,13 +262,19 @@ func (kn *Checkpoint) update(m *interp.VM, args []interp.Value) (interp.Value, e
 	if err != nil {
 		return nil, err
 	}
+	// Uygulanmış bir durdurma (1.5; ertelenmeyen istek) adım sınırında hemen uygulanır: döngüler
+	// durdurmayı her turda denetlemez, adım sınırı güvenli noktadır.
+	if m.Interrupted() {
+		m.InterruptNow()
+	}
 	kn.step = n
-	kn.noteUpdate()
+	now := clock() // saat güncelleme başına bir kez okunur
+	kn.noteUpdate(now)
 	if m.StopRequested() && !kn.honored {
 		kn.halt(m)
 		return interp.True, nil // program durdurmayı üstlenmişti: kaydedildi, program sürer
 	}
-	if clock().Sub(kn.lastSave) < kn.interval {
+	if now.Sub(kn.lastSave) < kn.interval {
 		return interp.False, nil
 	}
 	return kn.saveOnInterval(m)

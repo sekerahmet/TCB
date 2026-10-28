@@ -96,7 +96,7 @@ func TestRollbackAfterNaNSameAsUninterrupted(t *testing.T) {
 	}
 	// Her güncelle saati 1 dk ilerletir, her_dakika: 3 → 3, 6, 9. adımlarda kayıt; 11. adımda
 	// bozulan eğitim 9'a döner.
-	if !strings.Contains(outputB, "bozuk: yanlış") || !strings.Contains(outputB, "geri: 9") {
+	if !strings.Contains(outputB, "bozuk: false") || !strings.Contains(outputB, "geri: 9") {
 		t.Fatalf("bozulup 9. adıma dönmeliydi:\n%s", outputB)
 	}
 	sameResults(t, a, b, outputA, outputB)

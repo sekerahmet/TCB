@@ -241,7 +241,8 @@ TR_print("HATA:", hata_metni)
 	if !strings.Contains(output, "W: [1.0, 2.0, 3.0]") {
 		t.Errorf("kontrol_noktası yükleme hatasında model parametresi w yerinde bozuldu (atomiklik ihlali):\n%s", output)
 	}
-	wantHint := messages.Text(messages.H7471, "step_0000000001", 1)
+	// Yakalanan hatanın metni dilden bağımsızdır (İngilizce); program onu yazdırır.
+	wantHint := messages.TextIn("en", messages.H7471, "step_0000000001", 1)
 	if !strings.Contains(output, wantHint) {
 		t.Errorf("bozuk son noktada bir önceki sağlam nokta (%s) önerilmedi:\n%s", wantHint, output)
 	}

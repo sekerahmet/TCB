@@ -60,15 +60,15 @@ func formatKeys(t *testing.T, path string, user ...string) []string {
 func TestCheckpointFormatIsLanguageIndependent(t *testing.T) {
 	runDir := trPath(t.TempDir())
 	if output, err := run(t, fmt.Sprintf(`
-değişken w = tensör([1.0, 2.0], türev_izle: doğru)
-değişken op = AdamW([w], öğrenme_oranı: 0.01)
-değişken g = günlük(yol(%[1]q, "metrics.jsonl"))
-değişken kn = kontrol_noktası(%[1]q, {model: {w: w}, op: op, günlük: g, sayaç: {"en_iyi": 1.5}})
-geri_yayılım(toplam(w * w))
-op.adım()
-g.ekle({"x": 1})
-kn.güncelle(3)
-kn.kaydet()
+TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+TR_var op = TR_AdamW([w], TR_lr: 0.01)
+TR_var g = TR_logger(TR_path(%[1]q, "metrics.jsonl"))
+TR_var kn = TR_checkpoint(%[1]q, {model: {w: w}, op: op, TR_logger: g, sayaç: {"en_iyi": 1.5}})
+TR_backward(TR_sum(w * w))
+op.TR_step()
+g.TR_append({"x": 1})
+kn.TR_update(3)
+kn.TR_save()
 `, runDir)); err != nil {
 		t.Fatalf("%v\n%s", err, output)
 	}
@@ -111,7 +111,7 @@ kn.kaydet()
 	kinds := map[string]string{}
 	for _, o := range state.Objects {
 		kinds[o.Name] = o.Kind
-		if o.Name == "op" && o.Optimizer != "TR_AdamW" {
+		if o.Name == "op" && o.Optimizer != "TR_fn_AdamW" {
 			t.Errorf("iyileştiricinin adı kodu olmalı: %q", o.Optimizer)
 		}
 	}

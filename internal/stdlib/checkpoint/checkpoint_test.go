@@ -52,45 +52,45 @@ func trPath(s string) string { return filepath.ToSlash(s) }
 // karşılaştırma için kaydedilir.
 func trainingProgram(runDir string, stop, total int, extraOption string) string {
 	return fmt.Sprintf(`
-değişken KOŞU = %q
-değişken V = 4096
-değişken D = 16
-değişken sayaç = 0
-fonksiyon parametre(şekil, ölçek) {
+TR_var KOŞU = %q
+TR_var V = 4096
+TR_var D = 16
+TR_var sayaç = 0
+TR_func parametre(şekil, ölçek) {
     sayaç += 1
-    sonuç tensör(türevsiz(rastgele_normal(şekil, tohum: sayaç) * ölçek), türev_izle: doğru)
+    TR_return TR_tensor(TR_no_grad(TR_randn(şekil, TR_seed: sayaç) * ölçek), TR_requires_grad: TR_true)
 }
-değişken model = {E: parametre([V, D], 0.1), W: parametre([D, V], 0.1)}
-değişken ikinci = [parametre([D], 1.0)]
-değişken op = AdamW(parametreler(model), öğrenme_oranı: 0.01)
-değişken op2 = SGD(ikinci, öğrenme_oranı: 0.1, momentum: 0.9)
-değişken küme = veri_kümesi(%q)
-değişken ö = küme.örnekleyici(toplu: 4, bağlam: 8, tohum: 5)
-değişken s = küme.sıralı(toplu: 2, bağlam: 8)
-değişken g = günlük(yol(KOŞU, "metrics.jsonl"))
-değişken izlenen = {en_iyi: 99.0, geçmiş: [], son_sıralı: yok}
-değişken kn = kontrol_noktası(KOŞU, {model: model, op: op, ikinci: ikinci, op2: op2, ö: ö, s: s, g: g, izlenen: izlenen}%s)
-değişken ç = ilerleme(%d, günlük: g)
-döngü adım içinde kn.kaldığı_adım..%d {
-    değişken giriş, hedef = ö.sonraki()
-    op.sıfırla()
-    op2.sıfırla()
-    değişken kayıp = çapraz_entropi(gömme(model.E, giriş) @ model.W, hedef) + toplam(ikinci[0] * ikinci[0]) * 0.01
-    geri_yayılım(kayıp)
-    op.adım()
-    op2.adım()
-    değişken d = s.sonraki()
-    eğer d != yok { izlenen.son_sıralı = d[0].değer[0][0] }
-    eğer kayıp.değer < izlenen.en_iyi { izlenen.en_iyi = kayıp.değer }
-    izlenen.geçmiş.ekle(adım)
-    ç.güncelle({kayıp: kayıp}, adım: adım + 1)
-    kn.güncelle(adım + 1)
+TR_var model = {E: parametre([V, D], 0.1), W: parametre([D, V], 0.1)}
+TR_var ikinci = [parametre([D], 1.0)]
+TR_var op = TR_AdamW(TR_parameters(model), TR_lr: 0.01)
+TR_var op2 = TR_SGD(ikinci, TR_lr: 0.1, TR_momentum: 0.9)
+TR_var küme = TR_dataset(%q)
+TR_var ö = küme.TR_sampler(TR_batch_size: 4, TR_context: 8, TR_seed: 5)
+TR_var s = küme.TR_sequential(TR_batch_size: 2, TR_context: 8)
+TR_var g = TR_logger(TR_path(KOŞU, "metrics.jsonl"))
+TR_var izlenen = {en_iyi: 99.0, geçmiş: [], son_sıralı: TR_none}
+TR_var kn = TR_checkpoint(KOŞU, {model: model, op: op, ikinci: ikinci, op2: op2, ö: ö, s: s, g: g, izlenen: izlenen}%s)
+TR_var ç = TR_progress(%d, TR_log: g)
+TR_for adım TR_in kn.TR_resume_step..%d {
+    TR_var giriş, hedef = ö.TR_next()
+    op.TR_zero_grad()
+    op2.TR_zero_grad()
+    TR_var kayıp = TR_cross_entropy(TR_embedding(model.E, giriş) @ model.W, hedef) + TR_sum(ikinci[0] * ikinci[0]) * 0.01
+    TR_backward(kayıp)
+    op.TR_step()
+    op2.TR_step()
+    TR_var d = s.TR_next()
+    TR_if d != TR_none { izlenen.son_sıralı = d[0].TR_tolist[0][0] }
+    TR_if kayıp.TR_tolist < izlenen.en_iyi { izlenen.en_iyi = kayıp.TR_tolist }
+    izlenen.geçmiş.TR_append(adım)
+    ç.TR_update({TR_loss: kayıp}, TR_step: adım + 1)
+    kn.TR_update(adım + 1)
 }
-tensör_kaydet(yol(KOŞU, "son.trt"), parametreler([model, ikinci], adlarıyla: doğru))
-tensör_kaydet(yol(KOŞU, "op.trt"), op.durum)
-tensör_kaydet(yol(KOŞU, "op2.trt"), op2.durum)
-yazdır("izlenen:", izlenen)
-yazdır("ö:", ö.durum)
+TR_save_tensors(TR_path(KOŞU, "son.trt"), TR_parameters([model, ikinci], TR_named: TR_true))
+TR_save_tensors(TR_path(KOŞU, "op.trt"), op.TR_state)
+TR_save_tensors(TR_path(KOŞU, "op2.trt"), op2.TR_state)
+TR_print("izlenen:", izlenen)
+TR_print("ö:", ö.TR_state)
 `, trPath(runDir), trPath(filepath.Join(reporoot.Root(), "tests", "data", "text")), extraOption, total, stop)
 }
 
@@ -113,15 +113,15 @@ func TestResumedSameAsUninterrupted(t *testing.T) {
 	t.Cleanup(checkpoint.FakeClock(func() time.Time { now = now.Add(time.Minute); return now }))
 	// Her güncelle'de saat 1 dk ilerler: her_dakika: 3 ile yaklaşık üç adımda bir kayıt.
 	a := t.TempDir()
-	outputA, err := run(t, trainingProgram(a, 24, 24, ", her_dakika: 3"))
+	outputA, err := run(t, trainingProgram(a, 24, 24, ", TR_every_minutes: 3"))
 	if err != nil {
 		t.Fatalf("%v\n%s", err, outputA)
 	}
 	b := t.TempDir()
-	if c, err := run(t, trainingProgram(b, 13, 24, ", her_dakika: 3")); err != nil {
+	if c, err := run(t, trainingProgram(b, 13, 24, ", TR_every_minutes: 3")); err != nil {
 		t.Fatalf("%v\n%s", err, c)
 	}
-	outputB, err := run(t, trainingProgram(b, 24, 24, ", her_dakika: 3"))
+	outputB, err := run(t, trainingProgram(b, 24, 24, ", TR_every_minutes: 3"))
 	if err != nil {
 		t.Fatalf("%v\n%s", err, outputB)
 	}
