@@ -43,7 +43,11 @@ Dilin kuralı değil, kodlama modellerinin dili rahat kullanması için araçlar
 
 Kilometre taşı, dili gerçek bir işte sınayan ve bitiş ölçütü ölçülebilen bir hedeftir. Sıradakiler bir öncekinden sonra onayla eklenir.
 
-### İlk kilometre taşı: hazır modelleri CPU'da ve GPU'da hızlı çalıştırmak
+### 1. kilometre taşı: RGN-512'yi TR'de eğitmek (büyük ölçüde yapıldı)
+
+PyTorch ile yazılmış, hız ve doğruluk için optimize edilmiş bir dil modelini (`tools/gpu/rgn512.py`) TR'de yazıp (`tools/gpu/rgn512.tr`) aynı veriyle eğitmek. 2026-10-23'te bitiş ölçütü sağlandı: 0,8 milyar parçalık iki tohumlu koşuda PyTorch'tan daha düşük doğrulama kaybı, bellekte derlenmiş PyTorch'la başa baş, hızda derlenmiş PyTorch'un 1,07 katı; üç kart türünde (RTX PRO 6000, A100, L4) GPU testleri geçiyor. Ayrıntı [arşivde](archive/roadmap-2026-10-27.md). Ahmet, 2026-10-28: büyük ölçüde yapıldı; RGN-512 artık dilin ölçü modelidir, hedef değildir.
+
+### 2. kilometre taşı: hazır modelleri CPU'da ve GPU'da hızlı çalıştırmak
 
 Ahmet, 2026-10-27. Hazır modeli çalıştırmak amacın en yaygın işidir; modeli sunmak, robotun içinde çalıştırmak ve ince ayar ona dayanır.
 
