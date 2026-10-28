@@ -180,7 +180,7 @@ TR_for i TR_in 0..120 {
 	if n := s.Share * float64(g.Sampling.Samples); n < 20 {
 		t.Logf("6. satırda yalnızca %.0f örnek var; tensör payı denetlenmedi", n)
 	} else if s.TensorShare < 0.5 {
-		t.Errorf("6. satırın TR_tensor payı %v; zaman matris çarpımında geçmeli", s.TensorShare)
+		t.Errorf("6. satırın tensör payı %v; zaman matris çarpımında geçmeli", s.TensorShare)
 	}
 }
 

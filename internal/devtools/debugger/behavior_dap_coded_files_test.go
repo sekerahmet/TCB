@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
 // makeViewURI bir dosya yolunun düzenleyicideki Türkçe görünümünün adresidir; VS Code'un
@@ -26,16 +25,11 @@ func makeViewURI(fpath string) string {
 	return "tr-kodlu:" + strings.Join(parts, "/")
 }
 
-// Kodlu dosya düzenleyicide Türkçe görünümüyle (başlık gizli) açılır: kesme noktaları
+// Kodlu dosya düzenleyicide Türkçe görünümüyle açılır: kesme noktaları
 // görünümün adresiyle ve görünümün satırlarıyla gelir (launch'tan önce de), çağrı yığını
 // kaynağı görünümün adresiyle ve aynı satırla bildirir (17.5; 17_kodlar.md, "Düzenleyicide").
 func TestDAPCodedFileView(t *testing.T) {
-	turkishName := "TR_var a = 1\na = 2\nTR_if a > 1 {\n    TR_print(\"büyük\")\n}\n"
-	coded, err := source.Encode(turkishName)
-	if err != nil || !strings.HasPrefix(coded, source.Header+"tr\n") {
-		t.Fatalf("kodlanamadı: %q %v", coded, err)
-	}
-	path := writeProgram(t, coded)
+	path := writeProgram(t, "TR_var a = 1\na = 2\nTR_if a > 1 {\n    TR_print(\"büyük\")\n}\n")
 	addr := makeViewURI(path)
 	if got := sourcePath(addr); !samePath(got, path) {
 		t.Fatalf("adres dosya yoluna çevrilmedi: %q → %q (beklenen %q)", addr, got, path)
@@ -44,8 +38,8 @@ func TestDAPCodedFileView(t *testing.T) {
 	c := startDAP(t)
 	c.request("initialize", map[string]interface{}{"adapterID": "tr"})
 	c.event("initialized")
-	// Görünümün 4. satırı: yazdır("büyük") (dosyada başlıkla 5. satır).
-	reply := c.request("setBreakpoints", map[string]interface{}{"source": map[string]interface{}{"path": addr}, "breakpoints": []interface{}{map[string]interface{}{"line": 4}}})
+	// Görünümün 5. satırı: yazdır("büyük"); görünüm başlığı tuttuğu için dosyanınkiyle aynı (2.1).
+	reply := c.request("setBreakpoints", map[string]interface{}{"source": map[string]interface{}{"path": addr}, "breakpoints": []interface{}{map[string]interface{}{"line": 5}}})
 	if bp := reply["breakpoints"].([]interface{})[0].(map[string]interface{}); bp["verified"] != true {
 		t.Fatalf("görünümdeki kesme noktası doğrulanmalı: %v", bp)
 	}
@@ -54,8 +48,8 @@ func TestDAPCodedFileView(t *testing.T) {
 	c.event("stopped")
 	st := c.request("stackTrace", map[string]interface{}{"threadId": 1})
 	frame := st["stackFrames"].([]interface{})[0].(map[string]interface{})
-	if line := int(frame["line"].(float64)); line != 4 {
-		t.Fatalf("görünümün 4. satırında durmalıydı, %d", line)
+	if line := int(frame["line"].(float64)); line != 5 {
+		t.Fatalf("görünümün 5. satırında durmalıydı, %d", line)
 	}
 	if sourceInfo := frame["source"].(map[string]interface{}); sourceInfo["path"] != addr || sourceInfo["name"] != "program.tr" {
 		t.Fatalf("çağrı yığınının kaynağı görünümün adresi olmalı: %v", sourceInfo)

@@ -65,7 +65,7 @@ func TestRunFile(t *testing.T) {
 		}
 	}
 	if summary.OK() {
-		t.Error("kalan test varken Basarili() TR_true döndü")
+		t.Error("kalan test varken Basarili() doğru döndü")
 	}
 }
 

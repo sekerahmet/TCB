@@ -19,7 +19,7 @@ f()
 // (variablesReference) verdiyse yalnızca onu değiştirir; İzleme Masası ✏️ bu yolu kullanır.
 func TestDAPSetVariableTargetsScope(t *testing.T) {
 	c := startDAP(t)
-	c.launch(writeProgram(t, dapScopeProgram), false, map[string]interface{}{"line": 6})
+	c.launch(writeProgram(t, dapScopeProgram), false, map[string]interface{}{"line": 7})
 	c.event("stopped")
 
 	set := func(scope, value string) {
@@ -46,7 +46,7 @@ func TestDAPSetVariableTargetsScope(t *testing.T) {
 // istek (Variables panelinden "Tablo Görünümü") yerel kapsamdan başlar.
 func TestDAPTableTargetsScope(t *testing.T) {
 	c := startDAP(t)
-	c.launch(writeProgram(t, dapScopeProgram), false, map[string]interface{}{"line": 6})
+	c.launch(writeProgram(t, dapScopeProgram), false, map[string]interface{}{"line": 7})
 	c.event("stopped")
 
 	columns := func(args map[string]interface{}) []string {

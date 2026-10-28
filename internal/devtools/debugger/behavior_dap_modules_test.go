@@ -18,23 +18,23 @@ func frameSourcePath(f interface{}) string {
 func TestDAPModuleSourceLines(t *testing.T) {
 	dir := t.TempDir()
 	module := filepath.Join(dir, "m.tr")
-	if err := os.WriteFile(module, []byte("TR_func f(x) {\n    TR_var y = x\n    TR_return y\n}\n"), 0644); err != nil {
+	if err := os.WriteFile(module, []byte(withHeader("TR_func f(x) {\n    TR_var y = x\n    TR_return y\n}\n")), 0644); err != nil {
 		t.Fatal(err)
 	}
 	path := filepath.Join(dir, "program.tr")
-	if err := os.WriteFile(path, []byte("TR_import \"m.tr\" TR_as m\nTR_var a = 1\nTR_var b = m.f(a)\nTR_print(b)\n"), 0644); err != nil {
+	if err := os.WriteFile(path, []byte(withHeader("TR_import \"m.tr\" TR_as m\nTR_var a = 1\nTR_var b = m.f(a)\nTR_print(b)\n")), 0644); err != nil {
 		t.Fatal(err)
 	}
 	c := startDAP(t)
-	c.launch(path, false, map[string]interface{}{"line": 2}, map[string]interface{}{"line": 3})
+	c.launch(path, false, map[string]interface{}{"line": 3}, map[string]interface{}{"line": 4})
 	c.event("stopped")
-	if line := c.topFrameLine(); line != 2 {
-		t.Fatalf("2. satırda durması bekleniyordu, %d", line)
+	if line := c.topFrameLine(); line != 3 {
+		t.Fatalf("3. satırda durması bekleniyordu, %d", line)
 	}
 	c.request("continue", map[string]interface{}{"threadId": 1})
 	c.event("stopped")
-	if line := c.topFrameLine(); line != 3 {
-		t.Fatalf("3. satırda durması bekleniyordu (modülün 2. satırında değil), %d", line)
+	if line := c.topFrameLine(); line != 4 {
+		t.Fatalf("4. satırda durması bekleniyordu (modülün 3. satırında değil), %d", line)
 	}
 	c.request("stepIn", map[string]interface{}{"threadId": 1})
 	c.event("stopped")
@@ -68,7 +68,7 @@ TR_print("bitti")
 // Göreli program yolu düzenleyicinin bildirdiği çalışma klasöründe ('cwd') çözülür.
 func TestDAPRelativeProgramInCwd(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "göreli.tr"), []byte("TR_print(\"göreli çalıştı\")\n"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "göreli.tr"), []byte(withHeader("TR_print(\"göreli çalıştı\")\n")), 0644); err != nil {
 		t.Fatal(err)
 	}
 	wd, _ := os.Getwd()

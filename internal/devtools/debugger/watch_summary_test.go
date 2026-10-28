@@ -12,7 +12,7 @@ func TestDAPScalarAndSmallTensorValue(t *testing.T) {
 		"TR_var yarım = TR_tensor(2.5).TR_to_dtype(\"bf16\")\n"+
 		"TR_var büyük = TR_zeros([3, 4])\n"+
 		"TR_print(kayıp)\n")
-	c.launch(path, false, map[string]interface{}{"line": 5})
+	c.launch(path, false, map[string]interface{}{"line": 6})
 	c.event("stopped")
 
 	values := c.varsOf(c.scopeRef("Genel"))

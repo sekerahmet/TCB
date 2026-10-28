@@ -143,7 +143,7 @@ func TestCLIJumpOutsideBlockRejected(t *testing.T) {
 func TestCLIModuleLines(t *testing.T) {
 	dir := t.TempDir()
 	module := "TR_func f(x) {\n    TR_var modül_satırı = x\n    TR_return modül_satırı\n}\n"
-	if err := os.WriteFile(filepath.Join(dir, "m.tr"), []byte(module), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "m.tr"), []byte(withHeader(module)), 0644); err != nil {
 		t.Fatal(err)
 	}
 	path := filepath.Join(dir, "program.tr")
@@ -153,7 +153,7 @@ func TestCLIModuleLines(t *testing.T) {
 		t.Fatalf("başta ve 2. satırda olmak üzere iki duruş bekleniyordu (%d):\n%s", screens(out), out)
 	}
 	out, _ = runCLI(t, path, code, "adım\nadım\nf11\n\ndevam\n", nil)
-	if !strings.Contains(out, "m.tr") || !strings.Contains(out, "===>   2 |     değişken modül_satırı = x") {
+	if !strings.Contains(out, "m.tr") || !strings.Contains(out, "===>   3 |     TR_var modül_satırı = x") {
 		t.Fatalf("modülün içinde modülün satırları gösterilmeliydi:\n%s", out)
 	}
 }

@@ -154,10 +154,12 @@ func (c *dapClient) varsOf(ref int) map[string]string {
 	return out
 }
 
+// writeProgram programın gövdesini başlığıyla (2.1) bir dosyaya yazar; satırlar dosyanın
+// satırıdır, gövdenin ilk satırı 2. satırdır.
 func writeProgram(t *testing.T, code string) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "program.tr")
-	if err := os.WriteFile(path, []byte(code), 0644); err != nil {
+	if err := os.WriteFile(path, []byte(withHeader(code)), 0644); err != nil {
 		t.Fatal(err)
 	}
 	return path
@@ -191,14 +193,14 @@ TR_print("toplam: \(toplam)")
 func TestDAPDebugSession(t *testing.T) {
 	c := startDAP(t)
 	path := writeProgram(t, dapProgram)
-	c.launch(path, false, map[string]interface{}{"line": 7, "condition": "i == 1"})
+	c.launch(path, false, map[string]interface{}{"line": 8, "condition": "i == 1"})
 
 	stopped := c.event("stopped")
 	if stopped["reason"] != "breakpoint" {
 		t.Fatalf("kesme noktası nedeni bekleniyordu: %v", stopped)
 	}
-	if line := c.topFrameLine(); line != 7 {
-		t.Fatalf("7. satırda durması bekleniyordu, %d", line)
+	if line := c.topFrameLine(); line != 8 {
+		t.Fatalf("8. satırda durması bekleniyordu, %d", line)
 	}
 	if got := c.varsOf(c.scopeRef("Yerel"))["i"]; got != "1" {
 		t.Fatalf("koşullu kesme noktası i == 1 iken durmalıydı, i = %s", got)
@@ -219,18 +221,18 @@ func TestDAPDebugSession(t *testing.T) {
 	st := c.request("stackTrace", map[string]interface{}{"threadId": 1})
 	frames := st["stackFrames"].([]interface{})
 	top := frames[0].(map[string]interface{})
-	if top["name"] != "ekle_maas()" || int(top["line"].(float64)) != 4 || len(frames) != 2 {
-		t.Fatalf("ekle_maas() içinde 4. satır ve 2 çerçeve bekleniyordu: %v", frames)
+	if top["name"] != "ekle_maas()" || int(top["line"].(float64)) != 5 || len(frames) != 2 {
+		t.Fatalf("ekle_maas() içinde 5. satır ve 2 çerçeve bekleniyordu: %v", frames)
 	}
-	if caller := frames[1].(map[string]interface{}); int(caller["line"].(float64)) != 7 {
-		t.Fatalf("çağıran çerçeve 7. satırı göstermeli: %v", caller)
+	if caller := frames[1].(map[string]interface{}); int(caller["line"].(float64)) != 8 {
+		t.Fatalf("çağıran çerçeve 8. satırı göstermeli: %v", caller)
 	}
 
-	// Shift+F11: fonksiyondan çık → döngü bitti, 9. satır
+	// Shift+F11: fonksiyondan çık → döngü bitti, 10. satır
 	c.request("stepOut", map[string]interface{}{"threadId": 1})
 	c.event("stopped")
-	if line := c.topFrameLine(); line != 9 {
-		t.Fatalf("fonksiyondan çıkınca 9. satıra gelmeli, %d", line)
+	if line := c.topFrameLine(); line != 10 {
+		t.Fatalf("fonksiyondan çıkınca 10. satıra gelmeli, %d", line)
 	}
 	if got := c.evaluate("toplam"); got != "1100" {
 		t.Fatalf("değiştirilen değerle toplam 1100 olmalı, %s", got)
@@ -249,8 +251,8 @@ func TestDAPDebugSession(t *testing.T) {
 
 	// İzleme Masası: tek tabloda tüm değişkenler, tablolar işaretli
 	panel := c.request("trVariables", nil)
-	if int(panel["line"].(float64)) != 9 {
-		t.Fatalf("panel 9. satırı göstermeli: %v", panel["line"])
+	if int(panel["line"].(float64)) != 10 {
+		t.Fatalf("panel 10. satırı göstermeli: %v", panel["line"])
 	}
 	found := map[string]map[string]interface{}{}
 	for _, d := range panel["variables"].([]interface{}) {
@@ -261,14 +263,14 @@ func TestDAPDebugSession(t *testing.T) {
 		t.Fatalf("liste Tablo [2×2] olarak işaretlenmeli: %v", found["liste"])
 	}
 	if tp := found["toplam"]; tp == nil || tp["value"] != "1100" || tp["table"] != false || tp["kind"] != "number" {
-		t.Fatalf("TR_sum = 1100 skaler TR_var olmalı: %v", found["toplam"])
+		t.Fatalf("toplam = 1100 skaler değişken olmalı: %v", found["toplam"])
 	}
 	if _, var_ := found["yazdır"]; var_ {
 		t.Fatal("yerleşik fonksiyonlar panelde listelenmemeli")
 	}
 
 	// Hata ayıklama konsolunda deyim çalıştırma
-	c.request("evaluate", map[string]interface{}{"expression": "TR_sum = 5", "context": "repl"})
+	c.request("evaluate", map[string]interface{}{"expression": "$toplam = 5", "context": "repl"})
 
 	c.request("continue", map[string]interface{}{"threadId": 1})
 	exited := c.event("exited")
@@ -285,7 +287,7 @@ func TestDAPDebugSession(t *testing.T) {
 func TestDAPWatchpointAndLogpoint(t *testing.T) {
 	c := startDAP(t)
 	path := writeProgram(t, "TR_var a = 1\nTR_var b = 2\na = 5\nb = 3\nTR_print(\"bitti\")\n")
-	c.launch(path, true, map[string]interface{}{"line": 4, "logMessage": "b şu an {b}, a = {a}"})
+	c.launch(path, true, map[string]interface{}{"line": 5, "logMessage": "b şu an {b}, a = {a}"})
 
 	if r := c.event("stopped")["reason"]; r != "entry" {
 		t.Fatalf("başlangıçta durmalıydı: %v", r)
@@ -303,8 +305,8 @@ func TestDAPWatchpointAndLogpoint(t *testing.T) {
 	if stopped["reason"] != "data breakpoint" {
 		t.Fatalf("izleme noktasında durmalıydı: %v", stopped)
 	}
-	if line := c.topFrameLine(); line != 4 {
-		t.Fatalf("a 3. satırda değişti, 4. satırdan önce durmalı; %d", line)
+	if line := c.topFrameLine(); line != 5 {
+		t.Fatalf("a 4. satırda değişti, 5. satırdan önce durmalı; %d", line)
 	}
 	c.request("continue", map[string]interface{}{"threadId": 1})
 	c.event("terminated")
@@ -317,19 +319,19 @@ func TestDAPWatchpointAndLogpoint(t *testing.T) {
 func TestDAPGotoAndLaunchErrors(t *testing.T) {
 	c := startDAP(t)
 	path := writeProgram(t, "TR_var x = 1\nx = 2\nx = 3\nTR_print(x)\n")
-	c.launch(path, false, map[string]interface{}{"line": 3})
+	c.launch(path, false, map[string]interface{}{"line": 4})
 	c.event("stopped")
 	if got := c.evaluate("x"); got != "2" {
-		t.Fatalf("3. satırdan önce x = 2 olmalı, %s", got)
+		t.Fatalf("4. satırdan önce x = 2 olmalı, %s", got)
 	}
-	targets := c.request("gotoTargets", map[string]interface{}{"source": map[string]interface{}{"path": path}, "line": 2})
+	targets := c.request("gotoTargets", map[string]interface{}{"source": map[string]interface{}{"path": path}, "line": 3})
 	id := targets["targets"].([]interface{})[0].(map[string]interface{})["id"]
 	c.request("goto", map[string]interface{}{"threadId": 1, "targetId": id})
 	stopped := c.event("stopped")
-	if stopped["reason"] != "goto" || c.topFrameLine() != 2 {
-		t.Fatalf("2. satıra zıplamalıydı: %v", stopped)
+	if stopped["reason"] != "goto" || c.topFrameLine() != 3 {
+		t.Fatalf("3. satıra zıplamalıydı: %v", stopped)
 	}
-	if !strings.Contains(stopped["description"].(string), "2'ye") {
+	if !strings.Contains(stopped["description"].(string), "3'e") {
 		t.Fatalf("açıklama doğru ekle yazılmalı: %v", stopped["description"])
 	}
 	c.request("disconnect", nil)
@@ -355,13 +357,13 @@ func TestDAPBreakpointsPerFile(t *testing.T) {
 	other := filepath.Join(t.TempDir(), "modul.tr")
 	c.request("initialize", map[string]interface{}{"adapterID": "tr"})
 	c.event("initialized")
-	c.request("setBreakpoints", map[string]interface{}{"source": map[string]interface{}{"path": path}, "breakpoints": []interface{}{map[string]interface{}{"line": 2}}})
-	c.request("setBreakpoints", map[string]interface{}{"source": map[string]interface{}{"path": other}, "breakpoints": []interface{}{map[string]interface{}{"line": 4}}})
+	c.request("setBreakpoints", map[string]interface{}{"source": map[string]interface{}{"path": path}, "breakpoints": []interface{}{map[string]interface{}{"line": 3}}})
+	c.request("setBreakpoints", map[string]interface{}{"source": map[string]interface{}{"path": other}, "breakpoints": []interface{}{map[string]interface{}{"line": 5}}})
 	c.request("launch", map[string]interface{}{"program": path})
 	c.request("configurationDone", nil)
 	c.event("stopped")
-	if line := c.topFrameLine(); line != 2 {
-		t.Fatalf("ana dosyanın 2. satırında durmalıydı, %d", line)
+	if line := c.topFrameLine(); line != 3 {
+		t.Fatalf("ana dosyanın 3. satırında durmalıydı, %d", line)
 	}
 	c.request("continue", map[string]interface{}{"threadId": 1})
 	c.event("terminated")
@@ -371,7 +373,7 @@ func TestDAPBreakpointsPerFile(t *testing.T) {
 	// Launch sonrası başka dosyanın kesme noktaları doğrulanmamış (verified: false) döner
 	c2 := startDAP(t)
 	c2.launch(path, false)
-	reply := c2.request("setBreakpoints", map[string]interface{}{"source": map[string]interface{}{"path": other}, "breakpoints": []interface{}{map[string]interface{}{"line": 1}}})
+	reply := c2.request("setBreakpoints", map[string]interface{}{"source": map[string]interface{}{"path": other}, "breakpoints": []interface{}{map[string]interface{}{"line": 2}}})
 	if bp := reply["breakpoints"].([]interface{})[0].(map[string]interface{}); bp["verified"] != false {
 		t.Fatalf("başka dosyanın kesme noktası doğrulanmamalı: %v", bp)
 	}
@@ -382,30 +384,30 @@ func TestDAPBreakpointsPerFile(t *testing.T) {
 func TestDAPGotoOutsideBlockRejected(t *testing.T) {
 	c := startDAP(t)
 	path := writeProgram(t, "TR_var x = 0\nTR_func f() {\n    x = 1\n    x = 2\n}\nf()\nx = 7\nTR_print(x)\n")
-	c.launch(path, false, map[string]interface{}{"line": 3})
+	c.launch(path, false, map[string]interface{}{"line": 4})
 	c.event("stopped")
-	targets := c.request("gotoTargets", map[string]interface{}{"source": map[string]interface{}{"path": path}, "line": 7})
+	targets := c.request("gotoTargets", map[string]interface{}{"source": map[string]interface{}{"path": path}, "line": 8})
 	if n := len(targets["targets"].([]interface{})); n != 0 {
 		t.Fatalf("bloğun dışındaki satır hedef olarak önerilmemeli: %v", targets)
 	}
-	if n := len(c.request("gotoTargets", map[string]interface{}{"source": map[string]interface{}{"path": path}, "line": 4})["targets"].([]interface{})); n != 1 {
+	if n := len(c.request("gotoTargets", map[string]interface{}{"source": map[string]interface{}{"path": path}, "line": 5})["targets"].([]interface{})); n != 1 {
 		t.Fatalf("aynı bloktaki satır hedef olmalı")
 	}
-	seq := c.send("goto", map[string]interface{}{"threadId": 1, "targetId": 7})
+	seq := c.send("goto", map[string]interface{}{"threadId": 1, "targetId": 8})
 	reply := c.next(func(m map[string]interface{}) bool {
 		return m["type"] == "response" && int(m["request_seq"].(float64)) == seq
 	}, "goto yanıtı")
 	if reply["success"] != false || !strings.Contains(fmt.Sprint(reply["message"]), "bloğun dışında") {
 		t.Fatalf("blok dışına goto reddedilmeli: %v", reply)
 	}
-	// Program hâlâ 3. satırda duruyor
-	if line := c.topFrameLine(); line != 3 {
-		t.Fatalf("reddedilen goto sonrası 3. satırda kalmalı, %d", line)
-	}
-	c.request("goto", map[string]interface{}{"threadId": 1, "targetId": 4})
-	c.event("stopped")
+	// Program hâlâ 4. satırda duruyor
 	if line := c.topFrameLine(); line != 4 {
-		t.Fatalf("4. satıra zıplamalıydı, %d", line)
+		t.Fatalf("reddedilen goto sonrası 4. satırda kalmalı, %d", line)
+	}
+	c.request("goto", map[string]interface{}{"threadId": 1, "targetId": 5})
+	c.event("stopped")
+	if line := c.topFrameLine(); line != 5 {
+		t.Fatalf("5. satıra zıplamalıydı, %d", line)
 	}
 	c.request("continue", map[string]interface{}{"threadId": 1})
 	c.event("terminated")
@@ -438,10 +440,11 @@ func TestDAPTaskError(t *testing.T) {
 }
 
 func TestTableData(t *testing.T) {
-	_, val, err := runTRWithin(t, 5*time.Second, `sonuç [{"ad": "Ali", "yaş": 30}, {"ad": "Ayşe", "şehir": "İzmir"}]`)
+	machine, _, err := runTRWithin(t, 5*time.Second, `TR_var tablo = [{"ad": "Ali", "yaş": 30}, {"ad": "Ayşe", "şehir": "İzmir"}]`)
 	if err != nil {
 		t.Fatal(err)
 	}
+	val, _ := machine.GlobalEnv.Get("tablo")
 	cols, rows, err := TableData(val)
 	if err != nil {
 		t.Fatal(err)
@@ -460,7 +463,7 @@ func TestTableData(t *testing.T) {
 func TestDAPSecondLaunchIsRejectedWhileSessionRuns(t *testing.T) {
 	dir := t.TempDir()
 	progPath := filepath.Join(dir, "ana.tr")
-	if err := os.WriteFile(progPath, []byte("TR_var a = 1\nTR_var b = 2\nTR_print(a + b)\n"), 0o600); err != nil {
+	if err := os.WriteFile(progPath, []byte(withHeader("TR_var a = 1\nTR_var b = 2\nTR_print(a + b)\n")), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	c := startDAP(t)
@@ -485,4 +488,12 @@ func TestDAPHeaderLineIsBounded(t *testing.T) {
 	if _, err := s.readMessage(); !messages.Has(err, messages.H8108) {
 		t.Fatalf("sınırsız başlık satırı reddedilmedi: %v", err)
 	}
+}
+
+// withHeader başlıksız gövdenin önüne başlığı koyar; başlıklı metin olduğu gibi kalır.
+func withHeader(code string) string {
+	if source.HeaderLines(code) > 0 {
+		return code
+	}
+	return source.Header + "\n" + code
 }

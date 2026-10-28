@@ -38,7 +38,7 @@ TR_for s TR_in [1, 2, 3] {
 }
 TR_print("toplam: \(toplam)")
 `)
-	c.launch(path, false, map[string]interface{}{"line": 6})
+	c.launch(path, false, map[string]interface{}{"line": 7})
 	stopped := func(wantLine int, cause string) map[string]interface{} {
 		t.Helper()
 		ev := c.event("stopped")
@@ -58,13 +58,13 @@ TR_print("toplam: \(toplam)")
 		return ""
 	}
 
-	stopped(6, "başlangıç")
+	stopped(7, "başlangıç")
 	if v := panelValue("s"); v != "1" {
 		t.Fatalf("ilk turda s = %q", v)
 	}
 	// Devam: aynı kesme noktasında, sonraki turda yeniden durur.
 	c.request("continue", map[string]interface{}{"threadId": 1})
-	if ev := stopped(6, "devam"); ev["reason"] != "breakpoint" {
+	if ev := stopped(7, "devam"); ev["reason"] != "breakpoint" {
 		t.Fatalf("devam kesme noktasında durmalı: %v", ev)
 	}
 	if v := panelValue("s"); v != "2" {
@@ -75,11 +75,11 @@ TR_print("toplam: \(toplam)")
 	}
 	// İçine gir → kare() içinde; Dışarı çık → çağrının döndüğü satır; Sonraki satır.
 	c.request("stepIn", map[string]interface{}{"threadId": 1})
-	stopped(3, "içine gir")
+	stopped(4, "içine gir")
 	c.request("stepOut", map[string]interface{}{"threadId": 1})
-	stopped(7, "dışarı çık")
+	stopped(8, "dışarı çık")
 	c.request("next", map[string]interface{}{"threadId": 1})
-	stopped(6, "sonraki satır")
+	stopped(7, "sonraki satır")
 	if v := panelValue("s"); v != "3" {
 		t.Fatalf("üçüncü turda s = %q", v)
 	}
