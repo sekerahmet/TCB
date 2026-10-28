@@ -74,7 +74,7 @@ TR_for adım TR_in 0..500 {
     op.TR_step()
 }
 TR_print("w = \(TR_round(w.TR_tolist[0][0], 3)), b = \(TR_round(b.TR_tolist[0], 3))")   # w = 2.0, b = -1.0
-TR_print(TR_no_grad { TR_return X @ w + b })                                       # Tensör[4×1] [...]
+TR_print(TR_no_grad { X @ w + b })                                                # Tensör[4×1] [...]
 ```
 
 Kullanıcı tanımlı türev: kapılı çarpım `a * TR_fn_sigmoid(b)` için elle yazılmış geri hesap ve denetimi.

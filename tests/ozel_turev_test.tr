@@ -34,7 +34,7 @@ TR_test "15.28 özel_türev: ileri ve geri hesabı kullanıcı yazar" {
     # Hiçbir girdi türev izlemiyorsa çizgeye bir şey kaydedilmez; türevsiz içinde de.
     TR_var z = kare(TR_Tensor([2.0]))
     TR_assert_equal(TR_none, z.TR_grad)
-    TR_var t = TR_no_grad { TR_return kare(x) }
+    TR_var t = TR_no_grad { kare(x) }
     TR_assert_equal(TR_none, t.TR_grad)
     # ileri türevsiz çalışır: ileri'nin içinde hesaplanan değerler çizgeye bağlanmaz.
     TR_var iç_izli = TR_none
@@ -194,7 +194,7 @@ TR_test "15.32 türev_denetle: sayısal gradyanla karşılaştırma" {
         TR_var y = çarp(x1, m1)
         TR_backward(TR_sum(y * y))
         TR_backward(TR_sum((x2 @ m2) * (x2 @ m2)))
-        TR_return y.TR_dtype
+        y.TR_dtype
     }
     TR_assert_equal("bf16", tür)
     TR_assert_equal(["float32", "float32"], [x1.TR_grad.TR_dtype, m1.TR_grad.TR_dtype])

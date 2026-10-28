@@ -316,7 +316,7 @@ TR_test "15.27 geri yayılım, gradyan ve türevsiz" {
     TR_backward(TR_sum(v * 3))
     TR_assert_equal([6.0, 6.0], v.TR_grad.TR_tolist)
     # türevsiz bloğu ve türevsiz(x) hesap çizgesine bağlanmaz.
-    TR_var a = TR_no_grad { TR_return v * 2 }
+    TR_var a = TR_no_grad { v * 2 }
     TR_var b = TR_no_grad(v * 2)
     TR_assert_equal([2.0, 4.0], a.TR_tolist)
     TR_assert_equal("H6402", TR_error_code { TR_backward(TR_sum(a)) })
