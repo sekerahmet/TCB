@@ -337,6 +337,8 @@ const (
 	H2606 Code = 2606 // kaydırma miktarı 0 ile 63 arasında olmalı ('{op}' için {n} verildi)
 	H2607 Code = 2607 // '{op}' bit işlecidir ve yalnız iki tam sayı (Int) alır; {left} ve {right} verildi. Mantık değerleri '{@and}' ve '{@or}' ile birleştirilir
 	H2608 Code = 2608 // '~' bit tümlemesidir ve yalnız tam sayı (Int) alır; {type} verildi. Mantık değerinin tersi '{@not}' ile yazılır
+	H2609 Code = 2609 // '+' iki sayıyı toplar ya da aynı tipten iki metni ya da iki listeyi uç uca ekler; {left} ile {right} eklenmez. Değeri metne yerleştirmek için "metin \(x)" yazın
+	H2610 Code = 2610 // yineleme çok büyük: {count} öğe {n} kez yinelenemez
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

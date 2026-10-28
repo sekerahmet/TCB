@@ -332,6 +332,8 @@
 "H2606": { "param": ["op", "n"] },
 "H2607": { "param": ["op", "left", "right"], "slots": {"and": "TR_kw_and", "or": "TR_kw_or"} },
 "H2608": { "param": ["type"], "slots": {"not": "TR_kw_not"} },
+"H2609": { "param": ["left", "right"] },
+"H2610": { "param": ["count", "n"] },
 "H3001": { "param": ["dev"] },
 "H3002": { "param": ["mask", "q"] },
 "H3003": { "param": ["q", "k", "v"] },

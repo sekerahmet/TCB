@@ -193,7 +193,7 @@ TR_test "3.11 tip(x) değerin tipini bir tip değeri olarak verir; tip adlarıyl
     TR_assert_equal(TR_Type, TR_type(TR_Int))
     TR_assert_equal(TR_str(TR_Int), TR_str(TR_type(42)))
     TR_assert(TR_str(TR_type(42)) != TR_str(TR_type(1.5)))
-    TR_assert_equal("tip: " + TR_str(TR_List), "tip: " + TR_type([1]))
+    TR_assert_equal("tip: " + TR_str(TR_List), "tip: \(TR_type([1]))")
     TR_var t: TR_Type = TR_type(1.5)
     TR_assert_equal(TR_Float, t)
     # Tip değeri eşle desenlerinde de kullanılır.

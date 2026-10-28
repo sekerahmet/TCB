@@ -92,6 +92,16 @@ TR_test "4.4 karşılaştırma sayılar arasında yapılır" {
     TR_assert(1 < 2 TR_and 2 <= 2 TR_and 3 > 2.5 TR_and 3 >= 3)
 }
 
+TR_test "4.4 metinler kod noktası sırasıyla karşılaştırılır" {
+    TR_assert("a" < "b" TR_and "b" > "a")
+    TR_assert("ab" < "b" TR_and "a" < "ab")
+    TR_assert("Z" < "a")
+    TR_assert("a" <= "a" TR_and "a" >= "a")
+    TR_assert("z" < "ç" TR_and "ç" < "ş")
+    TR_assert("a" < "b" < "c")
+    TR_assert_equal("H2469", TR_error_code(() => { TR_var z = "a" < 1 }))
+}
+
 TR_test "4.4 sıralama zinciri Python'daki gibi okunur, ortadaki ifade bir kez hesaplanır" {
     TR_var i = 3
     TR_assert_equal(TR_true, 0 <= i < 5)
@@ -199,10 +209,28 @@ TR_test "4.9 |> soldaki değeri sağdaki çağrının ilk argümanı yapar; meto
     TR_assert_equal(12, [1, 2, 3].TR_map { TR_it * 2 } |> TR_sum)
 }
 
-TR_test "4.10 metin + herhangi bir değer metin birleştirir; liste + liste birleştirir" {
-    TR_assert_equal("a1", "a" + 1)
-    TR_assert_equal("1a", 1 + "a")
+TR_test "4.10 '+' yalnız iki metni ya da iki listeyi uç uca ekler" {
+    TR_assert_equal("ab", "a" + "b")
     TR_assert_equal([1, 2], [1] + [2])
+    TR_var n = 1
+    TR_assert_equal("a1", "a\(n)")
+    TR_assert_equal("H2609", TR_error_code(() => { TR_var z = "a" + 1 }))
+    TR_assert_equal("H2609", TR_error_code(() => { TR_var z = 1 + "a" }))
+    TR_assert_equal("H2609", TR_error_code(() => { TR_var z = [1] + 2 }))
+    TR_assert_equal("H2609", TR_error_code(() => { TR_var z = "a" + [1] }))
+}
+
+TR_test "4.10 '*' metni ve listeyi bir Tam kadar yineler; sıfır ya da eksi boş verir" {
+    TR_assert_equal("---", "-" * 3)
+    TR_assert_equal("abab", 2 * "ab")
+    TR_assert_equal([0, 0, 0], [0] * 3)
+    TR_assert_equal([1, 2, 1, 2], 2 * [1, 2])
+    TR_assert_equal("", "ab" * 0)
+    TR_assert_equal("", "ab" * -2)
+    TR_assert_equal([], [1] * -1)
+    TR_assert_equal("şşş", "ş" * 3)
+    TR_assert_equal("H2469", TR_error_code(() => { TR_var z = "a" * 1.5 }))
+    TR_assert_equal("H2610", TR_error_code(() => { TR_var z = "ab" * 9223372036854775807 }))
 }
 
 TR_test "4.11 @ matris çarpımıdır" {

@@ -25,10 +25,10 @@ TR_test "8.2 fırlat her değeri hata metnine çevirir" {
 }
 
 TR_test "8.3 çalışma zamanı hataları yakalanabilir; mesaj satır bilgisi içerir" {
-    TR_assert_equal("H2469", TR_error_code(() => { TR_var z = [1] + 1 }))
+    TR_assert_equal("H2469", TR_error_code(() => { TR_var z = [1] - 1 }))
     # Satır bilgisi iletinin başındadır ("Satır 28: ..."): sözcük dosyanın dilindedir, numara değil.
     TR_var mesaj = ""
-    TR_try { TR_var z = [1] + 1 } TR_catch h { mesaj = h }
+    TR_try { TR_var z = [1] - 1 } TR_catch h { mesaj = h }
     TR_var önek = mesaj.TR_split(":")[0]
     TR_assert("0123456789".TR_contains(önek[önek.TR_length - 1]), mesaj)
 }

@@ -208,13 +208,13 @@ print(d.keys(), d["step"], d.step)
 	}
 }
 
-// Programın değerden metin yaptığı her yer aynı kuralı izler: Metin ile '+', birleştir,
-// dosya_yaz'ın içeriği, girdi'nin istemi; kitaplığın içinde de.
+// Programın değerden metin yaptığı her yer aynı kuralı izler: yerleştirme (metne başka tip '+'
+// ile eklenmez, 4.10), birleştir, dosya_yaz'ın içeriği, girdi'nin istemi; kitaplığın içinde de.
 func TestEveryTextConversionIsLanguageIndependent(t *testing.T) {
 	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(source.Header + "\n" +
-		"TR_func ekle(x) { TR_return \"a\" + x + \",\" + [x, TR_none].TR_join(\"/\") }\n")}})
+		"TR_func ekle(x) { TR_return \"a\\(x),\" + [x, TR_none].TR_join(\"/\") }\n")}})
 	out := runEnglish(t, `import "tr/kitap" as k
-print("x" + true, none + "!", [true, none, Int].join(","), k.ekle(false))
+print("x\(true)", "\(none)!", [true, none, Int].join(","), k.ekle(false))
 write_file("out.txt", [false])
 print(read_file("out.txt"))
 input(true)

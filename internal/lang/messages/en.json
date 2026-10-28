@@ -332,6 +332,8 @@
 "H2606": "the shift amount must be between 0 and 63 ({n} was given for '{op}')",
 "H2607": "'{op}' is a bitwise operator and takes only two integers (Int); {left} and {right} were given. Truth values are combined with '{@and}' and '{@or}'",
 "H2608": "'~' is the bitwise complement and takes only an integer (Int); {type} was given. The opposite of a truth value is written with '{@not}'",
+"H2609": "'+' adds two numbers or joins two strings or two lists of the same type; {left} and {right} cannot be joined. To put a value into a string write \"text \\(x)\"",
+"H2610": "the repetition is too large: {count} items cannot be repeated {n} times",
 "H3001": "the attention block sizes of the {dev} backend cannot be set",
 "H3002": "Attention mask is on a different device ({mask}, {q})",
 "H3003": "Attention q, k, v need the same number of axes (at least 2): {q}, {k}, {v}",
