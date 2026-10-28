@@ -116,3 +116,20 @@ func TestSyntaxErrorRangeIsTheToken(t *testing.T) {
 		}
 	}
 }
+
+// A syntax error records the fixes it is given with its range; without any it has none.
+func TestSyntaxErrorFixIsRecorded(t *testing.T) {
+	p := New(codedLexer("x"))
+	tok := p.curToken()
+	fix := messages.Fix{Range: tok.Range(), Replacement: "#", Applicable: true}
+	p.syntaxErrorFix(tok, []messages.Fix{fix}, messages.H0025)
+	pos, ok := messages.Find(p.Errs()[0])
+	if !ok || len(pos.Fixes) != 1 || pos.Fixes[0] != fix {
+		t.Errorf("record %+v", pos)
+	}
+	q := New(codedLexer("x"))
+	q.syntaxError(q.curToken(), messages.H0025)
+	if pos, _ := messages.Find(q.Errs()[0]); len(pos.Fixes) != 0 {
+		t.Errorf("fixes %+v on an error given none", pos.Fixes)
+	}
+}
