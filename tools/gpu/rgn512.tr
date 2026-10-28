@@ -58,7 +58,7 @@ TR_if arg.TR_weight != "" {
 }
 TR_var ağırlıklar = TR_parameters(model)
 
-TR_var birikim = arg.toplu / arg.mikro
+TR_var birikim = arg.toplu // arg.mikro
 TR_var küme = TR_dataset(arg.veri)
 TR_var örnekler = TR_if arg.TR_sequential { küme.TR_sequential(TR_batch_size: arg.mikro, TR_context: arg.bağlam) } TR_else {
     küme.TR_sampler(TR_batch_size: arg.mikro, TR_context: arg.bağlam, TR_seed: arg.tohum) }
@@ -82,7 +82,7 @@ TR_print("hedef model (TR) | YYGYGYYG | \(M(parametre_sayısı))M parametre (PLE
 TR_var doğrulama_kümesi = TR_if arg.doğrulama == "" { TR_none } TR_else { TR_dataset(arg.doğrulama) }
 TR_func değerlendir() {
     TR_var s = doğrulama_kümesi.TR_sequential(TR_batch_size: arg.mikro, TR_context: arg.bağlam)
-    TR_var n = TR_max(1, arg.değerlendirme_parça / arg.bağlam / arg.mikro)
+    TR_var n = TR_max(1, arg.değerlendirme_parça // arg.bağlam // arg.mikro)
     TR_var kayıp_toplamı = 0.0
     TR_no_grad {
         TR_for i TR_in 0..n {
@@ -182,7 +182,7 @@ TR_if arg.TR_step == 0 TR_and doğrulama_kümesi != TR_none {
 }
 
 TR_if arg.çıktı != "" TR_and süreler.TR_length > 0 {
-    TR_var ölçülen = süreler[TR_int(süreler.TR_length / 2)..süreler.TR_length]
+    TR_var ölçülen = süreler[TR_int(süreler.TR_length // 2)..süreler.TR_length]
     TR_write_file(arg.çıktı, TR_json_string({tool: "tr", model: "target", steps: arg.TR_step, tokens_per_step: adım_başına,
         first_step_ms: süreler[0], measured: {median_ms: TR_median(ölçülen), mean_ms: TR_mean(ölçülen)}}))
 }

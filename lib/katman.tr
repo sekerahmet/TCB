@@ -80,7 +80,7 @@ TR_struct TR_RMSNorm {
 # olur. döner_konum_tablosu [kosinüs, sinüs] verir, ikisi de [bağlam, bakış_boyutu / 2].
 # Frekanslar taban^(-2i / bakış_boyutu). Tablolar türev izlemez (öğrenilmez).
 TR_func TR_rotary_table(TR_context, TR_head_dim, TR_rope_theta = 10000.0) {
-    TR_var yarım = TR_head_dim / 2
+    TR_var yarım = TR_head_dim // 2
     TR_var frekanslar = [TR_rope_theta ** (-2.0 * i / TR_head_dim) TR_for i TR_in 0..yarım]
     TR_var konumlar = TR_tensor([[t] TR_for t TR_in 0..TR_context]) # [bağlam, 1]
     TR_var açılar = konumlar @ TR_tensor([frekanslar]) # [bağlam, yarım]
@@ -136,7 +136,7 @@ TR_struct TR_CausalAttention {
         TR_if TR_num_kv_heads == TR_none { TR_num_kv_heads = TR_num_heads }
         TR_if TR_head_dim == TR_none {
             TR_assert(TR_embed_dim % TR_num_heads == 0, TR_message("H6900", TR_embed_dim, TR_num_heads))
-            TR_head_dim = TR_embed_dim / TR_num_heads
+            TR_head_dim = TR_embed_dim // TR_num_heads
         }
         TR_assert(TR_head_dim > 0 TR_and TR_head_dim % 2 == 0, TR_message("H6901", TR_head_dim))
         TR_assert(TR_num_heads % TR_num_kv_heads == 0, TR_message("H6902", TR_num_heads, TR_num_kv_heads))
@@ -518,7 +518,7 @@ TR_struct TR_GPT {
         TR_self.TR_final_norm = TR_RMSNorm(TR_embed_dim, TR_eps: TR_eps)
         TR_self.TR_logit_layer = TR_if TR_tied { TR_none } TR_else { TR_Linear(TR_embed_dim, TR_vocab_size, TR_init_std: std, TR_seed: TR_seed + 1, TR_dtype: TR_weight_dtype) }
         TR_self.TR_ple_context = TR_if TR_ple_dim == TR_none { TR_none } TR_else { TR_PLEContext(TR_embed_dim, TR_num_layers, TR_ple_dim, TR_eps: TR_eps, TR_init_std: std, TR_seed: TR_seed + 2, TR_weight_dtype: TR_weight_dtype) }
-        TR_var tablolar = TR_rotary_table(TR_context, TR_if TR_head_dim == TR_none { TR_embed_dim / TR_num_heads } TR_else { TR_head_dim }, TR_rope_theta: TR_rope_theta)
+        TR_var tablolar = TR_rotary_table(TR_context, TR_if TR_head_dim == TR_none { TR_embed_dim // TR_num_heads } TR_else { TR_head_dim }, TR_rope_theta: TR_rope_theta)
         TR_self.TR_cos_table = tablolar[0]
         TR_self.TR_sin_table = tablolar[1]
     }
