@@ -315,3 +315,27 @@ JSON'dan tipli yapıya doğrudan okuma (alan adı eşlemesiyle; Rust'ın serde's
 
 - **Mevcut durum:** arayüz yok.
 - **Yapılacaklar:** `TR_interface` (en az bir metot; boş arayüz denetim hatası), yapısal karşılama, eksik metodu söyleyen ileti, tip parametresinde kısıt, `TR_Type` sınamasıyla asıl tipe daraltma. Kimlik kapısının onaylı yeni adlar listesine `TR_enum` ve `TR_interface` girer.
+
+## 8. Hata yönetimi
+
+Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md). Taslak (2026-10-28): ana oturum yazdı, DENETİM ve Gemini'nin araştırması bekleniyor. `tests/` altındaki 8. bölüm testleri eski kuralı da sınıyor (yakalanan hatanın metin olması, her değerin fırlatılıp metne çevrilmesi, adsız yakalamada eski ad); kural uygulanırken yeniden yazılır.
+
+### 8.1
+
+- **Mevcut durum:** `TR_try`/`TR_catch` çalışıyor, `TR_catch` zorunlu; `TR_try` ifade olarak sözdizimi hatası; `TR_finally` bilinmeyen kimlik; Python'un `except`'i ipucu alıyor [ölçüldü].
+- **Yapılacaklar:** ifade olarak `TR_try`; parantezli adın ve Python'un `except`/`finally`'sinin iletileri.
+
+### 8.2
+
+- **Mevcut durum:** her değer fırlatılabiliyor ve metne çevriliyor (`TR_throw {"kod": 5}` yakalanınca metin); `raise` ipucu almıyor; neden taşınamıyor [ölçüldü].
+- **Yapılacaklar:** fırlatılabilen dört tür (metin, ileti, durumlu tip değeri, `TR_Error`), başka tip çalışma hatası; `TR_Error(..., TR_cause: e)`; `raise`'in iletisi.
+
+### 8.3
+
+- **Mevcut durum:** yakalanan hata bir `TR_String`; ileti kodlu hatada kod kayboluyor, yakalayan yalnız metni görüyor [ölçüldü].
+- **Yapılacaklar:** `TR_Error` tipi ve üyeleri (`TR_code`, `TR_message`, `TR_value`, `TR_cause`); depodaki `TR_catch` kullanımları üyelere çevrilir.
+
+### 8.6
+
+- **Mevcut durum:** yakalanmayan hata yalnız fırlatıldığı satırı gösteriyor, çağrı yığını yok [ölçüldü].
+- **Yapılacaklar:** çağrı yığını, en son çağrı en altta.
