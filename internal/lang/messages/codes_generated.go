@@ -77,6 +77,8 @@ const (
 	H0169 Code = 169  // '\' ve sekme
 	H0170 Code = 170  // dilimin uçları ':' ile değil '..' ile ayrılır: x[a..b]
 	H0171 Code = 171  // '{keyword}' programın en dışında yazılmaz; yalnızca fonksiyonun içinde kullanılır. Programı bitirmek için '{exit}(0)' yazın (başarı için 0; kendi hata kodlarınız 4'ten başlar)
+	H0200 Code = 200  // '{op}' karşılaştırma zincirinde yazılmaz: içinde '==' ya da '!=' olan zincir ('a < b == c', 'a == b == c') iki ayrı anlama gelebilir. Karşılaştırmayı parantezle ayırın ('(a < b) == c') ya da '{@and}' ile yazın ('a == b {@and} b == c')
+	H0201 Code = 201  // '??' işlecinin sağında parantezsiz '{op}' yazılmaz: 'a ?? 0 {op} 1', 'a ?? (0 {op} 1)' diye okunur. Varsayılanla açılan değerle işlem için '(a ?? 0) {op} 1', sağ yanın işlemi için 'a ?? (0 {op} 1)' yazın
 	H1001 Code = 1001 // Tip uyuşmazlığı — {name|q} değişkeni {declared|q} tipinde tanımlandı ancak {given|q} tipinde değer atandı{hint}
 	H1002 Code = 1002 // Sabit hatası — {name|q} bir sabittir ('{keyword}') ve değeri değiştirilemez
 	H1003 Code = 1003 // Dönüş tipi uyuşmazlığı — fonksiyon {expected|q} döndürmeli ancak {given|q} tipinde değer döndürülüyor{hint}
@@ -329,6 +331,7 @@ const (
 	H2541 Code = 2541 // bu dosya bir '{lang}' görünümü (başlığında view={lang} var) ve çalışmaz; önce kodlayın: tr {encode} <dosya>
 	H2542 Code = 2542 // metin bir '{view}' görünümü, ama --{lang} {code} verildi: görünümün dili başlığındadır, --{lang} gerekmez
 	H2543 Code = 2543 // gösterim kurulamadı: dosyanın bu yazım dilindeki görünümü geri kodlanınca aynı programı vermiyor; lütfen bu dosyayı bir hata kaydıyla bildirin
+	H2602 Code = 2602 // karşılaştırma zincirindeki '{op}' bir mantık değeri vermedi ({type}): zincir ('a < b < c') yalnız sayıları ve metinleri karşılaştırır; karşılaştırmaları ayrı yazın
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

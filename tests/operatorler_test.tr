@@ -14,9 +14,14 @@ TR_test "4.1 öncelik: değil karşılaştırmadan gevşek, ve'den sıkı bağla
     TR_assert_equal(TR_true, TR_false TR_or TR_true TR_and TR_true)
 }
 
-TR_test "4.1 öncelik: aralık toplamadan gevşek, ?? veya'dan gevşek bağlanır" {
+TR_test "4.1 öncelik: aralık toplamadan gevşek, ?? karşılaştırmadan sıkı bağlanır" {
     TR_assert_equal(4, [x TR_for x TR_in 1..2 + 3].TR_length)
-    TR_assert_equal(TR_false, TR_false TR_or TR_none ?? 5)
+    TR_var x = 5
+    TR_assert_equal(TR_true, x ?? 0 > 3)
+    TR_var y = TR_none
+    TR_assert_equal(TR_false, y ?? 0 > 3)
+    TR_assert_equal(TR_true, TR_false TR_or y ?? 1 == 1)
+    TR_assert_equal(0.5, 2.0 ** -1)
 }
 
 TR_test "4.2 aritmetik: tam bölme tam çıkarsa Tam, değilse Ondalık" {
@@ -39,6 +44,26 @@ TR_test "4.3 üs alma sağdan birleşir, negatif üs Ondalık verir" {
 
 TR_test "4.4 karşılaştırma sayılar arasında yapılır" {
     TR_assert(1 < 2 TR_and 2 <= 2 TR_and 3 > 2.5 TR_and 3 >= 3)
+}
+
+TR_test "4.4 sıralama zinciri Python'daki gibi okunur, ortadaki ifade bir kez hesaplanır" {
+    TR_var i = 3
+    TR_assert_equal(TR_true, 0 <= i < 5)
+    TR_assert_equal(TR_false, 0 <= i < 3)
+    TR_assert_equal(TR_true, 1 < 2 < 3 < 4)
+    TR_assert_equal(TR_false, 3 > 2 > 2)
+    TR_var sayaç = 0
+    TR_func orta() {
+        sayaç += 1
+        TR_return 2
+    }
+    TR_assert_equal(TR_true, 1 < orta() <= 2)
+    TR_assert_equal(1, sayaç)
+    # yanlış çıkan halkadan sonrası hesaplanmaz
+    TR_assert_equal(TR_false, 5 < 1 < orta())
+    TR_assert_equal(1, sayaç)
+    # tensör karşılaştırması mantık değeri vermez; zincirde kullanılamaz
+    TR_assert_equal("H2602", TR_error_code(() => { TR_var z = 0 < TR_tensor([1.0]) < 2 }))
 }
 
 TR_test "4.5 eşitlik: sayılar tipten bağımsız, diğerleri tip + içerik" {

@@ -1,0 +1,8 @@
+# TR 4
+# TEST 4.4 içinde '==' ya da '!=' olan karşılaştırma zinciri sözdizimi hatasıdır; ileti parantez ya da TR_and önerir
+TR_var a = 1
+TR_var b = 2
+TR_var c = TR_true
+TR_var d = a < b == c # ERROR H0200
+TR_var e = a == b == c # ERROR H0200
+TR_var f = a != b < 3 # ERROR H0200

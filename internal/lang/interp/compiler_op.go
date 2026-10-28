@@ -120,6 +120,13 @@ func intFastFunc(codeVal uint8) intFast {
 	return nil
 }
 func (c *compiler) binary(k *compilerScope, e *ast.InfixExpression) exprCode {
+	if e.Chained {
+		link := c.chainLink(k, e)
+		return func(v *VM, env *Environment) (Value, error) {
+			res, _, err := link(v, env)
+			return res, err
+		}
+	}
 	codeVal := opCode(string(e.Operator))
 	leftFn := c.expression(k, e.Left)
 	rightFn := c.expression(k, e.Right)
@@ -255,6 +262,59 @@ func (c *compiler) binary(k *compilerScope, e *ast.InfixExpression) exprCode {
 			return nil, err
 		}
 		return v.infix(codeVal, op, left, right, line)
+	}
+}
+
+// chainCode karşılaştırma zincirinin bir halkasıdır: halkanın sonucunu ve sağ ifadenin değerini
+// verir; sonraki halka o değeri sol işlenen olarak kullanır.
+type chainCode func(v *VM, env *Environment) (result, last Value, err error)
+
+// chainLink 'a < b <= c' zincirini derler (4.4): 'a < b TR_and b <= c' gibi çalışır, ortadaki
+// ifade bir kez hesaplanır, yanlış çıkan halkadan sonrası hesaplanmaz. Halkanın sonucu TR_Bool
+// olmalıdır (tensör karşılaştırması tensör verir; zincirde iki karşılaştırma ayrı yazılır).
+func (c *compiler) chainLink(k *compilerScope, e *ast.InfixExpression) chainCode {
+	codeVal := opCode(string(e.Operator))
+	op := string(e.Operator)
+	line := e.Line()
+	var leftFn chainCode
+	if inner, ok := e.Left.(*ast.InfixExpression); ok && e.Chained {
+		leftFn = c.chainLink(k, inner)
+	} else {
+		l := c.expression(k, e.Left)
+		leftFn = func(v *VM, env *Environment) (Value, Value, error) {
+			x, err := l(v, env)
+			return nil, x, err
+		}
+	}
+	rightFn := c.expression(k, e.Right)
+	return func(v *VM, env *Environment) (Value, Value, error) {
+		prev, left, err := leftFn(v, env)
+		if err != nil {
+			return nil, nil, err
+		}
+		if prev != nil {
+			// Önceki halkanın sonucu: yanlışsa zincir yanlıştır, sonrası hesaplanmaz.
+			b, ok := prev.(*BoolVal)
+			if !ok {
+				inner := e.Left.(*ast.InfixExpression)
+				return nil, nil, messages.At(inner.Line(), 0, messages.New(messages.H2602, string(inner.Operator), prev.Type()))
+			}
+			if !b.Val {
+				return False, nil, nil
+			}
+		}
+		right, err := rightFn(v, env)
+		if err != nil {
+			return nil, nil, err
+		}
+		res, err := v.infix(codeVal, op, left, right, line)
+		if err != nil {
+			return nil, nil, err
+		}
+		if _, ok := res.(*BoolVal); !ok && e.Chained {
+			return nil, nil, messages.At(line, 0, messages.New(messages.H2602, op, res.Type()))
+		}
+		return res, right, nil
 	}
 }
 

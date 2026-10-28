@@ -41,19 +41,24 @@ func contextWordsOf(lang *codes.Language) *contextWords {
 	return v.(*contextWords)
 }
 
+// Öncelik, gevşekten sıkıya (4.1); düzeyler dil tanımının tablosundaki sırayla.
 const (
 	_ int = iota
 	precLowest
 	precPipe        // |>
-	precNullCoalesc // ??
-	precOr          // || veya
-	precAnd         // && ve
-	precEquals      // == !=
-	precLessgreater // > < >= <=
+	precOr          // TR_or (||)
+	precAnd         // TR_and (&&)
+	precNot         // TR_not X: karşılaştırmadan gevşek, TR_and'den sıkı (bkz. parsePrefixExpression)
+	precCompare     // == != < > <= >= (tek düzey; zincir 4.4, bkz. parseComparison)
+	precNullCoalesc // ?? (sağında parantezsiz ikili işleç yazılmaz, 4.7)
 	precRange       // .. ..=
+	precBitOr       // |
+	precBitXor      // ^
+	precBitAnd      // &
+	precShift       // << >>
 	precSum         // + -
 	precProduct     // * / // % @
-	precPrefix      // -X !X  ('değil X' ise karşılaştırmalardan gevşek bağlanır, bkz. parsePrefixExpression)
+	precPrefix      // -X ~X !X
 	precPower       // **  (sağdan birleşir ve tekli eksiden sıkı bağlanır: -2 ** 2 = -4)
 	precCall        // fn(X) dizi[i] nesne.alan nesne?.alan
 )
@@ -65,12 +70,12 @@ var precedences = map[lexer.TokenType]int{
 	lexer.TokKwOr:        precOr,
 	lexer.TokAnd:         precAnd,
 	lexer.TokKwAnd:       precAnd,
-	lexer.TokEq:          precEquals,
-	lexer.TokNotEq:       precEquals,
-	lexer.TokLt:          precLessgreater,
-	lexer.TokGt:          precLessgreater,
-	lexer.TokLte:         precLessgreater,
-	lexer.TokGte:         precLessgreater,
+	lexer.TokEq:          precCompare,
+	lexer.TokNotEq:       precCompare,
+	lexer.TokLt:          precCompare,
+	lexer.TokGt:          precCompare,
+	lexer.TokLte:         precCompare,
+	lexer.TokGte:         precCompare,
 	lexer.TokRange:       precRange,
 	lexer.TokRangeIncl:   precRange,
 	lexer.TokPlus:        precSum,
