@@ -127,6 +127,18 @@ func (c *analysis) codedBody() string {
 	return apply(c.input, uniqueChanges(d))
 }
 
+// nfcBody gövdenin, yalnız kullanıcı adları NFC biçimine çevrilmiş hâlidir (başka hiçbir şey
+// değişmez): kodlu gövdenin gösterimi bu metne geri kodlanır.
+func (c *analysis) nfcBody() string {
+	var d []change
+	for _, r := range c.records {
+		if c.unnormalized(r) {
+			d = append(d, change{r.Start, r.End, r.Literal})
+		}
+	}
+	return apply(c.input, uniqueChanges(d))
+}
+
 // unnormalized kullanıcı adının metinde NFC biçiminde yazılmadığıdır (ayrık o + U+0308): kodlama
 // ve gösterim adı sözcük çözümleyicinin okuduğu NFC biçimiyle yazar (2.3).
 func (c *analysis) unnormalized(r lexer.Record) bool {
@@ -151,7 +163,7 @@ func Decode(text string, lang *codes.Language) (string, error) {
 	view := c.viewBody()
 	// The view must read back as the same program: read in lang and encoded again, it gives
 	// the coded body back (its names in NFC form, as the view writes them, 2.3).
-	if !reencodesBody(view, c.codedBody(), lang) {
+	if !reencodesBody(view, c.nfcBody(), lang) {
 		return "", ErrLossy
 	}
 	return Parts{BOM: b.BOM, Body: setHeader(view, viewHeader(lang))}.Join(), nil
