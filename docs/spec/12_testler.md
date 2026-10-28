@@ -13,7 +13,7 @@ TR_ctx_test "toplama doğru" {
 
 **12.2** `TR_ctx_test` bağlamsal bir anahtar kelimedir: yalnızca bir deyimin başında ve ardından bir metin geldiğinde test başlatır; başka her yerde sıradan bir addır (`TR_kw_var test = 5`).
 
-**12.3** `TR_fn_assert(koşul, [mesaj])` koşul yanlışsa hata fırlatır; koşul `TR_Bool`'dur (3.10): `doğrulama başarısız: mesaj`; mesaj yerine bir `TR_type_Message(H…, …)` verilirse hata o iletinin kendi koduyla fırlar (8.5).
+**12.3** `TR_fn_assert(koşul, [mesaj])` koşul yanlışsa hata fırlatır (`doğrulama başarısız: mesaj`); koşul `TR_Bool`'dur (3.10); mesaj yerine bir `TR_type_Message(H…, …)` verilirse hata o iletinin kendi koduyla fırlar (8.5).
 
 **12.4** `TR_fn_assert_equal(beklenen, gerçek, [mesaj])` iki değer `==` anlamında eşit değilse ikisini de tipiyle gösteren hata fırlatır: `eşitlik başarısız: beklenen "5" (Metin), gerçek 5 (Tam)`. Her iki yerleşik test dışında da (ör. sözleşme denetimi için) kullanılabilir.
 

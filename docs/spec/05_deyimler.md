@@ -11,7 +11,7 @@ Her kuralın emsali ve gerekçesi: [`rationale/05_statements.md`](rationale/05_s
 - *Test:* TR testi.
 
 **5.3** Çoklu tanım ve atama virgülle yapılır; sağdaki ifadelerin hepsi atamadan önce hesaplanır (`a, b = b, a` takas eder). Sağda tek bir liste varsa öğelerine açılır; öğe sayısı tutmazsa çalışma hatasıdır. Gerekmeyen değerin yerine `_` yazılır (`TR_var a, _ = b, c`); `_` bir ad değildir, okunamaz.
-- *Test:* TR testi; öğe sayısı hatası uygulanınca TR testi.
+- *Test:* TR testi; öğe sayısı hatası ve `_`'nin okunamaması uygulanınca TR testi.
 
 ```tr
 # TR 4

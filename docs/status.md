@@ -65,18 +65,12 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). DENETİM'
 
 ## 3. Tipler ve değerler
 
-Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM'den geçti, bulguları işlendi (2026-10-27); Gemini'nin araştırması bekleniyor. TR bugün dinamik tipli; tip açıklamalarını yalnız çalışmadan önceki denetleyici kullanıyor. `tests/` altındaki 3. bölüm testleri eski kuralları da sınıyor (karışık tipli liste, doğruluk sınaması, çıplak ad anahtarı, açıklamasız değişkenin tipi); testler koşulmadan önce yeni kurallara göre yeniden yazılır. Eski 3.14 (tip adının tek yazımı) 2.3a'ya düştü; eski 3.15 (katalog iletisinin tipi) hata bölümüne gider, `tests/` altındaki 3.15 testi o bölüm yazılınca taşınır.
-
-### 3.2
-
-- **Mevcut durum:** 1e6 ve üstü bilimsel yazılıyor ("1e+06", 1234567.0 için "1.234567e+06") [ölçüldü].
-- **Yapılacaklar:** bilimsel gösterim üs −4'ün altında ve 16'dan itibaren; üs işaretli ve en az iki rakamlı.
-  - `TR_inf` ve `TR_nan` bugün program metninde yazılamıyor: değer adı sınıflı kimlikle tanımsız ad hatası veriyor [ölçüldü, DENETİM].
+Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM'den geçti, bulguları işlendi (2026-10-27); Gemini'nin araştırması bekleniyor. TR bugün dinamik tipli; tip açıklamalarını yalnız çalışmadan önceki denetleyici kullanıyor. `tests/` altındaki 3. bölüm testleri eski kuralları da sınıyor (karışık tipli liste, doğruluk sınaması, çıplak ad anahtarı, açıklamasız değişkenin tipi); testler koşulmadan önce yeni kurallara göre yeniden yazılır. 3.2, 3.3a, 3.7, 3.7a, 3.8, 3.12 ve 3.14'ün çalışma anı uygulandı (katman 2, DENETİM'den geçti, 2026-10-28; 3.2, 3.8 ve 3.12 bitti, buradan silindi); aşağıda kalanlar. Eski 3.14 (tip adının tek yazımı) 2.3a'ya düştü; eski 3.15 (katalog iletisinin tipi) hata bölümüne gider, `tests/` altındaki 3.15 testi o bölüm yazılınca taşınır.
 
 ### 3.3a
 
-- **Mevcut durum:** bayt dizisi tipi yok (kimlik listesinde yok).
-- **Yapılacaklar:** `TR_Bytes`: değiştirilemez; metinden UTF-8 ile ve sayılardan kurulur; dosya ve ağ okumaları bayt da verebilir.
+- **Mevcut durum:** `TR_Bytes` kuruluyor, okunuyor, birleşiyor; metni "Bytes([104, 105])" [ölçüldü].
+- **Yapılacaklar:** dosya ve ağ okumalarının bayt da vermesi (ölçülmedi).
 
 ### 3.5
 
@@ -90,28 +84,18 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM'den ge
 
 ### 3.7
 
-- **Mevcut durum:** `{k: 1}` anahtarı "k" metni sayıyor, `d.k` anahtarı okuyor, olmayan anahtar `TR_none` veriyor, ondalık anahtar çalışıyor [ölçüldü].
-- **Yapılacaklar:** `TR_Dict[K, V]`; değişmezdeki anahtar bir ifade, erişim yalnız köşeli parantezle, olmayan anahtar hata, anahtar yalnız `TR_Int`, `TR_String`, `TR_Bool`, `TR_Bytes` ve alanları anahtar olabilen durumlu tip. Depodaki kullanımlar çevrilir.
+- **Mevcut durum:** anahtar ifade, erişim köşeli parantezle, olmayan anahtar hata (H2647), ondalık anahtar hata (H2646) [ölçüldü].
+- **Yapılacaklar:** `TR_Dict[K, V]` ve anahtar tipinin denetimi (4a).
 
 ### 3.7a
 
-- **Mevcut durum:** JSON çözülünce sözlük ve liste oluyor, tip denetimi yok; genel "her şey" tipi (Any) kimlik listesinde var.
-- **Yapılacaklar:** `TR_JSON`; çözme ve `TR_JSON` beklenen değişmez onu kurar; tür `TR_Type(j)` ile sorulur, asıl değere tip çağrısıyla geçilir; sayının tam ya da ondalık yazımı korunur, `TR_Int`'e sığmayan tam sayının türü `TR_Float`; sonsuz ve `TR_nan` `TR_JSON`'a giremez; `.TR_keys()` yalnız nesnede; değer metni metin türünde metnin kendisi (yazdırma ve yerleştirme); `TR_Type(j) == TR_JSON` denetim hatası. Bugün çözme Any döndürüyor; Any, Object ve StructType gibi genel tipler kalkar ya da yapılar bölümünde yeniden tanımlanır. Genel "her şey" tipi kalkar; depodaki kullanımlar `TR_JSON`'a ya da asıl tipe çevrilir.
-
-### 3.8
-
-- **Mevcut durum:** `3..0` geriye sayıyor (3, 2, 1) [ölçüldü].
-- **Yapılacaklar:** başlangıç bitişten büyük ya da eşitse aralık boş; `.TR_reverse()` aralıkta da çalışır.
+- **Mevcut durum:** `TR_JSON` kuruluyor, açılıyor, dolaşılıyor; üst düzey `j["a"] == 1` çalışma hatası. Ama kapta ve eşlemede JSON ile JSON olmayanın karşılaştırması hâlâ sessizce yanlış: `TR_List(j) == [1, 2]`, `TR_List(j).TR_contains(1)`, `[j[0]] == [1]` → false; `TR_match j["a"] { 1 => ... }` `_` koluna düşüyor [ölçüldü: DENETİM ve ana oturum].
+- **Yapılacaklar:** kapın içindeki karşılaştırma, `.TR_contains` ve eşleme deseni de çalışma hatası (3. katman, 3A); `TR_Type(j) == TR_JSON` denetim hatası ve genel tiplerin (Any, Object, StructType) kalkması (4a).
 
 ### 3.10
 
 - **Mevcut durum:** koşulda yalnız `TR_Bool`; başka tip çalışma anında hata veriyor (H2600), ileti açık sınamayı öneriyor (katman 2) [ölçüldü]. Hata ayıklayıcının koşullu durağı hâlâ doğruluk sınamasıyla (`IsTruthy`) okunuyor.
 - **Yapılacaklar:** başka tip denetim hatası da olur (katman 4); hata ayıklayıcının koşulu da yalnız `TR_Bool` alır.
-
-### 3.12
-
-- **Mevcut durum:** dönüşüm ve kurma tipten ayrı fonksiyonlarla yapılıyor; 13 çift aynı yerde yalnız büyük-küçük harfle ayrılıyor: 12 tip ile fonksiyon çifti (Int/int, Float/float, Tensor/tensor, Checkpoint/checkpoint, Dataset/dataset, Type/type gibi), yokluğun tipi ile değeri de (None/none).
-- **Yapılacaklar:** tip çağrılınca kurar ve dönüştürür; ayrı fonksiyonlar kalkar (dönüşümde metin fonksiyonu da). Yokluğun tipi `TR_NoneType` olur. Metin okuma 2.4 ve 2.5'in yazımıyla, önde isteğe bağlı işaretle, yerel ayarsız; mantık değeri yalnız iki metinden. Depodaki kullanımlar çevrilir.
 
 ### 3.13
 
@@ -120,8 +104,8 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM'den ge
 
 ### 3.14
 
-- **Mevcut durum:** değerin metni dosyanın dilinde: Türkçe dosyada tip "Tam", yokluk "yok", sonsuz "sonsuz" yazılıyor [ölçüldü].
-- **Yapılacaklar:** değerin metni dilden bağımsız, kimliğin ad kısmıyla.
+- **Mevcut durum:** değerin metni dilden bağımsız ("true", "none", "inf"); tipin metni öğe tipsiz: `TR_Type([1])` "List" [ölçüldü].
+- **Yapılacaklar:** "List[Int]" ve "Int?" (öğe tipi ister; 4a).
 
 ## 4. İşleçler
 
@@ -130,7 +114,7 @@ Kurallar: [`docs/spec/04_operatorler.md`](spec/04_operatorler.md). Taslak: DENET
 ### 4.5
 
 - **Mevcut durum:** ayrı tipler sessizce eşit değil sayılıyor; fonksiyonlar yalnız üst düzey `==` ve `!=`'de hata veriyor (H2613), fonksiyon içeren liste kimlikle karşılaştırılıyor (`[f] == [f]` doğru) [ölçüldü].
-- **Yapılacaklar:** ayrı tipler denetim hatası; fonksiyon içeren değer de karşılaştırılamaz (denetim hatası).
+- **Yapılacaklar:** fonksiyon içeren kabın karşılaştırması çalışma hatası (3. katman, 3A); ayrı tipler ve fonksiyon içeren değer denetim hatası (4. katman).
 
 ### 4.7
 
@@ -170,8 +154,8 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: DENETİM'de
 
 ### 5.3
 
-- **Mevcut durum:** `TR_var p, q = [1, 2, 3]` hata vermiyor, ilk iki öğeyi alıyor [ölçüldü].
-- **Yapılacaklar:** öğe sayısı tutmazsa çalışma hatası.
+- **Mevcut durum:** `TR_var p, q = [1, 2, 3]` hata vermiyor, ilk iki öğeyi alıyor; `TR_var a, _ = 1, 2` sonra `TR_print(_)` 2 veriyor [ölçüldü].
+- **Yapılacaklar:** öğe sayısı tutmazsa çalışma hatası; `_` okunamaz (sözdizimi hatası; 3. katman, 3A).
 
 ### 5.4
 
@@ -249,8 +233,8 @@ Depodaki kullanımlar çevrilir: `.tr` dosyalarında `TR_it` 44, `TR_acc` 10, ad
 
 ### 6.6
 
-- **Mevcut durum:** üç yazım da çalışıyor: `x => ...`, `(x) => ...`, adsız `TR_func(x) { ... }` (bugünkü 6.6 ve 6.5 testleri).
-- **Yapılacaklar:** yalnız parantezli ok; öbürleri ve `lambda` sözdizimi hatası, ileti oku önerir; `TR_func` tanımı ifade yerinde hata.
+- **Mevcut durum:** üç yazım da çalışıyor: `x => ...`, `(x) => ...`, adsız `TR_func(x) { ... }` (bugünkü 6.6 ve 6.5 testleri); `(_) => _` `_`'yi okuyor [ölçüldü: DENETİM].
+- **Yapılacaklar:** yalnız parantezli ok; öbürleri ve `lambda` sözdizimi hatası, ileti oku önerir; `TR_func` tanımı ifade yerinde hata; `_` parametre okunamaz (3. katman, 3A).
 
 ### 6.7
 

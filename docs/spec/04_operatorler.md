@@ -40,7 +40,7 @@ Her kuralın emsali ve gerekçesi: [`rationale/04_operators.md`](rationale/04_op
 - *Test:* TR testi.
 
 **4.5** `==` ve `!=` aynı tipten iki değeri karşılaştırır; ayrı tipler (`"1" == 1`) denetim hatasıdır. Sayılar tipten bağımsız, kesin karşılaştırılır, `TR_Int` yuvarlanmaz (`1 == 1.0`, `9007199254740993 != 9007199254740992.0`); `TR_nan` hiçbir sayıya eşit değildir. Tipten bağımsızlık yalnız iki sayı arasındadır: öğe tipleri ayrı listeler (`TR_List[TR_Int]` ile `TR_List[TR_Float]`) ayrı tiptir. İsteğe bağlı değer asıl tipten bir değerle ya da `TR_none`'la karşılaştırılabilir. Liste ve sözlük öğe öğe (sözlükte sıra önemsiz), bayt dizisi bayt bayt, `TR_JSON` JSON değeri olarak (sayılar 4.5'in sayı kuralıyla), aralık uçlarıyla karşılaştırılır (uçları ayrı iki boş aralık eşit değildir). Fonksiyonlar karşılaştırılamaz; fonksiyon içeren liste ve sözlük de. İsteğe bağlı bir fonksiyon `TR_none`'la karşılaştırılabilir (3.5). Yapının ve tensörün eşitliği sonraki bölümlerdedir.
-- *Test:* TR testi; tip kuralı uygulanınca denetleyicinin testi.
+- *Test:* TR testi; fonksiyon içeren kabın hatası uygulanınca TR testi; tip kuralı uygulanınca denetleyicinin testi.
 
 **4.6** `TR_and`, `TR_or` ve `TR_not`'un işlenenleri `TR_Bool`dur (3.10); `TR_and` ve `TR_or` kısa devre yapar.
 - *Test:* TR testi; işlenen kuralı uygulanınca denetleyicinin testi.
