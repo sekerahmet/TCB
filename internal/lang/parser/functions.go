@@ -107,7 +107,14 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 		p.nextToken() // '-'
 		if p.peekTokenIs(lexer.TokGt) {
 			p.nextToken() // '>'
-			if p.expectPeek(lexer.TokIdent) {
+			if p.peekTokenIs(lexer.TokLParen) {
+				// -> (A, B): birden çok değer (6.3)
+				p.nextToken()
+				lit.ReturnTypes = p.parseTypeList()
+				if lit.ReturnTypes == nil {
+					return nil
+				}
+			} else if p.expectPeek(lexer.TokIdent) {
 				lit.ReturnType, lit.ReturnToken = p.curToken().Literal, p.curToken()
 				p.role(p.curToken(), RoleType)
 				if lit.ReturnToken.Code == codes.TypeNoneType {
@@ -208,6 +215,26 @@ func (p *Parser) parseCallArguments() ([]ast.Expression, []ast.NamedArg) {
 	}
 
 	return args, named
+}
+
+// parseTypeList '(' üzerindeki imleçten '(A, B)' tip listesini okur; imleç ')'de kalır. Hatalıysa nil.
+func (p *Parser) parseTypeList() []ast.TypeRef {
+	var types []ast.TypeRef
+	for {
+		if !p.expectPeek(lexer.TokIdent) {
+			return nil
+		}
+		types = append(types, ast.TypeRef{Name: p.curToken().Literal, Token: p.curToken()})
+		p.role(p.curToken(), RoleType)
+		if !p.peekTokenIs(lexer.TokComma) {
+			break
+		}
+		p.nextToken() // ','
+	}
+	if !p.expectPeek(lexer.TokRParen) {
+		return nil
+	}
+	return types
 }
 
 // returnColonError dönüş tipinin ': R' ile yazımının hatasıdır (6.1): imleç parametrelerin ')'sinde,

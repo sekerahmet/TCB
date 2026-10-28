@@ -96,7 +96,7 @@ func (c *compiler) varStatement(k *compilerScope, s *ast.VarStatement) statement
 
 // multiVarStatement çoklu tanımı (değişken a, b = ...) derler.
 func (c *compiler) multiVarStatement(k *compilerScope, s *ast.MultiVarStatement) statementCode {
-	values := c.expressions(k, s.Values)
+	values := c.multiSides(k, s.Values)
 	definitions := make([]func(*Environment, Value, bool), len(s.Names))
 	for i, n := range s.Names {
 		definitions[i] = identifier(k, n.Value)
@@ -130,7 +130,7 @@ func (c *compiler) assignStatement(k *compilerScope, s *ast.AssignStatement) sta
 // multiAssignStatement çoklu atamayı (a, b = b, a) derler.
 func (c *compiler) multiAssignStatement(k *compilerScope, s *ast.MultiAssignStatement) statementCode {
 	// Önce sağdaki tüm ifadeler hesaplanır (a, b = b, a takası için kritik!)
-	values := c.expressions(k, s.Values)
+	values := c.multiSides(k, s.Values)
 	dests := make([]func(*VM, *Environment, Value) error, len(s.Targets))
 	for i, t := range s.Targets {
 		dests[i] = c.assignTarget(k, t, opAssign, s.Line())
@@ -193,7 +193,7 @@ func (c *compiler) deferStatement(k *compilerScope, s *ast.DeferStatement) state
 
 // returnStatement 'dön' deyimini derler.
 func (c *compiler) returnStatement(k *compilerScope, s *ast.ReturnStatement) statementCode {
-	value := c.expression(k, s.ReturnValue)
+	value := c.resultsOf(k, s.ReturnValue) // TR_return f(): sonuçlar iletilir (6.3)
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
 		val, err := value(v, env)
 		if err != nil {
@@ -352,6 +352,14 @@ func (c *compiler) breakpointStatement(k *compilerScope, s *ast.BreakpointStatem
 	}
 }
 
+// multiSides çoklu tanım ve atamanın sağ yanının kodudur: tek ifade bir çağrıysa sonuçları açılır.
+func (c *compiler) multiSides(k *compilerScope, values []ast.Expression) []exprCode {
+	if len(values) == 1 {
+		return []exprCode{c.resultsOf(k, values[0])}
+	}
+	return c.expressions(k, values)
+}
+
 // multiValues çoklu tanım/atamanın sağ tarafını hesaplar; tek bir Liste birden çok ada
 // açılır. Değer sayısı ad sayısını tutmazsa çalışma hatasıdır (5.3): eksik ya da fazla değer
 // sessizce kaybolmaz.
@@ -363,6 +371,15 @@ func multiValues(v *VM, env *Environment, values []exprCode, nameCount, line int
 			return nil, err
 		}
 		evalVals = append(evalVals, val)
+	}
+	if len(evalVals) == 1 {
+		if m, ok := evalVals[0].(*MultiVal); ok {
+			// Çağrının sonuçları açılır (6.3); sayı tutmazsa hata.
+			if len(m.Values) != nameCount {
+				return nil, messages.At(line, 0, messages.New(messages.H2709, len(m.Values), nameCount))
+			}
+			return m.Values, nil
+		}
 	}
 	if len(evalVals) == 1 && nameCount > 1 {
 		if lv, ok := evalVals[0].(*ListVal); ok {

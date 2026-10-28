@@ -33,7 +33,7 @@ func (c *compiler) exprSignal(k *compilerScope, expr ast.Expression) statementCo
 	case *ast.MatchExpression:
 		return c.matchExpr(k, e)
 	}
-	codeVal := c.expression(k, expr)
+	codeVal := c.resultsOf(k, expr) // deyim olarak çağrının sonuçları atılır (6.3)
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
 		val, err := codeVal(v, env)
 		if err != nil {
@@ -153,14 +153,10 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 		}
 
 	case *ast.CallExpression:
-		codeVal := c.call(k, e)
-		// Gölgelenmiş bir yerleşiğin çağrısı: hata mesajı gölgelemeyi söyler (shadow.go).
-		if id, ok := e.Function.(*ast.Identifier); ok && builtinName(id.Value, c.textLang) {
-			if g, ok := k.findShadow(id.Value); ok {
-				return shadowedCall(codeVal, c.expression(k, id), id.Value, g, e.Line())
-			}
-		}
-		return codeVal
+		return singleResult(c.callExpr(k, e), e)
+
+	case *ast.TupleExpression:
+		return c.tuple(k, e)
 
 	case *ast.IndexExpression:
 		leftFn := c.expression(k, e.Left)
@@ -199,6 +195,18 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 		}
 	}
 	return nullCode
+}
+
+// callExpr çağrının kodudur; sonucu birden çok değer olabilir (bkz. resultsOf, singleResult).
+func (c *compiler) callExpr(k *compilerScope, e *ast.CallExpression) exprCode {
+	codeVal := c.call(k, e)
+	// Gölgelenmiş bir yerleşiğin çağrısı: hata mesajı gölgelemeyi söyler (shadow.go).
+	if id, ok := e.Function.(*ast.Identifier); ok && builtinName(id.Value, c.textLang) {
+		if g, ok := k.findShadow(id.Value); ok {
+			return shadowedCall(codeVal, c.expression(k, id), id.Value, g, e.Line())
+		}
+	}
+	return codeVal
 }
 
 // dictLiteral sözlük yazımının kodudur: anahtar bir ifadedir (3.7; {k: 1}'de k değişkendir).

@@ -19,7 +19,7 @@ TR_print(ölçekle(1.5), ölçekle(1.5, k: 10.0))   # çıktı: 3.0 15.0
 - *Test:* TR testi; eksik dönüş hatası uygulanınca denetleyicinin testi.
 
 **6.3** Birden çok değer: dönüş tipi parantez içinde virgülle yazılır (`-> (TR_Float, TR_Int)`), `TR_return a, b` hepsini döndürür. Çağrının sonucu tek bir değer değildir, 5.3'teki gibi açılır (`TR_var a, b = f(x)`); değer sayısı tutmazsa ya da sonuç tek değer olarak kullanılırsa denetim hatasıdır, ileti açmayı önerir. Sonuç, dönüş tipleri aynı olan bir fonksiyonda `TR_return f()` ile iletilebilir; başka bir çağrının argümanı olamaz (`g(f())` hatadır). Tip parametresi (6.10) birden çok değer olamaz.
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
+- *Test:* TR testi; değer sayısının ve tek değer kullanımının denetimi uygulanınca denetleyicinin testi.
 
 **6.4** Varsayılan değer `p: T = ifade` diye yazılır; varsayılanlı bir parametreden sonraki parametrelerin de varsayılanı vardır. Varsayılan, argümanı verilmediğinde her çağrıda yeniden, soldan sağa hesaplanır: önceki parametreleri ve fonksiyonun tanımlandığı kapsamı görür (`TR_func f(a: TR_Int, b: TR_Int = a * 2)` ile `f(1)` → `b` 2). Parametrenin kendisi ve sonraki parametreler varsayılanda kullanılamaz (denetim hatası). Varsayılanı `[]` olan parametre her çağrıda yeni bir liste alır.
 - *Test:* TR testi.

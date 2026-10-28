@@ -274,6 +274,16 @@ func (ll *ListLiteral) expressionNode()      {}
 func (ll *ListLiteral) TokenLiteral() string { return ll.Token.Literal }
 func (ll *ListLiteral) Line() int            { return ll.Token.Line }
 
+// TupleExpression is the several values of 'TR_return a, b' (6.3): a function's results, not one value.
+type TupleExpression struct {
+	Token    lexer.Token // the first value's first token
+	Elements []Expression
+}
+
+func (te *TupleExpression) expressionNode()      {}
+func (te *TupleExpression) TokenLiteral() string { return te.Token.Literal }
+func (te *TupleExpression) Line() int            { return te.Token.Line }
+
 type DictPair struct {
 	Key   Expression
 	Value Expression
@@ -374,12 +384,20 @@ type FunctionLiteral struct {
 	ReturnType string
 	// ReturnToken is the token of the return type's name (zero when not written).
 	ReturnToken lexer.Token
+	// ReturnTypes are the types of several results, -> (A, B) (6.3); ReturnType is then empty.
+	ReturnTypes []TypeRef
 	Body        *BlockStatement
 }
 
 func (fl *FunctionLiteral) expressionNode()      {}
 func (fl *FunctionLiteral) TokenLiteral() string { return fl.Token.Literal }
 func (fl *FunctionLiteral) Line() int            { return fl.Token.Line }
+
+// TypeRef is a type name as written, with its token (Dump skips the token's position).
+type TypeRef struct {
+	Name  string
+	Token lexer.Token
+}
 
 type NamedArg struct {
 	Token lexer.Token // the name's token

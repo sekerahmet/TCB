@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -183,5 +184,21 @@ func TestTrailingBlockRules(t *testing.T) {
 		if errs := parseErrs(ok); len(errs) != 0 {
 			t.Errorf("%q: hata beklenmiyordu: %v", ok, errs)
 		}
+	}
+}
+
+// Kural (6.3): birden çok değerin dönüş tipi parantez içinde yazılır, TR_return virgülle hepsini döndürür.
+func TestMultipleResultsParse(t *testing.T) {
+	prog := New(codedLexer("TR_func f() -> (TR_Int, TR_String) { TR_return 1, \"a\" }")).ParseProgram()
+	f := prog.Statements[0].(*ast.ExpressionStatement).Expression.(*ast.FunctionLiteral)
+	if len(f.ReturnTypes) != 2 || f.ReturnType != "" {
+		t.Errorf("dönüş tipleri: %v %q", f.ReturnTypes, f.ReturnType)
+	}
+	ret := f.Body.Statements[0].(*ast.ReturnStatement)
+	if tup, ok := ret.ReturnValue.(*ast.TupleExpression); !ok || len(tup.Elements) != 2 {
+		t.Errorf("TR_return değerleri: %#v", ret.ReturnValue)
+	}
+	if errs := parseErrs("TR_func f() -> (TR_Int, { }"); len(errs) == 0 {
+		t.Error("kapanmayan tip listesi hata vermeli")
 	}
 }

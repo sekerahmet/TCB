@@ -317,7 +317,12 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	}
 
 	p.nextToken()
+	first := p.curToken()
 	stmt.ReturnValue = p.parseExpression(precLowest)
+	if p.peekTokenIs(lexer.TokComma) {
+		// TR_return a, b: birden çok değer (6.3)
+		stmt.ReturnValue = &ast.TupleExpression{Token: first, Elements: p.parseCommaExpressions(stmt.ReturnValue)}
+	}
 
 	p.skipSemicolon()
 	return stmt

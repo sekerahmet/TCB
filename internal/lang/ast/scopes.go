@@ -15,7 +15,7 @@ func SubExpressions(e Expression, visit func(Expression) bool) bool {
 		}
 		return false
 	}
-	switch x := e.(type) {
+	switch x := listOf(e).(type) {
 	case *InterpolatedString:
 		for _, p := range x.Parts {
 			if visit(p) {
@@ -161,4 +161,13 @@ func StatementDefinedNames(st Statement, emit func(string)) {
 	case *BreakpointStatement:
 		ExprDefinedNames(s.Condition, emit)
 	}
+}
+
+// listOf SubExpressions için TR_return a, b'nin değerlerini (6.3) bir liste gibi verir; öbür ifadeler
+// olduğu gibi.
+func listOf(e Expression) Expression {
+	if t, ok := e.(*TupleExpression); ok {
+		return &ListLiteral{Token: t.Token, Elements: t.Elements}
+	}
+	return e
 }
