@@ -46,21 +46,8 @@ func (s *dapServer) launch(msg *dapMessage) {
 		return
 	}
 	ready := source.Prepare(string(data), source.Options{TypeCheck: true})
-	code, prog, errs := ready.Text, ready.Program, ready.Errors
-	// Uyarılar (ör. yerleşik ad gölgeleme) programı durdurmaz; hata ayıklama konsoluna yazılır.
-	if u := ready.Warnings; len(u) > 0 {
-		s.output("stderr", "⚠️ "+messages.Text(messages.H8122)+"\n")
-		for _, e := range u {
-			s.output("stderr", "  • "+e.Error()+"\n"+turkish.IndentLines(turkish.ErrorFrame(code, e), "    "))
-		}
-	}
-	if len(errs) > 0 {
-		s.output("stderr", "❌ "+messages.Text(messages.H8123)+"\n")
-		for _, e := range errs {
-			s.output("stderr", "  • "+e.Error()+"\n"+turkish.IndentLines(turkish.ErrorFrame(code, e), "    "))
-		}
-		s.respondErr(msg, messages.Text(messages.H8124, filepath.Base(path)))
-		s.event("terminated", nil)
+	code, prog := ready.Text, ready.Program
+	if !s.reportDiagnostics(msg, path, ready) {
 		return
 	}
 
@@ -87,18 +74,7 @@ func (s *dapServer) launch(msg *dapMessage) {
 	}
 
 	if !a.NoDebug {
-		dbg := NewDebugger(path, code, a.StopOnEntry)
-		dbg.Reader = nil
-		dbg.dap = s
-		dbg.PauseReason = ""
-		if a.StopOnEntry {
-			dbg.PauseReason = messages.Text(messages.H8125)
-			dbg.pauseKind = "entry"
-		}
-		machine.Debugger = dbg
-		s.mu.Lock()
-		s.dbg = dbg
-		s.mu.Unlock()
+		s.attachDebugger(machine, path, code, a.StopOnEntry)
 	}
 	s.mu.Lock()
 	s.machine = machine
@@ -107,6 +83,44 @@ func (s *dapServer) launch(msg *dapMessage) {
 	s.viewURI = a.ViewURI
 	s.mu.Unlock()
 	s.respond(msg, nil)
+}
+
+// reportDiagnostics hazırlığın uyarılarını ve hatalarını hata ayıklama konsoluna yazar. Uyarılar
+// programı durdurmaz; hata varsa başlatma başarısızdır (false), oturum biter.
+func (s *dapServer) reportDiagnostics(msg *dapMessage, path string, ready *source.Result) bool {
+	code := ready.Text
+	if u := ready.Warnings; len(u) > 0 {
+		s.output("stderr", "⚠️ "+messages.Text(messages.H8122)+"\n")
+		for _, e := range u {
+			s.output("stderr", "  • "+e.Error()+"\n"+turkish.IndentLines(turkish.ErrorFrame(code, e), "    "))
+		}
+	}
+	if len(ready.Errors) == 0 {
+		return true
+	}
+	s.output("stderr", "❌ "+messages.Text(messages.H8123)+"\n")
+	for _, e := range ready.Errors {
+		s.output("stderr", "  • "+e.Error()+"\n"+turkish.IndentLines(turkish.ErrorFrame(code, e), "    "))
+	}
+	s.respondErr(msg, messages.Text(messages.H8124, filepath.Base(path)))
+	s.event("terminated", nil)
+	return false
+}
+
+// attachDebugger programa düzenleyiciye bağlı hata ayıklayıcıyı kurar; stopOnEntry ilk satırda durur.
+func (s *dapServer) attachDebugger(machine *interp.VM, path, code string, stopOnEntry bool) {
+	dbg := NewDebugger(path, code, stopOnEntry)
+	dbg.Reader = nil
+	dbg.dap = s
+	dbg.PauseReason = ""
+	if stopOnEntry {
+		dbg.PauseReason = messages.Text(messages.H8125)
+		dbg.pauseKind = "entry"
+	}
+	machine.Debugger = dbg
+	s.mu.Lock()
+	s.dbg = dbg
+	s.mu.Unlock()
 }
 
 // sessionExists oturumun programı zaten kurulmuş ya da başlamış mı: ikinci launch reddedilir.

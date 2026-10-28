@@ -90,7 +90,7 @@ func constantValues(t *testing.T) map[string]int {
 // walkNonTestGoFiles dir altındaki test olmayan Go dosyalarını ayrıştırıp fn'e verir.
 func walkNonTestGoFiles(t *testing.T, dir string, fn func(path string, file *ast.File, fset *token.FileSet)) {
 	t.Helper()
-	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+	err := reporoot.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
 			return err
 		}

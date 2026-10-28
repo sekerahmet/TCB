@@ -139,25 +139,29 @@ func RunFile(fpath string, out io.Writer) Summary {
 		summary.Total++
 		if err := machine.RunTest(t); err != nil {
 			summary.Failed++
-			if !interp.HasLine(err) {
-				// Konumsuz hatalarda (ör. fırlat) testin satırını göster
-				err = &interp.LineError{Line: t.Line(), Err: err}
-			}
-			// Modüle ait hatanın çerçevesi modülün kaynağından çizilir.
-			for i, m := range interp.ErrorItems(err, text) {
-				if i == 0 {
-					fmt.Fprintf(out, "  ✗ %s — %s\n", turkish.Printable(t.Name), turkish.Printable(m.Message))
-				} else {
-					fmt.Fprintf(out, "      • %s\n", m.Message)
-				}
-				fmt.Fprint(out, turkish.IndentLines(m.Frame, "      "))
-			}
+			writeTestFailure(out, t, err, text)
 			continue
 		}
 		summary.Passed++
 		fmt.Fprintf(out, "  ✓ %s\n", t.Name)
 	}
 	return summary
+}
+
+// writeTestFailure başarısız testin satırını raporlar: konumsuz hataya (ör. TR_throw) testin satırı
+// eklenir; modüle ait hatanın çerçevesi modülün kaynağından çizilir.
+func writeTestFailure(out io.Writer, t *ast.TestStatement, err error, text string) {
+	if !interp.HasLine(err) {
+		err = &interp.LineError{Line: t.Line(), Err: err}
+	}
+	for i, m := range interp.ErrorItems(err, text) {
+		if i == 0 {
+			fmt.Fprintf(out, "  ✗ %s — %s\n", turkish.Printable(t.Name), turkish.Printable(m.Message))
+		} else {
+			fmt.Fprintf(out, "      • %s\n", m.Message)
+		}
+		fmt.Fprint(out, turkish.IndentLines(m.Frame, "      "))
+	}
 }
 
 // writeLoadFailure dosyanın yüklenemediğini (modül denetimi ya da üst düzey hata) ve hatayı yazar.

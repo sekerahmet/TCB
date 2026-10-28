@@ -29,7 +29,6 @@ var oldCodeAllowed = map[string]map[string]string{
 	"docs/archive/roadmap-2026-10-27.md": {"A100": "NVIDIA A100 kartının adı", "A001": "madde 15: eski kodun kimliğe geçişinin örneği",
 		"G400": "madde 15: eski kodun kimliğe geçişinin örneği", "T910": "madde 15: eski kodun kimliğe geçişinin örneği"},
 	"docs/README.md":                       {"A001": "eski kod biçiminin örneği (eşleme belgesinin tanıtımı)"},
-	"docs/spec/02_sozcuk_yapisi.md":        {"A001": "2.3a: eski biçim artık sıradan addır", "G100": "2.3a: eski biçim artık sıradan addır"},
 	"internal/lang/codes/README.md":        {"A001": "eski kodların eşleme belgesine yönlendirme"},
 	"internal/lang/codes/language_test.go": {"A001": "eski biçim kimlik değildir ve ayrılmış değildir", "G100": "eski biçim kimlik değildir ve ayrılmış değildir"},
 	"tests/sozcuk_yapisi_test.tr":          {"G100": "2.3a: eski kod biçimi sıradan addır"},

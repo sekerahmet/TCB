@@ -72,7 +72,7 @@ func TestLibraryModulesDoNotReadTheCommandLine(t *testing.T) {
 	scan := &reachScan{vm: v}
 	root := filepath.Join(reporoot.Root(), "lib")
 	files := 0
-	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+	err := reporoot.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".tr") || strings.HasSuffix(path, "_test.tr") {
 			return err
 		}

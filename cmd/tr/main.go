@@ -297,17 +297,9 @@ func startREPL() {
 		if line == "" {
 			continue
 		}
-		if k, ok := codes.FindCommand(line); ok && k == codes.ReplExit {
-			fmt.Println(messages.Text(messages.H8635))
+		if handled, quit := replCommand(machine, line); quit {
 			break
-		}
-		if exitHint(line) {
-			fmt.Fprintln(os.Stderr, messages.Text(messages.H8636, line, codes.NameRef(codes.ReplExit)))
-			continue
-		}
-		if line == "/h" || line == "/H" {
-			machine.Debugger = debugger.NewDebugger(messages.Text(messages.H8639), "", true)
-			fmt.Println("🐞 " + messages.Text(messages.H8637))
+		} else if handled {
 			continue
 		}
 
@@ -353,6 +345,25 @@ func startREPL() {
 			}
 		}
 	}
+}
+
+// replCommand kabuğun kendi komutlarını (çıkış, çıkış ipucu, /h hata ayıklayıcı) yürütür: handled
+// satırın bir komut olduğu, quit kabuğun bitmesi gerektiğidir.
+func replCommand(machine *interp.VM, line string) (handled, quit bool) {
+	if k, ok := codes.FindCommand(line); ok && k == codes.ReplExit {
+		fmt.Println(messages.Text(messages.H8635))
+		return true, true
+	}
+	if exitHint(line) {
+		fmt.Fprintln(os.Stderr, messages.Text(messages.H8636, line, codes.NameRef(codes.ReplExit)))
+		return true, false
+	}
+	if line == "/h" || line == "/H" {
+		machine.Debugger = debugger.NewDebugger(messages.Text(messages.H8639), "", true)
+		fmt.Println("🐞 " + messages.Text(messages.H8637))
+		return true, false
+	}
+	return false, false
 }
 
 // startsWithPrint satır yazdır yerleşiğinin (TR_fn_print) kanonik ya da kişinin yazım dilindeki bir
