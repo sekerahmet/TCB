@@ -28,7 +28,7 @@ func runTRWithin(t *testing.T, limit time.Duration, code string) (*VM, Value, er
 	go func() {
 		val, err := machine.Run(prog)
 		machine.WaitAsync()
-		done <- result{val, err}
+		done <- result{programResult(machine, val), err}
 	}()
 	select {
 	case r := <-done:
@@ -85,7 +85,7 @@ func TestAsyncConcurrentDictAndListWrites(t *testing.T) {
 			}
 		}
 		TR_wait_all()
-		TR_return [d.TR_keys().TR_length, l.TR_length]`)
+		TR_var result = [d.TR_keys().TR_length, l.TR_length]`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +102,7 @@ func TestAsyncCounterIncrementIsAtomic(t *testing.T) {
 			TR_async { s += 1 }
 		}
 		TR_wait_all()
-		TR_return s`)
+		TR_var result = s`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,7 +130,7 @@ func TestAsyncTasksStillOverlapDuringSleep(t *testing.T) {
 			}
 		}
 		TR_wait_all()
-		TR_return [biten, en_cok]`)
+		TR_var result = [biten, en_cok]`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,7 +152,7 @@ func TestWaitAllInsideAsyncDoesNotDeadlock(t *testing.T) {
 			sonra = TR_true
 		}
 		TR_wait_all()
-		TR_return sonra`)
+		TR_var result = sonra`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -179,7 +179,7 @@ func TestDeferInsideAsyncRunsWhenTaskEnds(t *testing.T) {
 			TR_sleep(0.05)
 			sira.TR_append("geç-görev")
 		}
-		TR_return sira`)
+		TR_var result = sira`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -221,12 +221,12 @@ func TestDeepRecursionIsCatchableError(t *testing.T) {
 		TR_func f(n) { TR_return f(n + 1) }
 		TR_var yakalandı = TR_false
 		TR_try { f(0) } TR_catch hata { yakalandı = TR_true }
-		TR_return yakalandı`)
+		TR_var result = yakalandı`)
 	if err != nil || val.Inspect() != "doğru" {
 		t.Fatalf("özyineleme hatası dene/yakala ile yakalanmalıydı: %v / %v", val, err)
 	}
 	// Sınırın altındaki derin ama sonlu özyineleme çalışmaya devam etmeli
-	_, val, err = runTRWithin(t, 30*time.Second, "TR_func say(n) { TR_if n == 0 { TR_return 0 } TR_return 1 + say(n - 1) }\nTR_return say(5000)")
+	_, val, err = runTRWithin(t, 30*time.Second, "TR_func say(n) { TR_if n == 0 { TR_return 0 } TR_return 1 + say(n - 1) }\nTR_var result = say(5000)")
 	if err != nil || val.Inspect() != "5000" {
 		t.Fatalf("5000 derinlik çalışmalı: %v / %v", val, err)
 	}
@@ -267,7 +267,7 @@ func TestUserFunctionArityIsChecked(t *testing.T) {
 		TR_var a = selam("Ali")
 		TR_var b = selam(ek: "?", ad: "Ayşe")
 		TR_var c = [1, 2, 3].TR_filter((x) => x > 1)
-		TR_return [a, b, c]`)
+		TR_var result = [a, b, c]`)
 	if err != nil || val.Inspect() != `["Ali!", "Ayşe?", [2, 3]]` {
 		t.Fatalf("geçerli çağrılar çalışmalı: %v / %v", val, err)
 	}

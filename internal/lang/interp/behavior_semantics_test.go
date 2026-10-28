@@ -8,7 +8,8 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// runTROut programı çalıştırır ve yazdır() çıktısını da döndürür.
+// runTROut programı çalıştırır ve yazdır() çıktısını da döndürür. Programın sonucu 'result' adlı
+// genel değişkendir (programın en dışında 'TR_return' yazılmaz, 1.10); yoksa son değer.
 func runTROut(t *testing.T, code string) (string, Value, error) {
 	t.Helper()
 	prog := mustParseProgram(t, code)
@@ -17,7 +18,7 @@ func runTROut(t *testing.T, code string) (string, Value, error) {
 	machine.Out = &out
 	val, err := machine.Run(prog)
 	machine.WaitAsync()
-	return out.String(), val, err
+	return out.String(), programResult(machine, val), err
 }
 
 // Tanımsız bir isme atama eskiden en dış kapsamda sessizce genel değişken oluşturuyordu.
@@ -39,7 +40,7 @@ func TestAssignToUndeclaredNameIsError(t *testing.T) {
 		artır()
 		artır()
 		TR_for i TR_in 1..=3 { sayaç += i }
-		TR_return sayaç
+		TR_var result = sayaç
 	`)
 	if err != nil || val.Inspect() != "8" {
 		t.Fatalf("8 bekleniyordu, alınan: %v, %v", val, err)
@@ -62,7 +63,7 @@ func TestOperatorPrecedence(t *testing.T) {
 		{"2.0 ** 2", "4.0"},
 	}
 	for _, c := range cases {
-		val, err := runTR(t, "sonuç "+c.code)
+		val, err := runTR(t, "TR_var result = "+c.code)
 		if err != nil {
 			t.Errorf("%s: beklenmeyen hata: %v", c.code, err)
 			continue
@@ -72,11 +73,11 @@ func TestOperatorPrecedence(t *testing.T) {
 		}
 	}
 
-	val, _ := runTR(t, "sonuç 3 ** 2")
+	val, _ := runTR(t, "TR_var result = 3 ** 2")
 	if val.Type() != ValInt {
 		t.Fatalf("Tam ** Tam sonucu Tam olmalı, %s alındı", val.Type())
 	}
-	if _, err := runTR(t, "sonuç 10 ** 40"); !messages.Has(err, messages.H2472) {
+	if _, err := runTR(t, "TR_var result = 10 ** 40"); !messages.Has(err, messages.H2472) {
 		t.Fatalf("taşma hatası bekleniyordu, alınan: %v", err)
 	}
 }
@@ -146,12 +147,12 @@ TR_print("tamam")`)
 
 // Tam sayı toplama/çıkarma/çarpma taşması sessizce sarmak yerine hata verir ('**' gibi).
 func TestIntegerOverflowIsError(t *testing.T) {
-	for _, codeVal := range []string{"sonuç 9223372036854775807 + 1", "sonuç -9223372036854775807 - 2", "sonuç 4294967296 * 4294967296"} {
+	for _, codeVal := range []string{"TR_var result = 9223372036854775807 + 1", "TR_var result = -9223372036854775807 - 2", "TR_var result = 4294967296 * 4294967296"} {
 		if _, err := runTR(t, codeVal); !messages.Has(err, messages.H2473) {
 			t.Fatalf("%s: taşma hatası bekleniyordu, alınan: %v", codeVal, err)
 		}
 	}
-	val, err := runTR(t, "sonuç 9223372036854775806 + 1 - 5 * 2")
+	val, err := runTR(t, "TR_var result = 9223372036854775806 + 1 - 5 * 2")
 	if err != nil || val.Inspect() != "9223372036854775797" {
 		t.Fatalf("sınır içindeki işlem bozuldu: %v %v", val, err)
 	}
@@ -159,11 +160,11 @@ func TestIntegerOverflowIsError(t *testing.T) {
 
 // Ondalık sayılarda '%' (kalan) desteklenir.
 func TestFloatModulo(t *testing.T) {
-	val, err := runTR(t, "sonuç 5.5 % 2")
+	val, err := runTR(t, "TR_var result = 5.5 % 2")
 	if err != nil || val.Inspect() != "1.5" {
 		t.Fatalf("5.5 %% 2 = 1.5 bekleniyordu, alınan: %v %v", val, err)
 	}
-	if _, err := runTR(t, "sonuç 1.5 % 0"); err == nil {
+	if _, err := runTR(t, "TR_var result = 1.5 % 0"); err == nil {
 		t.Fatal("sıfıra göre mod hata vermedi")
 	}
 }
@@ -176,7 +177,7 @@ func TestShadowingBuiltinCreatesMutableVariable(t *testing.T) {
 		toplam += 5
 		TR_var uzunluk = 1
 		uzunluk = uzunluk + 1
-		TR_return [toplam, uzunluk]`)
+		TR_var result = [toplam, uzunluk]`)
 	if err != nil {
 		t.Fatalf("yerleşik adı gölgeleyen TR_var değiştirilebilmeli: %v", err)
 	}
@@ -229,4 +230,12 @@ func TestIntOpErrorsAndFastPathAgree(t *testing.T) {
 			t.Errorf("%d %s %d = %v, %v; %s bekleniyordu", c.a, c.op, c.b, val, err, c.val)
 		}
 	}
+}
+
+// programResult programın 'result' adlı genel değişkenidir; tanımlı değilse Run'ın verdiği değer.
+func programResult(machine *VM, last Value) Value {
+	if r, ok := machine.GlobalEnv.Get("result"); ok {
+		return r
+	}
+	return last
 }

@@ -169,7 +169,7 @@ func TestCallEnvPool(t *testing.T) {
 			TR_var z = x * y
 			TR_return z
 		}
-		TR_return [fib(15), iki(fib(5)), iki(2, 3), bol(9, 3)]
+		TR_var result = [fib(15), iki(fib(5)), iki(2, 3), bol(9, 3)]
 	`)
 	if err != nil || val.Inspect() != "[610, 50, 6, 3]" {
 		t.Fatalf("[610, 50, 6, 3] bekleniyordu: %v %v", val, err)
@@ -185,7 +185,7 @@ func TestDirectMethodCalls(t *testing.T) {
 		TR_var e = l.TR_append
 		e(7)
 		TR_var d = {"içerir": 5, "a": 1}
-		TR_return [l, d.TR_contains("a"), d.a, "Kar".TR_upper(), [3, 1, 2].TR_sort(), TR_str(12), "çağ".TR_length,
+		TR_var result = [l, d.TR_contains("a"), d.a, "Kar".TR_upper(), [3, 1, 2].TR_sort(), TR_str(12), "çağ".TR_length,
 			[1, 2, 3].TR_filter { TR_it > 1 }.TR_map { TR_it * 10 }]
 	`)
 	if err != nil || val.Inspect() != `[[1, 1, 1, 9, 7], doğru, 1, "KAR", [1, 2, 3], "12", 3, [20, 30]]` {
@@ -201,7 +201,7 @@ func TestDirectMethodCalls(t *testing.T) {
 func TestStructDefaultInDefScope(t *testing.T) {
 	dir := t.TempDir()
 	module := filepath.Join(dir, "modk.tr")
-	if err := os.WriteFile(module, []byte("TR_const VARS = 5\nTR_struct K { a: TR_Int = VARS }\nTR_func K_yap() { TR_return K() }\n"), 0o644); err != nil {
+	if err := os.WriteFile(module, []byte(source.Header + "\nTR_const VARS = 5\nTR_struct K { a: TR_Int = VARS }\nTR_func K_yap() { TR_return K() }\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	_, val, err := runTROut(t, `
@@ -212,7 +212,7 @@ func TestStructDefaultInDefScope(t *testing.T) {
 			sonuç Y()
 		}
 		yapı G { c: Tam = 1 }
-		sonuç [m.K_yap().a, m.K().a, yerel_yapi().b, G().c]
+		değişken result = [m.K_yap().a, m.K().a, yerel_yapi().b, G().c]
 	`)
 	if err != nil || val.Inspect() != "[5, 5, 14, 1]" {
 		t.Fatalf("[5, 5, 14, 1] bekleniyordu: %v %v", val, err)
@@ -236,7 +236,7 @@ func TestFastPathSemantics(t *testing.T) {
 		TR_var p = P()
 		p.f = () => "alan"
 		TR_var bagli = p.m
-		TR_return [s[2], s[-1], s.TR_get(5), a[0], a[-1], a.TR_get(3), a[0..2], s[1..3], a.TR_get(-4),
+		TR_var result = [s[2], s[-1], s.TR_get(5), a[0], a[-1], a.TR_get(3), a[0..2], s[1..3], a.TR_get(-4),
 			d[1], d["1"], d[1.5], d[2], d.TR_keys(), d.TR_contains(2), d.TR_contains(3),
 			p.m(), p.m(2), p.f(), bagli(10)]
 	`)
@@ -255,7 +255,7 @@ func TestCompilerShadowingAndConst(t *testing.T) {
 	_, val, err := runTROut(t, `
 		TR_var toplam = 0
 		TR_for i TR_in 1..=4 { toplam += i }
-		TR_return toplam
+		TR_var result = toplam
 	`)
 	if err != nil || val.Inspect() != "10" {
 		t.Fatalf("10 bekleniyordu: %v %v", val, err)

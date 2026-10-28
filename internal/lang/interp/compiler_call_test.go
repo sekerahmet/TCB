@@ -16,7 +16,7 @@ func TestTrailingBlockWithOPronoun(t *testing.T) {
 		TR_var d = [[1, 2], [3, 4]].TR_map { TR_it.TR_map { TR_it * 10 } }
 		TR_func uygula(f) { TR_return f(21) }
 		TR_var e = uygula { TR_it * 2 }
-		TR_return [a, b, c, d, e]`)
+		TR_var result = [a, b, c, d, e]`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,7 +29,7 @@ func TestTrailingBlockWithOPronoun(t *testing.T) {
 func TestTrailingBlockEquivalentToLambda(t *testing.T) {
 	_, val, err := runTRWithin(t, 5*time.Second, `
 		TR_var l = [5, 3, 8, 1]
-		TR_return l.TR_filter { TR_it > 2 } == l.TR_filter((x) => x > 2)`)
+		TR_var result = l.TR_filter { TR_it > 2 } == l.TR_filter((x) => x > 2)`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +63,7 @@ func TestControlHeadersDoNotTakeTrailingBlocks(t *testing.T) {
 		TR_if (sayılar.TR_filter { TR_it > 5 }).TR_length == 1 {
 			izler.TR_append("parantez")
 		}
-		TR_return izler`)
+		TR_var result = izler`)
 	if err != nil {
 		t.Fatal(err)
 	}

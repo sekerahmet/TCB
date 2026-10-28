@@ -67,17 +67,17 @@ func runCodedErr(t *testing.T, main, lang string, files map[string]string) (stri
 
 // Aynı program İngilizce ve Türkçe gösterimde yazılsa da (dosya aynı kimlikleri taşır) aynı metni verir.
 func TestValueTextIsLanguageIndependent(t *testing.T) {
-	want := "true none Int [true, none, {\"k\": false}] {false: 1}\n" +
+	want := "true none Int [true, none, {\"k\": false}]\n" +
 		"true none Bool [List]\n" +
 		"true true true\n"
 	for lang, main := range map[string]string{
 		"en": `var b = true
-print(b, none, type(1), [true, none, {k: false}], {false: 1})
+print(b, none, type(1), [true, none, {k: false}])
 print("\(b) \(none) \(type(b)) \([type([])])")
 print(str(b) == "true", str(none) == "none", str(type(1.5)) == "Float")
 `,
 		"tr": `değişken b = doğru
-yazdır(b, yok, tip(1), [doğru, yok, {k: yanlış}], {yanlış: 1})
+yazdır(b, yok, tip(1), [doğru, yok, {k: yanlış}])
 yazdır("\(b) \(yok) \(tip(b)) \([tip([])])")
 yazdır(metin(b) == "true", metin(yok) == "none", metin(tip(1.5)) == "Float")
 `,

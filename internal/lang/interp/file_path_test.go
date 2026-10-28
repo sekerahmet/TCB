@@ -93,7 +93,7 @@ func TestFileBuiltinsUseSingleRule(t *testing.T) {
 	}
 	_, err := run(`TR_read_file("yok.txt")`)
 	if err == nil || !strings.Contains(err.Error(), `dosya_oku(): "yok.txt" okunamadı: böyle bir dosya ya da klasör yok`) ||
-		!strings.Contains(err.Error(), "bakılan yerler: ") || strings.Count(err.Error(), "TR_none.txt") != 3 {
+		!strings.Contains(err.Error(), "bakılan yerler: ") || strings.Count(err.Error(), "yok.txt") != 3 {
 		t.Errorf("beklenmeyen hata: %v", err)
 	}
 }

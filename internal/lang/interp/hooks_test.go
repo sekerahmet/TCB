@@ -76,7 +76,7 @@ func TestValueHooks(t *testing.T) {
 func TestContainerEquality(t *testing.T) {
 	_, val, err := runTROut(t, `
 		TR_struct N { x }
-		TR_return [[1, 2] == [1.0, 2], [0.1 + 0.2] == [0.3], {"a": 1, "b": 2} == {"b": 2, "a": 1},
+		TR_var result = [[1, 2] == [1.0, 2], [0.1 + 0.2] == [0.3], {"a": 1, "b": 2} == {"b": 2, "a": 1},
 			{1: "x"} == {"1": "x"}, N(1) == N(1.0), N(1) == N(2), ["1"] == [1]]
 	`)
 	if err != nil || val.Inspect() != "[doğru, yanlış, doğru, yanlış, doğru, yanlış, yanlış]" {
@@ -102,9 +102,9 @@ func TestSelfContainingContainers(t *testing.T) {
 		TR_print(m)
 		TR_var l2 = [1, "a"]
 		l2.TR_append(l2)
-		TR_return [l == l, d == d, l == l2, TR_str(l).TR_length]
+		TR_var result = [l == l, d == d, l == l2, TR_str(l).TR_length]
 	`)
-	want := "[1, \"a\", [...]]\n{\"x\": 1, \"ben\": {...}, \"l\": [{...}]}\nD{sonraki: D{...}}\n[[1, \"a\", [...]], [1, \"a\", [...]]]\n"
+	want := "[1, \"a\", [...]]\n{\"x\": 1, \"ben\": {...}, \"l\": [{...}]}\nD{next: D{...}}\n[[1, \"a\", [...]], [1, \"a\", [...]]]\n"
 	if err != nil || out != want || val.Inspect() != "[doğru, doğru, yanlış, 15]" {
 		t.Fatalf("beklenmeyen:\n%s\n%v %v", out, val, err)
 	}
@@ -126,10 +126,10 @@ func TestIntEdges(t *testing.T) {
 		sonuclar.TR_append([9007199254740993] == [9007199254740992])
 		sonuclar.TR_append(1 == 1.0)
 		sonuclar.TR_append(en_kucuk % b)
-		TR_return sonuclar
+		TR_var result = sonuclar
 	`)
-	want := `["Satır 5: Tam sayı taşması (-9223372036854775808 / -1); ondalık sonuç için örn. -9223372036854775808.0 / -1 yazın", ` +
-		`"Satır 6: Tam sayı taşması (-(-9223372036854775808)); ondalık sonuç için örn. -(-9223372036854775808.0) yazın", ` +
+	want := `["Line 5: Int overflow (-9223372036854775808 / -1); for a decimal result write e.g. -9223372036854775808.0 / -1", ` +
+		`"Line 6: Int overflow (-(-9223372036854775808)); for a decimal result write e.g. -(-9223372036854775808.0)", ` +
 		`"bileşik taşma", yanlış, doğru, yanlış, doğru, 0]`
 	if err != nil || val.Inspect() != want {
 		t.Fatalf("beklenmeyen:\n%v\n%v", val, err)
@@ -137,7 +137,7 @@ func TestIntEdges(t *testing.T) {
 }
 
 // Yerleşiğin geri çağırdığı fonksiyonun hatası zaten satırlıysa ikinci kez sarılmaz. Program Türkçe
-// yazılmıştır, dil açıkça verilir (runCoded); yakalanan hata dosyanın dilinde yazılır.
+// yazılmıştır (runCoded); yakalanan hatanın metni dilden bağımsızdır (İngilizce), satırı dosyanındır.
 func TestInternalErrorLineOnce(t *testing.T) {
 	out := runCoded(t, `TR_var h = []
 TR_try { [1].TR_filter((x) => x / 0) } TR_catch e { h.TR_append(TR_str(e)) }
@@ -147,9 +147,9 @@ TR_try { [1].TR_map(1, 2) } TR_catch e { h.TR_append(TR_str(e)) }
 TR_try { TR_range("a") } TR_catch e { h.TR_append(TR_str(e)) }
 TR_for s TR_in h { TR_print(s) }
 `, "tr", nil)
-	want := "Satır 2: Sıfıra bölme hatası\nSatır 4: Sıfıra bölme hatası\n" +
-		"Satır 5: liste.haritala() 1 argüman bekler, 2 verildi (kullanım: liste.haritala(fonksiyon))\n" +
-		"Satır 6: aralık() 1. argüman olarak Tam bekler, Metin (\"a\") verildi\n"
+	want := "Line 3: Division by zero error\nLine 5: Division by zero error\n" +
+		"Line 6: list.map() takes 1 argument, 2 given (usage: list.map(function))\n" +
+		"Line 7: range() expects Int as argument 1, String (\"a\") given\n"
 	if out != want {
 		t.Fatalf("beklenmeyen:\n%s\nbeklenen:\n%s", out, want)
 	}
@@ -168,7 +168,7 @@ func TestFloatPrintingAndScientific(t *testing.T) {
 			t.Errorf("%v: beklenen %s, alınan %s", f, want, got)
 		}
 	}
-	_, val, err := runTROut(t, `sonuç [1e-5, 3.2E+4, 2e3 == 2000, 1e-5 * 1e5]`)
+	_, val, err := runTROut(t, `TR_var result = [1e-5, 3.2E+4, 2e3 == 2000, 1e-5 * 1e5]`)
 	if err != nil || val.Inspect() != "[1e-05, 32000.0, doğru, 1.0]" {
 		t.Fatalf("bilimsel yazım: %v %v", val, err)
 	}

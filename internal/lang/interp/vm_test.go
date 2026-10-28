@@ -36,7 +36,7 @@ func TestCoreLanguageAndMultiAssign(t *testing.T) {
 		TR_var a, b = 10, 20
 		a, b = b, a
 		TR_var kareler = [x * x TR_for x TR_in 1..=5 TR_if x % 2 == 1]
-		TR_return [a, b, TR_sum(kareler)]
+		TR_var result = [a, b, TR_sum(kareler)]
 	`
 	val, err := runTR(t, code)
 	if err != nil {
@@ -50,7 +50,7 @@ func TestCoreLanguageAndMultiAssign(t *testing.T) {
 func TestModuleImportWithAliasAndCircularProtection(t *testing.T) {
 	tmpDir := t.TempDir()
 	modPath := filepath.Join(tmpDir, "yardimci.tr")
-	err := os.WriteFile(modPath, []byte(`
+	err := os.WriteFile(modPath, []byte(source.Header+`
 		TR_const PI_SAYISI = 3.14
 		TR_func iki_kati(x) { TR_return x * 2 }
 	`), 0644)
@@ -61,17 +61,18 @@ func TestModuleImportWithAliasAndCircularProtection(t *testing.T) {
 	mainFile := filepath.Join(tmpDir, "ana.tr")
 	code := `
 		TR_import "yardimci.tr" TR_as yrd
-		TR_return yrd.iki_kati(21)
+		TR_var result = yrd.iki_kati(21)
 	`
 	l := source.TextLexer(code)
 	p := parser.New(l)
 	prog := p.ParseProgram()
 	machine := New()
 	machine.SourceFile = mainFile
-	val, err := machine.Run(prog)
+	_, err = machine.Run(prog)
 	if err != nil {
 		t.Fatalf("Modül aktarım hatası: %v", err)
 	}
+	val, _ := machine.GlobalEnv.Get("result")
 	if val.Inspect() != "42" {
 		t.Fatalf("42 bekleniyordu, %s alındı", val.Inspect())
 	}
@@ -79,8 +80,8 @@ func TestModuleImportWithAliasAndCircularProtection(t *testing.T) {
 	// Döngüsel aktarım (circular import) testi
 	circA := filepath.Join(tmpDir, "a.tr")
 	circB := filepath.Join(tmpDir, "b.tr")
-	_ = os.WriteFile(circA, []byte(`TR_import "b.tr"`), 0644)
-	_ = os.WriteFile(circB, []byte(`TR_import "a.tr"`), 0644)
+	_ = os.WriteFile(circA, []byte(source.Header+"\nTR_import \"b.tr\"\n"), 0644)
+	_ = os.WriteFile(circB, []byte(source.Header+"\nTR_import \"a.tr\"\n"), 0644)
 
 	l2 := source.TextLexer(`TR_import "a.tr"`)
 	p2 := parser.New(l2)
@@ -120,7 +121,7 @@ func TestConcurrentCallStackSafety(t *testing.T) {
 			}
 		}
 		TR_wait_all()
-		TR_return TR_true
+		TR_var result = TR_true
 	`
 	val, err := runTR(t, code)
 	if err != nil {
@@ -139,7 +140,7 @@ func TestLockHandoffConcurrentTask(t *testing.T) {
 		TR_async { bitti = TR_true }
 		TR_var n = 0
 		TR_for !bitti && n < 200000000 { n += 1 }
-		TR_return n < 200000000
+		TR_var result = n < 200000000
 	`)
 	if err != nil || val.Inspect() != "doğru" {
 		t.Fatalf("eşzamanlı görev döngü bitmeden çalışmalıydı: %v %v (%v)", val, err, time.Since(begin))
@@ -162,7 +163,7 @@ func TestLockHandoffRecursiveLoop(t *testing.T) {
 			dolas(50)
 			tur += 1
 		}
-		TR_return tur
+		TR_var result = tur
 	`)
 	if err != nil {
 		t.Fatal(err)

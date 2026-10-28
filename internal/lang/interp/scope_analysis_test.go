@@ -27,7 +27,7 @@ func TestOneProgramCompiledInParallelVMs(t *testing.T) {
 		TR_var kapanışlar = [(TR_func() { TR_return x }) TR_for x TR_in 1..=3]
 		TR_struct Nokta { x = 0
 			TR_func iki_kat() { TR_var d = TR_self.x * 2; TR_return d } }
-		TR_return [toplam_, s(), kapanışlar[2](), Nokta(4).iki_kat()]`
+		TR_var result = [toplam_, s(), kapanışlar[2](), Nokta(4).iki_kat()]`
 	prog := mustParseProgram(t, code)
 	const want = "[2100, 6, 3, 8]"
 	const vms = 8

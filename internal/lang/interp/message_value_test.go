@@ -19,7 +19,7 @@ func TestMessageThrown(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(out, "negatif olamaz, -1 verildi") || !strings.Contains(out, "İleti") {
+	if !strings.Contains(out, "cannot be negative, got -1") || !strings.Contains(out, "Message") {
 		t.Errorf("çıktı: %q", out)
 	}
 	_, _, err = runTROut(t, "TR_throw TR_message(\"H6903\", -1)")
@@ -51,7 +51,7 @@ func TestErrorCode(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := "H6903\nH6900\nyok\ndoğru\ndoğru\n"; out != want {
+	if want := "H6903\nH6900\nnone\ntrue\ntrue\n"; out != want {
 		t.Errorf("çıktı %q, %q bekleniyordu", out, want)
 	}
 }
