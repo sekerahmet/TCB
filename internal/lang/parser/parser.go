@@ -153,6 +153,9 @@ type Parser struct {
 	// koşuludur. ifWithoutElse, TR_else'siz bir TR_if okunduğunu söyler (5.5: değer yerindeyse hata,
 	// bkz. valueIfs).
 	comprehensionSource, ifWithoutElse bool
+	// namedFunctions adlı bir fonksiyon tanımı okunduğunu söyler (6.1: aynı blokta ikinci tanım hata,
+	// bkz. duplicateFunctions).
+	namedFunctions bool
 }
 
 // parseMatchPattern bir eşle kolunun desenini okur.
@@ -331,6 +334,9 @@ func (p *Parser) ParseProgram() *ast.Program {
 	program := &ast.Program{Statements: p.parseStatementList(true)}
 	p.underscoreReads(program)
 	p.valueIfs(program)
+	if !p.interpolated {
+		p.duplicateFunctions(program)
+	}
 	p.removedSpellingHints()
 	return program
 }

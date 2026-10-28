@@ -108,3 +108,46 @@ func TestDeclarationNeedsTRVarAndAFirstValue(t *testing.T) {
 		t.Errorf("ileti TR_var b = yazmalıydı: %v", errs)
 	}
 }
+
+// Kural (6.1, 6.4): dönüş tipi '->' ile yazılır; değer döndürmeyende '->' yazılmaz; Python'un def'i ve
+// süsleyicisi yoktur; aynı blokta ikinci tanım ve varsayılanlıdan sonra varsayılansız parametre hatadır.
+func TestFunctionDefinitionSpellings(t *testing.T) {
+	checkFixedCases(t, []fixedCase{
+		{"TR_func f(x: TR_Int): TR_Int { TR_return x }", ": TR_Int {", messages.H0256, "TR_func f(x: TR_Int) -> TR_Int { TR_return x }", true},
+		{"TR_func f(x: TR_Int) : TR_Int { TR_return x }", ": TR_Int {", messages.H0256, "TR_func f(x: TR_Int) -> TR_Int { TR_return x }", true},
+		{"TR_func f(x: TR_Int) -> TR_NoneType { TR_print(x) }", "TR_NoneType", messages.H0257, "TR_func f(x: TR_Int) { TR_print(x) }", true},
+	})
+	// def'in düzeltmesi yalnız sözcüğü değiştirir; gövde ve ':' de değişmeli, uygulanabilir değil.
+	errs := parseErrs("def f(x):\n    TR_return x")
+	if !hasErrAt(errs, 1, 1, messages.H0258) {
+		t.Errorf("1:1'de H0258 bekleniyordu: %v", errs)
+	} else if pos, _ := messages.Find(errs[0]); len(pos.Fixes) != 1 || pos.Fixes[0].Applicable || pos.Fixes[0].Replacement != "TR_func" {
+		t.Errorf("def → TR_func önerisi bekleniyordu: %+v", pos.Fixes)
+	}
+	for _, d := range []struct {
+		code, at string
+		want     messages.Code
+	}{
+		{"@f\nTR_func g() { }", "@", messages.H0259},
+		{"TR_func f(a: TR_Int = 1, b: TR_Int) { }", "b:", messages.H0261},
+		{"TR_var g = (a: TR_Int = 1, b: TR_Int) => a", "b:", messages.H0261},
+	} {
+		line, col := posOf(t, d.code, d.at)
+		if errs := parseErrs(d.code); !hasErrAt(errs, line, col, d.want) {
+			t.Errorf("%q: %d:%d'de %s bekleniyordu, alınan: %v", d.code, line, col, d.want, errs)
+		}
+	}
+	// İkinci tanımın hatası adındadır, ilgili konum ilk tanım; başka blokta ve iç içe kapsamda aynı ad serbest.
+	code := "TR_func f() { }\nTR_func g() {\n    TR_func f() { }\n}\nTR_func f(x: TR_Int) { }"
+	errs = parseErrs(code)
+	if len(errs) != 1 || !hasErrAt(errs, 5, 9, messages.H0260) {
+		t.Fatalf("5:9'da tek H0260 bekleniyordu: %v", errs)
+	}
+	pos, _ := messages.Find(errs[0])
+	if len(pos.Related) != 1 || pos.Related[0].Line != 1 || pos.Related[0].Col != 9 {
+		t.Errorf("ilgili konum ilk tanım (1:9) olmalı: %+v", pos.Related)
+	}
+	if errs := parseErrs("TR_func f(a: TR_Int, b: TR_Int = 2) -> TR_Int { TR_return a + b }"); len(errs) != 0 {
+		t.Errorf("doğru yazım hata vermemeli: %v", errs)
+	}
+}

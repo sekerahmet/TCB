@@ -94,6 +94,12 @@ const (
 	H0253 Code = 253  // '_' okunamaz: bir ad değil, gerekmeyen bir değerin yerini tutar; değeri kullanmak için ona bir ad verin (a, _ = l yerine a, b = l)
 	H0254 Code = 254  // değer olarak kullanılan {if}'in {else} dalı yok: değer veren {if} her durumda bir değer verir; {else} dalını yazın: {if} c {{ a }} {else} {{ b }}
 	H0255 Code = 255  // Python'un koşullu ifadesi (a {if} c {else} b) TR'de yok; değer veren {if} şöyle yazılır: {if} c {{ a }} {else} {{ b }}
+	H0256 Code = 256  // dönüş tipi ':' ile değil '->' ile yazılır: f(x: T): R yerine f(x: T) -> R
+	H0257 Code = 257  // değer döndürmeyen fonksiyonda '-> {none}' yazılmaz: '->' yalnız değer döndüren fonksiyonda yazılır; '-> {none}'u silin
+	H0258 Code = 258  // Python'un 'def'i TR'de yok: fonksiyon {func} ile tanımlanır ve gövdesi süslü parantezdedir: {func} f(x: T) -> R {{ ... }}
+	H0259 Code = 259  // Python'un süsleyicisi (@{name}) TR'de yok, '@' matris çarpımıdır: bir işi kodun çevresinde yapmak için sondaki blok yazılır: {name} {{ ... }}
+	H0260 Code = 260  // '{name}' bu blokta {first}. satırda zaten tanımlı: bir ad tek fonksiyondur, parametrelere göre ayrışma yoktur; ikinci fonksiyona başka bir ad verin
+	H0261 Code = 261  // '{name}' parametresinin varsayılanı yok ama varsayılanlı bir parametreden sonra geliyor: varsayılanlı parametreler sonda yazılır; '{name}'i öne alın ya da ona bir varsayılan verin
 	H1001 Code = 1001 // Tip uyuşmazlığı — {name|q} değişkeni {declared|q} tipinde tanımlandı ancak {given|q} tipinde değer atandı{hint}
 	H1002 Code = 1002 // Sabit hatası — {name|q} bir sabittir ('{keyword}') ve değeri değiştirilemez
 	H1003 Code = 1003 // Dönüş tipi uyuşmazlığı — fonksiyon {expected|q} döndürmeli ancak {given|q} tipinde değer döndürülüyor{hint}

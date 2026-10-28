@@ -2,7 +2,9 @@ package parser
 
 import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 func (p *Parser) parseGroupedOrLambdaExpression(pattern bool) ast.Expression {
@@ -86,6 +88,7 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 	if p.peekTokenIs(lexer.TokIdent) {
 		p.nextToken()
 		lit.Name, lit.NameToken = p.curToken().Literal, p.curToken()
+		p.namedFunctions = true
 	}
 
 	if !p.expectPeek(lexer.TokLParen) {
@@ -93,21 +96,24 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 	}
 
 	lit.Parameters = p.parseFunctionParameters()
+	rparen := p.curToken()
 
-	// İsteğe bağlı dönüş tipi: fonksiyon topla(a: Tam, b: Tam): Tam { ... } veya -> Tam { ... }
-	if p.peekTokenIs(lexer.TokColon) || p.peekTokenIs(lexer.TokArrow) {
-		p.nextToken()
-		if p.expectPeek(lexer.TokIdent) {
-			lit.ReturnType, lit.ReturnToken = p.curToken().Literal, p.curToken()
-			p.role(p.curToken(), RoleType)
-		}
-	} else if p.peekTokenIs(lexer.TokMinus) {
+	// Dönüş tipi '->' ile yazılır (6.1): TR_func topla(a: TR_Int, b: TR_Int) -> TR_Int { ... }
+	switch {
+	case p.peekTokenIs(lexer.TokColon):
+		p.returnColonError(rparen)
+		return nil
+	case p.peekTokenIs(lexer.TokMinus):
 		p.nextToken() // '-'
 		if p.peekTokenIs(lexer.TokGt) {
 			p.nextToken() // '>'
 			if p.expectPeek(lexer.TokIdent) {
 				lit.ReturnType, lit.ReturnToken = p.curToken().Literal, p.curToken()
 				p.role(p.curToken(), RoleType)
+				if lit.ReturnToken.Code == codes.TypeNoneType {
+					p.returnNoneError(rparen, lit.ReturnToken)
+					return nil
+				}
 			}
 		}
 	}
@@ -121,6 +127,7 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 }
 func (p *Parser) parseFunctionParameters() []ast.Param {
 	params := []ast.Param{}
+	withDefault := false
 
 	if p.peekTokenIs(lexer.TokRParen) {
 		p.nextToken()
@@ -133,6 +140,11 @@ func (p *Parser) parseFunctionParameters() []ast.Param {
 		param := ast.Param{Name: p.curToken().Literal, NameToken: p.curToken()}
 		param.TypeName, param.TypeToken, param.DefaultValue = p.parseTypeAndDefault()
 		params = append(params, param)
+		if param.DefaultValue == nil && withDefault {
+			// Varsayılanlı parametreden sonrakilerin de varsayılanı vardır (6.4), Python'daki gibi.
+			p.syntaxError(param.NameToken, messages.H0261, param.Name)
+		}
+		withDefault = withDefault || param.DefaultValue != nil
 
 		if !p.peekTokenIs(lexer.TokComma) {
 			break
@@ -190,6 +202,25 @@ func (p *Parser) parseCallArguments() ([]ast.Expression, []ast.NamedArg) {
 	}
 
 	return args, named
+}
+
+// returnColonError dönüş tipinin ': R' ile yazımının hatasıdır (6.1): imleç parametrelerin ')'sinde,
+// ardından ':' gelir. Düzeltme ':'yi '->' yapar; olduğu gibi uygulanabilir.
+func (p *Parser) returnColonError(rparen lexer.Token) {
+	colon := p.peekToken()
+	arrow := "->"
+	if colon.Line == rparen.EndLine && colon.Column == rparen.EndColumn {
+		arrow = " ->" // f(): T → f() -> T
+	}
+	p.syntaxErrorFix(colon, []messages.Fix{{Range: colon.Range(), Replacement: arrow, Applicable: true}}, messages.H0256)
+}
+
+// returnNoneError '-> TR_NoneType' yazımının hatasıdır (6.1): değer döndürmeyen fonksiyonda '->' yazılmaz.
+// Düzeltme ')'den tipin sonuna kadarını siler; olduğu gibi uygulanabilir.
+func (p *Parser) returnNoneError(rparen, typ lexer.Token) {
+	r := typ.Range()
+	r.Line, r.Col = rparen.EndLine, rparen.EndColumn
+	p.syntaxErrorFix(typ, []messages.Fix{{Range: r, Replacement: "", Applicable: true}}, messages.H0257, p.word(codes.TypeNoneType))
 }
 
 // parseTypeAndDefault isteğe bağlı ': Tip' ve '= varsayılan' bölümlerini okur (parametre ve yapı

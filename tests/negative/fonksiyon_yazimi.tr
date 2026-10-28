@@ -1,0 +1,10 @@
+# TR 4
+# TEST 6.1 dönüş tipi '->' ile yazılır, değer döndürmeyende yazılmaz; başka dillerin yazımı ve aynı adla ikinci tanım hatadır; 6.4 varsayılanlıdan sonraki parametrenin de varsayılanı vardır
+TR_func iki(x: TR_Int) -> TR_Int { TR_return x * 2 }
+TR_func yaz(x: TR_Int) { TR_print(x) }
+TR_func a(x: TR_Int): TR_Int { TR_return x } # ERROR H0256
+TR_func b(x: TR_Int) -> TR_NoneType { TR_print(x) } # ERROR H0257
+def c(x): # ERROR H0258
+@iki # ERROR H0259
+TR_func iki(x: TR_Float) -> TR_Float { TR_return x } # ERROR H0260
+TR_func d(p: TR_Int = 1, q: TR_Int) { } # ERROR H0261

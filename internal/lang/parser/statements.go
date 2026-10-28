@@ -49,15 +49,64 @@ func (p *Parser) parseStatement() ast.Statement {
 		if slices.Contains(p.words.test, p.curToken().Literal) && p.peekTokenIs(lexer.TokString) {
 			return p.parseTestStatement()
 		}
+		// def f(x): Python'un tanımı yoktur (6.1), ileti TR_func'ı önerir
+		if p.curToken().Literal == "def" && p.peekTokenIs(lexer.TokIdent) && p.peekTokenN(2).Type == lexer.TokLParen {
+			def := p.curToken()
+			p.syntaxErrorFix(def, []messages.Fix{{Range: def.Range(), Replacement: p.wordText(codes.KwFunc)}}, messages.H0258, p.word(codes.KwFunc))
+			return nil
+		}
 		// x := 5: kısa tanım yoktur (5.1), ileti TR_var'ı önerir
 		if p.peekTokenIs(lexer.TokWalrus) {
 			p.shortVarError()
 			return nil
 		}
 		return p.parseExpressionOrAssignmentStatement()
+	case lexer.TokMatmul:
+		// Satır başında '@f': Python'un süsleyicisi yoktur (6.1); '@' matris çarpımıdır.
+		if p.peekTokenIs(lexer.TokIdent) && p.peekToken().Line == p.curToken().Line &&
+			(p.pos == 0 || p.tokens[p.pos-1].Line < p.curToken().Line) {
+			p.syntaxError(p.curToken(), messages.H0259, p.peekToken().Literal)
+			return nil
+		}
+		return p.parseExpressionOrAssignmentStatement()
 	default:
 		return p.parseExpressionOrAssignmentStatement()
 	}
+}
+
+// duplicateFunctions aynı blokta aynı adla ikinci fonksiyon tanımını hata yapar (6.1): bir ad tek
+// fonksiyondur, parametre tipine göre ayrışma yoktur; ikinci tanım birincisini sessizce değiştirmez.
+// Hata ikinci tanımın adındadır, ilgili konum ilk tanımdır.
+func (p *Parser) duplicateFunctions(prog *ast.Program) {
+	if !p.namedFunctions {
+		return
+	}
+	check := func(stmts []ast.Statement) {
+		first := map[string]lexer.Token{}
+		for _, s := range stmts {
+			es, ok := s.(*ast.ExpressionStatement)
+			if !ok {
+				continue
+			}
+			f, ok := es.Expression.(*ast.FunctionLiteral)
+			if !ok || f.Name == "" {
+				continue
+			}
+			if prev, seen := first[f.Name]; seen {
+				err := messages.AtRange(f.NameToken.Range(), messages.New(messages.H0100, messages.New(messages.H0260, f.Name, prev.Line)))
+				p.errors = append(p.errors, err.WithRelated(messages.Related{Range: prev.Range()}))
+				continue
+			}
+			first[f.Name] = f.NameToken
+		}
+	}
+	check(prog.Statements)
+	ast.Walk(prog, func(n any) bool {
+		if b, ok := n.(*ast.BlockStatement); ok {
+			check(b.Statements)
+		}
+		return true
+	})
 }
 func (p *Parser) parseTestStatement() ast.Statement {
 	tok := p.curToken() // test

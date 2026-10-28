@@ -1,4 +1,4 @@
 # TR 4
 # TEST 3.14 tip adının yalnız kendi yazımı geçerlidir: büyük/küçük harfi farklı yazım tip adı değildir
 TR_var adet: tam = 3 # ERROR H1006
-TR_func kare(x: ONDALIK): ondalık { TR_return x * x } # ERROR H1006 H1006
+TR_func kare(x: ONDALIK) -> ondalık { TR_return x * x } # ERROR H1006 H1006
