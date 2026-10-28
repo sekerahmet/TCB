@@ -4,14 +4,15 @@ Bu bölümün kurallarına göre bugünkü durum ve yapılacaklar: [`docs/status
 
 Her kuralın emsali ve gerekçesi: [`rationale/13_builtins.md`](rationale/13_builtins.md).
 
-**13.1** Genel yerleşikler: `TR_print`, `TR_sum`, `TR_mean`, `TR_std`, `TR_median`, `TR_min`, `TR_max`, `TR_abs`, `TR_sqrt`, `TR_round`, `TR_sleep`, `TR_wait_all`, `TR_time_ms`, `TR_read_file`, `TR_write_file`, `TR_input` ve `TR_error_code` (8.5). `TR_Type`, `TR_Message` ve `TR_String` gibi tip çağrıları fonksiyon değildir (3.12).
-- Sayı yerleşiklerinin sonucu işleçlerin tipindedir (3.1, 4.2): `TR_sum(l)` `TR_List[TR_Int]`'te `TR_Int`, `TR_List[TR_Float]`'ta `TR_Float` verir. `TR_mean`, `TR_std` (n'ye bölerek) ve `TR_median` `TR_Float` verir.
+**13.1** Genel yerleşikler: `TR_print`, `TR_sum`, `TR_mean`, `TR_std`, `TR_median`, `TR_min`, `TR_max`, `TR_abs`, `TR_sqrt`, `TR_round`, `TR_sleep`, `TR_wait_all`, `TR_time_ms`, `TR_monotonic_ns`, `TR_read_file`, `TR_read_bytes`, `TR_write_file`, `TR_input` ve `TR_error_code` (8.5). `TR_Type`, `TR_Message` ve `TR_String` gibi tip çağrıları fonksiyon değildir (3.12).
+- Sayı yerleşiklerinin sonucu işleçlerin tipindedir (3.1, 4.2): `TR_sum(l)` `TR_List[TR_Int]`'te `TR_Int`, `TR_List[TR_Float]`'ta `TR_Float` verir. `TR_mean`, `TR_std` (n'ye bölerek) ve `TR_median` `TR_Float` verir. Ondalık toplam soldan sağa, telafili toplamayla (Neumaier) yapılır: sonuç öğelerin sırasından az etkilenir ve her makinede bit bit aynıdır (`TR_sum([1e16, 1.0, -1e16])` → `1.0`); `TR_mean` ve `TR_std` aynı toplamı kullanır.
 - Toplama yapan yerleşikler (`TR_sum` dışında `TR_mean`, `TR_std`, `TR_median`, `TR_min`, `TR_max`) boş listede hata verir.
 - `TR_min` ve `TR_max` bir liste ya da iki ve daha çok değer alır. Değerler sıralanabilir olmalıdır (13.10): sayı ya da metin. `TR_Int` ile `TR_Float` karışırsa sonuç `TR_Float`'tır, 4.2'deki gibi (13.10): `TR_max(2, 1.5)` → `2.0`. Karşılaştırma 4.5'teki gibi kesindir, `TR_Int` yuvarlanmaz; karışık durumda kazanan değer sonra `TR_Float`'a çevrilir (`TR_max(9007199254740993, 1.0)` → `9007199254740992.0`). Bir NaN varsa sonuç NaN'dır.
 - `TR_mean`, `TR_std` ve `TR_median` yalnız liste alır; değerleri tek tek almaz.
 - `TR_round(x)` bir `TR_Float`'ı en yakın `TR_Int`'e yuvarlar. Yarım sıfırdan uzağa gider: `TR_round(2.5)` → `3`, `TR_round(-2.5)` → `-3`. NaN ve sonsuz hatadır. `TR_round(x, basamak)` girdinin tipini verir: `TR_round(2.567, 2)` → `2.57`, `TR_round(1234, -2)` → `1200`, `TR_round(1234.0, -2)` → `1200.0`. Basamaklı yuvarlama sayının yazılan ondalık metnine göredir (3.2): `TR_round(2.675, 2)` → `2.68`.
 - `TR_print` argümanlarının metnini (3.14) birer boşlukla birleştirip yazar ve satır sonu ekler. `TR_print`, `TR_sleep` ve `TR_wait_all` değer döndürmez (6.1, 13.10).
-- `TR_write_file(yol, içerik)` içeriği `TR_String` ya da `TR_Bytes` olarak alır.
+- `TR_read_file(yol)` dosyayı UTF-8 metin olarak okur; geçerli UTF-8 değilse hatadır, ileti `TR_read_bytes`'ı önerir. `TR_read_bytes(yol)` dosyayı `TR_Bytes` olarak okur (görüntü, ses, ikili veri). `TR_write_file(yol, içerik)` `TR_String`'i UTF-8 olarak, `TR_Bytes`'ı bayt bayt yazar; değerin metnini yazmaz.
+- `TR_time_ms()` duvar saatidir (Unix zamanı, milisaniye): kayıt ve zaman damgası içindir, saat düzeltilince geri gidebilir. Süre ölçmek ve sabit hızlı döngü için `TR_monotonic_ns()` tekdüze saattir (nanosaniye, `TR_Int`): geri gitmez, sistem saatinden etkilenmez; başlangıç noktası belirsizdir, yalnız iki değerin farkı anlamlıdır.
 - `TR_input()` ya da `TR_input(istem)` (istem bir `TR_String`) standart girişten bir satır okur ve satır sonunu atar; giriş bittiyse boş metin verir. Süreçteki bütün okumalar (art arda `TR_input`, etkileşimli kabuk, terminal hata ayıklayıcısı) tek bir tamponlu okuyucudan yapılır: boruyla verilen satırlar sırayla gelir, hiçbiri kaybolmaz.
 - *Test:* TR testi; karışık sayıların tipi, boş listenin hatası, tek yazım ve değer döndürmeme uygulanınca TR testi.
 
@@ -45,9 +46,9 @@ Her kuralın emsali ve gerekçesi: [`rationale/13_builtins.md`](rationale/13_bui
 - *Test:* TR testi.
 
 **13.8** Veri biçimleri:
-- `TR_json_parse(metin)` bir `TR_JSON` verir (3.7a); `TR_json_string(değer)` değeri JSON metnine çevirir. JSON'a yalnız veri yazılır: sayı, metin, mantık değeri, `TR_none`, liste, `TR_JSON`, `TR_Tensor`, `TR_Path` ve anahtarı metin olan sözlük. Fonksiyon, aralık, yapı ve kitaplık nesnesi hatadır. Anahtarı metin olmayan sözlük de hatadır, çünkü JSON'da anahtar metindir ve geri okununca anahtarın tipi değişir; ileti anahtarı `TR_String(k)` ile çevirmeyi önerir.
+- `TR_json_parse(metin)` bir `TR_JSON` verir (3.7a); `TR_json_string(değer)` değeri JSON metnine çevirir. JSON'a yalnız veri yazılır: sonlu sayı (NaN ve sonsuz hatadır, JSON'da yoktur), metin, mantık değeri, `TR_none`, liste, `TR_JSON`, `TR_Tensor`, `TR_Path` ve anahtarı metin olan sözlük. Fonksiyon, aralık, yapı ve kitaplık nesnesi hatadır. Anahtarı metin olmayan sözlük de hatadır, çünkü JSON'da anahtar metindir ve geri okununca anahtarın tipi değişir; ileti anahtarı `TR_String(k)` ile çevirmeyi önerir.
 - `TR_read_csv(yol)` bir CSV dosyasını, `TR_parse_csv(metin)` metnin kendisini `TR_List[TR_List[TR_String]]`'e çevirir; hücre hep metindir, sayı gerekirse tip çağrısıyla çevrilir (`TR_Int(hücre)`, 3.12). İkisi ayrıdır, çünkü bir metnin dosya adı mı içerik mi olduğu tahmin edilemez. `TR_read_csv`'ye `TR_Path` verilirse her zaman dosya okunur. `TR_String` olarak satır sonu içeren bir metin ya da virgül içeren ve öyle bir dosyası olmayan bir metin verilirse ileti `TR_parse_csv`'yi önerir.
-- Baştaki bayt sırası işareti atılır. Toplam hücre sayısı koleksiyonların sınırındadır.
+- Baştaki bayt sırası işareti atılır. Toplam hücre sayısı koleksiyonların sınırındadır; belleğe sığmayan dosya satır satır okunur (18).
 - *Test:* TR testi; JSON anahtarının ve metin hücrenin kuralı uygulanınca TR testi.
 
 **13.8a** Dönüşü argümanın değerine bağlı olan üç iş ayrı adlarla yazılır (13.10):

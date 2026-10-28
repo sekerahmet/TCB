@@ -334,7 +334,7 @@ var identityExceptions = map[string]string{
 	"TR_enum":      "onaylı yeni ad (7.x, durumlu tip)",
 	"TR_interface": "onaylı yeni ad (7.x, arayüz)",
 	"TR_Error":     "onaylı yeni ad (8.3, hata değeri)", "TR_code": "onaylı yeni ad (8.3, hatanın kodu)",
-	"TR_message": "onaylı yeni ad (8.3, iletisi)", "TR_value": "onaylı yeni ad (8.3, fırlatılan değer)", "TR_cause": "onaylı yeni ad (8.2, 8.3)", "TR_suppressed": "onaylı yeni ad (8.3, 9.4)", "TR_item": "onaylı yeni ad (13.8a)", "TR_batch_decode": "onaylı yeni ad (13.8a)", "TR_named_parameters": "onaylı yeni ad (13.8a)",
+	"TR_message": "onaylı yeni ad (8.3, iletisi)", "TR_value": "onaylı yeni ad (8.3, fırlatılan değer)", "TR_cause": "onaylı yeni ad (8.2, 8.3)", "TR_suppressed": "onaylı yeni ad (8.3, 9.4)", "TR_item": "onaylı yeni ad (13.8a)", "TR_batch_decode": "onaylı yeni ad (13.8a)", "TR_named_parameters": "onaylı yeni ad (13.8a)", "TR_read_bytes": "onaylı yeni ad (13.1)", "TR_monotonic_ns": "onaylı yeni ad (13.1)",
 	"TR_while":   "bilerek yanlış: kalkan sözcük (2.9)",
 	"TR_default": "bilerek yanlış: kalkan sözcük (2.9)",
 	"TR_elif":    "bilerek yanlış: başka dilin yazımı (5.5)", "TR_it": "kalkan sözcük (6.7): status anlatımı, ana oturum güncelleyince kalkar", "TR_acc": "aynı (6.7)",
