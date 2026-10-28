@@ -368,3 +368,37 @@ Kurallar: [`docs/spec/09_ertele.md`](spec/09_ertele.md). Taslak (2026-10-28): an
 
 - **Mevcut durum:** hatasız kapsamda ertelenen işin hatası yakalanıyor; iki hata tek metinde birleşiyor ("govde hatasi; error in defer as well: ertele hatasi") [ölçüldü].
 - **Yapılacaklar:** ilk hata korunur, öbürleri `e.TR_suppressed`'e (8.3 ile).
+
+## 13. Yerleşikler
+
+Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 1. tur (2026-10-28): ana oturum yazdı, DENETİM bekleniyor.
+
+### 13.1
+
+- **Mevcut durum:** `TR_sum([1, 2])` `TR_Int`, `TR_sum([1, 2.5])` 3.5; `TR_max([])` `TR_none`; `TR_round(2.5)` 3; sayı olmayan öğe H2486 [ölçüldü].
+- **Yapılacaklar:** boş listede `TR_std` ve `TR_median`'ın hatası ölçülmedi.
+
+### 13.6
+
+- **Mevcut durum:** `TR_reduce(0, (a, x) => a + x)` çalışıyor [ölçüldü].
+- **Yapılacaklar:** tek parametreli ve başa yazılmış fonksiyonun iletisi ölçülmedi.
+
+### 13.8
+
+- **Mevcut durum:** `TR_json_parse` `TR_Dict` veriyor, `TR_JSON` değil [ölçüldü].
+- **Yapılacaklar:** `TR_json_parse` `TR_JSON` verir (3.7a ile).
+
+### 13.9
+
+- **Mevcut durum:** katalog 188 fonksiyon ve metodun 168'inin imzasını tutuyor; 20 kitaplık fonksiyonunun (`tr/hazir`, `tr/katman`, `tr/egitim` gibi) imzası yok. Tipler öğesiz (`TR_List`, `TR_Dict`), fonksiyon tipi tek bir `TR_Function`, genel tip `TR_Any` 3.11'e karşın kullanılıyor [ölçüldü].
+- **Yapılacaklar:** her yerleşiğin imzası, öğe ve fonksiyon tipleriyle; TR modüllerinin imzasıyla katalogun aynı olduğunu sınayan test; `docs/codes.md`'nin imzayı göstermesi (4a).
+
+### 13.10
+
+- **Mevcut durum:** 38 yerleşiğin dönüş tipi birleşim (`TR_abs`, `TR_floor`, `TR_exp` gibi: "Int ya da Float ya da Tensor"); yalnız 7 metodun alıcıya göre ayrı imzası var (`TR_append`, `TR_contains`, `TR_get`, `TR_next`, `TR_reverse`, `TR_split`, `TR_update`) [ölçüldü].
+- **Yapılacaklar:** birleşim dönüşler ayrı imzalara; `TR_Any` tip parametresine (4a).
+
+### 13.11
+
+- **Mevcut durum:** yanlış tip ve sayı çalışma anında, iletiyle: "sqrt() expects Int or Float as argument 1, String (\"a\") given", "sqrt() takes 1 argument, 2 given (usage: sqrt(number))" [ölçüldü].
+- **Yapılacaklar:** denetleyicide aynı kodla (4a).

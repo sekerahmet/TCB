@@ -29,7 +29,7 @@ TR_test "13.1 min ve max türü korur, Tam'ları tam karşılaştırır, sayı o
     TR_assert_equal(4, TR_round(3.6))
 }
 
-TR_test "13.1 yerleşiklerin argüman hataları tek biçimdedir" {
+TR_test "13.11 yerleşiklerin argüman hataları tek biçimdedir" {
     TR_assert_equal("H2423", TR_error_code(() => { TR_sqrt("a") }))
     TR_assert_equal("H2423", TR_error_code(() => { [1].TR_filter(3) }))
     TR_assert_equal("H2011", TR_error_code(() => { TR_sum() }))
