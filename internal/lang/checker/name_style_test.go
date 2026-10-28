@@ -60,7 +60,7 @@ func TestNameStyleWarnings(t *testing.T) {
 }
 
 // Kurala uyan adlar ve matematik adları (en çok üç harf ve rakam: W, X, Wq, dW, W1, QKV;
-// X_veri'nin X'i) uyarı vermez; baştaki _ (modüle özel) ve $ (kaçış) yazılışa sayılmaz.
+// X_veri'nin X'i) uyarı vermez; baştaki _ (modüle özel) yazılışa sayılmaz.
 func TestNameStyleAcceptsConventionalAndMathNames(t *testing.T) {
 	source := `TR_const EN_BÜYÜK = 10
 TR_const D2 = 2
@@ -69,7 +69,7 @@ TR_var W = 1
 TR_var Wq, dW, W1, QKV = 1, 2, 3, 4
 TR_var X_veri = 1
 TR_var _iç = 1
-TR_var $eğer = 1
+TR_var eğer = 1
 TR_func hazır_model(B, T) { TR_return B * T }
 TR_struct GPT { katman = 1 }
 TR_struct SıçramaBekçisi { pencere = 20 }

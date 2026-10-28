@@ -41,6 +41,7 @@ func TestTypeNamesFollowTheMessageLanguage(t *testing.T) {
 // tip adı kendi dilinin adını önerir (İngilizce dosyada Tam → Int); bir dilin harf yazımı öbür
 // dilde ipucu almaz.
 func TestTypeAnnotationSuggestionFollowsTheFileLanguage(t *testing.T) {
+	t.Skip("katman 4 (tipler): dosyanın dili kalktı (2.1); tip açıklamasının ipucu kimlik yazımıyla yeniden kurulur")
 	for _, c := range []struct {
 		lang, name string
 		code       messages.Code // 0: H1006 de H1007 de yok

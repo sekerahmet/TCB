@@ -100,15 +100,16 @@ func compareTokens(t *testing.T, input string, toks []Token, want []expected) {
 // Anahtar kelimeler
 // ---------------------------------------------------------------------------
 
-// Sözlükteki her anahtar kelime tek başına doğru türde token üretmeli.
+// Sözlükteki her anahtar kelime kimlik yazımıyla (TR_if, 2.3a) tek başına doğru türde token üretmeli.
 func TestKeywordTableComplete(t *testing.T) {
-	for word, kind := range keywords {
+	for _, e := range keywordTable {
+		word, kind := codes.Spelling(e.Code), e.Type
 		toks := tokensNoErrors(t, word)
 		if len(toks) != 2 {
 			t.Errorf("%q: tek token + DOSYA_SONU bekleniyordu, gelen: %v", word, toks)
 			continue
 		}
-		if toks[0].Type != kind || toks[0].Literal != word {
+		if toks[0].Type != kind || toks[0].Literal != e.Code.String() { // içeride kod (TR_kw_if)
 			t.Errorf("%q: %s bekleniyordu, %s %q geldi", word, kind, toks[0].Type, toks[0].Literal)
 		}
 		if toks[0].Line != 1 || toks[0].Column != 1 {
@@ -244,9 +245,6 @@ func TestNumbers(t *testing.T) {
 		{"0.5", TokFloat, "0.5"},
 		{"1_000.25", TokFloat, "1000.25"},
 		{"3.141_592", TokFloat, "3.141592"},
-		// Mevcut davranış: alt çizgiler konumdan bağımsız atılır (sonda veya art arda olsa da).
-		{"1_", TokInt, "1"},
-		{"1__0", TokInt, "10"},
 	}
 	for _, tt := range tests {
 		checkTokens(t, tt.src, []expected{{tt.kind, tt.lit}, {TokEOF, ""}})

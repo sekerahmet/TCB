@@ -133,11 +133,11 @@ func checkSortedOnePerLine(t *testing.T, data []byte, requiredField string) {
 
 // Tip ifadeleri çözülür; geçersiz bir tanım satırı hatayla bildirilir.
 func TestParseDefinitions(t *testing.T) {
-	ti, err := ParseType("TR_Int|TR_Float?", true)
+	ti, err := ParseType("TR_type_Int|TR_type_Float?", true)
 	if err != nil || !ti.Optional || len(ti.Types) != 2 || ti.Types[1] != TypeFloat {
 		t.Fatalf("TipCoz: %+v %v", ti, err)
 	}
-	if _, err := ParseType("TR_Int?", false); err == nil {
+	if _, err := ParseType("TR_type_Int?", false); err == nil {
 		t.Error("dönüş tipinde sonek hata olmalı")
 	}
 	_, _, err = ParseDefinitions([]byte(`{"TR_fn_print": {"kind": "function", "bilinmeyen": 1}}`))
@@ -159,8 +159,8 @@ func TestLibraryCodesAreNotBuiltins(t *testing.T) {
 		t.Fatalf("modül alanı okunmalı: %+v %v", defs[FnSin], err)
 	}
 	for _, c := range []struct{ json, want string }{
-		{`{"TR_kw_if": {"kind": "keyword", "module": "tr/deneme"}}`, "TR_if: a module is written only on"},
-		{`{"TR_fn_sin": {"kind": "function", "module": "deneme"}}`, "TR_sin: module \"deneme\" is not a standard library module"},
+		{`{"TR_kw_if": {"kind": "keyword", "module": "tr/deneme"}}`, "TR_kw_if: a module is written only on"},
+		{`{"TR_fn_sin": {"kind": "function", "module": "deneme"}}`, "TR_fn_sin: module \"deneme\" is not a standard library module"},
 	} {
 		if _, _, err := ParseDefinitions([]byte(c.json)); err == nil || !strings.Contains(err.Error(), c.want) {
 			t.Errorf("%s: %q içeren hata bekleniyordu, alınan: %v", c.json, c.want, err)

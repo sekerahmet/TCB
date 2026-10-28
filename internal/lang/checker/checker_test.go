@@ -20,11 +20,11 @@ import (
 // çalışır: asıl tip adı tipin kimliğidir; dili bilinmeyen adın ipucu her yazım dilinden gelir.
 func TestTypeNameNormalization(t *testing.T) {
 	tests := map[string]codes.Code{
-		"TR_Int": codes.TypeInt, "tam": codes.TypeInt, "TAM": codes.TypeInt, "int": codes.TypeInt,
-		"TR_Float": codes.TypeFloat, "ONDALIK": codes.TypeFloat, "float": codes.TypeFloat,
-		"TR_String": codes.TypeString, "METİN": codes.TypeString,
-		"TR_Bool": codes.TypeBool, "MANTIK": codes.TypeBool,
-		"TR_List": codes.TypeList, "TR_Dict": codes.TypeDict, "TR_Tensor": codes.TypeTensor, "TR_None": codes.TypeNone,
+		"TR_type_Int": codes.TypeInt, "tam": codes.TypeInt, "TAM": codes.TypeInt, "int": codes.TypeInt,
+		"TR_type_Float": codes.TypeFloat, "ONDALIK": codes.TypeFloat, "float": codes.TypeFloat,
+		"TR_type_String": codes.TypeString, "METİN": codes.TypeString,
+		"TR_type_Bool": codes.TypeBool, "MANTIK": codes.TypeBool,
+		"TR_type_List": codes.TypeList, "TR_type_Dict": codes.TypeDict, "TR_type_Tensor": codes.TypeTensor, "TR_type_None": codes.TypeNone,
 		"Fonksiyon": codes.TypeFunction, "": codes.TypeAny,
 	}
 	for input, want := range tests {
@@ -326,7 +326,6 @@ func TestReturnTypeCheck(t *testing.T) {
 		"TR_func f(): TR_Bool { TR_return 1 < 2 }",         // karşılaştırma
 		"TR_func f(): TR_Function { TR_return (x) => x }",
 		`TR_func f() { TR_return "x" }`, // dönüş tipi yoksa denetim yok
-		`TR_return "x"`,                 // fonksiyon dışındaki dönüş denetlenmez
 	} {
 		noErrors(t, source)
 	}

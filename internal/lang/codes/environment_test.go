@@ -61,7 +61,7 @@ func TestEnvValueReadsEveryLanguagesName(t *testing.T) {
 // çekirdeği onu okur: TR_env_GPU_SYNC); hiçbir yazım dilinde verilmeyen değişkenin kalıtılmış kimlik adı
 // silinir. Ortak adlı değişken (TR_CPU_AVX2) ortak adıyla da okunur.
 func TestExportEnvironmentGivesTheIdentityName(t *testing.T) {
-	for _, name := range []string{"TR_GPU_SYNC", "TR_GPU_ESZAMANLI", "TR_GPU_SYNC", "TR_CPU_AVX2", "TR_CPU_AVX2"} {
+	for _, name := range []string{"TR_GPU_SYNC", "TR_GPU_ESZAMANLI", "TR_env_GPU_SYNC", "TR_CPU_AVX2", "TR_env_CPU_AVX2"} {
 		unsetEnv(t, name)
 	}
 	for _, name := range []string{"TR_GPU_SYNC", "TR_GPU_ESZAMANLI"} {
@@ -71,18 +71,18 @@ func TestExportEnvironmentGivesTheIdentityName(t *testing.T) {
 			if err := ExportEnvironment(); err != nil {
 				t.Fatal(err)
 			}
-			if v := os.Getenv("TR_GPU_SYNC"); v != "1" {
-				t.Errorf("TR_GPU_SYNC = %q, want 1", v)
+			if v := os.Getenv("TR_env_GPU_SYNC"); v != "1" {
+				t.Errorf("TR_env_GPU_SYNC = %q, want 1", v)
 			}
-			if v := os.Getenv("TR_CPU_AVX2"); v != "0" {
-				t.Errorf("TR_CPU_AVX2 = %q, want 0", v)
+			if v := os.Getenv("TR_env_CPU_AVX2"); v != "0" {
+				t.Errorf("TR_env_CPU_AVX2 = %q, want 0", v)
 			}
 			os.Unsetenv(name)
 			if err := ExportEnvironment(); err != nil {
 				t.Fatal(err)
 			}
-			if v, set := os.LookupEnv("TR_GPU_SYNC"); set {
-				t.Errorf("TR_GPU_SYNC = %q left after its name was removed", v)
+			if v, set := os.LookupEnv("TR_env_GPU_SYNC"); set {
+				t.Errorf("TR_env_GPU_SYNC = %q left after its name was removed", v)
 			}
 		})
 	}
@@ -94,10 +94,10 @@ func TestLanguageEnvVarsAreK400(t *testing.T) {
 	got, want := slices.Sorted(slices.Values(messages.LanguageEnvVars)), WritingNames(EnvLang)
 	slices.Sort(want)
 	if !slices.Equal(got, want) {
-		t.Errorf("messages.LanguageEnvVars = %v, TR_LANG names = %v", got, want)
+		t.Errorf("messages.LanguageEnvVars = %v, TR_env_LANG names = %v", got, want)
 	}
 	if !slices.Contains(want, messages.LanguageEnvVar) {
-		t.Errorf("messages.LanguageEnvVar = %q is not a name of TR_LANG %v", messages.LanguageEnvVar, want)
+		t.Errorf("messages.LanguageEnvVar = %q is not a name of TR_env_LANG %v", messages.LanguageEnvVar, want)
 	}
 }
 

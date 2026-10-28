@@ -11,11 +11,11 @@ import (
 )
 
 // Kural (5.14): tanımsız ad çalışmadan önce hatadır; ipucu çalışma anındakiyle aynıdır. Konum
-// denetlenen gövdeye göredir (kodlu gövdede TR_fn_print( 12 sütundur; kişinin görünümündeki
+// denetlenen gövdeye göredir (kodlu gövdede TR_print( 9 sütundur; kişinin görünümündeki
 // konumu source.view verir, 17.5).
 func TestUndefinedNameIsError(t *testing.T) {
-	singleErrorAt(t, "yazdir(1)", 1, 1, "'yazdir' TR'de yok; 'yazdır' yazmak mı istediniz?")
-	singleErrorAt(t, "TR_var öğrenci_sayısı = 1\nTR_print(öğrenci_sayis)", 2, 13, "'öğrenci_sayis' adında bir değişken ya da fonksiyon yok", "Bunu mu demek istediniz: 'öğrenci_sayısı'?")
+	singleErrorAt(t, "yazdir(1)", 1, 1, "'yazdir' TR'de yok; 'TR_print' yazmak mı istediniz?")
+	singleErrorAt(t, "TR_var öğrenci_sayısı = 1\nTR_print(öğrenci_sayis)", 2, 10, "'öğrenci_sayis' adında bir değişken ya da fonksiyon yok", "Bunu mu demek istediniz: 'öğrenci_sayısı'?")
 	singleErrorAt(t, "tanımsız = 3", 1, 1, "'tanımsız'")
 	singleError(t, "TR_if TR_true { TR_var iç = 1 }\nTR_print(iç)", messages.H1010, 2, "'iç'")
 	singleError(t, "TR_func f() { TR_return g() }", messages.H1010, 1, "'g'")
@@ -108,7 +108,8 @@ func TestUndefinedNameNoFalseAlarm(t *testing.T) {
 	}
 }
 
-// Tip hatası, tanımsız ad ve gölgeleme uyarısı birlikte bildirilir; biri ötekini gizlemez.
+// Tip hatası ve tanımsız ad birlikte bildirilir; biri ötekini gizlemez. Dosyada yerleşikle aynı
+// yazılan kullanıcı adı gölgeleme uyarısı almaz (2.1).
 // Hatalar satır sırasıyladır.
 func TestTypeErrorUndefinedNameAndWarningTogether(t *testing.T) {
 	p := parser.New(lexer.NewBody("TR_var toplam = [1, 2]\nyazdir(toplam)\nTR_var x: TR_Int = \"metin\"\n", true))
@@ -129,8 +130,8 @@ func TestTypeErrorUndefinedNameAndWarningTogether(t *testing.T) {
 	if !strings.HasPrefix(errs[0], "Satır 2, Sütun 1: ") || !strings.HasPrefix(errs[1], "Satır 3: ") {
 		t.Errorf("hata metni 'Satır N: ...' biçiminde olmalı: %q", errs)
 	}
-	if u := c.Warnings(); len(u) != 1 || !messages.Has(u[0], messages.H1009) || !strings.Contains(u[0].Error(), "'toplam' yerleşik bir ad") {
-		t.Fatalf("gölgeleme uyarısı da verilmeli: %q", u)
+	if u := c.Warnings(); len(u) != 0 {
+		t.Fatalf("dosyada gölgeleme uyarısı yok (2.1: toplam bir kullanıcı adıdır): %q", u)
 	}
 }
 

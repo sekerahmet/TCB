@@ -66,12 +66,8 @@ func TestUnusedValueIsAnError(t *testing.T) {
 
 // Değeri kullanılan bir bloğun son ifadesi değerdir: 'TR_var g = TR_if a { 0.01 } TR_else { -0.01 }'
 // bloğun değeridir (iç içe eğer ve eşle de); değeri kullanılmayan eğer deyiminin bloğundaki '-x'
-// hata olmaya devam eder. Kodlu gövdede ve bir dildeki yazımda (kabuk satırı) aynı.
+// hata olmaya devam eder. Bir dildeki yazım (kabuk satırı) önce kodlanır, denetleyici kodlu gövdeyi okur.
 func TestBlockValueIsNotAnUnusedValue(t *testing.T) {
-	en, err := codes.LoadLanguage("en")
-	if err != nil {
-		t.Fatal(err)
-	}
 	for _, c := range []struct {
 		lang   *codes.Language
 		used   []string
@@ -82,11 +78,6 @@ func TestBlockValueIsNotAnUnusedValue(t *testing.T) {
 			"TR_var a = TR_true\nTR_print(TR_if a { 1 } TR_else TR_if TR_not a { -1 } TR_else { TR_if a { -2 } TR_else { -3 } })",
 			"TR_var a = 1\nTR_print(TR_match a { 1 => { -1 }; _ => { -2 } })",
 		}, "TR_var a = TR_true\nTR_var b = 1\nTR_if a {\n    -b\n}"},
-		{en, []string{
-			"var a = true\nvar g = if a { 0.01 } else { -0.01 }\nprint(g)",
-			"var a = true\nprint(if a { 1 } else if not a { -1 } else { if a { -2 } else { -3 } })",
-			"var a = 1\nprint(match a { 1 => { -1 }; _ => { -2 } })",
-		}, "var a = true\nvar b = 1\nif a {\n    -b\n}"},
 	} {
 		name := "kodlu"
 		if c.lang != nil {

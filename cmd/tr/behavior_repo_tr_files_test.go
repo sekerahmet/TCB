@@ -17,9 +17,7 @@ import (
 
 // repoWarningAllowed bilerek uyarı veren yerlerdir ("dosya:satır" → gerekçe). Liste küçük tutulur; artık
 // uyarmayan kayıt testi düşürür.
-var repoWarningAllowed = map[string]string{
-	"tests/coded/ornek_kodlu.tr:17": "gölgelemenin kendisini sınar: kodlu dosyada yerleşiğin adıyla aynı yerel ad kod değil, kullanıcının adıdır",
-}
+var repoWarningAllowed = map[string]string{}
 
 // Tanımsız ad denetimi (docs/spec/05_deyimler.md §5.14) dinamik dilde yanlış alarm vermemeli:
 // depodaki bütün .tr dosyaları (testler, örnekler, kıyas programları, kitaplık) hatasız ve uyarısız

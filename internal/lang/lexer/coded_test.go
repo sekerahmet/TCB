@@ -32,7 +32,7 @@ func TestCodedTokens(t *testing.T) {
 		lexer *Lexer
 		words [4]string // var, print, append, true
 	}{
-		{"kimlik", NewBody(src, true), [4]string{"TR_var", "TR_print", "TR_append", "TR_true"}},
+		{"kimlik", NewBody(src, true), [4]string{"TR_kw_var", "TR_fn_print", "TR_mem_append", "TR_kw_true"}}, // içeride kod: sözcüğün metni iç kimliktir
 		{"tr", NewBodyIn(src, true, codes.Source()), [4]string{"değişken", "yazdır", "ekle", "doğru"}},
 		{"en", NewBodyIn(src, true, en), [4]string{"var", "print", "append", "true"}},
 	} {

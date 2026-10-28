@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
@@ -118,9 +119,9 @@ func TestPackageRoundTrip(t *testing.T) {
 }
 
 func TestImportSitesAndRedirect(t *testing.T) {
-	code := "// aktar \"yorumdaki\" sayılmaz\naktar \"a\"\nyazdır(\"aktar b\")\neğer doğru {\n    aktar \"alt/ç.tr\" olarak c\n}\n"
+	code := source.Header + "\n# TR_import \"yorumdaki\" sayılmaz\nTR_import \"a\"\nTR_import \"alt/ç.tr\" TR_as c\nTR_print(\"TR_import b\")\n"
 	sites := importSites(code)
-	if len(sites) != 2 || sites[0].filePath != "a" || sites[0].ln != 2 || sites[1].filePath != "alt/ç.tr" || sites[1].ln != 5 {
+	if len(sites) != 2 || sites[0].filePath != "a" || sites[0].ln != 3 || sites[1].filePath != "alt/ç.tr" || sites[1].ln != 4 {
 		t.Fatalf("aktar yerleri yanlış: %+v", sites)
 	}
 	d := packageFile{Name: "x.tr", Code: code, Imports: []int{1, 0}}

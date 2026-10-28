@@ -96,17 +96,17 @@ func TestSuggestionFollowsTheTextLanguage(t *testing.T) {
 	}{
 		{"BuiltinSpellingHint tr", BuiltinSpellingHint("yazdir", tr), "tr", "'yazdır'"},
 		{"BuiltinSpellingHint en", BuiltinSpellingHint("yazdir", en), "en", ""},
-		{"BuiltinSpellingHint bilinmeyen", BuiltinSpellingHint("yazdir", nil), "tr", "'yazdır'"},
+		{"BuiltinSpellingHint dosya", BuiltinSpellingHint("yazdir", nil), "tr", "'TR_print'"},
 		{"KeywordSpellingHint tr", KeywordSpellingHint("degisken", tr), "tr", "'değişken'"},
 		{"KeywordSpellingHint en", KeywordSpellingHint("degisken", en), "en", ""},
 		{"ClosestSuggestion en", ClosestSuggestion("prnt", []string{print}, en), "en", "'print'"},
 		{"ClosestSuggestion tr", ClosestSuggestion("yazdr", []string{print}, tr), "tr", "'yazdır'"},
 		{"ClosestSuggestion en, Türkçe yazım", ClosestSuggestion("yazdr", []string{print}, en), "en", ""},
-		{"ClosestSuggestion bilinmeyen", ClosestSuggestion("prnt", []string{print}, nil), "en", "'print'"},
+		{"ClosestSuggestion dosya", ClosestSuggestion("prnt", []string{print}, nil), "en", "'TR_print'"},
 		{"TypeTextComparisonError en", TypeTextComparisonError("==", "Float", codes.NameRef(codes.TypeInt), en), "tr", "== Ondalık"},
 		{"TypeTextComparisonError tr", TypeTextComparisonError("==", "Ondalik", codes.NameRef(codes.TypeInt), tr), "tr", "== Ondalık"},
 		{"TypeTextComparisonError en, Türkçe yazım", TypeTextComparisonError("==", "Ondalik", codes.NameRef(codes.TypeInt), en), "tr", "== Tam"},
-		{"TypeTextComparisonError bilinmeyen", TypeTextComparisonError("==", "Float", codes.NameRef(codes.TypeInt), nil), "tr", "== Ondalık"},
+		{"TypeTextComparisonError dosya", TypeTextComparisonError("==", "Float", codes.NameRef(codes.TypeInt), nil), "tr", "== TR_Float"},
 	} {
 		got := in(c.got, c.lang)
 		if c.want == "" && got != "" || !strings.Contains(got, c.want) {

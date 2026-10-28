@@ -15,22 +15,16 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// Durumu değiştiren işlerin listesi (1.5) tek yerde yazılır: her girdi neyi değiştirdiğini söyler,
-// her kodun bir adı vardır ve bu işlerin hiçbiri bırakılabilir bir bekleme (Abandonable,
-// AwaitNew) yapmaz: bırakılan iş yarıda kalmış bir durum değişikliği olurdu.
+// Durumu değiştiren işlerin listesi (1.5) tek yerde yazılır: her kodun bir adı vardır ve bu işlerin
+// hiçbiri bırakılabilir bir bekleme (Abandonable, AwaitNew) yapmaz: bırakılan iş yarıda kalmış bir
+// durum değişikliği olurdu.
 func TestStateChangesAreNeverAbandoned(t *testing.T) {
 	listed := map[int]string{}
-	for _, change := range StateChanges {
-		if change.What == "" {
-			t.Errorf("%v: neyi değiştirdiği yazılmalı", change.Code)
+	for _, k := range StateChanges {
+		if k == codes.None || codes.Name(k) == "" {
+			t.Errorf("%v: kodun adı yok", k)
 		}
-		if change.Code == codes.None {
-			continue
-		}
-		if codes.Name(change.Code) == "" {
-			t.Errorf("%v: kodun adı yok", change.Code)
-		}
-		listed[int(change.Code)] = change.What
+		listed[int(k)] = k.String()
 	}
 	values := constantValues(t)
 	for _, dir := range []string{"internal/lang/interp", "internal/stdlib"} {
