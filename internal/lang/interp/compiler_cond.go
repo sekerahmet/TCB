@@ -8,11 +8,14 @@ import (
 
 func (c *compiler) ifExpr(k *compilerScope, e *ast.IfExpression) statementCode {
 	condition := c.expression(k, e.Condition)
+	condLine := e.Condition.Line()
 	mainSrc := c.blockStatement(k, e.Consequence)
 	otherCond := make([]exprCode, len(e.ElseIfs))
+	otherLine := make([]int, len(e.ElseIfs))
 	otherBranch := make([]statementCode, len(e.ElseIfs))
 	for i, ei := range e.ElseIfs {
 		otherCond[i] = c.expression(k, ei.Condition)
+		otherLine[i] = ei.Condition.Line()
 		otherBranch[i] = c.blockStatement(k, ei.Consequence)
 	}
 	var coalesce statementCode
@@ -24,7 +27,9 @@ func (c *compiler) ifExpr(k *compilerScope, e *ast.IfExpression) statementCode {
 		if err != nil {
 			return nil, signalNone, err
 		}
-		if isTrue(cond) {
+		if ok, err := truth(cond, condLine); err != nil {
+			return nil, signalNone, err
+		} else if ok {
 			return mainSrc(v, env)
 		}
 		for i, dk := range otherCond {
@@ -32,7 +37,9 @@ func (c *compiler) ifExpr(k *compilerScope, e *ast.IfExpression) statementCode {
 			if err != nil {
 				return nil, signalNone, err
 			}
-			if isTrue(elifCond) {
+			if ok, err := truth(elifCond, otherLine[i]); err != nil {
+				return nil, signalNone, err
+			} else if ok {
 				return otherBranch[i](v, env)
 			}
 		}

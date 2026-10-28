@@ -265,21 +265,29 @@ func setupStringMethods() {
 	})
 }
 
+// listFilter liste.TR_filter(f): f'nin TR_true döndürdüğü öğeler. Yüklem TR_Bool döndürür
+// (3.10); doğruluk sınaması yoktur (H2611).
+func listFilter(y *VM, inst Value, args []Value, line int) (Value, error) {
+	var result []Value
+	for _, item := range inst.(*ListVal).Elements {
+		keep, err := y.ApplyFunction(args[0], []Value{item}, nil, line)
+		if err != nil {
+			return nil, err
+		}
+		b, ok := keep.(*BoolVal)
+		if !ok {
+			return nil, messages.New(messages.H2611, keep.Type())
+		}
+		if b.Val {
+			result = append(result, item)
+		}
+	}
+	return &ListVal{Elements: result}, nil
+}
+
 // setupListMethods Liste tipinin metotlarını kaydeder.
 func setupListMethods() {
-	addMethod(typeList, codes.MemFilter, signature{1, 1, codes.ReceiverRef(codes.TypeFunction), []*argKind{funcArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
-		var result []Value
-		for _, item := range inst.(*ListVal).Elements {
-			keep, err := y.ApplyFunction(args[0], []Value{item}, nil, line)
-			if err != nil {
-				return nil, err
-			}
-			if keep.IsTruthy() {
-				result = append(result, item)
-			}
-		}
-		return &ListVal{Elements: result}, nil
-	})
+	addMethod(typeList, codes.MemFilter, signature{1, 1, codes.ReceiverRef(codes.TypeFunction), []*argKind{funcArg}}, listFilter)
 	addMethod(typeList, codes.MemMap, signature{1, 1, codes.ReceiverRef(codes.TypeFunction), []*argKind{funcArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		elems := inst.(*ListVal).Elements
 		result := make([]Value, 0, len(elems))

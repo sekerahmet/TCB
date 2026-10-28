@@ -248,6 +248,7 @@ func streamLoop(v *VM, it Stream, kind *loopScope, keySlot, valueSlot int, bodyB
 // whileStmt 'iken koşul { ... }' deyimini derler. Gövde ad tanımlamıyorsa tur ortamı açılmaz.
 func (c *compiler) whileStmt(k *compilerScope, s *ast.WhileStatement) statementCode {
 	condition := c.expression(k, s.Condition)
+	condLine := s.Condition.Line()
 	var bodyStatements []ast.Statement
 	if s.Body != nil {
 		bodyStatements = s.Body.Statements
@@ -264,7 +265,9 @@ func (c *compiler) whileStmt(k *compilerScope, s *ast.WhileStatement) statementC
 				if err != nil {
 					return nil, signalNone, err
 				}
-				if !isTrue(cond) {
+				if ok, err := truth(cond, condLine); err != nil {
+					return nil, signalNone, err
+				} else if !ok {
 					break
 				}
 				val, sig, err := bodyBlock.run(v, env)
@@ -299,7 +302,9 @@ func (c *compiler) whileStmt(k *compilerScope, s *ast.WhileStatement) statementC
 			if err != nil {
 				return nil, signalNone, err
 			}
-			if !isTrue(cond) {
+			if ok, err := truth(cond, condLine); err != nil {
+				return nil, signalNone, err
+			} else if !ok {
 				break
 			}
 			val, sig, err := bodyBlock.run(v, kind.turn(v))
@@ -318,12 +323,21 @@ func (c *compiler) whileStmt(k *compilerScope, s *ast.WhileStatement) statementC
 	}
 }
 
-// isTrue bir değerin doğruluğunu (Mantık değerleri için arayüz çağrısı yapmadan) verir.
-func isTrue(x Value) bool {
+// truth koşulun değeridir (3.10): koşul yalnız TR_Bool olur; başka tip çalışma hatasıdır (H2600),
+// ileti açık sınamayı önerir. Doğruluk sınaması (boş liste yanlış) yoktur.
+func truth(x Value, line int) (bool, error) {
 	if b, ok := x.(*BoolVal); ok {
-		return b.Val
+		return b.Val, nil
 	}
-	return x.IsTruthy()
+	return false, messages.At(line, 0, messages.New(messages.H2600, x.Type()))
+}
+
+// operand TR_and, TR_or ve TR_not'un işlenenidir (4.6): yalnız TR_Bool (H2601).
+func operand(x Value, line int) (bool, error) {
+	if b, ok := x.(*BoolVal); ok {
+		return b.Val, nil
+	}
+	return false, messages.At(line, 0, messages.New(messages.H2601, x.Type()))
 }
 
 // --- LİSTE ÜRETECİ ---
@@ -335,8 +349,10 @@ func (c *compiler) listComprehension(k *compilerScope, lc *ast.ListComprehension
 	ast.ExprDefinedNames(lc.Condition, sub.define)
 	ast.ExprDefinedNames(lc.Output, sub.define)
 	var condition exprCode
+	condLine := 0
 	if lc.Condition != nil {
 		condition = c.expression(sub, lc.Condition)
+		condLine = lc.Condition.Line()
 	}
 	output := c.expression(sub, lc.Output)
 	info := sub.info
@@ -369,7 +385,9 @@ func (c *compiler) listComprehension(k *compilerScope, lc *ast.ListComprehension
 				if err != nil {
 					return nil, err
 				}
-				if !condVal.IsTruthy() {
+				if ok, err := truth(condVal, condLine); err != nil {
+					return nil, err
+				} else if !ok {
 					continue
 				}
 			}

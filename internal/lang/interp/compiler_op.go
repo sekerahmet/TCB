@@ -19,10 +19,11 @@ func (c *compiler) prefixText(k *compilerScope, e *ast.PrefixExpression) exprCod
 			if err != nil {
 				return nil, err
 			}
-			if right.IsTruthy() {
-				return False, nil
+			b, err := operand(right, line)
+			if err != nil {
+				return nil, err
 			}
-			return True, nil
+			return BoolToVal(!b), nil
 		}
 	case "-":
 		return func(v *VM, env *Environment) (Value, error) {
@@ -198,14 +199,15 @@ func (c *compiler) binary(k *compilerScope, e *ast.InfixExpression) exprCode {
 			if err != nil {
 				return nil, err
 			}
-			if !isTrue(left) {
-				return False, nil
+			if b, err := operand(left, line); err != nil || !b {
+				return False, err
 			}
 			right, err := rightFn(v, env)
 			if err != nil {
 				return nil, err
 			}
-			return BoolToVal(isTrue(right)), nil
+			b, err := operand(right, line)
+			return BoolToVal(b), err
 		}
 	case opOr:
 		return func(v *VM, env *Environment) (Value, error) {
@@ -213,14 +215,15 @@ func (c *compiler) binary(k *compilerScope, e *ast.InfixExpression) exprCode {
 			if err != nil {
 				return nil, err
 			}
-			if isTrue(left) {
-				return True, nil
+			if b, err := operand(left, line); err != nil || b {
+				return BoolToVal(b), err
 			}
 			right, err := rightFn(v, env)
 			if err != nil {
 				return nil, err
 			}
-			return BoolToVal(isTrue(right)), nil
+			b, err := operand(right, line)
+			return BoolToVal(b), err
 		}
 	case opCoalesce:
 		return func(v *VM, env *Environment) (Value, error) {

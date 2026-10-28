@@ -50,7 +50,7 @@ TR_test "15.2 özellikler ve görünüm metotları" {
     TR_var üç = TR_tensor([[[1, 2], [3, 4]]])
     TR_assert_equal([[[1.0, 3.0], [2.0, 4.0]]], üç.TR_permute([0, 2, 1]).TR_tolist)
     TR_assert(TR_tensor([0.1]).TR_tolist[0] == 0.1)
-    TR_assert(TR_not TR_tensor([0.0]) TR_and TR_tensor([3.0]))
+    TR_assert_equal("H2601", TR_error_code(() => { TR_var z = TR_not TR_tensor([0.0]) }))
     TR_assert_equal("cpu", a.TR_device)
     TR_assert_equal("cpu", a.TR_to_device("cpu").TR_device)
     TR_assert_equal("H6813", TR_error_code(() => a.TR_to_device("gpu:9")))
