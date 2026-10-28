@@ -8,7 +8,7 @@ Dilin asıl biçimi koddur. Kullanıcıya görünen her ad (anahtar kelime, bağ
 | Sınıf | Kapsam | Ad alanı |
 | :-- | :-- | :-- |
 | `kw` | anahtar kelimeler (`TR_kw_if` eğer) | genel |
-| `ctx` | bağlamsal sözcükler (`TR_ctx_as`, `TR_ctx_test`, `TR_ctx_init`, `TR_ctx_error`, `TR_ctx_it`, `TR_ctx_acc`) | genel |
+| `ctx` | bağlamsal sözcükler (`TR_ctx_as`, `TR_ctx_test`, `TR_ctx_init`) | genel |
 | `val` | değer adları (`TR_val_inf` sonsuz): kaynakta sözcük değildir, kodlanmaz (3.2) | genel |
 | `type` | tip adları (`TR_type_Int` Tam) | tip |
 | `fn`, `const` | yerleşik fonksiyonlar ve sabitler (`TR_fn_print` yazdır, `TR_const_pi` pi) | genel |
@@ -56,7 +56,7 @@ Kodlu dosya çevrilmeden çalışır (`tr dosya.tr`, `tr test`, `TR_cmd_check`, 
 ```tr
 //! tr kodlu 3 dil=tr
 TR_kw_func kareler(liste) {
-    TR_kw_return liste.TR_mem_map { TR_ctx_it * TR_ctx_it }
+    TR_kw_return liste.TR_mem_map((x) => x * x)
 }
 TR_fn_print(kareler([1, 2, 3]), TR_fn_sum([1, 2], TR_arg_dim: 0))
 ```
@@ -68,7 +68,7 @@ TR_fn_print(kareler([1, 2, 3]), TR_fn_sum([1, 2], TR_arg_dim: 0))
 **17.3** Neyin kodlanacağını kapsam belirler (denetleyicinin kuralı, 5.12, 5.14):
 - Anahtar kelimeler her zaman kodlanır.
 - Değer olarak okunan ad, görünen bir kullanıcı tanımı yoksa yerleşik ya da tip adıysa kodlanır; kullanıcı gölgelediyse (`TR_kw_var toplam = 5`) o kapsamda kullanıcının adıdır. Takma adsız `TR_kw_import`ın altında yerleşik adı yerleşik sayılır.
-- Bağlamsal sözcükler yalnız bağlamlarında kodlanır: `TR_ctx_test` deyim başında, `TR_ctx_as` `TR_kw_import`da, `TR_ctx_init` metot ve üye adı olarak, `TR_ctx_error` adsız `TR_kw_catch`da, `TR_ctx_it` ve `TR_ctx_acc` sondaki blokta (`(o) => o` kullanıcının adıdır).
+- Bağlamsal sözcükler yalnız bağlamlarında kodlanır: `TR_ctx_test` deyim başında, `TR_ctx_as` `TR_kw_import`da, `TR_ctx_init` metot ve üye adı olarak.
 - Üyeler "Üye adları" kuralıyla kodlanır (Y5), tanımda ve kullanımda aynı kodla.
 - Sözlüğün çıplak anahtarı (`{adım: 100}`) bir üye koduysa o kodla yazılır ve `ayar.adım` ile okunur. İçeride anahtar kodu taşır, metni kodun dilden bağımsız adıdır: kimliğin İngilizce parçası (`TR_mem_step` → `"step"`), hiç değişmez (17.6). Bu yüzden Türkçe programın `{adım: 1}`'i de İngilizce programın `{step: 1}`'i de aynı anahtardır: `d["step"]`, `anahtarlar()` ve diske giden her biçim (json_metin, günlük, kontrol noktası) `"step"` görür; `yazdır` ve `metin()` anahtarı yazdıran dosyanın dilinde ve kaynaktaki gibi tırnaksız yazar, tırnak yalnız metin anahtardadır (Türkçede `yazdır({adım: 0, "renk": 1})` → `{adım: 0, "renk": 1}`, İngilizcede `{step: 0, "renk": 1}`: tırnaksız ad `d.adım` ile okunduğunu gösterir, `d["adım"]` bulmaz; Node.js `util.inspect` de tanımlayıcı anahtarları tırnaksız yazar); iletiler ve hata ayıklayıcı kişinin dilinde. Üye erişimi (`d.adım`) önce bu anahtarı, sonra erişimin dosyasının dilindeki adla duran metin anahtarı arar (o dilde yazılmış JSON için; başka hiçbir dil aranmaz, hiçbiri öncelikli değildir); yeni anahtar kodla eklenir. Kodsuz çıplak anahtar (`{renk: 1}`) ve metin anahtarlar (`{"adım": 1}`) çevrilmez. Karşılaştırma: Python ve JS'de anahtar metindir, `json.dumps` olduğu gibi yazar; yerelleştirilmiş adlar (Excel) içte tek kimliğe bağlıdır ve kayıtta kanonik adla yazılır; TR'nin yapı alanları da içeride kimlikle tutulup gösterimde çevrilir.
 - **Dosya biçimleri dilden bağımsızdır.** TR'nin, motorların ve kitaplığın diske yazdığı dosyaların (kontrol noktası, günlük, `progress.json`, profil, `TR_cmd_build` paketi, veri önbelleği, `tr/egitim`'in `config.json`'u) dosya ve klasör adları, alan adları ve kayıt türleri İngilizce tanımlayıcılardır (`checkpoints/step_N/state.json`, `"kind": "resume"`); değeri bir dil öğesi olan alan kodunu taşır (`"optimizer": "TR_fn_AdamW"`). Programın verdiği adlar (ölçüler, ayarlar, nesne adları) programındır ve yukarıdaki kuralla yazılır. Eski biçimler okunmaz (dil taslaktır). Karşılaştırma: PyTorch `state_dict`/`optimizer.state_dict()` (`state`, `param_groups`, `step`, `exp_avg`) ve Hugging Face `trainer_state.json` (`global_step`, `log_history`), `config.json` (`vocab_size`) İngilizce ve dilden bağımsızdır. Sınamalar: `go test ./internal/stdlib/checkpoint -run CheckpointFormatIsLanguageIndependent`, `./internal/stdlib/logging -run LogFormatNames`, `./internal/devtools/profiler -run SnapshotKeys`, `./cmd/tr -run PackageKeys`, `./cmd/tr/e2e -run 'DictCodedKeysOnDisk|FileFormatsIndependent'`.

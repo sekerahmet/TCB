@@ -97,7 +97,7 @@ TR_var istek: TR_JSON = {"soru": metin, "en_fazla": 512, "akış": TR_false}
 TR_print(TR_Int("42") + 1, TR_Int(3.9), TR_Int(-3.9), TR_String(12) + "a")   # çıktı: 43 3 -3 12a
 ```
 
-**3.13** Tip denetimi çalışmadan önce bütün programa iner (1.3): her ifadenin, atama hedefinin, varsayılanın, alanın ve metot gövdesinin tipi bilinir. Fonksiyon parametrelerinin ve dönüşünün tipini yazar (1.2); yerel değişkenin tipi ilk değerinden çıkar ve değişmez. Tip açıklaması adın ardından iki nokta ve tiple yazılır (`n: TR_Int`); yerel değişkende isteğe bağlıdır, ilk değeri `TR_none` ya da boş değişmez olan değişkende gerekir. Tam sayı yazımı (2.4) `TR_Float` beklenen yerde ondalıktır (`r: TR_Float = 1` → 1.0); `TR_Int` tipli bir değer `TR_Float` yerine verilmez. Tip uyuşmazlığı denetim hatasıdır (çıkış kodu 1); ileti doğru yazımı ya da dönüşümü önerir (`0.0`, `TR_Float(n)`).
+**3.13** Tip denetimi çalışmadan önce bütün programa iner (1.3): her ifadenin, atama hedefinin, varsayılanın, alanın ve metot gövdesinin tipi bilinir. Fonksiyon parametrelerinin ve dönüşünün tipini yazar (1.2); yerel değişkenin tipi ilk değerinden çıkar ve değişmez. Tip açıklaması adın ardından iki nokta ve tiple yazılır (`n: TR_Int`); yerel değişkende isteğe bağlıdır, ilk değeri `TR_none` ya da boş değişmez olan değişkende gerekir. Tam sayı yazımı (2.4) `TR_Float` beklenen yerde ondalıktır (`r: TR_Float = 1` → 1.0); `TR_Int` tipli bir değer `TR_Float` yerine verilmez; işleç (4.2) ve sayı kısıtlı yerleşik (13.10) bunun dışındadır. Tip uyuşmazlığı denetim hatasıdır (çıkış kodu 1); ileti doğru yazımı ya da dönüşümü önerir (`0.0`, `TR_Float(n)`).
 - *Test:* TR testi; kalıcı tip ve tam sayı yazımı uygulanınca denetleyicinin testleri.
 
 ```tr hata
