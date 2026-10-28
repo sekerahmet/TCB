@@ -384,6 +384,7 @@
 "H2670": "a {@JSON} value cannot be a dict key; open it first: {@String}(j) or {@Int}(j)",
 "H2700": "the list is unpacked into {names} names but has {count} items: the counts must match; when only the first items are needed, take them by index: a, b = l[0], l[1]",
 "H2701": "{names} names are given {count} values: each name gets one value (a, b = 1, 2); write _ for a value that is not needed",
+"H2702": "{value} matched no arm of the {@match}: a match covers every case; write '_ => ...' as the last arm for the other cases (_ matches anything)",
 "H3001": "the attention block sizes of the {dev} backend cannot be set",
 "H3002": "Attention mask is on a different device ({mask}, {q})",
 "H3003": "Attention q, k, v need the same number of axes (at least 2): {q}, {k}, {v}",

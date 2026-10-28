@@ -384,6 +384,7 @@
 "H2670": { "param": [], "slots": {"JSON": "TR_type_JSON", "String": "TR_type_String", "Int": "TR_type_Int"} },
 "H2700": { "param": ["names", "count"] },
 "H2701": { "param": ["names", "count"] },
+"H2702": { "param": ["value"], "slots": {"match": "TR_kw_match"} },
 "H3001": { "param": ["dev"] },
 "H3002": { "param": ["mask", "q"] },
 "H3003": { "param": ["q", "k", "v"] },

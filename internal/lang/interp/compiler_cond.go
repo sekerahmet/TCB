@@ -2,6 +2,7 @@ package interp
 
 import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // --- EĞER / EŞLE ---
@@ -57,6 +58,7 @@ func (c *compiler) matchExpr(k *compilerScope, e *ast.MatchExpression) statement
 		value      exprCode
 	}
 	topic := c.expression(k, e.Subject)
+	line := e.Line()
 	caseList := make([]statusCode, len(e.Cases))
 	for i, mc := range e.Cases {
 		d := statusCode{defaultVal: mc.IsDefault, patterns: c.expressions(k, mc.Patterns)}
@@ -98,7 +100,8 @@ func (c *compiler) matchExpr(k *compilerScope, e *ast.MatchExpression) statement
 				return Null, signalNone, nil
 			}
 		}
-		return Null, signalNone, nil
+		// Eşleşme her durumu kapsar (5.6): hiçbir kol tutmazsa sessizce yokluk vermez.
+		return nil, signalNone, messages.At(line, 0, messages.New(messages.H2702, TypeAndSummary(subj)))
 	}
 }
 

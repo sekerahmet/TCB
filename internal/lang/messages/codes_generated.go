@@ -389,6 +389,7 @@ const (
 	H2670 Code = 2670 // {@JSON} değeri sözlük anahtarı olamaz; önce açın: {@String}(j) ya da {@Int}(j)
 	H2700 Code = 2700 // liste {names} ada açılıyor ama {count} öğesi var: öğe sayısı ad sayısıyla aynı olmalı; yalnız baştaki öğeler gerekiyorsa onları indeksle alın: a, b = l[0], l[1]
 	H2701 Code = 2701 // {names} ada {count} değer verildi: her ada bir değer yazılır (a, b = 1, 2); gerekmeyen değerin yerine _ yazılır
+	H2702 Code = 2702 // {value}, {@match|gen} hiçbir koluyla eşleşmedi: eşleşme her durumu kapsar; öbür durumlar için son kol olarak '_ => ...' yazın (_ her şeyle eşleşir)
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

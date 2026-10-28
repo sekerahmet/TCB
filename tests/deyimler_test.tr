@@ -133,7 +133,18 @@ TR_test "5.6 eşle: değer, çoklu desen, aralık ve varsayılan" {
     TR_assert_equal("yuvarlak", not_adı(60))
     TR_assert_equal("diğer", not_adı(3))
     TR_assert_equal("x", TR_match 1 { _ => "x" })
-    TR_assert_equal(TR_none, TR_match 9 { 1 => "bir" })
+}
+
+TR_test "5.6 hiçbir kolla eşleşmeyen eşleme çalışma hatasıdır" {
+    TR_assert_equal("H2702", TR_error_code { TR_var s = TR_match 9 { 1 => "bir" } })
+    TR_assert_equal("H2702", TR_error_code {
+        TR_match "b" {
+            "a" => { TR_print("a") }
+        }
+    })
+    # İletinin önerisi: son kol _ ile her şeyle eşleşir
+    TR_assert_equal("diğer", TR_match 9 { 1 => "bir"
+        _ => "diğer" })
 }
 
 TR_test "5.6 eşle: ad ve parantezli desen değeriyle karşılaştırılır (ok fonksiyonu değildir)" {
