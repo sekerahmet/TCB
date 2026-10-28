@@ -242,7 +242,7 @@ TR_func yapıcı() {
     TR_return () => oku(gizli)
 }
 TR_var g = yapıcı()
-TR_var s = {a: yeni()}
+TR_var s = {"a": yeni()}
 TR_for i TR_in 0..3 { TR_var geçici = yeni() }
 TR_print(oku(k.alan), g(), oku(s["a"]))
 TR_print(bırakılan())

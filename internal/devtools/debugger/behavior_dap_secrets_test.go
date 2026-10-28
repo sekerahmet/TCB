@@ -16,9 +16,9 @@ func init() { interp.AddEngine(func(v *interp.VM) { process.Register(v) }) }
 // değişkenler, izleme ifadesi, İzleme Masası tablosu ve konsol çıktısı.
 func TestDAPSecretMasked(t *testing.T) {
 	const secret = "hf_dapgizli77"
-	path := writeProgram(t, `TR_var ayar = TR_command_line({hf_token: ""})
-TR_var kayıt = {belirteç: ayar.hf_token, TR_step: 3}
-TR_print("belirteç", ayar.hf_token)
+	path := writeProgram(t, `TR_var ayar = TR_command_line({"hf_token": ""})
+TR_var kayıt = {"belirteç": ayar["hf_token"], "step": 3}
+TR_print("belirteç", ayar["hf_token"])
 TR_print("bitti")
 `)
 	c := startDAP(t)
@@ -34,7 +34,7 @@ TR_print("bitti")
 	if v := globalScope["kayıt"]; !strings.Contains(v, interp.SecretMask) || strings.Contains(v, secret) {
 		t.Errorf("değişkenler panelinde gizli değer maskelenmeli: %q", v)
 	}
-	if v := c.evaluate("ayar.hf_token"); strings.Contains(v, secret) {
+	if v := c.evaluate(`ayar["hf_token"]`); strings.Contains(v, secret) {
 		t.Errorf("izleme ifadesinde gizli değer görünmemeli: %q", v)
 	}
 	panel, _ := json.Marshal(c.request("trVariables", nil))

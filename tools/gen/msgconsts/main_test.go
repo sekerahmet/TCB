@@ -454,7 +454,7 @@ func TestGenerateRejectsRetiredCode(t *testing.T) {
 // ileti(H…, değerler) çağrısının kodu ve değer sayısı sözcük birimlerinden okunur: iç içe çağrıdaki
 // ve liste içindeki virgüller sayılmaz, kodsuz çağrı yoksayılır.
 func TestMessageCallsScanner(t *testing.T) {
-	parts, err := source.Split("TR_message(\"H6903\", a, f(b, c))\nTR_message(\"H6904\")\nTR_message(x, 1)\ng(\"H6905\", 1)\nTR_message(\"H6900\", [1, 2], {a: 1})\n")
+	parts, err := source.Split("TR_message(\"H6903\", a, f(b, c))\nTR_message(\"H6904\")\nTR_message(x, 1)\ng(\"H6905\", 1)\nTR_message(\"H6900\", [1, 2], {\"a\": 1})\n")
 	if err != nil {
 		t.Fatal(err)
 	}

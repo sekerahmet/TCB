@@ -177,7 +177,7 @@ func (y *writer) value(val interp.Value, depth int) error {
 			if !ok {
 				continue
 			}
-			name := v.KeyText(k) // dilden bağımsız (kodlu anahtar: CodedKey; 17.3)
+			name := v.KeyText(k) // dilden bağımsız (17.3)
 			if seen != nil {
 				if seen[name] {
 					return messages.New(messages.H7009, name)

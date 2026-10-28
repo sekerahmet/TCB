@@ -13,8 +13,8 @@ import (
 //
 //   - noktadan ('.', '?.') sonra ve yapı gövdesindeki alan ve metot tanımında üye;
 //   - parantez içinde ardından tek ':' gelen ad (adlı argüman, tipli parametre) ve fonksiyonun
-//     parametre listesindeki ad argüman; süslü parantez içinde ardından ':' gelen ad (sözlük
-//     değişmezinin anahtarı) üye;
+//     parametre listesindeki ad argüman; sözlük değişmezinin anahtarı bir ifadedir (3.7), öbür
+//     yerdir;
 //   - öbür yerlerde anahtar kelime, bağlamsal sözcük, değer, tip, fonksiyon ya da sabit. Kitaplık
 //     fonksiyonunun gövdesinde parametresi aynı adlı yerleşiği gölgeler (sözcüksel kapsam).
 //
@@ -175,8 +175,6 @@ func (l *Lexer) placeOf(line int) (place, second codes.Place, fallback bool) {
 		return codes.PlaceMember, codes.PlaceOther, true
 	case top.open == TokLParen && l.colonAhead():
 		return codes.PlaceArg, 0, false
-	case top.open == TokLBrace && l.colonAhead():
-		return codes.PlaceMember, 0, false
 	}
 	return codes.PlaceOther, 0, false
 }
@@ -295,6 +293,12 @@ func (l *Lexer) identity(lit string, line, col int) codes.Code {
 		// Tanımlanan ad TR_ ile başlıyor: kullanıcı adı olamaz (2.3a), ileti başka bir ad önerir. Önek
 		// ASCII'dir; küçük harfli öneri strings.ToLower ile üretilir (TR_x → tr_x).
 		l.addError(line, col, messages.New(messages.H0004, lit, strings.ToLower(lit)))
+		return codes.None
+	}
+	if l.places.top().open == TokLBrace && l.colonAhead() {
+		// Sözlük anahtarı bir ifadedir (3.7): {TR_step: 1} bir üye adını anahtar sanıyor; metin
+		// anahtarı önerilir.
+		l.addError(line, col, messages.New(messages.H0240, lit, strings.TrimPrefix(lit, codes.IdentityPrefix)))
 		return codes.None
 	}
 	l.addError(line, col, identityError(place, lit))

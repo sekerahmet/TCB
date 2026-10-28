@@ -198,10 +198,10 @@ func addMetrics(fn any, record *interp.DictVal, dict *interp.DictVal, reserved .
 		}
 		for _, r := range reserved {
 			if k == r {
-				return messages.New(messages.H7321, fn, dict.DisplayKey(k), reservedReason(k))
+				return messages.New(messages.H7321, fn, dict.KeyText(k), reservedReason(k))
 			}
 		}
-		d, err := metricValue(fn, dict.DisplayKey(k), v)
+		d, err := metricValue(fn, dict.KeyText(k), v)
 		if err != nil {
 			return err
 		}

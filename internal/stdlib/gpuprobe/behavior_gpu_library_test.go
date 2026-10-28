@@ -34,7 +34,7 @@ TR_func eğit(cihaz, normuon) {
         op.TR_step()
         kayıplar.TR_append(kayıp.TR_tolist)
     }
-    TR_var c = m.TR_embedding.TR_table.TR_device + " " + m.TR_blocks[0].TR_attention.TR_q_proj.TR_weight.TR_device + " " + op.TR_muon.TR_state.TR_momentum[0].TR_device
+    TR_var c = m.TR_embedding.TR_table.TR_device + " " + m.TR_blocks[0].TR_attention.TR_q_proj.TR_weight.TR_device + " " + op.TR_muon.TR_state["momentum"][0].TR_device
     TR_default_device("cpu")
     TR_return [kayıplar, c]
 }

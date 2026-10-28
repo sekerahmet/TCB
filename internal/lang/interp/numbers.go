@@ -190,8 +190,9 @@ func extreme(kd codes.Code, elems []Value, upper bool, listVal bool) (Value, err
 	return picked, nil
 }
 
-// rangeSteps bir aralığın gezilecek ilk ve son değerini ve adımını verir; bos doğruysa
-// aralıkta hiç değer yoktur. Son değer dahil hesaplandığı için int64 sınırındaki aralıklar
+// rangeSteps bir aralığın gezilecek ilk ve son değerini ve adımını verir; empty doğruysa
+// aralıkta hiç değer yoktur: a >= b ise a..b, a > b ise a..=b boştur (3.8; geriye sayan aralık
+// .reverse() ile yazılır). Son değer dahil hesaplandığı için int64 sınırındaki aralıklar
 // (0..=9223372036854775807) taşmadan gezilir.
 func rangeSteps(r *RangeVal) (first, last, step int64, empty bool) {
 	first, last, step = r.Start, r.End, 1
@@ -201,10 +202,7 @@ func rangeSteps(r *RangeVal) (first, last, step int64, empty bool) {
 			last = r.End - 1
 		}
 	case r.Start > r.End:
-		step = -1
-		if !r.Inclusive {
-			last = r.End + 1
-		}
+		empty = true
 	default: // Start == End
 		empty = !r.Inclusive
 	}

@@ -42,7 +42,7 @@ func TestUnusedValueIsAnError(t *testing.T) {
 	if line, _, _ := messages.Pos(errs[0]); line != 3 {
 		t.Errorf("hata 3. satırda olmalı: %v", errs[0])
 	}
-	errs = checkBodyIn(t, "TR_var k = {ad: 1}\nk.ad", nil, false)
+	errs = checkBodyIn(t, "TR_var k = {\"ad\": 1}\nk.ad", nil, false)
 	if len(errs) != 1 || !messages.Has(errs[0], messages.H1023) {
 		t.Fatalf("H1023 bekleniyordu: %v", errs)
 	}

@@ -28,7 +28,7 @@ type builtinMethod struct {
 // nil). Derleyici x.ad'ı derleme anında koda ve bu yapıya çevirir; çalışma anında yalnızca
 // nesnenin tipine göre alan seçilir, ad ya da kod araması yapılmaz.
 type coreMethod struct {
-	text, listVal, dictVal *builtinMethod
+	text, listVal, dictVal, rangeVal *builtinMethod
 }
 
 // coreMethods üye kodu → Metin/Liste/Sözlük metotları. Adlar kod listesindedir (internal/lang/codes, Y).
@@ -38,6 +38,7 @@ const (
 	typeString = iota
 	typeList
 	typeDict
+	typeRange
 )
 
 // argKind bir metot argümanının beklenen tipidir (hata mesajındaki tip kodu ve denetimi).
@@ -63,7 +64,7 @@ type signature struct {
 
 // typeCodes metodun alıcı tipinin kodudur; hata mesajlarında metot tipiyle yazılır
 // (metin.içerir(); bkz. kod.AliciAdi).
-var typeCodes = [...]codes.Code{typeString: codes.TypeString, typeList: codes.TypeList, typeDict: codes.TypeDict}
+var typeCodes = [...]codes.Code{typeString: codes.TypeString, typeList: codes.TypeList, typeDict: codes.TypeDict, typeRange: codes.TypeRange}
 
 // addMethod metodu sözlük koduyla kaydeder; ad sözlükten gelir. Gövde çağrılmadan önce
 // argümanlar imzaya göre denetlenir (yerleşik fonksiyonlarla aynı hata biçimi).
@@ -104,6 +105,8 @@ func addMethod(typ int, kd codes.Code, im signature, f methodBody) {
 		cm.listVal = m
 	case typeDict:
 		cm.dictVal = m
+	case typeRange:
+		cm.rangeVal = m
 	}
 }
 
@@ -118,50 +121,31 @@ const (
 // memberInfo bir x.ad erişiminin derleme anında çözülmüş biçimidir.
 type memberInfo struct {
 	codeVal codes.Code // ad bir üye adı değilse kod.Yok
-	// core Metin/Liste/Sözlük metotlarıdır; ad bunların metodu değilse nil.
+	// core Metin/Liste/Sözlük/Aralık metotlarıdır; ad bunların metodu değilse nil.
 	core *coreMethod
-	// keys, üye bir kod taşıyorsa (codeVal) sözlükte aranacak anahtarlardır: önce kodlu anahtarın
-	// dilden bağımsız metni (CodedKey), sonra kodun erişimin yazıldığı dosyanın dilindeki adı (o
-	// dilde yazılmış JSON için; 3.7, 17.3). nil ise anahtar erişimin adının kendisidir.
-	keys []string
 }
 
-// member adı derleme anında derlenen dosyanın diliyle çözer (resolveMember ve sözlük anahtarları).
-func (c *compiler) member(name string) memberInfo {
-	u := resolveMember(name)
-	if u.codeVal != codes.None {
-		u.keys = memberKeys(u.codeVal, c.textLang)
-	}
-	return u
-}
+// member adı derleme anında çözer (resolveMember).
+func (c *compiler) member(name string) memberInfo { return resolveMember(name) }
 
-// memberKeys bir üye kodunun sözlükte aranacak anahtarlarıdır: kodlu anahtarın dilden bağımsız
-// metni ve kodun lang'deki (erişimin dosyasının dilindeki) adı; hiçbir yazım dili öncelikli
-// değildir, öbür dillerin adları aranmaz.
-func memberKeys(k codes.Code, lang *codes.Language) []string {
-	keys := []string{CodedKey(k)}
-	if lang != nil {
-		if e, ok := lang.Entry(k); ok && e.Name != keys[0] {
-			keys = append(keys, e.Name)
-		}
-	}
-	return keys
-}
-
-// dictKey sözlükte u erişiminin anahtarıdır: üye bir kod taşıyorsa önce kodlu anahtar, sonra
-// dosyanın dilindeki adıyla duran anahtar; yoksa ok false ve eklenecek anahtar (kodlu anahtar).
-// Böylece aynı sözlükte bir kodun iki anahtarı oluşmaz.
-func (u memberInfo) dictKey(d *DictVal, prop string) (key string, ok bool) {
-	if u.keys == nil {
-		_, ok = d.Pairs[prop]
+// moduleKey modül sözlüğünde x.ad erişiminin anahtarıdır (11.7): adın kendisi, TR_ ile yazılmış üye
+// adında kimliğin adı.
+func (u memberInfo) moduleKey(d *DictVal, prop string) (string, bool) {
+	if _, ok := d.Pairs[prop]; ok || u.codeVal == codes.None {
 		return prop, ok
 	}
-	for _, key := range u.keys {
-		if _, ok := d.Pairs[key]; ok {
-			return key, true
-		}
+	key := codes.ValueNames().Name(u.codeVal)
+	_, ok := d.Pairs[key]
+	return key, ok
+}
+
+// keyName x.ad erişiminin sözlükte yazılacak anahtar adıdır (iletinin önerisi: ["step"]): TR_ ile
+// yazılmış üyede kimliğin adı, öbür adlarda adın kendisi.
+func (u memberInfo) keyName(prop string) string {
+	if u.codeVal != codes.None {
+		return codes.ValueNames().Name(u.codeVal)
 	}
-	return u.keys[0], false
+	return prop
 }
 
 // resolveMember adı derleme anında çözer.
@@ -202,6 +186,8 @@ func findMethod(obj Value, cm *coreMethod) *builtinMethod {
 		return cm.listVal
 	case *DictVal:
 		return cm.dictVal
+	case *RangeVal:
+		return cm.rangeVal
 	}
 	return nil
 }
@@ -212,6 +198,7 @@ func init() {
 	setupStringMethods()
 	setupListMethods()
 	setupDictMethods()
+	setupRangeMethods()
 }
 
 // setupStringMethods Metin tipinin metotlarını kaydeder.
@@ -396,6 +383,32 @@ func setupDictMethods() {
 		_, ok := inst.(*DictVal).GetValue(args[0])
 		return BoolToVal(ok), nil
 	})
+	// d.get(k): olmayan anahtarda yok (3.7; köşeli parantez hata verir).
+	addMethod(typeDict, codes.MemGet, signature{1, 1, "anahtar", nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+		if err := DictKeyError(args[0]); err != nil {
+			return nil, messages.At(line, 0, err)
+		}
+		if val, ok := inst.(*DictVal).GetValue(args[0]); ok {
+			return val, nil
+		}
+		return Null, nil
+	})
+}
+
+// setupRangeMethods Aralık tipinin metotlarını kaydeder.
+func setupRangeMethods() {
+	// (a..b).reverse(): aralığın tam sayıları geriye doğru, bir liste olarak (3.8).
+	addMethod(typeRange, codes.MemReverse, signature{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+		l, err := rangeList(inst.(*RangeVal))
+		if err != nil {
+			return nil, messages.At(line, 0, err)
+		}
+		elems := l.(*ListVal).Elements
+		for i, j := 0, len(elems)-1; i < j; i, j = i+1, j-1 {
+			elems[i], elems[j] = elems[j], elems[i]
+		}
+		return l, nil
+	})
 }
 
 // evalBuiltinMember: Metin, Liste ve Sözlük üzerinde nokta (.) ile özellik okur ya da metodu
@@ -435,7 +448,11 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, u memberInfo, safe bool, 
 		}}, nil
 	}
 	if d, ok := obj.(*DictVal); ok {
-		if key, ok := u.dictKey(d, prop); ok {
+		if d.module == nil {
+			// Anahtar yalnız köşeli parantezle okunur (3.7); nokta yalnız üyeleri verir.
+			return nil, messages.At(line, 0, messages.New(messages.H2648, u.keyName(prop)))
+		}
+		if key, ok := u.moduleKey(d, prop); ok {
 			return d.Pairs[key], nil
 		}
 		if err := d.privateNameError(prop); err != nil {

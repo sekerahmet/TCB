@@ -33,7 +33,7 @@ import (
 // yazılır); kesme ve öldürme ancak o zaman gönderilir. Böylece eğitim kesilmeden bitemez ve
 // kesmenin hangi adımda, son noktanın hangi adımda olduğu bellidir.
 
-const checkTrainingProgram = `TR_var ayar = TR_command_line({TR_step: 40, koşu: "", veri: "", kayıt_her: 0, dur: 0})
+const checkTrainingProgram = `TR_var ayar = TR_command_line({"step": 40, "koşu": "", "veri": "", "kayıt_her": 0, "dur": 0})
 TR_var V = 2048
 TR_var D = 64
 TR_var H = 128
@@ -42,42 +42,42 @@ TR_func param(şekil, ölçek) {
     sayaç += 1
     TR_return TR_tensor(TR_no_grad(TR_randn(şekil, TR_seed: sayaç) * ölçek), TR_requires_grad: TR_true)
 }
-TR_var model = {E: param([V, D], 0.05), g: TR_tensor(TR_ones([D]), TR_requires_grad: TR_true), Wq: param([D, D], 0.1), Wk: param([D, D], 0.1),
-    Wv: param([D, D], 0.1), W1: param([D, H], 0.1), W2: param([H, V], 0.1)}
+TR_var model = {"E": param([V, D], 0.05), "g": TR_tensor(TR_ones([D]), TR_requires_grad: TR_true), "Wq": param([D, D], 0.1), "Wk": param([D, D], 0.1),
+    "Wv": param([D, D], 0.1), "W1": param([D, H], 0.1), "W2": param([H, V], 0.1)}
 TR_var op = TR_AdamW(TR_parameters(model), TR_lr: 0.003)
 TR_func bakışlara_ayır(x) { TR_return x.TR_reshape([8, 32, 4, 16]).TR_permute([0, 2, 1, 3]) }
 TR_func ileri(giriş) {
-    TR_var x = TR_embedding(model.E, giriş)
-    TR_var h = TR_rms_norm(x, model.g)
-    TR_var y = TR_attention(bakışlara_ayır(h @ model.Wq), bakışlara_ayır(h @ model.Wk), bakışlara_ayır(h @ model.Wv), TR_causal: TR_true)
+    TR_var x = TR_embedding(model["E"], giriş)
+    TR_var h = TR_rms_norm(x, model["g"])
+    TR_var y = TR_attention(bakışlara_ayır(h @ model["Wq"]), bakışlara_ayır(h @ model["Wk"]), bakışlara_ayır(h @ model["Wv"]), TR_causal: TR_true)
     x = x + y.TR_permute([0, 2, 1, 3]).TR_reshape([8, 32, D])
-    TR_return TR_gelu(x @ model.W1) @ model.W2
+    TR_return TR_gelu(x @ model["W1"]) @ model["W2"]
 }
-TR_var ö = TR_dataset(ayar.veri).TR_sampler(TR_batch_size: 8, TR_context: 32, TR_seed: 11)
-TR_var g = TR_logger(TR_path(ayar.koşu, "metrics.jsonl"))
-TR_var izlenen = {en_iyi: 99.0, adım_sayısı: 0}
-TR_var kn = TR_checkpoint(ayar.koşu, {model: model, op: op, ö: ö, g: g, izlenen: izlenen}, TR_every_minutes: 60.0)
-TR_var ç = TR_progress(ayar.TR_step, TR_log: g)
-TR_for adım TR_in kn.TR_resume_step..ayar.TR_step {
+TR_var ö = TR_dataset(ayar["veri"]).TR_sampler(TR_batch_size: 8, TR_context: 32, TR_seed: 11)
+TR_var g = TR_logger(TR_path(ayar["koşu"], "metrics.jsonl"))
+TR_var izlenen = {"en_iyi": 99.0, "adım_sayısı": 0}
+TR_var kn = TR_checkpoint(ayar["koşu"], {"model": model, "op": op, "ö": ö, "g": g, "izlenen": izlenen}, TR_every_minutes: 60.0)
+TR_var ç = TR_progress(ayar["step"], TR_log: g)
+TR_for adım TR_in kn.TR_resume_step..ayar["step"] {
     TR_var giriş, hedef = ö.TR_next()
     op.TR_zero_grad()
     TR_var kayıp = TR_cross_entropy(ileri(giriş), hedef)
     TR_backward(kayıp)
     TR_clip_grad(TR_parameters(model), TR_max: 1.0)
     op.TR_step()
-    TR_if kayıp.TR_tolist < izlenen.en_iyi { izlenen.en_iyi = kayıp.TR_tolist }
-    izlenen.adım_sayısı += 1
-    ç.TR_update({TR_loss: kayıp}, TR_step: adım + 1)
+    TR_if kayıp.TR_tolist < izlenen["en_iyi"] { izlenen["en_iyi"] = kayıp.TR_tolist }
+    izlenen["adım_sayısı"] += 1
+    ç.TR_update({"loss": kayıp}, TR_step: adım + 1)
     kn.TR_update(adım + 1)
-    TR_if ayar.kayıt_her > 0 TR_and (adım + 1) % ayar.kayıt_her == 0 { kn.TR_save() }
-    TR_if adım + 1 == ayar.dur {
+    TR_if ayar["kayıt_her"] > 0 TR_and (adım + 1) % ayar["kayıt_her"] == 0 { kn.TR_save() }
+    TR_if adım + 1 == ayar["dur"] {
         # Testin kesme ya da öldürme noktası: süreç bu adımın sınırında bekler.
-        TR_write_file(TR_path(ayar.koşu, "bekliyor.txt"), adım + 1)
+        TR_write_file(TR_path(ayar["koşu"], "bekliyor.txt"), adım + 1)
         TR_for TR_true { kn.TR_update(adım + 1) }
     }
 }
-TR_save_tensors(TR_path(ayar.koşu, "son.trt"), TR_parameters(model, TR_named: TR_true))
-TR_save_tensors(TR_path(ayar.koşu, "op.trt"), op.TR_state)
+TR_save_tensors(TR_path(ayar["koşu"], "son.trt"), TR_parameters(model, TR_named: TR_true))
+TR_save_tensors(TR_path(ayar["koşu"], "op.trt"), op.TR_state)
 TR_print("izlenen:", izlenen, ö.TR_state)
 `
 

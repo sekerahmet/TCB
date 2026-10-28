@@ -179,6 +179,10 @@
   "commit": "ab7f634",
   "reason": "deleted: messages: one code per meaning, coded reasons kept, safe generator comments"
  },
+ "H7222": {
+  "commit": "claude/katman2-deger-12bdf3",
+  "reason": "deleted: process: an option may be named like a dict member; the settings are read with brackets (3.7)"
+ },
  "H7401": {
   "commit": "2fa8417",
   "reason": "deleted: messages: English pilot catalog, every language uses every parameter"
@@ -238,5 +242,13 @@
  "H8753": {
   "commit": "f60c7bc",
   "reason": "deleted: cmd/tr: tr derle's version 1 package (TR_EXE_1) is no longer read"
+ },
+ "H8868": {
+  "commit": "claude/katman2-deger-12bdf3",
+  "reason": "deleted: codeindex: a dict key is a string (3.7), no bare-key role"
+ },
+ "H8869": {
+  "commit": "claude/katman2-deger-12bdf3",
+  "reason": "deleted: codeindex: no data-format match; a dict key is a string hit (3.7)"
  }
 }

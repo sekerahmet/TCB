@@ -84,6 +84,8 @@ const (
 	H0204 Code = 204  // tekli '!' TR'de yok; mantıksal tersi '{@not}' ile yazılır: {@not} a ('!=' eşit değil işlecidir)
 	H0205 Code = 205  // '|>' TR'de yok; fonksiyon çağrıyla yazılır: x |> f(y) yerine f(x, y)
 	H0206 Code = 206  // '{@in}' yalnız döngüde ve liste üretecinde yazılır ({@for} x {@in} l); üyelik l.{@contains}(x) ile sorulur
+	H0240 Code = 240  // '{spelling}' bir sözlük anahtarı olamaz: anahtar bir ifadedir ve '{spelling}' burada bir değer değil; metin anahtarı için "{name}" yazın
+	H0241 Code = 241  // '{name}' tanımlı değil: sözlük anahtarı bir ifadedir, burada bir değişken; metin anahtarı için "{name}" yazın
 	H1001 Code = 1001 // Tip uyuşmazlığı — {name|q} değişkeni {declared|q} tipinde tanımlandı ancak {given|q} tipinde değer atandı{hint}
 	H1002 Code = 1002 // Sabit hatası — {name|q} bir sabittir ('{keyword}') ve değeri değiştirilemez
 	H1003 Code = 1003 // Dönüş tipi uyuşmazlığı — fonksiyon {expected|q} döndürmeli ancak {given|q} tipinde değer döndürülüyor{hint}
@@ -357,6 +359,9 @@ const (
 	H2643 Code = 2643 // {@Bool}(): {value|q} bir mantık değeri değil; yalnız "true" ve "false" okunur
 	H2644 Code = 2644 // {@Bool}() yalnız "true" ya da "false" metnini okur, {given} verildi; bunun yerine karşılaştırmayla sorun (x != 0, l.{@length} > 0)
 	H2645 Code = 2645 // {type} tipi çağrılamaz; değer kuran ya da çeviren tipler {@Int}, {@Float}, {@String}, {@Bool}, {@List}, {@Type} ve kitaplığın tipleridir
+	H2646 Code = 2646 // {type} bir sözlük anahtarı olamaz: anahtarlar {@Int}, {@String} ya da {@Bool} olur (ondalık anahtar yuvarlama yüzünden bulunamayabilirdi); anahtarı {@Int}(x) ya da {@String}(x) ile çevirin
+	H2647 Code = 2647 // {key} anahtarı sözlükte yok; olmayabilecek bir anahtar için .{@get}({key}) ?? varsayılan yazın
+	H2648 Code = 2648 // sözlük anahtarı noktayla değil köşeli parantezle okunur ve yazılır: ["{name}"] yazın (nokta yalnız sözlüğün üyelerini verir, .{@keys}() gibi)
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}
@@ -1250,7 +1255,6 @@ const (
 	H7219 Code = 7219 // {fn}: seçenek adları {type} olmalıdır, {given} verildi
 	H7220 Code = 7220 // {fn}: {name|q} seçenek adı olamaz (boş olamaz, - ile başlayamaz, boşluk ya da = içeremez)
 	H7221 Code = 7221 // {fn}: {name|q} seçenek adı olamaz: {help} ve -h seçenekleri listeler
-	H7222 Code = 7222 // {fn}: {name|q} seçenek adı olamaz: {type} tipinin bir üyesidir, ayar.{name} seçeneğin değerini değil üyeyi verirdi; başka bir ad seçin
 	H7223 Code = 7223 // {fn}: '{name}' seçeneğinin liste varsayılanı yalnızca aynı tipte {types} öğeler içerebilir; {index}. öğe {given}
 	H7224 Code = 7224 // {fn}: '{name}' seçeneğinin liste varsayılanındaki öğeler aynı tipte olmalı ({index}. öğe {given})
 	H7225 Code = 7225 // {fn}: '{name}' seçeneğinin varsayılanı {types}, {list} ya da {none} olmalı; {given} verildi
@@ -1766,8 +1770,6 @@ const (
 	H8865 Code = 8865 // türemiş biçim
 	H8866 Code = 8866 // terim kipi: sembol aranmadı, yalnızca metin eşleşmeleri listelenir (aynı sözcüğün başka anlamları da gelebilir; satırın metnine bakın)
 	H8867 Code = 8867 // bağlı bildirimler ({count}; aynı adla iletilen ya da aynı adlı alana atanan; birlikte değiştirilmesi önerilir):
-	H8868 Code = 8868 // sözlük anahtarı
-	H8869 Code = 8869 // veri biçimi; kendiliğinden değişmez
 	H8870 Code = 8870 // (yok sayılan klasör)
 	H8871 Code = 8871 // {code} bir koddur: adı dil dosyasında değişir, kodlu dosyalar kimliği taşır ve olduğu gibi kalır; yeni ad baş geliştiricinin onayıyla eklenir
 	H8872 Code = 8872 // dil dosyasındaki ad

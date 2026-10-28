@@ -143,11 +143,7 @@ TR_test "4.5 Tam ile Ondalık değerleriyle kesin karşılaştırılır (2^53 ü
     TR_assert(büyük != yakın)
     TR_assert(büyük > yakın TR_and yakın < büyük)
     TR_assert(büyük - 1 == yakın)
-    # sözlük anahtarı ve sıralama aynı kuralla: iki ayrı anahtar, belirli bir sıra
-    TR_var d = {}
-    d[büyük] = "tam"
-    d[yakın] = "ondalık"
-    TR_assert_equal(2, d.TR_length)
+    # sıralama aynı kuralla: belirli bir sıra (ondalık sözlük anahtarı olamaz, 3.7)
     TR_assert_equal([yakın, büyük], [büyük, yakın].TR_sort())
     TR_var nan = TR_float("nan")
     TR_assert(nan != 1 TR_and TR_not (nan == 1) TR_and TR_not (nan < 1) TR_and TR_not (nan > 1))

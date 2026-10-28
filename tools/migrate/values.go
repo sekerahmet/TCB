@@ -36,9 +36,14 @@ type valueEdit struct {
 
 // convertValues yeni biçimdeki bir dosya metnini (başlıklı) ya da başlıksız kodlu gövdeyi değer
 // kurallarıyla çevirir; rel dosyanın depodaki yoludur (yerel aktarmaları bulmak için; boş olabilir).
-func convertValues(rel, text string) (string, []problem) {
+func convertValues(rel, text string) (string, []problem) { return convertValuesWith(rel, text, true) }
+
+// convertValuesWith convertValues'tur; members yanlışsa nokta erişimine dokunulmaz, yalnız sözlük
+// değişmezinin anahtarları çevrilir (Go testlerindeki parçalar: nesnenin yapısı parçanın dışında
+// tanımlı olabilir, nokta erişimi orada kesin değildir).
+func convertValuesWith(rel, text string, members bool) (string, []problem) {
 	prefix, body, lineBase := splitHeader(text)
-	edits, probs := valueEdits(rel, body, lineBase)
+	edits, probs := valueEdits(rel, body, lineBase, members)
 	if len(edits) == 0 {
 		return text, probs
 	}
@@ -77,7 +82,7 @@ func splitHeader(text string) (prefix, body string, lineBase int) {
 }
 
 // valueEdits gövdenin değer kurallarıyla değişen aralıklarıdır.
-func valueEdits(rel, body string, lineBase int) ([]valueEdit, []problem) {
+func valueEdits(rel, body string, lineBase int, members bool) ([]valueEdit, []problem) {
 	prog, records, ok := parseBody(body)
 	if !ok {
 		return nil, []problem{{Line: lineBase + 1, Reason: "syntax error: value rules not applied, convert by hand"}}
@@ -86,7 +91,8 @@ func valueEdits(rel, body string, lineBase int) ([]valueEdit, []problem) {
 	for _, r := range records {
 		at[[2]int{r.Line, r.Column}] = r
 	}
-	members := structMembers(prog)
+	withMembers := members
+	structNames := structMembers(prog)
 	aliases := map[string]bool{}
 	trast.Walk(prog, func(n any) bool {
 		if s, ok := n.(*trast.ImportStatement); ok {
@@ -95,14 +101,14 @@ func valueEdits(rel, body string, lineBase int) ([]valueEdit, []problem) {
 			}
 			if !strings.HasPrefix(s.Path, "tr/") && rel != "" {
 				for name := range localMembers(path.Join(path.Dir(rel), s.Path)) {
-					members[name] = true
+					structNames[name] = true
 				}
 			}
 		}
 		return true
 	})
 	for name := range libraryMembers() {
-		members[name] = true
+		structNames[name] = true
 	}
 	var edits []valueEdit
 	var probs []problem
@@ -122,7 +128,7 @@ func valueEdits(rel, body string, lineBase int) ([]valueEdit, []problem) {
 				edits = append(edits, valueEdit{r.Start, r.End, `"` + keyName(key.Token) + `"`})
 			}
 		case *trast.MemberExpression:
-			if e.NameToken.Code != codes.None || members[e.Property] {
+			if !withMembers || e.NameToken.Code != codes.None || structNames[e.Property] {
 				return true
 			}
 			if id, ok := e.Object.(*trast.Identifier); ok && aliases[id.Value] {

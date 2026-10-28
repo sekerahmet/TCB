@@ -308,44 +308,42 @@
       "pos": {
         "file": "m.tr",
         "line": 30,
-        "col": 32,
+        "col": 33,
         "end_line": 30,
-        "end_col": 35
-      },
-      "role": "dict_key",
-      "where": "code",
-      "match": "data_format",
-      "word": "baş",
-      "context": "TR_var ayar = TR_command_line({baş: 8, TR_step: 1}, TR_descriptions: {baş: \"baş sayısı\"})",
-      "replacement": "bakış_sayısı"
-    },
-    {
-      "pos": {
-        "file": "m.tr",
-        "line": 30,
-        "col": 71,
-        "end_line": 30,
-        "end_col": 74
-      },
-      "role": "dict_key",
-      "where": "code",
-      "match": "data_format",
-      "word": "baş",
-      "context": "TR_var ayar = TR_command_line({baş: 8, TR_step: 1}, TR_descriptions: {baş: \"baş sayısı\"})",
-      "replacement": "bakış_sayısı"
-    },
-    {
-      "pos": {
-        "file": "m.tr",
-        "line": 30,
-        "col": 77,
-        "end_line": 30,
-        "end_col": 80
+        "end_col": 36
       },
       "where": "string",
       "match": "exact",
       "word": "baş",
-      "context": "TR_var ayar = TR_command_line({baş: 8, TR_step: 1}, TR_descriptions: {baş: \"baş sayısı\"})",
+      "context": "TR_var ayar = TR_command_line({\"baş\": 8, \"step\": 1}, TR_descriptions: {\"baş\": \"baş sayısı\"})",
+      "replacement": "bakış_sayısı"
+    },
+    {
+      "pos": {
+        "file": "m.tr",
+        "line": 30,
+        "col": 73,
+        "end_line": 30,
+        "end_col": 76
+      },
+      "where": "string",
+      "match": "exact",
+      "word": "baş",
+      "context": "TR_var ayar = TR_command_line({\"baş\": 8, \"step\": 1}, TR_descriptions: {\"baş\": \"baş sayısı\"})",
+      "replacement": "bakış_sayısı"
+    },
+    {
+      "pos": {
+        "file": "m.tr",
+        "line": 30,
+        "col": 80,
+        "end_line": 30,
+        "end_col": 83
+      },
+      "where": "string",
+      "match": "exact",
+      "word": "baş",
+      "context": "TR_var ayar = TR_command_line({\"baş\": 8, \"step\": 1}, TR_descriptions: {\"baş\": \"baş sayısı\"})",
       "replacement": "bakış_sayısı"
     }
   ],

@@ -180,7 +180,7 @@ değişken puan = 95; yazdır(eşle puan { 100 => "tam puan"; 90..100 => "pekiyi
 Değerin yokluğudur; değer döndürmeyen fonksiyonlar, sözlükte olmayan anahtar ve varsa_al ile istenen olmayan öğe yok verir.
 
 ```tr
-değişken l = [1, 2]; yazdır(l.varsa_al(5) == yok, l.varsa_al(5) ?? "boş", {"a": 1}["b"])
+değişken l = [1, 2]; yazdır(l.varsa_al(5) == yok, l.varsa_al(5) ?? "boş", {"a": 1}.varsa_al("b"))
 ```
 
 İlişkili: TR_type_None `Yok`
@@ -398,7 +398,7 @@ değişken f: YerleşikFonksiyon = yazdır; f(tip(f))
 kontrol_noktası(...) ile kurulan, eğitimin bütün durumunu (parametreler, iyileştirici, okuyucular, günlük, düz değerler) atomik kaydeden ve yeniden başlatılan programı kaldığı adımdan sürdüren nesnenin tipidir; .güncelle(adım) adım sınırında aralıkla kaydeder, .kaydet() hemen kaydeder.
 
 ```tr
-değişken w = tensör([1.0], türev_izle: doğru); değişken kn = kontrol_noktası("koşu_a258", {w: w}); yazdır(tip(kn) == KontrolNoktası)
+değişken w = tensör([1.0], türev_izle: doğru); değişken kn = kontrol_noktası("koşu_a258", {"w": w}); yazdır(tip(kn) == KontrolNoktası)
 ```
 
 Üyeleri: TR_mem_resume_step `kaldığı_adım`, TR_mem_rollback `geri_dön`, TR_mem_save `kaydet`, TR_mem_update `güncelle` · İlişkili: TR_fn_checkpoint `kontrol_noktası`, TR_mem_update `güncelle`, TR_mem_resume_step `kaldığı_adım`, TR_mem_save `kaydet`, TR_mem_rollback `geri_dön`
@@ -418,10 +418,10 @@ değişken küme = veri_kümesi("tests/data/numbers"); yazdır(tip(küme) == Ver
 Eklenme sırasını koruyan anahtar–değer tablosu tipidir; olmayan anahtar yok verir.
 
 ```tr
-değişken s: Sözlük = {"ad": "Ali"}; yazdır(tip(s), s.ad)
+değişken s: Sözlük = {"ad": "Ali"}; yazdır(tip(s), s["ad"])
 ```
 
-Üyeleri: TR_mem_contains `içerir`, TR_mem_keys `anahtarlar`, TR_mem_length `uzunluk`, TR_mem_values `değerler`
+Üyeleri: TR_mem_contains `içerir`, TR_mem_get `varsa_al`, TR_mem_keys `anahtarlar`, TR_mem_length `uzunluk`, TR_mem_values `değerler`
 
 #### TR_type_Embedding `GömmeKatmanı`
 
@@ -591,7 +591,7 @@ a..b (b hariç) ve a..=b (b dahil) aralıklarının tipidir; uçlar Tam olmalıd
 değişken a: Aralık = 1..5; yazdır(tip(a), tip(aralık(5)))
 ```
 
-İlişkili: TR_fn_range `aralık`
+Üyeleri: TR_mem_reverse `ters_çevir` · İlişkili: TR_fn_range `aralık`
 
 #### TR_type_RowRMS `SatırRMS`
 
@@ -886,7 +886,7 @@ yazdır(tavan(3.2), tavan(7), tavan(tensör([-1.5, 2.5])).değer)
 Koşu klasöründe (noktalar <koşu>/checkpoints/ altına) eğitimin kontrol noktasını kurar; geçerli bir nokta varsa kurulurken yükler ve kaldığı adımı yazar, yoksa boş başlar. Sözlüğün değerleri modeller (türev izleyen tensörler), iyileştiriciler, okuyucular, günlükler ve düz değerli sözlük ya da listelerdir; anahtarlar veridir.
 
 ```tr
-değişken w = tensör([1.0, 2.0], türev_izle: doğru); değişken op = SGD([w], öğrenme_oranı: 0.1); değişken kn = kontrol_noktası("koşu_t702", {model: [w], op: op}, her_dakika: 15, tut: 2); yazdır(kn.kaldığı_adım)
+değişken w = tensör([1.0, 2.0], türev_izle: doğru); değişken op = SGD([w], öğrenme_oranı: 0.1); değişken kn = kontrol_noktası("koşu_t702", {"model": [w], "op": op}, her_dakika: 15, tut: 2); yazdır(kn.kaldığı_adım)
 ```
 
 İlişkili: TR_mem_resume_step `kaldığı_adım`, TR_mem_save `kaydet`, TR_mem_update `güncelle`, TR_fn_load_parameters `parametreleri_yükle`, TR_mem_state `durum`
@@ -922,7 +922,7 @@ değişken w = tensör([3.0, 4.0], türev_izle: doğru); geri_yayılım(toplam(w
 Betiğin seçeneklerini varsayılanlarıyla tanımlar ve komut satırında verilen --ad değer argümanlarıyla doldurulmuş yeni bir Sözlük döndürür; seçeneğin tipi varsayılanından çıkar. --yardım seçenekleri listeler; hatalı argüman programı 2 koduyla bitirir. Programda bir kez çağrılır; argüman yoksa varsayılanlar döner.
 
 ```tr
-değişken ayar = komut_satırı({adım: 100, oran: 0.01, hızlı: yanlış}, açıklama: "Küçük modeli eğitir"); yazdır(ayar.adım, ayar.oran, ayar.hızlı)
+değişken ayar = komut_satırı({"adım": 100, "oran": 0.01, "hızlı": yanlış}, açıklama: "Küçük modeli eğitir"); yazdır(ayar["adım"], ayar["oran"], ayar["hızlı"])
 ```
 
 İlişkili: TR_fn_env `ortam_değişkeni`
@@ -1342,7 +1342,7 @@ klasör_oluştur("liste/alt"); dosya_yaz("liste/a.npy", "1"); dosya_yaz("liste/a
 Ad → tensör sözlüğünü (tensör_yükle sonucu) modelin var olan parametrelerine, parametreler(model, adlarıyla: doğru) ile aynı adlarla yerinde yazar ve yazılan parametre sayısını verir; tensörler parametrenin cihazına taşınır, türü farklıysa dönüştürülür. Eksik, fazla ya da şekli farklı ad hatadır; iyileştiricinin tuttuğu tensörler aynı kalır.
 
 ```tr
-değişken m = {w: tensör([1.0, 2.0], türev_izle: doğru)}; tensör_kaydet("m.trt", {w: tensör([5.0, 6.0])}); yazdır(parametreleri_yükle(m, tensör_yükle("m.trt")), m.w.değer)
+değişken m = {"w": tensör([1.0, 2.0], türev_izle: doğru)}; tensör_kaydet("m.trt", {"w": tensör([5.0, 6.0])}); yazdır(parametreleri_yükle(m, tensör_yükle("m.trt")), m["w"].değer)
 ```
 
 İlişkili: TR_fn_parameters `parametreler`, TR_fn_load_tensors `tensör_yükle`, TR_fn_checkpoint `kontrol_noktası`
@@ -1438,7 +1438,7 @@ yazdır(log_softmax(tensör([1.0, 2.0, 3.0])).değer)
 Eğitim günlüğünü .jsonl dosyası (her satır bir JSON kaydı) olarak açar; dosya varsa sonuna eklenir, klasörü yoksa oluşturulur. İlk kayıttan önce program adı ve komut satırı ayarlarıyla bir başlangıç kaydı yazılır.
 
 ```tr
-değişken g = günlük("kayit/egitim.jsonl"); g.ekle({kayıp: 2.31, doğruluk: 0.5}); yazdır(g)
+değişken g = günlük("kayit/egitim.jsonl"); g.ekle({"kayıp": 2.31, "doğruluk": 0.5}); yazdır(g)
 ```
 
 İlişkili: TR_mem_append `ekle`, TR_fn_progress `ilerleme`
@@ -1684,7 +1684,7 @@ yazdır("Toplam:", 2 + 3)
 Toplam adımla bir ilerleme çubuğu açar (toplam verilmezse kalan süresiz sayaç). Çubuk standart hataya yazılır: terminalde tek satırda yenilenir, dosyaya ya da boruya giderken 10 saniyede bir düz satır yazılır. günlük: verilirse her güncelleme o günlüğe de yazılır.
 
 ```tr
-değişken ç = ilerleme(3); döngü i içinde 0..3 { ç.güncelle({kayıp: 1.0 / (i + 1)}) }; yazdır(ç)
+değişken ç = ilerleme(3); döngü i içinde 0..3 { ç.güncelle({"kayıp": 1.0 / (i + 1)}) }; yazdır(ç)
 ```
 
 İlişkili: TR_mem_update `güncelle`, TR_mem_stop `durdur`, TR_fn_logger `günlük`
@@ -2396,7 +2396,7 @@ Kullananlar: TR_mem_sampler `örnekleyici`, TR_mem_sequential `sıralı` · İli
 komut_satırı'nın --yardım çıktısının başında gösterilen, programın ne yaptığını anlatan metindir; varsayılan boştur.
 
 ```tr
-değişken ayar = komut_satırı({adım: 10}, açıklama: "Modeli eğitir"); yazdır(ayar.adım)
+değişken ayar = komut_satırı({"adım": 10}, açıklama: "Modeli eğitir"); yazdır(ayar["adım"])
 ```
 
 Kullananlar: TR_fn_command_line `komut_satırı` · İlişkili: TR_arg_descriptions `açıklamalar`
@@ -2406,7 +2406,7 @@ Kullananlar: TR_fn_command_line `komut_satırı` · İlişkili: TR_arg_descripti
 komut_satırı seçeneklerinin --yardım çıktısındaki açıklamalarıdır: anahtarlar seçenek adları, değerler Metin olmalıdır; seçeneklerde olmayan bir ad hatadır.
 
 ```tr
-değişken ayar = komut_satırı({adım: 10}, açıklamalar: {adım: "eğitim adımı sayısı"}); yazdır(ayar.adım)
+değişken ayar = komut_satırı({"adım": 10}, açıklamalar: {"adım": "eğitim adımı sayısı"}); yazdır(ayar["adım"])
 ```
 
 Kullananlar: TR_fn_command_line `komut_satırı` · İlişkili: TR_arg_description `açıklama`
@@ -2476,7 +2476,7 @@ Kullananlar: TR_fn_clip_grad `gradyan_kırp` · İlişkili: TR_fn_clip_grad `gra
 kontrol_noktası'nın kayıt aralığıdır (dakika, varsayılan 15; 0: her güncelle'de). Süre dolunca sıradaki .güncelle(adım) çağrısı adım sınırında kaydeder; durdurma isteğinde (Ctrl+C) aralık beklenmez.
 
 ```tr
-değişken w = tensör([1.0], türev_izle: doğru); değişken kn = kontrol_noktası("koşu_t984", {w: w}, her_dakika: 0.5); yazdır(kn)
+değişken w = tensör([1.0], türev_izle: doğru); değişken kn = kontrol_noktası("koşu_t984", {"w": w}, her_dakika: 0.5); yazdır(kn)
 ```
 
 Kullananlar: TR_fn_checkpoint `kontrol_noktası` · İlişkili: TR_arg_keep `tut`
@@ -2562,7 +2562,7 @@ Kullananlar: TR_fn_custom_grad `özel_türev` · İlişkili: TR_arg_backward `ge
 kontrol_noktası'nın saklayacağı en yeni nokta sayısıdır (pozitif Tam, varsayılan 2); daha eskileri her başarılı kayıttan sonra silinir.
 
 ```tr
-değişken w = tensör([1.0], türev_izle: doğru); değişken kn = kontrol_noktası("koşu_t985", {w: w}, tut: 3); döngü i içinde 1..5 { kn.güncelle(i); kn.kaydet() }; yazdır(klasörü_listele("koşu_t985/checkpoints", "step_*").uzunluk)
+değişken w = tensör([1.0], türev_izle: doğru); değişken kn = kontrol_noktası("koşu_t985", {"w": w}, tut: 3); döngü i içinde 1..5 { kn.güncelle(i); kn.kaydet() }; yazdır(klasörü_listele("koşu_t985/checkpoints", "step_*").uzunluk)
 ```
 
 Kullananlar: TR_fn_checkpoint `kontrol_noktası` · İlişkili: TR_arg_every_minutes `her_dakika`
@@ -2598,7 +2598,7 @@ Kullananlar: TR_fn_max `max`, TR_fn_mean `ortalama`, TR_fn_min `min`, TR_fn_sum 
 ilerleme çubuğunun her güncellemesini (adım, ölçüler, hız) ve bitişini verilen Günlük'e de yazar; varsayılan yok.
 
 ```tr
-değişken g = günlük("kayit/ilerleme.jsonl"); değişken ç = ilerleme(2, günlük: g); ç.güncelle({kayıp: 0.9}); ç.güncelle({kayıp: 0.7})
+değişken g = günlük("kayit/ilerleme.jsonl"); değişken ç = ilerleme(2, günlük: g); ç.güncelle({"kayıp": 0.9}); ç.güncelle({"kayıp": 0.7})
 ```
 
 Kullananlar: TR_fn_progress `ilerleme` · İlişkili: TR_fn_logger `günlük`
@@ -3358,6 +3358,7 @@ yazdır([5, 6, 7].ilk)
 
 #### TR_mem_get `varsa_al`
 
+    Sözlük.varsa_al(Herhangi) → Herhangi
     Liste.varsa_al(Tam) → Herhangi
     Metin.varsa_al(Tam) → Metin | Yok
 
@@ -3367,7 +3368,7 @@ i. öğeyi (negatif indeks sondan sayar) verir; öyle bir öğe yoksa yok döner
 değişken l = [10, 20, 30]; yazdır(l.varsa_al(1), l.varsa_al(5) ?? 0, "ab".varsa_al(-1))
 ```
 
-İlişkili: TR_mem_first `ilk`, TR_mem_last `son`
+İlişkili: TR_mem_first `ilk`, TR_mem_last `son`, TR_mem_contains `içerir`
 
 #### TR_mem_grad `gradyan`
 
@@ -3770,7 +3771,7 @@ yazdır(tensör([1, 2, 3, 4, 5, 6]).şekillendir([2, 3]).şekil)
 Kurulurken yüklenen kontrol noktasının adımıdır (tamamlanan adım sayısı); yeni bir koşuda 0. Eğitim döngüsü buradan başlar: döngü adım içinde kn.kaldığı_adım..toplam.
 
 ```tr
-değişken w = tensör([1.0], türev_izle: doğru); değişken kn = kontrol_noktası("koşu_y520", {w: w}); yazdır(kn.kaldığı_adım)
+değişken w = tensör([1.0], türev_izle: doğru); değişken kn = kontrol_noktası("koşu_y520", {"w": w}); yazdır(kn.kaldığı_adım)
 ```
 
 İlişkili: TR_mem_save `kaydet`, TR_mem_update `güncelle`
@@ -3778,6 +3779,7 @@ değişken w = tensör([1.0], türev_izle: doğru); değişken kn = kontrol_nokt
 #### TR_mem_reverse `ters_çevir`
 
     Liste.ters_çevir() → Liste
+    Aralık.ters_çevir() → Liste
     Metin.ters_çevir() → Metin
 
 Metnin karakterlerini ya da listenin elemanlarını ters sırayla verir. Asıl değeri değiştirmez, yeni metin ya da liste döner.
@@ -3795,7 +3797,7 @@ yazdır("kitap".ters_çevir(), [1, 2, 3].ters_çevir())
 En yeni geçerli kontrol noktasını aynı programda yerinde yükler (parametreler, iyileştiriciler, okuyucular, düz değerler; günlüklere devam kaydı yazılır) ve noktanın adımını Tam olarak verir; eğitim döngüsü o adımdan sürer. Kayıp NaN olunca ya da sıçrayınca son sağlam noktaya dönmek içindir. Nokta yoksa hatadır.
 
 ```tr
-değişken w = tensör([1.0], türev_izle: doğru); değişken kn = kontrol_noktası("koşu_y522", {w: w}); kn.güncelle(1); kn.kaydet(); yazdır(kn.geri_dön())
+değişken w = tensör([1.0], türev_izle: doğru); değişken kn = kontrol_noktası("koşu_y522", {"w": w}); kn.güncelle(1); kn.kaydet(); yazdır(kn.geri_dön())
 ```
 
 İlişkili: TR_mem_save `kaydet`, TR_mem_resume_step `kaldığı_adım`, TR_fn_is_finite `sonlu_mu`
@@ -3827,7 +3829,7 @@ yazdır(veri_kümesi("tests/data/numbers").örnekleyici(toplu: 2, bağlam: 4, to
 Kontrol noktasını hemen, son güncelle(adım) adımıyla kaydeder ve noktanın klasörünü Yol olarak verir (ör. eğitim sonunda). Yazma hatası açık hatadır; aralıkla kayıttaki gibi eğitim sürmez.
 
 ```tr
-değişken w = tensör([1.0], türev_izle: doğru); değişken kn = kontrol_noktası("koşu_y521", {w: w}); kn.güncelle(1); yazdır(kn.kaydet())
+değişken w = tensör([1.0], türev_izle: doğru); değişken kn = kontrol_noktası("koşu_y521", {"w": w}); kn.güncelle(1); yazdır(kn.kaydet())
 ```
 
 İlişkili: TR_mem_resume_step `kaldığı_adım`, TR_mem_update `güncelle`
@@ -4110,7 +4112,7 @@ yazdır([1, 2, 2, 3, 1].benzersiz())
 Her çağrı eğitimin bir adım sınırıdır. İlerleme'de çubuğu bir adım ilerletir, verilen ölçüleri (kayıp, öğrenme oranı ...) gösterir, adım: ile tamamlanan adım sayısını o değere getirir ve toplama ulaşınca çubuğu bitirir. KontrolNoktası'nda güncelle(adım) tamamlanan adım sayısını bildirir; her_dakika süresi dolduysa ya da durdurma istendiyse (Ctrl+C) burada kaydeder, kaydettiyse doğru verir.
 
 ```tr
-değişken ç = ilerleme(10); ç.güncelle({kayıp: 0.5}, adım: 5); yazdır(ç)
+değişken ç = ilerleme(10); ç.güncelle({"kayıp": 0.5}, adım: 5); yazdır(ç)
 ```
 
 İlişkili: TR_mem_stop `durdur`, TR_mem_save `kaydet`

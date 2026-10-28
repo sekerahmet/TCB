@@ -199,7 +199,7 @@ func finishRename(res *Result, words []string, newName string, o RenameOptions, 
 			hits, other := ScanText(o.Root, w, newName, skip)
 			res.SkippedWords += other
 			for _, h := range hits {
-				res.Likely = append(res.Likely, textChange(h, lines))
+				res.Likely = append(res.Likely, textChange(h))
 			}
 		}
 	}
@@ -288,12 +288,10 @@ func (r *Reader) PrepareRename(file string, line, col int) (*PrepareResult, stri
 	return &PrepareResult{Range: oc.Pos, Placeholder: shortName(n), Node: r.display(*n)}, ""
 }
 
-// lineSource değişiklik satırlarının metnini diskten okur (diskteki satırlar); .tr dosyasını sözdizimi kararları
-// (sözlük anahtarı) için bir kez ayrıştırır.
+// lineSource değişiklik satırlarının metnini diskten okur (diskteki satırlar).
 type lineSource struct {
-	root   string
-	cache  map[string][]string
-	parsed map[string]*parsed
+	root  string
+	cache map[string][]string
 }
 
 // read dosyanın ham metnidir (okunamazsa ya da gömülü kitaplıktaysa ok false).
@@ -320,21 +318,6 @@ func (s *lineSource) at(p Pos) string {
 		return ""
 	}
 	return clip(strings.TrimRight(lines[p.Line-1], "\r"))
-}
-
-// dictKey p'deki ad tırnaksız bir sözlük anahtarı mı (parsed.dictKey).
-func (s *lineSource) dictKey(p Pos) bool {
-	if s.parsed == nil {
-		s.parsed = map[string]*parsed{}
-	}
-	res, ok := s.parsed[p.File]
-	if !ok {
-		if text, ok := s.read(p.File); ok {
-			res = readFile(text, false)
-		}
-		s.parsed[p.File] = res
-	}
-	return res.dictKey(p.Line, p.Col)
 }
 
 // renameTerm terim kipidir: sembol aranmaz, q sözcüğü (ve ekli biçimleri) yalnızca metinde aranır.

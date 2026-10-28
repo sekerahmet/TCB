@@ -102,7 +102,7 @@ func (v *VM) indexValue(left Value, idx Value, line int) (Value, error) {
 					return nil, messages.At(line, 0, err)
 				}
 			}
-			return Null, nil
+			return nil, messages.At(line, 0, missingKeyError(idx))
 		}
 		return val, nil
 
@@ -156,7 +156,7 @@ func (v *VM) memberValue(obj Value, e *ast.MemberExpression, u memberInfo) (Valu
 		if ValueType(inst.Def.Name) != ValNull {
 			return structMember(inst, e)
 		}
-	case *DictVal, *ListVal, *StringVal:
+	case *DictVal, *ListVal, *StringVal, *RangeVal:
 		return v.evalBuiltinMember(obj, e.Property, u, e.Safe, e.Line())
 	}
 

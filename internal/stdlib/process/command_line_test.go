@@ -12,7 +12,7 @@ import (
 	_ "github.com/sekerahmet/TCB/internal/stdlib"
 )
 
-const options = `{TR_lr: 0.001, TR_step: 5000, veri: "veri/train", katmanlar: [64, 64], hızlı: TR_false, etiket: TR_none, hf_token: ""}`
+const options = `{"öğrenme_oranı": 0.001, "adım": 5000, "veri": "veri/train", "katmanlar": [64, 64], "hızlı": TR_false, "etiket": TR_none, "hf_token": ""}`
 
 // commandLine komut_satırı'nı verilen argümanlarla çalıştırır; sonucu (sözlüğün görünümü),
 // yorumlayıcıyı ve hatayı döndürür.
@@ -34,19 +34,17 @@ func commandLine(t *testing.T, code string, arguments ...string) (string, *inter
 	return v.Inspect(), m, nil
 }
 
-// Kodlu bir çıplak anahtarın seçeneği ({adım: 1}, TR_mem_step) her gömülü yazım dilinin adıyla
-// kabul edilir, hiçbiri öncelikli değildir (17.8); sonuç sözlüğünde anahtar kodun dilden bağımsız
-// adıdır ("step", 17.3) ve üye erişimi onu bulur. Kodsuz anahtar yalnız yazıldığı adla geçer.
-func TestCodedOptionInEveryLanguage(t *testing.T) {
-	for _, arg := range [][]string{{"--adım", "5"}, {"--step", "5"}} {
-		got, _, err := commandLine(t, `TR_var a = TR_command_line({TR_step: 1, renk: 2})
-[a.TR_step, a.TR_keys()]`, arg...)
-		if want := `[5, ["step", "renk"]]`; err != nil || got != want {
-			t.Errorf("%v: %s (%v), beklenen %s", arg, got, err, want)
-		}
+// Seçeneğin adı metin anahtarının kendisidir ve çevrilmez (3.7, 3.14): {"step": 1} yalnız --step
+// ile verilir, sonuç sözlüğünde anahtar "step"tir ve köşeli parantezle okunur. Bir dildeki ad
+// (--adım) ayrı bir seçenektir; sözlüğün üye adı da (length) seçenek olabilir.
+func TestOptionNameIsTheTextKey(t *testing.T) {
+	got, _, err := commandLine(t, `TR_var a = TR_command_line({"step": 1, "renk": 2, "length": 3})
+[a["step"], a["length"], a.TR_keys()]`, "--step", "5", "--length", "4")
+	if want := `[5, 4, ["step", "renk", "length"]]`; err != nil || got != want {
+		t.Errorf("%s (%v), beklenen %s", got, err, want)
 	}
-	if _, _, err := commandLine(t, "TR_command_line({renk: 2})", "--color", "3"); err == nil {
-		t.Error("kodsuz seçenek başka bir adla kabul edilmemeli")
+	if _, _, err := commandLine(t, `TR_command_line({"step": 1})`, "--adım", "3"); err == nil {
+		t.Error("seçenek başka bir dildeki adıyla kabul edilmemeli")
 	}
 }
 
@@ -56,12 +54,12 @@ func TestCommandLineValues(t *testing.T) {
 		arg  []string
 		want string
 	}{
-		{nil, `{lr: 0.001, step: 5000, "veri": "veri/train", "katmanlar": [64, 64], "hızlı": false, "etiket": none, "hf_token": ""}`},
+		{nil, `{"öğrenme_oranı": 0.001, "adım": 5000, "veri": "veri/train", "katmanlar": [64, 64], "hızlı": false, "etiket": none, "hf_token": ""}`},
 		{[]string{"--adım", "5_000", "--öğrenme_oranı=1e-3", "--hızlı", "--katmanlar", "128, 32,8", "--etiket", "deneme"},
-			`{lr: 0.001, step: 5000, "veri": "veri/train", "katmanlar": [128, 32, 8], "hızlı": true, "etiket": "deneme", "hf_token": ""}`},
+			`{"öğrenme_oranı": 0.001, "adım": 5000, "veri": "veri/train", "katmanlar": [128, 32, 8], "hızlı": true, "etiket": "deneme", "hf_token": ""}`},
 		{[]string{"--öğrenme_oranı", "3", "--hızlı=yanlış", "--katmanlar=", "--veri", "-x"},
-			`{lr: 3.0, step: 5000, "veri": "-x", "katmanlar": [], "hızlı": false, "etiket": none, "hf_token": ""}`},
-		{[]string{"--adım", "-5"}, `{lr: 0.001, step: -5, "veri": "veri/train", "katmanlar": [64, 64], "hızlı": false, "etiket": none, "hf_token": ""}`},
+			`{"öğrenme_oranı": 3.0, "adım": 5000, "veri": "-x", "katmanlar": [], "hızlı": false, "etiket": none, "hf_token": ""}`},
+		{[]string{"--adım", "-5"}, `{"öğrenme_oranı": 0.001, "adım": -5, "veri": "veri/train", "katmanlar": [64, 64], "hızlı": false, "etiket": none, "hf_token": ""}`},
 	} {
 		got, _, err := commandLine(t, code, d.arg...)
 		if err != nil || got != d.want {
@@ -104,7 +102,7 @@ func TestCommandLineUsageErrors(t *testing.T) {
 
 // --yardım ve -h seçenekleri listeleyip programı 0 koduyla bitirir; hatalı argümanlar olsa da.
 func TestCommandLineHelp(t *testing.T) {
-	code := `TR_command_line(` + options + `, TR_description: "Küçük dil modelini eğitir", TR_descriptions: {TR_lr: "öğrenme oranı", TR_step: "eğitim adımı sayısı"})`
+	code := `TR_command_line(` + options + `, TR_description: "Küçük dil modelini eğitir", TR_descriptions: {"öğrenme_oranı": "öğrenme oranı", "adım": "eğitim adımı sayısı"})`
 	want := `Kullanım: tr egit.tr [seçenekler]
 
 Küçük dil modelini eğitir
@@ -130,7 +128,7 @@ Seçenekler:
 
 // Kural (B17): varsayılanı doğru olan Mantık seçeneğinin yardımı onu kapatma biçimini de gösterir.
 func TestCommandLineHelpShowsHowToTurnOff(t *testing.T) {
-	_, _, err := commandLine(t, `TR_command_line({hızlı: TR_true})`, "--yardım")
+	_, _, err := commandLine(t, `TR_command_line({"hızlı": TR_true})`, "--yardım")
 	c, ok := interp.IsExitRequest(err)
 	if !ok || !strings.Contains(c.Message, "--hızlı=yanlış") {
 		t.Errorf("yardım kapatma biçimini göstermeli: %v", err)
@@ -140,9 +138,8 @@ func TestCommandLineHelpShowsHowToTurnOff(t *testing.T) {
 // Kurulum hataları sıradan, yakalanabilir hatalardır.
 func TestCommandLineSetupErrors(t *testing.T) {
 	for _, d := range []struct{ code, want string }{
-		{`TR_command_line({TR_length: 3})`, `"uzunluk" seçenek adı olamaz: Sözlük tipinin bir üyesidir`},
-		{`TR_command_line({a: {b: 1}})`, "'a' seçeneğinin varsayılanı Tam, Ondalık, Metin ya da Mantık, Liste ya da yok olmalı"},
-		{`TR_command_line({TR_step: 1}, TR_descriptions: {adim: "x"})`, "açıklamalar içindeki 'adim' bir seçenek değil. Bunu mu demek istediniz: 'adım'?"},
+		{`TR_command_line({"a": {"b": 1}})`, "'a' seçeneğinin varsayılanı Tam, Ondalık, Metin ya da Mantık, Liste ya da yok olmalı"},
+		{`TR_command_line({"adım": 1}, TR_descriptions: {"adim": "x"})`, "açıklamalar içindeki 'adim' bir seçenek değil. Bunu mu demek istediniz: 'adım'?"},
 		{`TR_command_line([1])`, "1. argüman olarak Sözlük bekler"},
 	} {
 		_, _, err := commandLine(t, d.code)
@@ -154,26 +151,22 @@ func TestCommandLineSetupErrors(t *testing.T) {
 		code string
 		want messages.Code
 	}{
-		{`TR_command_line({TR_length: 3})`, messages.H7222},
-		{`TR_command_line({TR_keys: 3})`, messages.H7222},
-		{`TR_command_line({length: 3})`, messages.H7222}, // her yazım dilinin üye adı
-		{`TR_command_line({keys: 3})`, messages.H7222},
-		{`TR_command_line({yardım: TR_true})`, messages.H7221},
-		{`TR_command_line({help: TR_true})`, messages.H7221},
-		{`TR_command_line({h: TR_true})`, messages.H7221},
+		{`TR_command_line({"yardım": TR_true})`, messages.H7221},
+		{`TR_command_line({"help": TR_true})`, messages.H7221},
+		{`TR_command_line({"h": TR_true})`, messages.H7221},
 		{`TR_command_line({"a b": 1})`, messages.H7220},
 		{`TR_command_line({"-a": 1})`, messages.H7220},
 		{`TR_command_line({1: 1})`, messages.H7219},
-		{`TR_command_line({a: {b: 1}})`, messages.H7225},
-		{`TR_command_line({a: [1, "x"]})`, messages.H7224},
-		{`TR_command_line({a: [[1]]})`, messages.H7223},
-		{`TR_command_line({TR_lr: 1}, TR_descriptions: {b: "x"})`, messages.H7228},
-		{`TR_command_line({TR_step: 1}, TR_descriptions: {adim: "x"})`, messages.H7229},
-		{`TR_command_line({a: 1}, TR_descriptions: {a: 5})`, messages.H7230},
-		{`TR_command_line({a: 1}, TR_descriptions: 5)`, messages.H7227},
-		{`TR_command_line({a: 1}, TR_description: 5)`, messages.H7226},
-		{`TR_command_line({a: 1}, açklama: "x")`, messages.H7900},
-		{`TR_command_line({a: 1}); TR_command_line({a: 1})`, messages.H7218},
+		{`TR_command_line({"a": {"b": 1}})`, messages.H7225},
+		{`TR_command_line({"a": [1, "x"]})`, messages.H7224},
+		{`TR_command_line({"a": [[1]]})`, messages.H7223},
+		{`TR_command_line({"lr": 1}, TR_descriptions: {"b": "x"})`, messages.H7228},
+		{`TR_command_line({"adım": 1}, TR_descriptions: {"adim": "x"})`, messages.H7229},
+		{`TR_command_line({"a": 1}, TR_descriptions: {"a": 5})`, messages.H7230},
+		{`TR_command_line({"a": 1}, TR_descriptions: 5)`, messages.H7227},
+		{`TR_command_line({"a": 1}, TR_description: 5)`, messages.H7226},
+		{`TR_command_line({"a": 1}, açklama: "x")`, messages.H7900},
+		{`TR_command_line({"a": 1}); TR_command_line({"a": 1})`, messages.H7218},
 	} {
 		_, _, err := commandLine(t, d.code)
 		if _, exit := interp.IsExitRequest(err); exit || !messages.Has(err, d.want) {
@@ -181,8 +174,8 @@ func TestCommandLineSetupErrors(t *testing.T) {
 		}
 	}
 	// Kurulum hatası çağrıyı tüketmez; dene/yakala yakalar.
-	if got, _, err := commandLine(t, `TR_try { TR_command_line({TR_length: 1}) } TR_catch { }
-TR_command_line({a: 1})`); err != nil || got != `{"a": 1}` {
+	if got, _, err := commandLine(t, `TR_try { TR_command_line({"a b": 1}) } TR_catch { }
+TR_command_line({"a": 1})`); err != nil || got != `{"a": 1}` {
 		t.Errorf("hatalı kurulumdan sonra çağrı geçerli olmalı: %s %v", got, err)
 	}
 }
@@ -192,7 +185,7 @@ func TestExitRequestNotCaught(t *testing.T) {
 	_, m, err := commandLine(t, `TR_var iz = []
 TR_func kur() {
     TR_defer iz.TR_append("ertele")
-    TR_try { TR_return TR_command_line({a: 1}) } TR_catch h { iz.TR_append("yakalandı") }
+    TR_try { TR_return TR_command_line({"a": 1}) } TR_catch h { iz.TR_append("yakalandı") }
 }
 TR_defer TR_print(iz)
 kur()`, "--b")
@@ -206,7 +199,7 @@ kur()`, "--b")
 
 // Gizli adlı seçeneğin (sayı olmayan) değeri süzgece girer; sayı değerli olan girmez.
 func TestCommandLineSecretValue(t *testing.T) {
-	_, m, err := commandLine(t, `TR_command_line({hf_token: "", max_tokens: 0, api_key: ""})`, "--hf_token", "hf_abcdefgh123", "--max_tokens", "131072", "--api_key=123456789")
+	_, m, err := commandLine(t, `TR_command_line({"hf_token": "", "max_tokens": 0, "api_key": ""})`, "--hf_token", "hf_abcdefgh123", "--max_tokens", "131072", "--api_key=123456789")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -214,7 +207,7 @@ func TestCommandLineSecretValue(t *testing.T) {
 		t.Errorf("maskeleme: %q", got)
 	}
 	// Bilinmeyen gizli adlı seçeneğin değeri de hata mesajında görünmez.
-	_, m, err = commandLine(t, `TR_command_line({a: 1})`, "--hf_token_x=hf_yazimhatasi")
+	_, m, err = commandLine(t, `TR_command_line({"a": 1})`, "--hf_token_x=hf_yazimhatasi")
 	if c, ok := interp.IsExitRequest(err); !ok || strings.Contains(c.Message, "hf_yazimhatasi") || m.Mask("hf_yazimhatasi") != interp.SecretMask {
 		t.Errorf("bilinmeyen gizli seçeneğin değeri mesajda olmamalı ve süzgece girmeli: %v", err)
 	}
@@ -223,18 +216,18 @@ func TestCommandLineSecretValue(t *testing.T) {
 // Tek tireyle yanlış yazılmış bir seçeneğin değeri (-api_key=...) hata mesajında görünmez;
 // liste türündeki gizli seçeneğin her öğesi de (varsayılanda ve komut satırında) gizlenir.
 func TestCommandLineSecretLeaks(t *testing.T) {
-	_, _, err := commandLine(t, `TR_command_line({api_key: ""})`, "-api_key=gizlideger99")
+	_, _, err := commandLine(t, `TR_command_line({"api_key": ""})`, "-api_key=gizlideger99")
 	if c, ok := interp.IsExitRequest(err); !ok || strings.Contains(c.Message, "gizlideger99") {
 		t.Errorf("tek tireli seçeneğin değeri mesajda olmamalı: %v", err)
 	}
-	_, m, err := commandLine(t, `TR_command_line({api_key: ["varsayilangizli1"]})`, "--api_key=anahtarbir1,anahtariki2")
+	_, m, err := commandLine(t, `TR_command_line({"api_key": ["varsayilangizli1"]})`, "--api_key=anahtarbir1,anahtariki2")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got := m.Mask("anahtarbir1 anahtariki2"); got != interp.SecretMask+" "+interp.SecretMask {
 		t.Errorf("liste öğeleri gizlenmeli: %q", got)
 	}
-	_, m, err = commandLine(t, `TR_command_line({api_key: ["varsayilangizli1", "varsayilangizli2"]})`)
+	_, m, err = commandLine(t, `TR_command_line({"api_key": ["varsayilangizli1", "varsayilangizli2"]})`)
 	if err != nil {
 		t.Fatal(err)
 	}

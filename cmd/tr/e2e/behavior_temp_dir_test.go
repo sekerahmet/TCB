@@ -55,7 +55,7 @@ func TestTempDirRemovedWhenProgramEnds(t *testing.T) {
 	}{
 		{"başarı", "", "", 0},
 		{"çalışma hatası", "TR_print(1 / 0)\n", "", 1},
-		{"komut satırı çıkışı", "TR_command_line({TR_step: 1})\n", "--bilinmeyen", 2},
+		{"komut satırı çıkışı", "TR_command_line({\"step\": 1})\n", "--bilinmeyen", 2},
 	}
 	for _, d := range states {
 		temp, env := tempEnv(t)

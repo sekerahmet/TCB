@@ -74,14 +74,8 @@ func (p *Parser) parseDictLiteral() ast.Expression {
 
 	for !p.peekTokenIs(lexer.TokRBrace) && !p.peekTokenIs(lexer.TokEOF) {
 		p.nextToken()
-		var key ast.Expression
-		// Sözlük anahtarı çıplak tanımlayıcı ise (örn: {ad: "Ali"}), metin olarak al
-		if p.curTokenIs(lexer.TokIdent) && p.peekTokenIs(lexer.TokColon) {
-			key = &ast.StringLiteral{Token: p.curToken(), Value: p.curToken().Literal}
-			p.role(p.curToken(), RoleDictKey)
-		} else {
-			key = p.parseExpression(precLowest)
-		}
+		// Anahtar bir ifadedir (3.7): {k: 1}'de k değişkendir, metin anahtarı {"k": 1} yazılır.
+		key := p.parseExpression(precLowest)
 
 		if !p.expectPeek(lexer.TokColon) {
 			return nil

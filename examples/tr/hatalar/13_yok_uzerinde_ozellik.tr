@@ -2,10 +2,10 @@
 # Hata 13 — yok değerin özelliği.
 # İleti kodu: H2466
 # Ne olur: Değeri yok olan bir şeyin özelliğine ya da metoduna erişilirse çalışma anında hata alınır.
-# Neden: Sözlükte olmayan anahtar yok verir; yok'un metodu yoktur.
+# Neden: varsa_al sözlükte olmayan anahtarda yok verir; yok'un metodu yoktur.
 # Düzeltilmiş hâli:
-#     yazdır((kişi["soyad"] ?? "bilinmiyor").büyük_harf()) // ya da güvenli erişim: kişi["soyad"]?.büyük_harf()
+#     yazdır((kişi.varsa_al("soyad") ?? "bilinmiyor").büyük_harf()) # ya da güvenli erişim: kişi.varsa_al("soyad")?.büyük_harf()
 # Çalıştırma (proje kökünden): tr examples/tr/hatalar/13_yok_uzerinde_ozellik.tr   (çıkış kodu 1)
 
 TR_var kişi = {"ad": "Ali"}
-TR_print(kişi["soyad"].TR_upper())
+TR_print(kişi.TR_get("soyad").TR_upper())

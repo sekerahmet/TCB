@@ -31,7 +31,7 @@ TR_for i TR_in 0..200 {
     TR_var kayıp = TR_sum(TR_relu(x @ w))
     TR_backward(kayıp)
     op.TR_step()
-    ç.TR_update({TR_loss: kayıp})
+    ç.TR_update({"loss": kayıp})
 }
 TR_print("bitti")
 `
@@ -411,7 +411,7 @@ TR_for e TR_in 0..2 {
     TR_var ç = TR_progress(100)
     TR_for i TR_in 0..100 {
         TR_var kayıp = TR_sum(TR_relu(x @ w))
-        ç.TR_update({TR_loss: kayıp})
+        ç.TR_update({"loss": kayıp})
     }
 }
 `

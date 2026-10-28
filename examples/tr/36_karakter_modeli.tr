@@ -30,7 +30,7 @@ TR_var harfler = []
 TR_var harf_no = {}
 TR_var veri = []
 TR_for h TR_in metin_verisi {
-    TR_if harf_no[h] == TR_none {
+    TR_if TR_not harf_no.TR_contains(h) {
         harf_no[h] = harfler.TR_length
         harfler.TR_append(h)
     }

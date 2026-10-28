@@ -39,8 +39,6 @@ func (c *analysis) langElement(r lexer.Record) codes.Code {
 			return codes.CtxInit
 		}
 		return c.find(codes.NamespaceMember, name)
-	case parser.RoleDictKey:
-		return c.find(codes.NamespaceMember, name)
 	case parser.RoleTest:
 		return c.contextual(codes.CtxTest, name)
 	case parser.RoleAs:

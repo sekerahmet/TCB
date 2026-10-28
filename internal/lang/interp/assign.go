@@ -50,9 +50,9 @@ func (v *VM) setIndex(left Value, idx Value, codeVal uint8, rightVal Value, line
 			container.SetValue(idx, rightVal)
 			return nil
 		}
-		cur, _ := container.GetValue(idx)
-		if cur == nil {
-			cur = Null
+		cur, ok := container.GetValue(idx)
+		if !ok {
+			return messages.At(line, 0, missingKeyError(idx))
 		}
 		finalVal, err := v.assignOp(codeVal, cur, rightVal, line)
 		if err != nil {
@@ -112,7 +112,10 @@ func (v *VM) setMember(obj Value, prop string, u memberInfo, codeVal uint8, righ
 		if isDictMember(prop) {
 			return messages.At(line, 0, messages.New(messages.H2406, prop))
 		}
-		key, found := u.dictKey(inst, prop)
+		if inst.module == nil {
+			return messages.At(line, 0, messages.New(messages.H2648, u.keyName(prop)))
+		}
+		key, _ := u.moduleKey(inst, prop)
 		cur := inst.Pairs[key]
 		if cur == nil {
 			cur = Null
@@ -122,11 +125,7 @@ func (v *VM) setMember(obj Value, prop string, u memberInfo, codeVal uint8, righ
 			return err
 		}
 		escape(finalVal)
-		if !found && u.keys != nil {
-			inst.SetCoded(u.codeVal, finalVal) // yeni kodlu anahtar ({...}.adım = 1 ≡ {adım: 1})
-		} else {
-			inst.Set(key, finalVal)
-		}
+		inst.Set(key, finalVal)
 		return nil
 	case MemberAssignable:
 		// Dış değerler (ör. iyileştirici): bileşik atamada mevcut değer GetProperty ile okunur.

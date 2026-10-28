@@ -28,7 +28,7 @@ TR_var ç = TR_progress(100, TR_log: g)`); err != nil {
 	}
 	for i := 1; i <= 100; i++ {
 		s.advance(200 * time.Millisecond) // saniyede 5 adım
-		if _, err := run(t, m, `ç.TR_update({TR_loss: 4.0 / `+strconv.Itoa(i)+`, oran: 0.0003})`); err != nil {
+		if _, err := run(t, m, `ç.TR_update({"loss": 4.0 / `+strconv.Itoa(i)+`, "oran": 0.0003})`); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -38,10 +38,10 @@ TR_var ç = TR_progress(100, TR_log: g)`); err != nil {
 	if len(line) != 2 {
 		t.Fatalf("1 ara satır ve özet bekleniyordu:\n%s", output)
 	}
-	if want := "adım 50/100 ▕████████░░░░░░░░▏ %50 · kayıp 0,08 · oran 3e-4 · 5 adım/sn · kalan 10 sn"; line[0] != want {
+	if want := "adım 50/100 ▕████████░░░░░░░░▏ %50 · loss 0,08 · oran 3e-4 · 5 adım/sn · kalan 10 sn"; line[0] != want {
 		t.Errorf("ara satır:\n%q\nbeklenen\n%q", line[0], want)
 	}
-	if want := "adım 100/100 · kayıp 0,04 · oran 3e-4 · 20 sn sürdü"; line[1] != want {
+	if want := "adım 100/100 · loss 0,04 · oran 3e-4 · 20 sn sürdü"; line[1] != want {
 		t.Errorf("özet satırı:\n%q\nbeklenen\n%q", line[1], want)
 	}
 	records := lines(t, path)
@@ -80,7 +80,7 @@ func TestProgressStepAndErrors(t *testing.T) {
 	}{
 		{`ç.TR_update(TR_step: 11)`, messages.H7317},
 		{`ç.TR_update(TR_step: -1)`, messages.H7315},
-		{`ç.TR_update({TR_step: 3})`, messages.H7321},
+		{`ç.TR_update({"step": 3})`, messages.H7321},
 		{`ç.TR_update({"rate": 3})`, messages.H7321},
 		{`TR_progress(0)`, messages.H7313},
 		{`TR_progress(10, TR_log: 5)`, messages.H7314},
@@ -116,17 +116,17 @@ func TestProgressTerminal(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	step(`ç.TR_update({TR_loss: 2.0})`) // çizilir
-	step(`ç.TR_update({TR_loss: 1.5})`) // 100 ms dolmadı: çizilmez
-	step(`TR_print("ara")`)             // sil, yaz, tazelenmiş satırı yeniden çiz
+	step(`ç.TR_update({"loss": 2.0})`) // çizilir
+	step(`ç.TR_update({"loss": 1.5})`) // 100 ms dolmadı: çizilmez
+	step(`TR_print("ara")`)            // sil, yaz, tazelenmiş satırı yeniden çiz
 	s.advance(time.Second)
-	step(`ç.TR_update({TR_loss: 1.0})`) // çizilir; hız 1 saniyede 3 adım
-	step(`ç.TR_update({TR_loss: 0.5})`) // bitti: özet
+	step(`ç.TR_update({"loss": 1.0})`) // çizilir; hız 1 saniyede 3 adım
+	step(`ç.TR_update({"loss": 0.5})`) // bitti: özet
 	length := func(s string) int { return len([]rune(s)) }
-	c1 := "adım 1/4 ▕████░░░░░░░░░░░░▏ %25 · kayıp 2"
-	c2 := "adım 2/4 ▕████████░░░░░░░░▏ %50 · kayıp 1,5"
-	c3 := "adım 3/4 ▕████████████░░░░▏ %75 · kayıp 1 · 3 adım/sn · kalan 1 sn"
-	last := "adım 4/4 · kayıp 0,5 · 1 sn sürdü"
+	c1 := "adım 1/4 ▕████░░░░░░░░░░░░▏ %25 · loss 2"
+	c2 := "adım 2/4 ▕████████░░░░░░░░▏ %50 · loss 1,5"
+	c3 := "adım 3/4 ▕████████████░░░░▏ %75 · loss 1 · 3 adım/sn · kalan 1 sn"
+	last := "adım 4/4 · loss 0,5 · 1 sn sürdü"
 	want := "\r" + c1 + "\r" + strings.Repeat(" ", length(c1)) + "\r" + "ara\n" + "\r" + c2 +
 		"\r" + c3 + "\r" + last + strings.Repeat(" ", length(c3)-length(last)) + "\n"
 	if got := w.String(); got != want {
@@ -166,7 +166,7 @@ func TestJobStatus(t *testing.T) {
 	t.Cleanup(logging.FakeTerminal(60)) // iş kipinde terminal kullanılmaz
 	m, w := newVM(t, t.TempDir())
 	if _, err := run(t, m, `TR_var ç = TR_progress(2)
-ç.TR_update({TR_loss: 0.25})`); err != nil {
+ç.TR_update({"loss": 0.25})`); err != nil {
 		t.Fatal(err)
 	}
 	var d map[string]any
@@ -196,11 +196,11 @@ func TestCloseAllFinishesBar(t *testing.T) {
 	setClock(t)
 	m, w := newVM(t, t.TempDir())
 	if _, err := run(t, m, `TR_var ç = TR_progress(10)
-ç.TR_update({TR_loss: 3.25})`); err != nil {
+ç.TR_update({"loss": 3.25})`); err != nil {
 		t.Fatal(err)
 	}
 	logging.CloseAll()
-	if got := w.String(); got != "adım 1/10 · kayıp 3,25 · 0 sn sürdü\n" {
+	if got := w.String(); got != "adım 1/10 · loss 3,25 · 0 sn sürdü\n" {
 		t.Errorf("özet satırı: %q", got)
 	}
 }
@@ -219,10 +219,10 @@ TR_var ç = TR_progress(100, TR_log: g)`); err != nil {
 	}
 	for i := 1; i <= 5; i++ {
 		s.advance(2 * time.Second) // 2 saniyede 10 adım: saniyede 5
-		if _, err := run(t, m, `ç.TR_update({TR_loss: 1.0}, TR_step: `+strconv.Itoa(10*i)+`)`); err != nil {
+		if _, err := run(t, m, `ç.TR_update({"loss": 1.0}, TR_step: `+strconv.Itoa(10*i)+`)`); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := run(t, m, `ç.TR_update({doğrulama: 2.0}, TR_step: `+strconv.Itoa(10*i)+`)`); err != nil {
+		if _, err := run(t, m, `ç.TR_update({"doğrulama": 2.0}, TR_step: `+strconv.Itoa(10*i)+`)`); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -241,11 +241,11 @@ func TestNestedProgressRedrawsOuter(t *testing.T) {
 	m, w := newVM(t, t.TempDir())
 	for _, code := range []string{
 		`TR_var dış = TR_progress(3)`,
-		`dış.TR_update({TR_loss: 9.0})`,
+		`dış.TR_update({"loss": 9.0})`,
 		`TR_var iç = TR_progress(2)`,
 		`iç.TR_update()`,
-		`dış.TR_update({TR_loss: 7.0})`, // iç çubuk görünürken: yalnızca işaretlenir
-		`iç.TR_update()`,                // iç biter: dış yeniden çizilir
+		`dış.TR_update({"loss": 7.0})`, // iç çubuk görünürken: yalnızca işaretlenir
+		`iç.TR_update()`,               // iç biter: dış yeniden çizilir
 	} {
 		s.advance(time.Second)
 		if _, err := run(t, m, code); err != nil {
@@ -254,7 +254,7 @@ func TestNestedProgressRedrawsOuter(t *testing.T) {
 	}
 	out := w.String()
 	tail := out[strings.LastIndex(out, "\n")+1:]
-	if !strings.Contains(tail, "adım 2/3") || !strings.Contains(tail, "kayıp 7") {
+	if !strings.Contains(tail, "adım 2/3") || !strings.Contains(tail, "loss 7") {
 		t.Fatalf("dış çubuk güncel satırla çizilmeli; son satır %q\ntüm çıktı %q", tail, out)
 	}
 }

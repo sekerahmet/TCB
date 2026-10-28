@@ -19,7 +19,7 @@ TR_for i TR_in 0..6 {
     TR_var kayıp = TR_sum(TR_relu(x @ w))
     TR_backward(kayıp)
     op.TR_step()
-    ç.TR_update({TR_loss: kayıp})
+    ç.TR_update({"loss": kayıp})
 }
 TR_default_device("cpu")
 `

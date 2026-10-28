@@ -71,11 +71,7 @@ func applyArguments(m *interp.VM, options []*option, description string) (*inter
 		if !ok {
 			v = s.defaultVal
 		}
-		if s.code != codes.None {
-			result.SetCoded(s.code, v) // kodlu seçenek sonuçta da kodlu anahtardır (ayar.adım)
-		} else {
-			result.Set(s.name, v)
-		}
+		result.Set(s.name, v)
 	}
 	return result, nil
 }
@@ -159,27 +155,14 @@ func optionName(a string, options []*option) (name, value string, valued bool, e
 	return "", "", false, messages.New(messages.H7207, shorten(a))
 }
 
-// find adı verilen seçeneği bulur: adın kendisiyle ya da kodlu seçenekte kodun herhangi bir gömülü
-// yazım dilindeki adıyla (17.8: girdide her dilin adı geçerlidir, hiçbiri öncelikli değildir).
+// find adı verilen seçeneği bulur: seçeneğin adı metin anahtarının kendisidir (3.7), çevrilmez.
 func find(options []*option, name string) *option {
 	for _, s := range options {
-		if s.name == name || (s.code != codes.None && codeHasName(s.code, name)) {
+		if s.name == name {
 			return s
 		}
 	}
 	return nil
-}
-
-// codeHasName name, k'nin bir gömülü yazım dilindeki adı mı?
-func codeHasName(k codes.Code, name string) bool {
-	for _, lang := range codes.Languages() {
-		if l, err := codes.LoadLanguage(lang); err == nil {
-			if e, ok := l.Entry(k); ok && e.Name == name {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 // unknownOption en yakın seçeneği öneren hatayı verir; verilen, argümanın yazıldığı

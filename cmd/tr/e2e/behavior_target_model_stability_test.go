@@ -17,13 +17,13 @@ import (
 func TestTargetModelRollsBackOnNaN(t *testing.T) {
 	script := reporoot.Path("tools/gpu/rgn512.tr")
 	data := reporoot.Path("tests/data/text")
-	args := []string{script, "--veri", data, "--cihaz", "cpu", "--hassasiyet", "fp32", "--adım", "12",
-		"--toplu", "4", "--mikro", "2", "--bağlam", "32", "--günlük", "4", "--dağarcık", "1000",
-		"--boyut", "64", "--bakış_sayısı", "4", "--kv_bakış_sayısı", "2", "--ara", "96", "--nan_adımı", "8"}
+	args := []string{script, "--veri", data, "--device", "cpu", "--hassasiyet", "fp32", "--step", "12",
+		"--toplu", "4", "--mikro", "2", "--bağlam", "32", "--logger", "4", "--dağarcık", "1000",
+		"--embed_dim", "64", "--num_heads", "4", "--num_kv_heads", "2", "--ara", "96", "--nan_adımı", "8"}
 
 	dir := t.TempDir()
-	s := testkit.RunBinary(t, trBinary, dir, "", nil, append(args, "--koşu", "koşu", "--kayıt_dakika", "0", "--atla", "1",
-		"--kayıplar", "k.json")...)
+	s := testkit.RunBinary(t, trBinary, dir, "", nil, append(args, "--koşu", "koşu", "--kayıt_dakika", "0", "--skip", "1",
+		"--losses", "k.json")...)
 	if s.Code != 0 {
 		t.Fatalf("kontrol noktalı koşu çıkış %d:\n%s\n%s", s.Code, s.Stdout, s.Stderr)
 	}
@@ -61,16 +61,16 @@ func TestTargetModelRollsBackOnNaN(t *testing.T) {
 func TestTargetModelLossLogSurvivesResumeAndRollback(t *testing.T) {
 	script := reporoot.Path("tools/gpu/rgn512.tr")
 	data := reporoot.Path("tests/data/text")
-	base := []string{script, "--veri", data, "--cihaz", "cpu", "--hassasiyet", "fp32",
-		"--toplu", "4", "--mikro", "2", "--bağlam", "32", "--günlük", "4", "--dağarcık", "1000",
-		"--boyut", "64", "--bakış_sayısı", "4", "--kv_bakış_sayısı", "2", "--ara", "96"}
+	base := []string{script, "--veri", data, "--device", "cpu", "--hassasiyet", "fp32",
+		"--toplu", "4", "--mikro", "2", "--bağlam", "32", "--logger", "4", "--dağarcık", "1000",
+		"--embed_dim", "64", "--num_heads", "4", "--num_kv_heads", "2", "--ara", "96"}
 	dir := t.TempDir()
-	if s := testkit.RunBinary(t, trBinary, dir, "", nil, append(base, "--adım", "4", "--koşu", "koşu",
-		"--kayıt_dakika", "0", "--kayıplar", "k.json")...); s.Code != 0 {
+	if s := testkit.RunBinary(t, trBinary, dir, "", nil, append(base, "--step", "4", "--koşu", "koşu",
+		"--kayıt_dakika", "0", "--losses", "k.json")...); s.Code != 0 {
 		t.Fatalf("ilk koşu çıkış %d:\n%s\n%s", s.Code, s.Stdout, s.Stderr)
 	}
-	if s := testkit.RunBinary(t, trBinary, dir, "", nil, append(base, "--adım", "8", "--koşu", "koşu",
-		"--kayıt_dakika", "15", "--nan_adımı", "6", "--atla", "1", "--kayıplar", "k.json")...); s.Code != 0 {
+	if s := testkit.RunBinary(t, trBinary, dir, "", nil, append(base, "--step", "8", "--koşu", "koşu",
+		"--kayıt_dakika", "15", "--nan_adımı", "6", "--skip", "1", "--losses", "k.json")...); s.Code != 0 {
 		t.Fatalf("devam koşusu çıkış %d:\n%s\n%s", s.Code, s.Stdout, s.Stderr)
 	}
 	raw, err := os.ReadFile(filepath.Join(dir, "k.json"))
@@ -94,10 +94,10 @@ func TestTargetModelLossLogSurvivesResumeAndRollback(t *testing.T) {
 func TestTargetModelStopsWhenRollbackRepeats(t *testing.T) {
 	script := reporoot.Path("tools/gpu/rgn512.tr")
 	data := reporoot.Path("tests/data/text")
-	s := testkit.RunBinary(t, trBinary, t.TempDir(), "", nil, script, "--veri", data, "--cihaz", "cpu", "--hassasiyet", "fp32",
-		"--adım", "12", "--toplu", "4", "--mikro", "2", "--bağlam", "32", "--günlük", "4", "--dağarcık", "1000",
-		"--boyut", "64", "--bakış_sayısı", "4", "--kv_bakış_sayısı", "2", "--ara", "96", "--koşu", "koşu",
-		"--kayıt_dakika", "0", "--atla", "1", "--bekçi_pencere", "2", "--bekçi_eşik", "0.0001")
+	s := testkit.RunBinary(t, trBinary, t.TempDir(), "", nil, script, "--veri", data, "--device", "cpu", "--hassasiyet", "fp32",
+		"--step", "12", "--toplu", "4", "--mikro", "2", "--bağlam", "32", "--logger", "4", "--dağarcık", "1000",
+		"--embed_dim", "64", "--num_heads", "4", "--num_kv_heads", "2", "--ara", "96", "--koşu", "koşu",
+		"--kayıt_dakika", "0", "--skip", "1", "--bekçi_pencere", "2", "--bekçi_eşik", "0.0001")
 	if s.Code == 0 || !strings.Contains(s.Stdout+s.Stderr, "üç kez dönüldü") {
 		t.Fatalf("aynı noktaya üçüncü dönüşte durmalıydı (çıkış %d):\n%s\n%s", s.Code, s.Stdout, s.Stderr)
 	}

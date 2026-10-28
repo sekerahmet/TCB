@@ -32,7 +32,7 @@ TR_if ayar["koşu"] == "" TR_or ayar["veri"] == "" {
 }
 TR_default_device(ayar["device"])
 TR_var yapılandırma = TR_json_parse(TR_read_file(TR_path(ayar["koşu"], "config.json")))
-TR_var eğitim = yapılandırma.TR_config
+TR_var eğitim = yapılandırma["config"]
 TR_var p = TR_load_tokenizer(TR_path(ayar["veri"], "tokenizer.json"))
 TR_var model = eğitim_modeli(eğitim, p.TR_vocab_size)
 TR_load_parameters(model, TR_load_tensors(TR_path(ayar["koşu"], "model.trt")))
@@ -110,8 +110,8 @@ TR_var sınav = {"loss": kayıp, "ppl": TR_exp(TR_min(kayıp, 50.0)), "bpb": kay
     "doğruluk": toplam_doğru / TR_max(parça, 1), "bantlar": bantlar, "parça": parça, "pencere": pencere,
     "sondalar": sondalar, "süre_sn": (TR_time_ms() - başla) / 1000.0, "hassasiyet": ayar["hassasiyet"]}
 TR_var hız_yolu = TR_path(ayar["koşu"], "speed.json")
-TR_var sonuç_ = {"ad": TR_path(ayar["koşu"]).TR_name, "parametre_sayısı": yapılandırma["num_params"], "step": eğitim.TR_step,
-    "eğitim_parçası": eğitim.TR_step * eğitim["toplu"] * eğitim["birikim"] * eğitim["bağlam"], "last": sınav,
+TR_var sonuç_ = {"ad": TR_path(ayar["koşu"]).TR_name, "parametre_sayısı": yapılandırma["num_params"], "step": eğitim["step"],
+    "eğitim_parçası": eğitim["step"] * eğitim["toplu"] * eğitim["birikim"] * eğitim["bağlam"], "last": sınav,
     "hız": TR_if hız_yolu.TR_exists { TR_json_parse(TR_read_file(hız_yolu)) } TR_else { TR_none }, "örnekler": örnekler,
     "device": TR_default_device(), "config": eğitim}
 TR_write_file(TR_path(ayar["koşu"], "results.json"), TR_json_string(sonuç_))

@@ -123,23 +123,23 @@ func TestEncodeShowStandardInput(t *testing.T) {
 }
 
 // İngilizce yazım dili: kodlu dosya İngilizce gösterilir, İngilizce yazılmış metin aynı kodlu
-// biçime kodlanır (başlık dilsizdir). Kullanıcının adları yazıldığı gibi kalır; üye adıyla aynı
-// sözlük anahtarı ({adım: 3}) üyeyle (ayar.adım) birlikte çevrilir. İngilizcede bir sözcük olarak
-// okunacak kullanıcı adı '$ad' kaçışıyla yazılır (name: İngilizcede Yol'un üyesi).
+// biçime kodlanır (başlık dilsizdir). Kullanıcının adları ve metin anahtarları ({"adım": 3}; 3.7)
+// yazıldığı gibi kalır, sözlüğün üyesi (ayar.uzunluk) çevrilir. Üye adıyla aynı kullanıcı adı (name:
+// İngilizcede Yol'un üyesi) değişken yerinde kaçışsız yazılır: üye yalnız noktadan sonradır.
 func TestEnglishWritingLanguage(t *testing.T) {
-	turkish := "değişken ayar = {adım: 3, renk: \"mavi\"}\n" +
-		"döngü i içinde 0..ayar.adım {\n" +
-		"    eğer i % 2 == 0 { yazdır(\"\\(i) \\(ayar.renk)\") }\n" +
+	turkish := "değişken ayar = {\"adım\": 3, \"renk\": \"mavi\"}\n" +
+		"döngü i içinde 0..ayar[\"adım\"] {\n" +
+		"    eğer i % 2 == 0 { yazdır(\"\\(i) \\(ayar[\"renk\"])\") }\n" +
 		"}\n" +
-		"değişken len = {name: ayar.uzunluk}\n" +
-		"yazdır(len.name)\n"
+		"değişken name = ayar.uzunluk\n" +
+		"yazdır(name)\n"
 	englishText := source.Header + " view=en\n" +
-		"var ayar = {step: 3, renk: \"mavi\"}\n" +
-		"for i in 0..ayar.step {\n" +
-		"    if i % 2 == 0 { print(\"\\(i) \\(ayar.renk)\") }\n" +
+		"var ayar = {\"adım\": 3, \"renk\": \"mavi\"}\n" +
+		"for i in 0..ayar[\"adım\"] {\n" +
+		"    if i % 2 == 0 { print(\"\\(i) \\(ayar[\"renk\"])\") }\n" +
 		"}\n" +
-		"var len = {$name: ayar.length}\n" +
-		"print(len.$name)\n"
+		"var name = ayar.length\n" +
+		"print(name)\n"
 	coded := testkit.RunBinary(t, trBinary, "", turkish, nil, "kodla", "-")
 	if coded.Code != 0 {
 		t.Fatalf("tr kodla -: çıkış %d, hata %q", coded.Code, coded.Stderr)
@@ -281,13 +281,12 @@ func TestUserNamesNeverBecomeLanguageWords(t *testing.T) {
 	}
 }
 
-// Sözlükte kullanıcı adıyla üye erişimi (s.tür, s.adım) metin anahtarı bulur ve günceller; kimlikle
-// yazılan çıplak anahtar ({TR_step: 3}) dilden bağımsız adıyla saklanır ("step", 17.3). Sonuç
-// çalıştıranın diline (TR_DIL) bağlı değildir.
+// Sözlük anahtarı bir metindir ve köşeli parantezle okunur ve yazılır (3.7): s["adım"] metin anahtarı
+// bulur ve günceller; "step" anahtarı çevrilmez. Sonuç çalıştıranın diline (TR_DIL) bağlı değildir.
 func TestDictMemberKeysDoNotDependOnTheLanguage(t *testing.T) {
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "d.tr", source.Header+"\nTR_var s = {\"tür\": 1, \"adım\": 2}\nTR_print(s.tür, s.adım)\ns.adım = 5\n"+
-		"TR_var k = {TR_step: 3}\nTR_print(s, k.TR_keys())\n")
+	testkit.WriteFile(t, dir, "d.tr", source.Header+"\nTR_var s = {\"tür\": 1, \"adım\": 2}\nTR_print(s[\"tür\"], s[\"adım\"])\ns[\"adım\"] = 5\n"+
+		"TR_var k = {\"step\": 3}\nTR_print(s, k.TR_keys())\n")
 	want := "1 2\n{\"tür\": 1, \"adım\": 5} [\"step\"]\n"
 	for _, lang := range []string{"TR_DIL=tr", "TR_DIL=en"} {
 		if s := testkit.RunBinary(t, trBinary, dir, "", []string{lang}, "d.tr"); s.Code != 0 || s.Stdout != want {

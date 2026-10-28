@@ -26,7 +26,7 @@ func buildCkpt(t *testing.T) string {
 	runDir := t.TempDir()
 	output, err := run(t, fmt.Sprintf(`
 TR_var w = TR_tensor([1.0, 2.0, 3.0], TR_requires_grad: TR_true)
-TR_var kn = TR_checkpoint(%q, {w: w, op: TR_AdamW([w]), d: {a: 1}})
+TR_var kn = TR_checkpoint(%q, {"w": w, "op": TR_AdamW([w]), "d": {"a": 1}})
 kn.TR_update(1)
 kn.TR_save()
 kn.TR_update(2)
@@ -42,7 +42,7 @@ func load(t *testing.T, runDir string) (string, error) {
 	t.Helper()
 	return run(t, fmt.Sprintf(`
 TR_var w = TR_tensor([0.0, 0.0, 0.0], TR_requires_grad: TR_true)
-TR_var kn = TR_checkpoint(%q, {w: w, op: TR_AdamW([w]), d: {a: 1}})
+TR_var kn = TR_checkpoint(%q, {"w": w, "op": TR_AdamW([w]), "d": {"a": 1}})
 TR_print("adım", kn.TR_resume_step, w.TR_tolist)
 `, trPath(runDir)))
 }
@@ -140,7 +140,7 @@ func TestDeferredInterruptSavesAtStepBoundary(t *testing.T) {
 	_, err := runVM(t, m, fmt.Sprintf(`
 TR_defer { TR_print("ertelenen çalıştı") }
 TR_var w = TR_tensor([1.0], TR_requires_grad: TR_true)
-TR_var kn = TR_checkpoint(%q, {w: w})
+TR_var kn = TR_checkpoint(%q, {"w": w})
 TR_for adım TR_in 0..10 {
     TR_if adım == 3 { TR_print("ertelendi:", kesme_iste()) }
     kn.TR_update(adım + 1)
@@ -169,7 +169,7 @@ TR_print("döngü bitti")
 func TestUnseededRandomWarning(t *testing.T) {
 	output, err := run(t, fmt.Sprintf(`
 TR_var w = TR_tensor(TR_randn([2]), TR_requires_grad: TR_true)
-TR_var kn = TR_checkpoint(%q, {w: w})
+TR_var kn = TR_checkpoint(%q, {"w": w})
 TR_randn([2], TR_seed: 1)
 TR_randn([2])
 TR_sample(TR_tensor([[0.1, 0.2]]), TR_temperature: 1.0)
@@ -228,7 +228,7 @@ TR_save_tensors(%q, {
 TR_var w = TR_tensor([1.0, 2.0, 3.0], TR_requires_grad: TR_true)
 TR_var hata_metni = ""
 TR_try {
-    TR_checkpoint(%q, {w: w, op: TR_AdamW([w]), d: {a: 1}})
+    TR_checkpoint(%q, {"w": w, "op": TR_AdamW([w]), "d": {"a": 1}})
 } TR_catch h {
     hata_metni = TR_str(h)
 }
@@ -275,8 +275,8 @@ func TestCorruptContentSuggestsPreviousButMismatchDoesNot(t *testing.T) {
 TR_var w = TR_tensor([1.0, 2.0, 3.0], TR_requires_grad: TR_true)
 TR_var op = TR_AdamW([w])
 TR_var ö = TR_dataset(%q).TR_sampler(TR_batch_size: 2, TR_context: 8, TR_seed: 1)
-TR_var d = {a: 1}
-TR_var kn = TR_checkpoint(%q, {w: w, op: op, ö: ö, d: d})
+TR_var d = {"a": 1}
+TR_var kn = TR_checkpoint(%q, {"w": w, "op": op, "ö": ö, "d": d})
 ö.TR_next()
 kn.TR_update(1)
 kn.TR_save()
@@ -357,8 +357,8 @@ TR_save_tensors(%q, {
 TR_var w = TR_tensor([1.0, 2.0, 3.0], TR_requires_grad: TR_true)
 TR_var op = TR_AdamW([w])
 TR_var ö = TR_dataset(%q).TR_sampler(TR_batch_size: 2, TR_context: 8, TR_seed: 1)
-TR_var d = {a: 1}
-TR_checkpoint(%q, {w: w, op: op, ö: ö, d: d})
+TR_var d = {"a": 1}
+TR_checkpoint(%q, {"w": w, "op": op, "ö": ö, "d": d})
 `, dataDir, trPath(runDir)))
 			if err == nil {
 				t.Fatal("bozuk içerikli kontrol noktası reddedilmeliydi")
@@ -376,8 +376,8 @@ TR_checkpoint(%q, {w: w, op: op, ö: ö, d: d})
 TR_var w = TR_tensor([1.0, 2.0, 3.0], TR_requires_grad: TR_true)
 TR_var op = TR_AdamW([w])
 TR_var ö = TR_dataset(%q).TR_sampler(TR_batch_size: 2, TR_context: 8, TR_seed: 2)
-TR_var d = {a: 1}
-TR_checkpoint(%q, {w: w, op: op, ö: ö, d: d})
+TR_var d = {"a": 1}
+TR_checkpoint(%q, {"w": w, "op": op, "ö": ö, "d": d})
 `, dataDir, trPath(runDir)))
 	if err == nil || strings.Contains(err.Error(), wantHint) {
 		t.Errorf("tohum farkı uyumsuzluktur, önceki nokta önerilmemeli: %v", err)

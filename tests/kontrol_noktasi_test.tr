@@ -204,7 +204,7 @@ TR_test "20.6 sürdürülen eğitimin günlüğüne devam kaydı yazılır" {
     eğit(k, 2, "devam_günlük")
     eğit(k, 4, "devam_günlük")
     TR_var kayıtlar = TR_read_file("\(GÜNLÜKLER)/devam_günlük.jsonl").TR_strip().TR_split("\n").TR_map { TR_json_parse(TR_it) }
-    TR_var devamlar = kayıtlar.TR_filter { TR_it["kind"] == "resume" }
+    TR_var devamlar = kayıtlar.TR_filter { TR_it.TR_get("kind") == "resume" }
     TR_assert_equal(1, devamlar.TR_length)
     TR_assert_equal(2, devamlar[0]["step"])
 }

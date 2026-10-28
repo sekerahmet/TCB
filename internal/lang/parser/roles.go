@@ -17,7 +17,6 @@ const (
 	RoleStructMethod          // struct method definition (fonksiyon ad(...) in a struct body)
 	RoleTest                  // the contextual word of a test statement (TR_ctx_test)
 	RoleAs                    // aktar ... olarak (TR_ctx_as)
-	RoleDictKey               // a bare-name key of a dict literal: {ad: değer}
 )
 
 // RecordRoles turns on recording of name-token roles during parsing (call it before

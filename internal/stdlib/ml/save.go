@@ -112,7 +112,7 @@ func tensorSave(m *interp.VM, args []interp.Value, named map[string]interp.Value
 	inputs := make([]fileEntry, 0, len(dict.Order))
 	for _, k := range dict.Order {
 		if _, text := dict.KeyValue(k).(*interp.StringVal); !text {
-			return nil, messages.New(messages.H6606, fn, dict.DisplayKey(k))
+			return nil, messages.New(messages.H6606, fn, dict.KeyText(k))
 		}
 		if len(k) > maxNameLen {
 			return nil, messages.New(messages.H6607, fn, len(k), maxNameLen)

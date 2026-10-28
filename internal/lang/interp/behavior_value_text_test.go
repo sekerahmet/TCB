@@ -73,12 +73,12 @@ func TestValueTextIsLanguageIndependent(t *testing.T) {
 		"true true true\n"
 	for lang, main := range map[string]string{
 		"en": `var b = true
-print(b, none, type(1), [true, none, {k: false}])
+print(b, none, type(1), [true, none, {"k": false}])
 print("\(b) \(none) \(type(b)) \([type([])])")
 print(str(b) == "true", str(none) == "none", str(type(1.5)) == "Float")
 `,
 		"tr": `değişken b = doğru
-yazdır(b, yok, tip(1), [doğru, yok, {k: yanlış}])
+yazdır(b, yok, tip(1), [doğru, yok, {"k": yanlış}])
 yazdır("\(b) \(yok) \(tip(b)) \([tip([])])")
 yazdır(metin(b) == "true", metin(yok) == "none", metin(tip(1.5)) == "Float")
 `,
@@ -199,37 +199,18 @@ try { f() } catch e { print(e) }
 	}
 }
 
-// Kimlik taşıyan çıplak sözlük anahtarı ({TR_step: 1}) içeride kimliğin dilden bağımsız adıyla
-// saklanır ("step"; 3.7, 17.3): anahtarlar() ve metin anahtar (d["step"]) aynı anahtarı görür; yazdır
-// kodlu anahtarı tırnaksız, metin anahtarı tırnaklı yazar. d.TR_step okuması ve yazması bu anahtarı
-// arar; bir dildeki ad ("adım") ayrı bir metin anahtardır, çevrilmez. Yeni anahtar kodla eklenir.
-func TestDictCodedKeysAreLanguageIndependent(t *testing.T) {
-	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(source.Header + "\n" +
-		"TR_func artır(ayar) {\n    ayar.TR_step += 1\n    ayar.TR_lr = 0.1\n    TR_return ayar.TR_step\n}\n" +
-		"TR_func yeni() { TR_return {TR_step: 7, renk: 1} }\n" +
-		"TR_func göster(d) { TR_print(d, d.TR_keys()) }\n")}})
-	out := runEnglish(t, `import "tr/kitap" as k
-var cfg = {step: 1, renk: "mavi"}
-print(k.artır(cfg), cfg.keys(), cfg.lr, cfg["adım"], cfg["step"])
-cfg.lr = 0.2
-var t = k.yeni()
-t.step = 8
-print(cfg, t, t.step)
-k.göster(t)
-var both = {step: 1}
-both["adım"] = 2
-both.step += 10
-print(both)
-var d = {step: 1, foo: 2}
-print(d.keys(), d["step"], d.step)
-`, nil)
-	want := "2 [\"step\", \"renk\", \"lr\"] 0.1 none 2\n" +
-		"{step: 2, \"renk\": \"mavi\", lr: 0.2} {step: 8, \"renk\": 1} 8\n" +
-		"{step: 8, \"renk\": 1} [\"step\", \"renk\"]\n" +
-		"{step: 11, \"adım\": 2}\n" + // metin anahtar "adım" ayrı bir anahtardır, tırnaklı
-		"[\"step\", \"foo\"] 1 1\n"
-	if out != want {
-		t.Errorf("kodlu anahtar dilden bağımsız saklanmalı ve yazdırılmalı:\n%s\nbeklenen:\n%s", out, want)
+// Kural (3.7): sözlük anahtarı bir metindir ve çevrilmez: {"step": 1} her gösterimde aynı anahtardır,
+// yazdır onu tırnakla yazar. Anahtar yalnız köşeli parantezle okunur; noktayla okuma (bir üye adıyla
+// da) hatadır ve iletisi köşeli parantezli yazımı verir (sabit İngilizce, yakalanan hata).
+func TestDictKeysAreTextNotMembers(t *testing.T) {
+	for lang, main := range map[string]string{
+		"en": "var cfg = {\"step\": 1}\ncfg[\"step\"] += 1\nprint(cfg, cfg[\"step\"], cfg.keys())\ntry { print(cfg.step) } catch e { print(e) }\n",
+		"tr": "değişken cfg = {\"step\": 1}\ncfg[\"step\"] += 1\nyazdır(cfg, cfg[\"step\"], cfg.anahtarlar())\ndene { yazdır(cfg.adım) } yakala e { yazdır(e) }\n",
+	} {
+		out := runCoded(t, main, lang, nil)
+		if want := "{\"step\": 2} 2 [\"step\"]\n"; !strings.HasPrefix(out, want) || !strings.Contains(out, `write ["step"]`) {
+			t.Errorf("%s: sözlük anahtarı metin olmalı, noktayla okuma hata vermeli:\n%s", lang, out)
+		}
 	}
 }
 

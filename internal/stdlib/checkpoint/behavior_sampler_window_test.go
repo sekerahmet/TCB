@@ -20,7 +20,7 @@ func TestSamplerRejectsWindowBeyondGroup(t *testing.T) {
 	out, err := run(t, fmt.Sprintf(`
 TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
 TR_var ö = TR_dataset(%q).TR_sampler(TR_batch_size: 2, TR_context: 8, TR_seed: 1)
-TR_var kn = TR_checkpoint(%q, {w: w, ö: ö})
+TR_var kn = TR_checkpoint(%q, {"w": w, "ö": ö})
 ö.TR_next()
 kn.TR_update(1)
 kn.TR_save()
@@ -48,7 +48,7 @@ kn.TR_save()
 	loadOut, err := run(t, fmt.Sprintf(`
 TR_var w = TR_tensor([0.0, 0.0], TR_requires_grad: TR_true)
 TR_var ö = TR_dataset(%q).TR_sampler(TR_batch_size: 2, TR_context: 8, TR_seed: 1)
-TR_var kn = TR_checkpoint(%q, {w: w, ö: ö})
+TR_var kn = TR_checkpoint(%q, {"w": w, "ö": ö})
 ö.TR_next()
 TR_print("DURUM:", ö.TR_state)
 `, dataDir, trPath(runDir)))

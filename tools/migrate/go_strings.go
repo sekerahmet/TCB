@@ -223,7 +223,16 @@ func quoteLike(orig, s string) string {
 // convertSnippet bir metin değişmezini çevirir; ok, metnin bir TR metni olduğudur.
 func convertSnippet(s string, view bool, line int) (string, bool, []problem) {
 	if looksNew(s) {
-		return s, false, nil
+		// Yeni biçimdeki program yalnız değer kurallarıyla çevrilir (values.go); gösterimi sınayan
+		// testlere dokunulmaz. Ayrıştırılamayan metin (beklenen çıktı, parça) olduğu gibi kalır.
+		if view {
+			return s, false, nil
+		}
+		out, probs := convertValuesWith("", s, false)
+		if out == s {
+			return s, false, nil
+		}
+		return out, true, relocate(probs, line-1)
 	}
 	if strings.HasPrefix(strings.TrimPrefix(s, bom), oldHeaderPrefix) {
 		out, probs := convertTRFile("", s)

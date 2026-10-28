@@ -76,10 +76,3 @@ func written(name string) string {
 	}
 	return name
 }
-
-// dictKey satır ve sütundaki ad tırnaksız bir sözlük anahtarı mı (`{ad: değer}`). Karar sözdizimi ağacından verilir:
-// adlı argüman (`f(ad: 1)`), tip yazımı (`değişken ad: Tam`) ve yapı alanı (`ad: Metin`) da `ad:` yazılır ama anahtar
-// değildir; dizgedeki ya da yorumdaki parantez kararı etkilemez (bağımsız denetim grup 6, R3).
-func (p *parsed) dictKey(line, col int) bool {
-	return p != nil && p.roles[[2]int{line, col}] == parser.RoleDictKey
-}

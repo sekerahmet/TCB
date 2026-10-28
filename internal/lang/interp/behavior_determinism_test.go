@@ -10,7 +10,7 @@ func TestOutputOrderIsDeterministic(t *testing.T) {
 	const program = `
 TR_struct Nokta { zz = 1; a = 2; m = 3; b = 4; k = 5; c = 6 }
 TR_var p = Nokta()
-TR_var d = {z: 1, a: 2, m: 3, b: 4, k: 5, c: 6}
+TR_var d = {"z": 1, "a": 2, "m": 3, "b": 4, "k": 5, "c": 6}
 d["en_son"] = 7
 TR_print(p)
 TR_print(TR_str(p))

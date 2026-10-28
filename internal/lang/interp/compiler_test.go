@@ -185,7 +185,7 @@ func TestDirectMethodCalls(t *testing.T) {
 		TR_var e = l.TR_append
 		e(7)
 		TR_var d = {"içerir": 5, "a": 1}
-		TR_var result = [l, d.TR_contains("a"), d.a, "Kar".TR_upper(), [3, 1, 2].TR_sort(), TR_str(12), "çağ".TR_length,
+		TR_var result = [l, d.TR_contains("a"), d["a"], "Kar".TR_upper(), [3, 1, 2].TR_sort(), TR_str(12), "çağ".TR_length,
 			[1, 2, 3].TR_filter { TR_it > 1 }.TR_map { TR_it * 10 }]
 	`)
 	if err != nil || val.Inspect() != `[[1, 1, 1, 9, 7], true, 1, "KAR", [1, 2, 3], "12", 3, [20, 30]]` {
@@ -225,7 +225,7 @@ func TestFastPathSemantics(t *testing.T) {
 	_, val, err := runTROut(t, `
 		TR_var s = "abç"
 		TR_var a = "xyz"
-		TR_var d = {1: "bir", "1": "metin bir", 1.5: "ondalık"}
+		TR_var d = {1: "bir", "1": "metin bir", TR_true: "doğru"}
 		d[1] = "BİR"
 		d[2] = "iki"
 		TR_struct P {
@@ -237,10 +237,10 @@ func TestFastPathSemantics(t *testing.T) {
 		p.f = () => "alan"
 		TR_var bagli = p.m
 		TR_var result = [s[2], s[-1], s.TR_get(5), a[0], a[-1], a.TR_get(3), a[0..2], s[1..3], a.TR_get(-4),
-			d[1], d["1"], d[1.5], d[2], d.TR_keys(), d.TR_contains(2), d.TR_contains(3),
+			d[1], d["1"], d[TR_true], d[2], d.TR_keys(), d.TR_contains(2), d.TR_contains(3),
 			p.m(), p.m(2), p.f(), bagli(10)]
 	`)
-	want := `["ç", "ç", none, "x", "z", none, "xy", "bç", none, "BİR", "metin bir", "ondalık", "iki", [1, "1", 1.5, 2], true, false, 3, 6, "alan", 30]`
+	want := `["ç", "ç", none, "x", "z", none, "xy", "bç", none, "BİR", "metin bir", "doğru", "iki", [1, "1", true, 2], true, false, 3, 6, "alan", 30]`
 	if err != nil || val.Inspect() != want {
 		t.Fatalf("beklenmeyen:\n%v\n%v", val, err)
 	}

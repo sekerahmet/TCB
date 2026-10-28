@@ -42,12 +42,10 @@ metin yaptığı her yer (`TR_str()`, `TR_print`, metin yerleştirmesi, Metin il
 `TR_write_file`, `TR_input`'un istemi, metin metotlarının argümanları) değeri kimliğin adıyla yazar
 (`true`, `none`, `Int`; tek yol: `VM.textOf`/`valueText`, dil `codes.ValueNames()`): aynı program her
 makinede ve her `TR_DIL`'de aynı çıktıyı verir. Yakalanan hatanın metni sabit İngilizce katalogdan kurulur
-(`caughtErrorLanguage`). Kod taşıyan çıplak sözlük anahtarı (`{TR_step: 1}`) içeride kodun dilden bağımsız
-adıyla saklanır (`CodedKey`: `"step"`; kod `DictVal.coded`'da yalnız gösterim için durur): `TR_keys()`,
-`d["step"]` ve veri biçimleri (JSON, günlük, kontrol noktası; `KeyText`) aynı anahtarı görür,
-`DisplayKey` kişinin dilinde yazar. Sözlükte üye erişimi (`d.TR_step`) bu anahtarı arar (`memberInfo.keys`);
-bir dildeki adla duran metin anahtar (`"adım"`) ayrı bir anahtardır. `Inspect` kanonik kalır ve iletiler
-onu kullanır. Denetim: `TestValueTextIsLanguageIndependent`, `TestValueTextIsTheSameInEveryModule`, `TestEveryTextConversionIsLanguageIndependent`, `TestCaughtErrorTextIsEnglish`, `TestDictCodedKeysAreLanguageIndependent`, `TestDataFormatsAreLanguageIndependent` ve `TestDictCodedKeysOnDisk` (cmd/tr/e2e).
+(`caughtErrorLanguage`, `messages.ValueLanguage`). `Inspect` aynı metni verir (3.14). Sözlük anahtarı bir
+ifadedir ve metin anahtarı çevrilmez (`{"step": 1}`; 3.7): `TR_keys()`, `d["step"]` ve veri biçimleri (JSON,
+günlük, kontrol noktası; `KeyText`) aynı anahtarı görür. Anahtar yalnız köşeli parantezle okunur ve yazılır;
+`d.ad` hatadır (H2648), olmayan anahtar da (H2647; `.TR_get(k)` yok verir). Denetim: `TestValueTextIsLanguageIndependent`, `TestValueTextIsTheSameInEveryModule`, `TestEveryTextConversionIsLanguageIndependent`, `TestCaughtErrorTextIsEnglish`, `TestOneValueTextForEveryValue`, `TestDictKeysAreTextNotMembers`, `TestDataFormatsAreLanguageIndependent` ve `TestDictTextKeysOnDisk` (cmd/tr/e2e).
 
 **Sıcak yol ölçülerek değişir.** Yorumlayıcı döngüsündeki ve hızlı yollardaki değişiklikler
 önce/sonra hız ölçümüyle yapılır.

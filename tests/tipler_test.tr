@@ -97,46 +97,44 @@ TR_test "3.6 Liste: değerler başvuruyla paylaşılır" {
     TR_assert_equal([1, 2], a)
 }
 
-TR_test "3.7 Sözlük: eklenme sırasını korur, çıplak ad anahtarı metindir" {
-    TR_var d = {"ad": "Ali", "yaş": 30, 1: "bir"}
-    TR_assert_equal(["ad", "yaş", 1], d.TR_keys())
-    TR_assert_equal("Ali", d["ad"])
+TR_test "3.7 Sözlük: eklenme sırasını korur; anahtar bir ifadedir" {
+    TR_var k = "ad"
+    TR_var d = {k: "Ali", "yaş": 30, 1: "bir", TR_true: "doğru"}
+    TR_assert_equal(["ad", "yaş", 1, TR_true], d.TR_keys())
     TR_assert_equal("Ali", d["ad"])
     TR_assert_equal("bir", d[1])
-    TR_assert_equal(TR_none, d["yok_olan"])
+    TR_assert_equal("doğru", d[TR_true])
     d["yeni"] = TR_true
-    TR_assert_equal(4, d.TR_length)
+    TR_assert_equal(5, d.TR_length)
+    TR_assert_equal("{\"ad\": \"Ali\", \"yaş\": 30, 1: \"bir\", true: \"doğru\", \"yeni\": true}", TR_String(d))
 }
 
-TR_test "3.7 sayı anahtarları sayı eşitliğiyle bulunur: d[1] ile d[1.0] aynı anahtardır" {
-    TR_var d = {1: "bir"}
-    TR_assert_equal("bir", d[1.0])
-    d[2.0] = "iki"
-    TR_assert_equal("iki", d[2])
-    TR_assert_equal([1, 2.0], d.TR_keys())
-    d[1.0] = "BİR"
-    TR_assert_equal(2, d.TR_length)
-    TR_assert_equal("BİR", d[1])
-    TR_assert(d.TR_contains(1.0))
-    TR_assert_equal("yarım", {0.5: "yarım"}[0.5])
-    TR_assert_equal(TR_none, {1: "bir"}["1"])
+TR_test "3.7 anahtar yalnız köşeli parantezle okunur ve yazılır; olmayan anahtar hatadır, .get yok verir" {
+    TR_var d = {"a": 1}
+    TR_assert_equal("H2648", TR_error_code(() => { d.a }))
+    TR_assert_equal("H2648", TR_error_code(() => { d.TR_step }))
+    TR_assert_equal("H2648", TR_error_code(() => { d.a = 2 }))
+    TR_assert_equal("H2647", TR_error_code(() => { d["yok"] }))
+    TR_assert_equal("H2647", TR_error_code(() => { d["yok"] += 1 }))
+    TR_assert_equal(TR_none, d.TR_get("yok"))
+    TR_assert_equal(1, d.TR_get("a"))
+    TR_assert_equal(0, d.TR_get("yok") ?? 0)
+    TR_assert_equal("H2647", TR_error_code(() => { {1: "bir"}["1"] }))
 }
 
-TR_test "3.7 anahtarlar eşitliğe uyar: metinler başka anahtarlarla çakışmaz, fonksiyonlar kimlikle anahtardır" {
+TR_test "3.7 anahtar tipi Int, String ya da Bool'dur; ondalık ve öbür değerler anahtar olamaz" {
+    TR_var d = {}
+    TR_assert_equal("H2646", TR_error_code(() => { d[1.0] = "bir" }))
+    TR_assert_equal("H2646", TR_error_code(() => { TR_var e = {0.5: "yarım"} }))
+    TR_assert_equal("H2646", TR_error_code(() => { d[TR_none] = 1 }))
+    TR_assert_equal("H2646", TR_error_code(() => { d[x => x] = 1 }))
+    TR_assert_equal("H2646", TR_error_code(() => { d.TR_contains(1.5) }))
     # NUL ile başlayan bir metin anahtar (JSON'dan gelebilir) 1 sayısının anahtarıyla çakışmaz
-    TR_var d = TR_json_parse(`{"\u0000Tam:1": "metin"}`)
-    d[1] = "sayı"
-    TR_assert_equal(2, d.TR_length)
-    TR_assert_equal("sayı", d[1])
-    TR_assert_equal("metin", d[d.TR_keys()[0]])
-    # görünüşü aynı iki fonksiyon iki ayrı anahtardır (4.5: kimlikle karşılaştırılır)
-    TR_var f = x => x
-    TR_var g = x => x
-    TR_var e = {}
-    e[f] = 1
-    e[g] = 2
-    TR_assert_equal(2, e.TR_length)
-    TR_assert_equal(1, e[f])
+    TR_var j = TR_json_parse(`{"\u0000Tam:1": "metin"}`)
+    j[1] = "sayı"
+    TR_assert_equal(2, j.TR_length)
+    TR_assert_equal("sayı", j[1])
+    TR_assert_equal("metin", j[j.TR_keys()[0]])
 }
 
 TR_test "3.7 içeriği değişebilen değerler (liste, sözlük, yapı nesnesi) anahtar olamaz" {
@@ -147,7 +145,7 @@ TR_test "3.7 içeriği değişebilen değerler (liste, sözlük, yapı nesnesi) 
     TR_assert_equal("H2495", TR_error_code(() => { TR_var c = d.TR_contains([1]) }))
 }
 
-TR_test "3.7 sözlük üyeleri: metot adları anahtarı gölgeler, .uzunluk eleman sayısıdır" {
+TR_test "3.7 sözlük üyeleri noktayla, anahtarlar köşeli parantezle: üye adı da anahtar olabilir" {
     TR_var d = {"anahtarlar": 5, "a": 1}
     TR_assert_equal(5, d["anahtarlar"])
     TR_assert_equal(["anahtarlar", "a"], d.TR_keys())
@@ -176,10 +174,22 @@ TR_test "3.8 Aralık: Tam sınırındaki uçlar taşmadan gezilir" {
     TR_assert_equal(2, sayaç)
     TR_assert_equal([üst - 1, üst], [x TR_for x TR_in (üst - 1)..=üst])
     TR_var alt = -üst - 1
-    TR_assert_equal([alt + 1, alt], [x TR_for x TR_in (alt + 1)..=alt])
-    TR_assert_equal([3, 2, 1], [x TR_for x TR_in 3..0])
+    TR_assert_equal([alt + 1, alt], [x TR_for x TR_in (alt..= (alt + 1)).TR_reverse()])
     TR_assert_equal([], [x TR_for x TR_in 2..2])
     TR_assert_equal([2], [x TR_for x TR_in 2..=2])
+}
+
+TR_test "3.8 başı sonundan büyük aralık boştur; geriye .reverse() sayar" {
+    TR_assert_equal([], [x TR_for x TR_in 3..0])
+    TR_assert_equal([], [x TR_for x TR_in 3..=2])
+    TR_var n = 0
+    TR_for i TR_in 0..-5 { n += 1 }
+    TR_assert_equal(0, n)
+    TR_assert_equal([2, 1, 0], (0..3).TR_reverse())
+    TR_assert_equal([3, 2, 1, 0], (0..=3).TR_reverse())
+    TR_assert_equal([], (3..0).TR_reverse())
+    TR_assert(3..0 != 5..1)
+    TR_assert_equal("3..0", TR_String(3..0))
 }
 
 TR_test "3.9 fonksiyonlar birinci sınıf değerlerdir" {

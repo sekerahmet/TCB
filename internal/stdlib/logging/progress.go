@@ -32,8 +32,8 @@ var barOrder atomic.Int64
 
 // metric çubukta gösterilen ve günlüğe yazılan bir ölçüdür.
 type metric struct {
-	name  string // kayıttaki anahtar (dosya biçimi; kodlu anahtar dilden bağımsız)
-	shown string // çubukta gösterilen ad (kodlu anahtar kişinin dilinde)
+	name  string // kayıttaki anahtar (dosya biçimi)
+	shown string // çubukta gösterilen ad (metin anahtarı, çevrilmez; 3.7)
 	value interp.Value
 }
 
@@ -187,7 +187,7 @@ func (c *Progress) update(m *interp.VM, args []interp.Value, named map[string]in
 			return nil, err
 		}
 		for _, k := range record.Order {
-			metrics = append(metrics, metric{name: k, shown: record.DisplayKey(k), value: record.Pairs[k]})
+			metrics = append(metrics, metric{name: k, shown: record.KeyText(k), value: record.Pairs[k]})
 		}
 	}
 	newStep := int64(-1)

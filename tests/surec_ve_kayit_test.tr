@@ -39,8 +39,6 @@ TR_test "19.2 komut_satırı programda bir kez çağrılır" {
 }
 
 TR_test "19.3 seçenek tipleri ve adları kurulumda denetlenir" {
-    TR_assert_equal("H7222", TR_error_code(() => TR_command_line({"length": 3})))
-    TR_assert_equal("H7222", TR_error_code(() => TR_command_line({"contains": "x"})))
     TR_assert_equal("H7221", TR_error_code(() => TR_command_line({"yardım": TR_true})))
     TR_assert_equal("H7225", TR_error_code(() => TR_command_line({"a": {"b": 1}})))
     TR_assert_equal("H7224", TR_error_code(() => TR_command_line({"a": [1, "x"]})))

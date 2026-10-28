@@ -271,7 +271,7 @@ func TestMemberTypesMatchDefinitions(t *testing.T) {
 		{codes.TypeLineReader, `TR_read_lines("tests/data/tokenizer.json")`},
 		{codes.TypeProgress, `TR_progress(3)`},
 		{codes.TypeLogger, `TR_logger("` + filepath.ToSlash(filepath.Join(t.TempDir(), "u.jsonl")) + `")`},
-		{codes.TypeCheckpoint, `TR_checkpoint("` + filepath.ToSlash(t.TempDir()) + `", {w: TR_tensor([1.0], TR_requires_grad: TR_true)})`},
+		{codes.TypeCheckpoint, `TR_checkpoint("` + filepath.ToSlash(t.TempDir()) + `", {"w": TR_tensor([1.0], TR_requires_grad: TR_true)})`},
 	}
 	t.Cleanup(logging.CloseAll)
 	var setup []string

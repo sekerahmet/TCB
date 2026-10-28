@@ -76,6 +76,7 @@ TR_func ileri(giriş) {
 
 # --- Eğitim ---
 TR_var iyileştirici = TR_AdamW(ağırlıklar, TR_lr: ayar["lr"], TR_weight_decay: 0.0)
+TR_print("öğrenme oranı:", iyileştirici.TR_lr)
 # İlerleme çubuğu (standart hataya): adım, kayıp, adım hızı ve kalan süre. Günlük dosyası
 # verildiyse her adımın kaybı oraya da yazılır.
 TR_var g = TR_if ayar["günlük_dosyası"] != TR_none { TR_logger(ayar["günlük_dosyası"]) } TR_else { TR_none }

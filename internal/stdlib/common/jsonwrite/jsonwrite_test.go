@@ -122,7 +122,7 @@ func goValue(v interp.Value) any {
 	case *interp.DictVal:
 		out := make(map[string]any, len(x.Pairs))
 		for k, e := range x.Pairs {
-			out[x.DisplayKey(k)] = goValue(e)
+			out[x.KeyText(k)] = goValue(e)
 		}
 		return out
 	}

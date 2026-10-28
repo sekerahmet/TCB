@@ -21,12 +21,12 @@ func TestTargetModelWritesResultsAfterOddSteps(t *testing.T) {
 	script := reporoot.Path("tools/gpu/rgn512.tr")
 	data := reporoot.Path("tests/data/text")
 	valid := reporoot.Path("tests/data/text/text_001.npy")
-	small := []string{"--veri", data, "--doğrulama", valid, "--değerlendirme_parça", "128", "--cihaz", "cpu",
-		"--hassasiyet", "fp32", "--toplu", "4", "--mikro", "2", "--bağlam", "32", "--günlük", "1", "--dağarcık", "1000",
-		"--boyut", "64", "--bakış_sayısı", "4", "--kv_bakış_sayısı", "2", "--ara", "96"}
+	small := []string{"--veri", data, "--doğrulama", valid, "--değerlendirme_parça", "128", "--device", "cpu",
+		"--hassasiyet", "fp32", "--toplu", "4", "--mikro", "2", "--bağlam", "32", "--logger", "1", "--dağarcık", "1000",
+		"--embed_dim", "64", "--num_heads", "4", "--num_kv_heads", "2", "--ara", "96"}
 	dir := t.TempDir()
-	s := testkit.RunBinary(t, trBinary, dir, "", nil, append([]string{script, "--adım", "3", "--çıktı", "hiz.json",
-		"--kayıplar", "k.json", "--kaydet", "son.trt"}, small...)...)
+	s := testkit.RunBinary(t, trBinary, dir, "", nil, append([]string{script, "--step", "3", "--çıktı", "hiz.json",
+		"--losses", "k.json", "--save", "son.trt"}, small...)...)
 	if s.Code != 0 {
 		t.Fatalf("3 adımlık koşu çıkış %d:\n%s\n%s", s.Code, s.Stdout, s.Stderr)
 	}
@@ -51,7 +51,7 @@ func TestTargetModelWritesResultsAfterOddSteps(t *testing.T) {
 		t.Fatalf("son adımda değerlendirme yok:\n%s", s.Stdout)
 	}
 
-	e := testkit.RunBinary(t, trBinary, dir, "", nil, append([]string{script, "--adım", "0", "--ağırlık", "son.trt",
+	e := testkit.RunBinary(t, trBinary, dir, "", nil, append([]string{script, "--step", "0", "--weight", "son.trt",
 		"--çıktı", "bos.json"}, small...)...)
 	if e.Code != 0 {
 		t.Fatalf("yalnızca değerlendirme çıkış %d:\n%s\n%s", e.Code, e.Stdout, e.Stderr)

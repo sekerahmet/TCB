@@ -60,7 +60,7 @@ TR_func parametre(şekil, ölçek) {
     sayaç += 1
     TR_return TR_tensor(TR_no_grad(TR_randn(şekil, TR_seed: sayaç) * ölçek), TR_requires_grad: TR_true)
 }
-TR_var model = {E: parametre([V, D], 0.1), W: parametre([D, V], 0.1)}
+TR_var model = {"E": parametre([V, D], 0.1), "W": parametre([D, V], 0.1)}
 TR_var ikinci = [parametre([D], 1.0)]
 TR_var op = TR_AdamW(TR_parameters(model), TR_lr: 0.01)
 TR_var op2 = TR_SGD(ikinci, TR_lr: 0.1, TR_momentum: 0.9)
@@ -68,22 +68,22 @@ TR_var küme = TR_dataset(%q)
 TR_var ö = küme.TR_sampler(TR_batch_size: 4, TR_context: 8, TR_seed: 5)
 TR_var s = küme.TR_sequential(TR_batch_size: 2, TR_context: 8)
 TR_var g = TR_logger(TR_path(KOŞU, "metrics.jsonl"))
-TR_var izlenen = {en_iyi: 99.0, geçmiş: [], son_sıralı: TR_none}
-TR_var kn = TR_checkpoint(KOŞU, {model: model, op: op, ikinci: ikinci, op2: op2, ö: ö, s: s, g: g, izlenen: izlenen}%s)
+TR_var izlenen = {"en_iyi": 99.0, "geçmiş": [], "son_sıralı": TR_none}
+TR_var kn = TR_checkpoint(KOŞU, {"model": model, "op": op, "ikinci": ikinci, "op2": op2, "ö": ö, "s": s, "g": g, "izlenen": izlenen}%s)
 TR_var ç = TR_progress(%d, TR_log: g)
 TR_for adım TR_in kn.TR_resume_step..%d {
     TR_var giriş, hedef = ö.TR_next()
     op.TR_zero_grad()
     op2.TR_zero_grad()
-    TR_var kayıp = TR_cross_entropy(TR_embedding(model.E, giriş) @ model.W, hedef) + TR_sum(ikinci[0] * ikinci[0]) * 0.01
+    TR_var kayıp = TR_cross_entropy(TR_embedding(model["E"], giriş) @ model["W"], hedef) + TR_sum(ikinci[0] * ikinci[0]) * 0.01
     TR_backward(kayıp)
     op.TR_step()
     op2.TR_step()
     TR_var d = s.TR_next()
-    TR_if d != TR_none { izlenen.son_sıralı = d[0].TR_tolist[0][0] }
-    TR_if kayıp.TR_tolist < izlenen.en_iyi { izlenen.en_iyi = kayıp.TR_tolist }
-    izlenen.geçmiş.TR_append(adım)
-    ç.TR_update({TR_loss: kayıp}, TR_step: adım + 1)
+    TR_if d != TR_none { izlenen["son_sıralı"] = d[0].TR_tolist[0][0] }
+    TR_if kayıp.TR_tolist < izlenen["en_iyi"] { izlenen["en_iyi"] = kayıp.TR_tolist }
+    izlenen["geçmiş"].TR_append(adım)
+    ç.TR_update({"loss": kayıp}, TR_step: adım + 1)
     kn.TR_update(adım + 1)
 }
 TR_save_tensors(TR_path(KOŞU, "son.trt"), TR_parameters([model, ikinci], TR_named: TR_true))
@@ -157,7 +157,7 @@ func TestRenameErrorDoesNotStopTraining(t *testing.T) {
 		return fmt.Sprintf(`
 TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
 TR_var op = TR_SGD([w], TR_lr: 0.1)
-TR_var kn = TR_checkpoint(%q, {w: w, op: op}, TR_every_minutes: 0)
+TR_var kn = TR_checkpoint(%q, {"w": w, "op": op}, TR_every_minutes: 0)
 TR_var sonuçlar = []
 TR_for adım TR_in kn.TR_resume_step..%d {
     TR_backward(TR_sum(w * w))

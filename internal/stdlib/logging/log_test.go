@@ -62,11 +62,11 @@ func TestLogRecords(t *testing.T) {
 	path := filepath.Join(k, "kayit", "egitim.jsonl")
 	m, _ := newVM(t, k, "--hf_token", "hf_gizlideger1")
 	_, err := run(t, m, `
-TR_var ayar = TR_command_line({TR_step: 10, hf_token: ""})
+TR_var ayar = TR_command_line({"step": 10, "hf_token": ""})
 TR_var g = TR_logger("`+pathText(path)+`")
-g.TR_append({TR_loss: TR_tensor([2.5]), nan: TR_float("NaN"), sonsuz: TR_float("inf"), belirteç: ayar.hf_token})
+g.TR_append({"loss": TR_tensor([2.5]), "nan": TR_float("NaN"), "sonsuz": TR_float("inf"), "belirteç": ayar["hf_token"]})
 g.TR_append("merhaba")
-g.TR_append({"time": "elle", x: [1, 2]})
+g.TR_append({"time": "elle", "x": [1, 2]})
 `)
 	if err != nil {
 		t.Fatal(err)
@@ -116,7 +116,7 @@ func TestLogErrors(t *testing.T) {
 	}{
 		{`TR_logger("` + pathText(filepath.Join(k, "a.csv")) + `")`, messages.H7319},
 		{`TR_logger("` + pathText(filepath.Join(k, "a.jsonl")) + `").TR_append({"kind": "x"})`, messages.H7321},
-		{`TR_logger("` + pathText(filepath.Join(k, "b.jsonl")) + `").TR_append({f: TR_print})`, messages.H7300},
+		{`TR_logger("` + pathText(filepath.Join(k, "b.jsonl")) + `").TR_append({"f": TR_print})`, messages.H7300},
 	} {
 		if _, err := run(t, m, d.code); !messages.Has(err, d.want) {
 			t.Errorf("%s: %s hatası bekleniyordu: %v", d.code, d.want, err)
@@ -138,7 +138,7 @@ func TestLogAppendAndResume(t *testing.T) {
 	}
 	m, _ := newVM(t, k)
 	v, err := run(t, m, `TR_var g = TR_logger("`+pathText(path)+`")
-g.TR_append({TR_loss: 1})
+g.TR_append({"loss": 1})
 g`)
 	if err != nil {
 		t.Fatal(err)

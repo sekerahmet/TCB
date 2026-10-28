@@ -33,12 +33,9 @@ const (
 
 // option komut satırının bir seçeneğidir.
 type option struct {
-	name string // sonuç sözlüğündeki anahtar (kodlu anahtarda kodun dilden bağımsız metni)
-	// code seçenek kodlu bir çıplak anahtarsa ({adım: 100}) üye kodudur, yoksa codes.None; kodlu
-	// seçenek her gömülü dilin adıyla kabul edilir (--adım, --step; 17.8). shown kişiye
-	// gösterilen addır (yardım, iletiler; kodluda kişinin dilinde).
-	code        codes.Code
-	shown       string // boşsa name (Go'da kurulan seçenek)
+	// name sonuç sözlüğündeki metin anahtarı ve komut satırındaki adıdır ({"step": 100} → --step):
+	// seçenek adı programın arayüzüdür, çevrilmez (3.7, 3.14).
+	name        string
 	optKind     optKind
 	itemKind    optKind // kindList'de öğelerin tipi
 	defaultVal  interp.Value
@@ -46,13 +43,8 @@ type option struct {
 	secret      bool
 }
 
-// display seçeneğin kişiye gösterilen adıdır (--adım, iletiler, yardım).
-func (s *option) display() string {
-	if s.shown != "" {
-		return s.shown
-	}
-	return s.name
-}
+// display seçeneğin kişiye gösterilen adıdır (yardım, iletiler): her dilde metin anahtarının kendisi.
+func (s *option) display() string { return s.name }
 
 // typeCode seçenek tipinin (yardımda ve hatalarda gösterilen) tip kodudur.
 func (t optKind) typeCode() codes.Code {
@@ -119,13 +111,10 @@ func buildOptions(m *interp.VM, fn any, dict *interp.DictVal) ([]*option, error)
 				return nil, messages.New(messages.H7219, fn, codes.NameRef(codes.TypeString), interp.TypeAndSummary(key))
 			}
 		}
-		if err := checkOptionName(fn, dict.DisplayKey(k)); err != nil { // kodlu anahtar kişinin dilindeki adıyla
+		if err := checkOptionName(fn, k); err != nil {
 			return nil, err
 		}
-		s := &option{name: k, shown: dict.DisplayKey(k), defaultVal: value, secret: IsSecretName(k)}
-		if c, ok := dict.KeyCode(k); ok {
-			s.code, s.secret = c, s.secret || IsSecretName(s.shown)
-		}
+		s := &option{name: k, defaultVal: value, secret: IsSecretName(k)}
 		var err error
 		if s.optKind, s.itemKind, err = defaultKind(fn, k, value); err != nil {
 			return nil, err
@@ -138,20 +127,14 @@ func buildOptions(m *interp.VM, fn any, dict *interp.DictVal) ([]*option, error)
 	return out, nil
 }
 
-// checkOptionName seçenek adının komut satırında yazılabilir ve sonuç sözlüğünde
-// okunabilir olduğunu denetler. Sözlüğün herhangi bir yazım dilindeki üye adları (uzunluk,
-// length, anahtarlar, keys ...) seçenek adı olamaz: ayar.length anahtarı değil eleman sayısını verirdi.
+// checkOptionName seçenek adının komut satırında yazılabilir olduğunu denetler. Sonuç sözlüğü
+// köşeli parantezle okunur (ayar["length"]; 3.7): sözlüğün üye adları da seçenek adı olabilir.
 func checkOptionName(fn any, name string) error {
 	if name == "" || strings.HasPrefix(name, "-") || strings.ContainsFunc(name, func(r rune) bool { return r == '=' || unicode.IsSpace(r) }) {
 		return messages.New(messages.H7220, fn, name)
 	}
 	if name == "h" || isHelpName(name) { // --yardım'ın bir dildeki adı ya da -h
 		return messages.New(messages.H7221, fn, name, helpOption())
-	}
-	if k, ok := codes.FindMember(name); ok {
-		if tn, ok := codes.DefinitionOf(k); ok && slices.Contains(tn.Types(), codes.TypeDict) {
-			return messages.New(messages.H7222, fn, name, codes.NameRef(codes.TypeDict))
-		}
 	}
 	return nil
 }
@@ -237,14 +220,14 @@ func readDescriptions(fn any, named map[string]interp.Value, options []*option) 
 		}
 		i := slices.Index(names, k)
 		if i < 0 {
-			if o := turkish.Closest(dict.DisplayKey(k), shownNames); o != "" {
-				return "", messages.New(messages.H7229, fn, nameDescs, dict.DisplayKey(k), o)
+			if o := turkish.Closest(dict.KeyText(k), shownNames); o != "" {
+				return "", messages.New(messages.H7229, fn, nameDescs, dict.KeyText(k), o)
 			}
-			return "", messages.New(messages.H7228, fn, nameDescs, dict.DisplayKey(k))
+			return "", messages.New(messages.H7228, fn, nameDescs, dict.KeyText(k))
 		}
 		s, ok := value.(*interp.StringVal)
 		if !ok {
-			return "", messages.New(messages.H7230, fn, nameDescs, dict.DisplayKey(k), codes.NameRef(codes.TypeString), interp.TypeAndSummary(value))
+			return "", messages.New(messages.H7230, fn, nameDescs, dict.KeyText(k), codes.NameRef(codes.TypeString), interp.TypeAndSummary(value))
 		}
 		options[i].description = s.Val
 	}

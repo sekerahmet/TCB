@@ -10,8 +10,8 @@ TR_import "measurement_model"
 
 TR_var arg = TR_command_line({"device": "gpu", "config": "phase3_config.json", "çıktı": ""},
     TR_description: "Evre 3 ölçümü, TR tarafı (PyTorch karşılığı: phase3_torch.py)")
-TR_default_device(arg.TR_device)
-TR_var c = TR_json_parse(TR_read_file(arg.TR_config))
+TR_default_device(arg["device"])
+TR_var c = TR_json_parse(TR_read_file(arg["config"]))
 TR_var B = c["B"]
 TR_var T = c["T"]
 TR_var D = c["D"]

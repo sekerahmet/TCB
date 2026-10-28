@@ -74,15 +74,15 @@ func TestGPTTrainingScriptSmoke(t *testing.T) {
 		testkit.WriteFile(t, data, target, string(b))
 	}
 	run := filepath.Join(t.TempDir(), "kosu")
-	args := []string{reporoot.Path("tools/gpu/gpt_training.tr"), "--veri", data, "--koşu", run, "--cihaz", "cpu",
-		"--boyut", "16", "--katman", "1", "--bakış_sayısı", "2", "--bağlam", "16", "--toplu", "4", "--birikim", "2",
-		"--adım", "12", "--ısınma", "2", "--değerlendir_her", "6", "--değerlendir_toplu", "2", "--örnek_her", "6",
+	args := []string{reporoot.Path("tools/gpu/gpt_training.tr"), "--veri", data, "--koşu", run, "--device", "cpu",
+		"--embed_dim", "16", "--katman", "1", "--num_heads", "2", "--bağlam", "16", "--toplu", "4", "--birikim", "2",
+		"--step", "12", "--ısınma", "2", "--değerlendir_her", "6", "--değerlendir_toplu", "2", "--örnek_her", "6",
 		"--örnek_sayısı", "2", "--örnek_uzunluğu", "6", "--ölçüm_ısınması", "2", "--günlük_her", "3",
 		"--istemler", "Once upon a time|The dog",
 		// PyTorch tarifini eşleyen seçenekler (tools/gpu/COLAB.md §9): hepsi kurulup bir adım çalışmalı.
 		"--dağarcık", "1024", "--qk_normu", "--birleşik_kv", "--birleşik_kapı",
-		"--ileri_sapmalı", "--epsilon", "0.000001", "--ara_boyut", "48", "--muon_ölçeği", "rms",
-		"--adamw_çürümesi", "0.1", "--ağırlık_çürümesi", "0.1", "--son_değerlendir_toplu", "1000"}
+		"--ileri_sapmalı", "--eps", "0.000001", "--ara_boyut", "48", "--muon_ölçeği", "rms",
+		"--adamw_çürümesi", "0.1", "--weight_decay", "0.1", "--son_değerlendir_toplu", "1000"}
 	s := tr(t, t.TempDir(), args...)
 	testkit.Wait(t, s, 0, []string{"ms/adım", "bitti: en iyi doğrulama kaybı", "Once upon a time", "The dog"}, nil)
 	if strings.Contains(s.Stderr, "Uyar") {
@@ -125,7 +125,7 @@ func TestGPTTrainingScriptSmoke(t *testing.T) {
 
 	// Prova (tr/egitim Koşu): aynı komut iki adım, geçici klasörde; verilen koşu klasörüne dokunmaz.
 	unused := filepath.Join(t.TempDir(), "kosu")
-	trial := append(append([]string{}, args...), "--prova")
+	trial := append(append([]string{}, args...), "--dry_run")
 	trial[4] = unused
 	testkit.Wait(t, tr(t, t.TempDir(), trial...), 0, []string{"Prova geçti: 2 adım"}, nil)
 	if _, err := os.Stat(unused); err == nil {
@@ -133,7 +133,7 @@ func TestGPTTrainingScriptSmoke(t *testing.T) {
 	}
 
 	// SimpleStories sınavı (tools/gpu/ss_exam.tr) eğitilen modeli koşu klasöründen kurar ve results.json yazar.
-	exam := tr(t, t.TempDir(), reporoot.Path("tools/gpu/ss_exam.tr"), "--koşu", run, "--veri", data, "--cihaz", "cpu",
+	exam := tr(t, t.TempDir(), reporoot.Path("tools/gpu/ss_exam.tr"), "--koşu", run, "--veri", data, "--device", "cpu",
 		"--hassasiyet", "float32", "--toplu", "4", "--sonda_uzunluğu", "6", "--örnek_uzunluğu", "6")
 	testkit.Wait(t, exam, 0, []string{"sınav: kayıp", "bant 0-16", "sonda: farklı_4", "örnek: Once upon a time"}, nil)
 	var result struct {
