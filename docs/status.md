@@ -60,8 +60,8 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). DENETİM'
 
 ### 2.13
 
-- **Mevcut durum:** sözdizimi hataları yalnız metin olarak veriliyor; komut satırının yardımında JSON yalnız hız raporu için var [ölçüldü].
-- **Yapılacaklar:** çalışmadan önceki bütün hata ve uyarılar (sözdizimi, tip, kullanım) JSON olarak da verilir: başlangıç ve bitiş konumu, ilgili konumlar, önerilen düzeltme ve uygulanabilirlik işaretiyle. Seçenek ve alanlar sonraki bölümlerde tanımlanınca.
+- **Mevcut durum:** hata kaydı hazır (katman 2b, 1. evre, DENETİM'den geçti, 2026-10-28): sözcük çözümleyicinin, ayrıştırıcının ve denetleyicinin hataları ve uyarıları başlangıç ve bitiş konumu, en içteki kod, ilgili konum (H1020) ve düzeltme taşıyor; satır başındaki `//` → `#` ve `0X1F` → `0x1F` uygulanabilir, ad önerileri uygulanamaz öneri. Metin kipinde denetleyicinin iletileri artık sütunu da yazıyor. Kayıt henüz dışarı verilmiyor; komut satırının yardımında JSON yalnız hız raporu için var [ölçüldü].
+- **Yapılacaklar:** `tr check --json` kaydı JSON satırları olarak yazar, kullanım hataları dahil, Go e2e testiyle (2b, 2. evre). Düğüm aralığı kapanış `)` ve `}`'yi içermiyor; 2.13'e bir cümleyle yazılır.
 
 ## 3. Tipler ve değerler
 
