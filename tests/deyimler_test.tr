@@ -246,6 +246,7 @@ TR_test "5.13 çık ve devam yalnızca döngü içinde geçerlidir" {
         TR_match i {
             1 => { TR_continue }
             3 => { TR_break }
+            _ => {}
         }
         l.TR_append(i)
     }
