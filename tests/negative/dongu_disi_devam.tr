@@ -1,3 +1,3 @@
 # TR 4
-# TEST 5.13 sondaki blok bir fonksiyondur, içinde döngü yoktur: TR_continue döngünün dışındadır
-TR_var l = TR_error_code { TR_continue } # ERROR H0151
+# TEST 5.13 sondaki blok bir döngü değildir: içindeki TR_continue döngünün dışındadır, ileti blokta dalları önerir (6.7)
+TR_var l = TR_error_code { TR_continue } # ERROR H0264

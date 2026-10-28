@@ -151,3 +151,37 @@ func TestFunctionDefinitionSpellings(t *testing.T) {
 		t.Errorf("doğru yazım hata vermemeli: %v", errs)
 	}
 }
+
+// Kural (6.7): sondaki blok parametresizdir ve çağrının son argümanıdır; son argümandaki parametresiz ok
+// hatadır, blokta TR_return yoktur, kontrol yapısının başlığındaki sondaki bloklu çağrı paranteze alınır.
+func TestTrailingBlockRules(t *testing.T) {
+	for _, d := range []struct {
+		code, at string
+		want     messages.Code
+	}{
+		{"TR_print(TR_error_code(() => { 1 }))", "() =>", messages.H0262},
+		{"TR_func f(a, g) { TR_return g() }\nTR_print(f(1, () => 2))", "() =>", messages.H0262},
+		{"TR_print(TR_error_code { TR_return 1 })", "TR_return", messages.H0263},
+	} {
+		line, col := posOf(t, d.code, d.at)
+		if errs := parseErrs(d.code); !hasErrAt(errs, line, col, d.want) {
+			t.Errorf("%q: %d:%d'de %s bekleniyordu, alınan: %v", d.code, line, col, d.want, errs)
+		}
+	}
+	code := "TR_var l = [1]\nTR_for x TR_in l.TR_filter { TR_true } { TR_print(x) }"
+	if line, col := posOf(t, code, "{ TR_print"); !hasErrAt(parseErrs(code), line, col, messages.H0265) {
+		t.Errorf("%q: %d:%d'de H0265 bekleniyordu: %v", code, line, col, parseErrs(code))
+	}
+	// İletilerin önerdiği yazımlar hatasız ayrıştırılır; blok son ifadesiyle biter, içinde TR_if serbest.
+	for _, ok := range []string{
+		"TR_print(TR_error_code { 1 })",
+		"TR_func f(a, g) { TR_return g() }\nTR_print(f(1) { 2 })",
+		"TR_var l = [1]\nTR_for x TR_in (l.TR_filter { TR_true }) { TR_print(x) }",
+		"TR_var b = TR_error_code { TR_if TR_true { 1 } TR_else { 2 } }",
+		"TR_var g = () => 1\nTR_var h = [() => 1]",
+	} {
+		if errs := parseErrs(ok); len(errs) != 0 {
+			t.Errorf("%q: hata beklenmiyordu: %v", ok, errs)
+		}
+	}
+}

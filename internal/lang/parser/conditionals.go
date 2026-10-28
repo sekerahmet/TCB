@@ -17,6 +17,7 @@ func (p *Parser) parseIfExpression() ast.Expression {
 		return nil
 	}
 	expr.Consequence = p.parseBlockStatement()
+	p.headerBlockCheck()
 
 	for p.peekTokenIs(lexer.TokElse) {
 		p.nextToken() // 'değilse'
@@ -28,6 +29,7 @@ func (p *Parser) parseIfExpression() ast.Expression {
 				return nil
 			}
 			block := p.parseBlockStatement()
+			p.headerBlockCheck()
 			expr.ElseIfs = append(expr.ElseIfs, ast.ElseIfBranch{
 				Condition:   cond,
 				Consequence: block,

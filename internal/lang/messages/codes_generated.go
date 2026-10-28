@@ -100,6 +100,10 @@ const (
 	H0259 Code = 259  // Python'un süsleyicisi (@{name}) TR'de yok, '@' matris çarpımıdır: bir işi kodun çevresinde yapmak için sondaki blok yazılır: {name} {{ ... }}
 	H0260 Code = 260  // '{name}' bu blokta {first}. satırda zaten tanımlı: bir ad tek fonksiyondur, parametrelere göre ayrışma yoktur; ikinci fonksiyona başka bir ad verin
 	H0261 Code = 261  // '{name}' parametresinin varsayılanı yok ama varsayılanlı bir parametreden sonra geliyor: varsayılanlı parametreler sonda yazılır; '{name}'i öne alın ya da ona bir varsayılan verin
+	H0262 Code = 262  // son argümandaki parametresiz fonksiyon sondaki blokla yazılır: f(() => {{ ... }}) yerine f {{ ... }}, f(a, () => x) yerine f(a) {{ x }}; kontrol yapısının başlığında çağrıyı paranteze alın: (f {{ x }})
+	H0263 Code = 263  // sondaki blokta '{keyword}' yazılmaz: blok biter ve değeri son ifadesidir; erken çıkış yerine dalları yazın: {if} c {{ a }} {else} {{ b }}
+	H0264 Code = 264  // '{keyword}' yalnız bir döngünün içinde kullanılabilir; sondaki blok bir döngü değildir, son ifadesiyle biter: dalları yazın, {if} c {{ a }} {else} {{ b }}
+	H0265 Code = 265  // kontrol yapısının başlığında '{{' her zaman gövdeyi başlatır: başlıktaki sondaki bloklu çağrı paranteze alınır, (l.f {{ ... }}) {{ gövde }}
 	H1001 Code = 1001 // Tip uyuşmazlığı — {name|q} değişkeni {declared|q} tipinde tanımlandı ancak {given|q} tipinde değer atandı{hint}
 	H1002 Code = 1002 // Sabit hatası — {name|q} bir sabittir ('{keyword}') ve değeri değiştirilemez
 	H1003 Code = 1003 // Dönüş tipi uyuşmazlığı — fonksiyon {expected|q} döndürmeli ancak {given|q} tipinde değer döndürülüyor{hint}
@@ -290,8 +294,8 @@ const (
 	H2472 Code = 2472 // {type} sayı taşması ({a} ** {b}); ondalık sonuç için örn. {a}.0 ** {b} yazın
 	H2473 Code = 2473 // {type} sayı taşması ({a} {op} {b}); ondalık sonuç için örn. {a}.0 {op} {b} yazın
 	H2474 Code = 2474 // {type} tipinde {prop|q} özelliği veya metodu bulunamadı{hint}
-	H2475 Code = 2475 // {fn}(): {function} son argüman olmalı; {fn}(başlangıç, {function}) ya da {fn}(başlangıç) {{ ... }} yazın
-	H2476 Code = 2476 // {fn}(): {function} iki parametre almalı ({acc}, eleman), {count} parametreli verildi; ör. {fn}(0, ({acc}, x) => {acc} + x) ya da {fn}(0) {{ {acc} + {elem} }}
+	H2475 Code = 2475 // {fn}(): {function} son argüman olmalı; {fn}(başlangıç, {function}) yazın: {fn}(0, (acc, x) => acc + x)
+	H2476 Code = 2476 // {fn}(): {function} iki parametre almalı (birikim ve öğe), {count} parametreli verildi; sondaki blok parametresizdir, ok yazın: {fn}(0, (acc, x) => acc + x)
 	H2477 Code = 2477 // {fn}: boş listenin ortalaması yoktur
 	H2478 Code = 2478 // {wanted|q} dilin kitaplığında yok; kitaplıktaki modüller: {modules}{suggestion}
 	H2479 Code = 2479 // . Bunu mu demek istediniz: {name|q}?

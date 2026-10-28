@@ -210,20 +210,15 @@ func isTrailingBlockTarget(e ast.Expression) bool {
 	return false
 }
 
-// parseTrailingBlock '{ ... }' bloğunu tek parametresi 'o' olan bir fonksiyona çevirip
-// çağrının son argümanı yapar: sayılar.filtrele { o > 2 } == sayılar.filtrele((o) => o > 2).
-// liste.indirge'nin bloğu iki parametrelidir: 'birikim' önceki sonuç, 'o' eleman
-// (l.indirge(0) { birikim + o } == l.indirge(0, (birikim, o) => birikim + o)).
+// parseTrailingBlock '{ ... }' bloğunu parametresiz bir fonksiyona çevirip çağrının son argümanı yapar
+// (6.7): TR_error_code { f(1) } == TR_error_code(() => { f(1) }) (ikinci yazım hatadır). Bloğun değeri
+// son ifadesidir.
 func (p *Parser) parseTrailingBlock(left ast.Expression) ast.Expression {
 	tok := p.curToken() // '{'
-	body := p.functionBody()
-	params := []ast.Param{{Name: p.words.it}}
-	if p.isReduceTarget(left) {
-		params = []ast.Param{{Name: p.words.acc}, {Name: p.words.it}}
-	}
+	body := p.trailingBody()
 	fn := &ast.FunctionLiteral{
 		Token:      tok,
-		Parameters: params,
+		Parameters: []ast.Param{},
 		Body:       body,
 	}
 	if call, ok := left.(*ast.CallExpression); ok {
@@ -376,8 +371,8 @@ func (p *Parser) removedSpellingHints() {
 	}
 	badLine := map[int]bool{}
 	for _, e := range p.errors {
-		if line, _, ok := messages.Pos(e); ok {
-			badLine[line] = true
+		if line, _, ok := messages.Pos(e); ok && !messages.Has(e, messages.H0258) {
+			badLine[line] = true // H0258 'def'in TR yazımını kendisi söyler
 		}
 	}
 	for _, t := range p.tokens {

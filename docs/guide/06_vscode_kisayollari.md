@@ -3,7 +3,7 @@
 - `fonk` / `TR_kw_func` $\rightarrow$ Fonksiyon bloğu oluşturur
 - `TR_kw_if` $\rightarrow$ `eğer ... değilse` bloğu oluşturur
 - `TR_kw_match` $\rightarrow$ `TR_kw_match` durum eşleştirme bloğu oluşturur
-- `TR_mem_filter` / `TR_mem_map` $\rightarrow$ Sondaki blokla `.TR_mem_filter { TR_ctx_it ... }` / `.TR_mem_map { TR_ctx_it ... }` yazar
+- `TR_mem_filter` / `TR_mem_map` $\rightarrow$ Okla `.TR_mem_filter((x) => ...)` / `.TR_mem_map((x) => ...)` yazar
 - `TR_mem_reduce` $\rightarrow$ `.TR_mem_reduce(başlangıç, (birikim, x) => ...)` yazar
 - `TR_kw_for` $\rightarrow$ `TR_kw_for i TR_kw_in 1..=10` bloğu oluşturur
 - `liste_üret` $\rightarrow$ Tek satırda liste üreteci oluşturur

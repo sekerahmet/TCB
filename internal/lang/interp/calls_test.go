@@ -29,17 +29,3 @@ func TestUnknownNameErrorHasColumnAndSuggestion(t *testing.T) {
 		}
 	}
 }
-
-// Kural (6.7, geçiş): sondaki blok argümansız da çağrılabilir; o zaman TR_it değer almaz ve okunursa
-// çalışma hatasıdır (sessiz yokluk değil). Argümanla çağrılan blok TR_it'i okur.
-func TestTrailingBlockCalledWithoutArgument(t *testing.T) {
-	if _, val, err := runTRWithin(t, 5*time.Second, "TR_func yap(f) { TR_return f() }\nyap { 5 }"); err != nil || val.Inspect() != "5" {
-		t.Errorf("argümansız çağrı: %v %v", val, err)
-	}
-	if _, _, err := runTRWithin(t, 5*time.Second, "TR_func yap(f) { TR_return f() }\nyap { TR_it }"); !codeAt(err, messages.H2707, 2) {
-		t.Errorf("H2707 bekleniyordu: %v", err)
-	}
-	if _, val, err := runTRWithin(t, 5*time.Second, "[1, 2].TR_map { TR_it * 2 }"); err != nil || val.Inspect() != "[2, 4]" {
-		t.Errorf("argümanla çağrı: %v %v", val, err)
-	}
-}

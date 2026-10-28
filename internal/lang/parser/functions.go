@@ -162,6 +162,12 @@ func (p *Parser) parseFunctionParameters() []ast.Param {
 func (p *Parser) parseCallExpression(function ast.Expression) ast.Expression {
 	exp := &ast.CallExpression{Token: p.curToken(), Function: function}
 	exp.Arguments, exp.NamedArgs = p.parseCallArguments()
+	if n := len(exp.Arguments); n > 0 {
+		// Son argümandaki parametresiz fonksiyon yalnız sondaki blokla yazılır (6.7).
+		if f, ok := exp.Arguments[n-1].(*ast.FunctionLiteral); ok && f.Name == "" && len(f.Parameters) == 0 && f.Token.Type == lexer.TokLParen {
+			p.syntaxError(f.Token, messages.H0262)
+		}
+	}
 	return exp
 }
 func (p *Parser) parseCallArguments() ([]ast.Expression, []ast.NamedArg) {

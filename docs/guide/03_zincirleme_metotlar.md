@@ -14,15 +14,15 @@ Her metodun ve yerleşiğin imzası ve örneği [`docs/codes.md`](../codes.md)'d
 'liste.toplam()' TR'de yok; 'toplam(liste)' yazın
 ```
 
-- `l.TR_mem_reduce([başlangıç], fn)` listeyi soldan sağa `fn(birikim, eleman)` ile tek değere indirger: `[1, 2, 3].TR_mem_reduce(0, (a, x) => a + x)` → `6`. Başlangıç verilmezse ilk eleman başlangıçtır; boş listede başlangıç (yoksa `TR_kw_none`) döner. Fonksiyon son argümandır, böylece sondaki blokla da yazılır; blokta `TR_ctx_acc` önceki sonuç, `TR_ctx_it` sıradaki elemandır: `[1, 2, 3].TR_mem_reduce(1) { TR_ctx_acc * TR_ctx_it }` → `6`.
+- `l.TR_mem_reduce([başlangıç], fn)` listeyi soldan sağa `fn(birikim, eleman)` ile tek değere indirger: `[1, 2, 3].TR_mem_reduce(0, (a, x) => a + x)` → `6`. Başlangıç verilmezse ilk eleman başlangıçtır; boş listede başlangıç (yoksa `TR_kw_none`) döner. Fonksiyon son argümandır ve iki parametrelidir (birikim, eleman): `[1, 2, 3].TR_mem_reduce(1, (a, x) => a * x)` → `6`.
 - `TR_fn_mean(l)` boş listede ve sayı olmayan elemanda hata verir (`ortalama(): boş listenin ortalaması yoktur`), `TR_fn_sum(l)` sayı olmayan elemanda hata verir.
 - `l.TR_mem_sort()` yalnızca sayılardan ya da yalnızca metinlerden oluşan listeyi sıralar; karışık liste hatadır (`liste.sırala(): Tam (2) ile Metin ("a") karşılaştırılamaz; liste yalnızca sayılardan ya da yalnızca metinlerden oluşmalıdır`). `TR_fn_min` ve `TR_fn_max` sayı olmayan değerde (metin dahil) hata, boş listede `TR_kw_none` verir.
 - Metotlar da yerleşikler gibi argüman sayısını ve tipini denetler: `metin.içerir() 1 argüman bekler, 0 verildi (kullanım: metin.içerir(alt))`, `liste.filtrele() 1. argüman olarak Fonksiyon bekler, Tam (3) verildi`.
 - Yerleşikler ve metotlar yalnızca imzalarındaki adlı argümanları kabul eder; bilinmeyen bir adlı argüman sessizce yok sayılmaz: `yazdır() 'ayraç' adında bir parametre almaz (adlı argüman almaz)`, `Tensör() 'ölçek' adında bir parametre almaz (geçerli adlar: türev_izle, tür)`.
 
-## `o` zamiri ve sondaki blok
+## Fonksiyon argümanı ve sondaki blok
 
-Bir çağrının sonuna aynı satırda yazılan `{ ... }` bloğu, tek parametresi `TR_ctx_it` olan bir fonksiyondur. `TR_ctx_it` o anki elemanı gösterir:
+Elemanla çalışan metotlara fonksiyon ok ile verilir, parantez her zaman yazılır (6.6): `(x) => x > 2`. Bir çağrının sonuna aynı satırda yazılan `{ ... }` bloğu ise parametresiz bir fonksiyondur ve çağrının son argümanı olur (6.7); değeri son ifadesidir, içinde `TR_kw_return` yazılmaz: `TR_fn_error_code { TR_fn_print(1 / 0) }`.
 
 ```tr
 # TR 4
@@ -33,10 +33,10 @@ personel.TR_map((x) => x["ad"])
 TR_sum(sayılar.TR_filter((x) => x % 2 == 0))      # fonksiyon çağrıyla: toplam(sayılar.filtrele {...})
 ```
 
-- İç içe bloklarda `TR_ctx_it` en içteki elemanı gösterir: `[[1, 2]].TR_mem_map { TR_ctx_it.TR_mem_map { TR_ctx_it * 10 } }`.
-- `TR_kw_if`, `TR_kw_for` ve `TR_kw_match` başlıklarında `{` her zaman gövdeyi başlatır. Başlıkta sondaki blok kullanmak için ifadeyi paranteze alın: `TR_kw_if (liste.TR_mem_filter { TR_ctx_it > 2 }).TR_mem_length > 0 { ... }`.
-- Uzun yazım (`(x) => x > 2`) aynen çalışmaya devam eder.
-- Metotlar `.` ile zincirlenir, fonksiyon çağrıyla verilir: `TR_fn_sum(l.TR_mem_filter { ... })`. Başka dillerin boru işleci `|>` sözdizimi hatasıdır, ileti çağrıyı önerir (4.9).
+- İç içe fonksiyonlarda parametrelere ayrı ad verin: `[[1, 2]].TR_mem_map((x) => x.TR_mem_map((y) => y * 10))`.
+- `TR_kw_if`, `TR_kw_for` ve `TR_kw_match` başlıklarında `{` her zaman gövdeyi başlatır. Başlıkta sondaki bloklu bir çağrı paranteze alınır: `TR_kw_if (TR_fn_error_code { f() }) != TR_kw_none { ... }`.
+- Son argümandaki parametresiz ok (`f(() => x)`) sözdizimi hatasıdır, ileti sondaki bloğu önerir: `f { x }`.
+- Metotlar `.` ile zincirlenir, fonksiyon çağrıyla verilir: `TR_fn_sum(l.TR_mem_filter((x) => x > 0))`. Başka dillerin boru işleci `|>` sözdizimi hatasıdır, ileti çağrıyı önerir (4.9).
 
 ## Hata mesajları
 

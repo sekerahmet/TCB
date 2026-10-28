@@ -21,7 +21,6 @@ func TestBreakContinueOutsideLoopIsError(t *testing.T) {
 		"TR_continue",
 		"TR_func f() { TR_break }",
 		"TR_for { TR_func f() { TR_break } }",
-		"[1, 2].TR_map { TR_if TR_it > 1 { TR_continue } }",
 		"TR_var f = x => { TR_continue }",
 		"TR_var g = (a, b) => { TR_break }",
 		"TR_test \"t\" { TR_break }",
@@ -33,6 +32,12 @@ func TestBreakContinueOutsideLoopIsError(t *testing.T) {
 		h := parseErrs(codeVal)
 		if len(h) == 0 || !messages.Has(h[0], messages.H0151) {
 			t.Errorf("%q: H0151 bekleniyordu, alınan: %v", codeVal, h)
+		}
+	}
+	// Sondaki blok döngü değildir (6.7): iletisi TR_return'ü değil blokta dalları önerir (H0264).
+	for _, codeVal := range []string{"TR_print(TR_error_code { TR_continue })", "TR_for { TR_print(TR_error_code { TR_if TR_true { TR_break } }) }"} {
+		if h := parseErrs(codeVal); len(h) == 0 || !messages.Has(h[0], messages.H0264) {
+			t.Errorf("%q: H0264 bekleniyordu, alınan: %v", codeVal, h)
 		}
 	}
 	// Fonksiyonda TR_break yazılırsa hata (H0151) çıkış için TR_return'ü önerir; dosyadan gelen hatanın
@@ -53,7 +58,7 @@ func TestBreakContinueOutsideLoopIsError(t *testing.T) {
 		"TR_for i TR_in 1..3 { TR_match i { 1 => { TR_continue } _ => { TR_break } } }",
 		"TR_for x < 3 { TR_try { TR_break } TR_catch { TR_continue } }",
 		"TR_func f() { TR_for { TR_break } }",
-		"[1].TR_map { TR_for { TR_break }; TR_it }",
+		"TR_print(TR_error_code { TR_for { TR_break }; 1 })",
 		"TR_for { TR_for { TR_break }; TR_break }",
 	}
 	for _, codeVal := range valid {
@@ -199,22 +204,22 @@ func TestImportUnquotedPathIsError(t *testing.T) {
 	}
 }
 
-// Bağlamsal sözcükler (olarak, test, sondaki bloğun 'o'su, indirge'nin 'birikim'i) sözcük
-// çözümleyicinin okuduğu dildedir, etkin dilde değil: Türkçe yazılmış dosya başka bir etkin
-// dilde de Türkçe ayrıştırılır (17.7). Burada etkin dil Türkçeyken İngilizce gövde ayrıştırılır.
+// Bağlamsal sözcükler (olarak, test) sözcük çözümleyicinin okuduğu dildedir, etkin dilde değil:
+// Türkçe yazılmış dosya başka bir etkin dilde de Türkçe ayrıştırılır (17.7). Burada etkin dil
+// Türkçeyken İngilizce gövde ayrıştırılır.
 func TestContextWordsFollowLexer(t *testing.T) {
 	en, err := codes.LoadLanguage("en")
 	if err != nil {
 		t.Fatal(err)
 	}
-	src := "import \"m\" as g\ntest \"t\" { }\nvar a = [1].map { it * 2 }\nvar b = [1].reduce(0) { acc + it }\n"
+	src := "import \"m\" as g\ntest \"t\" { }\n"
 	p := New(lexer.NewBodyIn(src, false, en))
 	prog := p.ParseProgram()
 	if errs := p.Errors(); len(errs) > 0 {
 		t.Fatalf("İngilizce gövde ayrıştırılamadı: %v", errs)
 	}
 	got := prog.String()
-	for _, want := range []string{`Name: "it"`, `Name: "acc"`} {
+	for _, want := range []string{`Alias: "g"`, `Name: "t"`} {
 		if !strings.Contains(got, want) {
 			t.Errorf("ağaçta %q yok:\n%s", want, got)
 		}

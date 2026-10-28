@@ -245,7 +245,7 @@ func TestHeaderlessFileDoesNotRun(t *testing.T) {
 	testkit.WriteFile(t, dir, "ana.tr", "yazdır(1)\n")
 	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", nil, "ana.tr"), 1, nil, []string{source.Header, "tr kodla <dosya> --dil tr"})
 	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "ana.tr"), 1, nil, []string{source.Header, "tr encode <file> --lang en"})
-	repl := testkit.RunBinary(t, trBinary, dir, "var x = [1, 2].map { it * 10 }\nprint(x, Type(x), true)\nexit\n", []string{"TR_DIL=en"})
+	repl := testkit.RunBinary(t, trBinary, dir, "var x = [1, 2].map((y) => y * 10)\nprint(x, Type(x), true)\nexit\n", []string{"TR_DIL=en"})
 	testkit.Wait(t, repl, 0, []string{"[10, 20] List true"}, nil)
 }
 
@@ -260,13 +260,13 @@ func readFile(t *testing.T, filePath string) string {
 }
 
 // Dosyanın dili yoktur: kişinin dili (TR_DIL) programın anlamını değiştirmez. Bir dilin bağlamsal
-// sözcüğüyle aynı adlı kullanıcı adı (it, acc, init, print) kimliklerden ayrıdır: 'it' adlı değişken
-// sondaki bloğun örtük parametresine (TR_it) düşmez, 'init' adlı metot kurucu sayılmaz.
+// sözcüğüyle aynı adlı kullanıcı adı (it, acc, init, print) kimliklerden ayrıdır: 'it' ve 'acc' sıradan
+// adlardır (sondaki bloğun örtük parametresi yoktur, 6.7), 'init' adlı metot kurucu sayılmaz.
 func TestUserNamesNeverBecomeLanguageWords(t *testing.T) {
 	dir := t.TempDir()
 	cases := map[string]string{
-		"it.tr":    "TR_var it = 4\nTR_print([1, 2].TR_map { TR_it + it })\n",
-		"acc.tr":   "TR_var acc = 1\nTR_print([1, 2].TR_reduce(0) { TR_acc + TR_it + acc })\n",
+		"it.tr":    "TR_var it = 4\nTR_print([1, 2].TR_map((x) => x + it))\n",
+		"acc.tr":   "TR_var acc = 1\nTR_print([1, 2].TR_reduce(0, (a, x) => a + x + acc))\n",
 		"init.tr":  "TR_struct K {\n    a\n    TR_func init() { TR_return 5 }\n}\nTR_print(K(1).init())\n",
 		"print.tr": "TR_var print = 5\nTR_print(print)\n",
 	}
