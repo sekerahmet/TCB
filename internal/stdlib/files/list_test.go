@@ -44,7 +44,7 @@ func TestListDir(t *testing.T) {
 		}
 	}
 	// Mutlak taban: sonuçlar da mutlak.
-	got := mustRunTR(t, `klasörü_listele(yol("`+forwardPath(filepath.Join(k, "v"))+`"), "*.txt")`)
+	got := mustRunTR(t, `TR_list_dir(TR_path("`+forwardPath(filepath.Join(k, "v"))+`"), "*.txt")`)
 	if !strings.HasSuffix(got, "/v/b.txt]") || !strings.Contains(got, ":") && !strings.HasPrefix(got, "[/") {
 		t.Errorf("mutlak taban: %s", got)
 	}

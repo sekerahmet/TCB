@@ -150,8 +150,8 @@ func writeModule(t *testing.T, dir string, i, n int, extra []string) {
 	if i%5 == 2 {
 		b.WriteString("TR_import \"tr/katman\"\n")
 	}
-	fmt.Fprintf(&b, "sabit C%d = %d\n", i, i)
-	fmt.Fprintf(&b, "yapı S%d {\n    x = 1\n    fonksiyon ileri() {\n        sonuç kendi.x\n    }\n}\n", i)
+	fmt.Fprintf(&b, "TR_const C%d = %d\n", i, i)
+	fmt.Fprintf(&b, "TR_struct S%d {\n    x = 1\n    TR_func TR_forward() {\n        TR_return TR_self.x\n    }\n}\n", i)
 	for j := 0; j < 3; j++ {
 		fmt.Fprintf(&b, "fonksiyon f%d_%d(p) {\n", i, j)
 		if i > 0 {
@@ -195,9 +195,9 @@ func TestIncrementalEqualsFull(t *testing.T) {
 		i := rng.Intn(n)
 		switch rng.Intn(6) {
 		case 0: // gövdeye çağrı ekle
-			extras[i] = append(extras[i], fmt.Sprintf("fonksiyon e%d_%d() {\n    sonuç f%d_0(1)\n}", i, step, rng.Intn(i+1)))
+			extras[i] = append(extras[i], fmt.Sprintf("TR_func e%d_%d() {\n    TR_return f%d_0(1)\n}", i, step, rng.Intn(i+1)))
 		case 1: // sabiti kullanan bir işlev
-			extras[i] = append(extras[i], fmt.Sprintf("fonksiyon k%d_%d() {\n    sonuç C%d\n}", i, step, rng.Intn(n)))
+			extras[i] = append(extras[i], fmt.Sprintf("TR_func k%d_%d() {\n    TR_return C%d\n}", i, step, rng.Intn(n)))
 		case 2: // yorum/boşluk değişikliği (içerik değişir, anlam değişmez)
 			extras[i] = append(extras[i], fmt.Sprintf("# not %d", step))
 		case 3: // dosyayı boz ya da düzelt
@@ -207,7 +207,7 @@ func TestIncrementalEqualsFull(t *testing.T) {
 				broken[i] = true
 			}
 		case 4: // ad değiştir: ilk işlevin adı değişsin (aktaranlar çözülemez olur)
-			extras[i] = append(extras[i], fmt.Sprintf("fonksiyon f%d_0(p) {\n    sonuç p\n}", i)) // yineleme: son tanım kazanır
+			extras[i] = append(extras[i], fmt.Sprintf("TR_func f%d_0(p) {\n    TR_return p\n}", i)) // yineleme: son tanım kazanır
 		case 5: // yazma
 			extras[i] = append(extras[i], fmt.Sprintf("C%d = %d", i, step))
 		}
@@ -273,7 +273,7 @@ func benchProject(tb testing.TB, n int) string {
 		for k := 0; k < i && k < 3; k++ {
 			fmt.Fprintf(&b, "TR_import \"m%d\"\n", i-1-k)
 		}
-		fmt.Fprintf(&b, "sabit c_%d = %d\nyapı S_%d {\n    x = 1\n    ağırlık = 1\n    fonksiyon ileri() {\n        sonuç kendi.x\n    }\n}\n", i, i, i)
+		fmt.Fprintf(&b, "TR_const c_%d = %d\nTR_struct S_%d {\n    x = 1\n    TR_weight = 1\n    TR_func TR_forward() {\n        TR_return TR_self.x\n    }\n}\n", i, i, i)
 		for j := 0; j < 3; j++ {
 			fmt.Fprintf(&b, "fonksiyon f%d_%d(p) {\n", i, j)
 			if i > 0 {

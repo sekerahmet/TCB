@@ -88,8 +88,8 @@ func TestMembersMatchDictionary(t *testing.T) {
 		`TR_var u_sozluk = {"a": 1}`,
 		`TR_var u_tensor = TR_tensor([[1.0, 2.0]], TR_requires_grad: TR_true)`,
 		`TR_var u_iyilestirici = TR_SGD([u_tensor])`,
-		`değişken u_parcalayici = parçalayıcı_yükle("` + filepath.ToSlash(reporoot.Path("internal/compute/tokenize/testdata/tokenizer_byte_bpe.json")) + `")`,
-		`değişken u_yol = yol("` + filepath.ToSlash(reporoot.Path("go.mod")) + `")`,
+		`TR_var u_parcalayici = TR_load_tokenizer("` + filepath.ToSlash(reporoot.Path("internal/compute/tokenize/testdata/tokenizer_byte_bpe.json")) + `")`,
+		`TR_var u_yol = TR_path("` + filepath.ToSlash(reporoot.Path("go.mod")) + `")`,
 		`TR_var u_ilerleme = TR_progress(3)`,
 	}, "\n")
 	if _, err := runSame(t, m, setup); err != nil {
@@ -125,7 +125,7 @@ func TestEngineMemberASCIISpellingSuggestsTurkish(t *testing.T) {
 	setup := strings.Join([]string{
 		`TR_var u_tensor = TR_tensor([[1.0, 2.0]], TR_requires_grad: TR_true)`,
 		`TR_var u_iyilestirici = TR_SGD([u_tensor])`,
-		`değişken u_parcalayici = parçalayıcı_yükle("` + filepath.ToSlash(reporoot.Path("internal/compute/tokenize/testdata/tokenizer_byte_bpe.json")) + `")`,
+		`TR_var u_parcalayici = TR_load_tokenizer("` + filepath.ToSlash(reporoot.Path("internal/compute/tokenize/testdata/tokenizer_byte_bpe.json")) + `")`,
 	}, "\n")
 	if _, err := runSame(t, m, setup); err != nil {
 		t.Fatal(err)

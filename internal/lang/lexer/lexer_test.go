@@ -447,10 +447,10 @@ func checkPositions(t *testing.T, input string, want []srcPos) {
 
 // Sütunlar 1 tabanlıdır ve bayt değil rune (karakter) sayar.
 func TestLineAndColumnNumbers(t *testing.T) {
-	src := "değişken ğüş = 1\n" +
-		"eğer ğüş >= 10 {\n" +
-		"\tyazdır(\"çok\")\n" +
-		"}"
+	src := "değişken ğüş = 1\neğer ğüş >= 10 {\n\tyazdır(\"çok\")\n}" +
+		"" +
+		"" +
+		""
 	checkPositions(t, src, []srcPos{
 		{"değişken", 1, 1}, {"ğüş", 1, 10}, {"=", 1, 14}, {"1", 1, 16},
 		{"eğer", 2, 1}, {"ğüş", 2, 6}, {">=", 2, 10}, {"10", 2, 13}, {"{", 2, 16},
@@ -464,10 +464,10 @@ func TestBlankLinesAndEOFPosition(t *testing.T) {
 	checkPositions(t, "", []srcPos{{"", 1, 1}})
 }
 func TestCRLFLineEndings(t *testing.T) {
-	src := "değişken a = 1\r\n" +
-		"a += 2 // yorum\r\n" +
-		"\r\n" +
-		"yazdır(\"x\")\r\n"
+	src := "değişken a = 1\r\na += 2 # yorum\r\n\r\nyazdır(\"x\")\r\n" +
+		"" +
+		"" +
+		""
 	checkPositions(t, src, []srcPos{
 		{"değişken", 1, 1}, {"a", 1, 10}, {"=", 1, 12}, {"1", 1, 14},
 		{"a", 2, 1}, {"+=", 2, 3}, {"2", 2, 6},

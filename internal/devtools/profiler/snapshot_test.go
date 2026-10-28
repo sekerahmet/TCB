@@ -49,7 +49,7 @@ func TestSnapshotKeysFrozenPerVersion(t *testing.T) {
 	var keys, errs []string
 	jsonKeys(reflect.TypeOf(Snapshot{}), "", &keys, &errs)
 	for _, e := range errs {
-		t.Errorf("Snapshot.%s için json anahtarı yok; dosya biçimi Go adına bağlı kalır", e)
+		t.Errorf("Snapshot.%s için json anahtarı TR_none; dosya biçimi Go adına bağlı kalır", e)
 	}
 	sort.Strings(keys)
 	// Anahtarlar ve biçimin adı dilden bağımsız İngilizce tanımlayıcılardır (dil tanımı 17.3).

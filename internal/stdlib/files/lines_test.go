@@ -30,7 +30,7 @@ func TestFileLines(t *testing.T) {
 		name := fmt.Sprintf("d%d.txt", i)
 		i++
 		write(t, filepath.Join(k, name), inner)
-		if got := mustRunTR(t, `[s döngü s içinde dosya_satırları("`+name+`")]`); got != wants {
+		if got := mustRunTR(t, `[s TR_for s TR_in TR_read_lines("`+name+`")]`); got != wants {
 			t.Errorf("%q: %s, %s bekleniyordu", inner, got, wants)
 		}
 	}

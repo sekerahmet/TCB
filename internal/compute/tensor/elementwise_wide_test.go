@@ -179,10 +179,10 @@ func TestUnaryWideEdges(t *testing.T) {
 	// log1p ve expm1 küçük x'te 1 + x yuvarlamasından etkilenmez: göreli hata küçük kalır.
 	for _, v := range []float32{1e-7, -1e-7, 3e-9, 1e-20} {
 		if g := New([]float32{v}, 1).Log1p().Data()[0]; ulpDistance(g, float32(math.Log1p(float64(v)))) > 1 {
-			t.Errorf("log1p(%v) = %v", v, g)
+			t.Errorf("TR_log1p(%v) = %v", v, g)
 		}
 		if g := New([]float32{v}, 1).Expm1().Data()[0]; ulpDistance(g, float32(math.Expm1(float64(v)))) > 1 {
-			t.Errorf("expm1(%v) = %v", v, g)
+			t.Errorf("TR_expm1(%v) = %v", v, g)
 		}
 	}
 }

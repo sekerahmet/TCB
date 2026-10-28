@@ -261,7 +261,7 @@ func TestDAPDebugSession(t *testing.T) {
 		t.Fatalf("liste Tablo [2×2] olarak işaretlenmeli: %v", found["liste"])
 	}
 	if tp := found["toplam"]; tp == nil || tp["value"] != "1100" || tp["table"] != false || tp["kind"] != "number" {
-		t.Fatalf("toplam = 1100 skaler değişken olmalı: %v", found["toplam"])
+		t.Fatalf("TR_sum = 1100 skaler TR_var olmalı: %v", found["toplam"])
 	}
 	if _, var_ := found["yazdır"]; var_ {
 		t.Fatal("yerleşik fonksiyonlar panelde listelenmemeli")

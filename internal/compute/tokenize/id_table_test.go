@@ -55,7 +55,7 @@ func TestIDTableUnigramDuplicateToken(t *testing.T) {
 	}
 	for id := 0; id < 3; id++ {
 		if _, ok := p.IDToToken(id); !ok {
-			t.Fatalf("IDToToken(%d) yok", id)
+			t.Fatalf("IDToToken(%d) TR_none", id)
 		}
 	}
 	if n := p.VocabSize(); n != 3 {

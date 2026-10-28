@@ -43,8 +43,8 @@ func TestFileOpsRelativePath(t *testing.T) {
 		t.Fatalf("%s çalışma klasöründe olmamalı", sub)
 	}
 	out, err := fromProgram(t, dir, `
-tensör_kaydet("`+sub+`/t.trt", {"w": tensör([1.5, 2.5])})
-yazdır(tensör_yükle("`+sub+`/t.trt")["w"].değer)
+TR_save_tensors("`+sub+`/t.trt", {"w": TR_tensor([1.5, 2.5])})
+TR_print(TR_load_tensors("`+sub+`/t.trt")["w"].TR_tolist)
 `)
 	if err != nil {
 		t.Fatal(err)

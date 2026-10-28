@@ -188,7 +188,7 @@ func TestEngineValueTextIsLanguageIndependent(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := []string{"Progress(adım 0/2)", "Logger(m.jsonl, 0 kayıt)",
-		"AdamW(parametre: 1, lr: 0.1, weight_decay: 0.01, beta1: 0.9, beta2: 0.999, eps: 1e-08, step: 0)",
+		"TR_AdamW(parametre: 1, lr: 0.1, weight_decay: 0.01, TR_beta1: 0.9, TR_beta2: 0.999, eps: 1e-08, step: 0)",
 		"Checkpoint(k/checkpoints, adım 0, 1 nesne)", "LineReader("}
 	for _, env := range [][]string{{"TR_DIL=tr"}, {"TR_DIL=en"}} {
 		dir := t.TempDir()
@@ -237,7 +237,7 @@ func TestMessageValuesFollowPersonsLanguage(t *testing.T) {
 	// Motorların iletileri de (değer interp.Shown, tip adı ValueType ile).
 	testkit.WriteFile(t, dir, "t.tr", source.Header+"\nTR_print(TR_tensor([1.0, TR_true]))\n")
 	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "t.tr"), 1, nil, []string{"true (Bool) given"})
-	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=tr"}, "t.tr"), 1, nil, []string{"doğru (Mantık) verildi"})
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=tr"}, "t.tr"), 1, nil, []string{"TR_true (TR_Bool) verildi"})
 }
 
 // TR_str(Mantık) dilden bağımsız "true" ya da "false" verir: bir yazım dilinin adıyla
@@ -337,8 +337,8 @@ func TestMessagePartsFollowTheMessageLanguage(t *testing.T) {
 // iletiye metin olarak giriyordu ("the cache quota is insufficient: kota 107 bayt, ...").
 func TestDatasetErrorsFollowTheMessageLanguage(t *testing.T) {
 	data := filepath.ToSlash(reporoot.Path("tests/data/text"))
-	coded, err := source.Encode("dene {\n    değişken k = veri_kümesi(\"" + data + "\", önbellek: \"c2\", kota_gb: 0.0000001)\n" +
-		"    yazdır(k.örnekleyici(toplu: 1, bağlam: 4).sonraki())\n} yakala h { yazdır(h) }\n")
+	coded, err := source.Encode("TR_try {\n    TR_var k = TR_dataset(\"" + data + "\", TR_cache: \"c2\", TR_quota_gb: 0.0000001)\n    TR_print(k.TR_sampler(TR_batch_size: 1, TR_context: 4).TR_next())\n} TR_catch h { TR_print(h) }\n" +
+		"")
 	if err != nil {
 		t.Fatal(err)
 	}

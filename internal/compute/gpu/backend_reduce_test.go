@@ -29,7 +29,7 @@ func TestSums(t *testing.T) {
 				if avg && sh[ax] == 0 {
 					continue // boş eksenin ortalaması tanımsız (açık hata)
 				}
-				compare(t, fmt.Sprintf("%v eksen %d ortalama=%v", sh, ax, avg), tol, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+				compare(t, fmt.Sprintf("%v eksen %d TR_mean=%v", sh, ax, avg), tol, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
 					x := twin(v, true, sh...)[c]
 					if avg {
 						return x.Mean(ax, true), []*tensor.Tensor{x}

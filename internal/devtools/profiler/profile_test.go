@@ -370,7 +370,7 @@ func TestProfileModuleLines(t *testing.T) {
 	if err := os.WriteFile(module, []byte(code), 0644); err != nil {
 		t.Fatal(err)
 	}
-	main := "aktar \"" + filepath.ToSlash(module) + "\" olarak m\nfonksiyon ileri(x) {\n    sonuç x\n}\nyazdır(m.ileri(ileri(1)))\n"
+	main := "TR_import \"" + filepath.ToSlash(module) + "\" TR_as m\nTR_func ileri(x) {\n    TR_return x\n}\nTR_print(m.TR_forward(ileri(1)))\n"
 	g, _ := run(t, main, Options{SampleLines: true})
 	want := map[int]string{3: "ısınma += j % 3", 8: "s += i % 7"}
 	found := 0

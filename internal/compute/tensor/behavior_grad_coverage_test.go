@@ -154,7 +154,7 @@ func TestGradCoverage(t *testing.T) {
 	covered, groupsRun, names, seen := map[string]bool{}, gradGroupsRun(t), map[string]bool{}, map[string]bool{}
 	for group, specs := range gradGroups {
 		if !groupsRun[group] {
-			t.Errorf("%q grubunun kayıtları var ama hiçbir testte runGradGroup(t, %q) çağrısı yok", group, group)
+			t.Errorf("%q grubunun kayıtları var ama hiçbir testte runGradGroup(t, %q) çağrısı TR_none", group, group)
 		}
 		for _, s := range specs {
 			if names[group+"/"+s.name] {
@@ -185,7 +185,7 @@ func TestGradCoverage(t *testing.T) {
 	}
 	for _, n := range sortedKeys(expected) {
 		if !covered[n] {
-			t.Errorf("%q işleminin gradyan testi (gradSpec) yok", n)
+			t.Errorf("%q işleminin gradyan testi (gradSpec) TR_none", n)
 		}
 	}
 	for _, n := range sortedKeys(covered) {

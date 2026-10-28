@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -47,6 +48,23 @@ func convertGoTest(rel, in string) (string, []problem) {
 	var edits []edit
 	var probs []problem
 	ast.Inspect(f, func(n ast.Node) bool {
+		// Go'nun '+' ile parçaladığı metin (`"...kaydet(\"" + yol + "\")"`) tek metin olarak
+		// çevrilir: parçaların arasındaki ifade bir yer tutucudur.
+		if bin, ok := n.(*ast.BinaryExpr); ok && bin.Op == token.ADD {
+			if leaves := concatLeaves(bin); hasLiteral(leaves) {
+				line := fset.Position(bin.Pos()).Line
+				pieces, ok, p := convertPieces(leaves, view, line)
+				probs = append(probs, p...)
+				if ok {
+					for i, l := range leaves {
+						if lit, isLit := l.(*ast.BasicLit); isLit && lit.Kind == token.STRING {
+							edits = append(edits, edit{fset.Position(lit.Pos()).Offset, fset.Position(lit.End()).Offset, quoteLike(lit.Value, pieces[i])})
+						}
+					}
+				}
+				return false
+			}
+		}
 		lit, ok := n.(*ast.BasicLit)
 		if !ok || lit.Kind != token.STRING {
 			return true
@@ -56,7 +74,7 @@ func convertGoTest(rel, in string) (string, []problem) {
 			return true
 		}
 		line := fset.Position(lit.Pos()).Line
-		conv, ok, p := convertSnippet(s, view, line)
+		conv, ok, p := convertFormatted(s, view, line)
 		probs = append(probs, p...)
 		if !ok || conv == s {
 			return true
@@ -76,6 +94,122 @@ func convertGoTest(rel, in string) (string, []problem) {
 	b.WriteString(in[prev:])
 	return b.String(), probs
 }
+
+// slotPrefix Go'nun metne kattığı parçanın (bir ifade ya da fmt biçim işareti) çeviri sırasındaki
+// yer tutucusudur: TR'de bir kullanıcı adıdır, çeviri ona dokunmaz.
+const slotPrefix = "migrateslot"
+
+// concatLeaves '+' zincirinin yapraklarını soldan sağa verir.
+func concatLeaves(e ast.Expr) []ast.Expr {
+	if b, ok := e.(*ast.BinaryExpr); ok && b.Op == token.ADD {
+		return append(concatLeaves(b.X), concatLeaves(b.Y)...)
+	}
+	if p, ok := e.(*ast.ParenExpr); ok {
+		return concatLeaves(p.X)
+	}
+	return []ast.Expr{e}
+}
+
+// hasLiteral yapraklardan biri metin değişmezi mi?
+func hasLiteral(leaves []ast.Expr) bool {
+	for _, l := range leaves {
+		if lit, ok := l.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+			return true
+		}
+	}
+	return false
+}
+
+// convertPieces '+' zincirini tek metin olarak çevirip parçalarına geri böler: pieces[i] i.
+// yaprağın (metin değişmeziyse) yeni metnidir. Yer tutucular çeviriden sonra aynı sırayla bir kez
+// geçmiyorsa ok false'tur.
+func convertPieces(leaves []ast.Expr, view bool, line int) ([]string, bool, []problem) {
+	var joined strings.Builder
+	var slots []int
+	for i, l := range leaves {
+		lit, ok := l.(*ast.BasicLit)
+		if !ok || lit.Kind != token.STRING {
+			joined.WriteString(slotPrefix + strconv.Itoa(len(slots)))
+			slots = append(slots, i)
+			continue
+		}
+		s, err := strconv.Unquote(lit.Value)
+		if err != nil {
+			return nil, false, nil
+		}
+		joined.WriteString(s)
+	}
+	conv, ok, probs := convertFormatted(joined.String(), view, line)
+	if !ok {
+		return nil, false, probs
+	}
+	moved := append(probs, problem{Line: line, Reason: "a concatenated Go string's parts moved in the conversion"})
+	// Yer tutucular metni len(slots)+1 parçaya böler; k. parça (k-1). ile k. ifadenin arasındaki
+	// değişmezlerin ilkine yazılır, öbürleri boş kalır. Arasında değişmez olmayan parça boş olmalı.
+	segments := make([]string, 0, len(slots)+1)
+	rest := conv
+	for n := range slots {
+		slot := slotPrefix + strconv.Itoa(n)
+		at := strings.Index(rest, slot)
+		if at < 0 || strings.Count(conv, slot) != 1 {
+			return nil, false, moved
+		}
+		segments = append(segments, rest[:at])
+		rest = rest[at+len(slot):]
+	}
+	segments = append(segments, rest)
+	pieces := make([]string, len(leaves))
+	from := 0
+	for k, seg := range segments {
+		to := len(leaves)
+		if k < len(slots) {
+			to = slots[k]
+		}
+		first := -1
+		for i := from; i < to && first < 0; i++ {
+			if lit, ok := leaves[i].(*ast.BasicLit); ok && lit.Kind == token.STRING {
+				first = i
+			}
+		}
+		switch {
+		case first >= 0:
+			pieces[first] = seg
+		case seg != "":
+			return nil, false, moved
+		}
+		from = to + 1
+	}
+	return pieces, true, probs
+}
+
+// convertFormatted metni çevirir; içindeki fmt biçim işaretleri (%s, %d, %q, %v ...) çeviri boyunca
+// yer tutucuyla korunur (TR'de '%' işleçtir, '(%d)' ayrıştırılamazdı).
+func convertFormatted(s string, view bool, line int) (string, bool, []problem) {
+	verbs := fmtVerb.FindAllString(s, -1)
+	if len(verbs) == 0 {
+		return convertSnippet(s, view, line)
+	}
+	n := 0
+	masked := fmtVerb.ReplaceAllStringFunc(s, func(string) string {
+		n++
+		return slotPrefix + "f" + strconv.Itoa(n-1)
+	})
+	conv, ok, probs := convertSnippet(masked, view, line)
+	if !ok {
+		return s, false, probs
+	}
+	for i, v := range verbs {
+		slot := slotPrefix + "f" + strconv.Itoa(i)
+		if strings.Count(conv, slot) != 1 {
+			return s, false, append(probs, problem{Line: line, Reason: "a format verb moved in the conversion"})
+		}
+		conv = strings.Replace(conv, slot, v, 1)
+	}
+	return conv, true, probs
+}
+
+// fmtVerb bir fmt biçim işaretidir ('%%' dahil değil).
+var fmtVerb = regexp.MustCompile(`%[-+# 0]*[0-9]*(\.[0-9]+)?[sdqvgfxtc]`)
 
 // quoteLike çevrilen metni özgün değişmezin tırnak biçimiyle yazar (ters tırnak, içinde ters tırnak
 // yoksa).

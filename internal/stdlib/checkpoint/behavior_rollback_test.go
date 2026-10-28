@@ -20,58 +20,58 @@ import (
 // bunu görünce kn.geri_dön() ile son noktaya dönüp oradan sürmesidir. corruptAt < 0 bozmaz.
 func rollbackProgram(runDir string, total, corruptAt int) string {
 	return fmt.Sprintf(`
-değişken KOŞU = %q
-değişken V = 4096
-değişken D = 16
-değişken sayaç = 0
-fonksiyon parametre(şekil, ölçek) {
+TR_var KOŞU = %q
+TR_var V = 4096
+TR_var D = 16
+TR_var sayaç = 0
+TR_func parametre(şekil, ölçek) {
     sayaç += 1
-    sonuç tensör(türevsiz(rastgele_normal(şekil, tohum: sayaç) * ölçek), türev_izle: doğru)
+    TR_return TR_tensor(TR_no_grad(TR_randn(şekil, TR_seed: sayaç) * ölçek), TR_requires_grad: TR_true)
 }
-değişken model = {E: parametre([V, D], 0.1), W: parametre([D, V], 0.1)}
-değişken ikinci = [parametre([D], 1.0)]
-değişken op = AdamW(parametreler(model), öğrenme_oranı: 0.01)
-değişken op2 = SGD(ikinci, öğrenme_oranı: 0.1, momentum: 0.9)
-değişken küme = veri_kümesi(%q)
-değişken ö = küme.örnekleyici(toplu: 4, bağlam: 8, tohum: 5)
-değişken s = küme.sıralı(toplu: 2, bağlam: 8)
-değişken g = günlük(yol(KOŞU, "metrics.jsonl"))
-değişken izlenen = {en_iyi: 99.0, geçmiş: [], son_sıralı: yok}
-değişken kn = kontrol_noktası(KOŞU, {model: model, op: op, ikinci: ikinci, op2: op2, ö: ö, s: s, g: g, izlenen: izlenen}, her_dakika: 3)
-değişken ç = ilerleme(%d, günlük: g)
-değişken bozuldu = yanlış
-değişken adım = kn.kaldığı_adım
-döngü adım < %d {
-    değişken giriş, hedef = ö.sonraki()
-    op.sıfırla()
-    op2.sıfırla()
-    değişken kayıp = çapraz_entropi(gömme(model.E, giriş) @ model.W, hedef) + toplam(ikinci[0] * ikinci[0]) * 0.01
-    eğer adım == %d ve değil bozuldu {
-        kayıp = kayıp * ondalık("nan")
-        bozuldu = doğru
+TR_var model = {E: parametre([V, D], 0.1), W: parametre([D, V], 0.1)}
+TR_var ikinci = [parametre([D], 1.0)]
+TR_var op = TR_AdamW(TR_parameters(model), TR_lr: 0.01)
+TR_var op2 = TR_SGD(ikinci, TR_lr: 0.1, TR_momentum: 0.9)
+TR_var küme = TR_dataset(%q)
+TR_var ö = küme.TR_sampler(TR_batch_size: 4, TR_context: 8, TR_seed: 5)
+TR_var s = küme.TR_sequential(TR_batch_size: 2, TR_context: 8)
+TR_var g = TR_logger(TR_path(KOŞU, "metrics.jsonl"))
+TR_var izlenen = {en_iyi: 99.0, geçmiş: [], son_sıralı: TR_none}
+TR_var kn = TR_checkpoint(KOŞU, {model: model, op: op, ikinci: ikinci, op2: op2, ö: ö, s: s, g: g, izlenen: izlenen}, TR_every_minutes: 3)
+TR_var ç = TR_progress(%d, TR_log: g)
+TR_var bozuldu = TR_false
+TR_var adım = kn.TR_resume_step
+TR_for adım < %d {
+    TR_var giriş, hedef = ö.TR_next()
+    op.TR_zero_grad()
+    op2.TR_zero_grad()
+    TR_var kayıp = TR_cross_entropy(TR_embedding(model.E, giriş) @ model.W, hedef) + TR_sum(ikinci[0] * ikinci[0]) * 0.01
+    TR_if adım == %d TR_and TR_not bozuldu {
+        kayıp = kayıp * TR_float("nan")
+        bozuldu = TR_true
     }
-    geri_yayılım(kayıp)
-    op.adım()
-    op2.adım()
-    eğer değil sonlu_mu(kayıp.değer) {
-        yazdır("bozuk:", sonlu_mu(toplam(model.W).değer))
-        adım = kn.geri_dön()
-        yazdır("geri:", adım)
-        devam
+    TR_backward(kayıp)
+    op.TR_step()
+    op2.TR_step()
+    TR_if TR_not TR_is_finite(kayıp.TR_tolist) {
+        TR_print("bozuk:", TR_is_finite(TR_sum(model.W).TR_tolist))
+        adım = kn.TR_rollback()
+        TR_print("geri:", adım)
+        TR_continue
     }
-    değişken d = s.sonraki()
-    eğer d != yok { izlenen.son_sıralı = d[0].değer[0][0] }
-    eğer kayıp.değer < izlenen.en_iyi { izlenen.en_iyi = kayıp.değer }
-    izlenen.geçmiş.ekle(adım)
-    ç.güncelle({kayıp: kayıp}, adım: adım + 1)
+    TR_var d = s.TR_next()
+    TR_if d != TR_none { izlenen.son_sıralı = d[0].TR_tolist[0][0] }
+    TR_if kayıp.TR_tolist < izlenen.en_iyi { izlenen.en_iyi = kayıp.TR_tolist }
+    izlenen.geçmiş.TR_append(adım)
+    ç.TR_update({TR_loss: kayıp}, TR_step: adım + 1)
     adım += 1
-    kn.güncelle(adım)
+    kn.TR_update(adım)
 }
-tensör_kaydet(yol(KOŞU, "son.trt"), parametreler([model, ikinci], adlarıyla: doğru))
-tensör_kaydet(yol(KOŞU, "op.trt"), op.durum)
-tensör_kaydet(yol(KOŞU, "op2.trt"), op2.durum)
-yazdır("izlenen:", izlenen)
-yazdır("ö:", ö.durum)
+TR_save_tensors(TR_path(KOŞU, "son.trt"), TR_parameters([model, ikinci], TR_named: TR_true))
+TR_save_tensors(TR_path(KOŞU, "op.trt"), op.TR_state)
+TR_save_tensors(TR_path(KOŞU, "op2.trt"), op2.TR_state)
+TR_print("izlenen:", izlenen)
+TR_print("ö:", ö.TR_state)
 `, trPath(runDir), trPath(filepath.Join(reporoot.Root(), "tests", "data", "text")), total, total, corruptAt)
 }
 
@@ -109,13 +109,13 @@ func TestRollbackWithoutCheckpointIsError(t *testing.T) {
 		code string
 		want messages.Code
 	}{
-		{fmt.Sprintf(`değişken w = tensör([1.0], türev_izle: doğru)
-değişken kn = kontrol_noktası(%q, {w: w})
-kn.geri_dön()`, dir), messages.H7486},
-		{fmt.Sprintf(`değişken w = tensör([1.0], türev_izle: doğru)
-değişken kn = kontrol_noktası(%q, {w: w})
-kn.kaydet()
-kn.geri_dön(1)`, dir), messages.H2012},
+		{fmt.Sprintf(`TR_var w = TR_tensor([1.0], TR_requires_grad: TR_true)
+TR_var kn = TR_checkpoint(%q, {w: w})
+kn.TR_rollback()`, dir), messages.H7486},
+		{fmt.Sprintf(`TR_var w = TR_tensor([1.0], TR_requires_grad: TR_true)
+TR_var kn = TR_checkpoint(%q, {w: w})
+kn.TR_save()
+kn.TR_rollback(1)`, dir), messages.H2012},
 	} {
 		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
 			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.want)
@@ -146,42 +146,42 @@ func TestRollbackStopsBeforeWritingWhenAParamIsUnusable(t *testing.T) {
 	}, true)
 
 	code := fmt.Sprintf(`
-değişken KOŞU = %q
-değişken küme = veri_kümesi(%q)
-değişken ö = küme.örnekleyici(toplu: 2, bağlam: 8, tohum: 1)
-değişken model = {
-    a: tensör([10.0, 20.0], türev_izle: doğru),
-    b: tensör([30.0, 40.0], türev_izle: doğru)
+TR_var KOŞU = %q
+TR_var küme = TR_dataset(%q)
+TR_var ö = küme.TR_sampler(TR_batch_size: 2, TR_context: 8, TR_seed: 1)
+TR_var model = {
+    a: TR_tensor([10.0, 20.0], TR_requires_grad: TR_true),
+    b: TR_tensor([30.0, 40.0], TR_requires_grad: TR_true)
 }
-değişken op = AdamW([model.a, model.b], öğrenme_oranı: 0.01)
-değişken izlenen = {adım: 1}
-değişken kn = kontrol_noktası(KOŞU, {model: model, op: op, ö: ö, izlenen: izlenen})
+TR_var op = TR_AdamW([model.a, model.b], TR_lr: 0.01)
+TR_var izlenen = {TR_step: 1}
+TR_var kn = TR_checkpoint(KOŞU, {model: model, op: op, ö: ö, izlenen: izlenen})
 
-// 1. adımda 1 toplu iş okuyup kontrol noktasını kaydet (ö.durum["counter"] == 1, model.a == [10, 20]).
-ö.sonraki()
-kn.güncelle(1)
-kn.kaydet()
+# 1. adımda 1 toplu iş okuyup kontrol noktasını kaydet (ö.durum["counter"] == 1, model.a == [10, 20]).
+ö.TR_next()
+kn.TR_update(1)
+kn.TR_save()
 
-// Eğitim 4. adıma ilerlesin: ö 3 toplu iş daha okur (sayaç == 4), model.a = [1, 2], izlenen.adım = 4.
-ö.sonraki()
-ö.sonraki()
-ö.sonraki()
-türevsiz { model.a[0..2] = tensör([1.0, 2.0]) }
-izlenen.adım = 4
+# Eğitim 4. adıma ilerlesin: ö 3 toplu iş daha okur (sayaç == 4), model.a = [1, 2], izlenen.adım = 4.
+ö.TR_next()
+ö.TR_next()
+ö.TR_next()
+TR_no_grad { model.a[0..2] = TR_tensor([1.0, 2.0]) }
+izlenen.TR_step = 4
 
-// İkinci parametre (model.b) writeParams sırasında hata üretsin.
+# İkinci parametre (model.b) writeParams sırasında hata üretsin.
 tensör_bırak(model.b)
 
-değişken hata_var = yanlış
-dene {
-    kn.geri_dön()
-} yakala h {
-    hata_var = doğru
+TR_var hata_var = TR_false
+TR_try {
+    kn.TR_rollback()
+} TR_catch h {
+    hata_var = TR_true
 }
-yazdır("HATA:", hata_var)
-yazdır("OKU_SAYAC:", ö.durum["counter"])
-yazdır("MODEL_A:", model.a.değer)
-yazdır("IZLENEN_ADIM:", izlenen.adım)
+TR_print("HATA:", hata_var)
+TR_print("OKU_SAYAC:", ö.TR_state["counter"])
+TR_print("MODEL_A:", model.a.TR_tolist)
+TR_print("IZLENEN_ADIM:", izlenen.TR_step)
 `, trPath(runDir), trPath(dataDir))
 
 	if _, err := runVM(t, m, code); err != nil {

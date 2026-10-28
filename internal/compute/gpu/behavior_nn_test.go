@@ -46,7 +46,7 @@ func TestSoftmax(t *testing.T) {
 		v := random(rng, tensor.NumelOf(sh), 3)
 		for ax := range sh {
 			for _, lg := range []bool{false, true} {
-				compare(t, fmt.Sprintf("softmax %v eksen %d log=%v", sh, ax, lg), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+				compare(t, fmt.Sprintf("TR_softmax %v eksen %d TR_log=%v", sh, ax, lg), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
 					x := twin(v, true, sh...)[c]
 					if lg {
 						return x.LogSoftmax(ax), []*tensor.Tensor{x}
@@ -362,7 +362,7 @@ func TestNaNRowsMatchCPU(t *testing.T) {
 	nan, inf := float32(math.NaN()), float32(math.Inf(-1))
 	rows := []float32{nan, nan, nan, inf, inf, inf, 1, nan, 2, 0.5, -1, 2}
 	for _, lg := range []bool{false, true} {
-		compare(t, fmt.Sprintf("NaN satırı softmax log=%v", lg), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+		compare(t, fmt.Sprintf("NaN satırı TR_softmax TR_log=%v", lg), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
 			x := twin(rows, true, 4, 3)[c]
 			if lg {
 				return x.LogSoftmax(1), []*tensor.Tensor{x}

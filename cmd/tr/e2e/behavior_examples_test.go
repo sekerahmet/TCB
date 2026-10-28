@@ -275,13 +275,13 @@ func TestExamplesListedInReadme(t *testing.T) {
 	readme := string(data)
 	for _, name := range exampleFiles(t, "tr") {
 		if !strings.Contains(readme, "(tr/"+name+")") {
-			t.Errorf("examples/README.md sıralı listesinde tr/%s yok", name)
+			t.Errorf("examples/README.md sıralı listesinde tr/%s TR_none", name)
 		}
 	}
 	for lang, dir := range errorsDir {
 		for _, p := range errorExamples(t, lang, dir) {
 			if !strings.Contains(readme, "("+lang+"/"+dir+"/"+filepath.Base(p)+")") {
-				t.Errorf("examples/README.md hata örnekleri listesinde %s/%s/%s yok", lang, dir, filepath.Base(p))
+				t.Errorf("examples/README.md hata örnekleri listesinde %s/%s/%s TR_none", lang, dir, filepath.Base(p))
 			}
 		}
 	}

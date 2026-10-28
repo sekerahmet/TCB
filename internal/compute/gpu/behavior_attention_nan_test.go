@@ -38,7 +38,7 @@ func TestAttentionNaNRowDoesNotLeakToKeysItDoesNotSee(t *testing.T) {
 				if path == "tensor" && dt == tensor.Float32 {
 					continue
 				}
-				ad := fmt.Sprintf("dikkat NaN satırı yol=%q %v %+v", path, dt, d)
+				ad := fmt.Sprintf("TR_attention NaN satırı TR_path=%q %v %+v", path, dt, d)
 				rng := rand.New(rand.NewSource(5))
 				qv := random(rng, d.B*d.Tq*d.H*d.Dh, 1)
 				kv := random(rng, d.B*d.Tk*d.Hkv*d.Dh, 1)

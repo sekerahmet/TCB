@@ -54,9 +54,9 @@ func TestSafetensorsLoad(t *testing.T) {
 	if err := os.WriteFile(fpath, safetensorsBytes(header, data), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	out := mustRun(t, `değişken y = tensör_yükle("`+fpath+`")
-yazdır(y.anahtarlar())
-yazdır(y["a"].değer, y["a"].tür, y["b"].değer, y["b"].tür, y["c"].değer, y["c"].tür, y["boş"].şekil)`)
+	out := mustRun(t, `TR_var y = TR_load_tensors("`+fpath+`")
+TR_print(y.TR_keys())
+TR_print(y["a"].TR_tolist, y["a"].TR_dtype, y["b"].TR_tolist, y["b"].TR_dtype, y["c"].TR_tolist, y["c"].TR_dtype, y["boş"].TR_shape)`)
 	want := "[\"a\", \"b\", \"c\", \"boş\"]\n[[1.0, 2.0], [3.0, 4.0]] float32 [1.0, -2.0] bf16 1.0 fp16 [0, 3]\n"
 	if out != want {
 		t.Fatalf("safetensors:\n%q\nbeklenen:\n%q", out, want)

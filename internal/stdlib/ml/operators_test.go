@@ -75,8 +75,8 @@ func BenchmarkBinaryAdd(b *testing.B) {
 // Bulgu 20: yayın uyarısı haritası sınırlıdır: değişken uzunluklu şekillerle sınırsız
 // büyümez; sınıra varılınca bir kez bildirilir ve sonraki yeni uyarılar susturulur.
 func TestBroadcastWarningLimited(t *testing.T) {
-	o := trrun.MustExecChecked(t, fmt.Sprintf(`döngü n içinde 1..%d {
-    değişken c = sıfırlar([n, 1]) + sıfırlar([n + 1])
+	o := trrun.MustExecChecked(t, fmt.Sprintf(`TR_for n TR_in 1..%d {
+    TR_var c = TR_zeros([n, 1]) + TR_zeros([n + 1])
 }`, maxBroadcastWarnings+50))
 	w := warningsOf(o.VM)
 	w.mu.Lock()

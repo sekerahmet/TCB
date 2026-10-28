@@ -21,7 +21,7 @@ import (
 func TestQuotaTooLarge(t *testing.T) {
 	d := buildDataset(t)
 	cache := filepath.Join(t.TempDir(), "onb")
-	_, _, err := run(t, `veri_kümesi("`+trPath(d)+`", önbellek: "`+trPath(cache)+`", kota_gb: 1e10)`)
+	_, _, err := run(t, `TR_dataset("`+trPath(d)+`", TR_cache: "`+trPath(cache)+`", TR_quota_gb: 1e10)`)
 	if !messages.Has(err, messages.H5512) {
 		t.Fatalf("çok büyük kota hatası bekleniyordu: %v", err)
 	}
@@ -35,7 +35,7 @@ func TestCachePathFromProgramDir(t *testing.T) {
 	if err := os.Mkdir(filepath.Join(program, "onb_16_8"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	p := parser.New(source.TextLexer(`veri_kümesi("` + trPath(d) + `", önbellek: "onb_16_8/kume", kota_gb: 0.001).örnekleyici(toplu: 2, bağlam: 8).sonraki()`))
+	p := parser.New(source.TextLexer(`TR_dataset("` + trPath(d) + `", TR_cache: "onb_16_8/kume", TR_quota_gb: 0.001).TR_sampler(TR_batch_size: 2, TR_context: 8).TR_next()`))
 	prog := p.ParseProgram()
 	m := interp.New()
 	m.SourceFile = filepath.Join(program, "egit.tr")
@@ -62,16 +62,16 @@ func TestSharedCacheQuota(t *testing.T) {
 	a, b := buildDataset(t), buildDataset(t)
 	program := func(cache string, quota int64) string {
 		return `
-değişken K = ` + strconv.FormatInt(quota, 10) + ` / 1073741824
-değişken a = veri_kümesi("` + trPath(a) + `", önbellek: "` + trPath(cache) + `", kota_gb: K)
-değişken b = veri_kümesi("` + trPath(b) + `", önbellek: "` + trPath(cache) + `", kota_gb: K)
-değişken öa = a.örnekleyici(toplu: 1, bağlam: 8, tohum: 1)
-değişken öb = b.örnekleyici(toplu: 1, bağlam: 8, tohum: 1)
-döngü i içinde 0..50 {
-    öa.sonraki()
-    öb.sonraki()
+TR_var K = ` + strconv.FormatInt(quota, 10) + ` / 1073741824
+TR_var a = TR_dataset("` + trPath(a) + `", TR_cache: "` + trPath(cache) + `", TR_quota_gb: K)
+TR_var b = TR_dataset("` + trPath(b) + `", TR_cache: "` + trPath(cache) + `", TR_quota_gb: K)
+TR_var öa = a.TR_sampler(TR_batch_size: 1, TR_context: 8, TR_seed: 1)
+TR_var öb = b.TR_sampler(TR_batch_size: 1, TR_context: 8, TR_seed: 1)
+TR_for i TR_in 0..50 {
+    öa.TR_next()
+    öb.TR_next()
 }
-yazdır("bitti")
+TR_print("bitti")
 `
 	}
 	dirSize := func(cache string) int64 {

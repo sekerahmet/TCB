@@ -18,12 +18,12 @@ func TestSamplerRejectsWindowBeyondGroup(t *testing.T) {
 	runDir := t.TempDir()
 
 	out, err := run(t, fmt.Sprintf(`
-değişken w = tensör([1.0, 2.0], türev_izle: doğru)
-değişken ö = veri_kümesi(%q).örnekleyici(toplu: 2, bağlam: 8, tohum: 1)
-değişken kn = kontrol_noktası(%q, {w: w, ö: ö})
-ö.sonraki()
-kn.güncelle(1)
-kn.kaydet()
+TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+TR_var ö = TR_dataset(%q).TR_sampler(TR_batch_size: 2, TR_context: 8, TR_seed: 1)
+TR_var kn = TR_checkpoint(%q, {w: w, ö: ö})
+ö.TR_next()
+kn.TR_update(1)
+kn.TR_save()
 `, dataDir, trPath(runDir)))
 	if err != nil {
 		t.Fatalf("%v\n%s", err, out)
@@ -46,11 +46,11 @@ kn.kaydet()
 	resignCheckpoint(t, step1Dir, 1)
 
 	loadOut, err := run(t, fmt.Sprintf(`
-değişken w = tensör([0.0, 0.0], türev_izle: doğru)
-değişken ö = veri_kümesi(%q).örnekleyici(toplu: 2, bağlam: 8, tohum: 1)
-değişken kn = kontrol_noktası(%q, {w: w, ö: ö})
-ö.sonraki()
-yazdır("DURUM:", ö.durum)
+TR_var w = TR_tensor([0.0, 0.0], TR_requires_grad: TR_true)
+TR_var ö = TR_dataset(%q).TR_sampler(TR_batch_size: 2, TR_context: 8, TR_seed: 1)
+TR_var kn = TR_checkpoint(%q, {w: w, ö: ö})
+ö.TR_next()
+TR_print("DURUM:", ö.TR_state)
 `, dataDir, trPath(runDir)))
 	loadOut = strings.ReplaceAll(loadOut, trPath(runDir), "<KOŞU>")
 	if err == nil {

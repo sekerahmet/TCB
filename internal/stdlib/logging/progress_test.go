@@ -22,8 +22,8 @@ func TestProgressPlainLinesAndLog(t *testing.T) {
 	k := t.TempDir()
 	path := filepath.Join(k, "i.jsonl")
 	m, w := newVM(t, k)
-	if _, err := run(t, m, `değişken g = günlük("`+pathText(path)+`")
-değişken ç = ilerleme(100, günlük: g)`); err != nil {
+	if _, err := run(t, m, `TR_var g = TR_logger("`+pathText(path)+`")
+TR_var ç = TR_progress(100, TR_log: g)`); err != nil {
 		t.Fatal(err)
 	}
 	for i := 1; i <= 100; i++ {
@@ -213,8 +213,8 @@ func TestProgressRateWithStepGaps(t *testing.T) {
 	k := t.TempDir()
 	path := filepath.Join(k, "i.jsonl")
 	m, _ := newVM(t, k)
-	if _, err := run(t, m, `değişken g = günlük("`+pathText(path)+`")
-değişken ç = ilerleme(100, günlük: g)`); err != nil {
+	if _, err := run(t, m, `TR_var g = TR_logger("`+pathText(path)+`")
+TR_var ç = TR_progress(100, TR_log: g)`); err != nil {
 		t.Fatal(err)
 	}
 	for i := 1; i <= 5; i++ {

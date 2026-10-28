@@ -158,7 +158,7 @@ func TestInterpolationDepthLimited(t *testing.T) {
 		t.Errorf("yerleştirmede derinlik hatası (satır 481) bekleniyordu: %.300v", h)
 	}
 	// Aynı ifade üst düzeyde sınırın altındadır
-	if h := parseErrors(`değişken s = "{` + strings.Repeat("(", 900) + "1" + strings.Repeat(")", 900) + `}"`); len(h) > 0 {
+	if h := parseErrors(`değişken s = "\(` + strings.Repeat("(", 900) + "1" + strings.Repeat(")", 900) + `)"`); len(h) > 0 {
 		t.Errorf("900 düzey yerleştirme geçerli olmalı: %.200v", h)
 	}
 }

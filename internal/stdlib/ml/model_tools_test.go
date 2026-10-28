@@ -318,7 +318,7 @@ TR_var cikti = x`)
 // örnekle tanımsız dağılımda (NaN logit, hepsi -∞, +∞) sessizce son adayı seçmez, hata verir.
 func TestSampleUndefinedDistribution(t *testing.T) {
 	for _, logits := range []string{"TR_tensor([nan, 1.0, 2.0])", "TR_tensor([-1e40, -1e40])", "TR_tensor([1e40, 1.0])"} {
-		_, err := run(t, "değişken nan = log(tensör([-1.0])).değer[0]\nörnekle("+logits+", tohum: 1)")
+		_, err := run(t, "TR_var nan = TR_log(TR_tensor([-1.0])).TR_tolist[0]\nTR_sample("+logits+", TR_seed: 1)")
 		if err == nil || !messages.Has(err, messages.H6343) {
 			t.Fatalf("%s: hata beklenirdi: %v", logits, err)
 		}

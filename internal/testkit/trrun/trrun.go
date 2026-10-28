@@ -18,11 +18,11 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
-// Parse Türkçe yazılmış kodu kodlu biçime çevirip ayrıştırır (içeride kod); sözdizimi hatasında
-// testi düşürür.
+// Parse başlıksız bir program gövdesini (source.Options.Body) ayrıştırır; sözdizimi hatasında
+// testi düşürür. Başlıklı metin de okunur.
 func Parse(t testing.TB, code string) *ast.Program {
 	t.Helper()
-	r := source.Prepare(code, source.Options{})
+	r := source.Prepare(code, source.Options{Body: true})
 	if r.Stage == source.StageSyntax {
 		t.Fatalf("syntax error: %v\ncode:\n%s", r.Errors, code)
 	}

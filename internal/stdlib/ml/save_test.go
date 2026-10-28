@@ -15,15 +15,15 @@ import (
 func TestTensorSaveLoad(t *testing.T) {
 	dir := t.TempDir()
 	fpath := filepath.ToSlash(filepath.Join(dir, "model.trt"))
-	out := mustRun(t, `değişken p = {"gömme": tensör([[0.1, 0.2], [0.3, 0.4]]), "sapma": tensör([1.5]), "ölçek": toplam(tensör([2.0, 3.0])), "boş": sıfırlar([0, 3])}
-tensör_kaydet("`+fpath+`", p)
-değişken y = tensör_yükle("`+fpath+`")
-yazdır(y.anahtarlar())
-yazdır(y["gömme"].değer, y["sapma"].değer, y["ölçek"].değer, y["boş"].şekil)
-yazdır(y["gömme"].değer[0][0] == 0.1, y["sapma"].gradyan)
-değişken z = tensör_yükle("`+fpath+`", türev_izle: doğru)
-geri_yayılım(toplam(z["sapma"] * 2))
-yazdır(z["sapma"].gradyan.değer)`)
+	out := mustRun(t, `TR_var p = {"gömme": TR_tensor([[0.1, 0.2], [0.3, 0.4]]), "sapma": TR_tensor([1.5]), "ölçek": TR_sum(TR_tensor([2.0, 3.0])), "boş": TR_zeros([0, 3])}
+TR_save_tensors("`+fpath+`", p)
+TR_var y = TR_load_tensors("`+fpath+`")
+TR_print(y.TR_keys())
+TR_print(y["gömme"].TR_tolist, y["sapma"].TR_tolist, y["ölçek"].TR_tolist, y["boş"].TR_shape)
+TR_print(y["gömme"].TR_tolist[0][0] == 0.1, y["sapma"].TR_grad)
+TR_var z = TR_load_tensors("`+fpath+`", TR_requires_grad: TR_true)
+TR_backward(TR_sum(z["sapma"] * 2))
+TR_print(z["sapma"].TR_grad.TR_tolist)`)
 	want := "[\"gömme\", \"sapma\", \"ölçek\", \"boş\"]\n" +
 		"[[0.1, 0.2], [0.3, 0.4]] [1.5] 5.0 [0, 3]\n" +
 		"doğru yok\n" +
@@ -70,7 +70,7 @@ yazdır(z["sapma"].gradyan.değer)`)
 		{filepath.ToSlash(dir), messages.H6629},
 	}
 	for _, d := range cases {
-		_, err := run(t, `tensör_yükle("`+d.fpath+`")`)
+		_, err := run(t, `TR_load_tensors("`+d.fpath+`")`)
 		if err == nil || !messages.Has(err, d.want) {
 			t.Errorf("%s: %v (içermeli: %s)", filepath.Base(d.fpath), err, d.want)
 		}
@@ -79,9 +79,9 @@ yazdır(z["sapma"].gradyan.değer)`)
 		code string
 		want messages.Code
 	}{
-		{`tensör_kaydet("` + fpath + `", {"a": 1})`, messages.H6608},
-		{`tensör_kaydet("` + fpath + `", {1: tensör([1])})`, messages.H6606},
-		{`tensör_kaydet("` + fpath + `", [tensör([1])])`, messages.H6605},
+		{`TR_save_tensors("` + fpath + `", {"a": 1})`, messages.H6608},
+		{`TR_save_tensors("` + fpath + `", {1: TR_tensor([1])})`, messages.H6606},
+		{`TR_save_tensors("` + fpath + `", [TR_tensor([1])])`, messages.H6605},
 		{`TR_save_tensors("", {})`, messages.H6603},
 	} {
 		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
@@ -130,7 +130,7 @@ func TestSaveZeroAxisLimit(t *testing.T) {
 	if err := os.WriteFile(fpath, bad, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	_, err = run(t, `değişken p = tensör_yükle("`+filepath.ToSlash(fpath)+`")`)
+	_, err = run(t, `TR_var p = TR_load_tensors("`+filepath.ToSlash(fpath)+`")`)
 	if err == nil || !messages.Has(err, messages.H6621) {
 		t.Fatalf("tensör_yükle açık bir hata vermeli: %v", err)
 	}
@@ -149,12 +149,12 @@ func TestSavedShapesOutputLimited(t *testing.T) {
 	if err := os.WriteFile(fpath, file, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	output, err := run(t, `değişken p = tensör_yükle("`+filepath.ToSlash(fpath)+`")
-dene {
+	output, err := run(t, `TR_var p = TR_load_tensors("`+filepath.ToSlash(fpath)+`")
+TR_try {
     p["A"] @ p["B"]
-    yazdır("hata bekleniyordu")
-} yakala h {
-    yazdır(h)
+    TR_print("hata bekleniyordu")
+} TR_catch h {
+    TR_print(h)
 }`)
 	if err != nil {
 		t.Fatalf("hata yakalanmalıydı: %v", err)

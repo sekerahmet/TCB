@@ -368,8 +368,8 @@ TR_print(a.TR_tolist == b.TR_tolist, b.TR_tolist[48])`)
 		messages.H3111: `TR_write_slice(TR_zeros([2, 4]), TR_ones([1, 2]), TR_dim: 1, TR_start: TR_tensor(0.0))`,
 		messages.H6102: `TR_write_slice(TR_zeros([4]), TR_ones([2]), TR_dim: 0, TR_start: TR_tensor(0.0).TR_to_device("cpu"))`,
 	} {
-		if _, err := run(t, `varsayılan_cihaz("gpu")
-türevsiz { `+call+` }`); !messages.Has(err, code) {
+		if _, err := run(t, `TR_default_device("gpu")
+TR_no_grad { `+call+` }`); !messages.Has(err, code) {
 			t.Errorf("%s: %s bekleniyordu, %v", call, code, err)
 		}
 	}
@@ -389,12 +389,12 @@ func TestReplayScalarOperands(t *testing.T) {
 	gpu.RegisterSimulator()
 	defer tensor.SetDefaultDevice(tensor.CPU)
 	for _, expr := range []string{`TR_where(x > 0, x, 0.0)`, `TR_mean([x, x * 2])`, `TR_min(x)`, `TR_atan2(x, 1.0)`, `x / 3`} {
-		out, err := run(t, `varsayılan_cihaz("gpu")
-değişken f = tekrar_oynat((x) => `+expr+`)
-türevsiz {
-    değişken x = tensör([1.0, -2.0, 3.0, 4.0]) + 1
-    değişken s = [f(x).değer döngü i içinde 0..3]
-    yazdır(s[0] == s[2], s[2] == (`+expr+`).değer)
+		out, err := run(t, `TR_default_device("gpu")
+TR_var f = TR_replay((x) => `+expr+`)
+TR_no_grad {
+    TR_var x = TR_tensor([1.0, -2.0, 3.0, 4.0]) + 1
+    TR_var s = [f(x).TR_tolist TR_for i TR_in 0..3]
+    TR_print(s[0] == s[2], s[2] == (`+expr+`).TR_tolist)
 }`)
 		if err != nil || out != "doğru doğru\n" {
 			t.Errorf("%s: %q %v", expr, out, err)

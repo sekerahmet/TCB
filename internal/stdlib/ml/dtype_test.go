@@ -156,12 +156,12 @@ TR_print(görev, başla, ana, (x @ y).TR_tolist[0][0])`)
 func TestTensorSaveVersion2(t *testing.T) {
 	dir := t.TempDir()
 	fpath := filepath.ToSlash(filepath.Join(dir, "turler.trt"))
-	out := mustRun(t, `değişken p = {"a": tensör([[1.5, -2.25], [3.0, 0.1]], tür: "bf16"), "b": tensör([0.1, 65504.0, 0.00001], tür: "fp16"), "c": tensör([0.1])}
-tensör_kaydet("`+fpath+`", p)
-değişken y = tensör_yükle("`+fpath+`", türev_izle: doğru)
-yazdır(y["a"].tür, y["b"].tür, y["c"].tür)
-yazdır(y["a"] == p["a"], y["b"] == p["b"], y["c"] == p["c"], y["a"].değer)
-yazdır(y["b"].gradyan, y["b"])`)
+	out := mustRun(t, `TR_var p = {"a": TR_tensor([[1.5, -2.25], [3.0, 0.1]], TR_dtype: "bf16"), "b": TR_tensor([0.1, 65504.0, 0.00001], TR_dtype: "fp16"), "c": TR_tensor([0.1])}
+TR_save_tensors("`+fpath+`", p)
+TR_var y = TR_load_tensors("`+fpath+`", TR_requires_grad: TR_true)
+TR_print(y["a"].TR_dtype, y["b"].TR_dtype, y["c"].TR_dtype)
+TR_print(y["a"] == p["a"], y["b"] == p["b"], y["c"] == p["c"], y["a"].TR_tolist)
+TR_print(y["b"].TR_grad, y["b"])`)
 	want := "bf16 fp16 float32\n" +
 		"doğru doğru doğru [[1.5, -2.25], [3.0, 0.100097656]]\n" +
 		"yok Tensör[3] fp16 (türev izleniyor) [9.9976e-02, 6.5504e+04, 1.0014e-05]\n"
@@ -192,11 +192,11 @@ yazdır(y["b"].gradyan, y["b"])`)
 	if err := os.WriteFile(filepath.FromSlash(v1Path), v1, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := run(t, `tensör_yükle("`+v1Path+`")`); err == nil || !messages.Has(err, messages.H6611) || strings.Contains(err.Error(), "tensör_kaydet") || !strings.Contains(err.Error(), "yeniden üretin") {
+	if _, err := run(t, `TR_load_tensors("`+v1Path+`")`); err == nil || !messages.Has(err, messages.H6611) || strings.Contains(err.Error(), "tensör_kaydet") || !strings.Contains(err.Error(), "yeniden üretin") {
 		t.Errorf("sürüm 1 dosyası reddedilmeli, öğüt veriyi yeniden üretmek: %v", err)
 	}
 	// Eksik 16 bitlik veri bayt sayısıyla bildirilir.
-	if _, err := run(t, `tensör_yükle("`+writeClipped(t, dir, data, 14+4+1+2+16+4)+`")`); err == nil || !messages.Has(err, messages.H6623) {
+	if _, err := run(t, `TR_load_tensors("`+writeClipped(t, dir, data, 14+4+1+2+16+4)+`")`); err == nil || !messages.Has(err, messages.H6623) {
 		t.Errorf("eksik bf16 verisi: %v", err)
 	}
 }

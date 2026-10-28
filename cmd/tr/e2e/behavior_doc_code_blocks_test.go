@@ -132,7 +132,7 @@ func definePlaceholders(body, code string) string {
 			continue
 		}
 		seen[ad] = true
-		fmt.Fprintf(&on, "değişken %s = 1\n", ad)
+		fmt.Fprintf(&on, "TR_var %s = 1\n", ad)
 	}
 	return on.String() + code
 }

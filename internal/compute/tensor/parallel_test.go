@@ -173,7 +173,7 @@ func TestParallelKernelsMatchSerial(t *testing.T) {
 	for c := 0; c < 200; c += 37 {
 		for a := 0; a < 256; a += 51 {
 			if dev[(c*256+a)*3+1] != xd[(a*3+1)*200+c] {
-				t.Fatalf("devrik kopya yanlış (%d, %d)", c, a)
+				t.Fatalf("devrik kopya TR_false (%d, %d)", c, a)
 			}
 		}
 	}

@@ -102,7 +102,7 @@ func TestCompositeGradCoverage(t *testing.T) {
 	for _, f := range found {
 		exists[f] = true
 		if _, ok := compositeExempt[f]; !ok && !covered[f] {
-			t.Errorf("%s birden çok türevli işlemi birleştiriyor ama bileşik gradyan kaydı (compositeSpecs) yok", f)
+			t.Errorf("%s birden çok türevli işlemi birleştiriyor ama bileşik gradyan kaydı (compositeSpecs) TR_none", f)
 		}
 	}
 	for f, why := range compositeExempt {

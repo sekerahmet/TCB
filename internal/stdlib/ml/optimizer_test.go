@@ -36,7 +36,7 @@ TR_print(TR_clip_grad([w, b]))`)
 // ilk adımda 0/(√0+0) = NaN üretirdi.
 func TestAdamWEpsilonPositive(t *testing.T) {
 	for _, eps := range []string{"0", "1e-50"} {
-		_, err := run(t, "değişken w = tensör([0.0], türev_izle: doğru)\nAdamW([w], epsilon: "+eps+")")
+		_, err := run(t, "TR_var w = TR_tensor([0.0], TR_requires_grad: TR_true)\nTR_AdamW([w], TR_eps: "+eps+")")
 		if err == nil || !messages.Has(err, messages.H6527) {
 			t.Fatalf("epsilon %s: hata beklenirdi: %v", eps, err)
 		}

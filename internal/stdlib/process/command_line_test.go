@@ -51,7 +51,7 @@ func TestCodedOptionInEveryLanguage(t *testing.T) {
 }
 
 func TestCommandLineValues(t *testing.T) {
-	code := "komut_satırı(" + options + ")"
+	code := "TR_command_line(" + options + ")"
 	for _, d := range []struct {
 		arg  []string
 		want string
@@ -74,7 +74,7 @@ func TestCommandLineValues(t *testing.T) {
 // Çıkış isteği yalnızca metni taşır: burada iletinin son biçimi (Hata: öneki, sondaki nokta,
 // öneri) sınanır; hangi iletinin verildiği paketin içinden kodla sınanır (TestParseErrorCodes).
 func TestCommandLineUsageErrors(t *testing.T) {
-	code := "komut_satırı(" + options + ")"
+	code := "TR_command_line(" + options + ")"
 	for _, d := range []struct {
 		arg  []string
 		want string
@@ -104,7 +104,7 @@ func TestCommandLineUsageErrors(t *testing.T) {
 
 // --yardım ve -h seçenekleri listeleyip programı 0 koduyla bitirir; hatalı argümanlar olsa da.
 func TestCommandLineHelp(t *testing.T) {
-	code := `komut_satırı(` + options + `, açıklama: "Küçük dil modelini eğitir", açıklamalar: {öğrenme_oranı: "öğrenme oranı", adım: "eğitim adımı sayısı"})`
+	code := `TR_command_line(` + options + `, TR_description: "Küçük dil modelini eğitir", TR_descriptions: {TR_lr: "öğrenme oranı", TR_step: "eğitim adımı sayısı"})`
 	want := `Kullanım: tr egit.tr [seçenekler]
 
 Küçük dil modelini eğitir

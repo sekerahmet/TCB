@@ -87,7 +87,7 @@ func TestCopyDir(t *testing.T) {
 	// Çalışma klasörünün yerine bir şey konmaz.
 	name := filepath.Base(k)
 	write(t, filepath.Join(k, "alt", name, "x.txt"), "x")
-	errHas(t, `kopyala("alt/`+name+`", "`+forwardPath(filepath.Dir(k))+`", üzerine_yaz: doğru)`, messages.H7119)
+	errHas(t, `TR_copy("alt/`+name+`", "`+forwardPath(filepath.Dir(k))+`", TR_overwrite: TR_true)`, messages.H7119)
 }
 
 func TestMove(t *testing.T) {

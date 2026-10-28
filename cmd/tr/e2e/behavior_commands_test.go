@@ -370,7 +370,7 @@ func TestCheckModules(t *testing.T) {
 	if strings.Contains(s.Stdout, "ana") {
 		t.Errorf("kontrol programı çalıştırmamalı: %q", s.Stdout)
 	}
-	testkit.WriteFile(t, dir, "eksik.tr", "aktar \"olmayan\"\n")
+	testkit.WriteFile(t, dir, "eksik.tr", "TR_import \"olmayan\"\n")
 	testkit.Wait(t, tr(t, dir, "kontrol", "eksik.tr"), 1, nil, []string{"❌ Modül hatası:", "olmayan.tr", "modülü okunamadı"})
 	testkit.WriteFile(t, dir, "lib/ic.tr", "TR_var a = 1\n")
 	testkit.Wait(t, tr(t, dir, "kontrol", "ana.tr"), 0, []string{"başarıyla denetlendi"}, nil)

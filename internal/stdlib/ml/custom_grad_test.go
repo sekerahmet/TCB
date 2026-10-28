@@ -324,7 +324,7 @@ func TestRewrappingBuiltinsKeepSingleOwner(t *testing.T) {
 				return interp.Null, nil
 			},
 		}, true)
-		code := fmt.Sprintf("fonksiyon sına() {\n    değişken x = sıfırlar([4, 4])\n    izle(x)\n    değişken y = %s\n    yazdır(1)\n}\nsına()\n", expr)
+		code := fmt.Sprintf("TR_func sına() {\n    TR_var x = TR_zeros([4, 4])\n    izle(x)\n    TR_var y = %s\n    TR_print(1)\n}\nsına()\n", expr)
 		p := parser.New(source.TextLexer(code))
 		if _, err := m.Run(p.ParseProgram()); err != nil {
 			t.Fatalf("%s: %v", expr, err)
@@ -343,7 +343,7 @@ func TestIndexAndWholeReductionsReturnStorageAtScopeExit(t *testing.T) {
 		dev := &auditSecondDevice{Backend: tensor.BackendFor(tensor.CPU)}
 		tensor.RegisterBackend(dev)
 		tensor.SetDefaultDevice(tensor.GPU(99))
-		code := fmt.Sprintf("fonksiyon sına() {\n    değişken x = sıfırlar([4, 4])\n    %s\n    yazdır(1)\n}\nsına()\n", stmt) // sondaki 'değişken' deyimi dönüş değeridir: son satır başka olmalı
+		code := fmt.Sprintf("TR_func sına() {\n    TR_var x = TR_zeros([4, 4])\n    %s\n    TR_print(1)\n}\nsına()\n", stmt) // sondaki 'değişken' deyimi dönüş değeridir: son satır başka olmalı
 		_, err := run(t, code)
 		tensor.SetDefaultDevice(tensor.CPU)
 		if err != nil {

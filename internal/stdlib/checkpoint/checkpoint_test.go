@@ -155,19 +155,19 @@ func TestRenameErrorDoesNotStopTraining(t *testing.T) {
 	runDir := t.TempDir()
 	program := func(n int, brokenSteps string) string {
 		return fmt.Sprintf(`
-değişken w = tensör([1.0, 2.0], türev_izle: doğru)
-değişken op = SGD([w], öğrenme_oranı: 0.1)
-değişken kn = kontrol_noktası(%q, {w: w, op: op}, her_dakika: 0)
-değişken sonuçlar = []
-döngü adım içinde kn.kaldığı_adım..%d {
-    geri_yayılım(toplam(w * w))
-    op.adım()
-    op.sıfırla()
-    eğer [%s].içerir(adım + 1) { boz() }
-    sonuçlar.ekle(kn.güncelle(adım + 1))
+TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+TR_var op = TR_SGD([w], TR_lr: 0.1)
+TR_var kn = TR_checkpoint(%q, {w: w, op: op}, TR_every_minutes: 0)
+TR_var sonuçlar = []
+TR_for adım TR_in kn.TR_resume_step..%d {
+    TR_backward(TR_sum(w * w))
+    op.TR_step()
+    op.TR_zero_grad()
+    TR_if [%s].TR_contains(adım + 1) { boz() }
+    sonuçlar.TR_append(kn.TR_update(adım + 1))
     düzelt()
 }
-yazdır("sonuçlar:", sonuçlar)
+TR_print("sonuçlar:", sonuçlar)
 `, trPath(runDir), n, brokenSteps)
 	}
 	hooks := func(code string) string {

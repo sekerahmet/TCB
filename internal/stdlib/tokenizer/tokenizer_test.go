@@ -74,15 +74,15 @@ func TestEncodeDecodeSameAsGo(t *testing.T) {
 	g := goTokenizer(t, bpePath)
 	texts := []string{"Merhaba dünya!", "İstanbul'da hava güzel <|endoftext|>", ""}
 	m := mustRun(t, `
-değişken p = parçalayıcı_yükle("`+bpePath+`")
-değişken tek = p.kodla("Merhaba dünya!")
-değişken toplu = p.kodla(["Merhaba dünya!", "İstanbul'da hava güzel <|endoftext|>", ""])
-değişken çözülen = p.çöz(toplu)
-değişken özelli = p.çöz(toplu[1], özel_parçalar: doğru)
-değişken özelsiz = p.çöz(toplu[1])
-değişken boyut = p.dağarcık_boyutu
-değişken eot = p.parça_kimliği("<|endoftext|>")
-değişken yok_token = p.parça_kimliği("böyle-bir-token-yok")
+TR_var p = TR_load_tokenizer("`+bpePath+`")
+TR_var tek = p.TR_encode("Merhaba dünya!")
+TR_var toplu = p.TR_encode(["Merhaba dünya!", "İstanbul'da hava güzel <|endoftext|>", ""])
+TR_var çözülen = p.TR_decode(toplu)
+TR_var özelli = p.TR_decode(toplu[1], TR_special_tokens: TR_true)
+TR_var özelsiz = p.TR_decode(toplu[1])
+TR_var boyut = p.TR_vocab_size
+TR_var eot = p.TR_token_id("<|endoftext|>")
+TR_var yok_token = p.TR_token_id("böyle-bir-token-yok")
 `)
 	if got := ints(t, al(t, m, "tek")); !reflect.DeepEqual(got, g.Encode(texts[0])) {
 		t.Fatalf("kodla: %v, Go: %v", got, g.Encode(texts[0]))
@@ -121,11 +121,11 @@ değişken yok_token = p.parça_kimliği("böyle-bir-token-yok")
 func TestSpecialTokensAndPair(t *testing.T) {
 	g := goTokenizer(t, bertPath)
 	m := mustRun(t, `
-değişken p = parçalayıcı_yükle("`+bertPath+`")
-değişken a = p.kodla("merhaba dünya")
-değişken b = p.kodla("merhaba dünya", özel_parçalar: yanlış)
-değişken c = p.kodla("soru", ikinci: "bağlam")
-değişken d = p.kodla(["soru", "bir"], ikinci: ["bağlam", "iki"], özel_parçalar: yanlış)
+TR_var p = TR_load_tokenizer("`+bertPath+`")
+TR_var a = p.TR_encode("merhaba dünya")
+TR_var b = p.TR_encode("merhaba dünya", TR_special_tokens: TR_false)
+TR_var c = p.TR_encode("soru", TR_pair: "bağlam")
+TR_var d = p.TR_encode(["soru", "bir"], TR_pair: ["bağlam", "iki"], TR_special_tokens: TR_false)
 `)
 	if got := ints(t, al(t, m, "a")); !reflect.DeepEqual(got, g.Encode("merhaba dünya")) {
 		t.Fatalf("a: %v", got)
@@ -157,10 +157,10 @@ değişken d = p.kodla(["soru", "bir"], ikinci: ["bağlam", "iki"], özel_parça
 // Tensör (ör. argmax sonucu ya da okuyucunun girdi tensörü) doğrudan çözülebilir.
 func TestDecodeTensor(t *testing.T) {
 	m := mustRun(t, `
-değişken p = parçalayıcı_yükle("`+bpePath+`")
-değişken k = p.kodla("bir iki")
-değişken tek = p.çöz(tensör(k))
-değişken iki = p.çöz(tensör([k, k]))
+TR_var p = TR_load_tokenizer("`+bpePath+`")
+TR_var k = p.TR_encode("bir iki")
+TR_var tek = p.TR_decode(TR_tensor(k))
+TR_var iki = p.TR_decode(TR_tensor([k, k]))
 `)
 	if got := al(t, m, "tek").Inspect(); got != "bir iki" {
 		t.Fatalf("tek: %q", got)
@@ -220,13 +220,13 @@ func TestStepLimitAndWarning(t *testing.T) {
 	var m *interp.VM
 	warning := captureStderr(t, func() {
 		m = mustRun(t, `
-değişken p = parçalayıcı_yükle("`+path+`")
-değişken p2 = parçalayıcı_yükle("`+path+`")
-değişken iyi = p.kodla("merhaba dünya")
-değişken h1 = ""
-dene { p.kodla("`+bad+`") } yakala e { h1 = e }
-değişken h2 = ""
-dene { p.kodla(["iyi", "`+bad+`"]) } yakala e { h2 = e }
+TR_var p = TR_load_tokenizer("`+path+`")
+TR_var p2 = TR_load_tokenizer("`+path+`")
+TR_var iyi = p.TR_encode("merhaba dünya")
+TR_var h1 = ""
+TR_try { p.TR_encode("`+bad+`") } TR_catch e { h1 = e }
+TR_var h2 = ""
+TR_try { p.TR_encode(["iyi", "`+bad+`"]) } TR_catch e { h2 = e }
 `)
 	})
 	if strings.Count(warning, "Uyarı: parçalayıcı") != 1 || !strings.Contains(warning, "riskli desen") {
@@ -261,19 +261,19 @@ func TestLoadErrors(t *testing.T) {
 		want messages.Code
 	}{
 		{`TR_load_tokenizer("yok_boyle_bir_dosya.json")`, messages.H2132},
-		{`parçalayıcı_yükle("` + filepath.ToSlash(d) + `")`, messages.H5610},
-		{`parçalayıcı_yükle("` + unsupported + `")`, messages.H5614},
-		{`parçalayıcı_yükle("` + risky + `")`, messages.H5615},
-		{`parçalayıcı_yükle("` + broken + `")`, messages.H5617},
+		{`TR_load_tokenizer("` + filepath.ToSlash(d) + `")`, messages.H5610},
+		{`TR_load_tokenizer("` + unsupported + `")`, messages.H5614},
+		{`TR_load_tokenizer("` + risky + `")`, messages.H5615},
+		{`TR_load_tokenizer("` + broken + `")`, messages.H5617},
 		{`TR_load_tokenizer(5)`, messages.H5609},
-		{`parçalayıcı_yükle("` + bpePath + `").kodla(5)`, messages.H5630},
-		{`parçalayıcı_yükle("` + bpePath + `").kodla(["a", 1])`, messages.H5631},
-		{`parçalayıcı_yükle("` + bpePath + `").kodla("a", özel_parçlar: doğru)`, messages.H7900},
-		{`parçalayıcı_yükle("` + bpePath + `").kodla("a", özel_parçalar: 1)`, messages.H7905},
-		{`parçalayıcı_yükle("` + bpePath + `").kodla(["a"], ikinci: ["b", "c"])`, messages.H5628},
-		{`parçalayıcı_yükle("` + bpePath + `").çöz([1, "a"])`, messages.H5639},
-		{`parçalayıcı_yükle("` + bpePath + `").çöz(tensör([[[1]]]))`, messages.H5636},
-		{`parçalayıcı_yükle("` + bpePath + `").çözz([1])`, messages.H7903},
+		{`TR_load_tokenizer("` + bpePath + `").TR_encode(5)`, messages.H5630},
+		{`TR_load_tokenizer("` + bpePath + `").TR_encode(["a", 1])`, messages.H5631},
+		{`TR_load_tokenizer("` + bpePath + `").TR_encode("a", özel_parçlar: TR_true)`, messages.H7900},
+		{`TR_load_tokenizer("` + bpePath + `").TR_encode("a", TR_special_tokens: 1)`, messages.H7905},
+		{`TR_load_tokenizer("` + bpePath + `").TR_encode(["a"], TR_pair: ["b", "c"])`, messages.H5628},
+		{`TR_load_tokenizer("` + bpePath + `").TR_decode([1, "a"])`, messages.H5639},
+		{`TR_load_tokenizer("` + bpePath + `").TR_decode(TR_tensor([[[1]]]))`, messages.H5636},
+		{`TR_load_tokenizer("` + bpePath + `").çözz([1])`, messages.H7903},
 	}
 	for _, dd := range cases {
 		_, err := run(t, dd.code)
@@ -291,8 +291,8 @@ func TestDecodeNonIntegerIDNamesTheRow(t *testing.T) {
 		row  int
 		text string
 	}{
-		{`parçalayıcı_yükle("` + bpePath + `").çöz([1, "a"])`, 0, "listenin 2. elemanı"},
-		{`parçalayıcı_yükle("` + bpePath + `").çöz([[1], [2, "a"]])`, 2, "2. listenin 2. elemanı"},
+		{`TR_load_tokenizer("` + bpePath + `").TR_decode([1, "a"])`, 0, "listenin 2. elemanı"},
+		{`TR_load_tokenizer("` + bpePath + `").TR_decode([[1], [2, "a"]])`, 2, "2. listenin 2. elemanı"},
 	} {
 		_, err := run(t, c.code)
 		e, ok := messages.As(err)
@@ -307,7 +307,7 @@ func TestDecodeNonIntegerIDNamesTheRow(t *testing.T) {
 }
 
 func TestWatchPanel(t *testing.T) {
-	m := mustRun(t, `değişken p = parçalayıcı_yükle("`+bpePath+`")`)
+	m := mustRun(t, `TR_var p = TR_load_tokenizer("`+bpePath+`")`)
 	iz, ok := al(t, m, "p").(debugger.WatchValue)
 	if !ok {
 		t.Fatal("WatchValue değil")

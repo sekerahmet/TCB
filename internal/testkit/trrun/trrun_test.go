@@ -10,7 +10,7 @@ func TestExecCapturesOutputVMAndError(t *testing.T) {
 		t.Fatalf("çıktı %q, hata %v", o.Out, o.Err)
 	}
 	if v, ok := o.VM.GlobalEnv.Get("x"); !ok || v.Inspect() != "41" {
-		t.Fatalf("genel değişken x = %v (%v)", v, ok)
+		t.Fatalf("genel TR_var x = %v (%v)", v, ok)
 	}
 	if bad := Exec(t, "fırlat \"x\"\n"); bad.Err == nil {
 		t.Fatal("fırlatılan hata dönmedi")

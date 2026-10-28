@@ -10,7 +10,7 @@ import (
 // geçerdi) ya da float32'de 0'a düşen değer çıktıyı NaN yapardı.
 func TestNormEpsilonMustBeFinite(t *testing.T) {
 	for _, eps := range []string{"nan", "1e300", "1e-50", "0", "-1"} {
-		code := "değişken nan = log(tensör([-1.0])).değer[0]\nkatman_normu(tensör([[1.0, 2.0]]), epsilon: " + eps + ")"
+		code := "TR_var nan = TR_log(TR_tensor([-1.0])).TR_tolist[0]\nTR_layer_norm(TR_tensor([[1.0, 2.0]]), TR_eps: " + eps + ")"
 		if eps == "nan" {
 			code = "TR_var nan = TR_log(TR_tensor([-1.0])).TR_tolist[0]\nTR_rms_norm(TR_tensor([[1.0, 2.0]]), TR_eps: nan)"
 		}

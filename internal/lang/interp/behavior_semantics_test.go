@@ -178,7 +178,7 @@ func TestShadowingBuiltinCreatesMutableVariable(t *testing.T) {
 		uzunluk = uzunluk + 1
 		TR_return [toplam, uzunluk]`)
 	if err != nil {
-		t.Fatalf("yerleşik adı gölgeleyen değişken değiştirilebilmeli: %v", err)
+		t.Fatalf("yerleşik adı gölgeleyen TR_var değiştirilebilmeli: %v", err)
 	}
 	if val.Inspect() != "[5, 2]" {
 		t.Fatalf("[5, 2] bekleniyordu, %s alındı", val.Inspect())
