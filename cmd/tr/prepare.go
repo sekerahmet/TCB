@@ -41,9 +41,6 @@ var (
 		syntaxHeader: syntaxHeader,
 		typeHeader:   typeHeader,
 	}
-	debugPreparation = preparation{
-		syntaxHeader: syntaxHeader,
-	}
 	buildPreparation = preparation{
 		syntaxHeader: "❌ " + messages.Text(messages.H8654),
 		typeHeader:   "❌ " + messages.Text(messages.H8655),
@@ -114,37 +111,43 @@ func exitWithDiags(header string, errs []error, code string) {
 	exit(1)
 }
 
-// runProgram programı çalıştırır, çalışma zamanı hatasını yazıp çıkar; başarılıysa
-// eşzamansız işlerin bitmesini bekler. Her iki durumda da motorların açık kaynakları
-// (veri okuyucuları, önbellekler) çıkmadan önce kapatılır.
+// runProgram programı çalıştırır ve sürecin nasıl biteceğini söyleyen interp.End'e göre çıkar:
+// hataları yazar, çıkış koduyla ya da isteğin sinyaliyle bitirir (1.9). Başarılı bitişte döner.
+// Her durumda motorların açık kaynakları (veri okuyucuları, önbellekler) çıkmadan önce kapatılır.
 //
 // Ctrl+C ve sonlandırma istekleri yakalanır (interrupt.go): program nazikçe durur, ertelenen
-// işler çalışır ve 3 koduyla çıkılır.
+// işler çalışır ve süreç isteğin sinyaliyle biter.
 func runProgram(machine *interp.VM, prog *ast.Program, code string) {
-	catchInterrupt(machine)
-	if _, err := machine.Run(prog); err != nil {
-		if c, ok := interp.IsExitRequest(err); ok {
-			machine.WaitAsync()
-			closeEngine()
-			programExit(machine, c)
-		}
-		if errors.Is(err, interp.ErrInterrupted) {
-			machine.WaitAsync() // eşzamanlı görevler de kesildi; ertelenen işleri bitsin
-			closeEngine()
-			reportInterrupt(machine, err, code)
-		}
-		closeEngine()
-		writeRunError(machine, err, code)
-		exit(1)
-	}
-	machine.WaitAsync()
+	catchStop(machine)
+	_, err := machine.Run(prog)
+	end := machine.End(err)
 	closeEngine()
-	if machine.Interrupted() {
-		// Kesme isteği programın son beklemesinde (ör. bekle) geldi; program yine de durduruldu.
-		reportInterrupt(machine, nil, code)
+	finishProgram(machine, end, code)
+}
+
+// finishProgram programın bitişini yazar ve süreci bitirir: hatalar (yakalanmayan hata,
+// ertelenen işlerin hataları) ve programın istediği çıkışın iletisi yazılır; durdurma isteği
+// geldiyse süreç isteğin sinyaliyle, hata varsa 1, TR_exit çağrıldıysa onun koduyla biter. Hiçbiri
+// yoksa döner (çağıran temizliği yapar).
+func finishProgram(machine *interp.VM, end interp.End, code string) {
+	for _, failure := range end.Errors {
+		writeRunError(machine, failure, code)
 	}
-	if u := machine.UnusedArgsWarning(); u != "" {
-		machine.WriteOutput(os.Stderr, u+"\n")
+	if end.Message != "" {
+		w := os.Stderr
+		if end.MessageToOutput {
+			w = os.Stdout
+		}
+		machine.WriteOutput(w, end.Message+"\n")
+	}
+	if end.Signal != 0 {
+		machine.WriteOutput(os.Stderr, "⏹️ "+messages.Text(messages.H8663)+"\n")
+		exitCode = 128 + end.Signal
+		cleanup()
+		endBySignal(end.Signal)
+	}
+	if end.Code != 0 {
+		exit(end.Code)
 	}
 }
 
@@ -160,20 +163,6 @@ func closeEngine() {
 		f()
 	}
 	stdlib.Close()
-}
-
-// programExit bir yerleşiğin istediği program çıkışını yapar (ör. komut satırı
-// seçeneklerinde --yardım: 0, hatalı argüman: 2): mesaj 0 kodunda standart çıktıya, öbür
-// kodlarda standart hataya yazılır.
-func programExit(machine *interp.VM, c *interp.ExitRequest) {
-	if c.Message != "" {
-		w := os.Stderr
-		if c.Code == 0 {
-			w = os.Stdout
-		}
-		machine.WriteOutput(w, c.Message+"\n")
-	}
-	exit(c.Code)
 }
 
 // writeRunError bir çalışma zamanı hatasını başlığıyla standart hataya yazar. Bir modüle
@@ -192,6 +181,30 @@ func writeRunError(machine *interp.VM, err error, code string) {
 // moduleHeader bir hata başlığına modülün yolunu ekler: "❌ X:" → "❌ X (yol modülünde):".
 func moduleHeader(header, filePath string) string {
 	return messages.Text(messages.H8658, strings.TrimSuffix(header, ":"), filePath)
+}
+
+// checkProgram dosyayı ve aktardığı bütün modülleri çalıştırmadan denetler (1.3): hata varsa
+// hepsini yazıp 1 koduyla çıkar, hiçbir satır çalışmaz. 'tr kontrol', 'tr derle', 'tr çalıştır',
+// 'tr hata_ayıkla', 'tr izle' ve 'tr profil' bu tek yolu kullanır; hata ayıklayıcının başlatma
+// yolu da aynı işlevi (interp.CheckImportedModules) çağırır. globalHeader bulunamayan ya da
+// okunamayan modül hatalarının başlığıdır. Dosyanın metnini ve hazırlığının sonucunu verir.
+func checkProgram(path string, h preparation, globalHeader string) (string, *source.Result) {
+	text, s := prepareFile(path, h)
+	err := interp.CheckImportedModules(path, s.Program)
+	if err == nil {
+		return text, s
+	}
+	var moduleErr *interp.ModuleError
+	if errors.As(err, &moduleErr) && len(moduleErr.Errors) > 0 {
+		header := h.typeHeader
+		if moduleErr.Kind == source.StageSyntax {
+			header = h.syntaxHeader
+		}
+		exitWithDiags(moduleHeader(header, moduleErr.Source.Name), moduleErr.Errors, moduleErr.Source.Code)
+	}
+	fmt.Fprintf(os.Stderr, "%s %v\n", globalHeader, err)
+	exit(1)
+	return text, s
 }
 
 // checkModules programın 'aktar' ile aldığı bütün modülleri (özyinelemeli) bulur ve

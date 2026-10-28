@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"sync/atomic"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/reporoot"
@@ -27,6 +28,11 @@ import (
 // gerçek ikiliyi os/exec ile çalıştırır; böylece çıkış kodları ve standart çıktı/hata
 // ayrımı da sınanır.
 var trBinary string
+
+// skippedSignalTests konsol olayı gönderilemediği için atlanan sinyal testlerinin sayısıdır
+// (yalnız Windows'ta artar); TestMain sonunda bir satırla bildirir: atlanan testler sessizce
+// geçmiş sayılmaz (1.7).
+var skippedSignalTests atomic.Int32
 
 // exitSyntax 'tr kodla -' komutunun metin ayrıştırılamadığında verdiği çıkış kodudur
 // (cmd/tr/coded.go'daki aynı adlı sabit; değişirse oradaki belgeyle birlikte değişir).
@@ -52,6 +58,9 @@ func TestMain(m *testing.M) {
 	}
 	code := m.Run()
 	os.RemoveAll(dir)
+	if n := skippedSignalTests.Load(); n > 0 {
+		fmt.Fprintf(os.Stderr, "UYARI: %d sinyal testi atlandı (konsol olayı gönderilemedi): Ctrl+C ve durdurma davranışı bu koşuda sınanmadı\n", n)
+	}
 	os.Exit(code)
 }
 

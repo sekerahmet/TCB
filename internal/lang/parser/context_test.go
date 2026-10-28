@@ -80,11 +80,32 @@ func TestReturnInTestBodyIsError(t *testing.T) {
 	for _, codeVal := range []string{
 		"test \"t\" { fonksiyon f() { sonuç 1 }; eşit_mi(1, f()) }",
 		"test \"t\" { değişken f = x => x + 1 }",
-		"sonuç 5", // programın üst düzeyinde 'sonuç' programı bitirir
 	} {
 		if h := parseErrors(codeVal); len(h) > 0 {
 			t.Errorf("%q geçerli olmalıydı: %v", codeVal, h)
 		}
+	}
+}
+
+// Programın en dışındaki 'sonuç' sözdizimi hatasıdır (1.10): program yalnız TR_exit ile erken biter;
+// ileti çıkış çağrısını adıyla ve başarı koduyla söyler. Fonksiyon içinde geçerlidir; ertele ve
+// eşzamanlı blok programın en dışındaysa fonksiyon sayılmaz, orada da hatadır.
+func TestProgramTopLevelReturnIsError(t *testing.T) {
+	for _, codeVal := range []string{
+		"sonuç 5",
+		"değişken a = 1\nsonuç",
+		"eğer doğru { sonuç 1 }",
+		"döngü { sonuç 1 }",
+		"ertele { sonuç }",
+		"eşzamanlı { sonuç 2 }",
+	} {
+		h := parseErrs(codeVal)
+		if len(h) == 0 || !messages.Has(h[0], messages.H0171) {
+			t.Errorf("%q: en dıştaki 'sonuç' hatası (H0171) bekleniyordu, alınan: %v", codeVal, h)
+		}
+	}
+	if h := parseErrs("fonksiyon f() { sonuç 1 }\ndeğişken g = x => x"); len(h) > 0 {
+		t.Errorf("fonksiyon içindeki sonuç geçerli olmalıydı: %v", h)
 	}
 }
 

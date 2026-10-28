@@ -80,9 +80,24 @@ func (s *interruptibleProcess) exitCode() int {
 	}
 }
 
+// endedByInterrupt sürecin bitmesini (en çok 30 sn) bekler ve isteğin sinyaliyle bittiğini
+// söyler (1.9): Unix'te SIGINT'le ölür (kabuk 130 görür), Windows'ta çıkış kodu
+// STATUS_CONTROL_C_EXIT'tir.
+func (s *interruptibleProcess) endedByInterrupt() bool {
+	s.t.Helper()
+	select {
+	case err := <-s.done:
+		s.done <- err // Cleanup için geri koy
+		return interruptEnd(err)
+	case <-time.After(30 * time.Second):
+		s.t.Fatalf("süreç kesme isteğinden sonra 30 sn içinde bitmedi; standart hata: %s", s.stderr.String())
+		return false
+	}
+}
+
 // Ctrl+C (Windows'ta Ctrl+Break olayı, Unix'te SIGINT) programı nazikçe durdurur: döngü
 // kesilir, dene/yakala kesilmeyi yakalamaz, fonksiyonun ve programın ertelenen işleri
-// çalışır, çıkış kodu 3'tür.
+// çalışır, süreç isteğin sinyaliyle biter (1.5, 1.9).
 func TestInterruptGracefulExit(t *testing.T) {
 	s := startInterruptible(t, strings.Join([]string{
 		`ertele { dosya_yaz("ust_ertele.txt", "çalıştı") }`,
@@ -100,8 +115,8 @@ func TestInterruptGracefulExit(t *testing.T) {
 	}, "\n")+"\n")
 	s.waitCond("program hazır", func() bool { return s.fileExists("hazir.txt") })
 	sendInterrupt(t, s.cmd)
-	if code := s.exitCode(); code != 3 {
-		t.Fatalf("çıkış kodu %d, 3 bekleniyordu; standart hata: %s", code, s.stderr.String())
+	if !s.endedByInterrupt() {
+		t.Fatalf("süreç isteğin sinyaliyle bitmeliydi; standart hata: %s", s.stderr.String())
 	}
 	for _, ad := range []string{"ertele.txt", "ust_ertele.txt"} {
 		if !s.fileExists(ad) {
@@ -125,8 +140,8 @@ func TestInterruptWakesWait(t *testing.T) {
 	s.waitCond("program hazır", func() bool { return s.fileExists("hazir.txt") })
 	start := time.Now()
 	sendInterrupt(t, s.cmd)
-	if code := s.exitCode(); code != 3 {
-		t.Fatalf("çıkış kodu %d, 3 bekleniyordu; standart hata: %s", code, s.stderr.String())
+	if !s.endedByInterrupt() {
+		t.Fatalf("süreç isteğin sinyaliyle bitmeliydi; standart hata: %s", s.stderr.String())
 	}
 	if duration := time.Since(start); duration > 300*time.Second {
 		t.Errorf("bekleme %v sonra bitti; hemen uyanmalıydı", duration)
@@ -136,14 +151,14 @@ func TestInterruptWakesWait(t *testing.T) {
 	}
 }
 
-// Ertelenen iş bitmezse ikinci kesme isteği süreci hemen bitirir (çıkış kodu 130).
+// Ertelenen iş bitmezse ikinci kesme isteği süreci hemen SIGINT ile bitirir (kabuk 130 görür, 1.7).
 func TestSecondInterruptExitsImmediately(t *testing.T) {
 	s := startInterruptible(t, "ertele { döngü { } }\ndosya_yaz(\"hazir.txt\", \"1\")\ndöngü { }\n")
 	s.waitCond("program hazır", func() bool { return s.fileExists("hazir.txt") })
 	sendInterrupt(t, s.cmd)
 	s.waitCond("ilk istek işlendi", func() bool { return strings.Contains(s.stderr.String(), "Durduruluyor") })
 	sendInterrupt(t, s.cmd)
-	if code := s.exitCode(); code != 130 {
-		t.Fatalf("çıkış kodu %d, 130 bekleniyordu; standart hata: %s", code, s.stderr.String())
+	if !s.endedByInterrupt() {
+		t.Fatalf("süreç isteğin sinyaliyle hemen bitmeliydi; standart hata: %s", s.stderr.String())
 	}
 }

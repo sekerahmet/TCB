@@ -8,41 +8,116 @@ import (
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
-// Betiğe dosya adından sonra verilen argümanlar programa iletilir (sessizce yok sayılmaz).
-// Program onları okumazsa (argümanları komut_satırı okur) çıkışta standart hataya uyarı
-// yazılır; çıkış kodu değişmez, standart çıktıya karışmaz.
+// Programlar: readsProgram komut satırını en dışta okur; readsViaFunction onu bir fonksiyonda
+// okur ve fonksiyonu çağırır; readsNothing hiç okumaz; readsInAFunctionNeverCalled yalnız
+// çağrılmayan bir fonksiyonda okur.
+var (
+	readsProgram = strings.Join([]string{
+		"# TR 4",
+		`TR_var ayar = TR_command_line({"adim": 1})`,
+		`TR_print("adım: \(ayar["adim"])")`,
+	}, "\n") + "\n"
+	readsViaFunction = strings.Join([]string{
+		"# TR 4",
+		"TR_func oku() {",
+		`    TR_var ayar = TR_command_line({"adim": 1})`,
+		`    TR_print("adım: \(ayar["adim"])")`,
+		"}",
+		"oku()",
+	}, "\n") + "\n"
+	readsNothing                = "# TR 4\nTR_print(\"çalıştı\")\n"
+	readsInAFunctionNeverCalled = strings.Join([]string{
+		"# TR 4",
+		"TR_func oku() {",
+		`    TR_var ayar = TR_command_line({"adim": 1})`,
+		"}",
+		`TR_print("çalıştı")`,
+	}, "\n") + "\n"
+)
+
+// Betiğe dosya adından sonra verilen argümanlar programındır ve her çalıştırma yolunda aynıdır
+// (1.4): komut satırını okuyan program onları alır.
 func TestScriptArgumentsPassed(t *testing.T) {
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "a.tr", "yazdır(\"çalıştı\")\n")
-	warning := "⚠️ Uyarı: programa verilen 3 argüman kullanılmadı (--öğrenme_oranı 0.01 veri); program komut satırı argümanlarını okumuyor"
+	testkit.WriteFile(t, dir, "okur.tr", readsProgram)
+	testkit.WriteFile(t, dir, "dolayli.tr", readsViaFunction)
 	for _, command := range [][]string{
-		{"a.tr", "--öğrenme_oranı", "0.01", "veri"},
-		{"çalıştır", "a.tr", "--öğrenme_oranı", "0.01", "veri"},
-		{"hata_ayıkla", "a.tr", "--öğrenme_oranı", "0.01", "veri"},
+		{"okur.tr", "--adim", "5"},
+		{"çalıştır", "okur.tr", "--adim", "5"},
+		{"hata_ayıkla", "okur.tr", "--adim", "5"},
+		{"dolayli.tr", "--adim", "5"},
 	} {
-		s := tr(t, dir, command...)
-		testkit.Wait(t, s, 0, []string{"çalıştı"}, []string{warning})
-		if strings.Contains(s.Stdout, "Uyarı") {
-			t.Errorf("%v: uyarı standart çıktıya yazılmamalı: %q", command, s.Stdout)
-		}
-	}
-	// Argümansız çalıştırmada uyarı yok
-	if s := tr(t, dir, "a.tr"); s.Code != 0 || strings.Contains(s.Stderr, "argüman") {
-		t.Errorf("argümansız çalıştırmada uyarı olmamalı: %+v", s)
-	}
-	// Program hatayla biterse yalnızca hata yazılır
-	testkit.WriteFile(t, dir, "hata.tr", "yazdır(1 / 0)\n")
-	if s := tr(t, dir, "hata.tr", "x"); s.Code != 1 || strings.Contains(s.Stderr, "kullanılmadı") {
-		t.Errorf("hatalı programda argüman uyarısı olmamalı: %+v", s)
+		testkit.Wait(t, tr(t, dir, command...), 0, []string{"adım: 5"}, nil)
 	}
 }
 
-// 'tr derle' ile üretilen uygulamanın bütün argümanları programındır.
+// Argüman verildiği hâlde programın en dışından ulaşılan bir komut_satırı çağrısı yoksa program
+// çalışmaz: kullanım hatası (çıkış 2), hiçbir satır çalışmaz; ileti verilen seçeneği ve eklenecek
+// çağrıyı söyler (1.4). Aynı kural her çalıştırma yolunda geçerlidir.
+func TestArgumentsToAProgramThatReadsNoneAreAUsageError(t *testing.T) {
+	dir := t.TempDir()
+	testkit.WriteFile(t, dir, "okumaz.tr", readsNothing)
+	testkit.WriteFile(t, dir, "cagrilmaz.tr", readsInAFunctionNeverCalled)
+	for _, command := range [][]string{
+		{"okumaz.tr", "--adim", "5"},
+		{"çalıştır", "okumaz.tr", "--adim", "5"},
+		{"hata_ayıkla", "okumaz.tr", "--adim", "5"},
+		{"cagrilmaz.tr", "--adim", "5"},
+	} {
+		s := tr(t, dir, command...)
+		testkit.Wait(t, s, 2, nil, []string{"--adim", "komut_satırı"})
+		if s.Stdout != "" {
+			t.Errorf("%v: hiçbir satır çalışmamalıydı: %q", command, s.Stdout)
+		}
+	}
+	// Argümansız çalıştırmada kural yok
+	testkit.Wait(t, tr(t, dir, "okumaz.tr"), 0, []string{"çalıştı"}, nil)
+}
+
+// Komut satırını okumayan programa seçenek biçiminde olmayan (konumlu) argüman verilirse de
+// kullanım hatasıdır (çıkış 2, hiçbir satır çalışmaz); ileti argümanların seçenek olarak yazılıp
+// komut_satırı ile okunduğunu söyler (1.4).
+func TestPositionalArgumentsToAProgramThatReadsNoneAreAUsageError(t *testing.T) {
+	dir := t.TempDir()
+	testkit.WriteFile(t, dir, "okumaz.tr", readsNothing)
+	s := tr(t, dir, "okumaz.tr", "veri.txt")
+	testkit.Wait(t, s, 2, nil, []string{"komut_satırı"})
+	if s.Stdout != "" {
+		t.Errorf("hiçbir satır çalışmamalıydı: %q", s.Stdout)
+	}
+}
+
+// Komut satırını okumayan programa yalnız yardım seçeneği (-h ya da --help) verilirse programın
+// seçeneği olmadığı yazılır, çıkış 0 (1.4). Başlatıcıların argümanları (ROS 2'nin --ros-args
+// blokları, --local-rank=N) programın sayılmaz: programa argüman verilmemiş gibi çalışır.
+func TestHelpAndLauncherArgumentsOfAProgramThatReadsNone(t *testing.T) {
+	dir := t.TempDir()
+	testkit.WriteFile(t, dir, "okumaz.tr", readsNothing)
+	testkit.Wait(t, tr(t, dir, "okumaz.tr", "-h"), 0, []string{"seçeneği almıyor"}, nil)
+	testkit.Wait(t, tr(t, dir, "okumaz.tr", "--help"), 0, []string{"seçeneği almıyor"}, nil)
+	for _, launcher := range [][]string{
+		{"--ros-args", "-r", "__node:=x", "-p", "a:=1", "--"},
+		{"--ros-args", "-r", "__node:=x"},
+		{"--local-rank=3"},
+		{"--local_rank=3"},
+	} {
+		testkit.Wait(t, tr(t, dir, append([]string{"okumaz.tr"}, launcher...)...), 0, []string{"çalıştı"}, nil)
+	}
+	// ROS 2 bloğundan sonra gelen argüman programındır
+	testkit.WriteFile(t, dir, "okur.tr", readsProgram)
+	testkit.Wait(t, tr(t, dir, "okur.tr", "--ros-args", "-r", "a:=b", "--", "--adim", "7", "--local-rank=1"), 0, []string{"adım: 7"}, nil)
+}
+
+// 'tr derle' ile üretilen uygulamanın bütün argümanları programındır (1.4); kural onda da
+// geçerlidir.
 func TestBuiltAppArguments(t *testing.T) {
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "uyg.tr", "yazdır(\"uygulama\")\n")
-	exit := filepath.Join(t.TempDir(), "uyg.exe")
-	testkit.Wait(t, tr(t, dir, "derle", "uyg.tr", exit), 0, nil, nil)
-	s := testkit.RunBinary(t, exit, dir, "", nil, "--adım", "5")
-	testkit.Wait(t, s, 0, []string{"uygulama"}, []string{"programa verilen 2 argüman kullanılmadı (--adım 5)"})
+	testkit.WriteFile(t, dir, "okur.tr", readsProgram)
+	testkit.WriteFile(t, dir, "okumaz.tr", readsNothing)
+	readsExe := filepath.Join(t.TempDir(), "okur.exe")
+	readsNothingExe := filepath.Join(t.TempDir(), "okumaz.exe")
+	testkit.Wait(t, tr(t, dir, "derle", "okur.tr", readsExe), 0, nil, nil)
+	testkit.Wait(t, tr(t, dir, "derle", "okumaz.tr", readsNothingExe), 0, nil, nil)
+	testkit.Wait(t, testkit.RunBinary(t, readsExe, dir, "", nil, "--adim", "5"), 0, []string{"adım: 5"}, nil)
+	testkit.Wait(t, testkit.RunBinary(t, readsNothingExe, dir, "", nil, "--adim", "5"), 2, nil, []string{"--adim"})
 }

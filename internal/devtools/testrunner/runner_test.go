@@ -214,3 +214,36 @@ func TestUserMessageWithSatirGetsLine(t *testing.T) {
 		t.Fatalf("testin satırı eklenmeli ve çerçevesi çizilmeli:\n%s", out)
 	}
 }
+
+// TR_cmd_test altında TR_exit süreci bitirmez (1.12): çağrıldığı test (çağırdığı fonksiyon ya da
+// başlattığı görev dahil) başarısız sayılır, öbür testler sürer ve rapor çıkış çağrısını anlatır.
+func TestExitInATestFailsOnlyThatTest(t *testing.T) {
+	fpath := testkit.WriteFile(t, t.TempDir(), "cikis_test.tr", `# TR 4
+TR_func bitir() {
+    TR_exit(3)
+}
+TR_test "doğrudan çıkış" {
+    TR_exit(3)
+}
+TR_test "fonksiyondan çıkış" {
+    bitir()
+}
+TR_test "görevden çıkış" {
+    TR_async { TR_exit(4) }
+}
+TR_test "sonra gelen test sürer" {
+    TR_assert(TR_true)
+}
+`)
+	var out bytes.Buffer
+	summary := RunFile(fpath, &out)
+	text := out.String()
+	if summary.Total != 4 || summary.Passed != 1 || summary.Failed != 3 {
+		t.Fatalf("özet yanlış: %+v\n%s", summary, text)
+	}
+	for _, want := range []string{"✗ doğrudan çıkış", "✗ fonksiyondan çıkış", "✗ görevden çıkış", "✓ sonra gelen test sürer"} {
+		if !strings.Contains(text, want) {
+			t.Errorf("çıktıda %q yok:\n%s", want, text)
+		}
+	}
+}

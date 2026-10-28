@@ -309,7 +309,7 @@ func (v *VM) callPrepared(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Va
 	if fk.hasDefer {
 		// 'ertele' blokları bir çöküşte de (Go panic) çalışmalıdır; hataları yutulmaz (9.4)
 		defer func() {
-			if derr := fnEnv.RunDefers(); derr != nil {
+			if derr := v.runDefers(fnEnv); derr != nil {
 				val, err = nil, addDeferError(err, derr)
 			}
 		}()
@@ -335,7 +335,7 @@ func (v *VM) callPrepared(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Va
 	}
 	v.endCall(depth, val)
 	if !fk.hasDefer {
-		if derr := fnEnv.RunDefers(); derr != nil {
+		if derr := v.runDefers(fnEnv); derr != nil {
 			val, err = nil, addDeferError(err, derr)
 		}
 		// Hata ayıklayıcı bağlıyken ortam onun elinde kalabilir; havuza konmaz.

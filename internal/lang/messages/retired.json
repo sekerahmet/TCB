@@ -43,6 +43,10 @@
   "commit": "2eab12b",
   "reason": "deleted: messages: case suffixes move from Go into templates"
  },
+ "H2490": {
+  "commit": "306d121",
+  "reason": "deleted: interp: arguments a program never reads are a usage error before the run (1.4), no warning at the end"
+ },
  "H2494": {
   "commit": "0d6949c",
   "reason": "deleted: messages: whole-sentence templates instead of message fragments"

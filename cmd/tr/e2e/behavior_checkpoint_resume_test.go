@@ -177,6 +177,20 @@ func (k *trainingRun) wait(t *testing.T) int {
 	return code
 }
 
+// endedByInterrupt sürecin bitmesini (en çok 2 dk) bekler ve isteğin sinyaliyle bittiğini söyler
+// (1.9).
+func (k *trainingRun) endedByInterrupt(t *testing.T) bool {
+	t.Helper()
+	select {
+	case err := <-k.done:
+		k.done <- err
+		return interruptEnd(err)
+	case <-time.After(2 * time.Minute):
+		t.Fatalf("eğitim 2 dk içinde bitmedi\n%s", k.report())
+		return false
+	}
+}
+
 // train eğitimi baştan sona (ya da kaldığı yerden sona) çalıştırır ve çıktısını verir.
 func train(t *testing.T, dir, run, data string, worker int, ek ...string) string {
 	t.Helper()
@@ -304,8 +318,8 @@ func TestCheckpointResumeBitExact(t *testing.T) {
 		k := startTraining(t, dir, run("kesme"), data, 8, "--dur", "12")
 		k.waitForStop(t, 12)
 		sendInterrupt(t, k.cmd)
-		if code := k.wait(t); code != 3 {
-			t.Fatalf("çıkış kodu %d, 3 bekleniyordu\n%s", code, k.report())
+		if !k.endedByInterrupt(t) {
+			t.Fatalf("süreç isteğin sinyaliyle bitmeliydi\n%s", k.report())
 		}
 		if h := k.stderr.String(); !strings.Contains(h, "adım bitince kontrol noktası kaydedilip çıkılacak") || !strings.Contains(h, "Kontrol noktası kaydedildi: adım 12") {
 			t.Fatalf("durdurma bildirimleri yok\n%s", k.report())

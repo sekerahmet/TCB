@@ -37,6 +37,9 @@ var coreBuiltins = [...]struct {
 	{codes.FnReadFile, readFileBuiltin},
 	{codes.FnWriteFile, writeFileBuiltin},
 	{codes.FnSleep, sleepBuiltin},
+	{codes.FnExit, exitBuiltin},
+	{codes.FnHandleStop, handleStopBuiltin},
+	{codes.FnStopRequested, stopRequestedBuiltin},
 }
 
 func (v *VM) registerBuiltins() {
@@ -68,7 +71,10 @@ func inputBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) > 0 {
 		y.WriteOutput(y.Out, y.textOf(args[0]))
 	}
-	line, readErr := y.readLine()
+	line, readErr, waitErr := y.readLine()
+	if waitErr != nil {
+		return nil, waitErr
+	}
 	if readErr != nil && readErr != io.EOF && line == "" {
 		return nil, messages.New(messages.H2507, CallPrefix(codes.FnInput), turkish.FileErrorReason("", readErr))
 	}
@@ -302,7 +308,9 @@ func readFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error)
 	}
 	resolved, searched := y.ResolvePath(filePath)
 	var data []byte
-	y.Blocking(func() { data, err = ReadFileContent(resolved) })
+	if waitErr := y.Abandonable(func() { data, err = ReadFileContent(resolved) }); waitErr != nil {
+		return nil, waitErr
+	}
 	if err != nil {
 		return nil, ReadError(CallPrefix(codes.FnReadFile), filePath, messages.H2100, err, searched)
 	}
@@ -350,8 +358,11 @@ func sleepBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if pick > maxSleepSeconds {
 		return nil, messages.New(messages.H2434, CallPrefix(codes.FnSleep), Shown(args[0]), strconv.FormatFloat(maxSleepSeconds, 'f', 0, 64))
 	}
-	// Kesme istenirse (Ctrl+C) bekleme hemen biter; program sonraki güvenli noktada durur.
-	y.Blocking(func() { y.interruptibleSleep(time.Duration(pick * float64(time.Second))) })
+	// Uygulanan bir durdurma beklemeyi bırakır; üstlenilmiş programda istek gelince bekleme
+	// "durdurma istendi" hatasıyla döner (1.5, 1.6).
+	if err := y.sleep(CallPrefix(codes.FnSleep), time.Duration(pick*float64(time.Second))); err != nil {
+		return nil, err
+	}
 	return True, nil
 }
 

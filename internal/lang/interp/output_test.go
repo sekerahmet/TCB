@@ -48,8 +48,8 @@ func TestLiveLineHook(t *testing.T) {
 	}
 }
 
-// Gizli değer süzgeci: kayıtlı değerler çıktı noktalarında (yazdır, hata çıktısı, argüman
-// uyarısı) *** ile maskelenir; değerin kendisi (yazdır'ın döndürdüğü, değişkenler) değişmez.
+// Gizli değer süzgeci: kayıtlı değerler çıktı noktalarında (yazdır, hata çıktısı) *** ile
+// maskelenir; değerin kendisi (yazdır'ın döndürdüğü, değişkenler) değişmez.
 // Kısa değerler kaydedilmez; biri ötekini içeren değerlerde uzunu bütünüyle maskelenir.
 func TestSecretFilter(t *testing.T) {
 	var output bytes.Buffer
@@ -76,9 +76,5 @@ func TestSecretFilter(t *testing.T) {
 	vmx.reportAsyncError(1, errors.New("istek reddedildi: hf_gizli123"))
 	if got := output.String(); !strings.Contains(got, "istek reddedildi: ***") {
 		t.Errorf("hata çıktısı maskelenmeli: %q", got)
-	}
-	vmx.SetArgs([]string{"--anahtar", "hf_gizli123"})
-	if u := vmx.UnusedArgsWarning(); !strings.Contains(u, "(--anahtar ***)") {
-		t.Errorf("argüman uyarısı maskelenmeli: %q", u)
 	}
 }

@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -127,19 +128,43 @@ type vmShared struct {
 	// GorevKancasiEkle). Yalnızca kayıt sırasında (program başlamadan) yazılır.
 	taskHooks []func(*VM)
 
-	// arguments betiğe komut satırında verilen argümanlardır; argumanlarOkundu program
-	// onları okuduysa açıktır (bkz. program_args.go).
+	// arguments betiğe komut satırında verilen argümanlardır (bkz. program_args.go).
 	arguments []string
-	argsRead  atomic.Bool
 
-	// interrupted programın nazikçe durdurulması istendiyse açıktır; kesilmeKanali o anda
-	// kapanır (bkz. interrupt.go).
+	// Durdurma durumu (bkz. interrupt.go). interrupted 1.5 uygulandığında açılır, interruptChan
+	// o anda kapanır; stopSignal ilk isteğin sinyal numarasıdır (0: istek gelmedi); stopHandled
+	// TR_handle_stop çağrıldıysa açıktır, stopRequested isteğin kaydedildiğini (üstlenilmiş ya da
+	// ertelenmiş) söyler; stopChan üstlenilmiş programa istek gelince kapanır; stopWindows
+	// kontrol noktalarının erteleme sürelerini verir, stopTimer ertelemenin bitiş zamanlayıcısıdır;
+	// finishing en dıştaki ertelenen işler çalışırken açıktır (1.15). stopMu bu kararları korur.
 	interrupted   atomic.Bool
 	interruptChan chan struct{}
-	// interruptDeferrers kesme isteğini adım sınırına erteleyen kontrol noktası sayısıdır;
-	// durdurmaIstendi ertelenen bir istek geldiyse açıktır (bkz. KesmeIste).
-	interruptDeferrers atomic.Int32
-	stopRequested      atomic.Bool
+	stopMu        sync.Mutex
+	stopSignal    atomic.Int32
+	stopHandled   atomic.Bool
+	stopRequested atomic.Bool
+	stopChan      chan struct{}
+	stopChanSent  bool // stopChan kapandı (stopMu altında)
+	stopWindows   []func() (time.Duration, bool)
+	stopTimer     *time.Timer
+	finishing     atomic.Bool
+	// interactive etkileşimli kabukta açıktır: VM birden çok Run ile sürer, hatayla biten satır
+	// görevleri durdurmaz (bkz. SetInteractive).
+	interactive bool
+
+	// Çıkış durumu (bkz. program_exit.go): TR_exit'in son çağrısı kazanır (1.13). testing bir test
+	// koşarken sıfırdan büyüktür: orada çıkış süreci bitirmez, testi düşürür (1.12). taskFailed
+	// bir görevde yakalanmayan hata olduğunu söyler (1.9).
+	exitMu        sync.Mutex
+	exitRequested bool
+	exitCode      int
+	exitMessage   string
+	testing       atomic.Int32
+	taskFailed    atomic.Bool
+
+	// pendingRead girdi() için başlamış, sonucu henüz alınmamış satır okumasıdır: bırakılan bir
+	// bekleme okunan satırı yitirmez (bkz. input.go).
+	pendingRead *lineRead
 
 	// isOutput çıktı noktalarını (CiktiYaz) etkin canlı satırla sıralar; canliVar canlı satır
 	// varken açıktır (yoksa kilit alınmaz). Bkz. output.go.
@@ -201,8 +226,11 @@ type VM struct {
 	taskValues map[any]any
 
 	// interruptThrown bu görevin kesilme paniğini attığını söyler: yığın çözülürken çalışan
-	// 'ertele' blokları yeniden kesilmez (bkz. kesilmeyiDenetle).
+	// 'ertele' blokları yeniden kesilmez (bkz. checkInterrupt). cleanupDepth görevin şu an kaç
+	// temizlik işinin (ertele bloğu, durdurma hatasını yakalayan yakala gövdesi) içinde olduğudur:
+	// orada beklemeler bırakılmaz ve durdurma hatası vermez (1.5, 1.6).
 	interruptThrown bool
+	cleanupDepth    int
 
 	// owners çağrı derinliğine göre sahiplik çerçeveleri (0: üst düzey); yalnızca görevin
 	// kendi goroutine'i kullanır (ownership.go).
@@ -256,6 +284,7 @@ func New() *VM {
 			waiting:   make(map[*VM]string),
 
 			interruptChan: make(chan struct{}),
+			stopChan:      make(chan struct{}),
 		},
 		CallStack: []StackFrame{},
 	}
@@ -362,36 +391,53 @@ func (v *VM) StackSnapshot() []StackFrame {
 	return snap
 }
 
-func (v *VM) Run(prog *ast.Program) (result Value, err error) {
+// Run programı çalıştırır. Program sona gelince (ya da hata, TR_exit ve durdurmayla yarıda
+// kalınca) önce görevlerini bekler, sonra en dıştaki ertelenen işler çalışır (1.9); onların
+// hataları programın hatasına eklenir (9.4). Dönen hata bir durdurmaysa ErrInterrupted, TR_exit
+// ise *ExitRequest içerir; sürecin nasıl biteceğini End söyler.
+func (v *VM) Run(prog *ast.Program) (Value, error) {
 	if !v.holdsGIL {
 		v.acquireGIL()
 		defer v.releaseGIL()
 	}
-	// Yerleşik fonksiyonlardaki beklenmedik paniklerin tüm süreci çökertmesini engelle
+	val, err := v.runMain(prog)
+	// Yakalanmayan bir hatayla biten programda öbür görevler 1.5'teki gibi durur (1.9); etkileşimli
+	// kabukta VM sonraki satırlarla sürdüğünden durdurulmaz.
+	if main, _ := splitProgramErrors(err); main != nil && !v.interactive {
+		v.Interrupt()
+	}
+	// Görevlere durma emri gittiyse (durdurma, TR_exit, hata) ya da program hatasız bittiyse görevler
+	// beklenir. Görevleri bekleyen bu bekleme bir temizlik işidir: bir istek onu kesmez.
+	if err == nil || v.interrupted.Load() {
+		v.cleanupDepth++
+		v.Blocking(v.wg.Wait)
+		v.cleanupDepth--
+	}
+	v.finishing.Store(true) // bundan sonra gelen ilk istek ertelenen işleri kesmez (1.15)
+	if derr := v.runDefers(v.GlobalEnv); derr != nil {
+		val, err = nil, addDeferError(err, derr)
+	}
+	return val, err
+}
+
+// runMain programın deyimlerini çalıştırır. Yerleşik fonksiyonlardaki beklenmedik paniklerin tüm
+// süreci çökertmesini engeller; durdurma paniği ErrInterrupted olur.
+func (v *VM) runMain(prog *ast.Program) (result Value, err error) {
 	stackSize := len(v.CallStack)
 	defer func() {
 		if r := recover(); r != nil {
 			v.trimStack(stackSize)
 			if IsInterrupt(r) {
-				// Kesilme: ertelenen işler çalıştı; onların hatası varsa kesilmeye eklenir.
-				result, err = nil, addDeferError(ErrInterrupted, err)
+				result, err = nil, ErrInterrupted
 				return
 			}
 			result, err = nil, panicError(r)
 		}
 	}()
-	defer func() {
-		// Programın üst düzey ertelenen işleri; hataları programın hatası olur (9.4)
-		if derr := v.GlobalEnv.RunDefers(); derr != nil {
-			result, err = nil, addDeferError(err, derr)
-		}
-	}()
-	val, _, err := v.runProgram(prog.Statements)
-	if err != nil {
-		return nil, err
+	val, _, runErr := v.runProgram(prog.Statements)
+	if runErr != nil {
+		return nil, runErr
 	}
-	// En üst düzey 'ertele' blokları, başlatılmış eşzamanlı görevler bittikten SONRA çalışmalı
-	v.Blocking(v.wg.Wait)
 	return val, nil
 }
 
@@ -416,6 +462,7 @@ func (v *VM) reportAsyncError(line int, err error) {
 		return
 	}
 	v.taskErrorsMu.Unlock()
+	v.taskFailed.Store(true) // çıkış kodu 1 olur (1.9)
 	w := v.Err
 	if w == nil {
 		w = os.Stderr

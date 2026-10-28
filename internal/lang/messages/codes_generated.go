@@ -60,6 +60,7 @@ const (
 	H0168 Code = 168  // '\' ve satır sonu
 	H0169 Code = 169  // '\' ve sekme
 	H0170 Code = 170  // dilimin uçları ':' ile değil '..' ile ayrılır: x[a..b]
+	H0171 Code = 171  // '{keyword}' programın en dışında yazılmaz; yalnızca fonksiyonun içinde kullanılır. Programı bitirmek için '{exit}(0)' yazın (başarı için 0; kendi hata kodlarınız 4'ten başlar)
 	H1001 Code = 1001 // Tip uyuşmazlığı — {name|q} değişkeni {declared|q} tipinde tanımlandı ancak {given|q} tipinde değer atandı{hint}
 	H1002 Code = 1002 // Sabit hatası — {name|q} bir sabittir ('{keyword}') ve değeri değiştirilemez
 	H1003 Code = 1003 // Dönüş tipi uyuşmazlığı — fonksiyon {expected|q} döndürmeli ancak {given|q} tipinde değer döndürülüyor{hint}
@@ -262,7 +263,6 @@ const (
 	H2486 Code = 2486 // {fn}: listenin {order}. elemanı {expected} olmalıdır, {given} verildi
 	H2487 Code = 2487 // {name|q} {path|q} modülüne özel bir ad (başı _); yalnızca o modülün içinde kullanılır (bkz. 11.7)
 	H2489 Code = 2489 // {fn}: dosya yolunda {what, select, tab {sekme} other {satır sonu}} karakteri var; metindeki ters bölü bir kaçış dizisi sayıldı ("\t" sekme, "\n" satır sonudur). Windows yolu için ham metin kullanın: `{path}` (ya da ters bölüleri ikileyin veya / yazın)
-	H2490 Code = 2490 // ⚠️ Uyarı: programa verilen {count} argüman kullanılmadı ({arguments}); program komut satırı argümanlarını okumuyor
 	H2491 Code = 2491 // program {code} koduyla bitirildi
 	H2492 Code = 2492 // {fn}: {given} sıralanamaz; liste yalnızca sayılardan ya da yalnızca metinlerden oluşmalıdır
 	H2493 Code = 2493 // {fn}: {a} ile {b} karşılaştırılamaz; liste yalnızca sayılardan ya da yalnızca metinlerden oluşmalıdır
@@ -300,6 +300,9 @@ const (
 	H2527 Code = 2527 // {name}={value|q} ile {other}={other_value|q} aynı ortam değişkenidir ama değerleri farklı: birini kaldırın ya da ikisine aynı değeri verin
 	H2528 Code = 2528 // {fn}: {code|q} tanımlı bir ileti kodu değil
 	H2529 Code = 2529 // {fn}: {code} iletisi {expected} değer alır, {given} verildi
+	H2530 Code = 2530 // {fn}: durdurma istendi, yeni bekleme başlatılmadı. Program durdurmayı üstlendi: {requested}() doğruysa döngüden çıkıp temizliğe geçin; temizlikte beklemek gerekiyorsa onu '{defer}' bloğunda ya da bu hatayı yakalayan '{catch}' gövdesinde yapın
+	H2531 Code = 2531 // {fn}: çıkış kodu 0 ile 125 arasında bir Tam olmalı ({value} verildi). Örneğin '{exit}(4)' yazın (0 başarı, 1 hata, 2 kullanım hatası; kendi kodlarınız 4'ten başlar)
+	H2532 Code = 2532 // {fn}({code}) bir testin içinden çağrıldı: test başarısız sayıldı, program bitirilmez. Testte bir koşulu denetlemek için '{assert}(koşul)' yazın
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}
@@ -1576,7 +1579,11 @@ const (
 	H8660 Code = 8660 // Durduruluyor: adım bitince kontrol noktası kaydedilip çıkılacak (hemen çıkmak için Ctrl+C'ye yeniden basın)
 	H8661 Code = 8661 // Durduruluyor: ertelenen işler çalıştırılıp çıkılacak (hemen çıkmak için Ctrl+C'ye yeniden basın)
 	H8662 Code = 8662 // Hemen çıkıldı.
-	H8663 Code = 8663 // Program durduruldu (kesme isteği); ertelenen işler çalıştı. Çıkış kodu {code}.
+	H8663 Code = 8663 // Program durduruldu (kesme isteği); ertelenen işler çalıştı.
+	H8664 Code = 8664 // programa {count} argüman verildi{options, select, empty {} other { ({options})}} ama program komut satırını okumuyor: programın en dışından ulaşılan bir {fn}() çağrısı yok. Argümanları vermeyin ya da programın başına şunu ekleyin: {var} ayar = {fn}({{"{example}": 0}}) (0 yerine seçeneğin varsayılan değeri yazılır)
+	H8665 Code = 8665 // {program} komut satırı seçeneği almıyor
+	H8666 Code = 8666 // Durdurma isteği alındı: program kendi sınırında bitecek (hemen çıkmak için Ctrl+C'ye yeniden basın)
+	H8667 Code = 8667 // programa {count} konumlu argüman verildi ama TR programı konumlu argüman almaz: argümanlar seçenek olarak yazılır ve {fn}() ile okunur. Örneğin programın başına {var} ayar = {fn}({{"veri": ""}}) yazın ve çalıştırırken --veri dosya.txt verin
 	H8670 Code = 8670 // {path|q} bir .tr dosyası değil. Çalışan bir arka plan işini izlemek (tr {command} <iş_adı>) henüz yok; programı izleyerek çalıştırın: tr {command} <dosya.tr>
 	H8671 Code = 8671 // programın çıktı dosyası açılamadı: {error}
 	H8672 Code = 8672 // Programın son çıktısı (tamamı: {path}):

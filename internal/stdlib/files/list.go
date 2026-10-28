@@ -48,7 +48,9 @@ func listBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 		return nil, messages.New(messages.H7136, fn, base)
 	}
 	g := &walker{k: k, seen: map[string]bool{}}
-	m.Blocking(func() { g.walk(resolved, "", 0) })
+	if waitErr := m.Abandonable(func() { g.walk(resolved, "", 0) }); waitErr != nil {
+		return nil, waitErr // klasör taraması durumu değiştirmez: durdurma onu bırakır (1.5)
+	}
 	if g.unreadableCount > 0 {
 		m.WriteOutput(m.Err, messages.Text(messages.H7137,
 			fn, g.unreadableCount, g.firstUnreadable, turkish.FileErrorReason(g.firstUnreadable, g.firstErr))+"\n")

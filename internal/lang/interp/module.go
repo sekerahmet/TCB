@@ -194,8 +194,9 @@ func (v *VM) callInSource(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Va
 
 // CheckModule checks a module's source (the whole file) before running it: it parses it as a
 // module (a top-level 'sonuç' is an error) and type-checks it; on errors the result's Stage
-// ("sözdizimi" or "tip denetimi") and Errors are set. 'aktar', 'tr kontrol' and 'tr derle' use
-// the same check. Since a module runs under the importer's global scope (11.1), genelAdlar
+// ("sözdizimi" or "tip denetimi") and Errors are set. 'tr kontrol', 'tr derle' and
+// CheckImportedModules use this one check before the run (1.3); 'aktar' at run time only reads
+// and parses the module. Since a module runs under the importer's global scope (11.1), genelAdlar
 // count as defined in the module, and a name defined nowhere else is an undefined-name error
 // (5.14); dinamik says the global names are not fully known (then undefined names are not
 // reported).
@@ -348,8 +349,9 @@ func (v *VM) runModule(s *ast.ImportStatement, path string, dest *Source, keyStr
 		dest.Code = string(data)
 	}
 	// Modül genel kapsamın altında çalışır: genel kapsamda tanımlı (ya da yuvası ayrılmış)
-	// adları görür; yerleşikler de oradadır.
-	ms := CheckModule(dest.Code, v.GlobalEnv.scope.nameList, false)
+	// adları görür; yerleşikler de oradadır. Tip denetimi çalışmadan önce yapılmıştır
+	// (CheckImportedModules, 1.3); burada yalnız ayrıştırılır, ikinci bir denetim yolu yoktur.
+	ms := source.Prepare(dest.Code, source.Options{Module: true, InGlobalScope: true, GlobalNames: v.GlobalEnv.scope.nameList})
 	modSource := &Source{Path: dest.Path, Name: dest.Name, Code: ms.Text, Language: ms.Language, Embedded: dest.Embedded}
 	if ms.Stage != "" {
 		return nil, &ModuleError{Source: modSource, Kind: ms.Stage, Errors: ms.Errors, ModulePath: s.Path, ImportLine: s.Line(), Importer: v.source}

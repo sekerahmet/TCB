@@ -35,7 +35,7 @@ func profileArguments(command any, args []string, allowed ...codes.Code) (profil
 		*target[k] = value
 	}
 	if len(args) == 0 {
-		exitWithError(messages.Text(messages.H8605, command, "egit.tr"))
+		exitUsage(messages.Text(messages.H8605, command, "egit.tr"))
 	}
 	return s, args[0], args[1:]
 }
@@ -43,12 +43,14 @@ func profileArguments(command any, args []string, allowed ...codes.Code) (profil
 // prepareProgram dosyayı h hazırlığıyla hazırlar ve bir VM kurar (çalıştırma, profil, izleme ve
 // hata ayıklama aynı adımları kullanır).
 func prepareProgram(path string, arguments []string, h preparation) (*interp.VM, *ast.Program, string) {
-	_, s := prepareFile(path, h)
+	// Çalışmadan önce program ve aktardığı modüller 'tr kontrol'ün yoluyla denetlenir (1.3).
+	_, s := checkProgram(path, h, "❌ "+messages.Text(messages.H8632))
 	machine := interp.New()
 	machine.SourceFile = path
 	machine.SourceCode = s.Text
 	machine.SourceLanguage = s.Language
 	machine.SetArgs(arguments)
+	checkArguments(machine, s.Program)
 	return machine, s.Program, s.Text
 }
 

@@ -17,6 +17,16 @@ kanca arayüzü olarak burada tanımlanır, uygulaması motorda yazılır. Denet
 çalışır. Uzun bekleyen işler (uyku, disk, ağ, dış süreç) kilidi bırakarak bekler; kilidi tutmayan
 kod ortamlara ve değerlere dokunmaz. Denetim: `TestAsyncConcurrentDictAndListWrites`, `TestAsyncTasksStillOverlapDuringSleep`, `TestLockHandoffConcurrentTask`, `TestConcurrentCallStackSafety`.
 
+**Bekleyen yerleşik durdurma isteğine göre yazılır.** Yeni bir şey bekleyen her yerleşik (girdi,
+kamera karesi, ileti) beklemesini `AwaitNew` ile yapar: program durdurmayı üstlenmişse
+(`TR_fn_handle_stop`) istek gelince bekleme "durdurma istendi" hatasıyla biter ve program kendi
+sınırında temizler (1.6). Programın durumunu değiştirmeyen, bırakılınca yan etkisi olmayan beklemeler
+(dosya okuma, veri yükleme) `Abandonable` ile yazılır: uygulanan durdurma beklemeyi bırakır (1.5).
+Durumu değiştiren iş (dosya yazma, kontrol noktası kaydı, iyileştirici adımı) hiçbirinde yapılmaz:
+yarıda bırakılmasın diye `StateChanges` listesinde durur, iş biter ve program sonraki güvenli noktada
+durur. İkisi de `TR_kw_defer` bloklarında ve "durdurma istendi" hatasını yakalayan bloğun içinde
+(temizlikte) hiç bırakılmaz. Denetim: `TestHandledStopTurnsWaitsIntoErrors`, `TestUnhandledStopAbandonsWaitsButNotInDefer`, `TestAbandonableWaitEndsWithTheStop`, `TestStateChangesAreNeverAbandoned`.
+
 **Hatalar satırıyla ve bir kez sarılır.** Çalışma hatası oluştuğu satırı taşır; zaten satır taşıyan
 bir hata yeniden sarılmaz. Kullanıcı hataları `TR_kw_try`/`TR_kw_catch` ile yakalanır; kesme isteği (Ctrl+C)
 yakalanmaz. Bir yerleşiğin içindeki beklenmedik panik süreci çökertmez, iç hata olarak bildirilir. Denetim: `TestInternalErrorLineOnce`, `TestInterrupt`, `TestRunRecoversFromBuiltinPanic`, `TestPanicInsideAsyncDoesNotCrashProcess`.

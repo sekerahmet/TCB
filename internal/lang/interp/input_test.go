@@ -2,8 +2,11 @@ package interp
 
 import (
 	"bytes"
+	"errors"
+	"io"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/lang/source"
@@ -46,5 +49,39 @@ func TestInputReaderShared(t *testing.T) {
 	}
 	if New().InputReader() != StdinReader() {
 		t.Fatal("Stdin verilmemiş VM standart girişin ortak okuyucusunu kullanmalı")
+	}
+}
+
+// Bir durdurma girdi() beklemesini bırakır (1.5); bırakılan okuma sürer ve okuduğu satırı sonra
+// girdi isteyen ertelenen iş alır, satır yitmez.
+func TestAbandonedInputKeepsTheLine(t *testing.T) {
+	reader, writer := io.Pipe()
+	defer writer.Close()
+	m := New()
+	m.Stdin = reader
+	var out bytes.Buffer
+	m.Out = &out
+	stopAfter(m, 2)
+	prog := mustParseProgram(t, `# TR 4
+TR_defer { TR_print("ertele: \(TR_input())") }
+hazır()
+TR_input()
+`)
+	done := make(chan error, 1)
+	go func() {
+		_, err := m.Run(prog)
+		done <- err
+	}()
+	time.Sleep(300 * time.Millisecond) // durdurma ilk girdi() beklerken gelir, ertelenen iş girdi bekler
+	if _, err := writer.Write([]byte("bir\n")); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case err := <-done:
+		if !errors.Is(err, ErrInterrupted) || !strings.Contains(out.String(), "ertele: bir") {
+			t.Fatalf("ertelenen iş bırakılan okumanın satırını almalıydı: %v %q", err, out.String())
+		}
+	case <-time.After(30 * time.Second):
+		t.Fatal("program 30 sn içinde bitmedi")
 	}
 }

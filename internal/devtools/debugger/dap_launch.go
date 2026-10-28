@@ -64,6 +64,12 @@ func (s *dapServer) launch(msg *dapMessage) {
 		return
 	}
 
+	// Aktarılan modüller de çalışmadan önce denetlenir (1.3); hata varsa hiçbir satır çalışmaz.
+	if err := interp.CheckImportedModules(path, prog); err != nil {
+		s.launchFailed(msg, path, err, code)
+		return
+	}
+
 	machine := interp.New()
 	machine.SourceFile = path
 	machine.SourceCode = code
@@ -72,6 +78,14 @@ func (s *dapServer) launch(msg *dapMessage) {
 	machine.Err = dapOutput{s, "stderr"} // eşzamanlı görev hataları da hata ayıklama konsoluna
 	machine.Stdin = dapNoStdin{}
 	machine.SetArgs(a.Args)
+	// Argüman verilip programın en dışından ulaşılan bir komut_satırı çağrısı yoksa program
+	// çalışmaz (1.4): düzenleyicinin "args" ayarı da bu kurala bağlıdır.
+	if verdict := machine.CheckArguments(prog); verdict != interp.ArgumentsUsable {
+		s.output("stderr", "❌ "+machine.ArgumentsMessage(verdict)+"\n")
+		s.respondErr(msg, messages.Text(messages.H8124, filepath.Base(path)))
+		s.event("terminated", nil)
+		return
+	}
 
 	if !a.NoDebug {
 		dbg := NewDebugger(path, code, a.StopOnEntry)
@@ -117,29 +131,36 @@ func (s *dapServer) start() {
 		_, err := s.machine.Run(s.prog)
 		s.machine.WaitAsync()
 		logging.CloseAll() // bitmemiş ilerleme çubuklarının son satırı konsola
-		exitCode := 0
-		if c, ok := interp.IsExitRequest(err); ok {
+		end := s.machine.End(err)
+		if end.Message != "" {
 			// Programın istediği çıkış (ör. komut satırı seçeneklerinde --yardım ya da hatalı
 			// argüman): mesaj konsola, kod düzenleyiciye.
-			exitCode = c.Code
 			category := "stderr"
-			if c.Code == 0 {
+			if end.MessageToOutput {
 				category = "stdout"
 			}
-			if c.Message != "" {
-				s.output(category, s.machine.Mask(c.Message)+"\n")
-			}
-		} else if err != nil {
-			exitCode = 1
+			s.output(category, s.machine.Mask(end.Message)+"\n")
+		}
+		for _, failure := range end.Errors {
 			text := "❌ " + messages.Text(messages.H8126) + "\n"
-			for _, m := range interp.ErrorItems(err, s.machine.SourceCode) {
+			for _, m := range interp.ErrorItems(failure, s.machine.SourceCode) {
 				text += "  • " + m.Message + "\n" + turkish.IndentLines(m.Frame, "    ")
 			}
 			s.output("stderr", s.machine.Mask(text))
-		} else if u := s.machine.UnusedArgsWarning(); u != "" {
-			s.output("stderr", u+"\n")
 		}
-		s.event("exited", map[string]interface{}{"exitCode": exitCode})
+		s.event("exited", map[string]interface{}{"exitCode": end.Code})
 		s.event("terminated", nil)
 	}()
+}
+
+// launchFailed çalışmadan önceki bir hatayı (modül denetimi) hata ayıklama konsoluna yazar ve
+// oturumu bitirir.
+func (s *dapServer) launchFailed(msg *dapMessage, path string, err error, code string) {
+	text := "❌ " + messages.Text(messages.H8126) + "\n"
+	for _, m := range interp.ErrorItems(err, code) {
+		text += "  • " + m.Message + "\n" + turkish.IndentLines(m.Frame, "    ")
+	}
+	s.output("stderr", text)
+	s.respondErr(msg, messages.Text(messages.H8124, filepath.Base(path)))
+	s.event("terminated", nil)
 }

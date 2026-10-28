@@ -77,7 +77,7 @@ func main() {
 		return
 	}
 	if replacement, ok := oldCommand(args[0]); ok {
-		exitWithError(messages.Text(messages.H8602, args[0], replacement))
+		exitUsage(messages.Text(messages.H8602, args[0], replacement))
 	}
 	if looksLikeOption(args[0]) {
 		unknownTopLevelOption(args[0])
@@ -143,7 +143,7 @@ func versionCommand(args []string) {
 func checkCommand(args []string) {
 	file, _, ok := programFile(codes.NameRef(codes.CmdCheck), args)
 	if !ok {
-		exitWithError(messages.Text(messages.H8605, codes.NameRef(codes.CmdCheck), "ornek.tr"))
+		exitUsage(messages.Text(messages.H8605, codes.NameRef(codes.CmdCheck), "ornek.tr"))
 	}
 	checkFile(file)
 }
@@ -152,7 +152,7 @@ func checkCommand(args []string) {
 func buildCommand(args []string) {
 	files := fileArguments(codes.NameRef(codes.CmdBuild), args, nil, nil)
 	if len(files) < 1 {
-		exitWithError(messages.Text(messages.H8606, codes.NameRef(codes.CmdBuild)))
+		exitUsage(messages.Text(messages.H8606, codes.NameRef(codes.CmdBuild)))
 	}
 	outPath := ""
 	if len(files) >= 2 {
@@ -177,15 +177,25 @@ func dapCommand(args []string) {
 func runCommand(args []string) {
 	file, rest, ok := programFile(codes.NameRef(codes.CmdRun), args)
 	if !ok {
-		exitWithError(messages.Text(messages.H8605, codes.NameRef(codes.CmdRun), "ornek.tr"))
+		exitUsage(messages.Text(messages.H8605, codes.NameRef(codes.CmdRun), "ornek.tr"))
 	}
 	runFile(file, rest)
 }
+
+// usageExitCode tr'nin kendi kullanım hatasının çıkış kodudur (1.9).
+const usageExitCode = 2
 
 // exitWithError iletiyi "Hata: ..." olarak standart hataya yazar ve 1 koduyla çıkar.
 func exitWithError(message any) {
 	fmt.Fprintln(os.Stderr, turkish.Printable(messages.Text(messages.H8060, message)))
 	os.Exit(1)
+}
+
+// exitUsage kullanım hatasını (yanlış komut, seçenek ya da eksik argüman) "Hata: ..." olarak
+// standart hataya yazar ve 2 koduyla çıkar (1.9).
+func exitUsage(message any) {
+	fmt.Fprintln(os.Stderr, turkish.Printable(messages.Text(messages.H8060, message)))
+	os.Exit(usageExitCode)
 }
 
 // printError hatayı madde olarak yazar; konumu biliniyorsa kaynak satırını işaretçiyle gösterir.
@@ -242,21 +252,23 @@ func runFile(path string, arguments []string) {
 func debugCommand(args []string) {
 	file, rest, ok := programFile(codes.NameRef(codes.CmdDebug), args)
 	if !ok {
-		exitWithError(messages.Text(messages.H8608, codes.NameRef(codes.CmdDebug)))
+		exitUsage(messages.Text(messages.H8608, codes.NameRef(codes.CmdDebug)))
 	}
 	debugFile(file, rest)
 }
 
+// debugFile programı hata ayıklayıcıyla çalıştırır; çalışmadan önce 'tr kontrol'ün denetiminden
+// geçer (1.3).
 func debugFile(path string, arguments []string) {
-	machine, program, text := prepareProgram(path, arguments, debugPreparation)
+	machine, program, text := prepareProgram(path, arguments, runPreparation)
 	machine.Debugger = debugger.NewDebugger(path, text, true)
 	runProgram(machine, program, text)
 }
 
+// checkFile dosyayı ve aktardığı modülleri çalıştırmadan denetler; çalıştırmanın ilk adımı da
+// budur (checkProgram).
 func checkFile(path string) {
-	text, _ := prepareFile(path, runPreparation)
-	// Programın aktardığı modüller de (çalıştırılmadan) aynı denetimden geçer.
-	checkModules(path, text, runPreparation, "❌ "+messages.Text(messages.H8632))
+	checkProgram(path, runPreparation, "❌ "+messages.Text(messages.H8632))
 	fmt.Println("✅ " + messages.Text(messages.H8631, path))
 }
 
@@ -265,6 +277,7 @@ func startREPL() {
 	fmt.Println(messages.Text(messages.H8633, Version))
 	fmt.Println(messages.Text(messages.H8634, codes.NameRef(codes.ReplExit)))
 	machine := interp.New()
+	machine.SetInteractive()
 	// Kabuğa yazılan satırlar kişinin yazım dilindedir (source.Options.Typed); değerler de o
 	// dilde metne çevrilir (3).
 	machine.SourceLanguage = codes.Display().Code
@@ -320,6 +333,12 @@ func startREPL() {
 			updated := errs[previousTypeErrors:]
 			previousTypeErrors = len(errs)
 			writeDiags(typeHeader, updated, s.Text)
+			continue
+		}
+
+		// Satırın aktardığı modüller de çalışmadan önce denetlenir (1.3).
+		if err := interp.CheckImportedModules(machine.SourceFile, s.Program); err != nil {
+			writeRunError(machine, err, line)
 			continue
 		}
 

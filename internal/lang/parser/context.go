@@ -7,8 +7,8 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// Deyim bağlamı: 'çık'/'devam' yalnızca bir döngünün, 'sonuç' (test gövdesinde ve modülün
-// üst düzeyinde) yalnızca bir fonksiyonun içinde geçerlidir. Bağlam ayrıştırırken izlenir;
+// Deyim bağlamı: 'çık'/'devam' yalnızca bir döngünün, 'sonuç' (test gövdesinde, modülün ve
+// programın üst düzeyinde) yalnızca bir fonksiyonun içinde geçerlidir. Bağlam ayrıştırırken izlenir;
 // fonksiyon, ok fonksiyonu, sondaki blok, test, ertele ve eşzamanlı gövdeleri sınırdır:
 // içlerinden dıştaki döngü görünmez.
 type stmtContext struct {
@@ -82,6 +82,9 @@ func (p *Parser) checkReturn(tok lexer.Token) {
 		p.syntaxError(tok, messages.H0153, tokenName(tok), codes.NameRef(codes.KwIf))
 	case p.module:
 		p.syntaxError(tok, messages.H0154, tokenName(tok))
+	default:
+		// Programın en dışında 'sonuç' yazılmaz: program TR_exit ile biter (1.10)
+		p.syntaxError(tok, messages.H0171, tokenName(tok), codes.NameRef(codes.FnExit))
 	}
 }
 
