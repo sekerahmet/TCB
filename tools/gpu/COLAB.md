@@ -1,8 +1,8 @@
 # Colab: GPU sınaması, ölçüm, profil ve ağır CPU koşuları
 
 Kod GitHub'dan çekilir ve Colab'da derlenir; Drive yalnızca eğitim verisi ve sonuçlar içindir
-(`Drive'ım/TR_dili/`). Ağır CPU koşuları (tam denetim, zorlama, CPU ölçümü) geliştiricinin makinesinde
-değil, Colab'ın CPU High-RAM çalışma zamanında yapılır ([`docs/development.md`](../../docs/development.md#ölçüm-disiplini)).
+(`Drive'ım/TR_dili/`). Ağır CPU koşuları (zorlama, uzun testler, CPU ölçümü) geliştiricinin makinesinde
+değil, Colab'ın CPU High-RAM çalışma zamanında yapılır; tam denetim makine meşgulse burada koşar ([`docs/development.md`](../../docs/development.md#ölçüm-disiplini)).
 
 ## Hücre standardı
 
