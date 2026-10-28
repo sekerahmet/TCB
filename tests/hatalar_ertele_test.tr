@@ -109,7 +109,7 @@ TR_test "9.4 ertele içindeki hata yutulmaz" {
     TR_assert_equal(["gövde", "ikinci temizlik"], iz)
 }
 
-TR_test "9.5 ertele çağrısının argümanları fonksiyon biterken hesaplanır" {
+TR_test "9.3 ertele çağrısının argümanları fonksiyon biterken hesaplanır" {
     TR_var görülen = []
     TR_func kaydet(x) { görülen.TR_append(x) }
     TR_func f() {

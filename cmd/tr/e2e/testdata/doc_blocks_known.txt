@@ -5,7 +5,8 @@ docs/spec/03_tipler.md:40
 docs/spec/03_tipler.md:65
 docs/spec/06_fonksiyonlar.md:46
 docs/spec/07_yapilar.md:55
-docs/spec/08_hata_yonetimi.md:22
+docs/spec/08_hata_yonetimi.md:23
+docs/spec/09_ertele.md:10
 docs/spec/10_eszamanlilik.md:7
 docs/spec/12_testler.md:5
 docs/spec/15_tensorler.md:118
