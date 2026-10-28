@@ -1,6 +1,6 @@
 # TR 4
 # TEST 3.13 denetim her ifadenin içine iner: liste, sözlük, aralık, yerleştirme, liste üreteci, indeks, üye, atama hedefi, yapı alanı ve metodu, eşle deseni, parametre varsayılanı
-TR_func kare(x: TR_Int): TR_Int { TR_return x * x }
+TR_func kare(x: TR_Int) -> TR_Int { TR_return x * x }
 TR_var l = [kare("a")] # ERROR H1004
 TR_var s = {"k": kare("b")} # ERROR H1004
 TR_var a = 0..kare("c") # ERROR H1004
