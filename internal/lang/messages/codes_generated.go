@@ -333,7 +333,6 @@ const (
 	H2495 Code = 2495 // {type} sözlük anahtarı olamaz: içeriği sonradan değişebilen değerler anahtar olarak kullanılamaz
 	H2496 Code = 2496 // <fonksiyon {name}>
 	H2497 Code = 2497 // <yerleşik {name}>
-	H2498 Code = 2498 // <yapı {name}>
 	H2499 Code = 2499 // JSON değerinden sonra beklenmeyen veri var
 	H2500 Code = 2500 // JSON çok derin iç içe (en fazla {max} seviye)
 	H2501 Code = 2501 // JSON nesne anahtarı metin olmalı

@@ -518,10 +518,10 @@ type StructDefVal struct {
 
 func (s *StructDefVal) Type() ValueType { return ValStruct }
 func (s *StructDefVal) Inspect() string { return s.Text(codes.ValueNames()) }
-func (s *StructDefVal) Text(lang *codes.Language) string {
-	return messages.TextIn(lang.Code, messages.H2498, s.Name)
-}
-func (s *StructDefVal) IsTruthy() bool { return true }
+
+// Text yapının metnidir: adı (7.6), tipin metni gibi.
+func (s *StructDefVal) Text(lang *codes.Language) string { return shownName(s.Name, lang) }
+func (s *StructDefVal) IsTruthy() bool                   { return true }
 
 type StructInstanceVal struct {
 	Def    *StructDefVal

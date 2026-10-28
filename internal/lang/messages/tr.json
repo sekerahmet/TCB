@@ -328,7 +328,6 @@
 "H2495": "{type} sözlük anahtarı olamaz: içeriği sonradan değişebilen değerler anahtar olarak kullanılamaz",
 "H2496": "<fonksiyon {name}>",
 "H2497": "<yerleşik {name}>",
-"H2498": "<yapı {name}>",
 "H2499": "JSON değerinden sonra beklenmeyen veri var",
 "H2500": "JSON çok derin iç içe (en fazla {max} seviye)",
 "H2501": "JSON nesne anahtarı metin olmalı",

@@ -21,12 +21,12 @@ TR_for k TR_in d { TR_print(k) }
 TR_var q = Nokta(c: 60, a: 20)
 TR_print(q)
 `
-	const want = "Nokta{zz: 1, a: 2, m: 3, b: 4, k: 5, c: 6}\n" +
-		"Nokta{zz: 1, a: 2, m: 3, b: 4, k: 5, c: 6}\n" +
+	const want = "Nokta(zz: 1, a: 2, m: 3, b: 4, k: 5, c: 6)\n" +
+		"Nokta(zz: 1, a: 2, m: 3, b: 4, k: 5, c: 6)\n" +
 		`{"z": 1, "a": 2, "m": 3, "b": 4, "k": 5, "c": 6, "en_son": 7}` + "\n" +
 		`["z", "a", "m", "b", "k", "c", "en_son"]` + "\n" +
 		"[1, 2, 3, 4, 5, 6, 7]\nz\na\nm\nb\nk\nc\nen_son\n" +
-		"Nokta{zz: 1, a: 20, m: 3, b: 4, k: 5, c: 60}\n"
+		"Nokta(zz: 1, a: 20, m: 3, b: 4, k: 5, c: 60)\n"
 	first, _, err := runTROut(t, program)
 	if err != nil {
 		t.Fatal(err)

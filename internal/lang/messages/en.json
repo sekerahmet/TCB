@@ -328,7 +328,6 @@
 "H2495": "{type} cannot be a dictionary key: values whose content can change later cannot be used as keys",
 "H2496": "<function {name}>",
 "H2497": "<builtin {name}>",
-"H2498": "<struct {name}>",
 "H2499": "unexpected data after the JSON value",
 "H2500": "JSON is nested too deeply (at most {max} levels)",
 "H2501": "a JSON object key must be a string",

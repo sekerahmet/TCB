@@ -147,13 +147,13 @@ TR_test "7.5 tanımda olmayan alana atama hatadır; nesnenin alanları her zaman
     TR_var p = Nokta(1, 2)
     TR_assert_equal("H2405", TR_error_code { p.z = 5 })
     TR_assert_equal("H2404", TR_error_code { p.taşı = 5 })
-    TR_assert_equal(`Nokta{x: 1, y: 2}`, TR_String(p))
+    TR_assert_equal(`Nokta(x: 1, y: 2)`, TR_String(p))
     TR_assert(p == Nokta(1, 2))
 }
 
 TR_test "7.6 nesneler içerikle karşılaştırılır; tip() yapının kendisini verir" {
     TR_assert(Nokta(1, 2) == Nokta(1, 2))
-    TR_assert_equal(`Nokta{x: 1, y: 2}`, TR_String(Nokta(1, 2)))
+    TR_assert_equal(`Nokta(x: 1, y: 2)`, TR_String(Nokta(1, 2)))
     TR_assert_equal(Nokta, TR_Type(Nokta()))
     TR_assert(TR_Type(Nokta()) == Nokta)
     TR_assert_equal("Nokta", TR_String(TR_Type(Nokta())))

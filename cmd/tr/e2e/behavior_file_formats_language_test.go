@@ -144,7 +144,7 @@ func TestFunctionTextIsLanguageIndependent(t *testing.T) {
 	program := "TR_func f() { TR_return 1 }\nTR_struct P { a }\nTR_var l = [1]\nTR_print(TR_String(f), TR_String(P), TR_String(TR_print), TR_String(l.TR_append), \"\\(f)\", TR_String((x) => x))\n" +
 		""
 	sameOutputInEveryDisplayLanguage(t, program,
-		"<function f> <struct P> <builtin print> <builtin append> <function f> <lambda>\n")
+		"<function f> P <builtin print> <builtin append> <function f> <lambda>\n")
 }
 
 // Sonsuz ve tanımsız sayının adı (TR_val_inf, TR_val_nan) sayıda ve tensörde aynıdır, dilden

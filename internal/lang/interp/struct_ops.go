@@ -218,14 +218,15 @@ func structsEqual(x *StructInstanceVal, b Value, nestDepth int) bool {
 }
 
 // structCycleText yazılmakta olan bir nesneye yeniden varılınca yazılan metindir (7.6).
-func structCycleText(x *StructInstanceVal, lang *codes.Language) string {
-	return shownName(x.Def.Name, lang) + "{...}"
+func structCycleText(*StructInstanceVal, *codes.Language) string {
+	return "..."
 }
 
-// writeStruct nesnenin metnini yazar: yapının adı ve alanları, tanım sırasıyla (7.6).
+// writeStruct nesnenin metnini kurma yazımıyla yazar (7.6): yapının adı ve alanları adlarıyla, tanım
+// sırasıyla: Nokta(x: 3.0, y: 4.0). Metin programa kopyalanınca aynı değeri kurar.
 func writeStruct(sb *strings.Builder, x *StructInstanceVal, lang *codes.Language, filePath []Value) {
 	sb.WriteString(shownName(x.Def.Name, lang))
-	sb.WriteByte('{')
+	sb.WriteByte('(')
 	first := true
 	for _, f := range x.Def.Fields {
 		if val, ok := x.Fields[f.Name]; ok {
@@ -238,5 +239,5 @@ func writeStruct(sb *strings.Builder, x *StructInstanceVal, lang *codes.Language
 			sb.WriteString(writeItem(val, lang, filePath))
 		}
 	}
-	sb.WriteByte('}')
+	sb.WriteByte(')')
 }
