@@ -49,6 +49,18 @@ func (c *compiler) prefixText(k *compilerScope, e *ast.PrefixExpression) exprCod
 			}
 			return nil, messages.At(line, 0, messages.New(messages.H2445, right.Type()))
 		}
+	case "~":
+		// Bit tümlemesi yalnız TR_Int'te (4.12).
+		return func(v *VM, env *Environment) (Value, error) {
+			right, err := rightFn(v, env)
+			if err != nil {
+				return nil, err
+			}
+			if rv, ok := right.(*IntVal); ok {
+				return NewInt(^rv.Val), nil
+			}
+			return nil, messages.At(line, 0, messages.New(messages.H2608, right.Type()))
+		}
 	}
 	return func(v *VM, env *Environment) (Value, error) {
 		if _, err := rightFn(v, env); err != nil {
@@ -88,21 +100,36 @@ func intFastFunc(codeVal uint8) intFast {
 			return NewInt(a * b), true
 		}
 	case opMod:
+		// Kalan bölenin işaretini alır (4.2a): -7 % 3 = 2.
 		return func(a, b int64) (Value, bool) {
 			if b == 0 {
 				return nil, false
 			}
-			return NewInt(a % b), true
+			r := a % b
+			if r != 0 && (r < 0) != (b < 0) {
+				r += b
+			}
+			return NewInt(r), true
 		}
-	case opDiv:
+	case opFloorDiv:
+		// Tam bölme aşağı yuvarlar (4.2a): -7 // 2 = -4; en küçük TR_Int'in // -1'i taşmadır.
 		return func(a, b int64) (Value, bool) {
 			if b == 0 || (a == math.MinInt64 && b == -1) {
 				return nil, false
 			}
-			if a%b == 0 {
-				return NewInt(a / b), true
+			q := a / b
+			if a%b != 0 && (a < 0) != (b < 0) {
+				q--
 			}
-			return &FloatVal{Val: float64(a) / float64(b)}, true
+			return NewInt(q), true
+		}
+	case opDiv:
+		// '/' her zaman ondalık verir (4.2): 6 / 3 = 2.0.
+		return func(a, b int64) (Value, bool) {
+			if b == 0 {
+				return nil, false
+			}
+			return &FloatVal{Val: trueDiv(a, b)}, true
 		}
 	case opLt:
 		return func(a, b int64) (Value, bool) { return BoolToVal(a < b), true }
@@ -116,6 +143,36 @@ func intFastFunc(codeVal uint8) intFast {
 		return func(a, b int64) (Value, bool) { return BoolToVal(a == b), true }
 	case opNe:
 		return func(a, b int64) (Value, bool) { return BoolToVal(a != b), true }
+	}
+	return intBitFunc(codeVal)
+}
+
+// intBitFunc bit işleçlerinin hızlı yoludur (4.12); kaydırma miktarı 0–63 dışındaysa ok=false
+// (hata genel yolda, H2606).
+func intBitFunc(codeVal uint8) intFast {
+	switch codeVal {
+	case opBitAnd:
+		return func(a, b int64) (Value, bool) { return NewInt(a & b), true }
+	case opBitOr:
+		return func(a, b int64) (Value, bool) { return NewInt(a | b), true }
+	case opBitXor:
+		return func(a, b int64) (Value, bool) { return NewInt(a ^ b), true }
+	case opShl:
+		// Dışarı taşan bitler atılır (4.12); miktar 0–63 dışındaysa hata genel yolda.
+		return func(a, b int64) (Value, bool) {
+			if b < 0 || b > 63 {
+				return nil, false
+			}
+			return NewInt(a << uint(b)), true
+		}
+	case opShr:
+		// '>>' işareti korur: -8 >> 1 = -4.
+		return func(a, b int64) (Value, bool) {
+			if b < 0 || b > 63 {
+				return nil, false
+			}
+			return NewInt(a >> uint(b)), true
+		}
 	}
 	return nil
 }
@@ -132,12 +189,6 @@ func (c *compiler) binary(k *compilerScope, e *ast.InfixExpression) exprCode {
 	rightFn := c.expression(k, e.Right)
 	op := string(e.Operator)
 	line := e.Line()
-	if op == "//" {
-		// Tam bölmenin sözcüğü ve ayrıştırılması var (2.2); çalışma anlamı (4.2a) henüz yok.
-		return func(*VM, *Environment) (Value, error) {
-			return nil, messages.At(line, 0, messages.New(messages.H2046))
-		}
-	}
 
 	// Kısa devre ve özel operatörler (&&, ||, ??, |>)
 	switch codeVal {

@@ -263,6 +263,7 @@ var binaryOps = map[lexer.TokenType]bool{
 	lexer.TokEq: true, lexer.TokNotEq: true, lexer.TokLt: true, lexer.TokGt: true,
 	lexer.TokLte: true, lexer.TokGte: true, lexer.TokAnd: true, lexer.TokOr: true,
 	lexer.TokPipe: true, lexer.TokNullCoalesc: true, lexer.TokArrow: true,
+	lexer.TokBitAnd: true, lexer.TokBitOr: true, lexer.TokBitXor: true, lexer.TokShl: true, lexer.TokShr: true,
 	lexer.TokAssign: true, lexer.TokWalrus: true, lexer.TokPlusAssign: true,
 	lexer.TokMinusAssign: true, lexer.TokMulAssign: true, lexer.TokDivAssign: true,
 }
@@ -281,7 +282,8 @@ var continuingStart = map[lexer.TokenType]bool{
 	lexer.TokPlus: true, lexer.TokAsterisk: true, lexer.TokSlash: true, lexer.TokPercent: true,
 	lexer.TokPower: true, lexer.TokMatmul: true, lexer.TokEq: true, lexer.TokNotEq: true,
 	lexer.TokLt: true, lexer.TokGt: true, lexer.TokLte: true, lexer.TokGte: true,
-	lexer.TokRange: true, lexer.TokRangeIncl: true,
+	lexer.TokRange: true, lexer.TokRangeIncl: true, lexer.TokBitAnd: true, lexer.TokBitOr: true,
+	lexer.TokBitXor: true, lexer.TokShl: true, lexer.TokShr: true,
 }
 
 // isUnary '-' işaretinin önceki sözcüğe bakarak önek (tekli) olup olmadığını belirler.
@@ -351,7 +353,7 @@ func mark(og []item, braces map[pos]int) {
 		if o.kind == tokComment || o.kind == lexer.TokEOF {
 			continue
 		}
-		if o.kind == lexer.TokBang {
+		if o.kind == lexer.TokBang || o.kind == lexer.TokTilde {
 			o.unary = true
 		} else if o.kind == lexer.TokMinus {
 			read := i+1 < len(og) && og[i+1].kind == lexer.TokGt && og[i+1].adjacent &&

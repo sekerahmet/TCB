@@ -30,6 +30,7 @@ func TestStandardFormat(t *testing.T) {
 		{"operatör boşlukları", "TR_var   x=1+2*3\n", "TR_var x = 1 + 2 * 3\n"},
 		{"virgül ve parantez", "TR_print( 1 ,2,  3 )\n", "TR_print(1, 2, 3)\n"},
 		{"tekli eksi", "x = -1\ny = a-b\nz = f(-x) * -2\nw = -1\n", "x = -1\ny = a - b\nz = f(-x) * -2\nw = -1\n"},
+		{"bit işleçleri ve tam bölme", "a = ~5\nb = 1&2|3^4<<1>>2\nc = 7//2\nd = -a & ~b\n", "a = ~5\nb = 1 & 2 | 3 ^ 4 << 1 >> 2\nc = 7 // 2\nd = -a & ~b\n"},
 		{"değil ve ünlem", "a = !b\nc = TR_not (d)\n", "a = !b\nc = TR_not (d)\n"},
 		{"girinti 4 boşluk", "TR_if x {\n  TR_print(1)\n\t\tTR_if y {\nTR_print(2)\n}\n}\n",
 			"TR_if x {\n    TR_print(1)\n    TR_if y {\n        TR_print(2)\n    }\n}\n"},

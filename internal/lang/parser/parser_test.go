@@ -184,6 +184,12 @@ func TestPrecedenceTableShape(t *testing.T) {
 		"TR_not a < b TR_or c": "((!(a < b)) || c)",
 		"a < b + 1":            "(a < (b + 1))",
 		"(a < b) == c":         "((a < b) == c)",
+		"x & 1 == 0":           "((x & 1) == 0)",
+		"a | b ^ c & d":        "(a | (b ^ (c & d)))",
+		"1 << 2 + 3":           "(1 << (2 + 3))",
+		"0..n | 1":             "(0 .. (n | 1))",
+		"~a ** 2":              "(~(a ** 2))",
+		"-a >> 1":              "((-a) >> 1)",
 	}
 	for code, want := range cases {
 		if got := shape(firstExpr(t, code)); got != want {
@@ -222,6 +228,7 @@ func TestChainAndCoalescingErrors(t *testing.T) {
 		{"TR_var x = d ?? 2 ** 3", "**", messages.H0201},
 		{"TR_var x = d ?? f(1) * 2", "*", messages.H0201},
 		{"TR_var x = d ?? 0..3", "..", messages.H0201},
+		{"TR_var x = d ?? 1 & m", "&", messages.H0201},
 	} {
 		line, col := posOf(t, d.code, d.at)
 		if errs := parseErrs(d.code); !hasErrAt(errs, line, col, d.want) {

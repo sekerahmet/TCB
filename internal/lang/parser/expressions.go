@@ -42,7 +42,7 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		leftExp = &ast.BooleanLiteral{Token: p.curToken(), Value: false}
 	case lexer.TokNil:
 		leftExp = &ast.NullLiteral{Token: p.curToken()}
-	case lexer.TokBang, lexer.TokMinus, lexer.TokKwNot:
+	case lexer.TokBang, lexer.TokMinus, lexer.TokTilde, lexer.TokKwNot:
 		leftExp = p.parsePrefixExpression()
 	case lexer.TokLParen:
 		leftExp = p.parseGroupedOrLambdaExpression(pattern)
@@ -202,7 +202,7 @@ func (p *Parser) startsExpression() bool {
 	}
 	switch p.curToken().Type {
 	case lexer.TokIdent, lexer.TokSelf, lexer.TokInt, lexer.TokFloat, lexer.TokString,
-		lexer.TokTrue, lexer.TokFalse, lexer.TokNil, lexer.TokBang, lexer.TokMinus,
+		lexer.TokTrue, lexer.TokFalse, lexer.TokNil, lexer.TokBang, lexer.TokMinus, lexer.TokTilde,
 		lexer.TokKwNot, lexer.TokLParen, lexer.TokIf, lexer.TokMatch, lexer.TokFunction,
 		lexer.TokLBracket, lexer.TokLBrace:
 		return true
@@ -232,7 +232,8 @@ func (p *Parser) parseInfixChain(leftExp ast.Expression, precedence int) ast.Exp
 			lexer.TokPercent, lexer.TokPower, lexer.TokMatmul,
 			lexer.TokEq, lexer.TokNotEq, lexer.TokLt, lexer.TokGt,
 			lexer.TokLte, lexer.TokGte, lexer.TokAnd, lexer.TokOr,
-			lexer.TokKwAnd, lexer.TokKwOr, lexer.TokPipe, lexer.TokNullCoalesc:
+			lexer.TokKwAnd, lexer.TokKwOr, lexer.TokPipe, lexer.TokNullCoalesc,
+			lexer.TokBitAnd, lexer.TokBitOr, lexer.TokBitXor, lexer.TokShl, lexer.TokShr:
 			// Yeni satırın başındaki ikili işleç önceki ifadeyi sürdürmez (2.8): 'a = 1'
 			// ardından gelen '-x' satırı 'a = 1 - x' okunmaz (Go, Python, Kotlin gibi). İfadeyi
 			// bölmek için işleç satır sonuna yazılır ya da parantez kullanılır. Zincir işleci
@@ -287,7 +288,8 @@ func (p *Parser) leadingBinaryOperator() bool {
 		lexer.TokPower, lexer.TokMatmul, lexer.TokEq, lexer.TokNotEq, lexer.TokLt,
 		lexer.TokGt, lexer.TokLte, lexer.TokGte, lexer.TokAnd, lexer.TokOr,
 		lexer.TokKwAnd, lexer.TokKwOr, lexer.TokNullCoalesc, lexer.TokRange,
-		lexer.TokRangeIncl:
+		lexer.TokRangeIncl, lexer.TokBitAnd, lexer.TokBitOr, lexer.TokBitXor, lexer.TokShl,
+		lexer.TokShr:
 	default:
 		return false
 	}

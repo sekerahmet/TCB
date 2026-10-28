@@ -109,17 +109,17 @@ func TestSelfContainingContainers(t *testing.T) {
 	}
 }
 
-// Tam sayı kenarları: en küçük değerin '/ -1' ve tekli eksisi taşma hatası verir; iki Tam
+// Tam sayı kenarları: en küçük değerin '// -1'i ve tekli eksisi taşma hatası verir; iki Tam
 // doğrudan karşılaştırılır.
 func TestIntEdges(t *testing.T) {
 	_, val, err := runTROut(t, `
 		TR_var en_kucuk = -9223372036854775807 - 1
 		TR_var b = -1
 		TR_var sonuclar = []
-		TR_try { sonuclar.TR_append(en_kucuk / b) } TR_catch h { sonuclar.TR_append(h) }
+		TR_try { sonuclar.TR_append(en_kucuk // b) } TR_catch h { sonuclar.TR_append(h) }
 		TR_try { sonuclar.TR_append(-en_kucuk) } TR_catch h { sonuclar.TR_append(h) }
 		TR_try { TR_var x = en_kucuk
-			x /= -1 } TR_catch h { sonuclar.TR_append("bileşik taşma") }
+			x *= -1 } TR_catch h { sonuclar.TR_append("bileşik taşma") }
 		sonuclar.TR_append(9007199254740993 == 9007199254740992)
 		sonuclar.TR_append(9007199254740993 != 9007199254740992)
 		sonuclar.TR_append([9007199254740993] == [9007199254740992])
@@ -127,7 +127,7 @@ func TestIntEdges(t *testing.T) {
 		sonuclar.TR_append(en_kucuk % b)
 		TR_var result = sonuclar
 	`)
-	want := `["Line 5: Int overflow (-9223372036854775808 / -1); for a decimal result write e.g. -9223372036854775808.0 / -1", ` +
+	want := `["Line 5: Int overflow (-9223372036854775808 // -1); for a decimal result write e.g. -9223372036854775808.0 // -1", ` +
 		`"Line 6: Int overflow (-(-9223372036854775808)); for a decimal result write e.g. -(-9223372036854775808.0)", ` +
 		`"bileşik taşma", yanlış, doğru, yanlış, doğru, 0]`
 	if err != nil || val.Inspect() != want {

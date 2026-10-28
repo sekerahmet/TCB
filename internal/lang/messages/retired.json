@@ -27,6 +27,10 @@
   "commit": "0f969d3",
   "reason": "deleted: checker: an unused value without a call is the error H1017 (2.8)"
  },
+ "H2046": {
+  "commit": "83891db1",
+  "reason": "deleted: interp: '//' is floor division (4.2a); the not-implemented error is gone"
+ },
  "H2116": {
   "commit": "be79d7e",
   "reason": "deleted: cmd/tr: tr çöz is gone; nothing writes a file to disk in a writing language"

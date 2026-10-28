@@ -24,22 +24,68 @@ TR_test "4.1 öncelik: aralık toplamadan gevşek, ?? karşılaştırmadan sık�
     TR_assert_equal(0.5, 2.0 ** -1)
 }
 
-TR_test "4.2 aritmetik: tam bölme tam çıkarsa Tam, değilse Ondalık" {
-    TR_assert_equal(2, 6 / 3)
-    TR_assert_equal(TR_Int, TR_type(6 / 3))
+TR_test "4.2 aritmetik: '/' her zaman Ondalık verir, iki Tam'ın + - * Tam'dır" {
+    TR_assert_equal(2.0, 6 / 3)
+    TR_assert_equal(TR_Float, TR_type(6 / 3))
+    TR_assert_equal("2.0", "\(6 / 3)")
     TR_assert_equal(3.5, 7 / 2)
-    TR_assert_equal(1, 7 % 3)
-    TR_assert_equal(1.5, 5.5 % 2)
+    TR_assert_equal(-3.5, -7 / 2)
+    TR_assert_equal(TR_Int, TR_type(7 * 2 - 3))
     TR_assert_equal(3.5, 1 + 2.5)
+    # 2^53'ün üstünde de en yakın ondalığa yuvarlanır
+    TR_assert_equal(9007199254740992.0, 9007199254740993 / 1)
 }
 
 TR_test "4.2 sıfıra bölme hata verir" {
     TR_assert_equal("H2470", TR_error_code(() => { TR_var z = 1 / 0 }))
+    TR_assert_equal("H2470", TR_error_code(() => { TR_var z = 1.5 / 0 }))
 }
 
-TR_test "4.3 üs alma sağdan birleşir, negatif üs Ondalık verir" {
+TR_test "4.2a '//' aşağı yuvarlar, '%' bölenin işaretini alır" {
+    TR_assert_equal(3, 7 // 2)
+    TR_assert_equal(-4, -7 // 2)
+    TR_assert_equal(-4, 7 // -2)
+    TR_assert_equal(TR_Int, TR_type(7 // 2))
+    TR_assert_equal(1, 7 % 3)
+    TR_assert_equal(2, -7 % 3)
+    TR_assert_equal(-1, 7 % -2)
+    TR_assert_equal(1.5, 7.5 % 2)
+    TR_assert_equal(0.5, -7.5 % 2)
+    TR_assert_equal(3.0, 7.5 // 2)
+    TR_assert_equal(TR_Float, TR_type(7 // 2.0))
+    # iki Tam'da bölüm ile kalan birbirini tutar; halka arabelleğinde eksi indeks de doğru çıkar
+    TR_for a TR_in [-7, -1, 0, 5, 9] {
+        TR_for b TR_in [-3, 2, 4] {
+            TR_assert_equal(a, (a // b) * b + a % b)
+        }
+    }
+    TR_assert_equal(4, (0 - 1) % 5)
+}
+
+TR_test "4.2a sıfıra bölme ve en küçük Tam'ın // -1'i hatadır" {
+    TR_assert_equal("H2470", TR_error_code(() => { TR_var z = 1 // 0 }))
+    TR_assert_equal("H2470", TR_error_code(() => { TR_var z = 1.0 // 0 }))
+    TR_assert_equal("H2471", TR_error_code(() => { TR_var z = 1 % 0 }))
+    TR_var en_küçük = -9223372036854775807 - 1
+    TR_assert_equal("H2473", TR_error_code(() => { TR_var z = en_küçük // -1 }))
+    TR_assert_equal(0, en_küçük % -1)
+}
+
+TR_test "4.3 üs alma sağdan birleşir; iki Tam'da eksi üs hatadır" {
     TR_assert_equal(1024, 2 ** 10)
-    TR_assert_equal(0.5, 2 ** -1)
+    TR_assert_equal(TR_Int, TR_type(2 ** 10))
+    TR_assert_equal(0.5, 2.0 ** -1)
+    TR_assert_equal(0.5, 2 ** -1.0)
+    TR_assert_equal("H2603", TR_error_code(() => { TR_var z = 2 ** -1 }))
+    TR_assert_equal("H2472", TR_error_code(() => { TR_var z = 2 ** 64 }))
+}
+
+TR_test "4.3 sıfırın eksi üssü ve eksi sayının tam olmayan üssü hatadır" {
+    TR_assert_equal("H2604", TR_error_code(() => { TR_var z = 0.0 ** -1 }))
+    TR_assert_equal("H2604", TR_error_code(() => { TR_var z = 0 ** -1.0 }))
+    TR_assert_equal("H2605", TR_error_code(() => { TR_var z = (-8.0) ** (1.0 / 3) }))
+    TR_assert_equal(-8.0, (-2.0) ** 3)
+    TR_assert_equal(1.0, 0.0 ** 0)
 }
 
 TR_test "4.4 karşılaştırma sayılar arasında yapılır" {
@@ -163,4 +209,30 @@ TR_test "4.11 @ matris çarpımıdır" {
     TR_var m = TR_tensor([[1, 2], [3, 4]]) @ TR_tensor([[1], [1]])
     TR_assert_equal([2, 1], m.TR_shape)
     TR_assert_equal(7.0, m[1][0])
+}
+
+TR_test "4.12 bit işleçleri Tam'da: & | ^ ~ << >>" {
+    TR_assert_equal(5, 0x0F & 0b0101)
+    TR_assert_equal(7, 5 | 2)
+    TR_assert_equal(6, 5 ^ 3)
+    TR_assert_equal(-6, ~5)
+    TR_assert_equal(16, 1 << 4)
+    TR_assert_equal(-4, -8 >> 1)
+    TR_assert_equal(-1, -1 >> 63)
+    # dışarı taşan bitler atılır
+    TR_assert_equal(-9223372036854775807 - 1, 1 << 63)
+    TR_assert_equal(-4611686018427387904, 3 << 62)
+    # öncelik: bit maskesi sınaması parantezsiz okunur
+    TR_var x = 6
+    TR_assert_equal(TR_true, x & 1 == 0)
+    TR_assert_equal(3, 1 | 2 ^ 3 & 4)
+    TR_assert_equal(8, 1 + 1 << 2)
+}
+
+TR_test "4.12 kaydırma 0-63 dışında ve Tam olmayan işlenen hatadır" {
+    TR_assert_equal("H2606", TR_error_code(() => { TR_var z = 1 << 64 }))
+    TR_assert_equal("H2606", TR_error_code(() => { TR_var z = 1 >> -1 }))
+    TR_assert_equal("H2607", TR_error_code(() => { TR_var z = 1.0 & 1 }))
+    TR_assert_equal("H2607", TR_error_code(() => { TR_var z = TR_true | TR_false }))
+    TR_assert_equal("H2608", TR_error_code(() => { TR_var z = ~1.5 }))
 }
