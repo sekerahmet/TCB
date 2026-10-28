@@ -132,9 +132,9 @@ TR_test "7.5 alanlar atanabilir; olmayan alan hata verir" {
 TR_test "7.5 ileti en yakın alanı önerir, yoksa alanı eklemeyi" {
     TR_var p = Nokta(1, 2)
     TR_var iletiler = []
-    TR_try { TR_print(p.yy) } TR_catch { iletiler.TR_append(TR_error) }
-    TR_try { p.xx = 3 } TR_catch { iletiler.TR_append(TR_error) }
-    TR_try { TR_print(p.renk) } TR_catch { iletiler.TR_append(TR_error) }
+    TR_try { TR_print(p.yy) } TR_catch e { iletiler.TR_append(e) }
+    TR_try { p.xx = 3 } TR_catch e { iletiler.TR_append(e) }
+    TR_try { TR_print(p.renk) } TR_catch e { iletiler.TR_append(e) }
     TR_assert(iletiler[0].TR_contains("'y'"), iletiler[0])
     TR_assert(iletiler[1].TR_contains("'x'"), iletiler[1])
     TR_assert(iletiler[2].TR_contains("renk: "), iletiler[2])
