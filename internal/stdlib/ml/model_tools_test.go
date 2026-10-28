@@ -258,7 +258,7 @@ func TestParameters(t *testing.T) {
 TR_func p(x) { TR_return TR_Tensor([x], TR_requires_grad: TR_true) }
 TR_struct Dikkat { Wq, Wk, ölçek }
 TR_struct Blok { TR_attention, mlp }
-TR_struct Model { TR_embedding, TR_blocks, TR_last, ad, ek }
+TR_struct Model { TR_embedding, TR_blocks, TR_last, ad, ek = TR_none }
 TR_var ortak = p(9)
 TR_var m = Model(p(1), [Blok(Dikkat(p(2), p(3), 0.5), [p(4), ortak]), Blok(Dikkat(p(5), ortak, 1), {"W1": p(6), "sabit": TR_Tensor([0.0])})], ortak, "küçük")
 m.ek = p(7)
@@ -303,7 +303,7 @@ TR_print(TR_parameters(l).TR_length)
 // AlanlariGez tanım sırasını, ardından sonradan eklenen alanları ad sırasıyla verir.
 func TestFieldWalkOrder(t *testing.T) {
 	v := value(t, `
-TR_struct A { z, a, b, y }
+TR_struct A { z, a, b = TR_none, y = TR_none }
 TR_var x = A(1, 2)
 x.y = 3
 x.b = 4
