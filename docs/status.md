@@ -362,7 +362,7 @@ Kurallar: [`docs/spec/09_ertele.md`](spec/09_ertele.md). Taslak (2026-10-28): an
 ### 9.3
 
 - **Mevcut durum:** blok çalıştığı anda okuyor (`TR_defer TR_print(x)` sonra `x = 2` → 2); ertelenen bloktaki `TR_return 5` sessizce yok sayılıyor, fonksiyon 1 döndürüyor; `TR_break` ve `TR_continue` sözdizimi hatası, iletileri `TR_return`'ü öneriyor [ölçüldü: DENETİM].
-- **Yapılacaklar:** ertelenen bloktan `TR_return` ile çıkışın hatası; üçünün hatası 5.13'teki gibi denetim hatası; iletiler `TR_return`'ü önermez.
+- **Yapılacaklar:** ertelenen bloktan `TR_return` ile çıkışın hatası; üçü de sözdizimi hatası (5.13'ün "denetim" sözü 3A birleşince "sözdizimi" olacak: dosya okunurken bulunan hata sözdizimi hatasıdır, katman 3'ün 1. kararı); iletiler `TR_return`'ü önermez.
 
 ### 9.4
 
