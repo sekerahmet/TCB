@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/lang/source"
 	"io"
 	"os"
 	"path/filepath"
@@ -335,7 +336,7 @@ func TestDAPGotoAndLaunchErrors(t *testing.T) {
 
 	// Sözdizimi hatalı program: launch başarısız olur, hata ayıklama konsoluna yazılır
 	c2 := startDAP(t)
-	bad := writeProgram(t, "değişken a = \nyazdır(a\n")
+	bad := writeProgram(t, source.Header+"\nTR_var a = \nTR_print(a\n")
 	c2.request("initialize", map[string]interface{}{"adapterID": "tr"})
 	seq := c2.send("launch", map[string]interface{}{"program": bad})
 	resp := c2.next(func(m map[string]interface{}) bool {

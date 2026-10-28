@@ -7,6 +7,8 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
 // bindSource üye erişimleri, parametreler, adlı argümanlar ve komut_satırı anahtarları için bir proje.
@@ -159,8 +161,9 @@ func TestOptionNameFollowsTheFilesLanguage(t *testing.T) {
 var memberGuessFiles = map[string]string{
 	"katman.tr": func() string {
 		var b strings.Builder
+		b.WriteString(source.Header + "\n")
 		for i := 1; i <= 5; i++ {
-			fmt.Fprintf(&b, "yapı Katman%d {\n    ağırlık = %d\n    fonksiyon ileri() {\n        sonuç kendi.ağırlık\n    }\n", i, i)
+			fmt.Fprintf(&b, "TR_struct Katman%d {\n    ağırlık = %d\n    TR_func ileri() {\n        TR_return TR_self.ağırlık\n    }\n", i, i)
 			if i <= 2 {
 				b.WriteString("    TR_func geri() {\n        TR_return 0\n    }\n")
 			}
@@ -168,8 +171,8 @@ var memberGuessFiles = map[string]string{
 		}
 		return b.String()
 	}(),
-	"kullan.tr": "TR_import \"katman\"\n\nTR_func çalış(p) {\n    TR_print(p.TR_forward())\n    p.TR_weight = 2\n    TR_print(p.geri())\n}\n",
-	"başka.tr":  "TR_func başka(p) {\n    TR_print(p.TR_forward())\n    TR_print(p.TR_weight)\n}\n",
+	"kullan.tr": source.Header + "\nTR_import \"katman\"\n\nTR_func çalış(p) {\n    TR_print(p.ileri())\n    p.ağırlık = 2\n    TR_print(p.geri())\n}\n",
+	"başka.tr":  source.Header + "\nTR_func başka(p) {\n    TR_print(p.ileri())\n    TR_print(p.ağırlık)\n}\n",
 }
 
 // Kural: alıcısı bilinmeyen üye erişimi (`p.ileri()`, `p.ağırlık = 2`) aynı adlı ve erişimin dosyasından görünen her
@@ -198,9 +201,9 @@ func TestMemberGuessesAreLikelyOnlyWhereTheMemberIsVisible(t *testing.T) {
 		return out
 	}
 	for q, want := range map[string]string{
-		"Katman3.ileri":   "kullan.tr:4 call name_only",
-		"Katman3.ağırlık": "kullan.tr:5 write name_only",
-		"Katman1.geri":    "kullan.tr:6 call name_match",
+		"Katman3.ileri":   "kullan.tr:5 call name_only",
+		"Katman3.ağırlık": "kullan.tr:6 write name_only",
+		"Katman1.geri":    "kullan.tr:7 call name_match",
 	} {
 		if got := strings.Join(likely(q), "; "); got != want {
 			t.Errorf("rename %s: likely %q, want %q (başka.tr does not import katman.tr)", q, got, want)

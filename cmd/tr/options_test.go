@@ -42,7 +42,7 @@ func TestUnknownOptionIsNotAFile(t *testing.T) {
 	if out, ok := trOutput(t, "--"+help); ok || !strings.Contains(out, messages.Text(messages.H8602, "--"+help, help)) {
 		t.Errorf("tr --%s: 'tr %s' önerisi bekleniyordu, gelen:\n%s", help, help, out)
 	}
-	if out, _ := trOutput(t, codes.DisplayName(codes.CmdCheck), "--", "-TR_none.tr"); !strings.Contains(out, "-TR_none.tr") || strings.Contains(out, "--x") {
+	if out, _ := trOutput(t, codes.DisplayName(codes.CmdCheck), "--", "-yok.tr"); !strings.Contains(out, "-yok.tr") || strings.Contains(out, "--x") {
 		t.Errorf("tr kontrol -- -yok.tr: '-yok.tr' dosya olarak okunmalıydı, gelen:\n%s", out)
 	}
 }

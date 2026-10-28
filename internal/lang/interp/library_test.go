@@ -6,6 +6,7 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
@@ -31,19 +32,19 @@ func TestImportIgnoresWorkingDir(t *testing.T) {
 		"yardimci.tr":     "TR_var kimden = \"programın yanı\"\n",
 		"alt/modul.tr":    "TR_import \"yardimci\"\nTR_var alt_kimden = kimden\n",
 		"alt/yardimci.tr": "TR_var kimden = \"alt modülün yanı\"\n",
-		"ana.tr": "aktar \"yardimci\"\nyazdır(kimden)\naktar \"alt/modul\" olarak m\nyazdır(m.alt_kimden)\n" +
-			"dene { aktar \"ozel\" } yakala h { yazdır(h) }\n",
+		"ana.tr":          "TR_import \"yardimci\"\nTR_import \"alt/modul\" TR_as m\nTR_print(kimden)\nTR_print(m.alt_kimden)\n",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	lines := strings.Split(strings.TrimSpace(out), "\n")
-	if len(lines) != 3 || lines[0] != "programın yanı" || lines[1] != "alt modülün yanı" {
+	if out != "programın yanı\nalt modülün yanı\n" {
 		t.Fatalf("modüller aktaranın klasöründen yüklenmeli:\n%s", out)
 	}
-	// Yalnızca çalışma klasöründe olan modül bulunmaz; hata bakılan yerleri söyler.
-	if !strings.Contains(lines[2], "bulunamadı") && !strings.Contains(lines[2], "yok") || strings.Contains(lines[2], execution) {
-		t.Fatalf("çalışma klasöründeki modül yüklenmemeli, hata yalnızca programın klasörünü göstermeli:\n%s", lines[2])
+	// Yalnızca çalışma klasöründe olan modül bulunmaz; hata bakılan yerleri söyler. Aktarma dosyanın
+	// başındadır (2.1), hata yakalanamaz: ayrı bir programla sınanır.
+	_, err = runWithModules(t, prog, map[string]string{"ana.tr": "TR_import \"ozel\"\n"})
+	if err == nil || !strings.Contains(err.Error(), "ozel.tr") || strings.Contains(err.Error(), execution) {
+		t.Fatalf("çalışma klasöründeki modül yüklenmemeli, hata yalnızca programın klasörünü göstermeli: %v", err)
 	}
 }
 
@@ -86,11 +87,11 @@ func TestLibraryPrefix(t *testing.T) {
 // Kitaplık modülünün hatası "tr/..." adıyla ve kendi satırıyla yazılır; göreli dosya yolları
 // kitaplığın (diskte olmayan) klasörüne göre aranmaz.
 func TestLibraryModuleError(t *testing.T) {
-	withLibrary(t, fstest.MapFS{"m.tr": {Data: []byte("TR_func böl(a) {\n    TR_return a / 0\n}\n")}})
+	withLibrary(t, fstest.MapFS{"m.tr": {Data: []byte(source.Header + "\nTR_func böl(a) {\n    TR_return a / 0\n}\n")}})
 	root := t.TempDir()
 	runInDir(t, root)
 	_, err := runWithModules(t, root, map[string]string{"ana.tr": "TR_import \"tr/m\"\nböl(1)\n"})
-	if err == nil || !strings.Contains(err.Error(), "tr/m.tr, Satır 2: Sıfıra bölme hatası") {
+	if err == nil || !strings.Contains(err.Error(), "tr/m.tr, Satır 3: Sıfıra bölme hatası") {
 		t.Fatalf("hata kitaplık modülünün adı ve satırıyla gelmeli: %v", err)
 	}
 }
