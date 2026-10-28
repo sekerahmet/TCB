@@ -320,7 +320,7 @@ en tr blok_parametresi döngü
 en tr blok_parametresi en_büyük_k
 en tr blok_parametresi ertele
 en tr blok_parametresi eğer
-en tr blok_parametresi eşit_mi
+en tr blok_parametresi eşit_olmalı
 en tr blok_parametresi eşle
 en tr blok_parametresi eşzamanlı
 en tr blok_parametresi fonksiyon
@@ -468,7 +468,7 @@ en tr değişken döngü
 en tr değişken en_büyük_k
 en tr değişken ertele
 en tr değişken eğer
-en tr değişken eşit_mi
+en tr değişken eşit_olmalı
 en tr değişken eşle
 en tr değişken eşzamanlı
 en tr değişken fonksiyon
@@ -616,7 +616,7 @@ en tr döngü_değişkeni döngü
 en tr döngü_değişkeni en_büyük_k
 en tr döngü_değişkeni ertele
 en tr döngü_değişkeni eğer
-en tr döngü_değişkeni eşit_mi
+en tr döngü_değişkeni eşit_olmalı
 en tr döngü_değişkeni eşle
 en tr döngü_değişkeni eşzamanlı
 en tr döngü_değişkeni fonksiyon
@@ -764,7 +764,7 @@ en tr fonksiyon döngü
 en tr fonksiyon en_büyük_k
 en tr fonksiyon ertele
 en tr fonksiyon eğer
-en tr fonksiyon eşit_mi
+en tr fonksiyon eşit_olmalı
 en tr fonksiyon eşle
 en tr fonksiyon eşzamanlı
 en tr fonksiyon fonksiyon
@@ -912,7 +912,7 @@ en tr kullanıcı_adlı_argümanı döngü
 en tr kullanıcı_adlı_argümanı en_büyük_k
 en tr kullanıcı_adlı_argümanı ertele
 en tr kullanıcı_adlı_argümanı eğer
-en tr kullanıcı_adlı_argümanı eşit_mi
+en tr kullanıcı_adlı_argümanı eşit_olmalı
 en tr kullanıcı_adlı_argümanı eşle
 en tr kullanıcı_adlı_argümanı eşzamanlı
 en tr kullanıcı_adlı_argümanı fonksiyon
@@ -1245,7 +1245,7 @@ en tr modül_adı döner_konum_tablosu
 en tr modül_adı döner_konum_uygula
 en tr modül_adı döner_konum_uygula_kaynaşık
 en tr modül_adı en_büyük_k
-en tr modül_adı eşit_mi
+en tr modül_adı eşit_olmalı
 en tr modül_adı geri_yayılım
 en tr modül_adı geçici_klasör
 en tr modül_adı girdi
@@ -1579,7 +1579,7 @@ en tr parametre döngü
 en tr parametre en_büyük_k
 en tr parametre ertele
 en tr parametre eğer
-en tr parametre eşit_mi
+en tr parametre eşit_olmalı
 en tr parametre eşle
 en tr parametre eşzamanlı
 en tr parametre fonksiyon
@@ -1884,7 +1884,7 @@ en tr takma_ad döngü
 en tr takma_ad en_büyük_k
 en tr takma_ad ertele
 en tr takma_ad eğer
-en tr takma_ad eşit_mi
+en tr takma_ad eşit_olmalı
 en tr takma_ad eşle
 en tr takma_ad eşzamanlı
 en tr takma_ad fonksiyon
@@ -2065,7 +2065,7 @@ en tr yakala_adı döngü
 en tr yakala_adı en_büyük_k
 en tr yakala_adı ertele
 en tr yakala_adı eğer
-en tr yakala_adı eşit_mi
+en tr yakala_adı eşit_olmalı
 en tr yakala_adı eşle
 en tr yakala_adı eşzamanlı
 en tr yakala_adı fonksiyon
@@ -2235,7 +2235,7 @@ en tr yapı döngü
 en tr yapı en_büyük_k
 en tr yapı ertele
 en tr yapı eğer
-en tr yapı eşit_mi
+en tr yapı eşit_olmalı
 en tr yapı eşle
 en tr yapı eşzamanlı
 en tr yapı fonksiyon

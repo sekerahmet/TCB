@@ -332,10 +332,10 @@ yapı Hesap { bakiye; fonksiyon kurucu(b) { kendi.bakiye = b * 2 } }; yazdır(He
 test "ad" { ... } bir test tanımlar; testler yalnızca tr test ile çalışır, normal çalıştırmada atlanır. Deyim başı dışında sıradan bir addır.
 
 ```tr
-test "toplama" { eşit_mi(4, 2 + 2) }
+test "toplama" { eşit_olmalı(4, 2 + 2) }
 ```
 
-İlişkili: TR_fn_assert `doğrula`, TR_fn_assert_equal `eşit_mi`
+İlişkili: TR_fn_assert `doğrula`, TR_fn_assert_equal `eşit_olmalı`
 
 ### Değer adları
 
@@ -819,16 +819,16 @@ Koşul yanlışsa "doğrulama başarısız" hatası fırlatır, doğruysa doğru
 doğrula(2 > 1, "iki birden büyük olmalı"); yazdır("doğrulandı")
 ```
 
-İlişkili: TR_fn_assert_equal `eşit_mi`, TR_ctx_test `test`
+İlişkili: TR_fn_assert_equal `eşit_olmalı`, TR_ctx_test `test`
 
-#### TR_fn_assert_equal `eşit_mi`
+#### TR_fn_assert_equal `eşit_olmalı`
 
-    eşit_mi(Herhangi, Herhangi, [Herhangi]) → Mantık
+    eşit_olmalı(Herhangi, Herhangi, [Herhangi]) → Mantık
 
 İki değer == anlamında eşit değilse ikisini de tipiyle gösteren hata fırlatır, eşitse doğru döndürür. Test dışında da çalışır.
 
 ```tr
-eşit_mi(4, 2 + 2); yazdır("eşit")
+eşit_olmalı(4, 2 + 2); yazdır("eşit")
 ```
 
 İlişkili: TR_fn_assert `doğrula`, TR_ctx_test `test`

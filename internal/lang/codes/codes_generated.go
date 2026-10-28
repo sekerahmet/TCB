@@ -96,7 +96,7 @@ const (
 	FnArgsort                   Code = 87  // TR_fn_argsort: argsort · sıralama_indeksi
 	FnAsin                      Code = 88  // TR_fn_asin: asin
 	FnAssert                    Code = 89  // TR_fn_assert: assert · doğrula
-	FnAssertEqual               Code = 90  // TR_fn_assert_equal: assert_equal · eşit_mi
+	FnAssertEqual               Code = 90  // TR_fn_assert_equal: assert_equal · eşit_olmalı
 	FnAtan                      Code = 91  // TR_fn_atan: atan
 	FnAtan2                     Code = 92  // TR_fn_atan2: atan2
 	FnAttention                 Code = 93  // TR_fn_attention: attention · dikkat

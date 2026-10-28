@@ -373,7 +373,7 @@ Kurallar: [`docs/spec/09_ertele.md`](spec/09_ertele.md). Taslak (2026-10-28): an
 
 ## 12. Testler
 
-Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md). Taslak (2026-10-29): ana oturum CLAUDE.md'den türeterek yeniden yazdı; DENETİM bekleniyor. Yeni ad `TR_assert_close`'un gösterim adı onayda.
+Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md). Taslak (2026-10-29): ana oturum CLAUDE.md'den türeterek yeniden yazdı; DENETİM bekleniyor. Yeni ad `TR_assert_close`'un gösterim adı onaylandı (yakın_olmalı); kodu uygulandığı gün kayda girer (17.4).
 
 ### 12.2
 
@@ -498,7 +498,7 @@ Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): an
 ### 17.5
 
 - **Mevcut durum:** ad alanında çakışma dil dosyası yüklenirken reddediliyor (`TestClashesCaught`). Türkçe harfsiz biçim kuralı kalktı (17.7). Dayanağı kalmayan ASCII denetimi ve öneri yolu (`AcceptASCII`, `language.go:33-40`, `TestASCIIFormsDoNotClash`) ile alışkanlık adının gösterim adıyla çakışma reddi (`TestClashesCaught`'un o kısmı) kalkacak.
-- **Yapılacaklar:** `TR_assert_equal`'ın Türkçe adı bugün "eşit_mi", bir sınama soru gibi okunuyor (13'ün ad işinde).
+- **Mevcut durum:** `TR_assert_equal`'ın Türkçe adı "eşit_olmalı" oldu (2026-10-29, önceki ad soru gibi okunuyordu).
 
 ### 17.7
 

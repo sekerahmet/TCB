@@ -24,7 +24,7 @@ import (
 // cmd/tr) test dışı Go dosyalarındaki metin sabitlerini tarar. Dilin adları çoğu zaman
 // sıradan Türkçe sözcüklerdir ("devam", "doğru", "yok"); bu yüzden bir ad ancak kod gibi
 // yazıldığı yerde yakalanır:
-//   - tip adları (Tam, Liste ...) ve "_" içeren adlar (eşit_mi, öğrenme_oranı) her yerde;
+//   - tip adları (Tam, Liste ...) ve "_" içeren adlar (eşit_olmalı, öğrenme_oranı) her yerde;
 //   - çağrı: ad(  ;  üye: .ad  ;  adlı argüman: ad:  ;  tırnak içinde: 'ad', "ad", `ad`;
 //   - anahtar kelimeden sonra blok: ad {  ;  metnin tamamı bir ad: "doğru", "kodla" (üye ve
 //     adlı argüman adı dışında; bkz. looksLikeCode).
@@ -229,7 +229,7 @@ func TestBareNameScanner(t *testing.T) {
 	for text, want := range map[string]string{
 		"girdi() ya da girdi(istem)":       "girdi girdi",
 		"%q bir sabittir ('sabit')":        "sabit",
-		"eşit_mi başarısız":                "eşit_mi",
+		"eşit_olmalı başarısız":            "eşit_olmalı",
 		"Liste indeksi Tam sayı olmalıdır": "Liste Tam",
 		"x.uzunluk yazın":                  "uzunluk",
 		"(tohum: 1)":                       "tohum",

@@ -75,7 +75,7 @@ var displaySurfaces = []displaySurface{
 		args: cmd(codes.CmdCheck), frameFile: "p.tr", mark: "ad_9"},
 	{name: "uyarı", files: map[string]string{"p.tr": "değişken ad_1 = 1\n- mutlak(ad_1)\nyazdır(ad_1)\n"},
 		args: func(*codes.Language) []string { return []string{"p.tr"} }, frameFile: "p.tr"},
-	{name: "test_raporu", files: map[string]string{"p_test.tr": "fonksiyon ad_1() {\n    sonuç 2\n}\ntest \"t\" {\n    eşit_mi(5, 2 + ad_1())\n}\n"},
+	{name: "test_raporu", files: map[string]string{"p_test.tr": "fonksiyon ad_1() {\n    sonuç 2\n}\ntest \"t\" {\n    eşit_olmalı(5, 2 + ad_1())\n}\n"},
 		args: func(r *codes.Language) []string { return []string{r.Name(codes.CmdTest), "p_test.tr"} }, frameFile: "p_test.tr"},
 	{name: "kabuk", typed: true, input: func(r *codes.Language) string { return r.Name(codes.FnPrint) + "(ad_9 + 1)\n" },
 		args: func(*codes.Language) []string { return nil }, frameFile: "<input>", mark: "ad_9"},

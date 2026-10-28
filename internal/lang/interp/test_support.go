@@ -34,7 +34,7 @@ func (v *VM) registerTestBuiltins() {
 		return nil, messages.New(messages.H2457, testShow(args[0]))
 	})
 
-	// eşit_mi(beklenen, gerçek, [mesaj]): iki değer '==' ile eşit değilse ikisini de gösteren hata fırlatır.
+	// eşit_olmalı(beklenen, gerçek, [mesaj]): iki değer '==' ile eşit değilse ikisini de gösteren hata fırlatır.
 	v.RegisterNoNamed(codes.FnAssertEqual, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) < 2 || len(args) > 3 {
 			return nil, ArgCountError(codes.FnAssertEqual, Counts(2, 3), len(args), messages.Text(messages.H2312))

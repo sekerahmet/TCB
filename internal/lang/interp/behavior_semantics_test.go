@@ -119,7 +119,7 @@ func TestStringBracesAndEscapes(t *testing.T) {
 	}
 }
 
-// Test blokları normal çalıştırmada atlanır; doğrula/eşit_mi her yerde çalışır.
+// Test blokları normal çalıştırmada atlanır; doğrula/eşit_olmalı her yerde çalışır.
 func TestTestBlocksSkippedAndAssertions(t *testing.T) {
 	out, _, err := runTROut(t, `TR_test "atlanmalı" { TR_print("TEST ÇALIŞTI") }
 TR_assert(1 + 1 == 2)
@@ -133,11 +133,11 @@ TR_print("tamam")`)
 	}
 	_, _, err = runTROut(t, `TR_assert_equal("5", 5)`)
 	if !messages.Has(err, messages.H2458) {
-		t.Fatalf("eşit_mi hata mesajı yanlış: %v", err)
+		t.Fatalf("eşit_olmalı hata mesajı yanlış: %v", err)
 	}
 	_, _, err = runTROut(t, `TR_assert_equal("5", 5, "ek not")`)
 	if !messages.Has(err, messages.H2517) {
-		t.Fatalf("üç argümanlı eşit_mi hata mesajı yanlış: %v", err)
+		t.Fatalf("üç argümanlı eşit_olmalı hata mesajı yanlış: %v", err)
 	}
 	_, _, err = runTROut(t, "\n\nTR_assert(TR_false)")
 	if !codeAt(err, messages.H2457, 3) {

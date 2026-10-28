@@ -26,7 +26,7 @@ TR_test "eşitlik" {
 📄 hesap_test.tr
   ✓ toplama doğru
   ✗ eşitlik — Satır 9: eşitlik başarısız: beklenen 5 (Tam), gerçek 4 (Tam)
-       9 |     eşit_mi(5, topla(2, 2))   // beklenen önce, gerçek sonra
+       9 |     eşit_olmalı(5, topla(2, 2))   // beklenen önce, gerçek sonra
 
 ❌ 2 test, 1 geçti, 1 kaldı
 ```
