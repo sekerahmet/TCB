@@ -111,11 +111,20 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 		if p.peekTokenIs(lexer.TokGt) {
 			p.nextToken() // '>'
 			if p.peekTokenIs(lexer.TokLParen) {
-				// -> (A, B): birden çok değer (6.3)
+				// -> (A, B): birden çok değer (6.3); -> (T) -> R: fonksiyon döndürür (6.9)
 				p.nextToken()
-				lit.ReturnTypes = p.parseTypeList()
-				if lit.ReturnTypes == nil {
+				open := p.curToken()
+				list := p.parseTypeList()
+				if list == nil {
 					return nil
+				}
+				if p.arrowAhead() {
+					if _, ok := p.functionTypeRest(); !ok {
+						return nil
+					}
+					lit.ReturnType, lit.ReturnToken = codes.TypeFunction.String(), open
+				} else {
+					lit.ReturnTypes = list
 				}
 			} else if p.expectPeek(lexer.TokIdent) {
 				lit.ReturnType, lit.ReturnToken = p.curToken().Literal, p.curToken()
@@ -266,15 +275,20 @@ func (p *Parser) functionExpressions(prog *ast.Program) {
 	})
 }
 
-// parseTypeList '(' üzerindeki imleçten '(A, B)' tip listesini okur; imleç ')'de kalır. Hatalıysa nil.
+// parseTypeList '(' üzerindeki imleçten '(A, B)' tip listesini okur; imleç ')'de kalır. Öğe bir ad ya
+// da fonksiyon tipidir; boş liste '()' parametresiz fonksiyon tipinin başıdır. Hatalıysa nil.
 func (p *Parser) parseTypeList() []ast.TypeRef {
-	var types []ast.TypeRef
+	types := []ast.TypeRef{}
+	if p.peekTokenIs(lexer.TokRParen) {
+		p.nextToken()
+		return types
+	}
 	for {
-		if !p.expectPeek(lexer.TokIdent) {
+		name, tok, ok := p.typeAfter()
+		if !ok {
 			return nil
 		}
-		types = append(types, ast.TypeRef{Name: p.curToken().Literal, Token: p.curToken()})
-		p.role(p.curToken(), RoleType)
+		types = append(types, ast.TypeRef{Name: name, Token: tok})
 		if !p.peekTokenIs(lexer.TokComma) {
 			break
 		}
@@ -284,6 +298,56 @@ func (p *Parser) parseTypeList() []ast.TypeRef {
 		return nil
 	}
 	return types
+}
+
+// typeAfter imlecin ardındaki tipi okur (6.9): ad (TR_Int) ya da fonksiyon tipi ((T1, T2) -> R,
+// () -> R, (T) -> (A, B)); '->' sağdan birleşir. Fonksiyon tipinin adı TR_Function'dır, belirteci
+// '('dir; parametre ve dönüş tipleri ayrıştırılır, denetimi 4a'da. İmleç tipin son belirtecinde kalır.
+func (p *Parser) typeAfter() (string, lexer.Token, bool) {
+	if p.peekTokenIs(lexer.TokLParen) {
+		p.nextToken()
+		open := p.curToken()
+		if p.parseTypeList() == nil {
+			return "", open, false
+		}
+		if !p.arrowAhead() {
+			p.peekError(lexer.TokArrow)
+			return "", open, false
+		}
+		if _, ok := p.functionTypeRest(); !ok {
+			return "", open, false
+		}
+		return codes.TypeFunction.String(), open, true
+	}
+	if !p.expectPeek(lexer.TokIdent) {
+		return "", p.curToken(), false
+	}
+	p.role(p.curToken(), RoleType)
+	return p.curToken().Literal, p.curToken(), true
+}
+
+// arrowAhead ardından dönüş oku '->' ('-' ve '>') mı geliyor.
+func (p *Parser) arrowAhead() bool {
+	return p.peekTokenIs(lexer.TokMinus) && p.peekTokenN(2).Type == lexer.TokGt
+}
+
+// functionTypeRest fonksiyon tipinin '-> R' kısmını okur (R bir tip ya da sonuç listesi (A, B)).
+func (p *Parser) functionTypeRest() (string, bool) {
+	p.nextToken() // '-'
+	p.nextToken() // '>'
+	if p.peekTokenIs(lexer.TokLParen) {
+		// (A, B) sonuç listesi ya da bir fonksiyon tipi
+		p.nextToken()
+		if p.parseTypeList() == nil {
+			return "", false
+		}
+		if p.arrowAhead() {
+			return p.functionTypeRest()
+		}
+		return "", true
+	}
+	name, _, ok := p.typeAfter()
+	return name, ok
 }
 
 // returnColonError dönüş tipinin ': R' ile yazımının hatasıdır (6.1): imleç parametrelerin ')'sinde,
@@ -310,10 +374,7 @@ func (p *Parser) returnNoneError(rparen, typ lexer.Token) {
 func (p *Parser) parseTypeAndDefault() (typeName string, typeTok lexer.Token, def ast.Expression) {
 	if p.peekTokenIs(lexer.TokColon) {
 		p.nextToken() // ':'
-		if p.expectPeek(lexer.TokIdent) {
-			typeName, typeTok = p.curToken().Literal, p.curToken()
-			p.role(p.curToken(), RoleType)
-		}
+		typeName, typeTok, _ = p.typeAfter()
 	}
 	if p.peekTokenIs(lexer.TokAssign) {
 		p.nextToken() // '='

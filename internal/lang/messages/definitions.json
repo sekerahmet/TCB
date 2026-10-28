@@ -406,6 +406,7 @@
 "H2706": { "param": [] },
 "H2708": { "param": ["count"] },
 "H2709": { "param": ["count", "names"] },
+"H2710": { "param": ["count"] },
 "H3001": { "param": ["dev"] },
 "H3002": { "param": ["mask", "q"] },
 "H3003": { "param": ["q", "k", "v"] },

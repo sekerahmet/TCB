@@ -406,6 +406,7 @@
 "H2706": "functions cannot be compared (not inside a list, a dictionary or a match pattern either): even two functions that look the same are not equal; keep functions out of the data you compare, or compare their results: f(x) == g(x)",
 "H2708": "this call returns {count} values, not one value: unpack the results into names (a, b = f()) or pass them on with TR_return f(); it cannot be another call's argument",
 "H2709": "the call returns {count} values but is unpacked into {names} names: write a name for each result, and _ for one that is not needed (a, _ = f())",
+"H2710": "named arguments and defaults are valid only in a call by the name the function was defined with; a function value is called with all its arguments in order ({count} arguments)",
 "H3001": "the attention block sizes of the {dev} backend cannot be set",
 "H3002": "Attention mask is on a different device ({mask}, {q})",
 "H3003": "Attention q, k, v need the same number of axes (at least 2): {q}, {k}, {v}",

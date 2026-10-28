@@ -200,3 +200,34 @@ TR_test "6.3 sonuç tek değer ya da argüman olarak kullanılmaz; değer sayıs
     # Deyim olarak çağrının sonuçları atılır
     iki()
 }
+
+TR_test "6.9 fonksiyon tipi (T) -> R diye yazılır; -> sağdan birleşir" {
+    TR_func uygula(h: (TR_Int) -> TR_Int, x: TR_Int) -> TR_Int { TR_return h(x) }
+    TR_assert_equal(6, uygula((y) => y * 3, 2))
+    TR_func sayaç() -> () -> TR_Int {
+        TR_var n = 0
+        TR_return () => {
+            n += 1
+            TR_return n
+        }
+    }
+    TR_var s = sayaç()
+    s()
+    TR_assert_equal(2, s())
+    TR_func toplayan() -> (TR_Int) -> (TR_Int) -> TR_Int { TR_return (a) => (b) => a + b }
+    TR_assert_equal(3, toplayan()(1)(2))
+    TR_var toplam = 0
+    TR_var ekle: (TR_Int) -> TR_NoneType = (x) => { toplam += x }
+    ekle(4)
+    TR_assert_equal(4, toplam)
+}
+
+TR_test "6.9 fonksiyon değeri sırayla ve bütün argümanlarıyla çağrılır" {
+    TR_func f(a: TR_Int, k: TR_Int = 1) -> TR_Int { TR_return a + k }
+    TR_assert_equal(3, f(1, k: 2))
+    TR_assert_equal(2, f(1))
+    TR_var g = f
+    TR_assert_equal(3, g(1, 2))
+    TR_assert_equal("H2710", TR_error_code { g(1, k: 2) })
+    TR_assert_equal("H2710", TR_error_code { g(1) })
+}

@@ -2,6 +2,7 @@ package interp
 
 import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // --- ÇAĞRILAR ---
@@ -61,12 +62,19 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 				if err != nil {
 					return nil, err
 				}
+				if err := valueCall(fnVal, mem.Property, nargs, false, line); err != nil {
+					return nil, err
+				}
 				return v.callAt(fnVal, argCode, env, line)
 			}
 		}
+		called := calledName(e.Function)
 		return func(v *VM, env *Environment) (Value, error) {
 			fnVal, err := fun(v, env)
 			if err != nil {
+				return nil, err
+			}
+			if err := valueCall(fnVal, called, nargs, false, line); err != nil {
 				return nil, err
 			}
 			return v.callAt(fnVal, argCode, env, line)
@@ -75,9 +83,13 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 
 	fun = c.namedCallee(k, e, fun)
 	namedCode := c.compileNamedArgs(k, e.NamedArgs)
+	called := calledName(e.Function)
 	return func(v *VM, env *Environment) (Value, error) {
 		fnVal, err := fun(v, env)
 		if err != nil {
+			return nil, err
+		}
+		if err := valueCall(fnVal, called, nargs, true, line); err != nil {
 			return nil, err
 		}
 		args, err := arguments(v, env, argCode)
@@ -93,6 +105,32 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 		}
 		return v.applyCompiled(fnVal, args, named, line)
 	}
+}
+
+// valueCall adlı argüman ve varsayılan kullanan çağrının tanımın adıyla yapıldığını denetler (6.9):
+// fonksiyon değeri sırayla ve bütün argümanlarıyla çağrılır. Fazla ya da varsayılansız eksik argümanı
+// checkArity bildirir.
+func valueCall(fnVal Value, called string, nargs int, named bool, line int) error {
+	fn, ok := fnVal.(*FuncVal)
+	if !ok || (fn.Name != "" && fn.Name == called) {
+		return nil
+	}
+	if !named && (nargs >= len(fn.Parameters) || !defaultsSuffice(fn, nargs)) {
+		return nil
+	}
+	return messages.At(line, 0, messages.New(messages.H2710, len(fn.Parameters)))
+}
+
+// calledName çağrının tanım adıyla yapılıp yapılmadığını anlamak için çağrılanın adıdır: f(...)'de f,
+// x.f(...)'de f; başka bir ifadede boş.
+func calledName(e ast.Expression) string {
+	switch x := e.(type) {
+	case *ast.Identifier:
+		return x.Value
+	case *ast.MemberExpression:
+		return x.Property
+	}
+	return ""
 }
 
 // namedCallee adlı argümanlı çağrının çağrılanını verir. x.metot(a, ad: b) için bağlı metot

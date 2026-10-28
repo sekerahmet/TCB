@@ -210,11 +210,10 @@ func (p *Parser) parseVarStatement(isConst bool) ast.Statement {
 	// İsteğe bağlı tip belirtimi: değişken yaş: Tam = 25
 	if p.peekTokenIs(lexer.TokColon) {
 		p.nextToken() // ':'
-		if !p.expectPeek(lexer.TokIdent) {
+		var ok bool
+		if stmt.TypeName, stmt.TypeToken, ok = p.typeAfter(); !ok {
 			return nil
 		}
-		stmt.TypeName, stmt.TypeToken = p.curToken().Literal, p.curToken()
-		p.role(p.curToken(), RoleType)
 	}
 
 	switch {

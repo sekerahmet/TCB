@@ -58,7 +58,7 @@ TR_print(say())   # çıktı: 2
 ```
 
 **6.9** Fonksiyon tipi `(T1, T2) -> R` diye yazılır: `(TR_Int) -> TR_Bool`, parametresizde `() -> R`. Değer döndürmeyen fonksiyonun tipi `(T) -> TR_NoneType`, birden çok değer döndürenin `(T) -> (A, B)`'dir. `->` sağdan birleşir: `-> (A, B) -> C` iki parametreli bir fonksiyon döndürür. Fonksiyon değeri sırayla ve bütün argümanlarıyla çağrılır; adlı argüman ve varsayılan yalnız tanımın adıyla yapılan çağrıda geçerlidir. Fonksiyonlar karşılaştırılamaz (4.5); fonksiyonun metni tipinin metnidir ("(Int) -> Bool", 3.14).
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
+- *Test:* TR testi; fonksiyonun metni ("(Int) -> Bool") ve fonksiyon tipinin parametre ve dönüş tiplerinin denetimi tip denetimiyle (4a) uygulanınca TR testi.
 
 **6.10** Tip parametresi adla parametreler arasında köşeli parantezle yazılır: `TR_func baştaki[T](l: TR_List[T]) -> T? { ... }`. Çağrıda argümanlardan çıkar, çıkmıyorsa yazılır (`baştaki[TR_Int]([])`); bu yazım ile bir listenin öğesinin çağrısı (`fs[0](x)`) tiple ayrılır.
 - `T` tipindeki değerle yalnız her tipte geçerli işler yapılır: atamak, argüman olarak vermek, döndürmek, listeye ve sözlüğe değer olarak koymak, `TR_print`, `TR_String`, `TR_Type` ve yerleştirme (`\(x)`); `T?` değeri `TR_none`'la karşılaştırılır ve `??` ile açılır.
