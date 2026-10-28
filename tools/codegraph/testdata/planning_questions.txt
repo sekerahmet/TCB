@@ -158,7 +158,7 @@ codegraph tests-for lib/README.md | group: repository-wide checks that scan it =
 codegraph tests-for lib/egitim.tr | group: repository-wide checks that scan it => tr.TestRepoTRFilesPassCheck | not: TestNoTurkishLiterals | src: TCB 2026-10-25, gaps.md
 
 # Deneme: içeride ara dil yok, asıl biçim kod (yol haritası 15, 1. tur, 2026-10-25)
-codegraph who-uses turkish.ErrorFrame | contains: tr.printError | contains: interp.ErrorItems | contains: testrunner.writeError | contains: debugger.dapServer.launch | src: iç dil 1. tur, 2026-10-25 (çerçeveye metin veren yerler)
+codegraph who-uses turkish.ErrorFrame | contains: tr.printError | contains: interp.ErrorItems | contains: testrunner.writeError | contains: debugger.dapServer.reportDiagnostics | src: iç dil 1. tur, 2026-10-25 (çerçeveye metin veren yerler); katman 1, 2026-10-28 (hata ayıklayıcının tanıları kendi işlevinde)
 codegraph query lexer.NewBodyIn | contains: Programlar kimliklerle okunur | src: iç dil 1. tur, 2026-10-25 (kodlar okunurken Türkçeye çevriliyor)
 codegraph who-uses lexer.Token.Code | contains: interp.codedKeyOf | contains: checker.nameChecker.bind | src: iç dil 1. tur, 2026-10-25 (kodu taşıyan belirteci okuyan az yer)
 codegraph who-uses ast.Identifier.Value | contains: accesses in | contains: read, | contains: codeindex.indexer.calleeStruct | src: iç dil 1. tur, 2026-10-25 (adı okuyan çok yer)
