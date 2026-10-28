@@ -205,10 +205,10 @@ func (c *compiler) returnStatement(k *compilerScope, s *ast.ReturnStatement) sta
 }
 
 // caughtErrorLanguage yakalanan hatanın metninin kurulduğu ileti kataloğudur: program çıktısı
-// çevrilmez (3.14), aynı program her makinede aynı metni verir. Ara karar (katman 1): kimliklerin
-// adları İngilizce olduğu için İngilizce katalog; hata değerinin metni hata yönetimi bölümünde
-// yeniden tartılır.
-const caughtErrorLanguage = "en"
+// çevrilmez (3.14), aynı program her makinede aynı metni verir; değerin metniyle aynı katalog
+// (messages.ValueLanguage, İngilizce). Hata değerinin metni hata yönetimi bölümünde yeniden
+// tartılır.
+const caughtErrorLanguage = messages.ValueLanguage
 
 // tryCatchStatement 'dene'/'yakala' deyimini derler.
 func (c *compiler) tryCatchStatement(k *compilerScope, s *ast.TryCatchStatement) statementCode {

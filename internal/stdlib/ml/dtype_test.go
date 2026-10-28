@@ -33,7 +33,7 @@ TR_print(w.TR_grad.TR_tolist, w.TR_grad.TR_dtype)`)
 		"Tensor(2.5000) fp16 Tensor(2.5000)\n" +
 		"fp16 bf16 bf16\n" +
 		"bf16 float32 bf16 float32\n" +
-		"bf16 Tensor[2] bf16 (türev izleniyor) [1.0000, 3.0000]\n" +
+		"bf16 Tensor[2] bf16 (requires grad) [1.0000, 3.0000]\n" +
 		"[2.0, 6.0] float32\n"
 	if out != want {
 		t.Fatalf("veri türleri:\n%q\nbeklenen:\n%q", out, want)
@@ -164,7 +164,7 @@ TR_print(y["a"] == p["a"], y["b"] == p["b"], y["c"] == p["c"], y["a"].TR_tolist)
 TR_print(y["b"].TR_grad, y["b"])`)
 	want := "bf16 fp16 float32\n" +
 		"true true true [[1.5, -2.25], [3.0, 0.100097656]]\n" +
-		"none Tensor[3] fp16 (türev izleniyor) [9.9976e-02, 6.5504e+04, 1.0014e-05]\n"
+		"none Tensor[3] fp16 (requires grad) [9.9976e-02, 6.5504e+04, 1.0014e-05]\n"
 	if out != want {
 		t.Fatalf("sürüm 2 gidiş-dönüş:\n%q\nbeklenen:\n%q", out, want)
 	}

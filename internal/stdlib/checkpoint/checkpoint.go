@@ -114,8 +114,8 @@ type Checkpoint struct {
 func (kn *Checkpoint) Type() interp.ValueType { return CheckpointType }
 func (kn *Checkpoint) IsTruthy() bool         { return true }
 
-// Inspect is the value's display text, in the person's writing language (TR_DIL).
-func (kn *Checkpoint) Inspect() string { return kn.Text(codes.Display()) }
+// Inspect is the value's text (3.14): language-independent, the same as its program text.
+func (kn *Checkpoint) Inspect() string { return kn.Text(codes.ValueNames()) }
 
 var _ interp.LanguageText = (*Checkpoint)(nil)
 

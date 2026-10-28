@@ -132,8 +132,8 @@ func TestConcurrentCallStackSafety(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Eşzamanlı çalışma hatası: %v", err)
 	}
-	if val.Inspect() != "doğru" {
-		t.Fatalf("doğru bekleniyordu, %s alındı", val.Inspect())
+	if val.Inspect() != "true" {
+		t.Fatalf("true bekleniyordu, %s alındı", val.Inspect())
 	}
 }
 
@@ -147,7 +147,7 @@ func TestLockHandoffConcurrentTask(t *testing.T) {
 		TR_for TR_not bitti TR_and n < 200000000 { n += 1 }
 		TR_var result = n < 200000000
 	`)
-	if err != nil || val.Inspect() != "doğru" {
+	if err != nil || val.Inspect() != "true" {
 		t.Fatalf("eşzamanlı görev döngü bitmeden çalışmalıydı: %v %v (%v)", val, err, time.Since(begin))
 	}
 }

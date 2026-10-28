@@ -55,10 +55,10 @@ func TestOperatorPrecedence(t *testing.T) {
 		{"2.0 ** -1", "0.5"},
 		{"2 * 3 ** 2", "18"},
 		{"-2 * 3", "-6"},
-		{"TR_not 1 == 2", "doğru"},
-		{"TR_not 1 < 2", "yanlış"},
-		{"TR_not TR_false TR_and TR_false", "yanlış"}, // (TR_not TR_false) TR_and TR_false
-		{"TR_not TR_false == TR_false", "yanlış"},     // TR_not (TR_false == TR_false)
+		{"TR_not 1 == 2", "true"},
+		{"TR_not 1 < 2", "false"},
+		{"TR_not TR_false TR_and TR_false", "false"}, // (TR_not TR_false) TR_and TR_false
+		{"TR_not TR_false == TR_false", "false"},     // TR_not (TR_false == TR_false)
 		{"2 ** 10", "1024"},
 		{"2.0 ** 2", "4.0"},
 	}
@@ -220,8 +220,8 @@ func TestIntOpErrorsAndFastPathAgree(t *testing.T) {
 		{opShr, ">>", -8, 1, 0, "-4"},
 		{opDiv, "/", 7, 2, 0, "3.5"},
 		{opMod, "%", 7, 3, 0, "1"},
-		{opLt, "<", 1, 2, 0, "doğru"},
-		{opEq, "==", 2, 2, 0, "doğru"},
+		{opLt, "<", 1, 2, 0, "true"},
+		{opEq, "==", 2, 2, 0, "true"},
 		{opPow, "**", 2, 10, 0, "1024"},
 	}
 	for _, c := range cases {

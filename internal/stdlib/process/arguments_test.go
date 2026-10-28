@@ -31,10 +31,11 @@ func TestHelpDefaultsReadBack(t *testing.T) {
 			t.Errorf("%s varsayılanı %q geri okunamadı: %v, %v", c.value.Type(), text, got, err)
 		}
 	}
-	// Her dilin adı: kişinin dili (yardım) ve betiğin dili.
-	for text, want := range map[string]string{"true": "doğru", "doğru": "doğru", "false": "yanlış", "inf": "sonsuz", "-sonsuz": "-sonsuz", "nan": "NaN", "NaN": "NaN"} {
+	// Mantık değeri her dilin adıyla (kişinin dili: yardım) okunur; sonsuz ve tanımsızın adı her dilde
+	// "inf" ve "nan"dır (3.2). Okunan değerin metni dilden bağımsızdır (3.14).
+	for text, want := range map[string]string{"true": "true", "doğru": "true", "false": "false", "inf": "inf", "-inf": "-inf", "nan": "nan"} {
 		kind := kindFloat
-		if want == "doğru" || want == "yanlış" {
+		if want == "true" || want == "false" {
 			kind = kindBool
 		}
 		if got, err := parsePlainValue(kind, text); err != nil || got.Inspect() != want {

@@ -50,7 +50,7 @@ func TestTempDir(t *testing.T) {
 		TR_write_file(TR_path(k, "alt/derin/b.txt"), "y")
 		TR_var o = TR_read_lines(TR_path(k, "alt/derin/b.txt"))
 		[TR_type(k) == TR_Path, k.TR_is_dir, k.TR_absolute == k, bos, k != TR_temp_dir()]`)
-	if got != `[doğru, doğru, doğru, 0, doğru]` {
+	if got != `[true, true, true, 0, true]` {
 		t.Fatal(got)
 	}
 	names := baseContent(t, base)

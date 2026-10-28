@@ -39,8 +39,8 @@ const (
 	CtxInit                     Code = 30  // TR_ctx_init: init · kurucu
 	CtxIt                       Code = 31  // TR_ctx_it: it · o
 	CtxTest                     Code = 32  // TR_ctx_test: test
-	ValInf                      Code = 33  // TR_val_inf: inf · sonsuz
-	ValNan                      Code = 34  // TR_val_nan: nan · NaN
+	ValInf                      Code = 33  // TR_val_inf: inf
+	ValNan                      Code = 34  // TR_val_nan: nan
 	TypeAny                     Code = 35  // TR_type_Any: Any · Herhangi
 	TypeBool                    Code = 36  // TR_type_Bool: Bool · Mantık
 	TypeBuiltinFunction         Code = 37  // TR_type_BuiltinFunction: BuiltinFunction · YerleşikFonksiyon

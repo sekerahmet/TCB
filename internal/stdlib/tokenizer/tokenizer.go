@@ -43,8 +43,8 @@ func (n *Object) Tokenizer() *tokenize.Tokenizer { return n.p }
 func (n *Object) Type() interp.ValueType { return interp.ValueType(TypeName) }
 func (n *Object) IsTruthy() bool         { return true }
 
-// Inspect is the value's display text, in the person's writing language (TR_DIL).
-func (n *Object) Inspect() string { return n.Text(codes.Display()) }
+// Inspect is the value's text (3.14): language-independent, the same as its program text.
+func (n *Object) Inspect() string { return n.Text(codes.ValueNames()) }
 
 var _ interp.LanguageText = (*Object)(nil)
 

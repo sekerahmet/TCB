@@ -33,7 +33,7 @@ type Class string
 const (
 	ClassKeyword     Class = "kw"    // keywords, reserved in the lexer
 	ClassContextual  Class = "ctx"   // contextual words (olarak, test, kurucu, o ...)
-	ClassValueName   Class = "val"   // names of values that are not words of the source (inf, nan)
+	ClassValueName   Class = "val"   // value names, bound like constants (TR_inf, TR_nan; 3.2)
 	ClassType        Class = "type"  // type names
 	ClassFunction    Class = "fn"    // builtin functions
 	ClassConstant    Class = "const" // builtin constants (pi)
@@ -199,11 +199,11 @@ func (k Code) IsIndexSubcommand() bool { return k.Class() == ClassSubcommand }
 // IsKeyword reports whether the code is a keyword reserved in the lexer.
 func (k Code) IsKeyword() bool { return k.Class() == ClassKeyword }
 
-// IsBuiltin reports whether the code is a builtin registered in the global scope (a function
-// or a constant of the core; a library code is not a builtin).
+// IsBuiltin reports whether the code is a builtin registered in the global scope (a function,
+// a constant or a value name of the core: TR_inf, TR_nan, 3.2; a library code is not a builtin).
 func (k Code) IsBuiltin() bool {
 	c := k.Class()
-	return (c == ClassFunction || c == ClassConstant) && !k.IsLibrary()
+	return (c == ClassFunction || c == ClassConstant || c == ClassValueName) && !k.IsLibrary()
 }
 
 // IsLibrary reports whether the code is a public name of a standard library module (tr/…;

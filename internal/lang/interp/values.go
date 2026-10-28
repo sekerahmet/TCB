@@ -114,7 +114,7 @@ type FloatVal struct {
 }
 
 func (f *FloatVal) Type() ValueType { return ValFloat }
-func (f *FloatVal) Inspect() string { return f.Text(codes.Source()) }
+func (f *FloatVal) Inspect() string { return f.Text(codes.ValueNames()) }
 
 // Text sayının lang dilindeki metnidir. Sonsuz ve tanımsız değerin adı dilin değer adıdır (TR_val_inf,
 // TR_val_nan; eksi sonsuz başına '-' alır); tensör yazdırması aynı adları kullanır (NonFiniteText).
@@ -122,8 +122,21 @@ func (f *FloatVal) Text(lang *codes.Language) string {
 	if s, ok := NonFiniteText(f.Val, lang); ok {
 		return s
 	}
-	s := strconv.FormatFloat(f.Val, 'g', -1, 64)
-	if !strings.Contains(s, ".") && !strings.Contains(s, "e") {
+	return FloatText(f.Val)
+}
+
+// FloatText is a finite number's text (3.2): the shortest digits that read back as the same
+// number; scientific when the exponent is below -4 or 16 and above, with a signed exponent of at
+// least two digits ("1e-05", "1e+16"), otherwise positional with at least one digit after the
+// dot ("1.0", "1234567.0", "0.0001", "-0.0"), like Python's repr.
+func FloatText(f float64) string {
+	e := strconv.FormatFloat(f, 'e', -1, 64)
+	exp, _ := strconv.Atoi(e[strings.LastIndexByte(e, 'e')+1:])
+	if exp < -4 || exp >= 16 {
+		return e
+	}
+	s := strconv.FormatFloat(f, 'f', -1, 64)
+	if !strings.Contains(s, ".") {
 		s += ".0"
 	}
 	return s
@@ -158,7 +171,7 @@ type BoolVal struct {
 }
 
 func (b *BoolVal) Type() ValueType { return ValBool }
-func (b *BoolVal) Inspect() string { return b.Text(codes.Source()) }
+func (b *BoolVal) Inspect() string { return b.Text(codes.ValueNames()) }
 func (b *BoolVal) Text(lang *codes.Language) string {
 	if b.Val {
 		return lang.Name(codes.KwTrue)
@@ -170,7 +183,7 @@ func (b *BoolVal) IsTruthy() bool { return b.Val }
 type NullVal struct{}
 
 func (n *NullVal) Type() ValueType                  { return ValNull }
-func (n *NullVal) Inspect() string                  { return n.Text(codes.Source()) }
+func (n *NullVal) Inspect() string                  { return n.Text(codes.ValueNames()) }
 func (n *NullVal) Text(lang *codes.Language) string { return lang.Name(codes.KwNone) }
 func (n *NullVal) IsTruthy() bool                   { return false }
 
@@ -442,13 +455,10 @@ func (d *DictVal) DisplayKey(k string) string {
 }
 
 // keyText is the text of a metin key k in a file written in lang: a coded key is the code's
-// name in lang (lang nil: Inspect, like shownName), any other key as it is.
+// name in lang (lang nil: the value's text, codes.ValueNames), any other key as it is.
 func (d *DictVal) keyText(k string, lang *codes.Language) string {
 	if c, ok := d.coded[k]; ok {
-		if lang == nil {
-			lang = codes.Source()
-		}
-		if e, ok := lang.Entry(c); ok {
+		if e, ok := orValueNames(lang).Entry(c); ok {
 			return e.Name
 		}
 	}
@@ -485,12 +495,7 @@ type FuncVal struct {
 }
 
 func (f *FuncVal) Type() ValueType { return ValFunc }
-func (f *FuncVal) Inspect() string {
-	if f.Name != "" {
-		return messages.Text(messages.H2496, f.Name)
-	}
-	return messages.Text(messages.H2442)
-}
+func (f *FuncVal) Inspect() string { return f.Text(codes.ValueNames()) }
 func (f *FuncVal) Text(lang *codes.Language) string {
 	if f.Name != "" {
 		return messages.TextIn(lang.Code, messages.H2496, f.Name)
@@ -520,7 +525,7 @@ type BuiltinVal struct {
 }
 
 func (b *BuiltinVal) Type() ValueType { return ValBuiltin }
-func (b *BuiltinVal) Inspect() string { return messages.Text(messages.H2497, b.Name) }
+func (b *BuiltinVal) Inspect() string { return b.Text(codes.ValueNames()) }
 
 // text yerleşiğin lang dilindeki metnidir: adı (kanonik ad, bir yerleşik ya da üye kodu) da o
 // dildedir; koda bağlı olmayan ad olduğu gibi kalır.
@@ -550,7 +555,7 @@ type StructDefVal struct {
 }
 
 func (s *StructDefVal) Type() ValueType { return ValStruct }
-func (s *StructDefVal) Inspect() string { return messages.Text(messages.H2498, s.Name) }
+func (s *StructDefVal) Inspect() string { return s.Text(codes.ValueNames()) }
 func (s *StructDefVal) Text(lang *codes.Language) string {
 	return messages.TextIn(lang.Code, messages.H2498, s.Name)
 }

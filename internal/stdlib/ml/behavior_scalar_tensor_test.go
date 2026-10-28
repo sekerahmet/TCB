@@ -42,8 +42,8 @@ TR_print(w.TR_tolist)
 TR_save_tensors("`+fpath+`", {"w": w})
 TR_print(TR_load_tensors("`+fpath+`")["w"].TR_tolist, TR_tensor(7.0) == 7, TR_tensor(7.0) != 7.5, TR_tensor([7.0]) == 7)`)
 	want := "16.0 8.0 true [] Tensor\n" +
-		"Tensor(3.0000, türev izleniyor)\n" +
-		"Tensor(3.0000) Tensor(2.0000) Tensor(2.0000, türev izleniyor)\n" +
+		"Tensor(3.0000, requires grad)\n" +
+		"Tensor(3.0000) Tensor(2.0000) Tensor(2.0000, requires grad)\n" +
 		"[4.0, 5.0] 1.0 [3.0]\n" +
 		"1.25 4.0\n" +
 		"-1.0 -0.125\n" +

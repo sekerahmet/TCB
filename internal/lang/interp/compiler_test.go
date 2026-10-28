@@ -137,7 +137,7 @@ func TestSortValuesStable(t *testing.T) {
 	if err := sortValues("sırala()", d); err != nil {
 		t.Fatal(err)
 	}
-	if (&ListVal{Elements: d}).Inspect() != "[-1, 0.5, 2.0, 2, 3, 9.007199254740992e+15, 9007199254740993, NaN]" || d[2] != a || d[3] != b {
+	if (&ListVal{Elements: d}).Inspect() != "[-1, 0.5, 2.0, 2, 3, 9007199254740992.0, 9007199254740993, nan]" || d[2] != a || d[3] != b {
 		t.Fatalf("beklenmeyen sıra: %v", (&ListVal{Elements: d}).Inspect())
 	}
 	ints := []Value{NewInt(9007199254740993), NewInt(9007199254740992)}
@@ -188,7 +188,7 @@ func TestDirectMethodCalls(t *testing.T) {
 		TR_var result = [l, d.TR_contains("a"), d.a, "Kar".TR_upper(), [3, 1, 2].TR_sort(), TR_str(12), "çağ".TR_length,
 			[1, 2, 3].TR_filter { TR_it > 1 }.TR_map { TR_it * 10 }]
 	`)
-	if err != nil || val.Inspect() != `[[1, 1, 1, 9, 7], doğru, 1, "KAR", [1, 2, 3], "12", 3, [20, 30]]` {
+	if err != nil || val.Inspect() != `[[1, 1, 1, 9, 7], true, 1, "KAR", [1, 2, 3], "12", 3, [20, 30]]` {
 		t.Fatalf("beklenmeyen: %v %v", val, err)
 	}
 	_, _, err = runTROut(t, "TR_var l = [1]\nl.TR_map(1, 2)\n")
@@ -240,7 +240,7 @@ func TestFastPathSemantics(t *testing.T) {
 			d[1], d["1"], d[1.5], d[2], d.TR_keys(), d.TR_contains(2), d.TR_contains(3),
 			p.m(), p.m(2), p.f(), bagli(10)]
 	`)
-	want := `["ç", "ç", yok, "x", "z", yok, "xy", "bç", yok, "BİR", "metin bir", "ondalık", "iki", [1, "1", 1.5, 2], doğru, yanlış, 3, 6, "alan", 30]`
+	want := `["ç", "ç", none, "x", "z", none, "xy", "bç", none, "BİR", "metin bir", "ondalık", "iki", [1, "1", 1.5, 2], true, false, 3, 6, "alan", 30]`
 	if err != nil || val.Inspect() != want {
 		t.Fatalf("beklenmeyen:\n%v\n%v", val, err)
 	}

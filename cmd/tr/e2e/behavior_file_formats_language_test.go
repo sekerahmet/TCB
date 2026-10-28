@@ -157,12 +157,13 @@ func TestDictCodedKeysOnDisk(t *testing.T) {
 }
 
 // Fonksiyon, yerleşik ve yapı değerinin metni dilden bağımsızdır, çalıştıranın diline (TR_DIL)
-// bağlı değildir (3): aynı program her makinede aynı metni verir; yerleşiğin adı kimliğin adıdır.
+// bağlı değildir (3.14): aynı program her makinede aynı metni verir; metin sabit İngilizce, yerleşiğin
+// adı kimliğin adıdır.
 func TestFunctionTextIsLanguageIndependent(t *testing.T) {
 	program := "TR_func f() { TR_return 1 }\nTR_struct P { a }\nTR_var l = [1]\n" +
 		"TR_print(TR_str(f), TR_str(P), TR_str(TR_print), TR_str(l.TR_append), \"\\(f)\", TR_str(x => x))\n"
 	sameOutputInEveryDisplayLanguage(t, program,
-		"<fonksiyon f> <yapı P> <yerleşik print> <yerleşik append> <fonksiyon f> <ok fonksiyonu>\n")
+		"<function f> <struct P> <builtin print> <builtin append> <function f> <lambda>\n")
 }
 
 // Sonsuz ve tanımsız sayının adı (TR_val_inf, TR_val_nan) sayıda ve tensörde aynıdır, dilden
@@ -172,11 +173,11 @@ func TestNonFiniteNamesAreLanguageIndependent(t *testing.T) {
 	program := "TR_var t = TR_tensor([0.0, 1.0, -1.0]) / 0.0\nTR_var s = TR_float(\"inf\")\n" +
 		"TR_print(t, -s, s, TR_float(\"nan\"), TR_str(TR_tensor([2.0], TR_requires_grad: TR_true)), \"\\(TR_tensor(s))\")\n"
 	sameOutputInEveryDisplayLanguage(t, program,
-		"Tensor[3] [ nan,  inf, -inf] -inf inf nan Tensor[1] (türev izleniyor) [2.0000] Tensor(inf)\n")
+		"Tensor[3] [ nan,  inf, -inf] -inf inf nan Tensor[1] (requires grad) [2.0000] Tensor(inf)\n")
 }
 
 // Motor değerlerinin metni (tip adı, ayar adları, içindeki iletiler) dilden bağımsızdır, TR_DIL'e
-// bağlı değildir (DENETİM 3): İlerleme, Günlük, iyileştirici, kontrol noktası, satır okuyucu.
+// bağlı değildir (3.14; metin sabit İngilizce): İlerleme, Günlük, iyileştirici, kontrol noktası, satır okuyucu.
 func TestEngineValueTextIsLanguageIndependent(t *testing.T) {
 	program := "TR_var w = TR_tensor([1.0], TR_requires_grad: TR_true)\n" +
 		"TR_write_file(\"s.txt\", \"a\\nb\\n\")\n" +
@@ -187,9 +188,9 @@ func TestEngineValueTextIsLanguageIndependent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"Progress(adım 0/2)", "Logger(m.jsonl, 0 kayıt)",
-		"AdamW(parametre: 1, lr: 0.1, weight_decay: 0.01, beta1: 0.9, beta2: 0.999, eps: 1e-08, step: 0)",
-		"Checkpoint(k/checkpoints, adım 0, 1 nesne)", "LineReader("}
+	want := []string{"Progress(step 0/2)", "Logger(m.jsonl, 0 records)",
+		"AdamW(parameters: 1, lr: 0.1, weight_decay: 0.01, beta1: 0.9, beta2: 0.999, eps: 1e-08, step: 0)",
+		"Checkpoint(k/checkpoints, step 0, 1 object)", "LineReader("}
 	for _, env := range [][]string{{"TR_DIL=tr"}, {"TR_DIL=en"}} {
 		dir := t.TempDir()
 		writeTR(t, dir, "p.tr", coded)
@@ -220,11 +221,11 @@ func TestDisplayFollowsPersonsLanguage(t *testing.T) {
 	if strings.Contains(help.Stdout, "doğru") || strings.Contains(help.Stdout, "<Tam>") {
 		t.Errorf("TR_DIL=en yardımında Türkçe değer ya da tip adı:\n%s", help.Stdout)
 	}
-	// Yardımın gösterdiği yazım okunur (19.3, 17.8): TR_DIL=en'de "true,false" ve "inf"; Türkçede
-	// "doğru,yanlış" ve "sonsuz". Çıktı iki koşuda da aynıdır.
+	// Yardımın gösterdiği yazım okunur (19.3, 17.8): TR_DIL=en'de "true,false"; Türkçede
+	// "doğru,yanlış"; sonsuzun adı her dilde "inf" (3.2). Çıktı iki koşuda da aynıdır.
 	writeTR(t, dir, "v.tr", source.Header+"\nTR_var a = TR_command_line({liste: [TR_true], büyük: 1.5})\nTR_print(a.liste, a.büyük)\n")
 	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "v.tr", "--liste", "true,false", "--büyük", "inf"), 0, []string{"[true, false] inf"}, nil)
-	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=tr"}, "v.tr", "--liste", "doğru,yanlış", "--büyük", "sonsuz"), 0, []string{"[true, false] inf"}, nil)
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=tr"}, "v.tr", "--liste", "doğru,yanlış", "--büyük", "inf"), 0, []string{"[true, false] inf"}, nil)
 }
 
 // İletilerin içindeki değerler ve tip adları iletinin dilindedir (TR_DIL): aynı hata TR_DIL=en

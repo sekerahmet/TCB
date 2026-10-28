@@ -2,6 +2,7 @@ package interp
 
 import (
 	"bytes"
+	"math"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -128,6 +129,30 @@ try { float("sonsuz") } catch e { print("not read") }
 `, nil)
 	if want := "inf -inf nan true inf\nnot read\n"; out != want {
 		t.Errorf("değer adları:\n%s\nbeklenen:\n%s", out, want)
+	}
+}
+
+// Kural (3.14, 3.2): her değerin tek metni vardır. Yerleşiğin, fonksiyonun ve yapının metni sabit
+// İngilizce ve kimlik öneksizdir; ondalık 3.2'nin eşiğiyle yazılır (bilimsel yalnız üs < -4 ya da
+// >= 16); TR_inf ve TR_nan programda yazılır. Inspect, TR_String ve yazdır aynı metni verir; testin
+// süreç dili (TR_DIL) Türkçedir.
+func TestOneValueTextForEveryValue(t *testing.T) {
+	out := runEnglish(t, `func f() {}
+struct P { a }
+print([print, Int, f, P, P(1), inf, -inf, nan, 1e6, 1234567.0, 1e15, 1e16, 0.00001, -0.0, x => x])
+print(str(print), "\(f)", str(1e15), str(inf) == "inf")
+`, nil)
+	want := "[<builtin print>, Int, <function f>, <struct P>, P{a: 1}, inf, -inf, nan, 1000000.0, 1234567.0, " +
+		"1000000000000000.0, 1e+16, 1e-05, -0.0, <lambda>]\n<builtin print> <function f> 1000000000000000.0 true\n"
+	if out != want {
+		t.Errorf("değerin metni:\n%s\nbeklenen:\n%s", out, want)
+	}
+	m := New()
+	for _, v := range []Value{True, Null, &FloatVal{Val: 1e6}, &FloatVal{Val: math.NaN()}, TypeOfValue(Null),
+		m.Builtin(codes.FnPrint), &ListVal{Elements: []Value{False, &StringVal{Val: "a"}}}} {
+		if got, want := v.Inspect(), m.textOf(v); got != want {
+			t.Errorf("Inspect %q, program metni %q: aynı olmalı", got, want)
+		}
 	}
 }
 

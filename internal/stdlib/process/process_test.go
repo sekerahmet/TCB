@@ -86,14 +86,14 @@ func TestNumberParsing(t *testing.T) {
 			t.Errorf("parseFloat(%q) = %v, %v; beklenen %v", s, f, err, want)
 		}
 	}
-	// Sonsuz ve tanımsız sayı değer adlarıyla okunur (sonsuz, inf, NaN, nan; her dilde, 17.8),
-	// başka yazımlarla okunmaz (Infinity veri biçiminindir, Inf Go'nundur).
-	for s, want := range map[string]float64{"inf": math.Inf(1), "-sonsuz": math.Inf(-1)} {
+	// Sonsuz ve tanımsız sayı değer adlarıyla okunur (inf, nan; her dilde aynı, 3.2, 17.8), başka
+	// yazımlarla okunmaz (Infinity veri biçiminindir, Inf Go'nundur, sonsuz eski Türkçe addı).
+	for s, want := range map[string]float64{"inf": math.Inf(1), "-inf": math.Inf(-1)} {
 		if f, err := parseFloat(s); err != nil || f != want {
 			t.Errorf("parseFloat(%q) = %v, %v; beklenen %v", s, f, err, want)
 		}
 	}
-	for _, s := range []string{"0,001", "Infinity", "Inf", ".5", "1.", "1e", "1e400"} {
+	for _, s := range []string{"0,001", "Infinity", "Inf", "sonsuz", ".5", "1.", "1e", "1e400"} {
 		if _, err := parseFloat(s); err == nil {
 			t.Errorf("parseFloat(%q) hata vermeliydi", s)
 		}

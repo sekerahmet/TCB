@@ -46,8 +46,8 @@ type Kind string
 const (
 	KindKeyword    Kind = "keyword"
 	KindContextual Kind = "contextual"
-	// KindValueName is the name of a value that is not a word of the source (inf, nan: written
-	// ondalık("sonsuz")); it is never coded in a file.
+	// KindValueName is the name of a value of the language that is no keyword (TR_inf, TR_nan;
+	// 3.2): bound in the global scope like a constant, and the same text in every language.
 	KindValueName Kind = "value_name"
 	KindType      Kind = "type"
 	KindFunction  Kind = "function"

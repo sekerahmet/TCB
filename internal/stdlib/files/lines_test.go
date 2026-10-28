@@ -40,7 +40,7 @@ func TestFileLines(t *testing.T) {
 		TR_var ilk = o.TR_next()
 		TR_var kalan = [s TR_for s TR_in o]
 		[ilk, kalan, o.TR_next(), TR_str(o), TR_type(o) == TR_LineReader]`)
-	if got != `["1", ["2", "3"], yok, "LineReader(s.txt, 3 satır okundu, bitti)", doğru]` {
+	if got != `["1", ["2", "3"], none, "LineReader(s.txt, 3 lines read, finished)", true]` {
 		t.Fatal(got)
 	}
 	errContains(t, `TR_read_lines("yok.txt")`, `dosya_satırları(): "yok.txt" okunamadı: böyle bir dosya ya da klasör yok`, "bakılan yer")
@@ -107,7 +107,7 @@ func TestLineReaderClose(t *testing.T) {
 		TR_var birinci = o.TR_close()
 		TR_var ikinci = o.TR_close()
 		[ilk, birinci, ikinci, TR_str(o), TR_remove("s.txt"), TR_path("s.txt").TR_exists]`)
-	if got != `["1", doğru, yanlış, "LineReader(s.txt, 1 satır okundu, kapatıldı)", 1, yanlış]` {
+	if got != `["1", true, false, "LineReader(s.txt, 1 line read, closed)", 1, false]` {
 		t.Fatal(got)
 	}
 	write(t, filepath.Join(k, "s.txt"), "1\n2\n3\n")
@@ -119,7 +119,7 @@ func TestLineReaderClose(t *testing.T) {
 	// çağrıldıktan sonra satır istemek yine hatadır.
 	if got := mustRunTR(t, `TR_var o = TR_read_lines("s.txt")
 		TR_var l = [s TR_for s TR_in o]
-		[l, o.TR_next(), o.TR_close()]`); got != `[["1", "2", "3"], yok, yanlış]` {
+		[l, o.TR_next(), o.TR_close()]`); got != `[["1", "2", "3"], none, false]` {
 		t.Fatal(got)
 	}
 	errHas(t, `TR_var o = TR_read_lines("s.txt"); [s TR_for s TR_in o]; o.TR_close(); o.TR_next()`, messages.H7134)
@@ -136,7 +136,7 @@ TR_var o = TR_read_lines("son.txt")
 TR_var x = [o.TR_next(), o.TR_next()]
 TR_remove("son.txt")
 [x, o.TR_next()]`)
-	if got != `[["a", "b"], yok]` {
+	if got != `[["a", "b"], none]` {
 		t.Fatalf("sonuç: %s", got)
 	}
 }

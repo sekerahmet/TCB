@@ -183,12 +183,13 @@ func parseIntText(s string) (Value, error) {
 // parseFloatText reads s in 2.4's or 2.5's spelling with an optional sign, or as "inf", "-inf",
 // "nan"; ok is false for anything else and for a number too large for a decimal.
 func parseFloatText(s string) (float64, bool) {
+	inf, nan := codes.ValueNames().Name(codes.ValInf), codes.ValueNames().Name(codes.ValNan)
 	switch s {
-	case "inf":
+	case inf:
 		return math.Inf(1), true
-	case "-inf":
+	case "-" + inf:
 		return math.Inf(-1), true
-	case "nan":
+	case nan:
 		return math.NaN(), true
 	}
 	digits, ok := numberDigits(s, true)

@@ -71,8 +71,8 @@ type Progress struct {
 func (c *Progress) Type() interp.ValueType { return ProgressType }
 func (c *Progress) IsTruthy() bool         { return true }
 
-// Inspect is the value's display text, in the person's writing language (TR_DIL).
-func (c *Progress) Inspect() string { return c.Text(codes.Display()) }
+// Inspect is the value's text (3.14): language-independent, the same as its program text.
+func (c *Progress) Inspect() string { return c.Text(codes.ValueNames()) }
 
 var _ interp.LanguageText = (*Progress)(nil)
 

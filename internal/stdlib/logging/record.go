@@ -40,8 +40,8 @@ type Log struct {
 func (g *Log) Type() interp.ValueType { return LogType }
 func (g *Log) IsTruthy() bool         { return true }
 
-// Inspect is the value's display text, in the person's writing language (TR_DIL).
-func (g *Log) Inspect() string { return g.Text(codes.Display()) }
+// Inspect is the value's text (3.14): language-independent, the same as its program text.
+func (g *Log) Inspect() string { return g.Text(codes.ValueNames()) }
 
 var _ interp.LanguageText = (*Log)(nil)
 

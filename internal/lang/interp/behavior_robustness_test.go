@@ -59,7 +59,7 @@ func TestRunRecoversFromBuiltinPanic(t *testing.T) {
 	if !messages.Has(err, messages.H9000) {
 		t.Fatalf("panik hataya dönüştürülmeliydi, alınan: %v", err)
 	}
-	if v, _ := machine.GlobalEnv.Get("çalıştı"); v.Inspect() != "doğru" {
+	if v, _ := machine.GlobalEnv.Get("çalıştı"); v.Inspect() != "true" {
 		t.Fatal("panik sonrasında da 'ertele' blokları çalışmalı")
 	}
 	// Panik sonrası kilit bırakılmış olmalı: aynı VM yeniden kullanılabilir (REPL)
@@ -156,8 +156,8 @@ func TestWaitAllInsideAsyncDoesNotDeadlock(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Görev hatayla (bekle_hepsi reddedildi) sonlanır; sonraki satır çalışmaz ama program kilitlenmez
-	if val.Inspect() != "yanlış" {
-		t.Fatalf("yanlış bekleniyordu, %s alındı", val.Inspect())
+	if val.Inspect() != "false" {
+		t.Fatalf("false bekleniyordu, %s alındı", val.Inspect())
 	}
 }
 
@@ -204,7 +204,7 @@ func TestPanicInsideAsyncDoesNotCrashProcess(t *testing.T) {
 	if _, err := machine.Run(prog); err != nil {
 		t.Fatalf("ana program etkilenmemeli: %v", err)
 	}
-	if v, _ := machine.GlobalEnv.Get("tamam"); v.Inspect() != "doğru" {
+	if v, _ := machine.GlobalEnv.Get("tamam"); v.Inspect() != "true" {
 		t.Fatal("görev paniğinden sonra ana program devam etmeliydi")
 	}
 }
@@ -221,7 +221,7 @@ func TestDeepRecursionIsCatchableError(t *testing.T) {
 		TR_var yakalandı = TR_false
 		TR_try { f(0) } TR_catch hata { yakalandı = TR_true }
 		TR_var result = yakalandı`)
-	if err != nil || val.Inspect() != "doğru" {
+	if err != nil || val.Inspect() != "true" {
 		t.Fatalf("özyineleme hatası dene/yakala ile yakalanmalıydı: %v / %v", val, err)
 	}
 	// Sınırın altındaki derin ama sonlu özyineleme çalışmaya devam etmeli

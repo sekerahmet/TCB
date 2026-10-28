@@ -56,7 +56,7 @@ func TestValueHooks(t *testing.T) {
 		return val.Inspect(), nil
 	}
 	for codeVal, want := range map[string]string{
-		"a == b": "yanlış", "a == c": "doğru", "a != b": "doğru", "[a] == [b]": "yanlış",
+		"a == b": "false", "a == c": "true", "a != b": "true", "[a] == [b]": "false",
 		"5 - a": "5 eksi sahte", "-b": "-2", "b[3]": "6",
 	} {
 		if got, err := expression(codeVal); err != nil || got != want {
@@ -78,7 +78,7 @@ func TestContainerEquality(t *testing.T) {
 		TR_var result = [[1, 2] == [1.0, 2], [0.1 + 0.2] == [0.3], {"a": 1, "b": 2} == {"b": 2, "a": 1},
 			{1: "x"} == {"1": "x"}, N(1) == N(1.0), N(1) == N(2), ["1"] == [1]]
 	`)
-	if err != nil || val.Inspect() != "[doğru, yanlış, doğru, yanlış, doğru, yanlış, yanlış]" {
+	if err != nil || val.Inspect() != "[true, false, true, false, true, false, false]" {
 		t.Fatalf("beklenmeyen: %v %v", val, err)
 	}
 }
@@ -104,7 +104,7 @@ func TestSelfContainingContainers(t *testing.T) {
 		TR_var result = [l == l, d == d, l == l2, TR_str(l).TR_length]
 	`)
 	want := "[1, \"a\", [...]]\n{\"x\": 1, \"ben\": {...}, \"l\": [{...}]}\nD{next: D{...}}\n[[1, \"a\", [...]], [1, \"a\", [...]]]\n"
-	if err != nil || out != want || val.Inspect() != "[doğru, doğru, yanlış, 15]" {
+	if err != nil || out != want || val.Inspect() != "[true, true, false, 15]" {
 		t.Fatalf("beklenmeyen:\n%s\n%v %v", out, val, err)
 	}
 }
@@ -129,7 +129,7 @@ func TestIntEdges(t *testing.T) {
 	`)
 	want := `["Line 5: Int overflow (-9223372036854775808 // -1); for a decimal result write e.g. -9223372036854775808.0 // -1", ` +
 		`"Line 6: Int overflow (-(-9223372036854775808)); for a decimal result write e.g. -(-9223372036854775808.0)", ` +
-		`"bileşik taşma", yanlış, doğru, yanlış, doğru, 0]`
+		`"bileşik taşma", false, true, false, true, 0]`
 	if err != nil || val.Inspect() != want {
 		t.Fatalf("beklenmeyen:\n%v\n%v", val, err)
 	}
@@ -162,13 +162,13 @@ TR_for s TR_in h { TR_print(s) }
 // Sonsuz ve tanımsız Ondalık değerler dilin değer adlarıyla (TR_val_inf, TR_val_nan; tensörle aynı) yazılır;
 // bilimsel yazım ayrıştırılır.
 func TestFloatPrintingAndScientific(t *testing.T) {
-	for f, want := range map[float64]string{math.Inf(1): "sonsuz", math.Inf(-1): "-sonsuz", math.NaN(): "NaN", 1e21: "1e+21", 2: "2.0", 0.5: "0.5"} {
+	for f, want := range map[float64]string{math.Inf(1): "inf", math.Inf(-1): "-inf", math.NaN(): "nan", 1e21: "1e+21", 2: "2.0", 0.5: "0.5"} {
 		if got := (&FloatVal{Val: f}).Inspect(); got != want {
 			t.Errorf("%v: beklenen %s, alınan %s", f, want, got)
 		}
 	}
 	_, val, err := runTROut(t, `TR_var result = [1e-5, 3.2E+4, 2e3 == 2000, 1e-5 * 1e5]`)
-	if err != nil || val.Inspect() != "[1e-05, 32000.0, doğru, 1.0]" {
+	if err != nil || val.Inspect() != "[1e-05, 32000.0, true, 1.0]" {
 		t.Fatalf("bilimsel yazım: %v %v", val, err)
 	}
 }

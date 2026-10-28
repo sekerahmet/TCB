@@ -37,7 +37,7 @@ func TestJSONDecodePreservesKeyOrder(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := `[["zeta", "alfa", "orta", "iç"], ["b", "a"], [doğru, yok, "x"], 2.5, `
+	want := `[["zeta", "alfa", "orta", "iç"], ["b", "a"], [true, none, "x"], 2.5, `
 	if !strings.HasPrefix(val.Inspect(), want) {
 		t.Fatalf("%s… bekleniyordu, %s alındı", want, val.Inspect())
 	}
@@ -54,7 +54,7 @@ func TestDictKeysAreTypeAware(t *testing.T) {
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
 	}
-	if val.Inspect() != `["tam", "metin", "mantık", "metin2", 4, doğru, yanlış]` {
+	if val.Inspect() != `["tam", "metin", "mantık", "metin2", 4, true, false]` {
 		t.Fatalf("beklenmeyen sonuç: %s", val.Inspect())
 	}
 
@@ -68,7 +68,7 @@ func TestDictKeysAreTypeAware(t *testing.T) {
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
 	}
-	if val.Inspect() != `[[Tam, Metin], [1, "b"], [Tam, Metin]]` {
+	if val.Inspect() != `[[Int, String], [1, "b"], [Int, String]]` {
 		t.Fatalf("beklenmeyen sonuç: %s", val.Inspect())
 	}
 
@@ -182,7 +182,7 @@ func TestCSVStrictNumbersAndBOM(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, val, err := run(t, fmt.Sprintf(`TR_var result = [TR_read_csv(%q)[0][0] == "ad", TR_parse_csv("%sa,b")[0][0]]`, file, "\ufeff"))
-	if err != nil || val.Inspect() != `[doğru, "a"]` {
+	if err != nil || val.Inspect() != `[true, "a"]` {
 		t.Fatalf("BOM soyulmalı: %v %v", val, err)
 	}
 	_, val, err = run(t, `
@@ -192,9 +192,9 @@ func TestCSVStrictNumbersAndBOM(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := `[["NaN", "Inf", "-Inf", "infinity", "007", "12345678901234567890", "0x10", "1_000", "1e400", "+5", "00.5", ".5"], ` +
-		`[Metin, Metin, Metin, Metin, Metin, Metin, Metin, Metin, Metin, Metin, Metin, Metin], ` +
+		`[String, String, String, String, String, String, String, String, String, String, String, String], ` +
 		`[0, 0, 1.0, 2500.0, -7, 9223372036854775807, 0.001, 0.0, "", 42, "1.", "1e"], ` +
-		`[Tam, Tam, Ondalık, Ondalık, Tam, Tam, Ondalık, Ondalık, Metin, Tam, Metin, Metin]]`
+		`[Int, Int, Float, Float, Int, Int, Float, Float, String, Int, String, String]]`
 	if val.Inspect() != want {
 		t.Fatalf("\n%s\nbeklenen\n%s", val.Inspect(), want)
 	}

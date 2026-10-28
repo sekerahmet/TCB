@@ -18,7 +18,7 @@ TR_print(TR_min(TR_tensor([3, -2, 5])), TR_min(TR_tensor([3, -2], TR_requires_gr
 		"Tensor[2] [1.0000e+09, 2.0000e+00]\n" +
 		"Tensor[3] [   nan,   -inf, 0.0000] Tensor[1] [inf]\n" +
 		"Tensor(2.0000e-05)\n" +
-		"Tensor(-2.0000) Tensor(-2.0000, türev izleniyor)\n"
+		"Tensor(-2.0000) Tensor(-2.0000, requires grad)\n"
 	if out != want {
 		t.Fatalf("özel değerler:\n%q\nbeklenen:\n%q", out, want)
 	}

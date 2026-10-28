@@ -44,9 +44,9 @@ func TestPathMembers(t *testing.T) {
 		`TR_path(".").TR_name`:                       "",
 		`TR_path("a.txt").TR_parent`:                 ".",
 		`TR_path("veri/eğitim/a.npy").TR_parent`:     "veri/eğitim",
-		`TR_type(TR_path("a").TR_parent)`:            "Yol",
-		`TR_path("a") == TR_path("a/./")`:            "doğru",
-		`TR_path("a") == "a"`:                        "yanlış",
+		`TR_type(TR_path("a").TR_parent)`:            "Path",
+		`TR_path("a") == TR_path("a/./")`:            "true",
+		`TR_path("a") == "a"`:                        "false",
 		`"\(TR_path("x", "y"))"`:                     "x/y",
 		`TR_json_string({"y": TR_path("a/b")})`:      `{"y":"a/b"}`,
 	}
@@ -82,7 +82,7 @@ func TestPathDiskQueries(t *testing.T) {
 	write(t, filepath.Join(work, "b.txt"), "xy")
 	s := runTR(t, program, `[TR_path("veri/a.txt").TR_exists, TR_path("veri/a.txt").TR_is_file, TR_path("veri").TR_is_dir,
 		TR_path("veri").TR_is_file, TR_path("yok").TR_exists, TR_path("yok").TR_is_dir, TR_path("veri/a.txt").TR_size, TR_path("b.txt").TR_size]`)
-	if s.failure != nil || s.value.Inspect() != "[doğru, doğru, doğru, yanlış, yanlış, yanlış, 7, 2]" {
+	if s.failure != nil || s.value.Inspect() != "[true, true, true, false, false, false, 7, 2]" {
 		t.Fatalf("%v %v", s.value, s.failure)
 	}
 	s = runTR(t, program, `TR_path("veri/a.txt").TR_absolute`)

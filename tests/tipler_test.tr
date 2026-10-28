@@ -20,13 +20,27 @@ TR_test "3.1 yerleşikler de taşmada sarmak yerine hata verir" {
 
 TR_test "3.2 Ondalık: 64 bit kayan noktalı" {
     TR_assert_equal(0.75, 3 / 4)
-    TR_assert_equal("1.0", TR_str(1.0))
-    TR_assert_equal("123456.0", TR_str(123456.0))
-    # Büyüklüğü 1e6 ve üstü ya da 1e-4'ten küçük olanlar bilimsel gösterimle yazılır
-    TR_assert_equal("1e+06", TR_str(1e6))
-    TR_assert_equal("1.6777216e+07", TR_str(16777216.0))
-    TR_assert_equal("0.0001", TR_str(0.0001))
-    TR_assert_equal("1e-05", TR_str(0.00001))
+    TR_assert_equal("1.0", TR_String(1.0))
+    TR_assert_equal("123456.0", TR_String(123456.0))
+    TR_assert_equal("-0.0", TR_String(-0.0))
+    # Bilimsel gösterim yalnız üs -4'ten küçük ya da 16 ve üstüyken; üs işaretli, en az iki rakam
+    TR_assert_equal("1000000.0", TR_String(1e6))
+    TR_assert_equal("1234567.0", TR_String(1234567.0))
+    TR_assert_equal("16777216.0", TR_String(16777216.0))
+    TR_assert_equal("1000000000000000.0", TR_String(1e15))
+    TR_assert_equal("1e+16", TR_String(1e16))
+    TR_assert_equal("1.2345678901234568e+17", TR_String(123456789012345678.0))
+    TR_assert_equal("0.0001", TR_String(0.0001))
+    TR_assert_equal("1e-05", TR_String(0.00001))
+    TR_assert_equal("0.1", TR_String(0.1))
+}
+
+TR_test "3.2 sonsuz ve tanımsız TR_inf ve TR_nan yazılır" {
+    TR_assert_equal(TR_Float("inf"), TR_inf)
+    TR_assert_equal(TR_Float("-inf"), -TR_inf)
+    TR_assert(TR_nan != TR_nan)
+    TR_assert_equal(["inf", "-inf", "nan"], [TR_String(TR_inf), TR_String(-TR_inf), TR_String(TR_nan)])
+    TR_assert_equal("[inf, nan]", "\([TR_inf, TR_nan])")
 }
 
 TR_test "3.3 Metin: karakter (rune) bazında uzunluk ve indeks" {

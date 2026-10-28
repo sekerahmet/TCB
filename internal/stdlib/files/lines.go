@@ -144,8 +144,8 @@ func linesBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Val
 func (o *LineReader) Type() interp.ValueType { return LineReaderType }
 func (o *LineReader) IsTruthy() bool         { return true }
 
-// Inspect is the value's display text, in the person's writing language (TR_DIL).
-func (o *LineReader) Inspect() string { return o.Text(codes.Display()) }
+// Inspect is the value's text (3.14): language-independent, the same as its program text.
+func (o *LineReader) Inspect() string { return o.Text(codes.ValueNames()) }
 
 var _ interp.LanguageText = (*LineReader)(nil)
 

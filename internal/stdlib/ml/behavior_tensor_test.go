@@ -87,7 +87,7 @@ TR_print(TR_tensor([1.5, -2]))
 TR_print(TR_sum(TR_tensor([1, 2], TR_requires_grad: TR_true)))`)
 	want := "Tensor[2×2] [\n  [1.0000, 2.0000],\n  [3.0000, 4.0000]\n]\n" +
 		"Tensor[2] [ 1.5000, -2.0000]\n" +
-		"Tensor(3.0000, türev izleniyor)\n"
+		"Tensor(3.0000, requires grad)\n"
 	if out != want {
 		t.Fatalf("yazdırma:\n%s\nbeklenen:\n%s", out, want)
 	}
@@ -151,7 +151,7 @@ TR_var b = TR_no_grad(w * 2)
 TR_var c = w * 2
 TR_print(a, b, c)
 TR_try { TR_backward(TR_sum(a)) } TR_catch h { TR_print("hata") }`)
-	want := "Tensor[2] [2.0000, 4.0000] Tensor[2] [2.0000, 4.0000] Tensor[2] (türev izleniyor) [2.0000, 4.0000]\nhata\n"
+	want := "Tensor[2] [2.0000, 4.0000] Tensor[2] [2.0000, 4.0000] Tensor[2] (requires grad) [2.0000, 4.0000]\nhata\n"
 	if out != want {
 		t.Fatalf("türevsiz:\n%q\nbeklenen:\n%q", out, want)
 	}

@@ -31,7 +31,7 @@ func TestListDir(t *testing.T) {
 		`TR_list_dir("v", "**/derin")`:      "[v/alt/derin]",
 		`TR_list_dir("./v/", "a.npy")`:      "[v/a.npy]",
 		`TR_list_dir(TR_path("v"), "yok*")`: "[]",
-		`TR_type(TR_list_dir("v")[0])`:      "Yol",
+		`TR_type(TR_list_dir("v")[0])`:      "Path",
 		`TR_list_dir()`:                     "[v]",
 	}
 	if caseInsensitive {

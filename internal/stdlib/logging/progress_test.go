@@ -71,7 +71,7 @@ func TestProgressStepAndErrors(t *testing.T) {
 ç.TR_update(TR_step: 7)
 ç.TR_update()
 ç`)
-	if err != nil || v.Inspect() != "İlerleme(adım 8/10)" {
+	if err != nil || v.Inspect() != "Progress(step 8/10)" {
 		t.Fatalf("adım: ile sürdürme: %v %v", v, err)
 	}
 	for _, d := range []struct {
@@ -96,7 +96,7 @@ func TestProgressStepAndErrors(t *testing.T) {
 	}
 	// Toplamsız sayaç: kalan süre yerine geçen süre.
 	if v, err := run(t, m, `TR_var s = TR_progress()
-s.TR_update(); s.TR_update(); s`); err != nil || v.Inspect() != "İlerleme(adım 2)" {
+s.TR_update(); s.TR_update(); s`); err != nil || v.Inspect() != "Progress(step 2)" {
 		t.Errorf("sayaç: %v %v", v, err)
 	}
 }

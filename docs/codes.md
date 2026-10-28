@@ -339,25 +339,25 @@ test "toplama" { eşit_mi(4, 2 + 2) }
 
 ### Değer adları
 
-#### TR_val_inf `sonsuz`
+#### TR_val_inf `inf`
 
-Ondalık sonsuz değerin metindeki adıdır; eksi sonsuz başına - alır. Ayrılmış sözcük değildir: kodda ondalık("sonsuz") ile yazılır, sıradan bir ad olarak da kullanılabilir.
-
-```tr
-yazdır(ondalık("inf"), -ondalık("inf"))
-```
-
-İlişkili: TR_val_nan `NaN`, TR_type_Float `Ondalık`, TR_fn_float `ondalık`
-
-#### TR_val_nan `NaN`
-
-Ondalık tanımsız değerin (sayı olmayan, NaN) metindeki adıdır. Ayrılmış sözcük değildir: kodda ondalık("NaN") ile yazılır.
+Ondalık sonsuz değerdir; metni her dilde inf, eksi sonsuzunki -inf'tir (3.2). Ondalık("inf") metinden okur.
 
 ```tr
-yazdır(ondalık("NaN"))
+yazdır(inf, -inf, inf > 1e308)
 ```
 
-İlişkili: TR_val_inf `sonsuz`, TR_type_Float `Ondalık`, TR_fn_float `ondalık`
+İlişkili: TR_val_nan `nan`, TR_type_Float `Ondalık`, TR_fn_float `ondalık`
+
+#### TR_val_nan `nan`
+
+Ondalık tanımsız değerdir (sayı olmayan); metni her dilde nan'dır (3.2) ve hiçbir sayıya, kendine de eşit değildir. Ondalık("nan") metinden okur.
+
+```tr
+yazdır(nan, nan == nan)
+```
+
+İlişkili: TR_val_inf `inf`, TR_type_Float `Ondalık`, TR_fn_float `ondalık`
 
 ### Tip adları
 

@@ -23,8 +23,9 @@ var _ LanguageText = (*MessageVal)(nil)
 func (m *MessageVal) Type() ValueType { return ValMessage }
 func (m *MessageVal) IsTruthy() bool  { return true }
 
-// Inspect is the canonical (source language) text.
-func (m *MessageVal) Inspect() string { return m.Text(codes.Source()) }
+// Inspect is the value's text (3.14): the message in the fixed catalog of values' text
+// (messages.ValueLanguage), like a caught error; shown to a person it is in their language.
+func (m *MessageVal) Inspect() string { return m.Text(codes.ValueNames()) }
 
 // Text is the message in lang.
 func (m *MessageVal) Text(lang *codes.Language) string {

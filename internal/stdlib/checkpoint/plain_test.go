@@ -44,7 +44,7 @@ func TestPlainNonFiniteNumbers(t *testing.T) {
 		t.Fatalf("yazım %s (%v), beklenen %s", b, err, want)
 	}
 	back, err := readPlain(b)
-	if err != nil || back.Inspect() != "[NaN, sonsuz, -sonsuz, 0.1]" {
+	if err != nil || back.Inspect() != "[nan, inf, -inf, 0.1]" {
 		t.Fatalf("geri okuma %v (%v)", back, err)
 	}
 	for _, old := range []string{"+Inf", "-Inf", "inf", "+Sonsuz"} {

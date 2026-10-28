@@ -1,6 +1,10 @@
 package codes
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
+)
 
 // Kimliğin program metnindeki yazımı (dil tanımı 2.3a): TR_ ve kimliğin adı (TR_print, x.TR_map,
 // TR_lr: 0.003, TR_Int). Sınıf yazılmaz, sözcüğün yeri onu belirler: noktadan sonra üye, çağrıda ve
@@ -109,8 +113,8 @@ func SuggestIdentity(name string) (string, bool) {
 	return "", false
 }
 
-// ValueLanguage is the code of ValueNames (it is no writing language).
-const ValueLanguage = "value"
+// ValueLanguage is the code of ValueNames (it is no writing language; messages.ValueLanguage).
+const ValueLanguage = messages.ValueLanguage
 
 // valueNames ValueNames'in listesidir (bir kez kurulur).
 var valueNames = buildValueNames()

@@ -38,8 +38,8 @@ func TestBuiltinsMatchDictionary(t *testing.T) {
 			continue
 		}
 		d, ok := m.GlobalEnv.Get(k.String())
-		if tn, _ := codes.DefinitionOf(k); tn.Kind == codes.KindConstant {
-			// Sabitler (pi) yerleşik fonksiyon değil, değer olarak kayıtlıdır.
+		if tn, _ := codes.DefinitionOf(k); tn.Kind == codes.KindConstant || tn.Kind == codes.KindValueName {
+			// Sabitler (pi) ve değer adları (inf, nan) yerleşik fonksiyon değil, değer olarak kayıtlıdır.
 			if !ok || d == nil {
 				t.Errorf("sözlükteki sabit %s kimliğiyle kayıtlı değil", k)
 			}
