@@ -75,7 +75,7 @@ func template(t *testing.T) []byte {
 }
 
 func TestUnsupportedPackageVersion(t *testing.T) {
-	body := []byte(`{"main":{"code":"yazdır(1)"}}`)
+	body := []byte(`{"main":{"code":"TR_print(1)"}}`)
 	content := append(template(t), body...)
 	footer := make([]byte, footerSize)
 	binary.LittleEndian.PutUint64(footer[0:8], uint64(len(body)))
