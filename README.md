@@ -1,6 +1,6 @@
 # TR
 
-TR, yapay zekânın bütün işleri için bir programlama dilidir: verinin hazırlanmasından modelin bir robotun içinde çalışmasına kadar her iş tek dille yapılır.
+TR, yapay zekâ ajanlarının doğru ve hatasız kullanabileceği, insanların da kodunu rahatça okuyabileceği yeni bir programlama dilidir. Yapay zekânın bütün işleri içindir: verinin hazırlanmasından modelin bir robotun içinde çalışmasına kadar her iş tek dille yapılır.
 
 ## Amaç
 

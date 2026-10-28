@@ -1,6 +1,6 @@
 # TR
 
-**Amaç.** TR, yapay zekânın bütün işleri için bir programlama dilidir: verinin hazırlanmasından modelin bir robotun içinde çalışmasına kadar her iş tek dille yapılır.
+**Amaç.** TR, yapay zekâ ajanlarının doğru ve hatasız kullanabileceği, insanların da kodunu rahatça okuyabileceği yeni bir programlama dilidir. Yapay zekânın bütün işleri içindir: verinin hazırlanmasından modelin bir robotun içinde çalışmasına kadar her iş tek dille yapılır.
 
 TR her türden model içindir: dil, görüntü, ses, video ve bunları birlikte işleyen çok kipli modeller. Bu modellerle yapılan işlerin hepsi TR'de yazılabilmeli:
 
