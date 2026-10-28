@@ -4,8 +4,8 @@ Kurallar: [`20_kontrol_noktasi.md`](../20_kontrol_noktasi.md). Bu dosya her kura
 
 ### 20.1
 
-- *Emsal:* PyTorch'ta kullanıcı modelin, iyileştiricinin ve örnekleyicinin durumunu ayrı ayrı toplayıp `torch.save` ile yazar ve geri yüklerken her birini kendisi geri koyar [kanıtsız: bu tur açılmadı].
-- *Gerekçe:* amaç "biraz teknik bilgisi olan biri de kendi modelini eğitebilmeli" der. Kesilen eğitimi aynı sonuçla sürdürmek için hangi durumun kaydedileceğini kullanıcının bilmesi gerekmemeli: tek nesne, tek klasör, tek çağrı.
+- *Emsal:* 13'ün yol kuralı: okuma çalışma klasörü, modülün ve programın klasörü; yazma yalnız çalışma klasörü. PyTorch'ta kullanıcı modelin, iyileştiricinin ve örnekleyicinin durumunu ayrı ayrı toplayıp `torch.save` ile yazar ve geri yüklerken her birini kendisi geri koyar [kanıtsız: bu tur açılmadı].
+- *Gerekçe:* koşu klasörü yazılan bir yerdir; okuma kuralıyla çözülseydi başka klasörden çalışan program programın klasöründeki koşuyu sürerdi ve yazdırılan yol çalışma klasörüne göreli gibi okunurdu [ölçüldü: DENETİM 20-1]. Amaç "biraz teknik bilgisi olan biri de kendi modelini eğitebilmeli" der. Kesilen eğitimi aynı sonuçla sürdürmek için hangi durumun kaydedileceğini kullanıcının bilmesi gerekmemeli: tek nesne, tek klasör, tek çağrı.
 
 ### 20.2
 
@@ -79,13 +79,13 @@ Kurallar: [`20_kontrol_noktasi.md`](../20_kontrol_noktasi.md). Bu dosya her kura
 
 ### 20.16
 
-- *Emsal:* 1. bölümün durdurma kuralları (1.5, 1.7, 1.9).
+- *Emsal:* 1. bölümün durdurma kuralları (1.5, 1.6, 1.9); ertelemenin koşulları tek yerde, 1.6'dadır.
 - *Gerekçe:* Ctrl+C'ye basan kişi çoğu zaman eğitimi kaybetmek istemez; adım sınırında kaydedip çıkmak "kesilen eğitimin kaldığı yerden sürmesi"nin en sık yoludur. İkinci istek hemen çıkar: kişinin son sözü geçer.
 
 ### 20.17
 
-- *Emsal:* PyTorch'un belirlenimcilik notu, belirlenimci algoritmalar ve tohumlar gerektiğini söyler; paylaşılan üretecin durumunu kaydetmek kullanıcıya kalır [kanıtsız: bu tur açılmadı].
-- *Gerekçe:* "kesilen bir eğitim kaldığı yerden aynı sonuçla sürer" bit düzeyinde aynılığı ister. Bunun koşulu aynı cihaz türüdür (15.22a): farklı işlemci yolları son bitte ayrılabilir. Bugün tohumsuz rastgelelikte yalnız uyarı veriliyor; bu, amacı kullanıcıya bırakmaktır. Paylaşılan üretecin durumunu kaydetmek, tohum unutulduğunda da sonucu aynı tutar.
+- *Emsal:* PyTorch'ta paylaşılan üretecin durumu `torch.get_rng_state()` ve `set_rng_state()` ile alınıp verilir; Hugging Face `Trainer` kontrol noktasında bunu `_save_rng_state` ile kaydeder [ölçüldü: DENETİM 20-1, transformers'ın bugünkü sürümü]. PyTorch ve NumPy'nin paylaşılan üreteci ise kendiliğinden saatle tohumlanır: aynı program iki kez farklı sonuç verir [ölçüldü: DENETİM 20-1].
+- *Gerekçe:* "Aynı program aynı veriyle aynı sonucu verir; kesilen bir eğitim kaldığı yerden aynı sonuçla sürer." Saatle tohumlanan üreteç ilk cümleyi, kaydedilmeyen üreteç ikinci cümleyi bozar. Bu yüzden üreteç her programda aynı sabit durumla başlar ve durumu kontrol noktasına girer; tohum unutulsa da sonuç aynıdır. Bit düzeyinde aynılığın koşulu aynı cihaz türüdür: farklı işlemci yolları son bitte ayrılabilir. Eşzamanlı görevlerin aynı üreteçten çekme sırası belirlenimci değildir; bu sınır yazılır, görev başına tohum çözümdür.
 
 ### 20.18
 

@@ -529,6 +529,11 @@ Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): an
 
 Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md). Taslak (2026-10-29): ana oturum CLAUDE.md'nin "kesilen bir eğitim kaldığı yerden aynı sonuçla sürer" cümlesinden türeterek yeniden yazdı; bölümün çoğu uygulanmış ve testli. DENETİM bekleniyor.
 
+### 20.1
+
+- **Mevcut durum:** koşu klasörü okuma kuralıyla çözülüyor (kontrol noktası paketinin 178. satırı): başka klasörden çalışan program programın klasöründeki koşuyu sürüp oraya yazıyor [ölçüldü: DENETİM].
+- **Yapılacaklar:** yazma kuralı (13); TR testi.
+
 ### 20.2
 
 - **Mevcut durum:** sözlük anahtarlarında eski kodlu anahtar kuralı metinden kalktı (bugün sözdizimi hatası). Tam sayılı işaretli tensör (argmax'in sonucu) model olarak kaydediliyor [ölçüldü].
@@ -536,7 +541,8 @@ Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md). Tasla
 
 ### 20.11
 
-- **Yapılacaklar:** cins farkının hatası (15.1).
+- **Mevcut durum:** tam sayılı işaretli tensör ve maske ondalık parametreye sessizce yazılıyor [ölçüldü: DENETİM].
+- **Yapılacaklar:** cins farkının hatası (15'in A'sı gelince).
 
 ### 20.12, 20.13
 
@@ -549,5 +555,5 @@ Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md). Tasla
 
 ### 20.17
 
-- **Mevcut durum:** kontrol noktası kurulduktan sonra tohumsuz rastgelelik bir uyarı veriyor, üretecin durumu kaydedilmiyor [ölçüldü].
-- **Yapılacaklar:** paylaşılan üretecin durumunun kaydı ve geri yüklenmesi; TR testi.
+- **Mevcut durum:** paylaşılan üreteç `math/rand` (v1), saatle tohumlanıyor ve durumu yazılamıyor; kontrol noktası kurulduktan sonra tohumsuz rastgelelik bir uyarı veriyor [ölçüldü: DENETİM].
+- **Yapılacaklar:** sabit başlangıç durumu ve yazılabilen bir üreteç (Go'nun `math/rand/v2` PCG'si `MarshalBinary` veriyor); kaydı ve geri yüklenmesi; TR testi. Rehberin (`docs/guide/09_uzun_egitim.md:40`) örneği Türkçe görünüm adlarıyla yazılmış.
