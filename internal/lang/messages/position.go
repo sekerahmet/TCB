@@ -4,10 +4,19 @@ package messages
 // column, "Satır {line}, Sütun {col}: {error}") in the active language; the position stays a
 // field, so frames and tools read it from the error, never from the text. A line below 1 means
 // the position is unknown: the text is the wrapped error's and Pos looks further down the chain.
+//
+// The record beyond the start (the end, related locations and fixes, docs/spec/02_sozcuk_yapisi.md
+// 2.13) is data for tools: the text above never shows it. Build it with At, AtRange and the With
+// methods (span.go).
 type PosError struct {
 	Line int // 1'den başlar
 	Col  int // 0: bilinmiyor
-	Err  error
+	// EndLine and EndCol are the position after the last character (exclusive, like LSP and rustc);
+	// 0 when the end is unknown. EndCol is 0 whenever Col is.
+	EndLine, EndCol int
+	Err             error
+	Related         []Related
+	Fixes           []Fix
 }
 
 // At returns err at the given source position (col 0 when unknown).
@@ -35,23 +44,32 @@ func (e *PosError) Unwrap() error { return e.Err }
 
 // Pos returns the position of the first PosError with a known line in err's chain.
 func Pos(err error) (line, col int, ok bool) {
+	if p, found := Find(err); found {
+		return p.Line, p.Col, true
+	}
+	return 0, 0, false
+}
+
+// Find returns the first PosError with a known line in err's chain, whole: with its end, related
+// locations and fixes (Pos returns only the start).
+func Find(err error) (*PosError, bool) {
 	for err != nil {
 		if p, isPos := err.(*PosError); isPos && p.Line > 0 {
-			return p.Line, p.Col, true
+			return p, true
 		}
 		switch u := err.(type) {
 		case interface{ Unwrap() error }:
 			err = u.Unwrap()
 		case interface{ Unwrap() []error }:
 			for _, e := range u.Unwrap() {
-				if l, c, found := Pos(e); found {
-					return l, c, true
+				if p, found := Find(e); found {
+					return p, true
 				}
 			}
-			return 0, 0, false
+			return nil, false
 		default:
-			return 0, 0, false
+			return nil, false
 		}
 	}
-	return 0, 0, false
+	return nil, false
 }
