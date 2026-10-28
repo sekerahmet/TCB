@@ -58,7 +58,7 @@ TR_if x != TR_none { TR_print(x + 1) }   # bu dalda x bir TR_Int
 - **Açmak:** tip çağrısı JSON değerini açar: `TR_String(j)` metni, `TR_Int(j)` tam yazılmış ve `TR_Int`'e sığan sayıyı, `TR_Float(j)` her sayıyı, `TR_Bool(j)` mantık değerini verir; tür tutmazsa çalışma hatasıdır, metin sayı olarak okunmaz.
 - **Yazmak:** `TR_json_string(j)` her zaman JSON metnini verir (metin tırnaklı: `"\"merhaba\""`). Değerin metni (`TR_print(j)`, yerleştirme, 3.14) JSON metin türünde metnin kendisidir (`"\(j["k"])"` → merhaba), öbür türlerde JSON metnidir.
 - Her değeri tutan genel bir tip yoktur.
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
+- *Test:* TR testi.
 
 ```tr
 # TR 4

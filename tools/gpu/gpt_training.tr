@@ -70,7 +70,7 @@ TR_var izlenen = {"en_iyi_doğrulama": 99.0, "örnekler": []}
 TR_var koşu = TR_Run(ayar["koşu"], ayar, {"model": model, "adamw": op.TR_adamw, "muon": op.TR_muon.TR_state, "ö": ö, "izlenen": izlenen},
     TR_num_steps: ayar["step"], TR_every_minutes: ayar["her_dakika"], TR_dry_run: ayar["dry_run"])
 # Parametre sayısını Koşu sayıp config.json'a yazdı; ikinci kez sayılmaz.
-TR_var parametre_sayısı = TR_json_parse(TR_read_file(TR_path(koşu.TR_folder, "config.json")))["num_params"]
+TR_var parametre_sayısı = TR_Int(TR_json_parse(TR_read_file(TR_path(koşu.TR_folder, "config.json")))["num_params"])
 TR_print("model: \(TR_round(parametre_sayısı / 1000000, 2)) M parametre · cihaz \(model.TR_embedding.TR_table.TR_device) · dağarcık \(p.TR_vocab_size) (model \(model.TR_config["dağarcık"]))")
 
 # doğrulama_kaybı: valid.npy'nin baştan ardışık, örtüşmeyen pencerelerinden ilk toplu_sayısı toplu işin

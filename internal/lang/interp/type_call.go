@@ -40,6 +40,7 @@ func (v *VM) registerTypeCalls() {
 		{codes.TypeBool, boolCall},
 		{codes.TypeList, listCall},
 		{codes.TypeType, typeCall},
+		{codes.TypeJSON, jsonCall},
 	} {
 		k, single := c.k, c.fn
 		v.RegisterTypeCall(k, &BuiltinVal{NoNamedArgs: true, Single: single,
@@ -75,6 +76,11 @@ func (v *VM) callType(t *TypeVal, args []Value, named map[string]Value, line int
 // intCall is TR_Int(x): a decimal is cut toward zero, a text is read in 2.4's decimal spelling.
 func intCall(_ *VM, a Value) (Value, error) {
 	switch x := a.(type) {
+	case *JSONVal:
+		if n, ok := x.v.(*IntVal); ok {
+			return n, nil
+		}
+		return nil, jsonKindError(codes.TypeInt, x)
 	case *IntVal:
 		return x, nil
 	case *FloatVal:
@@ -93,6 +99,14 @@ func intCall(_ *VM, a Value) (Value, error) {
 // or as "inf", "-inf", "nan".
 func floatCall(_ *VM, a Value) (Value, error) {
 	switch x := a.(type) {
+	case *JSONVal:
+		switch n := x.v.(type) {
+		case *FloatVal:
+			return n, nil
+		case *IntVal:
+			return &FloatVal{Val: float64(n.Val)}, nil
+		}
+		return nil, jsonKindError(codes.TypeFloat, x)
 	case *FloatVal:
 		return x, nil
 	case *IntVal:
@@ -112,6 +126,13 @@ func stringCall(y *VM, a Value) (Value, error) {
 	if s, ok := a.(*StringVal); ok {
 		return s, nil
 	}
+	if j, ok := a.(*JSONVal); ok {
+		// JSON değerinde tip çağrısı değeri açar (3.12, 3.7a): yalnız JSON metni metindir.
+		if s, ok := j.v.(*StringVal); ok {
+			return s, nil
+		}
+		return nil, jsonKindError(codes.TypeString, j)
+	}
 	return &StringVal{Val: y.textOf(a)}, nil
 }
 
@@ -119,6 +140,11 @@ func stringCall(y *VM, a Value) (Value, error) {
 // number or a list (3.10).
 func boolCall(_ *VM, a Value) (Value, error) {
 	switch x := a.(type) {
+	case *JSONVal:
+		if b, ok := x.v.(*BoolVal); ok {
+			return b, nil
+		}
+		return nil, jsonKindError(codes.TypeBool, x)
 	case *BoolVal:
 		return x, nil
 	case *StringVal:
@@ -133,9 +159,20 @@ func boolCall(_ *VM, a Value) (Value, error) {
 	return nil, messages.New(messages.H2644, TypeAndSummary(a))
 }
 
-// listCall is TR_List(x): the integers of a range, or a new list with a list's elements.
+// listCall is TR_List(x): the integers of a range, a new list with a list's elements, or a JSON
+// array's elements as a list of JSON values (its kind is List[JSON], 3.7a).
 func listCall(_ *VM, a Value) (Value, error) {
 	switch x := a.(type) {
+	case *JSONVal:
+		l, ok := x.v.(*ListVal)
+		if !ok {
+			return nil, jsonKindError(codes.TypeList, x)
+		}
+		elems := make([]Value, len(l.Elements))
+		for i, e := range l.Elements {
+			elems[i] = &JSONVal{v: e}
+		}
+		return &ListVal{Elements: elems}, nil
 	case *RangeVal:
 		return rangeList(x)
 	case *ListVal:
@@ -144,8 +181,11 @@ func listCall(_ *VM, a Value) (Value, error) {
 	return nil, ArgTypeError(codes.TypeList, 1, a, codes.TypeRange, codes.TypeList)
 }
 
-// typeCall is TR_Type(x): the value's type (3.11).
+// typeCall is TR_Type(x): the value's type (3.11); for a JSON value its JSON kind (3.7a).
 func typeCall(_ *VM, a Value) (Value, error) { return TypeOfValue(a), nil }
+
+// jsonCall is TR_JSON(x): a JSON value built from x (3.7a).
+func jsonCall(_ *VM, a Value) (Value, error) { return MakeJSON(a) }
 
 // rangeList is the list of a range's integers; a range longer than MaxCollectionSize is an error.
 func rangeList(r *RangeVal) (Value, error) {

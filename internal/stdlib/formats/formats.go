@@ -37,7 +37,7 @@ func Register(v *interp.VM) {
 		if err != nil {
 			return nil, messages.New(messages.H7001, err)
 		}
-		return val, nil
+		return interp.NewJSON(val), nil
 	})
 
 	v.RegisterNoNamed(codes.FnJsonString, func(vm *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {

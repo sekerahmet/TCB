@@ -131,10 +131,11 @@ TR_test "3.7 anahtar tipi Int, String ya da Bool'dur; ondalık ve öbür değerl
     TR_assert_equal("H2646", TR_error_code(() => { d.TR_contains(1.5) }))
     # NUL ile başlayan bir metin anahtar (JSON'dan gelebilir) 1 sayısının anahtarıyla çakışmaz
     TR_var j = TR_json_parse(`{"\u0000Tam:1": "metin"}`)
-    j[1] = "sayı"
-    TR_assert_equal(2, j.TR_length)
-    TR_assert_equal("sayı", j[1])
-    TR_assert_equal("metin", j[j.TR_keys()[0]])
+    TR_var d2 = {j.TR_keys()[0]: TR_String(j[j.TR_keys()[0]])}
+    d2[1] = "sayı"
+    TR_assert_equal(2, d2.TR_length)
+    TR_assert_equal("sayı", d2[1])
+    TR_assert_equal("metin", d2[d2.TR_keys()[0]])
 }
 
 TR_test "3.7 içeriği değişebilen değerler (liste, sözlük, yapı nesnesi) anahtar olamaz" {
@@ -155,6 +156,44 @@ TR_test "3.7 sözlük üyeleri noktayla, anahtarlar köşeli parantezle: üye ad
     d["b"] = 3
     TR_assert_equal(3, d["b"])
     TR_assert_equal("H2406", TR_error_code(() => { d.TR_keys = 7 }))
+}
+
+TR_test "3.7a JSON: çözme, okuma, tür ve açma" {
+    TR_var cevap = TR_json_parse(`{"content": [{"text": "merhaba"}], "id": 7, "f": 2.0, "n": null, "b": true}`)
+    TR_assert_equal("merhaba", TR_String(cevap["content"][0]["text"]))
+    TR_assert_equal([TR_Int, TR_Float, TR_None, TR_Bool, TR_List, TR_Dict], [TR_Type(cevap["id"]), TR_Type(cevap["f"]), TR_Type(cevap["n"]), TR_Type(cevap["b"]), TR_Type(cevap["content"]), TR_Type(cevap)])
+    TR_assert_equal(8, TR_Int(cevap["id"]) + 1)
+    TR_assert_equal(7.0, TR_Float(cevap["id"]))
+    TR_assert_equal(TR_true, TR_Bool(cevap["b"]))
+    TR_assert_equal(["content", "id", "f", "n", "b"], cevap.TR_keys())
+    TR_assert_equal([5, 1], [cevap.TR_length, cevap["content"].TR_length])
+    TR_assert_equal(TR_none, cevap.TR_get("yok"))
+    TR_assert(TR_Type(cevap.TR_get("n")) == TR_None)
+    TR_assert_equal(TR_none, cevap["content"].TR_get(3))
+    TR_assert_equal(1, TR_List(cevap["content"]).TR_length)
+    # Sayının yazımı korunur; Int'e sığmayan tam yazım Float'tır.
+    TR_assert_equal(TR_Float, TR_Type(TR_json_parse("99999999999999999999")))
+    TR_assert_equal("2.0", TR_json_string(cevap["f"]))
+}
+
+TR_test "3.7a JSON: hatalar, metin, eşitlik ve TR_JSON ile kurma" {
+    TR_var j = TR_json_parse(`{"a": "x", "n": [1, 2.5]}`)
+    TR_assert_equal("H2649", TR_error_code(() => { j["yok"] }))
+    TR_assert_equal("H2515", TR_error_code(() => { j["n"][5] }))
+    TR_assert_equal("H2650", TR_error_code(() => { j[0] }))
+    TR_assert_equal("H2652", TR_error_code(() => { TR_Int(j["a"]) }))
+    TR_assert_equal("H2652", TR_error_code(() => { TR_String(j["n"]) }))
+    TR_assert_equal("H2651", TR_error_code(() => { j["n"].TR_keys() }))
+    # Metin türünde değerin metni metnin kendisi, öbürlerinde JSON metni.
+    TR_assert_equal("x [1,2.5]", "\(j["a"]) \(j["n"])")
+    TR_assert_equal("\"x\"", TR_json_string(j["a"]))
+    TR_assert(j == TR_json_parse(`{"n": [1.0, 2.5], "a": "x"}`))
+    TR_assert(j != TR_json_parse(`{"a": "y", "n": [1, 2.5]}`))
+    TR_assert_equal(j, TR_JSON({"a": "x", "n": [1, 2.5]}))
+    TR_assert_equal("H2653", TR_error_code(() => { TR_JSON([TR_inf]) }))
+    TR_assert_equal("H2653", TR_error_code(() => { TR_JSON(TR_nan) }))
+    TR_assert_equal("H2654", TR_error_code(() => { TR_JSON({1: 2}) }))
+    TR_assert_equal("H2654", TR_error_code(() => { TR_JSON(0..3) }))
 }
 
 TR_test "3.8 Aralık: a..b (b hariç), a..=b (b dahil)" {

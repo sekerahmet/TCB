@@ -19,13 +19,13 @@ TR_for satır TR_in TR_read_lines(not_yolu) {
 }
 TR_print("satır sayısı: \(satır_sayısı)")
 
-# JSON: sözlük -> metin -> dosya -> metin -> sözlük
+# JSON: sözlük -> metin -> dosya -> metin -> JSON değeri; asıl değere tip çağrısıyla geçilir (Tam(...))
 TR_var ayar = {"ad": "deneme", "adım": 100, "oranlar": [0.1, 0.01], "açık": TR_true}
 TR_var ayar_yolu = TR_path(klasör, "ayar.json")
 TR_write_file(ayar_yolu, TR_json_string(ayar))
 TR_var okunan = TR_json_parse(TR_read_file(ayar_yolu))
-TR_print("adım: \(okunan["adım"]), oranlar: \(okunan["oranlar"]), açık: \(okunan["açık"])")
-TR_print("aynı mı: \(okunan == ayar)")
+TR_print("adım: \(TR_Int(okunan["adım"]) + 1), oranlar: \(okunan["oranlar"]), açık: \(TR_Bool(okunan["açık"]))")
+TR_print("aynı mı: \(okunan == TR_JSON(ayar))")
 
 # --- Kendin dene ---
 # 1. Kendi ayar sözlüğünü kaydet, bir değerini değiştirip yeniden yaz ve oku.

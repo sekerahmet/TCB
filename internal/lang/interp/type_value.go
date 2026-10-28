@@ -86,6 +86,8 @@ func TypeOfValue(v Value) *TypeVal {
 		return typeValues[codes.TypeDict]
 	case *StructInstanceVal:
 		return x.Def.typeValue()
+	case *JSONVal:
+		return x.kind() // JSON değerinin türü (3.7a); TR_Type(j) hiçbir zaman TR_JSON değildir
 	}
 	if t := typeValueByName[v.Type()]; t != nil {
 		return t

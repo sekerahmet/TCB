@@ -61,7 +61,7 @@ func TestFileLinesGzipAndLongLine(t *testing.T) {
 	os.WriteFile(filepath.Join(k, "d.jsonl.gz"), b.Bytes(), 0o644)
 	got := mustRunTR(t, `TR_var n = 0
 		TR_var top = 0
-		TR_for s TR_in TR_read_lines("d.jsonl.gz") { n += 1; top += TR_json_parse(s)["no"] }
+		TR_for s TR_in TR_read_lines("d.jsonl.gz") { n += 1; top += TR_Int(TR_json_parse(s)["no"]) }
 		[n, top]`)
 	if got != "[50000, 1249975000]" {
 		t.Fatalf("gz: %s", got)

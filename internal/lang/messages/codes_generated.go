@@ -322,7 +322,6 @@ const (
 	H2517 Code = 2517 // eşitlik başarısız: {message} — beklenen {expected}, gerçek {actual}
 	H2519 Code = 2519 // {error}; {defer} içinde de hata: {deferred}
 	H2520 Code = 2520 // Koddaki kesme noktası ({keyword})
-	H2521 Code = 2521 // JSON tam sayısı {token|q} Tam aralığının (64 bit işaretli) dışında; ondalık olarak yazın (ör. 1e30)
 	H2522 Code = 2522 // {fn} {owner} içinde çağrılamaz: orada kilit başka göreve geçmez, görevler ilerleyemez
 	H2524 Code = 2524 // '{struct}' yapısı
 	H2525 Code = 2525 // {type} tipi sırayla okunur, indekslenemez: öğelerini '{loop} x {in} ...' döngüsüyle ya da .{next}() ile okuyun
@@ -358,10 +357,16 @@ const (
 	H2642 Code = 2642 // {@Float}(): {value|q} sayı olarak okunamadı; programdaki gibi noktayla, isteğe bağlı işaret ve üsle yazın ("3.14", "-1.5", "2e-3") ya da "inf", "-inf", "nan"; yerel ayar yoktur ("1,5" okunmaz) ve {@Float} aralığını aşan sayı okunmaz
 	H2643 Code = 2643 // {@Bool}(): {value|q} bir mantık değeri değil; yalnız "true" ve "false" okunur
 	H2644 Code = 2644 // {@Bool}() yalnız "true" ya da "false" metnini okur, {given} verildi; bunun yerine karşılaştırmayla sorun (x != 0, l.{@length} > 0)
-	H2645 Code = 2645 // {type} tipi çağrılamaz; değer kuran ya da çeviren tipler {@Int}, {@Float}, {@String}, {@Bool}, {@List}, {@Type} ve kitaplığın tipleridir
+	H2645 Code = 2645 // {type} tipi çağrılamaz; değer kuran ya da çeviren tipler {@Int}, {@Float}, {@String}, {@Bool}, {@List}, {@Type}, {@JSON} ve kitaplığın tipleridir
 	H2646 Code = 2646 // {type} bir sözlük anahtarı olamaz: anahtarlar {@Int}, {@String} ya da {@Bool} olur (ondalık anahtar yuvarlama yüzünden bulunamayabilirdi); anahtarı {@Int}(x) ya da {@String}(x) ile çevirin
 	H2647 Code = 2647 // {key} anahtarı sözlükte yok; olmayabilecek bir anahtar için .{@get}({key}) ?? varsayılan yazın
 	H2648 Code = 2648 // sözlük anahtarı noktayla değil köşeli parantezle okunur ve yazılır: ["{name}"] yazın (nokta yalnız sözlüğün üyelerini verir, .{@keys}() gibi)
+	H2649 Code = 2649 // JSON nesnesinde {key} anahtarı yok; olmayabilecek bir anahtar için .{@get}({key}) yazıp yokla karşılaştırın
+	H2650 Code = 2650 // bu JSON değerinin türü {kind}, {given} ile indekslenmez: nesne {@String} anahtarla, dizi {@Int} ile indekslenir
+	H2651 Code = 2651 // .{member} JSON nesnesinde ya da dizisinde çalışır (.{@keys}() yalnız nesnede); bu JSON değerinin türü {kind}
+	H2652 Code = 2652 // {type}() bu JSON değerini açamaz: türü {kind}; türünü {@Type}(j) ile sorup uygun tiple açın
+	H2653 Code = 2653 // {value} JSON'a giremez: JSON'da sonsuz ya da tanımsız sayı yoktur
+	H2654 Code = 2654 // {given} {@JSON} içine giremez: JSON yokluk, mantık değeri, sayı, metin, liste ve {@String} anahtarlı sözlük tutar
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

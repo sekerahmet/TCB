@@ -139,13 +139,13 @@ TR_test "20.5 nokta klasörü tensör dosyası, durum ve özet içerir; latest.j
     TR_var n = kn.TR_save()
     TR_assert_equal(["digest.json", "state.json", "tensors.trt"], TR_list_dir(n).TR_map { TR_it.TR_name })
     TR_var son = TR_json_parse(TR_read_file(TR_path(k, "checkpoints", "latest.json")))
-    TR_assert_equal(7, son["step"])
-    TR_assert_equal("step_0000000007", son["dir"])
-    TR_assert_equal(3, son["version"])
+    TR_assert_equal(7, TR_Int(son["step"]))
+    TR_assert_equal("step_0000000007", TR_String(son["dir"]))
+    TR_assert_equal(3, TR_Int(son["version"]))
     TR_var durum = TR_json_parse(TR_read_file(TR_path(n, "state.json")))
-    TR_assert_equal(7, durum["step"])
-    TR_assert_equal(["w", "op"], durum["objects"].TR_map { TR_it["name"] })
-    TR_assert_equal("TR_fn_SGD", durum["objects"][1]["optimizer"])
+    TR_assert_equal(7, TR_Int(durum["step"]))
+    TR_assert_equal(["w", "op"], [TR_String(durum["objects"][i]["name"]) TR_for i TR_in 0..durum["objects"].TR_length])
+    TR_assert_equal("TR_fn_SGD", TR_String(durum["objects"][1]["optimizer"]))
     TR_assert_equal(["w/0"], TR_load_tensors(TR_path(n, "tensors.trt")).TR_keys())
 }
 
@@ -204,9 +204,9 @@ TR_test "20.6 sürdürülen eğitimin günlüğüne devam kaydı yazılır" {
     eğit(k, 2, "devam_günlük")
     eğit(k, 4, "devam_günlük")
     TR_var kayıtlar = TR_read_file("\(GÜNLÜKLER)/devam_günlük.jsonl").TR_strip().TR_split("\n").TR_map { TR_json_parse(TR_it) }
-    TR_var devamlar = kayıtlar.TR_filter { TR_it.TR_get("kind") == "resume" }
+    TR_var devamlar = kayıtlar.TR_filter { TR_it.TR_get("kind") == TR_JSON("resume") }
     TR_assert_equal(1, devamlar.TR_length)
-    TR_assert_equal(2, devamlar[0]["step"])
+    TR_assert_equal(2, TR_Int(devamlar[0]["step"]))
 }
 
 TR_test "20.7 uyumsuz nesneler hata verir ve hiçbir şeyi değiştirmez" {

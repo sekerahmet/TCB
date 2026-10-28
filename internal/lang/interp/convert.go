@@ -1,45 +1,8 @@
 package interp
 
 import (
-	"fmt"
-
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
-
-func GoToTRValue(raw interface{}) Value {
-	switch v := raw.(type) {
-	case nil:
-		return Null
-	case bool:
-		return BoolToVal(v)
-	case int:
-		return NewInt(int64(v))
-	case int64:
-		return NewInt(v)
-	case float64:
-		// -2^63 ≤ v < 2^63: aralık dışında int64 dönüşümü mimariye göre doygunlaşır ya da sarar.
-		if v >= -0x1p63 && v < 0x1p63 && v == float64(int64(v)) {
-			return NewInt(int64(v))
-		}
-		return &FloatVal{Val: v}
-	case string:
-		return &StringVal{Val: v}
-	case []interface{}:
-		elems := make([]Value, len(v))
-		for i, el := range v {
-			elems[i] = GoToTRValue(el)
-		}
-		return &ListVal{Elements: elems}
-	case map[string]interface{}:
-		d := NewDictVal()
-		for k, val := range v {
-			d.Set(k, GoToTRValue(val))
-		}
-		return d
-	default:
-		return &StringVal{Val: fmt.Sprintf("%v", v)}
-	}
-}
 
 // ErrCyclic reports an attempt to write a list/dict that contains itself (directly or
 // indirectly) to an external format (JSON, Go values): l = [1]; l.ekle(l); json_metin(l).

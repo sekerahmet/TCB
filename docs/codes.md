@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 575 kod: 26 anahtar kelime, 6 bağlamsal sözcük, 2 değer adı, 42 tip, 139 fonksiyon, 11 sabit, 61 metot, 97 özellik, 136 adlı argüman.
+Toplam 576 kod: 26 anahtar kelime, 6 bağlamsal sözcük, 2 değer adı, 43 tip, 139 fonksiyon, 11 sabit, 61 metot, 97 özellik, 136 adlı argüman.
 
 ## İçindekiler
 
@@ -415,7 +415,7 @@ değişken küme = veri_kümesi("tests/data/numbers"); yazdır(tip(küme) == Ver
 
 #### TR_type_Dict `Sözlük`
 
-Eklenme sırasını koruyan anahtar–değer tablosu tipidir; olmayan anahtar yok verir.
+Eklenme sırasını koruyan anahtar–değer tablosu tipidir; anahtar köşeli parantezle okunur, olmayan anahtar hatadır, .varsa_al(k) yok verir (3.7).
 
 ```tr
 değişken s: Sözlük = {"ad": "Ali"}; yazdır(tip(s), s["ad"])
@@ -460,6 +460,16 @@ değişken x: Tam = 5; yazdır(tip(x), x * 2)
 ```
 
 İlişkili: TR_type_Float `Ondalık`, TR_fn_int `tam`
+
+#### TR_type_JSON `JSON`
+
+Yapısı önceden bilinmeyen verinin tipidir (3.7a): JSON'un her değerini tutar. j["k"] ve j[i] yine JSON verir, olmayan alan hatadır, .varsa_al(k) yok verir; tip(j) değerin JSON türünü söyler, asıl değere tip çağrısıyla geçilir (Tam(j), Metin(j)).
+
+```tr
+değişken j = json_çöz(`{"ad": "Ali", "yaş": 30}`); yazdır(tip(j["yaş"]), Tam(j["yaş"]) + 1, j["ad"])
+```
+
+İlişkili: TR_fn_json_parse `json_çöz`, TR_fn_json_string `json_metin`
 
 #### TR_type_KVCache `KVÖnbellek`
 
@@ -1271,12 +1281,12 @@ yazdır(sonlu_mu(1.5), sonlu_mu(ondalık("nan")), sonlu_mu(tensör([1.0, ondalı
 
 #### TR_fn_json_parse `json_çöz`
 
-    json_çöz(Metin) → Herhangi
+    json_çöz(Metin) → JSON
 
-JSON metnini TR değerine çevirir (nesne Sözlük, dizi Liste olur); anahtar sırası korunur, tam sayı değerli ondalıklar Tam olur.
+JSON metnini bir JSON değerine çevirir (3.7a); anahtar sırası ve sayının tam ya da ondalık yazımı korunur. Asıl değere tip çağrısıyla geçilir.
 
 ```tr
-değişken v = json_çöz(`{"ad": "Ali", "yaş": 30}`); yazdır(v["ad"], v["yaş"] + 1)
+değişken v = json_çöz(`{"ad": "Ali", "yaş": 30}`); yazdır(v["ad"], Tam(v["yaş"]) + 1)
 ```
 
 İlişkili: TR_fn_json_string `json_metin`

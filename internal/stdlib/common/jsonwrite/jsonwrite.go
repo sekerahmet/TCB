@@ -142,6 +142,9 @@ func (y *writer) value(val interp.Value, depth int) error {
 		return y.number(v.Val)
 	case *interp.StringVal:
 		y.text(v.Val)
+	case *interp.JSONVal:
+		// TR_JSON (3.7a): sayının tam ya da ondalık yazımı korunur.
+		y.b = append(y.b, v.JSONText()...)
 	case *interp.ListVal:
 		if err := y.walker.Enter(v, depth); err != nil {
 			return err
@@ -162,52 +165,58 @@ func (y *writer) value(val interp.Value, depth int) error {
 		}
 		y.b = append(y.b, ']')
 	case *interp.DictVal:
-		if err := y.walker.Enter(v, depth); err != nil {
-			return err
-		}
-		defer y.walker.Leave(v)
-		y.b = append(y.b, '{')
-		var seen map[string]bool
-		if len(v.KeyVals) > 0 {
-			seen = make(map[string]bool, len(v.Order))
-		}
-		first := true
-		for _, k := range v.Order {
-			elem, ok := v.Pairs[k]
-			if !ok {
-				continue
-			}
-			name := v.KeyText(k) // dilden bağımsız (17.3)
-			if seen != nil {
-				if seen[name] {
-					return messages.New(messages.H7009, name)
-				}
-				seen[name] = true
-			}
-			if !first {
-				y.b = append(y.b, ',')
-			}
-			first = false
-			y.newline(depth + 1)
-			y.text(name)
-			y.b = append(y.b, ':')
-			if y.indent != "" {
-				y.b = append(y.b, ' ')
-			}
-			if err := y.value(elem, depth+1); err != nil {
-				return err
-			}
-		}
-		if !first {
-			y.newline(depth)
-		}
-		y.b = append(y.b, '}')
+		return y.dict(v, depth)
 	case interp.PlainValuer:
 		// Dış değerler (ör. tensör → iç içe sayı listesi)
 		return y.value(v.PlainValue(), depth+1)
 	default:
 		return notData(val)
 	}
+	return nil
+}
+
+// dict sözlüğü JSON nesnesi olarak yazar: anahtarlar sözlükteki sırayla, dilden bağımsız metinleriyle.
+func (y *writer) dict(v *interp.DictVal, depth int) error {
+	if err := y.walker.Enter(v, depth); err != nil {
+		return err
+	}
+	defer y.walker.Leave(v)
+	y.b = append(y.b, '{')
+	var seen map[string]bool
+	if len(v.KeyVals) > 0 {
+		seen = make(map[string]bool, len(v.Order))
+	}
+	first := true
+	for _, k := range v.Order {
+		elem, ok := v.Pairs[k]
+		if !ok {
+			continue
+		}
+		name := v.KeyText(k) // dilden bağımsız (17.3)
+		if seen != nil {
+			if seen[name] {
+				return messages.New(messages.H7009, name)
+			}
+			seen[name] = true
+		}
+		if !first {
+			y.b = append(y.b, ',')
+		}
+		first = false
+		y.newline(depth + 1)
+		y.text(name)
+		y.b = append(y.b, ':')
+		if y.indent != "" {
+			y.b = append(y.b, ' ')
+		}
+		if err := y.value(elem, depth+1); err != nil {
+			return err
+		}
+	}
+	if !first {
+		y.newline(depth)
+	}
+	y.b = append(y.b, '}')
 	return nil
 }
 

@@ -75,6 +75,10 @@
   "commit": "0d6949c",
   "reason": "deleted: messages: whole-sentence templates instead of message fragments"
  },
+ "H2521": {
+  "commit": "claude/katman2-deger-12bdf3",
+  "reason": "deleted: interp: a JSON integer beyond Int is a Float (3.7a), not an error"
+ },
  "H2523": {
   "commit": "0f969d3",
   "reason": "deleted: source: the header '# TR 4' carries no language (2.1)"

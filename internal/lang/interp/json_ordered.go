@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"strings"
+	"math"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -13,8 +13,10 @@ import (
 // kullanıcıdan) gelebildiği için sınırsız derinlik yığın taşmasına yol açabilirdi.
 const maxJSONDepth = 1000
 
-// JSONToTR converts JSON text to a TR value. Unlike Go's map-based decoding it keeps the key
-// order of objects: json_çöz("{\"b\": 1, \"a\": 2}") returns a dict ordered b, a.
+// JSONToTR converts JSON text to a TR value made of core values (JSONVal holds it). Unlike Go's
+// map-based decoding it keeps the key order of objects: json_çöz("{\"b\": 1, \"a\": 2}") gives b, a.
+// A number keeps its spelling (3.7a): an integer written without '.' or exponent that fits Int is an
+// Int, every other number a Float (2.0 stays a Float, a larger integer is a Float).
 func JSONToTR(data []byte) (Value, error) {
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.UseNumber()
@@ -82,16 +84,10 @@ func jsonValue(dec *json.Decoder, depth int) (Value, error) {
 			return NewInt(i), nil
 		}
 		f, err := t.Float64()
-		if err != nil {
+		if err != nil || math.IsInf(f, 0) {
 			return nil, messages.New(messages.H2503, t)
 		}
-		if !strings.ContainsAny(string(t), ".eE") {
-			// Ondalık ya da üslü olmayan, Tam'a sığmayan sayı yuvarlanıp sessizce başka bir
-			// Tam'a (MinInt64) dönmesin: açık hata (Tam taşmasıyla tutarlı).
-			return nil, messages.New(messages.H2521, t)
-		}
-		// Önceki davranışla uyumlu: tam sayı değerli ondalıklar Tam olur (GoToTRValue gibi)
-		return GoToTRValue(f), nil
+		return &FloatVal{Val: f}, nil
 	case bool:
 		return BoolToVal(t), nil
 	case nil:

@@ -90,7 +90,7 @@ TR_test "Koşu: klasöre ayarları, günlüğü, kontrol noktasını ve ağırl�
     TR_var model = {"w": TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)}
     TR_var koşu = koş(k, model, 3)
     TR_assert_equal(0, koşu.TR_resume_step)
-    TR_assert_equal(2, TR_json_parse(TR_read_file(TR_path(k, "config.json")))["num_params"])
+    TR_assert_equal(2, TR_Int(TR_json_parse(TR_read_file(TR_path(k, "config.json")))["num_params"]))
     TR_var günlük_metni = TR_read_file(TR_path(k, "metrics.jsonl"))
     TR_assert(günlük_metni.TR_contains("doğrulama_kaybı") TR_and günlük_metni.TR_contains("\"loss\""), "günlük ölçüleri taşımalı (kayıp anahtarı \"loss\"): \(günlük_metni)")
     TR_assert_equal([1.0, 2.0], TR_load_tensors(TR_path(k, "model.trt"))["w"].TR_tolist)

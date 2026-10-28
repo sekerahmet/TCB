@@ -12,17 +12,17 @@ TR_var arg = TR_command_line({"device": "gpu", "config": "phase3_config.json", "
     TR_description: "Evre 3 ölçümü, TR tarafı (PyTorch karşılığı: phase3_torch.py)")
 TR_default_device(arg["device"])
 TR_var c = TR_json_parse(TR_read_file(arg["config"]))
-TR_var B = c["B"]
-TR_var T = c["T"]
-TR_var D = c["D"]
-TR_var H = c["H"]
+TR_var B = TR_Int(c["B"])
+TR_var T = TR_Int(c["T"])
+TR_var D = TR_Int(c["D"])
+TR_var H = TR_Int(c["H"])
 TR_var Dh = D // H
-TR_var FF = c["FF"]
-TR_const KATMAN = c["LAYERS"]
-TR_var V = c["V"]
-TR_const HASSASIYET = c["precision"]
-TR_const ISINMA = c["warmup"]
-TR_const ÖLÇÜLEN = c["measured"]
+TR_var FF = TR_Int(c["FF"])
+TR_const KATMAN = TR_Int(c["LAYERS"])
+TR_var V = TR_Int(c["V"])
+TR_const HASSASIYET = TR_String(c["precision"])
+TR_const ISINMA = TR_Int(c["warmup"])
+TR_const ÖLÇÜLEN = TR_Int(c["measured"])
 TR_const KAYIP_ADIM = c["loss_steps"]
 
 # Sabit sentetik toplu işler (phase3_torch.py ile aynı formül).

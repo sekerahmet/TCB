@@ -43,6 +43,7 @@
   "TR_type_Float": { "name": "Float" },
   "TR_type_Function": { "name": "Function" },
   "TR_type_Int": { "name": "Int" },
+  "TR_type_JSON": { "name": "JSON" },
   "TR_type_KVCache": { "name": "KVCache" },
   "TR_type_LineReader": { "name": "LineReader" },
   "TR_type_Linear": { "name": "Linear" },

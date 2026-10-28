@@ -17,10 +17,11 @@ const readyModelCompare = `TR_import "tr/hazir"
 TR_var arg = TR_command_line({"folder": ""})
 TR_var beklenen = TR_json_parse(TR_read_file(TR_path(arg["folder"], "logits.json")))
 TR_var model = TR_pretrained_model(arg["folder"])
-TR_var logit = model.TR_forward(TR_tensor(beklenen["ids"]))[0].TR_tolist
+TR_var kimlikler = TR_List(beklenen["ids"]).TR_map { TR_List(TR_it).TR_map { TR_Int(TR_it) } }
+TR_var logit = model.TR_forward(TR_tensor(kimlikler))[0].TR_tolist
 TR_var en_büyük = 0.0
-TR_for i, satır TR_in beklenen["logits"] {
-    TR_for j, x TR_in satır { en_büyük = TR_max(en_büyük, TR_abs(x - logit[i][j])) }
+TR_for i, satır TR_in TR_List(beklenen["logits"]) {
+    TR_for j, x TR_in TR_List(satır) { en_büyük = TR_max(en_büyük, TR_abs(TR_Float(x) - logit[i][j])) }
 }
 TR_print(en_büyük)
 `

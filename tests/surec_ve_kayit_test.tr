@@ -7,7 +7,7 @@
 # Günlük dosyaları depo dışında, bu koşunun geçici klasöründe (18.14); program bitince silinir.
 TR_const KOŞU = TR_temp_dir()
 
-# satırlar: günlük dosyasının JSON satırlarını sözlük listesi olarak verir.
+# satırlar: günlük dosyasının JSON satırlarını JSON listesi olarak verir.
 TR_func satırlar(dosya_yolu) {
     TR_return TR_read_file(dosya_yolu).TR_strip().TR_split("\n").TR_map { TR_json_parse(TR_it) }
 }
@@ -64,21 +64,21 @@ TR_test "19.5 günlük .jsonl dosyasına başlangıç kaydı ve kayıtlar ekler"
     g.TR_append("ilk dönem bitti")
     TR_var s = satırlar(dosya_yolu)
     TR_assert_equal(3, s.TR_length)
-    TR_assert_equal("start", s[0]["kind"])
-    TR_assert_equal(2, s[0]["version"])
-    TR_assert_equal("surec_ve_kayit_test.tr", s[0]["program"])
-    TR_assert_equal(100, s[0]["settings"]["step"])
-    TR_assert_equal(2.5, s[1]["loss"])
-    TR_assert_equal(3, s[1]["step"])
-    TR_assert_equal("NaN", s[1]["nan"])
-    TR_assert_equal(0.25, s[1]["kayıp_t"])
+    TR_assert_equal("start", TR_String(s[0]["kind"]))
+    TR_assert_equal(2, TR_Int(s[0]["version"]))
+    TR_assert_equal("surec_ve_kayit_test.tr", TR_String(s[0]["program"]))
+    TR_assert_equal(100, TR_Int(s[0]["settings"]["step"]))
+    TR_assert_equal(2.5, TR_Float(s[1]["loss"]))
+    TR_assert_equal(3, TR_Int(s[1]["step"]))
+    TR_assert_equal("NaN", TR_String(s[1]["nan"]))
+    TR_assert_equal(0.25, TR_Float(s[1]["kayıp_t"]))
     TR_assert_equal(TR_String, TR_type(s[1]["time"]))
-    TR_assert_equal("ilk dönem bitti", s[2]["message"])
+    TR_assert_equal("ilk dönem bitti", TR_String(s[2]["message"]))
     # Yeniden açılan günlük sonuna ekler, yeni bir başlangıç kaydıyla.
     TR_logger(dosya_yolu).TR_append({"loss": 1.0})
     TR_var s2 = satırlar(dosya_yolu)
     TR_assert_equal(5, s2.TR_length)
-    TR_assert_equal("start", s2[3]["kind"])
+    TR_assert_equal("start", TR_String(s2[3]["kind"]))
 }
 
 TR_test "19.6 günlük hataları" {
@@ -130,12 +130,12 @@ TR_test "19.9 günlüğe bağlı çubuk her güncellemeyi ve bitişi yazar" {
     ç.TR_update({"loss": 0.9})
     ç.TR_update({"loss": 0.7})
     TR_var s = satırlar(dosya_yolu)
-    TR_assert_equal(4, s.TR_length)
-    TR_assert_equal(2, s[0]["total"])
-    TR_assert_equal(1, s[1]["step"])
-    TR_assert_equal(0.9, s[1]["loss"])
-    TR_assert_equal(0.7, s[2]["loss"])
-    TR_assert_equal("end", s[3]["kind"])
-    TR_assert_equal(2, s[3]["step"])
-    TR_assert(s[3]["seconds"] >= 0)
+    TR_assert_equal(4, TR_Int(s.TR_length))
+    TR_assert_equal(2, TR_Int(s[0]["total"]))
+    TR_assert_equal(1, TR_Int(s[1]["step"]))
+    TR_assert_equal(0.9, TR_Float(s[1]["loss"]))
+    TR_assert_equal(0.7, TR_Float(s[2]["loss"]))
+    TR_assert_equal("end", TR_String(s[3]["kind"]))
+    TR_assert_equal(2, TR_Int(s[3]["step"]))
+    TR_assert(TR_Float(s[3]["seconds"]) >= 0)
 }

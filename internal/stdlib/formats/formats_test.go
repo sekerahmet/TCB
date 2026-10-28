@@ -37,7 +37,7 @@ func TestJSONDecodePreservesKeyOrder(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := `[["zeta", "alfa", "orta", "iç"], ["b", "a"], [true, none, "x"], 2.5, `
+	want := `[["zeta", "alfa", "orta", "iç"], ["b", "a"], [true,null,"x"], 2.5, `
 	if !strings.HasPrefix(val.Inspect(), want) {
 		t.Fatalf("%s… bekleniyordu, %s alındı", want, val.Inspect())
 	}
@@ -245,7 +245,7 @@ func TestDecodersRequireText(t *testing.T) {
 		}
 	}
 	out, _, err := run(t, `TR_print(TR_json_parse("[1, 2]"), TR_parse_csv("a,b\n1,2"))`)
-	if err != nil || out != "[1, 2] [[\"a\", \"b\"], [1, 2]]\n" {
+	if err != nil || out != "[1,2] [[\"a\", \"b\"], [1, 2]]\n" {
 		t.Fatalf("metin argümanı: %q, %v", out, err)
 	}
 }
