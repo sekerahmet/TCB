@@ -40,7 +40,7 @@ func (p *Parser) isLambdaAhead() bool {
 }
 func (p *Parser) parseSingleParamLambda() ast.Expression {
 	tok := p.curToken()
-	param := ast.Param{Name: tok.Literal}
+	param := ast.Param{Name: tok.Literal, NameToken: tok}
 	p.nextToken() // '=>'
 	return p.finishLambda(tok, []ast.Param{param})
 }
@@ -85,7 +85,7 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 	// İsimli fonksiyon: fonksiyon topla(a, b) { ... }
 	if p.peekTokenIs(lexer.TokIdent) {
 		p.nextToken()
-		lit.Name = p.curToken().Literal
+		lit.Name, lit.NameToken = p.curToken().Literal, p.curToken()
 	}
 
 	if !p.expectPeek(lexer.TokLParen) {
@@ -130,7 +130,7 @@ func (p *Parser) parseFunctionParameters() []ast.Param {
 	p.nextToken()
 
 	for {
-		param := ast.Param{Name: p.curToken().Literal}
+		param := ast.Param{Name: p.curToken().Literal, NameToken: p.curToken()}
 		param.TypeName, param.DefaultValue = p.parseTypeAndDefault()
 		params = append(params, param)
 

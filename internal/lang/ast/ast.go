@@ -114,8 +114,10 @@ type ForInStatement struct {
 	Token    lexer.Token // döngü
 	KeyVar   string      // optional index/key variable
 	ValueVar string      // element variable
-	Iterable Expression
-	Body     *BlockStatement
+	// KeyToken and ValueToken are the tokens of the two variables' names (zero when not written).
+	KeyToken, ValueToken lexer.Token
+	Iterable             Expression
+	Body                 *BlockStatement
 }
 
 func (fs *ForInStatement) statementNode()       {}
@@ -134,15 +136,18 @@ func (ws *WhileStatement) Line() int            { return ws.Token.Line }
 
 type StructField struct {
 	Name         string
+	NameToken    lexer.Token // the name as written
 	TypeName     string
 	DefaultValue Expression
 }
 
 type StructStatement struct {
-	Token   lexer.Token // yapı / sınıf
-	Name    string
-	Fields  []StructField
-	Methods map[string]*FunctionLiteral
+	Token lexer.Token // yapı / sınıf
+	Name  string
+	// NameToken is the token of the struct's name.
+	NameToken lexer.Token
+	Fields    []StructField
+	Methods   map[string]*FunctionLiteral
 }
 
 func (ss *StructStatement) statementNode()       {}
@@ -153,6 +158,8 @@ type TryCatchStatement struct {
 	Token    lexer.Token // dene
 	TryBody  *BlockStatement
 	ErrorVar string
+	// ErrorToken is the token of the error variable's name (zero when it is not written).
+	ErrorToken lexer.Token
 	// ImplicitErrorVar reports that the error variable's name was not written, so it is the
 	// contextual word 'hata' (TR_ctx_error); in coded form its uses in the body are coded (17.3).
 	ImplicitErrorVar bool
@@ -351,6 +358,7 @@ func (me *MatchExpression) Line() int            { return me.Token.Line }
 
 type Param struct {
 	Name         string
+	NameToken    lexer.Token // the name as written; zero for a parameter the parser made (the implicit 'it')
 	TypeName     string
 	DefaultValue Expression
 }
@@ -358,6 +366,7 @@ type Param struct {
 type FunctionLiteral struct {
 	Token      lexer.Token // fonksiyon or (
 	Name       string
+	NameToken  lexer.Token // the function's name as written; zero for an unnamed one
 	Parameters []Param
 	ReturnType string
 	Body       *BlockStatement
