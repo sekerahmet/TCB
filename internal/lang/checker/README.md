@@ -2,7 +2,7 @@
 
 Programı çalıştırmadan önce okuyup hataları bulan denetçi. Bulduğu şeyler: tip uyuşmazlıkları
 (tanım, atama, dönüş değeri, çağrı argümanı), sabite atama, tanımsız adlar, yerleşik adların
-gölgelenmesi, ad yazılışı, tip değerinin metinle karşılaştırılması (`TR_fn_type(x) == "Tam"`) ve Mantık
+gölgelenmesi, ad yazılışı, tip değerinin metinle karşılaştırılması (`TR_type_Type(x) == "Tam"`) ve Mantık
 değerinin dilden bağımsız metninin (`true`, `false`) bir yazım dilinin adıyla ya da başka bir dilden
 tanıdık adla karşılaştırılması (`TR_String(b) == "doğru"`, `TR_String(b) == "True"`; uyarı).
 

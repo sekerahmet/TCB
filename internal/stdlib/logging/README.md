@@ -1,6 +1,6 @@
 # logging
 
-TR'nin eğitim günlüğü ve ilerleme çubuğu yerleşikleri: `TR_fn_logger(yol)` ve `TR_fn_progress(toplam)`.
+TR'nin eğitim günlüğü ve ilerleme çubuğu yerleşikleri: `TR_type_Logger(yol)` ve `TR_type_Progress(toplam)`.
 Araçlar (`TR_cmd_watch`, `TR_cmd_profile`) sayı ve süre yazımını buradan alır, böylece her yerde aynı
 görünür.
 

@@ -177,7 +177,7 @@ değişken puan = 95; yazdır(eşle puan { 100 => "tam puan"; 90..100 => "pekiyi
 
 #### TR_kw_none `yok`
 
-Değerin yokluğudur; değer döndürmeyen fonksiyonlar, sözlükte olmayan anahtar ve varsa_al ile istenen olmayan öğe yok verir.
+Değerin yokluğudur; değer döndürmeyen fonksiyonlar ve varsa_al ile istenen olmayan öğe ya da anahtar yok verir. Sözlükte olmayan anahtarı köşeli parantezle okumak hatadır.
 
 ```tr
 değişken l = [1, 2]; yazdır(l.varsa_al(5) == yok, l.varsa_al(5) ?? "boş", {"a": 1}.varsa_al("b"))
@@ -3238,10 +3238,10 @@ yazdır([5, 6, 7].ilk)
     Liste.varsa_al(Tam) → Herhangi
     Metin.varsa_al(Tam) → Metin | YokTipi
 
-i. öğeyi (negatif indeks sondan sayar) verir; öyle bir öğe yoksa yok döner. Köşeli parantezle okuma (l[i]) sınır dışında hata verir; öğenin olmayabileceği bilinçli durumda varsa_al ile ?? birlikte kullanılır.
+i. öğeyi (negatif indeks sondan sayar) ya da sözlükte ve JSON nesnesinde k anahtarının değerini verir; yoksa yok döner. Köşeli parantezle okuma (l[i], d["k"]) olmayan öğede hata verir; öğenin olmayabileceği bilinçli durumda varsa_al ile ?? birlikte kullanılır.
 
 ```tr
-değişken l = [10, 20, 30]; yazdır(l.varsa_al(1), l.varsa_al(5) ?? 0, "ab".varsa_al(-1))
+değişken l = [10, 20, 30]; yazdır(l.varsa_al(1), l.varsa_al(5) ?? 0, "ab".varsa_al(-1), {"a": 1}.varsa_al("b") ?? 0)
 ```
 
 İlişkili: TR_mem_first `ilk`, TR_mem_last `son`, TR_mem_contains `içerir`
@@ -3658,10 +3658,10 @@ değişken w = Tensör([1.0], türev_izle: doğru); değişken kn = KontrolNokta
     Aralık.ters_çevir() → Liste
     Metin.ters_çevir() → Metin
 
-Metnin karakterlerini ya da listenin elemanlarını ters sırayla verir. Asıl değeri değiştirmez, yeni metin ya da liste döner.
+Metnin karakterlerini, listenin elemanlarını ya da aralığın sayılarını ters sırayla verir; aralıkta sonuç bir listedir (geriye sayan döngü için). Asıl değeri değiştirmez.
 
 ```tr
-yazdır("kitap".ters_çevir(), [1, 2, 3].ters_çevir())
+yazdır("kitap".ters_çevir(), [1, 2, 3].ters_çevir(), (0..3).ters_çevir())
 ```
 
 İlişkili: TR_mem_sort `sırala`

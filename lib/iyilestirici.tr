@@ -12,9 +12,9 @@
 # sütunudur (ağırlığı [çıkış, giriş] tutan düzende bir satır).
 #
 # Kontrol noktası: iyileştiricinin durum tensörleri (`op.muon.durum`) türev izlemez;
-# `kontrol_noktası` bir nesnenin bütün tensörlerini (türev izlemeyenleri de) saklayıp yerinde
+# `KontrolNoktası` bir nesnenin bütün tensörlerini (türev izlemeyenleri de) saklayıp yerinde
 # geri yazdığından (dil tanımı 20.2) durum ayrı bir nesne olarak verilir:
-#     kontrol_noktası(koşu, {model: model, adamw: op.adamw, muon: op.muon.durum, ...})
+#     KontrolNoktası(koşu, {"model": model, "adamw": op.adamw, "muon": op.muon.durum, ...})
 
 # Newton–Schulz katsayıları (Muon'un yaygın kullanılan beşinci derece yinelemesi). Tam dik
 # matrise yakınsamaz; tekil değerleri yaklaşık [0.7, 1.2] aralığına toplar, bu da güncelleme

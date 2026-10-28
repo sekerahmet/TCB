@@ -75,7 +75,7 @@ TR_func işaretli_sgd(ağırlıklar, oran) {
 }
 ```
 
-Muon'u değiştirmek için `lib/iyilestirici.tr`'yi kopyalayın: `TR_type_Muon.TR_mem_step()` on satırdır. Durum tensörlerini (momentum gibi) `TR_arg_requires_grad: TR_kw_true` ile kurarsanız `TR_fn_checkpoint` onları da saklar ([`lib/README.md`](../../lib/README.md), kontrol noktası).
+Muon'u değiştirmek için `lib/iyilestirici.tr`'yi kopyalayın: `TR_type_Muon.TR_mem_step()` on satırdır. Durum tensörlerini (momentum gibi) `TR_arg_requires_grad: TR_kw_true` ile kurarsanız `TR_type_Checkpoint` onları da saklar ([`lib/README.md`](../../lib/README.md), kontrol noktası).
 
 ## Eğitim döngüsü, kontrol noktası ve GPU
 

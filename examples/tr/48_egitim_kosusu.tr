@@ -70,6 +70,6 @@ TR_print("ağırlıklar:", TR_load_tensors(TR_Path(KOŞU, "model.trt"))["W2"].TR
 TR_print("kaldığı adım:", eğit(TR_false).TR_resume_step)
 
 # --- Kendin dene ---
-# 1. ayar.adım'ı 1 yap: prova kaç adım sürer?
+# 1. ayar["step"]'i 1 yap: prova kaç adım sürer?
 # 2. koşu.bitir(model) satırını silip örneği çalıştır: prova neyi söyler?
 # 3. Asıl koşuyu 30. adımda Ctrl+C ile kes (önce silme satırını kaldır), sonra yeniden çalıştır: nereden sürer?

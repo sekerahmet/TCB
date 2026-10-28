@@ -24,10 +24,10 @@ type RefForm uint8
 const (
 	// RefName is the name itself: aralık, Tam, öğrenme_oranı.
 	RefName RefForm = iota
-	// RefCallName is a code as it is called: a builtin's name (aralık), a member with its
+	// RefCallName is a code as it is called: a builtin's name (yuvarla), a member with its
 	// receiver (liste.filtrele): on a single type its name, otherwise x.
 	RefCallName
-	// RefCall is RefCallName with "()": aralık(), liste.filtrele().
+	// RefCall is RefCallName with "()": yuvarla(), liste.filtrele().
 	RefCall
 	// RefReceiver is a type's name as a member's receiver, in lower case (liste, metin).
 	RefReceiver

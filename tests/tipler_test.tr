@@ -270,7 +270,7 @@ TR_test "5.7 JSON dizisinde öğeler, nesnesinde anahtarlar dolaşılır; iki de
     TR_for k, v TR_in j { çiftler.TR_append("\(k)=\(v)") }
     TR_assert_equal(["a=[1,2]", "b=x"], çiftler)
     TR_assert_equal([2, 4], [TR_Int(x) * 2 TR_for x TR_in j["a"]])
-    TR_assert_equal("H2664", TR_error_code(() => { TR_for c TR_in j["b"] { } }))
+    TR_assert_equal("H2664", TR_error_code(() => { TR_for c TR_in j["b"] {} }))
 }
 
 TR_test "3.8 Aralık: a..b (b hariç), a..=b (b dahil)" {

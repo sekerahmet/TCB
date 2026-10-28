@@ -21,7 +21,7 @@ import (
 //
 // File format (each entry is one line or a short block, codes in ascending order):
 //
-//	"TR_fn_range": { "kind": "function", "params": ["TR_type_Int", "TR_type_Int?"], "returns": "TR_type_List" },
+//	"TR_fn_round": { "kind": "function", "params": ["TR_type_Int|TR_type_Float", "TR_type_Int?"], "returns": "TR_type_Int|TR_type_Float" },
 //	"TR_fn_sum": { "kind": "function", "params": ["TR_type_List|TR_type_Tensor"], "named": [["TR_arg_dim", "TR_type_Int"], ["TR_arg_keepdim", "TR_type_Bool", false]], "returns": "TR_type_Int|TR_type_Float|TR_type_Tensor" },
 //	"TR_mem_length": { "kind": "property", "types": ["TR_type_String", "TR_type_List", "TR_type_Dict"], "returns": "TR_type_Int" },
 //	"TR_mem_split": { "kind": "method", "signatures": { "TR_type_String": { "params": ["TR_type_String?"], "returns": "TR_type_List" }, "TR_type_Tensor": { ... } } },

@@ -12,7 +12,7 @@ TR_var sözlük = {"ad": "Ali"}
 TR_print(TR_Type(sözlük) == TR_Dict, sözlük["ad"])
 TR_print(TR_Type(TR_true) == TR_Bool, TR_Type(TR_none) == TR_NoneType)
 
-# Aralık a..b (b hariç) ya da a..=b (b dahil) yazımının tipidir; aralık(n) ise bir Liste verir.
+# Aralık a..b (b hariç) ya da a..=b (b dahil) yazımının tipidir; sayılarının listesi TR_List(0..n) ile kurulur.
 TR_print(TR_Type(1..5) == TR_Range, TR_Type(TR_List(0..5)) == TR_List, TR_List(0..5))
 
 # Fonksiyonlar birinci sınıf değerdir: ok fonksiyonu ve fonksiyon Fonksiyon,

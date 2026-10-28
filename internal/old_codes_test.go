@@ -47,51 +47,26 @@ var oldCodeBinary = map[string]bool{".npy": true, ".safetensors": true, ".trt": 
 // eşleme belgesi dışında kalan eski anılış, okuyanı (ve hafızası olmayan bir oturumu) artık var olmayan bir kod
 // düzenine götürür.
 func TestNoOldCodeForm(t *testing.T) {
-	root := reporoot.Root()
 	var bad []string
 	used := map[string]bool{} // "dosya sözcük": izin listesinin kullanılan kayıtları
-	files := 0
-	err := reporoot.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-		if err != nil || d.IsDir() {
-			return err
-		}
-		if oldCodeBinary[filepath.Ext(path)] || oldCodeBinary[d.Name()] {
-			return nil
-		}
-		rel := filepath.ToSlash(strings.TrimPrefix(path, root+string(filepath.Separator)))
-		if strings.HasPrefix(rel, "internal/compute/tokenize/testdata/") {
-			return nil // parçalayıcının altın çıktıları: rastgele metin parçaları (T000), kod değil
-		}
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		if !utf8.Valid(data) {
-			return nil // ikili dosya
-		}
-		files++
+	skip := func(rel string) bool {
+		// parçalayıcının altın çıktıları: rastgele metin parçaları (T000), kod değil
+		return strings.HasPrefix(rel, "internal/compute/tokenize/testdata/")
+	}
+	scanTextLines(t, skip, func(rel string, line int, text string) {
 		allowed := oldCodeAllowed[rel]
-		for i, line := range strings.Split(string(data), "\n") {
-			for _, m := range oldCodeForm.FindAllStringSubmatch(line, -1) {
-				if allowed["*"] != "" {
-					used[rel+" *"] = true
-					continue
-				}
-				if _, ok := allowed[m[2]]; ok {
-					used[rel+" "+m[2]] = true
-					continue
-				}
-				bad = append(bad, rel+":"+strconv.Itoa(i+1)+": "+m[2])
+		for _, m := range oldCodeForm.FindAllStringSubmatch(text, -1) {
+			if allowed["*"] != "" {
+				used[rel+" *"] = true
+				continue
 			}
+			if _, ok := allowed[m[2]]; ok {
+				used[rel+" "+m[2]] = true
+				continue
+			}
+			bad = append(bad, rel+":"+strconv.Itoa(line)+": "+m[2])
 		}
-		return nil
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if files < 500 {
-		t.Fatalf("only %d files scanned; the repository was not read", files)
-	}
 	if len(bad) > 0 {
 		sort.Strings(bad)
 		t.Errorf("%d eski kod anılışı (kimliği docs/code_identities.md'de; kod değilse gerekçesiyle oldCodeAllowed'a):\n  %s",
@@ -103,5 +78,43 @@ func TestNoOldCodeForm(t *testing.T) {
 				t.Errorf("oldCodeAllowed: %s dosyasında %s artık geçmiyor; kaydı silin", file, w)
 			}
 		}
+	}
+}
+
+// scanTextLines izlenen metin dosyalarının (ikili biçimler ve UTF-8 olmayanlar hariç; skip'in seçtikleri hariç)
+// her satırını visit'e verir: depo yolu, 1'den başlayan satır, satır. Deponun okunduğu da denetlenir.
+func scanTextLines(t *testing.T, skip func(rel string) bool, visit func(rel string, line int, text string)) {
+	t.Helper()
+	root := reporoot.Root()
+	files := 0
+	err := reporoot.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
+		}
+		if oldCodeBinary[filepath.Ext(path)] || oldCodeBinary[d.Name()] {
+			return nil
+		}
+		rel := filepath.ToSlash(strings.TrimPrefix(path, root+string(filepath.Separator)))
+		if skip(rel) {
+			return nil
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if !utf8.Valid(data) {
+			return nil // ikili dosya
+		}
+		files++
+		for i, line := range strings.Split(string(data), "\n") {
+			visit(rel, i+1, line)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if files < 500 {
+		t.Fatalf("only %d files scanned; the repository was not read", files)
 	}
 }

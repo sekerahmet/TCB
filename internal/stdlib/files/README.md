@@ -1,6 +1,6 @@
 # files
 
-TR'nin dosya ve klasör yerleşikleri: `TR_fn_path(...)` değeri, satır okuyucu (`TR_fn_read_lines`),
+TR'nin dosya ve klasör yerleşikleri: `TR_type_Path(...)` değeri, satır okuyucu (`TR_fn_read_lines`),
 listeleme ve kalıplar, kopyalama, taşıma, silme ve geçici klasörler.
 
 ## Standartlar

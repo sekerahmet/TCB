@@ -6,7 +6,7 @@
 
 Her metodun ve yerleşiğin imzası ve örneği [`docs/codes.md`](../codes.md)'dedir. `.TR_mem_length`, `.TR_mem_first`, `.TR_mem_last` özelliktir, parantezsiz yazılır.
 
-**Metot mu, fonksiyon mu?** Bir değeri dönüştüren ya da ona soru soran iş metottur (`l.TR_mem_length`, `l.TR_mem_filter {...}`, `l.TR_mem_sort()`, `l.TR_mem_append(x)`, `t.TR_mem_transpose()`); matematik ve tensör işi fonksiyondur (`TR_fn_sum(l)`, `TR_fn_mean(l)`, `TR_fn_min(l)`, `TR_fn_max(l)`, `TR_fn_relu(t)`). Hedef tipin adını taşıyan dönüştürücüler (`TR_fn_int(x)`, `TR_fn_float(x)`, `TR_fn_str(x)`) kurucudur, `TR_fn_type(x)` de genel bir sorudur; ikisi de fonksiyondur. Her işin tek biçimi vardır; öbür biçim yazılınca hata doğrusunu gösterir:
+**Metot mu, fonksiyon mu?** Bir değeri dönüştüren ya da ona soru soran iş metottur (`l.TR_mem_length`, `l.TR_mem_filter {...}`, `l.TR_mem_sort()`, `l.TR_mem_append(x)`, `t.TR_mem_transpose()`); matematik ve tensör işi fonksiyondur (`TR_fn_sum(l)`, `TR_fn_mean(l)`, `TR_fn_min(l)`, `TR_fn_max(l)`, `TR_fn_relu(t)`). Hedef tipin adını taşıyan dönüştürücüler (`TR_type_Int(x)`, `TR_type_Float(x)`, `TR_type_String(x)`) kurucudur, `TR_type_Type(x)` de genel bir sorudur; ikisi de fonksiyondur. Her işin tek biçimi vardır; öbür biçim yazılınca hata doğrusunu gösterir:
 
 ```text
 'uzunluk(...)' TR'de bir fonksiyon değil; 'x.uzunluk' yazın
@@ -34,7 +34,7 @@ TR_sum(sayılar.TR_filter { TR_it % 2 == 0 })      # fonksiyon çağrıyla: topl
 ```
 
 - İç içe bloklarda `TR_ctx_it` en içteki elemanı gösterir: `[[1, 2]].TR_mem_map { TR_ctx_it.TR_mem_map { TR_ctx_it * 10 } }`.
-- `TR_kw_if`, `TR_kw_while`, `TR_kw_for` ve `TR_kw_match` başlıklarında `{` her zaman gövdeyi başlatır. Başlıkta sondaki blok kullanmak için ifadeyi paranteze alın: `TR_kw_if (liste.TR_mem_filter { TR_ctx_it > 2 }).TR_mem_length > 0 { ... }`.
+- `TR_kw_if`, `TR_kw_for` ve `TR_kw_match` başlıklarında `{` her zaman gövdeyi başlatır. Başlıkta sondaki blok kullanmak için ifadeyi paranteze alın: `TR_kw_if (liste.TR_mem_filter { TR_ctx_it > 2 }).TR_mem_length > 0 { ... }`.
 - Uzun yazım (`(x) => x > 2`) aynen çalışmaya devam eder.
 - Metotlar `.` ile zincirlenir, fonksiyon çağrıyla verilir: `TR_fn_sum(l.TR_mem_filter { ... })`. Başka dillerin boru işleci `|>` sözdizimi hatasıdır, ileti çağrıyı önerir (4.9).
 

@@ -14,7 +14,7 @@ TR_var ayar = TR_command_line({"step": 100, "lr": 0.01, "koşu": "deneme", "gün
     TR_descriptions: {"step": "eğitim adımı sayısı", "lr": "adım büyüklüğü", "koşu": "koşunun adı",
         "günlük_dosyası": "kayıtların yazılacağı dosya (yoksa yazılmaz)"})
 
-# Sonuç bir nesnedir: ayar adıyla okunur.
+# Sonuç bir sözlüktür: değer köşeli parantezle okunur (ayar["step"]).
 TR_print("adım:", ayar["step"], "| öğrenme oranı:", ayar["lr"], "| koşu:", ayar["koşu"])
 TR_print("günlük dosyası verildi mi:", ayar["günlük_dosyası"] != TR_none)
 

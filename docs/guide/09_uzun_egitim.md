@@ -1,6 +1,6 @@
 # 9. Uzun eğitim: kontrol noktası ve devam
 
-Saatler süren bir eğitim kesilebilir: not defterinin oturumu kapanır, Ctrl+C'ye basarsınız, makine yeniden başlar. TR'de bunun için tek bir satır yeter: `TR_fn_checkpoint` eğitimin bütün durumunu (model ağırlıkları, iyileştiricinin momentleri, veri okuyucusunun konumu, günlük, kendi sayaçlarınız) düzenli aralıklarla koşu klasörüne kaydeder; programı **aynı komutla** yeniden çalıştırdığınızda kaldığı adımdan sürer. Sürdürülen eğitim, hiç kesilmemiş bir eğitimle **bit düzeyinde aynı** sonucu verir. Kurallar: [`docs/spec/20_kontrol_noktasi.md`](../spec/20_kontrol_noktasi.md). Uçtan uca örnek: [`examples/tr/40_kontrol_noktasi.tr`](../../examples/tr/40_kontrol_noktasi.tr).
+Saatler süren bir eğitim kesilebilir: not defterinin oturumu kapanır, Ctrl+C'ye basarsınız, makine yeniden başlar. TR'de bunun için tek bir satır yeter: `TR_type_Checkpoint` eğitimin bütün durumunu (model ağırlıkları, iyileştiricinin momentleri, veri okuyucusunun konumu, günlük, kendi sayaçlarınız) düzenli aralıklarla koşu klasörüne kaydeder; programı **aynı komutla** yeniden çalıştırdığınızda kaldığı adımdan sürer. Sürdürülen eğitim, hiç kesilmemiş bir eğitimle **bit düzeyinde aynı** sonucu verir. Kurallar: [`docs/spec/20_kontrol_noktasi.md`](../spec/20_kontrol_noktasi.md). Uçtan uca örnek: [`examples/tr/40_kontrol_noktasi.tr`](../../examples/tr/40_kontrol_noktasi.tr).
 
 ```tr
 # TR 4

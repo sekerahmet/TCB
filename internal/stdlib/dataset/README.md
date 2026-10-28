@@ -1,6 +1,6 @@
 # dataset
 
-TR'nin veri kümesi yerleşikleri: `TR_fn_dataset(...)` ile açılan kümeler, `.TR_mem_sampler(...)` ve
+TR'nin veri kümesi yerleşikleri: `TR_type_Dataset(...)` ile açılan kümeler, `.TR_mem_sampler(...)` ve
 `.TR_mem_sequential(...)` okuyucuları. Asıl okuma işini `internal/compute/dataload` yapar; bu paket onu
 TR değerlerine ve yol gösterici hata iletilerine bağlar.
 

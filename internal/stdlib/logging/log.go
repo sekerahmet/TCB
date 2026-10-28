@@ -1,5 +1,5 @@
 // Package logging, model eğitimini izlemenin iki TR yerleşiğini içerir: JSON satırlarıyla
-// eğitim günlüğü (günlük, TR_fn_logger; tip Günlük, TR_type_Logger) ve ilerleme çubuğu (ilerleme, TR_fn_progress; tip
+// eğitim günlüğü (günlük, TR_type_Logger; tip Günlük, TR_type_Logger) ve ilerleme çubuğu (ilerleme, TR_type_Progress; tip
 // İlerleme, TR_type_Progress).
 //
 // Günlük dosyası biçimi (sürüm 2): her satır tek bir JSON nesnesidir ve tek bir yazma

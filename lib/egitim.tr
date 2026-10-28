@@ -83,7 +83,7 @@ TR_struct TR_SpikeGuard {
 # sürer ve geri çağırma düzeni ister; TR'de özel adımlar (bekçinin geri dönüşü, birikim,
 # kaynaştırma) döngüde açık kalsın diye yalnızca kayıt işleri toplanır.
 #
-#     değişken koşu = Koşu(ayar.koşu, ayar, {model: model, adamw: op.adamw, ö: ö}, adım_sayısı: ayar.adım, prova: ayar.prova)
+#     değişken koşu = Koşu(ayar["koşu"], ayar, {"model": model, "adamw": op.adamw, "ö": ö}, adım_sayısı: ayar["adım"], prova: ayar["prova"])
 #     döngü adım içinde koşu.kaldığı_adım..koşu.son_adım {
 #         ... adım ...
 #         koşu.adım_bitti(adım + 1, eğer günlük_adımı { {kayıp: kayıp} } değilse { yok })
