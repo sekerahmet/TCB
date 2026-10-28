@@ -24,8 +24,10 @@ func withLibrary(t *testing.T, f fstest.MapFS) {
 func TestImportIgnoresWorkingDir(t *testing.T) {
 	root := t.TempDir()
 	execution := filepath.Join(root, "scratch")
-	testkit.WritePath(t, filepath.Join(execution, "yardimci.tr"), "TR_var kimden = \"çalışma klasörü\"\n")
-	testkit.WritePath(t, filepath.Join(execution, "ozel.tr"), "TR_var ozel = \"çalışma klasörü\"\n")
+	// Çalışma klasöründeki dosyalar geçerli TR dosyalarıdır: yüklenselerdi çalışırlardı (gerileme
+	// "başlık yok" diye değil, yanlış dosyanın okunmasıyla görünür).
+	testkit.WritePath(t, filepath.Join(execution, "yardimci.tr"), source.Header+"\nTR_var kimden = \"çalışma klasörü\"\n")
+	testkit.WritePath(t, filepath.Join(execution, "ozel.tr"), source.Header+"\nTR_var ozel = \"çalışma klasörü\"\n")
 	runInDir(t, execution)
 	prog := filepath.Join(root, "program")
 	out, err := runWithModules(t, prog, map[string]string{
