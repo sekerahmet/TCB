@@ -241,17 +241,18 @@ func TestMessageValuesFollowPersonsLanguage(t *testing.T) {
 }
 
 // TR_str(Mantık) dilden bağımsız "true" ya da "false" verir: bir yazım dilinin adıyla
-// karşılaştırma (TR_str(B) == "doğru") hiç tutmaz, denetleyici her TR_DIL'de bir kez uyarır
-// (H1016); "true" ile karşılaştırma doğrudur, sessizdir.
+// (TR_str(B) == "doğru") ya da başka bir dilden tanıdık adla ("True") karşılaştırma hiç tutmaz,
+// denetleyici her TR_DIL'de her biri için bir kez uyarır (H1016); "true" ile karşılaştırma
+// doğrudur, sessizdir.
 func TestBoolTextComparisonWarns(t *testing.T) {
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "p.tr", source.Header+"\nTR_const B = TR_true\nTR_print(TR_str(B) == \"doğru\")\nTR_print(TR_str(B) == \"true\")\n")
+	testkit.WriteFile(t, dir, "p.tr", source.Header+"\nTR_const B = TR_true\nTR_print(TR_str(B) == \"doğru\")\nTR_print(TR_str(B) == \"True\")\nTR_print(TR_str(B) == \"true\")\n")
 	for _, c := range []struct{ env, warning string }{
-		{"TR_DIL=en", "is the name in a writing language"},
-		{"TR_DIL=tr", "bir yazım dilinin adı"},
+		{"TR_DIL=en", "never holds"},
+		{"TR_DIL=tr", "karşılaştırma hiç tutmaz"},
 	} {
 		s := testkit.RunBinary(t, trBinary, dir, "", []string{c.env}, "p.tr")
-		if s.Code != 0 || s.Stdout != "false\ntrue\n" || strings.Count(s.Stderr, c.warning) != 1 || !strings.Contains(s.Stderr, `"doğru"`) {
+		if s.Code != 0 || s.Stdout != "false\nfalse\ntrue\n" || strings.Count(s.Stderr, c.warning) != 2 || !strings.Contains(s.Stderr, `"doğru"`) || !strings.Contains(s.Stderr, `"True"`) {
 			t.Errorf("%s: çıkış %d, çıktı %q, uyarılar:\n%s", c.env, s.Code, s.Stdout, s.Stderr)
 		}
 	}

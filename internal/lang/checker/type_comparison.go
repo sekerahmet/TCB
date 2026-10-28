@@ -42,13 +42,24 @@ func (c *Checker) checkBoolTextComparison(e *ast.InfixExpression) {
 	if text.Value == own.Name(codes.KwTrue) || text.Value == own.Name(codes.KwFalse) {
 		return
 	}
+	if boolName(text.Value) {
+		c.warnings = append(c.warnings, messages.At(e.Line(), 0, messages.New(messages.H1016,
+			c.word(codes.FnStr), own.Name(codes.KwTrue), own.Name(codes.KwFalse), text.Value)))
+	}
+}
+
+// boolName metin bir doğru/yanlış adı mı: bir yazım dilinin adı (doğru, yanlış) ya da başka bir
+// dilden tanıdık ad (Python'un True ve False'u, definitions.json "familiar").
+func boolName(text string) bool {
+	if k, ok := codes.FamiliarCode(text); ok && (k == codes.KwTrue || k == codes.KwFalse) {
+		return true
+	}
 	for _, code := range codes.Languages() {
-		if l, err := codes.LoadLanguage(code); err == nil && (text.Value == l.Name(codes.KwTrue) || text.Value == l.Name(codes.KwFalse)) {
-			c.warnings = append(c.warnings, messages.At(e.Line(), 0, messages.New(messages.H1016,
-				c.word(codes.FnStr), own.Name(codes.KwTrue), own.Name(codes.KwFalse), text.Value)))
-			return
+		if l, err := codes.LoadLanguage(code); err == nil && (text == l.Name(codes.KwTrue) || text == l.Name(codes.KwFalse)) {
+			return true
 		}
 	}
+	return false
 }
 
 // isBool ifadenin tipi Mantık mı (yan etkisiz: tip çıkarımı ifadeyi yeniden denetlemez, hataları

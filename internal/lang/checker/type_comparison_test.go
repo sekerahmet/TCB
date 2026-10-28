@@ -48,6 +48,8 @@ func TestBoolTextComparisonWarning(t *testing.T) {
 		{`TR_print(TR_str(b) == "true")`, 0},
 		{`TR_print(TR_str(c) == "false")`, 0},
 		{`TR_print(TR_str(b) == "evet")`, 0},
+		{`TR_print(TR_str(b) == "True")`, 1}, // başka bir dilden tanıdık ad (Python)
+		{`TR_print(TR_str(c) == "False")`, 1},
 		{`TR_print(TR_str(3) == "doğru")`, 0}, // Mantık değil
 		{`TR_print(TR_str(c) == "yanlış")`, 1},
 	} {
