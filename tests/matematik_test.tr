@@ -23,7 +23,7 @@ TR_test "13.7 taban, tavan, işaret: Tam'da Tam, Ondalık'ta Ondalık; pi sabitt
     TR_assert_equal(TR_Int, TR_type(TR_clamp(-3, TR_min: 0)))
     TR_assert_equal(5.0, TR_clamp(5, TR_min: 0.5))
     TR_assert_equal(TR_Float, TR_type(TR_pi))
-    TR_assert(TR_pi > 3.14159 && TR_pi < 3.1416)
+    TR_assert(3.14159 < TR_pi < 3.1416)
     TR_assert(yakın_mı(TR_sin(TR_pi / 2), 1.0))
     TR_assert_equal("H2421", TR_error_code(() => TR_pi()))
     TR_assert_equal("H6104", TR_error_code(() => TR_floor([1.5])))

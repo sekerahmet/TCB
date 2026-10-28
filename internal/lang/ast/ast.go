@@ -305,6 +305,10 @@ type InfixExpression struct {
 	Left     Expression
 	Operator lexer.TokenType // işlecin simgesi; ve/veya da "&&"/"||"
 	Right    Expression
+	// Chained: karşılaştırma zincirinin halkası (4.4, 'a < b <= c'): Left de bir karşılaştırmadır ve
+	// bu halka Left'in sağ ifadesini (bir kez hesaplanan) Right ile karşılaştırır; sonuç iki
+	// karşılaştırmanın TR_and'idir.
+	Chained bool
 }
 
 func (ie *InfixExpression) expressionNode()      {}

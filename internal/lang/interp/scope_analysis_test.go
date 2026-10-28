@@ -19,7 +19,7 @@ func TestOneProgramCompiledInParallelVMs(t *testing.T) {
 		TR_var toplam_ = 0
 		TR_for i TR_in 1..=20 {
 			TR_var kare = i * i
-			TR_if kare % 2 == 0 { TR_var yarım = kare / 2; toplam_ += yarım } TR_else { toplam_ += kare }
+			TR_if kare % 2 == 0 { TR_var yarım = kare // 2; toplam_ += yarım } TR_else { toplam_ += kare }
 		}
 		TR_var s = sayaç_yap()
 		TR_var j = 0

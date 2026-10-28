@@ -61,7 +61,7 @@ TR_no_grad {
     }
 }
 TR_var kayıp = toplam_kayıp / TR_max(parça, 1)
-TR_var pencere = parça / T
+TR_var pencere = parça // T
 TR_var bant_sınırları = [[0, 64], [64, 256], [256, 512]]
 TR_var bantlar = {}
 TR_for b TR_in bant_sınırları {

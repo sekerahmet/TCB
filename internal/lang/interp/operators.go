@@ -2,6 +2,7 @@ package interp
 
 import (
 	"math"
+	"math/big"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -26,9 +27,14 @@ const (
 	opAnd
 	opOr
 	opCoalesce // ??
-	opPipe     // |>
 	opMatMul
-	opAssign // = (düz atama)
+	opAssign   // = (düz atama)
+	opFloorDiv // //
+	opBitAnd   // &
+	opBitOr    // |
+	opBitXor   // ^
+	opShl      // <<
+	opShr      // >>
 )
 
 // opCode bir işleç metninin kodunu döndürür. Bileşik atamalar (+=, ...) temel
@@ -45,6 +51,18 @@ func opCode(op string) uint8 {
 		return opDiv
 	case "%":
 		return opMod
+	case "//":
+		return opFloorDiv
+	case "&":
+		return opBitAnd
+	case "|":
+		return opBitOr
+	case "^":
+		return opBitXor
+	case "<<":
+		return opShl
+	case ">>":
+		return opShr
 	case "**":
 		return opPow
 	case "<":
@@ -65,8 +83,6 @@ func opCode(op string) uint8 {
 		return opOr
 	case "??":
 		return opCoalesce
-	case "|>":
-		return opPipe
 	case "@":
 		return opMatMul
 	case "=":
@@ -144,26 +160,13 @@ func (v *VM) evalInfixKod(codeVal uint8, op string, left Value, right Value, lin
 		return equalityResult(codeVal == opEq, op, left, right, line)
 	}
 
-	if codeVal == opAdd {
-		// Metin birleştirme
-		if ls, ok := left.(*StringVal); ok {
-			return &StringVal{Val: ls.Val + v.textOf(right)}, nil
-		}
-		if rs, ok := right.(*StringVal); ok {
-			return &StringVal{Val: v.textOf(left) + rs.Val}, nil
-		}
-
-		// Liste birleştirme
-		if ll, ok1 := left.(*ListVal); ok1 {
-			if rl, ok2 := right.(*ListVal); ok2 {
-				combined := make([]Value, 0, len(ll.Elements)+len(rl.Elements))
-				combined = append(combined, ll.Elements...)
-				combined = append(combined, rl.Elements...)
-				return &ListVal{Elements: combined}, nil
-			}
-		}
+	if val, ok, err := sequenceOp(codeVal, left, right, line); ok {
+		return val, err
 	}
 
+	if bitOperator(codeVal) {
+		return nil, messages.At(line, 0, messages.New(messages.H2607, op, left.Type(), right.Type()))
+	}
 	return nil, messages.At(line, 0, messages.New(messages.H2469, left.Type(), right.Type(), op))
 }
 
@@ -175,16 +178,19 @@ func intOp(codeVal uint8, op string, a, b int64, line int) (Value, bool, error) 
 			return val, true, nil
 		}
 		switch {
-		case codeVal == opDiv && b == 0:
+		case (codeVal == opDiv || codeVal == opFloorDiv) && b == 0:
 			return nil, true, messages.At(line, 0, messages.New(messages.H2470))
 		case codeVal == opMod:
 			return nil, true, messages.At(line, 0, messages.New(messages.H2471))
+		case codeVal == opShl || codeVal == opShr:
+			return nil, true, messages.At(line, 0, messages.New(messages.H2606, op, b))
 		}
 		return nil, true, overflowError(line, a, op, b)
 	}
 	if codeVal == opPow {
 		if b < 0 {
-			return &FloatVal{Val: math.Pow(float64(a), float64(b))}, true, nil
+			// İki TR_Int'in üssü TR_Int'tir; eksi üs ondalık yazımla istenir (4.3).
+			return nil, true, messages.At(line, 0, messages.New(messages.H2603, a, b))
 		}
 		res, ok := intPow(a, b)
 		if !ok {
@@ -214,8 +220,22 @@ func floatOp(codeVal uint8, lf, rf float64, line int) (Value, bool, error) {
 		if rf == 0 {
 			return nil, true, messages.At(line, 0, messages.New(messages.H2471))
 		}
-		return &FloatVal{Val: math.Mod(lf, rf)}, true, nil
+		_, mod := floatDivMod(lf, rf)
+		return &FloatVal{Val: mod}, true, nil
+	case opFloorDiv:
+		if rf == 0 {
+			return nil, true, messages.At(line, 0, messages.New(messages.H2470))
+		}
+		div, _ := floatDivMod(lf, rf)
+		return &FloatVal{Val: div}, true, nil
 	case opPow:
+		// Tanımsız üs sessizce TR_nan ya da sonsuz olmaz (4.3).
+		if lf == 0 && rf < 0 {
+			return nil, true, messages.At(line, 0, messages.New(messages.H2604, numberText(lf), numberText(rf)))
+		}
+		if lf < 0 && !math.IsInf(rf, 0) && !math.IsNaN(rf) && rf != math.Trunc(rf) {
+			return nil, true, messages.At(line, 0, messages.New(messages.H2605, numberText(lf), numberText(rf)))
+		}
 		return &FloatVal{Val: math.Pow(lf, rf)}, true, nil
 	case opLt:
 		return BoolToVal(lf < rf), true, nil
@@ -231,6 +251,56 @@ func floatOp(codeVal uint8, lf, rf float64, line int) (Value, bool, error) {
 		return BoolToVal(lf != rf), true, nil
 	}
 	return nil, false, nil
+}
+
+// trueDiv iki tam sayının bölümünü en yakın ondalığa yuvarlar (4.2). 2^53'e kadar iki işlenen de
+// ondalıkta tamdır ve IEEE bölmesi doğru yuvarlar; daha büyüklerde kesir tam hesaplanır (Python'un
+// tam sayı bölmesi gibi), yoksa iki yuvarlama birikirdi.
+func trueDiv(a, b int64) float64 {
+	const exact = 1 << 53
+	if -exact <= a && a <= exact && -exact <= b && b <= exact {
+		return float64(a) / float64(b)
+	}
+	f, _ := new(big.Rat).SetFrac(big.NewInt(a), big.NewInt(b)).Float64()
+	return f
+}
+
+// floatDivMod ondalığın tam bölümü ve kalanıdır (4.2a), Python'un float_divmod'u gibi: kalan
+// bölenin işaretini alır, bölüm kalanla tutarlı olacak biçimde aşağı yuvarlanır (1 // 0.1 = 9.0,
+// 1 % 0.1 ≈ 0.1). b sıfır değildir.
+func floatDivMod(a, b float64) (div, mod float64) {
+	mod = math.Mod(a, b)
+	div = (a - mod) / b
+	if mod != 0 {
+		if (b < 0) != (mod < 0) {
+			mod += b
+			div--
+		}
+	} else {
+		mod = math.Copysign(0, b)
+	}
+	if div != 0 {
+		floor := math.Floor(div)
+		if div-floor > 0.5 {
+			floor++
+		}
+		div = floor
+	} else {
+		div = math.Copysign(0, a/b)
+	}
+	return div, mod
+}
+
+// numberText bir sayının iletideki metnidir (değerin metniyle aynı: 0.0, -8.0).
+func numberText(f float64) string { return (&FloatVal{Val: f}).Inspect() }
+
+// bitOperator codeVal bit işleçlerinden biri mi (4.12: yalnız TR_Int).
+func bitOperator(codeVal uint8) bool {
+	switch codeVal {
+	case opBitAnd, opBitOr, opBitXor, opShl, opShr:
+		return true
+	}
+	return false
 }
 
 // overflowError int64 sınırını aşan tam sayı işlemleri için hata üretir (sessizce sarmak yerine).
@@ -262,7 +332,23 @@ func equalityResult(equal bool, op string, left, right Value, line int) (Value, 
 	if err := typeTextError(op, left, right); err != nil {
 		return nil, messages.At(line, 0, err)
 	}
+	if (isFunction(left) || isFunction(right)) && left.Type() != ValNull && right.Type() != ValNull {
+		// Fonksiyonlar karşılaştırılamaz (4.5): kimlikle karşılaştırmak görünüşü aynı iki
+		// fonksiyonu eşit saymaz, ajanı yanıltır. Yoklukla karşılaştırma isteğe bağlı değeri
+		// açar (3.5: 'f == TR_none'), serbesttir.
+		return nil, messages.At(line, 0, messages.New(messages.H2613, op))
+	}
 	return BoolToVal(ValuesEqual(left, right) == equal), nil
+}
+
+// isFunction x bir fonksiyon değeri mi: kullanıcı fonksiyonu, ok fonksiyonu, bağlı metot ya da
+// yerleşik.
+func isFunction(x Value) bool {
+	switch x.(type) {
+	case *FuncVal, *BuiltinVal:
+		return true
+	}
+	return false
 }
 
 func ValuesEqual(a, b Value) bool {

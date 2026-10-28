@@ -77,6 +77,13 @@ const (
 	H0169 Code = 169  // '\' ve sekme
 	H0170 Code = 170  // dilimin uçları ':' ile değil '..' ile ayrılır: x[a..b]
 	H0171 Code = 171  // '{keyword}' programın en dışında yazılmaz; yalnızca fonksiyonun içinde kullanılır. Programı bitirmek için '{exit}(0)' yazın (başarı için 0; kendi hata kodlarınız 4'ten başlar)
+	H0200 Code = 200  // '{op}' karşılaştırma zincirinde yazılmaz: içinde '==' ya da '!=' olan zincir ('a < b == c', 'a == b == c') iki ayrı anlama gelebilir. Karşılaştırmayı parantezle ayırın ('(a < b) == c') ya da '{@and}' ile yazın ('a == b {@and} b == c')
+	H0201 Code = 201  // '??' işlecinin sağında parantezsiz '{op}' yazılmaz: 'a ?? 0 {op} 1', 'a ?? (0 {op} 1)' diye okunur. Varsayılanla açılan değerle işlem için '(a ?? 0) {op} 1', sağ yanın işlemi için 'a ?? (0 {op} 1)' yazın
+	H0202 Code = 202  // '&&' TR'de yok; mantıksal ve '{@and}' ile yazılır: a {@and} b
+	H0203 Code = 203  // '||' TR'de yok; mantıksal veya '{@or}' ile yazılır: a {@or} b
+	H0204 Code = 204  // tekli '!' TR'de yok; mantıksal tersi '{@not}' ile yazılır: {@not} a ('!=' eşit değil işlecidir)
+	H0205 Code = 205  // '|>' TR'de yok; fonksiyon çağrıyla yazılır: x |> f(y) yerine f(x, y)
+	H0206 Code = 206  // '{@in}' yalnız döngüde ve liste üretecinde yazılır ({@for} x {@in} l); üyelik l.{@contains}(x) ile sorulur
 	H1001 Code = 1001 // Tip uyuşmazlığı — {name|q} değişkeni {declared|q} tipinde tanımlandı ancak {given|q} tipinde değer atandı{hint}
 	H1002 Code = 1002 // Sabit hatası — {name|q} bir sabittir ('{keyword}') ve değeri değiştirilemez
 	H1003 Code = 1003 // Dönüş tipi uyuşmazlığı — fonksiyon {expected|q} döndürmeli ancak {given|q} tipinde değer döndürülüyor{hint}
@@ -127,7 +134,6 @@ const (
 	H2043 Code = 2043 // gzip içeriği yarıda kesilmiş (dosya eksik indirilmiş olabilir)
 	H2044 Code = 2044 // gzip içeriği bozuk (sıkıştırılmış veri çözülemedi)
 	H2045 Code = 2045 // açılmış içerik 1 GB'tan büyük; büyük dosyaları satır satır okumak için {fn}(...) kullanın
-	H2046 Code = 2046 // '//' tam bölme işleci henüz uygulanmadı (dil tanımı 4.2a)
 	H2100 Code = 2100 // {path|q} okunamadı: {reason}
 	H2101 Code = 2101 // {path|q} yazılamadı: {reason}
 	H2102 Code = 2102 // {path|q} kaydedilemedi: {reason}
@@ -329,6 +335,20 @@ const (
 	H2541 Code = 2541 // bu dosya bir '{lang}' görünümü (başlığında view={lang} var) ve çalışmaz; önce kodlayın: tr {encode} <dosya>
 	H2542 Code = 2542 // metin bir '{view}' görünümü, ama --{lang} {code} verildi: görünümün dili başlığındadır, --{lang} gerekmez
 	H2543 Code = 2543 // gösterim kurulamadı: dosyanın bu yazım dilindeki görünümü geri kodlanınca aynı programı vermiyor; lütfen bu dosyayı bir hata kaydıyla bildirin
+	H2600 Code = 2600 // koşul bir mantık değeri (Bool) olmalı; {type} verildi. Açık bir sınama yazın: boşluk için 'x.{@length} == 0', yokluk için 'x != {@none}', sayı için 'x != 0'
+	H2601 Code = 2601 // '{@and}', '{@or}' ve '{@not}' yalnız mantık değeri (Bool) alır; {type} verildi. Açık bir sınama yazın: 'x.{@length} > 0', 'x != {@none}', 'x != 0'
+	H2602 Code = 2602 // karşılaştırma zincirindeki '{op}' bir mantık değeri vermedi ({type}): zincir ('a < b < c') yalnız sayıları ve metinleri karşılaştırır; karşılaştırmaları ayrı yazın
+	H2603 Code = 2603 // iki tam sayının üssünde üs eksi olamaz ({a} ** {b}); ondalık sonuç için {a}.0 ** {b} yazın
+	H2604 Code = 2604 // sıfırın eksi üssü tanımsızdır ({a} ** {b}); üssü almadan önce tabanın sıfır olmadığını sınayın
+	H2605 Code = 2605 // eksi sayının tam olmayan üssü gerçek sayı değildir ({a} ** {b}); tabanın mutlak değeriyle hesaplayıp işareti ayrıca verin
+	H2606 Code = 2606 // kaydırma miktarı 0 ile 63 arasında olmalı ('{op}' için {n} verildi)
+	H2607 Code = 2607 // '{op}' bit işlecidir ve yalnız iki tam sayı (Int) alır; {left} ve {right} verildi. Mantık değerleri '{@and}' ve '{@or}' ile birleştirilir
+	H2608 Code = 2608 // '~' bit tümlemesidir ve yalnız tam sayı (Int) alır; {type} verildi. Mantık değerinin tersi '{@not}' ile yazılır
+	H2609 Code = 2609 // '+' iki sayıyı toplar ya da aynı tipten iki metni ya da iki listeyi uç uca ekler; {left} ile {right} eklenmez. Değeri metne yerleştirmek için "metin \(x)" yazın
+	H2610 Code = 2610 // yineleme çok büyük: {count} öğe {n} kez yinelenemez
+	H2611 Code = 2611 // '.{@filter}'in fonksiyonu mantık değeri (Bool) döndürmeli; {type} döndü. Açık bir sınama döndürün: l.{@filter}(x => x != 0)
+	H2612 Code = 2612 // '{@assert}' koşul olarak mantık değeri (Bool) alır; {type} verildi. Karşılaştırmayı yazın: {@assert}(x == beklenen) ya da {@assert_equal}(beklenen, x)
+	H2613 Code = 2613 // fonksiyonlar '{op}' ile karşılaştırılamaz: görünüşü aynı iki fonksiyon da eşit sayılmaz. Sonuçlarını karşılaştırın: f(x) == g(x)
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

@@ -175,11 +175,24 @@ TR_test "3.9 fonksiyonlar birinci sınıf değerlerdir" {
     TR_assert_equal(TR_Function, TR_type(f))
 }
 
-TR_test "3.10 doğruluk: yanlış, yok, 0, 0.0, boş metin/liste/sözlük yanlış sayılır" {
-    TR_var yanlislar = [TR_false, TR_none, 0, 0.0, "", [], {}]
-    TR_for d TR_in yanlislar { TR_assert(TR_not d, "yanlış sayılmalıydı: \(d)") }
-    TR_var dogrular = [TR_true, 1, -1, 0.1, "a", [0], {"a": 0}, 1..2]
-    TR_for d TR_in dogrular { TR_assert(d, "doğru sayılmalıydı: \(d)") }
+TR_test "3.10 koşul yalnız TR_Bool olur; başka tip çalışma hatasıdır" {
+    TR_for d TR_in [TR_none, 0, 0.0, "", "a", [], [0], {}, 1..2] {
+        TR_assert_equal("H2600", TR_error_code(() => { TR_if d { TR_print("girmemeli") } }))
+        TR_assert_equal("H2600", TR_error_code(() => { TR_if TR_false {} TR_else TR_if d {} }))
+        TR_assert_equal("H2600", TR_error_code(() => { TR_for d { TR_break } }))
+        TR_assert_equal("H2600", TR_error_code(() => { TR_var l = [x TR_for x TR_in [1] TR_if d] }))
+    }
+}
+
+TR_test "3.10 boşluk ve yokluk açık sınamayla sorulur" {
+    TR_var l = []
+    TR_var y = TR_none
+    TR_var n = 0
+    TR_assert(l.TR_length == 0 TR_and y == TR_none TR_and n == 0)
+    TR_var sayaç = 0
+    TR_for sayaç < 3 { sayaç += 1 }
+    TR_assert_equal(3, sayaç)
+    TR_assert_equal([2], [x TR_for x TR_in [1, 2] TR_if x % 2 == 0])
 }
 
 TR_test "3.11 tip(x) değerin tipini bir tip değeri olarak verir; tip adlarıyla karşılaştırılır" {
@@ -193,7 +206,7 @@ TR_test "3.11 tip(x) değerin tipini bir tip değeri olarak verir; tip adlarıyl
     TR_assert_equal(TR_Type, TR_type(TR_Int))
     TR_assert_equal(TR_str(TR_Int), TR_str(TR_type(42)))
     TR_assert(TR_str(TR_type(42)) != TR_str(TR_type(1.5)))
-    TR_assert_equal("tip: " + TR_str(TR_List), "tip: " + TR_type([1]))
+    TR_assert_equal("tip: " + TR_str(TR_List), "tip: \(TR_type([1]))")
     TR_var t: TR_Type = TR_type(1.5)
     TR_assert_equal(TR_Float, t)
     # Tip değeri eşle desenlerinde de kullanılır.

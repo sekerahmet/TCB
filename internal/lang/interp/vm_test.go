@@ -144,7 +144,7 @@ func TestLockHandoffConcurrentTask(t *testing.T) {
 		TR_var bitti = TR_false
 		TR_async { bitti = TR_true }
 		TR_var n = 0
-		TR_for !bitti && n < 200000000 { n += 1 }
+		TR_for TR_not bitti TR_and n < 200000000 { n += 1 }
 		TR_var result = n < 200000000
 	`)
 	if err != nil || val.Inspect() != "doğru" {
@@ -159,12 +159,12 @@ func TestLockHandoffRecursiveLoop(t *testing.T) {
 	_, val, err := runTROut(t, `
 		TR_var durdur = TR_false
 		TR_func dolas(n) {
-			TR_if durdur || n == 0 { TR_return n }
+			TR_if durdur TR_or n == 0 { TR_return n }
 			TR_return dolas(n - 1)
 		}
 		TR_async { durdur = TR_true }
 		TR_var tur = 0
-		TR_for !durdur && tur < 100000000 {
+		TR_for TR_not durdur TR_and tur < 100000000 {
 			dolas(50)
 			tur += 1
 		}

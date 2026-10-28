@@ -155,7 +155,7 @@ TR_func ters_toplu(B, V, yarım) {
         TR_var d = []
         TR_for i TR_in 0..yarım {
             ters_tohumu = (ters_tohumu * 1103515245 + 12345) % 2147483648
-            d.TR_append(TR_floor(ters_tohumu / 65536) % V)
+            d.TR_append(ters_tohumu // 65536 % V)
         }
         TR_var dizi = d + d.TR_reverse()
         girdiler.TR_append(dizi[0..2 * yarım - 1])

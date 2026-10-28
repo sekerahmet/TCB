@@ -5,7 +5,7 @@
 - **Fonksiyon & Dönüş:** `TR_kw_func`, `TR_kw_return`, `(x) => x * 2`
 - **Koşul & Eşleştirme:** `TR_kw_if`, `değilse eğer`, `TR_kw_else`, `TR_kw_match`, `TR_kw_default`
 - **Döngüler & Liste Üreteci:** `TR_kw_for x TR_kw_in liste`, `1..10`, `1..=10`, `TR_kw_while`, `TR_kw_break`, `TR_kw_continue`, `[x * x TR_kw_for x TR_kw_in 1..=10 TR_kw_if x % 2 == 0]`
-- **Mantıksal & Boş:** `TR_kw_true`, `TR_kw_false`, `TR_kw_none`, `TR_kw_and` (`&&`), `TR_kw_or` (`||`), `TR_kw_not` (`!`), `??`, `?.`
+- **Mantıksal & Boş:** `TR_kw_true`, `TR_kw_false`, `TR_kw_none`, `TR_kw_and`, `TR_kw_or`, `TR_kw_not` (`&&`, `||` ve tekli `!` sözdizimi hatasıdır, 4.9), `??`, `?.`
 - **Tipler:** `TR_type_Int`, `TR_type_Float`, `TR_type_String`, `TR_type_Bool`, `TR_type_None`, `TR_type_List`, `TR_type_Dict`, `TR_type_Tensor` (matrisler 2 boyutlu tensördür). Tip açıklamasında tip adı yalnızca kendi yazımıyla geçerlidir: `tam` ya da `MANTIK` yazılırsa denetleyici `'Tam' yazın` der (3.14). Eş ya da İngilizce adlar (`tamsayı`, `int`, `harita`, `dict` ...) kabul edilmez: `'tamsayı' TR'de bir tip adı değil; 'Tam' yazmak mı istediniz?`
 - **Yapı:** `TR_kw_struct`, `TR_kw_self` (kalıtım yoktur)
 - **Hata, Ertele, Kesme Noktası, Modül & Eşzamanlılık:** `TR_kw_try`, `TR_kw_catch`, `TR_kw_throw`, `TR_kw_defer`, `TR_kw_breakpoint` (koşullu: `TR_kw_breakpoint TR_kw_if koşul`), `TR_kw_import "yol"`, `TR_kw_import "yol" TR_ctx_as ad`, `TR_kw_async`, `TR_fn_sleep(saniye)`, `TR_fn_wait_all()`

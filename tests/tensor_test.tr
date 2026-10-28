@@ -50,7 +50,7 @@ TR_test "15.2 özellikler ve görünüm metotları" {
     TR_var üç = TR_tensor([[[1, 2], [3, 4]]])
     TR_assert_equal([[[1.0, 3.0], [2.0, 4.0]]], üç.TR_permute([0, 2, 1]).TR_tolist)
     TR_assert(TR_tensor([0.1]).TR_tolist[0] == 0.1)
-    TR_assert(!TR_tensor([0.0]) TR_and TR_tensor([3.0]))
+    TR_assert_equal("H2601", TR_error_code(() => { TR_var z = TR_not TR_tensor([0.0]) }))
     TR_assert_equal("cpu", a.TR_device)
     TR_assert_equal("cpu", a.TR_to_device("cpu").TR_device)
     TR_assert_equal("H6813", TR_error_code(() => a.TR_to_device("gpu:9")))
@@ -625,7 +625,7 @@ TR_test "15.3 veri türleri: tür seçimi, .tür ve .türe" {
     TR_assert(w.TR_to_dtype("float32") == w)
     # Yazdırma türü yalnızca float32 dışındaki türlerde gösterir.
     TR_assert(TR_str(a).TR_contains("[2×2] bf16"), TR_str(a))
-    TR_assert(!TR_str(TR_tensor([1.0])).TR_contains("float32"))
+    TR_assert(TR_not TR_str(TR_tensor([1.0])).TR_contains("float32"))
 }
 
 TR_test "15.3 bilinmeyen tür yol gösteren bir hata verir" {
@@ -943,7 +943,7 @@ TR_test "15.26 örnekle: sıcaklık, en_iyi_k, tohum" {
     TR_assert(TR_sample(düz).TR_tolist != TR_sample(düz).TR_tolist, "tohumsuz çağrılar farklı olmalı")
     # en_iyi_k: 2 en olası ikisi dışında kalanı hiç seçmez.
     TR_var seçilen = TR_sample(TR_ones([500, 3]) * TR_tensor([1.0, 1.1, 1.2]), TR_top_k: 2, TR_seed: 1).TR_tolist
-    TR_assert(!seçilen.TR_contains(0))
+    TR_assert(TR_not seçilen.TR_contains(0))
     TR_assert(seçilen.TR_contains(1) TR_and seçilen.TR_contains(2))
     TR_assert_equal("H6340", TR_error_code(() => TR_sample(l, TR_temperature: -1)))
 }

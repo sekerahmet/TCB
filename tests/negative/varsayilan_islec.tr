@@ -1,0 +1,8 @@
+# TR 4
+# TEST 4.7 '??'nin sağında parantezsiz ikili işleç sözdizimi hatasıdır; ileti '(a ?? 0) + 1'i ya da sağın parantezini önerir
+TR_var d = {"a": 1}
+TR_var n = d.TR_get("b") ?? 0 + 1 # ERROR H0201
+TR_var m = d.TR_get("b") ?? 2 * 3 # ERROR H0201
+TR_var k = (d.TR_get("b") ?? 0) + 1
+TR_var j = d.TR_get("b") ?? (0 + 1)
+TR_var i = d.TR_get("b") ?? -1

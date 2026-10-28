@@ -171,8 +171,8 @@ func TestCallEnvPool(t *testing.T) {
 		}
 		TR_var result = [fib(15), iki(fib(5)), iki(2, 3), bol(9, 3)]
 	`)
-	if err != nil || val.Inspect() != "[610, 50, 6, 3]" {
-		t.Fatalf("[610, 50, 6, 3] bekleniyordu: %v %v", val, err)
+	if err != nil || val.Inspect() != "[610, 50, 6, 3.0]" {
+		t.Fatalf("[610, 50, 6, 3.0] bekleniyordu: %v %v", val, err)
 	}
 }
 

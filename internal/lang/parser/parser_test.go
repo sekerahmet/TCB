@@ -16,7 +16,12 @@ import (
 func shape(e ast.Expression) string {
 	switch n := e.(type) {
 	case *ast.InfixExpression:
+		if n.Chained {
+			return fmt.Sprintf("(%s, then %s %s)", shape(n.Left), n.Operator, shape(n.Right))
+		}
 		return fmt.Sprintf("(%s %s %s)", shape(n.Left), n.Operator, shape(n.Right))
+	case *ast.RangeExpression:
+		return fmt.Sprintf("(%s .. %s)", shape(n.Start), shape(n.End))
 	case *ast.PrefixExpression:
 		return fmt.Sprintf("(%s%s)", n.Operator, shape(n.Right))
 	case *ast.Identifier:
@@ -166,8 +171,118 @@ func TestPowerAndNotPrecedenceShape(t *testing.T) {
 	}
 }
 
+// Öncelik tablosu (4.1): karşılaştırmalar tek düzeyde, '??' karşılaştırmadan sıkı ve aralıktan
+// gevşek, '**' sağındaki tekli işleçten gevşek bağlar.
+func TestPrecedenceTableShape(t *testing.T) {
+	cases := map[string]string{
+		"x ?? 0 > 3":           "((x ?? 0) > 3)",
+		"a TR_or b ?? c":       "(a || (b ?? c))",
+		"a ?? b ?? c":          "((a ?? b) ?? c)",
+		"1..n + 1":             "(1 .. (n + 1))",
+		"2 ** -1":              "(2 ** (-1))",
+		"a == b TR_and c < d":  "((a == b) && (c < d))",
+		"TR_not a < b TR_or c": "((!(a < b)) || c)",
+		"a < b + 1":            "(a < (b + 1))",
+		"(a < b) == c":         "((a < b) == c)",
+		"x & 1 == 0":           "((x & 1) == 0)",
+		"a | b ^ c & d":        "(a | (b ^ (c & d)))",
+		"1 << 2 + 3":           "(1 << (2 + 3))",
+		"0..n | 1":             "(0 .. (n | 1))",
+		"~a ** 2":              "(~(a ** 2))",
+		"-a >> 1":              "((-a) >> 1)",
+	}
+	for code, want := range cases {
+		if got := shape(firstExpr(t, code)); got != want {
+			t.Errorf("%s: %s bekleniyordu, %s alındı", code, want, got)
+		}
+	}
+}
+
+// Başka dillerin işleçleri (4.9) sözdizimi hatasıdır, hata işlecin kendisindedir; ifadenin
+// ardındaki TR_in de (Python'un üyelik sınaması). Döngü ve liste üretecindeki TR_in hata değildir.
+func TestForeignOperatorsAreErrors(t *testing.T) {
+	for _, d := range []struct {
+		code, at string
+		want     messages.Code
+	}{
+		{"TR_var x = a && b", "&&", messages.H0202},
+		{"TR_var x = a || b", "||", messages.H0203},
+		{"TR_var x = !a", "!", messages.H0204},
+		{"TR_var x = l |> f", "|>", messages.H0205},
+		{"TR_var x = l\n    |> f", "|>", messages.H0205},
+		{"TR_var x = 1 TR_in l", "TR_in", messages.H0206},
+		{"TR_if x.y TR_in l { }", "TR_in", messages.H0206},
+	} {
+		line, col := posOf(t, d.code, d.at)
+		if errs := parseErrs(d.code); !hasErrAt(errs, line, col, d.want) {
+			t.Errorf("%q: %d:%d'de %s bekleniyordu, alınan: %v", d.code, line, col, d.want, errs)
+		}
+	}
+	for _, code := range []string{
+		"TR_for x TR_in l { }",
+		"TR_for i, x TR_in l { }",
+		"TR_var y = [x TR_for x TR_in l TR_if x != 1]",
+		"TR_var y = a != b TR_and TR_not c",
+	} {
+		if errs := parseErrs(code); len(errs) != 0 {
+			t.Errorf("%q: hata beklenmiyordu: %v", code, errs)
+		}
+	}
+}
+
+// Sıralama işleçlerinin zinciri (4.4) halkalarıyla okunur: her halka soldaki halkanın sağ
+// ifadesini karşılaştırır; parantezli karşılaştırma zincir değildir.
+func TestComparisonChainShape(t *testing.T) {
+	cases := map[string]string{
+		"0 <= i < n":     "((0 <= i), then < n)",
+		"a < b <= c > d": "(((a < b), then <= c), then > d)",
+		"(a < b) < c":    "((a < b) < c)",
+		"a < (b < c)":    "(a < (b < c))",
+	}
+	for code, want := range cases {
+		if got := shape(firstExpr(t, code)); got != want {
+			t.Errorf("%s: %s bekleniyordu, %s alındı", code, want, got)
+		}
+	}
+}
+
+// İçinde '==' ya da '!=' olan zincir (4.4) ve '??'nin sağındaki parantezsiz ikili işleç (4.7)
+// sözdizimi hatasıdır; hata ikinci karşılaştırmada ya da '??'den sonraki işleçtedir.
+func TestChainAndCoalescingErrors(t *testing.T) {
+	for _, d := range []struct {
+		code, at string
+		want     messages.Code
+	}{
+		{"TR_var x = a < b == c", "==", messages.H0200},
+		{"TR_var x = a == b == c", "== c", messages.H0200},
+		{"TR_var x = a != b < c", "<", messages.H0200},
+		{"TR_var x = d ?? 0 + 1", "+", messages.H0201},
+		{"TR_var x = d ?? 2 ** 3", "**", messages.H0201},
+		{"TR_var x = d ?? f(1) * 2", "*", messages.H0201},
+		{"TR_var x = d ?? 0..3", "..", messages.H0201},
+		{"TR_var x = d ?? 1 & m", "&", messages.H0201},
+	} {
+		line, col := posOf(t, d.code, d.at)
+		if errs := parseErrs(d.code); !hasErrAt(errs, line, col, d.want) {
+			t.Errorf("%q: %d:%d'de %s bekleniyordu, alınan: %v", d.code, line, col, d.want, errs)
+		}
+	}
+	for _, code := range []string{
+		"TR_var x = (a < b) == c",
+		"TR_var x = (d ?? 0) + 1",
+		"TR_var x = d ?? (0 + 1)",
+		"TR_var x = d ?? -1",
+		"TR_var x = d ?? l[0].a",
+		"TR_var x = d ?? 0\n+ 1",
+	} {
+		if errs := parseErrs(code); hasCode(errs, messages.H0200) || hasCode(errs, messages.H0201) {
+			t.Errorf("%q: zincir ya da '??' hatası beklenmiyordu: %v", code, errs)
+		}
+	}
+}
+
 func TestCallOnNextLineStartsNewStatement(t *testing.T) {
-	p := New(codedLexer("TR_var f = 5\n(1 + 2) |> TR_print\nx\n[1]"))
+	p := New(codedLexer("TR_var f = 5\n(x => x)(1)\nx\n[1]"))
 	prog := p.ParseProgram()
 	if len(p.Errors()) != 0 {
 		t.Fatalf("beklenmeyen hata: %v", p.Errors())
@@ -179,7 +294,7 @@ func TestCallOnNextLineStartsNewStatement(t *testing.T) {
 
 // Yeni satırın başındaki ikili işleç önceki ifadeyi sürdürmez (2.8; Go, Python, Kotlin, Swift
 // gibi; JavaScript'in tuzağı değil): 'a = 1' ardından gelen '-x' satırı 'a = 1 - x' okunmaz.
-// İşleç satır sonundaysa ya da ifade parantez içindeyse sürer; '.' ve '|>' ile zincir sürer.
+// İşleç satır sonundaysa ya da ifade parantez içindeyse sürer; '.' ve '?.' ile zincir sürer.
 func TestBinaryOperatorOnNextLineDoesNotContinue(t *testing.T) {
 	for _, d := range []struct {
 		code  string
@@ -191,7 +306,6 @@ func TestBinaryOperatorOnNextLineDoesNotContinue(t *testing.T) {
 		{"TR_var a = x\n.TR_length", 1},
 		{"TR_var a = x\n?.TR_length", 1},
 		{"TR_var a = x TR_and\ny", 1},
-		{"TR_var a = x\n|> TR_print", 1},
 	} {
 		p := New(codedLexer(d.code))
 		prog := p.ParseProgram()

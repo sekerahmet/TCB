@@ -70,7 +70,7 @@ TR_func TR_build_pretrained_model(TR_config, TR_weight_dtype = "float32") {
         TR_num_layers: TR_config["num_hidden_layers"], TR_num_heads: bakış,
         TR_num_kv_heads: TR_config_value(TR_config, "num_key_value_heads", bakış), TR_intermediate_dim: TR_config["intermediate_size"],
         TR_tied: TR_config_value(TR_config, "tie_word_embeddings", TR_false), TR_eps: TR_config_value(TR_config, "rms_norm_eps", 0.000001),
-        TR_qk_norm: mimari == "qwen3", TR_head_dim: TR_config_value(TR_config, "head_dim", TR_int(boyut / bakış)),
+        TR_qk_norm: mimari == "qwen3", TR_head_dim: TR_config_value(TR_config, "head_dim", TR_int(boyut // bakış)),
         TR_rope_theta: TR_rope_theta(TR_config), TR_merged_kv: TR_true, TR_merged_gate: TR_true, TR_weight_dtype: TR_weight_dtype)
 }
 

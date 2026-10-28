@@ -17,7 +17,12 @@ func (v *VM) registerTestBuiltins() {
 		if len(args) < 1 || len(args) > 2 {
 			return nil, ArgCountError(codes.FnAssert, Counts(1, 2), len(args), messages.Text(messages.H2311))
 		}
-		if args[0].IsTruthy() {
+		b, ok := args[0].(*BoolVal)
+		if !ok {
+			// Koşul TR_Bool'dur (3.10): TR_assert(l) neyi sorduğunu söylemez.
+			return nil, messages.New(messages.H2612, args[0].Type())
+		}
+		if b.Val {
 			return True, nil
 		}
 		if m, ok := args[len(args)-1].(*MessageVal); ok && len(args) == 2 {

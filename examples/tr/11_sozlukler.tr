@@ -37,7 +37,7 @@ TR_var siparişler = [
     {"müşteri": "Elif", "tutar": 35}
 ]
 TR_print(siparişler.TR_filter { TR_it["tutar"] > 100 }.TR_map { TR_it["müşteri"] })
-TR_print("toplam tutar: \(siparişler.TR_map { TR_it["tutar"] } |> TR_sum)")
+TR_print("toplam tutar: \(TR_sum(siparişler.TR_map { TR_it["tutar"] }))")
 
 # --- Kendin dene ---
 # 1. Bir metindeki her harfin kaç kez geçtiğini sözlükte say.

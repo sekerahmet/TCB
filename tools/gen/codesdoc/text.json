@@ -8,10 +8,6 @@
  ],
  "countsFormat": "Toplam %d kod: %d anahtar kelime, %d bağlamsal sözcük, %d değer adı, %d tip, %d fonksiyon, %d sabit, %d metot, %d özellik, %d adlı argüman.",
  "contents": "İçindekiler",
- "pipelineTitle": "Boru hattıyla kullanılabilen fonksiyonlar",
- "pipelineIntro": [
-  "`x |> f(a)` ≡ `f(x, a)` (bkz. `docs/spec/04_operatorler.md` 4.9). Boru yalnızca fonksiyonlarla çalışır; metotlar `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 } |> toplam`). Borudaki değeri ilk konumlu argüman olarak alabilen yerleşik fonksiyonlar (kullanıcı fonksiyonları da kullanılabilir):"
- ],
  "labels": {
   "anyType": "Herhangi",
   "usedBy": "Kullananlar",

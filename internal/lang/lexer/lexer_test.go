@@ -304,6 +304,8 @@ func TestAllOperators(t *testing.T) {
 		{"?.", TokSafeDot}, {"=>", TokArrow}, {"..", TokRange}, {"..=", TokRangeIncl},
 		{"+=", TokPlusAssign}, {"-=", TokMinusAssign}, {"*=", TokMulAssign},
 		{"/=", TokDivAssign},
+		{"&", TokBitAnd}, {"|", TokBitOr}, {"^", TokBitXor}, {"~", TokTilde},
+		{"<<", TokShl}, {">>", TokShr},
 		{",", TokComma}, {";", TokSemicolon}, {":", TokColon}, {".", TokDot},
 		{"?", TokQuestion}, {"(", TokLParen}, {")", TokRParen}, {"{", TokLBrace},
 		{"}", TokRBrace}, {"[", TokLBracket}, {"]", TokRBracket},
@@ -331,8 +333,11 @@ func TestOperatorCombinations(t *testing.T) {
 		{"...", []expected{{TokRange, ".."}, {TokDot, "."}}},
 		{"???", []expected{{TokNullCoalesc, "??"}, {TokQuestion, "?"}}},
 		{"!!", []expected{{TokBang, "!"}, {TokBang, "!"}}},
-		{"<<", []expected{{TokLt, "<"}, {TokLt, "<"}}},
-		{"|||", []expected{{TokOr, "||"}, {TokIllegal, "|"}}},
+		{"<<=", []expected{{TokShl, "<<"}, {TokAssign, "="}}},
+		{">>>", []expected{{TokShr, ">>"}, {TokGt, ">"}}},
+		{"|||", []expected{{TokOr, "||"}, {TokBitOr, "|"}}},
+		{"&&&", []expected{{TokAnd, "&&"}, {TokBitAnd, "&"}}},
+		{"~~", []expected{{TokTilde, "~"}, {TokTilde, "~"}}},
 		{"x?.y??z", []expected{
 			{TokIdent, "x"}, {TokSafeDot, "?."}, {TokIdent, "y"},
 			{TokNullCoalesc, "??"}, {TokIdent, "z"},
@@ -352,7 +357,7 @@ func TestOperatorCombinations(t *testing.T) {
 
 func TestIllegalCharacters(t *testing.T) {
 	// '`' ham metin başlatır (2.6a); geçersiz karakter değildir.
-	for _, s := range []string{"&", "|", "$", "^", "~", "\\", "😀"} {
+	for _, s := range []string{"$", "\\", "😀"} {
 		toks := tokensNoErrors(t, s)
 		if len(toks) != 2 || toks[0].Type != TokIllegal || toks[0].Literal != s {
 			t.Errorf("%q: tek bir GEÇERSİZ token bekleniyordu, gelen: %v", s, toks)

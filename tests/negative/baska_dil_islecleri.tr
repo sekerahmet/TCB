@@ -1,0 +1,11 @@
+# TR 4
+# TEST 4.9 başka dillerin işleçleri ('&&', '||', '!', '|>') ve ifadedeki 'TR_in' sözdizimi hatasıdır; ileti TR'deki yazımı söyler
+TR_var a = TR_true
+TR_var b = TR_false
+TR_var l = [1, 2]
+TR_var c = a && b # ERROR H0202
+TR_var d = a || b # ERROR H0203
+TR_var e = !a # ERROR H0204
+TR_var f = l |> TR_sum # ERROR H0205
+TR_var g = 1 TR_in l # ERROR H0206
+TR_var h = a TR_and TR_not b TR_or l.TR_contains(1) TR_and a != b

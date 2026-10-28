@@ -14,31 +14,112 @@ TR_test "4.1 öncelik: değil karşılaştırmadan gevşek, ve'den sıkı bağla
     TR_assert_equal(TR_true, TR_false TR_or TR_true TR_and TR_true)
 }
 
-TR_test "4.1 öncelik: aralık toplamadan gevşek, ?? veya'dan gevşek bağlanır" {
+TR_test "4.1 öncelik: aralık toplamadan gevşek, ?? karşılaştırmadan sıkı bağlanır" {
     TR_assert_equal(4, [x TR_for x TR_in 1..2 + 3].TR_length)
-    TR_assert_equal(TR_false, TR_false TR_or TR_none ?? 5)
+    TR_var x = 5
+    TR_assert_equal(TR_true, x ?? 0 > 3)
+    TR_var y = TR_none
+    TR_assert_equal(TR_false, y ?? 0 > 3)
+    TR_assert_equal(TR_true, TR_false TR_or y ?? 1 == 1)
+    TR_assert_equal(0.5, 2.0 ** -1)
 }
 
-TR_test "4.2 aritmetik: tam bölme tam çıkarsa Tam, değilse Ondalık" {
-    TR_assert_equal(2, 6 / 3)
-    TR_assert_equal(TR_Int, TR_type(6 / 3))
+TR_test "4.2 aritmetik: '/' her zaman Ondalık verir, iki Tam'ın + - * Tam'dır" {
+    TR_assert_equal(2.0, 6 / 3)
+    TR_assert_equal(TR_Float, TR_type(6 / 3))
+    TR_assert_equal("2.0", "\(6 / 3)")
     TR_assert_equal(3.5, 7 / 2)
-    TR_assert_equal(1, 7 % 3)
-    TR_assert_equal(1.5, 5.5 % 2)
+    TR_assert_equal(-3.5, -7 / 2)
+    TR_assert_equal(TR_Int, TR_type(7 * 2 - 3))
     TR_assert_equal(3.5, 1 + 2.5)
+    # 2^53'ün üstünde de en yakın ondalığa yuvarlanır
+    TR_assert_equal(9007199254740992.0, 9007199254740993 / 1)
 }
 
 TR_test "4.2 sıfıra bölme hata verir" {
     TR_assert_equal("H2470", TR_error_code(() => { TR_var z = 1 / 0 }))
+    TR_assert_equal("H2470", TR_error_code(() => { TR_var z = 1.5 / 0 }))
 }
 
-TR_test "4.3 üs alma sağdan birleşir, negatif üs Ondalık verir" {
+TR_test "4.2a '//' aşağı yuvarlar, '%' bölenin işaretini alır" {
+    TR_assert_equal(3, 7 // 2)
+    TR_assert_equal(-4, -7 // 2)
+    TR_assert_equal(-4, 7 // -2)
+    TR_assert_equal(TR_Int, TR_type(7 // 2))
+    TR_assert_equal(1, 7 % 3)
+    TR_assert_equal(2, -7 % 3)
+    TR_assert_equal(-1, 7 % -2)
+    TR_assert_equal(1.5, 7.5 % 2)
+    TR_assert_equal(0.5, -7.5 % 2)
+    TR_assert_equal(3.0, 7.5 // 2)
+    TR_assert_equal(TR_Float, TR_type(7 // 2.0))
+    # iki Tam'da bölüm ile kalan birbirini tutar; halka arabelleğinde eksi indeks de doğru çıkar
+    TR_for a TR_in [-7, -1, 0, 5, 9] {
+        TR_for b TR_in [-3, 2, 4] {
+            TR_assert_equal(a, (a // b) * b + a % b)
+        }
+    }
+    TR_assert_equal(4, (0 - 1) % 5)
+}
+
+TR_test "4.2a sıfıra bölme ve en küçük Tam'ın // -1'i hatadır" {
+    TR_assert_equal("H2470", TR_error_code(() => { TR_var z = 1 // 0 }))
+    TR_assert_equal("H2470", TR_error_code(() => { TR_var z = 1.0 // 0 }))
+    TR_assert_equal("H2471", TR_error_code(() => { TR_var z = 1 % 0 }))
+    TR_var en_küçük = -9223372036854775807 - 1
+    TR_assert_equal("H2473", TR_error_code(() => { TR_var z = en_küçük // -1 }))
+    TR_assert_equal(0, en_küçük % -1)
+}
+
+TR_test "4.3 üs alma sağdan birleşir; iki Tam'da eksi üs hatadır" {
     TR_assert_equal(1024, 2 ** 10)
-    TR_assert_equal(0.5, 2 ** -1)
+    TR_assert_equal(TR_Int, TR_type(2 ** 10))
+    TR_assert_equal(0.5, 2.0 ** -1)
+    TR_assert_equal(0.5, 2 ** -1.0)
+    TR_assert_equal("H2603", TR_error_code(() => { TR_var z = 2 ** -1 }))
+    TR_assert_equal("H2472", TR_error_code(() => { TR_var z = 2 ** 64 }))
+}
+
+TR_test "4.3 sıfırın eksi üssü ve eksi sayının tam olmayan üssü hatadır" {
+    TR_assert_equal("H2604", TR_error_code(() => { TR_var z = 0.0 ** -1 }))
+    TR_assert_equal("H2604", TR_error_code(() => { TR_var z = 0 ** -1.0 }))
+    TR_assert_equal("H2605", TR_error_code(() => { TR_var z = (-8.0) ** (1.0 / 3) }))
+    TR_assert_equal(-8.0, (-2.0) ** 3)
+    TR_assert_equal(1.0, 0.0 ** 0)
 }
 
 TR_test "4.4 karşılaştırma sayılar arasında yapılır" {
     TR_assert(1 < 2 TR_and 2 <= 2 TR_and 3 > 2.5 TR_and 3 >= 3)
+}
+
+TR_test "4.4 metinler kod noktası sırasıyla karşılaştırılır" {
+    TR_assert("a" < "b" TR_and "b" > "a")
+    TR_assert("ab" < "b" TR_and "a" < "ab")
+    TR_assert("Z" < "a")
+    TR_assert("a" <= "a" TR_and "a" >= "a")
+    TR_assert("z" < "ç" TR_and "ç" < "ş")
+    TR_assert("a" < "b" < "c")
+    TR_assert_equal("H2469", TR_error_code(() => { TR_var z = "a" < 1 }))
+}
+
+TR_test "4.4 sıralama zinciri Python'daki gibi okunur, ortadaki ifade bir kez hesaplanır" {
+    TR_var i = 3
+    TR_assert_equal(TR_true, 0 <= i < 5)
+    TR_assert_equal(TR_false, 0 <= i < 3)
+    TR_assert_equal(TR_true, 1 < 2 < 3 < 4)
+    TR_assert_equal(TR_false, 3 > 2 > 2)
+    TR_var sayaç = 0
+    TR_func orta() {
+        sayaç += 1
+        TR_return 2
+    }
+    TR_assert_equal(TR_true, 1 < orta() <= 2)
+    TR_assert_equal(1, sayaç)
+    # yanlış çıkan halkadan sonrası hesaplanmaz
+    TR_assert_equal(TR_false, 5 < 1 < orta())
+    TR_assert_equal(1, sayaç)
+    # tensör karşılaştırması mantık değeri vermez; zincirde kullanılamaz
+    TR_assert_equal("H2602", TR_error_code(() => { TR_var z = 0 < TR_tensor([1.0]) < 2 }))
 }
 
 TR_test "4.5 eşitlik: sayılar tipten bağımsız, diğerleri tip + içerik" {
@@ -68,25 +149,26 @@ TR_test "4.5 Tam ile Ondalık değerleriyle kesin karşılaştırılır (2^53 ü
     TR_assert_equal(2, d.TR_length)
     TR_assert_equal([yakın, büyük], [büyük, yakın].TR_sort())
     TR_var nan = TR_float("nan")
-    TR_assert(nan != 1 TR_and !(nan == 1) TR_and !(nan < 1) TR_and !(nan > 1))
+    TR_assert(nan != 1 TR_and TR_not (nan == 1) TR_and TR_not (nan < 1) TR_and TR_not (nan > 1))
 }
 
-TR_test "4.5 fonksiyonlar kimlikle karşılaştırılır" {
+TR_test "4.5 fonksiyonlar karşılaştırılamaz; sonuçları karşılaştırılır" {
     TR_var f = x => x
     TR_var g = f
-    TR_assert(f == g)
-    TR_assert((x => x) != (x => x * 2))
-    TR_func yap(n) { TR_return TR_func() { TR_return n } }
-    TR_assert(yap(1) != yap(2))
-    TR_assert(TR_print == TR_print)
-    TR_assert(TR_print != TR_type)
+    TR_assert_equal("H2613", TR_error_code(() => { TR_var z = f == g }))
+    TR_assert_equal("H2613", TR_error_code(() => { TR_var z = (x => x) != (x => x * 2) }))
+    TR_assert_equal("H2613", TR_error_code(() => { TR_var z = TR_print == TR_print }))
+    TR_assert_equal("H2613", TR_error_code(() => { TR_var z = f == 1 }))
+    TR_assert(f(2) == g(2))
+    # isteğe bağlı fonksiyon yoklukla karşılaştırılır (3.5)
+    TR_var h = TR_none
+    TR_assert(h == TR_none TR_and f != TR_none TR_and TR_none != TR_print)
     TR_struct Kutu {
         d = 0
         TR_func al() { TR_return TR_self.d }
     }
     TR_var k = Kutu(1)
-    TR_assert(k.al == k.al)
-    TR_assert(k.al != Kutu(1).al)
+    TR_assert_equal("H2613", TR_error_code(() => { TR_var z = k.al == k.al }))
     TR_assert(Kutu == Kutu)
     TR_assert(1..3 == 1..3 TR_and 1..3 != 1..=3)
 }
@@ -100,8 +182,25 @@ TR_test "4.6 ve/veya kısa devre yapar ve Mantık döndürür" {
     TR_assert_equal(TR_false, TR_false TR_and yan_etki())
     TR_assert_equal(TR_true, TR_true TR_or yan_etki())
     TR_assert(TR_not cagrildi)
-    TR_assert_equal(TR_true, 1 && "a")
-    TR_assert_equal(TR_true, !TR_false)
+    TR_assert_equal(TR_true, TR_not TR_false)
+}
+
+TR_test "4.6 TR_and, TR_or ve TR_not'un işlenenleri TR_Bool'dur" {
+    TR_assert_equal("H2601", TR_error_code(() => { TR_var z = 1 TR_and TR_true }))
+    TR_assert_equal("H2601", TR_error_code(() => { TR_var z = TR_true TR_and "a" }))
+    TR_assert_equal("H2601", TR_error_code(() => { TR_var z = TR_false TR_or [] }))
+    TR_assert_equal("H2601", TR_error_code(() => { TR_var z = TR_none TR_or TR_true }))
+    TR_assert_equal("H2601", TR_error_code(() => { TR_var z = TR_not 0 }))
+    # kısa devrede sağ yan hesaplanmaz
+    TR_assert_equal(TR_false, TR_false TR_and 1)
+    TR_assert_equal(TR_true, TR_true TR_or 1)
+}
+
+TR_test "4.6 .TR_filter'ın yüklemi ve TR_assert'in koşulu TR_Bool'dur" {
+    TR_assert_equal([2], [1, 2].TR_filter { TR_it > 1 })
+    TR_assert_equal("H2611", TR_error_code(() => { TR_var z = [0, 1].TR_filter { TR_it } }))
+    TR_assert_equal("H2612", TR_error_code(() => { TR_assert([1]) }))
+    TR_assert_equal("H2612", TR_error_code(() => { TR_assert(1, "mesaj") }))
 }
 
 TR_test "4.7 ?? yalnızca yok ise sağ tarafı verir" {
@@ -120,22 +219,68 @@ TR_test "4.8 ?. yok üzerinde hata yerine yok verir" {
     TR_assert(mesaj.TR_contains("?."), mesaj)
 }
 
-TR_test "4.9 |> soldaki değeri sağdaki çağrının ilk argümanı yapar; metotlar '.' ile zincirlenir" {
-    TR_assert_equal(6, [1, 2, 3] |> TR_sum)
-    TR_assert_equal(2.0, [1, 2, 3] |> TR_mean)
+TR_test "4.9 fonksiyon çağrıyla, metot '.' ile zincirlenir; üyelik .TR_contains ile sorulur" {
+    # '&&', '||', '!', '|>' ve ifadedeki 'TR_in' sözdizimi hatasıdır: tests/negative/baska_dil_islecleri.tr
+    TR_assert_equal(6, TR_sum([1, 2, 3]))
     TR_func katları(l, k) { TR_return l.TR_filter { TR_it % k == 0 } }
-    TR_assert_equal([2, 4], [1, 2, 3, 4] |> katları(2))
-    TR_assert_equal(12, [1, 2, 3].TR_map { TR_it * 2 } |> TR_sum)
+    TR_assert_equal([2, 4], katları([1, 2, 3, 4], 2))
+    TR_assert_equal(12, TR_sum([1, 2, 3].TR_map { TR_it * 2 }))
+    TR_assert([1, 2].TR_contains(2) TR_and TR_not [1, 2].TR_contains(3))
+    TR_assert_equal(TR_true, TR_true TR_and TR_not TR_false TR_or TR_false)
 }
 
-TR_test "4.10 metin + herhangi bir değer metin birleştirir; liste + liste birleştirir" {
-    TR_assert_equal("a1", "a" + 1)
-    TR_assert_equal("1a", 1 + "a")
+TR_test "4.10 '+' yalnız iki metni ya da iki listeyi uç uca ekler" {
+    TR_assert_equal("ab", "a" + "b")
     TR_assert_equal([1, 2], [1] + [2])
+    TR_var n = 1
+    TR_assert_equal("a1", "a\(n)")
+    TR_assert_equal("H2609", TR_error_code(() => { TR_var z = "a" + 1 }))
+    TR_assert_equal("H2609", TR_error_code(() => { TR_var z = 1 + "a" }))
+    TR_assert_equal("H2609", TR_error_code(() => { TR_var z = [1] + 2 }))
+    TR_assert_equal("H2609", TR_error_code(() => { TR_var z = "a" + [1] }))
+}
+
+TR_test "4.10 '*' metni ve listeyi bir Tam kadar yineler; sıfır ya da eksi boş verir" {
+    TR_assert_equal("---", "-" * 3)
+    TR_assert_equal("abab", 2 * "ab")
+    TR_assert_equal([0, 0, 0], [0] * 3)
+    TR_assert_equal([1, 2, 1, 2], 2 * [1, 2])
+    TR_assert_equal("", "ab" * 0)
+    TR_assert_equal("", "ab" * -2)
+    TR_assert_equal([], [1] * -1)
+    TR_assert_equal("şşş", "ş" * 3)
+    TR_assert_equal("H2469", TR_error_code(() => { TR_var z = "a" * 1.5 }))
+    TR_assert_equal("H2610", TR_error_code(() => { TR_var z = "ab" * 9223372036854775807 }))
 }
 
 TR_test "4.11 @ matris çarpımıdır" {
     TR_var m = TR_tensor([[1, 2], [3, 4]]) @ TR_tensor([[1], [1]])
     TR_assert_equal([2, 1], m.TR_shape)
     TR_assert_equal(7.0, m[1][0])
+}
+
+TR_test "4.12 bit işleçleri Tam'da: & | ^ ~ << >>" {
+    TR_assert_equal(5, 0x0F & 0b0101)
+    TR_assert_equal(7, 5 | 2)
+    TR_assert_equal(6, 5 ^ 3)
+    TR_assert_equal(-6, ~5)
+    TR_assert_equal(16, 1 << 4)
+    TR_assert_equal(-4, -8 >> 1)
+    TR_assert_equal(-1, -1 >> 63)
+    # dışarı taşan bitler atılır
+    TR_assert_equal(-9223372036854775807 - 1, 1 << 63)
+    TR_assert_equal(-4611686018427387904, 3 << 62)
+    # öncelik: bit maskesi sınaması parantezsiz okunur
+    TR_var x = 6
+    TR_assert_equal(TR_true, x & 1 == 0)
+    TR_assert_equal(3, 1 | 2 ^ 3 & 4)
+    TR_assert_equal(8, 1 + 1 << 2)
+}
+
+TR_test "4.12 kaydırma 0-63 dışında ve Tam olmayan işlenen hatadır" {
+    TR_assert_equal("H2606", TR_error_code(() => { TR_var z = 1 << 64 }))
+    TR_assert_equal("H2606", TR_error_code(() => { TR_var z = 1 >> -1 }))
+    TR_assert_equal("H2607", TR_error_code(() => { TR_var z = 1.0 & 1 }))
+    TR_assert_equal("H2607", TR_error_code(() => { TR_var z = TR_true | TR_false }))
+    TR_assert_equal("H2608", TR_error_code(() => { TR_var z = ~1.5 }))
 }

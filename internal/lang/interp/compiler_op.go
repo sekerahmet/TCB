@@ -19,10 +19,11 @@ func (c *compiler) prefixText(k *compilerScope, e *ast.PrefixExpression) exprCod
 			if err != nil {
 				return nil, err
 			}
-			if right.IsTruthy() {
-				return False, nil
+			b, err := operand(right, line)
+			if err != nil {
+				return nil, err
 			}
-			return True, nil
+			return BoolToVal(!b), nil
 		}
 	case "-":
 		return func(v *VM, env *Environment) (Value, error) {
@@ -48,6 +49,18 @@ func (c *compiler) prefixText(k *compilerScope, e *ast.PrefixExpression) exprCod
 				return val, lineSuffix(line, err)
 			}
 			return nil, messages.At(line, 0, messages.New(messages.H2445, right.Type()))
+		}
+	case "~":
+		// Bit tümlemesi yalnız TR_Int'te (4.12).
+		return func(v *VM, env *Environment) (Value, error) {
+			right, err := rightFn(v, env)
+			if err != nil {
+				return nil, err
+			}
+			if rv, ok := right.(*IntVal); ok {
+				return NewInt(^rv.Val), nil
+			}
+			return nil, messages.At(line, 0, messages.New(messages.H2608, right.Type()))
 		}
 	}
 	return func(v *VM, env *Environment) (Value, error) {
@@ -88,21 +101,36 @@ func intFastFunc(codeVal uint8) intFast {
 			return NewInt(a * b), true
 		}
 	case opMod:
+		// Kalan bölenin işaretini alır (4.2a): -7 % 3 = 2.
 		return func(a, b int64) (Value, bool) {
 			if b == 0 {
 				return nil, false
 			}
-			return NewInt(a % b), true
+			r := a % b
+			if r != 0 && (r < 0) != (b < 0) {
+				r += b
+			}
+			return NewInt(r), true
 		}
-	case opDiv:
+	case opFloorDiv:
+		// Tam bölme aşağı yuvarlar (4.2a): -7 // 2 = -4; en küçük TR_Int'in // -1'i taşmadır.
 		return func(a, b int64) (Value, bool) {
 			if b == 0 || (a == math.MinInt64 && b == -1) {
 				return nil, false
 			}
-			if a%b == 0 {
-				return NewInt(a / b), true
+			q := a / b
+			if a%b != 0 && (a < 0) != (b < 0) {
+				q--
 			}
-			return &FloatVal{Val: float64(a) / float64(b)}, true
+			return NewInt(q), true
+		}
+	case opDiv:
+		// '/' her zaman ondalık verir (4.2): 6 / 3 = 2.0.
+		return func(a, b int64) (Value, bool) {
+			if b == 0 {
+				return nil, false
+			}
+			return &FloatVal{Val: trueDiv(a, b)}, true
 		}
 	case opLt:
 		return func(a, b int64) (Value, bool) { return BoolToVal(a < b), true }
@@ -117,22 +145,53 @@ func intFastFunc(codeVal uint8) intFast {
 	case opNe:
 		return func(a, b int64) (Value, bool) { return BoolToVal(a != b), true }
 	}
+	return intBitFunc(codeVal)
+}
+
+// intBitFunc bit işleçlerinin hızlı yoludur (4.12); kaydırma miktarı 0–63 dışındaysa ok=false
+// (hata genel yolda, H2606).
+func intBitFunc(codeVal uint8) intFast {
+	switch codeVal {
+	case opBitAnd:
+		return func(a, b int64) (Value, bool) { return NewInt(a & b), true }
+	case opBitOr:
+		return func(a, b int64) (Value, bool) { return NewInt(a | b), true }
+	case opBitXor:
+		return func(a, b int64) (Value, bool) { return NewInt(a ^ b), true }
+	case opShl:
+		// Dışarı taşan bitler atılır (4.12); miktar 0–63 dışındaysa hata genel yolda.
+		return func(a, b int64) (Value, bool) {
+			if b < 0 || b > 63 {
+				return nil, false
+			}
+			return NewInt(a << uint(b)), true
+		}
+	case opShr:
+		// '>>' işareti korur: -8 >> 1 = -4.
+		return func(a, b int64) (Value, bool) {
+			if b < 0 || b > 63 {
+				return nil, false
+			}
+			return NewInt(a >> uint(b)), true
+		}
+	}
 	return nil
 }
 func (c *compiler) binary(k *compilerScope, e *ast.InfixExpression) exprCode {
+	if e.Chained {
+		link := c.chainLink(k, e)
+		return func(v *VM, env *Environment) (Value, error) {
+			res, _, err := link(v, env)
+			return res, err
+		}
+	}
 	codeVal := opCode(string(e.Operator))
 	leftFn := c.expression(k, e.Left)
 	rightFn := c.expression(k, e.Right)
 	op := string(e.Operator)
 	line := e.Line()
-	if op == "//" {
-		// Tam bölmenin sözcüğü ve ayrıştırılması var (2.2); çalışma anlamı (4.2a) henüz yok.
-		return func(*VM, *Environment) (Value, error) {
-			return nil, messages.At(line, 0, messages.New(messages.H2046))
-		}
-	}
 
-	// Kısa devre ve özel operatörler (&&, ||, ??, |>)
+	// Kısa devre ve özel operatörler (TR_and, TR_or, ??)
 	switch codeVal {
 	case opAnd:
 		return func(v *VM, env *Environment) (Value, error) {
@@ -140,14 +199,15 @@ func (c *compiler) binary(k *compilerScope, e *ast.InfixExpression) exprCode {
 			if err != nil {
 				return nil, err
 			}
-			if !isTrue(left) {
-				return False, nil
+			if b, err := operand(left, line); err != nil || !b {
+				return False, err
 			}
 			right, err := rightFn(v, env)
 			if err != nil {
 				return nil, err
 			}
-			return BoolToVal(isTrue(right)), nil
+			b, err := operand(right, line)
+			return BoolToVal(b), err
 		}
 	case opOr:
 		return func(v *VM, env *Environment) (Value, error) {
@@ -155,14 +215,15 @@ func (c *compiler) binary(k *compilerScope, e *ast.InfixExpression) exprCode {
 			if err != nil {
 				return nil, err
 			}
-			if isTrue(left) {
-				return True, nil
+			if b, err := operand(left, line); err != nil || b {
+				return BoolToVal(b), err
 			}
 			right, err := rightFn(v, env)
 			if err != nil {
 				return nil, err
 			}
-			return BoolToVal(isTrue(right)), nil
+			b, err := operand(right, line)
+			return BoolToVal(b), err
 		}
 	case opCoalesce:
 		return func(v *VM, env *Environment) (Value, error) {
@@ -175,8 +236,6 @@ func (c *compiler) binary(k *compilerScope, e *ast.InfixExpression) exprCode {
 			}
 			return rightFn(v, env)
 		}
-	case opPipe:
-		return c.pipe(k, e.Left, e.Right)
 	}
 
 	fast := intFastFunc(codeVal)
@@ -258,59 +317,55 @@ func (c *compiler) binary(k *compilerScope, e *ast.InfixExpression) exprCode {
 	}
 }
 
-// pipe 'veri |> f(...)' ve 'veri |> f' ifadelerini derler.
-func (c *compiler) pipe(k *compilerScope, left ast.Expression, right ast.Expression) exprCode {
-	leftFn := c.expression(k, left)
-	// Sağ taraf bir fonksiyon çağrısı ise (örn: veri |> filtrele((x) => x > 2))
-	if callExpr, ok := right.(*ast.CallExpression); ok {
-		fun := c.expression(k, callExpr.Function)
-		argCode := c.expressions(k, callExpr.Arguments)
-		namedCode := c.compileNamedArgs(k, callExpr.NamedArgs)
-		line := callExpr.Line()
-		return func(v *VM, env *Environment) (Value, error) {
-			leftVal, err := leftFn(v, env)
-			if err != nil {
-				return nil, err
-			}
-			fnVal, err := fun(v, env)
-			if err != nil {
-				return nil, err
-			}
-			args := make([]Value, 1, len(argCode)+1)
-			args[0] = leftVal
-			for _, a := range argCode {
-				av, err := a(v, env)
-				if err != nil {
-					return nil, err
-				}
-				args = append(args, av)
-			}
-			named, err := namedCode.eval(v, env)
-			if err != nil {
-				return nil, err
-			}
-			if err := checkArity(fnVal, nil, len(args), named, line); err != nil {
-				return nil, err
-			}
-			return v.applyCompiled(fnVal, args, named, line)
+// chainCode karşılaştırma zincirinin bir halkasıdır: halkanın sonucunu ve sağ ifadenin değerini
+// verir; sonraki halka o değeri sol işlenen olarak kullanır.
+type chainCode func(v *VM, env *Environment) (result, last Value, err error)
+
+// chainLink 'a < b <= c' zincirini derler (4.4): 'a < b TR_and b <= c' gibi çalışır, ortadaki
+// ifade bir kez hesaplanır, yanlış çıkan halkadan sonrası hesaplanmaz. Halkanın sonucu TR_Bool
+// olmalıdır (tensör karşılaştırması tensör verir; zincirde iki karşılaştırma ayrı yazılır).
+func (c *compiler) chainLink(k *compilerScope, e *ast.InfixExpression) chainCode {
+	codeVal := opCode(string(e.Operator))
+	op := string(e.Operator)
+	line := e.Line()
+	var leftFn chainCode
+	if inner, ok := e.Left.(*ast.InfixExpression); ok && e.Chained {
+		leftFn = c.chainLink(k, inner)
+	} else {
+		l := c.expression(k, e.Left)
+		leftFn = func(v *VM, env *Environment) (Value, Value, error) {
+			x, err := l(v, env)
+			return nil, x, err
 		}
 	}
-
-	// Sağ taraf doğrudan bir fonksiyon ise (örn: veri |> sırala)
-	fun := c.expression(k, right)
-	line := right.Line()
-	return func(v *VM, env *Environment) (Value, error) {
-		leftVal, err := leftFn(v, env)
+	rightFn := c.expression(k, e.Right)
+	return func(v *VM, env *Environment) (Value, Value, error) {
+		prev, left, err := leftFn(v, env)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		fnVal, err := fun(v, env)
+		if prev != nil {
+			// Önceki halkanın sonucu: yanlışsa zincir yanlıştır, sonrası hesaplanmaz.
+			b, ok := prev.(*BoolVal)
+			if !ok {
+				inner := e.Left.(*ast.InfixExpression)
+				return nil, nil, messages.At(inner.Line(), 0, messages.New(messages.H2602, string(inner.Operator), prev.Type()))
+			}
+			if !b.Val {
+				return False, nil, nil
+			}
+		}
+		right, err := rightFn(v, env)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		if err := checkArity(fnVal, nil, 1, nil, line); err != nil {
-			return nil, err
+		res, err := v.infix(codeVal, op, left, right, line)
+		if err != nil {
+			return nil, nil, err
 		}
-		return v.applyCompiled(fnVal, []Value{leftVal}, nil, line)
+		if _, ok := res.(*BoolVal); !ok && e.Chained {
+			return nil, nil, messages.At(line, 0, messages.New(messages.H2602, op, res.Type()))
+		}
+		return res, right, nil
 	}
 }

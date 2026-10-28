@@ -206,13 +206,17 @@ func (l *Lexer) nextToken() Token {
 	case '!':
 		tok = l.operator(line, col, TokBang, follow{'=', TokNotEq})
 	case '<':
-		tok = l.operator(line, col, TokLt, follow{'=', TokLte})
+		tok = l.operator(line, col, TokLt, follow{'=', TokLte}, follow{'<', TokShl})
 	case '>':
-		tok = l.operator(line, col, TokGt, follow{'=', TokGte})
+		tok = l.operator(line, col, TokGt, follow{'=', TokGte}, follow{'>', TokShr})
 	case '&':
-		tok = l.operator(line, col, TokIllegal, follow{'&', TokAnd})
+		tok = l.operator(line, col, TokBitAnd, follow{'&', TokAnd})
 	case '|':
-		tok = l.operator(line, col, TokIllegal, follow{'|', TokOr}, follow{'>', TokPipe})
+		tok = l.operator(line, col, TokBitOr, follow{'|', TokOr}, follow{'>', TokPipe})
+	case '^':
+		tok = l.operator(line, col, TokBitXor)
+	case '~':
+		tok = l.operator(line, col, TokTilde)
 	case '?':
 		tok = l.operator(line, col, TokQuestion, follow{'?', TokNullCoalesc}, follow{'.', TokSafeDot})
 	case '.':

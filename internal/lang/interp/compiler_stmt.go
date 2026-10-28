@@ -329,7 +329,9 @@ func (c *compiler) breakpointStatement(k *compilerScope, s *ast.BreakpointStatem
 			if err != nil {
 				return nil, signalNone, err
 			}
-			if !condVal.IsTruthy() {
+			if ok, err := truth(condVal, s.Line()); err != nil {
+				return nil, signalNone, err
+			} else if !ok {
 				return Null, signalNone, nil
 			}
 		}

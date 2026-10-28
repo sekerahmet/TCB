@@ -52,13 +52,13 @@ func TestOperatorPrecedence(t *testing.T) {
 		{"2 ** 3 ** 2", "512"},
 		{"-2 ** 2", "-4"},
 		{"(-2) ** 2", "4"},
-		{"2 ** -1", "0.5"},
+		{"2.0 ** -1", "0.5"},
 		{"2 * 3 ** 2", "18"},
 		{"-2 * 3", "-6"},
 		{"TR_not 1 == 2", "doğru"},
 		{"TR_not 1 < 2", "yanlış"},
 		{"TR_not TR_false TR_and TR_false", "yanlış"}, // (TR_not TR_false) TR_and TR_false
-		{"!TR_false == TR_false", "yanlış"},           // '!' sıkı bağlanır: (!TR_false) == TR_false
+		{"TR_not TR_false == TR_false", "yanlış"},     // TR_not (TR_false == TR_false)
 		{"2 ** 10", "1024"},
 		{"2.0 ** 2", "4.0"},
 	}
@@ -83,7 +83,7 @@ func TestOperatorPrecedence(t *testing.T) {
 }
 
 func TestNewlineEndsCallOrIndex(t *testing.T) {
-	out, _, err := runTROut(t, "TR_var f = 5\n(1 + 2) |> TR_print\nTR_var l = [1, 2]\n[3, 4] |> TR_print\nTR_print(f, l)")
+	out, _, err := runTROut(t, "TR_var f = 5\n(TR_print)(3)\nTR_var l = [1, 2]\n[TR_print][0]([3, 4])\nTR_print(f, l)")
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
 	}
@@ -190,7 +190,8 @@ func TestShadowingBuiltinCreatesMutableVariable(t *testing.T) {
 }
 
 // Kural: intOp hesabı intFastFunc ile ortaktır; hızlı yol düşünce hata türü işleçten ve
-// işlenenlerden seçilir (sıfıra bölme H2470, sıfıra mod H2471, taşma H2473).
+// işlenenlerden seçilir (sıfıra bölme H2470, sıfıra mod H2471, taşma H2473, eksi tam üs H2603,
+// kaydırma miktarı H2606).
 // Neden: iki ayrı kopya tutulurken biri değişince öbürü sessizce ayrışabiliyordu.
 func TestIntOpErrorsAndFastPathAgree(t *testing.T) {
 	const minInt, maxInt = int64(-1 << 63), int64(1<<63 - 1)
@@ -205,10 +206,18 @@ func TestIntOpErrorsAndFastPathAgree(t *testing.T) {
 		{opSub, "-", minInt, 1, messages.H2473, ""},
 		{opMul, "*", maxInt, 2, messages.H2473, ""},
 		{opDiv, "/", 1, 0, messages.H2470, ""},
-		{opDiv, "/", minInt, -1, messages.H2473, ""},
+		{opFloorDiv, "//", minInt, -1, messages.H2473, ""},
+		{opFloorDiv, "//", 1, 0, messages.H2470, ""},
+		{opPow, "**", 2, -1, messages.H2603, ""},
+		{opShl, "<<", 1, 64, messages.H2606, ""},
+		{opShr, ">>", 1, -1, messages.H2606, ""},
 		{opMod, "%", 1, 0, messages.H2471, ""},
 		{opAdd, "+", 2, 3, 0, "5"},
-		{opDiv, "/", 6, 3, 0, "2"},
+		{opDiv, "/", 6, 3, 0, "2.0"},
+		{opDiv, "/", minInt, -1, 0, "9.223372036854776e+18"},
+		{opFloorDiv, "//", -7, 2, 0, "-4"},
+		{opMod, "%", -7, 3, 0, "2"},
+		{opShr, ">>", -8, 1, 0, "-4"},
 		{opDiv, "/", 7, 2, 0, "3.5"},
 		{opMod, "%", 7, 3, 0, "1"},
 		{opLt, "<", 1, 2, 0, "doğru"},

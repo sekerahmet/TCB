@@ -177,7 +177,7 @@ TR_test "2.8 deyim sonu gerekmez; ; isteğe bağlıdır" {
 
 TR_test "2.8 yeni satırdaki ( ve [ yeni deyim başlatır" {
     TR_var f = 5
-    (1 + 2) |> TR_str
+    (x => x * 2)(f)
     TR_assert_equal(5, f)
 }
 
@@ -197,9 +197,10 @@ TR_test "2.8 parantez içinde satır sonu ifadeyi bitirmez; zincir işleçleri s
     TR_var s = [3, 1, 2]
         .TR_sort()
     TR_assert_equal([1, 2, 3], s)
-    TR_var m = [1, 2]
-        |> TR_str
-    TR_assert_equal("[1, 2]", m)
+    TR_var n = TR_none
+    TR_var m = n
+        ?.TR_length
+    TR_assert_equal(TR_none, m)
     # Satır başındaki işleç ve kullanılmayan değer: tests/negative/satir_basi.tr, satir_basi_ikili.tr
 }
 

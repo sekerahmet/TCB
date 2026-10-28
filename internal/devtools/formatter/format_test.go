@@ -30,7 +30,8 @@ func TestStandardFormat(t *testing.T) {
 		{"operatör boşlukları", "TR_var   x=1+2*3\n", "TR_var x = 1 + 2 * 3\n"},
 		{"virgül ve parantez", "TR_print( 1 ,2,  3 )\n", "TR_print(1, 2, 3)\n"},
 		{"tekli eksi", "x = -1\ny = a-b\nz = f(-x) * -2\nw = -1\n", "x = -1\ny = a - b\nz = f(-x) * -2\nw = -1\n"},
-		{"değil ve ünlem", "a = !b\nc = TR_not (d)\n", "a = !b\nc = TR_not (d)\n"},
+		{"bit işleçleri ve tam bölme", "a = ~5\nb = 1&2|3^4<<1>>2\nc = 7//2\nd = -a & ~b\n", "a = ~5\nb = 1 & 2 | 3 ^ 4 << 1 >> 2\nc = 7 // 2\nd = -a & ~b\n"},
+		{"değil", "a = TR_not b\nc = TR_not (d)\n", "a = TR_not b\nc = TR_not (d)\n"},
 		{"girinti 4 boşluk", "TR_if x {\n  TR_print(1)\n\t\tTR_if y {\nTR_print(2)\n}\n}\n",
 			"TR_if x {\n    TR_print(1)\n    TR_if y {\n        TR_print(2)\n    }\n}\n"},
 		{"süslü aynı satırda", "TR_func f(a)\n{\n    TR_return a\n}\n", "TR_func f(a) {\n    TR_return a\n}\n"},
@@ -47,7 +48,7 @@ func TestStandardFormat(t *testing.T) {
 		{"aralık", "TR_for i TR_in 1 ..= 10 { TR_print(i) }\n", "TR_for i TR_in 1..=10 { TR_print(i) }\n"},
 		{"dönüş tipi oku", "TR_func f(a:TR_Int)->TR_Int { TR_return a }\n", "TR_func f(a: TR_Int) -> TR_Int { TR_return a }\n"},
 		{"lambda", "f = (a,b)=>a+b\ng = x=>x*2\n", "f = (a, b) => a + b\ng = x => x * 2\n"},
-		{"devam satırı", "t = 1 +\n2\nl\n|> yazdır\n", "t = 1 +\n    2\nl\n    |> yazdır\n"},
+		{"devam satırı", "t = 1 +\n2\nl\n.TR_sort()\n", "t = 1 +\n    2\nl\n    .TR_sort()\n"},
 		{"çok satırlı liste", "l = [\n1,\n  2\n    ]\n", "l = [\n    1,\n    2\n]\n"},
 		{"kapanışla başlayan satır", "f(TR_func() {\nTR_print(1)\n}, 2)\n", "f(TR_func() {\n    TR_print(1)\n}, 2)\n"},
 		{"CRLF", "a = 1\r\nTR_if a {\r\n  b()\r\n}\r\n", "a = 1\nTR_if a {\n    b()\n}\n"},
@@ -127,9 +128,9 @@ func TestStringsKeptByteForByte(t *testing.T) {
 // Satıra duyarlı yapılar: yeni satırdaki '(', '[' ve sözlük '{' önceki ifadeye bağlanmamalı.
 func TestLineStructureKept(t *testing.T) {
 	inputs := []string{
-		"TR_var f = 5\n(1 + 2) |> TR_print\n",
-		"TR_var l = [1]\n[2, 3] |> TR_print\n",
-		"TR_var s = l.TR_filter\n{\"a\": 1} |> TR_print\n",
+		"TR_var f = 5\n(x => x)(1)\n",
+		"TR_var l = [1]\n[2, 3].TR_sort()\n",
+		"TR_var s = l.TR_filter\n{\"a\": 1}.TR_keys()\n",
 	}
 	for _, g := range inputs {
 		if output := formatT(t, g); output != g {
@@ -144,11 +145,11 @@ func TestMeaningChangeRejected(t *testing.T) {
 	defer func() { transform = old }()
 	var meaning *MeaningChangedError
 
-	// Bozuk dönüşüm: satırları birleştirir; yeni satırdaki '(' önceki ifadeye bağlanır (5(1 + 2)).
+	// Bozuk dönüşüm: satırları birleştirir; yeni satırdaki '(' önceki ifadeye bağlanır (5(x => x)).
 	transform = func(src string, _ bool, braces map[pos]int) string {
 		return strings.ReplaceAll(src, "\n", " ") + "\n"
 	}
-	if _, err := Format(fileOf("TR_var f = 5\n(1 + 2) |> TR_print\n")); !errors.As(err, &meaning) {
+	if _, err := Format(fileOf("TR_var f = 5\n(x => x)(1)\n")); !errors.As(err, &meaning) {
 		t.Fatalf("anlam değişikliği reddedilmedi, hata: %v", err)
 	}
 

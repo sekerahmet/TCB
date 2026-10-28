@@ -242,11 +242,11 @@ func TestUserFunctionArityIsChecked(t *testing.T) {
 		{"TR_func topla(a, b) { TR_return a + b }\ntopla(1, 2, 3)", messages.H2412, 2},
 		{"TR_func f(isim) { TR_return isim }\nf(isimm: 1)", messages.H2410, 0},
 		{"TR_var g = (x, y) => x + y\ng(1)", messages.H2414, 0},
-		{"TR_func iki(a, b) { TR_return a }\n5 |> iki", messages.H2414, 0},
+		{"TR_func iki(a, b) { TR_return a }\niki(5)", messages.H2414, 0},
 		// aynı parametre hem sırayla hem adıyla: adlı değer eskiden sessizce yok sayılırdı
 		{"TR_func f(a, b = 10) { TR_return [a, b] }\nf(1, a: 2)", messages.H2413, 2},
 		{"TR_func f(a, b) { TR_return [a, b] }\nf(1, 2, b: 3)", messages.H2413, 0},
-		{"TR_func f(a, b) { TR_return a }\n5 |> f(a: 1)", messages.H2413, 0},
+		{"TR_func f(a, b) { TR_return a }\nf(5, a: 1)", messages.H2413, 0},
 		{"TR_struct Nokta { x\n y }\nNokta(1, x: 2).x", messages.H2420, 3},
 		{"TR_struct H { b\n TR_func TR_init(v) { TR_self.b = v } }\nH(1, v: 2)", messages.H2413, 0},
 		// eksik zorunlu parametre: sayılar kendisiyle çelişmemeli ("1 bekler, 1 verildi")

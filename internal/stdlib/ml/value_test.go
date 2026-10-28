@@ -10,14 +10,15 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-func TestTruthValue(t *testing.T) {
-	out := mustRun(t, `TR_if TR_tensor([0.0]) { TR_print("yanlış") } TR_else { TR_print("sıfır yanlıştır") }
-TR_if TR_sum(TR_tensor([1, -1])) { TR_print("yanlış") } TR_else { TR_print("skaler sıfır yanlıştır") }
-TR_if TR_tensor([2.5]) { TR_print("sıfır olmayan doğrudur") }
-TR_if TR_zeros([0]) { TR_print("yanlış") } TR_else { TR_print("boş yanlıştır") }`)
-	want := "sıfır yanlıştır\nskaler sıfır yanlıştır\nsıfır olmayan doğrudur\nboş yanlıştır\n"
+// Kural (3.10): tensör koşul olamaz; doğruluk sınaması yoktur, değer açık karşılaştırılır.
+func TestTensorIsNotACondition(t *testing.T) {
+	out := mustRun(t, `TR_print(TR_error_code(() => { TR_if TR_tensor([0.0]) { } }))
+TR_print(TR_error_code(() => { TR_if TR_sum(TR_tensor([1, -1])) { } }))
+TR_print(TR_error_code(() => { TR_if TR_zeros([0]) { } }))
+TR_if TR_sum(TR_tensor([1, -1])).TR_tolist == 0 { TR_print("açık sınama") }`)
+	want := "H2600\nH2600\nH2600\naçık sınama\n"
 	if out != want {
-		t.Fatalf("doğruluk:\n%q", out)
+		t.Fatalf("tensör koşulu:\n%q", out)
 	}
 }
 
