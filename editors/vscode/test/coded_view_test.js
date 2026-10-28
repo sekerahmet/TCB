@@ -132,14 +132,16 @@ test('seçim (hata bağlantısının satırı ve sütunu) görünüme olduğu gi
     assert.deepStrictEqual(editor.selection, selection);
 });
 
-test('satır eşlemesi: tr kontrol\'ün hata konumu görünümde aynı satır ve sütun', async () => {
+test('satır eşlemesi: tr kontrol\'ün hata satırı görünümde aynı satır, sütun dosyanın', async () => {
     const o = makeEnv({ disk: encode(TURKISH_TEXT.replace('yazdır("sayaç: \\(sayaç)")', 'yazdır(sayacc)')) });
     const s = spawnSync(TR, ['kontrol', o.file], { windowsHide: true });
     const m = /Satır (\d+), Sütun (\d+): Tanımsız ad/.exec(s.stderr.toString('utf8'));
     assert.ok(m, s.stderr.toString('utf8'));
+    // Konum dosyanındır: sütun diskteki satırda (kimlik yazımıyla) sayılır; görünüm satırları korur.
+    const disk = fs.readFileSync(o.file, 'utf8').split(/\r?\n/)[Number(m[1]) - 1];
+    assert.strictEqual(disk.slice(Number(m[2]) - 1, Number(m[2]) - 1 + 'sayacc'.length), 'sayacc', disk);
     const b = (await open(o, o.uri)).document;
-    const line = b.lineAt(Number(m[1]) - 1).text;
-    assert.strictEqual(line.slice(Number(m[2]) - 1, Number(m[2]) - 1 + 'sayacc'.length), 'sayacc', line);
+    assert.ok(b.lineAt(Number(m[1]) - 1).text.includes('yazdır(sayacc)'), b.lineAt(Number(m[1]) - 1).text);
 });
 
 test('bozuk metin kayıpsız kaydedilir: Türkçe yazımıyla, bir kez bilgi, ilk geçerli kayıtta yeniden kodlu', async () => {

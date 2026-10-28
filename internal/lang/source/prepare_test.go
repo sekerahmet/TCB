@@ -19,29 +19,29 @@ func wantPos(t *testing.T, err error, line, col int) {
 	}
 }
 
-// Kodlu dosya çevrilmeden hazırlanır. Satır dosyanın satırıdır (başlık 1. satır, 2.1); hata
-// çerçevesinin metni ve sütun kişinin gösterimindedir (17.5; TR_DIL yokken Türkçe).
+// Kodlu dosya çevrilmeden hazırlanır. Konum dosyanındır: satır dosyanın satırıdır (başlık 1. satır,
+// 2.1), sütun ve hata çerçevesinin metni diskteki metindendir (kimlik yazımıyla, TR_print).
 func TestCodedFilePrepares(t *testing.T) {
 	s := Prepare(Header+"\nTR_var x = 1\nTR_print(x, tanımsız)\n", Options{TypeCheck: true})
 	if s.Stage != StageType || len(s.Errors) != 1 {
 		t.Fatalf("tanımsız ad bildirilmeli: %v", s.Errors)
 	}
-	wantPos(t, s.Errors[0], 3, 11) // Türkçe gösterimdeki konum
-	if s.Text != Header+"\ndeğişken x = 1\nyazdır(x, tanımsız)\n" {
-		t.Errorf("hata çerçevesinin metni başlıklı Türkçe gösterim olmalı: %q", s.Text)
+	wantPos(t, s.Errors[0], 3, 13) // dosyadaki konum
+	if s.Text != Header+"\nTR_var x = 1\nTR_print(x, tanımsız)\n" {
+		t.Errorf("hata çerçevesinin metni dosyanın kendi metni olmalı: %q", s.Text)
 	}
-	// Yerleştirmedeki kodlar da sütunu kaydırır.
+	// Yerleştirmedeki kodlar da dosyada yazıldıkları gibi sayılır.
 	s = Prepare(Header+"\nTR_print(\"\\(TR_sum([1])) \\(yok_ad)\")\n", Options{TypeCheck: true})
 	if len(s.Errors) != 1 {
 		t.Fatalf("yerleştirmedeki ad bildirilmeli: %v", s.Errors)
 	}
-	wantPos(t, s.Errors[0], 2, 26)
-	// Gösterimde '$' ile kaçırılan kullanıcı adı da sütunu kaydırır: konum gösterimdeki metne göredir.
+	wantPos(t, s.Errors[0], 2, 28)
+	// Gösterimde '$' ile kaçırılacak kullanıcı adı da dosyadaki yerindedir.
 	s = Prepare(Header+"\nTR_var eğer = 1 + tanımsız\n", Options{TypeCheck: true})
-	if s.Text != Header+"\ndeğişken $eğer = 1 + tanımsız\n" || len(s.Errors) != 1 {
-		t.Fatalf("gösterim %q, hatalar %v", s.Text, s.Errors)
+	if s.Text != Header+"\nTR_var eğer = 1 + tanımsız\n" || len(s.Errors) != 1 {
+		t.Fatalf("metin %q, hatalar %v", s.Text, s.Errors)
 	}
-	wantPos(t, s.Errors[0], 2, 22)
+	wantPos(t, s.Errors[0], 2, 19)
 	// Kod olmayan her ad kullanıcının adıdır, anahtar kelime yazımında bile.
 	s = Prepare(Header+"\nTR_var eğer = 1\nTR_print(eğer)\n", Options{TypeCheck: true})
 	if s.Stage != "" {

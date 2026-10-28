@@ -46,9 +46,9 @@ type Options struct {
 type Result struct {
 	Parts
 	// Text hata çerçevelerinin, hata ayıklayıcının ve yorumlayıcının kaynak metnidir: dosyanın
-	// kişinin dilindeki (codes.Display, TR_DIL) görünümü, başlık satırı dahil; kabuk satırı önce
-	// kodlu biçime çevrilir, çevrilemeyen satır olduğu gibi kalır. Hata iletilerindeki satır ve
-	// sütun bu metne göredir: dosyanın kendi satırları.
+	// kendi metni, başlık satırı dahil (kimlik yazımıyla, TR_break); kabuk satırı kişinin dilindeki
+	// (codes.Display, TR_DIL) görünümüdür, çevrilemeyen satır olduğu gibi kalır. Hata iletilerindeki
+	// satır ve sütun bu metne göredir.
 	Text    string
 	Program *ast.Program
 	Stage   string
@@ -73,19 +73,19 @@ func Prepare(text string, s Options) *Result {
 		r.Stage, r.Errors = StageSyntax, []error{err}
 		return r
 	}
-	var lex *lexer.Lexer
-	coded := b.Body
+	// Dosyanın konumu dosyanındır: satır, sütun ve çerçeve diskteki metinden (TR_break yazımıyla)
+	// alınır.
+	lex := lexer.NewBody(b.Body, true)
 	if s.Typed {
 		// Kabuğa yazılan satır kişinin yazım dilindedir: kodlu biçime, oradan kişinin görünümüne
-		// çevrilir. Ayrıştırılamayan satır o dilde okunur; sözdizimi hataları satırın kendi
-		// metnine göredir.
+		// çevrilir; konumlar o görünüme göredir. Ayrıştırılamayan satır o dilde okunur; sözdizimi
+		// hataları satırın kendi metnine göredir.
 		lang := codes.Display()
-		if coded, err = toCoded(b.Body, lang, s.GlobalNames, s.GlobalDynamic); err != nil {
+		if coded, err := toCoded(b.Body, lang, s.GlobalNames, s.GlobalDynamic); err == nil {
+			r.Text, lex = view(coded, lang)
+		} else {
 			lex = lexer.NewBodyIn(b.Body, false, lang)
 		}
-	}
-	if lex == nil {
-		r.Text, lex = view(coded, codes.Display())
 	}
 	p := parser.New(lex)
 	if s.Module {
