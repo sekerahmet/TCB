@@ -390,6 +390,8 @@ const (
 	H2700 Code = 2700 // liste {names} ada açılıyor ama {count} öğesi var: öğe sayısı ad sayısıyla aynı olmalı; yalnız baştaki öğeler gerekiyorsa onları indeksle alın: a, b = l[0], l[1]
 	H2701 Code = 2701 // {names} ada {count} değer verildi: her ada bir değer yazılır (a, b = 1, 2); gerekmeyen değerin yerine _ yazılır
 	H2702 Code = 2702 // {value}, {@match|gen} hiçbir koluyla eşleşmedi: eşleşme her durumu kapsar; öbür durumlar için son kol olarak '_ => ...' yazın (_ her şeyle eşleşir)
+	H2703 Code = 2703 // dolaşılan liste dolaşma sürerken {before} öğeden {after} öğeye değişti: dolaşılan listeye öğe eklenmez ve ondan öğe çıkarılmaz (var olan öğeye atama serbesttir); eklenecekleri ayrı bir listede toplayıp dolaşmadan sonra ekleyin: l += yeniler
+	H2704 Code = 2704 // dolaşılan sözlük dolaşma sürerken {before} anahtardan {after} anahtara değişti: dolaşılan sözlüğe anahtar eklenmez ve ondan anahtar çıkarılmaz (var olan anahtara atama serbesttir); değişiklikleri ayrı bir sözlükte toplayıp dolaşmadan sonra yazın
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

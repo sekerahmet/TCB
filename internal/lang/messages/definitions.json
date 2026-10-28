@@ -385,6 +385,8 @@
 "H2700": { "param": ["names", "count"] },
 "H2701": { "param": ["names", "count"] },
 "H2702": { "param": ["value"], "slots": {"match": "TR_kw_match"} },
+"H2703": { "param": ["before", "after"] },
+"H2704": { "param": ["before", "after"] },
 "H3001": { "param": ["dev"] },
 "H3002": { "param": ["mask", "q"] },
 "H3003": { "param": ["q", "k", "v"] },

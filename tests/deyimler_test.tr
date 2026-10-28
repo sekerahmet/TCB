@@ -186,6 +186,36 @@ TR_test "5.7 döngü ... içinde: liste, aralık, sözlük, metin" {
     TR_assert_equal([3, 2, 1], geri)
 }
 
+TR_test "5.7 dolaşılan liste ya da sözlüğe ekleme ve çıkarma çalışma hatasıdır" {
+    TR_var l = [1, 2]
+    TR_assert_equal("H2703", TR_error_code {
+        TR_for x TR_in l { l.TR_append(x) }
+    })
+    TR_var k = [1, 2, 3]
+    TR_assert_equal("H2703", TR_error_code {
+        TR_for x TR_in k { k += [x] }
+    })
+    TR_var d = {"a": 1}
+    TR_assert_equal("H2704", TR_error_code {
+        TR_for a TR_in d { d["b"] = 2 }
+    })
+    TR_var m = [1, 2]
+    TR_assert_equal("H2703", TR_error_code { TR_var y = [m.TR_append(x) TR_for x TR_in m] })
+    # Var olan öğeye ve anahtara atama serbesttir; dolaşma o anki değeri görür
+    TR_var s = [1, 2, 3]
+    TR_for i, x TR_in s { s[i] = x * 10 }
+    TR_assert_equal([10, 20, 30], s)
+    TR_var e = {"a": 1, "b": 2}
+    TR_for a TR_in e { e[a] = 0 }
+    TR_assert_equal({"a": 0, "b": 0}, e)
+    # İletinin önerisi: yenileri ayrı toplayıp dolaşmadan sonra eklemek
+    TR_var t = [1, 2]
+    TR_var yeniler = []
+    TR_for x TR_in t { yeniler.TR_append(x * 2) }
+    t += yeniler
+    TR_assert_equal([1, 2, 2, 4], t)
+}
+
 TR_test "5.8 koşullu döngü ve iken" {
     TR_var i = 0
     TR_for i < 3 { i += 1 }
