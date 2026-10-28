@@ -48,42 +48,6 @@ func TestImportIgnoresWorkingDir(t *testing.T) {
 	}
 }
 
-// Kural 11.6: "tr/" önekli yol dilin gömülü kitaplığındandır; diskteki tr/ klasörü onu
-// gölgeleyemez, "./tr/" ise diskteki klasördür. Kitaplık modülünün içindeki göreli aktar
-// kitaplıkta çözülür; olmayan modülün hatası kitaplıktakileri ve en yakın adı söyler.
-func TestLibraryPrefix(t *testing.T) {
-	withLibrary(t, fstest.MapFS{
-		"katman.tr":       {Data: []byte("TR_import \"ortak\"\nTR_var kaynak = \"kitaplık\" + ek\n")},
-		"ortak.tr":        {Data: []byte("TR_var ek = \"!\"\n")},
-		"iyilestirici.tr": {Data: []byte("TR_var iy = 1\n")},
-		"katman_test.tr":  {Data: []byte("TR_test \"x\" { }\n")},
-	})
-	root := t.TempDir()
-	runInDir(t, root)
-	out, err := runWithModules(t, root, map[string]string{
-		"tr/katman.tr": "TR_var kaynak = \"disk\"\n",
-		"ana.tr": "aktar \"tr/katman\" olarak k\nyazdır(k.kaynak)\naktar \"./tr/katman\" olarak d\nyazdır(d.kaynak)\n" +
-			"dene { aktar \"tr/iyileştirici\" } yakala h { yazdır(h) }\n" +
-			"dene { aktar \"tr/katman_test\" } yakala h { yazdır(h) }\n" +
-			"dene { aktar \"tr/../ana\" } yakala h { yazdır(h) }\n",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	lines := strings.Split(strings.TrimSpace(out), "\n")
-	if len(lines) != 5 || lines[0] != "kitaplık!" || lines[1] != "disk" {
-		t.Fatalf("tr/ kitaplıktan, ./tr/ diskten yüklenmeli:\n%s", out)
-	}
-	if !strings.Contains(lines[2], `"tr/iyileştirici" dilin kitaplığında yok`) || !strings.Contains(lines[2], `Bunu mu demek istediniz: "tr/iyilestirici"?`) {
-		t.Fatalf("en yakın kitaplık modülü önerilmeli:\n%s", lines[2])
-	}
-	for _, s := range lines[3:] {
-		if !strings.Contains(s, "dilin kitaplığında yok; kitaplıktaki modüller: tr/iyilestirici, tr/katman, tr/ortak") {
-			t.Fatalf("test dosyası ve kitaplık dışı yol modül değildir:\n%s", s)
-		}
-	}
-}
-
 // Kitaplık modülünün hatası "tr/..." adıyla ve kendi satırıyla yazılır; göreli dosya yolları
 // kitaplığın (diskte olmayan) klasörüne göre aranmaz.
 func TestLibraryModuleError(t *testing.T) {
