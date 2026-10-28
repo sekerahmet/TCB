@@ -453,6 +453,8 @@
 "H2767": { "param": ["variant", "field", "suggestion"] },
 "H2768": { "param": ["variant", "max", "fields", "given"] },
 "H2769": { "param": ["variant", "field", "order"] },
+"H2770": { "param": ["struct", "field", "kind", "other"] },
+"H2771": { "param": ["struct", "other"] },
 "H3001": { "param": ["dev"] },
 "H3002": { "param": ["mask", "q"] },
 "H3003": { "param": ["q", "k", "v"] },

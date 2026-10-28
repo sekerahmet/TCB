@@ -244,6 +244,113 @@ func structsEqual(x *StructInstanceVal, b Value, nestDepth int) bool {
 	return Value(x) == b
 }
 
+// structComparisonError '=='nin bir nesneyle başlayan karşılaştırmasını structsEqual'dan önce gezer
+// (7.6): fonksiyon ya da tensör tutan alan ve karşılaştırılmakta olan bir nesne çiftine yeniden varmak
+// (kendine bağlanan nesneler) çalışma hatasıdır. Gezinti comparisonError'ınki gibidir: aynı yapıdan
+// (durumlu tipte aynı durumdan) nesnelerin her alan çifti, boyu aynı kapların her öğe çifti; başka
+// değerler comparisonError'a gider. Çiftlerin kümesi gezintinin yolundadır: bir çift bitince çıkar.
+func structComparisonError(x *StructInstanceVal, b Value, nestDepth int) error {
+	return structComparison{}.walk(x, b, nestDepth)
+}
+
+type structComparison map[[2]*StructInstanceVal]bool
+
+func (w structComparison) walk(a, b Value, nestDepth int) error {
+	if nestDepth >= equalityDepth {
+		return nil
+	}
+	switch x := a.(type) {
+	case *StructInstanceVal:
+		y, ok := b.(*StructInstanceVal)
+		if !ok {
+			// a'nın yerine b ile: comparisonError nesneye dönüp buraya gelmez
+			return comparisonError(b, a, nestDepth)
+		}
+		if x != y && x.Def == y.Def && x.Variant == y.Variant {
+			return w.fields(x, y, nestDepth)
+		}
+		return nil
+	case *ListVal:
+		if y, ok := b.(*ListVal); ok && x != y && len(x.Elements) == len(y.Elements) {
+			for i := range x.Elements {
+				if err := w.walk(x.Elements[i], y.Elements[i], nestDepth+1); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	case *DictVal:
+		if y, ok := b.(*DictVal); ok && x != y && len(x.Pairs) == len(y.Pairs) {
+			for k, va := range x.Pairs {
+				if vb, ok := y.Pairs[k]; ok {
+					if err := w.walk(va, vb, nestDepth+1); err != nil {
+						return err
+					}
+				}
+			}
+			return nil
+		}
+	}
+	return comparisonError(a, b, nestDepth)
+}
+
+func (w structComparison) fields(x, y *StructInstanceVal, nestDepth int) error {
+	pair := [2]*StructInstanceVal{x, y}
+	label, fields := x.Def.Name, x.Def.Fields
+	if x.Variant != nil {
+		label, fields = variantLabel(x.Def, x.Variant), x.Variant.Fields
+	}
+	if w[pair] {
+		return messages.New(messages.H2771, label, plainField(x, y, ""))
+	}
+	w[pair] = true
+	defer delete(w, pair)
+	for _, f := range fields {
+		va, okA := x.Fields[f.Name]
+		vb, okB := y.Fields[f.Name]
+		if !okA || !okB {
+			continue
+		}
+		if va.Type() != ValNull && vb.Type() != ValNull {
+			for _, v := range []Value{va, vb} {
+				kind := ""
+				if isFunction(v) {
+					kind = "function"
+				} else if v.Type() == ValTensor {
+					kind = "tensor"
+				}
+				if kind != "" {
+					return messages.New(messages.H2770, label, f.Name, kind, plainField(x, y, f.Name))
+				}
+			}
+		}
+		if err := w.walk(va, vb, nestDepth+1); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// plainField iletinin önereceği alandır: iki nesnede de sayı, metin ya da mantık değeri tutan ilk alan
+// (except dışında). Durumlu tipin alanı yalnız eşlemeyle okunur (7.7); onda öneri yoktur.
+func plainField(x, y *StructInstanceVal, except string) string {
+	if x.Variant != nil {
+		return ""
+	}
+	for _, f := range x.Def.Fields {
+		if f.Name == except {
+			continue
+		}
+		switch x.Fields[f.Name].(type) {
+		case *IntVal, *FloatVal, *StringVal, *BoolVal:
+			if y.Fields[f.Name] != nil && y.Fields[f.Name].Type() == x.Fields[f.Name].Type() {
+				return f.Name
+			}
+		}
+	}
+	return ""
+}
+
 // structCycleText yazılmakta olan bir nesneye yeniden varılınca yazılan metindir (7.6).
 func structCycleText(*StructInstanceVal, *codes.Language) string {
 	return "..."

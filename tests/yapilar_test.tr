@@ -160,6 +160,36 @@ TR_test "7.6 nesneler içerikle karşılaştırılır; tip() yapının kendisini
     TR_assert_equal(TR_StructType, TR_Type(Nokta))
 }
 
+TR_test "7.6 fonksiyon alanı tutan nesneler karşılaştırılamaz" {
+    TR_struct Kutu {
+        ad
+        f = TR_none
+    }
+    TR_assert(Kutu("a") == Kutu("a"))
+    TR_assert_equal("H2770", TR_error_code { TR_var s = Kutu("a", (x) => x) == Kutu("a", (x) => x) })
+    # listenin içinde de
+    TR_assert_equal("H2770", TR_error_code { TR_var s = [Kutu("a", (x) => x)] == [Kutu("a", 1)] })
+    TR_var ileti = ""
+    TR_try { TR_var s = Kutu("a", (x) => x) == Kutu("a", (x) => x) } TR_catch e { ileti = e }
+    TR_assert(ileti.TR_contains("a.ad == b.ad"), ileti)
+    # tensörün '=='si öğe öğedir; tensör alanı da karşılaştırılamaz
+    TR_assert_equal("H2770", TR_error_code { TR_var s = Kutu("a", TR_zeros([2])) == Kutu("a", TR_zeros([2])) })
+}
+
+TR_test "7.6 '==' karşılaştırmakta olduğu nesne çiftine yeniden varırsa hatadır" {
+    TR_struct Düğüm {
+        ad
+        ebeveyn = TR_none
+        çocuklar = []
+    }
+    TR_var a = Düğüm("kök")
+    a.çocuklar = [Düğüm("yaprak", a)]
+    TR_var b = Düğüm("kök")
+    b.çocuklar = [Düğüm("yaprak", b)]
+    TR_assert_equal("H2771", TR_error_code { TR_var s = a == b })
+    TR_assert(a == a)
+}
+
 TR_enum Durum {
     Bekliyor
     Çalışıyor(adım: TR_Int)

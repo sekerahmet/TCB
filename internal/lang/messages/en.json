@@ -453,6 +453,8 @@
 "H2767": "the state '{variant}' has no field named '{field}'{suggestion}",
 "H2768": "the state '{variant}' takes at most {max} {max, plural, one {argument} other {arguments}} (fields: {fields}), {given} given",
 "H2769": "the field '{field}' of the state '{variant}' was given both by position (argument {order}) and by name",
+"H2770": "'==' cannot compare {struct} values: the field '{field}' holds a {kind, select, tensor {tensor (a tensor's == is element by element)} other {function (two functions are never equal)}}; {other, select, empty {keep it out of the data you compare} other {compare the fields you need one by one: a.{other} == b.{other}}}",
+"H2771": "'==' reached again a pair of {struct} values it is already comparing: the values link back to themselves and the comparison would not end; {other, select, empty {compare the parts you need one by one} other {compare the fields you need one by one: a.{other} == b.{other}}}",
 "H3001": "the attention block sizes of the {dev} backend cannot be set",
 "H3002": "Attention mask is on a different device ({mask}, {q})",
 "H3003": "Attention q, k, v need the same number of axes (at least 2): {q}, {k}, {v}",

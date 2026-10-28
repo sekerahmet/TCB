@@ -458,6 +458,8 @@ const (
 	H2767 Code = 2767 // '{variant}' durumunun '{field}' adında bir alanı yok{suggestion}
 	H2768 Code = 2768 // '{variant}' durumu en fazla {max} argüman alır (alanlar: {fields}), {given} verildi
 	H2769 Code = 2769 // '{variant}' durumunun '{field}' alanı hem sırayla ({order}. argüman) hem adıyla verildi
+	H2770 Code = 2770 // '==' {struct} değerlerini karşılaştıramaz: '{field}' alanı bir {kind, select, tensor {tensör tutuyor (tensörün =='si öğe öğedir)} other {fonksiyon tutuyor (iki fonksiyon hiçbir zaman eşit sayılmaz)}}; {other, select, empty {onu karşılaştırılan verinin dışında tutun} other {gereken alanları tek tek karşılaştırın: a.{other} == b.{other}}}
+	H2771 Code = 2771 // '==' karşılaştırmakta olduğu bir {struct} çiftine yeniden vardı: değerler kendilerine bağlanıyor, karşılaştırma bitmezdi; {other, select, empty {gereken parçaları tek tek karşılaştırın} other {gereken alanları tek tek karşılaştırın: a.{other} == b.{other}}}
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}
