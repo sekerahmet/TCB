@@ -26,7 +26,7 @@
 #   --hizli           --kip=dagitim ile aynı (iş sırasında; birleştirmeden önce bayraksız koşulur)
 #   --kip=on          ön denetim (~1 dk): üretilmiş dosyalar, gofmt, vet, go.mod, staticcheck,
 #                     ölü kod, düzen kuralları (dosya adı, satır sınırı, Türkçe metin, çıplak ad,
-#                     ileti kullanımı), .tr dosyalarının biçimi, değişen
+#                     ileti kullanımı), .tr dosyalarının biçimi, dil tanımı testleri (tr test tests), değişen
 #                     paketlerin kısa testleri, değişen dosyaları koruyan testler (codegraph changed
 #                     --go-tests; veri dosyası değişse de) ve yeni tekrar adayları (codegraph dups --changed;
 #                     yeni aday denetimi düşürür, tam denetimde de).
@@ -219,14 +219,29 @@ quick_static_checks() {
 	[ -z "$dead" ] || fail "hiçbir yerden çağrılmayan fonksiyonlar (silin): $dead"
 }
 
+# compare_base ön denetimin "değişen"i neye göre bulduğudur. Yan dalda (oturumun worktree'si) yerel
+# main: dal ondan açılır, ana dalın gönderilmemiş commit'leri yan dalın değişikliği değildir (öyle
+# sayılınca her oturumun ön denetimi 41 paketi koşuyordu, 416 sn). Ana dalda ve yerel main'i olmayan
+# klonda (otomatik sınama) origin/main: gönderilmemiş commit'ler de sayılır.
+compare_base() {
+	local branch
+	branch=$(git symbolic-ref -q --short HEAD 2>/dev/null)
+	if [ -n "$branch" ] && [ "$branch" != main ] && git rev-parse --verify -q main >/dev/null; then
+		echo main
+	elif git rev-parse --verify -q origin/main >/dev/null; then
+		echo origin/main
+	else
+		echo main
+	fi
+}
+
 # dups_check ana dala göre eklenen ya da değişen satırlara dokunan tekrar adaylarını arar; yeni bir
 # aday denetimi düşürür (CLAUDE.md, Sadelik 10): aynı işte giderilir ya da bilerek kalan kopya
-# tools/codegraph/dups_exclude.go'ya gerekçesiyle yazılır. Taban changed_packages'takiyle aynıdır
-# (önce origin/main: ana dalda henüz gönderilmemiş commit'ler de sayılır); ortak ata yoksa (sığ
-# klon) adım atlanır.
+# tools/codegraph/dups_exclude.go'ya gerekçesiyle yazılır. Taban compare_base'dir; ortak ata yoksa
+# (sığ klon) adım atlanır.
 dups_check() {
-	local base=main out n
-	if git rev-parse --verify -q origin/main >/dev/null; then base=origin/main; fi
+	local base out n
+	base=$(compare_base)
 	step "Tekrar adayları (codegraph dups --changed $base)"
 	if ! git merge-base "$base" HEAD >/dev/null 2>&1; then
 		echo "$base ile ortak ata yok (sığ klon): atlandı"
@@ -322,7 +337,7 @@ slowest_packages() {
 # ./... de onları atlar): içlerindeki Go dosyaları başka bir modülün ya da sınavın girdisidir.
 changed_packages() {
 	local base
-	base=$(git merge-base origin/main HEAD 2>/dev/null || git merge-base main HEAD 2>/dev/null) || return 0
+	base=$(git merge-base "$(compare_base)" HEAD 2>/dev/null) || return 0
 	{ git diff --name-only "$base"; git ls-files -o --exclude-standard; } | grep '\.go$' | grep -v -e '^\.claude/' -e '\(^\|/\)testdata/' |
 		xargs -r -n1 dirname | sort -u | while IFS= read -r d; do
 		if ls "$d"/*.go >/dev/null 2>&1; then printf './%s\n' "$d"; fi
@@ -335,8 +350,8 @@ changed_packages() {
 # .go dosyası değişen paketleri koşan ön denetim bir veri dosyası (planning_questions.txt, tr.json) değişince onu
 # koruyan testi koşmuyordu; madde 15 adım 2'de iki kez kırık codegraph sınavıyla "geçti" dedi.
 selected_tests() {
-	local base=main out errfile dir name
-	if git rev-parse --verify -q origin/main >/dev/null; then base=origin/main; fi
+	local base out errfile dir name
+	base=$(compare_base)
 	git merge-base "$base" HEAD >/dev/null 2>&1 || return 0
 	errfile=$(mktemp)
 	# codegraph kancanın yolundan koşar (tools/edithook/codegraph.go): ağaç derlenmezken son derlenen sürümün
@@ -531,8 +546,12 @@ for mode in $modes; do
 		step "Düzen kuralları (dosya adı, boy sınırı, Türkçe metin, çıplak ad, ileti kullanımı)"
 		go test "${p_flag[@]}" -short ./internal/ ./internal/reporoot ./tools/gen/... 2>&1 | grep -v '^ok\|no test files'
 		[ "${PIPESTATUS[0]}" -eq 0 ] || fail "düzen kuralları"
-		step "TR dosyalarının biçimi (tr biçimle --kontrol)"
-		if build_tr; then format_checks; else fail "tr derlenemedi"; fi
+		step "TR dosyalarının biçimi (tr biçimle --kontrol) ve dil tanımı testleri (tr test tests, ~2 sn)"
+		# Go'nun kısa kipi dil tanımı testlerini atlıyor; ön denetim onları burada koşar.
+		if build_tr; then
+			format_checks
+			summarize "tr test tests" "$TR" test tests
+		else fail "tr derlenemedi"; fi
 		mapfile -t changed < <(changed_packages)
 		if [ ${#changed[@]} -gt 0 ]; then
 			step "Değişen paketlerin kısa testleri (${#changed[@]} paket)"
