@@ -171,7 +171,7 @@ func (j *JSONVal) GetProperty(kd codes.Code, name string) (Value, error) {
 			return v, err
 		}}, nil
 	}
-	return nil, messages.New(messages.H2428, ValJSON, name, nil)
+	return nil, messages.New(messages.H2428, ValJSON, name, messages.New(messages.H2658, name))
 }
 
 // jsonKindError tip çağrısının JSON değerini açamadığı hatadır (3.7a): değerin türü tutmuyor.

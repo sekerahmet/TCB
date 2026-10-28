@@ -363,6 +363,8 @@
 "H2655": "{@Bytes}() 0 ile 255 arası {@Int} sayılardan kurar; {index} indeksindeki öğe {value}",
 "H2656": "{@String}(): baytlar geçerli UTF-8 değil (ilk geçersiz bayt {offset} indeksinde); UTF-8 olmayan veri {@Bytes} olarak kalır",
 "H2657": "{@Range} çağrılmaz: aralık başlangıç..bitiş yazılır (0..n); sayılarının listesi için {@List}(0..n) yazın",
+"H2658": "; JSON nesnesinin anahtarı köşeli parantezle okunur: [\"{name}\"], olmayabilecekse .{@get}(\"{name}\")",
+"H2659": "; bayt dizisinin üyeleri .{@length} ve .{@get}(i)'dir, metin gibi indekslenir ve dilimlenir (b[i], b[a..c])",
 "H3001": "{dev} arka ucunun dikkat blok boyutları ayarlanamaz",
 "H3002": "Attention maskesi farklı cihazda ({mask}, {q})",
 "H3003": "Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}",

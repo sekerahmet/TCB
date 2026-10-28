@@ -363,6 +363,8 @@
 "H2655": { "param": ["index", "value"], "slots": {"Bytes": "TR_type_Bytes", "Int": "TR_type_Int"} },
 "H2656": { "param": ["offset"], "slots": {"String": "TR_type_String", "Bytes": "TR_type_Bytes"} },
 "H2657": { "param": [], "slots": {"Range": "TR_type_Range", "List": "TR_type_List"} },
+"H2658": { "param": ["name"], "slots": {"get": "TR_mem_get"} },
+"H2659": { "param": [], "slots": {"length": "TR_mem_length", "get": "TR_mem_get"} },
 "H3001": { "param": ["dev"] },
 "H3002": { "param": ["mask", "q"] },
 "H3003": { "param": ["q", "k", "v"] },

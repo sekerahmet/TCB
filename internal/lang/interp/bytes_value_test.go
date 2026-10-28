@@ -2,6 +2,7 @@ package interp
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -37,5 +38,18 @@ func TestBytesTextNamesTheFirstInvalidByte(t *testing.T) {
 		if got := err.(*messages.Error).Args[0]; got != want {
 			t.Errorf("%q: offset %v; want %d", in, got, want)
 		}
+	}
+}
+
+// Kural (3.3a, 3.7a): olmayan üyenin iletisi doğru yazımı söyler; JSON nesnesinde anahtar köşeli
+// parantezle okunur, bayt dizisinin üyeleri sayılır. İletide Go'nun boş değeri görünmez.
+func TestAMissingMemberSaysTheRightSpelling(t *testing.T) {
+	_, err := NewBytes([]byte("ab")).GetProperty(0, "contains")
+	if !messages.Has(err, messages.H2659) || strings.Contains(err.Error(), "<nil>") {
+		t.Errorf("Bytes.contains: %v; want H2659", err)
+	}
+	_, err = NewJSON(&StringVal{Val: "x"}).GetProperty(0, "a")
+	if !messages.Has(err, messages.H2658) || !strings.Contains(messages.ErrorIn(err, "en"), `["a"]`) {
+		t.Errorf("JSON.a: %v; want H2658 with [\"a\"]", err)
 	}
 }

@@ -107,7 +107,7 @@ func (b *BytesVal) GetProperty(kd codes.Code, name string) (Value, error) {
 			return Null, nil
 		}}, nil
 	}
-	return nil, messages.New(messages.H2428, ValBytes, name, nil)
+	return nil, messages.New(messages.H2428, ValBytes, name, messages.New(messages.H2659))
 }
 
 // Operator is '+' (two Bytes joined) and '*' (Bytes repeated by an Int; zero or less gives empty
