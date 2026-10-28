@@ -7,11 +7,12 @@ Her kuralın emsali ve gerekçesi: [`rationale/13_builtins.md`](rationale/13_bui
 **13.1** Genel yerleşikler: `TR_print`, `TR_sum`, `TR_mean`, `TR_std`, `TR_median`, `TR_min`, `TR_max`, `TR_abs`, `TR_sqrt`, `TR_round`, `TR_sleep`, `TR_wait_all`, `TR_time_ms`, `TR_read_file`, `TR_write_file`, `TR_input` ve `TR_error_code` (8.5). `TR_Type`, `TR_Message` ve `TR_String` gibi tip çağrıları fonksiyon değildir (3.12).
 - Sayı yerleşiklerinin sonucu işleçlerin tipindedir (3.1, 4.2): `TR_sum(l)` `TR_List[TR_Int]`'te `TR_Int`, `TR_List[TR_Float]`'ta `TR_Float` verir. `TR_mean`, `TR_std` (n'ye bölerek) ve `TR_median` `TR_Float` verir.
 - Toplama yapan yerleşikler (`TR_sum` dışında `TR_mean`, `TR_std`, `TR_median`, `TR_min`, `TR_max`) boş listede hata verir.
-- `TR_min` ve `TR_max` bir liste ya da iki ve daha çok değer alır. Değerler sıralanabilir olmalıdır (13.10): sayı ya da metin. `TR_Int` ile `TR_Float` karışırsa sonuç `TR_Float`'tır, 4.2'deki gibi (13.10): `TR_max(2, 1.5)` → `2.0`. Hepsi `TR_Int` iken tam karşılaştırır; karışık durumda `TR_Int`'ler önce `TR_Float`'a çevrilir. Bir NaN varsa sonuç NaN'dır.
+- `TR_min` ve `TR_max` bir liste ya da iki ve daha çok değer alır. Değerler sıralanabilir olmalıdır (13.10): sayı ya da metin. `TR_Int` ile `TR_Float` karışırsa sonuç `TR_Float`'tır, 4.2'deki gibi (13.10): `TR_max(2, 1.5)` → `2.0`. Karşılaştırma 4.5'teki gibi kesindir, `TR_Int` yuvarlanmaz; karışık durumda kazanan değer sonra `TR_Float`'a çevrilir (`TR_max(9007199254740993, 1.0)` → `9007199254740992.0`). Bir NaN varsa sonuç NaN'dır.
 - `TR_mean`, `TR_std` ve `TR_median` yalnız liste alır; değerleri tek tek almaz.
 - `TR_round(x)` bir `TR_Float`'ı en yakın `TR_Int`'e yuvarlar. Yarım sıfırdan uzağa gider: `TR_round(2.5)` → `3`, `TR_round(-2.5)` → `-3`. NaN ve sonsuz hatadır. `TR_round(x, basamak)` girdinin tipini verir: `TR_round(2.567, 2)` → `2.57`, `TR_round(1234, -2)` → `1200`, `TR_round(1234.0, -2)` → `1200.0`. Basamaklı yuvarlama sayının yazılan ondalık metnine göredir (3.2): `TR_round(2.675, 2)` → `2.68`.
 - `TR_print` argümanlarının metnini (3.14) birer boşlukla birleştirip yazar ve satır sonu ekler. `TR_print`, `TR_sleep` ve `TR_wait_all` değer döndürmez (6.1, 13.10).
-- `TR_input()` ya da `TR_input(istem)` standart girişten bir satır okur ve satır sonunu atar; giriş bittiyse boş metin verir. Süreçteki bütün okumalar (art arda `TR_input`, etkileşimli kabuk, terminal hata ayıklayıcısı) tek bir tamponlu okuyucudan yapılır: boruyla verilen satırlar sırayla gelir, hiçbiri kaybolmaz.
+- `TR_write_file(yol, içerik)` içeriği `TR_String` ya da `TR_Bytes` olarak alır.
+- `TR_input()` ya da `TR_input(istem)` (istem bir `TR_String`) standart girişten bir satır okur ve satır sonunu atar; giriş bittiyse boş metin verir. Süreçteki bütün okumalar (art arda `TR_input`, etkileşimli kabuk, terminal hata ayıklayıcısı) tek bir tamponlu okuyucudan yapılır: boruyla verilen satırlar sırayla gelir, hiçbiri kaybolmaz.
 - *Test:* TR testi; karışık sayıların tipi, boş listenin hatası, tek yazım ve değer döndürmeme uygulanınca TR testi.
 
 **13.1a** Yol alan her yerleşik (`TR_read_file`, `TR_write_file`, `TR_read_csv`, `TR_save_tensors`, `TR_load_tensors`, `TR_load_tokenizer`, `TR_Dataset` ve `TR_cache:`, 18. bölümün yerleşikleri) yolu `TR_String` ya da `TR_Path` (18.4) olarak alır ve tek kuralla çözer:
@@ -50,9 +51,9 @@ Her kuralın emsali ve gerekçesi: [`rationale/13_builtins.md`](rationale/13_bui
 - *Test:* TR testi; JSON anahtarının ve metin hücrenin kuralı uygulanınca TR testi.
 
 **13.8a** Dönüşü argümanın değerine bağlı olan üç iş ayrı adlarla yazılır (13.10):
-- `t.TR_tolist` her zaman bir liste verir; tek öğeli tensörün sayısı `t.TR_item`'dır (`TR_Float`), başka tensörde hatadır.
+- `t.TR_tolist` 1 boyutlu tensörü `TR_List[TR_Float]`'a çevirir; daha çok boyutlu tensörde hatadır, ileti `t.TR_reshape([-1]).TR_tolist`'i ya da satırları dolaşmayı önerir. Tek öğeli tensörün sayısı `t.TR_item`'dır (`TR_Float`), başka tensörde hatadır. Öğe her zaman `TR_Float`'tır; indeks olarak kullanılacaksa `TR_Int(...)` ile çevrilir (3.12).
 - `k.TR_decode(kimlikler)` bir dizi kimliği metne çevirir; birden çok dizi `k.TR_batch_decode(diziler)` ile `TR_List[TR_String]`'e çevrilir.
-- `TR_parameters(model)` `TR_List[TR_Tensor]` verir; adlarıyla birlikte `TR_named_parameters(model)` `TR_Dict[TR_String, TR_Tensor]` verir. `TR_named:` argümanı kalkar.
+- `TR_parameters(model)` bir yapının (13.10) ya da bir tensör listesinin parametrelerini `TR_List[TR_Tensor]` olarak verir; adlarıyla birlikte `TR_named_parameters(model)` yalnız yapıda `TR_Dict[TR_String, TR_Tensor]` verir. `TR_named:` argümanı kalkar.
 - *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
 
 **13.9** Her yerleşiğin (fonksiyon, metot, kitaplık tipinin çağrısı) imzası tek yerdedir: parametrelerin tipleri, adlı argümanlar (ad, tip, varsayılan) ve dönüş tipi.
@@ -65,11 +66,11 @@ Her kuralın emsali ve gerekçesi: [`rationale/13_builtins.md`](rationale/13_bui
 **13.10** Bir yerleşiğin sonucunun tipi argümanlarının tipinden bellidir; argümanın değerinden çıkmaz.
 - **Kısıtlı tip parametresi.** Her tipte çalışan yerleşiğin parametresi bir tip parametresidir, genel bir tip değildir (3.11): `TR_List[T].TR_map[U](f: (T) -> U) -> TR_List[U]`. Tip parametresi şu kısıtlardan birini taşıyabilir:
   - **sayı:** `TR_Int`, `TR_Float`. Tip parametresi `TR_Int` ve `TR_Float` argümanlardan çıkarsa `TR_Float`'tır ve `TR_Int` değerler `TR_Float`'a çevrilir (4.2): `TR_max(n, 1.5)`, `TR_clamp(15, TR_max: 10.0)`, `TR_atan2(1, 2.0)`. Bu, 3.13'ün "`TR_Int` değer `TR_Float` yerine verilmez" kuralının işleçteki gibi tek istisnasıdır.
-  - **sıralanabilir:** sayılar ve `TR_String`; `TR_nan` her şeyden büyük sayılır (13.3'ün sırası);
+  - **sıralanabilir:** sayılar ve `TR_String`; `TR_sort`'ta `TR_nan` sona gelir (13.3), `TR_min` ve `TR_max` ise NaN'ı yayar (13.1);
   - **eşitlenebilir:** 4.5'in `==`'sinin hata vermediği tipler;
   - **anahtar olabilen:** 3.7;
   - **JSON'a yazılabilir:** 13.8'in saydığı tipler, öğeleri de yazılabilen liste ve anahtarı metin olan sözlük;
-  - **yapı:** programın ya da kitaplığın herhangi bir yapısı (7. bölüm): `TR_parameters`, `TR_Checkpoint`'in durumu ve `TR_command_line`'ın seçenekleri bir yapıdır;
+  - **yapı:** programın ya da kitaplığın herhangi bir yapısı ve arayüz tipli bir değer (7.1, 7.8); durumlu tip değil, çünkü alanları duruma göre değişir: `TR_parameters`, `TR_Checkpoint`'in durumu ve `TR_command_line`'ın seçenekleri bir yapıdır;
   - **fonksiyon:** herhangi bir fonksiyon tipi (6.9); `TR_fuse` bir fonksiyonu alıp aynı tipte bir fonksiyon döndürür;
   - **tensör verisi:** bir sayı ya da öğeleri tensör verisi olan liste, her derinlikte (`TR_Tensor([[1.0, 2.0], [3.0, 4.0]])`).
 
