@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
@@ -41,7 +42,7 @@ TR_test "mesajlı doğrulama" {
 `
 
 func TestRunFile(t *testing.T) {
-	fpath := testkit.WriteFile(t, t.TempDir(), "ornek_test.tr", exampleTests)
+	fpath := writeTR(t, t.TempDir(), "ornek_test.tr", exampleTests)
 	var out bytes.Buffer
 	summary := RunFile(fpath, &out)
 	text := out.String()
@@ -51,13 +52,13 @@ func TestRunFile(t *testing.T) {
 	}
 	expected := []string{
 		"✓ toplama doğru",
-		"✗ bölme hatası — Satır 9",
+		"✗ bölme hatası — Satır 10",
 		"Sıfıra bölme",
-		"✗ eşitlik kalır — Satır 13: eşitlik başarısız: beklenen 5 (Tam), gerçek 4 (Tam)",
-		" 13 |     eşit_mi(5, topla(2, 2))", // kod çerçevesi
+		"✗ eşitlik kalır — Satır 14: eşitlik başarısız: beklenen 5 (Tam), gerçek 4 (Tam)",
+		" 14 |     TR_assert_equal(5, topla(2, 2))", // kod çerçevesi (dosyanın metni)
 		"✓ yerel tanım sızmaz",
 		"✓ önceki testin yereli görünmez",
-		"✗ mesajlı doğrulama — Satır 27: doğrulama başarısız: özel mesaj",
+		"✗ mesajlı doğrulama — Satır 28: doğrulama başarısız: özel mesaj",
 	}
 	for _, b := range expected {
 		if !strings.Contains(text, b) {
@@ -73,7 +74,7 @@ func TestRunFile(t *testing.T) {
 // eskiden yalnızca rapora yazılıyor, test geçmiş görünüyordu (Go'da başka goroutine'den t.Error
 // testi kaldırır). Hata, görevi başlatan testte kalır; sonraki teste taşmaz.
 func TestTaskErrorFailsTest(t *testing.T) {
-	fpath := testkit.WriteFile(t, t.TempDir(), "gorev_test.tr", `TR_test "görevde başarısız doğrulama" {
+	fpath := writeTR(t, t.TempDir(), "gorev_test.tr", `TR_test "görevde başarısız doğrulama" {
     TR_async {
         TR_assert(TR_false, "görevde kaldı")
     }
@@ -106,10 +107,10 @@ func TestSummaryLine(t *testing.T) {
 
 func TestDirScan(t *testing.T) {
 	root := t.TempDir()
-	testkit.WriteFile(t, root, "a_test.tr", `TR_test "a" { TR_assert(TR_true) }`)
-	testkit.WriteFile(t, root, "alt/b_test.tr", `TR_test "b" { TR_assert_equal("x", "x") }`)
-	testkit.WriteFile(t, root, "yardimci.tr", `TR_test "çalışmamalı" { TR_assert(TR_false) }`)
-	testkit.WriteFile(t, root, ".gizli/c_test.tr", `TR_test "gizli" { TR_assert(TR_false) }`)
+	writeTR(t, root, "a_test.tr", `TR_test "a" { TR_assert(TR_true) }`)
+	writeTR(t, root, "alt/b_test.tr", `TR_test "b" { TR_assert_equal("x", "x") }`)
+	writeTR(t, root, "yardimci.tr", `TR_test "çalışmamalı" { TR_assert(TR_false) }`)
+	writeTR(t, root, ".gizli/c_test.tr", `TR_test "gizli" { TR_assert(TR_false) }`)
 
 	var out bytes.Buffer
 	summary, err := Run(root, &out)
@@ -135,9 +136,9 @@ func TestEmptyDirErrors(t *testing.T) {
 
 func TestUnloadableFile(t *testing.T) {
 	root := t.TempDir()
-	testkit.WriteFile(t, root, "bozuk_test.tr", "test \"a\" { doğrula(doğru) }\ndeğişken = 5\n")
-	testkit.WriteFile(t, root, "ustduzey_test.tr", "TR_throw \"yükleme hatası\"\nTR_test \"b\" { TR_assert(TR_true) }\n")
-	testkit.WriteFile(t, root, "iyi_test.tr", "TR_test \"c\" { TR_assert(TR_true) }\n")
+	writeTR(t, root, "bozuk_test.tr", "test \"a\" { doğrula(doğru) }\ndeğişken = 5\n")
+	writeTR(t, root, "ustduzey_test.tr", "TR_throw \"yükleme hatası\"\nTR_test \"b\" { TR_assert(TR_true) }\n")
+	writeTR(t, root, "iyi_test.tr", "TR_test \"c\" { TR_assert(TR_true) }\n")
 	var out bytes.Buffer
 	summary, err := Run(root, &out)
 	if err != nil {
@@ -157,7 +158,7 @@ func TestUnloadableFile(t *testing.T) {
 
 // Test içindeki 'ertele' test bitince çalışmalı; testin kendisi kalsa bile.
 func TestDeferAndOutput(t *testing.T) {
-	fpath := testkit.WriteFile(t, t.TempDir(), "e_test.tr", `TR_test "ertele" {
+	fpath := writeTR(t, t.TempDir(), "e_test.tr", `TR_test "ertele" {
     TR_defer TR_print("temizlik")
     TR_print("gövde")
     TR_assert(TR_false)
@@ -175,7 +176,7 @@ func TestDeferAndOutput(t *testing.T) {
 // Testin başlattığı eşzamanlı görevin hatası raporda testin hatası olarak görünür (standart
 // hataya kaçmaz; 10.1).
 func TestTaskErrorShownInReport(t *testing.T) {
-	fpath := testkit.WriteFile(t, t.TempDir(), "g_test.tr", `TR_test "görev" {
+	fpath := writeTR(t, t.TempDir(), "g_test.tr", `TR_test "görev" {
     TR_async { TR_var x = 1 / 0 }
 }
 `)
@@ -189,7 +190,7 @@ func TestTaskErrorShownInReport(t *testing.T) {
 // Testin 'ertele' blokları, programın üst düzeyinde olduğu gibi, testin başlattığı görevler
 // bittikten sonra çalışır.
 func TestDeferRunsAfterTasks(t *testing.T) {
-	f := testkit.WriteFile(t, t.TempDir(), "ertele_test.tr", `TR_test "ertele görevden sonra" {
+	f := writeTR(t, t.TempDir(), "ertele_test.tr", `TR_test "ertele görevden sonra" {
     TR_var l = [1]
     TR_defer { TR_assert(l.TR_length == 2, "görev erteleden önce bitmeli") }
     TR_async {
@@ -207,10 +208,10 @@ func TestDeferRunsAfterTasks(t *testing.T) {
 // Kullanıcı iletisinde geçen "Satır " sözcüğü konum sayılmaz: konum yapıdan okunur (fırlat'ın
 // kendi satırı, 8.3) ve çerçevesi çizilir.
 func TestUserMessageWithSatirGetsLine(t *testing.T) {
-	f := testkit.WriteFile(t, t.TempDir(), "satır_test.tr", "TR_test \"satır kelimesi\" {\n    TR_throw \"Satır sayısı yanlış\"\n}\n")
+	f := writeTR(t, t.TempDir(), "satır_test.tr", "TR_test \"satır kelimesi\" {\n    TR_throw \"Satır sayısı yanlış\"\n}\n")
 	var b bytes.Buffer
 	RunFile(f, &b)
-	if out := b.String(); !strings.Contains(out, "Satır 2: Satır sayısı yanlış") || !strings.Contains(out, `2 |     fırlat "Satır sayısı yanlış"`) {
+	if out := b.String(); !strings.Contains(out, "Satır 3: Satır sayısı yanlış") || !strings.Contains(out, `3 |     TR_throw "Satır sayısı yanlış"`) {
 		t.Fatalf("testin satırı eklenmeli ve çerçevesi çizilmeli:\n%s", out)
 	}
 }
@@ -218,7 +219,7 @@ func TestUserMessageWithSatirGetsLine(t *testing.T) {
 // TR_cmd_test altında TR_exit süreci bitirmez (1.12): çağrıldığı test (çağırdığı fonksiyon ya da
 // başlattığı görev dahil) başarısız sayılır, öbür testler sürer ve rapor çıkış çağrısını anlatır.
 func TestExitInATestFailsOnlyThatTest(t *testing.T) {
-	fpath := testkit.WriteFile(t, t.TempDir(), "cikis_test.tr", `# TR 4
+	fpath := writeTR(t, t.TempDir(), "cikis_test.tr", `# TR 4
 TR_func bitir() {
     TR_exit(3)
 }
@@ -246,4 +247,10 @@ TR_test "sonra gelen test sürer" {
 			t.Errorf("çıktıda %q yok:\n%s", want, text)
 		}
 	}
+}
+
+// writeTR bir test dosyasını başlığıyla (2.1) yazar; satırlar dosyanınkidir, gövdenin ilk satırı 2.
+func writeTR(t *testing.T, dir, name, body string) string {
+	t.Helper()
+	return testkit.WriteFile(t, dir, name, source.Header+"\n"+body)
 }

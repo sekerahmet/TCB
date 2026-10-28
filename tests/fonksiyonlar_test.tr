@@ -32,7 +32,7 @@ TR_test "6.2 sonuç değer döndürür; yoksa son deyimin değeri döner" {
     TR_assert_equal(TR_none, boş_dönüş())
 }
 
-TR_test "6.3 varsayılan parametreler; eksik ya da fazla argüman hata verir" {
+TR_test "6.4 varsayılan parametreler; eksik ya da fazla argüman hata verir" {
     TR_func selam(ad, ek = "!") { TR_return "Selam " + ad + ek }
     TR_assert_equal("Selam Ali!", selam("Ali"))
     TR_assert_equal("Selam Ali?", selam("Ali", "?"))
@@ -41,7 +41,7 @@ TR_test "6.3 varsayılan parametreler; eksik ya da fazla argüman hata verir" {
     TR_assert_equal("H2412", TR_error_code(() => { ikinci(1, 2, 3) }))
 }
 
-TR_test "6.3 varsayılan değer önceki parametreleri görür" {
+TR_test "6.4 varsayılan değer önceki parametreleri görür" {
     TR_var a = 100
     TR_func f(a, b = a * 2) { TR_return b }
     TR_assert_equal(2, f(1))
@@ -59,7 +59,7 @@ TR_test "6.3 varsayılan değer önceki parametreleri görür" {
     TR_assert_equal([1], liste_al())
 }
 
-TR_test "6.3a özyineleme derinliği sınırı yakalanabilir hata verir" {
+TR_test "6.11 iç içe çağrı derinliği sınırı yakalanabilir hata verir" {
     TR_func sonsuz(n) { TR_return sonsuz(n + 1) }
     TR_assert_equal("H2422", TR_error_code(() => { sonsuz(0) }))
 }

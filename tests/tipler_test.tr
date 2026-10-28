@@ -250,7 +250,7 @@ TR_test "3.14 tip adının tek yazımı vardır" {
     TR_assert_equal(adet, TR_int("3"))
 }
 
-TR_test "3.15 İleti: kodu ve değerleriyle kurulur, metni gösterilirken katalogdan yazılır" {
+TR_test "8.5 İleti: kodu ve değerleriyle kurulur, metni gösterilirken katalogdan yazılır" {
     TR_var i = TR_message("H6903", -1)
     TR_assert_equal(TR_Message, TR_type(i))
     TR_assert("\(i)".TR_contains("-1"))

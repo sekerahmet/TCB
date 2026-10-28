@@ -45,7 +45,7 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). DENETİM'
 ### 2.1
 
 - **Mevcut durum:**
-  - Belgelerde ters tırnak içinde sınıflı kimlik yazımı kalıyor (`TR_kw_…`, `TR_fn_…`, `TR_mem_…`; 48 belgede yaklaşık 2 770 yer, spec ve arşiv hariç) [ölçüldü: katman 1].
+  - Belgelerde ters tırnak içinde sınıflı kimlik yazımı kalıyor (TR_kw_…, TR_fn_…, TR_mem_… biçimi; 48 belgede yaklaşık 2 770 yer, spec ve arşiv hariç) [ölçüldü: katman 1].
   - Bölüm 11 ve 17 eski başlığı, dosyanın dilini, iç içe aktarmayı ve gösterime göre konumu anlatıyor (11.3'ün eşzamanlı aktarma cümlesi, 17.1, 17.4, 17.5, 17.7); bölümler yeniden yazılınca düzelir.
 - **Yapılacaklar:** belgelerdeki sınıflı yazım `tools/migrate`'in kimlik çevirisiyle çevrilir.
 
