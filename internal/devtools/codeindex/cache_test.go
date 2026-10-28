@@ -111,10 +111,10 @@ func TestStatusReportsChanges(t *testing.T) {
 	if _, _, err := BuildCached(dir, Options{}); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "lib", "geo.tr"), []byte("TR_const X = 1\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "lib", "geo.tr"), trText(filepath.Join(dir, "lib", "geo.tr"), "TR_const X = 1\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "yeni.tr"), []byte("TR_const Y = 1\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "yeni.tr"), trText(filepath.Join(dir, "yeni.tr"), "TR_const Y = 1\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.Remove(filepath.Join(dir, "examples", "ana.tr")); err != nil {
@@ -168,7 +168,7 @@ func writeModule(t *testing.T, dir string, i, n int, extra []string) {
 	for _, line := range extra {
 		b.WriteString(line + "\n")
 	}
-	if err := os.WriteFile(filepath.Join(dir, fmt.Sprintf("m%d.tr", i)), []byte(b.String()), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, fmt.Sprintf("m%d.tr", i)), trText(filepath.Join(dir, fmt.Sprintf("m%d.tr", i)), b.String()), 0o644); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -232,7 +232,7 @@ func TestIncrementalEqualsFull(t *testing.T) {
 		}
 	}
 	// Dosya eklemek ve silmek baştan kurulumdur ve yine aynıdır.
-	if err := os.WriteFile(filepath.Join(dir, "yeni.tr"), []byte("TR_import \"m3\"\nTR_func y() {\n    TR_return f3_0(1)\n}\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "yeni.tr"), trText(filepath.Join(dir, "yeni.tr"), "TR_import \"m3\"\nTR_func y() {\n    TR_return f3_0(1)\n}\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	inc, st, err := BuildCached(dir, opts)
@@ -281,7 +281,7 @@ func benchProject(tb testing.TB, n int) string {
 			}
 			b.WriteString("    yazdır(p.ileri())\n    yazdır(p.ağırlık)\n    sonuç p\n}\n")
 		}
-		if err := os.WriteFile(filepath.Join(dir, fmt.Sprintf("m%d.tr", i)), []byte(b.String()), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, fmt.Sprintf("m%d.tr", i)), trText(filepath.Join(dir, fmt.Sprintf("m%d.tr", i)), b.String()), 0o644); err != nil {
 			tb.Fatal(err)
 		}
 	}

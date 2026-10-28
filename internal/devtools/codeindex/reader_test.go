@@ -1,6 +1,7 @@
 package codeindex
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -11,21 +12,24 @@ import (
 
 func TestAtFindsTheNameUnderTheCursor(t *testing.T) {
 	r := NewReader(buildFixture(t))
-	// lib/geo_test.tr:5 "    yaz_alan(k)": yaz_alan 5. sütundan 12. sütuna kadar
-	for _, col := range []int{5, 9, 12} {
-		o, n := r.At("lib/geo_test.tr", 5, col)
+	// "    yaz_alan(k)": yaz_alan'ın ilk, ortadaki ve son karakteri; ardındaki sütun adın dışında
+	line, start := fixtureAt(t, "lib/geo_test.tr", "yaz_alan(k)")
+	end := start + len([]rune("yaz_alan")) - 1
+	for _, col := range []int{start, start + 4, end} {
+		o, n := r.At("lib/geo_test.tr", line, col)
 		if o == nil || n == nil || n.ID != "function:lib/geo.tr#yaz_alan" || o.Role != RoleTest {
 			t.Errorf("col %d: %+v %+v", col, o, n)
 		}
 	}
-	if o, _ := r.At("lib/geo_test.tr", 5, 13); o != nil && o.Node == "function:lib/geo.tr#yaz_alan" {
+	if o, _ := r.At("lib/geo_test.tr", line, end+1); o != nil && o.Node == "function:lib/geo.tr#yaz_alan" {
 		t.Error("the column after the name is outside it")
 	}
 	if o, _ := r.At("lib/geo_test.tr", 99, 1); o != nil {
 		t.Error("a line without references has nothing under the cursor")
 	}
 	// Bildirimin adı da bir başvurudur (tanım rolüyle): "tanıma git" tanımın kendisinde de çalışır.
-	o, n := r.At("lib/geo.tr", 15, 11)
+	line, col := fixtureAt(t, "lib/geo.tr", "çevre_hesapla(k)")
+	o, n := r.At("lib/geo.tr", line, col+2)
 	if o == nil || o.Role != RoleDefinition || n.ID != "function:lib/geo.tr#çevre_hesapla" {
 		t.Errorf("definition under cursor: %+v %+v", o, n)
 	}
@@ -35,7 +39,7 @@ func TestWriteRoleOnAliasedVariable(t *testing.T) {
 	r := NewReader(buildFixture(t))
 	found := false
 	for _, o := range r.Occurrences("variable:lib/geo.tr#sayaç") {
-		found = found || o.Role == RoleWrite && o.Pos.File == "examples/ana.tr" && o.Pos.Line == 6
+		found = found || o.Role == RoleWrite && o.Pos.File == "examples/ana.tr" && o.Pos.Line == fixtureLine(t, "examples/ana.tr", "g.sayaç = 7")
 	}
 	if !found {
 		t.Errorf("g.sayaç = 7 writes the variable: %+v", r.Occurrences("variable:lib/geo.tr#sayaç"))
@@ -49,16 +53,18 @@ func TestUnresolvedNamesAreCounted(t *testing.T) {
 		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+		if err := os.WriteFile(p, trText(p, body), 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}
-	write("a.tr", "TR_func f() {\n    TR_return bilinmeyen_ad(1)\n}\n")
+	src := "TR_func f() {\n    TR_return bilinmeyen_ad(1)\n}\n"
+	write("a.tr", src)
 	idx, err := Build(dir, Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(idx.Unresolved) != 1 || idx.Unresolved[0].Name != "bilinmeyen_ad" || idx.Unresolved[0].Pos.Line != 2 {
+	if len(idx.Unresolved) != 1 || idx.Unresolved[0].Name != "bilinmeyen_ad" ||
+		fmt.Sprintf("%d:%d", idx.Unresolved[0].Pos.Line, idx.Unresolved[0].Pos.Col) != srcAt(t, src, "bilinmeyen_ad(1)", "bilinmeyen_ad", 1) {
 		t.Errorf("unresolved: %+v", idx.Unresolved)
 	}
 }
@@ -66,10 +72,10 @@ func TestUnresolvedNamesAreCounted(t *testing.T) {
 // Projede lib/ yoksa `aktar "tr/ad"` gömülü kitaplığa çözülür; modül sanal yoldadır.
 func TestEmbeddedLibraryModule(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "main.tr"), []byte("TR_import \"tr/katman\"\n\nTR_GPT(1)\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "main.tr"), trText(filepath.Join(dir, "main.tr"), "TR_import \"tr/katman\"\n\nTR_GPT(1)\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	lib := fstest.MapFS{"katman.tr": {Data: []byte("TR_struct TR_GPT {\n    n = 1\n}\n")}}
+	lib := fstest.MapFS{"katman.tr": {Data: trText("katman.tr", "TR_struct TR_GPT {\n    n = 1\n}\n")}}
 	idx, err := Build(dir, Options{Library: lib})
 	if err != nil {
 		t.Fatal(err)
@@ -110,7 +116,7 @@ func TestEveryDeclarationIndexed(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, want := range declaredIDs(rel, readFile(string(data))) {
+		for _, want := range declaredIDs(rel, readFile(string(data), false)) {
 			checked++
 			if !have[want] {
 				t.Errorf("%s: declaration %s is not in the index", rel, want)
@@ -127,7 +133,7 @@ func TestEveryDeclarationIndexed(t *testing.T) {
 func TestAliasAfterPlainImportOfTheSameModule(t *testing.T) {
 	dir := t.TempDir()
 	write := func(rel, body string) {
-		if err := os.WriteFile(filepath.Join(dir, rel), []byte(body), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, rel), trText(filepath.Join(dir, rel), body), 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}

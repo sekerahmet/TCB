@@ -1,6 +1,7 @@
 package codeindex
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -27,6 +28,8 @@ func TestDefinition(t *testing.T) {
 
 func TestResolveTiers(t *testing.T) {
 	r := fixtureReader(t)
+	callLine, callCol := fixtureAt(t, "lib/geo_test.tr", "yaz_alan(k)")
+	declLine, declCol := fixtureAt(t, "lib/geo.tr", "çevre_hesapla(k)")
 	cases := map[string]string{
 		"struct:lib/geo.tr#Kare": "struct:lib/geo.tr#Kare",
 		"Kare":                   "struct:lib/geo.tr#Kare",
@@ -38,15 +41,16 @@ func TestResolveTiers(t *testing.T) {
 		"lib/geo.tr":             "module:lib/geo.tr",
 		"geo":                    "module:lib/geo.tr",
 		"tr/geo":                 "module:lib/geo.tr",
-		"lib/geo_test.tr:5:6":    "function:lib/geo.tr#yaz_alan", // imlecin altındaki ad
-		"lib/geo.tr:15:12":       "function:lib/geo.tr#çevre_hesapla",
-		"çevre_hesapla":          "function:lib/geo.tr#çevre_hesapla",
-		"ÇEVRE_HESAPLA":          "function:lib/geo.tr#çevre_hesapla",
-		"ÇEVRE_HESAPLAMA":        "",
-		"geo.çevre_hesapla":      "function:lib/geo.tr#çevre_hesapla",
-		"yazdır":                 "builtin:TR_print", // TR adı
-		"print":                  "builtin:TR_print", // İngilizce adı
-		"TR_print":               "builtin:TR_print",
+		fmt.Sprintf("lib/geo_test.tr:%d:%d", callLine, callCol+1): "function:lib/geo.tr#yaz_alan", // imlecin altındaki ad
+		fmt.Sprintf("lib/geo.tr:%d:%d", declLine, declCol+3):      "function:lib/geo.tr#çevre_hesapla",
+		"çevre_hesapla":     "function:lib/geo.tr#çevre_hesapla",
+		"ÇEVRE_HESAPLA":     "function:lib/geo.tr#çevre_hesapla",
+		"ÇEVRE_HESAPLAMA":   "",
+		"geo.çevre_hesapla": "function:lib/geo.tr#çevre_hesapla",
+		"yazdır":            "builtin:TR_fn_print", // TR adı
+		"print":             "builtin:TR_fn_print", // İngilizce adı
+		"TR_print":          "builtin:TR_fn_print", // program metnindeki yazımı (2.3a)
+		"TR_fn_print":       "builtin:TR_fn_print", // kimliği
 	}
 	for q, want := range cases {
 		got := r.Resolve(q, "")
@@ -66,7 +70,7 @@ func TestResolveTiers(t *testing.T) {
 func buildSource(t *testing.T, src string) *Reader {
 	t.Helper()
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "m.tr"), []byte(src), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "m.tr"), trText(filepath.Join(dir, "m.tr"), src), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	idx, err := Build(dir, Options{})
@@ -109,7 +113,7 @@ TR_func gizli_işlev() {
 		"GİZLİ_İŞLEV": "function:m.tr#gizli_işlev", // Türkçe büyük harf
 		"GIZLI_IŞLEV": "function:m.tr#gizli_işlev", // İngilizce klavye: I, Türkçede ı olurdu
 		"Metin":       "",                          // dilin tip adı: metin() yerleşiğine sessizce düşülmez
-		"metin":       "builtin:TR_str",
+		"metin":       "builtin:TR_fn_str",
 	} {
 		var ids []string
 		for _, n := range r.Resolve(q, "") {
@@ -127,18 +131,19 @@ TR_func gizli_işlev() {
 // değil) (bağımsız denetim grup 6, R1).
 func TestBareNameClasses(t *testing.T) {
 	dir := t.TempDir()
-	for name, text := range map[string]string{
-		"TR_str.tr": "TR_var metin_boyu = uzunluk(TR_str(12))\n",
-		"m_test.tr": `TR_test "ortalama" {
+	tests := `TR_test "ortalama" {
     TR_assert(TR_mean([1, 3]) == 2)
 }
 
 TR_test "yalnız bir test" {
     TR_assert(TR_true)
 }
-`,
+`
+	for name, text := range map[string]string{
+		"metin.tr":  "TR_var metin_boyu = TR_str(12).TR_length\n",
+		"m_test.tr": tests,
 	} {
-		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, name), trText(filepath.Join(dir, name), text), 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -148,9 +153,9 @@ TR_test "yalnız bir test" {
 	}
 	r := NewReader(idx)
 	for q, want := range map[string]string{
-		"metin":           "builtin:TR_str module:metin.tr",
-		"ortalama":        "builtin:TR_mean",
-		"yalnız bir test": "test_block:m_test.tr#5",
+		"metin":           "builtin:TR_fn_str module:metin.tr",
+		"ortalama":        "builtin:TR_fn_mean",
+		"yalnız bir test": "test_block:m_test.tr#" + strings.Split(srcAt(t, tests, `TR_test "yalnız bir test"`, "TR_test", 1), ":")[0],
 	} {
 		var ids []string
 		for _, n := range r.Resolve(q, "") {
@@ -205,7 +210,7 @@ func TestReferences(t *testing.T) {
 
 func TestBuiltinReferencesCarryDisplayNames(t *testing.T) {
 	res := fixtureReader(t).References("print", QueryOptions{})
-	if res.Status != StatusOK || res.Target.ID != "builtin:TR_print" || res.Target.Display != "yazdır" {
+	if res.Status != StatusOK || res.Target.ID != "builtin:TR_fn_print" || res.Target.Display != "yazdır" {
 		t.Fatalf("a built-in is found by its English name and shown in the reader's language: %+v", res.Target)
 	}
 	if res.Counts.Total < 3 {
@@ -220,10 +225,10 @@ func TestTestedByDirectBeforeIndirect(t *testing.T) {
 		t.Fatalf("%+v", res.Tests)
 	}
 	first, second := res.Tests[0], res.Tests[1]
-	if first.Steps != 0 || first.In.ID != "test_block:lib/geo_test.tr#8" || first.Confidence != Extracted {
+	if first.Steps != 0 || first.In.ID != fixtureTest(t, "lib/geo_test.tr", "çevre") || first.Confidence != Extracted {
 		t.Errorf("direct first: %+v", first)
 	}
-	if second.Steps != 2 || second.In.ID != "test_block:lib/geo_test.tr#3" || second.Confidence != Inferred {
+	if second.Steps != 2 || second.In.ID != fixtureTest(t, "lib/geo_test.tr", "kare alanı yazılır") || second.Confidence != Inferred {
 		t.Errorf("indirect through yaz_alan: %+v", second)
 	}
 	if got := r.TestedBy("sayaç", QueryOptions{}); len(got.Tests) != 0 {
@@ -309,7 +314,7 @@ func TestATestBlockTestsAFunctionBuiltinOnlyByCallingIt(t *testing.T) {
 	src := "TR_test \"değer\" {\n    TR_var f = TR_time_ms\n    TR_assert(TR_true)\n}\n\nTR_test \"çağrı\" {\n    TR_assert(TR_sin(TR_pi) < 1)\n}\n" +
 		"TR_test \"argüman\" {\n    TR_assert([3, 1, 2].TR_reduce(TR_max) == 3)\n}\n" +
 		"TR_test \"atama\" {\n    TR_var g = TR_sqrt\n    TR_assert(g(4) == 2)\n}\n"
-	if err := os.WriteFile(filepath.Join(dir, "m_test.tr"), []byte(src), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "m_test.tr"), trText(filepath.Join(dir, "m_test.tr"), src), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	idx, err := Build(dir, Options{})
@@ -327,7 +332,7 @@ func TestATestBlockTestsAFunctionBuiltinOnlyByCallingIt(t *testing.T) {
 	for _, u := range uses {
 		codes[u.Code] = true
 	}
-	if codes["TR_time_ms"] || !codes["TR_pi"] || len(codes) != 3 {
+	if codes["TR_fn_time_ms"] || !codes["TR_const_pi"] || len(codes) != 3 {
 		t.Errorf("Snippet: zaman_ms only named, sin and yazdır called, pi read: %v", codes)
 	}
 }

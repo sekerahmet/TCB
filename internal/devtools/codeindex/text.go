@@ -179,11 +179,14 @@ func ScanText(root, word, repl string, exclude map[string]bool) (hits []TextHit,
 }
 
 // lexState bir kaynak dosyasının satırlar boyunca sözcük durumudur: .tr ve .go dosyalarında yorum ve
-// metin sabitlerinin içinde olup olmadığı. Belge (.md) ve veri (.json) dosyalarında durum yoktur.
+// metin sabitlerinin içinde olup olmadığı. Belge (.md) ve veri (.json) dosyalarında durum yoktur. .tr'de yorum `#` ile
+// başlar (`//` tam bölmedir; dil tanımı 2.2), metin ve ham metin satırlara yayılabilir (2.6, 2.6a); .go'da yorum `//`
+// ve `/* */`, ham metin `...`.
 type lexState struct {
 	ext     string
 	inBlock bool // /* ... */ (yalnızca .go)
-	inRaw   bool // `...` (yalnızca .go)
+	inRaw   bool // `...`
+	inStr   bool // "..." (.tr'de satırlara yayılır)
 }
 
 // line bir satırın her kod noktasının bulunduğu yeri (kod, yorum, metin) verir.
@@ -202,7 +205,7 @@ func (s *lexState) line(runes []rune) []string {
 		}
 		return where
 	}
-	inStr, comment := false, false
+	comment := false
 	for i := 0; i < len(runes); i++ {
 		c := runes[i]
 		cur := base
@@ -220,20 +223,22 @@ func (s *lexState) line(runes []rune) []string {
 			if c == '`' {
 				s.inRaw = false
 			}
-		case inStr:
+		case s.inStr:
 			cur = WhereString
 			if c == '\\' && i+1 < len(runes) {
 				where[i] = cur
 				i++
 				cur = WhereString
 			} else if c == '"' {
-				inStr = false
+				s.inStr = false
 			}
 		case c == '"':
-			inStr, cur = true, WhereString
-		case s.ext == ".go" && c == '`':
+			s.inStr, cur = true, WhereString
+		case c == '`':
 			s.inRaw, cur = true, WhereString
-		case c == '/' && i+1 < len(runes) && runes[i+1] == '/':
+		case s.ext == ".tr" && c == '#':
+			comment, cur = true, WhereComment
+		case s.ext == ".go" && c == '/' && i+1 < len(runes) && runes[i+1] == '/':
 			comment, cur = true, WhereComment
 		case s.ext == ".go" && c == '/' && i+1 < len(runes) && runes[i+1] == '*':
 			s.inBlock, cur = true, WhereComment

@@ -18,7 +18,7 @@ func writeTree(t *testing.T, files map[string]string) string {
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		if err := os.WriteFile(path, trText(path, body), 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -40,16 +40,19 @@ func hitLine(pos Pos, where, match string) string { return pos.String() + " " + 
 // Olası bölümün yanlış pozitifleri: başka, başla gibi sözcükler listelenmez ama sayılır; ekli ve
 // bileşik biçimler ayrı etiketlenir; kodda, yorumda ve metinde bulunduğu yer söylenir.
 func TestScanTextClassifiesMatches(t *testing.T) {
+	src := "TR_var baş = 1 # baş sayısı\nTR_print(\"baş \\(baş)\")\nTR_func başla() {\n    TR_return 1\n}\n"
 	dir := writeTree(t, map[string]string{
-		"doc.md":          "Dikkat başı ve başları. Başka şey. Başla! kv_baş ve baş_boyutu. Her baş için.\n",
-		"TR_message.json": "{\"H1\": \"baş sayısı\"}\n",
-		"m.tr":            "TR_var baş = 1 # baş sayısı\nTR_print(\"baş \\(baş)\")\nTR_func başla() {\n    TR_return 1\n}\n",
+		"doc.md":     "Dikkat başı ve başları. Başka şey. Başla! kv_baş ve baş_boyutu. Her baş için.\n",
+		"ileti.json": "{\"H1\": \"baş sayısı\"}\n",
+		"m.tr":       src,
 	})
 	hits, other := ScanText(dir, "baş", "bakış", nil)
+	at := func(line string, n int) string { return "m.tr:" + srcAt(t, src, line, "baş", n) }
 	want := []string{
 		"doc.md:1:8 doc/suffixed", "doc.md:1:16 doc/suffixed", "doc.md:1:43 doc/compound", "doc.md:1:53 doc/compound", "doc.md:1:69 doc/exact",
 		"ileti.json:1:9 data/exact",
-		"m.tr:1:10 code/exact", "m.tr:1:21 comment/exact", "m.tr:2:9 string/exact", "m.tr:2:14 string/exact",
+		at("TR_var baş", 1) + " code/exact", at("TR_var baş", 2) + " comment/exact", // .tr'de yorum # ile başlar (2.2)
+		at("TR_print(", 1) + " string/exact", at("TR_print(", 2) + " string/exact",
 	}
 	if got := hitSummary(hits); strings.Join(got, "\n") != strings.Join(want, "\n") {
 		t.Errorf("hits:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
@@ -127,7 +130,7 @@ func TestGitTrackedListsOnlyTrackedFiles(t *testing.T) {
 		}
 	}
 	for name, text := range map[string]string{"a.tr": "x", "b.tr": "y"} {
-		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, name), trText(filepath.Join(dir, name), text), 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -153,7 +156,7 @@ func TestListFilesKeepsTwoRules(t *testing.T) {
 		if err := os.MkdirAll(filepath.Dir(filepath.Join(dir, name)), 0o755); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, name), trText(filepath.Join(dir, name), text), 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -216,7 +219,7 @@ func TestAnIgnoredFileComesAfterTheRepositoryAndIsMarked(t *testing.T) {
 		if err := os.MkdirAll(filepath.Dir(filepath.Join(dir, name)), 0o755); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filepath.Join(dir, filepath.FromSlash(name)), []byte(text), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, filepath.FromSlash(name)), trText(filepath.Join(dir, filepath.FromSlash(name)), text), 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}

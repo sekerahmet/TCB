@@ -2,7 +2,10 @@ package main
 
 import (
 	"bytes"
+	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"sync"
 	"testing"
 )
@@ -30,6 +33,36 @@ func fixture(t *testing.T) *Graph {
 		t.Fatal(fixtureErr)
 	}
 	return fixtureG
+}
+
+// modAt fikstür modülünün (testdata/mod) dosyasında metnin ilk geçtiği satır ve sütundur (1'den; sütun Unicode
+// karakteri). Beklenen konum dosyadan hesaplanır, elle sayı yazılmaz: yazım değişince (başlık, kimlik yazımı) kayar.
+func modAt(t *testing.T, rel, text string) (line, col int) {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join("testdata", "mod", filepath.FromSlash(rel)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, l := range strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n") {
+		if j := strings.Index(l, text); j >= 0 {
+			return i + 1, len([]rune(l[:j])) + 1
+		}
+	}
+	t.Fatalf("%s lacks %q", rel, text)
+	return 0, 0
+}
+
+// modLine fikstür modülünün dosyasında metnin ilk geçtiği satırdır (modAt).
+func modLine(t *testing.T, rel, text string) int {
+	t.Helper()
+	line, _ := modAt(t, rel, text)
+	return line
+}
+
+// modTest fikstürdeki TR test bloğunun grafik kimliğidir (`tr:test:lib/geo_test.tr:4`): satırı bloğun satırıdır.
+func modTest(t *testing.T, rel, title string) string {
+	t.Helper()
+	return "tr:test:" + rel + ":" + strconv.Itoa(modLine(t, rel, "TR_test \""+title+"\""))
 }
 
 // edge fixture grafiğinde bir kenar arar.

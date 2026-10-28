@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
@@ -70,12 +71,13 @@ func TestMemberAccessBindsToTheField(t *testing.T) {
 	if len(r.Index.Skipped) != 0 {
 		t.Fatalf("the fixture must parse: %v", r.Index.Skipped)
 	}
+	at := func(line, word string, n int) string { return srcAt(t, bindSource, line, word, n) }
 	wantUses(t, r, "field:m.tr#Dikkat.baş",
-		"definition@2:5/EXTRACTED",
-		"write@5:15/EXTRACTED/self",      // kendi.baş = baş
-		"read@9:21/EXTRACTED/self",       // sonuç kendi.baş
-		"read@15:13/INFERRED/local_type", // d.baş: yapıcıdan tek atamalı yerel
-		"read@19:13/INFERRED/name_only")  // x.baş: alıcı bilinmiyor, yalnızca ad tutuyor
+		"definition@"+at("    baş", "baş", 1)+"/EXTRACTED",
+		"write@"+at("TR_self.baş = baş", "baş", 1)+"/EXTRACTED/self",    // TR_self.baş = baş
+		"read@"+at("TR_return TR_self.baş", "baş", 1)+"/EXTRACTED/self", // TR_return TR_self.baş
+		"read@"+at("TR_return d.baş", "baş", 1)+"/INFERRED/local_type",  // d.baş: yapıcıdan tek atamalı yerel
+		"read@"+at("TR_return x.baş", "baş", 1)+"/INFERRED/name_only")   // x.baş: alıcı bilinmiyor, yalnızca ad tutuyor
 }
 
 func TestParameterAndNamedArgumentOccurrences(t *testing.T) {
@@ -83,12 +85,15 @@ func TestParameterAndNamedArgumentOccurrences(t *testing.T) {
 	if n := r.Node("parameter:m.tr#Dikkat.TR_ctx_init.kv_baş"); n == nil || n.Signature != "kv_baş = TR_none" {
 		t.Errorf("the default value text is part of the signature: %+v", n)
 	}
+	at := func(line, word string, n int) string { return srcAt(t, bindSource, line, word, n) }
 	wantUses(t, r, "parameter:m.tr#Dikkat.TR_ctx_init.baş",
-		"definition@4:29/EXTRACTED", "read@5:21/EXTRACTED")
+		"definition@"+at("TR_func TR_init(", "baş", 1)+"/EXTRACTED", "read@"+at("TR_self.baş = baş", "baş", 2)+"/EXTRACTED")
 	wantUses(t, r, "parameter:m.tr#Dikkat.TR_ctx_init.kv_baş",
-		"definition@4:34/EXTRACTED", "read@6:24/EXTRACTED", "argument_name@27:27/EXTRACTED")
+		"definition@"+at("TR_func TR_init(", "kv_baş", 1)+"/EXTRACTED", "read@"+at("TR_self.kv_baş = kv_baş", "kv_baş", 2)+"/EXTRACTED",
+		"argument_name@"+at("Dikkat(8, 2, kv_baş: 1)", "kv_baş", 1)+"/EXTRACTED")
 	wantUses(t, r, "parameter:m.tr#yap.baş",
-		"definition@13:15/EXTRACTED", "read@14:28/EXTRACTED", "argument_name@28:18/EXTRACTED")
+		"definition@"+at("TR_func yap(baş)", "baş", 1)+"/EXTRACTED", "read@"+at("Dikkat(8, baş)", "baş", 1)+"/EXTRACTED",
+		"argument_name@"+at("yap(baş: 4)", "baş", 1)+"/EXTRACTED")
 }
 
 func TestShadowedParameterIsInferred(t *testing.T) {
@@ -102,17 +107,20 @@ func TestShadowedParameterIsInferred(t *testing.T) {
 
 func TestCommandLineOptionKeys(t *testing.T) {
 	r := buildSource(t, bindSource)
-	wantUses(t, r, "option:m.tr#baş", "option_key@29:31/EXTRACTED", "option_key@29:63/EXTRACTED")
-	if n := r.Node("option:m.tr#adım"); n == nil || n.Kind != KindOption {
-		t.Errorf("each key is an option: %+v", n)
+	at := func(word string, n int) string { return srcAt(t, bindSource, "TR_command_line(", word, n) }
+	wantUses(t, r, "option:m.tr#baş", "option_key@"+at("baş", 1)+"/EXTRACTED", "option_key@"+at("baş", 2)+"/EXTRACTED")
+	// Kod taşıyan anahtar (`TR_step`) kimliğiyle tutulur, adı okuyanın dilindedir (komut satırında kişinin dilindeki adı).
+	if n := r.Node("option:m.tr#TR_mem_step"); n == nil || n.Kind != KindOption || n.Code != "TR_mem_step" {
+		t.Errorf("each key is an option, a coded key by its identity: %+v", n)
 	}
 }
 
 func TestNameOnlyGuessesStayOutOfReferences(t *testing.T) {
 	r := buildSource(t, bindSource)
 	res := r.References("Dikkat.baş", QueryOptions{})
+	guess := srcAt(t, bindSource, "TR_return x.baş", "baş", 1)
 	for _, u := range res.Users {
-		if u.Pos.Line == 19 {
+		if fmt.Sprintf("%d:%d", u.Pos.Line, u.Pos.Col) == guess {
 			t.Errorf("a name-only guess is not a reference: %+v", u)
 		}
 	}
@@ -121,39 +129,39 @@ func TestNameOnlyGuessesStayOutOfReferences(t *testing.T) {
 	}
 }
 
-// Kural: komut satırı seçeneğinin adı çalışma anındaki adıdır: dilin bir üye adı olan çıplak anahtar dosyanın dilinde
-// yazılır (K3: İngilizce kodlu betikte `{TR_mem_step: 100}` → `--step`, Türkçe betikte `--adım`); kullanıcının kendi adı
-// (`run`) ve kod taşımayan, düz yazılmış `adım` olduğu gibi kalır (bağımsız denetim grup 7). Konum diskteki anahtarın yeridir
-// (kodlu satırda kimliklerin uzunluğuyla); iki dilin eş betikleri ayrı dosyada, ayrı
-// düğümlerdir (yerleşik adım yerleşiği onları birleştirir).
-func TestOptionNameFollowsTheFilesLanguage(t *testing.T) {
+// Kural: komut satırı seçeneğinin adı çalışma anındaki adıdır. Kod taşıyan çıplak anahtar (`{TR_step: 100}`) komut
+// satırında kişinin gösterim dilindeki adıyla yazılır (TR_DIL=en'de `--step`, tr'de `--adım`; dosyanın dili yoktur, dil
+// tanımı 2.1): düğüm kimliğiyle tutulur (`option:x.tr#TR_mem_step`, Code taşır), adı okuyanın dilinde gösterilir; dizin
+// TR_DIL'den bağımsızdır. Kullanıcının kendi adı (`run`, `adım`) olduğu gibi kalır, kodlu anahtarla aynı seçenek değildir.
+// Konum diskteki anahtarın yeridir (kimlik yazımının uzunluğuyla).
+func TestACodedOptionKeyIsItsIdentity(t *testing.T) {
 	dir := t.TempDir()
-	for name, text := range map[string]string{
-		"en.tr":  "# TR 4\nTR_var config = TR_command_line({TR_step: 100, run: \"trial\"}, TR_descriptions: {TR_step: \"steps\"})\n",
-		"en2.tr": "# TR 4\nTR_var c = TR_command_line({adım: 1, TR_step: 2, run: 3})\n",
-		"tr.tr":  "TR_var ayar = TR_command_line({TR_step: 100, run: \"deneme\"})\n",
-	} {
-		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644); err != nil {
-			t.Fatal(err)
-		}
+	src := "TR_var c = TR_command_line({TR_step: 100, adım: 1, run: \"trial\"}, TR_descriptions: {TR_step: \"steps\"})\n"
+	if err := os.WriteFile(filepath.Join(dir, "x.tr"), trText("x.tr", src), 0o644); err != nil {
+		t.Fatal(err)
 	}
 	idx, err := Build(dir, Options{})
 	if err != nil || len(idx.Skipped) > 0 {
 		t.Fatal(err, idx.Skipped)
 	}
 	r := NewReader(idx)
-	for _, id := range []string{"option:en.tr#step", "option:en.tr#run", "option:tr.tr#adım", "option:tr.tr#run"} {
-		if n := r.Node(id); n == nil || n.Kind != KindOption {
-			t.Errorf("%s is an option", id)
+	if n := r.Node("option:x.tr#TR_mem_step"); n == nil || n.Kind != KindOption || n.Code != "TR_mem_step" {
+		t.Errorf("the coded key is an option by its identity: %+v", n)
+	}
+	for _, id := range []string{"option:x.tr#run", "option:x.tr#adım"} {
+		if n := r.Node(id); n == nil || n.Kind != KindOption || n.Code != "" {
+			t.Errorf("%s is the user's own option name: %+v", id, n)
 		}
 	}
-	if n := r.Node("option:en.tr#adım"); n != nil {
-		t.Errorf("an English script's option is --step, not --adım: %+v", n)
+	if n := r.Node("option:x.tr#step"); n != nil {
+		t.Errorf("an option is not named in a writing language inside the index: %+v", n)
 	}
-	// İngilizce betikte düz yazılmış `adım` anahtarı kod taşımaz: `--adım`'dır, kodlu TR_mem_step `--step`; iki ayrı seçenek.
-	wantUses(t, r, "option:en2.tr#adım", "option_key@2:35/EXTRACTED")
-	wantUses(t, r, "option:en2.tr#step", "option_key@2:44/EXTRACTED")
-	wantUses(t, r, "option:en.tr#step", "option_key@2:40/EXTRACTED", "option_key@2:95/EXTRACTED")
+	at := func(word string, n int) string { return srcAt(t, src, "TR_command_line(", word, n) }
+	wantUses(t, r, "option:x.tr#adım", "option_key@"+at("adım", 1)+"/EXTRACTED")
+	wantUses(t, r, "option:x.tr#TR_mem_step", "option_key@"+at("TR_step", 1)+"/EXTRACTED", "option_key@"+at("TR_step", 2)+"/EXTRACTED")
+	if shown := r.display(*r.Node("option:x.tr#TR_mem_step")); shown.Name != codes.Display().Name(codes.MemStep) {
+		t.Errorf("the coded option is shown in the reader's language: %+v", shown)
+	}
 }
 
 // memberGuessFiles alıcısı bilinmeyen üye erişimleri için bir proje: katman.tr'de aynı adlı beş metot (`ileri`: aday
@@ -183,7 +191,7 @@ var memberGuessFiles = map[string]string{
 func TestMemberGuessesAreLikelyOnlyWhereTheMemberIsVisible(t *testing.T) {
 	dir := t.TempDir()
 	for name, text := range memberGuessFiles {
-		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, name), trText(filepath.Join(dir, name), text), 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}

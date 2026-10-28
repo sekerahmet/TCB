@@ -12,9 +12,9 @@
     "name": "çevre_hesapla",
     "pos": {
       "file": "lib/geo.tr",
-      "line": 15,
+      "line": 16,
       "col": 1,
-      "end_line": 17,
+      "end_line": 18,
       "end_col": 2
     },
     "signature": "fonksiyon çevre_hesapla(k)",
@@ -26,20 +26,20 @@
       "confidence": "EXTRACTED",
       "pos": {
         "file": "lib/geo_test.tr",
-        "line": 11,
+        "line": 12,
         "col": 5,
-        "end_line": 11,
+        "end_line": 12,
         "end_col": 18
       },
       "in": {
-        "id": "test_block:lib/geo_test.tr#8",
+        "id": "test_block:lib/geo_test.tr#9",
         "kind": "test_block",
         "name": "çevre",
         "pos": {
           "file": "lib/geo_test.tr",
-          "line": 8,
+          "line": 9,
           "col": 1,
-          "end_line": 12,
+          "end_line": 13,
           "end_col": 2
         },
         "signature": "test \"çevre\"",
@@ -51,20 +51,20 @@
       "confidence": "INFERRED",
       "pos": {
         "file": "lib/geo_test.tr",
-        "line": 3,
+        "line": 4,
         "col": 1,
-        "end_line": 6,
+        "end_line": 7,
         "end_col": 2
       },
       "in": {
-        "id": "test_block:lib/geo_test.tr#3",
+        "id": "test_block:lib/geo_test.tr#4",
         "kind": "test_block",
         "name": "kare alanı yazılır",
         "pos": {
           "file": "lib/geo_test.tr",
-          "line": 3,
+          "line": 4,
           "col": 1,
-          "end_line": 6,
+          "end_line": 7,
           "end_col": 2
         },
         "signature": "test \"kare alanı yazılır\"",

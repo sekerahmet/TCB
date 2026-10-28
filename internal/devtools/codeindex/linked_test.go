@@ -1,6 +1,7 @@
 package codeindex
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -40,7 +41,7 @@ TR_struct Model {
 // anahtarı veri biçimidir: olası grupta "sözlük anahtarı" rolüyle durur, kendiliğinden değişmez (deneme 7 R2, R3).
 func TestRenameShowsLinkedDeclarationsAndDictKeys(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "m.tr"), []byte(linkedSource), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "m.tr"), trText(filepath.Join(dir, "m.tr"), linkedSource), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	idx, err := Build(dir, Options{})
@@ -66,11 +67,13 @@ func TestRenameShowsLinkedDeclarationsAndDictKeys(t *testing.T) {
 		}
 	}
 	dictKey := false
+	key := srcAt(t, linkedSource, "TR_self.TR_config = {", "baş", 1) // {TR_embed_dim: boyut, baş: baş} içindeki anahtar
 	for _, c := range res.Likely {
-		if c.Pos.Line == 19 && c.Role == RoleDictKey && c.Match == MatchDataFormat {
+		at := fmt.Sprintf("%d:%d", c.Pos.Line, c.Pos.Col)
+		if at == key && c.Role == RoleDictKey && c.Match == MatchDataFormat {
 			dictKey = true
 		}
-		if c.Pos.Line == 19 && c.Role != RoleDictKey && strings.Contains(c.Context, "baş: baş") && c.Pos.Col < 30 {
+		if at == key && c.Role != RoleDictKey {
 			t.Errorf("the dictionary key is labelled as one: %+v", c)
 		}
 	}
@@ -122,7 +125,7 @@ TR_func tipli(a: TR_String) {
 // etiketi alıyordu ya da gerçek anahtar kaçıyordu).
 func TestDictKeysComeFromTheSyntaxTree(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "m.tr"), []byte(dictKeySource), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "m.tr"), trText(filepath.Join(dir, "m.tr"), dictKeySource), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	idx, err := Build(dir, Options{})
@@ -136,7 +139,7 @@ func TestDictKeysComeFromTheSyntaxTree(t *testing.T) {
 			keys = append(keys, c.Pos.String())
 		}
 	}
-	if want := "m.tr:14:28 m.tr:17:9"; strings.Join(keys, " ") != want {
+	if want := "m.tr:" + srcAt(t, dictKeySource, `TR_var s = {ad: "(", a: x}`, "a", 3) + " m.tr:" + srcAt(t, dictKeySource, "        a: x,", "a", 1); strings.Join(keys, " ") != want {
 		t.Errorf("dictionary keys = %v, want %s:\n%s", keys, want, RenameText(res))
 	}
 }
@@ -155,7 +158,7 @@ func TestDictKeyRecordMatchesTheSyntaxTree(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		res := readFile(string(data))
+		res := readFile(string(data), false)
 		if len(res.errs) > 0 {
 			continue // ayrıştırılamayan (olumsuz örnek) dosyada ağaç yarımdır
 		}
@@ -199,7 +202,7 @@ func TestAConstructorCallReachesItsKurucu(t *testing.T) {
 	src := "TR_func başlat(n) {\n    TR_return n\n}\n\nTR_struct Katman {\n    w\n    TR_func TR_init(n) {\n        TR_self.w = başlat(n)\n    }\n}\n"
 	test := "TR_test \"katman kurulur\" {\n    TR_var k = Katman(2)\n    TR_assert(k.w == 2)\n}\n"
 	for name, text := range map[string]string{"m_test.tr": src + "\n" + test} { // aynı dosya: aktarma gerekmez
-		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, name), trText(filepath.Join(dir, name), text), 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -247,7 +250,7 @@ TR_struct Yer {
 // bağlanan (gölgelenen) parametre ne iletimde ne alana atamada bağ kurar (bağımsız denetim grup 6, R2).
 func TestForwardsFollowPositionAndShadowing(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "m.tr"), []byte(forwardSource), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "m.tr"), trText(filepath.Join(dir, "m.tr"), forwardSource), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	idx, err := Build(dir, Options{})

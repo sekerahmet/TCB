@@ -330,7 +330,7 @@ func (s *lineSource) dictKey(p Pos) bool {
 	res, ok := s.parsed[p.File]
 	if !ok {
 		if text, ok := s.read(p.File); ok {
-			res = readFile(text)
+			res = readFile(text, false)
 		}
 		s.parsed[p.File] = res
 	}

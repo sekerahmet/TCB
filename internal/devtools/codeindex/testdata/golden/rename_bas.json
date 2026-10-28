@@ -20,9 +20,9 @@
       "name": "Dikkat.baş",
       "pos": {
         "file": "m.tr",
-        "line": 2,
+        "line": 3,
         "col": 5,
-        "end_line": 2,
+        "end_line": 3,
         "end_col": 8
       },
       "signature": "baş",
@@ -33,9 +33,9 @@
     {
       "pos": {
         "file": "m.tr",
-        "line": 2,
+        "line": 3,
         "col": 5,
-        "end_line": 2,
+        "end_line": 3,
         "end_col": 8
       },
       "node": "field:m.tr#Dikkat.baş",
@@ -47,46 +47,46 @@
     {
       "pos": {
         "file": "m.tr",
-        "line": 5,
-        "col": 15,
-        "end_line": 5,
-        "end_col": 18
+        "line": 6,
+        "col": 17,
+        "end_line": 6,
+        "end_col": 20
       },
       "node": "field:m.tr#Dikkat.baş",
       "role": "write",
       "confidence": "EXTRACTED",
       "basis": "self",
-      "context": "kendi.baş = baş",
+      "context": "TR_self.baş = baş",
       "replacement": "bakış_sayısı"
     },
     {
       "pos": {
         "file": "m.tr",
-        "line": 9,
-        "col": 21,
-        "end_line": 9,
-        "end_col": 24
+        "line": 10,
+        "col": 27,
+        "end_line": 10,
+        "end_col": 30
       },
       "node": "field:m.tr#Dikkat.baş",
       "role": "read",
       "confidence": "EXTRACTED",
       "basis": "self",
-      "context": "sonuç kendi.baş",
+      "context": "TR_return TR_self.baş",
       "replacement": "bakış_sayısı"
     },
     {
       "pos": {
         "file": "m.tr",
-        "line": 15,
-        "col": 13,
-        "end_line": 15,
-        "end_col": 16
+        "line": 16,
+        "col": 17,
+        "end_line": 16,
+        "end_col": 20
       },
       "node": "field:m.tr#Dikkat.baş",
       "role": "read",
       "confidence": "INFERRED",
       "basis": "local_type",
-      "context": "sonuç d.baş",
+      "context": "TR_return d.baş",
       "replacement": "bakış_sayısı"
     }
   ],
@@ -136,9 +136,9 @@
     {
       "pos": {
         "file": "m.tr",
-        "line": 3,
+        "line": 4,
         "col": 5,
-        "end_line": 3,
+        "end_line": 4,
         "end_col": 11
       },
       "where": "code",
@@ -150,80 +150,80 @@
     {
       "pos": {
         "file": "m.tr",
-        "line": 4,
-        "col": 34,
-        "end_line": 4,
-        "end_col": 40
-      },
-      "where": "code",
-      "match": "compound",
-      "word": "kv_baş",
-      "context": "fonksiyon kurucu(boyut, baş, kv_baş = yok) {",
-      "replacement": "kv_bakış_sayısı"
-    },
-    {
-      "pos": {
-        "file": "m.tr",
         "line": 5,
-        "col": 21,
+        "col": 33,
         "end_line": 5,
-        "end_col": 24
-      },
-      "where": "code",
-      "match": "exact",
-      "word": "baş",
-      "context": "kendi.baş = baş",
-      "replacement": "bakış_sayısı"
-    },
-    {
-      "pos": {
-        "file": "m.tr",
-        "line": 6,
-        "col": 15,
-        "end_line": 6,
-        "end_col": 21
+        "end_col": 39
       },
       "where": "code",
       "match": "compound",
       "word": "kv_baş",
-      "context": "kendi.kv_baş = kv_baş",
+      "context": "TR_func TR_init(boyut, baş, kv_baş = TR_none) {",
       "replacement": "kv_bakış_sayısı"
     },
     {
       "pos": {
         "file": "m.tr",
         "line": 6,
-        "col": 24,
+        "col": 23,
         "end_line": 6,
-        "end_col": 30
-      },
-      "where": "code",
-      "match": "compound",
-      "word": "kv_baş",
-      "context": "kendi.kv_baş = kv_baş",
-      "replacement": "kv_bakış_sayısı"
-    },
-    {
-      "pos": {
-        "file": "m.tr",
-        "line": 14,
-        "col": 28,
-        "end_line": 14,
-        "end_col": 31
+        "end_col": 26
       },
       "where": "code",
       "match": "exact",
       "word": "baş",
-      "context": "değişken d = Dikkat(8, baş)",
+      "context": "TR_self.baş = baş",
       "replacement": "bakış_sayısı"
     },
     {
       "pos": {
         "file": "m.tr",
-        "line": 19,
-        "col": 13,
-        "end_line": 19,
-        "end_col": 16
+        "line": 7,
+        "col": 17,
+        "end_line": 7,
+        "end_col": 23
+      },
+      "where": "code",
+      "match": "compound",
+      "word": "kv_baş",
+      "context": "TR_self.kv_baş = kv_baş",
+      "replacement": "kv_bakış_sayısı"
+    },
+    {
+      "pos": {
+        "file": "m.tr",
+        "line": 7,
+        "col": 26,
+        "end_line": 7,
+        "end_col": 32
+      },
+      "where": "code",
+      "match": "compound",
+      "word": "kv_baş",
+      "context": "TR_self.kv_baş = kv_baş",
+      "replacement": "kv_bakış_sayısı"
+    },
+    {
+      "pos": {
+        "file": "m.tr",
+        "line": 15,
+        "col": 26,
+        "end_line": 15,
+        "end_col": 29
+      },
+      "where": "code",
+      "match": "exact",
+      "word": "baş",
+      "context": "TR_var d = Dikkat(8, baş)",
+      "replacement": "bakış_sayısı"
+    },
+    {
+      "pos": {
+        "file": "m.tr",
+        "line": 20,
+        "col": 17,
+        "end_line": 20,
+        "end_col": 20
       },
       "node": "field:m.tr#Dikkat.baş",
       "role": "read",
@@ -231,121 +231,121 @@
       "basis": "name_only",
       "where": "code",
       "match": "member_guess",
-      "context": "sonuç x.baş",
-      "replacement": "bakış_sayısı"
-    },
-    {
-      "pos": {
-        "file": "m.tr",
-        "line": 22,
-        "col": 17,
-        "end_line": 22,
-        "end_col": 20
-      },
-      "where": "code",
-      "match": "exact",
-      "word": "baş",
-      "context": "fonksiyon gölge(baş) {",
+      "context": "TR_return x.baş",
       "replacement": "bakış_sayısı"
     },
     {
       "pos": {
         "file": "m.tr",
         "line": 23,
-        "col": 14,
+        "col": 15,
         "end_line": 23,
-        "end_col": 17
+        "end_col": 18
       },
       "where": "code",
       "match": "exact",
       "word": "baş",
-      "context": "değişken baş = 3",
+      "context": "TR_func gölge(baş) {",
       "replacement": "bakış_sayısı"
     },
     {
       "pos": {
         "file": "m.tr",
         "line": 24,
-        "col": 11,
+        "col": 12,
         "end_line": 24,
-        "end_col": 14
+        "end_col": 15
       },
       "where": "code",
       "match": "exact",
       "word": "baş",
-      "context": "sonuç baş",
+      "context": "TR_var baş = 3",
       "replacement": "bakış_sayısı"
     },
     {
       "pos": {
         "file": "m.tr",
-        "line": 27,
-        "col": 27,
-        "end_line": 27,
-        "end_col": 33
+        "line": 25,
+        "col": 15,
+        "end_line": 25,
+        "end_col": 18
       },
       "where": "code",
-      "match": "compound",
-      "word": "kv_baş",
-      "context": "değişken a = Dikkat(8, 2, kv_baş: 1)",
-      "replacement": "kv_bakış_sayısı"
+      "match": "exact",
+      "word": "baş",
+      "context": "TR_return baş",
+      "replacement": "bakış_sayısı"
     },
     {
       "pos": {
         "file": "m.tr",
         "line": 28,
-        "col": 18,
+        "col": 25,
         "end_line": 28,
-        "end_col": 21
+        "end_col": 31
+      },
+      "where": "code",
+      "match": "compound",
+      "word": "kv_baş",
+      "context": "TR_var a = Dikkat(8, 2, kv_baş: 1)",
+      "replacement": "kv_bakış_sayısı"
+    },
+    {
+      "pos": {
+        "file": "m.tr",
+        "line": 29,
+        "col": 16,
+        "end_line": 29,
+        "end_col": 19
       },
       "where": "code",
       "match": "exact",
       "word": "baş",
-      "context": "değişken e = yap(baş: 4)",
+      "context": "TR_var e = yap(baş: 4)",
       "replacement": "bakış_sayısı"
     },
     {
       "pos": {
         "file": "m.tr",
-        "line": 29,
-        "col": 31,
-        "end_line": 29,
-        "end_col": 34
+        "line": 30,
+        "col": 32,
+        "end_line": 30,
+        "end_col": 35
       },
       "role": "dict_key",
       "where": "code",
       "match": "data_format",
       "word": "baş",
-      "context": "değişken ayar = komut_satırı({baş: 8, adım: 1}, açıklamalar: {baş: \"baş sayısı\"})",
+      "context": "TR_var ayar = TR_command_line({baş: 8, TR_step: 1}, TR_descriptions: {baş: \"baş sayısı\"})",
       "replacement": "bakış_sayısı"
     },
     {
       "pos": {
         "file": "m.tr",
-        "line": 29,
-        "col": 63,
-        "end_line": 29,
-        "end_col": 66
+        "line": 30,
+        "col": 71,
+        "end_line": 30,
+        "end_col": 74
       },
       "role": "dict_key",
       "where": "code",
       "match": "data_format",
       "word": "baş",
-      "context": "değişken ayar = komut_satırı({baş: 8, adım: 1}, açıklamalar: {baş: \"baş sayısı\"})",
+      "context": "TR_var ayar = TR_command_line({baş: 8, TR_step: 1}, TR_descriptions: {baş: \"baş sayısı\"})",
       "replacement": "bakış_sayısı"
     },
     {
       "pos": {
         "file": "m.tr",
-        "line": 29,
-        "col": 69,
-        "end_line": 29,
-        "end_col": 72
+        "line": 30,
+        "col": 77,
+        "end_line": 30,
+        "end_col": 80
       },
       "where": "string",
       "match": "exact",
       "word": "baş",
-      "context": "değişken ayar = komut_satırı({baş: 8, adım: 1}, açıklamalar: {baş: \"baş sayısı\"})",
+      "context": "TR_var ayar = TR_command_line({baş: 8, TR_step: 1}, TR_descriptions: {baş: \"baş sayısı\"})",
       "replacement": "bakış_sayısı"
     }
   ],
@@ -356,10 +356,10 @@
       "name": "Dikkat.kurucu.baş",
       "pos": {
         "file": "m.tr",
-        "line": 4,
-        "col": 29,
-        "end_line": 4,
-        "end_col": 32
+        "line": 5,
+        "col": 28,
+        "end_line": 5,
+        "end_col": 31
       },
       "signature": "baş",
       "qualified": "m.Dikkat.kurucu.baş"
@@ -370,10 +370,10 @@
       "name": "yap.baş",
       "pos": {
         "file": "m.tr",
-        "line": 13,
-        "col": 15,
-        "end_line": 13,
-        "end_col": 18
+        "line": 14,
+        "col": 13,
+        "end_line": 14,
+        "end_col": 16
       },
       "signature": "baş",
       "qualified": "m.yap.baş"

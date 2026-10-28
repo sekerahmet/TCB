@@ -81,44 +81,103 @@ func e2eWrittenScripts(t *testing.T, root string) []writtenTRScript {
 		s, ok := literal(e)
 		return ok && strings.HasSuffix(s, ".tr")
 	}
+	helpers := writeHelpers(files)
 	var out []writtenTRScript
 	for _, f := range files {
 		for _, d := range f.Decls {
 			if fd, ok := d.(*ast.FuncDecl); ok && strings.HasPrefix(fd.Name.Name, "Test") {
-				out = append(out, writesIn(fd, fset, text, path)...)
+				out = append(out, writesIn(fd, fset, text, path, helpers)...)
 			}
 		}
 	}
 	return out
 }
 
-// writesIn bir Test işlevinin .tr dosyasına yazdığı betiklerdir (e2eWrittenScripts).
-func writesIn(fd *ast.FuncDecl, fset *token.FileSet, text func(ast.Expr) (string, bool), path func(ast.Expr) bool) []writtenTRScript {
+// fileWriter bir dosya yazanın yol ve içerik argümanlarının sırasıdır.
+type fileWriter struct{ path, content int }
+
+// knownWriters paketle nitelenmiş dosya yazanlardır (paket adı.işlev).
+var knownWriters = map[string]fileWriter{"testkit.WriteFile": {2, 3}, "testkit.WritePath": {1, 2}, "os.WriteFile": {0, 1}}
+
+// writeHelpers e2e'nin kendi dosya yazan yardımcılarıdır (writeTR): yolunu ve içeriğini kendi parametrelerinden bir
+// yazana ileten işlev de yazandır, sabit noktaya kadar (codegraph'ın tr_file_writes.go kuralının bağımsız yazımı).
+func writeHelpers(files []*ast.File) map[string]fileWriter {
+	helpers := map[string]fileWriter{}
+	for changed := true; changed; {
+		changed = false
+		for _, f := range files {
+			for _, d := range f.Decls {
+				fd, ok := d.(*ast.FuncDecl)
+				if !ok || fd.Recv != nil || strings.HasPrefix(fd.Name.Name, "Test") || helpers[fd.Name.Name] != (fileWriter{}) {
+					continue
+				}
+				params := map[string]int{}
+				i := 0
+				for _, fl := range fd.Type.Params.List {
+					for _, n := range fl.Names {
+						params[n.Name] = i
+						i++
+					}
+				}
+				ast.Inspect(fd.Body, func(n ast.Node) bool {
+					c, ok := n.(*ast.CallExpr)
+					if !ok {
+						return true
+					}
+					w, ok := callWriter(c, helpers)
+					if !ok {
+						return true
+					}
+					pa, pok := c.Args[w.path].(*ast.Ident)
+					ca, cok := c.Args[w.content].(*ast.Ident)
+					if pok && cok {
+						if pi, ok := params[pa.Name]; ok {
+							if ci, ok := params[ca.Name]; ok {
+								helpers[fd.Name.Name] = fileWriter{pi, ci}
+								changed = true
+							}
+						}
+					}
+					return true
+				})
+			}
+		}
+	}
+	return helpers
+}
+
+// callWriter çağrı bir dosya yazanınsa (bilinen ya da yardımcı) argüman sıralarıdır.
+func callWriter(c *ast.CallExpr, helpers map[string]fileWriter) (fileWriter, bool) {
+	var w fileWriter
+	var ok bool
+	switch fn := c.Fun.(type) {
+	case *ast.SelectorExpr:
+		if pkg, isIdent := fn.X.(*ast.Ident); isIdent {
+			w, ok = knownWriters[pkg.Name+"."+fn.Sel.Name]
+		}
+	case *ast.Ident:
+		w, ok = helpers[fn.Name]
+	}
+	if !ok || w.path >= len(c.Args) || w.content >= len(c.Args) {
+		return fileWriter{}, false
+	}
+	return w, true
+}
+
+// writesIn bir Test işlevinin .tr dosyasına yazdığı betiklerdir (e2eWrittenScripts): bilinen yazanlarla ve e2e'nin
+// kendi yardımcılarıyla (helpers).
+func writesIn(fd *ast.FuncDecl, fset *token.FileSet, text func(ast.Expr) (string, bool), path func(ast.Expr) bool, helpers map[string]fileWriter) []writtenTRScript {
 	var out []writtenTRScript
 	ast.Inspect(fd, func(n ast.Node) bool {
 		c, ok := n.(*ast.CallExpr)
 		if !ok {
 			return true
 		}
-		sel, ok := c.Fun.(*ast.SelectorExpr)
+		w, ok := callWriter(c, helpers)
 		if !ok {
 			return true
 		}
-		pkg, _ := sel.X.(*ast.Ident)
-		if pkg == nil {
-			return true
-		}
-		var p, content ast.Expr
-		switch {
-		case pkg.Name == "testkit" && sel.Sel.Name == "WriteFile" && len(c.Args) == 4:
-			p, content = c.Args[2], c.Args[3]
-		case pkg.Name == "testkit" && sel.Sel.Name == "WritePath" && len(c.Args) == 3:
-			p, content = c.Args[1], c.Args[2]
-		case pkg.Name == "os" && sel.Sel.Name == "WriteFile" && len(c.Args) == 3:
-			p, content = c.Args[0], c.Args[1]
-		default:
-			return true
-		}
+		p, content := c.Args[w.path], c.Args[w.content]
 		if s, ok := text(content); ok && path(p) {
 			pos := fset.Position(content.Pos())
 			out = append(out, writtenTRScript{fd.Name.Name, filepath.Base(pos.Filename) + ":" + strconv.Itoa(pos.Line), s})

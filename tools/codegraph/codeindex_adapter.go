@@ -114,7 +114,7 @@ func graphNode(r *codeindex.Reader, n codeindex.Node, id string) Node {
 	}[n.Kind]
 	node := Node{ID: id, Kind: kind, Name: n.Qualified, File: n.Pos.File, Line: n.Pos.Line, End: n.Pos.EndLine, Detail: n.Signature, Doc: docLine(n.Doc)}
 	if k, err := codes.Parse(n.Code); err == nil {
-		node.Aliases = codeindex.LanguageNames(k)
+		node.Aliases = append(codeindex.LanguageNames(k), codeindex.SpelledNames(k)...)
 	}
 	node.Aliases = append(node.Aliases, r.QualifiedNames(&n)...)
 	return node
@@ -210,14 +210,19 @@ func declNames(n *Node) []string {
 	return n.Aliases
 }
 
-// nameNodeNames bir ad kodu düğümünün sorguda aranan adlarıdır: kimliği ve dillerdeki adları. Kitaplık kodunun
-// dillerdeki adlarını kitaplıktaki bildirimi taşır (libraryCodeEdges); kod yalnız kimliğiyle aranır, yoksa her
-// kitaplık adı bildirimiyle birlikte iki aday olurdu.
+// nameNodeNames bir ad kodu düğümünün sorguda aranan adlarıdır: kimliği, dillerdeki adları ve program metnindeki yazımı
+// (codeindex.SpelledNames: TR_kw_if → TR_if). Kitaplık kodunun dillerdeki adlarını ve yazımını kitaplıktaki bildirimi
+// taşır (libraryCodeEdges); kod yalnız kimliğiyle aranır, yoksa her kitaplık adı bildirimiyle birlikte iki aday olurdu.
 func nameNodeNames(n *Node) []string {
-	if k, err := codes.Parse(n.Name); err == nil && k.IsLibrary() {
+	k, err := codes.Parse(n.Name)
+	if err == nil && k.IsLibrary() {
 		return []string{n.Name}
 	}
-	return append([]string{n.Name}, n.Aliases...)
+	names := append([]string{n.Name}, n.Aliases...)
+	if err == nil {
+		names = append(names, codeindex.SpelledNames(k)...)
+	}
+	return names
 }
 
 // isErrorExample bilerek sözdizimi hatalı yazılmış hata örneklerinin klasöründeki dosya mı (examples/tr/hatalar): oradaki

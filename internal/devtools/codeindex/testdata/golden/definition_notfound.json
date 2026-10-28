@@ -13,9 +13,9 @@
       "name": "yaz_alan",
       "pos": {
         "file": "lib/geo.tr",
-        "line": 19,
+        "line": 20,
         "col": 1,
-        "end_line": 22,
+        "end_line": 23,
         "end_col": 2
       },
       "signature": "fonksiyon yaz_alan(k)",

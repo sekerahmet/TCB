@@ -47,7 +47,7 @@ TR_print(d.TR_forward(ileri(3)), TR_lr_schedule(1, 4))
 TR_var f = TR_custom_grad(TR_forward: TR_func(x) { TR_return [x, []] }, TR_backward: TR_func(s, g) { TR_return [g] })
 `,
 	} {
-		testkit.WriteFile(t, dir, name, text)
+		testkit.WriteFile(t, dir, name, string(trText(name, text)))
 	}
 	idx, err := Build(dir, Options{})
 	if err != nil {
@@ -62,9 +62,9 @@ TR_var f = TR_custom_grad(TR_forward: TR_func(x) { TR_return [x, []] }, TR_backw
 func TestALibraryNameIsFoundByItsCodeAndByItsNameInEveryLanguage(t *testing.T) {
 	r := libraryProject(t)
 	for want, spellings := range map[string][]string{
-		"struct:lib/katman.tr#TR_type_Linear":                        {"TR_Linear", "Doğrusal", "Linear", "katman.Linear", "katman.TR_Linear"},
-		"method:lib/katman.tr#TR_type_Linear.TR_mem_forward":         {"katman.Doğrusal.ileri", "katman.Linear.forward", "Linear.forward", "katman.TR_Linear.TR_forward"},
-		"function:lib/katman.tr#TR_fn_lr_schedule":                   {"TR_lr_schedule", "öğrenme_oranı_planı", "lr_schedule", "LR_SCHEDULE"},
+		"struct:lib/katman.tr#TR_type_Linear":                        {"TR_Linear", "TR_type_Linear", "Doğrusal", "Linear", "katman.Linear", "katman.TR_Linear", "katman.TR_type_Linear"},
+		"method:lib/katman.tr#TR_type_Linear.TR_mem_forward":         {"katman.Doğrusal.ileri", "katman.Linear.forward", "Linear.forward", "katman.TR_Linear.TR_forward", "katman.TR_type_Linear.TR_mem_forward"},
+		"function:lib/katman.tr#TR_fn_lr_schedule":                   {"TR_lr_schedule", "TR_fn_lr_schedule", "öğrenme_oranı_planı", "lr_schedule", "LR_SCHEDULE"},
 		"parameter:lib/katman.tr#TR_fn_lr_schedule.TR_arg_num_steps": {"lr_schedule.num_steps", "katman.öğrenme_oranı_planı.adım_sayısı"},
 	} {
 		var first []string
@@ -101,7 +101,7 @@ func TestALibraryNameIsFoundByItsCodeAndByItsNameInEveryLanguage(t *testing.T) {
 		t.Errorf("ileri -> %v: the user function is found by its own name", turkish)
 	}
 	turkish = slices.DeleteFunc(turkish, func(id string) bool { return id == "function:examples/a.tr#ileri" })
-	if !slices.Equal(turkish, english) || !slices.Contains(english, "method:lib/katman.tr#TR_type_Linear.TR_mem_forward") || !slices.Contains(english, "builtin:TR_forward") {
+	if !slices.Equal(turkish, english) || !slices.Contains(english, "method:lib/katman.tr#TR_type_Linear.TR_mem_forward") || !slices.Contains(english, "builtin:TR_arg_forward") {
 		t.Errorf("ileri -> %v, forward -> %v: the library method and the builtin are candidates under both names", turkish, english)
 	}
 }

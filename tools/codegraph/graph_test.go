@@ -57,7 +57,7 @@ func TestCodeNodesAndUses(t *testing.T) {
 		}
 	}
 	mustEdge(t, g, describeID, "msg:H0001", edgeUsesMessage, extracted)
-	mustEdge(t, g, describeID, "name:TR_if", edgeUsesName, extracted)
+	mustEdge(t, g, describeID, "name:TR_kw_if", edgeUsesName, extracted)
 	if edge(g, "go:pkg:example.com/mini/internal/lang/messages", "msg:H0001", edgeUsesMessage) != nil {
 		t.Error("the messages package's own definition must not count as a use")
 	}
@@ -217,7 +217,7 @@ func TestCodeConstantsDenoteCodes(t *testing.T) {
 	msgConst := "go:const:example.com/mini/internal/lang/messages.H0001"
 	nameConst := "go:const:example.com/mini/internal/lang/codes.KwIf"
 	mustEdge(t, g, msgConst, "msg:H0001", edgeDenotes, extracted)
-	mustEdge(t, g, nameConst, "name:TR_if", edgeDenotes, extracted)
+	mustEdge(t, g, nameConst, "name:TR_kw_if", edgeDenotes, extracted)
 	mustEdge(t, g, describeID, msgConst, edgeUses, extracted)
 	mustEdge(t, g, describeID, "msg:H0001", edgeUsesMessage, extracted)
 	mustEdge(t, g, describeID, nameConst, edgeUses, extracted)

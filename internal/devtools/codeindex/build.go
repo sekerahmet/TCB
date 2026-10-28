@@ -50,7 +50,6 @@ type file struct {
 type importRef struct {
 	file, alias string
 	pos         Pos
-	nested      bool // test bloğunda ya da işlev gövdesinde: yalnızca `imports` bağı ve (çakışmıyorsa) takma ad
 }
 
 type edgeKey struct {
@@ -78,6 +77,7 @@ type indexer struct {
 	constructSeen map[string]bool
 	retDone       map[string]bool
 	paramOrder    map[string][]string // işlev ya da metot -> parametreleri başlıktaki sırayla (paramsInOrder; tembel)
+	snippet       bool                // metin başlıksız bir program gövdesidir (Snippet: Go testinin dizesi), kodlu okunur
 }
 
 // Build root altındaki .tr dosyalarından dizini kurar. Okunamayan ya da ayrıştırılamayan dosya
@@ -146,7 +146,7 @@ func (x *indexer) addFile(rel string, data []byte, readErr error) {
 		x.skipped = append(x.skipped, Skipped{File: rel, Reason: readErr.Error()})
 		return
 	}
-	res := readFile(string(data))
+	res := readFile(string(data), x.snippet)
 	mod.Coded = res.coded
 	if len(res.errs) > 0 {
 		x.skipped = append(x.skipped, Skipped{File: rel, Reason: firstLine(res.errs[0])})
@@ -169,14 +169,11 @@ func (x *indexer) addLibrary() {
 	for changed := true; changed; {
 		changed = false
 		for _, rel := range append([]string(nil), x.order...) {
-			var imps []*ast.ImportStatement // iç bloklardakiler de (nestedImports): test bloğu modülünü böyle alır
-			ast.Walk(x.files[rel].res.program, func(n any) bool {
-				if imp, ok := n.(*ast.ImportStatement); ok {
-					imps = append(imps, imp)
+			for _, s := range x.files[rel].res.program.Statements {
+				imp, ok := s.(*ast.ImportStatement) // aktarma yalnız dosyanın başındadır (2.1)
+				if !ok {
+					continue
 				}
-				return true
-			})
-			for _, imp := range imps {
 				name, ok := strings.CutPrefix(strings.TrimSuffix(imp.Path, ".tr"), "tr/")
 				if !ok || x.nodes[NodeID(KindModule, "lib/"+name+".tr", "")] != nil {
 					continue

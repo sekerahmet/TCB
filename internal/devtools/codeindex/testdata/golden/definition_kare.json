@@ -12,9 +12,9 @@
     "name": "Kare",
     "pos": {
       "file": "lib/geo.tr",
-      "line": 5,
+      "line": 6,
       "col": 1,
-      "end_line": 13,
+      "end_line": 14,
       "end_col": 2
     },
     "signature": "yapı Kare",
@@ -27,9 +27,9 @@
       "name": "Kare.kenar",
       "pos": {
         "file": "lib/geo.tr",
-        "line": 6,
+        "line": 7,
         "col": 5,
-        "end_line": 6,
+        "end_line": 7,
         "end_col": 14
       },
       "signature": "kenar",
@@ -42,9 +42,9 @@
       "code": "TR_ctx_init",
       "pos": {
         "file": "lib/geo.tr",
-        "line": 7,
+        "line": 8,
         "col": 5,
-        "end_line": 9,
+        "end_line": 10,
         "end_col": 6
       },
       "signature": "fonksiyon kurucu(kenar = …)",
@@ -56,9 +56,9 @@
       "name": "Kare.alan",
       "pos": {
         "file": "lib/geo.tr",
-        "line": 10,
+        "line": 11,
         "col": 5,
-        "end_line": 12,
+        "end_line": 13,
         "end_col": 6
       },
       "signature": "fonksiyon alan()",

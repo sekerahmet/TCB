@@ -24,20 +24,30 @@ func TestALineIsAnsweredByTheDeclarationThatContainsIt(t *testing.T) {
 	ix := newIndex(g)
 	ix.root = root
 	const shape = "shape/shape.go:"
+	// geo fikstürde text'in satırıdır; off > 0 ise text'in off. karakterinin satırı ve sütunu.
+	geo := func(text string, off int) string {
+		line, col := modAt(t, "lib/geo.tr", text)
+		if off == 0 {
+			return fmt.Sprintf("lib/geo.tr:%d", line)
+		}
+		return fmt.Sprintf("lib/geo.tr:%d:%d", line, col+off-1)
+	}
+	call := "TR_return çevre_hesapla(k)"
+	blank := fmt.Sprintf("lib/geo.tr:%d", modLine(t, "lib/geo.tr", "TR_var sayaç")+1) // iki bildirim arası boş satır
 	cases := map[string]string{
-		shape + "20":       "shape.Describe", // belge yorumu
-		shape + "21":       "shape.Describe", // ilk satır
-		shape + "24":       "shape.Describe",
-		shape + "27":       "shape.Describe", // kapanış satırı
-		shape + "19":       "shape/shape.go", // iki bildirim arası
-		shape + "4":        "shape/shape.go", // içe aktarma
-		shape + "92":       "shape.Bump",     // func literal içinde
-		shape + "73":       "shape.Counter.n",
-		"lib/geo.tr:21":    "geo.yaz_alan",
-		"lib/geo.tr:11":    "geo.Kare.alan",
-		"lib/geo.tr:21:12": "geo.çevre_hesapla", // sütun: imlecin altındaki ad
-		"lib/geo.tr:4":     "lib/geo.tr",
-		"docs/guide.md:5":  "Usage",
+		shape + "20":                           "shape.Describe", // belge yorumu
+		shape + "21":                           "shape.Describe", // ilk satır
+		shape + "24":                           "shape.Describe",
+		shape + "27":                           "shape.Describe", // kapanış satırı
+		shape + "19":                           "shape/shape.go", // iki bildirim arası
+		shape + "4":                            "shape/shape.go", // içe aktarma
+		shape + "92":                           "shape.Bump",     // func literal içinde
+		shape + "73":                           "shape.Counter.n",
+		geo(call, 0):                           "geo.yaz_alan",
+		geo("TR_func alan()", 0):               "geo.Kare.alan",
+		geo(call, len([]rune("TR_return "))+3): "geo.çevre_hesapla", // sütun: imlecin altındaki ad
+		blank:                                  "lib/geo.tr",
+		"docs/guide.md:5":                      "Usage",
 	}
 	for q, want := range cases {
 		loc, ok := ix.locate(q, true)
