@@ -6,7 +6,7 @@
 
 Her metodun ve yerleşiğin imzası ve örneği [`docs/codes.md`](../codes.md)'dedir. `.TR_mem_length`, `.TR_mem_first`, `.TR_mem_last` özelliktir, parantezsiz yazılır.
 
-**Metot mu, fonksiyon mu?** Bir değeri dönüştüren ya da ona soru soran iş metottur (`l.TR_mem_length`, `l.TR_mem_filter {...}`, `l.TR_mem_sort()`, `l.TR_mem_append(x)`, `t.TR_mem_transpose()`); matematik ve tensör işi fonksiyondur (`TR_fn_sum(l)`, `TR_fn_mean(l)`, `TR_fn_min(l)`, `TR_fn_max(l)`, `TR_fn_relu(t)`). Hedef tipin adını taşıyan dönüştürücüler (`TR_type_Int(x)`, `TR_type_Float(x)`, `TR_type_String(x)`) kurucudur, `TR_type_Type(x)` de genel bir sorudur; ikisi de fonksiyondur. Her işin tek biçimi vardır; öbür biçim yazılınca hata doğrusunu gösterir:
+**Metot mu, fonksiyon mu?** Bir değeri dönüştüren ya da ona soru soran iş metottur (`l.TR_mem_length`, `l.TR_mem_filter((x) => x > 2)`, `l.TR_mem_sort()`, `l.TR_mem_append(x)`, `t.TR_mem_transpose()`); matematik ve tensör işi fonksiyondur (`TR_fn_sum(l)`, `TR_fn_mean(l)`, `TR_fn_min(l)`, `TR_fn_max(l)`, `TR_fn_relu(t)`). Hedef tipin adını taşıyan dönüştürücüler (`TR_type_Int(x)`, `TR_type_Float(x)`, `TR_type_String(x)`) kurucudur, `TR_type_Type(x)` de genel bir sorudur; ikisi de fonksiyondur. Her işin tek biçimi vardır; öbür biçim yazılınca hata doğrusunu gösterir:
 
 ```text
 'uzunluk(...)' TR'de bir fonksiyon değil; 'x.uzunluk' yazın
@@ -22,7 +22,7 @@ Her metodun ve yerleşiğin imzası ve örneği [`docs/codes.md`](../codes.md)'d
 
 ## Fonksiyon argümanı ve sondaki blok
 
-Elemanla çalışan metotlara fonksiyon ok ile verilir, parantez her zaman yazılır (6.6): `(x) => x > 2`. Bir çağrının sonuna aynı satırda yazılan `{ ... }` bloğu ise parametresiz bir fonksiyondur ve çağrının son argümanı olur (6.7); değeri son ifadesidir, içinde `TR_kw_return` yazılmaz: `TR_fn_error_code { TR_fn_print(1 / 0) }`.
+Elemanla çalışan metotlara fonksiyon ok ile verilir, parantez her zaman yazılır (6.6): `(x) => x > 2`. Bir çağrının sonuna aynı satırda yazılan `{ ... }` bloğu ise parametresiz bir fonksiyondur ve çağrının son argümanı olur (6.7); değeri son ifadesidir, içinde `TR_kw_return` yazılmaz: `TR_fn_error_code { TR_fn_print(1 / 0) }`. Blok argüman almaz; elemanla çalışan metoda blok verilirse (`l.TR_mem_map { 1 }`) çalışma hatası olur, ileti oku önerir.
 
 ```tr
 # TR 4
@@ -30,7 +30,7 @@ TR_var sayılar = [1, 2, 3, 4]
 TR_var personel = [{"ad": "Ali"}, {"ad": "Ayşe"}]
 sayılar.TR_filter((x) => x > 2).TR_map((x) => x * x)   # sayılar.filtrele((x) => x > 2)... ile aynı
 personel.TR_map((x) => x["ad"])
-TR_sum(sayılar.TR_filter((x) => x % 2 == 0))      # fonksiyon çağrıyla: toplam(sayılar.filtrele {...})
+TR_sum(sayılar.TR_filter((x) => x % 2 == 0))      # fonksiyon çağrıyla: toplam(sayılar.filtrele((x) => ...))
 ```
 
 - İç içe fonksiyonlarda parametrelere ayrı ad verin: `[[1, 2]].TR_mem_map((x) => x.TR_mem_map((y) => y * 10))`.

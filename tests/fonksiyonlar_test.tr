@@ -147,6 +147,9 @@ TR_test "6.6 TR_reduce'un fonksiyonu birikimi ve öğeyi alır" {
 TR_test "6.7 sondaki blok argümansız çağrılabilir; değeri son ifadesidir" {
     TR_func çalıştır(iş: () -> TR_Int) -> TR_Int { TR_return iş() }
     TR_assert_equal(5, çalıştır { 2 + 3 })
+    # Blok argüman almaz: yerleşik de onu argümanla çağıramaz, ileti oku önerir
+    TR_assert_equal("H2711", TR_error_code { [1, 2].TR_map { 1 } })
+    TR_assert_equal([2, 4], [1, 2].TR_map((x) => x * 2))
     # Sondaki blok parametresizdir, içinde TR_return yoktur
     # Olumsuz fikstür: tests/negative/sondaki_blok.tr
 }
@@ -218,6 +221,12 @@ TR_test "6.9 fonksiyon değeri sırayla ve bütün argümanlarıyla çağrılır
     TR_assert_equal(3, g(1, 2))
     TR_assert_equal("H2710", TR_error_code { g(1, k: 2) })
     TR_assert_equal("H2710", TR_error_code { g(1) })
+    # Karar adın bağına göredir: parametre, tanımla aynı adı taşısa da bir değerdir
+    TR_func aynı_adla(f: (TR_Int) -> TR_Int, x: TR_Int) -> TR_Int { TR_return f(x) }
+    TR_func başka_adla(h: (TR_Int) -> TR_Int, x: TR_Int) -> TR_Int { TR_return h(x) }
+    TR_assert_equal("H2710", TR_error_code { aynı_adla(f, 1) })
+    TR_assert_equal("H2710", TR_error_code { başka_adla(f, 1) })
+    TR_assert_equal(2, aynı_adla((x) => x * 2, 1))
 }
 
 TR_test "6.11 iç içe çağrı derinliği sınırı yakalanabilir hata verir" {

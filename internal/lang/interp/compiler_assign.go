@@ -12,6 +12,15 @@ import (
 // assignTarget bir atama hedefini derler; dönen işlev sağ taraf değerini hedefe yazar
 // (bileşik atamada önce mevcut değerle işlem yapar).
 func (c *compiler) assignTarget(k *compilerScope, target ast.Expression, codeVal uint8, line int) func(v *VM, env *Environment, rhs Value) error {
+	if id, ok := target.(*ast.Identifier); ok && id.Value == "_" && codeVal == opAssign {
+		// '_' bir ad değildir: değer atılır (5.3)
+		return func(*VM, *Environment, Value) error { return nil }
+	}
+	return c.assignTo(k, target, codeVal, line)
+}
+
+// assignTo bir ada, indekse ya da alana atamayı derler (assignTarget).
+func (c *compiler) assignTo(k *compilerScope, target ast.Expression, codeVal uint8, line int) func(v *VM, env *Environment, rhs Value) error {
 	compound := codeVal != opAssign
 	switch t := target.(type) {
 	case *ast.Identifier:

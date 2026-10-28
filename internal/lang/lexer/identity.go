@@ -355,6 +355,8 @@ func (l *Lexer) scopes() []map[string]codes.Code {
 var removedWords = map[string]messages.Code{
 	codes.IdentityPrefix + "while":   messages.H0021,
 	codes.IdentityPrefix + "default": messages.H0022,
+	codes.IdentityPrefix + "it":      messages.H0271,
+	codes.IdentityPrefix + "acc":     messages.H0272,
 }
 
 // identityError place'te geçerli olmayan lit için iletidir: kalkmış sözcükse TR'deki yazımı, başka
@@ -365,6 +367,10 @@ func identityError(place codes.Place, lit string) error {
 		return messages.New(messages.H0021, lit, codes.Spelling(codes.KwFor))
 	case messages.H0022:
 		return messages.New(messages.H0022, lit)
+	case messages.H0271:
+		return messages.New(messages.H0271, lit, codes.Spelling(codes.MemMap))
+	case messages.H0272:
+		return messages.New(messages.H0272, lit, codes.Spelling(codes.MemReduce))
 	}
 	if place == codes.PlaceOther {
 		if err := familiarOrType(lit); err != nil {

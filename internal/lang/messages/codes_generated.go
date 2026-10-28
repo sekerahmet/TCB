@@ -109,6 +109,8 @@ const (
 	H0268 Code = 268  // adsız {func} yok: fonksiyon ifadesi ok ile yazılır, {func}(x) {{ ... }} yerine (x) => {{ ... }}
 	H0269 Code = 269  // {func} tanımı yalnız deyim olarak yazılır: '{name}'i bloğun bir satırında tanımlayıp adıyla kullanın ya da ifade yerinde ok yazın, (x) => ...
 	H0270 Code = 270  // Python'un lambda'sı TR'de yok: fonksiyon ifadesi ok ile yazılır, lambda x: x * 2 yerine (x) => x * 2
+	H0271 Code = 271  // '{name}' TR'de yok: sondaki blok parametre almaz; öğeyle çalışan fonksiyon ok ile yazılır: l.{map}((x) => x * 2)
+	H0272 Code = 272  // '{name}' TR'de yok: sondaki blok parametre almaz; birikimi ve öğeyi alan fonksiyon ok ile yazılır: l.{reduce}(0, (acc, x) => acc + x)
 	H1001 Code = 1001 // Tip uyuşmazlığı — {name|q} değişkeni {declared|q} tipinde tanımlandı ancak {given|q} tipinde değer atandı{hint}
 	H1002 Code = 1002 // Sabit hatası — {name|q} bir sabittir ('{keyword}') ve değeri değiştirilemez
 	H1003 Code = 1003 // Dönüş tipi uyuşmazlığı — fonksiyon {expected|q} döndürmeli ancak {given|q} tipinde değer döndürülüyor{hint}
@@ -412,6 +414,7 @@ const (
 	H2708 Code = 2708 // bu çağrı {count} değer döndürür, tek bir değer değildir: sonuçları adlara açın (a, b = f()), aynı sonuçlarla TR_return f() yazarak iletin; başka bir çağrının argümanı olamaz
 	H2709 Code = 2709 // çağrı {count} değer döndürür ama {names} ada açılıyor: her sonuca bir ad yazın, gerekmeyenin yerine _ yazın (a, _ = f())
 	H2710 Code = 2710 // adlı argüman ve varsayılan yalnız fonksiyonun tanımlandığı adla yapılan çağrıda geçerlidir; bir fonksiyon değeri sırayla ve bütün argümanlarıyla çağrılır ({count} argüman)
+	H2711 Code = 2711 // sondaki blok parametre almaz ama {given} argümanla çağrıldı; argümanı alan fonksiyonu ok ile yazın: (x) => ...
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

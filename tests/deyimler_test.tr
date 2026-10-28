@@ -24,6 +24,16 @@ TR_test "5.3 çoklu tanım, takas ve listeden açma" {
     TR_assert_equal("Kemal", soyad)
     TR_var ilk, _ = [1, 2]
     TR_assert_equal(1, ilk)
+    # _'ye atama değeri atar
+    TR_var çağrı = 0
+    TR_func say() -> TR_Int {
+        çağrı += 1
+        TR_return çağrı
+    }
+    _ = say()
+    _ = 5
+    ilk, _ = [7, 8]
+    TR_assert_equal([1, 7], [çağrı, ilk])
     # _ okunamaz
     # Olumsuz fikstür: tests/negative/alt_cizgi_okuma.tr
 }

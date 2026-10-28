@@ -68,7 +68,7 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 				return v.callAt(fnVal, argCode, env, line)
 			}
 		}
-		called := calledName(e.Function)
+		called := calledName(k, e.Function)
 		return func(v *VM, env *Environment) (Value, error) {
 			fnVal, err := fun(v, env)
 			if err != nil {
@@ -83,7 +83,7 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 
 	fun = c.namedCallee(k, e, fun)
 	namedCode := c.compileNamedArgs(k, e.NamedArgs)
-	called := calledName(e.Function)
+	called := calledName(k, e.Function)
 	return func(v *VM, env *Environment) (Value, error) {
 		fnVal, err := fun(v, env)
 		if err != nil {
@@ -121,11 +121,17 @@ func valueCall(fnVal Value, called string, nargs int, named bool, line int) erro
 	return messages.At(line, 0, messages.New(messages.H2710, len(fn.Parameters)))
 }
 
-// calledName çağrının tanım adıyla yapılıp yapılmadığını anlamak için çağrılanın adıdır: f(...)'de f,
-// x.f(...)'de f; başka bir ifadede boş.
-func calledName(e ast.Expression) string {
+// calledName çağrı tanımın adıyla yapılıyorsa çağrılanın adıdır, değer üzerindense boş (6.9). Karar adın
+// bağına göredir: f(...)'de f bir TR_func tanımının yuvasına çözülüyorsa çağrı doğrudandır; parametre,
+// TR_var ya da öğe değerdir. Derlemede çözülemeyen ad (takma adsız aktar, hata ayıklayıcı) ve x.f(...)
+// (metot, modülün fonksiyonu) için çağrılanın adı verilir; çalışma anında fonksiyonun tanım adıyla
+// karşılaştırılır (valueCall).
+func calledName(k *compilerScope, e ast.Expression) string {
 	switch x := e.(type) {
 	case *ast.Identifier:
+		if r := k.resolve(x.Value); (r.kind == resolveLocal || r.kind == resolveGlobal) && !r.funcDef {
+			return ""
+		}
 		return x.Value
 	case *ast.MemberExpression:
 		return x.Property

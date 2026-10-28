@@ -207,7 +207,7 @@ yazdır(yanlış veya doğru, 1 > 2 veya 3 > 2)
 
 #### TR_kw_return `sonuç`
 
-Fonksiyondan değer döndürür; gövdenin son ifadesi dönüş değeri değildir, sonuç'suz biten fonksiyon yok döndürür; yalnız sonuç yok döndürür, üst düzeyde programı bitirir, modülün üst düzeyinde ve test gövdesinde derleme hatasıdır.
+Fonksiyondan değer döndürür; gövdenin son ifadesi dönüş değeri değildir, sonuç'suz biten fonksiyon yok döndürür; yalnız sonuç yok döndürür; programın en dışında yazılmaz (1.10), test gövdesinde de derleme hatasıdır.
 
 ```tr
 fonksiyon işaret(n) { eğer n < 0 { sonuç "negatif" }; sonuç "pozitif" }; yazdır(işaret(-2))
