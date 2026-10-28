@@ -6,47 +6,54 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-func formatT(t *testing.T, src string) string {
+// fileOf gövdeyi başlıklı kodlu dosya yapar (2.1): biçimlendirici dosyayı biçimler.
+func fileOf(body string) string { return source.Header + "\n" + body }
+
+// formatT bir dosyanın gövdesini biçimler: kaynak başlıklı kodlu dosyadır, dönen metin başlıksız
+// gövdedir.
+func formatT(t *testing.T, body string) string {
 	t.Helper()
-	output, err := Format(src)
+	output, err := Format(fileOf(body))
 	if err != nil {
-		t.Fatalf("Format hata verdi: %v\nkaynak:\n%s", err, src)
+		t.Fatalf("Format hata verdi: %v\nkaynak:\n%s", err, body)
 	}
-	return output
+	return strings.TrimPrefix(output, source.Header+"\n")
 }
 
 // Gidiş-dönüş: beklenen standart biçim üretilmeli ve ikinci kez biçimlemek bir şey değiştirmemeli.
 func TestStandardFormat(t *testing.T) {
 	cases := []struct{ ad, input, expected string }{
-		{"operatör boşlukları", "değişken   x=1+2*3\n", "değişken x = 1 + 2 * 3\n"},
-		{"virgül ve parantez", "yazdır( 1 ,2,  3 )\n", "yazdır(1, 2, 3)\n"},
+		{"operatör boşlukları", "TR_var   x=1+2*3\n", "TR_var x = 1 + 2 * 3\n"},
+		{"virgül ve parantez", "TR_print( 1 ,2,  3 )\n", "TR_print(1, 2, 3)\n"},
 		{"tekli eksi", "x = -1\ny = a-b\nz = f(-x) * -2\nw = -1\n", "x = -1\ny = a - b\nz = f(-x) * -2\nw = -1\n"},
-		{"değil ve ünlem", "a = !b\nc = değil (d)\n", "a = !b\nc = değil (d)\n"},
-		{"girinti 4 boşluk", "eğer x {\n  yazdır(1)\n\t\teğer y {\nyazdır(2)\n}\n}\n",
-			"eğer x {\n    yazdır(1)\n    eğer y {\n        yazdır(2)\n    }\n}\n"},
-		{"süslü aynı satırda", "fonksiyon f(a)\n{\n    sonuç a\n}\n", "fonksiyon f(a) {\n    sonuç a\n}\n"},
-		{"değilse önceki satıra", "eğer x {\n    a()\n}\ndeğilse\n{\n    b()\n}\n", "eğer x {\n    a()\n} değilse {\n    b()\n}\n"},
-		{"yakala önceki satıra", "dene {\n    a()\n}\nyakala h {\n    b(h)\n}\n", "dene {\n    a()\n} yakala h {\n    b(h)\n}\n"},
-		{"boş satırlar", "\n\n\na = 1\n\n\n\nb = 2\n\n\n", "a = 1\n\nb = 2\n"},
-		{"blok başı/sonu boş satır", "eğer x {\n\n    a()\n\n}\n", "eğer x {\n    a()\n}\n"},
+		{"değil ve ünlem", "a = !b\nc = TR_not (d)\n", "a = !b\nc = TR_not (d)\n"},
+		{"girinti 4 boşluk", "TR_if x {\n  TR_print(1)\n\t\tTR_if y {\nTR_print(2)\n}\n}\n",
+			"TR_if x {\n    TR_print(1)\n    TR_if y {\n        TR_print(2)\n    }\n}\n"},
+		{"süslü aynı satırda", "TR_func f(a)\n{\n    TR_return a\n}\n", "TR_func f(a) {\n    TR_return a\n}\n"},
+		{"değilse önceki satıra", "TR_if x {\n    a()\n}\nTR_else\n{\n    b()\n}\n", "TR_if x {\n    a()\n} TR_else {\n    b()\n}\n"},
+		{"yakala önceki satıra", "TR_try {\n    a()\n}\nTR_catch h {\n    b(h)\n}\n", "TR_try {\n    a()\n} TR_catch h {\n    b(h)\n}\n"},
+		// Başlık bir yorum satırıdır: ardındaki boş satırlar da teke iner.
+		{"boş satırlar", "\n\n\na = 1\n\n\n\nb = 2\n\n\n", "\na = 1\n\nb = 2\n"},
+		{"blok başı/sonu boş satır", "TR_if x {\n\n    a()\n\n}\n", "TR_if x {\n    a()\n}\n"},
 		{"satır sonu boşlukları", "a = 1   \nb = 2\t\n", "a = 1\nb = 2\n"},
 		{"son satır sonu eklenir", "a = 1", "a = 1\n"},
-		{"ileti kodu", "fırlat ileti( \"H6903\" ,x )\n", "fırlat ileti(\"H6903\", x)\n"},
+		{"ileti kodu", "TR_throw TR_message( \"H6903\" ,x )\n", "TR_throw TR_message(\"H6903\", x)\n"},
 		{"sözlük", "s = {\"a\" :1,b: {\"c\":2} }\n", "s = {\"a\": 1, b: {\"c\": 2}}\n"},
 		{"sondaki blok", "y = l.filtrele{o>1}\n", "y = l.filtrele { o > 1 }\n"},
-		{"aralık", "döngü i içinde 1 ..= 10 { yazdır(i) }\n", "döngü i içinde 1..=10 { yazdır(i) }\n"},
-		{"dönüş tipi oku", "fonksiyon f(a:Tam)->Tam { sonuç a }\n", "fonksiyon f(a: Tam) -> Tam { sonuç a }\n"},
+		{"aralık", "TR_for i TR_in 1 ..= 10 { TR_print(i) }\n", "TR_for i TR_in 1..=10 { TR_print(i) }\n"},
+		{"dönüş tipi oku", "TR_func f(a:TR_Int)->TR_Int { TR_return a }\n", "TR_func f(a: TR_Int) -> TR_Int { TR_return a }\n"},
 		{"lambda", "f = (a,b)=>a+b\ng = x=>x*2\n", "f = (a, b) => a + b\ng = x => x * 2\n"},
 		{"devam satırı", "t = 1 +\n2\nl\n|> yazdır\n", "t = 1 +\n    2\nl\n    |> yazdır\n"},
 		{"çok satırlı liste", "l = [\n1,\n  2\n    ]\n", "l = [\n    1,\n    2\n]\n"},
-		{"kapanışla başlayan satır", "f(fonksiyon() {\nyazdır(1)\n}, 2)\n", "f(fonksiyon() {\n    yazdır(1)\n}, 2)\n"},
-		{"CRLF", "a = 1\r\neğer a {\r\n  b()\r\n}\r\n", "a = 1\neğer a {\n    b()\n}\n"},
+		{"kapanışla başlayan satır", "f(TR_func() {\nTR_print(1)\n}, 2)\n", "f(TR_func() {\n    TR_print(1)\n}, 2)\n"},
+		{"CRLF", "a = 1\r\nTR_if a {\r\n  b()\r\n}\r\n", "a = 1\nTR_if a {\n    b()\n}\n"},
 		// Çok satırlı metnin içindeki satır sonları da LF yazılır (karışık satır sonu kalmaz)
 		{"CRLF çok satırlı metin", "m = \"a\r\nb\"\r\n", "m = \"a\nb\"\n"},
-		{"test bloğu", "test \"ad\"{doğrula(1==1)}\n", "test \"ad\" { doğrula(1 == 1) }\n"},
+		{"test bloğu", "TR_test \"ad\"{TR_assert(1==1)}\n", "TR_test \"ad\" { TR_assert(1 == 1) }\n"},
 		{"boş kaynak", "", ""},
 	}
 	for _, d := range cases {
@@ -65,12 +72,12 @@ func TestStandardFormat(t *testing.T) {
 func TestCommentsKept(t *testing.T) {
 	input := `# dosya başı yorumu
 # ikinci yorum
-değişken x = 1   # sondaki yorum
+TR_var x = 1   # sondaki yorum
 # çok
 #   satırlı yorum
-eğer x {
+TR_if x {
         # blok içi yorum
-    yazdır(x) ; yazdır(2) # satır sonu
+    TR_print(x) ; TR_print(2) # satır sonu
     # kapanıştan önce
 }
 # dosya sonu
@@ -85,7 +92,7 @@ eğer x {
 	if !strings.Contains(output, "\n    # blok içi yorum\n") || !strings.Contains(output, "\n    # kapanıştan önce\n}") {
 		t.Errorf("blok içi yorumlar girintilenmedi:\n%s", output)
 	}
-	if !strings.Contains(output, "değişken x = 1 # sondaki yorum\n") {
+	if !strings.Contains(output, "TR_var x = 1 # sondaki yorum\n") {
 		t.Errorf("sondaki yorum satırında kalmadı:\n%s", output)
 	}
 	if second := formatT(t, output); second != output {
@@ -95,7 +102,7 @@ eğer x {
 
 // Yorum, '{' ile önceki satır arasındaysa '{' taşınmaz (yorum koddan sonra kalmasın diye).
 func TestCommentedBraceNotMoved(t *testing.T) {
-	input := "eğer x # neden\n{\n    a()\n}\n"
+	input := "TR_if x # neden\n{\n    a()\n}\n"
 	if output := formatT(t, input); output != input {
 		t.Fatalf("beklenmeyen çıktı:\n%q", output)
 	}
@@ -109,7 +116,7 @@ func TestStringsKeptByteForByte(t *testing.T) {
 		"`C:\\veri\\  {x+1}  \\d{3}`", "`çok\n    satırlı  \n`", "``",
 	}
 	for _, m := range texts {
-		input := "değişken x = 1\ndeğişken p = {}\ndeğişken s = " + m + "\n"
+		input := "TR_var x = 1\nTR_var p = {}\nTR_var s = " + m + "\n"
 		output := formatT(t, input)
 		if !strings.Contains(output, m) {
 			t.Errorf("metin değişti: %s\nçıktı:\n%s", m, output)
@@ -120,9 +127,9 @@ func TestStringsKeptByteForByte(t *testing.T) {
 // Satıra duyarlı yapılar: yeni satırdaki '(', '[' ve sözlük '{' önceki ifadeye bağlanmamalı.
 func TestLineStructureKept(t *testing.T) {
 	inputs := []string{
-		"değişken f = 5\n(1 + 2) |> yazdır\n",
-		"değişken l = [1]\n[2, 3] |> yazdır\n",
-		"değişken s = l.filtrele\n{\"a\": 1} |> yazdır\n",
+		"TR_var f = 5\n(1 + 2) |> TR_print\n",
+		"TR_var l = [1]\n[2, 3] |> TR_print\n",
+		"TR_var s = l.TR_filter\n{\"a\": 1} |> TR_print\n",
 	}
 	for _, g := range inputs {
 		if output := formatT(t, g); output != g {
@@ -141,7 +148,7 @@ func TestMeaningChangeRejected(t *testing.T) {
 	transform = func(src string, _ bool, braces map[pos]int) string {
 		return strings.ReplaceAll(src, "\n", " ") + "\n"
 	}
-	if _, err := Format("değişken f = 5\n(1 + 2) |> yazdır\n"); !errors.As(err, &meaning) {
+	if _, err := Format(fileOf("TR_var f = 5\n(1 + 2) |> TR_print\n")); !errors.As(err, &meaning) {
 		t.Fatalf("anlam değişikliği reddedilmedi, hata: %v", err)
 	}
 
@@ -149,22 +156,22 @@ func TestMeaningChangeRejected(t *testing.T) {
 	transform = func(src string, _ bool, braces map[pos]int) string {
 		return strings.ReplaceAll(src, "1", "2")
 	}
-	if _, err := Format("a = 1\n"); !errors.As(err, &meaning) {
+	if _, err := Format(fileOf("a = 1\n")); !errors.As(err, &meaning) {
 		t.Fatalf("sözcük değişikliği reddedilmedi, hata: %v", err)
 	}
 }
 
 func TestSameMeaning(t *testing.T) {
-	if err := SameMeaning("a=1+2\n", "a = 1 + 2\n"); err != nil {
+	if err := SameMeaning(fileOf("a=1+2\n"), fileOf("a = 1 + 2\n")); err != nil {
 		t.Fatalf("aynı anlamlı kaynaklar farklı sayıldı: %v", err)
 	}
-	if err := SameMeaning("değişken f = 5\n(1)\n", "değişken f = 5 (1)\n"); err == nil {
+	if err := SameMeaning(fileOf("TR_var f = 5\n(1)\n"), fileOf("TR_var f = 5 (1)\n")); err == nil {
 		t.Fatal("farklı anlamlı kaynaklar aynı sayıldı")
 	}
 }
 
 func TestSyntaxErrorNotFormatted(t *testing.T) {
-	_, err := Format("değişken = \n")
+	_, err := Format(fileOf("TR_var = \n"))
 	var sh *SyntaxError
 	if !errors.As(err, &sh) {
 		t.Fatalf("sözdizimi hatası bildirilmedi: %v", err)
@@ -199,8 +206,8 @@ func TestRepoFiles(t *testing.T) {
 }
 
 func TestBOMKept(t *testing.T) {
-	output := formatT(t, "\xef\xbb\xbfa=1\n")
-	if output != "\xef\xbb\xbfa = 1\n" {
+	output, err := Format("\xef\xbb\xbf" + fileOf("a=1\n"))
+	if err != nil || output != "\xef\xbb\xbf"+fileOf("a = 1\n") {
 		t.Fatalf("BOM korunmadı: %q", output)
 	}
 }
@@ -216,7 +223,7 @@ func TestCodedFileFormats(t *testing.T) {
 	if want := "\ufeff# TR 4\nTR_func f(a) { TR_return a + 1 }\nTR_print(f(1))\n"; got != want {
 		t.Errorf("kodlu biçimleme:\n%q\nbeklenen:\n%q", got, want)
 	}
-	// Biçimin değişmesi (kodlu ↔ Türkçe) anlam denetiminde reddedilir.
+	// Biçimin değişmesi (kodlu ↔ Türkçe) anlam denetiminde reddedilir; bilerek Türkçe gösterim.
 	var meaning *MeaningChangedError
 	if err := SameMeaning(got, "fonksiyon f(a) { sonuç a + 1 }\nyazdır(f(1))\n"); !errors.As(err, &meaning) {
 		t.Errorf("kodlu ve Türkçe biçim aynı sayıldı: %v", err)
@@ -235,18 +242,18 @@ func TestCodedFileFormats(t *testing.T) {
 // Devam satırında açılan gövde deyimin girintisine göredir.
 func TestContinuationBody(t *testing.T) {
 	cases := []struct{ ad, input, expected string }{
-		{"devam satırında gövde", "eğer a ve\nb {\nyazdır(1)\n}\nyazdır(2)\n",
-			"eğer a ve\n    b {\n    yazdır(1)\n}\nyazdır(2)\n"},
-		{"parantezli koşul devamı", "eğer (a ve\nb) {\nyazdır(1)\n}\n",
-			"eğer (a ve\n        b) {\n    yazdır(1)\n}\n"},
-		{"iç blokta devam", "döngü i içinde 0..3 {\neğer i > 0 veya\ni < 2 {\nyazdır(i)\n}\n}\n",
-			"döngü i içinde 0..3 {\n    eğer i > 0 veya\n        i < 2 {\n        yazdır(i)\n    }\n}\n"},
+		{"devam satırında gövde", "TR_if a TR_and\nb {\nTR_print(1)\n}\nTR_print(2)\n",
+			"TR_if a TR_and\n    b {\n    TR_print(1)\n}\nTR_print(2)\n"},
+		{"parantezli koşul devamı", "TR_if (a TR_and\nb) {\nTR_print(1)\n}\n",
+			"TR_if (a TR_and\n        b) {\n    TR_print(1)\n}\n"},
+		{"iç blokta devam", "TR_for i TR_in 0..3 {\nTR_if i > 0 TR_or\ni < 2 {\nTR_print(i)\n}\n}\n",
+			"TR_for i TR_in 0..3 {\n    TR_if i > 0 TR_or\n        i < 2 {\n        TR_print(i)\n    }\n}\n"},
 		// Bir argümanın içindeki gövde (parantez açıkken) eskisi gibi satırın girintisine göredir.
-		{"devam satırında fonksiyon argümanı", "x = 1 +\nf(fonksiyon() {\nyazdır(1)\n})\n",
-			"x = 1 +\n    f(fonksiyon() {\n        yazdır(1)\n    })\n"},
+		{"devam satırında fonksiyon argümanı", "x = 1 +\nf(TR_func() {\nTR_print(1)\n})\n",
+			"x = 1 +\n    f(TR_func() {\n        TR_print(1)\n    })\n"},
 		// Ayrıştırıcı yeni satırdaki '-x'i önceki ifadeyle (eğer de bir ifadedir) ikili eksi okur;
 		// biçim bu okumayı gösterir.
-		{"bloktan sonra eksi", "eğer a {\nb()\n}\n-x\n", "eğer a {\n    b()\n}\n- x\n"},
+		{"bloktan sonra eksi", "TR_if a {\nb()\n}\n-x\n", "TR_if a {\n    b()\n}\n- x\n"},
 	}
 	for _, d := range cases {
 		t.Run(d.ad, func(t *testing.T) {
