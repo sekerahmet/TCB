@@ -5,6 +5,8 @@ TR_test "5.1 değişken ilk değeriyle tanımlanır" {
     TR_var a = 1
     TR_var b = 2
     TR_assert_equal(3, a + b)
+    # Kısa tanım (x := 1) ve ilk değersiz tanım sözdizimi hatasıdır
+    # Olumsuz fikstür: tests/negative/ilk_deger.tr
 }
 
 TR_test "5.2 sabit: tanımlandıktan sonra değiştirilemez" {
@@ -22,6 +24,8 @@ TR_test "5.3 çoklu tanım, takas ve listeden açma" {
     TR_assert_equal("Kemal", soyad)
     TR_var ilk, _ = [1, 2]
     TR_assert_equal(1, ilk)
+    # _ okunamaz
+    # Olumsuz fikstür: tests/negative/alt_cizgi_okuma.tr
 }
 
 TR_test "5.3 öğe sayısı ad sayısını tutmazsa çalışma hatasıdır" {
@@ -100,7 +104,7 @@ TR_test "5.4 listede += ve *= yerindedir, listeyi paylaşan ad da görür" {
 
 TR_test "5.4 bileşik atamanın hedefi bir kez hesaplanır" {
     TR_var çağrı = 0
-    TR_func sıra() {
+    TR_func sıra() -> TR_Int {
         çağrı += 1
         TR_return 0
     }
@@ -111,16 +115,18 @@ TR_test "5.4 bileşik atamanın hedefi bir kez hesaplanır" {
 }
 
 TR_test "5.5 eğer / değilse eğer / değilse bir ifadedir" {
-    TR_func sınıflandır(n) {
+    TR_func sınıflandır(n: TR_Int) -> TR_String {
         TR_return TR_if n < 0 { "negatif" } TR_else TR_if n == 0 { "sıfır" } TR_else { "pozitif" }
     }
     TR_assert_equal("negatif", sınıflandır(-5))
     TR_assert_equal("sıfır", sınıflandır(0))
     TR_assert_equal("pozitif", sınıflandır(7))
+    # Değer yerindeki TR_if'in TR_else'i zorunludur; Python'un koşullu ifadesi yoktur
+    # Olumsuz fikstür: tests/negative/degersiz_if.tr
 }
 
 TR_test "5.6 eşle: değer, çoklu desen, aralık ve varsayılan" {
-    TR_func not_adı(n) {
+    TR_func not_adı(n: TR_Int) -> TR_String {
         TR_return TR_match n {
             100 => "tam puan"
             90..100 => "pekiyi"
@@ -147,14 +153,14 @@ TR_test "5.6 hiçbir kolla eşleşmeyen eşleme çalışma hatasıdır" {
         _ => "diğer" })
 }
 
-TR_test "5.6 eşle: ad ve parantezli desen değeriyle karşılaştırılır (ok fonksiyonu değildir)" {
+TR_test "5.6 eşle: parantezli desen değeriyle karşılaştırılır (ok fonksiyonu değildir)" {
     TR_var sınır = 10
     TR_var kırmızı = "#f00"
-    TR_func tür(x) {
+    TR_func tür(x: TR_Any) -> TR_String {
         TR_return TR_match x {
-            sınır => "sınırda"
+            (sınır) => "sınırda"
             (sınır * 2) => "iki katı"
-            kırmızı, "#ff0000" => "kırmızı"
+            (kırmızı), "#ff0000" => "kırmızı"
             _ => "başka"
         }
     }
@@ -263,18 +269,18 @@ TR_test "5.12 bloklar kapsam açar; dış değişkenler atanabilir" {
     # Olumsuz fikstür: tests/negative/tanimsiz_adlar.tr
 }
 
-TR_test "5.12 eşle kolu ve eğer dalı kendi kapsamını açar: blokta tanımlanan adlı fonksiyon dış adı ezmez" {
-    TR_func f() { TR_return 1 }
+TR_test "5.12 eşle kolu ve eğer dalı kendi kapsamını açar" {
+    TR_func f() -> TR_Int { TR_return 1 }
     TR_var s = TR_match 1 {
         1 => {
-            TR_func f() { TR_return 8 }
-            f()
+            TR_func g() -> TR_Int { TR_return 8 }
+            g()
         }
         _ => 0
     }
     TR_var t = TR_if TR_true {
-        TR_func f() { TR_return 9 }
-        f()
+        TR_func g() -> TR_Int { TR_return 9 }
+        g()
     } TR_else { 0 }
     TR_assert_equal([8, 9, 1], [s, t, f()])
 }
@@ -298,8 +304,8 @@ TR_test "5.13 çık ve devam yalnızca döngü içinde geçerlidir" {
 TR_test "5.14 tanımsız ad çalışmadan önce bulunur; dinamik adlar yanlış alarm vermez" {
     # Olumsuz fikstür: tests/negative/tanimsiz_adlar.tr
     # Bunlar tanımlıdır; denetim yanlış alarm vermez.
-    TR_func önce() { TR_return sonra() + 1 }
-    TR_func sonra() { TR_return 1 }
+    TR_func önce() -> TR_Int { TR_return sonra() + 1 }
+    TR_func sonra() -> TR_Int { TR_return 1 }
     TR_assert_equal(2, önce())
     TR_assert_equal([2, 3], [1, 2].TR_map((x) => x + 1))
     TR_var yakalanan = ""

@@ -5,13 +5,13 @@ Bu bölümün kurallarına göre bugünkü durum ve yapılacaklar: [`docs/status
 Her kuralın emsali ve gerekçesi: [`rationale/05_statements.md`](rationale/05_statements.md).
 
 **5.1** `TR_var x = ifade` bulunulan kapsamda yeni bir değişken tanımlar; ilk değer her zaman yazılır, tip ondan çıkar (3.13). Kısa yazım (`x := ifade`) yoktur: sözdizimi hatasıdır, ileti `TR_var`'ı önerir. Fonksiyonun içinde hiç yeniden atanmayan yerel `TR_var` uyarı verir, ileti `TR_const`'u önerir; programın en dışındaki değişkenler bu uyarıya girmez.
-- *Test:* TR testi; ilk değerin zorunluluğu, kısa yazımın hatası ve uyarı uygulanınca TR testi.
+- *Test:* TR testi; uyarı uygulanınca TR testi.
 
 **5.2** `TR_const x = ifade` yeniden atanamayan bir ad tanımlar; ona atama denetim hatasıdır. Sabit olan bağdır, değer değil: `TR_const l = [1]` iken `l.TR_append(2)` geçerli, `l = []` hatadır. Tip açıklaması 3.13'teki gibi yazılır (`TR_const l: TR_List[TR_Int] = []`). Modülün en dışındaki sabitin ilk değeri sabit ifadedir (1.1).
 - *Test:* TR testi.
 
 **5.3** Çoklu tanım ve atama virgülle yapılır; sağdaki ifadelerin hepsi atamadan önce hesaplanır (`a, b = b, a` takas eder). Sağda tek bir liste varsa öğelerine açılır; öğe sayısı tutmazsa çalışma hatasıdır. Gerekmeyen değerin yerine `_` yazılır (`TR_var a, _ = b, c`); `_` bir ad değildir, okunamaz.
-- *Test:* TR testi; öğe sayısı hatası ve `_`'nin okunamaması uygulanınca TR testi.
+- *Test:* TR testi.
 
 ```tr
 # TR 4
@@ -21,10 +21,10 @@ TR_const AD, SOYAD = ["Mustafa", "Kemal"]
 ```
 
 **5.4** Atama `=` ile, bileşik atama `+=`, `-=`, `*=`, `/=`, `//=`, `%=`, `**=`, `&=`, `|=`, `^=`, `<<=`, `>>=` ile yapılır; `x op= y`, `x = x op y` demektir ve sonucun tipi `x`'in tipi olmalıdır (`TR_Int` bir değişkene `/=` denetim hatasıdır, ileti `//=`'yi önerir). Tek istisna `TR_List`'tir: `+=` ve `*=` listeyi yerinde değiştirir, listeyi paylaşan her ad değişikliği görür (`TR_var m = l` iken `l += [2]` `m`'yi de uzatır); `TR_const` listede de geçerlidir (5.2); `*=` 4.10'un yineleme kuralına uyar. Hedef bir ad, indeks (`l[0]`) ya da alan (`p.x`) olabilir ve bir kez hesaplanır (`l[f()] += 1`'de `f` bir kez çağrılır). Tanımlanmamış bir ada atama denetim hatasıdır; ileti `TR_var`'ı önerir.
-- *Test:* TR testi; yeni bileşik atamalar, tip kuralı ve listenin yerinde değişmesi uygulanınca TR testi.
+- *Test:* TR testi; tip kuralı uygulanınca denetleyicinin testi.
 
 **5.5** `TR_if koşul { ... } TR_else TR_if koşul { ... } TR_else { ... }`: koşul `TR_Bool`'dur (3.10), gövde her zaman süslü parantez içindedir. `TR_if` ifade olarak da kullanılır: değeri çalışan bloğun son ifadesidir; o zaman `TR_else` zorunludur ve bütün dalların tipi aynıdır. `TR_elif` yoktur; ileti `TR_else TR_if`'i önerir. Python'un koşullu ifadesi (`a TR_if c TR_else b`) sözdizimi hatasıdır; ileti `TR_if c { a } TR_else { b }`'yi önerir.
-- *Test:* TR testi; zorunlu `TR_else` ve dal tipi uygulanınca denetleyicinin testi.
+- *Test:* TR testi; dal tipi uygulanınca denetleyicinin testi.
 
 ```tr
 # TR 4
@@ -52,7 +52,7 @@ TR_var not_ = TR_match puan {
 ```
 
 **5.7** `TR_for x TR_in kaynak { ... }` dolaşır: listede öğeler, aralıkta sayılar, metinde karakterler, bayt dizisinde baytlar (`TR_Int`), sözlükte anahtarlar, `TR_JSON` dizisinde öğeler ve nesnesinde anahtarlar; akışlı kaynakta (veri okuyucu) öğeler istendikçe okunur, kaynak bitince döngü biter. Metin, sayı, mantık ve yokluk türündeki `TR_JSON` değeri dolaşılamaz (çalışma hatası). `TR_for i, x TR_in ...` listede, metinde ve bayt dizisinde indeksle öğeyi, sözlükte ve `TR_JSON` nesnesinde anahtarla değeri verir. Değer gerekmiyorsa değişkenin yerine `_` yazılır (`TR_for _ TR_in 0..3`); liste üretecinde de. Dolaşılan liste ya da sözlüğe öğe eklemek ya da ondan öğe çıkarmak çalışma hatasıdır; var olan öğeye ya da anahtara atama (`l[i] = ...`, `d[k] = ...`) serbesttir, dolaşma o anki değeri görür. Tensörde dolaşmak sonraki bölümlerdedir.
-- *Test:* TR testi; dolaşırken değiştirme hatası uygulanınca TR testi.
+- *Test:* TR testi.
 
 **5.8** `TR_for koşul { ... }` koşul doğru oldukça döner; koşul `TR_Bool`'dur. Ayrı bir `TR_while` yoktur (2.9).
 - *Test:* TR testi; `TR_while`'ın kalkması uygulanınca TR testi.
