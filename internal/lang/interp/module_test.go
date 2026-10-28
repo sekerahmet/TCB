@@ -24,7 +24,7 @@ func runWithModules(t *testing.T, root string, files map[string]string) (string,
 		testkit.WritePath(t, filepath.Join(root, filepath.FromSlash(name)), content)
 	}
 	codeVal := files["ana.tr"]
-	p := parser.New(source.TextLexer(codeVal))
+	p := parser.New(bodyLexer(codeVal))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatalf("ana.tr sözdizimi: %v", p.Errors())

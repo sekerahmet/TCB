@@ -9,7 +9,6 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/checker"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
-	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
@@ -38,7 +37,7 @@ func FuzzCompileSource(f *testing.F) {
 			return
 		}
 		_ = CheckModule(codeVal, nil, true)
-		p := parser.New(source.TextLexer(codeVal))
+		p := parser.New(bodyLexer(codeVal))
 		prog := p.ParseProgram()
 		if len(p.Errors()) > 0 {
 			return

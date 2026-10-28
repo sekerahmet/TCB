@@ -61,11 +61,11 @@ func TestCompilerDynamicEval(t *testing.T) {
 	machine := New()
 	env := NewEnvironment(machine.GlobalEnv)
 	env.Define("a", NewInt(4), false)
-	prog := parser.New(source.TextLexer("TR_var b = a * 2\nb += 1")).ParseProgram()
+	prog := parser.New(bodyLexer("TR_var b = a * 2\nb += 1")).ParseProgram()
 	if _, err := machine.ExecStatements(prog.Statements, env); err != nil {
 		t.Fatal(err)
 	}
-	expr := parser.New(source.TextLexer("a + b")).ParseProgram().Statements[0].(*ast.ExpressionStatement).Expression
+	expr := parser.New(bodyLexer("a + b")).ParseProgram().Statements[0].(*ast.ExpressionStatement).Expression
 	val, err := machine.EvalExpression(expr, env)
 	if err != nil || val.Inspect() != "13" {
 		t.Fatalf("13 bekleniyordu: %v %v", val, err)
@@ -103,14 +103,14 @@ func (d *jumpingDebugger) Breakpoint(string) {}
 
 // Hata ayıklayıcı bir satır döndürdüğünde yürütme o satıra (fonksiyon gövdesinde de) atlamalı.
 func TestCompilerJump(t *testing.T) {
-	codeVal := "fonksiyon f() {\n" + // 1
+	codeVal := "TR_func f() {\n" + // 1
 		"    TR_var s = 0\n" + // 2
 		"    s += 1\n" + // 3
 		"    s += 10\n" + // 4
-		"    sonuç s\n" + // 5
+		"    TR_return s\n" + // 5
 		"}\n" + // 6
 		"TR_print(f())\n" // 7
-	p := parser.New(source.TextLexer(codeVal))
+	p := parser.New(bodyLexer(codeVal))
 	prog := p.ParseProgram()
 	var out strings.Builder
 	machine := New()
@@ -205,14 +205,14 @@ func TestStructDefaultInDefScope(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, val, err := runTROut(t, `
-		aktar "`+filepath.ToSlash(module)+`" olarak m
-		fonksiyon yerel_yapi() {
-			değişken taban = 7
-			yapı Y { b: Tam = taban * 2 }
-			sonuç Y()
+		TR_import "`+filepath.ToSlash(module)+`" TR_as m
+		TR_func yerel_yapi() {
+			TR_var taban = 7
+			TR_struct Y { b: TR_Int = taban * 2 }
+			TR_return Y()
 		}
-		yapı G { c: Tam = 1 }
-		değişken result = [m.K_yap().a, m.K().a, yerel_yapi().b, G().c]
+		TR_struct G { c: TR_Int = 1 }
+		TR_var result = [m.K_yap().a, m.K().a, yerel_yapi().b, G().c]
 	`)
 	if err != nil || val.Inspect() != "[5, 5, 14, 1]" {
 		t.Fatalf("[5, 5, 14, 1] bekleniyordu: %v %v", val, err)

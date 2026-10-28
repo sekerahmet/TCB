@@ -7,7 +7,6 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
-	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
 // Ertelenen işin hatası yutulmaz: programın üst düzeyinde programın, görevde görevin hatası olur.
@@ -16,7 +15,7 @@ func TestDeferErrorInProgramAndTask(t *testing.T) {
 	m := New()
 	m.Out = &out
 	m.Err = &failure
-	prog := parser.New(source.TextLexer("TR_defer { TR_throw \"üst düzey ertele\" }\nTR_async {\n    TR_defer { TR_throw \"görev ertelesi\" }\n}\nTR_print(\"gövde\")\n")).ParseProgram()
+	prog := parser.New(bodyLexer("TR_defer { TR_throw \"üst düzey ertele\" }\nTR_async {\n    TR_defer { TR_throw \"görev ertelesi\" }\n}\nTR_print(\"gövde\")\n")).ParseProgram()
 	_, err := m.Run(prog)
 	if err == nil || err.Error() != "Satır 1: üst düzey ertele" {
 		t.Fatalf("programın ertele hatası dönmeli: %v", err)
@@ -33,7 +32,7 @@ func TestUncaughtThrowStopsWithPosition(t *testing.T) {
 	var out, failure bytes.Buffer
 	m := New()
 	m.Out, m.Err = &out, &failure
-	prog := parser.New(source.TextLexer("TR_func f() {\n    TR_throw \"sıfır olamaz\"\n}\n" +
+	prog := parser.New(bodyLexer("TR_func f() {\n    TR_throw \"sıfır olamaz\"\n}\n" +
 		"TR_try { f() } TR_catch e { TR_print(e) }\n" +
 		"TR_async {\n    TR_throw \"kötü öğe\"\n}\nTR_wait_all()\nf()\n")).ParseProgram()
 	_, err := m.Run(prog)
