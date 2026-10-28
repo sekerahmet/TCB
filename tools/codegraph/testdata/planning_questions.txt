@@ -133,7 +133,7 @@ codegraph who-uses hint.TypeTextComparisonError | group: calls => checker.Checke
 codegraph who-uses H1105 | group: uses_message => hint.TypeTextComparisonError | src: değer dili 3. tur, 2026-10-25
 codegraph who-uses interp.NonFiniteText | group: calls => interp.FloatVal.Text | group: calls => ml.numberText | src: değer dili 3. tur ve adım 3, 2026-10-25 (sayı ve tensör tek ad)
 codegraph who-uses jsonwrite.nonFiniteData | group: calls => jsonwrite.writer.number | src: değer dili adım 3, 2026-10-25 (veri biçimi değer metninden ayrı)
-codegraph tests-for TR_env_LANG | contains: cmd/tr/e2e/ | contains: messages.TestLanguageReadOnce | src: değer dili 3. tur, 2026-10-25
+codegraph tests-for TR_env_LANG --all | contains: cmd/tr/e2e/ | contains: messages.TestLanguageReadOnce | src: değer dili 3. tur, 2026-10-25
 
 # Bağımsız denetim grup 7: Go adlarının harf kuralı, ASCII büyük harf, dilin sözcüğü (2026-10-25)
 codegraph query ifexpression | contains: ast.IfExpression [type] | not: is ambiguous | src: denetim grup 7 R1, 2026-10-25
@@ -167,7 +167,7 @@ codegraph who-uses codes.Name --all | contains: interp.ctorName | contains: chec
 codegraph query GetProperty | exit: 3 | contains: interp.PropertyGetter.GetProperty | src: iç dil 1. tur, 2026-10-25 (üye okuma kod ve ad birlikte alıyor)
 tr dizin tanım toplam | exit: 3 | contains: builtin:TR_fn_sum | src: iç dil 1. tur, 2026-10-25 (yerleşik ile kullanıcı adı ayrı düğüm)
 codegraph query parser.contextWordsOf | contains: codes.Language.Name | src: iç dil 2. tur, 2026-10-25 (örtük adlar kendi, o, birikim, hata okuyucunun dilindeki adla ağaca giriyor)
-codegraph who-uses source.Prepare --by-package | contains: cmd/tr: 6 functions | contains: internal/devtools/debugger | src: iç dil 2. tur, 2026-10-25 (kaynak okuyan her araç source paketinden geçer)
+codegraph who-uses source.Prepare --by-package | contains: cmd/tr: | contains: internal/lang/interp: | contains: internal/devtools/debugger | src: iç dil 2. tur, 2026-10-25 (kaynak okuyan her araç source paketinden geçer)
 codegraph who-uses lexer.Token.Literal --all | contains: parser.Parser.parseStatement | src: iç dil 2. tur, 2026-10-25 (ayrıştırıcı sözcüğü metniyle tanıyor)
 codegraph who-uses ast.Identifier.Value --all | contains: interp.compiler.readName | src: iç dil 2. tur, 2026-10-25 (yorumlayıcı adı koda değil ada göre çözüyor)
 codegraph query checker.NameBindings | contains: source.analyze | src: iç dil 3. tur, 2026-10-25 (adın başka dilde neye bağlanacağını hesaplayan yer; ad kuralı burada)
