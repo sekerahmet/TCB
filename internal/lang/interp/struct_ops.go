@@ -41,8 +41,10 @@ func checkStructArgs(def *StructDefVal, nargs int, named map[string]Value, line 
 	return nil
 }
 
-// construct yapının çağrısıdır: alanlar argümanlardan, adlı argümanlardan ya da varsayılanlardan
-// dolar; kurucu varsa argümanlar onun imzasına gider.
+// construct yapının çağrısıdır (7.2, 7.4). Kurucusu olmayan yapıda alanlar tanım sırasıyla konumlu
+// argümanlardan, adlı argümanlardan ya da varsayılanlardan dolar; varsayılanı olmayan ve verilmeyen
+// alan hatadır. Kurucu varsa nesne yalnız onun imzasıyla kurulur: varsayılanlı alanlar kurucunun
+// gövdesinden önce, tanım sırasıyla değerini alır, argümanlar yalnız kurucuya gider.
 func (v *VM) construct(fn *StructDefVal, args []Value, named map[string]Value, line int) (Value, error) {
 	inst := &StructInstanceVal{
 		Def:    fn,
@@ -59,33 +61,36 @@ func (v *VM) construct(fn *StructDefVal, args []Value, named map[string]Value, l
 		fieldEnv = v.GlobalEnv
 	}
 	initMethod, withCtor := fn.Methods[ctorName]
-	if !withCtor {
-		// kurucu yoksa argümanlar alanlara gider: fazlası ya da bilinmeyen adlısı hatadır
-		if err := checkStructArgs(fn, len(args), named, line); err != nil {
+	if withCtor {
+		// argümanlar kurucunun imzasına göre denetlenir (gövdeden önce: varsayılanlar boşa hesaplanmaz)
+		if err := checkArity(initMethod, fn, len(args), named, line); err != nil {
 			return nil, err
 		}
+	} else if err := checkStructArgs(fn, len(args), named, line); err != nil {
+		// kurucu yoksa argümanlar alanlara gider: fazlası ya da bilinmeyen adlısı hatadır
+		return nil, err
 	}
 	for i, f := range fn.Fields {
-		if i < len(args) {
+		switch {
+		case !withCtor && i < len(args):
 			inst.Fields[f.Name] = args[i]
-		} else if named != nil && named[f.Name] != nil {
+		case !withCtor && named[f.Name] != nil:
 			inst.Fields[f.Name] = named[f.Name]
-		} else if f.DefaultValue != nil && i < len(fn.fieldCode) && fn.fieldCode[i] != nil {
+		case f.DefaultValue != nil && i < len(fn.fieldCode) && fn.fieldCode[i] != nil:
 			defVal, err := fn.fieldCode[i](v, fieldEnv)
 			if err != nil {
 				return nil, err
 			}
 			inst.Fields[f.Name] = defVal
-		} else {
+		case withCtor:
+			// kurucu atar; atanmadan okunması 4a'nın denetimidir (7.4)
 			inst.Fields[f.Name] = Null
+		default:
+			return nil, messages.At(line, 0, messages.New(messages.H2750, fn.Name, f.Name))
 		}
 		escape(inst.Fields[f.Name]) // nesne alanına yazılan değer kaçar
 	}
 	if withCtor {
-		// kurucu varsa argümanlar onun imzasına göre denetlenir
-		if err := checkArity(initMethod, fn, len(args), named, line); err != nil {
-			return nil, err
-		}
 		boundInit := &FuncVal{
 			Name:       initMethod.Name,
 			Parameters: initMethod.Parameters,
@@ -94,8 +99,7 @@ func (v *VM) construct(fn *StructDefVal, args []Value, named map[string]Value, l
 			BoundSelf:  inst,
 			codeVal:    initMethod.codeVal,
 		}
-		_, err := v.ApplyFunction(boundInit, args, named, line)
-		if err != nil {
+		if _, err := v.ApplyFunction(boundInit, args, named, line); err != nil {
 			return nil, err
 		}
 	}

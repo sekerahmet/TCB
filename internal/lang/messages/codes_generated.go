@@ -118,6 +118,8 @@ const (
 	H0279 Code = 279  // '{class} {struct}({base})': TR'de sınıf yok ve yapı kalıtım almaz; ortak parçayı alan olarak yazın: {keyword} {struct} {{ {field}: {base} }} (ortak davranış arayüzle kurulur)
 	H0280 Code = 280  // '{keyword} {struct}({base})': TR'de yapı kalıtım almaz; ortak parçayı yapının bir alanı olarak yazın (ortak davranış arayüzle kurulur)
 	H0281 Code = 281  // '{class} {struct}({base})': TR'de sınıf yok ve yapı ({keyword}) kalıtım almaz; ortak parçayı yapının bir alanı olarak yazın (ortak davranış arayüzle kurulur)
+	H0282 Code = 282  // kurucu '{init}' değer döndürmez (yapının çağrısı nesneyi verir); '{return}' değersiz yazılır ya da hiç yazılmaz
+	H0283 Code = 283  // kurucu '{init}' dönüş tipi almaz (yapının çağrısı nesneyi verir); '->' ile ardındaki tipi silin
 	H1001 Code = 1001 // Tip uyuşmazlığı — {name|q} değişkeni {declared|q} tipinde tanımlandı ancak {given|q} tipinde değer atandı{hint}
 	H1002 Code = 1002 // Sabit hatası — {name|q} bir sabittir ('{keyword}') ve değeri değiştirilemez
 	H1003 Code = 1003 // Dönüş tipi uyuşmazlığı — fonksiyon {expected|q} döndürmeli ancak {given|q} tipinde değer döndürülüyor{hint}
@@ -422,6 +424,7 @@ const (
 	H2709 Code = 2709 // çağrı {count} değer döndürür ama {names} ada açılıyor: her sonuca bir ad yazın, gerekmeyenin yerine _ yazın (a, _ = f())
 	H2710 Code = 2710 // adlı argüman ve varsayılan yalnız fonksiyonun tanımlandığı adla yapılan çağrıda geçerlidir; bir fonksiyon değeri sırayla ve bütün argümanlarıyla çağrılır ({count} argüman)
 	H2711 Code = 2711 // sondaki blok parametre almaz ama {given} argümanla çağrıldı; argümanı alan fonksiyonu ok ile yazın: (x) => ...
+	H2750 Code = 2750 // {struct}: '{field}' alanının varsayılanı yok ve ona değer verilmedi; argüman olarak, sırayla ya da adla verin
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

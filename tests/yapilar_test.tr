@@ -18,8 +18,8 @@ TR_test "7.1 yapı alanları ve varsayılan değerleri" {
     TR_assert_equal(0, p.x)
     TR_assert_equal(0, p.y)
     TR_struct Satır { a, c, b: TR_Int = 2 }
-    TR_var s = Satır()
-    TR_assert_equal([TR_none, 2, TR_none], [s.a, s.b, s.c])
+    TR_var s = Satır(1, 3)
+    TR_assert_equal([1, 2, 3], [s.a, s.b, s.c])
 }
 
 TR_test "7.1 kalıtım yok: ortak parça alanla kurulur (H0275'in önerdiği yazım)" {
@@ -61,6 +61,41 @@ TR_test "7.3 metotlar kendi ile nesneye erişir" {
     TR_assert_equal(25, p.uzaklık_kare())
     p.taşı(1, 1)
     TR_assert_equal(41, p.uzaklık_kare())
+}
+
+TR_test "7.2 varsayılanı olmayan alan verilmezse çalışma hatasıdır" {
+    TR_struct N { x, y = 2 }
+    TR_assert_equal("H2750", TR_error_code { N() })
+    TR_assert_equal("H2750", TR_error_code { N(y: 3) })
+    TR_assert_equal([1, 2], [N(1).x, N(1).y])
+    TR_assert_equal(1, N(x: 1).x)
+}
+
+TR_test "7.4 kurucu varsa nesne yalnız onun imzasıyla kurulur; argüman alana gitmez" {
+    TR_struct D {
+        n
+        k = 10
+        TR_func TR_init(a) { TR_self.k = TR_self.k + a }
+    }
+    TR_var d = D(3)
+    TR_assert_equal(TR_none, d.n)
+    TR_assert_equal(13, d.k)
+    TR_assert_equal("H2410", TR_error_code { D(n: 3) })
+}
+
+TR_test "7.4 varsayılanlı alanlar kurucudan önce, tanım sırasıyla değer alır" {
+    TR_var sıra = []
+    TR_func iz(x) {
+        sıra.TR_append(x)
+        TR_return x
+    }
+    TR_struct E {
+        a = iz(1)
+        b = iz(2)
+        TR_func TR_init() { iz(3) }
+    }
+    E()
+    TR_assert_equal([1, 2, 3], sıra)
 }
 
 TR_test "7.4 kurucu metodu oluşturmada çağrılır" {

@@ -38,83 +38,113 @@ func (p *Parser) parseStructStatement() *ast.StructStatement {
 
 	// Yapı gövdesinde yalnızca alanlar ve fonksiyon tanımları bulunur; her ad bir kez
 	// tanımlanır. Başka içerik sessizce alan sayılmaz ya da atlanmaz: sözdizimi hatasıdır.
-	// Yinelenen ad kaydedilmez ama gövde okunmaya devam eder: tek yanlışa tek ileti.
-	defined := map[string]bool{} // ad → alan mı
-	checkName := func(tok lexer.Token, name string, field bool) bool {
-		if wasField, ok := defined[name]; ok {
-			switch {
-			case wasField != field:
-				p.syntaxError(tok, messages.H0277, name, stmt.Name)
-			case field:
-				p.syntaxError(tok, messages.H0146, name, stmt.Name)
-			default:
-				p.syntaxError(tok, messages.H0145, name, stmt.Name)
-			}
-			return false
-		}
-		defined[name] = field
-		return true
-	}
-	lastDefault := "" // varsayılanı olan son alan: ondan sonraki alanların da varsayılanı olur (7.1)
-	invalid := func(tok lexer.Token, what *messages.Error) *ast.StructStatement {
-		p.syntaxError(tok, messages.H0147, what)
-		p.skipToBlockEnd()
-		return stmt
-	}
+	body := &structBody{p: p, stmt: stmt, defined: map[string]bool{}}
 	for !p.curTokenIs(lexer.TokRBrace) && !p.curTokenIs(lexer.TokEOF) {
 		if p.curTokenIs(lexer.TokSemicolon) || p.curTokenIs(lexer.TokComma) {
 			p.nextToken()
 			continue
 		}
+		read := body.field
 		if p.curTokenIs(lexer.TokFunction) {
-			fnTok := p.curToken()
-			p.role(p.peekToken(), RoleStructMethod)
-			// Hatalı metod tanımında parseFunctionLiteral nil döner; tip dönüşümü panik yapmamalı
-			fn, _ := p.parseFunctionLiteral().(*ast.FunctionLiteral)
-			if fn == nil {
-				// Hata zaten kaydedildi; yapının kapanışına kadar atla
-				p.skipToBlockEnd()
-				break
-			}
-			if fn.Name == "" {
-				p.syntaxError(fnTok, messages.H0150)
-				p.skipToBlockEnd()
-				break
-			}
-			if checkName(fnTok, fn.Name, false) {
-				stmt.Methods[fn.Name] = fn
-			}
-			p.nextToken()
-			continue
+			read = body.method
 		}
-		if p.curTokenIs(lexer.TokVar) {
-			p.nextToken()
-		}
-		if !p.curTokenIs(lexer.TokIdent) {
-			return invalid(p.curToken(), messages.New(messages.H0148, p.tokenDescription(p.curToken())))
-		}
-		fieldTok := p.curToken()
-		p.role(fieldTok, RoleStructField)
-		field := ast.StructField{Name: fieldTok.Literal, NameToken: fieldTok}
-		field.TypeName, field.TypeToken, field.DefaultValue = p.parseTypeAndDefault()
-		// Alan virgül, ';', satır sonu ya da '}' ile biter: aynı satırda başka bir şey
-		// (ör. 'yazdır("...")' çağrısının '(' işareti) alan değildir.
-		if next := p.peekToken(); next.Type != lexer.TokRBrace && next.Type != lexer.TokComma &&
-			next.Type != lexer.TokSemicolon && next.Type != lexer.TokEOF && next.Line == p.curToken().Line {
-			return invalid(fieldTok, messages.New(messages.H0149, p.tokenName(fieldTok), p.tokenDescription(next)))
-		}
-		if field.DefaultValue != nil {
-			lastDefault = field.Name
-		} else if lastDefault != "" {
-			p.syntaxError(fieldTok, messages.H0276, field.Name, lastDefault, stmt.Name)
-		}
-		if checkName(fieldTok, field.Name, true) {
-			stmt.Fields = append(stmt.Fields, field)
+		if !read() {
+			break
 		}
 		p.nextToken()
 	}
-
 	return stmt
+}
+
+// structBody bir yapı gövdesinin okunmasıdır: tanımlanan adlar ve varsayılanı olan son alan.
+type structBody struct {
+	p    *Parser
+	stmt *ast.StructStatement
+	// defined tanımlanan adlardır (ad → alan mı). Yinelenen ad kaydedilmez ama gövde okunmaya
+	// devam eder: tek yanlışa tek ileti.
+	defined map[string]bool
+	// lastDefault varsayılanı olan son alandır: ondan sonraki alanların da varsayılanı olur (7.1).
+	lastDefault string
+}
+
+// checkName adın gövdede ilk kez tanımlandığını denetler.
+func (b *structBody) checkName(tok lexer.Token, name string, field bool) bool {
+	if wasField, ok := b.defined[name]; ok {
+		switch {
+		case wasField != field:
+			b.p.syntaxError(tok, messages.H0277, name, b.stmt.Name)
+		case field:
+			b.p.syntaxError(tok, messages.H0146, name, b.stmt.Name)
+		default:
+			b.p.syntaxError(tok, messages.H0145, name, b.stmt.Name)
+		}
+		return false
+	}
+	b.defined[name] = field
+	return true
+}
+
+// method gövdedeki bir metodu okur; okunamazsa gövdenin sonuna atlar ve false döner.
+func (b *structBody) method() bool {
+	p := b.p
+	fnTok := p.curToken()
+	p.role(p.peekToken(), RoleStructMethod)
+	// Hatalı metod tanımında parseFunctionLiteral nil döner; tip dönüşümü panik yapmamalı
+	fn, _ := p.parseFunctionLiteral().(*ast.FunctionLiteral)
+	if fn == nil {
+		// Hata zaten kaydedildi; yapının kapanışına kadar atla
+		p.skipToBlockEnd()
+		return false
+	}
+	if fn.Name == "" {
+		p.syntaxError(fnTok, messages.H0150)
+		p.skipToBlockEnd()
+		return false
+	}
+	if b.checkName(fnTok, fn.Name, false) {
+		b.stmt.Methods[fn.Name] = fn
+	}
+	if fn.Name == p.l.Language().Name(codes.CtxInit) {
+		p.checkConstructor(fn)
+	}
+	return true
+}
+
+// field gövdedeki bir alanı okur; alan değilse hatayı kaydeder, gövdenin sonuna atlar ve false döner.
+func (b *structBody) field() bool {
+	p := b.p
+	if p.curTokenIs(lexer.TokVar) {
+		p.nextToken()
+	}
+	if !p.curTokenIs(lexer.TokIdent) {
+		return b.invalid(p.curToken(), messages.New(messages.H0148, p.tokenDescription(p.curToken())))
+	}
+	fieldTok := p.curToken()
+	p.role(fieldTok, RoleStructField)
+	field := ast.StructField{Name: fieldTok.Literal, NameToken: fieldTok}
+	field.TypeName, field.TypeToken, field.DefaultValue = p.parseTypeAndDefault()
+	// Alan virgül, ';', satır sonu ya da '}' ile biter: aynı satırda başka bir şey
+	// (ör. 'yazdır("...")' çağrısının '(' işareti) alan değildir.
+	if next := p.peekToken(); next.Type != lexer.TokRBrace && next.Type != lexer.TokComma &&
+		next.Type != lexer.TokSemicolon && next.Type != lexer.TokEOF && next.Line == p.curToken().Line {
+		return b.invalid(fieldTok, messages.New(messages.H0149, p.tokenName(fieldTok), p.tokenDescription(next)))
+	}
+	if field.DefaultValue != nil {
+		b.lastDefault = field.Name
+	} else if b.lastDefault != "" {
+		p.syntaxError(fieldTok, messages.H0276, field.Name, b.lastDefault, b.stmt.Name)
+	}
+	if b.checkName(fieldTok, field.Name, true) {
+		b.stmt.Fields = append(b.stmt.Fields, field)
+	}
+	return true
+}
+
+// invalid gövdede alan ya da metot olmayan bir içeriği bildirir ve gövdenin sonuna atlar.
+func (b *structBody) invalid(tok lexer.Token, what *messages.Error) bool {
+	b.p.syntaxError(tok, messages.H0147, what)
+	b.p.skipToBlockEnd()
+	return false
 }
 
 // inheritanceError 'yapı A(B)' yazımını (kalıtım, 7.1) bildirir ve parantezi atlar; sonraki token '{'
@@ -195,4 +225,25 @@ func (p *Parser) pythonClassError() ast.Statement {
 	}
 	p.syntaxError(class, messages.H0281, class.Literal, p.word(codes.KwStruct), name, base.String())
 	return nil
+}
+
+// checkConstructor kurucunun değer döndürmediğini denetler (7.4): dönüş tipi ve değerli 'sonuç'
+// sözdizimi hatasıdır. Kurucunun içindeki fonksiyonların 'sonuç'ları kendilerinindir.
+func (p *Parser) checkConstructor(fn *ast.FunctionLiteral) {
+	if fn.ReturnType != "" {
+		p.syntaxError(fn.ReturnToken, messages.H0283, p.word(codes.CtxInit))
+		return
+	}
+	ast.Walk(fn.Body, func(n any) bool {
+		switch x := n.(type) {
+		case *ast.FunctionLiteral:
+			return false
+		case *ast.ReturnStatement:
+			// değersiz 'sonuç'u ayrıştırıcı kendi token'ında bir yokluk olarak yazar
+			if bare, ok := x.ReturnValue.(*ast.NullLiteral); !ok || bare.Token != x.Token {
+				p.syntaxError(x.Token, messages.H0282, p.word(codes.CtxInit), p.word(codes.KwReturn))
+			}
+		}
+		return true
+	})
 }

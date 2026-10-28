@@ -40,18 +40,17 @@ const maxLongFuncs = 40
 // longFuncs funcLimit'i aşan test dışı fonksiyonlardır ("dosya:Alici.Ad").
 var longFuncs = map[string]exception{
 	// Dil çekirdeği
-	"internal/lang/interp/compiler_loop.go:compiler.inLoop":      {172, reasonHotPath + " (liste/aralık/sözlük/metin döngülerinin hızlı yolları)"},
-	"internal/lang/interp/compiler_expr.go:compiler.expression":  {168, reasonDispatch},
-	"internal/lang/interp/compiler_op.go:compiler.binary":        {132, reasonHotPath + " (işleç başına tam sayı/ondalık hızlı yolları)"},
-	"internal/lang/interp/compiler_call.go:compiler.call":        {95, reasonHotPath + " (yerleşik, metot ve fonksiyon çağrısının hızlı yolları)"},
-	"internal/lang/interp/operators.go:valuesEqual":              {90, reasonDispatch + " (değer tipi başına eşitlik)"},
-	"internal/lang/interp/methods.go:setupListMethods":           {88, reasonTable},
-	"internal/lang/checker/checker.go:Checker.checkStatement":    {147, reasonDispatch},
-	"internal/lang/checker/checker.go:Checker.inferExpression":   {115, reasonDispatch},
-	"internal/lang/parser/struct.go:Parser.parseStructStatement": {97, "yapı tanımı: alanlar, varsayılanlar, metotlar ve hata kurtarma tek akışta; alan ve metot çözümlemesi ayrılabilir"},
-	"internal/lang/codes/language.go:load":                       {160, reasonRead + " (dil dosyası)"},
-	"internal/lang/codes/definition.go:CheckDefinitions":         {113, reasonRead + " (tanım dosyasının tutarlılık denetimleri)"},
-	"internal/lang/codes/definition.go:ParseDefinitions":         {96, reasonRead + " (tanım dosyası)"},
+	"internal/lang/interp/compiler_loop.go:compiler.inLoop":     {172, reasonHotPath + " (liste/aralık/sözlük/metin döngülerinin hızlı yolları)"},
+	"internal/lang/interp/compiler_expr.go:compiler.expression": {168, reasonDispatch},
+	"internal/lang/interp/compiler_op.go:compiler.binary":       {132, reasonHotPath + " (işleç başına tam sayı/ondalık hızlı yolları)"},
+	"internal/lang/interp/compiler_call.go:compiler.call":       {95, reasonHotPath + " (yerleşik, metot ve fonksiyon çağrısının hızlı yolları)"},
+	"internal/lang/interp/operators.go:valuesEqual":             {90, reasonDispatch + " (değer tipi başına eşitlik)"},
+	"internal/lang/interp/methods.go:setupListMethods":          {88, reasonTable},
+	"internal/lang/checker/checker.go:Checker.checkStatement":   {147, reasonDispatch},
+	"internal/lang/checker/checker.go:Checker.inferExpression":  {115, reasonDispatch},
+	"internal/lang/codes/language.go:load":                      {160, reasonRead + " (dil dosyası)"},
+	"internal/lang/codes/definition.go:CheckDefinitions":        {113, reasonRead + " (tanım dosyasının tutarlılık denetimleri)"},
+	"internal/lang/codes/definition.go:ParseDefinitions":        {96, reasonRead + " (tanım dosyası)"},
 
 	// Araçlar
 	"internal/devtools/debugger/debugger.go:Debugger.promptCLI": {187, reasonDispatch + " (terminal hata ayıklayıcısının komutları)"},

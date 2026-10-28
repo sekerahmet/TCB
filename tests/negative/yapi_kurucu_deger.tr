@@ -1,0 +1,9 @@
+# TR 4
+# TEST 7.4 kurucu değer döndürmez: değerli sonuç sözdizimi hatasıdır
+TR_struct D {
+    n = 0
+    TR_func TR_init(a) {
+        TR_self.n = a
+        TR_return TR_self # ERROR H0282
+    }
+}

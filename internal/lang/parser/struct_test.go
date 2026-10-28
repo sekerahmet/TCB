@@ -84,3 +84,24 @@ func TestPythonClassIsReportedOnce(t *testing.T) {
 		t.Errorf("'class' as a name: %v", errs)
 	}
 }
+
+// Kurucu değer döndürmez (7.4): dönüş tipi ve değerli 'sonuç' sözdizimi hatasıdır; değersiz 'sonuç'
+// ve kurucunun içindeki fonksiyonun 'sonuç'u serbesttir.
+func TestConstructorReturnsNoValue(t *testing.T) {
+	for _, c := range []struct {
+		code string
+		want messages.Code
+	}{
+		{"TR_struct D {\n    TR_func TR_init() -> TR_Int { TR_self.x = 1 }\n}", messages.H0283},
+		{"TR_struct D {\n    TR_func TR_init() {\n        TR_return 1\n    }\n}", messages.H0282},
+		{"TR_struct D {\n    TR_func TR_init() {\n        TR_if TR_true { TR_return TR_none }\n    }\n}", messages.H0282},
+	} {
+		if errs := parseErrs(c.code); len(errs) != 1 || !messages.Has(errs[0], c.want) {
+			t.Errorf("%q: want one %v, got %v", c.code, c.want, errs)
+		}
+	}
+	ok := "TR_struct D {\n    f\n    TR_func TR_init() {\n        TR_self.f = (x) => { TR_return x }\n        TR_if TR_true { TR_return }\n    }\n}"
+	if errs := parseErrs(ok); len(errs) != 0 {
+		t.Errorf("%q: %v", ok, errs)
+	}
+}
