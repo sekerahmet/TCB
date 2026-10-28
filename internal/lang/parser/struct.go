@@ -11,30 +11,20 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
+// parseStructStatement 'yapı Ad { ... }' tanımını okur; durumlu tip ve arayüz kendi okuyucularına
+// gider (enum.go).
 func (p *Parser) parseStructStatement() *ast.StructStatement {
-	tok := p.curToken()
-	if !p.expectPeek(lexer.TokIdent) {
+	switch p.curToken().Type {
+	case lexer.TokEnum:
+		return p.parseEnumStatement()
+	case lexer.TokInterface:
+		return p.parseInterfaceStatement()
+	}
+	stmt, open := p.typeDefinitionHead(ast.KindStruct)
+	if stmt == nil {
 		return nil
 	}
-	stmt := &ast.StructStatement{
-		Token:     tok,
-		Name:      p.curToken().Literal,
-		NameToken: p.curToken(),
-		Fields:    []ast.StructField{},
-		Methods:   make(map[string]*ast.FunctionLiteral),
-	}
-
-	// Kalıtım yoktur (7.1): 'yapı A(B)' sözdizimi hatasıdır, ileti ortak parçayı alanla kurmayı
-	// söyler. Parantezin içi atlanır, gövde okunmaya devam eder.
-	if p.peekTokenIs(lexer.TokLParen) {
-		p.inheritanceError(stmt.Name)
-	}
-	if !p.expectPeek(lexer.TokLBrace) {
-		return nil
-	}
-	structOpen := p.curToken()
-	defer func() { p.requireClosingBrace(structOpen) }()
-	p.nextToken()
+	defer func() { p.requireClosingBrace(open) }()
 
 	// Yapı gövdesinde yalnızca alanlar ve fonksiyon tanımları bulunur; her ad bir kez
 	// tanımlanır. Başka içerik sessizce alan sayılmaz ya da atlanmaz: sözdizimi hatasıdır.

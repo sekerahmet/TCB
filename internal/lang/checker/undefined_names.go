@@ -364,6 +364,9 @@ func (d *nameChecker) expression(e ast.Expression, k *nameScope) {
 		case *ast.MatchExpression:
 			d.expression(y.Subject, k)
 			for _, mc := range y.Cases {
+				if d.enumArm(mc, k) { // 7.7: struct_names.go
+					continue
+				}
 				for _, p := range mc.Patterns {
 					d.expression(p, k)
 				}

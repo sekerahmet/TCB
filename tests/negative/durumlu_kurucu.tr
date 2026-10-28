@@ -1,0 +1,6 @@
+# TR 4
+# TEST 7.7 durumlu tipin kurucusu yoktur: durum kendi alanlarıyla kurulur
+TR_enum D {
+    A(n: TR_Int)
+    TR_func TR_init(n) { } # ERROR H0285
+}

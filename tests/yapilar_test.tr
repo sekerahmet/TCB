@@ -159,3 +159,104 @@ TR_test "7.6 nesneler içerikle karşılaştırılır; tip() yapının kendisini
     TR_assert_equal("Nokta", TR_String(TR_Type(Nokta())))
     TR_assert_equal(TR_StructType, TR_Type(Nokta))
 }
+
+TR_enum Durum {
+    Bekliyor
+    Çalışıyor(adım: TR_Int)
+    Bitti(kayıp: TR_Float, not = "")
+    TR_func bitti_mi() -> TR_Bool {
+        TR_return TR_match TR_self {
+            Durum.Bitti(_, _) => TR_true
+            _ => TR_false
+        }
+    }
+}
+
+TR_func anlat(d: Durum) -> TR_String {
+    TR_return TR_match d {
+        Durum.Bekliyor => "bekliyor"
+        Durum.Çalışıyor(a) => "adım \(a)"
+        Durum.Bitti(k, _) => "bitti, kayıp \(k)"
+    }
+}
+
+TR_test "7.7 durumlar kurulur ve eşlemede alanları bağlanır" {
+    TR_assert_equal("adım 5", anlat(Durum.Çalışıyor(5)))
+    TR_assert_equal("bekliyor", anlat(Durum.Bekliyor))
+    TR_assert_equal("bitti, kayıp 0.5", anlat(Durum.Bitti(kayıp: 0.5)))
+    TR_assert(Durum.Bitti(1.0).bitti_mi())
+    TR_assert(TR_not Durum.Bekliyor.bitti_mi())
+}
+
+TR_test "7.7 bağlanan ad yalnız kolunda görünür; blok gövdeli kol" {
+    TR_var a = "dış"
+    TR_var iç = TR_match Durum.Çalışıyor(3) {
+        Durum.Çalışıyor(b) => {
+            TR_var c = b * 2
+            c
+        }
+        _ => 0
+    }
+    TR_assert_equal(6, iç)
+    TR_assert_equal("dış", a)
+}
+
+TR_test "7.7 eşitlik aynı durumu ve eşit alanları sınar; metin kurma yazımıdır" {
+    TR_assert(Durum.Çalışıyor(5) == Durum.Çalışıyor(adım: 5))
+    TR_assert(Durum.Çalışıyor(5) != Durum.Çalışıyor(6))
+    TR_assert(Durum.Bekliyor != Durum.Bitti(1.0))
+    TR_assert_equal("Durum.Çalışıyor(adım: 5)", TR_String(Durum.Çalışıyor(5)))
+    TR_assert_equal("Durum.Bekliyor", TR_String(Durum.Bekliyor))
+    TR_assert_equal(`Durum.Bitti(kayıp: 1.0, not: "")`, TR_String(Durum.Bitti(1.0)))
+    TR_assert(TR_Type(Durum.Bekliyor) == Durum)
+    TR_assert_equal("Durum", TR_String(Durum))
+}
+
+TR_test "7.7 değer değişmez, alanı eşlemeyle okunur; durumun yazımı denetlenir" {
+    TR_var d = Durum.Çalışıyor(5)
+    TR_assert_equal("H2763", TR_error_code { d.adım })
+    TR_assert_equal("H2764", TR_error_code { d.adım = 6 })
+    TR_assert_equal("H2755", TR_error_code { TR_var f = Durum.Çalışıyor })
+    TR_assert_equal("H2757", TR_error_code { Durum.Bekliyor() })
+    TR_assert_equal("H2761", TR_error_code { Durum() })
+    TR_assert_equal("H2750", TR_error_code { Durum.Çalışıyor() })
+    TR_assert_equal("H2765", TR_error_code { Durum.Bitmiş })
+    TR_assert_equal("H2756", TR_error_code { Durum.bitti_mi() })
+    # H2755 ve H2757'nin önerdiği yazımlar
+    TR_assert_equal(Durum.Çalışıyor(adım: 1), Durum.Çalışıyor(1))
+    TR_assert_equal("bekliyor", anlat(Durum.Bekliyor))
+}
+
+TR_test "7.7 desendeki ad sayısı alan sayısını tutmazsa kol denenirken hatadır" {
+    TR_assert_equal("H2759", TR_error_code {
+        TR_match Durum.Bitti(1.0) {
+            Durum.Bitti(k) => k
+            _ => 0.0
+        }
+    })
+}
+
+TR_interface Katman {
+    TR_func ileri(x: TR_Float) -> TR_Float
+}
+
+TR_struct Ölçek {
+    k: TR_Float = 2.0
+    TR_func ileri(x: TR_Float) -> TR_Float { TR_return x * TR_self.k }
+}
+
+TR_struct Relu {
+    TR_func ileri(x: TR_Float) -> TR_Float { TR_return TR_max(x, 0.0) }
+}
+
+TR_func tek(k: Katman, x: TR_Float) -> TR_Float { TR_return k.ileri(x) }
+
+TR_test "7.8 arayüz bir tiptir; çağrı nesnenin kendi metoduna gider" {
+    TR_var y = 1.5
+    TR_for k TR_in [Ölçek(), Relu(), Ölçek(k: 3.0)] { y = k.ileri(y) }
+    TR_assert_equal(9.0, y)
+    TR_assert_equal(0.0, tek(Relu(), -1.0))
+    TR_assert_equal("Katman", TR_String(Katman))
+    TR_assert_equal("H2762", TR_error_code { Katman() })
+    TR_assert_equal("H2760", TR_error_code { Katman.ileri })
+}

@@ -58,6 +58,9 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 					}
 					return res, nil
 				}
+				if def, ok := enumOf(obj); ok { // 7.7: enum_ops.go
+					return v.callVariant(def, mem, argCode, env, line)
+				}
 				fnVal, err := v.memberValue(obj, mem, u)
 				if err != nil {
 					return nil, err
@@ -156,6 +159,9 @@ func (c *compiler) namedCallee(k *compilerScope, e *ast.CallExpression, fun expr
 		}
 		if u.core != nil && findMethod(obj, u.core) != nil {
 			escape(obj) // Metin/Liste/Sözlük metotları alıcıyı başka yere koyabilir (ownership.go)
+		}
+		if def, ok := enumOf(obj); ok { // 7.7: enum_ops.go
+			return v.variantCallee(def, mem), nil
 		}
 		return v.memberValue(obj, mem, u)
 	}

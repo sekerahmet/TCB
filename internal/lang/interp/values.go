@@ -514,6 +514,10 @@ type StructDefVal struct {
 	fieldEnv *Environment
 	// typ nesnelerinin tip değeridir (tip(p) → Nokta; bkz. tipDegeri).
 	typ *TypeVal
+	// Kind tanımın türüdür: yapı, durumlu tip (Variants) ya da arayüz (Methods yalnız imza; enum_ops.go).
+	Kind ast.StructKind
+	// Variants durumlu tipin durumlarıdır, tanım sırasıyla.
+	Variants []*VariantDef
 }
 
 func (s *StructDefVal) Type() ValueType { return ValStruct }
@@ -526,6 +530,8 @@ func (s *StructDefVal) IsTruthy() bool                   { return true }
 type StructInstanceVal struct {
 	Def    *StructDefVal
 	Fields map[string]Value
+	// Variant durumlu tipin değerinde değerin durumudur (yapı nesnesinde nil; enum_ops.go).
+	Variant *VariantDef
 }
 
 func (si *StructInstanceVal) Type() ValueType { return ValueType(si.Def.Name) }

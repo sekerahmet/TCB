@@ -13,29 +13,26 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// checkStructArgs kurucusu olmayan bir yapının oluşturulmasındaki argümanları alanlara
-// göre denetler: alan sayısından fazla konumlu argüman ya da alan olmayan bir adla verilen
-// argüman hatadır.
-func checkStructArgs(def *StructDefVal, nargs int, named map[string]Value, line int) error {
-	if nargs <= len(def.Fields) && len(named) == 0 {
+// checkFieldArgs alanlarla kurmanın (kurucusu olmayan yapı, durumlu tipin durumu) argümanlarını
+// alanlara göre denetler: alan sayısından fazla konumlu argüman, alan olmayan bir adla verilen argüman
+// ve hem sırayla hem adla verilen alan hatadır. label iletideki addır (Nokta, Durum.Çalışıyor).
+func checkFieldArgs(label string, fields []ast.StructField, nargs int, named map[string]Value, line int) error {
+	if nargs <= len(fields) && len(named) == 0 {
 		return nil
 	}
-	nameList := make([]string, len(def.Fields))
-	for i, f := range def.Fields {
-		nameList[i] = f.Name
-	}
+	nameList := fieldNames(fields)
 	alignNamed(named, nameList)
 	for k := range named {
 		if !slices.Contains(nameList, k) {
-			return messages.At(line, 0, messages.New(messages.H2418, def.Name, k, hint.ClosestSuggestion(k, nameList, nil)))
+			return messages.At(line, 0, messages.New(messages.H2418, label, k, hint.ClosestSuggestion(k, nameList, nil)))
 		}
 	}
-	if nargs > len(def.Fields) {
-		return messages.At(line, 0, messages.New(messages.H2419, def.Name, len(def.Fields), strings.Join(nameList, ", "), nargs))
+	if nargs > len(fields) {
+		return messages.At(line, 0, messages.New(messages.H2419, label, len(fields), strings.Join(nameList, ", "), nargs))
 	}
 	for i, f := range nameList[:nargs] {
 		if _, ok := named[f]; ok {
-			return messages.At(line, 0, messages.New(messages.H2420, def.Name, f, i+1))
+			return messages.At(line, 0, messages.New(messages.H2420, label, f, i+1))
 		}
 	}
 	return nil
@@ -46,6 +43,13 @@ func checkStructArgs(def *StructDefVal, nargs int, named map[string]Value, line 
 // alan hatadır. Kurucu varsa nesne yalnız onun imzasıyla kurulur: varsayılanlı alanlar kurucunun
 // gövdesinden önce, tanım sırasıyla değerini alır, argümanlar yalnız kurucuya gider.
 func (v *VM) construct(fn *StructDefVal, args []Value, named map[string]Value, line int) (Value, error) {
+	switch fn.Kind {
+	case ast.KindEnum:
+		// durumlu tip çağrılmaz: değeri bir durumudur (7.7)
+		return nil, messages.At(line, 0, messages.New(messages.H2761, fn.Name))
+	case ast.KindInterface:
+		return nil, messages.At(line, 0, messages.New(messages.H2762, fn.Name))
+	}
 	inst := &StructInstanceVal{
 		Def:    fn,
 		Fields: make(map[string]Value),
@@ -66,7 +70,7 @@ func (v *VM) construct(fn *StructDefVal, args []Value, named map[string]Value, l
 		if err := checkArity(initMethod, fn, len(args), named, line); err != nil {
 			return nil, err
 		}
-	} else if err := checkStructArgs(fn, len(args), named, line); err != nil {
+	} else if err := checkFieldArgs(fn.Name, fn.Fields, len(args), named, line); err != nil {
 		// kurucu yoksa argümanlar alanlara gider: fazlası ya da bilinmeyen adlısı hatadır
 		return nil, err
 	}
@@ -109,6 +113,10 @@ func (v *VM) construct(fn *StructDefVal, args []Value, named map[string]Value, l
 // structMember nesnenin alanını ya da (bağlı fonksiyon olarak) metodunu döndürür.
 func structMember(inst *StructInstanceVal, e *ast.MemberExpression) (Value, error) {
 	if val, ok := inst.Fields[e.Property]; ok {
+		if inst.Variant != nil {
+			// durumun alanları yalnız eşlemeyle okunur (7.7)
+			return nil, messages.At(e.Line(), 0, messages.New(messages.H2763, variantLabel(inst.Def, inst.Variant), e.Property))
+		}
 		return val, nil
 	}
 	if method, ok := inst.Def.Methods[e.Property]; ok {
@@ -146,6 +154,12 @@ func memberHint(def *StructDefVal, prop string) *messages.Error {
 // metodu ve alanı yoktur (7.3). İleti nesneyi kurmayı önerir; yapı argümansız kurulabiliyorsa
 // önerilen yazım olduğu gibi çalışır.
 func structDefMember(def *StructDefVal, e *ast.MemberExpression) (Value, error) {
+	switch def.Kind {
+	case ast.KindEnum:
+		return enumMember(def, e)
+	case ast.KindInterface:
+		return nil, messages.At(e.Line(), 0, messages.New(messages.H2760, def.Name, e.Property))
+	}
 	args := "..."
 	if constructibleBare(def) {
 		args = ""
@@ -182,6 +196,10 @@ func constructibleBare(def *StructDefVal) bool {
 // setStructField nesne.alan = değer atamasıdır. Nesnenin alanları her zaman yapı
 // tanımındakilerdir (7.5): tanımda olmayan alana ve metoda atama yapılamaz.
 func (v *VM) setStructField(inst *StructInstanceVal, prop string, codeVal uint8, rightVal Value, line int) error {
+	if inst.Variant != nil {
+		// durumlu tipin değeri değişmez (7.7)
+		return messages.At(line, 0, messages.New(messages.H2764, variantLabel(inst.Def, inst.Variant), prop))
+	}
 	cur, field := inst.Fields[prop]
 	if !field {
 		if _, meth := inst.Def.Methods[prop]; meth {
@@ -204,8 +222,12 @@ func (v *VM) setStructField(inst *StructInstanceVal, prop string, codeVal uint8,
 // structsEqual aynı yapıdan iki nesneyi alanlarıyla, tanım sırasıyla karşılaştırır (7.6);
 // başka yapının nesnesi ya da başka değer kimlikle karşılaştırılır.
 func structsEqual(x *StructInstanceVal, b Value, nestDepth int) bool {
-	if y, ok := b.(*StructInstanceVal); ok && x.Def == y.Def {
-		for _, f := range x.Def.Fields {
+	if y, ok := b.(*StructInstanceVal); ok && x.Def == y.Def && x.Variant == y.Variant {
+		fields := x.Def.Fields
+		if x.Variant != nil {
+			fields = x.Variant.Fields
+		}
+		for _, f := range fields {
 			va, okA := x.Fields[f.Name]
 			vb, okB := y.Fields[f.Name]
 			if okA != okB || (okA && !valuesEqual(va, vb, nestDepth+1)) {
@@ -226,9 +248,19 @@ func structCycleText(*StructInstanceVal, *codes.Language) string {
 // sırasıyla: Nokta(x: 3.0, y: 4.0). Metin programa kopyalanınca aynı değeri kurar.
 func writeStruct(sb *strings.Builder, x *StructInstanceVal, lang *codes.Language, filePath []Value) {
 	sb.WriteString(shownName(x.Def.Name, lang))
+	fields := x.Def.Fields
+	if x.Variant != nil {
+		// durumlu tipin değeri: Durum.Bekliyor, Durum.Çalışıyor(adım: 5) (7.7)
+		sb.WriteByte('.')
+		sb.WriteString(shownName(x.Variant.Name, lang))
+		if x.Variant.bare != nil {
+			return
+		}
+		fields = x.Variant.Fields
+	}
 	sb.WriteByte('(')
 	first := true
-	for _, f := range x.Def.Fields {
+	for _, f := range fields {
 		if val, ok := x.Fields[f.Name]; ok {
 			if !first {
 				sb.WriteString(", ")

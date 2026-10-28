@@ -328,12 +328,10 @@ func identityWord(w string) bool {
 // identityExceptions kimlik listesinde (henüz) olmayan ama tanımda anılan TR_ sözcükleridir: onaylı
 // yeni adlar (kodu kendi katmanıyla gelir; gelince buradan silinir) ve bilerek yanlış yazılan örnekler.
 var identityExceptions = map[string]string{
-	"TR_JSON":      "onaylı yeni ad (3.7a)",
-	"TR_Bytes":     "onaylı yeni ad (3.3)",
-	"TR_NoneType":  "onaylı yeni ad (3.11)",
-	"TR_enum":      "onaylı yeni ad (7.x, durumlu tip)",
-	"TR_interface": "onaylı yeni ad (7.x, arayüz)",
-	"TR_Error":     "onaylı yeni ad (8.3, hata değeri)", "TR_code": "onaylı yeni ad (8.3, hatanın kodu)",
+	"TR_JSON":     "onaylı yeni ad (3.7a)",
+	"TR_Bytes":    "onaylı yeni ad (3.3)",
+	"TR_NoneType": "onaylı yeni ad (3.11)",
+	"TR_Error":    "onaylı yeni ad (8.3, hata değeri)", "TR_code": "onaylı yeni ad (8.3, hatanın kodu)",
 	"TR_message": "onaylı yeni ad (8.3, iletisi)", "TR_value": "onaylı yeni ad (8.3, fırlatılan değer)", "TR_cause": "onaylı yeni ad (8.2, 8.3)", "TR_suppressed": "onaylı yeni ad (8.3, 9.4)",
 	"TR_while":   "bilerek yanlış: kalkan sözcük (2.9)",
 	"TR_default": "bilerek yanlış: kalkan sözcük (2.9)",

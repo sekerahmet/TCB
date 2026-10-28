@@ -3,7 +3,6 @@
 docs/spec/03_tipler.md:103 hata
 docs/spec/03_tipler.md:40
 docs/spec/03_tipler.md:65
-docs/spec/07_yapilar.md:55
 docs/spec/08_hata_yonetimi.md:23
 docs/spec/09_ertele.md:10
 docs/spec/10_eszamanlilik.md:7

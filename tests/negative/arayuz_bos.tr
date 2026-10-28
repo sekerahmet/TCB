@@ -1,0 +1,4 @@
+# TR 4
+# TEST 7.8 boş arayüz tanımda hatadır: her tipin karşıladığı genel bir tip olurdu
+TR_interface Boş { # ERROR H0288
+}

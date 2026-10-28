@@ -67,3 +67,25 @@ func (d *nameChecker) memberName(id *ast.Identifier, k *nameScope) bool {
 	d.c.nameErrors = append(d.c.nameErrors, messages.AtRange(id.Token.Range(), err).WithFix(fix))
 	return true
 }
+
+// enumArm durumlu tip desenli bir eşle kolunu denetler (7.7): desenin bağladığı adlar ('_' dışında)
+// yalnız o kolun kapsamında tanımlıdır. Kol durumlu tip deseni değilse false döner.
+func (d *nameChecker) enumArm(mc ast.MatchCase, k *nameScope) bool {
+	if len(mc.Patterns) != 1 {
+		return false
+	}
+	pat, ok := mc.Patterns[0].(*ast.EnumPattern)
+	if !ok {
+		return false
+	}
+	d.expression(pat.Enum, k)
+	ak := newNameScope(k)
+	for _, id := range pat.Names {
+		if id.Value != "_" {
+			ak.define(id.Value)
+		}
+	}
+	d.block(mc.Body, ak)
+	d.expression(mc.ValueExpr, ak)
+	return true
+}

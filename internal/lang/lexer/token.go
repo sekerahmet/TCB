@@ -149,6 +149,8 @@ const (
 	TokKwNot      = "NOT"        // TR_kw_not
 	TokStruct     = "STRUCT"     // TR_kw_struct
 	TokSelf       = "SELF"       // TR_kw_self
+	TokEnum       = "ENUM"       // TR_kw_enum
+	TokInterface  = "INTERFACE"  // TR_kw_interface
 	TokTry        = "TRY"        // TR_kw_try
 	TokCatch      = "CATCH"      // TR_kw_catch
 	TokThrow      = "THROW"      // TR_kw_throw

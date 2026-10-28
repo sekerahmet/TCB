@@ -66,6 +66,14 @@ func (c *Checker) checkStruct(s *ast.StructStatement) {
 	for _, f := range s.Fields {
 		c.inferExpression(f.DefaultValue)
 	}
+	// durumlu tipin durumu BüyükDeve bir addır (2.3b, 7.7; uymayan ad uyarıdır), alanları değerdir
+	for _, vr := range s.Variants {
+		c.checkNameStyle(vr.Name, kindType, siteOf(vr.NameToken, s.Line()))
+		for _, f := range vr.Fields {
+			c.checkNameStyle(f.Name, kindValue, siteOf(f.NameToken, s.Line()))
+			c.inferExpression(f.DefaultValue)
+		}
+	}
 	for _, name := range sortedMethodNames(s) {
 		// metodun adı kapsama tanımlanmaz: yalnızca 'nesne.metot' ile çağrılır
 		m := s.Methods[name]

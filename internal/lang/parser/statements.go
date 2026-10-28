@@ -29,7 +29,7 @@ func (p *Parser) parseStatement() ast.Statement {
 		return stmt
 	case lexer.TokFor:
 		return p.parseForStatement()
-	case lexer.TokStruct:
+	case lexer.TokStruct, lexer.TokEnum, lexer.TokInterface:
 		return p.parseStructStatement()
 	case lexer.TokTry:
 		return p.parseTryCatchStatement()
@@ -269,6 +269,10 @@ func (p *Parser) underscoreReads(prog *ast.Program) {
 		case *ast.AssignStatement:
 			if id, ok := s.Target.(*ast.Identifier); ok && s.Operator == lexer.TokAssign {
 				writes[id] = true
+			}
+		case *ast.EnumPattern: // 7.7: desenin adları alanları bağlar
+			for _, x := range s.Names {
+				writes[x] = true
 			}
 		}
 		return true
