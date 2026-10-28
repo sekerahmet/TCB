@@ -47,14 +47,15 @@ func (l *Lexer) checkBidi() {
 	}
 }
 
-// scripts are the writing systems whose letters look alike.
+// scripts are the writing systems whose letters look alike; a script's name is a message part
+// (H0033–H0035), written in the outer message's language.
 var scripts = []struct {
-	name  string
+	name  messages.Code
 	table *unicode.RangeTable
 }{
-	{"Latin", unicode.Latin},
-	{"Kiril", unicode.Cyrillic},
-	{"Yunan", unicode.Greek},
+	{messages.H0033, unicode.Latin},
+	{messages.H0034, unicode.Cyrillic},
+	{messages.H0035, unicode.Greek},
 }
 
 // checkName reports a name with an invisible letter.
@@ -68,18 +69,19 @@ func (l *Lexer) checkName(name string, line, col int) {
 }
 
 // MixedScripts reports whether name has letters of more than one of the look-alike scripts
-// (Latin, Cyrillic, Greek) and names the first two (2.1a: a warning).
-func MixedScripts(name string) (first, second string, mixed bool) {
+// (Latin, Cyrillic, Greek) and names the first two as message parts (2.1a: a warning).
+func MixedScripts(name string) (first, second *messages.Error, mixed bool) {
+	var seen messages.Code
 	for _, r := range name {
 		for _, s := range scripts {
 			if !unicode.Is(s.table, r) {
 				continue
 			}
-			if first != "" && first != s.name {
-				return first, s.name, true
+			if seen != 0 && seen != s.name {
+				return messages.New(seen), messages.New(s.name), true
 			}
-			first = s.name
+			seen = s.name
 		}
 	}
-	return "", "", false
+	return nil, nil, false
 }

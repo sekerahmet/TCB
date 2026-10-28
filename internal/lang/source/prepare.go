@@ -1,6 +1,10 @@
 package source
 
 import (
+	"cmp"
+	"math"
+	"slices"
+
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/checker"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -94,7 +98,7 @@ func Prepare(text string, s Options) *Result {
 		r.Program = p.ParseProgram()
 	}
 	if errs := p.Errs(); len(errs) > 0 {
-		r.Stage, r.Errors = StageSyntax, limitErrors(errs)
+		r.Stage, r.Errors = StageSyntax, limitErrors(byPosition(errs))
 		return r
 	}
 	if !s.TypeCheck {
@@ -112,9 +116,9 @@ func Prepare(text string, s Options) *Result {
 		chk.SetFileLanguage(codes.Display().Code)
 	}
 	chk.CheckProgram(r.Program)
-	r.Warnings = limitErrors(chk.Warnings())
+	r.Warnings = limitErrors(byPosition(chk.Warnings()))
 	if errs := chk.Errs(); len(errs) > 0 {
-		r.Stage, r.Errors = StageType, limitErrors(errs)
+		r.Stage, r.Errors = StageType, limitErrors(byPosition(errs))
 	}
 	return r
 }
@@ -123,6 +127,25 @@ func Prepare(text string, s Options) *Result {
 // thousands of errors (often not a TR file at all) would otherwise take minutes to report:
 // every error is shown with a code frame.
 const MaxErrors = 100
+
+// byPosition orders the messages by line and column (a message without a column comes first on its
+// line, one without a position last); equal positions keep their order. The lexer, the parser and
+// the checker report in the order they find, which is not the file's.
+func byPosition(errs []error) []error {
+	out := slices.Clone(errs)
+	key := func(err error) (int, int) {
+		if line, col, ok := messages.Pos(err); ok {
+			return line, col
+		}
+		return math.MaxInt, 0
+	}
+	slices.SortStableFunc(out, func(a, b error) int {
+		la, ca := key(a)
+		lb, cb := key(b)
+		return cmp.Or(cmp.Compare(la, lb), cmp.Compare(ca, cb))
+	})
+	return out
+}
 
 // limitErrors keeps the first MaxErrors messages and says how many were left out. The summary
 // line has no position, so no code frame is drawn for it.

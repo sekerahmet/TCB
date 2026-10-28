@@ -424,7 +424,7 @@
   "TR_mem_kv_proj": { "kind": "property", "module": "tr/katman" },
   "TR_mem_last": { "kind": "property", "types": ["TR_type_List"], "returns": "TR_type_Any", "related": ["TR_mem_first"] },
   "TR_mem_last_step": { "kind": "property", "module": "tr/egitim" },
-  "TR_mem_length": { "kind": "property", "types": ["TR_type_String", "TR_type_List", "TR_type_Dict"], "returns": "TR_type_Int" },
+  "TR_mem_length": { "kind": "property", "types": ["TR_type_String", "TR_type_List", "TR_type_Dict"], "returns": "TR_type_Int", "familiar": ["len"] },
   "TR_mem_load_state": { "kind": "method", "types": ["TR_type_Optimizer", "TR_type_Sampler", "TR_type_SequentialReader"], "params": ["TR_type_Dict"], "returns": "TR_type_Bool", "related": ["TR_mem_state"] },
   "TR_mem_logger": { "kind": "property", "module": "tr/egitim" },
   "TR_mem_logit_layer": { "kind": "property", "module": "tr/katman" },

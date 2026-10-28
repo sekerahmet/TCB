@@ -86,6 +86,19 @@ func TestPrepareLimitsErrors(t *testing.T) {
 	wantPos(t, r.Errors[0], 1, 1)
 }
 
+// Kural: tanılar dosyadaki sırayla, satır ve sütuna göre verilir (sözcük çözümleyici, ayrıştırıcı ve
+// denetleyici buldukları sırayla bildirir). Neden: ajan ve kişi iletileri dosyayı yukarıdan aşağı
+// okur gibi izlesin.
+func TestErrorsAreInFileOrder(t *testing.T) {
+	r := Prepare(Header+"\nTR_var a = 0X1F\nTR_var b = 1_\nTR_var c = 99999999999999999999\nTR_var d = .5\n", Options{})
+	if len(r.Errors) != 4 {
+		t.Fatalf("dört hata bekleniyordu: %v", r.Errors)
+	}
+	for i, err := range r.Errors {
+		wantPos(t, err, i+2, 12)
+	}
+}
+
 func joinErrors(errs []error) string { return strings.Join(messages.Texts(errs), "\n") }
 
 // speedFiles hız tabanının metinleridir: büyük, orta ve küçük bir dosya (cmd/tr/e2e'deki

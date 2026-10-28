@@ -87,7 +87,8 @@ func FromSpelling(p Place, s string) (Code, bool) {
 
 // SuggestIdentity returns the identity to suggest for a name written in program text's other place
 // without TR_ or familiar from another language (2.3a): print → TR_print, True → TR_true, None and
-// nil → TR_none, def → TR_func, elif → TR_else TR_if. ok is false when the name is neither.
+// nil → TR_none, def → TR_func, elif → TR_else TR_if; a familiar member is suggested where it is
+// written, len → x.TR_length. ok is false when the name is neither.
 func SuggestIdentity(name string) (string, bool) {
 	familiar, isFamiliar := FamiliarCode(name)
 	exact, isExact := FromSpelling(PlaceOther, IdentityPrefix+name)
@@ -101,6 +102,9 @@ func SuggestIdentity(name string) (string, bool) {
 		return Spelling(familiar), true
 	case isExact:
 		return Spelling(exact), true
+	}
+	if k, ok := FamiliarMember(name); ok {
+		return "x." + Spelling(k), true
 	}
 	return "", false
 }

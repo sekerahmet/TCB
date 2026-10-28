@@ -34,7 +34,7 @@ func KeywordSpellingHint(name string, lang *codes.Language) *messages.Error {
 	if !ok {
 		return nil
 	}
-	return messages.New(messages.H1103, name, suggested(k, lang))
+	return messages.New(messages.H1103, name, suggestedFor(name, k, lang))
 }
 
 // BuiltinSpellingHint returns the hint to append to an error message when ad is the ASCII
@@ -47,12 +47,24 @@ func BuiltinSpellingHint(name string, lang *codes.Language) *messages.Error {
 	if !ok {
 		return nil
 	}
-	return NotInTRHint(name, suggested(k, lang))
+	return NotInTRHint(name, suggestedFor(name, k, lang))
 }
 
 // suggested is how a hint names the language's word k (codes.WordRef): in a file its spelling,
 // TR_print, which can be copied into the file as it is.
 func suggested(k codes.Code, lang *codes.Language) any { return codes.WordRef(k, lang) }
+
+// suggestedFor is how a hint for name names the word k: in a file the identity suggestion of the
+// name itself when there is one (codes.SuggestIdentity, the single suggestion path for program text:
+// elif → TR_else TR_if), otherwise suggested.
+func suggestedFor(name string, k codes.Code, lang *codes.Language) any {
+	if lang == nil {
+		if s, ok := codes.SuggestIdentity(name); ok {
+			return s
+		}
+	}
+	return suggested(k, lang)
+}
 
 // suggest is lang's suggestion for a spelling (codes.Language.Suggest); when lang is nil the
 // text's language is not known and every writing language is asked (codes.Suggest).

@@ -110,7 +110,7 @@ func (c *Checker) Warnings() []error {
 // yapılır; onlar bu yardımcıyı kullanmaz.
 func (c *Checker) defineName(name string, kind nameKind, line int, info TypeInfo) {
 	c.checkShadowing(name, line)
-	c.checkNameStyle(name, kind, line)
+	c.checkNameStyle(name, kind, line, 0)
 	c.scope.Define(name, info)
 }
 
@@ -158,7 +158,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 	switch s := stmt.(type) {
 	case *ast.VarStatement:
 		c.checkShadowing(s.Name.Value, s.Line())
-		c.checkNameStyle(s.Name.Value, c.varKind(s.IsConst), s.Line())
+		c.checkNameStyle(s.Name.Value, c.varKind(s.IsConst), s.Line(), s.Name.Token.Column)
 		declared := c.checkedTypeName(s.TypeName, s.Line())
 		inferred := c.inferExpression(s.Value)
 		if s.TypeName != "" && !typesCompatible(declared, inferred) {
@@ -225,12 +225,12 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 
 	case *ast.StructStatement:
 		c.checkShadowing(s.Name, s.Line())
-		c.checkNameStyle(s.Name, kindType, s.Line())
+		c.checkNameStyle(s.Name, kindType, s.Line(), 0)
 		for _, f := range s.Fields {
-			c.checkNameStyle(f.Name, kindValue, s.Line())
+			c.checkNameStyle(f.Name, kindValue, s.Line(), 0)
 		}
 		for name, m := range s.Methods {
-			c.checkNameStyle(name, kindValue, m.Line())
+			c.checkNameStyle(name, kindValue, m.Line(), 0)
 		}
 		c.scope.Define(s.Name, TypeInfo{TypeName: s.Name})
 		c.checkStruct(s)

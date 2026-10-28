@@ -208,26 +208,35 @@ func familiarNames() map[Code][]string {
 // FamiliarCode returns the code a name familiar from another language stands for in program text's
 // other place (keywords, values, types, functions: None → TR_kw_none, def → TR_kw_func,
 // println → TR_fn_print; 2.3a), for a message's suggestion.
-func FamiliarCode(name string) (Code, bool) {
+func FamiliarCode(name string) (Code, bool) { return familiarAt(PlaceOther, name) }
+
+// FamiliarMember returns the member a name familiar from another language stands for (len →
+// TR_mem_length): in TR it is written after a dot (x.TR_length).
+func FamiliarMember(name string) (Code, bool) { return familiarAt(PlaceMember, name) }
+
+// familiarAt p yerindeki kodların tanıdık adının kodudur (aynı adı taşıyan iki koddan küçüğü).
+func familiarAt(p Place, name string) (Code, bool) {
 	familiarOnce.Do(func() {
-		familiarOther = map[string]Code{}
 		for k, names := range familiarNames() {
-			if p, ok := PlaceOf(k); ok && p == PlaceOther {
+			if at, ok := PlaceOf(k); ok && at < placeCount {
+				if familiarByPlace[at] == nil {
+					familiarByPlace[at] = map[string]Code{}
+				}
 				for _, n := range names {
-					if prev, ok := familiarOther[n]; !ok || k < prev {
-						familiarOther[n] = k
+					if prev, ok := familiarByPlace[at][n]; !ok || k < prev {
+						familiarByPlace[at][n] = k
 					}
 				}
 			}
 		}
 	})
-	k, ok := familiarOther[name]
+	k, ok := familiarByPlace[p][name]
 	return k, ok
 }
 
 var (
-	familiarOnce  sync.Once
-	familiarOther map[string]Code
+	familiarOnce    sync.Once
+	familiarByPlace [placeCount]map[string]Code
 )
 
 func loadDefinitions() {
