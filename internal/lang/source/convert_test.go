@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
@@ -199,9 +200,10 @@ func roundTrip(t *testing.T, name, text string) bool {
 			t.Errorf("%s: kodlu dosya çözülemedi: %v", name, err)
 			return false
 		}
-		// Gösterim başlığı ve satırları tutar (2.1): kodlanınca özgün dosyaya döner.
+		// Gösterim başlığı ve satırları tutar (2.1): kodlanınca özgün dosyaya döner; adlar NFC
+		// biçimiyle yazılır (2.3), karşılaştırma NFC'ye göredir.
 		back, err := Encode(tr)
-		if err != nil || back != text {
+		if err != nil || lexer.NFC(back) != lexer.NFC(text) {
 			t.Errorf("%s: kod → TR → kod aynı değil (%v)\n--- özgün\n%s\n--- geri\n%s", name, err, text, back)
 		}
 		return true

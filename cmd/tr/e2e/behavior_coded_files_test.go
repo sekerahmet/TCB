@@ -8,14 +8,15 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // Dosya kimliklerle yazılır (dil tanımı 2.1): ilk satırı '# TR 4' başlığıdır, dili yoktur. Bir yazım
-// dilindeki gösterim 'tr göster' ile alınır, 'tr kodla' ile dosyaya döner (ara karar: dil '--dil'den,
-// yoksa TR_DIL'den). Gösterim başlığı ve satırları tutar; konumlar dosyanın satırlarıdır.
+// dilindeki gösterim 'tr göster' ile alınır ve başlığında dilini taşır ('# TR 4 view=tr'), 'tr kodla'
+// dili oradan okuyup dosyaya döndürür. Gösterim satırları tutar; konumlar dosyanın satırlarıdır.
 
 // trFilesWithData testlerin veri olarak (metnini) okuduğu .tr dosyalarıdır.
 var trFilesWithData = map[string]bool{"bom_ornegi.tr": true}
@@ -225,7 +226,7 @@ func TestRepoFilesEnglishLossless(t *testing.T) {
 		}
 		english := testkit.RunBinary(t, trBinary, "", string(data), nil, "göster", "-", "--dil", "en")
 		back := testkit.RunBinary(t, trBinary, "", english.Stdout, nil, "kodla", "-", "--dil", "en")
-		if english.Code != 0 || back.Code != 0 || back.Stdout != string(data) {
+		if english.Code != 0 || back.Code != 0 || lexer.NFC(back.Stdout) != lexer.NFC(string(data)) { // adlar NFC yazılır (2.3)
 			t.Errorf("%s: İngilizce gidiş dönüş kayıplı (çıkış %d/%d, hata %q%q)\n%s", filePath, english.Code, back.Code, english.Stderr, back.Stderr, testkit.FirstLineDiff(string(data), back.Stdout, "dosya", "geri"))
 			continue
 		}
