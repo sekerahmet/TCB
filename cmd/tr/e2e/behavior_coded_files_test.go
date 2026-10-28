@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 	"github.com/sekerahmet/TCB/internal/testkit"
@@ -226,7 +225,11 @@ func TestRepoFilesEnglishLossless(t *testing.T) {
 		}
 		english := testkit.RunBinary(t, trBinary, "", string(data), nil, "göster", "-", "--dil", "en")
 		back := testkit.RunBinary(t, trBinary, "", english.Stdout, nil, "kodla", "-", "--dil", "en")
-		if english.Code != 0 || back.Code != 0 || lexer.NFC(back.Stdout) != lexer.NFC(string(data)) { // adlar NFC yazılır (2.3)
+		want, err := source.NFCNames(string(data)) // yalnız kullanıcı adları NFC yazılır (2.3)
+		if err != nil {
+			t.Fatalf("%s: %v", filePath, err)
+		}
+		if english.Code != 0 || back.Code != 0 || back.Stdout != want {
 			t.Errorf("%s: İngilizce gidiş dönüş kayıplı (çıkış %d/%d, hata %q%q)\n%s", filePath, english.Code, back.Code, english.Stderr, back.Stderr, testkit.FirstLineDiff(string(data), back.Stdout, "dosya", "geri"))
 			continue
 		}

@@ -137,7 +137,7 @@ func (l *Lexer) nameToken(lit string, line, col int) Token {
 		}
 		return Token{Type: TokIdent, Literal: lit, Line: line, Column: col}
 	}
-	lit = NFC(lit) // aynı görünen iki yazım aynı addır (2.3)
+	lit = nfc(lit) // aynı görünen iki yazım aynı addır (2.3)
 	if identityLookalike(lit) {
 		l.addError(line, col, messages.New(messages.H0030, lit))
 	}
@@ -156,7 +156,7 @@ func (l *Lexer) nameToken(lit string, line, col int) Token {
 func (l *Lexer) escapedName(line, col int) Token {
 	adjacent := l.position > 0 && isNameChar(l.input[l.position-1])
 	l.readChar() // '$'
-	lit := NFC(l.readIdentifier())
+	lit := nfc(l.readIdentifier())
 	switch {
 	case l.coded:
 		l.addError(line, col, messages.New(messages.H0031, lit))

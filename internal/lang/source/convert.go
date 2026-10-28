@@ -45,6 +45,10 @@ var ErrUTF8 error = messages.New(messages.H2510)
 // program. It is a converter bug; the file must not be written.
 var ErrLossy error = messages.New(messages.H2511)
 
+// ErrLossyView is returned when a coded file's view would not encode back to the same program
+// (Decode). It is a converter bug; showing writes nothing.
+var ErrLossyView error = messages.New(messages.H2543)
+
 // Encode converts a view written in Turkish (the whole text) to coded form; see EncodeIn.
 func Encode(text string) (string, error) { return EncodeIn(text, Turkish()) }
 
@@ -100,6 +104,20 @@ func toCoded(body string, lang *codes.Language, globalNames []string, dynamic bo
 
 // Show is the text of a file (the whole file) in lang's spelling (Decode).
 func Show(text string, lang *codes.Language) (string, error) { return Decode(text, lang) }
+
+// NFCNames is a coded file with its user names in NFC form and every other byte as it is (2.3):
+// what showing and encoding again give back. A text that is not coded is returned as it is.
+func NFCNames(text string) (string, error) {
+	b, err := Split(text)
+	if err != nil || !b.Coded {
+		return text, err
+	}
+	c, err := analyze(b.Body, Turkish(), true, nil, false)
+	if err != nil {
+		return "", err
+	}
+	return Parts{BOM: b.BOM, Body: c.nfcBody()}.Join(), nil
+}
 
 // reencodes kodlu metnin lang'e çözülmüş hâli kodlanınca aynı kodlu metni veriyor mu?
 func reencodes(decoded, coded string, lang *codes.Language) bool {
@@ -164,7 +182,7 @@ func Decode(text string, lang *codes.Language) (string, error) {
 	// The view must read back as the same program: read in lang and encoded again, it gives
 	// the coded body back (its names in NFC form, as the view writes them, 2.3).
 	if !reencodesBody(view, c.nfcBody(), lang) {
-		return "", ErrLossy
+		return "", ErrLossyView
 	}
 	return Parts{BOM: b.BOM, Body: setHeader(view, viewHeader(lang))}.Join(), nil
 }

@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
@@ -200,10 +199,15 @@ func roundTrip(t *testing.T, name, text string) bool {
 			t.Errorf("%s: kodlu dosya çözülemedi: %v", name, err)
 			return false
 		}
-		// Gösterim başlığı ve satırları tutar (2.1): kodlanınca özgün dosyaya döner; adlar NFC
-		// biçimiyle yazılır (2.3), karşılaştırma NFC'ye göredir.
+		// Gösterim başlığı ve satırları tutar (2.1): kodlanınca özgün dosyaya döner; yalnız kullanıcı
+		// adları NFC biçimiyle yazılır (2.3), geri kalan bayt bayt aynıdır.
+		want, err := NFCNames(text)
+		if err != nil {
+			t.Errorf("%s: %v", name, err)
+			return false
+		}
 		back, err := Encode(tr)
-		if err != nil || lexer.NFC(back) != lexer.NFC(text) {
+		if err != nil || back != want {
 			t.Errorf("%s: kod → TR → kod aynı değil (%v)\n--- özgün\n%s\n--- geri\n%s", name, err, text, back)
 		}
 		return true
@@ -287,13 +291,18 @@ func TestDocCodeBlocksEncodeLossless(t *testing.T) {
 // çözümleyicinin okuduğu NFC biçimiyle yazar (ayrık o + U+0308 → ö). Neden: diskteki ad ile
 // programın gördüğü ad bir olsun; arama ve fark araçları iki yazımı ayırmasın.
 func TestEncodeAndShowWriteNFC(t *testing.T) {
-	coded, err := Encode("değişken ögr = 1\nyazdır(ögr)\n")
-	if want := Header + "\nTR_var ögr = 1\nTR_print(ögr)\n"; err != nil || coded != want {
+	// Ad NFC'ye çevrilir; metin değişmezindeki ve yorumdaki ayrık yazım bayt bayt kalır.
+	const rest = " = \"ö\" # ö\n"
+	coded, err := Encode("değişken ögr" + rest + "yazdır(ögr)\n")
+	if want := Header + "\nTR_var ögr" + rest + "TR_print(ögr)\n"; err != nil || coded != want {
 		t.Errorf("kodlu %q (%v), beklenen %q", coded, err, want)
 	}
-	shown, err := Decode(Header+"\nTR_var ögr = 1\nTR_print(ögr)\n", Turkish())
-	if want := viewHeader(Turkish()) + "\ndeğişken ögr = 1\nyazdır(ögr)\n"; err != nil || shown != want {
+	shown, err := Decode(Header+"\nTR_var ögr"+rest+"TR_print(ögr)\n", Turkish())
+	if want := viewHeader(Turkish()) + "\ndeğişken ögr" + rest + "yazdır(ögr)\n"; err != nil || shown != want {
 		t.Errorf("gösterim %q (%v), beklenen %q", shown, err, want)
+	}
+	if got, err := NFCNames(Header + "\nTR_var ögr" + rest); err != nil || got != Header+"\nTR_var ögr"+rest {
+		t.Errorf("NFCNames %q (%v)", got, err)
 	}
 }
 
