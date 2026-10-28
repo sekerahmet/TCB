@@ -74,16 +74,6 @@ func checkTokens(t *testing.T, input string, want []expected) {
 	compareTokens(t, input, tokensNoErrors(t, input), want)
 }
 
-// checkTokensIn checkTokens gibidir; girdi lang'de yazılmış metindir (NewBodyIn).
-func checkTokensIn(t *testing.T, lang *codes.Language, input string, want []expected) {
-	t.Helper()
-	toks, errs := lexTokens(t, NewBodyIn(input, false, lang), input)
-	if len(errs) > 0 {
-		t.Fatalf("%q için beklenmeyen sözcük çözümleyici hataları: %v", input, errs)
-	}
-	compareTokens(t, input, toks, want)
-}
-
 func compareTokens(t *testing.T, input string, toks []Token, want []expected) {
 	t.Helper()
 	if len(toks) != len(want) {
