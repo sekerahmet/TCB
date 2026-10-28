@@ -8,6 +8,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/lang/source"
@@ -67,7 +68,7 @@ func runCoded(t *testing.T, m *interp.VM, body string) (interp.Value, error) {
 // runSame Türkçe yazılmış TR kodunu verilen VM'de çalıştırır (genel tanımlar korunur).
 func runSame(t *testing.T, m *interp.VM, kd string) (interp.Value, error) {
 	t.Helper()
-	p := parser.New(source.TextLexer(kd))
+	p := parser.New(lexer.NewBody(kd, true))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatalf("sözdizimi hatası: %v\n%s", p.Errors(), kd)
