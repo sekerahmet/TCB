@@ -417,12 +417,16 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 
 ## 17. Kodlar
 
-Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): ana oturum yeniden yazdı (Ahmet: "17 şimdi düzeltsen ? sürekli kafanı karıştıracak"); 2. turda madde madde CLAUDE.md'den yeniden tartıldı (görünüm yalnız okunur). DENETİM bekleniyor. 4a'dan önce gelir, çünkü 4a kod kaydına yeni kodlar ekler.
+Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): ana oturum yeniden yazdı (Ahmet: "17 şimdi düzeltsen ? sürekli kafanı karıştıracak"); 2. turda madde madde CLAUDE.md'den yeniden tartıldı (görünüm yalnız okunur); 3. turda DENETİM'in 1. turunun görünümden bağımsız bulguları alındı. DENETİM bekleniyor. 4a'dan önce gelir, çünkü 4a kod kaydına yeni kodlar ekler.
+
+### 17.1
+
+- **Mevcut durum:** kullanıcının yapısında `TR_` adlı alan ve metot sessizce kabul ediliyor (`TR_struct K { TR_step }`), oysa `TR_var TR_x` reddediliyor [ölçüldü: DENETİM]. Testler ve örnek düz ada geçti (`tests/coded/ornek_kodlu.tr`'nin yapısı, `examples/tr/17_testler_test.tr`'nin `Sepet`'i).
+- **Yapılacaklar:** yapının alanında ve metodunda `TR_` adının denetim hatası, dilin bir işini yapan üye (`TR_next`, 5.7) dışında; TR testi.
 
 ### 17.2
 
-- **Mevcut durum:** program metninde kısa yazım, içeride sınıflı kimlik uygulanmış (katman 1). 60 kısa ad birden çok sınıfta, yeri ayırıyor [ölçüldü: `definitions.json`].
-- **Yapılacaklar:** aynı yerde geçerli iki kimliğin kısa adının aynı olmasını yüklemede reddetmek ve Go testi.
+- **Mevcut durum:** program metninde kısa yazım, içeride sınıflı kimlik uygulanmış (katman 1). 60 kısa ad birden çok sınıfta, hepsi yerle ayrılıyor; aynı yerde çakışan yok, `TestNoTwoIdentitiesShareASpellingInAPlace` sınıyor [ölçüldü: DENETİM].
 
 ### 17.4
 
@@ -431,7 +435,8 @@ Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): an
 
 ### 17.5
 
-- **Yapılacaklar:** ad alanı çakışmasının reddine Go testi; `TR_assert_equal`'ın Türkçe adı bugün "eşit_mi", bir sınama soru gibi okunuyor (13'ün ad işinde).
+- **Mevcut durum:** ad alanında çakışma dil dosyası yüklenirken reddediliyor (`TestClashesCaught`). Türkçe harfsiz biçimin kabul edilmediği kural kalktı (17.7); yükleyicinin ASCII denetimi (`TestASCIIFormsDoNotClash`) zararsız, kalabilir.
+- **Yapılacaklar:** `TR_assert_equal`'ın Türkçe adı bugün "eşit_mi", bir sınama soru gibi okunuyor (13'ün ad işinde).
 
 ### 17.7
 
@@ -445,4 +450,7 @@ Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): an
 
 ### 17.10
 
-- **Mevcut durum:** belgelerde eski sınıflı yazım kalıyor (2.1'in satırı).
+- **Mevcut durum:**
+  - dil tanımında 10 bölümde 1 034 eski sınıflı yazım var: 15'te 557, 20'de 187, 18'de 106, 19'da 74, 16'da 35, 11'de 32, 12'de ve 10'da 15'er, 14'te 5 [ölçüldü: DENETİM]; öbür belgeler 2.1'in satırında;
+  - başka bölümler eski 17'yi anlatıyor: 14:11 (gösterime göre sütun), 19:13 ve 19:28 ile 20:32 (kodlu sözlük anahtarı, bugün sözdizimi hatası); 17'ye göndermeler eski numarada (20:47 ve 20:67 → 17.8, 20:102 → 17.10, 19:13 → 17.9) [kanıtlı: DENETİM].
+- **Yapılacaklar:** bölümler yeniden yazılırken kimlik yazımı ve 17 göndermeleri; 15 bu turda yazılıyor, 19 ve 20 sırada.

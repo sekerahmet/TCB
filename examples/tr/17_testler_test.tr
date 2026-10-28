@@ -22,7 +22,7 @@ TR_func ortalama_al(liste) {
 TR_struct Sepet {
     ürünler = []
 
-    TR_func TR_append(ad, fiyat) {
+    TR_func ekle(ad, fiyat) {
         TR_self.ürünler.TR_append({"ad": ad, "fiyat": fiyat})
     }
 
@@ -53,8 +53,8 @@ TR_test "boş listede hata fırlatılır" {
 
 TR_test "sepet tutarı" {
     TR_var s = Sepet() # her test yeni bir kapsamda çalışır
-    s.TR_append("kalem", 15)
-    s.TR_append("defter", 40)
+    s.ekle("kalem", 15)
+    s.ekle("defter", 40)
     TR_assert_equal(2, s.ürünler.TR_length)
     TR_assert_equal(55, s.tutar())
 }

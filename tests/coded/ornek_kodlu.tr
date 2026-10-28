@@ -1,15 +1,16 @@
 # TR 4
-# Kodlu biçimde saklanmış bir modül (docs/spec/17_kodlar.md, 17.1-17.4): dilin sözcükleri
+# Kodlu biçimde saklanmış bir modül (docs/spec/17_kodlar.md, 17.1, 17.7): dilin sözcükleri
 # kodlarla yazılır, kullanıcının adları, metinler, sayılar ve yorumlar olduğu gibi kalır.
-# Türkçe gösterimi: tr göster tests/coded/ornek_kodlu.tr
+# Türkçe gösterimi: tr show tests/coded/ornek_kodlu.tr --lang tr
 TR_func kareler(liste) {
     TR_return liste.TR_map((x) => x * x)
 }
 
+# Kullanıcının yapısının alanı ve metodu onun adlarıdır, dilin bir üyesiyle aynı anlamda olsa da (17.1).
 TR_struct Sayac {
-    TR_length = 0
-    TR_func TR_append(x) {
-        TR_self.TR_length += x
+    toplam_değer = 0
+    TR_func ekle(x) {
+        TR_self.toplam_değer += x
     }
 }
 

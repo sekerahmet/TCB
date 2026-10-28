@@ -1,4 +1,4 @@
 # TR 4
-# TEST 17.5 konumlar dosyanın kendi satırlarına göredir (başlık 1. satır)
+# TEST 2.1 konumlar dosyanın kendi satırlarına göredir (başlık 1. satır)
 TR_var a = 1
 TR_print(a, tanımsız_ad) # ERROR H1106
