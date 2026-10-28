@@ -1,0 +1,9 @@
+# TR 4
+# TEST 5.3 '_' bir ad değildir, okunamaz: gerekmeyen değerin yerine yazılır; tanımda, atamada, döngüde ve parametrede yazılabilir
+TR_var a, _ = 1, 2
+_ = a
+TR_for _ TR_in 0..2 { }
+TR_var sıfır = (_) => 0
+TR_print(_) # ERROR H0253
+TR_var f = (_) => _ # ERROR H0253
+TR_print("\(_)") # ERROR H0253

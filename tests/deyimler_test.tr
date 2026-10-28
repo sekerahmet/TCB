@@ -20,6 +20,21 @@ TR_test "5.3 çoklu tanım, takas ve listeden açma" {
     TR_assert_equal([2, 1], [a, b])
     TR_var ad, soyad = ["Mustafa", "Kemal"]
     TR_assert_equal("Kemal", soyad)
+    TR_var ilk, _ = [1, 2]
+    TR_assert_equal(1, ilk)
+}
+
+TR_test "5.3 öğe sayısı ad sayısını tutmazsa çalışma hatasıdır" {
+    TR_assert_equal("H2700", TR_error_code { TR_var p, q = [1, 2, 3] })
+    TR_assert_equal("H2700", TR_error_code { TR_var p, q = [1] })
+    TR_assert_equal("H2701", TR_error_code { TR_var p, q = 1 })
+    TR_var a = 0
+    TR_var b = 0
+    TR_assert_equal("H2701", TR_error_code { a, b = 1, 2, 3 })
+    # İletinin önerisi: baştaki öğeler indeksle alınır
+    TR_var l = [1, 2, 3]
+    a, b = l[0], l[1]
+    TR_assert_equal([1, 2], [a, b])
 }
 
 TR_test "5.4 atama ve bileşik atama" {

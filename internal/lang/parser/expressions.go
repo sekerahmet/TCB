@@ -27,6 +27,7 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 			leftExp = p.parseSingleParamLambda()
 		} else {
 			leftExp = &ast.Identifier{Token: p.curToken(), Value: p.curToken().Literal}
+			p.underscore = p.underscore || p.curToken().Literal == "_"
 		}
 	case lexer.TokSelf:
 		leftExp = &ast.Identifier{Token: p.curToken(), Value: p.words.self}

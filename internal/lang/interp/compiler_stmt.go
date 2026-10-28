@@ -102,8 +102,9 @@ func (c *compiler) multiVarStatement(k *compilerScope, s *ast.MultiVarStatement)
 		definitions[i] = identifier(k, n.Value)
 	}
 	constant := s.IsConst
+	line := s.Line()
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
-		return applyMultiValues(v, env, values, len(definitions), func(i int, val Value) error {
+		return applyMultiValues(v, env, values, len(definitions), line, func(i int, val Value) error {
 			definitions[i](env, val, constant)
 			return nil
 		})
@@ -134,26 +135,24 @@ func (c *compiler) multiAssignStatement(k *compilerScope, s *ast.MultiAssignStat
 	for i, t := range s.Targets {
 		dests[i] = c.assignTarget(k, t, opAssign, s.Line())
 	}
+	line := s.Line()
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
-		return applyMultiValues(v, env, values, len(dests), func(i int, val Value) error {
+		return applyMultiValues(v, env, values, len(dests), line, func(i int, val Value) error {
 			return dests[i](v, env, val)
 		})
 	}
 }
 
 // applyMultiValues çoklu tanım/atamanın sağ tarafını hesaplar ve her değeri sırayla apply ile
-// i. hedefe uygular (eksik değer Boş); sonuç son değerdir.
-func applyMultiValues(v *VM, env *Environment, values []exprCode, count int, apply func(i int, val Value) error) (Value, flowSignal, error) {
-	evalVals, err := multiValues(v, env, values, count)
+// i. hedefe uygular; sonuç son değerdir.
+func applyMultiValues(v *VM, env *Environment, values []exprCode, count, line int, apply func(i int, val Value) error) (Value, flowSignal, error) {
+	evalVals, err := multiValues(v, env, values, count, line)
 	if err != nil {
 		return nil, signalNone, err
 	}
 	var lastVal Value = Null
 	for i := 0; i < count; i++ {
-		var val Value = Null
-		if i < len(evalVals) {
-			val = evalVals[i]
-		}
+		val := evalVals[i]
 		if err := apply(i, val); err != nil {
 			return nil, signalNone, err
 		}
@@ -354,8 +353,9 @@ func (c *compiler) breakpointStatement(k *compilerScope, s *ast.BreakpointStatem
 }
 
 // multiValues çoklu tanım/atamanın sağ tarafını hesaplar; tek bir Liste birden çok ada
-// açılır.
-func multiValues(v *VM, env *Environment, values []exprCode, nameCount int) ([]Value, error) {
+// açılır. Değer sayısı ad sayısını tutmazsa çalışma hatasıdır (5.3): eksik ya da fazla değer
+// sessizce kaybolmaz.
+func multiValues(v *VM, env *Environment, values []exprCode, nameCount, line int) ([]Value, error) {
 	evalVals := make([]Value, 0, len(values))
 	for _, d := range values {
 		val, err := d(v, env)
@@ -366,8 +366,14 @@ func multiValues(v *VM, env *Environment, values []exprCode, nameCount int) ([]V
 	}
 	if len(evalVals) == 1 && nameCount > 1 {
 		if lv, ok := evalVals[0].(*ListVal); ok {
+			if len(lv.Elements) != nameCount {
+				return nil, messages.At(line, 0, messages.New(messages.H2700, nameCount, len(lv.Elements)))
+			}
 			evalVals = lv.Elements
 		}
+	}
+	if len(evalVals) != nameCount {
+		return nil, messages.At(line, 0, messages.New(messages.H2701, nameCount, len(evalVals)))
 	}
 	return evalVals, nil
 }

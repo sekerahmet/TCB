@@ -143,6 +143,11 @@ type Parser struct {
 	// aşıldıktan sonra açıktır (bkz. derinlikGir).
 	nesting       int
 	depthExceeded bool
+
+	// underscore ifadede '_' yazıldığını söyler (5.3: okunduysa hata, bkz. underscoreReads);
+	// interpolated, ayrıştırıcının bir metin yerleştirmesinin alt ayrıştırıcısı olduğunu: '_'yi üstü
+	// bütün ağaçta denetler.
+	underscore, interpolated bool
 }
 
 // parseMatchPattern bir eşle kolunun desenini okur.
@@ -319,6 +324,7 @@ func (p *Parser) peekPrecedence() int {
 // ParseProgram parses the whole input as a program.
 func (p *Parser) ParseProgram() *ast.Program {
 	program := &ast.Program{Statements: p.parseStatementList(true)}
+	p.underscoreReads(program)
 	p.removedSpellingHints()
 	return program
 }

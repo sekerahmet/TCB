@@ -186,6 +186,45 @@ func (p *Parser) parseVarStatement(isConst bool) ast.Statement {
 	return stmt
 }
 
+// underscoreReads '_'nin okunduğu her yeri sözdizimi hatası yapar (5.3): '_' bir ad değildir, gerekmeyen
+// değerin yerini tutar. Yazılabildiği yerler tanımın adları, atamanın hedefleri ('=' ile), döngü ve
+// üreteç değişkeni, fonksiyon parametresi ve eşlemenin her şeyle eşleşen kolu; son üçü ağaçta ad
+// değil metindir, burada görünmez.
+func (p *Parser) underscoreReads(prog *ast.Program) {
+	if !p.underscore || p.interpolated {
+		return // ağaç yalnız ifadede '_' yazılmışsa ve en dıştaki ayrıştırıcıda gezilir
+	}
+	writes := map[*ast.Identifier]bool{}
+	ast.Walk(prog, func(n any) bool {
+		switch s := n.(type) {
+		case *ast.VarStatement:
+			writes[s.Name] = true
+		case *ast.MultiVarStatement:
+			for _, x := range s.Names {
+				writes[x] = true
+			}
+		case *ast.MultiAssignStatement:
+			for _, x := range s.Targets {
+				if id, ok := x.(*ast.Identifier); ok {
+					writes[id] = true
+				}
+			}
+		case *ast.AssignStatement:
+			if id, ok := s.Target.(*ast.Identifier); ok && s.Operator == lexer.TokAssign {
+				writes[id] = true
+			}
+		}
+		return true
+	})
+	ast.Walk(prog, func(n any) bool {
+		if id, ok := n.(*ast.Identifier); ok && id.Value == "_" && !writes[id] {
+			p.syntaxError(id.Token, messages.H0253)
+			p.errorMode = false // her okuma ayrı bir yerdir
+		}
+		return true
+	})
+}
+
 // shortVarError 'x := 5' kısa tanımının hatasıdır (5.1): imleç adda, ardından ':=' gelir. Düzeltme
 // 'x :=' yerine 'TR_var x =' yazar; olduğu gibi uygulanabilir (Go'da da ':=' yeni ad tanımlar).
 func (p *Parser) shortVarError() {

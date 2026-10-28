@@ -91,6 +91,7 @@ const (
 	H0250 Code = 250  // TR'de ':=' yok; değişken {var} ile tanımlanır: '{name} :=' yerine '{var} {name} =' yazın
 	H0251 Code = 251  // TR'de ':=' yok; {decl} tanımının değeri '=' ile yazılır: {decl} x = 5
 	H0252 Code = 252  // '{name}' ilk değeri yazılmadan tanımlandı; {decl} tanımında ilk değer her zaman yazılır, tip ondan çıkar: adın (ya da tipin) ardına '= ' ve başlangıç değerini ekleyin (değer henüz yoksa '= {none}')
+	H0253 Code = 253  // '_' okunamaz: bir ad değil, gerekmeyen bir değerin yerini tutar; değeri kullanmak için ona bir ad verin (a, _ = l yerine a, b = l)
 	H1001 Code = 1001 // Tip uyuşmazlığı — {name|q} değişkeni {declared|q} tipinde tanımlandı ancak {given|q} tipinde değer atandı{hint}
 	H1002 Code = 1002 // Sabit hatası — {name|q} bir sabittir ('{keyword}') ve değeri değiştirilemez
 	H1003 Code = 1003 // Dönüş tipi uyuşmazlığı — fonksiyon {expected|q} döndürmeli ancak {given|q} tipinde değer döndürülüyor{hint}
@@ -384,6 +385,8 @@ const (
 	H2668 Code = 2668 // {type}() mantık değerinden sayı kurmaz; {@if} b {{ 1 }} {@else} {{ 0 }} yazın
 	H2669 Code = 2669 // {type} bir sözlük anahtarı olamaz: anahtarlar {@Int}, {@String}, {@Bool} ya da {@Bytes} olur
 	H2670 Code = 2670 // {@JSON} değeri sözlük anahtarı olamaz; önce açın: {@String}(j) ya da {@Int}(j)
+	H2700 Code = 2700 // liste {names} ada açılıyor ama {count} öğesi var: öğe sayısı ad sayısıyla aynı olmalı; yalnız baştaki öğeler gerekiyorsa onları indeksle alın: a, b = l[0], l[1]
+	H2701 Code = 2701 // {names} ada {count} değer verildi: her ada bir değer yazılır (a, b = 1, 2); gerekmeyen değerin yerine _ yazılır
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}
