@@ -297,6 +297,31 @@ func TestEncodeAndShowWriteNFC(t *testing.T) {
 	}
 }
 
+// Kural (2.3a): kullanıcı fonksiyonunun TR_ ile yazılmış parametresi (adlı argüman kimliği)
+// gösterimde, kullanımları ve adlı argümanıyla birlikte, yazımıyla kalır ve geri aynı kimliğe
+// kodlanır; kitaplık fonksiyonunun parametresi dilin sözcüğüyle gösterilir. Neden: düz yazılmış
+// kullanıcı parametrelerinin çoğu (x, n, adım) bir dilin parametre sözcüğüdür; gösterim onları
+// kimlik sayamaz, TR_ parametresini de dilin sözcüğüyle yazarsa geri kodlayamazdı.
+func TestUserFunctionIdentityParameterRoundTrips(t *testing.T) {
+	coded := Header + "\nTR_func ölçekle(x, TR_lr) { TR_return x * TR_lr }\nTR_print(ölçekle(3, TR_lr: 2))\nTR_print(TR_AdamW([], TR_lr: 0.1))\n"
+	for _, code := range codes.Languages() {
+		lang, err := codes.LoadLanguage(code)
+		if err != nil {
+			t.Fatal(err)
+		}
+		shown, err := Decode(coded, lang)
+		if err != nil {
+			t.Fatalf("%s: gösterilemedi: %v", code, err)
+		}
+		if strings.Count(shown, "TR_lr") != 4 {
+			t.Errorf("%s: kullanıcı parametresi yazımıyla kalmalı:\n%s", code, shown)
+		}
+		if back, err := EncodeIn(shown, lang); err != nil || back != coded {
+			t.Errorf("%s: geri kodlanınca %q (%v), beklenen %q", code, back, err, coded)
+		}
+	}
+}
+
 // A coded file may hold an identity where it cannot stand (a member written as a global name,
 // 2.3a): it cannot be read, so Decode refuses it instead of showing it.
 func TestDecodeRefusesAnUnreadableFile(t *testing.T) {

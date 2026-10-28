@@ -160,6 +160,45 @@ func (c *analysis) libraryDeclarations() map[[2]int]codes.Code {
 	return out
 }
 
+// userParameterCodes kodlu programda kullanıcı fonksiyonlarının (kitaplık fonksiyonu, kitaplık
+// yapısının metodu ve kitaplığın fonksiyon değişkeni dışındakiler) TR_ ile yazılmış
+// parametrelerinin kodlarıdır (TR_func ölçekle(x, TR_lr)). Kitaplık parametresi gösterimde dilin
+// sözcüğüyle yazılır ve geri kodlanır (libraryDeclarations); kullanıcı fonksiyonunda bu yapılamaz:
+// düz yazılmış parametrelerin çoğu (x, n, adım) bir dilin parametre sözcüğüdür, kodlanırsa kaçış
+// isterdi. O yüzden gösterim bu parametreleri, kullanımları ve adlı argümanlarıyla birlikte, kimlik
+// yazımıyla bırakır.
+func userParameterCodes(prog *ast.Program) map[codes.Code]bool {
+	isCode := func(name string) bool { _, err := codes.Parse(name); return err == nil }
+	library := map[*ast.FunctionLiteral]bool{}
+	ast.Walk(prog, func(n any) bool {
+		switch x := n.(type) {
+		case *ast.StructStatement:
+			if isCode(x.Name) {
+				for _, m := range x.Methods {
+					library[m] = true
+				}
+			}
+		case *ast.VarStatement:
+			if f, ok := x.Value.(*ast.FunctionLiteral); ok && isCode(x.Name.Value) {
+				library[f] = true
+			}
+		}
+		return true
+	})
+	out := map[codes.Code]bool{}
+	ast.Walk(prog, func(n any) bool {
+		if f, ok := n.(*ast.FunctionLiteral); ok && !library[f] && !isCode(f.Name) {
+			for _, p := range f.Parameters {
+				if k, err := codes.Parse(p.Name); err == nil {
+					out[k] = true
+				}
+			}
+		}
+		return true
+	})
+	return out
+}
+
 // parameterRecords i'deki fonksiyon belirtecinden sonraki ilk parametre ayracının ilk düzeyindeki
 // parametre adlarının kayıt sıralarıdır (ayraçtan ya da virgülden hemen sonraki adlar).
 func (c *analysis) parameterRecords(i int) []int {

@@ -59,6 +59,9 @@ TR_test "2.3a dilin sözcükleri TR_ ve kimliğin adıyla yazılır; sınıfı y
     # Üyenin kimliğiyle yazılan sözlük anahtarı da üyedir (iki noktadan önce, süslü parantezde).
     TR_var ayar = {TR_step: 3}
     TR_assert_equal(3, ayar.TR_step)
+    # Fonksiyonun TR_ ile yazılmış parametresi adlı argümandır (gösterimde yazımıyla kalır).
+    TR_func ölçekle(x, TR_lr) { TR_return x * TR_lr }
+    TR_assert_equal(6, ölçekle(3, TR_lr: 2))
     # Yanlış yerdeki ve yanlış yazılan kimlik: tests/negative/kimlik_yeri.tr, kodlu_bilinmeyen.tr
 }
 
