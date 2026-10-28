@@ -15,7 +15,7 @@ Kurallar: [`06_fonksiyonlar.md`](../06_fonksiyonlar.md). Bu dosya her kuralın e
 ### 6.3
 
 - *Emsal:* Go'da fonksiyon birden çok sonuç döndürür ve sonuç tek bir değer olarak saklanamaz; Python bir demet döndürür (`return loss, acc`) ve açar. *Almadık:* ayrı bir demet tipi: `r[0]` ve `r[1]` anlamı saklar, yeni bir tip adı gerekirdi; Python'un açmadan tek değer olarak tutması. ([Go 1.27](https://go.dev/ref/spec#Return_statements), [Python 3.15](https://docs.python.org/3/reference/simple_stmts.html#assignment-statements))
-- *Gerekçe:* ML kodunda kaybı ve doğruluğu birlikte döndürmek çok sıktır; Python alışkanlığıyla yazılan `TR_return a, b` ve `TR_var a, b = f()` doğrudan geçerlidir. Değer sayısı tipte yazılı olduğu için eksik açma çalışmadan önce görünür. `TR_return f()` ile iletme Go'daki gibidir; `g(f())` ise değerlerin hangi parametreye gittiğini saklar, açarak yazılır.
+- *Gerekçe:* ML kodunda kaybı ve doğruluğu birlikte döndürmek çok sıktır; Python alışkanlığıyla yazılan `TR_return a, b` ve `TR_var a, b = f()` doğrudan geçerlidir. Değer sayısı tipte yazılı olduğu için eksik açma çalışmadan önce görünür. `TR_return f()` ile iletme Go'daki gibidir; `g(f())` ise değerlerin hangi parametreye gittiğini saklar, açarak yazılır. Önceki kuralda birden çok dönüş bir değer değildi; demet (3.6a) gelince aynı `(A, B)` yazımının iki anlamı olurdu. Birden çok dönüşün demet olması tek kavramdır (Rust, Swift, Python); `TR_topk`'nın `(TR_Tensor, TR_Tensor)`'ı da aynı tiptir.
 
 ### 6.4
 

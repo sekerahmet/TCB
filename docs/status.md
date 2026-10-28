@@ -6,6 +6,8 @@ Dil tanımının yeniden yazılan bölümlerine göre bugünkü TR'nin durumu ve
 
 Uygulama sırasında çıkan çelişki ya da dil tanımının sustuğu yer için ana oturumun kararı aynı gün dil tanımına yazılır; denetimi sıradaki dil tanımı turunda (Gemini ve DENETİM) yapılır. 2026-10-28, 2. katmandan: 3.7a (açmada `TR_List(j)`, karşılaştırma, dolaşma), 3.8 (`.TR_reverse()` liste verir), 3.10 (koşulun geçtiği öbür yerler), 3.12 (mantık değerinden sayı, metinden liste kurulmaz), 3.14 (yön karakterleri, kaptaki JSON, bayt dizisinin metni), 4.5 (fonksiyon içeren kap, isteğe bağlı fonksiyon ve `TR_none`), 4.9 (ifadenin ardındaki `TR_in`), 5.7 (dolaşılamayan JSON türleri), 6.6 (`_` parametre), 12.3 (koşul `TR_Bool`). Gerekçeleri ve kaynaklı emsalleri `docs/spec/rationale/`'de; kaynaklar o turda bağımsız denetlenir.
 
+2026-10-28, 1–9'un amacın dokuz işine karşı tartısından (ana oturum ve DENETİM, `bolum1-9-dokuz-is`): 2.4 (onaltılık yazım bit deseni), 3.1 ve 13.1 (sarılan aritmetik), 3.6a (demet; 6.3'ün birden çok dönüşü demet, H2708 kalkar), 3.7 (demet anahtar), 3.7a (yinelenen JSON anahtarı hata), 4.3 (kesirli üs her makinede aynı), 4.12 ve 13.1 (`TR_unsigned_shift_right`), 5.7 ve 7.8 (`TR_next` ile dolaşma), 5.11 (sözlük üreteci), 13.8 (yapının JSON'u iki yönlü). Uygulanmadılar; bugün: onaltılık hash sabiti sözdizimi hatası ve iletisi ".0 ekle" diyor, hash çarpımının taşma iletisi ondalık öneriyor, yapı dolaşılamıyor, sözlük üreteci "expected a value" veriyor [ölçüldü]. Hepsi 4a'dan önce ya da 4a ile.
+
 ## 1. Program
 
 Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den ve Gemini'nin araştırmasından geçti (2026-10-27). 1.3–1.15 uygulandı (katman 1b, DENETİM'den geçti, 2026-10-28); aşağıda yalnız kalanlar.

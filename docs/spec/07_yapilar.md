@@ -75,5 +75,5 @@ TR_print(anlat(Durum.Çalışıyor(5)))   # çıktı: adım 5
 - Asıl tipe `TR_Type` sınamasıyla inilir: `TR_if TR_Type(k) == Kat { ... }` dalında `k` `Kat` tipindedir, 3.5'in daraltma koşullarıyla (yerel, dalda atanmayan, onu değiştiren kapanış olmayan değişken).
 - Arayüzü karşılamayan değer verilirse denetim hatasıdır; ileti eksik ya da imzası tutmayan metotları söyler.
 - Arayüz tip parametresine kısıt olur: `TR_func f[T: Katman](k: T)`; kısıtlı `T`'nin değerinde arayüzün metotları çağrılır (6.10).
-- Yerleşik tiplerin karşıladığı hazır arayüzler (eşitlik, sıralama, sayı) sonraki bölümlerdedir.
+- Yerleşiklerin imzasındaki kısıtlar (sayı, sıralanabilir, eşitlenebilir) 13.10'dadır; dolaşma arayüzü (`TR_next() -> T?`) 5.7'dedir; programın yazacağı kısıtlar sonraki bölümlerdedir.
 - *Test:* TR testi; karşılama, kısıt ve daraltma uygulanınca denetleyicinin testi.

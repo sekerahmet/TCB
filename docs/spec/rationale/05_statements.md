@@ -34,8 +34,8 @@ Kurallar: [`05_deyimler.md`](../05_deyimler.md). Bu dosya her kuralın emsalini 
 
 ### 5.7
 
-- *Emsal:* Go'nun `for i, x := range` biçimi indeksle öğeyi verir; Python dolaşılırken boyu değişen sözlükte hata verir: "dictionary changed size during iteration" [ölçüldü: Python 3.12.6]; belge yalnız "may raise a RuntimeError or fail to iterate over all entries" der. *Almadık:* Python'da dolaşılırken boyu değişen listenin sessizce öğe atlaması ya da yinelemesi. ([Go 1.27](https://go.dev/ref/spec#For_range), [Python 3.15](https://docs.python.org/3/library/stdtypes.html#dictionary-view-objects))
-- *Gerekçe:* dolaşırken listeyi ya da sözlüğü büyütüp küçültmek yaygın bir yanlıştır ve sonucu belirsizdir; hata o anda görünür. Var olan öğeye atama boyu değiştirmez, Python'da da serbesttir (`l[i] = x * 10`, `d[k] = 0` dolaşırken çalışır [ölçüldü: Python 3.12.6]); öğeleri yerinde dönüştürmek sık bir iştir.
+- *Emsal:* Go'nun `for i, x := range` biçimi indeksle öğeyi verir; Python dolaşılırken boyu değişen sözlükte hata verir: "dictionary changed size during iteration" [ölçüldü: Python 3.12.6]; belge yalnız "may raise a RuntimeError or fail to iterate over all entries" der. *Almadık:* Python'da dolaşılırken boyu değişen listenin sessizce öğe atlaması ya da yinelemesi. ([Go 1.27](https://go.dev/ref/spec#For_range), [Python 3.15](https://docs.python.org/3/library/stdtypes.html#dictionary-view-objects)) Rust'ın dolaşıcısı: `fn next(&mut self) -> Option<Self::Item>`; Python'da `__next__` [kanıtsız]. *Almadık:* iç içe isteğe bağlı öğe: TR'de `T??` yoktur (4.8). ([Rust 1.99 Iterator](https://doc.rust-lang.org/std/iter/trait.Iterator.html#tymethod.next))
+- *Gerekçe:* dolaşırken listeyi ya da sözlüğü büyütüp küçültmek yaygın bir yanlıştır ve sonucu belirsizdir; hata o anda görünür. Var olan öğeye atama boyu değiştirmez, Python'da da serbesttir (`l[i] = x * 10`, `d[k] = 0` dolaşırken çalışır [ölçüldü: Python 3.12.6]); öğeleri yerinde dönüştürmek sık bir iştir. Büyük veri kümesini dönüştürerek akıtan kendi okuyucusunu yazmak veri hazırlamanın temelidir (amaç); kullanıcının dolaşıcısı yerleşik okuyucularla aynı döngüyle dolaşılır.
 - *Gerekçe (dolaşılamayan JSON türleri):* serde_json'da `Value` dolaşılmaz; dizi ve nesne `as_array()` ve `as_object()` ile açılır. TR dizide ve nesnede doğrudan dolaşır, öbür türlerde hata verir: Python'daki gibi bir JSON metninde sessizce karakterleri dolaşmak yanlış olurdu. ([serde_json 1.0.154 Value](https://docs.rs/serde_json/1.0.154/serde_json/enum.Value.html))
 
 ### 5.8
@@ -55,8 +55,8 @@ Kurallar: [`05_deyimler.md`](../05_deyimler.md). Bu dosya her kuralın emsalini 
 
 ### 5.11
 
-- *Emsal:* Python'un liste üreteci (PEP 202). ([PEP 202](https://peps.python.org/pep-0202/))
-- *Gerekçe:* kodlama modelleri listeyi en sık bu biçimle kurar; değişkenin üretecin dışına sızmaması Python 3'teki gibidir (`x = 1; [x for x in [5, 6]]` sonrasında `x` 1 kalır [ölçüldü: Python 3.12.6]). Üretecin değişkeni bu yüzden 5.12'nin dışındadır: Python alışkanlığıyla yazılan kod aynı sonucu verir, sessiz bir fark doğmaz.
+- *Emsal:* Python'un liste üreteci (PEP 202). ([PEP 202](https://peps.python.org/pep-0202/)) Python: "dict comprehensions can be used to create dictionaries from arbitrary key and value expressions". ([Python 3.15 öğretici](https://docs.python.org/3/tutorial/datastructures.html#dictionaries))
+- *Gerekçe:* kodlama modelleri listeyi en sık bu biçimle kurar; değişkenin üretecin dışına sızmaması Python 3'teki gibidir (`x = 1; [x for x in [5, 6]]` sonrasında `x` 1 kalır [ölçüldü: Python 3.12.6]). Üretecin değişkeni bu yüzden 5.12'nin dışındadır: Python alışkanlığıyla yazılan kod aynı sonucu verir, sessiz bir fark doğmaz. Sözlük üreteci (`{w: i TR_for i, w TR_in sözlük}`) ajanın en sık yazdığı biçimlerdendir ve liste üretecinin eşidir; tek yazım bozulmaz.
 
 ### 5.12
 

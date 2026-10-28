@@ -10,7 +10,7 @@ Her kuralın emsali ve gerekçesi: [`rationale/05_statements.md`](rationale/05_s
 **5.2** `TR_const x = ifade` yeniden atanamayan bir ad tanımlar; ona atama denetim hatasıdır. Sabit olan bağdır, değer değil: `TR_const l = [1]` iken `l.TR_append(2)` geçerli, `l = []` hatadır. Tip açıklaması 3.13'teki gibi yazılır (`TR_const l: TR_List[TR_Int] = []`). Modülün en dışındaki sabitin ilk değeri sabit ifadedir (1.1).
 - *Test:* TR testi.
 
-**5.3** Çoklu tanım ve atama virgülle yapılır; sağdaki ifadelerin hepsi atamadan önce hesaplanır (`a, b = b, a` takas eder). Sağda tek bir liste varsa öğelerine açılır; öğe sayısı tutmazsa çalışma hatasıdır. Gerekmeyen değerin yerine `_` yazılır (`TR_var a, _ = b, c`); `_` bir ad değildir, okunamaz.
+**5.3** Çoklu tanım ve atama virgülle yapılır; sağdaki ifadelerin hepsi atamadan önce hesaplanır (`a, b = b, a` takas eder). Sağda tek bir liste ya da demet (3.6a) varsa öğelerine açılır; öğe sayısı tutmazsa çalışma hatasıdır. Gerekmeyen değerin yerine `_` yazılır (`TR_var a, _ = b, c`); `_` bir ad değildir, okunamaz.
 - *Test:* TR testi.
 
 ```tr
@@ -51,7 +51,7 @@ TR_var not_ = TR_match puan {
 }
 ```
 
-**5.7** `TR_for x TR_in kaynak { ... }` dolaşır: listede öğeler, aralıkta sayılar, metinde karakterler, bayt dizisinde baytlar (`TR_Int`), sözlükte anahtarlar, `TR_JSON` dizisinde öğeler ve nesnesinde anahtarlar; akışlı kaynakta (veri okuyucu) öğeler istendikçe okunur, kaynak bitince döngü biter. Metin, sayı, mantık ve yokluk türündeki `TR_JSON` değeri dolaşılamaz (çalışma hatası). `TR_for i, x TR_in ...` listede, metinde ve bayt dizisinde indeksle öğeyi, sözlükte ve `TR_JSON` nesnesinde anahtarla değeri verir. Değer gerekmiyorsa değişkenin yerine `_` yazılır (`TR_for _ TR_in 0..3`); liste üretecinde de. Dolaşılan liste ya da sözlüğe öğe eklemek ya da ondan öğe çıkarmak çalışma hatasıdır; var olan öğeye ya da anahtara atama (`l[i] = ...`, `d[k] = ...`) serbesttir, dolaşma o anki değeri görür. Tensörde dolaşmak sonraki bölümlerdedir.
+**5.7** `TR_for x TR_in kaynak { ... }` dolaşır: listede öğeler, aralıkta sayılar, metinde karakterler, bayt dizisinde baytlar (`TR_Int`), sözlükte anahtarlar, `TR_JSON` dizisinde öğeler ve nesnesinde anahtarlar; akışlı kaynakta (veri okuyucu) öğeler istendikçe okunur, kaynak bitince döngü biter. Metin, sayı, mantık ve yokluk türündeki `TR_JSON` değeri dolaşılamaz (çalışma hatası). `TR_for i, x TR_in ...` listede, metinde ve bayt dizisinde indeksle öğeyi, sözlükte ve `TR_JSON` nesnesinde anahtarla değeri verir. Değer gerekmiyorsa değişkenin yerine `_` yazılır (`TR_for _ TR_in 0..3`); liste üretecinde de. Dolaşılan liste ya da sözlüğe öğe eklemek ya da ondan öğe çıkarmak çalışma hatasıdır; var olan öğeye ya da anahtara atama (`l[i] = ...`, `d[k] = ...`) serbesttir, dolaşma o anki değeri görür. Bir yapı `TR_next() -> T?` metodunu taşıyorsa dolaşılır (7.8): döngü her turda `TR_next()`'i çağırır, `TR_none` dönünce biter; `T` isteğe bağlı olamaz, çünkü `TR_none` hem "bitti" hem öğe olurdu (denetim hatası, ileti öğeyi bir yapıya ya da durumlu tipe sarmayı önerir). Dolaşıcı tek seferliktir: biten dolaşıcı yeniden dolaşılınca hemen biter; dolaşırken değiştirme kuralı ona uygulanmaz. Tensörde dolaşmak sonraki bölümlerdedir.
 - *Test:* TR testi.
 
 **5.8** `TR_for koşul { ... }` koşul doğru oldukça döner; koşul `TR_Bool`'dur. Ayrı bir `TR_while` yoktur (2.9).
@@ -63,7 +63,7 @@ TR_var not_ = TR_match puan {
 **5.10** `TR_continue` en içteki döngünün sonraki turuna geçer.
 - *Test:* TR testi.
 
-**5.11** Liste üreteci `[ifade TR_for x TR_in kaynak TR_if koşul]` bir `TR_List` kurar; koşul isteğe bağlıdır. Değişken üretecin içinde kalır: dıştaki aynı adlı değişkeni gizler ve onu değiştirmez (5.12'nin istisnası).
+**5.11** Liste üreteci `[ifade TR_for x TR_in kaynak TR_if koşul]` bir `TR_List` kurar; koşul isteğe bağlıdır. Sözlük üreteci `{k: v TR_for x TR_in kaynak TR_if koşul}` bir `TR_Dict` kurar; yinelenen anahtarda son değer kalır. Değişken üretecin içinde kalır: dıştaki aynı adlı değişkeni gizler ve onu değiştirmez (5.12'nin istisnası).
 - *Test:* TR testi.
 
 ```tr
