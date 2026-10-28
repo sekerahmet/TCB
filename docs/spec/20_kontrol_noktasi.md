@@ -1,21 +1,21 @@
 # 20. Kontrol noktası ve kaldığı yerden devam
 
-Uzun bir eğitim kesilebilir: bulut not defterinin oturumu kapanır, Ctrl+C'ye basılır, makine yeniden başlar. `TR_fn_checkpoint` eğitimin bütün durumunu koşu klasörüne atomik kaydeder; program aynı komutla yeniden çalıştırılınca kaldığı adımdan, **kesintisiz eğitimle bit düzeyinde aynı** sonuca gidecek biçimde sürer. Uygulama `internal/stdlib/checkpoint`'dadır; kodlar ve örnekler [`codes.md`](../codes.md)'de (TR_type_Checkpoint, TR_fn_checkpoint, TR_fn_load_parameters, TR_arg_every_minutes, TR_arg_keep, TR_mem_update, TR_mem_state, TR_mem_load_state, TR_mem_resume_step, TR_mem_save). Kullanım için [`docs/guide/09_uzun_egitim.md`](../guide/09_uzun_egitim.md). Kural testleri `tests/kontrol_noktasi_test.tr`'dedir; süreç kesme, ayrı süreçlerle kabul testi, ağ sürücüsü benzetimi ve GPU yolu `tr test` ile sınanamadığından Go testleriyle sınanır (`internal/stdlib/checkpoint`, `cmd/tr/e2e`, `internal/stdlib/gpuprobe`).
+Uzun bir eğitim kesilebilir: bulut not defterinin oturumu kapanır, Ctrl+C'ye basılır, makine yeniden başlar. `TR_type_Checkpoint` eğitimin bütün durumunu koşu klasörüne atomik kaydeder; program aynı komutla yeniden çalıştırılınca kaldığı adımdan, **kesintisiz eğitimle bit düzeyinde aynı** sonuca gidecek biçimde sürer. Uygulama `internal/stdlib/checkpoint`'dadır; kodlar ve örnekler [`codes.md`](../codes.md)'de (TR_type_Checkpoint, TR_type_Checkpoint, TR_fn_load_parameters, TR_arg_every_minutes, TR_arg_keep, TR_mem_update, TR_mem_state, TR_mem_load_state, TR_mem_resume_step, TR_mem_save). Kullanım için [`docs/guide/09_uzun_egitim.md`](../guide/09_uzun_egitim.md). Kural testleri `tests/kontrol_noktasi_test.tr`'dedir; süreç kesme, ayrı süreçlerle kabul testi, ağ sürücüsü benzetimi ve GPU yolu `tr test` ile sınanamadığından Go testleriyle sınanır (`internal/stdlib/checkpoint`, `cmd/tr/e2e`, `internal/stdlib/gpuprobe`).
 
 ```tr
 //! tr kodlu 3 dil=tr
 TR_kw_var ayar = TR_fn_command_line({TR_mem_step: 20000, koşu: "runs/deneme1"})
-TR_kw_var model = {E: TR_fn_tensor(TR_fn_no_grad(TR_fn_randn([50000, 256], TR_arg_seed: 1) * 0.02), TR_arg_requires_grad: TR_kw_true)}
+TR_kw_var model = {E: TR_type_Tensor(TR_fn_no_grad(TR_fn_randn([50000, 256], TR_arg_seed: 1) * 0.02), TR_arg_requires_grad: TR_kw_true)}
 TR_kw_var op = TR_fn_AdamW(TR_fn_parameters(model), TR_arg_lr: 0.0003)
-TR_kw_var ö = TR_fn_dataset("veri/train").TR_mem_sampler(TR_arg_batch_size: 16, TR_arg_context: 512, TR_arg_seed: 1)
-TR_kw_var g = TR_fn_logger(TR_fn_path(ayar.koşu, "metrics.jsonl"))
+TR_kw_var ö = TR_type_Dataset("veri/train").TR_mem_sampler(TR_arg_batch_size: 16, TR_arg_context: 512, TR_arg_seed: 1)
+TR_kw_var g = TR_type_Logger(TR_type_Path(ayar.koşu, "metrics.jsonl"))
 TR_kw_var izlenen = {en_iyi_kayıp: 99.0}
-TR_kw_var kn = TR_fn_checkpoint(ayar.koşu, {model: model, op: op, ö: ö, g: g, izlenen: izlenen})
-TR_kw_var ç = TR_fn_progress(ayar.TR_mem_step, TR_arg_log: g)
+TR_kw_var kn = TR_type_Checkpoint(ayar.koşu, {model: model, op: op, ö: ö, g: g, izlenen: izlenen})
+TR_kw_var ç = TR_type_Progress(ayar.TR_mem_step, TR_arg_log: g)
 TR_kw_for adım TR_kw_in kn.TR_mem_resume_step..ayar.TR_mem_step {
     TR_kw_var giriş, hedef = ö.TR_mem_next()
     op.TR_mem_zero_grad()
-    TR_kw_var kayıp = TR_fn_cross_entropy(TR_fn_embedding(model.E, giriş) @ model.E.TR_mem_transpose(), hedef)
+    TR_kw_var kayıp = TR_fn_cross_entropy(TR_fn_embedding_lookup(model.E, giriş) @ model.E.TR_mem_transpose(), hedef)
     TR_fn_backward(kayıp)
     op.TR_mem_step()
     TR_kw_if kayıp.TR_mem_tolist < izlenen.en_iyi_kayıp { izlenen.en_iyi_kayıp = kayıp.TR_mem_tolist }
@@ -27,7 +27,7 @@ kn.TR_mem_save()
 
 ## Kurulum ve nesneler
 
-**20.1** `TR_fn_checkpoint(koşu, nesneler, TR_arg_every_minutes: 15, TR_arg_keep: 2)` bir `TR_type_Checkpoint` kurar. `koşu` bir `TR_type_String` ya da `TR_type_Path`'dur, 13.1'in kuralıyla çözülür; noktalar her zaman `<koşu>/checkpoints/` altına yazılır (koşu klasöründeki öbür dosyalara dokunulmaz). Klasörde nokta yoksa koşu yenidir, `kn.TR_mem_resume_step` 0'dır ve klasör ilk kayıtta oluşur. `her_dakika` kayıt aralığıdır (0 ile 1 000 000 arası dakika; 0: her `TR_mem_update`'de), `tut` saklanacak en yeni nokta sayısıdır (1 ile 1000 arası `TR_type_Int`). Koşu yolu bir dosyaysa, argüman sayısı ya da tipi yanlışsa, adlı argüman bilinmiyorsa hata verilir.
+**20.1** `TR_type_Checkpoint(koşu, nesneler, TR_arg_every_minutes: 15, TR_arg_keep: 2)` bir `TR_type_Checkpoint` kurar. `koşu` bir `TR_type_String` ya da `TR_type_Path`'dur, 13.1'in kuralıyla çözülür; noktalar her zaman `<koşu>/checkpoints/` altına yazılır (koşu klasöründeki öbür dosyalara dokunulmaz). Klasörde nokta yoksa koşu yenidir, `kn.TR_mem_resume_step` 0'dır ve klasör ilk kayıtta oluşur. `her_dakika` kayıt aralığıdır (0 ile 1 000 000 arası dakika; 0: her `TR_mem_update`'de), `tut` saklanacak en yeni nokta sayısıdır (1 ile 1000 arası `TR_type_Int`). Koşu yolu bir dosyaysa, argüman sayısı ya da tipi yanlışsa, adlı argüman bilinmiyorsa hata verilir.
 
 **20.2** `nesneler` kaydedilecek şeylerin sözlüğüdür; anahtarları kullanıcının verdiği adlardır: kod taşıyan çıplak anahtar kodun dilden bağımsız adıyla saklanır (17.3; Türkçe programın `{adım: a}`'sı da İngilizce programın `{step: a}`'sı da `"step"`), kodsuz çıplak anahtar ve tırnaklı ad yazıldığı gibi; böylece iki dilde yazılmış programlar aynı noktayı paylaşır. Ad boş olmayan bir `TR_type_String`dir, en çok 200 bayttır, `/` ve denetim karakteri içermez; en çok 1000 nesne. Değerler:
 - **model**: tensör içeren bir yapı nesnesi, liste ya da sözlük, ya da tek bir tensör. İçindeki **bütün yaprak tensörler** kaydedilir: türev izleyenler (**parametreler**: iyileştiricinin güncellediği, `TR_fn_parameters(model)`'in verdiği tensörler) ve türev izlemeyenler (**durum**: TR ile yazılmış bir iyileştiricinin momentumu gibi türevsiz blokta yerinde güncellenen tensörler, sabit tablolar). Adlar `TR_fn_parameters(model, TR_arg_named: TR_kw_true)`'nun yol adlarıdır, aynı gezinti sırasıyla; aynı tensör bir kez kaydedilir. Yüklemede ikisi de var olan tensörlere yerinde yazılır (20.6); kayıttaki ile modeldeki tensörlerin adları, şekilleri ve türleri aynı olmalıdır (20.7). Ara sonuçlar (türev izleyen bir işlemin sonucu) kaydedilmez, tek başına verilen ara tensör hatadır; modelin tensör olmayan alanları (ayarlar, sayılar) kaydedilmez — değişen sayılar ayrı bir düz değerli sözlükte verilir;
@@ -70,10 +70,10 @@ Düz bir `TR_type_Int`, `TR_type_Float`, `TR_type_String` ya da `TR_type_Bool` d
 
 ```tr
 //! tr kodlu 3 dil=tr
-TR_kw_var w = TR_fn_tensor([1.0, 2.0], TR_arg_requires_grad: TR_kw_true)
+TR_kw_var w = TR_type_Tensor([1.0, 2.0], TR_arg_requires_grad: TR_kw_true)
 TR_kw_var op = TR_fn_AdamW([w])
-TR_kw_var ö = TR_fn_dataset("veri").TR_mem_sampler(TR_arg_batch_size: 8, TR_arg_context: 32, TR_arg_seed: 1)
-TR_kw_var kn = TR_fn_checkpoint("koşu", {w: w, op: op, ö: ö})
+TR_kw_var ö = TR_type_Dataset("veri").TR_mem_sampler(TR_arg_batch_size: 8, TR_arg_context: 32, TR_arg_seed: 1)
+TR_kw_var kn = TR_type_Checkpoint("koşu", {w: w, op: op, ö: ö})
 TR_kw_var adım = kn.TR_mem_resume_step
 TR_kw_for adım < 1000 {
     TR_kw_var giriş, hedef = ö.TR_mem_next()

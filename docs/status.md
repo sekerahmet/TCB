@@ -151,7 +151,7 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: DENETİM'de
 - 5.4: tam sayı değişkene `/=`;
 - 5.5: `TR_else`'siz `TR_if` ifadesinin yokluk vermesi;
 - 5.6: `TR_default`, kapsamayan iki eşleme, düz adla yazılmış değişken deseni (`(x)`'e çevrilir);
-- 5.7: `{i}{x}` yerleştirmesi (2.7), `TR_str` (3.12), geriye sayan `3..0` (3.8), tipsiz boş listeler (3.6);
+- 5.7: `{i}{x}` yerleştirmesi (2.7), geriye sayan `3..0` (3.8), tipsiz boş listeler (3.6);
 - 5.8: `TR_while`;
 - 5.12: kolda dıştaki fonksiyonla aynı adlı fonksiyon (yeni kurala göre hata); adlı fonksiyon ifadesinin adının dışarı çıkması (6. bölümün kararı);
 - 5.13: kapsamayan eşleme;
@@ -211,7 +211,7 @@ Kurallar: [`docs/spec/06_fonksiyonlar.md`](spec/06_fonksiyonlar.md). Taslak: DEN
 - parantezsiz ok ve adsız `TR_func` (6.6);
 - `TR_it` ve `TR_acc`'li sondaki blok, son argümanda `() => { ... }` (6.7);
 - argüman hatalarını çalışırken yakalayan testler (eski 6.3 ve 6.4: eksik, fazla, iki kez verilen argüman, varsayılandaki ileri başvuru): artık denetim hatası olduklarından `tests/negative/` fikstürlerine taşınır, yoksa dosya denetimden geçmez (1.3);
-- 6.7 testinin adındaki `\{` (2.6), `TR_str` (3.12), `//` yorumları ve eski başlık (2.1, 2.2);
+- 6.7 testinin adındaki `\{` (2.6), `//` yorumları ve eski başlık (2.1, 2.2);
 - numaralar: eski 6.3 → 6.4, 6.4 → 6.5, 6.5 → 6.8, 6.8 → 6.1, 6.3a → 6.11.
 
 Kapıların bu bölümdeki kırılmaları, testler yeniden yazılırken giderilir: 6.3'ün Test satırı "gerekmez" diyor ama eski 6.3 numaralı testler var; 6.11 "TR testi" diyor ama 6.11 numaralı test yok (bugün 6.3a) [DENETİM].
@@ -279,7 +279,7 @@ Kurallar: [`docs/spec/07_yapilar.md`](spec/07_yapilar.md). Taslak: DENETİM'den 
 - verilmeyen alanın yokluk alması (7.2);
 - argüman ve alan hatalarını çalışırken yakalayan 7.2 ve 7.5 testleri: artık denetim hatası, `tests/negative/` fikstürlerine taşınır;
 - `p?.z` (7.5, 4.8);
-- eski metin biçimi ve yapının tipinin StructType olması (7.6); `TR_str` ve `TR_type` (3.12); `//` yorumları ve eski başlık.
+- eski metin biçimi ve yapının tipinin StructType olması (7.6); `//` yorumları ve eski başlık.
 
 Örneklerdeki eski genel tipler de kalkar: StructType, Function, BuiltinFunction, None (`examples/tr/12_tip_adlari.tr`, `14_yapilar_ve_metotlar.tr`) [DENETİM].
 

@@ -8,7 +8,7 @@ Model eğitimi için `tokenizer.json` parçalayıcıları ve `.npy` veri dosyala
 
 **16.3** `.TR_mem_decode(kimlikler)` kimlik listesinden ya da 1 boyutlu tensörden metin, listelerin listesinden ya da 2 boyutlu tensörden metin listesi üretir. Varsayılan olarak özel parçalar çıktıya yazılmaz; `TR_arg_special_tokens: TR_kw_true` onları da yazar. Dağarcıkta olmayan kimlikler atlanır.
 
-**16.4** `TR_fn_dataset(dizin)` bir klasördeki `.npy` veri dosyalarını (ad sırasıyla) ya da tek bir `.npy` dosyasını `TR_type_Dataset` olarak açar; `meta.json` varsa parça sayıları ondan okunur. `TR_arg_cache: klasör` veri dosyalarını yerel bir önbelleğe kopyalar; bu durumda `TR_arg_quota_gb:` zorunludur. Aynı önbellek klasörünü kullanan kümeler tek kotayı paylaşır (en son verilen geçerlidir); klasörü aynı anda başka bir program kullanıyorsa hata verilir.
+**16.4** `TR_type_Dataset(dizin)` bir klasördeki `.npy` veri dosyalarını (ad sırasıyla) ya da tek bir `.npy` dosyasını `TR_type_Dataset` olarak açar; `meta.json` varsa parça sayıları ondan okunur. `TR_arg_cache: klasör` veri dosyalarını yerel bir önbelleğe kopyalar; bu durumda `TR_arg_quota_gb:` zorunludur. Aynı önbellek klasörünü kullanan kümeler tek kotayı paylaşır (en son verilen geçerlidir); klasörü aynı anda başka bir program kullanıyorsa hata verilir.
 
 **16.5** `.örnekleyici(toplu:, bağlam:, tohum: 0)` bir `TR_type_Sampler` döndürür. `.TR_mem_next()` `[girdi, hedef]` listesidir: ikisi de `[toplu, bağlam]` şeklinde tam sayılı işaretli tensördür (`.TR_mem_tolist` `TR_type_Int` listesi verir; işlem sonuçlarına bu işaret geçmez), `hedef` girdinin bir kaydırılmışıdır ve pencereler veri dosyası sınırını aşmaz. Aynı küme ve tohum aynı toplu işleri verir; örnekleyici sonsuz üretir.
 
