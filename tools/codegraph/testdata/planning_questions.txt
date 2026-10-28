@@ -51,15 +51,15 @@ codegraph path tensor.Attention tensor.Tensor.Softmax | contains: no directed pa
 codegraph tests-for tensor.Tensor.Softmax --all | group: measurements, not tests => tensor.BenchmarkSoftmax | src: deneme 4, 2026-10-23
 
 # Deneme 5: değer metni dosyanın dilinde (2026-10-23)
-codegraph query "tr kodlu" | contains: source.Header | contains: lexer.CodedHeader | src: deneme 5, 2026-10-23
-codegraph query source.Header | contains: writing language follows it | src: deneme 5, 2026-10-23
+codegraph query "# TR 4" | contains: source.Header | src: deneme 5, 2026-10-23; katman 1, 2026-10-28 (başlık '# TR 4', lexer.CodedHeader kalktı)
+codegraph query source.Header | contains: carries no language | src: deneme 5, 2026-10-23; katman 1, 2026-10-28 (dosyanın dili yok, 2.1)
 codegraph tests-for source.Split | not: no tests found | src: deneme 5, 2026-10-23
 codegraph query interp.Value.Inspect | group: -> dispatches_to => checkpoint.Checkpoint.Inspect | group: -> dispatches_to => dataset.Dataset.Inspect | src: deneme 5, 2026-10-23
 codegraph query TR_fn_print | group: registered or used in Go => interp.printBuiltin | src: deneme 5, 2026-10-23
 codegraph query TR_fn_str | group: registered or used in Go => interp.stringBuiltin | src: deneme 5, 2026-10-23
 codegraph query interp.VM.runModule | contains: interp.Source. | src: deneme 5, 2026-10-23
 codegraph query interp.compiler | group: fields ( => interp.compiler.root | group: fields ( => interp.compiler.source | group: fields ( => interp.compiler.blocks | src: deneme 5, 2026-10-23
-codegraph who-uses 17.7 --all | contains: internal/lang/codes/start.go | contains: lexer.NewBodyIn || internal/lang/lexer/coded.go | src: deneme 5, 2026-10-23
+codegraph who-uses 17.7 --all | contains: internal/lang/codes/start.go | src: deneme 5, 2026-10-23; katman 1, 2026-10-28 (sözcük çözümleyici dosyanın dilini artık anmıyor)
 codegraph tests-for 17.7 | not: no tests found | src: deneme 5, 2026-10-23
 
 # Önceki işler: .tr dosyasını, kitaplığı ve belgeyi koruyan Go testleri (2026-10-23)
@@ -125,7 +125,7 @@ codegraph who-uses interp.valueText | contains: <- implemented_by | group: calls
 codegraph query katman.Doğrusal.ileri --all | group: implemented_by => interp.compiler.call | group: implemented_by => interp.VM.memberValue | src: deneme 9 H1 (yapı → uygulama), 2026-10-24
 codegraph query katman.Doğrusal.ileri --all | group: implemented_by => ml.TensorValue.matmulOp | group: implemented_by => tensor.Add | src: deneme 9 H1 (işleç → uygulama), 2026-10-24
 codegraph path katman.Doğrusal.ileri tensor.MatMul | contains: (directed | contains: -implemented_by-> | src: deneme 9 H1, 2026-10-24
-tr dizin kullananlar field:lib/katman.tr#TR_type_GPT.TR_mem_config --tümü | contains: @{tools/gpu/gpt_training.tr#model.TR_mem_embedding.TR_mem_table.TR_mem_device} | contains: @{lib/hazir_test.tr#m.TR_mem_config.rope_tabanı} | contains: @{lib/hazir_test.tr#ll.TR_mem_config.rope_tabanı} | src: deneme 7 R4 (tür çıkarımı), 2026-10-24
+tr dizin kullananlar field:lib/katman.tr#TR_type_GPT.TR_mem_config --tümü | contains: @{tools/gpu/gpt_training.tr#model.TR_embedding.TR_table.TR_device} | contains: @{lib/hazir_test.tr#m.TR_config.rope_tabanı} | contains: @{lib/hazir_test.tr#ll.TR_config.rope_tabanı} | src: deneme 7 R4 (tür çıkarımı), 2026-10-24
 
 # Değer dili 3. tur: Inspect ve tip-metin karşılaştırması, ortam değişkenini koyan testler (2026-10-25)
 codegraph who-uses interp.Value.Inspect --all | group: implemented_by => egitim.TR_type_Run.TR_mem_finish | group: implemented_by => hazir.TR_fn_map_hugging_face | src: değer dili 3. tur, 2026-10-25
@@ -150,7 +150,8 @@ codegraph tests-for internal/README.md | group: guard the rules it states => int
 codegraph tests-for CLAUDE.md | contains: no tests read it by name | group: repository-wide checks that scan it => internal_test.TestRetiredTermsStayRetired | src: TCB 2026-10-25, 2. madde (adıyla okuyan yok; depo geneli taramalar var)
 codegraph tests-for cmd/tr/main.go | not: checker.TestBoolTextComparisonWarning | contains: covered by subprocess tests | src: TCB 2026-10-25, 3. madde
 codegraph tests-for editors/vscode/coded_view.js | group: tests, indirect => e2e.TestExtensionJSTests | contains: via editors/vscode/test/coded_view_test.js | src: TCB 2026-10-25, 4. madde
-codegraph tests-for README.md | group: <- tests => e2e.TestExamplesListedInReadme | group: among other files => e2e.TestDocLinks | not: no tests found | src: TCB 2026-10-25, 2. madde (gaps.md: belgeListesi kök README ve docs/*.md; K2 partisinden beri listeyle okuyan test kendi grubunda)
+codegraph tests-for README.md | group: among other files => e2e.TestDocLinks | not: no tests found | src: TCB 2026-10-25, 2. madde (gaps.md: belgeListesi kök README ve docs/*.md; K2 partisinden beri listeyle okuyan test kendi grubunda); katman 1, 2026-10-28 (örnek listesi examples/README.md'de)
+codegraph tests-for examples/README.md | group: <- tests => e2e.TestExamplesListedInReadme | src: katman 1, 2026-10-28 (kök README yeniden yazıldı, örnek listesini okuyan test bu dosyaya bağlı)
 # TCB 2026-10-25: depo genelini tarayan kural testleri (gaps.md)
 codegraph tests-for tools/edithook/main.go | group: repository-wide checks that scan it => internal_test.TestNoTurkishLiterals | contains: internal_test.TestLayoutFileSize | contains: *.go under the repository, not *_test.go | src: TCB 2026-10-25, gaps.md (depo geneli kural testleri)
 codegraph tests-for lib/README.md | group: repository-wide checks that scan it => internal_test.TestRuleTestsExist | not: TestNoTurkishLiterals | src: TCB 2026-10-25, gaps.md (kalıp uzantıya göre: .go taraması .md'ye uymaz)

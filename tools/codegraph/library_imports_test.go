@@ -63,17 +63,19 @@ func TestEveryLibraryFile(t *testing.T) { _ = reporoot.Path("lib", "*.tr") }
 // testleri; kendi test dosyası aynı uzaklıkta önce). Adıyla ya da aktarmayla okuyan test kalıpla ve gömmeyle okuyanların
 // önünde yazılır; ön denetimin seçimi (changed --go-tests) aynı erişimi kullanır.
 func TestALibraryModuleIsTestedByTheTestsThatImportIt(t *testing.T) {
-	g, err := buildGraph(auditModule(t, libraryImportFiles(t)))
+	files := libraryImportFiles(t)
+	g, err := buildGraph(auditModule(t, files))
 	if err != nil {
 		t.Fatal(err)
 	}
 	const app = "go:func:example.com/audit/app."
+	block := fmt.Sprintf("tr:test:lib/katmanx_test.tr:%d", auditLine(t, "lib/katmanx_test.tr", files["lib/katmanx_test.tr"], "TR_test "))
 	mustEdge(t, g, app+"TestReady", "tr:file:lib/modelx.tr", edgeTests, inferred)
 	mustEdge(t, g, app+"TestCoded", "tr:file:lib/katmanx.tr", edgeTests, inferred)
 	ix := newIndex(g)
 	distances := ix.testDistances(ix.byID["tr:file:lib/katmanx.tr"])
 	for test, want := range map[string]int{app + "TestCoded": 0, app + "TestReady": 2, app + "TestScript": 3,
-		"tr:test:lib/katmanx_test.tr:2": 1} {
+		block: 1} {
 		if got, ok := distances[test]; !ok || got != want {
 			t.Errorf("lib/katmanx.tr: %s at %d steps (found %v), want %d", test, got, ok, want)
 		}

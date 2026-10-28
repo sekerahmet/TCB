@@ -43,7 +43,7 @@ func TestEveryCodedEnvironmentVariableInAScriptIsAnEdge(t *testing.T) {
 			}
 		}
 	}
-	for _, must := range []string{"file:tools/gpu/card_check.sh name:TR_GPU_SYNC", "file:tools/full_check.sh name:TR_CPU_AVX2", "file:tools/full_check.sh name:TR_LANG"} {
+	for _, must := range []string{"file:tools/gpu/card_check.sh name:TR_env_GPU_SYNC", "file:tools/full_check.sh name:TR_env_CPU_AVX2", "file:tools/full_check.sh name:TR_env_LANG"} {
 		if !want[must] {
 			t.Errorf("the scan misses %s; it is broken", must)
 		}

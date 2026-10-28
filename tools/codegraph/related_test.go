@@ -18,13 +18,13 @@ func TestRelatedNamesAreLinked(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	mustEdge(t, g, "name:TR_join", "name:TR_split", edgeRelated, extracted)
-	if e := edge(g, "name:TR_split", "name:TR_join", edgeRelated); e != nil {
+	mustEdge(t, g, "name:TR_mem_join", "name:TR_mem_split", edgeRelated, extracted)
+	if e := edge(g, "name:TR_mem_split", "name:TR_mem_join", edgeRelated); e != nil {
 		t.Errorf("only the direction the definition writes: %+v", e)
 	}
 	if code, _, errOut := runCLI("build", "--root", root); code != exitOK {
 		t.Fatalf("build: %d %s", code, errOut)
 	}
 	_, out, _ := runCLI("query", "birleştir", "--root", root, "--no-rebuild")
-	testkit.MustContain(t, out, "-> related (1)", "TR_split")
+	testkit.MustContain(t, out, "-> related (1)", "TR_mem_split")
 }

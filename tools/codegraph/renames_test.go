@@ -23,7 +23,7 @@ func renameIn(t *testing.T, root, old, new, also string) {
 	}
 	doc := filepath.Join(root, filepath.FromSlash(identityMaps[0]))
 	row := "| " + old + " | `" + new + "` | x |\n"
-	if old == "TR_print" {
+	if old == "TR_fn_print" {
 		testkit.WritePath(t, doc, "| Eski kod | Kimlik | Go sabiti |\n| :-- | :-- | :-- |\n"+row)
 	} else {
 		replaceIn(t, doc, "| :-- | :-- | :-- |\n", "| :-- | :-- | :-- |\n"+row)
@@ -41,12 +41,12 @@ func renameIn(t *testing.T, root, old, new, also string) {
 func TestARenamedCodeIsNotDeletedAndKeepsItsHistory(t *testing.T) {
 	slowFixture(t)
 	root := gitFixture(t)
-	renameIn(t, root, "TR_print", "TR_fn_write", "")
+	renameIn(t, root, "TR_fn_print", "TR_fn_write", "")
 	renameIn(t, root, "TR_fn_write", "TR_fn_output", "\n  \"TR_kw_if\": { \"name\": \"eger\", \"family\": \"keyword\" },")
 
 	_, out, _ := runDeletedIn(root)
-	testkit.MustContain(t, out, "names: 1 deleted codes", "TR_if  removed ")
-	if strings.Contains(out, "TR_print") || strings.Contains(out, "TR_fn_write") {
+	testkit.MustContain(t, out, "names: 1 deleted codes", "TR_kw_if  removed ")
+	if strings.Contains(out, "TR_fn_print") || strings.Contains(out, "TR_fn_write") {
 		t.Errorf("a renamed code is not deleted:\n%s", out)
 	}
 	graph := buildInto(t, root)
@@ -54,14 +54,14 @@ func TestARenamedCodeIsNotDeletedAndKeepsItsHistory(t *testing.T) {
 	if code != exitOK {
 		t.Fatalf("exit %d: %s", code, errOut)
 	}
-	testkit.MustContain(t, out, "renamed TR_fn_write → TR_fn_output", "renamed TR_print → TR_fn_write", "added    ")
+	testkit.MustContain(t, out, "renamed TR_fn_write → TR_fn_output", "renamed TR_fn_print → TR_fn_write", "added    ")
 	if i, j, k := strings.Index(out, "→ TR_fn_output"), strings.Index(out, "→ TR_fn_write"), strings.Index(out, "added"); !(i < j && j < k) {
 		t.Errorf("events newest first, the first add last:\n%s", out)
 	}
 	if strings.Contains(out, "removed") {
 		t.Errorf("a rename is not a removal:\n%s", out)
 	}
-	code, out, _ = commandIn("query", root, graph, "TR_print")
+	code, out, _ = commandIn("query", root, graph, "TR_fn_print")
 	if code != exitOK || !strings.HasPrefix(out, "TR_fn_output [name]") {
 		t.Errorf("the old key leads to the code: exit %d\n%s", code, out)
 	}
@@ -122,8 +122,8 @@ func TestEveryRenameInTheMappingKeepsItsHistory(t *testing.T) {
 			t.Errorf("%s still has a history of its own after the rename to %s", old, id)
 		}
 	}
-	if list := merged["TR_sum"]; len(list) == 0 || list[len(list)-1].commit.date != "2026-10-19" {
-		t.Errorf("TR_sum was first added on 2026-10-19, under its old key: %+v", list)
+	if list := merged["TR_fn_sum"]; len(list) == 0 || list[len(list)-1].commit.date != "2026-10-19" {
+		t.Errorf("TR_fn_sum was first added on 2026-10-19, under its old key: %+v", list)
 	}
 	t.Logf("%d renames, %d codes really deleted", len(renames), len(gone))
 }

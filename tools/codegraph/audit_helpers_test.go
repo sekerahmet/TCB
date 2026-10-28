@@ -3,8 +3,10 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
@@ -14,9 +16,31 @@ func auditModule(t *testing.T, files map[string]string) string {
 	dir := t.TempDir()
 	testkit.WriteFile(t, dir, "go.mod", "module example.com/audit\n\ngo 1.21\n")
 	for name, body := range files {
-		testkit.WriteFile(t, dir, name, body)
+		testkit.WriteFile(t, dir, name, auditFileText(name, body))
 	}
 	return dir
+}
+
+// auditFileText auditModule'ün dosyaya yazdığı metindir: depodaki .tr dosyası başlıkla başlar (dil tanımı 2.1), başlıksız
+// verilen gövdenin başına `# TR 4` konur; öbür dosyalar olduğu gibi.
+func auditFileText(name, body string) string {
+	if strings.HasSuffix(name, ".tr") && !strings.HasPrefix(body, source.Header) {
+		return source.Header + "\n" + body
+	}
+	return body
+}
+
+// auditLine auditModule'ün yazdığı dosyada metnin ilk geçtiği satırdır (1'den, başlık dahil): beklenen satır kaynaktan
+// hesaplanır.
+func auditLine(t *testing.T, name, body, text string) int {
+	t.Helper()
+	for i, l := range strings.Split(auditFileText(name, body), "\n") {
+		if strings.Contains(l, text) {
+			return i + 1
+		}
+	}
+	t.Fatalf("%s lacks %q", name, text)
+	return 0
 }
 
 func auditJSON(t *testing.T, cmd, root string, args ...string) map[string]any {

@@ -41,17 +41,17 @@ func TestACommonNameComesFromTheDefinitions(t *testing.T) {
 		t.Fatal(err)
 	}
 	ix := newIndex(g)
-	sin := ix.byID["name:TR_sin"]
+	sin := ix.byID["name:TR_fn_sin"]
 	if sin == nil || !slices.Equal(sin.Aliases, []string{"sin"}) || !strings.HasPrefix(sin.Detail, "sin (") {
-		t.Fatalf("TR_sin: %+v", sin)
+		t.Fatalf("TR_fn_sin: %+v", sin)
 	}
 	if found := ix.lookup("sin"); len(found) != 1 || found[0] != sin {
 		t.Errorf("query sin: %v", found)
 	}
-	if p := ix.byID["name:TR_print"]; p == nil || !slices.Equal(p.Aliases, []string{"yazdır", "print"}) {
+	if p := ix.byID["name:TR_fn_print"]; p == nil || !slices.Equal(p.Aliases, []string{"yazdır", "print"}) {
 		t.Errorf("a name in the language files stays: %+v", p)
 	}
-	if got := envCodes(root)["TR_CPU_AVX2"]; got != "TR_CPU_AVX2" {
+	if got := envCodes(root)["TR_CPU_AVX2"]; got != "TR_env_CPU_AVX2" {
 		t.Errorf("the common name of an environment variable: %q", got)
 	}
 }

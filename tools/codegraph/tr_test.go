@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 
@@ -13,17 +14,17 @@ const (
 	geoAlan  = "tr:method:" + geo + ":Kare.alan"
 	geoCevre = "tr:func:" + geo + ":çevre_hesapla"
 	geoYaz   = "tr:func:" + geo + ":yaz_alan"
-	test1    = "tr:test:lib/geo_test.tr:3"
-	test2    = "tr:test:lib/geo_test.tr:8"
-	printG   = "name:TR_print"
+	printG   = "name:TR_fn_print"
 )
 
 func TestTRNodes(t *testing.T) {
 	g := fixture(t)
+	line := func(text string) int { return modLine(t, geo, text) }
 	want := map[string]int{
-		geoKare: 5, geoAlan: 10, geoCevre: 15, "tr:func:" + geo + ":yaz_alan": 19,
-		"tr:const:" + geo + ":PI2": 2, "tr:var:" + geo + ":sayaç": 3,
-		"tr:field:" + geo + ":Kare.kenar": 6, "tr:method:" + geo + ":Kare.TR_init": 7,
+		geoKare: line("TR_struct Kare"), geoAlan: line("TR_func alan()"), geoCevre: line("TR_func çevre_hesapla"),
+		"tr:func:" + geo + ":yaz_alan": line("TR_func yaz_alan"), "tr:const:" + geo + ":PI2": line("TR_const PI2"),
+		"tr:var:" + geo + ":sayaç": line("TR_var sayaç"), "tr:field:" + geo + ":Kare.kenar": line("    kenar = 1"),
+		"tr:method:" + geo + ":Kare.TR_ctx_init": line("TR_func TR_init("),
 	}
 	for _, n := range g.Nodes {
 		if line, ok := want[n.ID]; ok {
@@ -37,7 +38,7 @@ func TestTRNodes(t *testing.T) {
 		t.Errorf("missing node %s", id)
 	}
 	for _, n := range g.Nodes {
-		if n.ID == geoKare && (n.Kind != kindTRStruct || n.Name != "geo.Kare" || n.End < 13) {
+		if n.ID == geoKare && (n.Kind != kindTRStruct || n.Name != "geo.Kare" || n.End < line("TR_return TR_self.kenar *")+2) {
 			t.Errorf("Kare: %+v", n)
 		}
 		if n.ID == "tr:file:"+geo && (n.Kind != kindFile || len(n.Aliases) != 2 || n.Aliases[1] != "tr/geo") {
@@ -48,6 +49,7 @@ func TestTRNodes(t *testing.T) {
 
 func TestTREdges(t *testing.T) {
 	g := fixture(t)
+	test1, test2 := modTest(t, "lib/geo_test.tr", "kare alanı yazılır"), modTest(t, "lib/geo_test.tr", "çevre")
 	mustEdge(t, g, geoYaz, geoCevre, edgeCalls, extracted)
 	mustEdge(t, g, geoYaz, printG, edgeUsesName, extracted)
 	mustEdge(t, g, geoYaz, geoAlan, edgeCalls, inferred) // k.alan(): alıcının tipi bilinmez
@@ -90,7 +92,7 @@ func TestTRQueries(t *testing.T) {
 	if code != exitOK {
 		t.Fatalf("exit %d\n%s", code, out)
 	}
-	testkit.MustContain(t, out, "geo.Kare [tr_struct] lib/geo.tr:5", "<- calls", "geo_test: kare alanı yazılır [tr_test]")
+	testkit.MustContain(t, out, "geo.Kare [tr_struct] lib/geo.tr:"+strconv.Itoa(modLine(t, geo, "TR_struct Kare")), "<- calls", "geo_test: kare alanı yazılır [tr_test]")
 	// Modül adı ve içe aktarma yolu dosyaya çözülür.
 	for _, q := range []string{"geo", "tr/geo"} {
 		code, out, _ = cli(t, "query", q)
@@ -111,7 +113,7 @@ func TestTRCodedFile(t *testing.T) {
 	const fn = "tr:func:examples/coded.tr:kodlu_işlev"
 	found := false
 	for _, n := range g.Nodes {
-		if n.ID == fn && n.Line == 2 && n.End == 5 && strings.Contains(n.Detail, "kodlu_işlev(x)") {
+		if n.ID == fn && n.Line == modLine(t, "examples/coded.tr", "TR_func kodlu_işlev") && n.End == n.Line+3 && strings.Contains(n.Detail, "kodlu_işlev(x)") {
 			found = true
 		}
 		if n.ID == "tr:file:examples/coded.tr" && n.Detail != "tr, coded" {
@@ -128,17 +130,17 @@ func TestTRCodedFile(t *testing.T) {
 // argüman olarak geçtiği yerler `who-uses` ile bulunur.
 func TestTRParametersAndNamedArguments(t *testing.T) {
 	g := fixture(t)
-	const param = "tr:param:lib/geo.tr:Kare.TR_init.kenar"
+	const param = "tr:param:lib/geo.tr:Kare.TR_ctx_init.kenar"
 	found := false
 	for _, n := range g.Nodes {
-		if n.ID == param && n.Kind == kindTRParam && n.Detail == "kenar = 1" && n.Name == "geo.Kare.TR_init.kenar" {
+		if n.ID == param && n.Kind == kindTRParam && n.Detail == "kenar = 1" && n.Name == "geo.Kare.TR_ctx_init.kenar" {
 			found = true
 		}
 	}
 	if !found {
 		t.Fatal("parameter node missing or wrong")
 	}
-	mustEdge(t, g, "tr:method:lib/geo.tr:Kare.TR_init", param, edgeContains, extracted)
+	mustEdge(t, g, "tr:method:lib/geo.tr:Kare.TR_ctx_init", param, edgeContains, extracted)
 	mustEdge(t, g, "tr:var:examples/ana.tr:k2", param, edgeUses, extracted) // g.Kare(kenar: 3)
 	_, out, _ := cli(t, "who-uses", "geo.Kare.kurucu.kenar")
 	testkit.MustContain(t, out, "examples/ana.tr")

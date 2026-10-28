@@ -57,13 +57,13 @@ func TestTestsForKeepsMeasurementsApartFromTests(t *testing.T) {
 func TestTestsForOrdersInferredTestsByEvidence(t *testing.T) {
 	g := &Graph{Nodes: []Node{
 		{ID: "target", Kind: kindFunc, Name: "p.target", File: "p/x.go"},
-		{ID: "name:TR_update", Kind: kindName, Name: "TR_update", Detail: "güncelle"},
+		{ID: "name:TR_mem_update", Kind: kindName, Name: "TR_mem_update", Detail: "güncelle"},
 		{ID: "near", Kind: kindFunc, Name: "p.TestNear", File: "p/x_test.go"},
 		{ID: "far", Kind: kindFunc, Name: "q.TestFar", File: "q/y_test.go"},
 	}}
 	g.Edges = append(g.Edges,
-		Edge{From: "target", To: "name:TR_update", Kind: edgeUsesName, Confidence: extracted},
-		Edge{From: "near", To: "name:TR_update", Kind: edgeTests, Confidence: inferred})
+		Edge{From: "target", To: "name:TR_mem_update", Kind: edgeUsesName, Confidence: extracted},
+		Edge{From: "near", To: "name:TR_mem_update", Kind: edgeTests, Confidence: inferred})
 	prev := "far"
 	for i := 1; i < testMaxSteps; i++ {
 		id := "q" + string(rune('a'+i))

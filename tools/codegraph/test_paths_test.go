@@ -204,7 +204,7 @@ func TestEmbeddedDataFilesLinkToTheTestsThatWalkThem(t *testing.T) {
 	if edge(g, app+"TestLooksOneUp", file, edgeWalks) != nil {
 		t.Error("a test that looks one entry up does not walk the list")
 	}
-	mustEdge(t, g, file, "name:TR_if", edgeContains, extracted)
+	mustEdge(t, g, file, "name:TR_kw_if", edgeContains, extracted)
 	var out, errb strings.Builder
 	if code := run([]string{"build", "--root", root}, &out, &errb); code != exitOK {
 		t.Fatalf("build: %d %s", code, errb.String())
@@ -216,7 +216,7 @@ func TestEmbeddedDataFilesLinkToTheTestsThatWalkThem(t *testing.T) {
 	walks, _, _ := strings.Cut(out.String(), "<- tests (")
 	if !strings.Contains(walks, "tests that walk the whole list (1") || !strings.Contains(walks, "TestWalksEveryEntry") ||
 		!strings.Contains(walks, "Kural: her girdi gezilir.") || strings.Contains(walks, "TestLooksOneUp") {
-		t.Errorf("tests-for TR_if must list only the walking test, with its rule line first:\n%s", out.String())
+		t.Errorf("tests-for TR_if (TR_kw_if) must list only the walking test, with its rule line first:\n%s", out.String())
 	}
 }
 
