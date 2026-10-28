@@ -29,7 +29,7 @@ for cihaz in gpu cpu; do
   for d in smol qwen; do
     ad=$([ $d = smol ] && echo SmolLM2-135M || echo Qwen3-0.6B)
     for t in float32 bf16; do
-      "$TR" "$HERE/generation_race.tr" --klasör "$W/$d" --cihaz $cihaz --ad $ad --ağırlık_türü $t >> "$SONUC" 2>&1
+      "$TR" "$HERE/generation_race.tr" --folder "$W/$d" --device $cihaz --ad $ad --ağırlık_türü $t >> "$SONUC" 2>&1
     done
     python "$HERE/generation_race_hf.py" "$W/$d" $ad $hf eager >> "$SONUC" 2>> hf.log
     [ $cihaz = gpu ] && python "$HERE/generation_race_hf.py" "$W/$d" $ad $hf static >> "$SONUC" 2>> hf.log

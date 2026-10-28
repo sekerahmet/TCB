@@ -2,7 +2,7 @@
 # Evre 3 ölçümü, TR tarafı: phase3_torch.py ile aynı model, veri ve iyileştirici.
 # Ayarlar aynı klasördeki phase3_config.json'dan (iki taraf aynı dosyayı okur); cihaz ve çıktı
 # komut satırından. Her adım sonunda kayıp okunur (GPU eşzamanlanır): PyTorch tarafı da öyle.
-# Kullanım: ./tr phase3_tr.tr [--cihaz gpu] [--ayar phase3_config.json] [--çıktı phase3_tr.json]
+# Kullanım: ./tr phase3_tr.tr [--device gpu] [--config phase3_config.json] [--çıktı phase3_tr.json]
 # Tepe bellek bu dosyadan değil, `tr profil --json` raporundan (gpu.bellek[].tepe_canlı_bayt) okunur.
 # Çıktı (JSON, anahtarlar İngilizce: phase3_torch.py ile aynı): ilk adım, ısınma adımları, ölçülen adımların medyan ve p90 süresi, kayıp eğrisi.
 

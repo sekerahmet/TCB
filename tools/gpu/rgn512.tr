@@ -9,25 +9,25 @@
 # tutmaz (model.kayıp → doğrusal_çapraz_entropi, 8192'lik dilimler; hedef de dilimler ama geri
 # geçişte yeniden hesaplar).
 #
-# Kullanım: ./tr rgn512.tr --veri KLASÖR [--adım 120] [--çıktı sonuç.json]
+# Kullanım: ./tr rgn512.tr --veri KLASÖR [--step 120] [--çıktı sonuç.json]
 #   veri: uint16 .npy parça dosyalarının klasörü (belge sonu 0), hedefle aynı biçim.
-# Doğruluk karşılaştırması (tools/gpu/rgn_reference.py ile): --ağırlık init.trt PyTorch'un başlangıç
-# ağırlıklarını yükler, --sıralı doğru toplu işleri sırayla okur (PyTorch tarafı aynı pencereleri
-# kurar), --hassasiyet fp32 bf16'yı kapatır, --kayıplar adım başına kaybı ve gradyan normunu yazar.
+# Doğruluk karşılaştırması (tools/gpu/rgn_reference.py ile): --weight init.trt PyTorch'un başlangıç
+# ağırlıklarını yükler, --sequential doğru toplu işleri sırayla okur (PyTorch tarafı aynı pencereleri
+# kurar), --hassasiyet fp32 bf16'yı kapatır, --losses adım başına kaybı ve gradyan normunu yazar.
 # Kalite: --doğrulama valid.npy her --değerlendirme adımda ve sonda doğrulama kaybını hedefin yöntemiyle
 # ölçer (dosyanın başından --değerlendirme_parça kadar ardışık pencere; rgn512.py evaluate).
 # Kararlılık (dil tanımı 15.36, 20.14, 20.15; tr/egitim): her adımın kaybını ve gradyan normunu bir
 # sıçrama bekçisi izler (son --bekçi_pencere sağlam adıma göre --bekçi_eşik standart sapma). --koşu
 # KLASÖR verilince kontrol noktası kurulur (her --kayıt_dakika dakikada bir; yeniden çalıştırılınca
-# kaldığı adımdan sürer): NaN, sonsuz ya da sıçramada son noktaya dönülür ve --atla toplu iş atlanır.
+# kaldığı adımdan sürer): NaN, sonsuz ya da sıçramada son noktaya dönülür ve --skip toplu iş atlanır.
 # --koşu yoksa NaN ya da sonsuzda eğitim açık bir hatayla durur, sıçramada uyarı yazılır. Aynı
 # noktaya üçüncü kez dönülürse (sorun kalıcı) eğitim açık bir hatayla durur. Bekçi değeri
 # adımın sonunda zaten okunan kayıp ve normdan okur: adıma bekleme eklemez. --nan_adımı N (sınama
 # için) N. adımın kaybını bir kez NaN yapar.
-# Sonuç: --kaydet DOSYA eğitim bitince son ağırlıkları (parametreler, yol adlarıyla) tensör dosyası
+# Sonuç: --save DOSYA eğitim bitince son ağırlıkları (parametreler, yol adlarıyla) tensör dosyası
 # olarak yazar; tools/gpu/rgn_from_tr.py onları PyTorch modeline yükleyip doğrulama kaybını hedefin
 # kendi koduyla ölçer ve metin üretir.
-# Tersi: --ağırlık DOSYA --adım 0 PyTorch'ta eğitilmiş modeli (rgn_to_tr.py) eğitmeden TR'nin koduyla ölçer.
+# Tersi: --weight DOSYA --step 0 PyTorch'ta eğitilmiş modeli (rgn_to_tr.py) eğitmeden TR'nin koduyla ölçer.
 
 TR_import "tr/katman" TR_as katman
 TR_import "tr/iyilestirici" TR_as iyileştirici
@@ -175,7 +175,7 @@ TR_if arg["save"] != "" {
     TR_save_tensors(arg["save"], TR_parameters(model, TR_named: TR_true))
 }
 
-# --adım 0: eğitmeden yalnızca değerlendirir (ör. --ağırlık ile yüklenen, PyTorch'ta eğitilmiş modelin
+# --step 0: eğitmeden yalnızca değerlendirir (ör. --weight ile yüklenen, PyTorch'ta eğitilmiş modelin
 # doğrulama kaybı; tools/gpu/rgn_to_tr.py).
 TR_if arg["step"] == 0 TR_and doğrulama_kümesi != TR_none {
     TR_print("  DEĞERLENDİRME adım 0: kayıp \(TR_round(değerlendir(), 4))")

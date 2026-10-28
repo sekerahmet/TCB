@@ -4,7 +4,7 @@ rgn_from_tr.py'nin tersi: PyTorch'un modelini TR'nin kendi koduyla ölçmek içi
 iki ölçücü karşılaştırılır; ölçücülerin farkı modellerin farkından ayrılır.
 
     python rgn_to_tr.py --pt k_pt_1/model.pt --out pt_s1.trt
-    ./tr rgn512.tr --veri VERİ --doğrulama valid.npy --ağırlık pt_s1.trt --adım 0
+    ./tr rgn512.tr --veri VERİ --doğrulama valid.npy --weight pt_s1.trt --step 0
 
 Ağırlık adları rgn_reference.py'deki tr_name_map'tedir (Doğrusal ağırlıkları devrilir).
 """

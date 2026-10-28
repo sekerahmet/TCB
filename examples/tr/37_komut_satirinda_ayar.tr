@@ -4,7 +4,7 @@
 # yardım yazısı, --ayar_adı değer ile ayarı değiştirmek, --yardım.
 # Önceki örnekten: sözlükler (11), yok (03), metin (04).
 # Çalıştırma (proje kökünden): tr examples/tr/37_komut_satirinda_ayar.tr
-#   Ayarları değiştirmek için: tr examples/tr/37_komut_satirinda_ayar.tr --adım 500 --öğrenme_oranı 0.1 --koşu deneme2
+#   Ayarları değiştirmek için: tr examples/tr/37_komut_satirinda_ayar.tr --step 500 --lr 0.1 --koşu deneme2
 #   Yardım için:                tr examples/tr/37_komut_satirinda_ayar.tr --yardım
 
 # komut_satırı bir sözlük alır: anahtarlar ayar adları, değerler varsayılanlarıdır. Komut satırında
@@ -23,5 +23,5 @@ TR_var toplam_adım = ayar["step"] * 2
 TR_print("iki katı adım:", toplam_adım)
 
 # --- Kendin dene ---
-# 1. Programı --adım 7 ile çalıştır ve çıktının değiştiğini gör.
+# 1. Programı --step 7 ile çalıştır ve çıktının değiştiğini gör.
 # 2. --yardım yaz: açıklamalar ve varsayılanlar listelenir. Yeni bir ayar ekleyip yardımda görünmesini sağla.

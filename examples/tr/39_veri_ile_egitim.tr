@@ -16,7 +16,7 @@
 # Göreli yollar önce çalışma klasörüne, sonra bu dosyanın klasörüne göre çözülür.
 # Çalıştırma (proje kökünden): tr examples/tr/39_veri_ile_egitim.tr
 # Ayarlar komut satırından değişir (docs/guide/04_yapay_zeka_ve_veri.md §4.F; ayarlar 37, ilerleme ve günlük 38'de):
-#     tr examples/tr/39_veri_ile_egitim.tr --adım 500 --günlük_dosyası kayit/egitim.jsonl
+#     tr examples/tr/39_veri_ile_egitim.tr --step 500 --günlük_dosyası kayit/egitim.jsonl
 #     tr examples/tr/39_veri_ile_egitim.tr --yardım
 
 TR_const PARÇALAYICI_YOLU = "../../tests/data/tokenizer.json"
@@ -119,5 +119,5 @@ TR_no_grad {
 TR_print("model şunu yazdı: \(p.TR_decode(üretilen))")
 
 # --- Kendin dene ---
-# 1. --adım 400 ile çalıştır ve doğrulama kaybının eğitim kaybından farkına bak.
+# 1. --step 400 ile çalıştır ve doğrulama kaybının eğitim kaybından farkına bak.
 # 2. Üretimi "Bugün" yerine başka bir kelimeyle başlat.

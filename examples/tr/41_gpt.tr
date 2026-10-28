@@ -7,11 +7,11 @@
 # Ayrıntılar: docs/guide/10_hazir_katmanlarla_gpt.md, lib/README.md.
 #
 # Çalıştırma (proje kökünden): tr examples/tr/41_gpt.tr
-#   Ayarlar komut satırından: tr examples/tr/41_gpt.tr --adım 300 --boyut 64 --koşu runs/gpt2
+#   Ayarlar komut satırından: tr examples/tr/41_gpt.tr --step 300 --embed_dim 64 --koşu runs/gpt2
 #   Yarıda kesilirse (Ctrl+C) aynı komut kaldığı yerden sürer; baştan başlamak için koşu
 #   klasörünü silin ya da başka bir --koşu verin.
 # GPU'da: model kurulmadan önce varsayılan cihazı seçin (aşağıdaki satırın yorumunu kaldırın)
-# ve ayarları büyütün, ör. --boyut 512 --katman 8 --bakış_sayısı 8 --bağlam 512 --toplu 64.
+# ve ayarları büyütün, ör. --embed_dim 512 --katman 8 --num_heads 8 --bağlam 512 --toplu 64.
 # varsayılan_cihaz("gpu")
 
 TR_import "tr/katman"
@@ -71,5 +71,5 @@ TR_var üretilen = model.TR_generate(p.TR_encode("Bugün"), 12, TR_temperature: 
 TR_print("model şunu yazdı: \(p.TR_decode(üretilen))")
 
 # --- Kendin dene ---
-# 1. --katman 4 --boyut 64 ile çalıştır: doğrulama kaybı nasıl değişiyor?
+# 1. --katman 4 --embed_dim 64 ile çalıştır: doğrulama kaybı nasıl değişiyor?
 # 2. üret'in sıcaklık değerini 0.2 ve 1.5 yap ve metnin değişimine bak.

@@ -9,7 +9,7 @@
 # Çalıştırma (proje kökünden): tr examples/tr/40_kontrol_noktasi.tr
 #   Eğitim sürerken Ctrl+C'ye basın: o adım biter, nokta kaydedilir, program durur.
 #   Aynı komutu yeniden çalıştırın: "Kaldığı yerden devam: adım ..." yazar ve oradan sürer.
-#   Eğitimi uzatmak için: tr examples/tr/40_kontrol_noktasi.tr --adım 1000
+#   Eğitimi uzatmak için: tr examples/tr/40_kontrol_noktasi.tr --step 1000
 #   Baştan başlamak için koşu klasörünü silin ya da başka bir klasör verin: --koşu runs/deneme2
 # Bulut not defterinde koşu klasörünü yerel diskte tutup ara ara Drive'a kopyalayın (kılavuz §9).
 
@@ -58,7 +58,7 @@ TR_if kn.TR_resume_step < ayar["step"] {
     }
     TR_print("son nokta:", kn.TR_save())
 } TR_else {
-    TR_print("Eğitim zaten \(kn.TR_resume_step). adımda bitmiş; uzatmak için --adım ile daha büyük bir sayı verin")
+    TR_print("Eğitim zaten \(kn.TR_resume_step). adımda bitmiş; uzatmak için --step ile daha büyük bir sayı verin")
 }
 
 # --- Sonuçlar koşu klasörüne ---
@@ -68,5 +68,5 @@ TR_write_file(TR_Path(KOŞU, "results.json"), TR_json_string({"step": son_adım,
 TR_print("en iyi kayıp: \(TR_round(izlenen["en_iyi_kayıp"], 3)); koşu klasörü: \(TR_Path(KOŞU).TR_absolute)")
 
 # --- Kendin dene ---
-# 1. --adım 100 ile çalıştır, sonra --adım 200 ile tekrar çalıştır: eğitim 100'den mi başlıyor?
+# 1. --step 100 ile çalıştır, sonra --step 200 ile tekrar çalıştır: eğitim 100'den mi başlıyor?
 # 2. izlenen sözlüğüne kendi sayacını ekle ve devamdan sonra da korunduğunu gör.
