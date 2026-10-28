@@ -15,11 +15,20 @@ Yazıldı; DENETİM'den ve Gemini'nin araştırmasından geçti (2026-10-27). He
 1. ve 2. bölüm DENETİM'den ve Gemini'nin araştırmasından, 3.–7. bölüm DENETİM'den geçti; 1–7 Gemini'nin bağımsız denetiminden de geçti, doğrulanan bulguları işlendi (2026-10-27). Ajan hata oranı deneyinin Evre A'sı bitti (aşağıda).
 
 **Açık tasarım soruları** (Gemini ve DENETİM, 2026-10-27; ilgili bölüm yazılırken karara bağlanır):
-- birinci sınıf demet tipi ya da anahtarla sıralama (`sorted(d.items(), key=...)` bugün yapısız yazılamıyor);
+- anahtarla sıralama (`sorted(d.items(), key=...)`); demet tipi 2026-10-28'de karara bağlandı (3.6a), anahtarla sıralamanın yazımı açık;
 - nesne kimliğinin sınanması (paylaşılan ağırlıklar, 15. bölüm);
 - salt okunur görünüm ya da derin değişmezlik (`TR_const` yalnız bağı sabitler);
 - sondaki blokta erken çıkış;
-- JSON'dan tipli yapıya okuma (alan adı eşlemesiyle). Dil tanımı kodlu biçimi, yani kimliklerle yazılmış programı anlatır.
+- JSON'dan tipli yapıya okuma 2026-10-28'de karara bağlandı (13.8: `TR_json_parse[Ayar](metin)`). Dil tanımı kodlu biçimi, yani kimliklerle yazılmış programı anlatır.
+
+**Bölümü olmayan işler** (amacın dokuz işine karşı tartı, ana oturum ve DENETİM, 2026-10-28; Ahmet: "Evet, ekle"). Dil tanımında hiç bölümü olmayan, amacın bir işinin yazılabilmesi için gereken konular. Her biri kendi bölümü olarak, öbür bölümlerin yöntemiyle (dokuz iş tartısı, kaynaklı emsal, iki denetim) yazılır:
+- **Ağ:** HTTP sunucusu ve istemcisi, akışlı cevap (metin üretiminin parça parça gönderilmesi), zaman aşımı ve yeniden deneme. Olmadan "sunmak" ve "uzaktaki modeli kullanmak" yazılamıyor.
+- **Görüntü, ses ve video çözme:** PNG, JPEG, WAV ve benzerlerinin baytlarından tensöre ve geri. Veriyi hazırlamak ve görüntü ile ses modelleri bunu ister; 2. kilometre taşının görüntü ve ses modelleri de.
+- **Hash:** sha256 ve hızlı hash'ler (xxhash gibi); yinelenen veriyi ayıklamak, veri kümesinin doğrulanması, önbellek anahtarı. Sarılan aritmetik (3.1) TR'de yazmayı mümkün kılar, hazır yerleşik hızı verir.
+- **Düzenli ifade:** metin temizleme ve parçalayıcının ön ayırması (GPT tarzı ön bölme).
+- **Unicode normalleştirmesi:** NFC ve NFKC; parçalayıcı eğitimi ve metin hazırlama.
+- **Bellek ve gerçek zaman:** çöp toplayıcının duraklamasının robotun sabit hızlı döngüsüne etkisi; ölçüm ve gerekirse sınır (tasarım yönteminin açık konusu).
+- **Bayttan sayı okuma ve yazma** (bayt sırasıyla; 3.3a) ve CSV yazmak, yüzdelik gibi küçük yerleşikler; ilgili bölümler (16, 18, 13) yazılırken.
 
 **7. bölümden sonra: ajan hata oranı deneyi** (Ahmet, 2026-10-27, plan onaylı). Kodlama modeli TR'yi alışkanlıkla doğru yazıyor mu, yanlış yazınca hata gürültülü mü; aynı görevlerde Python'la karşılaştırılır.
 - **Evre A** (1–7 yazılınca, uygulamadan önce): üç Claude modeli, 20 görev, iki bağlam (yalnız tek sayfalık başvuru; ya da 1–7'nin kuralları ve kimlik listesi). Programlar kural numarasıyla denetlenir; sık çiğnenen kural ya da başvuru yeniden tartılır. Başvuru (Araç işleri) Evre A'dan önce yazılır.
