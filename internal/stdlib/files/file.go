@@ -35,6 +35,7 @@ var (
 func Register(v *interp.VM) {
 	v.RegisterNoNamed(codes.FnReadLines, safe(codes.FnReadLines, linesBuiltin))
 	v.RegisterNoNamed(codes.FnPath, safe(codes.FnPath, pathBuiltin))
+	v.RegisterTypeCall(codes.TypePath, v.Builtin(codes.FnPath))
 	v.RegisterNoNamed(codes.FnListDir, safe(codes.FnListDir, listBuiltin))
 	v.RegisterNoNamed(codes.FnMakeDir, safe(codes.FnMakeDir, makeDirBuiltin))
 	v.RegisterBuiltinCode(codes.FnRemove, safe(codes.FnRemove, deleteBuiltin))

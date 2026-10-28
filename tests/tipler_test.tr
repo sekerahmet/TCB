@@ -221,12 +221,50 @@ TR_test "3.11 tip değeri metinle karşılaştırılamaz: tip(x) == Tam yazılı
     # Olumsuz fikstür: tests/negative/tip_metin.tr
 }
 
-TR_test "3.12 dönüşümler: tam, ondalık, metin" {
-    TR_assert_equal(43, TR_int("42") + 1)
-    TR_assert_equal(3, TR_int(3.9))
-    TR_assert_equal(1.5, TR_float("1.5"))
-    TR_assert_equal("12a", TR_str(12) + "a")
-    TR_assert_equal("H2429", TR_error_code(() => { TR_int("abc") }))
+TR_test "3.12 tip çağrılınca kurar ve çevirir" {
+    TR_assert_equal(43, TR_Int("42") + 1)
+    TR_assert_equal([3, -3], [TR_Int(3.9), TR_Int(-3.9)])
+    TR_assert_equal("12a", TR_String(12) + "a")
+    TR_assert_equal(2.0, TR_Float(2))
+    TR_assert_equal([0, 1, 2], TR_List(0..3))
+    TR_assert_equal([1, 2, 3], TR_List(1..=3))
+    TR_var l = [1, 2]
+    TR_var kopya = TR_List(l)
+    kopya.TR_append(3)
+    TR_assert_equal([1, 2], l)
+    TR_assert_equal(TR_Float, TR_Type(1.5))
+    TR_assert_equal(TR_Type, TR_Type(TR_Int))
+    TR_assert_equal(TR_Tensor, TR_Type(TR_Tensor([1, 2])))
+    TR_assert_equal("H2645", TR_error_code(() => { TR_Dict() }))
+}
+
+TR_test "3.12 metin 2.4 ve 2.5'in yazımıyla, işaretle ve yerel ayarsız okunur" {
+    TR_assert_equal([-1000, 7, 0], [TR_Int("-1_000"), TR_Int("+7"), TR_Int("0")])
+    TR_assert_equal([3.0, -1.5, 0.002, 1000.5], [TR_Float("3"), TR_Float("-1.5"), TR_Float("2e-3"), TR_Float("1_000.5")])
+    TR_assert(TR_Float("inf") > 1e308)
+    TR_assert(TR_Float("-inf") < -1e308)
+    TR_var n = TR_Float("nan")
+    TR_assert(n != n)
+    TR_for m TR_in [" 42", "3.5", "0x1F", "1__0", "1_", "", "+"] {
+        TR_assert_equal("H2640", TR_error_code(() => { TR_Int(m) }), m)
+    }
+    TR_assert_equal("H2641", TR_error_code(() => { TR_Int("9223372036854775808") }))
+    TR_for m TR_in ["1,5", ".5", "1.", "1e999", "Inf", "infinity", "sonsuz", " 1.0"] {
+        TR_assert_equal("H2642", TR_error_code(() => { TR_Float(m) }), m)
+    }
+    TR_assert_equal("H2484", TR_error_code(() => { TR_Int(TR_Float("nan")) }))
+    TR_assert_equal("H2484", TR_error_code(() => { TR_Int(1e30) }))
+}
+
+TR_test "3.12 mantık değeri yalnız \"true\" ve \"false\" metninden kurulur" {
+    TR_assert_equal([TR_true, TR_false], [TR_Bool("true"), TR_Bool("false")])
+    TR_assert_equal("H2643", TR_error_code(() => { TR_Bool("True") }))
+    TR_assert_equal("H2643", TR_error_code(() => { TR_Bool("1") }))
+    TR_assert_equal("H2643", TR_error_code(() => { TR_Bool("") }))
+    TR_for x TR_in [1, 0.0, []] {
+        TR_assert_equal("H2644", TR_error_code(() => { TR_Bool(x) }), "\(x)")
+    }
+    TR_assert_equal("H2423", TR_error_code(() => { TR_Int(TR_true) }))
 }
 
 TR_test "3.13 tip açıklamaları tip denetleyicisince denetlenir" {

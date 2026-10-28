@@ -93,6 +93,8 @@ func Register(v *interp.VM, s *process.State) {
 		return bind.Safe(interp.CallPrefix(codes.FnLogger), func() (interp.Value, error) { return d.openLog(m, args) })
 	})
 	v.RegisterBuiltinCode(codes.FnProgress, bind.SafeBuiltin(interp.CallPrefix(codes.FnProgress), d.openProgress))
+	v.RegisterTypeCall(codes.TypeLogger, v.Builtin(codes.FnLogger))
+	v.RegisterTypeCall(codes.TypeProgress, v.Builtin(codes.FnProgress))
 }
 
 // Açık günlükler ve bitmemiş çubuklar: program bitince CloseAll hepsini kapatır.

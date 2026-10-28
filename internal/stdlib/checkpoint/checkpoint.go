@@ -80,6 +80,7 @@ func Register(v *interp.VM, s *process.State) {
 	v.RegisterBuiltinCode(codes.FnCheckpoint, bind.SafeBuiltin(interp.CallPrefix(codes.FnCheckpoint), func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		return setup(m, s, args, named)
 	}))
+	v.RegisterTypeCall(codes.TypeCheckpoint, v.Builtin(codes.FnCheckpoint))
 }
 
 // Checkpoint TR'de kurulmuş bir kontrol noktasıdır (tip KontrolNoktası). Alanları

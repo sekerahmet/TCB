@@ -351,6 +351,12 @@ const (
 	H2613 Code = 2613 // fonksiyonlar '{op}' ile karşılaştırılamaz: görünüşü aynı iki fonksiyon da eşit sayılmaz. Sonuçlarını karşılaştırın: f(x) == g(x)
 	H2614 Code = 2614 // '+' iki listeyi uç uca ekler; {left} ile {right} eklenmez. Listeye öğe eklemek için l + [x] ya da l.{@append}(x) yazın
 	H2615 Code = 2615 // yineleme çok büyük: {n} kez yinelemek {limit} öğelik listeyi aşar
+	H2640 Code = 2640 // {@Int}(): {value|q} program yazımında bir tam sayı değil; isteğe bağlı bir işaretle ondalık rakamlar yazın, '_' yalnız rakamlar arasında, boşluksuz ("42", "-1_000"); ondalık bir metin için {@Int}({@Float}(x)) yazın
+	H2641 Code = 2641 // {@Int}(): {value|q} {@Int} aralığına sığmıyor (-9223372036854775808 ile 9223372036854775807 arası); {@Float}(...) ile okuyun
+	H2642 Code = 2642 // {@Float}(): {value|q} sayı olarak okunamadı; programdaki gibi noktayla, isteğe bağlı işaret ve üsle yazın ("3.14", "-1.5", "2e-3") ya da "inf", "-inf", "nan"; yerel ayar yoktur ("1,5" okunmaz) ve {@Float} aralığını aşan sayı okunmaz
+	H2643 Code = 2643 // {@Bool}(): {value|q} bir mantık değeri değil; yalnız "true" ve "false" okunur
+	H2644 Code = 2644 // {@Bool}() yalnız "true" ya da "false" metnini okur, {given} verildi; bunun yerine karşılaştırmayla sorun (x != 0, l.{@length} > 0)
+	H2645 Code = 2645 // {type} tipi çağrılamaz; değer kuran ya da çeviren tipler {@Int}, {@Float}, {@String}, {@Bool}, {@List}, {@Type} ve kitaplığın tipleridir
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

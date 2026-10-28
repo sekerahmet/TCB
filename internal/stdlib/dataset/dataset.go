@@ -57,6 +57,7 @@ var (
 // Register veri yerleşiklerini VM'ye kaydeder.
 func Register(v *interp.VM) {
 	v.RegisterBuiltinCode(codes.FnDataset, bind.SafeBuiltin(interp.CallPrefix(codes.FnDataset), openDataset))
+	v.RegisterTypeCall(codes.TypeDataset, v.Builtin(codes.FnDataset))
 }
 
 // ----------------------------------------------------------------------------

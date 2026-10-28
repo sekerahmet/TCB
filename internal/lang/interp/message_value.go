@@ -67,6 +67,7 @@ func (v *VM) registerMessageBuiltins() {
 		}
 		return &MessageVal{Code: code, Args: append([]Value(nil), args[1:]...)}, nil
 	})
+	v.RegisterTypeCall(codes.TypeMessage, v.Builtin(codes.FnMessage))
 
 	// hata_kodu(f): f'yi çalıştırır; hatanın en içteki nedeninin kodunu (Metin) verir, hata
 	// yoksa yok.
