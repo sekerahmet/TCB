@@ -16,7 +16,6 @@ Toplam 575 kod: 26 anahtar kelime, 6 bağlamsal sözcük, 2 değer adı, 42 tip,
 - Yerleşikler: Yerleşik fonksiyonlar · Yerleşik sabitler · Adlı argümanlar
 - Metot ve özellikler (x.ad): Metot ve özellikler
 - Komutlar (tr, kabuk, hata ayıklayıcı): tr komutları · tr dizin alt komutları · Komut satırı seçenekleri · Kabuk komutları · Hata ayıklayıcı komutları
-- Boru hattıyla kullanılabilen fonksiyonlar
 
 ## Dilin çekirdeği
 
@@ -4587,9 +4586,3 @@ Bir ifadeyi izleme listesine ekler; değeri her durakta gösterilir.
 ```tr
 izle kayıp
 ```
-
-## Boru hattıyla kullanılabilen fonksiyonlar
-
-`x |> f(a)` ≡ `f(x, a)` (bkz. `docs/spec/04_operatorler.md` 4.9). Boru yalnızca fonksiyonlarla çalışır; metotlar `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 } |> toplam`). Borudaki değeri ilk konumlu argüman olarak alabilen yerleşik fonksiyonlar (kullanıcı fonksiyonları da kullanılabilir):
-
-`AdamW`, `SGD`, `mutlak`, `acos`, `argmax`, `sıralama_indeksi`, `asin`, `doğrula`, `eşit_mi`, `atan`, `atan2`, `dikkat`, `geri_yayılım`, `tavan`, `kontrol_noktası`, `sınırla`, `gradyan_kırp`, `komut_satırı`, `bitiştir`, `kopyala`, `cos`, `cosh`, `çapraz_entropi`, `birikimli_toplam`, `veri_kümesi`, `varsayılan_cihaz`, `gömme`, `ortam_değişkeni`, `hata_kodu`, `sonlandır`, `exp`, `expm1`, `birim_matris`, `ondalık`, `taban`, `kaynaştır`, `gelu`, `türev_denetle`, `girdi`, `tam`, `sonlu_mu`, `json_çöz`, `json_metin`, `katman_normu`, `doğrusal_çapraz_entropi`, `klasörü_listele`, `parametreleri_yükle`, `tensör_yükle`, `parçalayıcı_yükle`, `log`, `log10`, `log1p`, `log2`, `log_softmax`, `günlük`, `klasör_oluştur`, `max`, `ortalama`, `ortanca`, `ileti`, `min`, `karışık_hassasiyet`, `taşı`, `türevsiz`, `birler`, `parametreler`, `csv_çöz`, `yol`, `yazdır`, `ilerleme`, `rastgele_normal`, `aralık`, `csv_oku`, `dosya_oku`, `dosya_satırları`, `relu`, `sil`, `tekrar_oynat`, `rms_normu`, `yuvarla`, `örnekle`, `tensör_kaydet`, `sigmoid`, `işaret`, `silu`, `sin`, `sinh`, `bekle`, `softmax`, `karekök`, `standart_sapma`, `metin`, `toplam`, `tan`, `tanh`, `tensör`, `en_büyük_k`, `tip`, `koşullu`, `dosya_yaz`, `yerine_yaz`, `sıfırlar`

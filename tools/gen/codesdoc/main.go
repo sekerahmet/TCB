@@ -54,8 +54,6 @@ type docText struct {
 	Intro         []string          `json:"intro"`
 	CountsFormat  string            `json:"countsFormat"`
 	Contents      string            `json:"contents"`
-	PipelineTitle string            `json:"pipelineTitle"`
-	PipelineIntro []string          `json:"pipelineIntro"`
 	Labels        map[string]string `json:"labels"`
 	Families      []family          `json:"families"`
 }
@@ -218,7 +216,7 @@ func Generate() ([]byte, error) {
 		}
 		b.WriteString(strings.Join(parts, " · ") + "\n")
 	}
-	b.WriteString("- " + text.PipelineTitle + "\n\n")
+	b.WriteString("\n")
 
 	for _, a := range text.Families {
 		fmt.Fprintf(&b, "## %s\n\n", a.Title)
@@ -263,19 +261,5 @@ func Generate() ([]byte, error) {
 			}
 		}
 	}
-	// Boru hattı (x |> f, docs/spec/04_operatorler.md 4.9): ilk konumlu parametresi borudaki değeri alan
-	// fonksiyonlar. Metotlar boruyla değil '.' ile zincirlenir.
-	b.WriteString("## " + text.PipelineTitle + "\n\n")
-	for _, para := range text.PipelineIntro {
-		b.WriteString(para + "\n\n")
-	}
-	var pipeable []string
-	for _, k := range d.Codes() {
-		t, _ := codes.DefinitionOf(k)
-		if t.Kind == codes.KindFunction && len(t.Signature.Params) > 0 {
-			pipeable = append(pipeable, "`"+codes.Source().Name(k)+"`")
-		}
-	}
-	b.WriteString(strings.Join(pipeable, ", ") + "\n")
 	return append(bytes.TrimRight(b.Bytes(), "\n"), '\n'), nil
 }

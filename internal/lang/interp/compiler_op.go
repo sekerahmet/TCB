@@ -190,7 +190,7 @@ func (c *compiler) binary(k *compilerScope, e *ast.InfixExpression) exprCode {
 	op := string(e.Operator)
 	line := e.Line()
 
-	// Kısa devre ve özel operatörler (&&, ||, ??, |>)
+	// Kısa devre ve özel operatörler (TR_and, TR_or, ??)
 	switch codeVal {
 	case opAnd:
 		return func(v *VM, env *Environment) (Value, error) {
@@ -233,8 +233,6 @@ func (c *compiler) binary(k *compilerScope, e *ast.InfixExpression) exprCode {
 			}
 			return rightFn(v, env)
 		}
-	case opPipe:
-		return c.pipe(k, e.Left, e.Right)
 	}
 
 	fast := intFastFunc(codeVal)
@@ -366,62 +364,5 @@ func (c *compiler) chainLink(k *compilerScope, e *ast.InfixExpression) chainCode
 			return nil, nil, messages.At(line, 0, messages.New(messages.H2602, op, res.Type()))
 		}
 		return res, right, nil
-	}
-}
-
-// pipe 'veri |> f(...)' ve 'veri |> f' ifadelerini derler.
-func (c *compiler) pipe(k *compilerScope, left ast.Expression, right ast.Expression) exprCode {
-	leftFn := c.expression(k, left)
-	// Sağ taraf bir fonksiyon çağrısı ise (örn: veri |> filtrele((x) => x > 2))
-	if callExpr, ok := right.(*ast.CallExpression); ok {
-		fun := c.expression(k, callExpr.Function)
-		argCode := c.expressions(k, callExpr.Arguments)
-		namedCode := c.compileNamedArgs(k, callExpr.NamedArgs)
-		line := callExpr.Line()
-		return func(v *VM, env *Environment) (Value, error) {
-			leftVal, err := leftFn(v, env)
-			if err != nil {
-				return nil, err
-			}
-			fnVal, err := fun(v, env)
-			if err != nil {
-				return nil, err
-			}
-			args := make([]Value, 1, len(argCode)+1)
-			args[0] = leftVal
-			for _, a := range argCode {
-				av, err := a(v, env)
-				if err != nil {
-					return nil, err
-				}
-				args = append(args, av)
-			}
-			named, err := namedCode.eval(v, env)
-			if err != nil {
-				return nil, err
-			}
-			if err := checkArity(fnVal, nil, len(args), named, line); err != nil {
-				return nil, err
-			}
-			return v.applyCompiled(fnVal, args, named, line)
-		}
-	}
-
-	// Sağ taraf doğrudan bir fonksiyon ise (örn: veri |> sırala)
-	fun := c.expression(k, right)
-	line := right.Line()
-	return func(v *VM, env *Environment) (Value, error) {
-		leftVal, err := leftFn(v, env)
-		if err != nil {
-			return nil, err
-		}
-		fnVal, err := fun(v, env)
-		if err != nil {
-			return nil, err
-		}
-		if err := checkArity(fnVal, nil, 1, nil, line); err != nil {
-			return nil, err
-		}
-		return v.applyCompiled(fnVal, []Value{leftVal}, nil, line)
 	}
 }

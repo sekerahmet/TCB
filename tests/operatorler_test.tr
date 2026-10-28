@@ -149,7 +149,7 @@ TR_test "4.5 Tam ile Ondalık değerleriyle kesin karşılaştırılır (2^53 ü
     TR_assert_equal(2, d.TR_length)
     TR_assert_equal([yakın, büyük], [büyük, yakın].TR_sort())
     TR_var nan = TR_float("nan")
-    TR_assert(nan != 1 TR_and !(nan == 1) TR_and !(nan < 1) TR_and !(nan > 1))
+    TR_assert(nan != 1 TR_and TR_not (nan == 1) TR_and TR_not (nan < 1) TR_and TR_not (nan > 1))
 }
 
 TR_test "4.5 fonksiyonlar kimlikle karşılaştırılır" {
@@ -181,8 +181,7 @@ TR_test "4.6 ve/veya kısa devre yapar ve Mantık döndürür" {
     TR_assert_equal(TR_false, TR_false TR_and yan_etki())
     TR_assert_equal(TR_true, TR_true TR_or yan_etki())
     TR_assert(TR_not cagrildi)
-    TR_assert_equal(TR_true, 1 && "a")
-    TR_assert_equal(TR_true, !TR_false)
+    TR_assert_equal(TR_true, TR_not TR_false)
 }
 
 TR_test "4.7 ?? yalnızca yok ise sağ tarafı verir" {
@@ -201,12 +200,14 @@ TR_test "4.8 ?. yok üzerinde hata yerine yok verir" {
     TR_assert(mesaj.TR_contains("?."), mesaj)
 }
 
-TR_test "4.9 |> soldaki değeri sağdaki çağrının ilk argümanı yapar; metotlar '.' ile zincirlenir" {
-    TR_assert_equal(6, [1, 2, 3] |> TR_sum)
-    TR_assert_equal(2.0, [1, 2, 3] |> TR_mean)
+TR_test "4.9 fonksiyon çağrıyla, metot '.' ile zincirlenir; üyelik .TR_contains ile sorulur" {
+    # '&&', '||', '!', '|>' ve ifadedeki 'TR_in' sözdizimi hatasıdır: tests/negative/baska_dil_islecleri.tr
+    TR_assert_equal(6, TR_sum([1, 2, 3]))
     TR_func katları(l, k) { TR_return l.TR_filter { TR_it % k == 0 } }
-    TR_assert_equal([2, 4], [1, 2, 3, 4] |> katları(2))
-    TR_assert_equal(12, [1, 2, 3].TR_map { TR_it * 2 } |> TR_sum)
+    TR_assert_equal([2, 4], katları([1, 2, 3, 4], 2))
+    TR_assert_equal(12, TR_sum([1, 2, 3].TR_map { TR_it * 2 }))
+    TR_assert([1, 2].TR_contains(2) TR_and TR_not [1, 2].TR_contains(3))
+    TR_assert_equal(TR_true, TR_true TR_and TR_not TR_false TR_or TR_false)
 }
 
 TR_test "4.10 '+' yalnız iki metni ya da iki listeyi uç uca ekler" {

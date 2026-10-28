@@ -58,7 +58,7 @@ func TestOperatorPrecedence(t *testing.T) {
 		{"TR_not 1 == 2", "doğru"},
 		{"TR_not 1 < 2", "yanlış"},
 		{"TR_not TR_false TR_and TR_false", "yanlış"}, // (TR_not TR_false) TR_and TR_false
-		{"!TR_false == TR_false", "yanlış"},           // '!' sıkı bağlanır: (!TR_false) == TR_false
+		{"TR_not TR_false == TR_false", "yanlış"},     // TR_not (TR_false == TR_false)
 		{"2 ** 10", "1024"},
 		{"2.0 ** 2", "4.0"},
 	}
@@ -83,7 +83,7 @@ func TestOperatorPrecedence(t *testing.T) {
 }
 
 func TestNewlineEndsCallOrIndex(t *testing.T) {
-	out, _, err := runTROut(t, "TR_var f = 5\n(1 + 2) |> TR_print\nTR_var l = [1, 2]\n[3, 4] |> TR_print\nTR_print(f, l)")
+	out, _, err := runTROut(t, "TR_var f = 5\n(TR_print)(3)\nTR_var l = [1, 2]\n[TR_print][0]([3, 4])\nTR_print(f, l)")
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
 	}

@@ -101,6 +101,10 @@ func (p *Parser) parseFloatLiteral() ast.Expression {
 
 func (p *Parser) parsePrefixExpression() ast.Expression {
 	tok := p.curToken()
+	if tok.Type == lexer.TokBang {
+		// Tekli '!' C ailesinin yazımıdır (4.9); TR'de TR_not.
+		p.syntaxError(tok, messages.H0204)
+	}
 	op := lexer.TokenType(tok.Literal)
 	if tok.Type == lexer.TokKwNot {
 		op = "!"
@@ -117,6 +121,15 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 }
 func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	tok := p.curToken()
+	// Başka dillerin işleçleri (4.9): ileti TR'deki yazımı söyler.
+	switch tok.Type {
+	case lexer.TokAnd:
+		p.syntaxError(tok, messages.H0202)
+	case lexer.TokOr:
+		p.syntaxError(tok, messages.H0203)
+	case lexer.TokPipe:
+		p.syntaxError(tok, messages.H0205)
+	}
 	op := lexer.TokenType(tok.Literal)
 	if tok.Type == lexer.TokKwAnd {
 		op = "&&"
@@ -236,8 +249,8 @@ func (p *Parser) parseInfixChain(leftExp ast.Expression, precedence int) ast.Exp
 			lexer.TokBitAnd, lexer.TokBitOr, lexer.TokBitXor, lexer.TokShl, lexer.TokShr:
 			// Yeni satırın başındaki ikili işleç önceki ifadeyi sürdürmez (2.8): 'a = 1'
 			// ardından gelen '-x' satırı 'a = 1 - x' okunmaz (Go, Python, Kotlin gibi). İfadeyi
-			// bölmek için işleç satır sonuna yazılır ya da parantez kullanılır. Zincir işleci
-			// '|>' tekli biçimi olmadığı için satır başında da sürer ('.' gibi; Elixir, F#).
+			// bölmek için işleç satır sonuna yazılır ya da parantez kullanılır. Başka dillerin boru
+			// işleci '|>' satır başında da okunur ki hatası (4.9, H0205) yerinde çıksın.
 			if p.peekToken().Type != lexer.TokPipe && p.lineBreakEnds() {
 				return leftExp
 			}
@@ -275,6 +288,11 @@ func (p *Parser) parseInfixChain(leftExp ast.Expression, precedence int) ast.Exp
 		default:
 			return leftExp
 		}
+	}
+	if p.peekTokenIs(lexer.TokIn) && !p.lineBreakEnds() {
+		// Python'un üyelik sınaması 'x TR_in l' yoktur (4.9); TR_in döngü ve liste üreteci
+		// başlığında kendi yerinde okunur, bir ifadenin ardında hiç geçmez.
+		p.syntaxError(p.peekToken(), messages.H0206)
 	}
 
 	return leftExp

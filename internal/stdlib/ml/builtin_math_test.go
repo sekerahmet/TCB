@@ -16,7 +16,7 @@ TR_print(TR_type(TR_sinh(1)), TR_type(TR_cosh(1)), TR_type(TR_log1p(1)), TR_type
 TR_print(TR_type(TR_silu(TR_tensor([1.0]))), TR_type(TR_atan2(1, 2)), TR_type(TR_atan2(TR_tensor([1.0]), 2)))
 TR_print(TR_floor(3.7), TR_floor(-3), TR_ceil(-3.7), TR_ceil(2), TR_sign(-7), TR_sign(2.5), TR_sign(0))
 TR_print(TR_clamp(15, TR_max: 10), TR_clamp(-3, TR_min: 0), TR_clamp(5, TR_min: 0.5), TR_clamp(2.5, TR_min: 0, TR_max: 1))
-TR_print(TR_log2(8), TR_log10(1000), TR_atan2(0, -1) == TR_pi, TR_pi > 3.14159 && TR_pi < 3.1416)`)
+TR_print(TR_log2(8), TR_log10(1000), TR_atan2(0, -1) == TR_pi, 3.14159 < TR_pi < 3.1416)`)
 	want := "Float Float Float Float Float\n" +
 		"Float Float Float Float Float Float\n" +
 		"Tensor Float Tensor\n" +

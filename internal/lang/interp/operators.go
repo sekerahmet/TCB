@@ -29,7 +29,6 @@ const (
 	opAnd
 	opOr
 	opCoalesce // ??
-	opPipe     // |>
 	opMatMul
 	opAssign   // = (düz atama)
 	opFloorDiv // //
@@ -86,8 +85,6 @@ func opCode(op string) uint8 {
 		return opOr
 	case "??":
 		return opCoalesce
-	case "|>":
-		return opPipe
 	case "@":
 		return opMatMul
 	case "=":
