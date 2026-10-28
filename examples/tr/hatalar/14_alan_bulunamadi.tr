@@ -7,7 +7,7 @@
 #     yapı Nokta {
 #         x
 #         y
-#         z = 0 // alan gerekiyorsa yapıya ekleyin
+#         z = 0   # alan gerekiyorsa yapıya ekleyin (ileti en yakın alanı ya da alanı eklemeyi önerir)
 #     }
 # Çalıştırma (proje kökünden): tr examples/tr/hatalar/14_alan_bulunamadi.tr   (çıkış kodu 1)
 

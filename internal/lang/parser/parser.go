@@ -164,7 +164,7 @@ type Parser struct {
 func (p *Parser) parseMatchPattern() ast.Expression {
 	p.patternMode = true
 	defer func() { p.patternMode = false }()
-	return p.parseExpression(precLowest)
+	return p.enumPattern(p.curTokenIs(lexer.TokLParen), p.parseExpression(precLowest)) // 7.7: enum.go
 }
 
 // parseHeaderExpression bir kontrol yapısının başlık ifadesini (koşul, döngü kaynağı,

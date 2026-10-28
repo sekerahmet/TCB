@@ -111,6 +111,29 @@ const (
 	H0270 Code = 270  // Python'un lambda'sı TR'de yok: fonksiyon ifadesi ok ile yazılır, lambda x: x * 2 yerine (x) => x * 2
 	H0271 Code = 271  // '{name}' TR'de yok: sondaki blok parametre almaz; öğeyle çalışan fonksiyon ok ile yazılır: l.{map}((x) => x * 2)
 	H0272 Code = 272  // '{name}' TR'de yok: sondaki blok parametre almaz; birikimi ve öğeyi alan fonksiyon ok ile yazılır: l.{reduce}(0, (acc, x) => acc + x)
+	H0275 Code = 275  // '{keyword} {struct}({base})': TR'de yapı kalıtım almaz; ortak parçayı alan olarak yazın: {keyword} {struct} {{ {field}: {base} }} (ortak davranış arayüzle kurulur)
+	H0276 Code = 276  // '{struct}' yapısının '{name}' alanının varsayılanı yok ama varsayılanlı '{prev}' alanından sonra geliyor; varsayılansız alanları önce yazın
+	H0277 Code = 277  // '{name}' '{struct}' yapısında hem alan hem metot (her alan ve metot adı bir kez kullanılır); birinin adını değiştirin
+	H0278 Code = 278  // '{class}' TR'de anahtar kelime değil; yapı {keyword} {struct} {{ ... }} diye, alanları ve metotları süslü parantezin içinde yazılır
+	H0279 Code = 279  // '{class} {struct}({base})': TR'de sınıf yok ve yapı kalıtım almaz; ortak parçayı alan olarak yazın: {keyword} {struct} {{ {field}: {base} }} (ortak davranış arayüzle kurulur)
+	H0280 Code = 280  // '{keyword} {struct}({base})': TR'de yapı kalıtım almaz; ortak parçayı yapının bir alanı olarak yazın (ortak davranış arayüzle kurulur)
+	H0281 Code = 281  // '{class} {struct}({base})': TR'de sınıf yok ve yapı ({keyword}) kalıtım almaz; ortak parçayı yapının bir alanı olarak yazın (ortak davranış arayüzle kurulur)
+	H0282 Code = 282  // kurucu '{init}' değer döndürmez (yapının çağrısı nesneyi verir); '{return}' değersiz yazılır ya da hiç yazılmaz
+	H0283 Code = 283  // kurucu '{init}' dönüş tipi almaz (yapının çağrısı nesneyi verir); '->' ile ardındaki tipi silin
+	H0284 Code = 284  // '{self}' parametre değildir: metot nesnesine {self} ile, onu bildirmeden erişir (Python'un self'inden farklı); parametre listesinden silin
+	H0285 Code = 285  // '{enum}' durumlu tipinin '{init}' kurucusu yoktur: her durum kendi alanlarıyla kurulur, {enum}.Durum(...) gibi
+	H0286 Code = 286  // durumlu tipin durumları metotlarından önce gelir: bu durumu ilk '{func}'in üstüne yazın
+	H0287 Code = 287  // desen '{variant}' durumunun alanlarını adla değil sırayla bağlar: '{value}' adını '{field}:' olmadan, alanın yerine yazın
+	H0288 Code = 288  // '{name}' arayüzünün metodu yok: en az bir metot imzası yazın, {func} f(x: T) -> T gibi (boş arayüz her değerin tipi olurdu)
+	H0289 Code = 289  // arayüz yalnız metot imzalarından oluşur ({func} f(x: T) -> T); alan arayüzü karşılayan yapıdadır
+	H0290 Code = 290  // '{iface}' arayüzünün '{name}' metodu yalnız imzadır: gövdesini silin; gövde arayüzü karşılayan yapıdadır
+	H0291 Code = 291  // '{variant}' deseni her alanı bir ada bağlar (ya da _ ile atlar); desenin içinde değer karşılaştırılmaz: bir ad bağlayıp kolun içinde karşılaştırın
+	H0292 Code = 292  // eşle kolunun koşulu olmaz (desenden sonra '{if}'): deseni eşleyin, {if}'i kolun içine yazın
+	H0293 Code = 293  // {kind, select, method {'{name}' metodu} other {'{name}' durumu}} '{enum}' durumlu tipinde iki kez tanımlandı (her durum ve metot adı bir kez kullanılır)
+	H0294 Code = 294  // '{name}' '{enum}' durumlu tipinde hem durum hem metot (her durum ve metot adı bir kez kullanılır); birinin adını değiştirin
+	H0295 Code = 295  // '{name}' metodu '{iface}' arayüzünde iki kez yazıldı
+	H0296 Code = 296  // '{name}' alanı '{variant}' durumunda iki kez yazıldı
+	H0297 Code = 297  // '{variant}' durumunun '{name}' alanının varsayılanı yok ama varsayılanlı '{prev}' alanından sonra geliyor; varsayılansız alanları önce yazın
 	H1001 Code = 1001 // Tip uyuşmazlığı — {name|q} değişkeni {declared|q} tipinde tanımlandı ancak {given|q} tipinde değer atandı{hint}
 	H1002 Code = 1002 // Sabit hatası — {name|q} bir sabittir ('{keyword}') ve değeri değiştirilemez
 	H1003 Code = 1003 // Dönüş tipi uyuşmazlığı — fonksiyon {expected|q} döndürmeli ancak {given|q} tipinde değer döndürülüyor{hint}
@@ -133,6 +156,8 @@ const (
 	H1021 Code = 1021 // . Dilin sözcükleri TR_ ile yazılır: '{spelling}' mi demek istediniz?
 	H1022 Code = 1022 // metindeki '{text}' başka dillerin yerleştirme yazımıdır, metne olduğu gibi geçer; {name} değerini yazmak için '\({name})' yazın (2.7)
 	H1023 Code = 1023 // ifadenin değeri kullanılmıyor (2.8): çağrı içermeyen bir ifade tek başına deyim olamaz; değeri bir değişkene atayın ({var} v = …) ya da satırı silin
+	H1024 Code = 1024 // {kind, select, method {'{name}' '{struct}' yapısının metodu, ama metotta düz '{name}' yapının dışındaki '{name}' adıdır; metodu {self}.{name}() diye çağırın} other {'{name}' '{struct}' yapısının alanı, ama metotta düz '{name}' yapının dışındaki '{name}' adıdır; alanı {self}.{name} diye okuyun ve atayın}}
+	H1025 Code = 1025 // {kind, select, method {'{name}' tanımlı değil; metotta '{struct}' yapısının metodu {self}.{name}() diye çağrılır} other {'{name}' tanımlı değil; metotta '{struct}' yapısının alanı {self}.{name} diye okunur ve atanır}}
 	H1101 Code = 1101 //  ('{name}' TR'de yok; '{canonical}' yazmak mı istediniz?)
 	H1103 Code = 1103 //  ('{name}' TR'de anahtar kelime değil; '{keyword}' yazmak mı istediniz?)
 	H1104 Code = 1104 // . Bunu mu demek istediniz: '{closest}'?
@@ -239,7 +264,7 @@ const (
 	H2402 Code = 2402 // {type} tipinde indeksli bileşik atama yapılamaz
 	H2403 Code = 2403 // Bu tipe indeks ile atama yapılamaz ({type})
 	H2404 Code = 2404 // '{prop}' {struct} yapısının bir metodu; metoda değer atanamaz
-	H2405 Code = 2405 // {struct} yapısında '{prop}' alanı yok; yapı tanımına '{prop}' alanını ekleyin
+	H2405 Code = 2405 // {struct} yapısında '{prop}' alanı yok{hint}
 	H2406 Code = 2406 // '{prop}' sözlüğün bir üyesi; anahtar için d[{prop|q}] yazın
 	H2407 Code = 2407 // {type} tipinin {prop|q} alanına atama yapılamaz
 	H2408 Code = 2408 // '{name}' fonksiyonu
@@ -294,7 +319,7 @@ const (
 	H2465 Code = 2465 // {type} tipi indekslenemez
 	H2466 Code = 2466 // '{keyword}' değerin {prop|q} özelliğine erişilemez ('?.' güvenli erişim kullanabilirsiniz)
 	H2467 Code = 2467 // {type} tipinde {prop|q} özelliği bulunamadı
-	H2468 Code = 2468 // {struct} yapısında {prop|q} alanı veya metodu bulunamadı
+	H2468 Code = 2468 // {struct} yapısında {prop|q} alanı ya da metodu yok{hint}
 	H2469 Code = 2469 // {left} ve {right} tipleri arasında {op|q} işlemi desteklenmiyor
 	H2470 Code = 2470 // Sıfıra bölme hatası
 	H2471 Code = 2471 // Sıfıra göre mod alma hatası
@@ -321,7 +346,6 @@ const (
 	H2495 Code = 2495 // {type} sözlük anahtarı olamaz: içeriği sonradan değişebilen değerler anahtar olarak kullanılamaz
 	H2496 Code = 2496 // <fonksiyon {name}>
 	H2497 Code = 2497 // <yerleşik {name}>
-	H2498 Code = 2498 // <yapı {name}>
 	H2499 Code = 2499 // JSON değerinden sonra beklenmeyen veri var
 	H2500 Code = 2500 // JSON çok derin iç içe (en fazla {max} seviye)
 	H2501 Code = 2501 // JSON nesne anahtarı metin olmalı
@@ -415,6 +439,27 @@ const (
 	H2709 Code = 2709 // çağrı {count} değer döndürür ama {names} ada açılıyor: her sonuca bir ad yazın, gerekmeyenin yerine _ yazın (a, _ = f())
 	H2710 Code = 2710 // adlı argüman ve varsayılan yalnız fonksiyonun tanımlandığı adla yapılan çağrıda geçerlidir; bir fonksiyon değeri sırayla ve bütün argümanlarıyla çağrılır ({count} argüman)
 	H2711 Code = 2711 // sondaki blok parametre almaz ama {given} argümanla çağrıldı; argümanı alan fonksiyonu ok ile yazın: (x) => ...
+	H2750 Code = 2750 // {struct}: '{field}' alanının varsayılanı yok ve ona değer verilmedi; argüman olarak, sırayla ya da adla verin
+	H2751 Code = 2751 // '{struct}.{method}': yapının kendi metodu yoktur; metot bir nesnede çağrılır, {struct}({args}).{method}({margs}), nesne gerektirmeyen iş dosyanın fonksiyonu olarak yazılır
+	H2752 Code = 2752 // '{struct}.{field}': alan yapının değil nesnenin alanıdır: {struct}({args}).{field}
+	H2754 Code = 2754 // ; '{prop}' içinde değer tutmak için onu {struct} yapısına tipiyle alan olarak ekleyin: {prop}: <Tip>
+	H2755 Code = 2755 // '{variant}' alan taşır ve çağrıyla kurulur: {variant}({args})
+	H2756 Code = 2756 // '{enum}.{method}': metot durumlu tipin bir değerinde çağrılır, d değeri için d.{method}() gibi
+	H2757 Code = 2757 // '{variant}' alan taşımaz ve çağrılmaz: {variant} yazın
+	H2758 Code = 2758 // '{variant}(...)' deseni bir durumlu tipin durumu değil: alanlı desen Tip.Durum(a) diye yazılır, değeriyle karşılaştırılan ifade paranteze alınır (5.6)
+	H2759 Code = 2759 // '{variant}' deseni {names} ad bağlıyor ama durumun {fields} alanı var: her alana bir ad bağlayın ('_' alanı atlar)
+	H2760 Code = 2760 // '{iface}.{prop}': arayüzün kendi üyesi yoktur; metotları onları taşıyan bir değerde çağrılır
+	H2761 Code = 2761 // '{enum}' durumlu tipi çağrılmaz: değerleri durumlarıdır, {enum}.Durum ya da {enum}.Durum(...) gibi
+	H2762 Code = 2762 // '{iface}' arayüzü kurulmaz: istendiği yere metotlarını taşıyan bir yapının değerini verin
+	H2763 Code = 2763 // '{variant}' durumunun '{field}' alanı eşlemeyle okunur: eşle kolunda {variant}(...) deseni ona bir ad bağlar
+	H2764 Code = 2764 // '{variant}' değeri değişmez: '{field}' alanına atamak yerine yeni bir durum kurun
+	H2765 Code = 2765 // {enum} durumlu tipinde {prop|q} durumu ya da metodu yok{hint}
+	H2766 Code = 2766 // '{variant}' değeri ancak bütün alanları anahtar olabiliyorsa sözlük anahtarı olur: '{field}' alanı olamıyor ({why})
+	H2767 Code = 2767 // '{variant}' durumunun '{field}' adında bir alanı yok{suggestion}
+	H2768 Code = 2768 // '{variant}' durumu en fazla {max} argüman alır (alanlar: {fields}), {given} verildi
+	H2769 Code = 2769 // '{variant}' durumunun '{field}' alanı hem sırayla ({order}. argüman) hem adıyla verildi
+	H2770 Code = 2770 // '==' {struct} değerlerini karşılaştıramaz: '{field}' alanı bir {kind, select, tensor {tensör tutuyor (tensörün =='si öğe öğedir)} other {fonksiyon tutuyor (iki fonksiyon hiçbir zaman eşit sayılmaz)}}; {other, select, empty {onu karşılaştırılan verinin dışında tutun} other {gereken alanları tek tek karşılaştırın: a.{other} == b.{other}}}
+	H2771 Code = 2771 // '==' karşılaştırmakta olduğu bir {struct} çiftine yeniden vardı: değerler kendilerine bağlanıyor, karşılaştırma bitmezdi; {other, select, empty {gereken parçaları tek tek karşılaştırın} other {gereken alanları tek tek karşılaştırın: a.{other} == b.{other}}}
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

@@ -17,9 +17,15 @@ TR_test "7.1 yapı alanları ve varsayılan değerleri" {
     TR_var p = Nokta()
     TR_assert_equal(0, p.x)
     TR_assert_equal(0, p.y)
-    TR_struct Satır { a, b: TR_Int = 2; c }
-    TR_var s = Satır()
-    TR_assert_equal([TR_none, 2, TR_none], [s.a, s.b, s.c])
+    TR_struct Satır { a, c, b: TR_Int = 2 }
+    TR_var s = Satır(1, 3)
+    TR_assert_equal([1, 2, 3], [s.a, s.b, s.c])
+}
+
+TR_test "7.1 kalıtım yok: ortak parça alanla kurulur (H0275'in önerdiği yazım)" {
+    TR_struct Taban { x = 1 }
+    TR_struct A { taban: Taban }
+    TR_assert_equal(1, A(Taban()).taban.x)
 }
 
 TR_test "7.2 oluşturma: konumlu ve adlı argümanlarla" {
@@ -57,6 +63,53 @@ TR_test "7.3 metotlar kendi ile nesneye erişir" {
     TR_assert_equal(41, p.uzaklık_kare())
 }
 
+TR_test "7.2 varsayılanı olmayan alan verilmezse çalışma hatasıdır" {
+    TR_struct N { x, y = 2 }
+    TR_assert_equal("H2750", TR_error_code { N() })
+    TR_assert_equal("H2750", TR_error_code { N(y: 3) })
+    TR_assert_equal([1, 2], [N(1).x, N(1).y])
+    TR_assert_equal(1, N(x: 1).x)
+}
+
+TR_test "7.4 kurucu varsa nesne yalnız onun imzasıyla kurulur; argüman alana gitmez" {
+    TR_struct D {
+        n
+        k = 10
+        TR_func TR_init(a) { TR_self.k = TR_self.k + a }
+    }
+    TR_var d = D(3)
+    TR_assert_equal(TR_none, d.n)
+    TR_assert_equal(13, d.k)
+    TR_assert_equal("H2410", TR_error_code { D(n: 3) })
+}
+
+TR_test "7.4 varsayılanlı alanlar kurucudan önce, tanım sırasıyla değer alır" {
+    TR_var sıra = []
+    TR_func iz(x) {
+        sıra.TR_append(x)
+        TR_return x
+    }
+    TR_struct E {
+        a = iz(1)
+        b = iz(2)
+        TR_func TR_init() { iz(3) }
+    }
+    E()
+    TR_assert_equal([1, 2, 3], sıra)
+}
+
+TR_test "7.3 nesnesiz metot ve alan yoktur; ileti nesneyi kurmayı önerir" {
+    TR_struct S {
+        x = 1
+        TR_func m() { TR_return TR_self.x + 1 }
+    }
+    TR_assert_equal("H2751", TR_error_code { S.m() })
+    TR_assert_equal("H2752", TR_error_code { S.x })
+    TR_assert_equal("H2468", TR_error_code { S.mm })
+    # H2751'in önerdiği yazım: S().m()
+    TR_assert_equal(2, S().m())
+}
+
 TR_test "7.4 kurucu metodu oluşturmada çağrılır" {
     TR_struct Hesap {
         bakiye
@@ -70,22 +123,183 @@ TR_test "7.5 alanlar atanabilir; olmayan alan hata verir" {
     p.x = 7
     TR_assert_equal(7, p.x)
     TR_assert_equal("H2468", TR_error_code { p.z })
-    TR_assert_equal(TR_none, p?.z)
+    # '?.' yalnız yokluğu açar: var olan nesnede olmayan alan '.' ile aynı hatadır
+    TR_assert_equal("H2468", TR_error_code { p?.z })
+    TR_var yok = TR_none
+    TR_assert_equal(TR_none, yok?.z)
+}
+
+TR_test "7.5 ileti en yakın alanı önerir, yoksa alanı eklemeyi" {
+    TR_var p = Nokta(1, 2)
+    TR_var iletiler = []
+    TR_try { TR_print(p.yy) } TR_catch e { iletiler.TR_append(e) }
+    TR_try { p.xx = 3 } TR_catch e { iletiler.TR_append(e) }
+    TR_try { TR_print(p.renk) } TR_catch e { iletiler.TR_append(e) }
+    TR_assert(iletiler[0].TR_contains("'y'"), iletiler[0])
+    TR_assert(iletiler[1].TR_contains("'x'"), iletiler[1])
+    TR_assert(iletiler[2].TR_contains("renk: "), iletiler[2])
+    # önerilen yazım
+    p.x = 3
+    TR_assert_equal([3, 2], [p.x, p.y])
 }
 
 TR_test "7.5 tanımda olmayan alana atama hatadır; nesnenin alanları her zaman tanımdakilerdir" {
     TR_var p = Nokta(1, 2)
     TR_assert_equal("H2405", TR_error_code { p.z = 5 })
     TR_assert_equal("H2404", TR_error_code { p.taşı = 5 })
-    TR_assert_equal(`Nokta{x: 1, y: 2}`, TR_String(p))
+    TR_assert_equal(`Nokta(x: 1, y: 2)`, TR_String(p))
     TR_assert(p == Nokta(1, 2))
 }
 
 TR_test "7.6 nesneler içerikle karşılaştırılır; tip() yapının kendisini verir" {
     TR_assert(Nokta(1, 2) == Nokta(1, 2))
-    TR_assert_equal(`Nokta{x: 1, y: 2}`, TR_String(Nokta(1, 2)))
+    TR_assert_equal(`Nokta(x: 1, y: 2)`, TR_String(Nokta(1, 2)))
     TR_assert_equal(Nokta, TR_Type(Nokta()))
     TR_assert(TR_Type(Nokta()) == Nokta)
     TR_assert_equal("Nokta", TR_String(TR_Type(Nokta())))
     TR_assert_equal(TR_StructType, TR_Type(Nokta))
+}
+
+TR_test "7.6 fonksiyon alanı tutan nesneler karşılaştırılamaz" {
+    TR_struct Kutu {
+        ad
+        f = TR_none
+    }
+    TR_assert(Kutu("a") == Kutu("a"))
+    TR_assert_equal("H2770", TR_error_code { TR_var s = Kutu("a", (x) => x) == Kutu("a", (x) => x) })
+    # listenin içinde de
+    TR_assert_equal("H2770", TR_error_code { TR_var s = [Kutu("a", (x) => x)] == [Kutu("a", 1)] })
+    TR_var ileti = ""
+    TR_try { TR_var s = Kutu("a", (x) => x) == Kutu("a", (x) => x) } TR_catch e { ileti = e }
+    TR_assert(ileti.TR_contains("a.ad == b.ad"), ileti)
+    # tensörün '=='si öğe öğedir; tensör alanı da karşılaştırılamaz
+    TR_assert_equal("H2770", TR_error_code { TR_var s = Kutu("a", TR_zeros([2])) == Kutu("a", TR_zeros([2])) })
+}
+
+TR_test "7.6 '==' karşılaştırmakta olduğu nesne çiftine yeniden varırsa hatadır" {
+    TR_struct Düğüm {
+        ad
+        ebeveyn = TR_none
+        çocuklar = []
+    }
+    TR_var a = Düğüm("kök")
+    a.çocuklar = [Düğüm("yaprak", a)]
+    TR_var b = Düğüm("kök")
+    b.çocuklar = [Düğüm("yaprak", b)]
+    TR_assert_equal("H2771", TR_error_code { TR_var s = a == b })
+    TR_assert(a == a)
+}
+
+TR_enum Durum {
+    Bekliyor
+    Çalışıyor(adım: TR_Int)
+    Bitti(kayıp: TR_Float, not = "")
+    TR_func bitti_mi() -> TR_Bool {
+        TR_return TR_match TR_self {
+            Durum.Bitti(_, _) => TR_true
+            _ => TR_false
+        }
+    }
+}
+
+TR_func anlat(d: Durum) -> TR_String {
+    TR_return TR_match d {
+        Durum.Bekliyor => "bekliyor"
+        Durum.Çalışıyor(a) => "adım \(a)"
+        Durum.Bitti(k, _) => "bitti, kayıp \(k)"
+    }
+}
+
+TR_test "7.7 durumlar kurulur ve eşlemede alanları bağlanır" {
+    TR_assert_equal("adım 5", anlat(Durum.Çalışıyor(5)))
+    TR_assert_equal("bekliyor", anlat(Durum.Bekliyor))
+    TR_assert_equal("bitti, kayıp 0.5", anlat(Durum.Bitti(kayıp: 0.5)))
+    TR_assert(Durum.Bitti(1.0).bitti_mi())
+    TR_assert(TR_not Durum.Bekliyor.bitti_mi())
+}
+
+TR_test "7.7 bağlanan ad yalnız kolunda görünür; blok gövdeli kol" {
+    TR_var a = "dış"
+    TR_var iç = TR_match Durum.Çalışıyor(3) {
+        Durum.Çalışıyor(b) => {
+            TR_var c = b * 2
+            c
+        }
+        _ => 0
+    }
+    TR_assert_equal(6, iç)
+    TR_assert_equal("dış", a)
+}
+
+TR_test "7.7 eşitlik aynı durumu ve eşit alanları sınar; metin kurma yazımıdır" {
+    TR_assert(Durum.Çalışıyor(5) == Durum.Çalışıyor(adım: 5))
+    TR_assert(Durum.Çalışıyor(5) != Durum.Çalışıyor(6))
+    TR_assert(Durum.Bekliyor != Durum.Bitti(1.0))
+    TR_assert_equal("Durum.Çalışıyor(adım: 5)", TR_String(Durum.Çalışıyor(5)))
+    TR_assert_equal("Durum.Bekliyor", TR_String(Durum.Bekliyor))
+    TR_assert_equal(`Durum.Bitti(kayıp: 1.0, not: "")`, TR_String(Durum.Bitti(1.0)))
+    TR_assert(TR_Type(Durum.Bekliyor) == Durum)
+    TR_assert_equal("Durum", TR_String(Durum))
+}
+
+TR_test "7.7 değer değişmez, alanı eşlemeyle okunur; durumun yazımı denetlenir" {
+    TR_var d = Durum.Çalışıyor(5)
+    TR_assert_equal("H2763", TR_error_code { d.adım })
+    TR_assert_equal("H2764", TR_error_code { d.adım = 6 })
+    TR_assert_equal("H2755", TR_error_code { TR_var f = Durum.Çalışıyor })
+    TR_assert_equal("H2757", TR_error_code { Durum.Bekliyor() })
+    TR_assert_equal("H2761", TR_error_code { Durum() })
+    TR_assert_equal("H2750", TR_error_code { Durum.Çalışıyor() })
+    TR_assert_equal("H2767", TR_error_code { Durum.Çalışıyor(adim: 1) })
+    TR_assert_equal("H2768", TR_error_code { Durum.Çalışıyor(1, 2) })
+    TR_assert_equal("H2769", TR_error_code { Durum.Çalışıyor(1, adım: 2) })
+    TR_assert_equal("H2765", TR_error_code { Durum.Bitmiş })
+    TR_assert_equal("H2756", TR_error_code { Durum.bitti_mi() })
+    # H2755 ve H2757'nin önerdiği yazımlar
+    TR_assert_equal(Durum.Çalışıyor(adım: 1), Durum.Çalışıyor(1))
+    TR_assert_equal("bekliyor", anlat(Durum.Bekliyor))
+}
+
+TR_test "7.7 değer değişmez, sözlük anahtarı olur; anahtarın eşitliği '=='dir (3.7)" {
+    TR_var s = {Durum.Bekliyor: 0, Durum.Çalışıyor(5): 5}
+    TR_assert_equal(5, s[Durum.Çalışıyor(adım: 5)])
+    TR_assert_equal(TR_none, s.TR_get(Durum.Çalışıyor(6)))
+    TR_assert_equal(0, s[Durum.Bekliyor])
+    # alanı değişebilen (liste) durum anahtar olmaz
+    TR_enum Kutu { Dolu(öğeler: TR_List) }
+    TR_assert_equal("H2766", TR_error_code { TR_var k = {Kutu.Dolu([1]): 1} })
+}
+
+TR_test "7.7 desendeki ad sayısı alan sayısını tutmazsa kol denenirken hatadır" {
+    TR_assert_equal("H2759", TR_error_code {
+        TR_match Durum.Bitti(1.0) {
+            Durum.Bitti(k) => k
+            _ => 0.0
+        }
+    })
+}
+
+TR_interface Katman {
+    TR_func ileri(x: TR_Float) -> TR_Float
+}
+
+TR_struct Ölçek {
+    k: TR_Float = 2.0
+    TR_func ileri(x: TR_Float) -> TR_Float { TR_return x * TR_self.k }
+}
+
+TR_struct Relu {
+    TR_func ileri(x: TR_Float) -> TR_Float { TR_return TR_max(x, 0.0) }
+}
+
+TR_func tek(k: Katman, x: TR_Float) -> TR_Float { TR_return k.ileri(x) }
+
+TR_test "7.8 arayüz bir tiptir; çağrı nesnenin kendi metoduna gider" {
+    TR_var y = 1.5
+    TR_for k TR_in [Ölçek(), Relu(), Ölçek(k: 3.0)] { y = k.ileri(y) }
+    TR_assert_equal(9.0, y)
+    TR_assert_equal(0.0, tek(Relu(), -1.0))
+    TR_assert_equal("Katman", TR_String(Katman))
+    TR_assert_equal("H2762", TR_error_code { Katman() })
+    TR_assert_equal("H2760", TR_error_code { Katman.ileri })
 }

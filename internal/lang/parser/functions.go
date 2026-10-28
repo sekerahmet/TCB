@@ -156,6 +156,12 @@ func (p *Parser) parseFunctionParameters() []ast.Param {
 	p.nextToken()
 
 	for {
+		if p.curTokenIs(lexer.TokSelf) { // 7.3: struct.go
+			if p.selfParameterError() {
+				continue
+			}
+			break
+		}
 		param := ast.Param{Name: p.curToken().Literal, NameToken: p.curToken()}
 		param.TypeName, param.TypeToken, param.DefaultValue = p.parseTypeAndDefault()
 		params = append(params, param)

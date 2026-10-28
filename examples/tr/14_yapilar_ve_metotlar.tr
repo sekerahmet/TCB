@@ -1,7 +1,8 @@
 # TR 4
 # 14 — Yapılar ve metotlar: ilişkili verileri ve onlara bağlı işleri bir arada tutmak.
 # Ne öğretir: yapı tanımı, alanlar ve varsayılan değerler, metot, kendi, nesne oluşturma
-# (konumlu ve adlı), alan güncellemek, kurucu, YapıTanımı ve Nesne.
+# (konumlu ve adlı), alan güncellemek, kurucu, YapıTanımı ve Nesne, nesnenin metni, durumlu tip
+# ve arayüz.
 # Önceki örnekten: fonksiyonlar (08), listeler (09), sözlükler (11).
 # Çalıştırma (proje kökünden): tr examples/tr/14_yapilar_ve_metotlar.tr
 
@@ -53,6 +54,40 @@ TR_print(Hesap(5).bakiye)
 # Nesne, yapıdan oluşan her değerin genel adıdır (tip bildirimlerinde kullanılır).
 TR_var hesap: TR_Object = Hesap(1)
 TR_print(TR_Type(Hesap) == TR_StructType, TR_Type(hesap) == Hesap)
+
+# Nesnenin metni kurma yazımıdır: programa kopyalanınca aynı değeri kurar.
+TR_print(Nokta(3.0, 4.0))
+
+# durumlu, değeri birkaç durumdan biri olan bir tip tanımlar; durum kendi alanlarını taşır.
+# Alanlar eşle ile okunur: desen alanları sırayla adlara bağlar.
+TR_enum Cevap {
+    Bekliyor
+    Tamam(değer: TR_String)
+    Hata(kod: TR_Int, ileti: TR_String)
+}
+TR_func anlat(c: Cevap) -> TR_String {
+    TR_return TR_match c {
+        Cevap.Bekliyor => "bekliyor"
+        Cevap.Tamam(d) => "tamam: \(d)"
+        Cevap.Hata(k, i) => "hata \(k): \(i)"
+    }
+}
+TR_print(anlat(Cevap.Tamam("42")), anlat(Cevap.Hata(404, "yok")), Cevap.Bekliyor)
+
+# arayüz, gövdesiz metot imzalarıdır; metotları taşıyan her yapı onu karşılar (ayrıca bildirilmez).
+TR_interface Ölçen {
+    TR_func ölç() -> TR_Float
+}
+TR_func toplam(ölçenler: TR_List) -> TR_Float {
+    TR_var t = 0.0
+    TR_for ö TR_in ölçenler { t += ö.ölç() }
+    TR_return t
+}
+TR_struct Kare {
+    a: TR_Float
+    TR_func ölç() -> TR_Float { TR_return TR_self.a * TR_self.a }
+}
+TR_print(toplam([Kare(2.0), Kare(3.0)]), Ölçen)
 
 # --- Kendin dene ---
 # 1. Dikdörtgen yapısı yaz (en, boy) ve alan() ile çevre() metotlarını ekle.

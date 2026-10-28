@@ -61,6 +61,10 @@ func (c *compiler) matchExpr(k *compilerScope, e *ast.MatchExpression) statement
 	line := e.Line()
 	caseList := make([]statusCode, len(e.Cases))
 	for i, mc := range e.Cases {
+		if pat, body, value, ok := c.enumArmCode(k, mc); ok { // 7.7: enum_ops.go
+			caseList[i] = statusCode{patterns: []exprCode{pat}, bodyBlock: body, value: value}
+			continue
+		}
 		d := statusCode{defaultVal: mc.IsDefault, patterns: c.expressions(k, mc.Patterns)}
 		if mc.Body != nil {
 			d.bodyBlock = c.blockStatement(k, mc.Body)

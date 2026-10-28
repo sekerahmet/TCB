@@ -135,15 +135,15 @@ TR_func TR_only_2d(TR_name, TR_parameters) {
 # türüdür ("float32" varsayılan, "bf16" hedef modelin tarifi).
 TR_struct TR_Muon {
     TR_parameters
+    TR_scales
+    TR_groups
+    TR_state
     TR_lr = 0.02
     TR_momentum = 0.95
     TR_nesterov = TR_true
     TR_weight_decay = 0.0
     TR_ns_iterations = 5
     TR_ns_dtype = "float32"
-    TR_scales
-    TR_groups
-    TR_state
     TR_func TR_init(TR_parameters, TR_lr = 0.02, TR_momentum = 0.95, TR_nesterov = TR_true, TR_weight_decay = 0.0, TR_ns_iterations = 5, TR_scale = "oran", TR_ns_dtype = "float32") {
         TR_only_2d(TR_Muon, TR_parameters)
         TR_assert(TR_scale == "oran" TR_or TR_scale == "rms", TR_Message("H6921", TR_scale))
@@ -189,6 +189,8 @@ TR_struct TR_Muon {
 # şekilli ağırlıklar tek yığında dikleştirilir; ns_türü dikleştirmenin hesap türüdür.
 TR_struct TR_NorMuon {
     TR_parameters
+    TR_groups
+    TR_state
     TR_lr = 0.003
     TR_beta1 = 0.95
     TR_beta2 = 0.95
@@ -196,8 +198,6 @@ TR_struct TR_NorMuon {
     TR_weight_decay = 0.0
     TR_ns_iterations = 5
     TR_ns_dtype = "float32"
-    TR_groups
-    TR_state
     TR_func TR_init(TR_parameters, TR_lr = 0.003, TR_beta1 = 0.95, TR_beta2 = 0.95, TR_eps = 0.00000001, TR_weight_decay = 0.0, TR_ns_iterations = 5, TR_ns_dtype = "float32") {
         TR_only_2d(TR_NorMuon, TR_parameters)
         TR_self.TR_parameters = TR_parameters
@@ -313,10 +313,10 @@ TR_func parametre_kümeleri(model, ayrı = ["TR_mem_embedding", "TR_mem_logit_la
 # (yalnızca geçen satırlara dokunan yerleşik) geldiğinde arayüz değişmez. Momentum yoktur.
 TR_struct TR_RowRMS {
     TR_parameters
+    TR_state
     TR_lr = 0.003
     TR_beta2 = 0.95
     TR_eps = 0.00000001
-    TR_state
     TR_func TR_init(TR_parameters, TR_lr = 0.003, TR_beta2 = 0.95, TR_eps = 0.00000001) {
         TR_only_2d(TR_RowRMS, TR_parameters)
         TR_self.TR_parameters = TR_parameters

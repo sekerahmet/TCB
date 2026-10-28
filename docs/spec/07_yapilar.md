@@ -9,7 +9,7 @@ Her kuralın emsali ve gerekçesi: [`rationale/07_structs.md`](rationale/07_stru
 - Aynı adlı iki alan, iki metot ya da aynı adlı alan ve metot denetim hatasıdır.
 - Yapı 6.10'daki gibi tip parametresi alabilir: `TR_struct Kutu[T] { değer: T }`.
 - Kalıtım yoktur. Başka dillerin yazımları sözdizimi hatasıdır ve ileti TR'deki yazımı söyler: Python'un `class A(B):`'si, `TR_struct A(B)`. Ortak davranış arayüzle (7.8), ortak parça alanla kurulur.
-- *Test:* TR testi; tipli alan, alan sırası ve iletiler uygulanınca TR testi.
+- *Test:* TR testi; tipli alan uygulanınca TR testi.
 
 ```tr
 # TR 4
@@ -28,7 +28,7 @@ TR_print(p.uzaklık(), p)   # çıktı: 5.0 Nokta(x: 3.0, y: 4.0)
 - *Test:* TR testi; zorunlu alanın denetimi uygulanınca denetleyicinin testi.
 
 **7.3** Metot gövdedeki `TR_func`'tır ve `p.m(...)` ile çağrılır. Metot nesneye `TR_self` ile erişir: alan her zaman `TR_self.x` diye okunur ve atanır, başka metot `TR_self.m()` diye çağrılır. Metotta düz `x` ya da `m()` alan ya da metot değildir. Düz ad yapının bir alanının ya da metodunun adıysa ve dıştaki bir ada çözülüyorsa denetim hatasıdır; hiçbir ada çözülmüyorsa 5.14'ün hatasıdır. İkisinde de ileti `TR_self.x`'i önerir. `TR_self` parametre olarak yazılmaz; Python'un self parametresi sözdizimi hatasıdır. Çağrısız `p.m` `p`'ye bağlı bir fonksiyon değeridir (6.9). Nesnesiz metot (yapının adıyla, nesne olmadan çağrılan) yoktur; yapıya bağlı olmayan iş dosyanın fonksiyonu olarak yazılır. Metot `TR_self` kullanmayabilir: alansız bir yapı (`TR_struct Relu { ... }`) bir arayüzü (7.8) böyle karşılar.
-- *Test:* TR testi; iletiler uygulanınca TR testi.
+- *Test:* TR testi; denetleyicinin testi (düz alan adı).
 
 **7.4** Kurucu `TR_init` adlı metottur. Yapının kurucusu varsa nesne yalnız onun parametreleriyle kurulur (`Kat(512, 1024)`); alanlarla kurma kalkar. Kurucu değer döndürmez. Varsayılanlı alanlar kurucunun gövdesinden önce, tanım sırasıyla değerini alır; kurucu onları yeniden atayabilir. Kurucunun sonunda, her yolda, varsayılanı olmayan her alana atanmış olmalıdır; atanmadan okunan alan ve bütün alanlar atanmadan metot çağrısı denetim hatasıdır.
 - *Test:* TR testi; alanların atanma denetimi uygulanınca denetleyicinin testi.
@@ -41,7 +41,7 @@ TR_print(p.uzaklık(), p)   # çıktı: 5.0 Nokta(x: 3.0, y: 4.0)
 - Metni kurma yazımıdır: "Nokta(x: 3.0, y: 4.0)"; alanlar 3.14'teki gibi yazılır.
 - Nesne kendine bağlanabilir (ağaçta ebeveyn, çift yönlü bağlantı). Metin, yazılmakta olan bir nesneye yeniden varınca orada "..." yazar. `==` karşılaştırılmakta olan bir nesne çiftine yeniden varırsa çalışma hatasıdır.
 - `TR_Type(p)` yapının kendisidir (`TR_Type(p) == Nokta`); yapının metni adıdır.
-- *Test:* TR testi; metin uygulanınca TR testi.
+- *Test:* TR testi; fonksiyon ya da tensör alanlı yapının denetimi uygulanınca denetleyicinin testi.
 
 **7.7** `TR_enum Ad { ... }` durumlu bir tip tanımlar: değer, sayılı durumlardan biridir; durum alan taşıyabilir.
 - Durum `BüyükDeve` bir addır (2.3b), alanları parantez içinde 7.1'deki gibi yazılır: `Bekliyor`, `Çalışıyor(adım: TR_Int)`. Durumlardan sonra metotlar yazılabilir (7.3). Durumlu tip 6.10'daki gibi tip parametresi alabilir: `TR_enum Cevap[T] { ... }`, durumları `Tamam(v: T)` ve `Hata(m: TR_String)`.
@@ -50,7 +50,7 @@ TR_print(p.uzaklık(), p)   # çıktı: 5.0 Nokta(x: 3.0, y: 4.0)
 - Eşleme her durumu ya da `_`'yi kapsar (5.6).
 - `==` aynı durumu ve eşit alanları sınar. Metni kurma yazımıdır: "Durum.Çalışıyor(adım: 5)".
 - Yapının deseni yoktur; yapıyla karşılaştırma parantezli ifadeyle yapılır (5.6).
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
+- *Test:* TR testi; kapsama ve tip parametresi uygulanınca TR testi.
 
 ```tr
 # TR 4
@@ -76,4 +76,4 @@ TR_print(anlat(Durum.Çalışıyor(5)))   # çıktı: adım 5
 - Arayüzü karşılamayan değer verilirse denetim hatasıdır; ileti eksik ya da imzası tutmayan metotları söyler.
 - Arayüz tip parametresine kısıt olur: `TR_func f[T: Katman](k: T)`; kısıtlı `T`'nin değerinde arayüzün metotları çağrılır (6.10).
 - Yerleşik tiplerin karşıladığı hazır arayüzler (eşitlik, sıralama, sayı) sonraki bölümlerdedir.
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
+- *Test:* TR testi; karşılama, kısıt ve daraltma uygulanınca denetleyicinin testi.

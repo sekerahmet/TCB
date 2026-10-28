@@ -29,7 +29,7 @@ func (p *Parser) parseStatement() ast.Statement {
 		return stmt
 	case lexer.TokFor:
 		return p.parseForStatement()
-	case lexer.TokStruct:
+	case lexer.TokStruct, lexer.TokEnum, lexer.TokInterface:
 		return p.parseStructStatement()
 	case lexer.TokTry:
 		return p.parseTryCatchStatement()
@@ -54,6 +54,10 @@ func (p *Parser) parseStatement() ast.Statement {
 			def := p.curToken()
 			p.syntaxErrorFix(def, []messages.Fix{{Range: def.Range(), Replacement: p.wordText(codes.KwFunc)}}, messages.H0258, p.word(codes.KwFunc))
 			return nil
+		}
+		// class A: Python'un sınıfı yoktur (7.1), ileti TR_struct'ı önerir
+		if p.isPythonClass() {
+			return p.pythonClassError()
 		}
 		// x := 5: kısa tanım yoktur (5.1), ileti TR_var'ı önerir
 		if p.peekTokenIs(lexer.TokWalrus) {
@@ -265,6 +269,10 @@ func (p *Parser) underscoreReads(prog *ast.Program) {
 		case *ast.AssignStatement:
 			if id, ok := s.Target.(*ast.Identifier); ok && s.Operator == lexer.TokAssign {
 				writes[id] = true
+			}
+		case *ast.EnumPattern: // 7.7: desenin adları alanları bağlar
+			for _, x := range s.Names {
+				writes[x] = true
 			}
 		}
 		return true

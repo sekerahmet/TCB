@@ -50,6 +50,8 @@ var keywordTable = []Keyword{
 	// Yapı ve kendi
 	{codes.KwStruct, TokStruct},
 	{codes.KwSelf, TokSelf},
+	{codes.KwEnum, TokEnum},
+	{codes.KwInterface, TokInterface},
 
 	// Hata yönetimi, modül, eşzamanlılık, ertele, kesme noktası
 	{codes.KwTry, TokTry},

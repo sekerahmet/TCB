@@ -230,7 +230,7 @@ func TestFastPathSemantics(t *testing.T) {
 		d[2] = "iki"
 		TR_struct P {
 			x: TR_Int = 3
-			f
+			f = TR_none
 			TR_func m(k = 1) { TR_return TR_self.x * k }
 		}
 		TR_var p = P()

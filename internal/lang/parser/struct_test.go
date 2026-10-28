@@ -1,0 +1,140 @@
+package parser
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
+)
+
+// Kalıtım yazımı (7.1) tek ileti verir ve ileti ortak parçayı alanla kurmayı önerir; önerilen yazım
+// ayrıştırılır (çalışması tests/yapilar_test.tr'de sınanır).
+func TestStructInheritanceSuggestsAField(t *testing.T) {
+	// alan tipi tek bir addır: noktalı yazımda çalışan bir öneri yoktur, ileti yazım önermez
+	errs := parseErrs("TR_struct A(nn.Module) { y = 2 }")
+	if len(errs) != 1 || !messages.Has(errs[0], messages.H0280) {
+		t.Errorf("A(nn.Module): want one H0280, got %v", errs)
+	}
+	for _, c := range []struct{ code, want string }{
+		{"TR_struct B { x = 1 }\nTR_struct A(B) { y = 2 }", "TR_struct A { b: B }"},
+		{"TR_struct A(TR_Linear) { y = 2 }", "TR_struct A { linear: TR_Linear }"},
+	} {
+		errs := parseErrs(c.code)
+		if len(errs) != 1 || !messages.Has(errs[0], messages.H0275) {
+			t.Fatalf("%q: want one H0275, got %v", c.code, errs)
+		}
+		if got := messages.ErrorIn(errs[0], "en"); !strings.Contains(got, c.want) {
+			t.Errorf("%q: the message does not suggest %q: %s", c.code, c.want, got)
+		}
+		if errs := parseErrs(c.want + "\nTR_print(1)"); len(errs) != 0 {
+			t.Errorf("the suggested %q does not parse: %v", c.want, errs)
+		}
+	}
+}
+
+// Gövdenin her yanlışı tek ileti verir ve yapının geri kalanı okunur: yinelenen tanımdan sonra
+// kapanan '}' ikinci bir hata vermez (7.1).
+func TestStructBodyErrorsAreReportedOnce(t *testing.T) {
+	for _, c := range []struct {
+		code string
+		want messages.Code
+	}{
+		{"TR_struct A {\n    TR_func f() { TR_return 1 }\n    TR_func f() { TR_return 2 }\n}\nTR_print(1)", messages.H0145},
+		{"TR_struct A {\n    x = 1\n    x = 2\n}\nTR_print(1)", messages.H0146},
+		{"TR_struct A {\n    x = 1\n    TR_func x() { TR_return 1 }\n}\nTR_print(1)", messages.H0277},
+		{"TR_struct A {\n    TR_func x() { TR_return 1 }\n    x = 1\n}\nTR_print(1)", messages.H0277},
+		{"TR_struct A {\n    x = 1\n    y\n}\nTR_print(1)", messages.H0276},
+	} {
+		errs := parseErrs(c.code)
+		if len(errs) != 1 || !messages.Has(errs[0], c.want) {
+			t.Errorf("%q: want one %v, got %v", c.code, c.want, errs)
+		}
+	}
+	if errs := parseErrs("TR_struct A {\n    x\n    y: TR_Int = 1\n    z = 2\n}"); len(errs) != 0 {
+		t.Errorf("fields without a default before defaulted ones: %v", errs)
+	}
+}
+
+// Python'un sınıf tanımı (7.1) tek iletiyle bildirilir; tabanlıda ileti yapıyı ve alanı önerir. 'class'
+// başka yerde sıradan bir addır.
+func TestPythonClassIsReportedOnce(t *testing.T) {
+	for _, c := range []struct {
+		code, want string
+		msg        messages.Code
+	}{
+		{"class A(B):\n    x = 1", "TR_struct A { b: B }", messages.H0279},
+		{"class A(nn.Module):\n    x = 1", "", messages.H0281},
+		{"class A:\n    x = 1", "TR_struct A {", messages.H0278},
+	} {
+		// parser.go'nun genel ipucu (H0164: 'class' → yapı) iletinin ardından ayrıca gelir
+		errs := parseErrs(c.code)
+		if len(errs) == 0 || !messages.Has(errs[0], c.msg) {
+			t.Fatalf("%q: want %v first, got %v", c.code, c.msg, errs)
+		}
+		for _, e := range errs[1:] {
+			if !messages.Has(e, messages.H0164) {
+				t.Errorf("%q: a second error: %v", c.code, e)
+			}
+		}
+		if got := messages.ErrorIn(errs[0], "en"); !strings.Contains(got, c.want) {
+			t.Errorf("%q: the message does not suggest %q: %s", c.code, c.want, got)
+		}
+	}
+	if errs := parseErrs("TR_var class = 1\nTR_print(class)"); len(errs) != 0 {
+		t.Errorf("'class' as a name: %v", errs)
+	}
+}
+
+// Kurucu değer döndürmez (7.4): dönüş tipi ve değerli 'sonuç' sözdizimi hatasıdır; değersiz 'sonuç'
+// ve kurucunun içindeki fonksiyonun 'sonuç'u serbesttir.
+func TestConstructorReturnsNoValue(t *testing.T) {
+	for _, c := range []struct {
+		code string
+		want messages.Code
+	}{
+		{"TR_struct D {\n    TR_func TR_init() -> TR_Int { TR_self.x = 1 }\n}", messages.H0283},
+		{"TR_struct D {\n    TR_func TR_init() {\n        TR_return 1\n    }\n}", messages.H0282},
+		{"TR_struct D {\n    TR_func TR_init() {\n        TR_if TR_true { TR_return TR_none }\n    }\n}", messages.H0282},
+	} {
+		if errs := parseErrs(c.code); len(errs) != 1 || !messages.Has(errs[0], c.want) {
+			t.Errorf("%q: want one %v, got %v", c.code, c.want, errs)
+		}
+	}
+	ok := "TR_struct D {\n    f\n    TR_func TR_init() {\n        TR_self.f = (x) => { TR_return x }\n        TR_if TR_true { TR_return }\n    }\n}"
+	if errs := parseErrs(ok); len(errs) != 0 {
+		t.Errorf("%q: %v", ok, errs)
+	}
+}
+
+// Python'un self parametresi (7.3) sözdizimi hatasıdır; düzeltme onu ardındaki virgülle siler. Kodlu
+// dosyada da: sözcük çözümleyici parametre yerindeki TR_self'i anahtar kelime olarak geçirir.
+func TestSelfParameterIsDeleted(t *testing.T) {
+	for _, c := range []struct {
+		coded     bool
+		line, cut string
+	}{
+		{false, "fonksiyon m(kendi, k) { sonuç k }", "kendi, "},
+		{false, "fonksiyon m(kendi) { sonuç 1 }", "kendi"},
+		{true, "TR_func m(TR_self, k) { TR_return k }", "TR_self, "},
+		{true, "TR_func m(TR_self) { TR_return 1 }", "TR_self"},
+	} {
+		code := "yapı N {\n" + c.line + "\n}"
+		errs := parseErrsIn(code, codes.Source())
+		if c.coded {
+			code = "TR_struct N {\n" + c.line + "\n}"
+			errs = parseErrs(code)
+		}
+		if len(errs) != 1 || !messages.Has(errs[0], messages.H0284) {
+			t.Fatalf("%q: want one H0284, got %v", code, errs)
+		}
+		pos, _ := messages.Find(errs[0])
+		if len(pos.Fixes) != 1 || pos.Fixes[0].Replacement != "" || !pos.Fixes[0].Applicable {
+			t.Fatalf("%q: fix %+v", code, pos.Fixes)
+		}
+		f := pos.Fixes[0]
+		if got := string([]rune(c.line)[f.Col-1 : f.EndCol-1]); f.Line != 2 || got != c.cut {
+			t.Errorf("%q: the fix deletes %q on line %d, want %q", code, got, f.Line, c.cut)
+		}
+	}
+}

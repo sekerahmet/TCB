@@ -17,7 +17,7 @@ func EqualValues(a, b Value) (bool, error) {
 
 // comparisonError valuesEqual'ın karşılaştıracağı her öğe çiftini gezer: JSON değeri JSON olmayan bir
 // değerle (yokluk dışında) ya da bir fonksiyon karşılaştırılıyorsa hatadır. Boyu farklı kapların öğeleri
-// karşılaştırılmaz, gezilmez; aynı kap kendisine eşittir. Yapının alanları yapının eşitliğindedir.
+// karşılaştırılmaz, gezilmez; aynı kap kendisine eşittir. Nesnenin alanları structComparisonError'dadır.
 func comparisonError(a, b Value, nestDepth int) error {
 	if nestDepth >= equalityDepth {
 		return nil
@@ -51,6 +51,8 @@ func comparisonError(a, b Value, nestDepth int) error {
 				}
 			}
 		}
+	case *StructInstanceVal:
+		return structComparisonError(x, b, nestDepth)
 	}
 	return nil
 }

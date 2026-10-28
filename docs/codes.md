@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 563 kod: 26 anahtar kelime, 4 bağlamsal sözcük, 2 değer adı, 44 tip, 127 fonksiyon, 11 sabit, 61 metot, 97 özellik, 136 adlı argüman.
+Toplam 565 kod: 28 anahtar kelime, 4 bağlamsal sözcük, 2 değer adı, 44 tip, 127 fonksiyon, 11 sabit, 61 metot, 97 özellik, 136 adlı argüman.
 
 ## İçindekiler
 
@@ -107,6 +107,16 @@ değişken n = -3; değişken tür = eğer n < 0 { "negatif" } değilse eğer n 
 
 İlişkili: TR_kw_if `eğer`
 
+#### TR_kw_enum `durumlu`
+
+Durumlu bir tip tanımlar: değer sayılı durumlardan biridir, durum alan taşıyabilir; alanlar eşlemeyle okunur.
+
+```tr
+durumlu D { Bekliyor; Bitti(n: Tam) }; yazdır(D.Bitti(3), D.Bekliyor != D.Bitti(1))
+```
+
+İlişkili: TR_kw_struct `yapı`, TR_kw_match `eşle`
+
 #### TR_kw_false `yanlış`
 
 Mantık tipinin yanlış değeridir. Koşul yalnız Mantık değeri alır: yok, 0, boş metin ve boş liste koşul olamaz, açık sınama yazılır (l.uzunluk == 0, x != yok).
@@ -166,6 +176,16 @@ yazdır([x * x döngü x içinde 1..=5 eğer x % 2 == 1])
 ```
 
 İlişkili: TR_kw_for `döngü`
+
+#### TR_kw_interface `arayüz`
+
+Gövdesiz metot imzalarından oluşan bir arayüz tanımlar; metotları aynı imzayla taşıyan yapı onu karşılar.
+
+```tr
+arayüz Ölçen { fonksiyon ölç(x: Ondalık) -> Ondalık }; yapı Kare { fonksiyon ölç(x: Ondalık) -> Ondalık { sonuç x * x } }; yazdır(Ölçen, Kare().ölç(3.0))
+```
+
+İlişkili: TR_kw_struct `yapı`
 
 #### TR_kw_match `eşle`
 

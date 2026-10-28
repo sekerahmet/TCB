@@ -1,0 +1,8 @@
+# TR 4
+# TEST 7.8 arayüz yalnız gövdesiz metot imzalarından oluşur
+TR_interface K {
+    TR_func f(x: TR_Float) -> TR_Float { TR_return x } # ERROR H0290
+}
+TR_interface L {
+    x: TR_Int # ERROR H0289
+}

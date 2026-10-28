@@ -150,6 +150,44 @@ type StructStatement struct {
 	NameToken lexer.Token
 	Fields    []StructField
 	Methods   map[string]*FunctionLiteral
+	// Kind says what the statement defines: a struct (7.1), an enum (TR_enum, 7.7: Variants and
+	// methods, no Fields) or an interface (TR_interface, 7.8: methods without a body, no Fields).
+	Kind StructKind
+	// Variants are an enum's states in definition order.
+	Variants []EnumVariant
+}
+
+// StructKind is what a StructStatement defines.
+type StructKind uint8
+
+const (
+	KindStruct StructKind = iota
+	KindEnum
+	KindInterface
+)
+
+// EnumPattern is an enum pattern in a match arm (7.7): Durum.Running(a, _). Names bind the state's
+// fields in order and are visible only in the arm; "_" skips a field. A parenthesized call stays an
+// expression compared by value (5.6).
+type EnumPattern struct {
+	Token   lexer.Token // the pattern's first token
+	Enum    Expression  // the enum (Durum)
+	Variant string      // the state's name (Running)
+	// VariantToken is the token of the state's name.
+	VariantToken lexer.Token
+	Names        []*Identifier
+}
+
+func (ep *EnumPattern) expressionNode()      {}
+func (ep *EnumPattern) TokenLiteral() string { return ep.Token.Literal }
+func (ep *EnumPattern) Line() int            { return ep.Token.Line }
+
+// EnumVariant is one state of an enum (7.7): a name and its fields, written like a struct's
+// (Running(step: TR_Int)).
+type EnumVariant struct {
+	Name      string
+	NameToken lexer.Token
+	Fields    []StructField
 }
 
 func (ss *StructStatement) statementNode()       {}

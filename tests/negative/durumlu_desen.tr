@@ -1,0 +1,18 @@
+# TR 4
+# TEST 7.7 desen alanları sırayla bağlar: adlı alan, değer karşılaştırması ve koşullu kol sözdizimi hatasıdır
+TR_enum D {
+    A(n: TR_Int)
+}
+TR_var d = D.A(1)
+TR_var x = TR_match d {
+    D.A(n: k) => k # ERROR H0287
+    _ => 0
+}
+TR_var y = TR_match d {
+    D.A(1) => 1 # ERROR H0291
+    _ => 0
+}
+TR_var z = TR_match d {
+    D.A(k) TR_if k > 0 => k # ERROR H0292
+    _ => 0
+}

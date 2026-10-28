@@ -248,6 +248,9 @@ const nonStringKeyPrefix = "\x00"
 // that starts like an encoded key is encoded too, so no string collides with a non-string key.
 // Mutable values are not valid keys (see DictKeyError).
 func DictKey(v Value) string {
+	if inst, ok := v.(*StructInstanceVal); ok && inst.Variant != nil { // 7.7: enum_ops.go
+		return enumKey(inst)
+	}
 	switch x := v.(type) {
 	case *StringVal:
 		if strings.HasPrefix(x.Val, nonStringKeyPrefix) {
@@ -291,6 +294,9 @@ func identityKey(v Value) string {
 // object such as a tensor) would be lost from the dict once changed (H2495); a decimal key could
 // be missed by rounding, and other values have no key equality (H2646).
 func DictKeyError(v Value) error {
+	if inst, ok := v.(*StructInstanceVal); ok && inst.Variant != nil { // 7.7: enum_ops.go
+		return enumKeyError(inst)
+	}
 	switch v.(type) {
 	case *StringVal, *IntVal, *BoolVal, *BytesVal:
 		return nil
@@ -514,18 +520,24 @@ type StructDefVal struct {
 	fieldEnv *Environment
 	// typ nesnelerinin tip değeridir (tip(p) → Nokta; bkz. tipDegeri).
 	typ *TypeVal
+	// Kind tanımın türüdür: yapı, durumlu tip (Variants) ya da arayüz (Methods yalnız imza; enum_ops.go).
+	Kind ast.StructKind
+	// Variants durumlu tipin durumlarıdır, tanım sırasıyla.
+	Variants []*VariantDef
 }
 
 func (s *StructDefVal) Type() ValueType { return ValStruct }
 func (s *StructDefVal) Inspect() string { return s.Text(codes.ValueNames()) }
-func (s *StructDefVal) Text(lang *codes.Language) string {
-	return messages.TextIn(lang.Code, messages.H2498, s.Name)
-}
-func (s *StructDefVal) IsTruthy() bool { return true }
+
+// Text yapının metnidir: adı (7.6), tipin metni gibi.
+func (s *StructDefVal) Text(lang *codes.Language) string { return shownName(s.Name, lang) }
+func (s *StructDefVal) IsTruthy() bool                   { return true }
 
 type StructInstanceVal struct {
 	Def    *StructDefVal
 	Fields map[string]Value
+	// Variant durumlu tipin değerinde değerin durumudur (yapı nesnesinde nil; enum_ops.go).
+	Variant *VariantDef
 }
 
 func (si *StructInstanceVal) Type() ValueType { return ValueType(si.Def.Name) }

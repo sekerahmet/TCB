@@ -71,7 +71,7 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		return nil
 	}
 
-	return p.parseInfixChain(leftExp, precedence)
+	return p.parseInfixChain(leftExp, precedence, pattern)
 }
 func (p *Parser) parseIntegerLiteral() ast.Expression {
 	tok := p.curToken()
@@ -251,8 +251,8 @@ func (p *Parser) parseRangeExpression(left ast.Expression) ast.Expression {
 }
 
 // parseInfixChain sol ifadeye ikili işleçleri, çağrıları, indeksleri ve üyeleri öncelik
-// sırasıyla bağlar.
-func (p *Parser) parseInfixChain(leftExp ast.Expression, precedence int) ast.Expression {
+// sırasıyla bağlar; pattern ifadenin bir eşle kolunun deseni olduğudur.
+func (p *Parser) parseInfixChain(leftExp ast.Expression, precedence int, pattern bool) ast.Expression {
 	for !p.peekTokenIs(lexer.TokSemicolon) && precedence < p.peekPrecedence() {
 		switch p.peekToken().Type {
 		case lexer.TokPlus, lexer.TokMinus, lexer.TokSlash, lexer.TokSlashSlash, lexer.TokAsterisk,
@@ -308,9 +308,10 @@ func (p *Parser) parseInfixChain(leftExp ast.Expression, precedence int) ast.Exp
 		// başlığında kendi yerinde okunur, bir ifadenin ardında hiç geçmez.
 		p.syntaxError(p.peekToken(), messages.H0206)
 	}
-	if p.peekTokenIs(lexer.TokIf) && !p.lineBreakEnds() && !p.comprehensionSource {
+	if p.peekTokenIs(lexer.TokIf) && !p.lineBreakEnds() && !p.comprehensionSource && !pattern {
 		// Python'un koşullu ifadesi 'a TR_if c TR_else b' yoktur (5.5): ifadenin ardındaki TR_if
-		// yalnız liste üretecinin koşuludur; ileti TR_if ifadesini önerir.
+		// yalnız liste üretecinin koşuludur; ileti TR_if ifadesini önerir. Desenden sonraki TR_if
+		// koşullu koldur, iletisi enumPattern'dadır (7.7).
 		p.syntaxError(p.peekToken(), messages.H0255, p.word(codes.KwIf), p.word(codes.KwElse))
 	}
 

@@ -397,6 +397,9 @@ func multiValues(v *VM, env *Environment, values []exprCode, nameCount, line int
 
 // structDef 'yapı' deyimini derler: metotlar ve alan varsayılanları bir kez derlenir.
 func (c *compiler) structDef(k *compilerScope, s *ast.StructStatement) statementCode {
+	if s.Kind != ast.KindStruct { // 7.7, 7.8: enum_ops.go
+		return c.typeDef(k, s)
+	}
 	type methodCode struct {
 		name    string
 		lit     *ast.FunctionLiteral
