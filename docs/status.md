@@ -417,7 +417,7 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 
 ## 16. Veri ve parçalayıcı
 
-Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Taslak (2026-10-29): ana oturum yeniden yazdı, önce CLAUDE.md'den türeterek (Ahmet: "dil maddeleri yalan yanlış olsa da düzeltmezsek bizi hep eskiye götürecek"). DENETİM bekleniyor. Yeni adların (`TR_train_tokenizer`, `TR_reserved_tokens`, `TR_write_dataset`, `TR_shard_tokens`) gösterim adı onayda.
+Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Taslak (2026-10-29): ana oturum yeniden yazdı, önce CLAUDE.md'den türeterek (Ahmet: "dil maddeleri yalan yanlış olsa da düzeltmezsek bizi hep eskiye götürecek"). DENETİM bekleniyor. Yeni adların gösterim adları onaylandı (2026-10-29): `TR_train_tokenizer` parçalayıcı_eğit, `TR_reserved_tokens` ayrılmış_parçalar, `TR_write_dataset` veri_kümesi_yaz, `TR_shard_tokens` parça_boyu; kodları uygulandıkları gün kayda girer (17.4).
 
 ### 16.3
 
@@ -483,6 +483,11 @@ Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): an
 
 - **Mevcut durum:** değerin metni dilden bağımsız ("true", "none", "List", "<builtin print>") [ölçüldü]. Kitaplık tipinin metni sınıflı kimlik veriyor: `TR_print(TR_Type(TR_Linear(2, 3, TR_seed: 1)))` → "TR_type_Linear" [ölçüldü: main `1ef66921`].
 - **Yapılacaklar:** tipin metni kimliğin adı ("Linear"); TR testi.
+
+### 17.9
+
+- **Mevcut durum:** girdide her gömülü dilin adı kabul ediliyor ("tr çalıştır", "--dil", "TR_DIL"); Türkçe harfsiz biçim asıl adı öneriyor. Depoda Türkçe yazımlar [ölçüldü: izlenen dosyalar, git grep]: "TR_DIL" 233 satır (88 dosya), "tr dizin" 148, "--dil" 75, "tr göster" 48, "tr profil" 48, "tr kontrol" 40, "tr izle" 37, "tr kodla" 36, "tr derle" 32, "tr biçimle" 22, "tr çalıştır" 21.
+- **Yapılacaklar:** girdinin yalnız kimliğin adını kabul etmesi, iletinin kimliğin adını önermesi, yardımın yazılacak adı göstermesi; depodaki yazımların göçü (mekanik); `TestCommandLineNamesInEveryLanguage` kalkan davranışı sınıyor, değişir.
 
 ### 17.10
 

@@ -84,12 +84,12 @@ TR kimlik kodlu bir dildir: dilin her sözcüğü sabit bir koda bağlıdır, pr
 
 ## Komut satırı
 
-**17.9** `tr` komutları, alt komutları, seçenekleri, kabuğun ve hata ayıklayıcının komutları ve ortam değişkenleri de koddur (17.3).
-- **Girdide her gömülü dilin adı geçer:** `tr çalıştır` ile `tr run`, `--dil` ile `--lang` her makinede aynıdır; betik `TR_DIL`'e bağlı kalmaz.
-- **Çıktı kişinin dilindedir:** yardım ve iletiler adları `TR_DIL`'in dilinde yazar.
-- **Ortam değişkeni** her dilin adıyla okunur (`TR_DIL`, `TR_LANG`); iki ad ayrı değerle verilirse `tr` başlamadan durur. Hesap çekirdeği değişkeni kimlik adıyla okur; `tr` başlarken bu adı koyar.
-- **Seçenek yazımı:** iki tire, sözcükler tireyle ayrılır; tek harfli bayraklar (`-h`, `-v`) simgedir. `-` ile başlayan bilinmeyen argüman en yakın seçeneği önerir. Türkçe harfsiz biçim ve başka araçların kısaltmaları asıl adı önerir.
-- *Test:* Go: `TestCommandLineNamesInEveryLanguage`, `TestCommandsHaveOneName`, `TestExportEnvironmentGivesTheIdentityName`.
+**17.9** `tr` komutları, alt komutları, seçenekleri, kabuğun ve hata ayıklayıcının komutları ve ortam değişkenleri de koddur (17.3) ve program metni gibi tek yazımla, kimliğin adıyla yazılır.
+- **Girdi yalnız kimliğin adıyladır:** `tr run`, `tr show`, `--lang`, `TR_LANG`. Bir gösterim dilinin adı (`tr çalıştır`, `--dil`, `TR_DIL`) kabul edilmez; ileti kimliğin adını önerir.
+- **Çıktı kişinin dilindedir:** yardım ve iletiler `TR_LANG`'ın dilinde yazar; yardım her komutun yazılacak adını (kimliğin adı) ve kişinin dilindeki açıklamasını verir.
+- Hesap çekirdeği ortam değişkenini kimlik adıyla okur.
+- **Seçenek yazımı:** iki tire, sözcükler tireyle ayrılır; tek harfli bayraklar (`-h`, `-v`) simgedir. `-` ile başlayan bilinmeyen argüman en yakın seçeneği önerir.
+- *Test:* Go: `TestExportEnvironmentGivesTheIdentityName`; girdinin yalnız kimliğin adını kabul etmesi uygulanınca Go testi.
 
 ## Değişiklik
 

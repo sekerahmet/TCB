@@ -11,6 +11,7 @@ Kurallar: [`17_kodlar.md`](../17_kodlar.md). Bu dosya her kuralın emsalini (ba�
 
 - *Emsal:* Go'nun ve Rust'ın tek bir yazımı vardır; çeviri yoktur. Excel'in içteki kimliği ile gösterimdeki adı ayrıdır.
 - *Gerekçe:* program metninde sınıf yazılmaz, çünkü ölçümde sınıflı yazım (`TR_fn_sum`) kısa yazımdan %19 daha çok parça tutuyordu ve sınıfı tahmin etmek ajanın en sık hatasıydı [ölçüldü: 2026-10-27, kısa yazım kararının ölçümü; ölçüm dosyası depoda değil]. Sınıfı yazıldığı yer zaten söyler. İçeride sınıf kalır, çünkü aynı kısa ad birden çok koddur: 2026-10-29 sayımında 60 kısa ad iki ya da üç sınıftadır (`TR_log` fonksiyonda logaritma, adlı argümanda kayıt; `TR_parameters` fonksiyon, argüman ve üye) [ölçüldü: `definitions.json`]. Kısa yazıma çevrilen bir tanım dosyası bu ayrı kodları birleştirirdi.
+- *Kimliğin adı neden İngilizce:* kimliğin adı İngilizcedir (`TR_print`); İngilizce gösterim adlarının 565'ten 557'si de bu addır [ölçüldü: `en.json`]. Bu, CLAUDE.md'nin "hiçbir dilin ayrıcalığı yoktur" ilkesine aykırı değildir: programın anlamı ve kaydı dilden bağımsızdır, İngilizce gösterim de Türkçe gibi ayrı bir dil dosyasıdır. İngilizce, yazılım dillerinin ve ekosisteminin ortak dilidir (Go'nun ve PyTorch'un adları); ajan da en çok onu bilir. Baş geliştirici 2026-10-29: "kabul edelim ki dünyadaki tüm yazılım dilleri ingilizce".
 
 ### 17.3
 
@@ -44,8 +45,8 @@ Kurallar: [`17_kodlar.md`](../17_kodlar.md). Bu dosya her kuralın emsalini (ba�
 
 ### 17.9
 
-- *Emsal:* Go, git ve cargo komut adlarını tek (İngilizce) yazımda tutar. PowerShell'in yerelleştirilmiş adları içte bir kimliğe bağlıdır ama yalnız etkin dili kabul eder. *Almadık:* yalnız etkin dili kabul etmek: betik `TR_DIL`'e bağlı kalırdı.
-- *Gerekçe:* komut satırının kodlu biçimi yoktur; girdide her gömülü dilin adını kabul etmek betiği taşınabilir yapar, çıktıyı kişinin dilinde vermek okunur yapar.
+- *Emsal:* Go, git ve cargo komut adlarını tek (İngilizce) yazımda tutar; yardımı ve iletileri yerelleştiren araçlar da komutun adını değiştirmez. *Almadık:* PowerShell gibi yerelleştirilmiş komut adlarını kabul etmek.
+- *Gerekçe:* komut satırının adları da koddur ve "hiçbir insan dilinde kod yazılmaz"; program metniyle aynı kural, tek yazım. Ajan her yerde aynı komutu yazar, betik her makinede çalışır. İnsan için gereken okumaktır: yardım ve iletiler kişinin dilindedir ve yazılacak adı gösterir. Baş geliştiricinin kararı (2026-10-29): "17.9 için ikilik olmasın bence tr run iyidir". 1. ve 2. turda girdide her dilin adı kabul ediliyordu; bu, bugünkü motorun davranışıydı.
 
 ### 17.10
 
