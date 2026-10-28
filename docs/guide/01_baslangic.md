@@ -17,7 +17,7 @@ Program dosyası her x86-64 işlemcide çalışır: matris çarpımı ve vektör
 | `./bin/tr.exe izle dosya.tr [argümanlar]` | Programı çalıştırır ve hızını canlı gösterir: ms/adım, en pahalı tensör işlemleri, en sıcak satırlar, GPU, bellek; bitince rapor (bkz. §11) |
 | `./bin/tr.exe profil [--json yol] dosya.tr [argümanlar]` | Programı çalıştırır, bitince hız raporu verir; `--json` ile JSON raporu (klasör verilirse içine `speed.json`) (bkz. §11) |
 | `./bin/tr.exe hata_ayıkla dosya.tr` | Terminalde etkileşimli TR Hata Ayıklayıcıyı başlatır |
-| `./bin/tr.exe kontrol dosya.tr` | Kodu çalıştırmadan sözdizimi ve akıllı tip kontrolü yapar |
+| `./bin/tr.exe kontrol [--json] dosya.tr` | Kodu çalıştırmadan sözdizimi ve akıllı tip kontrolü yapar. `--json` (dosya adından önce yazılır) hata ve uyarıları standart çıktıya satır başına bir JSON kaydı olarak verir: `code`, `severity`, `file`, `start`, `end` (dışlayıcı), `message` ve varsa `related`, `fixes` (`applicable: true` olan düzeltme olduğu gibi uygulanır); kullanım hataları dahil, temizse çıktı boş, hata varsa çıkış 1, kullanım hatasında 2 (dil tanımı 2.13) |
 | `./bin/tr.exe derle dosya.tr` | `.tr` dosyasını tek başına çalışan bağımsız **`.exe`** programına dönüştürür |
 | `./bin/tr.exe test [dosya.tr \| klasör]` | Test bloklarını çalıştırır; klasör verilirse (varsayılan: bulunulan klasör) altındaki tüm `*_test.tr` dosyalarını tarar. Bir test bile kalırsa çıkış kodu 1'dir (bkz. §7) |
 | `./bin/tr.exe biçimle dosya.tr` | Kodu standart biçime getirip dosyaya yazar; klasör verilirse içindeki tüm `.tr` dosyalarını biçimler (bkz. §8) |

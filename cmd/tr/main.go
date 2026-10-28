@@ -18,6 +18,7 @@ import (
 	"github.com/sekerahmet/TCB/lib"
 	"os"
 	"runtime/debug"
+	"slices"
 	"strings"
 	"text/tabwriter"
 )
@@ -139,11 +140,22 @@ func versionCommand(args []string) {
 	fmt.Println(messages.Text(messages.H8603, Version))
 }
 
-// checkCommand 'tr kontrol dosya.tr' komutudur.
+// checkCommand 'tr kontrol [--json] dosya.tr' komutudur. --json dosya adından önce yazılır: dosya
+// adından sonrası programın argümanıdır (1.4), orada yazılan --json sessizce yok sayılmaz, hatadır.
 func checkCommand(args []string) {
-	file, _, ok := programFile(codes.NameRef(codes.CmdCheck), args)
+	command := codes.NameRef(codes.CmdCheck)
+	jsonUsage = scanJSON(args)
+	jsonOut, args := checkOptions(command, args)
+	file, rest, ok := programFile(command, args)
 	if !ok {
-		exitUsage(messages.Text(messages.H8605, codes.NameRef(codes.CmdCheck), "ornek.tr"))
+		exitUsage(messages.New(messages.H8605, command, "ornek.tr"))
+	}
+	if slices.ContainsFunc(rest, func(a string) bool { return isOption(a, codes.OptJson) }) {
+		exitUsage(messages.New(messages.H8301, command, codes.OptionFlag(codes.OptJson), file))
+	}
+	if jsonOut {
+		checkFileJSON(file)
+		return
 	}
 	checkFile(file)
 }
@@ -194,6 +206,10 @@ func exitWithError(message any) {
 // exitUsage kullanım hatasını (yanlış komut, seçenek ya da eksik argüman) "Hata: ..." olarak
 // standart hataya yazar ve 2 koduyla çıkar (1.9).
 func exitUsage(message any) {
+	if m, ok := message.(*messages.Error); ok && jsonUsage {
+		writeJSONRecord(usageRecord(m)) // 'tr kontrol --json': kullanım hatası da kayıttır (2.13)
+		os.Exit(usageExitCode)
+	}
 	fmt.Fprintln(os.Stderr, turkish.Printable(messages.Text(messages.H8060, message)))
 	os.Exit(usageExitCode)
 }
@@ -217,7 +233,7 @@ func printHelp() {
 		messages.Text(messages.H8613),
 		messages.Text(messages.H8614, codes.NameRef(codes.CmdRun)),
 		messages.Text(messages.H8615, codes.NameRef(codes.CmdDebug)),
-		messages.Text(messages.H8616, codes.NameRef(codes.CmdCheck)),
+		messages.Text(messages.H8616, codes.NameRef(codes.CmdCheck), codes.OptionFlag(codes.OptJson)),
 		messages.Text(messages.H8617, codes.NameRef(codes.CmdBuild)),
 		messages.Text(messages.H8618, codes.NameRef(codes.CmdTest)),
 		messages.Text(messages.H8619, codes.NameRef(codes.CmdFormat), codes.OptionFlag(codes.OptCheck)),

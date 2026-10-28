@@ -93,4 +93,4 @@ TR_var t = 1 +
 - *Test:* TR testi.
 
 **2.13** Çalışmadan önceki hatalar ve uyarılar (sözdizimi ve tip, 1.3; kullanım, 1.4) metin iletisinin yanında JSON olarak da verilebilir. Her kayıt ayrı alanlarda kodu, türü (hata ya da uyarı), dosyayı, başlangıç ve bitiş satır ve sütununu (2.1), iletiyi, varsa ilgili öbür konumları ve önerilen düzeltmeyi (2.3a, 2.3b) taşır; olduğu gibi uygulanabilecek düzeltme bunu bir işaretle söyler (satır başındaki `//` → `#`, `0X1F` → `0x1F`). İleti okuyanın dilindedir; kod, konum ve düzeltme dilden bağımsızdır. Seçenek ve alanların tam listesi sonraki bölümlerdedir.
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca Go e2e testi.
+- *Test:* Go e2e testi: `cmd/tr/e2e/behavior_check_json_test.go` (`TestCheckJSON…`: her alanın varlığı ve biçimi, `end`'in dışlayıcılığı, iki dilde aynı kod/konum/düzeltme ve farklı ileti, uygulanabilir düzeltmenin dosyayı hatasız bırakması, ilgili konum, aktarılan modülün dosyası, kullanım hataları); kayıt yapısı `internal/lang/messages`, `lexer`, `parser`, `checker` testlerinde.
