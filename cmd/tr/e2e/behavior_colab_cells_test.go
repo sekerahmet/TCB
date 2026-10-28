@@ -122,3 +122,19 @@ func TestPhase3TRProgramChecksClean(t *testing.T) {
 		t.Errorf("phase3_tr.tr uyarı veriyor:\n%s", out)
 	}
 }
+
+// Kural (GPU araçları göçün kör noktasıydı: denetlenip koşulmuyordu): Evre 3 aracı küçük bir ayarla
+// CPU'da uçtan uca koşar; ayar dosyasının değerleri tip çağrısıyla açılır (3.7a) ve sonuç JSON'u
+// kayıp eğrisini taşır.
+func TestPhase3TRProgramRunsOnCPU(t *testing.T) {
+	dir := t.TempDir()
+	config := filepath.Join(dir, "k.json")
+	small := `{"B": 2, "T": 8, "D": 16, "H": 2, "FF": 32, "LAYERS": 1, "V": 50, "precision": "float32", "warmup": 1, "measured": 2, "loss_steps": 2, "lr": 0.01}`
+	if err := os.WriteFile(config, []byte(small), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out, err := exec.Command(trBinary, reporoot.Path("tools/gpu/phase3_tr.tr"), "--device", "cpu", "--config", config).CombinedOutput()
+	if err != nil || !regexp.MustCompile(`"loss_curve":\[[0-9.]+,[0-9.]+\]`).Match(out) {
+		t.Fatalf("phase3_tr.tr CPU'da koşmadı: %v\n%s", err, out)
+	}
+}
