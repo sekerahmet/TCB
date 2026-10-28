@@ -142,6 +142,8 @@ func (j *JSONVal) GetProperty(kd codes.Code, name string) (Value, error) {
 			return NewInt(int64(len(x.Order))), nil
 		case *ListVal:
 			return NewInt(int64(len(x.Elements))), nil
+		case *StringVal:
+			return nil, messages.New(messages.H2666) // metnin uzunluğu açılınca: TR_String(j).TR_length
 		}
 		return nil, messages.New(messages.H2651, codes.NameRef(kd), j.kindName())
 	case codes.MemKeys:

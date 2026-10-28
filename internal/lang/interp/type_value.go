@@ -121,9 +121,13 @@ func (v *VM) registerTypes() {
 	}
 }
 
-// typeTextError tip değeri metinle karşılaştırılıyorsa yol gösteren hatayı verir (tip
-// değeri hiçbir metne eşit değildir; sessizce yanlış dönmek yerine hata). Değilse nil.
+// typeTextError çalışma anında yasak bir eşitliğin hatasıdır: tip değeri metinle (tip
+// değeri hiçbir metne eşit değildir) ya da JSON değeri JSON olmayan değerle (jsonCompareError);
+// sessizce yanlış dönmek yerine hata. Değilse nil.
 func typeTextError(op string, a, b Value) error {
+	if err := jsonCompareError(op, a, b); err != nil {
+		return err // JSON değeri JSON olmayan değerle karşılaştırılmaz (4.5, 3.7a)
+	}
 	t, ok := a.(*TypeVal)
 	m, ok2 := b.(*StringVal)
 	if !ok || !ok2 {

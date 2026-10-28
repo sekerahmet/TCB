@@ -82,6 +82,9 @@ func languageNamed(lang string) *codes.Language {
 // ArgTypeError reports that argument number sira of builtin kd (or its member) is not one of
 // the expected types; the expected values are type codes (type).
 func ArgTypeError(kd codes.Code, order int, given Value, expected ...codes.Code) error {
+	if j, ok := given.(*JSONVal); ok && len(expected) > 0 {
+		return jsonArgError(CallName(kd), order, j, expected)
+	}
 	return argTypeErrorByName(CallName(kd), order, TypeNames(expected...), given)
 }
 

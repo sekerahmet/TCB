@@ -370,6 +370,13 @@ const (
 	H2657 Code = 2657 // {@Range} çağrılmaz: aralık başlangıç..bitiş yazılır (0..n); sayılarının listesi için {@List}(0..n) yazın
 	H2658 Code = 2658 // ; JSON nesnesinin anahtarı köşeli parantezle okunur: ["{name}"], olmayabilecekse .{@get}("{name}")
 	H2659 Code = 2659 // ; bayt dizisinin üyeleri .{@length} ve .{@get}(i)'dir, metin gibi indekslenir ve dilimlenir (b[i], b[a..c])
+	H2660 Code = 2660 // {@JSON} değeri {op} ile yalnız JSON değeriyle ya da yoklukla karşılaştırılır; bunun türü {kind}: önce açın, {kind}(j) {op} x
+	H2661 Code = 2661 // {kind} türündeki {@JSON} değeri {op} ile yalnız JSON değeriyle karşılaştırılır: j {op} {@JSON}(x)
+	H2662 Code = 2662 // {op} bir {@JSON} değerinde çalışmaz; bunun türü {kind}: önce açın, {kind}(j) {op} x
+	H2663 Code = 2663 // {op} {kind} türündeki bir {@JSON} değerinde çalışmaz; bir değeri ["k"] ya da [i] ile okuyup tipiyle açın
+	H2664 Code = 2664 // {kind} türündeki bir {@JSON} değerinde dönülmez: dizi öğelerini, nesne anahtarlarını verir; metnin karakterleri için {@String}(j) üzerinde dönün
+	H2665 Code = 2665 // {fn}() {order}. argüman olarak {expected} bekler, {given} verildi; JSON değerini önce tipiyle açın: {open}(j)
+	H2666 Code = 2666 // JSON değerinin .{@length}'u nesnenin anahtarlarını ya da dizinin öğelerini sayar; bu bir metin: önce açın, {@String}(j).{@length}
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

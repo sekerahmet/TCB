@@ -13,6 +13,10 @@ import (
 
 // comprehensionItems bir liste üretecinin dolaşacağı öğeleri döndürür.
 func comprehensionItems(v *VM, iterVal Value, line int) ([]Value, error) {
+	iterVal, err := jsonLoopSource(iterVal)
+	if err != nil {
+		return nil, messages.At(line, 0, err)
+	}
 	var items []Value
 	switch it := iterVal.(type) {
 	case *RangeVal:
