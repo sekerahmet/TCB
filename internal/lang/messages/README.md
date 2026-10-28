@@ -6,6 +6,13 @@ iletiler için bu pakettir.
 
 ## Standartlar
 
+**İleti yanlışı söyler ve çalışan doğru yazımı verir.** İletiyi en çok bir yapay zekâ ajanı okur ve önerisini olduğu gibi kopyalar. Bu yüzden ileti yanlış olanı adıyla ve yerinde gösterir. Bir yazım önerirse, o yazım kopyalanınca hata vermeden çalışır ve istenen sonucu verir. Öneri dilin kurallarıyla (öncelik, tip, kapsam) denenir; testi önerilen yazımı da koşar. Önerinin yanlış sonuç vermesi, hiç öneri vermemekten kötüdür: ajan onu kontrol etmeden kullanır. Örnekler (2. katmanın denetimi, 2026-10-28):
+- `(-2) ** -2` (H2603): `-2.0 ** -2` önerisi 4.1'e göre `-(2.0 ** -2)` okunur ve −0.25 verir; doğru öneri `(-2.0) ** -2`, 0.25.
+- `a == 2 < 3` (H0200): hata zincirde geçerli olan `<`'yi değil, zincire giremeyen `==`'yi gösterir.
+- `[1] + 2` (H2614): metin yerleştirmesi değil, listenin yazımı önerilir: `l + [x]` ya da `l.TR_append(x)`.
+
+Denetim: iletiyi yazan paketin testi önerinin metnini, dilin testi önerilen yazımın sonucunu sınar (`TestNegativeIntExponentSuggestsAWorkingSpelling`, `TestListPlusSuggestsTheListSpelling`, `TestChainAndCoalescingErrors`).
+
 **Kod değişmez, metin değişebilir.** Kod `H` ve dört basamaktır; binler basamağı alanı gösterir:
 `H0` sözdizimi · `H1` tip denetimi · `H2` yorumlayıcı (ortak `H2000` = `{fn}: {error}`) · `H3`
 tensör ve CPU · `H4` GPU · `H5` veri ve parçalayıcı · `H6` stdlib/ml · `H7` standart kitaplığın
@@ -65,9 +72,9 @@ adla anıldığı için serbesttir. Denetim: `TestRender`, `TestPlural`, `TestSe
 
 **Bir ileti tek dildedir.** Süreç dili `TR_DIL`'den bir kez okunur (`messages.ActiveLanguage`; `codes` da bunu kullanır, adlar ve iletiler aynı dildedir). Bir iletinin ya da içindeki kodlu hatalardan (`*Error`, `*PosError`) birinin etkin dilde metni yoksa iletinin bütünü yedek dilde (bugün Türkçe) gösterilir; iç ileti dıştakinin dilinde yazılır. Bu yüzden ileti değerine metin (`messages.Text`) değil kodlu hata (`messages.New`) geçirilir. Denetim: `TestFallbackKeepsOneLanguage`, `TestLanguageReadOnce`.
 
-İngilizce: `en.json` her kodun metnini taşır (1648/1648); `TR_DIL=en` ile gösterilir. `en.json`'da olmayan kod hatadır; yeni kod `tr.json`'la birlikte `en.json`'a da yazılır. Denetim: `TestEnglishCoversEveryCode`.
+İngilizce: `en.json` her kodun metnini taşır; `TR_DIL=en` ile gösterilir. `en.json`'da olmayan kod hatadır; yeni kod `tr.json`'la birlikte `en.json`'a da yazılır. Denetim: `TestEnglishCoversEveryCode`.
 
-**TR kodu da ileti kurar.** `lib/*.tr` hata metni yazmaz: `TR_kw_throw TR_fn_message(H6903, pencere)` kodu ve değerleri taşır, metin hata gösterilirken bu katalogdan kurulur (dil tanımı 8.5). `ParamCount` `TR_fn_message` çağrısını tanımla denetler (tanımsız kod H2528, yanlış değer sayısı H2529). Kitaplığın kendi adları ad yuvasıdır (`{@ad}`, yukarıda). Denetim: `TestParamCount`, `TestMessageUsage` (tools/gen/msgconsts: `.tr` çağrıları), `TestMessageSlotsAreNames` (internal/lang/codes).
+**TR kodu da ileti kurar.** `lib/*.tr` hata metni yazmaz: `TR_throw TR_message("H6903", pencere)` kodu (bir metin değeri) ve değerleri taşır, metin hata gösterilirken bu katalogdan kurulur (dil tanımı 8.5). `ParamCount` `TR_message` çağrısını tanımla denetler (tanımsız kod H2528, yanlış değer sayısı H2529). Kitaplığın kendi adları ad yuvasıdır (`{@ad}`, yukarıda). Denetim: `TestParamCount`, `TestMessageUsage` (tools/gen/msgconsts: `.tr` çağrıları), `TestMessageSlotsAreNames` (internal/lang/codes).
 
 **Testler metni değil kodu denetler.** `messages.Has(err, messages.H7003)` hata zincirinde kodu
 arar; metin değişince test kırılmaz.
