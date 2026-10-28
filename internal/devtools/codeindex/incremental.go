@@ -187,7 +187,7 @@ func stubFile(rel string, prev *Index) *file {
 		switch n.Kind {
 		case KindModule:
 			for _, imp := range n.Imports {
-				f.imports = append(f.imports, importRef{file: imp.Target, alias: imp.Alias, pos: imp.Pos, nested: imp.Nested})
+				f.imports = append(f.imports, importRef{file: imp.Target, alias: imp.Alias, pos: imp.Pos})
 			}
 		case KindFunction, KindStruct, KindConstant, KindVariable:
 			top = append(top, n)

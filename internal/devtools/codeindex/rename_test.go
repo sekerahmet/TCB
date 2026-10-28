@@ -1,6 +1,7 @@
 package codeindex
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -57,28 +58,30 @@ func TestRenameImpactSplitsCertainAndLikely(t *testing.T) {
 	if kinds[KindField] != 1 || kinds[KindParameter] != 3 || kinds[KindOption] != 1 {
 		t.Errorf("candidates: the field, three parameters (kurucu, yap, gölge) and the option: %v", kinds)
 	}
+	at := func(line string, n int) string { return "m.tr:" + srcAt(t, bindSource, line, "baş", n) }
+	typedLocal, guess := at("TR_return d.baş", 1), at("TR_return x.baş", 1)
 	for pos, role := range map[string]Role{
-		"m.tr:2:5":   RoleDefinition, // alanın tanımı
-		"m.tr:5:15":  RoleWrite,      // kendi.baş = baş
-		"m.tr:9:21":  RoleRead,       // sonuç kendi.baş
-		"m.tr:4:29":  RoleDefinition, // kurucu(boyut, baş
-		"m.tr:28:18": RoleArgument,   // yap(baş: 4)
-		"m.tr:29:31": RoleOptionKey,  // komut_satırı({baş: 8
-		"m.tr:29:63": RoleOptionKey,  // açıklamalar: {baş: ...
-		"m.tr:15:13": RoleRead,       // d.baş: yapıcıdan tek atamalı yerel (çıkarımla)
+		at("    baş", 1):               RoleDefinition, // alanın tanımı
+		at("TR_self.baş = baş", 1):     RoleWrite,      // TR_self.baş = baş
+		at("TR_return TR_self.baş", 1): RoleRead,       // TR_return TR_self.baş
+		at("TR_func TR_init(", 1):      RoleDefinition, // TR_init(boyut, baş
+		at("yap(baş: 4)", 1):           RoleArgument,   // yap(baş: 4)
+		at("TR_command_line(", 1):      RoleOptionKey,  // TR_command_line({baş: 8
+		at("TR_command_line(", 2):      RoleOptionKey,  // TR_descriptions: {baş: ...
+		typedLocal:                     RoleRead,       // d.baş: yapıcıdan tek atamalı yerel (çıkarımla)
 	} {
 		c := changeAt(res.Certain, pos)
 		if c == nil || c.Role != role || c.Replacement != "bakış_sayısı" {
 			t.Errorf("certain %s: %+v", pos, c)
 		}
 	}
-	if c := changeAt(res.Certain, "m.tr:15:13"); c == nil || c.Basis != BasisLocalType || c.Confidence != Inferred {
+	if c := changeAt(res.Certain, typedLocal); c == nil || c.Basis != BasisLocalType || c.Confidence != Inferred {
 		t.Errorf("the typed local is certain but labelled: %+v", c)
 	}
-	if c := changeAt(res.Likely, "m.tr:19:13"); c == nil || c.Match != MatchMemberGuess {
+	if c := changeAt(res.Likely, guess); c == nil || c.Match != MatchMemberGuess {
 		t.Errorf("x.baş with an unknown receiver is a guess: %+v", c)
 	}
-	if changeAt(res.Certain, "m.tr:19:13") != nil {
+	if changeAt(res.Certain, guess) != nil {
 		t.Error("a guess is never certain")
 	}
 	if c := changeAt(res.Likely, "doc.md:1:10"); c == nil || c.Match != MatchSuffixed || c.Replacement != "bakış_sayısıı" {
@@ -147,17 +150,27 @@ func TestRenameImpactReportsConflicts(t *testing.T) {
 
 func TestPrepareRename(t *testing.T) {
 	r, _ := renameProject(t)
-	got, reason := r.PrepareRename("m.tr", 5, 16)
-	if reason != "" || got.Placeholder != "baş" || got.Node.Kind != KindField || got.Range.Line != 5 {
-		t.Errorf("kendi.baş: %+v %q", got, reason)
+	// at line'daki word'ün n. geçişinin bir karakter içi: satır ve sütun.
+	at := func(line, word string, n int) (int, int) {
+		var l, c int
+		fmt.Sscanf(srcAt(t, bindSource+"TR_print(1)\n", line, word, n), "%d:%d", &l, &c)
+		return l, c + 1
 	}
-	if got, reason := r.PrepareRename("m.tr", 4, 30); reason != "" || got.Node.Kind != KindParameter {
+	l, c := at("TR_self.baş = baş", "baş", 1)
+	got, reason := r.PrepareRename("m.tr", l, c)
+	if reason != "" || got.Placeholder != "baş" || got.Node.Kind != KindField || got.Range.Line != l {
+		t.Errorf("TR_self.baş: %+v %q", got, reason)
+	}
+	paramLine, paramCol := at("TR_func TR_init(", "baş", 1)
+	if got, reason := r.PrepareRename("m.tr", paramLine, paramCol); reason != "" || got.Node.Kind != KindParameter {
 		t.Errorf("a parameter in the header: %+v %q", got, reason)
 	}
-	if _, reason := r.PrepareRename("m.tr", 1, 1); reason != ReasonNoSymbol {
+	keywordLine, keywordCol := at("TR_struct Dikkat", "TR_struct", 1)
+	if _, reason := r.PrepareRename("m.tr", keywordLine, keywordCol); reason != ReasonNoSymbol {
 		t.Errorf("a keyword is not a symbol: %q", reason)
 	}
-	if _, reason := r.PrepareRename("m.tr", 30, 1); reason != ReasonBuiltin {
+	builtinLine, builtinCol := at("TR_print(1)", "TR_print", 1)
+	if _, reason := r.PrepareRename("m.tr", builtinLine, builtinCol); reason != ReasonBuiltin {
 		t.Errorf("a built-in cannot be renamed: %q", reason)
 	}
 }
@@ -187,8 +200,9 @@ func TestRenameImpactGolden(t *testing.T) {
 
 // Terim kipi sembol aramaz: yalnızca metin eşleşmeleri (belge, yorum, metin), Go'da kod adları hariç.
 func TestRenameTermMode(t *testing.T) {
+	src := "# çekirdek derlenir\nTR_func çekirdek_ekle() {\n    TR_return 1\n}\n"
 	dir := writeTree(t, map[string]string{
-		"m.tr":   "# çekirdek derlenir\nTR_func çekirdek_ekle() {\n    TR_return 1\n}\n",
+		"m.tr":   src,
 		"doc.md": "GPU çekirdeği ve işlemci çekirdeği.\n",
 		"k.go":   "package k\n\n// çekirdek başlatılır\nvar çekirdek = 1\nvar s = \"çekirdek\"\n",
 	})
@@ -204,7 +218,7 @@ func TestRenameTermMode(t *testing.T) {
 		}
 		got := strings.Join(hitSummaryOfChanges(res.Likely), "\n")
 		want := strings.Join([]string{"doc.md:1:5 doc/suffixed", "doc.md:1:26 doc/suffixed", "k.go:3:4 comment/exact", "k.go:5:10 string/exact",
-			"m.tr:1:4 comment/exact", "m.tr:2:11 code/compound"}, "\n")
+			"m.tr:" + srcAt(t, src, "# çekirdek", "çekirdek", 1) + " comment/exact", "m.tr:" + srcAt(t, src, "TR_func çekirdek_ekle", "çekirdek", 1) + " code/compound"}, "\n")
 		if got != want {
 			t.Errorf("term=%v hits:\n%s\nwant:\n%s", term, got, want)
 		}

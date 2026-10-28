@@ -43,6 +43,29 @@ func LanguageNames(k codes.Code) []string {
 	return out
 }
 
+// SpelledNames kodun program metnindeki yazımıyla sorulduğu adlardır (dil tanımı 2.3a; ajan bu yazımı yazar; codegraph
+// aynı adları ad düğümünün ve kodlu bildirimin adları yapar, iki aracın kuralı tektir): öbür
+// yerdeki kod `TR_print`, üye `x.TR_map`. Çıplak yazım (`TR_map`, `TR_every_minutes`) daha öncelikli bir yerde aynı
+// yazımlı başka kod yoksa kodundur; öncelik öbür, üye, argüman sırasıdır (`TR_min` işlevdir, adlı argüman `TR_min`
+// değil). Program metninde yazılmayan kodun (komut, seçenek, ortam değişkeni) yazımı yoktur.
+func SpelledNames(k codes.Code) []string {
+	p, ok := codes.PlaceOf(k)
+	if !ok {
+		return nil
+	}
+	s := codes.Spelling(k)
+	var out []string
+	if p == codes.PlaceMember {
+		out = append(out, "x."+s)
+	}
+	for q := codes.PlaceOther; q < p; q++ {
+		if _, taken := codes.FromSpelling(q, s); taken {
+			return out
+		}
+	}
+	return append(out, s)
+}
+
 // codeNames kodlu düğümlerin sorguda aranan adlarıdır: her yazım dilindeki adı ve kitaplığın kendi kodunda kimliği ->
 // düğüm kimlikleri. Kimlik kodun asıl düğümünü gösterir: kitaplık kodunda bildirimi (yerleşik düğümü yoktur), çekirdekle
 // ortak kodda (TR_arg_min, kitaplıkta bir parametrenin de adı) yerleşiği. Kodlu bildirim kısa adıyla (kimliğiyle)
@@ -56,7 +79,8 @@ func codeNames(idx *Index) map[string][]string {
 		}
 		spellings := LanguageNames(k)
 		if k.IsLibrary() && libraryDecl(&n) {
-			spellings = append(spellings, n.Code) // kitaplığın kendi bildirimi; kullanıcının aynı kodlu üyesi dillerdeki adıyla
+			// kitaplığın kendi bildirimi kimliğiyle ve yazımıyla; kullanıcının aynı kodlu üyesi dillerdeki adıyla
+			spellings = append(append(spellings, n.Code), SpelledNames(k)...)
 		}
 		for _, s := range spellings {
 			if !slices.Contains(names[s], n.ID) {
@@ -118,8 +142,12 @@ func (r *Reader) qualifiedSpellings(n *Node) [][2]string {
 		return nil
 	}
 	var out [][2]string
+	spells := []func(codes.Code) string{codes.Spelling} // program metnindeki yazım: katman.TR_Linear.TR_forward
 	for _, l := range writingLanguages() {
-		if q := r.qualifiedIn(n, l.Name); q != n.Qualified && !slices.ContainsFunc(out, func(s [2]string) bool { return s[0] == q }) {
+		spells = append(spells, l.Name)
+	}
+	for _, spell := range spells {
+		if q := r.qualifiedIn(n, spell); q != n.Qualified && !slices.ContainsFunc(out, func(s [2]string) bool { return s[0] == q }) {
 			out = append(out, [2]string{q, Fold(q)})
 		}
 	}

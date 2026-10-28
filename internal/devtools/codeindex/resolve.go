@@ -450,7 +450,7 @@ func (x *indexer) occurrenceBasis(node string, role Role, conf Confidence, pos P
 func tokenPos(f *file, line, col int, name string) Pos {
 	p := Pos{File: f.rel, Line: line, Col: col}
 	if col > 0 {
-		p.EndLine, p.EndCol = line, col+utf8.RuneCountInString(f.res.written(name))
+		p.EndLine, p.EndCol = line, col+utf8.RuneCountInString(written(name))
 	}
 	return p
 }

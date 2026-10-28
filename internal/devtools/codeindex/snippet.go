@@ -27,7 +27,7 @@ type SnippetUse struct {
 // adları da kodlarıyla gelir (TR_fn_pretrained_model; exercisesLibrary).
 func Snippet(src string, library fs.FS) (uses []SnippetUse, imports []string) {
 	x := &indexer{root: "", lang: identities(), library: library, files: map[string]*file{}, nodes: map[string]*Node{}, edges: map[edgeKey]*Edge{},
-		constructSeen: map[string]bool{}}
+		constructSeen: map[string]bool{}, snippet: true}
 	x.addFile("snippet.tr", []byte(src), nil)
 	if len(x.order) == 0 {
 		return nil, nil

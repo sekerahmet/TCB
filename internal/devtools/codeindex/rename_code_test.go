@@ -26,9 +26,9 @@ func TestACodedNameIsRenamedInTheLanguageFile(t *testing.T) {
 		}
 	}
 	for _, c := range []struct{ id, code, linked string }{
-		{"parameter:lib/egitim.tr#TR_type_Run.TR_ctx_init.TR_arg_num_steps", "TR_num_steps", "parameter:lib/iyilestirici.tr#TR_fn_lr_schedule.TR_arg_num_steps"},
-		{"struct:lib/egitim.tr#TR_type_Run", "TR_Run", ""},
-		{"function:lib/iyilestirici.tr#TR_fn_lr_schedule", "TR_lr_schedule", ""},
+		{"parameter:lib/egitim.tr#TR_type_Run.TR_ctx_init.TR_arg_num_steps", "TR_arg_num_steps", "parameter:lib/iyilestirici.tr#TR_fn_lr_schedule.TR_arg_num_steps"},
+		{"struct:lib/egitim.tr#TR_type_Run", "TR_type_Run", ""},
+		{"function:lib/iyilestirici.tr#TR_fn_lr_schedule", "TR_fn_lr_schedule", ""},
 	} {
 		res := r.RenameImpact(c.id, "yeni_bir_ad", RenameOptions{Root: root, NoText: true})
 		if res.Status != StatusOK || res.Mode != ModeLanguage {

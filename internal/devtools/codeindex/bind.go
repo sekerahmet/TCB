@@ -271,17 +271,6 @@ func (x *indexer) paramOf(fnID, arg string) string {
 	return id
 }
 
-// optionName seçeneğin komut satırındaki adıdır. Kod taşıyan çıplak anahtar (`{TR_mem_step: 100}`) çalışma anında
-// derlenen dosyanın dilinde yazılır (K3, compiler.dictKey `s.Token.Code`: İngilizce betikte `--step`, Türkçede `--adım`);
-// dizin anahtarı kimliğiyle okur, ad dosyanın dilinden alınır. Kodsuz anahtar (kullanıcının adı, `$adım` kaçışı dahil)
-// olduğu gibi kalır (bağımsız denetim grup 7). İki dildeki eş betiklerin seçenekleri ayrı dosyalarda, ayrı düğümlerdir.
-func (x *indexer) optionName(f *file, key *ast.StringLiteral) string {
-	if k, err := codes.Parse(key.Value); err == nil {
-		return f.res.lang.Name(k)
-	}
-	return key.Value
-}
-
 // optionKeys komut_satırı({ad: ...}) çağrısının sözlük anahtarlarını (ve açıklamalar: {ad: ...}
 // anahtarlarını) seçenek düğümlerine bağlar: anahtar komut satırında `--ad` olur.
 func (x *indexer) optionKeys(f *file, o owner, sc *scope, c *ast.CallExpression) {
@@ -314,11 +303,14 @@ func (x *indexer) optionKeys(f *file, o owner, sc *scope, c *ast.CallExpression)
 			if !ok || !f.res.dictKey(key.Token.Line, key.Token.Column) {
 				continue
 			}
-			name := x.optionName(f, key)
+			// Kod taşıyan çıplak anahtar (`{TR_step: 100}`) komut satırında kişinin gösterim dilindeki adıyla yazılır
+			// (process.commandLine, DictVal.DisplayKey: TR_DIL=en'de `--step`, tr'de `--adım`): düğüm kimliğiyle tutulur,
+			// adı okuyanın dilinde gösterilir (display). Kullanıcının adı (`run`) olduğu gibi kalır.
+			name := key.Value
 			id := NodeID(KindOption, f.rel, name)
 			pos := tokenPos(f, key.Token.Line, key.Token.Column, key.Value)
 			if x.nodes[id] == nil {
-				x.nodes[id] = &Node{ID: id, Kind: KindOption, Name: name, Pos: &pos, Qualified: f.base + "." + name}
+				x.nodes[id] = &Node{ID: id, Kind: KindOption, Name: name, Code: declCode(name), Pos: &pos, Qualified: f.base + "." + name}
 			}
 			x.occurrenceBasis(id, RoleOptionKey, Extracted, pos, o.id, "")
 		}

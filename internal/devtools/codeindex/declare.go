@@ -10,7 +10,8 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 )
 
-// declare bir dosyanın üst düzey bildirimlerini düğüm yapar ve `aktar` ifadelerini toplar.
+// declare bir dosyanın üst düzey bildirimlerini düğüm yapar ve `aktar` ifadelerini toplar (aktarma yalnız dosyanın
+// başındadır, dil tanımı 2.1).
 func (x *indexer) declare(f *file) {
 	mod := NodeID(KindModule, f.rel, "")
 	for _, s := range f.res.program.Statements {
@@ -36,50 +37,6 @@ func (x *indexer) declare(f *file) {
 			f.imports = append(f.imports, ref)
 			x.nodes[mod].Imports = append(x.nodes[mod].Imports, Import{Path: s.Path, Target: ref.file, Alias: ref.alias, Pos: ref.pos})
 		}
-	}
-	x.nestedImports(f, mod)
-}
-
-// nestedImports test bloklarında ve gövdelerde yazılan `aktar` ifadelerini toplar (testler yardımcı modülünü böyle alır:
-// `aktar "sub/sira_modulu" olarak sm`). Bunlar modülden modüle `imports` bağıdır; takma adı yalnızca dosyada tek bir
-// modülü gösteriyorsa bağlanır (blok kapsamı izlenmez, çakışan takma ad yanlış çözülmesin diye bırakılır) ve takma adsız
-// iç aktarma adları görünür kılmaz.
-func (x *indexer) nestedImports(f *file, mod string) {
-	top := map[*ast.ImportStatement]bool{}
-	for _, s := range f.res.program.Statements {
-		if imp, ok := s.(*ast.ImportStatement); ok {
-			top[imp] = true
-		}
-	}
-	var nested []*ast.ImportStatement
-	ast.Walk(f.res.program, func(n any) bool {
-		if imp, ok := n.(*ast.ImportStatement); ok && !top[imp] {
-			nested = append(nested, imp)
-		}
-		return true
-	})
-	targets := map[string]map[string]bool{} // takma ad -> gösterdiği dosyalar (üst düzey dahil)
-	note := func(alias, file string) {
-		if alias != "" {
-			if targets[alias] == nil {
-				targets[alias] = map[string]bool{}
-			}
-			targets[alias][file] = true
-		}
-	}
-	for _, r := range f.imports {
-		note(r.alias, r.file)
-	}
-	for _, s := range nested {
-		note(s.Alias, x.importTarget(f, s.Path))
-	}
-	for _, s := range nested {
-		ref := importRef{file: x.importTarget(f, s.Path), pos: f.importPos(s), nested: true}
-		if len(targets[s.Alias]) == 1 {
-			ref.alias = s.Alias
-		}
-		f.imports = append(f.imports, ref)
-		x.nodes[mod].Imports = append(x.nodes[mod].Imports, Import{Path: s.Path, Target: ref.file, Alias: ref.alias, Pos: ref.pos, Nested: true})
 	}
 }
 
@@ -113,7 +70,7 @@ func (x *indexer) valueNode(f *file, name string, isConst bool, line, col int) {
 func (x *indexer) structNodes(f *file, s *ast.StructStatement) {
 	sid := x.def(f, NodeID(KindModule, f.rel, ""), KindStruct, s.Name, s.Name, f.base+"."+s.Name, s.Token.Literal+" "+s.Name, s.Token.Line, s.Token.Column)
 	for _, fld := range s.Fields {
-		line, col := fieldLine(f, f.res.written(fld.Name), s.Token.Line)
+		line, col := fieldLine(f, written(fld.Name), s.Token.Line)
 		fieldID := x.def(f, sid, KindField, s.Name+"."+fld.Name, s.Name+"."+fld.Name, f.base+"."+s.Name+"."+fld.Name, fld.Name, line, col)
 		f.fields[fld.Name] = append(f.fields[fld.Name], fieldID)
 	}
@@ -256,7 +213,7 @@ func (x *indexer) lookupVisible(f *file, name string) (string, bool) {
 	walk = func(g *file) (string, bool) {
 		for _, imp := range g.imports {
 			target := x.files[imp.file]
-			if target == nil || imp.alias != "" || imp.nested || seen[imp.file] {
+			if target == nil || imp.alias != "" || seen[imp.file] {
 				continue
 			}
 			seen[imp.file] = true
@@ -319,7 +276,7 @@ func namePos(f *file, kind Kind, name string, line, col int) Pos {
 	if kind == KindMethod || kind == KindField {
 		short = name[strings.LastIndex(name, ".")+1:]
 	}
-	short = f.res.written(short)
+	short = written(short)
 	p := Pos{File: f.rel, Line: line, Col: col}
 	if kind == KindTest || line < 1 || line > len(f.lines) {
 		return p

@@ -44,7 +44,7 @@ TR_func kullan() {
 // bağlanır. `sonuç`'ları farklı tür veren işlevin dönüşü bilinmez kalır (deneme 7 R4; kod-grafigi-40).
 func TestInferredTypesBindMemberAccess(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "m.tr"), []byte(inferSource), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "m.tr"), trText(filepath.Join(dir, "m.tr"), inferSource), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	idx, err := Build(dir, Options{})
@@ -67,7 +67,8 @@ func TestInferredTypesBindMemberAccess(t *testing.T) {
 		}
 	}
 	// g.a (üst düzey değişken), t.a (yerel, yap'ın dönüşü): inferred_type. u.a (karışık'ın dönüşü bilinmez): ad tahmini.
-	for pos, want := range map[string]Basis{"m.tr:25:10": BasisInferredType, "m.tr:30:13": BasisInferredType, "m.tr:30:19": BasisNameOnly} {
+	ga, ta, ua := srcAt(t, inferSource, "TR_print(g.a)", "a", 1), srcAt(t, inferSource, "TR_return t.a + u.a", "a", 1), srcAt(t, inferSource, "TR_return t.a + u.a", "a", 2)
+	for pos, want := range map[string]Basis{"m.tr:" + ga: BasisInferredType, "m.tr:" + ta: BasisInferredType, "m.tr:" + ua: BasisNameOnly} {
 		if got[pos] != want {
 			t.Errorf("%s: basis %q, want %q (all: %v)", pos, got[pos], want, got)
 		}
@@ -80,7 +81,7 @@ func TestInferredTypesBindMemberAccess(t *testing.T) {
 func TestConstructsRecordOperatorsWithOperandTypes(t *testing.T) {
 	dir := t.TempDir()
 	src := "TR_func f(x, y) {\n    TR_var a = TR_str(x) == \"1\"\n    TR_var b = TR_tensor([1.0]) @ y\n    TR_return x + y\n}\n"
-	if err := os.WriteFile(filepath.Join(dir, "m.tr"), []byte(src), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "m.tr"), trText(filepath.Join(dir, "m.tr"), src), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	idx, err := Build(dir, Options{})
@@ -97,7 +98,7 @@ func TestConstructsRecordOperatorsWithOperandTypes(t *testing.T) {
 			}
 		}
 	}
-	if got["=="] != "type:TR_String" || got["@"] != "type:TR_Tensor" || got["+"] != "" {
+	if got["=="] != "type:TR_type_String" || got["@"] != "type:TR_type_Tensor" || got["+"] != "" {
 		t.Errorf("operand types: %v", got)
 	}
 	if !kinds["CallExpression"] || !kinds["ListLiteral"] || !kinds["InfixExpression"] {

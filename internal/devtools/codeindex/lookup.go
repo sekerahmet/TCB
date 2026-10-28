@@ -144,8 +144,8 @@ func PickByName(n int, class func(i int) NameClass) []int {
 	return out
 }
 
-// builtinNames kodların her gömülü dildeki adlarını (ve okuyanın dilindeki adı) toplar: bir
-// yerleşik, kimin hangi dilde yazdığına bakılmadan bulunur.
+// builtinNames kodların her gömülü dildeki adlarını, okuyanın dilindeki adı ve program metnindeki yazımını
+// (SpelledNames: TR_print, x.TR_map) toplar: bir yerleşik, kimin hangi dilde yazdığına bakılmadan bulunur.
 func builtinNames(idx *Index) map[string][]string {
 	names := map[string][]string{}
 	add := func(name, id string) {
@@ -171,6 +171,9 @@ func builtinNames(idx *Index) map[string][]string {
 		add(codes.DisplayName(k), n.ID)
 		for _, l := range langs {
 			add(l.Name(k), n.ID)
+		}
+		for _, s := range SpelledNames(k) {
+			add(s, n.ID)
 		}
 	}
 	return names

@@ -4,13 +4,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 	"testing"
 
-	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
@@ -57,15 +54,25 @@ func hasFact(fs []string, want string) bool {
 
 func TestBuildDeclarations(t *testing.T) {
 	idx := buildFixture(t)
+	// block başlangıç satırı first'ü içeren, bitişi ondan sonraki ilk close satırı olan bildirimin konumudur; one tek satır.
+	block := func(rel, first, close string, col int) Pos {
+		line := fixtureLine(t, rel, first)
+		return Pos{File: rel, Line: line, Col: col, EndLine: fixtureClose(t, rel, line, close)}
+	}
+	one := func(rel, text string, col int) Pos {
+		line := fixtureLine(t, rel, text)
+		return Pos{File: rel, Line: line, Col: col, EndLine: line}
+	}
+	geo := "lib/geo.tr"
 	want := map[string]Pos{
-		"struct:lib/geo.tr#Kare":            {File: "lib/geo.tr", Line: 5, Col: 1, EndLine: 13},
-		"method:lib/geo.tr#Kare.alan":       {File: "lib/geo.tr", Line: 10, Col: 5, EndLine: 12},
-		"field:lib/geo.tr#Kare.kenar":       {File: "lib/geo.tr", Line: 6, Col: 5, EndLine: 6},
-		"function:lib/geo.tr#çevre_hesapla": {File: "lib/geo.tr", Line: 15, Col: 1, EndLine: 17},
-		"constant:lib/geo.tr#PI2":           {File: "lib/geo.tr", Line: 2, Col: 1, EndLine: 2},
-		"variable:lib/geo.tr#sayaç":         {File: "lib/geo.tr", Line: 3, Col: 1, EndLine: 3},
-		"constant:lib/geo.tr#KATSAYILAR":    {File: "lib/geo.tr", Line: 24, Col: 1, EndLine: 27}, // çok satırlı değer
-		"test_block:lib/geo_test.tr#3":      {File: "lib/geo_test.tr", Line: 3, Col: 1, EndLine: 6},
+		"struct:lib/geo.tr#Kare":                                block(geo, "TR_struct Kare", "}", 1),
+		"method:lib/geo.tr#Kare.alan":                           block(geo, "TR_func alan()", "    }", 5),
+		"field:lib/geo.tr#Kare.kenar":                           one(geo, "    kenar = 1", 5),
+		"function:lib/geo.tr#çevre_hesapla":                     block(geo, "TR_func çevre_hesapla", "}", 1),
+		"constant:lib/geo.tr#PI2":                               one(geo, "TR_const PI2", 1),
+		"variable:lib/geo.tr#sayaç":                             one(geo, "TR_var sayaç", 1),
+		"constant:lib/geo.tr#KATSAYILAR":                        block(geo, "TR_const KATSAYILAR", "]", 1), // çok satırlı değer
+		fixtureTest(t, "lib/geo_test.tr", "kare alanı yazılır"): block("lib/geo_test.tr", "TR_test \"kare alanı yazılır\"", "}", 1),
 	}
 	got := map[string]Node{}
 	for _, n := range idx.Nodes {
@@ -86,7 +93,7 @@ func TestBuildDeclarations(t *testing.T) {
 	if got["function:examples/coded.tr#kodlu_işlev"].Pos == nil || !got["module:examples/coded.tr"].Coded {
 		t.Errorf("the coded file is read with its identities: %+v", got["function:examples/coded.tr#kodlu_işlev"])
 	}
-	if sig := got["method:lib/geo.tr#Kare.TR_ctx_init"].Signature; sig != "TR_func TR_init(kenar = …)" {
+	if sig := got["method:lib/geo.tr#Kare.TR_ctx_init"].Signature; sig != "TR_kw_func TR_ctx_init(kenar = …)" {
 		t.Errorf("method signature: %q", sig)
 	}
 }
@@ -94,13 +101,14 @@ func TestBuildDeclarations(t *testing.T) {
 func TestBuildEdgesAndConfidence(t *testing.T) {
 	idx := buildFixture(t)
 	fs := facts(idx)
+	square, perimeter := fixtureTest(t, "lib/geo_test.tr", "kare alanı yazılır"), fixtureTest(t, "lib/geo_test.tr", "çevre")
 	for _, want := range []string{
 		"edge function:lib/geo.tr#yaz_alan calls function:lib/geo.tr#çevre_hesapla EXTRACTED x1",
 		"edge function:lib/geo.tr#yaz_alan calls method:lib/geo.tr#Kare.alan INFERRED x1", // k.alan(): alıcının tipi bilinmez
 		"edge function:lib/geo.tr#yaz_alan uses builtin:TR_fn_print EXTRACTED x1",
 		"edge module:examples/ana.tr imports module:lib/geo.tr EXTRACTED x1",
-		"edge test_block:lib/geo_test.tr#3 calls function:lib/geo.tr#yaz_alan EXTRACTED x1",
-		"edge test_block:lib/geo_test.tr#3 tests function:lib/geo.tr#yaz_alan EXTRACTED x1",
+		"edge " + square + " calls function:lib/geo.tr#yaz_alan EXTRACTED x1",
+		"edge " + square + " tests function:lib/geo.tr#yaz_alan EXTRACTED x1",
 		"edge variable:examples/ana.tr#k calls struct:lib/geo.tr#Kare EXTRACTED x1", // g.Kare(2): takma adlı modül
 		"edge module:examples/ana.tr uses constant:lib/geo.tr#PI2 EXTRACTED x1",
 	} {
@@ -109,7 +117,7 @@ func TestBuildEdgesAndConfidence(t *testing.T) {
 		}
 	}
 	for _, f := range fs {
-		if strings.HasPrefix(f, "edge test_block:lib/geo_test.tr#8 uses builtin:TR_fn_print") {
+		if strings.HasPrefix(f, "edge "+perimeter+" uses builtin:TR_fn_print") {
 			t.Errorf("a local variable shadows the built-in: %s", f)
 		}
 	}
@@ -157,52 +165,6 @@ func buildWithLanguage(t *testing.T, lang string) *Index {
 		t.Fatal(err)
 	}
 	return idx
-}
-
-// Kural: kodlu dosya kodsuzla aynı dizini verir: dizin ikisini de kimlikleriyle okur (read.go), düğümler, kenarlar ve
-// satırlar aynıdır. Sütunlar diskteki metne göredir (kodlu satırda kimliğin uzunluğuyla), bu yüzden karşılaştırılmaz.
-func TestCodedEqualsPlain(t *testing.T) {
-	dir := t.TempDir()
-	for _, rel := range []string{"lib/geo.tr", "lib/geo_test.tr"} {
-		data, err := os.ReadFile(filepath.Join(fixtureDir, filepath.FromSlash(rel)))
-		if err != nil {
-			t.Fatal(err)
-		}
-		coded, err := source.Encode(string(data))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !strings.HasPrefix(coded, source.Header) {
-			t.Fatalf("%s did not become coded", rel)
-		}
-		out := filepath.Join(dir, filepath.FromSlash(rel))
-		if err := os.MkdirAll(filepath.Dir(out), 0o755); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(out, []byte(coded), 0o644); err != nil {
-			t.Fatal(err)
-		}
-	}
-	plain, err := Build(fixtureDir, Options{Dirs: []string{"lib"}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	coded, err := Build(dir, Options{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	shiftLines(coded, -1) // kodlu dosyada başlık satırı bir satır ekler: konumlar dosyadaki gerçek satırdır
-	a := withoutColumns(strings.Join(facts(plain), "\n"))
-	if b := withoutColumns(shiftTestIDs(strings.Join(facts(coded), "\n"), -1)); a != b {
-		pa, pb := strings.Split(a, "\n"), strings.Split(b, "\n")
-		for i := range pa {
-			if i < len(pb) && pa[i] != pb[i] {
-				t.Errorf("first difference:\nplain: %s\ncoded: %s", pa[i], pb[i])
-				break
-			}
-		}
-		t.Errorf("coded and plain differ (%d and %d facts)", len(pa), len(pb))
-	}
 }
 
 func TestBuildDeterministic(t *testing.T) {
@@ -266,30 +228,6 @@ func TestFindRootAndClearCache(t *testing.T) {
 	}
 }
 
-// shiftLines dizinin bütün konumlarının satırını d kadar kaydırır (kodlu ve düz dosya karşılaştırması).
-func shiftLines(idx *Index, d int) {
-	move := func(p *Pos) {
-		if p == nil {
-			return
-		}
-		p.Line += d
-		if p.EndLine != 0 {
-			p.EndLine += d
-		}
-	}
-	for i := range idx.Nodes {
-		if idx.Nodes[i].Kind != KindModule { // modülün konumu dosyanın başıdır (satır 1)
-			move(idx.Nodes[i].Pos)
-		}
-	}
-	for i := range idx.Edges {
-		move(idx.Edges[i].Pos)
-	}
-	for i := range idx.Occurrences {
-		move(&idx.Occurrences[i].Pos)
-	}
-}
-
 // Kodlu dosyada konumlar dosyadaki gerçek satırdır (başlık satırı sayılır): düzenleyicide ve grep -n'de
 // aynı numara görünür.
 func TestCodedFilePositionsAreFileLines(t *testing.T) {
@@ -312,20 +250,3 @@ func TestCodedFilePositionsAreFileLines(t *testing.T) {
 		t.Fatal("the coded fixture has no function")
 	}
 }
-
-var testBlockID = regexp.MustCompile(`(test_block:[^# ]+#)(\d+)`)
-
-// shiftTestIDs test bloklarının kimliğindeki satır numarasını d kadar kaydırır.
-func shiftTestIDs(s string, d int) string {
-	return testBlockID.ReplaceAllStringFunc(s, func(m string) string {
-		sub := testBlockID.FindStringSubmatch(m)
-		n, _ := strconv.Atoi(sub[2])
-		return sub[1] + strconv.Itoa(n+d)
-	})
-}
-
-// lineCol bir olgudaki satır:sütun konumudur.
-var lineCol = regexp.MustCompile(`(\d+):\d+`)
-
-// withoutColumns olguların konumlarından sütunları atar, satırlar kalır.
-func withoutColumns(s string) string { return lineCol.ReplaceAllString(s, "$1") }

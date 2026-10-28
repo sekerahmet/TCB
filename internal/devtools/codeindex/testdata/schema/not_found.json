@@ -10,7 +10,7 @@
     {
       "id": "builtin:TR_fn_time_ms",
       "kind": "builtin",
-      "name": "TR_fn_time_ms",
+      "name": "TR_time_ms",
       "display": "zaman_ms"
     }
   ],
