@@ -379,27 +379,32 @@ func TestIllegalCharacters(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestFullProgram(t *testing.T) {
-	src := `fonksiyon topla(a: Tam, b: Tam) -> Tam {
-	sonuç a + b
+	src := `TR_func topla(a: TR_Int, b: TR_Int) -> TR_Int {
+	TR_return a + b
 }
-sabit liste = [1, 2.5, "üç"]
-döngü i, x içinde liste { eğer x == yok ve değil doğru { çık } }
+TR_const liste = [1, 2.5, "üç"]
+TR_for i, x TR_in liste { TR_if x == TR_none TR_and TR_not TR_true { TR_break } }
 `
-	checkTokensIn(t, codes.Source(), src, []expected{
-		{TokFunction, "fonksiyon"}, {TokIdent, "topla"}, {TokLParen, "("},
-		{TokIdent, "a"}, {TokColon, ":"}, {TokIdent, "Tam"}, {TokComma, ","},
-		{TokIdent, "b"}, {TokColon, ":"}, {TokIdent, "Tam"}, {TokRParen, ")"},
-		{TokMinus, "-"}, {TokGt, ">"}, {TokIdent, "Tam"}, {TokLBrace, "{"},
-		{TokReturn, "sonuç"}, {TokIdent, "a"}, {TokPlus, "+"}, {TokIdent, "b"},
+	// Dosya kodlu okunur (NewBody): dilin sözcüğünün metni iç kimliğidir.
+	toks, errs := lexTokens(t, NewBody(src, true), src)
+	if len(errs) > 0 {
+		t.Fatalf("beklenmeyen sözcük çözümleyici hataları: %v", errs)
+	}
+	compareTokens(t, src, toks, []expected{
+		{TokFunction, "TR_kw_func"}, {TokIdent, "topla"}, {TokLParen, "("},
+		{TokIdent, "a"}, {TokColon, ":"}, {TokIdent, "TR_type_Int"}, {TokComma, ","},
+		{TokIdent, "b"}, {TokColon, ":"}, {TokIdent, "TR_type_Int"}, {TokRParen, ")"},
+		{TokMinus, "-"}, {TokGt, ">"}, {TokIdent, "TR_type_Int"}, {TokLBrace, "{"},
+		{TokReturn, "TR_kw_return"}, {TokIdent, "a"}, {TokPlus, "+"}, {TokIdent, "b"},
 		{TokRBrace, "}"},
-		{TokConst, "sabit"}, {TokIdent, "liste"}, {TokAssign, "="},
+		{TokConst, "TR_kw_const"}, {TokIdent, "liste"}, {TokAssign, "="},
 		{TokLBracket, "["}, {TokInt, "1"}, {TokComma, ","}, {TokFloat, "2.5"},
 		{TokComma, ","}, {TokString, "üç"}, {TokRBracket, "]"},
-		{TokFor, "döngü"}, {TokIdent, "i"}, {TokComma, ","}, {TokIdent, "x"},
-		{TokIn, "içinde"}, {TokIdent, "liste"}, {TokLBrace, "{"},
-		{TokIf, "eğer"}, {TokIdent, "x"}, {TokEq, "=="}, {TokNil, "yok"},
-		{TokKwAnd, "ve"}, {TokKwNot, "değil"}, {TokTrue, "doğru"},
-		{TokLBrace, "{"}, {TokBreak, "çık"}, {TokRBrace, "}"}, {TokRBrace, "}"},
+		{TokFor, "TR_kw_for"}, {TokIdent, "i"}, {TokComma, ","}, {TokIdent, "x"},
+		{TokIn, "TR_kw_in"}, {TokIdent, "liste"}, {TokLBrace, "{"},
+		{TokIf, "TR_kw_if"}, {TokIdent, "x"}, {TokEq, "=="}, {TokNil, "TR_kw_none"},
+		{TokKwAnd, "TR_kw_and"}, {TokKwNot, "TR_kw_not"}, {TokTrue, "TR_kw_true"},
+		{TokLBrace, "{"}, {TokBreak, "TR_kw_break"}, {TokRBrace, "}"}, {TokRBrace, "}"},
 		{TokEOF, ""},
 	})
 }
@@ -443,35 +448,53 @@ func checkPositions(t *testing.T, input string, want []srcPos) {
 	}
 }
 
-// Sütunlar 1 tabanlıdır ve bayt değil rune (karakter) sayar.
+// positionsOf words'ün src'de sırayla geçtiği yerlerdir: satır 1'den, sütun karakter (rune) sayısıyla
+// 1'den (2.1); beklenen konumlar böylece elle değil programdan hesaplanır. Tırnaklı sözcüğün metni
+// tırnaksızdır, konumu açılış tırnağıdır; "" dosya sonudur (son karakterden sonraki yer).
+// "yazım|metin" dilin sözcüğüdür: kaynakta yazımıyla aranır, metni iç kimliğidir (TR_var|TR_kw_var).
+func positionsOf(t *testing.T, src string, words ...string) []srcPos {
+	t.Helper()
+	pos := func(off int) (int, int) {
+		before := src[:off]
+		return strings.Count(before, "\n") + 1, len([]rune(before[strings.LastIndex(before, "\n")+1:])) + 1
+	}
+	var out []srcPos
+	at := 0
+	for _, w := range words {
+		if w == "" {
+			line, col := pos(len(src))
+			out = append(out, srcPos{"", line, col})
+			continue
+		}
+		w, lit, coded := strings.Cut(w, "|")
+		if !coded {
+			lit = strings.Trim(w, `"`)
+		}
+		j := strings.Index(src[at:], w)
+		if j < 0 {
+			t.Fatalf("%q: %q yok", src[at:], w)
+		}
+		line, col := pos(at + j)
+		out = append(out, srcPos{lit, line, col})
+		at += j + len(w)
+	}
+	return out
+}
+
+// Sütunlar 1 tabanlıdır ve bayt değil rune (karakter) sayar; sekme tek sütun sayılır.
 func TestLineAndColumnNumbers(t *testing.T) {
-	src := "değişken ğüş = 1\neğer ğüş >= 10 {\n\tyazdır(\"çok\")\n}" +
-		"" +
-		"" +
-		""
-	checkPositions(t, src, []srcPos{
-		{"değişken", 1, 1}, {"ğüş", 1, 10}, {"=", 1, 14}, {"1", 1, 16},
-		{"eğer", 2, 1}, {"ğüş", 2, 6}, {">=", 2, 10}, {"10", 2, 13}, {"{", 2, 16},
-		{"yazdır", 3, 2}, {"(", 3, 8}, {"çok", 3, 9}, {")", 3, 14}, // sekme tek sütun sayılır
-		{"}", 4, 1},
-		{"", 4, 2},
-	})
+	src := "TR_var ğüş = 1\nTR_if ğüş >= 10 {\n\tTR_print(\"çok\")\n}"
+	checkPositions(t, src, positionsOf(t, src,
+		"TR_var|TR_kw_var", "ğüş", "=", "1", "TR_if|TR_kw_if", "ğüş", ">=", "10", "{", "TR_print|TR_fn_print", "(", `"çok"`, ")", "}", ""))
 }
 func TestBlankLinesAndEOFPosition(t *testing.T) {
 	checkPositions(t, "\n\n   x\n", []srcPos{{"x", 3, 4}, {"", 4, 1}})
 	checkPositions(t, "", []srcPos{{"", 1, 1}})
 }
 func TestCRLFLineEndings(t *testing.T) {
-	src := "değişken a = 1\r\na += 2 # yorum\r\n\r\nyazdır(\"x\")\r\n" +
-		"" +
-		"" +
-		""
-	checkPositions(t, src, []srcPos{
-		{"değişken", 1, 1}, {"a", 1, 10}, {"=", 1, 12}, {"1", 1, 14},
-		{"a", 2, 1}, {"+=", 2, 3}, {"2", 2, 6},
-		{"yazdır", 4, 1}, {"(", 4, 7}, {"x", 4, 8}, {")", 4, 11},
-		{"", 5, 1},
-	})
+	src := "TR_var a = 1\r\na += 2 # yorum\r\n\r\nTR_print(\"x\")\r\n"
+	checkPositions(t, src, positionsOf(t, src,
+		"TR_var|TR_kw_var", "a", "=", "1", "a", "+=", "2", "TR_print|TR_fn_print", "(", `"x"`, ")", ""))
 
 	// '\r' hiçbir yerde GEÇERSİZ token üretmemeli
 	for _, tok := range tokensNoErrors(t, "a\r\nb\rc") {
@@ -484,9 +507,8 @@ func TestCRLFLineEndings(t *testing.T) {
 // Windows'ta bazı editörler dosyanın başına UTF-8 BOM (U+FEFF) ekler; sözcük çözümleyici bunu atlamalı.
 func TestUTF8BOM(t *testing.T) {
 	bom := string(rune(0xFEFF))
-	checkPositions(t, bom+"değişken x = 1", []srcPos{
-		{"değişken", 1, 1}, {"x", 1, 10}, {"=", 1, 12}, {"1", 1, 14}, {"", 1, 15},
-	})
+	const src = "TR_var x = 1"
+	checkPositions(t, bom+src, positionsOf(t, src, "TR_var|TR_kw_var", "x", "=", "1", ""))
 	// Yalnızca dosya başındaki BOM atlanır; metnin ortasındakine dokunulmaz
 	toks := tokensNoErrors(t, "\"a"+bom+"b\"")
 	if toks[0].Literal != "a"+bom+"b" {
