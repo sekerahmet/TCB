@@ -70,6 +70,17 @@ func TestScanTextClassifiesMatches(t *testing.T) {
 	}
 }
 
+// Go'da rune değişmezi ('"') metin başlatmaz: sonraki satır kod ve yorumdur (Go kodundaki ad eşleşme değildir).
+func TestScanTextGoRuneLiteralStartsNoString(t *testing.T) {
+	src := "var q = '\"'\nvar baş = 1 // baş\n"
+	dir := writeTree(t, map[string]string{"m.go": src})
+	hits, _ := ScanText(dir, "baş", "bakış", nil)
+	want := []string{"m.go:2:16 comment/exact"}
+	if got := hitSummary(hits); strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Errorf("hits:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+}
+
 func TestScanTextExcludesKnownPositionsAndWarnsAboutVowelHarmony(t *testing.T) {
 	dir := writeTree(t, map[string]string{"a.md": "baş ve başı\n"})
 	hits, _ := ScanText(dir, "baş", "göz", map[string]bool{"a.md:1:1": true})

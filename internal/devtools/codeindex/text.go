@@ -232,6 +232,18 @@ func (s *lexState) line(runes []rune) []string {
 			} else if c == '"' {
 				s.inStr = false
 			}
+		case s.ext == ".go" && c == '\'':
+			// rune değişmezi ('"', '\'') metin başlatmaz
+			end := i + 2
+			if end < len(runes) && runes[i+1] == '\\' {
+				end++
+			}
+			cur = WhereString
+			if end < len(runes) && runes[end] == '\'' {
+				for ; i < end; i++ {
+					where[i] = cur
+				}
+			}
 		case c == '"':
 			s.inStr, cur = true, WhereString
 		case c == '`':
@@ -244,6 +256,9 @@ func (s *lexState) line(runes []rune) []string {
 			s.inBlock, cur = true, WhereComment
 		}
 		where[i] = cur
+	}
+	if s.ext == ".go" {
+		s.inStr = false // Go'da tırnaklı metin satırda biter
 	}
 	return where
 }
