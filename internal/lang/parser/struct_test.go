@@ -55,3 +55,32 @@ func TestStructBodyErrorsAreReportedOnce(t *testing.T) {
 	}
 }
 
+// Python'un sınıf tanımı (7.1) tek iletiyle bildirilir; tabanlıda ileti yapıyı ve alanı önerir. 'class'
+// başka yerde sıradan bir addır.
+func TestPythonClassIsReportedOnce(t *testing.T) {
+	for _, c := range []struct {
+		code, want string
+		msg        messages.Code
+	}{
+		{"class A(B):\n    x = 1", "TR_struct A { b: B }", messages.H0279},
+		{"class A(nn.Module):\n    x = 1", "", messages.H0281},
+		{"class A:\n    x = 1", "TR_struct A {", messages.H0278},
+	} {
+		// parser.go'nun genel ipucu (H0164: 'class' → yapı) iletinin ardından ayrıca gelir
+		errs := parseErrs(c.code)
+		if len(errs) == 0 || !messages.Has(errs[0], c.msg) {
+			t.Fatalf("%q: want %v first, got %v", c.code, c.msg, errs)
+		}
+		for _, e := range errs[1:] {
+			if !messages.Has(e, messages.H0164) {
+				t.Errorf("%q: a second error: %v", c.code, e)
+			}
+		}
+		if got := messages.ErrorIn(errs[0], "en"); !strings.Contains(got, c.want) {
+			t.Errorf("%q: the message does not suggest %q: %s", c.code, c.want, got)
+		}
+	}
+	if errs := parseErrs("TR_var class = 1\nTR_print(class)"); len(errs) != 0 {
+		t.Errorf("'class' as a name: %v", errs)
+	}
+}

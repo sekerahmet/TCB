@@ -55,6 +55,10 @@ func (p *Parser) parseStatement() ast.Statement {
 			p.syntaxErrorFix(def, []messages.Fix{{Range: def.Range(), Replacement: p.wordText(codes.KwFunc)}}, messages.H0258, p.word(codes.KwFunc))
 			return nil
 		}
+		// class A: Python'un sınıfı yoktur (7.1), ileti TR_struct'ı önerir
+		if p.isPythonClass() {
+			return p.pythonClassError()
+		}
 		// x := 5: kısa tanım yoktur (5.1), ileti TR_var'ı önerir
 		if p.peekTokenIs(lexer.TokWalrus) {
 			p.shortVarError()
