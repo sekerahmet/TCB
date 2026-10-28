@@ -271,7 +271,7 @@ func (l *Lexer) closesBeforeArrow() bool {
 func (l *Lexer) identity(lit string, line, col int) codes.Code {
 	if l.defines() {
 		// Tanımlanan ad TR_ ile başlıyor: kullanıcı adı olamaz (2.3a), geçerli bir kimlik olsa da.
-		l.addError(line, col, messages.New(messages.H0004, lit, strings.ToLower(lit)))
+		l.addErrorFix(line, col, messages.New(messages.H0004, lit, strings.ToLower(lit)), strings.ToLower(lit))
 		return codes.None
 	}
 	place, second, fallback := l.placeOf(line)
@@ -293,7 +293,7 @@ func (l *Lexer) identity(lit string, line, col int) codes.Code {
 	case TokVar, TokConst, TokFunction, TokStruct:
 		// Tanımlanan ad TR_ ile başlıyor: kullanıcı adı olamaz (2.3a), ileti başka bir ad önerir. Önek
 		// ASCII'dir; küçük harfli öneri strings.ToLower ile üretilir (TR_x → tr_x).
-		l.addError(line, col, messages.New(messages.H0004, lit, strings.ToLower(lit)))
+		l.addErrorFix(line, col, messages.New(messages.H0004, lit, strings.ToLower(lit)), strings.ToLower(lit))
 		return codes.None
 	}
 	if l.places.top().open == TokLBrace && l.colonAhead() {
@@ -302,7 +302,16 @@ func (l *Lexer) identity(lit string, line, col int) codes.Code {
 		l.addError(line, col, messages.New(messages.H0240, lit, strings.TrimPrefix(lit, codes.IdentityPrefix)))
 		return codes.None
 	}
-	l.addError(line, col, identityError(place, lit))
+	err := identityError(place, lit)
+	if m, ok := err.(*messages.Error); ok && m.Code == messages.H0026 {
+		// A suggestion for another place (x.TR_length, TR_reverse:) changes the form around the name,
+		// not only the name: no fix replaces the name alone with it.
+		if suggestion, ok := m.Args[1].(string); ok && !strings.HasPrefix(suggestion, "x.") && !strings.HasSuffix(suggestion, ":") {
+			l.addErrorFix(line, col, err, suggestion)
+			return codes.None
+		}
+	}
+	l.addError(line, col, err)
 	return codes.None
 }
 

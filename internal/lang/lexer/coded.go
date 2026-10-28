@@ -166,7 +166,7 @@ func (l *Lexer) escapedName(line, col int) Token {
 	if codes.IsReservedName(lit) {
 		// Önek ASCII'dir; küçük harfli öneri bu yüzden Türkçe kuralla değil strings.ToLower ile
 		// üretilir: TR_ için ır_ değil tr_ önerilir.
-		l.addError(line, col+1, messages.New(messages.H0004, lit, strings.ToLower(lit)))
+		l.addErrorFix(line, col+1, messages.New(messages.H0004, lit, strings.ToLower(lit)), strings.ToLower(lit))
 	}
 	return Token{Type: TokIdent, Literal: lit, Line: line, Column: col}
 }

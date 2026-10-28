@@ -92,7 +92,11 @@ func (l *Lexer) prefixedNumber(line, col, start int) Token {
 	switch {
 	case letter != lower:
 		fixed := "0" + string(lower) + written[2:]
-		l.addError(line, col, messages.New(messages.H0018, written, fixed))
+		// The literal written over again with a small prefix reads right only when nothing else is
+		// wrong with it (a digit outside the base, a stray letter): then it applies as it stands.
+		e := l.newError(line, col, messages.New(messages.H0018, written, fixed))
+		e.WithFix(messages.Fix{Range: e.Range(), Replacement: fixed, Applicable: ok && bad == ""})
+		l.errors = append(l.errors, e)
 	case bad != "":
 		l.addError(line, col, messages.New(messages.H0020, written, bad))
 		return Token{Type: TokInt, Literal: "0", Line: line, Column: col}
