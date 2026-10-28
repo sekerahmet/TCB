@@ -30,13 +30,13 @@ TR_var sayılar = [1, 2, 3, 4]
 TR_var personel = [{"ad": "Ali"}, {"ad": "Ayşe"}]
 sayılar.TR_filter { TR_it > 2 }.TR_map { TR_it * TR_it }   # sayılar.filtrele((x) => x > 2)... ile aynı
 personel.TR_map { TR_it["ad"] }
-sayılar.TR_filter { TR_it % 2 == 0 } |> TR_sum      # boru yalnızca fonksiyonlarla: toplam(sayılar.filtrele {...})
+TR_sum(sayılar.TR_filter { TR_it % 2 == 0 })      # fonksiyon çağrıyla: toplam(sayılar.filtrele {...})
 ```
 
 - İç içe bloklarda `TR_ctx_it` en içteki elemanı gösterir: `[[1, 2]].TR_mem_map { TR_ctx_it.TR_mem_map { TR_ctx_it * 10 } }`.
 - `TR_kw_if`, `TR_kw_while`, `TR_kw_for` ve `TR_kw_match` başlıklarında `{` her zaman gövdeyi başlatır. Başlıkta sondaki blok kullanmak için ifadeyi paranteze alın: `TR_kw_if (liste.TR_mem_filter { TR_ctx_it > 2 }).TR_mem_length > 0 { ... }`.
 - Uzun yazım (`(x) => x > 2`) aynen çalışmaya devam eder.
-- Boru hattı `x |> f(a)` ≡ `f(x, a)` yalnızca fonksiyonlarla çalışır (kullanıcı fonksiyonları ve `TR_fn_sum`, `TR_fn_mean`, `TR_fn_relu`, `TR_fn_str` gibi yerleşikler; tam liste `docs/codes.md` sonunda). Metotlar `.` ile zincirlenir; `l |> filtrele { ... }` yazılırsa hata `l.TR_mem_filter { ... }` yazmanızı söyler.
+- Metotlar `.` ile zincirlenir, fonksiyon çağrıyla verilir: `TR_fn_sum(l.TR_mem_filter { ... })`. Başka dillerin boru işleci `|>` sözdizimi hatasıdır, ileti çağrıyı önerir (4.9).
 
 ## Hata mesajları
 

@@ -1,7 +1,7 @@
 # TR 4
 # 10 — Ok fonksiyonları ve zincirleme: fonksiyonu değer olarak kullanmak.
 # Ne öğretir: (x) => ifade ok fonksiyonu, fonksiyonu parametre olarak geçirmek, sondaki blok ve o,
-# filtrele/haritala/indirge, boru hattı (|>).
+# filtrele/haritala/indirge.
 # Önceki örnekten: fonksiyonlar (08) ve listeler (09).
 # Çalıştırma (proje kökünden): tr examples/tr/10_ok_fonksiyonlari.tr
 
@@ -33,9 +33,9 @@ TR_print(sayılar.TR_reduce(1) { TR_acc * TR_it })
 TR_var ham = [5, 2, 8, 2, 1, 9, 5, 4]
 TR_print(ham.TR_unique().TR_filter { TR_it > 2 }.TR_sort().TR_reverse())
 
-# Boru hattı |>: soldaki değeri sağdaki fonksiyona verir.
+# Listenin toplamı: TR_sum(liste).
 TR_var çift_kareler = ham.TR_filter { TR_it % 2 == 0 }.TR_map { TR_it * TR_it }
-TR_print("çift kareler: \(çift_kareler), toplamı \(çift_kareler |> TR_sum)")
+TR_print("çift kareler: \(çift_kareler), toplamı \(TR_sum(çift_kareler))")
 
 # --- Kendin dene ---
 # 1. Bir kelime listesinden yalnızca 4 harften uzun olanları büyük harfe çevir.
