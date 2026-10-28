@@ -1597,6 +1597,7 @@ const (
 	H8292 Code = 8292 // GPU süresi satıra göre (geri yöndeki çekirdekler düğümü üreten ileri satırda):
 	H8293 Code = 8293 // %{n|decimal}
 	H8300 Code = 8300 // {name|q} ilk burada yazılmış
+	H8301 Code = 8301 // {option} dosya adından önce yazılır: dosya adından sonrası programın argümanıdır. Örn: tr {command} {option} {file}
 	H8400 Code = 8400 // biçimlendirme programın anlamını değiştirecekti, dosyaya dokunulmadı ({detail})
 	H8401 Code = 8401 // sözdizimi hatası olan kod biçimlenmez: {error}
 	H8402 Code = 8402 // dosyanın biçimi (kodlu ya da Türkçe yazım) değişti
@@ -1625,7 +1626,7 @@ const (
 	H8613 Code = 8613 // tr <dosya.tr> [argümanlar]	.tr kaynak dosyasını derler ve çalıştırır (argümanlar programa iletilir)
 	H8614 Code = 8614 // tr {command} <dosya.tr>	Aynısı (komut adıyla)
 	H8615 Code = 8615 // tr {command} <dosya.tr>	Etkileşimli TR Hata Ayıklayıcısını başlatır
-	H8616 Code = 8616 // tr {command} <dosya.tr>	Sözdizimi ve akıllı tip kontrolü yapar
+	H8616 Code = 8616 // tr {command} [{json}] <dosya.tr>	Sözdizimi ve akıllı tip kontrolü yapar ({json}: standart çıktıya satır başına bir JSON kaydı)
 	H8617 Code = 8617 // tr {command} <dosya.tr>	.tr dosyasını (aktardığı modüllerle) tek başına çalışan bağımsız .exe dosyasına dönüştürür
 	H8618 Code = 8618 // tr {command} [dosya.tr|klasör]	Test bloklarını çalıştırır (klasörde tüm *_test.tr dosyaları)
 	H8619 Code = 8619 // tr {command} [{check}] <dosya.tr|klasör>	Kodu standart biçime getirir ({check}: yalnızca denetler)
