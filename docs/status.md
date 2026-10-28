@@ -373,7 +373,7 @@ Kurallar: [`docs/spec/09_ertele.md`](spec/09_ertele.md). Taslak (2026-10-28): an
 
 ## 10. Eşzamanlılık
 
-Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). Taslak (2026-10-29): ana oturum CLAUDE.md'den türeterek yeniden yazdı; DENETİM bekleniyor. Yeni adların (`TR_Task`, `TR_wait`, `TR_timeout`) gösterim adı onayda.
+Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). Taslak (2026-10-29): ana oturum CLAUDE.md'den türeterek yeniden yazdı; DENETİM bekleniyor. Yeni adların gösterim adları onaylandı (2026-10-29): `TR_Task` Görev, `TR_wait` sonucu_bekle, `TR_timeout` zaman_aşımı; kodları uygulandıkları gün kayda girer (17.4).
 
 ### 10.1
 
