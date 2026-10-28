@@ -236,7 +236,7 @@ func writeStruct(sb *strings.Builder, x *StructInstanceVal, lang *codes.Language
 			first = false
 			sb.WriteString(shownName(f.Name, lang))
 			sb.WriteString(": ")
-			sb.WriteString(writeItem(val, lang, filePath))
+			sb.WriteString(writeElement(val, lang, filePath)) // metin tırnaklı (3.14), listedeki gibi
 		}
 	}
 	sb.WriteByte(')')
