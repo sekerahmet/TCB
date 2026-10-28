@@ -415,9 +415,13 @@ Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md). Taslak (2026-10-29): 
 - **Mevcut durum:** toleranslı karşılaştırma yok; ondalık kesin eşitlikle kalıyor (0.1 + 0.2 ile 0.3) [ölçüldü].
 - **Yapılacaklar:** `TR_assert_close`, hassasiyete göre varsayılan toleranslar; TR testi.
 
+### 12.3, 12.4
+
+- **Mevcut durum:** `TR_assert` `TR_true` döndürüyor (`internal/lang/interp/test_support.go`); 13'e göre değer döndürmez. Tensör koşullu `TR_assert` 20 satır, 0 boyutlu tensör koşulu 4 satır (`tests/operatorler_test.tr:134-137`) [ölçüldü: DENETİM].
+
 ### 12.5
 
-- **Mevcut durum:** test dosyasının en dışındaki deyim de testlerden önce çalışıyor; rastgele üretecin durumu testten teste sürüyor [ölçüldü].
+- **Mevcut durum:** test dosyasının en dışındaki deyim de testlerden önce çalışıyor (1 yer); sabit olmayan ilk değer 7 yerde (geçici klasör, komut satırı ayarı, kullanıcı tanımlı türev); rastgele üretecin durumu testten teste sürüyor [ölçüldü: DENETİM]. Rehber (`docs/guide/07_testler.md:3`) eski sınıflı yazımla.
 - **Yapılacaklar:** en dıştaki deyimin sözdizimi hatası (1.1); her testin üreteci aynı durumda başlatması; TR testleri.
 
 ## 13. Yerleşikler
