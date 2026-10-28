@@ -371,6 +371,30 @@ Kurallar: [`docs/spec/09_ertele.md`](spec/09_ertele.md). Taslak (2026-10-28): an
 - **Mevcut durum:** hatasız kapsamda ertelenen işin hatası yakalanıyor; iki hata tek metinde birleşiyor ("govde hatasi; error in defer as well: ertele hatasi") [ölçüldü].
 - **Yapılacaklar:** ilk hata korunur, öbürleri `e.TR_suppressed`'e (8.3 ile).
 
+## 12. Testler
+
+Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md). Taslak (2026-10-29): ana oturum CLAUDE.md'den türeterek yeniden yazdı; DENETİM bekleniyor. Yeni ad `TR_assert_close`'un gösterim adı onayda.
+
+### 12.2
+
+- **Mevcut durum:** aynı dosyada aynı adlı iki test ikisi de çalışıyor [ölçüldü: main `e6392066`].
+- **Yapılacaklar:** sözdizimi hatası ve olumsuz fikstür.
+
+### 12.3
+
+- **Mevcut durum:** tensör eşitliği doğrulamada tek mantık değeriyle geçiyor [ölçüldü].
+- **Yapılacaklar:** 15'in öğe öğe eşitliğiyle birlikte denetim hatası ve ileti.
+
+### 12.4a
+
+- **Mevcut durum:** toleranslı karşılaştırma yok; ondalık kesin eşitlikle kalıyor (0.1 + 0.2 ile 0.3) [ölçüldü].
+- **Yapılacaklar:** `TR_assert_close`, hassasiyete göre varsayılan toleranslar; TR testi.
+
+### 12.5
+
+- **Mevcut durum:** test dosyasının en dışındaki deyim de testlerden önce çalışıyor; rastgele üretecin durumu testten teste sürüyor [ölçüldü].
+- **Yapılacaklar:** en dıştaki deyimin sözdizimi hatası (1.1); her testin üreteci aynı durumda başlatması; TR testleri.
+
 ## 13. Yerleşikler
 
 Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tur (2026-10-28): ana oturum yazdı; dört turu DENETİM, 1. turu ana oturum, 5. turu (dokuz iş) ikisi, 6. turu Gemini'nin araştırması (DENETİM doğruladı: 7 onay, 5 koşullu) inceledi; bulgular işlendi. Uygulama 6. ve 7. turun kararlarını henüz almadı: ayırıcısız `TR_split`, `TR_std`'nin n−1'i, telafili toplama, `TR_split("")`'in hatası, JSON'un yinelenen anahtarı, yarımı çifte yuvarlama, `TR_median([1.0, 2.0, TR_nan])` (bugün 1.0), sıfırın işareti (`TR_max(-0.0, 0.0)` sıraya bağlı), yazma yolunun programın klasörüne düşmesi, `TR_clamp(5)`'in iletisindeki eski kimlik, fonksiyon yerine verilen tipin iletisi eski davranışta [ölçüldü: DENETİM]. `tests/yerlesikler_test.tr` eski kuralları da sınıyor (kazanan değerin tipi, sayı hücreli CSV, `TR_mean`'in tek tek değerleri); kural uygulanırken yeniden yazılır.
