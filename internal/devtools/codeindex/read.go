@@ -5,7 +5,6 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 )
@@ -47,7 +46,8 @@ func readIn(text string, module, body bool) *parsed {
 	res.coded = b.Coded
 	res.lines = strings.Split(b.Body, "\n") // başlık satırı dahil: konumlar dosyadaki gerçek satırdır
 	res.header = source.HeaderLines(text)
-	p := parser.New(lexer.NewBody(b.Body, true))
+	b.Coded = true // başlıksız gövde de kodludur (source.Options.Body); başlıksız dosya yukarıda reddedildi
+	p := parser.New(b.IdentityLexer())
 	p.RecordRoles()
 	if module {
 		res.program = p.ParseModule()
