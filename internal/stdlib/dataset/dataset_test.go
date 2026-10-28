@@ -147,7 +147,7 @@ TR_for {
 TR_print(n, satır, s.TR_next())
 `)
 	// p0: (300-33)/32+1 = 9 pencere, p1: (500-33)/32+1 = 15 pencere → 24 pencere, 3 toplu iş.
-	if strings.TrimSpace(out) != "3 24 yok" {
+	if strings.TrimSpace(out) != "3 24 none" {
 		t.Fatalf("çıktı %q", out)
 	}
 	last := variable(t, m, "son").(*interp.ListVal)

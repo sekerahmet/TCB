@@ -177,11 +177,11 @@ TR_print("sonuçlar:", sonuçlar)
 	if err != nil {
 		t.Fatalf("iki başarısızlık eğitimi durdurmamalıydı: %v\n%s", err, output)
 	}
-	if !strings.Contains(output, "sonuçlar: [doğru, doğru, yanlış, yanlış, doğru, doğru]") ||
+	if !strings.Contains(output, "sonuçlar: [true, true, false, false, true, true]") ||
 		strings.Count(output, "Uyarı: kontrol_noktası: ") != 2 ||
 		!strings.Contains(output, "(1/3; eğitim sürüyor") || !strings.Contains(output, "Son geçerli nokta: adım 2") ||
 		!strings.Contains(output, "yerel diske kaydedip") {
-		t.Fatalf("beklenen uyarılar ve sonuçlar yok:\n%s", output)
+		t.Fatalf("beklenen uyarılar ve sonuçlar none:\n%s", output)
 	}
 	checkLeftovers(t, runDir)
 	output, err = runHooked(t, hooks(program(12, "8, 9, 10")), &broken)

@@ -35,9 +35,9 @@ TR_func dene_okuyucu(yap) {
 dene_okuyucu(TR_func() { TR_return k.TR_sampler(TR_batch_size: 2, TR_context: 8, TR_seed: 3) })
 dene_okuyucu(TR_func() { TR_return k.TR_sequential(TR_batch_size: 2, TR_context: 8) })
 `)
-	want := "doğru\n" +
+	want := "true\n" +
 		`["kind", "batch", "context", "seed", "dataset", "epoch", "position", "window", "counter"]` + "\n" +
-		"doğru\n" +
+		"true\n" +
 		`["kind", "batch", "context", "dataset", "position", "window", "counter", "done"]` + "\n"
 	if out != want {
 		t.Fatalf("çıktı:\n%s\nbeklenen:\n%s", strings.TrimSpace(out), strings.TrimSpace(want))

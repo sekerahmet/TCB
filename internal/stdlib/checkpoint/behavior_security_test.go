@@ -152,7 +152,7 @@ TR_print("döngü bitti")
 	if !errors.Is(err, interp.ErrInterrupted) {
 		t.Fatalf("program kesilmeliydi: %v\n%s", err, output)
 	}
-	for _, s := range []string{"ertelendi: doğru", "adım bitti 3", "Kontrol noktası kaydedildi: adım 4", "ertelenen çalıştı"} {
+	for _, s := range []string{"ertelendi: true", "adım bitti 3", "Kontrol noktası kaydedildi: adım 4", "ertelenen çalıştı"} {
 		if !strings.Contains(output, s) {
 			t.Errorf("%q bekleniyordu:\n%s", s, output)
 		}
@@ -161,7 +161,7 @@ TR_print("döngü bitti")
 		t.Errorf("program adım sınırında durmalıydı:\n%s", output)
 	}
 	if _, err := os.Stat(filepath.Join(runDir, "checkpoints", "step_0000000004")); err != nil {
-		t.Errorf("4. adımın noktası yok: %v", err)
+		t.Errorf("4. adımın noktası none: %v", err)
 	}
 }
 

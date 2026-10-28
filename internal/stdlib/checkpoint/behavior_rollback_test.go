@@ -188,7 +188,7 @@ TR_print("IZLENEN_ADIM:", izlenen.TR_step)
 		t.Fatalf("beklenmeyen çalışma hatası: %v\n%s", err, w.String())
 	}
 	output := w.String()
-	if !strings.Contains(output, "HATA: doğru") {
+	if !strings.Contains(output, "HATA: true") {
 		t.Fatalf("geri_dön hata vermeliydi:\n%s", output)
 	}
 	if !strings.Contains(output, "OKU_SAYAC: 4") || !strings.Contains(output, "MODEL_A: [1.0, 2.0]") || !strings.Contains(output, "IZLENEN_ADIM: 4") {

@@ -114,7 +114,7 @@ sgd.TR_step()
 TR_print("yükle:", p.w.TR_device, p.w.TR_to_device("cpu").TR_tolist)
 `
 	output := runOnGPU(t, code)
-	for _, want := range []string{"cihaz: gpu gpu 3", "parametre: doğru doğru", "durum: doğru doğru", "kayıp: doğru 6", "yükle: gpu [0.5, 1.5, 2.5, 3.5]"} {
+	for _, want := range []string{"cihaz: gpu gpu 3", "parametre: true true", "durum: true true", "kayıp: true 6", "yükle: gpu [0.5, 1.5, 2.5, 3.5]"} {
 		if !strings.Contains(output, want) {
 			t.Fatalf("%q bekleniyordu:\n%s", want, output)
 		}
