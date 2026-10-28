@@ -220,6 +220,9 @@ TR_test "7.7 değer değişmez, alanı eşlemeyle okunur; durumun yazımı denet
     TR_assert_equal("H2757", TR_error_code { Durum.Bekliyor() })
     TR_assert_equal("H2761", TR_error_code { Durum() })
     TR_assert_equal("H2750", TR_error_code { Durum.Çalışıyor() })
+    TR_assert_equal("H2767", TR_error_code { Durum.Çalışıyor(adim: 1) })
+    TR_assert_equal("H2768", TR_error_code { Durum.Çalışıyor(1, 2) })
+    TR_assert_equal("H2769", TR_error_code { Durum.Çalışıyor(1, adım: 2) })
     TR_assert_equal("H2765", TR_error_code { Durum.Bitmiş })
     TR_assert_equal("H2756", TR_error_code { Durum.bitti_mi() })
     # H2755 ve H2757'nin önerdiği yazımlar

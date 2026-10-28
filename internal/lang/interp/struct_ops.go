@@ -15,24 +15,29 @@ import (
 
 // checkFieldArgs alanlarla kurmanın (kurucusu olmayan yapı, durumlu tipin durumu) argümanlarını
 // alanlara göre denetler: alan sayısından fazla konumlu argüman, alan olmayan bir adla verilen argüman
-// ve hem sırayla hem adla verilen alan hatadır. label iletideki addır (Nokta, Durum.Çalışıyor).
-func checkFieldArgs(label string, fields []ast.StructField, nargs int, named map[string]Value, line int) error {
+// ve hem sırayla hem adla verilen alan hatadır. label iletideki addır (Nokta, Durum.Çalışıyor); state
+// durumlu tipin durumu için durumun iletilerini seçer.
+func checkFieldArgs(label string, fields []ast.StructField, nargs int, named map[string]Value, line int, state bool) error {
 	if nargs <= len(fields) && len(named) == 0 {
 		return nil
+	}
+	unknown, tooMany, twice := messages.H2418, messages.H2419, messages.H2420
+	if state {
+		unknown, tooMany, twice = messages.H2767, messages.H2768, messages.H2769
 	}
 	nameList := fieldNames(fields)
 	alignNamed(named, nameList)
 	for k := range named {
 		if !slices.Contains(nameList, k) {
-			return messages.At(line, 0, messages.New(messages.H2418, label, k, hint.ClosestSuggestion(k, nameList, nil)))
+			return messages.At(line, 0, messages.New(unknown, label, k, hint.ClosestSuggestion(k, nameList, nil)))
 		}
 	}
 	if nargs > len(fields) {
-		return messages.At(line, 0, messages.New(messages.H2419, label, len(fields), strings.Join(nameList, ", "), nargs))
+		return messages.At(line, 0, messages.New(tooMany, label, len(fields), strings.Join(nameList, ", "), nargs))
 	}
 	for i, f := range nameList[:nargs] {
 		if _, ok := named[f]; ok {
-			return messages.At(line, 0, messages.New(messages.H2420, label, f, i+1))
+			return messages.At(line, 0, messages.New(twice, label, f, i+1))
 		}
 	}
 	return nil
@@ -70,7 +75,7 @@ func (v *VM) construct(fn *StructDefVal, args []Value, named map[string]Value, l
 		if err := checkArity(initMethod, fn, len(args), named, line); err != nil {
 			return nil, err
 		}
-	} else if err := checkFieldArgs(fn.Name, fn.Fields, len(args), named, line); err != nil {
+	} else if err := checkFieldArgs(fn.Name, fn.Fields, len(args), named, line, false); err != nil {
 		// kurucu yoksa argümanlar alanlara gider: fazlası ya da bilinmeyen adlısı hatadır
 		return nil, err
 	}

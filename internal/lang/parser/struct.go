@@ -61,6 +61,16 @@ type structBody struct {
 func (b *structBody) checkName(tok lexer.Token, name string, field bool) bool {
 	if wasField, ok := b.defined[name]; ok {
 		switch {
+		case b.stmt.Kind == ast.KindEnum && wasField != field:
+			b.p.syntaxError(tok, messages.H0294, name, b.stmt.Name)
+		case b.stmt.Kind == ast.KindEnum:
+			kind := "state" // durumlu tipte "alan" durumdur (7.7)
+			if !field {
+				kind = "method"
+			}
+			b.p.syntaxError(tok, messages.H0293, kind, name, b.stmt.Name)
+		case b.stmt.Kind == ast.KindInterface:
+			b.p.syntaxError(tok, messages.H0295, name, b.stmt.Name)
 		case wasField != field:
 			b.p.syntaxError(tok, messages.H0277, name, b.stmt.Name)
 		case field:

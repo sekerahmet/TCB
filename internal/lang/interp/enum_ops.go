@@ -125,7 +125,7 @@ func (v *VM) constructVariant(def *StructDefVal, mem *ast.MemberExpression, args
 	if vd.bare != nil {
 		return nil, messages.At(line, 0, messages.New(messages.H2757, label))
 	}
-	if err := checkFieldArgs(label, vd.Fields, len(args), named, line); err != nil {
+	if err := checkFieldArgs(label, vd.Fields, len(args), named, line, true); err != nil {
 		return nil, err
 	}
 	inst := &StructInstanceVal{Def: def, Fields: make(map[string]Value, len(vd.Fields)), Variant: vd}

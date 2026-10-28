@@ -129,6 +129,11 @@ const (
 	H0290 Code = 290  // '{iface}' arayüzünün '{name}' metodu yalnız imzadır: gövdesini silin; gövde arayüzü karşılayan yapıdadır
 	H0291 Code = 291  // '{variant}' deseni her alanı bir ada bağlar (ya da _ ile atlar); desenin içinde değer karşılaştırılmaz: bir ad bağlayıp kolun içinde karşılaştırın
 	H0292 Code = 292  // eşle kolunun koşulu olmaz (desenden sonra '{if}'): deseni eşleyin, {if}'i kolun içine yazın
+	H0293 Code = 293  // {kind, select, method {'{name}' metodu} other {'{name}' durumu}} '{enum}' durumlu tipinde iki kez tanımlandı (her durum ve metot adı bir kez kullanılır)
+	H0294 Code = 294  // '{name}' '{enum}' durumlu tipinde hem durum hem metot (her durum ve metot adı bir kez kullanılır); birinin adını değiştirin
+	H0295 Code = 295  // '{name}' metodu '{iface}' arayüzünde iki kez yazıldı
+	H0296 Code = 296  // '{name}' alanı '{variant}' durumunda iki kez yazıldı
+	H0297 Code = 297  // '{variant}' durumunun '{name}' alanının varsayılanı yok ama varsayılanlı '{prev}' alanından sonra geliyor; varsayılansız alanları önce yazın
 	H1001 Code = 1001 // Tip uyuşmazlığı — {name|q} değişkeni {declared|q} tipinde tanımlandı ancak {given|q} tipinde değer atandı{hint}
 	H1002 Code = 1002 // Sabit hatası — {name|q} bir sabittir ('{keyword}') ve değeri değiştirilemez
 	H1003 Code = 1003 // Dönüş tipi uyuşmazlığı — fonksiyon {expected|q} döndürmeli ancak {given|q} tipinde değer döndürülüyor{hint}
@@ -450,6 +455,9 @@ const (
 	H2764 Code = 2764 // '{variant}' değeri değişmez: '{field}' alanına atamak yerine yeni bir durum kurun
 	H2765 Code = 2765 // {enum} durumlu tipinde {prop|q} durumu ya da metodu yok{hint}
 	H2766 Code = 2766 // '{variant}' değeri ancak bütün alanları anahtar olabiliyorsa sözlük anahtarı olur: '{field}' alanı olamıyor ({why})
+	H2767 Code = 2767 // '{variant}' durumunun '{field}' adında bir alanı yok{suggestion}
+	H2768 Code = 2768 // '{variant}' durumu en fazla {max} argüman alır (alanlar: {fields}), {given} verildi
+	H2769 Code = 2769 // '{variant}' durumunun '{field}' alanı hem sırayla ({order}. argüman) hem adıyla verildi
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

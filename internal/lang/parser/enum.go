@@ -115,7 +115,7 @@ func (b *structBody) variant() bool {
 	v := ast.EnumVariant{Name: tok.Literal, NameToken: tok}
 	if p.peekTokenIs(lexer.TokLParen) {
 		p.nextToken() // '('
-		fields, ok := p.variantFields(b.stmt.Name, v.Name)
+		fields, ok := p.variantFields(b.stmt.Name + "." + v.Name)
 		if !ok {
 			p.skipToBlockEnd()
 			return false
@@ -128,8 +128,9 @@ func (b *structBody) variant() bool {
 	return true
 }
 
-// variantFields bir durumun parantez içindeki alanlarını okur; ')'de durur.
-func (p *Parser) variantFields(enum, variant string) ([]ast.StructField, bool) {
+// variantFields bir durumun parantez içindeki alanlarını okur; ')'de durur. variant iletideki addır
+// (Durum.Çalışıyor).
+func (p *Parser) variantFields(variant string) ([]ast.StructField, bool) {
 	fields := []ast.StructField{}
 	seen := map[string]bool{}
 	lastDefault := ""
@@ -142,11 +143,11 @@ func (p *Parser) variantFields(enum, variant string) ([]ast.StructField, bool) {
 		f.TypeName, f.TypeToken, f.DefaultValue = p.parseTypeAndDefault()
 		switch {
 		case seen[f.Name]:
-			p.syntaxError(tok, messages.H0146, f.Name, variant)
+			p.syntaxError(tok, messages.H0296, f.Name, variant)
 		case f.DefaultValue != nil:
 			lastDefault = f.Name
 		case lastDefault != "":
-			p.syntaxError(tok, messages.H0276, f.Name, lastDefault, variant)
+			p.syntaxError(tok, messages.H0297, f.Name, lastDefault, variant)
 		}
 		seen[f.Name] = true
 		fields = append(fields, f)
