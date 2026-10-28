@@ -21,7 +21,7 @@ import (
 // every character of the body is part of the source.
 //
 // Kodlu gövdede konumlar diskteki metne göredir: kimlikler yazıldıkları gibi okunur, sütun kaymaz.
-// Kişinin gördüğü görünümün konumlarını NewBodyView verir (source.view).
+// Yazılan bir metnin kişinin dilindeki konumlarını NewBodyView verir (source.view).
 func NewBody(input string, coded bool) *Lexer {
 	l := newLexer(input)
 	l.coded = coded
@@ -35,22 +35,23 @@ func NewBody(input string, coded bool) *Lexer {
 // satırı) ya da dosyayı o dilde göstermek için okunur. Gösterimde de kimlikler (TR_print) okunur.
 func NewBodyIn(input string, coded bool, lang *codes.Language) *Lexer {
 	l := NewBody(input, coded)
-	l.lang, l.words = lang, keywordsOf(lang)
+	l.lang, l.words, l.writtenIn = lang, keywordsOf(lang), lang
 	return l
 }
 
-// ViewEdit is one change the file's view makes to a coded body: the runes [Start, End) are
+// ViewEdit is one change a typed text's view makes to its coded form: the runes [Start, End) are
 // shown as Len runes (a code as its name, a user name as '$name').
 type ViewEdit struct {
 	Start, End, Len int
 }
 
-// NewBodyView sütunları edits'ten kurulan görünüme göre olan kodlu gövdenin çözümleyicisidir
-// (görünümü internal/lang/source kurar ve düzenlemelerini verir). Düzenlemeler görünümün kaçırdığı
-// kullanıcı adlarının '$'ını da taşır; her konum kişinin gördüğü metinle birebir aynıdır.
-func NewBodyView(input string, edits []ViewEdit) *Lexer {
+// NewBodyView, lang'de yazılmış bir metnin (kabuk satırı, hata ayıklayıcı ifadesi) kodlu biçiminin
+// çözümleyicisidir: sütunlar edits'ten kurulan görünüme göredir (görünümü internal/lang/source kurar
+// ve düzenlemelerini verir). Düzenlemeler görünümün kaçırdığı kullanıcı adlarının '$'ını da taşır;
+// her konum kişinin yazdığı metinle birebir aynıdır. Dosyanın konumları dosyanındır (NewBody).
+func NewBodyView(input string, edits []ViewEdit, lang *codes.Language) *Lexer {
 	l := newLexer(input)
-	l.coded = true
+	l.coded, l.writtenIn = true, lang
 	k := make([]shift, 0, len(edits))
 	for _, e := range edits {
 		if d := e.Len - (e.End - e.Start); d != 0 {

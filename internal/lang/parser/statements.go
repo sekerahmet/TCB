@@ -136,7 +136,7 @@ func (p *Parser) parseVarStatement(isConst bool) ast.Statement {
 		}
 		if !p.peekTokenIs(lexer.TokAssign) && !p.peekTokenIs(lexer.TokWalrus) {
 			tok := p.peekToken()
-			p.syntaxError(tok, messages.H0142, tokenDescription(tok))
+			p.syntaxError(tok, messages.H0142, p.tokenDescription(tok))
 			return nil
 		}
 		p.nextToken() // '='
@@ -277,7 +277,7 @@ func (p *Parser) parseImportStatement() *ast.ImportStatement {
 	// Aktarma yalnız dosyanın başında, öbür tanım ve deyimlerden önce yazılır (1.3): bir bloğun,
 	// fonksiyonun ya da testin içinde ve başka bir deyimden sonra sözdizimi hatasıdır.
 	if !p.importsOpen {
-		p.syntaxError(tok, messages.H0024, codes.NameRef(codes.KwImport))
+		p.syntaxError(tok, messages.H0024, p.word(codes.KwImport))
 	}
 	// Modül yolu bir metin olarak yazılır: aktar "yol" (§11). Tırnaksız ad yol sayılmaz.
 	if !p.peekTokenIs(lexer.TokString) {
@@ -286,8 +286,8 @@ func (p *Parser) parseImportStatement() *ast.ImportStatement {
 		if next.Type == lexer.TokIdent {
 			example = next.Literal
 		}
-		imp := codes.NameRef(codes.KwImport)
-		p.syntaxError(next, messages.H0143, imp, tokenDescription(next), example)
+		imp := p.word(codes.KwImport)
+		p.syntaxError(next, messages.H0143, imp, p.tokenDescription(next), example)
 		return nil
 	}
 	p.nextToken()

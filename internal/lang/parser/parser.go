@@ -289,7 +289,7 @@ func (p *Parser) expectPeek(t lexer.TokenType) bool {
 
 func (p *Parser) peekError(t lexer.TokenType) {
 	tok := p.peekToken()
-	p.syntaxError(tok, messages.H0140, typeDescription(t), tokenDescription(tok), unexpectedHint(t, tok))
+	p.syntaxError(tok, messages.H0140, p.typeDescription(t), p.tokenDescription(tok), unexpectedHint(t, tok))
 }
 
 func (p *Parser) curPrecedence() int {

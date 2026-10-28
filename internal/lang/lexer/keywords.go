@@ -116,15 +116,6 @@ func keywordMap(table []Keyword, spellings func(codes.Code) []string) (map[strin
 	return posMap, codeList
 }
 
-// KeywordName returns the dictionary name of a keyword token type (e.g. "sonuç"), or the
-// empty string for other types.
-func KeywordName(t TokenType) string {
-	if k, ok := typeCodes[t]; ok {
-		return codes.Name(k)
-	}
-	return ""
-}
-
 // LookupIdent reports whether a word is a keyword or an identifier.
 func LookupIdent(ident string) TokenType {
 	if tok, ok := keywords[ident]; ok {

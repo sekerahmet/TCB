@@ -50,15 +50,9 @@ func BuiltinSpellingHint(name string, lang *codes.Language) *messages.Error {
 	return NotInTRHint(name, suggested(k, lang))
 }
 
-// suggested is how a hint names the language's word k: in a file (lang nil: the file has no
-// language, 2.1) its spelling, TR_print, which can be copied into the file as it is; in text written
-// in a writing language (a typed line) the word in the message's language.
-func suggested(k codes.Code, lang *codes.Language) any {
-	if lang == nil {
-		return codes.Spelling(k)
-	}
-	return codes.NameRef(k)
-}
+// suggested is how a hint names the language's word k (codes.WordRef): in a file its spelling,
+// TR_print, which can be copied into the file as it is.
+func suggested(k codes.Code, lang *codes.Language) any { return codes.WordRef(k, lang) }
 
 // suggest is lang's suggestion for a spelling (codes.Language.Suggest); when lang is nil the
 // text's language is not known and every writing language is asked (codes.Suggest).
@@ -126,15 +120,16 @@ func spellingsIn(lang *codes.Language, k codes.Code) []string {
 // TypeTextComparisonError is the error reporting that a type value (tip(x)) is compared with a
 // string (3.11, H1105): type names are written without quotes. If text is a type name in lang,
 // the language the string was written in (or its old or ASCII spelling; nil: any writing
-// language), that type's name is shown, otherwise example (the value's own type, a message part).
+// language), that type's name is shown (suggested: in a file its spelling), otherwise example (the
+// value's own type, a message part).
 // The checker and the interpreter use the same text.
 func TypeTextComparisonError(op, text string, example any, lang *codes.Language) *messages.Error {
 	if k, ok := findType(lang, text); ok {
-		example = codes.NameRef(k)
+		example = suggested(k, lang)
 	} else if k, ok := suggest(lang, codes.NamespaceType, text, nil); ok {
-		example = codes.NameRef(k)
+		example = suggested(k, lang)
 	}
-	g := codes.NameRef(codes.FnType)
+	g := suggested(codes.FnType, lang)
 	return messages.New(messages.H1105, g, op, text, example)
 }
 

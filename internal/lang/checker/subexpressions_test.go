@@ -12,7 +12,7 @@ import (
 // varsayılanı içindeki hatalar sessizce geçerdi.
 func TestCheckerDescendsIntoSubexpressions(t *testing.T) {
 	const kare = "TR_func kare(x: TR_Int): TR_Int { TR_return x * x }\n"
-	const want = `1. parametresi "Tam" bekliyor ancak "Metin" verildi`
+	const want = `1. parametresi "TR_Int" bekliyor ancak "TR_String" verildi`
 	cases := []struct{ name, source string }{
 		{"liste", `TR_var l = [1, kare("a")]`},
 		{"sözlük değeri", `TR_var s = {"k": kare("a")}`},

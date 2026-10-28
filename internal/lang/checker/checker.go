@@ -71,8 +71,8 @@ type Checker struct {
 	// adHatalari son CheckProgram çağrısının tanımsız ad hatalarıdır (undefined_names.go).
 	globalNames *nameScope
 	nameErrors  []error
-	// fileLanguage denetlenen dosyanın yazım dilinin kodudur ("": Türkçe); değer metni o
-	// dildedir (3), metin karşılaştırması uyarısı ona bakar (type_comparison.go).
+	// fileLanguage denetlenen yazılan satırın (kabuk) yazım dilinin kodudur; "": dosya, dili yoktur
+	// (2.1). İletiler dilin sözcüklerini dosyada kimlik yazımıyla, satırda o dilde adlandırır (word).
 	fileLanguage string
 }
 
@@ -163,7 +163,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		inferred := c.inferExpression(s.Value)
 		if s.TypeName != "" && !typesCompatible(declared, inferred) {
 			c.addError(s.Line(), 0, messages.New(messages.H1001,
-				s.Name.Value, typeText(declared), typeText(inferred), numberHint(declared, inferred)))
+				s.Name.Value, c.typeArg(declared), c.typeArg(inferred), c.numberHint(declared, inferred)))
 		}
 		// Dil dinamiktir: açıklamasız bir değişkenin ilk değerden çıkarılan tipi kalıcı bir
 		// bildirim değildir (değişken sonra başka tipte değer alabilir), bu yüzden tipsiz
@@ -254,7 +254,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 				continue
 			}
 			if info, found := c.scope.Resolve(ident.Value); found && info.IsConst {
-				c.addError(s.Line(), 0, messages.New(messages.H1002, ident.Value, codes.NameRef(codes.KwConst)))
+				c.addError(s.Line(), 0, messages.New(messages.H1002, ident.Value, c.word(codes.KwConst)))
 			}
 		}
 
@@ -270,7 +270,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		valType := c.inferExpression(s.ReturnValue)
 		if c.returnType != "" && !typesCompatible(c.returnType, valType) {
 			c.addError(s.Line(), 0, messages.New(messages.H1003,
-				typeText(c.returnType), typeText(valType), numberHint(c.returnType, valType)))
+				c.typeArg(c.returnType), c.typeArg(valType), c.numberHint(c.returnType, valType)))
 		}
 
 	case *ast.ThrowStatement:
@@ -306,13 +306,17 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 // a value's text is in it, so comparisons with another language's value names are warned about.
 func (c *Checker) SetFileLanguage(code string) { c.fileLanguage = code }
 
-// language denetlenen dosyanın yazım dilidir (nil: kanonik, Türkçe).
+// language denetlenen yazılan satırın yazım dilidir (nil: dosya).
 func (c *Checker) language() *codes.Language {
 	if l, err := codes.LoadLanguage(c.fileLanguage); err == nil && c.fileLanguage != "" {
 		return l
 	}
 	return nil
 }
+
+// word dilin k sözcüğünün iletideki adıdır: dosyada yazımı (TR_const), yazılan satırda iletinin
+// dilindeki sözcük (codes.WordRef).
+func (c *Checker) word(k codes.Code) any { return codes.WordRef(k, c.language()) }
 
 // SetInteractive marks the checker as the shell's: an expression statement's value is shown
 // there, so it is not unused.
@@ -394,7 +398,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 			argType := c.inferExpression(arg)
 			if found && i < len(info.ParamTypes) && !typesCompatible(info.ParamTypes[i], argType) {
 				c.addError(e.Line(), 0, messages.New(messages.H1004,
-					ident.Value, i+1, typeText(info.ParamTypes[i]), typeText(argType)))
+					ident.Value, i+1, c.typeArg(info.ParamTypes[i]), c.typeArg(argType)))
 			}
 		}
 		for _, na := range e.NamedArgs {
@@ -423,11 +427,11 @@ func (c *Checker) checkAssign(s *ast.AssignStatement) {
 				valType = arithmeticType(op, info.TypeName, valType, false)
 			}
 			if info.IsConst {
-				c.addError(s.Line(), 0, messages.New(messages.H1002, ident.Value, codes.NameRef(codes.KwConst)))
+				c.addError(s.Line(), 0, messages.New(messages.H1002, ident.Value, c.word(codes.KwConst)))
 			}
 			if info.TypeName != typeAny && info.TypeName != typeNull && !typesCompatible(info.TypeName, valType) {
 				c.addError(s.Line(), 0, messages.New(messages.H1005,
-					ident.Value, typeText(info.TypeName), typeText(valType), numberHint(info.TypeName, valType)))
+					ident.Value, c.typeArg(info.TypeName), c.typeArg(valType), c.numberHint(info.TypeName, valType)))
 			}
 		}
 	} else {

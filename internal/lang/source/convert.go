@@ -161,15 +161,15 @@ func (c *analysis) viewChanges() []change {
 	return d
 }
 
-// view kodlu bir gövdenin lang'deki gösterimidir: hata çerçeveleri ve hata ayıklayıcı bu
-// metni gösterir (kişinin gösterim dili, codes.Display). Gövde ayrıştırılamıyorsa
+// view, lang'de yazılmış bir metnin (kabuk satırı, hata ayıklayıcı ifadesi) kodlu biçiminin lang'deki
+// gösterimidir: o metnin hata çerçeveleri bu metni gösterir. Gövde ayrıştırılamıyorsa
 // yalnızca dosya düzeyindeki kodlar adlarına çevrilir (yerleştirmelerdekiler kimlik kalır). İkinci
 // değer gösterimin sütunlarını veren sözcük çözümleyicidir: konumlar tam bu metne göredir,
 // '$ad' kaçışları dahil.
 func view(body string, lang *codes.Language) (string, *lexer.Lexer) {
 	if c, err := analyze(body, lang, true, nil, false); err == nil {
 		d := uniqueChanges(c.viewChanges())
-		return apply(c.input, d), lexer.NewBodyView(body, viewEdits(d))
+		return apply(c.input, d), lexer.NewBodyView(body, viewEdits(d), lang)
 	}
 	l := lexer.NewBody(body, true)
 	l.StartRecording()
@@ -182,7 +182,7 @@ func view(body string, lang *codes.Language) (string, *lexer.Lexer) {
 		}
 	}
 	d = uniqueChanges(d)
-	return apply(l.Input(), d), lexer.NewBodyView(body, viewEdits(d))
+	return apply(l.Input(), d), lexer.NewBodyView(body, viewEdits(d), lang)
 }
 
 // viewEdits değişimleri sözcük çözümleyicinin sütun kaymalarına çevirir; apply gibi aynı

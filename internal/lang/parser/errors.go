@@ -9,61 +9,67 @@ import (
 )
 
 // Ayrıştırıcının hata mesajları kullanıcıya iç token adlarını (DOSYA_SONU, SONUÇ,
-// TANIMLAYICI) göstermez; bunların yerine "dosya sonu", "'sonuç' anahtar kelimesi",
-// "'x' adı" gibi Türkçe anlatımlar kullanılır.
+// TANIMLAYICI) göstermez; bunların yerine "dosya sonu", "'TR_return' anahtar kelimesi",
+// "'x' adı" gibi anlatımlar kullanılır. Anlatımlar ileti parçasıdır (*messages.Error): dış iletinin
+// dilinde yazılır. Dilin sözcüğü dosyada kimlik yazımıyla, yazılan satırda dilin sözcüğüyle
+// adlandırılır (codes.WordRef).
 
 // typeDescription beklenen bir token türünü anlatır (ör. "'{'", "bir ad",
-// "'içinde' anahtar kelimesi").
-func typeDescription(t lexer.TokenType) string {
+// "'TR_in' anahtar kelimesi").
+func (p *Parser) typeDescription(t lexer.TokenType) *messages.Error {
 	switch t {
 	case lexer.TokEOF:
-		return messages.Text(messages.H0110)
+		return messages.New(messages.H0110)
 	case lexer.TokIdent:
-		return messages.Text(messages.H0111)
+		return messages.New(messages.H0111)
 	case lexer.TokInt:
-		return messages.Text(messages.H0112)
+		return messages.New(messages.H0112)
 	case lexer.TokFloat:
-		return messages.Text(messages.H0113)
+		return messages.New(messages.H0113)
 	case lexer.TokString:
-		return messages.Text(messages.H0114)
+		return messages.New(messages.H0114)
 	case lexer.TokIllegal:
-		return messages.Text(messages.H0115)
+		return messages.New(messages.H0115)
 	}
-	if spelling := lexer.KeywordName(t); spelling != "" {
-		return messages.Text(messages.H0116, spelling)
+	if k := lexer.KeywordCode(t); k != codes.None {
+		return messages.New(messages.H0116, p.word(k))
 	}
-	return messages.Text(messages.H0117, string(t))
+	return messages.New(messages.H0117, string(t))
 }
 
 // tokenDescription kaynakta bulunan bir token'ı yazıldığı biçimiyle anlatır
-// (ör. "'x' adı", "42 sayısı", "'sonuç' anahtar kelimesi", "dosya sonu").
-func tokenDescription(tok lexer.Token) string {
+// (ör. "'x' adı", "42 sayısı", "'TR_return' anahtar kelimesi", "dosya sonu").
+func (p *Parser) tokenDescription(tok lexer.Token) *messages.Error {
 	switch tok.Type {
 	case lexer.TokEOF:
-		return messages.Text(messages.H0110)
+		return messages.New(messages.H0110)
 	case lexer.TokIdent:
-		return messages.Text(messages.H0118, tokenName(tok))
+		return messages.New(messages.H0118, p.tokenName(tok))
 	case lexer.TokInt, lexer.TokFloat:
-		return messages.Text(messages.H0119, tok.Literal)
+		return messages.New(messages.H0119, tok.Literal)
 	case lexer.TokString:
-		return messages.Text(messages.H0120, shortText(tok.Literal))
+		return messages.New(messages.H0120, shortText(tok.Literal))
 	case lexer.TokIllegal:
-		return messages.Text(messages.H0121, tok.Literal)
+		return messages.New(messages.H0121, tok.Literal)
 	}
-	if lexer.KeywordName(tok.Type) != "" {
-		return messages.Text(messages.H0116, tokenName(tok))
+	if lexer.KeywordCode(tok.Type) != codes.None {
+		return messages.New(messages.H0116, p.tokenName(tok))
 	}
-	return messages.Text(messages.H0117, tok.Literal)
+	return messages.New(messages.H0117, tok.Literal)
 }
 
-// tokenName iletide bir sözcük biriminin adıdır: dilin sözcüğü (kod taşıyan) iletinin dilinde
-// adlandırılır, içerideki kimliğiyle değil; kullanıcının adı olduğu gibi.
-func tokenName(tok lexer.Token) any {
+// tokenName iletide bir sözcük biriminin adıdır: dilin sözcüğü (kod taşıyan) dosyada kimlik
+// yazımıyla, yazılan satırda iletinin dilinde (p.word); kullanıcının adı olduğu gibi.
+func (p *Parser) tokenName(tok lexer.Token) any {
 	if tok.Code != codes.None {
-		return codes.NameRef(tok.Code)
+		return p.word(tok.Code)
 	}
 	return tok.Literal
 }
+
+// word dilin k sözcüğünün iletideki adıdır: dosyada yazımı (TR_break), yazılan satırda iletinin
+// dilindeki sözcük (codes.WordRef).
+func (p *Parser) word(k codes.Code) any { return codes.WordRef(k, p.l.WrittenIn()) }
 
 // shortText hata mesajında gösterilecek metin sabitini kısaltır.
 func shortText(s string) string {
@@ -75,16 +81,16 @@ func shortText(s string) string {
 }
 
 // unexpectedHint sık yapılan yanlışlar için hata mesajına eklenecek ipucunu verir.
-func unexpectedHint(expected lexer.TokenType, found lexer.Token) string {
+func unexpectedHint(expected lexer.TokenType, found lexer.Token) *messages.Error {
 	switch {
 	case expected == lexer.TokLBrace && found.Type == lexer.TokAssign:
-		return messages.Text(messages.H0130)
+		return messages.New(messages.H0130)
 	case expected == lexer.TokRParen && found.Type == lexer.TokEOF,
 		expected == lexer.TokRBracket && found.Type == lexer.TokEOF,
 		expected == lexer.TokRBrace && found.Type == lexer.TokEOF:
-		return messages.Text(messages.H0131, string(expected))
+		return messages.New(messages.H0131, string(expected))
 	}
-	return ""
+	return nil // öneri yok: iletide boş yazılır
 }
 
 // recordError bir sözdizimi hatası kaydeder. Bir deyimde yalnızca ilk hata kaydedilir:

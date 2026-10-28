@@ -30,7 +30,7 @@ func (c *Checker) checkUnusedValue(s *ast.ExpressionStatement) {
 		c.addError(s.Line(), 0, messages.New(messages.H1017, string(pe.Operator)))
 		return
 	}
-	c.addError(s.Line(), 0, messages.New(messages.H1023, codes.Spelling(codes.KwVar)))
+	c.addError(s.Line(), 0, messages.New(messages.H1023, c.word(codes.KwVar)))
 }
 
 // containsCall ifadenin (metin yerleştirmeleri dahil) bir çağrı içerdiğidir; '|>' sağındaki

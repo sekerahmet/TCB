@@ -36,7 +36,7 @@ func (p *Parser) parseStructStatement() *ast.StructStatement {
 		defined[name] = true
 		return true
 	}
-	invalid := func(tok lexer.Token, what string) *ast.StructStatement {
+	invalid := func(tok lexer.Token, what *messages.Error) *ast.StructStatement {
 		p.syntaxError(tok, messages.H0147, what)
 		p.skipToBlockEnd()
 		return stmt
@@ -73,7 +73,7 @@ func (p *Parser) parseStructStatement() *ast.StructStatement {
 			p.nextToken()
 		}
 		if !p.curTokenIs(lexer.TokIdent) {
-			return invalid(p.curToken(), messages.Text(messages.H0148, tokenDescription(p.curToken())))
+			return invalid(p.curToken(), messages.New(messages.H0148, p.tokenDescription(p.curToken())))
 		}
 		fieldTok := p.curToken()
 		p.role(fieldTok, RoleStructField)
@@ -83,7 +83,7 @@ func (p *Parser) parseStructStatement() *ast.StructStatement {
 		// (ör. 'yazdır("...")' çağrısının '(' işareti) alan değildir.
 		if next := p.peekToken(); next.Type != lexer.TokRBrace && next.Type != lexer.TokComma &&
 			next.Type != lexer.TokSemicolon && next.Type != lexer.TokEOF && next.Line == p.curToken().Line {
-			return invalid(fieldTok, messages.Text(messages.H0149, tokenName(fieldTok), tokenDescription(next)))
+			return invalid(fieldTok, messages.New(messages.H0149, p.tokenName(fieldTok), p.tokenDescription(next)))
 		}
 		if !checkName(fieldTok, field.Name, messages.H0146) {
 			p.skipToBlockEnd()

@@ -107,14 +107,14 @@ func isHexDigit(ch rune) bool {
 	return isDigit(ch) || 'a' <= ch && ch <= 'f' || 'A' <= ch && ch <= 'F'
 }
 
-// unknownEscape tırnaklı metindeki tanınmayan '\c' kaçış dizisini hata iletisi için anlatır.
-func unknownEscape(c rune) string {
-	arr := "'\\" + string(c) + "'"
+// unknownEscape tırnaklı metindeki tanınmayan '\c' kaçış dizisini hata iletisi için anlatır; satır
+// sonu ve sekme ileti parçasıdır (dış iletinin dilinde yazılır).
+func unknownEscape(c rune) any {
 	switch c {
 	case '\n', '\r':
-		arr = messages.Text(messages.H0168)
+		return messages.New(messages.H0168)
 	case '\t':
-		arr = messages.Text(messages.H0169)
+		return messages.New(messages.H0169)
 	}
-	return arr
+	return "'\\" + string(c) + "'"
 }

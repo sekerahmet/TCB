@@ -58,10 +58,10 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		leftExp = p.parseDictLiteral()
 	default:
 		if p.leadingBinaryOperator() {
-			p.syntaxError(p.curToken(), messages.H0167, tokenDescription(p.curToken()))
+			p.syntaxError(p.curToken(), messages.H0167, p.tokenDescription(p.curToken()))
 			return nil
 		}
-		p.syntaxError(p.curToken(), messages.H0141, tokenDescription(p.curToken()))
+		p.syntaxError(p.curToken(), messages.H0141, p.tokenDescription(p.curToken()))
 		return nil
 	}
 

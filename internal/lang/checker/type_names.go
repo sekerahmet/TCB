@@ -47,6 +47,29 @@ func (t typeText) MessageText(lang string) string {
 	return string(t)
 }
 
+// typeSpelling typeText'in dosyadaki hâlidir: tip adı dosyada yazıldığı gibi, kimlik yazımıyla
+// (TR_Int; TR_Int ya da TR_Float); cümle iletinin dilindedir.
+type typeSpelling string
+
+func (t typeSpelling) MessageText(lang string) string {
+	if string(t) == typeNumber {
+		return messages.OrListIn(lang, codes.Spelling(codes.TypeInt), codes.Spelling(codes.TypeFloat))
+	}
+	if k, ok := codes.Find(codes.NamespaceType, string(t)); ok {
+		return codes.Spelling(k)
+	}
+	return string(t)
+}
+
+// typeArg denetleyicinin t tipinin ileti parametresidir: dosyada kimlik yazımıyla (typeSpelling),
+// yazılan satırda iletinin dilinde (typeText).
+func (c *Checker) typeArg(t string) messages.Localized {
+	if c.language() == nil {
+		return typeSpelling(t)
+	}
+	return typeText(t)
+}
+
 // annotationTypes tip açıklamasında (değişken x: Tam) kullanılabilen tiplerin kodlarıdır:
 // 3.11'deki çekirdek tip adları.
 var annotationTypes = []codes.Code{codes.TypeInt, codes.TypeFloat, codes.TypeString, codes.TypeBool,
@@ -189,7 +212,7 @@ func resolveTypeAnnotation(name string, lang *codes.Language) (canonical string,
 func (c *Checker) checkedTypeName(name string, line int) string {
 	canonical, code := resolveTypeAnnotation(name, c.language())
 	if code != 0 {
-		c.addError(line, 0, messages.New(code, name, typeText(canonical)))
+		c.addError(line, 0, messages.New(code, name, c.typeArg(canonical)))
 	}
 	return canonical
 }
@@ -215,9 +238,9 @@ func typesCompatible(expected, actual string) bool {
 
 // numberHint Tam beklenen yere Tam ya da Ondalık olabilen bir değer verildiğinde yol gösterir:
 // iletinin bir parçası olarak (dıştaki iletinin dilinde yazılır); yol yoksa boş metin.
-func numberHint(expected, given string) any {
+func (c *Checker) numberHint(expected, given string) any {
 	if normalizeTypeName(expected) == typeInt && given == typeNumber {
-		return messages.New(messages.H1008, typeText(typeFloat), typeText(typeInt), codes.NameRef(codes.FnInt))
+		return messages.New(messages.H1008, c.typeArg(typeFloat), c.typeArg(typeInt), c.word(codes.FnInt))
 	}
 	return ""
 }

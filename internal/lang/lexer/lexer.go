@@ -51,6 +51,8 @@ type Lexer struct {
 	// (NewBodyIn); nil ise kimlik listesi (codes.Active).
 	lang  *codes.Language
 	words map[string]TokenType
+	// writtenIn kökte, yazılan metnin (kabuk satırı) yazım dilidir; dosyada nil (WrittenIn).
+	writtenIn *codes.Language
 	// places kimliklerin yerini (2.3a) bulmak için izlenen bağlamdır (identity.go).
 	places placeState
 	// lineStart, bu satırda henüz sözcük birimi okunmadığını söyler (satır başındaki '//', 2.2).
@@ -65,6 +67,11 @@ func (l *Lexer) Language() *codes.Language {
 	}
 	return codes.Active()
 }
+
+// WrittenIn returns the writing language of a typed text (a shell line, a debugger expression),
+// whose words messages name in the message's language; nil for a file, which has no language
+// (2.1): its words are named by their spelling (codes.WordRef).
+func (l *Lexer) WrittenIn() *codes.Language { return l.root.writtenIn }
 
 // LastRange returns the source character (rune) range [bas, son) of the token returned by
 // the last NextToken call. The formatter uses it to keep the raw text of tokens (escape
