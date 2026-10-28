@@ -371,6 +371,31 @@ Kurallar: [`docs/spec/09_ertele.md`](spec/09_ertele.md). Taslak (2026-10-28): an
 - **Mevcut durum:** hatasız kapsamda ertelenen işin hatası yakalanıyor; iki hata tek metinde birleşiyor ("govde hatasi; error in defer as well: ertele hatasi") [ölçüldü].
 - **Yapılacaklar:** ilk hata korunur, öbürleri `e.TR_suppressed`'e (8.3 ile).
 
+## 10. Eşzamanlılık
+
+Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). Taslak (2026-10-29): ana oturum CLAUDE.md'den türeterek yeniden yazdı; DENETİM bekleniyor. Yeni adların (`TR_Task`, `TR_wait`, `TR_timeout`) gösterim adı onayda.
+
+### 10.1
+
+- **Mevcut durum:** `TR_async` bir ifade değil: `TR_var g = TR_async f(3)` sözdizimi hatası; görevin sonucu alınamıyor [ölçüldü: main `6a525af7`].
+- **Yapılacaklar:** görev değeri `TR_Task[T]` ve `.TR_wait()`; TR testi.
+
+### 10.5
+
+- **Yapılacaklar:** `TR_wait_all(görevler)`'in sonuç listesi; TR testi.
+
+### 10.6
+
+- **Mevcut durum:** beklenmeyen görevin yakalanmamış hatası yazılıyor, program sürüyor ve 1 koduyla bitiyor [ölçüldü].
+
+### 10.7
+
+- **Yapılacaklar:** zaman aşımı; TR testi.
+
+### 10.8
+
+- **Mevcut durum:** paylaşılan listeye görevlerden ekleme sırası zamana bağlı ([4, 3, 2, 1, 0]) [ölçüldü].
+
 ## 12. Testler
 
 Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md). Taslak (2026-10-29): ana oturum CLAUDE.md'den türeterek yeniden yazdı; DENETİM bekleniyor. Yeni ad `TR_assert_close`'un gösterim adı onaylandı (yakın_olmalı); kodu uygulandığı gün kayda girer (17.4).
