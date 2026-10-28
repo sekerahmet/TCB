@@ -455,7 +455,7 @@ Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): an
 ### 17.1
 
 - **Mevcut durum:** kullanıcının yapısında `TR_` adlı alan ve metot sessizce kabul ediliyor (`TR_struct K { TR_step }`), oysa `TR_var TR_x` reddediliyor [ölçüldü: DENETİM]. Testler ve örnek düz ada geçti (`tests/coded/ornek_kodlu.tr`'nin yapısı, `examples/tr/17_testler_test.tr`'nin `Sepet`'i).
-- **Yapılacaklar:** yapının alanında ve metodunda `TR_` adının denetim hatası, dilin bir işini yapan üye (`TR_next`, 5.7) dışında; TR testi.
+- **Yapılacaklar:** yapının alanında ve metodunda `TR_` adının denetim hatası, `TR_init` ve `TR_next` dışında; TR testi. Göç: `tools/gpu/measurement_model.tr:36-55` kullanıcı yapısında `TR_forward` (2) ve `TR_starts_with` (1) tanımlıyor [ölçüldü: DENETİM]. Kullanıcı yapısının `TR_next` ile dolaşılması bugün çalışmıyor ("Sayaç tipi üzerinde döngü kurulamaz") [ölçüldü: DENETİM]; 5.7 uygulanınca TR testi.
 
 ### 17.2
 
@@ -468,13 +468,16 @@ Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): an
 
 ### 17.5
 
-- **Mevcut durum:** ad alanında çakışma dil dosyası yüklenirken reddediliyor (`TestClashesCaught`). Türkçe harfsiz biçimin kabul edilmediği kural kalktı (17.7); yükleyicinin ASCII denetimi (`TestASCIIFormsDoNotClash`) zararsız, kalabilir.
+- **Mevcut durum:** ad alanında çakışma dil dosyası yüklenirken reddediliyor (`TestClashesCaught`). Türkçe harfsiz biçim kuralı kalktı (17.7). Dayanağı kalmayan ASCII denetimi ve öneri yolu (`AcceptASCII`, `language.go:33-40`, `TestASCIIFormsDoNotClash`) ile alışkanlık adının gösterim adıyla çakışma reddi (`TestClashesCaught`'un o kısmı) kalkacak.
 - **Yapılacaklar:** `TR_assert_equal`'ın Türkçe adı bugün "eşit_mi", bir sınama soru gibi okunuyor (13'ün ad işinde).
 
 ### 17.7
 
 - **Mevcut durum:** görünümden geri kodlama (`TR_cmd_encode`), düzenleyicide görünümde düzenleyip kaydetme (`editors/vscode/coded_*.js`, 743 satır), bayt bayt gidiş-dönüş testleri ve `$` kaçışı var [ölçüldü]. Bunlar 17.7'nin gerektirmediği işlerdir. `internal/lang/source` 1 870 satır, `cmd/tr/coded.go` 256 satır [ölçüldü]; kodlamayı başka bir şey (belgelerdeki kod blokları, `tests/negative`) kullanıyor mu ölçülmedi.
-- **Yapılacaklar:** geri kodlamanın ve görünümde düzenlemenin kaldırılması (mekanik iş, 4a'dan bağımsız); görünümü çalıştırmanın iletisi bugün "encode it first: tr encode <file>" diyor, kodlu dosyayı söylemeli; görünümün çalışmadığını sınayan Go testi; kabuğun yalnız kimlik kabul ettiğinin sınanması.
+- **Kabuk:** bugün kişinin dilinde yazmayı kabul ediyor: Türkçe adıyla yazılan bir yazdırma çağrısı çalışıyor [ölçüldü: DENETİM].
+- **İletiler:** başlıksız dosyanın iletisi de kodlamayı öneriyor ("tr kodla <dosya> --dil tr") [ölçüldü: DENETİM].
+- **Testler:** `TestEncodeShowCommands` ve `TestEnglishWritingLanguage` kalkacak davranışı (Türkçe metni kodlamayı, gidiş-dönüşü) sınıyor.
+- **Yapılacaklar:** geri kodlamanın ve görünümde düzenlemenin kaldırılması (mekanik iş, 4a'dan bağımsız); iki iletinin kodlamayı önermemesi; kabuğun yalnız kimlik kabul etmesi; yalnız `TR_cmd_show`'u sınayan Go testi; görünümün çalışmadığını sınayan Go testi.
 
 ### 17.8
 

@@ -14,7 +14,7 @@ TR_struct Sayac {
     }
 }
 
-# Gölgelenen yerleşik kullanıcının adıdır: bu kapsamdaki 'toplam' kod değil.
+# Kimliksiz yazılan ad kullanıcının adıdır: 'toplam' kod değil (TR_sum ile karışmaz).
 TR_func golge() {
     TR_var toplam = 5
     TR_return toplam

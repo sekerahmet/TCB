@@ -12,7 +12,7 @@ TR kimlik kodlu bir dildir: dilin her sözcüğü sabit bir koda bağlıdır, pr
 - **Kod olanlar:** anahtar kelime, bağlamsal sözcük, tip, yerleşik fonksiyon ve sabit, metot ve özellik, adlı argüman; `tr/` ile yüklenen kitaplığın (11.6) yapı, fonksiyon, sabit, alan, metot ve parametre adları; komut satırının adları (17.9).
 - **Kod olmayanlar:** kullanıcının değişken, fonksiyon, yapı, alan, metot ve parametre adları; `tr/` dışındaki her modülün adları; `tr/` kitaplığının kendi yerel değişkenleri; sözlük anahtarları (metindir, 3.7); dosya adları; metinler ve yorumlar; yalnız geliştiricinin ve testlerin kullandığı ortam değişkenleri. Bunlar yazıldıkları gibi kalır, hiçbir dile çevrilmez: `TR_var liste = [1, 2]`'nin `liste`'si her gösterimde `liste`'dir.
 - `TR_` ile başlayan ad koda ayrılmıştır; kullanıcı adı olamaz (2.3a), yapının alanı ve metodu da.
-- **Tek istisna, dilin bir işini yapan üye:** kullanıcının yapısı dilin ya da `tr/`'nin tanımladığı bir üyeyi uyguluyorsa o üye kodla yazılır. Örnek: dolaşılan yapının `TR_next()`'i (5.7, 7.8). Başka bir üye kodunu alan ya da metot adı yapmak denetim hatasıdır: `TR_struct K { TR_step }`.
+- **İstisna, dilin çağırdığı üyeler:** kullanıcının yapısında yalnız şu üyeler kodla yazılır: kurucu `TR_init` (2.9) ve dolaşmanın `TR_next()`'i (5.7). Başka bir kodu alan ya da metot adı yapmak denetim hatasıdır: `TR_struct K { TR_step }`.
 - *Test:* TR testi; Go: `TestUserNamesNeverBecomeLanguageWords`; yapı alanında `TR_` reddi uygulanınca TR testi.
 
 **17.2** Kodun iki yazımı vardır.
@@ -27,7 +27,7 @@ TR kimlik kodlu bir dildir: dilin her sözcüğü sabit bir koda bağlıdır, pr
 | Sınıf | Kapsam | Program metninde yeri (2.3a) |
 | :-- | :-- | :-- |
 | `kw` | anahtar kelimeler | deyim ve ifade |
-| `ctx` | bağlamsal sözcükler (yalnız kendi bağlamında sözcük) | kendi bağlamı |
+| `ctx` | bağlamsal sözcükler (yalnız kendi bağlamında geçerli) | kendi bağlamı |
 | `val` | değer adları (`TR_inf`, `TR_nan`, 3.2) | değer |
 | `type` | tipler, kitaplığın yapıları dahil | tip ve değer |
 | `fn`, `const` | yerleşik fonksiyonlar ve sabitler, kitaplığın fonksiyonları dahil | değer |
@@ -54,7 +54,7 @@ TR kimlik kodlu bir dildir: dilin her sözcüğü sabit bir koda bağlıdır, pr
 - Dosyaların alan adları İngilizce tanımlayıcıdır; insan dili yalnız değerlerde görünür. Hepsi ikiliye gömülüdür; kodların başvuru belgesi [`docs/codes.md`](../codes.md) bunlardan üretilir.
 - **İletiler** kod değil, ileti koduyla tanımlanır (`H` ve dört basamak, `internal/lang/messages`); metni dil başına katalogdadır.
 - **Kayıtlı her kod canlıdır:** açıklaması ve çalışan örneği vardır, bir yerde kullanılır. Henüz uygulanmamış bir kod dil tanımında anılabilir ama tanım dosyasına uygulandığı gün girer. Belgelerde anılan her kimlik de kayıttadır ya da bilerek yazılmış adların listesindedir.
-- *Test:* Go: `TestEveryCodeHasDescription`, `TestWritingLanguagesComplete`, `TestCommonNamesAreNotInLanguageFiles`, `TestClassedIdentitiesAreLive`; örneğin çalıştığı ve kodun kullanıldığı uygulanınca Go testi.
+- *Test:* Go: `TestEveryCodeHasDescription`, `TestWritingLanguagesComplete`, `TestCommonNamesAreNotInLanguageFiles`, `TestClassedIdentitiesAreLive`, `TestReviewedSectionsWriteIdentities`; örneğin çalıştığı ve kodun kullanıldığı uygulanınca Go testi.
 
 **17.5** Ad: her kodun her dilde tek bir adı vardır (2.9: bir iş, bir yazım).
 - **Ortak ad:** uluslararası gösterimle ya da özel adla yazılan kavramın adı her dilde aynıdır: `sin`, `exp`, `log`, `max`, `argmax`, `relu`, `AdamW`, `GPT`, `Muon`. Tanım dosyasında bir kez yazılır, hiçbir dil dosyasında yazılmaz.
@@ -63,8 +63,8 @@ TR kimlik kodlu bir dildir: dilin her sözcüğü sabit bir koda bağlıdır, pr
 - Harfleri o dilin harfleridir.
 - *Test:* Go: `TestSingleSpelling`, `TestCommonNamesAreNotInLanguageFiles`, `TestClashesCaught`, `TestNamespacesUnique`.
 
-**17.6** Başka dillerin alışkanlık adları (`str`, `range`, `lambda`, PyTorch'un `long`'u) kod değildir; tanım dosyasının `familiar` alanında durur ve yazıldığında ileti doğru kimliği önerir (2.3a). Alışkanlık adı o dilin geçerli bir adıyla çakışamaz. Kaldırılmış bir kodun eski adı `familiar` değildir (17.10).
-- *Test:* Go: `TestFindForeign`, `TestClashesCaught`.
+**17.6** Başka dillerin alışkanlık adları (`str`, `range`, `lambda`, PyTorch'un `long`'u) kod değildir; tanım dosyasının `familiar` alanında durur ve yazıldığında ileti doğru kimliği önerir (2.3a). Kaldırılmış bir kodun eski adı `familiar` değildir (17.10).
+- *Test:* Go: `TestFindForeign`.
 
 ## Görünüm
 
@@ -73,7 +73,7 @@ TR kimlik kodlu bir dildir: dilin her sözcüğü sabit bir koda bağlıdır, pr
 - **Yalnız dilin sözcükleri çevrilir:** kullanıcı adları, metinler, sayılar ve yorumlar yazıldığı gibi kalır; metnin içindeki yerleştirmede (`\(...)`, 2.7) dilin sözcükleri çevrilir, metnin kendisi kalır. Satır düzeni korunur, satır numaraları kodlu dosyanınkiyle aynıdır.
 - **Gösterim okumak içindir, kusursuz olmak zorunda değildir:** bir kullanıcı adı dilin bir sözcüğüyle aynı yazılabilir; görünüm onu ayırt etmek için işaretleyebilir ama bu bir kural değildir.
 - **Konum** dosyanın metnindedir (2.1).
-- *Test:* TR testi; Go: `TestEncodeShowCommands`, `TestEnglishWritingLanguage`, `TestDAPCodedFileView`; görünümün çalışmaması ve geri çevrilmemesi uygulanınca Go testi.
+- *Test:* Go: `TestDAPCodedFileView`; yalnız `TR_cmd_show`'u sınayan test (satır numarası, yerleştirmenin çevrilmesi, kullanıcı adının kalması) ve görünümün çalışmaması uygulanınca Go testi.
 
 **17.8** Program dilden bağımsızdır.
 - **Anlam koda bağlıdır:** hangi yerleşiğin çağrıldığı, kullanıcının adları ve sonuç gösterim diline bağlı değildir.
@@ -89,7 +89,7 @@ TR kimlik kodlu bir dildir: dilin her sözcüğü sabit bir koda bağlıdır, pr
 - **Çıktı kişinin dilindedir:** yardım ve iletiler adları `TR_DIL`'in dilinde yazar.
 - **Ortam değişkeni** her dilin adıyla okunur (`TR_DIL`, `TR_LANG`); iki ad ayrı değerle verilirse `tr` başlamadan durur. Hesap çekirdeği değişkeni kimlik adıyla okur; `tr` başlarken bu adı koyar.
 - **Seçenek yazımı:** iki tire, sözcükler tireyle ayrılır; tek harfli bayraklar (`-h`, `-v`) simgedir. `-` ile başlayan bilinmeyen argüman en yakın seçeneği önerir. Türkçe harfsiz biçim ve başka araçların kısaltmaları asıl adı önerir.
-- *Test:* TR testi; Go: `TestCommandLineNamesInEveryLanguage`, `TestCommandsHaveOneName`, `TestExportEnvironmentGivesTheIdentityName`.
+- *Test:* Go: `TestCommandLineNamesInEveryLanguage`, `TestCommandsHaveOneName`, `TestExportEnvironmentGivesTheIdentityName`.
 
 ## Değişiklik
 
